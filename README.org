@@ -1,0 +1,58 @@
+#+LANGUAGE: en
+#+OPTIONS: H:3 num:nil toc:nil \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
+#+OPTIONS: TeX:t LaTeX:nil skip:nil d:nil todo:t pri:nil tags:not-in-toc
+#+EXPORT_EXCLUDE_TAGS: exclude
+#+STARTUP: showall
+
+* What is Miasm?
+Miasm is a a free and open source (GPLv2) reverse engineering framework.
+
+Miasm aims at analyzing/modifying/generating binary programs. Here is
+a non exhausting list of features:
+ - opening/modifying/generating PE/ELF 32/64 le/be using Elfesteem
+ - Assembling/Disassembling ia32/ppc/arm
+ - Representing assembly semantic using intermediate language
+ - Emulating using jit (dynamic code analysis, unpacking, ...)
+ - Expression simplification for automatic de-obfuscation
+ - Graphic disassembler using Grandalf
+ - ...
+
+* How does it work?
+Miasm embed its own disassembler, intermediate language and
+instruction semantic. It is written in Python.  
+
+To emulate code, it uses libtcc to jit C code generate from
+intermediate representation. It can emulate shellcodes, parts of
+binaries. Python callback can be executed to emulate library
+functions.
+
+* Documentation
+Documentation can be found under =doc/=.
+
+* Obtain Miasm
+
+* Software requirements
+Miasm uses:
+
+Grandalf (https://github.com/bdcht/grandalf.git) in order to render
+graphical disassembler.
+
+libtcc (http://bellard.org/tcc/) to Jit code for emulation mode. 
+
+python-ply for parsing
+
+numpy
+
+* Configuration
+Install libtcc
+clone grandalf repository
+set path:
+$ export PYTHONPATH=$PYTHONPATH:path_to_miasm:path_to_elfesteem
+
+Compile miasm emulation library:
+$ cd tools/emul_lib
+$ make
+
+* Misc
+Man, does miasm has a link with rr0d?
+Yes! crappy code and uggly documentation.

@@ -1,0 +1,7 @@
+\newskip\@bigflushglue \@bigflushglue = -100pt plus 1fil
+
+\def\bigcenter{\trivlist \bigcentering\item\relax}
+\def\bigcentering{\let\\\@centercr\rightskip\@bigflushglue%
+\leftskip\@bigflushglue
+\parindent\z@\parfillskip\z@skip}
+\def\endbigcenter{\endtrivlist}
