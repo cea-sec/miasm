@@ -1038,7 +1038,7 @@ def compose_eflag(s = 32):
     elif s == 16:
         regs = [nt, ExprInt(uint32(0))]
     else:
-        fdsfsdf
+        raise ValueError('unk size')
     for i in xrange(len(regs)):
         args.append(ExprSliceTo(regs[i],i+14, i+15))
     if s == 32:

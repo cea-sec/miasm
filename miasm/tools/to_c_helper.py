@@ -490,15 +490,7 @@ def asm2C(f_name, known_mems, dyn_func, in_str, x86_mn, symbol_pool, func_to_dis
     funcs_dec = []
 
     all_bloc_funcs+=asmbloc.dis_multi_func(in_str, x86_mn, symbol_pool, func_to_dis, dont_dis, follow_call, dontdis_retcall)
-    """
-    for f in  all_bloc_funcs:
-        print hex(f)
-        print all_bloc_funcs[f]
-        g = asmbloc.bloc2graph(all_bloc_funcs[f])
-        open("tmp/graph_%.8X.txt"%f , "w").write(g)
-    """
 
-    #fds
     
         
     for b in all_bloc_funcs:
@@ -549,45 +541,23 @@ def asm2C(f_name, known_mems, dyn_func, in_str, x86_mn, symbol_pool, func_to_dis
 
                 for f in dyn_func:
                     if i == f:
-                        if i == 0x00401EDB:
-                            fdsfdsf
-                        #l_name = "(unsigned int)&dyn_func_%.8X"%(f)
                         l_name = "(unsigned int)0x%.8X"%(f)
                 for f in func_to_dis:
                     if i == f:
-                        #l_name = "(unsigned int)&func_%.8X"%(f)
                         l_name = "(unsigned int)0x%.8X"%(f)
                         break
 
                 if not l_name:
                     continue
                 
-                    
-                
-                
                 label = asmbloc.asm_label(l_name, i)
-                #symbol_pool.add(label)
                 a[x86_afs.symb] = {label:1}
                 del a[x86_afs.imm]
                 
-                
-    
-    
-    
-                        
-                        
-                        
-          
-    #print "_"*20
 
     code_addr += blocs_to_memory_ranges(all_bloc_funcs)
     merge_memory_ranges(code_addr)
     
-    
-    
-        
-    #g = asmbloc.bloc2graph(all_bloc)
-    #open("graph_%.8X.txt"%ad , "w").write(g)
     
     allb = all_bloc_funcs#reduce(lambda x,y:x+y, all_bloc_funcs.values(), [])
     f_dec, out = bloc_gen_C_func(allb, f_name, None, True, log_mn, log_reg, log_lbl, filtered_ad, tick_dbg)
