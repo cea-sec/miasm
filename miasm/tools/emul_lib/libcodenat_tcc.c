@@ -56,10 +56,12 @@ void tcc_init_state(void)
         }
         tcc_set_output_type(tcc_state, TCC_OUTPUT_MEMORY);
 
-	tcc_add_include_path(tcc_state, "/usr/include/python2.6");
+
+
+	tcc_add_include_path(tcc_state, "/usr/lib/tcc/include");
+	tcc_add_include_path(tcc_state, emul_libpython_dir);
 	tcc_add_include_path(tcc_state, emul_lib_dir);
 	tcc_add_library_path(tcc_state, emul_lib_dir);
-	tcc_add_library_path(tcc_state, emul_libpython_dir);
 	tcc_add_file(tcc_state, emul_lib_path);
 }
 
