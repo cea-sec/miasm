@@ -229,13 +229,13 @@ unsigned int MEM_LOOKUP(unsigned int my_size, uint64_t addr);
 void MEM_WRITE_08(uint64_t addr, unsigned char src);
 void MEM_WRITE_16(uint64_t addr, unsigned short src);
 void MEM_WRITE_32(uint64_t addr, unsigned int src);
-void MEM_WRITE_64(uint64_t addr, unsigned long long src);
+void MEM_WRITE_64(uint64_t addr, uint64_t src);
 
 
 unsigned char MEM_LOOKUP_08(uint64_t addr);
 unsigned short MEM_LOOKUP_16(uint64_t addr);
 unsigned int MEM_LOOKUP_32(uint64_t addr);
-unsigned long long MEM_LOOKUP_64(uint64_t addr);
+uint64_t MEM_LOOKUP_64(uint64_t addr);
 
 
 
@@ -243,11 +243,11 @@ unsigned long long MEM_LOOKUP_64(uint64_t addr);
 void MEM_WRITE_08_PASSTHROUGH(uint64_t addr, unsigned char src);
 void MEM_WRITE_16_PASSTHROUGH(uint64_t addr, unsigned short src);
 void MEM_WRITE_32_PASSTHROUGH(uint64_t addr, unsigned int src);
-void MEM_WRITE_64_PASSTHROUGH(uint64_t addr, unsigned long long src);
+void MEM_WRITE_64_PASSTHROUGH(uint64_t addr, uint64_t src);
 unsigned char MEM_LOOKUP_08_PASSTHROUGH(uint64_t addr);
 unsigned short MEM_LOOKUP_16_PASSTHROUGH(uint64_t addr);
 unsigned int MEM_LOOKUP_32_PASSTHROUGH(uint64_t addr);
-unsigned long long MEM_LOOKUP_64_PASSTHROUGH(uint64_t addr);
+uint64_t MEM_LOOKUP_64_PASSTHROUGH(uint64_t addr);
 
 
 inline unsigned int parity(unsigned int a);
@@ -384,13 +384,13 @@ unsigned int fcom_c3(double a, double b);
 
 
 double mem_32_to_double(unsigned int m);
-double mem_64_to_double(unsigned long long m);
+double mem_64_to_double(uint64_t m);
 double int_32_to_double(unsigned int m);
-double int_64_to_double(unsigned long long m);
+double int_64_to_double(uint64_t m);
 int double_to_int_32(double d);
 double fadd(double a, double b);
 unsigned int double_to_mem_32(double d);
-unsigned long long double_to_mem_64(double d);
+uint64_t double_to_mem_64(double d);
 
 
 #define shift_right_arith_08(a, b)\
