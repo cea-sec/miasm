@@ -36,7 +36,6 @@ PyObject* tcc_set_emul_lib_path(PyObject* self, PyObject* args)
 	char* libpython_dir;
 	if (!PyArg_ParseTuple(args, "sss", &libdir, &libpath, &libpython_dir))
 		return NULL;
-	
 	emul_lib_dir = (char*)malloc(strlen(libdir)+1);
 	emul_lib_path = (char*)malloc(strlen(libpath)+1);
 	emul_libpython_dir = (char*)malloc(strlen(libpython_dir)+1);
@@ -48,15 +47,12 @@ PyObject* tcc_set_emul_lib_path(PyObject* self, PyObject* args)
 
 void tcc_init_state(void)
 {
-	
 	tcc_state = tcc_new();
 	if (!tcc_state) {
 		fprintf(stderr, "Impossible de creer un contexte TCC\n");
 		exit(1);
-        }
-        tcc_set_output_type(tcc_state, TCC_OUTPUT_MEMORY);
-
-
+	}
+	tcc_set_output_type(tcc_state, TCC_OUTPUT_MEMORY);
 
 	tcc_add_include_path(tcc_state, "/usr/lib/tcc/include");
 	tcc_add_include_path(tcc_state, emul_libpython_dir);
@@ -83,29 +79,20 @@ PyObject* tcc_compil(PyObject* self, PyObject* args)
 {
 	char* func_name;
 	char* func_code;
-        int (*entry)(void);
-        void *mem;
-        int size;
+	int (*entry)(void);
 
 	if (!PyArg_ParseTuple(args, "ss", &func_name, &func_code))
 		return NULL;
 
 	tcc_init_state();
-        if (tcc_compile_string(tcc_state, func_code) != 0) {
-                printf("Erreur de compilation !\n");
-                exit(0);
-        }
-	
-        size = tcc_relocate(tcc_state, NULL);
-        if (size == -1)
-                exit(0);
-
-        mem = malloc(size);
-        tcc_relocate(tcc_state, mem);
-
-        entry = tcc_get_symbol(tcc_state, func_name);
-	
-	tcc_delete(tcc_state);
+	if (tcc_compile_string(tcc_state, func_code) != 0) {
+		printf("Erreur de compilation !\n");
+		exit(0);
+	}
+	/* XXX use tinycc devel with -fPIC patch in makefile */
+	if (tcc_relocate(tcc_state) < 0)
+		exit(0);
+	entry = tcc_get_symbol(tcc_state, func_name);
 
 	return PyInt_FromLong((long)entry);
 
@@ -124,7 +111,7 @@ static PyMethodDef TccMethods[] = {
      "tcc compil"},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
-    
+
 PyMODINIT_FUNC
 initlibcodenat_tcc(void)
 {
@@ -132,7 +119,7 @@ initlibcodenat_tcc(void)
 
     m = Py_InitModule("libcodenat_tcc", TccMethods);
     if (m == NULL)
-        return;
+	    return;
 
     TccError = PyErr_NewException("tcc.error", NULL, NULL);
     Py_INCREF(TccError);

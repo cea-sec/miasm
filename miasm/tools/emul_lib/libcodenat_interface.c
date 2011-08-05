@@ -129,7 +129,7 @@ reg_dict gpreg_dict[] = { {.name = "eax", .ptr = &(vmcpu.eax)},
 PyObject* _vm_set_gpreg(PyObject *dict)
 {
     PyObject *d_key, *d_value = NULL;
-    int pos = 0;
+    Py_ssize_t pos = 0;
     unsigned int val;
     unsigned int i, found;
 
