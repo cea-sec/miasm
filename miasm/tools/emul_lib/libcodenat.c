@@ -23,6 +23,7 @@
 #include <string.h>
 
 #include <stdint.h>
+#include <inttypes.h>
 
 #include "queue.h"
 #include "libcodenat.h"
@@ -68,12 +69,14 @@ struct memory_page_node *memory_page_pool_tab[MAX_MEMORY_PAGE_POOL_TAB];
 
 void dump_gpregs(void)
 {
-	printf("eip %.8X eax %.8X ebx %.8X ecx %.8X edx %.8X\nesi %.8X edi %.8X esp %.8X ebp %.8X\nmy_tick %X\n", 
-	       vmcpu.eip, vmcpu.eax, vmcpu.ebx, vmcpu.ecx, vmcpu.edx, vmcpu.esi, vmcpu.edi, vmcpu.esp, vmcpu.ebp,
+	printf("eip %.8X eax %.8X ebx %.8X ecx %.8X edx %.8X\n",
+	       vmcpu.eip, vmcpu.eax, vmcpu.ebx, vmcpu.ecx, vmcpu.edx);
+	printf("esi %.8X edi %.8X esp %.8X ebp %.8X\nmy_tick %X\n",
+	       vmcpu.esi, vmcpu.edi, vmcpu.esp, vmcpu.ebp,
 	       vmcpu.my_tick);
 }
 
-struct memory_page_node * get_memory_page_from_address(unsigned int ad)
+struct memory_page_node * get_memory_page_from_address(uint64_t ad)
 {
 	struct memory_page_node * mpn;
 #if 1
@@ -81,7 +84,7 @@ struct memory_page_node * get_memory_page_from_address(unsigned int ad)
 	if ( mpn && (mpn->ad <= ad) && (ad < mpn->ad + mpn->size))
 		return mpn;
 
-	printf("cannot find address!! %X\n", ad);
+	printf("cannot find address!! %"PRIX64"\n", ad);
 	dump_memory_page_pool();
 	dump_gpregs();
 	//exit(-1);
@@ -107,11 +110,11 @@ struct memory_page_node * get_memory_page_from_address(unsigned int ad)
 
 
 
-static inline unsigned long long memory_page_read(unsigned int my_size, unsigned int ad)
+static inline uint64_t memory_page_read(unsigned int my_size, uint64_t ad)
 {
 	struct memory_page_node * mpn;
 	unsigned char * addr;
-	unsigned long long ret = 0;
+	uint64_t ret = 0;
 
 
 	mpn = get_memory_page_from_address(ad);
@@ -119,7 +122,7 @@ static inline unsigned long long memory_page_read(unsigned int my_size, unsigned
 		return 0;
 
 	if ((mpn->access & PAGE_READ) == 0){
-		printf("access to non readable page!! %X\n", ad);
+		printf("access to non readable page!! %"PRIX64"\n", ad);
 		vmcpu.vm_exception_flags |= EXCEPT_ACCESS_VIOL;
 		return 0;
 	}
@@ -140,7 +143,7 @@ static inline unsigned long long memory_page_read(unsigned int my_size, unsigned
 			ret = Endian32_Swap(ret);
 			break;
 		case 64:
-			ret = *((unsigned long long*)addr)&0xFFFFFFFFFFFFFFFFULL;
+			ret = *((uint64_t*)addr)&0xFFFFFFFFFFFFFFFFULL;
 			ret = Endian64_Swap(ret);
 			break;
 		default:
@@ -151,7 +154,7 @@ static inline unsigned long long memory_page_read(unsigned int my_size, unsigned
 	/* read is multiple page wide */
 	else{
 		unsigned int new_size = my_size;
-		printf("read multiple page! %X %X\n", ad, new_size);
+		printf("read multiple page! %"PRIX64" %X\n", ad, new_size);
 		dump_memory_page_pool();
 		while (new_size){
 			ret <<=8;
@@ -184,7 +187,8 @@ static inline unsigned long long memory_page_read(unsigned int my_size, unsigned
 	return ret;
 }
 
-static inline void memory_page_write(unsigned int my_size, unsigned int ad, unsigned long long src)
+static inline void memory_page_write(unsigned int my_size,
+				     uint64_t ad, uint64_t src)
 {
 	struct memory_page_node * mpn;
 	unsigned char * addr;
@@ -194,7 +198,7 @@ static inline void memory_page_write(unsigned int my_size, unsigned int ad, unsi
 		return;
 
 	if ((mpn->access & PAGE_WRITE) == 0){
-		printf("access to non writable page!! %X\n", ad);
+		printf("access to non writable page!! %"PRIX64"\n", ad);
 		vmcpu.vm_exception_flags |= EXCEPT_ACCESS_VIOL;
 		return ;
 	}
@@ -217,7 +221,7 @@ static inline void memory_page_write(unsigned int my_size, unsigned int ad, unsi
 			break;
 		case 64:
 			src = Endian64_Swap(src);
-			*((unsigned long long*)addr) = src&0xFFFFFFFFFFFFFFFFULL;
+			*((uint64_t*)addr) = src&0xFFFFFFFFFFFFFFFFULL;
 			break;
 		default:
 			exit(0);
@@ -226,7 +230,7 @@ static inline void memory_page_write(unsigned int my_size, unsigned int ad, unsi
 	}
 	/* write is multiple page wide */
 	else{
-		printf("write multiple page! %X %X\n", ad, my_size);
+		printf("write multiple page! %"PRIX64" %X\n", ad, my_size);
 		dump_memory_page_pool();
 		switch(my_size){
 
@@ -261,7 +265,7 @@ static inline void memory_page_write(unsigned int my_size, unsigned int ad, unsi
 
 
 
-inline void check_write_code_bloc(unsigned int my_size, unsigned int addr)
+inline void check_write_code_bloc(unsigned int my_size, uint64_t addr)
 {
 	struct code_bloc_node * cbp;
 	vmcpu.vm_last_write_ad = addr;
@@ -269,19 +273,22 @@ inline void check_write_code_bloc(unsigned int my_size, unsigned int addr)
 
 	//if(vmcpu.my_tick> my_tick)
 	//	printf("M_WRITE %2d %.8X %.8X\n", my_size, addr, src);
-	if (!(addr + my_size/8 <= code_bloc_pool_ad_min || addr >=code_bloc_pool_ad_max)){
+	if (!(addr + my_size/8 <= code_bloc_pool_ad_min ||
+	      addr >=code_bloc_pool_ad_max)){
 		LIST_FOREACH(cbp, &code_bloc_pool, next){
-			if ((cbp->ad_start <= addr + my_size/8) && (addr < cbp->ad_stop)){
-				printf("self modifying code %.8X %.8X from approx %X\n", addr, my_size, vmcpu.eip);
+			if ((cbp->ad_start <= addr + my_size/8) &&
+			    (addr < cbp->ad_stop)){
+				printf("self modifying code %"PRIX64" %.8X",
+				       addr, my_size);
+				printf(" from approx %X\n", vmcpu.eip);
 				vmcpu.vm_exception_flags |= EXCEPT_CODE_AUTOMOD;
 				break;
 			}
 		}
 	}
-
 }
 
-void MEM_WRITE(unsigned int my_size, unsigned int addr , unsigned int src)
+void MEM_WRITE(unsigned int my_size, uint64_t addr, unsigned int src)
 {
 	struct code_bloc_node * cbp;
 
@@ -290,10 +297,14 @@ void MEM_WRITE(unsigned int my_size, unsigned int addr , unsigned int src)
 
 	//if(vmcpu.my_tick> my_tick)
 	//	printf("M_WRITE %2d %.8X %.8X\n", my_size, addr, src);
-	if (!(addr + my_size/8 <= code_bloc_pool_ad_min || addr >=code_bloc_pool_ad_max)){
+	if (!(addr + my_size/8 <= code_bloc_pool_ad_min ||
+	      addr >=code_bloc_pool_ad_max)){
 		LIST_FOREACH(cbp, &code_bloc_pool, next){
-			if ((cbp->ad_start <= addr + my_size/8) && (addr < cbp->ad_stop)){
-				printf("self modifying code %.8X %.8X from approx %X\n", addr, my_size, vmcpu.eip);
+			if ((cbp->ad_start <= addr + my_size/8) &&
+			    (addr < cbp->ad_stop)){
+				printf("self modifying code %"PRIX64" %.8X",
+				       addr, my_size);
+				printf(" from approx %X\n", vmcpu.eip);
 				vmcpu.vm_exception_flags |= EXCEPT_CODE_AUTOMOD;
 				break;
 			}
@@ -303,119 +314,65 @@ void MEM_WRITE(unsigned int my_size, unsigned int addr , unsigned int src)
 	memory_page_write(my_size, addr, src);
 }
 
-void MEM_WRITE_08(unsigned int addr , unsigned char src)
+void MEM_WRITE_08(uint64_t addr, unsigned char src)
 {
 	check_write_code_bloc(8, addr);
 	memory_page_write(8, addr, src);
 }
 
-void MEM_WRITE_16(unsigned int addr , unsigned short src)
+void MEM_WRITE_16(uint64_t addr, unsigned short src)
 {
 	check_write_code_bloc(16, addr);
 	memory_page_write(16, addr, src);
 }
 
-void MEM_WRITE_32(unsigned int addr , unsigned int src)
+void MEM_WRITE_32(uint64_t addr, unsigned int src)
 {
 	check_write_code_bloc(32, addr);
 	memory_page_write(32, addr, src);
 }
 
-void MEM_WRITE_64(unsigned int addr , unsigned long long src)
+void MEM_WRITE_64(uint64_t addr, uint64_t src)
 {
 	check_write_code_bloc(64, addr);
 	memory_page_write(64, addr, src);
 }
 
 
-unsigned int MEM_LOOKUP(unsigned int my_size, unsigned int addr)
+unsigned int MEM_LOOKUP(unsigned int my_size, uint64_t addr)
 {
     unsigned int ret;
     ret = memory_page_read(my_size, addr);
     return ret;
 }
 
-unsigned char MEM_LOOKUP_08(unsigned int addr)
+unsigned char MEM_LOOKUP_08(uint64_t addr)
 {
     unsigned char ret;
     ret = memory_page_read(8, addr);
     return ret;
 }
 
-unsigned short MEM_LOOKUP_16(unsigned int addr)
+unsigned short MEM_LOOKUP_16(uint64_t addr)
 {
     unsigned short ret;
     ret = memory_page_read(16, addr);
     return ret;
 }
 
-unsigned int MEM_LOOKUP_32(unsigned int addr)
+unsigned int MEM_LOOKUP_32(uint64_t addr)
 {
     unsigned int ret;
     ret = memory_page_read(32, addr);
     return ret;
 }
 
-unsigned long long MEM_LOOKUP_64(unsigned int addr)
+uint64_t MEM_LOOKUP_64(uint64_t addr)
 {
-    unsigned long long ret;
+    uint64_t ret;
     ret = memory_page_read(64, addr);
     return ret;
 }
-
-
-
-
-void MEM_WRITE_08_PASSTHROUGH(unsigned int addr, unsigned char src)
-{
-	*((unsigned char*)addr) = src;
-}
-
-void MEM_WRITE_16_PASSTHROUGH(unsigned int addr, unsigned short src)
-{
-	*((unsigned short*)addr) = Endian16_Swap(src);
-}
-
-void MEM_WRITE_32_PASSTHROUGH(unsigned int addr, unsigned int src)
-{
-	*((unsigned int*)addr) = Endian32_Swap(src);
-}
-
-void MEM_WRITE_64_PASSTHROUGH(unsigned int addr, unsigned long long src)
-{
-	*((unsigned long long*)addr) = Endian64_Swap(src);
-}
-
-
-unsigned char MEM_LOOKUP_08_PASSTHROUGH(unsigned int addr)
-{
-	unsigned char ret;
-	ret = *((unsigned char*)addr);
-	return ret;
-}
-
-unsigned short MEM_LOOKUP_16_PASSTHROUGH(unsigned int addr)
-{
-	unsigned short ret;
-	ret = *((unsigned short*)addr);
-	return Endian16_Swap(ret);
-}
-
-unsigned int MEM_LOOKUP_32_PASSTHROUGH(unsigned int addr)
-{
-	unsigned int ret;
-	ret = *((unsigned int*)addr);
-	return Endian32_Swap(ret);
-}
-
-unsigned long long MEM_LOOKUP_64_PASSTHROUGH(unsigned int addr)
-{
-	unsigned long long ret;
-	ret = *((unsigned long long*)addr);
-	return Endian64_Swap(ret);
-}
-
-
 
 void vm_throw(unsigned long flags)
 {
@@ -478,7 +435,8 @@ int shift_right_arith_32(int a, unsigned int b)
 	return (i32_a >> b)&0xffffffff;
 }
 */
-unsigned int shift_right_logic(unsigned int size, unsigned int a, unsigned int b)
+unsigned int shift_right_logic(unsigned int size,
+			       unsigned int a, unsigned int b)
 {
     unsigned int u32_a;
     unsigned short u16_a;
@@ -564,12 +522,12 @@ unsigned int mul_lo_op(unsigned int size, unsigned int a, unsigned int b)
 
 	a &= mask;
 	b &= mask;
-	return ((long long)a * (long long) b) & mask;
+	return ((int64_t)a * (int64_t) b) & mask;
 }
 
 unsigned int mul_hi_op(unsigned int size, unsigned int a, unsigned int b)
 {
-	unsigned long long res = 0;
+	uint64_t res = 0;
 	unsigned int mask;
 
 	switch (size) {
@@ -581,7 +539,7 @@ unsigned int mul_hi_op(unsigned int size, unsigned int a, unsigned int b)
 
 	a &= mask;
 	b &= mask;
-	res = ((unsigned long long)a * (unsigned long long)b);
+	res = ((uint64_t)a * (uint64_t)b);
 	return (res >> 32) & mask;
 }
 
@@ -603,21 +561,21 @@ unsigned int imul_lo_op_32(int a, int b)
 
 int imul_hi_op_08(char a, char b)
 {
-	long long res = 0;
+	int64_t res = 0;
 	res = a*b;
 	return res>>8;
 }
 
 int imul_hi_op_16(short a, short b)
 {
-	long long res = 0;
+	int64_t res = 0;
 	res = a*b;
 	return res>>16;
 }
 
 int imul_hi_op_32(int a, int b)
 {
-	long long res = 0;
+	int64_t res = 0;
 	res = a*b;
 	return res>>32;
 }
@@ -626,20 +584,20 @@ int imul_hi_op_32(int a, int b)
 
 unsigned int div_op(unsigned int size, unsigned int a, unsigned int b, unsigned int c)
 {
-    long long int num;
+    int64_t num;
     if (c == 0)
     {
 	    vmcpu.vm_exception_flags |= EXCEPT_INT_DIV_BY_ZERO;
 	    return 0;
     }
-    num = ((long long)a << size) + b;
-    num/=(long long)c;
+    num = ((int64_t)a << size) + b;
+    num/=(int64_t)c;
     return num;
 }
 
 unsigned int rem_op(unsigned int size, unsigned int a, unsigned int b, unsigned int c)
 {
-    long long int num;
+    int64_t num;
 
     if (c == 0)
     {
@@ -647,8 +605,8 @@ unsigned int rem_op(unsigned int size, unsigned int a, unsigned int b, unsigned 
 	    return 0;
     }
 
-    num = ((long long )a << size) + b;
-    num = (long long)num-c*(num/c);
+    num = ((int64_t)a << size) + b;
+    num = (int64_t)num-c*(num/c);
     return num;
 }
 
@@ -700,7 +658,7 @@ int rot_right(unsigned int size, unsigned int a, unsigned int b)
 
 int rcl_rez_op(unsigned int size, unsigned int a, unsigned int b, unsigned int cf)
 {
-    unsigned long long tmp;
+    uint64_t tmp;
 
     tmp = (cf << size) | a;
 
@@ -733,7 +691,7 @@ int rcr_rez_op(unsigned int size, unsigned int a, unsigned int b, unsigned int c
 
 int rcl_cf_op(unsigned int size, unsigned int a, unsigned int b, unsigned int cf)
 {
-    unsigned long long tmp;
+    uint64_t tmp;
 
     tmp = (cf<< size) | a;
 
@@ -848,7 +806,7 @@ double mem_32_to_double(unsigned int m)
 }
 
 
-double mem_64_to_double(unsigned long long m)
+double mem_64_to_double(uint64_t m)
 {
 	double d;
 	d = *((double*)&m);
@@ -863,7 +821,7 @@ double int_32_to_double(unsigned int m)
 	return d;
 }
 
-double int_64_to_double(unsigned long long m)
+double int_64_to_double(uint64_t m)
 {
 	double d;
 
@@ -920,14 +878,14 @@ unsigned int double_to_mem_32(double d)
 	return m;
 }
 
-unsigned long long double_to_mem_64(double d)
+uint64_t double_to_mem_64(double d)
 {
-	unsigned long long m;
-	m = *((unsigned long long*)&d);
+	uint64_t m;
+	m = *((uint64_t*)&d);
 	return m;
 }
 
-struct memory_page_node * create_memory_page_node(unsigned int ad, unsigned int size, unsigned int access)
+struct memory_page_node * create_memory_page_node(uint64_t ad, unsigned int size, unsigned int access)
 {
 	struct memory_page_node * mpn;
 	void* p;
@@ -951,7 +909,7 @@ struct memory_page_node * create_memory_page_node(unsigned int ad, unsigned int 
 }
 
 
-struct code_bloc_node * create_code_bloc_node(unsigned int ad_start, unsigned int ad_stop)
+struct code_bloc_node * create_code_bloc_node(uint64_t ad_start, uint64_t ad_stop)
 {
 	struct code_bloc_node * cbp;
 
@@ -982,7 +940,7 @@ void dump_code_bloc_pool(void)
 	struct code_bloc_node * cbp;
 
 	LIST_FOREACH(cbp, &code_bloc_pool, next){
-		printf("ad start %.8X ad_stop %.8X\n",
+		printf("ad start %"PRIX64" ad_stop %"PRIX64"\n",
 		       cbp->ad_start,
 		       cbp->ad_stop);
 	}
@@ -1040,7 +998,9 @@ void reset_code_bloc_pool(void)
 void insert_mpn_in_tab(struct memory_page_node* mpn_a)
 {
 	unsigned int i;
-	for (i=mpn_a->ad >> MEMORY_PAGE_POOL_MASK_BIT;i<(mpn_a->ad + mpn_a->size + PAGE_SIZE - 1)>>MEMORY_PAGE_POOL_MASK_BIT; i++){
+	for (i=mpn_a->ad >> MEMORY_PAGE_POOL_MASK_BIT;
+	     i<(mpn_a->ad + mpn_a->size + PAGE_SIZE - 1)>>MEMORY_PAGE_POOL_MASK_BIT;
+	     i++){
 		if (memory_page_pool_tab[i] !=NULL){
 			printf("known page in tab\n");
 			exit(1);
@@ -1054,7 +1014,7 @@ void add_memory_page(struct memory_page_node* mpn_a)
 {
 	struct memory_page_node * mpn;
 	struct memory_page_node * lmpn;
-	//unsigned int i;
+
 	if (LIST_EMPTY(&memory_page_pool)){
 		LIST_INSERT_HEAD(&memory_page_pool, mpn_a, next);
 		insert_mpn_in_tab(mpn_a);
@@ -1078,7 +1038,7 @@ void dump_memory_page_pool()
 	struct memory_page_node * mpn;
 
 	LIST_FOREACH(mpn, &memory_page_pool, next){
-		printf("ad %.8X size %.8X %c%c%c hpad %p\n",
+		printf("ad %"PRIX64" size %.8X %c%c%c hpad %p\n",
 		       mpn->ad,
 		       mpn->size,
 		       mpn->access & PAGE_READ? 'R':'_',
@@ -1097,7 +1057,7 @@ void dump_memory_page_pool()
 unsigned int get_memory_page_max_address(void)
 {
 	struct memory_page_node * mpn;
-	unsigned int ad = 0;
+	uint64_t ad = 0;
 
 	LIST_FOREACH(mpn, &memory_page_pool, next){
 		if (ad < mpn->ad + mpn->size)
@@ -1109,10 +1069,11 @@ unsigned int get_memory_page_max_address(void)
 unsigned int get_memory_page_max_user_address(void)
 {
 	struct memory_page_node * mpn;
-	unsigned int ad = 0;
+	uint64_t ad = 0;
 
 	LIST_FOREACH(mpn, &memory_page_pool, next){
-		if (ad < mpn->ad + mpn->size && mpn->ad + mpn->size < 0x80000000)
+		if (ad < mpn->ad + mpn->size &&
+		    mpn->ad + mpn->size < 0x80000000)
 			ad = mpn->ad + mpn->size;
 	}
 	return ad;
@@ -1122,7 +1083,7 @@ unsigned int get_memory_page_max_user_address(void)
 unsigned int get_memory_page_next(unsigned int n_ad)
 {
 	struct memory_page_node * mpn;
-	unsigned int ad = 0;
+	uint64_t ad = 0;
 
 	LIST_FOREACH(mpn, &memory_page_pool, next){
 		if (mpn->ad < n_ad)
@@ -1212,11 +1173,15 @@ void hexdump(char* m, unsigned int l)
 
 void _vm_init_regs()
 {
-    vmcpu.eax = vmcpu.ebx = vmcpu.ecx = vmcpu.edx = vmcpu.esi = vmcpu.edi = vmcpu.esp = vmcpu.ebp = 0;
-    vmcpu.zf = vmcpu.nf = vmcpu.pf = vmcpu.of = vmcpu.cf = vmcpu.af = vmcpu.df = 0;
-    vmcpu.eax_new = vmcpu.ebx_new = vmcpu.ecx_new = vmcpu.edx_new = vmcpu.esi_new = vmcpu.edi_new = vmcpu.esp_new = vmcpu.ebp_new = 0;
-    vmcpu.zf_new = vmcpu.nf_new = vmcpu.pf_new = vmcpu.of_new = vmcpu.cf_new = vmcpu.af_new = vmcpu.df_new = 0;
-    vmcpu.esp = 0;
+	vmcpu.eax = vmcpu.ebx = vmcpu.ecx = vmcpu.edx = 0;
+	vmcpu.esi = vmcpu.edi = vmcpu.esp = vmcpu.ebp = 0;
+	vmcpu.zf = vmcpu.nf = vmcpu.pf = vmcpu.of = 0;
+	vmcpu.cf = vmcpu.af = vmcpu.df = 0;
+	vmcpu.eax_new = vmcpu.ebx_new = vmcpu.ecx_new = vmcpu.edx_new = 0;
+	vmcpu.esi_new = vmcpu.edi_new = vmcpu.esp_new = vmcpu.ebp_new = 0;
+	vmcpu.zf_new = vmcpu.nf_new = vmcpu.pf_new = vmcpu.of_new = 0;
+	vmcpu.cf_new = vmcpu.af_new = vmcpu.df_new = 0;
+	vmcpu.esp = 0;
 }
 
 

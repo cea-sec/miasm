@@ -22,23 +22,23 @@
 #if __BYTE_ORDER == __BIG_ENDIAN
 #define Endian16_Swap(value) \
       ((((uint16_t)((value) & 0x00FF)) << 8) | \
-         (((uint16_t)((value) & 0xFF00)) >> 8))
+       (((uint16_t)((value) & 0xFF00)) >> 8))
 
 #define Endian32_Swap(value) \
-         ((((uint32_t)((value) & 0x000000FF)) << 24) | \
-         (((uint32_t)((value) & 0x0000FF00)) << 8) | \
-         (((uint32_t)((value) & 0x00FF0000)) >> 8) | \
-         (((uint32_t)((value) & 0xFF000000)) >> 24))
+	((((uint32_t)((value) & 0x000000FF)) << 24) |	\
+	 (((uint32_t)((value) & 0x0000FF00)) << 8) |	\
+	 (((uint32_t)((value) & 0x00FF0000)) >> 8) |	\
+	 (((uint32_t)((value) & 0xFF000000)) >> 24))
 
-#define Endian64_Swap(value)					    \
-                (((((uint64_t)value)<<56) & 0xFF00000000000000ULL)  | \
-                 ((((uint64_t)value)<<40) & 0x00FF000000000000ULL)  | \
-                 ((((uint64_t)value)<<24) & 0x0000FF0000000000ULL)  | \
-                 ((((uint64_t)value)<< 8) & 0x000000FF00000000ULL)  | \
-                 ((((uint64_t)value)>> 8) & 0x00000000FF000000ULL)  | \
-                 ((((uint64_t)value)>>24) & 0x0000000000FF0000ULL)  | \
-                 ((((uint64_t)value)>>40) & 0x000000000000FF00ULL)  | \
-                 ((((uint64_t)value)>>56) & 0x00000000000000FFULL))
+#define Endian64_Swap(value)					      \
+	(((((uint64_t)value)<<56) & 0xFF00000000000000ULL)  |	      \
+	 ((((uint64_t)value)<<40) & 0x00FF000000000000ULL)  |	      \
+	 ((((uint64_t)value)<<24) & 0x0000FF0000000000ULL)  |	      \
+	 ((((uint64_t)value)<< 8) & 0x000000FF00000000ULL)  |	      \
+	 ((((uint64_t)value)>> 8) & 0x00000000FF000000ULL)  |	      \
+	 ((((uint64_t)value)>>24) & 0x0000000000FF0000ULL)  |	      \
+	 ((((uint64_t)value)>>40) & 0x000000000000FF00ULL)  |	      \
+	 ((((uint64_t)value)>>56) & 0x00000000000000FFULL))
 #else
 #define Endian16_Swap(value) (value)
 
@@ -55,7 +55,7 @@ LIST_HEAD(code_bloc_list_head, code_bloc_node);
 
 
 typedef struct {
-	unsigned int eax; 
+	unsigned int eax;
 	unsigned int ebx;
 	unsigned int ecx;
 	unsigned int edx;
@@ -113,16 +113,12 @@ typedef struct {
 	unsigned int  i_d_new;
 
 	unsigned int my_tick;
-	
-	
-	
+
 	unsigned int cond;
-	
+
 	unsigned int ds;
-	
 	unsigned int vm_exception_flags;
 	unsigned int vm_exception_flags_new;
-	
 	unsigned int vm_last_write_ad;
 	unsigned int vm_last_write_size ;
 
@@ -173,49 +169,20 @@ typedef struct {
 	unsigned int cr3;
 	unsigned int cr3_new;
 
-	
-	//PyObject* known_blocs;
-	
 
 }vm_cpu_t;
 
 
 extern vm_cpu_t vmcpu;
 
-/*
-extern unsigned int eax, ebx, ecx, edx, esi, edi, esp, ebp, eip;
-extern unsigned int zf, nf, pf, of, cf, af, df;
-
-extern unsigned int eax_new, ebx_new, ecx_new, edx_new, esi_new, edi_new, esp_new, ebp_new, eip_new;
-extern unsigned int zf_new, nf_new, pf_new, of_new, cf_new, af_new, df_new;
-extern unsigned int tf, i_f, iopl_f, nt, rf, vm, ac, vif, vip, i_d;
-extern unsigned int tf_new, i_f_new, iopl_f_new, nt_new, rf_new, vm_new, ac_new, vif_new, vip_new, i_d_new;
-
-extern unsigned int my_tick;
-
-extern unsigned int reg_float_control;
-
-
-extern unsigned int cond;
-
-extern unsigned int ds;
-
-extern unsigned int vm_exception_flags;
-extern unsigned int vm_exception_flags_new;
-
-extern unsigned int vm_last_write_ad;
-extern unsigned int vm_last_write_size ;
-*/
-
 typedef struct _memory_page{
 }memory_page;
 
 struct memory_page_node {
-	unsigned int ad;
+	uint64_t ad;
 	unsigned int size;
 	unsigned int access;
 	void* ad_hp;
-	
 	//memory_page *mp;
 	LIST_ENTRY(memory_page_node)   next;
 };
@@ -223,9 +190,9 @@ struct memory_page_node {
 
 
 struct code_bloc_node {
-	unsigned int ad_start;
-	unsigned int ad_stop;
-	unsigned int ad_code;
+	uint64_t ad_start;
+	uint64_t ad_stop;
+	uint64_t ad_code;
 	LIST_ENTRY(code_bloc_node)   next;
 };
 
@@ -235,7 +202,7 @@ struct code_bloc_node {
 #define PAGE_EXEC 4
 
 
-//memory_page* create_memory_page(unsigned int ad, unsigned int size);
+//memory_page* create_memory_page(uint64_t ad, unsigned int size);
 
 //PyObject* _vm_get_exception(unsigned int xcpt);
 
@@ -255,32 +222,32 @@ struct code_bloc_node {
 #define EXCEPT_ILLEGAL_INSN (1<<8)
 
 void dump_gpregs(void);
-void MEM_WRITE(unsigned int my_size, unsigned int addr , unsigned int src);
-unsigned int MEM_LOOKUP(unsigned int my_size, unsigned int addr);
+void MEM_WRITE(unsigned int my_size, uint64_t addr, unsigned int src);
+unsigned int MEM_LOOKUP(unsigned int my_size, uint64_t addr);
 
 
-void MEM_WRITE_08(unsigned int addr , unsigned char src);
-void MEM_WRITE_16(unsigned int addr , unsigned short src);
-void MEM_WRITE_32(unsigned int addr , unsigned int src);
-void MEM_WRITE_64(unsigned int addr , unsigned long long src);
+void MEM_WRITE_08(uint64_t addr, unsigned char src);
+void MEM_WRITE_16(uint64_t addr, unsigned short src);
+void MEM_WRITE_32(uint64_t addr, unsigned int src);
+void MEM_WRITE_64(uint64_t addr, unsigned long long src);
 
 
-unsigned char MEM_LOOKUP_08(unsigned int addr);
-unsigned short MEM_LOOKUP_16(unsigned int addr);
-unsigned int MEM_LOOKUP_32(unsigned int addr);
-unsigned long long MEM_LOOKUP_64(unsigned int addr);
+unsigned char MEM_LOOKUP_08(uint64_t addr);
+unsigned short MEM_LOOKUP_16(uint64_t addr);
+unsigned int MEM_LOOKUP_32(uint64_t addr);
+unsigned long long MEM_LOOKUP_64(uint64_t addr);
 
 
 
 
-void MEM_WRITE_08_PASSTHROUGH(unsigned int addr, unsigned char src);
-void MEM_WRITE_16_PASSTHROUGH(unsigned int addr, unsigned short src);
-void MEM_WRITE_32_PASSTHROUGH(unsigned int addr, unsigned int src);
-void MEM_WRITE_64_PASSTHROUGH(unsigned int addr, unsigned long long src);
-unsigned char MEM_LOOKUP_08_PASSTHROUGH(unsigned int addr);
-unsigned short MEM_LOOKUP_16_PASSTHROUGH(unsigned int addr);
-unsigned int MEM_LOOKUP_32_PASSTHROUGH(unsigned int addr);
-unsigned long long MEM_LOOKUP_64_PASSTHROUGH(unsigned int addr);
+void MEM_WRITE_08_PASSTHROUGH(uint64_t addr, unsigned char src);
+void MEM_WRITE_16_PASSTHROUGH(uint64_t addr, unsigned short src);
+void MEM_WRITE_32_PASSTHROUGH(uint64_t addr, unsigned int src);
+void MEM_WRITE_64_PASSTHROUGH(uint64_t addr, unsigned long long src);
+unsigned char MEM_LOOKUP_08_PASSTHROUGH(uint64_t addr);
+unsigned short MEM_LOOKUP_16_PASSTHROUGH(uint64_t addr);
+unsigned int MEM_LOOKUP_32_PASSTHROUGH(uint64_t addr);
+unsigned long long MEM_LOOKUP_64_PASSTHROUGH(uint64_t addr);
 
 
 inline unsigned int parity(unsigned int a);
@@ -340,10 +307,10 @@ extern reg_dict gpreg_dict[];
 
 void hexdump(char* m, unsigned int l);
 
-struct code_bloc_node * create_code_bloc_node(unsigned int ad_start, unsigned int ad_stop);
+struct code_bloc_node * create_code_bloc_node(uint64_t ad_start, uint64_t ad_stop);
 void add_code_bloc(struct code_bloc_node* cbp);
 
-struct memory_page_node * create_memory_page_node(unsigned int ad, unsigned int size, unsigned int access);//memory_page* mp);
+struct memory_page_node * create_memory_page_node(uint64_t ad, unsigned int size, unsigned int access);//memory_page* mp);
 void init_memory_page_pool(void);
 void init_code_bloc_pool(void);
 void reset_memory_page_pool(void);
@@ -366,8 +333,8 @@ void dump_memory_page_pool(void);
 //PyObject*  _vm_set_cpu_state(PyObject * s_cpustate);
 
 
-//void memory_page_write(unsigned int my_size, unsigned int ad, unsigned int src);
-//unsigned int memory_page_read(unsigned int my_size, unsigned int ad);
+//void memory_page_write(unsigned int my_size, uint64_t ad, unsigned int src);
+//unsigned int memory_page_read(unsigned int my_size, uint64_t ad);
 unsigned int get_memory_page_max_address(void);
 unsigned int get_memory_page_max_user_address(void);
 
@@ -393,7 +360,7 @@ void func_alloc(void);
 unsigned int get_memory_page_max_address_py(void);
 unsigned int get_memory_page_max_user_address_py(void);
 unsigned int get_memory_page_from_min_ad_py(unsigned int size);
-struct memory_page_node * get_memory_page_from_address(unsigned int ad);
+struct memory_page_node * get_memory_page_from_address(uint64_t ad);
 void func_malloc_memory_page(void);
 void func_free_memory_page(void);
 void func_virtualalloc_memory_page(void);
