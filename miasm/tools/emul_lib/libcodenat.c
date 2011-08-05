@@ -34,37 +34,6 @@
 struct memory_page_list_head memory_page_pool;
 struct code_bloc_list_head code_bloc_pool;
 
-//#define RAISE(errtype,msg) { PyErr_SetString(errtype,msg); RE_RAISE; }
-//#define RE_RAISE           { Py_XDECREF(string); return NULL; }
-//#define RAISE(errtype, msg) {PyObject* p; p = PyErr_Format( errtype, msg ); return p;}
-
-/*
-unsigned int eax, ebx, ecx, edx, esi, edi, esp, ebp, eip;
-unsigned int zf, nf, pf, of, cf, af, df;
-
-unsigned int eax_new, ebx_new, ecx_new, edx_new, esi_new, edi_new, esp_new, ebp_new, eip_new;
-unsigned int zf_new, nf_new, pf_new, of_new, cf_new, af_new, df_new;
-unsigned int tf, i_f, iopl_f, nt, rf, vm, ac, vif, vip, i_d;
-unsigned int tf_new, i_f_new, iopl_f_new, nt_new, rf_new, vm_new, ac_new, vif_new, vip_new, i_d_new;
-
-unsigned int my_tick = 0;
-
-unsigned int reg_float_control;
-
-unsigned int cond;
-
-
-unsigned int ds;
-
-
-unsigned int vm_exception_flags = 0;
-unsigned int vm_exception_flags_new = 0;
-
-
-unsigned int vm_last_write_ad = 0;
-unsigned int vm_last_write_size = 0;
-*/
-
 vm_cpu_t vmcpu;
 
 /****************memory manager**************/
@@ -72,9 +41,6 @@ vm_cpu_t vmcpu;
 unsigned int min_page_ad = 0x22000000;
 
 extern unsigned int *code_addr_tab;
-
-//LIST_HEAD(memory_page_list_head, memory_page_node) memory_page_pool;
-//LIST_HEAD(code_bloc_list_head, code_bloc_node) code_bloc_pool;
 
 
 unsigned int code_bloc_pool_ad_min;
@@ -116,7 +82,7 @@ struct memory_page_node * get_memory_page_from_address(unsigned int ad)
 		return mpn;
 
 	printf("cannot find address!! %X\n", ad);
-	dump_memory_page_pool();	
+	dump_memory_page_pool();
 	dump_gpregs();
 	//exit(-1);
 	vmcpu.vm_exception_flags |= EXCEPT_ACCESS_VIOL;
@@ -130,7 +96,7 @@ struct memory_page_node * get_memory_page_from_address(unsigned int ad)
 			return mpn;
 	}
 	printf("cannot find address!! %X\n", ad);
-	dump_memory_page_pool();	
+	dump_memory_page_pool();
 	dump_gpregs();
 	//exit(-1);
 	vmcpu.vm_exception_flags |= EXCEPT_ACCESS_VIOL;
@@ -180,14 +146,13 @@ static inline unsigned long long memory_page_read(unsigned int my_size, unsigned
 		default:
 			exit(0);
 			break;
-			
 		}
 	}
 	/* read is multiple page wide */
 	else{
 		unsigned int new_size = my_size;
 		printf("read multiple page! %X %X\n", ad, new_size);
-		dump_memory_page_pool();	
+		dump_memory_page_pool();
 		while (new_size){
 			ret <<=8;
 			mpn = get_memory_page_from_address(ad);
@@ -231,7 +196,6 @@ static inline void memory_page_write(unsigned int my_size, unsigned int ad, unsi
 	if ((mpn->access & PAGE_WRITE) == 0){
 		printf("access to non writable page!! %X\n", ad);
 		vmcpu.vm_exception_flags |= EXCEPT_ACCESS_VIOL;
-	
 		return ;
 	}
 
@@ -263,7 +227,7 @@ static inline void memory_page_write(unsigned int my_size, unsigned int ad, unsi
 	/* write is multiple page wide */
 	else{
 		printf("write multiple page! %X %X\n", ad, my_size);
-		dump_memory_page_pool();	
+		dump_memory_page_pool();
 		switch(my_size){
 
 		case 8:
@@ -282,7 +246,6 @@ static inline void memory_page_write(unsigned int my_size, unsigned int ad, unsi
 			exit(0);
 			break;
 		}
-		
 		while (my_size){
 			mpn = get_memory_page_from_address(ad);
 			if (!mpn)
@@ -293,7 +256,6 @@ static inline void memory_page_write(unsigned int my_size, unsigned int ad, unsi
 			my_size -= 8;
 			ad ++;
 		}
-		
 	}
 }
 
@@ -302,7 +264,6 @@ static inline void memory_page_write(unsigned int my_size, unsigned int ad, unsi
 inline void check_write_code_bloc(unsigned int my_size, unsigned int addr)
 {
 	struct code_bloc_node * cbp;
-	
 	vmcpu.vm_last_write_ad = addr;
 	vmcpu.vm_last_write_size = my_size;
 
@@ -344,25 +305,25 @@ void MEM_WRITE(unsigned int my_size, unsigned int addr , unsigned int src)
 
 void MEM_WRITE_08(unsigned int addr , unsigned char src)
 {
-	check_write_code_bloc(8, addr);	
+	check_write_code_bloc(8, addr);
 	memory_page_write(8, addr, src);
 }
 
 void MEM_WRITE_16(unsigned int addr , unsigned short src)
 {
-	check_write_code_bloc(16, addr);	
+	check_write_code_bloc(16, addr);
 	memory_page_write(16, addr, src);
 }
 
 void MEM_WRITE_32(unsigned int addr , unsigned int src)
 {
-	check_write_code_bloc(32, addr);	
+	check_write_code_bloc(32, addr);
 	memory_page_write(32, addr, src);
 }
 
 void MEM_WRITE_64(unsigned int addr , unsigned long long src)
 {
-	check_write_code_bloc(64, addr);	
+	check_write_code_bloc(64, addr);
 	memory_page_write(64, addr, src);
 }
 
@@ -371,8 +332,6 @@ unsigned int MEM_LOOKUP(unsigned int my_size, unsigned int addr)
 {
     unsigned int ret;
     ret = memory_page_read(my_size, addr);
-    //if(vmcpu.my_tick> my_tick)
-    //printf("M_READ  %2d %.8X %.8X\n", my_size, addr, ret);
     return ret;
 }
 
@@ -470,9 +429,9 @@ inline unsigned int parity(unsigned int a)
     tmp = a&0xFF;
     cpt = 1;
     while (tmp!=0){
-        cpt^=tmp&1;
-        tmp>>=1;
-        }
+	    cpt^=tmp&1;
+	    tmp>>=1;
+    }
     return cpt;
 }
 
@@ -483,18 +442,18 @@ int shift_right_arith(unsigned int size, int a, unsigned int b)
     short i16_a;
     char i8_a;
     switch(size){
-        case 8:
-            i8_a = a;
-            return (i8_a >> b)&0xff;
-        case 16:
-            i16_a = a;
-            return (i16_a >> b)&0xffff;
-        case 32:
-            i32_a = a;
-            return (i32_a >> b)&0xffffffff;
-        default:
-            printf("inv size in shift %d\n", size);
-            exit(0);
+	    case 8:
+		    i8_a = a;
+		    return (i8_a >> b)&0xff;
+	    case 16:
+		    i16_a = a;
+		    return (i16_a >> b)&0xffff;
+	    case 32:
+		    i32_a = a;
+		    return (i32_a >> b)&0xffffffff;
+	    default:
+		    printf("inv size in shift %d\n", size);
+		    exit(0);
     }
 }
 /*
@@ -525,18 +484,18 @@ unsigned int shift_right_logic(unsigned int size, unsigned int a, unsigned int b
     unsigned short u16_a;
     unsigned char u8_a;
     switch(size){
-        case 8:
-            u8_a = a;
-            return (u8_a >> b)&0xff;
-        case 16:
-            u16_a = a;
-            return (u16_a >> b)&0xffff;
-        case 32:
-            u32_a = a;
-            return (u32_a >> b)&0xffffffff;
-        default:
-            printf("inv size in shift %d\n", size);
-            exit(0);
+	    case 8:
+		    u8_a = a;
+		    return (u8_a >> b)&0xff;
+	    case 16:
+		    u16_a = a;
+		    return (u16_a >> b)&0xffff;
+	    case 32:
+		    u32_a = a;
+		    return (u32_a >> b)&0xffffffff;
+	    default:
+		    printf("inv size in shift %d\n", size);
+		    exit(0);
     }
 }
 /*
@@ -564,15 +523,15 @@ int shift_right_logic_32(unsigned int a, unsigned int b)
 int shift_left_logic(unsigned int size, unsigned int a, unsigned int b)
 {
     switch(size){
-        case 8:
-            return (a<<b)&0xff;
-        case 16:
-            return (a<<b)&0xffff;
-        case 32:
-            return (a<<b)&0xffffffff;
-        default:
-            printf("inv size in shift %d\n", size);
-            exit(0);
+	    case 8:
+		    return (a<<b)&0xff;
+	    case 16:
+		    return (a<<b)&0xffff;
+	    case 32:
+		    return (a<<b)&0xffffffff;
+	    default:
+		    printf("inv size in shift %d\n", size);
+		    exit(0);
     }
 }
 /*
@@ -701,18 +660,18 @@ int rot_left(unsigned int size, unsigned int a, unsigned int b)
     b = b&0x1F;
     b %= size;
     switch(size){
-        case 8:
-            tmp = (a << b) | ((a&0xFF) >> (size-b));
-            return tmp&0xff;
-        case 16:
-            tmp = (a << b) | ((a&0xFFFF) >> (size-b));
-            return tmp&0xffff;
-        case 32:
-            tmp = (a << b) | ((a&0xFFFFFFFF) >> (size-b));
-            return tmp&0xffffffff;
-        default:
-            printf("inv size in rotleft %d\n", size);
-            exit(0);
+	    case 8:
+		    tmp = (a << b) | ((a&0xFF) >> (size-b));
+		    return tmp&0xff;
+	    case 16:
+		    tmp = (a << b) | ((a&0xFFFF) >> (size-b));
+		    return tmp&0xffff;
+	    case 32:
+		    tmp = (a << b) | ((a&0xFFFFFFFF) >> (size-b));
+		    return tmp&0xffffffff;
+	    default:
+		    printf("inv size in rotleft %d\n", size);
+		    exit(0);
     }
 }
 
@@ -723,18 +682,18 @@ int rot_right(unsigned int size, unsigned int a, unsigned int b)
     b = b&0x1F;
     b %= size;
     switch(size){
-        case 8:
-            tmp = ((a&0xFF) >> b) | (a << (size-b));
-            return tmp&0xff;
-        case 16:
-            tmp = ((a&0xFFFF) >> b) | (a << (size-b));
-            return tmp&0xffff;
-        case 32:
-            tmp = ((a&0xFFFFFFFF) >> b) | (a << (size-b));
-            return tmp&0xffffffff;
-        default:
-            printf("inv size in rotleft %d\n", size);
-            exit(0);
+	    case 8:
+		    tmp = ((a&0xFF) >> b) | (a << (size-b));
+		    return tmp&0xff;
+	    case 16:
+		    tmp = ((a&0xFFFF) >> b) | (a << (size-b));
+		    return tmp&0xffff;
+	    case 32:
+		    tmp = ((a&0xFFFFFFFF) >> b) | (a << (size-b));
+		    return tmp&0xffffffff;
+	    default:
+		    printf("inv size in rotleft %d\n", size);
+		    exit(0);
     }
 }
 
@@ -750,18 +709,18 @@ int rcl_rez_op(unsigned int size, unsigned int a, unsigned int b, unsigned int c
     b %= size;
 
     switch(size){
-        case 8+1:
-            tmp = (tmp << b) | ((tmp&0x1FF) >> (size-b));
-            return tmp&0xff;
-        case 16+1:
-            tmp = (tmp << b) | ((tmp&0x1FFFF) >> (size-b));
-            return tmp&0xffff;
-        case 32+1:
-            tmp = (tmp << b) | ((tmp&0x1FFFFFFFFULL) >> (size-b));
-            return tmp&0xffffffff;
-        default:
-            printf("inv size in rclleft %d\n", size);
-            exit(0);
+	    case 8+1:
+		    tmp = (tmp << b) | ((tmp&0x1FF) >> (size-b));
+		    return tmp&0xff;
+	    case 16+1:
+		    tmp = (tmp << b) | ((tmp&0x1FFFF) >> (size-b));
+		    return tmp&0xffff;
+	    case 32+1:
+		    tmp = (tmp << b) | ((tmp&0x1FFFFFFFFULL) >> (size-b));
+		    return tmp&0xffffffff;
+	    default:
+		    printf("inv size in rclleft %d\n", size);
+		    exit(0);
     }
 }
 
@@ -783,18 +742,18 @@ int rcl_cf_op(unsigned int size, unsigned int a, unsigned int b, unsigned int cf
     b %= size;
 
     switch(size){
-        case 8+1:
-            tmp = (tmp << b) | ((tmp&0x1FF) >> (size-b));
-            return (tmp>>8)&1;
-        case 16+1:
-            tmp = (tmp << b) | ((tmp&0x1FFFF) >> (size-b));
-            return (tmp>>16)&1;
-        case 32+1:
-            tmp = (tmp << b) | ((tmp&0x1FFFFFFFFULL) >> (size-b));
-            return (tmp>>32)&1;
-        default:
-            printf("inv size in rclleft %d\n", size);
-            exit(0);
+	    case 8+1:
+		    tmp = (tmp << b) | ((tmp&0x1FF) >> (size-b));
+		    return (tmp>>8)&1;
+	    case 16+1:
+		    tmp = (tmp << b) | ((tmp&0x1FFFF) >> (size-b));
+		    return (tmp>>16)&1;
+	    case 32+1:
+		    tmp = (tmp << b) | ((tmp&0x1FFFFFFFFULL) >> (size-b));
+		    return (tmp>>32)&1;
+	    default:
+		    printf("inv size in rclleft %d\n", size);
+		    exit(0);
     }
 }
 
@@ -806,7 +765,7 @@ unsigned int my_bsr(unsigned int a, unsigned int b)
 {
 	int i;
 
-        for (i=31; i>=0; i--){
+	for (i=31; i>=0; i--){
 		if (b & (1<<i))
 			return i;
 	}
@@ -817,7 +776,7 @@ unsigned int my_bsf(unsigned int a, unsigned int b)
 {
 	int i;
 
-        for (i=0; i<32; i++){
+	for (i=0; i<32; i++){
 		if (b & (1<<i))
 			return i;
 	}
@@ -874,7 +833,6 @@ unsigned int cpuid(unsigned int a, unsigned int reg_num)
 		printf("WARNING zarb cpuid index %X!\n", a);
 		//exit(-1);
 	}
-	
 	return 0;
 }
 
@@ -979,13 +937,11 @@ struct memory_page_node * create_memory_page_node(unsigned int ad, unsigned int 
 		printf("cannot alloc mpn\n");
 		exit(-1);
 	}
-	
 	p = malloc(size);
 	if (!p){
 		printf("cannot alloc %d\n", size);
 		exit(-1);
 	}
-	
 	mpn->ad = ad;
 	mpn->size = size;
 	mpn->access = access;
@@ -1026,10 +982,9 @@ void dump_code_bloc_pool(void)
 	struct code_bloc_node * cbp;
 
 	LIST_FOREACH(cbp, &code_bloc_pool, next){
-		printf("ad start %.8X ad_stop %.8X\n", 
+		printf("ad start %.8X ad_stop %.8X\n",
 		       cbp->ad_start,
 		       cbp->ad_stop);
-	
 	}
 }
 
@@ -1040,7 +995,6 @@ void init_memory_page_pool(void)
 	LIST_INIT(&memory_page_pool);
 	for (i=0;i<MAX_MEMORY_PAGE_POOL_TAB; i++)
 		memory_page_pool_tab[i] = NULL;
-	
 }
 
 void init_code_bloc_pool(void)
@@ -1113,7 +1067,6 @@ void add_memory_page(struct memory_page_node* mpn_a)
 		LIST_INSERT_BEFORE(mpn, mpn_a, next);
 		insert_mpn_in_tab(mpn_a);
 		return;
-		
 	}
 	LIST_INSERT_AFTER(lmpn, mpn_a, next);
 	insert_mpn_in_tab(mpn_a);
@@ -1125,7 +1078,7 @@ void dump_memory_page_pool()
 	struct memory_page_node * mpn;
 
 	LIST_FOREACH(mpn, &memory_page_pool, next){
-		printf("ad %.8X size %.8X %c%c%c hpad %p\n", 
+		printf("ad %.8X size %.8X %c%c%c hpad %p\n",
 		       mpn->ad,
 		       mpn->size,
 		       mpn->access & PAGE_READ? 'R':'_',
@@ -1134,8 +1087,6 @@ void dump_memory_page_pool()
 		       mpn->ad_hp
 		       );
 	}
-		
-	
 }
 
 
@@ -1172,7 +1123,7 @@ unsigned int get_memory_page_next(unsigned int n_ad)
 {
 	struct memory_page_node * mpn;
 	unsigned int ad = 0;
-	
+
 	LIST_FOREACH(mpn, &memory_page_pool, next){
 		if (mpn->ad < n_ad)
 			continue;
@@ -1180,9 +1131,7 @@ unsigned int get_memory_page_next(unsigned int n_ad)
 		if (ad == 0 || mpn->ad <ad)
 			ad = mpn->ad;
 	}
-	
 	return ad;
-	
 }
 
 unsigned int get_memory_page_from_min_ad(unsigned int size)
@@ -1192,24 +1141,23 @@ unsigned int get_memory_page_from_min_ad(unsigned int size)
 	unsigned int min_ad = min_page_ad;
 	int end = 0;
 	/* first, find free min ad */
-    	while (!end){
+	while (!end){
 		end = 1;
-        	LIST_FOREACH(mpn, &memory_page_pool, next){
-        		c_ad = (mpn->ad + mpn->size+0x1000)&0xfffff000;
-        		if (c_ad <= min_ad)
-        			continue;
-        		if (mpn->ad <= min_ad){
-        			min_ad = c_ad;
+		LIST_FOREACH(mpn, &memory_page_pool, next){
+			c_ad = (mpn->ad + mpn->size+0x1000)&0xfffff000;
+			if (c_ad <= min_ad)
+				continue;
+			if (mpn->ad <= min_ad){
+				min_ad = c_ad;
 				end = 0;
-        			break;
-        		}
-        		
-        		if (mpn->ad - min_ad < size){
-        			min_ad = c_ad;
+				break;
+			}
+			if (mpn->ad - min_ad < size){
+				min_ad = c_ad;
 				end = 0;
-        			break;
-        		}
-        	}
+				break;
+			}
+		}
 	}
 	return min_ad;
  }
@@ -1226,38 +1174,34 @@ void hexdump(char* m, unsigned int l)
   for (i=0;i<l;i++){
       if (!(i%0x10) && i){
       last = i;
-        printf("    ");
-        
-        for (j=-0x10;j<0;j++){
-          if (isprint(m[i+j])){
-            printf("%c", m[i+j]);
-          }
-          else{
-            printf(".");
-          }
-        }
-        printf("\n");
+      printf("    ");
+      for (j=-0x10;j<0;j++){
+	      if (isprint(m[i+j])){
+		      printf("%c", m[i+j]);
+	      }
+	      else{
+		      printf(".");
+	      }
+      }
+      printf("\n");
       }
       printf("%.2X ", m[i]&0xFF);
   }
-  
   l-=last;
   if (l){
-    
     for (j=i;j<last+0x10;j++)
       printf("   ");
     printf("    ");
-    
     for (j = 0;l;j++){
       if (isprint(m[last+j])){
-        printf("%c", m[last+j]);
+	      printf("%c", m[last+j]);
       }
       else{
-        printf(".");
+	      printf(".");
       }
       l--;
     }
-  }  
+  }
   printf("\n");
 
 }
@@ -1270,7 +1214,6 @@ void _vm_init_regs()
 {
     vmcpu.eax = vmcpu.ebx = vmcpu.ecx = vmcpu.edx = vmcpu.esi = vmcpu.edi = vmcpu.esp = vmcpu.ebp = 0;
     vmcpu.zf = vmcpu.nf = vmcpu.pf = vmcpu.of = vmcpu.cf = vmcpu.af = vmcpu.df = 0;
-    
     vmcpu.eax_new = vmcpu.ebx_new = vmcpu.ecx_new = vmcpu.edx_new = vmcpu.esi_new = vmcpu.edi_new = vmcpu.esp_new = vmcpu.ebp_new = 0;
     vmcpu.zf_new = vmcpu.nf_new = vmcpu.pf_new = vmcpu.of_new = vmcpu.cf_new = vmcpu.af_new = vmcpu.df_new = 0;
     vmcpu.esp = 0;

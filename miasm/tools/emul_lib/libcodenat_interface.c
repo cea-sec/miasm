@@ -41,7 +41,6 @@ PyObject* _vm_get_exception(unsigned int xcpt)
 		p = PyErr_Format( PyExc_RuntimeError, "EXCEPT_UNK_MEM_AD" );
 
 	else  p = PyErr_Format( PyExc_RuntimeError, "EXCEPT_UNKNOWN" );
-	
 	return p;
 }
 
@@ -56,19 +55,9 @@ PyObject* _vm_get_all_memory(void)
     dict =  PyDict_New();
 
     LIST_FOREACH(mpn, &memory_page_pool, next){
-	    /*
-	    printf("ad %.8X size %.8X %c%c%c hpad %p\n", 
-		   mpn->ad,
-		   mpn->size,
-		   mpn->access & PAGE_READ? 'R':'_',
-		   mpn->access & PAGE_WRITE? 'W':'_',
-		   mpn->access & PAGE_EXEC? 'X':'_',
-		   mpn->ad_hp
-		   );
-	    */
 
 	    dict2 =  PyDict_New();
-	    
+
 	    o = PyString_FromStringAndSize(mpn->ad_hp, mpn->size);
 	    PyDict_SetItemString(dict2, "data", o);
 	    Py_DECREF(o);
@@ -80,7 +69,7 @@ PyObject* _vm_get_all_memory(void)
 	    o = PyInt_FromLong((long)mpn->access);
 	    PyDict_SetItemString(dict2, "access", o);
 	    Py_DECREF(o);
-	    
+
 	    o = PyInt_FromLong((long)mpn->ad);
 	    PyDict_SetItem(dict, o, dict2);
 	    Py_DECREF(o);
@@ -94,7 +83,7 @@ PyObject* _vm_get_gpreg(void)
 {
     PyObject *dict = PyDict_New();
     PyObject *o;
-    
+
     o = PyInt_FromLong((long)vmcpu.eax);
     PyDict_SetItemString(dict, "eax", o);
     Py_DECREF(o);
@@ -122,22 +111,19 @@ PyObject* _vm_get_gpreg(void)
     o = PyInt_FromLong((long)vmcpu.eip);
     PyDict_SetItemString(dict, "eip", o);
     Py_DECREF(o);
-    
 
     return dict;
-    
-    
 }
 
 reg_dict gpreg_dict[] = { {.name = "eax", .ptr = &(vmcpu.eax)},
-                          {.name = "ebx", .ptr = &(vmcpu.ebx)},
-                          {.name = "ecx", .ptr = &(vmcpu.ecx)},
-                          {.name = "edx", .ptr = &(vmcpu.edx)},
-                          {.name = "esi", .ptr = &(vmcpu.esi)},
-                          {.name = "edi", .ptr = &(vmcpu.edi)},
-                          {.name = "esp", .ptr = &(vmcpu.esp)},
-                          {.name = "ebp", .ptr = &(vmcpu.ebp)},
-                          {.name = "eip", .ptr = &(vmcpu.eip)},
+			  {.name = "ebx", .ptr = &(vmcpu.ebx)},
+			  {.name = "ecx", .ptr = &(vmcpu.ecx)},
+			  {.name = "edx", .ptr = &(vmcpu.edx)},
+			  {.name = "esi", .ptr = &(vmcpu.esi)},
+			  {.name = "edi", .ptr = &(vmcpu.edi)},
+			  {.name = "esp", .ptr = &(vmcpu.esp)},
+			  {.name = "ebp", .ptr = &(vmcpu.ebp)},
+			  {.name = "eip", .ptr = &(vmcpu.eip)},
 };
 
 PyObject* _vm_set_gpreg(PyObject *dict)
@@ -146,42 +132,36 @@ PyObject* _vm_set_gpreg(PyObject *dict)
     int pos = 0;
     unsigned int val;
     unsigned int i, found;
-    
 
     if(!PyDict_Check(dict))
-        RAISE(PyExc_TypeError, "arg must be dict");
-    
+	    RAISE(PyExc_TypeError, "arg must be dict");
     while(PyDict_Next(dict, &pos, &d_key, &d_value)){
-        if(!PyString_Check(d_key))
-            RAISE(PyExc_TypeError, "key must be str");
+	    if(!PyString_Check(d_key))
+		    RAISE(PyExc_TypeError, "key must be str");
 
+	    if (PyInt_Check(d_value)){
+		    val = (unsigned int)PyInt_AsLong(d_value);
+	    }
+	    else if (PyLong_Check(d_value)){
+		    val = (unsigned int)PyInt_AsUnsignedLongLongMask(d_value);
+	    }
+	    else{
+		    RAISE(PyExc_TypeError,"value must be int");
+	    }
 
-	if (PyInt_Check(d_value)){
-		val = (unsigned int)PyInt_AsLong(d_value);
-	}
-	else if (PyLong_Check(d_value)){
-		val = (unsigned int)PyInt_AsUnsignedLongLongMask(d_value);
-	}
-	else{
-		RAISE(PyExc_TypeError,"value must be int");
-	}
+	    found = 0;
+	    for (i=0; i < sizeof(gpreg_dict)/sizeof(reg_dict); i++){
+		    if (strcmp(PyString_AsString(d_key), gpreg_dict[i].name))
+			    continue;
+		    *(gpreg_dict[i].ptr) = val;
+		    found = 1;
+		    break;
+	    }
 
-
-        found = 0;
-        for (i=0; i < sizeof(gpreg_dict)/sizeof(reg_dict); i++){
-            if (strcmp(PyString_AsString(d_key), gpreg_dict[i].name))
-                continue;
-            *(gpreg_dict[i].ptr) = val;
-            found = 1;
-            break;
-        }
-
-        if (found)
-            continue;
-
-        printf("unkown key: %s\n", PyString_AsString(d_key));
-
-        RAISE(PyExc_ValueError, "unkown reg");
+	    if (found)
+		    continue;
+	    printf("unkown key: %s\n", PyString_AsString(d_key));
+	    RAISE(PyExc_ValueError, "unkown reg");
     }
     return NULL;
 }
@@ -191,7 +171,6 @@ PyObject* _vm_add_memory_page(PyObject *item, PyObject *access, PyObject *item_s
 {
     unsigned int buf_size;
     char* buf_data;
-    //char* buf_data_aligned;
     Py_ssize_t length;
     int ret = 0x1337beef;
     unsigned int page_addr;
@@ -200,37 +179,33 @@ PyObject* _vm_add_memory_page(PyObject *item, PyObject *access, PyObject *item_s
     struct memory_page_node * mpn;
 
     if (PyInt_Check(item)){
-        page_addr = (unsigned int)PyInt_AsLong(item);
+	    page_addr = (unsigned int)PyInt_AsLong(item);
     }
     else if (PyLong_Check(item)){
-        page_addr = (unsigned int)PyInt_AsUnsignedLongLongMask(item);
+	    page_addr = (unsigned int)PyInt_AsUnsignedLongLongMask(item);
     }
     else{
-        RAISE(PyExc_TypeError,"arg1 must be int");
+	    RAISE(PyExc_TypeError,"arg1 must be int");
     }
 
 
 
     if (PyInt_Check(access)){
-        page_access = (unsigned int)PyInt_AsLong(access);
+	    page_access = (unsigned int)PyInt_AsLong(access);
     }
     else if (PyLong_Check(item)){
-        page_access = (unsigned int)PyInt_AsUnsignedLongLongMask(access);
+	    page_access = (unsigned int)PyInt_AsUnsignedLongLongMask(access);
     }
     else{
-        RAISE(PyExc_TypeError,"arg2 must be int");
+	    RAISE(PyExc_TypeError,"arg2 must be int");
     }
 
 
-
-    //printf("add page: %X\n", page_addr);
 
     if(!PyString_Check(item_str))
        RAISE(PyExc_TypeError,"arg must be str");
 
     buf_size = PyString_Size(item_str);
-    //printf("add page %X size: %X\n", page_addr, buf_size);
-
     PyString_AsStringAndSize(item_str, &buf_data, &length);
 
 
@@ -244,51 +219,44 @@ PyObject* _vm_add_memory_page(PyObject *item, PyObject *access, PyObject *item_s
 PyObject* _call_pyfunc_from_globals(char* funcname)
 {
     PyObject  *mod,  *func, *rslt, *globals, *func_globals;
-    
+
     printf("getting pyfunc %s\n", funcname);
-    
     mod = PyEval_GetBuiltins();
 
     if (!mod) {
-        printf("cannot find module\n");
-        exit(0);
+	    printf("cannot find module\n");
+	    exit(0);
     }
-    
+
     func_globals = PyDict_GetItemString(mod, "globals");
     if (!func_globals) {
-        printf("cannot find function globals\n");
-        exit(0);
+	    printf("cannot find function globals\n");
+	    exit(0);
     }
-    
+
     if (!PyCallable_Check (func_globals)) {
-        printf("function not callable\n");
-        exit(0);    
+	    printf("function not callable\n");
+	    exit(0);
     }
 
     globals = PyObject_CallObject (func_globals, NULL);
     if (!globals) {
-        printf("cannot get globals\n");
-        exit(0);
+	    printf("cannot get globals\n");
+	    exit(0);
     }
-
-    //Py_XDECREF(func_globals);    
-    //Py_XDECREF(mod);    
-
 
     func = PyDict_GetItemString (globals, funcname);
     if (!func) {
-        printf("cannot find function %s\n", funcname);
-        exit(0);
+	    printf("cannot find function %s\n", funcname);
+	    exit(0);
     }
-    
+
     if (!PyCallable_Check (func)) {
-        printf("function not callable\n");
-        exit(0);    
+	    printf("function not callable\n");
+	    exit(0);
     }
-    
+
     rslt = PyObject_CallObject (func, NULL);
-    
-    
     return rslt;
 }
 
@@ -302,78 +270,62 @@ PyObject* _call_pyfunc_from_eip(void)
     printf("getting pybloc %X\n", vmcpu.eip);
     sprintf(funcname, "bloc_%.8X", vmcpu.eip);
     printf("bloc name %s\n", funcname);
-    
+
     mod = PyEval_GetBuiltins();
 
     if (!mod) {
-        printf("cannot find module\n");
-        exit(0);
+	    printf("cannot find module\n");
+	    exit(0);
     }
-    
     func_globals = PyDict_GetItemString(mod, "globals");
     if (!func_globals) {
-        printf("cannot find function globals\n");
-        exit(0);
+	    printf("cannot find function globals\n");
+	    exit(0);
     }
-    
     if (!PyCallable_Check (func_globals)) {
-        printf("function not callable\n");
-        exit(0);    
+	    printf("function not callable\n");
+	    exit(0);
     }
-
     globals = PyObject_CallObject (func_globals, NULL);
     if (!globals) {
-        printf("cannot get globals\n");
-        exit(0);
+	    printf("cannot get globals\n");
+	    exit(0);
     }
-
-    //Py_XDECREF(func_globals);    
-    //Py_XDECREF(mod);    
 
 
     func = PyDict_GetItemString (globals, funcname);
     if (!func) {
-        printf("cannot find function %s\n", funcname);
-        exit(0);
+	    printf("cannot find function %s\n", funcname);
+	    exit(0);
     }
-    
     if (!PyCallable_Check (func)) {
-        printf("function not callable\n");
-        exit(0);    
+	    printf("function not callable\n");
+	    exit(0);
     }
-    
     rslt = PyObject_CallObject (func, NULL);
-    
-    
     return rslt;
 }
-
-
-
 
 PyObject* _vm_get_cpu_state(void)
 {
 	PyObject * o;
 	o = PyString_FromStringAndSize((char*)&vmcpu, sizeof(vmcpu));
 	return o;
-
 }
-
 
 PyObject*  _vm_set_cpu_state(PyObject * s_cpustate)
 {
 	unsigned int buf_size;
 	Py_ssize_t length;
 	char* buf;
-    
+
 	if(!PyString_Check(s_cpustate))
 		RAISE(PyExc_TypeError,"arg must be str");
-	
+
 	buf_size = PyString_Size(s_cpustate);
 	if (buf_size != sizeof(vmcpu))
 		RAISE(PyExc_TypeError,"bad str len");
-	
-	
+
 	PyString_AsStringAndSize(s_cpustate, (char**)&buf, &length);
 	memcpy(&vmcpu, buf, length);
 	return PyInt_FromLong((long)0);
@@ -393,7 +345,7 @@ PyObject* _vm_push_uint32_t(int val)
 PyObject* _vm_pop_uint32_t(void)
 {
     unsigned int val;
-    
+
     val = MEM_LOOKUP(32, vmcpu.esp);
     vmcpu.esp+=4;
 
@@ -404,7 +356,6 @@ PyObject* _vm_set_mem(PyObject *addr, PyObject *item_str)
 {
     unsigned int buf_size;
     char* buf_data;
-    //char* buf_data_aligned;
     Py_ssize_t length;
     int ret = 0x1337;
     unsigned int val;
@@ -412,13 +363,13 @@ PyObject* _vm_set_mem(PyObject *addr, PyObject *item_str)
     struct memory_page_node * mpn;
 
     if (PyInt_Check(addr)){
-        val = (unsigned int)PyInt_AsLong(addr);
+	    val = (unsigned int)PyInt_AsLong(addr);
     }
     else if (PyLong_Check(addr)){
-        val = (unsigned int)PyInt_AsUnsignedLongLongMask(addr);
+	    val = (unsigned int)PyInt_AsUnsignedLongLongMask(addr);
     }
     else{
-        RAISE(PyExc_TypeError,"arg1 must be int");
+	    RAISE(PyExc_TypeError,"arg1 must be int");
     }
 
     printf("set addr: %X\n", val);
@@ -427,12 +378,8 @@ PyObject* _vm_set_mem(PyObject *addr, PyObject *item_str)
        RAISE(PyExc_TypeError,"arg must be str");
 
     buf_size = PyString_Size(item_str);
-    //printf("buf size: %X\n", buf_size);
-
     PyString_AsStringAndSize(item_str, &buf_data, &length);
-
     mpn = get_memory_page_from_address(val);
-    //memcpy((void*)val, buf_data, buf_size);
     memcpy(mpn->ad_hp + (val-mpn->ad), buf_data, buf_size);
 
     return PyInt_FromLong((long)ret);
@@ -448,23 +395,23 @@ PyObject* _vm_set_mem_access(PyObject *addr, PyObject *access)
     struct memory_page_node * mpn;
 
     if (PyInt_Check(addr)){
-        page_addr = (unsigned int)PyInt_AsLong(addr);
+	    page_addr = (unsigned int)PyInt_AsLong(addr);
     }
     else if (PyLong_Check(addr)){
-        page_addr = (unsigned int)PyInt_AsUnsignedLongLongMask(addr);
+	    page_addr = (unsigned int)PyInt_AsUnsignedLongLongMask(addr);
     }
     else{
-        RAISE(PyExc_TypeError,"arg1 must be int");
+	    RAISE(PyExc_TypeError,"arg1 must be int");
     }
 
     if (PyInt_Check(access)){
-        page_access = (unsigned int)PyInt_AsLong(access);
+	    page_access = (unsigned int)PyInt_AsLong(access);
     }
     else if (PyLong_Check(access)){
-        page_access = (unsigned int)PyInt_AsUnsignedLongLongMask(access);
+	    page_access = (unsigned int)PyInt_AsUnsignedLongLongMask(access);
     }
     else{
-        RAISE(PyExc_TypeError,"arg2 must be int");
+	    RAISE(PyExc_TypeError,"arg2 must be int");
     }
 
     mpn = get_memory_page_from_address(page_addr);
@@ -475,11 +422,6 @@ PyObject* _vm_set_mem_access(PyObject *addr, PyObject *access)
 
 PyObject* _vm_get_str(PyObject *addr, PyObject *item_len)
 {
-    //unsigned int buf_size;
-    //char* buf_data;
-    //char* buf_data_aligned;
-    //Py_ssize_t length;
-    //int ret;
     unsigned int buf_addr;
     unsigned int buf_len;
     PyObject *obj_out;
@@ -492,27 +434,25 @@ PyObject* _vm_get_str(PyObject *addr, PyObject *item_len)
     unsigned int my_size;
 
     if (PyInt_Check(addr)){
-        buf_addr = (unsigned int)PyInt_AsLong(addr);
+	    buf_addr = (unsigned int)PyInt_AsLong(addr);
     }
     else if (PyLong_Check(addr)){
-        buf_addr = (unsigned int)PyInt_AsUnsignedLongLongMask(addr);
+	    buf_addr = (unsigned int)PyInt_AsUnsignedLongLongMask(addr);
     }
     else{
-        RAISE(PyExc_TypeError,"arg1 must be int");
+	    RAISE(PyExc_TypeError,"arg1 must be int");
     }
-
     if (PyInt_Check(item_len)){
-        buf_len = (unsigned int)PyInt_AsLong(item_len);
+	    buf_len = (unsigned int)PyInt_AsLong(item_len);
     }
     else if (PyLong_Check(item_len)){
-        buf_len = (unsigned int)PyInt_AsUnsignedLongLongMask(item_len);
+	    buf_len = (unsigned int)PyInt_AsUnsignedLongLongMask(item_len);
     }
     else{
-        RAISE(PyExc_TypeError,"arg must be int");
+	    RAISE(PyExc_TypeError,"arg must be int");
     }
 
     my_size = buf_len;
-
     buf_out = malloc(buf_len);
     if (!buf_out){
 	    printf("cannot alloc read\n");
@@ -520,9 +460,6 @@ PyObject* _vm_get_str(PyObject *addr, PyObject *item_len)
     }
 
     addr_out = buf_out;
-    
-
-
 
     /* read is multiple page wide */
     while (my_size){
@@ -538,13 +475,13 @@ PyObject* _vm_get_str(PyObject *addr, PyObject *item_len)
 
 	    l = MIN(my_size, mpn->size - off);
 	    memcpy(addr_out, addr_tmp, l);
-	    my_size -= l;	    
+	    my_size -= l;
 	    addr_out +=l;
 	    buf_addr +=l;
     }
 
     obj_out = PyString_FromStringAndSize(buf_out, buf_len);
-    free(buf_out);    
+    free(buf_out);
     return obj_out;
 }
 
@@ -568,7 +505,7 @@ PyObject* vm_get_last_write_size(PyObject* self, PyObject* args)
 
 PyObject* vm_reset_exception(PyObject* self, PyObject* args)
 {
-	vmcpu.vm_exception_flags = 0;	
+	vmcpu.vm_exception_flags = 0;
 	Py_INCREF(Py_None);
 	return Py_None;
 }
@@ -602,15 +539,6 @@ PyObject* vm_pop_uint32_t(PyObject* self, PyObject* args)
     p = _vm_pop_uint32_t();
     return p;
 }
-
-/*
-PyObject* vm_put_str(PyObject *item)
-{
-    PyObject* p;
-    p = _vm_put_str(item);
-    return p;
-}
-*/
 
 PyObject* vm_set_mem(PyObject* self, PyObject* args)
 {
@@ -755,57 +683,38 @@ PyObject* _vm_add_code_bloc(PyObject* self, PyObject* args)
 
 
     if (PyInt_Check(item1)){
-        ad_start = (unsigned int)PyInt_AsLong(item1);
+	    ad_start = (unsigned int)PyInt_AsLong(item1);
     }
     else if (PyLong_Check(item1)){
-        ad_start = (unsigned int)PyInt_AsUnsignedLongLongMask(item1);
+	    ad_start = (unsigned int)PyInt_AsUnsignedLongLongMask(item1);
     }
     else{
-        RAISE(PyExc_TypeError,"arg1 must be int");
+	    RAISE(PyExc_TypeError,"arg1 must be int");
     }
-
-
 
     if (PyInt_Check(item2)){
-        ad_stop = (unsigned int)PyInt_AsLong(item2);
+	    ad_stop = (unsigned int)PyInt_AsLong(item2);
     }
     else if (PyLong_Check(item2)){
-        ad_stop = (unsigned int)PyInt_AsUnsignedLongLongMask(item2);
+	    ad_stop = (unsigned int)PyInt_AsUnsignedLongLongMask(item2);
     }
     else{
-        RAISE(PyExc_TypeError,"arg2 must be int");
+	    RAISE(PyExc_TypeError,"arg2 must be int");
     }
-    /*
-    if (PyInt_Check(item3)){
-        ad_code = (unsigned int)PyInt_AsLong(item3);
-    }
-    else if (PyLong_Check(item3)){
-        ad_code = (unsigned int)PyInt_AsUnsignedLongLongMask(item3);
-    }
-    else{
-        RAISE(PyExc_TypeError,"arg3 must be int");
-    }
-    */
-    
-    //printf("add code bloc %X %X\n", ad_start, ad_stop);
-
 
     cbp = create_code_bloc_node(ad_start, ad_stop);
     cbp->ad_start = ad_start;
     cbp->ad_stop = ad_stop;
     cbp->ad_code = ad_code;
-
-
     add_code_bloc(cbp);
-
     return PyInt_FromLong((long)ret);
 }
 
 
-PyObject* vm_add_code_bloc(PyObject *item1, PyObject *item2)//, PyObject *item3)
+PyObject* vm_add_code_bloc(PyObject *item1, PyObject *item2)
 {
 	PyObject* p;
-	p = _vm_add_code_bloc(item1, item2);//, item3);
+	p = _vm_add_code_bloc(item1, item2);
 	return p;
 }
 
@@ -831,7 +740,6 @@ PyObject*  vm_set_cpu_state(PyObject * s_cpustate)
 	PyObject *o;
 	o = _vm_set_cpu_state(s_cpustate);
 	return o;
-		
 }
 
 
@@ -897,7 +805,6 @@ PyObject* _vm_exec_blocs(PyObject* self, PyObject* args)
 	else{
 		RAISE(PyExc_TypeError,"arg1 must be int");
 	}
- 
 	meip = PyInt_FromLong((long)tmp);
 	while (1){
 		b = PyDict_GetItem(known_blocs, meip);
@@ -906,18 +813,14 @@ PyObject* _vm_exec_blocs(PyObject* self, PyObject* args)
 		module = PyObject_GetAttrString(b, "module_c");
 		if (module == NULL)
 			return meip;
-		//Py_DECREF(b);
-		
 		func = PyObject_GetAttrString(module, "func");
 		if (func == NULL)
 			return meip;
 
 		Py_DECREF(module);
-
-		
 		if (!PyCallable_Check (func)) {
 			printf("function not callable\n");
-			exit(0);    
+			exit(0);
 		}
 		Py_DECREF(meip);
 		meip = PyObject_CallObject (func, NULL);
@@ -933,7 +836,6 @@ PyObject* _vm_exec_blocs(PyObject* self, PyObject* args)
 			return meip;
 
 	}
-	
 }
 
 
@@ -972,34 +874,24 @@ PyObject* vm_exec_bloc(PyObject* self, PyObject* args)
 		RAISE(PyExc_TypeError,"arg1 must be int");
 	}
 
-
-
-	//printf("eip val: %x\n", tmp);
 	meip = PyInt_FromLong((long)tmp);
-	//printf("x %p\n", meip);
 	b = PyDict_GetItem(known_blocs, my_eip);
 	if (b == NULL)
 		return meip;
-	
 	module = PyObject_GetAttrString(b, "module_c");
 	if (module == NULL)
 		return meip;
-	//Py_DECREF(b);
-	
 	func = PyObject_GetAttrString(module, "func");
 	if (func == NULL)
 		return meip;
-	
 	Py_DECREF(module);
-	
-	
 	if (!PyCallable_Check (func)) {
 		printf("function not callable\n");
-		exit(0);    
+		exit(0);
 	}
 	Py_DECREF(meip);
 	meip = PyObject_CallObject (func, NULL);
-	
+
 	Py_DECREF(func);
 	e = PyErr_Occurred ();
 	if (e){
@@ -1008,17 +900,7 @@ PyObject* vm_exec_bloc(PyObject* self, PyObject* args)
 	}
 
 	return meip;
-	
 }
-
-/*
-PyObject* vm_exec_bloc(PyObject* my_eip, PyObject* known_blocs)
-{
-	my_eip = _vm_exec_bloc(my_eip, known_blocs);
-	return my_eip;
-}
-*/
-
 
 static PyObject *CodenatError;
 
@@ -1099,7 +981,7 @@ initlibcodenat_interface(void)
 
     m = Py_InitModule("libcodenat_interface", CodenatMethods);
     if (m == NULL)
-        return;
+	    return;
 
     CodenatError = PyErr_NewException("codenat.error", NULL, NULL);
     Py_INCREF(CodenatError);
