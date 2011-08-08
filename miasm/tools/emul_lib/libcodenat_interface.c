@@ -372,13 +372,15 @@ PyObject* _vm_set_mem(PyObject *addr, PyObject *item_str)
 	    RAISE(PyExc_TypeError,"arg1 must be int");
     }
 
-    printf("set addr: %X\n", val);
 
     if(!PyString_Check(item_str))
        RAISE(PyExc_TypeError,"arg must be str");
 
     buf_size = PyString_Size(item_str);
     PyString_AsStringAndSize(item_str, &buf_data, &length);
+
+    printf("set addr: %X (len %x)\n", val, length);
+
     mpn = get_memory_page_from_address(val);
     memcpy(mpn->ad_hp + (val-mpn->ad), buf_data, buf_size);
 

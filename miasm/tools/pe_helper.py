@@ -16,6 +16,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 from elfesteem import *
+from elfesteem import cstruct
 
 from miasm.arch.ia32_arch import *
 from miasm.tools.emul_helper import *
@@ -539,7 +540,7 @@ def preload_lib(e, patch_vm_imp = True, lib_base_ad = 0x77700000):
         libname_s = canon_libname_libfunc(libname, libfunc)
         dyn_funcs[libname_s] = ad_libfunc
         if patch_vm_imp:
-            to_c_helper.vm_set_mem(ad, struct.pack('L', ad_libfunc))
+            to_c_helper.vm_set_mem(ad, struct.pack(cstruct.size2type[e.wsize], ad_libfunc))
         
     return runtime_lib, dyn_funcs
 
@@ -558,7 +559,7 @@ def preload_elf(e, patch_vm_imp = True, lib_base_ad = 0x77700000):
         libname_s = canon_libname_libfunc(libname, libfunc)
         dyn_funcs[libname_s] = ad_libfunc
         if patch_vm_imp:
-            to_c_helper.vm_set_mem(ad, struct.pack('L', ad_libfunc))
+            to_c_helper.vm_set_mem(ad, struct.pack(cstruct.size2type[e.size], ad_libfunc))
         
     return runtime_lib, dyn_funcs
 
@@ -584,7 +585,7 @@ class find_call_xref:
     def next(self):
         while True:
             off_i = self.my_iter.next().start()
-            off = off_i + 5 + struct.unpack('l', self.e.content[off_i+1:off_i+5])[0]
+            off = off_i + 5 + struct.unpack('i', self.e.content[off_i+1:off_i+5])[0]
             if off == self.off:
                 return off_i
         raise StopIteration
