@@ -20,6 +20,7 @@ import struct
 from Crypto.Hash import MD5
 import inspect
 from zlib import crc32
+import seh_helper
 handle_toolhelpsnapshot = 0xaaaa00
 toolhelpsnapshot_info = {}
 handle_curprocess = 0xaaaa01
@@ -1539,3 +1540,24 @@ def kernel32_lstrcmpW():
 
 def kernel32_lstrcmpiW():
     my_lstrcmp('lstrcmpiW', lambda x: get_str_unic(x).lower())
+
+
+def kernel32_SetFileAttributesA():
+    ret_ad = vm_pop_uint32_t()
+    lpfilename = vm_pop_uint32_t()
+    dwfileattributes = vm_pop_uint32_t()
+    print whoami(), hex(ret_ad), hex(lpfilename), hex(dwfileattributes)
+
+    if lpfilename:
+        fname = get_str_ansi(lpfilename)
+        print "filename", repr(fname)
+        eax = 1
+    else:
+        eax = 0
+        vm_set_mem(seh_helper.FS_0_AD+0x34, pdw(3))
+    
+
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = eax
+    vm_set_gpreg(regs)

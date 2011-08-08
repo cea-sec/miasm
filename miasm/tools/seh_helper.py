@@ -43,22 +43,24 @@ default_image_base = 0x400000
 
 def build_fake_teb():
     """
-    +0x000 NtTib                     : _NT_TIB    
+    +0x000 NtTib                     : _NT_TIB
     +0x01c EnvironmentPointer        : Ptr32 Void
     +0x020 ClientId                  : _CLIENT_ID
     +0x028 ActiveRpcHandle           : Ptr32 Void
     +0x02c ThreadLocalStoragePointer : Ptr32 Void
-    +0x030 ProcessEnvironmentBlock   : Ptr32 _PEB 
+    +0x030 ProcessEnvironmentBlock   : Ptr32 _PEB
+    +0x034 LastErrorValue            : Uint4B
     ...
     """
     o = ""
     o += pdw(default_seh)
     o += (0x18 - len(o)) *"\x00"
     o += pdw(tib_address)
-    
+
     o += (0x30 - len(o)) *"\x00"
     o += pdw(peb_address)
-    
+    o += pdw(0x11223344)
+
     return o
 
 
