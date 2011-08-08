@@ -379,7 +379,7 @@ PyObject* _vm_set_mem(PyObject *addr, PyObject *item_str)
     buf_size = PyString_Size(item_str);
     PyString_AsStringAndSize(item_str, &buf_data, &length);
 
-    printf("set addr: %X (len %x)\n", val, length);
+    printf("set addr: %X (len %X)\n", val, (unsigned int)length);
 
     mpn = get_memory_page_from_address(val);
     memcpy(mpn->ad_hp + (val-mpn->ad), buf_data, buf_size);
