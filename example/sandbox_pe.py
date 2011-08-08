@@ -41,7 +41,7 @@ if filename and os.path.isfile(filename):
 runtime_dll, dll_dyn_funcs = preload_lib(e, patch_vm_imp = True, lib_base_ad = 0x7c811111)
 # set winapi to ours
 win_api.runtime_dll = runtime_dll
-
+win_api.current_pe = e
 dll_dyn_ad2name = dict([(x[1], x[0]) for x in dll_dyn_funcs.items()])
 dyn_func = {}
 

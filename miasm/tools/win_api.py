@@ -61,6 +61,7 @@ module_cur_hwnd = 0x88800
 
 module_file_nul = 0x999000
 runtime_dll = None
+current_pe = None
 
 """
 typedef struct tagPROCESSENTRY32 {
@@ -856,7 +857,7 @@ def kernel32_GetModuleHandleA():
         print libname
         eax = runtime_dll.lib_get_add_base(libname)
     else:
-        eax = e.Opthdr.Opthdr.ImageBase
+        eax = current_pe.NThdr.ImageBase
         print "default img base" , hex(eax)
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
