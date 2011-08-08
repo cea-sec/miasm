@@ -1507,3 +1507,34 @@ def ntoskrnl_ExAllocatePoolWithTagPriority():
     vm_set_gpreg(regs)
 
     print "ad", hex(max_ad)
+
+
+
+
+
+def my_lstrcmp(funcname, get_str):
+    ret_ad = vm_pop_uint32_t()
+    ptr_str1 = vm_pop_uint32_t()
+    ptr_str2 = vm_pop_uint32_t()
+    print "%s (%08x, %08x) (ret @ %08x)" % (funcname,
+                                            ptr_str1, ptr_str2,
+                                            ret_ad)
+    s1 = get_str(ptr_str1)
+    s2 = get_str(ptr_str2)
+    print '%s (%r, %r)' % (' '*len(funcname), s1, s2)
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = cmp(s1, s2)
+    vm_set_gpreg(regs)
+
+def kernel32_lstrcmpA():
+    my_lstrcmp('lstrcmpA', get_str_ansi)
+
+def kernel32_lstrcmpiA():
+    my_lstrcmp('lstrcmpiA', lambda x: get_str_ansi(x).lower())
+
+def kernel32_lstrcmpW():
+    my_lstrcmp('lstrcmpA', get_str_unic)
+
+def kernel32_lstrcmpiW():
+    my_lstrcmp('lstrcmpiW', lambda x: get_str_unic(x).lower())
