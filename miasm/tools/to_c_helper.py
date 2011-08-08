@@ -975,10 +975,10 @@ class bin_stream_vm():
 
 
 
-vm_read_dword = lambda a: struct.unpack('L', vm_get_str(a, 4))[0]
-p = lambda addr: struct.pack('L', addr)
+vm_read_dword = lambda a: struct.unpack('I', vm_get_str(a, 4))[0]
+p = lambda addr: struct.pack('I', addr)
 pdw = p
-updw = lambda bbbb: struct.unpack('L', bbbb)[0]
+updw = lambda bbbb: struct.unpack('I', bbbb)[0]
 pw = lambda x: struct.pack('H', x)
 upw = lambda x: struct.unpack('H', x)[0]
 
