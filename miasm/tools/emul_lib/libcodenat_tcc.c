@@ -17,6 +17,7 @@
 */
 #include <Python.h>
 
+#include <inttypes.h>
 #include <libtcc.h>
 
 
@@ -55,7 +56,6 @@ void tcc_init_state(void)
 	tcc_set_output_type(tcc_state, TCC_OUTPUT_MEMORY);
 
 	tcc_add_include_path(tcc_state, emul_libpython_dir);
-	tcc_add_include_path(tcc_state, emul_lib_dir);
 	tcc_add_file(tcc_state, emul_lib_path);
 }
 
@@ -64,13 +64,13 @@ void tcc_init_state(void)
 
 PyObject*  tcc_exec_bloc(PyObject* self, PyObject* args)
 {
-	int (*func)(void);
+	uint64_t (*func)(void);
 
 	unsigned long ret;
 	if (!PyArg_ParseTuple(args, "i", &func))
 		return NULL;
 	ret = func();
-	return PyInt_FromLong((long)ret);
+	return PyLong_FromUnsignedLong(ret);
 }
 
 PyObject* tcc_compil(PyObject* self, PyObject* args)
@@ -85,12 +85,18 @@ PyObject* tcc_compil(PyObject* self, PyObject* args)
 	tcc_init_state();
 	if (tcc_compile_string(tcc_state, func_code) != 0) {
 		printf("Erreur de compilation !\n");
+		printf("%s\n", func_code);
 		exit(0);
 	}
 	/* XXX use tinycc devel with -fPIC patch in makefile */
 	if (tcc_relocate(tcc_state) < 0)
 		exit(0);
 	entry = tcc_get_symbol(tcc_state, func_name);
+	if (!entry){
+		printf("Erreur de symbole !\n");
+		printf("%s\n", func_name);
+		exit(0);
+	}
 
 	return PyInt_FromLong((long)entry);
 

@@ -38,14 +38,20 @@ tab_int_size = {int8:8,
                 }
 
 
+def is_int(a):
+    t = [int, long,
+         int8, int16, int32, int64,
+         uint8, uint16, uint32, uint64]
+    return any([isinstance(a, x) for x in t])
+
 class asm_label:
     def __init__(self, name = "", offset = None):
 
         self.next = "next"
         self.noattrib = "noattrib"
         self.fixedblocs = False
-        if type(name) in [int, long]+tab_int_size.keys():
-            name = "loc_%.8X"%int(name)
+        if is_int(name):
+            name = "loc_%.16X"%(int(name)&0xFFFFFFFFFFFFFFFF)
         self.name = name
         self.attrib = self.noattrib
         if offset == None:
@@ -259,7 +265,6 @@ def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool, dont_dis 
         if not instr.breakflow():
             continue
 
-        
         if instr.splitflow() and not (instr.is_subcall() and dontdis_retcall):
             n = instr.getnextflow()
             l = symbol_pool.getby_offset_create(n)
@@ -270,7 +275,7 @@ def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool, dont_dis 
             dst = instr.getdstflow()
             dstn = []
             for d in dst:
-                if type(d) in [int, long]+tab_int_size.keys():
+                if is_int(d):
                     d = symbol_pool.getby_offset_create(d)
                 dstn.append(d)
             dst = dstn
@@ -450,7 +455,7 @@ def group_blocs(all_bloc):
     for l in groups_bloc:
         l.total_max_l = reduce(lambda x,y: x+y.blen_max, groups_bloc[l], 0)
         log_asmbloc.debug(("offset totalmax l", l.offset, l.total_max_l))
-        if type(l.offset) in [int, long]+tab_int_size.keys():
+        if is_int(l.offset):
             hof = hex(int(l.offset))
         else:
             hof = l.name
@@ -515,7 +520,7 @@ def gen_non_free_mapping(group_bloc, dont_erase = []):
         #if a label in the group is fixed
         diff_offset = 0
         for b in group_bloc[g]:
-            if not type(b.label.offset) in [int, long]+tab_int_size.keys():
+            if not is_int(b.label.offset):
                 diff_offset+=b.blen_max
                 continue
             g.fixedblocs = True
@@ -766,7 +771,7 @@ def calc_symbol_offset(symbol_pool):
     s_dependent = {}
 
     for l in symbol_pool.s:
-        if not type(symbol_pool.s[l].offset_g) in [int, long]+tab_int_size.keys():
+        if not is_int(symbol_pool.s[l].offset_g):
             s_to_fix.add(l)
 
             if not l in symbol_pool.s or symbol_pool.s[l].offset_g == None:

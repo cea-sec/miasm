@@ -131,7 +131,7 @@ def codenat_tcc_load():
     print libpath
     print libdir
     libcntcc.tcc_set_emul_lib_path(libdir, libpath, get_python_inc())
-    
+
 def codenat_tcc_init():
     global libcntcc
     if libcntcc == None:
@@ -156,5 +156,5 @@ class tcc_code():
         self.func = lambda :libcntcc.tcc_exec_bloc(self.c)
 
 def gen_C_module_tcc(f_name, c_source):
-    mcode = codenat_tcc_compil(f_name, c_source)    
+    mcode = codenat_tcc_compil(f_name, c_source)
     return tcc_code(mcode)

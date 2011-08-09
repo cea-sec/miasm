@@ -46,6 +46,12 @@ tab_int_size = {int8:8,
 my_size_mask = {1:1, 8:0xFF, 16:0xFFFF, 32:0xFFFFFFFF,  64:0xFFFFFFFFFFFFFFFFL}
 
 
+def is_int(a):
+    t = [int8, int16, int32, int64,
+         uint8, uint16, uint32, uint64]
+    return any([isinstance(a, x) for x in t])
+
+
 
 def get_missing_interval(all_intervals, i_min = 0, i_max = 32):
     my_intervals = all_intervals[:]
@@ -136,7 +142,7 @@ class ExprTop(Expr):
 
 class ExprInt(Expr):
     def __init__(self, arg):
-        if not type(arg) in tab_int_size:
+        if not is_int(arg):
             raise 'arg must by numpy int! %s'%str(arg)
         self.arg = arg
     def __str__(self):
@@ -370,6 +376,7 @@ class ExprMem(Expr):
 
     def toC(self):
         return "MEM_LOOKUP_%.2d(%s)"%(self.size, self.arg.toC())
+        
 
     
 class ExprOp(Expr):

@@ -786,7 +786,7 @@ PyObject* _vm_exec_blocs(PyObject* self, PyObject* args)
 	PyObject* module;
 	PyObject* func;
 	PyObject* meip;
-	unsigned int tmp;
+	unsigned long tmp;
 
 	PyObject* my_eip;
 	PyObject* known_blocs;
@@ -799,25 +799,30 @@ PyObject* _vm_exec_blocs(PyObject* self, PyObject* args)
 		RAISE(PyExc_TypeError, "arg must be dict");
 
 	if (PyInt_Check(my_eip)){
-		tmp = (unsigned int)PyInt_AsLong(my_eip);
+		tmp = (unsigned long)PyInt_AsLong(my_eip);
 	}
 	else if (PyLong_Check(my_eip)){
-		tmp = (unsigned int)PyInt_AsUnsignedLongLongMask(my_eip);
+		tmp = (unsigned long)PyInt_AsUnsignedLongLongMask(my_eip);
 	}
 	else{
 		RAISE(PyExc_TypeError,"arg1 must be int");
 	}
-	meip = PyInt_FromLong((long)tmp);
+	meip = PyLong_FromUnsignedLong((unsigned long)tmp);
 	while (1){
 		b = PyDict_GetItem(known_blocs, meip);
 		if (b == NULL)
 			return meip;
+
 		module = PyObject_GetAttrString(b, "module_c");
-		if (module == NULL)
-			return meip;
+		if (module == NULL){
+			printf("assert eip module_c in pyobject\n");
+			exit(0);
+		}
 		func = PyObject_GetAttrString(module, "func");
-		if (func == NULL)
-			return meip;
+		if (func == NULL){
+			printf("assert func module_c in pyobject\n");
+			exit(0);
+		}
 
 		Py_DECREF(module);
 		if (!PyCallable_Check (func)) {

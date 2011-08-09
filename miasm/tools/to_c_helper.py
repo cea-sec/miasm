@@ -35,7 +35,7 @@ import ctypes
 def id2new(i):
     return str(i)+'_new'
 
-
+mask_int = 0xffffffffffffffff
 
 
 my_C_id = [
@@ -134,18 +134,19 @@ def patch_c_id(e):
 code_deal_exception_at_instr = r"""
 if (vmcpu.vm_exception_flags > EXCEPT_NUM_UDPT_EIP) {
     %s = 0x%X; 
-    return (unsigned int)vmcpu.eip; 
+    return vmcpu.eip; 
 }
 """
 code_deal_exception_post_instr = r"""
 if (vmcpu.vm_exception_flags) {
     %s = (vmcpu.vm_exception_flags > EXCEPT_NUM_UDPT_EIP) ?  0x%X : 0x%X; 
-    return (unsigned int)vmcpu.eip; 
+    return vmcpu.eip; 
 }
 """
 
     
 def Exp2C(exprs, l = None, addr2label = None, gen_exception_code = False):
+    my_size_mask = {1:1, 8:0xFF, 16:0xFFFF, 32:0xFFFFFFFF,  64:0xFFFFFFFFFFFFFFFFL}
     if not addr2label:
         addr2label = lambda x:x
     id_to_update = []
@@ -204,7 +205,8 @@ def Exp2C(exprs, l = None, addr2label = None, gen_exception_code = False):
             if isinstance(dst, ExprId):
                 id_to_update.append(dst)
                 str_dst = id2new(patch_c_id(dst))
-                out.append('%s = %s;'%(str_dst, str_src))
+                out.append('%s = (%s)&0x%X;'%(str_dst, str_src,
+                                              my_size_mask[src.get_size()]))
             elif isinstance(dst, ExprMem):
                 str_dst = str_dst.replace('MEM_LOOKUP', 'MEM_WRITE')
                 out_mem.append('%s, %s);'%(str_dst[:-1], str_src))
@@ -225,7 +227,7 @@ def Exp2C(exprs, l = None, addr2label = None, gen_exception_code = False):
                     if l.is_subcall():
                         out_eip.append("GOTO_STATIC_SUB(%s);"%(addr2label(e.src.arg)))
                     else:
-                        out_eip.append("GOTO_STATIC(0x%.8X);"%(e.src.arg))
+                        out_eip.append("GOTO_STATIC(0x%.16X);"%(e.src.arg))
                 else:
                     if l.is_subcall():
                         out_eip.append("GOTO_DYN_SUB(%s);"%(patch_c_id(e.src).toC()))
@@ -239,10 +241,11 @@ def Exp2C(exprs, l = None, addr2label = None, gen_exception_code = False):
     out+=out_mem
 
     if gen_exception_code:
-        out.append(code_deal_exception_at_instr % (patch_c_id(eip), l.offset))
+        out.append(code_deal_exception_at_instr % (patch_c_id(eip), (l.offset&mask_int)))
 
     for i in id_to_update:
         out.append('%s = %s;'%(patch_c_id(i), id2new(patch_c_id(i))))
+                            
 
 
 
@@ -252,9 +255,9 @@ def Exp2C(exprs, l = None, addr2label = None, gen_exception_code = False):
     if gen_exception_code:
         if eip_is_dst:
             #post_instr.append("if (vmcpu.vm_exception_flags) { /*eip = 0x%X; */return (unsigned int)vm_get_exception(vmcpu.vm_exception_flags); }"%(l.offset))
-            post_instr.append("if (vmcpu.vm_exception_flags) { /*eip = 0x%X; */return (unsigned int)vmcpu.eip; }"%(l.offset))
+            post_instr.append("if (vmcpu.vm_exception_flags) { /*eip = 0x%X; */return vmcpu.eip; }"%(l.offset))
         else:
-            post_instr.append(code_deal_exception_post_instr % (patch_c_id(eip), l.offset, l.offset + l.l))
+            post_instr.append(code_deal_exception_post_instr % (patch_c_id(eip), (l.offset&mask_int), (l.offset + l.l)&mask_int))
     
     """
     print "1"
@@ -275,7 +278,7 @@ def bloc2C(all_bloc, addr2label = None, gen_exception_code = False, dbg_instr = 
     all_instrs = digest_allbloc_instr(all_bloc)
 
     if not addr2label:
-        addr2label = lambda x:"loc_%.8X"%x
+        addr2label = lambda x:"loc_%.16X"%(x&mask_int)
 
 
     out = []
@@ -297,7 +300,7 @@ def bloc2C(all_bloc, addr2label = None, gen_exception_code = False, dbg_instr = 
             if addr2label:
                 out.append("%s:"%addr2label(l.offset))
             else:
-                out.append("loc_%.8X:"%l.offset)
+                out.append("loc_%.16X:"%(l.offset&mask_int))
                 
             o, post_instr = Exp2C(ex, l, addr2label, gen_exception_code)
             
@@ -314,7 +317,7 @@ def bloc2C(all_bloc, addr2label = None, gen_exception_code = False, dbg_instr = 
                 my_o = ["while (1){"]
                 #my_o.append("if (vmcpu.vm_exception_flags) { %s = 0x%X; return (PyObject*)vm_get_exception(vm_exception_flags); }"%(patch_c_id(eip), l.offset))
                 #my_o.append(code_deal_exception_post_instr % (patch_c_id(eip), l.offset, l.offset + l.l))
-                my_o.append(code_deal_exception_post_instr % (patch_c_id(eip), l.offset, l.offset))
+                my_o.append(code_deal_exception_post_instr % (patch_c_id(eip), (l.offset&mask_int), (l.offset&mask_int)))
 
 
                 #my_o.append(r'printf("ecx %.8X\n", ecx );')            
@@ -352,7 +355,7 @@ def bloc2C(all_bloc, addr2label = None, gen_exception_code = False, dbg_instr = 
         
         for c in b.bto:
             if c.c_t == asmbloc.asm_constraint.c_next:
-                out.append("GOTO_STATIC(0x%.8X);"%(c.label.offset))
+                out.append("GOTO_STATIC(0x%.16X);"%(c.label.offset&mask_int))
         
         """
         #in case of bad disasm, no next, so default next instr
@@ -369,7 +372,7 @@ def bloc2C(all_bloc, addr2label = None, gen_exception_code = False, dbg_instr = 
 
 
 def bloc_gen_C_func(all_bloc, funcname, addr2label = None, gen_exception_code = False, dbg_instr = False, dbg_reg = False, dbg_lbl = False, filtered_ad = None, tick_dbg = None):
-    f_dec = 'unsigned int %s(void)'%funcname
+    f_dec = 'uint64_t %s(void)'%funcname
     out = []
     out+=[f_dec,
           '{',
@@ -566,7 +569,7 @@ def asm2C(f_name, known_mems, dyn_func, in_str, x86_mn, symbol_pool, func_to_dis
 
 
     for f, f_code in dyn_func.items():
-        l_name = "loc_%.8X"%f
+        l_name = "loc_%.16X"%(f&mask_int)
         funcs_code[-1:-1] = [l_name+":"]
         funcs_code[-1:-1] = f_code.split('\n')
         l = asmbloc.asm_label(l_name, f)
@@ -592,7 +595,7 @@ def gen_C_from_asmbloc(in_str, offset, symbol_pool, dont_dis = [], job_done = No
     if job_done == None:
         job_done = set()
 
-    f_name = "bloc_%.8X"%offset
+    f_name = "bloc_%.16X"%(offset&mask_int)
     l = symbol_pool.getby_offset_create(offset)
     cur_bloc = asmbloc.asm_bloc(l)
         
@@ -601,7 +604,7 @@ def gen_C_from_asmbloc(in_str, offset, symbol_pool, dont_dis = [], job_done = No
 
     f_dec, out = bloc_gen_C_func([cur_bloc], f_name, None, True, log_mn, log_reg, log_lbl, filtered_ad, tick_dbg)
     #print "\n".join(out)
-    return f_dec, out, cur_bloc
+    return f_name, f_dec, out, cur_bloc
 
     
     
@@ -614,7 +617,7 @@ def dispatch_table_from_f_blocs(all_f_b):
     for b in all_f_b:
         dispatch_table[b.label.offset] = b.label.name
         for l in b.lines:
-            dispatch_table[l.offset] = "loc_%.8X"%l.offset
+            dispatch_table[l.offset] = "loc_%.16X"%(l.offset&mask_int)
 
     return dispatch_table
 
@@ -882,7 +885,7 @@ ttt = 0
 def updt_bloc_emul(known_blocs, in_str, my_eip, symbol_pool, code_blocs_mem_range, dont_dis = [], job_done = None, log_mn = False, log_regs = False):
     if job_done == None:
         job_done = set()
-    f_dec, funcs_code, cur_bloc = gen_C_from_asmbloc(in_str, my_eip, symbol_pool, dont_dis, job_done, log_mn, log_regs)
+    fname, f_dec, funcs_code, cur_bloc = gen_C_from_asmbloc(in_str, my_eip, symbol_pool, dont_dis, job_done, log_mn, log_regs)
 
     dyn_dispatcher = """
     #define GOTO_DYNAMIC do {return %s;} while(0)
@@ -896,8 +899,7 @@ def updt_bloc_emul(known_blocs, in_str, my_eip, symbol_pool, code_blocs_mem_rang
     c_source = "#include <Python.h>\n"+c_source
     #c_source = '#include "emul_lib/libcodenat.h"\n'+c_source
     #print c_source
-
-    a = gen_C_module_tcc(f_dec[13:-6], c_source)
+    a = gen_C_module_tcc(fname, c_source)
     bn = bloc_nat(my_eip, cur_bloc, a, log_mn, log_regs)
 
     bn.c_source = c_source

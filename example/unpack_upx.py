@@ -254,7 +254,7 @@ print "base imp", hex(offset_imp)
 print 'decomp_buf_ad_out', hex(decomp_buf_ad_out)
 new_dll = []
 
-offset_imp = offset_imp - decomp_buf_ad_out - struct.unpack('L', e.virt[ad_tmp:ad_tmp+4])[0]
+offset_imp = offset_imp - decomp_buf_ad_out - struct.unpack('I', e.virt[ad_tmp:ad_tmp+4])[0]
 print "read ofset imp", hex(offset_imp)
 
 #XXXXX 

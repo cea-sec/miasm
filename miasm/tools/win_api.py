@@ -642,6 +642,8 @@ def kernel32_VirtualProtect():
                        0x10: PAGE_EXEC,
                        0x20: PAGE_EXEC | PAGE_READ,
                        0x40: PAGE_EXEC | PAGE_READ | PAGE_WRITE,
+                       0x80: PAGE_EXEC | PAGE_READ | PAGE_WRITE,
+                       # 0x80: PAGE_EXECUTE_WRITECOPY
                        0x100: 0
                        }
 
