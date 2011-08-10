@@ -1563,3 +1563,19 @@ def kernel32_SetFileAttributesA():
     regs['eip'] = ret_ad
     regs['eax'] = eax
     vm_set_gpreg(regs)
+
+def ntdll_RtlMoveMemory():
+    ret_ad = vm_pop_uint32_t()
+    dst = vm_pop_uint32_t()
+    src = vm_pop_uint32_t()
+    l = vm_pop_uint32_t()
+    print whoami(), hex(ret_ad), hex(dst), hex(src), hex(l)
+
+
+    s = vm_get_str(src, l)
+    vm_set_mem(dst, s)
+
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = 1
+    vm_set_gpreg(regs)
