@@ -421,6 +421,34 @@ class libimp:
                     return False
         return True
     
+    def add_export_lib(self, e, name):
+        # will add real lib addresses to database
+        if name in self.name2off:
+            ad = self.name2off[name]
+        else:
+            print 'new lib', name
+            ad = e.NThdr.ImageBase
+            libad = ad
+            self.name2off[name] = ad
+            self.libbase2lastad[ad] = ad+0x1
+            self.lib_imp2ad[ad] = {}
+            self.lib_imp2dstad[ad] = {}
+            self.libbase_ad += 0x1000
+
+            ads = get_export_name_addr_list(e)
+            for imp_ord_or_name, ad in ads:
+                #if not imp_ord_or_name in self.lib_imp2dstad[libad]:
+                #    self.lib_imp2dstad[libad][imp_ord_or_name] = set()
+                #self.lib_imp2dstad[libad][imp_ord_or_name].add(dst_ad)
+
+                print 'new imp', imp_ord_or_name, hex(ad)
+                self.lib_imp2ad[libad][imp_ord_or_name] = ad
+
+                name_inv = dict([(x[1], x[0]) for x in self.name2off.items()])
+                c_name = canon_libname_libfunc(name_inv[libad], imp_ord_or_name)
+                self.fad2cname[ad] = c_name
+
+
     def gen_new_lib(self, e):
         new_lib = []
         for n, ad in self.name2off.items():
@@ -526,8 +554,7 @@ def vm_load_elf(e, align_s = True, load_hdr = True):
         data += (((len(data) +0xFFF) & ~0xFFF)-len(data)) * "\x00"
         to_c_helper.vm_add_memory_page(r_vaddr, to_c_helper.PAGE_READ|to_c_helper.PAGE_WRITE, data)
         
-def preload_lib(e, patch_vm_imp = True, lib_base_ad = 0x77700000):
-    runtime_lib = libimp(lib_base_ad)
+def preload_lib(e, runtime_lib, patch_vm_imp = True):
     fa = get_import_address(e)
 
     dyn_funcs = {}
@@ -542,7 +569,7 @@ def preload_lib(e, patch_vm_imp = True, lib_base_ad = 0x77700000):
         if patch_vm_imp:
             to_c_helper.vm_set_mem(ad, struct.pack(cstruct.size2type[e.wsize], ad_libfunc))
         
-    return runtime_lib, dyn_funcs
+    return dyn_funcs
 
 def preload_elf(e, patch_vm_imp = True, lib_base_ad = 0x77700000):
     # XXX quick hack

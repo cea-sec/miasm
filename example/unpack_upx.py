@@ -146,7 +146,8 @@ vm_add_memory_page(0x40000000, PAGE_READ|PAGE_WRITE, "\x00"*stack_size)
 
 vm_load_pe(e)
 
-runtime_dll, dll_dyn_funcs = preload_lib(e)
+runtime_dll = libimp(0x71111111)
+dll_dyn_funcs = preload_lib(e, runtime_dll)
 dll_dyn_ad2name = dict([(x[1], x[0]) for x in dll_dyn_funcs.items()])
 
 from miasm.tools import win_api
