@@ -40,6 +40,7 @@ FAKE_SEH_B_AD = 0x11bb0000
 cur_seh_ad = FAKE_SEH_B_AD
 default_image_base = 0x400000
 
+loaded_modules = ["win_dll/kernel32.dll", "win_dll/ntdll.dll"]
 
 def build_fake_teb():
     """
@@ -119,6 +120,10 @@ def build_fake_inordermodule(modules_name):
     +0x04c PatchInformation               : Ptr32 Void
     """
 
+    first_name = "\x00".join("toto.exe\x00")
+
+    offset_name = 0x700
+
     o = ""
     o += pdw(in_load_order_module_1  )
     o += pdw(0)
@@ -127,11 +132,25 @@ def build_fake_inordermodule(modules_name):
     o += pdw(in_load_order_module_1+0x10)
     o += pdw(0)
     o += pdw(default_image_base)
-    o += (0x1000 - len(o))*"I"
-        
+
+    o += (0x24 - len(o))*"A"
+    o += struct.pack('HH', len(first_name), len(first_name))
+    o += pdw(in_load_order_module_list_address+offset_name)
+
+    o += (0x2C - len(o))*"A"
+    o += struct.pack('HH', len(first_name), len(first_name))
+    o += pdw(in_load_order_module_list_address+offset_name)
+
+    o += (offset_name - len(o))*"B"
+    o += first_name
+    o += (0x1000 - len(o))*"C"
     for i, m in enumerate(modules_name):
         #fname = os.path.join('win_dll', m)
         fname = m
+        bname = os.path.split(fname)[1].upper()
+        bname = "\x00".join(bname+"\x00")
+        print "add module", repr(bname)
+        print hex(in_load_order_module_1+i*0x1000)
         e = pe_init.PE(open(fname, 'rb').read())
         m_o = ""
         m_o += pdw(in_load_order_module_1 + (i+1)*0x1000 )
@@ -143,6 +162,19 @@ def build_fake_inordermodule(modules_name):
         m_o += pdw(e.NThdr.ImageBase)
         m_o += pdw(e.rva2virt(e.Opthdr.AddressOfEntryPoint))
         m_o += pdw(e.NThdr.sizeofimage)
+
+        m_o += (0x24 - len(m_o))*"A"
+        m_o += struct.pack('HH', len(bname), len(bname))
+        m_o += pdw(in_load_order_module_1+i*0x1000+offset_name)
+        
+        m_o += (0x2C - len(m_o))*"A"
+        m_o += struct.pack('HH', len(bname), len(bname))
+        m_o += pdw(in_load_order_module_1+i*0x1000+offset_name)
+
+        m_o += (offset_name - len(m_o))*"B"
+        m_o += bname
+
+
         m_o += (0x1000 - len(m_o))*"J"
 
         print "module", "%.8X"%e.NThdr.ImageBase, fname
@@ -166,7 +198,7 @@ def init_seh():
     vm_add_memory_page(peb_ldr_data_address, PAGE_READ | PAGE_WRITE, build_fake_ldr_data())
 
     #vm_add_memory_page(in_load_order_module_list_address, PAGE_READ | PAGE_WRITE, p(0) * 40)
-    vm_add_memory_page(in_load_order_module_list_address, PAGE_READ | PAGE_WRITE, build_fake_inordermodule(["win_dll/kernel32.dll", "win_dll/kernel32.dll"]))
+    vm_add_memory_page(in_load_order_module_list_address, PAGE_READ | PAGE_WRITE, build_fake_inordermodule(loaded_modules))
     vm_add_memory_page(default_seh, PAGE_READ | PAGE_WRITE, p(0xffffffff) + p(0x41414141) + p(0x42424242))
 
     vm_add_memory_page(context_address, PAGE_READ | PAGE_WRITE, '\x00' * 0x2cc)
