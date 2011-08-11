@@ -38,9 +38,10 @@ return_from_exception = 0x6eadbeef
 FAKE_SEH_B_AD = 0x11bb0000
 
 cur_seh_ad = FAKE_SEH_B_AD
-default_image_base = 0x400000
 
 loaded_modules = ["win_dll/kernel32.dll", "win_dll/ntdll.dll"]
+main_pe = None
+main_pe_name = "toto.exe"
 
 def build_fake_teb():
     """
@@ -75,10 +76,29 @@ def build_fake_peb():
     +0x008 ImageBaseAddress         : Ptr32 Void
     +0x00c Ldr                      : Ptr32 _PEB_LDR_DATA
     """
+
+    offset_serverdata = 0x100
+    offset_data1 = 0x108
+    offset_data2 = 0x110
     o = ""
     o += "\x00"*0x8
-    o += pdw(default_image_base)
+    if main_pe:
+        o += pdw(main_pe.NThdr.ImageBase)
+    else:
+        o += "AAAA"
     o += pdw(peb_ldr_data_address)
+
+    o += (0x54 - len(o)) *"A"
+    o += pdw(peb_address+offset_serverdata)
+    o += (offset_serverdata - len(o)) *"B"
+    o += pdw(0x33333333)
+    o += pdw(peb_address+offset_data1)
+    o += (offset_data1 - len(o)) *"C"
+    o += pdw(0x44444444)
+    o += pdw(peb_address+offset_data2)
+    o += (offset_data2 - len(o)) *"D"
+    o += pdw(0x55555555)
+    o += pdw(0x0077007C)
     return o
 
 
@@ -120,7 +140,7 @@ def build_fake_inordermodule(modules_name):
     +0x04c PatchInformation               : Ptr32 Void
     """
 
-    first_name = "\x00".join("toto.exe\x00")
+    first_name = "\x00".join(main_pe_name+"\x00")
 
     offset_name = 0x700
 
@@ -131,7 +151,13 @@ def build_fake_inordermodule(modules_name):
     o += pdw(0)
     o += pdw(in_load_order_module_1+0x10)
     o += pdw(0)
-    o += pdw(default_image_base)
+
+    if main_pe:
+        o += pdw(main_pe.NThdr.ImageBase)
+        o += pdw(main_pe.rva2virt(main_pe.Opthdr.AddressOfEntryPoint))
+    else:
+        # no fixed values
+        pass
 
     o += (0x24 - len(o))*"A"
     o += struct.pack('HH', len(first_name), len(first_name))
