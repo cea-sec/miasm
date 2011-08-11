@@ -625,6 +625,22 @@ def kernel32_GetFileSize():
     vm_set_gpreg(regs)
     
 
+
+access_dict = {    0x0: 0,
+                   0x1: 0,
+                   0x2: PAGE_READ,
+                   0x4: PAGE_READ | PAGE_WRITE,
+                   0x10: PAGE_EXEC,
+                   0x20: PAGE_EXEC | PAGE_READ,
+                   0x40: PAGE_EXEC | PAGE_READ | PAGE_WRITE,
+                   0x80: PAGE_EXEC | PAGE_READ | PAGE_WRITE,
+                   # 0x80: PAGE_EXECUTE_WRITECOPY
+                   0x100: 0
+                   }
+
+access_dict_inv = dict([(x[1], x[0]) for x in access_dict.items()])
+
+
 def kernel32_VirtualProtect():
     ret_ad = vm_pop_uint32_t()
     lpvoid = vm_pop_uint32_t()
@@ -634,21 +650,8 @@ def kernel32_VirtualProtect():
 
     print whoami(), hex(ret_ad), '(', hex(lpvoid), hex(dwsize), hex(flnewprotect), hex(lpfloldprotect), ')'
     
-
-    access_dict = {    0x0: 0,
-                       0x1: 0,
-                       0x2: PAGE_READ,
-                       0x4: PAGE_READ | PAGE_WRITE,
-                       0x10: PAGE_EXEC,
-                       0x20: PAGE_EXEC | PAGE_READ,
-                       0x40: PAGE_EXEC | PAGE_READ | PAGE_WRITE,
-                       0x80: PAGE_EXEC | PAGE_READ | PAGE_WRITE,
-                       # 0x80: PAGE_EXECUTE_WRITECOPY
-                       0x100: 0
-                       }
-
-    access_dict_inv = dict([(x[1], x[0]) for x in access_dict.items()])
-
+    # XXX mask hpart
+    flnewprotect &= 0xFFF
 
     if not flnewprotect in access_dict:
         raise ValueError( 'unknown access dw!')
@@ -1578,4 +1581,259 @@ def ntdll_RtlMoveMemory():
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = 1
+    vm_set_gpreg(regs)
+
+def ntdll_ZwQuerySystemInformation():
+    ret_ad = vm_pop_uint32_t()
+    systeminformationclass = vm_pop_uint32_t()
+    systeminformation = vm_pop_uint32_t()
+    systeminformationl = vm_pop_uint32_t()
+    returnl = vm_pop_uint32_t()
+    print whoami(), hex(ret_ad),
+    print hex(systeminformationclass), hex(systeminformation), hex(systeminformationl), hex(returnl)
+
+    if systeminformationclass == 2:
+        # SYSTEM_PERFORMANCE_INFORMATION
+        o = struct.pack('II', 0x22222222, 0x33333333)
+        o += "\x00"*systeminformationl
+        o = o[:systeminformationl]
+        vm_set_mem(systeminformation, o)
+    else:
+        raise ValueError('unknown sysinfo class', systeminformationclass)
+
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = 0
+    vm_set_gpreg(regs)
+
+def ntdll_ZwProtectVirtualMemory():
+    ret_ad = vm_pop_uint32_t()
+    handle = vm_pop_uint32_t()
+    lppvoid = vm_pop_uint32_t()
+    pdwsize = vm_pop_uint32_t()
+    flnewprotect = vm_pop_uint32_t()
+    lpfloldprotect = vm_pop_uint32_t()
+
+    print whoami(), hex(ret_ad), '(', hex(handle), hex(lppvoid), hex(pdwsize), hex(flnewprotect), hex(lpfloldprotect), ')'
+
+    ad = updw(vm_get_str(lppvoid, 4))
+    dwsize = updw(vm_get_str(pdwsize, 4))
+    print 'ad', hex(ad), 'size', hex(dwsize)
+    
+    # XXX mask hpart
+    flnewprotect &= 0xFFF
+
+
+    if not flnewprotect in access_dict:
+        raise ValueError( 'unknown access dw!')
+    
+    vm_set_mem_access(ad, access_dict[flnewprotect])
+
+    #XXX todo real old protect
+    vm_set_mem(lpfloldprotect, pdw(0x40))
+
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = 1
+    vm_set_gpreg(regs)
+    dump_memory_page_pool_py()
+
+
+
+def ntdll_ZwAllocateVirtualMemory():
+    ret_ad = vm_pop_uint32_t()
+    handle = vm_pop_uint32_t()
+    lppvoid = vm_pop_uint32_t()
+    zerobits = vm_pop_uint32_t()
+    pdwsize = vm_pop_uint32_t()
+    alloc_type = vm_pop_uint32_t()
+    flprotect = vm_pop_uint32_t()
+
+    print whoami(), hex(ret_ad), '(',
+    print hex(lppvoid), hex(zerobits), hex(pdwsize), hex(alloc_type), hex(flprotect), ')'
+    
+    ad = updw(vm_get_str(lppvoid, 4))
+    dwsize = updw(vm_get_str(pdwsize, 4))
+    print 'ad', hex(ad), 'size', hex(dwsize)
+
+
+    access_dict = {    0x0: 0,
+                       0x1: 0,
+                       0x2: PAGE_READ,
+                       0x4: PAGE_READ | PAGE_WRITE,
+                       0x10: PAGE_EXEC,
+                       0x20: PAGE_EXEC | PAGE_READ,
+                       0x40: PAGE_EXEC | PAGE_READ | PAGE_WRITE,
+                       0x100: 0
+                       }
+
+    access_dict_inv = dict([(x[1], x[0]) for x in access_dict.items()])
+
+
+    if not flprotect in access_dict:
+        raise ValueError( 'unknown access dw!')
+
+    max_ad = vm_get_memory_page_max_address()
+    max_ad = (max_ad+0xfff) & 0xfffff000
+
+
+    vm_add_memory_page(max_ad, access_dict[flprotect], "\x00"*dwsize)
+
+    vm_set_mem(lppvoid, pdw(max_ad))
+
+
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = 0
+    vm_set_gpreg(regs)
+    dump_memory_page_pool_py()
+    print 'ret', hex(max_ad), hex(ret_ad)
+    
+
+def ntdll_ZwFreeVirtualMemory():
+    ret_ad = vm_pop_uint32_t()
+    handle = vm_pop_uint32_t()
+    lppvoid = vm_pop_uint32_t()
+    pdwsize = vm_pop_uint32_t()
+    alloc_type = vm_pop_uint32_t()
+
+    print whoami(), hex(ret_ad), '(', hex(handle), hex(lppvoid), hex(pdwsize), hex(alloc_type), ')'
+    
+    ad = updw(vm_get_str(lppvoid, 4))
+    dwsize = updw(vm_get_str(pdwsize, 4))
+    print 'ad', hex(ad), 'size', hex(dwsize)
+
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    vm_set_gpreg(regs)
+
+
+def ntdll_RtlInitString():
+    ret_ad = vm_pop_uint32_t()
+    pstring = vm_pop_uint32_t()
+    source = vm_pop_uint32_t()
+
+    print whoami(), hex(ret_ad), '(', hex(pstring), hex(source), ')'
+    
+    s = get_str_ansi(source)
+    print "str", repr(s)
+
+    l = len(s)+1
+
+    o = struct.pack('HHI', l, l, source)
+    vm_set_mem(pstring, o)
+
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    vm_set_gpreg(regs)
+
+
+def ntdll_RtlAnsiStringToUnicodeString():
+    ret_ad = vm_pop_uint32_t()
+    dst = vm_pop_uint32_t()
+    src = vm_pop_uint32_t()
+    alloc_str = vm_pop_uint32_t()
+
+    print whoami(), hex(ret_ad), '(', hex(dst), hex(src), hex(alloc_str), ')'
+
+    l1, l2, p_src = struct.unpack('HHI', vm_get_str(src, 0x8))
+    print hex(l1), hex(l2), hex(p_src)
+    s = get_str_ansi(p_src)
+    print "str", repr(s)
+    s = ("\x00".join(s+"\x00"))
+    l = len(s)+1
+    if alloc_str:
+        print 'alloc'
+        max_ad = vm_get_memory_page_max_address()
+        max_ad = (max_ad+0xfff) & 0xfffff000
+        vm_add_memory_page(max_ad, PAGE_READ | PAGE_WRITE, "\x00"*l)
+    else:
+        print 'use buf'
+        max_ad = p_src
+    
+    vm_set_mem(max_ad, s)
+    
+    o = struct.pack('HHI', l, l, max_ad)
+    vm_set_mem(dst, o)
+    
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = 0
+    vm_set_gpreg(regs)
+
+def ntdll_LdrLoadDll():
+    ret_ad = vm_pop_uint32_t()
+    path = vm_pop_uint32_t()
+    flags = vm_pop_uint32_t()
+    modname = vm_pop_uint32_t()
+    modhandle = vm_pop_uint32_t()
+
+    print whoami(), hex(ret_ad), '(', hex(path), hex(flags), hex(modname), hex(modhandle), ')'
+    l1, l2, p_src = struct.unpack('HHI', vm_get_str(modname, 0x8))
+    print hex(l1), hex(l2), hex(p_src)
+    s = get_str_unic(p_src)
+    print repr(s)
+    libname = s[::2].lower()
+    print repr(libname)
+
+    ad = runtime_dll.lib_get_add_base(libname)
+    print "ret", hex(ad)
+    vm_set_mem(modhandle, pdw(ad))
+
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = 0
+    vm_set_gpreg(regs)
+
+def ntdll_RtlFreeUnicodeString():
+    ret_ad = vm_pop_uint32_t()
+    src = vm_pop_uint32_t()
+
+    print whoami(), hex(ret_ad), '(', hex(src), ')'
+
+    l1, l2, p_src = struct.unpack('HHI', vm_get_str(src, 0x8))
+    print hex(l1), hex(l2), hex(p_src)
+    s = get_str_unic(p_src)
+    print "str", repr(s)
+    print repr(s[::2])
+
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = 0
+    vm_set_gpreg(regs)
+
+
+def ntdll_LdrGetProcedureAddress():
+    ret_ad = vm_pop_uint32_t()
+    libbase = vm_pop_uint32_t()
+    pfname = vm_pop_uint32_t()
+    opt = vm_pop_uint32_t()
+    p_ad = vm_pop_uint32_t()
+    print whoami(), hex(ret_ad), hex(libbase), hex(pfname), hex(opt), hex(p_ad)
+
+    l1, l2, p_src = struct.unpack('HHI', vm_get_str(pfname, 0x8))
+    print hex(l1), hex(l2), hex(p_src)
+    fname = get_str_ansi(p_src)
+    print "str", repr(fname)
+
+    ad = runtime_dll.lib_get_add_func(libbase, fname)
+
+    vm_set_mem(p_ad, pdw(ad))
+
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = 0
+    vm_set_gpreg(regs)
+
+def ntdll_memset():
+    ret_ad = vm_pop_uint32_t()
+    arg_addr = vm_pop_uint32_t()
+    arg_c = vm_pop_uint32_t()
+    arg_size = vm_pop_uint32_t()
+
+    print whoami(), hex(ret_ad), '(', hex(arg_addr), arg_c, arg_size, ')'
+    vm_set_mem(arg_addr, chr(arg_c)*arg_size)
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = arg_addr
     vm_set_gpreg(regs)
