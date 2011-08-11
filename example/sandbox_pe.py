@@ -38,7 +38,8 @@ if filename and os.path.isfile(filename):
     execfile(filename)
 
 
-runtime_dll, dll_dyn_funcs = preload_lib(e, patch_vm_imp = True, lib_base_ad = 0x7c811111)
+runtime_dll = libimp(0x71111111)
+dll_dyn_funcs = preload_lib(e, runtime_dll)
 # set winapi to ours
 win_api.runtime_dll = runtime_dll
 win_api.current_pe = e
