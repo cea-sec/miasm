@@ -64,7 +64,7 @@ for (n,f), ad in dll_dyn_funcs.items():
 
 
 def my_disasm_callback(ad):
-    all_bloc = asmbloc.dis_bloc_ia32(in_str, ad, symbol_pool = symbol_pool)
+    all_bloc = asmbloc.dis_bloc_ia32(in_str, ad, symbol_pool = symbol_pool, dont_dis_nulstart_bloc = True)
     for b in all_bloc:
         for l in b.lines:
             for i, a in enumerate(l.arg):

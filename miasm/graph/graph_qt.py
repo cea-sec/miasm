@@ -95,7 +95,6 @@ syntax_rules = gen_syntax_rules()
 
 
 def parse_address(ad):
-    print "parse", ad
     if isinstance(ad, str):
         if ad.startswith('loc_'):
             ad = ad[4:]
@@ -112,6 +111,77 @@ def parse_address(ad):
     elif isinstance(ad, int) or isinstance(ad, long):
         pass
     return ad
+
+
+class history_point():
+    def __init__(self, ad, all_bloc = None, scroll_h = None, scroll_v = None):
+        self.ad = ad
+        self.all_bloc = all_bloc
+        self.scroll_h = scroll_h
+        self.scroll_v = scroll_v
+    def __repr__(self):
+        return "%X %r %r"%(self.ad, self.scroll_h, self.scroll_v)
+    def __eq__(self, h):
+        if isinstance(h, history):
+            return self.ad == h.ad and \
+                self.all_bloc == h.all_bloc and\
+                self.scroll_h == h.scroll_h and\
+                self.scroll_v == h.scroll_v
+        raise TypeError('not history')
+
+class history_mngr():
+    hist_next = 1
+    hist_back = 2
+
+    def __init__(self, myQGraphicsView, add_new_bloc, ad, all_bloc = None):
+        self.myQGraphicsView = myQGraphicsView
+        self.add_new_bloc = add_new_bloc
+        self.history_index = 0
+        htmp = history_point(ad, all_bloc)
+        self.history_list = [htmp]
+
+
+    def updt_current_history_scroll(self):
+        # update current history
+        scroll_v = self.myQGraphicsView.verticalScrollBar().value()
+        scroll_h = self.myQGraphicsView.horizontalScrollBar().value()
+
+        self.history_current.scroll_h = scroll_h
+        self.history_current.scroll_v = scroll_v
+
+
+    def back(self):
+        if self.history_index <=0:
+            return
+
+        self.updt_current_history_scroll()
+        self.history_index -=1
+        self.add_new_bloc()
+
+    def next(self, ad = None):
+        self.updt_current_history_scroll()
+        if ad == None:
+            if self.history_index == len(self.history_list)-1:
+                return
+            self.history_index += 1
+            self.history_index = min(self.history_index, len(self.history_list)-1)
+            self.add_new_bloc()
+            return
+
+        self.history_list = self.history_list[:self.history_index+1]
+        htmp = history_point(ad)
+        self.history_list.append(htmp)
+        self.history_index += 1
+        self.add_new_bloc()
+
+
+    def get_current_hist(self):
+        return self.history_list[self.history_index]
+    def set_current_hist(self, val):
+        self.history_list[self.history_index] = val
+
+    history_current = property(get_current_hist,
+                               set_current_hist)
 
 
 class MyHighlighter( QtGui.QSyntaxHighlighter ):
@@ -190,11 +260,9 @@ class graph_edge(QtGui.QGraphicsItem):
         brush = QtGui.QBrush(self.color)
         brush.setStyle(QtCore.Qt.SolidPattern)
         painter.setBrush(brush)
-                       
         for i, p1 in enumerate(self.pts[:-1]):
             p2 = self.pts[i+1]
             painter.drawLine(*(p1 + p2))
-    
         a = -self.end_angle-math.pi
         d_a = 0.3
         p3 = p2[0]+10*math.cos(a-d_a), p2[1]-10*math.sin(a-d_a)
@@ -203,7 +271,7 @@ class graph_edge(QtGui.QGraphicsItem):
 
 
         painter.drawPolygon(QtCore.QPoint(*p2), QtCore.QPoint(*p3), QtCore.QPoint(*p4), QtCore.QPoint(*p5) )
-    
+
 class node_asm_bb(QTextEdit):
     def __init__(self, txt, mainwin):
         self.txt = txt
@@ -236,20 +304,16 @@ class node_asm_bb(QTextEdit):
         cursor = self.textCursor()
         cursor.clearSelection()
         a, b = cursor.selectionStart () , cursor.selectionEnd ()
-        print a, b
         #if only click, get word
         cut_char = [' ', "\t", "\n"]
         if a == b:
-            while check_word.match(self.txt[a]):
-
+            while a < len(self.txt) and check_word.match(self.txt[a]):
                 a-=1
                 if a <0:
                     break
             a +=1
-            
             while b <len(self.txt) and check_word.match(self.txt[b]):
                 b+=1
-        print a, b
         print self.txt[a:b]
         w = self.txt[a:b]
         return w
@@ -264,30 +328,24 @@ class node_asm_bb(QTextEdit):
 
         QTextEdit.mousePressEvent(self, event)
         cursor = self.textCursor()
-        
 
     def mouseDoubleClickEvent(self,mouseEvent):
         print "DOUBLE"
         w = self.get_word_under_cursor()
-        app.postEvent(self.mainwin,MyEvent(w))
+        ad = parse_address(w)
+        app.postEvent(self.mainwin,MyEvent(history_mngr.hist_next, ad))
 
     def contextMenuEvent(self, event):
         global app
         w = self.get_word_under_cursor()
         menu = QtGui.QMenu(self)
-        goto_ad = menu.addAction("sel: "+w)
-        goto_ad.triggered.connect(lambda:app.postEvent(self.mainwin,MyEvent(w)))
-        
-        menu.addAction("Copy")
-        menu.addAction("Paste")
+        goto_ad = menu.addAction("jump to: "+w)
+        ad = parse_address(w)
+        goto_ad.triggered.connect(lambda:app.postEvent(self.mainwin,MyEvent(history_mngr.hist_next, ad)))
         menu.exec_(event.globalPos())
-    
     def paintEvent(self, e):
         if self.mainwin.view.graphicsView.zoom > -600:
             QTextEdit.paintEvent(self, e)
-        
-        
-
 
 class View(QtGui.QFrame):
 
@@ -359,10 +417,7 @@ class myQGraphicsView(QtGui.QGraphicsView):
         self.zoom = 1.0
         self.ty = 0.0
         self.mainwin = mainwin
-
-        
         self.current_node = None
-        
 
     def set_view(self, view):
         self.view = view
@@ -374,7 +429,7 @@ class myQGraphicsView(QtGui.QGraphicsView):
         pt = mouseEvent.pos()
         x,y = pt.x(), pt.y()
 
-        diff_x, diff_y = self.i_pos[0] - x, self.i_pos[1] - y 
+        diff_x, diff_y = self.i_pos[0] - x, self.i_pos[1] - y
         scroll_v =     self.verticalScrollBar()
         scroll_h =     self.horizontalScrollBar()
 
@@ -419,20 +474,16 @@ class myQGraphicsView(QtGui.QGraphicsView):
 
     def keyPressEvent( self, event ):
         key = event.key()
-        print "press", hex(key)
+        #print "press", hex(key)
         if key == 0x1000021: #ctrl
             self.key_ctrl = True
 
 
         elif key == 0x1000005: #enter
-            if self.mainwin.history_cur < len(self.mainwin.history_ad)-1:
-                self.mainwin.history_cur +=1
-            app.postEvent(self.mainwin,MyEvent(self.mainwin.history_ad[self.mainwin.history_cur]))
-            
+            app.postEvent(self.mainwin,MyEvent(history_mngr.hist_next))
         elif key == 0x1000000: #esc
-            if self.mainwin.history_cur>0:
-                self.mainwin.history_cur -= 1
-            app.postEvent(self.mainwin,MyEvent(self.mainwin.history_ad[self.mainwin.history_cur]))
+            app.postEvent(self.mainwin,MyEvent(history_mngr.hist_back))
+
 
         elif self.key_ctrl and key in  [43, 45]: # - +
             if key == 43:
@@ -442,15 +493,14 @@ class myQGraphicsView(QtGui.QGraphicsView):
             scale = pow(2.0, (self.zoom /600.0))
             matrix = QtGui.QMatrix()
             matrix.scale(scale, scale)
-            
             self.setMatrix(matrix)
-            
+
         elif key in [0x1000012, 0x1000014]:
             if key == 0x1000012:
                 diff_x = 20
             else:
                 diff_x = -20
-            scroll_h =     self.horizontalScrollBar()            
+            scroll_h =     self.horizontalScrollBar()
             pos_h = scroll_h.value()
             pos_h += diff_x
             scroll_h.setValue(pos_h)
@@ -460,14 +510,13 @@ class myQGraphicsView(QtGui.QGraphicsView):
                 diff_y = -20
             else:
                 diff_y = 20
-            scroll_v =     self.verticalScrollBar()            
+            scroll_v =     self.verticalScrollBar()
             pos_v = scroll_v.value()
             pos_v += diff_y
             scroll_v.setValue(pos_v)
 
     def keyReleaseEvent( self, event ):
         key = event.key()
-        print "relea", hex(key)
         if key == 0x1000021: #ctrl
             self.key_ctrl = False
 
@@ -484,7 +533,7 @@ class myQGraphicsView(QtGui.QGraphicsView):
             self.zoom +=delta
         else:
             pos_v = scroll_v.value()
-            pos_v -= delta  
+            pos_v -= delta
             scroll_v.setValue(pos_v)
 
 
@@ -514,8 +563,8 @@ class MainWindow(QtGui.QWidget):
         view = View("Graph view", self)
         self.view = view
 
-        self.populateScene(ad, all_bloc)
-
+        self.populateScene()
+        self.history_mngr = history_mngr(self.view.view(), self.add_new_bloc, ad, all_bloc)
         view.view().setScene(self.scene)
 
         layout = QtGui.QHBoxLayout()
@@ -527,7 +576,8 @@ class MainWindow(QtGui.QWidget):
 
         self.i_pos = None
         self.drop_mouse_event = False
-        
+        self.add_new_bloc()
+
 
 
     def pos2graphpos(self, x, y):
@@ -601,7 +651,7 @@ class MainWindow(QtGui.QWidget):
         V =  V.values()
         g = Graph(V,E)
         return hdr, g, V, E
-        
+
     def graph_from_v_e(self, ad, all_bloc):
         v_hdr, v_dct, edges = all_bloc
         V = {}
@@ -614,21 +664,15 @@ class MainWindow(QtGui.QWidget):
         hdr = V[v_hdr]
         V =  V.values()
         g = Graph(V,E)
-
-        
         return hdr, g, V, E
 
 
-    def add_new_bloc(self, ad, all_bloc = []):
-        print 'add_new_bloc', ad
-        ad = parse_address(ad)
-        print hex(ad)
-        if not self.history_ad or (self.history_cur == len(self.history_ad)-1 and ad != self.history_ad[-1]):
-            print 'add hist'
-            self.history_ad.append(ad)
-            self.history_cur +=1
-        
+    def add_new_bloc(self):
+        self.view.view().current_node = None
 
+        print 'add_new_bloc', self.history_mngr.history_current
+        ad = self.history_mngr.history_current.ad
+        all_bloc = self.history_mngr.history_current.all_bloc
         print "AD", hex(ad)
 
         for b in self.scene_blocs:
@@ -643,6 +687,7 @@ class MainWindow(QtGui.QWidget):
         if not all_bloc:
             print 'DIS', hex(ad)
             all_bloc = self.dis_callback(ad)
+            self.history_mngr.history_current.all_bloc = all_bloc
             g = asmbloc.bloc2graph(all_bloc)
             open("graph.txt" , "w").write(g)
 
@@ -656,7 +701,6 @@ class MainWindow(QtGui.QWidget):
         print 'g ok'
         print 'vertex: ', len(g.C), len(g.C[index].sV), 'edges:', len(g.C[index].sE)
         print 'hdr', hdr
-        
         nn = node_asm_bb("toto", self)
         mfont = nn.currentFont()
         class defaultview(object):
@@ -679,13 +723,16 @@ class MainWindow(QtGui.QWidget):
         for e in E: e.view = defaultview()
         min_x = None
         min_y = None
+        max_x = None
+        max_y = None
         max_pos_x = 0
         max_pos_y = 0
 
+
+        # for all connexe parts
         for index in xrange(len(g.C)):
 
             gr = g.C[index]
-            
             if False:#dr  and hdr in g.C[index].sV:
                 r = [hdr]
             else:
@@ -694,13 +741,10 @@ class MainWindow(QtGui.QWidget):
                     print 'no roots!'
                     r = [gr.sV.o[0]]
             r.sort()
-            
             L = g.C[index].get_scs_with_feedback(r)
-    
             sug = SugiyamaLayout(g.C[index])
             sug.xspace = 40
             sug.yspace = 40
-    
             sug.init_all(roots=r,inverted_edges=filter(lambda x:x.feedback, g.C[index].sE))
             sug.route_edge = route_with_nurbs
             sug.draw(1)
@@ -711,10 +755,10 @@ class MainWindow(QtGui.QWidget):
                 pos = n.view.xy
                 if min_pos_x == None or pos[0] - n.view.w/2 < min_pos_x:
                     min_pos_x = pos[0]- n.view.w/2
-    
 
+            first_pos = r[0].view.xy
             new_max_pos_x = max_pos_x
-            first_pos = None
+            #first_pos = None
             for n in g.C[index].sV:
                 pos = n.view.xy
                 if not first_pos:
@@ -778,37 +822,54 @@ class MainWindow(QtGui.QWidget):
                     p = x, y
                     pts[i] = p
                 e = graph_edge(min_x, min_y, max_x, max_y, pts, e.data, end_angle, e.view.splines)
-                
                 self.scene.addItem(e)
                 self.scene_edges.append(e)
 
             max_pos_x = new_max_pos_x
 
-    
+
+        scroll_h = self.history_mngr.history_current.scroll_h
+        scroll_v = self.history_mngr.history_current.scroll_v
+        if scroll_h != None or scroll_v != None:
+            self.view.view().horizontalScrollBar().setValue(scroll_h)
+            self.view.view().verticalScrollBar().setValue(scroll_v)
+            return
+
         if first_pos:
             self.view.view().centerOn(first_pos[0], first_pos[1])
+        '''
+        print min_x, max_x, min_y, max_y
 
-        
+        if scroll_h == None or scroll_v == None:
+            print 'default scroll val'
+            scroll_h = 0
+            scroll_v = 0
+        '''
+        """
+        print "scroll val", scroll_h, scroll_v
+        self.view.view().horizontalScrollBar().setValue(scroll_h)
+        self.view.view().verticalScrollBar().setValue(scroll_v)
+        """
 
-    def populateScene(self, ad, all_bloc):
+
+    def populateScene(self):#, ad, all_bloc):
         self.scene = QtGui.QGraphicsScene()
         self.scene.setBackgroundBrush(QtGui.QBrush(QtGui.QColor(230, 250, 250, 255)))
         self.scene_blocs = []
         self.scene_edges = []
 
-        self.add_new_bloc(ad, all_bloc)
-        self.ad = ad
 
     def customEvent(self,event):
-        self.add_new_bloc(event.ad)
+        if event.hist_dir == history_mngr.hist_next:
+            self.history_mngr.next(event.ad)
+        elif event.hist_dir == history_mngr.hist_back:
+            self.history_mngr.back()
         
 
 class MyEvent(QEvent):
-    """ """
- 
-    def __init__(self,ad):
-        """ """
+    def __init__(self,hist_dir, ad = None):
         QEvent.__init__(self,QEvent.User)
+        self.hist_dir = hist_dir
         self.ad = ad
 
 
