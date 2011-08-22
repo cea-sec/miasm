@@ -29,6 +29,7 @@ from PyQt4.Qt import QMouseEvent
 from PyQt4.Qt import QTextCursor
 from PyQt4.Qt import QEvent
 from PyQt4.Qt import Qt
+import re
 
 app = None
 from grandalf.graphs import *
@@ -93,6 +94,26 @@ def gen_syntax_rules():
 syntax_rules = gen_syntax_rules()
 
 
+def parse_address(ad):
+    print "parse", ad
+    if isinstance(ad, str):
+        if ad.startswith('loc_'):
+            ad = ad[4:]
+            g = re.search("[0-9a-fA-F]+", ad)
+            if not g:
+                print "cannot parse address", repr(ad)
+            ad = ad[g.start():g.end()]
+            ad = int(ad, 16)
+        elif ad.startswith('0x'):
+            ad = int(ad, 16)
+        else:
+            print 'BAD AD'
+            ad = None
+    elif isinstance(ad, int) or isinstance(ad, long):
+        pass
+    return ad
+
+
 class MyHighlighter( QtGui.QSyntaxHighlighter ):
     def __init__( self, parent ):
         QtGui.QSyntaxHighlighter.__init__( self, parent )
@@ -145,7 +166,8 @@ def getTextwh_font(txt, zoom, font):
 
     r  = QtGui.QFontMetrics(font).boundingRect(QtCore.QRect(), 0, txt)
     w_max, h_max = r.width(), r.height()
-    return w_max+30, h_max+20+len(l)*1
+    return w_max+30, h_max+25+len(l)*2
+
 
 
 class graph_edge(QtGui.QGraphicsItem):
@@ -210,6 +232,7 @@ class node_asm_bb(QTextEdit):
 
 
     def get_word_under_cursor(self):
+        check_word = re.compile('\w')
         cursor = self.textCursor()
         cursor.clearSelection()
         a, b = cursor.selectionStart () , cursor.selectionEnd ()
@@ -217,13 +240,14 @@ class node_asm_bb(QTextEdit):
         #if only click, get word
         cut_char = [' ', "\t", "\n"]
         if a == b:
-            while not self.txt[a] in cut_char:
+            while check_word.match(self.txt[a]):
+
                 a-=1
                 if a <0:
                     break
             a +=1
             
-            while b <len(self.txt) and not self.txt[b] in cut_char:
+            while b <len(self.txt) and check_word.match(self.txt[b]):
                 b+=1
         print a, b
         print self.txt[a:b]
@@ -597,16 +621,8 @@ class MainWindow(QtGui.QWidget):
 
     def add_new_bloc(self, ad, all_bloc = []):
         print 'add_new_bloc', ad
-        if isinstance(ad, str):
-            if ad.startswith('loc_'):
-                ad = int(ad[4:12], 16)
-            elif ad.startswith('0x'):
-                ad = int(ad, 16)
-            else:
-                print 'BAD AD'
-                return
-        #print hex(ad)
-
+        ad = parse_address(ad)
+        print hex(ad)
         if not self.history_ad or (self.history_cur == len(self.history_ad)-1 and ad != self.history_ad[-1]):
             print 'add hist'
             self.history_ad.append(ad)
