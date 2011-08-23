@@ -156,8 +156,11 @@ def get_import_address(e):
 
 def get_import_address_elf(e):
     import2addr = {}
-    for k, v in e.sh.rel_plt.rel.items():
-        import2addr[('xxx', k)] = v.offset
+    for sh in e.sh:
+        if not hasattr(sh, 'rel'):
+            continue
+        for k, v in sh.rel.items():
+            import2addr[('xxx', k)] = v.offset
     return import2addr
 
 
