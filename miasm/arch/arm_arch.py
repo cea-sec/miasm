@@ -21,6 +21,7 @@ import struct
 
 from miasm.arch.ia32_reg import x86_afs
 from miasm.core.bin_stream import bin_stream
+import re
 
 tab_int_size = {int8:8,
                 uint8:8,
@@ -107,6 +108,21 @@ def split_args(args):
             
     o = []
     t = [x for x in shlex.shlex(args)]
+    
+    new_t = []
+    i = 0
+    while i < len(t):
+        x = t[i]
+        if i == len(t)-1:
+            new_t.append(x)
+        elif x == "-" and (re.match('\d+', t[i+1]) or re.match('0x[0-9a-fA-F]+', t[i+1])):
+            new_t.append(x+t[i+1])
+            i+=1
+        else:
+            new_t.append(x)
+        i +=1
+
+    t = new_t
     while t:
         a = get_until_t(t, [','])
         o.append(a)
@@ -602,6 +618,7 @@ class arm_mnemo_metaclass(type):
         
     def asm_instr(cls, txt):
         tab_mn = [arm_data, arm_mul, arm_mull, arm_swp, arm_brxchg, arm_hdtreg, arm_hdtimm, arm_sdt, arm_bdt, arm_br, arm_codt, arm_cort, arm_codo, arm_swi, arm_szext]#, arm_undef]
+
         t = [x for x in shlex.shlex(txt)]
         t.reverse()
         name = t.pop()
@@ -614,7 +631,6 @@ class arm_mnemo_metaclass(type):
         return i
 
     def asm(cls, txt, symbol_reloc_off = {}):
-        #print txt
         i = cls.asm_instr(txt)
         return [struct.pack('<L', i.bin())]
         
@@ -1761,10 +1777,9 @@ class arm_br(arm_mn):
             arg = {x86_afs.ad:is_mem, x86_afs.imm:offset}
         else:
             arg = {x86_afs.imm:offset-(my_offset)}
-
         self.arg = [arg]
         self.offs = lbls[l]-my_offset-4
-        
+
 class arm_codt(arm_mn):
     mask_list = [bm_int110, bm_ppndx, bm_updown, bm_tlen, bm_wback, bm_ldst, bm_rn, bm_crd, bm_cpnum, bm_cooff]
 
