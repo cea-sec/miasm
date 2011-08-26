@@ -84,7 +84,7 @@ struct memory_page_node * get_memory_page_from_address(uint64_t ad)
 	if ( mpn && (mpn->ad <= ad) && (ad < mpn->ad + mpn->size))
 		return mpn;
 
-	printf("ERROR: address 0x%"PRIX64" is not mapped in virtual memory:\n", ad);
+	printf("WARNING: address 0x%"PRIX64" is not mapped in virtual memory:\n", ad);
 	dump_memory_page_pool();
 	dump_gpregs();
 	//exit(-1);

@@ -106,6 +106,8 @@ def run_bin(my_eip, known_blocs, code_blocs_mem_range):
 
         if not my_eip in known_blocs:
             updt_bloc_emul(known_blocs, in_str, my_eip, symbol_pool, code_blocs_mem_range, log_regs = log_regs, log_mn = log_mn)
+            vm_reset_exception()
+
         try:
             my_eip = vm_exec_blocs(my_eip, known_blocs)
         except KeyboardInterrupt:

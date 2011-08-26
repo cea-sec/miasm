@@ -13,6 +13,9 @@ import sys
 if len(sys.argv) <3:
     print 'usage:'
     print "%s rawfile address_to_exec"%sys.argv[0]
+    print 'exemple:'
+    print "%s x86_sc.bin 0"%sys.argv[0]
+
     sys.exit(0)
 data = open(sys.argv[1], 'rb').read()
 ad = sys.argv[2].lower()
@@ -58,6 +61,7 @@ def run_bin(my_eip, known_blocs, code_blocs_mem_range):
 
         if not my_eip in known_blocs:
             updt_bloc_emul(known_blocs, in_str, my_eip, symbol_pool, code_blocs_mem_range, log_regs = log_regs, log_mn = log_mn)
+            vm_reset_exception()
         try:
             my_eip = vm_exec_blocs(my_eip, known_blocs)
         except KeyboardInterrupt:

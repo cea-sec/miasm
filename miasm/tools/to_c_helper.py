@@ -598,13 +598,8 @@ def gen_C_from_asmbloc(in_str, offset, symbol_pool, dont_dis = [], job_done = No
     f_name = "bloc_%.16X"%(offset&mask_int)
     l = symbol_pool.getby_offset_create(offset)
     cur_bloc = asmbloc.asm_bloc(l)
-    
-    try:
-        asmbloc.dis_bloc(x86_mn, in_str, cur_bloc, offset, job_done, symbol_pool,[],
-                         follow_call = False, patch_instr_symb = True, dontdis_retcall = False,lines_wd = None, amode=x86_afs.u32, sex=0)
-    except:
-        raise ValueError('cannot disasm at', hex(offset))
-
+    asmbloc.dis_bloc(x86_mn, in_str, cur_bloc, offset, job_done, symbol_pool,[],
+                     follow_call = False, patch_instr_symb = True, dontdis_retcall = False,lines_wd = None, amode=x86_afs.u32, sex=0)
     f_dec, out = bloc_gen_C_func([cur_bloc], f_name, None, True, log_mn, log_reg, log_lbl, filtered_ad, tick_dbg)
     #print "\n".join(out)
     return f_name, f_dec, out, cur_bloc
@@ -965,7 +960,10 @@ class bin_stream_vm():
         self.offset = offset
 
     def readbs(self, l=1):
-        s = vm_get_str(self.offset, l)
+        try:
+            s = vm_get_str(self.offset, l)
+        except:
+            raise IOError('cannot get mem ad', hex(self.offset))
         self.offset+=l
         return s
 

@@ -96,6 +96,7 @@ def run_bin(my_eip, known_blocs, code_blocs_mem_range):
             last_blocs.pop(0)
             last_blocs.append(my_eip)
             updt_bloc_emul(known_blocs, in_str, my_eip, symbol_pool, code_blocs_mem_range, log_regs = log_regs, log_mn = log_mn)
+            vm_reset_exception()
 
 
         try:

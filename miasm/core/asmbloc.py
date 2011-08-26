@@ -248,11 +248,13 @@ def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool, dont_dis 
                 log_asmbloc.warning( "bloc start with nul %X"%int(off_i))
                 break
 
-        instr = mnemo.dis(pool_bin, amode, sex)
-        
-        
+        try:
+            instr = mnemo.dis(pool_bin, amode, sex)
+        except:
+            instr = None
+
         if instr == None:
-            log_asmbloc.warning( "cannot disasm at %X"%int(offset))
+            log_asmbloc.warning( "cannot disasm at %X"%int(pool_bin.offset))
             cur_bloc.bto = []
             offsets_to_dis = []
             break
