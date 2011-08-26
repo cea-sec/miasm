@@ -612,9 +612,10 @@ class ExprSlice(Expr):
         return hash(self.arg)^hash(self.start)^hash(self.stop)
 
     def toC(self):
+        # XXX gen mask in python for 64 bit & 32 bit compat
         return "((%s>>%d) & ((0xFFFFFFFF>>(32-%d))))"%(self.arg.toC(), self.start, self.stop-self.start)
 
-    
+
 class ExprSliceTo(Expr):
     def __init__(self, arg, start, stop):
         self.arg, self.start, self.stop = arg, start, stop
@@ -650,6 +651,7 @@ class ExprSliceTo(Expr):
         return hash(self.arg)^hash(self.start)^hash(self.stop)
 
     def toC(self):
+        # XXX gen mask in python for 64 bit & 32 bit compat
         return "((%s & (0xFFFFFFFF>>(32-%d))) << %d)"%(self.arg.toC(), self.stop-self.start, self.start)
 
 class ExprCompose(Expr):
@@ -669,7 +671,7 @@ class ExprCompose(Expr):
             if isinstance(a, Expr):
                 args.append(a.reload_expr(g))
             else:
-                args.append(a)    
+                args.append(a)
 
         return ExprCompose(args )
     def __contains__(self, e):

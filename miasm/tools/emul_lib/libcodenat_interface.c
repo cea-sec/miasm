@@ -467,7 +467,7 @@ PyObject* _vm_get_str(PyObject *addr, PyObject *item_len)
     while (my_size){
 	    mpn = get_memory_page_from_address(buf_addr);
 	    if (!mpn){
-		    printf("cannot find page off %X\n", buf_addr);
+		    PyErr_SetString(PyExc_RuntimeError, "cannot find address");
 		    return 0;
 	    }
 
