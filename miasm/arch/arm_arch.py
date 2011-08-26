@@ -1679,7 +1679,9 @@ class arm_bdt(arm_mn):
         return self.cond != COND_AL
     def dstflow(self):
         return False
-        
+    def is_subcall(self):
+        return False
+
 class arm_br(arm_mn):
     mask_list = [bm_int101, bm_lnk, bm_offs]
 
