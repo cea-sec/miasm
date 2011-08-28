@@ -683,6 +683,9 @@ class MainWindow(QtGui.QWidget):
             self.scene.removeItem(e)
         self.scene_edges = []
         self.scene.clear()
+        w = self.scene.width()
+        h = self.scene.height()
+        self.scene.update(0, 0, w, h)
 
         if not all_bloc:
             print 'DIS', hex(ad)
