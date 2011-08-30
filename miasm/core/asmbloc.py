@@ -75,7 +75,6 @@ class asm_raw:
     def __str__(self):
         return repr(self.raw)
 
-        
 class asm_constraint:
     c_to = "c_to"
     c_next = "c_next"
@@ -95,7 +94,6 @@ class asm_bloc:
         self.lines = []
         self.label = label
         self.age = 0
-        
     def __str__(self):
         out = str(self.label)+"\n"
         out+="from ->"
@@ -111,30 +109,25 @@ class asm_bloc:
             else:
                 out+=str(l)+" "
         return out
-            
-            
     def addline(self, l):
         self.lines.append(l)
     def addfrom(self, l):
         self.bfrom.append(l)
     def addto(self, l):
         self.bto.append(l)
-    
-
     def split(self, offset, l):
         i = -1
         offsets = [x.offset for x in self.lines]
         if not l.offset in offsets:
             log_asmbloc.warning( 'cannot split bloc at %X  middle instruction? default middle'%offset)
             offsets.sort()
-            
             return None
         new_bloc = asm_bloc(l)
         i = offsets.index(offset)
         self.lines, new_bloc.lines = self.lines[:i],self.lines[i:]
         new_bloc.bto = self.bto
         c = asm_constraint(l, asm_constraint.c_next)
-        self.bto = [c]    
+        self.bto = [c]
         return new_bloc
 
     def get_range(self):
@@ -210,9 +203,7 @@ def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool, dont_dis 
              follow_call = False, patch_instr_symb = True, dontdis_retcall = False,
              lines_wd = None, amode="u32", sex=0, dis_bloc_callback = None, dont_dis_nulstart_bloc = False):
     pool_bin.offset = offset
-    
     lines_cpt = 0
-    
     while True:
         lines_cpt+=1
         if lines_wd !=None and lines_cpt>lines_wd:
@@ -226,7 +217,6 @@ def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool, dont_dis 
             cur_bloc.bto = [c]
             offsets_to_dis = [pool_bin.offset]
             break
-        
         if pool_bin.offset in job_done:
             #if not pool_bin.offset in symbol_pool.s_offset:
             #    # XXX bug: we start dis in middle of bb
@@ -236,7 +226,6 @@ def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool, dont_dis 
                 cur_bloc.bto = [c]
                 offsets_to_dis = [pool_bin.offset]
                 break
-
         job_done.add(pool_bin.offset)
         log_asmbloc.debug("dis at %X"%int(pool_bin.offset))
         if lines_cpt <=1 and dont_dis_nulstart_bloc:
@@ -258,7 +247,6 @@ def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool, dont_dis 
             cur_bloc.bto = []
             offsets_to_dis = []
             break
-        
         log_asmbloc.debug(instr)
         log_asmbloc.debug(instr.m)
         log_asmbloc.debug(instr.arg)
@@ -281,7 +269,8 @@ def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool, dont_dis 
                     d = symbol_pool.getby_offset_create(d)
                 dstn.append(d)
             dst = dstn
-            if len(dst) == 1:
+            # XXX todo: remove this test
+            if len(dst) >= 1:
                 if isinstance(dst[0], asm_label):
                     instr.setdstflow(dst)
             if (not instr.is_subcall()) or follow_call:
@@ -299,12 +288,11 @@ def dis_i(mnemo, pool_bin, offset, symbol_pool):
     symbol_pool = asm_symbol_pool()
     dum_l = symbol_pool.getby_offset_create(offset)
     dum_b = asm_bloc(dum_l)
-    
     dis_bloc(mnemo, pool_bin, dum_b, offset, set(), symbol_pool, lines_wd = 1)
     if not dum_b.lines:
         return None
     return dum_b.lines[0]
-        
+
 def split_bloc(all_bloc, symbol_pool, more_ref = None, dis_bloc_callback = None):
     i = -1
     err = False
@@ -324,7 +312,6 @@ def split_bloc(all_bloc, symbol_pool, more_ref = None, dis_bloc_callback = None)
                 if n >a and n <=b:
                     l = symbol_pool.getby_offset_create(n)
                     new_b = all_bloc[j].split(n,l)
-    
                     log_asmbloc.debug("split bloc %x"%n)
                     if new_b== None:
                         log_asmbloc.error("cannot split %x!!"%n)
@@ -372,7 +359,6 @@ def dis_bloc_all(mnemo, pool_bin, offset, job_done, symbol_pool, dont_dis = [],
                 break
         if dd_flag:
             continue
-                
         l = symbol_pool.getby_offset_create(n)
         cur_bloc = asm_bloc(l)
         todo += dis_bloc(mnemo, pool_bin, cur_bloc, n, job_done, symbol_pool, dont_dis, follow_call, patch_instr_symb, dontdis_retcall, amode=amode, sex=sex, dis_bloc_callback = dis_bloc_callback, lines_wd = lines_wd, dont_dis_nulstart_bloc = dont_dis_nulstart_bloc)
@@ -380,9 +366,6 @@ def dis_bloc_all(mnemo, pool_bin, offset, job_done, symbol_pool, dont_dis = [],
 
 
     return split_bloc(all_bloc, symbol_pool, dis_bloc_callback = dis_bloc_callback)
-    
-    #return all_bloc
-
 
 
 def bloc2graph(blocs, label = False, lines = True):
@@ -419,7 +402,6 @@ def group_blocs(all_bloc):
     log_asmbloc.info('group_blocs')
     #group adjacent blocs
     rest = all_bloc[:]
-    
     groups_bloc = {}
     d = dict([(x.label,x) for x in rest])
     log_asmbloc.debug([str(x.label) for x in rest])
@@ -462,7 +444,6 @@ def group_blocs(all_bloc):
         else:
             hof = l.name
         log_asmbloc.debug(("offset totalmax l", hof, l.total_max_l))
-    
     return groups_bloc
 
 
@@ -574,7 +555,6 @@ def fix_bloc_around_anchored_bloc(unr_bloc):
             unr_bloc[i+1].fixedblocs = True
             b_todo.add(unr_bloc[i+1].label)
             b_rest.remove(unr_bloc[i+1].label)
-    
 
 
 # place all asmblocs, ordered
@@ -598,7 +578,6 @@ def resolve_symbol_linear(bloc_list, group_bloc, dont_erase = []):
     for b in unr_bloc:
         l2b[b.label] = b
 
-        
     # first, link grouped bloc around fixed labels
     for g in group_bloc.values():
         fix_bloc_around_anchored_bloc(g)
@@ -635,21 +614,11 @@ def resolve_symbol_linear(bloc_list, group_bloc, dont_erase = []):
     print b_done
 
     return [(x,0) for x in unr_bloc]
-    
-    bloc_list = []
-    unr_bloc = reduce(lambda x,y: x+group_bloc[y], group_bloc, [])
-    ending_ad = []
 
-    free_interval = gen_free_space_intervals(non_free_mapping)
-    log_asmbloc.debug(free_interval)
-
-    
-        
 #place all asmblocs
 def resolve_symbol(group_bloc, dont_erase = []):
     log_asmbloc.info('resolve_symbol')
     log_asmbloc.info(str(dont_erase))
-    
     bloc_list = []
     unr_bloc = reduce(lambda x,y: x+group_bloc[y], group_bloc, [])
     ending_ad = []
@@ -657,15 +626,13 @@ def resolve_symbol(group_bloc, dont_erase = []):
     non_free_mapping = gen_non_free_mapping(group_bloc, dont_erase)
     free_interval = gen_free_space_intervals(non_free_mapping)
     log_asmbloc.debug(free_interval)
-    
-    
 
     #first big ones
     g_tab = [(x.total_max_l,x) for x in group_bloc]
     g_tab.sort()
     g_tab.reverse()
     g_tab = [x[1] for x in g_tab]
-    
+
     #g_tab => label of grouped blov
     #group_bloc => dict of grouped bloc labeled-key
 
@@ -687,7 +654,6 @@ def resolve_symbol(group_bloc, dont_erase = []):
                         log_asmbloc.debug("consumed %d rest: %d"%(g.total_max_l, int(tmp)))
                         free_interval[g] = tmp
                         del(free_interval[x])
-                        
                         g.offset = [group_bloc[x][-1].label, group_bloc[x][-1], 1]                        
                         g.fixedblocs = True
                         finish = True
@@ -729,7 +695,6 @@ def resolve_symbol(group_bloc, dont_erase = []):
             resolving = True
             log_asmbloc.info("bloc %s resolved"%unr_bloc[i].label)
             bloc_list.append((unr_bloc[i],0))
-            
             g_found =  None
             for g in g_tab:
                 if unr_bloc[i] in group_bloc[g]:
@@ -743,7 +708,6 @@ def resolve_symbol(group_bloc, dont_erase = []):
                 my_group[index-1].label.offset = [unr_bloc[i].label, unr_bloc[i-1], -1]
             if index <len(my_group)-1 and my_group[index+1] in unr_bloc:
                 my_group[index+1].label.offset = [unr_bloc[i].label, unr_bloc[i], 1]
-    
             del unr_bloc[i]
 
         if not resolving:
@@ -758,7 +722,6 @@ def resolve_symbol(group_bloc, dont_erase = []):
             else:
                 print "not fixed"
         raise ValueError('enable to fix bloc')
-            
     return bloc_list
 
 
@@ -766,7 +729,6 @@ def calc_symbol_offset(symbol_pool):
     keys = symbol_pool.s.keys()
     for l in symbol_pool.s:
         symbol_pool.s[l].offset_g = symbol_pool.s[l].offset
-        
     s_to_use = set()
     s_to_fix = set()
 
@@ -788,7 +750,6 @@ def calc_symbol_offset(symbol_pool):
 
     s_used = set()
     total_fixed = 0
-    
     while s_to_use:
         s = s_to_use.pop()
         offset = symbol_pool.s[s].offset_g
@@ -799,7 +760,6 @@ def calc_symbol_offset(symbol_pool):
         for l in s_dependent[s]:
             if symbol_pool.s[s].offset_g== None:
                 raise ValueError("unknown symbol: %s"%str(s))
-            
             symbol_pool.s[l].offset_g=offset+symbol_pool.s[l].offset_g[1].blen*symbol_pool.s[l].offset_g[2]
             s_to_use.add(l)
             total_fixed+=1
@@ -845,9 +805,7 @@ def asmbloc(mnemo, all_blocs):
         #bloc with max rel values encoded
         b.blen_max = blen+blen_max
         log_asmbloc.info("blen: %d max: %d"%(b.blen, b.blen_max))
-        
 
-        
 def asmbloc_final(mnemo, all_blocs, symbol_pool, symb_reloc_off = {}):
     log_asmbloc.info("asmbloc_final")
     fini =False
@@ -890,7 +848,6 @@ def asmbloc_final(mnemo, all_blocs, symbol_pool, symb_reloc_off = {}):
                     raise ValueError('cannot asm:%s'%str(instr))
                 c = candidates[0]
                 instr.arg = sav_a
-                
                 if len(c)>len(instr.data):
                     #good len, bad offset...XXX
                     b.blen = b.blen-len(instr.data)+len(c)
@@ -908,13 +865,10 @@ def asmbloc_final(mnemo, all_blocs, symbol_pool, symb_reloc_off = {}):
 
                 if my_s!=None:
                     my_symb_reloc_off[b.label].append(offset_i+my_s)
-                    
                 offset_i+=len(instr.data)
-    
     for l in symbol_pool.s:
         if symbol_pool.s[l].offset_g ==None:
             fdfd
-    
     #we have fixed all relative values
     #recompute good offsets
     for l in symbol_pool.s:
@@ -937,7 +891,6 @@ def asm_resolve_final(mnemo, all_bloc, symbol_pool, dont_erase = [], symb_reloc_
         resolved_b = resolve_symbol(bloc_g, dont_erase)
 
     asmbloc_final(mnemo, resolved_b, symbol_pool, symb_reloc_off)
-    
 
     written_bytes = {}
     patches = {}
@@ -1001,8 +954,6 @@ def dead_bloc_rem(all_bloc, symbol_pool, keeped = []):
                 finish = False
                 print 'del bloc %s'%str(l)
                 break
-                
-            
 
 def getbloc_around(all_bloc, a, level = 3, done = None, blocby_label = None):
 
@@ -1010,15 +961,12 @@ def getbloc_around(all_bloc, a, level = 3, done = None, blocby_label = None):
         blocby_label = {}
         for b in all_bloc:
             blocby_label[b.label] = b
-    
     if done == None:
         done = set()
 
     done.add(a)
-    
     if not level:
         return done
-    
     for b in a.parents:
         b = blocby_label[b]
         if b in done:
@@ -1038,15 +986,12 @@ def getbloc_parents(all_bloc, a, level = 3, done = None, blocby_label = None):
         blocby_label = {}
         for b in all_bloc:
             blocby_label[b.label] = b
-    
     if done == None:
         done = set()
 
     done.add(a)
-    
     if not level:
         return done
-    
     for b in a.parents:
         b = blocby_label[b]
         if b in done:
@@ -1069,17 +1014,14 @@ def getbloc_parents_strict(all_bloc, a, level = 3, rez = None, done = None, bloc
     done.add(a)
     if level == 0:
         rez.add(a)
-    
     if not level:
         return rez
-    
     for b in a.parents:
         b = blocby_label[b]
         if b in done:
             continue
         rez.update(getbloc_parents_strict(all_bloc, b, level-1, rez, done, blocby_label))
     return rez
-
 
 def bloc_find_path(all_bloc, blocby_label, a, b, path = None, done = None):
     if path == None:
@@ -1104,7 +1046,6 @@ def bloc_find_path(all_bloc, blocby_label, a, b, path = None, done = None):
         all_path+=bloc_find_path(all_bloc, blocby_label, x, b, path+[a], done)
     return all_path
 
-            
 def getblocby_offsetin(all_bloc, o):
     for b in all_bloc:
         for l in b.lines:
@@ -1125,7 +1066,6 @@ def getblocby_offsetinr(all_bloc, o):
             return b
     return None
 
-        
 def getlineby_offset(all_bloc, o):
     for b in all_bloc:
         for l in b.lines:
@@ -1164,17 +1104,13 @@ def bloc_find_path_next(all_bloc, blocby_label, a, b, path = None):
         if not x.label in blocby_label:
             print 'XXX unknown label'
             continue
-            
         x = blocby_label[x.label]
         all_path+=bloc_find_path_next(all_bloc, blocby_label, x, b, path+[a])
         #stop if at least one path found
         if all_path:
             return all_path
-            
     return all_path
-                           
-    
-        
+
 def bloc_merge(all_bloc, symbol_pool, dont_merge = []):
     i = -1
     blocby_label = {}
@@ -1228,21 +1164,17 @@ def bloc_merge(all_bloc, symbol_pool, dont_merge = []):
                 if p == b.label:
                     bs.parents.discard(p)
                     bs.parents.add(bp.label)
-                
         bp.lines+=b.lines
         bp.bto = b.bto
         symbol_pool.remove(b.label)
         del(all_bloc[i])
         i = -1
-        
-            
-        
+
 def extract_sub_graph_of_bloc(all_bloc, b_o):
     blocby_label = {}
     for b in all_bloc:
         blocby_label[b.label] = b
         b.parents = find_parents(all_bloc, b.label)
-    
     out = []
     todo = set([b_o])
     done = set()
@@ -1259,7 +1191,6 @@ def extract_sub_graph_of_bloc(all_bloc, b_o):
             bson = blocby_label[c.label]
             todo.add(bson)
     return out
-            
 
 def steal_bytes(in_str, arch_mn, ad, l):
     in_str.setoffset(ad)
@@ -1272,27 +1203,20 @@ def steal_bytes(in_str, arch_mn, ad, l):
         total_bytes+=lines[-1].l
         erased_asm+=str(lines[-1])+'\n'
     return lines, total_bytes
-        
-
-
 
 def dis_multi_func(in_str, mn, symbol_pool, ad, dont_dis = [], follow_call = False, dontdis_retcall = False, amode="u32", sex=0, dis_bloc_callback  =None ):
     todo = ad[:]
     done = set()
-    
-    
     all_bloc = []
     job_done = set()
 
     call_ad = set(ad)
-    
     while todo:
         ad = todo.pop()
         if ad in done:
             continue
         done.add(ad)
         all_bloc__ = dis_bloc_all(mn, in_str, ad, job_done, symbol_pool, dont_dis, follow_call, False, dontdis_retcall, all_bloc = all_bloc, amode=amode, sex=sex, dis_bloc_callback = dis_bloc_callback )
-    
         for b in all_bloc:
             if not b.lines:
                 #XXX not lines in bloc ???
@@ -1301,14 +1225,10 @@ def dis_multi_func(in_str, mn, symbol_pool, ad, dont_dis = [], follow_call = Fal
             if not l.m.name.startswith('call'): continue
             dst = mnemo.get_label(l.args[0])
             if not dst: continue
-    
+
             todo.append(dst)
             call_ad.add(dst)
-    
-    
-        #all_bloc_funcs[ad] = all_bloc
     all_bloc = split_bloc(all_bloc, symbol_pool, more_ref = call_ad)
-        
     return all_bloc
 
 def dis_one_bloc(in_str, mnemo, ad):
@@ -1318,7 +1238,6 @@ def dis_one_bloc(in_str, mnemo, ad):
     if len(all_bloc) != 1:
         return None
     return all_bloc[0]
-    
 
 def dis_bloc_simple(mnemo, in_str, ad, **kargs):
     job_done = set()
@@ -1352,7 +1271,6 @@ except:
 
 if nx:
     def is_isomorph(all_bloc1, all_bloc2):
-        
         G1=nx.DiGraph()
         G2=nx.DiGraph()
 
@@ -1368,4 +1286,3 @@ if nx:
         GM = nx.GraphMatcher(G1,G2)
         is_isom = GM.is_isomorphic()
         return GM.is_isomorphic(), GM.mapping
-        

@@ -209,6 +209,7 @@ def my_run():
         if not my_eip in known_blocs:
             in_str = updt_pe_from_emul(e)
             updt_bloc_emul(known_blocs, in_str, my_eip, symbol_pool, code_blocs_mem_range, **trace_on)
+            vm_reset_exception()
 
         my_eip = known_blocs[my_eip].module_c.func()
         py_exception = vm_get_exception()
