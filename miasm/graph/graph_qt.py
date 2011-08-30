@@ -749,7 +749,7 @@ class MainWindow(QtGui.QWidget):
             sug.xspace = 40
             sug.yspace = 40
             sug.init_all(roots=r,inverted_edges=filter(lambda x:x.feedback, g.C[index].sE))
-            sug.route_edge = route_with_nurbs
+            sug.route_edge = route_with_splines
             sug.draw(1)
 
             min_pos_x = None
