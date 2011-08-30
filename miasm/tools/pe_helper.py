@@ -170,6 +170,13 @@ def get_symbols_elf(e):
         sym2addr[k] = v
     return sym2addr
 
+
+def get_java_constant_pool(e):
+    constants = {}
+    for i, c in enumerate(e.hdr.constants_pool):
+        constants[i+1] = c
+    return constants
+
 def guess_redirected(e, resolved, unresolved, redirected, import2addr):
 
     import2addr_inv = [(x[1], x[0]) for x in import2addr.items()]
