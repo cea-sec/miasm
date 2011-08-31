@@ -56,25 +56,26 @@ elif data.startswith("\x7fELF") :
     mnemo = ia32_arch.x86_mn
 
 elif data.startswith("\xca\xfe\xba\xbe"):
+    def java_usage():
+        print 'usage:'
+        print '%s methodname methodtype'%sys.argv[0]
+        print 'possible methods:'
+        for i, (c_name, c_type) in enumerate(methods):
+            print i, str(c_name), str(c_type)
+        sys.exit(-1)
+
     e = jclass_init.JCLASS(data)
     methods = {}
     for m in e.description.methods:
-        name = m.name_index.value
-        descr = m.descriptor_index.value
-        code = filter(lambda x: type(x) is jclass_init.CAttribute_code, m.attributes)[0].code
-        print name, descr, len(code)
+        name = m.name
+        descr = m.descriptor
+        code = filter(lambda x: type(x) is jclass_init.WCAttribute_code, m.attributes)[0].code
         methods[(name, descr)] = code
-    if len(sys.argv) != 3:
-        print 'usage:'
-        print '%s methodname'%sys.argv[0]
-        sys.exit(-1)
-
-    method_todo = filter(lambda x: x[0] == sys.argv[2], methods)[0]
-    if not method_todo:
-        print 'unknown method', repr(sys.argv[2])
-        sys.exit(-1)
-
-    in_str = bin_stream.bin_stream(methods[filter(lambda x: x[0] == sys.argv[2], methods)[0]])
+    if len(sys.argv) != 4:
+        java_usage()
+    if not (sys.argv[2], sys.argv[3]) in methods:
+        java_usage()
+    in_str = bin_stream.bin_stream(methods[(sys.argv[2], sys.argv[3])])
     ad_to_dis = 0
     mnemo = java_mn
     try:
@@ -121,9 +122,17 @@ def my_disasm_callback(ad):
                         l.arg[i][x86_afs.symb] = symbol_pool.s_offset[x]
                         del(l.arg[i][ia32_arch.x86_afs.imm])
     elif mnemo == java_mn:
+        o = {}
+        for k, v in constants_pool.items():
+            if hasattr(v, "pp"):
+                o[k] = v.pp()
+            else:
+                print repr(v)
+                fds
+                o[k] = "XX"#repr(v)
         for b in all_bloc:
             for l in b.lines:
-                l.set_args_symbols(constants_pool)
+                l.set_args_symbols(o)
     return all_bloc
 
 graph_blocs(ad_to_dis, all_bloc = [], dis_callback = my_disasm_callback)
