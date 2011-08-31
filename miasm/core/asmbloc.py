@@ -779,7 +779,7 @@ def asmbloc(mnemo, all_blocs):
             if isinstance(instr, asm_raw):
                 candidates = [instr.raw]
                 c = instr.raw
-            elif [True for a in instr.arg if mnemo.has_symb(a)]:
+            elif any([mnemo.has_symb(a) for a in instr.arg]):
                 testing_arg = [mnemo.fix_symbol(a) for a in instr.arg]
                 sav_a = instr.arg
                 instr.arg = testing_arg
