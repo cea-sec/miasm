@@ -69,7 +69,7 @@ elif data.startswith("\xca\xfe\xba\xbe"):
     for m in e.description.methods:
         name = m.name
         descr = m.descriptor
-        code = filter(lambda x: type(x) is jclass_init.WCAttribute_code, m.attributes)[0].code
+        code = filter(lambda x: type(x) is jclass_init.CAttribute_code, m.attributes)[0].code
         methods[(name, descr)] = code
     if len(sys.argv) != 4:
         java_usage()
@@ -127,9 +127,7 @@ def my_disasm_callback(ad):
             if hasattr(v, "pp"):
                 o[k] = v.pp()
             else:
-                print repr(v)
-                fds
-                o[k] = "XX"#repr(v)
+                o[k] = repr(v)
         for b in all_bloc:
             for l in b.lines:
                 l.set_args_symbols(o)
