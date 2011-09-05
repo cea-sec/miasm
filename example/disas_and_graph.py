@@ -34,7 +34,7 @@ if data.startswith("MZ"):
     if len(sys.argv) <=2:
         ad_to_dis = e.rva2virt(e.Opthdr.AddressOfEntryPoint)
     else:
-        ad_to_dis = int(sys.argv[1], 16)
+        ad_to_dis = int(sys.argv[2], 16)
     in_str = bin_stream.bin_stream(e.virt)
     try:
         dll_dyn_funcs = get_import_address(e)
@@ -47,7 +47,7 @@ elif data.startswith("\x7fELF") :
     if len(sys.argv) <=2:
         ad_to_dis = e.Ehdr.entry
     else:
-        ad_to_dis = int(sys.argv[1], 16)
+        ad_to_dis = int(sys.argv[2], 16)
     in_str = bin_stream.bin_stream(e.virt)
     try:
         dll_dyn_funcs = get_import_address_elf(e)
