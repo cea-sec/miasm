@@ -16,7 +16,7 @@ my_mn = x86_mn
 my_mn = x86_mn
 
 e = pe_init.PE()
-e.SHList.add_section(name = "text", addr = 0x1000, rawsize = 0x4000)
+s_text = e.SHList.add_section(name = "text", addr = 0x1000, rawsize = 0x4000)
 
 ####filelogger sc####
 all_bloc, symbol_pool = parse_asm.parse_txt(my_mn,r'''
@@ -56,6 +56,7 @@ eend:
 #fix shellcode addr
 symbol_pool.add(asmbloc.asm_label('base_address', 0x400000))
 symbol_pool.getby_name("main").offset = 0x401000
+e.Opthdr.AddressOfEntryPoint = s_text.addr
 
 for b in all_bloc[0]:
     print b
