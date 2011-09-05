@@ -386,6 +386,9 @@ mnemonic('breakpoint', 202, 1, 'reserved for breakpoints in Java debuggers; shou
 mnemonic('impdep1', 254, 1, 'reserved for implementation-dependent operations within debuggers; should not appear in any class file.')
 mnemonic('impdep2', 255, 1, 'reserved for implementation-dependent operations within debuggers; should not appear in any class file.')
 
+# This was missing in hachoir
+mnemonic('iflt', 155, 3, "if 'value' is less than 0, branch to the 16-bit instruction offset argument. Stack: value ->", fmt=argfmt(fmt='h', types=[[3]]), breakflow=True, splitflow=True, dstflow=True)
+
 
 class java_mnemo_metaclass(type):
     rebuilt_inst = False
