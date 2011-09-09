@@ -16,6 +16,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 from elfesteem import *
+from elfesteem import pe
 from elfesteem import cstruct
 
 from miasm.arch.ia32_arch import *
@@ -27,7 +28,7 @@ import miasm.core.bin_stream
 import os
 import re
 from  miasm.tools import to_c_helper
-import miasm.core.bin_stream
+from miasm.core import bin_stream
 pe_cache = {}
 def pe_from_name(n):
     global pe_cache
@@ -81,7 +82,7 @@ def is_rva_in_code_section(e, rva):
 def guess_func_destack_dis(e, ad):
     job_done = set()
     symbol_pool = asmbloc.asm_symbol_pool()
-    in_str = bin_stream.bin_stream(e.virt)
+    in_str = bin_stream(e.virt)
     
     all_bloc = asmbloc.dis_bloc_all(x86_mn, in_str, ad, job_done, symbol_pool, follow_call = False, patch_instr_symb = False)
     return guess_func_destack(all_bloc)
@@ -143,7 +144,7 @@ def get_import_address(e):
         
         libname = s.dlldescname.name.lower()
         for ii, imp in enumerate(s.impbynames):
-            if isinstance(imp, pe_init.ImportByName):
+            if isinstance(imp, pe.ImportByName):
                 funcname = imp.name
             else:
                 funcname = imp
