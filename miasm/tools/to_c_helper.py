@@ -289,7 +289,7 @@ def bloc2C(all_bloc, addr2label = None, gen_exception_code = False, dbg_instr = 
             if (not filtered_ad) or b.label.offset in filtered_ad:
                 if tick_dbg!=None:
                     out.append('if (my_tick > %d)'%tick_dbg)
-                out.append(r'printf("%s\n");'%str(b.label.name))
+                out.append(r'fprintf(stderr, "%s\n");'%str(b.label.name))
         
         
         for l in b.lines:
@@ -320,7 +320,7 @@ def bloc2C(all_bloc, addr2label = None, gen_exception_code = False, dbg_instr = 
                 my_o.append(code_deal_exception_post_instr % (patch_c_id(eip), (l.offset&mask_int), (l.offset&mask_int)))
 
 
-                #my_o.append(r'printf("ecx %.8X\n", ecx );')            
+                #my_o.append(r'fprintf(stderr, "ecx %.8X\n", ecx );')            
                 my_o+= ['if (%s==0) break;'%patch_c_id(ecx)]
                 my_o+=o
                 my_o+= ['%s--;'%patch_c_id(ecx)]
@@ -346,7 +346,7 @@ def bloc2C(all_bloc, addr2label = None, gen_exception_code = False, dbg_instr = 
             if dbg_instr and ((not filtered_ad) or l.offset in filtered_ad):
                 if tick_dbg!=None:
                     out.append('if (vmcpu.my_tick > %d)'%tick_dbg)
-                out.append(r'printf("%s\n");'%str(l))
+                out.append(r'fprintf(stderr, "%s\n");'%str(l))
             else:
                 out.append(r'//%s'%str(l))
 
@@ -648,7 +648,7 @@ def gen_dynamic_dispatcher(dispatch_table):
     out2 += ['\t\t}']
     out2 += ['\ti++;']
     out2 += ['\t}']
-    out2 += [r'printf("Unkown destination! 0x%.8X\n", vmcpu.eip);']
+    out2 += [r'fprintf(stderr, "Unkown destination! 0x%.8X\n", vmcpu.eip);']
     out2 += [r'vmcpu.vm_exception_flags |= EXCEPT_UNK_EIP;']
     #out2 += [r'exit(0);']
     out2 += ['return labelref;']
@@ -660,7 +660,7 @@ def gen_dynamic_dispatcher(dispatch_table):
     out += ["#define GOTO_DYNAMIC"]
     out += ["labelref = get_label_from_eip();"]
     out += ["if (labelref == NULL) {"]
-    out += [r'printf("Unkown destination! 0x%.8X\n", vmcpu.eip);']
+    out += [r'fprintf(stderr, "Unkown destination! 0x%.8X\n", vmcpu.eip);']
     out += [r'vmcpu.vm_exception_flags |= EXCEPT_UNK_EIP;']
     out += ["return (PyObject*)vm_get_exception(vm_exception_flags);"]
     out += ['}']
@@ -668,7 +668,7 @@ def gen_dynamic_dispatcher(dispatch_table):
     
     """
     out += ['{']
-    #out += [r'printf("search dst: %X\n", eip);']
+    #out += [r'fprintf(stderr, "search dst: %X\n", eip);']
     
     out += ['switch(eip){']
     for o in offsets:
@@ -677,10 +677,10 @@ def gen_dynamic_dispatcher(dispatch_table):
         out+=['break;']
     
     out += ['case 0x1337beef:']
-    out += [r'printf("return reached %X\n", eip);']
+    out += [r'fprintf(stderr, "return reached %X\n", eip);']
     out += ['return NULL;']
     out += ['default:']
-    out += [r'printf("Unkown destination! 0x%.8X\n", eip);']
+    out += [r'fprintf(stderr, "Unkown destination! 0x%.8X\n", eip);']
     out += [r'vm_exception_flags |= EXCEPT_UNK_EIP;']
     out += ["return (PyObject*)vm_get_exception(vm_exception_flags);"]
     out += ['break;']
@@ -716,13 +716,13 @@ void func_dyn_manager(void)
     
     for (i=0;i<DYN_FUNC_NUM;i++){
         if (dyn_dst == tab_func[i][0]){
-            printf("i %d v@%X r@%X\n", i, tab_func[i][0], tab_func[i][1]);
+            fprintf(stderr, "i %d v@%X r@%X\n", i, tab_func[i][0], tab_func[i][1]);
             tab_func[i][1]();
             return;
         }
     }
     
-    printf("unknown dyn dst!\n");
+    fprintf(stderr, "unknown dyn dst!\n");
     exit(0);
 }
 */
@@ -776,7 +776,7 @@ def gen_known_mems_code(known_mems):
         #code.append("tab_%.8X = malloc(0x%.8X);\n"%(m_ad, len(m_val)))
         code.append("ret = posix_memalign(&tab_%.8X, 0x10000, 0x%.8X);"%(m_ad, len(m_val)))
         code.append("if (ret){")
-        code.append(r'    printf("cannot alloc");')
+        code.append(r'    fprintf(stderr, "cannot alloc");')
         code.append(r'    exit(-1);')
         code.append(r'}')
         
