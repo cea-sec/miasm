@@ -578,7 +578,7 @@ def preload_lib(e, runtime_lib, patch_vm_imp = True):
         libname_s = canon_libname_libfunc(libname, libfunc)
         dyn_funcs[libname_s] = ad_libfunc
         if patch_vm_imp:
-            to_c_helper.vm_set_mem(ad, struct.pack(cstruct.size2type[e.wsize], ad_libfunc))
+            to_c_helper.vm_set_mem(ad, struct.pack(cstruct.size2type[e._wsize], ad_libfunc))
         
     return dyn_funcs
 

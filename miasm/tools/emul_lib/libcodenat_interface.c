@@ -112,6 +112,31 @@ PyObject* _vm_get_gpreg(void)
     PyDict_SetItemString(dict, "eip", o);
     Py_DECREF(o);
 
+
+    o = PyInt_FromLong((long)vmcpu.zf);
+    PyDict_SetItemString(dict, "zf", o);
+    Py_DECREF(o);
+    o = PyInt_FromLong((long)vmcpu.nf);
+    PyDict_SetItemString(dict, "nf", o);
+    Py_DECREF(o);
+    o = PyInt_FromLong((long)vmcpu.pf);
+    PyDict_SetItemString(dict, "pf", o);
+    Py_DECREF(o);
+    o = PyInt_FromLong((long)vmcpu.of);
+    PyDict_SetItemString(dict, "of", o);
+    Py_DECREF(o);
+    o = PyInt_FromLong((long)vmcpu.cf);
+    PyDict_SetItemString(dict, "cf", o);
+    Py_DECREF(o);
+    o = PyInt_FromLong((long)vmcpu.af);
+    PyDict_SetItemString(dict, "af", o);
+    Py_DECREF(o);
+    o = PyInt_FromLong((long)vmcpu.df);
+    PyDict_SetItemString(dict, "df", o);
+    Py_DECREF(o);
+
+
+
     return dict;
 }
 
@@ -124,6 +149,16 @@ reg_dict gpreg_dict[] = { {.name = "eax", .ptr = &(vmcpu.eax)},
 			  {.name = "esp", .ptr = &(vmcpu.esp)},
 			  {.name = "ebp", .ptr = &(vmcpu.ebp)},
 			  {.name = "eip", .ptr = &(vmcpu.eip)},
+
+			  {.name = "zf", .ptr = &(vmcpu.zf)},
+			  {.name = "nf", .ptr = &(vmcpu.nf)},
+			  {.name = "pf", .ptr = &(vmcpu.pf)},
+			  {.name = "of", .ptr = &(vmcpu.of)},
+			  {.name = "cf", .ptr = &(vmcpu.cf)},
+			  {.name = "af", .ptr = &(vmcpu.af)},
+			  {.name = "df", .ptr = &(vmcpu.df)},
+
+
 };
 
 PyObject* _vm_set_gpreg(PyObject *dict)
