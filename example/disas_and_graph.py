@@ -69,7 +69,10 @@ elif data.startswith("\xca\xfe\xba\xbe"):
     for m in e.description.methods:
         name = m.name
         descr = m.descriptor
-        code = filter(lambda x: type(x) is jclass_init.CAttribute_code, m.attributes)[0].code
+        c = filter(lambda x: type(x) is jclass_init.CAttribute_code, m.attributes)
+        if not c:
+            continue
+        code = c[0].code
         methods[(name, descr)] = code
     if len(sys.argv) != 4:
         java_usage()
@@ -109,8 +112,7 @@ for (n,f), ad in dll_dyn_funcs.items():
 
 def my_disasm_callback(ad):
     all_bloc = asmbloc.dis_bloc_all(mnemo, in_str, ad, set(),
-                                    symbol_pool=symbol_pool,
-                                    dont_dis_nulstart_bloc=True)
+                                    symbol_pool=symbol_pool)
     if mnemo == ia32_arch.x86_mn:
         for b in all_bloc:
             for l in b.lines:
