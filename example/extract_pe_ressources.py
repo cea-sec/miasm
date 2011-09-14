@@ -15,7 +15,7 @@ def extract_res(res, name_o = "", num = 0, lvl=-1):
         num += 1
 
         if x.name_s:
-            name = name_o[:]+repr(x.name_s)
+            name = name_o[:]+repr(x.name_s.value[::2])
         else:
             name = name_o[:]
 

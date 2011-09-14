@@ -84,7 +84,7 @@ struct memory_page_node * get_memory_page_from_address(uint64_t ad)
 	if ( mpn && (mpn->ad <= ad) && (ad < mpn->ad + mpn->size))
 		return mpn;
 
-	printf("WARNING: address 0x%"PRIX64" is not mapped in virtual memory:\n", ad);
+	fprintf(stderr, "WARNING: address 0x%"PRIX64" is not mapped in virtual memory:\n", ad);
 	dump_memory_page_pool();
 	dump_gpregs();
 	//exit(-1);
@@ -98,7 +98,7 @@ struct memory_page_node * get_memory_page_from_address(uint64_t ad)
 		if ((mpn->ad <= ad) && (ad < mpn->ad + mpn->size))
 			return mpn;
 	}
-	printf("address %"PRIX64" is not mapped in virtual memory \n", ad);
+	fprintf(stderr, "address %"PRIX64" is not mapped in virtual memory \n", ad);
 	dump_memory_page_pool();
 	dump_gpregs();
 	//exit(-1);
@@ -122,7 +122,7 @@ static inline uint64_t memory_page_read(unsigned int my_size, uint64_t ad)
 		return 0;
 
 	if ((mpn->access & PAGE_READ) == 0){
-		printf("access to non readable page!! %"PRIX64"\n", ad);
+		fprintf(stderr, "access to non readable page!! %"PRIX64"\n", ad);
 		vmcpu.vm_exception_flags |= EXCEPT_ACCESS_VIOL;
 		return 0;
 	}
@@ -154,7 +154,7 @@ static inline uint64_t memory_page_read(unsigned int my_size, uint64_t ad)
 	/* read is multiple page wide */
 	else{
 		unsigned int new_size = my_size;
-		printf("read multiple page! %"PRIX64" %X\n", ad, new_size);
+		fprintf(stderr, "read multiple page! %"PRIX64" %X\n", ad, new_size);
 		dump_memory_page_pool();
 		while (new_size){
 			ret <<=8;
@@ -198,7 +198,7 @@ static inline void memory_page_write(unsigned int my_size,
 		return;
 
 	if ((mpn->access & PAGE_WRITE) == 0){
-		printf("access to non writable page!! %"PRIX64"\n", ad);
+		fprintf(stderr, "access to non writable page!! %"PRIX64"\n", ad);
 		vmcpu.vm_exception_flags |= EXCEPT_ACCESS_VIOL;
 		return ;
 	}
@@ -230,7 +230,7 @@ static inline void memory_page_write(unsigned int my_size,
 	}
 	/* write is multiple page wide */
 	else{
-		printf("write multiple page! %"PRIX64" %X\n", ad, my_size);
+		fprintf(stderr, "write multiple page! %"PRIX64" %X\n", ad, my_size);
 		dump_memory_page_pool();
 		switch(my_size){
 
@@ -278,9 +278,9 @@ inline void check_write_code_bloc(unsigned int my_size, uint64_t addr)
 		LIST_FOREACH(cbp, &code_bloc_pool, next){
 			if ((cbp->ad_start <= addr + my_size/8) &&
 			    (addr < cbp->ad_stop)){
-				printf("self modifying code %"PRIX64" %.8X",
+				fprintf(stderr, "self modifying code %"PRIX64" %.8X",
 				       addr, my_size);
-				printf(" from approx %X\n", vmcpu.eip);
+				fprintf(stderr, " from approx %X\n", vmcpu.eip);
 				vmcpu.vm_exception_flags |= EXCEPT_CODE_AUTOMOD;
 				break;
 			}
@@ -302,9 +302,9 @@ void MEM_WRITE(unsigned int my_size, uint64_t addr, unsigned int src)
 		LIST_FOREACH(cbp, &code_bloc_pool, next){
 			if ((cbp->ad_start <= addr + my_size/8) &&
 			    (addr < cbp->ad_stop)){
-				printf("self modifying code %"PRIX64" %.8X",
+				fprintf(stderr, "self modifying code %"PRIX64" %.8X",
 				       addr, my_size);
-				printf(" from approx %X\n", vmcpu.eip);
+				fprintf(stderr, " from approx %X\n", vmcpu.eip);
 				vmcpu.vm_exception_flags |= EXCEPT_CODE_AUTOMOD;
 				break;
 			}
@@ -409,7 +409,7 @@ int shift_right_arith(unsigned int size, int a, unsigned int b)
 		    i32_a = a;
 		    return (i32_a >> b)&0xffffffff;
 	    default:
-		    printf("inv size in shift %d\n", size);
+		    fprintf(stderr, "inv size in shift %d\n", size);
 		    exit(0);
     }
 }
@@ -452,7 +452,7 @@ unsigned int shift_right_logic(unsigned int size,
 		    u32_a = a;
 		    return (u32_a >> b)&0xffffffff;
 	    default:
-		    printf("inv size in shift %d\n", size);
+		    fprintf(stderr, "inv size in shift %d\n", size);
 		    exit(0);
     }
 }
@@ -488,7 +488,7 @@ int shift_left_logic(unsigned int size, unsigned int a, unsigned int b)
 	    case 32:
 		    return (a<<b)&0xffffffff;
 	    default:
-		    printf("inv size in shift %d\n", size);
+		    fprintf(stderr, "inv size in shift %d\n", size);
 		    exit(0);
     }
 }
@@ -517,7 +517,7 @@ unsigned int mul_lo_op(unsigned int size, unsigned int a, unsigned int b)
 		case 8: mask = 0xff; break;
 		case 16: mask = 0xffff; break;
 		case 32: mask = 0xffffffff; break;
-		default: printf("inv size in mul %d\n", size); exit(0);
+		default: fprintf(stderr, "inv size in mul %d\n", size); exit(0);
 	}
 
 	a &= mask;
@@ -534,7 +534,7 @@ unsigned int mul_hi_op(unsigned int size, unsigned int a, unsigned int b)
 		case 8: mask = 0xff; break;
 		case 16: mask = 0xffff; break;
 		case 32: mask = 0xffffffff; break;
-		default: printf("inv size in mul %d\n", size); exit(0);
+		default: fprintf(stderr, "inv size in mul %d\n", size); exit(0);
 	}
 
 	a &= mask;
@@ -628,7 +628,7 @@ int rot_left(unsigned int size, unsigned int a, unsigned int b)
 		    tmp = (a << b) | ((a&0xFFFFFFFF) >> (size-b));
 		    return tmp&0xffffffff;
 	    default:
-		    printf("inv size in rotleft %d\n", size);
+		    fprintf(stderr, "inv size in rotleft %d\n", size);
 		    exit(0);
     }
 }
@@ -650,7 +650,7 @@ int rot_right(unsigned int size, unsigned int a, unsigned int b)
 		    tmp = ((a&0xFFFFFFFF) >> b) | (a << (size-b));
 		    return tmp&0xffffffff;
 	    default:
-		    printf("inv size in rotleft %d\n", size);
+		    fprintf(stderr, "inv size in rotleft %d\n", size);
 		    exit(0);
     }
 }
@@ -677,7 +677,7 @@ int rcl_rez_op(unsigned int size, unsigned int a, unsigned int b, unsigned int c
 		    tmp = (tmp << b) | ((tmp&0x1FFFFFFFFULL) >> (size-b));
 		    return tmp&0xffffffff;
 	    default:
-		    printf("inv size in rclleft %d\n", size);
+		    fprintf(stderr, "inv size in rclleft %d\n", size);
 		    exit(0);
     }
 }
@@ -710,7 +710,7 @@ int rcl_cf_op(unsigned int size, unsigned int a, unsigned int b, unsigned int cf
 		    tmp = (tmp << b) | ((tmp&0x1FFFFFFFFULL) >> (size-b));
 		    return (tmp>>32)&1;
 	    default:
-		    printf("inv size in rclleft %d\n", size);
+		    fprintf(stderr, "inv size in rclleft %d\n", size);
 		    exit(0);
     }
 }
@@ -758,7 +758,7 @@ unsigned int my_imul08(unsigned int a, unsigned int b)
 unsigned int cpuid(unsigned int a, unsigned int reg_num)
 {
 	if (reg_num >3){
-		printf("zarb cpuid reg %x\n", reg_num);
+		fprintf(stderr, "not implemented cpuid reg %x\n", reg_num);
 		exit(-1);
 	}
 
@@ -788,7 +788,7 @@ unsigned int cpuid(unsigned int a, unsigned int reg_num)
 		}
 	}
 	else{
-		printf("WARNING zarb cpuid index %X!\n", a);
+		fprintf(stderr, "WARNING not implemented cpuid index %X!\n", a);
 		//exit(-1);
 	}
 	return 0;
@@ -892,12 +892,12 @@ struct memory_page_node * create_memory_page_node(uint64_t ad, unsigned int size
 
 	mpn = malloc(sizeof(*mpn));
 	if (!mpn){
-		printf("cannot alloc mpn\n");
+		fprintf(stderr, "cannot alloc mpn\n");
 		exit(-1);
 	}
 	p = malloc(size);
 	if (!p){
-		printf("cannot alloc %d\n", size);
+		fprintf(stderr, "cannot alloc %d\n", size);
 		exit(-1);
 	}
 	mpn->ad = ad;
@@ -915,7 +915,7 @@ struct code_bloc_node * create_code_bloc_node(uint64_t ad_start, uint64_t ad_sto
 
 	cbp = malloc(sizeof(*cbp));
 	if (!cbp){
-		printf("cannot alloc cbp\n");
+		fprintf(stderr, "cannot alloc cbp\n");
 		exit(-1);
 	}
 
@@ -1002,7 +1002,7 @@ void insert_mpn_in_tab(struct memory_page_node* mpn_a)
 	     i<(mpn_a->ad + mpn_a->size + PAGE_SIZE - 1)>>MEMORY_PAGE_POOL_MASK_BIT;
 	     i++){
 		if (memory_page_pool_tab[i] !=NULL){
-			printf("known page in tab\n");
+			fprintf(stderr, "known page in tab\n");
 			exit(1);
 		}
 		memory_page_pool_tab[i] = mpn_a;

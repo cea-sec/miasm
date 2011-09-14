@@ -84,8 +84,8 @@ PyObject* tcc_compil(PyObject* self, PyObject* args)
 
 	tcc_init_state();
 	if (tcc_compile_string(tcc_state, func_code) != 0) {
-		printf("Erreur de compilation !\n");
-		printf("%s\n", func_code);
+		fprintf(stderr, "Erreur de compilation !\n");
+		fprintf(stderr, "%s\n", func_code);
 		exit(0);
 	}
 	/* XXX use tinycc devel with -fPIC patch in makefile */
@@ -93,8 +93,8 @@ PyObject* tcc_compil(PyObject* self, PyObject* args)
 		exit(0);
 	entry = tcc_get_symbol(tcc_state, func_name);
 	if (!entry){
-		printf("Erreur de symbole !\n");
-		printf("%s\n", func_name);
+		fprintf(stderr, "Erreur de symbole !\n");
+		fprintf(stderr, "%s\n", func_name);
 		exit(0);
 	}
 

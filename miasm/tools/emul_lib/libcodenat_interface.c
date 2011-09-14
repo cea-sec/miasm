@@ -112,6 +112,31 @@ PyObject* _vm_get_gpreg(void)
     PyDict_SetItemString(dict, "eip", o);
     Py_DECREF(o);
 
+
+    o = PyInt_FromLong((long)vmcpu.zf);
+    PyDict_SetItemString(dict, "zf", o);
+    Py_DECREF(o);
+    o = PyInt_FromLong((long)vmcpu.nf);
+    PyDict_SetItemString(dict, "nf", o);
+    Py_DECREF(o);
+    o = PyInt_FromLong((long)vmcpu.pf);
+    PyDict_SetItemString(dict, "pf", o);
+    Py_DECREF(o);
+    o = PyInt_FromLong((long)vmcpu.of);
+    PyDict_SetItemString(dict, "of", o);
+    Py_DECREF(o);
+    o = PyInt_FromLong((long)vmcpu.cf);
+    PyDict_SetItemString(dict, "cf", o);
+    Py_DECREF(o);
+    o = PyInt_FromLong((long)vmcpu.af);
+    PyDict_SetItemString(dict, "af", o);
+    Py_DECREF(o);
+    o = PyInt_FromLong((long)vmcpu.df);
+    PyDict_SetItemString(dict, "df", o);
+    Py_DECREF(o);
+
+
+
     return dict;
 }
 
@@ -124,6 +149,16 @@ reg_dict gpreg_dict[] = { {.name = "eax", .ptr = &(vmcpu.eax)},
 			  {.name = "esp", .ptr = &(vmcpu.esp)},
 			  {.name = "ebp", .ptr = &(vmcpu.ebp)},
 			  {.name = "eip", .ptr = &(vmcpu.eip)},
+
+			  {.name = "zf", .ptr = &(vmcpu.zf)},
+			  {.name = "nf", .ptr = &(vmcpu.nf)},
+			  {.name = "pf", .ptr = &(vmcpu.pf)},
+			  {.name = "of", .ptr = &(vmcpu.of)},
+			  {.name = "cf", .ptr = &(vmcpu.cf)},
+			  {.name = "af", .ptr = &(vmcpu.af)},
+			  {.name = "df", .ptr = &(vmcpu.df)},
+
+
 };
 
 PyObject* _vm_set_gpreg(PyObject *dict)
@@ -160,7 +195,7 @@ PyObject* _vm_set_gpreg(PyObject *dict)
 
 	    if (found)
 		    continue;
-	    printf("unkown key: %s\n", PyString_AsString(d_key));
+	    fprintf(stderr, "unkown key: %s\n", PyString_AsString(d_key));
 	    RAISE(PyExc_ValueError, "unkown reg");
     }
     return NULL;
@@ -220,39 +255,39 @@ PyObject* _call_pyfunc_from_globals(char* funcname)
 {
     PyObject  *mod,  *func, *rslt, *globals, *func_globals;
 
-    printf("getting pyfunc %s\n", funcname);
+    fprintf(stderr, "getting pyfunc %s\n", funcname);
     mod = PyEval_GetBuiltins();
 
     if (!mod) {
-	    printf("cannot find module\n");
+	    fprintf(stderr, "cannot find module\n");
 	    exit(0);
     }
 
     func_globals = PyDict_GetItemString(mod, "globals");
     if (!func_globals) {
-	    printf("cannot find function globals\n");
+	    fprintf(stderr, "cannot find function globals\n");
 	    exit(0);
     }
 
     if (!PyCallable_Check (func_globals)) {
-	    printf("function not callable\n");
+	    fprintf(stderr, "function not callable\n");
 	    exit(0);
     }
 
     globals = PyObject_CallObject (func_globals, NULL);
     if (!globals) {
-	    printf("cannot get globals\n");
+	    fprintf(stderr, "cannot get globals\n");
 	    exit(0);
     }
 
     func = PyDict_GetItemString (globals, funcname);
     if (!func) {
-	    printf("cannot find function %s\n", funcname);
+	    fprintf(stderr, "cannot find function %s\n", funcname);
 	    exit(0);
     }
 
     if (!PyCallable_Check (func)) {
-	    printf("function not callable\n");
+	    fprintf(stderr, "function not callable\n");
 	    exit(0);
     }
 
@@ -267,39 +302,39 @@ PyObject* _call_pyfunc_from_eip(void)
     PyObject  *mod,  *func, *rslt, *globals, *func_globals;
     char funcname[0x100];
 
-    printf("getting pybloc %X\n", vmcpu.eip);
+    fprintf(stderr, "getting pybloc %X\n", vmcpu.eip);
     sprintf(funcname, "bloc_%.8X", vmcpu.eip);
-    printf("bloc name %s\n", funcname);
+    fprintf(stderr, "bloc name %s\n", funcname);
 
     mod = PyEval_GetBuiltins();
 
     if (!mod) {
-	    printf("cannot find module\n");
+	    fprintf(stderr, "cannot find module\n");
 	    exit(0);
     }
     func_globals = PyDict_GetItemString(mod, "globals");
     if (!func_globals) {
-	    printf("cannot find function globals\n");
+	    fprintf(stderr, "cannot find function globals\n");
 	    exit(0);
     }
     if (!PyCallable_Check (func_globals)) {
-	    printf("function not callable\n");
+	    fprintf(stderr, "function not callable\n");
 	    exit(0);
     }
     globals = PyObject_CallObject (func_globals, NULL);
     if (!globals) {
-	    printf("cannot get globals\n");
+	    fprintf(stderr, "cannot get globals\n");
 	    exit(0);
     }
 
 
     func = PyDict_GetItemString (globals, funcname);
     if (!func) {
-	    printf("cannot find function %s\n", funcname);
+	    fprintf(stderr, "cannot find function %s\n", funcname);
 	    exit(0);
     }
     if (!PyCallable_Check (func)) {
-	    printf("function not callable\n");
+	    fprintf(stderr, "function not callable\n");
 	    exit(0);
     }
     rslt = PyObject_CallObject (func, NULL);
@@ -379,8 +414,6 @@ PyObject* _vm_set_mem(PyObject *addr, PyObject *item_str)
     buf_size = PyString_Size(item_str);
     PyString_AsStringAndSize(item_str, &buf_data, &length);
 
-    printf("set addr: %X (len %X)\n", val, (unsigned int)length);
-
     mpn = get_memory_page_from_address(val);
     memcpy(mpn->ad_hp + (val-mpn->ad), buf_data, buf_size);
 
@@ -457,7 +490,7 @@ PyObject* _vm_get_str(PyObject *addr, PyObject *item_len)
     my_size = buf_len;
     buf_out = malloc(buf_len);
     if (!buf_out){
-	    printf("cannot alloc read\n");
+	    fprintf(stderr, "cannot alloc read\n");
 	    exit(-1);
     }
 
@@ -815,18 +848,18 @@ PyObject* _vm_exec_blocs(PyObject* self, PyObject* args)
 
 		module = PyObject_GetAttrString(b, "module_c");
 		if (module == NULL){
-			printf("assert eip module_c in pyobject\n");
+			fprintf(stderr, "assert eip module_c in pyobject\n");
 			exit(0);
 		}
 		func = PyObject_GetAttrString(module, "func");
 		if (func == NULL){
-			printf("assert func module_c in pyobject\n");
+			fprintf(stderr, "assert func module_c in pyobject\n");
 			exit(0);
 		}
 
 		Py_DECREF(module);
 		if (!PyCallable_Check (func)) {
-			printf("function not callable\n");
+			fprintf(stderr, "function not callable\n");
 			exit(0);
 		}
 		Py_DECREF(meip);
@@ -835,7 +868,7 @@ PyObject* _vm_exec_blocs(PyObject* self, PyObject* args)
 		Py_DECREF(func);
 		e = PyErr_Occurred ();
 		if (e){
-			printf("exception\n");
+			fprintf(stderr, "exception\n");
 			return meip;
 		}
 
@@ -893,7 +926,7 @@ PyObject* vm_exec_bloc(PyObject* self, PyObject* args)
 		return meip;
 	Py_DECREF(module);
 	if (!PyCallable_Check (func)) {
-		printf("function not callable\n");
+		fprintf(stderr, "function not callable\n");
 		exit(0);
 	}
 	Py_DECREF(meip);
@@ -902,7 +935,7 @@ PyObject* vm_exec_bloc(PyObject* self, PyObject* args)
 	Py_DECREF(func);
 	e = PyErr_Occurred ();
 	if (e){
-		printf("exception\n");
+		fprintf(stderr, "exception\n");
 		return meip;
 	}
 

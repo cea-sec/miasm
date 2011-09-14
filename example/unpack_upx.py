@@ -273,7 +273,7 @@ for s in e.SHList:
     st[s.offset] = e.virt[ad1:ad2]
 e.content = str(st)
 
-e.DirRes = pe_init.DirRes(e)
+e.DirRes = pe.DirRes(e)
 #e.DirImport.impdesc = None
 print repr(e.DirImport.impdesc)
 new_dll = runtime_dll.gen_new_lib(e)
