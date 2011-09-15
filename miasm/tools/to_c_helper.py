@@ -289,7 +289,7 @@ def bloc2C(all_bloc, addr2label = None, gen_exception_code = False, dbg_instr = 
             if (not filtered_ad) or b.label.offset in filtered_ad:
                 if tick_dbg!=None:
                     out.append('if (my_tick > %d)'%tick_dbg)
-                out.append(r'fprintf(stderr, "%s\n");'%str(b.label.name))
+                out.append(r'fprintf(stdout, "%s\n");'%str(b.label.name))
         
         
         for l in b.lines:
@@ -346,7 +346,7 @@ def bloc2C(all_bloc, addr2label = None, gen_exception_code = False, dbg_instr = 
             if dbg_instr and ((not filtered_ad) or l.offset in filtered_ad):
                 if tick_dbg!=None:
                     out.append('if (vmcpu.my_tick > %d)'%tick_dbg)
-                out.append(r'fprintf(stderr, "%s\n");'%str(l))
+                out.append(r'fprintf(stdout, "%s\n");'%str(l))
             else:
                 out.append(r'//%s'%str(l))
 

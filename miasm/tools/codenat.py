@@ -126,11 +126,24 @@ def codenat_tcc_load():
     import emul_lib.libcodenat_tcc as libcntcc
     lib_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "emul_lib")
     lib_path = os.path.join(lib_dir, 'libcodenat_tcc.so')
-    libpath = libcodenat_interface.__file__
-    libdir = os.path.dirname(libpath)
-    print libpath
-    print libdir
-    libcntcc.tcc_set_emul_lib_path(libdir, libpath, get_python_inc())
+    libcodenat_path = libcodenat_interface.__file__
+    libdir = os.path.dirname(libcodenat_path)
+
+
+    # XXX HACK
+    # As debian, ubuntu, ... have moved some include files using arch directory,
+    # TCC doesn't know them, so we get the info from GCC
+    # For example /usr/include/x86_64-linux-gnu which contains limits.h
+    from subprocess import Popen, PIPE
+    p = Popen(["cc", "-Wp,-v", "-E", "-"], stdout = PIPE, stderr = PIPE, stdin = PIPE)
+    p.stdin.close()
+    include_path = p.stderr.read().split('\n')
+    include_path = [x[1:] for x in include_path if x.startswith(' /usr/include')]
+    include_path += [libdir, get_python_inc()]
+
+
+    include_path = ";".join(include_path)
+    libcntcc.tcc_set_emul_lib_path(include_path, libcodenat_path)
 
 def codenat_tcc_init():
     global libcntcc

@@ -26,28 +26,46 @@
 TCCState *tcc_state = NULL;
 
 
-char *emul_lib_dir = NULL;
-char *emul_lib_path = NULL;
-char *emul_libpython_dir = NULL;
+int include_path_array_count = 0;
+char **include_path_array = NULL;
+
+char *libcodenat_path = NULL;
 
 PyObject* tcc_set_emul_lib_path(PyObject* self, PyObject* args)
 {
-	char* libdir;
-	char* libpath;
-	char* libpython_dir;
-	if (!PyArg_ParseTuple(args, "sss", &libdir, &libpath, &libpython_dir))
+	char* include_path_arg;
+	char* libcodenat_path_arg;
+
+	char* str1, * str2;
+
+	if (!PyArg_ParseTuple(args, "ss",
+			      &include_path_arg,
+			      &libcodenat_path_arg))
 		return NULL;
-	emul_lib_dir = (char*)malloc(strlen(libdir)+1);
-	emul_lib_path = (char*)malloc(strlen(libpath)+1);
-	emul_libpython_dir = (char*)malloc(strlen(libpython_dir)+1);
-	strcpy(emul_lib_dir, libdir);
-	strcpy(emul_lib_path, libpath);
-	strcpy(emul_libpython_dir, libpython_dir);
+
+	if (include_path_array)
+		free(include_path_array);
+
+	str2 = strdup(include_path_arg);
+	while (str2){
+		str1 = strsep(&str2, ";");
+		if (str1){
+			include_path_array_count ++;
+			include_path_array = realloc(include_path_array,
+						     include_path_array_count * sizeof(char*));
+			include_path_array[include_path_array_count-1] = strdup(str1);
+			printf("adding include file: %s\n", str1);
+		}
+	}
+
+	libcodenat_path = (char*)malloc(strlen(libcodenat_path_arg)+1);
+	strcpy(libcodenat_path, libcodenat_path_arg);
 	return Py_None;
 }
 
 void tcc_init_state(void)
 {
+	int i;
 	tcc_state = tcc_new();
 	if (!tcc_state) {
 		fprintf(stderr, "Impossible de creer un contexte TCC\n");
@@ -55,8 +73,10 @@ void tcc_init_state(void)
 	}
 	tcc_set_output_type(tcc_state, TCC_OUTPUT_MEMORY);
 
-	tcc_add_include_path(tcc_state, emul_libpython_dir);
-	tcc_add_file(tcc_state, emul_lib_path);
+	tcc_add_file(tcc_state, libcodenat_path);
+	for (i=0;i<include_path_array_count; i++){
+		tcc_add_include_path(tcc_state, include_path_array[i]);
+	}
 }
 
 

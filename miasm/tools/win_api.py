@@ -858,9 +858,12 @@ def kernel32_GetModuleHandleA():
     print whoami(), hex(ret_ad), hex(dllname)
 
     if dllname:
-        libname = vm_get_str(dllname, 0x100)
-        libname = libname[:libname.find('\x00')]
+        libname = get_str_ansi(dllname)
         print libname
+        if not libname.lower().endswith('.dll'):
+            print 'warning adding .dll to modulename'
+            libname += '.dll'
+            print libname
         eax = runtime_dll.lib_get_add_base(libname)
     else:
         eax = current_pe.NThdr.ImageBase
