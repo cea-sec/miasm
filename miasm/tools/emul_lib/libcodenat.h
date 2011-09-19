@@ -394,11 +394,11 @@ uint64_t double_to_mem_64(double d);
 
 
 #define shift_right_arith_08(a, b)\
-	((((char)(a)) >> ((unsigned int)(b)))&0xff)
+	((((char)(a)) >> ((int)(b)))&0xff)
 #define shift_right_arith_16(a, b)\
-	((((short)(a)) >> ((unsigned int)(b)))&0xffff)
+	((((short)(a)) >> ((int)(b)))&0xffff)
 #define shift_right_arith_32(a, b)\
-	((((int)(a)) >> ((unsigned int)(b)))&0xffffffff)
+	((((int)(a)) >> ((int)(b)))&0xffffffff)
 
 
 #define shift_right_logic_08(a, b)\
