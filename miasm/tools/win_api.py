@@ -21,6 +21,9 @@ from Crypto.Hash import MD5
 import inspect
 from zlib import crc32
 import seh_helper
+import os
+import time
+
 handle_toolhelpsnapshot = 0xaaaa00
 toolhelpsnapshot_info = {}
 handle_curprocess = 0xaaaa01
@@ -118,7 +121,36 @@ def kernel32_GlobalAlloc():
     msize = vm_pop_uint32_t()
 
     print whoami(), hex(ret_ad), '(', hex(uflags), hex(msize), ')'
-    max_ad = get_memory_page_from_min_ad_py(msize)
+    max_ad = vm_get_memory_page_max_address()
+    max_ad = (max_ad+0xfff) & 0xfffff000
+
+    vm_add_memory_page(max_ad, PAGE_READ|PAGE_WRITE, "\x00"*msize)
+
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = max_ad
+    vm_set_gpreg(regs)
+
+def kernel32_LocalFree():
+    ret_ad = vm_pop_uint32_t()
+    lpvoid = vm_pop_uint32_t()
+
+    print whoami(), hex(ret_ad), '(', hex(lpvoid), ')'
+    
+
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    vm_set_gpreg(regs)
+
+
+def kernel32_LocalAlloc():
+    ret_ad = vm_pop_uint32_t()
+    uflags = vm_pop_uint32_t()
+    msize = vm_pop_uint32_t()
+
+    print whoami(), hex(ret_ad), '(', hex(uflags), hex(msize), ')'
+    max_ad = vm_get_memory_page_max_address()
+    max_ad = (max_ad+0xfff) & 0xfffff000
 
     vm_add_memory_page(max_ad, PAGE_READ|PAGE_WRITE, "\x00"*msize)
 
@@ -271,12 +303,11 @@ def kernel32_Process32Next():
     vm_set_gpreg(regs)
 
 
-    
+
 
 def kernel32_GetTickCount():
     global tickcount
     ret_ad = vm_pop_uint32_t()
-    
     print whoami(), hex(ret_ad), '(', ')'
     tickcount +=1
 
@@ -288,13 +319,36 @@ def kernel32_GetTickCount():
 
 def kernel32_GetVersion():
     ret_ad = vm_pop_uint32_t()
-    
     print whoami(), hex(ret_ad), '(', ')'
 
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = getversion
     vm_set_gpreg(regs)
+
+def my_GetVersionEx(funcname, set_str):
+    ret_ad = vm_pop_uint32_t()
+    ptr_struct = vm_pop_uint32_t()
+
+    print funcname, hex(ret_ad), '(', ')'
+
+    s = struct.pack("IIIII",
+                    0x114, # struct size
+                    0x5,   # maj vers
+                    0x2, # min vers
+                    0x666, # build nbr
+                    0x2,   # platform id
+                    ) + set_str("Service pack 4")
+    vm_set_mem(ptr_struct, s)
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = 1
+    vm_set_gpreg(regs)
+
+def kernel32_GetVersionExA():
+    my_GetVersionEx(whoami(), lambda x:x+'\x00')
+def kernel32_GetVersionExW():
+    my_GetVersionEx(whoami(), lambda x:"\x00".join(list(x+'\x00')))
 
 
 def kernel32_GetPriorityClass():
@@ -754,7 +808,9 @@ def user32_SetWindowLongA():
     
 
 
-def kernel32_GetModuleFileNameA():
+
+
+def my_GetModuleFileName(funcname, set_str):
     ret_ad = vm_pop_uint32_t()
     hmodule = vm_pop_uint32_t()
     lpfilename = vm_pop_uint32_t()
@@ -769,18 +825,61 @@ def kernel32_GetModuleFileNameA():
 
 
     if nsize < len(p):
-        eax = nsize
         p = p[:nsize]
-    else:
-        eax = len(p)
-    print repr(p)
-    vm_set_mem(lpfilename, p)
+    l = len(p)
 
-    
+    print repr(p)
+    vm_set_mem(lpfilename, set_str(p))
+
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = nsize
     vm_set_gpreg(regs)
+
+
+def kernel32_GetModuleFileNameA():
+    my_GetModuleFileName(whoami(), lambda x:x+'\x00')
+def kernel32_GetModuleFileNameW():
+    my_GetModuleFileName(whoami(), lambda x:"\x00".join(list(x+'\x00')))
+
+
+def shell32_SHGetSpecialFolderLocation():
+    ret_ad = vm_pop_uint32_t()
+    hwndowner = vm_pop_uint32_t()
+    nfolder = vm_pop_uint32_t()
+    ppidl = vm_pop_uint32_t()
+    print whoami(), hex(hwndowner), hex(nfolder), hex(ppidl)
+
+    vm_set_mem(ppidl, pdw(nfolder))
+
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = 0
+    vm_set_gpreg(regs)
+
+
+def my_SHGetPathFromIDListW(funcname, set_str):
+    ret_ad = vm_pop_uint32_t()
+    pidl = vm_pop_uint32_t()
+    ppath = vm_pop_uint32_t()
+    print whoami(), hex(pidl), hex(ppath)
+
+    if pidl == 7:# CSIDL_STARTUP:
+        s = "c:\\doc\\user\\startmenu\\programs\\startup"
+        s = set_str(s)
+    else:
+        raise ValueError('pidl not implemented', pidl)
+    vm_set_mem(ppath, s)
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = 1
+    vm_set_gpreg(regs)
+
+def shell32_SHGetPathFromIDListW():
+    my_SHGetPathFromIDListW(whoami(), lambda x:"\x00".join(list(x+'\x00')))
+def shell32_SHGetPathFromIDListW():
+    my_SHGetPathFromIDListW(whoami(), lambda x:x+'\x00')
+
 
 lastwin32error = 0
 def kernel32_GetLastError():
@@ -906,10 +1005,14 @@ def kernel32_GetCommandLineA():
     ret_ad = vm_pop_uint32_t()
     print whoami(), hex(ret_ad)
 
-    
+    max_ad = vm_get_memory_page_max_address()
+    s = "c:\\test.exe"+"\x00"
+
+    vm_add_memory_page(max_ad, PAGE_READ|PAGE_WRITE, s)
+
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
-    regs['eax'] = 1
+    regs['eax'] = max_ad
     vm_set_gpreg(regs)
 
 cryptdll_md5_h = {}
@@ -999,7 +1102,7 @@ def ntdll_RtlAnsiStringToUnicodeString():
     print s
     s = '\x00'.join(s) + "\x00\x00"
     if alloc_dst:
-        ad = get_memory_page_max_address_py()
+        ad = vm_get_memory_page_max_address()
         ad = (ad + 0xFFF) & ~0xFFF
         vm_add_memory_page(ad , PAGE_READ | PAGE_WRITE, s)
 
@@ -1538,16 +1641,301 @@ def my_lstrcmp(funcname, get_str):
     vm_set_gpreg(regs)
 
 def kernel32_lstrcmpA():
-    my_lstrcmp('lstrcmpA', get_str_ansi)
+    my_lstrcmp(whoami(), get_str_ansi)
 
 def kernel32_lstrcmpiA():
-    my_lstrcmp('lstrcmpiA', lambda x: get_str_ansi(x).lower())
+    my_lstrcmp(whoami(), lambda x: get_str_ansi(x).lower())
 
 def kernel32_lstrcmpW():
-    my_lstrcmp('lstrcmpA', get_str_unic)
+    my_lstrcmp(whoami(), get_str_unic)
 
 def kernel32_lstrcmpiW():
-    my_lstrcmp('lstrcmpiW', lambda x: get_str_unic(x).lower())
+    my_lstrcmp(whoami(), lambda x: get_str_unic(x).lower())
+
+
+
+def my_strcpy(funcname, get_str, set_str):
+    ret_ad = vm_pop_uint32_t()
+    ptr_str1 = vm_pop_uint32_t()
+    ptr_str2 = vm_pop_uint32_t()
+    print "%s (%08x, %08x) (ret @ %08x)" % (funcname,
+                                            ptr_str1, ptr_str2,
+                                            ret_ad)
+    s2 = get_str(ptr_str2)
+    print '%s (%r)' % (funcname, s2)
+    vm_set_mem(ptr_str1, set_str(s2))
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = ptr_str1
+    vm_set_gpreg(regs)
+
+def kernel32_lstrcpyW():
+    my_strcpy(whoami(), get_str_unic, lambda x:x+"\x00\x00")
+
+def kernel32_lstrcpyA():
+    my_strcpy(whoami(), get_str_ansi, lambda x:x+"\x00")
+
+def my_strlen(funcname, get_str, mylen):
+    ret_ad = vm_pop_uint32_t()
+    arg_src = vm_pop_uint32_t()
+
+    print funcname, hex(ret_ad), '(', hex(arg_src),   ')'
+    src = get_str(arg_src)
+    print funcname, repr(src)
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = mylen(src)
+    vm_set_gpreg(regs)
+
+def kernel32_lstrlenA():
+    my_strlen(whoami(), get_str_ansi, lambda x:len(x))
+def kernel32_lstrlenW():
+    my_strlen(whoami(), get_str_unic, lambda x:len(x[::2]))
+
+
+def my_lstrcat(funcname, get_str):
+    ret_ad = vm_pop_uint32_t()
+    ptr_str1 = vm_pop_uint32_t()
+    ptr_str2 = vm_pop_uint32_t()
+    print "%s (%08x, %08x) (ret @ %08x)" % (funcname,
+                                            ptr_str1, ptr_str2,
+                                            ret_ad)
+    s1 = get_str(ptr_str1)
+    s2 = get_str(ptr_str2)
+    print '%s (%r, %r)' % (whoami(), s1, s2)
+
+    s = s1+s2
+    print repr(s)
+    vm_set_mem(ptr_str1, s1+s2)
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = ptr_str1
+    vm_set_gpreg(regs)
+
+def kernel32_lstrcatA():
+    my_lstrcat(whoami(), get_str_ansi)
+def kernel32_lstrcatW():
+    my_lstrcat(whoami(), get_str_unic)
+
+
+def kernel32_GetUserGeoID():
+    ret_ad = vm_pop_uint32_t()
+    geoclass = vm_pop_uint32_t()
+    print whoami(), hex(geoclass)
+
+    if geoclass == 14:
+        ret = 12345678
+    elif geoclass == 16:
+        ret = 55667788
+    else:
+        raise ValueError('unknown geolcass')
+
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = ret
+    vm_set_gpreg(regs)
+
+
+def my_GetVolumeInformation(funcname, get_str, set_str):
+    ret_ad = vm_pop_uint32_t()
+    lprootpathname = vm_pop_uint32_t()
+    lpvolumenamebuffer = vm_pop_uint32_t()
+    nvolumenamesize = vm_pop_uint32_t()
+    lpvolumeserialnumber = vm_pop_uint32_t()
+    lpmaximumcomponentlength = vm_pop_uint32_t()
+    lpfilesystemflags = vm_pop_uint32_t()
+    lpfilesystemnamebuffer = vm_pop_uint32_t()
+    nfilesystemnamesize = vm_pop_uint32_t()
+
+    print funcname,hex(lprootpathname),hex(lpvolumenamebuffer),hex(nvolumenamesize),hex(lpvolumeserialnumber),hex(lpmaximumcomponentlength),hex(lpfilesystemflags),hex(lpfilesystemnamebuffer),hex(nfilesystemnamesize)
+
+    if lprootpathname:
+        s = get_str(lprootpathname)
+        print repr(s)
+
+    if lpvolumenamebuffer:
+        s = "volumename"
+        s = s[:nvolumenamesize]
+        vm_set_mem(lpvolumenamebuffer, set_str(s))
+
+    if lpvolumeserialnumber:
+        vm_set_mem(lpvolumeserialnumber, pdw(11111111))
+    if lpmaximumcomponentlength:
+        vm_set_mem(lpmaximumcomponentlength, pdw(0xff))
+    if lpfilesystemflags:
+        vm_set_mem(lpfilesystemflags, pdw(22222222))
+
+    if lpfilesystemnamebuffer:
+        s = "filesystemname"
+        s = s[:nfilesystemnamesize]
+        vm_set_mem(lpfilesystemnamebuffer, set_str(s))
+
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = 1
+    vm_set_gpreg(regs)
+
+def kernel32_GetVolumeInformationA():
+    my_GetVolumeInformation(whoami(), get_str_ansi, lambda x:x+"\x00")
+def kernel32_GetVolumeInformationW():
+    my_GetVolumeInformation(whoami(), get_str_unic, lambda x:"\x00".join(list(x+'\x00')))
+
+def kernel32_MultiByteToWideChar():
+    ret_ad = vm_pop_uint32_t()
+    codepage = vm_pop_uint32_t()
+    dwflags = vm_pop_uint32_t()
+    lpmultibytestr = vm_pop_uint32_t()
+    cbmultibyte = vm_pop_uint32_t()
+    lpwidecharstr = vm_pop_uint32_t()
+    cchwidechar = vm_pop_uint32_t()
+
+    print whoami(), hex(ret_ad), \
+        hex(codepage),hex(dwflags),hex(lpmultibytestr),hex(cbmultibyte),hex(lpwidecharstr),hex(cchwidechar)
+    src = get_str_ansi(lpmultibytestr)+'\x00'
+    l = len(src)
+    print repr(src)
+
+    src = "\x00".join(list(src))
+    print repr(src), hex(len(src))
+    vm_set_mem(lpwidecharstr, src)
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = l
+    vm_set_gpreg(regs)
+
+env_variables = {}
+def my_GetEnvironmentVariable(funcname, get_str, set_str, mylen):
+    global env_variables
+    ret_ad = vm_pop_uint32_t()
+    lpname = vm_pop_uint32_t()
+    lpbuffer = vm_pop_uint32_t()
+    nsize = vm_pop_uint32_t()
+
+    print funcname,hex(lpname), hex(lpbuffer), hex(nsize)
+    s = get_str(lpname)
+    if get_str == get_str_unic:
+        s = s[::2]
+    if s in env_variables:
+        v = set_str(env_variables[s])
+    else:
+        print 'WARNING unknown env variable', repr(s)
+        v = ""
+    print 'return', repr(v)
+    vm_set_mem(lpbuffer, v)
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = mylen(v)
+    vm_set_gpreg(regs)
+
+def my_GetSystemDirectory(funcname, set_str):
+    ret_ad = vm_pop_uint32_t()
+    lpbuffer = vm_pop_uint32_t()
+    usize = vm_pop_uint32_t()
+    print "%s (%08x, %08x) (ret @ %08x)" % (whoami(),
+                                            lpbuffer,usize,
+                                            ret_ad)
+
+    s = "c:\\windows\\system32"
+    l = len(s)
+    s = set_str(s)
+    vm_set_mem(lpbuffer, s)
+
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = l
+    vm_set_gpreg(regs)
+
+
+def kernel32_GetSystemDirectoryA():
+    my_GetSystemDirectory(whoami(), lambda x:x+'\x00')
+def kernel32_GetSystemDirectoryW():
+    my_GetSystemDirectory(whoami(), lambda x:"\x00".join(list(x+'\x00')))
+
+
+def my_CreateDirectory(funcname, get_str):
+    ret_ad = vm_pop_uint32_t()
+    lppath = vm_pop_uint32_t()
+    secattrib = vm_pop_uint32_t()
+    print "%s (%08x, %08x) (ret @ %08x)" % (funcname,
+                                            lppath,secattrib,
+                                            ret_ad)
+    p = get_str(lppath)
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = 0x1337
+    vm_set_gpreg(regs)
+
+def kernel32_CreateDirectoryW():
+    my_CreateDirectory(whoami(), get_str_unic)
+def kernel32_CreateDirectoryW():
+    my_CreateDirectory(whoami(), get_str_ansi)
+
+
+
+def kernel32_GetEnvironmentVariableA():
+    my_GetEnvironmentVariable(whoami(),
+                              get_str_ansi,
+                              lambda x:x+"\x00",
+                              lambda x:len(x))
+
+def kernel32_GetEnvironmentVariableW():
+    my_GetEnvironmentVariable(whoami(),
+                              get_str_unic,
+                              lambda x:"\x00".join(list(x+"\x00")),
+                              lambda x:len(x[::2]))
+
+
+events_pool = {}
+def my_CreateEvent(funcname, get_str):
+    global events_pool
+    ret_ad = vm_pop_uint32_t()
+    lpeventattributes = vm_pop_uint32_t()
+    bmanualreset = vm_pop_uint32_t()
+    binitialstate = vm_pop_uint32_t()
+    lpname = vm_pop_uint32_t()
+
+    print funcname, hex(lpeventattributes), hex(bmanualreset), hex(binitialstate), hex(lpname)
+    s = get_str(lpname)
+    print repr(s)
+    if not s in events_pool:
+        events_pool[s] = (bmanualreset, binitialstate)
+    else:
+        print 'WARNING: known event'
+
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = id(s)
+    vm_set_gpreg(regs)
+
+def kernel32_CreateEventA():
+    my_CreateEvent(whoami(), get_str_ansi)
+def kernel32_CreateEventA():
+    my_CreateEvent(whoami(), get_str_unic)
+
+
+
+def kernel32_WaitForSingleObject():
+    ret_ad = vm_pop_uint32_t()
+    handle = vm_pop_uint32_t()
+    dwms = vm_pop_uint32_t()
+
+
+    t_start = time.time()*1000
+    while True:
+        if dwms and dwms+t_start > time.time()*1000:
+            ret = 0x102
+            break
+        for k, v in events_pool.items():
+            if k != handle:
+                continue
+            if events_pool[k][1] == 1:
+                ret = 0
+                break
+        time.sleep(0.1)
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = ret
+    vm_set_gpreg(regs)
 
 
 def kernel32_SetFileAttributesA():
@@ -1563,7 +1951,6 @@ def kernel32_SetFileAttributesA():
     else:
         eax = 0
         vm_set_mem(seh_helper.FS_0_AD+0x34, pdw(3))
-    
 
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
@@ -1839,4 +2226,96 @@ def ntdll_memset():
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = arg_addr
+    vm_set_gpreg(regs)
+
+
+
+def shlwapi_PathFindExtensionA():
+    ret_ad = vm_pop_uint32_t()
+    path_ad = vm_pop_uint32_t()
+
+    print whoami(), hex(ret_ad), hex(path_ad)
+    path = get_str_ansi(path_ad)
+    print repr(path)
+    i = path.rfind('.')
+    if i == -1:
+        i = path_ad + len(path)
+    else:
+        i = path_ad + i
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = i
+    vm_set_gpreg(regs)
+
+
+
+def shlwapi_PathIsFileSpecA():
+    ret_ad = vm_pop_uint32_t()
+    path_ad = vm_pop_uint32_t()
+
+    print whoami(), hex(ret_ad), hex(path_ad)
+    path = get_str_ansi(path_ad)
+    print repr(path)
+    if path.find(':') != -1 and path.find('\\') != -1:
+        ret = 0
+    else:
+        ret = 1
+
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = ret
+    vm_set_gpreg(regs)
+
+
+def shlwapi_StrToIntA():
+    ret_ad = vm_pop_uint32_t()
+    i_str_ad = vm_pop_uint32_t()
+
+    print whoami(), hex(ret_ad), hex(i_str_ad)
+    i_str = get_str_ansi(i_str_ad)
+    print repr(i_str)
+    try:
+        i = int(i_str)
+    except:
+        print 'WARNING cannot convert int'
+        i = 0
+
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = i
+    vm_set_gpreg(regs)
+
+
+
+def user32_IsCharAlphaW():
+    ret_ad = vm_pop_uint32_t()
+    c = vm_pop_uint32_t()
+
+    print whoami(), hex(ret_ad), hex(c)
+    c = chr(c)
+    if c.isalpha():
+        ret = 1
+    else:
+        ret = 0
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = ret
+    vm_set_gpreg(regs)
+
+def shlwapi_StrCmpNIA():
+    ret_ad = vm_pop_uint32_t()
+    ptr_str1 = vm_pop_uint32_t()
+    ptr_str2 = vm_pop_uint32_t()
+    nchar = vm_pop_uint32_t()
+    print whoami(), hex(ptr_str1), hex(ptr_str2)
+
+    s1 = get_str_ansi(ptr_str1).lower()
+    s2 = get_str_ansi(ptr_str2).lower()
+    s1 = s1[:nchar]
+    s2 = s2[:nchar]
+
+    print repr(s1), repr(s2)
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = cmp(s1, s2)
     vm_set_gpreg(regs)

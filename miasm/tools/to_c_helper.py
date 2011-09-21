@@ -928,26 +928,32 @@ def updt_pe_from_emul(e):
 def updt_automod_code(known_blocs):
     w_ad, w_size = vm_get_last_write_ad(), vm_get_last_write_size()
     print hex(w_ad), hex(w_size)
-    #all_bloc_funcs = del_bloc_in_range([bn.b for bn in known_blocs], w_ad, w_ad+w_size/8)
     known_blocs = del_bloc_in_range(known_blocs, w_ad, w_ad+w_size/8)
-    
     code_addr = blocs_to_memory_ranges([bn.b for bn in known_blocs.values()])
     merge_memory_ranges(code_addr)
-    
     reset_code_bloc_pool_py()
+
     for a, b in  code_addr:
         vm_add_code_bloc(a, b)
-        
-    #dump_code_bloc_pool_py()
-    
     vm_reset_exception()
 
 
     return known_blocs, code_addr
 
-import random
 
-    
+def flush_all_blocs(known_blocs):
+    for ad in known_blocs.keys():
+        known_blocs = del_bloc_in_range(known_blocs, ad, ad+1)
+    code_addr = blocs_to_memory_ranges([bn.b for bn in known_blocs.values()])
+    merge_memory_ranges(code_addr)
+    reset_code_bloc_pool_py()
+
+    for a, b in  code_addr:
+        vm_add_code_bloc(a, b)
+    vm_reset_exception()
+    return known_blocs, code_addr
+
+import random
 
 def c_emul_bloc(known_blocs, my_eip):
     if not my_eip in known_blocs:

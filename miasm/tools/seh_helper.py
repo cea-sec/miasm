@@ -41,7 +41,7 @@ cur_seh_ad = FAKE_SEH_B_AD
 
 loaded_modules = ["win_dll/kernel32.dll", "win_dll/ntdll.dll"]
 main_pe = None
-main_pe_name = "toto.exe"
+main_pe_name = "c:\\xxx\\toto.exe"
 
 def build_fake_teb():
     """
@@ -140,8 +140,7 @@ def build_fake_inordermodule(modules_name):
     +0x04c PatchInformation               : Ptr32 Void
     """
 
-    first_name = "\x00".join(main_pe_name+"\x00")
-
+    first_name = "\x00".join(main_pe_name+"\x00\x00")
     offset_name = 0x700
 
     o = ""
@@ -174,7 +173,7 @@ def build_fake_inordermodule(modules_name):
         #fname = os.path.join('win_dll', m)
         fname = m
         bname = os.path.split(fname)[1].upper()
-        bname = "\x00".join(bname+"\x00")
+        bname = "\x00".join(bname+"\x00\x00")
         print "add module", repr(bname)
         print hex(in_load_order_module_1+i*0x1000)
         e = pe_init.PE(open(fname, 'rb').read())
