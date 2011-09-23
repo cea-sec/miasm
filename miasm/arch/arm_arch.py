@@ -1957,12 +1957,14 @@ class arm_swi(arm_mn):
 
     def parse_args(self, args):
         self.swint = str2imm(args.pop())
-        
     def breakflow(self):
         return True
     def splitflow(self):
         return True
     def dstflow(self):
+        return False
+
+    def is_subcall(self):
         return False
 
 

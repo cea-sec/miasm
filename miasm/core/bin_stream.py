@@ -22,7 +22,7 @@ class bin_stream_mother(type):
         elif arg and type(arg[0]) is file:
             cls = bin_stream_file
         else:
-            cls = bin_stream_str
+            cls = bin_stream_x
 
         i = cls.__new__(cls, cls.__name__, cls.__bases__, cls.__dict__)
         i.__init__(*arg)
@@ -39,8 +39,6 @@ class bin_stream(object):
     def hexdump(self, offset, l):
         return
 
-    
-        
 class bin_stream_str(bin_stream):
     def __init__(self, bin ="", offset = 0L):
         if offset>len(bin):
@@ -50,7 +48,6 @@ class bin_stream_str(bin_stream):
         self.l = len(bin)
         if "is_addr_in" in self.bin.__class__.__dict__:
             self.is_addr_in = lambda ad:self.bin.is_addr_in(ad)
-            
 
     def readbs(self, l=1):
         if self.offset+l>self.l:
@@ -75,15 +72,12 @@ class bin_stream_file(bin_stream):
         self.l = self.bin.tell()
         self.offset = offset
 
-        
-                
     def getoffset(self):
         return self.bin.tell()
 
     def setoffset(self, val):
         val = val & 0xFFFFFFFF
         self.bin.seek(val)
-        
     offset = property(getoffset, setoffset)
 
     def readbs(self, l=1):
@@ -99,3 +93,30 @@ class bin_stream_file(bin_stream):
     def __str__(self):
         return str(self.bin)
 
+
+
+class bin_stream_x(bin_stream):
+    def __init__(self, bin ="", offset = 0L):
+        if offset>bin.__len__():
+            raise IOError
+        self.bin = bin
+        self.offset = offset
+        self.l = bin.__len__()
+        if "is_addr_in" in self.bin.__class__.__dict__:
+            self.is_addr_in = lambda ad:self.bin.is_addr_in(ad)
+
+    def readbs(self, l=1):
+        if self.offset+l>self.l:
+            raise IOError
+        self.offset+=l
+        return self.bin(self.offset-l,self.offset)
+
+    def writebs(self, l=1):
+        raise ValueError('writebs unsupported')
+
+    def __str__(self):
+        out =  self.bin[self.offset:]
+        return out
+    def setoffset(self, val):
+        val = val & 0xFFFFFFFF
+        self.offset = val
