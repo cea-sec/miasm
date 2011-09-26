@@ -31,9 +31,9 @@ parser.add_option('-a', "--address", dest="address", metavar="ADDRESS",
                   help="address to disasemble")
 parser.add_option('-m', "--architecture", dest="machine",metavar="MACHINE",
                   help="architecture to use for disasm: arm, x86, ppc, java")
-parser.add_option('-M', "--architecture-options", dest="machine-options",
+parser.add_option('-M', "--architecture-options", dest="machine_options",
                   metavar="MACHINEOPTS",
-                  help="architecture options (16/32/64 bits, ...)")
+                  help="architecture options (u16/u32/u64 bits, ...)")
 parser.add_option('-r', "--rawfile", dest="rawfile", action="store_true",
                   default=False, metavar=None,
                   help="dont use PE/ELF/CLASS autodetect, disasm raw file")
@@ -116,7 +116,13 @@ elif data.startswith("\xca\xfe\xba\xbe"):
 
 
 else:
-    raise ValueError('cannot autodetect file type')
+    print 'WARNING cannot autodetect file type, using raw'
+    in_str = bin_stream.bin_stream(data)
+    if ad_to_dis == None:
+        ad_to_dis = 0
+    else:
+        ad_to_dis = int(ad_to_dis, 16)
+    mnemo = ia32_arch.x86_mn
 
 
 if options.machine:
@@ -148,8 +154,17 @@ for (n,f), ad in dll_dyn_funcs.items():
 
 
 def my_disasm_callback(ad):
+    admode = opmode = u32
+    if options.machine_options:
+        if options.machine_options in ['u16', 'u32']:
+            admode = opmode = options.machine_options
+        else:
+            raise ValueError('bad machine options')
     all_bloc = asmbloc.dis_bloc_all(mnemo, in_str, ad, set(),
-                                    symbol_pool=symbol_pool)
+                                    symbol_pool=symbol_pool,
+                                    amode = admode)
+    g = asmbloc.bloc2graph(all_bloc)
+    open('graph.txt', 'w').write(g)
     if mnemo == ia32_arch.x86_mn:
         for b in all_bloc:
             for l in b.lines:

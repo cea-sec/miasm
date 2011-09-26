@@ -46,8 +46,8 @@ tab_size2int = {x86_afs.u08:uint8,
                 x86_afs.s08:int8,
                 x86_afs.s16:int16,
                 x86_afs.s32:int32}
-                
-                
+
+tab_max_uint = {x86_afs.u08:0xFF, x86_afs.u16:0xFFFF, x86_afs.u32:0xFFFFFFFF, x86_afs.u64:0xFFFFFFFFFFFFFFFFL}
 
 
 
@@ -135,13 +135,13 @@ w8 = "w8"
 se = "se"
 sw = "sw"
 ww = "ww"
-sg = "sg"
-dr = "dr"
-cr = "cr"
-ft = "ft"
+sg = "sg" # segment reg
+dr = "dr" # debug reg
+cr = "cr" # control reg
+ft = "ft" # float
 w64= "w64"
-sd = "sd" #single/double
-wd = "wd" #word/dword
+sd = "sd" # single/double
+wd = "wd" # word/dword
 
 
 bkf = "breakflow"
@@ -1354,7 +1354,12 @@ class x86_mn:
             return []
         a = self.arg[0]
         if is_imm(a) and not x86_afs.symb in a:
-            dst = (self.offset+self.l+a[x86_afs.imm])&0xFFFFFFFF
+            print hex(self.offset), hex(self.l+a[x86_afs.imm])
+            print hex(self.offset+self.l+a[x86_afs.imm])
+            print self.size_ad
+            print tab_max_uint[self.size_ad]
+            print hex((self.offset+self.l+a[x86_afs.imm])&tab_max_uint[self.size_ad])
+            dst = (self.offset+self.l+a[x86_afs.imm])&tab_max_uint[self.size_ad]
             out = [dst]
         else:
             out = [a]

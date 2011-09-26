@@ -38,6 +38,8 @@ class afs_desc:
         self.u32 = "u32"
         self.s32 = "s32"
         self.s32 = "s32"
+        self.s64 = "s64"
+        self.u64 = "u64"
 
         self.f32 = "f32"
         self.f64 = "f64"
