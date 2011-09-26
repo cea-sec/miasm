@@ -238,13 +238,17 @@ def p_OPTSEG(t):
                  '''
     t[0] = t[1]
 
+def p_opt_seg_colon_1(t):
+    '''opt_seg_colon : OPTSEG COLON '''
+    t[0] = {x86_afs.segm:x86_afs.reg_sg.index(t[1])}
+
 def p_opt_seg_1(t):
-    '''opt_seg : OPTSEG COLON '''
+    '''opt_seg : OPTSEG '''
     t[0] = {x86_afs.segm:x86_afs.reg_sg.index(t[1])}
 
 def p_expression_9(t):
     '''expression : PTRSIZE PTRMEM LBRA expression RBRA
-                  | PTRSIZE PTRMEM opt_seg LBRA expression RBRA  '''
+                  | PTRSIZE PTRMEM opt_seg_colon LBRA expression RBRA  '''
     size = t[1]
     if len(t) == 6:
         index = 4
@@ -268,7 +272,7 @@ def p_expression_9(t):
 
 def p_expression_10(t):
     '''expression : LBRA expression RBRA
-                  | opt_seg LBRA expression RBRA '''
+                  | opt_seg_colon LBRA expression RBRA '''
     if len(t) == 4:
         t[2][x86_afs.ad] = x86_afs.u32
         t[0] = t[2]
@@ -276,6 +280,10 @@ def p_expression_10(t):
         t[3][x86_afs.ad] = x86_afs.u32
         t[3].update(t[1])
         t[0] = t[3]
+
+def p_expression_11(t):
+    '''expression : opt_seg'''
+    t[0] = t[1]
 
 def parse_ad(a):
     tmp_dict = {}

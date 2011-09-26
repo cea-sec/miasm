@@ -125,11 +125,17 @@ u32 = x86_afs.u32
 s32 = x86_afs.s32
 im1 = x86_afs.im1
 im3 = x86_afs.im3
- 
+
 r_eax = {x86_afs.r_eax:1, x86_afs.ad:False}
 r_cl  = {x86_afs.reg_list8.index(x86_afs.r_cl):1, x86_afs.ad:False, x86_afs.size:x86_afs.u08}
 r_dx  = {x86_afs.reg_list16.index(x86_afs.r_dx):1, x86_afs.ad:False, x86_afs.size:x86_afs.u16}
 
+r_es = 'es'
+r_ss = 'ss'
+r_cs = 'cs'
+r_ds = 'ds'
+
+segm_regs = [r_es, r_ss, r_cs, r_ds]
 
 w8 = "w8"
 se = "se"
@@ -917,6 +923,9 @@ class x86allmncs:
         addop("pop",   [0x8F],             d0   , no_rm         , {}                 ,{}                , {},                         )
         addop("popad", [0x61],             noafs, no_rm         , {}                 ,{}                , {},                         )
         addop("popfd", [0x9D],             noafs, no_rm         , {}                 ,{}                , {},                         )
+        addop("pop",   [0x07],             noafs, [r_es]        , {}                 ,{sg:True,}        , {},                         )
+        addop("pop",   [0x17],             noafs, [r_ss]        , {}                 ,{sg:True,}        , {},                         )
+        addop("pop",   [0x1f],             noafs, [r_ds]        , {}                 ,{sg:True,}        , {},                         )
 
         addop("prefetch",[0x0F, 0x18],     d0   , no_rm         , {}                 ,{}                , {},                         )
         addop("prefetch",[0x0F, 0x18],     d1   , no_rm         , {}                 ,{}                , {},                         )
@@ -928,6 +937,10 @@ class x86allmncs:
         addop("push",  [0xFF],             d6   , no_rm         , {}                 ,{}                , {},                         )
         addop("pushad",[0x60],             noafs, no_rm         , {}                 ,{}                , {},                         )
         addop("pushfd",[0x9C],             noafs, no_rm         , {}                 ,{}                , {},                         )
+        addop("push",  [0x0E],             noafs, [r_cs]        , {}                 ,{sg:True,}        , {},                         )
+        addop("push",  [0x06],             noafs, [r_es]        , {}                 ,{sg:True,}        , {},                         )
+        addop("push",  [0x16],             noafs, [r_ss]        , {}                 ,{sg:True,}        , {},                         )
+        addop("push",  [0x1E],             noafs, [r_ds]        , {}                 ,{sg:True,}        , {},                         )
 
         addop("rcl",   [0xD0],             d2   , [im1]         , {w8:(0,0)}         ,{}                , {},                         )
         addop("rcl",   [0xD2],             d2   , [r_cl]        , {w8:(0,0)}         ,{}                , {},                         )
@@ -1613,7 +1626,15 @@ class x86_mn:
                     dib_out.append(dib)                    
                     pass
 
-                    
+                elif dib in segm_regs:
+                    size = self.mnemo_mode
+                    seg_regs = segm_regs
+                    if not dib in segm_regs:
+                        raise ValueError('segment reg not found', dib)
+                    r = dib
+                    dib_out.append({x86_afs.ad:False,
+                                    x86_afs.size : size,
+                                    x86_afs.reg_dict[r]:1})
                 else:
                     raise ValueError('bad dib!!%X'%dib)
 
@@ -1647,10 +1668,8 @@ class x86_mn:
                 self.m = x86mndb.stosw_m
             if 0x66 in read_prefix and self.m.name == "movsd":
                 self.m  = x86mndb.movsw_m
-                
             return True
 
-    
         except IOError:
             log.warning( "cannot dis: not enougth bytes")
             return None
@@ -1664,12 +1683,11 @@ class x86_mn:
         while True:
             name = tokens[0]
             tokens = tokens[1:]
-    
             if name in prefix_dic:
                 prefix.append(name)
                 continue
             break
-        
+
         args = []
         arg = []
         s = ','
@@ -1679,20 +1697,19 @@ class x86_mn:
             tokens = tokens[i+1:]
         args.append(tokens)
         args = map(lambda x: reduce(lambda x,y: x+' '+y, x, ""), args)
-    
+
         if args == ['']:
             return prefix, name, []
 
         for a in args:
             if x86_afs.segm in a:
                 prefix.append(x86_afs.reg_sg.index(a[x86_afs.segm]))
-            
         return prefix, name, args
 
     @classmethod
     def parse_address(self, a):
         return parse_ad(a)
-        
+
     def asm_parse(self, l):
         log.debug("asm: %s"%l)
 
@@ -1706,6 +1723,11 @@ class x86_mn:
         for a in args:
             args_eval.append(x86_mn.parse_address(a))
             if x86_afs.segm in args_eval[-1]:
+                # XXX todo hack: if only one arg, no prefix
+                if len(args) == 1:
+                    continue
+                print args_eval[-1]
+                fds
                 prefix.append(prefix_seg[args_eval[-1][x86_afs.segm]])
                 del args_eval[-1][x86_afs.segm]
 
@@ -1714,13 +1736,9 @@ class x86_mn:
                 log.debug('pre-assembling with symbol! %s'%str(args_eval[-1][x86_afs.symb]))
                 if not x86_afs.imm in args_eval[-1]:
                     args_eval[-1][x86_afs.imm] = 0
-                    
                 del args_eval[-1][x86_afs.symb]
-            
-        log.info("prefix:%s"%str(prefix))        
+        log.info("prefix:%s"%str(prefix))
         log.info('eval: %s'%str(args_eval))
-
-        
 
         #search all candidates
         log.debug('Find mnemo')
@@ -1752,10 +1770,8 @@ class x86_mn:
                     self.mnemo_mode = u16
                     break
 
-    
             if self.mnemo_mode == None:
                 self.mnemo_mode = u32
-    
             if self.mnemo_mode == u16:
                 log.debug("16 bit mode detected for %s"%str(l))
                 prefix.append(0x66)
@@ -1765,16 +1781,14 @@ class x86_mn:
                         if args_eval[0][x86_afs.ad]:
                             args_eval[0][x86_afs.ad] = u32
                 else:
-                        
                     for a in args_eval:
                         if a[x86_afs.size] == u16:
                             a[x86_afs.size] = u32
                             if a[x86_afs.ad]:
                                 a[x86_afs.ad] = u32
-                            
         else:
             self.mnemo_mode = u32
-                  
+
         log.info('eval2: %s'%str(args_eval))
 
         modifs = dict([[x, None] for x in [w8, se, sw, ww, sg, dr, cr, ft, w64, sd, wd]])
@@ -1789,7 +1803,6 @@ class x86_mn:
                     for y in mask_drcrsg:
                         if x & mask_drcrsg[y]:
                             modifs[y] = True
-                    
 
         candidate_out = []
         for c in candidate:
@@ -1801,7 +1814,6 @@ class x86_mn:
 
             if (modifs[sg] or c.modifs[sg]) and modifs[sg] != c.modifs[sg]:
                 continue
-            
 
             args_sample = [dict(x) for x in args_eval]
 
@@ -1954,7 +1966,8 @@ class x86_mn:
                     a_pmem = dict(a_mem)
                     a_pmem[x86_afs.ad] = u32
                     parsed_args.append(a_pmem)
-                    
+                elif dib in segm_regs:
+                    fds
                 else:
                     raise ValueError('bad dib!!%X'%dib)
             
@@ -2194,6 +2207,12 @@ x86mnemo = x86_mn
 if __name__ == '__main__':
     test_out = []
     log.setLevel(logging.DEBUG)
+
+    instr = x86mnemo.dis('07'.replace(' ', '').decode('hex'), admode=x86_afs.u32)
+    print instr
+    print instr.arg
+    print instr.l
+    fds
 
     instr = x86mnemo.dis('66A5'.replace(' ', '').decode('hex'), admode=x86_afs.u32)
     print instr
