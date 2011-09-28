@@ -1367,11 +1367,6 @@ class x86_mn:
             return []
         a = self.arg[0]
         if is_imm(a) and not x86_afs.symb in a:
-            print hex(self.offset), hex(self.l+a[x86_afs.imm])
-            print hex(self.offset+self.l+a[x86_afs.imm])
-            print self.size_ad
-            print tab_max_uint[self.size_ad]
-            print hex((self.offset+self.l+a[x86_afs.imm])&tab_max_uint[self.size_ad])
             dst = (self.offset+self.l+a[x86_afs.imm])&tab_max_uint[self.size_ad]
             out = [dst]
         else:
