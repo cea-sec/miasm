@@ -114,6 +114,12 @@ def get_str_unic(ad_str):
         l+=2
     return vm_get_str(ad_str, l)
 
+def set_str_ansi(s):
+    return s + "\x00"
+
+def set_str_unic(s):
+    return "\x00".join(list(s))+'\x00'*3
+
 
 def kernel32_GlobalAlloc():
     ret_ad = vm_pop_uint32_t()
@@ -136,7 +142,6 @@ def kernel32_LocalFree():
     lpvoid = vm_pop_uint32_t()
 
     print whoami(), hex(ret_ad), '(', hex(lpvoid), ')'
-    
 
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
@@ -273,7 +278,6 @@ def kernel32_Process32First():
 
     pentry = struct.pack('LLLLLLLLL', *process_list[0][:-1])+process_list[0][-1]
     vm_set_mem(ad_pentry, pentry)
-    
     toolhelpsnapshot_info[s_handle] = 0
 
     regs = vm_get_gpreg()
@@ -296,7 +300,6 @@ def kernel32_Process32Next():
         print whoami(), hex(ret_ad), '(', hex(s_handle), hex(ad_pentry), ')'
         pentry = struct.pack('LLLLLLLLL', *process_list[n][:-1])+process_list[n][-1]
         vm_set_mem(ad_pentry, pentry)
-        
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = eax
@@ -346,9 +349,9 @@ def my_GetVersionEx(funcname, set_str):
     vm_set_gpreg(regs)
 
 def kernel32_GetVersionExA():
-    my_GetVersionEx(whoami(), lambda x:x+'\x00')
+    my_GetVersionEx(whoami(), set_str_ansi)
 def kernel32_GetVersionExW():
-    my_GetVersionEx(whoami(), lambda x:"\x00".join(list(x+'\x00')))
+    my_GetVersionEx(whoami(), set_str_unic)
 
 
 def kernel32_GetPriorityClass():
@@ -373,7 +376,6 @@ def kernel32_SetPriorityClass():
     regs['eip'] = ret_ad
     regs['eax'] = 0
     vm_set_gpreg(regs)
-    
 
 def kernel32_CloseHandle():
     ret_ad = vm_pop_uint32_t()
@@ -385,11 +387,9 @@ def kernel32_CloseHandle():
     regs['eip'] = ret_ad
     regs['eax'] = 1
     vm_set_gpreg(regs)
-    
 
 def user32_GetForegroundWindow():
     ret_ad = vm_pop_uint32_t()
-    
     print whoami(), hex(ret_ad), '(', ')'
 
     regs = vm_get_gpreg()
@@ -433,7 +433,6 @@ def user32_BlockInput():
     regs['eip'] = ret_ad
     regs['eax'] = 1
     vm_set_gpreg(regs)
-    
 
 def advapi32_CryptAcquireContextA():
     ret_ad = vm_pop_uint32_t()
@@ -448,8 +447,7 @@ def advapi32_CryptAcquireContextA():
     prov = vm_get_str(pszprovider, 0x100)
     prov = prov[:prov.find('\x00')]
     print 'prov:', prov
-                
-
+            
     vm_set_mem(phprov, pdw(cryptcontext_hwnd))
 
     regs = vm_get_gpreg()
@@ -478,7 +476,6 @@ def advapi32_CryptCreateHash():
         cryptcontext[cryptcontext_bnum+cryptcontext_num].h = MD5.new()
     else:
         raise ValueError('un impl algo1')
-    
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = 1
@@ -501,7 +498,6 @@ def advapi32_CryptHashData():
     print 'will hash'
     print repr(data)
     cryptcontext[hhash].h.update(data)
-    
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = 1
@@ -521,8 +517,7 @@ def advapi32_CryptDeriveKey():
     if algid == 0x6801:
         print 'using DES'
     else:
-        raise ValueError('un impl algo2')        
-
+        raise ValueError('un impl algo2')    
     h = cryptcontext[hbasedata].h.digest()
     print 'hash', repr(h)
     cryptcontext[hbasedata].h_result = h
@@ -614,15 +609,12 @@ def my_CreateFile(ret_ad, fname, dwsharedmode, lpsecurityattr, dwcreationdisposi
         eax = module_cur_hwnd
     else:
         raise ValueError('unknown filename')
-    
-    
 
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = eax
     vm_set_gpreg(regs)
 
-    
 
 def kernel32_ReadFile():
     ret_ad = vm_pop_uint32_t()
@@ -635,7 +627,6 @@ def kernel32_ReadFile():
     print whoami(), hex(ret_ad), '(', hex(hwnd), hex(lpbuffer), hex(nnumberofbytestoread), hex(lpnumberofbytesread), hex(lpoverlapped), ')'
 
     if hwnd == module_cur_hwnd:
-        
         pass
     else:
         raise ValueError('unknown hwnd!')
@@ -672,12 +663,10 @@ def kernel32_GetFileSize():
 
     if lpfilesizehight != 0:
         vm_set_mem(lpfilesizehight, pdw(eax&0xffff0000))
-            
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = eax
     vm_set_gpreg(regs)
-    
 
 
 access_dict = {    0x0: 0,
@@ -703,13 +692,11 @@ def kernel32_VirtualProtect():
     lpfloldprotect = vm_pop_uint32_t()
 
     print whoami(), hex(ret_ad), '(', hex(lpvoid), hex(dwsize), hex(flnewprotect), hex(lpfloldprotect), ')'
-    
     # XXX mask hpart
     flnewprotect &= 0xFFF
 
     if not flnewprotect in access_dict:
         raise ValueError( 'unknown access dw!')
-    
     vm_set_mem_access(lpvoid, access_dict[flnewprotect])
 
     #XXX todo real old protect
@@ -731,7 +718,6 @@ def kernel32_VirtualAlloc():
     flprotect = vm_pop_uint32_t()
 
     print whoami(), hex(ret_ad), '(', hex(lpvoid), hex(dwsize), hex(alloc_type), hex(flprotect), ')'
-    
 
     access_dict = {    0x0: 0,
                        0x1: 0,
@@ -773,12 +759,10 @@ def kernel32_VirtualFree():
     alloc_type = vm_pop_uint32_t()
 
     print whoami(), hex(ret_ad), '(', hex(lpvoid), hex(dwsize), hex(alloc_type), ')'
-    
 
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     vm_set_gpreg(regs)
-    
 
 def user32_GetWindowLongA():
     ret_ad = vm_pop_uint32_t()
@@ -791,7 +775,6 @@ def user32_GetWindowLongA():
     regs['eip'] = ret_ad
     regs['eax'] = windowlong_dw
     vm_set_gpreg(regs)
-    
 
 def user32_SetWindowLongA():
     ret_ad = vm_pop_uint32_t()
@@ -805,7 +788,6 @@ def user32_SetWindowLongA():
     regs['eip'] = ret_ad
     regs['eax'] = windowlong_dw
     vm_set_gpreg(regs)
-    
 
 
 
@@ -838,9 +820,9 @@ def my_GetModuleFileName(funcname, set_str):
 
 
 def kernel32_GetModuleFileNameA():
-    my_GetModuleFileName(whoami(), lambda x:x+'\x00')
+    my_GetModuleFileName(whoami(), set_str_ansi)
 def kernel32_GetModuleFileNameW():
-    my_GetModuleFileName(whoami(), lambda x:"\x00".join(list(x+'\x00')))
+    my_GetModuleFileName(whoami(), set_str_unic)
 
 
 def shell32_SHGetSpecialFolderLocation():
@@ -876,18 +858,16 @@ def my_SHGetPathFromIDListW(funcname, set_str):
     vm_set_gpreg(regs)
 
 def shell32_SHGetPathFromIDListW():
-    my_SHGetPathFromIDListW(whoami(), lambda x:"\x00".join(list(x+'\x00')))
+    my_SHGetPathFromIDListW(whoami(), set_str_unic)
 def shell32_SHGetPathFromIDListW():
-    my_SHGetPathFromIDListW(whoami(), lambda x:x+'\x00')
+    my_SHGetPathFromIDListW(whoami(), set_str_ansi)
 
 
 lastwin32error = 0
 def kernel32_GetLastError():
     ret_ad = vm_pop_uint32_t()
     global lastwin32error
-    
     print whoami(), hex(ret_ad), '(',  ')'
-    
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = lastwin32error
@@ -923,7 +903,6 @@ def kernel32_GetProcAddress():
         fname = fname[:fname.find('\x00')]
     print repr(fname)
 
-    
     ad = runtime_dll.lib_get_add_func(libbase, fname)
 
     regs = vm_get_gpreg()
@@ -980,12 +959,10 @@ def kernel32_GetSystemInfo():
     print whoami(), hex(ret_ad), hex(sys_ptr)
 
     vm_set_mem(sys_ptr, "\x00\x00\x00\x00\x00\x10\x00\x00\x00\x00\x01\x00\xFF\xFF\xFE\x7F\x0F\x00\x00\x00\x04\x00\x00\x00\x4A\x02\x00\x00\x00\x00\x01\x00\x06\x00\x0B\x0F")
-    
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     #regs['eax'] = 0
     vm_set_gpreg(regs)
-    
 
 def kernel32_IsWow64Process():
     ret_ad = vm_pop_uint32_t()
@@ -995,7 +972,6 @@ def kernel32_IsWow64Process():
     print whoami(), hex(ret_ad), hex(h), hex(bool_ptr)
 
     vm_set_mem(bool_ptr, pdw(0))
-    
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = 1
@@ -1026,11 +1002,9 @@ def cryptdll_MD5Init():
     cryptdll_md5_h[index] = h
 
     vm_set_mem(ad_ctx, pdw(index))
-    
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     vm_set_gpreg(regs)
-    
 
 
 def cryptdll_MD5Update():
@@ -1065,7 +1039,6 @@ def cryptdll_MD5Final():
     index = updw(index)
     if not index in cryptdll_md5_h:
         raise ValueError('unknown h context', index)
-    
     h = cryptdll_md5_h[index].digest()
     vm_set_mem(ad_ctx + 88, h)
     regs = vm_get_gpreg()
@@ -1094,7 +1067,6 @@ def ntdll_RtlAnsiStringToUnicodeString():
     ad_ctxa = vm_pop_uint32_t()
     alloc_dst = vm_pop_uint32_t()
 
-    
     l1, l2, ptra = struct.unpack('HHL', vm_get_str(ad_ctxa, 8))
     print hex(l1), hex(l2), hex(ptra)
 
@@ -1138,7 +1110,6 @@ def ntdll_RtlHashUnicodeString():
     for c in s:
         hv = ((65599*hv)+ord(c) )&0xffffffff
     print "unicode h", hex(hv)
-    
     vm_set_mem(phout, pdw(hv))
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
@@ -1149,12 +1120,10 @@ def ntdll_RtlFreeUnicodeString():
     ret_ad = vm_pop_uint32_t()
     print whoami(), hex(ret_ad)
     ad_ctxu = vm_pop_uint32_t()
-    
     l1, l2, ptra = struct.unpack('HHL', vm_get_str(ad_ctxu, 8))
     print l1, l2, hex(ptra)
     s = vm_get_str(ptra, l1)
     print 'free', repr(s)
-    
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     vm_set_gpreg(regs)
@@ -1167,7 +1136,6 @@ def kernel32_RtlMoveMemory():
     ad_dst = vm_pop_uint32_t()
     ad_src = vm_pop_uint32_t()
     m_len = vm_pop_uint32_t()
-    
     print hex(ad_dst), hex(ad_src), hex(m_len)
     data = vm_get_str(ad_src, m_len)
     vm_set_mem(ad_dst, data)
@@ -1182,16 +1150,13 @@ def ntdll_RtlAnsiCharToUnicodeChar():
     ret_ad = vm_pop_uint32_t()
     print whoami(), hex(ret_ad)
     ad_ad_ch = vm_pop_uint32_t()
-    
     print hex(ad_ad_ch)
     ad_ch = updw(vm_get_str(ad_ad_ch, 4))
     print hex(ad_ch)
-    
     ch = ord(vm_get_str(ad_ch, 1))
     vm_set_mem(ad_ad_ch, pdw(ad_ch+1))
 
     print repr(ch), repr(chr(ch))
-    
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = ch
@@ -1213,7 +1178,6 @@ def ntdll_RtlFindCharInUnicodeString():
     print ml1, ml2, hex(mptra)
     sl1, sl2, sptra = struct.unpack('HHL', vm_get_str(search_chars_ad, 8))
     print sl1, sl2, hex(sptra)
-    
     main_data= vm_get_str(mptra, ml1)[:-1]
     search_data= vm_get_str(sptra, sl1)[:-1]
 
@@ -1228,7 +1192,6 @@ def ntdll_RtlFindCharInUnicodeString():
                 break
         if pos:
             break
-            
     print pos
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
@@ -1238,7 +1201,6 @@ def ntdll_RtlFindCharInUnicodeString():
     else:
         regs['eax'] = 0
         vm_set_mem(pos_ad, pdw(pos))
-    
     vm_set_gpreg(regs)
     print 'ret', hex(regs['eax'])
 
@@ -1255,13 +1217,10 @@ def ntdll_RtlComputeCrc32():
     print hexdump(data)
     crc_r = crc32(data, dwinit)
     print "crc32", hex(crc_r)
-    
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = crc_r
     vm_set_gpreg(regs)
-    
-    
     
 def ntdll_RtlExtendedIntegerMultiply():
     ret_ad = vm_pop_uint32_t()
@@ -1269,7 +1228,6 @@ def ntdll_RtlExtendedIntegerMultiply():
     b2 = vm_pop_uint32_t()
     b1 = vm_pop_uint32_t()
     bm = vm_pop_uint32_t()
-    
     print hex(b1), hex(b2), hex(bm)
     a = (b1<<32)+b2
     a = a*bm
@@ -1288,7 +1246,6 @@ def ntdll_RtlLargeIntegerAdd():
     a1 = vm_pop_uint32_t()    
     b2 = vm_pop_uint32_t()
     b1 = vm_pop_uint32_t()
-    
     print hex(a1), hex(a2), hex(b1), hex(b2)
     a = (a1<<32)+a2 + (b1<<32)+b2
     print hex(a)
@@ -1305,7 +1262,6 @@ def ntdll_RtlLargeIntegerShiftRight():
     a2 = vm_pop_uint32_t()
     a1 = vm_pop_uint32_t()    
     m = vm_pop_uint32_t()
-    
     print hex(a1), hex(a2), hex(m)
     a = ((a1<<32)+a2)>>m
     print hex(a)
@@ -1321,7 +1277,6 @@ def ntdll_RtlEnlargedUnsignedMultiply():
     print whoami(), hex(ret_ad)
     a = vm_pop_uint32_t()&0xFFFFFFFF
     b = vm_pop_uint32_t()&0xFFFFFFFF
-    
     print hex(a), hex(b)
     a = a*b
     print hex(a)
@@ -1339,7 +1294,6 @@ def ntdll_RtlLargeIntegerSubtract():
     a1 = vm_pop_uint32_t()    
     b2 = vm_pop_uint32_t()
     b1 = vm_pop_uint32_t()
-    
     print hex(a1), hex(a2), hex(b1), hex(b2)
     a = (a1<<32)+a2 - (b1<<32)+b2
     print hex(a)
@@ -1357,7 +1311,6 @@ def ntdll_RtlCompareMemory():
     ad1 = vm_pop_uint32_t()
     ad2 = vm_pop_uint32_t()
     m_len = vm_pop_uint32_t()
-    
     print hex(ad1), hex(ad2), hex(m_len)
     data1 = vm_get_str(ad1, m_len)
     data2 = vm_get_str(ad2, m_len)
@@ -1390,7 +1343,6 @@ def kernel32_Sleep():
     ret_ad = vm_pop_uint32_t()
     t = vm_pop_uint32_t()
     print whoami(), hex(ret_ad), hex(t)
-    
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     vm_set_gpreg(regs)
@@ -1403,7 +1355,6 @@ def ntdll_ZwUnmapViewOfSection():
     h = vm_pop_uint32_t()
     ad = vm_pop_uint32_t()
     print whoami(), hex(ret_ad), hex(h), hex(ad)
-    
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = 0
@@ -1414,12 +1365,10 @@ def kernel32_IsBadReadPtr():
     lp = vm_pop_uint32_t()
     ucb = vm_pop_uint32_t()
     print whoami(), hex(ret_ad), hex(lp), hex(ucb)
-    
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = 0
     vm_set_gpreg(regs)
-    
 
 win_event_num = 0x13370
 def ntoskrnl_KeInitializeEvent():
@@ -1437,28 +1386,46 @@ def ntoskrnl_KeInitializeEvent():
     regs['eax'] = 0
     vm_set_gpreg(regs)
 
-    
-    
-
 
 def ntoskrnl_RtlGetVersion():
     ret_ad = vm_pop_uint32_t()
     ptr_version = vm_pop_uint32_t()
     print whoami(), hex(ret_ad), hex(ptr_version)
 
-    s = struct.pack('LLLLL', 0x88000000,0x88000001,0x88000002,0x88000003,0x88000004 )
+    s = struct.pack("IIIII",
+                    0x114, # struct size
+                    0x5,   # maj vers
+                    0x2, # min vers
+                    0x666, # build nbr
+                    0x2,   # platform id
+                    ) + set_str_unic("Service pack 4")
+
     vm_set_mem(ptr_version, s)
-    
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = 0
     vm_set_gpreg(regs)
-    
+
+def ntoskrnl_RtlVerifyVersionInfo():
+    ret_ad = vm_pop_uint32_t()
+    ptr_version = vm_pop_uint32_t()
+    print whoami(), hex(ret_ad), hex(ptr_version)
+
+    s = vm_get_str(ptr_version, 0x5*4)
+    print repr(s)
+    s_size, s_majv, s_minv, s_buildn, s_platform = struct.unpack('IIIII', s)
+    print s_size, s_majv, s_minv, s_buildn, s_platform
+    fds
+    vm_set_mem(ptr_version, s)
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = 0
+    vm_set_gpreg(regs)
+
 
 def hal_ExAcquireFastMutex():
     ret_ad = vm_pop_uint32_t()
     print whoami(), hex(ret_ad)
-    
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = 0
@@ -1483,12 +1450,10 @@ def ntoskrnl_IoAllocateMdl():
     second_buf = vm_pop_uint32_t()
     chargequota = vm_pop_uint32_t()
     pirp = vm_pop_uint32_t()
-    
     print whoami(), hex(ret_ad), hex(v_addr), hex(l), hex(second_buf), hex(chargequota), hex(pirp)
     m = mdl(v_addr, l)
     nt_mdl[nt_mdl_cur] = m
     vm_set_mem(mdl2ad(nt_mdl_cur), str(m))
-    
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = mdl2ad(nt_mdl_cur)
@@ -1502,7 +1467,6 @@ def ntoskrnl_MmProbeAndLockPages():
     p_mdl = vm_pop_uint32_t()&0xffffffff
     access_mode = vm_pop_uint32_t()
     op = vm_pop_uint32_t()
-    
     print whoami(), hex(ret_ad), hex(p_mdl), hex(access_mode), hex(op)
 
     if not ad2mdl(p_mdl) in nt_mdl:
@@ -1521,7 +1485,6 @@ def ntoskrnl_MmMapLockedPagesSpecifyCache():
     base_ad = vm_pop_uint32_t()
     bugcheckonfailure = vm_pop_uint32_t()
     priority = vm_pop_uint32_t()
-    
     print whoami(), hex(ret_ad), hex(p_mdl), hex(access_mode), hex(cache_type), hex(base_ad), hex(bugcheckonfailure), hex(priority)
     if not ad2mdl(p_mdl) in nt_mdl:
         raise ValueError('unk mdl', hex(p_mdl))
@@ -1557,7 +1520,6 @@ def ntoskrnl_MmUnlockPages():
     regs['eip'] = ret_ad
     regs['eax'] = 0
     vm_set_gpreg(regs)
-    
 
 def ntoskrnl_IoFreeMdl():
     global nt_mdl, nt_mdl_ad, nt_mdl_cur
@@ -1571,7 +1533,6 @@ def ntoskrnl_IoFreeMdl():
     regs['eip'] = ret_ad
     regs['eax'] = 0
     vm_set_gpreg(regs)
-    
 
 def hal_ExReleaseFastMutex():
     global nt_mdl, nt_mdl_ad, nt_mdl_cur
@@ -1581,7 +1542,6 @@ def hal_ExReleaseFastMutex():
     regs['eip'] = ret_ad
     regs['eax'] = 0
     vm_set_gpreg(regs)
-    
 def ntoskrnl_RtlQueryRegistryValues():
     global nt_mdl, nt_mdl_ad, nt_mdl_cur
     ret_ad = vm_pop_uint32_t()
@@ -1593,12 +1553,10 @@ def ntoskrnl_RtlQueryRegistryValues():
     print whoami(), hex(ret_ad), hex(relativeto), hex(path), hex(querytable), hex(context), hex(environ)
     p = get_str_unic(path)
     print repr(p[::2])
-    
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = 0
     vm_set_gpreg(regs)
-    
 
 def ntoskrnl_ExAllocatePoolWithTagPriority():
     global nt_mdl, nt_mdl_ad, nt_mdl_cur
@@ -1778,7 +1736,7 @@ def my_GetVolumeInformation(funcname, get_str, set_str):
 def kernel32_GetVolumeInformationA():
     my_GetVolumeInformation(whoami(), get_str_ansi, lambda x:x+"\x00")
 def kernel32_GetVolumeInformationW():
-    my_GetVolumeInformation(whoami(), get_str_unic, lambda x:"\x00".join(list(x+'\x00')))
+    my_GetVolumeInformation(whoami(), get_str_unic, set_str_unic)
 
 def kernel32_MultiByteToWideChar():
     ret_ad = vm_pop_uint32_t()
@@ -1847,9 +1805,9 @@ def my_GetSystemDirectory(funcname, set_str):
 
 
 def kernel32_GetSystemDirectoryA():
-    my_GetSystemDirectory(whoami(), lambda x:x+'\x00')
+    my_GetSystemDirectory(whoami(), set_str_ansi)
 def kernel32_GetSystemDirectoryW():
-    my_GetSystemDirectory(whoami(), lambda x:"\x00".join(list(x+'\x00')))
+    my_GetSystemDirectory(whoami(), set_str_unic)
 
 
 def my_CreateDirectory(funcname, get_str):
@@ -2009,14 +1967,12 @@ def ntdll_ZwProtectVirtualMemory():
     ad = updw(vm_get_str(lppvoid, 4))
     dwsize = updw(vm_get_str(pdwsize, 4))
     print 'ad', hex(ad), 'size', hex(dwsize)
-    
     # XXX mask hpart
     flnewprotect &= 0xFFF
 
 
     if not flnewprotect in access_dict:
         raise ValueError( 'unknown access dw!')
-    
     vm_set_mem_access(ad, access_dict[flnewprotect])
 
     #XXX todo real old protect
@@ -2041,7 +1997,6 @@ def ntdll_ZwAllocateVirtualMemory():
 
     print whoami(), hex(ret_ad), '(',
     print hex(lppvoid), hex(zerobits), hex(pdwsize), hex(alloc_type), hex(flprotect), ')'
-    
     ad = updw(vm_get_str(lppvoid, 4))
     dwsize = updw(vm_get_str(pdwsize, 4))
     print 'ad', hex(ad), 'size', hex(dwsize)
@@ -2078,7 +2033,6 @@ def ntdll_ZwAllocateVirtualMemory():
     vm_set_gpreg(regs)
     dump_memory_page_pool_py()
     print 'ret', hex(max_ad), hex(ret_ad)
-    
 
 def ntdll_ZwFreeVirtualMemory():
     ret_ad = vm_pop_uint32_t()
@@ -2088,7 +2042,6 @@ def ntdll_ZwFreeVirtualMemory():
     alloc_type = vm_pop_uint32_t()
 
     print whoami(), hex(ret_ad), '(', hex(handle), hex(lppvoid), hex(pdwsize), hex(alloc_type), ')'
-    
     ad = updw(vm_get_str(lppvoid, 4))
     dwsize = updw(vm_get_str(pdwsize, 4))
     print 'ad', hex(ad), 'size', hex(dwsize)
@@ -2104,7 +2057,6 @@ def ntdll_RtlInitString():
     source = vm_pop_uint32_t()
 
     print whoami(), hex(ret_ad), '(', hex(pstring), hex(source), ')'
-    
     s = get_str_ansi(source)
     print "str", repr(s)
 
@@ -2140,12 +2092,9 @@ def ntdll_RtlAnsiStringToUnicodeString():
     else:
         print 'use buf'
         max_ad = p_src
-    
     vm_set_mem(max_ad, s)
-    
     o = struct.pack('HHI', l, l, max_ad)
     vm_set_mem(dst, o)
-    
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = 0

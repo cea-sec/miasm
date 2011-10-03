@@ -156,7 +156,8 @@ from miasm.tools import win_api
 dyn_func = {}
 dyn_func[dll_dyn_funcs['kernel32_LoadLibraryA']] = myloadlibexa
 dyn_func[dll_dyn_funcs['kernel32_GetProcAddress']] = mygetproc
-dyn_func[dll_dyn_funcs['kernel32_VirtualProtect']] = win_api.kernel32_VirtualProtect
+if 'kernel32_VirtualProtect' in dll_dyn_funcs:
+    dyn_func[dll_dyn_funcs['kernel32_VirtualProtect']] = win_api.kernel32_VirtualProtect
 
 
 
