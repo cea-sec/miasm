@@ -239,7 +239,8 @@ def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool, dont_dis 
 
         try:
             instr = mnemo.dis(pool_bin, amode, sex)
-        except:
+        except StandardError, e:
+            log_asmbloc.warning(e)
             instr = None
 
         if instr == None:

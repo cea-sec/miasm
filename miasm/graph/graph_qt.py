@@ -736,19 +736,10 @@ class MainWindow(QtGui.QWidget):
         for index in xrange(len(g.C)):
 
             gr = g.C[index]
-            if False:#dr  and hdr in g.C[index].sV:
-                r = [hdr]
-            else:
-                r = filter(lambda x: len(x.e_in())==0, gr.sV)
-                if not r:
-                    print 'no roots!'
-                    r = [gr.sV.o[0]]
-            r.sort()
-            L = g.C[index].get_scs_with_feedback(r)
-            sug = SugiyamaLayout(g.C[index])
+            sug = SugiyamaLayout(gr)
             sug.xspace = 40
             sug.yspace = 40
-            sug.init_all(roots=r,inverted_edges=filter(lambda x:x.feedback, g.C[index].sE))
+            sug.init_all()
             sug.route_edge = route_with_splines
             sug.draw(1)
 
@@ -759,7 +750,7 @@ class MainWindow(QtGui.QWidget):
                 if min_pos_x == None or pos[0] - n.view.w/2 < min_pos_x:
                     min_pos_x = pos[0]- n.view.w/2
 
-            first_pos = r[0].view.xy
+            first_pos = sug.layers[0][0].view.xy
             new_max_pos_x = max_pos_x
             #first_pos = None
             for n in g.C[index].sV:
