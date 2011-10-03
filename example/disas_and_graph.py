@@ -20,13 +20,7 @@ except ImportError:
 import pickle
 import sys
 
-
-
-
-print sys.argv
-
-
-parser = OptionParser()
+parser = OptionParser(usage = "usage: %prog [options] file")
 parser.add_option('-a', "--address", dest="address", metavar="ADDRESS",
                   help="address to disasemble")
 parser.add_option('-m', "--architecture", dest="machine",metavar="MACHINE",
@@ -39,8 +33,9 @@ parser.add_option('-r', "--rawfile", dest="rawfile", action="store_true",
                   help="dont use PE/ELF/CLASS autodetect, disasm raw file")
 
 (options, args) = parser.parse_args(sys.argv[1:])
-print options, args
-
+if not args:
+    parser.print_help()
+    sys.exit(0)
 fname = args[0]
 ad_to_dis = options.address
 

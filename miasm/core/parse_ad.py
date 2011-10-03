@@ -83,7 +83,7 @@ keywords = ("BYTE", "WORD", "DWORD", "SINGLE", "DOUBLE",
 
 tokens = keywords +(
     'NUMBER',
-    'PLUS','MINUS','TIMES','DIVIDE','EQUALS',
+    'PLUS','MINUS','TIMES','DIVIDE',
     'LPAREN','RPAREN','LBRA','RBRA', 'COLON',
     'OFFSET','NAME', 
     )
@@ -94,7 +94,6 @@ t_PLUS    = r'\+'
 t_MINUS   = r'-'
 t_TIMES   = r'\*'
 t_DIVIDE  = r'/'
-t_EQUALS  = r'='
 t_LPAREN  = r'\('
 t_RPAREN  = r'\)'
 t_LBRA  = r'\['
