@@ -32,6 +32,14 @@ parser.add_option('-r', "--rawfile", dest="rawfile", action="store_true",
                   default=False, metavar=None,
                   help="dont use PE/ELF/CLASS autodetect, disasm raw file")
 
+parser.add_option('-c', "--followcall", dest="followcall", action="store_true",
+                  default=False, metavar=None,
+                  help="follow call dst")
+parser.add_option('-n', "--dontdiscallret", dest="dontdiscallret", action="store_true",
+                  default=False, metavar=None,
+                  help="dont disasssemble call next instruction")
+
+
 (options, args) = parser.parse_args(sys.argv[1:])
 if not args:
     parser.print_help()
@@ -157,7 +165,9 @@ def my_disasm_callback(ad):
             raise ValueError('bad machine options')
     all_bloc = asmbloc.dis_bloc_all(mnemo, in_str, ad, set(),
                                     symbol_pool=symbol_pool,
-                                    amode = admode)
+                                    amode = admode,
+                                    dontdis_retcall = options.dontdiscallret,
+                                    follow_call = options.followcall)
     g = asmbloc.bloc2graph(all_bloc)
     open('graph.txt', 'w').write(g)
     if mnemo == ia32_arch.x86_mn:
