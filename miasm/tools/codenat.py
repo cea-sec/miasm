@@ -56,9 +56,10 @@ PAGE_EXEC  = 4
 
 
 class bloc_nat:
-    def __init__(self, offset = 0, b = None, module_c = None, log_mn = False, log_regs = False):
+    def __init__(self, offset = 0, b = None, module_c = None, c_source = None, log_mn = False, log_regs = False):
         self.b = b
         self.module_c = module_c
+        self.c_source = c_source
 
 blocs_nat = {}
 

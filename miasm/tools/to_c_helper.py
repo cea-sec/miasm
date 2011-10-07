@@ -39,94 +39,91 @@ mask_int = 0xffffffffffffffff
 
 
 my_C_id = [
-	eax,
-	ebx,
-	ecx,
-	edx,
-	esi,
-	edi,
-	esp,
-	ebp,
-	eip,
-	zf,
-	nf,
-	pf,
-	of,
-	cf,
-	af,
-	df,
-	#eax_new,
-	#ebx_new,
-	#ecx_new,
-	#edx_new,
-	#esi_new,
-	#edi_new,
-	#esp_new,
-	#ebp_new,
-	#eip_new,
-	#zf_new,
-	#nf_new,
-	#pf_new,
-	#of_new,
-	#cf_new,
-	#af_new,
-	#df_new,
-	tf,
-	i_f,
-	iopl,
-	nt,
-	rf,
-	vm,
-	ac,
-	vif,
-	vip,
-	i_d,
-	#tf_new,
-	#i_f_new,
-	#iopl_new,
-	#nt_new,
-	#rf_new,
-	#vm_new,
-	#ac_new,
-	#vif_new,
-	#vip_new,
-	#i_d_new,
-	#my_tick,
-	reg_float_control,
-	cond,
-	ds,
-	#vm_exception_flags,
-	#vm_exception_flags_new,
-	#vm_last_write_ad,
-	#vm_last_write_size,
-	tsc1,
-	tsc2,
+    eax,
+    ebx,
+    ecx,
+    edx,
+    esi,
+    edi,
+    esp,
+    ebp,
+    eip,
+    zf,
+    nf,
+    pf,
+    of,
+    cf,
+    af,
+    df,
+    #eax_new,
+    #ebx_new,
+    #ecx_new,
+    #edx_new,
+    #esi_new,
+    #edi_new,
+    #esp_new,
+    #ebp_new,
+    #eip_new,
+    #zf_new,
+    #nf_new,
+    #pf_new,
+    #of_new,
+    #cf_new,
+    #af_new,
+    #df_new,
+    tf,
+    i_f,
+    iopl,
+    nt,
+    rf,
+    vm,
+    ac,
+    vif,
+    vip,
+    i_d,
+    #tf_new,
+    #i_f_new,
+    #iopl_new,
+    #nt_new,
+    #rf_new,
+    #vm_new,
+    #ac_new,
+    #vif_new,
+    #vip_new,
+    #i_d_new,
+    #my_tick,
+    float_control,
+    cond,
+    ds,
+    #vm_exception_flags,
+    #vm_exception_flags_new,
+    #vm_last_write_ad,
+    #vm_last_write_size,
+    tsc1,
+    tsc2,
+    float_st0,
+    float_st1,
+    float_st2,
+    float_st3,
+    float_st4,
+    float_st5,
+    float_st6,
+    float_st7,
 
-        float_st0,
-        float_st1,
-        float_st2,
-        float_st3,
-        float_st4,
-        float_st5,
-        float_st6,
-        float_st7,
+    float_c0,
+    float_c1,
+    float_c2,
+    float_c3,
 
-	float_c0,
-	float_c1,
-	float_c2,
-	float_c3,
+    cr0,
+    cr3,
 
-	cr0,
-	cr3,
-
-
-        float_stack_ptr,
-
-    ]    
+    float_stack_ptr,
+    ]
 id2Cid = {}
 for x in my_C_id:
     id2Cid[x] = ExprId('vmcpu.'+str(x))
-    
+
 def patch_c_id(e):
     return e.reload_expr(id2Cid)
 
@@ -146,7 +143,8 @@ if (vmcpu.vm_exception_flags) {
 
     
 def Exp2C(exprs, l = None, addr2label = None, gen_exception_code = False):
-    my_size_mask = {1:1, 8:0xFF, 16:0xFFFF, 32:0xFFFFFFFF,  64:0xFFFFFFFFFFFFFFFFL}
+    my_size_mask = {1:1, 8:0xFF, 16:0xFFFF, 32:0xFFFFFFFF,  64:0xFFFFFFFFFFFFFFFFL,
+                    2: 3}
     if not addr2label:
         addr2label = lambda x:x
     id_to_update = []
@@ -898,7 +896,7 @@ def updt_bloc_emul(known_blocs, in_str, my_eip, symbol_pool, code_blocs_mem_rang
     #c_source = '#include "emul_lib/libcodenat.h"\n'+c_source
     #print c_source
     a = gen_C_module_tcc(fname, c_source)
-    bn = bloc_nat(my_eip, cur_bloc, a, log_mn, log_regs)
+    bn = bloc_nat(my_eip, cur_bloc, a, c_source, log_mn, log_regs)
 
     bn.c_source = c_source
     #f_dec = f_dec[10:-6]
