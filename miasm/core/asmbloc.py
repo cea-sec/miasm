@@ -307,7 +307,7 @@ def split_bloc(all_bloc, symbol_pool, more_ref = None, dis_bloc_callback = None)
                 continue
             n = n.offset
             j = -1
-            while j<len(all_bloc)-1 and not err:
+            while j<len(all_bloc)-1:# and not err:
                 j+=1
                 a,b = all_bloc[j].get_range()
                 if n >a and n <=b:
@@ -322,8 +322,10 @@ def split_bloc(all_bloc, symbol_pool, more_ref = None, dis_bloc_callback = None)
                         dis_bloc_callback(new_b, [x.label.offset for x in new_b.bto if isinstance(x.label, asm_label)],
                                           symbol_pool)
                     all_bloc.append(new_b)
+            """
             if err:
                 break
+            """
     return all_bloc
 
 def dis_bloc_all(mnemo, pool_bin, offset, job_done, symbol_pool, dont_dis = [],
