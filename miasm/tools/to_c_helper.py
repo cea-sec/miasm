@@ -120,6 +120,18 @@ my_C_id = [
 
     float_stack_ptr,
     ]
+
+float_id_e = [
+    float_st0,
+    float_st1,
+    float_st2,
+    float_st3,
+    float_st4,
+    float_st5,
+    float_st6,
+    float_st7,
+    ]
+
 id2Cid = {}
 for x in my_C_id:
     id2Cid[x] = ExprId('vmcpu.'+str(x))
@@ -203,8 +215,12 @@ def Exp2C(exprs, l = None, addr2label = None, gen_exception_code = False):
             if isinstance(dst, ExprId):
                 id_to_update.append(dst)
                 str_dst = id2new(patch_c_id(dst))
-                out.append('%s = (%s)&0x%X;'%(str_dst, str_src,
-                                              my_size_mask[src.get_size()]))
+                if dst in float_id_e:
+                    # dont mask float affectation
+                    out.append('%s = (%s);'%(str_dst, str_src))
+                else:
+                    out.append('%s = (%s)&0x%X;'%(str_dst, str_src,
+                                                  my_size_mask[src.get_size()]))
             elif isinstance(dst, ExprMem):
                 str_dst = str_dst.replace('MEM_LOOKUP', 'MEM_WRITE')
                 out_mem.append('%s, %s);'%(str_dst[:-1], str_src))
@@ -950,6 +966,16 @@ def flush_all_blocs(known_blocs):
         vm_add_code_bloc(a, b)
     vm_reset_exception()
     return known_blocs, code_addr
+
+
+def dump_stack():
+    esp = vm_get_gpreg()['esp']
+    print 'esp', hex(esp)
+    a = vm_get_str(esp, 0x20)
+    while a:
+        x = struct.unpack('I', a[:4])[0]
+        a = a[4:]
+        print hex(x)
 
 import random
 

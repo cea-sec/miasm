@@ -228,14 +228,14 @@ float_c3 = ExprId(reg_float_c3)
 float_stack_ptr = ExprId(reg_float_stack_ptr)
 float_control = ExprId(reg_float_control)
                           
-float_st0 = ExprId(reg_float_st0)
-float_st1 = ExprId(reg_float_st1)
-float_st2 = ExprId(reg_float_st2)
-float_st3 = ExprId(reg_float_st3)
-float_st4 = ExprId(reg_float_st4)
-float_st5 = ExprId(reg_float_st5)
-float_st6 = ExprId(reg_float_st6)
-float_st7 = ExprId(reg_float_st7)
+float_st0 = ExprId(reg_float_st0, 64)
+float_st1 = ExprId(reg_float_st1, 64)
+float_st2 = ExprId(reg_float_st2, 64)
+float_st3 = ExprId(reg_float_st3, 64)
+float_st4 = ExprId(reg_float_st4, 64)
+float_st5 = ExprId(reg_float_st5, 64)
+float_st6 = ExprId(reg_float_st6, 64)
+float_st7 = ExprId(reg_float_st7, 64)
 
 
 
@@ -1229,6 +1229,11 @@ def jno(a, b):
     e.append(ExprAff(eip, ExprCond(ExprOp('==', of, ExprInt(uint32(0))), b, a)))
     return e
 
+def jecxz(a, b): 
+    e= []
+    e.append(ExprAff(eip, ExprCond(ExprOp('==', ecx, ExprInt(uint32(0))), b, a)))
+    return e
+
 
 def loop(a, b): 
     e= []
@@ -1462,11 +1467,13 @@ def float_pop(avoid_flt = None):
 # XXX TODO
 def fcom(a):
     e = []
+    """
     if isinstance(a, ExprMem):
         src = ExprOp('mem_%.2d_to_double'%a.get_size(), a)
     else:
         src = a
-    
+    """
+    src = a
     e.append(ExprAff(float_c0, ExprOp('fcom_c0', float_st0, src)))
     e.append(ExprAff(float_c1, ExprOp('fcom_c1', float_st0, src)))
     e.append(ExprAff(float_c2, ExprOp('fcom_c2', float_st0, src)))
@@ -1482,6 +1489,11 @@ def fcomp(a):
     return e
 
 def fld(a):
+    if isinstance(a, ExprMem):
+        src = ExprOp('mem_%.2d_to_double'%a.get_size(), a)
+    else:
+        src = a
+
     e= []
     e.append(ExprAff(float_st7, float_st6))
     e.append(ExprAff(float_st6, float_st5))
@@ -1490,7 +1502,7 @@ def fld(a):
     e.append(ExprAff(float_st3, float_st2))
     e.append(ExprAff(float_st2, float_st1))
     e.append(ExprAff(float_st1, float_st0))
-    e.append(ExprAff(float_st0, a))
+    e.append(ExprAff(float_st0, src))
     e.append(ExprAff(float_stack_ptr, ExprOp('+', float_stack_ptr, ExprInt(uint32(1)))))
     return e
 
@@ -1538,6 +1550,16 @@ def fadd(a):
         src = a
     e.append(ExprAff(float_st0, ExprOp('fadd', float_st0, src)))
     return e
+
+def fdiv(a):
+    e = []
+    if isinstance(a, ExprMem):
+        src = ExprOp('mem_%.2d_to_double'%a.get_size(), a)
+    else:
+        src = a
+    e.append(ExprAff(float_st0, ExprOp('fdiv', float_st0, src)))
+    return e
+
 
 def fnstsw():
     dst = eax
@@ -1836,6 +1858,7 @@ mnemo_func = {'mov': mov,
               'jns':jns,
               'jo':jo,
               'jno':jno,
+              'jecxz':jecxz,
               'loop':loop,
               'loopne':loopne,
               'div':div,
@@ -1871,6 +1894,7 @@ mnemo_func = {'mov': mov,
               'fldz':fldz,
               'fild':fild,
               'fadd':fadd,
+              'fdiv':fdiv,
               'fnstsw':fnstsw,
               'fnstcw':fnstcw,
               'fldcw':fldcw,

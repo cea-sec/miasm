@@ -794,6 +794,7 @@ unsigned int cpuid(unsigned int a, unsigned int reg_num)
 	return 0;
 }
 
+#define DEBUG_MIASM_DOUBLE
 
 double mem_32_to_double(unsigned int m)
 {
@@ -802,6 +803,9 @@ double mem_32_to_double(unsigned int m)
 
 	f = *((float*)&m);
 	d = f;
+#ifdef DEBUG_MIASM_DOUBLE
+	printf("%d %e\n", m, d);
+#endif
 	return d;
 }
 
@@ -810,6 +814,9 @@ double mem_64_to_double(uint64_t m)
 {
 	double d;
 	d = *((double*)&m);
+#ifdef DEBUG_MIASM_DOUBLE
+	printf("%"PRId64" %e\n", m, d);
+#endif
 	return d;
 }
 
@@ -818,6 +825,9 @@ double int_32_to_double(unsigned int m)
 	double d;
 
 	d = (double)m;
+#ifdef DEBUG_MIASM_DOUBLE
+	printf("%d %e\n", m, d);
+#endif
 	return d;
 }
 
@@ -826,6 +836,9 @@ double int_64_to_double(uint64_t m)
 	double d;
 
 	d = (double)m;
+#ifdef DEBUG_MIASM_DOUBLE
+	printf("%"PRId64" %e\n", m, d);
+#endif
 	return d;
 }
 
@@ -834,6 +847,9 @@ int double_to_int_32(double d)
 	int i;
 
 	i = (int)d;
+#ifdef DEBUG_MIASM_DOUBLE
+	printf("%e %d\n", d, i);
+#endif
 	return i;
 }
 
@@ -841,6 +857,19 @@ double fadd(double a, double b)
 {
 	double c;
 	c = a + b;
+#ifdef DEBUG_MIASM_DOUBLE
+	printf("%e %e %e\n", a, b, c);
+#endif
+	return c;
+}
+
+double fdiv(double a, double b)
+{
+	double c;
+	c = a / b;
+#ifdef DEBUG_MIASM_DOUBLE
+	printf("%e %e %e\n", a, b, c);
+#endif
 	return c;
 }
 
@@ -875,6 +904,9 @@ unsigned int double_to_mem_32(double d)
 	float f;
 	f = d;
 	m = *((unsigned int*)&f);
+#ifdef DEBUG_MIASM_DOUBLE
+	printf("%d %e\n", m, d);
+#endif
 	return m;
 }
 
@@ -882,6 +914,9 @@ uint64_t double_to_mem_64(double d)
 {
 	uint64_t m;
 	m = *((uint64_t*)&d);
+#ifdef DEBUG_MIASM_DOUBLE
+	printf("%"PRId64" %e\n", m, d);
+#endif
 	return m;
 }
 
@@ -1094,6 +1129,8 @@ unsigned int get_memory_page_next(unsigned int n_ad)
 	}
 	return ad;
 }
+
+
 
 unsigned int get_memory_page_from_min_ad(unsigned int size)
 {

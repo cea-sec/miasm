@@ -376,6 +376,7 @@ double int2double(unsigned int m);
 //PyObject* _vm_exec_blocs(PyObject* my_eip);
 
 double fadd(double a, double b);
+double fdiv(double a, double b);
 unsigned int fcom_c0(double a, double b);
 unsigned int fcom_c1(double a, double b);
 unsigned int fcom_c2(double a, double b);

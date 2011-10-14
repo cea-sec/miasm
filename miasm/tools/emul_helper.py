@@ -56,7 +56,7 @@ def tohex(a):
     return hex(a)
     
 
-jcc = ['jz', 'je', 'jnz', 'jp', 'jnp', 'jg', 'jge', 'ja', 'jae', 'jb', 'jbe', 'jl', 'jle', 'js', 'jns', 'jo', 'jno', 'loop', 'loopne']
+jcc = ['jz', 'je', 'jnz', 'jp', 'jnp', 'jg', 'jge', 'ja', 'jae', 'jb', 'jbe', 'jl', 'jle', 'js', 'jns', 'jo', 'jno', 'loop', 'loopne', 'jecxz']
 
 def dump_pool(p):
     log_emu_helper.error('/-------------\\')

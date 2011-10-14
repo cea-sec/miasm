@@ -18,10 +18,6 @@
 from numpy import uint8, uint16, uint32, uint64, int8, int16, int32, int64
 tip = 'tip'
 
-
-float_stack = 'float_stack'
-float_stack_ptr = 'float_stack_ptr'
-
 def slice_rest(size, start, stop):
     if start >=size or stop > size: raise 'bad slice rest %s %s %s'%(str(size), str(start), str(stop))
     if start == stop: return [(0,size)]
@@ -538,7 +534,7 @@ class ExprOp(Expr):
                 return "%s(%s, %s)"%(self.op, self.args[0].toC(), self.args[1].toC())
             elif self.op.startswith("fcom"):
                 return "%s(%s, %s)"%(self.op, self.args[0].toC(), self.args[1].toC())
-            elif self.op.startswith("fadd"):
+            elif self.op in ["fadd", "fdiv"]:
                 return "%s(%s, %s)"%(self.op, self.args[0].toC(), self.args[1].toC())
             else:
                 print self.op
