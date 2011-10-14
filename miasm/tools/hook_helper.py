@@ -74,12 +74,12 @@ class hooks():
         
             ;; create lock
             push my_critic_sec
-            call [initializecriticalsection]
+            call [InitializeCriticalSection]
             
         write_file_2:
             ;; lock
             push my_critic_sec
-            call [entercriticalsection]
+            call [EnterCriticalSection]
         
             
             ;; write log name
@@ -131,7 +131,7 @@ class hooks():
         
             ;; unlock
             push my_critic_sec
-            call [leavecriticalsection]
+            call [LeaveCriticalSection]
         
         
             popad
