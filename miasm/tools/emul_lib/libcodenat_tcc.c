@@ -87,7 +87,7 @@ PyObject*  tcc_exec_bloc(PyObject* self, PyObject* args)
 	uint64_t (*func)(void);
 
 	unsigned long ret;
-	if (!PyArg_ParseTuple(args, "i", &func))
+	if (!PyArg_ParseTuple(args, "l", &func))
 		return NULL;
 	ret = func();
 	return PyLong_FromUnsignedLong(ret);
