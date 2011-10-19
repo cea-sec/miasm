@@ -29,6 +29,8 @@ import os
 import re
 from  miasm.tools import to_c_helper
 from miasm.core import bin_stream
+from collections import defaultdict
+
 pe_cache = {}
 def pe_from_name(n):
     global pe_cache
@@ -136,12 +138,10 @@ def guess_imports_ret_unstack(e):
 
 
 def get_import_address(e):
-    import2addr = {}
-    
+    import2addr = defaultdict(set)
     for i,s in enumerate(e.DirImport.impdesc):
         fthunk = e.rva2virt(s.firstthunk)
         l = "%2d %-25s %s"%(i, repr(s.dlldescname) ,repr(s))
-        
         libname = s.dlldescname.name.lower()
         for ii, imp in enumerate(s.impbynames):
             if isinstance(imp, pe.ImportByName):
@@ -149,9 +149,7 @@ def get_import_address(e):
             else:
                 funcname = imp
             l = "    %2d %-16s"%(ii, repr(funcname))
-    
-    
-            import2addr[(libname, funcname)] = e.rva2virt(s.firstthunk+4*ii)
+            import2addr[(libname, funcname)].add(e.rva2virt(s.firstthunk+4*ii))
     return import2addr
 
 
@@ -181,7 +179,6 @@ def get_java_constant_pool(e):
 def guess_redirected(e, resolved, unresolved, redirected, import2addr):
 
     import2addr_inv = [(x[1], x[0]) for x in import2addr.items()]
-    
 
     to_del = []
     for imp in redirected:
@@ -193,12 +190,9 @@ def guess_redirected(e, resolved, unresolved, redirected, import2addr):
             else:
                 resolved[my_imp] = resolved[imp]
                 to_del.append(my_imp)
-                
 
     redirected = [x for x in redirected if not x in to_del]
-    
     return resolved, unresolved, redirected
-            
 
 if __name__ == '__main__':
     e, ret = func_from_import('hal.dll', 'KfAcquireSpinLock')
@@ -209,10 +203,10 @@ if __name__ == '__main__':
 def get_imp_to_dict(e):
     imp2ad = get_import_address(e)
     imp_d = {}
-    
-    for libf, ad in imp2ad.items():
-        libname, f = libf
-        imp_d[ad] = libf
+    for libf, ads in imp2ad.items():
+        for ad in ads:
+            libname, f = libf
+            imp_d[ad] = libf
     return imp_d
 
 
@@ -411,7 +405,7 @@ class libimp:
 
         if imp_ord_or_name in self.lib_imp2ad[libad]:
             return self.lib_imp2ad[libad][imp_ord_or_name]
-        print 'new imp', imp_ord_or_name, dst_ad
+        #print 'new imp', imp_ord_or_name, dst_ad
         ad = self.libbase2lastad[libad]
         self.libbase2lastad[libad] += 0x1
         self.lib_imp2ad[libad][imp_ord_or_name] = ad
@@ -452,7 +446,7 @@ class libimp:
                 #    self.lib_imp2dstad[libad][imp_ord_or_name] = set()
                 #self.lib_imp2dstad[libad][imp_ord_or_name].add(dst_ad)
 
-                print 'new imp', imp_ord_or_name, hex(ad)
+                #print 'new imp', imp_ord_or_name, hex(ad)
                 self.lib_imp2ad[libad][imp_ord_or_name] = ad
 
                 name_inv = dict([(x[1], x[0]) for x in self.name2off.items()])
@@ -564,22 +558,21 @@ def vm_load_elf(e, align_s = True, load_hdr = True):
         data = (p.ph.vaddr - r_vaddr) *"\x00" + data
         data += (((len(data) +0xFFF) & ~0xFFF)-len(data)) * "\x00"
         to_c_helper.vm_add_memory_page(r_vaddr, to_c_helper.PAGE_READ|to_c_helper.PAGE_WRITE, data)
-        
+
 def preload_lib(e, runtime_lib, patch_vm_imp = True):
     fa = get_import_address(e)
 
     dyn_funcs = {}
-    
     print 'imported funcs:', fa
-    for (libname, libfunc), ad in fa.items():
-        ad_base_lib = runtime_lib.lib_get_add_base(libname)
-        ad_libfunc = runtime_lib.lib_get_add_func(ad_base_lib, libfunc, ad)
+    for (libname, libfunc), ads in fa.items():
+        for ad in ads:
+            ad_base_lib = runtime_lib.lib_get_add_base(libname)
+            ad_libfunc = runtime_lib.lib_get_add_func(ad_base_lib, libfunc, ad)
 
-        libname_s = canon_libname_libfunc(libname, libfunc)
-        dyn_funcs[libname_s] = ad_libfunc
-        if patch_vm_imp:
-            to_c_helper.vm_set_mem(ad, struct.pack(cstruct.size2type[e._wsize], ad_libfunc))
-        
+            libname_s = canon_libname_libfunc(libname, libfunc)
+            dyn_funcs[libname_s] = ad_libfunc
+            if patch_vm_imp:
+                to_c_helper.vm_set_mem(ad, struct.pack(cstruct.size2type[e._wsize], ad_libfunc))
     return dyn_funcs
 
 def preload_elf(e, patch_vm_imp = True, lib_base_ad = 0x77700000):
