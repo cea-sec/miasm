@@ -159,7 +159,7 @@ stpeip = "stpeip" #stop eip
 
 unsanity_mnemo = ['nop', 'monitor', 'mwait', 'fadd', 'faddp', 'fiadd', 'fcmovb', 'fcom', 'fcomp', 'fcomip',
                   'fdiv', 'fdivr', 'fidivr', 'fdivrp', 'ficom', 'ficomp', 'fild', 'fist', 'fistp', 'fisttp',
-                  'fld', 'fldcw', 'fld1', 'fldl2t', "fldl2e", "fldpi", "fldlg2", "fldln2", "fldz", 'fldenv', 'fmul', 'fimul', 'fmulp', 'fst', 'fstp', 'fnstcw', 'fnstenv',
+                  'fld', 'fldcw', 'fld1', 'fldl2t', "fldl2e", "fldpi", "fldlg2", "fldln2", "fldz", 'fldenv', 'fmul', 'fimul', 'fmulp', 'fst', 'fstp', 'fnstcw', 'fnstenv', 'f2xm1',
                   'fnstsw', 'fsub', 'fsubr', 'fisubr', 'fsubrp', 'ftst', 'fucom', 'fucompp', 'fxam', 'fxtract', 'fyl2x', 'fyl2xp1', 'fsqrt', 'fsincos', 'fsin', 'fscale',
                   'fcos', 'fdecstp', 'fnop', 'fpatan', 'fprem', 'fprem1', 'fptan', 'frndint', "shl", 'sal', 'sar']
 
@@ -1078,7 +1078,6 @@ class x86allmncs:
         addop("mwait", [0x0F, 0x01, 0xC9], noafs, no_rm         , {}                 ,{}                , {},                         )
 
         #x87 fpu                                                                                        , {}
-        addop("f2xm1", [0xD9, 0xF0],       noafs, no_rm         , {}                 ,{}                , {},                         )
         addop("fabs",  [0xD9, 0xE1],       noafs, no_rm         , {}                 ,{}                , {},                         )
 
         addop("fadd",  [0xD8],             d0,    no_rm         , {sd:(0,2)}         ,{}         , {},                         )
@@ -1169,6 +1168,8 @@ class x86allmncs:
         addop("fnstcw",[0xD9],             d7,    no_rm         , {}                 ,{wd:True}         , {},                         ) 
         #ddop("fstenv",[0x9B, 0xD9],       d6,    no_rm         , {}                 ,{wd:False}        , {},                         ) #XXX no mnemo
         addop("fnstenv",[0xD9],            d6,    no_rm         , {}                 ,{wd:False}        , {},                         ) 
+
+        addop("f2xm1", [0xD9, 0xF0],       noafs, no_rm         , {}                 ,{}                , {},                         )
 
         addop("fnop",  [0xD9, 0xD0],       noafs, no_rm         , {}                 ,{sd:False}        , {},                         )
 
