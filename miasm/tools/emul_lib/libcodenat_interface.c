@@ -140,6 +140,7 @@ PyObject* _vm_get_gpreg(void)
     return dict;
 }
 
+
 reg_dict gpreg_dict[] = { {.name = "eax", .ptr = &(vmcpu.eax)},
 			  {.name = "ebx", .ptr = &(vmcpu.ebx)},
 			  {.name = "ecx", .ptr = &(vmcpu.ecx)},
@@ -160,6 +161,9 @@ reg_dict gpreg_dict[] = { {.name = "eax", .ptr = &(vmcpu.eax)},
 
 
 };
+
+
+
 
 PyObject* _vm_set_gpreg(PyObject *dict)
 {
@@ -189,6 +193,105 @@ PyObject* _vm_set_gpreg(PyObject *dict)
 		    if (strcmp(PyString_AsString(d_key), gpreg_dict[i].name))
 			    continue;
 		    *(gpreg_dict[i].ptr) = val;
+		    found = 1;
+		    break;
+	    }
+
+	    if (found)
+		    continue;
+	    fprintf(stderr, "unkown key: %s\n", PyString_AsString(d_key));
+	    RAISE(PyExc_ValueError, "unkown reg");
+    }
+    return NULL;
+}
+
+
+
+
+PyObject* _vm_get_float(void)
+{
+    PyObject *dict = PyDict_New();
+    PyObject *o;
+
+    o = PyFloat_FromDouble((double)vmcpu.float_st0);
+    PyDict_SetItemString(dict, "st0", o);
+    Py_DECREF(o);
+    o = PyFloat_FromDouble((double)vmcpu.float_st1);
+    PyDict_SetItemString(dict, "st1", o);
+    Py_DECREF(o);
+    o = PyFloat_FromDouble((double)vmcpu.float_st2);
+    PyDict_SetItemString(dict, "st2", o);
+    Py_DECREF(o);
+    o = PyFloat_FromDouble((double)vmcpu.float_st3);
+    PyDict_SetItemString(dict, "st3", o);
+    Py_DECREF(o);
+    o = PyFloat_FromDouble((double)vmcpu.float_st4);
+    PyDict_SetItemString(dict, "st4", o);
+    Py_DECREF(o);
+    o = PyFloat_FromDouble((double)vmcpu.float_st5);
+    PyDict_SetItemString(dict, "st5", o);
+    Py_DECREF(o);
+    o = PyFloat_FromDouble((double)vmcpu.float_st6);
+    PyDict_SetItemString(dict, "st6", o);
+    Py_DECREF(o);
+    o = PyFloat_FromDouble((double)vmcpu.float_st7);
+    PyDict_SetItemString(dict, "st7", o);
+    Py_DECREF(o);
+    o = PyInt_FromLong((long)vmcpu.float_stack_ptr);
+    PyDict_SetItemString(dict, "stack_ptr", o);
+    Py_DECREF(o);
+    o = PyInt_FromLong((long)vmcpu.reg_float_control);
+    PyDict_SetItemString(dict, "float_control", o);
+    Py_DECREF(o);
+    return dict;
+}
+
+reg_float_dict float_dict[] = { {.name = "st0", .ptr = &(vmcpu.float_st0)},
+				{.name = "st1", .ptr = &(vmcpu.float_st1)},
+				{.name = "st2", .ptr = &(vmcpu.float_st2)},
+				{.name = "st3", .ptr = &(vmcpu.float_st3)},
+				{.name = "st4", .ptr = &(vmcpu.float_st4)},
+				{.name = "st5", .ptr = &(vmcpu.float_st5)},
+				{.name = "st6", .ptr = &(vmcpu.float_st6)},
+				{.name = "st7", .ptr = &(vmcpu.float_st7)},
+				{.name = "stack_ptr", .ptr = &(vmcpu.float_stack_ptr)},
+				{.name = "float_control", .ptr = &(vmcpu.reg_float_control)},
+};
+
+PyObject* _vm_set_float(PyObject *dict)
+{
+    PyObject *d_key, *d_value = NULL;
+    Py_ssize_t pos = 0;
+    double d;
+    unsigned int i, found;
+
+    if(!PyDict_Check(dict))
+	    RAISE(PyExc_TypeError, "arg must be dict");
+    while(PyDict_Next(dict, &pos, &d_key, &d_value)){
+	    if(!PyString_Check(d_key))
+		    RAISE(PyExc_TypeError, "key must be str");
+
+	    if (PyInt_Check(d_value)){
+		    d = (double)PyInt_AsLong(d_value);
+	    }
+	    else if (PyLong_Check(d_value)){
+		    d = (double)PyInt_AsUnsignedLongLongMask(d_value);
+	    }
+	    else if (PyFloat_Check(d_value)){
+		    d = PyFloat_AsDouble(d_value);
+	    }
+	    else{
+		    RAISE(PyExc_TypeError,"value must be int/long/float");
+	    }
+
+	    found = 0;
+	    for (i=0; i < sizeof(float_dict)/sizeof(reg_float_dict); i++){
+		    if (strcmp(PyString_AsString(d_key), float_dict[i].name))
+			    continue;
+		    if (!strncmp(float_dict[i].name, "st", 2))
+			    *((double*)float_dict[i].ptr) = d;
+		    else
+			    *((uint32_t*)float_dict[i].ptr) = (uint32_t)d;
 		    found = 1;
 		    break;
 	    }
@@ -348,21 +451,9 @@ PyObject* _vm_get_cpu_state(void)
 	return o;
 }
 
-PyObject*  _vm_set_cpu_state(PyObject * s_cpustate)
+PyObject*  _vm_set_cpu_state(char* buf, int buf_size)
 {
-	unsigned int buf_size;
-	Py_ssize_t length;
-	char* buf;
-
-	if(!PyString_Check(s_cpustate))
-		RAISE(PyExc_TypeError,"arg must be str");
-
-	buf_size = PyString_Size(s_cpustate);
-	if (buf_size != sizeof(vmcpu))
-		RAISE(PyExc_TypeError,"bad str len");
-
-	PyString_AsStringAndSize(s_cpustate, (char**)&buf, &length);
-	memcpy(&vmcpu, buf, length);
+	memcpy(&vmcpu, buf, sizeof(vmcpu));
 	return PyInt_FromLong((long)0);
 
 }
@@ -631,6 +722,24 @@ PyObject* vm_set_gpreg(PyObject *self, PyObject *args)
 
 }
 
+PyObject* vm_get_float(PyObject* self, PyObject* args)
+{
+    PyObject* p;
+    p = _vm_get_float();
+    return p;
+}
+
+PyObject* vm_set_float(PyObject *self, PyObject *args)
+{
+	PyObject* dict;
+	if (!PyArg_ParseTuple(args, "O", &dict))
+		return NULL;
+	_vm_set_float(dict);
+	Py_INCREF(Py_None);
+	return Py_None;
+
+}
+
 PyObject* init_memory_page_pool_py(PyObject* self, PyObject* args)
 {
     init_memory_page_pool();
@@ -763,17 +872,23 @@ PyObject* dump_code_bloc_pool_py(void)
 
 
 
-PyObject* vm_get_cpu_state(void)
+PyObject* vm_get_cpu_state(PyObject* self, PyObject* args)
 {
 	PyObject* o;
 	o = _vm_get_cpu_state();
 	return o;
 }
 
-PyObject*  vm_set_cpu_state(PyObject * s_cpustate)
+PyObject*  vm_set_cpu_state(PyObject* self, PyObject* args)
 {
 	PyObject *o;
-	o = _vm_set_cpu_state(s_cpustate);
+	char* buf;
+	int buf_size;
+
+	if (!PyArg_ParseTuple(args, "s#", &buf, &buf_size))
+		RAISE(PyExc_TypeError,"arg must be str");
+
+	o = _vm_set_cpu_state(buf, buf_size);
 	return o;
 }
 
@@ -962,6 +1077,10 @@ static PyMethodDef CodenatMethods[] = {
      "X"},
     {"vm_set_gpreg",vm_set_gpreg, METH_VARARGS,
      "X"},
+    {"vm_get_float", vm_get_float, METH_VARARGS,
+     "X"},
+    {"vm_set_float",vm_set_float, METH_VARARGS,
+     "X"},
     {"vm_init_regs",vm_init_regs, METH_VARARGS,
      "X"},
     {"dump_gpregs_py", dump_gpregs_py, METH_VARARGS,
@@ -1007,6 +1126,10 @@ static PyMethodDef CodenatMethods[] = {
     {"vm_get_last_write_size",vm_get_last_write_size, METH_VARARGS,
      "X"},
     {"vm_get_memory_page_max_address",vm_get_memory_page_max_address, METH_VARARGS,
+     "X"},
+    {"vm_get_cpu_state",vm_get_cpu_state, METH_VARARGS,
+     "X"},
+    {"vm_set_cpu_state",vm_set_cpu_state, METH_VARARGS,
      "X"},
 
     {NULL, NULL, 0, NULL}        /* Sentinel */
