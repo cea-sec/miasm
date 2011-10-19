@@ -163,6 +163,9 @@ typedef struct {
 	unsigned int tsc1;
 	unsigned int tsc2;
 
+	unsigned int tsc1_new;
+	unsigned int tsc2_new;
+
 	unsigned int cr0;
 	unsigned int cr0_new;
 
@@ -301,6 +304,11 @@ typedef struct _reg_dict{
     unsigned int* ptr;
 } reg_dict;
 
+typedef struct _reg_float_dict{
+    char* name;
+    void* ptr;
+} reg_float_dict;
+
 extern reg_dict gpreg_dict[];
 //PyObject* _vm_set_gpreg(PyObject *dict);
 
@@ -376,7 +384,14 @@ double int2double(unsigned int m);
 //PyObject* _vm_exec_blocs(PyObject* my_eip);
 
 double fadd(double a, double b);
+double fsub(double a, double b);
+double fmul(double a, double b);
 double fdiv(double a, double b);
+double ftan(double a);
+double frndint(double a);
+double fsin(double a);
+double fscale(double a, double b);
+double f2xm1(double a);
 unsigned int fcom_c0(double a, double b);
 unsigned int fcom_c1(double a, double b);
 unsigned int fcom_c2(double a, double b);

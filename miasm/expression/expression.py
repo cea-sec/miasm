@@ -457,8 +457,11 @@ class ExprOp(Expr):
                 return "%s(%s)"%(self.op, self.args[0].toC())
             elif self.op.startswith("double_to_mem_"):
                 return "%s(%s)"%(self.op, self.args[0].toC())
+            elif self.op in ["ftan", "frndint", "f2xm1", "fsin"]:
+                return "%s(%s)"%(self.op, self.args[0].toC())
             else:
-                fsdfdsf
+                print self.op
+                raise ValueError('unknown op!!', str(self.op))
                 return '('+str(self.op)+self.args[0].toC()+')'
         elif len(self.args)==2:
             if self.op == "==":
@@ -478,7 +481,7 @@ class ExprOp(Expr):
             elif self.op in dct_rot:
                 return '(%s(%s, %s, %s) &0x%x)'%(dct_rot[self.op],
                                                  self.args[0].get_size(),
-                                                 self.args[0].toC(), 
+                                                 self.args[0].toC(),
                                                  self.args[1].toC(),
                                                  my_size_mask[self.args[0].get_size()])
 
@@ -534,7 +537,7 @@ class ExprOp(Expr):
                 return "%s(%s, %s)"%(self.op, self.args[0].toC(), self.args[1].toC())
             elif self.op.startswith("fcom"):
                 return "%s(%s, %s)"%(self.op, self.args[0].toC(), self.args[1].toC())
-            elif self.op in ["fadd", "fdiv"]:
+            elif self.op in ["fadd", "fsub", "fdiv", 'fmul', "fscale"]:
                 return "%s(%s, %s)"%(self.op, self.args[0].toC(), self.args[1].toC())
             else:
                 print self.op

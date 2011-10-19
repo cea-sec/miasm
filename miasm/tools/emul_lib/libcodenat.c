@@ -24,6 +24,7 @@
 
 #include <stdint.h>
 #include <inttypes.h>
+#include <math.h>
 
 #include "queue.h"
 #include "libcodenat.h"
@@ -863,6 +864,26 @@ double fadd(double a, double b)
 	return c;
 }
 
+double fsub(double a, double b)
+{
+	double c;
+	c = a - b;
+#ifdef DEBUG_MIASM_DOUBLE
+	printf("%e %e %e\n", a, b, c);
+#endif
+	return c;
+}
+
+double fmul(double a, double b)
+{
+	double c;
+	c = a * b;
+#ifdef DEBUG_MIASM_DOUBLE
+	printf("%e %e %e\n", a, b, c);
+#endif
+	return c;
+}
+
 double fdiv(double a, double b)
 {
 	double c;
@@ -871,6 +892,59 @@ double fdiv(double a, double b)
 	printf("%e %e %e\n", a, b, c);
 #endif
 	return c;
+}
+
+double ftan(double a)
+{
+	double b;
+	b = tan(a);
+#ifdef DEBUG_MIASM_DOUBLE
+	printf("%e %e\n", a, b);
+#endif
+	return b;
+}
+
+double frndint(double a)
+{
+	int64_t b;
+	double c;
+	b = (int64_t)a;
+	c = (double)b;
+#ifdef DEBUG_MIASM_DOUBLE
+	printf("%e %e\n", a, c);
+#endif
+	return c;
+}
+
+double fsin(double a)
+{
+	double b;
+	b = sin(a);
+#ifdef DEBUG_MIASM_DOUBLE
+	printf("%e %e\n", a, b);
+#endif
+	return b;
+}
+
+
+double fscale(double a, double b)
+{
+	double c;
+	c = a * exp2(trunc(b));
+#ifdef DEBUG_MIASM_DOUBLE
+	printf("%e %e %e\n", a, b, c);
+#endif
+	return c;
+}
+
+double f2xm1(double a)
+{
+	double b;
+	b = exp2(a)-1;
+#ifdef DEBUG_MIASM_DOUBLE
+	printf("%e %e\n", a, b);
+#endif
+	return b;
 }
 
 
@@ -1219,6 +1293,8 @@ void _vm_init_regs()
 	vmcpu.zf_new = vmcpu.nf_new = vmcpu.pf_new = vmcpu.of_new = 0;
 	vmcpu.cf_new = vmcpu.af_new = vmcpu.df_new = 0;
 	vmcpu.esp = 0;
+	vmcpu.tsc1 = 0x22222222;
+	vmcpu.tsc2 = 0x11111111;
 }
 
 

@@ -18,7 +18,7 @@
 from miasm.expression.expression import *
 from miasm.arch.ia32_reg import *
 from miasm.arch.ia32_arch import *
-
+import math
 
 EXCEPT_PRIV_INSN = 1<<7
 reg_eax = 'eax'
@@ -1512,8 +1512,6 @@ def fst(a):
         src = ExprOp('double_to_mem_%2d'%a.get_size(), float_st0)
     else:
         src = float_st0
-
-    
     e.append(ExprAff(a, src))
     return e
 
@@ -1533,31 +1531,135 @@ def fistp(a):
     return e
 
 def fild(a):
-
     #XXXXX
     src = ExprOp('int_%.2d_to_double'%a.get_size(), a)
     return fld(src)
 
 def fldz():
-    #XXX
     return fld(ExprOp('int_32_to_double', ExprInt(uint32(0))))
-    
-def fadd(a):
+
+def fld1():
+    return fld(ExprOp('int_32_to_double', ExprInt(uint32(1))))
+
+def fldl2e():
+    x = struct.pack('d', 1/math.log(2))
+    x = struct.unpack('Q', x)[0]
+    return fld(ExprOp('mem_64_to_double', ExprInt(uint64(x))))
+
+def fadd(a, b = None):
+    if b == None:
+        b = a
+        a = float_st0
     e = []
-    if isinstance(a, ExprMem):
-        src = ExprOp('mem_%.2d_to_double'%a.get_size(), a)
+    if isinstance(b, ExprMem):
+        src = ExprOp('mem_%.2d_to_double'%b.get_size(), b)
     else:
-        src = a
-    e.append(ExprAff(float_st0, ExprOp('fadd', float_st0, src)))
+        src = b
+    e.append(ExprAff(a, ExprOp('fadd', a, src)))
     return e
 
-def fdiv(a):
+def faddp(a, b = None):
+    e = fadd(a, b)
+    if b == None:
+        e+=float_pop(float_st0)
+    else:
+        e+=float_pop(a)
+    return e
+
+
+def fsub(a, b = None):
+    if b == None:
+        b = a
+        a = float_st0
+    e = []
+    if isinstance(b, ExprMem):
+        src = ExprOp('mem_%.2d_to_double'%b.get_size(), b)
+    else:
+        src = b
+    e.append(ExprAff(a, ExprOp('fsub', a, src)))
+    return e
+
+def fmul(a, b = None):
+    if b == None:
+        b = a
+        a = float_st0
+    e = []
+    if isinstance(b, ExprMem):
+        src = ExprOp('mem_%.2d_to_double'%b.get_size(), b)
+    else:
+        src = b
+    e.append(ExprAff(a, ExprOp('fmul', a, src)))
+    return e
+
+def fdiv(a, b = None):
+    if b == None:
+        b = a
+        a = float_st0
+    e = []
+    if isinstance(b, ExprMem):
+        src = ExprOp('mem_%.2d_to_double'%b.get_size(), b)
+    else:
+        src = b
+    e.append(ExprAff(a, ExprOp('fdiv', a, src)))
+    return e
+
+def ftan(a):
     e = []
     if isinstance(a, ExprMem):
         src = ExprOp('mem_%.2d_to_double'%a.get_size(), a)
     else:
         src = a
-    e.append(ExprAff(float_st0, ExprOp('fdiv', float_st0, src)))
+    e.append(ExprAff(float_st0, ExprOp('ftan', src)))
+    return e
+
+def fxch(a):
+    e = []
+    if isinstance(a, ExprMem):
+        src = ExprOp('mem_%.2d_to_double'%a.get_size(), a)
+    else:
+        src = a
+    e.append(ExprAff(float_st0, src))
+    e.append(ExprAff(src, float_st0))
+    return e
+
+def fptan():
+    e= []
+    e.append(ExprAff(float_st7, float_st6))
+    e.append(ExprAff(float_st6, float_st5))
+    e.append(ExprAff(float_st5, float_st4))
+    e.append(ExprAff(float_st4, float_st3))
+    e.append(ExprAff(float_st3, float_st2))
+    e.append(ExprAff(float_st2, float_st1))
+    e.append(ExprAff(float_st1, ExprOp('ftan', float_st0)))
+    e.append(ExprAff(float_st0, ExprOp('int_32_to_double', ExprInt(uint32(1)))))
+    e.append(ExprAff(float_stack_ptr, ExprOp('+', float_stack_ptr, ExprInt(uint32(1)))))
+    return e
+
+    e.append(ExprAff(float_st0, ExprOp('ftan', src)))
+
+    e = ftan(a)
+    e+=float_pop(a)
+    return e
+
+
+def frndint():
+    e = []
+    e.append(ExprAff(float_st0, ExprOp('frndint', float_st0)))
+    return e
+
+def fsin():
+    e = []
+    e.append(ExprAff(float_st0, ExprOp('fsin', float_st0)))
+    return e
+
+def fscale():
+    e = []
+    e.append(ExprAff(float_st0, ExprOp('fscale', float_st0, float_st1)))
+    return e
+
+def f2xm1():
+    e = []
+    e.append(ExprAff(float_st0, ExprOp('f2xm1', float_st0)))
     return e
 
 
@@ -1594,6 +1696,7 @@ def hlt():
 
 def rdtsc():
     e = []
+    e.append(ExprAff(tsc1, ExprOp('+', tsc1, ExprInt(uint32(1)))))
     e.append(ExprAff(eax, tsc1))
     e.append(ExprAff(edx, tsc2))
     return e
@@ -1892,9 +1995,20 @@ mnemo_func = {'mov': mov,
               'fistp':fistp,
               'fld':fld,
               'fldz':fldz,
+              'fld1':fld1,
+              'fldl2e':fldl2e,
               'fild':fild,
               'fadd':fadd,
+              'faddp':faddp,
+              'fsub':fsub,
+              'fmul':fmul,
               'fdiv':fdiv,
+              'fxch':fxch,
+              'fptan':fptan,
+              'frndint':frndint,
+              'fsin':fsin,
+              'fscale':fscale,
+              'f2xm1':f2xm1,
               'fnstsw':fnstsw,
               'fnstcw':fnstcw,
               'fldcw':fldcw,
