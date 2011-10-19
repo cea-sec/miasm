@@ -55,7 +55,7 @@ decomp_buf_len_in = decomp_func - decomp_buf_ad_in
 decomp_buf_len_out = decomp_buf_ad_in - decomp_buf_ad_out
 print "in l", hex(decomp_buf_len_in), "out l", hex(decomp_buf_len_out)
 
-dont_dis = [(decomp_buf_ad_out, decomp_buf_ad_in)]
+dont_dis = asmbloc.interval([(decomp_buf_ad_out, decomp_buf_ad_in)])
 
 g = asmbloc.bloc2graph(all_bloc)
 open("graph.txt" , "w").write(g)
@@ -68,7 +68,8 @@ all_bloc = asmbloc.dis_bloc_all(x86_mn, in_str, decomp_func, job_done, symbol_po
 
 end_label = None
 for b in all_bloc:
-    if len(b.bto) == 1 and asmbloc.getblocby_label(all_bloc, b.bto[0].label)== None:
+    if len(b.bto) == 1 and abs(b.label.offset - b.bto[0].label.offset) > 0x1000:
+        # asmbloc.getblocby_label(all_bloc, b.bto[0].label)== None:
         end_label = b.bto[0].label.offset
         break
 if not end_label:
