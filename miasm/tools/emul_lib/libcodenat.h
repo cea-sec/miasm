@@ -347,6 +347,7 @@ unsigned int get_memory_page_max_address(void);
 unsigned int get_memory_page_max_user_address(void);
 
 
+int is_mpn_in_tab(struct memory_page_node* mpn_a);
 
 
 void _func_free(void);

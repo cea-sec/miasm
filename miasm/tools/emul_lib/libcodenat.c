@@ -1002,12 +1002,12 @@ struct memory_page_node * create_memory_page_node(uint64_t ad, unsigned int size
 	mpn = malloc(sizeof(*mpn));
 	if (!mpn){
 		fprintf(stderr, "cannot alloc mpn\n");
-		exit(-1);
+		return NULL;
 	}
 	p = malloc(size);
 	if (!p){
 		fprintf(stderr, "cannot alloc %d\n", size);
-		exit(-1);
+		return NULL;
 	}
 	mpn->ad = ad;
 	mpn->size = size;
@@ -1102,6 +1102,20 @@ void reset_code_bloc_pool(void)
 	}
 	code_bloc_pool_ad_min = 0xffffffff;
 	code_bloc_pool_ad_max = 0;
+}
+
+int is_mpn_in_tab(struct memory_page_node* mpn_a)
+{
+	unsigned int i;
+	for (i=mpn_a->ad >> MEMORY_PAGE_POOL_MASK_BIT;
+	     i<(mpn_a->ad + mpn_a->size + PAGE_SIZE - 1)>>MEMORY_PAGE_POOL_MASK_BIT;
+	     i++){
+		if (memory_page_pool_tab[i] !=NULL){
+			return 1;
+		}
+	}
+
+	return 0;
 }
 
 void insert_mpn_in_tab(struct memory_page_node* mpn_a)

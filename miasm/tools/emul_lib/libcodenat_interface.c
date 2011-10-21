@@ -348,6 +348,11 @@ PyObject* _vm_add_memory_page(PyObject *item, PyObject *access, PyObject *item_s
 
 
     mpn = create_memory_page_node(page_addr, buf_size, page_access);
+    if (mpn == NULL)
+       RAISE(PyExc_TypeError,"cannot create page");
+    if (is_mpn_in_tab(mpn))
+       RAISE(PyExc_TypeError,"known page in memory");
+
     memcpy(mpn->ad_hp, buf_data, buf_size);
     add_memory_page(mpn);
 
