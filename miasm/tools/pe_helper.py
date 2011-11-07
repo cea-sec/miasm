@@ -345,24 +345,33 @@ def guess_is_string(out):
             cpt+=1
     if cpt * 100 / len(out) > 40:
         return out
-    
     return None
 
 
 def get_guess_string(e, ad):
     s = get_nul_term(e, ad)
     return guess_is_string(s)
-    
 
-            
-    
+def is_redirected_export(e, ad):
+    # test is ad points to code or dll name
+    out = ''
+    for i in xrange(0x200):
+        c = e.virt[ad+i]
+        if c == "\x00":
+            break
+        out += c
+        if not (c.isalnum() or c in "_.-+*$@&#()[]={}"):
+            return False
+    if not "." in out:
+        return False
+    i = out.find('.')
+    return out[:i], out[i+1:]
 
 
 def canon_libname_libfunc(libname, libfunc):
     dn = libname.split('.')[0]
     fn = "%s"%libfunc
     return "%s_%s"%(dn, fn)
-    
 
 class libimp:
     def __init__(self, lib_base_ad = 0x77700000):
@@ -425,7 +434,7 @@ class libimp:
                 if x+4 != all_ads[i+1]:
                     return False
         return True
-    
+
     def add_export_lib(self, e, name):
         # will add real lib addresses to database
         if name in self.name2off:
@@ -441,7 +450,34 @@ class libimp:
             self.libbase_ad += 0x1000
 
             ads = get_export_name_addr_list(e)
-            for imp_ord_or_name, ad in ads:
+            todo = ads
+            done = []
+            while todo:
+                #for imp_ord_or_name, ad in ads:
+                imp_ord_or_name, ad = todo.pop()
+
+                # if export is a redirection, search redirected dll
+                # and get function real addr
+                ret = is_redirected_export(e, ad)
+                if ret:
+                    exp_dname, exp_fname = ret
+                    print "export redirection", imp_ord_or_name
+                    print "source", exp_dname, exp_fname
+                    exp_dname = exp_dname+'.dll'
+                    exp_dname = exp_dname.lower()
+                    # if dll auto refes in redirection
+                    if exp_dname == name:
+                        libad_tmp = self.name2off[exp_dname]
+                        if not exp_fname in self.lib_imp2ad[libad_tmp]:
+                            # schedule func
+                            todo = [(imp_ord_or_name, ad)]+todo
+                            continue
+                    elif not exp_dname in self.name2off:
+                        raise ValueError('load %r first'%exp_dname)
+                    c_name = canon_libname_libfunc(exp_dname, exp_fname)
+                    libad_tmp = self.name2off[exp_dname]
+                    ad = self.lib_imp2ad[libad_tmp][exp_fname]
+                    print hex(ad)
                 #if not imp_ord_or_name in self.lib_imp2dstad[libad]:
                 #    self.lib_imp2dstad[libad][imp_ord_or_name] = set()
                 #self.lib_imp2dstad[libad][imp_ord_or_name].add(dst_ad)
@@ -461,6 +497,8 @@ class libimp:
             all_ads = reduce(lambda x,y:x+list(y), all_ads, [])
             all_ads.sort()
             #first, drop None
+            if not all_ads:
+                continue
             for i,x in enumerate(all_ads):
                 if not x in [0,  None]:
                     break
@@ -475,14 +513,13 @@ class libimp:
                     for v in vs:
                         out_ads[v] = k
                 funcs = [out_ads[x] for x in all_ads[:i+1]]
-                new_lib.append(({"name":n,
-                                 "firstthunk":e.virt2rva(othunk)},
-                                funcs)
-                               )
+                if e.is_in_virt_address(othunk):
+                    new_lib.append(({"name":n,
+                                     "firstthunk":e.virt2rva(othunk)},
+                                    funcs)
+                                   )
                 all_ads = all_ads[i+1:]
         return new_lib
-            
-                
 
 def vm_load_pe(e, align_s = True, load_hdr = True):
     aligned = True
@@ -544,8 +581,6 @@ def vm_load_pe(e, align_s = True, load_hdr = True):
         data += "\x00"*(s.size-len(str(s.data)))
 
     vm_add_memory_page(min_addr, PAGE_READ|PAGE_WRITE, data)
-    
-    
 
 def vm_load_elf(e, align_s = True, load_hdr = True):
     for p in e.ph.phlist:
@@ -553,15 +588,15 @@ def vm_load_elf(e, align_s = True, load_hdr = True):
             continue
         print hex(p.ph.vaddr), hex(p.ph.offset), hex(p.ph.filesz)
         data = e._content[p.ph.offset:p.ph.offset + p.ph.filesz]
-        
         r_vaddr = p.ph.vaddr & ~0xFFF
         data = (p.ph.vaddr - r_vaddr) *"\x00" + data
         data += (((len(data) +0xFFF) & ~0xFFF)-len(data)) * "\x00"
         to_c_helper.vm_add_memory_page(r_vaddr, to_c_helper.PAGE_READ|to_c_helper.PAGE_WRITE, data)
 
+
+
 def preload_lib(e, runtime_lib, patch_vm_imp = True):
     fa = get_import_address(e)
-
     dyn_funcs = {}
     print 'imported funcs:', fa
     for (libname, libfunc), ads in fa.items():
@@ -581,7 +616,6 @@ def preload_elf(e, patch_vm_imp = True, lib_base_ad = 0x77700000):
     runtime_lib = libimp(lib_base_ad)
 
     dyn_funcs = {}
-    
     print 'imported funcs:', fa
     for (libname, libfunc), ad in fa.items():
         ad_base_lib = runtime_lib.lib_get_add_base(libname)
@@ -591,7 +625,6 @@ def preload_elf(e, patch_vm_imp = True, lib_base_ad = 0x77700000):
         dyn_funcs[libname_s] = ad_libfunc
         if patch_vm_imp:
             to_c_helper.vm_set_mem(ad, struct.pack(cstruct.size2type[e.size], ad_libfunc))
-        
     return runtime_lib, dyn_funcs
 
 
@@ -622,4 +655,3 @@ class find_call_xref:
         raise StopIteration
     def __iter__(self):
         return self
-        
