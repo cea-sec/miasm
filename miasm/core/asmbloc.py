@@ -152,7 +152,7 @@ class asm_symbol_pool:
 
     def add(self, l):
         if l.name in self.s:
-            fdsf
+            raise ValueError('symbol already exist %r'%l)
         self.s[l.name] = l
         self.s_offset[l.offset] = l
 
@@ -196,7 +196,18 @@ class asm_symbol_pool:
     def __str__(self):
         return reduce(lambda x,y: x+str(y)+'\n', [self.s[l] for l in self.s], "")
 
-
+class interval():
+    # addrs represent interval using the form:
+    # [start_addr1, stop_addr1[ U [start_addr2, stop_addr2[ U ...
+    def __init__(self, addrs):
+        self.intervals = addrs
+    def __contains__(self, ad):
+        for start, stop in self.intervals:
+            if start <= ad < stop:
+                return True
+        return False
+    def __getitem__(self, s):
+        return self.intervals.__getitem__(s)
 
 
 def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool, dont_dis = [],
