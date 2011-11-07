@@ -20,7 +20,7 @@ from to_c_helper import *
 import to_c_helper
 
 FS_0_AD = 0x7ff70000
-PEB_AD = 0x11110000
+PEB_AD = 0x140000
 
 # fs:[0] Page (TIB)
 tib_address = FS_0_AD
@@ -28,14 +28,14 @@ peb_address = PEB_AD
 peb_ldr_data_address = PEB_AD + 0x1000
 in_load_order_module_list_address = PEB_AD + 0x2000
 in_load_order_module_1 = PEB_AD + 0x3000
-default_seh = PEB_AD + 0x10000
+default_seh = PEB_AD + 0x20000
 
 
-context_address = 0xdeada000
-exception_record_address = 0xdeadb000
+context_address = 0x200000
+exception_record_address = context_address+0x1000
 return_from_exception = 0x6eadbeef
 
-FAKE_SEH_B_AD = 0x11bb0000
+FAKE_SEH_B_AD = context_address+0x2000
 
 cur_seh_ad = FAKE_SEH_B_AD
 
@@ -214,7 +214,6 @@ all_seh_ad = dict([(x, None) for x in xrange(FAKE_SEH_B_AD, FAKE_SEH_B_AD+0x1000
 def init_seh():
     global seh_count
     seh_count = 0
-    
     #vm_add_memory_page(tib_address, PAGE_READ | PAGE_WRITE, p(default_seh) + p(0) * 11 + p(peb_address))
     vm_add_memory_page(FS_0_AD, PAGE_READ | PAGE_WRITE, build_fake_teb())
     #vm_add_memory_page(peb_address, PAGE_READ | PAGE_WRITE, p(0) * 3 + p(peb_ldr_data_address))
@@ -268,7 +267,7 @@ def ctxt2regs(ctxt):
     #regs['seg_ds'] = updw(ctxt[:4])
     ctxt = ctxt[4:]
     
-    regs['edi'], regs['esi'], regs['ebx'], regs['edx'], regs['ecx'], regs['eax'], regs['ebp'], regs['eip']  = struct.unpack('LLLLLLLL', ctxt[:4*8])
+    regs['edi'], regs['esi'], regs['ebx'], regs['edx'], regs['ecx'], regs['eax'], regs['ebp'], regs['eip']  = struct.unpack('I'*8, ctxt[:4*8])
     ctxt = ctxt[4*8:]
 
     #regs['seg_cs'] = updw(ctxt[:4])
@@ -314,7 +313,7 @@ def fake_seh_handler(except_code):
     seh_count += 1
     
     # Help lambda
-    p = lambda s: struct.pack('L', s)
+    p = lambda s: struct.pack('I', s)
     
     dump_gpregs_py()
     # Forge a CONTEXT
@@ -328,7 +327,7 @@ def fake_seh_handler(except_code):
     seh_ptr = vm_read_dword(tib_address)
     
     # Retrieve seh fields
-    old_seh, eh, safe_place = struct.unpack('LLL', vm_get_str(seh_ptr, 0xc))
+    old_seh, eh, safe_place = struct.unpack('III', vm_get_str(seh_ptr, 0xc))
     
     print '-> seh_ptr', hex(seh_ptr), '-> { old_seh', hex(old_seh), 'eh', hex(eh), 'safe_place', hex(safe_place), '}'
     #print '-> write SEH at', hex(seh&0xffffffff)
@@ -398,7 +397,7 @@ def dump_seh():
 	while True:
 		#if loop > 3:
                 #		djawidj
-		prev_seh, eh = struct.unpack('LL', vm_get_str(cur_seh_ptr, 8))
+		prev_seh, eh = struct.unpack('II', vm_get_str(cur_seh_ptr, 8))
 		print '\t' * indent + 'seh_ptr:', hex(cur_seh_ptr), ' -> { prev_seh:', hex(prev_seh), 'eh:', hex(eh), '}'
 		if prev_seh in [0xFFFFFFFF, 0]:
 			break
