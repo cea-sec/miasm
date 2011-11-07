@@ -151,9 +151,10 @@ from miasm.graph.graph_qt import graph_blocs
 
 
 #test symbols from ida
-for (n,f), ad in dll_dyn_funcs.items():
-    l = asmbloc.asm_label("%s_%s"%(n, f), ad)
-    symbol_pool.add(l)
+for (n,f), ads in dll_dyn_funcs.items():
+    for ad in ads:
+        l  = symbol_pool.getby_name_create("%s_%s"%(n, f))
+        l.offset = ad
 
 
 def my_disasm_callback(ad):
