@@ -1236,6 +1236,9 @@ class x86allmncs:
         self.pushfw_m = mnemonic(pm.name, pm.opc, pm.afs, pm.rm, pm.modifs, pm.modifs_orig, None)#, pm.sem)
         self.pushfw_m.name = "pushfw"
 
+        self.popfw_m = mnemonic(pm.name, pm.opc, pm.afs, pm.rm, pm.modifs, pm.modifs_orig, None)#, pm.sem)
+        self.popfw_m.name = "popfw"
+
         pm = self.find_mnemo("lodsd")[0]
         self.lodsw_m = mnemonic(pm.name, pm.opc, pm.afs, pm.rm, pm.modifs, pm.modifs_orig, None)#, pm.sem)
         self.lodsw_m.name = "lodsw"
@@ -1658,6 +1661,8 @@ class x86_mn:
             #XXX really need to include this in disasm
             if 0x66 in read_prefix and self.m.name == "pushfd":
                 self.m = x86mndb.pushfw_m
+            if 0x66 in read_prefix and self.m.name == "popfd":
+                self.m = x86mndb.popfw_m
             if 0x66 in read_prefix and self.m.name == "lodsd":
                 self.m = x86mndb.lodsw_m
             if 0x66 in read_prefix and self.m.name == "stosd":
@@ -2203,6 +2208,13 @@ x86mnemo = x86_mn
 if __name__ == '__main__':
     test_out = []
     log.setLevel(logging.DEBUG)
+
+    instr = x86mnemo.dis('669d'.replace(' ', '').decode('hex'), admode=x86_afs.u32)
+    print instr
+    print instr.arg
+    print instr.l
+    fds
+
 
     instr = x86mnemo.dis('07'.replace(' ', '').decode('hex'), admode=x86_afs.u32)
     print instr

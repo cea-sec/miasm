@@ -1043,17 +1043,14 @@ def compose_eflag(s = 32):
         args.append(ExprSliceTo(regs[i],i+14, i+15))
     if s == 32:
         args.append(ExprSliceTo(ExprInt(uint32(0)),22, 32))
-                
     return ExprCompose(args)
-
-    
 
 def pushfd():
     return push(compose_eflag())
 
 def pushfw():
     return push(compose_eflag(16))
-    
+
 def popfd():
     tmp = ExprMem(esp)
     e = []
@@ -1075,7 +1072,23 @@ def popfd():
     e.append(ExprAff(vip,ExprSlice(tmp, 20, 21)))
     e.append(ExprAff(i_d,ExprSlice(tmp, 21, 22)))
     e.append(ExprAff(esp, ExprOp('+', esp, ExprInt(uint32(4)))))
-         
+    return e
+
+def popfw():
+    tmp = ExprMem(esp)
+    e = []
+    e.append(ExprAff(cf, ExprSlice(tmp, 0, 1)))
+    e.append(ExprAff(pf, ExprSlice(tmp, 2, 3)))
+    e.append(ExprAff(af, ExprSlice(tmp, 4, 5)))
+    e.append(ExprAff(zf, ExprSlice(tmp, 6, 7)))
+    e.append(ExprAff(nf, ExprSlice(tmp, 7, 8)))
+    e.append(ExprAff(tf, ExprSlice(tmp, 8, 9)))
+    e.append(ExprAff(i_f,ExprSlice(tmp, 9, 10)))
+    e.append(ExprAff(df, ExprSlice(tmp, 10, 11)))
+    e.append(ExprAff(of, ExprSlice(tmp, 11, 12)))
+    e.append(ExprAff(iopl, ExprSlice(tmp, 12, 14)))
+    e.append(ExprAff(nt, ExprSlice(tmp, 14, 15)))
+    e.append(ExprAff(esp, ExprOp('+', esp, ExprInt(uint32(2)))))
     return e
 
 def pushad():
@@ -1083,7 +1096,6 @@ def pushad():
     s = 32
     if not s in [16,32]:
         raise 'bad size stacker!'
-    
     regs = [eax, ecx, edx, ebx, esp, ebp, esi, edi]
     for i in xrange(len(regs)):
         c = ExprOp('+', esp, ExprInt(uint32(-(s/8)*(i+1))))
@@ -1937,6 +1949,7 @@ mnemo_func = {'mov': mov,
               'pushfd':pushfd,
               'pushfw':pushfw,
               'popfd':popfd,
+              'popfw':popfw,
               'pushad':pushad,
               'popad':popad,
               'call':call,
