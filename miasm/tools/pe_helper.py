@@ -154,12 +154,12 @@ def get_import_address(e):
 
 
 def get_import_address_elf(e):
-    import2addr = {}
+    import2addr = defaultdict(set)
     for sh in e.sh:
         if not hasattr(sh, 'rel'):
             continue
         for k, v in sh.rel.items():
-            import2addr[('xxx', k)] = v.offset
+            import2addr[('xxx', k)].add(v.offset)
     return import2addr
 
 
