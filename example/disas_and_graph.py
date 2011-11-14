@@ -38,6 +38,8 @@ parser.add_option('-c', "--followcall", dest="followcall", action="store_true",
 parser.add_option('-n', "--dontdiscallret", dest="dontdiscallret", action="store_true",
                   default=False, metavar=None,
                   help="dont disasssemble call next instruction")
+parser.add_option('-l', "--loadstate", dest="load_state_file", default = None,
+                  help="load state file")
 
 
 (options, args) = parser.parse_args(sys.argv[1:])
@@ -194,4 +196,6 @@ def my_disasm_callback(ad):
                 l.set_args_symbols(o)
     return all_bloc
 
-graph_blocs(ad_to_dis, all_bloc = [], dis_callback = my_disasm_callback)
+graph_blocs(ad_to_dis, symbol_pool, all_bloc = [],
+            dis_callback = my_disasm_callback,
+            load_state_file = options.load_state_file)
