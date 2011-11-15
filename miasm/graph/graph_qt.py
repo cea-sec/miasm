@@ -49,14 +49,14 @@ class HighlightingRule():
         self.format = format
 
 symbols_known = set()
-
+syntax_rules = None
 def gen_syntax_rules(symbols = []):
     global syntax_rules, symbols_known
 
     new_symbols = set()
     for s in symbols.s:
         new_symbols.add(re.escape(str(s)))
-    if new_symbols == symbols_known:
+    if new_symbols == symbols_known and syntax_rules:
         return syntax_rules
 
     highlightingRules = []
@@ -645,6 +645,7 @@ class MainWindow(QtGui.QWidget):
 
         QtGui.QShortcut(QtGui.QKeySequence("Ctrl+Q"), self, self.close)
         QtGui.QShortcut(QtGui.QKeySequence("Ctrl+S"), self, self.save)
+        QtGui.QShortcut(QtGui.QKeySequence("Ctrl+G"), self, self.goto)
         self.label = None
         #self.ad = ad
         #self.all_bloc = all_bloc
@@ -693,6 +694,19 @@ class MainWindow(QtGui.QWidget):
         self.symbol_pool, h = pickle.load(f)
         f.close()
         self.history_mngr.restaure(h)
+
+    def goto(self):
+        text, ok = QtGui.QInputDialog.getText(None, "goto",
+                                              'enter symbol/address:')
+        if not ok:
+            return
+
+        text = str(text)
+        ad = parse_address(text, self.symbol_pool)
+        if ad == None:
+            print 'bad addr', text
+            return
+        app.postEvent(self,e_refresh(self.history_mngr.hist_next, ad))
 
     def pos2graphpos(self, x, y):
         o_x = self.zoom*x + self.add_x
