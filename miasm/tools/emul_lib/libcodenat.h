@@ -152,7 +152,6 @@ typedef struct {
 	unsigned int float_c2_new;
 	unsigned int float_c3_new;
 
-
 	unsigned int float_stack_ptr;
 	unsigned int float_stack_ptr_new;
 
@@ -171,6 +170,43 @@ typedef struct {
 
 	unsigned int cr3;
 	unsigned int cr3_new;
+
+	uint8_t pfmem08_0;
+	uint8_t pfmem08_1;
+	uint8_t pfmem08_2;
+	uint8_t pfmem08_3;
+	uint8_t pfmem08_4;
+	uint8_t pfmem08_5;
+	uint8_t pfmem08_6;
+	uint8_t pfmem08_7;
+
+	uint16_t pfmem16_0;
+	uint16_t pfmem16_1;
+	uint16_t pfmem16_2;
+	uint16_t pfmem16_3;
+	uint16_t pfmem16_4;
+	uint16_t pfmem16_5;
+	uint16_t pfmem16_6;
+	uint16_t pfmem16_7;
+
+	uint32_t pfmem32_0;
+	uint32_t pfmem32_1;
+	uint32_t pfmem32_2;
+	uint32_t pfmem32_3;
+	uint32_t pfmem32_4;
+	uint32_t pfmem32_5;
+	uint32_t pfmem32_6;
+	uint32_t pfmem32_7;
+
+	uint64_t pfmem64_0;
+	uint64_t pfmem64_1;
+	uint64_t pfmem64_2;
+	uint64_t pfmem64_3;
+	uint64_t pfmem64_4;
+	uint64_t pfmem64_5;
+	uint64_t pfmem64_6;
+	uint64_t pfmem64_7;
+
 
 
 }vm_cpu_t;

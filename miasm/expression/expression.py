@@ -327,11 +327,10 @@ class ExprCond(Expr):
         return self.cond == a.cond and self.src1 == a.src1 and self.src2 == a.src2
     def __hash__(self):
         return hash(self.cond)^hash(self.src1)^hash(self.src2)
-        
+
     def toC(self):
         return "(%s?%s:%s)"%(self.cond.toC(), self.src1.toC(), self.src2.toC())
-        
-    
+
 class ExprMem(Expr):
     def __init__(self, arg, size = 32):
         if not isinstance(arg, Expr): raise 'arg must be expr'
@@ -348,10 +347,11 @@ class ExprMem(Expr):
     def get_size(self):
         return self.size
     def reload_expr(self, g = {}):
+        if self in g:
+            return g[self]
         arg = self.arg
         if isinstance(arg, Expr):
             arg = self.arg.reload_expr(g)
-        
 
         return ExprMem(arg, self.size )
     def __contains__(self, e):
@@ -372,9 +372,8 @@ class ExprMem(Expr):
 
     def toC(self):
         return "MEM_LOOKUP_%.2d(%s)"%(self.size, self.arg.toC())
-        
 
-    
+
 class ExprOp(Expr):
     def __init__(self, op, *args):
         self.op, self.args = op, args

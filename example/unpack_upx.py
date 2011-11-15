@@ -39,7 +39,6 @@ else:
     # binary
     all_bloc = asmbloc.dis_bloc_all(x86_mn, in_str, decomp_func, job_done, symbol_pool, bloc_wd=1)
     b = all_bloc[0]
-    
 print b
 
 
@@ -79,7 +78,6 @@ print 'final label'
 print hex(end_label)
 
 
-    
 base_imp = 0
 offset_imp = 0
 libbase_ad = 0x77700000
@@ -95,9 +93,7 @@ def myloadlibexa():
     print repr(libname)
 
     ad = runtime_dll.lib_get_add_base(libname)
-        
     regs = vm_get_gpreg()
-    
     if not base_imp:
         base_imp = regs["edi"]
     if not offset_imp:
@@ -109,18 +105,13 @@ def myloadlibexa():
     vm_set_gpreg(regs)
 
 
-    
-
-
-
-
 def mygetproc():
     global runtime_dll
     ret_ad = vm_pop_uint32_t()
     libbase = vm_pop_uint32_t()
     fname = vm_pop_uint32_t()
     print 'getproc', hex(fname), hex(libbase), hex(ret_ad)
-    
+
     regs = vm_get_gpreg()
     dst_ad = regs['ebx']
     print 'ebx', hex(dst_ad)
@@ -135,8 +126,6 @@ def mygetproc():
 
     ad = runtime_dll.lib_get_add_func(libbase, fname, dst_ad)
 
-    
-    
     regs['eip'] = ret_ad
     regs['eax'] = ad
     vm_set_gpreg(regs)
@@ -163,7 +152,6 @@ if 'kernel32_VirtualProtect' in dll_dyn_funcs:
 
 
 
-    
 dump_memory_page_pool_py()
 
 
@@ -184,7 +172,7 @@ code_blocs_mem_range = []
 def my_run():
     global cpt, my_eip, known_blocs, code_blocs_mem_range
     trace_on = {'log_mn':False, 'log_regs':False}
-    
+
     print 'start'
     while True:
         cpt+=1
@@ -196,11 +184,9 @@ def my_run():
                 sdata = vm_get_str(e.rva2virt(s.addr), s.rawsize)
                 e.virt[e.rva2virt(s.addr)] = sdata
             in_str = bin_stream(e.virt)
-    
-            open('uu.bin', 'wb').write(str(e))
+            #open('uu.bin', 'wb').write(str(e))
             g = asmbloc.bloc2graph([x.b for x in known_blocs.values()], lines = False)
-            open("graph.txt" , "w").write(g)
-    
+            #open("graph.txt" , "w").write(g)
             break
         if my_eip in dyn_func:
             dyn_func[my_eip]()
@@ -236,7 +222,7 @@ for r, v in regs.items():
 
 oo = vm_get_str(decomp_buf_ad_out, decomp_func-decomp_buf_ad_out)
 
-open('uu', 'w').write("A"*0x1000 + oo)
+#open('uu', 'w').write("A"*0x1000 + oo)
 print repr(oo[:0x10])
 print repr(oo[-0x10:])
 
@@ -261,7 +247,7 @@ new_dll = []
 offset_imp = offset_imp - decomp_buf_ad_out - struct.unpack('I', e.virt[ad_tmp:ad_tmp+4])[0]
 print "read ofset imp", hex(offset_imp)
 
-#XXXXX 
+#XXXXX
 ad_base = decomp_buf_ad_out
 
 print repr(e.SHList)
@@ -280,6 +266,7 @@ e.DirRes = pe.DirRes(e)
 print repr(e.DirImport.impdesc)
 new_dll = runtime_dll.gen_new_lib(e)
 print new_dll
+e.DirImport.impdesc = []
 e.DirImport.add_dlldesc(new_dll)
 s_myimp = e.SHList.add_section(name = "myimp", rawsize = len(e.DirImport))
 print repr(e.SHList)

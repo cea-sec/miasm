@@ -38,6 +38,43 @@ def id2new(i):
 mask_int = 0xffffffffffffffff
 
 
+pfmem08_0 = ExprId("pfmem08_0", 8)
+pfmem08_1 = ExprId("pfmem08_1", 8)
+pfmem08_2 = ExprId("pfmem08_2", 8)
+pfmem08_3 = ExprId("pfmem08_3", 8)
+pfmem08_4 = ExprId("pfmem08_4", 8)
+pfmem08_5 = ExprId("pfmem08_5", 8)
+pfmem08_6 = ExprId("pfmem08_6", 8)
+pfmem08_7 = ExprId("pfmem08_7", 8)
+
+pfmem16_0 = ExprId("pfmem16_0", 16)
+pfmem16_1 = ExprId("pfmem16_1", 16)
+pfmem16_2 = ExprId("pfmem16_2", 16)
+pfmem16_3 = ExprId("pfmem16_3", 16)
+pfmem16_4 = ExprId("pfmem16_4", 16)
+pfmem16_5 = ExprId("pfmem16_5", 16)
+pfmem16_6 = ExprId("pfmem16_6", 16)
+pfmem16_7 = ExprId("pfmem16_7", 16)
+
+pfmem32_0 = ExprId("pfmem32_0", 32)
+pfmem32_1 = ExprId("pfmem32_1", 32)
+pfmem32_2 = ExprId("pfmem32_2", 32)
+pfmem32_3 = ExprId("pfmem32_3", 32)
+pfmem32_4 = ExprId("pfmem32_4", 32)
+pfmem32_5 = ExprId("pfmem32_5", 32)
+pfmem32_6 = ExprId("pfmem32_6", 32)
+pfmem32_7 = ExprId("pfmem32_7", 32)
+
+pfmem64_0 = ExprId("pfmem64_0", 64)
+pfmem64_1 = ExprId("pfmem64_1", 64)
+pfmem64_2 = ExprId("pfmem64_2", 64)
+pfmem64_3 = ExprId("pfmem64_3", 64)
+pfmem64_4 = ExprId("pfmem64_4", 64)
+pfmem64_5 = ExprId("pfmem64_5", 64)
+pfmem64_6 = ExprId("pfmem64_6", 64)
+pfmem64_7 = ExprId("pfmem64_7", 64)
+
+
 my_C_id = [
     eax,
     ebx,
@@ -93,7 +130,7 @@ my_C_id = [
     #i_d_new,
     #my_tick,
     float_control,
-    cond,
+    #cond,
     ds,
     #vm_exception_flags,
     #vm_exception_flags_new,
@@ -119,6 +156,42 @@ my_C_id = [
     cr3,
 
     float_stack_ptr,
+    pfmem08_0,
+    pfmem08_1,
+    pfmem08_2,
+    pfmem08_3,
+    pfmem08_4,
+    pfmem08_5,
+    pfmem08_6,
+    pfmem08_7,
+
+    pfmem16_0,
+    pfmem16_1,
+    pfmem16_2,
+    pfmem16_3,
+    pfmem16_4,
+    pfmem16_5,
+    pfmem16_6,
+    pfmem16_7,
+
+    pfmem32_0,
+    pfmem32_1,
+    pfmem32_2,
+    pfmem32_3,
+    pfmem32_4,
+    pfmem32_5,
+    pfmem32_6,
+    pfmem32_7,
+
+    pfmem64_0,
+    pfmem64_1,
+    pfmem64_2,
+    pfmem64_3,
+    pfmem64_4,
+    pfmem64_5,
+    pfmem64_6,
+    pfmem64_7,
+
     ]
 
 float_id_e = [
@@ -134,7 +207,7 @@ float_id_e = [
 
 id2Cid = {}
 for x in my_C_id:
-    id2Cid[x] = ExprId('vmcpu.'+str(x))
+    id2Cid[x] = ExprId('vmcpu.'+str(x), x.get_size())
 
 def patch_c_id(e):
     return e.reload_expr(id2Cid)
@@ -142,18 +215,24 @@ def patch_c_id(e):
 
 code_deal_exception_at_instr = r"""
 if (vmcpu.vm_exception_flags > EXCEPT_NUM_UDPT_EIP) {
-    %s = 0x%X; 
-    return vmcpu.eip; 
+    %s = 0x%X;
+    return vmcpu.eip;
 }
 """
 code_deal_exception_post_instr = r"""
 if (vmcpu.vm_exception_flags) {
-    %s = (vmcpu.vm_exception_flags > EXCEPT_NUM_UDPT_EIP) ?  0x%X : 0x%X; 
-    return vmcpu.eip; 
+    %s = (vmcpu.vm_exception_flags > EXCEPT_NUM_UDPT_EIP) ?  0x%X : 0x%X;
+    return vmcpu.eip;
 }
 """
 
-    
+
+tab_uintsize ={8:uint8,
+               16:uint16,
+               32:uint32,
+               64:uint64
+               }
+
 def Exp2C(exprs, l = None, addr2label = None, gen_exception_code = False):
     my_size_mask = {1:1, 8:0xFF, 16:0xFFFF, 32:0xFFFFFFFF,  64:0xFFFFFFFFFFFFFFFFL,
                     2: 3}
@@ -165,6 +244,16 @@ def Exp2C(exprs, l = None, addr2label = None, gen_exception_code = False):
     #print [str(x) for x in exprs]
 
     dst_dict = {}
+    src_mem = {}
+
+    prefect_mem_pool = {8: [pfmem08_0 ,pfmem08_1, pfmem08_2, pfmem08_3,
+                            pfmem08_4, pfmem08_5, pfmem08_6, pfmem08_7],
+                        16: [pfmem16_0 ,pfmem16_1, pfmem16_2, pfmem16_3,
+                            pfmem16_4, pfmem16_5, pfmem16_6, pfmem16_7],
+                        32: [pfmem32_0 ,pfmem32_1, pfmem32_2, pfmem32_3,
+                            pfmem32_4, pfmem32_5, pfmem32_6, pfmem32_7],
+                        64: [pfmem64_0 ,pfmem64_1, pfmem64_2, pfmem64_3,
+                            pfmem64_4, pfmem64_5, pfmem64_6, pfmem64_7],}
 
     new_expr = []
 
@@ -180,7 +269,14 @@ def Exp2C(exprs, l = None, addr2label = None, gen_exception_code = False):
             dst_dict[e.dst].append(e)
         else:
             new_expr.append(e)
-            
+        # search mem lookup for generate mem read prefetch
+        rs = e.src.get_r(mem_read=True)
+        for r in rs:
+            if (not isinstance(r, ExprMem)) or r in src_mem:
+                continue
+            pfmem = prefect_mem_pool[r.get_size()].pop(0)
+            src_mem[r] = pfmem
+
     for dst, exs in dst_dict.items():
         if len(exs) ==1:
             new_expr += exs
@@ -197,19 +293,27 @@ def Exp2C(exprs, l = None, addr2label = None, gen_exception_code = False):
             #print known_intervals
             missing_i = get_missing_interval(known_intervals)
             #print missing_i
-    
             rest = [ExprSliceTo(ExprSlice(dst, *r), *r) for r in missing_i]
             final_dst = ExprCompose(e_colision+ rest)
-            
             new_expr.append(ExprAff(dst, final_dst))
-        
     out_mem = []
-    
+
+    # first, generate mem prefetch
+    mem_k = src_mem.keys()
+    mem_k.sort()
+    for k in mem_k:
+        str_src = patch_c_id(k).toC()
+        str_dst = patch_c_id(src_mem[k]).toC()
+        out.append('%s = %s;'%(str_dst, str_src))
+    src_w_len = {}
+    for k, v in src_mem.items():
+        cast_int = tab_uintsize[k.get_size()]
+        src_w_len[k] = v
     for e in new_expr:
-            
         if True:#e.dst != eip:
-            
             src, dst = e.src, e.dst
+            # reload src using prefetch
+            src = src.reload_expr(src_w_len)
             str_src = patch_c_id(src).toC()
             str_dst = patch_c_id(dst).toC()
             if isinstance(dst, ExprId):
@@ -224,8 +328,7 @@ def Exp2C(exprs, l = None, addr2label = None, gen_exception_code = False):
             elif isinstance(dst, ExprMem):
                 str_dst = str_dst.replace('MEM_LOOKUP', 'MEM_WRITE')
                 out_mem.append('%s, %s);'%(str_dst[:-1], str_src))
-                
-            
+
         if e.dst == eip :
             eip_is_dst = True
             if isinstance(e.src, ExprCond):
@@ -259,7 +362,6 @@ def Exp2C(exprs, l = None, addr2label = None, gen_exception_code = False):
 
     for i in id_to_update:
         out.append('%s = %s;'%(patch_c_id(i), id2new(patch_c_id(i))))
-                            
 
 
 
@@ -926,7 +1028,6 @@ def updt_bloc_emul(known_blocs, in_str, my_eip, symbol_pool, code_blocs_mem_rang
     reset_code_bloc_pool_py()
     for a, b in  code_blocs_mem_range:
             vm_add_code_bloc(a, b)
-    
 #'''
 
 def updt_pe_from_emul(e):
@@ -934,10 +1035,6 @@ def updt_pe_from_emul(e):
         sdata = vm_get_str(e.rva2virt(s.addr), s.rawsize)
         e.virt[e.rva2virt(s.addr)] = sdata
     return bin_stream(e.virt)
-    
-    return bin_stream_vm()
-
-
 
 def updt_automod_code(known_blocs):
     w_ad, w_size = vm_get_last_write_ad(), vm_get_last_write_size()
@@ -950,7 +1047,6 @@ def updt_automod_code(known_blocs):
     for a, b in  code_addr:
         vm_add_code_bloc(a, b)
     vm_reset_exception()
-
 
     return known_blocs, code_addr
 

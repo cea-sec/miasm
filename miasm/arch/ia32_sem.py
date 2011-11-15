@@ -227,7 +227,7 @@ float_c2 = ExprId(reg_float_c2)
 float_c3 = ExprId(reg_float_c3)
 float_stack_ptr = ExprId(reg_float_stack_ptr)
 float_control = ExprId(reg_float_control)
-                          
+
 float_st0 = ExprId(reg_float_st0, 64)
 float_st1 = ExprId(reg_float_st1, 64)
 float_st2 = ExprId(reg_float_st2, 64)
@@ -279,15 +279,15 @@ all_registers = [
     eip ,
     esi ,
     edi ,
-    dr0, 
-    dr1, 
-    dr2, 
-    dr3, 
-    dr4, 
-    dr5, 
-    dr6, 
-    dr7, 
-    
+    dr0,
+    dr1,
+    dr2,
+    dr3,
+    dr4,
+    dr5,
+    dr6,
+    dr7,
+
     eflag,
     tmp1,
     zf ,
@@ -307,24 +307,24 @@ all_registers = [
     vif,
     vip,
     i_d,
-    
+
     es ,
     cs ,
     ss ,
     ds ,
     fs ,
     gs ,
-    
+
     tsc1 ,
     tsc2 ,
-    
+
     float_c0 ,
     float_c1 ,
     float_c2 ,
     float_c3 ,
     float_stack_ptr ,
     float_control ,
-    
+
     float_st0 ,
     float_st1 ,
     float_st2 ,
@@ -361,6 +361,8 @@ OF(A+B) = ((A XOR D) AND NOT (A XOR B)) < 0
 OF(A-B) = ((A XOR D) AND (A XOR B)) < 0
 """
 
+
+# XXX TODO make default check against 0 or not 0 (same eq as in C)
 def get_op_msb(a):
     cast_int = tab_uintsize[a.get_size()]
     return ExprOp('==', ExprInt(cast_int(1)), ExprOp('>>', a, ExprInt(cast_int(a.get_size()-1))))
@@ -418,7 +420,6 @@ def update_flag_add_of(cast_int, a, b, c):
     return ExprAff(of, get_op_msb(((a ^ c) & ExprOp('!', (a ^ b)))))
 
 
-
 #checked: ok for sbb add because of b & c before +cf
 def update_flag_sub_cf(cast_int, a, b, c):
     return ExprAff(cf, get_op_msb((a ^ b) ^ c) ^ get_op_msb((a ^ c) & (a ^ b)))
@@ -428,15 +429,12 @@ def update_flag_sub_of(cast_int, a, b, c):
     return ExprAff(of, get_op_msb(((a ^ c) & (a ^ b))))
 
 
-    
-
-
 #z = x+y (+cf?)
 def update_flag_add(x, y, z):
     cast_int = tab_uintsize[z.get_size()]
     e = []
     e.append(update_flag_add_cf(cast_int, x, y, z))
-    e.append(update_flag_add_of(cast_int, x, y, z))    
+    e.append(update_flag_add_of(cast_int, x, y, z))
     return e
 
 #z = x-y (+cf?)

@@ -838,15 +838,20 @@ def kernel32_GetModuleFileName(funcname, set_str):
     if hmodule in [0]:
         p = module_path[:]
     else:
-        raise ValueError('unknown module h')
+        print ValueError('unknown module h', hex(hmodule))
+        p = None
 
 
-    if nsize < len(p):
+    if p == None:
+        l = 0
+    elif nsize < len(p):
         p = p[:nsize]
-    l = len(p)
+        l = len(p)
+    else:
+        l = len(p)
 
-    print repr(p)
-    vm_set_mem(lpfilename, set_str(p))
+        print repr(p)
+        vm_set_mem(lpfilename, set_str(p))
 
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
@@ -946,8 +951,7 @@ def kernel32_GetProcAddress():
     if fname < 0x10000:
         fname = fname
     else:
-        fname = vm_get_str(fname, 0x100)
-        fname = fname[:fname.find('\x00')]
+        fname = get_str_ansi(fname, 0x100)
     print repr(fname)
 
     ad = runtime_dll.lib_get_add_func(libbase, fname)
@@ -996,6 +1000,16 @@ def kernel32_GetModuleHandleA():
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = eax
+    vm_set_gpreg(regs)
+
+def kernel32_VirtualLock():
+    ret_ad = vm_pop_uint32_t()
+    lpaddress = vm_pop_uint32_t()
+    dwsize = vm_pop_uint32_t()
+    print whoami(), hex(ret_ad), hex(lpaddress), hex(dwsize)
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = 1
     vm_set_gpreg(regs)
 
 
@@ -2561,12 +2575,26 @@ def kernel32_TlsSetValue():
 
     print whoami(), hex(tlsindex), hex(tlsvalue)
 
-
     tls_values[tlsindex] = tlsvalue
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = 1
     vm_set_gpreg(regs)
+
+def kernel32_TlsGetValue():
+    global tls_index
+    ret_ad = vm_pop_uint32_t()
+    tlsindex = vm_pop_uint32_t()
+
+    print whoami(), hex(tlsindex)
+
+    if not tlsindex in tls_values:
+        raise ValueError("unknown tls val", repr(tlsindex))
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = tls_values[tlsindex]
+    vm_set_gpreg(regs)
+
 
 def user32_GetKeyboardType():
     ret_ad = vm_pop_uint32_t()
@@ -2911,4 +2939,19 @@ def kernel32_VirtualQuery():
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = dwl
+    vm_set_gpreg(regs)
+
+def kernel32_GetProcessAffinityMask():
+    ret_ad = vm_pop_uint32_t()
+    hprocess = vm_pop_uint32_t()
+    procaffmask = vm_pop_uint32_t()
+    systemaffmask = vm_pop_uint32_t()
+
+    print whoami(), hex(ret_ad), hex(hprocess), hex(procaffmask), hex(systemaffmask)
+    vm_set_mem(procaffmask, pdw(1))
+    vm_set_mem(systemaffmask, pdw(1))
+
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = 1
     vm_set_gpreg(regs)
