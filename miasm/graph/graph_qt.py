@@ -955,6 +955,9 @@ class MainWindow(QtGui.QWidget):
             txt = txt.replace('\t', ' '*4)
             e = node_asm_bb(txt, self)
             e.h = MyHighlighter(e)
+            if not "g_pos" in b.__dict__:
+                print "WARNING: unset bloc pos", b.label 
+                continue
             e.setpos(*b.g_pos)
             wproxy = self.scene.addWidget(e)
             self.scene_blocs.append(wproxy)
