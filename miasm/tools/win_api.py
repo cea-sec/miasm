@@ -24,57 +24,14 @@ import seh_helper
 import os
 import time
 
-handle_toolhelpsnapshot = 0xaaaa00
-toolhelpsnapshot_info = {}
-handle_curprocess = 0xaaaa01
-dbg_present = 0
-
-tickcount =0
-
-dw_pid_dummy1 = 0x111
-dw_pid_explorer = 0x222
-dw_pid_dummy2 = 0x333
-dw_pid_cur = 0x444
 
 
-module_fname_nux = None
-module_name = "test.exe\x00"
-module_path = "c:\\mydir\\"+module_name
-module_filesize = None
-getversion = 0x0A280105
-
-getforegroundwindow =  0x333333
-
-
-cryptcontext_hwnd = 0x44400
-cryptcontext_bnum = 0x44000
-cryptcontext_num = 0
-
-cryptcontext = {}
-
-phhash_crypt_md5 = 0x55555
-
-file_hwnd_num = 0x66600
-files_hwnd = {}
-file_offsets = {}
-
-windowlong_dw = 0x77700
-
-
-module_cur_hwnd = 0x88800
-
-module_file_nul = 0x999000
-runtime_dll = None
-current_pe = None
-
-
-alloc_ad = 0x20000000
-alloc_align = 0x4000-1
 
 def get_next_alloc_addr(size):
     global alloc_ad
-    ret = alloc_ad
-    alloc_ad = (alloc_ad + size + alloc_align) & (0xffffffff ^ alloc_align)
+    ret = winobjs.alloc_ad
+    winobjs.alloc_ad = (winobjs.alloc_ad + size + winobjs.alloc_align)
+    winobjs.alloc_ad &= (0xffffffff ^ winobjs.alloc_align)
     return ret
 
 """
@@ -93,9 +50,19 @@ typedef struct tagPROCESSENTRY32 {
 """
 
 
+access_dict = {    0x0: 0,
+                   0x1: 0,
+                   0x2: PAGE_READ,
+                   0x4: PAGE_READ | PAGE_WRITE,
+                   0x10: PAGE_EXEC,
+                   0x20: PAGE_EXEC | PAGE_READ,
+                   0x40: PAGE_EXEC | PAGE_READ | PAGE_WRITE,
+                   0x80: PAGE_EXEC | PAGE_READ | PAGE_WRITE,
+                   # 0x80: PAGE_EXECUTE_WRITECOPY
+                   0x100: 0
+                   }
 
-
-
+access_dict_inv = dict([(x[1], x[0]) for x in access_dict.items()])
 
 class whandle():
     def __init__(self, name, info):
@@ -133,7 +100,54 @@ class handle_generator():
     def __getitem__(self, item):
         return self.all_handles.__getitem__(item)
 
-handle_pool = handle_generator()
+
+
+class c_winobjs:
+    def __init__(self):
+        self.alloc_ad = 0x20000000
+        self.alloc_align = 0x4000-1
+        self.handle_toolhelpsnapshot = 0xaaaa00
+        self.toolhelpsnapshot_info = {}
+        self.handle_curprocess = 0xaaaa01
+        self.dbg_present = 0
+        self.tickcount =0
+        self.dw_pid_dummy1 = 0x111
+        self.dw_pid_explorer = 0x222
+        self.dw_pid_dummy2 = 0x333
+        self.dw_pid_cur = 0x444
+        self.module_fname_nux = None
+        self.module_name = "test.exe\x00"
+        self.module_path = "c:\\mydir\\"+self.module_name
+        self.module_filesize = None
+        self.getversion = 0x0A280105
+        self.getforegroundwindow =  0x333333
+        self.cryptcontext_hwnd = 0x44400
+        self.cryptcontext_bnum = 0x44000
+        self.cryptcontext_num = 0
+        self.cryptcontext = {}
+        self.phhash_crypt_md5 = 0x55555
+        self.files_hwnd = {}
+        self.windowlong_dw = 0x77700
+        self.module_cur_hwnd = 0x88800
+        self.module_file_nul = 0x999000
+        self.runtime_dll = None
+        self.current_pe = None
+        self.tls_index = 0xf
+        self.tls_values = {}
+        self.handle_pool = handle_generator()
+        self.hkey_handles = {0x80000001: "hkey_current_user"}
+
+        self.nt_mdl = {}
+        self.nt_mdl_ad = None
+        self.nt_mdl_cur = 0
+        self.win_event_num = 0x13370
+        self.cryptdll_md5_h = {}
+
+winobjs = c_winobjs()
+
+
+
+
 
 def whoami():
     return inspect.stack()[1][3]
@@ -157,7 +171,7 @@ def get_str_ansi(ad_str, max_char = None):
         tmp +=1
         l+=1
     return vm_get_str(ad_str, l)
-    
+
 def get_str_unic(ad_str, max_char = None):
     l = 0
     tmp = ad_str
@@ -229,7 +243,7 @@ def kernel32_IsDebuggerPresent():
     print whoami(), hex(ret_ad), '(', ')'
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
-    regs['eax'] = dbg_present
+    regs['eax'] = winobjs.dbg_present
     vm_set_gpreg(regs)
 
 
@@ -241,7 +255,7 @@ def kernel32_CreateToolhelp32Snapshot():
     print whoami(), hex(ret_ad), '(', hex(dwflags), hex(th32processid), ')'
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
-    regs['eax'] = handle_toolhelpsnapshot
+    regs['eax'] = win_api.handle_toolhelpsnapshot
     vm_set_gpreg(regs)
 
 def kernel32_GetCurrentProcess():
@@ -250,7 +264,7 @@ def kernel32_GetCurrentProcess():
     print whoami(), hex(ret_ad), '(', ')'
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
-    regs['eax'] = handle_curprocess
+    regs['eax'] = winobjs.handle_curprocess
     vm_set_gpreg(regs)
 
 def kernel32_GetCurrentProcessId():
@@ -259,7 +273,7 @@ def kernel32_GetCurrentProcessId():
     print whoami(), hex(ret_ad), '(', ')'
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
-    regs['eax'] = dw_pid_cur
+    regs['eax'] = winobjs.dw_pid_cur
     vm_set_gpreg(regs)
 
 
@@ -267,11 +281,11 @@ process_list = [
     [
         0x40,               #DWORD     dwSize;             
         0,                  #DWORD     cntUsage;           
-        dw_pid_dummy1,       #DWORD     th32ProcessID;      
+        winobjs.dw_pid_dummy1,       #DWORD     th32ProcessID;      
         0x11111111,         #ULONG_PTR th32DefaultHeapID;  
         0x11111112,         #DWORD     th32ModuleID;       
         1,                  #DWORD     cntThreads;         
-        dw_pid_explorer,    #DWORD     th32ParentProcessID;
+        winobjs.dw_pid_explorer,    #DWORD     th32ParentProcessID;
         0xbeef,             #LONG      pcPriClassBase;     
         0x0,                #DWORD     dwFlags;            
         "dummy1.exe"          #TCHAR     szExeFile[MAX_PATH];
@@ -279,7 +293,7 @@ process_list = [
     [
         0x40,               #DWORD     dwSize;             
         0,                  #DWORD     cntUsage;           
-        dw_pid_explorer,    #DWORD     th32ProcessID;      
+        winobjs.dw_pid_explorer,    #DWORD     th32ProcessID;      
         0x11111111,         #ULONG_PTR th32DefaultHeapID;  
         0x11111112,         #DWORD     th32ModuleID;       
         1,                  #DWORD     cntThreads;         
@@ -292,11 +306,11 @@ process_list = [
     [
         0x40,               #DWORD     dwSize;             
         0,                  #DWORD     cntUsage;           
-        dw_pid_dummy2,       #DWORD     th32ProcessID;      
+        winobjs.dw_pid_dummy2,       #DWORD     th32ProcessID;      
         0x11111111,         #ULONG_PTR th32DefaultHeapID;  
         0x11111112,         #DWORD     th32ModuleID;       
         1,                  #DWORD     cntThreads;         
-        dw_pid_explorer,    #DWORD     th32ParentProcessID;
+        winobjs.dw_pid_explorer,    #DWORD     th32ParentProcessID;
         0xbeef,             #LONG      pcPriClassBase;     
         0x0,                #DWORD     dwFlags;            
         "dummy2.exe"          #TCHAR     szExeFile[MAX_PATH];
@@ -305,14 +319,14 @@ process_list = [
     [
         0x40,               #DWORD     dwSize;             
         0,                  #DWORD     cntUsage;           
-        dw_pid_cur,         #DWORD     th32ProcessID;      
+        winobjs.dw_pid_cur,         #DWORD     th32ProcessID;      
         0x11111111,         #ULONG_PTR th32DefaultHeapID;  
         0x11111112,         #DWORD     th32ModuleID;       
         1,                  #DWORD     cntThreads;         
-        dw_pid_explorer,    #DWORD     th32ParentProcessID;
+        winobjs.dw_pid_explorer,    #DWORD     th32ParentProcessID;
         0xbeef,             #LONG      pcPriClassBase;     
         0x0,                #DWORD     dwFlags;            
-        module_name          #TCHAR     szExeFile[MAX_PATH];
+        winobjs.module_name          #TCHAR     szExeFile[MAX_PATH];
         ],
 
 
@@ -327,7 +341,7 @@ def kernel32_Process32First():
 
     pentry = struct.pack('LLLLLLLLL', *process_list[0][:-1])+process_list[0][-1]
     vm_set_mem(ad_pentry, pentry)
-    toolhelpsnapshot_info[s_handle] = 0
+    winobjs.toolhelpsnapshot_info[s_handle] = 0
 
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
@@ -340,12 +354,12 @@ def kernel32_Process32Next():
     s_handle = vm_pop_uint32_t()
     ad_pentry = vm_pop_uint32_t()
 
-    toolhelpsnapshot_info[s_handle] +=1
-    if toolhelpsnapshot_info[s_handle] >= len(process_list):
+    winobjs.toolhelpsnapshot_info[s_handle] +=1
+    if winobjs.toolhelpsnapshot_info[s_handle] >= len(process_list):
         eax = 0
     else:
         eax = 1
-        n = toolhelpsnapshot_info[s_handle]
+        n = winobjs.toolhelpsnapshot_info[s_handle]
         print whoami(), hex(ret_ad), '(', hex(s_handle), hex(ad_pentry), ')'
         pentry = struct.pack('LLLLLLLLL', *process_list[n][:-1])+process_list[n][-1]
         vm_set_mem(ad_pentry, pentry)
@@ -358,14 +372,13 @@ def kernel32_Process32Next():
 
 
 def kernel32_GetTickCount():
-    global tickcount
     ret_ad = vm_pop_uint32_t()
     print whoami(), hex(ret_ad), '(', ')'
-    tickcount +=1
+    winobjs.tickcount +=1
 
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
-    regs['eax'] = tickcount
+    regs['eax'] = winobjs.tickcount
     vm_set_gpreg(regs)
 
 
@@ -375,7 +388,7 @@ def kernel32_GetVersion():
 
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
-    regs['eax'] = getversion
+    regs['eax'] = winobjs.getversion
     vm_set_gpreg(regs)
 
 def my_GetVersionEx(funcname, set_str):
@@ -443,7 +456,7 @@ def user32_GetForegroundWindow():
 
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
-    regs['eax'] = getforegroundwindow
+    regs['eax'] = winobjs.getforegroundwindow
     vm_set_gpreg(regs)
 
 
@@ -496,8 +509,7 @@ def advapi32_CryptAcquireContextA():
     prov = vm_get_str(pszprovider, 0x100)
     prov = prov[:prov.find('\x00')]
     print 'prov:', prov
-            
-    vm_set_mem(phprov, pdw(cryptcontext_hwnd))
+    vm_set_mem(phprov, pdw(winobjs.cryptcontext_hwnd))
 
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
@@ -506,7 +518,6 @@ def advapi32_CryptAcquireContextA():
 
 
 def advapi32_CryptCreateHash():
-    global cryptcontext_num
     ret_ad = vm_pop_uint32_t()
     hprov = vm_pop_uint32_t()
     algid = vm_pop_uint32_t()
@@ -516,22 +527,21 @@ def advapi32_CryptCreateHash():
 
     print whoami(), hex(ret_ad), '(', hex(hprov), hex(algid), hex(hkey), hex(dwflags), hex(phhash), ')'
 
-    cryptcontext_num +=1
+    winobjs.cryptcontext_num +=1
 
     if algid == 0x00008003:
         print 'algo is MD5'
-        vm_set_mem(phhash, pdw(cryptcontext_bnum+cryptcontext_num))
-        cryptcontext[cryptcontext_bnum+cryptcontext_num] = hobj()
-        cryptcontext[cryptcontext_bnum+cryptcontext_num].h = MD5.new()
+        vm_set_mem(phhash, pdw(winobjs.cryptcontext_bnum+winobjs.cryptcontext_num))
+        winobjs.cryptcontext[winobjs.cryptcontext_bnum+winobjs.cryptcontext_num] = hobj()
+        winobjs.cryptcontext[winobjs.cryptcontext_bnum+winobjs.cryptcontext_num].h = MD5.new()
     else:
         raise ValueError('un impl algo1')
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = 1
     vm_set_gpreg(regs)
-    
+
 def advapi32_CryptHashData():
-    global cryptcontext
     ret_ad = vm_pop_uint32_t()
     hhash = vm_pop_uint32_t()
     pbdata = vm_pop_uint32_t()
@@ -540,13 +550,13 @@ def advapi32_CryptHashData():
 
     print whoami(), hex(ret_ad), '(', hex(hhash), hex(pbdata), hex(dwdatalen), hex(dwflags), ')'
 
-    if not hhash in cryptcontext:
+    if not hhash in winobjs.cryptcontext:
         raise ValueError("unknown crypt context")
 
     data = vm_get_str(pbdata, dwdatalen)
     print 'will hash'
     print repr(data)
-    cryptcontext[hhash].h.update(data)
+    winobjs.cryptcontext[hhash].h.update(data)
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = 1
@@ -566,16 +576,16 @@ def advapi32_CryptDeriveKey():
     if algid == 0x6801:
         print 'using DES'
     else:
-        raise ValueError('un impl algo2')    
-    h = cryptcontext[hbasedata].h.digest()
+        raise ValueError('un impl algo2')
+    h = winobjs.cryptcontext[hbasedata].h.digest()
     print 'hash', repr(h)
-    cryptcontext[hbasedata].h_result = h
-    vm_set_mem(phkey, pdw(hbasedata))    
+    winobjs.cryptcontext[hbasedata].h_result = h
+    vm_set_mem(phkey, pdw(hbasedata))
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = 1
     vm_set_gpreg(regs)
-    
+
 def advapi32_CryptDestroyHash():
     ret_ad = vm_pop_uint32_t()
     hhash = vm_pop_uint32_t()
@@ -627,7 +637,7 @@ def kernel32_CreateFile(funcname, get_str):
     if fname in [r"\\.\SICE", r"\\.\NTICE", r"\\.\Siwvid"]:
         pass
     elif fname in ['NUL']:
-        eax = module_cur_hwnd
+        eax = winobjs.module_cur_hwnd
     else:
         # go in sandbox files
         f = os.path.join('file_sb', fname)
@@ -636,7 +646,7 @@ def kernel32_CreateFile(funcname, get_str):
             if not os.access(f, os.R_OK):
                 raise ValueError("file doesn't exit", fname)
         h = open(f, 'rb+')
-        eax = handle_pool.add(f, h)
+        eax = winobjs.handle_pool.add(f, h)
 
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
@@ -659,15 +669,15 @@ def kernel32_ReadFile():
 
     print whoami(), hex(ret_ad), '(', hex(hwnd), hex(lpbuffer), hex(nnumberofbytestoread), hex(lpnumberofbytesread), hex(lpoverlapped), ')'
 
-    if hwnd == module_cur_hwnd:
+    if hwnd == winobjs.module_cur_hwnd:
         pass
     else:
         raise ValueError('unknown hwnd!')
 
     eax = 0xffffffff
 
-    if hwnd in files_hwnd:
-        data = files_hwnd[module_cur_hwnd].read(nnumberofbytestoread)
+    if hwnd in winobjs.files_hwnd:
+        data = winobjs.files_hwnd[winobjs.module_cur_hwnd].read(nnumberofbytestoread)
 
         if (lpnumberofbytesread):
             vm_set_mem(lpnumberofbytesread, pdw(len(data)))
@@ -689,8 +699,8 @@ def kernel32_GetFileSize():
 
     print whoami(), hex(ret_ad), '(', hex(hwnd), hex(lpfilesizehight), ')'
 
-    if hwnd == module_cur_hwnd:
-        eax = len(open(module_fname_nux).read())
+    if hwnd == winobjs.module_cur_hwnd:
+        eax = len(open(winobjs.module_fname_nux).read())
     else:
         raise ValueError('unknown hwnd!')
 
@@ -701,20 +711,6 @@ def kernel32_GetFileSize():
     regs['eax'] = eax
     vm_set_gpreg(regs)
 
-
-access_dict = {    0x0: 0,
-                   0x1: 0,
-                   0x2: PAGE_READ,
-                   0x4: PAGE_READ | PAGE_WRITE,
-                   0x10: PAGE_EXEC,
-                   0x20: PAGE_EXEC | PAGE_READ,
-                   0x40: PAGE_EXEC | PAGE_READ | PAGE_WRITE,
-                   0x80: PAGE_EXEC | PAGE_READ | PAGE_WRITE,
-                   # 0x80: PAGE_EXECUTE_WRITECOPY
-                   0x100: 0
-                   }
-
-access_dict_inv = dict([(x[1], x[0]) for x in access_dict.items()])
 
 
 def kernel32_VirtualProtect():
@@ -808,7 +804,7 @@ def user32_GetWindowLongA():
 
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
-    regs['eax'] = windowlong_dw
+    regs['eax'] = winobjs.windowlong_dw
     vm_set_gpreg(regs)
 
 def user32_SetWindowLongA():
@@ -821,7 +817,7 @@ def user32_SetWindowLongA():
 
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
-    regs['eax'] = windowlong_dw
+    regs['eax'] = winobjs.windowlong_dw
     vm_set_gpreg(regs)
 
 
@@ -836,7 +832,7 @@ def kernel32_GetModuleFileName(funcname, set_str):
     print whoami(), hex(ret_ad), '(', hex(hmodule), hex(lpfilename), hex(nsize), ')'
 
     if hmodule in [0]:
-        p = module_path[:]
+        p = winobjs.module_path[:]
     else:
         print ValueError('unknown module h', hex(hmodule))
         p = None
@@ -903,23 +899,20 @@ def shell32_SHGetPathFromIDListA():
     kernel32_SHGetPathFromIDList(whoami(), set_str_ansi)
 
 
-lastwin32error = 0
 def kernel32_GetLastError():
     ret_ad = vm_pop_uint32_t()
-    global lastwin32error
     print whoami(), hex(ret_ad), '(',  ')'
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
-    regs['eax'] = lastwin32error
+    regs['eax'] = win32error.lastwin32error
     vm_set_gpreg(regs)
 
 def kernel32_SetLastError():
-    global lastwin32error
     ret_ad = vm_pop_uint32_t()
     e = vm_pop_uint32_t()
     print whoami(), hex(ret_ad), hex(e)
 
-    lastwin32error = e
+    win32error.lastwin32error = e
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = 0
@@ -936,7 +929,7 @@ def kernel32_LoadLibraryA():
     libname = libname[:libname.find('\x00')]
     print repr(libname)
 
-    eax = runtime_dll.lib_get_add_base(libname)
+    eax = winobjs.runtime_dll.lib_get_add_base(libname)
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = eax
@@ -954,7 +947,7 @@ def kernel32_GetProcAddress():
         fname = get_str_ansi(fname, 0x100)
     print repr(fname)
 
-    ad = runtime_dll.lib_get_add_func(libbase, fname)
+    ad = winobjs.runtime_dll.lib_get_add_func(libbase, fname)
 
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
@@ -974,7 +967,7 @@ def kernel32_LoadLibraryW():
     libname = libname[::2]
     print repr(libname)
 
-    eax = runtime_dll.lib_get_add_base(libname)
+    eax = winobjs.runtime_dll.lib_get_add_base(libname)
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = eax
@@ -993,9 +986,9 @@ def kernel32_GetModuleHandleA():
             print 'warning adding .dll to modulename'
             libname += '.dll'
             print libname
-        eax = runtime_dll.lib_get_add_base(libname)
+        eax = winobjs.runtime_dll.lib_get_add_base(libname)
     else:
-        eax = current_pe.NThdr.ImageBase
+        eax = winobjs.current_pe.NThdr.ImageBase
         print "default img base" , hex(eax)
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
@@ -1042,7 +1035,7 @@ def kernel32_GetCommandLineA():
     ret_ad = vm_pop_uint32_t()
     print whoami(), hex(ret_ad)
 
-    s = module_path
+    s = winobjs.module_path
 
     alloc_addr = get_next_alloc_addr(0x1000)
     vm_add_memory_page(alloc_addr, PAGE_READ|PAGE_WRITE, s)
@@ -1052,15 +1045,13 @@ def kernel32_GetCommandLineA():
     regs['eax'] = alloc_addr
     vm_set_gpreg(regs)
 
-cryptdll_md5_h = {}
 def cryptdll_MD5Init():
-    global cryptdll_MD5Init
     ret_ad = vm_pop_uint32_t()
     print whoami(), hex(ret_ad)
     ad_ctx = vm_pop_uint32_t()
-    index = len(cryptdll_md5_h)
+    index = len(winobjs.cryptdll_md5_h)
     h = MD5.new()
-    cryptdll_md5_h[index] = h
+    winobjs.cryptdll_md5_h[index] = h
 
     vm_set_mem(ad_ctx, pdw(index))
     regs = vm_get_gpreg()
@@ -1069,7 +1060,6 @@ def cryptdll_MD5Init():
 
 
 def cryptdll_MD5Update():
-    global cryptdll_MD5Init
     ret_ad = vm_pop_uint32_t()
     print whoami(), hex(ret_ad)
     ad_ctx = vm_pop_uint32_t()
@@ -1078,19 +1068,18 @@ def cryptdll_MD5Update():
 
     index = vm_get_str(ad_ctx, 4)
     index = updw(index)
-    if not index in cryptdll_md5_h:
+    if not index in winobjs.cryptdll_md5_h:
         raise ValueError('unknown h context', index)
 
     data = vm_get_str(ad_input, inlen)
-    cryptdll_md5_h[index].update(data)
+    winobjs.cryptdll_md5_h[index].update(data)
     print hexdump(data)
 
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     vm_set_gpreg(regs)
-    
+
 def cryptdll_MD5Final():
-    global cryptdll_MD5Init
     ret_ad = vm_pop_uint32_t()
     print whoami(), hex(ret_ad)
 
@@ -1098,14 +1087,14 @@ def cryptdll_MD5Final():
 
     index = vm_get_str(ad_ctx, 4)
     index = updw(index)
-    if not index in cryptdll_md5_h:
+    if not index in winobjs.cryptdll_md5_h:
         raise ValueError('unknown h context', index)
-    h = cryptdll_md5_h[index].digest()
+    h = winobjs.cryptdll_md5_h[index].digest()
     vm_set_mem(ad_ctx + 88, h)
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     vm_set_gpreg(regs)
-    
+
 def ntdll_RtlInitAnsiString():
     ret_ad = vm_pop_uint32_t()
     print whoami(), hex(ret_ad)
@@ -1176,7 +1165,7 @@ def ntdll_RtlHashUnicodeString():
     regs['eip'] = ret_ad
     regs['eax'] = 0
     vm_set_gpreg(regs)
-    
+
 def ntdll_RtlFreeUnicodeString():
     ret_ad = vm_pop_uint32_t()
     print whoami(), hex(ret_ad)
@@ -1222,7 +1211,7 @@ def ntdll_RtlAnsiCharToUnicodeChar():
     regs['eip'] = ret_ad
     regs['eax'] = ch
     vm_set_gpreg(regs)
-    
+
 def ntdll_RtlFindCharInUnicodeString():
     ret_ad = vm_pop_uint32_t()
     print whoami(), hex(ret_ad)
@@ -1282,7 +1271,7 @@ def ntdll_RtlComputeCrc32():
     regs['eip'] = ret_ad
     regs['eax'] = crc_r
     vm_set_gpreg(regs)
-    
+
 def ntdll_RtlExtendedIntegerMultiply():
     ret_ad = vm_pop_uint32_t()
     print whoami(), hex(ret_ad)
@@ -1299,12 +1288,12 @@ def ntdll_RtlExtendedIntegerMultiply():
     regs['edx'] = (a>>32)&0xffffffff
 
     vm_set_gpreg(regs)
-    
+
 def ntdll_RtlLargeIntegerAdd():
     ret_ad = vm_pop_uint32_t()
     print whoami(), hex(ret_ad)
     a2 = vm_pop_uint32_t()
-    a1 = vm_pop_uint32_t()    
+    a1 = vm_pop_uint32_t()
     b2 = vm_pop_uint32_t()
     b1 = vm_pop_uint32_t()
     print hex(a1), hex(a2), hex(b1), hex(b2)
@@ -1316,12 +1305,12 @@ def ntdll_RtlLargeIntegerAdd():
     regs['edx'] = (a>>32)&0xffffffff
 
     vm_set_gpreg(regs)
-    
+
 def ntdll_RtlLargeIntegerShiftRight():
     ret_ad = vm_pop_uint32_t()
     print whoami(), hex(ret_ad)
     a2 = vm_pop_uint32_t()
-    a1 = vm_pop_uint32_t()    
+    a1 = vm_pop_uint32_t()
     m = vm_pop_uint32_t()
     print hex(a1), hex(a2), hex(m)
     a = ((a1<<32)+a2)>>m
@@ -1352,7 +1341,7 @@ def ntdll_RtlLargeIntegerSubtract():
     ret_ad = vm_pop_uint32_t()
     print whoami(), hex(ret_ad)
     a2 = vm_pop_uint32_t()
-    a1 = vm_pop_uint32_t()    
+    a1 = vm_pop_uint32_t()
     b2 = vm_pop_uint32_t()
     b1 = vm_pop_uint32_t()
     print hex(a1), hex(a2), hex(b1), hex(b2)
@@ -1399,7 +1388,7 @@ def user32_GetMessagePos():
     regs['eip'] = ret_ad
     regs['eax'] = 0x00110022
     vm_set_gpreg(regs)
-    
+
 def kernel32_Sleep():
     ret_ad = vm_pop_uint32_t()
     t = vm_pop_uint32_t()
@@ -1410,7 +1399,7 @@ def kernel32_Sleep():
 
     #XXX for malware tests
     vm_set_mem(regs['esp']-0x20, pdw(0xFFFFFFFF))
-        
+
 def ntdll_ZwUnmapViewOfSection():
     ret_ad = vm_pop_uint32_t()
     h = vm_pop_uint32_t()
@@ -1431,16 +1420,14 @@ def kernel32_IsBadReadPtr():
     regs['eax'] = 0
     vm_set_gpreg(regs)
 
-win_event_num = 0x13370
 def ntoskrnl_KeInitializeEvent():
-    global win_event_num
     ret_ad = vm_pop_uint32_t()
     my_event = vm_pop_uint32_t()
     my_type = vm_pop_uint32_t()
     my_state = vm_pop_uint32_t()
     print whoami(), hex(ret_ad), hex(my_event), hex(my_type), hex(my_state)
-    vm_set_mem(my_event, pdw(win_event_num))
-    win_event_num +=1
+    vm_set_mem(my_event, pdw(winobjs.win_event_num))
+    winobjs.win_event_num +=1
 
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
@@ -1491,20 +1478,14 @@ def hal_ExAcquireFastMutex():
     regs['eip'] = ret_ad
     regs['eax'] = 0
     vm_set_gpreg(regs)
-    
-
-nt_mdl = {}
-nt_mdl_ad = None
-nt_mdl_cur = 0
 
 def mdl2ad(n):
-    return nt_mdl_ad+0x10*n
+    return winobjs.nt_mdl_ad+0x10*n
 
 def ad2mdl(ad):
-    return ((ad-nt_mdl_ad)&0xFFFFFFFFL)/0x10
-    
+    return ((ad-winobjs.nt_mdl_ad)&0xFFFFFFFFL)/0x10
+
 def ntoskrnl_IoAllocateMdl():
-    global nt_mdl, nt_mdl_ad, nt_mdl_cur
     ret_ad = vm_pop_uint32_t()
     v_addr = vm_pop_uint32_t()
     l = vm_pop_uint32_t()
@@ -1513,32 +1494,30 @@ def ntoskrnl_IoAllocateMdl():
     pirp = vm_pop_uint32_t()
     print whoami(), hex(ret_ad), hex(v_addr), hex(l), hex(second_buf), hex(chargequota), hex(pirp)
     m = mdl(v_addr, l)
-    nt_mdl[nt_mdl_cur] = m
-    vm_set_mem(mdl2ad(nt_mdl_cur), str(m))
+    winobjs.nt_mdl[winobjs.nt_mdl_cur] = m
+    vm_set_mem(mdl2ad(winobjs.nt_mdl_cur), str(m))
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
-    regs['eax'] = mdl2ad(nt_mdl_cur)
+    regs['eax'] = mdl2ad(winobjs.nt_mdl_cur)
     vm_set_gpreg(regs)
 
-    nt_mdl_cur += 1
+    winobjs.nt_mdl_cur += 1
 
 def ntoskrnl_MmProbeAndLockPages():
-    global nt_mdl, nt_mdl_ad, nt_mdl_cur
     ret_ad = vm_pop_uint32_t()
     p_mdl = vm_pop_uint32_t()&0xffffffff
     access_mode = vm_pop_uint32_t()
     op = vm_pop_uint32_t()
     print whoami(), hex(ret_ad), hex(p_mdl), hex(access_mode), hex(op)
 
-    if not ad2mdl(p_mdl) in nt_mdl:
+    if not ad2mdl(p_mdl) in winobjs.nt_mdl:
         raise ValueError('unk mdl', hex(p_mdl))
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = 0
     vm_set_gpreg(regs)
-    
+
 def ntoskrnl_MmMapLockedPagesSpecifyCache():
-    global nt_mdl, nt_mdl_ad, nt_mdl_cur
     ret_ad = vm_pop_uint32_t()
     p_mdl = vm_pop_uint32_t()&0xffffffff
     access_mode = vm_pop_uint32_t()
@@ -1547,34 +1526,32 @@ def ntoskrnl_MmMapLockedPagesSpecifyCache():
     bugcheckonfailure = vm_pop_uint32_t()
     priority = vm_pop_uint32_t()
     print whoami(), hex(ret_ad), hex(p_mdl), hex(access_mode), hex(cache_type), hex(base_ad), hex(bugcheckonfailure), hex(priority)
-    if not ad2mdl(p_mdl) in nt_mdl:
+    if not ad2mdl(p_mdl) in winobjs.nt_mdl:
         raise ValueError('unk mdl', hex(p_mdl))
 
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
-    regs['eax'] = nt_mdl[ad2mdl(p_mdl)].ad
+    regs['eax'] = winobjs.nt_mdl[ad2mdl(p_mdl)].ad
     vm_set_gpreg(regs)
-    
+
 def ntoskrnl_MmProtectMdlSystemAddress():
-    global nt_mdl, nt_mdl_ad, nt_mdl_cur
     ret_ad = vm_pop_uint32_t()
     p_mdl = vm_pop_uint32_t()&0xffffffff
     prot = vm_pop_uint32_t()
     print whoami(), hex(ret_ad), hex(p_mdl), hex(prot)
-    if not ad2mdl(p_mdl) in nt_mdl:
+    if not ad2mdl(p_mdl) in winobjs.nt_mdl:
         raise ValueError('unk mdl', hex(p_mdl))
 
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = 0
     vm_set_gpreg(regs)
-    
+
 def ntoskrnl_MmUnlockPages():
-    global nt_mdl, nt_mdl_ad, nt_mdl_cur
     ret_ad = vm_pop_uint32_t()
     p_mdl = vm_pop_uint32_t()&0xffffffff
     print whoami(), hex(ret_ad), hex(p_mdl)
-    if not ad2mdl(p_mdl) in nt_mdl:
+    if not ad2mdl(p_mdl) in winobjs.nt_mdl:
         raise ValueError('unk mdl', hex(p_mdl))
 
     regs = vm_get_gpreg()
@@ -1583,20 +1560,18 @@ def ntoskrnl_MmUnlockPages():
     vm_set_gpreg(regs)
 
 def ntoskrnl_IoFreeMdl():
-    global nt_mdl, nt_mdl_ad, nt_mdl_cur
     ret_ad = vm_pop_uint32_t()
     p_mdl = vm_pop_uint32_t()&0xffffffff
     print whoami(), hex(ret_ad), hex(p_mdl)
-    if not ad2mdl(p_mdl) in nt_mdl:
+    if not ad2mdl(p_mdl) in winobjs.nt_mdl:
         raise ValueError('unk mdl', hex(p_mdl))
-    del(nt_mdl[ad2mdl(p_mdl)])
+    del(winobjs.nt_mdl[ad2mdl(p_mdl)])
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = 0
     vm_set_gpreg(regs)
 
 def hal_ExReleaseFastMutex():
-    global nt_mdl, nt_mdl_ad, nt_mdl_cur
     ret_ad = vm_pop_uint32_t()
     print whoami(), hex(ret_ad)
     regs = vm_get_gpreg()
@@ -1604,7 +1579,6 @@ def hal_ExReleaseFastMutex():
     regs['eax'] = 0
     vm_set_gpreg(regs)
 def ntoskrnl_RtlQueryRegistryValues():
-    global nt_mdl, nt_mdl_ad, nt_mdl_cur
     ret_ad = vm_pop_uint32_t()
     relativeto = vm_pop_uint32_t()
     path = vm_pop_uint32_t()
@@ -1620,7 +1594,6 @@ def ntoskrnl_RtlQueryRegistryValues():
     vm_set_gpreg(regs)
 
 def ntoskrnl_ExAllocatePoolWithTagPriority():
-    global nt_mdl, nt_mdl_ad, nt_mdl_cur
     ret_ad = vm_pop_uint32_t()
     pool_type = vm_pop_uint32_t()
     nbr_of_bytes = vm_pop_uint32_t()
@@ -1767,7 +1740,10 @@ def my_GetVolumeInformation(funcname, get_str, set_str):
     lpfilesystemnamebuffer = vm_pop_uint32_t()
     nfilesystemnamesize = vm_pop_uint32_t()
 
-    print funcname,hex(lprootpathname),hex(lpvolumenamebuffer),hex(nvolumenamesize),hex(lpvolumeserialnumber),hex(lpmaximumcomponentlength),hex(lpfilesystemflags),hex(lpfilesystemnamebuffer),hex(nfilesystemnamesize)
+    print funcname,hex(lprootpathname),hex(lpvolumenamebuffer),\
+        hex(nvolumenamesize),hex(lpvolumeserialnumber),\
+        hex(lpmaximumcomponentlength),hex(lpfilesystemflags),\
+        hex(lpfilesystemnamebuffer),hex(nfilesystemnamesize)
 
     if lprootpathname:
         s = get_str(lprootpathname)
@@ -1823,9 +1799,7 @@ def kernel32_MultiByteToWideChar():
     regs['eax'] = l
     vm_set_gpreg(regs)
 
-env_variables = {}
 def my_GetEnvironmentVariable(funcname, get_str, set_str, mylen):
-    global env_variables
     ret_ad = vm_pop_uint32_t()
     lpname = vm_pop_uint32_t()
     lpbuffer = vm_pop_uint32_t()
@@ -1835,8 +1809,8 @@ def my_GetEnvironmentVariable(funcname, get_str, set_str, mylen):
     s = get_str(lpname)
     if get_str == get_str_unic:
         s = s[::2]
-    if s in env_variables:
-        v = set_str(env_variables[s])
+    if s in winobjs.env_variables:
+        v = set_str(winobjs.env_variables[s])
     else:
         print 'WARNING unknown env variable', repr(s)
         v = ""
@@ -1904,10 +1878,7 @@ def kernel32_GetEnvironmentVariableW():
                               lambda x:"\x00".join(list(x+"\x00")),
                               lambda x:len(x[::2]))
 
-
-events_pool = {}
 def my_CreateEvent(funcname, get_str):
-    global events_pool
     ret_ad = vm_pop_uint32_t()
     lpeventattributes = vm_pop_uint32_t()
     bmanualreset = vm_pop_uint32_t()
@@ -1917,8 +1888,8 @@ def my_CreateEvent(funcname, get_str):
     print funcname, hex(lpeventattributes), hex(bmanualreset), hex(binitialstate), hex(lpname)
     s = get_str(lpname)
     print repr(s)
-    if not s in events_pool:
-        events_pool[s] = (bmanualreset, binitialstate)
+    if not s in winobjs.events_pool:
+        winobjs.events_pool[s] = (bmanualreset, binitialstate)
     else:
         print 'WARNING: known event'
 
@@ -1945,10 +1916,10 @@ def kernel32_WaitForSingleObject():
         if dwms and dwms+t_start > time.time()*1000:
             ret = 0x102
             break
-        for k, v in events_pool.items():
+        for k, v in winobjs.events_pool.items():
             if k != handle:
                 continue
-            if events_pool[k][1] == 1:
+            if winobjs.events_pool[k][1] == 1:
                 ret = 0
                 break
         time.sleep(0.1)
@@ -2172,7 +2143,7 @@ def ntdll_LdrLoadDll():
     libname = s[::2].lower()
     print repr(libname)
 
-    ad = runtime_dll.lib_get_add_base(libname)
+    ad = winobjs.runtime_dll.lib_get_add_base(libname)
     print "ret", hex(ad)
     vm_set_mem(modhandle, pdw(ad))
 
@@ -2212,7 +2183,7 @@ def ntdll_LdrGetProcedureAddress():
     fname = get_str_ansi(p_src)
     print "str", repr(fname)
 
-    ad = runtime_dll.lib_get_add_func(libbase, fname)
+    ad = winobjs.runtime_dll.lib_get_add_func(libbase, fname)
 
     vm_set_mem(p_ad, pdw(ad))
 
@@ -2434,7 +2405,6 @@ def shlwapi_StrCmpNIA():
     vm_set_gpreg(regs)
 
 
-hkey_handles = {0x80000001: "hkey_current_user"}
 def advapi32_RegOpenKeyEx(funcname, get_str):
     ret_ad = vm_pop_uint32_t()
     hkey = vm_pop_uint32_t()
@@ -2453,9 +2423,9 @@ def advapi32_RegOpenKeyEx(funcname, get_str):
 
     ret_hkey = 0
     ret = 2
-    if hkey in hkey_handles:
+    if hkey in winobjs.hkey_handles:
         if s_subkey:
-            if id(s_subkey) in hkey_handles:
+            if id(s_subkey) in winobjs.hkey_handles:
                 ret_hkey = id(s_subkey)
                 ret = 0
 
@@ -2551,48 +2521,43 @@ def kernel32_GetLocaleInfoW():
     kernel32_GetLocaleInfo(whoami(), set_str_unic)
 
 
-tls_index = 0xf
-tls_values = {}
 
 def kernel32_TlsAlloc():
-    global tls_index
     ret_ad = vm_pop_uint32_t()
 
     print whoami(), hex(ret_ad)
 
-    tls_index += 1
+    winobjs.tls_index += 1
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
-    regs['eax'] = tls_index
+    regs['eax'] = winobjs.tls_index
     vm_set_gpreg(regs)
 
 
 def kernel32_TlsSetValue():
-    global tls_index
     ret_ad = vm_pop_uint32_t()
     tlsindex = vm_pop_uint32_t()
     tlsvalue = vm_pop_uint32_t()
 
     print whoami(), hex(tlsindex), hex(tlsvalue)
 
-    tls_values[tlsindex] = tlsvalue
+    winobjs.tls_values[tlsindex] = tlsvalue
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = 1
     vm_set_gpreg(regs)
 
 def kernel32_TlsGetValue():
-    global tls_index
     ret_ad = vm_pop_uint32_t()
     tlsindex = vm_pop_uint32_t()
 
     print whoami(), hex(tlsindex)
 
-    if not tlsindex in tls_values:
+    if not tlsindex in winobjs.tls_values:
         raise ValueError("unknown tls val", repr(tlsindex))
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
-    regs['eax'] = tls_values[tlsindex]
+    regs['eax'] = winobjs.tls_values[tlsindex]
     vm_set_gpreg(regs)
 
 
@@ -2753,10 +2718,10 @@ def kernel32_CreateFileMapping(funcname, get_str):
     print repr(f)
 
 
-    if not hfile in handle_pool:
+    if not hfile in winobjs.handle_pool:
         raise ValueError('unknown handle')
 
-    eax = handle_pool.add('filemapping', hfile)
+    eax = winobjs.handle_pool.add('filemapping', hfile)
 
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
@@ -2782,14 +2747,14 @@ def kernel32_MapViewOfFile():
 
     print whoami(), hex(ret_ad), hex(hfile), hex(flprotect), hex(dwfileoffsethigh), hex(dwfileoffsetlow), hex(length)
 
-    if not hfile in handle_pool:
+    if not hfile in winobjs.handle_pool:
         raise ValueError('unknown handle')
-    hmap = handle_pool[hfile]
+    hmap = winobjs.handle_pool[hfile]
     print hmap
-    if not hmap.info in handle_pool:
+    if not hmap.info in winobjs.handle_pool:
         raise ValueError('unknown file handle')
 
-    hfile_o = handle_pool[hmap.info]
+    hfile_o = winobjs.handle_pool[hmap.info]
     print hfile_o
     fd = hfile_o.info
     fd.seek( (dwfileoffsethigh << 32) | dwfileoffsetlow)
