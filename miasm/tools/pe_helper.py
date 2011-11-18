@@ -530,9 +530,11 @@ def vm_load_pe(e, align_s = True, load_hdr = True):
 
     if aligned:
         if load_hdr:
-            pe_hdr = e.content[:0x400]+"\x00"*0xc00
+            min_len = min(e.SHList[0].addr, 0x1000)
+            pe_hdr = e.content[:0x400]
+            pe_hdr = pe_hdr+min_len*"\x00"
+            pe_hdr = pe_hdr[:min_len]
             to_c_helper.vm_add_memory_page(e.NThdr.ImageBase, to_c_helper.PAGE_READ|to_c_helper.PAGE_WRITE, pe_hdr)
-    
         if align_s:
             for i, s in enumerate(e.SHList[:-1]):
                 s.size = e.SHList[i+1].addr - s.addr
@@ -540,7 +542,6 @@ def vm_load_pe(e, align_s = True, load_hdr = True):
                 s.offset = s.addr
             s = e.SHList[-1]
             s.size = (s.size+0xfff)&0xfffff000
-        
         for s in e.SHList:
             data = str(s.data)
             data += "\x00"*(s.size-len(data))
@@ -559,8 +560,6 @@ def vm_load_pe(e, align_s = True, load_hdr = True):
         data += (e.SHList[0].addr - len(data))*"\x00"
         min_addr = 0
 
-
-    
     for i, s in enumerate(e.SHList):
         if i < len(e.SHList)-1:
             s.size = e.SHList[i+1].addr - s.addr
@@ -569,18 +568,20 @@ def vm_load_pe(e, align_s = True, load_hdr = True):
 
         if min_addr == None or s.addr < min_addr:
             min_addr = s.addr
-            
         if max_addr == None or s.addr + s.size > max_addr:
-            max_addr = s.addr + s.size
+            max_addr = s.addr + max(s.size, len(s.data))
     min_addr = e.rva2virt(min_addr)
     max_addr = e.rva2virt(max_addr)
-
     print hex(min_addr) , hex(max_addr), hex(max_addr - min_addr)
-    for s in e.SHList:
-        data += str(s.data)
-        data += "\x00"*(s.size-len(str(s.data)))
 
-    vm_add_memory_page(min_addr, PAGE_READ|PAGE_WRITE, data)
+
+    to_c_helper.vm_add_memory_page(min_addr,
+                                   to_c_helper.PAGE_READ|to_c_helper.PAGE_WRITE,
+                                   (max_addr - min_addr)*"\x00")
+    for s in e.SHList:
+        print hex(e.rva2virt(s.addr)), len(s.data)
+        to_c_helper.vm_set_mem(e.rva2virt(s.addr), str(s.data))
+
 
 def vm_load_elf(e, align_s = True, load_hdr = True):
     for p in e.ph.phlist:
@@ -617,14 +618,15 @@ def preload_elf(e, patch_vm_imp = True, lib_base_ad = 0x77700000):
 
     dyn_funcs = {}
     print 'imported funcs:', fa
-    for (libname, libfunc), ad in fa.items():
-        ad_base_lib = runtime_lib.lib_get_add_base(libname)
-        ad_libfunc = runtime_lib.lib_get_add_func(ad_base_lib, libfunc, ad)
+    for (libname, libfunc), ads in fa.items():
+        for ad in ads:
+            ad_base_lib = runtime_lib.lib_get_add_base(libname)
+            ad_libfunc = runtime_lib.lib_get_add_func(ad_base_lib, libfunc, ad)
 
-        libname_s = canon_libname_libfunc(libname, libfunc)
-        dyn_funcs[libname_s] = ad_libfunc
-        if patch_vm_imp:
-            to_c_helper.vm_set_mem(ad, struct.pack(cstruct.size2type[e.size], ad_libfunc))
+            libname_s = canon_libname_libfunc(libname, libfunc)
+            dyn_funcs[libname_s] = ad_libfunc
+            if patch_vm_imp:
+                to_c_helper.vm_set_mem(ad, struct.pack(cstruct.size2type[e.size], ad_libfunc))
     return runtime_lib, dyn_funcs
 
 

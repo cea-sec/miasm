@@ -41,8 +41,10 @@ vm_add_memory_page(stack_base_ad, PAGE_READ|PAGE_WRITE, "\x00"*stack_size)
 dump_memory_page_pool_py()
 
 
-
-ep =  e.sh.symtab.symbols['main'].value
+try:
+    ep =  e.sh.symtab.symbols['main'].value
+except:
+    ep = e.Ehdr.entry
 
 ptr_esp = stack_base_ad+stack_size-0x1000
 vm_set_mem(ptr_esp, "/home/toto\x00")
@@ -72,7 +74,7 @@ known_blocs = {}
 code_blocs_mem_range = []
 
 
-log_regs = False
+log_regs = True
 log_mn = log_regs
 must_stop = False
 def run_bin(my_eip, known_blocs, code_blocs_mem_range):

@@ -90,7 +90,7 @@ log_regs = True
 log_mn = log_regs
 def run_bin(my_eip, known_blocs, code_blocs_mem_range):
     global log_regs, log_mn
-    while my_eip != 0x1337beef:        
+    while my_eip != 0x1337beef:
 
         #dyn dll funcs
         if my_eip in runtime_dll.fad2cname:
@@ -120,9 +120,7 @@ def run_bin(my_eip, known_blocs, code_blocs_mem_range):
                 known_blocs, code_blocs_mem_range = updt_automod_code(known_blocs)
             else:
                 raise ValueError("except at", hex(my_eip))
-            
 
-    
 print "start emulation"
 run_bin(ep, known_blocs, code_blocs_mem_range)
 dump_raw_e(e)

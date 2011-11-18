@@ -30,6 +30,7 @@ from PyQt4.Qt import QTextCursor
 from PyQt4.Qt import QEvent
 from PyQt4.Qt import Qt
 import re
+from pprint import pprint as pp
 
 app = None
 from grandalf.graphs import *
@@ -47,8 +48,17 @@ class HighlightingRule():
         self.pattern = pattern
         self.format = format
 
+symbols_known = set()
+syntax_rules = None
+def gen_syntax_rules(symbols = []):
+    global syntax_rules, symbols_known
 
-def gen_syntax_rules():
+    new_symbols = set()
+    for s in symbols.s:
+        new_symbols.add(re.escape(str(s)))
+    if new_symbols == symbols_known and syntax_rules:
+        return syntax_rules
+
     highlightingRules = []
     number = QtGui.QTextCharFormat()
     label = QtGui.QTextCharFormat()
@@ -64,14 +74,13 @@ def gen_syntax_rules():
     rule = HighlightingRule( pattern, number )
     highlightingRules.append( rule )
 
-    
     pattern = QtCore.QRegExp( "\b[0-9]+\b" )
     pattern.setMinimal( False )
     number.setForeground( brushg )
     rule = HighlightingRule( pattern, number )
     highlightingRules.append( rule )
-    
 
+    """
     #label
     brushb = QtGui.QBrush( Qt.blue, Qt.SolidPattern )
     pattern = QtCore.QRegExp( "[0-9a-zA-Z_\.]+:$" )
@@ -79,7 +88,9 @@ def gen_syntax_rules():
     label.setForeground( brushb )
     rule = HighlightingRule( pattern, label )
     highlightingRules.append( rule )
+    """
 
+    """
     #label
     brushb = QtGui.QBrush( Qt.blue, Qt.SolidPattern )
     pattern = QtCore.QRegExp( "[0-9a-zA-Z_\.]+:" )
@@ -87,14 +98,23 @@ def gen_syntax_rules():
     my_id.setForeground( brushb )
     rule = HighlightingRule( pattern, my_id )
     highlightingRules.append( rule )
+    """
+
+    for s in new_symbols:
+        brushb = QtGui.QBrush( Qt.blue, Qt.SolidPattern )
+        pattern = QtCore.QRegExp( s )
+        pattern.setMinimal( False )
+        label.setForeground( brushb )
+        rule = HighlightingRule( pattern, label )
+        highlightingRules.append( rule )
+
 
     return highlightingRules
 
 
-syntax_rules = gen_syntax_rules()
 
 
-def parse_address(ad):
+def parse_address(ad, symbol_pool = None):
     if isinstance(ad, str):
         if ad.startswith('loc_'):
             ad = ad[4:]
@@ -105,6 +125,12 @@ def parse_address(ad):
             ad = int(ad, 16)
         elif ad.startswith('0x'):
             ad = int(ad, 16)
+        elif symbol_pool:
+            s = symbol_pool.getby_name(ad)
+            if s:
+                ad = s.offset
+            else:
+                ad = None
         else:
             print 'BAD AD'
             ad = None
@@ -114,28 +140,38 @@ def parse_address(ad):
 
 
 class history_point():
-    def __init__(self, ad, all_bloc = None, scroll_h = None, scroll_v = None):
+    def __init__(self, ad, all_bloc = None,
+                 scroll_h = None, scroll_v = None,
+                 zoom = None):
         self.ad = ad
         self.all_bloc = all_bloc
         self.scroll_h = scroll_h
         self.scroll_v = scroll_v
+        self.zoom = zoom
     def __repr__(self):
-        return "%X %r %r"%(self.ad, self.scroll_h, self.scroll_v)
+        return "%X %r %r %r"%(self.ad,
+                              self.scroll_h, self.scroll_v,
+                              self.zoom)
     def __eq__(self, h):
         if isinstance(h, history):
             return self.ad == h.ad and \
                 self.all_bloc == h.all_bloc and\
                 self.scroll_h == h.scroll_h and\
-                self.scroll_v == h.scroll_v
+                self.scroll_v == h.scroll_v and\
+                self.zoom == h.zoom
         raise TypeError('not history')
+
+    def save(self):
+        return self.ad, self.all_bloc,\
+               self.scroll_h, self.scroll_v, self.zoom
 
 class history_mngr():
     hist_next = 1
     hist_back = 2
 
-    def __init__(self, myQGraphicsView, add_new_bloc, ad, all_bloc = None):
+    def __init__(self, myQGraphicsView, refresh_nodes, ad = None, all_bloc = None):
         self.myQGraphicsView = myQGraphicsView
-        self.add_new_bloc = add_new_bloc
+        self.refresh_nodes = refresh_nodes
         self.history_index = 0
         htmp = history_point(ad, all_bloc)
         self.history_list = [htmp]
@@ -145,10 +181,11 @@ class history_mngr():
         # update current history
         scroll_v = self.myQGraphicsView.verticalScrollBar().value()
         scroll_h = self.myQGraphicsView.horizontalScrollBar().value()
+        zoom = self.myQGraphicsView.zoom
 
         self.history_current.scroll_h = scroll_h
         self.history_current.scroll_v = scroll_v
-
+        self.history_current.zoom = zoom
 
     def back(self):
         if self.history_index <=0:
@@ -156,23 +193,27 @@ class history_mngr():
 
         self.updt_current_history_scroll()
         self.history_index -=1
-        self.add_new_bloc()
+        self.refresh_nodes()
 
     def next(self, ad = None):
+        print 'NEXT'
+        print self.history_index
         self.updt_current_history_scroll()
         if ad == None:
             if self.history_index == len(self.history_list)-1:
                 return
             self.history_index += 1
             self.history_index = min(self.history_index, len(self.history_list)-1)
-            self.add_new_bloc()
+            self.refresh_nodes()
             return
 
         self.history_list = self.history_list[:self.history_index+1]
+        self.myQGraphicsView.zoom = 1.0
+        self.myQGraphicsView.set_zoom()
         htmp = history_point(ad)
         self.history_list.append(htmp)
         self.history_index += 1
-        self.add_new_bloc()
+        self.refresh_nodes()
 
 
     def get_current_hist(self):
@@ -180,17 +221,30 @@ class history_mngr():
     def set_current_hist(self, val):
         self.history_list[self.history_index] = val
 
+    def save(self):
+        out = []
+        for p in self.history_list:
+            out.append(p.save())
+        return self.history_index, out
+
+    def restaure(self, s):
+        self.history_index, out = s
+        self.history_list = []
+        for p in out:
+            self.history_list.append(history_point(*p))
+
     history_current = property(get_current_hist,
                                set_current_hist)
 
 
 class MyHighlighter( QtGui.QSyntaxHighlighter ):
-    def __init__( self, parent ):
+    def __init__( self, parent):
         QtGui.QSyntaxHighlighter.__init__( self, parent )
         self.parent = parent
 
 
         self.highlightingRules = syntax_rules
+        #self.highlightingRules = gen_syntax_rules(symbols)
 
 
 
@@ -239,6 +293,35 @@ def getTextwh_font(txt, zoom, font):
     return w_max+30, h_max+25+len(l)*2
 
 
+def rename_symobl(mainwin, symbol_pool, ad):
+    global syntax_rules
+    text, ok = QtGui.QInputDialog.getText(None, "miasm",
+                                          'enter symbol:')
+    if not ok:
+        return
+    s = symbol_pool.getby_name(ad)
+    if s == None:
+        ad = parse_address(ad)
+        if ad == None:
+            print "cannot parse symb"
+            return
+        s = symbol_pool.getby_offset_create(ad)
+
+    if not s:
+        fdsf
+    text = str(text)
+    if text == s.name:
+        return
+    if symbol_pool.getby_name(text):
+        print "symbol already exist"
+        return
+    del(symbol_pool.s[s.name])
+    s.name = text
+    symbol_pool.s[s.name] = s
+    app.postEvent(mainwin,
+                  e_refresh())
+
+    syntax_rules = gen_syntax_rules(symbol_pool)
 
 class graph_edge(QtGui.QGraphicsItem):
     def __init__(self, min_x, min_y, max_x, max_y, pts, color, end_angle, my_splines):
@@ -332,16 +415,21 @@ class node_asm_bb(QTextEdit):
     def mouseDoubleClickEvent(self,mouseEvent):
         print "DOUBLE"
         w = self.get_word_under_cursor()
-        ad = parse_address(w)
-        app.postEvent(self.mainwin,MyEvent(history_mngr.hist_next, ad))
+        ad = parse_address(w, self.mainwin.symbol_pool)
+        app.postEvent(self.mainwin,e_refresh(history_mngr.hist_next, ad))
 
     def contextMenuEvent(self, event):
         global app
         w = self.get_word_under_cursor()
         menu = QtGui.QMenu(self)
         goto_ad = menu.addAction("jump to: "+w)
-        ad = parse_address(w)
-        goto_ad.triggered.connect(lambda:app.postEvent(self.mainwin,MyEvent(history_mngr.hist_next, ad)))
+        ad = parse_address(w, self.mainwin.symbol_pool)
+        goto_ad.triggered.connect(lambda:app.postEvent(self.mainwin,e_refresh(history_mngr.hist_next, ad)))
+
+        edit_name = menu.addAction("change name: "+w)
+        edit_name.triggered.connect(lambda :rename_symobl(mainwin = self.mainwin, symbol_pool = self.mainwin.symbol_pool, ad = w))
+
+
         menu.exec_(event.globalPos())
     def paintEvent(self, e):
         if self.mainwin.view.graphicsView.zoom > -600:
@@ -419,6 +507,12 @@ class myQGraphicsView(QtGui.QGraphicsView):
         self.mainwin = mainwin
         self.current_node = None
 
+    def set_zoom(self):
+        scale = pow(2.0, (self.zoom /600.0))
+        matrix = QtGui.QMatrix()
+        matrix.scale(scale, scale)
+        self.setMatrix(matrix)
+
     def set_view(self, view):
         self.view = view
     def mouseMoveEvent(self, mouseEvent):
@@ -443,6 +537,7 @@ class myQGraphicsView(QtGui.QGraphicsView):
         scroll_v.setValue(pos_v)
         scroll_h.setValue(pos_h)
         self.i_pos = x, y
+        self.mainwin.history_mngr.updt_current_history_scroll()
 
     def mousePressEvent(self, mouseEvent):
 
@@ -474,15 +569,15 @@ class myQGraphicsView(QtGui.QGraphicsView):
 
     def keyPressEvent( self, event ):
         key = event.key()
-        #print "press", hex(key)
+        print "press", hex(key)
         if key == 0x1000021: #ctrl
             self.key_ctrl = True
 
 
-        elif key == 0x1000005: #enter
-            app.postEvent(self.mainwin,MyEvent(history_mngr.hist_next))
+        elif key in  [0x1000004, 0x1000005]: #enter
+            app.postEvent(self.mainwin,e_refresh(history_mngr.hist_next))
         elif key == 0x1000000: #esc
-            app.postEvent(self.mainwin,MyEvent(history_mngr.hist_back))
+            app.postEvent(self.mainwin,e_refresh(history_mngr.hist_back))
 
 
         elif self.key_ctrl and key in  [43, 45]: # - +
@@ -490,10 +585,8 @@ class myQGraphicsView(QtGui.QGraphicsView):
                 self.zoom +=100
             elif key == 45:
                 self.zoom -=100
-            scale = pow(2.0, (self.zoom /600.0))
-            matrix = QtGui.QMatrix()
-            matrix.scale(scale, scale)
-            self.setMatrix(matrix)
+            self.set_zoom()
+            self.mainwin.history_mngr.updt_current_history_scroll()
 
         elif key in [0x1000012, 0x1000014]:
             if key == 0x1000012:
@@ -504,6 +597,7 @@ class myQGraphicsView(QtGui.QGraphicsView):
             pos_h = scroll_h.value()
             pos_h += diff_x
             scroll_h.setValue(pos_h)
+            self.mainwin.history_mngr.updt_current_history_scroll()
 
         elif key in [0x1000013, 0x1000015]:
             if key == 0x1000013:
@@ -514,6 +608,7 @@ class myQGraphicsView(QtGui.QGraphicsView):
             pos_v = scroll_v.value()
             pos_v += diff_y
             scroll_v.setValue(pos_v)
+            self.mainwin.history_mngr.updt_current_history_scroll()
 
     def keyReleaseEvent( self, event ):
         key = event.key()
@@ -536,12 +631,8 @@ class myQGraphicsView(QtGui.QGraphicsView):
             pos_v -= delta
             scroll_v.setValue(pos_v)
 
-
-        scale = pow(2.0, (self.zoom /600.0))
-        matrix = QtGui.QMatrix()
-        matrix.scale(scale, scale)
-
-        self.setMatrix(matrix)
+        self.set_zoom()
+        self.mainwin.history_mngr.updt_current_history_scroll()
 
 
 
@@ -553,18 +644,18 @@ class MainWindow(QtGui.QWidget):
         QtGui.QWidget.__init__(self, parent = None)
 
         QtGui.QShortcut(QtGui.QKeySequence("Ctrl+Q"), self, self.close)
-        self.label = label
-        self.ad = ad
-        self.all_bloc = all_bloc
+        QtGui.QShortcut(QtGui.QKeySequence("Ctrl+S"), self, self.save)
+        QtGui.QShortcut(QtGui.QKeySequence("Ctrl+G"), self, self.goto)
+        self.label = None
+        #self.ad = ad
+        #self.all_bloc = all_bloc
         self.dis_callback = dis_callback
-        self.history_ad = []
-        self.history_cur = -1
 
         view = View("Graph view", self)
         self.view = view
 
         self.populateScene()
-        self.history_mngr = history_mngr(self.view.view(), self.add_new_bloc, ad, all_bloc)
+        self.history_mngr = history_mngr(self.view.view(), self.refresh_nodes)#, ad, all_bloc)
         view.view().setScene(self.scene)
 
         layout = QtGui.QHBoxLayout()
@@ -576,9 +667,46 @@ class MainWindow(QtGui.QWidget):
 
         self.i_pos = None
         self.drop_mouse_event = False
-        self.add_new_bloc()
+        #self.refresh_nodes()
 
+    def new_disasm(self, ad, all_bloc, label):
+        self.ad = ad
+        self.all_bloc = all_bloc
+        self.label = label
 
+        self.history_mngr.history_list[self.history_mngr.history_index] = history_point(ad, all_bloc)
+
+    def save(self):
+        import pickle
+        text, ok = QtGui.QInputDialog.getText(None, "save",
+                                              'filename:')
+        if not ok:
+            return
+        text = str(text)
+        f = open(text, "w")
+        h = self.history_mngr.save()
+        pickle.dump((self.symbol_pool, h), f)
+        f.close()
+
+    def restaure(self, filename):
+        import pickle
+        f = open(filename)
+        self.symbol_pool, h = pickle.load(f)
+        f.close()
+        self.history_mngr.restaure(h)
+
+    def goto(self):
+        text, ok = QtGui.QInputDialog.getText(None, "goto",
+                                              'enter symbol/address:')
+        if not ok:
+            return
+
+        text = str(text)
+        ad = parse_address(text, self.symbol_pool)
+        if ad == None:
+            print 'bad addr', text
+            return
+        app.postEvent(self,e_refresh(self.history_mngr.hist_next, ad))
 
     def pos2graphpos(self, x, y):
         o_x = self.zoom*x + self.add_x
@@ -625,9 +753,9 @@ class MainWindow(QtGui.QWidget):
         E = []
         for b in all_bloc:
             if self.label:
-                V[b.label] = Vertex(str(b.label.name) +":\n"+"\n".join(["%.8X  "%x.offset + str(x) for x in b.lines]))
+                V[b.label] = Vertex(b)#str(b.label.name) +":\n"+"\n".join(["%.8X  "%x.offset + str(x) for x in b.lines]))
             else:
-                V[b.label] = Vertex(str(b.label.name) +":\n"+"\n".join([str(x) for x in b.lines]))
+                V[b.label] = Vertex(b)#str(b.label.name) +":\n"+"\n".join([str(x) for x in b.lines]))
         for b in all_bloc:
             for c in b.bto:
                 if not isinstance(c.label, asmbloc.asm_label):
@@ -641,15 +769,16 @@ class MainWindow(QtGui.QWidget):
                 else:
                     data = QtCore.Qt.red
                 ###
+                c.color = data
                 if b.label in V and c.label in V:
-                    E.append(Edge(V[b.label], V[c.label], data = data))
+                    E.append(Edge(V[b.label], V[c.label], data = c))
         h = asmbloc.getblocby_offset(all_bloc, ad)
         if h:
             hdr = V[h.label]
         else:
             hdr = None
-        V =  V.values()
-        g = Graph(V,E)
+        #V =  V.values()
+        g = Graph(V.values(),E)
         return hdr, g, V, E
 
     def graph_from_v_e(self, ad, all_bloc):
@@ -662,39 +791,12 @@ class MainWindow(QtGui.QWidget):
             data = QtCore.Qt.black
             E.append(Edge(V[a], V[b], data = data))
         hdr = V[v_hdr]
-        V =  V.values()
-        g = Graph(V,E)
+        #V =  V.values()
+        g = Graph(V.values(),E)
         return hdr, g, V, E
 
 
-    def add_new_bloc(self):
-        self.view.view().current_node = None
-
-        print 'add_new_bloc', self.history_mngr.history_current
-        ad = self.history_mngr.history_current.ad
-        all_bloc = self.history_mngr.history_current.all_bloc
-        print "AD", hex(ad)
-
-        for b in self.scene_blocs:
-            b.widget().destroy()
-            self.scene.removeItem(b)
-        self.scene_blocs = []
-        for e in self.scene_edges:
-            self.scene.removeItem(e)
-        self.scene_edges = []
-        self.scene.clear()
-        w = self.scene.width()
-        h = self.scene.height()
-        self.scene.update(0, 0, w, h)
-
-        if not all_bloc:
-            print 'DIS', hex(ad)
-            all_bloc = self.dis_callback(ad)
-            self.history_mngr.history_current.all_bloc = all_bloc
-            g = asmbloc.bloc2graph(all_bloc)
-            open("graph.txt" , "w").write(g)
-
-
+    def set_blocs_pos(self, ad, all_bloc):
         if isinstance(all_bloc, list):
             hdr, g, V, E = self.graph_from_asmbloc(ad, all_bloc)
         else:
@@ -707,14 +809,18 @@ class MainWindow(QtGui.QWidget):
         nn = node_asm_bb("toto", self)
         mfont = nn.currentFont()
         class defaultview(object):
-            def __init__(self, data = None):
+            def __init__(self, k = None, data = None):
                 self.data = data
+                self.k = k
                 if not data:
                     self.w, self.h = 80,40
                 else:
-                    self.data = self.data.replace('\t', ' '*4)
-                    s = self.data.split('\n')
-                    w, h = getTextwh_font(self.data, 1, mfont)
+                    txt = str(self.data.label.name) +":\n"
+                    txt += "\n".join(["%.8X  "%x.offset + str(x) for x in self.data.lines])
+                    txt = txt.replace('\t', ' '*4)
+                    self.txt = txt
+                    s = self.txt.split('\n')
+                    w, h = getTextwh_font(self.txt, 1, mfont)
                     self.h = h
                     self.w = w
 
@@ -722,7 +828,7 @@ class MainWindow(QtGui.QWidget):
             l = []
             def setpath(self, l):
                 self.l = l
-        for v in V: v.view = defaultview(v.data)
+        for k, v in V.items(): v.view = defaultview(k, v.data)
         for e in E: e.view = defaultview()
         min_x = None
         min_y = None
@@ -730,8 +836,6 @@ class MainWindow(QtGui.QWidget):
         max_y = None
         max_pos_x = 0
         max_pos_y = 0
-
-
         # for all connexe parts
         for index in xrange(len(g.C)):
 
@@ -740,6 +844,7 @@ class MainWindow(QtGui.QWidget):
             sug.xspace = 40
             sug.yspace = 40
             sug.init_all()
+            #sug.init_all(roots=[gr.sV.o[0]],inverted_edges=[])
             sug.route_edge = route_with_splines
             sug.draw(1)
 
@@ -757,19 +862,21 @@ class MainWindow(QtGui.QWidget):
                 pos = n.view.xy
                 if not first_pos:
                     first_pos = pos
-                
-                e = node_asm_bb(n.data, self)
-                e.h = MyHighlighter(e)
+
+                #e = node_asm_bb(n.data, self)
+                #e.h = MyHighlighter(e)
                 p_x = pos[0] - n.view.w/2 + max_pos_x - min_pos_x
                 p_y = pos[1] - n.view.h/2
-                e.setpos(p_x, p_y, n.view.w, n.view.h)
+                #e.setpos(p_x, p_y, n.view.w, n.view.h)
+                # set pos to all_bloc node
+                b = n.data
+                b.g_pos = (p_x, p_y, n.view.w, n.view.h)
                 if p_x + n.view.w > new_max_pos_x:
                     new_max_pos_x = p_x + n.view.w
-                wproxy = self.scene.addWidget(e)
-                self.scene_blocs.append(wproxy)
-    
-                e.show()
-    
+                #wproxy = self.scene.addWidget(e)
+                #self.scene_blocs.append(wproxy)
+                #e.show()
+
             for e in g.C[index].sE:
                 min_x = None
                 min_y = None
@@ -784,69 +891,101 @@ class MainWindow(QtGui.QWidget):
                     p1 = e.v[0].view.xy
                     p2 = e.v[1].view.xy
 
-                    
-                    for p in [p1, p2]:
-                        if min_x == None or p[0] < min_x:
-                            min_x = p[0]
-                        if max_x == None or p[0] > max_x:
-                            max_x = p[0]
-    
-                        if min_y == None or p[1] < min_y:
-                            min_y = p[1]
-                        if max_y == None or p[1] > max_y:
-                            max_y = p[1]
                     pts = [p1, p2]
                 else:
-                    for p in e.view.l:
-                        x, y = p[0] + max_pos_x, p[1]
-                        p = x, y
-
-                        if min_x == None or p[0] < min_x:
-                            min_x = p[0]
-                        if max_x == None or p[0] > max_x:
-                            max_x = p[0]
-    
-                        if min_y == None or p[1] < min_y:
-                            min_y = p[1]
-                        if max_y == None or p[1] > max_y:
-                            max_y = p[1]
                     pts = e.view.l
                 for i, p in enumerate(pts):
                     x, y = p[0] + max_pos_x - min_pos_x, p[1]
                     p = x, y
                     pts[i] = p
-                e = graph_edge(min_x, min_y, max_x, max_y, pts, e.data, end_angle, e.view.splines)
-                self.scene.addItem(e)
-                self.scene_edges.append(e)
 
+
+                    if min_x == None or p[0] < min_x:
+                        min_x = p[0]
+                    if max_x == None or p[0] > max_x:
+                        max_x = p[0]
+                    if min_y == None or p[1] < min_y:
+                        min_y = p[1]
+                    if max_y == None or p[1] > max_y:
+                        max_y = p[1]
+
+                e.data.g_pos = (min_x, min_y, max_x, max_y,
+                                pts,
+                                e.data.color, end_angle, e.view.splines)
             max_pos_x = new_max_pos_x
+
+
+    def refresh_nodes(self):
+        self.view.view().current_node = None
+
+        ad = self.history_mngr.history_current.ad
+        all_bloc = self.history_mngr.history_current.all_bloc
+
+        for b in self.scene_blocs:
+            b.widget().destroy()
+            self.scene.removeItem(b)
+        self.scene_blocs = []
+        for e in self.scene_edges:
+            self.scene.removeItem(e)
+        self.scene_edges = []
+        self.scene.clear()
+        w = self.scene.width()
+        h = self.scene.height()
+        self.scene.update(0, 0, w, h)
+
+        if not all_bloc:
+            global syntax_rules
+            print 'DIS', hex(ad)
+            all_bloc = self.dis_callback(ad)
+            syntax_rules = gen_syntax_rules(self.symbol_pool)
+            self.history_mngr.history_current.all_bloc = all_bloc
+            g = asmbloc.bloc2graph(all_bloc)
+            open("graph.txt" , "w").write(g)
+
+        # test if bloc has position already set
+        if not (all_bloc and "g_pos" in all_bloc[0].__dict__):
+            self.set_blocs_pos(ad, all_bloc)
+
+        first_pos = False
+        for b in all_bloc:
+            if not first_pos:
+                first_pos = b.g_pos[:2]
+            txt = str(b.label.name) +":\n"
+            txt += "\n".join(["%.8X  "%x.offset + str(x) for x in b.lines])
+            txt = txt.replace('\t', ' '*4)
+            e = node_asm_bb(txt, self)
+            e.h = MyHighlighter(e)
+            if not "g_pos" in b.__dict__:
+                print "WARNING: unset bloc pos", b.label 
+                continue
+            e.setpos(*b.g_pos)
+            wproxy = self.scene.addWidget(e)
+            self.scene_blocs.append(wproxy)
+            e.show()
+
+            for c in b.bto:
+                if not "g_pos" in c.__dict__:
+                    continue
+                g_e = graph_edge(*c.g_pos)
+                self.scene.addItem(g_e)
+                self.scene_edges.append(g_e)
 
 
         scroll_h = self.history_mngr.history_current.scroll_h
         scroll_v = self.history_mngr.history_current.scroll_v
+        zoom = self.history_mngr.history_current.zoom
         if scroll_h != None or scroll_v != None:
+            self.view.view().zoom = zoom
+            self.view.view().set_zoom()
             self.view.view().horizontalScrollBar().setValue(scroll_h)
             self.view.view().verticalScrollBar().setValue(scroll_v)
             return
 
         if first_pos:
             self.view.view().centerOn(first_pos[0], first_pos[1])
-        '''
-        print min_x, max_x, min_y, max_y
-
-        if scroll_h == None or scroll_v == None:
-            print 'default scroll val'
-            scroll_h = 0
-            scroll_v = 0
-        '''
-        """
-        print "scroll val", scroll_h, scroll_v
-        self.view.view().horizontalScrollBar().setValue(scroll_h)
-        self.view.view().verticalScrollBar().setValue(scroll_v)
-        """
 
 
-    def populateScene(self):#, ad, all_bloc):
+    def populateScene(self):
         self.scene = QtGui.QGraphicsScene()
         self.scene.setBackgroundBrush(QtGui.QBrush(QtGui.QColor(230, 250, 250, 255)))
         self.scene_blocs = []
@@ -858,19 +997,35 @@ class MainWindow(QtGui.QWidget):
             self.history_mngr.next(event.ad)
         elif event.hist_dir == history_mngr.hist_back:
             self.history_mngr.back()
-        
-
-class MyEvent(QEvent):
-    def __init__(self,hist_dir, ad = None):
+        elif event.hist_dir == None:
+            self.history_mngr.updt_current_history_scroll()
+            self.refresh_nodes()
+class e_refresh(QEvent):
+    def __init__(self, hist_dir = None, ad = None):
         QEvent.__init__(self,QEvent.User)
         self.hist_dir = hist_dir
         self.ad = ad
 
-
-def graph_blocs(ad, all_bloc, label = False, dis_callback = None):
+def graph_blocs(ad, symbol_pool, all_bloc, label = False, dis_callback = None, load_state_file = None):
     global app
+    global syntax_rules
+
+
     app = QtGui.QApplication(sys.argv)
-    g = MainWindow(ad, all_bloc, label, dis_callback)
+    g = MainWindow(dis_callback = dis_callback)
+
+    if load_state_file:
+        g.restaure(load_state_file)
+        syntax_rules = gen_syntax_rules(g.symbol_pool)
+        # must replace original pool
+        symbol_pool.s = g.symbol_pool.s
+        symbol_pool.s_offset = g.symbol_pool.s_offset
+        g.refresh_nodes()
+    else:
+        g.symbol_pool = symbol_pool
+        syntax_rules = gen_syntax_rules(g.symbol_pool)
+        g.new_disasm(ad, all_bloc, label)
+        g.refresh_nodes()
     g.show()
     app.exec_()
     app.quit()
