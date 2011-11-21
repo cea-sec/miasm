@@ -161,7 +161,7 @@ unsanity_mnemo = ['nop', 'monitor', 'mwait', 'fadd', 'faddp', 'fiadd', 'fcmovb',
                   'fdiv', 'fdivr', 'fidivr', 'fdivrp', 'ficom', 'ficomp', 'fild', 'fist', 'fistp', 'fisttp',
                   'fld', 'fldcw', 'fld1', 'fldl2t', "fldl2e", "fldpi", "fldlg2", "fldln2", "fldz", 'fldenv', 'fmul', 'fimul', 'fmulp', 'fst', 'fstp', 'fnstcw', 'fnstenv', 'f2xm1',
                   'fnstsw', 'fsub', 'fsubr', 'fisubr', 'fsubrp', 'ftst', 'fucom', 'fucompp', 'fxam', 'fxtract', 'fyl2x', 'fyl2xp1', 'fsqrt', 'fsincos', 'fsin', 'fscale',
-                  'fcos', 'fdecstp', 'fnop', 'fpatan', 'fprem', 'fprem1', 'fptan', 'frndint', "shl", 'sal', 'sar']
+                  'fcos', 'fdecstp', 'fnop', 'fpatan', 'fprem', 'fprem1', 'fptan', 'frndint', "shl", 'sal', 'sar', 'fabs']
 
 
 mask_drcrsg = {cr:0x100, dr:0x200, sg:0x400}
@@ -1078,7 +1078,6 @@ class x86allmncs:
         addop("mwait", [0x0F, 0x01, 0xC9], noafs, no_rm         , {}                 ,{}                , {},                         )
 
         #x87 fpu                                                                                        , {}
-        addop("fabs",  [0xD9, 0xE1],       noafs, no_rm         , {}                 ,{}                , {},                         )
 
         addop("fadd",  [0xD8],             d0,    no_rm         , {sd:(0,2)}         ,{}         , {},                         )
         addop("fadd",  [0xD8, 0xC0],       reg,   [r_eax]       , {sw:(0,2)}         ,{sd:False,sw:False},{},                         )
@@ -1193,6 +1192,7 @@ class x86allmncs:
 
         addop("fldcw", [0xD9],             d5,    no_rm         , {}                 ,{wd:True}         , {},                         ) 
         addop("fldenv",[0xD9],             d4,    no_rm         , {}                 ,{wd:False}        , {},                         ) 
+        addop("fabs",  [0xD9, 0xE1],       noafs, no_rm         , {}                 ,{}                , {},                         )
 
         addop("fld1",  [0xD9, 0xE8],       noafs, no_rm         , {}                 ,{sd:False}        , {},                         )
         addop("fldl2t",[0xD9, 0xE9],       noafs, no_rm         , {}                 ,{sd:False}        , {},                         )

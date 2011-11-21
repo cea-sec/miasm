@@ -1662,6 +1662,11 @@ def fsin():
     e.append(ExprAff(float_st0, ExprOp('fsin', float_st0)))
     return e
 
+def fcos():
+    e = []
+    e.append(ExprAff(float_st0, ExprOp('fcos', float_st0)))
+    return e
+
 def fscale():
     e = []
     e.append(ExprAff(float_st0, ExprOp('fscale', float_st0, float_st1)))
@@ -1670,6 +1675,16 @@ def fscale():
 def f2xm1():
     e = []
     e.append(ExprAff(float_st0, ExprOp('f2xm1', float_st0)))
+    return e
+
+def fsqrt():
+    e = []
+    e.append(ExprAff(float_st0, ExprOp('fsqrt', float_st0)))
+    return e
+
+def fabs():
+    e = []
+    e.append(ExprAff(float_st0, ExprOp('fabs', float_st0)))
     return e
 
 
@@ -2018,8 +2033,11 @@ mnemo_func = {'mov': mov,
               'fptan':fptan,
               'frndint':frndint,
               'fsin':fsin,
+              'fcos':fcos,
               'fscale':fscale,
               'f2xm1':f2xm1,
+              'fsqrt':fsqrt,
+              'fabs':fabs,
               'fnstsw':fnstsw,
               'fnstcw':fnstcw,
               'fldcw':fldcw,

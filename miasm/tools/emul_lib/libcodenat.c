@@ -926,6 +926,16 @@ double fsin(double a)
 	return b;
 }
 
+double fcos(double a)
+{
+	double b;
+	b = cos(a);
+#ifdef DEBUG_MIASM_DOUBLE
+	printf("%e %e\n", a, b);
+#endif
+	return b;
+}
+
 
 double fscale(double a, double b)
 {
@@ -941,6 +951,26 @@ double f2xm1(double a)
 {
 	double b;
 	b = exp2(a)-1;
+#ifdef DEBUG_MIASM_DOUBLE
+	printf("%e %e\n", a, b);
+#endif
+	return b;
+}
+
+double fsqrt(double a)
+{
+	double b;
+	b = sqrt(a);
+#ifdef DEBUG_MIASM_DOUBLE
+	printf("%e %e\n", a, b);
+#endif
+	return b;
+}
+
+double fabs(double a)
+{
+	double b;
+	b = abs(a);
 #ifdef DEBUG_MIASM_DOUBLE
 	printf("%e %e\n", a, b);
 #endif

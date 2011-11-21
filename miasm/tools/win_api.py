@@ -143,6 +143,7 @@ class c_winobjs:
         self.win_event_num = 0x13370
         self.cryptdll_md5_h = {}
 
+        self.lastwin32error = 0
 winobjs = c_winobjs()
 
 
@@ -904,7 +905,7 @@ def kernel32_GetLastError():
     print whoami(), hex(ret_ad), '(',  ')'
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
-    regs['eax'] = win32error.lastwin32error
+    regs['eax'] = winobjs.lastwin32error
     vm_set_gpreg(regs)
 
 def kernel32_SetLastError():
@@ -912,7 +913,7 @@ def kernel32_SetLastError():
     e = vm_pop_uint32_t()
     print whoami(), hex(ret_ad), hex(e)
 
-    win32error.lastwin32error = e
+    winobjs.lastwin32error = e
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = 0

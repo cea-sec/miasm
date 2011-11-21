@@ -456,7 +456,7 @@ class ExprOp(Expr):
                 return "%s(%s)"%(self.op, self.args[0].toC())
             elif self.op.startswith("double_to_mem_"):
                 return "%s(%s)"%(self.op, self.args[0].toC())
-            elif self.op in ["ftan", "frndint", "f2xm1", "fsin"]:
+            elif self.op in ["ftan", "frndint", "f2xm1", "fsin", "fsqrt", "fabs", "fcos"]:
                 return "%s(%s)"%(self.op, self.args[0].toC())
             else:
                 print self.op
