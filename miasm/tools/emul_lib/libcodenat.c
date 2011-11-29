@@ -155,15 +155,16 @@ static inline uint64_t memory_page_read(unsigned int my_size, uint64_t ad)
 	/* read is multiple page wide */
 	else{
 		unsigned int new_size = my_size;
-		fprintf(stderr, "read multiple page! %"PRIX64" %X\n", ad, new_size);
+		int index = 0;
+		fprintf(stderr, "read multiple page! %"PRIX64" %d\n", ad, new_size);
 		dump_memory_page_pool();
 		while (new_size){
-			ret <<=8;
 			mpn = get_memory_page_from_address(ad);
 			if (!mpn)
 				return 0;
 			addr = &((unsigned char*)mpn->ad_hp)[ad - mpn->ad];
-			ret = *((unsigned char*)addr)&0xFF;
+			ret |= (*((unsigned char*)addr)&0xFF)<<(index);
+			index +=8;
 			new_size -= 8;
 			ad ++;
 		}
@@ -231,7 +232,7 @@ static inline void memory_page_write(unsigned int my_size,
 	}
 	/* write is multiple page wide */
 	else{
-		fprintf(stderr, "write multiple page! %"PRIX64" %X\n", ad, my_size);
+		fprintf(stderr, "write multiple page! %"PRIX64" %d\n", ad, my_size);
 		dump_memory_page_pool();
 		switch(my_size){
 
@@ -259,6 +260,7 @@ static inline void memory_page_write(unsigned int my_size,
 			addr = &((unsigned char*)mpn->ad_hp)[ad - mpn->ad];
 			*((unsigned char*)addr) = src&0xFF;
 			my_size -= 8;
+			src >>=8;
 			ad ++;
 		}
 	}
