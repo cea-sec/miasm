@@ -118,6 +118,7 @@ class c_winobjs:
         self.module_fname_nux = None
         self.module_name = "test.exe\x00"
         self.module_path = "c:\\mydir\\"+self.module_name
+        self.hcurmodule = None
         self.module_filesize = None
         self.getversion = 0x0A280105
         self.getforegroundwindow =  0x333333
@@ -635,9 +636,9 @@ def kernel32_CreateFile(funcname, get_str):
 
     eax = 0xffffffff
 
-    if fname in [r"\\.\SICE", r"\\.\NTICE", r"\\.\Siwvid"]:
+    if fname.upper() in [r"\\.\SICE", r"\\.\NTICE", r"\\.\SIWVID"]:
         pass
-    elif fname in ['NUL']:
+    elif fname.upper() in ['NUL']:
         eax = winobjs.module_cur_hwnd
     else:
         # go in sandbox files
@@ -645,7 +646,7 @@ def kernel32_CreateFile(funcname, get_str):
         if access & 0x80000000:
             # read
             if not os.access(f, os.R_OK):
-                raise ValueError("file doesn't exit", fname)
+                raise ValueError("file doesn't exit", f)
         h = open(f, 'rb+')
         eax = winobjs.handle_pool.add(f, h)
 
@@ -832,7 +833,7 @@ def kernel32_GetModuleFileName(funcname, set_str):
 
     print whoami(), hex(ret_ad), '(', hex(hmodule), hex(lpfilename), hex(nsize), ')'
 
-    if hmodule in [0]:
+    if hmodule in [0, winobjs.hcurmodule]:
         p = winobjs.module_path[:]
     else:
         print ValueError('unknown module h', hex(hmodule))
@@ -912,6 +913,10 @@ def kernel32_SetLastError():
     ret_ad = vm_pop_uint32_t()
     e = vm_pop_uint32_t()
     print whoami(), hex(ret_ad), hex(e)
+
+    #lasterr addr
+    ad = seh_helper.FS_0_AD + 0x34
+    vm_set_mem(ad, pdw(e))
 
     winobjs.lastwin32error = e
     regs = vm_get_gpreg()
@@ -2710,7 +2715,7 @@ def kernel32_CreateFileMapping(funcname, get_str):
     dwmaximumsizelow = vm_pop_uint32_t()
     lpname = vm_pop_uint32_t()
 
-    print funcname, hex(hfile), hex(lpattr), hex(flprotect), hex(dwmaximumsizehigh), hex(dwmaximumsizelow)
+    print funcname, hex(ret_ad), hex(hfile), hex(lpattr), hex(flprotect), hex(dwmaximumsizehigh), hex(dwmaximumsizelow)
 
     if lpname:
         f = get_str(lpname)
