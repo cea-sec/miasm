@@ -145,11 +145,11 @@ def build_fake_inordermodule(modules_name):
 
     o = ""
     o += pdw(in_load_order_module_1  )
-    o += pdw(0)
+    o += pdw(in_load_order_module_1 + (len(modules_name)-1)*0x1000)
     o += pdw(in_load_order_module_1+8  )
-    o += pdw(0)
+    o += pdw(in_load_order_module_1 + (len(modules_name)-1)*0x1000 +8)
     o += pdw(in_load_order_module_1+0x10)
-    o += pdw(0)
+    o += pdw(in_load_order_module_1 + (len(modules_name)-1)*0x1000 +0x10)
 
     if main_pe:
         o += pdw(main_pe.NThdr.ImageBase)
@@ -172,38 +172,44 @@ def build_fake_inordermodule(modules_name):
     for i, m in enumerate(modules_name):
         #fname = os.path.join('win_dll', m)
         fname = m
-        bname = os.path.split(fname)[1].upper()
-        bname = "\x00".join(bname+"\x00\x00")
+        bname = os.path.split(fname)[1].lower()
+        bname = "\x00".join(bname)+"\x00"
         print "add module", repr(bname)
         print hex(in_load_order_module_1+i*0x1000)
         e = pe_init.PE(open(fname, 'rb').read())
+
+        next_ad = in_load_order_module_1 + (i+1)*0x1000
+        if i == len(modules_name) -1:
+            next_ad = in_load_order_module_list_address
         m_o = ""
-        m_o += pdw(in_load_order_module_1 + (i+1)*0x1000 )
+        m_o += pdw(next_ad )
         m_o += pdw(in_load_order_module_1 + (i-1)*0x1000)
-        m_o += pdw(in_load_order_module_1 + (i+1)*0x1000 + 8 )
+        m_o += pdw(next_ad + 8 )
         m_o += pdw(in_load_order_module_1 + (i-1)*0x1000 + 8)
-        m_o += pdw(in_load_order_module_1 + (i+1)*0x1000 + 0x10 )
+        m_o += pdw(next_ad + 0x10 )
         m_o += pdw(in_load_order_module_1 + (i-1)*0x1000 + 0x10)
         m_o += pdw(e.NThdr.ImageBase)
         m_o += pdw(e.rva2virt(e.Opthdr.AddressOfEntryPoint))
         m_o += pdw(e.NThdr.sizeofimage)
 
         m_o += (0x24 - len(m_o))*"A"
-        m_o += struct.pack('HH', len(bname), len(bname))
+        print hex(len(bname)), repr(bname)
+        m_o += struct.pack('HH', len(bname), len(bname)+2)
         m_o += pdw(in_load_order_module_1+i*0x1000+offset_name)
-        
+
         m_o += (0x2C - len(m_o))*"A"
-        m_o += struct.pack('HH', len(bname), len(bname))
+        m_o += struct.pack('HH', len(bname), len(bname)+2)
         m_o += pdw(in_load_order_module_1+i*0x1000+offset_name)
 
         m_o += (offset_name - len(m_o))*"B"
         m_o += bname
+        m_o += "\x00"*3
 
 
         m_o += (0x1000 - len(m_o))*"J"
 
         print "module", "%.8X"%e.NThdr.ImageBase, fname
-        
+
         o += m_o
     return o
 
@@ -387,20 +393,19 @@ fake_seh_handler.base = FAKE_SEH_B_AD
 
 
 def dump_seh():
-	print 'dump_seh:'
-	print '-> tib_address:', hex(tib_address)
-
-	cur_seh_ptr = vm_read_dword(tib_address)
-
-	indent = 1
-	loop = 0
-	while True:
-		#if loop > 3:
-                #		djawidj
-		prev_seh, eh = struct.unpack('II', vm_get_str(cur_seh_ptr, 8))
-		print '\t' * indent + 'seh_ptr:', hex(cur_seh_ptr), ' -> { prev_seh:', hex(prev_seh), 'eh:', hex(eh), '}'
-		if prev_seh in [0xFFFFFFFF, 0]:
-			break
-		cur_seh_ptr = prev_seh
-		indent += 1
-		loop += 1
+    print 'dump_seh:'
+    print '-> tib_address:', hex(tib_address)
+    cur_seh_ptr = vm_read_dword(tib_address)
+    indent = 1
+    loop = 0
+    while True:
+        if loop > 5:
+            print "too many seh, quit"
+            return
+        prev_seh, eh = struct.unpack('II', vm_get_str(cur_seh_ptr, 8))
+        print '\t' * indent + 'seh_ptr:', hex(cur_seh_ptr), ' -> { prev_seh:', hex(prev_seh), 'eh:', hex(eh), '}'
+        if prev_seh in [0xFFFFFFFF, 0]:
+            break
+        cur_seh_ptr = prev_seh
+        indent += 1
+        loop += 1
