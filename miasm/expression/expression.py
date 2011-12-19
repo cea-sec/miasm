@@ -300,6 +300,8 @@ class ExprCond(Expr):
     def get_size(self):
         return self.src1.get_size()
     def reload_expr(self, g = {}):
+        if self in g:
+            return g[self]
         src1 = self.src1
         if isinstance(src1, Expr):
             src1 = self.src1.reload_expr(g)
@@ -396,13 +398,14 @@ class ExprOp(Expr):
                 a = self.args[1].get_size()
         return a
     def reload_expr(self, g = {}):
+        if self in g:
+            return g[self]
         args = []
         for a in self.args:
             if isinstance(a, Expr):
                 args.append(a.reload_expr(g))
             else:
-                args.append(a)    
-        
+                args.append(a)
         return ExprOp(self.op, *args )
     def __contains__(self, e):
         if self == e:

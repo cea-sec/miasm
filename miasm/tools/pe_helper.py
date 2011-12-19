@@ -381,21 +381,26 @@ class libimp:
         self.lib_imp2ad = {}
         self.lib_imp2dstad = {}
         self.fad2cname = {}
-        
+
     def lib_get_add_base(self, name):
         name = name.lower()
+        if not name.lower().endswith('.dll'):
+            print 'warning adding .dll to modulename'
+            name += '.dll'
+            print name
+
         if name in self.name2off:
             ad = self.name2off[name]
         else:
-            print 'new lib', name
             ad = self.libbase_ad
+            print 'new lib', name, hex(ad)
             self.name2off[name] = ad
             self.libbase2lastad[ad] = ad+0x1
             self.lib_imp2ad[ad] = {}
             self.lib_imp2dstad[ad] = {}
             self.libbase_ad += 0x1000
         return ad
-    
+
     def lib_get_add_func(self, libad, imp_ord_or_name, dst_ad = None):
         if not libad in self.name2off.values():
             raise ValueError('unknown lib base!', hex(libad))
@@ -416,7 +421,7 @@ class libimp:
             return self.lib_imp2ad[libad][imp_ord_or_name]
         #print 'new imp', imp_ord_or_name, dst_ad
         ad = self.libbase2lastad[libad]
-        self.libbase2lastad[libad] += 0x1
+        self.libbase2lastad[libad] += 0x11 # arbitrary
         self.lib_imp2ad[libad][imp_ord_or_name] = ad
 
         name_inv = dict([(x[1], x[0]) for x in self.name2off.items()])
@@ -493,6 +498,10 @@ class libimp:
     def gen_new_lib(self, e):
         new_lib = []
         for n, ad in self.name2off.items():
+            out_ads = dict()
+            for k, vs in self.lib_imp2dstad[ad].items():
+                for v in vs:
+                    out_ads[v] = k
             all_ads = self.lib_imp2dstad[ad].values()
             all_ads = reduce(lambda x,y:x+list(y), all_ads, [])
             all_ads.sort()
@@ -508,10 +517,6 @@ class libimp:
                 i = 0
                 while i+1 < len(all_ads) and all_ads[i]+4 == all_ads[i+1]:
                     i+=1
-                out_ads = dict()
-                for k, vs in self.lib_imp2dstad[ad].items():
-                    for v in vs:
-                        out_ads[v] = k
                 funcs = [out_ads[x] for x in all_ads[:i+1]]
                 if e.is_in_virt_address(othunk):
                     new_lib.append(({"name":n,

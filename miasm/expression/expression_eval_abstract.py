@@ -589,7 +589,7 @@ class eval_abs:
         
         types_tab = [type(a) for a  in args]
         if types_tab.count(types_tab[0]) != len(args) and not e.op in self.op_size_no_check:
-            raise 'invalid cast %s %s'%(str(types_tab), str(args))
+            raise ValueError('invalid cast %r %r'%(types_tab, args))
         
         cast_int = types_tab[0]
         op_size = tab_int_size[types_tab[0]]

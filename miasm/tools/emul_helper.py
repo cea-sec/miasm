@@ -130,11 +130,7 @@ def mem_write(evaluator, env, mem_size, dst_address, src_val, pool_out = None):
         dump_pool(evaluator.pool)
         raise' write bug'
 
-  
-        
-    
- 
-###XXX for eval int 
+###XXX for eval int
 def get_instr_expr_args(name, modifs, mnemo_mode, args, my_eip):
     for a in args:
         if type(a) in [int, long]:
@@ -143,14 +139,25 @@ def get_instr_expr_args(name, modifs, mnemo_mode, args, my_eip):
 
     if name in ['jmp']:
         if isinstance(args[0], ExprInt):
-            e = mnemo_func[name](ExprOp('+', my_eip, args[0]))
+            print "X"*0x10, args[0]
+            arga = args[0].arg
+            if isinstance(arga, uint8):
+                arga = int8(arga)
+            e = mnemo_func[name](ExprOp('+', my_eip, ExprInt(uint32(arga))))
         else:
             e = mnemo_func[name](*args)
     elif name in jcc:
-        e = mnemo_func[name](my_eip, ExprOp('+', my_eip, args[0]))
+        arga = args[0].arg
+        if isinstance(arga, uint8):
+            arga = int8(arga)
+        e = mnemo_func[name](my_eip, ExprOp('+', my_eip, ExprInt(uint32(arga))))
     elif name in ['call']:
         if isinstance(args[0], ExprInt):# or is_imm(args[0]):
-            e = mnemo_func[name](my_eip, ExprOp('+', my_eip, args[0]))
+            arga = args[0].arg
+            if isinstance(arga, uint8):
+                arga = int8(arga)
+
+            e = mnemo_func[name](my_eip, ExprOp('+', my_eip, ExprInt(uint32(arga))))
         else:
             e = mnemo_func[name](my_eip, args[0])
     else:
@@ -166,7 +173,7 @@ def get_instr_expr(l, my_eip, args = None):
     return get_instr_expr_args(l.m.name, l.m.modifs, l.mnemo_mode, args, my_eip)
 
 
-
+"""
 ###XXX for eval abs
 def get_instr_expr_args(name, modifs, mnemo_mode, args, my_eip):
     for a in args:
@@ -186,7 +193,7 @@ def get_instr_expr_args(name, modifs, mnemo_mode, args, my_eip):
     else:
         e = mnemo_func[name](*args)
     return e
-
+"""
 ###XXX for eval abs
 def get_instr_expr(l, my_eip, args = None):
     if args==None:args = []

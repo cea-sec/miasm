@@ -1576,6 +1576,9 @@ def faddp(a, b = None):
         e+=float_pop(a)
     return e
 
+def fninit():
+    return []
+
 
 def fsub(a, b = None):
     if b == None:
@@ -1818,6 +1821,12 @@ def l_sysenter():
     return e
 
 #XXX
+def l_out(a, b):
+    e= []
+    e.append(ExprAff(ExprId('vmcpu.vm_exception_flags'), ExprInt(uint32(EXCEPT_PRIV_INSN))))
+    return e
+
+#XXX
 def l_outs():
     e= []
     e.append(ExprAff(ExprId('vmcpu.vm_exception_flags'), ExprInt(uint32(EXCEPT_PRIV_INSN)))) #SOFT BP
@@ -2025,6 +2034,7 @@ mnemo_func = {'mov': mov,
               'fldl2e':fldl2e,
               'fild':fild,
               'fadd':fadd,
+              'fninit':fninit,
               'faddp':faddp,
               'fsub':fsub,
               'fmul':fmul,
@@ -2061,6 +2071,7 @@ mnemo_func = {'mov': mov,
               'into':into,
               'in':l_in,
               'outs':l_outs,
+              'out':l_out,
               "sysenter":l_sysenter,
               "cmpxchg":cmpxchg,
               }
