@@ -145,6 +145,7 @@ class c_winobjs:
         self.cryptdll_md5_h = {}
 
         self.lastwin32error = 0
+        self.mutex = {}
 winobjs = c_winobjs()
 
 
@@ -714,6 +715,19 @@ def kernel32_GetFileSize():
     vm_set_gpreg(regs)
 
 
+def kernel32_FlushInstructionCache():
+    ret_ad = vm_pop_uint32_t()
+    hprocess = vm_pop_uint32_t()
+    lpbasead = vm_pop_uint32_t()
+    dwsize = vm_pop_uint32_t()
+
+    print whoami(), hex(ret_ad), hex(hprocess), hex(lpbasead), hex(dwsize)
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = 0x1337
+    vm_set_gpreg(regs)
+
+
 
 def kernel32_VirtualProtect():
     ret_ad = vm_pop_uint32_t()
@@ -731,13 +745,14 @@ def kernel32_VirtualProtect():
     vm_set_mem_access(lpvoid, access_dict[flnewprotect])
 
     #XXX todo real old protect
-    vm_set_mem(lpfloldprotect, pdw(0x40))
+    if lpfloldprotect:
+        vm_set_mem(lpfloldprotect, pdw(0x40))
 
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = 1
     vm_set_gpreg(regs)
-    dump_memory_page_pool_py()
+    #dump_memory_page_pool_py()
 
 
 
@@ -835,6 +850,9 @@ def kernel32_GetModuleFileName(funcname, set_str):
 
     if hmodule in [0, winobjs.hcurmodule]:
         p = winobjs.module_path[:]
+    elif winobjs.runtime_dll and hmodule in winobjs.runtime_dll.name2off.values() :
+        name_inv = dict([(x[1], x[0]) for x in winobjs.runtime_dll.name2off.items()])
+        p = name_inv[hmodule]
     else:
         print ValueError('unknown module h', hex(hmodule))
         p = None
@@ -848,7 +866,8 @@ def kernel32_GetModuleFileName(funcname, set_str):
     else:
         l = len(p)
 
-        print repr(p)
+    print repr(p)
+    if p:
         vm_set_mem(lpfilename, set_str(p))
 
     regs = vm_get_gpreg()
@@ -861,6 +880,34 @@ def kernel32_GetModuleFileNameA():
     kernel32_GetModuleFileName(whoami(), set_str_ansi)
 def kernel32_GetModuleFileNameW():
     kernel32_GetModuleFileName(whoami(), set_str_unic)
+
+
+
+def kernel32_CreateMutex(funcname, get_str):
+    ret_ad = vm_pop_uint32_t()
+    mutexattr = vm_pop_uint32_t()
+    initowner = vm_pop_uint32_t()
+    lpname = vm_pop_uint32_t()
+
+    print whoami(), hex(ret_ad), hex(mutexattr), hex(initowner), hex(lpname)
+
+    name = get_str(lpname)
+    print repr(name)
+    if name in winobjs.mutex:
+        ret = 0
+    else:
+        winobjs.mutex[name] = id(name)
+        ret = winobjs.mutex[name]
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = ret
+    vm_set_gpreg(regs)
+
+
+def kernel32_CreateMutexA():
+    kernel32_CreateMutex(whoami(), get_str_ansi)
+def kernel32_CreateMutexW():
+    kernel32_CreateMutex(whoami(), get_str_unic)
 
 
 def shell32_SHGetSpecialFolderLocation():
@@ -936,6 +983,7 @@ def kernel32_LoadLibraryA():
     print repr(libname)
 
     eax = winobjs.runtime_dll.lib_get_add_base(libname)
+    print "ret", hex(eax)
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = eax
@@ -945,7 +993,7 @@ def kernel32_GetProcAddress():
     ret_ad = vm_pop_uint32_t()
     libbase = vm_pop_uint32_t()
     fname = vm_pop_uint32_t()
-    print whoami(), hex(ret_ad), hex(fname), hex(libbase)
+    print whoami(), hex(ret_ad), hex(libbase), hex(fname)
     fname = fname & 0xFFFFFFFF
     if fname < 0x10000:
         fname = fname
@@ -974,6 +1022,7 @@ def kernel32_LoadLibraryW():
     print repr(libname)
 
     eax = winobjs.runtime_dll.lib_get_add_base(libname)
+    print "ret", hex(eax)
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = eax
@@ -987,12 +1036,12 @@ def kernel32_GetModuleHandleA():
 
     if dllname:
         libname = get_str_ansi(dllname)
-        print libname
-        if not libname.lower().endswith('.dll'):
-            print 'warning adding .dll to modulename'
-            libname += '.dll'
-            print libname
-        eax = winobjs.runtime_dll.lib_get_add_base(libname)
+        print repr(libname)
+        if libname:
+            eax = winobjs.runtime_dll.lib_get_add_base(libname)
+        else:
+            print 'unknown module!'
+            eax = 0
     else:
         eax = winobjs.current_pe.NThdr.ImageBase
         print "default img base" , hex(eax)
@@ -1647,6 +1696,9 @@ def kernel32_lstrcmpW():
 def kernel32_lstrcmpiW():
     my_lstrcmp(whoami(), lambda x: get_str_unic(x).lower())
 
+def kernel32_lstrcmpi():
+    my_lstrcmp(whoami(), lambda x: get_str_ansi(x).lower())
+
 
 
 def my_strcpy(funcname, get_str, set_str):
@@ -1673,6 +1725,22 @@ def kernel32_lstrcpyA():
 def kernel32_lstrcpy():
     my_strcpy(whoami(), get_str_ansi, lambda x:x+"\x00")
 
+
+def kernel32_lstrcpyn():
+    ret_ad = vm_pop_uint32_t()
+    ptr_str1 = vm_pop_uint32_t()
+    ptr_str2 = vm_pop_uint32_t()
+    mlen = vm_pop_uint32_t()
+    print whoami(), hex(ret_ad), hex(ptr_str1), hex(ptr_str2), hex(mlen)
+
+    s2 = get_str_ansi(ptr_str2)
+    print repr(s2)
+    s2 = s2[:mlen]
+    vm_set_mem(ptr_str1, s2)
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = ptr_str1
+    vm_set_gpreg(regs)
 
 def my_strlen(funcname, get_str, mylen):
     ret_ad = vm_pop_uint32_t()
