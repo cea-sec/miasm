@@ -707,7 +707,7 @@ def asm2C(f_name, known_mems, dyn_func, in_str, x86_mn, symbol_pool, func_to_dis
     return funcs_code, dyn_dispatcher
 
 
-def gen_C_from_asmbloc(in_str, offset, symbol_pool, dont_dis = [], job_done = None, log_mn = False, log_reg = False, log_lbl = False, filtered_ad = [], tick_dbg = None, code_addr = [], all_bloc_funcs = []):
+def gen_C_from_asmbloc(in_str, offset, symbol_pool, dont_dis = [], job_done = None, log_mn = False, log_reg = False, log_lbl = False, filtered_ad = [], tick_dbg = None, code_addr = [], all_bloc_funcs = [], **kargs):
     if job_done == None:
         job_done = set()
 
@@ -715,13 +715,14 @@ def gen_C_from_asmbloc(in_str, offset, symbol_pool, dont_dis = [], job_done = No
     l = symbol_pool.getby_offset_create(offset)
     cur_bloc = asmbloc.asm_bloc(l)
     asmbloc.dis_bloc(x86_mn, in_str, cur_bloc, offset, job_done, symbol_pool,[],
-                     follow_call = False, patch_instr_symb = True, dontdis_retcall = False,lines_wd = None, amode=x86_afs.u32, sex=0)
-    f_dec, out = bloc_gen_C_func([cur_bloc], f_name, None, True, log_mn, log_reg, log_lbl, filtered_ad, tick_dbg)
+                     follow_call = False, patch_instr_symb = True,
+                     dontdis_retcall = False,lines_wd = None,
+                     **kargs)
+    f_dec, out = bloc_gen_C_func([cur_bloc], f_name, None, True,
+                                 log_mn, log_reg, log_lbl,
+                                 filtered_ad, tick_dbg)
     #print "\n".join(out)
     return f_name, f_dec, out, cur_bloc
-
-    
-    
 
 
 def dispatch_table_from_f_blocs(all_f_b):
@@ -996,10 +997,10 @@ def updt_bloc_emul(known_blocs, in_str, my_eip, symbol_pool, code_blocs_mem_rang
 '''    
 
 ttt = 0
-def updt_bloc_emul(known_blocs, in_str, my_eip, symbol_pool, code_blocs_mem_range, dont_dis = [], job_done = None, log_mn = False, log_regs = False):
+def updt_bloc_emul(known_blocs, in_str, my_eip, symbol_pool, code_blocs_mem_range, dont_dis = [], job_done = None, log_mn = False, log_regs = False, **kargs):
     if job_done == None:
         job_done = set()
-    fname, f_dec, funcs_code, cur_bloc = gen_C_from_asmbloc(in_str, my_eip, symbol_pool, dont_dis, job_done, log_mn, log_regs)
+    fname, f_dec, funcs_code, cur_bloc = gen_C_from_asmbloc(in_str, my_eip, symbol_pool, dont_dis, job_done, log_mn, log_regs, **kargs)
 
     dyn_dispatcher = """
     #define GOTO_DYNAMIC do {return %s;} while(0)

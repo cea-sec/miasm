@@ -210,9 +210,11 @@ class interval():
         return self.intervals.__getitem__(s)
 
 
-def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool, dont_dis = [],
-             follow_call = False, patch_instr_symb = True, dontdis_retcall = False,
-             lines_wd = None, amode="u32", sex=0, dis_bloc_callback = None, dont_dis_nulstart_bloc = False):
+def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool,
+             dont_dis = [], follow_call = False, patch_instr_symb = True,
+             dontdis_retcall = False, lines_wd = None,
+             dis_bloc_callback = None, dont_dis_nulstart_bloc = False,
+             **kargs):
     pool_bin.offset = offset
     lines_cpt = 0
     while True:
@@ -249,7 +251,7 @@ def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool, dont_dis 
                 break
 
         try:
-            instr = mnemo.dis(pool_bin, amode, sex)
+            instr = mnemo.dis(pool_bin, **kargs)
         except StandardError, e:
             log_asmbloc.warning(e)
             instr = None
@@ -341,8 +343,9 @@ def split_bloc(all_bloc, symbol_pool, more_ref = None, dis_bloc_callback = None)
 
 def dis_bloc_all(mnemo, pool_bin, offset, job_done, symbol_pool, dont_dis = [],
                  follow_call = False, patch_instr_symb = True, dontdis_retcall = False,
-                 amode="u32", sex=0 , bloc_wd = None, lines_wd = None, all_bloc = None,
-                 dis_bloc_callback = None, dont_dis_nulstart_bloc = False):
+                 bloc_wd = None, lines_wd = None, all_bloc = None,
+                 dis_bloc_callback = None, dont_dis_nulstart_bloc = False,
+                 **kargs):
     log_asmbloc.info("dis bloc all")
     if all_bloc == None:
         all_bloc = []
@@ -375,7 +378,13 @@ def dis_bloc_all(mnemo, pool_bin, offset, job_done, symbol_pool, dont_dis = [],
             continue
         l = symbol_pool.getby_offset_create(n)
         cur_bloc = asm_bloc(l)
-        todo += dis_bloc(mnemo, pool_bin, cur_bloc, n, job_done, symbol_pool, dont_dis, follow_call, patch_instr_symb, dontdis_retcall, amode=amode, sex=sex, dis_bloc_callback = dis_bloc_callback, lines_wd = lines_wd, dont_dis_nulstart_bloc = dont_dis_nulstart_bloc)
+        todo += dis_bloc(mnemo, pool_bin, cur_bloc, n, job_done, symbol_pool,
+                         dont_dis, follow_call, patch_instr_symb,
+                         dontdis_retcall,
+                         dis_bloc_callback = dis_bloc_callback,
+                         lines_wd = lines_wd,
+                         dont_dis_nulstart_bloc = dont_dis_nulstart_bloc,
+                         **kargs)
         all_bloc.append(cur_bloc)
 
 
@@ -1218,7 +1227,7 @@ def steal_bytes(in_str, arch_mn, ad, l):
         erased_asm+=str(lines[-1])+'\n'
     return lines, total_bytes
 
-def dis_multi_func(in_str, mn, symbol_pool, ad, dont_dis = [], follow_call = False, dontdis_retcall = False, amode="u32", sex=0, dis_bloc_callback  =None ):
+def dis_multi_func(in_str, mn, symbol_pool, ad, dont_dis = [], follow_call = False, dontdis_retcall = False, dis_bloc_callback  =None ):
     todo = ad[:]
     done = set()
     all_bloc = []
@@ -1230,7 +1239,7 @@ def dis_multi_func(in_str, mn, symbol_pool, ad, dont_dis = [], follow_call = Fal
         if ad in done:
             continue
         done.add(ad)
-        all_bloc__ = dis_bloc_all(mn, in_str, ad, job_done, symbol_pool, dont_dis, follow_call, False, dontdis_retcall, all_bloc = all_bloc, amode=amode, sex=sex, dis_bloc_callback = dis_bloc_callback )
+        all_bloc__ = dis_bloc_all(mn, in_str, ad, job_done, symbol_pool, dont_dis, follow_call, False, dontdis_retcall, all_bloc = all_bloc, dis_bloc_callback = dis_bloc_callback )
         for b in all_bloc:
             if not b.lines:
                 #XXX not lines in bloc ???

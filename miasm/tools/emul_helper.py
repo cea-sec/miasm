@@ -129,7 +129,7 @@ def mem_write(evaluator, env, mem_size, dst_address, src_val, pool_out = None):
     except:
         dump_pool(evaluator.pool)
         raise' write bug'
-
+"""
 ###XXX for eval int
 def get_instr_expr_args(name, modifs, mnemo_mode, args, my_eip):
     for a in args:
@@ -163,7 +163,7 @@ def get_instr_expr_args(name, modifs, mnemo_mode, args, my_eip):
     else:
         e = mnemo_func[name](*args)
     return e
-
+"""
 ###XXX for eval int 
 def get_instr_expr(l, my_eip, args = None):
     if args==None:args = []
@@ -173,7 +173,7 @@ def get_instr_expr(l, my_eip, args = None):
     return get_instr_expr_args(l.m.name, l.m.modifs, l.mnemo_mode, args, my_eip)
 
 
-"""
+#"""
 ###XXX for eval abs
 def get_instr_expr_args(name, modifs, mnemo_mode, args, my_eip):
     for a in args:
@@ -193,7 +193,7 @@ def get_instr_expr_args(name, modifs, mnemo_mode, args, my_eip):
     else:
         e = mnemo_func[name](*args)
     return e
-"""
+#"""
 ###XXX for eval abs
 def get_instr_expr(l, my_eip, args = None):
     if args==None:args = []
