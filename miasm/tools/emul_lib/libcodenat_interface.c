@@ -208,6 +208,105 @@ PyObject* _vm_set_gpreg(PyObject *dict)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+PyObject* _vm_get_segm(void)
+{
+    PyObject *dict = PyDict_New();
+    PyObject *o;
+
+    o = PyInt_FromLong((long)vmcpu.es);
+    PyDict_SetItemString(dict, "es", o);
+    Py_DECREF(o);
+    o = PyInt_FromLong((long)vmcpu.cs);
+    PyDict_SetItemString(dict, "cs", o);
+    Py_DECREF(o);
+    o = PyInt_FromLong((long)vmcpu.ss);
+    PyDict_SetItemString(dict, "ss", o);
+    Py_DECREF(o);
+    o = PyInt_FromLong((long)vmcpu.ds);
+    PyDict_SetItemString(dict, "ds", o);
+    Py_DECREF(o);
+    o = PyInt_FromLong((long)vmcpu.fs);
+    PyDict_SetItemString(dict, "fs", o);
+    Py_DECREF(o);
+    o = PyInt_FromLong((long)vmcpu.gs);
+    PyDict_SetItemString(dict, "gs", o);
+    Py_DECREF(o);
+
+
+
+    return dict;
+}
+
+
+reg_segm_dict segm_dict[] = { {.name = "es", .ptr = &(vmcpu.es)},
+			      {.name = "cs", .ptr = &(vmcpu.cs)},
+			      {.name = "ss", .ptr = &(vmcpu.ss)},
+			      {.name = "ds", .ptr = &(vmcpu.ds)},
+			      {.name = "fs", .ptr = &(vmcpu.fs)},
+			      {.name = "gs", .ptr = &(vmcpu.gs)},
+
+
+};
+
+
+
+
+PyObject* _vm_set_segm(PyObject *dict)
+{
+    PyObject *d_key, *d_value = NULL;
+    Py_ssize_t pos = 0;
+    unsigned int val;
+    unsigned int i, found;
+
+    if(!PyDict_Check(dict))
+	    RAISE(PyExc_TypeError, "arg must be dict");
+    while(PyDict_Next(dict, &pos, &d_key, &d_value)){
+	    if(!PyString_Check(d_key))
+		    RAISE(PyExc_TypeError, "key must be str");
+
+	    if (PyInt_Check(d_value)){
+		    val = (unsigned int)PyInt_AsLong(d_value);
+	    }
+	    else if (PyLong_Check(d_value)){
+		    val = (unsigned int)PyInt_AsUnsignedLongLongMask(d_value);
+	    }
+	    else{
+		    RAISE(PyExc_TypeError,"value must be int");
+	    }
+
+	    found = 0;
+	    for (i=0; i < sizeof(segm_dict)/sizeof(reg_dict); i++){
+		    if (strcmp(PyString_AsString(d_key), segm_dict[i].name))
+			    continue;
+		    *(segm_dict[i].ptr) = val;
+		    found = 1;
+		    break;
+	    }
+
+	    if (found)
+		    continue;
+	    fprintf(stderr, "unkown key: %s\n", PyString_AsString(d_key));
+	    RAISE(PyExc_ValueError, "unkown reg");
+    }
+    return NULL;
+}
+
+
+
+
+
+
 PyObject* _vm_get_float(void)
 {
     PyObject *dict = PyDict_New();
@@ -724,7 +823,24 @@ PyObject* vm_set_gpreg(PyObject *self, PyObject *args)
 	_vm_set_gpreg(dict);
 	Py_INCREF(Py_None);
 	return Py_None;
+}
 
+
+PyObject* vm_get_segm(PyObject* self, PyObject* args)
+{
+    PyObject* p;
+    p = _vm_get_segm();
+    return p;
+}
+
+PyObject* vm_set_segm(PyObject *self, PyObject *args)
+{
+	PyObject* dict;
+	if (!PyArg_ParseTuple(args, "O", &dict))
+		return NULL;
+	_vm_set_segm(dict);
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 PyObject* vm_get_float(PyObject* self, PyObject* args)
@@ -933,6 +1049,60 @@ unsigned int get_memory_page_from_min_ad_py(unsigned int size)
 }
 
 
+PyObject* vm_get_segm_base(PyObject* self, PyObject* args)
+{
+	PyObject *item1;
+	unsigned int segm_num;
+	PyObject* v;
+
+	if (!PyArg_ParseTuple(args, "O", &item1))
+		return NULL;
+	if (PyInt_Check(item1)){
+		segm_num = (unsigned int)PyInt_AsLong(item1);
+	}
+	else if (PyLong_Check(item1)){
+		segm_num = (unsigned int)PyInt_AsUnsignedLongLongMask(item1);
+	}
+	else{
+		RAISE(PyExc_TypeError,"arg1 must be int");
+	}
+	v = PyInt_FromLong((long)vmcpu.segm_base[segm_num]);
+	return v;
+}
+
+PyObject* vm_set_segm_base(PyObject* self, PyObject* args)
+{
+	PyObject *item1, *item2;
+	unsigned int segm_num, segm_base;
+
+	if (!PyArg_ParseTuple(args, "OO", &item1, &item2))
+		return NULL;
+	if (PyInt_Check(item1)){
+		segm_num = (unsigned int)PyInt_AsLong(item1);
+	}
+	else if (PyLong_Check(item1)){
+		segm_num = (unsigned int)PyInt_AsUnsignedLongLongMask(item1);
+	}
+	else{
+		RAISE(PyExc_TypeError,"arg1 must be int");
+	}
+	if (PyInt_Check(item2)){
+		segm_base = (unsigned int)PyInt_AsLong(item2);
+	}
+	else if (PyLong_Check(item2)){
+		segm_base = (unsigned int)PyInt_AsUnsignedLongLongMask(item2);
+	}
+	else{
+		RAISE(PyExc_TypeError,"arg2 must be int");
+	}
+	vmcpu.segm_base[segm_num] = segm_base;
+
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
+
+
 PyObject* _vm_exec_blocs(PyObject* self, PyObject* args)
 {
 	PyObject* b;
@@ -1082,6 +1252,10 @@ static PyMethodDef CodenatMethods[] = {
      "X"},
     {"vm_set_gpreg",vm_set_gpreg, METH_VARARGS,
      "X"},
+    {"vm_get_segm", vm_get_segm, METH_VARARGS,
+     "X"},
+    {"vm_set_segm",vm_set_segm, METH_VARARGS,
+     "X"},
     {"vm_get_float", vm_get_float, METH_VARARGS,
      "X"},
     {"vm_set_float",vm_set_float, METH_VARARGS,
@@ -1135,6 +1309,10 @@ static PyMethodDef CodenatMethods[] = {
     {"vm_get_cpu_state",vm_get_cpu_state, METH_VARARGS,
      "X"},
     {"vm_set_cpu_state",vm_set_cpu_state, METH_VARARGS,
+     "X"},
+    {"vm_get_segm_base",vm_get_segm_base, METH_VARARGS,
+     "X"},
+    {"vm_set_segm_base",vm_set_segm_base, METH_VARARGS,
      "X"},
 
     {NULL, NULL, 0, NULL}        /* Sentinel */

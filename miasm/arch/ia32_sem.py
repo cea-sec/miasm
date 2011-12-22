@@ -218,6 +218,15 @@ ds = ExprId(reg_ds, size = 16)
 fs = ExprId(reg_fs, size = 16)
 gs = ExprId(reg_gs, size = 16)
 
+segm_dict = {
+    reg_es:es,
+    reg_cs:cs,
+    reg_ss:ss,
+    reg_ds:ds,
+    reg_fs:fs,
+    reg_gs:gs,
+    }
+
 tsc1 = ExprId(reg_tsc1, size = 32)
 tsc2 = ExprId(reg_tsc2, size = 32)
 
@@ -446,19 +455,19 @@ def update_flag_sub(x, y, z):
     return e
 
 
-def mov(a, b):
+def mov(info, a, b):
     return [ExprAff(a, b)]
 
-def xchg(a, b):
+def xchg(info, a, b):
     e = []
     e.append(ExprAff(a, b))
     e.append(ExprAff(b, a))
     return e
 
-def movzx(a, b):
+def movzx(info, a, b):
     return [ExprAff(a, ExprCompose([ExprSliceTo(ExprInt(uint32(0)), b.get_size(), a.get_size()), ExprSliceTo(b, 0, b.get_size())]))]
 
-def movsx(a, b):
+def movsx(info, a, b):
     return [ExprAff(a, ExprCompose([ExprSliceTo(ExprCond(ExprOp('==', get_op_msb(b), ExprInt(uint32(1))),
                                                          ExprInt(uint32(0xffffffff)),
                                                          ExprInt(uint32(0))),
@@ -466,10 +475,10 @@ def movsx(a, b):
                                     ExprSliceTo(b,
                                                 0, b.get_size())]))]
 
-def lea(a, b):
+def lea(info, a, b):
     return [ExprAff(a, b.arg)]
 
-def add(a, b):
+def add(info, a, b):
     e= []
     c = ExprOp('+', a, b)
     e+=update_flag_arith(c)
@@ -478,7 +487,7 @@ def add(a, b):
     e.append(ExprAff(a, c))
     return e
 
-def xadd(a, b):
+def xadd(info, a, b):
     e= []
     c = ExprOp('+', b, a)
     e+=update_flag_arith(c)
@@ -488,7 +497,7 @@ def xadd(a, b):
     e.append(ExprAff(a, c))
     return e
 
-def adc(a, b):
+def adc(info, a, b):
     e= []
     c = ExprOp('+',
                a,
@@ -501,7 +510,7 @@ def adc(a, b):
     e.append(ExprAff(a, c))
     return e
 
-def sub(a, b):
+def sub(info, a, b):
     e= []
     c = ExprOp('-', a, b)
     e+=update_flag_arith(c)
@@ -511,7 +520,7 @@ def sub(a, b):
     return e
 
 #a-(b+cf)
-def sbb(a, b):
+def sbb(info, a, b):
     e= []
     c = ExprOp('-',
                a,
@@ -524,11 +533,11 @@ def sbb(a, b):
     e.append(ExprAff(a, c))
     return e
 
-def neg(b):
+def neg(info, b):
     e= []
     cast_int = tab_uintsize[b.get_size()]
     a = ExprInt(cast_int(0))
-    
+
     c = ExprOp('-', a, b)
     e+=update_flag_arith(c)
     e+=update_flag_sub(a, b, c)
@@ -536,7 +545,7 @@ def neg(b):
     e.append(ExprAff(b, c))
     return e
 
-def l_not(b):
+def l_not(info, b):
     e= []
     cast_int = tab_uintsize[b.get_size()]
     c = ExprOp('!', b)
@@ -544,7 +553,7 @@ def l_not(b):
     return e
 
 
-def l_cmp(a, b):
+def l_cmp(info, a, b):
     e= []
     c = ExprOp('-', a, b)
     e+=update_flag_arith(c)
@@ -552,38 +561,38 @@ def l_cmp(a, b):
     e+=update_flag_af(c)
     return e
 
-def xor(a, b):
+def xor(info, a, b):
     e= []
     c = ExprOp('^', a, b)
     e+=update_flag_logic(c)
     e.append(ExprAff(a, c))
     return e
 
-def l_or(a, b):
+def l_or(info, a, b):
     e= []
     c = ExprOp('|', a, b)
     e+=update_flag_logic(c)
     e.append(ExprAff(a, c))
     return e
 
-def l_and(a, b):
+def l_and(info, a, b):
     e= []
     c = ExprOp('&', a, b)
     e+=update_flag_logic(c)
     e.append(ExprAff(a, c))
     return e
 
-def l_test(a, b):
+def l_test(info, a, b):
     e= []
     c = ExprOp('&', a, b)
     e+=update_flag_logic(c)
     return e
 
-def l_rol(a, b):
+def l_rol(info, a, b):
     e= []
     cast_int = tab_uintsize[a.get_size()]
     c = ExprOp('<<<', a, b)
-    
+
     new_cf = ExprOp("&", c ,ExprInt(cast_int(1)))
     e.append(ExprAff(cf, new_cf))
     ### hack (only valid if b=1)
@@ -591,17 +600,17 @@ def l_rol(a, b):
     e.append(ExprAff(a, c))
     return e
 
-def l_ror(a, b):
+def l_ror(info, a, b):
     e= []
     c = ExprOp('>>>', a, b)
-    
+
     e.append(ExprAff(cf, get_op_msb(c)))
     ### hack (only valid if b=1): when count == 1: a = msb-1(dest)
     e.append(ExprAff(of, ExprOp("^", get_op_msb(c), get_op_msb(a))))
     e.append(ExprAff(a, c))
     return e
 
-def rcl(a, b):
+def rcl(info, a, b):
     e= []
     c = ExprOp('<<<c_rez', a, b, cf)
     new_cf = ExprOp('<<<c_cf', a, b, cf)
@@ -612,7 +621,7 @@ def rcl(a, b):
     e.append(ExprAff(a, c))
     return e
 
-def rcr(a, b):
+def rcr(info, a, b):
     e= []
     c = ExprOp('>>>c_rez', a, b, cf)
     new_cf = ExprOp('>>>c_cf', a, b, cf)
@@ -624,7 +633,7 @@ def rcr(a, b):
     
     return e
 
-def sar(a, b):
+def sar(info, a, b):
     e= []
     cast_int = tab_uintsize[a.get_size()]
     cast_intb = tab_uintsize[b.get_size()]
@@ -640,10 +649,8 @@ def sar(a, b):
                                   shifter,
                                   ExprInt(cast_intb(1))
                                   )
-                           
                            )
                     )
-    
     e.append(ExprAff(cf, ExprCond(shifter,
                                   new_cf,
                                   cf)
@@ -654,7 +661,7 @@ def sar(a, b):
     e.append(ExprAff(a, c))
     return e
 
-def shr(a, b):
+def shr(info, a, b):
     e= []
     cast_int = tab_uintsize[a.get_size()]
     cast_intb = tab_uintsize[b.get_size()]
@@ -669,28 +676,24 @@ def shr(a, b):
                                   shifter,
                                   ExprInt(cast_intb(1))
                                   )
-                           
                            )
                     )
-    
     e.append(ExprAff(cf, ExprCond(shifter,
                                   new_cf,
                                   cf)
                      )
              )
-    
     e.append(ExprAff(of, get_op_msb(a)))
     e+=update_flag_znp(c)
     e.append(ExprAff(a, c))
     return e
 
-def shrd_cl(a, b):
+def shrd_cl(info, a, b):
     e= []
     cast_int = tab_uintsize[a.get_size()]
     cast_intb = tab_uintsize[b.get_size()]
 
     shifter = ExprOp('&',ecx, ExprInt(cast_intb(0x1f)))
-    
     c = ExprOp('|',
                 ExprOp('>>', a, shifter),
                 ExprOp('<<', b, ExprOp('-',
@@ -707,7 +710,6 @@ def shrd_cl(a, b):
                                   shifter,
                                   ExprInt(cast_intb(1))
                                   )
-                           
                            )
                     )
     e.append(ExprAff(cf, ExprCond(shifter,
@@ -720,7 +722,7 @@ def shrd_cl(a, b):
     e.append(ExprAff(a, c))
     return e
 
-def shrd(a, b, c):
+def shrd(info, a, b, c):
     e= []
     cast_int = tab_uintsize[a.get_size()]
     cast_intb = tab_uintsize[b.get_size()]
@@ -756,12 +758,12 @@ def shrd(a, b, c):
     e.append(ExprAff(a, d))
     return e
 
-def sal(a, b):
+def sal(info, a, b):
     e= []
     cast_int = tab_uintsize[a.get_size()]
     cast_intb = tab_uintsize[b.get_size()]
     shifter = ExprOp('&',b, ExprInt(cast_intb(0x1f)))
-    
+
     c = ExprOp('a<<', a, shifter)
     new_cf = ExprOp('&',
                     ExprInt(cast_int(1)),
@@ -771,10 +773,8 @@ def sal(a, b):
                                   ExprInt(cast_intb(a.get_size())),
                                   shifter
                                   )
-                           
                            )
                     )
-    
     e.append(ExprAff(cf, ExprCond(shifter,
                                   new_cf,
                                   cf)
@@ -785,12 +785,12 @@ def sal(a, b):
     e.append(ExprAff(a, c))
     return e
 
-def shl(a, b):
+def shl(info, a, b):
     e= []
     cast_int = tab_uintsize[a.get_size()]
     cast_intb = tab_uintsize[b.get_size()]
     shifter = ExprOp('&',b, ExprInt(cast_intb(0x1f)))
-    
+
     c = ExprOp('<<', a, shifter)
     new_cf = ExprOp('&',
                     ExprInt(cast_int(1)),
@@ -800,7 +800,6 @@ def shl(a, b):
                                   ExprInt(cast_intb(a.get_size())),
                                   shifter
                                   )
-                           
                            )
                     )
     e.append(ExprAff(cf, ExprCond(shifter,
@@ -813,12 +812,11 @@ def shl(a, b):
     e.append(ExprAff(a, c))
     return e
 
-def shld_cl(a, b):
+def shld_cl(info, a, b):
     e= []
     cast_int = tab_uintsize[a.get_size()]
     cast_intb = tab_uintsize[b.get_size()]
     shifter = ExprOp('&',ecx, ExprInt(cast_int(0x1f)))
-    
     c = ExprOp('|',
             ExprOp('<<', a, shifter),
             ExprOp('>>', b, ExprOp('-',
@@ -835,7 +833,6 @@ def shld_cl(a, b):
                                   ExprInt(cast_intb(a.get_size())),
                                   shifter
                                   )
-                           
                            )
                     )
     e.append(ExprAff(cf, ExprCond(shifter,
@@ -850,28 +847,28 @@ def shld_cl(a, b):
 
 
 #XXX todo ###
-def cmc():
+def cmc(info):
     return     [ExprAff(cf, ExprOp('==', cf, ExprInt(uint32(0))))]
 
-def clc():
+def clc(info):
     return     [ExprAff(cf, ExprInt(uint32(0)))]
 
-def stc():
+def stc(info):
     return     [ExprAff(cf, ExprInt(uint32(1)))]
 
-def cld():
+def cld(info):
     return     [ExprAff(df, ExprInt(uint32(0)))]
 
-def std():
+def std(info):
     return     [ExprAff(df, ExprInt(uint32(1)))]
 
-def cli():
+def cli(info):
     return     [ExprAff(i_f, ExprInt(uint32(0)))]
 
-def sti():
+def sti(info):
     return     [ExprAff(ExprId('vmcpu.vm_exception_flags'), ExprInt(uint32(1<<7)))]
 
-def inc(a):
+def inc(info, a):
     e= []
     b = ExprInt(tab_uintsize[a.get_size()](1))
     c = ExprOp('+', a, b)
@@ -879,12 +876,12 @@ def inc(a):
     e+=update_flag_af(c)
 
     cast_int = tab_uintsize[c.get_size()]
-    e.append(update_flag_add_of(cast_int, a, b, c))    
+    e.append(update_flag_add_of(cast_int, a, b, c))
     e.append(ExprAff(a, c))
     return e
 
 
-def dec(a):
+def dec(info, a):
     e= []
     b = ExprInt(tab_uintsize[a.get_size()](-1))
     c = ExprOp('+', a, b)
@@ -892,11 +889,11 @@ def dec(a):
     e+=update_flag_af(c)
 
     cast_int = tab_uintsize[c.get_size()]
-    e.append(update_flag_add_of(cast_int, a, b, c))    
+    e.append(update_flag_add_of(cast_int, a, b, c))
     e.append(ExprAff(a, c))
     return e
 
-def push(a):
+def push(info, a):
     e= []
     s = a.get_size()
     if not s in [16,32]:
@@ -905,8 +902,8 @@ def push(a):
     e.append(ExprAff(esp, c))
     e.append(ExprAff(ExprMem(c, s), a))
     return e
-    
-def pop(a):
+
+def pop(info, a):
     e= []
     s = a.get_size()
     if not s in [16,32]:
@@ -919,60 +916,60 @@ def pop(a):
     e.append(ExprAff(a, ExprMem(esp, s)))
     return e
 
-def sete(a):
+def sete(info, a):
     e = []
     e.append(ExprAff(a, ExprCond(ExprOp('==', zf, ExprInt(uint32(1))), ExprInt(tab_uintsize[a.get_size()](1)), ExprInt(tab_uintsize[a.get_size()](0)))))
     return e
 
-def setnz(a):
+def setnz(info, a):
     e = []
     e.append(ExprAff(a, ExprCond(ExprOp('==', zf, ExprInt(uint32(0))), ExprInt(tab_uintsize[a.get_size()](1)), ExprInt(tab_uintsize[a.get_size()](0)))))
     return e
 
-def setl(a):
+def setl(info, a):
     e = []
     e.append(ExprAff(a, ExprCond(ExprOp('==', ExprOp('==', nf, of), ExprInt(uint32(0))), ExprInt(tab_uintsize[a.get_size()](1)), ExprInt(tab_uintsize[a.get_size()](0)))))
     return e
 
-def setg(a):
+def setg(info, a):
     e = []
     e.append(ExprAff(a, ExprCond(ExprOp("&", ExprOp('==', zf, ExprInt(uint32(0))), ExprOp('==', nf, of)), ExprInt(tab_uintsize[a.get_size()](1)), ExprInt(tab_uintsize[a.get_size()](0)))))
     return e
 
-def setge(a):
+def setge(info, a):
     e = []
     e.append(ExprAff(a, ExprCond(ExprOp('==', nf, of), ExprInt(tab_uintsize[a.get_size()](1)), ExprInt(tab_uintsize[a.get_size()](0)))))
     return e
 
 
-def seta(a):
+def seta(info, a):
     e = []
     e.append(ExprAff(a, ExprCond(ExprOp('&', ExprOp('==', cf, ExprInt(uint32(0))), ExprOp('==', zf, ExprInt(uint32(0)))), ExprInt(tab_uintsize[a.get_size()](1)), ExprInt(tab_uintsize[a.get_size()](0)))))
     return e
 
-def setb(a):
+def setb(info, a):
     e = []
     e.append(ExprAff(a, ExprCond(ExprOp('==', cf, ExprInt(uint32(1))), ExprInt(tab_uintsize[a.get_size()](1)), ExprInt(tab_uintsize[a.get_size()](0)))))
     return e
 
-def setns(a):
+def setns(info, a):
     e = []
     e.append(ExprAff(a, ExprCond(ExprOp('==', nf, ExprInt(uint32(0))), ExprInt(tab_uintsize[a.get_size()](1)), ExprInt(tab_uintsize[a.get_size()](0)))))
     return e
 
-def sets(a):
+def sets(info, a):
     e = []
     e.append(ExprAff(a, ExprCond(ExprOp('==', nf, ExprInt(uint32(1))), ExprInt(tab_uintsize[a.get_size()](1)), ExprInt(tab_uintsize[a.get_size()](0)))))
     return e
 
 
-def seto(a): 
+def seto(info, a):
     e= []
     e.append(ExprAff(a, ExprCond(ExprOp('==', of, ExprInt(uint32(1))), ExprInt(tab_uintsize[a.get_size()](1)), ExprInt(tab_uintsize[a.get_size()](0)))))
     return e
 
 
-def bswap(a):
+def bswap(info, a):
     e = []
     c = ExprCompose([ExprSliceTo(ExprOp('&', ExprInt(tab_uintsize[a.get_size()](0xFF)), a),                                 24, 32),
                      ExprSliceTo(ExprOp('>>', ExprOp('&', ExprInt(tab_uintsize[a.get_size()](0xFF00)), a), ExprInt(uint32(8))),     16, 24),
@@ -982,43 +979,25 @@ def bswap(a):
     e.append(ExprAff(a, c))
     return e
 
-def cmpsb():
+def cmps(info, a, b):
     e= []
-    e+=l_cmp(ExprMem(esi, 8), ExprMem(edi, 8))
-    e.append(ExprAff(edi, ExprCond(df, ExprOp('-', edi, ExprInt(uint32(1))), ExprOp('+', edi, ExprInt(uint32(1))))))
-    e.append(ExprAff(esi, ExprCond(df, ExprOp('-', esi, ExprInt(uint32(1))), ExprOp('+', esi, ExprInt(uint32(1))))))
+    int_cast = tab_uintsize[a.get_size()]
+    e+=l_cmp(info, a, b)
+    e.append(ExprAff(a.arg, ExprCond(df,
+                                     ExprOp('-', a.arg, ExprInt(int_cast(a.get_size()/8))),
+                                     ExprOp('+', a.arg, ExprInt(int_cast(a.get_size()/8))))))
+    e.append(ExprAff(b.arg, ExprCond(df,
+                                     ExprOp('-', b.arg, ExprInt(int_cast(a.get_size()/8))),
+                                     ExprOp('+', b.arg, ExprInt(int_cast(a.get_size()/8))))))
     return e
 
-def cmpsw():
+def scas(info, a):
     e= []
-    e+=l_cmp(ExprMem(esi, 16), ExprMem(edi, 16))
-    e.append(ExprAff(edi, ExprCond(df, ExprOp('-', edi, ExprInt(uint32(2))), ExprOp('+', edi, ExprInt(uint32(2))))))
-    e.append(ExprAff(esi, ExprCond(df, ExprOp('-', esi, ExprInt(uint32(2))), ExprOp('+', esi, ExprInt(uint32(2))))))
-    return e
-
-def cmpsd():
-    e= []
-    e+=l_cmp(ExprMem(esi), ExprMem(edi))
-    e.append(ExprAff(edi, ExprCond(df, ExprOp('-', edi, ExprInt(uint32(4))), ExprOp('+', edi, ExprInt(uint32(4))))))
-    e.append(ExprAff(esi, ExprCond(df, ExprOp('-', esi, ExprInt(uint32(4))), ExprOp('+', esi, ExprInt(uint32(4))))))
-    return e
-
-def scasb():
-    e= []
-    e+=l_cmp(eax[0:8], ExprMem(edi, 8))
-    e.append(ExprAff(edi, ExprCond(df, ExprOp('-', edi, ExprInt(uint32(1))), ExprOp('+', edi, ExprInt(uint32(1))))))
-    return e
-
-def scasw():
-    e= []
-    e+=l_cmp(eax[0:16], ExprMem(edi, 16))
-    e.append(ExprAff(edi, ExprCond(df, ExprOp('-', edi, ExprInt(uint32(2))), ExprOp('+', edi, ExprInt(uint32(2))))))
-    return e
-
-def scasd():
-    e= []
-    e+=l_cmp(eax, ExprMem(edi))
-    e.append(ExprAff(edi, ExprCond(df, ExprOp('-', edi, ExprInt(uint32(4))), ExprOp('+', edi, ExprInt(uint32(4))))))
+    int_cast = tab_uintsize[a.get_size()]
+    e+=l_cmp(info, eax[0:a.get_size()], a)
+    e.append(ExprAff(a.arg, ExprCond(df,
+                                     ExprOp('-', a.arg, ExprInt(int_cast(a.get_size()/8))),
+                                     ExprOp('+', a.arg, ExprInt(int_cast(a.get_size()/8))))))
     return e
 
 
@@ -1043,13 +1022,13 @@ def compose_eflag(s = 32):
         args.append(ExprSliceTo(ExprInt(uint32(0)),22, 32))
     return ExprCompose(args)
 
-def pushfd():
-    return push(compose_eflag())
+def pushfd(info):
+    return push(info, compose_eflag())
 
-def pushfw():
-    return push(compose_eflag(16))
+def pushfw(info):
+    return push(info, compose_eflag(16))
 
-def popfd():
+def popfd(info):
     tmp = ExprMem(esp)
     e = []
     e.append(ExprAff(cf, ExprSlice(tmp, 0, 1)))
@@ -1072,7 +1051,7 @@ def popfd():
     e.append(ExprAff(esp, ExprOp('+', esp, ExprInt(uint32(4)))))
     return e
 
-def popfw():
+def popfw(info):
     tmp = ExprMem(esp)
     e = []
     e.append(ExprAff(cf, ExprSlice(tmp, 0, 1)))
@@ -1089,7 +1068,7 @@ def popfw():
     e.append(ExprAff(esp, ExprOp('+', esp, ExprInt(uint32(2)))))
     return e
 
-def pushad():
+def pushad(info):
     e = []
     s = 32
     if not s in [16,32]:
@@ -1101,7 +1080,7 @@ def pushad():
     e.append(ExprAff(esp, c))
     return e
 
-def popad():
+def popad(info):
     e = []
     s = 32
     if not s in [16,32]:
@@ -1113,146 +1092,185 @@ def popad():
             continue
         c = ExprOp('+', esp, ExprInt(uint32((s/8)*i)))
         e.append(ExprAff(regs[i], ExprMem(c, s)))
-        
+
     c = ExprOp('+', esp, ExprInt(uint32((s/8)*(i+1))))
     e.append(ExprAff(esp, c))
-    
+
     return e
 
 
-def call(a, b): 
+def call(info, a, b):
     e= []
-    c = ExprOp('+', esp, ExprInt(uint32(-4)))    
-    e.append(ExprAff(esp, c))
-    e.append(ExprAff(ExprMem(c), a))
+    opmode, admode = info
+    if opmode == u16:
+        s = 16
+        myesp = esp[:16]
+    else:
+        s = 32
+        myesp = esp
+    int_cast = tab_uintsize[s]
+
+    c = ExprOp('+', myesp, ExprInt(int_cast(-s/8)))
+    e.append(ExprAff(myesp, c))
+    e.append(ExprAff(ExprMem(c, size=s), a))
     e.append(ExprAff(eip, b))
     return e
 
-def ret(a = ExprInt(uint32(0))):
+def ret(info, a = ExprInt(uint32(0))):
     e = []
-    e.append(ExprAff(esp, ExprOp('+', esp, ExprOp('+', ExprInt(uint32(4)), a))))
-    e.append(ExprAff(eip, ExprMem(esp)))
-
-    
+    opmode, admode = info
+    if opmode == u16:
+        s = 16
+        myesp = esp[:16]
+    else:
+        s = 32
+        myesp = esp
+    int_cast = tab_uintsize[s]
+    e.append(ExprAff(myesp, ExprOp('+', myesp, ExprOp('+', ExprInt(int_cast(s/8)), a))))
+    e.append(ExprAff(eip, ExprMem(myesp, size = s)))
     return e
 
-def leave():
+def leave(info):
+    opmode, admode = info
+    if opmode == u16:
+        s = 16
+        myesp = esp[:16]
+        myebp = ebp[:16]
+    else:
+        s = 32
+        myesp = esp
+        myebp = ebp
+    int_cast = tab_uintsize[s]
+
     e = []
-    e.append(ExprAff(ebp, ExprMem(ebp)))
-    e.append(ExprAff(esp, ExprOp('+', ExprInt(uint32(4)), ebp)))
+    e.append(ExprAff(myebp, ExprMem(myebp, size = s)))
+    e.append(ExprAff(myesp, ExprOp('+', ExprInt(int_cast(s/8)), myebp)))
     return e
 
-def enter(a,b):
-    #XXX 32 bit...
+def enter(info, a,b):
+    opmode, admode = info
+    if opmode == u16:
+        s = 16
+        myesp = esp[:16]
+        myebp = ebp[:16]
+    else:
+        s = 32
+        myesp = esp
+        myebp = ebp
+    int_cast = tab_uintsize[s]
+
     e = []
-    e.append(ExprAff(ExprMem(esp), ebp))
-    e.append(ExprAff(ebp, ExprOp("-", esp, ExprInt(uint32(4)))))
-    e.append(ExprAff(esp, ExprOp('-', esp, 
-                                      ExprOp("+", a, ExprInt(uint32(4)))
+    esp_tmp = ExprOp("-", myesp, ExprInt(int_cast(s/8)))
+    e.append(ExprAff(ExprMem(esp_tmp,
+                             size = s),
+                     myebp))
+    e.append(ExprAff(myebp, esp_tmp))
+    e.append(ExprAff(myesp, ExprOp('-', myesp,
+                                      ExprOp("+", a, ExprInt(int_cast(s/8)))
                                 )
                     )
             )
     return e
 
-def jmp(a): 
+def jmp(info, a):
     e= []
     e.append(ExprAff(eip, a))
     return e
 
-def jz(a, b): 
+def jz(info, a, b):
     e= []
     e.append(ExprAff(eip, ExprCond(ExprOp('==', zf, ExprInt(uint32(1))), b, a)))
     return e
 
-def jnz(a, b): 
+def jnz(info, a, b):
     e= []
     e.append(ExprAff(eip, ExprCond(ExprOp('==', zf, ExprInt(uint32(0))), b, a)))
     return e
 
-def jp(a, b): 
+def jp(info, a, b):
     e= []
     e.append(ExprAff(eip, ExprCond(ExprOp('==', pf, ExprInt(uint32(1))), b, a)))
     return e
 
-def jnp(a, b): 
+def jnp(info, a, b):
     e= []
     e.append(ExprAff(eip, ExprCond(ExprOp('==', pf, ExprInt(uint32(0))), b, a)))
     return e
 
-def ja(a, b): 
+def ja(info, a, b):
     e= []
     e.append(ExprAff(eip, ExprCond(ExprOp('&', ExprOp('==', cf, ExprInt(uint32(0))), ExprOp('==', zf, ExprInt(uint32(0)))), b, a)))
     return e
 
-def jae(a, b): 
+def jae(info, a, b):
     e= []
     e.append(ExprAff(eip, ExprCond(ExprOp('==', cf, ExprInt(uint32(0))), b, a)))
     return e
 
-def jb(a, b): 
+def jb(info, a, b):
     e= []
     e.append(ExprAff(eip, ExprCond(ExprOp('==', cf, ExprInt(uint32(1))), b, a)))
     return e
 
-def jbe(a, b): 
+def jbe(info, a, b):
     e= []
     e.append(ExprAff(eip, ExprCond(ExprOp('|', ExprOp('==', cf, ExprInt(uint32(1))), ExprOp('==', zf, ExprInt(uint32(1)))), b, a)))
     return e
 
-def jge(a, b): 
+def jge(info, a, b):
     e= []
     e.append(ExprAff(eip, ExprCond(ExprOp('==', nf, of), b, a)))
     return e
 
-def jg(a, b): 
+def jg(info, a, b):
     e= []
     e.append(ExprAff(eip, ExprCond(ExprOp('&', ExprOp('==', zf, ExprInt(uint32(0))), ExprOp('==', nf, of)), b, a)))
     return e
 
-def jl(a, b): 
+def jl(info, a, b):
     e= []
     e.append(ExprAff(eip, ExprCond(ExprOp('==', ExprOp('==', nf, of), ExprInt(uint32(0))), b, a)))
     return e
 
-def jle(a, b): 
+def jle(info, a, b):
     e= []
     e.append(ExprAff(eip, ExprCond(ExprOp('|', zf, ExprOp('==', ExprOp('==', nf, of), ExprInt(uint32(0)))), b, a)))
     return e
 
-def js(a, b): 
+def js(info, a, b):
     e= []
     e.append(ExprAff(eip, ExprCond(ExprOp('==', nf, ExprInt(uint32(1))), b, a)))
     return e
 
-def jns(a, b): 
+def jns(info, a, b):
     e= []
     e.append(ExprAff(eip, ExprCond(ExprOp('==', nf, ExprInt(uint32(0))), b, a)))
     return e
 
-def jo(a, b):
+def jo(info, a, b):
     e= []
     e.append(ExprAff(eip, ExprCond(of, b, a)))
     return e
 
-def jno(a, b): 
+def jno(info, a, b):
     e= []
     e.append(ExprAff(eip, ExprCond(ExprOp('==', of, ExprInt(uint32(0))), b, a)))
     return e
 
-def jecxz(a, b): 
+def jecxz(info, a, b):
     e= []
     e.append(ExprAff(eip, ExprCond(ExprOp('==', ecx, ExprInt(uint32(0))), b, a)))
     return e
 
 
-def loop(a, b): 
+def loop(info, a, b):
     e= []
     c = ExprOp('-', ecx, ExprInt(uint32(1)))
     e.append(ExprAff(ecx, c))
     e.append(ExprAff(eip, ExprCond(ExprOp('==', ExprInt(uint32(0)), ExprOp('==', c, ExprInt(uint32(0)))), b, a)))
     return e
 
-def loopne(a, b): 
+def loopne(info, a, b):
     e= []
     c = ExprOp('-', ecx, ExprInt(uint32(1)))
     e.append(ExprAff(ecx, c))
@@ -1264,7 +1282,7 @@ def loopne(a, b):
     return e
 
 #XXX size to do; eflag
-def div(a):
+def div(info, a):
     e= []
 
     s = a.get_size()
@@ -1289,7 +1307,7 @@ def div(a):
     return e
 
 #XXX size to do; eflag
-def idiv(a):
+def idiv(info, a):
     e= []
 
     s = a.get_size()
@@ -1312,7 +1330,7 @@ def idiv(a):
     return e
 
 #XXX size to do; eflag
-def mul(a):
+def mul(info, a):
     e= []
     if a.get_size() == 32:
         c_hi = ExprOp('umul32_hi', eax, a)
@@ -1327,8 +1345,6 @@ def mul(a):
                                       ExprInt(uint32(0)),
                                       ExprInt(uint32(1)))))
 
-        
-        
     elif a.get_size() == 16:
         c_hi = ExprOp('umul16_hi', r_ax, a)
         c_lo = ExprOp('umul16_lo', r_ax, a)
@@ -1354,11 +1370,10 @@ def mul(a):
 
 
 
-    
     return e
 
 #XXX size to do; eflag
-def imul(a, b = None, c = None):
+def imul(info, a, b = None, c = None):
     e= []
     if b == None:
         if a.get_size() == 32:
@@ -1374,7 +1389,6 @@ def imul(a, b = None, c = None):
         elif a.get_size() == 8:
             c = ExprOp('imul08', eax, a)
             e.append(ExprAff(eax[:16], c))
-            
     else:
         if c == None:
             c = b
@@ -1385,7 +1399,7 @@ def imul(a, b = None, c = None):
 
 
 #XXX 16 bit bug
-def cdq():
+def cdq(info):
     e = []
     e.append(ExprAff(edx,
                      ExprCond(ExprOp('==', ExprOp('&', eax, ExprInt(uint32(0x80000000))), ExprInt(uint32(0))),
@@ -1395,61 +1409,36 @@ def cdq():
              )
     return e
 
-def stosb():
+def stos(info, a):
     e = []
-    e.append(ExprAff(ExprMem(edi, 8), eax[0:8]))
-    e.append(ExprAff(edi, ExprCond(df, ExprOp('-', edi, ExprInt(uint32(1))), ExprOp('+', edi, ExprInt(uint32(1))))))
+    int_cast = tab_uintsize[a.get_size()]
+    e.append(ExprAff(a, eax[0:a.get_size()]))
+    e.append(ExprAff(a.arg, ExprCond(df,
+                                     ExprOp('-', a.arg, ExprInt(int_cast(a.get_size()/8))),
+                                     ExprOp('+', a.arg, ExprInt(int_cast(a.get_size()/8))))))
     return e
 
-def stosw():
+def lods(info, a):
     e = []
-    e.append(ExprAff(ExprMem(edi, 16), eax[0:16]))
-    e.append(ExprAff(edi, ExprCond(df, ExprOp('-', edi, ExprInt(uint32(2))), ExprOp('+', edi, ExprInt(uint32(2))))))
+    int_cast = tab_uintsize[a.get_size()]
+    e.append(ExprAff(eax[0:a.get_size()], a))
+    e.append(ExprAff(a.arg, ExprCond(df,
+                                     ExprOp('-', a.arg, ExprInt(int_cast(a.get_size()/8))),
+                                     ExprOp('+', a.arg, ExprInt(int_cast(a.get_size()/8))))))
     return e
 
-def stosd():
+def movs(info, a, b):
     e = []
-    e.append(ExprAff(ExprMem(edi), eax))
-    e.append(ExprAff(edi, ExprCond(df, ExprOp('-', edi, ExprInt(uint32(4))), ExprOp('+', edi, ExprInt(uint32(4))))))
-    return e
+    int_cast = tab_uintsize[a.get_size()]
 
-def lodsb():
-    e = []
-    e.append(ExprAff(eax[0:8], ExprMem(esi, 8)))
-    e.append(ExprAff(esi, ExprCond(df, ExprOp('-', esi, ExprInt(uint32(1))), ExprOp('+', esi, ExprInt(uint32(1))))))
-    return e
+    e.append(ExprAff(a, b))
+    e.append(ExprAff(a.arg, ExprCond(df,
+                                     ExprOp('-', a.arg, ExprInt(int_cast(a.get_size()/8))),
+                                     ExprOp('+', a.arg, ExprInt(int_cast(a.get_size()/8))))))
+    e.append(ExprAff(b.arg, ExprCond(df,
+                                     ExprOp('-', b.arg, ExprInt(int_cast(a.get_size()/8))),
+                                     ExprOp('+', b.arg, ExprInt(int_cast(a.get_size()/8))))))
 
-def lodsw():
-    e = []
-    e.append(ExprAff(eax[0:16], ExprMem(esi, 16)))
-    e.append(ExprAff(esi, ExprCond(df, ExprOp('-', esi, ExprInt(uint32(2))), ExprOp('+', esi, ExprInt(uint32(2))))))
-    return e
-
-def lodsd():
-    e = []
-    e.append(ExprAff(eax, ExprMem(esi)))
-    e.append(ExprAff(esi, ExprCond(df, ExprOp('-', esi, ExprInt(uint32(4))), ExprOp('+', esi, ExprInt(uint32(4))))))
-    return e
-
-def movsb():
-    e = []
-    e.append(ExprAff(ExprMem(edi, 8), ExprMem(esi, 8)))
-    e.append(ExprAff(edi, ExprCond(df, ExprOp('-', edi, ExprInt(uint32(1))), ExprOp('+', edi, ExprInt(uint32(1))))))
-    e.append(ExprAff(esi, ExprCond(df, ExprOp('-', esi, ExprInt(uint32(1))), ExprOp('+', esi, ExprInt(uint32(1))))))
-    return e
-
-def movsw():
-    e = []
-    e.append(ExprAff(ExprMem(edi, 16), ExprMem(esi, 16)))
-    e.append(ExprAff(edi, ExprCond(df, ExprOp('-', edi, ExprInt(uint32(2))), ExprOp('+', edi, ExprInt(uint32(2))))))
-    e.append(ExprAff(esi, ExprCond(df, ExprOp('-', esi, ExprInt(uint32(2))), ExprOp('+', esi, ExprInt(uint32(2))))))
-    return e
-
-def movsd():
-    e = []
-    e.append(ExprAff(ExprMem(edi), ExprMem(esi)))
-    e.append(ExprAff(edi, ExprCond(df, ExprOp('-', edi, ExprInt(uint32(4))), ExprOp('+', edi, ExprInt(uint32(4))))))
-    e.append(ExprAff(esi, ExprCond(df, ExprOp('-', esi, ExprInt(uint32(4))), ExprOp('+', esi, ExprInt(uint32(4))))))
     return e
 
 
@@ -1475,7 +1464,7 @@ def float_pop(avoid_flt = None):
     return e
 
 # XXX TODO
-def fcom(a):
+def fcom(info, a):
     e = []
     """
     if isinstance(a, ExprMem):
@@ -1490,15 +1479,15 @@ def fcom(a):
     e.append(ExprAff(float_c3, ExprOp('fcom_c3', float_st0, src)))
     return e
 
-def ficom(a):
+def ficom(info, a):
     return []
 
-def fcomp(a):
+def fcomp(info, a):
     e= fcom(a)
     e+=float_pop()
     return e
 
-def fld(a):
+def fld(info, a):
     if isinstance(a, ExprMem):
         src = ExprOp('mem_%.2d_to_double'%a.get_size(), a)
     else:
@@ -1516,7 +1505,7 @@ def fld(a):
     e.append(ExprAff(float_stack_ptr, ExprOp('+', float_stack_ptr, ExprInt(uint32(1)))))
     return e
 
-def fst(a):
+def fst(info, a):
     e = []
     if isinstance(a, ExprMem):
         src = ExprOp('double_to_mem_%2d'%a.get_size(), float_st0)
@@ -1525,38 +1514,38 @@ def fst(a):
     e.append(ExprAff(a, src))
     return e
 
-def fstp(a):
+def fstp(info, a):
     e = fst(a)
     e+=float_pop(a)
     return e
 
-def fist(a):
+def fist(info, a):
     e = []
     e.append(ExprAff(a, ExprOp('double_to_int_32', float_st0)))
     return e
 
-def fistp(a):
+def fistp(info, a):
     e = fist(a)
     e+=float_pop(a)
     return e
 
-def fild(a):
+def fild(info, a):
     #XXXXX
     src = ExprOp('int_%.2d_to_double'%a.get_size(), a)
     return fld(src)
 
-def fldz():
+def fldz(info):
     return fld(ExprOp('int_32_to_double', ExprInt(uint32(0))))
 
-def fld1():
+def fld1(info):
     return fld(ExprOp('int_32_to_double', ExprInt(uint32(1))))
 
-def fldl2e():
+def fldl2e(info):
     x = struct.pack('d', 1/math.log(2))
     x = struct.unpack('Q', x)[0]
     return fld(ExprOp('mem_64_to_double', ExprInt(uint64(x))))
 
-def fadd(a, b = None):
+def fadd(info, a, b = None):
     if b == None:
         b = a
         a = float_st0
@@ -1568,7 +1557,7 @@ def fadd(a, b = None):
     e.append(ExprAff(a, ExprOp('fadd', a, src)))
     return e
 
-def faddp(a, b = None):
+def faddp(info, a, b = None):
     e = fadd(a, b)
     if b == None:
         e+=float_pop(float_st0)
@@ -1576,11 +1565,11 @@ def faddp(a, b = None):
         e+=float_pop(a)
     return e
 
-def fninit():
+def fninit(info):
     return []
 
 
-def fsub(a, b = None):
+def fsub(info, a, b = None):
     if b == None:
         b = a
         a = float_st0
@@ -1592,7 +1581,7 @@ def fsub(a, b = None):
     e.append(ExprAff(a, ExprOp('fsub', a, src)))
     return e
 
-def fmul(a, b = None):
+def fmul(info, a, b = None):
     if b == None:
         b = a
         a = float_st0
@@ -1604,7 +1593,7 @@ def fmul(a, b = None):
     e.append(ExprAff(a, ExprOp('fmul', a, src)))
     return e
 
-def fdiv(a, b = None):
+def fdiv(info, a, b = None):
     if b == None:
         b = a
         a = float_st0
@@ -1616,7 +1605,7 @@ def fdiv(a, b = None):
     e.append(ExprAff(a, ExprOp('fdiv', a, src)))
     return e
 
-def ftan(a):
+def ftan(info, a):
     e = []
     if isinstance(a, ExprMem):
         src = ExprOp('mem_%.2d_to_double'%a.get_size(), a)
@@ -1625,7 +1614,7 @@ def ftan(a):
     e.append(ExprAff(float_st0, ExprOp('ftan', src)))
     return e
 
-def fxch(a):
+def fxch(info, a):
     e = []
     if isinstance(a, ExprMem):
         src = ExprOp('mem_%.2d_to_double'%a.get_size(), a)
@@ -1635,7 +1624,7 @@ def fxch(a):
     e.append(ExprAff(src, float_st0))
     return e
 
-def fptan():
+def fptan(info):
     e= []
     e.append(ExprAff(float_st7, float_st6))
     e.append(ExprAff(float_st6, float_st5))
@@ -1655,43 +1644,43 @@ def fptan():
     return e
 
 
-def frndint():
+def frndint(info):
     e = []
     e.append(ExprAff(float_st0, ExprOp('frndint', float_st0)))
     return e
 
-def fsin():
+def fsin(info):
     e = []
     e.append(ExprAff(float_st0, ExprOp('fsin', float_st0)))
     return e
 
-def fcos():
+def fcos(info):
     e = []
     e.append(ExprAff(float_st0, ExprOp('fcos', float_st0)))
     return e
 
-def fscale():
+def fscale(info):
     e = []
     e.append(ExprAff(float_st0, ExprOp('fscale', float_st0, float_st1)))
     return e
 
-def f2xm1():
+def f2xm1(info):
     e = []
     e.append(ExprAff(float_st0, ExprOp('f2xm1', float_st0)))
     return e
 
-def fsqrt():
+def fsqrt(info):
     e = []
     e.append(ExprAff(float_st0, ExprOp('fsqrt', float_st0)))
     return e
 
-def fabs():
+def fabs(info):
     e = []
     e.append(ExprAff(float_st0, ExprOp('fabs', float_st0)))
     return e
 
 
-def fnstsw():
+def fnstsw(info):
     dst = eax
     return [ExprAff(dst, ExprCompose([ExprSliceTo(ExprInt(uint32(0)), 0, 8),
                                       ExprSliceTo(float_c0, 8, 9),
@@ -1703,39 +1692,39 @@ def fnstsw():
                                       ExprSliceTo(ExprSlice(dst, 16, dst.get_size()), 16, dst.get_size())
                                       ]))]
 
-def fnstcw(a):
+def fnstcw(info, a):
     e = []
     e.append(ExprAff(a, float_control))
     return e
 
-def fldcw(a):
+def fldcw(info, a):
     e = []
     e.append(ExprAff(float_control, a))
     return e
 
-def fwait():
+def fwait(info):
     return []
 
-def nop():
+def nop(info):
     return []
 
-def hlt():
+def hlt(info):
     return []
 
-def rdtsc():
+def rdtsc(info):
     e = []
     e.append(ExprAff(tsc1, ExprOp('+', tsc1, ExprInt(uint32(1)))))
     e.append(ExprAff(eax, tsc1))
     e.append(ExprAff(edx, tsc2))
     return e
 
-def cbw(a):
+def cbw(info, a):
     e = []
     cast_int = tab_uintsize[a.get_size()]
     b = ExprOp('<<', ExprInt(cast_int(-1)),
                      ExprInt(cast_int(a.get_size()/2)))
 
-    e.append(ExprAff(a, ExprCond( 
+    e.append(ExprAff(a, ExprCond(
                          ExprOp('==', ExprInt(cast_int(0)),
                                      ExprOp('&', a, ExprOp('<<',ExprInt(cast_int(1)), 
                                                                 ExprOp('-', ExprInt(cast_int(a.get_size()/2)), 
@@ -1743,52 +1732,51 @@ def cbw(a):
                                                                       )
                                                     )
                                            )
-                               ), 
+                               ),
                          a,
                          ExprOp('|', a, b),
                          )
             ))
-                   
     return e
-    
+
 # XXX TODO
-def daa():
-	return []
+def daa(info):
+    return []
 
-def aam(a):
-	return []
+def aam(info, a):
+    return []
 
-def aad(a):
-	return []
+def aad(info, a):
+    return []
 
-def aaa():
-	return []
+def aaa(info, ):
+    return []
 
-def bsf(a, b):
+def bsf(info, a, b):
     e = []
     cast_int = tab_uintsize[b.get_size()]
     e.append(ExprAff(a, ExprOp('bsf', a, b)))
     e.append(ExprAff(zf, ExprOp('==', ExprInt(cast_int(0)), b)))
     return e
-    
-def bsr(a, b):
+
+def bsr(info, a, b):
     e = []
     cast_int = tab_uintsize[b.get_size()]
     e.append(ExprAff(a, ExprOp('bsr', a, b)))
     e.append(ExprAff(zf, ExprOp('==', ExprInt(cast_int(0)), b)))
     return e
 
-def arpl(a, b):
+def arpl(info, a, b):
     e= []
     e.append(ExprAff(ExprId('vmcpu.vm_exception_flags'), ExprInt(uint32(1<<7))))
     return e
 
-def ins():
+def ins(info):
     e= []
     e.append(ExprAff(ExprId('vmcpu.vm_exception_flags'), ExprInt(uint32(1<<7))))
     return e
 
-def sidt(a):
+def sidt(info, a):
     e = []
     if not isinstance(a, ExprMem) or a.size!=32:
       raise 'not exprmem 32bit instance!!'
@@ -1800,47 +1788,47 @@ def sidt(a):
     return e
 
 
-def cmovz(a, b):
+def cmovz(info, a, b):
     e= []
     e.append(ExprAff(a, ExprCond(ExprOp('==', zf, ExprInt(uint32(1))), b, a)))
     return e
-def cmovnz(a, b):
+def cmovnz(info, a, b):
     e= []
     e.append(ExprAff(a, ExprCond(ExprOp('==', zf, ExprInt(uint32(0))), b, a)))
     return e
 
 #XXX
-def l_int(a):
+def l_int(info, a):
     e= []
     e.append(ExprAff(ExprId('vmcpu.vm_exception_flags'), ExprInt(uint32(1<<1)))) #SOFT BP
     return e
 
-def l_sysenter():
+def l_sysenter(info):
     e= []
     e.append(ExprAff(ExprId('vmcpu.vm_exception_flags'), ExprInt(uint32(EXCEPT_PRIV_INSN))))
     return e
 
 #XXX
-def l_out(a, b):
+def l_out(info, a, b):
     e= []
     e.append(ExprAff(ExprId('vmcpu.vm_exception_flags'), ExprInt(uint32(EXCEPT_PRIV_INSN))))
     return e
 
 #XXX
-def l_outs():
+def l_outs(info):
     e= []
     e.append(ExprAff(ExprId('vmcpu.vm_exception_flags'), ExprInt(uint32(EXCEPT_PRIV_INSN)))) #SOFT BP
     return e
 
 # XXX actually, xlat performs al = (ds:[e]bx + ZeroExtend(al))
-def xlat():
+def xlat(info):
     e= []
     a = ExprCompose([ExprSliceTo(ExprInt(uint32(0)), 8, 32), ExprSliceTo(eax[0:8], 0, 8)])
     b = ExprMem(ExprOp('+', ebx, a), 8)
     e.append(ExprAff(eax[0:8], b))
     return e
 
-def cpuid():
+def cpuid(info):
     e = []
     e.append(ExprAff(eax, ExprOp('cpuid', eax, ExprInt(uint32(0)))))
     e.append(ExprAff(ebx, ExprOp('cpuid', eax, ExprInt(uint32(1)))))
@@ -1848,7 +1836,7 @@ def cpuid():
     e.append(ExprAff(edx, ExprOp('cpuid', eax, ExprInt(uint32(3)))))
     return e
 
-def bt(a, b):
+def bt(info, a, b):
     cast_int = tab_uintsize[a.get_size()]
     e= []
     c= ExprOp('&', b, ExprInt(cast_int(b.get_size() - 1)))
@@ -1856,7 +1844,7 @@ def bt(a, b):
     e.append(ExprAff(cf, ExprOp('&', d, ExprInt(cast_int(1)))))
     return e
 
-def btc(a, b):
+def btc(info, a, b):
     cast_int = tab_uintsize[a.get_size()]
     e= []
     c= ExprOp('&', b, ExprInt(cast_int(b.get_size() - 1)))
@@ -1866,7 +1854,7 @@ def btc(a, b):
     e.append(ExprAff(a, ExprOp('^', a, m)))
     return e
 
-def bts(a, b):
+def bts(info, a, b):
     cast_int = tab_uintsize[a.get_size()]
     e= []
     c= ExprOp('&', b, ExprInt(cast_int(b.get_size() - 1)))
@@ -1876,7 +1864,7 @@ def bts(a, b):
     e.append(ExprAff(a, ExprOp('|', a, m)))
     return e
 
-def btr(a, b):
+def btr(info, a, b):
     cast_int = tab_uintsize[a.get_size()]
     e= []
     c= ExprOp('&', b, ExprInt(cast_int(b.get_size() - 1)))
@@ -1887,13 +1875,13 @@ def btr(a, b):
     return e
 
 
-def into():
+def into(info):
     return []
 
-def l_in(a, b):
+def l_in(info, a, b):
     return []
 
-def cmpxchg(a, b, c):
+def cmpxchg(info, a, b, c):
     e = []
     cast_int = tab_uintsize[a.get_size()]
 
@@ -1908,9 +1896,7 @@ def cmpxchg(a, b, c):
                                  c)
                      ))
     return e
-    
-    
-    
+
 mnemo_func = {'mov': mov,
               'xchg': xchg,
               'movzx': movzx,
@@ -1934,7 +1920,7 @@ mnemo_func = {'mov': mov,
               'rcr':rcr,
               'sar':sar,
               'shr':shr,
-              'shrd_cl':shrd_cl,              
+              'shrd_cl':shrd_cl,
               'sal':sal,
               'shl':shl,
               'shld_cl':shld_cl,
@@ -1962,12 +1948,12 @@ mnemo_func = {'mov': mov,
               'sets':sets,
               'seto':seto,
               'bswap':bswap,
-              'cmpsb':cmpsb,
-              'cmpsw':cmpsw,
-              'cmpsd':cmpsd,
-              'scasb':scasb,
-              'scasw':scasw,
-              'scasd':scasd,
+              'cmpsb':cmps,
+              'cmpsw':cmps,
+              'cmpsd':cmps,
+              'scasb':scas,
+              'scasw':scas,
+              'scasd':scas,
               'pushfd':pushfd,
               'pushfw':pushfw,
               'popfd':popfd,
@@ -2010,15 +1996,15 @@ mnemo_func = {'mov': mov,
               'aad':aad,
               'aaa':aaa,
               'shrd':shrd,
-              'stosb':stosb,
-              'stosw':stosw,
-              'stosd':stosd,
-              'lodsb':lodsb,
-              'lodsw':lodsw,
-              'lodsd':lodsd,
-              'movsb':movsb,
-              'movsw':movsw,
-              'movsd':movsd,
+              'stosb':stos,
+              'stosw':stos,
+              'stosd':stos,
+              'lodsb':lods,
+              'lodsw':lods,
+              'lodsd':lods,
+              'movsb':movs,
+              'movsw':movs,
+              'movsd':movs,
               'fcomp':fcomp,
               'nop':nop,
               'fnop':nop, #XXX
@@ -2199,15 +2185,14 @@ class ia32_rexpr:
 
 
 
-def dict_to_Expr(d, modifs = {}, mnemo_mode = x86_afs.u32):
+def dict_to_Expr(d, modifs = {}, opmode = u32, admode = u32, segm_to_do = {}):
     size = [x86_afs.u32, x86_afs.u08][modifs[w8]==True]
     #overwrite w8
     if modifs[sd]!=None:
         size = [x86_afs.f32, x86_afs.f64][modifs[sd]==True]
-    if modifs[wd]:
+    elif modifs[wd]:
         size = x86_afs.u16
 
-                
     tab32 = {ia32_rexpr.u08:ia32_rexpr.reg_list8, ia32_rexpr.u16:ia32_rexpr.reg_list16, ia32_rexpr.u32:ia32_rexpr.reg_list32,ia32_rexpr.f32:ia32_rexpr.reg_flt}
     tab16 = {ia32_rexpr.u08:ia32_rexpr.reg_list8, ia32_rexpr.u16:ia32_rexpr.reg_list32, ia32_rexpr.u32:ia32_rexpr.reg_list16}
     ad_size = {ia32_rexpr.u08:ia32_rexpr.u08, ia32_rexpr.u16:ia32_rexpr.u16, ia32_rexpr.u32:ia32_rexpr.u32, ia32_rexpr.f32:ia32_rexpr.u32, ia32_rexpr.f64:ia32_rexpr.u32}
@@ -2215,7 +2200,7 @@ def dict_to_Expr(d, modifs = {}, mnemo_mode = x86_afs.u32):
     if is_reg(d):
         n = [x for x in d if type(x) in [int, long]]
         if len(n)!=1:
-            raise "bad reg! %s"%str(d)
+            raise ValueError("bad reg! %s"%str(d))
         n = n[0]
         if x86_afs.size in d and d[x86_afs.size] == x86_afs.size_seg :
             t = ia32_rexpr.reg_listsg
@@ -2225,7 +2210,7 @@ def dict_to_Expr(d, modifs = {}, mnemo_mode = x86_afs.u32):
                 my_s = x86_afs.u32
             t = tab32[my_s]
         else:
-            if mnemo_mode == u32:
+            if opmode == u32:
                 t = tab32[size]
             else:
                 t = tab16[size]
@@ -2241,18 +2226,17 @@ def dict_to_Expr(d, modifs = {}, mnemo_mode = x86_afs.u32):
         if modifs[sd] is not None:
             t = tab32[size]
             n&=7
-        
+
         out = t[n]
     elif is_imm(d):
         if ia32_rexpr.imm in d:
             #test bug imm 16b
-            if mnemo_mode == x86_afs.u16:
+            if opmode == x86_afs.u16:
                 if size == x86_afs.u16:
                     size = x86_afs.u32
                 else:
                     size = x86_afs.u16
-        
-            
+
             #print d
             out = ExprInt(tab_afs_int[size](d[ia32_rexpr.imm]))
         if ia32_rexpr.symb in d:
@@ -2270,9 +2254,10 @@ def dict_to_Expr(d, modifs = {}, mnemo_mode = x86_afs.u32):
                 return ExprId(myname.name)
             return ExprInt(uint32(myval))
     elif is_address(d):
-        
+        int_cast = tab_afs_int[admode]
+        segm = None
+
         size = {ia32_rexpr.u08:8, ia32_rexpr.u16:16, ia32_rexpr.u32:32, ia32_rexpr.f32:32, ia32_rexpr.f64:64}[size]
-        
         if ia32_rexpr.size in d:
             size = d[ia32_rexpr.size]
         msize = {ia32_rexpr.u08:8, ia32_rexpr.u16:16, ia32_rexpr.u32:32, ia32_rexpr.f32:32, ia32_rexpr.f64:64}
@@ -2285,15 +2270,23 @@ def dict_to_Expr(d, modifs = {}, mnemo_mode = x86_afs.u32):
             if k in [ia32_rexpr.ad, ia32_rexpr.size]:
                 continue
             elif k in [ia32_rexpr.segm]:
-                if d[k] == 4:
-                    out.append(ExprInt(uint32(0x7FF70000)))
+                if d[k] in segm_to_do:
+                    segm = x86_afs.reg_sg[d[k]]
+                    segm =  segm_dict[segm]
             elif k == ia32_rexpr.imm:
                 out.append(ExprInt(d[k]))
             elif type(k) in [int, long]:
                 if d[k] ==1:
-                    out.append(ia32_rexpr.reg_list32[k])
+                    if admode == u16:
+                        out.append(ia32_rexpr.reg_list16[k])
+                    else:
+                        out.append(ia32_rexpr.reg_list32[k])
                 else:
-                    out.append(ExprOp('*', ExprInt(uint32(d[k])), ia32_rexpr.reg_list32[k]))
+                    if admode == u16:
+                        out.append(ExprOp('*', ExprInt(int_cast(d[k])), ia32_rexpr.reg_list16[k]))
+                    else:
+                        out.append(ExprOp('*', ExprInt(int_cast(d[k])), ia32_rexpr.reg_list32[k]))
+
             elif k == ia32_rexpr.symb:
                 print 'warning: symbol.. in mem look', d[k]
                 out.append(ExprId(str(d[k].items()[0][0].name)))
@@ -2304,8 +2297,7 @@ def dict_to_Expr(d, modifs = {}, mnemo_mode = x86_afs.u32):
         e = out[0]
         for o in out[1:]:
             e = ExprOp('+', e, o)
-        out = ExprMem(e, size)
-        
+        out = ExprMem(e, size, segm)
     else:
         raise 'unknown arg %s'%str(d)
     return out

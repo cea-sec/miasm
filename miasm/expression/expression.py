@@ -334,11 +334,14 @@ class ExprCond(Expr):
         return "(%s?%s:%s)"%(self.cond.toC(), self.src1.toC(), self.src2.toC())
 
 class ExprMem(Expr):
-    def __init__(self, arg, size = 32):
+    def __init__(self, arg, size = 32, segm = None):
         if not isinstance(arg, Expr): raise 'arg must be expr'
-        self.arg, self.size = arg, size
+        self.arg, self.size, self.segm = arg, size, segm
     def __str__(self):
-        return "@%d[%s]"%(self.size, str(self.arg))
+        if self.segm:
+            return "%s:@%d[%s]"%(self.segm, self.size, str(self.arg))
+        else:
+            return "@%d[%s]"%(self.size, str(self.arg))
     def get_r(self, mem_read=False):
         if mem_read:
             return set(self.arg.get_r(mem_read).union(set([self])))
@@ -352,10 +355,13 @@ class ExprMem(Expr):
         if self in g:
             return g[self]
         arg = self.arg
+        segm = self.segm
         if isinstance(arg, Expr):
             arg = self.arg.reload_expr(g)
+        if isinstance(segm, Expr):
+            segm = self.segm.reload_expr(g)
 
-        return ExprMem(arg, self.size )
+        return ExprMem(arg, self.size, segm)
     def __contains__(self, e):
         return self == e or self.arg.__contains__(e)
 
@@ -363,18 +369,20 @@ class ExprMem(Expr):
         if self in g:
             return g[self]
         arg = self.arg.replace_expr(g)
-        return ExprMem(arg, self.size )
+        return ExprMem(arg, self.size, self.segm)
 
     def __eq__(self, a):
         if not isinstance(a, ExprMem):
             return False
-        return self.arg == a.arg and self.size == a.size
+        return self.arg == a.arg and self.size == a.size and self.segm == a.segm
     def __hash__(self):
-        return hash(self.arg)^hash(self.size)
+        return hash(self.arg)^hash(self.size)^hash(self.segm)
 
     def toC(self):
-        return "MEM_LOOKUP_%.2d(%s)"%(self.size, self.arg.toC())
-
+        if self.segm:
+            return "MEM_LOOKUP_%.2d_SEGM(%s, %s)"%(self.size, self.segm.toC(), self.arg.toC())
+        else:
+            return "MEM_LOOKUP_%.2d(%s)"%(self.size, self.arg.toC())
 
 class ExprOp(Expr):
     def __init__(self, op, *args):

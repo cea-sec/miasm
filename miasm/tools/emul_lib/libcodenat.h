@@ -116,7 +116,6 @@ typedef struct {
 
 	unsigned int cond;
 
-	unsigned int ds;
 	unsigned int vm_exception_flags;
 	unsigned int vm_exception_flags_new;
 	unsigned int vm_last_write_ad;
@@ -165,6 +164,21 @@ typedef struct {
 	unsigned int tsc1_new;
 	unsigned int tsc2_new;
 
+
+	uint16_t es;
+	uint16_t cs;
+	uint16_t ss;
+	uint16_t ds;
+	uint16_t fs;
+	uint16_t gs;
+
+	uint16_t es_new;
+	uint16_t cs_new;
+	uint16_t ss_new;
+	uint16_t ds_new;
+	uint16_t fs_new;
+	uint16_t gs_new;
+
 	unsigned int cr0;
 	unsigned int cr0_new;
 
@@ -207,7 +221,7 @@ typedef struct {
 	uint64_t pfmem64_6;
 	uint64_t pfmem64_7;
 
-
+	uint32_t segm_base[0x10000];
 
 }vm_cpu_t;
 
@@ -270,11 +284,22 @@ void MEM_WRITE_16(uint64_t addr, unsigned short src);
 void MEM_WRITE_32(uint64_t addr, unsigned int src);
 void MEM_WRITE_64(uint64_t addr, uint64_t src);
 
+void MEM_WRITE_08_SEGM(uint16_t segm, uint64_t addr, unsigned char src);
+void MEM_WRITE_16_SEGM(uint16_t segm, uint64_t addr, unsigned short src);
+void MEM_WRITE_32_SEGM(uint16_t segm, uint64_t addr, unsigned int src);
+void MEM_WRITE_64_SEGM(uint16_t segm, uint64_t addr, uint64_t src);
+
 
 unsigned char MEM_LOOKUP_08(uint64_t addr);
 unsigned short MEM_LOOKUP_16(uint64_t addr);
 unsigned int MEM_LOOKUP_32(uint64_t addr);
 uint64_t MEM_LOOKUP_64(uint64_t addr);
+
+
+unsigned char MEM_LOOKUP_08_SEGM(uint16_t segm, uint64_t addr);
+unsigned short MEM_LOOKUP_16_SEGM(uint16_t segm, uint64_t addr);
+unsigned int MEM_LOOKUP_32_SEGM(uint16_t segm, uint64_t addr);
+uint64_t MEM_LOOKUP_64_SEGM(uint16_t segm, uint64_t addr);
 
 
 
@@ -339,6 +364,11 @@ typedef struct _reg_dict{
     char* name;
     unsigned int* ptr;
 } reg_dict;
+
+typedef struct _reg_segm_dict{
+    char* name;
+    uint16_t* ptr;
+} reg_segm_dict;
 
 typedef struct _reg_float_dict{
     char* name;

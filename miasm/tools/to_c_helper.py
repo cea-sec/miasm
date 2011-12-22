@@ -138,6 +138,15 @@ my_C_id = [
     #vm_last_write_size,
     tsc1,
     tsc2,
+
+
+    es ,
+    cs ,
+    ss ,
+    ds ,
+    fs ,
+    gs ,
+
     float_st0,
     float_st1,
     float_st2,
@@ -390,8 +399,8 @@ def Exp2C(exprs, l = None, addr2label = None, gen_exception_code = False):
     return out+out_eip, post_instr
 
 
-def bloc2C(all_bloc, addr2label = None, gen_exception_code = False, dbg_instr = False, dbg_reg = False, dbg_lbl = False, filtered_ad = None, tick_dbg = None):
-    all_instrs = digest_allbloc_instr(all_bloc)
+def bloc2C(all_bloc, addr2label = None, gen_exception_code = False, dbg_instr = False, dbg_reg = False, dbg_lbl = False, filtered_ad = None, tick_dbg = None, segm_to_do = {}):
+    all_instrs = digest_allbloc_instr(all_bloc, segm_to_do)
 
     if not addr2label:
         addr2label = lambda x:"loc_%.16X"%(x&mask_int)
@@ -487,18 +496,19 @@ def bloc2C(all_bloc, addr2label = None, gen_exception_code = False, dbg_instr = 
 
 
 
-def bloc_gen_C_func(all_bloc, funcname, addr2label = None, gen_exception_code = False, dbg_instr = False, dbg_reg = False, dbg_lbl = False, filtered_ad = None, tick_dbg = None):
+def bloc_gen_C_func(all_bloc, funcname, addr2label = None, gen_exception_code = False, dbg_instr = False, dbg_reg = False, dbg_lbl = False, filtered_ad = None, tick_dbg = None, segm_to_do = {}):
     f_dec = 'uint64_t %s(void)'%funcname
     out = []
     out+=[f_dec,
           '{',
           ]
-    out += bloc2C(all_bloc, addr2label, gen_exception_code, dbg_instr, dbg_reg, dbg_lbl, filtered_ad, tick_dbg)
+    out += bloc2C(all_bloc, addr2label, gen_exception_code,
+                  dbg_instr, dbg_reg, dbg_lbl,
+                  filtered_ad, tick_dbg,
+                  segm_to_do)
     out+=['}',
           ]
     return f_dec, out
-
-    
 
 
 def gen_x86_core():
@@ -707,7 +717,7 @@ def asm2C(f_name, known_mems, dyn_func, in_str, x86_mn, symbol_pool, func_to_dis
     return funcs_code, dyn_dispatcher
 
 
-def gen_C_from_asmbloc(in_str, offset, symbol_pool, dont_dis = [], job_done = None, log_mn = False, log_reg = False, log_lbl = False, filtered_ad = [], tick_dbg = None, code_addr = [], all_bloc_funcs = [], **kargs):
+def gen_C_from_asmbloc(in_str, offset, symbol_pool, dont_dis = [], job_done = None, log_mn = False, log_reg = False, log_lbl = False, filtered_ad = [], tick_dbg = None, code_addr = [], all_bloc_funcs = [], segm_to_do = {}, **kargs):
     if job_done == None:
         job_done = set()
 
@@ -720,7 +730,7 @@ def gen_C_from_asmbloc(in_str, offset, symbol_pool, dont_dis = [], job_done = No
                      **kargs)
     f_dec, out = bloc_gen_C_func([cur_bloc], f_name, None, True,
                                  log_mn, log_reg, log_lbl,
-                                 filtered_ad, tick_dbg)
+                                 filtered_ad, tick_dbg, segm_to_do)
     #print "\n".join(out)
     return f_name, f_dec, out, cur_bloc
 
@@ -997,10 +1007,10 @@ def updt_bloc_emul(known_blocs, in_str, my_eip, symbol_pool, code_blocs_mem_rang
 '''    
 
 ttt = 0
-def updt_bloc_emul(known_blocs, in_str, my_eip, symbol_pool, code_blocs_mem_range, dont_dis = [], job_done = None, log_mn = False, log_regs = False, **kargs):
+def updt_bloc_emul(known_blocs, in_str, my_eip, symbol_pool, code_blocs_mem_range, dont_dis = [], job_done = None, log_mn = False, log_regs = False, segm_to_do = {}, **kargs):
     if job_done == None:
         job_done = set()
-    fname, f_dec, funcs_code, cur_bloc = gen_C_from_asmbloc(in_str, my_eip, symbol_pool, dont_dis, job_done, log_mn, log_regs, **kargs)
+    fname, f_dec, funcs_code, cur_bloc = gen_C_from_asmbloc(in_str, my_eip, symbol_pool, dont_dis, job_done, log_mn, log_regs, segm_to_do = segm_to_do, **kargs)
 
     dyn_dispatcher = """
     #define GOTO_DYNAMIC do {return %s;} while(0)

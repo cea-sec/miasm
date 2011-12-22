@@ -164,13 +164,6 @@ def get_instr_expr_args(name, modifs, mnemo_mode, args, my_eip):
         e = mnemo_func[name](*args)
     return e
 """
-###XXX for eval int 
-def get_instr_expr(l, my_eip, args = None):
-    if args==None:args = []
-    for x in l.arg:
-        args.append(dict_to_Expr(x, l.m.modifs, l.mnemo_mode))
-    l.arg_expr = args
-    return get_instr_expr_args(l.m.name, l.m.modifs, l.mnemo_mode, args, my_eip)
 
 
 #"""
@@ -194,11 +187,12 @@ def get_instr_expr_args(name, modifs, mnemo_mode, args, my_eip):
         e = mnemo_func[name](*args)
     return e
 #"""
+
 ###XXX for eval abs
-def get_instr_expr(l, my_eip, args = None):
+def get_instr_expr(l, my_eip, args = None, segm_to_do = {}):
     if args==None:args = []
     for x in l.arg:
-        args.append(dict_to_Expr(x, l.m.modifs, l.mnemo_mode))
+        args.append(dict_to_Expr(x, l.m.modifs, l.opmode, l.admode, segm_to_do))
     l.arg_expr = args
     return get_instr_expr_args(l.m.name, l.m.modifs, l.mnemo_mode, args, my_eip)
 
@@ -625,7 +619,7 @@ def guess_func_destack(all_bloc):
     return False, a[x86_afs.imm]
 
 
-def digest_allbloc_instr(all_bloc):
+def digest_allbloc_instr(all_bloc, segm_to_do = {}):
     instrs = {}
     g = asmbloc.bloc2graph(all_bloc)
     open("graph_b.txt" , "w").write(g)
@@ -657,7 +651,7 @@ def digest_allbloc_instr(all_bloc):
                 if str(instrs[l.offset][0]) != str(l):
                     raise ValueError('dup instr@ with different instr', (str(l), str(instrs[l.offset][0])))
             args = []
-            ex = get_instr_expr(l, ExprInt(uint32(l.offset+l.l)), args)
+            ex = get_instr_expr(l, ExprInt(uint32(l.offset+l.l)), args, segm_to_do = segm_to_do)
 
                 
             instrs[l.offset] = (l, ex)

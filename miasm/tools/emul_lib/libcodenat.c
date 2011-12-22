@@ -323,10 +323,22 @@ void MEM_WRITE_08(uint64_t addr, unsigned char src)
 	memory_page_write(8, addr, src);
 }
 
+void MEM_WRITE_08_SEGM(uint16_t segm, uint64_t addr, unsigned char src)
+{
+	check_write_code_bloc(8, addr + vmcpu.segm_base[segm]);
+	memory_page_write(8, addr + vmcpu.segm_base[segm], src);
+}
+
 void MEM_WRITE_16(uint64_t addr, unsigned short src)
 {
 	check_write_code_bloc(16, addr);
 	memory_page_write(16, addr, src);
+}
+
+void MEM_WRITE_16_SEGM(uint16_t segm, uint64_t addr, unsigned short src)
+{
+	check_write_code_bloc(16, addr + vmcpu.segm_base[segm]);
+	memory_page_write(16, addr + vmcpu.segm_base[segm], src);
 }
 
 void MEM_WRITE_32(uint64_t addr, unsigned int src)
@@ -335,10 +347,22 @@ void MEM_WRITE_32(uint64_t addr, unsigned int src)
 	memory_page_write(32, addr, src);
 }
 
+void MEM_WRITE_32_SEGM(uint16_t segm, uint64_t addr, unsigned int src)
+{
+	check_write_code_bloc(32, addr + vmcpu.segm_base[segm]);
+	memory_page_write(32, addr + vmcpu.segm_base[segm], src);
+}
+
 void MEM_WRITE_64(uint64_t addr, uint64_t src)
 {
 	check_write_code_bloc(64, addr);
 	memory_page_write(64, addr, src);
+}
+
+void MEM_WRITE_64_SEGM(uint16_t segm, uint64_t addr, uint64_t src)
+{
+	check_write_code_bloc(64, addr + vmcpu.segm_base[segm]);
+	memory_page_write(64, addr + vmcpu.segm_base[segm], src);
 }
 
 
@@ -356,10 +380,24 @@ unsigned char MEM_LOOKUP_08(uint64_t addr)
     return ret;
 }
 
+unsigned char MEM_LOOKUP_08_SEGM(uint16_t segm, uint64_t addr)
+{
+    unsigned char ret;
+    ret = memory_page_read(8, addr + vmcpu.segm_base[segm]);
+    return ret;
+}
+
 unsigned short MEM_LOOKUP_16(uint64_t addr)
 {
     unsigned short ret;
     ret = memory_page_read(16, addr);
+    return ret;
+}
+
+unsigned short MEM_LOOKUP_16_SEGM(uint16_t segm, uint64_t addr)
+{
+    unsigned short ret;
+    ret = memory_page_read(16, addr + vmcpu.segm_base[segm]);
     return ret;
 }
 
@@ -370,10 +408,24 @@ unsigned int MEM_LOOKUP_32(uint64_t addr)
     return ret;
 }
 
+unsigned int MEM_LOOKUP_32_SEGM(uint16_t segm, uint64_t addr)
+{
+    unsigned int ret;
+    ret = memory_page_read(32, addr + vmcpu.segm_base[segm]);
+    return ret;
+}
+
 uint64_t MEM_LOOKUP_64(uint64_t addr)
 {
     uint64_t ret;
     ret = memory_page_read(64, addr);
+    return ret;
+}
+
+uint64_t MEM_LOOKUP_64_SEGM(uint16_t segm, uint64_t addr)
+{
+    uint64_t ret;
+    ret = memory_page_read(64, addr + vmcpu.segm_base[segm]);
     return ret;
 }
 

@@ -255,7 +255,7 @@ def dict_to_ad(d, modifs = {}, opmode = u32, admode = u32):
         n = [x for x in d if type(x) in [int, long]]
         if len(n)!=1:
             raise ValueError("bad reg! %s"%str(d))
-        n = n[0]        
+        n = n[0]
         if x86_afs.size in d and d[x86_afs.size] == x86_afs.size_seg :
             t = x86_afs.reg_sg
         elif x86_afs.size in d:
@@ -294,26 +294,21 @@ def dict_to_ad(d, modifs = {}, opmode = u32, admode = u32):
                 out+='-0x%.8X'%-imm_tmp
             else:
                 out+='0x%.8X'%imm_tmp
-                
         if x86_afs.symb in d:
             #XXX todo multiple ref
             if out!="": out+='+'
             for c in d[x86_afs.symb]:
-                
                 if d[x86_afs.symb][c]==1:
                     out += '%s'%str(c.name)
                 else:
                     out += '%d,%s'%(int(d[x86_afs.symb][c]), str(c))
-                
     elif is_address(d):
         if x86_afs.size in d:
             size = d[x86_afs.size]
-            
         out = [ad_size[size]]
         segment = " "
         if x86_afs.segm in d:
             segment += x86_afs.reg_sg[d[x86_afs.segm]]+':'
-            
         for k in d:
             if k in [x86_afs.ad, x86_afs.size, x86_afs.segm]:
                 continue
@@ -824,7 +819,7 @@ class x86allmncs:
         addop("dec",   [0xFE],             d1   , no_rm         , {w8:(0,0)}         ,{}                , {},                         )
         addop("div",   [0xF6],             d6   , no_rm         , {w8:(0,0)}         ,{}                , {},                         )
                                                                                                             
-        addop("enter", [0xC8],             noafs, [u08, u16]    , {}                 ,{}                , {},                         )
+        addop("enter", [0xC8],             noafs, [u16, u08]    , {}                 ,{}                , {},                         )
                                                                                                             
         addop("hlt",   [0xF4],             noafs, no_rm         , {}                 ,{}                , {bkf:True}                  )
                                                                                                             
@@ -1257,6 +1252,10 @@ class x86allmncs:
         self.movsw_m = mnemonic(pm.name, pm.opc, pm.afs, pm.rm, pm.modifs, pm.modifs_orig, None)#, pm.sem)
         self.movsw_m.name = "movsw"
 
+        pm = self.find_mnemo("cmpsd")[0]
+        self.cmpsw_m = mnemonic(pm.name, pm.opc, pm.afs, pm.rm, pm.modifs, pm.modifs_orig, None)#, pm.sem)
+        self.cmpsw_m.name = "cmpsw"
+
         pm = self.find_mnemo("scasd")[0]
         self.scasw_m = mnemonic(pm.name, pm.opc, pm.afs, pm.rm, pm.modifs, pm.modifs_orig, None)#, pm.sem)
         self.scasw_m.name = "scasw"
@@ -1614,20 +1613,17 @@ class x86_mn:
                             mnemo_args = mnemo_args+[r]
                         else:
                             mnemo_args = [r]+mnemo_args
-                        
                     else:
-                        dib_out.append(r)                    
-
+                        dib_out.append(r)
                 elif dib == mim:
                     l = struct.calcsize(x86_afs.dict_size[self.size_ad])
                     d = struct.unpack(x86_afs.dict_size[self.size_ad], bin.readbs(l))[0]
                     d = uint32(d)
 
-                    
                     size = [self.size_op, x86_afs.u08][m.modifs[w8]]
                     dib_out.append({x86_afs.ad:True, x86_afs.size:size, x86_afs.imm:d})
                 elif dib in [r_cl, r_dx]:
-                    dib_out.append(dib)                    
+                    dib_out.append(dib)
                     pass
 
                 elif dib in segm_regs:
@@ -1649,8 +1645,6 @@ class x86_mn:
                     if is_address(a) and p in prefix_seg.values():
                         a[x86_afs.segm]=prefix_seg_inv[p]
                         continue
-                        
-                    
 
             t_len = bin.offset-init_offset
             bin.offset = init_offset
@@ -1668,14 +1662,77 @@ class x86_mn:
                 self.m = x86mndb.pushfw_m
             if self.size_op == u16 and self.m.name == "popfd":
                 self.m = x86mndb.popfw_m
-            if self.size_op == u16 and self.m.name == "lodsd":
-                self.m = x86mndb.lodsw_m
-            if self.size_op == u16 and self.m.name == "stosd":
-                self.m = x86mndb.stosw_m
-            if self.size_op == u16 and self.m.name == "movsd":
-                self.m  = x86mndb.movsw_m
-            if self.size_op == u16 and self.m.name == "scasd":
-                self.m  = x86mndb.scasw_m
+            if self.m.name.startswith("lods"):
+                if self.m.name[-1] == "b":
+                    s = u08
+                elif self.size_op == u16:
+                    s = u16
+                    self.m = x86mndb.lodsw_m
+                else:
+                    s = u32
+                self.arg = [{x86_afs.reg_dict[x86_afs.r_esi]:1,
+                             x86_afs.ad:True,
+                             x86_afs.size:s,
+                             x86_afs.segm:x86_afs.reg_sg.index(x86_afs.r_ds)}]
+            if self.m.name.startswith("stos"):
+                if self.m.name[-1] == "b":
+                    s = u08
+                elif self.size_op == u16:
+                    s = u16
+                    self.m = x86mndb.stosw_m
+                else:
+                    s = u32
+                self.arg = [{x86_afs.reg_dict[x86_afs.r_edi]:1,
+                             x86_afs.ad:True,
+                             x86_afs.size:s,
+                             x86_afs.segm:x86_afs.reg_sg.index(x86_afs.r_es)}]
+            if self.m.name.startswith("movs"):
+                if self.m.name[-1] == "b":
+                    s = u08
+                elif self.size_op == u16:
+                    s = u16
+                    self.m  = x86mndb.movsw_m
+                else:
+                    s = u32
+                self.arg = [{x86_afs.reg_dict[x86_afs.r_edi]:1,
+                             x86_afs.ad:True,
+                             x86_afs.size:s,
+                             x86_afs.segm:x86_afs.reg_sg.index(x86_afs.r_es)},
+
+                            {x86_afs.reg_dict[x86_afs.r_esi]:1,
+                             x86_afs.ad:True,
+                             x86_afs.size:s,
+                             x86_afs.segm:x86_afs.reg_sg.index(x86_afs.r_ds)}]
+            if self.m.name.startswith("cmps"):
+                if self.m.name[-1] == "b":
+                    s = u08
+                elif self.size_op == u16:
+                    s = u16
+                    self.m  = x86mndb.cmpsw_m
+                else:
+                    s = u32
+                self.arg = [{x86_afs.reg_dict[x86_afs.r_edi]:1,
+                             x86_afs.ad:True,
+                             x86_afs.size:s,
+                             x86_afs.segm:x86_afs.reg_sg.index(x86_afs.r_es)},
+
+                            {x86_afs.reg_dict[x86_afs.r_esi]:1,
+                             x86_afs.ad:True,
+                             x86_afs.size:s,
+                             x86_afs.segm:x86_afs.reg_sg.index(x86_afs.r_ds)}]
+
+            if self.m.name.startswith("scas"):
+                if self.m.name[-1] == "b":
+                    s = u08
+                elif self.size_op == u16:
+                    s = u16
+                    self.m  = x86mndb.scasw_m
+                else:
+                    s = u32
+                self.arg = [{x86_afs.reg_dict[x86_afs.r_edi]:1,
+                             x86_afs.ad:True,
+                             x86_afs.size:s,
+                             x86_afs.segm:x86_afs.reg_sg.index(x86_afs.r_es)}]
             return True
 
         except IOError:
@@ -2214,6 +2271,12 @@ x86mnemo = x86_mn
 if __name__ == '__main__':
     test_out = []
     log.setLevel(logging.DEBUG)
+
+    instr = x86mnemo.dis('66af'.replace(' ', '').decode('hex'))
+    print instr
+    print instr.arg
+    print instr.l
+    fds
 
     instr = x86mnemo.dis('64a100000000'.replace(' ', '').decode('hex'))
     print instr
