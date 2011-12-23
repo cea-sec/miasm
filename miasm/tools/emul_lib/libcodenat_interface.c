@@ -582,6 +582,26 @@ PyObject* _vm_pop_uint32_t(void)
     return PyInt_FromLong((long)val);;
 }
 
+PyObject* _vm_push_uint16_t(int val)
+{
+    vmcpu.esp-=2;
+    MEM_WRITE(16, vmcpu.esp, val);
+
+    return PyInt_FromLong((long)vmcpu.esp);
+}
+
+
+PyObject* _vm_pop_uint16_t(void)
+{
+    unsigned int val;
+
+    val = MEM_LOOKUP(16, vmcpu.esp);
+    vmcpu.esp+=2;
+
+    return PyInt_FromLong((long)val);;
+}
+
+
 PyObject* _vm_set_mem(PyObject *addr, PyObject *item_str)
 {
     unsigned int buf_size;
@@ -767,6 +787,24 @@ PyObject* vm_pop_uint32_t(PyObject* self, PyObject* args)
 {
     PyObject* p;
     p = _vm_pop_uint32_t();
+    return p;
+}
+
+PyObject* vm_push_uint16_t(PyObject* self, PyObject *args)
+{
+    PyObject* p;
+    int item;
+    if (!PyArg_ParseTuple(args, "I", &item))
+	    return NULL;
+    p = _vm_push_uint16_t(item);
+    return p;
+}
+
+
+PyObject* vm_pop_uint16_t(PyObject* self, PyObject* args)
+{
+    PyObject* p;
+    p = _vm_pop_uint16_t();
     return p;
 }
 
@@ -1247,6 +1285,10 @@ static PyMethodDef CodenatMethods[] = {
     {"vm_push_uint32_t", vm_push_uint32_t, METH_VARARGS,
      "x"},
     {"vm_pop_uint32_t",vm_pop_uint32_t, METH_VARARGS,
+     "X"},
+    {"vm_push_uint16_t", vm_push_uint16_t, METH_VARARGS,
+     "x"},
+    {"vm_pop_uint16_t",vm_pop_uint16_t, METH_VARARGS,
      "X"},
     {"vm_get_gpreg", vm_get_gpreg, METH_VARARGS,
      "X"},

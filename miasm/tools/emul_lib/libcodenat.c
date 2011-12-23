@@ -718,7 +718,6 @@ int rcl_rez_op(unsigned int size, unsigned int a, unsigned int b, unsigned int c
     tmp = (cf << size) | a;
 
     size++;
-    b = b&0x1F;
     b %= size;
 
     switch(size){
@@ -751,7 +750,6 @@ int rcl_cf_op(unsigned int size, unsigned int a, unsigned int b, unsigned int cf
     tmp = (cf<< size) | a;
 
     size++;
-    b = b&0x1F;
     b %= size;
 
     switch(size){

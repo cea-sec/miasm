@@ -1398,15 +1398,25 @@ def imul(info, a, b = None, c = None):
     return e
 
 
-#XXX 16 bit bug
 def cdq(info):
-    e = []
-    e.append(ExprAff(edx,
-                     ExprCond(ExprOp('==', ExprOp('&', eax, ExprInt(uint32(0x80000000))), ExprInt(uint32(0))),
-                              ExprInt(uint32(0x0)),
-                              ExprInt(uint32(0xffffffff)))
-                     )
-             )
+    # XXX to check
+    opmode, admode = info
+    if opmode == u32:
+        e = []
+        e.append(ExprAff(edx,
+                         ExprCond(ExprOp('==', get_op_msb(eax), ExprInt(uint32(0))),
+                                  ExprInt(uint32(0x0)),
+                                  ExprInt(uint32(0xffffffff)))
+                         )
+                 )
+    else:
+        e = []
+        e.append(ExprAff(dx,
+                         ExprCond(ExprOp('==', get_op_msb(ax), ExprInt(uint32(0))),
+                                  ExprInt(uint16(0x0)),
+                                  ExprInt(uint16(0xffff)))
+                         )
+                 )
     return e
 
 def stos(info, a):
@@ -1719,24 +1729,24 @@ def rdtsc(info):
     return e
 
 def cbw(info, a):
-    e = []
-    cast_int = tab_uintsize[a.get_size()]
-    b = ExprOp('<<', ExprInt(cast_int(-1)),
-                     ExprInt(cast_int(a.get_size()/2)))
+    opmode, admode = info
+    if opmode == u16:
+        s = 16
+        src = a[:8]
+        dst = a[:16]
 
-    e.append(ExprAff(a, ExprCond(
-                         ExprOp('==', ExprInt(cast_int(0)),
-                                     ExprOp('&', a, ExprOp('<<',ExprInt(cast_int(1)), 
-                                                                ExprOp('-', ExprInt(cast_int(a.get_size()/2)), 
-                                                                            ExprInt(cast_int(1))
-                                                                      )
-                                                    )
-                                           )
-                               ),
-                         a,
-                         ExprOp('|', a, b),
-                         )
-            ))
+    else:
+        s = 32
+        src = a[:16]
+        dst = a[:32]
+    int_cast = tab_uintsize[s]
+
+    byte_h_0 = ExprInt(int_cast(0))
+    byte_h_f = ExprInt(int_cast(((1<<(s/2))-1)))
+
+    mask = ExprCond(ExprOp('==', get_op_msb(src), ExprInt(uint32(0))), byte_h_0, byte_h_f)
+    e = []
+    e.append(ExprAff(a, ExprCompose([ExprSliceTo(a, 0, s/2), ExprSliceTo(mask, s/2, s)])))
     return e
 
 # XXX TODO
@@ -1800,7 +1810,13 @@ def cmovnz(info, a, b):
 #XXX
 def l_int(info, a):
     e= []
-    e.append(ExprAff(ExprId('vmcpu.vm_exception_flags'), ExprInt(uint32(1<<1)))) #SOFT BP
+    # XXX
+    if a.arg in [1, 3]:
+        except_int = EXCEPT_SOFT_BP
+    else:
+        except_int = EXCEPT_PRIV_INSN
+
+    e.append(ExprAff(ExprId('vmcpu.vm_exception_flags'), ExprInt(uint32(except_int)))) #SOFT BP
     return e
 
 def l_sysenter(info):
@@ -1895,6 +1911,36 @@ def cmpxchg(info, a, b, c):
                                  a,
                                  c)
                      ))
+    return e
+
+def lds(info, a, b):
+    e = []
+    s = a.get_size()
+    int_cast = tab_uintsize[s]
+    addr = b.arg
+    e.append(ExprAff(a, ExprMem(addr, size = s)))
+    e.append(ExprAff(ds, ExprMem(ExprOp('+', addr, ExprInt(int_cast(2))),
+                                 size=16)))
+    return e
+
+def les(info, a, b):
+    e = []
+    s = a.get_size()
+    int_cast = tab_uintsize[s]
+    addr = b.arg
+    e.append(ExprAff(a, ExprMem(addr, size = s)))
+    e.append(ExprAff(es, ExprMem(ExprOp('+', addr, ExprInt(int_cast(2))),
+                                 size=16)))
+    return e
+
+def lss(info, a, b):
+    e = []
+    s = a.get_size()
+    int_cast = tab_uintsize[s]
+    addr = b.arg
+    e.append(ExprAff(a, ExprMem(addr, size = s)))
+    e.append(ExprAff(ss, ExprMem(ExprOp('+', addr, ExprInt(int_cast(2))),
+                                 size=16)))
     return e
 
 mnemo_func = {'mov': mov,
@@ -2060,6 +2106,9 @@ mnemo_func = {'mov': mov,
               'out':l_out,
               "sysenter":l_sysenter,
               "cmpxchg":cmpxchg,
+              "lds": lds,
+              "les": les,
+              "lss": lss,
               }
 
 

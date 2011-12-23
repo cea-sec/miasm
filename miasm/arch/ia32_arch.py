@@ -351,7 +351,6 @@ class x86allmncs:
                 pass
             else:
                 print "%.3d "%cpt+"\t"*decal + str(i)
-        
 
     def print_tab(self):
         for i in range(0x100):
@@ -362,16 +361,16 @@ class x86allmncs:
             else:
                 print "%.2X\t"%i+str(self.db_afs[i])
 
-        
-
     def get_afs(self, bin, m, size_m):
-        my_uint = uint32
         if size_m == u32:
             db_afs = self.db_afs
+            my_uint = uint32
         else:
             db_afs = self.db_afs_16
-        
+            my_uint = uint16
+
         mod, re, rm = self.modrm(m)
+
         if type(db_afs[m])==list:
             a = dict(db_afs[m][ord(bin.readbs())])
         else:
@@ -391,8 +390,6 @@ class x86allmncs:
 
     def get_afs_re(self, re):
         return {x86_afs.ad:False, re:1}
-        
-        
 
     def get_im_fmt(self, modifs, mnemo_mode, im):
         if modifs[se]:
@@ -522,7 +519,7 @@ class x86allmncs:
                     if rm==0:
                         my_imm=x86_afs.s08
                     else:
-                        my_imm=x86_afs.u08
+                        my_imm=x86_afs.s08
                 else:
                     my_imm=x86_afs.u16
                     
@@ -1270,8 +1267,8 @@ class x86_mnemo_metaclass(type):
     def dis(cls, op, admode = u32, opmode = u32, sex = 0):
         i = cls.__new__(cls)
         i.__init__(admode, opmode, sex)
-        i.size_op = opmode
-        i.size_ad = admode
+        i.opmode = opmode
+        i.admode = admode
         u = i._dis(op)
         if not u:
             return None
@@ -1351,9 +1348,6 @@ class x86_mn:
         self.opmode = opmode
         self.mnemo_mode = self.opmode
 
-        self.size_op = u32
-        self.size_ad = u32
-
     @classmethod
     def prefix2hex(self, prefix):
         return reduce(lambda x,y:x+chr(y), prefix, "")
@@ -1375,7 +1369,7 @@ class x86_mn:
             return []
         a = self.arg[0]
         if is_imm(a) and not x86_afs.symb in a:
-            dst = (self.offset+self.l+a[x86_afs.imm])&tab_max_uint[self.size_ad]
+            dst = (self.offset+self.l+a[x86_afs.imm])&tab_max_uint[self.admode]
             out = [dst]
         else:
             out = [a]
@@ -1427,26 +1421,24 @@ class x86_mn:
             if type(a) in tab_int_size:
                 raise ValueError("should be dict.. %s"%str(a))
             elif type(a) == dict:
-                args_str+="%s, "%dict_to_ad(a, self.m.modifs, self.size_op, self.size_ad)
+                args_str+="%s, "%dict_to_ad(a, self.m.modifs, self.opmode, self.admode)
             else:
                 raise ValueError("arg zarbi %s"%str(a))
         return args_str[:-2]
 
     def intsize(self, im, ext = False):
         if ext:
-            return [uint16, uint32][self.size_op == u32](im)
+            return [uint16, uint32][self.opmode == u32](im)
         if self.m.modifs[w8]:
             return uint8(im)
-        if self.size_op == u32:
+        if self.opmode == u32:
             return uint32(im)
-        elif self.size_op == u16:
+        elif self.opmode == u16:
             return uint16(im)
         else:
             raise ValueError('unknown mnemo mode %s'%str(im))
             
     def _dis(self, bin):
-        size_op = self.size_op
-        size_ad = self.size_ad
 
         
         
@@ -1487,12 +1479,12 @@ class x86_mn:
             log.debug(m)
             log.debug("prefix: %s"%str(read_prefix))
 
-            #self.mnemo_mode = self.size_ad
+            #self.mnemo_mode = self.admode
             if 0x66 in read_prefix:
-                self.size_op = [u16,u32][self.size_op==u16]
-                self.size_op = [u16,u32][size_op == u16]
+                self.opmode = [u16,u32][self.opmode==u16]
+                #self.opmode = [u16,u32][size_op == u16]
             if 0x67 in read_prefix:
-                self.size_ad = [u16,u32][size_ad == u16]
+                self.admode = [u16,u32][self.admode == u16]
                 
 
             
@@ -1503,9 +1495,9 @@ class x86_mn:
             modrm = None
             #digit 
             if afs in [d0, d1, d2, d3, d4, d5, d6, d7]:
-                re, modr = x86mndb.get_afs(bin, c, self.size_ad)
+                re, modr = x86mndb.get_afs(bin, c, self.admode)
                 mnemo_args.append(modr)
-                mnemo_args[-1][x86_afs.size] = self.size_op
+                mnemo_args[-1][x86_afs.size] = self.opmode
 
                 if m.modifs[sd] is not None:
                     if m.modifs[sd]:
@@ -1524,15 +1516,14 @@ class x86_mn:
                 if m.modifs[w8]:
                     mafs[x86_afs.size] = x86_afs.u08
                 else:
-                    mafs[x86_afs.size] = self.size_op
+                    mafs[x86_afs.size] = self.opmode
                 
                 mnemo_args.append(mafs)
             #rm mod
             elif afs in [noafs, cond]:
                 if rmr in m.rm:
                     c = ord(bin.readbs())
-                    re, modr = x86mndb.get_afs(bin, c, self.size_ad)
-
+                    re, modr = x86mndb.get_afs(bin, c, self.admode)
                     reg_cat = 0
                     if m.modifs[dr]:
                         reg_cat+=0x8
@@ -1544,13 +1535,13 @@ class x86_mn:
                     if m.modifs[w8]:
                         mafs[x86_afs.size] = x86_afs.u08
                     else:
-                        mafs[x86_afs.size] = self.size_op
+                        mafs[x86_afs.size] = self.opmode
                     
                     mnemo_args.append(mafs)
                     mnemo_args.append(modr)
                     
 
-                    mnemo_args[-1][x86_afs.size] = self.size_op
+                    mnemo_args[-1][x86_afs.size] = self.opmode
                     if m.modifs[w8] :
                         mnemo_args[-1][x86_afs.size] = x86_afs.u08
                     if m.modifs[se] !=None and not (imm in dibs or ims in dibs):
@@ -1581,7 +1572,7 @@ class x86_mn:
                 #unsigned
                 log.debug(m.modifs)
                 if dib in [u08, s08, u16, s16, u32, s32]:
-                    if self.size_ad !=u32:
+                    if self.admode !=u32:
                         if dib == u32:
                             dib = u16
                         if dib == s32:
@@ -1592,7 +1583,7 @@ class x86_mn:
                     
                     dib_out.append({x86_afs.imm:d})
                 elif dib in [imm, ims]:
-                    taille, fmt, t = x86mndb.get_im_fmt(m.modifs, self.size_ad, dib)
+                    taille, fmt, t = x86mndb.get_im_fmt(m.modifs, self.opmode, dib)
                     dib_out.append({x86_afs.imm:self.intsize(struct.unpack(fmt, bin.readbs(taille))[0], dib==ims)})
                     
                 elif dib in [im1, im3]:
@@ -1604,7 +1595,7 @@ class x86_mn:
                     if m.modifs[w8]:
                         mafs[x86_afs.size] = x86_afs.u08
                     else:
-                        mafs[x86_afs.size] = self.size_op
+                        mafs[x86_afs.size] = self.opmode
 
                     r = mafs
 
@@ -1616,18 +1607,18 @@ class x86_mn:
                     else:
                         dib_out.append(r)
                 elif dib == mim:
-                    l = struct.calcsize(x86_afs.dict_size[self.size_ad])
-                    d = struct.unpack(x86_afs.dict_size[self.size_ad], bin.readbs(l))[0]
+                    l = struct.calcsize(x86_afs.dict_size[self.admode])
+                    d = struct.unpack(x86_afs.dict_size[self.admode], bin.readbs(l))[0]
                     d = uint32(d)
 
-                    size = [self.size_op, x86_afs.u08][m.modifs[w8]]
+                    size = [self.opmode, x86_afs.u08][m.modifs[w8]]
                     dib_out.append({x86_afs.ad:True, x86_afs.size:size, x86_afs.imm:d})
                 elif dib in [r_cl, r_dx]:
                     dib_out.append(dib)
                     pass
 
                 elif dib in segm_regs:
-                    size = self.size_op
+                    size = self.opmode
                     seg_regs = segm_regs
                     if not dib in segm_regs:
                         raise ValueError('segment reg not found', dib)
@@ -1658,14 +1649,14 @@ class x86_mn:
             self.prefix = read_prefix
 
             #XXX really need to include this in disasm
-            if self.size_op == u16 and self.m.name == "pushfd":
+            if self.opmode == u16 and self.m.name == "pushfd":
                 self.m = x86mndb.pushfw_m
-            if self.size_op == u16 and self.m.name == "popfd":
+            if self.opmode == u16 and self.m.name == "popfd":
                 self.m = x86mndb.popfw_m
             if self.m.name.startswith("lods"):
                 if self.m.name[-1] == "b":
                     s = u08
-                elif self.size_op == u16:
+                elif self.opmode == u16:
                     s = u16
                     self.m = x86mndb.lodsw_m
                 else:
@@ -1677,7 +1668,7 @@ class x86_mn:
             if self.m.name.startswith("stos"):
                 if self.m.name[-1] == "b":
                     s = u08
-                elif self.size_op == u16:
+                elif self.opmode == u16:
                     s = u16
                     self.m = x86mndb.stosw_m
                 else:
@@ -1689,7 +1680,7 @@ class x86_mn:
             if self.m.name.startswith("movs"):
                 if self.m.name[-1] == "b":
                     s = u08
-                elif self.size_op == u16:
+                elif self.opmode == u16:
                     s = u16
                     self.m  = x86mndb.movsw_m
                 else:
@@ -1706,7 +1697,7 @@ class x86_mn:
             if self.m.name.startswith("cmps"):
                 if self.m.name[-1] == "b":
                     s = u08
-                elif self.size_op == u16:
+                elif self.opmode == u16:
                     s = u16
                     self.m  = x86mndb.cmpsw_m
                 else:
@@ -1724,7 +1715,7 @@ class x86_mn:
             if self.m.name.startswith("scas"):
                 if self.m.name[-1] == "b":
                     s = u08
-                elif self.size_op == u16:
+                elif self.opmode == u16:
                     s = u16
                     self.m  = x86mndb.scasw_m
                 else:
@@ -1944,7 +1935,7 @@ class x86_mn:
                         log.debug("not imm 2")
                         good_c = False
                         break
-                    taille, fmt, t = x86mndb.get_im_fmt(c.modifs, self.size_ad, dib)
+                    taille, fmt, t = x86mndb.get_im_fmt(c.modifs, self.admode, dib)
                     r = args_sample.pop()
                     v = check_imm_size(r[x86_afs.imm], t)
                     if v == None:
@@ -2271,6 +2262,43 @@ x86mnemo = x86_mn
 if __name__ == '__main__':
     test_out = []
     log.setLevel(logging.DEBUG)
+
+    instr = x86mnemo.dis('038678ff'.replace(' ', '').decode('hex'),
+                         admode=x86_afs.u16,
+                         opmode=x86_afs.u16)
+    print instr
+    print instr.arg
+    print instr.l
+    print instr.arg[1]["imm"].__class__
+    print instr.opmode, instr.admode
+    fds
+
+
+    instr = x86mnemo.dis('8946da'.replace(' ', '').decode('hex'),
+                         admode=x86_afs.u16,
+                         opmode=x86_afs.u16)
+    print instr
+    print instr.arg
+    print instr.l
+    print instr.opmode, instr.admode
+    fds
+
+    instr = x86mnemo.dis('66c74440ffffffff'.replace(' ', '').decode('hex'),
+                         admode=x86_afs.u16,
+                         opmode=x86_afs.u16)
+    print instr
+    print instr.arg
+    print instr.l
+    print instr.opmode, instr.admode
+    fds
+
+    instr = x86mnemo.dis('c57608'.replace(' ', '').decode('hex'),
+                         admode=x86_afs.u16,
+                         opmode=x86_afs.u16)
+    print instr
+    print instr.arg
+    print instr.l
+    fds
 
     instr = x86mnemo.dis('66af'.replace(' ', '').decode('hex'))
     print instr

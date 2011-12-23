@@ -192,6 +192,13 @@ class asm_symbol_pool:
             self.add(l)
         return l
 
+    def rename(self, s, newname):
+        if not s.name in self.s:
+            print 'unk symb'
+            return
+        del(self.s[s.name])
+        s.name = newname
+        self.s[s.name] = s
 
     def __str__(self):
         return reduce(lambda x,y: x+str(y)+'\n', [self.s[l] for l in self.s], "")
