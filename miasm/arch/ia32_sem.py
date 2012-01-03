@@ -1411,8 +1411,8 @@ def cdq(info):
                  )
     else:
         e = []
-        e.append(ExprAff(dx,
-                         ExprCond(ExprOp('==', get_op_msb(ax), ExprInt(uint32(0))),
+        e.append(ExprAff(edx[0:16],
+                         ExprCond(ExprOp('==', get_op_msb(eax[:16]), ExprInt(uint32(0))),
                                   ExprInt(uint16(0x0)),
                                   ExprInt(uint16(0xffff)))
                          )

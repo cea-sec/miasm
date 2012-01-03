@@ -168,23 +168,23 @@ def get_instr_expr_args(name, modifs, mnemo_mode, args, my_eip):
 
 #"""
 ###XXX for eval abs
-def get_instr_expr_args(name, modifs, mnemo_mode, args, my_eip):
+def get_instr_expr_args(name, modifs, opmode, admode, args, my_eip):
     for a in args:
         if type(a) in [int, long]:
             raise ValueError('int deprec in args')
 
-
+    info = (opmode, admode)
     if name in ['jmp']:
         if isinstance(args[0], ExprInt):
-            e = mnemo_func[name](args[0])
+            e = mnemo_func[name](info, args[0])
         else:
-            e = mnemo_func[name](*args)
+            e = mnemo_func[name](info, *args)
     elif name in jcc:
-        e = mnemo_func[name](my_eip, args[0])
+        e = mnemo_func[name](info, my_eip, args[0])
     elif name in ['call']:
-        e = mnemo_func[name](my_eip, args[0])
+        e = mnemo_func[name](info, my_eip, args[0])
     else:
-        e = mnemo_func[name](*args)
+        e = mnemo_func[name](info, *args)
     return e
 #"""
 
@@ -194,7 +194,7 @@ def get_instr_expr(l, my_eip, args = None, segm_to_do = {}):
     for x in l.arg:
         args.append(dict_to_Expr(x, l.m.modifs, l.opmode, l.admode, segm_to_do))
     l.arg_expr = args
-    return get_instr_expr_args(l.m.name, l.m.modifs, l.mnemo_mode, args, my_eip)
+    return get_instr_expr_args(l.m.name, l.m.modifs, l.opmode, l.admode, args, my_eip)
 
 
 
