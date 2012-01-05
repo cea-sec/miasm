@@ -1677,7 +1677,7 @@ class x86_mn:
                              x86_afs.ad:True,
                              x86_afs.size:s,
                              x86_afs.segm:x86_afs.reg_sg.index(x86_afs.r_es)}]
-            if self.m.name.startswith("movs"):
+            if self.m.name != "movsx" and self.m.name.startswith("movs"):
                 if self.m.name[-1] == "b":
                     s = u08
                 elif self.opmode == u16:
@@ -2262,6 +2262,18 @@ x86mnemo = x86_mn
 if __name__ == '__main__':
     test_out = []
     log.setLevel(logging.DEBUG)
+
+    instr = x86mnemo.dis('0fbe13'.replace(' ', '').decode('hex'),)
+                         #admode=x86_afs.u16,
+                         #opmode=x86_afs.u16)
+    print instr
+    print instr.arg
+    print instr.l
+    print instr.arg[1]["imm"].__class__
+    print instr.opmode, instr.admode
+    fds
+
+
 
     instr = x86mnemo.dis('038678ff'.replace(' ', '').decode('hex'),
                          admode=x86_afs.u16,

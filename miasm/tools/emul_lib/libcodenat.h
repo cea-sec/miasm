@@ -336,6 +336,10 @@ int imul_hi_op_16(short a, short b);
 int imul_hi_op_32(int a, int b);
 
 
+unsigned int umul16_lo(unsigned short a, unsigned short b);
+unsigned int umul16_hi(unsigned short a, unsigned short b);
+
+
 unsigned int div_op(unsigned int size, unsigned int a, unsigned int b, unsigned int c);
 unsigned int rem_op(unsigned int size, unsigned int a, unsigned int b, unsigned int c);
 int rot_left(unsigned int size, unsigned int a, unsigned int b);

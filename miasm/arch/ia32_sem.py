@@ -1070,30 +1070,44 @@ def popfw(info):
 
 def pushad(info):
     e = []
-    s = 32
-    if not s in [16,32]:
-        raise 'bad size stacker!'
-    regs = [eax, ecx, edx, ebx, esp, ebp, esi, edi]
+    opmode, admode = info
+    if opmode == u16:
+        s = 16
+        myesp = esp[:16]
+        regs = [eax[:16], ecx[:16], edx[:16], ebx[:16],
+                esp[:16], ebp[:16], esi[:16], edi[:16]]
+    else:
+        s = 32
+        myesp = esp
+        regs = [eax, ecx, edx, ebx, esp, ebp, esi, edi]
+    int_cast = tab_uintsize[s]
     for i in xrange(len(regs)):
-        c = ExprOp('+', esp, ExprInt(uint32(-(s/8)*(i+1))))
+        c = ExprOp('+', myesp, ExprInt(int_cast(-(s/8)*(i+1))))
         e.append(ExprAff(ExprMem(c, s), regs[i]))
-    e.append(ExprAff(esp, c))
+    e.append(ExprAff(myesp, c))
     return e
 
 def popad(info):
     e = []
-    s = 32
-    if not s in [16,32]:
-        raise 'bad size stacker!'
-    regs = [eax, ecx, edx, ebx, esp, ebp, esi, edi]
+    opmode, admode = info
+    if opmode == u16:
+        s = 16
+        myesp = esp[:16]
+        regs = [eax[:16], ecx[:16], edx[:16], ebx[:16],
+                esp[:16], ebp[:16], esi[:16], edi[:16]]
+    else:
+        s = 32
+        myesp = esp
+        regs = [eax, ecx, edx, ebx, esp, ebp, esi, edi]
+    int_cast = tab_uintsize[s]
     regs.reverse()
     for i in xrange(len(regs)):
-        if regs[i] == esp:
+        if regs[i] == myesp:
             continue
-        c = ExprOp('+', esp, ExprInt(uint32((s/8)*i)))
+        c = ExprOp('+', esp, ExprInt(int_cast((s/8)*i)))
         e.append(ExprAff(regs[i], ExprMem(c, s)))
 
-    c = ExprOp('+', esp, ExprInt(uint32((s/8)*(i+1))))
+    c = ExprOp('+', myesp, ExprInt(int_cast((s/8)*(i+1))))
     e.append(ExprAff(esp, c))
 
     return e
@@ -1128,6 +1142,24 @@ def ret(info, a = ExprInt(uint32(0))):
     int_cast = tab_uintsize[s]
     e.append(ExprAff(myesp, ExprOp('+', myesp, ExprOp('+', ExprInt(int_cast(s/8)), a))))
     e.append(ExprAff(eip, ExprMem(myesp, size = s)))
+    return e
+
+def retf(info, a = ExprInt(uint32(0))):
+    e = []
+    opmode, admode = info
+    if opmode == u16:
+        s = 16
+        myesp = esp[:16]
+    else:
+        s = 32
+        myesp = esp
+    int_cast = tab_uintsize[s]
+    e.append(ExprAff(myesp, ExprOp('+', myesp, ExprOp('+', ExprInt(int_cast(s/8 + 2)), a))))
+    e.append(ExprAff(eip, ExprMem(myesp, size = s)))
+    e.append(ExprAff(cs, ExprMem(ExprOp('+', myesp, ExprInt(int_cast(s/8))),
+                                 size=16)))
+
+
     return e
 
 def leave(info):
@@ -2008,6 +2040,7 @@ mnemo_func = {'mov': mov,
               'popad':popad,
               'call':call,
               'ret':ret,
+              'retf':retf,
               'leave':leave,
               'enter':enter,
               'jmp':jmp,
@@ -2304,7 +2337,11 @@ def dict_to_Expr(d, modifs = {}, opmode = u32, admode = u32, segm_to_do = {}):
             return ExprInt(uint32(myval))
     elif is_address(d):
         int_cast = tab_afs_int[admode]
-        segm = None
+        #segm = None
+        # XXX test
+        segm = x86_afs.r_ds
+        segm = segm_dict[segm]
+
 
         size = {ia32_rexpr.u08:8, ia32_rexpr.u16:16, ia32_rexpr.u32:32, ia32_rexpr.f32:32, ia32_rexpr.f64:64}[size]
         if ia32_rexpr.size in d:

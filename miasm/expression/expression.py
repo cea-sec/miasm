@@ -535,6 +535,10 @@ class ExprOp(Expr):
                             self.args[0].toC(),
                             self.args[1].toC())
 
+            elif self.op in ['umul16_lo', 'umul16_hi']:
+                return '%s(%s, %s)' %(self.op,
+                            self.args[0].toC(),
+                            self.args[1].toC())
             elif self.op in ['bsr', 'bsf']:
                 return 'my_%s(%s, %s)'%(self.op,
                                  self.args[0].toC(),

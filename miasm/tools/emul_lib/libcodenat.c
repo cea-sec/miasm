@@ -635,6 +635,19 @@ int imul_hi_op_32(int a, int b)
 	return res>>32;
 }
 
+unsigned int umul16_lo(unsigned short a, unsigned short b)
+{
+	return (a*b) & 0xffff;
+}
+
+unsigned int umul16_hi(unsigned short a, unsigned short b)
+{
+	uint32_t c;
+	c = a*b;
+	return (c>>16) & 0xffff;
+}
+
+
 
 
 unsigned int div_op(unsigned int size, unsigned int a, unsigned int b, unsigned int c)
