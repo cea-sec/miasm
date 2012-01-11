@@ -227,7 +227,7 @@ def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool,
     while True:
         lines_cpt+=1
         if lines_wd !=None and lines_cpt>lines_wd:
-            log_asmbloc.warning( "lines watchdog reached at %X"%int(offset))
+            #log_asmbloc.warning( "lines watchdog reached at %X"%int(offset))
             offsets_to_dis = []
             break
 

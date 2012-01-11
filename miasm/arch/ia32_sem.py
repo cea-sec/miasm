@@ -1557,7 +1557,7 @@ def fst(info, a):
     return e
 
 def fstp(info, a):
-    e = fst(a)
+    e = fst(info, a)
     e+=float_pop(a)
     return e
 
@@ -1567,25 +1567,25 @@ def fist(info, a):
     return e
 
 def fistp(info, a):
-    e = fist(a)
+    e = fist(info, a)
     e+=float_pop(a)
     return e
 
 def fild(info, a):
     #XXXXX
     src = ExprOp('int_%.2d_to_double'%a.get_size(), a)
-    return fld(src)
+    return fld(info, src)
 
 def fldz(info):
-    return fld(ExprOp('int_32_to_double', ExprInt(uint32(0))))
+    return fld(info, ExprOp('int_32_to_double', ExprInt(uint32(0))))
 
 def fld1(info):
-    return fld(ExprOp('int_32_to_double', ExprInt(uint32(1))))
+    return fld(info, ExprOp('int_32_to_double', ExprInt(uint32(1))))
 
 def fldl2e(info):
     x = struct.pack('d', 1/math.log(2))
     x = struct.unpack('Q', x)[0]
-    return fld(ExprOp('mem_64_to_double', ExprInt(uint64(x))))
+    return fld(info, ExprOp('mem_64_to_double', ExprInt(uint64(x))))
 
 def fadd(info, a, b = None):
     if b == None:

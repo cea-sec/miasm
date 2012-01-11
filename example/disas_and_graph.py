@@ -162,17 +162,18 @@ for (n,f), ads in dll_dyn_funcs.items():
 
 def my_disasm_callback(ad):
     admode = opmode = u32
+    kargs = {}
     if options.machine_options:
         if options.machine_options in ['u16', 'u32']:
             admode = opmode = options.machine_options
+            kargs = {"admode":admode, "opmode":admode}
         else:
             raise ValueError('bad machine options')
     all_bloc = asmbloc.dis_bloc_all(mnemo, in_str, ad, set(),
                                     symbol_pool=symbol_pool,
-                                    opmode = admode,
-                                    admode = admode,
                                     dontdis_retcall = options.dontdiscallret,
-                                    follow_call = options.followcall)
+                                    follow_call = options.followcall,
+                                    **kargs)
     g = asmbloc.bloc2graph(all_bloc)
     open('graph.txt', 'w').write(g)
     if mnemo == ia32_arch.x86_mn:
