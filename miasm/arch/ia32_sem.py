@@ -20,6 +20,7 @@ from miasm.arch.ia32_reg import *
 from miasm.arch.ia32_arch import *
 import math
 
+EXCEPT_SOFT_BP = (1<<1)
 EXCEPT_PRIV_INSN = 1<<7
 reg_eax = 'eax'
 reg_ebx = 'ebx'

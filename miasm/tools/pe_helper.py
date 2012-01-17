@@ -27,7 +27,10 @@ import miasm.core.asmbloc
 import miasm.core.bin_stream
 import os
 import re
-from  miasm.tools import to_c_helper
+try:
+    from  miasm.tools import to_c_helper
+except ImportError:
+    print "WARNING: cannot import to_c_helper, skipping"
 from miasm.core import bin_stream
 from collections import defaultdict
 

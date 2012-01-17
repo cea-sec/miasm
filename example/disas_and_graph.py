@@ -2,7 +2,6 @@
 import os
 from elfesteem import *
 from miasm.tools.pe_helper import *
-from miasm.tools import seh_helper
 from miasm.core import bin_stream
 import inspect
 from miasm.core import asmbloc
