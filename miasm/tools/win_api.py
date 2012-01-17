@@ -17,7 +17,10 @@
 #
 from to_c_helper import *
 import struct
-from Crypto.Hash import MD5
+try:
+    from Crypto.Hash import MD5
+except ImportError:
+    print "cannot find crypto MD5, skipping"
 import inspect
 from zlib import crc32
 import seh_helper
@@ -978,8 +981,7 @@ def kernel32_LoadLibraryA():
 
     print whoami(), hex(ret_ad), hex(dllname)
 
-    libname = vm_get_str(dllname, 0x100)
-    libname = libname[:libname.find('\x00')]
+    libname = get_str_ansi(dllname, 0x100)
     print repr(libname)
 
     eax = winobjs.runtime_dll.lib_get_add_base(libname)
@@ -1016,9 +1018,7 @@ def kernel32_LoadLibraryW():
 
     print whoami(), hex(ret_ad), hex(dllname)
 
-    libname = vm_get_str(dllname, 0x100)
-    libname = libname[:libname.find('\x00\x00')]
-    libname = libname[::2]
+    libname = get_str_unic(dllname, 0x100)
     print repr(libname)
 
     eax = winobjs.runtime_dll.lib_get_add_base(libname)

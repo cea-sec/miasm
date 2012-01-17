@@ -17,11 +17,8 @@
 #
 import os
 import sys
-try:
-    from Crypto.Hash import MD5
-except ImportError:
-    print "cannot find crypto MD5, skipping"
-    
+from hashlib import md5
+
 from  ctypes import *
 from miasm.tools.to_c_helper import *
 from miasm.tools.emul_lib import libcodenat_interface    

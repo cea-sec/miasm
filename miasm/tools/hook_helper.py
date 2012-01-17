@@ -24,7 +24,6 @@ from miasm.core import asmbloc
 from miasm.core import parse_asm
 import re
 import sys
-from Crypto.Hash import MD5
 
 
 class hooks():
