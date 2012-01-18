@@ -62,7 +62,7 @@ blocs_nat = {}
 
 def gen_C_module(c_source):
     
-    lib_name = 'emul_cache/out_'+MD5.new(c_source).hexdigest()
+    lib_name = 'emul_cache/out_'+md5(c_source).hexdigest()
     lib_dir = os.path.dirname(os.path.realpath(__file__))
     lib_dir = os.path.join(lib_dir, 'emul_lib')
 
