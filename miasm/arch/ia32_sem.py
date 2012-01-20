@@ -867,7 +867,7 @@ def cli(info):
     return     [ExprAff(i_f, ExprInt(uint32(0)))]
 
 def sti(info):
-    return     [ExprAff(ExprId('vmcpu.vm_exception_flags'), ExprInt(uint32(1<<7)))]
+    return     [ExprAff(ExprId('vmcpu.vm_exception_flags'), ExprInt(uint32(EXCEPT_PRIV_INSN)))]
 
 def inc(info, a):
     e= []
