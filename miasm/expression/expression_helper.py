@@ -231,6 +231,12 @@ def expr_simp_w(e):
             args0 = args[0].args[0]
             args = [args0, ExprInt(args1)]
 
+        if op in ['+'] and isinstance(args[1], ExprInt) and isinstance(args[0], ExprOp) and args[0].op in ['+', '-'] and isinstance(args[0].args[0], ExprInt):
+            op = args[0].op
+            args1 = args[0].args[0].arg + args[1].arg
+            args0 = args[0].args[1]
+            args = [ExprInt(args1), args0]
+
         #0 - (a-b) => b-a
         if op == '-' and isinstance(args[0], ExprInt) and args[0].arg == 0 and isinstance(args[1], ExprOp) and args[1].op == "-":
             return expr_simp(args[1].args[1] - args[1].args[0])

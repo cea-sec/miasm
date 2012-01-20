@@ -387,7 +387,7 @@ class libimp:
 
     def lib_get_add_base(self, name):
         name = name.lower()
-        if not name.lower().endswith('.dll'):
+        if not "." in name:
             print 'warning adding .dll to modulename'
             name += '.dll'
             print name
