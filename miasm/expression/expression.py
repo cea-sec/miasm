@@ -280,7 +280,7 @@ class ExprAff(Expr):
             raise ValueError("get mod slice not on expraff slice", str(self))
         modified_s = []
         for x in self.src.args:
-            if x.arg.arg != dst or x.start != x.arg.start or x.stop != x.arg.stop:
+            if not isinstance(x.arg, ExprSlice) or x.arg.arg != dst or x.start != x.arg.start or x.stop != x.arg.stop:
                 modified_s.append(x)
 
         return modified_s
@@ -507,12 +507,13 @@ class ExprOp(Expr):
                             self.args[0].toC(),
                             self.args[1].toC())
 
-            elif self.op == 'imul32_lo':
+            elif self.op in ['imul16_lo', 'imul32_lo']:
                 return 'imul_lo_op_%s(%s, %s)' %(
                             self.args[0].get_size(),
                             self.args[0].toC(),
                             self.args[1].toC())
-            elif self.op == 'imul32_hi':
+
+            elif self.op in ['imul16_hi', 'imul32_hi']:
                 return 'imul_hi_op_%s(%s, %s)' %(
                             self.args[0].get_size(),
                             self.args[0].toC(),

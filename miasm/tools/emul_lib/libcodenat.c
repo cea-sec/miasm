@@ -58,6 +58,9 @@ struct memory_page_node *memory_page_pool_tab[MAX_MEMORY_PAGE_POOL_TAB];
 #define MAX(a,b)  (((a)>(b))?(a):(b))
 
 
+//#define DEBUG_MIASM_AUTOMOD_CODE
+
+
 
 
 
@@ -281,9 +284,11 @@ inline void check_write_code_bloc(unsigned int my_size, uint64_t addr)
 		LIST_FOREACH(cbp, &code_bloc_pool, next){
 			if ((cbp->ad_start <= addr + my_size/8) &&
 			    (addr < cbp->ad_stop)){
+#ifdef DEBUG_MIASM_AUTOMOD_CODE
 				fprintf(stderr, "self modifying code %"PRIX64" %.8X",
 				       addr, my_size);
 				fprintf(stderr, " from approx %X\n", vmcpu.eip);
+#endif
 				vmcpu.vm_exception_flags |= EXCEPT_CODE_AUTOMOD;
 				break;
 			}
@@ -305,9 +310,11 @@ void MEM_WRITE(unsigned int my_size, uint64_t addr, unsigned int src)
 		LIST_FOREACH(cbp, &code_bloc_pool, next){
 			if ((cbp->ad_start <= addr + my_size/8) &&
 			    (addr < cbp->ad_stop)){
+#ifdef DEBUG_MIASM_AUTOMOD_CODE
 				fprintf(stderr, "self modifying code %"PRIX64" %.8X",
 				       addr, my_size);
 				fprintf(stderr, " from approx %X\n", vmcpu.eip);
+#endif
 				vmcpu.vm_exception_flags |= EXCEPT_CODE_AUTOMOD;
 				break;
 			}

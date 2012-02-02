@@ -564,7 +564,8 @@ def emul_full_expr(e, l, my_eip, env, machine):
             my_edi = machine.eval_expr(machine.pool[edi], {})
             tmp,mem_dst =  emul_expr(machine, e, my_eip)
             
-            machine.eval_instr(mov(ecx, ExprOp('-', my_ecx, ExprInt(uint32(1)))))
+            info = l.opmode, l.admode
+            machine.eval_instr(mov(info, ecx, ExprOp('-', my_ecx, ExprInt(uint32(1)))))
             machine.eval_expr(machine.pool[ecx], {})
 
             if zf_w :

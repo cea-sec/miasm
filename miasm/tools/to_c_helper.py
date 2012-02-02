@@ -21,6 +21,12 @@ from miasm.arch.ia32_arch import *
 from miasm.arch.ia32_sem import *
 import struct
 
+log_to_c_h = logging.getLogger("emu.to_c_helper")
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
+log_to_c_h.addHandler(console_handler)
+log_to_c_h.setLevel(logging.WARN)
+
 from elfesteem import *
 
 
@@ -290,8 +296,8 @@ def Exp2C(exprs, l = None, addr2label = None, gen_exception_code = False):
         if len(exs) ==1:
             new_expr += exs
             continue
-        print 'warning: detected multi dst to same id'
-        print l
+        log_to_c_h.debug('warning: detected multi dst to same id')
+        log_to_c_h.debug(str(l))
         new_expr+=exs
         #test if multi slice (for example xchg al, ah)
         if not False in [isinstance(e.src, ExprCompose) for e in exs]:
@@ -1049,7 +1055,7 @@ def updt_pe_from_emul(e):
 
 def updt_automod_code(known_blocs):
     w_ad, w_size = vm_get_last_write_ad(), vm_get_last_write_size()
-    print hex(w_ad), hex(w_size)
+    log_to_c_h.debug("%X %X"%(w_ad, w_size))
     known_blocs = del_bloc_in_range(known_blocs, w_ad, w_ad+w_size/8)
     code_addr = blocs_to_memory_ranges([bn.b for bn in known_blocs.values()])
     merge_memory_ranges(code_addr)

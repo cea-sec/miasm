@@ -149,6 +149,7 @@ class c_winobjs:
 
         self.lastwin32error = 0
         self.mutex = {}
+        self.env_variables = {}
 winobjs = c_winobjs()
 
 
@@ -261,7 +262,7 @@ def kernel32_CreateToolhelp32Snapshot():
     print whoami(), hex(ret_ad), '(', hex(dwflags), hex(th32processid), ')'
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
-    regs['eax'] = win_api.handle_toolhelpsnapshot
+    regs['eax'] = winobjs.handle_toolhelpsnapshot
     vm_set_gpreg(regs)
 
 def kernel32_GetCurrentProcess():
@@ -345,7 +346,7 @@ def kernel32_Process32First():
 
     print whoami(), hex(ret_ad), '(', hex(s_handle), hex(ad_pentry), ')'
 
-    pentry = struct.pack('LLLLLLLLL', *process_list[0][:-1])+process_list[0][-1]
+    pentry = struct.pack('IIIIIIIII', *process_list[0][:-1])+process_list[0][-1]
     vm_set_mem(ad_pentry, pentry)
     winobjs.toolhelpsnapshot_info[s_handle] = 0
 
@@ -367,7 +368,7 @@ def kernel32_Process32Next():
         eax = 1
         n = winobjs.toolhelpsnapshot_info[s_handle]
         print whoami(), hex(ret_ad), '(', hex(s_handle), hex(ad_pentry), ')'
-        pentry = struct.pack('LLLLLLLLL', *process_list[n][:-1])+process_list[n][-1]
+        pentry = struct.pack('IIIIIIIII', *process_list[n][:-1])+process_list[n][-1]
         vm_set_mem(ad_pentry, pentry)
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
@@ -645,6 +646,8 @@ def kernel32_CreateFile(funcname, get_str):
     elif fname.upper() in ['NUL']:
         eax = winobjs.module_cur_hwnd
     else:
+        # nuxify path
+        fname = fname.replace('\\', "/").lower()
         # go in sandbox files
         f = os.path.join('file_sb', fname)
         if access & 0x80000000:
@@ -677,20 +680,25 @@ def kernel32_ReadFile():
 
     if hwnd == winobjs.module_cur_hwnd:
         pass
+    elif hwnd in winobjs.handle_pool:
+        pass
     else:
         raise ValueError('unknown hwnd!')
 
     eax = 0xffffffff
-
+    data = None
     if hwnd in winobjs.files_hwnd:
         data = winobjs.files_hwnd[winobjs.module_cur_hwnd].read(nnumberofbytestoread)
+    elif hwnd in winobjs.handle_pool:
+        wh = winobjs.handle_pool[hwnd]
+        data = wh.info.read(nnumberofbytestoread)
+    else:
+        raise ValueError('unknown filename')
 
+    if data != None:
         if (lpnumberofbytesread):
             vm_set_mem(lpnumberofbytesread, pdw(len(data)))
         vm_set_mem(lpbuffer, data)
-
-    else:
-        raise ValueError('unknown filename')
 
 
     regs = vm_get_gpreg()
@@ -707,6 +715,10 @@ def kernel32_GetFileSize():
 
     if hwnd == winobjs.module_cur_hwnd:
         eax = len(open(winobjs.module_fname_nux).read())
+    elif hwnd in winobjs.handle_pool:
+        wh = winobjs.handle_pool[hwnd]
+        print wh
+        eax = len(open(wh.name).read())
     else:
         raise ValueError('unknown hwnd!')
 
@@ -1984,6 +1996,7 @@ def kernel32_WaitForSingleObject():
     handle = vm_pop_uint32_t()
     dwms = vm_pop_uint32_t()
 
+    print whoami(), hex(ret_ad), hex(handle), hex(dwms)
 
     t_start = time.time()*1000
     while True:

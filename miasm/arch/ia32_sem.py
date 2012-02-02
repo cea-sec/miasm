@@ -846,6 +846,39 @@ def shld_cl(info, a, b):
     e.append(ExprAff(a, c))
     return e
 
+def shld(info, a, b, c):
+    e= []
+    cast_int = tab_uintsize[a.get_size()]
+    cast_intb = tab_uintsize[b.get_size()]
+    shifter = ExprOp('&',c, ExprInt(cast_int(0x1f)))
+    c = ExprOp('|',
+            ExprOp('<<', a, shifter),
+            ExprOp('>>', b, ExprOp('-',
+                                    ExprInt(cast_int(a.get_size())),
+                                    shifter)
+                                    )
+          )
+
+    new_cf = ExprOp('&',
+                    ExprInt(cast_int(1)),
+                    ExprOp('>>',
+                           a,
+                           ExprOp('-',
+                                  ExprInt(cast_intb(a.get_size())),
+                                  shifter
+                                  )
+                           )
+                    )
+    e.append(ExprAff(cf, ExprCond(shifter,
+                                  new_cf,
+                                  cf)
+                     )
+             )
+    e+=update_flag_znp(c)
+    e.append(ExprAff(of, ExprOp('^', get_op_msb(c), new_cf)))
+    e.append(ExprAff(a, c))
+    return e
+
 
 #XXX todo ###
 def cmc(info):
@@ -2003,6 +2036,7 @@ mnemo_func = {'mov': mov,
               'sal':sal,
               'shl':shl,
               'shld_cl':shld_cl,
+              'shld':shld,
               'cmc':cmc,
               'clc':clc,
               'stc':stc,
