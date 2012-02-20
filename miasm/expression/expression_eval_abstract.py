@@ -97,6 +97,9 @@ class mpool():
     def items(self):
         k = self.pool_id.items() + [x for x in self.pool_mem.values()]
         return k
+    def keys(self):
+        k = self.pool_id.keys() + [x[0] for x in self.pool_mem.values()]
+        return k
 
 
 class eval_abs:
@@ -223,7 +226,7 @@ class eval_abs:
             if sub_size >= a.size:
                 pass
             else:
-                ex = ExprOp('+', a.arg, ExprInt(uint32(sub_size)))
+                ex = ExprOp('+', a.arg, ExprInt(uint32(sub_size/8)))
                 ex = expr_simp(self.eval_expr(ex, {}))
                 
                 rest_ptr = ex
@@ -262,7 +265,7 @@ class eval_abs:
         if not isinstance(e, ExprMem):
             raise ValueError('mem overlap bad arg')
         ov = []
-        
+        """
         for k in self.pool:
             if not isinstance(k, ExprMem):
                 continue
@@ -275,9 +278,35 @@ class eval_abs:
                 ov.append((-ptr_diff, k))
             elif ptr_diff <0 and ptr_diff + k.size/8>0:
                 ov.append((-ptr_diff, k))
+        """
+        # as max mem size is 64 bytes, compute all
+        to_test = []
+        comp = {}
+        for i in xrange(-7, e.size/8):
+            ex = expr_simp(self.eval_expr(e.arg + ExprInt(uint32(i)), comp))
+            to_test.append((i, ex))
 
+        for i, x in to_test:
+            if not x in self.pool.pool_mem:
+                continue
+
+            ex = expr_simp(self.eval_expr(e.arg - x, comp))
+            if not isinstance(ex, ExprInt):
+                fds
+            ptr_diff = int32(ex.arg)
+            #print 'ptrdiff', ptr_diff
+            if ptr_diff >= self.pool.pool_mem[x][1].get_size()/8:
+                #print "too long!"
+                continue
+            ov.append((i, self.pool.pool_mem[x][0]))
+        #"""
+        """
+        print ov
+        if len(ov)>0:
+            print "XXXX", [(x[0], str(x[1])) for x in ov]
+        """
         return ov
-                
+
     def eval_expr(self, e, eval_cache):
         if e.is_term:
             return e
