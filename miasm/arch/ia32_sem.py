@@ -993,7 +993,7 @@ def setb(info, a):
 
 def setbe(info, a):
     e = []
-    e.append(ExprAff(a, ExprCond(ExprOp('&', ExprOp('==', cf, ExprInt(uint32(1))), ExprOp('==', zf, ExprInt(uint32(1)))), ExprInt(tab_uintsize[a.get_size()](1)), ExprInt(tab_uintsize[a.get_size()](0)))))
+    e.append(ExprAff(a, ExprCond(ExprOp('|', ExprOp('==', cf, ExprInt(uint32(1))), ExprOp('==', zf, ExprInt(uint32(1)))), ExprInt(tab_uintsize[a.get_size()](1)), ExprInt(tab_uintsize[a.get_size()](0)))))
     return e
 
 def setns(info, a):
