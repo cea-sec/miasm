@@ -906,8 +906,11 @@ def kernel32_CreateMutex(funcname, get_str):
 
     print whoami(), hex(ret_ad), hex(mutexattr), hex(initowner), hex(lpname)
 
-    name = get_str(lpname)
-    print repr(name)
+    if lpname:
+        name = get_str(lpname)
+        print repr(name)
+    else:
+        name = None
     if name in winobjs.mutex:
         ret = 0
     else:
@@ -1030,7 +1033,7 @@ def kernel32_LoadLibraryW():
 
     print whoami(), hex(ret_ad), hex(dllname)
 
-    libname = get_str_unic(dllname, 0x100)
+    libname = get_str_unic(dllname, 0x100)[::2]
     print repr(libname)
 
     eax = winobjs.runtime_dll.lib_get_add_base(libname)

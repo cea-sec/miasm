@@ -384,6 +384,7 @@ class libimp:
         self.lib_imp2ad = {}
         self.lib_imp2dstad = {}
         self.fad2cname = {}
+        self.fad2info = {}
 
     def lib_get_add_base(self, name):
         name = name.lower()
@@ -430,6 +431,7 @@ class libimp:
         name_inv = dict([(x[1], x[0]) for x in self.name2off.items()])
         c_name = canon_libname_libfunc(name_inv[libad], imp_ord_or_name)
         self.fad2cname[ad] = c_name
+        self.fad2info[ad] = libad, imp_ord_or_name
         return ad
 
     def check_dst_ad(self):
@@ -496,9 +498,10 @@ class libimp:
                 name_inv = dict([(x[1], x[0]) for x in self.name2off.items()])
                 c_name = canon_libname_libfunc(name_inv[libad], imp_ord_or_name)
                 self.fad2cname[ad] = c_name
+                self.fad2info[ad] = libad, imp_ord_or_name
 
 
-    def gen_new_lib(self, e):
+    def gen_new_lib(self, e, filter=lambda x: True):
         new_lib = []
         for n, ad in self.name2off.items():
             out_ads = dict()
@@ -507,6 +510,8 @@ class libimp:
                     out_ads[v] = k
             all_ads = self.lib_imp2dstad[ad].values()
             all_ads = reduce(lambda x,y:x+list(y), all_ads, [])
+            all_ads = [x for x in all_ads if filter(x)]
+            print [hex(x) for x in all_ads]
             all_ads.sort()
             #first, drop None
             if not all_ads:
