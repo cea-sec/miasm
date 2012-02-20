@@ -26,7 +26,7 @@ tab_size_int = {8:uint8,
 tab_max_uint = {8:uint8(0xFF), 16:uint16(0xFFFF), 32:uint32(0xFFFFFFFF), 64:uint64(0xFFFFFFFFFFFFFFFFL)}
 
 
-def parity(self, a):
+def parity(a):
     tmp = (a)&0xFFL
     cpt = 1
     while tmp!=0:
@@ -40,7 +40,10 @@ def merge_sliceto_slice(args):
     sources_int = {}
     for a in args:
         if isinstance(a.arg, ExprInt):
-            sources_int[a.start] = a
+            #sources_int[a.start] = a
+            # copy ExprInt because we will inplace modify arg just below
+            # /!\ TODO XXX never ever modify inplace args...
+            sources_int[a.start] = ExprSliceTo(ExprInt(a.arg.arg.__class__(a.arg.arg)), a.start, a.stop)
         elif isinstance(a.arg, ExprSlice):
             if not a.arg.arg in sources:
                 sources[a.arg.arg] = []
@@ -161,8 +164,10 @@ def expr_simp_w(e):
         return ExprMem(expr_simp(e.arg), size = e.size)
     elif isinstance(e, ExprOp):
         op, args = e.op, list(e.args)
+        """
         if ExprTop() in args:
             return ExprTop()
+        """
         #int OP int => int
         if e.op in ['+', '-', '*', '|', '&', '^', '>>', '<<'] and isinstance(args[0], ExprInt) and isinstance(args[1], ExprInt) :
             if args[0].get_size() != args[1].get_size():
@@ -489,7 +494,6 @@ def expr_simp_w(e):
                                      
 
         if op == 'parity' and isinstance(args[0], ExprInt):
-            fsdfsdf
             return ExprInt(tab_size_int[args[0].get_size()](parity(args[0].arg)))
         
         new_e = ExprOp(op, *[expr_simp(x) for x in args])
@@ -597,8 +601,10 @@ def expr_simp_w(e):
                 break
         if all_top:
             return ExprTop()
+        """
         if ExprTop() in e.args:
             return ExprTop()
+        """
         
         args = merge_sliceto_slice(e.args)
         if len(args) == 1:

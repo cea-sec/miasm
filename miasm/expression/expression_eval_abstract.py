@@ -473,12 +473,12 @@ class eval_abs:
 
     def eval_ExprId(self, e, eval_cache = {}):
         if not e in self.pool:
-            return ExprTop(e)
+            return e
         return self.pool[e]
 
     def eval_ExprInt(self, e, eval_cache = {}):
         return e
-    
+
     def eval_ExprMem(self, e, eval_cache = {}):
         a_val = expr_simp(self.eval_expr(e.arg, eval_cache))
         if isinstance(a_val, ExprTop):
@@ -486,12 +486,9 @@ class eval_abs:
             ee =   ExprMem(e.arg, e.size)
             ee.is_term = True
             return ee
-        
-        
         a = expr_simp(ExprMem(a_val, size = e.size))
         if a in self.pool:
             return self.pool[a]
-        
         tmp = None
         #test if mem lookup is known
         for k in self.pool:
@@ -532,11 +529,9 @@ class eval_abs:
                 #XXX hack test
                 a.is_term = True
                 return a
-        
         #eq lookup
         if a.size == k.size:
             return self.pool[tmp]
-        
         #bigger lookup
         if a.size > k.size:
             rest = a.size
@@ -547,28 +542,23 @@ class eval_abs:
                 v = self.find_mem_by_addr(ptr)
                 if v == None:
                     raise ValueError("cannot find %s in mem"%str(ptr))
-
-                if (rest-v.size) >=0:
+                if rest >= v.size:
                     val = self.pool[v]
                     diff_size = v.size
                 else:
-                    diff_size = v.size-rest
+                    diff_size = rest
                     val = self.pool[v][0:diff_size]
-                    
                 val = ExprSliceTo(val, ptr_index, ptr_index+diff_size)
-                
                 out.append(val)
                 ptr_index+=diff_size
                 rest -= diff_size
                 ptr = expr_simp(self.eval_expr(ExprOp('+', ptr, ExprInt(uint32(v.size/8))), eval_cache))
             e = expr_simp(ExprCompose(out))
             return e
-        
         #part lookup
         tmp = expr_simp(ExprSlice(self.pool[tmp], 0, a.size))
-        
         return tmp
-    
+
     def eval_ExprOp(self, e, eval_cache = {}):
         args = []
         for a in e.args:

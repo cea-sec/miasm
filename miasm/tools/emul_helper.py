@@ -659,7 +659,7 @@ def digest_allbloc_instr(all_bloc, segm_to_do = {}):
     return instrs
 
 
-def x86_machine():
+def x86_machine(mem_read_wrap = None, mem_write_wrap = None):
     machine = eval_abs({esp:init_esp, ebp:init_ebp, eax:init_eax, ebx:init_ebx, ecx:init_ecx, edx:init_edx, esi:init_esi, edi:init_edi,
                         cs:ExprInt(uint32(9)),
                         zf :  init_zf,  nf :  init_nf, pf : init_pf,
@@ -674,8 +674,8 @@ def x86_machine():
                         #my_ret_addr:my_ret_addri
                         
                         },
-                       #mem_read_wrap,
-                       #mem_write_wrap,
+                       mem_read_wrap,
+                       mem_write_wrap,
                        
                        )
     return machine

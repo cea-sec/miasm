@@ -115,6 +115,7 @@ class Expr:
         
 class ExprTop(Expr):
     def __init__(self, e=None):
+        fdqs
         self.e = e
         pass
     def __str__(self):
@@ -680,6 +681,8 @@ class ExprCompose(Expr):
     def get_size(self):
         return max([x.stop for x in self.args]) - min([x.start for x in self.args])
     def reload_expr(self, g = {}):
+        if self in g:
+            return g[self]
         args = []
         for a in self.args:
             if isinstance(a, Expr):

@@ -981,9 +981,19 @@ def seta(info, a):
     e.append(ExprAff(a, ExprCond(ExprOp('&', ExprOp('==', cf, ExprInt(uint32(0))), ExprOp('==', zf, ExprInt(uint32(0)))), ExprInt(tab_uintsize[a.get_size()](1)), ExprInt(tab_uintsize[a.get_size()](0)))))
     return e
 
+def setae(info, a):
+    e = []
+    e.append(ExprAff(a, ExprCond(ExprOp('==', cf, ExprInt(uint32(0))), ExprInt(tab_uintsize[a.get_size()](1)), ExprInt(tab_uintsize[a.get_size()](0)))))
+    return e
+
 def setb(info, a):
     e = []
     e.append(ExprAff(a, ExprCond(ExprOp('==', cf, ExprInt(uint32(1))), ExprInt(tab_uintsize[a.get_size()](1)), ExprInt(tab_uintsize[a.get_size()](0)))))
+    return e
+
+def setbe(info, a):
+    e = []
+    e.append(ExprAff(a, ExprCond(ExprOp('&', ExprOp('==', cf, ExprInt(uint32(1))), ExprOp('==', zf, ExprInt(uint32(1)))), ExprInt(tab_uintsize[a.get_size()](1)), ExprInt(tab_uintsize[a.get_size()](0)))))
     return e
 
 def setns(info, a):
@@ -2056,7 +2066,9 @@ mnemo_func = {'mov': mov,
               'setg':setg,
               'setge':setge,
               'seta':seta,
+              'setae':setae,
               'setb':setb,
+              'setbe':setbe,
               'setns':setns,
               'sets':sets,
               'seto':seto,
