@@ -60,6 +60,44 @@ tab_u2i = {uint8:int8,
            uint16:int16,
            uint32:int32}
 
+class mpool():
+    def __init__(self):
+        self.pool_id = {}
+        self.pool_mem = {}
+    def __contains__(self, a):
+        if not isinstance(a, ExprMem):
+            return self.pool_id.__contains__(a)
+        if not self.pool_mem.__contains__(a.arg):
+            return False
+        return self.pool_mem[a.arg][0].get_size() == a.get_size()
+    def __getitem__(self, a):
+        if not isinstance(a, ExprMem):
+            return self.pool_id.__getitem__(a)
+        if not a.arg in self.pool_mem:
+            raise KeyError, a
+        m = self.pool_mem.__getitem__(a.arg)
+        if m[0].get_size() != a.get_size():
+            raise KeyError, a
+        return m[1]
+    def __setitem__(self, a, v):
+        if not isinstance(a, ExprMem):
+            self.pool_id.__setitem__(a, v)
+            return
+        self.pool_mem.__setitem__(a.arg, (a, v))
+    def __iter__(self):
+        for a in self.pool_id:
+            yield a
+        for a in self.pool_mem:
+            yield self.pool_mem[a][0]
+    def __delitem__(self, a):
+        if not isinstance(a, ExprMem):
+            self.pool_id.__delitem__(a)
+        else:
+            self.pool_mem.__delitem__(a.arg)
+    def items(self):
+        k = self.pool_id.items() + [x for x in self.pool_mem.values()]
+        return k
+
 
 class eval_abs:
     dict_size = {
@@ -93,7 +131,7 @@ class eval_abs:
             
         
     def __init__(self, vars, func_read = None, func_write = None, log = None):
-        self.pool = {}
+        self.pool = mpool()
         for v in vars:
             self.pool[v] = vars[v]
         self.func_read = func_read
@@ -124,7 +162,7 @@ class eval_abs:
         log.addHandler(console_handler)
         log.setLevel(logging.WARN)
         m.log = log
-        new_pool = {}
+        new_pool = mpool()
         for x in m.pool:
             
             if not str(x) in g:
@@ -145,6 +183,10 @@ class eval_abs:
         return m
 
     def find_mem_by_addr(self, e):
+        if e in self.pool.pool_mem:
+            return self.pool.pool_mem[e][0]
+        return None
+
         for k in self.pool:
             if not isinstance(k, ExprMem):
                 continue
@@ -491,12 +533,25 @@ class eval_abs:
             return self.pool[a]
         tmp = None
         #test if mem lookup is known
+        """
         for k in self.pool:
             if not isinstance(k, ExprMem):
                 continue
             if a_val == k.arg:
                 tmp = k
                 break
+        """
+        if a_val in self.pool.pool_mem:
+            tmp = self.pool.pool_mem[a_val][0]
+        """
+        for k in self.pool:
+            if not isinstance(k, ExprMem):
+                continue
+            if a_val == k.arg:
+                tmp = k
+                break
+        """
+
         if tmp == None:
 
             v = self.find_mem_by_addr(a_val)
@@ -530,10 +585,10 @@ class eval_abs:
                 a.is_term = True
                 return a
         #eq lookup
-        if a.size == k.size:
+        if a.size == tmp.size:
             return self.pool[tmp]
         #bigger lookup
-        if a.size > k.size:
+        if a.size > tmp.size:
             rest = a.size
             ptr = a_val
             out = []
