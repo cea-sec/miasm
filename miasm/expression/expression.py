@@ -172,7 +172,8 @@ class ExprInt(Expr):
 
     def toC(self):
         return str(self)
-
+    def canonize(self):
+        return self
 
 class ExprId(Expr):
     def __init__(self, name, size = 32, is_term = False):
@@ -213,6 +214,8 @@ class ExprId(Expr):
 
     def toC(self):
         return str(self)
+    def canonize(self):
+        return self
 
 memreg = ExprId('MEM')
 
@@ -285,6 +288,8 @@ class ExprAff(Expr):
                 modified_s.append(x)
 
         return modified_s
+    def canonize(self):
+        return ExprAff(self.src.canonize(), self.dst.canonize())
 
 
 class ExprCond(Expr):
@@ -333,6 +338,10 @@ class ExprCond(Expr):
 
     def toC(self):
         return "(%s?%s:%s)"%(self.cond.toC(), self.src1.toC(), self.src2.toC())
+    def canonize(self):
+        return ExprAff(self.cond.canonize(),
+                       self.src1.canonize(),
+                       self.src2.canonize())
 
 class ExprMem(Expr):
     def __init__(self, arg, size = 32, segm = None):
@@ -384,6 +393,8 @@ class ExprMem(Expr):
             return "MEM_LOOKUP_%.2d_SEGM(%s, %s)"%(self.size, self.segm.toC(), self.arg.toC())
         else:
             return "MEM_LOOKUP_%.2d(%s)"%(self.size, self.arg.toC())
+    def canonize(self):
+        return ExprMem(self.arg.canonize(), size = self.size)
 
 class ExprOp(Expr):
     def __init__(self, op, *args):
@@ -572,23 +583,25 @@ class ExprOp(Expr):
                       '<<<c_cf':'rcl_cf_op',
                       '>>>c_rez':'rcr_rez_op',
                       '>>>c_cf':'rcr_cf_op',
-                      
                       }
             if not self.op in dct_div:
                 fsdff
 
             return '(%s(%s, %s, %s, %s) &0x%x)'%(dct_div[self.op],
                                                  self.args[0].get_size(),
-                                                 self.args[0].toC(), 
+                                                 self.args[0].toC(),
                                                  self.args[1].toC(),
                                                  self.args[2].toC(),
                                                  my_size_mask[self.args[0].get_size()])
         else:
-            
             raise ValueError('not imple', str(self))
-        
+    def canonize(self):
+        args = [x.canonize() for x in self.args]
+        if self.op in ['+', '^', '&', '|', '*']:
+            args = canonize_expr_list(args)
+        return ExprOp(self.op, *args)
 
-    
+
 class ExprSlice(Expr):
     def __init__(self, arg, start, stop):
         self.arg, self.start, self.stop = arg, start, stop
@@ -629,6 +642,10 @@ class ExprSlice(Expr):
     def toC(self):
         # XXX gen mask in python for 64 bit & 32 bit compat
         return "((%s>>%d) & ((0xFFFFFFFF>>(32-%d))))"%(self.arg.toC(), self.start, self.stop-self.start)
+    def canonize(self):
+        return ExprSlice(self.arg.canonize(),
+                         self.start,
+                         self.stop)
 
 
 class ExprSliceTo(Expr):
@@ -668,6 +685,10 @@ class ExprSliceTo(Expr):
     def toC(self):
         # XXX gen mask in python for 64 bit & 32 bit compat
         return "((%s & (0xFFFFFFFF>>(32-%d))) << %d)"%(self.arg.toC(), self.stop-self.start, self.start)
+    def canonize(self):
+        return ExprSliceTo(self.arg.canonize(),
+                           self.start,
+                           self.stop)
 
 class ExprCompose(Expr):
     def __init__(self, args):
@@ -725,8 +746,9 @@ class ExprCompose(Expr):
     def toC(self):
         out = ' | '.join([x.toC() for x in self.args])
         return '('+out+')'
-        
-                       
+    def canonize(self):
+        return ExprCompose(canonize_expr_list([x.canonize() for x in self.args]))
+
 class set_expr:
     def __init__(self, l = []):
         self._list = []
@@ -778,3 +800,80 @@ class set_expr:
 
     def __iter__(self):
         return self._list.__iter__()
+
+
+expr_order_dict = {ExprId: 1,
+                   ExprCond: 2,
+                   ExprMem: 3,
+                   ExprOp: 4,
+                   ExprSlice: 5,
+                   ExprSliceTo: 6,
+                   ExprCompose: 7,
+                   ExprInt: 8,
+                   }
+
+def compare_exprs_list(l1_e, l2_e):
+    for i in xrange(min(len(l1_e, l2_e))):
+        x = expr_compare(l1_e[i], l2_e[i])
+        if x: return x
+    return cmp(len(l1_e), len(l2_e))
+
+# compare 2 expressions for canonization
+# 0  => ==
+# 1  => e1 > e2
+# -1 => e1 < e2
+def compare_exprs(e1, e2):
+    c1 = e1.__class__
+    c2 = e2.__class__
+
+    if c1 != c2:
+        return cmp(expr_order_dict[c1], expr_order_dict[c2])
+    if e1 == e2:
+        return 0
+    if c1 == ExprInt:
+        return cmp(e1.arg, e2.arg)
+    elif c1 == ExprId:
+        x = cmp(e1.name, e2.name)
+        if x: return x
+        return cmp(e1.size, e2.size)
+    elif c1 == ExprAff:
+        fds
+    elif c2 == ExprCond:
+        x = compare_exprs(e1.cond, e2.cond)
+        if x: return x
+        x = compare_exprs(e1.src1, e2.src1)
+        if x: return x
+        x = compare_exprs(e1.src2, e2.src2)
+        return x
+    elif c1 == ExprMem:
+        x = compare_exprs(e1.arg, e2.arg)
+        if x: return x
+        return cmp(e1.size, e2.size)
+    elif c1 == ExprOp:
+        if e1.op != e2.op:
+            return cmp(e1.op, e2.op)
+        return compare_exprs_list(e1.arg, e2.arg)
+    elif c1 == ExprSlice:
+        x = compare_exprs(e1.arg, e2.arg)
+        if x: return x
+        x = cmp(e1.start, e2.start)
+        if x: return x
+        x = cmp(e1.stop, e2.stop)
+        return x
+    elif c1 == ExprSliceTo:
+        x = compare_exprs(e1.arg, e2.arg)
+        if x: return x
+        x = cmp(e1.start, e2.start)
+        if x: return x
+        x = cmp(e1.stop, e2.stop)
+        return x
+    elif c1 == ExprCompose:
+        return compare_exprs_list(e1.arg, e2.arg)
+    raise ValueError("not imppl %r %r"%(e1, e2))
+
+
+
+def canonize_expr_list(l):
+    l = l[:]
+    l.sort(cmp=compare_exprs)
+    return l
