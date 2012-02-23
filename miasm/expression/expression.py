@@ -28,7 +28,7 @@ def slice_rest(size, start, stop):
         rest.append((stop, size))
 
     return rest
-        
+
 tab_int_size = {int8:8,
                 uint8:8,
                 int16:16,
@@ -60,7 +60,6 @@ def get_missing_interval(all_intervals, i_min = 0, i_max = 32):
         if last_pos  != start:
             missing_i.append((last_pos, start))
         last_pos = stop
-        
     return missing_i
 
 
@@ -88,12 +87,10 @@ class Expr:
         return "<%s 0x%x>"%(self.__class__.__name__, id(self))
     def __ne__(self, a):
         return not self.__eq__(a)
-
     def toC(self):
         print self
         fdsfs
         return self.arg.toC()
-
     def __add__(self, a):
         return ExprOp('+', self, a)
     def __sub__(self, a):
@@ -112,7 +109,7 @@ class Expr:
         return ExprOp('|', self, a)
     def __and__(self, a):
         return ExprOp('&', self, a)
-        
+
 class ExprTop(Expr):
     def __init__(self, e=None):
         fdqs
@@ -132,7 +129,6 @@ class ExprTop(Expr):
         return isinstance(a, ExprTop)
     def __hash__(self):
         return 0x1337beef
-            
     def toC(self):
         raise ValueError('cannot toC TOP')
 
@@ -169,7 +165,6 @@ class ExprInt(Expr):
         return hash(self.arg)
     def __repr__(self):
         return Expr.__repr__(self)[:-1]+" 0x%X>"%int(self.arg&0xffffffffffffffffL)
-
     def toC(self):
         return str(self)
     def canonize(self):
@@ -211,7 +206,6 @@ class ExprId(Expr):
         return hash(self.name)
     def __repr__(self):
         return Expr.__repr__(self)[:-1]+" %s>"%self.name
-
     def toC(self):
         return str(self)
     def canonize(self):
@@ -223,7 +217,6 @@ memreg = ExprId('MEM')
 
 class ExprAff(Expr):
     def __init__(self, dst, src):
-        
         #if dst is slice=> replace with id make composed src
         if isinstance(dst, ExprSlice):
             self.dst = dst.arg
@@ -233,7 +226,6 @@ class ExprAff(Expr):
             self.src = ExprCompose([x[1] for x in all_a])
         else:
             self.dst, self.src = dst,src
-            
     def __str__(self):
         return "%s = %s"%(str(self.dst), str(self.src))
     def get_r(self, mem_read=False):
@@ -255,7 +247,6 @@ class ExprAff(Expr):
         src = self.src
         if isinstance(src, Expr):
             src = self.src.reload_expr(g)
-        
         return ExprAff(dst, src )
     def __contains__(self, e):
         return self == e or self.src.__contains__(e) or self.dst.__contains__(e)
@@ -265,18 +256,14 @@ class ExprAff(Expr):
         dst = self.dst.replace_expr(g)
         src = self.src.replace_expr(g)
         return ExprAff(dst, src)
-        
     def __eq__(self, a):
         if not isinstance(a, ExprAff):
             return False
         return self.src == a.src and self.dst == a.dst
     def __hash__(self):
         return hash(self.dst)^hash(self.src)
-
     def toC(self):
         return "%s = %s"%(self.dst.toC(), self.src.toC())
-
-
     #XXX /!\ for hackish expraff to slice
     def get_modified_slice(self):
         dst = self.dst
@@ -286,11 +273,9 @@ class ExprAff(Expr):
         for x in self.src.args:
             if not isinstance(x.arg, ExprSlice) or x.arg.arg != dst or x.start != x.arg.start or x.stop != x.arg.stop:
                 modified_s.append(x)
-
         return modified_s
     def canonize(self):
         return ExprAff(self.src.canonize(), self.dst.canonize())
-
 
 class ExprCond(Expr):
     def __init__(self, cond, src1, src2):
@@ -327,15 +312,12 @@ class ExprCond(Expr):
         return ExprCond(cond, src1, src2 )
     def __contains__(self, e):
         return self == e or self.cond.__contains__(e) or self.src1.__contains__(e) or self.src2.__contains__(e)
-
-
     def __eq__(self, a):
         if not isinstance(a, ExprCond):
             return False
         return self.cond == a.cond and self.src1 == a.src1 and self.src2 == a.src2
     def __hash__(self):
         return hash(self.cond)^hash(self.src1)^hash(self.src2)
-
     def toC(self):
         return "(%s?%s:%s)"%(self.cond.toC(), self.src1.toC(), self.src2.toC())
     def canonize(self):
@@ -370,24 +352,20 @@ class ExprMem(Expr):
             arg = self.arg.reload_expr(g)
         if isinstance(segm, Expr):
             segm = self.segm.reload_expr(g)
-
         return ExprMem(arg, self.size, segm)
     def __contains__(self, e):
         return self == e or self.arg.__contains__(e)
-
     def replace_expr(self, g = {}):
         if self in g:
             return g[self]
         arg = self.arg.replace_expr(g)
         return ExprMem(arg, self.size, self.segm)
-
     def __eq__(self, a):
         if not isinstance(a, ExprMem):
             return False
         return self.arg == a.arg and self.size == a.size and self.segm == a.segm
     def __hash__(self):
         return hash(self.arg)^hash(self.size)^hash(self.segm)
-
     def toC(self):
         if self.segm:
             return "MEM_LOOKUP_%.2d_SEGM(%s, %s)"%(self.size, self.segm.toC(), self.arg.toC())
@@ -441,7 +419,6 @@ class ExprOp(Expr):
         for a in self.args:
             args.append(a.replace_expr(g))
         return ExprOp(self.op, *args )
-
     def __eq__(self, a):
         if not isinstance(a, ExprOp):
             return False
@@ -458,7 +435,6 @@ class ExprOp(Expr):
         for a in self.args:
             h^=hash(a)
         return h
-
     def toC(self):
         dct_shift= {'a>>':"right_arith",
                     '>>':"right_logic",
@@ -506,37 +482,31 @@ class ExprOp(Expr):
                                                  self.args[0].toC(),
                                                  self.args[1].toC(),
                                                  my_size_mask[self.args[0].get_size()])
-
             elif self.op == '*lo':
                 return 'mul_lo_op(%s, %s, %s)' %(
                             self.args[0].get_size(),
                             self.args[0].toC(),
                             self.args[1].toC())
-
             elif self.op == 'umul32_lo':
                 return 'mul_lo_op(%s, %s, %s)' %(
                             self.args[0].get_size(),
                             self.args[0].toC(),
                             self.args[1].toC())
-
             elif self.op in ['imul16_lo', 'imul32_lo']:
                 return 'imul_lo_op_%s(%s, %s)' %(
                             self.args[0].get_size(),
                             self.args[0].toC(),
                             self.args[1].toC())
-
             elif self.op in ['imul16_hi', 'imul32_hi']:
                 return 'imul_hi_op_%s(%s, %s)' %(
                             self.args[0].get_size(),
                             self.args[0].toC(),
                             self.args[1].toC())
-
             elif self.op == '*hi':
                 return 'mul_hi_op(%s, %s, %s)' %(
                             self.args[0].get_size(),
                             self.args[0].toC(),
                             self.args[1].toC())
-
             elif self.op == 'umul32_hi':
                 return 'mul_hi_op(%s, %s, %s)' %(
                             self.args[0].get_size(),
@@ -547,7 +517,6 @@ class ExprOp(Expr):
                             self.args[0].get_size(),
                             self.args[0].toC(),
                             self.args[1].toC())
-
             elif self.op in ['umul16_lo', 'umul16_hi']:
                 return '%s(%s, %s)' %(self.op,
                             self.args[0].toC(),
@@ -569,7 +538,6 @@ class ExprOp(Expr):
             else:
                 print self.op
                 raise ValueError('unknown op!!', str(self.op))
-
         elif len(self.args)==3:
             dct_div= {'div8':"div_op",
                       'div16':"div_op",
@@ -586,7 +554,6 @@ class ExprOp(Expr):
                       }
             if not self.op in dct_div:
                 fsdff
-
             return '(%s(%s, %s, %s, %s) &0x%x)'%(dct_div[self.op],
                                                  self.args[0].get_size(),
                                                  self.args[0].toC(),
@@ -601,7 +568,6 @@ class ExprOp(Expr):
             args = canonize_expr_list(args)
         return ExprOp(self.op, *args)
 
-
 class ExprSlice(Expr):
     def __init__(self, arg, start, stop):
         self.arg, self.start, self.stop = arg, start, stop
@@ -615,7 +581,6 @@ class ExprSlice(Expr):
         return self.stop-self.start
     def reload_expr(self, g = {}):
         arg = self.arg.reload_expr(g)
-
         return ExprSlice(arg, self.start, self.stop )
     def __contains__(self, e):
         if self == e:
@@ -624,21 +589,17 @@ class ExprSlice(Expr):
             if  a.__contains__(e):
                 return True
         return False
-
     def replace_expr(self, g = {}):
         if self in g:
             return g[self]
         arg = self.arg.replace_expr(g)
         return ExprSlice(arg, self.start, self.stop )
-
     def __eq__(self, a):
         if not isinstance(a, ExprSlice):
             return False
         return self.arg == a.arg and self.start == a.start and self.stop == a.stop
-
     def __hash__(self):
         return hash(self.arg)^hash(self.start)^hash(self.stop)
-
     def toC(self):
         # XXX gen mask in python for 64 bit & 32 bit compat
         return "((%s>>%d) & ((0xFFFFFFFF>>(32-%d))))"%(self.arg.toC(), self.start, self.stop-self.start)
@@ -646,7 +607,6 @@ class ExprSlice(Expr):
         return ExprSlice(self.arg.canonize(),
                          self.start,
                          self.stop)
-
 
 class ExprSliceTo(Expr):
     def __init__(self, arg, start, stop):
@@ -664,24 +624,20 @@ class ExprSliceTo(Expr):
             arg = self.arg.reload_expr(g)
         else:
             arg = self.arg
-
         return ExprSliceTo(arg, self.start, self.stop )
     def __contains__(self, e):
         return self == e or self.arg.__contains__(e)
-
     def replace_expr(self, g = {}):
         if self in g:
             return g[self]
         arg = self.arg.replace_expr(g)
         return ExprSliceTo(arg, self.start, self.stop)
-
     def __eq__(self, a):
         if not isinstance(a, ExprSliceTo):
             return False
         return self.arg == a.arg and self.start == a.start and self.stop == a.stop
     def __hash__(self):
         return hash(self.arg)^hash(self.start)^hash(self.stop)
-
     def toC(self):
         # XXX gen mask in python for 64 bit & 32 bit compat
         return "((%s & (0xFFFFFFFF>>(32-%d))) << %d)"%(self.arg.toC(), self.stop-self.start, self.start)
@@ -710,7 +666,6 @@ class ExprCompose(Expr):
                 args.append(a.reload_expr(g))
             else:
                 args.append(a)
-
         return ExprCompose(args )
     def __contains__(self, e):
         if self == e:
@@ -719,7 +674,6 @@ class ExprCompose(Expr):
             if  a.__contains__(e):
                 return True
         return False
-
     def replace_expr(self, g = {}):
         if self in g:
             return g[self]
@@ -727,7 +681,6 @@ class ExprCompose(Expr):
         for a in self.args:
             args.append(a.replace_expr(g))
         return ExprCompose(args )
-
     def __eq__(self, a):
         if not isinstance(a, ExprCompose):
             return False
@@ -742,7 +695,6 @@ class ExprCompose(Expr):
         for a in self.args:
             h^=hash(a)
         return h
-
     def toC(self):
         out = ' | '.join([x.toC() for x in self.args])
         return '('+out+')'
@@ -754,14 +706,12 @@ class set_expr:
         self._list = []
         for a in l:
             self.add(a)
-        
     def add(self, a):
         astr = str(a)
         for x in self._list:
             if str(x) == astr:
                 return
         self._list.append(a)
-        
     def discard(self, a):
         astr = str(a)
         for x in self._list:
@@ -769,18 +719,14 @@ class set_expr:
                 self._list.remove(x)
                 return True
         return False
-    
     def remove(self ,a):
         if not self.discard(a):
             raise ValueError('value not found %s'%str(a))
-
-    
     def update(self, list_a):
         if not isinstance(list_a, list) and not isinstance(list_a, set):
             raise ValueError('arg must be list or set')
         for a in list_a:
             self.add(a)
-
     def __contains__(self, a):
         astr = str(a)
         for x in self._list:
@@ -794,10 +740,8 @@ class set_expr:
             o.append(str(x))
         o.append(']')
         return " ".join(o)
-        
     def __repr__(self):
         return "set_expr["+", ".join([str(x) for x in self._list])+"]"
-
     def __iter__(self):
         return self._list.__iter__()
 
@@ -825,7 +769,6 @@ def compare_exprs_list(l1_e, l2_e):
 def compare_exprs(e1, e2):
     c1 = e1.__class__
     c2 = e2.__class__
-
     if c1 != c2:
         return cmp(expr_order_dict[c1], expr_order_dict[c2])
     if e1 == e2:
