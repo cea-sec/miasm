@@ -511,7 +511,7 @@ class libimp:
             all_ads = self.lib_imp2dstad[ad].values()
             all_ads = reduce(lambda x,y:x+list(y), all_ads, [])
             all_ads = [x for x in all_ads if filter(x)]
-            print [hex(x) for x in all_ads]
+            #print [hex(x) for x in all_ads]
             all_ads.sort()
             #first, drop None
             if not all_ads:

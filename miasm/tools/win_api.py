@@ -1016,8 +1016,13 @@ def kernel32_GetProcAddress():
         fname = fname
     else:
         fname = get_str_ansi(fname, 0x100)
+        if not fname:
+            fname = None
     print repr(fname)
-
+    if fname != None:
+        ad = winobjs.runtime_dll.lib_get_add_func(libbase, fname)
+    else:
+        ad = 0
     ad = winobjs.runtime_dll.lib_get_add_func(libbase, fname)
 
     regs = vm_get_gpreg()
