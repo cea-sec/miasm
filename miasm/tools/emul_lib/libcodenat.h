@@ -275,6 +275,8 @@ struct code_bloc_node {
 #define EXCEPT_ILLEGAL_INSN (1<<8)
 
 void dump_gpregs(void);
+int is_mem_mapped(uint64_t ad);
+uint64_t get_mem_base_addr(uint64_t addr, uint64_t *addr_base);
 void MEM_WRITE(unsigned int my_size, uint64_t addr, unsigned int src);
 unsigned int MEM_LOOKUP(unsigned int my_size, uint64_t addr);
 

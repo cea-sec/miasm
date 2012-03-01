@@ -67,8 +67,31 @@ struct memory_page_node *memory_page_pool_tab[MAX_MEMORY_PAGE_POOL_TAB];
 
 
 
+int is_mem_mapped(uint64_t ad)
+{
+	struct memory_page_node * mpn;
+
+	mpn = memory_page_pool_tab[ad>>MEMORY_PAGE_POOL_MASK_BIT];
+	if ( mpn && (mpn->ad <= ad) && (ad < mpn->ad + mpn->size))
+		return 1;
+	return 0;
+}
 
 
+/* return the address base of the memory page
+   containing addr
+*/
+uint64_t get_mem_base_addr(uint64_t ad, uint64_t *addr_base)
+{
+	struct memory_page_node * mpn;
+
+	mpn = memory_page_pool_tab[ad>>MEMORY_PAGE_POOL_MASK_BIT];
+	if ( mpn && (mpn->ad <= ad) && (ad < mpn->ad + mpn->size)){
+		*addr_base = mpn->ad;
+		return 1;
+	}
+	return 0;
+}
 
 
 void dump_gpregs(void)

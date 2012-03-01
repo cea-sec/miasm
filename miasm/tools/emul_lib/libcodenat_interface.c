@@ -79,6 +79,74 @@ PyObject* _vm_get_all_memory(void)
 }
 
 
+
+PyObject* _vm_is_mem_mapped(PyObject* item)
+{
+    unsigned int page_addr;
+    unsigned int ret;
+    if (PyInt_Check(item)){
+	    page_addr = (unsigned int)PyInt_AsLong(item);
+    }
+    else if (PyLong_Check(item)){
+	    page_addr = (unsigned int)PyInt_AsUnsignedLongLongMask(item);
+    }
+    else{
+	    RAISE(PyExc_TypeError,"arg1 must be int");
+    }
+
+    ret = is_mem_mapped(page_addr);
+    return PyInt_FromLong((long)ret);
+
+}
+
+PyObject* vm_is_mem_mapped(PyObject* self, PyObject* args)
+{
+	PyObject *addr;
+	PyObject *p;
+
+	if (!PyArg_ParseTuple(args, "O", &addr))
+		return NULL;
+	p = _vm_is_mem_mapped(addr);
+	return p;
+}
+
+
+PyObject* _vm_get_mem_base_addr(PyObject* item)
+{
+    unsigned int page_addr;
+    uint64_t addr_base;
+    unsigned int ret;
+    if (PyInt_Check(item)){
+	    page_addr = (unsigned int)PyInt_AsLong(item);
+    }
+    else if (PyLong_Check(item)){
+	    page_addr = (unsigned int)PyInt_AsUnsignedLongLongMask(item);
+    }
+    else{
+	    RAISE(PyExc_TypeError,"arg1 must be int");
+    }
+
+    ret = get_mem_base_addr(page_addr, &addr_base);
+    if (ret == 0){
+	    Py_INCREF(Py_None);
+	    return Py_None;
+    }
+    return PyInt_FromLong((long)addr_base);
+}
+
+
+PyObject* vm_get_mem_base_addr(PyObject* self, PyObject* args)
+{
+	PyObject *addr;
+	PyObject *p;
+
+	if (!PyArg_ParseTuple(args, "O", &addr))
+		return NULL;
+	p = _vm_get_mem_base_addr(addr);
+	return p;
+}
+
+
 PyObject* _vm_get_gpreg(void)
 {
     PyObject *dict = PyDict_New();
@@ -1355,6 +1423,11 @@ static PyMethodDef CodenatMethods[] = {
     {"vm_get_segm_base",vm_get_segm_base, METH_VARARGS,
      "X"},
     {"vm_set_segm_base",vm_set_segm_base, METH_VARARGS,
+     "X"},
+
+    {"vm_is_mem_mapped",vm_is_mem_mapped, METH_VARARGS,
+     "X"},
+    {"vm_get_mem_base_addr",vm_get_mem_base_addr, METH_VARARGS,
      "X"},
 
     {NULL, NULL, 0, NULL}        /* Sentinel */
