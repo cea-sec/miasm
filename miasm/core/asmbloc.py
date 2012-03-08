@@ -248,8 +248,8 @@ def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool,
                 break
         job_done.add(pool_bin.offset)
         log_asmbloc.debug("dis at %X"%int(pool_bin.offset))
+        off_i = pool_bin.offset
         if lines_cpt <=1 and dont_dis_nulstart_bloc:
-            off_i = pool_bin.offset
             c = pool_bin.readbs()
             pool_bin.offset = off_i
             if c == "\x00":
@@ -264,9 +264,11 @@ def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool,
             instr = None
 
         if instr == None:
-            log_asmbloc.warning( "cannot disasm at %X"%int(pool_bin.offset))
-            cur_bloc.bto = []
-            offsets_to_dis = []
+            log_asmbloc.warning( "cannot disasm at %X"%int(off_i))
+            l = symbol_pool.getby_offset_create(off_i)
+            c = asm_constraint(l, asm_constraint.c_next)
+            cur_bloc.bto = [c]
+            offsets_to_dis = [pool_bin.offset]
             break
         log_asmbloc.debug(instr)
         log_asmbloc.debug(instr.m)

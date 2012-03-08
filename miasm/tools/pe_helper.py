@@ -471,8 +471,8 @@ class libimp:
                 ret = is_redirected_export(e, ad)
                 if ret:
                     exp_dname, exp_fname = ret
-                    print "export redirection", imp_ord_or_name
-                    print "source", exp_dname, exp_fname
+                    #print "export redirection", imp_ord_or_name
+                    #print "source", exp_dname, exp_fname
                     exp_dname = exp_dname+'.dll'
                     exp_dname = exp_dname.lower()
                     # if dll auto refes in redirection
@@ -487,7 +487,7 @@ class libimp:
                     c_name = canon_libname_libfunc(exp_dname, exp_fname)
                     libad_tmp = self.name2off[exp_dname]
                     ad = self.lib_imp2ad[libad_tmp][exp_fname]
-                    print hex(ad)
+                    #print hex(ad)
                 #if not imp_ord_or_name in self.lib_imp2dstad[libad]:
                 #    self.lib_imp2dstad[libad][imp_ord_or_name] = set()
                 #self.lib_imp2dstad[libad][imp_ord_or_name].add(dst_ad)
@@ -526,7 +526,7 @@ class libimp:
                 while i+1 < len(all_ads) and all_ads[i]+4 == all_ads[i+1]:
                     i+=1
                 funcs = [out_ads[x] for x in all_ads[:i+1]]
-                if e.is_in_virt_address(othunk):
+                if e.virt2off(othunk) != None:#e.is_in_virt_address(othunk):
                     new_lib.append(({"name":n,
                                      "firstthunk":e.virt2rva(othunk)},
                                     funcs)
@@ -612,7 +612,7 @@ def vm_load_elf(e, align_s = True, load_hdr = True):
 def preload_lib(e, runtime_lib, patch_vm_imp = True):
     fa = get_import_address(e)
     dyn_funcs = {}
-    print 'imported funcs:', fa
+    #print 'imported funcs:', fa
     for (libname, libfunc), ads in fa.items():
         for ad in ads:
             ad_base_lib = runtime_lib.lib_get_add_base(libname)
@@ -630,7 +630,7 @@ def preload_elf(e, patch_vm_imp = True, lib_base_ad = 0x77700000):
     runtime_lib = libimp(lib_base_ad)
 
     dyn_funcs = {}
-    print 'imported funcs:', fa
+    #print 'imported funcs:', fa
     for (libname, libfunc), ads in fa.items():
         for ad in ads:
             ad_base_lib = runtime_lib.lib_get_add_base(libname)
