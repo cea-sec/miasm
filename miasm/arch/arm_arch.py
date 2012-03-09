@@ -59,13 +59,13 @@ def str2imm(i):
     except:
         return False
     return a
-    
+
 def imm2str(i):
     if type(i) in [int, long]:
         if i<0:
-            return "-0x%.x"%-i
+            return "-0x%x"%-i
         else:
-            return "0x%.x"%i
+            return "0x%x"%i
     return str(i)
 
 def is_imm(i):
@@ -73,7 +73,7 @@ def is_imm(i):
         i = i[0]
     if type(i) is list:
         return False
-    
+
     return type(str2imm(i)) is not bool
 
 
@@ -93,7 +93,7 @@ def split_args(args):
                     if x != t_v:
                         o.append(x)
                     continue
-            
+
             if x != t_v:
                 o.append(x)
             if x in t_enclosed:
@@ -104,11 +104,11 @@ def split_args(args):
         if lvl and lvl != [',']:
             raise ValueError('unbalanced expr')
         return o
-            
-            
+
+
     o = []
     t = [x for x in shlex.shlex(args)]
-    
+
     new_t = []
     i = 0
     while i < len(t):
@@ -127,10 +127,10 @@ def split_args(args):
         a = get_until_t(t, [','])
         o.append(a)
     return o
-        
-            
-    
-    
+
+
+
+
 class bm(object):
     class __metaclass__(type):
         def __new__(cls, name, bases, odct):
@@ -143,11 +143,11 @@ class bm(object):
             if name.startswith('bm_'):
                 pname = name[3:]
                 dct["p_property"] = [pname]+dct["p_property"]
-                
 
-            
+
+
             b = bases[0]
-            
+
             dct["check"] = b.check_no
             l = dct["l"]
             fbits = dct["fbits"]
@@ -175,9 +175,9 @@ class bm(object):
                     dct["check"] = b.check_fbits_inv
                 else:
                     dct["check"] = b.check_fbits
-                    
+
             p_property = dct["p_property"]
-                
+
             for p in p_property:
                 dct["get_"+p] = lambda self, p=p:getattr(self, p)
                 dct["set_"+p] = lambda self, p=p:setattr(self, p)
@@ -198,15 +198,15 @@ class bm(object):
     def get_val(self, v):
         return (v>>self.off) & ((1<<self.l)-1)
     def set_val(self, v = None):
-        
+
         if v == None and len(self.p_property) >= 1:
             p = self.p_property[0]
             v = getattr(self, p)
-        return (v&((1<<self.l)-1))<<self.off 
+        return (v&((1<<self.l)-1))<<self.off
 
     def bin(self):
         return self.set_val()
-        
+
     def parse(self, v):
         if len(self.p_property) >= 1:
             p = self.p_property[0]
@@ -248,8 +248,8 @@ class bm_cond(bm):
     def str2cond(self, cond):
         if not cond in self.n:
             raise ValueError('unknown cond')
-        self.cond = self.n.index(cond)    
-    
+        self.cond = self.n.index(cond)
+
 
 class bm_int0(bm):
     fbits = '0'
@@ -410,7 +410,7 @@ class bm_reglist(bm):
         for r in self.reglist:
             v|=(1<<r)
         return self.set_val(v)
-            
+
 class bm_rn(bm):
     l = 4
 
@@ -471,7 +471,7 @@ class bm_op2(bm):
             self.shift>>=1
             self.shiftt = self.shift&0x3
             self.shift>>=2
-            
+
             if self.sub_shift_type:
                 #sub shift type is reg
                 if self.shift&1:
@@ -482,7 +482,7 @@ class bm_op2(bm):
             else:
                 #sub shift type is imm
                 self.amount = self.shift
-                
+
         return True
 
     def bin(self):
@@ -497,7 +497,7 @@ class bm_op2(bm):
             else:
                 shift|=self.amount<<3
             val = (shift<<4) | (self.rm&0xf)
-            
+
         self.op2 = val
         return self.set_val()
 
@@ -508,20 +508,20 @@ class bm_opoff(bm):
     def parse(self, v):
         val = self.get_val(v)
         self.opoff = val
-        
+
         if self.parent.immop:
             self.shift = val>>4
             self.rm = val&0xf
             if self.shift&1:
                 #no reg shift
                 return False
-            
+
             self.shift>>=1
             self.shiftt = self.shift&0x3
             self.amount = self.shift>>2
         else:
             self.imm = val&0xfff
-            
+
         return True
 
     def bin(self):
@@ -532,7 +532,7 @@ class bm_opoff(bm):
             val = (shift<<4) | (self.rm&0xf)
         else:
             val = self.imm&0xfff
-            
+
         self.opoff = val
         return self.set_val()
 
@@ -563,7 +563,16 @@ class bm_int000100101111111111110001(bm):
 
 class bm_int0001001011111111111100(bm):
     fbits = '0001001011111111111100'
-    
+
+class bm_int00010010(bm):
+    fbits = '00010010'
+
+class bm_bkptimm1(bm):
+    l = 12
+
+class bm_bkptimm2(bm):
+    l = 4
+
 class bmi_int1XXXX1(bm):
     fbits = '1XXXXXXXXXXXXXXXXXXXX1'
     checkinv = True
@@ -596,10 +605,12 @@ class arm_mnemo_metaclass(type):
         else:
             raise ValueError('zarb arg')
         return i
-        
+
     def class_from_op(cls, op):
         #print "dis", hex(op), hex2bin(op)
-        tab_mn = [arm_data, arm_mul, arm_mull, arm_swp, arm_brxchg, arm_hdtreg, arm_hdtimm, arm_sdt, arm_bdt, arm_br, arm_codt, arm_cort, arm_codo, arm_swi, arm_szext]#, arm_undef]
+        tab_mn = [arm_data, arm_mul, arm_mull, arm_swp, arm_brreg, arm_hdtreg,
+                  arm_hdtimm, arm_sdt, arm_bdt, arm_brimm, arm_codt, arm_cort,
+                  arm_codo, arm_swi, arm_bkpt, arm_szext]#, arm_undef]
         ret = filter(lambda x:x.check(op), tab_mn)
         if len(ret)==1:
             return ret[0]
@@ -615,14 +626,17 @@ class arm_mnemo_metaclass(type):
         op = bin.readbs(4)
         op = struct.unpack('<L', op)[0]
         return cls(op, bin.offset-4)
-        
+
     def asm_instr(cls, txt):
-        tab_mn = [arm_data, arm_mul, arm_mull, arm_swp, arm_brxchg, arm_hdtreg, arm_hdtimm, arm_sdt, arm_bdt, arm_br, arm_codt, arm_cort, arm_codo, arm_swi, arm_szext]#, arm_undef]
+        tab_mn = [arm_data, arm_mul, arm_mull, arm_swp, arm_brreg, arm_hdtreg,
+                  arm_hdtimm, arm_sdt, arm_bdt, arm_brimm, arm_codt, arm_cort,
+                  arm_codo, arm_swi, arm_bkpt, arm_szext]#, arm_undef]
 
         t = [x for x in shlex.shlex(txt)]
         t.reverse()
         name = t.pop()
-        ret = filter(lambda x:x.check_mnemo(name), tab_mn)
+        first_arg = len(t) > 0 and t.pop()
+        ret = filter(lambda x:x.check_mnemo(name, first_arg), tab_mn)
         if len(ret)!=1:
             raise ValueError('parse name err %s'%str(ret))
         cls = ret[0]
@@ -633,7 +647,7 @@ class arm_mnemo_metaclass(type):
     def asm(cls, txt, symbol_reloc_off = {}):
         i = cls.asm_instr(txt)
         return [struct.pack('<L', i.bin())]
-        
+
     def __new__(cls, name, bases, dct):
         ret_c = type.__new__(cls, name, bases, dct)
         if name is "arm_mn":
@@ -644,7 +658,7 @@ class arm_mnemo_metaclass(type):
             for off in dct['mask']:
                 mc = dct['mask'][off](None, off+1)
                 mask.append(mc)
-            
+
         mask_orig = [bm_cond]+dct["mask_list"]
         ret_c.mask_orig = mask_orig
         off = 32
@@ -659,15 +673,15 @@ class arm_mnemo_metaclass(type):
                 '''
                 p = property(lambda self, pname=pname:getattr(getattr(self, "bm_"+pname), pname),
                              lambda self, val=None,pname=pname:setattr(getattr(self, "bm_"+pname), pname, val))
-                
+
                 setattr(ret_c, pname, p)
-                
+
         if off!=0:
             raise ValueError('invalid mnemonic %d'%off)
         ret_c.mask_chk = mask
-        
+
         return ret_c
-    
+
     def check(self, op):
         for m in self.mask_chk:
             if m.off<20 and m.fbits==None:
@@ -681,7 +695,7 @@ class arm_mnemo_metaclass(type):
             return False
         return True
 
-    def check_mnemo(self, mnemo):
+    def check_mnemo(self, mnemo, first_arg = None):
         found = False
         for n in self.namestr:
             if mnemo.startswith(n):
@@ -689,14 +703,14 @@ class arm_mnemo_metaclass(type):
                 break
         if not found:
             return False
-        
+
         rest = mnemo[len(n):]
         for c in bm_cond.n:
             if rest.startswith(c):
                 rest = rest[len(c):]
                 break
         return self.check_opts(rest)
-        
+
     def pre_parse_mnemo(self, args):
         mn = [x for x in shlex.shlex(args)][0]
         t = split_args(args[args.index(mn)+len(mn):])
@@ -708,7 +722,7 @@ class arm_mnemo_metaclass(type):
         t = cls.pre_parse_mnemo(args)
         mn = t.pop()
         t.reverse()
-        
+
 
         return [], mn, t
 
@@ -759,7 +773,7 @@ class arm_mnemo_metaclass(type):
         if n[k] != 1:
             return None
         return k
-    
+
 regs_str = ['R%d'%r for r in xrange(0x10)]
 regs_str[13] = 'SP'
 regs_str[14] = 'LR'
@@ -779,14 +793,14 @@ def cop2str(r):
     return cop_str[r]
 def str2cop(r):
     if type(r) is list and len(r) == 1:
-        r = r[0]    
+        r = r[0]
     return cop_str.index(r)
 
 def copr2str(r):
     return copr_str[r]
 def str2copr(r):
     if type(r) is list and len(r) == 1:
-        r = r[0]    
+        r = r[0]
     return copr_str.index(r)
 
 def reglist2str(rlist):
@@ -828,7 +842,7 @@ def str2reglist(rlist):
             out.append(r_start)
             r_start = str2reg(tmp)
     return out
-            
+
 def args2reduce(args):
     out = []
     for a in args:
@@ -853,13 +867,13 @@ def arglist2str(args):
 
 def args2str(args):
     return arglist2str(args2reduce(args))
-            
-       
+
+
 class arm_mn(object):
     mask_list = []
     __metaclass__ = arm_mnemo_metaclass
     def __init__(self, op, offset = 0, dis = True):
-        
+
         off=32
         mask = []
         self.offset = offset
@@ -876,7 +890,7 @@ class arm_mn(object):
                 setattr(self, "bm_"+pname, mc)
             mask.append(mc)
         self.mask = mask
-        
+
         if dis:
             for m in self.mask:
                 ret = m.parse(op)
@@ -885,7 +899,7 @@ class arm_mn(object):
         else:
             for m in self.mask:
                 ret = m.setprop()
-            
+
             full_mnemo = arm_mn.pre_parse_mnemo(op)
             mnemo = full_mnemo.pop()
             name, cond, rest = self.parse_name_cond(mnemo)
@@ -900,13 +914,13 @@ class arm_mn(object):
         pass
     def str2name(self, n):
         pass
-    
+
     def getname(self):
         name = self.name2str()
         cond = self.cond2str()
         scc = ""
-        if cond =="AL":cond = "" #XXX smart display
-        
+        if cond in ("AL","NV"):cond = "" #XXX smart display
+
         return name+cond+scc
 
     def bin(self):
@@ -930,7 +944,7 @@ class arm_mn(object):
             if rest.startswith(c):
                 cond = i
                 break
-            
+
         if cond == None:
             cond = COND_AL         #default cond is AL
         else:
@@ -969,7 +983,8 @@ class arm_data(arm_mn):
     mask_list = [bm_int00, bm_immop, bm_opc, bm_scc, bm_rn, bm_rd, bm_op2]
     mask = {25:bmi_int1XX1, 26:bmi_int11110XX1}
 
-    namestr = ['AND', 'EOR', 'SUB', 'RSB', 'ADD', 'ADC', 'SBC', 'RSC', 'TST', 'TEQ', 'CMP', 'CMN', 'ORR', 'MOV', 'BIC', 'MVN']
+    namestr = ['AND', 'EOR', 'SUB', 'RSB', 'ADD', 'ADC', 'SBC', 'RSC',
+               'TST', 'TEQ', 'CMP', 'CMN', 'ORR', 'MOV', 'BIC', 'MVN']
     allshifts = ['LSL', 'LSR', 'ASR', 'ROR']
 
     def name2str(self):
@@ -992,7 +1007,7 @@ class arm_data(arm_mn):
         else:
             args.append(reg2str(self.rd))
             args.append(reg2str(self.rn))
-            
+
         if self.immop:
             #arg is pure imm
             imm = myror(self.imm, self.rot*2)
@@ -1006,7 +1021,7 @@ class arm_data(arm_mn):
                 a = [a, self.allshifts[self.shiftt], imm2str(self.amount)]
             args.append(a)
         return args
-    
+
     def __str__(self):
         name = self.getname()
         name+=self.scc2str()
@@ -1073,12 +1088,13 @@ class arm_data(arm_mn):
         self.shiftt = self.allshifts.index(args.pop())
         if args:
             raise ValueError('zarb arg2', args)
-            
 
-            
+
+
 
 class arm_mul(arm_mn):
-    mask_list = [bm_int000000, bm_accum, bm_scc, bm_rd, bm_rn, bm_rs, bm_int1001, bm_rm]
+    mask_list = [bm_int000000, bm_accum, bm_scc, bm_rd, bm_rn, bm_rs,
+                 bm_int1001, bm_rm]
     #cannot have pc in reg
     namestr = ['MUL', 'MLA']
     def name2str(self):
@@ -1100,7 +1116,7 @@ class arm_mul(arm_mn):
         if self.accum:
             args.append(reg2str(self.rn))
         return args
-    
+
     def __str__(self):
         name = self.getname()
         name+=self.scc2str()
@@ -1123,10 +1139,11 @@ class arm_mul(arm_mn):
             self.rn = str2reg(args.pop())
         else:
             self.rn = 0 #default reg value
-        
+
 
 class arm_mull(arm_mn):
-    mask_list = [bm_int00001, bm_sign, bm_accum, bm_scc, bm_rdh, bm_rdl, bm_rs, bm_int1001, bm_rm]
+    mask_list = [bm_int00001, bm_sign, bm_accum, bm_scc, bm_rdh, bm_rdl,
+                 bm_rs, bm_int1001, bm_rm]
     #cannot habe pc as reg
     namestr = ['UMULL', 'UMLAL', 'SMULL', 'SMLAL']
     def name2str(self):
@@ -1149,7 +1166,7 @@ class arm_mull(arm_mn):
         args.append(reg2str(self.rm))
         args.append(reg2str(self.rs))
         return args
-    
+
     def __str__(self):
         name = self.getname()
         name+= self.scc2str()
@@ -1169,16 +1186,17 @@ class arm_mull(arm_mn):
         self.rdl = str2reg(args.pop())
         self.rm = str2reg(args.pop())
         self.rs = str2reg(args.pop())
-        
+
 
 class arm_swp(arm_mn):
-    mask_list = [bm_int00010, bm_size, bm_int00, bm_rn, bm_rd, bm_int0000, bm_int1001, bm_rm]
+    mask_list = [bm_int00010, bm_size, bm_int00, bm_rn, bm_rd,
+                 bm_int0000, bm_int1001, bm_rm]
     mask = {19:bmi_int1111, 15:bmi_int1111, 3:bmi_int1111}
     #cannot have PC as reg
     namestr = ["SWP"]
     def name2str(self):
         return self.namestr[0]
-    
+
     @classmethod
     def check_opts(cls, rest):
         if not rest or rest == 'B':
@@ -1191,7 +1209,7 @@ class arm_swp(arm_mn):
         args.append(reg2str(self.rm))
         args.append(['[', reg2str(self.rn), ']'])
         return args
-    
+
     def __str__(self):
         name = self.getname()
         name+=self.size2str()
@@ -1216,10 +1234,10 @@ class arm_swp(arm_mn):
             return
         raise ValueError('cannot parse %s %s'%(str(p1), str(p2)))
 
-class arm_brxchg(arm_mn):
+class arm_brreg(arm_mn):
     mask_list = [bm_int0001001011111111111100, bm_lnk, bm_int1, bm_rn]
 
-    namestr = ["BX", "BXL"]
+    namestr = ["BX", "BLX"]
     def name2str(self):
         return self.namestr[self.lnk]
     def str2name(self, n):
@@ -1227,12 +1245,12 @@ class arm_brxchg(arm_mn):
 
     def parse_name_cond(self, mnemo):
         name, cond = None, None
-        if not mnemo.startswith('BX'):
+        if not any(mnemo.startswith(name) for name in self.namestr):
             raise  ValueError('zarb mnemo %s'%str(mnemo))
         l = len(mnemo)
         if l in [2,4]:
             n = mnemo[:2]
-        elif l in [3,4]:
+        elif l in [3,5]:
             n = mnemo[:3]
         else:
             raise ValueError('zarb mnemo %s'%str(mnemo))
@@ -1249,11 +1267,8 @@ class arm_brxchg(arm_mn):
         return name, cond, rest
 
     @classmethod
-    def check_mnemo(self, mnemo):
-        if mnemo in self.namestr:
-            return True
-        return False
-
+    def check_mnemo(self, mnemo, first_arg):
+        return any(mnemo.startswith(name) for name in self.namestr) and first_arg in regs_str
 
     def args2str(self):
         args = []
@@ -1265,7 +1280,7 @@ class arm_brxchg(arm_mn):
         args = self.args2str()
         args = args2str(args)
         return name+' '+args
-    
+
     def parse_args(self, args):
         self.rn = str2reg(args.pop())
 
@@ -1283,10 +1298,11 @@ class arm_brxchg(arm_mn):
         return self.lnk
 
 class arm_hdtreg(arm_mn):
-    mask_list = [bm_int000, bm_ppndx, bm_updown, bm_int0, bm_wback, bm_ldst, bm_rn, bm_rd, bm_int00001, bm_sh, bm_int1, bm_rm]
+    mask_list = [bm_int000, bm_ppndx, bm_updown, bm_int0, bm_wback,
+                 bm_ldst, bm_rn, bm_rd, bm_int00001, bm_sh, bm_int1, bm_rm]
     #and XXX str cant be SB nor SH
     mask = {24:bmi_intX00X}
-    
+
     typestr = ["XXX", "H", "SB", "SH"]
     namestr = ['STR', 'LDR']
     def name2str(self):
@@ -1319,13 +1335,13 @@ class arm_hdtreg(arm_mn):
         o.append(reg2str(self.rm))
         if self.ppndx:
             o.append(']')
-        
+
         args.append(o)
         return args
-        
+
     def __str__(self):
         name = self.getname()
-        #XXX XXX swp?? 
+        #XXX XXX swp??
         name += self.typestr[self.sh]
         args = self.args2str()
         args = args2str(args)
@@ -1347,7 +1363,9 @@ class arm_hdtreg(arm_mn):
 
 
 class arm_hdtimm(arm_mn):
-    mask_list = [bm_int000, bm_ppndx, bm_updown, bm_int1, bm_wback, bm_ldst, bm_rn, bm_rd, bm_hdoff1, bm_int1, bm_sh, bm_int1, bm_hdoff2]
+    mask_list = [bm_int000, bm_ppndx, bm_updown, bm_int1, bm_wback,
+                 bm_ldst, bm_rn, bm_rd, bm_hdoff1, bm_int1, bm_sh,
+                 bm_int1, bm_hdoff2]
     #and XXX str cant be SB nor SH
     mask = {24:bmi_intX00X}
 
@@ -1360,7 +1378,7 @@ class arm_hdtimm(arm_mn):
 
     @classmethod
     def check_opts(cls, rest):
-        found = False        
+        found = False
         for t in cls.typestr:
             if rest.startswith(t):
                 found = True
@@ -1382,14 +1400,14 @@ class arm_hdtimm(arm_mn):
         o.append(imm2str(imm))
         if self.ppndx:
             o.append(']')
-        
+
         args.append(o)
         return args
 
-        
+
     def __str__(self):
         name = self.getname()
-        #XXX XXX swp?? 
+        #XXX XXX swp??
         name += self.typestr[self.sh]
         args = self.args2str()
         args = args2str(args)
@@ -1413,10 +1431,11 @@ class arm_hdtimm(arm_mn):
 
 
 class arm_sdt(arm_mn):
-    mask_list = [bm_int01, bm_immop, bm_ppndx, bm_updown, bm_size, bm_wback, bm_ldst, bm_rn, bm_rd, bm_opoff]
+    mask_list = [bm_int01, bm_immop, bm_ppndx, bm_updown, bm_size,
+                 bm_wback, bm_ldst, bm_rn, bm_rd, bm_opoff]
     #cannot shift amount with immop
     mask = {25:bmi_int1XXXX1}
-    
+
     namestr = ['STR', 'LDR']
     def name2str(self):
         return self.namestr[self.ldst]
@@ -1459,8 +1478,8 @@ class arm_sdt(arm_mn):
             o.append(']')
         args.append(o)
         return args
-        
-    
+
+
     def __str__(self):
         name = self.getname()
         name+=self.size2str()
@@ -1559,21 +1578,22 @@ class arm_undef(arm_mn):
         args.append(imm2str(self.undef1))
         args.append(imm2str(self.undef2))
         return args
-    
+
     def __str__(self):
         name = self.getname()
         args = self.args2str()
         args = args2str(args)
-        
+
         return name+' '+args
-    
+
     def parse_args(self, args):
         self.undef1 = str2imm(args.pop())
         self.undef2 = str2imm(args.pop())
 
 class arm_bdt(arm_mn):
-    mask_list = [bm_int100, bm_ppndx, bm_updown, bm_psr, bm_wback, bm_ldst, bm_rn, bm_reglist]
-    
+    mask_list = [bm_int100, bm_ppndx, bm_updown, bm_psr, bm_wback,
+                 bm_ldst, bm_rn, bm_reglist]
+
     ad_mode_nostack = ['DA', 'DB', 'IA', 'IB']
     ad_mode_stack = ['FA', 'EA', 'FD',  'ED']
 
@@ -1641,8 +1661,8 @@ class arm_bdt(arm_mn):
                 self.wback = 1
             else:
                 raise ValueError('zarb arg 4', (args, a, w))
-        
-            
+
+
         self.rn = str2reg(a.pop())
         if self.stackattr != (self.rn==13):
             raise ValueError('unmatch stack/nostack')
@@ -1682,25 +1702,29 @@ class arm_bdt(arm_mn):
     def is_subcall(self):
         return False
 
-class arm_br(arm_mn):
+class arm_brimm(arm_mn):
     mask_list = [bm_int101, bm_lnk, bm_offs]
 
-    namestr = ["B", "BL"]
+    namestr = ["B", "BL", "BLX"]
     def name2str(self):
-        return self.namestr[self.lnk]
+        return self.cond == COND_NV and 'BLX' or self.namestr[self.lnk]
     def str2name(self, n):
-        self.lnk = self.namestr.index(n)
+        if n == 'BLX':
+            self.cond = COND_NV
+            self.lnk = 0
+        else:
+            self.lnk = self.namestr.index(n)
 
     @classmethod
-    def check_mnemo(self, mnemo):
-        if not mnemo.startswith('B'):
+    def check_mnemo(self, mnemo, first_arg = None):
+        if first_arg in regs_str or not mnemo.startswith('B'):
             return False
-        l = len(mnemo)        
+        l = len(mnemo)
         if l==1 and mnemo in ['B']:
             return True
         elif l in [2,4] and mnemo.startswith('BL'):
             return True
-        elif l == 3 and mnemo[1:] in bm_cond.n:
+        elif l == 3 and (mnemo == 'BLX' or mnemo[1:] in bm_cond.n):
             return True
         return False
 
@@ -1709,7 +1733,9 @@ class arm_br(arm_mn):
         if not mnemo.startswith('B'):
             raise  ValueError('zarb mnemo %s'%str(mnemo))
         l = len(mnemo)
-        if l in [1,3]:
+        if mnemo == 'BLX':
+            return mnemo, COND_NV, ""
+        elif l in [1,3]:
             n = mnemo[:1]
         elif l in [2,4]:
             n = mnemo[:2]
@@ -1729,11 +1755,14 @@ class arm_br(arm_mn):
 
     def args2str(self):
         if type(self.offs) in [int, long]:
-            args = [imm2str(self.offs)]
+            offset = self.offs
+            if self.cond == COND_NV: # BLX
+                offset |= (self.lnk << 1)
+            args = [imm2str(offset)]
         else:
             args = [self.offs]
         return args
-    
+
     def __str__(self):
         name = self.getname()
         args = self.args2str()
@@ -1744,6 +1773,9 @@ class arm_br(arm_mn):
         ad = args.pop()
         if is_imm(ad):
             self.offs = str2imm(ad)
+            if self.cond == COND_NV: # BLX
+                self.lnk = (self.offs & 2) >> 1
+                self.offs &= ~2
         else:
             self.offs = {x86_afs.symb:{ad[0]:1}}
     def breakflow(self):
@@ -1756,6 +1788,8 @@ class arm_br(arm_mn):
     def getdstflow(self):
         if type(self.offs) in [int, long]:
             dst = (self.offset+8+self.offs)&0xFFFFFFFF
+            if self.cond == COND_NV: # BLX
+                dst |= self.lnk << 1
         else:
             dst = self.arg[0]
         return [dst]
@@ -1769,9 +1803,11 @@ class arm_br(arm_mn):
         #patch only known symbols
         if l.offset !=None:
             self.offs = l
+            if self.cond == COND_NV: # BLX
+                self.lnk = (self.offs & 2) >> 1
+                self.offs &= ~2
     def is_subcall(self):
-        return self.lnk
-
+        return self.cond == COND_NV or self.lnk # BLX or link
     def fixdst(self, lbls, my_offset, is_mem):
         l = self.offs[x86_afs.symb].keys()[0]
         offset = lbls[l]
@@ -1781,9 +1817,13 @@ class arm_br(arm_mn):
             arg = {x86_afs.imm:offset-(my_offset)}
         self.arg = [arg]
         self.offs = lbls[l]-my_offset-4
+        if self.cond == COND_NV: # BLX
+            self.lnk = (self.offs & 2) >> 1
+            self.offs &= ~2
 
 class arm_codt(arm_mn):
-    mask_list = [bm_int110, bm_ppndx, bm_updown, bm_tlen, bm_wback, bm_ldst, bm_rn, bm_crd, bm_cpnum, bm_cooff]
+    mask_list = [bm_int110, bm_ppndx, bm_updown, bm_tlen, bm_wback,
+                 bm_ldst, bm_rn, bm_crd, bm_cpnum, bm_cooff]
 
     namestr = ['STC', 'LDC']
     def name2str(self):
@@ -1811,7 +1851,7 @@ class arm_codt(arm_mn):
             o.append(']')
         args.append(o)
         return args
-    
+
     def __str__(self):
         name = self.getname()
         if self.tlen:
@@ -1859,7 +1899,7 @@ class arm_codt(arm_mn):
             tmp = param.pop()
 
         self.cooff = str2imm(tmp)
-        
+
         if args:
             tmp = args.pop()
             if tmp!= '!':
@@ -1867,11 +1907,12 @@ class arm_codt(arm_mn):
             self.wback = 1
         if args:
             raise ValueError('rest args...'%str(param))
-            
+
 
 
 class arm_codo(arm_mn):
-    mask_list = [bm_int1110, bm_cpopc, bm_crn, bm_crd, bm_cpnum, bm_info, bm_int0, bm_crm]
+    mask_list = [bm_int1110, bm_cpopc, bm_crn, bm_crd, bm_cpnum,
+                 bm_info, bm_int0, bm_crm]
 
     namestr = ["CDP"]
     def name2str(self):
@@ -1886,7 +1927,7 @@ class arm_codo(arm_mn):
         args.append(copr2str(self.crm))
         args.append(imm2str(self.info))
         return args
-    
+
     def __str__(self):
         name = self.getname()
         args = self.args2str()
@@ -1900,12 +1941,13 @@ class arm_codo(arm_mn):
         self.crn = str2copr(args.pop())
         self.crm = str2copr(args.pop())
         self.info = str2imm(args.pop())
-        
-        
+
+
 
 
 class arm_cort(arm_mn):
-    mask_list = [bm_int1110, bm_opmode, bm_ldst, bm_crn, bm_rd, bm_cpnum, bm_info, bm_int1, bm_crm]
+    mask_list = [bm_int1110, bm_opmode, bm_ldst, bm_crn, bm_rd, bm_cpnum,
+                 bm_info, bm_int1, bm_crm]
 
     namestr = ['MCR', 'MRC']
     def name2str(self):
@@ -1922,7 +1964,7 @@ class arm_cort(arm_mn):
         args.append(copr2str(self.crm))
         args.append(imm2str(self.info))
         return args
-    
+
     def __str__(self):
         name = self.getname()
         args = self.args2str()
@@ -1967,9 +2009,54 @@ class arm_swi(arm_mn):
     def is_subcall(self):
         return False
 
+class arm_bkpt(arm_mn):
+    mask_list = [bm_int00010010, bm_bkptimm1, bm_int0111, bm_bkptimm2]
+    namestr = ['BKPT']
+
+    def name2str(self):
+        return self.namestr[0]
+
+    def args2str(self):
+        args = [imm2str(self.bkptimm1 << 4 + self.bkptimm2)]
+        return args
+
+    def __str__(self):
+        name = self.getname()
+        args = self.args2str()
+        args = args2str(args)
+        if args == "0":
+          return name
+        else:
+          return name+' '+args
+
+    def parse_args(self, args):
+        if len(args) > 0:
+          imm = str2imm(args.pop())
+        else:
+          imm = 0
+        self.bkptimm1 = imm & 0xf
+        self.bkptimm2 = imm >> 4
+
+    def parse_name_cond(self, mnemo):
+        if mnemo != self.namestr[0]:
+            raise ValueError('zarb mnemo %s'%str(mnemo))
+        return mnemo, COND_AL, ""
+
+    def breakflow(self):
+        return True
+
+    def splitflow(self):
+        return True
+
+    def dstflow(self):
+        return False
+
+    def is_subcall(self):
+        return False
 
 class arm_szext(arm_mn):
-    mask_list = [bm_int01101, bm_opsz, bm_szext, bm_rn, bm_rd, bm_rot, bm_int00, bm_int0111, bm_rm]
+    mask_list = [bm_int01101, bm_opsz, bm_szext, bm_rn, bm_rd, bm_rot,
+                 bm_int00, bm_int0111, bm_rm]
     #szext may not be 01
     namestr = ['SXT', 'UXT']
     szextname = ['B16', None, 'B', 'H']
@@ -1979,7 +2066,7 @@ class arm_szext(arm_mn):
         self.opsz = self.namestr.index(n)
 
     @classmethod
-    def check_mnemo(self, mnemo):
+    def check_mnemo(self, mnemo, first_arg = None):
         if len(mnemo)<3:
             return False
         if not mnemo[:3] in self.namestr:
@@ -2024,7 +2111,7 @@ class arm_szext(arm_mn):
         if not szextname:
             raise ValueError('zarb mnemo2 %s'%str(mnemo))
         rest = rest[len(n):]
-        
+
         for i, c in enumerate(bm_cond.n):
             if rest.startswith(c):
                 cond = i
@@ -2049,7 +2136,7 @@ class arm_szext(arm_mn):
             args.append(reg2str(self.rn))
         args.append(reg2str(self.rm))
         return args
-    
+
     def __str__(self):
         name = self.getname()
         args = self.args2str()
@@ -2058,16 +2145,16 @@ class arm_szext(arm_mn):
 
 
     def parse_args(self, args):
-        
+
         self.rd = str2reg(args.pop())
         if self.rn!=15:
             self.rn = str2reg(args.pop())
         self.rm = str2reg(args.pop())
         self.rot = 0
-    
 
-    
+
+
 
 if __name__ == "__main__":
- 
+
     import struct
