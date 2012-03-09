@@ -1089,6 +1089,9 @@ class arm_data(arm_mn):
         if args:
             raise ValueError('zarb arg2', args)
 
+    def is_subcall(self):
+        return False
+
 
 
 
@@ -1140,6 +1143,9 @@ class arm_mul(arm_mn):
         else:
             self.rn = 0 #default reg value
 
+    def is_subcall(self):
+        return False
+
 
 class arm_mull(arm_mn):
     mask_list = [bm_int00001, bm_sign, bm_accum, bm_scc, bm_rdh, bm_rdl,
@@ -1186,6 +1192,9 @@ class arm_mull(arm_mn):
         self.rdl = str2reg(args.pop())
         self.rm = str2reg(args.pop())
         self.rs = str2reg(args.pop())
+
+    def is_subcall(self):
+        return False
 
 
 class arm_swp(arm_mn):
@@ -1287,7 +1296,7 @@ class arm_brreg(arm_mn):
     def breakflow(self):
         return True
     def splitflow(self):
-        return self.cond != COND_AL
+        return self.cond != COND_AL or self.lnk
     def dstflow(self):
         return True
     def getdstflow(self):
@@ -1360,7 +1369,8 @@ class arm_hdtreg(arm_mn):
         return self.cond != COND_AL
     def dstflow(self):
         return True
-
+    def is_subcall(self):
+        return False
 
 class arm_hdtimm(arm_mn):
     mask_list = [bm_int000, bm_ppndx, bm_updown, bm_int1, bm_wback,
@@ -1428,6 +1438,8 @@ class arm_hdtimm(arm_mn):
         return self.cond != COND_AL
     def dstflow(self):
         return True
+    def is_subcall(self):
+        return False
 
 
 class arm_sdt(arm_mn):
