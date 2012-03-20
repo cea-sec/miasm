@@ -10,7 +10,9 @@ import struct
 
 my_mn = x86_mn
 
-
+"""
+asm a linux shell code in a windows PE
+"""
 
 
 my_mn = x86_mn
@@ -67,7 +69,8 @@ open("graph.txt" , "w").write(g)
 print "symbols"
 print symbol_pool
 #dont erase from start to shell code padading
-resolved_b, patches = asmbloc.asm_resolve_final(my_mn, all_bloc[0], symbol_pool)
+resolved_b, patches = asmbloc.asm_resolve_final(my_mn, all_bloc[0], symbol_pool,
+                                                constrain_pos=True)
 print patches
 
 for offset, raw in patches.items():
