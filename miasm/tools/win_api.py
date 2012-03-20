@@ -102,7 +102,8 @@ class handle_generator():
 
     def __getitem__(self, item):
         return self.all_handles.__getitem__(item)
-
+    def __delitem__(self, item):
+        self.all_handles.__delitem__(item)
 
 
 class c_winobjs:
@@ -150,6 +151,7 @@ class c_winobjs:
         self.lastwin32error = 0
         self.mutex = {}
         self.env_variables = {}
+        self.events_pool = {}
 winobjs = c_winobjs()
 
 
@@ -1980,7 +1982,10 @@ def my_CreateEvent(funcname, get_str):
     lpname = vm_pop_uint32_t()
 
     print funcname, hex(lpeventattributes), hex(bmanualreset), hex(binitialstate), hex(lpname)
-    s = get_str(lpname)
+    if lpname:
+        s = get_str(lpname)
+    else:
+        s = None
     print repr(s)
     if not s in winobjs.events_pool:
         winobjs.events_pool[s] = (bmanualreset, binitialstate)
