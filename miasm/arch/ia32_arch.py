@@ -676,7 +676,6 @@ class x86allmncs:
         b = ad_to_generic(a)
         log.debug(b)
         raw = self.get_address_afs_hex(b)
-
         b_out = []
         raw_out = []
         for i in range(len(b)):
@@ -1786,7 +1785,6 @@ class x86_mn:
                 fds
                 prefix.append(prefix_seg[args_eval[-1][x86_afs.segm]])
                 del args_eval[-1][x86_afs.segm]
-
             #XXX test if symbol in arg and replace with imm... for pre asm
             if x86_afs.symb in args_eval[-1]:
                 log.debug('pre-assembling with symbol! %s'%str(args_eval[-1][x86_afs.symb]))
@@ -2227,8 +2225,14 @@ class x86_mn:
             log.info(str(c)+' '+str(eat_arg)+' '+str(opc_o))
             out_opc = prefix[:]
             out_opc += opc_o[0]
-            val_add = [opc_o[1]]+opc_o[2]
 
+            # here are the reloc ?
+            # note: can the code be more crapy than this?
+            reloc_off = None
+            if opc_o[1]:
+                reloc_off = len(reduce(lambda x,y: x+chr(y), out_opc, ""))
+
+            val_add = [opc_o[1]]+opc_o[2]
             out_byte = reduce(lambda x,y: x+chr(y), out_opc, "")
             for c in val_add:
                 if c == {}:
@@ -2238,11 +2242,10 @@ class x86_mn:
                 else:
                     raise ValueError('bad size in asm! %s'%str(c))
 
-            #XXX hack for reloc gen
+            # XXX only one reloc per instruction max?
             has_symb = None
-            for ea in eat_arg:
-                if x86_afs.ad in ea and ea[x86_afs.ad]:
-                    has_symb = len(out_byte)-4
+            if reloc_off != None:
+                has_symb = reloc_off
             symbol_off.append(has_symb)
 
             hex_candidate.append(out_byte)
