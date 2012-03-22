@@ -78,7 +78,7 @@ class mnemonic:
 def mask_opc_to_i(mask, opc):
     log.debug("mask %x opc %x"%(mask, opc))
     return [i for i in range(0x100) if (i & mask) == opc]
-        
+
 mask_d = 0x38
 mask_reg = 0xF8
 mask_cond = 0xF0
@@ -201,7 +201,7 @@ def is_reg(a):
         return False
     if x86_afs.symb in a:
         return False
-    
+
     return True
 
 def get_label(a):
@@ -409,9 +409,9 @@ class x86allmncs:
                 if mnemo_mode == u32: fmt,t = ('i',s32)
                 else:                 fmt,t = ('h',s16)
 
-                
+
         return struct.calcsize(fmt), fmt,t
-    
+
     def modrm(self, c):
         return (c>>6)&3, (c>>3)&7, c&7
     def sib(self, c):
@@ -448,11 +448,11 @@ class x86allmncs:
                         sib_rez[index][x86_afs.imm] = x86_afs.u32
                     elif sib_rez == self.sib_rez_u32:
                         sib_rez[index][r]=1
-                    
-    
+
+
                 if i == 4:
                     continue
-    
+
                 tmp = i
                 if tmp in sib_rez[index]:
                     sib_rez[index][tmp]+=[1, 2, 4, 8][ss]
@@ -510,7 +510,7 @@ class x86allmncs:
                     self.db_afs_16[index] = {x86_afs.ad:True,x86_afs.imm:x86_afs.u16}#{x86_afs.ad:True,_bp:1}
                 elif rm == 7:
                     self.db_afs_16[index] = {x86_afs.ad:True,_bx:1}
-                else:                    
+                else:
                     self.db_afs_16[index] = {x86_afs.ad:True,
                                              [_si, _di][rm%2]:1,
                                              [_bx, _bp][(rm>>1)%2]:1}
@@ -522,7 +522,7 @@ class x86allmncs:
                         my_imm=x86_afs.s08
                 else:
                     my_imm=x86_afs.u16
-                    
+
                 if rm==4:
                     self.db_afs_16[index] = {x86_afs.ad:True,_si:1, x86_afs.imm:my_imm}
                 elif rm==5:
@@ -546,7 +546,7 @@ class x86allmncs:
         modifs = dict([[x, True] for x in modif_desc])
         base_modif = dict([[x, None] for x in [w8, se, sw, ww, sg, dr, cr, ft, w64, sd, wd, bkf, spf, dtf]])
         base_modif.update(modifs)
-        
+
         #update with forced properties
         base_modif.update(prop_dict)
         base_mnemo = [(opc, base_modif)]
@@ -566,7 +566,7 @@ class x86allmncs:
 
                 opc = opc[:]
                 opc[modif_desc[modif][0]] |=(1<<modif_desc[modif][1])
-                
+
                 base_mnemo_add.append((opc, n_m))
 
             base_mnemo+=base_mnemo_add
@@ -575,7 +575,7 @@ class x86allmncs:
             #unassociable modifs XXX here cause structure generation
             if n_m[se] and n_m[w8]:
                 continue
-        
+
             if afs in [d0, d1, d2, d3, d4, d5, d6, d7]:
                 opc+=[afs]
                 mask = mask_d
@@ -587,7 +587,7 @@ class x86allmncs:
                 mask = mask_cond
             else:
                 raise ValueError('bug in %s %d'%(name, afs))
-    
+
             #find mnemonic table
             insert_tab = self.db_mnemo
             log.debug(name)
@@ -597,7 +597,7 @@ class x86allmncs:
                 if insert_tab[i] == None:
                     insert_tab[i] = [None for x in range(0x100)]
                 insert_tab = insert_tab[i]
-    
+
             keys = mask_opc_to_i(mask, opc[-1])
             if afs == cond:
                 for k in keys:
@@ -613,7 +613,7 @@ class x86allmncs:
                         self.mnemo_lookup[mnemo.name] = [mnemo]
                     elif not mnemo in self.mnemo_lookup[mnemo.name]:
                         self.mnemo_lookup[mnemo.name].append(mnemo)
-                        
+
             else:
                 mnemo = mnemonic(name, opc, afs, rm, n_m, modif_desc, sem)
                 for k in keys:
@@ -625,23 +625,23 @@ class x86allmncs:
                         self.mnemo_lookup[mnemo.name] = [mnemo]
                     elif not mnemo in self.mnemo_lookup[mnemo.name]:
                         self.mnemo_lookup[mnemo.name].append(mnemo)
-    
+
     def find_mnemo(self, name, mnemo_list = None, candidate = None):
         if name in self.mnemo_lookup.keys():
             return self.mnemo_lookup[name]
         else:
             return []
-    
-        
-        
 
-        
-        
+
+
+
+
+
 
     def get_address_afs(self, a):
         l = parse_ad(a)
         return ad_to_generic(l)
-        
+
     def get_address_afs_hex(self, adprops):
         out = []
         for ad in adprops:
@@ -653,7 +653,7 @@ class x86allmncs:
                         if self.db_afs[index][j] == ad:
                             if not (index, j)  in candidate:
                                 candidate.append((index, j) )
-                        
+
                 else:
                     if self.db_afs[index] == ad:
                         if not (index, None)  in candidate:
@@ -668,7 +668,7 @@ class x86allmncs:
             if a2[x86_afs.ad] or x86_afs.imm in a2 or len(k)!=1:
                 raise ValueError('bad a2 forge %s'%str(a2))
             out_opc[0].append(k[0]<<3)
-            
+
         #if not a[x86_afs.ad]:
         del a[x86_afs.size]
 
@@ -701,7 +701,7 @@ class x86allmncs:
                         v = a[x86_afs.imm]
                     else:
                         v = 0
-                    
+
                     v = check_imm_size(v, b[i][x86_afs.imm])
                     if v == None:
                         log.debug("cannot encode this val in size forge!")
@@ -726,7 +726,7 @@ class x86allmncs:
                 return False
             else:
                 return True
-            
+
         if size != [x86_afs.u32, x86_afs.u08][modifs[w8]==True]:
             log.debug('checksize: not good w8:%s'%str(size))
             return False
@@ -738,39 +738,39 @@ class x86allmncs:
         self.mnemo_lookup = {}
         self.init_pre_modrm()
         self.op_db = {}
-        
+
         self.db_mnemo = [None for x in range(0x100)]
         addop = self.addop
 
 
         #x86
-        
+
         addop("aaa",   [0x37],             noafs, no_rm         , {}                 ,{}                , {},                         )
         #addop("aad",   [0xD5, 0x0A],       noafs, no_rm         , {}                 ,{}                , {},                         )
         #addop("aam",   [0xD4, 0x0A],       noafs, no_rm         , {}                 ,{}                , {},                         )
         addop("aad",   [0xD5],             noafs, [u08]         , {}                 ,{}                , {},                         )
         addop("aam",   [0xD4],             noafs, [u08]         , {}                 ,{}                , {},                         )
-        
+
         addop("aas",   [0x3F],             noafs, no_rm         , {}                 ,{}                , {},                         )
-                                                                                                            
+
         addop("adc",   [0x14],             noafs, [r_eax,imm]   , {w8:(0,0)}         ,{}                , {},                         )
         addop("adc",   [0x80],             d2,    [imm]         , {w8:(0,0),se:(0,1)},{}                , {},                         )
         addop("adc",   [0x10],             noafs, [rmr]         , {w8:(0,0),sw:(0,1)},{}                , {},                         )
-                                                                                                            
+
         addop("add",   [0x04],             noafs, [r_eax,imm]   , {w8:(0,0)}         ,{}                , {},                         )
         addop("add",   [0x80],             d0,    [imm]         , {w8:(0,0),se:(0,1)},{}                , {},                         )
         addop("add",   [0x00],             noafs, [rmr]         , {w8:(0,0),sw:(0,1)},{}                , {},                         )
-                                                                                                            
+
         addop("and",   [0x24],             noafs, [r_eax,imm]   , {w8:(0,0)}         ,{}                , {},                         )
         addop("and",   [0x80],             d4,    [imm]         , {w8:(0,0),se:(0,1)},{w8:True}         , {},                         )
         addop("and",   [0x20],             noafs, [rmr]         , {w8:(0,0),sw:(0,1)},{}                , {},                         )
-                                                                                                            
+
         addop("arpl",  [0x63],             noafs, [rmr]         , {}                 ,{sw:True,wd:True} , {},                         )
-                                                                                                            
+
         addop("bsf",   [0x0F, 0xBC],       noafs, [rmr]         , {}                 ,{}                , {},                         )
         addop("bsr",   [0x0F, 0xBD],       noafs, [rmr]         , {}                 ,{}                , {},                         )
         addop("bswap", [0x0F, 0xC8],       reg  , no_rm         , {}                 ,{}                , {},                         )
-                                                                                                            
+
         addop("bt",    [0x0F, 0xA3],       noafs, [rmr]         , {}                 ,{sw:True}         , {},                         )
         addop("bt",    [0x0F, 0xBA],       d4   , [u08]         , {}                 ,{}                , {},                         )
         addop("btc",   [0x0F, 0xBB],       noafs, [rmr]         , {}                 ,{sw:True}         , {},                         )
@@ -779,78 +779,78 @@ class x86allmncs:
         addop("btr",   [0x0F, 0xBA],       d6   , [u08]         , {}                 ,{}                , {},                         )
         addop("bts",   [0x0F, 0xAB],       noafs, [rmr]         , {}                 ,{sw:True}         , {},                         )
         addop("bts",   [0x0F, 0xBA],       d5   , [u08]         , {}                 ,{}                , {},                         )
-                                                                                                            
+
         addop("call",  [0xE8],             noafs, [s32]         , {}                 ,{}                , {bkf:True,spf:True,dtf:True})
         addop("call",  [0xFF],             d2   , no_rm         , {}                 ,{}                , {bkf:True,spf:True,dtf:True})
         addop("call",  [0x9A],             noafs, [imm,u16]     , {}                 ,{}                , {bkf:True,spf:True,dtf:True})
         addop("callf", [0xFF],             d3,    no_rm         , {}                 ,{}                , {bkf:True,spf:True,dtf:True}) #XXX
-                                                                                                            
+
         addop("cbw",   [0x98],             noafs, [r_eax]       , {}                 ,{}                , {},                         )
         addop("clc",   [0xF8],             noafs, no_rm         , {}                 ,{}                , {},                         )
         addop("cld",   [0xFC],             noafs, no_rm         , {}                 ,{}                , {},                         )
         addop("cli",   [0xFA],             noafs, no_rm         , {}                 ,{}                , {},                         )
         addop("clts",  [0x0F, 0x06],       noafs, no_rm         , {}                 ,{}                , {},                         )
         addop("cmc",   [0xF5],             noafs, no_rm         , {}                 ,{}                , {},                         )
-                                                                                                            
+
         addop("cmov",  [0x0F, 0x40],       cond , [rmr]         , {}                 ,{}                , {},                         )
-                                                                                                            
+
         addop("cmp",   [0x3C],             noafs, [r_eax,imm]   , {w8:(0,0)}         ,{}                , {},                         )
         addop("cmp",   [0x80],             d7,    [imm]         , {w8:(0,0),se:(0,1)},{}                , {},                         )
         addop("cmp",   [0x38],             noafs, [rmr]         , {w8:(0,0),sw:(0,1)},{}                , {},                         )
-                                                                                                            
+
         addop("cmpsb", [0xA6],             noafs, no_rm         , {}                 ,{w8:True}         , {},                         )
         addop("cmpsd", [0xA7],             noafs, no_rm         , {}                 ,{w8:False}        , {},                         )
 
-                                                                                                            
+
         addop("cmpxchg",[0x0F, 0xB0],      noafs, [r_eax,rmr]   , {w8:(1,0)}         ,{}                , {},                         )
         addop("cmpxchg8b",[0x0F, 0xC7],    d1   , no_rm         , {}                 ,{}                , {},                         )
         addop("cpuid", [0x0F, 0xA2],       noafs, no_rm         , {}                 ,{}                , {},                         )
-                                                                                                            
+
         #ddop("cwd",   [0x99],             noafs, [r_eax]       , {}                 ,{}                , {},                         )
         addop("cdq",   [0x99],             noafs, no_rm         , {}                 ,{}                , {},                         )
-                                                                                                            
+
         addop("daa",   [0x27],             noafs, no_rm         , {}                 ,{}                , {},                         )
         addop("das",   [0x2F],             noafs, no_rm         , {}                 ,{}                , {},                         )
         addop("dec",   [0x48],             reg  , no_rm         , {}                 ,{}                , {},                         )
         addop("dec",   [0xFE],             d1   , no_rm         , {w8:(0,0)}         ,{}                , {},                         )
         addop("div",   [0xF6],             d6   , no_rm         , {w8:(0,0)}         ,{}                , {},                         )
-                                                                                                            
+
         addop("enter", [0xC8],             noafs, [u16, u08]    , {}                 ,{}                , {},                         )
-                                                                                                            
+
         addop("hlt",   [0xF4],             noafs, no_rm         , {}                 ,{}                , {bkf:True}                  )
-                                                                                                            
+
         addop("idiv",  [0xF6],             d7   , no_rm         , {w8:(0,0)}         ,{}                , {},                         )
-                                                                                                            
+
         addop("imul",  [0xF6],             d5   , no_rm         , {w8:(0,0)}         ,{}                , {},                         )
         addop("imul",  [0x0F, 0xAF],       noafs, [rmr]         , {}                 ,{sw:False}        , {},                         )
         addop("imul",  [0x69],             noafs, [rmr, imm]    , {se:(0,1)}         ,{sw:False}        , {},                         )
-                                                                                                            
+
         addop("in",    [0xE4],             noafs, [r_eax, u08]  , {w8:(0,0)}         ,{}                , {},                         )
         addop("in",    [0xEC],             noafs, [r_eax,r_dx]  , {w8:(0,0)}         ,{}                , {},                         )
-                                                                                                            
+
         addop("inc",   [0x40],             reg  , no_rm         , {}                 ,{}                , {},                         )
         addop("inc",   [0xFE],             d0   , no_rm         , {w8:(0,0)}         ,{}                , {},                         )
-                                                                                                            
+
         addop("ins",   [0x6C],             noafs, no_rm         , {w8:(0,0)}         ,{}                , {},                         )
-                                                                                                            
+
         addop("int",   [0xCC],             noafs, [im3]         , {}                 ,{}                , {},                         )
         addop("int",   [0xCD],             noafs, [u08]         , {}                 ,{}                , {},                         )
-                                                                                                            
+
         addop("into",  [0xCE],             noafs, no_rm         , {}                 ,{}                , {},                         )
-                                                                                                            
+
         addop("invd",  [0x0F, 0x08],       noafs, no_rm         , {}                 ,{}                , {},                         )
         addop("invlpg",[0x0F, 0x01],       d7   , no_rm         , {}                 ,{}                , {},                         )
-                                                                                                            
+
         addop("iret",  [0xCF],             noafs, no_rm         , {}                 ,{}                , {bkf:True}                  )
-                                                                                                            
+
         addop("j",     [0x70],             cond , [s08]         , {}                 ,{}                , {bkf:True,spf:True,dtf:True})
         addop("j",     [0x0F, 0x80],       cond , [s32]         , {}                 ,{}                , {bkf:True,spf:True,dtf:True})
         addop("jecxz", [0xE3],             noafs, [s08]         , {}                 ,{}                , {bkf:True,spf:True,dtf:True})
-                                                                                                            
+
         addop("jmp",   [0xE9],             noafs, [ims]         , {w8:(0,1)}         ,{w8:False}        , {bkf:True,dtf:True}         )
         addop("jmp",   [0xFF],             d4   , no_rm         , {}                 ,{}                , {bkf:True,dtf:True}         )
         addop("jmpf",  [0xFF],             d5   , no_rm         , {}                 ,{}                , {bkf:True,dtf:True}         )
-                                                                                                            
+
         addop("lahf",  [0x9F],             noafs, no_rm         , {}                 ,{}                , {},                         )
         addop("lar",   [0x0F, 0x02],       noafs, no_rm         , {}                 ,{}                , {},                         )
         addop("ldmxcsr",[0x0F, 0xAE],      d2   , no_rm         , {}                 ,{}                , {},                         )
@@ -859,20 +859,20 @@ class x86allmncs:
         addop("les",   [0xC4],             noafs, [rmr]         , {}                 ,{}                , {},                         )
         addop("lfs",   [0x0F, 0xB4],       noafs, [rmr]         , {}                 ,{}                , {},                         )
         addop("lgs",   [0x0F, 0xB5],       noafs, [rmr]         , {}                 ,{}                , {},                         )
-                                                                                                            
+
         addop("lea",   [0x8D],             noafs, [rmr]         , {}                 ,{}                , {},                         )
-                                                                                                            
+
         addop("leave", [0xC9],             noafs, no_rm         , {}                 ,{}                , {},                         )
         addop("lfence",[0x0F, 0xAE],       d5   , no_rm         , {}                 ,{}                , {},                         )
         addop("lgdt",  [0x0F, 0x01],       d2   , no_rm         , {}                 ,{}                , {},                         )
         addop("lidt",  [0x0F, 0x01],       d3   , no_rm         , {}                 ,{}                , {},                         )
         addop("lldt",  [0x0F, 0x00],       d2   , no_rm         , {}                 ,{}                , {},                         )
         addop("lmsw",  [0x0F, 0x01],       d6   , no_rm         , {}                 ,{}                , {},                         )
-                                                                                                            
+
         #ddop("lods",  [0xAC],             noafs, no_rm         , {w8:(0,0)}         ,{}                , {},                         )
         addop("lodsb", [0xAC],             noafs, no_rm         , {}                 ,{w8:True}         , {},                         )
         addop("lodsd", [0xAD],             noafs, no_rm         , {}                 ,{w8:False}        , {},                         )
-                                                                                                            
+
         addop("loop",  [0xE2],             noafs, [s08]         , {}                 ,{}                , {bkf:True,spf:True,dtf:True})
         addop("loope", [0xE1],             noafs, [s08]         , {}                 ,{}                , {bkf:True,spf:True,dtf:True})
         addop("loopne",[0xE0],             noafs, [s08]         , {}                 ,{}                , {bkf:True,spf:True,dtf:True})
@@ -974,10 +974,10 @@ class x86allmncs:
 
         addop("sal",   [0xC1],             d4   , [u08]        , {w8:(0,0)}         ,{}                , {},                         )
         addop("sal",   [0xC1],             d6   , [u08]        , {w8:(0,0)}         ,{}                , {},                         )
-        
+
         addop("sal",   [0xD1],             d4   , [r_cl]        , {w8:(0,0)}         ,{}                , {},                         )
         addop("sal",   [0xD1],             d6   , [r_cl]        , {w8:(0,0)}         ,{}                , {},                         )
-        
+
         addop("sal",   [0xD3],             d4   , [r_cl]        , {w8:(0,0)}         ,{}                , {},                         )
         addop("sal",   [0xD3],             d6   , [r_cl]        , {w8:(0,0)}         ,{}                , {},                         )
         """
@@ -987,7 +987,7 @@ class x86allmncs:
 
         addop("sal",   [0xD0],             d6   , [r_cl]        , {w8:(0,0)}         ,{}                , {},                         )
         addop("sar",   [0xD0],             d7   , [im1]         , {w8:(0,0)}         ,{}                , {},                         )
-        
+
         addop("sar",   [0xD2],             d6   , [r_cl]        , {w8:(0,0)}         ,{}                , {},                         )
         addop("sar",   [0xD2],             d7   , [r_cl]        , {w8:(0,0)}         ,{}                , {},                         )
         addop("sar",   [0xC0],             d7   , [u08]         , {w8:(0,0)}         ,{}                , {},                         )
@@ -1161,9 +1161,9 @@ class x86allmncs:
         addop("fstp",  [0xDD, 0xD8],       reg,   no_rm         , {}                 ,{sd:False}        , {},                         )
 
         #ddop("fstcw", [0x9B, 0xD9],       d7,    no_rm         , {}                 ,{wd:False}        , {},                         ) #XXX no mnemo
-        addop("fnstcw",[0xD9],             d7,    no_rm         , {}                 ,{wd:True}         , {},                         ) 
+        addop("fnstcw",[0xD9],             d7,    no_rm         , {}                 ,{wd:True}         , {},                         )
         #ddop("fstenv",[0x9B, 0xD9],       d6,    no_rm         , {}                 ,{wd:False}        , {},                         ) #XXX no mnemo
-        addop("fnstenv",[0xD9],            d6,    no_rm         , {}                 ,{wd:False}        , {},                         ) 
+        addop("fnstenv",[0xD9],            d6,    no_rm         , {}                 ,{wd:False}        , {},                         )
 
         addop("f2xm1", [0xD9, 0xF0],       noafs, no_rm         , {}                 ,{}                , {},                         )
 
@@ -1187,8 +1187,8 @@ class x86allmncs:
         addop("fld",   [0xDB],             d5,    no_rm         , {}                 ,{sd:False}        , {},                         ) #XXX 80
         addop("fld",   [0xD9, 0xC0],       reg,   no_rm         , {}                 ,{sd:False}        , {},                         )
 
-        addop("fldcw", [0xD9],             d5,    no_rm         , {}                 ,{wd:True}         , {},                         ) 
-        addop("fldenv",[0xD9],             d4,    no_rm         , {}                 ,{wd:False}        , {},                         ) 
+        addop("fldcw", [0xD9],             d5,    no_rm         , {}                 ,{wd:True}         , {},                         )
+        addop("fldenv",[0xD9],             d4,    no_rm         , {}                 ,{wd:False}        , {},                         )
         addop("fabs",  [0xD9, 0xE1],       noafs, no_rm         , {}                 ,{}                , {},                         )
 
         addop("fld1",  [0xD9, 0xE8],       noafs, no_rm         , {}                 ,{sd:False}        , {},                         )
@@ -1201,9 +1201,9 @@ class x86allmncs:
 
 
         #ddop("fstsw", [0x9B, 0xDD],       d7,    no_rm         , {}                 ,{wd:False}        , {},                         ) #XXX no mnemo
-        addop("fnstsw",[0xDD],             d7,    no_rm         , {}                 ,{wd:True}         , {},                         ) 
+        addop("fnstsw",[0xDD],             d7,    no_rm         , {}                 ,{wd:True}         , {},                         )
         #ddop("fstsw",[0x9B, 0xDF, 0xE0],  noafs, no_rm         , {}                 ,{wd:False}        , {},                         ) #XXX no mnemo
-        addop("fnstsw",[0xDF, 0xE0],       noafs, no_rm         , {}                 ,{wd:False}        , {},                         ) 
+        addop("fnstsw",[0xDF, 0xE0],       noafs, no_rm         , {}                 ,{wd:False}        , {},                         )
 
         addop("fsub",  [0xD8],             d4,    no_rm         , {sd:(0,2)}         ,{}                , {},                         )
         addop("fsub",  [0xD8, 0xE0],       reg,   [r_eax]       , {sw:(0,2)}         ,{sd:False,sw:False},{},                         )
@@ -1215,7 +1215,7 @@ class x86allmncs:
         addop("fisubr",[0xDA],             d5,    no_rm         , {wd:(0,2)}         ,{}                , {},                         )
         addop("fsubrp",[0xDE, 0xE0],       reg,   no_rm         , {}                 ,{sd:False}        , {},                         )
 
-        addop("ftst",  [0xD9, 0xE4],       noafs, no_rm         , {}                 ,{sd:False}        , {},                         ) 
+        addop("ftst",  [0xD9, 0xE4],       noafs, no_rm         , {}                 ,{sd:False}        , {},                         )
 
         addop("fucom", [0xDD, 0xE0],       reg,   no_rm         , {}                 ,{sd:False}        , {},                         )
         addop("fucomp",[0xDD, 0xE8],       reg,   no_rm         , {}                 ,{sd:False}        , {},                         )
@@ -1255,8 +1255,8 @@ class x86allmncs:
         pm = self.find_mnemo("scasd")[0]
         self.scasw_m = mnemonic(pm.name, pm.opc, pm.afs, pm.rm, pm.modifs, pm.modifs_orig, None)#, pm.sem)
         self.scasw_m.name = "scasw"
-        
-    
+
+
 
 x86mndb = x86allmncs()
 
@@ -1276,7 +1276,7 @@ class x86_mnemo_metaclass(type):
         i = cls.__new__(cls)
         i.__init__(admode = u32, opmode = u32, sex = 0)
         return i._asm(l, symbol_off)
-        
+
 
     def has_symb(cls, a):
         if type(a) in [int, long]+tab_int_size.keys():
@@ -1284,32 +1284,32 @@ class x86_mnemo_metaclass(type):
         if x86_afs.symb in a:
             return True
         return False
-    
+
     def fix_symbol(cls, a, symbol_pool = None):
         if type(a) in [int, long]+tab_int_size.keys():
             return a
-    
+
         cp = dict(a)
         if not x86_afs.symb in cp:
             return cp
-    
+
         if not symbol_pool:
             del cp[x86_afs.symb]
             if not x86_afs.imm in cp:
                 cp[x86_afs.imm] = 0
             return cp
-    
+
         imm_total = 0
         if x86_afs.imm in cp:
             imm_total+=cp[x86_afs.imm]
         for s in cp[x86_afs.symb]:
             base_ad = symbol_pool.s['base_address'].offset_g
             imm_total+=cp[x86_afs.symb][s]*(symbol_pool.s[s.name].offset_g+base_ad)
-    
+
         cp[x86_afs.imm] = imm_total
         del cp[x86_afs.symb]
-        
-    
+
+
         return cp
 
     def is_mem(cls, a):
@@ -1325,7 +1325,7 @@ class x86_mnemo_metaclass(type):
         if n[k] != 1:
             return None
         return k
-        
+
     def get_symbols(cls, a):
         if not x86_afs.symb in a:
             return None
@@ -1338,7 +1338,7 @@ class x86_mnemo_metaclass(type):
             count = all_s[name]
             del(all_s[name])
             all_s[s] = count
-            
+
 
 class x86_mn:
     __metaclass__ = x86_mnemo_metaclass
@@ -1373,7 +1373,7 @@ class x86_mn:
         else:
             out = [a]
         return out
-    
+
     def setdstflow(self, dst):
         if len(self.arg) !=1:
             print ValueError('should be 1 arg %s'%str(self))
@@ -1383,11 +1383,11 @@ class x86_mn:
         if len(dst)!=1:
             raise ValueError('should be 1 dst')
         l = dst[0]
-        
+
         #patch only known symbols
         if l.offset !=None:
             self.arg = [{x86_afs.symb:{l:1}}]
-        
+
     def fixdst(self, lbls, my_offset, is_mem):
         if len(self.arg) !=1:
             raise ValueError('should be 1 arg %s'%str(self))
@@ -1403,7 +1403,7 @@ class x86_mn:
 
     def is_subcall(self):
         return self.m.name == 'call'
-            
+
     def __str__(self):
         if type(self.instr_string) is str:
             return self.instr_string
@@ -1413,7 +1413,7 @@ class x86_mn:
             if p in prefix_dic_inv:
                 args_str += prefix_dic_inv[p]+" "
         args_str+="%-10s"%(self.m.name)
-        
+
         for a in self.arg:
             if type(a) in [int, long]:
                 raise ValueError("should be intsized %s"%str(a))
@@ -1436,16 +1436,16 @@ class x86_mn:
             return uint16(im)
         else:
             raise ValueError('unknown mnemo mode %s'%str(im))
-            
+
     def _dis(self, bin):
 
-        
-        
+
+
         if type(bin) == str:
             from miasm.core.bin_stream import bin_stream
 
             bin = bin_stream(bin)
-        
+
         init_offset = bin.offset
 
         try:
@@ -1470,11 +1470,11 @@ class x86_mn:
                     break
                 if type(l[c]) == list:
                     l = l[c]
-                    
+
             if m == None:
                 return None
             self.m = m
-    
+
             log.debug(m)
             log.debug("prefix: %s"%str(read_prefix))
 
@@ -1484,15 +1484,15 @@ class x86_mn:
                 #self.opmode = [u16,u32][size_op == u16]
             if 0x67 in read_prefix:
                 self.admode = [u16,u32][self.admode == u16]
-                
 
-            
+
+
             #parse mnemonic args
             mnemo_args = []
 
             afs, dibs = m.afs, m.rm
             modrm = None
-            #digit 
+            #digit
             if afs in [d0, d1, d2, d3, d4, d5, d6, d7]:
                 re, modr = x86mndb.get_afs(bin, c, self.admode)
                 mnemo_args.append(modr)
@@ -1503,7 +1503,7 @@ class x86_mn:
                         mnemo_args[-1][x86_afs.size] = x86_afs.f32
                     else:
                         mnemo_args[-1][x86_afs.size] = x86_afs.f64
-                    
+
                 if m.modifs[w8]:
                     mnemo_args[-1][x86_afs.size] = x86_afs.u08
                 if m.modifs[wd]:
@@ -1516,7 +1516,7 @@ class x86_mn:
                     mafs[x86_afs.size] = x86_afs.u08
                 else:
                     mafs[x86_afs.size] = self.opmode
-                
+
                 mnemo_args.append(mafs)
             #rm mod
             elif afs in [noafs, cond]:
@@ -1535,17 +1535,17 @@ class x86_mn:
                         mafs[x86_afs.size] = x86_afs.u08
                     else:
                         mafs[x86_afs.size] = self.opmode
-                    
+
                     mnemo_args.append(mafs)
                     mnemo_args.append(modr)
-                    
+
 
                     mnemo_args[-1][x86_afs.size] = self.opmode
                     if m.modifs[w8] :
                         mnemo_args[-1][x86_afs.size] = x86_afs.u08
                     if m.modifs[se] !=None and not (imm in dibs or ims in dibs):
                         mnemo_args[-1][x86_afs.size] = [x86_afs.u08, x86_afs.u16][m.modifs[se]]
-                        
+
 
                     if m.modifs[wd]:
                         mnemo_args[-1][x86_afs.size] = x86_afs.u16
@@ -1554,8 +1554,8 @@ class x86_mn:
                         mnemo_args[-2][x86_afs.size] = x86_afs.size_seg
                     if afs == cond and m.name.startswith('set'):
                         mnemo_args.pop(0)
-                        
-                        
+
+
             elif afs == cond:
                 pass
             else:
@@ -1564,7 +1564,7 @@ class x86_mn:
             #swap args?
             if m.modifs[sw]:
                 mnemo_args.reverse()
-                
+
 
             dib_out = []
             for dib in dibs:
@@ -1579,12 +1579,12 @@ class x86_mn:
                     l = struct.calcsize(x86_afs.dict_size[dib])
                     d = struct.unpack(x86_afs.dict_size[dib], bin.readbs(l))[0]
                     d = self.intsize(d)
-                    
+
                     dib_out.append({x86_afs.imm:d})
                 elif dib in [imm, ims]:
                     taille, fmt, t = x86mndb.get_im_fmt(m.modifs, self.opmode, dib)
                     dib_out.append({x86_afs.imm:self.intsize(struct.unpack(fmt, bin.readbs(taille))[0], dib==ims)})
-                    
+
                 elif dib in [im1, im3]:
                     dib_out.append({im1:{x86_afs.imm:self.intsize(1)},im3:{x86_afs.imm:self.intsize(3)}}[dib])
                 elif dib == rmr:
@@ -1884,7 +1884,7 @@ class x86_mn:
             for dib in dibs:
                 if dib in [u08, s08, u16, s16, u32, s32]:
                     index_im = [-1, 0][afs == noafs]
-                    
+
                     if len(args_sample)<=0:
                         good_c = False
                         break
@@ -1893,7 +1893,7 @@ class x86_mn:
                         good_c = False
                         break
 
-                    
+
                     if self.mnemo_mode !=u32:
                         if dib == u32:
                             dib = u16
@@ -1910,13 +1910,13 @@ class x86_mn:
 
                     args_sample[index_im][x86_afs.size] = size
                     args_sample[index_im][x86_afs.imm] = tab_size2int[size](v)
-                    
+
 
                     opc_add.append({x86_afs.size:size, x86_afs.imm:args_sample[index_im][x86_afs.imm]})
                     r = args_sample[index_im]
                     del args_sample[index_im]
                     dib_out.append(r)
-                    
+
                 elif dib in [im1, im3]:
                     if x86_afs.imm in args_sample[-1] and args_sample[-1][x86_afs.imm] =={im1:1,im3:3}[dib]:
                         dib_out.append(args_sample.pop())
@@ -1924,7 +1924,7 @@ class x86_mn:
                         log.debug("not im val fixed")
                         good_c = False
                         break
-                    
+
                 elif dib in [imm, ims]:
                     if len(args_sample)<=0:
                         good_c = False
@@ -1958,7 +1958,7 @@ class x86_mn:
                         good_c = False
                         break
                     size = args_sample[0][x86_afs.size]
-                
+
                     if not x86mndb.check_size_modif(size, c.modifs):
                         log.debug(' bad reg size')
                         good_c = False
@@ -1981,7 +1981,7 @@ class x86_mn:
                     if len(args_sample) and not c.modifs[sw]:
                         parsed_args.append(r)
                     else:
-                        dib_out.append(r)                    
+                        dib_out.append(r)
 
 
                 elif dib in [r_cl, r_dx]:
@@ -1996,7 +1996,7 @@ class x86_mn:
                         break
 
                     r = args_sample[index_im]
-                    del args_sample[index_im] 
+                    del args_sample[index_im]
                     dib_out.append(r)
 
                 elif dib == mim:
@@ -2013,7 +2013,7 @@ class x86_mn:
                             log.debug("mim: cannot encode reg ")
                             good_c = False
                             break
-                    
+
                     a_mem = {x86_afs.size:u32, x86_afs.imm:uint32(args_sample[0][x86_afs.imm])}
                     opc_add.append(a_mem)
                     del args_sample[0]
@@ -2024,7 +2024,7 @@ class x86_mn:
                     fds
                 else:
                     raise ValueError('bad dib!!%X'%dib)
-            
+
             if not good_c:
                 continue
 
@@ -2040,18 +2040,18 @@ class x86_mn:
                     if not c.modifs[sd]  == None:
                         size = {x86_afs.u16:x86_afs.u16, x86_afs.u32:x86_afs.u32, x86_afs.f32:x86_afs.f32, x86_afs.f64:x86_afs.f64}[size]
                 else:
-                    size = args_sample[0][x86_afs.size]                        
+                    size = args_sample[0][x86_afs.size]
                 if not x86mndb.check_size_modif(size, c.modifs):
                     log.debug(' bad size digit')
                     continue
-                
-                
+
+
                 a = dict(args_sample[-1])
                 out_opc, parsed_val = x86mndb.forge_opc(out_opc, a)
                 if out_opc == None or parsed_val == None:
                     log.debug('cannot encode opc')
                     continue
-                    
+
                 parsed_args.append(args_sample.pop())
             elif afs == reg:
                 if len(args_sample)!=1:
@@ -2072,19 +2072,19 @@ class x86_mn:
                     continue
                 out_opc[0][-1]+=k[0]
                 parsed_args.append(args_sample.pop())
-                
+
             elif afs == noafs or (afs == cond and rmr in c.rm and len(args_sample)==2):
                 if rmr in c.rm:
                     if len(args_sample)!=2:
                         log.debug(str(c)+' bad arg num')
-                        continue    
+                        continue
                     if c.modifs[sw] and args_sample[1][x86_afs.ad]:
                         log.debug(' bad sw rmr 1')
                         continue
                     if not c.modifs[sw] and args_sample[0][x86_afs.ad]:
                         log.debug(' bad sw rmr 2')
                         continue
-                    
+
                     for i in range(2):
                         if not args_sample[i][x86_afs.ad] and x86_afs.imm in args_sample[i]:
                             good_c = False
@@ -2101,7 +2101,7 @@ class x86_mn:
                     if not (imm in dibs or ims in dibs):
                         if c.modifs[sw]:
                             size.reverse()
-                            
+
                         if c.modifs[se]!=None:
                             if size[1] != [x86_afs.u08, x86_afs.u16][c.modifs[se]]:
                                 log.debug(' bad size se rmr')
@@ -2109,7 +2109,7 @@ class x86_mn:
                         elif not x86mndb.check_size_modif(size[0], c.modifs):
                             log.debug(' bad size rmr')
                             continue
-    
+
 
                     #reg, modr
                     a1 = dict(args_sample[-1])
@@ -2117,7 +2117,7 @@ class x86_mn:
                     args_sample = args_sample[:-2]
 
 
-                    
+
                     if c.modifs[sw]:
                         tmp_order = [a2,a1]
                     else:
@@ -2136,13 +2136,13 @@ class x86_mn:
                             tmp = tmp_order[1][x]
                             del(tmp_order[1][x])
                             tmp_order[1][x&0xFF] = tmp
-                            
+
 
                     if not good_c:
                         continue
 
 
-                        
+
                     out_opc, parsed_val = x86mndb.forge_opc(out_opc, *tmp_order)
                     if out_opc == None or parsed_val == None:
                         log.debug('cannot encode opc')
@@ -2160,8 +2160,8 @@ class x86_mn:
                     for i in range(2):
                         tmp_o[-1][x86_afs.size] = size[i]
                     parsed_args+=tmp_o
-                    
-                    
+
+
             elif afs == cond:
                 if rmr in c.rm:
                     if len(args_sample)!=1:
@@ -2171,7 +2171,7 @@ class x86_mn:
                         size = args_sample[0][x86_afs.ad]
                     else:
                         size = args_sample[0][x86_afs.size]
-                    
+
                     a = dict(args_sample[-1])
                     add_out_opc, parsed_val = x86mndb.forge_opc([[0]], a)
                     if add_out_opc == None or parsed_val == None:
@@ -2180,8 +2180,8 @@ class x86_mn:
                     parsed_args.append(args_sample.pop())
                     out_opc[0]+=add_out_opc[0]
 
-                    
-                    
+
+
             else:
                 raise ValueError('erf ', afs)
 
@@ -2194,7 +2194,7 @@ class x86_mn:
 
 
             if self.mnemo_mode == u16:
-                
+
                 for a in parsed_args:
                     if not x86_afs.size in a:
                         a[x86_afs.size] = u16
