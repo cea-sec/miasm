@@ -1011,6 +1011,8 @@ class x86allmncs:
 
         addop("set",   [0x0F, 0x90],       cond , [rmr]         , {}                 ,{w8:True}         , {},                         )
 
+        addop("setalc",[0xd6],             noafs, no_rm         , {}                 ,{}                , {},                         )
+
         addop("qfence",[0x0F, 0xAE],       d7   , no_rm         , {}                 ,{}                , {},                         )
         addop("sgdt",  [0x0F, 0x01],       d0   , no_rm         , {}                 ,{}                , {},                         )
 

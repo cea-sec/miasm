@@ -9,6 +9,7 @@ from miasm.core import parse_asm
 from elfesteem import pe
 from miasm.arch import ia32_arch
 from miasm.arch import arm_arch
+from miasm.arch import ppc_arch
 from optparse import OptionParser
 
 try:
@@ -133,6 +134,7 @@ if options.machine:
     machine_dct = {"ia32":ia32_arch.x86_mn,
                    "arm":arm_arch.arm_mn,
                    "java":java_mn,
+                   "ppc":ppc_arch.ppc_mn,
                    }
     if not options.machine in machine_dct:
         raise ValueError('unknown machine', options.machine)

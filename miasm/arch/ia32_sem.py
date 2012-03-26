@@ -1012,6 +1012,12 @@ def seto(info, a):
     e.append(ExprAff(a, ExprCond(ExprOp('==', of, ExprInt(uint32(1))), ExprInt(tab_uintsize[a.get_size()](1)), ExprInt(tab_uintsize[a.get_size()](0)))))
     return e
 
+def setalc(info):
+    a = eax[0:8]
+    e = []
+    e.append(ExprAff(a, ExprCond(ExprOp('==', cf, ExprInt(uint32(1))), ExprInt(tab_uintsize[a.get_size()](0xff)), ExprInt(tab_uintsize[a.get_size()](0)))))
+    return e
+
 
 def bswap(info, a):
     e = []
@@ -2072,6 +2078,7 @@ mnemo_func = {'mov': mov,
               'setns':setns,
               'sets':sets,
               'seto':seto,
+              'setalc':setalc,
               'bswap':bswap,
               'cmpsb':cmps,
               'cmpsw':cmps,
