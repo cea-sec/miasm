@@ -88,6 +88,10 @@ reg_float_c2 = 'float_c2'
 reg_float_c3 = 'float_c3'
 reg_float_stack_ptr = "float_stack_ptr"
 reg_float_control = 'reg_float_control'
+reg_float_eip = 'reg_float_eip'
+reg_float_cs = 'reg_float_cs'
+reg_float_address = 'reg_float_address'
+reg_float_ds = 'reg_float_ds'
 
 
 reg_float_st0 = 'float_st0'
@@ -237,6 +241,10 @@ float_c2 = ExprId(reg_float_c2)
 float_c3 = ExprId(reg_float_c3)
 float_stack_ptr = ExprId(reg_float_stack_ptr)
 float_control = ExprId(reg_float_control)
+float_eip = ExprId(reg_float_eip)
+float_cs = ExprId(reg_float_cs, size=16)
+float_address = ExprId(reg_float_address)
+float_ds = ExprId(reg_float_ds, size=16)
 
 float_st0 = ExprId(reg_float_st0, 64)
 float_st1 = ExprId(reg_float_st1, 64)
@@ -334,6 +342,10 @@ all_registers = [
     float_c3 ,
     float_stack_ptr ,
     float_control ,
+    float_eip ,
+    float_cs ,
+    float_address ,
+    float_ds ,
 
     float_st0 ,
     float_st1 ,
@@ -356,6 +368,14 @@ tab_uintsize ={8:uint8,
                32:uint32,
                64:uint64
                }
+
+tab_mode ={'u16':uint16,
+           'u32':uint32,
+           }
+
+tab_mode_size ={'u16':16,
+                'u32':32,
+                }
 
 tab_afs_int ={x86_afs.u08:uint8,
               x86_afs.u16:uint16,
@@ -455,6 +475,13 @@ def update_flag_sub(x, y, z):
     e.append(update_flag_sub_of(cast_int, x, y, z))
     return e
 
+def set_float_cs_eip(info):
+    e = []
+    # XXX TODO check float updt
+    cast_int = tab_mode[info.opmode]
+    e.append(ExprAff(float_eip, ExprInt(cast_int(info.offset))))
+    e.append(ExprAff(float_cs, cs))
+    return e
 
 def mov(info, a, b):
     return [ExprAff(a, b)]
@@ -1570,14 +1597,20 @@ def fcom(info, a):
     e.append(ExprAff(float_c1, ExprOp('fcom_c1', float_st0, src)))
     e.append(ExprAff(float_c2, ExprOp('fcom_c2', float_st0, src)))
     e.append(ExprAff(float_c3, ExprOp('fcom_c3', float_st0, src)))
+
+    e += set_float_cs_eip(info)
     return e
 
 def ficom(info, a):
-    return []
+    e = []
+    e += set_float_cs_eip(info)
+    return e
 
 def fcomp(info, a):
     e= fcom(a)
     e+=float_pop()
+
+    e += set_float_cs_eip(info)
     return e
 
 def fld(info, a):
@@ -1596,6 +1629,8 @@ def fld(info, a):
     e.append(ExprAff(float_st1, float_st0))
     e.append(ExprAff(float_st0, src))
     e.append(ExprAff(float_stack_ptr, ExprOp('+', float_stack_ptr, ExprInt(uint32(1)))))
+
+    e += set_float_cs_eip(info)
     return e
 
 def fst(info, a):
@@ -1605,6 +1640,8 @@ def fst(info, a):
     else:
         src = float_st0
     e.append(ExprAff(a, src))
+
+    e += set_float_cs_eip(info)
     return e
 
 def fstp(info, a):
@@ -1615,6 +1652,8 @@ def fstp(info, a):
 def fist(info, a):
     e = []
     e.append(ExprAff(a, ExprOp('double_to_int_32', float_st0)))
+
+    e += set_float_cs_eip(info)
     return e
 
 def fistp(info, a):
@@ -1625,6 +1664,8 @@ def fistp(info, a):
 def fild(info, a):
     #XXXXX
     src = ExprOp('int_%.2d_to_double'%a.get_size(), a)
+
+    e += set_float_cs_eip(info)
     return fld(info, src)
 
 def fldz(info):
@@ -1638,6 +1679,12 @@ def fldl2e(info):
     x = struct.unpack('Q', x)[0]
     return fld(info, ExprOp('mem_64_to_double', ExprInt(uint64(x))))
 
+def fldlg2(info):
+    x = struct.pack('d', math.log10(2))
+    x = struct.unpack('Q', x)[0]
+    return fld(info, ExprOp('mem_64_to_double', ExprInt(uint64(x))))
+
+
 def fadd(info, a, b = None):
     if b == None:
         b = a
@@ -1648,6 +1695,8 @@ def fadd(info, a, b = None):
     else:
         src = b
     e.append(ExprAff(a, ExprOp('fadd', a, src)))
+
+    e += set_float_cs_eip(info)
     return e
 
 def faddp(info, a, b = None):
@@ -1659,8 +1708,36 @@ def faddp(info, a, b = None):
     return e
 
 def fninit(info):
-    return []
+    e = []
+    e += set_float_cs_eip(info)
+    return e
 
+def fnstenv(info, a):
+    e = []
+    # XXX TODO tag word, ...
+    status_word = ExprCompose([ExprSliceTo(ExprInt(uint32(0)), 0, 8),
+                               ExprSliceTo(float_c0, 8, 9),
+                               ExprSliceTo(float_c1, 9, 10),
+                               ExprSliceTo(float_c2, 10, 11),
+                               ExprSliceTo(float_stack_ptr, 11, 14),
+                               ExprSliceTo(float_c3, 14, 15),
+                               ExprSliceTo(ExprInt(uint32(0)), 15, 16),
+                               ])
+
+    w_size = tab_mode_size[info.opmode]
+    ad = ExprMem(a.arg, size=16)
+    e.append(ExprAff(ad, float_control))
+    ad = ExprMem(a.arg+ExprInt(uint32(w_size/8*1)), size = 16)
+    e.append(ExprAff(ad, status_word))
+    ad = ExprMem(a.arg+ExprInt(uint32(w_size/8*3)), size = w_size)
+    e.append(ExprAff(ad, float_eip[:w_size]))
+    ad = ExprMem(a.arg+ExprInt(uint32(w_size/8*4)), size = 16)
+    e.append(ExprAff(ad, float_cs))
+    ad = ExprMem(a.arg+ExprInt(uint32(w_size/8*5)), size = w_size)
+    e.append(ExprAff(ad, float_address[:w_size]))
+    ad = ExprMem(a.arg+ExprInt(uint32(w_size/8*6)), size = 16)
+    e.append(ExprAff(ad, float_ds))
+    return e
 
 def fsub(info, a, b = None):
     if b == None:
@@ -1672,6 +1749,7 @@ def fsub(info, a, b = None):
     else:
         src = b
     e.append(ExprAff(a, ExprOp('fsub', a, src)))
+    e += set_float_cs_eip(info)
     return e
 
 def fmul(info, a, b = None):
@@ -1684,6 +1762,7 @@ def fmul(info, a, b = None):
     else:
         src = b
     e.append(ExprAff(a, ExprOp('fmul', a, src)))
+    e += set_float_cs_eip(info)
     return e
 
 def fdiv(info, a, b = None):
@@ -1696,6 +1775,7 @@ def fdiv(info, a, b = None):
     else:
         src = b
     e.append(ExprAff(a, ExprOp('fdiv', a, src)))
+    e += set_float_cs_eip(info)
     return e
 
 def ftan(info, a):
@@ -1705,6 +1785,7 @@ def ftan(info, a):
     else:
         src = a
     e.append(ExprAff(float_st0, ExprOp('ftan', src)))
+    e += set_float_cs_eip(info)
     return e
 
 def fxch(info, a):
@@ -1715,6 +1796,7 @@ def fxch(info, a):
         src = a
     e.append(ExprAff(float_st0, src))
     e.append(ExprAff(src, float_st0))
+    e += set_float_cs_eip(info)
     return e
 
 def fptan(info):
@@ -1740,36 +1822,43 @@ def fptan(info):
 def frndint(info):
     e = []
     e.append(ExprAff(float_st0, ExprOp('frndint', float_st0)))
+    e += set_float_cs_eip(info)
     return e
 
 def fsin(info):
     e = []
     e.append(ExprAff(float_st0, ExprOp('fsin', float_st0)))
+    e += set_float_cs_eip(info)
     return e
 
 def fcos(info):
     e = []
     e.append(ExprAff(float_st0, ExprOp('fcos', float_st0)))
+    e += set_float_cs_eip(info)
     return e
 
 def fscale(info):
     e = []
     e.append(ExprAff(float_st0, ExprOp('fscale', float_st0, float_st1)))
+    e += set_float_cs_eip(info)
     return e
 
 def f2xm1(info):
     e = []
     e.append(ExprAff(float_st0, ExprOp('f2xm1', float_st0)))
+    e += set_float_cs_eip(info)
     return e
 
 def fsqrt(info):
     e = []
     e.append(ExprAff(float_st0, ExprOp('fsqrt', float_st0)))
+    e += set_float_cs_eip(info)
     return e
 
 def fabs(info):
     e = []
     e.append(ExprAff(float_st0, ExprOp('fabs', float_st0)))
+    e += set_float_cs_eip(info)
     return e
 
 
@@ -2152,6 +2241,7 @@ mnemo_func = {'mov': mov,
               'fldz':fldz,
               'fld1':fld1,
               'fldl2e':fldl2e,
+              'fldlg2':fldlg2,
               'fild':fild,
               'fadd':fadd,
               'fninit':fninit,
@@ -2172,6 +2262,7 @@ mnemo_func = {'mov': mov,
               'fnstcw':fnstcw,
               'fldcw':fldcw,
               'fwait':fwait,
+              'fnstenv':fnstenv,
               'sidt':sidt,
               'arpl':arpl,
               'cmovz':cmovz,
