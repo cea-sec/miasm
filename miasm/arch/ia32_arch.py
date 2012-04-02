@@ -161,7 +161,8 @@ unsanity_mnemo = ['nop', 'monitor', 'mwait', 'fadd', 'faddp', 'fiadd', 'fcmovb',
                   'fdiv', 'fdivr', 'fidivr', 'fdivrp', 'ficom', 'ficomp', 'fild', 'fist', 'fistp', 'fisttp',
                   'fld', 'fldcw', 'fld1', 'fldl2t', "fldl2e", "fldpi", "fldlg2", "fldln2", "fldz", 'fldenv', 'fmul', 'fimul', 'fmulp', 'fst', 'fstp', 'fnstcw', 'fnstenv', 'f2xm1',
                   'fnstsw', 'fsub', 'fsubr', 'fisubr', 'fsubrp', 'ftst', 'fucom', 'fucompp', 'fxam', 'fxtract', 'fyl2x', 'fyl2xp1', 'fsqrt', 'fsincos', 'fsin', 'fscale',
-                  'fcos', 'fdecstp', 'fnop', 'fpatan', 'fprem', 'fprem1', 'fptan', 'frndint', "shl", 'sal', 'sar', 'fabs']
+                  'fcos', 'fdecstp', 'fnop', 'fpatan', 'fprem', 'fprem1', 'fptan', 'frndint', "shl", 'sal', 'sar', 'fabs',
+                  "jmpff"]
 
 
 mask_drcrsg = {cr:0x100, dr:0x200, sg:0x400}
@@ -848,6 +849,7 @@ class x86allmncs:
         addop("jecxz", [0xE3],             noafs, [s08]         , {}                 ,{}                , {bkf:True,spf:True,dtf:True})
 
         addop("jmp",   [0xE9],             noafs, [ims]         , {w8:(0,1)}         ,{w8:False}        , {bkf:True,dtf:True}         )
+        addop("jmpf",   [0xEa],             noafs, [ims,u16]       ,{}                  ,{}        , {bkf:True,dtf:True}         )
         addop("jmp",   [0xFF],             d4   , no_rm         , {}                 ,{}                , {bkf:True,dtf:True}         )
         addop("jmpf",  [0xFF],             d5   , no_rm         , {}                 ,{}                , {bkf:True,dtf:True}         )
 
@@ -2265,6 +2267,16 @@ x86mnemo = x86_mn
 if __name__ == '__main__':
     test_out = []
     log.setLevel(logging.DEBUG)
+
+    instr = x86mnemo.dis('ea21060000'.replace(' ', '').decode('hex'),
+                         admode=x86_afs.u16,
+                         opmode=x86_afs.u16)
+    print instr
+    print instr.arg
+    print instr.l
+    print instr.opmode, instr.admode
+    fds
+
 
     instr = x86mnemo.dis('0fbe13'.replace(' ', '').decode('hex'),)
                          #admode=x86_afs.u16,

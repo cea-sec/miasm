@@ -1253,6 +1253,13 @@ def jmp(info, a):
     e.append(ExprAff(eip, a))
     return e
 
+def jmpf(info, a, seg):
+    e= []
+    e.append(ExprAff(eip, a))
+    e.append(ExprAff(cs, seg))
+    return e
+
+
 def jz(info, a, b):
     e= []
     e.append(ExprAff(eip, ExprCond(ExprOp('==', zf, ExprInt(uint32(1))), b, a)))
@@ -2091,6 +2098,7 @@ mnemo_func = {'mov': mov,
               'leave':leave,
               'enter':enter,
               'jmp':jmp,
+              'jmpf':jmpf,
               'jz':jz,
               'je':jz,
               'jnz':jnz,
