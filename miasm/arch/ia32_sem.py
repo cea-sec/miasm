@@ -631,14 +631,14 @@ def rcr(info, a, b):
     ### hack (only valid if b=1)
     e.append(ExprAff(of, ExprOp("^", get_op_msb(a), get_op_msb(c))))
     e.append(ExprAff(a, c))
-    
+
     return e
 
 def sar(info, a, b):
     e= []
     cast_int = tab_uintsize[a.get_size()]
     cast_intb = tab_uintsize[b.get_size()]
-    
+
     shifter = ExprOp('&',b, ExprInt(cast_intb(0x1f)))
     c = ExprOp('a>>', a, shifter)
 
@@ -1114,7 +1114,7 @@ def popfw(info):
 
 def pushad(info):
     e = []
-    opmode, admode = info
+    opmode, admode = info.opmode, info.admode
     if opmode == u16:
         s = 16
         myesp = esp[:16]
@@ -1133,7 +1133,7 @@ def pushad(info):
 
 def popad(info):
     e = []
-    opmode, admode = info
+    opmode, admode = info.opmode, info.admode
     if opmode == u16:
         s = 16
         myesp = esp[:16]
@@ -1159,7 +1159,7 @@ def popad(info):
 
 def call(info, a, b):
     e= []
-    opmode, admode = info
+    opmode, admode = info.opmode, info.admode
     if opmode == u16:
         s = 16
         myesp = esp[:16]
@@ -1176,7 +1176,7 @@ def call(info, a, b):
 
 def ret(info, a = ExprInt(uint32(0))):
     e = []
-    opmode, admode = info
+    opmode, admode = info.opmode, info.admode
     if opmode == u16:
         s = 16
         myesp = esp[:16]
@@ -1190,7 +1190,7 @@ def ret(info, a = ExprInt(uint32(0))):
 
 def retf(info, a = ExprInt(uint32(0))):
     e = []
-    opmode, admode = info
+    opmode, admode = info.opmode, info.admode
     if opmode == u16:
         s = 16
         myesp = esp[:16]
@@ -1207,7 +1207,7 @@ def retf(info, a = ExprInt(uint32(0))):
     return e
 
 def leave(info):
-    opmode, admode = info
+    opmode, admode = info.opmode, info.admode
     if opmode == u16:
         s = 16
         myesp = esp[:16]
@@ -1224,7 +1224,7 @@ def leave(info):
     return e
 
 def enter(info, a,b):
-    opmode, admode = info
+    opmode, admode = info.opmode, info.admode
     if opmode == u16:
         s = 16
         myesp = esp[:16]
@@ -1483,7 +1483,7 @@ def imul(info, a, b = None, c = None):
 
 def cdq(info):
     # XXX to check
-    opmode, admode = info
+    opmode, admode = info.opmode, info.admode
     if opmode == u32:
         e = []
         e.append(ExprAff(edx,
@@ -1812,7 +1812,7 @@ def rdtsc(info):
     return e
 
 def cbw(info, a):
-    opmode, admode = info
+    opmode, admode = info.opmode, info.admode
     if opmode == u16:
         s = 16
         src = a[:8]
@@ -2240,9 +2240,9 @@ class ia32_rexpr:
                       s32:'i',
                       u32:'I',
                       }
-                      
 
-    
+
+
     r_eax = eax
     r_ecx = ecx
     r_edx = edx
@@ -2251,7 +2251,7 @@ class ia32_rexpr:
     r_ebp = ebp
     r_esi = esi
     r_edi = edi
-    
+
     r_dr0 = dr0
     r_dr1 = dr1
     r_dr2 = dr2
@@ -2260,7 +2260,7 @@ class ia32_rexpr:
     r_dr5 = dr5
     r_dr6 = dr6
     r_dr7 = dr7
-    
+
     r_cr0 = cr0
     r_cr1 = cr1
     r_cr2 = cr2
@@ -2269,7 +2269,7 @@ class ia32_rexpr:
     r_cr5 = cr5
     r_cr6 = cr6
     r_cr7 = cr7
-    
+
     r_ax = r_eax[:16]
     r_cx = r_ecx[:16]
     r_dx = r_edx[:16]
@@ -2278,7 +2278,7 @@ class ia32_rexpr:
     r_bp = r_ebp[:16]
     r_si = r_esi[:16]
     r_di = r_edi[:16]
-         
+
     r_al = r_eax[:8]
     r_cl = r_ecx[:8]
     r_dl = r_edx[:8]
