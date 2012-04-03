@@ -2115,6 +2115,24 @@ def lss(info, a, b):
                                  size=16)))
     return e
 
+def lahf(info):
+    e = []
+    args = []
+    regs = [cf, ExprInt(uint32(1)), pf, ExprInt(uint32(0)), af, ExprInt(uint32(0)), zf, nf]
+    for i in xrange(len(regs)):
+        args.append(ExprSliceTo(regs[i],i, i+1))
+    e.append(ExprAff(eax[8:16], ExprCompose(args)))
+    return e
+
+def sahf(info):
+    tmp = eax[8:16]
+    e = []
+    e.append(ExprAff(cf, ExprSlice(tmp, 0, 1)))
+    e.append(ExprAff(pf, ExprSlice(tmp, 2, 3)))
+    e.append(ExprAff(af, ExprSlice(tmp, 4, 5)))
+    e.append(ExprAff(zf, ExprSlice(tmp, 6, 7)))
+    e.append(ExprAff(nf, ExprSlice(tmp, 7, 8)))
+    return e
 mnemo_func = {'mov': mov,
               'xchg': xchg,
               'movzx': movzx,
@@ -2288,6 +2306,8 @@ mnemo_func = {'mov': mov,
               "lds": lds,
               "les": les,
               "lss": lss,
+              "lahf": lahf,
+              "sahf": sahf,
               }
 
 
