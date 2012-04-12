@@ -812,6 +812,7 @@ class MainWindow(QtGui.QWidget):
             def __init__(self, k = None, data = None):
                 self.data = data
                 self.k = k
+                self.splines = []
                 if not data:
                     self.w, self.h = 80,40
                 else:
