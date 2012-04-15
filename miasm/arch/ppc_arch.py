@@ -42,7 +42,7 @@ def str2imm(i):
     except:
         return False
     return a
-    
+
 def imm2str(i):
     if type(i) in [int, long]:
         if i<0:
@@ -65,9 +65,9 @@ class bm_meta(type):
         if name.startswith('bm_'):
             pname = name[3:]
             dct["p_property"] = [pname]+dct["p_property"]
-        
+
         b = bases[0]
-        
+
         dct["check"] = b.check_no
         l = dct["l"]
         fbits = dct["fbits"]
@@ -95,14 +95,14 @@ class bm_meta(type):
                 dct["check"] = b.check_fbits_inv
             else:
                 dct["check"] = b.check_fbits
-                
+
         p_property = dct["p_property"]
-            
+
         for p in p_property:
             dct["get_"+p] = lambda self, p=p:getattr(self, p)
             dct["set_"+p] = lambda self, p=p:setattr(self, p)
         return type.__new__(cls, name, bases, dct)
-    
+
 
 class bm(object):
     __metaclass__ = bm_meta
@@ -121,15 +121,15 @@ class bm(object):
     def get_val(self, v):
         return (v>>self.off) & ((1<<self.l)-1)
     def set_val(self, v = None):
-        
+
         if v == None and len(self.p_property) >= 1:
             p = self.p_property[0]
             v = getattr(self, p)
-        return (v&((1<<self.l)-1))<<self.off 
+        return (v&((1<<self.l)-1))<<self.off
 
     def bin(self):
         return self.set_val()
-        
+
     def parse(self, v):
         if len(self.p_property) >= 1:
             p = self.p_property[0]
@@ -152,7 +152,7 @@ for i in xrange(0x40):
         if mask_str[0] !='0':
             break
         mask_str = mask_str[1:]
-    
+
 
 class bm_set_meta(type):
     def __new__(cls, name, bases, odct):
@@ -169,7 +169,7 @@ class bm_set(object):
         self.fmask = (1<<self.l)-1
     def check(self, v):
         return (v>>self.off) & self.fmask in self.fbits
-    
+
 
 COND_EQ = 0
 COND_NE = 1
@@ -199,8 +199,8 @@ class bm_cond(bm):
     def str2cond(self, cond):
         if not cond in self.n:
             raise ValueError('unknown cond')
-        self.cond = self.n.index(cond)    
-    
+        self.cond = self.n.index(cond)
+
 class bm_int000000000(bm):
     fbits = '000000000'
 
@@ -406,10 +406,10 @@ class bm_bt(bm):
 
 class bm_ba(bm):
     l = 5
- 
+
 class bm_bb(bm):
     l = 5
-           
+
 class bm_rn(bm):
     l = 4
 
@@ -420,7 +420,7 @@ class bm_rdh(bm):
 class bm_rdl(bm):
     l = 4
 
-    
+
 class ppc_mnemo_metaclass(type):
     global tab_mn
     def __call__(cls, op, offset = 0):
@@ -435,7 +435,7 @@ class ppc_mnemo_metaclass(type):
         else:
             raise ValueError('zarb arg')
         return i
-        
+
     def class_from_op(cls, op):
         ret = filter(lambda x:x.check(op), tab_mn)
         if len(ret)==1:
@@ -452,7 +452,7 @@ class ppc_mnemo_metaclass(type):
         op = bin.readbs(4)
         op = struct.unpack('>L', op)[0]
         return cls(op, bin.offset-4)
-        
+
 
     def asm(cls, txt, symbol_reloc_off = []):
         print txt
@@ -465,7 +465,7 @@ class ppc_mnemo_metaclass(type):
         i = cls.__new__(cls)
         i.__init__(txt, 0, False)
         return [struct.pack('>L', i.bin())]
-        
+
     def __new__(cls, name, bases, dct):
         ret_c = type.__new__(cls, name, bases, dct)
         if name is "ppc_mn":
@@ -476,7 +476,7 @@ class ppc_mnemo_metaclass(type):
             for off in dct['mask']:
                 mc = dct['mask'][off](None, off)#+1)
                 mask.append(mc)
-            
+
         mask_orig = dct["mask_list"]
         ret_c.mask_orig = mask_orig
         off = 32
@@ -488,9 +488,9 @@ class ppc_mnemo_metaclass(type):
                 pfunc = "get_"+pname
                 p = property(lambda self=ret_c, pname=pname:getattr(getattr(self, "bm_"+pname), pname),
                              lambda self=ret_c,val=None,pname=pname:setattr(getattr(self, "bm_"+pname), pname, val))
-                
+
                 setattr(ret_c, pname, p)
-                
+
         if off!=0:
             raise ValueError('invalid mnemonic %d'%off)
         ret_c.mask_chk = mask
@@ -547,20 +547,20 @@ class ppc_mnemo_metaclass(type):
             if is_minux:
                 x = '-'+x
                 is_minux = False
-            
+
             if x == '.':
                 t[-1]+=x
             else:
                 t.append(x)
-                
+
         t.reverse()
         return t
-    
+
     def parse_mnemo(cls, args):
         t = cls.pre_parse_mnemo(args)
         t.reverse()
         return [], t[0], t[1:]
-    
+
     def parse_address(self, a):
         return parse_ad(a)
     def prefix2hex(self, p):
@@ -576,7 +576,7 @@ crb_str = []
 for i in xrange(0x8):
     for x in ['LT', 'GT', 'EQ', 'SO']:
         crb_str.append('CR%d_%s'%(i, x))
-        
+
 cr_str = ['CR%d'%r for r in xrange(0x8)]
 fpr_str = ['FP%d'%r for r in xrange(0x20)]
 spr_str = ['SPR%d'%r for r in xrange(0x400)]
@@ -600,7 +600,7 @@ def is_symbol(a):
     if is_imm(a) or a in all_regs:
         return False
     return True
-        
+
 def parse_ad(a):
     a = a.strip()
     if is_symbol(a):
@@ -666,7 +666,7 @@ class crb:
     @classmethod
     def cls(cls, r):
         return str2crb(r)
-        
+
 
 class fpr:
     @classmethod
@@ -675,7 +675,7 @@ class fpr:
     @classmethod
     def cls(cls, r):
         return str2fpr(r)
-        
+
 
 class cr:
     @classmethod
@@ -683,7 +683,7 @@ class cr:
         return cr2str(r)
     @classmethod
     def cls(cls, r):
-        return str2cr(r)    
+        return str2cr(r)
 
 class spr:
     @classmethod
@@ -725,13 +725,13 @@ def arglist2str(args):
 
 def args2str(args):
     return arglist2str(args2reduce(args))
-            
-       
+
+
 class ppc_mn(object):
     mask_list = []
     __metaclass__ = ppc_mnemo_metaclass
 
-    
+
     def gen_args2str(self):
         args = []
         for r, t in self.args_list:
@@ -750,15 +750,15 @@ class ppc_mn(object):
         self.m = None
         self.arg = []
         self.cmt = ""
-        
+
         for m in self.mask_orig:
-            mc = m(self, off)            
+            mc = m(self, off)
             off-=mc.l
             for pname in m.p_property:
                 setattr(self, "bm_"+pname, mc)
             mask.append(mc)
         self.mask = mask
-        
+
         if dis:
             for m in self.mask:
                 ret = m.parse(op)
@@ -767,7 +767,7 @@ class ppc_mn(object):
         else:
             for m in self.mask:
                 ret = m.setprop()
-            
+
             full_mnemo = ppc_mn.pre_parse_mnemo(op)
             mnemo = full_mnemo.pop()
             name, rest = self.parse_name_cond(mnemo)
@@ -783,7 +783,7 @@ class ppc_mn(object):
                 print "WARNING asm symb", a
                 mnemo_nosymb.append("0")
             full_mnemo = mnemo_nosymb
-            
+
             self.parse_args(full_mnemo)
 
     def parse_opts(self, rest):
@@ -792,7 +792,7 @@ class ppc_mn(object):
         pass
     def str2name(self, n):
         pass
-    
+
     def getname(self):
         name = self.name2str()+self.oe2str()+self.rc2str()
         return name
@@ -830,7 +830,7 @@ class ppc_mn(object):
         return ""
     def rc2str(self):
         return ""
-    
+
 
     def breakflow(self):
         return False
@@ -872,7 +872,7 @@ class ppc_add(ppc_mn):
     strname = dict((x[1], x[0]) for x in namsdct.items())
 
     do_args = [('rt',reg), ('ra',reg), ('rb',reg)]
-    
+
     def name2str(self):
         return self.strname[self.opc9]
     def str2name(self, n):
@@ -908,7 +908,7 @@ class ppc_addi(ppc_mn):
         if self.ra == 0:
             return self.namestr[1]
         return self.namestr[0]
-    
+
     def args2str(self):
         args = []
         args.append(reg2str(self.rt))
@@ -943,13 +943,13 @@ class ppc_addis(ppc_addi):
 class ppc_adde(ppc_mn):
     mask_list = [bm_int011111, bm_rt, bm_ra, bm_int00000, bm_oe, bm_opc9, bm_rc]
     namestr = {'ADDME':234, 'ADDZE':202, 'NEG':104, 'SUBFME':232, 'SUBFZE':200}
-    
+
     mask = {22:bm_set_meta("bm_addeopc",(bm_set,),{"fbits":namestr.values()})}
-    
+
     strname = dict((x[1], x[0]) for x in namestr.items())
 
     do_args = [('rt',reg), ('ra',reg)]
-    
+
     def name2str(self):
         return self.strname[self.opc9]
     def str2name(self, n):
@@ -985,7 +985,7 @@ class ppc_and(ppc_mn):
     strname = dict((x[1], x[0]) for x in namedct.items())
 
     do_args = [('ra',reg), ('rs',reg), ('rb',reg)]
-    
+
     def name2str(self):
         return self.strname[self.opc10]
     def str2name(self, n):
@@ -998,7 +998,7 @@ class ppc_and(ppc_mn):
 
     def rc2str(self):
         return ['','.'][self.rc==1]
-    
+
 
     def parse_opts(self, opts):
         self.rc = 0
@@ -1014,7 +1014,7 @@ class ppc_andip(ppc_mn):
 
     do_args = [('ra',reg), ('rs',reg), ('uimm',imm)]
 
-    
+
     def name2str(self):
         return self.namestr[0]
 
@@ -1105,7 +1105,7 @@ class ppc_b(ppc_mn):
             self.li = lbls[l]>>2
         else:
             self.li = (lbls[l]+4-my_offset)>>2
-        
+
 
 
 class ppc_bc(ppc_mn):
@@ -1158,13 +1158,13 @@ class ppc_bc(ppc_mn):
             name+='A'
         if self.lk:
             name+='L'
-            
+
         return name
 
 
     def parse_opts(self, opts):
         self.bi_done = False
-        
+
         self.bo = 0x14
         self.bi = 0
         self.aa = 0
@@ -1207,17 +1207,17 @@ class ppc_bc(ppc_mn):
             return
         if opts == 'A':
             self.aa = 1
-        return 
+        return
 
     def args2str(self):
         args = []
-        
+
         if not self.bi_parsed:
             if not self.bo & 0x10:
                 index = (self.bo&8)>>1
                 index |= self.bi & 3
                 a = ppc_bc.all_tests[index]
-                
+
                 args.append(a)
             else:
                 pass
@@ -1234,7 +1234,7 @@ class ppc_bc(ppc_mn):
 
             if args[-1] in ppc_bc.all_tests:
                 self.bo &=0xF
-                
+
                 a = args.pop()
                 index = ppc_bc.all_tests.index(a)
                 inv = index&0x4
@@ -1245,9 +1245,9 @@ class ppc_bc(ppc_mn):
                     self.bo&=0x17
             else:
                 self.bo |=0x10
-                
+
                 pass
-            
+
         if len(args) >1:
             tmp = str2cr(args.pop())
             self.bi|=tmp<<2
@@ -1346,14 +1346,14 @@ class ppc_bctr(ppc_mn):
             self.bi_parsed = True
         else:
             pass
-            
+
         return name
 
 
 
     def parse_opts(self, opts):
         self.bi_done = False
-        
+
         self.bo = 0x14
         self.bi = 0
         self.aa = 0
@@ -1396,17 +1396,17 @@ class ppc_bctr(ppc_mn):
             return
         if opts == 'A':
             self.aa = 1
-        return 
+        return
 
     def args2str(self):
         args = []
         if not self.bi_parsed:
             if not self.bo & 0x10:
-                    
+
                 index = (self.bo&8)>>1
                 index |= self.bi & 3
                 a = ppc_bc.all_tests[index]
-                
+
                 args.append(a)
             else:
                 pass
@@ -1416,11 +1416,11 @@ class ppc_bctr(ppc_mn):
 
     def parse_args(self, args):
         if not args:
-            return 
+            return
         if not self.bi_done:
             if args[-1] in ppc_bc.all_tests:
                 self.bo &=0xF
-                
+
                 a = args.pop()
                 index = ppc_bc.all_tests.index(a)
                 inv = index&0x4
@@ -1431,9 +1431,9 @@ class ppc_bctr(ppc_mn):
                     self.bo&=0x17
             else:
                 self.bo |=0x10
-                
+
                 pass
-            
+
         if len(args) >1:
             tmp = str2cr(args.pop())
             self.bi|=tmp<<2
@@ -1469,7 +1469,7 @@ class ppc_cmp(ppc_mn):
         return self.strname[self.opc10]
     def str2name(self, n):
         self.opc10 = self.namedct[n]
-    
+
     def args2str(self):
         args = []
         if self.bf!=0:
@@ -1493,7 +1493,7 @@ class ppc_cmpli(ppc_mn):
 
     def name2str(self):
         return self.namestr[0]
-    
+
     def args2str(self):
         args = []
         if self.bf!=0:
@@ -1506,7 +1506,7 @@ class ppc_cmpli(ppc_mn):
         self.bf = 0
         if len(args)==3:
             self.bf = str2cr(args.pop())
-            
+
         self.ra = str2reg(args.pop())
         self.uimm = str2imm(args.pop())
 
@@ -1517,7 +1517,7 @@ class ppc_cmpi(ppc_mn):
 
     def name2str(self):
         return self.namestr[0]
-    
+
     def args2str(self):
         args = []
         if self.bf!=0:
@@ -1536,7 +1536,7 @@ class ppc_cmpi(ppc_mn):
 class ppc_cntlzw(ppc_mn):
     mask_list = [bm_int011111, bm_rs, bm_ra, bm_int00000, bm_opc10, bm_rc]
     mask = {21:bm_set_meta("bm_cntlzwopc",(bm_set,),{"fbits":[26], 'l':10})}
-    
+
     namestr = ['CNTLZW']
 
     do_args = [('ra',reg), ('rs',reg)]
@@ -1546,7 +1546,7 @@ class ppc_cntlzw(ppc_mn):
 
     def str2name(self, n):
         self.opc10 = 26
-    
+
     @classmethod
     def check_opts(cls, rest):
         if rest in ["", "."]:
@@ -1631,7 +1631,7 @@ class ppc_eieio(ppc_mn):
 class ppc_isync(ppc_eieio):
     mask_list = [bm_int010011, bm_int00000, bm_int00000, bm_int00000, bm_opc10, bm_int0]
     namestr = ['ISYNC', 'RFI']
-    namedct = {'ISYNC':150, 'RFI':50}    
+    namedct = {'ISYNC':150, 'RFI':50}
     mask = {21:bm_set_meta("bm_isyncopc",(bm_set,),{"fbits":namedct.values(), 'l':10})}
     strname = dict((x[1], x[0]) for x in namedct.items())
     def name2str(self):
@@ -1665,7 +1665,7 @@ class ppc_lbz(ppc_mn):
     namestr = ['LBZ']
 
     do_args = [('rt',reg), ('ra',reg), ('simm',imm)]
-    
+
     def name2str(self):
         return self.namestr[0]
 
@@ -1948,7 +1948,7 @@ class ppc_sc(ppc_mn):
         return args
 
 
-    
+
     def parse_args(self, args):
         self.offs = 0
         pass
@@ -1967,7 +1967,7 @@ class ppc_srawi(ppc_cntlzw, ppc_mn):
     mask = {21:bm_set_meta("bm_srawiopc",(bm_set,),{"fbits":[824], 'l':10})}
 
     do_args = [('ra',reg), ('rs',reg), ('sh',imm)]
-    
+
     def str2name(self, n):
         self.opc10 = 824
 
@@ -1979,7 +1979,7 @@ class ppc_subfic(ppc_addi):
 class ppc_sync(ppc_eieio):
     mask_list = [bm_int011111, bm_int00000, bm_int00000, bm_int00000, bm_opc10, bm_int0]
     namestr = ['SYNC', 'TLBSYNC']
-    namedct = {'SYNC':598, 'TLBSYNC':566}    
+    namedct = {'SYNC':598, 'TLBSYNC':566}
     mask = {21:bm_set_meta("bm_syncopc",(bm_set,),{"fbits":namedct.values(), 'l':10})}
     strname = dict((x[1], x[0]) for x in namedct.items())
     def name2str(self):
@@ -2140,12 +2140,12 @@ tab_mn = [ppc_addi, ppc_ori, ppc_oris, ppc_xori, ppc_xoris, ppc_addic, ppc_addic
 
 
 if __name__ == "__main__":
- 
+
     import struct
 
-    
+
     for op in [0x7D4A5214, 0x7FAA4A14, 0x7D615A14]:
-    
+
         m = ppc_mn(op)
         print m
 
@@ -2267,7 +2267,7 @@ if __name__ == "__main__":
     TW 1, R3, R4
     TWI 3, R4, 8
     SC"""
-    
+
 
     #    UNDEF 0x1337, 1
 
@@ -2285,11 +2285,11 @@ if __name__ == "__main__":
         token_b = filter(lambda x:not x in ['-', ',', 'CR0'] and not is_imm(x), token_b)
         print token_a
         print token_b
-            
+
         op2 = ppc_mn.asm(str(m))[0]
         h = struct.unpack('>L', op2)
         print "%.8X"%h
         if op1 !=op2 or (token_a != token_b and not token_b[0] in ['BLE', 'ADDI', 'LI', 'ADDIS', 'LIS']):
             raise ValueError('bug in self test', t)
 
-    
+
