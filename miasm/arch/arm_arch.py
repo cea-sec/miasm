@@ -880,6 +880,7 @@ class arm_mn(object):
         self.l = 4
         self.m = None
         self.arg = []
+        self.cmt = ""
 
 
 

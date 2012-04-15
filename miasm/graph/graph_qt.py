@@ -62,6 +62,7 @@ def gen_syntax_rules(symbols = []):
     highlightingRules = []
     number = QtGui.QTextCharFormat()
     label = QtGui.QTextCharFormat()
+    comment = QtGui.QTextCharFormat()
     my_id = QtGui.QTextCharFormat()
     highlight_word = QtGui.QTextCharFormat()
 
@@ -79,6 +80,15 @@ def gen_syntax_rules(symbols = []):
     number.setForeground( brushg )
     rule = HighlightingRule( pattern, number )
     highlightingRules.append( rule )
+
+    #comment
+    brushr = QtGui.QBrush( Qt.red, Qt.SolidPattern )
+    pattern = QtCore.QRegExp( ";.*$" )
+    pattern.setMinimal( False )
+    comment.setForeground( brushr )
+    rule = HighlightingRule( pattern, comment )
+    highlightingRules.append( rule )
+
 
     """
     #label

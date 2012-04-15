@@ -749,6 +749,7 @@ class ppc_mn(object):
         self.l = 4
         self.m = None
         self.arg = []
+        self.cmt = ""
         
         for m in self.mask_orig:
             mc = m(self, off)            
