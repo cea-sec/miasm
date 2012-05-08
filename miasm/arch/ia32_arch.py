@@ -1348,6 +1348,7 @@ class x86_mn:
         self.admode = admode
         self.opmode = opmode
         self.mnemo_mode = self.opmode
+        self.cmt = ""
 
     @classmethod
     def prefix2hex(self, prefix):
@@ -1425,7 +1426,11 @@ class x86_mn:
                 args_str+="%s, "%dict_to_ad(a, self.m.modifs, self.opmode, self.admode)
             else:
                 raise ValueError("arg zarbi %s"%str(a))
-        return args_str[:-2]
+
+        o = args_str[:-2]
+        if self.cmt:
+            o = "%-50s%s"%(o, self.cmt)
+        return o
 
     def intsize(self, im, ext = False):
         if ext:
