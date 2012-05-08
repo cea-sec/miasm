@@ -61,15 +61,15 @@ print (i2+s).canonize()
 
 cc = ExprCond(a, b, c)
 
-o = ExprCompose([ExprSliceTo(a[:8], 8, 16),
-                 ExprSliceTo(a[8:16], 0, 8)])
+o = ExprCompose([(a[:8], 8, 16),
+                 (a[8:16], 0, 8)])
 print o
 print o.canonize()
 
-o = ExprCompose([ExprSliceTo(a[8:16], 0, 8),
-                 ExprSliceTo(a[:8], 8, 16)])
-print o
-print o.canonize()
+o2 = ExprCompose([(a[8:16], 0, 8),
+                 (a[:8], 8, 16)])
+print o2
+print o2.canonize()
 
 print ExprMem(o).canonize()
 

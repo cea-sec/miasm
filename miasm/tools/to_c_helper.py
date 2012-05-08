@@ -308,11 +308,11 @@ def Exp2C(exprs, l = None, addr2label = None, gen_exception_code = False):
             #spotted multi affectation to same id
             e_colision = reduce(lambda x,y:x+y, [e.get_modified_slice() for e in exs])
             #print [str(x) for x in e_colision]
-            known_intervals = [(x.start, x.stop) for x in e_colision]
+            known_intervals = [(x[1], x[2]) for x in e_colision]
             #print known_intervals
             missing_i = get_missing_interval(known_intervals)
             #print missing_i
-            rest = [ExprSliceTo(ExprSlice(dst, *r), *r) for r in missing_i]
+            rest = [(ExprSlice(dst, r[0], r[1]), r[0], r[1]) for r in missing_i]
             final_dst = ExprCompose(e_colision+ rest)
             new_expr.append(ExprAff(dst, final_dst))
     out_mem = []
@@ -936,7 +936,7 @@ if __name__ == '__main__':
         print x
     print '#'*80
 
-    new_e = [x.replace_expr({ExprMem(eax): ExprId('ioio')}) for x in e]
+    new_e = [x.reload_expr({ExprMem(eax): ExprId('ioio')}) for x in e]
     for x in new_e:
         print x
     print '-'*80

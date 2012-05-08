@@ -599,13 +599,13 @@ class eval_abs:
                         m = min(a.get_size(), x.get_size()-off*8)
                         ee = ExprSlice(self.pool[x], off*8, off*8 + m)
                         ee = expr_simp(ee)
-                        out.append(ExprSliceTo(ee, off_base, off_base+ee.get_size()))
+                        out.append((ee, off_base, off_base+ee.get_size()))
                         off_base += ee.get_size()
                     else:
                         m = min(a.get_size()+off*8, x.get_size())
                         ee = ExprSlice(self.pool[x], 0, m)
                         ee = expr_simp(ee)
-                        out.append(ExprSliceTo(ee, off_base, off_base+ee.get_size()))
+                        out.append((ee, off_base, off_base+ee.get_size()))
                         off_base += ee.get_size()
                 if out:
                     ee = ExprSlice(ExprCompose(out), 0, a.get_size())
@@ -636,7 +636,7 @@ class eval_abs:
                 else:
                     diff_size = rest
                     val = self.pool[v][0:diff_size]
-                val = ExprSliceTo(val, ptr_index, ptr_index+diff_size)
+                val = (val, ptr_index, ptr_index+diff_size)
                 out.append(val)
                 ptr_index+=diff_size
                 rest -= diff_size
@@ -738,7 +738,7 @@ class eval_abs:
 
 
         if not is_int and is_int_cond!=1:
-            uu = ExprCompose([ExprSliceTo(a, e.args[i].start, e.args[i].stop) for i, a in enumerate(args)])
+            uu = ExprCompose([(a, e.args[i][1], e.args[i][2]) for i, a in enumerate(args)])
             return uu
 
         if not is_int:
@@ -749,15 +749,15 @@ class eval_abs:
                 if isinstance(args[i], ExprInt):
                     a = args[i].arg
 
-                    mask = (1<<(e.args[i].stop-e.args[i].start))-1
+                    mask = (1<<(e.args[i][2]-e.args[i][1]))-1
                     a&=mask
-                    a<<=e.args[i].start
-                    total_bit+=e.args[i].stop-e.args[i].start
+                    a<<=e.args[i][1]
+                    total_bit+=e.args[i][2]-e.args[i][1]
                     rez|=a
                 else:
                     a = args[i]
-                    mask = (1<<(e.args[i].stop-e.args[i].start))-1
-                    total_bit+=e.args[i].stop-e.args[i].start
+                    mask = (1<<(e.args[i][2]-e.args[i][1]))-1
+                    total_bit+=e.args[i][2]-e.args[i][1]
                     mycond, mysrc1, mysrc2 = a.cond, a.src1.arg&mask, a.src2.arg&mask
                     cond_i = i
 
@@ -767,7 +767,9 @@ class eval_abs:
 
 
             if total_bit in tab_uintsize:
-                return self.eval_expr(ExprCond(mycond, ExprInt(tab_uintsize[total_bit](mysrc1)), ExprInt(tab_uintsize[total_bit](mysrc2))), eval_cache)
+                return self.eval_expr(ExprCond(mycond,
+                                               ExprInt(tab_uintsize[total_bit](mysrc1)),
+                                               ExprInt(tab_uintsize[total_bit](mysrc2))), eval_cache)
             else:
                 raise 'cannot return non rounb bytes rez! %X %X'%(total_bit, rez)
 
@@ -777,10 +779,10 @@ class eval_abs:
         total_bit = 0
         for i in xrange(len(e.args)):
             a = args[i].arg
-            mask = (1<<(e.args[i].stop-e.args[i].start))-1
+            mask = (1<<(e.args[i][2]-e.args[i][1]))-1
             a&=mask
-            a<<=e.args[i].start
-            total_bit+=e.args[i].stop-e.args[i].start
+            a<<=e.args[i][1]
+            total_bit+=e.args[i][2]-e.args[i][1]
             rez|=a
         if total_bit in tab_uintsize:
             return ExprInt(tab_uintsize[total_bit](rez))

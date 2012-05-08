@@ -18,3 +18,8 @@ print e
 # ((0x12 + 0x30) - eax)
 print "=>",  expr_simp(e)
 # (0x42 - eax)
+
+o = ExprCompose([(a[:8], 0, 8),
+                 (a[8:16], 8, 16)])
+print o
+print expr_simp(o)

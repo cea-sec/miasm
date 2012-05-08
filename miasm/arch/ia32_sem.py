@@ -493,15 +493,15 @@ def xchg(info, a, b):
     return e
 
 def movzx(info, a, b):
-    return [ExprAff(a, ExprCompose([ExprSliceTo(ExprInt(uint32(0)), b.get_size(), a.get_size()), ExprSliceTo(b, 0, b.get_size())]))]
+    return [ExprAff(a, ExprCompose([(ExprInt(uint32(0)), b.get_size(), a.get_size()),
+                                    (b, 0, b.get_size())]))]
 
 def movsx(info, a, b):
-    return [ExprAff(a, ExprCompose([ExprSliceTo(ExprCond(ExprOp('==', get_op_msb(b), ExprInt(uint32(1))),
-                                                         ExprInt(uint32(0xffffffff)),
-                                                         ExprInt(uint32(0))),
-                                                b.get_size(), a.get_size()),
-                                    ExprSliceTo(b,
-                                                0, b.get_size())]))]
+    return [ExprAff(a, ExprCompose([(ExprCond(ExprOp('==', get_op_msb(b), ExprInt(uint32(1))),
+                                              ExprInt(uint32(0xffffffff)),
+                                              ExprInt(uint32(0))),
+                                     b.get_size(), a.get_size()),
+                                    (b, 0, b.get_size())]))]
 
 def lea(info, a, b):
     return [ExprAff(a, b.arg)]
@@ -531,7 +531,8 @@ def adc(info, a, b):
                a,
                ExprOp('+',
                       b,
-                      ExprCompose([ExprSliceTo(ExprInt(uint32(0)), 1, a.get_size()), ExprSliceTo(cf, 0, 1)])))
+                      ExprCompose([(ExprInt(uint32(0)), 1, a.get_size()),
+                                   (cf, 0, 1)])))
     e+=update_flag_arith(c)
     e+=update_flag_af(c)
     e+=update_flag_add(a, b, c)
@@ -554,7 +555,8 @@ def sbb(info, a, b):
                a,
                ExprOp('+',
                       b,
-                      ExprCompose([ExprSliceTo(ExprInt(uint32(0)), 1, a.get_size()), ExprSliceTo(cf, 0, 1)])))
+                      ExprCompose([(ExprInt(uint32(0)), 1, a.get_size()),
+                                   (cf, 0, 1)])))
     e+=update_flag_arith(c)
     e+=update_flag_af(c)
     e+=update_flag_sub(a, b, c)
@@ -1042,10 +1044,10 @@ def seto(info, a):
 
 def bswap(info, a):
     e = []
-    c = ExprCompose([ExprSliceTo(ExprOp('&', ExprInt(tab_uintsize[a.get_size()](0xFF)), a),                                 24, 32),
-                     ExprSliceTo(ExprOp('>>', ExprOp('&', ExprInt(tab_uintsize[a.get_size()](0xFF00)), a), ExprInt(uint32(8))),     16, 24),
-                     ExprSliceTo(ExprOp('>>', ExprOp('&', ExprInt(tab_uintsize[a.get_size()](0xFF0000)), a), ExprInt(uint32(16))),  8 , 16),
-                     ExprSliceTo(ExprOp('>>', ExprOp('&', ExprInt(tab_uintsize[a.get_size()](0xFF000000)), a), ExprInt(uint32(24))),0 , 8 ),
+    c = ExprCompose([(ExprOp('&', ExprInt(tab_uintsize[a.get_size()](0xFF)), a),                                         24, 32),
+                     (ExprOp('>>', ExprOp('&', ExprInt(tab_uintsize[a.get_size()](0xFF00)), a), ExprInt(uint32(8))),     16, 24),
+                     (ExprOp('>>', ExprOp('&', ExprInt(tab_uintsize[a.get_size()](0xFF0000)), a), ExprInt(uint32(16))),  8 , 16),
+                     (ExprOp('>>', ExprOp('&', ExprInt(tab_uintsize[a.get_size()](0xFF000000)), a), ExprInt(uint32(24))),0 , 8 ),
                      ])
     e.append(ExprAff(a, c))
     return e
@@ -1077,9 +1079,9 @@ def compose_eflag(s = 32):
 
     regs = [cf, ExprInt(uint32(1)), pf, ExprInt(uint32(0)), af, ExprInt(uint32(0)), zf, nf, tf, i_f, df, of]
     for i in xrange(len(regs)):
-        args.append(ExprSliceTo(regs[i],i, i+1))
+        args.append((regs[i],i, i+1))
 
-    args.append(ExprSliceTo(iopl,12, 14))
+    args.append((iopl,12, 14))
 
     if s == 32:
         regs = [nt, ExprInt(uint32(0)), rf, vm, ac, vif, vip, i_d]
@@ -1088,9 +1090,9 @@ def compose_eflag(s = 32):
     else:
         raise ValueError('unk size')
     for i in xrange(len(regs)):
-        args.append(ExprSliceTo(regs[i],i+14, i+15))
+        args.append((regs[i],i+14, i+15))
     if s == 32:
-        args.append(ExprSliceTo(ExprInt(uint32(0)),22, 32))
+        args.append((ExprInt(uint32(0)),22, 32))
     return ExprCompose(args)
 
 def pushfd(info):
@@ -1410,7 +1412,8 @@ def div(info, a):
 
     #if 8 bit div, only ax is affected
     if s == 8:
-        e.append(ExprAff(eax[0:16], ExprCompose([ExprSliceTo(c_d, 0, 8), ExprSliceTo(c_r, 8, 16)])))
+        e.append(ExprAff(eax[0:16], ExprCompose([(c_d, 0, 8),
+                                                 (c_r, 8, 16)])))
     else:
         e.append(ExprAff(s1, c_r))
         e.append(ExprAff(s2, c_d))
@@ -1715,13 +1718,13 @@ def fninit(info):
 def fnstenv(info, a):
     e = []
     # XXX TODO tag word, ...
-    status_word = ExprCompose([ExprSliceTo(ExprInt(uint32(0)), 0, 8),
-                               ExprSliceTo(float_c0, 8, 9),
-                               ExprSliceTo(float_c1, 9, 10),
-                               ExprSliceTo(float_c2, 10, 11),
-                               ExprSliceTo(float_stack_ptr, 11, 14),
-                               ExprSliceTo(float_c3, 14, 15),
-                               ExprSliceTo(ExprInt(uint32(0)), 15, 16),
+    status_word = ExprCompose([(ExprInt(uint32(0)), 0, 8),
+                               (float_c0,           8, 9),
+                               (float_c1,           9, 10),
+                               (float_c2,           10, 11),
+                               (float_stack_ptr,    11, 14),
+                               (float_c3,           14, 15),
+                               (ExprInt(uint32(0)), 15, 16),
                                ])
 
     w_size = tab_mode_size[info.opmode]
@@ -1864,14 +1867,14 @@ def fabs(info):
 
 def fnstsw(info):
     dst = eax
-    return [ExprAff(dst, ExprCompose([ExprSliceTo(ExprInt(uint32(0)), 0, 8),
-                                      ExprSliceTo(float_c0, 8, 9),
-                                      ExprSliceTo(float_c1, 9, 10),
-                                      ExprSliceTo(float_c2, 10, 11),
-                                      ExprSliceTo(float_stack_ptr, 11, 14),
-                                      ExprSliceTo(float_c3, 14, 15),
-                                      ExprSliceTo(ExprInt(uint32(0)), 15, 16),
-                                      ExprSliceTo(ExprSlice(dst, 16, dst.get_size()), 16, dst.get_size())
+    return [ExprAff(dst, ExprCompose([(ExprInt(uint32(0)), 0, 8),
+                                      (float_c0,           8, 9),
+                                      (float_c1,           9, 10),
+                                      (float_c2,           10, 11),
+                                      (float_stack_ptr,    11, 14),
+                                      (float_c3,           14, 15),
+                                      (ExprInt(uint32(0)), 15, 16),
+                                      (ExprSlice(dst, 16, dst.get_size()), 16, dst.get_size())
                                       ]))]
 
 def fnstcw(info, a):
@@ -1918,7 +1921,8 @@ def cbw(info, a):
 
     mask = ExprCond(ExprOp('==', get_op_msb(src), ExprInt(uint32(0))), byte_h_0, byte_h_f)
     e = []
-    e.append(ExprAff(a, ExprCompose([ExprSliceTo(a, 0, s/2), ExprSliceTo(mask, s/2, s)])))
+    e.append(ExprAff(a, ExprCompose([(a,    0, s/2),
+                                     (mask, s/2, s)])))
     return e
 
 # XXX TODO
@@ -2011,7 +2015,8 @@ def l_outs(info):
 # XXX actually, xlat performs al = (ds:[e]bx + ZeroExtend(al))
 def xlat(info):
     e= []
-    a = ExprCompose([ExprSliceTo(ExprInt(uint32(0)), 8, 32), ExprSliceTo(eax[0:8], 0, 8)])
+    a = ExprCompose([(ExprInt(uint32(0)), 8, 32),
+                     (eax[0:8], 0, 8)])
     b = ExprMem(ExprOp('+', ebx, a), 8)
     e.append(ExprAff(eax[0:8], b))
     return e
@@ -2120,7 +2125,7 @@ def lahf(info):
     args = []
     regs = [cf, ExprInt(uint32(1)), pf, ExprInt(uint32(0)), af, ExprInt(uint32(0)), zf, nf]
     for i in xrange(len(regs)):
-        args.append(ExprSliceTo(regs[i],i, i+1))
+        args.append((regs[i],i, i+1))
     e.append(ExprAff(eax[8:16], ExprCompose(args)))
     return e
 
