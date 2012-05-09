@@ -549,8 +549,10 @@ class ExprSlice(Expr):
     def __hash__(self):
         return hash(self.arg)^hash(self.start)^hash(self.stop)
     def toC(self):
-        # XXX gen mask in python for 64 bit & 32 bit compat
-        return "((%s>>%d) & ((0xFFFFFFFF>>(32-%d))))"%(self.arg.toC(), self.start, self.stop-self.start)
+        # XXX check mask for 64 bit & 32 bit compat
+        return "((%s>>%d) & 0x%X)"%(self.arg.toC(),
+                                    self.start,
+                                    (1<<(self.stop-self.start))-1)
     def canonize(self):
         return ExprSlice(self.arg.canonize(),
                          self.start,
