@@ -313,13 +313,15 @@ def rsbs(x, a, b):
 
 def adc(x, a, b):
     e= []
-    c = ExprOp('+', a, ExprOp('+', b, ExprCompose([ExprSliceTo(ExprInt(uint32(0)), 1, a.get_size()), ExprSliceTo(cf, 0, 1)])))
+    c = ExprOp('+', a, ExprOp('+', b, ExprCompose([(ExprInt(uint32(0)), 1, a.get_size()),
+                                                   (cf, 0, 1)])))
     e.append(ExprAff(x, c))
     return e
 
 def adcs(x, a, b):
     e= []
-    c = ExprOp('+', a, ExprOp('+', b, ExprCompose([ExprSliceTo(ExprInt(uint32(0)), 1, a.get_size()), ExprSliceTo(cf, 0, 1)])))
+    c = ExprOp('+', a, ExprOp('+', b, ExprCompose([(ExprInt(uint32(0)), 1, a.get_size()),
+                                                   (cf, 0, 1)])))
     e+=update_flag_arith(c)
     e+=update_flag_add(a, b, c)
     e.append(ExprAff(x, c))
@@ -328,7 +330,8 @@ def adcs(x, a, b):
 def sbc(x, a, b):
     e= []
     c = ExprOp('-',
-               ExprOp('+', a, ExprCompose([ExprSliceTo(ExprInt(uint32(0)), 1, a.get_size()), ExprSliceTo(cf, 0, 1)])),
+               ExprOp('+', a, ExprCompose([(ExprInt(uint32(0)), 1, a.get_size()),
+                                           (cf, 0, 1)])),
                ExprOp('+', b, ExprInt(uint32(1)))
                )
     e.append(ExprAff(x, c))
@@ -337,7 +340,8 @@ def sbc(x, a, b):
 def sbcs(x, a, b):
     e= []
     c = ExprOp('-',
-               ExprOp('+', a, ExprCompose([ExprSliceTo(ExprInt(uint32(0)), 1, a.get_size()), ExprSliceTo(cf, 0, 1)])),
+               ExprOp('+', a, ExprCompose([(ExprInt(uint32(0)), 1, a.get_size()),
+                                           (cf, 0, 1)])),
                ExprOp('+', b, ExprInt(uint32(1)))
                )
     e+=update_flag_arith(c)

@@ -1107,9 +1107,8 @@ def getlineby_offset(all_bloc, o):
 
 def getblocby_offset(all_bloc, o):
     for b in all_bloc:
-        for l in b.lines:
-            if l.offset == o:
-                return b
+        if b.lines and b.lines[0].offset == o:
+            return b
     return None
 
 def getblocby_label(all_bloc, l):

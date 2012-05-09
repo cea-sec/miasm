@@ -157,6 +157,15 @@ typedef struct {
 	unsigned int reg_float_control;
 	unsigned int reg_float_control_new;
 
+	unsigned int reg_float_eip;
+	unsigned int reg_float_eip_new;
+	unsigned int reg_float_cs;
+	unsigned int reg_float_cs_new;
+	unsigned int reg_float_address;
+	unsigned int reg_float_address_new;
+	unsigned int reg_float_ds;
+	unsigned int reg_float_ds_new;
+
 
 	unsigned int tsc1;
 	unsigned int tsc2;

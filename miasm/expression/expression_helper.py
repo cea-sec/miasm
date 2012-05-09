@@ -39,56 +39,53 @@ def merge_sliceto_slice(args):
     non_slice = {}
     sources_int = {}
     for a in args:
-        if isinstance(a.arg, ExprInt):
+        if isinstance(a[0], ExprInt):
             #sources_int[a.start] = a
             # copy ExprInt because we will inplace modify arg just below
             # /!\ TODO XXX never ever modify inplace args...
-            sources_int[a.start] = ExprSliceTo(ExprInt(a.arg.arg.__class__(a.arg.arg)), a.start, a.stop)
-        elif isinstance(a.arg, ExprSlice):
-            if not a.arg.arg in sources:
-                sources[a.arg.arg] = []
-            sources[a.arg.arg].append(a)
+            sources_int[a[1]] = (ExprInt(a[0].arg.__class__(a[0].arg)),
+                                 a[1],
+                                 a[2])
+        elif isinstance(a[0], ExprSlice):
+            if not a[0].arg in sources:
+                sources[a[0].arg] = []
+            sources[a[0].arg].append(a)
         else:
-            non_slice[a.start] = a
+            non_slice[a[1]] = a
 
 
     #find max stop to determine size
     max_size = None
     for a in args:
-        if max_size == None or max_size < a.stop:
-            max_size = a.stop
-
-
+        if max_size == None or max_size < a[2]:
+            max_size = a[2]
 
     #first simplify all num slices
-
     final_sources = []
     sorted_s = []
     for x in sources_int.values():
         #mask int
-        v = x.arg.arg & ((1<<(x.stop-x.start))-1)
-        x.arg.arg = v
-        sorted_s.append((x.start, x))
+        v = x[0].arg & ((1<<(x[2]-x[1]))-1)
+        x[0].arg = v
+        sorted_s.append((x[1], x))
     sorted_s.sort()
+
     while sorted_s:
-
         start, v = sorted_s.pop()
-        out = expr_replace(v, {})
-
-
+        out = e.reload_expr()
         while sorted_s:
-            if sorted_s[-1][1].stop != start:
+            if sorted_s[-1][1][2] != start:
                 break
 
-            start = sorted_s[-1][1].start
+            start = sorted_s[-1][1][1]
 
-            a = uint64((int(out.arg.arg) << (out.start - start )) + sorted_s[-1][1].arg.arg)
+            a = uint64((int(out[0].arg) << (out[1] - start )) + sorted_s[-1][1][0].arg)
             out.arg = ExprInt(uint32(a))
             sorted_s.pop()
-            out.start = start
+            out[1] = start
 
         out_type = tab_size_int[max_size]
-        out.arg.arg = out_type(out.arg.arg)
+        out[0].arg = out_type(out[0].arg)
         final_sources.append((start, out))
 
     final_sources_int = final_sources
@@ -100,21 +97,21 @@ def merge_sliceto_slice(args):
         final_sources = []
         sorted_s = []
         for x in args:
-            sorted_s.append((x.start, x))
+            sorted_s.append((x[1], x))
         sorted_s.sort()
         while sorted_s:
             start, v = sorted_s.pop()
-            out = expr_replace(v, {})
+            out = v[0].reload_expr(), v[1], v[2]
             while sorted_s:
-                if sorted_s[-1][1].stop != start:
+                if sorted_s[-1][1][2] != start:
                     break
-                if sorted_s[-1][1].arg.stop != out.arg.start:
+                if sorted_s[-1][1][0].stop != out[0].start:
                     break
 
-                start = sorted_s[-1][1].start
-                out.arg.start = sorted_s[-1][1].arg.start
+                start = sorted_s[-1][1][1]
+                out[0].start = sorted_s[-1][1][0].start
                 sorted_s.pop()
-            out.start = start
+            out = out[0], start, out[2]
 
             final_sources.append((start, out))
 
@@ -457,7 +454,7 @@ def expr_simp_w(e):
 
         #! (compose a b c) => (compose !a !b !c)
         if op == '!' and isinstance(args[0], ExprCompose):
-            args = [ExprSliceTo(ExprOp('!', x.arg), x.start, x.stop) for x in args[0].args]
+            args = [(ExprOp('!', x.arg), x[1], x[2]) for x in args[0].args]
             new_e = ExprCompose(args)
             return expr_simp(new_e)
         #!a[0:X] => (!a)[0:X]
@@ -526,8 +523,8 @@ def expr_simp_w(e):
             return expr_simp(new_e)
         elif isinstance(arg, ExprCompose):
             for a in arg.args:
-                if a.start <= e.start and a.stop>=e.stop:
-                    new_e = a.arg[e.start-a.start:e.stop-a.start]
+                if a[1] <= e.start and a[2]>=e.stop:
+                    new_e = a[0][e.start-a[1]:e.stop-a[1]]
                     new_e = expr_simp(new_e)
                     return new_e
         elif isinstance(arg, ExprOp) and e.start == 0:
@@ -538,7 +535,7 @@ def expr_simp_w(e):
         elif isinstance(arg, ExprMem) and e.start == 0 and arg.size == e.stop:
             e = expr_simp(arg)
             return e
-        #XXXX hum, is it safe?
+        #XXXX todo hum, is it safe?
         elif isinstance(arg, ExprMem) and e.start == 0 and arg.size > e.stop and e.stop %8 == 0:
             e = expr_simp(ExprMem(e.arg.arg, size = e.stop))
             return e
@@ -547,6 +544,8 @@ def expr_simp_w(e):
 
 
         return ExprSlice(arg, e.start, e.stop)
+        """
+    XXX todo move to exprcompose
     elif isinstance(e, ExprSliceTo):
         if isinstance(e.arg, ExprTop):
             return ExprTop()
@@ -563,9 +562,10 @@ def expr_simp_w(e):
 
 
         return ExprSliceTo(expr_simp(e.arg), e.start, e.stop)
+        """
     elif isinstance(e, ExprCompose):
         #(.., a_to[x:y], a[:]_to[y:z], ..) => (.., a[x:z], ..)
-        e = ExprCompose([expr_simp(x) for x in e.args])
+        e = ExprCompose([(expr_simp(x[0]), x[1], x[2]) for x in e.args])
         args = []
         i = -1
         simp = False
@@ -574,19 +574,21 @@ def expr_simp_w(e):
             if not args:
                 args.append(e.args[i])
                 continue
-            if args[-1].stop != e.args[i].start:
+            if args[-1][2] != e.args[i][1]:
                 continue
-            if not isinstance(e.args[i].arg, ExprSlice):
+            if not isinstance(e.args[i][0], ExprSlice):
                 continue
-            if isinstance(args[-1].arg, ExprSlice):
+            if isinstance(args[-1][0], ExprSlice):
                 a = args[-1]
             else:
-                a = ExprSliceTo(ExprSlice(args[-1].arg, 0, args[-1].arg.get_size()), args[-1].start, args[-1].stop)
-            if a.arg.arg != e.args[i].arg.arg:
+                a = (ExprSlice(args[-1][0], 0, args[-1][0].get_size()),
+                     args[-1][1],
+                     args[-1][2])
+            if a[0].arg != e.args[i][0].arg:
                 continue
-            if a.stop != e.args[i].start:
+            if a[2] != e.args[i][1]:
                 continue
-            args[-1] = ExprSliceTo(e.args[i].arg.arg, a.start, e.args[i].stop)
+            args[-1] = (e.args[i][0].arg, a[1], e.args[i][2])
             simp = True
 
         if simp:
@@ -609,26 +611,24 @@ def expr_simp_w(e):
         args = merge_sliceto_slice(e.args)
         if len(args) == 1:
             a = args[0]
-            if isinstance(a.arg, ExprInt):
-                if a.arg.get_size() != a.stop:
-                    print a, a.arg.get_size(), a.stop
-                    raise ValueError("cast in compose!", e)
-                return a.arg
-
-            uu = expr_simp(a.arg)
+            if isinstance(a[0], ExprInt):
+                if a[0].get_size() != a[2]:
+                    print a, a[0].get_size(), a[2]
+                    raise ValueError("todo cast in compose!", e)
+                return a[0]
+            uu = expr_simp(a[0][:e.get_size()])
             return uu
         if len(args) != len(e.args):
             return expr_simp(ExprCompose(args))
         else:
             return ExprCompose(args)
-
     else:
         raise 'bad expr'
 
 
 def expr_cmp(e1, e2):
     return str(e1) == str(e2)
-
+"""
 #replace id by another in expr
 def expr_replace(e, repl):
     if isinstance(e, ExprInt):
@@ -647,12 +647,11 @@ def expr_replace(e, repl):
         return ExprOp(e.op, *[expr_replace(x, repl) for x in e.args])
     elif isinstance(e, ExprSlice):
         return ExprSlice(expr_replace(e.arg, repl), e.start, e.stop)
-    elif isinstance(e, ExprSliceTo):
-        return ExprSliceTo(expr_replace(e.arg, repl), e.start, e.stop)
     elif isinstance(e, ExprCompose):
-        return ExprCompose([expr_replace(x, repl) for x in e.args])
+        return ExprCompose([(expr_replace(x[0], repl), x[1], x[2]) for x in e.args])
     else:
-        raise 'bad expr'
+        raise ValueError('bad expr', e)
 
 
 
+"""
