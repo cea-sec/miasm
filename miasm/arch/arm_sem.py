@@ -147,7 +147,7 @@ def update_flag_add(x, y, z):
     cast_int = tab_uintsize[z.get_size()]
     e = []
     e.append(update_flag_add_cf(cast_int, a, b, c))
-    e.append(update_flag_add_of(cast_int, a, b, c))    
+    e.append(update_flag_add_of(cast_int, a, b, c))
     return e
 
 #z = x-y (+cf?)
@@ -198,7 +198,7 @@ def get_cf_shifter(a):
             #cf is old cf
             return e
         elif a.op in  ['>>', 'a>>']:
-            e.append(ExprAff(cf, get_op_msb(source)))                
+            e.append(ExprAff(cf, get_op_msb(source)))
             return e
         elif a.op == '>>>':
             new_cf = ExprOp('&',
@@ -208,9 +208,9 @@ def get_cf_shifter(a):
             e.append(ExprAff(cf, new_cf))
             return e
         raise ValueError('bad op')
-        
-            
-    if a.op == '<<':            
+
+
+    if a.op == '<<':
         new_cf = ExprOp('&',
                         ExprInt(uint32(1)),
                         ExprOp('>>',
@@ -219,10 +219,10 @@ def get_cf_shifter(a):
                                       ExprInt(uint32(source.get_size())),
                                       shifter
                                       )
-                               
+
                                )
                         )
-        
+
     elif a.op in ['>>', 'a>>']:
         new_cf = ExprOp('&',
                         ExprInt(uint32(1)),
@@ -232,7 +232,7 @@ def get_cf_shifter(a):
                                       shifter,
                                       ExprInt(uint32(1))
                                       )
-                               
+
                                )
                         )
     elif a.op == '>>>':
@@ -247,14 +247,14 @@ def get_cf_shifter(a):
                                       cf))
                  )
     return e
-    
-        
+
+
 
 
 def add(x, a, b):
     e = []
     c = ExprOp('+', a, b)
-    e.append(ExprAff(x, c))    
+    e.append(ExprAff(x, c))
     return e
 
 def adds(x, a, b):
@@ -262,13 +262,13 @@ def adds(x, a, b):
     c = ExprOp('+', a, b)
     e+=update_flag_arith(c)
     e+=update_flag_add(a, b, c)
-    e.append(ExprAff(x, c))    
+    e.append(ExprAff(x, c))
     return e
 
 def sub(x, a, b):
     e = []
     c = ExprOp('-', a, b)
-    e.append(ExprAff(x, c))    
+    e.append(ExprAff(x, c))
     return e
 
 def subs(x, a, b):
@@ -276,7 +276,7 @@ def subs(x, a, b):
     c = ExprOp('-', a, b)
     e+=update_flag_arith(c)
     e+=update_flag_sub(a, b, c)
-    e.append(ExprAff(x, c))    
+    e.append(ExprAff(x, c))
     return e
 
 def eor(x, a, b):
@@ -492,9 +492,9 @@ mnemo_func = {'add': add,
               'b':branch,
               'bl':branchl,
               }
-              
-              
-              
+
+
+
 shifts2op = {'LSL':'<<', 'LSR':'>>', 'ASR':'a>>', 'ROR':'>>>', '-':'-'}
 
 def condition_expr(cond, exprs):
@@ -561,7 +561,7 @@ def get_instr_expr_args(mn, args, my_eip):
             optmem = ExprMem
             a = a[1:-1]
             l-=2
-            
+
 
         print a
         t = None
@@ -608,13 +608,13 @@ def get_instr_expr_args(mn, args, my_eip):
         d = mn.getdstflow()
         if len(d) !=1:
             raise ValueError("zarb dst", d)
-        
+
         outa = [my_eip, ExprInt(uint32(d[0].offset))]
     else:
         print 'unimpl mnemo', str(n)
         return None
 
-    
+
     print 'ARGS', [str(x) for x in outa]
     print n, args
     exprs += mnemo_func[n.lower()](*outa)
@@ -622,4 +622,4 @@ def get_instr_expr_args(mn, args, my_eip):
     exprs = condition_expr(mn.cond, exprs)
     print 'EXPR', [str(x) for x in exprs]
     return exprs
-    
+
