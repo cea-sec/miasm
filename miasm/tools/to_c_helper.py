@@ -392,7 +392,7 @@ def Exp2C(exprs, l = None, addr2label = None, gen_exception_code = False):
             post_instr.append("if (vmcpu.vm_exception_flags) { /*eip = 0x%X; */return vmcpu.eip; }"%(l.offset))
         else:
             post_instr.append(code_deal_exception_post_instr % (patch_c_id(eip), (l.offset&mask_int), (l.offset + l.l)&mask_int))
-    
+
     """
     print "1"
     print out
@@ -401,8 +401,8 @@ def Exp2C(exprs, l = None, addr2label = None, gen_exception_code = False):
     print "3"
     print post_instr
     """
-    
-        
+
+
 
     #eip manip after all modifications
     return out+out_eip, post_instr
@@ -424,8 +424,8 @@ def bloc2C(all_bloc, addr2label = None, gen_exception_code = False, dbg_instr = 
                 if tick_dbg!=None:
                     out.append('if (my_tick > %d)'%tick_dbg)
                 out.append(r'fprintf(stdout, "%s\n");'%str(b.label.name))
-        
-        
+
+
         for l in b.lines:
             if l.offset in label_done:
                 continue
@@ -435,17 +435,17 @@ def bloc2C(all_bloc, addr2label = None, gen_exception_code = False, dbg_instr = 
                 out.append("%s:"%addr2label(l.offset))
             else:
                 out.append("loc_%.16X:"%(l.offset&mask_int))
-                
-            o, post_instr = Exp2C(ex, l, addr2label, gen_exception_code)
-            
 
-            
+            o, post_instr = Exp2C(ex, l, addr2label, gen_exception_code)
+
+
+
 
             #if add_return:
             #    o.append('return;');
             #if add_call:
             #    o.append('%s();'%add_call);
-    
+
             if (0xF2 in l.prefix or 0xF3 in l.prefix) and l.m.name in ["ins", "outs", "movsb", "movsw", "movsd", "lodsb", "lodsw", "lodsd", "stosb", "stosw", "stosd" ]+ [ "cmpsb", "cmpsw", "cmpsd", "scasb", "scasw", "scasd" ]:
                 zf_w = zf in reduce(lambda x,y:x+y, [list(x.get_w()) for x in ex], [])
                 my_o = ["while (1){"]
@@ -454,7 +454,7 @@ def bloc2C(all_bloc, addr2label = None, gen_exception_code = False, dbg_instr = 
                 my_o.append(code_deal_exception_post_instr % (patch_c_id(eip), (l.offset&mask_int), (l.offset&mask_int)))
 
 
-                #my_o.append(r'fprintf(stderr, "ecx %.8X\n", ecx );')            
+                #my_o.append(r'fprintf(stderr, "ecx %.8X\n", ecx );')
                 my_o+= ['if (%s==0) break;'%patch_c_id(ecx)]
                 my_o+=o
                 my_o+= ['%s--;'%patch_c_id(ecx)]
@@ -466,7 +466,7 @@ def bloc2C(all_bloc, addr2label = None, gen_exception_code = False, dbg_instr = 
 
 
                 my_o += ["}"]
-    
+
                 o = my_o
 
             o+= post_instr
@@ -486,15 +486,15 @@ def bloc2C(all_bloc, addr2label = None, gen_exception_code = False, dbg_instr = 
 
             out+=o
 
-        
+
         for c in b.bto:
             if c.c_t == asmbloc.asm_constraint.c_next:
                 out.append("GOTO_STATIC(0x%.16X);"%(c.label.offset&mask_int))
-        
+
         """
         #in case of bad disasm, no next, so default next instr
         #XXX BUG if  no line!!!
-        
+
         if b.lines:
             l = b.lines[-1]
             out.append("GOTO_STATIC(%s);"%(addr2label(l.offset + l.l)))
@@ -531,7 +531,7 @@ def gen_x86_core():
     txt += '#include "%s/libcodenat.h"\n'%lib_dir
 
     txt += r'''
-    
+
 //#define RAISE(errtype,msg) { PyErr_SetString(errtype,msg); RE_RAISE; }
 //#define RE_RAISE           { return NULL; }
 
@@ -541,12 +541,12 @@ def gen_x86_core():
 
 '''
     return txt
-        
+
 
 def gen_C_source(funcs_code, known_mems, dyn_dispatcher):
     c_source = dyn_dispatcher
     c_source+= "\n".join(funcs_code)
-    
+
     kmems = gen_known_mems_code(known_mems)
     c_source = gen_x86_core()+"\n".join(kmems)+c_source
     return c_source
@@ -567,14 +567,14 @@ def del_bloc_in_range(all_blocs, ad1, ad2):
         # XXX no lines in bloc?
         if not b.lines:
             continue
-        
+
         if b.lines[0].offset>=ad2 or b.lines[-1].offset + b.lines[-1].l <= ad1:
             bloc_out.append(b)
         else:
             #print 'inv bloc', b.label
             pass
     return bloc_out
-    
+
 def merge_memory_ranges(t):
     i = 0
     while i < len(t)-1:
@@ -609,7 +609,7 @@ def merge_memory_ranges(t):
             t[i] = rA1, rA2
         else:
             i+=1
-            
+
 
 def gen_code_addr_tab(t):
     out = []
@@ -618,10 +618,10 @@ def gen_code_addr_tab(t):
     out += ["unsigned int code_addr_tab[2*%d] = {"%len(t)]
     for r in t:
         out += ["\t0x%.8X, 0x%.8X,"%(r)]
-        
+
     out += ['};']
     return '\n'.join(out)+'\n'
-    
+
 def asm2C(f_name, known_mems, dyn_func, in_str, x86_mn, symbol_pool, func_to_dis, dont_dis = [], follow_call = False, dontdis_retcall = False, log_mn = False, log_reg = False, log_lbl = False, filtered_ad = [], tick_dbg = None, code_addr = [], all_bloc_funcs = []):
 
     funcs_code = []
@@ -629,8 +629,8 @@ def asm2C(f_name, known_mems, dyn_func, in_str, x86_mn, symbol_pool, func_to_dis
 
     all_bloc_funcs+=asmbloc.dis_multi_func(in_str, x86_mn, symbol_pool, func_to_dis, dont_dis, follow_call, dontdis_retcall)
 
-    
-        
+
+
     for b in all_bloc_funcs:
         if b.label.offset in dont_dis:
             continue
@@ -645,7 +645,7 @@ def asm2C(f_name, known_mems, dyn_func, in_str, x86_mn, symbol_pool, func_to_dis
         if (l.m.name.startswith('call') or l.m.name.startswith('jmp')) and not x86_afs.symb in l.arg[0]:
 
             #print "TOTO", hex(l.offset), l, l.arg[0]
-            
+
             #deal dyn call
             instr = x86_mn.dis(x86_mn.asm('mov eax, eax')[0])
             #XXX HACK to be unik address
@@ -655,16 +655,16 @@ def asm2C(f_name, known_mems, dyn_func, in_str, x86_mn, symbol_pool, func_to_dis
 
             #print instr, str(instr)
             #instr.offset = 0x1337beef
-            
+
             #b.lines[-1:-1] = [instr]
             #l.arg[0] = {x86_afs.symb:func_deal_dyn}
 
 
             #if dyn func is not in ref, add it (todo in gen C)
         '''
-    
+
         for l in b.lines:
-    
+
             #test imm redirect mem ad
             for a in l.arg:
                 if not x86_afs.imm in a: continue
@@ -687,16 +687,16 @@ def asm2C(f_name, known_mems, dyn_func, in_str, x86_mn, symbol_pool, func_to_dis
 
                 if not l_name:
                     continue
-                
+
                 label = asmbloc.asm_label(l_name, i)
                 a[x86_afs.symb] = {label:1}
                 del a[x86_afs.imm]
-                
+
 
     code_addr += blocs_to_memory_ranges(all_bloc_funcs)
     merge_memory_ranges(code_addr)
-    
-    
+
+
     allb = all_bloc_funcs#reduce(lambda x,y:x+y, all_bloc_funcs.values(), [])
     f_dec, out = bloc_gen_C_func(allb, f_name, None, True, log_mn, log_reg, log_lbl, filtered_ad, tick_dbg)
     funcs_dec.append(f_dec)
@@ -759,7 +759,7 @@ def dispatch_table_from_f_blocs(all_f_b):
 def gen_dynamic_dispatcher(dispatch_table):
     offsets = dispatch_table.keys()
     offsets.sort()
-    
+
     out1 = []
     out1 += ["#define FUNC_DYNAMIC"]
     out1 += ['void* tab_eip_label[(%d+1)*2] = '%len(dispatch_table)]
@@ -773,9 +773,9 @@ def gen_dynamic_dispatcher(dispatch_table):
     out2 = []
     out2 += ["void * get_label_from_eip(void** tab_eip_label)"]
     out2 += ['{']
-    
+
     out2 += ['\tvoid *labelref = NULL;']
-    
+
     out2 += ['\tunsigned int i = 0;']
     out2 += ['\twhile (tab_eip_label[2*i]!= NULL && tab_eip_label[2*i+1]!=NULL){']
     out2 += ['\t\tif (tab_eip_label[i*2] == (void*)vmcpu.eip){']
@@ -789,7 +789,7 @@ def gen_dynamic_dispatcher(dispatch_table):
     #out2 += [r'exit(0);']
     out2 += ['return labelref;']
     out2 += ['}']
-    
+
 
     out = []
 
@@ -801,17 +801,17 @@ def gen_dynamic_dispatcher(dispatch_table):
     out += ["return (PyObject*)vm_get_exception(vm_exception_flags);"]
     out += ['}']
     out += ['goto *labelref;']
-    
+
     """
     out += ['{']
     #out += [r'fprintf(stderr, "search dst: %X\n", eip);']
-    
+
     out += ['switch(eip){']
     for o in offsets:
         out+=['case 0x%.8X:'%o]
         out+=['goto %s;'%dispatch_table[o]]
         out+=['break;']
-    
+
     out += ['case 0x1337beef:']
     out += [r'fprintf(stderr, "return reached %X\n", eip);']
     out += ['return NULL;']
@@ -822,9 +822,9 @@ def gen_dynamic_dispatcher(dispatch_table):
     out += ['break;']
     out += ['}']
     out += ['}']
-    """    
+    """
     return out1, out2
-        
+
 def gen_dyn_func_manager(dyn_func, dis_func):
     total_func_num = len(dyn_func)+len(dis_func)
     out = "int (*tab_func[%d][2])(void) = {"%(total_func_num)
@@ -835,12 +835,12 @@ def gen_dyn_func_manager(dyn_func, dis_func):
 
         dec_f_ptr += "unsigned int dyn_func_%.8X;\n"%(f_ad)
         init_f_ptr+= "dyn_func_%.8X = (unsigned int)&%s;\n"%(f_ad, f_name)
-           
+
     for f_ad in dis_func:
         out+="{0x%.8X, func_%.8X},"%(f_ad, f_ad)
     out+="};"
-        
-        
+
+
     code = "\n"
     code += "#define DYN_FUNC_NUM %d"%total_func_num
     code += r"""
@@ -849,7 +849,7 @@ void func_dyn_manager(void)
 {
     unsigned int i;
 """ + out + r"""
-    
+
     for (i=0;i<DYN_FUNC_NUM;i++){
         if (dyn_dst == tab_func[i][0]){
             fprintf(stderr, "i %d v@%X r@%X\n", i, tab_func[i][0], tab_func[i][1]);
@@ -857,7 +857,7 @@ void func_dyn_manager(void)
             return;
         }
     }
-    
+
     fprintf(stderr, "unknown dyn dst!\n");
     exit(0);
 }
@@ -872,26 +872,26 @@ def insert_printf(c_source, label):
         print l
         if l.startswith(label):
             c_source[i+1:i+1] = ['printf("reached %s\\n");'%label]
-        
+
 
 
 
 def gen_label_declaration(known_mems):
     lab_dec = []
-    
+
     for m_ad, m_val in known_mems.items():
         dec_name = "char tab_%.8X[0x%X]"%(m_ad, len(m_val))
         data = m_val
         dec_name+=' = {'+', '.join(["0x%.2X"%ord(x) for x in data])+'};'
         lab_dec.append(dec_name)
 
-    
+
     return lab_dec
 
 
 def gen_call_func(funcname, args, precode = "", postcode = ""):
     out = ""
-    
+
 def gen_known_mems_code(known_mems):
     code = []
     for m_ad, m_val in known_mems.items():
@@ -907,7 +907,7 @@ def gen_known_mems_code(known_mems):
     code.append("void init_tab_mem(void)")
     code.append("{")
     code.append("unsigned int ret;")
-    
+
     for m_ad, m_val in known_mems.items():
         #code.append("tab_%.8X = malloc(0x%.8X);\n"%(m_ad, len(m_val)))
         code.append("ret = posix_memalign(&tab_%.8X, 0x10000, 0x%.8X);"%(m_ad, len(m_val)))
@@ -915,13 +915,13 @@ def gen_known_mems_code(known_mems):
         code.append(r'    fprintf(stderr, "cannot alloc");')
         code.append(r'    exit(-1);')
         code.append(r'}')
-        
+
 
         code.append("memcpy(tab_%.8X, tab_data_%.8X, 0x%.8X);"%(m_ad, m_ad, len(m_val)))
     code.append("}\n")
     """
-    
-    
+
+
 
     return code
 
@@ -944,7 +944,7 @@ if __name__ == '__main__':
         print x
     print '#'*80
 
-    
+
 
 
 def _compile(self):
@@ -974,11 +974,11 @@ def _compile(self):
               )
     except SystemExit, e:
         raise BuildError(e)
-        
-    os.chdir(self._homeDir)
-    
 
-    
+    os.chdir(self._homeDir)
+
+
+
 
 
 from miasm.tools.codenat import *
@@ -1006,14 +1006,14 @@ def updt_bloc_emul(known_blocs, in_str, my_eip, symbol_pool, code_blocs_mem_rang
     known_blocs[my_eip] = bn
 
     ###### update code ranges ###
-    
+
     code_addr = blocs_to_memory_ranges([bn.b])
     code_blocs_mem_range += code_addr
     merge_memory_ranges(code_blocs_mem_range)
     reset_code_bloc_pool_py()
     for a, b in  code_blocs_mem_range:
             vm_add_code_bloc(a, b)
-'''    
+'''
 
 ttt = 0
 def updt_bloc_emul(known_blocs, in_str, my_eip, symbol_pool, code_blocs_mem_range, dont_dis = [], job_done = None, log_mn = False, log_regs = False, segm_to_do = {}, **kargs):
@@ -1134,7 +1134,7 @@ upw = lambda x: struct.unpack('H', x)[0]
 #try:
 if True:
     from emul_lib.libcodenat_interface import *
-    
+
     #vm_init_regs = libcodenat.vm_init_regs
 #except:
 #    print "WARNING! unable to build libcodenat C interface!!"

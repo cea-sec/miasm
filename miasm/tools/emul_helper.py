@@ -33,17 +33,17 @@ log_emu_helper.addHandler(console_handler)
 log_emu_helper.setLevel(logging.WARN)
 
 def hexdump(a, offset = 0):
-    out ="" 
+    out =""
     for i,c in enumerate(a):
         if i%0x10==0:
             out+="\n%.8X "%(offset+i)
-            
+
         out+="%.2X "%ord(c)
     return out
-      
+
 
 def tohex(a):
-        
+
     try:
         a = int(a)
     except:
@@ -54,7 +54,7 @@ def tohex(a):
         a = struct.pack('L', a)
     a = struct.unpack('L', a)[0]
     return hex(a)
-    
+
 
 jcc = ['jz', 'je', 'jnz', 'jp', 'jnp', 'jg', 'jge', 'ja', 'jae', 'jb', 'jbe', 'jl', 'jle', 'js', 'jns', 'jo', 'jno', 'loop', 'loopne', 'jecxz']
 
@@ -71,7 +71,7 @@ def dump_reg(p):
             out+=str(x)+' %.8X  '%int(p[x].arg)
         else:
             out+=str(x)+' %s  '%p[x]
-                      
+
     return out
 
 
@@ -86,7 +86,7 @@ def dump_mem(p):
     todo.sort()
     for x in todo:
         out.append('%s    %s'%(str(x), str(p[x])))
-                      
+
     return "\n".join(out)
 
 def mem_read(evaluator, env, src_address, mem_size):
@@ -95,7 +95,7 @@ def mem_read(evaluator, env, src_address, mem_size):
         raise "cannot read", str(src_address)
     src_address_l = int(src_address.arg)
     try:
-        
+
         if mem_size == 32:
             ret = uint32(env.get_d(src_address_l))
         elif mem_size == 16:
@@ -236,13 +236,13 @@ def emul_imp_init(machine, libbase = 0xCCC00000, malloc_next_ad = 0xEEE00000):
     #for loadlibrary & getprocaddress emul
     machine.lib_bases = {}
     machine.lib_bases_func_index = {}
-    machine.lib_base = libbase    
+    machine.lib_base = libbase
     machine.func_loaded = {}
 
     #for malloc & free emul
     machine.malloc_next_ad = malloc_next_ad;
-    
-    
+
+
 def emul_loadlibrary(machine, env):
     my_esp = machine.eval_expr(machine.pool[esp], {})
     libname_ad = env.get_d(my_esp+4)
@@ -285,7 +285,7 @@ def emul_getprocaddress(machine, env):
         log.debug(machine.lib_bases)
         raise 'unknown base lib! %s'%str(libbase_ad)
     func_ad = machine.lib_bases_func_index[libbase_ad]
-    
+
     machine.lib_bases_func_index[libbase_ad]+=1
     machine.eval_instr(mov(eax, ExprInt(uint32(func_ad))))
 
@@ -302,7 +302,7 @@ def hook_import_func(env, imported_func, start_address_hook = 0xAABB0000):
         env.set_d(f, start_address_hook)
         func_hook_ptr[start_address_hook] = imported_func[f]
         start_address_hook+=0x10000
-        
+
     return func_hook_ptr
 
 def dump_imp(machine):
@@ -321,18 +321,18 @@ def emul_malloc(machine, env):
     pool_type =env.get_d(my_esp+0x4)
     alloc_size =env.get_d(my_esp+0x8)
     tag =env.get_d(my_esp+0xc)
-    
+
     machine.eval_instr(ret(ExprInt(uint32(0xc))))
     my_eip = machine.eval_expr(machine.pool[eip], {})
     del machine.pool[eip]
-    
+
     ret_alloc_ad = machine.malloc_next_ad
     m_data = mempool(machine.malloc_next_ad, machine.malloc_next_ad+alloc_size, 'RW', name = "malloc %.8X"%alloc_size)
     machine.malloc_next_ad += ((alloc_size+0xFFF)&(~0xFFF))
-    
+
     log.warn('alloc(%X) tag %X poolt %X from %X esp %X ret %X:'%(int(alloc_size), int(tag), int(pool_type), int(my_eip), int(my_esp), int(machine.malloc_next_ad)))
     machine.eval_instr(mov(eax, ExprInt(uint32(ret_alloc_ad))))
-    
+
     env.mems.append(m_data)
     log.warn(str(env))
     return my_eip
@@ -365,34 +365,34 @@ def emul_heapcreate(machine, env):
     floptions =env.get_d(my_esp+4)
     dwinitialsize =env.get_d(my_esp+8)
     dwmaximumsize =env.get_d(my_esp+12)
-    
+
     machine.eval_instr(ret(ExprInt(uint32(12))))
     my_eip = machine.eval_expr(machine.pool[eip], {})
     del machine.pool[eip]
-    
-    
+
+
     log.warn('heapcreate(%X %X %X) from %X esp %X ret %X:'%(floptions, dwinitialsize, dwmaximumsize, int(my_eip), my_esp, 0xdeadcafe))
     machine.eval_instr(mov(eax, ExprInt(uint32(0xdeadcafe))))
-    
+
     return my_eip
-    
+
 def emul_heapalloc(machine, env):
     my_esp = machine.get_reg(esp)
     hheap =env.get_d(my_esp+4)
     dwflags =env.get_d(my_esp+8)
-    alloc_size =env.get_d(my_esp+12) 
-   
+    alloc_size =env.get_d(my_esp+12)
+
     machine.eval_instr(ret(ExprInt(uint32(12))))
     my_eip = machine.eval_expr(machine.pool[eip], {})
     del machine.pool[eip]
-    
+
     ret_alloc_ad = machine.malloc_next_ad
     m_data = mempool(machine.malloc_next_ad, machine.malloc_next_ad+alloc_size, 'RW', name = "heapalloc %.8X"%alloc_size)
     machine.malloc_next_ad += ((alloc_size+0xFFF)&(~0xFFF))
-    
+
     log.warn('heapalloc(%X %X %X) from %X esp %X ret %X:'%(hheap, dwflags, alloc_size, int(my_eip), my_esp, machine.malloc_next_ad))
     machine.eval_instr(mov(eax, ExprInt(uint32(ret_alloc_ad))))
-    
+
     env.mems.append(m_data)
     log.warn(str(env))
     return my_eip
@@ -419,20 +419,20 @@ def emul_virtualalloc(machine, env):
     my_esp = machine.get_reg(esp)
     lpaddress =env.get_d(my_esp+4)
     alloc_size =env.get_d(my_esp+8)
-    flallocationtype =env.get_d(my_esp+12) 
-    flprotect =env.get_d(my_esp+16) 
-   
+    flallocationtype =env.get_d(my_esp+12)
+    flprotect =env.get_d(my_esp+16)
+
     machine.eval_instr(ret(ExprInt(uint32(16))))
     my_eip = machine.eval_expr(machine.pool[eip], {})
     del machine.pool[eip]
-    
+
     ret_alloc_ad = machine.malloc_next_ad
     m_data = mempool(machine.malloc_next_ad, machine.malloc_next_ad+alloc_size, 'RW', name = "virtualalloc %.8X"%alloc_size)
     machine.malloc_next_ad += ((alloc_size+0xFFF)&(~0xFFF))
-    
+
     log.warn('virtualalloc(%X %X %X %X) from %X esp %X ret %X:'%(lpaddress, alloc_size, flallocationtype, flprotect, int(my_eip), my_esp, machine.malloc_next_ad))
     machine.eval_instr(mov(eax, ExprInt(uint32(ret_alloc_ad))))
-    
+
     env.mems.append(m_data)
     log.warn(str(env))
     return my_eip
@@ -443,8 +443,8 @@ def emul_virtualfree(machine, env):
     address_free =env.get_d(my_esp+4)
     dwsize =env.get_d(my_esp+8)
     dwfreetype =env.get_d(my_esp+12)
-    
-    
+
+
 
     machine.eval_instr(ret(ExprInt(uint32(12))))
     my_eip = machine.eval_expr(machine.pool[eip], {})
@@ -486,27 +486,27 @@ def emul_getmodulehandlea(machine, env):
     else:
         machine.eval_instr(mov(eax, ExprInt(uint32(0x0))))
         log.warn("unknown lib: %s"%str(libname))
-        
+
     log.warn(str(env))
 
     return my_eip
 
 def emul_kddisabledebugger(machine, env):
     my_esp = machine.get_reg(esp)
-    
+
     machine.eval_instr(ret())
     my_eip = machine.eval_expr(machine.pool[eip], {})
     del machine.pool[eip]
-    
-    
+
+
     log.warn('emul_kddisabledebugger from %X esp %X '%(int(my_eip), int(my_esp)))
     machine.eval_instr(mov(eax, ExprInt(uint32(0))))
-    
+
     log.warn(str(env))
     return my_eip
-    
-    
-    
+
+
+
 def sav_machine(machine, env, my_eip, snap_fmt_name):
 
     print 'SAVE**************tsc: %.10d***************'%machine.pool[tsc1].arg
@@ -514,7 +514,7 @@ def sav_machine(machine, env, my_eip, snap_fmt_name):
     env_s = StringIO.StringIO()
     env.to_file(env_s)
     env_s.flush()
-    fname = snap_fmt_name+".env" 
+    fname = snap_fmt_name+".env"
     open(fname%(machine.pool[tsc1].arg), 'wb').write(zlib.compress(env_s.getvalue(), 9))
     machine_s = StringIO.StringIO()
     machine.to_file(machine_s)
@@ -522,23 +522,23 @@ def sav_machine(machine, env, my_eip, snap_fmt_name):
     fname = snap_fmt_name+".machine"
     open(fname%(machine.pool[tsc1].arg), 'wb').write(zlib.compress(machine_s.getvalue(), 9))
     del machine.pool[eip]
-    
-    
+
+
 def load_machine(snap_fmt_name, step):
 
-    fname = snap_fmt_name+".env" 
+    fname = snap_fmt_name+".env"
     env_s = StringIO.StringIO(zlib.decompress(open(fname%step, 'rb').read()))
     env = mempool_manager.from_file(env_s)
-    fname = snap_fmt_name+".machine"        
+    fname = snap_fmt_name+".machine"
     machine_s = StringIO.StringIO(zlib.decompress(open(fname%step, 'rb').read()))
     machine = eval_int.from_file(machine_s, globals())
     my_eip = machine.pool[eip]
     del machine.pool[eip]
     print 'LOAD**************tsc: %.10X***************'%machine.pool[tsc1].arg
     print "machine eip: %.8X"%int(my_eip.arg)
-    
+
     return machine, env, my_eip
-     
+
 def emul_full_expr(e, l, my_eip, env, machine):
     if ((not 0xF2 in l.prefix) and (not 0xF3 in l.prefix)) or \
            not l.m.name[:-1] in ["ins", "outs", "movs", "lods", "stos", "cmps", "scas"]:
@@ -549,7 +549,7 @@ def emul_full_expr(e, l, my_eip, env, machine):
         if 0x66 in l.prefix and l.m.name[-1]== "d":
             raise "not impl 16 bit string"
         zf_w = zf in reduce(lambda x,y:x+y, [list(x.get_w()) for x in e], [])
-        
+
         while True:
 
             my_ecx = machine.eval_expr(machine.pool[ecx], {})
@@ -563,7 +563,7 @@ def emul_full_expr(e, l, my_eip, env, machine):
             my_esi = machine.eval_expr(machine.pool[esi], {})
             my_edi = machine.eval_expr(machine.pool[edi], {})
             tmp,mem_dst =  emul_expr(machine, e, my_eip)
-            
+
             info = l.opmode, l.admode
             machine.eval_instr(mov(info, ecx, ExprOp('-', my_ecx, ExprInt(uint32(1)))))
             machine.eval_expr(machine.pool[ecx], {})
@@ -578,7 +578,7 @@ def emul_full_expr(e, l, my_eip, env, machine):
             machine.pool[tsc1].arg+=uint32(1)
 
     return my_eip, mem_dst
-    
+
 
 def guess_func_destack(all_bloc):
     ret_destack = None
@@ -587,7 +587,7 @@ def guess_func_destack(all_bloc):
         if not l.m.name.startswith('ret'):
             continue
         if len(l.arg) == 0:
-            a = 0  
+            a = 0
         elif len(l.arg) ==1:
             a = l.arg[0][x86_afs.imm]
         else:
@@ -644,7 +644,7 @@ def digest_allbloc_instr(all_bloc, segm_to_do = {}):
                 print b
                 raise ValueError('diff bloc in same label')
             all_bloc.remove(b)
-        
+
     for b in all_bloc:
         for l in b.lines:
             if l.offset in instrs:
@@ -654,7 +654,7 @@ def digest_allbloc_instr(all_bloc, segm_to_do = {}):
             args = []
             ex = get_instr_expr(l, ExprInt(uint32(l.offset+l.l)), args, segm_to_do = segm_to_do)
 
-                
+
             instrs[l.offset] = (l, ex)
     return instrs
 
@@ -672,10 +672,10 @@ def x86_machine(mem_read_wrap = None, mem_write_wrap = None):
                         dr7:ExprInt(uint32(0)),
                         cr0:init_cr0,
                         #my_ret_addr:my_ret_addri
-                        
+
                         },
                        mem_read_wrap,
                        mem_write_wrap,
-                       
+
                        )
     return machine
