@@ -29,6 +29,12 @@ def slice_rest(size, start, stop):
 
     return rest
 
+size2type ={8:uint8,
+            16:uint16,
+            32:uint32,
+            64:uint64
+            }
+
 tab_int_size = {int8:8,
                 uint8:8,
                 int16:16,
@@ -109,6 +115,11 @@ class Expr:
         return ExprOp('|', self, a)
     def __and__(self, a):
         return ExprOp('&', self, a)
+    def __neg__(self):
+        fds
+    def __invert__(self):
+        s = self.get_size()
+        return ExprOp('^', self, ExprInt(size2type[s](my_size_mask[s])))
 
 class ExprTop(Expr):
     def __init__(self, e=None):
@@ -318,7 +329,7 @@ class ExprMem(Expr):
         segm = self.segm
         if isinstance(segm, Expr):
             segm = self.segm.reload_expr(g)
-        return ExprMem(arg, self.size, self.segm)
+        return ExprMem(arg, self.size, segm)
     def __contains__(self, e):
         return self == e or self.arg.__contains__(e)
     def __eq__(self, a):
@@ -575,7 +586,7 @@ class ExprCompose(Expr):
             return g[self]
         args = []
         for a in self.args:
-            args.append(a[0].reload_expr(g), a[1], a[2])
+            args.append((a[0].reload_expr(g), a[1], a[2]))
         return ExprCompose(args )
     def __contains__(self, e):
         if self == e:
@@ -604,9 +615,9 @@ class ExprCompose(Expr):
         out = []
         # XXX check mask for 64 bit & 32 bit compat
         for x in self.args:
-            o.append("((%s & %X) << %d)"%(x[0].toC(),
-                                          (1<<(x[2]-x[1]))-1,
-                                          x[1]))
+            out.append("((%s & 0x%X) << %d)"%(x[0].toC(),
+                                              (1<<(x[2]-x[1]))-1,
+                                              x[1]))
         out = ' | '.join(out)
         return '('+out+')'
     def canonize(self):

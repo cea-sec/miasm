@@ -141,7 +141,6 @@ my_C_id = [
     float_address ,
     float_ds ,
     #cond,
-    ds,
     #vm_exception_flags,
     #vm_exception_flags_new,
     #vm_last_write_ad,

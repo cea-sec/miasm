@@ -444,10 +444,10 @@ def arith_flag(a, b, c):
 
 #checked: ok for adc add because of b & c before +cf
 def update_flag_add_cf(cast_int, a, b, c):
-    return ExprAff(cf, get_op_msb((a ^ b) ^ c) ^ get_op_msb((a ^ c) & ExprOp('!', (a ^ b))))
+    return ExprAff(cf, get_op_msb((a ^ b) ^ c) ^ get_op_msb((a ^ c) & (~(a ^ b))))
 
 def update_flag_add_of(cast_int, a, b, c):
-    return ExprAff(of, get_op_msb(((a ^ c) & ExprOp('!', (a ^ b)))))
+    return ExprAff(of, get_op_msb(((a ^ c) & (~(a ^ b)))))
 
 
 #checked: ok for sbb add because of b & c before +cf
@@ -578,7 +578,7 @@ def neg(info, b):
 def l_not(info, b):
     e= []
     cast_int = tab_uintsize[b.get_size()]
-    c = ExprOp('!', b)
+    c = ~b
     e.append(ExprAff(b, c))
     return e
 
@@ -2068,7 +2068,7 @@ def btr(info, a, b):
     e= []
     c= ExprOp('&', b, ExprInt(cast_int(b.get_size() - 1)))
     d= ExprOp('>>', a, c)
-    m= ExprOp('!', ExprOp('<<', ExprInt(cast_int(1)), b))
+    m= ~ExprOp('<<', ExprInt(cast_int(1)), b)
     e.append(ExprAff(cf, ExprOp('&', d, ExprInt(cast_int(1)))))
     e.append(ExprAff(a, ExprOp('&', a, m)))
     return e
