@@ -1131,6 +1131,177 @@ updw = lambda bbbb: struct.unpack('I', bbbb)[0]
 pw = lambda x: struct.pack('H', x)
 upw = lambda x: struct.unpack('H', x)[0]
 
+
+def load_pe_in_vm(fname_in, options, all_imp_dll = None, **kargs):
+    import os
+    import seh_helper
+    import win_api
+    from miasm.tools import pe_helper
+    from miasm.tools import codenat
+
+    e = pe_init.PE(open(fname_in, 'rb').read())
+
+    vm_init_regs()
+    init_memory_page_pool_py()
+    init_code_bloc_pool_py()
+    in_str = bin_stream_vm()
+    codenat_tcc_init()
+    runtime_dll = pe_helper.libimp(kargs.get('runtime_basead', 0x71111000))
+
+    pe_helper.vm_load_pe(e, load_hdr = options.loadhdr)
+
+    if all_imp_dll == None:
+        if options.loadbasedll:
+            all_imp_dll = ["ntdll.dll",  "kernel32.dll",   "user32.dll",
+                           "imm32.dll",    "msvcrt.dll",
+                           "oleaut32.dll", "shlwapi.dll",
+                           "version.dll",  "advapi32.dll",
+                           "ws2help.dll",
+                           "rpcrt4.dll",   "shell32.dll", "winmm.dll",
+                           #"mswsock.dll",
+                           "ws2_32.dll",
+                           "gdi32.dll",   "ole32.dll",
+                           "secur32.dll",  "comdlg32.dll",
+                           #"wsock32.dll"
+                           ]
+        else:
+            all_imp_dll = []
+
+    mod_list = all_imp_dll
+    exp_func = {}
+    all_pe = []
+    for n in mod_list:
+        fname = os.path.join('win_dll', n)
+        ee = pe_init.PE(open(fname, 'rb').read())
+        pe_helper.vm_load_pe(ee)
+        runtime_dll.add_export_lib(ee, n)
+        exp_funcs = pe_helper.get_export_name_addr_list(ee)
+        exp_func[n] = exp_funcs
+        all_pe.append(ee)
+
+    for ee in all_pe:
+        pe_helper.preload_lib(ee, runtime_dll)
+    seh_helper.runtime_dll = runtime_dll
+    if options.loadmainpe:
+        seh_helper.main_pe = e
+    seh_helper.main_pe_name = "c:\\xxx\\"+kargs.get("main_pe_name", "toto.exe")
+    seh_helper.loaded_modules = ['win_dll/'+x for x in mod_list]
+    dll_dyn_funcs = pe_helper.preload_lib(e, runtime_dll)
+
+    win_api.winobjs.runtime_dll = runtime_dll
+    win_api.winobjs.current_pe = e
+    win_api.winobjs.module_name = kargs.get("main_pe_name", "toto.exe")+"\x00"
+    win_api.winobjs.module_path = seh_helper.main_pe_name+"\x00"
+    win_api.winobjs.hcurmodule = e.NThdr.ImageBase
+
+    stack_base_ad = kargs.get('stack_base_ad', 0x1230000)
+    stack_size = kargs.get('stack_size', 0x10000)
+    vm_add_memory_page(stack_base_ad,
+                                   codenat.PAGE_READ|codenat.PAGE_WRITE,
+                                   "\x00"*stack_size)
+    dump_memory_page_pool_py()
+
+    regs = vm_get_gpreg()
+    regs['esp'] = stack_base_ad+stack_size
+    vm_set_gpreg(regs)
+
+    if options.usesegm:
+        segms = vm_get_segm()
+        segms['fs'] = 0x4
+        vm_set_segm(segms)
+        vm_set_segm_base(segms['fs'], seh_helper.FS_0_AD)
+        segm_to_do = {x86_afs.reg_sg.index(x86_afs.r_fs)}
+        seh_helper.init_seh()
+    else:
+        segm_to_do = {}
+
+    symbol_pool = asmbloc.asm_symbol_pool()
+    return e, in_str, runtime_dll, segm_to_do, symbol_pool
+
+
+def vm2pe(fname, runtime_dll = None, e_orig = None, max_addr = 1<<64):
+    from elfesteem import pe
+
+    mye = pe_init.PE()
+    all_mem = vm_get_all_memory()
+    min_addr = 0x401000
+    addrs = all_mem.keys()
+    addrs.sort()
+    mye.Opthdr.AddressOfEntryPoint  = mye.virt2rva(vm_get_gpreg()['eip'])
+    for ad in addrs:
+        if not min_addr <= ad < max_addr:
+            continue
+        mye.SHList.add_section("%.8X"%ad, addr = ad - mye.NThdr.ImageBase, data = all_mem[ad]['data'])
+
+    if runtime_dll:
+        new_dll = runtime_dll.gen_new_lib(mye)
+        #print new_dll
+        mye.DirImport.add_dlldesc(new_dll)
+
+    s_imp = mye.SHList.add_section("import", rawsize = len(mye.DirImport))
+    mye.DirImport.set_rva(s_imp.addr)
+
+    if e_orig:
+        # resource
+        xx = str(mye)
+        mye.content = xx
+        ad = e_orig.rva2virt(e_orig.NThdr.optentries[pe.DIRECTORY_ENTRY_RESOURCE].rva)
+        ad = mye.virt2rva(ad)
+        mye.NThdr.optentries[pe.DIRECTORY_ENTRY_RESOURCE].rva = ad
+        mye.DirRes = pe.DirRes.unpack(xx,ad,mye)
+        #print repr(mye.DirRes)
+        s_res = mye.SHList.add_section(name = "myres", rawsize = len(mye.DirRes))
+        mye.DirRes.set_rva(s_res.addr)
+        print repr(mye.DirRes)
+
+    # generation
+    open(fname, 'w').write(str(mye))
+
+def manage_runtime_func(my_eip, api_modues, runtime_dll):
+    from miasm.tools import win_api
+    fname = runtime_dll.fad2cname[my_eip]
+    print "call api", fname, hex(updw(vm_get_str(vm_get_gpreg()['esp'], 4)))
+    f = None
+    for m in api_modues:
+        if isinstance(m, dict):
+            if fname in m:
+                f = m[fname]
+                break
+        else:
+            if fname in m.__dict__:
+                f = m.__dict__[fname]
+                break
+    if not f:
+        print repr(fname)
+        raise ValueError('unknown api', hex(vm_pop_uint32_t()))
+    f()
+    regs = vm_get_gpreg()
+    return regs['eip']
+
+def do_bloc_emul(known_blocs, in_str, my_eip, symbol_pool,
+                 code_blocs_mem_range, dont_dis = [], job_done = None,
+                 log_mn = False, log_regs = False,
+                 segm_to_do = {}, dump_blocs = False, **kargs):
+    if not my_eip in known_blocs:
+        updt_bloc_emul(known_blocs, in_str, my_eip,
+                       symbol_pool, code_blocs_mem_range,
+                       log_regs = log_regs, log_mn = log_mn,
+                       segm_to_do = segm_to_do)
+        vm_reset_exception()
+        if dump_blocs:
+            dump_gpregs_py()
+            print known_blocs[my_eip].b
+
+    if not known_blocs[my_eip].b.lines:
+        raise ValueError('cannot disasm bloc')
+    try:
+        my_eip = vm_exec_blocs(my_eip, known_blocs)
+    except KeyboardInterrupt:
+        return None, None
+    py_exception = vm_get_exception()
+    return my_eip, py_exception
+
+
 #try:
 if True:
     from emul_lib.libcodenat_interface import *
@@ -1138,6 +1309,8 @@ if True:
     #vm_init_regs = libcodenat.vm_init_regs
 #except:
 #    print "WARNING! unable to build libcodenat C interface!!"
+
+
 
 
 

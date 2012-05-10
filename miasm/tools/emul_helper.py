@@ -622,9 +622,10 @@ def guess_func_destack(all_bloc):
 
 def digest_allbloc_instr(all_bloc, segm_to_do = {}):
     instrs = {}
+    """
     g = asmbloc.bloc2graph(all_bloc)
     open("graph_b.txt" , "w").write(g)
-
+    """
 
     #test duplicated blocs
     unik_blobs = {}
@@ -632,7 +633,6 @@ def digest_allbloc_instr(all_bloc, segm_to_do = {}):
         if not b.label in unik_blobs:
             unik_blobs[b.label] = []
         unik_blobs[b.label].append(b)
-
 
     for lbl, blcs in unik_blobs.items():
         if len(blcs) ==1:
@@ -679,3 +679,4 @@ def x86_machine(mem_read_wrap = None, mem_write_wrap = None):
 
                        )
     return machine
+
