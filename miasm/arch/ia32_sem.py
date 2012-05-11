@@ -1673,9 +1673,10 @@ def fistp(info, a):
 def fild(info, a):
     #XXXXX
     src = ExprOp('int_%.2d_to_double'%a.get_size(), a)
-
+    e = []
     e += set_float_cs_eip(info)
-    return fld(info, src)
+    e += fld(info, src)
+    return e
 
 def fldz(info):
     return fld(info, ExprOp('int_32_to_double', ExprInt(uint32(0))))
