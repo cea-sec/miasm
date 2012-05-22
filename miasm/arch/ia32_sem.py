@@ -1901,7 +1901,10 @@ def nop(info):
     return []
 
 def hlt(info):
-    return []
+    e = []
+    except_int = EXCEPT_PRIV_INSN
+    e.append(ExprAff(ExprId('vmcpu.vm_exception_flags'), ExprInt(uint32(except_int))))
+    return e
 
 def rdtsc(info):
     e = []
