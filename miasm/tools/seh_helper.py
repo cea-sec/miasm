@@ -171,12 +171,18 @@ def build_fake_inordermodule(modules_name):
     o += (0x1000 - len(o))*"C"
     for i, m in enumerate(modules_name):
         #fname = os.path.join('win_dll', m)
-        fname = m
+        if len(m) == 1:
+            fname, e = m, None
+        elif len(m) ==2:
+            fname, e = m
+        else:
+            raise ValueError('unknown modules_name r'%m)
         bname = os.path.split(fname)[1].lower()
         bname = "\x00".join(bname)+"\x00"
         print "add module", repr(bname)
         print hex(in_load_order_module_1+i*0x1000)
-        e = pe_init.PE(open(fname, 'rb').read())
+        if e == None:
+            e = pe_init.PE(open(fname, 'rb').read())
 
         next_ad = in_load_order_module_1 + (i+1)*0x1000
         if i == len(modules_name) -1:
@@ -226,7 +232,6 @@ def init_seh():
     vm_add_memory_page(peb_address, PAGE_READ | PAGE_WRITE, build_fake_peb())
     #vm_add_memory_page(peb_ldr_data_address, PAGE_READ | PAGE_WRITE, p(0) * 3 + p(in_load_order_module_list_address) + p(0) * 0x20)
     vm_add_memory_page(peb_ldr_data_address, PAGE_READ | PAGE_WRITE, build_fake_ldr_data())
-
     #vm_add_memory_page(in_load_order_module_list_address, PAGE_READ | PAGE_WRITE, p(0) * 40)
     vm_add_memory_page(in_load_order_module_list_address, PAGE_READ | PAGE_WRITE, build_fake_inordermodule(loaded_modules))
     vm_add_memory_page(default_seh, PAGE_READ | PAGE_WRITE, p(0xffffffff) + p(0x41414141) + p(0x42424242))

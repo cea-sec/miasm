@@ -1177,15 +1177,15 @@ def load_pe_in_vm(fname_in, options, all_imp_dll = None, **kargs):
         runtime_dll.add_export_lib(ee, n)
         exp_funcs = pe_helper.get_export_name_addr_list(ee)
         exp_func[n] = exp_funcs
-        all_pe.append(ee)
+        all_pe.append((fname, ee))
 
-    for ee in all_pe:
+    for fname, ee in all_pe:
         pe_helper.preload_lib(ee, runtime_dll)
     seh_helper.runtime_dll = runtime_dll
     if options.loadmainpe:
         seh_helper.main_pe = e
     seh_helper.main_pe_name = "c:\\xxx\\"+kargs.get("main_pe_name", "toto.exe")
-    seh_helper.loaded_modules = ['win_dll/'+x for x in mod_list]
+    seh_helper.loaded_modules = all_pe
     dll_dyn_funcs = pe_helper.preload_lib(e, runtime_dll)
 
     win_api.winobjs.runtime_dll = runtime_dll
@@ -1200,6 +1200,7 @@ def load_pe_in_vm(fname_in, options, all_imp_dll = None, **kargs):
                                    codenat.PAGE_READ|codenat.PAGE_WRITE,
                                    "\x00"*stack_size)
     dump_memory_page_pool_py()
+
 
     regs = vm_get_gpreg()
     regs['esp'] = stack_base_ad+stack_size
@@ -1216,6 +1217,7 @@ def load_pe_in_vm(fname_in, options, all_imp_dll = None, **kargs):
         segm_to_do = {}
 
     symbol_pool = asmbloc.asm_symbol_pool()
+
     return e, in_str, runtime_dll, segm_to_do, symbol_pool
 
 
