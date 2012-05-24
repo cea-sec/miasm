@@ -1060,23 +1060,23 @@ def bswap(info, a):
 
 def cmps(info, a, b):
     e= []
-    int_cast = tab_uintsize[a.get_size()]
     e+=l_cmp(info, a, b)
+    off = a.get_size()/8
     e.append(ExprAff(a.arg, ExprCond(df,
-                                     ExprOp('-', a.arg, ExprInt(int_cast(a.get_size()/8))),
-                                     ExprOp('+', a.arg, ExprInt(int_cast(a.get_size()/8))))))
+                                     ExprOp('-', a.arg, ExprInt_from(a.arg, off)),
+                                     ExprOp('+', a.arg, ExprInt_from(a.arg, off)))))
     e.append(ExprAff(b.arg, ExprCond(df,
-                                     ExprOp('-', b.arg, ExprInt(int_cast(a.get_size()/8))),
-                                     ExprOp('+', b.arg, ExprInt(int_cast(a.get_size()/8))))))
+                                     ExprOp('-', b.arg, ExprInt_from(a.arg, off)),
+                                     ExprOp('+', b.arg, ExprInt_from(a.arg, off)))))
     return e
 
 def scas(info, a):
     e= []
-    int_cast = tab_uintsize[a.get_size()]
+    off = a.get_size()/8
     e+=l_cmp(info, eax[0:a.get_size()], a)
     e.append(ExprAff(a.arg, ExprCond(df,
-                                     ExprOp('-', a.arg, ExprInt(int_cast(a.get_size()/8))),
-                                     ExprOp('+', a.arg, ExprInt(int_cast(a.get_size()/8))))))
+                                     ExprOp('-', a.arg, ExprInt_from(a.arg, off)),
+                                     ExprOp('+', a.arg, ExprInt_from(a.arg, off)))))
     return e
 
 
@@ -1540,33 +1540,32 @@ def cdq(info):
 
 def stos(info, a):
     e = []
-    int_cast = tab_uintsize[a.get_size()]
+    off = a.get_size()/8
     e.append(ExprAff(a, eax[0:a.get_size()]))
     e.append(ExprAff(a.arg, ExprCond(df,
-                                     ExprOp('-', a.arg, ExprInt(int_cast(a.get_size()/8))),
-                                     ExprOp('+', a.arg, ExprInt(int_cast(a.get_size()/8))))))
+                                     ExprOp('-', a.arg, ExprInt_from(a.arg, off)),
+                                     ExprOp('+', a.arg, ExprInt_from(a.arg, off)))))
     return e
 
 def lods(info, a):
     e = []
-    int_cast = tab_uintsize[a.get_size()]
+    off = a.get_size()/8
     e.append(ExprAff(eax[0:a.get_size()], a))
     e.append(ExprAff(a.arg, ExprCond(df,
-                                     ExprOp('-', a.arg, ExprInt(int_cast(a.get_size()/8))),
-                                     ExprOp('+', a.arg, ExprInt(int_cast(a.get_size()/8))))))
+                                     ExprOp('-', a.arg, ExprInt_from(a.arg, off)),
+                                     ExprOp('+', a.arg, ExprInt_from(a.arg, off)))))
     return e
 
 def movs(info, a, b):
     e = []
-    int_cast = tab_uintsize[a.get_size()]
-
+    off = a.get_size()/8
     e.append(ExprAff(a, b))
     e.append(ExprAff(a.arg, ExprCond(df,
-                                     ExprOp('-', a.arg, ExprInt(int_cast(a.get_size()/8))),
-                                     ExprOp('+', a.arg, ExprInt(int_cast(a.get_size()/8))))))
+                                     ExprOp('-', a.arg, ExprInt_from(a.arg, off)),
+                                     ExprOp('+', a.arg, ExprInt_from(a.arg, off)))))
     e.append(ExprAff(b.arg, ExprCond(df,
-                                     ExprOp('-', b.arg, ExprInt(int_cast(a.get_size()/8))),
-                                     ExprOp('+', b.arg, ExprInt(int_cast(a.get_size()/8))))))
+                                     ExprOp('-', b.arg, ExprInt_from(b.arg, off)),
+                                     ExprOp('+', b.arg, ExprInt_from(b.arg, off)))))
 
     return e
 
@@ -2102,31 +2101,22 @@ def cmpxchg(info, a, b, c):
 
 def lds(info, a, b):
     e = []
-    s = a.get_size()
-    int_cast = tab_uintsize[s]
-    addr = b.arg
-    e.append(ExprAff(a, ExprMem(addr, size = s)))
-    e.append(ExprAff(ds, ExprMem(ExprOp('+', addr, ExprInt(int_cast(2))),
+    e.append(ExprAff(a, ExprMem(b.arg, size = a.get_size())))
+    e.append(ExprAff(ds, ExprMem(ExprOp('+', b.arg, ExprInt_from(a, 2)),
                                  size=16)))
     return e
 
 def les(info, a, b):
     e = []
-    s = a.get_size()
-    int_cast = tab_uintsize[s]
-    addr = b.arg
-    e.append(ExprAff(a, ExprMem(addr, size = s)))
-    e.append(ExprAff(es, ExprMem(ExprOp('+', addr, ExprInt(int_cast(2))),
+    e.append(ExprAff(a, ExprMem(b.arg, size = a.get_size())))
+    e.append(ExprAff(es, ExprMem(ExprOp('+', b.arg, ExprInt_from(a, 2)),
                                  size=16)))
     return e
 
 def lss(info, a, b):
     e = []
-    s = a.get_size()
-    int_cast = tab_uintsize[s]
-    addr = b.arg
-    e.append(ExprAff(a, ExprMem(addr, size = s)))
-    e.append(ExprAff(ss, ExprMem(ExprOp('+', addr, ExprInt(int_cast(2))),
+    e.append(ExprAff(a, ExprMem(b.arg, size = a.get_size())))
+    e.append(ExprAff(ss, ExprMem(ExprOp('+', b.arg, ExprInt_from(a, 2)),
                                  size=16)))
     return e
 
