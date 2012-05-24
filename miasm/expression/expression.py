@@ -751,3 +751,12 @@ def canonize_expr_list_compose(l):
     l = l[:]
     l.sort(cmp=compare_exprs_compose)
     return l
+
+tab_uintsize ={8:uint8,
+               16:uint16,
+               32:uint32,
+               64:uint64
+               }
+
+def ExprInt_from(e, i):
+    return ExprInt(tab_uintsize[e.get_size()](i))

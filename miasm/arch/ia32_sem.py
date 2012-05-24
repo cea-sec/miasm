@@ -403,13 +403,13 @@ def update_flag_zf(a):
     return [ExprAff(zf, ExprOp('==', a, ExprInt(cast_int(0))))]
 
 def update_flag_nf(a):
-    return [ExprAff(nf, ExprOp('&', get_op_msb(a), ExprInt(tab_uintsize[a.get_size()](1))))]
+    return [ExprAff(nf, ExprOp('&', get_op_msb(a), ExprInt_from(a, 1)))]
 
 def update_flag_pf(a):
     return [ExprAff(pf, ExprOp('parity', a))]
 
 def update_flag_af(a):
-    return [ExprAff(af, ExprOp('==', ExprOp('&', a, ExprInt(tab_uintsize[a.get_size()](0x10))), ExprInt(tab_uintsize[a.get_size()](0x10))))]
+    return [ExprAff(af, ExprOp('==', ExprOp('&', a, ExprInt_from(a, 0x10)), ExprInt_from(a, 0x10)))]
 
 def update_flag_znp(a):
     e = []
@@ -933,7 +933,7 @@ def sti(info):
 
 def inc(info, a):
     e= []
-    b = ExprInt(tab_uintsize[a.get_size()](1))
+    b = ExprInt_from(a, 1)
     c = ExprOp('+', a, b)
     e+=update_flag_arith(c)
     e+=update_flag_af(c)
@@ -946,7 +946,7 @@ def inc(info, a):
 
 def dec(info, a):
     e= []
-    b = ExprInt(tab_uintsize[a.get_size()](-1))
+    b = ExprInt_from(a, -1)
     c = ExprOp('+', a, b)
     e+=update_flag_arith(c)
     e+=update_flag_af(c)
@@ -981,79 +981,79 @@ def pop(info, a):
 
 def sete(info, a):
     e = []
-    e.append(ExprAff(a, ExprCond(ExprOp('==', zf, ExprInt(uint32(1))), ExprInt(tab_uintsize[a.get_size()](1)), ExprInt(tab_uintsize[a.get_size()](0)))))
+    e.append(ExprAff(a, ExprCond(ExprOp('==', zf, ExprInt(uint32(1))), ExprInt_from(a, 1), ExprInt_from(a, 0))))
     return e
 
 def setnz(info, a):
     e = []
-    e.append(ExprAff(a, ExprCond(ExprOp('==', zf, ExprInt(uint32(0))), ExprInt(tab_uintsize[a.get_size()](1)), ExprInt(tab_uintsize[a.get_size()](0)))))
+    e.append(ExprAff(a, ExprCond(ExprOp('==', zf, ExprInt(uint32(0))), ExprInt_from(a, 1), ExprInt_from(a, 0))))
     return e
 
 def setl(info, a):
     e = []
-    e.append(ExprAff(a, ExprCond(ExprOp('==', ExprOp('==', nf, of), ExprInt(uint32(0))), ExprInt(tab_uintsize[a.get_size()](1)), ExprInt(tab_uintsize[a.get_size()](0)))))
+    e.append(ExprAff(a, ExprCond(ExprOp('==', ExprOp('==', nf, of), ExprInt(uint32(0))), ExprInt_from(a, 1), ExprInt_from(a, 0))))
     return e
 
 def setg(info, a):
     e = []
-    e.append(ExprAff(a, ExprCond(ExprOp("&", ExprOp('==', zf, ExprInt(uint32(0))), ExprOp('==', nf, of)), ExprInt(tab_uintsize[a.get_size()](1)), ExprInt(tab_uintsize[a.get_size()](0)))))
+    e.append(ExprAff(a, ExprCond(ExprOp("&", ExprOp('==', zf, ExprInt(uint32(0))), ExprOp('==', nf, of)), ExprInt_from(a, 1), ExprInt_from(a, 0))))
     return e
 
 def setge(info, a):
     e = []
-    e.append(ExprAff(a, ExprCond(ExprOp('==', nf, of), ExprInt(tab_uintsize[a.get_size()](1)), ExprInt(tab_uintsize[a.get_size()](0)))))
+    e.append(ExprAff(a, ExprCond(ExprOp('==', nf, of), ExprInt_from(a, 1), ExprInt_from(a, 0))))
     return e
 
 
 def seta(info, a):
     e = []
-    e.append(ExprAff(a, ExprCond(ExprOp('&', ExprOp('==', cf, ExprInt(uint32(0))), ExprOp('==', zf, ExprInt(uint32(0)))), ExprInt(tab_uintsize[a.get_size()](1)), ExprInt(tab_uintsize[a.get_size()](0)))))
+    e.append(ExprAff(a, ExprCond(ExprOp('&', ExprOp('==', cf, ExprInt(uint32(0))), ExprOp('==', zf, ExprInt(uint32(0)))), ExprInt_from(a, 1), ExprInt_from(a, 0))))
     return e
 
 def setae(info, a):
     e = []
-    e.append(ExprAff(a, ExprCond(ExprOp('==', cf, ExprInt(uint32(0))), ExprInt(tab_uintsize[a.get_size()](1)), ExprInt(tab_uintsize[a.get_size()](0)))))
+    e.append(ExprAff(a, ExprCond(ExprOp('==', cf, ExprInt(uint32(0))), ExprInt_from(a, 1), ExprInt_from(a, 0))))
     return e
 
 def setb(info, a):
     e = []
-    e.append(ExprAff(a, ExprCond(ExprOp('==', cf, ExprInt(uint32(1))), ExprInt(tab_uintsize[a.get_size()](1)), ExprInt(tab_uintsize[a.get_size()](0)))))
+    e.append(ExprAff(a, ExprCond(ExprOp('==', cf, ExprInt(uint32(1))), ExprInt_from(a, 1), ExprInt_from(a, 0))))
     return e
 
 def setbe(info, a):
     e = []
-    e.append(ExprAff(a, ExprCond(ExprOp('|', ExprOp('==', cf, ExprInt(uint32(1))), ExprOp('==', zf, ExprInt(uint32(1)))), ExprInt(tab_uintsize[a.get_size()](1)), ExprInt(tab_uintsize[a.get_size()](0)))))
+    e.append(ExprAff(a, ExprCond(ExprOp('|', ExprOp('==', cf, ExprInt(uint32(1))), ExprOp('==', zf, ExprInt(uint32(1)))), ExprInt_from(a, 1), ExprInt_from(a, 0))))
     return e
 
 def setns(info, a):
     e = []
-    e.append(ExprAff(a, ExprCond(ExprOp('==', nf, ExprInt(uint32(0))), ExprInt(tab_uintsize[a.get_size()](1)), ExprInt(tab_uintsize[a.get_size()](0)))))
+    e.append(ExprAff(a, ExprCond(ExprOp('==', nf, ExprInt(uint32(0))), ExprInt_from(a, 1), ExprInt_from(a, 0))))
     return e
 
 def sets(info, a):
     e = []
-    e.append(ExprAff(a, ExprCond(ExprOp('==', nf, ExprInt(uint32(1))), ExprInt(tab_uintsize[a.get_size()](1)), ExprInt(tab_uintsize[a.get_size()](0)))))
+    e.append(ExprAff(a, ExprCond(ExprOp('==', nf, ExprInt(uint32(1))), ExprInt_from(a, 1), ExprInt_from(a, 0))))
     return e
 
 
 def seto(info, a):
     e= []
-    e.append(ExprAff(a, ExprCond(ExprOp('==', of, ExprInt(uint32(1))), ExprInt(tab_uintsize[a.get_size()](1)), ExprInt(tab_uintsize[a.get_size()](0)))))
+    e.append(ExprAff(a, ExprCond(ExprOp('==', of, ExprInt(uint32(1))), ExprInt_from(a, 1), ExprInt_from(a, 0))))
     return e
 
 def setalc(info):
     a = eax[0:8]
     e = []
-    e.append(ExprAff(a, ExprCond(ExprOp('==', cf, ExprInt(uint32(1))), ExprInt(tab_uintsize[a.get_size()](0xff)), ExprInt(tab_uintsize[a.get_size()](0)))))
+    e.append(ExprAff(a, ExprCond(ExprOp('==', cf, ExprInt(uint32(1))), ExprInt_from(a, 0xff), ExprInt_from(a, 0))))
     return e
 
 
 def bswap(info, a):
     e = []
-    c = ExprCompose([(ExprOp('&', ExprInt(tab_uintsize[a.get_size()](0xFF)), a),                                         24, 32),
-                     (ExprOp('>>', ExprOp('&', ExprInt(tab_uintsize[a.get_size()](0xFF00)), a), ExprInt(uint32(8))),     16, 24),
-                     (ExprOp('>>', ExprOp('&', ExprInt(tab_uintsize[a.get_size()](0xFF0000)), a), ExprInt(uint32(16))),  8 , 16),
-                     (ExprOp('>>', ExprOp('&', ExprInt(tab_uintsize[a.get_size()](0xFF000000)), a), ExprInt(uint32(24))),0 , 8 ),
+    c = ExprCompose([(ExprOp('&', ExprInt_from(a, 0xFF), a),                                         24, 32),
+                     (ExprOp('>>', ExprOp('&', ExprInt_from(a, 0xFF00), a), ExprInt(uint32(8))),     16, 24),
+                     (ExprOp('>>', ExprOp('&', ExprInt_from(a, 0xFF0000), a), ExprInt(uint32(16))),  8 , 16),
+                     (ExprOp('>>', ExprOp('&', ExprInt_from(a, 0xFF000000), a), ExprInt(uint32(24))),0 , 8 ),
                      ])
     e.append(ExprAff(a, c))
     return e
