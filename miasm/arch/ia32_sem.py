@@ -399,8 +399,7 @@ def get_op_msb(a):
 
 
 def update_flag_zf(a):
-    cast_int = tab_uintsize[a.get_size()]
-    return [ExprAff(zf, ExprOp('==', a, ExprInt(cast_int(0))))]
+    return [ExprAff(zf, ExprOp('==', a, ExprInt_from(a, 0)))]
 
 def update_flag_nf(a):
     return [ExprAff(nf, ExprOp('&', get_op_msb(a), ExprInt_from(a, 1)))]
@@ -443,36 +442,34 @@ def arith_flag(a, b, c):
 
 
 #checked: ok for adc add because of b & c before +cf
-def update_flag_add_cf(cast_int, a, b, c):
+def update_flag_add_cf(a, b, c):
     return ExprAff(cf, get_op_msb((a ^ b) ^ c) ^ get_op_msb((a ^ c) & (~(a ^ b))))
 
-def update_flag_add_of(cast_int, a, b, c):
+def update_flag_add_of(a, b, c):
     return ExprAff(of, get_op_msb(((a ^ c) & (~(a ^ b)))))
 
 
 #checked: ok for sbb add because of b & c before +cf
-def update_flag_sub_cf(cast_int, a, b, c):
+def update_flag_sub_cf(a, b, c):
     return ExprAff(cf, get_op_msb((a ^ b) ^ c) ^ get_op_msb((a ^ c) & (a ^ b)))
 
 
-def update_flag_sub_of(cast_int, a, b, c):
+def update_flag_sub_of(a, b, c):
     return ExprAff(of, get_op_msb(((a ^ c) & (a ^ b))))
 
 
 #z = x+y (+cf?)
 def update_flag_add(x, y, z):
-    cast_int = tab_uintsize[z.get_size()]
     e = []
-    e.append(update_flag_add_cf(cast_int, x, y, z))
-    e.append(update_flag_add_of(cast_int, x, y, z))
+    e.append(update_flag_add_cf(x, y, z))
+    e.append(update_flag_add_of(x, y, z))
     return e
 
 #z = x-y (+cf?)
 def update_flag_sub(x, y, z):
-    cast_int = tab_uintsize[z.get_size()]
     e = []
-    e.append(update_flag_sub_cf(cast_int, x, y, z))
-    e.append(update_flag_sub_of(cast_int, x, y, z))
+    e.append(update_flag_sub_cf(x, y, z))
+    e.append(update_flag_sub_of(x, y, z))
     return e
 
 def set_float_cs_eip(info):
@@ -565,8 +562,7 @@ def sbb(info, a, b):
 
 def neg(info, b):
     e= []
-    cast_int = tab_uintsize[b.get_size()]
-    a = ExprInt(cast_int(0))
+    a = ExprInt_from(b, 0)
 
     c = ExprOp('-', a, b)
     e+=update_flag_arith(c)
@@ -577,7 +573,6 @@ def neg(info, b):
 
 def l_not(info, b):
     e= []
-    cast_int = tab_uintsize[b.get_size()]
     c = ~b
     e.append(ExprAff(b, c))
     return e
@@ -620,10 +615,9 @@ def l_test(info, a, b):
 
 def l_rol(info, a, b):
     e= []
-    cast_int = tab_uintsize[a.get_size()]
     c = ExprOp('<<<', a, b)
 
-    new_cf = ExprOp("&", c ,ExprInt(cast_int(1)))
+    new_cf = ExprOp("&", c ,ExprInt_from(a, 1))
     e.append(ExprAff(cf, new_cf))
     ### hack (only valid if b=1)
     e.append(ExprAff(of, ExprOp("^", get_op_msb(c), new_cf)))
@@ -665,19 +659,17 @@ def rcr(info, a, b):
 
 def sar(info, a, b):
     e= []
-    cast_int = tab_uintsize[a.get_size()]
-    cast_intb = tab_uintsize[b.get_size()]
 
-    shifter = ExprOp('&',b, ExprInt(cast_intb(0x1f)))
+    shifter = ExprOp('&',b, ExprInt_from(b, 0x1f))
     c = ExprOp('a>>', a, shifter)
 
     new_cf = ExprOp('&',
-                    ExprInt(cast_int(1)),
+                    ExprInt_from(a, 1),
                     ExprOp('a>>',
                            a,
                            ExprOp('-',
                                   shifter,
-                                  ExprInt(cast_intb(1))
+                                  ExprInt_from(b, 1)
                                   )
                            )
                     )
@@ -686,25 +678,23 @@ def sar(info, a, b):
                                   cf)
                      )
              )
-    e.append(ExprAff(of, ExprInt(cast_int(0))))
+    e.append(ExprAff(of, ExprInt_from(a, 0)))
     e+=update_flag_znp(c)
     e.append(ExprAff(a, c))
     return e
 
 def shr(info, a, b):
     e= []
-    cast_int = tab_uintsize[a.get_size()]
-    cast_intb = tab_uintsize[b.get_size()]
-    shifter = ExprOp('&',b, ExprInt(cast_intb(0x1f)))
+    shifter = ExprOp('&',b, ExprInt_from(b, 0x1f))
     c = ExprOp('>>', a, shifter)
 
     new_cf = ExprOp('&',
-                    ExprInt(cast_int(1)),
+                    ExprInt_from(a, 1),
                     ExprOp('>>',
                            a,
                            ExprOp('-',
                                   shifter,
-                                  ExprInt(cast_intb(1))
+                                  ExprInt_from(b, 1)
                                   )
                            )
                     )
@@ -720,25 +710,22 @@ def shr(info, a, b):
 
 def shrd_cl(info, a, b):
     e= []
-    cast_int = tab_uintsize[a.get_size()]
-    cast_intb = tab_uintsize[b.get_size()]
-
-    shifter = ExprOp('&',ecx, ExprInt(cast_intb(0x1f)))
+    shifter = ExprOp('&',ecx, ExprInt_from(b, 0x1f))
     c = ExprOp('|',
                 ExprOp('>>', a, shifter),
                 ExprOp('<<', b, ExprOp('-',
-                                        ExprInt(cast_int(a.get_size())),
+                                        ExprInt_from(a, a.get_size()),
                                         shifter)
                                         )
               )
 
     new_cf = ExprOp('&',
-                    ExprInt(cast_int(1)),
+                    ExprInt_from(a, 1),
                     ExprOp('>>',
                            a,
                            ExprOp('-',
                                   shifter,
-                                  ExprInt(cast_intb(1))
+                                  ExprInt_from(b, 1)
                                   )
                            )
                     )
@@ -754,26 +741,23 @@ def shrd_cl(info, a, b):
 
 def shrd(info, a, b, c):
     e= []
-    cast_int = tab_uintsize[a.get_size()]
-    cast_intb = tab_uintsize[b.get_size()]
-
     shifter = c
 
     d = ExprOp('|',
                 ExprOp('>>', a, shifter),
                 ExprOp('<<', b, ExprOp('-',
-                                        ExprInt(cast_int(a.get_size())),
+                                        ExprInt_from(a, a.get_size()),
                                         shifter)
                                         )
               )
 
     new_cf = ExprAff(cf, ExprOp('&',
-                                ExprInt(cast_int(1)),
+                                ExprInt_from(a, 1),
                                 ExprOp('>>',
                                        a,
                                        ExprOp('-',
                                               shifter,
-                                              ExprInt(cast_intb(1))
+                                              ExprInt_from(b, 1)
                                               )
                                        )
                                 )
@@ -790,17 +774,15 @@ def shrd(info, a, b, c):
 
 def sal(info, a, b):
     e= []
-    cast_int = tab_uintsize[a.get_size()]
-    cast_intb = tab_uintsize[b.get_size()]
-    shifter = ExprOp('&',b, ExprInt(cast_intb(0x1f)))
+    shifter = ExprOp('&',b, ExprInt_from(b, 0x1f))
 
     c = ExprOp('a<<', a, shifter)
     new_cf = ExprOp('&',
-                    ExprInt(cast_int(1)),
+                    ExprInt_from(a, 1),
                     ExprOp('>>',
                            a,
                            ExprOp('-',
-                                  ExprInt(cast_intb(a.get_size())),
+                                  ExprInt_from(b, a.get_size()),
                                   shifter
                                   )
                            )
@@ -817,17 +799,15 @@ def sal(info, a, b):
 
 def shl(info, a, b):
     e= []
-    cast_int = tab_uintsize[a.get_size()]
-    cast_intb = tab_uintsize[b.get_size()]
-    shifter = ExprOp('&',b, ExprInt(cast_intb(0x1f)))
+    shifter = ExprOp('&',b, ExprInt_from(b, 0x1f))
 
     c = ExprOp('<<', a, shifter)
     new_cf = ExprOp('&',
-                    ExprInt(cast_int(1)),
+                    ExprInt_from(a, 1),
                     ExprOp('>>',
                            a,
                            ExprOp('-',
-                                  ExprInt(cast_intb(a.get_size())),
+                                  ExprInt_from(b, a.get_size()),
                                   shifter
                                   )
                            )
@@ -844,23 +824,21 @@ def shl(info, a, b):
 
 def shld_cl(info, a, b):
     e= []
-    cast_int = tab_uintsize[a.get_size()]
-    cast_intb = tab_uintsize[b.get_size()]
-    shifter = ExprOp('&',ecx, ExprInt(cast_int(0x1f)))
+    shifter = ExprOp('&',ecx, ExprInt_from(a, 0x1f))
     c = ExprOp('|',
             ExprOp('<<', a, shifter),
             ExprOp('>>', b, ExprOp('-',
-                                    ExprInt(cast_int(a.get_size())),
+                                    ExprInt_from(a, a.get_size()),
                                     shifter)
                                     )
           )
 
     new_cf = ExprOp('&',
-                    ExprInt(cast_int(1)),
+                    ExprInt_from(a, 1),
                     ExprOp('>>',
                            a,
                            ExprOp('-',
-                                  ExprInt(cast_intb(a.get_size())),
+                                  ExprInt_from(b, a.get_size()),
                                   shifter
                                   )
                            )
@@ -877,23 +855,21 @@ def shld_cl(info, a, b):
 
 def shld(info, a, b, c):
     e= []
-    cast_int = tab_uintsize[a.get_size()]
-    cast_intb = tab_uintsize[b.get_size()]
-    shifter = ExprOp('&',c, ExprInt(cast_int(0x1f)))
+    shifter = ExprOp('&',c, ExprInt_from(a, 0x1f))
     c = ExprOp('|',
             ExprOp('<<', a, shifter),
             ExprOp('>>', b, ExprOp('-',
-                                    ExprInt(cast_int(a.get_size())),
+                                    ExprInt_from(a, a.get_size()),
                                     shifter)
                                     )
           )
 
     new_cf = ExprOp('&',
-                    ExprInt(cast_int(1)),
+                    ExprInt_from(a, 1),
                     ExprOp('>>',
                            a,
                            ExprOp('-',
-                                  ExprInt(cast_intb(a.get_size())),
+                                  ExprInt_from(b, a.get_size()),
                                   shifter
                                   )
                            )
@@ -938,8 +914,7 @@ def inc(info, a):
     e+=update_flag_arith(c)
     e+=update_flag_af(c)
 
-    cast_int = tab_uintsize[c.get_size()]
-    e.append(update_flag_add_of(cast_int, a, b, c))
+    e.append(update_flag_add_of(a, b, c))
     e.append(ExprAff(a, c))
     return e
 
@@ -951,8 +926,7 @@ def dec(info, a):
     e+=update_flag_arith(c)
     e+=update_flag_af(c)
 
-    cast_int = tab_uintsize[c.get_size()]
-    e.append(update_flag_add_of(cast_int, a, b, c))
+    e.append(update_flag_add_of(a, b, c))
     e.append(ExprAff(a, c))
     return e
 
@@ -1949,16 +1923,14 @@ def aaa(info, ):
 
 def bsf(info, a, b):
     e = []
-    cast_int = tab_uintsize[b.get_size()]
     e.append(ExprAff(a, ExprOp('bsf', a, b)))
-    e.append(ExprAff(zf, ExprOp('==', ExprInt(cast_int(0)), b)))
+    e.append(ExprAff(zf, ExprOp('==', ExprInt_from(b, 0), b)))
     return e
 
 def bsr(info, a, b):
     e = []
-    cast_int = tab_uintsize[b.get_size()]
     e.append(ExprAff(a, ExprOp('bsr', a, b)))
-    e.append(ExprAff(zf, ExprOp('==', ExprInt(cast_int(0)), b)))
+    e.append(ExprAff(zf, ExprOp('==', ExprInt_from(b, 0), b)))
     return e
 
 def arpl(info, a, b):
@@ -1976,7 +1948,6 @@ def sidt(info, a):
     if not isinstance(a, ExprMem) or a.size!=32:
       raise 'not exprmem 32bit instance!!'
     b = a.arg
-    cast_int = tab_uintsize[a.get_size()]
     print "DEFAULT SIDT ADDRESS %s!!"%str(a)
     e.append(ExprAff(ExprMem(b, 32), ExprInt32(0xe40007ff)))
     e.append(ExprAff(ExprMem(ExprOp("+", b, ExprInt32(4)), 32), ExprInt32(0x8245)))
@@ -2039,40 +2010,36 @@ def cpuid(info):
     return e
 
 def bt(info, a, b):
-    cast_int = tab_uintsize[a.get_size()]
     e= []
-    c= ExprOp('&', b, ExprInt(cast_int(b.get_size() - 1)))
+    c= ExprOp('&', b, ExprInt_from(a, b.get_size() - 1))
     d= ExprOp('>>', a, c)
-    e.append(ExprAff(cf, ExprOp('&', d, ExprInt(cast_int(1)))))
+    e.append(ExprAff(cf, ExprOp('&', d, ExprInt_from(a, 1))))
     return e
 
 def btc(info, a, b):
-    cast_int = tab_uintsize[a.get_size()]
     e= []
-    c= ExprOp('&', b, ExprInt(cast_int(b.get_size() - 1)))
+    c= ExprOp('&', b, ExprInt_from(a, b.get_size() - 1))
     d= ExprOp('>>', a, c)
-    m= ExprOp('<<', ExprInt(cast_int(1)), b)
-    e.append(ExprAff(cf, ExprOp('&', d, ExprInt(cast_int(1)))))
+    m= ExprOp('<<', ExprInt_from(a, 1), b)
+    e.append(ExprAff(cf, ExprOp('&', d, ExprInt_from(a, 1))))
     e.append(ExprAff(a, ExprOp('^', a, m)))
     return e
 
 def bts(info, a, b):
-    cast_int = tab_uintsize[a.get_size()]
     e= []
-    c= ExprOp('&', b, ExprInt(cast_int(b.get_size() - 1)))
+    c= ExprOp('&', b, ExprInt_from(a, b.get_size() - 1))
     d= ExprOp('>>', a, c)
-    m= ExprOp('<<', ExprInt(cast_int(1)), b)
-    e.append(ExprAff(cf, ExprOp('&', d, ExprInt(cast_int(1)))))
+    m= ExprOp('<<', ExprInt_from(a, 1), b)
+    e.append(ExprAff(cf, ExprOp('&', d, ExprInt_from(a, 1))))
     e.append(ExprAff(a, ExprOp('|', a, m)))
     return e
 
 def btr(info, a, b):
-    cast_int = tab_uintsize[a.get_size()]
     e= []
-    c= ExprOp('&', b, ExprInt(cast_int(b.get_size() - 1)))
+    c= ExprOp('&', b, ExprInt_from(a, b.get_size() - 1))
     d= ExprOp('>>', a, c)
-    m= ~ExprOp('<<', ExprInt(cast_int(1)), b)
-    e.append(ExprAff(cf, ExprOp('&', d, ExprInt(cast_int(1)))))
+    m= ~ExprOp('<<', ExprInt_from(a, 1), b)
+    e.append(ExprAff(cf, ExprOp('&', d, ExprInt_from(a, 1))))
     e.append(ExprAff(a, ExprOp('&', a, m)))
     return e
 
@@ -2085,7 +2052,6 @@ def l_in(info, a, b):
 
 def cmpxchg(info, a, b, c):
     e = []
-    cast_int = tab_uintsize[a.get_size()]
 
     cond = ExprOp('==', a, c )
     e.append(ExprAff(zf, cond))
