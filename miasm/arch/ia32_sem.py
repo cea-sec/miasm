@@ -421,8 +421,8 @@ def update_flag_znp(a):
 def update_flag_logic(a):
     e = []
     e+=update_flag_znp(a)
-    e.append(ExprAff(of, ExprInt(uint32(0))))
-    e.append(ExprAff(cf, ExprInt(uint32(0))))
+    e.append(ExprAff(of, ExprInt32(0)))
+    e.append(ExprAff(cf, ExprInt32(0)))
     return e
 
 def update_flag_arith(a):
@@ -493,13 +493,13 @@ def xchg(info, a, b):
     return e
 
 def movzx(info, a, b):
-    return [ExprAff(a, ExprCompose([(ExprInt(uint32(0)), b.get_size(), a.get_size()),
+    return [ExprAff(a, ExprCompose([(ExprInt32(0), b.get_size(), a.get_size()),
                                     (b, 0, b.get_size())]))]
 
 def movsx(info, a, b):
-    return [ExprAff(a, ExprCompose([(ExprCond(ExprOp('==', get_op_msb(b), ExprInt(uint32(1))),
-                                              ExprInt(uint32(0xffffffff)),
-                                              ExprInt(uint32(0))),
+    return [ExprAff(a, ExprCompose([(ExprCond(ExprOp('==', get_op_msb(b), ExprInt32(1)),
+                                              ExprInt32(0xffffffff),
+                                              ExprInt32(0)),
                                      b.get_size(), a.get_size()),
                                     (b, 0, b.get_size())]))]
 
@@ -531,7 +531,7 @@ def adc(info, a, b):
                a,
                ExprOp('+',
                       b,
-                      ExprCompose([(ExprInt(uint32(0)), 1, a.get_size()),
+                      ExprCompose([(ExprInt32(0), 1, a.get_size()),
                                    (cf, 0, 1)])))
     e+=update_flag_arith(c)
     e+=update_flag_af(c)
@@ -555,7 +555,7 @@ def sbb(info, a, b):
                a,
                ExprOp('+',
                       b,
-                      ExprCompose([(ExprInt(uint32(0)), 1, a.get_size()),
+                      ExprCompose([(ExprInt32(0), 1, a.get_size()),
                                    (cf, 0, 1)])))
     e+=update_flag_arith(c)
     e+=update_flag_af(c)
@@ -911,25 +911,25 @@ def shld(info, a, b, c):
 
 #XXX todo ###
 def cmc(info):
-    return     [ExprAff(cf, ExprOp('==', cf, ExprInt(uint32(0))))]
+    return     [ExprAff(cf, ExprOp('==', cf, ExprInt32(0)))]
 
 def clc(info):
-    return     [ExprAff(cf, ExprInt(uint32(0)))]
+    return     [ExprAff(cf, ExprInt32(0))]
 
 def stc(info):
-    return     [ExprAff(cf, ExprInt(uint32(1)))]
+    return     [ExprAff(cf, ExprInt32(1))]
 
 def cld(info):
-    return     [ExprAff(df, ExprInt(uint32(0)))]
+    return     [ExprAff(df, ExprInt32(0))]
 
 def std(info):
-    return     [ExprAff(df, ExprInt(uint32(1)))]
+    return     [ExprAff(df, ExprInt32(1))]
 
 def cli(info):
-    return     [ExprAff(i_f, ExprInt(uint32(0)))]
+    return     [ExprAff(i_f, ExprInt32(0))]
 
 def sti(info):
-    return     [ExprAff(ExprId('vmcpu.vm_exception_flags'), ExprInt(uint32(EXCEPT_PRIV_INSN)))]
+    return     [ExprAff(ExprId('vmcpu.vm_exception_flags'), ExprInt32(EXCEPT_PRIV_INSN))]
 
 def inc(info, a):
     e= []
@@ -961,7 +961,7 @@ def push(info, a):
     s = a.get_size()
     if not s in [16,32]:
         raise 'bad size stacker!'
-    c = ExprOp('-', esp, ExprInt(uint32(s/8)))
+    c = ExprOp('-', esp, ExprInt32(s/8))
     e.append(ExprAff(esp, c))
     e.append(ExprAff(ExprMem(c, s), a))
     return e
@@ -971,7 +971,7 @@ def pop(info, a):
     s = a.get_size()
     if not s in [16,32]:
         raise 'bad size stacker!'
-    new_esp = ExprOp('+', esp, ExprInt(uint32(s/8)))
+    new_esp = ExprOp('+', esp, ExprInt32(s/8))
     e.append(ExprAff(esp, new_esp))
     #XXX FIX XXX for pop [esp]
     if isinstance(a, ExprMem):
@@ -981,22 +981,22 @@ def pop(info, a):
 
 def sete(info, a):
     e = []
-    e.append(ExprAff(a, ExprCond(ExprOp('==', zf, ExprInt(uint32(1))), ExprInt_from(a, 1), ExprInt_from(a, 0))))
+    e.append(ExprAff(a, ExprCond(ExprOp('==', zf, ExprInt32(1)), ExprInt_from(a, 1), ExprInt_from(a, 0))))
     return e
 
 def setnz(info, a):
     e = []
-    e.append(ExprAff(a, ExprCond(ExprOp('==', zf, ExprInt(uint32(0))), ExprInt_from(a, 1), ExprInt_from(a, 0))))
+    e.append(ExprAff(a, ExprCond(ExprOp('==', zf, ExprInt32(0)), ExprInt_from(a, 1), ExprInt_from(a, 0))))
     return e
 
 def setl(info, a):
     e = []
-    e.append(ExprAff(a, ExprCond(ExprOp('==', ExprOp('==', nf, of), ExprInt(uint32(0))), ExprInt_from(a, 1), ExprInt_from(a, 0))))
+    e.append(ExprAff(a, ExprCond(ExprOp('==', ExprOp('==', nf, of), ExprInt32(0)), ExprInt_from(a, 1), ExprInt_from(a, 0))))
     return e
 
 def setg(info, a):
     e = []
-    e.append(ExprAff(a, ExprCond(ExprOp("&", ExprOp('==', zf, ExprInt(uint32(0))), ExprOp('==', nf, of)), ExprInt_from(a, 1), ExprInt_from(a, 0))))
+    e.append(ExprAff(a, ExprCond(ExprOp("&", ExprOp('==', zf, ExprInt32(0)), ExprOp('==', nf, of)), ExprInt_from(a, 1), ExprInt_from(a, 0))))
     return e
 
 def setge(info, a):
@@ -1007,53 +1007,53 @@ def setge(info, a):
 
 def seta(info, a):
     e = []
-    e.append(ExprAff(a, ExprCond(ExprOp('&', ExprOp('==', cf, ExprInt(uint32(0))), ExprOp('==', zf, ExprInt(uint32(0)))), ExprInt_from(a, 1), ExprInt_from(a, 0))))
+    e.append(ExprAff(a, ExprCond(ExprOp('&', ExprOp('==', cf, ExprInt32(0)), ExprOp('==', zf, ExprInt32(0))), ExprInt_from(a, 1), ExprInt_from(a, 0))))
     return e
 
 def setae(info, a):
     e = []
-    e.append(ExprAff(a, ExprCond(ExprOp('==', cf, ExprInt(uint32(0))), ExprInt_from(a, 1), ExprInt_from(a, 0))))
+    e.append(ExprAff(a, ExprCond(ExprOp('==', cf, ExprInt32(0)), ExprInt_from(a, 1), ExprInt_from(a, 0))))
     return e
 
 def setb(info, a):
     e = []
-    e.append(ExprAff(a, ExprCond(ExprOp('==', cf, ExprInt(uint32(1))), ExprInt_from(a, 1), ExprInt_from(a, 0))))
+    e.append(ExprAff(a, ExprCond(ExprOp('==', cf, ExprInt32(1)), ExprInt_from(a, 1), ExprInt_from(a, 0))))
     return e
 
 def setbe(info, a):
     e = []
-    e.append(ExprAff(a, ExprCond(ExprOp('|', ExprOp('==', cf, ExprInt(uint32(1))), ExprOp('==', zf, ExprInt(uint32(1)))), ExprInt_from(a, 1), ExprInt_from(a, 0))))
+    e.append(ExprAff(a, ExprCond(ExprOp('|', ExprOp('==', cf, ExprInt32(1)), ExprOp('==', zf, ExprInt32(1))), ExprInt_from(a, 1), ExprInt_from(a, 0))))
     return e
 
 def setns(info, a):
     e = []
-    e.append(ExprAff(a, ExprCond(ExprOp('==', nf, ExprInt(uint32(0))), ExprInt_from(a, 1), ExprInt_from(a, 0))))
+    e.append(ExprAff(a, ExprCond(ExprOp('==', nf, ExprInt32(0)), ExprInt_from(a, 1), ExprInt_from(a, 0))))
     return e
 
 def sets(info, a):
     e = []
-    e.append(ExprAff(a, ExprCond(ExprOp('==', nf, ExprInt(uint32(1))), ExprInt_from(a, 1), ExprInt_from(a, 0))))
+    e.append(ExprAff(a, ExprCond(ExprOp('==', nf, ExprInt32(1)), ExprInt_from(a, 1), ExprInt_from(a, 0))))
     return e
 
 
 def seto(info, a):
     e= []
-    e.append(ExprAff(a, ExprCond(ExprOp('==', of, ExprInt(uint32(1))), ExprInt_from(a, 1), ExprInt_from(a, 0))))
+    e.append(ExprAff(a, ExprCond(ExprOp('==', of, ExprInt32(1)), ExprInt_from(a, 1), ExprInt_from(a, 0))))
     return e
 
 def setalc(info):
     a = eax[0:8]
     e = []
-    e.append(ExprAff(a, ExprCond(ExprOp('==', cf, ExprInt(uint32(1))), ExprInt_from(a, 0xff), ExprInt_from(a, 0))))
+    e.append(ExprAff(a, ExprCond(ExprOp('==', cf, ExprInt32(1)), ExprInt_from(a, 0xff), ExprInt_from(a, 0))))
     return e
 
 
 def bswap(info, a):
     e = []
     c = ExprCompose([(ExprOp('&', ExprInt_from(a, 0xFF), a),                                         24, 32),
-                     (ExprOp('>>', ExprOp('&', ExprInt_from(a, 0xFF00), a), ExprInt(uint32(8))),     16, 24),
-                     (ExprOp('>>', ExprOp('&', ExprInt_from(a, 0xFF0000), a), ExprInt(uint32(16))),  8 , 16),
-                     (ExprOp('>>', ExprOp('&', ExprInt_from(a, 0xFF000000), a), ExprInt(uint32(24))),0 , 8 ),
+                     (ExprOp('>>', ExprOp('&', ExprInt_from(a, 0xFF00), a), ExprInt32(8)),     16, 24),
+                     (ExprOp('>>', ExprOp('&', ExprInt_from(a, 0xFF0000), a), ExprInt32(16)),  8 , 16),
+                     (ExprOp('>>', ExprOp('&', ExprInt_from(a, 0xFF000000), a), ExprInt32(24)),0 , 8 ),
                      ])
     e.append(ExprAff(a, c))
     return e
@@ -1083,22 +1083,22 @@ def scas(info, a):
 def compose_eflag(s = 32):
     args = []
 
-    regs = [cf, ExprInt(uint32(1)), pf, ExprInt(uint32(0)), af, ExprInt(uint32(0)), zf, nf, tf, i_f, df, of]
+    regs = [cf, ExprInt32(1), pf, ExprInt32(0), af, ExprInt32(0), zf, nf, tf, i_f, df, of]
     for i in xrange(len(regs)):
         args.append((regs[i],i, i+1))
 
     args.append((iopl,12, 14))
 
     if s == 32:
-        regs = [nt, ExprInt(uint32(0)), rf, vm, ac, vif, vip, i_d]
+        regs = [nt, ExprInt32(0), rf, vm, ac, vif, vip, i_d]
     elif s == 16:
-        regs = [nt, ExprInt(uint32(0))]
+        regs = [nt, ExprInt32(0)]
     else:
         raise ValueError('unk size')
     for i in xrange(len(regs)):
         args.append((regs[i],i+14, i+15))
     if s == 32:
-        args.append((ExprInt(uint32(0)),22, 32))
+        args.append((ExprInt32(0),22, 32))
     return ExprCompose(args)
 
 def pushfd(info):
@@ -1127,7 +1127,7 @@ def popfd(info):
     e.append(ExprAff(vif,ExprSlice(tmp, 19, 20)))
     e.append(ExprAff(vip,ExprSlice(tmp, 20, 21)))
     e.append(ExprAff(i_d,ExprSlice(tmp, 21, 22)))
-    e.append(ExprAff(esp, ExprOp('+', esp, ExprInt(uint32(4)))))
+    e.append(ExprAff(esp, ExprOp('+', esp, ExprInt32(4))))
     return e
 
 def popfw(info):
@@ -1144,7 +1144,7 @@ def popfw(info):
     e.append(ExprAff(of, ExprSlice(tmp, 11, 12)))
     e.append(ExprAff(iopl, ExprSlice(tmp, 12, 14)))
     e.append(ExprAff(nt, ExprSlice(tmp, 14, 15)))
-    e.append(ExprAff(esp, ExprOp('+', esp, ExprInt(uint32(2)))))
+    e.append(ExprAff(esp, ExprOp('+', esp, ExprInt32(2))))
     return e
 
 def pushad(info):
@@ -1209,7 +1209,7 @@ def call(info, a, b):
     e.append(ExprAff(eip, b))
     return e
 
-def ret(info, a = ExprInt(uint32(0))):
+def ret(info, a = ExprInt32(0)):
     e = []
     opmode, admode = info.opmode, info.admode
     if opmode == u16:
@@ -1223,7 +1223,7 @@ def ret(info, a = ExprInt(uint32(0))):
     e.append(ExprAff(eip, ExprMem(myesp, size = s)))
     return e
 
-def retf(info, a = ExprInt(uint32(0))):
+def retf(info, a = ExprInt32(0)):
     e = []
     opmode, admode = info.opmode, info.admode
     if opmode == u16:
@@ -1297,42 +1297,42 @@ def jmpf(info, a, seg):
 
 def jz(info, a, b):
     e= []
-    e.append(ExprAff(eip, ExprCond(ExprOp('==', zf, ExprInt(uint32(1))), b, a)))
+    e.append(ExprAff(eip, ExprCond(ExprOp('==', zf, ExprInt32(1)), b, a)))
     return e
 
 def jnz(info, a, b):
     e= []
-    e.append(ExprAff(eip, ExprCond(ExprOp('==', zf, ExprInt(uint32(0))), b, a)))
+    e.append(ExprAff(eip, ExprCond(ExprOp('==', zf, ExprInt32(0)), b, a)))
     return e
 
 def jp(info, a, b):
     e= []
-    e.append(ExprAff(eip, ExprCond(ExprOp('==', pf, ExprInt(uint32(1))), b, a)))
+    e.append(ExprAff(eip, ExprCond(ExprOp('==', pf, ExprInt32(1)), b, a)))
     return e
 
 def jnp(info, a, b):
     e= []
-    e.append(ExprAff(eip, ExprCond(ExprOp('==', pf, ExprInt(uint32(0))), b, a)))
+    e.append(ExprAff(eip, ExprCond(ExprOp('==', pf, ExprInt32(0)), b, a)))
     return e
 
 def ja(info, a, b):
     e= []
-    e.append(ExprAff(eip, ExprCond(ExprOp('&', ExprOp('==', cf, ExprInt(uint32(0))), ExprOp('==', zf, ExprInt(uint32(0)))), b, a)))
+    e.append(ExprAff(eip, ExprCond(ExprOp('&', ExprOp('==', cf, ExprInt32(0)), ExprOp('==', zf, ExprInt32(0))), b, a)))
     return e
 
 def jae(info, a, b):
     e= []
-    e.append(ExprAff(eip, ExprCond(ExprOp('==', cf, ExprInt(uint32(0))), b, a)))
+    e.append(ExprAff(eip, ExprCond(ExprOp('==', cf, ExprInt32(0)), b, a)))
     return e
 
 def jb(info, a, b):
     e= []
-    e.append(ExprAff(eip, ExprCond(ExprOp('==', cf, ExprInt(uint32(1))), b, a)))
+    e.append(ExprAff(eip, ExprCond(ExprOp('==', cf, ExprInt32(1)), b, a)))
     return e
 
 def jbe(info, a, b):
     e= []
-    e.append(ExprAff(eip, ExprCond(ExprOp('|', ExprOp('==', cf, ExprInt(uint32(1))), ExprOp('==', zf, ExprInt(uint32(1)))), b, a)))
+    e.append(ExprAff(eip, ExprCond(ExprOp('|', ExprOp('==', cf, ExprInt32(1)), ExprOp('==', zf, ExprInt32(1))), b, a)))
     return e
 
 def jge(info, a, b):
@@ -1342,27 +1342,27 @@ def jge(info, a, b):
 
 def jg(info, a, b):
     e= []
-    e.append(ExprAff(eip, ExprCond(ExprOp('&', ExprOp('==', zf, ExprInt(uint32(0))), ExprOp('==', nf, of)), b, a)))
+    e.append(ExprAff(eip, ExprCond(ExprOp('&', ExprOp('==', zf, ExprInt32(0)), ExprOp('==', nf, of)), b, a)))
     return e
 
 def jl(info, a, b):
     e= []
-    e.append(ExprAff(eip, ExprCond(ExprOp('==', ExprOp('==', nf, of), ExprInt(uint32(0))), b, a)))
+    e.append(ExprAff(eip, ExprCond(ExprOp('==', ExprOp('==', nf, of), ExprInt32(0)), b, a)))
     return e
 
 def jle(info, a, b):
     e= []
-    e.append(ExprAff(eip, ExprCond(ExprOp('|', zf, ExprOp('==', ExprOp('==', nf, of), ExprInt(uint32(0)))), b, a)))
+    e.append(ExprAff(eip, ExprCond(ExprOp('|', zf, ExprOp('==', ExprOp('==', nf, of), ExprInt32(0))), b, a)))
     return e
 
 def js(info, a, b):
     e= []
-    e.append(ExprAff(eip, ExprCond(ExprOp('==', nf, ExprInt(uint32(1))), b, a)))
+    e.append(ExprAff(eip, ExprCond(ExprOp('==', nf, ExprInt32(1)), b, a)))
     return e
 
 def jns(info, a, b):
     e= []
-    e.append(ExprAff(eip, ExprCond(ExprOp('==', nf, ExprInt(uint32(0))), b, a)))
+    e.append(ExprAff(eip, ExprCond(ExprOp('==', nf, ExprInt32(0)), b, a)))
     return e
 
 def jo(info, a, b):
@@ -1372,29 +1372,29 @@ def jo(info, a, b):
 
 def jno(info, a, b):
     e= []
-    e.append(ExprAff(eip, ExprCond(ExprOp('==', of, ExprInt(uint32(0))), b, a)))
+    e.append(ExprAff(eip, ExprCond(ExprOp('==', of, ExprInt32(0)), b, a)))
     return e
 
 def jecxz(info, a, b):
     e= []
-    e.append(ExprAff(eip, ExprCond(ExprOp('==', ecx, ExprInt(uint32(0))), b, a)))
+    e.append(ExprAff(eip, ExprCond(ExprOp('==', ecx, ExprInt32(0)), b, a)))
     return e
 
 
 def loop(info, a, b):
     e= []
-    c = ExprOp('-', ecx, ExprInt(uint32(1)))
+    c = ExprOp('-', ecx, ExprInt32(1))
     e.append(ExprAff(ecx, c))
-    e.append(ExprAff(eip, ExprCond(ExprOp('==', ExprInt(uint32(0)), ExprOp('==', c, ExprInt(uint32(0)))), b, a)))
+    e.append(ExprAff(eip, ExprCond(ExprOp('==', ExprInt32(0), ExprOp('==', c, ExprInt32(0))), b, a)))
     return e
 
 def loopne(info, a, b):
     e= []
-    c = ExprOp('-', ecx, ExprInt(uint32(1)))
+    c = ExprOp('-', ecx, ExprInt32(1))
     e.append(ExprAff(ecx, c))
     cond = ExprOp('&',
-                  ExprOp('==', ExprInt(uint32(0)), ExprOp('==', c, ExprInt(uint32(0)))),
-                  ExprOp('==', zf, ExprInt(uint32(0))),
+                  ExprOp('==', ExprInt32(0), ExprOp('==', c, ExprInt32(0))),
+                  ExprOp('==', zf, ExprInt32(0)),
                   )
     e.append(ExprAff(eip, ExprCond(cond, b, a)))
     return e
@@ -1457,12 +1457,12 @@ def mul(info, a):
         e.append(ExprAff(edx, c_hi))
         e.append(ExprAff(eax, c_lo))
 
-        e.append(ExprAff(of, ExprCond(ExprOp("==", c_hi, ExprInt(uint32(0))),
-                                      ExprInt(uint32(0)),
-                                      ExprInt(uint32(1)))))
-        e.append(ExprAff(cf, ExprCond(ExprOp("==", c_hi, ExprInt(uint32(0))),
-                                      ExprInt(uint32(0)),
-                                      ExprInt(uint32(1)))))
+        e.append(ExprAff(of, ExprCond(ExprOp("==", c_hi, ExprInt32(0)),
+                                      ExprInt32(0),
+                                      ExprInt32(1))))
+        e.append(ExprAff(cf, ExprCond(ExprOp("==", c_hi, ExprInt32(0)),
+                                      ExprInt32(0),
+                                      ExprInt32(1))))
 
     elif a.get_size() == 16:
         c_hi = ExprOp('umul16_hi', r_ax, a)
@@ -1470,22 +1470,22 @@ def mul(info, a):
         e.append(ExprAff(r_dx, c_hi))
         e.append(ExprAff(r_ax, c_lo))
 
-        e.append(ExprAff(of, ExprCond(ExprOp("==", c_hi, ExprInt(uint32(0))),
-                                      ExprInt(uint32(0)),
-                                      ExprInt(uint32(1)))))
-        e.append(ExprAff(cf, ExprCond(ExprOp("==", c_hi, ExprInt(uint32(0))),
-                                      ExprInt(uint32(0)),
-                                      ExprInt(uint32(1)))))
+        e.append(ExprAff(of, ExprCond(ExprOp("==", c_hi, ExprInt32(0)),
+                                      ExprInt32(0),
+                                      ExprInt32(1))))
+        e.append(ExprAff(cf, ExprCond(ExprOp("==", c_hi, ExprInt32(0)),
+                                      ExprInt32(0),
+                                      ExprInt32(1))))
 
     elif a.get_size() == 8:
         c = ExprOp('umul08', eax, a)
         e.append(ExprAff(eax[:16], c))
-        e.append(ExprAff(of, ExprCond(ExprOp("==", eax[8:16], ExprInt(uint32(0))),
-                                      ExprInt(uint32(0)),
-                                      ExprInt(uint32(1)))))
-        e.append(ExprAff(cf, ExprCond(ExprOp("==", eax[8:16], ExprInt(uint32(0))),
-                                      ExprInt(uint32(0)),
-                                      ExprInt(uint32(1)))))
+        e.append(ExprAff(of, ExprCond(ExprOp("==", eax[8:16], ExprInt32(0)),
+                                      ExprInt32(0),
+                                      ExprInt32(1))))
+        e.append(ExprAff(cf, ExprCond(ExprOp("==", eax[8:16], ExprInt32(0)),
+                                      ExprInt32(0),
+                                      ExprInt32(1))))
 
 
 
@@ -1523,17 +1523,17 @@ def cdq(info):
     if opmode == u32:
         e = []
         e.append(ExprAff(edx,
-                         ExprCond(ExprOp('==', get_op_msb(eax), ExprInt(uint32(0))),
-                                  ExprInt(uint32(0x0)),
-                                  ExprInt(uint32(0xffffffff)))
+                         ExprCond(ExprOp('==', get_op_msb(eax), ExprInt32(0)),
+                                  ExprInt32(0x0),
+                                  ExprInt32(0xffffffff))
                          )
                  )
     else:
         e = []
         e.append(ExprAff(edx[0:16],
-                         ExprCond(ExprOp('==', get_op_msb(eax[:16]), ExprInt(uint32(0))),
-                                  ExprInt(uint16(0x0)),
-                                  ExprInt(uint16(0xffff)))
+                         ExprCond(ExprOp('==', get_op_msb(eax[:16]), ExprInt32(0)),
+                                  ExprInt16(0x0),
+                                  ExprInt16(0xffff))
                          )
                  )
     return e
@@ -1587,8 +1587,8 @@ def float_pop(avoid_flt = None):
     if avoid_flt != float_st6:
         e.append(ExprAff(float_st6, float_st7))
     if avoid_flt != float_st7:
-        e.append(ExprAff(float_st7, ExprInt(uint32(0))))
-    e.append(ExprAff(float_stack_ptr, ExprOp('-', float_stack_ptr, ExprInt(uint32(1)))))
+        e.append(ExprAff(float_st7, ExprInt32(0)))
+    e.append(ExprAff(float_stack_ptr, ExprOp('-', float_stack_ptr, ExprInt32(1))))
     return e
 
 # XXX TODO
@@ -1636,7 +1636,7 @@ def fld(info, a):
     e.append(ExprAff(float_st2, float_st1))
     e.append(ExprAff(float_st1, float_st0))
     e.append(ExprAff(float_st0, src))
-    e.append(ExprAff(float_stack_ptr, ExprOp('+', float_stack_ptr, ExprInt(uint32(1)))))
+    e.append(ExprAff(float_stack_ptr, ExprOp('+', float_stack_ptr, ExprInt32(1))))
 
     e += set_float_cs_eip(info)
     return e
@@ -1678,20 +1678,20 @@ def fild(info, a):
     return e
 
 def fldz(info):
-    return fld(info, ExprOp('int_32_to_double', ExprInt(uint32(0))))
+    return fld(info, ExprOp('int_32_to_double', ExprInt32(0)))
 
 def fld1(info):
-    return fld(info, ExprOp('int_32_to_double', ExprInt(uint32(1))))
+    return fld(info, ExprOp('int_32_to_double', ExprInt32(1)))
 
 def fldl2e(info):
     x = struct.pack('d', 1/math.log(2))
     x = struct.unpack('Q', x)[0]
-    return fld(info, ExprOp('mem_64_to_double', ExprInt(uint64(x))))
+    return fld(info, ExprOp('mem_64_to_double', ExprInt64(x)))
 
 def fldlg2(info):
     x = struct.pack('d', math.log10(2))
     x = struct.unpack('Q', x)[0]
-    return fld(info, ExprOp('mem_64_to_double', ExprInt(uint64(x))))
+    return fld(info, ExprOp('mem_64_to_double', ExprInt64(x)))
 
 
 def fadd(info, a, b = None):
@@ -1724,27 +1724,27 @@ def fninit(info):
 def fnstenv(info, a):
     e = []
     # XXX TODO tag word, ...
-    status_word = ExprCompose([(ExprInt(uint32(0)), 0, 8),
+    status_word = ExprCompose([(ExprInt32(0), 0, 8),
                                (float_c0,           8, 9),
                                (float_c1,           9, 10),
                                (float_c2,           10, 11),
                                (float_stack_ptr,    11, 14),
                                (float_c3,           14, 15),
-                               (ExprInt(uint32(0)), 15, 16),
+                               (ExprInt32(0), 15, 16),
                                ])
 
     w_size = tab_mode_size[info.opmode]
     ad = ExprMem(a.arg, size=16)
     e.append(ExprAff(ad, float_control))
-    ad = ExprMem(a.arg+ExprInt(uint32(w_size/8*1)), size = 16)
+    ad = ExprMem(a.arg+ExprInt32(w_size/8*1), size = 16)
     e.append(ExprAff(ad, status_word))
-    ad = ExprMem(a.arg+ExprInt(uint32(w_size/8*3)), size = w_size)
+    ad = ExprMem(a.arg+ExprInt32(w_size/8*3), size = w_size)
     e.append(ExprAff(ad, float_eip[:w_size]))
-    ad = ExprMem(a.arg+ExprInt(uint32(w_size/8*4)), size = 16)
+    ad = ExprMem(a.arg+ExprInt32(w_size/8*4), size = 16)
     e.append(ExprAff(ad, float_cs))
-    ad = ExprMem(a.arg+ExprInt(uint32(w_size/8*5)), size = w_size)
+    ad = ExprMem(a.arg+ExprInt32(w_size/8*5), size = w_size)
     e.append(ExprAff(ad, float_address[:w_size]))
-    ad = ExprMem(a.arg+ExprInt(uint32(w_size/8*6)), size = 16)
+    ad = ExprMem(a.arg+ExprInt32(w_size/8*6), size = 16)
     e.append(ExprAff(ad, float_ds))
     return e
 
@@ -1817,8 +1817,8 @@ def fptan(info):
     e.append(ExprAff(float_st3, float_st2))
     e.append(ExprAff(float_st2, float_st1))
     e.append(ExprAff(float_st1, ExprOp('ftan', float_st0)))
-    e.append(ExprAff(float_st0, ExprOp('int_32_to_double', ExprInt(uint32(1)))))
-    e.append(ExprAff(float_stack_ptr, ExprOp('+', float_stack_ptr, ExprInt(uint32(1)))))
+    e.append(ExprAff(float_st0, ExprOp('int_32_to_double', ExprInt32(1))))
+    e.append(ExprAff(float_stack_ptr, ExprOp('+', float_stack_ptr, ExprInt32(1))))
     return e
 
     e.append(ExprAff(float_st0, ExprOp('ftan', src)))
@@ -1873,13 +1873,13 @@ def fabs(info):
 
 def fnstsw(info):
     dst = eax
-    return [ExprAff(dst, ExprCompose([(ExprInt(uint32(0)), 0, 8),
+    return [ExprAff(dst, ExprCompose([(ExprInt32(0), 0, 8),
                                       (float_c0,           8, 9),
                                       (float_c1,           9, 10),
                                       (float_c2,           10, 11),
                                       (float_stack_ptr,    11, 14),
                                       (float_c3,           14, 15),
-                                      (ExprInt(uint32(0)), 15, 16),
+                                      (ExprInt32(0), 15, 16),
                                       (ExprSlice(dst, 16, dst.get_size()), 16, dst.get_size())
                                       ]))]
 
@@ -1902,12 +1902,12 @@ def nop(info):
 def hlt(info):
     e = []
     except_int = EXCEPT_PRIV_INSN
-    e.append(ExprAff(ExprId('vmcpu.vm_exception_flags'), ExprInt(uint32(except_int))))
+    e.append(ExprAff(ExprId('vmcpu.vm_exception_flags'), ExprInt32(except_int)))
     return e
 
 def rdtsc(info):
     e = []
-    e.append(ExprAff(tsc1, ExprOp('+', tsc1, ExprInt(uint32(1)))))
+    e.append(ExprAff(tsc1, ExprOp('+', tsc1, ExprInt32(1))))
     e.append(ExprAff(eax, tsc1))
     e.append(ExprAff(edx, tsc2))
     return e
@@ -1928,7 +1928,7 @@ def cbw(info, a):
     byte_h_0 = ExprInt(int_cast(0))
     byte_h_f = ExprInt(int_cast(((1<<(s/2))-1)))
 
-    mask = ExprCond(ExprOp('==', get_op_msb(src), ExprInt(uint32(0))), byte_h_0, byte_h_f)
+    mask = ExprCond(ExprOp('==', get_op_msb(src), ExprInt32(0)), byte_h_0, byte_h_f)
     e = []
     e.append(ExprAff(a, ExprCompose([(a,    0, s/2),
                                      (mask, s/2, s)])))
@@ -1963,12 +1963,12 @@ def bsr(info, a, b):
 
 def arpl(info, a, b):
     e= []
-    e.append(ExprAff(ExprId('vmcpu.vm_exception_flags'), ExprInt(uint32(1<<7))))
+    e.append(ExprAff(ExprId('vmcpu.vm_exception_flags'), ExprInt32(1<<7)))
     return e
 
 def ins(info):
     e= []
-    e.append(ExprAff(ExprId('vmcpu.vm_exception_flags'), ExprInt(uint32(1<<7))))
+    e.append(ExprAff(ExprId('vmcpu.vm_exception_flags'), ExprInt32(1<<7)))
     return e
 
 def sidt(info, a):
@@ -1978,18 +1978,18 @@ def sidt(info, a):
     b = a.arg
     cast_int = tab_uintsize[a.get_size()]
     print "DEFAULT SIDT ADDRESS %s!!"%str(a)
-    e.append(ExprAff(ExprMem(b, 32), ExprInt(uint32(0xe40007ff))))
-    e.append(ExprAff(ExprMem(ExprOp("+", b, ExprInt(uint32(4))), 32), ExprInt(uint32(0x8245))))
+    e.append(ExprAff(ExprMem(b, 32), ExprInt32(0xe40007ff)))
+    e.append(ExprAff(ExprMem(ExprOp("+", b, ExprInt32(4)), 32), ExprInt32(0x8245)))
     return e
 
 
 def cmovz(info, a, b):
     e= []
-    e.append(ExprAff(a, ExprCond(ExprOp('==', zf, ExprInt(uint32(1))), b, a)))
+    e.append(ExprAff(a, ExprCond(ExprOp('==', zf, ExprInt32(1)), b, a)))
     return e
 def cmovnz(info, a, b):
     e= []
-    e.append(ExprAff(a, ExprCond(ExprOp('==', zf, ExprInt(uint32(0))), b, a)))
+    e.append(ExprAff(a, ExprCond(ExprOp('==', zf, ExprInt32(0)), b, a)))
     return e
 
 #XXX
@@ -2001,30 +2001,30 @@ def l_int(info, a):
     else:
         except_int = EXCEPT_PRIV_INSN
 
-    e.append(ExprAff(ExprId('vmcpu.vm_exception_flags'), ExprInt(uint32(except_int)))) #SOFT BP
+    e.append(ExprAff(ExprId('vmcpu.vm_exception_flags'), ExprInt32(except_int))) #SOFT BP
     return e
 
 def l_sysenter(info):
     e= []
-    e.append(ExprAff(ExprId('vmcpu.vm_exception_flags'), ExprInt(uint32(EXCEPT_PRIV_INSN))))
+    e.append(ExprAff(ExprId('vmcpu.vm_exception_flags'), ExprInt32(EXCEPT_PRIV_INSN)))
     return e
 
 #XXX
 def l_out(info, a, b):
     e= []
-    e.append(ExprAff(ExprId('vmcpu.vm_exception_flags'), ExprInt(uint32(EXCEPT_PRIV_INSN))))
+    e.append(ExprAff(ExprId('vmcpu.vm_exception_flags'), ExprInt32(EXCEPT_PRIV_INSN)))
     return e
 
 #XXX
 def l_outs(info):
     e= []
-    e.append(ExprAff(ExprId('vmcpu.vm_exception_flags'), ExprInt(uint32(EXCEPT_PRIV_INSN)))) #SOFT BP
+    e.append(ExprAff(ExprId('vmcpu.vm_exception_flags'), ExprInt32(EXCEPT_PRIV_INSN))) #SOFT BP
     return e
 
 # XXX actually, xlat performs al = (ds:[e]bx + ZeroExtend(al))
 def xlat(info):
     e= []
-    a = ExprCompose([(ExprInt(uint32(0)), 8, 32),
+    a = ExprCompose([(ExprInt32(0), 8, 32),
                      (eax[0:8], 0, 8)])
     b = ExprMem(ExprOp('+', ebx, a), 8)
     e.append(ExprAff(eax[0:8], b))
@@ -2032,10 +2032,10 @@ def xlat(info):
 
 def cpuid(info):
     e = []
-    e.append(ExprAff(eax, ExprOp('cpuid', eax, ExprInt(uint32(0)))))
-    e.append(ExprAff(ebx, ExprOp('cpuid', eax, ExprInt(uint32(1)))))
-    e.append(ExprAff(ecx, ExprOp('cpuid', eax, ExprInt(uint32(2)))))
-    e.append(ExprAff(edx, ExprOp('cpuid', eax, ExprInt(uint32(3)))))
+    e.append(ExprAff(eax, ExprOp('cpuid', eax, ExprInt32(0))))
+    e.append(ExprAff(ebx, ExprOp('cpuid', eax, ExprInt32(1))))
+    e.append(ExprAff(ecx, ExprOp('cpuid', eax, ExprInt32(2))))
+    e.append(ExprAff(edx, ExprOp('cpuid', eax, ExprInt32(3))))
     return e
 
 def bt(info, a, b):
@@ -2123,7 +2123,7 @@ def lss(info, a, b):
 def lahf(info):
     e = []
     args = []
-    regs = [cf, ExprInt(uint32(1)), pf, ExprInt(uint32(0)), af, ExprInt(uint32(0)), zf, nf]
+    regs = [cf, ExprInt32(1), pf, ExprInt32(0), af, ExprInt32(0), zf, nf]
     for i in xrange(len(regs)):
         args.append((regs[i],i, i+1))
     e.append(ExprAff(eax[8:16], ExprCompose(args)))
@@ -2503,10 +2503,10 @@ def dict_to_Expr(d, modifs = {}, opmode = u32, admode = u32, segm_to_do = {}):
 
 
             #XXX todo hack gen C
-            return ExprInt(uint32(myval))
+            return ExprInt32(myval)
             if type(myname)!=str:
                 return ExprId(myname.name)
-            return ExprInt(uint32(myval))
+            return ExprInt32(myval)
     elif is_address(d):
         int_cast = tab_afs_int[admode]
         #segm = None
