@@ -1434,6 +1434,8 @@ void _vm_init_regs()
 	vmcpu.esp = 0;
 	vmcpu.tsc1 = 0x22222222;
 	vmcpu.tsc2 = 0x11111111;
+
+	vmcpu.i_f = 1;
 }
 
 
