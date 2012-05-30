@@ -24,7 +24,7 @@ main:
 title:
 .string "Hello!"
 msg:
-.string "Word!"
+.string "World!"
 ''')
 symbol_pool.add(asmbloc.asm_label('base_address', 0))
 symbol_pool.getby_name("MessageBoxA").offset = e.DirImport.get_funcvirt('MessageBoxA')
