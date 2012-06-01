@@ -408,7 +408,7 @@ def Exp2C(exprs, l = None, addr2label = None, gen_exception_code = False):
     return out+out_eip, post_instr
 
 
-def bloc2C(all_bloc, addr2label = None, gen_exception_code = False, dbg_instr = False, dbg_reg = False, dbg_lbl = False, filtered_ad = None, tick_dbg = None, segm_to_do = {}):
+def bloc2C(all_bloc, addr2label = None, gen_exception_code = False, dbg_instr = False, dbg_reg = False, dbg_lbl = False, filtered_ad = None, tick_dbg = None, segm_to_do = set()):
     all_instrs = digest_allbloc_instr(all_bloc, segm_to_do)
 
     if not addr2label:
@@ -505,7 +505,7 @@ def bloc2C(all_bloc, addr2label = None, gen_exception_code = False, dbg_instr = 
 
 
 
-def bloc_gen_C_func(all_bloc, funcname, addr2label = None, gen_exception_code = False, dbg_instr = False, dbg_reg = False, dbg_lbl = False, filtered_ad = None, tick_dbg = None, segm_to_do = {}):
+def bloc_gen_C_func(all_bloc, funcname, addr2label = None, gen_exception_code = False, dbg_instr = False, dbg_reg = False, dbg_lbl = False, filtered_ad = None, tick_dbg = None, segm_to_do = set()):
     f_dec = 'uint64_t %s(void)'%funcname
     out = []
     out+=[f_dec,
@@ -726,7 +726,7 @@ def asm2C(f_name, known_mems, dyn_func, in_str, x86_mn, symbol_pool, func_to_dis
     return funcs_code, dyn_dispatcher
 
 
-def gen_C_from_asmbloc(in_str, offset, symbol_pool, dont_dis = [], job_done = None, log_mn = False, log_reg = False, log_lbl = False, filtered_ad = [], tick_dbg = None, code_addr = [], all_bloc_funcs = [], segm_to_do = {}, **kargs):
+def gen_C_from_asmbloc(in_str, offset, symbol_pool, dont_dis = [], job_done = None, log_mn = False, log_reg = False, log_lbl = False, filtered_ad = [], tick_dbg = None, code_addr = [], all_bloc_funcs = [], segm_to_do = set(), **kargs):
     if job_done == None:
         job_done = set()
 
@@ -1016,7 +1016,7 @@ def updt_bloc_emul(known_blocs, in_str, my_eip, symbol_pool, code_blocs_mem_rang
 '''
 
 ttt = 0
-def updt_bloc_emul(known_blocs, in_str, my_eip, symbol_pool, code_blocs_mem_range, dont_dis = [], job_done = None, log_mn = False, log_regs = False, segm_to_do = {}, **kargs):
+def updt_bloc_emul(known_blocs, in_str, my_eip, symbol_pool, code_blocs_mem_range, dont_dis = [], job_done = None, log_mn = False, log_regs = False, segm_to_do = set(), **kargs):
     if job_done == None:
         job_done = set()
     fname, f_dec, funcs_code, cur_bloc = gen_C_from_asmbloc(in_str, my_eip, symbol_pool, dont_dis, job_done, log_mn, log_regs, segm_to_do = segm_to_do, **kargs)
@@ -1212,10 +1212,10 @@ def load_pe_in_vm(fname_in, options, all_imp_dll = None, **kargs):
         segms['fs'] = 0x4
         vm_set_segm(segms)
         vm_set_segm_base(segms['fs'], seh_helper.FS_0_AD)
-        segm_to_do = {x86_afs.reg_sg.index(x86_afs.r_fs)}
+        segm_to_do = set([x86_afs.reg_sg.index(x86_afs.r_fs)])
         seh_helper.init_seh()
     else:
-        segm_to_do = {}
+        segm_to_do = set()
 
     symbol_pool = asmbloc.asm_symbol_pool()
 
@@ -1284,7 +1284,7 @@ def manage_runtime_func(my_eip, api_modues, runtime_dll):
 def do_bloc_emul(known_blocs, in_str, my_eip, symbol_pool,
                  code_blocs_mem_range, dont_dis = [], job_done = None,
                  log_mn = False, log_regs = False,
-                 segm_to_do = {}, dump_blocs = False, **kargs):
+                 segm_to_do = set(), dump_blocs = False, **kargs):
     if not my_eip in known_blocs:
         updt_bloc_emul(known_blocs, in_str, my_eip,
                        symbol_pool, code_blocs_mem_range,

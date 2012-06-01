@@ -189,7 +189,7 @@ def get_instr_expr_args(l, args, my_eip):
 #"""
 
 ###XXX for eval abs
-def get_instr_expr(l, my_eip, args = None, segm_to_do = {}):
+def get_instr_expr(l, my_eip, args = None, segm_to_do = set()):
     if args==None:args = []
     for x in l.arg:
         args.append(dict_to_Expr(x, l.m.modifs, l.opmode, l.admode, segm_to_do))
@@ -620,7 +620,7 @@ def guess_func_destack(all_bloc):
     return False, a[x86_afs.imm]
 
 
-def digest_allbloc_instr(all_bloc, segm_to_do = {}):
+def digest_allbloc_instr(all_bloc, segm_to_do = set()):
     instrs = {}
     """
     g = asmbloc.bloc2graph(all_bloc)

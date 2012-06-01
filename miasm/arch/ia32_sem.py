@@ -2405,7 +2405,7 @@ class ia32_rexpr:
 
 
 
-def dict_to_Expr(d, modifs = {}, opmode = u32, admode = u32, segm_to_do = {}):
+def dict_to_Expr(d, modifs = {}, opmode = u32, admode = u32, segm_to_do = set()):
     size = [x86_afs.u32, x86_afs.u08][modifs[w8]==True]
     #overwrite w8
     if modifs[sd]!=None:
