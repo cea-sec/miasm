@@ -559,6 +559,7 @@ class java_mn:
         try:
             self.m = mnemo_db[ord(bin.readbs(1))]
             self.arg = self.m.argfmt.get(bin, sex=self.sex, address=self.offset)
+            self.l = bin.offset + offset - self.offset
         except Exception as e:
             log.warning(e.message)
             return False
