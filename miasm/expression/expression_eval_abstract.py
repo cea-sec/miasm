@@ -716,18 +716,18 @@ class eval_abs:
 
     def eval_ExprCompose(self, e, eval_cache = {}):
         args = []
-        for a in e.args:
-            aa = self.eval_expr(a.arg, eval_cache)
+        for x, start, stop in e.args:
+            aa = self.eval_expr(x, eval_cache)
             if isinstance(aa, ExprTop):
                 return ExprTop()
             else:
-                args.append(aa)
-        for a in args:
-            if isinstance(a, ExprTop):
+                args.append((aa, start, stop))
+        for x, start, stop in args:
+            if isinstance(x, ExprTop):
                 return ExprTop()
         is_int = True
         is_int_cond = 0
-        for x in args:
+        for x, start, stop in args:
             if isinstance(x, ExprInt):
                 continue
             is_int = False
@@ -738,26 +738,26 @@ class eval_abs:
 
 
         if not is_int and is_int_cond!=1:
-            uu = ExprCompose([(a, e.args[i][1], e.args[i][2]) for i, a in enumerate(args)])
+            uu = ExprCompose([(a, start, stop) for a, start, stop in args])
             return uu
 
         if not is_int:
             rez = 0L
             total_bit = 0
 
-            for i in xrange(len(e.args)):
-                if isinstance(args[i], ExprInt):
-                    a = args[i].arg
+            for xx, start, stop in args:
+                if isinstance(xx, ExprInt):
+                    a = xx.arg
 
-                    mask = (1<<(e.args[i][2]-e.args[i][1]))-1
+                    mask = (1<<(stop-start))-1
                     a&=mask
-                    a<<=e.args[i][1]
-                    total_bit+=e.args[i][2]-e.args[i][1]
+                    a<<=start
+                    total_bit+=stop-start
                     rez|=a
                 else:
-                    a = args[i]
-                    mask = (1<<(e.args[i][2]-e.args[i][1]))-1
-                    total_bit+=e.args[i][2]-e.args[i][1]
+                    a = xx
+                    mask = (1<<(stop-start))-1
+                    total_bit+=stop-start
                     mycond, mysrc1, mysrc2 = a.cond, a.src1.arg&mask, a.src2.arg&mask
                     cond_i = i
 
@@ -771,18 +771,18 @@ class eval_abs:
                                                ExprInt(tab_uintsize[total_bit](mysrc1)),
                                                ExprInt(tab_uintsize[total_bit](mysrc2))), eval_cache)
             else:
-                raise 'cannot return non rounb bytes rez! %X %X'%(total_bit, rez)
+                raise 'cannot return non round bytes rez! %X %X'%(total_bit, rez)
 
 
 
         rez = 0L
         total_bit = 0
-        for i in xrange(len(e.args)):
-            a = args[i].arg
-            mask = (1<<(e.args[i][2]-e.args[i][1]))-1
+        for xx, start, stop in args:
+            a = xx.arg
+            mask = (1<<(stop-start))-1
             a&=mask
             a<<=e.args[i][1]
-            total_bit+=e.args[i][2]-e.args[i][1]
+            total_bit+=stop-start
             rez|=a
         if total_bit in tab_uintsize:
             return ExprInt(tab_uintsize[total_bit](rez))

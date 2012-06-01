@@ -1262,10 +1262,10 @@ def dis_multi_func(in_str, mn, symbol_pool, ad, dont_dis = [], follow_call = Fal
     all_bloc = split_bloc(all_bloc, symbol_pool, more_ref = call_ad)
     return all_bloc
 
-def dis_one_bloc(in_str, mnemo, ad):
+def dis_one_bloc(in_str, mnemo, ad, **kargs):
     job_done = set()
     symbol_pool = asm_symbol_pool()
-    all_bloc = dis_bloc_all(mnemo, in_str, ad, job_done, symbol_pool, bloc_wd = 1)
+    all_bloc = dis_bloc_all(mnemo, in_str, ad, job_done, symbol_pool, bloc_wd = 1, **kargs)
     if len(all_bloc) != 1:
         return None
     return all_bloc[0]

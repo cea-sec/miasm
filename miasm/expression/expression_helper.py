@@ -40,7 +40,7 @@ def merge_sliceto_slice(args):
     sources_int = {}
     for a in args:
         if isinstance(a[0], ExprInt):
-            #sources_int[a.start] = a
+            # sources_int[a.start] = a
             # copy ExprInt because we will inplace modify arg just below
             # /!\ TODO XXX never ever modify inplace args...
             sources_int[a[1]] = (ExprInt(a[0].arg.__class__(a[0].arg)),
@@ -54,13 +54,13 @@ def merge_sliceto_slice(args):
             non_slice[a[1]] = a
 
 
-    #find max stop to determine size
+    # find max stop to determine size
     max_size = None
     for a in args:
         if max_size == None or max_size < a[2]:
             max_size = a[2]
 
-    #first simplify all num slices
+    # first simplify all num slices
     final_sources = []
     sorted_s = []
     for x in sources_int.values():
@@ -72,7 +72,7 @@ def merge_sliceto_slice(args):
 
     while sorted_s:
         start, v = sorted_s.pop()
-        out = e.reload_expr()
+        out = v[0].reload_expr(), v[1], v[2]
         while sorted_s:
             if sorted_s[-1][1][2] != start:
                 break
@@ -510,7 +510,7 @@ def expr_simp_w(e):
 
         elif isinstance(arg, ExprInt):
             total_bit = e.stop-e.start
-            mask = uint64((uint64(1)<<(e.stop-e.start))-1)
+            mask = uint64((1<<(e.stop-e.start))-1)
             if total_bit in tab_size_int:
                 return ExprInt(tab_size_int[total_bit]((uint64((arg.arg)>>e.start)) & mask))
             else:

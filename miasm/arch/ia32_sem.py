@@ -1589,7 +1589,7 @@ def ficom(info, a):
     return e
 
 def fcomp(info, a):
-    e= fcom(a)
+    e= fcom(info, a)
     e+=float_pop()
 
     e += set_float_cs_eip(info)
