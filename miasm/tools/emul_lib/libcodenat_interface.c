@@ -803,6 +803,67 @@ PyObject* _vm_get_str(PyObject *addr, PyObject *item_len)
     return obj_out;
 }
 
+PyObject *  _vm_add_memory_breakpoint(PyObject* ad, PyObject* access)
+{
+
+    uint64_t b_ad;
+    unsigned int b_access;
+
+    if (PyInt_Check(ad)){
+	    b_ad = (unsigned int)PyInt_AsLong(ad);
+    }
+    else if (PyLong_Check(ad)){
+	    b_ad = (unsigned int)PyInt_AsUnsignedLongLongMask(ad);
+    }
+    else{
+	    RAISE(PyExc_TypeError,"arg1 must be int");
+    }
+
+    if (PyInt_Check(access)){
+	    b_access = (unsigned int)PyInt_AsLong(access);
+    }
+    else if (PyLong_Check(access)){
+	    b_access = (unsigned int)PyInt_AsUnsignedLongLongMask(access);
+    }
+    else{
+	    RAISE(PyExc_TypeError,"arg1 must be int");
+    }
+    add_memory_breakpoint(b_ad, b_access);
+    Py_INCREF(Py_None);
+    return Py_None;
+
+}
+
+PyObject * _vm_remove_memory_breakpoint(PyObject* ad, PyObject* access)
+{
+
+    uint64_t b_ad;
+    unsigned int b_access;
+
+    if (PyInt_Check(ad)){
+	    b_ad = (unsigned int)PyInt_AsLong(ad);
+    }
+    else if (PyLong_Check(ad)){
+	    b_ad = (unsigned int)PyInt_AsUnsignedLongLongMask(ad);
+    }
+    else{
+	    RAISE(PyExc_TypeError,"arg1 must be int");
+    }
+
+    if (PyInt_Check(access)){
+	    b_access = (unsigned int)PyInt_AsLong(access);
+    }
+    else if (PyLong_Check(access)){
+	    b_access = (unsigned int)PyInt_AsUnsignedLongLongMask(access);
+    }
+    else{
+	    RAISE(PyExc_TypeError,"arg1 must be int");
+    }
+    remove_memory_breakpoint(b_ad, b_access);
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
 PyObject * dump_gpregs_py(PyObject* self, PyObject* args)
 {
 	dump_gpregs();
@@ -982,6 +1043,23 @@ PyObject* init_code_bloc_pool_py(PyObject* self, PyObject* args)
 
 }
 
+PyObject* init_memory_breakpoint_py(PyObject* self, PyObject* args)
+{
+    init_memory_breakpoint();
+    Py_INCREF(Py_None);
+    return Py_None;
+
+}
+
+PyObject* reset_memory_breakpoint_py(PyObject* self, PyObject* args)
+{
+    reset_memory_breakpoint();
+    Py_INCREF(Py_None);
+    return Py_None;
+
+}
+
+
 PyObject* vm_add_memory_page(PyObject* self, PyObject* args)
 {
 	PyObject *item;
@@ -994,6 +1072,28 @@ PyObject* vm_add_memory_page(PyObject* self, PyObject* args)
 	return p;
 }
 
+PyObject* vm_add_memory_breakpoint(PyObject* self, PyObject* args)
+{
+	PyObject *ad;
+	PyObject *access;
+	if (!PyArg_ParseTuple(args, "OO", &ad, &access))
+		return NULL;
+	 _vm_add_memory_breakpoint(ad, access);
+	 Py_INCREF(Py_None);
+	 return Py_None;
+}
+
+PyObject* vm_remove_memory_breakpoint(PyObject* self, PyObject* args)
+{
+	PyObject *ad;
+	PyObject *access;
+	if (!PyArg_ParseTuple(args, "OO", &ad, &access))
+		return NULL;
+	_vm_remove_memory_breakpoint(ad, access);
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
 
 
 PyObject* dump_memory_page_pool_py(PyObject* self, PyObject* args)
@@ -1001,6 +1101,13 @@ PyObject* dump_memory_page_pool_py(PyObject* self, PyObject* args)
      dump_memory_page_pool();
     Py_INCREF(Py_None);
     return Py_None;
+}
+
+PyObject* dump_memory_breakpoint_py(PyObject* self, PyObject* args)
+{
+	dump_memory_breakpoint_pool();
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 PyObject* vm_get_all_memory(PyObject* self, PyObject* args)
@@ -1377,6 +1484,8 @@ static PyMethodDef CodenatMethods[] = {
 
     {"init_memory_page_pool_py", init_memory_page_pool_py, METH_VARARGS,
      "X"},
+    {"init_memory_breakpoint_py", init_memory_breakpoint_py, METH_VARARGS,
+     "X"},
     {"init_code_bloc_pool_py",init_code_bloc_pool_py, METH_VARARGS,
      "X"},
     {"vm_set_mem_access", vm_set_mem_access, METH_VARARGS,
@@ -1393,13 +1502,21 @@ static PyMethodDef CodenatMethods[] = {
      "X"},
     {"vm_add_memory_page",vm_add_memory_page, METH_VARARGS,
      "X"},
+    {"vm_add_memory_breakpoint",vm_add_memory_breakpoint, METH_VARARGS,
+     "X"},
+    {"vm_remove_memory_breakpoint",vm_remove_memory_breakpoint, METH_VARARGS,
+     "X"},
     {"vm_reset_exception", vm_reset_exception, METH_VARARGS,
      "X"},
     {"dump_memory_page_pool_py", dump_memory_page_pool_py, METH_VARARGS,
      "X"},
+    {"dump_memory_breakpoint_py", dump_memory_breakpoint_py, METH_VARARGS,
+     "X"},
     {"vm_get_all_memory",vm_get_all_memory, METH_VARARGS,
      "X"},
     {"reset_memory_page_pool_py", reset_memory_page_pool_py, METH_VARARGS,
+     "X"},
+    {"reset_memory_breakpoint_py", reset_memory_breakpoint_py, METH_VARARGS,
      "X"},
     {"reset_code_bloc_pool_py", reset_code_bloc_pool_py, METH_VARARGS,
      "X"},

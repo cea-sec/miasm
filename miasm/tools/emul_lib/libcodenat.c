@@ -36,6 +36,8 @@
 struct memory_page_list_head memory_page_pool;
 struct code_bloc_list_head code_bloc_pool;
 
+struct memory_breakpoint_info_head memory_breakpoint_pool;
+
 vm_cpu_t vmcpu;
 
 /****************memory manager**************/
@@ -142,6 +144,7 @@ static inline uint64_t memory_page_read(unsigned int my_size, uint64_t ad)
 	struct memory_page_node * mpn;
 	unsigned char * addr;
 	uint64_t ret = 0;
+	struct memory_breakpoint_info * b;
 
 
 	mpn = get_memory_page_from_address(ad);
@@ -153,6 +156,16 @@ static inline uint64_t memory_page_read(unsigned int my_size, uint64_t ad)
 		vmcpu.vm_exception_flags |= EXCEPT_ACCESS_VIOL;
 		return 0;
 	}
+
+	/* check read breakpoint*/
+	LIST_FOREACH(b, &memory_breakpoint_pool, next){
+		if ((b->access & BREAKPOINT_READ) == 0)
+			continue;
+		if (b->ad == ad)
+			vmcpu.vm_exception_flags |= EXCEPT_BREAKPOINT_INTERN;
+	}
+
+
 	addr = &((unsigned char*)mpn->ad_hp)[ad - mpn->ad];
 
 	/* read fits in a page */
@@ -220,6 +233,7 @@ static inline void memory_page_write(unsigned int my_size,
 {
 	struct memory_page_node * mpn;
 	unsigned char * addr;
+	struct memory_breakpoint_info * b;
 
 	mpn = get_memory_page_from_address(ad);
 	if (!mpn)
@@ -229,6 +243,14 @@ static inline void memory_page_write(unsigned int my_size,
 		fprintf(stderr, "access to non writable page!! %"PRIX64"\n", ad);
 		vmcpu.vm_exception_flags |= EXCEPT_ACCESS_VIOL;
 		return ;
+	}
+
+	/* check read breakpoint*/
+	LIST_FOREACH(b, &memory_breakpoint_pool, next){
+		if ((b->access & BREAKPOINT_WRITE) == 0)
+			continue;
+		if (b->ad == ad)
+			vmcpu.vm_exception_flags |= EXCEPT_BREAKPOINT_INTERN;
 	}
 
 	addr = &((unsigned char*)mpn->ad_hp)[ad - mpn->ad];
@@ -874,13 +896,17 @@ unsigned int cpuid(unsigned int a, unsigned int reg_num)
 	else if (a == 1){
 		switch(reg_num){
 		case 0:
-			return 0x000006FB;
+			//return 0x000006FB;
+			return 0x00020652;
 		case 1:
-			return 0x02040800;
+			//return 0x02040800;
+			return 0x00000800;
 		case 2:
-			return 0x0004E3BD;
+			//return 0x0004E3BD;
+			return 0x00000209;
 		case 3:
-			return 0xBFEBFBFF;
+			//return 0xBFEBFBFF;
+			return 0x078bf9ff;
 		}
 	}
 	else{
@@ -1196,6 +1222,10 @@ void init_code_bloc_pool(void)
 	code_bloc_pool_ad_max = 0;
 }
 
+void init_memory_breakpoint(void)
+{
+	LIST_INIT(&memory_breakpoint_pool);
+}
 
 
 void reset_memory_page_pool(void)
@@ -1228,6 +1258,20 @@ void reset_code_bloc_pool(void)
 	code_bloc_pool_ad_min = 0xffffffff;
 	code_bloc_pool_ad_max = 0;
 }
+
+
+void reset_memory_breakpoint(void)
+{
+	struct memory_breakpoint_info * mpn;
+
+	while (!LIST_EMPTY(&memory_breakpoint_pool)) {
+		mpn = LIST_FIRST(&memory_breakpoint_pool);
+		LIST_REMOVE(mpn, next);
+		free(mpn);
+	}
+
+}
+
 
 int is_mpn_in_tab(struct memory_page_node* mpn_a)
 {
@@ -1297,6 +1341,44 @@ void dump_memory_page_pool()
 	}
 }
 
+void dump_memory_breakpoint_pool(void)
+{
+	struct memory_breakpoint_info * mpn;
+
+	LIST_FOREACH(mpn, &memory_breakpoint_pool, next){
+		printf("ad %"PRIX64" access %.8X\n",
+		       mpn->ad,
+		       mpn->access
+		       );
+	}
+}
+
+
+void add_memory_breakpoint(uint64_t ad, unsigned int access)
+{
+	struct memory_breakpoint_info * mpn_a;
+	mpn_a = malloc(sizeof(*mpn_a));
+	if (!mpn_a) {
+		printf("cannot alloc\n");
+		exit(0);
+	}
+	mpn_a->ad = ad;
+	mpn_a->access = access;
+
+	LIST_INSERT_HEAD(&memory_breakpoint_pool, mpn_a, next);
+
+}
+
+void remove_memory_breakpoint(uint64_t ad, unsigned int access)
+{
+	struct memory_breakpoint_info * mpn;
+
+	LIST_FOREACH(mpn, &memory_breakpoint_pool, next){
+		if (mpn->ad == ad  && mpn->access == access)
+			LIST_REMOVE(mpn, next);
+	}
+
+}
 
 
 

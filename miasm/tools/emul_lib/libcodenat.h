@@ -53,6 +53,12 @@
 LIST_HEAD(memory_page_list_head, memory_page_node);
 LIST_HEAD(code_bloc_list_head, code_bloc_node);
 
+LIST_HEAD(memory_breakpoint_info_head, memory_breakpoint_info);
+
+
+#define BREAKPOINT_READ 1
+#define BREAKPOINT_WRITE 2
+
 
 typedef struct {
 	unsigned int eax;
@@ -259,6 +265,13 @@ struct code_bloc_node {
 };
 
 
+struct memory_breakpoint_info {
+	uint64_t ad;
+	unsigned int access;
+	LIST_ENTRY(memory_breakpoint_info)   next;
+};
+
+
 #define PAGE_READ 1
 #define PAGE_WRITE 2
 #define PAGE_EXEC 4
@@ -272,16 +285,17 @@ struct code_bloc_node {
 #define EXCEPT_CODE_AUTOMOD (1<<0)
 #define EXCEPT_SOFT_BP (1<<1)
 
-#define EXCEPT_NUM_UDPT_EIP (1<<1)
+#define EXCEPT_BREAKPOINT_INTERN (1<<2)
 
+#define EXCEPT_NUM_UDPT_EIP (1<<5)
 // interrupt with eip at instr
-#define EXCEPT_UNK_MEM_AD (1<<2)
-#define EXCEPT_THROW_SEH (1<<3)
-#define EXCEPT_UNK_EIP (1<<4)
-#define EXCEPT_ACCESS_VIOL (1<<5)
-#define EXCEPT_INT_DIV_BY_ZERO (1<<6)
-#define EXCEPT_PRIV_INSN (1<<7)
-#define EXCEPT_ILLEGAL_INSN (1<<8)
+#define EXCEPT_UNK_MEM_AD (1<<6)
+#define EXCEPT_THROW_SEH (1<<7)
+#define EXCEPT_UNK_EIP (1<<8)
+#define EXCEPT_ACCESS_VIOL (1<<9)
+#define EXCEPT_INT_DIV_BY_ZERO (1<<10)
+#define EXCEPT_PRIV_INSN (1<<11)
+#define EXCEPT_ILLEGAL_INSN (1<<12)
 
 void dump_gpregs(void);
 int is_mem_mapped(uint64_t ad);
@@ -407,10 +421,16 @@ void reset_code_bloc_pool(void);
 void dump_code_bloc_pool(void);
 
 
+void init_memory_breakpoint(void);
+void reset_memory_breakpoint(void);
+void add_memory_breakpoint(uint64_t ad, unsigned int access);
+void remove_memory_breakpoint(uint64_t ad, unsigned int access);
+
 
 void add_memory_page(struct memory_page_node* mpn);
 
 void dump_memory_page_pool(void);
+void dump_memory_breakpoint_pool(void);
 //PyObject* _vm_get_all_memory(void);
 
 

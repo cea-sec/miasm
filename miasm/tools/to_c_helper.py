@@ -1144,6 +1144,7 @@ def load_pe_in_vm(fname_in, options, all_imp_dll = None, **kargs):
     vm_init_regs()
     init_memory_page_pool_py()
     init_code_bloc_pool_py()
+    init_memory_breakpoint_py()
     in_str = bin_stream_vm()
     codenat_tcc_init()
     runtime_dll = pe_helper.libimp(kargs.get('runtime_basead', 0x71111000))
