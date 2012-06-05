@@ -171,12 +171,10 @@ def build_fake_inordermodule(modules_name):
     o += (0x1000 - len(o))*"C"
     for i, m in enumerate(modules_name):
         #fname = os.path.join('win_dll', m)
-        if len(m) == 1:
-            fname, e = m, None
-        elif len(m) ==2:
+        if isinstance(m, tuple):
             fname, e = m
         else:
-            raise ValueError('unknown modules_name r'%m)
+            fname, e = m, None
         bname = os.path.split(fname)[1].lower()
         bname = "\x00".join(bname)+"\x00"
         print "add module", repr(bname)
