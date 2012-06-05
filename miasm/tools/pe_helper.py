@@ -559,7 +559,7 @@ def vm_load_pe(e, align_s = True, load_hdr = True):
             data = str(s.data)
             data += "\x00"*(s.size-len(data))
             to_c_helper.vm_add_memory_page(e.rva2virt(s.addr), to_c_helper.PAGE_READ|to_c_helper.PAGE_WRITE, data)
-            s.offset = s.addr
+            #s.offset = s.addr
         return
 
     #not aligned

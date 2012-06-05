@@ -1149,7 +1149,7 @@ def load_pe_in_vm(fname_in, options, all_imp_dll = None, **kargs):
     codenat_tcc_init()
     runtime_dll = pe_helper.libimp(kargs.get('runtime_basead', 0x71111000))
 
-    pe_helper.vm_load_pe(e, load_hdr = options.loadhdr)
+    pe_helper.vm_load_pe(e, align_s = False, load_hdr = options.loadhdr)
 
     if all_imp_dll == None:
         if options.loadbasedll:
@@ -1174,7 +1174,7 @@ def load_pe_in_vm(fname_in, options, all_imp_dll = None, **kargs):
     for n in mod_list:
         fname = os.path.join('win_dll', n)
         ee = pe_init.PE(open(fname, 'rb').read())
-        pe_helper.vm_load_pe(ee)
+        pe_helper.vm_load_pe(ee, align_s = False)
         runtime_dll.add_export_lib(ee, n)
         exp_funcs = pe_helper.get_export_name_addr_list(ee)
         exp_func[n] = exp_funcs
