@@ -394,8 +394,7 @@ OF(A-B) = ((A XOR D) AND (A XOR B)) < 0
 
 # XXX TODO make default check against 0 or not 0 (same eq as in C)
 def get_op_msb(a):
-    cast_int = tab_uintsize[a.get_size()]
-    return ExprOp('==', ExprInt(cast_int(1)), ExprOp('>>', a, ExprInt(cast_int(a.get_size()-1))))
+    return ExprOp('>>', a, ExprInt_from(a, a.get_size()-1))
 
 
 def update_flag_zf(a):
