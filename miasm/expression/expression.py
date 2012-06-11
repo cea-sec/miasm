@@ -526,7 +526,7 @@ class ExprOp(Expr):
             raise ValueError('not imple', str(self))
     def canonize(self):
         args = [x.canonize() for x in self.args]
-        if self.op in ['+', '^', '&', '|', '*']:
+        if self.op in ['+', '^', '&', '|', '*', '==']:
             args = canonize_expr_list(args)
         return ExprOp(self.op, *args)
 
@@ -691,7 +691,13 @@ def compare_exprs_compose(e1, e2):
 
 def compare_expr_list_compose(l1_e, l2_e):
     for i in xrange(min(len(l1_e), len(l2_e))):
-        x = compare_exprs_compose(l1_e, l2_e)
+        x = compare_exprs_compose(l1_e[i], l2_e[i])
+        if x: return x
+    return cmp(len(l1_e), len(l2_e))
+
+def compare_expr_list(l1_e, l2_e):
+    for i in xrange(min(len(l1_e), len(l2_e))):
+        x = compare_exprs(l1_e[i], l2_e[i])
         if x: return x
     return cmp(len(l1_e), len(l2_e))
 
@@ -728,7 +734,7 @@ def compare_exprs(e1, e2):
     elif c1 == ExprOp:
         if e1.op != e2.op:
             return cmp(e1.op, e2.op)
-        return compare_exprs_list(e1.arg, e2.arg)
+        return compare_expr_list(e1.args, e2.args)
     elif c1 == ExprSlice:
         x = compare_exprs(e1.arg, e2.arg)
         if x: return x
