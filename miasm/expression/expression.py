@@ -79,7 +79,7 @@ def visit_chk(visitor):
         if e_new2 == e_new:
             return e_new2
         while True:
-            #print 'NEW', e, e_new
+            #print 'NEW', e, e_new2
             e = cb(e_new2)
             if e_new2 == e:
                 return e_new2
@@ -153,6 +153,17 @@ class Expr:
             return e
         return self.visit(lambda e:my_replace(e, dct))
 
+
+    def canonize(self):
+        def my_canon(e):
+            if isinstance(e, ExprOp):
+                args = canonize_expr_list(e.args)
+                return ExprOp(e.op, *args)
+            elif isinstance(e, ExprCompose):
+                return ExprCompose(canonize_expr_list_compose(e.args))
+            else:
+                return e
+        return self.visit(my_canon)
 class ExprTop(Expr):
     def __init__(self, e=None):
         fdqs
@@ -202,8 +213,6 @@ class ExprInt(Expr):
         return Expr.__repr__(self)[:-1]+" 0x%X>"%int(self.arg&0xffffffffffffffffL)
     def toC(self):
         return str(self)
-    def canonize(self):
-        return self
     @visit_chk
     def visit(self, cb):
         return ExprInt(self.arg)
@@ -234,8 +243,6 @@ class ExprId(Expr):
         return Expr.__repr__(self)[:-1]+" %s>"%self.name
     def toC(self):
         return str(self)
-    def canonize(self):
-        return self
     @visit_chk
     def visit(self, cb):
         return ExprId(self.name, self.size)
@@ -287,8 +294,6 @@ class ExprAff(Expr):
             if not isinstance(x[0], ExprSlice) or x[0].arg != dst or x[1] != x[0].start or x[2] != x[0].stop:
                 modified_s.append(x)
         return modified_s
-    def canonize(self):
-        return ExprAff(self.src.canonize(), self.dst.canonize())
     @visit_chk
     def visit(self, cb):
         return ExprAff(self.dst.visit(cb), self.src.visit(cb))
@@ -316,10 +321,6 @@ class ExprCond(Expr):
         return hash(self.cond)^hash(self.src1)^hash(self.src2)
     def toC(self):
         return "(%s?%s:%s)"%(self.cond.toC(), self.src1.toC(), self.src2.toC())
-    def canonize(self):
-        return ExprAff(self.cond.canonize(),
-                       self.src1.canonize(),
-                       self.src2.canonize())
     @visit_chk
     def visit(self, cb):
         return ExprCond(self.cond.visit(cb), self.src1.visit(cb), self.src2.visit(cb))
@@ -355,8 +356,6 @@ class ExprMem(Expr):
             return "MEM_LOOKUP_%.2d_SEGM(%s, %s)"%(self.size, self.segm.toC(), self.arg.toC())
         else:
             return "MEM_LOOKUP_%.2d(%s)"%(self.size, self.arg.toC())
-    def canonize(self):
-        return ExprMem(self.arg.canonize(), size = self.size)
     @visit_chk
     def visit(self, cb):
         segm = self.segm
@@ -535,11 +534,6 @@ class ExprOp(Expr):
                                                  my_size_mask[self.args[0].get_size()])
         else:
             raise ValueError('not imple', str(self))
-    def canonize(self):
-        args = [x.canonize() for x in self.args]
-        if self.op in ['+', '^', '&', '|', '*', '==']:
-            args = canonize_expr_list(args)
-        return ExprOp(self.op, *args)
     @visit_chk
     def visit(self, cb):
         args = [a.visit(cb) for a in self.args]
@@ -574,10 +568,6 @@ class ExprSlice(Expr):
         return "((%s>>%d) & 0x%X)"%(self.arg.toC(),
                                     self.start,
                                     (1<<(self.stop-self.start))-1)
-    def canonize(self):
-        return ExprSlice(self.arg.canonize(),
-                         self.start,
-                         self.stop)
     @visit_chk
     def visit(self, cb):
         return ExprSlice(self.arg.visit(cb), self.start, self.stop)
@@ -626,11 +616,6 @@ class ExprCompose(Expr):
                                               x[1]))
         out = ' | '.join(out)
         return '('+out+')'
-    def canonize(self):
-        o = []
-        for x in self.args:
-            o.append((x[0].canonize(), x[1], x[2]))
-        return ExprCompose(canonize_expr_list_compose(o))
     @visit_chk
     def visit(self, cb):
         args = [(a[0].visit(cb), a[1], a[2]) for a in self.args]
@@ -759,7 +744,7 @@ def compare_exprs(e1, e2):
 
 
 def canonize_expr_list(l):
-    l = l[:]
+    l = list(l)
     l.sort(cmp=compare_exprs)
     return l
 
