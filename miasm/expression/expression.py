@@ -69,6 +69,24 @@ def get_missing_interval(all_intervals, i_min = 0, i_max = 32):
     return missing_i
 
 
+def visit_chk(visitor):
+    def wrapped(e, cb):
+        #print "wrap", e, visitor, cb
+        e_new = visitor(e, cb)
+        e_new2 = cb(e_new)
+        if e_new2 == e:
+            return e
+        if e_new2 == e_new:
+            return e_new
+        while True:
+            #print 'NEW', e, e_new
+            e = cb(e_new2)
+            if e_new2 == e:
+                return e
+            e_new2 = e
+    return wrapped
+
+
 class Expr:
     is_term = False
     is_simp = False
@@ -178,6 +196,9 @@ class ExprInt(Expr):
         return str(self)
     def canonize(self):
         return self
+    @visit_chk
+    def visit(self, cb):
+        return self
 
 class ExprId(Expr):
     def __init__(self, name, size = 32, is_term = False):
@@ -211,6 +232,9 @@ class ExprId(Expr):
     def toC(self):
         return str(self)
     def canonize(self):
+        return self
+    @visit_chk
+    def visit(self, cb):
         return self
 
 memreg = ExprId('MEM')
@@ -268,6 +292,9 @@ class ExprAff(Expr):
         return modified_s
     def canonize(self):
         return ExprAff(self.src.canonize(), self.dst.canonize())
+    @visit_chk
+    def visit(self, cb):
+        return ExprAff(self.dst.visit(cb), self.src.visit(cb))
 
 class ExprCond(Expr):
     def __init__(self, cond, src1, src2):
@@ -303,6 +330,9 @@ class ExprCond(Expr):
         return ExprAff(self.cond.canonize(),
                        self.src1.canonize(),
                        self.src2.canonize())
+    @visit_chk
+    def visit(self, cb):
+        return ExprCond(self.cond.visit(cb), self.src1.visit(cb), self.src2.visit(cb))
 
 class ExprMem(Expr):
     def __init__(self, arg, size = 32, segm = None):
@@ -345,6 +375,9 @@ class ExprMem(Expr):
             return "MEM_LOOKUP_%.2d(%s)"%(self.size, self.arg.toC())
     def canonize(self):
         return ExprMem(self.arg.canonize(), size = self.size)
+    @visit_chk
+    def visit(self, cb):
+        return ExprMem(self.arg.visit(cb), self.size, self.segm)
 
 class ExprOp(Expr):
     def __init__(self, op, *args):
@@ -529,6 +562,10 @@ class ExprOp(Expr):
         if self.op in ['+', '^', '&', '|', '*', '==']:
             args = canonize_expr_list(args)
         return ExprOp(self.op, *args)
+    @visit_chk
+    def visit(self, cb):
+        args = [a.visit(cb) for a in self.args]
+        return ExprOp(self.op, *args)
 
 class ExprSlice(Expr):
     def __init__(self, arg, start, stop):
@@ -568,6 +605,9 @@ class ExprSlice(Expr):
         return ExprSlice(self.arg.canonize(),
                          self.start,
                          self.stop)
+    @visit_chk
+    def visit(self, cb):
+        return ExprSlice(self.arg.visit(cb), self.start, self.stop)
 
 
 class ExprCompose(Expr):
@@ -625,6 +665,10 @@ class ExprCompose(Expr):
         for x in self.args:
             o.append((x[0].canonize(), x[1], x[2]))
         return ExprCompose(canonize_expr_list_compose(o))
+    @visit_chk
+    def visit(self, cb):
+        args = [(a[0].visit(cb), a[1], a[2]) for a in self.args]
+        return ExprCompose(args)
 
 class set_expr:
     def __init__(self, l = []):
