@@ -72,7 +72,7 @@ def merge_sliceto_slice(args):
 
     while sorted_s:
         start, v = sorted_s.pop()
-        out = v[0].reload_expr(), v[1], v[2]
+        out = v[0].copy(), v[1], v[2]
         while sorted_s:
             if sorted_s[-1][1][2] != start:
                 break
@@ -101,7 +101,7 @@ def merge_sliceto_slice(args):
         sorted_s.sort()
         while sorted_s:
             start, v = sorted_s.pop()
-            out = v[0].reload_expr(), v[1], v[2]
+            out = v[0].copy(), v[1], v[2]
             while sorted_s:
                 if sorted_s[-1][1][2] != start:
                     break

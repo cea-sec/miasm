@@ -948,7 +948,7 @@ def pop(info, a):
     e.append(ExprAff(esp, new_esp))
     #XXX FIX XXX for pop [esp]
     if isinstance(a, ExprMem):
-        a =a.reload_expr({esp:new_esp})
+        a =a.replace_expr({esp:new_esp})
     e.append(ExprAff(a, ExprMem(esp, s)))
     return e
 

@@ -182,7 +182,7 @@ class eval_abs:
             print repr(g[str(xx)]), g[str(xx)]
 
             if isinstance(m.pool[x], Expr):
-                new_pool[g[str(xx)]] = m.pool[x].reload_expr(g)
+                new_pool[g[str(xx)]] = m.pool[x].replace_expr(g)
             else:
                 new_pool[g[str(xx)]] = m.pool[x]
 

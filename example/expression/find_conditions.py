@@ -75,8 +75,8 @@ def emul_mn(states_todo, states_done, all_blocs, job_done):
             c2 = {ad.cond: ExprInt(uint32(1))}
             p1[ad.cond] = ExprInt(uint32(0))
             p2[ad.cond] = ExprInt(uint32(1))
-            ad1 = machine.eval_expr(ad.reload_expr(c1), {})
-            ad2 = machine.eval_expr(ad.reload_expr(c2), {})
+            ad1 = machine.eval_expr(ad.replace_expr(c1), {})
+            ad2 = machine.eval_expr(ad.replace_expr(c2), {})
             if not (isinstance(ad1, ExprInt) and isinstance(ad2, ExprInt)):
                 print str(ad1), str(ad2)
                 raise ValueError("zarb condition")
@@ -120,4 +120,4 @@ for ad, pool in states_done:
 
 machine = x86_machine()
 for k, v in list(all_info):
-    print machine.eval_expr(k.reload_expr({}), {}), "=", v
+    print machine.eval_expr(k.replace_expr({}), {}), "=", v

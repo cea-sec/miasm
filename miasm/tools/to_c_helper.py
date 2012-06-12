@@ -228,7 +228,7 @@ for x in my_C_id:
     id2Cid[x] = ExprId('vmcpu.'+str(x), x.get_size())
 
 def patch_c_id(e):
-    return e.reload_expr(id2Cid)
+    return e.replace_expr(id2Cid)
 
 
 code_deal_exception_at_instr = r"""
@@ -331,7 +331,7 @@ def Exp2C(exprs, l = None, addr2label = None, gen_exception_code = False):
         if True:#e.dst != eip:
             src, dst = e.src, e.dst
             # reload src using prefetch
-            src = src.reload_expr(src_w_len)
+            src = src.replace_expr(src_w_len)
             str_src = patch_c_id(src).toC()
             str_dst = patch_c_id(dst).toC()
             if isinstance(dst, ExprId):
@@ -935,7 +935,7 @@ if __name__ == '__main__':
         print x
     print '#'*80
 
-    new_e = [x.reload_expr({ExprMem(eax): ExprId('ioio')}) for x in e]
+    new_e = [x.replace_expr({ExprMem(eax): ExprId('ioio')}) for x in e]
     for x in new_e:
         print x
     print '-'*80
