@@ -69,7 +69,6 @@ def merge_sliceto_slice(args):
         x[0].arg = v
         sorted_s.append((x[1], x))
     sorted_s.sort()
-
     while sorted_s:
         start, v = sorted_s.pop()
         out = v[0].copy(), v[1], v[2]
@@ -90,8 +89,8 @@ def merge_sliceto_slice(args):
 
     final_sources_int = final_sources
 
-    #check if same sources have corresponding start/stop
-    #is slice AND is sliceto
+    # check if same sources have corresponding start/stop
+    # is slice AND is sliceto
     simp_sources = []
     for s, args in sources.items():
         final_sources = []
@@ -128,530 +127,300 @@ def merge_sliceto_slice(args):
     return simp_sources
 
 
+
+op_assoc = ['+', '*', '^', '&', '|']
+
 def expr_simp(e):
-    if e.is_simp:
-        return e
-    e = expr_simp_w(e)
-    e.is_simp = True
-    return e
-
-def expr_simp_w(e):
-    if isinstance(e, ExprTop):
-        return e
-    if isinstance(e, ExprInt):
-        return e
-    elif isinstance(e, ExprId):
-        return e
-    elif isinstance(e, ExprAff):
-        return ExprAff(expr_simp(e.dst), expr_simp(e.src))
-    elif isinstance(e, ExprCond):
-        c = expr_simp(e.cond)
-        if isinstance(c, ExprInt):
-            print e
-            fdsfsdf
-            if c == 0:
-                return expr_simp(e.src2)
+    if isinstance(e, ExprOp):
+        # merge associatif op
+        # ((a+b) + c) => (a + b + c)
+        args = []
+        for a in e.args:
+            if e.op in op_assoc and isinstance(a, ExprOp) and e.op == a.op:
+                args += a.args
             else:
-                return expr_simp(e.src1)
+                args.append(a)
+        op = e.op
+        if op in op_assoc:
+            args = canonize_expr_list(args)
+        # simpl integer manip
+        # int OP int => int
+        if op in op_assoc + ['>>', '<<']:
+            while len(args) >= 2 and isinstance(args[-1], ExprInt) and isinstance(args[-2], ExprInt):
+                i1 = args.pop()
+                i2 = args.pop()
+                if i1.get_size() != i2.get_size():
+                    raise ValueError("diff size! %s"%(str(e)))
+                if op == '+':
+                    o = i1.arg + i2.arg
+                elif op == '*':
+                    o = i1.arg * i2.arg
+                elif op == '^':
+                    o = i1.arg ^ i2.arg
+                elif op == '&':
+                    o = i1.arg & i2.arg
+                elif op == '|':
+                    o = i1.arg | i2.arg
+                elif op == '>>':
+                    o = i1.arg >> i2.arg
+                elif op == '<<':
+                    o = i1.arg << i2.arg
 
-        return ExprCond(expr_simp(e.cond), expr_simp(e.src1), expr_simp(e.src2))
-    elif isinstance(e, ExprMem):
-        if isinstance(e.arg, ExprTop):
-            return ExprTop()
-        return ExprMem(expr_simp(e.arg), size = e.size)
-    elif isinstance(e, ExprOp):
-        op, args = e.op, list(e.args)
-        """
-        if ExprTop() in args:
-            return ExprTop()
-        """
-        #int OP int => int
-        if e.op in ['+', '-', '*', '|', '&', '^', '>>', '<<'] and isinstance(args[0], ExprInt) and isinstance(args[1], ExprInt) :
-            if args[0].get_size() != args[1].get_size():
-                raise ValueError("diff size! %s"%(str(e)))
-            if e.op == '+':
-                o = args[0].arg + args[1].arg
-            elif e.op == '-':
-                o = args[0].arg - args[1].arg
-            elif e.op == '*':
-                o = args[0].arg * args[1].arg
-            elif e.op == '|':
-                o = args[0].arg | args[1].arg
-            elif e.op == '&':
-                o = args[0].arg & args[1].arg
-            elif e.op == '^':
-                o = args[0].arg ^ args[1].arg
-            elif e.op == '>>':
-                o = args[0].arg >> args[1].arg
-            elif e.op == '<<':
-                o = args[0].arg << args[1].arg
-            else:
-                raise ValueError("zarb op %s"%str(e))
-            z = ExprInt(tab_size_int[args[0].get_size()](o))
-            return z
+                o = ExprInt(tab_size_int[i1.get_size()](o))
+                args.append(o)
 
-        #int OP xx => xx OP int
-        if e.op in ['+', '*', '|', '&', '^']:
-            if isinstance(e.args[0], ExprInt) and not isinstance(e.args[1], ExprInt):
-                op, args= e.op, [e.args[1], e.args[0]]
-        #A+0 =>A
-        if op in ['+', '-', '|', "^", "<<", ">>"]:
-            if isinstance(args[0], ExprInt) and args[0].arg == 0 and not op in ['-', "<<", ">>"]:
-                return expr_simp(args[1])
-            if isinstance(args[1], ExprInt) and args[1].arg == 0:
-                return expr_simp(args[0])
+        # --(A) => A
+        if op == '-' and len(args) == 1 and isinstance(args[0], ExprOp) and \
+                args[0].op == '-' and len(args[0].args) == 1:
+            return args[0].args[0]
 
-        #A&0 =>0
-        if op in ['&']:
-            if isinstance(args[1], ExprInt) and args[1].arg == 0:
-                return args[1]
+        # -(int) => -int
+        if op == '-' and len(args) == 1 and isinstance(args[0], ExprInt):
+            return ExprInt(-args[0].arg)
+        # A op 0 =>A
+        if op in ['+', '-', '|', "^", "<<", ">>", "<<<", ">>>"] and len(args) > 1:
+            if isinstance(args[-1], ExprInt) and args[-1].arg == 0:
+                args.pop()
 
-        #A-(-123) =>A+123
-        if op == '-' and isinstance(args[1], ExprInt) and int32(args[1].arg)<0 :
-            op = '+'
-            args[1] = ExprInt(-args[1].arg)
+        # op A => A
+        if op in op_assoc + ['>>', '<<', '<<<', '>>>'] and len(args) == 1 :
+            return args[0]
 
-        #A+(-123) =>A-123
-        if op == '+' and isinstance(args[1], ExprInt) and int32(args[1].arg)<0 :
-            op = '-'
-            args[1] = ExprInt(-args[1].arg)
-            #fdsfs
-        #A+3+2 => A+5
-        if op in ['+', '-'] and isinstance(args[1], ExprInt) and isinstance(args[0], ExprOp) and args[0].op in ['+', '-'] and isinstance(args[0].args[1], ExprInt):
-            op1 = op
-            op2 = args[0].op
-            if op1 == op2:
-                op = op1
-                args1 = args[0].args[1].arg + args[1].arg
-            else:
-                op = op2
-                args1 = args[0].args[1].arg - args[1].arg
+        # A-B => A + (-B)
+        if op == '-' and len(args) > 1:
+            if len(args) > 2:
+                raise ValueError('sanity check fail on expr -: should have one or 2 args  %r %s'%(e, e))
+            return ExprOp('+', args[0], -args[1])
 
+        # - (A + B +...) => -A + -B + -C
+        if op == '-' and len(args) == 1 and isinstance(args[0], ExprOp) and args[0].op == '+':
+            args = [-a for a in args[0].args]
+            return ExprOp('+', *args)
 
-                #if op == '-':
-                #    args1 = -args1
-            args0 = args[0].args[0]
-            args = [args0, ExprInt(args1)]
+        i = 0
+        while i<len(args)-1:
+            j = i+1
+            while j < len(args):
+                # A ^ A => 0
+                if op == '^' and args[i] == args[j]:
+                    args[i] = ExprInt(tab_size_int[args[i].get_size()](0))
+                    del(args[j])
+                    continue
+                # A + (- A) => 0
+                if op == '+' and isinstance(args[j], ExprOp) and args[j].op == "-":
+                    if len(args[j].args) == 1 and args[i] == args[j].args[0]:
+                        args[i] = ExprInt(tab_size_int[args[i].get_size()](0))
+                        del(args[j])
+                        continue
+                # A | A => A
+                if op == '|' and args[i] == args[j]:
+                    del(args[j])
+                    continue
+                # A & A => A
+                if op == '&' and args[i] == args[j]:
+                    del(args[j])
+                    continue
+                j+=1
+            i+=1
 
-        if op in ['+'] and isinstance(args[1], ExprInt) and isinstance(args[0], ExprOp) and args[0].op in ['+', '-'] and isinstance(args[0].args[0], ExprInt):
-            op = args[0].op
-            args1 = args[0].args[0].arg + args[1].arg
-            args0 = args[0].args[1]
-            args = [ExprInt(args1), args0]
-
-        #0 - (a-b) => b-a
-        if op == '-' and isinstance(args[0], ExprInt) and args[0].arg == 0 and isinstance(args[1], ExprOp) and args[1].op == "-":
-            return expr_simp(args[1].args[1] - args[1].args[0])
-
-        #a<<< x <<< y => a <<< (x+y) (ou <<< >>>)
-        if op in ['<<<', '>>>'] and isinstance(args[1], ExprInt) and isinstance(args[0], ExprOp) and args[0].op in ['<<<', '>>>'] and isinstance(args[0].args[1], ExprInt):
-            op1 = op
-            op2 = args[0].op
-            if op1 == op2:
-                op = op1
-                args1 = args[0].args[1].arg + args[1].arg
-            else:
-                op = op2
-                args1 = args[0].args[1].arg - args[1].arg
-
-            args0 = args[0].args[0]
-            args = [args0, ExprInt(args1)]
-
-
-        #a >>> 0 => a (ou <<<)
-        if op in ['<<<', '>>>'] and isinstance(args[1], ExprInt) and args[1].arg == 0:
-            e = expr_simp(args[0])
-            return e
-
-        #((a >>> b) <<< b) => a
-        if op in ['<<<', '>>>'] and isinstance(args[0], ExprOp) and args[0].op in ['<<<', '>>>'] and args[1] == args[0].args[1]:
-            oo = op, args[0].op
-            if oo in [('<<<', '>>>'), ('>>>', '<<<')]:
-
-                e = expr_simp(args[0].args[0])
-                return e
-
-
-        #( a + int1 ) - (b+int2) => a - (b+ (int1-int2))
-        if op in ['+', '-'] and isinstance(args[0], ExprOp) and args[0].op in ['+', '-'] and isinstance(args[1], ExprOp) and args[1].op in ['+', '-'] and isinstance(args[0].args[1], ExprInt) and isinstance(args[1].args[1], ExprInt):
-            op1 = op
-            op2 = args[0].op
-            op3 = args[1].op
-
-            if op1 == op2:
-                m_op = "+"
-            else:
-                m_op = "-"
-            e = ExprOp(op1,
-                       args[0].args[0],
-                       ExprOp(m_op,
-                              ExprOp(op3,
-                                     args[1].args[0],
-                                     args[1].args[1]
-                                     ),
-                              args[0].args[1]
-                              )
-                       )
-            e = expr_simp(e)
-
-            return e
-
-        #(a - (a + XXX)) => 0-XXX
-        if op in ['-'] and isinstance(args[1], ExprOp) and args[1].op in ['+', '-'] and args[1].args[0] == args[0]:
-            if op == args[1].op:
-                m_op = "+"
-            else:
-                m_op = "-"
-
-            z = ExprInt(tab_size_int[args[1].args[1].get_size()](0))
-            e = ExprOp(m_op,
-                       z,
-                       args[1].args[1])
-            e = expr_simp(e)
-
-            return e
-
-
-        #((a +- XXX) -a) => 0+-XXX
-        if op in ['-'] and isinstance(args[0], ExprOp) and args[0].op in ['+', '-'] and args[0].args[0] == args[1]:
-            m_op = args[0].op
-
-            z = ExprInt(tab_size_int[args[0].args[1].get_size()](0))
-            e = ExprOp(m_op,
-                       z,
-                       args[0].args[1])
-            e = expr_simp(e)
-
-            return e
-
-        #  ((a ^ b) ^ a) => b (or commut)
-        if op in ['^'] and isinstance(args[0], ExprOp) and args[0].op in ['^']:
-            rest_a = None
-            if args[0].args[0] == args[1]:
-                rest_a = args[0].args[1]
-            elif args[0].args[1] == args[1]:
-                rest_a = args[0].args[0]
-            if rest_a != None:
-                e = expr_simp(rest_a)
-                return e
-        #  (a ^ (a ^ b) ) => b (or commut)
-        if op in ['^'] and isinstance(args[1], ExprOp) and args[1].op in ['^']:
-            rest_a = None
-            if args[1].args[0] == args[0]:
-                rest_a = args[1].args[1]
-            elif args[1].args[1] == args[0]:
-                rest_a = args[1].args[0]
-            if rest_a != None:
-                e = expr_simp(rest_a)
-                return e
-
-
-        #  ((a + b) - b) => a (or commut)
-        if op in ['-'] and isinstance(args[0], ExprOp) and args[0].op in ['+']:
-            rest_a = None
-            if args[0].args[1] == args[1]:
-                rest_a = args[0].args[0]
-                e = expr_simp(rest_a)
-                return e
-
-        #  ((a - b) + b) => a (or commut)
-        if op in ['+'] and isinstance(args[0], ExprOp) and args[0].op in ['-']:
-            rest_a = None
-            if args[0].args[1] == args[1]:
-                rest_a = args[0].args[0]
-                e = expr_simp(rest_a)
-                return e
-
-        # a<<< a.size => a
+        # A <<< A.size => A
         if op in ['<<<', '>>>'] and isinstance(args[1], ExprInt) and args[1].arg == args[0].get_size():
-            return expr_simp(args[0])
+            return args[0]
 
-        #!!a => a
-        if op == '!' and isinstance(args[0], ExprOp) and args[0].op == '!':
-            new_e = args[0].args[0]
-            return expr_simp(new_e)
+
+        # A <<< X <<< Y => A <<< (X+Y) (ou <<< >>>)
+        if op in ['<<<', '>>>'] and isinstance(args[0], ExprOp) and args[0].op in ['<<<', '>>>']:
+            op1 = op
+            op2 = args[0].op
+            if op1 == op2:
+                op = op1
+                args1 = args[0].args[1] + args[1]
+            else:
+                op = op2
+                args1 = args[0].args[1] - args[1]
+
+            args0 = args[0].args[0]
+            args = [args0, args1]
+
 
         #! (!X + int) => X - int
-        if op == '!' and isinstance(args[0], ExprOp) and args[0].op in ['+', '-'] and isinstance(args[0].args[0], ExprOp) and args[0].args[0].op == '!':
-            if args[0].op == '+':
-                op = '-'
-            else:
-                op = '+'
-            return expr_simp(ExprOp(op, args[0].args[0].args[0], args[0].args[1]))
+        # TODO
 
-        # ((a (op1+-) int)  (op2+-) b) => ((a (op2) b) op1 int))
-        if op in ['+', '-'] and isinstance(args[0], ExprOp) and args[0].op in ['+', '-'] and not isinstance(args[1], ExprInt) and args[0].op in ['+', '-'] and isinstance(args[0].args[1], ExprInt):
-            op1 = op
-            op2 = args[0].op
-            e = ExprOp(op2,
-                       ExprOp(op1,
-                              args[0].args[0],
-                              args[1])
-                       ,
-                       args[0].args[1])
-            return expr_simp(e)
-
-
-        if op == "&" and isinstance(args[0], ExprOp) and args[0].op == '!' and isinstance(args[1], ExprOp) and args[1].op == '!' and isinstance(args[0].args[0], ExprOp) and args[0].args[0].op == '&' and isinstance(args[1].args[0], ExprOp) and args[1].args[0].op == '&':
-
-            ##############1
-            a1 = args[0].args[0].args[0]
-            if isinstance(a1, ExprOp) and a1.op == '!':
-                a1 = a1.args[0]
-            elif isinstance(a1, ExprInt):
-                a1 = ExprInt(~a1.arg)
-            else:
-                a1 = None
-
-            b1 = args[0].args[0].args[1]
-            if isinstance(b1, ExprOp) and b1.op == '!':
-                b1 = b1.args[0]
-            elif isinstance(b1, ExprInt):
-                b1 = ExprInt(~b1.arg)
-            else:
-                b1 = None
-
-
-            a2 = args[1].args[0].args[0]
-            b2 = args[1].args[0].args[1]
-
-
-            if a1 != None and b1 != None and a1 == a2 and b1 == b2:
-                new_e = ExprOp('^', a1, b1)
-                return expr_simp(new_e)
-
-            ################2
-            a1 = args[1].args[0].args[0]
-            if isinstance(a1, ExprOp) and a1.op == '!':
-                a1 = a1.args[0]
-            elif isinstance(a1, ExprInt):
-                a1 = ExprInt(~a1.arg)
-            else:
-                a1 = None
-
-            b1 = args[1].args[0].args[1]
-            if isinstance(b1, ExprOp) and b1.op == '!':
-                b1 = b1.args[0]
-            elif isinstance(b1, ExprInt):
-                b1 = ExprInt(~b1.arg)
-            else:
-                b1 = None
-
-
-            a2 = args[0].args[0].args[0]
-            b2 = args[0].args[0].args[1]
-
-
-            if a1 != None and b1 != None and a1 == a2 and b1 == b2:
-                new_e = ExprOp('^', a1, b1)
-                return expr_simp(new_e)
-
-
-        # (x & mask) >> shift whith mask < 2**shift => 0
+        # ((A & mask) >> shift) whith mask < 2**shift => 0
         if op == ">>" and isinstance(args[1], ExprInt) and isinstance(args[0], ExprOp) and args[0].op == "&":
             if isinstance(args[0].args[1], ExprInt) and 2**args[1].arg >= args[0].args[1].arg:
                 return ExprInt(tab_size_int[args[0].get_size()](0))
 
-        #! (compose a b c) => (compose !a !b !c)
-        if op == '!' and isinstance(args[0], ExprCompose):
-            args = [(ExprOp('!', x.arg), x[1], x[2]) for x in args[0].args]
-            new_e = ExprCompose(args)
-            return expr_simp(new_e)
-        #!a[0:X] => (!a)[0:X]
-        if op == '!' and isinstance(args[0], ExprSlice):
-            new_e = ExprSlice(ExprOp('!', args[0].arg), args[0].start, args[0].stop)
-            return expr_simp(new_e)
 
-
-        #! int
-        if op == '!' and isinstance(args[0], ExprInt):
-            a = args[0]
-            e = ExprInt(tab_max_uint[a.get_size()]^a.arg)
-            return e
-
-        #a^a=>0 | a-a =>0
-        if op in ['^', '-'] and args[0] == args[1]:
-            tmp =  ExprInt(tab_size_int[args[0].get_size()](0))
-            return tmp
-
-        #a & a => a   or a | a => a
-        if op in ['&', '|'] and args[0] == args[1]:
-            return expr_simp(args[0])
         # int == int => 0 or 1
         if op == '==' and isinstance(args[0], ExprInt) and isinstance(args[1], ExprInt):
             if args[0].arg == args[1].arg:
                 return ExprInt(tab_size_int[args[0].get_size()](1))
             else:
                 return ExprInt(tab_size_int[args[0].get_size()](0))
-        #( a|int == 0)  => 0  wirh int != 0
-        if op == '==' and isinstance(args[1], ExprInt) and args[1].arg ==0 :
-            if isinstance(args[0], ExprOp) and args[0].op == '|' and isinstance(args[0].args[1], ExprInt) and \
-               args[0].args[1].arg != 0:
+        #(A|int == 0)  => 0  with int != 0
+        if op == '==' and isinstance(args[1], ExprInt) and args[1].arg == 0:
+            if isinstance(args[0], ExprOp) and args[0].op == '|' and\
+                    isinstance(args[0].args[1], ExprInt) and \
+                    args[0].args[1].arg != 0:
                 return ExprInt(tab_size_int[args[0].get_size()](0))
 
-
+        # parity(int) => int
         if op == 'parity' and isinstance(args[0], ExprInt):
             return ExprInt(tab_size_int[args[0].get_size()](parity(args[0].arg)))
 
-        new_e = ExprOp(op, *[expr_simp(x) for x in args])
-        if new_e == e:
-            return new_e
-        else:
-            return expr_simp(new_e)
+        return ExprOp(op, *args)
 
-    #Slice(int) => new_int
+    # Slice optimization
     elif isinstance(e, ExprSlice):
-        arg = expr_simp(e.arg)
-
-        if isinstance(arg, ExprTop):
-            return ExprTop()
-        elif e.start == 0 and e.stop == 32 and arg.get_size() == 32:
-            return arg
-
-        elif isinstance(arg, ExprInt):
+        # slice(A, 0, a.size) => A
+        if e.start == 0 and e.stop == e.arg.get_size():
+            return e.arg
+        # Slice(int) => int
+        elif isinstance(e.arg, ExprInt):
             total_bit = e.stop-e.start
             mask = uint64((1<<(e.stop-e.start))-1)
             if total_bit in tab_size_int:
-                return ExprInt(tab_size_int[total_bit]((uint64((arg.arg)>>e.start)) & mask))
+                return ExprInt(tab_size_int[total_bit]((uint64((e.arg.arg)>>e.start)) & mask))
             else:
-                return ExprInt(type(arg.arg)((uint64((arg.arg)>>e.start)) & mask))
-        elif isinstance(arg, ExprSlice):
-            if e.stop-e.start > arg.stop-arg.start:
+                return ExprInt(type(e.arg.arg)((uint64((e.arg.arg)>>e.start)) & mask))
+        # Slice(Slice(A, x), y) => Slice(A, z)
+        elif isinstance(e.arg, ExprSlice):
+            if e.stop-e.start > e.arg.stop-e.arg.start:
                 raise ValueError('slice in slice: getting more val', str(e))
 
-            new_e = ExprSlice(expr_simp(arg.arg), e.start + arg.start, e.start + arg.start + (e.stop - e.start))
-            return expr_simp(new_e)
-        elif isinstance(arg, ExprCompose):
-            for a in arg.args:
+            new_e = ExprSlice(e.arg.arg, e.start + e.arg.start, e.start + e.arg.start + (e.stop - e.start))
+            return new_e
+        # Slice(Compose(A), x) => Slice(A, y)
+        elif isinstance(e.arg, ExprCompose):
+            for a in e.arg.args:
                 if a[1] <= e.start and a[2]>=e.stop:
                     new_e = a[0][e.start-a[1]:e.stop-a[1]]
-                    new_e = expr_simp(new_e)
                     return new_e
-        elif isinstance(arg, ExprOp) and e.start == 0:
-            #if (op ..)[0:X] and op result is good size, skip slice
-            if e.stop == arg.get_size():
-                return expr_simp(arg)
-            return ExprSlice(arg, e.start, e.stop)
-        elif isinstance(arg, ExprMem) and e.start == 0 and arg.size == e.stop:
-            e = expr_simp(arg)
-            return e
         #XXXX todo hum, is it safe?
-        elif isinstance(arg, ExprMem) and e.start == 0 and arg.size > e.stop and e.stop %8 == 0:
-            e = expr_simp(ExprMem(e.arg.arg, size = e.stop))
+        elif isinstance(e.arg, ExprMem) and e.start == 0 and e.arg.size > e.stop and e.stop %8 == 0:
+            e = ExprMem(e.arg.arg, size = e.stop)
             return e
 
+        return e
 
-
-
-        return ExprSlice(arg, e.start, e.stop)
-        """
-    XXX todo move to exprcompose
-    elif isinstance(e, ExprSliceTo):
-        if isinstance(e.arg, ExprTop):
-            return ExprTop()
-        if isinstance(e.arg, ExprSlice) and e.arg.start == 0:
-            return expr_simp(ExprSliceTo(expr_simp(e.arg.arg), e.start, e.stop))
-
-        #(.., a[0:X], ..) _to[Y:Z] with X > Z-Y => a[0:X]_to[Y:Z]
-        if isinstance(e.arg, ExprCompose) and len(e.arg.args) >1:
-            s = e.get_size()
-            for a in e.arg.args:
-                if a.start == 0 and a.stop >= s:
-                    return expr_simp(ExprSliceTo(ExprCompose([a]), e.start, e.stop))
-
-
-
-        return ExprSliceTo(expr_simp(e.arg), e.start, e.stop)
-        """
     elif isinstance(e, ExprCompose):
-        #(.., a_to[x:y], a[:]_to[y:z], ..) => (.., a[x:z], ..)
-        e = ExprCompose([(expr_simp(x[0]), x[1], x[2]) for x in e.args])
-        args = []
-        i = -1
-        simp = False
-        while i+1 < len(e.args):
-            i+=1
-            if not args:
-                args.append(e.args[i])
-                continue
-            if args[-1][2] != e.args[i][1]:
-                continue
-            if not isinstance(e.args[i][0], ExprSlice):
-                continue
-            if isinstance(args[-1][0], ExprSlice):
-                a = args[-1]
-            else:
-                a = (ExprSlice(args[-1][0], 0, args[-1][0].get_size()),
-                     args[-1][1],
-                     args[-1][2])
-            if a[0].arg != e.args[i][0].arg:
-                continue
-            if a[2] != e.args[i][1]:
-                continue
-            args[-1] = (e.args[i][0].arg, a[1], e.args[i][2])
-            simp = True
-
-        if simp:
-            return expr_simp(ExprCompose(args))
-
-
-
-        all_top = True
-        for a in e.args:
-            if not isinstance(a, ExprTop):
-                all_top = False
-                break
-        if all_top:
-            return ExprTop()
-        """
-        if ExprTop() in e.args:
-            return ExprTop()
-        """
-
         args = merge_sliceto_slice(e.args)
-        if len(args) == 1:
-            a = args[0]
-            if isinstance(a[0], ExprInt):
-                if a[0].get_size() != a[2]:
-                    print a, a[0].get_size(), a[2]
-                    raise ValueError("todo cast in compose!", e)
-                return a[0]
-            uu = expr_simp(a[0][:e.get_size()])
-            return uu
-        if len(args) != len(e.args):
-            return expr_simp(ExprCompose(args))
-        else:
-            return ExprCompose(args)
+        # Compose(a) with a.size = compose.size => a
+        if len(args) == 1 and args[0][1] == 0 and args[0][2] == e.get_size():
+            return args[0][0]
+
+        return ExprCompose(args)
+
     else:
-        raise 'bad expr'
-
-
-def expr_cmp(e1, e2):
-    return str(e1) == str(e2)
-"""
-#replace id by another in expr
-def expr_replace(e, repl):
-    if isinstance(e, ExprInt):
         return e
-    elif isinstance(e, ExprId):
-        if e in repl:
-            return repl[e]
+
+
+if __name__ == "__main__":
+    from miasm.expression.expression import *
+    from miasm.expression.expression_helper import *
+    import os
+
+    filename = os.environ.get('PYTHONSTARTUP')
+    if filename and os.path.isfile(filename):
+        execfile(filename)
+
+    a = ExprId('a')
+    b = ExprId('b')
+    c = ExprId('c')
+    d = ExprId('d')
+
+
+    x = ExprMem(a+b+ExprInt32(0x42))
+
+    def replace_expr(e):
+        #print 'visit', e
+        dct = {c+ExprInt32(0x42):d,
+               a+b:c,}
+        if e in dct:
+            return dct[e]
         return e
-    elif isinstance(e, ExprAff):
-        return ExprAff(expr_replace(e.dst, repl), expr_replace(e.src, repl))
-    elif isinstance(e, ExprCond):
-        return ExprCond(expr_replace(e.cond, repl), expr_replace(e.src1, repl), expr_replace(e.src2, repl))
-    elif isinstance(e, ExprMem):
-        return ExprMem(expr_replace(e.arg, repl), size = e.size)
-    elif isinstance(e, ExprOp):
-        return ExprOp(e.op, *[expr_replace(x, repl) for x in e.args])
-    elif isinstance(e, ExprSlice):
-        return ExprSlice(expr_replace(e.arg, repl), e.start, e.stop)
-    elif isinstance(e, ExprCompose):
-        return ExprCompose([(expr_replace(x[0], repl), x[1], x[2]) for x in e.args])
-    else:
-        raise ValueError('bad expr', e)
 
 
+    print x
+    y = x.visit(replace_expr)
+    print y
+    print x.copy()
+    print y.copy()
+    print y == y.copy()
+    print repr(y), repr(y.copy())
 
-"""
+
+    z = ExprCompose([(a[5:9], 0, 8), (b, 8, 24), (x, 24, 32)])
+    print z
+    print z.copy()
+    print z[:31].copy().visit(replace_expr)
+
+    print 'replace'
+    print x.replace_expr({c+ExprInt32(0x42):d,
+                          a+b:c,})
+    print z.replace_expr({c+ExprInt32(0x42):d,
+                          a+b:c,})
+
+
+    u = z.copy()
+    print u
+    u.args[-1][0].arg.args[1].arg = uint32(0x45)
+    print u
+    print z
+    print u == z
+
+    to_test = [(ExprInt32(5)+c+a+b-a+ExprInt32(1)-ExprInt32(5)),
+               a+b+c-a-b-c+a,
+               a+a+b+c-(a+(b+c)),
+               c^b^a^c^b,
+               a^ExprInt32(0),
+               (a+b)-b,
+               -(ExprInt32(0)-((a+b)-b)),
+
+               ExprOp('<<<', a, ExprInt32(32)),
+               ExprOp('>>>', a, ExprInt32(32)),
+               ExprOp('>>>', a, ExprInt32(0)),
+               ExprOp('<<', a, ExprInt32(0)),
+
+               ExprOp('<<<', a, ExprOp('<<<', b, c)),
+               ExprOp('<<<', ExprOp('<<<', a, b), c),
+               ExprOp('<<<', ExprOp('>>>', a, b), c),
+               ExprOp('>>>', ExprOp('<<<', a, b), c),
+               ExprOp('>>>', ExprOp('<<<', a, b), b),
+
+
+               ExprOp('>>>', ExprOp('<<<', a, ExprInt32(10)), ExprInt32(2)),
+
+               ExprOp('>>>', ExprOp('<<<', a, ExprInt32(10)), ExprInt32(2)) ^ ExprOp('>>>', ExprOp('<<<', a, ExprInt32(10)), ExprInt32(2)),
+               ExprOp(">>", (a & ExprInt32(0xF)), ExprInt32(0x15)),
+               ExprOp("==", ExprInt32(12), ExprInt32(10)),
+               ExprOp("==", ExprInt32(12), ExprInt32(12)),
+               ExprOp("==", a|ExprInt32(12), ExprInt32(0)),
+               ExprOp("==", a|ExprInt32(12), ExprInt32(14)),
+               ExprOp("parity", ExprInt32(0xf)),
+               ExprOp("parity", ExprInt32(0xe)),
+               ExprInt32(0x4142)[:32],
+               ExprInt32(0x4142)[:8],
+               ExprInt32(0x4142)[8:16],
+               a[:32],
+               a[:8][:8],
+               a[:16][:8],
+               a[8:16][:8],
+               a[8:32][:8],
+               a[:16][8:16],
+               ExprCompose([(a, 0, 32)]),
+               ExprCompose([(a[:16], 0, 16)]),
+               ExprCompose([(a[:16], 0, 16), (a, 16, 32)]),
+               ExprCompose([(a[:16], 0, 16), (a[16:32], 16, 32)]),
+
+               ExprMem(a)[:32],
+               ExprMem(a)[:16],
+               ]
+
+
+    for e in to_test:
+        print "#"*80
+        print e
+        print e.visit(expr_simp)
+

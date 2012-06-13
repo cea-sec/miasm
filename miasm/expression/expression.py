@@ -80,7 +80,8 @@ def visit_chk(visitor):
             return e_new2
         while True:
             #print 'NEW', e, e_new2
-            e = cb(e_new2)
+            #e = cb(e_new2)
+            e = e_new2.visit(cb)
             if e_new2 == e:
                 return e_new2
             e_new2 = e
@@ -118,7 +119,8 @@ class Expr:
     def __add__(self, a):
         return ExprOp('+', self, a)
     def __sub__(self, a):
-        return ExprOp('-', self, a)
+        #return ExprOp('-', self, a)
+        return ExprOp('+', self, ExprOp('-', a))
     def __div__(self, a):
         return ExprOp('/', self, a)
     def __mul__(self, a):
@@ -134,7 +136,7 @@ class Expr:
     def __and__(self, a):
         return ExprOp('&', self, a)
     def __neg__(self):
-        fds
+        return ExprOp('-', self)
     def __invert__(self):
         s = self.get_size()
         return ExprOp('^', self, ExprInt(size2type[s](my_size_mask[s])))
@@ -152,8 +154,6 @@ class Expr:
                 return dct[e]
             return e
         return self.visit(lambda e:my_replace(e, dct))
-
-
     def canonize(self):
         def my_canon(e):
             if isinstance(e, ExprOp):
@@ -164,6 +164,7 @@ class Expr:
             else:
                 return e
         return self.visit(my_canon)
+
 class ExprTop(Expr):
     def __init__(self, e=None):
         fdqs
@@ -183,7 +184,6 @@ class ExprTop(Expr):
         return 0x1337beef
     def toC(self):
         raise ValueError('cannot toC TOP')
-
 
 class ExprInt(Expr):
     def __init__(self, arg):
@@ -362,11 +362,13 @@ class ExprMem(Expr):
         if isinstance(segm, Expr):
             segm = self.segm.visit(cb)
         return ExprMem(self.arg.visit(cb), self.size, segm)
-
+op_assoc = ['+', '*', '^', '&', '|']
 class ExprOp(Expr):
     def __init__(self, op, *args):
         self.op, self.args = op, args
     def __str__(self):
+        if self.op in op_assoc:
+            return '(' + self.op.join([str(x) for x in self.args]) + ')'
         if len(self.args) == 2:
             return '('+str(self.args[0]) + ' ' + self.op + ' ' + str(self.args[1]) + ')'
         elif len(self.args)> 2:
@@ -441,7 +443,11 @@ class ExprOp(Expr):
                                                  self.args[0].get_size(),
                                                  self.args[0].toC(),
                                                  self.args[1].toC())
-            elif self.op in ['+', '-', '*', '^', '&', '|']:
+            elif self.op in op_assoc:
+                o = ['(%s&0x%x)'%(a.toC(), my_size_mask[a.get_size()]) for a in self.args]
+                o = str(self.op).join(o)
+                return "((%s)&0x%x)"%(o, my_size_mask[self.args[0].get_size()])
+            elif self.op in ['-']:
                 return '(((%s&0x%x) %s (%s&0x%x))&0x%x)'%(self.args[0].toC(),
                                                           my_size_mask[self.args[0].get_size()],
                                                           str(self.op),
