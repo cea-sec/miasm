@@ -316,6 +316,7 @@ class eval_abs:
             return e
         if e.is_eval:
             return e
+        e = e.visit(expr_simp)
         ret = self.eval_expr_no_cache(e, eval_cache)
         ret.is_eval = True
         return ret
@@ -327,7 +328,12 @@ class eval_abs:
         return ret_value
 
     def eval_op_minus(self, args, op_size, cast_int):
-        ret_value = args[0] - args[1]
+        if len(args) == 2:
+            ret_value = args[0] - args[1]
+        elif len(args) == 1:
+            ret_value = -args[0]
+        else:
+            raise ValueError('deprecated n aire arguments for op -')
         return ret_value
 
     def eval_op_mult(self, args, op_size, cast_int):
