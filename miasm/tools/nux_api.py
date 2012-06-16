@@ -23,6 +23,8 @@ import time
 import random
 import os
 import sys
+import string
+
 ctime_str = None
 def fd_generator():
     i = 0
@@ -55,6 +57,26 @@ def whoami():
     return inspect.stack()[1][3]
 
 
+def xxx___libc_start_main():
+    ret_ad = vm_pop_uint32_t()
+    arg_1 = get_dw_stack(0)
+    arg_2 = get_dw_stack(4)
+    arg_3 = get_dw_stack(4)
+    arg_4 = get_dw_stack(8)
+    arg_5 = get_dw_stack(0xc)
+    arg_6 = get_dw_stack(0x10)
+    arg_7 = get_dw_stack(0x14)
+    arg_8 = get_dw_stack(0x18)
+
+    print whoami(), hex(ret_ad), hex(arg_1), hex(arg_2), hex(arg_3), hex(arg_4), hex(arg_5), hex(arg_6), hex(arg_7), hex(arg_8)
+    regs = vm_get_gpreg()
+    regs['eip'] = arg_1 # main
+    # TODO XXX should push argc, argv here
+    vm_set_gpreg(regs)
+
+    vm_push_uint32_t(0x1337beef)
+
+
 
 def xxx_memset():
     ret_ad = vm_pop_uint32_t()
@@ -67,6 +89,21 @@ def xxx_memset():
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = arg_addr
+    vm_set_gpreg(regs)
+
+def xxx_memcpy():
+    ret_ad = vm_pop_uint32_t()
+    dst = get_dw_stack(0)
+    src = get_dw_stack(4)
+    size = get_dw_stack(8)
+
+    print whoami(), hex(ret_ad), '(', hex(dst), hex(src), hex(size), ')'
+
+    s = vm_get_str(src, size)
+    vm_set_mem(dst, s)
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = dst
     vm_set_gpreg(regs)
 
 def xxx_printf():
@@ -177,7 +214,8 @@ def xxx_puts():
 
     print whoami(), hex(ret_ad), '(', arg_s, ')'
     s = get_str_ansi(arg_s)
-    print 'PUTS', repr(s)
+    print 'PUTS'
+    print s
 
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
@@ -646,6 +684,48 @@ def xxx_fprintf():
     regs['eip'] = ret_ad
     regs['eax'] = len(oo)
     vm_set_gpreg(regs)
+
+def xxx_snprintf():
+    ret_ad = vm_pop_uint32_t()
+    dst = get_dw_stack(0)
+    size = get_dw_stack(4)
+    arg_fmt = get_dw_stack(8)
+
+    print whoami(), hex(ret_ad), '(', hex(dst), hex(size), hex(arg_fmt),    ')'
+    s = get_str_ansi(arg_fmt)
+    fmt_a = parse_fmt(s)
+    offset = 0xc
+    args = []
+    for i, x in enumerate(fmt_a):
+        a = get_dw_stack(offset+4*i)
+        if x == "s":
+            a = get_str_ansi(a)
+        args.append(a)
+    print repr(s), repr(args)
+
+    oo = s%(tuple(args))
+    print repr(oo)
+    vm_set_mem(dst, oo)
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = len(oo)
+    vm_set_gpreg(regs)
+
+def xxx_isprint():
+    ret_ad = vm_pop_uint32_t()
+    c = get_dw_stack(0)
+    print whoami(), hex(ret_ad), '(', hex(c), ')'
+
+    if chr(c&0xFF) in string.printable:
+        ret = 1
+    else:
+        ret = 0
+
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = ret
+    vm_set_gpreg(regs)
+
 
 def xxx_fgets():
     ret_ad = vm_pop_uint32_t()
