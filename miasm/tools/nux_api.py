@@ -95,8 +95,8 @@ def xxx_socket():
     s = socket.socket(arg_domain, arg_type, arg_proto)
     socket_pool[s.fileno()] = s
     regs['eax'] = s.fileno()
-    
-    
+
+
     vm_set_gpreg(regs)
 
 
@@ -147,7 +147,7 @@ def xxx_listen():
 
     print whoami(), hex(ret_ad), '(', arg_sockfd, arg_backlog, ')'
     socket_pool[arg_sockfd].listen(arg_backlog)
-    
+
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = 0
@@ -164,7 +164,7 @@ def xxx_accept():
     socket_pool[conn.fileno()] = conn
 
     print 'ACCEPT', conn, addr
-    
+
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = conn.fileno()
@@ -194,7 +194,7 @@ def xxx_recv():
 
     print whoami(), hex(ret_ad), '(', arg_sockfd, arg_buf, arg_len, arg_sockfd, ')'
     buf = socket_pool[arg_sockfd].recv(arg_len)
-    
+
     print 'RECV', repr(buf)
     vm_set_mem(arg_buf, buf)
 
@@ -222,7 +222,7 @@ def xxx_send():
     except:
         print 'send fail'
         buf = ""
-    
+
     print 'SEND', repr(buf)
 
     regs = vm_get_gpreg()
@@ -236,7 +236,7 @@ def xxx_close():
 
     print whoami(), hex(ret_ad), '(', arg_sockfd, ')'
     socket_pool[arg_sockfd].close()
-    
+
     print 'close', repr(arg_sockfd)
 
     regs = vm_get_gpreg()
@@ -268,14 +268,14 @@ def xxx_setsockopt():
     print whoami(), hex(ret_ad), '(', arg_sockfd, hex(arg_level), arg_optname, hex(arg_optval), arg_optlen, ')'
     opt_val = vm_get_str(arg_optval, arg_optlen)
     print repr(opt_val)
-    
+
     # Translation between C and python values
     # #define SOL_SOCKET	0xffff
     dct_level = {0xffff:1, 1:1}
     dct_argname = {4:2, 2:2}
     arg_level = dct_level[arg_level]
     arg_optname = dct_argname[arg_optname]
-    
+
     print repr(arg_level), repr(arg_optname), repr(opt_val)
     socket_pool[arg_sockfd].setsockopt(arg_level, arg_optname, opt_val)
     # XXX todo
@@ -299,7 +299,7 @@ def xxx_getpwnam():
     rname = name
     udir = "/home/"+name
     ushell = "shell_"+name
-    
+
     ad = vm_get_memory_page_max_address()
 
     vm_add_memory_page(ad, PAGE_READ|PAGE_WRITE, 0x1000*"\x00")
@@ -312,12 +312,12 @@ def xxx_getpwnam():
                     ad+0x300,
                     ad+0x400,
                     ad+0x500)
-    
+
     s = struct.pack('256s256s256s256s256s256s', s, name, password, rname, udir, ushell)
     print repr(s)
     vm_set_mem(ad, s)
-    
-    
+
+
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = ad
@@ -343,7 +343,7 @@ def xxx_initgroups():
     ret_ad = vm_pop_uint32_t()
     arg_name = get_dw_stack(0)
     arg_group = get_dw_stack(4)
-    
+
     print whoami(), hex(ret_ad), '(', hex(arg_name), arg_group, ')'
     s = get_str_ansi(arg_name)
     print repr(s)
@@ -358,27 +358,27 @@ def xxx_setresgid():
     arg_ruid = get_dw_stack(0)
     arg_euid = get_dw_stack(4)
     arg_suid = get_dw_stack(8)
-    
+
     print whoami(), hex(ret_ad), '(', arg_ruid, arg_euid, arg_suid, ')'
     # XXX todo
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = 0
     vm_set_gpreg(regs)
-    
+
 def xxx_setresuid():
     ret_ad = vm_pop_uint32_t()
     arg_ruid = get_dw_stack(0)
     arg_euid = get_dw_stack(4)
     arg_suid = get_dw_stack(8)
-    
+
     print whoami(), hex(ret_ad), '(', arg_ruid, arg_euid, arg_suid, ')'
     # XXX todo
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = 0
     vm_set_gpreg(regs)
-    
+
 def xxx_getegid():
     ret_ad = vm_pop_uint32_t()
     print whoami(), hex(ret_ad), '(', ')'
@@ -398,7 +398,7 @@ def xxx_geteuid():
 def xxx_chdir():
     ret_ad = vm_pop_uint32_t()
     arg_path = get_dw_stack(0)
-    
+
     print whoami(), hex(ret_ad), '(', hex(arg_path), ')'
     if arg_path:
         s = get_str_ansi(arg_path)
@@ -434,7 +434,7 @@ def xxx_ctime():
         ad = vm_get_memory_page_max_address()
         vm_add_memory_page(ad, PAGE_READ|PAGE_WRITE, 0x1000*"\x00")
         ctime_str = ad
-        
+
     t = vm_get_str(arg_time, 4)
     t = updw(t)
     print hex(t)
@@ -451,7 +451,7 @@ def xxx_srand():
     print whoami(), hex(ret_ad), '(', hex(arg_seed), ')'
 
     random.seed(arg_seed)
-    
+
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = 0
@@ -461,7 +461,7 @@ def xxx_rand():
     ret_ad = vm_pop_uint32_t()
     print whoami(), hex(ret_ad), '(',  ')'
 
-    
+
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = random.randint(0, 0xffffffff)
@@ -487,13 +487,13 @@ def xxx_strncpy():
     arg_dst = get_dw_stack(0)
     arg_src = get_dw_stack(4)
     arg_n = get_dw_stack(8)
-    
+
     print whoami(), hex(ret_ad), '(', hex(arg_dst), hex(arg_src), arg_n,   ')'
     src = get_str_ansi(arg_src, arg_n)
     src = (src+'\x00'*arg_n)[:arg_n]
-    
+
     vm_set_mem(arg_dst, src)
-    
+
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = arg_dst
@@ -502,11 +502,11 @@ def xxx_strncpy():
 def xxx_strlen():
     ret_ad = vm_pop_uint32_t()
     arg_src = get_dw_stack(0)
-    
+
     print whoami(), hex(ret_ad), '(', hex(arg_src),   ')'
     src = get_str_ansi(arg_src)
     print repr(src)
-    
+
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = len(src)
@@ -521,7 +521,7 @@ def xxx_read():
 
     print whoami(), hex(ret_ad), '(', arg_fd, arg_buf, arg_len, ')'
     buf = os.read(arg_fd, arg_len)
-    
+
     print 'RECV', repr(buf)
     vm_set_mem(arg_buf, buf)
 
@@ -534,7 +534,7 @@ def xxx_strcmp():
     ret_ad = vm_pop_uint32_t()
     arg_s1 = get_dw_stack(0)
     arg_s2 = get_dw_stack(4)
-    
+
     print whoami(), hex(ret_ad), '(', hex(arg_s1), hex(arg_s2),    ')'
     s1 = get_str_ansi(arg_s1)
     s2 = get_str_ansi(arg_s2)
@@ -545,7 +545,7 @@ def xxx_strcmp():
         ret = 1
     else:
         ret = -1
-    
+
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = ret
@@ -554,7 +554,7 @@ def xxx_strcmp():
 def xxx_exit():
     ret_ad = vm_pop_uint32_t()
     arg_code = get_dw_stack(0)
-    
+
     print whoami(), hex(ret_ad), '(', hex(arg_code),   ')'
 
     sys.exit(arg_code)
@@ -567,7 +567,7 @@ def xxx_fdopen():
     ret_ad = vm_pop_uint32_t()
     arg_fd = get_dw_stack(0)
     arg_mode = get_dw_stack(4)
-    
+
     print whoami(), hex(ret_ad), '(', arg_fd, hex(arg_mode),    ')'
     m = get_str_ansi(arg_mode)
     print repr(m)
@@ -576,7 +576,7 @@ def xxx_fdopen():
     socket_pool[id(s)] = s
 
 
-    
+
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = id(s)
@@ -585,12 +585,12 @@ def xxx_fdopen():
 def xxx_fclose():
     ret_ad = vm_pop_uint32_t()
     arg_fd = get_dw_stack(0)
-    
+
     print whoami(), hex(ret_ad), '(', arg_fd,     ')'
     socket_pool[arg_fd].close()
 
 
-    
+
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = 0
@@ -619,13 +619,13 @@ def parse_fmt(s):
         i+=j
         out.append(x)
     return out
-            
+
 
 def xxx_fprintf():
     ret_ad = vm_pop_uint32_t()
     arg_stream = get_dw_stack(0)
     arg_fmt = get_dw_stack(4)
-    
+
     print whoami(), hex(ret_ad), '(', arg_stream, hex(arg_fmt),    ')'
     s = get_str_ansi(arg_fmt)
     print repr(s)
@@ -638,7 +638,7 @@ def xxx_fprintf():
             a = get_str_ansi(a)
         args.append(a)
     print repr(s), repr(args)
-    
+
     oo = s%(tuple(args))
     print repr(oo)
     socket_pool[arg_stream].write(oo)
@@ -652,7 +652,7 @@ def xxx_fgets():
     arg_buf = get_dw_stack(0)
     arg_size = get_dw_stack(4)
     arg_stream = get_dw_stack(8)
-    
+
     print whoami(), hex(ret_ad), '(', hex(arg_buf), arg_size, arg_stream,   ')'
     buf = ""
     while len(buf) < arg_size-1:
@@ -681,7 +681,7 @@ def xxx_fwrite():
     arg_size = get_dw_stack(4)
     arg_nmemb = get_dw_stack(8)
     arg_stream = get_dw_stack(12)
-    
+
     print whoami(), hex(ret_ad), '(', hex(arg_buf), arg_size, arg_nmemb, arg_stream,   ')'
 
     buf = vm_get_str(arg_buf, arg_size*arg_nmemb)
@@ -700,7 +700,7 @@ def xxx_fwrite():
 def xxx_fflush():
     ret_ad = vm_pop_uint32_t()
     arg_stream = get_dw_stack(0)
-    
+
     print whoami(), hex(ret_ad), '(', arg_stream,   ')'
 
     socket_pool[arg_stream].flush()
@@ -712,7 +712,7 @@ def xxx_fflush():
 def xxx_malloc():
     ret_ad = vm_pop_uint32_t()
     arg_size = get_dw_stack(0)
-    
+
     print whoami(), hex(ret_ad), '(', arg_size,   ')'
 
 
@@ -729,7 +729,7 @@ def xxx_bzero():
     ret_ad = vm_pop_uint32_t()
     arg_addr = get_dw_stack(0)
     arg_size = get_dw_stack(4)
-    
+
     print whoami(), hex(ret_ad), '(', hex(arg_addr), arg_size,   ')'
 
     vm_set_mem(arg_addr, "\x00"*arg_size)
@@ -743,7 +743,7 @@ def xxx_fopen():
     ret_ad = vm_pop_uint32_t()
     arg_path = get_dw_stack(0)
     arg_mode = get_dw_stack(4)
-    
+
     print whoami(), hex(ret_ad), '(', arg_path, hex(arg_mode),    ')'
     path = get_str_ansi(arg_path)
     m = get_str_ansi(arg_mode)
@@ -757,7 +757,7 @@ def xxx_fopen():
         s = 0
 
 
-    
+
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = s
@@ -769,7 +769,7 @@ def xxx_fread():
     arg_size = get_dw_stack(4)
     arg_nmemb = get_dw_stack(8)
     arg_stream = get_dw_stack(12)
-    
+
     print whoami(), hex(ret_ad), '(', hex(arg_buf), arg_size, arg_nmemb, arg_stream,   ')'
 
     buf = socket_pool[arg_stream].read(arg_size*arg_nmemb)
@@ -785,15 +785,15 @@ def xxx_fread():
 def xxx_atoi():
     ret_ad = vm_pop_uint32_t()
     arg_nptr = get_dw_stack(0)
-    
+
     print whoami(), hex(ret_ad), '(', arg_nptr,   ')'
     buf = get_str_ansi(arg_nptr)
     print repr(buf)
     i = int(buf)
     print i
-    
 
-    
+
+
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = i
@@ -804,11 +804,11 @@ def xxx_strcpy():
     ret_ad = vm_pop_uint32_t()
     arg_dst = get_dw_stack(0)
     arg_src = get_dw_stack(4)
-    
+
     print whoami(), hex(ret_ad), '(', hex(arg_dst), hex(arg_src),    ')'
     src = get_str_ansi(arg_src)
     vm_set_mem(arg_dst, src+"\x00")
-    
+
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = arg_dst
@@ -820,13 +820,13 @@ def xxx_vasprintf():
     arg_strp = get_dw_stack(0)
     arg_fmt = get_dw_stack(4)
     arg_ap = get_dw_stack(8)
-    
+
     print whoami(), hex(ret_ad), '(', hex(arg_strp), hex(arg_fmt), hex(arg_ap),   ')'
     fmt = get_str_ansi(arg_fmt)
     print repr(fmt)
 
     fmt_a = parse_fmt(fmt)
-    
+
     args = []
     for i, x in enumerate(fmt_a):
         a = updw(vm_get_str(arg_ap+4*i, 4))
@@ -843,7 +843,7 @@ def xxx_vasprintf():
 
     vm_set_mem(arg_strp, pdw(ad))
     vm_set_mem(ad, s)
-    
+
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = len(fmt)
@@ -854,7 +854,7 @@ def xxx_sprintf():
     ret_ad = vm_pop_uint32_t()
     arg_str = get_dw_stack(0)
     arg_fmt = get_dw_stack(4)
-    
+
     print whoami(), hex(ret_ad), '(', hex(arg_str), hex(arg_fmt),    ')'
     s = get_str_ansi(arg_fmt)
     print repr(s)
@@ -867,7 +867,7 @@ def xxx_sprintf():
             a = get_str_ansi(a)
         args.append(a)
     print repr(s), repr(args)
-    
+
     oo = s%(tuple(args))
     print repr(oo)
     vm_set_mem(arg_str, oo+"\x00")
@@ -881,13 +881,13 @@ def xxx_strcat():
     ret_ad = vm_pop_uint32_t()
     arg_dst = get_dw_stack(0)
     arg_src = get_dw_stack(4)
-    
+
     print whoami(), hex(ret_ad), '(', hex(arg_dst), hex(arg_src),    ')'
     src = get_str_ansi(arg_src)
     dst = get_str_ansi(arg_dst)
     print repr(dst), repr(src)
     vm_set_mem(arg_dst, dst+src+'\x00')
-    
+
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = arg_dst
@@ -898,7 +898,7 @@ def xxx_strncmp():
     arg_s1 = get_dw_stack(0)
     arg_s2 = get_dw_stack(4)
     arg_n = get_dw_stack(8)
-    
+
     print whoami(), hex(ret_ad), '(', hex(arg_s1), hex(arg_s2), arg_n,   ')'
 
     s1 = get_str_ansi(arg_s1, arg_n)
