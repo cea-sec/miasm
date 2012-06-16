@@ -12,8 +12,15 @@ import code
 import sys
 from miasm.tools import nux_api
 
+from miasm.tools.nux_api import *
 
-# test sandboxing pp100_05ad9efbc4b0c16f243
+
+if len(sys.argv) != 2:
+    print "to test:"
+    print "python sandbox_elf.py md5"
+    sys.exit(0)
+
+
 
 fname = sys.argv[1]
 e = elf_init.ELF(open(fname, 'rb').read())
@@ -27,10 +34,10 @@ codenat_tcc_init()
 filename = os.environ.get('PYTHONSTARTUP')
 if filename and os.path.isfile(filename):
     execfile(filename)
-    
+
 vm_load_elf(e)
 
-runtime_lib, lib_dyn_funcs = preload_elf(e, patch_vm_imp = True, lib_base_ad = 0x77700000)
+runtime_dll, lib_dyn_funcs = preload_elf(e, patch_vm_imp = True, lib_base_ad = 0x77700000)
 lib_dyn_ad2name = dict([(x[1], x[0]) for x in lib_dyn_funcs.items()])
 dyn_func = {}
 
@@ -45,14 +52,14 @@ try:
     ep =  e.sh.symtab.symbols['main'].value
 except:
     ep = e.Ehdr.entry
-
+ep = e.Ehdr.entry
 ptr_esp = stack_base_ad+stack_size-0x1000
 vm_set_mem(ptr_esp, "/home/toto\x00")
 ptr_arg0 = ptr_esp
 ptr_esp -=0x100
 ptr_args = ptr_esp
 vm_set_mem(ptr_args, struct.pack('LL', ptr_arg0, 0))
-           
+
 regs = vm_get_gpreg()
 regs['eip'] = ep
 regs['esp'] = ptr_esp
@@ -74,47 +81,43 @@ known_blocs = {}
 code_blocs_mem_range = []
 
 
-log_regs = True
+log_regs = False
 log_mn = log_regs
 must_stop = False
+
+ad_oep = None
+segm_to_do = {}
+
+log_regs = False
+log_mn = log_regs
+
+
+
+
 def run_bin(my_eip, known_blocs, code_blocs_mem_range):
     global log_regs, log_mn
-    last_blocs = [None for x in xrange(10)]
-    cpt = 0
-    while True:
-        #dyn lib funcs
-        if my_eip in runtime_lib.fad2cname:
-            fname = runtime_lib.fad2cname[my_eip]
-            if not fname in nux_api.__dict__:
-                raise ValueError('unknown api', (hex(vm_pop_uint32_t()), hex(my_eip), fname, hex(cpt)))
-            nux_api.__dict__[fname]()
-            regs = vm_get_gpreg()
-            my_eip = regs['eip']
+    may_end = None
+    while my_eip != 0x1337beef:
 
+        if my_eip == ad_oep:
+            print 'reach ad_oep', hex(ad_oep)
+            return
+        #dyn dll funcs
+        if my_eip in runtime_dll.fad2cname:
+            my_eip = manage_runtime_func(my_eip, [globals(), nux_api], runtime_dll)
             continue
 
+        my_eip, py_exception = do_bloc_emul(known_blocs, in_str, my_eip,
+                                            symbol_pool, code_blocs_mem_range,
+                                            log_regs = log_regs, log_mn = log_mn,
+                                            segm_to_do = segm_to_do,
+                                            dump_blocs = False)
 
-        if not my_eip in known_blocs:
-            last_blocs.pop(0)
-            last_blocs.append(my_eip)
-            updt_bloc_emul(known_blocs, in_str, my_eip, symbol_pool, code_blocs_mem_range, log_regs = log_regs, log_mn = log_mn)
-            vm_reset_exception()
-
-
-        try:
-            my_eip = vm_exec_blocs(my_eip, known_blocs)
-        except KeyboardInterrupt:
-            must_stop = True
-        py_exception = vm_get_exception()
         if py_exception:
-            print hex(my_eip)
             if py_exception & EXCEPT_CODE_AUTOMOD:
-                print 'automod code'
-                dump_gpregs_py()
                 known_blocs, code_blocs_mem_range = updt_automod_code(known_blocs)
             else:
-                print "unknown exception", py_exception
-                break
+                raise ValueError("except at", hex(my_eip))
 
 print "start run"
 run_bin(my_eip, known_blocs, code_blocs_mem_range)
