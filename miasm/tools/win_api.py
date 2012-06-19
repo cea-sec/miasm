@@ -33,8 +33,8 @@ import time
 def get_next_alloc_addr(size):
     global alloc_ad
     ret = winobjs.alloc_ad
-    winobjs.alloc_ad = (winobjs.alloc_ad + size + winobjs.alloc_align)
-    winobjs.alloc_ad &= (0xffffffff ^ winobjs.alloc_align)
+    winobjs.alloc_ad = (winobjs.alloc_ad + size + winobjs.alloc_align-1)
+    winobjs.alloc_ad &= (0xffffffff ^ (winobjs.alloc_align-1))
     return ret
 
 """
@@ -109,7 +109,7 @@ class handle_generator():
 class c_winobjs:
     def __init__(self):
         self.alloc_ad = 0x20000000
-        self.alloc_align = 0x4000-1
+        self.alloc_align = 0x4000
         self.handle_toolhelpsnapshot = 0xaaaa00
         self.toolhelpsnapshot_info = {}
         self.handle_curprocess = 0xaaaa01

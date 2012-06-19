@@ -20,8 +20,23 @@ from miasm.arch.ia32_reg import *
 from miasm.arch.ia32_arch import *
 import math
 
+# interrupt with eip update after instr
+EXCEPT_CODE_AUTOMOD = (1<<0)
 EXCEPT_SOFT_BP = (1<<1)
-EXCEPT_PRIV_INSN = 1<<7
+
+EXCEPT_BREAKPOINT_INTERN = (1<<2)
+
+EXCEPT_NUM_UDPT_EIP = (1<<5)
+# interrupt with eip at instr
+EXCEPT_UNK_MEM_AD = (1<<6)
+EXCEPT_THROW_SEH = (1<<7)
+EXCEPT_UNK_EIP = (1<<8)
+EXCEPT_ACCESS_VIOL = (1<<9)
+EXCEPT_INT_DIV_BY_ZERO = (1<<10)
+EXCEPT_PRIV_INSN = (1<<11)
+EXCEPT_ILLEGAL_INSN = (1<<12)
+
+
 reg_eax = 'eax'
 reg_ebx = 'ebx'
 reg_ecx = 'ecx'
