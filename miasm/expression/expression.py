@@ -366,6 +366,8 @@ op_assoc = ['+', '*', '^', '&', '|']
 class ExprOp(Expr):
     def __init__(self, op, *args):
         self.op, self.args = op, args
+        if isinstance(op, Expr):
+            fdsfsdf
     def __str__(self):
         if self.op in op_assoc:
             return '(' + self.op.join([str(x) for x in self.args]) + ')'
@@ -430,6 +432,8 @@ class ExprOp(Expr):
             elif self.op.startswith("double_to_mem_"):
                 return "%s(%s)"%(self.op, self.args[0].toC())
             elif self.op in ["ftan", "frndint", "f2xm1", "fsin", "fsqrt", "fabs", "fcos"]:
+                return "%s(%s)"%(self.op, self.args[0].toC())
+            elif self.op in ["-"]:
                 return "%s(%s)"%(self.op, self.args[0].toC())
             else:
                 print self.op
@@ -759,7 +763,8 @@ def canonize_expr_list_compose(l):
     l.sort(cmp=compare_exprs_compose)
     return l
 
-tab_uintsize ={8:uint8,
+tab_uintsize ={1:uint8,
+               8:uint8,
                16:uint16,
                32:uint32,
                64:uint64
