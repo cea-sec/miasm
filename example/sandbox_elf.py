@@ -52,7 +52,7 @@ try:
     ep =  e.sh.symtab.symbols['main'].value
 except:
     ep = e.Ehdr.entry
-ep = e.Ehdr.entry
+
 ptr_esp = stack_base_ad+stack_size-0x1000
 vm_set_mem(ptr_esp, "/home/toto\x00")
 ptr_arg0 = ptr_esp
@@ -87,9 +87,6 @@ must_stop = False
 
 ad_oep = None
 segm_to_do = {}
-
-log_regs = False
-log_mn = log_regs
 
 
 
