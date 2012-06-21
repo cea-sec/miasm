@@ -130,6 +130,8 @@ class moduint(object):
             return self.__class__(self.arg ^ y)
     def __hex__(self):
         return hex(self.arg)
+    def __abs__(self):
+        return abs(self.arg)
 
 class modint(moduint):
     def __init__(self, arg):

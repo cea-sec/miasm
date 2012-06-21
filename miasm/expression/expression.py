@@ -759,7 +759,7 @@ def canonize_expr_list_compose(l):
     l.sort(cmp=compare_exprs_compose)
     return l
 
-tab_uintsize ={1:uint8,# XXX todo hack
+tab_uintsize ={1:uint1,
                8:uint8,
                16:uint16,
                32:uint32,
