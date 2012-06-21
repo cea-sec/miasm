@@ -16,19 +16,19 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 from miasm.arch.ia32_reg import x86_afs
-from numpy import int32, uint32
+from miasm.tools.modint import uint1, uint8, uint16, uint32, uint64
 
 def dict_add(a, b):
     tmp = dict(a)
     for k in b:
-        #special case 
+        #special case
         if k == x86_afs.symb:
             if k in tmp:
                 tmp[k] = dict_add(tmp[k], b[k])
             else:
                 tmp[k] = dict(b[k])
             continue
-        #normal case 
+        #normal case
         if k in tmp:
             tmp[k]+=b[k]
         else:
@@ -40,7 +40,7 @@ def dict_add(a, b):
 def dict_sub(a, b):
     tmp = dict(a)
     for k in b:
-        #special case 
+        #special case
         if k == x86_afs.symb:
             if k in tmp:
                 tmp[k] = dict_sub(tmp[k], b[k])
@@ -73,7 +73,7 @@ def dict_mul(a, b):
             else:
                 ret[k] = b[x86_afs.imm]*a[k]
         return ret
-    
+
     raise 'bad dict mul %s'%(str(a)+str(b))
 
 keywords = ("BYTE", "WORD", "DWORD", "SINGLE", "DOUBLE",
@@ -85,7 +85,7 @@ tokens = keywords +(
     'NUMBER',
     'PLUS','MINUS','TIMES','DIVIDE',
     'LPAREN','RPAREN','LBRA','RBRA', 'COLON',
-    'OFFSET','NAME', 
+    'OFFSET','NAME',
     )
 
 # Tokens
@@ -128,7 +128,7 @@ t_ignore = " \t"
 def t_newline(t):
     r'\n+'
     t.lexer.lineno += t.value.count("\n")
-    
+
 def t_error(t):
     print("Illegal character '%s'" % t.value[0])
     t.lexer.skip(1)
@@ -200,8 +200,8 @@ def p_expression_8(t):
         size = x86_afs.u32
     elif t[1] in x86_afs.reg_sg:
         size = x86_afs.u32
-        
-        
+
+
     else:
         #raise 'bad reg size'
         t[0] = {x86_afs.symb:{t[1]:1}}
@@ -292,11 +292,11 @@ def parse_ad(a):
         l[x86_afs.ad] = False
     else:
         l[x86_afs.size] = l[x86_afs.ad]
-        
+
     if not x86_afs.size in l:
         l[x86_afs.size] = x86_afs.u32
-        
-        
+
+
 
     return l
 
@@ -304,7 +304,7 @@ import ply.yacc as yacc
 yacc.yacc()
 
 def ad_to_generic(a):
-    
+
     #opt imm
     out = []
     to_add = []
@@ -312,7 +312,7 @@ def ad_to_generic(a):
     if a[x86_afs.ad]:
         a[x86_afs.ad] = True
 
-        
+
         #imm can always be encoded in u32
         to_add.append({x86_afs.imm:x86_afs.u32})
 
@@ -334,7 +334,7 @@ def ad_to_generic(a):
             to_add.append({x86_afs.imm:x86_afs.s08})
         if i<=0xFF and i >=0 :
             to_add.append({x86_afs.imm:x86_afs.u08})
-            
+
     for kv in to_add:
         tmp = dict(a)
         tmp.update(kv)
@@ -346,5 +346,5 @@ def ad_to_generic(a):
             out_unik.append(o)
 
     return out_unik
- 
+
 

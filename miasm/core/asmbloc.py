@@ -19,7 +19,8 @@ import re
 import logging
 import shlex
 import struct
-from numpy import uint8, uint16, uint32, uint64, int8, int16, int32, int64
+from miasm.tools.modint import uint1, uint8, uint16, uint32, uint64
+from miasm.tools.modint import int8, int16, int32, int64
 from collections import defaultdict
 log_asmbloc = logging.getLogger("asmbloc")
 console_handler = logging.StreamHandler()
@@ -27,13 +28,9 @@ console_handler.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
 log_asmbloc.addHandler(console_handler)
 log_asmbloc.setLevel(logging.WARN)
 
-tab_int_size = {int8:8,
-                uint8:8,
-                int16:16,
+tab_int_size = {uint8:8,
                 uint16:16,
-                int32:32,
                 uint32:32,
-                int64:64,
                 uint64:64
                 }
 

@@ -373,11 +373,6 @@ all_registers = [
 
     ]
 
-tab_intsize = {8:int8,
-               16:int16,
-               32:int32,
-               64:int64
-               }
 tab_uintsize ={8:uint8,
                16:uint16,
                32:uint32,
@@ -409,7 +404,7 @@ OF(A-B) = ((A XOR D) AND (A XOR B)) < 0
 
 # XXX TODO make default check against 0 or not 0 (same eq as in C)
 def get_op_msb(a):
-    return ExprOp('&', ExprOp('>>', a, ExprInt_from(a, a.get_size()-1)), ExprInt_from(a, 1))
+    return a[a.get_size()-1:a.get_size()]
 
 
 def update_flag_zf(a):

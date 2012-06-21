@@ -19,12 +19,10 @@ from miasm.expression.expression import *
 import struct
 import logging
 import cPickle
-import numpy
 from miasm.expression.expression_helper import *
 
 
 
-numpy.seterr(over='ignore', under='ignore')
 
 mymaxuint = {8:0xFFL,
              16:0xFFFFL,
@@ -35,13 +33,9 @@ mymaxuint = {8:0xFFL,
 
 #expression evaluation in integer domain
 
-tab_int_size = {int8:8,
-                uint8:8,
-                int16:16,
+tab_int_size = {uint8:8,
                 uint16:16,
-                int32:32,
                 uint32:32,
-                int64:64,
                 uint64:64
                 }
 

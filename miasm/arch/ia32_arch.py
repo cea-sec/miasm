@@ -15,7 +15,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
-from numpy import uint8, uint16, uint32, uint64, int8, int16, int32, int64
+from miasm.tools.modint import uint1, uint8, uint16, uint32, uint64
 import struct
 import logging
 from miasm.core.parse_ad import parse_ad, ad_to_generic
@@ -30,22 +30,16 @@ log.addHandler(console_handler)
 log.setLevel(logging.WARN)
 
 
-tab_int_size = {int8:8,
-                uint8:8,
-                int16:16,
+tab_int_size = {uint8:8,
                 uint16:16,
-                int32:32,
                 uint32:32,
-                int64:64,
                 uint64:64
                 }
 
 tab_size2int = {x86_afs.u08:uint8,
                 x86_afs.u16:uint16,
                 x86_afs.u32:uint32,
-                x86_afs.s08:int8,
-                x86_afs.s16:int16,
-                x86_afs.s32:int32}
+                }
 
 tab_max_uint = {x86_afs.u08:0xFF, x86_afs.u16:0xFFFF, x86_afs.u32:0xFFFFFFFF, x86_afs.u64:0xFFFFFFFFFFFFFFFFL}
 

@@ -101,6 +101,8 @@ to_test = [(ExprInt32(5)+c+a+b-a+ExprInt32(1)-ExprInt32(5)),
            ExprCond(ExprInt32(1), a, b),
            ExprCond(ExprInt32(0), b, a),
 
+           ExprInt32(0x80000000)[31:32],
+
 
            ]
 

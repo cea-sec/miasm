@@ -15,7 +15,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
-from numpy import uint8, uint16, uint32, uint64, int8, int16, int32, int64
+from miasm.tools.modint import uint1, uint8, uint16, uint32, uint64
 import shlex
 import struct
 

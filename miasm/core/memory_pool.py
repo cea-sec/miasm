@@ -19,7 +19,7 @@ import array
 import struct
 import cPickle
 import StringIO
-from numpy import uint32
+from miasm.tools.modint import uint1, uint8, uint16, uint32, uint64
 
 from elfesteem import *
 

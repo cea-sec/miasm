@@ -15,7 +15,8 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
-from numpy import uint8, uint16, uint32, uint64, int8, int16, int32, int64
+from miasm.tools.modint import uint1, uint8, uint16, uint32, uint64
+from miasm.tools.modint import int8, int16, int32, int64
 tip = 'tip'
 
 def slice_rest(size, start, stop):
@@ -35,13 +36,9 @@ size2type ={8:uint8,
             64:uint64
             }
 
-tab_int_size = {int8:8,
-                uint8:8,
-                int16:16,
+tab_int_size = {uint8:8,
                 uint16:16,
-                int32:32,
                 uint32:32,
-                int64:64,
                 uint64:64
                 }
 
@@ -49,8 +46,7 @@ my_size_mask = {1:1, 8:0xFF, 16:0xFFFF, 32:0xFFFFFFFF,  64:0xFFFFFFFFFFFFFFFFL}
 
 
 def is_int(a):
-    t = [int8, int16, int32, int64,
-         uint8, uint16, uint32, uint64]
+    t = [uint1, uint8, uint16, uint32, uint64]
     return any([isinstance(a, x) for x in t])
 
 
@@ -200,7 +196,7 @@ class ExprInt(Expr):
     def get_w(self):
         return set()
     def get_size(self):
-        return 8*self.arg.nbytes
+        return self.arg.size
     def __contains__(self, e):
         return self == e
     def __eq__(self, a):
@@ -763,7 +759,7 @@ def canonize_expr_list_compose(l):
     l.sort(cmp=compare_exprs_compose)
     return l
 
-tab_uintsize ={1:uint8,
+tab_uintsize ={1:uint8,# XXX todo hack
                8:uint8,
                16:uint16,
                32:uint32,
