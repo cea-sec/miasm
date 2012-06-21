@@ -130,7 +130,11 @@ def merge_sliceto_slice(args):
 
 op_assoc = ['+', '*', '^', '&', '|']
 
+
 def expr_simp(e):
+    return e.visit(_expr_simp)
+
+def _expr_simp(e):
     if isinstance(e, ExprOp):
         # merge associatif op
         # ((a+b) + c) => (a + b + c)
@@ -168,7 +172,6 @@ def expr_simp(e):
 
                 o = ExprInt(tab_size_int[i1.get_size()](o))
                 args.append(o)
-
         # --(A) => A
         if op == '-' and len(args) == 1 and isinstance(args[0], ExprOp) and \
                 args[0].op == '-' and len(args[0].args) == 1:
@@ -243,7 +246,7 @@ def expr_simp(e):
             args = [args0, args1]
 
 
-        #! (!X + int) => X - int
+        # ! (!X + int) => X - int
         # TODO
 
         # ((A & mask) >> shift) whith mask < 2**shift => 0
@@ -297,7 +300,7 @@ def expr_simp(e):
                 if a[1] <= e.start and a[2]>=e.stop:
                     new_e = a[0][e.start-a[1]:e.stop-a[1]]
                     return new_e
-        #XXXX todo hum, is it safe?
+        # XXXX todo hum, is it safe?
         elif isinstance(e.arg, ExprMem) and e.start == 0 and e.arg.size > e.stop and e.stop %8 == 0:
             e = ExprMem(e.arg.arg, size = e.stop)
             return e
@@ -312,6 +315,18 @@ def expr_simp(e):
 
         return ExprCompose(args)
 
+
+    elif isinstance(e, ExprCond):
+        # -A ? B:C => A ? B:C
+        if isinstance(e.cond, ExprOp) and e.cond.op == '-' and len(e.cond.args) == 1:
+            e = ExprCond(e.cond.args[0], e.src1, e.src2)
+        # int ? A:B => A or B
+        elif isinstance(e.cond, ExprInt):
+            if e.cond.arg == 0:
+                e = e.src2
+            else:
+                e = e.src1
+        return e
     else:
         return e
 

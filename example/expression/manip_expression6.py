@@ -97,11 +97,16 @@ to_test = [(ExprInt32(5)+c+a+b-a+ExprInt32(1)-ExprInt32(5)),
 
            ExprMem(a)[:32],
            ExprMem(a)[:16],
+
+           ExprCond(ExprInt32(1), a, b),
+           ExprCond(ExprInt32(0), b, a),
+
+
            ]
 
 
 for e in to_test:
     print "#"*80
     print e
-    print e.visit(expr_simp)
+    print expr_simp(e)
 
