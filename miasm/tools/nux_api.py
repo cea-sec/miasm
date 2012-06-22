@@ -106,6 +106,25 @@ def xxx_memcpy():
     regs['eax'] = dst
     vm_set_gpreg(regs)
 
+def xxx_memcmp():
+    ret_ad = vm_pop_uint32_t()
+    s1 = get_dw_stack(0)
+    s2 = get_dw_stack(4)
+    size = get_dw_stack(8)
+
+    print whoami(), hex(ret_ad), '(', hex(s1), hex(s2), hex(size), ')'
+
+    s1s = vm_get_str(s1, size)
+    s2s = vm_get_str(s2, size)
+    print repr(s1s)
+    print repr(s2s)
+
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = cmp(s1s, s2s)
+    vm_set_gpreg(regs)
+
+
 def xxx_printf():
     ret_ad = vm_pop_uint32_t()
     fmt_p = get_dw_stack(0)
@@ -217,6 +236,30 @@ def xxx_puts():
     print 'PUTS'
     print s
 
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = 0
+    vm_set_gpreg(regs)
+
+def xxx_putchar():
+    ret_ad = vm_pop_uint32_t()
+    arg_c = get_dw_stack(0)
+
+    print whoami(), hex(ret_ad), '(', arg_c, ')'
+    print chr(arg_c&0xff)
+
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = 0
+    vm_set_gpreg(regs)
+
+def xxx__IO_putc():
+    ret_ad = vm_pop_uint32_t()
+    arg_c = get_dw_stack(0)
+    arg_stream = get_dw_stack(4)
+
+    print whoami(), hex(ret_ad), '(', hex(arg_stream), hex(arg_c), ')'
+    socket_pool[arg_stream].write(chr(arg_c&0xFF))
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = 0
@@ -667,6 +710,7 @@ def xxx_fprintf():
     print whoami(), hex(ret_ad), '(', arg_stream, hex(arg_fmt),    ')'
     s = get_str_ansi(arg_fmt)
     print repr(s)
+
     fmt_a = parse_fmt(s)
     offset = 8
     args = []
@@ -793,7 +837,7 @@ def xxx_malloc():
     ret_ad = vm_pop_uint32_t()
     arg_size = get_dw_stack(0)
 
-    print whoami(), hex(ret_ad), '(', arg_size,   ')'
+    print whoami(), hex(ret_ad), '(', hex(arg_size),   ')'
 
 
     ad = vm_get_memory_page_max_address()
@@ -803,6 +847,21 @@ def xxx_malloc():
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = ad
+    vm_set_gpreg(regs)
+
+def xxx_calloc():
+    xxx_malloc()
+
+def xxx_free():
+    ret_ad = vm_pop_uint32_t()
+    ptr = get_dw_stack(0)
+
+    print whoami(), hex(ret_ad), '(', hex(ptr),   ')'
+
+
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = 0
     vm_set_gpreg(regs)
 
 def xxx_bzero():
@@ -850,15 +909,45 @@ def xxx_fread():
     arg_nmemb = get_dw_stack(8)
     arg_stream = get_dw_stack(12)
 
-    print whoami(), hex(ret_ad), '(', hex(arg_buf), arg_size, arg_nmemb, arg_stream,   ')'
+    print whoami(), hex(ret_ad), '(', hex(arg_buf), hex(arg_size), hex(arg_nmemb), hex(arg_stream),   ')'
 
     buf = socket_pool[arg_stream].read(arg_size*arg_nmemb)
     print repr(buf)
+    print "ret", arg_nmemb
     vm_set_mem(arg_buf, buf)
 
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
-    regs['eax'] = len(buf)
+    regs['eax'] = arg_nmemb
+    vm_set_gpreg(regs)
+
+
+def xxx_fseek():
+    ret_ad = vm_pop_uint32_t()
+    stream = get_dw_stack(0)
+    offset = get_dw_stack(4)
+    whence = get_dw_stack(8)
+
+    print whoami(), hex(ret_ad), '(', hex(stream), hex(offset), hex(whence),   ')'
+
+    buf = socket_pool[stream].seek(offset, whence )
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = 0
+    vm_set_gpreg(regs)
+
+
+def xxx_rewind():
+    ret_ad = vm_pop_uint32_t()
+    arg_stream = get_dw_stack(0)
+
+    print whoami(), hex(ret_ad), '(', hex(arg_stream),   ')'
+
+    socket_pool[arg_stream].seek(0)
+
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = 0
     vm_set_gpreg(regs)
 
 
@@ -895,13 +984,7 @@ def xxx_strcpy():
     vm_set_gpreg(regs)
 
 
-def xxx_vasprintf():
-    ret_ad = vm_pop_uint32_t()
-    arg_strp = get_dw_stack(0)
-    arg_fmt = get_dw_stack(4)
-    arg_ap = get_dw_stack(8)
-
-    print whoami(), hex(ret_ad), '(', hex(arg_strp), hex(arg_fmt), hex(arg_ap),   ')'
+def my_vprintf(arg_fmt, arg_ap):
     fmt = get_str_ansi(arg_fmt)
     print repr(fmt)
 
@@ -916,6 +999,37 @@ def xxx_vasprintf():
 
 
     s = fmt%(tuple(args))+"\x00"
+    #print repr(s)
+    return s
+
+def xxx_vfprintf():
+    ret_ad = vm_pop_uint32_t()
+    arg_stream = get_dw_stack(0)
+    size = get_dw_stack(4)
+    arg_fmt = get_dw_stack(8)
+    arg_ap = get_dw_stack(0xc)
+
+    print whoami(), hex(ret_ad), '(', hex(arg_stream), hex(size), hex(arg_fmt), hex(arg_ap),   ')'
+    s = my_vprintf(arg_fmt, arg_ap)
+    ad = vm_get_memory_page_max_address()
+    ad = (ad+0xfff) & 0xfffff000
+
+    socket_pool[arg_stream].write(s)
+
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = len(s)
+    vm_set_gpreg(regs)
+
+
+def xxx_vasprintf():
+    ret_ad = vm_pop_uint32_t()
+    arg_strp = get_dw_stack(0)
+    arg_fmt = get_dw_stack(4)
+    arg_ap = get_dw_stack(8)
+
+    print whoami(), hex(ret_ad), '(', hex(arg_strp), hex(arg_fmt), hex(arg_ap),   ')'
+    s = my_vprintf(arg_fmt, arg_ap)
     print repr(s)
     ad = vm_get_memory_page_max_address()
     ad = (ad+0xfff) & 0xfffff000
