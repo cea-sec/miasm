@@ -766,8 +766,8 @@ tab_uintsize ={1:uint1,
                64:uint64
                }
 
-def ExprInt08(i):
-    return ExprInt(uint08(i))
+def ExprInt8(i):
+    return ExprInt(uint8(i))
 def ExprInt16(i):
     return ExprInt(uint16(i))
 def ExprInt32(i):

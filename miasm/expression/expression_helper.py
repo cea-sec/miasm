@@ -17,7 +17,8 @@
 #
 from miasm.expression.expression import *
 
-tab_size_int = {8:uint8,
+tab_size_int = {1:uint1,
+                8:uint8,
                 16:uint16,
                 32:uint32,
                 64:uint64,
@@ -154,7 +155,9 @@ def _expr_simp(e):
                 i1 = args.pop()
                 i2 = args.pop()
                 if i1.get_size() != i2.get_size():
-                    raise ValueError("diff size! %s"%(str(e)))
+                    raise ValueError("diff size! %s %r %r"%(str(e),
+                                                            i1.get_size(),
+                                                            i2.get_size()))
                 if op == '+':
                     o = i1.arg + i2.arg
                 elif op == '*':
@@ -286,6 +289,7 @@ def _expr_simp(e):
             if total_bit in tab_size_int:
                 return ExprInt(tab_size_int[total_bit]((uint64((e.arg.arg)>>e.start)) & mask))
             else:
+                fds
                 return ExprInt(type(e.arg.arg)((uint64((e.arg.arg)>>e.start)) & mask))
         # Slice(Slice(A, x), y) => Slice(A, z)
         elif isinstance(e.arg, ExprSlice):

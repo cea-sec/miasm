@@ -33,7 +33,8 @@ mymaxuint = {8:0xFFL,
 
 #expression evaluation in integer domain
 
-tab_int_size = {uint8:8,
+tab_int_size = {uint1:1,
+                uint8:8,
                 uint16:16,
                 uint32:32,
                 uint64:64
@@ -44,7 +45,8 @@ tab_intsize = {8:int8,
                32:int32,
                64:int64
                }
-tab_uintsize ={8:uint8,
+tab_uintsize ={1:uint1,
+               8:uint8,
                16:uint16,
                32:uint32,
                64:uint64
