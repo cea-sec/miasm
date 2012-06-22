@@ -132,6 +132,10 @@ class moduint(object):
         return hex(self.arg)
     def __abs__(self):
         return abs(self.arg)
+    def __rpow__(self, v):
+        return v**self.arg
+    def __pow__(self, v):
+        return self.__class__(self.arg**v)
 
 class modint(moduint):
     def __init__(self, arg):
