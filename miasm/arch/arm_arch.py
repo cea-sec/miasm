@@ -23,13 +23,9 @@ from miasm.arch.ia32_reg import x86_afs
 from miasm.core.bin_stream import bin_stream
 import re
 
-tab_int_size = {int8:8,
-                uint8:8,
-                int16:16,
+tab_int_size = {uint8:8,
                 uint16:16,
-                int32:32,
                 uint32:32,
-                int64:64,
                 uint64:64
                 }
 
