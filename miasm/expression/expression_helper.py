@@ -218,6 +218,12 @@ def _expr_simp(e):
                         args[i] = ExprInt(tab_size_int[args[i].get_size()](0))
                         del(args[j])
                         continue
+                # (- A) + A => 0
+                if op == '+' and isinstance(args[i], ExprOp) and args[i].op == "-":
+                    if len(args[i].args) == 1 and args[j] == args[i].args[0]:
+                        args[i] = ExprInt(tab_size_int[args[i].get_size()](0))
+                        del(args[j])
+                        continue
                 # A | A => A
                 if op == '|' and args[i] == args[j]:
                     del(args[j])
@@ -289,6 +295,7 @@ def _expr_simp(e):
             if total_bit in tab_size_int:
                 return ExprInt(tab_size_int[total_bit]((uint64((e.arg.arg)>>e.start)) & mask))
             else:
+                # XXX TODO fix correct size
                 fds
                 return ExprInt(type(e.arg.arg)((uint64((e.arg.arg)>>e.start)) & mask))
         # Slice(Slice(A, x), y) => Slice(A, z)

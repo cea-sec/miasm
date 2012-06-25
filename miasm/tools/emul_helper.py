@@ -74,7 +74,17 @@ def dump_reg(p):
 
     return out
 
-
+def cmp_ptr(x, y):
+    r = expr_simp(x.arg-y.arg)
+    if not isinstance(r, ExprInt):
+        return 1
+    if r.arg == 0:
+        return 0
+    r = expr_simp(get_op_msb(r))
+    if r == ExprInt(uint1(0)):
+        return 1
+    else:
+        return -1
 def dump_mem(p):
     out = []
     todo = []
@@ -83,7 +93,7 @@ def dump_mem(p):
     for x in kk:
         if isinstance(x, ExprMem):
             todo.append(x)
-    todo.sort()
+    todo.sort(cmp=lambda x,y:cmp_ptr(x, y))
     for x in todo:
         out.append('%s    %s'%(str(x), str(p[x])))
 

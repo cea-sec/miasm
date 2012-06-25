@@ -2,6 +2,8 @@ import os
 
 class moduint(object):
     def __init__(self, arg):
+        if isinstance(arg, moduint):
+            arg = arg.arg
         self.arg = arg%self.__class__.limit
         assert(self.arg >= 0 and self.arg < self.__class__.limit)
     def __repr__(self):

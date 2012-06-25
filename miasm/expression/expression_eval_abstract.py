@@ -783,7 +783,7 @@ class eval_abs:
             a = xx.arg
             mask = (1<<(stop-start))-1
             a&=mask
-            a<<=e.args[i][1]
+            a<<=start#e.args[i][1]
             total_bit+=stop-start
             rez|=a
         if total_bit in tab_uintsize:
