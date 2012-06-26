@@ -128,8 +128,10 @@ r_es = 'es'
 r_ss = 'ss'
 r_cs = 'cs'
 r_ds = 'ds'
+r_fs = 'fs'
+r_gs = 'gs'
 
-segm_regs = [r_es, r_ss, r_cs, r_ds]
+segm_regs = [r_es, r_ss, r_cs, r_ds, r_fs, r_gs]
 
 w8 = "w8"
 se = "se"
@@ -920,6 +922,11 @@ class x86allmncs:
         addop("pop",   [0x17],             noafs, [r_ss]        , {}                 ,{sg:True,}        , {},                         )
         addop("pop",   [0x1f],             noafs, [r_ds]        , {}                 ,{sg:True,}        , {},                         )
 
+
+        addop("pop",[0x0F, 0xa1],         noafs, [r_fs]        , {}                 ,{sg:True,}        , {},                         )
+        addop("pop",[0x0F, 0xa9],         noafs, [r_gs]        , {}                 ,{sg:True,}        , {},                         )
+
+
         addop("prefetch",[0x0F, 0x18],     d0   , no_rm         , {}                 ,{}                , {},                         )
         addop("prefetch",[0x0F, 0x18],     d1   , no_rm         , {}                 ,{}                , {},                         )
         addop("prefetch",[0x0F, 0x18],     d2   , no_rm         , {}                 ,{}                , {},                         )
@@ -934,6 +941,9 @@ class x86allmncs:
         addop("push",  [0x06],             noafs, [r_es]        , {}                 ,{sg:True,}        , {},                         )
         addop("push",  [0x16],             noafs, [r_ss]        , {}                 ,{sg:True,}        , {},                         )
         addop("push",  [0x1E],             noafs, [r_ds]        , {}                 ,{sg:True,}        , {},                         )
+
+        addop("push",[0x0F, 0xa0],         noafs, [r_fs]        , {}                 ,{sg:True,}        , {},                         )
+        addop("push",[0x0F, 0xa8],         noafs, [r_gs]        , {}                 ,{sg:True,}        , {},                         )
 
         addop("rcl",   [0xD0],             d2   , [im1]         , {w8:(0,0)}         ,{}                , {},                         )
         addop("rcl",   [0xD2],             d2   , [r_cl]        , {w8:(0,0)}         ,{}                , {},                         )
@@ -2268,6 +2278,16 @@ x86mnemo = x86_mn
 if __name__ == '__main__':
     test_out = []
     log.setLevel(logging.DEBUG)
+
+    instr = x86mnemo.dis('0fa9'.replace(' ', '').decode('hex'),
+                         admode=x86_afs.u16,
+                         opmode=x86_afs.u16)
+    print instr
+    print instr.arg
+    print instr.l
+    print instr.opmode, instr.admode
+    fds
+
 
     instr = x86mnemo.dis('ea21060000'.replace(' ', '').decode('hex'),
                          admode=x86_afs.u16,
