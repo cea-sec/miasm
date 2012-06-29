@@ -141,6 +141,8 @@ class moduint(object):
 
 class modint(moduint):
     def __init__(self, arg):
+        if isinstance(arg, moduint):
+            arg = arg.arg
         a = arg%self.__class__.limit
         if a >= self.__class__.limit/2:
             a -= self.__class__.limit

@@ -16,7 +16,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 from miasm.arch.ia32_reg import x86_afs
-from miasm.tools.modint import uint1, uint8, uint16, uint32, uint64
+from miasm.tools.modint import uint1, uint8, uint16, uint32, uint64, int8, int16, int32, int64
 
 def dict_add(a, b):
     tmp = dict(a)

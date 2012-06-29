@@ -89,7 +89,7 @@ def parse_txt(mnemo, txt, symbol_pool = None, gen_label_index = 0):
                 lines.append(asm_raw(line.strip()))
                 continue
             
-            raise "unknown directive %s"%str(directive)
+            raise ValueError("unknown directive %s"%str(directive))
         
         #label
         r = re.match(r'\s*(\S+)\s*:', line)
