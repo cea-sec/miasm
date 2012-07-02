@@ -943,24 +943,32 @@ def dec(info, a):
 def push(info, a):
     e= []
     s = a.get_size()
-    if not s in [16,32]:
-        raise 'bad size stacker!'
+    # special case segment regs
+    if a in [es, cs, ss, ds, fs, gs]:
+        opmode, admode = info.opmode, info.admode
+        s = {u16:16, u32:32}[opmode]
+    if not s in [16, 32]:
+        raise ValueError('bad size stacker!')
     c = ExprOp('-', esp, ExprInt32(s/8))
     e.append(ExprAff(esp, c))
-    e.append(ExprAff(ExprMem(c, s), a))
+    e.append(ExprAff(ExprMem(c, a.get_size()), a))
     return e
 
 def pop(info, a):
     e= []
     s = a.get_size()
+    # special case segment regs
+    if a in [es, cs, ss, ds, fs, gs]:
+        opmode, admode = info.opmode, info.admode
+        s = {u16:16, u32:32}[opmode]
     if not s in [16,32]:
-        raise 'bad size stacker!'
+        raise ValueError('bad size stacker!')
     new_esp = ExprOp('+', esp, ExprInt32(s/8))
     e.append(ExprAff(esp, new_esp))
-    #XXX FIX XXX for pop [esp]
+    # XXX FIX XXX for pop [esp]
     if isinstance(a, ExprMem):
         a =a.replace_expr({esp:new_esp})
-    e.append(ExprAff(a, ExprMem(esp, s)))
+    e.append(ExprAff(a, ExprMem(esp, a.get_size())))
     return e
 
 def sete(info, a):
@@ -1394,9 +1402,22 @@ def loopne(info, a, b):
                   ExprCond(c, ExprInt_from(c, 0), ExprInt_from(c, 1)),
                   ExprCond(zf, ExprInt_from(c, 1), ExprInt_from(c, 0))
                   )
-
     e.append(ExprAff(eip, ExprCond(cond, a, b)))
     return e
+
+
+def loope(info, a, b):
+    e= []
+    c = ExprOp('-', ecx, ExprInt32(1))
+    e.append(ExprAff(ecx, c))
+
+    cond = ExprOp('|',
+                  ExprCond(c, ExprInt_from(c, 0), ExprInt_from(c, 1)),
+                  ExprCond(zf, ExprInt_from(c, 0), ExprInt_from(c, 1))
+                  )
+    e.append(ExprAff(eip, ExprCond(cond, a, b)))
+    return e
+
 
 #XXX size to do; eflag
 def div(info, a):
@@ -2077,7 +2098,10 @@ def into(info):
     return []
 
 def l_in(info, a, b):
-    return []
+    e = []
+    e.append(ExprAff(ExprId('vmcpu.vm_exception_flags'),
+                     ExprInt32(EXCEPT_PRIV_INSN)))
+    return e
 
 def cmpxchg(info, a, b, c):
     e = []
@@ -2227,6 +2251,7 @@ mnemo_func = {'mov': mov,
               'jecxz':jecxz,
               'loop':loop,
               'loopne':loopne,
+              'loope':loope,
               'div':div,
               'mul':mul,
               'imul':imul,

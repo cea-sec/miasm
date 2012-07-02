@@ -986,7 +986,7 @@ def xxx_strcpy():
 
 def my_vprintf(arg_fmt, arg_ap):
     fmt = get_str_ansi(arg_fmt)
-    print repr(fmt)
+    #print repr(fmt)
 
     fmt_a = parse_fmt(fmt)
 
