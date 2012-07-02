@@ -1384,7 +1384,7 @@ class x86_mn:
             return []
         a = self.arg[0]
         if is_imm(a) and not x86_afs.symb in a:
-            dst = (self.offset+self.l+a[x86_afs.imm])&tab_max_uint[self.admode]
+            dst = (self.offset+self.l+a[x86_afs.imm])&tab_max_uint[self.opmode]
             out = [dst]
         else:
             out = [a]
@@ -2285,6 +2285,14 @@ x86mnemo = x86_mn
 if __name__ == '__main__':
     test_out = []
     log.setLevel(logging.DEBUG)
+
+    instr = x86mnemo.dis('67e1fa'.replace(' ', '').decode('hex'))
+    print instr
+    print instr.arg
+    print instr.l
+    print instr.opmode, instr.admode
+    fds
+
 
     instr = x86mnemo.dis('0fa9'.replace(' ', '').decode('hex'),
                          admode=x86_afs.u16,
