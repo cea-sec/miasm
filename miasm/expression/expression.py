@@ -96,7 +96,7 @@ class Expr:
         if not isinstance(i, slice):
             print i
             raise "bad slice"
-        start, stop, step = i.indices(0x1337BEEF)
+        start, stop, step = i.indices(self.get_size())
         return ExprSlice(self, start, stop)
     def get_r(self, mem_read=False):
         return self.arg.get_r(mem_read)
