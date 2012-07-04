@@ -53,8 +53,6 @@ def merge_sliceto_slice(args):
             sources[a[0].arg].append(a)
         else:
             non_slice[a[1]] = a
-
-
     # find max stop to determine size
     max_size = None
     for a in args:
@@ -72,15 +70,14 @@ def merge_sliceto_slice(args):
     sorted_s.sort()
     while sorted_s:
         start, v = sorted_s.pop()
-        out = v[0].copy(), v[1], v[2]
+        out = [v[0].copy(), v[1], v[2]]
         while sorted_s:
             if sorted_s[-1][1][2] != start:
                 break
 
             start = sorted_s[-1][1][1]
-
-            a = uint64((int(out[0].arg) << (out[1] - start )) + sorted_s[-1][1][0].arg)
-            out.arg = ExprInt(uint32(a))
+            a = uint64((int(out[0].arg) << (out[1] - start )) + int(sorted_s[-1][1][0].arg))
+            out[0].arg = a
             sorted_s.pop()
             out[1] = start
 

@@ -102,6 +102,11 @@ to_test = [(ExprInt32(5)+c+a+b-a+ExprInt32(1)-ExprInt32(5)),
            ExprCond(ExprInt32(0), b, a),
 
            ExprInt32(0x80000000)[31:32],
+           ExprCompose([(ExprInt16(0x1337)[:8], 0, 8),(ExprInt16(0x1337)[8:16], 8, 16)]),
+
+           ExprCompose([(ExprInt32(0x1337beef)[8:16], 8, 16),
+                        (ExprInt32(0x1337beef)[:8], 0, 8),
+                        (ExprInt32(0x1337beef)[16:32], 16, 32)]),
 
 
            ]
