@@ -505,7 +505,7 @@ def user32_BlockInput():
     regs['eax'] = 1
     vm_set_gpreg(regs)
 
-def advapi32_CryptAcquireContextA():
+def advapi32_CryptAcquireContext(funcname, get_str):
     ret_ad = vm_pop_uint32_t()
     phprov = vm_pop_uint32_t()
     pszcontainer = vm_pop_uint32_t()
@@ -513,10 +513,12 @@ def advapi32_CryptAcquireContextA():
     dwprovtype = vm_pop_uint32_t()
     dwflags = vm_pop_uint32_t()
 
-    print whoami(), hex(ret_ad), '(', hex(phprov), hex(pszcontainer), hex(pszprovider), hex(dwprovtype), hex(dwflags), ')'
+    print funcname, hex(ret_ad), '(', hex(phprov), hex(pszcontainer), hex(pszprovider), hex(dwprovtype), hex(dwflags), ')'
 
-    prov = vm_get_str(pszprovider, 0x100)
-    prov = prov[:prov.find('\x00')]
+    if pszprovider:
+        prov = get_str(pszprovider)
+    else:
+        prov = "NONE"
     print 'prov:', prov
     vm_set_mem(phprov, pdw(winobjs.cryptcontext_hwnd))
 
@@ -524,6 +526,12 @@ def advapi32_CryptAcquireContextA():
     regs['eip'] = ret_ad
     regs['eax'] = 1
     vm_set_gpreg(regs)
+
+
+def advapi32_CryptAcquireContextA():
+    advapi32_CryptAcquireContext(whoami(), get_str_ansi)
+def advapi32_CryptAcquireContextW():
+    advapi32_CryptAcquireContext(whoami(), get_str_unic)
 
 
 def advapi32_CryptCreateHash():
@@ -569,6 +577,48 @@ def advapi32_CryptHashData():
     regs = vm_get_gpreg()
     regs['eip'] = ret_ad
     regs['eax'] = 1
+    vm_set_gpreg(regs)
+
+
+def advapi32_CryptGetHashParam():
+    ret_ad = vm_pop_uint32_t()
+    hhash = vm_pop_uint32_t()
+    param = vm_pop_uint32_t()
+    pbdata = vm_pop_uint32_t()
+    dwdatalen = vm_pop_uint32_t()
+    dwflags = vm_pop_uint32_t()
+
+    print whoami(), hex(ret_ad), '(', hex(hhash), hex(pbdata), hex(dwdatalen), hex(dwflags), ')'
+
+    if not hhash in winobjs.cryptcontext:
+        raise ValueError("unknown crypt context")
+
+
+    if param == 2:
+        # XXX todo: save h state?
+        h = winobjs.cryptcontext[hhash].h.digest()
+    else:
+        raise ValueError('not impl', param)
+    vm_set_mem(pbdata, h)
+    vm_set_mem(dwdatalen, pdw(len(h)))
+
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = 1
+    vm_set_gpreg(regs)
+
+
+
+def advapi32_CryptReleaseContext():
+    ret_ad = vm_pop_uint32_t()
+    hhash = vm_pop_uint32_t()
+    flags = vm_pop_uint32_t()
+
+    print whoami(), hex(ret_ad), '(', hex(hhash), hex(flags), ')'
+
+    regs = vm_get_gpreg()
+    regs['eip'] = ret_ad
+    regs['eax'] = 0
     vm_set_gpreg(regs)
 
 
@@ -667,6 +717,8 @@ def kernel32_CreateFile(funcname, get_str):
 
 def kernel32_CreateFileA():
     kernel32_CreateFile(whoami(), get_str_ansi)
+def kernel32_CreateFileW():
+    kernel32_CreateFile(whoami(), lambda x:get_str_unic(x)[::2])
 
 
 
@@ -1051,13 +1103,13 @@ def kernel32_LoadLibraryW():
     vm_set_gpreg(regs)
 
 
-def kernel32_GetModuleHandleA():
+def kernel32_GetModuleHandle(funcname, get_str):
     ret_ad = vm_pop_uint32_t()
     dllname = vm_pop_uint32_t()
-    print whoami(), hex(ret_ad), hex(dllname)
+    print funcname, hex(ret_ad), hex(dllname)
 
     if dllname:
-        libname = get_str_ansi(dllname)
+        libname = get_str(dllname)
         print repr(libname)
         if libname:
             eax = winobjs.runtime_dll.lib_get_add_base(libname)
@@ -1071,6 +1123,12 @@ def kernel32_GetModuleHandleA():
     regs['eip'] = ret_ad
     regs['eax'] = eax
     vm_set_gpreg(regs)
+
+def kernel32_GetModuleHandleA():
+    kernel32_GetModuleHandle(whoami(), get_str_ansi)
+def kernel32_GetModuleHandleW():
+    kernel32_GetModuleHandle(whoami(), lambda x:get_str_unic(x)[::2])
+
 
 def kernel32_VirtualLock():
     ret_ad = vm_pop_uint32_t()

@@ -387,7 +387,7 @@ class libimp:
         self.fad2info = {}
 
     def lib_get_add_base(self, name):
-        name = name.lower()
+        name = name.lower().strip(' ')
         if not "." in name:
             print 'warning adding .dll to modulename'
             name += '.dll'

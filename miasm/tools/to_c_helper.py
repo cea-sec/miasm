@@ -1131,11 +1131,25 @@ updw = lambda bbbb: struct.unpack('I', bbbb)[0]
 pw = lambda x: struct.pack('H', x)
 upw = lambda x: struct.unpack('H', x)[0]
 
+base_dll_imp = ["ntdll.dll",  "kernel32.dll",   "user32.dll",
+               "imm32.dll",    "msvcrt.dll",
+               "oleaut32.dll", "shlwapi.dll",
+               "version.dll",  "advapi32.dll",
+               "ws2help.dll",
+               "rpcrt4.dll",   "shell32.dll", "winmm.dll",
+               #"mswsock.dll",
+               "ws2_32.dll",
+               "gdi32.dll",   "ole32.dll",
+               "secur32.dll",  "comdlg32.dll",
+               #"wsock32.dll"
+               ]
+
 
 def load_pe_in_vm(fname_in, options, all_imp_dll = None, **kargs):
     import os
     import seh_helper
     import win_api
+    global base_dll_imp
     from miasm.tools import pe_helper
     from miasm.tools import codenat
 
@@ -1149,22 +1163,14 @@ def load_pe_in_vm(fname_in, options, all_imp_dll = None, **kargs):
     codenat_tcc_init()
     runtime_dll = pe_helper.libimp(kargs.get('runtime_basead', 0x71111000))
 
-    pe_helper.vm_load_pe(e, align_s = False, load_hdr = options.loadhdr)
+    align_s = False
+    if 'align_s' in kargs:
+        align_s = kargs['align_s']
+    pe_helper.vm_load_pe(e, align_s = align_s, load_hdr = options.loadhdr)
 
     if all_imp_dll == None:
         if options.loadbasedll:
-            all_imp_dll = ["ntdll.dll",  "kernel32.dll",   "user32.dll",
-                           "imm32.dll",    "msvcrt.dll",
-                           "oleaut32.dll", "shlwapi.dll",
-                           "version.dll",  "advapi32.dll",
-                           "ws2help.dll",
-                           "rpcrt4.dll",   "shell32.dll", "winmm.dll",
-                           #"mswsock.dll",
-                           "ws2_32.dll",
-                           "gdi32.dll",   "ole32.dll",
-                           "secur32.dll",  "comdlg32.dll",
-                           #"wsock32.dll"
-                           ]
+            all_imp_dll = base_dll_imp
         else:
             all_imp_dll = []
 
@@ -1174,7 +1180,7 @@ def load_pe_in_vm(fname_in, options, all_imp_dll = None, **kargs):
     for n in mod_list:
         fname = os.path.join('win_dll', n)
         ee = pe_init.PE(open(fname, 'rb').read())
-        pe_helper.vm_load_pe(ee, align_s = False)
+        pe_helper.vm_load_pe(ee, align_s = align_s)
         runtime_dll.add_export_lib(ee, n)
         exp_funcs = pe_helper.get_export_name_addr_list(ee)
         exp_func[n] = exp_funcs
@@ -1260,10 +1266,11 @@ def vm2pe(fname, runtime_dll = None, e_orig = None, max_addr = 1<<64):
     # generation
     open(fname, 'w').write(str(mye))
 
-def manage_runtime_func(my_eip, api_modues, runtime_dll):
+def manage_runtime_func(my_eip, api_modues, runtime_dll, dbg = False):
     from miasm.tools import win_api
     fname = runtime_dll.fad2cname[my_eip]
-    print "call api", fname, hex(updw(vm_get_str(vm_get_gpreg()['esp'], 4)))
+    if dbg:
+        print "call api", fname, hex(updw(vm_get_str(vm_get_gpreg()['esp'], 4)))
     f = None
     for m in api_modues:
         if isinstance(m, dict):
