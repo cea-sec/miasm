@@ -176,7 +176,7 @@ class mdl:
 def get_str_ansi(ad_str, max_char = None):
     l = 0
     tmp = ad_str
-    while l < max_char and vm_get_str(tmp, 1) != "\x00":
+    while (max_char == None or l < max_char) and vm_get_str(tmp, 1) != "\x00":
         tmp +=1
         l+=1
     return vm_get_str(ad_str, l)
@@ -184,7 +184,7 @@ def get_str_ansi(ad_str, max_char = None):
 def get_str_unic(ad_str, max_char = None):
     l = 0
     tmp = ad_str
-    while l < max_char and vm_get_str(tmp, 2) != "\x00\x00":
+    while (max_char == None or l < max_char) and vm_get_str(tmp, 2) != "\x00\x00":
         tmp +=2
         l+=2
     return vm_get_str(ad_str, l)
