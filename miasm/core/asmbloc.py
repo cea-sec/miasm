@@ -49,12 +49,11 @@ class asm_label:
     def __init__(self, name = "", offset = None):
 
         self.next = "next"
-        self.noattrib = "noattrib"
         self.fixedblocs = False
         if is_int(name):
             name = "loc_%.16X"%(int(name)&0xFFFFFFFFFFFFFFFF)
         self.name = name
-        self.attrib = self.noattrib
+        self.attrib = None
         if offset == None:
             self.offset = offset
         else:
@@ -144,18 +143,38 @@ class asm_symbol_pool:
         self.s = {}
         self.s_offset = {}
 
+    def add(self, obj):
+        """
+        obj can be an asm_label or an offset
+        """
+        if not isinstance(obj, asm_label):
+            # whatever obj is, it will be an offset
+            offset = int(obj)
+            if offset in self.s_offset:
+                raise ValueError('symbol offset already exist %r'%offset)
+            obj = asm_label(offset, offset)
+        if obj.name in self.s:
+            raise ValueError('symbol already exist %r'%obj)
+        self.s[obj.name] = obj
+        if obj.offset != None:
+            self.s_offset[obj.offset] = obj
 
-    def remove(self, l):
-        if l.name in self.s:
-            del(self.s[l.name])
-        if l.offset != None and l.offset in self.s_offset:
-            del(self.s_offset[l.offset])
-
-    def add(self, l):
-        if l.name in self.s:
-            raise ValueError('symbol already exist %r'%l)
-        self.s[l.name] = l
-        self.s_offset[l.offset] = l
+    def remove(self, obj):
+        """
+        obj can be an asm_label or an offset
+        """
+        if isinstance(obj, asm_label):
+            if obj.name in self.s:
+                del(self.s[obj.name])
+            if obj.offset != None and obj.offset in self.s_offset:
+                del(self.s_offset[obj.offset])
+        else:
+            offset = int(obj)
+            if offset in self.s_offset:
+                obj = self.s_offset[offset]
+                del(self.s_offset[offset])
+            if obj.name in self.s:
+                del(self.s[obj.name])
 
     def del_offset(self, l = None):
         if l:
@@ -203,6 +222,20 @@ class asm_symbol_pool:
 
     def __str__(self):
         return reduce(lambda x,y: x+str(y)+'\n', [self.s[l] for l in self.s], "")
+
+    def __in__(self, obj):
+        if obj in self.s:
+            return True
+        if obj in self.s_offset:
+            return True
+        return False
+    def __getitem__(self, item):
+        if item in self.s:
+            return self.s[item]
+        if item in self.s_offset:
+            return self.s_offset[item]
+        raise KeyError('unknown symbol %r'%item)
+
 
 class interval():
     # addrs represent interval using the form:
