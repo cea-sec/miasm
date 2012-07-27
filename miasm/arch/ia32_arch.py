@@ -1278,18 +1278,17 @@ x86mndb = x86allmncs()
 class x86_mnemo_metaclass(type):
     rebuilt_inst = True
 
-    def dis(cls, op, admode = u32, opmode = u32, sex = 0):
+
+    def dis(cls, op, attrib = {}):
         i = cls.__new__(cls)
-        i.__init__(admode, opmode, sex)
-        i.opmode = opmode
-        i.admode = admode
+        i.__init__(attrib)
         u = i._dis(op)
         if not u:
             return None
         return i
     def asm(cls, l, symbol_off = []):
         i = cls.__new__(cls)
-        i.__init__(admode = u32, opmode = u32, sex = 0)
+        i.__init__() # admode = u32, opmode = u32, sex = 0)
         return i._asm(l, symbol_off)
 
 
@@ -1357,11 +1356,16 @@ class x86_mnemo_metaclass(type):
 
 class x86_mn:
     __metaclass__ = x86_mnemo_metaclass
-    def __init__(self, admode = u32, opmode = u32, sex = 0):
-        self.admode = admode
-        self.opmode = opmode
+    def __init__(self, attrib = {}):
+        self.opmode = attrib.get('opmode', u32)
+        self.admode = attrib.get('opmode', u32)
         self.mnemo_mode = self.opmode
         self.cmt = ""
+
+
+    def get_attrib(self):
+        return {"opmode":self.opmode,
+                "admode":self.admode}
 
     @classmethod
     def prefix2hex(self, prefix):
@@ -1458,14 +1462,9 @@ class x86_mn:
             raise ValueError('unknown mnemo mode %s'%str(im))
 
     def _dis(self, bin):
-
-
-
         if type(bin) == str:
             from miasm.core.bin_stream import bin_stream
-
             bin = bin_stream(bin)
-
         init_offset = bin.offset
 
         try:
@@ -2295,8 +2294,7 @@ if __name__ == '__main__':
 
 
     instr = x86mnemo.dis('0fa9'.replace(' ', '').decode('hex'),
-                         admode=x86_afs.u16,
-                         opmode=x86_afs.u16)
+                         {"admode":x86_afs.u16,"opmode":x86_afs.u16})
     print instr
     print instr.arg
     print instr.l

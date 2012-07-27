@@ -393,10 +393,10 @@ mnemonic('iflt', 155, 3, "if 'value' is less than 0, branch to the 16-bit instru
 class java_mnemo_metaclass(type):
     rebuilt_inst = False
     
-    def dis(cls, op, admode=None, sex=0, offset=0, ):
+    def dis(cls, op, attrib = {} ):
         i = cls.__new__(cls)
-        i.__init__(sex)
-        u = i._dis(op, offset)
+        i.__init__(0)
+        u = i._dis(op)
         if not u: return None
         return i
     
@@ -457,8 +457,10 @@ class java_mnemo_metaclass(type):
 class java_mn:
     __metaclass__ = java_mnemo_metaclass
     def __init__(self, sex=0):
-        self.sex = sex
-    
+        self.sex = 0
+    def get_attrib(self):
+        return {}
+
     def breakflow(self):
         return self.m.breakflow
     def splitflow(self):
@@ -551,15 +553,15 @@ class java_mn:
             return out
         return "%-15s" % self.m.name + " ".join(map(str, arg))
     
-    def _dis(self, bin, offset=0):
+    def _dis(self, bin):
         if type(bin) is str:
             from miasm.core.bin_stream import bin_stream
             bin = bin_stream(bin)
-        self.offset = bin.offset + offset
+        self.offset = bin.offset
         try:
             self.m = mnemo_db[ord(bin.readbs(1))]
             self.arg = self.m.argfmt.get(bin, sex=self.sex, address=self.offset)
-            self.l = bin.offset + offset - self.offset
+            self.l = bin.offset  - self.offset
         except Exception as e:
             log.warning(e.message)
             return False

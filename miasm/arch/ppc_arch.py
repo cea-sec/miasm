@@ -443,7 +443,7 @@ class ppc_mnemo_metaclass(type):
         raise ValueError('ambiquity %s'%str(ret))
 
 
-    def dis(cls, bin, *kargs):
+    def dis(cls, bin, attrib = {}):
         if type(bin) == str:
             bin = bin_stream(bin)
         elif not isinstance(bin, bin_stream):
@@ -785,6 +785,9 @@ class ppc_mn(object):
             full_mnemo = mnemo_nosymb
 
             self.parse_args(full_mnemo)
+
+    def get_attrib(self):
+        return {}
 
     def parse_opts(self, rest):
         if rest:
