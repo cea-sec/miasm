@@ -39,6 +39,17 @@ class bin_stream(object):
     def hexdump(self, offset, l):
         return
 
+    def __getitem__(self, item):
+        if not type(item) is slice: # integer
+            self.offset = item
+            return self.readbs(1)
+        start = item.start
+        stop  = item.stop
+        step  = item.step
+        self.offset = start
+        s = self.readbs(stop-start)
+        return s[::step]
+
 class bin_stream_str(bin_stream):
     def __init__(self, bin ="", offset = 0L):
         if offset>len(bin):
