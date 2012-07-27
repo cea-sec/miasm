@@ -290,41 +290,46 @@ def code_is_jmp_imp(e, ad, imp_d):
     return is_jmp_imp(l, imp_d)
 
 
-#giving e and address in function guess function start
-def guess_func_start(e, middle_ad, max_offset = 0x200):
-    ad = middle_ad+1
-    ad_found = None
-    while ad > middle_ad - max_offset:
-        ad-=1
-
-        ####### heuristic CC pad #######
-        if e.virt[ad] == "\xCC":
-            if e.virt[((ad+3)&~3)-1] == "\xCC":
-                ad_found = ((ad+3)&~3)
-                break
-            else:
+# giving e and address in function guess function start
+def guess_func_start(in_str, line_ad, max_offset = 0x200):
+    ad = line_ad+1
+    done = False
+    func_addrs = set()
+    symbol_pool = asmbloc.asm_symbol_pool()
+    all_bloc = asmbloc.dis_bloc_all(x86_mn, in_str, line_ad,
+                                    func_addrs, symbol_pool)
+    while not done:
+        ad_found = None
+        while ad > line_ad - max_offset:
+            ad-=1
+            ####### heuristic CC pad #######
+            if in_str[ad] == "\xCC":
+                if in_str[((ad+3)&~3)-1] == "\xCC":
+                    ad_found = ((ad+3)&~3)
+                    break
+                else:
+                    continue
+            l = x86_mn.dis(in_str[ad:ad+15])
+            if not l:
                 continue
-        
-        
-        l = x86_mn.dis(e.virt[ad:ad+15])
-        if not l:
-            continue
-        if l.m.name in ["ret"]:
-            ad_found = ad+l.l
-            break
-        
-    if not ad_found:
-        print 'cannot find func start'
-        return None
+            if l.m.name in ["ret"]:
+                ad_found = ad+l.l
+                break
+        if not ad_found:
+            print 'cannot find func start'
+            return None
+        while in_str[ad_found] == "\xCC":
+            ad_found+=1
+        # lea eax, [eax]
+        if in_str[ad_found:ad_found+3] == "\x8D\x40\x00":
+            ad_found += 3
 
-    while e.virt[ad_found] == "\xCC":
-        ad_found+=1
+        job_done = set()
+        symbol_pool = asmbloc.asm_symbol_pool()
+        all_bloc = asmbloc.dis_bloc_all(x86_mn, in_str, ad_found, job_done, symbol_pool)
+        if func_addrs.issubset(job_done):
+            return ad_found
 
-    if e.virt[ad_found:ad_found+3] == "\x8D\x40\x00":
-        ad_found += 3
-    
-
-    return ad_found
 
 def get_nul_term(e, ad):
     out = ""
@@ -543,8 +548,9 @@ def vm_load_pe(e, align_s = True, load_hdr = True):
 
     if aligned:
         if load_hdr:
-            min_len = min(e.SHList[0].addr, 0x1000)
-            pe_hdr = e.content[:0x400]
+            hdr_len = max(0x200, e.NThdr.sectionalignment)
+            min_len = min(e.SHList[0].addr, hdr_len)
+            pe_hdr = e.content[:hdr_len]
             pe_hdr = pe_hdr+min_len*"\x00"
             pe_hdr = pe_hdr[:min_len]
             to_c_helper.vm_add_memory_page(e.NThdr.ImageBase, to_c_helper.PAGE_READ|to_c_helper.PAGE_WRITE, pe_hdr)
@@ -652,21 +658,59 @@ def get_export_name_addr_list(e):
     return out
 
 
+class pattern_class:
+    pass
 
-class find_call_xref:
-    def __init__(self, e, off):
+class pattern_call_x86(pattern_class):
+    patterns = ["\xE8"]
+    @classmethod
+    def test_candidate(cls, in_str, off_i, off_dst):
+        off = off_i + 5 + struct.unpack('i', in_str[off_i+1:off_i+5])[0]
+        #print "XXX", hex(off_i), hex(off)
+        if off == off_dst:
+            return off_i
+        return None
+
+class pattern_jmp_long_x86(pattern_call_x86):
+    patterns = ["\xE9"]
+
+class pattern_jmp_short_x86(pattern_call_x86):
+    patterns = ["\xEB"]
+    @classmethod
+    def test_candidate(cls, in_str, off_i, off_dst):
+        off = off_i + 2 + struct.unpack('b', in_str[off_i+1:off_i+2])[0]
+        #print "XXX", hex(off_i), hex(off)
+        if off == off_dst:
+            return off_i
+        return None
+
+
+class find_pattern:
+    def __init__(self, in_str, off_dst, find_class):
         import re
-        self.e = e
-        self.off = off
-        #create itertor to find simple CALL offsets
-        p = re.escape("\xE8")
-        self.my_iter = re.finditer(p, e.content)
+        self.in_str = in_str
+        self.off_dst = off_dst
+        if not type(find_class) is list:
+            find_class = [find_class]
+        self.find_classes = find_class
+        self.class_index = 0
+        self.ad = 0
     def next(self):
-        while True:
-            off_i = self.my_iter.next().start()
-            off = off_i + 5 + struct.unpack('i', self.e.content[off_i+1:off_i+5])[0]
-            if off == self.off:
-                return off_i
+        while self.class_index < len(self.find_classes):
+            find_class = self.find_classes[self.class_index]
+            for p in find_class.patterns:
+                while True:
+                    #off_i = self.my_iter.next().start()
+                    self.ad = self.in_str.find(p, self.ad)
+                    if self.ad == -1:
+                        break
+                    off = find_class.test_candidate(self.in_str, self.ad, self.off_dst)
+                    self.ad +=1
+                    if off:
+                        #print 'found', hex(off)
+                        return off
+            self.class_index+=1
+            self.ad = 0
         raise StopIteration
     def __iter__(self):
         return self
