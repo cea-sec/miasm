@@ -1121,6 +1121,16 @@ class bin_stream_vm():
     def setoffset(self, val):
         val = val & 0xFFFFFFFF
         self.offset = val
+    def __getitem__(self, item):
+        if not type(item) is slice: # integer
+            self.offset = item
+            return self.readbs(1)
+        start = item.start
+        stop  = item.stop
+        step  = item.step
+        self.offset = start
+        s = self.readbs(stop-start)
+        return s[::step]
 
 
 
