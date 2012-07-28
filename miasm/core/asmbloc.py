@@ -255,7 +255,7 @@ def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool,
              dont_dis = [], follow_call = False, patch_instr_symb = True,
              dontdis_retcall = False, lines_wd = None,
              dis_bloc_callback = None, dont_dis_nulstart_bloc = False,
-             **kargs):
+             attrib = {}):
     pool_bin.offset = offset
     lines_cpt = 0
     while True:
@@ -292,7 +292,7 @@ def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool,
                 break
 
         try:
-            instr = mnemo.dis(pool_bin, **kargs)
+            instr = mnemo.dis(pool_bin, attrib)
         except StandardError, e:
             log_asmbloc.warning(e)
             instr = None
@@ -388,7 +388,7 @@ def dis_bloc_all(mnemo, pool_bin, offset, job_done, symbol_pool, dont_dis = [],
                  follow_call = False, patch_instr_symb = True, dontdis_retcall = False,
                  bloc_wd = None, lines_wd = None, all_bloc = None,
                  dis_bloc_callback = None, dont_dis_nulstart_bloc = False,
-                 **kargs):
+                 attrib = {}):
     log_asmbloc.info("dis bloc all")
     if all_bloc == None:
         all_bloc = []
@@ -427,7 +427,7 @@ def dis_bloc_all(mnemo, pool_bin, offset, job_done, symbol_pool, dont_dis = [],
                          dis_bloc_callback = dis_bloc_callback,
                          lines_wd = lines_wd,
                          dont_dis_nulstart_bloc = dont_dis_nulstart_bloc,
-                         **kargs)
+                         attrib = attrib)
         all_bloc.append(cur_bloc)
 
 

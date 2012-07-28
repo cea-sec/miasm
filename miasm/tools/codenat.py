@@ -21,7 +21,7 @@ from hashlib import md5
 
 from  ctypes import *
 from miasm.tools.to_c_helper import *
-from miasm.tools.emul_lib import libcodenat_interface    
+from miasm.tools.emul_lib import libcodenat_interface
 
 
 # interrupt with eip update after instr
@@ -71,7 +71,7 @@ class bloc_nat:
 blocs_nat = {}
 
 def gen_C_module(c_source):
-    
+
     lib_name = 'emul_cache/out_'+md5(c_source).hexdigest()
     lib_dir = os.path.dirname(os.path.realpath(__file__))
     lib_dir = os.path.join(lib_dir, 'emul_lib')
@@ -82,7 +82,7 @@ def gen_C_module(c_source):
         a = cdll.LoadLibrary('./%s.so'%lib_name)
     except:
         a = None
-    if a == None:    
+    if a == None:
         open(lib_name+'.c', 'w').write(c_source)
 
         gcc_opts =  " -pthread -fno-strict-aliasing -DNDEBUG -g -fwrapv -O2 -Wall -Wstrict-prototypes "
@@ -93,7 +93,7 @@ def gen_C_module(c_source):
         gcc_opts += ' -L%s -lcodenat '%lib_dir
         gcc_opts_end = ' -Wl,-rpath,%s '%lib_dir
         os.system('gcc ' + gcc_opts + '%s.o -o %s.so '%(lib_name, lib_name) + gcc_opts_end)
-        
+
         a = cdll.LoadLibrary('%s.so'%lib_name)
 
     return a
@@ -106,14 +106,14 @@ def del_bloc_in_range(known_blocs, ad1, ad2):
         # XXX no lines in bloc?
         if not bn.b.lines:
             continue
-        
+
         if bn.b.lines[0].offset>=ad2 or bn.b.lines[-1].offset + bn.b.lines[-1].l <= ad1:
             #bloc_out.append(b)
             bloc_out[ad] = bn
         else:
             #print 'inv bloc', bn.b.label
             pass
-    
+
     return bloc_out
 
 

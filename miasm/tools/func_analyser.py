@@ -68,7 +68,7 @@ def read_dll_export(dll_name, func_name):
     if not fname in dll_pe_cache:
         print 'not loaded dll'
         init_dll_cache(fname)
-        
+
     pe = dll_pe_cache[fname]
     """
     pe =  pefile.PE(fname)
@@ -88,7 +88,7 @@ def read_dll_export(dll_name, func_name):
     symbol_pool_tmp = asm_symbol_pool()
     all_bloc_tmp = dis_bloc_all(x86mnemo, in_str_tmp, in_str_tmp.offset, [], symbol_pool_tmp, follow_call = False)
     ret = quick_ret_analyse(offset, all_bloc_tmp)
-    
+
     return ret
 
 
@@ -130,23 +130,23 @@ def dump_pool(p):
     for x in p:
         print x, p[x]
     print '\\_____________/'
-    
+
 
 def hook_mem_read(evaluator, src):
     evaluator.log.warn('mem read %s'%str(src))
     src_address = evaluator.eval_expr(src.arg, {})
     src_address = evaluator.simp_full_exp(src_address)
     src_address = evaluator.simp_expr_arith_final(src_address)
-    
+
     print 'test read',src_address, evaluator.simp_expr_arith_final(src_address)
     dump_pool(evaluator.pool[MEM_GLOB])
-    
+
 
     if not str(src_address) in evaluator.pool[MEM_GLOB]:
         evaluator.log.warning('unkown read address:%s'%src_address)
         return ExprMem(src_address, size = src.size)
     return evaluator.pool[MEM_GLOB][str(src_address)]
-    
+
 
 def hook_mem_write(evaluator, dst, src, pool_out):
     evaluator.log.warn("mem write: %s %s"%(str(dst), str(src)))
@@ -160,8 +160,8 @@ def hook_mem_write(evaluator, dst, src, pool_out):
     dump_pool(evaluator.pool[MEM_GLOB])
 
 
-    
-    
+
+
 #set unkown stack for all blocks
 for b in all_bloc:
     b.eval_start,b.eval_stop = None, None
@@ -170,27 +170,27 @@ for b in all_bloc:
         l.stack_h_after = None
 
 
-    
+
 #first bloc start at 0
 #esp_init_arg= 0x1000
 evaluator = eval_int({esp:esp_i, ebp:ebp_i, eax:eax_i, ebx:ebx_i, ecx:ecx_i, edx:edx_i, esi:esi_i, edi:edi_i,
                       cs:9,
-                      zf : 0, 
-                      nf : 0, 
-                      pf : 0, 
-                      of : 0, 
-                      cf : 0, 
-                      tf : 0, 
-                      i_f: 0, 
-                      df : 0, 
-                      af : 0, 
+                      zf : 0,
+                      nf : 0,
+                      pf : 0,
+                      of : 0,
+                      cf : 0,
+                      tf : 0,
+                      i_f: 0,
+                      df : 0,
+                      af : 0,
                       iopl: 3,
-                      nt : 0, 
-                      rf : 0, 
-                      vm : 0, 
-                      ac : 0, 
-                      vif: 0, 
-                      vip: 0, 
+                      nt : 0,
+                      rf : 0,
+                      vm : 0,
+                      ac : 0,
+                      vif: 0,
+                      vip: 0,
                       i_d: 0,
                       MEM_GLOB:{},
                       },
@@ -231,7 +231,7 @@ def is_func_wrapper(ad, pool_import_func = {}):
     print instr
     if instr.m.name in ['jmp'] and is_address(instr.arg[0]):
         return True
-    
+
     return False
 
 #is simply import call?
@@ -260,14 +260,14 @@ def is_import_call(offset, eval_arg, symbol_pool, pool_import_func = {}):
 
         evaluator_tmp.eval_instr(e)
         if eip in evaluator_tmp.pool:
-            n_eip = evaluator_tmp.pool[eip]                
+            n_eip = evaluator_tmp.pool[eip]
             if type(n_eip) in [int, long]:
                 offset = n_eip
                 continue
             if not isinstance(n_eip, ExprMem):
                 return False, None
             ad = evaluator_tmp.eval_expr(n_eip.arg, {})
-            
+
             if not type(ad) in [int, long]:
                 return False, None
             if not ad in pool_import_func:
@@ -283,11 +283,11 @@ def is_import_call(offset, eval_arg, symbol_pool, pool_import_func = {}):
             unstack = read_dll_export(dll_name, func_name)
             print "result:",unstack
             #unstack = known_func[pool_import_func[ad].name].unstack
-                    
+
             return True, unstack
         iiiopop
         #offset = in_str_tmp.offset
-        
+
 
 
 def stack_h(b, symbol_pool, pool_import_func = {}):
@@ -298,10 +298,10 @@ def stack_h(b, symbol_pool, pool_import_func = {}):
         #m.stack_h = evaluator_tmp.pool[esp]
         m.stack_h = evaluator.simp_expr_arith_final(evaluator_tmp.pool[esp])
         print hex(m.offset), m.stack_h, str(m)
-        
-        
+
+
         if m.m.name in ['call']:
-            
+
             """
             #hack call next code
             if m.offset+m.l == s.offset:
@@ -324,13 +324,13 @@ def stack_h(b, symbol_pool, pool_import_func = {}):
             if not s:
                 return None
 
-            
+
             if is_func_wrapper(s):
                 return evaluator_tmp
-            
+
 
             in_str_tmp = bin_stream(f, s.offset)
-            
+
             job_done_tmp = []
             symbol_pool_tmp = asm_symbol_pool()
             all_bloc_tmp = dis_bloc_all(x86mnemo, in_str_tmp, in_str_tmp.offset, job_done_tmp, symbol_pool_tmp, follow_call = False)
@@ -347,20 +347,20 @@ def stack_h(b, symbol_pool, pool_import_func = {}):
                     ret = e
                 else:
                     return None
-                
+
             #decal found int
             if type(ret) in [int, long]:
                 evaluator_tmp.pool[esp]=evaluator_tmp.eval_expr(ExprOp('+', evaluator_tmp.pool[esp], ret), {})
                 return evaluator_tmp
 
-        
+
         if m.m.name in jcc:
             continue
 
         args = [dict_to_Expr(x, m.m.modifs) for x in m.arg]
-            
+
         e = mnemo_func[m.m.name](*args)
-        
+
         print "exprs:"
         for x in e:
             print x
@@ -370,8 +370,8 @@ def stack_h(b, symbol_pool, pool_import_func = {}):
             ret = evaluator_tmp.eval_expr(eip, {})
             if ret == 'ret_addr':
                 m.stack_h_after = evaluator.simp_expr_arith_final(evaluator_tmp.pool[esp])
-            
-        
+
+
     return evaluator_tmp
 
 
@@ -383,9 +383,9 @@ def get_expr_diff(evaluator, a, b):
     if not type(a_e) in [int, long] or not type(b_e) in [int, long]:
         return None
     return b_e-a_e
-    
-    
-    
+
+
+
 
 
 def resolve_func(all_bloc_arg, symbol_pool, pool_import_func):
@@ -400,16 +400,16 @@ def resolve_func(all_bloc_arg, symbol_pool, pool_import_func):
                     if next.label in all_bloc_dict and all_bloc_dict[next.label].eval_start!=None:
                         b.eval_stop = all_bloc_dict[next.label].eval_start
                         force_stack_h = True
-                        
+
                         for x in b.bto:
                             if x.label in all_bloc_dict and all_bloc_dict[x.label].eval_start==None:
                                 all_bloc_dict[x.label].eval_start = all_bloc_dict[next.label].eval_start
                                 fini = False
-            
+
             if b.eval_start == None and b.eval_stop != None:
                 #try to find stack decal and inform start
                 print "tttt", hex(b.lines[0].offset)
-                
+
                 b.eval_start = b.eval_stop
                 tmp = stack_h(b, symbol_pool, pool_import_func)
                 print '_____',tmp
@@ -426,10 +426,10 @@ def resolve_func(all_bloc_arg, symbol_pool, pool_import_func):
                 b.eval_start = tmp
                 print 'decal found ', b.label, decal
                 fini = False
-            
+
             if b.eval_start == None:
                 continue
-            
+
             if b.eval_stop != None and not force_stack_h:
                 continue
 
@@ -444,10 +444,10 @@ def resolve_func(all_bloc_arg, symbol_pool, pool_import_func):
                     print next
                     all_bloc_dict[next.label].eval_start = b.eval_stop
             fini = False
-            
+
         if fini:
             break
-    
+
     lines = reduce(lambda x,y:x+y.lines, all_bloc_arg, [])
     return None
 
@@ -461,7 +461,7 @@ for b in all_bloc:
     if not b.eval_stop or not b.eval_start:
         print b.label, 'unresolved bloc'
         continue
-        
+
     #print b.label, esp_init-b.eval_start.pool[esp]
     #if eip in b.eval_stop.pool:
     #    print 'end at:', b.eval_stop.pool[eip], esp_init-b.eval_stop.pool[esp]
@@ -475,7 +475,7 @@ for o, l in lines:
     print "%-20s"%str(l.stack_h), "%-20s"%str(l.stack_h_after), l
     #print "%-5s"%str(l.stack_h)
     #print l.arg
-    
+
 """
 for b in all_bloc:
     for l in b.lines:

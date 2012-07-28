@@ -218,7 +218,7 @@ def build_fake_inordermodule(modules_name):
     return o
 
 
-    
+
 all_seh_ad = dict([(x, None) for x in xrange(FAKE_SEH_B_AD, FAKE_SEH_B_AD+0x1000, 0x20)])
 #http://blog.fireeye.com/research/2010/08/download_exec_notes.html
 def init_seh():
@@ -275,16 +275,16 @@ def ctxt2regs(ctxt):
     ctxt = ctxt[4:]
     #regs['seg_ds'] = updw(ctxt[:4])
     ctxt = ctxt[4:]
-    
+
     regs['edi'], regs['esi'], regs['ebx'], regs['edx'], regs['ecx'], regs['eax'], regs['ebp'], regs['eip']  = struct.unpack('I'*8, ctxt[:4*8])
     ctxt = ctxt[4*8:]
 
     #regs['seg_cs'] = updw(ctxt[:4])
     ctxt = ctxt[4:]
-    
+
     #regs['eflag'] = updw(ctxt[:4])
     ctxt = ctxt[4:]
-    
+
     regs['esp'] = updw(ctxt[:4])
     ctxt = ctxt[4:]
 
@@ -320,30 +320,30 @@ def fake_seh_handler(except_code):
     regs = vm_get_gpreg()
     print '-> exception at', hex(regs['eip']), seh_count
     seh_count += 1
-    
+
     # Help lambda
     p = lambda s: struct.pack('I', s)
-    
+
     dump_gpregs_py()
     # Forge a CONTEXT
     ctxt =  '\x00\x00\x00\x00' + '\x00\x00\x00\x00' * 6 + '\x00' * 112 + '\x00\x00\x00\x00' + '\x3b\x00\x00\x00' + '\x23\x00\x00\x00' + '\x23\x00\x00\x00' + p(regs['edi']) + p(regs['esi']) + p(regs['ebx']) + p(regs['edx']) + p(regs['ecx']) + p(regs['eax']) + p(regs['ebp']) + p(regs['eip']) + '\x23\x00\x00\x00' + '\x00\x00\x00\x00' + p(regs['esp']) + '\x23\x00\x00\x00'
     #ctxt = regs2ctxt(regs)
-    
+
     # Find a room for seh
     #seh = (get_memory_page_max_address_py()+0x1000)&0xfffff000
 
     # Get current seh (fs:[0])
     seh_ptr = vm_read_dword(tib_address)
-    
+
     # Retrieve seh fields
     old_seh, eh, safe_place = struct.unpack('III', vm_get_str(seh_ptr, 0xc))
-    
+
     print '-> seh_ptr', hex(seh_ptr), '-> { old_seh', hex(old_seh), 'eh', hex(eh), 'safe_place', hex(safe_place), '}'
     #print '-> write SEH at', hex(seh&0xffffffff)
-    
+
     # Write current seh
     #vm_add_memory_page(seh, PAGE_READ | PAGE_WRITE, p(old_seh) + p(eh) + p(safe_place) + p(0x99999999))
-    
+
     # Write context
     vm_set_mem(context_address, ctxt)
 
@@ -351,7 +351,7 @@ def fake_seh_handler(except_code):
 
     """
     #http://msdn.microsoft.com/en-us/library/aa363082(v=vs.85).aspx
-    
+
     typedef struct _EXCEPTION_RECORD {
       DWORD                    ExceptionCode;
       DWORD                    ExceptionFlags;
@@ -361,7 +361,7 @@ def fake_seh_handler(except_code):
       ULONG_PTR                ExceptionInformation[EXCEPTION_MAXIMUM_PARAMETERS];
     } EXCEPTION_RECORD, *PEXCEPTION_RECORD;
     """
-    
+
     vm_set_mem(exception_record_address, p(except_code) + p(0) + p(0)  + p(regs['eip']) + p(0) + p(0) )
 
     # Prepare the stack
@@ -369,29 +369,29 @@ def fake_seh_handler(except_code):
     vm_push_uint32_t(seh_ptr)                       # SEH
     vm_push_uint32_t(exception_record_address)      # ExceptRecords
     vm_push_uint32_t(return_from_exception)         # Ret address
-    
-    
-    
+
+
+
     # Set fake new current seh for exception
 
     fake_seh_ad = get_free_seh_place()
     print hex(fake_seh_ad)
     vm_set_mem(fake_seh_ad, p(seh_ptr) + p(0xaaaaaaaa) + p(0xaaaaaabb) + p(0xaaaaaacc))
     vm_set_mem(tib_address, p(fake_seh_ad))
-    
+
     dump_seh()
-    
+
     print '-> jumping at', hex(eh)
     to_c_helper.vm_reset_exception()
-    
-    
+
+
     regs = vm_get_gpreg()
     #XXX set ebx to nul?
     regs['ebx'] = 0
     vm_set_gpreg(regs)
-    
+
     return eh
-    
+
 fake_seh_handler.base = FAKE_SEH_B_AD
 
 
