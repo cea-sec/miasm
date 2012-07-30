@@ -29,14 +29,14 @@ import sys
 class hooks():
     def name2str(self, n):
         return "str_%s"%n
-    
+
     def __init__(self, in_str, symbol_pool, gen_data_log_code = True):
         self.in_str = in_str
         self.all_bloc = [[]]
         self.symbol_pool = symbol_pool
         if gen_data_log_code:
             self.all_bloc, self.symbol_pool = parse_asm.parse_txt(x86mnemo,'''
-        
+
         f_name:
         .string "out.txt"
         f_handle:
@@ -47,15 +47,15 @@ class hooks():
         .long 0xDEADBEEF
         mtick:
         .long 0xdeadbeef
-        
-        
+
+
         log_name_data_len:
             push    ebp
             mov     ebp, esp
             pushad
-        
-        
-        
+
+
+
             mov eax, [f_handle]
             test eax, eax
             jnz write_file_2
@@ -70,22 +70,22 @@ class hooks():
             push ebx
             call [CreateFileA]
             mov [f_handle], eax
-        
+
             ;; create lock
             push my_critic_sec
             call [InitializeCriticalSection]
-            
+
         write_file_2:
             ;; lock
             push my_critic_sec
             call [EnterCriticalSection]
-        
-            
+
+
             ;; write log name
             push [ebp+8]
             call [lstrlenA]
             inc eax
-        
+
             push 0
             lea ebx, [write_ret]
             push ebx
@@ -93,7 +93,7 @@ class hooks():
             push [ebp+8]
             push [f_handle]
             call [WriteFile]
-        
+
 
             ;; write tickcount
             call [GetTickCount]
@@ -106,8 +106,8 @@ class hooks():
             push ebx
             push [f_handle]
             call [WriteFile]
-            
-        
+
+
             ;; write data size
             push 0
             lea ebx, [write_ret]
@@ -117,8 +117,8 @@ class hooks():
             push ebx
             push [f_handle]
             call [WriteFile]
-        
-        
+
+
             ;;write data
             push 0
             lea ebx, [write_ret]
@@ -127,26 +127,26 @@ class hooks():
             push [ebp+0xc]
             push [f_handle]
             call [WriteFile]
-        
+
             ;; unlock
             push my_critic_sec
             call [LeaveCriticalSection]
-        
-        
+
+
             popad
             mov esp, ebp
             pop ebp
             ret 0xc
-        
+
         ''', symbol_pool = symbol_pool)
-            
-    
+
+
     def add_hook(self, hook_ad, args_to_hook = {}, vars_decl = [], func_code = "", post_hook = ""):
         wrapper_name = "wrapper_%.8X"%hook_ad
         wrapper_log_name = "wrapper_log_%.8X"%hook_ad
         patch_name = "patch_%.8X"%hook_ad
         patch_end_name = "patch_end_%.8X"%hook_ad
-        
+
         log_name = "log_%.8X"%hook_ad
 
         string_decl = []
@@ -158,7 +158,7 @@ class hooks():
                 continue
             string_decl.append('%s:\n.string "%s"'%(self.name2str(s), s))
         string_decl = "\n".join(string_decl)
-        
+
 
         lines, total_bytes = asmbloc.steal_bytes(self.in_str, x86_mn, hook_ad, 5)
         erased_asm = "\n".join([str(l) for l in lines])
@@ -191,7 +191,7 @@ class hooks():
 %s:
     push ebp
     mov ebp, esp
-    
+
 '''%(log_name)
         asm_s += func_code +'\n'
 
@@ -215,7 +215,7 @@ class hooks():
         asm_s +="""
     pop     ebp
     ret     %d
-    
+
     """%(len(to_hook)*4)
 
         asm_s +="""
@@ -224,13 +224,13 @@ class hooks():
         %s:
         .split
         """%(patch_name, wrapper_name, patch_end_name)
-    
+
         #print asm_s
 
         all_bloc, self.symbol_pool = parse_asm.parse_txt(x86mnemo,asm_s, symbol_pool = self.symbol_pool)
         self.all_bloc[0] += all_bloc[0]
         return log_name
-        
-    
 
-        
+
+
+

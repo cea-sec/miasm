@@ -37,7 +37,7 @@ from collections import defaultdict
 pe_cache = {}
 def pe_from_name(n):
     global pe_cache
-    
+
     my_path = 'win_dll/'
     all_pe = os.listdir(my_path)
     if not n in all_pe:
@@ -88,10 +88,10 @@ def guess_func_destack_dis(e, ad):
     job_done = set()
     symbol_pool = asmbloc.asm_symbol_pool()
     in_str = bin_stream(e.virt)
-    
+
     all_bloc = asmbloc.dis_bloc_all(x86_mn, in_str, ad, job_done, symbol_pool, follow_call = False, patch_instr_symb = False)
     return guess_func_destack(all_bloc)
-    
+
 
 def guess_imports_ret_unstack(e):
     unresolved = set()
@@ -100,13 +100,13 @@ def guess_imports_ret_unstack(e):
     for i,s in enumerate(e.DirImport.impdesc):
         l = "%2d %-25s %s"%(i, repr(s.dlldescname) ,repr(s))
         libname = s.dlldescname.name
-    
-    
+
+
         for ii, f in enumerate(s.impbynames):
             print '_'*20
             funcname = f.name
-            
-            
+
+
             my_e, ret = func_from_import(libname.lower(), funcname)
             if ret:
                 func_addr = my_e.rva2virt(ret.rva)
@@ -114,14 +114,14 @@ def guess_imports_ret_unstack(e):
             else:
                 print 'not found'
                 continue
-    
+
             #XXX python int obj len zarb bug
             imgb = my_e.NThdr.ImageBase
             if imgb>0x80000000:
                 imgb-=0x40000000
                 func_addr-=0x40000000
                 my_e.NThdr.ImageBase = imgb
-            
+
             if not is_rva_in_code_section(my_e, ret.rva):
                 print "not in code section"
                 continue
@@ -290,6 +290,7 @@ def code_is_jmp_imp(e, ad, imp_d):
     return is_jmp_imp(l, imp_d)
 
 
+
 # giving e and address in function guess function start
 def guess_func_start(in_str, line_ad, max_offset = 0x200):
     ad = line_ad+1
@@ -329,7 +330,6 @@ def guess_func_start(in_str, line_ad, max_offset = 0x200):
         all_bloc = asmbloc.dis_bloc_all(x86_mn, in_str, ad_found, job_done, symbol_pool)
         if func_addrs.issubset(job_done):
             return ad_found
-
 
 def get_nul_term(e, ad):
     out = ""

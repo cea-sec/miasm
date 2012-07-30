@@ -392,25 +392,25 @@ mnemonic('iflt', 155, 3, "if 'value' is less than 0, branch to the 16-bit instru
 
 class java_mnemo_metaclass(type):
     rebuilt_inst = False
-    
-    def dis(cls, op, admode=None, sex=0, offset=0, ):
+
+    def dis(cls, op, attrib = {} ):
         i = cls.__new__(cls)
-        i.__init__(sex)
-        u = i._dis(op, offset)
+        i.__init__(0)
+        u = i._dis(op)
         if not u: return None
         return i
-    
+
     def asm(cls, l, symbol_reloc_off={}, sex=0, address=0):
         i = cls.__new__(cls)
         i.__init__(sex)
         return i._asm(l, symbol_reloc_off, address=address)
-    
+
     def asm_instr(cls, l, sex=0):
         i = cls.__new__(cls)
         i.__init__(sex)
         i._asm_instr(l)
         return i
-    
+
     def fix_symbol(cls, a, symbol_pool = None):
         if not AFS_symb in a: return a
         cp = a.copy()
@@ -420,9 +420,9 @@ class java_mnemo_metaclass(type):
                 cp[AFS_imm] = 0
             return cp
         raise Exception('.fix_symbol() cannot handle that for now (and should not have too do so).')
-    
+
     def is_mem(cls, a): return False
-    
+
     def get_label(cls, a):
         if not AFS_symb in a:
             return None
@@ -433,22 +433,22 @@ class java_mnemo_metaclass(type):
         if n[k] != 1:
             return None
         return k
-    
+
     def has_symb(cls, a):
         return AFS_symb in a
-    
+
     def get_symbols(cls, a):
         if AFS_symb in a:
             return a[AFS_symb].items()
         return None
-    
+
     def names2symbols(cls, a, s_dict):
         all_s = a[AFS_symb]
         for name, s in s_dict.items():
             count = all_s[name]
             del(all_s[name])
             all_s[s] = count
-    
+
     def parse_address(cls, a):
         if a.isdigit(): return {AFS_imm: int(a)}
         return {AFS_symb: {a: 1}}
@@ -457,18 +457,20 @@ class java_mnemo_metaclass(type):
 class java_mn:
     __metaclass__ = java_mnemo_metaclass
     def __init__(self, sex=0):
-        self.sex = sex
-    
+        self.sex = 0
+    def get_attrib(self):
+        return {}
+
     def breakflow(self):
         return self.m.breakflow
     def splitflow(self):
         return self.m.splitflow
     def dstflow(self):
         return self.m.dstflow
-    
+
     def getnextflow(self):
         return self.offset + self.m.size
-    
+
     def getdstflow(self):
         if len(self.arg) == 1:
             dsts = [ self.arg[0] ]
@@ -485,7 +487,7 @@ class java_mn:
             else:
                 out.append(d)
         return out
-    
+
     def setdstflow(self, dst):
         if len(self.arg) == 1:
             self.arg = [{AFS_symb:{dst[0]:1}}]
@@ -493,7 +495,7 @@ class java_mn:
             self.arg = [dst[0], self.arg[1], self.arg[2]] + dst[1:]
         elif self.m.name == 'lookupswitch':
             self.arg = [dst[0], self.arg[1]] + reduce(lambda x, y: x+y, [ [self.arg[2*i+2], dst[i+1]] for i in range(len(dst)-1) ])
-    
+
     def fixdst(self, lbls, my_offset, is_mem):
         dsts = [0]
         if self.m.name == 'tableswitch':
@@ -510,20 +512,20 @@ class java_mn:
                 self.fixsize()
             newarg.append({AFS_imm:offset-(my_offset)+self.m.size})
         self.arg = newarg
-    
+
     def fixsize(self):
         if self.m.name.endswith('switch'):
             self.size = 4 * len(self.arg) + 1 # opcode + args
             self.size +=  ((4 - ((self.offset+1) % 4)) % 4) # align
         else:
             raise ValueError(".fixsize() should not be called for %s." % self.m.name)
-    
+
     def set_args_symbols(self, cpsymbols={}):
         self.arg = self.m.argfmt.resolve(self.arg, cpsymbols=cpsymbols)
-    
+
     def is_subcall(self):
         return self.m.name.startswith('jsr') or self.m.name.startswith('invoke')
-    
+
     def __str__(self):
         arg = []
         for a in self.arg:
@@ -550,21 +552,21 @@ class java_mn:
             out += "\n".join(["    %-8s %s" % (str(arg[2*i+2])+':', arg[2*i+3]) for i in range(len(arg)/2-1) ])
             return out
         return "%-15s" % self.m.name + " ".join(map(str, arg))
-    
-    def _dis(self, bin, offset=0):
+
+    def _dis(self, bin):
         if type(bin) is str:
             from miasm.core.bin_stream import bin_stream
             bin = bin_stream(bin)
-        self.offset = bin.offset + offset
+        self.offset = bin.offset
         try:
             self.m = mnemo_db[ord(bin.readbs(1))]
             self.arg = self.m.argfmt.get(bin, sex=self.sex, address=self.offset)
-            self.l = bin.offset + offset - self.offset
+            self.l = bin.offset  - self.offset
         except Exception as e:
             log.warning(e.message)
             return False
         return True
-    
+
     @classmethod
     def parse_mnemo(cls, txt):
         if ';' in txt: txt = txt[:txt.index(';')]
@@ -579,13 +581,13 @@ class java_mn:
                 t.append(r+l)
                 r = ''
         return None, t[0], t[1:]
-    
+
     def _asm_instr(self, txt, address=0):
         p, mn, t = self.parse_mnemo(txt)
         self.m = mnemo_db_name[mn]
         self.arg = t
         self.offset = address
-    
+
     def _asm(self, txt, symbol_reloc_off={}, address=0):
         p, mn, t = self.parse_mnemo(txt)
         mnemo = mnemo_db_name[mn]

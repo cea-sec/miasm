@@ -288,53 +288,53 @@ def kernel32_GetCurrentProcessId():
 
 process_list = [
     [
-        0x40,               #DWORD     dwSize;             
-        0,                  #DWORD     cntUsage;           
-        winobjs.dw_pid_dummy1,       #DWORD     th32ProcessID;      
-        0x11111111,         #ULONG_PTR th32DefaultHeapID;  
-        0x11111112,         #DWORD     th32ModuleID;       
-        1,                  #DWORD     cntThreads;         
+        0x40,               #DWORD     dwSize;
+        0,                  #DWORD     cntUsage;
+        winobjs.dw_pid_dummy1,       #DWORD     th32ProcessID;
+        0x11111111,         #ULONG_PTR th32DefaultHeapID;
+        0x11111112,         #DWORD     th32ModuleID;
+        1,                  #DWORD     cntThreads;
         winobjs.dw_pid_explorer,    #DWORD     th32ParentProcessID;
-        0xbeef,             #LONG      pcPriClassBase;     
-        0x0,                #DWORD     dwFlags;            
+        0xbeef,             #LONG      pcPriClassBase;
+        0x0,                #DWORD     dwFlags;
         "dummy1.exe"          #TCHAR     szExeFile[MAX_PATH];
         ],
     [
-        0x40,               #DWORD     dwSize;             
-        0,                  #DWORD     cntUsage;           
-        winobjs.dw_pid_explorer,    #DWORD     th32ProcessID;      
-        0x11111111,         #ULONG_PTR th32DefaultHeapID;  
-        0x11111112,         #DWORD     th32ModuleID;       
-        1,                  #DWORD     cntThreads;         
+        0x40,               #DWORD     dwSize;
+        0,                  #DWORD     cntUsage;
+        winobjs.dw_pid_explorer,    #DWORD     th32ProcessID;
+        0x11111111,         #ULONG_PTR th32DefaultHeapID;
+        0x11111112,         #DWORD     th32ModuleID;
+        1,                  #DWORD     cntThreads;
         4,                  #DWORD     th32ParentProcessID;
-        0xbeef,             #LONG      pcPriClassBase;     
-        0x0,                #DWORD     dwFlags;            
+        0xbeef,             #LONG      pcPriClassBase;
+        0x0,                #DWORD     dwFlags;
         "explorer.exe"      #TCHAR     szExeFile[MAX_PATH];
         ],
 
     [
-        0x40,               #DWORD     dwSize;             
-        0,                  #DWORD     cntUsage;           
-        winobjs.dw_pid_dummy2,       #DWORD     th32ProcessID;      
-        0x11111111,         #ULONG_PTR th32DefaultHeapID;  
-        0x11111112,         #DWORD     th32ModuleID;       
-        1,                  #DWORD     cntThreads;         
+        0x40,               #DWORD     dwSize;
+        0,                  #DWORD     cntUsage;
+        winobjs.dw_pid_dummy2,       #DWORD     th32ProcessID;
+        0x11111111,         #ULONG_PTR th32DefaultHeapID;
+        0x11111112,         #DWORD     th32ModuleID;
+        1,                  #DWORD     cntThreads;
         winobjs.dw_pid_explorer,    #DWORD     th32ParentProcessID;
-        0xbeef,             #LONG      pcPriClassBase;     
-        0x0,                #DWORD     dwFlags;            
+        0xbeef,             #LONG      pcPriClassBase;
+        0x0,                #DWORD     dwFlags;
         "dummy2.exe"          #TCHAR     szExeFile[MAX_PATH];
         ],
 
     [
-        0x40,               #DWORD     dwSize;             
-        0,                  #DWORD     cntUsage;           
-        winobjs.dw_pid_cur,         #DWORD     th32ProcessID;      
-        0x11111111,         #ULONG_PTR th32DefaultHeapID;  
-        0x11111112,         #DWORD     th32ModuleID;       
-        1,                  #DWORD     cntThreads;         
+        0x40,               #DWORD     dwSize;
+        0,                  #DWORD     cntUsage;
+        winobjs.dw_pid_cur,         #DWORD     th32ProcessID;
+        0x11111111,         #ULONG_PTR th32DefaultHeapID;
+        0x11111112,         #DWORD     th32ModuleID;
+        1,                  #DWORD     cntThreads;
         winobjs.dw_pid_explorer,    #DWORD     th32ParentProcessID;
-        0xbeef,             #LONG      pcPriClassBase;     
-        0x0,                #DWORD     dwFlags;            
+        0xbeef,             #LONG      pcPriClassBase;
+        0x0,                #DWORD     dwFlags;
         winobjs.module_name          #TCHAR     szExeFile[MAX_PATH];
         ],
 
