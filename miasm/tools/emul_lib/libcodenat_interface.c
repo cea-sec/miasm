@@ -677,6 +677,7 @@ PyObject* _vm_set_mem(PyObject *addr, PyObject *item_str)
     Py_ssize_t length;
     int ret = 0x1337;
     unsigned int val;
+    unsigned int l;
 
     struct memory_page_node * mpn;
 
@@ -690,15 +691,25 @@ PyObject* _vm_set_mem(PyObject *addr, PyObject *item_str)
 	    RAISE(PyExc_TypeError,"arg1 must be int");
     }
 
-
     if(!PyString_Check(item_str))
        RAISE(PyExc_TypeError,"arg must be str");
 
     buf_size = PyString_Size(item_str);
     PyString_AsStringAndSize(item_str, &buf_data, &length);
 
-    mpn = get_memory_page_from_address(val);
-    memcpy(mpn->ad_hp + (val-mpn->ad), buf_data, buf_size);
+    /* read is multiple page wide */
+    while (buf_size){
+	    mpn = get_memory_page_from_address(val);
+	    if (!mpn){
+		    PyErr_SetString(PyExc_RuntimeError, "cannot find address");
+		    return 0;
+	    }
+	    l = MIN(buf_size, mpn->size - (val-mpn->ad));
+	    memcpy(mpn->ad_hp + (val-mpn->ad), buf_data, l);
+	    buf_data += l;
+	    val += l;
+	    buf_size -= l;
+    }
 
     return PyInt_FromLong((long)ret);
 }
