@@ -16,7 +16,7 @@ def get_rw(exprs):
 a = ExprId('eax')
 b = ExprMem(ExprId('ebx'), 32)
 
-exprs = add(('u32', 'u32'), a, b)
+exprs = add(ia32info(), a, b)
 o_r, o_w = get_rw(exprs)
 # read ID
 print 'r:', [str(x) for x in o_r]

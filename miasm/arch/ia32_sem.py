@@ -390,6 +390,12 @@ tab_afs_int ={x86_afs.u08:uint8,
               x86_afs.u16:uint16,
               x86_afs.u32:uint32,
               }
+
+class ia32info:
+    opmode = "u32"
+    admode = "u32"
+    # offset
+
 """
 http://www.emulators.com/docs/nx11_flags.htm
 

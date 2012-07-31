@@ -97,9 +97,9 @@ argc = ExprId('argc')
 argv = ExprId('argv')
 ret_addr = ExprId('ret_addr')
 
-machine.eval_instr(push(('u32', 'u32'), argv))
-machine.eval_instr(push(('u32', 'u32'), argc))
-machine.eval_instr(push(('u32', 'u32'), ret_addr))
+machine.eval_instr(push(ia32info(), argv))
+machine.eval_instr(push(ia32info(), argc))
+machine.eval_instr(push(ia32info(), ret_addr))
 
 ad = int(ad_to_dis, 16)
 print 'disasm', hex(ad)

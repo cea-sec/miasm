@@ -604,8 +604,8 @@ class eval_abs:
                         out.append((ee, off_base, off_base+ee.get_size()))
                         off_base += ee.get_size()
                     else:
-                        m = min(a.get_size()+off*8, x.get_size())
-                        ee = ExprSlice(self.pool[x], 0, m)
+                        m = min(a.get_size()-off*8, x.get_size())
+                        ee = ExprSlice(self.pool[x], -off*8, m)
                         ee = expr_simp(ee)
                         out.append((ee, off_base, off_base+ee.get_size()))
                         off_base += ee.get_size()
