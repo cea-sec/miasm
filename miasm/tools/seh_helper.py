@@ -20,14 +20,25 @@ from to_c_helper import *
 import to_c_helper
 
 FS_0_AD = 0x7ff70000
-PEB_AD = 0x140000
+PEB_AD = 0x7ffdf000
+LDR_AD = 0x340000
+
+MAX_MODULES = 0x40
 
 # fs:[0] Page (TIB)
 tib_address = FS_0_AD
 peb_address = PEB_AD
-peb_ldr_data_address = PEB_AD + 0x1000
-in_load_order_module_list_address = PEB_AD + 0x2000
-in_load_order_module_1 = PEB_AD + 0x3000
+peb_ldr_data_offset = 0x1ea0
+peb_ldr_data_address = LDR_AD + peb_ldr_data_offset#PEB_AD + 0x1000
+
+
+InInitializationOrderModuleList_offset = 0x1f48
+InInitializationOrderModuleList_address = LDR_AD + InInitializationOrderModuleList_offset#PEB_AD + 0x2000
+
+InLoadOrderModuleList_offset = 0x1f48 + MAX_MODULES*0x1000
+InLoadOrderModuleList_address = LDR_AD + InLoadOrderModuleList_offset#PEB_AD + 0x2000
+
+#in_load_order_module_1 = LDR_AD + in_load_order_module_list_offset#PEB_AD + 0x3000
 default_seh = PEB_AD + 0x20000
 
 
@@ -109,17 +120,22 @@ def build_fake_ldr_data():
     +0x008 SsHandle                        : Ptr32 Void
     +0x00c InLoadOrderModuleList           : _LIST_ENTRY
     +0x014 InMemoryOrderModuleList         : _LIST_ENTRY
+    +0x01C InInitializationOrderModuleList         : _LIST_ENTRY
     """
     o = ""
+    #ldr offset pad
+    o += "\x00" * peb_ldr_data_offset
     o += "\x00"*0xc
     #text XXX
-    o += pdw(in_load_order_module_list_address) + pdw(0)
-    o += pdw(in_load_order_module_list_address+8) + pdw(0)
-    o += pdw(in_load_order_module_list_address+0x10) + pdw(0)
+    o += pdw(InLoadOrderModuleList_address) + pdw(0)
+    o += pdw(InInitializationOrderModuleList_address+8) + pdw(0)
+    o += pdw(InInitializationOrderModuleList_address+0x10) + pdw(0)
+
+
     return o
 
 
-def build_fake_inordermodule(modules_name):
+def build_fake_InInitializationOrderModuleList(modules_name):
     """
     +0x000 Flink : Ptr32                                 -+ This distance
     +0x004 Blink : Ptr32                                  | is eight bytes
@@ -140,8 +156,10 @@ def build_fake_inordermodule(modules_name):
     +0x04c PatchInformation               : Ptr32 Void
     """
 
-    first_name = "\x00".join(main_pe_name+"\x00\x00")
+    o = ""
     offset_name = 0x700
+    """
+    first_name = "\x00".join(main_pe_name+"\x00\x00")
 
     o = ""
     o += pdw(in_load_order_module_1  )
@@ -160,11 +178,112 @@ def build_fake_inordermodule(modules_name):
 
     o += (0x24 - len(o))*"A"
     o += struct.pack('HH', len(first_name), len(first_name))
-    o += pdw(in_load_order_module_list_address+offset_name)
+    o += pdw(InInitializationOrderModuleList_address+offset_name)
 
     o += (0x2C - len(o))*"A"
     o += struct.pack('HH', len(first_name), len(first_name))
-    o += pdw(in_load_order_module_list_address+offset_name)
+    o += pdw(InInitializationOrderModuleList_address+offset_name)
+
+    o += (offset_name - len(o))*"B"
+    o += first_name
+    o += (0x1000 - len(o))*"C"
+    """
+    for i, m in enumerate(modules_name):
+        #fname = os.path.join('win_dll', m)
+        if isinstance(m, tuple):
+            fname, e = m
+        else:
+            fname, e = m, None
+        bname = os.path.split(fname)[1].lower()
+        bname = "\x00".join(bname)+"\x00"
+        print "add module", repr(bname)
+        print hex(InInitializationOrderModuleList_address+i*0x1000)
+        if e == None:
+            e = pe_init.PE(open(fname, 'rb').read())
+
+        next_ad = InInitializationOrderModuleList_address + (i+1)*0x1000
+        if i == len(modules_name) -1:
+            next_ad = InInitializationOrderModuleList_address
+        m_o = ""
+        m_o += pdw(next_ad )
+        m_o += pdw(InInitializationOrderModuleList_address + (i-1)*0x1000)
+        m_o += pdw(next_ad + 8 )
+        m_o += pdw(InInitializationOrderModuleList_address + (i-1)*0x1000 + 8)
+        m_o += pdw(next_ad + 0x10 )
+        m_o += pdw(InInitializationOrderModuleList_address + (i-1)*0x1000 + 0x10)
+        m_o += pdw(e.NThdr.ImageBase)
+        m_o += pdw(e.rva2virt(e.Opthdr.AddressOfEntryPoint))
+        m_o += pdw(e.NThdr.sizeofimage)
+
+        m_o += (0x24 - len(m_o))*"A"
+        print hex(len(bname)), repr(bname)
+        m_o += struct.pack('HH', len(bname), len(bname)+2)
+        m_o += pdw(InInitializationOrderModuleList_address+i*0x1000+offset_name)
+
+        m_o += (0x2C - len(m_o))*"A"
+        m_o += struct.pack('HH', len(bname), len(bname)+2)
+        m_o += pdw(InInitializationOrderModuleList_address+i*0x1000+offset_name)
+
+        m_o += (offset_name - len(m_o))*"B"
+        m_o += bname
+        m_o += "\x00"*3
+
+
+        m_o += (0x1000 - len(m_o))*"J"
+
+        print "module", "%.8X"%e.NThdr.ImageBase, fname
+
+        o += m_o
+    return o
+
+
+def build_fake_InLoadOrderModuleList(modules_name):
+    """
+    +0x000 Flink : Ptr32                                 -+ This distance
+    +0x004 Blink : Ptr32                                  | is eight bytes
+    +0x018 DllBase                        : Ptr32 Void   -+ DllBase -> _IMAGE_DOS_HEADER
+    +0x01c EntryPoint                     : Ptr32 Void
+    +0x020 SizeOfImage                    : Uint4B
+    +0x024 FullDllName                    : _UNICODE_STRING
+    +0x02c BaseDllName                    : _UNICODE_STRING
+    +0x034 Flags                          : Uint4B
+    +0x038 LoadCount                      : Uint2B
+    +0x03a TlsIndex                       : Uint2B
+    +0x03c HashLinks                      : _LIST_ENTRY
+    +0x03c SectionPointer                 : Ptr32 Void
+    +0x040 CheckSum                       : Uint4B
+    +0x044 TimeDateStamp                  : Uint4B
+    +0x044 LoadedImports                  : Ptr32 Void
+    +0x048 EntryPointActivationContext    : Ptr32 Void
+    +0x04c PatchInformation               : Ptr32 Void
+    """
+
+    o = ""
+    offset_name = 0x700
+    first_name = "\x00".join(main_pe_name+"\x00\x00")
+
+    o = ""
+    o += pdw(InLoadOrderModuleList_address  )
+    o += pdw(InLoadOrderModuleList_address + (len(modules_name)-1)*0x1000)
+    o += pdw(InLoadOrderModuleList_address+8  )
+    o += pdw(InLoadOrderModuleList_address + (len(modules_name)-1)*0x1000 +8)
+    o += pdw(InLoadOrderModuleList_address+0x10)
+    o += pdw(InLoadOrderModuleList_address + (len(modules_name)-1)*0x1000 +0x10)
+
+    if main_pe:
+        o += pdw(main_pe.NThdr.ImageBase)
+        o += pdw(main_pe.rva2virt(main_pe.Opthdr.AddressOfEntryPoint))
+    else:
+        # no fixed values
+        pass
+
+    o += (0x24 - len(o))*"A"
+    o += struct.pack('HH', len(first_name), len(first_name))
+    o += pdw(InLoadOrderModuleList_address+offset_name)
+
+    o += (0x2C - len(o))*"A"
+    o += struct.pack('HH', len(first_name), len(first_name))
+    o += pdw(InLoadOrderModuleList_address+offset_name)
 
     o += (offset_name - len(o))*"B"
     o += first_name
@@ -178,20 +297,20 @@ def build_fake_inordermodule(modules_name):
         bname = os.path.split(fname)[1].lower()
         bname = "\x00".join(bname)+"\x00"
         print "add module", repr(bname)
-        print hex(in_load_order_module_1+i*0x1000)
+        print hex(InLoadOrderModuleList_address+i*0x1000)
         if e == None:
             e = pe_init.PE(open(fname, 'rb').read())
 
-        next_ad = in_load_order_module_1 + (i+1)*0x1000
+        next_ad = InLoadOrderModuleList_address + (i+1)*0x1000
         if i == len(modules_name) -1:
-            next_ad = in_load_order_module_list_address
+            next_ad = InLoadOrderModuleList_address
         m_o = ""
         m_o += pdw(next_ad )
-        m_o += pdw(in_load_order_module_1 + (i-1)*0x1000)
+        m_o += pdw(InLoadOrderModuleList_address + (i-1)*0x1000)
         m_o += pdw(next_ad + 8 )
-        m_o += pdw(in_load_order_module_1 + (i-1)*0x1000 + 8)
+        m_o += pdw(InLoadOrderModuleList_address + (i-1)*0x1000 + 8)
         m_o += pdw(next_ad + 0x10 )
-        m_o += pdw(in_load_order_module_1 + (i-1)*0x1000 + 0x10)
+        m_o += pdw(InLoadOrderModuleList_address + (i-1)*0x1000 + 0x10)
         m_o += pdw(e.NThdr.ImageBase)
         m_o += pdw(e.rva2virt(e.Opthdr.AddressOfEntryPoint))
         m_o += pdw(e.NThdr.sizeofimage)
@@ -199,11 +318,11 @@ def build_fake_inordermodule(modules_name):
         m_o += (0x24 - len(m_o))*"A"
         print hex(len(bname)), repr(bname)
         m_o += struct.pack('HH', len(bname), len(bname)+2)
-        m_o += pdw(in_load_order_module_1+i*0x1000+offset_name)
+        m_o += pdw(InLoadOrderModuleList_address+i*0x1000+offset_name)
 
         m_o += (0x2C - len(m_o))*"A"
         m_o += struct.pack('HH', len(bname), len(bname)+2)
-        m_o += pdw(in_load_order_module_1+i*0x1000+offset_name)
+        m_o += pdw(InLoadOrderModuleList_address+i*0x1000+offset_name)
 
         m_o += (offset_name - len(m_o))*"B"
         m_o += bname
@@ -229,9 +348,16 @@ def init_seh():
     #vm_add_memory_page(peb_address, PAGE_READ | PAGE_WRITE, p(0) * 3 + p(peb_ldr_data_address))
     vm_add_memory_page(peb_address, PAGE_READ | PAGE_WRITE, build_fake_peb())
     #vm_add_memory_page(peb_ldr_data_address, PAGE_READ | PAGE_WRITE, p(0) * 3 + p(in_load_order_module_list_address) + p(0) * 0x20)
-    vm_add_memory_page(peb_ldr_data_address, PAGE_READ | PAGE_WRITE, build_fake_ldr_data())
+
+    ldr_data = build_fake_ldr_data()
+    ldr_data += "\x00"*(InInitializationOrderModuleList_offset - len(ldr_data))
+    ldr_data += build_fake_InInitializationOrderModuleList(loaded_modules)
+    ldr_data += "\x00"*(InLoadOrderModuleList_offset - len(ldr_data))
+    ldr_data += build_fake_InLoadOrderModuleList(loaded_modules)
+
+    vm_add_memory_page(LDR_AD, PAGE_READ | PAGE_WRITE, ldr_data)
     #vm_add_memory_page(in_load_order_module_list_address, PAGE_READ | PAGE_WRITE, p(0) * 40)
-    vm_add_memory_page(in_load_order_module_list_address, PAGE_READ | PAGE_WRITE, build_fake_inordermodule(loaded_modules))
+    #    vm_add_memory_page(in_load_order_module_list_address, PAGE_READ | PAGE_WRITE, build_fake_inordermodule(loaded_modules))
     vm_add_memory_page(default_seh, PAGE_READ | PAGE_WRITE, p(0xffffffff) + p(0x41414141) + p(0x42424242))
 
     vm_add_memory_page(context_address, PAGE_READ | PAGE_WRITE, '\x00' * 0x2cc)

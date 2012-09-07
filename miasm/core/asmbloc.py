@@ -301,8 +301,8 @@ def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool,
             log_asmbloc.warning( "cannot disasm at %X"%int(off_i))
             l = symbol_pool.getby_offset_create(off_i)
             c = asm_constraint(l, asm_constraint.c_next)
-            cur_bloc.bto = [c]
-            offsets_to_dis = [pool_bin.offset]
+            #cur_bloc.bto = [c]
+            offsets_to_dis = []#pool_bin.offset]
             break
         log_asmbloc.debug(instr)
         log_asmbloc.debug(instr.m)
