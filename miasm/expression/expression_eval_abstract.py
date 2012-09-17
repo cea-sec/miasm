@@ -216,7 +216,7 @@ class eval_abs:
         ex = expr_simp(self.eval_expr(ex, {}))
         if not isinstance(ex, ExprInt):
             return None
-        ptr_diff = int32(ex.arg)
+        ptr_diff = int(int32(ex.arg))
         out = []
         if ptr_diff <0:
             #    [a     ]
@@ -877,3 +877,13 @@ class eval_abs:
 
 
 
+    def dump_id(self):
+        ids = self.pool.pool_id.keys()
+        ids.sort()
+        for i in ids:
+            print i, self.pool.pool_id[i]
+    def dump_mem(self):
+        mems = self.pool.pool_mem.values()
+        mems.sort()
+        for m, v in mems:
+            print m, v

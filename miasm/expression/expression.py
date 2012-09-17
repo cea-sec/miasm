@@ -559,10 +559,7 @@ class ExprSlice(Expr):
     def __contains__(self, e):
         if self == e:
             return True
-        for a in self.args:
-            if  a.__contains__(e):
-                return True
-        return False
+        return self.arg.__contains__(e)
     def __eq__(self, a):
         if not isinstance(a, ExprSlice):
             return False
@@ -777,3 +774,5 @@ def ExprInt64(i):
 
 def ExprInt_from(e, i):
     return ExprInt(tab_uintsize[e.get_size()](i))
+
+
