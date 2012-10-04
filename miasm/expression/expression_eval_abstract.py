@@ -216,7 +216,7 @@ class eval_abs:
         ex = expr_simp(self.eval_expr(ex, {}))
         if not isinstance(ex, ExprInt):
             return None
-        ptr_diff = int32(ex.arg)
+        ptr_diff = int(int32(ex.arg))
         out = []
         if ptr_diff <0:
             #    [a     ]
@@ -261,7 +261,7 @@ class eval_abs:
         return out
 
     #give mem stored overlapping requested mem ptr
-    def get_mem_overlapping(self, e):
+    def get_mem_overlapping(self, e, eval_cache = {}):
         if not isinstance(e, ExprMem):
             raise ValueError('mem overlap bad arg')
         ov = []
@@ -279,22 +279,24 @@ class eval_abs:
             elif ptr_diff <0 and ptr_diff + k.size/8>0:
                 ov.append((-ptr_diff, k))
         """
-        # as max mem size is 64 bytes, compute all
+        # suppose max mem size is 64 bytes, compute all reachable addresses
         to_test = []
-        comp = {}
+        #comp = {}
+        #print "FINDING", e
         for i in xrange(-7, e.size/8):
-            ex = expr_simp(self.eval_expr(e.arg + ExprInt(uint32(i)), comp))
+            ex = expr_simp(self.eval_expr(e.arg + ExprInt(uint32(i)), eval_cache))
+            #print i, ex
             to_test.append((i, ex))
 
         for i, x in to_test:
             if not x in self.pool.pool_mem:
                 continue
 
-            ex = expr_simp(self.eval_expr(e.arg - x, comp))
+            ex = expr_simp(self.eval_expr(e.arg - x, eval_cache))
             if not isinstance(ex, ExprInt):
                 fds
             ptr_diff = int32(ex.arg)
-            #print 'ptrdiff', ptr_diff
+            #print 'ptrdiff', ptr_diff, i
             if ptr_diff >= self.pool.pool_mem[x][1].get_size()/8:
                 #print "too long!"
                 continue
@@ -312,9 +314,13 @@ class eval_abs:
             return e
         if e.is_eval:
             return e
+        if e in eval_cache:
+            return eval_cache[e]
         e = e.visit(expr_simp)
         ret = self.eval_expr_no_cache(e, eval_cache)
         ret.is_eval = True
+        if not isinstance(e, ExprInt):
+            eval_cache[e] = ret
         return ret
 
 
@@ -556,6 +562,20 @@ class eval_abs:
     def eval_ExprInt(self, e, eval_cache = {}):
         return e
 
+
+    def rest_slice(self, slices, start, stop):
+        o = []
+        last = start
+        for e, a, b in slices:
+            if a == last:
+                last = b
+                continue
+            o.append((last, a))
+            last = b
+        if last != stop:
+            o.append((b, stop))
+        return o
+
     def eval_ExprMem(self, e, eval_cache = {}):
         a_val = expr_simp(self.eval_expr(e.arg, eval_cache))
         if isinstance(a_val, ExprTop):
@@ -586,20 +606,20 @@ class eval_abs:
                 tmp = k
                 break
         """
-
         if tmp == None:
 
             v = self.find_mem_by_addr(a_val)
             if not v:
                 out = []
-                ov = self.get_mem_overlapping(a)
+                ov = self.get_mem_overlapping(a, eval_cache)
                 off_base = 0
                 ov.sort()
                 ov.reverse()
                 for off, x in ov:
+                    off_base = off * 8
                     if off >=0:
-                        m = min(a.get_size(), x.get_size()-off*8)
-                        ee = ExprSlice(self.pool[x], off*8, off*8 + m)
+                        m = min(a.get_size() - off_base, x.get_size())
+                        ee = ExprSlice(self.pool[x], 0, m)
                         ee = expr_simp(ee)
                         out.append((ee, off_base, off_base+ee.get_size()))
                         off_base += ee.get_size()
@@ -610,6 +630,13 @@ class eval_abs:
                         out.append((ee, off_base, off_base+ee.get_size()))
                         off_base += ee.get_size()
                 if out:
+                    missing_slice = self.rest_slice(out, 0, a.get_size())
+                    for sa, sb in missing_slice:
+                        ptr = expr_simp(a_val + ExprInt32(sa/8))
+                        out.append((ExprMem(ptr, size = sb-sa), sa, sb))
+                    out.sort(key=lambda x:x[1])
+                    #for e, sa, sb in out:
+                    #    print str(e), sa, sb
                     ee = ExprSlice(ExprCompose(out), 0, a.get_size())
                     ee = expr_simp(ee)
                     return ee
@@ -631,8 +658,11 @@ class eval_abs:
             while rest:
                 v = self.find_mem_by_addr(ptr)
                 if v == None:
-                    raise ValueError("cannot find %s in mem"%str(ptr))
-                if rest >= v.size:
+                    #raise ValueError("cannot find %s in mem"%str(ptr))
+                    val = ExprMem(ptr, 8)
+                    v = val
+                    diff_size = 8
+                elif rest >= v.size:
                     val = self.pool[v]
                     diff_size = v.size
                 else:
@@ -761,7 +791,6 @@ class eval_abs:
                     mask = (1<<(stop-start))-1
                     total_bit+=stop-start
                     mycond, mysrc1, mysrc2 = a.cond, a.src1.arg&mask, a.src2.arg&mask
-                    cond_i = i
 
             mysrc1|=rez
             mysrc2|=rez
@@ -877,3 +906,13 @@ class eval_abs:
 
 
 
+    def dump_id(self):
+        ids = self.pool.pool_id.keys()
+        ids.sort()
+        for i in ids:
+            print i, self.pool.pool_id[i]
+    def dump_mem(self):
+        mems = self.pool.pool_mem.values()
+        mems.sort()
+        for m, v in mems:
+            print m, v

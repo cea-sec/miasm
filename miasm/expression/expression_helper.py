@@ -295,7 +295,6 @@ def _expr_simp(e):
                 # XXX TODO fix correct size
                 #fds
                 return e
-                return ExprInt(type(e.arg.arg)((uint64((e.arg.arg)>>e.start)) & mask))
         # Slice(Slice(A, x), y) => Slice(A, z)
         elif isinstance(e.arg, ExprSlice):
             if e.stop-e.start > e.arg.stop-e.arg.start:
