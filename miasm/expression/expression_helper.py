@@ -293,7 +293,7 @@ def _expr_simp(e):
                 return ExprInt(tab_size_int[total_bit]((uint64((e.arg.arg)>>e.start)) & mask))
             else:
                 # XXX TODO fix correct size
-                fds
+                #fds
                 return ExprInt(type(e.arg.arg)((uint64((e.arg.arg)>>e.start)) & mask))
         # Slice(Slice(A, x), y) => Slice(A, z)
         elif isinstance(e.arg, ExprSlice):
