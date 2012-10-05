@@ -336,7 +336,7 @@ def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool,
         break
 
     if dis_bloc_callback != None:
-        dis_bloc_callback(cur_bloc, offsets_to_dis, symbol_pool)
+        dis_bloc_callback(mnemo, cur_bloc, offsets_to_dis, symbol_pool)
     return offsets_to_dis
 
 
@@ -350,7 +350,7 @@ def dis_i(mnemo, pool_bin, offset, symbol_pool):
         return None
     return dum_b.lines[0]
 
-def split_bloc(all_bloc, symbol_pool, more_ref = None, dis_bloc_callback = None):
+def split_bloc(mnemo, all_bloc, symbol_pool, more_ref = None, dis_bloc_callback = None):
     i = -1
     err = False
     if not more_ref:
@@ -375,7 +375,7 @@ def split_bloc(all_bloc, symbol_pool, more_ref = None, dis_bloc_callback = None)
                         err = True
                         break
                     if dis_bloc_callback:
-                        dis_bloc_callback(new_b, [x.label.offset for x in new_b.bto if isinstance(x.label, asm_label)],
+                        dis_bloc_callback(mnemo, new_b, [x.label.offset for x in new_b.bto if isinstance(x.label, asm_label)],
                                           symbol_pool)
                     all_bloc.append(new_b)
             """
@@ -431,7 +431,7 @@ def dis_bloc_all(mnemo, pool_bin, offset, job_done, symbol_pool, dont_dis = [],
         all_bloc.append(cur_bloc)
 
 
-    return split_bloc(all_bloc, symbol_pool, dis_bloc_callback = dis_bloc_callback)
+    return split_bloc(mnemo, all_bloc, symbol_pool, dis_bloc_callback = dis_bloc_callback)
 
 
 def bloc2graph(blocs, label = False, lines = True):
@@ -1269,7 +1269,7 @@ def steal_bytes(in_str, arch_mn, ad, l):
         erased_asm+=str(lines[-1])+'\n'
     return lines, total_bytes
 
-def dis_multi_func(in_str, mn, symbol_pool, ad, dont_dis = [], follow_call = False, dontdis_retcall = False, dis_bloc_callback  =None ):
+def dis_multi_func(in_str, mnemo, symbol_pool, ad, dont_dis = [], follow_call = False, dontdis_retcall = False, dis_bloc_callback  =None ):
     todo = ad[:]
     done = set()
     all_bloc = []
@@ -1281,7 +1281,7 @@ def dis_multi_func(in_str, mn, symbol_pool, ad, dont_dis = [], follow_call = Fal
         if ad in done:
             continue
         done.add(ad)
-        all_bloc__ = dis_bloc_all(mn, in_str, ad, job_done, symbol_pool, dont_dis, follow_call, False, dontdis_retcall, all_bloc = all_bloc, dis_bloc_callback = dis_bloc_callback )
+        all_bloc__ = dis_bloc_all(mnemo, in_str, ad, job_done, symbol_pool, dont_dis, follow_call, False, dontdis_retcall, all_bloc = all_bloc, dis_bloc_callback = dis_bloc_callback )
         for b in all_bloc:
             if not b.lines:
                 #XXX not lines in bloc ???
@@ -1293,7 +1293,7 @@ def dis_multi_func(in_str, mn, symbol_pool, ad, dont_dis = [], follow_call = Fal
 
             todo.append(dst)
             call_ad.add(dst)
-    all_bloc = split_bloc(all_bloc, symbol_pool, more_ref = call_ad)
+    all_bloc = split_bloc(mnemo, all_bloc, symbol_pool, more_ref = call_ad)
     return all_bloc
 
 def dis_one_bloc(in_str, mnemo, ad, **kargs):
