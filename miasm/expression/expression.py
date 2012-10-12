@@ -770,7 +770,7 @@ def ExprInt16(i):
 def ExprInt32(i):
     return ExprInt(uint32(i))
 def ExprInt64(i):
-    return ExprInt(uint32(i))
+    return ExprInt(uint64(i))
 
 def ExprInt_from(e, i):
     return ExprInt(tab_uintsize[e.get_size()](i))
