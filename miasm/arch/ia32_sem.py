@@ -1163,18 +1163,15 @@ def pushad(info):
     opmode, admode = info.opmode, info.admode
     if opmode == u16:
         s = 16
-        myesp = esp[:16]
         regs = [eax[:16], ecx[:16], edx[:16], ebx[:16],
                 esp[:16], ebp[:16], esi[:16], edi[:16]]
     else:
         s = 32
-        myesp = esp
         regs = [eax, ecx, edx, ebx, esp, ebp, esi, edi]
-    int_cast = tab_uintsize[s]
     for i in xrange(len(regs)):
-        c = ExprOp('+', myesp, ExprInt(int_cast(-(s/8)*(i+1))))
+        c = ExprOp('+', esp, ExprInt32(-(s/8)*(i+1)))
         e.append(ExprAff(ExprMem(c, s), regs[i]))
-    e.append(ExprAff(myesp, c))
+    e.append(ExprAff(esp, c))
     return e
 
 def popad(info):
@@ -1189,15 +1186,14 @@ def popad(info):
         s = 32
         myesp = esp
         regs = [eax, ecx, edx, ebx, esp, ebp, esi, edi]
-    int_cast = tab_uintsize[s]
     regs.reverse()
     for i in xrange(len(regs)):
         if regs[i] == myesp:
             continue
-        c = ExprOp('+', esp, ExprInt(int_cast((s/8)*i)))
+        c = ExprOp('+', esp, ExprInt32((s/8)*i))
         e.append(ExprAff(regs[i], ExprMem(c, s)))
 
-    c = ExprOp('+', myesp, ExprInt(int_cast((s/8)*(i+1))))
+    c = ExprOp('+', esp, ExprInt32((s/8)*(i+1)))
     e.append(ExprAff(esp, c))
 
     return e
