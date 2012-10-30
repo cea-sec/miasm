@@ -48,7 +48,6 @@ def is_int(a):
 class asm_label:
     def __init__(self, name = "", offset = None):
 
-        self.next = "next"
         self.fixedblocs = False
         if is_int(name):
             name = "loc_%.16X"%(int(name)&0xFFFFFFFFFFFFFFFF)
