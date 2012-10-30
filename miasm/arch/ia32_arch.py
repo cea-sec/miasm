@@ -1800,8 +1800,7 @@ class x86_mn:
                 # XXX todo hack: if only one arg, no prefix
                 if len(args) == 1:
                     continue
-                print args_eval[-1]
-                fds
+                #print args_eval[-1]
                 prefix.append(prefix_seg[args_eval[-1][x86_afs.segm]])
                 del args_eval[-1][x86_afs.segm]
             #XXX test if symbol in arg and replace with imm... for pre asm
