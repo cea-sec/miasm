@@ -1795,6 +1795,10 @@ class x86_mn:
         log.debug("name: %s"%name)
         log.debug("args: %s"%str(args))
 
+        # special case ommiting 1 as argument
+        if len(args) == 1 and name in ["sal", "sar", "shl", "shr"]:
+            args.append("1")
+
         args_eval = []
         for a in args:
             args_eval.append(x86_mn.parse_address(a))
