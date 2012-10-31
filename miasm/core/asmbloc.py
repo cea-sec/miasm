@@ -719,7 +719,7 @@ def resolve_symbol(group_bloc, dont_erase = []):
                         log_asmbloc.debug("consumed %d rest: %d"%(g.total_max_l, int(tmp)))
                         free_interval[g] = tmp
                         del(free_interval[x])
-                        g.offset = [group_bloc[x][-1].label, group_bloc[x][-1], 1]                        
+                        g.offset = [group_bloc[x][-1].label, group_bloc[x][-1], 1]
                         g.fixedblocs = True
                         finish = True
                         break
@@ -919,12 +919,17 @@ def asmbloc_final(mnemo, all_blocs, symbol_pool, symb_reloc_off = {}):
                     instr.data = c
                     fini=False
                     break
-                else:
-                    l_dict = dict([[len(x),i] for i, x in enumerate(candidates)])
-                    instr.data = candidates[l_dict[len(instr.data)]]
+                found = False
+                for cpos, c in enumerate(candidates):
+                    if len(c) == len(instr.data):
+                        instr.data = c
+                        found = True
+                        break
+                if not found:
+                    raise ValueError('something wrong in instr.data')
 
-                if l_dict[len(instr.data)] < len(symbol_reloc_off):
-                    my_s = symbol_reloc_off[l_dict[len(instr.data)]]
+                if cpos < len(symbol_reloc_off):
+                    my_s = symbol_reloc_off[cpos]
                 else:
                     my_s = None
 
