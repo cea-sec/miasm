@@ -1750,7 +1750,9 @@ class x86_mn:
 
     @classmethod
     def parse_mnemo(self, l):
-        tokens = [t for t in shlex.shlex(l)]
+        wordsplitted = shlex.shlex(l)
+        wordsplitted.wordchars += '.' # Because labels sometimes begin with dot
+        tokens = [t for t in wordsplitted]
         prefix = []
         if not tokens:
             raise ValueError('cannot parse mnemo?', l)

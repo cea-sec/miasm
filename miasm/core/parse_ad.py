@@ -102,7 +102,7 @@ t_COLON    = r':'
 t_OFFSET  = r'OFFSET'
 
 def t_NAME(t):
-    r'[a-zA-Z_][a-zA-Z0-9_]*'
+    r'\.L[A-Z]*[0-9]+|[a-zA-Z_][a-zA-Z0-9_]*'
     if t.value.upper() in keywords:
         t.type = t.value.upper()
         t.value = t.value.lower()
