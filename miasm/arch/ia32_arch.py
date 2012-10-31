@@ -2168,7 +2168,7 @@ class x86_mn:
                     tmp_o = [a2,a1]
                     if c.modifs[se] and size[0] !=size[1]:
                         size[1] = size[0]
-                    if size[0] !=size[1] and not name in ['movzx', 'mozsx']:
+                    if size[0] !=size[1] and not name in ['movzx', 'movsx']:
                         if tmp_order[0][x86_afs.ad]:
                             size[1] = size[0]
                         else:
