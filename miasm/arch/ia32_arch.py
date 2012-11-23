@@ -165,7 +165,8 @@ unsanity_mnemo = ['nop', 'monitor', 'mwait', 'fadd', 'faddp', 'fiadd', 'fcmovb',
                   'fld', 'fldcw', 'fld1', 'fldl2t', "fldl2e", "fldpi", "fldlg2", "fldln2", "fldz", 'fldenv', 'fmul', 'fimul', 'fmulp', 'fst', 'fstp', 'fnstcw', 'fnstenv', 'f2xm1',
                   'fnstsw', 'fsub', 'fsubr', 'fisubr', 'fsubrp', 'ftst', 'fucom', 'fucompp', 'fxam', 'fxtract', 'fyl2x', 'fyl2xp1', 'fsqrt', 'fsincos', 'fsin', 'fscale',
                   'fcos', 'fdecstp', 'fnop', 'fpatan', 'fprem', 'fprem1', 'fptan', 'frndint', "shl", 'sal', 'sar', 'fabs',
-                  "jmpff"]
+                  "jmpff",
+                  "fcomi", "fcomip", "fucomi", "fucomip"]
 
 
 mask_drcrsg = {cr:0x100, dr:0x200, sg:0x400}
@@ -251,7 +252,7 @@ def dict_to_ad(d, modifs = {}, opmode = u32, admode = u32):
     elif modifs[wd]:
         size = x86_afs.u16
 
-    tab32 = {x86_afs.u08:x86_afs.reg_list8, x86_afs.u16:x86_afs.reg_list16, x86_afs.u32:x86_afs.reg_list32,x86_afs.f32:x86_afs.reg_flt}
+    tab32 = {x86_afs.u08:x86_afs.reg_list8, x86_afs.u16:x86_afs.reg_list16, x86_afs.u32:x86_afs.reg_list32,x86_afs.f32:x86_afs.reg_flt, x86_afs.f64:x86_afs.reg_flt}
     tab16 = {x86_afs.u08:x86_afs.reg_list8, x86_afs.u16:x86_afs.reg_list32, x86_afs.u32:x86_afs.reg_list16}
     ad_size = {x86_afs.u08:"byte ptr", x86_afs.u16:"word ptr", x86_afs.u32:"dword ptr", x86_afs.f32:"single ptr", x86_afs.f64:"double ptr"}
 
@@ -1118,10 +1119,6 @@ class x86allmncs:
         addop("fcomp", [0xD8, 0xD8],       reg,   no_rm         , {}                 ,{sd:False}        , {},                         )
         addop("fcompp",[0xDE, 0xD9],       noafs, no_rm         , {}                 ,{}                , {},                         )
 
-        addop("fcomi", [0xDB, 0xF0],       reg,   no_rm         , {}                 ,{sd:False}        , {},                         )
-        addop("fcomip",[0xDF, 0xF0],       reg,   no_rm         , {}                 ,{sd:False}        , {},                         )
-        addop("fucomi",[0xDB, 0xE8],       reg,   no_rm         , {}                 ,{sd:False}        , {},                         )
-        addop("fucomi",[0xDF, 0xE8],       reg,   no_rm         , {}                 ,{sd:False}        , {},                         )
 
         addop("ficom", [0xDA],             d2,    no_rm         , {wd:(0,2)}         ,{}                , {},                         )
         addop("ficomp",[0xDA],             d3,    no_rm         , {wd:(0,2)}         ,{}                , {},                         )
@@ -1143,6 +1140,11 @@ class x86allmncs:
 
         addop("fild",  [0xDB],             d0,    no_rm         , {wd:(0,2)}         ,{wd:False}        , {},                         )
         addop("fild",  [0xDF],             d5,    no_rm         , {}                 ,{sd:True,wd:False}, {},                         ) #XXX 64
+
+        addop("fcomi", [0xDB, 0xF0],       reg,   no_rm         , {}                 ,{sd:False}        , {},                         )
+        addop("fcomip",[0xDF, 0xF0],       reg,   no_rm         , {}                 ,{sd:False}        , {},                         )
+        addop("fucomi",[0xDB, 0xE8],       reg,   no_rm         , {}                 ,{sd:False}        , {},                         )
+        addop("fucomip",[0xDF, 0xE8],       reg,   no_rm         , {}                 ,{sd:False}        , {},                         )
 
         addop("fincstp",[0xD9, 0xF7],      noafs, no_rm         , {}                 ,{}                , {},                         )
 
