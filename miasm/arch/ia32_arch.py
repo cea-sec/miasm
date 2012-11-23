@@ -1141,10 +1141,6 @@ class x86allmncs:
         addop("fild",  [0xDB],             d0,    no_rm         , {wd:(0,2)}         ,{wd:False}        , {},                         )
         addop("fild",  [0xDF],             d5,    no_rm         , {}                 ,{sd:True,wd:False}, {},                         ) #XXX 64
 
-        addop("fcomi", [0xDB, 0xF0],       reg,   no_rm         , {}                 ,{sd:False}        , {},                         )
-        addop("fcomip",[0xDF, 0xF0],       reg,   no_rm         , {}                 ,{sd:False}        , {},                         )
-        addop("fucomi",[0xDB, 0xE8],       reg,   no_rm         , {}                 ,{sd:False}        , {},                         )
-        addop("fucomip",[0xDF, 0xE8],       reg,   no_rm         , {}                 ,{sd:False}        , {},                         )
 
         addop("fincstp",[0xD9, 0xF7],      noafs, no_rm         , {}                 ,{}                , {},                         )
 
@@ -1203,6 +1199,11 @@ class x86allmncs:
         addop("fld",   [0xD9],             d0,    no_rm         , {sd:(0,2)}         ,{}                , {},                         )
         addop("fld",   [0xDB],             d5,    no_rm         , {}                 ,{sd:False}        , {},                         ) #XXX 80
         addop("fld",   [0xD9, 0xC0],       reg,   no_rm         , {}                 ,{sd:False}        , {},                         )
+
+        addop("fcomi", [0xDB, 0xF0],       reg,   no_rm         , {}                 ,{sd:False}        , {},                         )
+        addop("fcomip",[0xDF, 0xF0],       reg,   no_rm         , {}                 ,{sd:False}        , {},                         )
+        addop("fucomi",[0xDB, 0xE8],       reg,   no_rm         , {}                 ,{sd:False}        , {},                         )
+        addop("fucomip",[0xDF, 0xE8],       reg,   no_rm         , {}                 ,{sd:False}        , {},                         )
 
         addop("fldcw", [0xD9],             d5,    no_rm         , {}                 ,{wd:True}         , {},                         )
         addop("fldenv",[0xD9],             d4,    no_rm         , {}                 ,{wd:False}        , {},                         )
