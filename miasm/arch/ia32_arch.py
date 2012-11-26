@@ -166,7 +166,7 @@ unsanity_mnemo = ['nop', 'monitor', 'mwait', 'fadd', 'faddp', 'fiadd', 'fcmovb',
                   'fnstsw', 'fsub', 'fsubr', 'fisubr', 'fsubrp', 'ftst', 'fucom', 'fucompp', 'fxam', 'fxtract', 'fyl2x', 'fyl2xp1', 'fsqrt', 'fsincos', 'fsin', 'fscale',
                   'fcos', 'fdecstp', 'fnop', 'fpatan', 'fprem', 'fprem1', 'fptan', 'frndint', "shl", 'sal', 'sar', 'fabs',
                   "jmpff",
-                  "fcomi", "fcomip", "fucomi", "fucomip"]
+                  "fcomi", "fcomip", "fucomi", "fucomip", "fdivp"]
 
 
 mask_drcrsg = {cr:0x100, dr:0x200, sg:0x400}
@@ -1127,11 +1127,11 @@ class x86allmncs:
         addop("fdiv",  [0xD8],             d6,    no_rm         , {sd:(0,2)}         ,{}                , {},                         )
         addop("fdiv",  [0xD8, 0xF0],       reg,   [r_eax]       , {sw:(0,2)}         ,{sd:False,sw:False},{},                         )
         addop("fidiv", [0xDA],             d6,    no_rm         , {wd:(0,2)}         ,{}                , {},                         )
+        addop("fidivr",[0xDA],             d7,    no_rm         , {wd:(0,2)}         ,{}                , {},                         )
         addop("fdivp", [0xDE, 0xF8],       reg,   no_rm         , {}                 ,{sd:False}        , {},                         )
 
         addop("fdivr", [0xD8],             d7,    no_rm         , {sd:(0,2)}         ,{}                , {},                         )
         addop("fdivr", [0xD8, 0xF8],       reg,   [r_eax]       , {sw:(0,2)}         ,{sd:False,sw:False},{},                         )
-        addop("fidivr",[0xDA],             d7,    no_rm         , {wd:(0,2)}         ,{}                , {},                         )
         addop("fdivrp",[0xDE, 0xF0],       reg,   no_rm         , {}                 ,{sd:False}        , {},                         )
 
         addop("ffree", [0xDD, 0xC0],       reg,   no_rm         , {}                 ,{sd:False}        , {},                         )
