@@ -2065,7 +2065,14 @@ class x86_mn:
                     a_pmem[x86_afs.ad] = u32
                     parsed_args.append(a_pmem)
                 elif dib in segm_regs:
-                    fds
+                    good_c = False
+                    for reg_code in x86_afs.reg_dict:
+                        if x86_afs.reg_dict[reg_code] in args_sample[0]:
+                            if reg_code == dib:
+                                del args_sample[0]
+                                good_c = True
+                                break
+
                 else:
                     raise ValueError('bad dib!!%X'%dib)
 

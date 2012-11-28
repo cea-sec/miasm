@@ -243,7 +243,7 @@ def p_opt_seg_colon_1(t):
 
 def p_opt_seg_1(t):
     '''opt_seg : OPTSEG '''
-    t[0] = {x86_afs.segm:x86_afs.reg_sg.index(t[1])}
+    t[0] ={x86_afs.reg_dict[t[1]]:1, x86_afs.size : x86_afs.u32}
 
 def p_expression_9(t):
     '''expression : PTRSIZE PTRMEM LBRA expression RBRA
