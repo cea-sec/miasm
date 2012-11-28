@@ -88,17 +88,11 @@ class asm_constraint:
 
 class asm_bloc:
     def __init__(self, label=None):
-        self.bfrom = []
         self.bto = []
         self.lines = []
         self.label = label
-        self.age = 0
     def __str__(self):
         out = str(self.label)+"\n"
-        out+="from ->"
-        for l in self.bfrom:
-            out+="%.8X"%l+" "
-        out+="\n"
         for l in self.lines:
             out+=str(l)+'\n'
         out+="to ->"
@@ -110,8 +104,6 @@ class asm_bloc:
         return out
     def addline(self, l):
         self.lines.append(l)
-    def addfrom(self, l):
-        self.bfrom.append(l)
     def addto(self, l):
         self.bto.append(l)
     def split(self, offset, l):
@@ -560,7 +552,6 @@ def del_dis_offset(all_bloc, symbol_pool):
 
 def gen_non_free_mapping(group_bloc, dont_erase = []):
     non_free_mapping = {}
-    non_free_mappingb = {}
     #calculate free space for bloc placing
     for g in group_bloc:
         rest_len = 0
