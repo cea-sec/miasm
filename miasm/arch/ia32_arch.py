@@ -1784,6 +1784,26 @@ class x86_mn:
         for a in args:
             if x86_afs.segm in a:
                 prefix.append(x86_afs.reg_sg.index(a[x86_afs.segm]))
+
+        # special case ommiting 1 as argument
+        if len(args) == 1 and name in ["sal", "sar", "shl", "shr"]:
+            args.append("1")
+        # special case when the first argument should be omitted
+        if len(args) == 2 and name in ["fcomi", "fcomip", "fucomi", "fucomip"]:
+            args[0:1] = []
+        # special case when the second argument should be omitted
+        if len(args) == 2 and name in ["fdivp"]:
+            args[1:2] = []
+        # special case when the argument should be omitted
+        if len(args) == 1 and name in [
+                "stosb", "lodsb", "scasb",
+                "stosd", "lodsd", "scasd",
+                ]:
+            args[0:2] = []
+        # special case when both arguments should be omitted
+        if len(args) == 2 and name in [ "movsb", "movsd", "cmpsb", "cmpsd", ]:
+            args[0:2] = []
+
         return prefix, name, args
 
     @classmethod
@@ -1798,10 +1818,6 @@ class x86_mn:
 
         log.debug("name: %s"%name)
         log.debug("args: %s"%str(args))
-
-        # special case ommiting 1 as argument
-        if len(args) == 1 and name in ["sal", "sar", "shl", "shr"]:
-            args.append("1")
 
         args_eval = []
         for a in args:
