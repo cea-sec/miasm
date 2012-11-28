@@ -95,22 +95,22 @@ d7 = 7<<3
 reg = "reg"
 noafs = "noafs"
 cond = "cond"
-cond_list = ["o",
-             "no",
-             "b",
-             "ae",
-             "e",
-             "nz",
-             "be",
-             "a",
-             "s",
-             "ns",
-             "p",
-             "np",
-             "l",#             "nge",
-             "ge",
-             "le",
-             "g"
+cond_list = [["o"],
+             ["no"],
+             ["nae","c","b"],
+             ["nb","nc","ae"],
+             ["z","e"],
+             ["ne","nz"],
+             ["be"],
+             ["a"],
+             ["s"],
+             ["ns"],
+             ["pe","p"],
+             ["po","np"],
+             ["nge","l"],
+             ["nl","ge"],
+             ["ng","le"],
+             ["nle","g"],
              ]
 no_rm = []
 rmr = "rmr"
@@ -609,15 +609,16 @@ class x86allmncs:
                     opc_tmp = opc[:]
                     i_k = k&(mask_cond^0xFF)
                     opc_tmp[-1]|=i_k
-                    mnemo = mnemonic(name+cond_list[i_k], opc_tmp, afs, rm, n_m, modif_desc, sem)
-                    if insert_tab[k]!=None and not name in unsanity_mnemo:
-                        raise ValueError("sanity check fail in mnemo affect %s"%str(insert_tab[k]))
-                    insert_tab[k] = mnemo
-                    #fast mnemo_lookup
-                    if not mnemo.name in self.mnemo_lookup:
-                        self.mnemo_lookup[mnemo.name] = [mnemo]
-                    elif not mnemo in self.mnemo_lookup[mnemo.name]:
-                        self.mnemo_lookup[mnemo.name].append(mnemo)
+                    for cond_suffix in cond_list[i_k]:
+                        mnemo = mnemonic(name+cond_suffix, opc_tmp, afs, rm, n_m, modif_desc, sem)
+                        #if insert_tab[k]!=None and not name in unsanity_mnemo:
+                        #    raise ValueError("sanity check fail in mnemo affect %s"%str(insert_tab[k]))
+                        insert_tab[k] = mnemo
+                        #fast mnemo_lookup
+                        if not mnemo.name in self.mnemo_lookup:
+                            self.mnemo_lookup[mnemo.name] = [mnemo]
+                        elif not mnemo in self.mnemo_lookup[mnemo.name]:
+                            self.mnemo_lookup[mnemo.name].append(mnemo)
 
             else:
                 mnemo = mnemonic(name, opc, afs, rm, n_m, modif_desc, sem)
