@@ -332,7 +332,7 @@ def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool,
 
 
 
-def dis_i(mnemo, pool_bin, offset, symbol_pool):
+def dis_i(mnemo, pool_bin, offset):
     symbol_pool = asm_symbol_pool()
     dum_l = symbol_pool.getby_offset_create(offset)
     dum_b = asm_bloc(dum_l)
@@ -504,7 +504,7 @@ def group_blocs(all_bloc):
     return groups_bloc
 
 
-def gen_free_space_intervals(f, dont_erase = []):
+def gen_free_space_intervals(f):
     interval = {}
     last_offset = 0xFFFFFFFF
     offset_label = dict([(x.offset_free,x) for x in f])
