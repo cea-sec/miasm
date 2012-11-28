@@ -76,16 +76,16 @@ def dict_mul(a, b):
 
     raise 'bad dict mul %s'%(str(a)+str(b))
 
-keywords = ("BYTE", "WORD", "DWORD", "SINGLE", "DOUBLE",
+keywords = ("BYTE", "WORD", "DWORD", "QWORD", "SINGLE", "DOUBLE", "TBYTE",
             "ES", "CS", "SS", "DS", "FS", "GS",
-            "PTR")
+            "PTR", "OFFSET", "FLAT")
 
 
 tokens = keywords +(
     'NUMBER',
     'PLUS','MINUS','TIMES','DIVIDE',
     'LPAREN','RPAREN','LBRA','RBRA', 'COLON',
-    'OFFSET','NAME',
+    'NAME',
     )
 
 # Tokens
@@ -99,10 +99,9 @@ t_RPAREN  = r'\)'
 t_LBRA  = r'\['
 t_RBRA  = r'\]'
 t_COLON    = r':'
-t_OFFSET  = r'OFFSET'
 
 def t_NAME(t):
-    r'\.L[A-Z]*[0-9]+|[a-zA-Z_][a-zA-Z0-9_]*'
+    r'\.L[A-Z]*[0-9]+|[a-zA-Z_][a-zA-Z0-9_.]*'
     if t.value.upper() in keywords:
         t.type = t.value.upper()
         t.value = t.value.lower()
@@ -171,8 +170,8 @@ def p_expression_3(t):
     t[0] = t[2]
 
 def p_expression_4(t):
-    '''expression : OFFSET expression '''
-    t[0] = t[2]
+    '''expression : OFFSET FLAT COLON expression '''
+    t[0] = t[4]
 
 def p_expression_5(t):
     '''expression : MINUS expression  %prec UMINUS'''
@@ -182,10 +181,16 @@ def p_expression_6(t):
     '''expression :  NUMBER'''
     t[0] = {x86_afs.imm:int(int32(uint32(int(t[1]))))}
 
+def p_expression_8st(t):
+    '''expression : NAME LPAREN NUMBER RPAREN'''
+    t[0] = t[1] + "%d"%t[3]
+    t[0] ={x86_afs.reg_dict[t[0]]:1, x86_afs.size : x86_afs.f32}
 
 #"[@?_a-zA-Z\.$][?\.a-zA-Z0-9_@$]*"
 def p_expression_8(t):
     '''expression : NAME'''
+    if t[1] == 'st':
+        t[1] = 'st0'
     if t[1] in x86_afs.reg_list32:
         size = x86_afs.u32
     elif t[1] in x86_afs.reg_list16:
@@ -212,8 +217,10 @@ def p_PTRSIZE(t):
     '''PTRSIZE : BYTE
                | WORD
                | DWORD
+               | QWORD
                | SINGLE
                | DOUBLE
+               | TBYTE
                  '''
     t[0] = t[1]
 
@@ -246,39 +253,34 @@ def p_opt_seg_1(t):
     t[0] ={x86_afs.reg_dict[t[1]]:1, x86_afs.size : x86_afs.u32}
 
 def p_expression_9(t):
-    '''expression : PTRSIZE PTRMEM LBRA expression RBRA
-                  | PTRSIZE PTRMEM opt_seg_colon LBRA expression RBRA  '''
+    '''expression : PTRSIZE PTRMEM expression '''
     size = t[1]
-    if len(t) == 6:
-        index = 4
-    else:
-        index = 5
     if size=='byte':
-        t[index][x86_afs.ad] = x86_afs.u08
+        t[3][x86_afs.ad] = x86_afs.u08
     elif size == 'word':
-        t[index][x86_afs.ad] = x86_afs.u16
+        t[3][x86_afs.ad] = x86_afs.u16
     elif size == 'dword':
-        t[index][x86_afs.ad] = x86_afs.u32
+        t[3][x86_afs.ad] = x86_afs.u32
+    elif size == 'qword':
+        t[3][x86_afs.ad] = x86_afs.f64
     elif size == 'single':
-        t[index][x86_afs.ad] = x86_afs.f32
+        t[3][x86_afs.ad] = x86_afs.f32
     elif size == 'double':
-        t[index][x86_afs.ad] = x86_afs.f64
+        t[3][x86_afs.ad] = x86_afs.f64
     else:
         raise 'bad address size'
-    if len(t) !=6:
-        t[index].update(t[3])
-    t[0] = t[index]
+    t[0] = t[3]
 
 def p_expression_10(t):
-    '''expression : LBRA expression RBRA
-                  | opt_seg_colon LBRA expression RBRA '''
-    if len(t) == 4:
+    '''expression : LBRA expression RBRA '''
+    if not x86_afs.ad in t[2]:
         t[2][x86_afs.ad] = x86_afs.u32
-        t[0] = t[2]
-    else:
-        t[3][x86_afs.ad] = x86_afs.u32
-        t[3].update(t[1])
-        t[0] = t[3]
+    t[0] = t[2]
+
+def p_expression_10a(t):
+    '''expression : opt_seg_colon expression '''
+    t[2].update(t[1])
+    t[0] = t[2]
 
 def p_expression_11(t):
     '''expression : opt_seg'''
