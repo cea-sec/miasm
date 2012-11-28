@@ -782,35 +782,28 @@ def resolve_symbol(group_bloc, dont_erase = []):
 
 
 def calc_symbol_offset(symbol_pool):
-    keys = symbol_pool.s.keys()
-    for l in symbol_pool.s:
-        symbol_pool.s[l].offset_g = symbol_pool.s[l].offset
     s_to_use = set()
-    s_to_fix = set()
 
     s_dependent = {}
 
     for l in symbol_pool.s:
-        if not is_int(symbol_pool.s[l].offset_g):
-            s_to_fix.add(l)
-
-            if not l in symbol_pool.s or symbol_pool.s[l].offset_g == None:
-                raise ValueError("symbol missing?", l)
+        offset = symbol_pool.s[l].offset
+        if offset == None:
+            raise ValueError("symbol missing?", l)
+        if not is_int(offset):
             #construct dependant blocs tree
-            s_d = symbol_pool.s[l].offset_g[0]
+            s_d = offset[0]
             if not s_d.name in s_dependent:
                 s_dependent[s_d.name] = set()
             s_dependent[s_d.name].add(l)
         else:
             s_to_use.add(l)
+        symbol_pool.s[l].offset_g = offset
 
-    s_used = set()
-    total_fixed = 0
     while s_to_use:
         s = s_to_use.pop()
         offset = symbol_pool.s[s].offset_g
 
-        s_fixed = set()
         if not s in s_dependent:
             continue
         for l in s_dependent[s]:
@@ -818,11 +811,6 @@ def calc_symbol_offset(symbol_pool):
                 raise ValueError("unknown symbol: %s"%str(s))
             symbol_pool.s[l].offset_g=offset+symbol_pool.s[l].offset_g[1].blen*symbol_pool.s[l].offset_g[2]
             s_to_use.add(l)
-            total_fixed+=1
-            s_fixed.add(l)
-
-        for l in s_fixed:
-            s_to_fix.remove(l)
 
 
 def asmbloc(mnemo, all_blocs):
