@@ -1052,6 +1052,54 @@ def seto(info, a):
     e.append(ExprAff(a, ExprCond(of, ExprInt_from(a, 1), ExprInt_from(a, 0))))
     return e
 
+def setp(info, a):
+    e = []
+    e.append(ExprAff(a, ExprCond(pf, ExprInt_from(a, 1), ExprInt_from(a, 0))))
+    return e
+
+def setnp(info, a):
+    e = []
+    e.append(ExprAff(a, ExprCond(pf, ExprInt_from(a, 0), ExprInt_from(a, 1))))
+    return e
+
+def setle(info, a):
+    e = []
+    a0 = ExprInt_from(a, 0)
+    a1 = ExprInt_from(a, 1)
+    e.append(ExprAff(a, ExprOp("&",
+                               ExprCond(zf, a1, a0),
+                               ExprCond(nf-of, a1, a0)))
+             )
+    return e
+
+def setna(info, a):
+    e = []
+    a0 = ExprInt_from(a, 0)
+    a1 = ExprInt_from(a, 1)
+    e.append(ExprAff(a, ExprOp('&',
+                               ExprCond(cf, a1, a0),
+                               ExprCond(zf, a1, a0)))
+             )
+    return e
+
+def setnbe(info, a):
+    e = []
+    e.append(ExprAff(a, ExprCond(ExprOp('|',cf,zf),
+                                 ExprInt_from(a, 0),
+                                 ExprInt_from(a, 1)))
+             )
+    return e
+
+def setno(info, a):
+    e = []
+    e.append(ExprAff(a, ExprCond(of, ExprInt_from(a, 0), ExprInt_from(a, 1))))
+    return e
+
+def setnb(info, a):
+    e = []
+    e.append(ExprAff(a, ExprCond(cf, ExprInt_from(a, 0), ExprInt_from(a, 1))))
+    return e
+
 def setalc(info):
     a = eax[0:8]
     e = []
@@ -1513,7 +1561,6 @@ def mul(info, a):
 
     return e
 
-#XXX size to do; eflag
 def imul(info, a, b = None, c = None):
     e= []
     if b == None:
@@ -1522,22 +1569,29 @@ def imul(info, a, b = None, c = None):
             c_lo = ExprOp('imul32_lo', eax, a)
             e.append(ExprAff(edx, c_hi))
             e.append(ExprAff(eax, c_lo))
+            e.append(ExprAff(cf, ExprCond(c_hi, ExprInt32(1), ExprInt32(0))))
+            e.append(ExprAff(of, ExprCond(c_hi, ExprInt32(1), ExprInt32(0))))
         elif a.get_size() == 16:
             c_hi = ExprOp('imul16_hi', r_ax, a)
             c_lo = ExprOp('imul16_lo', r_ax, a)
             e.append(ExprAff(r_dx, c_hi))
             e.append(ExprAff(r_ax, c_lo))
+            e.append(ExprAff(cf, ExprCond(c_hi, ExprInt32(1), ExprInt32(0))))
+            e.append(ExprAff(of, ExprCond(c_hi, ExprInt32(1), ExprInt32(0))))
         elif a.get_size() == 8:
             c = ExprOp('imul08', eax, a)
             e.append(ExprAff(eax[:16], c))
+            e.append(ExprAff(cf, ExprCond(c-eax[:16], ExprInt32(1), ExprInt32(0))))
+            e.append(ExprAff(of, ExprCond(c-eax[:16], ExprInt32(1), ExprInt32(0))))
     else:
         if c == None:
             c = b
             b = a
         c = ExprOp('*', b, c)
         e.append(ExprAff(a, c))
+        e.append(ExprAff(cf, ExprCond(c[16:], ExprInt32(1), ExprInt32(0))))
+        e.append(ExprAff(of, ExprCond(c[16:], ExprInt32(1), ExprInt32(0))))
     return e
-
 
 def cdq(info):
     # XXX to check
@@ -1634,6 +1688,24 @@ def fcom(info, a):
 def ficom(info, a):
     e = []
     e += set_float_cs_eip(info)
+    return e
+
+def fcomi(info, a):
+    # Invalid emulation
+    InvalidEmulation
+def fcomip(info, a):
+    # Invalid emulation
+    InvalidEmulation
+def fucomi(info, a):
+    # Invalid emulation
+    InvalidEmulation
+def fucomip(info, a):
+    # Invalid emulation, only read/write analysis is valid
+    cond = ExprOp('fcomp', float_st0, a)
+    e = []
+    e.append(ExprAff(zf, ExprCond(cond, ExprInt_from(zf, 0), ExprInt_from(zf, 1))))
+    e.append(ExprAff(pf, ExprCond(cond, ExprInt_from(zf, 0), ExprInt_from(zf, 1))))
+    e.append(ExprAff(cf, ExprCond(cond, ExprInt_from(zf, 0), ExprInt_from(zf, 1))))
     return e
 
 def fcomp(info, a):
@@ -1807,6 +1879,13 @@ def fdiv(info, a, b = None):
         src = b
     e.append(ExprAff(a, ExprOp('fdiv', a, src)))
     e += set_float_cs_eip(info)
+    return e
+
+def fdivp(info, a):
+    # Invalid emulation
+    e = []
+    e.append(ExprAff(a, ExprOp('fdiv', a, float_st0)))
+    e+=float_pop(a)
     return e
 
 def ftan(info, a):
@@ -2010,6 +2089,36 @@ def cmovnz(info, a, b):
     e= []
     e.append(ExprAff(a, ExprCond(zf, a, b)))
     return e
+def cmovge(info, a, b):
+    e= []
+    e.append(ExprAff(a, ExprCond( ExprOp('^', nf, of) , a, b)))
+    return e
+def cmovl(info, a, b):
+    e= []
+    e.append(ExprAff(a, ExprCond( ExprOp('^', nf, of) , b, a)))
+    return e
+def cmovle(info, a, b):
+    e= []
+    e.append(ExprAff(a, ExprCond( ExprOp('|', ExprOp('^', nf, of), zf) , b, a)))
+    return e
+def cmovo(info, a, b):
+    e= []
+    e.append(ExprAff(a, ExprCond(of , b, a)))
+    return e
+def cmovno(info, a, b):
+    e= []
+    e.append(ExprAff(a, ExprCond(of , a, b)))
+    return e
+def cmovs(info, a, b):
+    e= []
+    # SF is called nf in miasm
+    e.append(ExprAff(a, ExprCond(nf , b, a)))
+    return e
+def cmovns(info, a, b):
+    e= []
+    # SF is called nf in miasm
+    e.append(ExprAff(a, ExprCond(nf , a, b)))
+    return e
 
 #XXX
 def l_int(info, a):
@@ -2212,6 +2321,24 @@ mnemo_func = {'mov': mov,
               'setns':setns,
               'sets':sets,
               'seto':seto,
+              'setp':setp,
+              'setpe':setp,
+              'setnp':setnp,
+              'setpo':setnp,
+              'setle':setle,
+              'setng':setle,
+              'setna':setna,
+              'setnbe':setnbe,
+              'setno':setno,
+              'setnc':setnb,
+              'setz':sete,
+              'setne':setnz,
+              'setnb':setae,
+              'setnae':setb,
+              'setc':setb,
+              'setnge':setl,
+              'setnl':setge,
+              'setnle':setg,
               'setalc':setalc,
               'bswap':bswap,
               'cmpsb':cmps,
@@ -2295,6 +2422,7 @@ mnemo_func = {'mov': mov,
               'fsub':fsub,
               'fmul':fmul,
               'fdiv':fdiv,
+              'fdivp':fdivp,
               'fxch':fxch,
               'fptan':fptan,
               'frndint':frndint,
@@ -2314,6 +2442,16 @@ mnemo_func = {'mov': mov,
               'cmovz':cmovz,
               'cmove':cmovz,
               'cmovnz':cmovnz,
+              'cmovge':cmovge,
+              'cmovnl':cmovge,
+              'cmovl':cmovl,
+              'cmovnge':cmovl,
+              'cmovle':cmovle,
+              'cmovng':cmovle,
+              'cmovo':cmovo,
+              'cmovno':cmovno,
+              'cmovs':cmovs,
+              'cmovns':cmovns,
               'int':l_int,
               'xlat': xlat,
               'bt':bt,
@@ -2321,6 +2459,10 @@ mnemo_func = {'mov': mov,
               'jo': jo,
               'fcom':fcom,
               'ficom':ficom,
+              'fcomi':fcomi,
+              'fcomip':fcomip,
+              'fucomi':fucomi,
+              'fucomip':fucomip,
               'ins':ins,
               'btc':btc,
               'bts':bts,
@@ -2469,7 +2611,7 @@ def dict_to_Expr(d, modifs = {}, opmode = u32, admode = u32, segm_to_do = set())
     elif modifs[wd]:
         size = x86_afs.u16
 
-    tab32 = {ia32_rexpr.u08:ia32_rexpr.reg_list8, ia32_rexpr.u16:ia32_rexpr.reg_list16, ia32_rexpr.u32:ia32_rexpr.reg_list32,ia32_rexpr.f32:ia32_rexpr.reg_flt}
+    tab32 = {ia32_rexpr.u08:ia32_rexpr.reg_list8, ia32_rexpr.u16:ia32_rexpr.reg_list16, ia32_rexpr.u32:ia32_rexpr.reg_list32,ia32_rexpr.f32:ia32_rexpr.reg_flt,ia32_rexpr.f64:ia32_rexpr.reg_flt}
     tab16 = {ia32_rexpr.u08:ia32_rexpr.reg_list8, ia32_rexpr.u16:ia32_rexpr.reg_list32, ia32_rexpr.u32:ia32_rexpr.reg_list16}
     ad_size = {ia32_rexpr.u08:ia32_rexpr.u08, ia32_rexpr.u16:ia32_rexpr.u16, ia32_rexpr.u32:ia32_rexpr.u32, ia32_rexpr.f32:ia32_rexpr.u32, ia32_rexpr.f64:ia32_rexpr.u32}
 
@@ -2568,7 +2710,7 @@ def dict_to_Expr(d, modifs = {}, opmode = u32, admode = u32, segm_to_do = set())
                         out.append(ExprOp('*', ExprInt(int_cast(d[k])), ia32_rexpr.reg_list32[k]))
 
             elif k == ia32_rexpr.symb:
-                print 'warning: symbol.. in mem look', d[k]
+                #print 'warning: symbol.. in mem look', d[k]
                 out.append(ExprId(str(d[k].items()[0][0].name)))
             else:
                 raise 'strange ad componoant: %s'%str(d)
