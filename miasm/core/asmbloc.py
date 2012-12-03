@@ -151,9 +151,9 @@ class asm_symbol_pool:
         if self.no_collision and collision == 'name':
             raise ValueError('symbol %s has same name as %s'%(l, self.s[l.name]))
         self.labels.append(l)
-        if l.offset != None and collision == None:
+        if l.offset != None:
             self.s_offset[l.offset] = l
-        if l.name != "" and collision == None:
+        if l.name != "":
             self.s[l.name] = l
         return l
 
@@ -216,11 +216,22 @@ class asm_symbol_pool:
         s.name = newname
         self.s[s.name] = s
 
+    def set_offset(self, label, offset):
+        # Note that there is a special case when the offset is a list
+        # it happens when offsets are recomputed in resolve_symbol*
+        if not label in self.labels:
+            raise ValueError('label %s not in symbol pool'%label)
+        if not isinstance(label.offset, list) and label.offset in self.s_offset:
+            del(self.s_offset[label.offset])
+        label.offset = offset
+        if not isinstance(label.offset, list):
+            self.s_offset[label.offset] = label
+
     def items(self):
         return self.labels[:]
 
     def __str__(self):
-        return reduce(lambda x,y: x+str(y)+'\n', [self.s[l] for l in self.s], "")
+        return reduce(lambda x,y: x+str(y)+'\n', self.labels, "")
 
     def __in__(self, obj):
         if obj in self.s:
@@ -586,7 +597,7 @@ def gen_non_free_mapping(group_bloc, dont_erase = []):
 
 # if one bloc is fixed in the bloc list, this function
 # will fix other blocs around this one.
-def fix_bloc_around_anchored_bloc(unr_bloc):
+def fix_bloc_around_anchored_bloc(unr_bloc, symbol_pool):
 
     l2b = {}
     for b in unr_bloc:
@@ -609,12 +620,12 @@ def fix_bloc_around_anchored_bloc(unr_bloc):
         b_done.add(b)
         i = unr_bloc.index(l2b[b])
         if i >0 and unr_bloc[i-1].label in b_rest:
-            unr_bloc[i-1].label.offset = [b, unr_bloc[i-1], -1]
+            symbol_pool.set_offset(unr_bloc[i-1].label, [b, unr_bloc[i-1], -1])
             unr_bloc[i-1].fixedblocs = True
             b_todo.add(unr_bloc[i-1].label)
             b_rest.remove(unr_bloc[i-1].label)
         if i < len(unr_bloc)-1 and unr_bloc[i+1].label in b_rest:
-            unr_bloc[i+1].label.offset = [b, unr_bloc[i], 1]
+            symbol_pool.set_offset(unr_bloc[i+1].label, [b, unr_bloc[i], 1])
             unr_bloc[i+1].fixedblocs = True
             b_todo.add(unr_bloc[i+1].label)
             b_rest.remove(unr_bloc[i+1].label)
@@ -622,7 +633,7 @@ def fix_bloc_around_anchored_bloc(unr_bloc):
 
 # place all asmblocs, ordered
 # XXX WARNING, doesn't use dont erase arg!!
-def resolve_symbol_linear(bloc_list, group_bloc, dont_erase = []):
+def resolve_symbol_linear(bloc_list, group_bloc, symbol_pool, dont_erase = []):
     print bloc_list
     log_asmbloc.info('resolve_symbol')
     log_asmbloc.info(str(dont_erase))
@@ -643,7 +654,7 @@ def resolve_symbol_linear(bloc_list, group_bloc, dont_erase = []):
 
     # first, link grouped bloc around fixed labels
     for g in group_bloc.values():
-        fix_bloc_around_anchored_bloc(g)
+        fix_bloc_around_anchored_bloc(g, symbol_pool)
 
 
 
@@ -665,11 +676,11 @@ def resolve_symbol_linear(bloc_list, group_bloc, dont_erase = []):
         b_done.add(b)
         i = unr_bloc.index(l2b[b])
         if i >0 and unr_bloc[i-1].label in b_rest:
-            unr_bloc[i-1].label.offset = [b, unr_bloc[i-1], -1]
+            symbol_pool.set_offset(unr_bloc[i-1].label, [b, unr_bloc[i-1], -1])
             b_todo.add(unr_bloc[i-1].label)
             b_rest.remove(unr_bloc[i-1].label)
         if i < len(unr_bloc)-1 and unr_bloc[i+1].label in b_rest:
-            unr_bloc[i+1].label.offset = [b, unr_bloc[i], 1]
+            symbol_pool.set_offset(unr_bloc[i+1].label, [b, unr_bloc[i], 1])
             b_todo.add(unr_bloc[i+1].label)
             b_rest.remove(unr_bloc[i+1].label)
     print b_todo
@@ -679,7 +690,7 @@ def resolve_symbol_linear(bloc_list, group_bloc, dont_erase = []):
     return [(x,0) for x in unr_bloc]
 
 #place all asmblocs
-def resolve_symbol(group_bloc, dont_erase = []):
+def resolve_symbol(group_bloc, symbol_pool, dont_erase = []):
     log_asmbloc.info('resolve_symbol')
     log_asmbloc.info(str(dont_erase))
     bloc_list = []
@@ -717,7 +728,7 @@ def resolve_symbol(group_bloc, dont_erase = []):
                         log_asmbloc.debug("consumed %d rest: %d"%(g.total_max_l, int(tmp)))
                         free_interval[g] = tmp
                         del(free_interval[x])
-                        g.offset = [group_bloc[x][-1].label, group_bloc[x][-1], 1]
+                        symbol_pool.set_offset(g, [group_bloc[x][-1].label, group_bloc[x][-1], 1])
                         g.fixedblocs = True
                         finish = True
                         break
@@ -738,7 +749,7 @@ def resolve_symbol(group_bloc, dont_erase = []):
         for k in k_tab:
             if g.total_max_l>free_interval[k]:
                 continue
-            g.offset = [group_bloc[k][-1].label, group_bloc[k][-1], 1]
+            symbol_pool.set_offset(g, [group_bloc[k][-1].label, group_bloc[k][-1], 1])
             tmp = free_interval[k]-g.total_max_l
             log_asmbloc.debug("consumed %d rest: %d"%(g.total_max_l, int(tmp)))
             free_interval[g] = tmp
@@ -768,9 +779,9 @@ def resolve_symbol(group_bloc, dont_erase = []):
 
             index = my_group.index(unr_bloc[i])
             if index>0 and my_group[index-1] in unr_bloc:
-                my_group[index-1].label.offset = [unr_bloc[i].label, unr_bloc[i-1], -1]
+                symbol_pool.set_offset(my_group[index-1].label, [unr_bloc[i].label, unr_bloc[i-1], -1])
             if index <len(my_group)-1 and my_group[index+1] in unr_bloc:
-                my_group[index+1].label.offset = [unr_bloc[i].label, unr_bloc[i], 1]
+                symbol_pool.set_offset(my_group[index+1].label, [unr_bloc[i].label, unr_bloc[i], 1])
             del unr_bloc[i]
 
         if not resolving:
@@ -924,7 +935,7 @@ def asmbloc_final(mnemo, all_blocs, symbol_pool, symb_reloc_off = {}):
     for label in symbol_pool.items():
         if label.offset_g == None:
             fdfd
-        label.offset = label.offset_g
+        symbol_pool.set_offset(label, label.offset_g)
 
     for a, b in my_symb_reloc_off.items():
         symb_reloc_off[a] = b
@@ -938,9 +949,9 @@ def asm_resolve_final(mnemo, all_bloc, symbol_pool, dont_erase = [], symb_reloc_
         bloc_list = [(bcs[0].bloc_num, bcs[0].label) for bcs in bloc_g.values()]
         bloc_list.sort()
         bloc_list = [b[1] for b in bloc_list]
-        resolved_b = resolve_symbol_linear(bloc_list, bloc_g, dont_erase)
+        resolved_b = resolve_symbol_linear(bloc_list, bloc_g, symbol_pool, dont_erase)
     else:
-        resolved_b = resolve_symbol(bloc_g, dont_erase)
+        resolved_b = resolve_symbol(bloc_g, symbol_pool, dont_erase)
 
     asmbloc_final(mnemo, resolved_b, symbol_pool, symb_reloc_off)
 

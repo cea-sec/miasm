@@ -56,7 +56,7 @@ eend:
 ''')
 
 #fix shellcode addr
-symbol_pool.add(asmbloc.asm_label('base_address', 0x400000))
+symbol_pool.add_label('base_address', 0x400000)
 symbol_pool.getby_name("main").offset = 0x401000
 e.Opthdr.AddressOfEntryPoint = s_text.addr
 
