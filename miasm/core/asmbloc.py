@@ -263,10 +263,8 @@ def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool,
             offsets_to_dis = [pool_bin.offset]
             break
         if pool_bin.offset in job_done:
-            #if not pool_bin.offset in symbol_pool.s_offset:
-            #    # XXX bug: we start dis in middle of bb
-            if pool_bin.offset in symbol_pool.s_offset:
-                l = symbol_pool.s_offset[pool_bin.offset]
+            l = symbol_pool.getby_offset(pool_bin.offset)
+            if l != None:
                 c = asm_constraint(l, asm_constraint.c_next)
                 cur_bloc.bto = [c]
                 offsets_to_dis = [pool_bin.offset]
