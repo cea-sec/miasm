@@ -27,8 +27,8 @@ msg:
 .string "World!"
 ''')
 symbol_pool.add_label('base_address', 0)
-symbol_pool.getby_name("MessageBoxA").offset = e.DirImport.get_funcvirt('MessageBoxA')
-symbol_pool.getby_name("main").offset = e.rva2virt(s_text.addr)
+symbol_pool.set_offset(symbol_pool.getby_name("MessageBoxA"),e.DirImport.get_funcvirt('MessageBoxA'))
+symbol_pool.set_offset(symbol_pool.getby_name("main"), e.rva2virt(s_text.addr))
 resolved_b, patches = asmbloc.asm_resolve_final(x86_mn, all_bloc[0], symbol_pool)
 for p in patches:
     e.virt[p] = patches[p]

@@ -27,8 +27,8 @@ def guess_next_new_label(symbol_pool, gen_label_index = 0):
         if l == None:
             return symbol_pool.add_label(i)
         i+=1
-        
-    
+
+
 def parse_txt(mnemo, txt, symbol_pool = None, gen_label_index = 0):
     if symbol_pool == None:
         symbol_pool = asm_symbol_pool()
@@ -88,9 +88,9 @@ def parse_txt(mnemo, txt, symbol_pool = None, gen_label_index = 0):
             if directive == 'split': #custom command
                 lines.append(asm_raw(line.strip()))
                 continue
-            
+
             raise ValueError("unknown directive %s"%str(directive))
-        
+
         #label
         r = re.match(r'\s*(\S+)\s*:', line)
         if r:
@@ -98,7 +98,7 @@ def parse_txt(mnemo, txt, symbol_pool = None, gen_label_index = 0):
             l = symbol_pool.getby_name_create(l)
             lines.append(l)
             continue
-        
+
         #code
         if ';' in line:
             line = line[:line.find(';')]
@@ -138,7 +138,7 @@ def parse_txt(mnemo, txt, symbol_pool = None, gen_label_index = 0):
     #gen_label_index = 0
 
 
-    
+
     all_blocs_sections = []
     bloc_num = 0
     for lines in [lines_text, lines_data, lines_bss]:
@@ -166,7 +166,7 @@ def parse_txt(mnemo, txt, symbol_pool = None, gen_label_index = 0):
                     if bloc_to_nlink:
                         bloc_to_nlink.addto(asm_constraint(b.label, asm_constraint.c_next))
                         bloc_to_nlink = None
-                
+
             #in bloc
             elif state == 1:
                 #asm_raw
@@ -199,7 +199,7 @@ def parse_txt(mnemo, txt, symbol_pool = None, gen_label_index = 0):
                             l = symbs[0][0]
                             lines[i].setdstflow([l])
                             b.addto(asm_constraint(l, asm_constraint.c_to))
-                            
+
                         # TODO XXX redo this really
 
                         if not lines[i].breakflow() and i+1 < len(lines):
@@ -217,13 +217,13 @@ def parse_txt(mnemo, txt, symbol_pool = None, gen_label_index = 0):
                         block_may_link = True
                     else:
                         block_may_link = False
-                            
-                    
-                    i+=1        
-    
-    
-                        
-    
+
+
+                    i+=1
+
+
+
+
     for b in all_blocs_sections[0]:
         log_asmbloc.info( b)
 

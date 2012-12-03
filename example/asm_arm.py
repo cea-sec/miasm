@@ -45,7 +45,7 @@ open("graph.txt" , "w").write(g)
 for b in all_bloc[0]:
     print b
 symbol_pool.add_label('base_address', 0x0)
-symbol_pool.getby_name("toto").offset = 0x0
+symbol_pool.set_offset(symbol_pool.getby_name("toto"), 0x0)
 
 resolved_b, patches = asmbloc.asm_resolve_final(my_mn, all_bloc[0], symbol_pool)
 print patches

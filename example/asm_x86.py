@@ -57,7 +57,7 @@ eend:
 
 #fix shellcode addr
 symbol_pool.add_label('base_address', 0x400000)
-symbol_pool.getby_name("main").offset = 0x401000
+symbol_pool.set_offset(symbol_pool.getby_name("main"), 0x401000)
 e.Opthdr.AddressOfEntryPoint = s_text.addr
 
 for b in all_bloc[0]:
