@@ -787,29 +787,27 @@ def calc_symbol_offset(symbol_pool):
     s_dependent = {}
 
     for l in symbol_pool.s:
-        offset = symbol_pool.s[l].offset
-        if offset == None:
+        label = symbol_pool.s[l]
+        if label.offset == None:
             raise ValueError("symbol missing?", l)
-        if not is_int(offset):
+        if not is_int(label.offset):
             #construct dependant blocs tree
-            s_d = offset[0]
-            if not s_d.name in s_dependent:
-                s_dependent[s_d.name] = set()
-            s_dependent[s_d.name].add(l)
+            s_d = label.offset[0]
+            if not s_d in s_dependent:
+                s_dependent[s_d] = set()
+            s_dependent[s_d].add(label)
         else:
-            s_to_use.add(l)
-        symbol_pool.s[l].offset_g = offset
+            s_to_use.add(label)
+        label.offset_g = label.offset
 
     while s_to_use:
-        s = s_to_use.pop()
-        offset = symbol_pool.s[s].offset_g
-
-        if not s in s_dependent:
+        label = s_to_use.pop()
+        if not label in s_dependent:
             continue
-        for l in s_dependent[s]:
-            if symbol_pool.s[s].offset_g== None:
-                raise ValueError("unknown symbol: %s"%str(s))
-            symbol_pool.s[l].offset_g=offset+symbol_pool.s[l].offset_g[1].blen*symbol_pool.s[l].offset_g[2]
+        for l in s_dependent[label]:
+            if label.offset_g== None:
+                raise ValueError("unknown symbol: %s"%str(label.name))
+            l.offset_g=label.offset_g+l.offset_g[1].blen*l.offset_g[2]
             s_to_use.add(l)
 
 
