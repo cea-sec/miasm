@@ -91,7 +91,7 @@ in_str = bin_stream(data)
 
 job_done = set()
 symbol_pool = asmbloc.asm_symbol_pool()
-l = asmbloc.asm_label('toto')
+l = symbol_pool.add_label('toto')
 b = asmbloc.asm_bloc(l)
 
 ad = 0x2E

@@ -688,7 +688,7 @@ def asm2C(f_name, known_mems, dyn_func, in_str, x86_mn, symbol_pool, func_to_dis
                 if not l_name:
                     continue
 
-                label = asmbloc.asm_label(l_name, i)
+                label = symbol_pool.add_label(l_name, i)
                 a[x86_afs.symb] = {label:1}
                 del a[x86_afs.imm]
 
@@ -707,7 +707,7 @@ def asm2C(f_name, known_mems, dyn_func, in_str, x86_mn, symbol_pool, func_to_dis
         l_name = "loc_%.16X"%(f&mask_int)
         funcs_code[-1:-1] = [l_name+":"]
         funcs_code[-1:-1] = f_code.split('\n')
-        l = asmbloc.asm_label(l_name, f)
+        l = symbol_pool.add_label(l_name, f)
         b = asmbloc.asm_bloc(l)
         #all_bloc_funcs[f] = [b]
         all_bloc_funcs += [b]

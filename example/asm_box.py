@@ -26,7 +26,7 @@ title:
 msg:
 .string "World!"
 ''')
-symbol_pool.add(asmbloc.asm_label('base_address', 0))
+symbol_pool.add_label('base_address', 0)
 symbol_pool.getby_name("MessageBoxA").offset = e.DirImport.get_funcvirt('MessageBoxA')
 symbol_pool.getby_name("main").offset = e.rva2virt(s_text.addr)
 resolved_b, patches = asmbloc.asm_resolve_final(x86_mn, all_bloc[0], symbol_pool)

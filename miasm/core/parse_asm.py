@@ -23,10 +23,10 @@ declarator = {'byte':'B', 'long':'I'}
 def guess_next_new_label(symbol_pool, gen_label_index = 0):
     i = 0
     while True:
-        l = asm_label(i)
+        l = symbol_pool.getby_name(i)
+        if l == None:
+            return symbol_pool.add_label(i)
         i+=1
-        if not l.name in symbol_pool.s:
-            return l
         
     
 def parse_txt(mnemo, txt, symbol_pool = None, gen_label_index = 0):
@@ -154,7 +154,6 @@ def parse_txt(mnemo, txt, symbol_pool = None, gen_label_index = 0):
             if state == 0:
                 if not isinstance(lines[i], asm_label):
                     l = guess_next_new_label(symbol_pool)
-                    symbol_pool.add(l)
                     lines[i:i] = [l]
                 else:
                     l = lines[i]
@@ -208,7 +207,6 @@ def parse_txt(mnemo, txt, symbol_pool = None, gen_label_index = 0):
                                 l = lines[i+1]
                             else:
                                 l = guess_next_new_label(symbol_pool)
-                                symbol_pool.add(l)
                                 lines[i+1:i+1] = [l]
                         else:
                             state = 0

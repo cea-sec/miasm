@@ -130,25 +130,32 @@ class asm_bloc:
         return [x.offset for x in self.lines]
 
 class asm_symbol_pool:
-    def __init__(self):
+    def __init__(self, no_collision = True):
+        self.labels = []
         self.s = {}
         self.s_offset = {}
+        self.no_collision = no_collision
 
-    def add(self, obj):
+    def add_label(self, name = "", offset = None):
         """
-        obj can be an asm_label or an offset
+        This should be the only method to create new asm_label objects
         """
-        if not isinstance(obj, asm_label):
-            # whatever obj is, it will be an offset
-            offset = int(obj)
-            if offset in self.s_offset:
-                raise ValueError('symbol offset already exist %r'%offset)
-            obj = asm_label(offset, offset)
-        if obj.name in self.s:
-            raise ValueError('symbol already exist %r'%obj)
-        self.s[obj.name] = obj
-        if obj.offset != None:
-            self.s_offset[obj.offset] = obj
+        l = asm_label(name, offset)
+        collision = None
+        if l.offset in self.s_offset and l != self.s_offset[l.offset]:
+            collision = 'offset'
+        if l.name in self.s and l != self.s[l.name]:
+            collision = 'name'
+        if self.no_collision and collision == 'offset':
+            raise ValueError('symbol %s has same offset as %s'%(l, self.s_offset[l.offset]))
+        if self.no_collision and collision == 'name':
+            raise ValueError('symbol %s has same name as %s'%(l, self.s[l.name]))
+        self.labels.append(l)
+        if l.offset != None and collision == None:
+            self.s_offset[l.offset] = l
+        if l.name != "" and collision == None:
+            self.s[l.name] = l
+        return l
 
     def remove(self, obj):
         """
@@ -178,29 +185,27 @@ class asm_symbol_pool:
                 self.s[l].offset = None
 
     def getby_offset(self, offset):
-        if offset in self.s_offset:
-            return self.s_offset[offset]
+        l = asm_label(offset, offset)
+        if l.offset in self.s_offset:
+            return self.s_offset[l.offset]
         return None
 
     def getby_name(self, name):
-        if name in self.s:
-            return self.s[name]
+        l = asm_label(name)
+        if l.name in self.s:
+            return self.s[l.name]
         return None
 
     def getby_name_create(self, name):
-        if name in self.s:
-            return self.s[name]
-        else:
-            l = asm_label(name)
-            self.add(l)
+        l = self.getby_name(name)
+        if l == None:
+            l = self.add_label(name)
         return l
 
     def getby_offset_create(self, offset):
-        if offset in self.s_offset:
-            return self.s_offset[offset]
-        else:
-            l = asm_label(offset, offset)
-            self.add(l)
+        l = self.getby_offset(offset)
+        if l == None:
+            l = self.add_label(offset, offset)
         return l
 
     def rename(self, s, newname):
@@ -210,6 +215,9 @@ class asm_symbol_pool:
         del(self.s[s.name])
         s.name = newname
         self.s[s.name] = s
+
+    def items(self):
+        return self.labels[:]
 
     def __str__(self):
         return reduce(lambda x,y: x+str(y)+'\n', [self.s[l] for l in self.s], "")
@@ -535,8 +543,9 @@ def gen_free_space_intervals(f):
     return interval
 
 def add_dont_erase(f, dont_erase = []):
+    tmp_symbol_pool = asm_symbol_pool()
     for a,b in dont_erase:
-        l = asm_label(a, a)
+        l = tmp_symbol_pool.add_label(a, a)
         l.offset_free = a
         f[l] = b-a
     return
@@ -784,8 +793,7 @@ def calc_symbol_offset(symbol_pool):
 
     s_dependent = {}
 
-    for l in symbol_pool.s:
-        label = symbol_pool.s[l]
+    for label in symbol_pool.items():
         if label.offset == None:
             raise ValueError("symbol missing?", l)
         if not is_int(label.offset):
@@ -911,13 +919,12 @@ def asmbloc_final(mnemo, all_blocs, symbol_pool, symb_reloc_off = {}):
                 if my_s!=None:
                     my_symb_reloc_off[b.label].append(offset_i+my_s)
                 offset_i+=len(instr.data)
-    for l in symbol_pool.s:
-        if symbol_pool.s[l].offset_g ==None:
-            fdfd
     #we have fixed all relative values
     #recompute good offsets
-    for l in symbol_pool.s:
-        symbol_pool.s[l].offset = symbol_pool.s[l].offset_g
+    for label in symbol_pool.items():
+        if label.offset_g == None:
+            fdfd
+        label.offset = label.offset_g
 
     for a, b in my_symb_reloc_off.items():
         symb_reloc_off[a] = b
