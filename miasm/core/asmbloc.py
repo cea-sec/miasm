@@ -830,6 +830,19 @@ def calc_symbol_offset(symbol_pool):
             s_to_use.add(l)
 
 
+def conservative_asm(mnemo, instr, symbol_off = []):
+    candidates = mnemo.asm(str(instr), symbol_off)
+    if not candidates:
+        raise ValueError('cannot asm:%s'%str(instr))
+    if not hasattr(instr, "b"):
+        return candidates[0], candidates
+    if instr.b in candidates:
+        return instr.b, candidates
+    for c in candidates:
+        if len(c) == len(instr.b):
+            return c, candidates
+    return candidates[0], candidates
+
 def asmbloc(mnemo, all_blocs):
     #compute max bloc len
     for b in all_blocs:
@@ -844,18 +857,11 @@ def asmbloc(mnemo, all_blocs):
                 testing_arg = [mnemo.fix_symbol(a) for a in instr.arg]
                 sav_a = instr.arg
                 instr.arg = testing_arg
-                candidates=mnemo.asm(str(instr))
-                if not candidates:
-                    raise ValueError('cannot asm:%s'%str(instr))
+                c, candidates = conservative_asm(mnemo, instr)
                 instr.arg = sav_a
-
-                c = candidates[0]
                 blen_max+= len(candidates[-1])-len(candidates[0])
             else:
-                candidates=mnemo.asm(str(instr))
-                if not candidates:
-                    raise ValueError('cannot asm:%s'%str(instr))
-                c = candidates[0]
+                c, candidates = conservative_asm(mnemo, instr)
             log_asmbloc.debug(instr)
             log_asmbloc.debug(candidates)
             log_asmbloc.debug(repr(c))
@@ -904,10 +910,7 @@ def asmbloc_final(mnemo, all_blocs, symbol_pool, symb_reloc_off = {}):
                 else:
                     instr.arg = [mnemo.fix_symbol(a, symbol_pool) for a in instr.arg]
                 symbol_reloc_off = []
-                candidates=mnemo.asm(str(instr), symbol_reloc_off)
-                if not candidates:
-                    raise ValueError('cannot asm:%s'%str(instr))
-                c = candidates[0]
+                c, candidates = conservative_asm(mnemo, instr, symbol_reloc_off)
                 instr.arg = sav_a
                 if len(c)>len(instr.data):
                     #good len, bad offset...XXX
