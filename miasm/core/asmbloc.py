@@ -59,8 +59,10 @@ class asm_label:
             self.offset = int(offset)
 
     def __str__(self):
-        out = "%s: %s"%(self.name, str(self.offset))
-        return out
+        if isinstance(self.offset, (int, long)):
+            return "%s: 0x%08x" % (self.name, self.offset)
+        else:
+            return "%s: %s" % (self.name, str(self.offset))
     def __repr__(self):
         rep = '<asmlabel '
         if self.name:
