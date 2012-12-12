@@ -19,7 +19,7 @@ from miasm.core.asmbloc import *
 from shlex import shlex
 
 
-declarator = {'byte':'B', 'long':'I'}
+declarator = {'byte':'B', 'long':'I', 'zero':'I'}
 def guess_next_new_label(symbol_pool, gen_label_index = 0):
     i = 0
     while True:
@@ -28,6 +28,19 @@ def guess_next_new_label(symbol_pool, gen_label_index = 0):
             return symbol_pool.add_label(i)
         i+=1
 
+
+def normalize_args(a, b):
+    if len(a) != len(b):
+        log_asmbloc.debug("Incoherent number of args %d != %d"%(len(a),len(b)))
+        return
+    for i in xrange(len(a)):
+        if a[i] == b[i]:
+            continue
+        if 'imm' in b[i]:
+            continue
+        a[i] = b[i]
+        if 'ad' in b[i] and b[i]['ad']:
+            a[i]['ad'] = True
 
 def parse_txt(mnemo, txt, symbol_pool = None, gen_label_index = 0):
     if symbol_pool == None:
@@ -45,6 +58,17 @@ def parse_txt(mnemo, txt, symbol_pool = None, gen_label_index = 0):
             continue
         #comment
         if re.match(r'\s*;\S*', line):
+            continue
+        #labels to forget
+        r = re.match(r'\s*\.LF[BE]\d\s*:', line)
+        if r:
+            continue
+        #label beginning with .L
+        r = re.match(r'\s*(\.L\S+)\s*:', line)
+        if r:
+            l = r.groups()[0]
+            l = symbol_pool.getby_name_create(l)
+            lines.append(l)
             continue
         #directive
         if re.match(r'\s*\.', line):
@@ -75,18 +99,28 @@ def parse_txt(mnemo, txt, symbol_pool = None, gen_label_index = 0):
                 lines.append(asm_raw(raw))
                 continue
             if directive in declarator:
-                data_raw = [x for x in shlex(line[r.end():]) if not x in ',']
-                data_int = []
-                for b in data_raw:
-                    if re.search(r'0x', b):
-                        data_int.append(int(b, 16))
-                    else:
-                        data_int.append(int(b))
-                raw = reduce(lambda x,y:x+struct.pack(declarator[directive], y), data_int, "")
+                data_raw = line[r.end():].split()
+                try:
+                    data_int = []
+                    for b in data_raw:
+                        if re.search(r'0x', b):
+                            data_int.append(int(b, 16))
+                        else:
+                            data_int.append(int(b)%(1<<32))
+                    raw = reduce(lambda x,y:x+struct.pack(declarator[directive], y), data_int, "")
+                except ValueError:
+                    raw = line
                 lines.append(asm_raw(raw))
+                continue
+            if directive == 'comm':
+                # TODO
                 continue
             if directive == 'split': #custom command
                 lines.append(asm_raw(line.strip()))
+                continue
+            if directive in [ 'file', 'intel_syntax', 'globl', 'local', 'type', 'size', 'align', 'ident', 'section' ]:
+                continue
+            if directive[0:4] == 'cfi_':
                 continue
 
             raise ValueError("unknown directive %s"%str(directive))
@@ -130,7 +164,7 @@ def parse_txt(mnemo, txt, symbol_pool = None, gen_label_index = 0):
             instr = mnemo.dis(c)
         else:
             instr = mnemo.asm_instr(line)
-        instr.arg = args
+        normalize_args(instr.arg, args)
         lines.append(instr)
 
     log_asmbloc.info( "___pre asm oki___")
