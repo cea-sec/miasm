@@ -1782,7 +1782,7 @@ class x86_mn:
             return prefix, name, []
 
         for a in args:
-            if x86_afs.segm in a:
+            if not isinstance(a, str) and x86_afs.segm in a:
                 prefix.append(x86_afs.reg_sg.index(a[x86_afs.segm]))
 
         # special case ommiting 1 as argument
