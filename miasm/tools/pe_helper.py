@@ -79,6 +79,16 @@ def func_from_import(pe_name, func):
     return e, found
 
 
+def get_sectionname(e, offset):
+    section = e.getsectionbyvad(offset)
+    if section == None:
+        return None
+    if isinstance(e, elf_init.ELF):
+        return section.sh.name
+    elif isinstance(e, pe_init.PE):
+        return section.name
+    else:
+        raise ValueError("TODO")
 
 def is_rva_in_code_section(e, rva):
     s = e.getsectionbyrva(rva)
