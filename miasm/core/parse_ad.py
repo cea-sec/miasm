@@ -277,6 +277,12 @@ def p_expression_10(t):
         t[2][x86_afs.ad] = x86_afs.u32
     t[0] = t[2]
 
+def p_expression_10b(t):
+    '''expression : expression LBRA expression RBRA '''
+    t[0] = t[3]
+    for f in t[1]:
+        t[0][f] = t[1][f]
+
 def p_expression_10a(t):
     '''expression : opt_seg_colon expression '''
     t[2].update(t[1])
