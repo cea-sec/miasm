@@ -130,9 +130,25 @@ op_assoc = ['+', '*', '^', '&', '|']
 
 
 def expr_simp(e):
-    return e.visit(_expr_simp)
+    return  e.visit(_expr_simp_w)
+
+def _expr_simp_w(e):
+    if not hasattr(e, 'simp'):
+        e.simp = False
+    if e.simp:
+        #print 'done'
+        return e
+    while True:
+        e_new = _expr_simp(e)
+        if e_new == e:
+            break
+        e = expr_simp(e_new)
+    e.simp = True
+    #print 'return', e
+    return e
 
 def _expr_simp(e):
+    #print 'simp', e
     if isinstance(e, ExprOp):
         # merge associatif op
         # ((a+b) + c) => (a + b + c)
