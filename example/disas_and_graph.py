@@ -121,7 +121,7 @@ elif data.startswith("\xca\xfe\xba\xbe"):
 
 
 else:
-    print 'WARNING cannot autodetect file type, using raw'
+    print 'WARNING cannot autodetect file type, using raw', repr(data[:10])
     in_str = bin_stream.bin_stream(data)
     if ad_to_dis == None:
         ad_to_dis = 0

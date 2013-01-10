@@ -64,13 +64,13 @@ def func_from_import(pe_name, func):
     if type(func) is str:
         for i, n in enumerate(e.DirExport.f_names):
             if n.name.name == func:
-                found = e.DirExport.f_address[e.DirExport.f_nameordinals[i].ordinal]
+                found = e.DirExport.f_address[e.DirExport.f_nameordinals[i].ordinal].rva
                 break
 
     elif type(func) in [int, long]:
         for i, n in enumerate(e.DirExport.f_names):
             if e.DirExport.f_nameordinals[i].ordinal+e.DirExport.expdesc.base == func:
-                found = e.DirExport.f_address[e.DirExport.f_nameordinals[i].ordinal]
+                found = e.DirExport.f_address[e.DirExport.f_nameordinals[i].ordinal].rva
                 break
     else:
         raise ValueError('unknown fund type', func)
@@ -388,8 +388,10 @@ def is_redirected_export(e, ad):
 
 def canon_libname_libfunc(libname, libfunc):
     dn = libname.split('.')[0]
-    fn = "%s"%libfunc
-    return "%s_%s"%(dn, fn)
+    if type(libfunc) == str:
+        return "%s_%s"%(dn, libfunc)
+    else:
+        return str(dn), libfunc
 
 class libimp:
     def __init__(self, lib_base_ad = 0x77700000):
@@ -661,10 +663,18 @@ def preload_elf(e, patch_vm_imp = True, lib_base_ad = 0x77700000):
 
 def get_export_name_addr_list(e):
     out = []
+    # add func name
     for i, n in enumerate(e.DirExport.f_names):
         addr = e.DirExport.f_address[e.DirExport.f_nameordinals[i].ordinal]
         f_name = n.name.name
+        #print f_name, hex(e.rva2virt(addr.rva))
         out.append((f_name, e.rva2virt(addr.rva)))
+
+    # add func ordinal
+    for i, o in enumerate(e.DirExport.f_nameordinals):
+        addr = e.DirExport.f_address[o.ordinal]
+        #print o.ordinal, e.DirExport.expdesc.base, hex(e.rva2virt(addr.rva))
+        out.append((o.ordinal+e.DirExport.expdesc.base, e.rva2virt(addr.rva)))
     return out
 
 
