@@ -210,7 +210,7 @@ def is_reg(a):
     return True
 
 def get_label(a):
-    if x86_afs.ad in a:
+    if x86_afs.ad in a and a[x86_afs.ad]:
         return None
     if x86_afs.imm in a:
         return None
