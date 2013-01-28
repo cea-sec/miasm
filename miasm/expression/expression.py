@@ -776,3 +776,97 @@ def ExprInt_from(e, i):
     return ExprInt(tab_uintsize[e.get_size()](i))
 
 
+
+def test_set(e, v, tks, result):
+    if not v in tks:
+        return e == v
+    if v in result and result[v] != e:
+        return False
+    result[v] = e
+    return result
+
+def MatchExpr(e, m, tks, result = None):
+    """
+    try to match m expression with e expression with tks jokers
+    result is output dictionnary with matching joker values
+    """
+    if result == None:
+        result = {}
+    #print 'match', e, m, tks, result
+    if m in tks:
+        return test_set(e, m, tks, result)
+    if isinstance(e, ExprInt):
+        return test_set(e, m, tks, result)
+    elif isinstance(e, ExprId):
+        return test_set(e, m, tks, result)
+    elif isinstance(e, ExprOp):
+        if not isinstance(m, ExprOp):
+            return False
+        for a1, a2 in zip(e.args, m.args):
+            r = MatchExpr(a1, a2, tks, result)
+            if r == False:
+                return False
+        return result
+    elif isinstance(e, ExprMem):
+        if not isinstance(m, ExprMem):
+            return False
+        if e.size != m.size:
+            return False
+        return MatchExpr(e.arg, m.arg, tks, result)
+    elif isinstance(e, ExprSlice):
+        if not isinstance(m, ExprSlice):
+            return False
+        if e.start != m.start or e.stop != m.stop:
+            return False
+        return MatchExpr(e.arg, m.arg, tks, result)
+    elif isinstance(e, ExprCond):
+        if not isinstance(m, ExprCond):
+            return False
+        r = MatchExpr(e.cond, m.cond, tks, result)
+        if not r: return False
+        r = MatchExpr(e.src1, m.src1, tks, result)
+        if not r: return False
+        r = MatchExpr(e.src2, m.src2, tks, result)
+        if not r: return False
+        return result
+    elif isinstance(e, ExprCompose):
+        if not isinstance(m, ExprCompose):
+            return False
+        for a1, a2 in zip(e.args, m.args):
+            if a1[1] != a2[1] or a1[2] != a2[2]:
+                return False
+            r = MatchExpr(a1[0], a2[0], tks, result)
+            if not r:
+                return False
+        return result
+    else:
+        fds
+if __name__ == '__main__':
+    x = ExprId('x')
+    y = ExprId('y')
+    z = ExprId('z')
+    a = ExprId('a')
+    b = ExprId('b')
+    c = ExprId('c')
+
+    print MatchExpr(x, a, [a])
+    print MatchExpr(ExprInt32(12), a, [a])
+    print MatchExpr(x+y, a, [a])
+    print MatchExpr(x+y, a+y, [a])
+    print MatchExpr(x+y, x+a, [a])
+    print MatchExpr(x+y, a+b, [a, b])
+    print MatchExpr(x+ExprId(12), a+b, [a, b])
+    print MatchExpr(ExprMem(x), a, [a])
+    print MatchExpr(ExprMem(x), ExprMem(a), [a])
+    print MatchExpr(x[0:8], a, [a])
+    print MatchExpr(x[0:8], a[0:8], [a])
+    print MatchExpr(ExprCond(x, y, z), a, [a])
+    print MatchExpr(ExprCond(x, y, z),
+                    ExprCond(a, b, c), [a, b, c])
+    print MatchExpr(ExprCompose([(x, 0, 8), (y, 8, 16)]), a, [a])
+    print MatchExpr(ExprCompose([(x, 0, 8), (y, 8, 16)]),
+                    ExprCompose([(a, 0, 8), (b, 8, 16)]), [a, b])
+
+    e1 = ExprMem((a&ExprInt32(0xFFFFFFFC))+ExprInt32(0x10), 32)
+    e2 = ExprMem((a&ExprInt32(0xFFFFFFFC))+b, 32)
+    print MatchExpr(e1, e2, [b])
