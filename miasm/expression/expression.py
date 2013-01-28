@@ -817,3 +817,12 @@ def ExprInt_from(e, i):
     return ExprInt(tab_uintsize[e.get_size()](i))
 
 
+def get_expr_ids_visit(e, ids):
+    if isinstance(e, ExprId):
+        ids.add(e)
+    return e
+
+def get_expr_ids(e):
+    ids = set()
+    e.visit(lambda x:get_expr_ids_visit(x, ids))
+    return ids
