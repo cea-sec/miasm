@@ -1323,7 +1323,7 @@ def do_bloc_emul(known_blocs, in_str, my_eip, symbol_pool,
     if not known_blocs[my_eip].b.lines:
         raise ValueError('cannot disasm bloc')
     try:
-        my_eip = vm_exec_blocs(my_eip, known_blocs)
+        my_eip = vm_exec_bloc(my_eip, known_blocs)
     except KeyboardInterrupt:
         return None, None
     py_exception = vm_get_exception()

@@ -839,35 +839,7 @@ def shl(info, a, b):
     return e
 
 def shld_cl(info, a, b):
-    e= []
-    shifter = ExprOp('&',ecx, ExprInt_from(a, 0x1f))
-    c = ExprOp('|',
-            ExprOp('<<', a, shifter),
-            ExprOp('>>', b, ExprOp('-',
-                                    ExprInt_from(a, a.get_size()),
-                                    shifter)
-                                    )
-          )
-
-    new_cf = ExprOp('&',
-                    ExprInt_from(a, 1),
-                    ExprOp('>>',
-                           a,
-                           ExprOp('-',
-                                  ExprInt_from(b, a.get_size()),
-                                  shifter
-                                  )
-                           )
-                    )
-    e.append(ExprAff(cf, ExprCond(shifter,
-                                  new_cf,
-                                  cf)
-                     )
-             )
-    e+=update_flag_znp(c)
-    e.append(ExprAff(of, ExprOp('^', get_op_msb(c), new_cf)))
-    e.append(ExprAff(a, c))
-    return e
+    return shld(info, a, b, ecx)
 
 def shld(info, a, b, c):
     e= []
@@ -895,9 +867,12 @@ def shld(info, a, b, c):
                                   cf)
                      )
              )
+    # XXX todo: don't update flag if shifter is 0
     e+=update_flag_znp(c)
     e.append(ExprAff(of, ExprOp('^', get_op_msb(c), new_cf)))
-    e.append(ExprAff(a, c))
+    e.append(ExprAff(a, ExprCond(shifter,
+                                 c,
+                                 a)))
     return e
 
 
