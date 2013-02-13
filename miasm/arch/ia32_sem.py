@@ -1778,7 +1778,7 @@ def fadd(info, a, b = None):
     return e
 
 def faddp(info, a, b = None):
-    e = fadd(a, b)
+    e = fadd(info, a, b)
     if b == None:
         e+=float_pop(float_st0)
     else:
@@ -1858,8 +1858,13 @@ def fdiv(info, a, b = None):
 
 def fdivp(info, a):
     # Invalid emulation
-    e = []
-    e.append(ExprAff(a, ExprOp('fdiv', a, float_st0)))
+    e = fdiv(info, a)
+    e+=float_pop(a)
+    return e
+
+def fmulp(info, a):
+    # Invalid emulation
+    e = fmul(info, a)
     e+=float_pop(a)
     return e
 
@@ -2396,6 +2401,7 @@ mnemo_func = {'mov': mov,
               'faddp':faddp,
               'fsub':fsub,
               'fmul':fmul,
+              'fmulp':fmulp,
               'fdiv':fdiv,
               'fdivp':fdivp,
               'fxch':fxch,

@@ -506,6 +506,7 @@ unsigned int fcom_c3(double a, double b);
 
 double mem_32_to_double(unsigned int m);
 double mem_64_to_double(uint64_t m);
+double int_16_to_double(unsigned int m);
 double int_32_to_double(unsigned int m);
 double int_64_to_double(uint64_t m);
 int double_to_int_32(double d);

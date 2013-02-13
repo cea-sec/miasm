@@ -942,6 +942,17 @@ double mem_64_to_double(uint64_t m)
 	return d;
 }
 
+double int_16_to_double(unsigned int m)
+{
+	double d;
+
+	d = (double)(m&0xffff);
+#ifdef DEBUG_MIASM_DOUBLE
+	printf("%d %e\n", m, d);
+#endif
+	return d;
+}
+
 double int_32_to_double(unsigned int m)
 {
 	double d;
