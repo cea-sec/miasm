@@ -1126,13 +1126,15 @@ class x86allmncs:
 
 
         addop("fdiv",  [0xD8],             d6,    no_rm         , {sd:(0,2)}         ,{}                , {},                         )
-        addop("fdiv",  [0xD8, 0xF0],       reg,   [r_eax]       , {sw:(0,2)}         ,{sd:True,sw:False}, {},                         )
+        addop("fdivr", [0xD8],             d7,    no_rm         , {sd:(0,2)}         ,{}                , {},                         )
+        addop("fdiv",  [0xDC, 0xF8],       reg,   [r_eax]       , {        }         ,{sd:True,sw:True }, {},                         )
         addop("fidiv", [0xDA],             d6,    no_rm         , {wd:(0,2)}         ,{}                , {},                         )
         addop("fidivr",[0xDA],             d7,    no_rm         , {wd:(0,2)}         ,{}                , {},                         )
         addop("fdivp", [0xDE, 0xF8],       reg,   no_rm         , {}                 ,{sd:True}         , {},                         )
 
-        addop("fdivr", [0xD8],             d7,    no_rm         , {sd:(0,2)}         ,{}                , {},                         )
-        addop("fdivr", [0xD8, 0xF8],       reg,   [r_eax]       , {sw:(0,2)}         ,{sd:True,sw:False}, {},                         )
+        addop("fdiv",  [0xD8, 0xF0],       reg,   [r_eax]       , {        }         ,{sd:True,sw:False}, {},                         )
+        addop("fdivr", [0xD8, 0xF8],       reg,   [r_eax]       , {        }         ,{sd:True,sw:False}, {},                         )
+        addop("fdivr", [0xDC, 0xF0],       reg,   [r_eax]       , {        }         ,{sd:True,sw:True }, {},                         )
         addop("fdivrp",[0xDE, 0xF0],       reg,   no_rm         , {}                 ,{sd:False}        , {},                         )
 
         addop("ffree", [0xDD, 0xC0],       reg,   no_rm         , {}                 ,{sd:False}        , {},                         )
