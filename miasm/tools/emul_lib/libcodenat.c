@@ -683,8 +683,9 @@ int imul_hi_op_16(short a, short b)
 int imul_hi_op_32(int a, int b)
 {
 	int64_t res = 0;
-	res = a*b;
-	return res>>32;
+	res = (int64_t)a*(int64_t)b;
+	//printf("%x %x dd %"PRIx64"\n", a, b, res);
+	return res>>32ULL;
 }
 
 unsigned int umul16_lo(unsigned short a, unsigned short b)
@@ -918,6 +919,20 @@ unsigned int cpuid(unsigned int a, unsigned int reg_num)
 
 #define DEBUG_MIASM_DOUBLE
 
+
+void dump_float(void)
+{
+	printf("%e\n", vmcpu.float_st0);
+	printf("%e\n", vmcpu.float_st1);
+	printf("%e\n", vmcpu.float_st2);
+	printf("%e\n", vmcpu.float_st3);
+	printf("%e\n", vmcpu.float_st4);
+	printf("%e\n", vmcpu.float_st5);
+	printf("%e\n", vmcpu.float_st6);
+	printf("%e\n", vmcpu.float_st7);
+
+}
+
 double mem_32_to_double(unsigned int m)
 {
 	float f;
@@ -926,7 +941,8 @@ double mem_32_to_double(unsigned int m)
 	f = *((float*)&m);
 	d = f;
 #ifdef DEBUG_MIASM_DOUBLE
-	printf("%d %e\n", m, d);
+	dump_float();
+	printf("%d float %e\n", m, d);
 #endif
 	return d;
 }
@@ -937,7 +953,8 @@ double mem_64_to_double(uint64_t m)
 	double d;
 	d = *((double*)&m);
 #ifdef DEBUG_MIASM_DOUBLE
-	printf("%"PRId64" %e\n", m, d);
+	dump_float();
+	printf("%"PRId64" double %e\n", m, d);
 #endif
 	return d;
 }
@@ -948,7 +965,8 @@ double int_16_to_double(unsigned int m)
 
 	d = (double)(m&0xffff);
 #ifdef DEBUG_MIASM_DOUBLE
-	printf("%d %e\n", m, d);
+	dump_float();
+	printf("%d double %e\n", m, d);
 #endif
 	return d;
 }
@@ -959,7 +977,8 @@ double int_32_to_double(unsigned int m)
 
 	d = (double)m;
 #ifdef DEBUG_MIASM_DOUBLE
-	printf("%d %e\n", m, d);
+	dump_float();
+	printf("%d double %e\n", m, d);
 #endif
 	return d;
 }
@@ -970,7 +989,8 @@ double int_64_to_double(uint64_t m)
 
 	d = (double)m;
 #ifdef DEBUG_MIASM_DOUBLE
-	printf("%"PRId64" %e\n", m, d);
+	dump_float();
+	printf("%"PRId64" double %e\n", m, d);
 #endif
 	return d;
 }
@@ -981,7 +1001,8 @@ int double_to_int_32(double d)
 
 	i = (int)d;
 #ifdef DEBUG_MIASM_DOUBLE
-	printf("%e %d\n", d, i);
+	dump_float();
+	printf("%e int %d\n", d, i);
 #endif
 	return i;
 }
@@ -991,7 +1012,8 @@ double fadd(double a, double b)
 	double c;
 	c = a + b;
 #ifdef DEBUG_MIASM_DOUBLE
-	printf("%e %e %e\n", a, b, c);
+	dump_float();
+	printf("%e + %e -> %e\n", a, b, c);
 #endif
 	return c;
 }
@@ -1001,7 +1023,8 @@ double fsub(double a, double b)
 	double c;
 	c = a - b;
 #ifdef DEBUG_MIASM_DOUBLE
-	printf("%e %e %e\n", a, b, c);
+	dump_float();
+	printf("%e - %e -> %e\n", a, b, c);
 #endif
 	return c;
 }
@@ -1011,7 +1034,8 @@ double fmul(double a, double b)
 	double c;
 	c = a * b;
 #ifdef DEBUG_MIASM_DOUBLE
-	printf("%e %e %e\n", a, b, c);
+	dump_float();
+	printf("%e * %e -> %e\n", a, b, c);
 #endif
 	return c;
 }
@@ -1021,7 +1045,8 @@ double fdiv(double a, double b)
 	double c;
 	c = a / b;
 #ifdef DEBUG_MIASM_DOUBLE
-	printf("%e %e %e\n", a, b, c);
+	dump_float();
+	printf("%e / %e -> %e\n", a, b, c);
 #endif
 	return c;
 }
@@ -1031,7 +1056,8 @@ double ftan(double a)
 	double b;
 	b = tan(a);
 #ifdef DEBUG_MIASM_DOUBLE
-	printf("%e %e\n", a, b);
+	dump_float();
+	printf("%e tan %e\n", a, b);
 #endif
 	return b;
 }
@@ -1043,7 +1069,8 @@ double frndint(double a)
 	b = (int64_t)a;
 	c = (double)b;
 #ifdef DEBUG_MIASM_DOUBLE
-	printf("%e %e\n", a, c);
+	dump_float();
+	printf("%e double %e\n", a, c);
 #endif
 	return c;
 }
@@ -1053,7 +1080,8 @@ double fsin(double a)
 	double b;
 	b = sin(a);
 #ifdef DEBUG_MIASM_DOUBLE
-	printf("%e %e\n", a, b);
+	dump_float();
+	printf("%e sin %e\n", a, b);
 #endif
 	return b;
 }
@@ -1063,7 +1091,8 @@ double fcos(double a)
 	double b;
 	b = cos(a);
 #ifdef DEBUG_MIASM_DOUBLE
-	printf("%e %e\n", a, b);
+	dump_float();
+	printf("%e cos %e\n", a, b);
 #endif
 	return b;
 }
@@ -1074,7 +1103,8 @@ double fscale(double a, double b)
 	double c;
 	c = a * exp2(trunc(b));
 #ifdef DEBUG_MIASM_DOUBLE
-	printf("%e %e %e\n", a, b, c);
+	dump_float();
+	printf("%e *exp2 %e -> %e\n", a, b, c);
 #endif
 	return c;
 }
@@ -1084,7 +1114,8 @@ double f2xm1(double a)
 	double b;
 	b = exp2(a)-1;
 #ifdef DEBUG_MIASM_DOUBLE
-	printf("%e %e\n", a, b);
+	dump_float();
+	printf("%e exp2 -1 %e\n", a, b);
 #endif
 	return b;
 }
@@ -1094,7 +1125,8 @@ double fsqrt(double a)
 	double b;
 	b = sqrt(a);
 #ifdef DEBUG_MIASM_DOUBLE
-	printf("%e %e\n", a, b);
+	dump_float();
+	printf("%e sqrt %e\n", a, b);
 #endif
 	return b;
 }
@@ -1104,7 +1136,8 @@ double fabs(double a)
 	double b;
 	b = abs(a);
 #ifdef DEBUG_MIASM_DOUBLE
-	printf("%e %e\n", a, b);
+	dump_float();
+	printf("%e abs %e\n", a, b);
 #endif
 	return b;
 }
@@ -1141,6 +1174,7 @@ unsigned int double_to_mem_32(double d)
 	f = d;
 	m = *((unsigned int*)&f);
 #ifdef DEBUG_MIASM_DOUBLE
+	dump_float();
 	printf("%d %e\n", m, d);
 #endif
 	return m;
@@ -1151,6 +1185,7 @@ uint64_t double_to_mem_64(double d)
 	uint64_t m;
 	m = *((uint64_t*)&d);
 #ifdef DEBUG_MIASM_DOUBLE
+	dump_float();
 	printf("%"PRId64" %e\n", m, d);
 #endif
 	return m;

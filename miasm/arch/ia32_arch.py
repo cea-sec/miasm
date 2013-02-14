@@ -166,7 +166,8 @@ unsanity_mnemo = ['nop', 'monitor', 'mwait', 'fadd', 'faddp', 'fiadd', 'fcmovb',
                   'fnstsw', 'fsub', 'fsubr', 'fisubr', 'fsubrp', 'ftst', 'fucom', 'fucompp', 'fxam', 'fxtract', 'fyl2x', 'fyl2xp1', 'fsqrt', 'fsincos', 'fsin', 'fscale',
                   'fcos', 'fdecstp', 'fnop', 'fpatan', 'fprem', 'fprem1', 'fptan', 'frndint', "shl", 'sal', 'sar', 'fabs',
                   "jmpff",
-                  "fcomi", "fucomi", "fucomip", "fdivp"]
+                  "fcomi", "fucomi", "fucomip", "fdivp",
+                  "fisubr", "fsubp"]
 
 
 mask_drcrsg = {cr:0x100, dr:0x200, sg:0x400}
@@ -1096,7 +1097,7 @@ class x86allmncs:
         addop("fadd",  [0xD8],             d0,    no_rm         , {sd:(0,2)}         ,{}         , {},                         )
         addop("fadd",  [0xD8, 0xC0],       reg,   [r_eax]       , {sw:(0,2)}         ,{sd:True,sw:False}, {},                         )
         addop("fiadd", [0xDA],             d0,    no_rm         , {wd:(0,2)}         ,{}                , {},                         )
-        addop("faddp", [0xDE, 0xC0],       reg,   no_rm         , {}                 ,{sd:False}        , {},                         )
+        addop("faddp", [0xDE, 0xC0],       reg,   [r_eax]       , {}                 ,{sd:False,sw:True}, {},                         )
 
         addop("fbld",  [0xDF],             d4,    no_rm         , {}                 ,{}                , {},                         )
         addop("fbstp", [0xDF],             d6,    no_rm         , {}                 ,{}                , {},                         )
@@ -1130,7 +1131,7 @@ class x86allmncs:
         addop("fdiv",  [0xDC, 0xF8],       reg,   [r_eax]       , {        }         ,{sd:True,sw:True }, {},                         )
         addop("fidiv", [0xDA],             d6,    no_rm         , {wd:(0,2)}         ,{}                , {},                         )
         addop("fidivr",[0xDA],             d7,    no_rm         , {wd:(0,2)}         ,{}                , {},                         )
-        addop("fdivp", [0xDE, 0xF8],       reg,   no_rm         , {}                 ,{sd:True}         , {},                         )
+        addop("fdivp", [0xDE, 0xF8],       reg,   [r_eax]       , {}                 ,{sd:True,sw:True} , {},                         )
 
         addop("fdiv",  [0xD8, 0xF0],       reg,   [r_eax]       , {        }         ,{sd:True,sw:False}, {},                         )
         addop("fdivr", [0xD8, 0xF8],       reg,   [r_eax]       , {        }         ,{sd:True,sw:False}, {},                         )
@@ -1161,7 +1162,7 @@ class x86allmncs:
         addop("fmul",  [0xD8],             d1,    no_rm         , {sd:(0,2)}         ,{}                , {},                         )
         addop("fmul",  [0xD8, 0xC8],       reg,   [r_eax]       , {sw:(0,2)}         ,{sd:True,sw:False}, {},                         )
         addop("fimul", [0xDA],             d1,    no_rm         , {wd:(0,2)}         ,{}                , {},                         )
-        addop("fmulp", [0xDE, 0xC8],       reg,   no_rm         , {}                 ,{sd:False}        , {},                         )
+        addop("fmulp", [0xDE, 0xC8],       reg,   [r_eax]         , {}               ,{sd:False,sw:True}, {},                         )
 
 
         addop("frstor",[0xDD],             d4,    no_rm         , {}                 ,{wd:False}        , {},                         ) #XXX 94/108
@@ -1172,7 +1173,7 @@ class x86allmncs:
 
         addop("fst",   [0xD9],             d2,    no_rm         , {sd:(0,2)}         ,{}                , {},                         )
         addop("fst",   [0xDD, 0xD0],       reg,   no_rm         , {}                 ,{sd:False}        , {},                         )
-        addop("fstp",  [0xD9],             d3,    no_rm         , {sd:(0,2)}         ,{sd:False}        , {},                         )
+        addop("fstp",  [0xD9],             d3,    no_rm         , {sd:(0,2)}         ,{sd:True}        , {},                         )
         addop("fstp",  [0xDB],             d7,    no_rm         , {}                 ,{sd:False}        , {},                         ) #XXX 80
         addop("fstp",  [0xDD, 0xD8],       reg,   no_rm         , {}                 ,{sd:True}         , {},                         )
 
@@ -1226,14 +1227,25 @@ class x86allmncs:
         #ddop("fstsw",[0x9B, 0xDF, 0xE0],  noafs, no_rm         , {}                 ,{wd:False}        , {},                         ) #XXX no mnemo
         addop("fnstsw",[0xDF, 0xE0],       noafs, no_rm         , {}                 ,{wd:False}        , {},                         )
 
+        #addop("fsub",  [0xD8],             d4,    no_rm         , {sd:(0,2)}         ,{}                , {},                         )
+        #addop("fsubr", [0xD8],             d5,    no_rm         , {sd:(0,2)}         ,{}                , {},                         )
+        #addop("fsub",  [0xD8, 0xE0],       reg,   [r_eax]       , {        }         ,{sd:True,sw:False}, {},                         )
+        #addop("fisub", [0xDA],             d4,    no_rm         , {wd:(0,2)}         ,{}                , {},                         )
+        #addop("fsubp", [0xDE, 0xE8],       reg,   [r_eax]       , {}                 ,{sd:False,sw:True}, {},                         )
+        #
+        #addop("fsubr", [0xD8, 0xE8],       reg,   [r_eax]       , {sw:(0,2)}         ,{sd:True,sw:False}, {},                         )
+        #addop("fisubr",[0xDA],             d5,    no_rm         , {wd:(0,2)}         ,{}                , {},                         )
+        #addop("fsubrp",[0xDE, 0xE0],       reg,   no_rm         , {}                 ,{sd:False}        , {},                         )
         addop("fsub",  [0xD8],             d4,    no_rm         , {sd:(0,2)}         ,{}                , {},                         )
-        addop("fsub",  [0xD8, 0xE0],       reg,   [r_eax]       , {sw:(0,2)}         ,{sd:True,sw:False}, {},                         )
-        addop("fisub", [0xDA],             d4,    no_rm         , {wd:(0,2)}         ,{}                , {},                         )
-        addop("fsubp", [0xDE, 0xE8],       reg,   no_rm         , {}                 ,{sd:False}        , {},                         )
-
         addop("fsubr", [0xD8],             d5,    no_rm         , {sd:(0,2)}         ,{}                , {},                         )
-        addop("fsubr", [0xD8, 0xE8],       reg,   [r_eax]       , {sw:(0,2)}         ,{sd:True,sw:False}, {},                         )
+        addop("fsub",  [0xDC, 0xE8],       reg,   [r_eax]       , {        }         ,{sd:True,sw:True }, {},                         )
+        addop("fisub", [0xDA],             d4,    no_rm         , {wd:(0,2)}         ,{}                , {},                         )
         addop("fisubr",[0xDA],             d5,    no_rm         , {wd:(0,2)}         ,{}                , {},                         )
+        addop("fsubp", [0xDE, 0xE8],       reg,   [r_eax]       , {}                 ,{sd:True,sw:True} , {},                         )
+
+        addop("fsub",  [0xD8, 0xE0],       reg,   [r_eax]       , {        }         ,{sd:True,sw:False}, {},                         )
+        addop("fsubr", [0xD8, 0xE8],       reg,   [r_eax]       , {        }         ,{sd:True,sw:False}, {},                         )
+        addop("fsubr", [0xDC, 0xE0],       reg,   [r_eax]       , {        }         ,{sd:True,sw:True }, {},                         )
         addop("fsubrp",[0xDE, 0xE0],       reg,   no_rm         , {}                 ,{sd:False}        , {},                         )
 
         addop("ftst",  [0xD9, 0xE4],       noafs, no_rm         , {}                 ,{sd:False}        , {},                         )
