@@ -1219,7 +1219,11 @@ def load_pe_in_vm(fname_in, options, all_imp_dll = None, **kargs):
     if 'stack_size' in kargs:
         stack_size = kargs['stack_size']
 
-    stack_base_ad = kargs.get('stack_base_ad', 0x1230000)
+    stack_base = 0x1230000
+    if 'stack_base' in kargs:
+        stack_base = kargs['stack_base']
+
+    stack_base_ad = kargs.get('stack_base_ad', stack_base)
     stack_size = kargs.get('stack_size', stack_size)
     vm_add_memory_page(stack_base_ad,
                                    codenat.PAGE_READ|codenat.PAGE_WRITE,

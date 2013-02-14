@@ -693,6 +693,8 @@ def parse_fmt(s):
         i+=1
         while fmt[i+j] in "0123456789$.":
             j+=1
+        if fmt[i+j] in ['l']:
+            j +=1
         if fmt[i+j] == "h":
             x = fmt[i+j:i+j+2]
         else:
