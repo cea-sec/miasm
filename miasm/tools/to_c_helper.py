@@ -1205,7 +1205,7 @@ def load_pe_in_vm(fname_in, options, all_imp_dll = None, **kargs):
     seh_helper.runtime_dll = runtime_dll
     if options.loadmainpe:
         seh_helper.main_pe = e
-    seh_helper.main_pe_name = "c:\\xxx\\"+kargs.get("main_pe_name", "toto.exe")
+    seh_helper.main_pe_name = kargs.get("main_pe_name", "toto.exe")
     seh_helper.loaded_modules = all_pe
     dll_dyn_funcs = pe_helper.preload_lib(e, runtime_dll)
 
@@ -1277,13 +1277,15 @@ def vm2pe(fname, runtime_dll = None, e_orig = None, max_addr = 1<<64):
         xx = str(mye)
         mye.content = xx
         ad = e_orig.rva2virt(e_orig.NThdr.optentries[pe.DIRECTORY_ENTRY_RESOURCE].rva)
-        ad = mye.virt2rva(ad)
-        mye.NThdr.optentries[pe.DIRECTORY_ENTRY_RESOURCE].rva = ad
-        mye.DirRes = pe.DirRes.unpack(xx,ad,mye)
-        #print repr(mye.DirRes)
-        s_res = mye.SHList.add_section(name = "myres", rawsize = len(mye.DirRes))
-        mye.DirRes.set_rva(s_res.addr)
-        print repr(mye.DirRes)
+        print 'dirres', hex(ad)
+        if ad != 0:
+            ad = mye.virt2rva(ad)
+            mye.NThdr.optentries[pe.DIRECTORY_ENTRY_RESOURCE].rva = ad
+            mye.DirRes = pe.DirRes.unpack(xx,ad,mye)
+            #print repr(mye.DirRes)
+            s_res = mye.SHList.add_section(name = "myres", rawsize = len(mye.DirRes))
+            mye.DirRes.set_rva(s_res.addr)
+            print repr(mye.DirRes)
 
     # generation
     open(fname, 'w').write(str(mye))

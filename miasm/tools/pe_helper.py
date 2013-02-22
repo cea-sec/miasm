@@ -300,6 +300,10 @@ def code_is_jmp_imp(e, ad, imp_d):
     return is_jmp_imp(l, imp_d)
 
 
+def test_ret_and_cc(in_str, ad):
+    while in_str[ad] == "\xCC":
+        ad -=1
+    return in_str[ad] == '\xC3' or in_str[ad-2] == "\xC2"
 
 # giving e and address in function guess function start
 def guess_func_start(in_str, line_ad, max_offset = 0x200):
@@ -317,7 +321,10 @@ def guess_func_start(in_str, line_ad, max_offset = 0x200):
             if in_str[ad] == "\xCC":
                 if in_str[((ad+3)&~3)-1] == "\xCC":
                     ad_found = ((ad+3)&~3)
-                    break
+                    if test_ret_and_cc(in_str, ad_found):
+                        break
+                    else:
+                        continue
                 else:
                     continue
             l = x86_mn.dis(in_str[ad:ad+15])

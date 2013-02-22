@@ -19,6 +19,14 @@
 from to_c_helper import *
 from elfesteem import *
 import to_c_helper
+import logging
+
+
+log = logging.getLogger("seh_helper")
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
+log.addHandler(console_handler)
+log.setLevel(logging.WARN)
 
 FS_0_AD = 0x7ff70000
 PEB_AD = 0x7ffdf000
@@ -44,8 +52,10 @@ InLoadOrderModuleList_address = LDR_AD + InLoadOrderModuleList_offset#PEB_AD + 0
 #in_load_order_module_1 = LDR_AD + in_load_order_module_list_offset#PEB_AD + 0x3000
 default_seh = PEB_AD + 0x20000
 
+process_environment_address = 0x10000
+process_parameters_address = 0x200000
 
-context_address = 0x200000
+context_address = 0x201000
 exception_record_address = context_address+0x1000
 return_from_exception = 0x6eadbeef
 
@@ -89,6 +99,7 @@ def build_fake_peb():
     +0x004 Mutant                   : Ptr32 Void
     +0x008 ImageBaseAddress         : Ptr32 Void
     +0x00c Ldr                      : Ptr32 _PEB_LDR_DATA
+    +0x010 processparameter
     """
 
     offset_serverdata = 0x100
@@ -101,6 +112,7 @@ def build_fake_peb():
     else:
         o += "AAAA"
     o += pdw(peb_ldr_data_address)
+    o += pdw(process_parameters_address)
 
     o += (0x54 - len(o)) *"A"
     o += pdw(peb_address+offset_serverdata)
@@ -138,10 +150,10 @@ def build_fake_ldr_data(modules_info):
             m_e = (e, bname, addr)
             break
     if not m_e:
-        fds
-
-    print 'inloadorder first', hex(m_e[2])
-    o += pdw(m_e[2]) + pdw(0)
+        log.warn('no main pe, ldr data will be unconsistant')
+    else:
+        print 'inloadorder first', hex(m_e[2])
+        o += pdw(m_e[2]) + pdw(0)
 
     # get ntdll
     ntdll_e = None
@@ -150,11 +162,11 @@ def build_fake_ldr_data(modules_info):
             ntdll_e = (e, bname, addr)
             continue
     if not ntdll_e:
-        fds
-
-    print 'ntdll', hex(ntdll_e[2])
-    o += pdw(ntdll_e[2]+0x10) + pdw(0) # XXX TODO
-    o += pdw(ntdll_e[2]+0x10) + pdw(0)
+        log.warn('no ntdll, ldr data will be unconsistant')
+    else:
+        print 'ntdll', hex(ntdll_e[2])
+        o += pdw(ntdll_e[2]+0x10) + pdw(0) # XXX TODO
+        o += pdw(ntdll_e[2]+0x10) + pdw(0)
 
 
     return o
@@ -339,9 +351,9 @@ def fix_InLoadOrderModuleList(module_info):
             continue
         olist.append((e, bname, addr))
     if not m_e or not d_e:
-        fds
-
-    olist[0:0] =[m_e]
+        log.warn('no main pe, ldr data will be unconsistant')
+    else:
+        olist[0:0] =[m_e]
     olist.append(d_e)
 
     last_addr = 0
@@ -373,10 +385,11 @@ def fix_InInitializationOrderModuleList(module_info):
             continue
         olist.append((e, bname, addr))
     if not ntdll_e or not kernel_e or not d_e:
-        fds
+        log.warn('no kernel ntdll, ldr data will be unconsistant')
+    else:
+        olist[0:0] =[ntdll_e]
+        olist[1:1] =[kernel_e]
 
-    olist[0:0] =[ntdll_e]
-    olist[1:1] =[kernel_e]
     olist.append(d_e)
 
     last_addr = 0
@@ -385,6 +398,25 @@ def fix_InInitializationOrderModuleList(module_info):
         p_e, p_bname, p_addr = olist[(i-1)%len(olist)]
         n_e, n_bname, n_addr = olist[(i+1)%len(olist)]
         vm_set_mem(addr+0x10, pdw(p_addr)+pdw(n_addr))
+
+
+def add_process_env():
+    env_str = 'ALLUSERSPROFILE=C:\\Documents and Settings\\All Users\x00'
+    env_str = '\x00'.join(env_str)
+    env_str += "\x00"*0x10
+    vm_add_memory_page(process_environment_address,
+                       PAGE_READ | PAGE_WRITE,
+                       env_str)
+    vm_set_mem(process_environment_address, env_str)
+
+def add_process_parameters():
+    o = ""
+    o+= pdw(0x1000) #size
+    o += "E"*(0x48 - len(o))
+    o += pdw(process_environment_address)
+    vm_add_memory_page(process_parameters_address,
+                       PAGE_READ | PAGE_WRITE,
+                       o)
 
 
 def build_fake_InLoadOrderModuleList(modules_name):
@@ -512,6 +544,8 @@ def init_seh():
 
     ldr_data = build_fake_ldr_data(module_info)
     vm_set_mem(LDR_AD, ldr_data)
+    add_process_env()
+    add_process_parameters()
 
     #fds
 
