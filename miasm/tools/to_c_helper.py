@@ -1163,7 +1163,11 @@ def load_pe_in_vm(fname_in, options, all_imp_dll = None, **kargs):
     from miasm.tools import pe_helper
     from miasm.tools import codenat
 
-    e = pe_init.PE(open(fname_in, 'rb').read())
+    parse_resources = True
+    if 'parse_resources' in kargs:
+        parse_resources = kargs['parse_resources']
+    e = pe_init.PE(open(fname_in, 'rb').read(),
+                   parse_resources = parse_resources)
 
     vm_init_regs()
     init_memory_page_pool_py()
@@ -1201,7 +1205,7 @@ def load_pe_in_vm(fname_in, options, all_imp_dll = None, **kargs):
     seh_helper.runtime_dll = runtime_dll
     if options.loadmainpe:
         seh_helper.main_pe = e
-    seh_helper.main_pe_name = "c:\\xxx\\"+kargs.get("main_pe_name", "toto.exe")
+    seh_helper.main_pe_name = kargs.get("main_pe_name", "toto.exe")
     seh_helper.loaded_modules = all_pe
     dll_dyn_funcs = pe_helper.preload_lib(e, runtime_dll)
 
@@ -1215,7 +1219,11 @@ def load_pe_in_vm(fname_in, options, all_imp_dll = None, **kargs):
     if 'stack_size' in kargs:
         stack_size = kargs['stack_size']
 
-    stack_base_ad = kargs.get('stack_base_ad', 0x1230000)
+    stack_base = 0x1230000
+    if 'stack_base' in kargs:
+        stack_base = kargs['stack_base']
+
+    stack_base_ad = kargs.get('stack_base_ad', stack_base)
     stack_size = kargs.get('stack_size', stack_size)
     vm_add_memory_page(stack_base_ad,
                                    codenat.PAGE_READ|codenat.PAGE_WRITE,
@@ -1269,13 +1277,15 @@ def vm2pe(fname, runtime_dll = None, e_orig = None, max_addr = 1<<64):
         xx = str(mye)
         mye.content = xx
         ad = e_orig.rva2virt(e_orig.NThdr.optentries[pe.DIRECTORY_ENTRY_RESOURCE].rva)
-        ad = mye.virt2rva(ad)
-        mye.NThdr.optentries[pe.DIRECTORY_ENTRY_RESOURCE].rva = ad
-        mye.DirRes = pe.DirRes.unpack(xx,ad,mye)
-        #print repr(mye.DirRes)
-        s_res = mye.SHList.add_section(name = "myres", rawsize = len(mye.DirRes))
-        mye.DirRes.set_rva(s_res.addr)
-        print repr(mye.DirRes)
+        print 'dirres', hex(ad)
+        if ad != 0:
+            ad = mye.virt2rva(ad)
+            mye.NThdr.optentries[pe.DIRECTORY_ENTRY_RESOURCE].rva = ad
+            mye.DirRes = pe.DirRes.unpack(xx,ad,mye)
+            #print repr(mye.DirRes)
+            s_res = mye.SHList.add_section(name = "myres", rawsize = len(mye.DirRes))
+            mye.DirRes.set_rva(s_res.addr)
+            print repr(mye.DirRes)
 
     # generation
     open(fname, 'w').write(str(mye))
@@ -1319,7 +1329,7 @@ def do_bloc_emul(known_blocs, in_str, my_eip, symbol_pool,
     if not known_blocs[my_eip].b.lines:
         raise ValueError('cannot disasm bloc')
     try:
-        my_eip = vm_exec_blocs(my_eip, known_blocs)
+        my_eip = vm_exec_bloc(my_eip, known_blocs)
     except KeyboardInterrupt:
         return None, None
     py_exception = vm_get_exception()

@@ -444,7 +444,7 @@ class ExprOp(Expr):
                 return "parity(%s&0x%x)"%(self.args[0].toC(), my_size_mask[self.args[0].get_size()])
             elif self.op == '!':
                 return "(~ %s)&0x%x"%(self.args[0].toC(), my_size_mask[self.args[0].get_size()])
-            elif self.op in ['int_32_to_double', 'int_64_to_double']:
+            elif self.op in ['int_16_to_double', 'int_32_to_double', 'int_64_to_double']:
                 return "%s(%s)"%(self.op, self.args[0].toC())
             elif self.op == 'double_to_int_32':
                 return "%s(%s)"%(self.op, self.args[0].toC())

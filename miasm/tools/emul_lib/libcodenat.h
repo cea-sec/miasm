@@ -506,6 +506,7 @@ unsigned int fcom_c3(double a, double b);
 
 double mem_32_to_double(unsigned int m);
 double mem_64_to_double(uint64_t m);
+double int_16_to_double(unsigned int m);
 double int_32_to_double(unsigned int m);
 double int_64_to_double(uint64_t m);
 int double_to_int_32(double d);
@@ -515,26 +516,25 @@ uint64_t double_to_mem_64(double d);
 
 
 #define shift_right_arith_08(a, b)\
-	((((char)(a)) >> ((int)(b)))&0xff)
+	((((char)(a)) >> ((int)(b)&0x1f))&0xff)
 #define shift_right_arith_16(a, b)\
-	((((short)(a)) >> ((int)(b)))&0xffff)
+	((((short)(a)) >> ((int)(b)&0x1f))&0xffff)
 #define shift_right_arith_32(a, b)\
-	((((int)(a)) >> ((int)(b)))&0xffffffff)
+	((((int)(a)) >> ((int)(b)&0x1f))&0xffffffff)
 
 
 #define shift_right_logic_08(a, b)\
-	((((unsigned char)(a)) >> ((unsigned int)(b)))&0xff)
+	((((unsigned char)(a)) >> ((unsigned int)(b)&0x1f))&0xff)
 #define shift_right_logic_16(a, b)\
-	((((unsigned short)(a)) >> ((unsigned int)(b)))&0xffff)
+	((((unsigned short)(a)) >> ((unsigned int)(b)&0x1f))&0xffff)
 #define shift_right_logic_32(a, b)\
-	((((unsigned int)(a)) >> ((unsigned int)(b)))&0xffffffff)
-
+	((((unsigned int)(a)) >> ((unsigned int)(b)&0x1f))&0xffffffff)
 
 #define shift_left_logic_08(a, b)\
-	(((a)<<(b))&0xff)
+	(((a)<<((b)&0x1f))&0xff)
 #define shift_left_logic_16(a, b)\
-	(((a)<<(b))&0xffff)
+	(((a)<<((b)&0x1f))&0xffff)
 #define shift_left_logic_32(a, b)\
-	(((a)<<(b))&0xffffffff)
+	(((a)<<((b)&0x1f))&0xffffffff)
 
 #endif

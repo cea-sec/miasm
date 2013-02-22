@@ -269,6 +269,17 @@ float_st5 = ExprId(reg_float_st5, 64)
 float_st6 = ExprId(reg_float_st6, 64)
 float_st7 = ExprId(reg_float_st7, 64)
 
+float_list = [
+    float_st0 ,
+    float_st1 ,
+    float_st2 ,
+    float_st3 ,
+    float_st4 ,
+    float_st5 ,
+    float_st6 ,
+    float_st7 ,
+    ]
+
 
 
 init_regs = {
@@ -839,35 +850,7 @@ def shl(info, a, b):
     return e
 
 def shld_cl(info, a, b):
-    e= []
-    shifter = ExprOp('&',ecx, ExprInt_from(a, 0x1f))
-    c = ExprOp('|',
-            ExprOp('<<', a, shifter),
-            ExprOp('>>', b, ExprOp('-',
-                                    ExprInt_from(a, a.get_size()),
-                                    shifter)
-                                    )
-          )
-
-    new_cf = ExprOp('&',
-                    ExprInt_from(a, 1),
-                    ExprOp('>>',
-                           a,
-                           ExprOp('-',
-                                  ExprInt_from(b, a.get_size()),
-                                  shifter
-                                  )
-                           )
-                    )
-    e.append(ExprAff(cf, ExprCond(shifter,
-                                  new_cf,
-                                  cf)
-                     )
-             )
-    e+=update_flag_znp(c)
-    e.append(ExprAff(of, ExprOp('^', get_op_msb(c), new_cf)))
-    e.append(ExprAff(a, c))
-    return e
+    return shld(info, a, b, ecx)
 
 def shld(info, a, b, c):
     e= []
@@ -895,9 +878,12 @@ def shld(info, a, b, c):
                                   cf)
                      )
              )
+    # XXX todo: don't update flag if shifter is 0
     e+=update_flag_znp(c)
     e.append(ExprAff(of, ExprOp('^', get_op_msb(c), new_cf)))
-    e.append(ExprAff(a, c))
+    e.append(ExprAff(a, ExprCond(shifter,
+                                 c,
+                                 a)))
     return e
 
 
@@ -1645,8 +1631,17 @@ def movs(info, a, b):
 
     return e
 
+def float_prev(flt):
+    if not flt in float_list:
+        return None
+    i = float_list.index(flt)
+    if i == 0:
+        fds
+    flt = float_list[i-1]
+    return flt
 
 def float_pop(avoid_flt = None):
+    avoid_flt = float_prev(avoid_flt)
     e= []
     if avoid_flt != float_st0:
         e.append(ExprAff(float_st0, float_st1))
@@ -1803,11 +1798,17 @@ def fadd(info, a, b = None):
     return e
 
 def faddp(info, a, b = None):
-    e = fadd(a, b)
     if b == None:
-        e+=float_pop(float_st0)
+        b = a
+        a = float_st0
+    e = []
+    if isinstance(b, ExprMem):
+        src = ExprOp('mem_%.2d_to_double'%b.get_size(), b)
     else:
-        e+=float_pop(a)
+        src = b
+    e.append(ExprAff(float_prev(a), ExprOp('fadd', a, src)))
+    e += set_float_cs_eip(info)
+    e += float_pop(a)
     return e
 
 def fninit(info):
@@ -1881,11 +1882,47 @@ def fdiv(info, a, b = None):
     e += set_float_cs_eip(info)
     return e
 
+def fdivr(info, a, b = None):
+    if b == None:
+        b = a
+        a = float_st0
+    e = []
+    if isinstance(b, ExprMem):
+        src = ExprOp('mem_%.2d_to_double'%b.get_size(), b)
+    else:
+        src = b
+    e.append(ExprAff(a, ExprOp('fdiv', src, a)))
+    e += set_float_cs_eip(info)
+    return e
+
 def fdivp(info, a):
     # Invalid emulation
+    if b == None:
+        b = a
+        a = float_st0
     e = []
-    e.append(ExprAff(a, ExprOp('fdiv', a, float_st0)))
-    e+=float_pop(a)
+    if isinstance(b, ExprMem):
+        src = ExprOp('mem_%.2d_to_double'%b.get_size(), b)
+    else:
+        src = b
+    e.append(ExprAff(float_prev(a), ExprOp('fdiv', a, src)))
+    e += set_float_cs_eip(info)
+    e += float_pop(a)
+    return e
+
+def fmulp(info, a, b):
+    # Invalid emulation
+    if b == None:
+        b = a
+        a = float_st0
+    e = []
+    if isinstance(b, ExprMem):
+        src = ExprOp('mem_%.2d_to_double'%b.get_size(), b)
+    else:
+        src = b
+    e.append(ExprAff(float_prev(a), ExprOp('fmul', a, src)))
+    e += set_float_cs_eip(info)
+    e += float_pop(a)
     return e
 
 def ftan(info, a):
@@ -1920,12 +1957,6 @@ def fptan(info):
     e.append(ExprAff(float_st1, ExprOp('ftan', float_st0)))
     e.append(ExprAff(float_st0, ExprOp('int_32_to_double', ExprInt32(1))))
     e.append(ExprAff(float_stack_ptr, ExprOp('+', float_stack_ptr, ExprInt32(1))))
-    return e
-
-    e.append(ExprAff(float_st0, ExprOp('ftan', src)))
-
-    e = ftan(a)
-    e+=float_pop(a)
     return e
 
 
@@ -2421,7 +2452,9 @@ mnemo_func = {'mov': mov,
               'faddp':faddp,
               'fsub':fsub,
               'fmul':fmul,
+              'fmulp':fmulp,
               'fdiv':fdiv,
+              'fdivr':fdivr,
               'fdivp':fdivp,
               'fxch':fxch,
               'fptan':fptan,

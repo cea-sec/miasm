@@ -17,7 +17,16 @@
 #
 #from codenat import *
 from to_c_helper import *
+from elfesteem import *
 import to_c_helper
+import logging
+
+
+log = logging.getLogger("seh_helper")
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
+log.addHandler(console_handler)
+log.setLevel(logging.WARN)
 
 FS_0_AD = 0x7ff70000
 PEB_AD = 0x7ffdf000
@@ -32,17 +41,21 @@ peb_ldr_data_offset = 0x1ea0
 peb_ldr_data_address = LDR_AD + peb_ldr_data_offset#PEB_AD + 0x1000
 
 
-InInitializationOrderModuleList_offset = 0x1f48
+modules_list_offset = 0x1f00
+
+InInitializationOrderModuleList_offset = 0x1ee0 #0x1f48
 InInitializationOrderModuleList_address = LDR_AD + InInitializationOrderModuleList_offset#PEB_AD + 0x2000
 
-InLoadOrderModuleList_offset = 0x1f48 + MAX_MODULES*0x1000
+InLoadOrderModuleList_offset = 0x1ee0+MAX_MODULES*0x1000#0x1f48 + MAX_MODULES*0x1000
 InLoadOrderModuleList_address = LDR_AD + InLoadOrderModuleList_offset#PEB_AD + 0x2000
 
 #in_load_order_module_1 = LDR_AD + in_load_order_module_list_offset#PEB_AD + 0x3000
 default_seh = PEB_AD + 0x20000
 
+process_environment_address = 0x10000
+process_parameters_address = 0x200000
 
-context_address = 0x200000
+context_address = 0x201000
 exception_record_address = context_address+0x1000
 return_from_exception = 0x6eadbeef
 
@@ -86,6 +99,7 @@ def build_fake_peb():
     +0x004 Mutant                   : Ptr32 Void
     +0x008 ImageBaseAddress         : Ptr32 Void
     +0x00c Ldr                      : Ptr32 _PEB_LDR_DATA
+    +0x010 processparameter
     """
 
     offset_serverdata = 0x100
@@ -98,6 +112,7 @@ def build_fake_peb():
     else:
         o += "AAAA"
     o += pdw(peb_ldr_data_address)
+    o += pdw(process_parameters_address)
 
     o += (0x54 - len(o)) *"A"
     o += pdw(peb_address+offset_serverdata)
@@ -113,7 +128,7 @@ def build_fake_peb():
     return o
 
 
-def build_fake_ldr_data():
+def build_fake_ldr_data(modules_info):
     """
     +0x000 Length                          : Uint4B
     +0x004 Initialized                     : UChar
@@ -127,9 +142,31 @@ def build_fake_ldr_data():
     o += "\x00" * peb_ldr_data_offset
     o += "\x00"*0xc
     #text XXX
-    o += pdw(InLoadOrderModuleList_address) + pdw(0)
-    o += pdw(InInitializationOrderModuleList_address+8) + pdw(0)
-    o += pdw(InInitializationOrderModuleList_address+0x10) + pdw(0)
+
+    # get main pe info
+    m_e = None
+    for bname, (addr, e) in modules_info.items():
+        if e == main_pe:
+            m_e = (e, bname, addr)
+            break
+    if not m_e:
+        log.warn('no main pe, ldr data will be unconsistant')
+    else:
+        print 'inloadorder first', hex(m_e[2])
+        o += pdw(m_e[2]) + pdw(0)
+
+    # get ntdll
+    ntdll_e = None
+    for bname, (addr, e) in modules_info.items():
+        if bname[::2].lower() == "ntdll.dll":
+            ntdll_e = (e, bname, addr)
+            continue
+    if not ntdll_e:
+        log.warn('no ntdll, ldr data will be unconsistant')
+    else:
+        print 'ntdll', hex(ntdll_e[2])
+        o += pdw(ntdll_e[2]+0x10) + pdw(0) # XXX TODO
+        o += pdw(ntdll_e[2]+0x10) + pdw(0)
 
 
     return o
@@ -235,6 +272,151 @@ def build_fake_InInitializationOrderModuleList(modules_name):
 
         o += m_o
     return o
+
+
+dummy_e = pe_init.PE()
+dummy_e.NThdr.ImageBase = 0
+dummy_e.Opthdr.AddressOfEntryPoint = 0
+dummy_e.NThdr.sizeofimage = 0
+
+def create_modules_chain(modules_name):
+    modules_info = {}
+    base_addr = LDR_AD + modules_list_offset #XXXX
+    offset_name = 0x500
+    offset_path = 0x600
+
+
+    out = ""
+    for i, m in enumerate([(main_pe_name, main_pe), ("", dummy_e)] + modules_name):
+        addr = base_addr + i*0x1000
+        #fname = os.path.join('win_dll', m)
+        if isinstance(m, tuple):
+            fname, e = m
+        else:
+            fname, e = m, None
+        bpath = fname.replace('/', '\\')
+        bname = os.path.split(fname)[1].lower()
+        bname = "\x00".join(bname)+"\x00"
+        print "add module", repr(bname), repr(bpath)
+        #print hex(InInitializationOrderModuleList_address+i*0x1000)
+        if e == None:
+            e = pe_init.PE(open(fname, 'rb').read())
+        modules_info[bname] = addr, e
+
+        m_o = ""
+        m_o += pdw(0)
+        m_o += pdw(0)
+        m_o += pdw(0)
+        m_o += pdw(0)
+        m_o += pdw(0)
+        m_o += pdw(0)
+        m_o += pdw(e.NThdr.ImageBase)
+        m_o += pdw(e.rva2virt(e.Opthdr.AddressOfEntryPoint))
+        m_o += pdw(e.NThdr.sizeofimage)
+
+        m_o += (0x24 - len(m_o))*"A"
+        print hex(len(bname)), repr(bname)
+        m_o += struct.pack('HH', len(bname), len(bname)+2)
+        m_o += pdw(addr+offset_path)
+
+        m_o += (0x2C - len(m_o))*"A"
+        m_o += struct.pack('HH', len(bname), len(bname)+2)
+        m_o += pdw(addr + offset_name)
+
+        m_o += (offset_name - len(m_o))*"B"
+        m_o += bname
+        m_o += "\x00"*3
+
+        m_o += (offset_path - len(m_o))*"B"
+        m_o += "\x00".join(bpath)+"\x00"
+        m_o += "\x00"*3
+        #out += m_o
+        vm_set_mem(addr, m_o)
+    return modules_info
+
+
+def fix_InLoadOrderModuleList(module_info):
+    # first binary is PE
+    # last is dumm_e
+    olist =[]
+    m_e = None
+    d_e = None
+    for bname, (addr, e) in module_info.items():
+        print bname
+        if e == main_pe:
+            m_e = (e, bname, addr)
+            continue
+        elif e == dummy_e:
+            d_e = (e, bname, addr)
+            continue
+        olist.append((e, bname, addr))
+    if not m_e or not d_e:
+        log.warn('no main pe, ldr data will be unconsistant')
+    else:
+        olist[0:0] =[m_e]
+    olist.append(d_e)
+
+    last_addr = 0
+    for i in xrange(len(olist)):
+        e, bname, addr = olist[i]
+        p_e, p_bname, p_addr = olist[(i-1)%len(olist)]
+        n_e, n_bname, n_addr = olist[(i+1)%len(olist)]
+        vm_set_mem(addr+0, pdw(p_addr)+pdw(n_addr))
+
+
+
+def fix_InInitializationOrderModuleList(module_info):
+    # first binary is ntdll
+    # second binary is kernel32
+    olist =[]
+    ntdll_e = None
+    kernel_e= None
+    for bname, (addr, e) in module_info.items():
+        if bname[::2].lower() == "ntdll.dll":
+            ntdll_e = (e, bname, addr)
+            continue
+        elif bname[::2].lower() == "kernel32.dll":
+            kernel_e = (e, bname, addr)
+            continue
+        elif e == dummy_e:
+            d_e = (e, bname, addr)
+            continue
+        elif e == main_pe:
+            continue
+        olist.append((e, bname, addr))
+    if not ntdll_e or not kernel_e or not d_e:
+        log.warn('no kernel ntdll, ldr data will be unconsistant')
+    else:
+        olist[0:0] =[ntdll_e]
+        olist[1:1] =[kernel_e]
+
+    olist.append(d_e)
+
+    last_addr = 0
+    for i in xrange(len(olist)):
+        e, bname, addr = olist[i]
+        p_e, p_bname, p_addr = olist[(i-1)%len(olist)]
+        n_e, n_bname, n_addr = olist[(i+1)%len(olist)]
+        vm_set_mem(addr+0x10, pdw(p_addr)+pdw(n_addr))
+
+
+def add_process_env():
+    env_str = 'ALLUSERSPROFILE=C:\\Documents and Settings\\All Users\x00'
+    env_str = '\x00'.join(env_str)
+    env_str += "\x00"*0x10
+    vm_add_memory_page(process_environment_address,
+                       PAGE_READ | PAGE_WRITE,
+                       env_str)
+    vm_set_mem(process_environment_address, env_str)
+
+def add_process_parameters():
+    o = ""
+    o+= pdw(0x1000) #size
+    o += "E"*(0x48 - len(o))
+    o += pdw(process_environment_address)
+    vm_add_memory_page(process_parameters_address,
+                       PAGE_READ | PAGE_WRITE,
+                       o)
 
 
 def build_fake_InLoadOrderModuleList(modules_name):
@@ -349,13 +531,24 @@ def init_seh():
     vm_add_memory_page(peb_address, PAGE_READ | PAGE_WRITE, build_fake_peb())
     #vm_add_memory_page(peb_ldr_data_address, PAGE_READ | PAGE_WRITE, p(0) * 3 + p(in_load_order_module_list_address) + p(0) * 0x20)
 
-    ldr_data = build_fake_ldr_data()
+    """
     ldr_data += "\x00"*(InInitializationOrderModuleList_offset - len(ldr_data))
     ldr_data += build_fake_InInitializationOrderModuleList(loaded_modules)
     ldr_data += "\x00"*(InLoadOrderModuleList_offset - len(ldr_data))
     ldr_data += build_fake_InLoadOrderModuleList(loaded_modules)
+    """
+    vm_add_memory_page(LDR_AD, PAGE_READ | PAGE_WRITE, "\x00"*MAX_MODULES*0x1000)
+    module_info = create_modules_chain(loaded_modules)
+    fix_InLoadOrderModuleList(module_info)
+    fix_InInitializationOrderModuleList(module_info)
 
-    vm_add_memory_page(LDR_AD, PAGE_READ | PAGE_WRITE, ldr_data)
+    ldr_data = build_fake_ldr_data(module_info)
+    vm_set_mem(LDR_AD, ldr_data)
+    add_process_env()
+    add_process_parameters()
+
+    #fds
+
     #vm_add_memory_page(in_load_order_module_list_address, PAGE_READ | PAGE_WRITE, p(0) * 40)
     #    vm_add_memory_page(in_load_order_module_list_address, PAGE_READ | PAGE_WRITE, build_fake_inordermodule(loaded_modules))
     vm_add_memory_page(default_seh, PAGE_READ | PAGE_WRITE, p(0xffffffff) + p(0x41414141) + p(0x42424242))
