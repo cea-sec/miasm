@@ -1250,19 +1250,25 @@ def load_pe_in_vm(fname_in, options, all_imp_dll = None, **kargs):
     return e, in_str, runtime_dll, segm_to_do, symbol_pool
 
 
-def vm2pe(fname, runtime_dll = None, e_orig = None, max_addr = 1<<64):
+def vm2pe(fname, runtime_dll = None, e_orig = None, max_addr = 1<<64, min_addr = 0x401000, min_section_offset = 0x1000):
     from elfesteem import pe
 
     mye = pe_init.PE()
+    mye.NThdr.ImageBase = e_orig.NThdr.ImageBase
     all_mem = vm_get_all_memory()
-    min_addr = 0x401000
     addrs = all_mem.keys()
     addrs.sort()
     mye.Opthdr.AddressOfEntryPoint  = mye.virt2rva(vm_get_gpreg()['eip'])
+    first = True
     for ad in addrs:
         if not min_addr <= ad < max_addr:
             continue
-        mye.SHList.add_section("%.8X"%ad, addr = ad - mye.NThdr.ImageBase, data = all_mem[ad]['data'])
+        if first:
+            mye.SHList.add_section("%.8X"%ad, addr = ad - mye.NThdr.ImageBase, data = all_mem[ad]['data'],
+                                   offset = min_section_offset)
+        else:
+            mye.SHList.add_section("%.8X"%ad, addr = ad - mye.NThdr.ImageBase, data = all_mem[ad]['data'])
+        first = False
 
     if runtime_dll:
         new_dll = runtime_dll.gen_new_lib(mye)
@@ -1271,15 +1277,14 @@ def vm2pe(fname, runtime_dll = None, e_orig = None, max_addr = 1<<64):
 
     s_imp = mye.SHList.add_section("import", rawsize = len(mye.DirImport))
     mye.DirImport.set_rva(s_imp.addr)
-
+    print repr(mye.SHList)
     if e_orig:
         # resource
         xx = str(mye)
         mye.content = xx
-        ad = e_orig.rva2virt(e_orig.NThdr.optentries[pe.DIRECTORY_ENTRY_RESOURCE].rva)
+        ad = e_orig.NThdr.optentries[pe.DIRECTORY_ENTRY_RESOURCE].rva
         print 'dirres', hex(ad)
         if ad != 0:
-            ad = mye.virt2rva(ad)
             mye.NThdr.optentries[pe.DIRECTORY_ENTRY_RESOURCE].rva = ad
             mye.DirRes = pe.DirRes.unpack(xx,ad,mye)
             #print repr(mye.DirRes)
