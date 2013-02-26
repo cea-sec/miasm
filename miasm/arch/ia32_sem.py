@@ -2299,6 +2299,13 @@ def sahf(info):
     e.append(ExprAff(zf, ExprSlice(tmp, 6, 7)))
     e.append(ExprAff(nf, ExprSlice(tmp, 7, 8)))
     return e
+
+def lar(info, a, b):
+    e = []
+    e.append(ExprAff(a, ExprOp('access_segment', b)))
+    e.append(ExprAff(zf, ExprOp('access_segment_ok', b)))
+    return e
+
 mnemo_func = {'mov': mov,
               'xchg': xchg,
               'movzx': movzx,
@@ -2511,6 +2518,7 @@ mnemo_func = {'mov': mov,
               "lss": lss,
               "lahf": lahf,
               "sahf": sahf,
+              "lar":lar,
               }
 
 

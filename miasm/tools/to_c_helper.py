@@ -1163,11 +1163,8 @@ def load_pe_in_vm(fname_in, options, all_imp_dll = None, **kargs):
     from miasm.tools import pe_helper
     from miasm.tools import codenat
 
-    parse_resources = True
-    if 'parse_resources' in kargs:
-        parse_resources = kargs['parse_resources']
     e = pe_init.PE(open(fname_in, 'rb').read(),
-                   parse_resources = parse_resources)
+                   parse_resources = options.parse_resources)
 
     vm_init_regs()
     init_memory_page_pool_py()

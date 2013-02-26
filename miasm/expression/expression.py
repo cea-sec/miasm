@@ -456,6 +456,8 @@ class ExprOp(Expr):
                 return "%s(%s)"%(self.op, self.args[0].toC())
             elif self.op in ["-"]:
                 return "%s(%s)"%(self.op, self.args[0].toC())
+            elif self.op in ["access_segment", "access_segment_ok"]:
+                return "%s(%s)"%(self.op, self.args[0].toC())
             else:
                 print self.op
                 raise ValueError('unknown op!!', str(self.op))

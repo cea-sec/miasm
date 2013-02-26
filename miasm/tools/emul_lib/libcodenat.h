@@ -514,6 +514,8 @@ double fadd(double a, double b);
 unsigned int double_to_mem_32(double d);
 uint64_t double_to_mem_64(double d);
 
+unsigned int access_segment(unsigned int d);
+unsigned int access_segment_ok(unsigned int d);
 
 #define shift_right_arith_08(a, b)\
 	((((char)(a)) >> ((int)(b)&0x1f))&0xff)

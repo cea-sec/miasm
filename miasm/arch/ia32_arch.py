@@ -860,7 +860,7 @@ class x86allmncs:
         addop("jmpf",  [0xFF],             d5   , no_rm         , {}                 ,{}                , {bkf:True,dtf:True}         )
 
         addop("lahf",  [0x9F],             noafs, no_rm         , {}                 ,{}                , {},                         )
-        addop("lar",   [0x0F, 0x02],       noafs, no_rm         , {}                 ,{}                , {},                         )
+        addop("lar",   [0x0F, 0x02],       noafs, [rmr]         , {}                 ,{}                , {},                         )
         addop("ldmxcsr",[0x0F, 0xAE],      d2   , no_rm         , {}                 ,{}                , {},                         )
         addop("lds",   [0xC5],             noafs, [rmr]         , {}                 ,{}                , {},                         )
         addop("lss",   [0x0F, 0xB2],       noafs, [rmr]         , {}                 ,{}                , {},                         )

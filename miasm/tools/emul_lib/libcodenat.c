@@ -1589,6 +1589,18 @@ unsigned int _get_memory_page_from_min_ad_py(unsigned int size)
     return ret;
 }
 
+unsigned int access_segment(unsigned int d)
+{
+	// XXX TODO
+	printf("access segment %X\n", d);
+	return 0;
+}
+unsigned int access_segment_ok(unsigned int d)
+{
+	// XXX TODO
+	printf("access segment ok %X\n", d);
+	return 0;
+}
 
 
 
