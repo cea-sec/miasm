@@ -458,6 +458,10 @@ class ExprOp(Expr):
                 return "%s(%s)"%(self.op, self.args[0].toC())
             elif self.op in ["access_segment", "access_segment_ok"]:
                 return "%s(%s)"%(self.op, self.args[0].toC())
+            elif self.op in ["load_segment_limit", "load_segment_limit_ok"]:
+                return "%s(%s)"%(self.op, self.args[0].toC())
+            elif self.op in ["load_tr_segment_selector"]:
+                return "%s(%s)"%(self.op, self.args[0].toC())
             else:
                 print self.op
                 raise ValueError('unknown op!!', str(self.op))

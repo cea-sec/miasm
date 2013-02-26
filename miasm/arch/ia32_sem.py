@@ -2306,6 +2306,25 @@ def lar(info, a, b):
     e.append(ExprAff(zf, ExprOp('access_segment_ok', b)))
     return e
 
+def lsl(info, a, b):
+    e = []
+    e.append(ExprAff(a, ExprOp('load_segment_limit', b)))
+    e.append(ExprAff(zf, ExprOp('load_segment_limit_ok', b)))
+    return e
+
+def fclex(info):
+    # XXX TODO
+    return []
+
+def fnclex(info):
+    # XXX TODO
+    return []
+
+def l_str(info, a):
+    e = []
+    e.append(ExprAff(a, ExprOp('load_tr_segment_selector', ExprInt32(0))))
+    return e
+
 mnemo_func = {'mov': mov,
               'xchg': xchg,
               'movzx': movzx,
@@ -2519,6 +2538,10 @@ mnemo_func = {'mov': mov,
               "lahf": lahf,
               "sahf": sahf,
               "lar":lar,
+              "lsl":lsl,
+              "fclex":fclex,
+              "fnclex":fnclex,
+              "str":l_str,
               }
 
 

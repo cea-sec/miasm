@@ -517,6 +517,11 @@ uint64_t double_to_mem_64(double d);
 unsigned int access_segment(unsigned int d);
 unsigned int access_segment_ok(unsigned int d);
 
+unsigned int load_segment_limit(unsigned int d);
+unsigned int load_segment_limit_ok(unsigned int d);
+
+unsigned int load_tr_segment_selector(unsigned int d);
+
 #define shift_right_arith_08(a, b)\
 	((((char)(a)) >> ((int)(b)&0x1f))&0xff)
 #define shift_right_arith_16(a, b)\

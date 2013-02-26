@@ -397,7 +397,7 @@ def fix_InInitializationOrderModuleList(module_info):
         e, bname, addr = olist[i]
         p_e, p_bname, p_addr = olist[(i-1)%len(olist)]
         n_e, n_bname, n_addr = olist[(i+1)%len(olist)]
-        vm_set_mem(addr+0x10, pdw(p_addr)+pdw(n_addr))
+        vm_set_mem(addr+0x10, pdw(n_addr+0x10)+pdw(p_addr+0x10))
 
 
 def add_process_env():

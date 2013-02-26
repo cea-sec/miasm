@@ -1602,6 +1602,24 @@ unsigned int access_segment_ok(unsigned int d)
 	return 0;
 }
 
+unsigned int load_segment_limit(unsigned int d)
+{
+	// XXX TODO
+	printf("load segment limit %X\n", d);
+	return 0;
+}
+unsigned int load_segment_limit_ok(unsigned int d)
+{
+	// XXX TODO
+	printf("load segment limit ok %X\n", d);
+	return 0;
+}
+
+unsigned int load_tr_segment_selector(unsigned int d)
+{
+	// XXX TODO
+	return 0;
+}
 
 
 //#include "libcodenat_interface.c"
