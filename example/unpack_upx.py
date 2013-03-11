@@ -27,6 +27,8 @@ init_code_bloc_pool_py()
 
 codenat_tcc_init()
 
+print "start emul..."
+machine = x86_machine()
 
 
 job_done = set()
@@ -34,17 +36,17 @@ symbol_pool = asmbloc.asm_symbol_pool()
 if e.Coffhdr.characteristics & (1<<13):
     # dll
     all_bloc = asmbloc.dis_bloc_all(x86_mn, in_str, decomp_func, job_done, symbol_pool, bloc_wd=2)
+    f_eip = emul_bloc(machine, all_bloc[0])
+    f_eip = emul_bloc(machine, all_bloc[1])
+
     b = all_bloc[1]
 else:
     # binary
     all_bloc = asmbloc.dis_bloc_all(x86_mn, in_str, decomp_func, job_done, symbol_pool, bloc_wd=1)
-    b = all_bloc[0]
-print b
+    f_eip = emul_bloc(machine, all_bloc[0])
 
 
-print "start emul..."
-machine = x86_machine()
-f_eip = emul_bloc(machine, b)
+#f_eip = emul_bloc(machine, b)
 
 decomp_buf_ad_in =  int(machine.pool[esi].arg)
 decomp_buf_ad_out = int( machine.pool[edi].arg)
@@ -273,4 +275,5 @@ print repr(e.SHList)
 e.DirImport.set_rva(s_myimp.addr)
 
 e.Opthdr.AddressOfEntryPoint = e.virt2rva(end_label)
-open('out.bin','w').write(str(e))
+fname = fname.replace('.', '_')
+open(fname+'_unupx.bin','w').write(str(e))
