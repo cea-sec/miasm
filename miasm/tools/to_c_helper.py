@@ -210,6 +210,15 @@ my_C_id = [
     pfmem64_6,
     pfmem64_7,
 
+    mm0,
+    mm1,
+    mm2,
+    mm3,
+    mm4,
+    mm5,
+    mm6,
+    mm7,
+
     ]
 
 float_id_e = [

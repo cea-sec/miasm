@@ -133,7 +133,9 @@ class afs_desc:
                          self.r_fs,  self.r_gs,   None,       None]
 
         self.reg_flt =  ["st%d"%i for i in range(8)]
-        
+
+        self.reg_mmx =  ["mm%d"%i for i in range(8)]
+
         self.reg_dict = {}
         for i in range(8):
             self.reg_dict[self.reg_list8[i]] = i

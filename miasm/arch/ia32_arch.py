@@ -151,6 +151,7 @@ ft = "ft" # float
 w64= "w64"
 sd = "sd" # single/double
 wd = "wd" # word/dword
+mm = "mm" # word/dword
 
 
 bkf = "breakflow"
@@ -256,7 +257,7 @@ def dict_to_ad(d, modifs = {}, opmode = u32, admode = u32):
     tab32 = {x86_afs.u08:x86_afs.reg_list8, x86_afs.u16:x86_afs.reg_list16, x86_afs.u32:x86_afs.reg_list32,x86_afs.f32:x86_afs.reg_flt, x86_afs.f64:x86_afs.reg_flt}
     tab16 = {x86_afs.u08:x86_afs.reg_list8, x86_afs.u16:x86_afs.reg_list32, x86_afs.u32:x86_afs.reg_list16}
     ad_size = {x86_afs.u08:"byte ptr", x86_afs.u16:"word ptr", x86_afs.u32:"dword ptr", x86_afs.f32:"single ptr", x86_afs.f64:"double ptr"}
-
+    
     if is_reg(d):
         n = [x for x in d if type(x) in [int, long]]
         if len(n)!=1:
@@ -285,6 +286,9 @@ def dict_to_ad(d, modifs = {}, opmode = u32, admode = u32):
             n&=7
         if modifs[sd] is not None:
             t = tab32[size]
+            n&=7
+        if modifs[mm] and n>0x7:
+            t = x86_afs.reg_mmx
             n&=7
 
         try:
@@ -550,7 +554,7 @@ class x86allmncs:
     def addop(self, name, opc, afs, rm, modif_desc, prop_dict, sem):
         prop_dict.update(sem)
         modifs = dict([[x, True] for x in modif_desc])
-        base_modif = dict([[x, None] for x in [w8, se, sw, ww, sg, dr, cr, ft, w64, sd, wd, bkf, spf, dtf]])
+        base_modif = dict([[x, None] for x in [w8, se, sw, ww, sg, dr, cr, ft, w64, sd, wd, bkf, spf, dtf, mm]])
         base_modif.update(modifs)
 
         #update with forced properties
@@ -1262,6 +1266,9 @@ class x86allmncs:
         addop("fxtract",[0xD9, 0xF4],      noafs, no_rm         , {}                 ,{sd:False}        , {},                         )
         addop("fyl2x",  [0xD9, 0xF1],      noafs, no_rm         , {}                 ,{sd:False}        , {},                         )
         addop("fyl2xp1",[0xD9, 0xF9],      noafs, no_rm         , {}                 ,{sd:False}        , {},                         )
+
+        addop("movd",   [0x0F, 0x6e],      noafs, [rmr]         , {sw:(1,4)}         ,{mm:True}         , {sw:False},                         )
+
         pm = self.db_mnemo[0x9c]
         self.pushfw_m = mnemonic(pm.name, pm.opc, pm.afs, pm.rm, pm.modifs, pm.modifs_orig, None)#, pm.sem)
         self.pushfw_m.name = "pushfw"
@@ -1567,6 +1574,8 @@ class x86_mn:
                         reg_cat+=0x10
                     if m.modifs[sg]:
                         reg_cat+=0x20
+                    if m.modifs[mm]:
+                        reg_cat+=0x40
                     mafs = dict(x86mndb.get_afs_re(re+reg_cat))
                     if m.modifs[w8]:
                         mafs[x86_afs.size] = x86_afs.u08
@@ -2330,6 +2339,24 @@ x86mnemo = x86_mn
 if __name__ == '__main__':
     test_out = []
     log.setLevel(logging.DEBUG)
+
+
+
+    instr = x86mnemo.dis('0f6ec5'.replace(' ', '').decode('hex'))
+    print instr
+    print instr.arg
+    print instr.l
+    print instr.opmode, instr.admode
+
+
+    instr = x86mnemo.dis('0f7ec5'.replace(' ', '').decode('hex'))
+    print instr
+    print instr.arg
+    print instr.l
+    print instr.opmode, instr.admode
+
+
+    fds
 
     instr = x86mnemo.dis('67e1fa'.replace(' ', '').decode('hex'))
     print instr
