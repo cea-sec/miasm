@@ -297,10 +297,12 @@ def create_modules_chain(modules_name):
         bpath = fname.replace('/', '\\')
         bname = os.path.split(fname)[1].lower()
         bname = "\x00".join(bname)+"\x00"
-        print "add module", repr(bname), repr(bpath)
+        #print "add module", repr(bname), repr(bpath)
         #print hex(InInitializationOrderModuleList_address+i*0x1000)
         if e == None:
             e = pe_init.PE(open(fname, 'rb').read())
+        print "add module", hex(e.NThdr.ImageBase), repr(bname)
+
         modules_info[bname] = addr, e
 
         m_o = ""
@@ -361,7 +363,7 @@ def fix_InLoadOrderModuleList(module_info):
         e, bname, addr = olist[i]
         p_e, p_bname, p_addr = olist[(i-1)%len(olist)]
         n_e, n_bname, n_addr = olist[(i+1)%len(olist)]
-        vm_set_mem(addr+0, pdw(p_addr)+pdw(n_addr))
+        vm_set_mem(addr+0, pdw(n_addr)+pdw(p_addr))
 
 
 
@@ -478,10 +480,11 @@ def build_fake_InLoadOrderModuleList(modules_name):
             fname, e = m, None
         bname = os.path.split(fname)[1].lower()
         bname = "\x00".join(bname)+"\x00"
-        print "add module", repr(bname)
         print hex(InLoadOrderModuleList_address+i*0x1000)
         if e == None:
             e = pe_init.PE(open(fname, 'rb').read())
+
+        print "add module", hex(e.NThdr.ImageBase), repr(bname)
 
         next_ad = InLoadOrderModuleList_address + (i+1)*0x1000
         if i == len(modules_name) -1:

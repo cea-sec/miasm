@@ -236,6 +236,25 @@ typedef struct {
 	uint64_t pfmem64_6;
 	uint64_t pfmem64_7;
 
+
+	uint64_t mm0;
+	uint64_t mm1;
+	uint64_t mm2;
+	uint64_t mm3;
+	uint64_t mm4;
+	uint64_t mm5;
+	uint64_t mm6;
+	uint64_t mm7;
+
+	uint64_t mm0_new;
+	uint64_t mm1_new;
+	uint64_t mm2_new;
+	uint64_t mm3_new;
+	uint64_t mm4_new;
+	uint64_t mm5_new;
+	uint64_t mm6_new;
+	uint64_t mm7_new;
+
 	uint32_t segm_base[0x10000];
 
 }vm_cpu_t;

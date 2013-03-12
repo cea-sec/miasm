@@ -1171,7 +1171,7 @@ def kernel32_GetCommandLineA():
     print whoami(), hex(ret_ad)
 
     s = winobjs.module_path
-
+    s = '"%s"'%s
     alloc_addr = get_next_alloc_addr(0x1000)
     vm_add_memory_page(alloc_addr, PAGE_READ|PAGE_WRITE, s)
 
@@ -1963,6 +1963,7 @@ def my_GetEnvironmentVariable(funcname, get_str, set_str, mylen):
     s = get_str(lpname)
     if get_str == get_str_unic:
         s = s[::2]
+    print 'variable', repr(s)
     if s in winobjs.env_variables:
         v = set_str(winobjs.env_variables[s])
     else:

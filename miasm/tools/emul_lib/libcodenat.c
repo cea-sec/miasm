@@ -781,11 +781,26 @@ int rcl_rez_op(unsigned int size, unsigned int a, unsigned int b, unsigned int c
 {
     uint64_t tmp;
 
-    tmp = (cf << size) | a;
 
     size++;
     b %= size;
 
+    if (b == 0) {
+	    switch(size){
+		    case 8+1:
+			    return a&0xff;
+		    case 16+1:
+			    return a&0xffff;
+		    case 32+1:
+			    return a&0xffffffff;
+		    default:
+			    fprintf(stderr, "inv size in rclleft %d\n", size);
+			    exit(0);
+	    }
+    }
+
+    tmp = (a<<1) | cf;
+    b -=1;
     switch(size){
 	    case 8+1:
 		    tmp = (tmp << b) | ((tmp&0x1FF) >> (size-b));
@@ -1565,7 +1580,6 @@ void _vm_init_regs()
 
 	vmcpu.i_f = 1;
 }
-
 
 
 unsigned int _get_memory_page_max_address_py(void)

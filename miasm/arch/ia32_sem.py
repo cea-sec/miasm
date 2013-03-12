@@ -93,6 +93,15 @@ reg_cr5 = 'cr5'
 reg_cr6 = 'cr6'
 reg_cr7 = 'cr7'
 
+reg_mm0 = 'mm0'
+reg_mm1 = 'mm1'
+reg_mm2 = 'mm2'
+reg_mm3 = 'mm3'
+reg_mm4 = 'mm4'
+reg_mm5 = 'mm5'
+reg_mm6 = 'mm6'
+reg_mm7 = 'mm7'
+
 
 reg_tsc1 = "tsc1"
 reg_tsc2 = "tsc2"
@@ -208,6 +217,15 @@ cr4 = ExprId(reg_cr4)
 cr5 = ExprId(reg_cr5)
 cr6 = ExprId(reg_cr6)
 cr7 = ExprId(reg_cr7)
+
+mm0 = ExprId(reg_mm0, 64)
+mm1 = ExprId(reg_mm1, 64)
+mm2 = ExprId(reg_mm2, 64)
+mm3 = ExprId(reg_mm3, 64)
+mm4 = ExprId(reg_mm4, 64)
+mm5 = ExprId(reg_mm5, 64)
+mm6 = ExprId(reg_mm6, 64)
+mm7 = ExprId(reg_mm7, 64)
 
 
 eflag= ExprId(reg_eflag)
@@ -2108,7 +2126,7 @@ def sidt(info, a):
     b = a.arg
     print "DEFAULT SIDT ADDRESS %s!!"%str(a)
     e.append(ExprAff(ExprMem(b, 32), ExprInt32(0xe40007ff)))
-    e.append(ExprAff(ExprMem(ExprOp("+", b, ExprInt32(4)), 32), ExprInt32(0x8245)))
+    e.append(ExprAff(ExprMem(ExprOp("+", b, ExprInt32(4)), 16), ExprInt32(0x8245)))
     return e
 
 
@@ -2131,6 +2149,18 @@ def cmovl(info, a, b):
 def cmovle(info, a, b):
     e= []
     e.append(ExprAff(a, ExprCond( ExprOp('|', ExprOp('^', nf, of), zf) , b, a)))
+    return e
+def cmova(info, a, b):
+    e= []
+    e.append(ExprAff(a, ExprCond( ExprOp('|', cf, zf) , a, b)))
+    return e
+def cmovae(info, a, b):
+    e= []
+    e.append(ExprAff(a, ExprCond( cf , a, b)))
+    return e
+def cmovbe(info, a, b):
+    e= []
+    e.append(ExprAff(a, ExprCond( ExprOp('|', cf, zf) , b, a)))
     return e
 def cmovo(info, a, b):
     e= []
@@ -2201,38 +2231,60 @@ def cpuid(info):
     e.append(ExprAff(edx, ExprOp('cpuid', eax, ExprInt32(3))))
     return e
 
+def bittest_get(a, b):
+    if isinstance(a, ExprId):
+        off_bit = ExprOp('&', b, ExprInt_from(a, a.get_size() - 1))
+        d = a
+        #d = ExprOp('>>', a, off_bit)
+    else:
+        off_bit = ExprOp('&', b, ExprInt_from(a, a.get_size() - 1))
+        off_byte = ExprOp("&",
+                          ExprOp('>>', b, ExprInt_from(a, 3)),
+                          ExprOp('!', ExprInt_from(a, a.get_size()/8 -1)))
+
+        d = ExprMem(a.arg+off_byte, a.size)
+        #d = ExprOp('>>', mem, off_bit)
+    return d, off_bit
+
 def bt(info, a, b):
     e= []
-    c= ExprOp('&', b, ExprInt_from(a, b.get_size() - 1))
-    d= ExprOp('>>', a, c)
+    d, off_bit = bittest_get(a, b)
+    d = ExprOp(">>", d, off_bit)
     e.append(ExprAff(cf, ExprOp('&', d, ExprInt_from(a, 1))))
     return e
 
 def btc(info, a, b):
     e= []
-    c= ExprOp('&', b, ExprInt_from(a, b.get_size() - 1))
-    d= ExprOp('>>', a, c)
-    m= ExprOp('<<', ExprInt_from(a, 1), b)
-    e.append(ExprAff(cf, ExprOp('&', d, ExprInt_from(a, 1))))
-    e.append(ExprAff(a, ExprOp('^', a, m)))
+    d, off_bit = bittest_get(a, b)
+    e.append(ExprAff(cf, ExprOp('&',
+                                ExprOp(">>", d, off_bit),
+                                ExprInt_from(a, 1))))
+
+    m = ExprOp('<<', ExprInt_from(a, 1), off_bit)
+    e.append(ExprAff(d, ExprOp('^', d, m)))
+
     return e
 
 def bts(info, a, b):
     e= []
-    c= ExprOp('&', b, ExprInt_from(a, b.get_size() - 1))
-    d= ExprOp('>>', a, c)
-    m= ExprOp('<<', ExprInt_from(a, 1), b)
-    e.append(ExprAff(cf, ExprOp('&', d, ExprInt_from(a, 1))))
-    e.append(ExprAff(a, ExprOp('|', a, m)))
+    d, off_bit = bittest_get(a, b)
+    e.append(ExprAff(cf, ExprOp('&',
+                                ExprOp(">>", d, off_bit),
+                                ExprInt_from(a, 1))))
+    m = ExprOp('<<', ExprInt_from(a, 1), off_bit)
+    e.append(ExprAff(d, ExprOp('|', d, m)))
+
     return e
 
 def btr(info, a, b):
     e= []
-    c= ExprOp('&', b, ExprInt_from(a, b.get_size() - 1))
-    d= ExprOp('>>', a, c)
-    m= ~ExprOp('<<', ExprInt_from(a, 1), b)
-    e.append(ExprAff(cf, ExprOp('&', d, ExprInt_from(a, 1))))
-    e.append(ExprAff(a, ExprOp('&', a, m)))
+    d, off_bit = bittest_get(a, b)
+    e.append(ExprAff(cf, ExprOp('&',
+                                ExprOp(">>", d, off_bit),
+                                ExprInt_from(a, 1))))
+    m = ~ExprOp('<<', ExprInt_from(a, 1), off_bit)
+    e.append(ExprAff(d, ExprOp('&', d, m)))
+
     return e
 
 
@@ -2323,6 +2375,14 @@ def fnclex(info):
 def l_str(info, a):
     e = []
     e.append(ExprAff(a, ExprOp('load_tr_segment_selector', ExprInt32(0))))
+    return e
+
+def movd(info, a, b):
+    e = []
+    if a.get_size() == 64:
+        e.append(ExprAff(a, ExprCompose([(ExprInt32(0), 32, 64), (b, 0, 32)])))
+    else:
+        e.append(ExprAff(a, b[0:32]))
     return e
 
 mnemo_func = {'mov': mov,
@@ -2504,6 +2564,9 @@ mnemo_func = {'mov': mov,
               'cmovge':cmovge,
               'cmovnl':cmovge,
               'cmovl':cmovl,
+              'cmova':cmova,
+              'cmovae':cmovae,
+              'cmovbe':cmovbe,
               'cmovnge':cmovl,
               'cmovle':cmovle,
               'cmovng':cmovle,
@@ -2542,6 +2605,7 @@ mnemo_func = {'mov': mov,
               "fclex":fclex,
               "fnclex":fnclex,
               "str":l_str,
+              "movd":movd,
               }
 
 
@@ -2615,6 +2679,15 @@ class ia32_rexpr:
     r_cr6 = cr6
     r_cr7 = cr7
 
+    r_mm0 = mm0
+    r_mm1 = mm1
+    r_mm2 = mm2
+    r_mm3 = mm3
+    r_mm4 = mm4
+    r_mm5 = mm5
+    r_mm6 = mm6
+    r_mm7 = mm7
+
     r_ax = r_eax[:16]
     r_cx = r_ecx[:16]
     r_dx = r_edx[:16]
@@ -2652,6 +2725,8 @@ class ia32_rexpr:
                      r_fs,  r_gs]
     reg_listdr=[r_dr0, r_dr1, r_dr2, r_dr3, r_dr4, r_dr5, r_dr6, r_dr7]
     reg_listcr=[r_cr0, r_cr1, r_cr2, r_cr3, r_cr4, r_cr5, r_cr6, r_cr7]
+
+    reg_mmx=   [r_mm0, r_mm1, r_mm2, r_mm3, r_mm4, r_mm5, r_mm6, r_mm7]
 
     reg_flt = [float_st0, float_st1, float_st2, float_st3, float_st4, float_st5, float_st6, float_st7]
 
@@ -2707,6 +2782,9 @@ def dict_to_Expr(d, modifs = {}, opmode = u32, admode = u32, segm_to_do = set())
             n&=7
         if modifs[sd] is not None:
             t = tab32[size]
+            n&=7
+        if modifs[mm] and n>0x7:
+            t = ia32_rexpr.reg_mmx
             n&=7
 
         out = t[n]
