@@ -547,6 +547,11 @@ class ExprOp(Expr):
             else:
                 print self.op
                 raise ValueError('unknown op!!', str(self.op))
+        elif len(self.args)==3 and self.op == "+":
+            return '((%s + %s + %s) &0x%x)'%(self.args[0].toC(),
+                                             self.args[1].toC(),
+                                             self.args[2].toC(),
+                                             my_size_mask[self.args[0].get_size()])
         elif len(self.args)==3:
             dct_div= {'div8':"div_op",
                       'div16':"div_op",
@@ -562,7 +567,7 @@ class ExprOp(Expr):
                       '>>>c_cf':'rcr_cf_op',
                       }
             if not self.op in dct_div:
-                fsdff
+                raise ValueError('toC type expr is not implemented')
             return '(%s(%s, %s, %s, %s) &0x%x)'%(dct_div[self.op],
                                                  self.args[0].get_size(),
                                                  self.args[0].toC(),
