@@ -1039,7 +1039,20 @@ def updt_bloc_emul(known_blocs, in_str, my_eip, symbol_pool, code_blocs_mem_rang
     """%(patch_c_id(eip), patch_c_id(eip), patch_c_id(eip), patch_c_id(eip), patch_c_id(eip))
 
     c_source = gen_C_source(funcs_code, {}, dyn_dispatcher)
-    c_source = "#include <Python.h>\n"+c_source
+
+    c_source = """
+#ifdef __x86_64__
+#ifndef __LP64__
+/*
+ for ubuntu ?!? XXX TODO
+ /!\ force 64 bit system using 64 bits libc
+ change this to __ILP32__ to do so.
+*/
+#define __LP64__
+#endif
+#endif
+""" + "#include <Python.h>\n" + c_source
+
     #c_source = '#include "emul_lib/libcodenat.h"\n'+c_source
     #print c_source
     a = gen_C_module_tcc(fname, c_source)

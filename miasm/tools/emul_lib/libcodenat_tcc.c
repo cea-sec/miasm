@@ -109,7 +109,7 @@ PyObject* tcc_compil(PyObject* self, PyObject* args)
 		exit(0);
 	}
 	/* XXX use tinycc devel with -fPIC patch in makefile */
-	if (tcc_relocate(tcc_state, NULL) < 0)
+	if (tcc_relocate(tcc_state,TCC_RELOCATE_AUTO) < 0)
 		exit(0);
 	entry = tcc_get_symbol(tcc_state, func_name);
 	if (!entry){
