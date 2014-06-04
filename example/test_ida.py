@@ -7,6 +7,7 @@ sys.path.append("/home/serpilliere/projet/m2_devel/build/lib.linux-x86_64-2.7")
 from miasm2.core.bin_stream import bin_stream_str
 from miasm2.core.asmbloc import *
 from miasm2.expression.simplifications import expr_simp
+from miasm2.expression.expression import *
 
 from miasm2.analysis.data_analysis import intra_bloc_flow_raw, inter_bloc_flow
 from miasm2.analysis.data_analysis import intra_bloc_flow_symbexec
