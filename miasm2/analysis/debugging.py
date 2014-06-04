@@ -350,10 +350,11 @@ class DebugCmd(cmd.Cmd, object):
                 size = int(args[1])
         else:
             size = 0xF
-            if "0x" in args[0]:
-                addr = int(args[0], 16)
-            else:
-                addr = int(args[0])
+
+        if "0x" in args[0]:
+            addr = int(args[0], 16)
+        else:
+            addr = int(args[0])
 
         self.dbg.watch_mem(addr, size)
 
