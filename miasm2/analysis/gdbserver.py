@@ -349,6 +349,12 @@ class GdbServer_x86_32(GdbServer):
 
     def read_register_by_name(self, reg_name):
         sup_func = super(GdbServer_x86_32, self).read_register_by_name
+
+        # Assert EIP on pc jitter
+        if reg_name == "EIP":
+            return self.dbg.myjit.pc
+
+        # EFLAGS case
         if reg_name == "EFLAGS":
             val = 0
             eflags_args = [
