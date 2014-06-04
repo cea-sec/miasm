@@ -624,8 +624,12 @@ class LLVMFunction():
         raise Exception("UnkownExpression", expr.__class__.__name__)
 
     def set_ret(self, var):
-        "Add a ret of var to the last bbl"
-        self.builder.ret(var)
+        "Cast @var and return it at the end of current bbl"
+        if var.type.width < 64:
+            var_casted = self.builder.zext(var, LLVMType.int(64))
+        else:
+            var_casted = var
+        self.builder.ret(var_casted)
 
     def from_expr(self, expr):
         "Build the function from an expression"
@@ -719,7 +723,7 @@ class LLVMFunction():
 
         # Then Bloc
         builder.position_at_end(then_block)
-        builder.ret(llvm_c.Constant.int(self.ret_type, pc_to_return))
+        self.set_ret(llvm_c.Constant.int(self.ret_type, pc_to_return))
 
         builder.position_at_end(merge_block)
 
@@ -842,11 +846,11 @@ class LLVMFunction():
             label = dest_name
             target_bbl = self.get_basic_bloc_by_label(label)
             if target_bbl is None:
-                builder.ret(self.add_ir(dest))
+                self.set_ret(self.add_ir(dest))
             else:
                 builder.branch(target_bbl)
         else:
-            builder.ret(self.add_ir(dest))
+            self.set_ret(self.add_ir(dest))
 
     def add_irbloc(self, irbloc):
         "Add the content of irbloc at the corresponding labeled block"
