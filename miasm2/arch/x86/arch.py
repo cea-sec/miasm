@@ -476,6 +476,8 @@ class instruction_x86(instruction):
             return True
         if self.name.startswith('LOOP'):
             return True
+        if self.name.startswith('INT'):
+            return True
         if self.name.startswith('SYS'):
             return True
         # repxx yyy generate split flow
