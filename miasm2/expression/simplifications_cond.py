@@ -34,6 +34,25 @@ jok1 = m2_expr.ExprId("jok1")
 jok2 = m2_expr.ExprId("jok2")
 jok3 = m2_expr.ExprId("jok3")
 
+# Constructors
+
+def __ExprOp_cond(op, arg1, arg2):
+    "Return an ExprOp standing for arg1 op arg2 with size to 1"
+    ec = m2_expr.ExprOp(op, arg1, arg2)
+    ec._size = 1
+    return ec
+
+
+def ExprOp_inf_signed(arg1, arg2):
+    "Return an ExprOp standing for arg1 <s arg2"
+    return __ExprOp_cond(TOK_INF_SIGNED, arg1, arg2)
+
+
+def ExprOp_inf_unsigned(arg1, arg2):
+    "Return an ExprOp standing for arg1 <s arg2"
+    return __ExprOp_cond(TOK_INF_UNSIGNED, arg1, arg2)
+
+
 # Catching conditions forms
 
 def __check_msb(e):
@@ -83,7 +102,7 @@ def expr_simp_inf_signed(expr_simp, e):
     sub = expr_simp(r[jok1] - r[jok2])
 
     if new_j3 == sub:
-        return m2_expr.ExprOp(TOK_INF_SIGNED, r[jok1], r[jok2])
+        return ExprOp_inf_signed(r[jok1], r[jok2])
     else:
         return e
 
@@ -107,7 +126,7 @@ def expr_simp_inf_unsigned_inversed(expr_simp, e):
     sub = expr_simp(r[jok1] - r[jok2])
 
     if new_j3 == sub:
-        return m2_expr.ExprOp(TOK_INF_UNSIGNED, r[jok1], r[jok2])
+        return ExprOp_inf_unsigned(r[jok1], r[jok2])
     else:
         return e
 

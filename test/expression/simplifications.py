@@ -4,7 +4,7 @@
 from pdb import pm
 from miasm2.expression.expression import *
 from miasm2.expression.simplifications import expr_simp, ExpressionSimplifier
-from miasm2.expression.simplifications_cond import TOK_INF_SIGNED, TOK_INF_UNSIGNED
+from miasm2.expression.simplifications_cond import ExprOp_inf_signed, ExprOp_inf_unsigned
 
 # Define example objects
 a = ExprId('a')
@@ -178,11 +178,11 @@ for e, e_check in to_test[:]:
 
 to_test = [
     (((a - b) ^ ((a ^ b) & ((a - b) ^ a))).msb(),
-     ExprOp(TOK_INF_SIGNED, a, b)),
+     ExprOp_inf_signed(a, b)),
     ((((a - b) ^ ((a ^ b) & ((a - b) ^ a))) ^ a ^ b).msb(),
-     ExprOp(TOK_INF_UNSIGNED, a, b)),
-    (ExprOp(TOK_INF_UNSIGNED, ExprInt32(-1), ExprInt32(3)), ExprInt1(0)),
-    (ExprOp(TOK_INF_SIGNED, ExprInt32(-1), ExprInt32(3)), ExprInt1(1)),
+     ExprOp_inf_unsigned(a, b)),
+    (ExprOp_inf_unsigned(ExprInt32(-1), ExprInt32(3)), ExprInt1(0)),
+    (ExprOp_inf_signed(ExprInt32(-1), ExprInt32(3)), ExprInt1(1)),
 ]
 
 expr_simp_cond = ExpressionSimplifier()
