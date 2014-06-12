@@ -314,10 +314,22 @@ def l_test(ir, instr, a, b):
     return None, e, []
 
 
+
+def get_shift(a, b):
+    # b.size must match a
+    b = b.zeroExtend(a.size)
+    if a.size == 64:
+        shift = b & ExprInt_from(b, 0x3f)
+    else:
+        shift = b & ExprInt_from(b, 0x1f)
+    shift = expr_simp(shift)
+    return shift
+
+
 def l_rol(ir, instr, a, b):
     e = []
-    b = b.zeroExtend(a.size)
-    c = ExprOp('<<<', a, b)
+    shifter = get_shift(a, b)
+    c = ExprOp('<<<', a, shifter)
 
     new_cf = c[:1]
     e.append(ExprAff(cf, new_cf))
@@ -329,8 +341,8 @@ def l_rol(ir, instr, a, b):
 
 def l_ror(ir, instr, a, b):
     e = []
-    b = b.zeroExtend(a.size)
-    c = ExprOp('>>>', a, b)
+    shifter = get_shift(a, b)
+    c = ExprOp('>>>', a, shifter)
 
     e.append(ExprAff(cf, c.msb()))
     # hack (only valid if b=1): when count == 1: a = msb-1(dest)
@@ -341,9 +353,9 @@ def l_ror(ir, instr, a, b):
 
 def rcl(ir, instr, a, b):
     e = []
-    b = b.zeroExtend(a.size)
-    c = ExprOp('<<<c_rez', a, b, cf.zeroExtend(a.size))
-    new_cf = ExprOp('<<<c_cf', a, b, cf.zeroExtend(a.size))[:1]
+    shifter = get_shift(a, b)
+    c = ExprOp('<<<c_rez', a, shifter, cf.zeroExtend(a.size))
+    new_cf = ExprOp('<<<c_cf', a, shifter, cf.zeroExtend(a.size))[:1]
 
     e.append(ExprAff(cf, new_cf))
     # hack (only valid if b=1)
@@ -354,9 +366,9 @@ def rcl(ir, instr, a, b):
 
 def rcr(ir, instr, a, b):
     e = []
-    b = b.zeroExtend(a.size)
-    c = ExprOp('>>>c_rez', a, b, cf.zeroExtend(a.size))
-    new_cf = ExprOp('>>>c_cf', a, b, cf.zeroExtend(a.size))[:1]
+    shifter = get_shift(a, b)
+    c = ExprOp('>>>c_rez', a, shifter, cf.zeroExtend(a.size))
+    new_cf = ExprOp('>>>c_cf', a, shifter, cf.zeroExtend(a.size))[:1]
 
     e.append(ExprAff(cf, new_cf))
     # hack (only valid if b=1)
@@ -364,17 +376,6 @@ def rcr(ir, instr, a, b):
     e.append(ExprAff(a, c))
 
     return None, e, []
-
-
-def get_shift(a, b):
-    # b.size must match a
-    b = b.zeroExtend(a.size)
-    if a.size == 64:
-        shift = b & ExprInt_from(b, 0x3f)
-    else:
-        shift = b & ExprInt_from(b, 0x1f)
-    shift = expr_simp(shift)
-    return shift
 
 
 def sar(ir, instr, a, b):

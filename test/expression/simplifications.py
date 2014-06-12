@@ -3,7 +3,8 @@
 #
 from pdb import pm
 from miasm2.expression.expression import *
-from miasm2.expression.simplifications import expr_simp
+from miasm2.expression.simplifications import expr_simp, ExpressionSimplifier
+from miasm2.expression.simplifications_cond import ExprOp_inf_signed, ExprOp_inf_unsigned
 
 # Define example objects
 a = ExprId('a')
@@ -172,6 +173,36 @@ for e, e_check in to_test[:]:
     if not rez:
         raise ValueError(
             'bug in expr_simp simp(%s) is %s and should be %s' % (e, e_new, e_check))
+
+# Test conds
+
+to_test = [
+    (((a - b) ^ ((a ^ b) & ((a - b) ^ a))).msb(),
+     ExprOp_inf_signed(a, b)),
+    ((((a - b) ^ ((a ^ b) & ((a - b) ^ a))) ^ a ^ b).msb(),
+     ExprOp_inf_unsigned(a, b)),
+    (ExprOp_inf_unsigned(ExprInt32(-1), ExprInt32(3)), ExprInt1(0)),
+    (ExprOp_inf_signed(ExprInt32(-1), ExprInt32(3)), ExprInt1(1)),
+    (ExprOp_inf_unsigned(a, b) ^ (a ^ b).msb(), ExprOp_inf_signed(a, b)),
+    (ExprOp_inf_signed(a, b) ^ (a ^ b).msb(), ExprOp_inf_unsigned(a, b)),
+]
+
+expr_simp_cond = ExpressionSimplifier()
+expr_simp.enable_passes(ExpressionSimplifier.PASS_COND)
+
+
+for e, e_check in to_test[:]:
+    #
+    print "#" * 80
+    e_check = expr_simp(e_check)
+    # print str(e), str(e_check)
+    e_new = expr_simp(e)
+    print "original: ", str(e), "new: ", str(e_new)
+    rez = e_new == e_check
+    if not rez:
+        raise ValueError(
+            'bug in expr_simp simp(%s) is %s and should be %s' % (e, e_new, e_check))
+
 
 
 x = ExprId('x')
