@@ -1,9 +1,9 @@
-#
-# Simplification methods library                           #
-#
+#                                                                              #
+#                     Simplification methods library                           #
+#                                                                              #
 
 import miasm2.expression.expression as m2_expr
-from miasm2.expression import simplifications_common
+from miasm2.expression import simplifications_common, simplifications_cond
 from miasm2.expression.expression_helper import fast_unify
 
 # Expression Simplifier
@@ -33,6 +33,15 @@ class ExpressionSimplifier(object):
 
     # Heavy passes
     PASS_HEAVY = {}
+
+    # Cond passes
+    PASS_COND = {m2_expr.ExprSlice: [simplifications_cond.expr_simp_inf_signed,
+                                     simplifications_cond.expr_simp_inf_unsigned_inversed],
+                 m2_expr.ExprOp: [simplifications_cond.exec_inf_unsigned,
+                                  simplifications_cond.exec_inf_signed,
+                                  simplifications_cond.expr_simp_inverse],
+                 }
+
 
     def __init__(self):
         self.expr_simp_cb = {}
