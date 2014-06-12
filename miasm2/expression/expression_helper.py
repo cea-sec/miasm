@@ -128,7 +128,7 @@ def merge_sliceto_slice(args):
 
 
 op_propag_cst = ['+', '*', '^', '&', '|', '>>',
-                 '<<', "a>>", ">>>", "/", "%", 'idiv', 'irem']
+                 '<<', "a>>", ">>>", "<<<", "/", "%", 'idiv', 'irem']
 
 
 def is_pure_int(e):
