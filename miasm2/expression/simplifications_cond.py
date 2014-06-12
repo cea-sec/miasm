@@ -33,6 +33,8 @@ TOK_POS_STRICT = "Spos"
 jok1 = m2_expr.ExprId("jok1")
 jok2 = m2_expr.ExprId("jok2")
 jok3 = m2_expr.ExprId("jok3")
+jok_small = m2_expr.ExprId("jok_small", 1)
+
 
 # Constructors
 
@@ -134,10 +136,44 @@ def expr_simp_inverse(expr_simp, e):
     """(x <u y) ^ ((x ^ y) [31:32]) == x <s y,
     (x <s y) ^ ((x ^ y) [31:32]) == x <u y"""
 
-    if e.op != '^' or len(e.args) != 2:
+    to_match = (ExprOp_inf_unsigned(jok1, jok2) ^ jok_small)
+    r = __MatchExprWrap(e,
+                        to_match,
+                        [jok1, jok2, jok_small])
+
+    # Check for 2 symetric cases
+    if r is False:
+            to_match = (ExprOp_inf_signed(jok1, jok2) ^ jok_small)
+            r = __MatchExprWrap(e,
+                                to_match,
+                                [jok1, jok2, jok_small])
+
+            if r is False:
+                return e
+            cur_sig = TOK_INF_SIGNED
+    else:
+        cur_sig = TOK_INF_UNSIGNED
+
+
+    arg = __check_msb(r[jok_small])
+    if arg is False:
         return e
 
-    return e # TODO: Not Implemented
+    if not isinstance(arg, m2_expr.ExprOp) or arg.op != "^":
+        return e
+
+    op_args = arg.args
+    if len(op_args) != 2:
+        return e
+
+    if r[jok1] not in op_args or r[jok2] not in op_args:
+        return e
+
+    if cur_sig == TOK_INF_UNSIGNED:
+        return ExprOp_inf_signed(r[jok1], r[jok2])
+    else:
+        return ExprOp_inf_unsigned(r[jok1], r[jok2])
+
 
 # Compute conditions
 

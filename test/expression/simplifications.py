@@ -183,6 +183,8 @@ to_test = [
      ExprOp_inf_unsigned(a, b)),
     (ExprOp_inf_unsigned(ExprInt32(-1), ExprInt32(3)), ExprInt1(0)),
     (ExprOp_inf_signed(ExprInt32(-1), ExprInt32(3)), ExprInt1(1)),
+    (ExprOp_inf_unsigned(a, b) ^ (a ^ b).msb(), ExprOp_inf_signed(a, b)),
+    (ExprOp_inf_signed(a, b) ^ (a ^ b).msb(), ExprOp_inf_unsigned(a, b)),
 ]
 
 expr_simp_cond = ExpressionSimplifier()
