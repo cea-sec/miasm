@@ -177,9 +177,9 @@ for e, e_check in to_test[:]:
 # Test conds
 
 to_test = [
-    (((a - b) ^ ((a ^ b) & ((a - b) ^ a)))[31:32],
+    (((a - b) ^ ((a ^ b) & ((a - b) ^ a))).msb(),
      ExprOp(TOK_INF_SIGNED, a, b)),
-    ((((a - b) ^ ((a ^ b) & ((a - b) ^ a))) ^ a ^ b)[31:32],
+    ((((a - b) ^ ((a ^ b) & ((a - b) ^ a))) ^ a ^ b).msb(),
      ExprOp(TOK_INF_UNSIGNED, a, b)),
     (ExprOp(TOK_INF_UNSIGNED, ExprInt32(-1), ExprInt32(3)), ExprInt1(0)),
     (ExprOp(TOK_INF_SIGNED, ExprInt32(-1), ExprInt32(3)), ExprInt1(1)),
