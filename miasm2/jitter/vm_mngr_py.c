@@ -133,7 +133,10 @@ PyObject* vm_add_memory_page(VmMngr* self, PyObject* args)
 	buf_size = PyString_Size(item_str);
 	PyString_AsStringAndSize(item_str, &buf_data, &length);
 
-	fprintf(stderr, "add page %"PRIX64" %"PRIX64" %"PRIX64"\n", page_addr, buf_size, page_access);
+	/*
+	fprintf(stderr, "add page %"PRIX64" %"PRIX64" %"PRIX64"\n",
+		page_addr, buf_size, page_access);
+	*/
 	mpn = create_memory_page_node(page_addr, buf_size, page_access);
 	if (mpn == NULL)
 		RAISE(PyExc_TypeError,"cannot create page");
@@ -796,9 +799,6 @@ static PyMethodDef VmMngr_methods[] = {
 static int
 VmMngr_init(VmMngr *self, PyObject *args, PyObject *kwds)
 {
-
-
-	fprintf(stderr, "ad cpu: %p\n", &(self->vm_mngr));
 	memset(&(self->vm_mngr), 0, sizeof(self->vm_mngr));
 	return 0;
 }

@@ -384,26 +384,8 @@ static PyMethodDef JitCpu_methods[] = {
 static int
 JitCpu_init(JitCpu *self, PyObject *args, PyObject *kwds)
 {
-
-
-	fprintf(stderr, "ad cpu: %p\n", &(self->vmcpu));
-
 	return 0;
 }
-/*
-static PyObject *JitCpu_get_RAX(JitCpu *self, void *closure)
-{
-	return PyLong_FromUnsignedLongLong((uint64_t)(self->vmcpu.RAX));
-}
-
-static int JitCpu_set_RAX(JitCpu *self, PyObject *value, void *closure)
-{
-	uint64_t val;
-	PyGetInt_ret0(value, val);
-	self->vmcpu.RAX = val;
-	return 0;
-}
-*/
 
 
 #define getset_reg_E_u32(regname)						\

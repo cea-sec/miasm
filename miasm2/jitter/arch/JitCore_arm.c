@@ -248,10 +248,6 @@ static PyMethodDef JitCpu_methods[] = {
 static int
 JitCpu_init(JitCpu *self, PyObject *args, PyObject *kwds)
 {
-
-
-	fprintf(stderr, "ad cpu: %p\n", &(self->vmcpu));
-
 	return 0;
 }
 
