@@ -134,7 +134,7 @@ struct memory_page_node * get_memory_page_from_address(vm_mngr_t* vm_mngr, uint6
 
 
 
-static inline uint64_t memory_page_read(vm_mngr_t* vm_mngr, unsigned int my_size, uint64_t ad)
+static uint64_t memory_page_read(vm_mngr_t* vm_mngr, unsigned int my_size, uint64_t ad)
 {
 	struct memory_page_node * mpn;
 	unsigned char * addr;
@@ -223,7 +223,7 @@ static inline uint64_t memory_page_read(vm_mngr_t* vm_mngr, unsigned int my_size
 	return ret;
 }
 
-static inline void memory_page_write(vm_mngr_t* vm_mngr, unsigned int my_size,
+static void memory_page_write(vm_mngr_t* vm_mngr, unsigned int my_size,
 				     uint64_t ad, uint64_t src)
 {
 	struct memory_page_node * mpn;
@@ -313,7 +313,7 @@ static inline void memory_page_write(vm_mngr_t* vm_mngr, unsigned int my_size,
  * parity, ...
  */
 
-inline uint16_t bcdadd_16(uint16_t a, uint16_t b)
+uint16_t bcdadd_16(uint16_t a, uint16_t b)
 {
 	int carry = 0;
 	int i,j = 0;
@@ -337,7 +337,7 @@ inline uint16_t bcdadd_16(uint16_t a, uint16_t b)
 	return res;
 }
 
-inline uint16_t bcdadd_cf_16(uint16_t a, uint16_t b)
+uint16_t bcdadd_cf_16(uint16_t a, uint16_t b)
 {
 	int carry = 0;
 	int i,j = 0;
@@ -369,7 +369,7 @@ void dump_code_bloc(vm_mngr_t* vm_mngr)
 
 }
 
-inline void check_write_code_bloc(vm_mngr_t* vm_mngr, unsigned int my_size, uint64_t addr)
+void check_write_code_bloc(vm_mngr_t* vm_mngr, unsigned int my_size, uint64_t addr)
 {
 	struct code_bloc_node * cbp;
 	vm_mngr->last_write_ad = addr;
@@ -514,7 +514,7 @@ uint64_t MEM_LOOKUP_64(vm_mngr_t* vm_mngr, uint64_t addr)
     return ret;
 }
 
-inline unsigned int parity(unsigned int a)
+unsigned int parity(unsigned int a)
 {
 #if defined(__builtin_parity)
 	return __builtin_parity(a);

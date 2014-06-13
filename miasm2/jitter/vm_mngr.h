@@ -174,7 +174,7 @@ unsigned int MEM_LOOKUP_32_PASSTHROUGH(uint64_t addr);
 uint64_t MEM_LOOKUP_64_PASSTHROUGH(uint64_t addr);
 
 
-inline unsigned int parity(unsigned int a);
+unsigned int parity(unsigned int a);
 unsigned int my_imul08(unsigned int a, unsigned int b);
 
 void vm_throw(vm_mngr_t* vm_mngr, unsigned long flags);

@@ -352,7 +352,7 @@ uint8_t const bin2bcd_data[] = {
 	0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99
 };
 
-inline uint16_t bcdadd_16(uint16_t a, uint16_t b)
+uint16_t bcdadd_16(uint16_t a, uint16_t b)
 {
 	int carry = 0;
 	int i,j = 0;
@@ -376,7 +376,7 @@ inline uint16_t bcdadd_16(uint16_t a, uint16_t b)
 	return res;
 }
 
-inline uint16_t bcdadd_cf_16(uint16_t a, uint16_t b)
+uint16_t bcdadd_cf_16(uint16_t a, uint16_t b)
 {
 	int carry = 0;
 	int i,j = 0;
@@ -399,22 +399,22 @@ inline uint16_t bcdadd_cf_16(uint16_t a, uint16_t b)
 }
 
 
-inline uint16_t hex2bcd_16(uint16_t a)
+uint16_t hex2bcd_16(uint16_t a)
 {
 	return bcd2bin_data[a & 0xFF] + (bcd2bin_data[(a >> 8) & 0xFF] * 100);
 }
 
-inline uint8_t hex2bcd_8(uint8_t a)
+uint8_t hex2bcd_8(uint8_t a)
 {
 	return bcd2bin_data[a & 0xFF];
 }
 
-inline uint8_t bcd2hex_8(uint8_t a)
+uint8_t bcd2hex_8(uint8_t a)
 {
 	return bin2bcd_data[a & 0xFF];
 }
 
-inline uint16_t bcd2hex_16(uint16_t a)
+uint16_t bcd2hex_16(uint16_t a)
 {
 	return bcd2bin_data[a % 100] | (bcd2bin_data[(a / 100)] << 8);
 }
