@@ -34,7 +34,7 @@ parser.add_argument("addr",
 
 def jit_arm_binary(args):
     filepath, entryp = args.binary, int(args.addr, 16)
-    myjit = jitter_arm()
+    myjit = jitter_arm(jit_type = args.jitter)
     myjit.init_stack()
 
     # Log level (if available with jitter engine)
