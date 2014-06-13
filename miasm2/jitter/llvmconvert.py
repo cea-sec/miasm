@@ -510,7 +510,7 @@ class LLVMFunction():
             ret = builder.call(fc_ptr, [self.local_vars["vmmngr"],
                                         addr_casted])
 
-            self.update_cache(expr, ret)
+            # Do not update memory cache to avoid pointer collision
             return ret
 
         if isinstance(expr, m2_expr.ExprCond):
