@@ -219,7 +219,7 @@ def simp_cst_propagation(e_s, e):
         isinstance(args[1], ExprInt) and
         isinstance(args[0], ExprOp) and args[0].op == "&"):
         if (isinstance(args[0].args[1], ExprInt) and
-            2 ** args[1].arg >= args[0].args[1].arg):
+            2 ** args[1].arg > args[0].args[1].arg):
             return ExprInt_from(args[0], 0)
 
     # parity(int) => int
