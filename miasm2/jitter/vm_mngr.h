@@ -18,6 +18,9 @@
 #ifndef CODENAT_H
 #define CODENAT_H
 
+#ifdef __APPLE__
+#define __BYTE_ORDER __BYTE_ORDER__
+#endif
 
 #if __BYTE_ORDER == __BIG_ENDIAN
 #define Endian16_Swap(value) \
