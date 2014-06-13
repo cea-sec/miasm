@@ -14,7 +14,8 @@ class JitCore_LLVM(jitcore.JitCore):
     "JiT management, using LLVM as backend"
 
     # Architecture dependant libraries
-    arch_dependent_libs = {"x86": "arch/JitCore_x86.so"}
+    arch_dependent_libs = {"x86": "arch/JitCore_x86.so",
+                           "arm": "arch/JitCore_arm.so"}
 
     def __init__(self, my_ir, bs=None):
         super(JitCore_LLVM, self).__init__(my_ir, bs)
