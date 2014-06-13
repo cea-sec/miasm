@@ -8,7 +8,7 @@
 # - Simplifications to catch known condition forms
 #
 # Conditions currently supported :
-# <u, <s
+# <u, <s, ==
 #
 # Authors : Fabrice DESCLAUX (CEA/DAM), Camille MOUGEY (CEA/DAM)
 #
@@ -53,6 +53,10 @@ def ExprOp_inf_signed(arg1, arg2):
 def ExprOp_inf_unsigned(arg1, arg2):
     "Return an ExprOp standing for arg1 <s arg2"
     return __ExprOp_cond(TOK_INF_UNSIGNED, arg1, arg2)
+
+def ExprOp_equal(arg1, arg2):
+    "Return an ExprOp standing for arg1 == arg2"
+    return __ExprOp_cond(TOK_EQUAL, arg1, arg2)
 
 
 # Catching conditions forms
@@ -174,6 +178,17 @@ def expr_simp_inverse(expr_simp, e):
     else:
         return ExprOp_inf_unsigned(r[jok1], r[jok2])
 
+def expr_simp_equal(expr_simp, e):
+    """(x - y)?(0:1) == (x == y)"""
+
+    to_match = m2_expr.ExprCond(jok1 + jok2, m2_expr.ExprInt1(0), m2_expr.ExprInt1(1))
+    r = __MatchExprWrap(e,
+                        to_match,
+                        [jok1, jok2])
+    if r is False:
+        return e
+
+    return ExprOp_equal(r[jok1], expr_simp(-r[jok2]))
 
 # Compute conditions
 
@@ -206,6 +221,7 @@ def __comp_signed(arg1, arg2):
 
 def exec_inf_signed(expr_simp, e):
     "Compute x <s y"
+
     if e.op != TOK_INF_SIGNED:
         return e
 
@@ -213,5 +229,17 @@ def exec_inf_signed(expr_simp, e):
 
     if isinstance(arg1, m2_expr.ExprInt) and isinstance(arg2, m2_expr.ExprInt):
         return __comp_signed(arg1, arg2)
+    else:
+        return e
+
+def exec_equal(expr_simp, e):
+    "Compute x == y"
+
+    if e.op != TOK_EQUAL:
+        return e
+
+    arg1, arg2 = e.args
+    if isinstance(arg1, m2_expr.ExprInt) and isinstance(arg2, m2_expr.ExprInt):
+        return m2_expr.ExprInt1(1) if (arg1.arg == arg2.arg) else m2_expr.ExprInt1(0)
     else:
         return e

@@ -40,7 +40,9 @@ class ExpressionSimplifier(object):
                                      simplifications_cond.expr_simp_inf_unsigned_inversed],
                  m2_expr.ExprOp: [simplifications_cond.exec_inf_unsigned,
                                   simplifications_cond.exec_inf_signed,
-                                  simplifications_cond.expr_simp_inverse],
+                                  simplifications_cond.expr_simp_inverse,
+                                  simplifications_cond.exec_equal],
+                 m2_expr.ExprCond: [simplifications_cond.expr_simp_equal]
                  }
 
 

@@ -222,21 +222,6 @@ def simp_cst_propagation(e_s, e):
             2 ** args[1].arg >= args[0].args[1].arg):
             return ExprInt_from(args[0], 0)
 
-    # int == int => 0 or 1
-    if (op == '==' and
-        isinstance(args[0], ExprInt) and
-        isinstance(args[1], ExprInt)):
-        if args[0].arg == args[1].arg:
-            return ExprInt_from(args[0], 1)
-        else:
-            return ExprInt_from(args[0], 0)
-    #(A|int == 0)  => 0  with int != 0
-    if op == '==' and isinstance(args[1], ExprInt) and args[1].arg == 0:
-        if isinstance(args[0], ExprOp) and args[0].op == '|' and\
-                isinstance(args[0].args[1], ExprInt) and \
-                args[0].args[1].arg != 0:
-            return ExprInt_from(args[0], 0)
-
     # parity(int) => int
     if op == 'parity' and isinstance(args[0], ExprInt):
         return ExprInt1(parity(args[0].arg))

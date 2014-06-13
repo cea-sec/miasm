@@ -4,7 +4,7 @@
 from pdb import pm
 from miasm2.expression.expression import *
 from miasm2.expression.simplifications import expr_simp, ExpressionSimplifier
-from miasm2.expression.simplifications_cond import ExprOp_inf_signed, ExprOp_inf_unsigned
+from miasm2.expression.simplifications_cond import ExprOp_inf_signed, ExprOp_inf_unsigned, ExprOp_equal
 
 # Define example objects
 a = ExprId('a')
@@ -75,11 +75,6 @@ to_test = [(ExprInt32(1) - ExprInt32(1), ExprInt32(0)),
             ExprInt32(0xFF123456)),
            (ExprOp("a>>", (ExprInt32(0xF1234567)), ExprInt32(28)),
             ExprInt32(0xFFFFFFFF)),
-           (ExprOp("==", ExprInt32(12), ExprInt32(10)), ExprInt32(0)),
-           (ExprOp("==", ExprInt32(12), ExprInt32(12)), ExprInt32(1)),
-           (ExprOp("==", a | ExprInt32(12), ExprInt32(0)), ExprInt32(0)),
-           (ExprOp("==", a | ExprInt32(12), ExprInt32(14)),
-            ExprOp("==", a | ExprInt32(12), ExprInt32(14))),
            (ExprOp("parity", ExprInt32(0xf)), ExprInt1(1)),
            (ExprOp("parity", ExprInt32(0xe)), ExprInt1(0)),
            (ExprInt32(0x4142)[:32], ExprInt32(0x4142)),
@@ -185,6 +180,11 @@ to_test = [
     (ExprOp_inf_signed(ExprInt32(-1), ExprInt32(3)), ExprInt1(1)),
     (ExprOp_inf_unsigned(a, b) ^ (a ^ b).msb(), ExprOp_inf_signed(a, b)),
     (ExprOp_inf_signed(a, b) ^ (a ^ b).msb(), ExprOp_inf_unsigned(a, b)),
+    (ExprOp_equal(ExprInt32(12), ExprInt32(10)), ExprInt1(0)),
+    (ExprOp_equal(ExprInt32(12), ExprInt32(12)), ExprInt1(1)),
+    (ExprOp_equal(ExprInt32(12), ExprInt32(-12)), ExprInt1(0)),
+    (ExprCond(a - b, ExprInt1(0), ExprInt1(1)), ExprOp_equal(a, b)),
+    (ExprCond(a + b, ExprInt1(0), ExprInt1(1)), ExprOp_equal(a, -b)),
 ]
 
 expr_simp_cond = ExpressionSimplifier()
