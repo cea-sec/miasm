@@ -921,7 +921,7 @@ class LLVMFunction():
         self.my_args.append((m2_expr.ExprId("vmmngr"),
                              llvm_c.PointerType.pointer(LLVMType.int(8)),
                              "vmmngr"))
-        ret_size = blocs[0].dst.size
+        ret_size = 64
 
         self.ret_type = LLVMType.int(ret_size)
 
