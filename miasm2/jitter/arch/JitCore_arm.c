@@ -274,6 +274,159 @@ getset_reg_u32(of);
 getset_reg_u32(cf);
 
 
+
+#define get_reg_off(reg)  do {						\
+		o = PyLong_FromUnsignedLongLong((uint64_t)offsetof(vm_cpu_t, reg)); \
+		PyDict_SetItemString(dict, #reg, o);			\
+		Py_DECREF(o);						\
+	} while(0);
+
+PyObject* get_gpreg_offset_all(void)
+{
+    PyObject *dict = PyDict_New();
+    PyObject *o;
+
+    get_reg_off(exception_flags);
+    get_reg_off(exception_flags_new);
+
+
+    get_reg_off(R0);
+    get_reg_off(R1);
+    get_reg_off(R2);
+    get_reg_off(R3);
+    get_reg_off(R4);
+    get_reg_off(R5);
+    get_reg_off(R6);
+    get_reg_off(R7);
+    get_reg_off(R8);
+    get_reg_off(R9);
+    get_reg_off(R10);
+    get_reg_off(R11);
+    get_reg_off(R12);
+    get_reg_off(SP);
+    get_reg_off(LR);
+    get_reg_off(PC);
+
+    get_reg_off(R0_new);
+    get_reg_off(R1_new);
+    get_reg_off(R2_new);
+    get_reg_off(R3_new);
+    get_reg_off(R4_new);
+    get_reg_off(R5_new);
+    get_reg_off(R6_new);
+    get_reg_off(R7_new);
+    get_reg_off(R8_new);
+    get_reg_off(R9_new);
+    get_reg_off(R10_new);
+    get_reg_off(R11_new);
+    get_reg_off(R12_new);
+    get_reg_off(SP_new);
+    get_reg_off(LR_new);
+    get_reg_off(PC_new);
+
+	/* eflag */
+    get_reg_off(zf);
+    get_reg_off(nf);
+    get_reg_off(of);
+    get_reg_off(cf);
+
+    get_reg_off(zf_new);
+    get_reg_off(nf_new);
+    get_reg_off(of_new);
+    get_reg_off(cf_new);
+
+
+    get_reg_off(pfmem08_0);
+    get_reg_off(pfmem08_1);
+    get_reg_off(pfmem08_2);
+    get_reg_off(pfmem08_3);
+    get_reg_off(pfmem08_4);
+    get_reg_off(pfmem08_5);
+    get_reg_off(pfmem08_6);
+    get_reg_off(pfmem08_7);
+    get_reg_off(pfmem08_8);
+    get_reg_off(pfmem08_9);
+    get_reg_off(pfmem08_10);
+    get_reg_off(pfmem08_11);
+    get_reg_off(pfmem08_12);
+    get_reg_off(pfmem08_13);
+    get_reg_off(pfmem08_14);
+    get_reg_off(pfmem08_15);
+    get_reg_off(pfmem08_16);
+    get_reg_off(pfmem08_17);
+    get_reg_off(pfmem08_18);
+    get_reg_off(pfmem08_19);
+
+
+    get_reg_off(pfmem16_0);
+    get_reg_off(pfmem16_1);
+    get_reg_off(pfmem16_2);
+    get_reg_off(pfmem16_3);
+    get_reg_off(pfmem16_4);
+    get_reg_off(pfmem16_5);
+    get_reg_off(pfmem16_6);
+    get_reg_off(pfmem16_7);
+    get_reg_off(pfmem16_8);
+    get_reg_off(pfmem16_9);
+    get_reg_off(pfmem16_10);
+    get_reg_off(pfmem16_11);
+    get_reg_off(pfmem16_12);
+    get_reg_off(pfmem16_13);
+    get_reg_off(pfmem16_14);
+    get_reg_off(pfmem16_15);
+    get_reg_off(pfmem16_16);
+    get_reg_off(pfmem16_17);
+    get_reg_off(pfmem16_18);
+    get_reg_off(pfmem16_19);
+
+
+    get_reg_off(pfmem32_0);
+    get_reg_off(pfmem32_1);
+    get_reg_off(pfmem32_2);
+    get_reg_off(pfmem32_3);
+    get_reg_off(pfmem32_4);
+    get_reg_off(pfmem32_5);
+    get_reg_off(pfmem32_6);
+    get_reg_off(pfmem32_7);
+    get_reg_off(pfmem32_8);
+    get_reg_off(pfmem32_9);
+    get_reg_off(pfmem32_10);
+    get_reg_off(pfmem32_11);
+    get_reg_off(pfmem32_12);
+    get_reg_off(pfmem32_13);
+    get_reg_off(pfmem32_14);
+    get_reg_off(pfmem32_15);
+    get_reg_off(pfmem32_16);
+    get_reg_off(pfmem32_17);
+    get_reg_off(pfmem32_18);
+    get_reg_off(pfmem32_19);
+
+
+    get_reg_off(pfmem64_0);
+    get_reg_off(pfmem64_1);
+    get_reg_off(pfmem64_2);
+    get_reg_off(pfmem64_3);
+    get_reg_off(pfmem64_4);
+    get_reg_off(pfmem64_5);
+    get_reg_off(pfmem64_6);
+    get_reg_off(pfmem64_7);
+    get_reg_off(pfmem64_8);
+    get_reg_off(pfmem64_9);
+    get_reg_off(pfmem64_10);
+    get_reg_off(pfmem64_11);
+    get_reg_off(pfmem64_12);
+    get_reg_off(pfmem64_13);
+    get_reg_off(pfmem64_14);
+    get_reg_off(pfmem64_15);
+    get_reg_off(pfmem64_16);
+    get_reg_off(pfmem64_17);
+    get_reg_off(pfmem64_18);
+    get_reg_off(pfmem64_19);
+
+    return dict;
+}
+
+
 static PyGetSetDef JitCpu_getseters[] = {
     {"cpu",
      (getter)JitCpu_get_cpu, (setter)JitCpu_set_cpu,
@@ -355,6 +508,7 @@ static PyMethodDef JitCore_arm_Methods[] = {
 	/*
 
 	*/
+	{"get_gpreg_offset_all", (PyCFunction)get_gpreg_offset_all, METH_NOARGS},
 	{NULL, NULL, 0, NULL}        /* Sentinel */
 
 };
