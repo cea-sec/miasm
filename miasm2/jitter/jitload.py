@@ -14,6 +14,7 @@ from csts import *
 from miasm2.core.utils import *
 from jitcore_tcc import JitCore_Tcc
 from jitcore_llvm import JitCore_LLVM
+from jitcore_python import JitCore_Python
 from miasm2.core.bin_stream import bin_stream
 
 from miasm2.ir.ir2C import init_arch_C
@@ -575,6 +576,7 @@ class jitter:
         @jit_type: JiT backend to use. Available options are:
             - "tcc"
             - "llvm"
+            - "python"
         """
 
         self.arch = my_ir.arch
@@ -599,6 +601,8 @@ class jitter:
             self.jit = JitCore_Tcc(self.my_ir, self.bs)
         elif jit_type == "llvm":
             self.jit = JitCore_LLVM(self.my_ir, self.bs)
+        elif jit_type == "python":
+            self.jit = JitCore_Python(self.my_ir, self.bs)
         else:
             raise Exception("Unkown JiT Backend")
 
