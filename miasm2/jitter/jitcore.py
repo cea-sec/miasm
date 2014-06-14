@@ -146,12 +146,12 @@ class JitCore(object):
     def jit_call(self, label, cpu, vmmngr):
         """Call the function label with cpu and vmmngr states
         @label: function's label
-        @cpu: address of the cpu state structure
-        @vmmngr: address of the memory state structure
+        @cpu: JitCpu instance
+        @vm: VmMngr instance
         """
 
         fc_ptr = self.lbl2jitbloc[label]
-        return self.exec_wrapper(fc_ptr, cpu, vmmngr)
+        return self.exec_wrapper(fc_ptr, cpu.cpu, vmmngr.vmmngr)
 
     def runbloc(self, cpu, vm, lbl):
         """Run the bloc starting at lbl.
@@ -168,7 +168,7 @@ class JitCore(object):
             self.__disbloc(lbl, cpu, vm)
 
         # Run the bloc and update cpu/vmmngr state
-        ret = self.jit_call(lbl, cpu.cpu, vm.vmmngr)
+        ret = self.jit_call(lbl, cpu, vm)
 
         return ret
 
