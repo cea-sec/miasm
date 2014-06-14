@@ -70,7 +70,9 @@ all_tests = {
         "jitter": [
             ["unpack_upx.py", "--jitter", "tcc", "box_upx.exe"],
             ["unpack_upx.py", "--jitter", "llvm", "box_upx.exe"],
-            ["test_jit_x86_32.py", "x86_32_sc.bin"],
+            ["test_jit_x86_32.py", "--jitter", "tcc", "x86_32_sc.bin"],
+            ["test_jit_x86_32.py", "--jitter", "llvm", "x86_32_sc.bin"],
+            ["test_jit_x86_32.py", "--jitter", "python", "x86_32_sc.bin"],
             ["test_jit_arm.py", "--jitter", "tcc","md5_arm", "A684"],
             ["test_jit_arm.py", "--jitter", "llvm","md5_arm", "A684"],
             ["sandbox_pe_x86_32.py", "--jitter", "tcc", "box_x86_32.bin"],
