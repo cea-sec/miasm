@@ -18,7 +18,9 @@ class JitCore_Python(jitcore.JitCore):
         for i, r in enumerate(arch.regs.all_regs_ids):
             symbols_init[r] = arch.regs.all_regs_ids_init[i]
 
-        self.symbexec = symbexec(arch, symbols_init, func_read = self.func_read)
+        self.symbexec = symbexec(arch, symbols_init,
+                                 func_read = self.func_read,
+                                 func_write = self.func_write)
 
     def func_read(self, expr_mem):
         """Memory read wrapper for symbolic execution
@@ -27,8 +29,32 @@ class JitCore_Python(jitcore.JitCore):
         addr = expr_mem.arg.arg.arg
         size = expr_mem.size / 8
         value = self.vmmngr.vm_get_mem(addr, size)
+
         return m2_expr.ExprInt_fromsize(expr_mem.size,
                                         int(value[::-1].encode("hex"), 16))
+
+    def func_write(self, symb_exec, dest, data, mem_cache):
+        """Memory read wrapper for symbolic execution
+        @symb_exec: symbexec instance
+        @dest: ExprMem instance
+        @data: Expr instance
+        @mem_cache: dict"""
+
+        # Get the content to write
+        data = expr_simp(data)
+        if not isinstance(data, m2_expr.ExprInt):
+            raise NotImplementedError("A simplification is missing: %s" % data)
+        to_write = data.arg.arg
+
+        # Format information
+        addr = dest.arg.arg.arg
+        size = data.size / 8
+        content = hex(to_write).replace("0x", "").replace("L", "")
+        content = "0" * (size * 2 - len(content)) + content
+        content = content.decode("hex")[::-1]
+
+        # Write in VmMngr context
+        self.vmmngr.vm_set_mem(addr, content)
 
     def jitirblocs(self, label, irblocs):
         """Create a python function corresponding to an irblocs' group.
@@ -73,6 +99,18 @@ class JitCore_Python(jitcore.JitCore):
 
                 # Execute current ir bloc
                 ad = expr_simp(exec_engine.emulbloc(irb))
+
+                # Updates @cpu instance according to new CPU values
+                for symbol in exec_engine.symbols:
+                    if isinstance(symbol, m2_expr.ExprId):
+                        if hasattr(cpu, symbol.name):
+                            value = exec_engine.symbols.symbols_id[symbol]
+                            if not isinstance(value, m2_expr.ExprInt):
+                                raise ValueError("A simplification is missing: %s" % value)
+
+                            setattr(cpu, symbol.name, value.arg.arg)
+                    else:
+                        raise NotImplementedError("Type not handled: %s" % symbol)
 
                 # Manage resulting address
                 if isinstance(ad, m2_expr.ExprInt):
