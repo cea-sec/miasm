@@ -89,6 +89,8 @@ all_regs_ids = [
     cpuoff, gie, osc, scg0, scg1, res,
 ]
 
+all_regs_ids_no_alias = all_regs_ids
+
 all_regs_ids_byname = dict([(x.name, x) for x in all_regs_ids])
 
 all_regs_ids_init = [PC_init, SP_init, SR_init, R3_init,

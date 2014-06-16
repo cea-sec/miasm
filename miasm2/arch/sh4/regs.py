@@ -70,6 +70,8 @@ all_regs_ids = [
     PC, PR, R0, GBR, SR, VBR, SSR, SPC,
     SGR, DBR, MACH, MACL, FPUL, FR0]
 
+all_regs_ids_no_alias = all_regs_ids
+
 all_regs_ids_byname = dict([(x.name, x) for x in all_regs_ids])
 
 all_regs_ids_init = [ExprId("%s_init" % x.name, x.size) for x in all_regs_ids]
