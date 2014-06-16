@@ -5,6 +5,18 @@ import time
 import argparse
 import tempfile
 
+# Test derivations
+def all_jit(assembly_line):
+    """Add all available jitter options to assembly_line thanks to '--jitter'
+    option.
+    @assembly_line: list(str)
+    Return a list of assembly lines: list(list(str)).
+    """
+    out = []
+    for jitter in ["tcc", "llvm", "python"]:
+        out.append(assembly_line + ["--jitter", jitter])
+    return out
+
 # Available tests
 
 all_tests = {
@@ -67,39 +79,17 @@ all_tests = {
             ["expression/solve_condition_stp.py",
                 "expression/simple_test.bin"],
         ],
-        "jitter": [
-            ["unpack_upx.py", "--jitter", "tcc", "box_upx.exe"],
-            ["unpack_upx.py", "--jitter", "llvm", "box_upx.exe"],
-            # Take 5 mins on a Core i5 2.7Ghz
-            ["unpack_upx.py", "--jitter", "python", "box_upx.exe"],
-            ["test_jit_x86_32.py", "--jitter", "tcc", "x86_32_sc.bin"],
-            ["test_jit_x86_32.py", "--jitter", "llvm", "x86_32_sc.bin"],
-            ["test_jit_x86_32.py", "--jitter", "python", "x86_32_sc.bin"],
-            ["test_jit_arm.py", "--jitter", "tcc","md5_arm", "A684"],
-            ["test_jit_arm.py", "--jitter", "llvm","md5_arm", "A684"],
-            ["test_jit_arm.py", "--jitter", "python","md5_arm", "A684"],
-            ["sandbox_pe_x86_32.py", "--jitter", "tcc", "box_x86_32.bin"],
-            ["sandbox_pe_x86_32.py", "--jitter", "llvm", "box_x86_32.bin"],
-            ["sandbox_pe_x86_32.py", "--jitter", "python", "box_x86_32.bin"],
-            ["sandbox_pe_x86_32.py", "--jitter", "tcc", "box_x86_32_enc.bin"],
-            ["sandbox_pe_x86_32.py", "--jitter", "llvm", "box_x86_32_enc.bin"],
-            ["sandbox_pe_x86_32.py", "--jitter", "python", "box_x86_32_enc.bin"],
-            ["sandbox_pe_x86_32.py", "--jitter", "tcc", "box_x86_32_mod.bin"],
-            ["sandbox_pe_x86_32.py", "--jitter", "llvm", "box_x86_32_mod.bin"],
-            ["sandbox_pe_x86_32.py", "--jitter", "python", "box_x86_32_mod.bin"],
-            ["sandbox_pe_x86_32.py", "--jitter",
-                "tcc", "box_x86_32_mod_self.bin"],
-            ["sandbox_pe_x86_32.py", "--jitter",
-                "llvm", "box_x86_32_mod_self.bin"],
-            ["sandbox_pe_x86_32.py", "--jitter",
-                "python", "box_x86_32_mod_self.bin"],
-            ["sandbox_pe_x86_32.py", "--jitter",
-                "tcc", "box_x86_32_repmod.bin"],
-            ["sandbox_pe_x86_32.py", "--jitter",
-                "llvm", "box_x86_32_repmod.bin"],
-            ["sandbox_pe_x86_32.py", "--jitter",
-                "python", "box_x86_32_repmod.bin"],
-        ],
+        "jitter": reduce(lambda x, y: x + y,
+                         map(all_jit, [
+                    ["unpack_upx.py", "box_upx.exe"], # Take 5 mins on a Core i5
+                    ["test_jit_x86_32.py", "x86_32_sc.bin"],
+                    ["test_jit_arm.py", "md5_arm", "A684"],
+                    ["sandbox_pe_x86_32.py", "box_x86_32.bin"],
+                    ["sandbox_pe_x86_32.py", "box_x86_32_enc.bin"],
+                    ["sandbox_pe_x86_32.py", "box_x86_32_mod.bin"],
+                    ["sandbox_pe_x86_32.py", "box_x86_32_repmod.bin"],
+                    ["sandbox_pe_x86_32.py", "box_x86_32_mod_self.bin"],
+                    ])),
         "order": [
             "assembler",
             "expression",
