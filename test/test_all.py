@@ -70,6 +70,8 @@ all_tests = {
         "jitter": [
             ["unpack_upx.py", "--jitter", "tcc", "box_upx.exe"],
             ["unpack_upx.py", "--jitter", "llvm", "box_upx.exe"],
+            # Take 5 mins on a Core i5 2.7Ghz
+            ["unpack_upx.py", "--jitter", "python", "box_upx.exe"],
             ["test_jit_x86_32.py", "--jitter", "tcc", "x86_32_sc.bin"],
             ["test_jit_x86_32.py", "--jitter", "llvm", "x86_32_sc.bin"],
             ["test_jit_x86_32.py", "--jitter", "python", "x86_32_sc.bin"],
@@ -95,6 +97,8 @@ all_tests = {
                 "tcc", "box_x86_32_repmod.bin"],
             ["sandbox_pe_x86_32.py", "--jitter",
                 "llvm", "box_x86_32_repmod.bin"],
+            ["sandbox_pe_x86_32.py", "--jitter",
+                "python", "box_x86_32_repmod.bin"],
         ],
         "order": [
             "assembler",
