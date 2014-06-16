@@ -366,7 +366,7 @@ class instruction_armt(instruction_arm):
             self.args[0] = s
 
     def breakflow(self):
-        if self.name in ['B', 'BL', 'BLX',
+        if self.name in ['B', 'BX', 'BL', 'BLX',
                          'BEQ', 'BNE', 'BCS', 'BCC', 'BMI', 'BPL', 'BVS',
                          'BVC', 'BHI', 'BLS', 'BGE', 'BLT', 'BGT', 'BLE',
                          'CBZ', 'CBNZ']:

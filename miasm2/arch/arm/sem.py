@@ -413,6 +413,17 @@ def mvns(ir, instr, a, b):
     return dst, e
 
 
+def neg(ir, instr, a, b):
+    e = []
+    c = - b
+    e.append(ExprAff(a, c))
+    dst = get_dst(a)
+    return dst, e
+
+def negs(ir, instr, a, b):
+    dst, e = subs(ir, instr, a, ExprInt_from(b, 0), b)
+    return dst, e
+
 def bic(ir, instr, a, b, x=None):
     e = []
     if x is None:
@@ -580,6 +591,10 @@ def ldrb(ir, instr, a, b):
     dst, e = st_ld_r(ir, instr, a, b, store=False, size=8, z_ext=True)
     return dst, e
 
+def ldrsb(ir, instr, a, b):
+    dst, e = st_ld_r(
+        ir, instr, a, b, store=False, size=8, s_ext=True, z_ext=False)
+    return dst, e
 
 def strb(ir, instr, a, b):
     dst, e = st_ld_r(ir, instr, a, b, store=True, size=8)
@@ -690,7 +705,7 @@ def und(ir, instr, a, b):
     e = []
     return None, e
 
-
+# TODO XXX implement correct CF for shifters
 def lsr(ir, instr, a, b, x):
     e = []
     c = b >> x
@@ -707,6 +722,20 @@ def lsrs(ir, instr, a, b, x):
     dst = get_dst(a)
     return dst, e
 
+def asr(ir, instr, a, b, x):
+    e = []
+    c = ExprOp("a>>", b, x)
+    e.append(ExprAff(a, c))
+    dst = get_dst(a)
+    return dst, e
+
+def asrs(ir, instr, a, b, x):
+    e = []
+    c = ExprOp("a>>", b, x)
+    e.append(ExprAff(a, c))
+    e += update_flag_logic(c)
+    dst = get_dst(a)
+    return dst, e
 
 def lsl(ir, instr, a, b, x):
     e = []
@@ -873,6 +902,7 @@ mnemo_condm0 = {'add': add,
                 'movt': movt,
                 'bic': bic,
                 'mvn': mvn,
+                'neg': neg,
 
                 'mul': mul,
                 'mla': mla,
@@ -888,6 +918,7 @@ mnemo_condm0 = {'add': add,
                 'ldrh': ldrh,
                 'strh': strh,
                 'ldrsh': ldrsh,
+                'ldsh': ldrsh,
                 }
 
 mnemo_condm1 = {'adds': add,
@@ -903,14 +934,16 @@ mnemo_condm1 = {'adds': add,
                 'movs': movs,
                 'bics': bics,
                 'mvns': mvns,
+                'negs': negs,
 
                 'muls': muls,
                 'mlas': mlas,
                 'blx': blx,
 
                 'ldrb': ldrb,
+                'ldrsb': ldrsb,
+                'ldsb': ldrsb,
                 'strb': strb,
-
                 }
 
 mnemo_condm2 = {'ldmia': ldmia,
@@ -942,6 +975,8 @@ mnemo_nocond = {'lsr': lsr,
                 'lsls': lsls,
                 'push': push,
                 'pop': pop,
+                'asr': asr,
+                'asrs': asrs,
                 'cbz': cbz,
                 'cbnz': cbnz,
                 }
