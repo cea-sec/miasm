@@ -1,5 +1,6 @@
 import miasm2.jitter.jitcore as jitcore
 import miasm2.expression.expression as m2_expr
+import miasm2.jitter.csts as csts
 from miasm2.expression.simplifications import expr_simp
 from miasm2.ir.symbexec import symbexec
 
@@ -56,7 +57,7 @@ class JitCore_Python(jitcore.JitCore):
         "Preload symbols according to current architecture"
 
         symbols_init =  {}
-        for i, r in enumerate(arch.regs.all_regs_ids):
+        for i, r in enumerate(arch.regs.all_regs_ids_no_alias):
             symbols_init[r] = arch.regs.all_regs_ids_init[i]
 
         self.symbexec = symbexec(arch, symbols_init,
@@ -134,7 +135,18 @@ class JitCore_Python(jitcore.JitCore):
 
                 # Execute current ir bloc
                 for ir, line in zip(irb.irs, irb.lines):
+                    # Check for memory exception
+                    if (vmmngr.vm_get_exception() != 0):
+                        update_cpu_from_engine(cpu, exec_engine)
+                        return line.offset
+
+                    # Eval current instruction
                     exec_engine.eval_ir(ir)
+
+                    # Check for memory exception which do not update PC
+                    if (vmmngr.vm_get_exception() & csts.EXCEPT_DO_NOT_UPDATE_PC != 0):
+                        update_cpu_from_engine(cpu, exec_engine)
+                        return line.offset
 
                 # Get next bloc address
                 ad = expr_simp(exec_engine.eval_expr(irb.dst))
