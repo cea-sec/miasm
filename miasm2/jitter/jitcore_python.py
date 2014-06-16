@@ -84,8 +84,9 @@ class JitCore_Python(jitcore.JitCore):
                     if irb.label == cur_label:
                         loop = True
                         break
-                if loop is False:
-                    break
+
+                # Irblocs must end with returning an ExprInt instance
+                assert(loop is not False)
 
                 # Refresh CPU values according to @cpu instance
                 for symbol in exec_engine.symbols:
@@ -115,6 +116,8 @@ class JitCore_Python(jitcore.JitCore):
                 # Manage resulting address
                 if isinstance(ad, m2_expr.ExprInt):
                     return ad.arg.arg
+                elif isinstance(ad, m2_expr.ExprId):
+                    cur_label = ad.name
                 else:
                     raise NotImplementedError("Type not handled: %s" % ad)
 
