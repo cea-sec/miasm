@@ -4,6 +4,47 @@ from miasm2.expression.simplifications import expr_simp
 from miasm2.ir.symbexec import symbexec
 
 
+################################################################################
+#                      Util methods for Python jitter                          #
+################################################################################
+
+def update_cpu_from_engine(cpu, exec_engine):
+    """Updates @cpu instance according to new CPU values
+    @cpu: JitCpu instance
+    @exec_engine: symbexec instance"""
+
+    for symbol in exec_engine.symbols:
+        if isinstance(symbol, m2_expr.ExprId):
+            if hasattr(cpu, symbol.name):
+                value = exec_engine.symbols.symbols_id[symbol]
+                if not isinstance(value, m2_expr.ExprInt):
+                    raise ValueError("A simplification is missing: %s" % value)
+
+                setattr(cpu, symbol.name, value.arg.arg)
+        else:
+            raise NotImplementedError("Type not handled: %s" % symbol)
+
+
+def update_engine_from_cpu(cpu, exec_engine):
+    """Updates CPU values according to @cpu instance
+    @cpu: JitCpu instance
+    @exec_engine: symbexec instance"""
+
+    for symbol in exec_engine.symbols:
+        if isinstance(symbol, m2_expr.ExprId):
+            if hasattr(cpu, symbol.name):
+                value = m2_expr.ExprInt_fromsize(symbol.size,
+                                                 getattr(cpu, symbol.name))
+                exec_engine.symbols.symbols_id[symbol] = value
+        else:
+            raise NotImplementedError("Type not handled: %s" % symbol)
+
+
+################################################################################
+#                              Python jitter Core                              #
+################################################################################
+
+
 class JitCore_Python(jitcore.JitCore):
     "JiT management, using Miasm2 Symbol Execution engine as backend"
 
@@ -89,29 +130,17 @@ class JitCore_Python(jitcore.JitCore):
                 assert(loop is not False)
 
                 # Refresh CPU values according to @cpu instance
-                for symbol in exec_engine.symbols:
-                    if isinstance(symbol, m2_expr.ExprId):
-                        if hasattr(cpu, symbol.name):
-                            value = m2_expr.ExprInt_fromsize(symbol.size,
-                                                             getattr(cpu, symbol.name))
-                            exec_engine.symbols.symbols_id[symbol] = value
-                    else:
-                        raise NotImplementedError("Type not handled: %s" % symbol)
+                update_engine_from_cpu(cpu, exec_engine)
 
                 # Execute current ir bloc
-                ad = expr_simp(exec_engine.emulbloc(irb))
+                for ir, line in zip(irb.irs, irb.lines):
+                    exec_engine.eval_ir(ir)
+
+                # Get next bloc address
+                ad = expr_simp(exec_engine.eval_expr(irb.dst))
 
                 # Updates @cpu instance according to new CPU values
-                for symbol in exec_engine.symbols:
-                    if isinstance(symbol, m2_expr.ExprId):
-                        if hasattr(cpu, symbol.name):
-                            value = exec_engine.symbols.symbols_id[symbol]
-                            if not isinstance(value, m2_expr.ExprInt):
-                                raise ValueError("A simplification is missing: %s" % value)
-
-                            setattr(cpu, symbol.name, value.arg.arg)
-                    else:
-                        raise NotImplementedError("Type not handled: %s" % symbol)
+                update_cpu_from_engine(cpu, exec_engine)
 
                 # Manage resulting address
                 if isinstance(ad, m2_expr.ExprInt):
