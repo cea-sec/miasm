@@ -75,6 +75,7 @@ all_tests = {
             ["test_jit_x86_32.py", "--jitter", "python", "x86_32_sc.bin"],
             ["test_jit_arm.py", "--jitter", "tcc","md5_arm", "A684"],
             ["test_jit_arm.py", "--jitter", "llvm","md5_arm", "A684"],
+            ["test_jit_arm.py", "--jitter", "python","md5_arm", "A684"],
             ["sandbox_pe_x86_32.py", "--jitter", "tcc", "box_x86_32.bin"],
             ["sandbox_pe_x86_32.py", "--jitter", "llvm", "box_x86_32.bin"],
             ["sandbox_pe_x86_32.py", "--jitter", "python", "box_x86_32.bin"],
