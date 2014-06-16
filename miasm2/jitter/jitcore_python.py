@@ -114,6 +114,9 @@ class JitCore_Python(jitcore.JitCore):
             cur_label = label
             loop = True
 
+            # Required to detect new instructions
+            offsets_jitted = set()
+
             # Get exec engine
             exec_engine = self.symbexec
 
@@ -135,12 +138,17 @@ class JitCore_Python(jitcore.JitCore):
 
                 # Execute current ir bloc
                 for ir, line in zip(irb.irs, irb.lines):
-                    # Check for memory exception
-                    if (vmmngr.vm_get_exception() != 0):
-                        update_cpu_from_engine(cpu, exec_engine)
-                        return line.offset
 
-                    # Eval current instruction
+                    # For each new instruction (in assembly)
+                    if line.offset not in offsets_jitted:
+                        offsets_jitted.add(line.offset)
+
+                        # Check for memory exception
+                        if (vmmngr.vm_get_exception() != 0):
+                            update_cpu_from_engine(cpu, exec_engine)
+                            return line.offset
+
+                    # Eval current instruction (in IR)
                     exec_engine.eval_ir(ir)
 
                     # Check for memory exception which do not update PC
