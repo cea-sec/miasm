@@ -224,7 +224,7 @@ static uint64_t memory_page_read(vm_mngr_t* vm_mngr, unsigned int my_size, uint6
 }
 
 static void memory_page_write(vm_mngr_t* vm_mngr, unsigned int my_size,
-				     uint64_t ad, uint64_t src)
+			      uint64_t ad, uint64_t src)
 {
 	struct memory_page_node * mpn;
 	unsigned char * addr;
@@ -369,7 +369,7 @@ void dump_code_bloc(vm_mngr_t* vm_mngr)
 
 }
 
-void check_write_code_bloc(vm_mngr_t* vm_mngr, unsigned int my_size, uint64_t addr)
+void check_write_code_bloc(vm_mngr_t* vm_mngr, uint64_t my_size, uint64_t addr)
 {
 	struct code_bloc_node * cbp;
 	vm_mngr->last_write_ad = addr;

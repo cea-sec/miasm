@@ -246,6 +246,9 @@ void remove_memory_breakpoint(vm_mngr_t* vm_mngr, uint64_t ad, unsigned int acce
 
 void add_memory_page(vm_mngr_t* vm_mngr, struct memory_page_node* mpn);
 
+void check_write_code_bloc(vm_mngr_t* vm_mngr, uint64_t my_size, uint64_t addr);
+
+
 void dump_memory_page_pool(vm_mngr_t* vm_mngr);
 void dump_memory_breakpoint_pool(vm_mngr_t* vm_mngr);
 //PyObject* _vm_get_all_memory(void);
