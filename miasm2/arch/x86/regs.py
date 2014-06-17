@@ -384,6 +384,25 @@ all_regs_ids = [
     exception_flags,
 ] + fltregs32_expr
 
+all_regs_ids_no_alias = [
+    RAX, RBX, RCX, RDX, RSP, RBP, RIP, RSI, RDI,
+    R8, R9, R10, R11, R12, R13, R14, R15, R15,
+    zf, nf, pf, of, cf, af, df,
+    tf, i_f, iopl, nt, rf, vm, ac, vif, vip, i_d,
+    float_control, float_eip, float_cs, float_address, float_ds,
+    tsc1, tsc2,
+    ES, CS, SS, DS, FS, GS,
+    float_st0, float_st1, float_st2, float_st3,
+    float_st4, float_st5, float_st6, float_st7,
+    float_c0, float_c1, float_c2, float_c3,
+    cr0, cr3,
+    dr0, dr1, dr2, dr3, dr4, dr5, dr6, dr7,
+    float_stack_ptr,
+    mm0, mm1, mm2, mm3, mm4, mm5, mm6, mm7,
+
+    exception_flags,
+] + fltregs32_expr
+
 all_regs_ids_byname = dict([(x.name, x) for x in all_regs_ids])
 
 all_regs_ids_init = [ExprId("%s_init" % x.name, x.size) for x in all_regs_ids]

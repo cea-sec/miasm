@@ -1,7 +1,49 @@
 import miasm2.jitter.jitcore as jitcore
 import miasm2.expression.expression as m2_expr
+import miasm2.jitter.csts as csts
 from miasm2.expression.simplifications import expr_simp
 from miasm2.ir.symbexec import symbexec
+
+
+################################################################################
+#                      Util methods for Python jitter                          #
+################################################################################
+
+def update_cpu_from_engine(cpu, exec_engine):
+    """Updates @cpu instance according to new CPU values
+    @cpu: JitCpu instance
+    @exec_engine: symbexec instance"""
+
+    for symbol in exec_engine.symbols:
+        if isinstance(symbol, m2_expr.ExprId):
+            if hasattr(cpu, symbol.name):
+                value = exec_engine.symbols.symbols_id[symbol]
+                if not isinstance(value, m2_expr.ExprInt):
+                    raise ValueError("A simplification is missing: %s" % value)
+
+                setattr(cpu, symbol.name, value.arg.arg)
+        else:
+            raise NotImplementedError("Type not handled: %s" % symbol)
+
+
+def update_engine_from_cpu(cpu, exec_engine):
+    """Updates CPU values according to @cpu instance
+    @cpu: JitCpu instance
+    @exec_engine: symbexec instance"""
+
+    for symbol in exec_engine.symbols:
+        if isinstance(symbol, m2_expr.ExprId):
+            if hasattr(cpu, symbol.name):
+                value = m2_expr.ExprInt_fromsize(symbol.size,
+                                                 getattr(cpu, symbol.name))
+                exec_engine.symbols.symbols_id[symbol] = value
+        else:
+            raise NotImplementedError("Type not handled: %s" % symbol)
+
+
+################################################################################
+#                              Python jitter Core                              #
+################################################################################
 
 
 class JitCore_Python(jitcore.JitCore):
@@ -15,7 +57,7 @@ class JitCore_Python(jitcore.JitCore):
         "Preload symbols according to current architecture"
 
         symbols_init =  {}
-        for i, r in enumerate(arch.regs.all_regs_ids):
+        for i, r in enumerate(arch.regs.all_regs_ids_no_alias):
             symbols_init[r] = arch.regs.all_regs_ids_init[i]
 
         self.symbexec = symbexec(arch, symbols_init,
@@ -72,6 +114,9 @@ class JitCore_Python(jitcore.JitCore):
             cur_label = label
             loop = True
 
+            # Required to detect new instructions
+            offsets_jitted = set()
+
             # Get exec engine
             exec_engine = self.symbexec
 
@@ -89,29 +134,33 @@ class JitCore_Python(jitcore.JitCore):
                 assert(loop is not False)
 
                 # Refresh CPU values according to @cpu instance
-                for symbol in exec_engine.symbols:
-                    if isinstance(symbol, m2_expr.ExprId):
-                        if hasattr(cpu, symbol.name):
-                            value = m2_expr.ExprInt_fromsize(symbol.size,
-                                                             getattr(cpu, symbol.name))
-                            exec_engine.symbols.symbols_id[symbol] = value
-                    else:
-                        raise NotImplementedError("Type not handled: %s" % symbol)
+                update_engine_from_cpu(cpu, exec_engine)
 
                 # Execute current ir bloc
-                ad = expr_simp(exec_engine.emulbloc(irb))
+                for ir, line in zip(irb.irs, irb.lines):
+
+                    # For each new instruction (in assembly)
+                    if line.offset not in offsets_jitted:
+                        offsets_jitted.add(line.offset)
+
+                        # Check for memory exception
+                        if (vmmngr.vm_get_exception() != 0):
+                            update_cpu_from_engine(cpu, exec_engine)
+                            return line.offset
+
+                    # Eval current instruction (in IR)
+                    exec_engine.eval_ir(ir)
+
+                    # Check for memory exception which do not update PC
+                    if (vmmngr.vm_get_exception() & csts.EXCEPT_DO_NOT_UPDATE_PC != 0):
+                        update_cpu_from_engine(cpu, exec_engine)
+                        return line.offset
+
+                # Get next bloc address
+                ad = expr_simp(exec_engine.eval_expr(irb.dst))
 
                 # Updates @cpu instance according to new CPU values
-                for symbol in exec_engine.symbols:
-                    if isinstance(symbol, m2_expr.ExprId):
-                        if hasattr(cpu, symbol.name):
-                            value = exec_engine.symbols.symbols_id[symbol]
-                            if not isinstance(value, m2_expr.ExprInt):
-                                raise ValueError("A simplification is missing: %s" % value)
-
-                            setattr(cpu, symbol.name, value.arg.arg)
-                    else:
-                        raise NotImplementedError("Type not handled: %s" % symbol)
+                update_cpu_from_engine(cpu, exec_engine)
 
                 # Manage resulting address
                 if isinstance(ad, m2_expr.ExprInt):

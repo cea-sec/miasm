@@ -163,9 +163,6 @@ PyObject* vm_set_mem(VmMngr* self, PyObject* args)
 	Py_ssize_t length;
 	int ret = 0x1337;
 	uint64_t val;
-	uint64_t l;
-
-	struct memory_page_node * mpn;
 
 	if (!PyArg_ParseTuple(args, "OO", &addr, &item_str))
 		return NULL;
@@ -178,18 +175,12 @@ PyObject* vm_set_mem(VmMngr* self, PyObject* args)
 	buf_size = PyString_Size(item_str);
 	PyString_AsStringAndSize(item_str, &buf_data, &length);
 
-	/* read is multiple page wide */
+	/* write is multiple page wide */
 	while (buf_size){
-		mpn = get_memory_page_from_address(&self->vm_mngr, val);
-		if (!mpn){
-			PyErr_SetString(PyExc_RuntimeError, "cannot find address");
-			return 0;
-		}
-		l = MIN(buf_size, mpn->size - (val-mpn->ad));
-		memcpy(mpn->ad_hp + (val-mpn->ad), buf_data, l);
-		buf_data += l;
-		val += l;
-		buf_size -= l;
+		MEM_WRITE_08(&self->vm_mngr, val, (char) *(buf_data));
+		buf_data += 1;
+		val += 1;
+		buf_size -= 1;
 	}
 
 	return PyLong_FromUnsignedLongLong((uint64_t)ret);
