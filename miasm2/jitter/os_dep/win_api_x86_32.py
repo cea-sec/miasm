@@ -1159,7 +1159,7 @@ def ntdll_RtlInitAnsiString(myjit):
     s = get_str_ansi(myjit, ad_str)
     l = len(s)
     print "string", l, s
-    myjit.vm.vm_set_mem(ad_ctx, pw(l) + pw(l + 1) + pck32(ad_str))
+    myjit.vm.vm_set_mem(ad_ctx, pck16(l) + pck16(l + 1) + pck32(ad_str))
     myjit.func_ret_stdcall(ret_ad, 0)
 
 
