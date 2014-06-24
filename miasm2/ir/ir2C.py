@@ -46,10 +46,6 @@ def ExprOp_toC(self):
                'div16': "div_op",
                'div32': "div_op",
                'idiv32': "div_op",  # XXX to test
-               'rem8': "rem_op",
-               'rem16': "rem_op",
-               'rem32': "rem_op",
-               'irem32': "rem_op",  # XXX to test
                '<<<c_rez': 'rcl_rez_op',
                '<<<c_cf': 'rcl_cf_op',
                '>>>c_rez': 'rcr_rez_op',

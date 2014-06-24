@@ -934,7 +934,7 @@ class jitter_x86_64(jitter):
         return x
 
     def get_stack_arg(self, n):
-        x = upck64(self.vm.vm_get_mem(self.cpu.RSP + 4 * n, 4))
+        x = upck64(self.vm.vm_get_mem(self.cpu.RSP + 8 * n, 8))
         return x
 
     def init_run(self, *args, **kwargs):
