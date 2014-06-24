@@ -217,6 +217,8 @@ class asm_bloc:
         if not self.lines:
             return None
         for i in xrange(-1, -1 - self.lines[0].delayslot - 1, -1):
+            if not 0 <= i < len(self.lines):
+                return None
             l = self.lines[i]
             if l.splitflow() or l.breakflow():
                 raise NotImplementedError('not fully functional')
