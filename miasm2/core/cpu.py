@@ -532,7 +532,13 @@ class bs_mod_name(bs_divert):
         out = []
         for candidate in candidates:
             cls, name, bases, dct, fields = candidate
-            for value, new_name in enumerate(self.args['mn_mod']):
+            tab = self.args['mn_mod']
+            if isinstance(tab, list):
+                tmp = {}
+                for j, v in enumerate(tab):
+                    tmp[j] = v
+                tab = tmp
+            for value, new_name in tab.items():
                 nfields = fields[:]
                 s = int2bin(value, self.args['l'])
                 args = dict(self.args)
