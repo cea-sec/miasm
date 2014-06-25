@@ -797,8 +797,6 @@ class mn_x86(cls_mn):
 
     def encodefields(self, decoded):
         v = super(mn_x86, self).encodefields(decoded)
-        if hasattr(self, 'prefixed'):
-            v = self.prefixed.default + v
 
         rex = 0x40
         if self.g1.value is None:
@@ -816,6 +814,10 @@ class mn_x86(cls_mn):
             rex |= 0x1
         if rex != 0x40 or self.rex_p.value == 1:
             v = chr(rex) + v
+
+        if hasattr(self, 'prefixed'):
+            v = self.prefixed.default + v
+
         if self.g1.value & 1:
             v = "\xf0" + v
         if self.g1.value & 2:
@@ -3572,8 +3574,24 @@ addop("movups",
       [bs8(0x0f), bs8(0x10), xmm, no_xmm_pref] + rmmod(rmreg, rm_arg))
 addop("movsd", [bs8(0x0f), bs("0001000"), swapargs, xmm, pref_f2]
       + rmmod(rmreg, rm_arg), [xmm, rm_arg])
-addop("movss", [bs8(0x0f), bs8(0x10), xmm, pref_f3] + rmmod(rmreg, rm_arg))
+addop("movss", [bs8(0x0f), bs("0001000"), swapargs, xmm, pref_f3] +
+      rmmod(rmreg, rm_arg), [rmreg, rm_arg])
 addop("movupd", [bs8(0x0f), bs8(0x10), xmm, pref_66] + rmmod(rmreg, rm_arg))
+
+
+addop("movd", [bs8(0x0f), bs('011'), swapargs, bs('1110'), mm, no_xmm_pref] +
+      rmmod(rmreg, rm_arg), [rmreg, rm_arg])
+addop("movd", [bs8(0x0f), bs('011'), swapargs, bs('1110'), xmm, pref_66] +
+      rmmod(rmreg, rm_arg), [rmreg, rm_arg])
+
+addop("movq", [bs8(0x0f), bs('011'), swapargs, bs('1111'), mm, no_xmm_pref] +
+      rmmod(rmreg, rm_arg), [rmreg, rm_arg])
+
+addop("movq", [bs8(0x0f), bs8(0x7e), xmm, pref_f3] +
+      rmmod(rmreg, rm_arg), [rmreg, rm_arg])
+addop("movq", [bs8(0x0f), bs8(0xd6), xmm, pref_66] +
+      rmmod(rmreg, rm_arg), [rm_arg, rmreg])
+
 
 
 addop("addss", [bs8(0x0f), bs8(0x58), xmm, pref_f3] + rmmod(rmreg, rm_arg))
@@ -3826,6 +3844,33 @@ addop("movaps", [bs8(0x0f), bs("0010100"), swapargs, xmm]
       + rmmod(rmreg, rm_arg) + [bs_opmode32], [rmreg, rm_arg])
 addop("movaps", [bs8(0x0f), bs("0010100"), swapargs, xmm]
       + rmmod(rmreg, rm_arg) + [bs_opmode64], [rmreg, rm_arg])
+
+addop("xgetbv", [bs8(0x0f), bs8(0x01), bs8(0xd0)])
+
+addop("pand", [bs8(0x0f), bs8(0xdb), mm, no_xmm_pref] +
+      rmmod(rmreg, rm_arg), [rmreg, rm_arg])
+addop("pand", [bs8(0x0f), bs8(0xdb), xmm, pref_66] +
+      rmmod(rmreg, rm_arg), [rmreg, rm_arg])
+
+addop("por", [bs8(0x0f), bs8(0xeb), mm, no_xmm_pref] +
+      rmmod(rmreg, rm_arg), [rmreg, rm_arg])
+addop("por", [bs8(0x0f), bs8(0xeb), xmm, pref_66] +
+      rmmod(rmreg, rm_arg), [rmreg, rm_arg])
+
+
+addop("movdqu", [bs8(0x0f), bs("011"), swapargs, bs("1111"), xmm, pref_f3]
+      + rmmod(rmreg, rm_arg), [rmreg, rm_arg])
+addop("movdqa", [bs8(0x0f), bs("011"), swapargs, bs("1111"), xmm, pref_66]
+      + rmmod(rmreg, rm_arg), [rmreg, rm_arg])
+
+addop("cvtss2sd", [bs8(0x0f), bs8(0x5a), xmm, pref_f3]
+      + rmmod(rmreg, rm_arg))
+addop("cvtsd2ss", [bs8(0x0f), bs8(0x5a), xmm, pref_f2]
+      + rmmod(rmreg, rm_arg))
+
+
+#addop("pand", [bs8(0x0f), bs8(0xdb), xmm, pref_66])# + rmmod(rmreg, rm_arg))
+
 
 mn_x86.bintree = factor_one_bit(mn_x86.bintree)
 # mn_x86.bintree = factor_fields_all(mn_x86.bintree)
