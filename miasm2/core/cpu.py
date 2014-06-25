@@ -1019,7 +1019,7 @@ class cls_mn(object):
         candidates = set()
 
         fname_values = pre_dis_info
-        todo = [(0, dict(fname_values), branch, offset * 8)
+        todo = [(dict(fname_values), branch, offset * 8)
                 for branch in cls.bintree.items()]
         cpt = 0
         if hasattr(bs, 'getlen'):
@@ -1027,11 +1027,12 @@ class cls_mn(object):
         else:
             bs_l = len(bs)
         # print fname_values
-        for bvalo, fname_values, branch, offset_b in todo:
+        for fname_values, branch, offset_b in todo:
             (l, fmask, fbits, fname, flen), vals = branch
             cpt += 1
-            # print 'len', l, fmask, fbits, fname, flen
+            # print bvalo, 'len', l, fmask, fbits, fname, flen, 'TTT', bs_l * 8,  offset_b, l
             if flen is not None:
+                # print 'flen'
                 l = flen(mode, fname_values)
             # print 'len', fname, l
             if l is not None:
@@ -1040,21 +1041,20 @@ class cls_mn(object):
                     continue
                 # print hex(offset_b)
                 v = cls.getbits(bs, offset_b, l)
-                bval = (bvalo << l) + v
                 # print 'TEST', bval, fname, offset_b, cpt, (l, fmask, fbits),
                 # hex(v), hex(v & fmask), hex(fbits), v & fmask == fbits
                 offset_b += l
                 if v & fmask != fbits:
                     continue
                 if fname is not None and not fname in fname_values:
-                    fname_values[fname] = bval
-                    bval = 0
+                    # print "YY", fname_values, fname, bval
+                    fname_values[fname] = v
             # print vals
             for nb, v in vals.items():
                 if 'mn' in nb:
                     candidates.update(v)
                 else:
-                    todo.append((bval, dict(fname_values), (nb, v), offset_b))
+                    todo.append((dict(fname_values), (nb, v), offset_b))
 
         candidates = [c for c in candidates]  # if c.mode == mode]
 
@@ -1133,7 +1133,7 @@ class cls_mn(object):
         return fields
 
     @classmethod
-    def dis(cls, bs_o, mode_o, offset=0):
+    def dis(cls, bs_o, mode_o = None, offset=0):
         if not isinstance(bs_o, bin_stream):
             bs_o = bin_stream_str(bs_o)
         loggg = False
@@ -1282,7 +1282,7 @@ class cls_mn(object):
         return out[0]
 
     @classmethod
-    def fromstring(cls, s, mode):
+    def fromstring(cls, s, mode = None):
         global total_scans
         name = re.search('(\S+)', s).groups()
         if not name:
