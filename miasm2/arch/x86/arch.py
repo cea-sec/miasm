@@ -1162,9 +1162,11 @@ class x86_s08to16(x86_imm):
 
 
 class x86_s08to32(x86_s08to16):
-    myexpr = lambda self, x: ExprInt32(x)
     in_size = 8
     out_size = 32
+
+    def myexpr(self, x):
+        return ExprInt32(x)
 
     def decode(self, v):
         v = v & self.lmask
@@ -1180,9 +1182,11 @@ class x86_s08to32(x86_s08to16):
 
 
 class x86_s08to64(x86_s08to16):
-    myexpr = lambda self, x: ExprInt64(x)
     in_size = 8
     out_size = 64
+
+    def myexpr(self, x):
+        return ExprInt64(x)
 
     def decode(self, v):
         v = v & self.lmask
@@ -1198,9 +1202,11 @@ class x86_s08to64(x86_s08to16):
 
 
 class x86_s32to64(x86_s08to32):
-    myexpr = lambda self, x: ExprInt64(x)
     in_size = 32
     out_size = 64
+
+    def myexpr(self, x):
+        return ExprInt64(x)
 
 
 class bs_eax(m_arg):
@@ -1690,7 +1696,7 @@ def exprfindmod(e, o=None):
 
 
 def expr2modrm(e, p, w8, sx=0, xmm=0, mm=0):
-    o = defaultdict(lambda x: 0)
+    o = {}
     if e.size == 64 and not e in gpregs_mm.expr:
         if hasattr(p, 'sd'):
             p.sd.value = 1

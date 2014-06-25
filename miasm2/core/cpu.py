@@ -952,8 +952,6 @@ class instruction(object):
         o = "%-10s " % self.name
         args = []
         args_str = self.args_str
-        if args_str is None:
-            args_str = [lambda x:str(x) for i in xrange(len(self.args))]
         for arg, arg_str in zip(self.args, args_str):
             if not isinstance(arg, Expr):
                 raise ValueError('zarb arg type')
