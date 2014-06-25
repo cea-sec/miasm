@@ -62,6 +62,7 @@ m32 = 32  # (32, 32)
 m64 = 64  # (64, 64)
 reg_tests = [
 
+
     (m32, "00000000    AAA",
      "37"),
     (m32, "00000000    AAS",
@@ -1608,6 +1609,12 @@ reg_tests = [
     (m32, "00000000    MOVUPD     XMM2, DWORD PTR [ECX]",
      "660f1011"),
 
+    (m32, "00000000    MOVSS      DWORD PTR [EBP+0xFFFFFC00], XMM0",
+     "f30f118500fcffff"),
+
+    (m64, "00000000    MOVSS      DWORD PTR [RBP+0xFFFFFFFFFFFFFC00], XMM0",
+     "f30f118500fcffff"),
+
     (m32, "00000000    ADDSS      XMM2, DWORD PTR [ECX]",
      "f30f5811"),
     (m32, "00000000    ADDSD      XMM2, DWORD PTR [ECX]",
@@ -1672,6 +1679,61 @@ reg_tests = [
      "FFE2"),
     (m64, "00000000    JMP        RDX",
      "FFE2"),
+
+    (m32, "00000000    XGETBV",
+     "0f01d0"),
+
+    (m32, "00000000    MOVD       MM4, DWORD PTR [EAX+EDX*0x8]",
+     "0f6e24d0"),
+    (m32, "00000000    MOVD       DWORD PTR [EAX+EDX*0x8], MM4",
+     "0f7e24d0"),
+    (m64, "00000000    MOVD       DWORD PTR [RAX+RDX*0x8], MM4",
+     "0f7e24d0"),
+    (m64, "00000000    MOVD       DWORD PTR [RAX+R10*0x8], MM4",
+     "420f7e24d0"),
+
+    (m32, "00000000    MOVD       XMM4, DWORD PTR [EAX+EDX*0x8]",
+     "660f6e24d0"),
+    (m32, "00000000    MOVD       DWORD PTR [EAX+EDX*0x8], XMM4",
+     "660f7e24d0"),
+    (m64, "00000000    MOVD       DWORD PTR [RAX+RDX*0x8], XMM4",
+     "660f7e24d0"),
+    (m64, "00000000    MOVD       DWORD PTR [RAX+R10*0x8], XMM4",
+     "66420f7e24d0"),
+
+    (m64, "00000000    MOVQ       XMM4, DWORD PTR [RAX+R10*0x8]",
+     "f3420f7e24d0"),
+    (m64, "00000000    MOVQ       XMM1, DWORD PTR [R12+0xFFFFFFFFFFFFFFE0]",
+     "f3410f7e4c24e0"),
+
+
+    (m32, "00000000    PAND       MM2, MM6",
+     "0fdbd6"),
+    (m32, "00000000    PAND       XMM2, XMM6",
+     "660fdbd6"),
+
+
+    (m32, "00000000    PAND       MM0, MM4",
+     "0fdbc4"),
+    (m32, "00000000    PAND       XMM0, XMM4",
+     "660fdbc4"),
+
+    (m32, "00000000    POR        XMM0, XMM1",
+     "660febc1"),
+
+    (m32, "00000000    MOVDQU     XMM1, DWORD PTR [ESI]",
+     "f30f6f0e"),
+    (m32, "00000000    MOVDQA     DWORD PTR [ESP], XMM0",
+     "660f7f0424"),
+
+    (m32, "00000000    CVTSS2SD   XMM0, XMM0",
+     "f30f5ac0"),
+    (m32, "00000000    CVTSS2SD   XMM0, DWORD PTR [EBP+0xFFFFFFD0]",
+     "f30f5a45d0"),
+
+    (m32, "00000000    CVTSD2SS   XMM0, XMM0",
+     "f20f5ac0"),
+
 ]
 
 
