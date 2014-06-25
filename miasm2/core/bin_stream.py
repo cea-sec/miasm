@@ -68,8 +68,6 @@ class bin_stream_str(bin_stream):
         self.offset = offset
         self.shift = shift
         self.l = len(bin)
-        if "is_addr_in" in self.bin.__class__.__dict__:
-            self.is_addr_in = lambda ad: self.bin.is_addr_in(ad)
 
     def getbytes(self, start, l=1):
         if start + l > self.l:
@@ -142,8 +140,9 @@ class bin_stream_pe(bin_stream):
         self.bin = bin
         self.offset = offset
         self.l = bin.__len__()
-        if "is_addr_in" in self.bin.__class__.__dict__:
-            self.is_addr_in = lambda ad: self.bin.is_addr_in(ad)
+
+    def is_addr_in(self, ad):
+        return self.bin.is_addr_in(ad)
 
     def getlen(self):
         return self.mylen
