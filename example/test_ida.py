@@ -19,10 +19,12 @@ import idautils
 class bin_stream_ida(bin_stream_str):
     # ida should provide Byte function
 
+    # dont generate xrange using address computation:
+    # it can raise error on overflow 7FFFFFFF with 32 bit python
     def getbytes(self, start, l=1):
         o = ""
-        for ad in xrange(start - self.shift, start - self.shift + l):
-            o += chr(Byte(ad))
+        for ad in xrange(l):
+            o += chr(Byte(ad + start - self.shift))
         return o
 
     def readbs(self, l=1):
