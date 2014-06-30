@@ -781,7 +781,7 @@ class arm_imm8_12(m_arg):
             self.parent.updown.value = 0
             v = -v & 0xFFFFFFFF
         if v & 0x3:
-            log.debug('arg shoulb be 4 aligned')
+            log.debug('arg should be 4 aligned')
             return False
         v >>= 2
         self.value = v
@@ -1516,6 +1516,12 @@ class arm_offreg(m_arg):
 
 class arm_offpc(arm_offreg):
     off_reg = regs_expr[15]
+    def decodeval(self, v):
+        return v << 2
+
+    def encodeval(self, v):
+        return v >> 2
+
 
 
 class arm_offsp(arm_offreg):
@@ -1905,7 +1911,7 @@ armtop("b", [bs('11100'),  offs11])
 armtop("und", [bs('1101'), bs('1110'), imm8_d1])
 
 #
-# thumnb2 ######################
+# thumb2 ######################
 #
 
 # ARM Architecture Reference Manual Thumb-2 Supplement
