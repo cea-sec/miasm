@@ -1209,6 +1209,7 @@ lnk = bs_lnk(l=1, fname='lnk', mn_mod=['', 'L'])
 offs = bs(l=24, cls=(arm_offs,), fname="offs")
 
 rn_noarg = bs(l=4, cls=(arm_gpreg_noarg,), fname="rn")
+rm_noarg = bs(l=4, cls=(arm_gpreg_noarg,), fname="rm", order = -1)
 
 immop = bs(l=1, fname='immop')
 dumr = bs(l=4, default_val="0000", fname="dumr")
@@ -1337,6 +1338,27 @@ immedL = bs(l=4, cls=(arm_immed, m_arg), fname='immedL')
 hb = bs(l=1)
 
 
+class armt2_rot_rm(m_arg):
+    parser = shift_off
+    def decode(self, v):
+        r = self.parent.rm.expr
+        if v == 00:
+            e = r
+        else:
+            raise NotImplementedError('rotation')
+        self.expr = e
+        return True
+    def encode(self):
+        e = self.expr
+        if isinstance(e, ExprId):
+            self.value = 0
+        else:
+            raise NotImplementedError('rotation')
+        return True
+
+rot_rm = bs(l=2, cls=(armt2_rot_rm,), fname="rot_rm")
+
+
 def armop(name, fields, args=None, alias=False):
     dct = {"fields": fields}
     dct["alias"] = alias
@@ -1410,7 +1432,7 @@ armop("data_test", [bs('00'), immop, bs_data_test_name, dumscc, rn, dumr, op2])
 armop("b", [bs('101'), lnk, offs])
 
 # TODO TEST
-armop("und", [bs('011'), imm20, bs('1'), imm4])
+#armop("und", [bs('011'), imm20, bs('1'), imm4])
 armop("transfer", [bs('01'), immop, ppi, updown, trb, wback_no_t,
     bs_transfer_name, rn_noarg, rd, op2imm], [rd, op2imm])
 armop("transferh", [bs('000'), ppi, updown, immop, wback_no_t,
@@ -1446,6 +1468,26 @@ armop("clz", [bs('00010110'), bs('1111'),
 armop("qadd",
       [bs('00010000'), rn, rd, bs('0000'), bs('0101'), rm], [rd, rm, rn])
 
+armop("uxtb", [bs('01101110'), bs('1111'), rd, rot_rm, bs('00'), bs('0111'), rm_noarg])
+armop("uxth", [bs('01101111'), bs('1111'), rd, rot_rm, bs('00'), bs('0111'), rm_noarg])
+
+class arm_widthm1(arm_imm, m_arg):
+    def decode(self, v):
+        self.expr = ExprInt32(v+1)
+        return True
+
+    def encode(self):
+        if not isinstance(self.expr, ExprInt):
+            return False
+        v = int(self.expr.arg) +  -1
+        self.value = v
+        return True
+
+
+widthm1 = bs(l=5, cls=(arm_widthm1, m_arg))
+lsb = bs(l=5, cls=(arm_imm, m_arg))
+
+armop("ubfx", [bs('0111111'), widthm1, rd, lsb, bs('101'), rn], [rd, rn, lsb, widthm1])
 
 #
 # thumnb #######################

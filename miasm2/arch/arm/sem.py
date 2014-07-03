@@ -809,6 +809,35 @@ def cbnz(ir, instr, a, b):
     return dst, e
 
 
+
+def uxtb(ir, instr, a, b):
+    e = []
+    e.append(ExprAff(a, b[:8].zeroExtend(32)))
+    dst = None
+    if PC in a.get_r():
+        dst = PC
+    return dst, e
+
+def uxth(ir, instr, a, b):
+    e = []
+    e.append(ExprAff(a, b[:16].zeroExtend(32)))
+    dst = None
+    if PC in a.get_r():
+        dst = PC
+    return dst, e
+
+def ubfx(ir, instr, a, b, c, d):
+    e = []
+    c = int(c.arg)
+    d = int(d.arg)
+    e.append(ExprAff(a, b[c:c+d].zeroExtend(32)))
+    dst = None
+    if PC in a.get_r():
+        dst = PC
+    return dst, e
+
+
+
 COND_EQ = 0
 COND_NE = 1
 COND_CS = 2
@@ -935,6 +964,9 @@ mnemo_condm0 = {'add': add,
                 'strh': strh,
                 'ldrsh': ldrsh,
                 'ldsh': ldrsh,
+                'uxtb': uxtb,
+                'uxth': uxth,
+                'ubfx': ubfx,
                 }
 
 mnemo_condm1 = {'adds': add,
