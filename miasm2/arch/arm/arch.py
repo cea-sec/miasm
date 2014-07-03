@@ -308,6 +308,8 @@ class instruction_arm(instruction):
     def splitflow(self):
         if self.additional_info.lnk:
             return True
+        if self.name == 'BLX':
+            return True
         if self.name == 'BX':
             return False
         return self.breakflow() and self.additional_info.cond != 14
