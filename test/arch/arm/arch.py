@@ -149,8 +149,8 @@ reg_tests_arm = [
      "f9efbe8e"),
     ("C00F3D24    MCRVS      p0, 0x3, R2, c9, c4, 0x3",
      "7420696e"),
-    ("xxxxxxxx    UND        0x0, 0x0",
-     "100000e6"),
+    #("xxxxxxxx    UND        0x0, 0x0",
+    # "100000e6"),
     ("xxxxxxxx    BKPT       0x0, 0x0",
      "700020e1"),
     ("c00d153c    LDRH       R2, [R4, 0xCA]",
@@ -218,6 +218,15 @@ reg_tests_arm = [
 
     ("6330A0E1    MOV        R3, R3 RRX",
      "6330A0E1"),
+
+    ("XXXXXXXX    UXTB       R5, R2",
+     "7250EFE6"),
+
+    ("XXXXXXXX    UXTH       R7, R3",
+     "7370FFE6"),
+    ("XXXXXXXX    UBFX       R1, R2, 0x10, 0x8",
+     "5218E7E7"),
+
 
 ]
 ts = time.time()
