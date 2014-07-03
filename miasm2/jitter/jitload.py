@@ -965,20 +965,29 @@ class jitter_arm(jitter):
 
     # calling conventions
 
-    def func_args_fastcall(self, n_args):
+    def func_args_stdcall(self, n_args):
         args = []
         for i in xrange(min(n_args, 4)):
             args.append(self.cpu.vm_get_gpreg()['R%d' % i])
         for i in xrange(max(0, n_args - 4)):
             args.append(self.get_stack_arg(i))
-        log.debug('%s %s' % (whoami(), [hex(x) for x in args]))
-        return args
 
-    def func_ret_fastcall(self, ret_value=None):
-        self.pc = self.cpu.PC = self.cpu.LR
+        ret_ad = self.cpu.LR
+        log.debug('%s %s %s' % (whoami(), hex(ret_ad), [hex(x) for x in args]))
+        return ret_ad, args
+
+    def func_ret_stdcall(self, ret_addr, ret_value=None):
+        self.pc = self.cpu.PC = ret_addr
         if ret_value is not None:
             self.cpu.R0 = ret_value
         return True
+
+    def get_arg_n_stdcall(self, n):
+        if n < 4:
+            arg = self.cpu.vm_get_gpreg()['R%d' % n]
+        else:
+            arg = self.get_stack_arg(n-4)
+        return arg
 
     def add_lib_handler(self, libs):
         from miasm2.jitter.os_dep import linux_stdlib

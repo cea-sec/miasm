@@ -12,9 +12,9 @@ def xxx_isprint(jitter):
 
     checks for any printable character including space.
     '''
-    c,  = jitter.func_args_fastcall(1)
+    ret_addr, (c,)  = jitter.func_args_stdcall(1)
     ret = chr(c & 0xFF) in printable and 1 or 0
-    return jitter.func_ret_fastcall(ret)
+    return jitter.func_ret_stdcall(ret_addr, ret)
 
 
 def xxx_memcpy(jitter):
@@ -24,9 +24,9 @@ def xxx_memcpy(jitter):
 
     copies n bytes from memory area src to memory area dest.
     '''
-    dest, src, n, = jitter.func_args_fastcall(3)
+    ret_addr, (dest, src, n) = jitter.func_args_stdcall(3)
     jitter.vm.vm_set_mem(dest, jitter.vm.vm_get_mem(src, n))
-    return jitter.func_ret_fastcall(dest)
+    return jitter.func_ret_stdcall(ret_addr, dest)
 
 
 def xxx_puts(jitter):
@@ -36,7 +36,7 @@ def xxx_puts(jitter):
 
     writes the string s and a trailing newline to stdout.
     '''
-    s, = jitter.func_args_fastcall(1)
+    ret_addr, (s,) = jitter.func_args_stdcall(1)
     while True:
         c = jitter.vm.vm_get_mem(s, 1)
         s += 1
@@ -44,7 +44,7 @@ def xxx_puts(jitter):
             break
         stdout.write(c)
     stdout.write('\n')
-    return jitter.func_ret_fastcall(1)
+    return jitter.func_ret_stdcall(ret_addr, 1)
 
 
 def xxx_snprintf(jitter):
@@ -54,8 +54,8 @@ def xxx_snprintf(jitter):
 
     writes to string str according to format format and at most size bytes.
     '''
-    str, size, format, = jitter.func_args_fastcall(3)
-    curarg, output = 4, ''
+    ret_addr, (str, size, format) = jitter.func_args_stdcall(3)
+    curarg, output = 3, ''
     while True:
         c = jitter.vm.vm_get_mem(format, 1)
         format += 1
@@ -69,10 +69,10 @@ def xxx_snprintf(jitter):
                 token += c
                 if c in '%cdfsux':
                     break
-            c = token % jitter.func_args_fastcall(curarg)[-1]
+            c = token % jitter.get_arg_n_stdcall(curarg)
             curarg += 1
         output += c
     output = output[:size - 1]
     ret = len(output)
     jitter.vm.vm_set_mem(str, output + '\x00')
-    return jitter.func_ret_fastcall(ret)
+    return jitter.func_ret_stdcall(ret_addr, ret)
