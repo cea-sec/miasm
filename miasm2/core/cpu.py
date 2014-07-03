@@ -960,6 +960,9 @@ class instruction(object):
         o += self.gen_args(args)
         return o
 
+    def get_asm_offset(self, x):
+        return ExprInt_from(x, self.offset)
+
     def resolve_args_with_symbols(self, symbols=None):
         if symbols is None:
             symbols = {}
@@ -978,8 +981,7 @@ class instruction(object):
                     name = x.name
                 # special symbol
                 if name == '$':
-                    value = ExprInt_from(x, self.offset)
-                    fixed_ids[x] = value
+                    fixed_ids[x] = self.get_asm_offset(x)
                     continue
                 if not name in symbols:
                     continue

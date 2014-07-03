@@ -336,6 +336,9 @@ class instruction_arm(instruction):
         args = [a for a in self.args]
         return args
 
+    def get_asm_offset(self, x):
+        # LDR XXX, [PC, offset] => PC is self.offset+8
+        return ExprInt_from(x, self.offset+8)
 
 class instruction_armt(instruction_arm):
 

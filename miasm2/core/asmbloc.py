@@ -961,42 +961,22 @@ def asmbloc_final(mnemo, mode, blocs, symbol_pool, symb_reloc_off=None, conserva
             my_symb_reloc_off[b.label] = []
             for instr in b.lines:
                 if isinstance(instr, asm_raw):
-                    offset_i += instr.l  # len(instr.data)
+                    offset_i += instr.l
                     continue
-                # if not [True for a in instr.arg if mnemo.has_symb(a)]:
-                #    offset_i+=len(instr.data)
-                #    continue
-                sav_a = instr.args[:]  # [a.expr for a in instr.args]
-                # print [str(x) for x in sav_a]
+                sav_a = instr.args[:]
+                instr.offset = b.label.offset_g + offset_i
                 args_e = instr.resolve_args_with_symbols(symbols)
                 for i, e in enumerate(args_e):
-                    # print 'ee', e.size, e
                     instr.args[i] = e
 
-                instr.offset = b.label.offset_g + offset_i
                 if instr.dstflow():
-                    # instr.l = len(instr.data)
                     instr.fixDstOffset()
-                    """
-                    lbls = {}
-                    xxx = instr.getdstflow()
-                    if len(xxx) !=1:
-                        raise ValueError('multi dst ?!')
-                    label = mnemo.get_label(xxx[0])
-                    is_mem = mnemo.is_mem(xxx[0])
-                    lbls[label.name] = label.offset_g
-                    instr.fixdst(lbls, b.label.offset_g+b.blen, is_mem)
-                    """
-                # else:
-                # instr.arg = [mnemo.fix_symbol(a, symbol_pool)
-                #    for a in instr.arg]
-                #    pass
+
                 symbol_reloc_off = []
                 old_l = instr.l
                 c, candidates = conservative_asm(
                     mnemo, mode, instr, symbol_reloc_off, conservative)
 
-                # print "XXXX", instr
                 # print candidates
                 for i, e in enumerate(sav_a):
                     instr.args[i] = e
