@@ -317,7 +317,7 @@ class libimp:
             all_ads = self.lib_imp2dstad[ad].values()
             all_ads = reduce(lambda x, y: x + list(y), all_ads, [])
             all_ads = [x for x in all_ads if filter(x)]
-            # log.debug('%s' % [hex(x) for x in all_ads])
+            log.debug('ads: %s' % [hex(x) for x in all_ads])
             all_ads.sort()
             # first, drop None
             if not all_ads:
@@ -333,12 +333,12 @@ class libimp:
                     i += 1
                 funcs = [out_ads[x] for x in all_ads[:i + 1]]
                 try:
-                    off = e.virt2off(othunk)
+                    rva = e.virt2rva(othunk)
                 except pe.InvalidOffset:
-                    off = None
-                if off is not None:  # e.is_in_virt_address(othunk):
+                    rva = None
+                if rva is not None:  # e.is_in_virt_address(othunk):
                     new_lib.append(({"name": n,
-                                     "firstthunk": off},
+                                     "firstthunk": rva},
                                     funcs)
                                    )
                 all_ads = all_ads[i + 1:]
