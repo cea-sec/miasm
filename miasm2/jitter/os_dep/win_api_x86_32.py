@@ -291,7 +291,7 @@ def kernel32_HeapFree(myjit):
     ret_ad, args = myjit.func_args_stdcall(3)
     heap, flags, pmem = args
 
-    myjit.func_ret_stdcall(ret_ad, 0)
+    myjit.func_ret_stdcall(ret_ad, 1)
 
 
 def kernel32_GlobalAlloc(myjit):
@@ -363,7 +363,7 @@ def kernel32_Process32Next(myjit):
     else:
         ret = 1
         n = winobjs.toolhelpsnapshot_info[s_handle]
-        print whoami(), hex(ret_ad), '(', hex(s_handle), hex(ad_pentry), ')'
+        #print whoami(), hex(ret_ad), '(', hex(s_handle), hex(ad_pentry), ')'
         pentry = struct.pack(
             'IIIIIIIII', *process_list[n][:-1]) + process_list[n][-1]
         myjit.vm.vm_set_mem(ad_pentry, pentry)
@@ -381,7 +381,7 @@ def kernel32_GetVersion(myjit):
     myjit.func_ret_stdcall(ret_ad, winobjs.getversion)
 
 
-def my_GetVersionEx(myjit, funcname, set_str):
+def kernel32_GetVersionEx(myjit, set_str = set_str_unic):
     ret_ad, args = myjit.func_args_stdcall(1)
     ptr_struct, = args
 
@@ -400,12 +400,8 @@ def my_GetVersionEx(myjit, funcname, set_str):
     myjit.func_ret_stdcall(ret_ad, 1)
 
 
-def kernel32_GetVersionExA(myjit):
-    my_GetVersionEx(myjit, whoami(), set_str_ansi)
-
-
-def kernel32_GetVersionExW(myjit):
-    my_GetVersionEx(myjit, whoami(), set_str_unic)
+kernel32_GetVersionExA = lambda myjit: kernel32_GetVersionEx(myjit, set_str_ansi)
+kernel32_GetVersionExW = lambda myjit: kernel32_GetVersionEx(myjit, set_str_unic)
 
 
 def kernel32_GetPriorityClass(myjit):
