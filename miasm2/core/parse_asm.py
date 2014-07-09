@@ -5,13 +5,20 @@ import re
 import struct
 import miasm2.expression.expression as m2_expr
 from miasm2.core.asmbloc import *
-
-declarator = {'byte': 'B',
-              'word': 'H',
-              'dword': 'I',
-              'qword': 'Q',
-              'long': 'I', 'zero': 'I',
+from miasm2.core.utils import pck
+from miasm2.core.cpu import gen_base_expr, parse_ast
+declarator = {'byte': 8,
+              'word': 16,
+              'dword': 32,
+              'qword': 64,
+              'long': 32,
               }
+
+size2pck = {8: 'B',
+            16: 'H',
+            32: 'I',
+            64: 'Q',
+            }
 
 
 def guess_next_new_label(symbol_pool, gen_label_index=0):
@@ -70,6 +77,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
                 # XXX HACK
                 line = line.replace(r'\n', '\n').replace(r'\r', '\r')
                 raw = line[line.find(r'"') + 1:line.rfind(r"'")]
+                raw = raw.decode('string_escape')
                 if directive == 'string':
                     raw += "\x00"
                 lines.append(asm_raw(raw))
@@ -78,29 +86,40 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
                 # XXX HACK
                 line = line.replace(r'\n', '\n').replace(r'\r', '\r')
                 raw = line[line.find(r'"') + 1:line.rfind(r"'")] + "\x00"
+                raw = raw.decode('string_escape')
                 raw = "".join(map(lambda x: x + '\x00', raw))
                 lines.append(asm_raw(raw))
                 continue
             if directive in declarator:
-                data_raw = line[r.end():].split()
-                try:
-                    data_int = []
-                    for b in data_raw:
-                        if re.search(r'0x', b):
-                            data_int.append(int(b, 16))
-                        else:
-                            data_int.append(int(b) % (1 << 32))
-                    raw = reduce(lambda x, y: x + struct.pack(
-                        declarator[directive], y), data_int, "")
-                except ValueError:
-                    raw = line
-                lines.append(asm_raw(raw))
+                data_raw = line[r.end():].split(' ', 1)[1]
+                data_raw = data_raw.split(',')
+                size = declarator[directive]
+                data_int = []
+                has_symb = False
+
+                # parser
+                variable, operand, base_expr = gen_base_expr()
+                my_var_parser = parse_ast(lambda x:m2_expr.ExprId(x, size),
+                                          lambda x:m2_expr.ExprInt_fromsize(size, x))
+                base_expr.setParseAction(my_var_parser)
+
+                for b in data_raw:
+                    b = b.strip()
+                    x = base_expr.parseString(b)[0]
+                    data_int.append(x.canonize())
+                p = size2pck[size]
+                raw = data_int
+                x = asm_raw(raw)
+                x.element_size = size
+                lines.append(x)
                 continue
             if directive == 'comm':
                 # TODO
                 continue
             if directive == 'split':  # custom command
-                lines.append(asm_raw(line.strip()))
+                x = asm_raw()
+                x.split = True
+                lines.append(x)
                 continue
             if directive == 'dontsplit':  # custom command
                 lines.append(asm_raw(line.strip()))
@@ -168,18 +187,22 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
             elif state == 1:
                 # asm_raw
                 if isinstance(lines[i], asm_raw):
-                    if lines[i].raw.startswith('.split'):
+                    if hasattr(lines[i], 'split'):
                         state = 0
                         block_may_link = False
                         i += 1
-                    elif lines[i].raw.startswith('.dontsplit'):
+                    else: #if lines[i].raw.startswith('.dontsplit'):
+                        # raw asm are link by default
                         # print 'dontsplit'
                         state = 1
                         block_may_link = True
+                        b.addline(lines[i])
                         i += 1
+                    """
                     else:
                         b.addline(lines[i])
                         i += 1
+                    """
                 # asm_label
                 elif isinstance(lines[i], asm_label):
                     if block_may_link:

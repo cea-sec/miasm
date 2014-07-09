@@ -3,10 +3,13 @@
 
 import logging
 import miasm2.expression.expression as m2_expr
+from miasm2.expression.simplifications import expr_simp
+
 from miasm2.expression.modint import moduint, modint
 from miasm2.core.graph import DiGraph
-from utils import Disasm_Exception
+from miasm2.core.utils import Disasm_Exception, pck
 from miasm2.core.graph import DiGraph
+
 import inspect
 
 log_asmbloc = logging.getLogger("asmbloc")
@@ -78,7 +81,6 @@ class asm_label:
 
 
 class asm_raw:
-
     def __init__(self, raw=""):
         self.raw = raw
 
@@ -327,7 +329,7 @@ class asm_symbol_pool:
     def set_offset(self, label, offset):
         # Note that there is a special case when the offset is a list
         # it happens when offsets are recomputed in resolve_symbol*
-        if not label in self.labels:
+        if not label.name in self.s:
             raise ValueError('label %s not in symbol pool' % label)
         if not isinstance(label.offset, list) and label.offset in self.s_offset:
             del(self.s_offset[label.offset])
@@ -634,6 +636,16 @@ def conservative_asm(mnemo, mode, instr, symbols, conservative):
                 return c, candidates
     return candidates[0], candidates
 
+def fix_expr_val(e, symbols):
+    def expr_calc(e):
+        if isinstance(e, m2_expr.ExprId):
+            s = symbols.s[e.name]
+            e = m2_expr.ExprInt_from(e, s.offset)
+        return e
+    e = e.visit(expr_calc)
+    e = expr_simp(e)
+    return e
+
 
 def guess_blocs_size(mnemo, mode, blocs, symbols):
     """
@@ -645,10 +657,18 @@ def guess_blocs_size(mnemo, mode, blocs, symbols):
         blen_max = 0
         for instr in b.lines:
             if isinstance(instr, asm_raw):
-                candidates = [instr.raw]
-                c = instr.raw
-                data = c
-                l = len(c)
+                # for special asm_raw, only extract len
+                if isinstance(instr.raw, list):
+                    data = None
+                    if len(instr.raw) == 0:
+                        l = 0
+                    else:
+                        l = instr.raw[0].size/8 * len(instr.raw)
+                elif isinstance(instr.raw, str):
+                    data = instr.raw
+                    l = len(data)
+                else:
+                    raise NotImplementedError('asm raw')
             else:
                 l = mnemo.max_instruction_len
                 data = None
@@ -961,6 +981,14 @@ def asmbloc_final(mnemo, mode, blocs, symbol_pool, symb_reloc_off=None, conserva
             my_symb_reloc_off[b.label] = []
             for instr in b.lines:
                 if isinstance(instr, asm_raw):
+                    if isinstance(instr.raw, list):
+                        # fix special asm_raw
+                        data = ""
+                        for x in instr.raw:
+                            e = fix_expr_val(x, symbols)
+                            data+= pck[e.size](e.arg)
+                        instr.data = data
+
                     offset_i += instr.l
                     continue
                 sav_a = instr.args[:]

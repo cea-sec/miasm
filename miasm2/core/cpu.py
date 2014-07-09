@@ -161,10 +161,18 @@ def ast_parse_op(t):
             return ExprOp(t[0], t[1])
     if len(t) == 3:
         args = [t[0], t[2]]
+        if t[1] == '-':
+            # a - b => a + (-b)
+            t[1] = '+'
+            t[2] = - t[2]
         return ExprOp(t[1], t[0], t[2])
     t = t[::-1]
     while len(t) >= 3:
         o1, op, o2 = t.pop(), t.pop(), t.pop()
+        if op == '-':
+            # a - b => a + (-b)
+            op = '+'
+            o2 = - o2
         e = ExprOp(op, o1, o2)
         t.append(e)
     if len(t) != 1:
