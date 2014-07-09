@@ -30,7 +30,8 @@ main:
   MOV    R1, mystrend & 0xffff
   ORR    R1, R1, mystrend & 0xffff0000
 xxx:
-  LDR    R2, [PC, key-(xxx+8)]
+  LDR    R2, [PC, key-$]
+  LDR    R6, [PC, test-$]
 loop:
   LDRB   R3, [R0]
   EOR    R3, R3, R2
@@ -53,6 +54,8 @@ mystr:
 .string "test string"
 mystrend:
 .long 0
+test:
+.long mystrend - key + 0x1122
 ''')
 
 # fix shellcode addr
