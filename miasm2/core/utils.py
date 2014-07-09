@@ -4,9 +4,16 @@ upck8 = lambda x: struct.unpack('B', x)[0]
 upck16 = lambda x: struct.unpack('H', x)[0]
 upck32 = lambda x: struct.unpack('I', x)[0]
 upck64 = lambda x: struct.unpack('Q', x)[0]
+pck8 = lambda x: struct.pack('B', x)
 pck16 = lambda x: struct.pack('H', x)
 pck32 = lambda x: struct.pack('I', x)
 pck64 = lambda x: struct.pack('Q', x)
+
+
+pck = {8:pck8,
+       16:pck16,
+       32:pck32,
+       64:pck64}
 
 
 class Disasm_Exception(Exception):
