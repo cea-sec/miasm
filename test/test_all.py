@@ -43,11 +43,15 @@ all_tests = {
             ["ir/ir2C.py"],
             ["ir/symbexec.py"],
         ],
+        "jitter": [
+            ["jitter/os_dep/win_api_x86_32.py"],
+        ],
         "order": [
             "architecture",
             "core",
             "expression",
             "ir",
+            "jitter",
         ],
     },
     "example": {
