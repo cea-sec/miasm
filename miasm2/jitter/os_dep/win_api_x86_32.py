@@ -28,6 +28,13 @@ import time
 from miasm2.jitter.csts import *
 from miasm2.core.utils import *
 import string
+import logging
+
+log = logging.getLogger("win_api_x86_32")
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
+log.addHandler(console_handler)
+log.setLevel(logging.WARN)
 
 
 MAX_PATH = 260
@@ -99,7 +106,7 @@ class handle_generator():
         h = whandle(name, info)
         self.all_handles[self.offset] = h
 
-        print repr(self)
+        log.debug(repr(self))
         return self.offset
 
     def __repr__(self):
@@ -363,7 +370,6 @@ def kernel32_Process32Next(myjit):
     else:
         ret = 1
         n = winobjs.toolhelpsnapshot_info[s_handle]
-        #print whoami(), hex(ret_ad), '(', hex(s_handle), hex(ad_pentry), ')'
         pentry = struct.pack(
             'IIIIIIIII', *process_list[n][:-1]) + process_list[n][-1]
         myjit.vm.vm_set_mem(ad_pentry, pentry)
@@ -453,7 +459,7 @@ def advapi32_CryptAcquireContext(myjit, funcname, get_str):
         prov = get_str(myjit, pszprovider)
     else:
         prov = "NONE"
-    print 'prov:', prov
+    log.debug('prov: %r'%prov)
     myjit.vm.vm_set_mem(phprov, pck32(winobjs.cryptcontext_hwnd))
 
     myjit.func_ret_stdcall(ret_ad, 1)
@@ -474,7 +480,7 @@ def advapi32_CryptCreateHash(myjit):
     winobjs.cryptcontext_num += 1
 
     if algid == 0x00008003:
-        print 'algo is MD5'
+        log.debug('algo is MD5')
         myjit.vm.vm_set_mem(
             phhash, pck32(winobjs.cryptcontext_bnum + winobjs.cryptcontext_num))
         winobjs.cryptcontext[
@@ -482,7 +488,7 @@ def advapi32_CryptCreateHash(myjit):
         winobjs.cryptcontext[
             winobjs.cryptcontext_bnum + winobjs.cryptcontext_num].h = MD5.new()
     elif algid == 0x00008004:
-        print 'algo is SHA1'
+        log.debug('algo is SHA1')
         myjit.vm.vm_set_mem(
             phhash, pck32(winobjs.cryptcontext_bnum + winobjs.cryptcontext_num))
         winobjs.cryptcontext[
@@ -502,8 +508,8 @@ def advapi32_CryptHashData(myjit):
         raise ValueError("unknown crypt context")
 
     data = myjit.vm.vm_get_mem(pbdata, dwdatalen)
-    print 'will hash %X' % dwdatalen
-    print repr(data[:10]) + "..."
+    log.debug('will hash %X' % dwdatalen)
+    log.debug(repr(data[:10]) + "...")
     winobjs.cryptcontext[hhash].h.update(data)
     myjit.func_ret_stdcall(ret_ad, 1)
 
@@ -537,11 +543,11 @@ def advapi32_CryptDeriveKey(myjit):
     hprov, algid, hbasedata, dwflags, phkey = args
 
     if algid == 0x6801:
-        print 'using DES'
+        log.debug('using DES')
     else:
         raise ValueError('un impl algo2')
     h = winobjs.cryptcontext[hbasedata].h.digest()
-    print 'hash', repr(h)
+    log.debug('hash %r'% h)
     winobjs.cryptcontext[hbasedata].h_result = h
     myjit.vm.vm_set_mem(phkey, pck32(hbasedata))
     myjit.func_ret_stdcall(ret_ad, 1)
@@ -566,7 +572,7 @@ def kernel32_CreateFile(myjit, funcname, get_str):
      dwcreationdisposition, dwflagsandattr, htemplatefile) = args
 
     fname = get_str(myjit, lpfilename)
-    print 'fname', fname
+    log.debug('fname %s' % fname )
     fname_o = fname[:]
     ret = 0xffffffff
 
@@ -578,7 +584,7 @@ def kernel32_CreateFile(myjit, funcname, get_str):
     else:
         f = fname_o
     """
-    print f.lower(), winobjs.module_path.lower()
+    log.debug("%r %r"%(f.lower(), winobjs.module_path.lower()))
     is_original_file = f.lower() == winobjs.module_path.lower()
 
     if fname.upper() in [r"\\.\SICE", r"\\.\NTICE", r"\\.\SIWVID"]:
@@ -610,7 +616,7 @@ def kernel32_CreateFile(myjit, funcname, get_str):
                         h = open(f, 'rb+')
                         ret = winobjs.handle_pool.add(f, h)
                 else:
-                    print "FILE %r DOES NOT EXIST!" % fname
+                    log.warning("FILE %r DOES NOT EXIST!" % fname)
                     pass
             elif dwcreationdisposition == 1:
                 # create new
@@ -657,7 +663,7 @@ def kernel32_CreateFile(myjit, funcname, get_str):
 
         # h = open(f, 'rb+')
         # ret = winobjs.handle_pool.add(f, h)
-    print 'ret', hex(ret)
+    log.debug('ret %x' % ret)
     myjit.func_ret_stdcall(ret_ad, ret)
 
 
@@ -708,7 +714,6 @@ def kernel32_GetFileSize(myjit):
         ret = len(open(winobjs.module_fname_nux).read())
     elif hwnd in winobjs.handle_pool:
         wh = winobjs.handle_pool[hwnd]
-        print wh
         ret = len(open(wh.name).read())
     else:
         raise ValueError('unknown hwnd!')
@@ -726,7 +731,6 @@ def kernel32_GetFileSizeEx(myjit):
         l = len(open(winobjs.module_fname_nux).read())
     elif hwnd in winobjs.handle_pool:
         wh = winobjs.handle_pool[hwnd]
-        print wh
         l = len(open(wh.name).read())
     else:
         raise ValueError('unknown hwnd!')
@@ -796,7 +800,7 @@ def kernel32_VirtualAlloc(myjit):
             myjit.vm.vm_add_memory_page(
                 alloc_addr, access_dict[flprotect], "\x00" * dwsize)
 
-    print 'Memory addr:', hex(alloc_addr)
+    log.debug('Memory addr: %x' %alloc_addr)
     myjit.func_ret_stdcall(ret_ad, alloc_addr)
 
 
@@ -830,7 +834,7 @@ def kernel32_GetModuleFileName(myjit, funcname, set_str):
                         for x in winobjs.runtime_dll.name2off.items()])
         p = name_inv[hmodule]
     else:
-        print ValueError('unknown module h', hex(hmodule))
+        log.warning('unknown module %x' % hmodule)
         p = None
 
     if p is None:
@@ -841,7 +845,6 @@ def kernel32_GetModuleFileName(myjit, funcname, set_str):
     else:
         l = len(p)
 
-    print repr(p)
     if p:
         myjit.vm.vm_set_mem(lpfilename, set_str(p))
 
@@ -858,12 +861,11 @@ def kernel32_GetModuleFileNameW(myjit):
 
 def kernel32_CreateMutex(myjit, funcname, get_str):
     ret_ad, args = myjit.func_args_stdcall(3)
-    print funcname
     mutexattr, initowner, lpname = args
 
     if lpname:
         name = get_str(myjit, lpname)
-        print repr(name)
+        log.debug(name)
     else:
         name = None
     if initowner:
@@ -943,10 +945,10 @@ def kernel32_LoadLibraryA(myjit):
     dllname, = args
 
     libname = get_str_ansi(myjit, dllname, 0x100)
-    print repr(libname)
+    log.info(libname)
 
     ret = winobjs.runtime_dll.lib_get_add_base(libname)
-    print "ret", hex(ret)
+    log.info("ret %x" %ret)
     myjit.func_ret_stdcall(ret_ad, ret)
 
 
@@ -957,10 +959,10 @@ def kernel32_LoadLibraryExA(myjit):
     if hfile != 0:
         raise NotImplementedError("Untested case")
     libname = get_str_ansi(myjit, dllname, 0x100)
-    print repr(libname)
+    log.info(libname)
 
     ret = winobjs.runtime_dll.lib_get_add_base(libname)
-    print "ret", hex(ret)
+    log.info("ret %x" % ret)
     myjit.func_ret_stdcall(ret_ad, ret)
 
 
@@ -974,7 +976,7 @@ def kernel32_GetProcAddress(myjit):
         fname = get_str_ansi(myjit, fname, 0x100)
         if not fname:
             fname = None
-    print repr(fname)
+    log.info(fname)
     if fname is not None:
         ad = winobjs.runtime_dll.lib_get_add_func(libbase, fname)
     else:
@@ -989,10 +991,10 @@ def kernel32_LoadLibraryW(myjit):
     dllname, = args
 
     libname = get_str_unic(myjit, dllname, 0x100)
-    print repr(libname)
+    log.info(libname)
 
     ret = winobjs.runtime_dll.lib_get_add_base(libname)
-    print "ret", hex(ret)
+    log.info("ret %x", ret)
     myjit.func_ret_stdcall(ret_ad, ret)
 
 
@@ -1002,15 +1004,15 @@ def kernel32_GetModuleHandle(myjit, funcname, get_str):
 
     if dllname:
         libname = get_str(myjit, dllname)
-        print repr(libname)
+        log.info(libname)
         if libname:
             ret = winobjs.runtime_dll.lib_get_add_base(libname)
         else:
-            print 'unknown module!'
+            log.warning('unknown module!')
             ret = 0
     else:
         ret = winobjs.current_pe.NThdr.ImageBase
-        print "default img base", hex(ret)
+        log.debug("default img base %x", ret)
     myjit.func_ret_stdcall(ret_ad, ret)
 
 
@@ -1092,7 +1094,7 @@ def shell32_CommandLineToArgvW(myjit):
     ret_ad, args = myjit.func_args_stdcall(2)
     pcmd, pnumargs = args
     cmd = get_str_unic(myjit, pcmd)
-    print repr(cmd)
+    log.debug(cmd)
     tks = cmd.split(' ')
     addr = alloc_mem(myjit, len(cmd) * 2 + 4 * len(tks))
     addr_ret = alloc_mem(myjit, 4 * (len(tks) + 1))
@@ -1130,7 +1132,7 @@ def cryptdll_MD5Update(myjit):
 
     data = myjit.vm.vm_get_mem(ad_input, inlen)
     winobjs.cryptdll_md5_h[index].update(data)
-    print hexdump(data)
+    log.debug(hexdump(data))
 
     myjit.func_ret_stdcall(ret_ad, 0)
 
@@ -1154,7 +1156,6 @@ def ntdll_RtlInitAnsiString(myjit):
 
     s = get_str_ansi(myjit, ad_str)
     l = len(s)
-    print "string", l, s
     myjit.vm.vm_set_mem(ad_ctx, pck16(l) + pck16(l + 1) + pck32(ad_str))
     myjit.func_ret_stdcall(ret_ad, 0)
 
@@ -1163,23 +1164,18 @@ def ntdll_RtlHashUnicodeString(myjit):
     ret_ad, args = myjit.func_args_stdcall(4)
     ad_ctxu, case_i, h_id, phout = args
 
-    print hex(h_id)
     if h_id != 1:
         raise ValueError('unk hash unicode', h_id)
 
     l1, l2, ptra = struct.unpack('HHL', myjit.vm.vm_get_mem(ad_ctxu, 8))
-    print hex(l1), hex(l2), hex(ptra)
     s = myjit.vm.vm_get_mem(ptra, l1)
-    print repr(s)
     s = s[:-1]
-    print repr(s)
     hv = 0
 
     if case_i:
         s = s.lower()
     for c in s:
         hv = ((65599 * hv) + ord(c)) & 0xffffffff
-    print "unicode h", hex(hv)
     myjit.vm.vm_set_mem(phout, pck32(hv))
     myjit.func_ret_stdcall(ret_ad, 0)
 
@@ -1189,7 +1185,6 @@ def kernel32_RtlMoveMemory(myjit):
     ad_dst, ad_src, m_len = args
     data = myjit.vm.vm_get_mem(ad_src, m_len)
     myjit.vm.vm_set_mem(ad_dst, data)
-    print hexdump(data)
 
     myjit.func_ret_stdcall(ret_ad, 0)
 
@@ -1198,11 +1193,9 @@ def ntdll_RtlAnsiCharToUnicodeChar(myjit):
     ret_ad, args = myjit.func_args_stdcall(1)
     ad_ad_ch, = args
     ad_ch = upck32(myjit.vm.vm_get_mem(ad_ad_ch, 4))
-    print hex(ad_ch)
     ch = ord(myjit.vm.vm_get_mem(ad_ch, 1))
     myjit.vm.vm_set_mem(ad_ad_ch, pck32(ad_ch + 1))
 
-    print repr(ch), repr(chr(ch))
     myjit.func_ret_stdcall(ret_ad, ch)
 
 
@@ -1210,20 +1203,14 @@ def ntdll_RtlFindCharInUnicodeString(myjit):
     ret_ad, args = myjit.func_args_stdcall(1)
     flags, main_str_ad, search_chars_ad, pos_ad = args
 
-    print flags
     if flags != 0:
         raise ValueError('unk flags')
 
     ml1, ml2, mptra = struct.unpack('HHL', myjit.vm.vm_get_mem(main_str_ad, 8))
-    print ml1, ml2, hex(mptra)
     sl1, sl2, sptra = struct.unpack(
         'HHL', myjit.vm.vm_get_mem(search_chars_ad, 8))
-    print sl1, sl2, hex(sptra)
     main_data = myjit.vm.vm_get_mem(mptra, ml1)[:-1]
     search_data = myjit.vm.vm_get_mem(sptra, sl1)[:-1]
-
-    print repr(main_data)
-    print repr(search_data)
 
     pos = None
     for i, c in enumerate(main_data):
@@ -1233,7 +1220,6 @@ def ntdll_RtlFindCharInUnicodeString(myjit):
                 break
         if pos:
             break
-    print pos
     if pos is None:
         ret = 0xC0000225
         myjit.vm.vm_set_mem(pos_ad, pck32(0))
@@ -1249,10 +1235,7 @@ def ntdll_RtlComputeCrc32(myjit):
     dwinit, pdata, ilen = args
 
     data = myjit.vm.vm_get_mem(pdata, ilen)
-    print hex(dwinit)
-    print hexdump(data)
     crc_r = crc32(data, dwinit)
-    print "crc32", hex(crc_r)
     myjit.func_ret_stdcall(ret_ad, crc_r)
 
 
@@ -1261,7 +1244,6 @@ def ntdll_RtlExtendedIntegerMultiply(myjit):
     b2, b1, bm = args
     a = (b1 << 32) + b2
     a = a * bm
-    print hex(a)
     myjit.func_ret_stdcall(ret_ad, a & 0xffffffff, (a >> 32) & 0xffffffff)
 
 
@@ -1269,7 +1251,6 @@ def ntdll_RtlLargeIntegerAdd(myjit):
     ret_ad, args = myjit.func_args_stdcall(4)
     a2, a1, b2, b1 = args
     a = (a1 << 32) + a2 + (b1 << 32) + b2
-    print hex(a)
     myjit.func_ret_stdcall(ret_ad, a & 0xffffffff, (a >> 32) & 0xffffffff)
 
 
@@ -1277,7 +1258,6 @@ def ntdll_RtlLargeIntegerShiftRight(myjit):
     ret_ad, args = myjit.func_args_stdcall(3)
     a2, a1, m = args
     a = ((a1 << 32) + a2) >> m
-    print hex(a)
     myjit.func_ret_stdcall(ret_ad, a & 0xffffffff, (a >> 32) & 0xffffffff)
 
 
@@ -1285,7 +1265,6 @@ def ntdll_RtlEnlargedUnsignedMultiply(myjit):
     ret_ad, args = myjit.func_args_stdcall(2)
     a, b = args
     a = a * b
-    print hex(a)
     myjit.func_ret_stdcall(ret_ad, a & 0xffffffff, (a >> 32) & 0xffffffff)
 
 
@@ -1293,7 +1272,6 @@ def ntdll_RtlLargeIntegerSubtract(myjit):
     ret_ad, args = myjit.func_args_stdcall(4)
     a2, a1, b2, b1 = args
     a = (a1 << 32) + a2 - (b1 << 32) + b2
-    print hex(a)
     myjit.func_ret_stdcall(ret_ad, a & 0xffffffff, (a >> 32) & 0xffffffff)
 
 
@@ -1303,8 +1281,6 @@ def ntdll_RtlCompareMemory(myjit):
     data1 = myjit.vm.vm_get_mem(ad1, m_len)
     data2 = myjit.vm.vm_get_mem(ad2, m_len)
 
-    print hexdump(data1)
-    print hexdump(data2)
     i = 0
     while data1[i] == data2[i]:
         i += 1
@@ -1367,9 +1343,7 @@ def ntoskrnl_RtlVerifyVersionInfo(myjit):
     ptr_version, = args
 
     s = myjit.vm.vm_get_mem(ptr_version, 0x5 * 4)
-    print repr(s)
     s_size, s_majv, s_minv, s_buildn, s_platform = struct.unpack('IIIII', s)
-    print s_size, s_majv, s_minv, s_buildn, s_platform
     raise NotImplementedError("Untested case")
     myjit.vm.vm_set_mem(ptr_version, s)
     myjit.func_ret_stdcall(ret_ad, 0)
@@ -1452,7 +1426,6 @@ def ntoskrnl_RtlQueryRegistryValues(myjit):
     ret_ad, args = myjit.func_args_stdcall(5)
     relativeto, path, querytable, context, environ = args
     p = get_str_unic(myjit, path)
-    print repr(p)
     myjit.func_ret_stdcall(ret_ad, 0)
 
 
@@ -1464,7 +1437,6 @@ def ntoskrnl_ExAllocatePoolWithTagPriority(myjit):
     myjit.vm.vm_add_memory_page(
         alloc_addr, PAGE_READ | PAGE_WRITE, "\x00" * nbr_of_bytes)
 
-    print "ad", hex(alloc_addr)
     myjit.func_ret_stdcall(ret_ad, alloc_addr)
 
 
@@ -1473,7 +1445,6 @@ def my_lstrcmp(myjit, funcname, get_str):
     ptr_str1, ptr_str2 = args
     s1 = get_str(ptr_str1)
     s2 = get_str(ptr_str2)
-    print '%s (%r, %r)' % (' ' * len(funcname), s1, s2)
     myjit.func_ret_stdcall(ret_ad, cmp(s1, s2))
 
 
@@ -1501,7 +1472,6 @@ def my_strcpy(myjit, funcname, get_str, set_str):
     ret_ad, args = myjit.func_args_stdcall(2)
     ptr_str1, ptr_str2 = args
     s2 = get_str(myjit, ptr_str2)
-    print '%s (%r)' % (funcname, s2)
     myjit.vm.vm_set_mem(ptr_str1, set_str(s2))
     myjit.func_ret_stdcall(ret_ad, ptr_str1)
 
@@ -1523,7 +1493,6 @@ def kernel32_lstrcpyn(myjit):
     ret_ad, args = myjit.func_args_stdcall(3)
     ptr_str1, ptr_str2, mlen = args
     s2 = get_str_ansi(myjit, ptr_str2)
-    print repr(s2)
     s2 = s2[:mlen]
     myjit.vm.vm_set_mem(ptr_str1, s2)
 
@@ -1534,7 +1503,6 @@ def my_strlen(myjit, funcname, get_str, mylen):
     ret_ad, args = myjit.func_args_stdcall(1)
     arg_src, = args
     src = get_str(myjit, arg_src)
-    print funcname, repr(src)
     myjit.func_ret_stdcall(ret_ad, mylen(src))
 
 
@@ -1555,10 +1523,8 @@ def my_lstrcat(myjit, funcname, get_str):
     ptr_str1, ptr_str2 = args
     s1 = get_str(myjit, ptr_str1)
     s2 = get_str(myjit, ptr_str2)
-    print '%s (%r, %r)' % (whoami(), s1, s2)
 
     s = s1 + s2
-    print repr(s)
     myjit.vm.vm_set_mem(ptr_str1, s1 + s2)
     myjit.func_ret_stdcall(ret_ad, ptr_str1)
 
@@ -1590,14 +1556,9 @@ def my_GetVolumeInformation(myjit, funcname, get_str, set_str):
      lpvolumeserialnumber, lpmaximumcomponentlength, lpfilesystemflags,
      lpfilesystemnamebuffer, nfilesystemnamesize) = args
 
-    print funcname, hex(lprootpathname), hex(lpvolumenamebuffer), \
-        hex(nvolumenamesize), hex(lpvolumeserialnumber), \
-        hex(lpmaximumcomponentlength), hex(lpfilesystemflags), \
-        hex(lpfilesystemnamebuffer), hex(nfilesystemnamesize)
 
     if lprootpathname:
         s = get_str(myjit, lprootpathname)
-        print repr(s)
 
     if lpvolumenamebuffer:
         s = "volumename"
@@ -1633,15 +1594,10 @@ def kernel32_MultiByteToWideChar(myjit):
     (codepage, dwflags, lpmultibytestr,
      cbmultibyte, lpwidecharstr, cchwidechar) = args
 
-    print whoami(), hex(ret_ad), \
-        hex(codepage), hex(dwflags), hex(lpmultibytestr), hex(
-            cbmultibyte), hex(lpwidecharstr), hex(cchwidechar)
     src = get_str_ansi(myjit, lpmultibytestr) + '\x00'
     l = len(src)
-    print repr(src)
 
     src = "\x00".join(list(src))
-    print repr(src), hex(len(src))
     myjit.vm.vm_set_mem(lpwidecharstr, src)
     myjit.func_ret_stdcall(ret_ad, l)
 
@@ -1653,13 +1609,12 @@ def my_GetEnvironmentVariable(myjit, funcname, get_str, set_str, mylen):
     s = get_str(myjit, lpname)
     if get_str == get_str_unic:
         s = s
-    print 'variable', repr(s)
+    log.debug('variable %r' % s)
     if s in winobjs.env_variables:
         v = set_str(winobjs.env_variables[s])
     else:
-        print 'WARNING unknown env variable', repr(s)
+        log.warning('WARNING unknown env variable %r' % s)
         v = ""
-    print 'return', repr(v)
     myjit.vm.vm_set_mem(lpbuffer, v)
     myjit.func_ret_stdcall(ret_ad, mylen(v))
 
@@ -1667,7 +1622,6 @@ def my_GetEnvironmentVariable(myjit, funcname, get_str, set_str, mylen):
 def my_GetSystemDirectory(myjit, funcname, set_str):
     ret_ad, args = myjit.func_args_stdcall(2)
     lpbuffer, usize = args
-    print funcname
 
     s = "c:\\windows\\system32"
     l = len(s)
@@ -1721,11 +1675,10 @@ def my_CreateEvent(myjit, funcname, get_str):
         s = get_str(myjit, lpname)
     else:
         s = None
-    print repr(s)
     if not s in winobjs.events_pool:
         winobjs.events_pool[s] = (bmanualreset, binitialstate)
     else:
-        print 'WARNING: known event'
+        log.warning('WARNING: known event')
 
     myjit.func_ret_stdcall(ret_ad, id(s))
 
@@ -1742,8 +1695,6 @@ def kernel32_WaitForSingleObject(myjit):
     ret_ad, args = myjit.func_args_stdcall(2)
     handle, dwms = args
 
-    print whoami(), hex(ret_ad), hex(handle), hex(dwms)
-
     t_start = time.time() * 1000
     found = False
     while True:
@@ -1758,7 +1709,7 @@ def kernel32_WaitForSingleObject(myjit):
                 ret = 0
                 break
         if not found:
-            print 'unknown handle'
+            log.warning('unknown handle')
             ret = 0xffffffff
             break
         time.sleep(0.1)
@@ -1768,11 +1719,9 @@ def kernel32_WaitForSingleObject(myjit):
 def kernel32_SetFileAttributesA(myjit):
     ret_ad, args = myjit.func_args_stdcall(2)
     lpfilename, dwfileattributes = args
-    print whoami(), hex(ret_ad), hex(lpfilename), hex(dwfileattributes)
 
     if lpfilename:
         fname = get_str_ansi(myjit, lpfilename)
-        print "filename", repr(fname)
         ret = 1
     else:
         ret = 0
@@ -1812,7 +1761,6 @@ def ntdll_ZwProtectVirtualMemory(myjit):
 
     ad = upck32(myjit.vm.vm_get_mem(lppvoid, 4))
     dwsize = upck32(myjit.vm.vm_get_mem(pdwsize, 4))
-    print 'ad', hex(ad), 'size', hex(dwsize)
     # XXX mask hpart
     flnewprotect &= 0xFFF
 
@@ -1833,7 +1781,6 @@ def ntdll_ZwAllocateVirtualMemory(myjit):
 
     ad = upck32(myjit.vm.vm_get_mem(lppvoid, 4))
     dwsize = upck32(myjit.vm.vm_get_mem(pdwsize, 4))
-    print 'ad', hex(ad), 'size', hex(dwsize)
 
     access_dict = {0x0: 0,
                    0x1: 0,
@@ -1855,7 +1802,6 @@ def ntdll_ZwAllocateVirtualMemory(myjit):
         alloc_addr, access_dict[flprotect], "\x00" * dwsize)
     myjit.vm.vm_set_mem(lppvoid, pck32(alloc_addr))
 
-    print 'ret', hex(alloc_addr)
     dump_memory_page_pool_py()
     myjit.func_ret_stdcall(ret_ad, 0)
 
@@ -1865,7 +1811,6 @@ def ntdll_ZwFreeVirtualMemory(myjit):
     handle, lppvoid, pdwsize, alloc_type = args
     ad = upck32(myjit.vm.vm_get_mem(lppvoid, 4))
     dwsize = upck32(myjit.vm.vm_get_mem(pdwsize, 4))
-    print 'ad', hex(ad), 'size', hex(dwsize)
 
     myjit.func_ret_stdcall(ret_ad, 0)
 
@@ -1874,7 +1819,6 @@ def ntdll_RtlInitString(myjit):
     ret_ad, args = myjit.func_args_stdcall(2)
     pstring, source = args
     s = get_str_ansi(myjit, source)
-    print "str", repr(s)
 
     l = len(s) + 1
 
@@ -1889,18 +1833,14 @@ def ntdll_RtlAnsiStringToUnicodeString(myjit):
     dst, src, alloc_str = args
 
     l1, l2, p_src = struct.unpack('HHI', myjit.vm.vm_get_mem(src, 0x8))
-    print hex(l1), hex(l2), hex(p_src)
     s = get_str_ansi(myjit, p_src)
-    print "str", repr(s)
     s = ("\x00".join(s + "\x00"))
     l = len(s) + 1
     if alloc_str:
-        print 'alloc'
         alloc_addr = get_next_alloc_addr(l)
         myjit.vm.vm_add_memory_page(
             alloc_addr, PAGE_READ | PAGE_WRITE, "\x00" * l)
     else:
-        print 'use buf'
         alloc_addr = p_src
     myjit.vm.vm_set_mem(alloc_addr, s)
     o = struct.pack('HHI', l, l, alloc_addr)
@@ -1912,17 +1852,11 @@ def ntdll_LdrLoadDll(myjit):
     ret_ad, args = myjit.func_args_stdcall(4)
     path, flags, modname, modhandle = args
 
-    print whoami(), hex(ret_ad),
-    print '(', hex(path), hex(flags), hex(modname), hex(modhandle), ')'
     l1, l2, p_src = struct.unpack('HHI', myjit.vm.vm_get_mem(modname, 0x8))
-    print hex(l1), hex(l2), hex(p_src)
     s = get_str_unic(myjit, p_src)
-    print repr(s)
     libname = s.lower()
-    print repr(libname)
 
     ad = winobjs.runtime_dll.lib_get_add_base(libname)
-    print "ret", hex(ad)
     myjit.vm.vm_set_mem(modhandle, pck32(ad))
 
     myjit.func_ret_stdcall(ret_ad, 0)
@@ -1933,10 +1867,7 @@ def ntdll_RtlFreeUnicodeString(myjit):
     src, = args
 
     l1, l2, p_src = struct.unpack('HHI', myjit.vm.vm_get_mem(src, 0x8))
-    print hex(l1), hex(l2), hex(p_src)
     s = get_str_unic(myjit, p_src)
-    print "str", repr(s)
-    print repr(s)
 
     myjit.func_ret_stdcall(ret_ad, 0)
 
@@ -1946,9 +1877,7 @@ def ntdll_LdrGetProcedureAddress(myjit):
     libbase, pfname, opt, p_ad = args
 
     l1, l2, p_src = struct.unpack('HHI', myjit.vm.vm_get_mem(pfname, 0x8))
-    print hex(l1), hex(l2), hex(p_src)
     fname = get_str_ansi(myjit, p_src)
-    print "str", repr(fname)
 
     ad = winobjs.runtime_dll.lib_get_add_func(libbase, fname)
 
@@ -1997,7 +1926,6 @@ def shlwapi_PathFindExtensionA(myjit):
     path_ad, = args
 
     path = get_str_ansi(myjit, path_ad)
-    print repr(path)
     i = path.rfind('.')
     if i == -1:
         i = path_ad + len(path)
@@ -2011,13 +1939,11 @@ def shlwapi_PathRemoveFileSpecW(myjit):
     path_ad, = args
 
     path = get_str_unic(myjit, path_ad)
-    print repr(path)
     i = path.rfind('\\')
     if i == -1:
         i = 0
     myjit.vm.vm_set_mem(path_ad + i * 2, "\x00\x00")
     path = get_str_unic(myjit, path_ad)
-    print repr(path)
     myjit.func_ret_stdcall(ret_ad, 1)
 
 
@@ -2026,7 +1952,6 @@ def shlwapi_PathIsPrefixW(myjit):
     ptr_prefix, ptr_path = args
     prefix = get_str_unic(myjit, ptr_prefix)
     path = get_str_unic(myjit, ptr_path)
-    print repr(prefix), repr(path)
 
     if path.startswith(prefix):
         ret = 1
@@ -2055,7 +1980,6 @@ def shlwapi_PathIsFileSpec(funcname, get_str):
     ret_ad, args = myjit.func_args_stdcall(1)
     path_ad, = args
     path = get_str(myjit, path_ad)
-    print repr(path)
     if path.find(':') != -1 and path.find('\\') != -1:
         ret = 0
     else:
@@ -2068,7 +1992,6 @@ def shlwapi_PathGetDriveNumber(myjit, funcname, get_str):
     ret_ad, args = myjit.func_args_stdcall(1)
     path_ad, = args
     path = get_str(myjit, path_ad)
-    print repr(path)
     l = ord(path[0].upper()) - ord('A')
     if 0 <= l <= 25:
         ret = l
@@ -2098,11 +2021,10 @@ def shlwapi_StrToIntA(myjit):
     ret_ad, args = myjit.func_args_stdcall(1)
     i_str_ad, = args
     i_str = get_str_ansi(myjit, i_str_ad)
-    print repr(i_str)
     try:
         i = int(i_str)
     except:
-        print 'WARNING cannot convert int'
+        log.warning('WARNING cannot convert int')
         i = 0
 
     myjit.func_ret_stdcall(ret_ad, i)
@@ -2114,7 +2036,6 @@ def shlwapi_StrToInt64Ex(myjit, funcname, get_str):
     i_str = get_str(myjit, pstr)
     if get_str is get_str_unic:
         i_str = i_str
-    print repr(i_str)
 
     if flags == 0:
         r = int(i_str)
@@ -2142,7 +2063,7 @@ def user32_IsCharAlpha(myjit, funcname, get_str):
     try:
         c = chr(c)
     except:
-        print 'bad char', c
+        log.error('bad char %r' % c)
         c = "\x00"
     if c.isalpha(myjit):
         ret = 1
@@ -2178,7 +2099,6 @@ def shlwapi_StrCmpNIA(myjit):
     s1 = s1[:nchar]
     s2 = s2[:nchar]
 
-    print repr(s1), repr(s2)
     myjit.func_ret_stdcall(ret_ad, cmp(s1, s2))
 
 
@@ -2189,23 +2109,18 @@ def advapi32_RegOpenKeyEx(myjit, funcname, get_str):
         s_subkey = get_str(myjit, subkey).lower()
     else:
         s_subkey = ""
-    print hex(hkey)
-    print repr(s_subkey)
-    print winobjs.hkey_handles
 
     ret_hkey = 0
     ret = 2
     if hkey in winobjs.hkey_handles:
         if s_subkey:
             h = hash(s_subkey) & 0xffffffff
-            print hex(h)
             if h in winobjs.hkey_handles:
                 ret_hkey = h
                 ret = 0
         else:
-            print 'unknown skey'
+            log.error('unknown skey')
 
-    print 'set hkey', hex(ret_hkey)
     myjit.vm.vm_set_mem(phandle, pck32(ret_hkey))
 
     myjit.func_ret_stdcall(ret_ad, ret)
@@ -2226,13 +2141,11 @@ def advapi32_RegSetValue(myjit, funcname, get_str):
         subkey = get_str(myjit, psubkey).lower()
     else:
         subkey = ""
-    print repr(subkey)
 
     if pvalue:
         value = myjit.vm.vm_get_mem(pvalue, length)
     else:
         value = None
-    print repr(value)
     myjit.func_ret_stdcall(ret_ad, 0)
 
 
@@ -2259,7 +2172,6 @@ def kernel32_GetLocaleInfo(myjit, funcname, set_str):
         if lctype == 0x3:
             buf = "ENGLISH"
             buf = buf[:cchdata - 1]
-            print 'SET', buf
             myjit.vm.vm_set_mem(lplcdata, set_str(buf))
             ret = len(buf)
     else:
@@ -2298,8 +2210,6 @@ def kernel32_TlsGetValue(myjit):
     ret_ad, args = myjit.func_args_stdcall(1)
     tlsindex, = args
 
-    print whoami(), hex(tlsindex)
-
     if not tlsindex in winobjs.tls_values:
         raise ValueError("unknown tls val", repr(tlsindex))
     myjit.func_ret_stdcall(ret_ad, winobjs.tls_values[tlsindex])
@@ -2321,8 +2231,6 @@ def user32_GetKeyboardType(myjit):
 def kernel32_GetStartupInfo(myjit, funcname, set_str):
     ret_ad, args = myjit.func_args_stdcall(1)
     ptr, = args
-
-    print funcname, hex(ptr)
 
     s = "\x00" * 0x2c + "\x81\x00\x00\x00" + "\x0a"
 
@@ -2391,8 +2299,6 @@ def kernel32_GetSystemTime(myjit):
     ret_ad, args = myjit.func_args_stdcall(1)
     lpsystemtime, = args
 
-    print whoami(), hex(ret_ad), hex(lpsystemtime)
-
     s = struct.pack('HHHHHHHH',
                     2011,  # year
                     10,   # month
@@ -2415,7 +2321,6 @@ def kernel32_CreateFileMapping(myjit, funcname, get_str):
         f = get_str(myjit, lpname)
     else:
         f = None
-    print repr(f)
 
     if not hfile in winobjs.handle_pool:
         raise ValueError('unknown handle')
@@ -2440,12 +2345,10 @@ def kernel32_MapViewOfFile(myjit):
     if not hfile in winobjs.handle_pool:
         raise ValueError('unknown handle')
     hmap = winobjs.handle_pool[hfile]
-    print hmap
     if not hmap.info in winobjs.handle_pool:
         raise ValueError('unknown file handle')
 
     hfile_o = winobjs.handle_pool[hmap.info]
-    print hfile_o
     fd = hfile_o.info
     fd.seek((dwfileoffsethigh << 32) | dwfileoffsetlow)
     if length:
@@ -2454,7 +2357,7 @@ def kernel32_MapViewOfFile(myjit):
         data = fd.read()
     length = len(data)
 
-    print 'mapp total:', hex(len(data))
+    log.debug( 'mapp total: %x' %len(data))
     access_dict = {0x0: 0,
                    0x1: 0,
                    0x2: PAGE_READ,
@@ -2474,7 +2377,6 @@ def kernel32_MapViewOfFile(myjit):
 
     winobjs.handle_mapped[
         alloc_addr] = hfile_o, dwfileoffsethigh, dwfileoffsetlow, length
-    print 'return', hex(alloc_addr)
 
     myjit.func_ret_stdcall(ret_ad, alloc_addr)
 
@@ -2500,10 +2402,8 @@ def kernel32_GetDriveType(myjit, funcname, get_str):
     ret_ad, args = myjit.func_args_stdcall(1)
     pathname, = args
 
-    print funcname, hex(pathname)
 
     p = get_str(myjit, pathname)
-    print repr(p)
     p = p.upper()
 
     ret = 0
@@ -2530,7 +2430,6 @@ def kernel32_GetDiskFreeSpace(myjit, funcname, get_str):
         rootpath = get_str(myjit, lprootpathname)
     else:
         rootpath = ""
-    print repr(rootpath)
 
     myjit.vm.vm_set_mem(lpsectorpercluster, pck32(8))
     myjit.vm.vm_set_mem(lpbytespersector, pck32(0x200))
@@ -2749,7 +2648,7 @@ def msvcrt_fopen(myjit):
 
     fname = get_str_ansi(myjit, fname)
     rw = get_str_ansi(myjit, rw)
-    print fname, rw
+    log.debug((fname, rw))
     if rw in ['rb', 'wb+']:
         fname = fname.replace('\\', "/").lower()
         f = os.path.join('file_sb', fname)
@@ -2768,7 +2667,6 @@ def msvcrt_fseek(myjit):
     ret_ad, args = myjit.func_args_cdecl(3)
     stream, offset, orig = args
     fd = upck32(myjit.vm.vm_get_mem(stream + 0x10, 4))
-    print hex(fd)
 
     if not fd in winobjs.handle_pool:
         raise NotImplementedError("Untested case")
@@ -2781,7 +2679,6 @@ def msvcrt_ftell(myjit):
     ret_ad, args = myjit.func_args_cdecl(1)
     stream, = args
     fd = upck32(myjit.vm.vm_get_mem(stream + 0x10, 4))
-    print hex(fd)
 
     if not fd in winobjs.handle_pool:
         raise NotImplementedError("Untested case")
@@ -2794,7 +2691,6 @@ def msvcrt_rewind(myjit):
     ret_ad, args = myjit.func_args_cdecl(1)
     stream, = args
     fd = upck32(myjit.vm.vm_get_mem(stream + 0x10, 4))
-    print hex(fd)
 
     if not fd in winobjs.handle_pool:
         raise NotImplementedError("Untested case")
@@ -2807,7 +2703,6 @@ def msvcrt_fread(myjit):
     ret_ad, args = myjit.func_args_cdecl(4)
     buf, size, nmemb, stream = args
     fd = upck32(myjit.vm.vm_get_mem(stream + 0x10, 4))
-    print hex(fd)
     if not fd in winobjs.handle_pool:
         raise NotImplementedError("Untested case")
 
@@ -2820,7 +2715,6 @@ def msvcrt_fclose(myjit):
     ret_ad, args = myjit.func_args_cdecl(1)
     stream, = args
     fd = upck32(myjit.vm.vm_get_mem(stream + 0x10, 4))
-    print hex(fd)
 
     if not fd in winobjs.handle_pool:
         raise NotImplementedError("Untested case")
@@ -2842,7 +2736,7 @@ def user32_MessageBoxA(myjit):
     text = get_str_ansi(myjit, lptext)
     caption = get_str_ansi(myjit, lpcaption)
 
-    print 'Caption:', repr(caption), 'Text:', repr(text)
+    log.info('Caption: %r Text: %r' %(caption, text))
 
     myjit.func_ret_stdcall(ret_ad, 0)
 
@@ -2881,9 +2775,7 @@ def kernel32_GetTempFileNameA(myjit):
         path = get_str_ansi(myjit, path)
     else:
         path = "xxx"
-    print ext, path
     fname = path + "\\" + "temp%.4d" % temp_num + "." + ext
-    print fname
     myjit.vm.vm_set_mem(buf, fname)
 
     myjit.func_ret_stdcall(ret_ad, 0)
@@ -2961,7 +2853,6 @@ def kernel32_FindFirstFileA(myjit):
     pfilepattern, pfindfiledata = args
 
     filepattern = get_str_ansi(myjit, pfilepattern)
-    print repr(filepattern)
     h = winobjs.find_data.findfirst(filepattern)
 
     fname = winobjs.find_data.findnext(h)
@@ -3039,8 +2930,8 @@ def msvcrt_myfopen(myjit, func):
 
     fname = func(myjit, pfname)
     rw = func(myjit, pmode)
-    print repr(fname)
-    print repr(rw)
+    log.debug(fname)
+    log.debug(rw)
 
     if rw in ['r', 'rb', 'wb+']:
         fname = fname.replace('\\', "/").lower()
