@@ -1385,8 +1385,7 @@ class cls_mn(object):
         if len(out) == 0:
             raise ValueError('cannot fromstring %r' % s)
         if len(out) != 1:
-            log.warning('fromstring multiple args ret default')
-            # raise ValueError("cannot parse %r (%d cand)"%(s, len(out)))
+            log.debug('fromstring multiple args ret default')
         c = out[0]
         c_args = out_args[0]
 

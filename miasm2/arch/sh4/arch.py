@@ -444,11 +444,10 @@ class instruction_sh4(instruction):
 
     def fixDstOffset(self):
         e = self.args[0]
-        print 'FIX', e, self.offset, self.l
         if self.offset is None:
             raise ValueError('symbol not resolved %s' % l)
         if not isinstance(e, ExprInt):
-            log.warning('zarb dst %r' % e)
+            log.debug('dyn dst %r' % e)
             return
         off = e.arg - (self.offset + 4 + self.l)
         print hex(off)

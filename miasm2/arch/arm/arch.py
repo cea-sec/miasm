@@ -319,18 +319,15 @@ class instruction_arm(instruction):
 
     def fixDstOffset(self):
         e = self.args[0]
-        print 'FIX', e, self.offset, self.l
         if self.offset is None:
             raise ValueError('symbol not resolved %s' % l)
         if not isinstance(e, ExprInt):
-            log.warning('zarb dst %r' % e)
+            log.debug('dyn dst %r' % e)
             return
         off = e.arg - (self.offset + 4 + self.l)
-        print hex(off)
         if int(off % 4):
             raise ValueError('strange offset! %r' % off)
         self.args[0] = ExprInt32(off)
-        print 'final', self.args[0]
 
     def get_args_expr(self):
         args = [a for a in self.args]
@@ -502,7 +499,7 @@ class mn_arm(cls_mn):
             raise ValueError('symbol not resolved %s' % l)
         if not isinstance(e, ExprInt):
             # raise ValueError('dst must be int or label')
-            log.warning('zarb dst %r' % e)
+            log.debug('dyn dst %r' % e)
             return
         # return ExprInt32(e.arg - (self.offset + self.l))
         off = e.arg - (self.offset + 4 + self.l)
