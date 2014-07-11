@@ -2405,16 +2405,18 @@ def cpuid(ir, instr):
 def bittest_get(a, b):
     b = b.zeroExtend(a.size)
     if isinstance(a, ExprMem):
-        off_bit = ExprOp('&', b, ExprInt_from(a, a.size - 1))
-        off_byte = (b >> ExprInt_from(a, 3)) & \
-            ExprOp('!', ExprInt_from(a, a.size / 8 - 1))
+        b_mask = {16:4, 32:5, 64:6}
+        b_decal = {16:1, 32:3, 64:7}
+        ptr = a.arg
+        off_bit = b.zeroExtend(a.size) & ExprInt_fromsize(a.size,
+                                                          (1<<b_mask[a.size])-1)
+        off_byte = ((b.zeroExtend(ptr.size) >> ExprInt_from(ptr, 3)) &
+                    ExprInt_from(ptr, ((1<<a.size)-1) ^ b_decal[a.size]))
 
-        d = ExprMem(a.arg + off_byte, a.size)
-        # d = ExprOp('>>', mem, off_bit)
+        d = ExprMem(ptr + off_byte, a.size)
     else:
         off_bit = ExprOp('&', b, ExprInt_from(a, a.size - 1))
         d = a
-        # d = ExprOp('>>', a, off_bit)
     return d, off_bit
 
 
