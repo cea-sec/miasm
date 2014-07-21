@@ -3602,6 +3602,8 @@ addop("movq", [bs8(0x0f), bs8(0xd6), xmm, pref_66] +
 
 addop("addss", [bs8(0x0f), bs8(0x58), xmm, pref_f3] + rmmod(rmreg, rm_arg))
 addop("addsd", [bs8(0x0f), bs8(0x58), xmm, pref_f2] + rmmod(rmreg, rm_arg))
+addop("addps", [bs8(0x0f), bs8(0x58), xmm, no_xmm_pref] + rmmod(rmreg, rm_arg))
+addop("addpd", [bs8(0x0f), bs8(0x58), xmm, pref_66] + rmmod(rmreg, rm_arg))
 
 addop("subss", [bs8(0x0f), bs8(0x5c), xmm, pref_f3] + rmmod(rmreg, rm_arg))
 addop("subsd", [bs8(0x0f), bs8(0x5c), xmm, pref_f2] + rmmod(rmreg, rm_arg))

@@ -1619,6 +1619,10 @@ reg_tests = [
      "f30f5811"),
     (m32, "00000000    ADDSD      XMM2, DWORD PTR [ECX]",
      "f20f5811"),
+    (m32, "00000000    ADDPS      XMM2, DWORD PTR [ECX]",
+     "0f5811"),
+    (m32, "00000000    ADDPD      XMM2, DWORD PTR [ECX]",
+     "660f5811"),
 
     (m32, "00000000    MULSD      XMM2, DWORD PTR [ECX]",
      "f20f5911"),
