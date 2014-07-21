@@ -7,7 +7,14 @@ def cb_x86_callpop(mn, attrib, pool_bin, cur_bloc, offsets_to_dis, symbol_pool):
     """
     1000: call 1005
     1005: pop
+
+    Will give:
+
+    1000: push 1005
+    1005: pop
+
     """
+
     if len(cur_bloc.lines) < 1:
         return
     l = cur_bloc.lines[-1]
@@ -19,8 +26,8 @@ def cb_x86_callpop(mn, attrib, pool_bin, cur_bloc, offsets_to_dis, symbol_pool):
     if dst.name.offset != l.offset + l.l:
         return
     l.name = 'PUSH'
-    # cur_bloc.bto.pop()
-    cur_bloc.bto[0].c_bto = asm_constraint.c_next
+    cur_bloc.bto = set()
+    cur_bloc.add_cst(dst.name.offset, asm_constraint.c_next, symbol_pool)
 
 
 cb_x86_funcs = [cb_x86_callpop]

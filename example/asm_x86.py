@@ -27,6 +27,9 @@ main:
   SUB  ESP, 0x100
   MOV  EAX, 0x1337
   LEA  ESI, DWORD PTR [mystr]
+  CALL toto
+toto:
+  POP  EDI
   MOV  ESP, EBP
   POP  EBP
   RET
