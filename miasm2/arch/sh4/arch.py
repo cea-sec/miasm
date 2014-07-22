@@ -407,7 +407,7 @@ class instruction_sh4(instruction):
     delayslot = 0
 
     def __init__(self, *args, **kargs):
-        super(instruction_arm, self).__init__(*args, **kargs)
+        super(instruction_sh4, self).__init__(*args, **kargs)
 
     def dstflow(self):
         return self.name.startswith('J')
