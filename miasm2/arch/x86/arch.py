@@ -3602,8 +3602,6 @@ addop("movq", [bs8(0x0f), bs8(0xd6), xmm, pref_66] +
 
 addop("addss", [bs8(0x0f), bs8(0x58), xmm, pref_f3] + rmmod(rmreg, rm_arg))
 addop("addsd", [bs8(0x0f), bs8(0x58), xmm, pref_f2] + rmmod(rmreg, rm_arg))
-addop("addps", [bs8(0x0f), bs8(0x58), xmm, no_xmm_pref] + rmmod(rmreg, rm_arg))
-addop("addpd", [bs8(0x0f), bs8(0x58), xmm, pref_66] + rmmod(rmreg, rm_arg))
 
 addop("subss", [bs8(0x0f), bs8(0x5c), xmm, pref_f3] + rmmod(rmreg, rm_arg))
 addop("subsd", [bs8(0x0f), bs8(0x5c), xmm, pref_f2] + rmmod(rmreg, rm_arg))
@@ -3834,14 +3832,20 @@ addop("xor", [bs("001100"), swapargs, w8] +
       rmmod(rmreg, rm_arg_w8), [rm_arg_w8, rmreg])
 
 
-# xorps_name = {16:'XORPD', 32:'XORPS', 64:'XORPS'}
-# bs_xorps_name = bs_modname_size(l=0, name=xorps_name)
-# addop("xorps", [bs8(0x0f), bs8(0x57), xmm] + rmmod(rmreg) + [
-# bs_xorps_name] )
-addop("xorpd", [bs8(0x0f), bs8(0x57), xmm] + rmmod(rmreg) + [bs_opmode16])
-addop("xorps", [bs8(0x0f), bs8(0x57), xmm] + rmmod(rmreg) + [bs_opmode32])
-addop("xorps", [bs8(0x0f), bs8(0x57), xmm] + rmmod(rmreg) + [bs_opmode64])
+addop("xgetbv", [bs8(0x0f), bs8(0x01), bs8(0xd0)])
 
+
+#addop("pand", [bs8(0x0f), bs8(0xdb), xmm, pref_66])# + rmmod(rmreg, rm_arg))
+
+#### MMX/SSE/AVX operations
+#### Categories are the same than here: https://software.intel.com/sites/landingpage/IntrinsicsGuide/
+####
+
+### Arithmetic (integers)
+###
+
+## Move
+# SSE
 # movaps_name = {16:'MOVAPD', 32:'MOVAPS', 64:'MOVAPS'}
 # bs_movaps_name = bs_modname_size(l=0, name=movaps_name)
 # addop("movaps", [bs8(0x0f), bs("0010100"), swapargs, xmm] + rmmod(rmreg,
@@ -3852,32 +3856,97 @@ addop("movaps", [bs8(0x0f), bs("0010100"), swapargs, xmm]
       + rmmod(rmreg, rm_arg) + [bs_opmode32], [rmreg, rm_arg])
 addop("movaps", [bs8(0x0f), bs("0010100"), swapargs, xmm]
       + rmmod(rmreg, rm_arg) + [bs_opmode64], [rmreg, rm_arg])
-
-addop("xgetbv", [bs8(0x0f), bs8(0x01), bs8(0xd0)])
-
-addop("pand", [bs8(0x0f), bs8(0xdb), mm, no_xmm_pref] +
-      rmmod(rmreg, rm_arg), [rmreg, rm_arg])
-addop("pand", [bs8(0x0f), bs8(0xdb), xmm, pref_66] +
-      rmmod(rmreg, rm_arg), [rmreg, rm_arg])
-
-addop("por", [bs8(0x0f), bs8(0xeb), mm, no_xmm_pref] +
-      rmmod(rmreg, rm_arg), [rmreg, rm_arg])
-addop("por", [bs8(0x0f), bs8(0xeb), xmm, pref_66] +
-      rmmod(rmreg, rm_arg), [rmreg, rm_arg])
-
-
 addop("movdqu", [bs8(0x0f), bs("011"), swapargs, bs("1111"), xmm, pref_f3]
       + rmmod(rmreg, rm_arg), [rmreg, rm_arg])
 addop("movdqa", [bs8(0x0f), bs("011"), swapargs, bs("1111"), xmm, pref_66]
       + rmmod(rmreg, rm_arg), [rmreg, rm_arg])
 
+
+
+## Additions
+# SSE
+addop("paddb", [bs8(0x0f), bs8(0xfc), xmm, pref_66] + rmmod(rmreg, rm_arg))
+addop("paddw", [bs8(0x0f), bs8(0xfd), xmm, pref_66] + rmmod(rmreg, rm_arg))
+addop("paddd", [bs8(0x0f), bs8(0xfe), xmm, pref_66] + rmmod(rmreg, rm_arg))
+addop("paddq", [bs8(0x0f), bs8(0xd4), xmm, pref_66] + rmmod(rmreg, rm_arg))
+
+## Substractions
+# SSE
+addop("psubb", [bs8(0x0f), bs8(0xf8), xmm, pref_66] + rmmod(rmreg, rm_arg))
+addop("psubw", [bs8(0x0f), bs8(0xf9), xmm, pref_66] + rmmod(rmreg, rm_arg))
+addop("psubd", [bs8(0x0f), bs8(0xfa), xmm, pref_66] + rmmod(rmreg, rm_arg))
+addop("psubq", [bs8(0x0f), bs8(0xfb), xmm, pref_66] + rmmod(rmreg, rm_arg))
+
+### Arithmetic (floating-point)
+###
+
+## Additions
+# SSE
+addop("addps", [bs8(0x0f), bs8(0x58), xmm, no_xmm_pref] + rmmod(rmreg, rm_arg))
+addop("addpd", [bs8(0x0f), bs8(0x58), xmm, pref_66] + rmmod(rmreg, rm_arg))
+
+## Substractions
+# SSE
+addop("subps", [bs8(0x0f), bs8(0x5c), xmm, no_xmm_pref] + rmmod(rmreg, rm_arg))
+addop("subpd", [bs8(0x0f), bs8(0x5c), xmm, pref_66] + rmmod(rmreg, rm_arg))
+
+## Multiplications
+# SSE
+addop("mulps", [bs8(0x0f), bs8(0x59), xmm, no_xmm_pref] + rmmod(rmreg, rm_arg))
+addop("mulpd", [bs8(0x0f), bs8(0x59), xmm, pref_66] + rmmod(rmreg, rm_arg))
+
+## Divisions
+# SSE
+addop("divps", [bs8(0x0f), bs8(0x5e), xmm, no_xmm_pref] + rmmod(rmreg, rm_arg))
+addop("divpd", [bs8(0x0f), bs8(0x5e), xmm, pref_66] + rmmod(rmreg, rm_arg))
+
+### Logical (floating-point)
+###
+
+## XOR
+# SSE
+# xorps_name = {16:'XORPD', 32:'XORPS', 64:'XORPS'}
+# bs_xorps_name = bs_modname_size(l=0, name=xorps_name)
+# addop("xorps", [bs8(0x0f), bs8(0x57), xmm] + rmmod(rmreg) + [
+# bs_xorps_name] )
+addop("xorpd", [bs8(0x0f), bs8(0x57), xmm] + rmmod(rmreg) + [bs_opmode16])
+addop("xorps", [bs8(0x0f), bs8(0x57), xmm] + rmmod(rmreg) + [bs_opmode32])
+addop("xorps", [bs8(0x0f), bs8(0x57), xmm] + rmmod(rmreg) + [bs_opmode64])
+
+## AND
+# MMX
+addop("pand", [bs8(0x0f), bs8(0xdb), mm, no_xmm_pref] +
+      rmmod(rmreg, rm_arg), [rmreg, rm_arg])
+# SSE
+addop("pand", [bs8(0x0f), bs8(0xdb), xmm, pref_66] +
+      rmmod(rmreg, rm_arg), [rmreg, rm_arg])
+
+## OR
+# MMX
+addop("por", [bs8(0x0f), bs8(0xeb), mm, no_xmm_pref] +
+      rmmod(rmreg, rm_arg), [rmreg, rm_arg])
+# SSE
+addop("por", [bs8(0x0f), bs8(0xeb), xmm, pref_66] +
+      rmmod(rmreg, rm_arg), [rmreg, rm_arg])
+
+### Convert
+### SS = single precision
+### SD = double precision
+###
+
+## SS -> SD
+##
+
+# SSE
 addop("cvtss2sd", [bs8(0x0f), bs8(0x5a), xmm, pref_f3]
       + rmmod(rmreg, rm_arg))
+
+## SD -> SS
+##
+
+# SSE
 addop("cvtsd2ss", [bs8(0x0f), bs8(0x5a), xmm, pref_f2]
       + rmmod(rmreg, rm_arg))
-
-
-#addop("pand", [bs8(0x0f), bs8(0xdb), xmm, pref_66])# + rmmod(rmreg, rm_arg))
 
 
 mn_x86.bintree = factor_one_bit(mn_x86.bintree)

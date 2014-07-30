@@ -285,6 +285,22 @@ mm5 = ExprId(reg_mm5, 64)
 mm6 = ExprId(reg_mm6, 64)
 mm7 = ExprId(reg_mm7, 64)
 
+XMM0 = regs_xmm_expr[0]
+XMM1 = regs_xmm_expr[1]
+XMM2 = regs_xmm_expr[2]
+XMM3 = regs_xmm_expr[3]
+XMM4 = regs_xmm_expr[4]
+XMM5 = regs_xmm_expr[5]
+XMM6 = regs_xmm_expr[6]
+XMM7 = regs_xmm_expr[7]
+XMM8 = regs_xmm_expr[8]
+XMM9 = regs_xmm_expr[9]
+XMM10 = regs_xmm_expr[10]
+XMM11 = regs_xmm_expr[11]
+XMM12 = regs_xmm_expr[12]
+XMM13 = regs_xmm_expr[13]
+XMM14 = regs_xmm_expr[14]
+XMM15 = regs_xmm_expr[15]
 
 # tmp1= ExprId(reg_tmp1)
 zf = ExprId(reg_zf, size=1)

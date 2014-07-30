@@ -2580,6 +2580,97 @@ def xorps(ir, instr, a, b):
     e.append(ExprAff(a, ExprOp('xorps', a, b)))
     return None, e, []
 
+### MMX/SSE/AVX operations
+###
+
+# Generic vertical operation
+def vec_vertical_sem(op, elt_size, reg_size, a, b):
+    assert(reg_size % elt_size == 0)
+    n = reg_size/elt_size
+    if op == '-':
+        ops = [(ExprOp('+', ExprSlice(a, i*elt_size, (i+1)*elt_size),
+                       ExprOp('-', ExprSlice(b, i*elt_size, (i+1)*elt_size))),
+                i*elt_size,
+                (i+1)*elt_size) for i in xrange(0, n)]
+    else:
+        ops = [(ExprOp(op, ExprSlice(a, i*elt_size, (i+1)*elt_size),
+                       ExprSlice(b, i*elt_size, (i+1)*elt_size)),
+                i*elt_size,
+                (i+1)*elt_size) for i in xrange(0, n)]
+    return ExprCompose(ops)
+
+def float_vec_vertical_sem(op, elt_size, reg_size, a, b):
+    assert(reg_size % elt_size == 0)
+    n = reg_size/elt_size
+    ops = [(ExprOp('double_to_int_%d' % elt_size, ExprOp(op,
+                   ExprOp('int_%d_to_double' % elt_size,
+                          ExprSlice(a, i*elt_size, (i+1)*elt_size)),
+                   ExprOp('int_%d_to_double' % elt_size,
+                          ExprSlice(b, i*elt_size, (i+1)*elt_size)))
+                  ),
+            i*elt_size, (i+1)*elt_size) for i in xrange(0, n)]
+    return ExprCompose(ops)
+
+def __vec_vertical_instr_gen(op, elt_size, sem):
+    def vec_instr(ir, instr, a, b):
+        e = []
+        if isinstance(b, ExprMem):
+            b = ExprMem(b.arg, a.size)
+        reg_size = a.size
+        e.append(ExprAff(a, sem(op, elt_size, reg_size, a, b)))
+        return None, e, []
+    return vec_instr
+
+def vec_vertical_instr(op, elt_size):
+    return __vec_vertical_instr_gen(op, elt_size, vec_vertical_sem)
+
+def float_vec_vertical_instr(op, elt_size):
+    return __vec_vertical_instr_gen(op, elt_size, float_vec_vertical_sem)
+
+### Integer arithmetic
+###
+
+## Additions
+##
+
+# SSE
+paddb = vec_vertical_instr('+', 8)
+paddw = vec_vertical_instr('+', 16)
+paddd = vec_vertical_instr('+', 32)
+paddq = vec_vertical_instr('+', 64)
+
+## Substractions
+##
+
+# SSE
+psubb = vec_vertical_instr('-', 8)
+psubw = vec_vertical_instr('-', 16)
+psubd = vec_vertical_instr('-', 32)
+psubq = vec_vertical_instr('-', 64)
+
+### Floating-point arithmetic
+###
+
+# SSE
+addps = float_vec_vertical_instr('+', 32)
+addpd = float_vec_vertical_instr('+', 64)
+subps = float_vec_vertical_instr('-', 32)
+subpd = float_vec_vertical_instr('-', 64)
+mulps = float_vec_vertical_instr('*', 32)
+mulpd = float_vec_vertical_instr('*', 64)
+divps = float_vec_vertical_instr('/', 32)
+divpd = float_vec_vertical_instr('/', 64)
+
+### Logical (floating-point)
+###
+
+# MMX/SSE/AVX
+def pand(ir, instr, a, b):
+    e = []
+    c = a & b
+    # No flag affected
+    e.append(ExprAff(a, c))
+    return None, e, []
 
 def movaps(ir, instr, a, b):
     e = []
@@ -2878,6 +2969,55 @@ mnemo_func = {'mov': mov,
               "movss": movss,
 
               "ucomiss": ucomiss,
+
+              ####
+              #### MMX/AVX/SSE operations
+
+              ### Arithmetic (integers)
+              ###
+
+              ## Additions
+              # SSE
+              "paddb": paddb,
+              "paddw": paddw,
+              "paddd": paddd,
+              "paddq": paddq,
+
+              # Substractions
+              # SSE
+              "psubb": psubb,
+              "psubw": psubw,
+              "psubd": psubd,
+              "psubq": psubq,
+
+              ### Arithmetic (floating-point)
+              ###
+
+              ## Additions
+              # SSE
+              "addps": addps,
+              "addpd": addpd,
+
+              ## Substractions
+              # SSE
+              "subps": subps,
+              "subpd": subpd,
+
+              ## Multiplications
+              # SSE
+              "mulps": mulps,
+              "mulpd": mulpd,
+
+              ## Divisions
+              # SSE
+              "divps": divps,
+              "divpd": divpd,
+
+              ### Logical (floating-point)
+              ###
+
+              "pand": pand
+
               }
 
 
