@@ -1730,14 +1730,85 @@ reg_tests = [
     (m32, "00000000    MOVDQA     DWORD PTR [ESP], XMM0",
      "660f7f0424"),
 
+    #### MMX/SSE/AVX operations
+    ####
+
+    ### Arithmetic (floating-point)
+    ###
+
+    ## Additions
+    # SSE
+    (m32, "00000000    PADDB      XMM0, XMM1",
+     "660ffcc1"),
+    (m64, "00000000    PADDB      XMM0, XMM1",
+     "660ffcc1"),
+    (m32, "00000000    PADDW      XMM0, XMM1",
+     "660ffdc1"),
+    (m32, "00000000    PADDD      XMM0, XMM1",
+     "660ffec1"),
+    (m32, "00000000    PADDQ      XMM0, XMM1",
+     "660fd4c1"),
+
+    ## Substractions
+    # SSE
+    (m32, "00000000    PSUBB      XMM0, XMM1",
+     "660ff8c1"),
+    (m32, "00000000    PSUBW      XMM0, XMM1",
+     "660ff9c1"),
+    (m32, "00000000    PSUBD      XMM0, XMM1",
+     "660ffac1"),
+    (m32, "00000000    PSUBQ      XMM0, XMM1",
+     "660ffbc1"),
+
+    ### Arithmetic (floating-point)
+    ###
+
+    ## Additions
+    # SSE
+    (m32, "00000000    ADDPS      XMM0, XMM1",
+     "0f58c1"),
+    (m32, "00000000    ADDPD      XMM0, XMM1",
+     "660f58c1"),
+
+    ## Substractions
+    # SSE
+    (m32, "00000000    SUBPS      XMM0, XMM1",
+     "0f5cc1"),
+    (m32, "00000000    SUBPD      XMM0, XMM1",
+     "660f5cc1"),
+
+    ## Multiplications
+    # SSE
+    (m32, "00000000    MULPS      XMM0, XMM1",
+     "0f59c1"),
+    (m32, "00000000    MULPD      XMM0, XMM1",
+     "660f59c1"),
+
+    ## Divisions
+    # SSE
+    (m32, "00000000    DIVPS      XMM0, XMM1",
+     "0f5ec1"),
+    (m32, "00000000    DIVPD      XMM0, XMM1",
+     "660f5ec1"),
+
+    ### Converts
+    ###
+
+    ## SS -> SD
+    ##
+
+    # SSE
+    (m32, "00000000    CVTSD2SS   XMM0, XMM0",
+     "f20f5ac0"),
+
+    ## SD -> SS
+    ##
+
+    # SSE
     (m32, "00000000    CVTSS2SD   XMM0, XMM0",
      "f30f5ac0"),
     (m32, "00000000    CVTSS2SD   XMM0, DWORD PTR [EBP+0xFFFFFFD0]",
      "f30f5a45d0"),
-
-    (m32, "00000000    CVTSD2SS   XMM0, XMM0",
-     "f20f5ac0"),
-
 ]
 
 
