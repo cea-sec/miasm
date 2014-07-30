@@ -92,9 +92,14 @@ def simp_cst_propagation(e_s, e):
     if op == '-' and len(args) == 1 and isinstance(args[0], ExprInt):
         return ExprInt(-args[0].arg)
     # A op 0 =>A
-    if op in ['+', '-', '|', "^", "<<", ">>", "<<<", ">>>"] and len(args) > 1:
+    if op in ['+', '|', "^", "<<", ">>", "<<<", ">>>"] and len(args) > 1:
         if isinstance(args[-1], ExprInt) and args[-1].arg == 0:
             args.pop()
+    # A - 0 =>A
+    if op == '-' and len(args) > 1 and args[-1].arg == 0:
+        assert(len(args) == 2) # Op '-' with more than 2 args: SantityCheckError
+        return args[0]
+
     # A * 1 =>A
     if op == "*" and len(args) > 1:
         if isinstance(args[-1], ExprInt) and args[-1].arg == 1:

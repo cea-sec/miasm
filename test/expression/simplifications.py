@@ -155,6 +155,8 @@ to_test = [(ExprInt32(1) - ExprInt32(1), ExprInt32(0)),
     (a & b & ExprInt_fromsize(a.size, -1), a & b),
     (a | b | ExprInt_fromsize(a.size, -1),
      ExprInt_fromsize(a.size, -1)),
+    (ExprOp('-', ExprInt8(1), ExprInt8(0)),
+     ExprInt8(1)),
 ]
 
 for e, e_check in to_test[:]:
