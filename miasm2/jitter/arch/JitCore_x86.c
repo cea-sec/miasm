@@ -257,8 +257,8 @@ PyObject* vm_get_exception(JitCpu* self, PyObject* args)
 
 
 
-#define UDIV(sizeA, sizeB)						\
-    uint ## sizeA ## _t udiv ## sizeB (vm_cpu_t* vmcpu, uint ## sizeB ## _t a, uint ## sizeB ## _t b) \
+#define UDIV(sizeA)						\
+    uint ## sizeA ## _t udiv ## sizeA (vm_cpu_t* vmcpu, uint ## sizeA ## _t a, uint ## sizeA ## _t b) \
 	    {								\
 	    uint ## sizeA ## _t r;						\
 	    if (b == 0) {						\
@@ -270,8 +270,8 @@ PyObject* vm_get_exception(JitCpu* self, PyObject* args)
 	    }
 
 
-#define UMOD(sizeA, sizeB)						\
-    uint ## sizeA ## _t umod ## sizeB (vm_cpu_t* vmcpu, uint ## sizeB ## _t a, uint ## sizeB ## _t b) \
+#define UMOD(sizeA)						\
+    uint ## sizeA ## _t umod ## sizeA (vm_cpu_t* vmcpu, uint ## sizeA ## _t a, uint ## sizeA ## _t b) \
 	    {								\
 	    uint ## sizeA ## _t r;						\
 	    if (b == 0) {						\
@@ -308,13 +308,13 @@ PyObject* vm_get_exception(JitCpu* self, PyObject* args)
 	    return r;							\
 	    }
 
-UDIV(8, 16)
-UDIV(16, 32)
-UDIV(32, 64)
+UDIV(16)
+UDIV(32)
+UDIV(64)
 
-UMOD(8, 16)
-UMOD(16, 32)
-UMOD(32, 64)
+UMOD(16)
+UMOD(32)
+UMOD(64)
 
 
 IDIV(16)
