@@ -2587,16 +2587,10 @@ def xorps(ir, instr, a, b):
 def vec_vertical_sem(op, elt_size, reg_size, a, b):
     assert(reg_size % elt_size == 0)
     n = reg_size/elt_size
-    if op == '-':
-        ops = [(ExprOp('+', ExprSlice(a, i*elt_size, (i+1)*elt_size),
-                       ExprOp('-', ExprSlice(b, i*elt_size, (i+1)*elt_size))),
-                i*elt_size,
-                (i+1)*elt_size) for i in xrange(0, n)]
-    else:
-        ops = [(ExprOp(op, ExprSlice(a, i*elt_size, (i+1)*elt_size),
-                       ExprSlice(b, i*elt_size, (i+1)*elt_size)),
-                i*elt_size,
-                (i+1)*elt_size) for i in xrange(0, n)]
+    ops = [(ExprOp(op, a[i*elt_size:(i+1)*elt_size],
+                   b[i*elt_size:(i+1)*elt_size]),
+            i*elt_size,
+            (i+1)*elt_size) for i in xrange(0, n)]
     return ExprCompose(ops)
 
 def float_vec_vertical_sem(op, elt_size, reg_size, a, b):
@@ -2604,9 +2598,9 @@ def float_vec_vertical_sem(op, elt_size, reg_size, a, b):
     n = reg_size/elt_size
     ops = [(ExprOp('double_to_int_%d' % elt_size, ExprOp(op,
                    ExprOp('int_%d_to_double' % elt_size,
-                          ExprSlice(a, i*elt_size, (i+1)*elt_size)),
+                          a[i*elt_size:(i+1)*elt_size]),
                    ExprOp('int_%d_to_double' % elt_size,
-                          ExprSlice(b, i*elt_size, (i+1)*elt_size)))
+                          b[i*elt_size:(i+1)*elt_size]))
                   ),
             i*elt_size, (i+1)*elt_size) for i in xrange(0, n)]
     return ExprCompose(ops)
