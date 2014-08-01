@@ -1957,7 +1957,12 @@ armtop("swi", [bs('11011111'),  tswi_i])
 armtop("b", [bs('11100'),  offs11])
 armtop("und", [bs('1101'), bs('1110'), imm8_d1])
 
-#
+
+armtop("uxtb", [bs('10110010'), bs('11'), rml, rdl], [rdl, rml])
+armtop("uxth", [bs('10110010'), bs('10'), rml, rdl], [rdl, rml])
+armtop("sxtb", [bs('10110010'), bs('01'), rml, rdl], [rdl, rml])
+armtop("sxth", [bs('10110010'), bs('00'), rml, rdl], [rdl, rml])
+
 # thumb2 ######################
 #
 

@@ -227,6 +227,11 @@ reg_tests_arm = [
     ("XXXXXXXX    UBFX       R1, R2, 0x10, 0x8",
      "5218E7E7"),
 
+    ("XXXXXXXX    UXTB       R0, R2",
+     "7200EFE6"),
+    ("XXXXXXXX    UXTH       R0, R2",
+     "7200FFE6"),
+
 
 ]
 ts = time.time()
@@ -437,6 +442,16 @@ reg_tests_armt = [
     ("00000000    CBNZ       R0, 0x2A",
      "a8b9"),
 
+    ("00000000    SXTB       R2, R1",
+     "4AB2"),
+    ("00000000    SXTH       R1, R0",
+     "01b2"),
+
+    ("00000000    UXTH       R3, R2",
+     "93b2"),
+
+    ("00000000    UXTB       R5, R0",
+     "C5B2"),
 
 ]
 print "#" * 40, 'armthumb', '#' * 40
