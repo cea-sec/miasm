@@ -826,6 +826,23 @@ def uxth(ir, instr, a, b):
         dst = PC
     return dst, e
 
+def sxtb(ir, instr, a, b):
+    e = []
+    e.append(ExprAff(a, b[:8].signExtend(32)))
+    dst = None
+    if PC in a.get_r():
+        dst = PC
+    return dst, e
+
+def sxth(ir, instr, a, b):
+    e = []
+    e.append(ExprAff(a, b[:16].signExtend(32)))
+    dst = None
+    if PC in a.get_r():
+        dst = PC
+    return dst, e
+
+
 def ubfx(ir, instr, a, b, c, d):
     e = []
     c = int(c.arg)
@@ -966,6 +983,8 @@ mnemo_condm0 = {'add': add,
                 'ldsh': ldrsh,
                 'uxtb': uxtb,
                 'uxth': uxth,
+                'sxtb': sxtb,
+                'sxth': sxth,
                 'ubfx': ubfx,
                 }
 

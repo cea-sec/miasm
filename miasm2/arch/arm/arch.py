@@ -1470,6 +1470,9 @@ armop("qadd",
 
 armop("uxtb", [bs('01101110'), bs('1111'), rd, rot_rm, bs('00'), bs('0111'), rm_noarg])
 armop("uxth", [bs('01101111'), bs('1111'), rd, rot_rm, bs('00'), bs('0111'), rm_noarg])
+armop("sxtb", [bs('01101010'), bs('1111'), rd, rot_rm, bs('00'), bs('0111'), rm_noarg])
+armop("sxth", [bs('01101011'), bs('1111'), rd, rot_rm, bs('00'), bs('0111'), rm_noarg])
+
 
 class arm_widthm1(arm_imm, m_arg):
     def decode(self, v):
