@@ -438,10 +438,6 @@ class dum_arg(object):
     def __init__(self, e=None):
         self.expr = e
 
-    @staticmethod
-    def arg2str(e):
-        return str(e)
-
 
 class bsopt(bs):
 
@@ -612,10 +608,6 @@ class m_arg(object):
         self.expr = v[0]
         return start, stop
 
-    @staticmethod
-    def arg2str(e):
-        return str(e)
-
 
 class m_reg(m_arg):
     prio = default_prio
@@ -630,10 +622,6 @@ class m_reg(m_arg):
 
     def encode(self):
         return self.expr == self.reg.expr[0]
-
-    @staticmethod
-    def arg2str(e):
-        return str(e)
 
 
 class reg_noarg(object):
@@ -651,10 +639,6 @@ class reg_noarg(object):
             return None, None
         self.expr = v[0]
         return start, stop
-
-    @staticmethod
-    def arg2str(e):
-        return str(e)
 
     def decode(self, v):
         v = v & self.lmask
@@ -943,13 +927,10 @@ class metamn(type):
 
 class instruction(object):
 
-    def __init__(self, name, mode, args, args_str=None, additional_info=None):
+    def __init__(self, name, mode, args, additional_info=None):
         self.name = name
         self.mode = mode
         self.args = args
-        if args_str is None:
-            raise NotImplementedError('not fully functional')
-        self.args_str = args_str
         self.additional_info = additional_info
 
     def gen_args(self, args):
@@ -959,11 +940,12 @@ class instruction(object):
     def __str__(self):
         o = "%-10s " % self.name
         args = []
-        args_str = self.args_str
-        for arg, arg_str in zip(self.args, args_str):
+        #args_str = self.args_str
+        #for arg, arg_str in zip(self.args, args_str):
+        for i, arg in enumerate(self.args):
             if not isinstance(arg, Expr):
                 raise ValueError('zarb arg type')
-            x = arg_str(arg)
+            x = self.arg2str(arg, pos = i)
             args.append(x)
         o += self.gen_args(args)
         return o
@@ -1253,15 +1235,7 @@ class cls_mn(object):
             if c is None:
                 continue
             c_args = [a.expr for a in c.args]
-            c_args_str = []
-            for a in c.args:
-                if hasattr(a, 'arg2str'):
-                    c_args_str.append(a.arg2str)
-                else:
-                    raise NotImplementedError('not fully functional')
-                    c_args_str.append(str)
-            # c_args_str = [a.arg2str for a in c.args]
-            instr = cls.instruction(c.name, mode, c_args, c_args_str,
+            instr = cls.instruction(c.name, mode, c_args,
                                     additional_info=c.additional_info())
             instr.l = prefix_len + total_l / 8
             instr.b = cls.getbytes(bs, offset, total_l / 8)
@@ -1389,15 +1363,7 @@ class cls_mn(object):
         c = out[0]
         c_args = out_args[0]
 
-        c_args_str = []
-        for a in c.args:
-            if hasattr(a, 'arg2str'):
-                c_args_str.append(a.arg2str)
-            else:
-                raise NotImplementedError('not fully functional')
-                c_args_str.append(str)
-
-        instr = cls.instruction(c.name, mode, c_args, c_args_str,
+        instr = cls.instruction(c.name, mode, c_args,
                                 additional_info=c.additional_info())
         # instruction(name, attrib, args, args_str, additional_info):
         # c = c()
@@ -1719,10 +1685,6 @@ class imm_noarg(object):
         if v > self.lmask:
             return False
         return v
-
-    @staticmethod
-    def arg2str(e):
-        return str(e)
 
     def decode(self, v):
         v = v & self.lmask

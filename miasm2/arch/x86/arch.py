@@ -174,6 +174,10 @@ def parse_deref_ptr(s, l, t):
     t = t[0]
     return ExprMem(ExprOp('segm', t[0], t[1]))
 
+def parse_deref_segmoff(s, l, t):
+    t = t[0]
+    return ExprOp('segm', t[0], t[1])
+
 
 variable, operand, base_expr = gen_base_expr()
 
@@ -222,7 +226,7 @@ deref_mem_ad |= Group(
 
 
 deref_ptr = Group(int_or_expr + COLON +
-                  int_or_expr).setParseAction(parse_deref_ptr)
+                  int_or_expr).setParseAction(parse_deref_segmoff)
 
 
 PTR = Suppress('PTR')
@@ -541,6 +545,32 @@ class instruction_x86(instruction):
             a = a.replace_expr(replace_regs[self.mode])
             args.append(a)
         return args
+
+    @staticmethod
+    def arg2str(e, pos = None):
+        if isinstance(e, ExprId) or isinstance(e, ExprInt):
+            o = str(e)
+        elif isinstance(e, ExprMem):
+            sz = {8: 'BYTE', 16: 'WORD', 32: 'DWORD',
+                  64: 'QWORD', 80: 'TBYTE'}[e.size]
+            segm = ""
+            if e.is_op_segm():
+                segm = "%s:" % e.arg.args[0]
+                e = e.arg.args[1]
+            else:
+                e = e.arg
+            if isinstance(e, ExprOp):
+                # s = str(e.arg)[1:-1]
+                s = str(e).replace('(', '').replace(')', '')
+            else:
+                s = str(e)
+            o = sz + ' PTR %s[%s]' % (segm, s)
+        elif isinstance(e, ExprOp) and e.op == 'segm':
+            o = "%s:%s" % (e.args[0], e.args[1])
+        else:
+            raise ValueError('check this %r' % e)
+        return "%s" % o
+
 
 
 class mn_x86(cls_mn):
@@ -1902,29 +1932,6 @@ class x86_rm_arg(m_arg):
         s = e.size
         return start, stop
 
-    @staticmethod
-    def arg2str(e):
-        if isinstance(e, ExprId):
-            o = str(e)
-        elif isinstance(e, ExprMem):
-            sz = {8: 'BYTE', 16: 'WORD', 32: 'DWORD',
-                  64: 'QWORD', 80: 'TBYTE'}[e.size]
-            segm = ""
-            if e.is_op_segm():
-                segm = "%s:" % e.arg.args[0]
-                e = e.arg.args[1]
-            else:
-                e = e.arg
-            if isinstance(e, ExprOp):
-                # s = str(e.arg)[1:-1]
-                s = str(e).replace('(', '').replace(')', '')
-            else:
-                s = str(e)
-            o = sz + ' PTR %s[%s]' % (segm, s)
-        else:
-            raise ValueError('check this %r' % e)
-        return "%s" % o
-
     def get_modrm(self):
         p = self.parent
         admode = p.v_admode()
@@ -2861,8 +2868,9 @@ class bs_moff(bsi):
         if not hasattr(self.parent, "mseg"):
             raise StopIteration
         m = self.parent.mseg.expr
-        if (not (isinstance(m, ExprMem) and m.is_op_segm() and
-            isinstance(m.arg.args[0], ExprInt))):
+        if not (isinstance(m, ExprOp) and m.op == 'segm'):
+            raise StopIteration
+        if not isinstance(m.args[1], ExprInt):
             raise StopIteration
         l = self.parent.v_opmode()  # self.parent.args[0].expr.size
         if l == 16:
@@ -2870,7 +2878,7 @@ class bs_moff(bsi):
         else:
             self.l = 32
         # print 'imm enc', l, self.parent.rex_w.value
-        v = int(m.arg.args[1].arg)
+        v = int(m.args[1].arg)
         mask = ((1 << self.l) - 1)
         # print 'ext', self.l, l, hex(v), hex(sign_ext(v & ((1<<self.l)-1),
         # self.l, l))
@@ -2964,12 +2972,6 @@ class bs_movoff(m_arg):
         # print self.expr, repr(self.expr)
         return True
 
-    @staticmethod
-    def arg2str(e):
-        sz = {8: 'BYTE', 16: 'WORD', 32: 'DWORD', 64: 'QWORD', 80: 'TBYTE'}
-        o = sz[e.size] + ' PTR [%s]' % e.arg
-        return "%s" % o
-
 
 class bs_msegoff(m_arg):
     parser = deref_ptr
@@ -2988,6 +2990,7 @@ class bs_msegoff(m_arg):
         except StopIteration:
             return None, None
         e = v[0]
+        print "XXX", e
         if e is None:
             log.debug('cannot fromstring int %r' % s)
             return None, None
@@ -2995,20 +2998,25 @@ class bs_msegoff(m_arg):
         return start, stop
 
     def encode(self):
-        if not (isinstance(self.expr, ExprMem) and self.expr.is_op_segm()):
+        print 'ENCODE', self.expr
+        if not (isinstance(self.expr, ExprOp) and self.expr.op == 'segm'):
             raise StopIteration
-        if not isinstance(self.expr.arg.args[0], ExprInt):
+        print 'ENCODE1', self.expr
+        if not isinstance(self.expr.args[0], ExprInt):
             raise StopIteration
-        if not isinstance(self.expr.arg.args[1], ExprInt):
+        print 'ENCODE2', self.expr
+        if not isinstance(self.expr.args[1], ExprInt):
             raise StopIteration
+        print 'ENCODE3', self.expr
         l = self.parent.v_opmode()  # self.parent.args[0].expr.size
         # print 'imm enc', l, self.parent.rex_w.value
-        v = int(self.expr.arg.args[0].arg)
+        v = int(self.expr.args[0].arg)
         mask = ((1 << self.l) - 1)
         # print 'ext', self.l, l, hex(v), hex(sign_ext(v & ((1<<self.l)-1),
         # self.l, l))
         if v != sign_ext(v & mask, self.l, l):
             raise StopIteration
+        print 'ENCODE4', self.expr
         self.value = swap_uint(self.l, v & ((1 << self.l) - 1))
         yield True
 
@@ -3018,14 +3026,10 @@ class bs_msegoff(m_arg):
         self.value = v
         v = sign_ext(v, self.l, opmode)
         v = ExprInt_fromsize(opmode, v)
-        e = ExprMem(ExprOp('segm', v, self.parent.off.expr))
+        e = ExprOp('segm', v, self.parent.off.expr)
         self.expr = e
         # print self.expr, repr(self.expr)
         return True
-
-    @staticmethod
-    def arg2str(e):
-        return "%s:%s" % (e.arg.args[0], e.arg.args[1])
 
 
 d_rex_p = bs(l=0, cls=(bs_fbit,), fname="rex_p")

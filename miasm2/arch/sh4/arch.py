@@ -69,13 +69,13 @@ def parse_deref_mem(s, l, t):
 
 def parse_predec(s, l, t):
     t = t[0]
-    e = ExprOp('predec', t[0])
+    e = ExprMem(ExprOp('predec', t[0]))
     return e
 
 
 def parse_postinc(s, l, t):
     t = t[0]
-    e = ExprOp('postinc', t[0])
+    e = ExprMem(ExprOp('postinc', t[0]))
     return e
 
 
@@ -173,37 +173,31 @@ class sh4_dgpreg(m_arg):
         self.value = v
         return True
 
-    @staticmethod
-    def arg2str(e):
-        ad = e.arg
-        if isinstance(ad, ExprOp):
-            s = ','.join([str(x).replace('(', '').replace(')', '')
-                         for x in ad.args])
-            s = "@(%s)" % s
-        else:
-            s = "@%s" % ad
-        return s
-
 
 class sh4_dgpregpinc(m_arg):
     parser = dgpregs_p
 
     def fromstring(self, s, parser_result=None):
         start, stop = super(sh4_dgpregpinc, self).fromstring(s, parser_result)
-        if not isinstance(self.expr, ExprOp):
+        if self.expr is None:
             return None, None
-        if self.expr.op != self.op:
+        if not isinstance(self.expr.arg, ExprOp):
+            return None, None
+        if self.expr.arg.op != self.op:
             return None, None
         return start, stop
 
     def decode(self, v):
         r = gpregs.expr[v]
-        e = ExprOp(self.op, r, ExprInt32(self.sz))
-        self.expr = e
+        e = ExprOp(self.op, r)
+        self.expr = ExprMem(e, self.sz)
         return True
 
     def encode(self):
         e = self.expr
+        if not isinstance(e, ExprMem):
+            return False
+        e = e.arg
         res = MatchExpr(e, ExprOp(self.op, jra), [jra])
         if not res:
             return False
@@ -213,16 +207,6 @@ class sh4_dgpregpinc(m_arg):
         v = gpregs.expr.index(r)
         self.value = v
         return True
-
-    @staticmethod
-    def arg2str(e):
-        if e.op == "predec":
-            o = '-%s' % e.args[0]
-        elif e.op == "postinc":
-            o = '%s+' % e.args[0]
-        else:
-            raise ValueError('unknown e.op: %s' % e.op)
-        return "@%s" % o
 
 
 class sh4_dgpregpdec(m_arg):
@@ -391,12 +375,6 @@ class sh4_pc32imm(m_arg):
         self.value = v
         return True
 
-    @staticmethod
-    def arg2str(e):
-        s = str(e).replace('(', '').replace(')', '')
-        return "%s" % s
-
-
 class additional_info:
 
     def __init__(self):
@@ -411,6 +389,31 @@ class instruction_sh4(instruction):
 
     def dstflow(self):
         return self.name.startswith('J')
+
+    @staticmethod
+    def arg2str(e, pos = None):
+        if isinstance(e, ExprId) or isinstance(e, ExprInt):
+            return str(e)
+        assert(isinstance(e, ExprMem))
+        e = e.arg
+
+        if isinstance(e, ExprOp):
+            if e.op == "predec":
+                s = '-%s' % e.args[0]
+            elif e.op == "postinc":
+                s = '%s+' % e.args[0]
+            else:
+                s = ','.join([str(x).replace('(', '').replace(')', '')
+                              for x in e.args])
+                s = "(%s)"%s
+            s = "@%s" % s
+        elif isinstance(e, ExprId):
+            s = "@%s" % e
+        else:
+            raise NotImplementedError('zarb arg2str')
+        return s
+
+
     """
     def dstflow2label(self, symbol_pool):
         e = self.args[0]
@@ -472,6 +475,7 @@ class mn_sh4(cls_mn):
     # delayslot:
     # http://resource.renesas.com/lib/eng/e_learnig/sh4/13/index.html
     delayslot = 0  # unit is instruction instruction
+    instruction = instruction_sh4
 
     def additional_info(self):
         info = additional_info()

@@ -115,6 +115,29 @@ class instruction_msp430(instruction):
             return True
         return self.name in ['call']
 
+    @staticmethod
+    def arg2str(e, pos = None):
+        if isinstance(e, ExprId):
+            o = str(e)
+        elif isinstance(e, ExprInt):
+            o = str(e)
+        elif isinstance(e, ExprOp) and e.op == "autoinc":
+            o = "@%s+" % str(e.args[0])
+        elif isinstance(e, ExprMem):
+            if isinstance(e.arg, ExprId):
+                if pos == 0:
+                    o = "@%s" % e.arg
+                else:
+                    o = "0x0(%s)" % e.arg
+            elif isinstance(e.arg, ExprInt):
+                o = "@%s" % e.arg
+            elif isinstance(e.arg, ExprOp):
+                o = "%s(%s)" % (e.arg.args[1], e.arg.args[0])
+        else:
+            raise NotImplementedError('unknown instance e = %s' % type(e))
+        return o
+
+
     def dstflow2label(self, symbol_pool):
         e = self.args[0]
         if not isinstance(e, ExprInt):
@@ -395,25 +418,6 @@ class msp430_sreg_arg(reg_noarg, m_arg):
             raise NotImplementedError('unknown instance e = %s' % type(e))
         return True
 
-    @staticmethod
-    def arg2str(e):
-        if isinstance(e, ExprId):
-            o = str(e)
-        elif isinstance(e, ExprInt):
-            o = str(e)
-        elif isinstance(e, ExprOp) and e.op == "autoinc":
-            o = "@%s+" % str(e.args[0])
-        elif isinstance(e, ExprMem):
-            if isinstance(e.arg, ExprId):
-                o = "@%s" % e.arg
-            elif isinstance(e.arg, ExprInt):
-                o = "@%s" % e.arg
-            elif isinstance(e.arg, ExprOp):
-                o = "%s(%s)" % (e.arg.args[1], e.arg.args[0])
-        else:
-            raise NotImplementedError('unknown instance e = %s' % type(e))
-        return o
-
 
 class msp430_dreg_arg(msp430_sreg_arg):
     prio = default_prio + 1
@@ -463,25 +467,6 @@ class msp430_dreg_arg(msp430_sreg_arg):
         else:
             raise NotImplementedError('unknown instance e = %s' % type(e))
         return True
-
-    @staticmethod
-    def arg2str(e):
-        if isinstance(e, ExprId):
-            o = str(e)
-        elif isinstance(e, ExprMem):
-            if isinstance(e.arg, ExprId):
-                o = "0x0(%s)" % e.arg
-            elif isinstance(e.arg, ExprInt):
-                o = "@%s" % e.arg
-            elif isinstance(e.arg, ExprOp):
-                o = "%s(%s)" % (e.arg.args[1], e.arg.args[0])
-            else:
-                raise NotImplementedError(
-                    'unknown instance e.arg = %s' % type(e.arg))
-        else:
-            raise NotImplementedError('unknown instance e = %s' % type(e))
-        return o
-
 
 class bs_cond_off_s(bs_cond):
 

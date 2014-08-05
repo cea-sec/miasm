@@ -201,6 +201,16 @@ def deref2expr_pre(s, l, t):
         raise NotImplementedError('len(t) > 2')
 
 
+def deref2expr_pre_mem(s, l, t):
+    t = t[0]
+    if len(t) == 1:
+        return ExprMem(ExprOp("preinc", t[0], ExprInt32(0)))
+    elif len(t) == 2:
+        return ExprMem(ExprOp("preinc", t[0], t[1]))
+    else:
+        raise NotImplementedError('len(t) > 2')
+
+
 def deref2expr_post(s, l, t):
     t = t[0]
     return ExprOp("postinc", t[0], t[1])
@@ -209,8 +219,8 @@ def deref2expr_post(s, l, t):
 def deref_wb(s, l, t):
     t = t[0]
     if t[-1] == '!':
-        return ExprOp('wback', *t[:-1])
-    return t[0]
+        return ExprMem(ExprOp('wback', *t[:-1]))
+    return ExprMem(t[0])
 
 # shift_off.setParseAction(deref_off)
 deref_nooff = Group(
@@ -267,6 +277,78 @@ class instruction_arm(instruction):
 
     def __init__(self, *args, **kargs):
         super(instruction_arm, self).__init__(*args, **kargs)
+
+    @staticmethod
+    def arg2str(e, pos = None):
+        wb = False
+        if isinstance(e, ExprId) or isinstance(e, ExprInt):
+            return str(e)
+        if isinstance(e, ExprOp) and e.op in expr2shift_dct:
+            if len(e.args) == 1:
+                return '%s %s' % (e.args[0], expr2shift_dct[e.op])
+            elif len(e.args) == 2:
+                return '%s %s %s' % (e.args[0], expr2shift_dct[e.op], e.args[1])
+            else:
+                raise NotImplementedError('zarb arg2str')
+
+
+        sb = False
+        if isinstance(e, ExprOp) and e.op == "sbit":
+            sb = True
+            e = e.args[0]
+        if isinstance(e, ExprOp) and e.op == "reglist":
+            o = [gpregs.expr.index(x) for x in e.args]
+            out = reglist2str(o)
+            if sb:
+                out += "^"
+            return out
+
+
+        if isinstance(e, ExprOp) and e.op == 'wback':
+            wb = True
+            e = e.args[0]
+        if isinstance(e, ExprId):
+            out = str(e)
+            if wb:
+                out += "!"
+            return out
+
+        if not isinstance(e, ExprMem):
+            return str(e)
+
+        e = e.arg
+        if isinstance(e, ExprOp) and e.op == 'wback':
+            wb = True
+            e = e.args[0]
+
+
+        if isinstance(e, ExprId):
+            r, s = e, None
+        elif len(e.args) == 1 and isinstance(e.args[0], ExprId):
+            r, s = e.args[0], None
+        elif isinstance(e.args[0], ExprId):
+            r, s = e.args[0], e.args[1]
+        else:
+            r, s = e.args[0].args
+        if isinstance(s, ExprOp) and s.op in expr2shift_dct:
+            s = ' '.join([str(x)
+                for x in s.args[0], expr2shift_dct[s.op], s.args[1]])
+
+        if isinstance(e, ExprOp) and e.op == 'postinc':
+            o = '[%s]' % r
+            if s and not (isinstance(s, ExprInt) and s.arg == 0):
+                o += ', %s' % s
+        else:
+            if s and not (isinstance(s, ExprInt) and s.arg == 0):
+                o = '[%s, %s]' % (r, s)
+            else:
+                o = '[%s]' % (r)
+
+
+        if wb:
+            o += "!"
+        return o
+
 
     def dstflow(self):
         if self.name.startswith('BIC'):
@@ -636,12 +718,6 @@ class arm_reg_wb(arm_reg):
     reg_info = gpregs
     parser = gpregs_wb
 
-    @staticmethod
-    def arg2str(e):
-        if isinstance(e, ExprId):
-            return '%s' % e
-        return "%s!" % e.args[0]
-
     def decode(self, v):
         v = v & self.lmask
         e = self.reg_info.expr[v]
@@ -752,12 +828,15 @@ class arm_imm8_12(m_arg):
             e = ExprOp('postinc', self.parent.rn.expr, e)
         if self.parent.wback.value == 1:
             e = ExprOp('wback', e)
-        self.expr = e
+        self.expr = ExprMem(e)
         return True
 
     def encode(self):
         self.parent.updown.value = 1
         e = self.expr
+        if not isinstance(e, ExprMem):
+            return False
+        e = e.arg
         if isinstance(e, ExprOp) and e.op == 'wback':
             self.parent.wback.value = 1
             e = e.args[0]
@@ -788,38 +867,6 @@ class arm_imm8_12(m_arg):
         v >>= 2
         self.value = v
         return True
-
-    @staticmethod
-    def arg2str(e):
-        wb = False
-        if isinstance(e, ExprOp) and e.op == 'wback':
-            wb = True
-            e = e.args[0]
-        if isinstance(e, ExprId):
-            r = e
-            s = None
-        else:
-            if len(e.args) == 1 and isinstance(e.args[0], ExprId):
-                r, s = e.args[0], None
-            elif isinstance(e.args[0], ExprId):
-                r, s = e.args[0], e.args[1]
-            else:
-                r, s = e.args[0].args
-            if isinstance(s, ExprOp) and s.op in expr2shift_dct:
-                s = ' '.join([str(x)
-                    for x in s.args[0], expr2shift_dct[s.op], s.args[1]])
-        if isinstance(e, ExprOp) and e.op == 'preinc':
-            if s and not (isinstance(s, ExprInt) and s.arg == 0):
-                o = '[%s, %s]' % (r, s)
-            else:
-                o = '[%s]' % (r)
-        else:
-            o = '[%s]' % r
-            if s and not (isinstance(s, ExprInt) and s.arg == 0):
-                o += ', %s' % s
-        if wb:
-            o += "!"
-        return o
 
 
 class arm_imm_4_12(m_arg):
@@ -937,17 +984,6 @@ class arm_op2(m_arg):
             ((((amount << 2) | shift_type) << 1) | shift_kind) << 4) | rm
         return True
 
-    @staticmethod
-    def arg2str(e):
-        if isinstance(e, ExprInt) or isinstance(e, ExprId):
-            return str(e)
-        if isinstance(e, ExprOp) and e.op in expr2shift_dct:
-            if len(e.args) == 1:
-                return '%s %s' % (e.args[0], expr2shift_dct[e.op])
-            elif len(e.args) == 2:
-                return '%s %s %s' % (e.args[0], expr2shift_dct[e.op], e.args[1])
-        return str(e)
-
 # op2imm + rn
 
 
@@ -973,7 +1009,7 @@ class arm_op2imm(arm_imm8_12):
                 e = ExprOp('postinc', self.parent.rn.expr, ExprInt32(imm))
             if self.parent.wback.value == 1:
                 e = ExprOp('wback', e)
-            self.expr = e
+            self.expr = ExprMem(e)
             return True
         rm = val & 0xf
         shift = val >> 4
@@ -1000,7 +1036,7 @@ class arm_op2imm(arm_imm8_12):
             e = ExprOp('postinc', self.parent.rn.expr, a)
         if self.parent.wback.value == 1:
             e = ExprOp('wback', e)
-        self.expr = e
+        self.expr = ExprMem(e)
         return True
 
     def encode(self):
@@ -1008,6 +1044,8 @@ class arm_op2imm(arm_imm8_12):
         self.parent.updown.value = 1
 
         e = self.expr
+        assert(isinstance(e, ExprMem))
+        e = e.arg
         if e.op == 'wback':
             self.parent.wback.value = 1
             e = e.args[0]
@@ -1111,19 +1149,6 @@ class arm_rlist(m_arg):
             e = ExprOp('sbit', e)
         self.expr = e
         return True
-
-    @staticmethod
-    def arg2str(e):
-        o = []
-        sb = False
-        if isinstance(e, ExprOp) and e.op == "sbit":
-            sb = True
-            e = e.args[0]
-        o = [gpregs.expr.index(x) for x in e.args]
-        out = reglist2str(o)
-        if sb:
-            out += "^"
-        return out
 
 
 class updown_b_nosp_mn(bs_mod_name):
@@ -1280,7 +1305,7 @@ class arm_immed(m_arg):
             e = ExprOp('postinc', self.parent.rn.expr, imm)
         if self.parent.wback.value == 1:
             e = ExprOp('wback', e)
-        self.expr = e
+        self.expr = ExprMem(e)
 
         return True
 
@@ -1288,6 +1313,9 @@ class arm_immed(m_arg):
         self.parent.immop.value = 1
         self.parent.updown.value = 1
         e = self.expr
+        if not isinstance(e, ExprMem):
+            return False
+        e = e.arg
         if isinstance(e, ExprOp) and e.op == 'wback':
             self.parent.wback.value = 1
             e = e.args[0]
@@ -1328,10 +1356,6 @@ class arm_immed(m_arg):
             return True
         else:
             raise ValueError('e should be int: %r' % e)
-
-    @staticmethod
-    def arg2str(e):
-        return arm_imm8_12.arg2str(e)
 
 immedH = bs(l=4, fname='immedH')
 immedL = bs(l=4, cls=(arm_immed, m_arg), fname='immedL')
@@ -1503,11 +1527,11 @@ gpregs_sppc = reg_info(regs_str[-1:] + regs_str[13:14],
                        regs_expr[-1:] + regs_expr[13:14])
 
 deref_low = Group(LBRACK + gpregs_l.parser + Optional(
-    COMMA + shift_off) + RBRACK).setParseAction(deref2expr_pre)
+    COMMA + shift_off) + RBRACK).setParseAction(deref2expr_pre_mem)
 deref_pc = Group(LBRACK + gpregs_pc.parser + Optional(
-    COMMA + shift_off) + RBRACK).setParseAction(deref2expr_pre)
+    COMMA + shift_off) + RBRACK).setParseAction(deref2expr_pre_mem)
 deref_sp = Group(LBRACK + gpregs_sp.parser + COMMA +
-                 shift_off + RBRACK).setParseAction(deref2expr_pre)
+                 shift_off + RBRACK).setParseAction(deref2expr_pre_mem)
 
 gpregs_l_wb = Group(
     gpregs_l.parser + Optional('!')).setParseAction(parsegpreg_wb)
@@ -1549,37 +1573,46 @@ class arm_offreg(m_arg):
         self.value = v
         return True
 
-    @staticmethod
-    def arg2str(e):
-        if isinstance(e, ExprId):
-            o = str(e)
-        elif (len(e.args) == 2 and
-            isinstance(e.args[1], ExprInt) and e.args[1].arg == 0):
-            o = "%s" % e.args[0]
-        else:
-            o = '%s, %s' % (e.args[0], e.args[1])
-        return '[%s]' % o
-
 
 class arm_offpc(arm_offreg):
     off_reg = regs_expr[15]
-    def decodeval(self, v):
-        return v << 2
 
-    def encodeval(self, v):
-        return v >> 2
+    def decode(self, v):
+        v = v & self.lmask
+        v <<= 2
+        if v:
+            self.expr = ExprMem(self.off_reg + ExprInt32(v))
+        else:
+            self.expr = ExprMem(self.off_reg)
+
+        e = self.expr.arg
+        if isinstance(e, ExprOp) and e.op == 'wback':
+            self.parent.wback.value = 1
+            e = e.args[0]
+        return True
+
+    def encode(self):
+        e = self.expr
+        if not isinstance(e, ExprMem):
+            return False
+        e = e.arg
+        if not (isinstance(e, ExprOp) and e.op == "preinc"):
+            log.debug('cannot encode %r' % e)
+            return False
+        if e.args[0] != self.off_reg:
+            log.debug('cannot encode reg %r' % e.args[0])
+            return False
+        v = int(e.args[1].arg)
+        v >>= 2
+        self.value = v
+        return True
 
 
 
-class arm_offsp(arm_offreg):
+
+class arm_offsp(arm_offpc):
     parser = deref_sp
     off_reg = regs_expr[13]
-
-    def decodeval(self, v):
-        return v << 2
-
-    def encodeval(self, v):
-        return v >> 2
 
 
 class arm_offspc(arm_offs):
@@ -1634,11 +1667,14 @@ class arm_deref(m_arg):
         v = v & self.lmask
         rbase = regs_expr[v]
         e = ExprOp('preinc', rbase, self.parent.off.expr)
-        self.expr = e
+        self.expr = ExprMem(e)
         return True
 
     def encode(self):
         e = self.expr
+        if not isinstance(e, ExprMem):
+            return False
+        e = e.arg
         if not (isinstance(e, ExprOp) and e.op == 'preinc'):
             log.debug('cannot encode %r' % e)
             return False
@@ -1655,13 +1691,6 @@ class arm_deref(m_arg):
             log.debug('cannot encode reg %r' % off)
             return False
         return True
-
-    @staticmethod
-    def arg2str(e):
-        if not (isinstance(e, ExprOp) and e.op == 'preinc'):
-            log.debug('cannot str %r' % e)
-            raise ValueError()
-        return '[%s, %s]' % (e.args[0], e.args[1])
 
 
 class arm_offbw(imm_noarg):
@@ -1727,13 +1756,6 @@ class armt_rlist(m_arg):
         e = ExprOp('reglist', *out)
         self.expr = e
         return True
-
-    @staticmethod
-    def arg2str(e):
-        o = []
-        o = [gpregs.expr.index(x) for x in e.args]
-        out = reglist2str(o)
-        return out
 
 
 class armt_rlist_pclr(armt_rlist):
@@ -2019,12 +2041,6 @@ class armt_gpreg_rm_shift_off(arm_reg):
         self.parent.imm5_2.value = i & 3
         self.parent.imm5_3.value = i >> 2
         return True
-
-    @staticmethod
-    def arg2str(e):
-        if isinstance(e, ExprId):
-            return str(e)
-        return str(e)[1:-1]
 
 rn_nosppc = bs(l=4, cls=(arm_gpreg_nosppc,), fname="rn")
 rd_nosppc = bs(l=4, cls=(arm_gpreg_nosppc,), fname="rd")
