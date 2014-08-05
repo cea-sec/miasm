@@ -2998,16 +2998,12 @@ class bs_msegoff(m_arg):
         return start, stop
 
     def encode(self):
-        print 'ENCODE', self.expr
         if not (isinstance(self.expr, ExprOp) and self.expr.op == 'segm'):
             raise StopIteration
-        print 'ENCODE1', self.expr
         if not isinstance(self.expr.args[0], ExprInt):
             raise StopIteration
-        print 'ENCODE2', self.expr
         if not isinstance(self.expr.args[1], ExprInt):
             raise StopIteration
-        print 'ENCODE3', self.expr
         l = self.parent.v_opmode()  # self.parent.args[0].expr.size
         # print 'imm enc', l, self.parent.rex_w.value
         v = int(self.expr.args[0].arg)
@@ -3016,7 +3012,6 @@ class bs_msegoff(m_arg):
         # self.l, l))
         if v != sign_ext(v & mask, self.l, l):
             raise StopIteration
-        print 'ENCODE4', self.expr
         self.value = swap_uint(self.l, v & ((1 << self.l) - 1))
         yield True
 
@@ -3024,8 +3019,8 @@ class bs_msegoff(m_arg):
         opmode = self.parent.v_opmode()
         v = swap_uint(self.l, v)
         self.value = v
-        v = sign_ext(v, self.l, opmode)
-        v = ExprInt_fromsize(opmode, v)
+        #v = sign_ext(v, self.l, opmode)
+        v = ExprInt16(v)
         e = ExprOp('segm', v, self.parent.off.expr)
         self.expr = e
         # print self.expr, repr(self.expr)
@@ -3531,7 +3526,7 @@ addop("jmp", [bs8(0xeb), rel_off08])
 addop("jmp", [bs8(0xe9), rel_off])
 # TODO XXX replace stk force64?
 addop("jmp", [bs8(0xff), stk] + rmmod(d4))
-addop("jmp", [bs8(0xea), moff, msegoff])
+addop("jmpf", [bs8(0xea), moff, msegoff])
 
 addop("jmpf", [bs8(0xff), stk] + rmmod(d5))
 

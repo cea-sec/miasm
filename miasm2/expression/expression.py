@@ -678,13 +678,13 @@ class ExprOp(Expr):
                          'int_16_to_double', 'int_32_to_double',
                          'int_64_to_double', 'int_80_to_double']:
             sz = 64
-        elif self.op in ['double_to_mem_16', 'double_to_int_16']:
+        elif self.op in ['double_to_mem_16', 'double_to_int_16', 'double_trunc_to_int_16']:
             sz = 16
-        elif self.op in ['double_to_mem_32', 'double_to_int_32']:
+        elif self.op in ['double_to_mem_32', 'double_to_int_32', 'double_trunc_to_int_32']:
             sz = 32
-        elif self.op in ['double_to_mem_64', 'double_to_int_64']:
+        elif self.op in ['double_to_mem_64', 'double_to_int_64', 'double_trunc_to_int_64']:
             sz = 64
-        elif self.op in ['double_to_mem_80', 'double_to_int_80']:
+        elif self.op in ['double_to_mem_80', 'double_to_int_80', 'double_trunc_to_int_80']:
             sz = 80
         elif self.op in ['segm']:
             sz = self.args[1].size

@@ -196,7 +196,7 @@ def lea(ir, instr, a, b):
     src = b.arg
     if src.size > a.size:
         src = src[:a.size]
-    e = [ExprAff(a, src)]
+    e = [ExprAff(a, src.zeroExtend(a.size))]
     return None, e, []
 
 
@@ -401,10 +401,9 @@ def sar(ir, instr, a, b):
         if int(shifter.arg) != 0:
             return None, e_do, []
         else:
-            raise NotImplementedError("TODO check me")
+            return None, [], []
 
-    return ExprCond(shifter, lbl_do, lbl_skip),
-    [], [irbloc(lbl_do.name, lbl_skip, [e_do])]
+    return ExprCond(shifter, lbl_do, lbl_skip), [], [irbloc(lbl_do.name, lbl_skip, [e_do])]
 
 
 def shr(ir, instr, a, b):
@@ -565,7 +564,6 @@ def inc(ir, instr, a):
     e.append(update_flag_add_of(a, b, c))
     e.append(ExprAff(a, c))
     return None, e, []
-
 
 def dec(ir, instr, a):
     e = []
@@ -1072,25 +1070,25 @@ def jmp(ir, instr, dst):
 def jmpf(ir, instr, a):
     e = []
     meip = mRIP[instr.mode]
-    assert(isinstance(a, ExprMem) and
-           isinstance(a.arg, ExprOp) and
-           a.arg.op == "segm")
-    segm = a.arg.args[0]
-    base = a.arg.args[1]
     s = instr.mode
-    print segm, base
-    m1 = ExprMem(ExprOp('segm', segm, base), 16)
-    m2 = ExprMem(ExprOp('segm', segm, base + ExprInt_from(base, 2)), s)
+    if (isinstance(a, ExprOp) and a.op == "segm"):
+        segm = a.args[0]
+        base = a.args[1]
+        m1 = segm.zeroExtend(CS.size)#ExprMem(ExprOp('segm', segm, base), 16)
+        m2 = base.zeroExtend(meip.size)#ExprMem(ExprOp('segm', segm, base + ExprInt_from(base, 2)), s)
+    else:
+        m1 = ExprMem(a, 16)
+        m2 = ExprMem(a + ExprInt_from(a, 2), meip.size)
 
-    e.append(ExprAff(meip, m1))
-    e.append(ExprAff(CS, m2))
+    e.append(ExprAff(CS, m1))
+    e.append(ExprAff(meip, m2))
     return meip, e, []
 
 
 def jz(ir, instr, dst):
     e = []
     meip = mRIP[instr.mode]
-    n = ExprId(ir.get_next_label(instr), instr.mode)
+    n = ExprId(ir.get_next_label(instr), dst.size)
     dst_o = ExprCond(zf, dst, n).zeroExtend(instr.mode)
     e = [ExprAff(meip, dst_o)]
     return dst_o, e, []
@@ -1099,7 +1097,7 @@ def jz(ir, instr, dst):
 def jcxz(ir, instr, dst):
     e = []
     meip = mRIP[instr.mode]
-    n = ExprId(ir.get_next_label(instr), instr.mode)
+    n = ExprId(ir.get_next_label(instr), dst.size)
     dst_o = ExprCond(mRCX[instr.mode][:16], n, dst).zeroExtend(instr.mode)
     e.append(ExprAff(meip, dst_o))
     return dst_o, e, []
@@ -1108,7 +1106,7 @@ def jcxz(ir, instr, dst):
 def jecxz(ir, instr, dst):
     e = []
     meip = mRIP[instr.mode]
-    n = ExprId(ir.get_next_label(instr), instr.mode)
+    n = ExprId(ir.get_next_label(instr), dst.size)
     dst_o = ExprCond(mRCX[instr.mode][:32], n, dst).zeroExtend(instr.mode)
     e.append(ExprAff(meip, dst_o))
     return dst_o, e, []
@@ -1117,7 +1115,7 @@ def jecxz(ir, instr, dst):
 def jrcxz(ir, instr, dst):
     e = []
     meip = mRIP[instr.mode]
-    n = ExprId(ir.get_next_label(instr), instr.mode)
+    n = ExprId(ir.get_next_label(instr), dst.size)
     dst_o = ExprCond(mRCX[instr.mode], n, dst).zeroExtend(instr.mode)
     e.append(ExprAff(meip, dst_o))
     return dst_o, e, []
@@ -1126,7 +1124,7 @@ def jrcxz(ir, instr, dst):
 def jnz(ir, instr, dst):
     e = []
     meip = mRIP[instr.mode]
-    n = ExprId(ir.get_next_label(instr), instr.mode)
+    n = ExprId(ir.get_next_label(instr), dst.size)
     dst_o = ExprCond(zf, n, dst).zeroExtend(instr.mode)
     e.append(ExprAff(meip, dst_o))
     return dst_o, e, []
@@ -1135,7 +1133,7 @@ def jnz(ir, instr, dst):
 def jp(ir, instr, dst):
     e = []
     meip = mRIP[instr.mode]
-    n = ExprId(ir.get_next_label(instr), instr.mode)
+    n = ExprId(ir.get_next_label(instr), dst.size)
     dst_o = ExprCond(pf, dst, n).zeroExtend(instr.mode)
     e.append(ExprAff(meip, dst_o))
     return dst_o, e, []
@@ -1144,7 +1142,7 @@ def jp(ir, instr, dst):
 def jnp(ir, instr, dst):
     e = []
     meip = mRIP[instr.mode]
-    n = ExprId(ir.get_next_label(instr), instr.mode)
+    n = ExprId(ir.get_next_label(instr), dst.size)
     dst_o = ExprCond(pf, n, dst).zeroExtend(instr.mode)
     e.append(ExprAff(meip, dst_o))
     return dst_o, e, []
@@ -1153,7 +1151,7 @@ def jnp(ir, instr, dst):
 def ja(ir, instr, dst):
     e = []
     meip = mRIP[instr.mode]
-    n = ExprId(ir.get_next_label(instr), instr.mode)
+    n = ExprId(ir.get_next_label(instr), dst.size)
     dst_o = ExprCond(cf | zf, n, dst).zeroExtend(instr.mode)
     e.append(ExprAff(meip, dst_o))
     return dst_o, e, []
@@ -1162,7 +1160,7 @@ def ja(ir, instr, dst):
 def jae(ir, instr, dst):
     e = []
     meip = mRIP[instr.mode]
-    n = ExprId(ir.get_next_label(instr), instr.mode)
+    n = ExprId(ir.get_next_label(instr), dst.size)
     dst_o = ExprCond(cf, n, dst).zeroExtend(instr.mode)
     e.append(ExprAff(meip, dst_o))
     return dst_o, e, []
@@ -1171,7 +1169,7 @@ def jae(ir, instr, dst):
 def jb(ir, instr, dst):
     e = []
     meip = mRIP[instr.mode]
-    n = ExprId(ir.get_next_label(instr), instr.mode)
+    n = ExprId(ir.get_next_label(instr), dst.size)
     dst_o = ExprCond(cf, dst, n).zeroExtend(instr.mode)
     e.append(ExprAff(meip, dst_o))
     return dst_o, e, []
@@ -1180,7 +1178,7 @@ def jb(ir, instr, dst):
 def jbe(ir, instr, dst):
     e = []
     meip = mRIP[instr.mode]
-    n = ExprId(ir.get_next_label(instr), instr.mode)
+    n = ExprId(ir.get_next_label(instr), dst.size)
     dst_o = ExprCond(cf | zf, dst, n).zeroExtend(instr.mode)
     e.append(ExprAff(meip, dst_o))
     return dst_o, e, []
@@ -1189,7 +1187,7 @@ def jbe(ir, instr, dst):
 def jge(ir, instr, dst):
     e = []
     meip = mRIP[instr.mode]
-    n = ExprId(ir.get_next_label(instr), instr.mode)
+    n = ExprId(ir.get_next_label(instr), dst.size)
     dst_o = ExprCond(nf - of, n, dst).zeroExtend(instr.mode)
     e.append(ExprAff(meip, dst_o))
     return dst_o, e, []
@@ -1198,7 +1196,7 @@ def jge(ir, instr, dst):
 def jg(ir, instr, dst):
     e = []
     meip = mRIP[instr.mode]
-    n = ExprId(ir.get_next_label(instr), instr.mode)
+    n = ExprId(ir.get_next_label(instr), dst.size)
     dst_o = ExprCond(zf | (nf - of), n, dst).zeroExtend(instr.mode)
     e.append(ExprAff(meip, dst_o))
     return dst_o, e, []
@@ -1207,7 +1205,7 @@ def jg(ir, instr, dst):
 def jl(ir, instr, dst):
     e = []
     meip = mRIP[instr.mode]
-    n = ExprId(ir.get_next_label(instr), instr.mode)
+    n = ExprId(ir.get_next_label(instr), dst.size)
     dst_o = ExprCond(nf - of, dst, n).zeroExtend(instr.mode)
     e.append(ExprAff(meip, dst_o))
     return dst_o, e, []
@@ -1216,7 +1214,7 @@ def jl(ir, instr, dst):
 def jle(ir, instr, dst):
     e = []
     meip = mRIP[instr.mode]
-    n = ExprId(ir.get_next_label(instr), instr.mode)
+    n = ExprId(ir.get_next_label(instr), dst.size)
     dst_o = ExprCond(zf | (nf - of), dst, n).zeroExtend(instr.mode)
     e.append(ExprAff(meip, dst_o))
     return dst_o, e, []
@@ -1225,7 +1223,7 @@ def jle(ir, instr, dst):
 def js(ir, instr, dst):
     e = []
     meip = mRIP[instr.mode]
-    n = ExprId(ir.get_next_label(instr), instr.mode)
+    n = ExprId(ir.get_next_label(instr), dst.size)
     dst_o = ExprCond(nf, dst, n).zeroExtend(instr.mode)
     e.append(ExprAff(meip, dst_o))
     return dst_o, e, []
@@ -1234,7 +1232,7 @@ def js(ir, instr, dst):
 def jns(ir, instr, dst):
     e = []
     meip = mRIP[instr.mode]
-    n = ExprId(ir.get_next_label(instr), instr.mode)
+    n = ExprId(ir.get_next_label(instr), dst.size)
     dst_o = ExprCond(nf, n, dst).zeroExtend(instr.mode)
     e.append(ExprAff(meip, dst_o))
     return dst_o, e, []
@@ -1243,7 +1241,7 @@ def jns(ir, instr, dst):
 def jo(ir, instr, dst):
     e = []
     meip = mRIP[instr.mode]
-    n = ExprId(ir.get_next_label(instr), instr.mode)
+    n = ExprId(ir.get_next_label(instr), dst.size)
     dst_o = ExprCond(of, dst, n).zeroExtend(instr.mode)
     e.append(ExprAff(meip, dst_o))
     return dst_o, e, []
@@ -1252,7 +1250,7 @@ def jo(ir, instr, dst):
 def jno(ir, instr, dst):
     e = []
     meip = mRIP[instr.mode]
-    n = ExprId(ir.get_next_label(instr), instr.mode)
+    n = ExprId(ir.get_next_label(instr), dst.size)
     dst_o = ExprCond(of, n, dst).zeroExtend(instr.mode)
     e.append(ExprAff(meip, dst_o))
     return dst_o, e, []
@@ -1657,28 +1655,42 @@ def float_pop(avoid_flt=None):
 # XXX TODO
 
 
-def fcom(ir, instr, a, b):
+def fcom(ir, instr, a, b = None):
+
+    if b is None:
+        b = a
+        a = float_st0
+
     e = []
-    """
-    if isinstance(a, ExprMem):
-        src = ExprOp('mem_%.2d_to_double'%a.size, a)
-    else:
-        src = a
-    """
-    src = b
-    e.append(ExprAff(float_c0, ExprOp('fcom_c0', a, src.zeroExtend(a.size))))
-    e.append(ExprAff(float_c1, ExprOp('fcom_c1', a, src.zeroExtend(a.size))))
-    e.append(ExprAff(float_c2, ExprOp('fcom_c2', a, src.zeroExtend(a.size))))
-    e.append(ExprAff(float_c3, ExprOp('fcom_c3', a, src.zeroExtend(a.size))))
+    if isinstance(b, ExprMem):
+        b = ExprOp('mem_%.2d_to_double'%b.size, b)
+
+
+    e.append(ExprAff(float_c0, ExprOp('fcom_c0', a, b)))
+    e.append(ExprAff(float_c1, ExprOp('fcom_c1', a, b)))
+    e.append(ExprAff(float_c2, ExprOp('fcom_c2', a, b)))
+    e.append(ExprAff(float_c3, ExprOp('fcom_c3', a, b)))
 
     e += set_float_cs_eip(instr)
     return None, e, []
 
 
-def ficom(ir, instr, a):
+def ficom(ir, instr, a, b = None):
+
+    if b is None:
+        b = a
+        a = float_st0
+
     e = []
+
+    e.append(ExprAff(float_c0, ExprOp('fcom_c0', a, b.zeroExtend(a.size))))
+    e.append(ExprAff(float_c1, ExprOp('fcom_c1', a, b.zeroExtend(a.size))))
+    e.append(ExprAff(float_c2, ExprOp('fcom_c2', a, b.zeroExtend(a.size))))
+    e.append(ExprAff(float_c3, ExprOp('fcom_c3', a, b.zeroExtend(a.size))))
+
     e += set_float_cs_eip(instr)
     return None, e, []
+
 
 
 def fcomi(ir, instr, a):
@@ -1696,21 +1708,28 @@ def fucomi(ir, instr, a):
     InvalidEmulation
 
 
-def fucomip(ir, instr, a):
-    # Invalid emulation, only read/write analysis is valid
-    cond = ExprOp('fcomp', float_st0, a)
+def fucomip(ir, instr, a, b):
     e = []
-    e.append(
-        ExprAff(zf, ExprCond(cond, ExprInt_from(zf, 0), ExprInt_from(zf, 1))))
-    e.append(
-        ExprAff(pf, ExprCond(cond, ExprInt_from(zf, 0), ExprInt_from(zf, 1))))
-    e.append(
-        ExprAff(cf, ExprCond(cond, ExprInt_from(zf, 0), ExprInt_from(zf, 1))))
+    # XXX TODO add exception on NaN
+    e.append(ExprAff(cf, ExprOp('fcom_c0', a, b)))
+    #e.append(ExprAff(float_c1, ExprOp('fcom_c1', a, b)))
+    e.append(ExprAff(pf, ExprOp('fcom_c2', a, b)))
+    e.append(ExprAff(zf, ExprOp('fcom_c3', a, b)))
+
+    e += float_pop()
+
+    e += set_float_cs_eip(instr)
     return None, e, []
 
 
-def fcomp(ir, instr, a, b):
+def fcomp(ir, instr, a, b = None):
     dst, e, extra = fcom(ir, instr, a, b)
+    e += float_pop()
+    e += set_float_cs_eip(instr)
+    return dst, e, extra
+
+def ficomp(ir, instr, a, b = None):
+    dst, e, extra = ficom(ir, instr, a, b)
     e += float_pop()
     e += set_float_cs_eip(instr)
     return dst, e, extra
@@ -1763,11 +1782,25 @@ def fist(ir, instr, a):
     e += set_float_cs_eip(instr)
     return None, e, []
 
-
 def fistp(ir, instr, a):
     dst, e, extra = fist(ir, instr, a)
     e += float_pop(a)
     return dst, e, extra
+
+def fist(ir, instr, a):
+    e = []
+    e.append(ExprAff(a, ExprOp('double_to_int_%d' % a.size, float_st0)))
+
+    e += set_float_cs_eip(instr)
+    return None, e, []
+
+def fisttp(ir, instr, a):
+    e = []
+    e.append(ExprAff(a, ExprOp('double_trunc_to_int_%d' % a.size, float_st0)))
+
+    e += set_float_cs_eip(instr)
+    e += float_pop(a)
+    return None, e, []
 
 
 def fild(ir, instr, a):
@@ -1811,6 +1844,19 @@ def fadd(ir, instr, a, b=None):
         src = b
     e.append(ExprAff(a, ExprOp('fadd', a, src)))
 
+    e += set_float_cs_eip(instr)
+    return None, e, []
+
+def fiadd(ir, instr, a, b=None):
+    if b is None:
+        b = a
+        a = float_st0
+    e = []
+    if isinstance(b, ExprMem):
+        src = ExprOp('mem_%.2d_to_double' % b.size, b)
+    else:
+        src = b
+    e.append(ExprAff(a, ExprOp('fiadd', a, src)))
     e += set_float_cs_eip(instr)
     return None, e, []
 
@@ -1877,6 +1923,34 @@ def fsub(ir, instr, a, b=None):
     e += set_float_cs_eip(instr)
     return None, e, []
 
+def fsubp(ir, instr, a, b=None):
+    if b is None:
+        b = a
+        a = float_st0
+    e = []
+    if isinstance(b, ExprMem):
+        src = ExprOp('mem_%.2d_to_double' % b.size, b)
+    else:
+        src = b
+    e.append(ExprAff(float_prev(a), ExprOp('fsub', a, src)))
+    e += set_float_cs_eip(instr)
+    e += float_pop(a)
+    return None, e, []
+
+
+def fsubr(ir, instr, a, b=None):
+    if b is None:
+        b = a
+        a = float_st0
+    e = []
+    if isinstance(b, ExprMem):
+        src = ExprOp('mem_%.2d_to_double' % b.size, b)
+    else:
+        src = b
+    e.append(ExprAff(a, ExprOp('fsub', src, a)))
+    e += set_float_cs_eip(instr)
+    return None, e, []
+
 
 def fmul(ir, instr, a, b=None):
     if b is None:
@@ -1888,6 +1962,19 @@ def fmul(ir, instr, a, b=None):
     else:
         src = b
     e.append(ExprAff(a, ExprOp('fmul', a, src)))
+    e += set_float_cs_eip(instr)
+    return None, e, []
+
+def fimul(ir, instr, a, b=None):
+    if b is None:
+        b = a
+        a = float_st0
+    e = []
+    if isinstance(b, ExprMem):
+        src = ExprOp('mem_%.2d_to_double' % b.size, b)
+    else:
+        src = b
+    e.append(ExprAff(a, ExprOp('fimul', a, src)))
     e += set_float_cs_eip(instr)
     return None, e, []
 
@@ -1905,7 +1992,6 @@ def fdiv(ir, instr, a, b=None):
     e += set_float_cs_eip(instr)
     return None, e, []
 
-
 def fdivr(ir, instr, a, b=None):
     if b is None:
         b = a
@@ -1916,6 +2002,34 @@ def fdivr(ir, instr, a, b=None):
     else:
         src = b
     e.append(ExprAff(a, ExprOp('fdiv', src, a)))
+    e += set_float_cs_eip(instr)
+    return None, e, []
+
+
+def fidiv(ir, instr, a, b=None):
+    if b is None:
+        b = a
+        a = float_st0
+    e = []
+    if isinstance(b, ExprMem):
+        src = ExprOp('mem_%.2d_to_double' % b.size, b)
+    else:
+        src = b
+    e.append(ExprAff(a, ExprOp('fidiv', a, src)))
+    e += set_float_cs_eip(instr)
+    return None, e, []
+
+
+def fidivr(ir, instr, a, b=None):
+    if b is None:
+        b = a
+        a = float_st0
+    e = []
+    if isinstance(b, ExprMem):
+        src = ExprOp('mem_%.2d_to_double' % b.size, b)
+    else:
+        src = b
+    e.append(ExprAff(a, ExprOp('fidiv', src, a)))
     e += set_float_cs_eip(instr)
     return None, e, []
 
@@ -2185,8 +2299,7 @@ def bsf(ir, instr, a, b):
 
     e_do = []
     e_do.append(ExprAff(a, ExprOp('bsf', b)))
-    return ExprCond(b,
-    lbl_do, lbl_skip), e, [irbloc(lbl_do.name, lbl_skip, [e_do])]
+    return ExprCond(b, lbl_do, lbl_skip), e, [irbloc(lbl_do.name, lbl_skip, [e_do])]
 
 
 def bsr(ir, instr, a, b):
@@ -2197,8 +2310,7 @@ def bsr(ir, instr, a, b):
 
     e_do = []
     e_do.append(ExprAff(a, ExprOp('bsr', b)))
-    return ExprCond(b,
-    lbl_do, lbl_skip), e, [irbloc(lbl_do.name, lbl_skip, [e_do])]
+    return ExprCond(b, lbl_do, lbl_skip), e, [irbloc(lbl_do.name, lbl_skip, [e_do])]
 
 
 def arpl(ir, instr, a, b):
@@ -2237,8 +2349,7 @@ def cmovz(ir, instr, a, b):
     lbl_skip = ExprId(ir.get_next_label(instr), instr.mode)
 
     dum, e_do, extra_irs = mov(ir, instr, a, b)
-    return ExprCond(zf,
-    lbl_do, lbl_skip), [], [irbloc(lbl_do.name, lbl_skip, [e_do])]
+    return ExprCond(zf, lbl_do, lbl_skip), [], [irbloc(lbl_do.name, lbl_skip, [e_do])]
 
 
 def cmovnz(ir, instr, a, b):
@@ -2275,32 +2386,28 @@ def cmova(ir, instr, a, b):
     lbl_do = ExprId(ir.gen_label(), instr.mode)
     lbl_skip = ExprId(ir.get_next_label(instr), instr.mode)
     dum, e_do, extra_irs = mov(ir, instr, a, b)
-    return ExprCond(cf | zf,
-    lbl_skip, lbl_do), [], [irbloc(lbl_do.name, lbl_skip, [e_do])]
+    return ExprCond(cf | zf, lbl_skip, lbl_do), [], [irbloc(lbl_do.name, lbl_skip, [e_do])]
 
 
 def cmovae(ir, instr, a, b):
     lbl_do = ExprId(ir.gen_label(), instr.mode)
     lbl_skip = ExprId(ir.get_next_label(instr), instr.mode)
     dum, e_do, extra_irs = mov(ir, instr, a, b)
-    return ExprCond(cf,
-    lbl_skip, lbl_do), [], [irbloc(lbl_do.name, lbl_skip, [e_do])]
+    return ExprCond(cf, lbl_skip, lbl_do), [], [irbloc(lbl_do.name, lbl_skip, [e_do])]
 
 
 def cmovbe(ir, instr, a, b):
     lbl_do = ExprId(ir.gen_label(), instr.mode)
     lbl_skip = ExprId(ir.get_next_label(instr), instr.mode)
     dum, e_do, extra_irs = mov(ir, instr, a, b)
-    return ExprCond(cf | zf,
-    lbl_do, lbl_skip), [], [irbloc(lbl_do.name, lbl_skip, [e_do])]
+    return ExprCond(cf | zf, lbl_do, lbl_skip), [], [irbloc(lbl_do.name, lbl_skip, [e_do])]
 
 
 def cmovb(ir, instr, a, b):
     lbl_do = ExprId(ir.gen_label(), instr.mode)
     lbl_skip = ExprId(ir.get_next_label(instr), instr.mode)
     dum, e_do, extra_irs = mov(ir, instr, a, b)
-    return ExprCond(cf,
-    lbl_do, lbl_skip), [], [irbloc(lbl_do.name, lbl_skip, [e_do])]
+    return ExprCond(cf, lbl_do, lbl_skip), [], [irbloc(lbl_do.name, lbl_skip, [e_do])]
 
 
 def cmovo(ir, instr, a, b):
@@ -2859,6 +2966,7 @@ mnemo_func = {'mov': mov,
               'movsd': lambda ir, instr: movs(ir, instr, 32),
               'movsq': lambda ir, instr: movs(ir, instr, 64),
               'fcomp': fcomp,
+              'ficomp': ficomp,
               'nop': nop,
               'fnop': nop,  # XXX
               'hlt': hlt,
@@ -2867,6 +2975,7 @@ mnemo_func = {'mov': mov,
               'fstp': fstp,
               'fist': fist,
               'fistp': fistp,
+              'fisttp': fisttp,
               'fld': fld,
               'fldz': fldz,
               'fld1': fld1,
@@ -2874,13 +2983,19 @@ mnemo_func = {'mov': mov,
               'fldlg2': fldlg2,
               'fild': fild,
               'fadd': fadd,
+              'fiadd': fiadd,
               'fninit': fninit,
               'faddp': faddp,
               'fsub': fsub,
+              'fsubp': fsubp,
+              'fsubr': fsubr,
               'fmul': fmul,
+              'fimul': fimul,
               'fmulp': fmulp,
               'fdiv': fdiv,
               'fdivr': fdivr,
+              'fidiv': fidiv,
+              'fidivr': fidivr,
               'fdivp': fdivp,
               'fxch': fxch,
               'fptan': fptan,

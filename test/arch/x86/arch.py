@@ -383,6 +383,9 @@ reg_tests = [
      "d818"),
     (m32, "00000000    FCOMP      QWORD PTR [EAX]",
      "dC18"),
+    (m32, "00000000    FCOM       ST, ST(2)",
+     "d8d2"),
+
     (m32, "00000000    FCOMPP",
      "ded9"),
 
