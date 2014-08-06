@@ -29,6 +29,7 @@ all_tests = {
             ["arch/msp430/arch.py"],
             ["arch/msp430/sem.py"],
             ["arch/sh4/arch.py"],
+            ["arch/mips32/arch.py"],
         ],
         "core": [
             ["core/interval.py"],

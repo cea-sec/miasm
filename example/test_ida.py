@@ -210,6 +210,12 @@ elif processor_name == "msp430":
     # TODO ARM/thumb
     from miasm2.arch.msp430.disasm import dis_msp430 as dis_engine
     from miasm2.arch.msp430.ira import ir_a_msp430 as ira
+elif processor_name == "mipsl":
+    from miasm2.arch.mips32.disasm import dis_mips32l as dis_engine
+    from miasm2.arch.mips32.ira import ir_a_mips32 as ira
+elif processor_name == "mipsb":
+    from miasm2.arch.mips32.disasm import dis_mips32b as dis_engine
+    from miasm2.arch.mips32.ira import ir_a_mips32 as ira
 
 else:
     print repr(processor_name)

@@ -120,6 +120,14 @@ elif options.machine == "msp430":
     from miasm2.arch.msp430.disasm import dis_msp430 as dis_engine
     from miasm2.arch.msp430.arch import mn_msp430 as mn
     from miasm2.arch.msp430.ira import ir_a_msp430 as ira
+elif options.machine == "mips32b":
+    from miasm2.arch.mips32.disasm import dis_mips32b as dis_engine
+    from miasm2.arch.mips32.arch import mn_mips32b as mn
+    from miasm2.arch.mips32.ira import ir_a_mips32 as ira
+elif options.machine == "mips32l":
+    from miasm2.arch.mips32.disasm import dis_mips32l as dis_engine
+    from miasm2.arch.mips32.arch import mn_mips32l as mn
+    from miasm2.arch.mips32.ira import ir_a_mips32 as ira
 else:
     raise ValueError('unknown machine')
 log.info('ok')

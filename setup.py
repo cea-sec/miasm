@@ -12,6 +12,7 @@ def buil_all():
               'miasm2/arch/arm',
               'miasm2/arch/msp430',
               'miasm2/arch/sh4',
+              'miasm2/arch/mips32',
               'miasm2/core',
               'miasm2/expression',
               'miasm2/ir',

@@ -131,6 +131,23 @@ def gen_reg(rname, env, sz=32):
     env["bs" + rnamel] = bs(l=0, cls=(c,))
     return r, regi
 
+
+def gen_regs(rnames, env, sz=32):
+    regs_str = []
+    regs_expr = []
+    regs_init = []
+    for rname in rnames:
+        r = ExprId(rname, sz)
+        r_init = ExprId(rname+'_init', sz)
+        regs_str.append(rname)
+        regs_expr.append(r)
+        regs_init.append(r_init)
+        env[rname] = r
+
+    reginfo = reg_info(regs_str, regs_expr)
+    return regs_expr, regs_init, reginfo
+
+
 LPARENTHESIS = Literal("(")
 RPARENTHESIS = Literal(")")
 
