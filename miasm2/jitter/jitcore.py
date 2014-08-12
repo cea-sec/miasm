@@ -69,14 +69,14 @@ class JitCore(object):
 
         raise Exception("DO NOT instanciate JitCore")
 
-    def __get_bloc_min_max(self, cur_bloc):
+    def get_bloc_min_max(self, cur_bloc):
         "Update cur_bloc to set min/max address"
 
         if cur_bloc.lines:
             cur_bloc.ad_min = cur_bloc.lines[0].offset
             cur_bloc.ad_max = cur_bloc.lines[-1].offset + cur_bloc.lines[-1].l
 
-    def __add_bloc_to_mem_interval(self, vm, bloc):
+    def add_bloc_to_mem_interval(self, vm, bloc):
         "Update vm to include bloc addresses in its memory range"
 
         self.blocs_mem_interval += interval([(bloc.ad_min, bloc.ad_max - 1)])
@@ -102,7 +102,7 @@ class JitCore(object):
         b.irblocs = irblocs
         self.jitirblocs(b.label, irblocs)
 
-    def __disbloc(self, addr, cpu, vm):
+    def disbloc(self, addr, cpu, vm):
         "Disassemble a new bloc and JiT it"
 
         # Get the bloc
@@ -135,13 +135,13 @@ class JitCore(object):
         self.lbl2bloc[l] = cur_bloc
 
         # Store min/max bloc address needed in jit automod code
-        self.__get_bloc_min_max(cur_bloc)
+        self.get_bloc_min_max(cur_bloc)
 
         # JiT it
         self.add_bloc(cur_bloc)
 
         # Update jitcode mem range
-        self.__add_bloc_to_mem_interval(vm, cur_bloc)
+        self.add_bloc_to_mem_interval(vm, cur_bloc)
 
     def jit_call(self, label, cpu, vmmngr):
         """Call the function label with cpu and vmmngr states
@@ -165,14 +165,14 @@ class JitCore(object):
 
         if not lbl in self.lbl2jitbloc:
             # Need to JiT the bloc
-            self.__disbloc(lbl, cpu, vm)
+            self.disbloc(lbl, cpu, vm)
 
         # Run the bloc and update cpu/vmmngr state
         ret = self.jit_call(lbl, cpu, vm)
 
         return ret
 
-    def __blocs2memrange(self, blocs):
+    def blocs2memrange(self, blocs):
         """Return an interval instance standing for blocs addresses
         @blocs: list of asm_bloc instances
         """
@@ -196,7 +196,7 @@ class JitCore(object):
         for a, b in self.blocs_mem_interval:
             vm.vm_add_code_bloc(a, b + 1)
 
-    def __del_bloc_in_range(self, ad1, ad2):
+    def del_bloc_in_range(self, ad1, ad2):
         """Find and remove jitted bloc in range [ad1, ad2].
         Return the list of bloc removed.
         @ad1: First address
@@ -216,7 +216,7 @@ class JitCore(object):
                 modified_blocs.add(b)
 
         # Generate interval to delete
-        del_interval = self.__blocs2memrange(modified_blocs)
+        del_interval = self.blocs2memrange(modified_blocs)
 
         # Remove interval from monitored interval list
         self.blocs_mem_interval -= del_interval
@@ -247,6 +247,6 @@ class JitCore(object):
         @size: Modification range size (in bits)
         """
 
-        self.__del_bloc_in_range(addr, addr + size / 8)
+        self.del_bloc_in_range(addr, addr + size / 8)
         self.__updt_jitcode_mem_range(vm)
 

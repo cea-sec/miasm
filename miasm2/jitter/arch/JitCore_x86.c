@@ -477,6 +477,8 @@ getset_reg_R_u16(DI);
 getset_reg_R_u16(SP);
 getset_reg_R_u16(BP);
 
+getset_reg_R_u16(IP);
+
 #define get_reg_off(reg)  do {						\
 		o = PyLong_FromUnsignedLongLong((uint64_t)offsetof(vm_cpu_t, reg)); \
 		PyDict_SetItemString(dict, #reg, o);			\
@@ -749,6 +751,8 @@ static PyGetSetDef JitCpu_getseters[] = {
     {"DI", (getter)JitCpu_get_DI, (setter)JitCpu_set_DI, "DI", NULL},
     {"SP", (getter)JitCpu_get_SP, (setter)JitCpu_set_SP, "SP", NULL},
     {"BP", (getter)JitCpu_get_BP, (setter)JitCpu_set_BP, "BP", NULL},
+
+    {"IP", (getter)JitCpu_get_IP, (setter)JitCpu_set_IP, "IP", NULL},
 
 
     {NULL}  /* Sentinel */
