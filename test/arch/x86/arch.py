@@ -1733,6 +1733,22 @@ reg_tests = [
     (m32, "00000000    MOVDQA     DWORD PTR [ESP], XMM0",
      "660f7f0424"),
 
+    (m32, "00000000    LES        EDI, DWORD PTR [ESI]",
+     "C43E"),
+    (m32, "00000000    LDS        EDI, DWORD PTR [ESI]",
+     "C53E"),
+    (m32, "00000000    LSS        EDI, DWORD PTR [ESI]",
+     "0FB23E"),
+    (m32, "00000000    LFS        EDI, DWORD PTR [ESI]",
+     "0FB43E"),
+    (m32, "00000000    LGS        EDI, DWORD PTR [ESI]",
+     "0FB53E"),
+
+    (m16, "00000000    LES        SI, WORD PTR [BX+SI]",
+     "C430"),
+    (m16, "00000000    LDS        SI, WORD PTR [BX+SI]",
+     "C530"),
+
     #### MMX/SSE/AVX operations
     ####
 

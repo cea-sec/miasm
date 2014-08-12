@@ -1036,8 +1036,6 @@ def retf(ir, instr, a=None):
 
     a = a.zeroExtend(s)
 
-    e.append(ExprAff(myesp, (myesp + (ExprInt_fromsize(s, (s / 8)) + a))))
-
     c = myesp
     if ir.do_stk_segm:
         c = ExprOp('segm', SS, c)
@@ -1048,6 +1046,7 @@ def retf(ir, instr, a=None):
         c = ExprOp('segm', SS, c)
     e.append(ExprAff(CS, ExprMem(c, size=16)))
 
+    e.append(ExprAff(myesp, (myesp + (ExprInt_fromsize(s, (2*s) / 8) + a))))
     return meip, e, []
 
 
@@ -2622,7 +2621,7 @@ def cmpxchg(ir, instr, a, b):
 def lds(ir, instr, a, b):
     e = []
     e.append(ExprAff(a, ExprMem(b.arg, size=a.size)))
-    e.append(ExprAff(ds, ExprMem(b.arg + ExprInt_from(a, 2),
+    e.append(ExprAff(DS, ExprMem(b.arg + ExprInt_from(b.arg, a.size/8),
                                  size=16)))
     return None, e, []
 
@@ -2630,7 +2629,7 @@ def lds(ir, instr, a, b):
 def les(ir, instr, a, b):
     e = []
     e.append(ExprAff(a, ExprMem(b.arg, size=a.size)))
-    e.append(ExprAff(es, ExprMem(b.arg + ExprInt_from(a, 2),
+    e.append(ExprAff(ES, ExprMem(b.arg + ExprInt_from(b.arg, a.size/8),
                                  size=16)))
     return None, e, []
 
@@ -2638,7 +2637,21 @@ def les(ir, instr, a, b):
 def lss(ir, instr, a, b):
     e = []
     e.append(ExprAff(a, ExprMem(b.arg, size=a.size)))
-    e.append(ExprAff(ss, ExprMem(b.arg + ExprInt_from(a, 2),
+    e.append(ExprAff(SS, ExprMem(b.arg + ExprInt_from(b.arg, a.size/8),
+                                 size=16)))
+    return None, e, []
+
+def lfs(ir, instr, a, b):
+    e = []
+    e.append(ExprAff(a, ExprMem(b.arg, size=a.size)))
+    e.append(ExprAff(FS, ExprMem(b.arg + ExprInt_from(b.arg, a.size/8),
+                                 size=16)))
+    return None, e, []
+
+def lgs(ir, instr, a, b):
+    e = []
+    e.append(ExprAff(a, ExprMem(b.arg, size=a.size)))
+    e.append(ExprAff(GS, ExprMem(b.arg + ExprInt_from(b.arg, a.size/8),
                                  size=16)))
     return None, e, []
 
@@ -3085,6 +3098,8 @@ mnemo_func = {'mov': mov,
               "lds": lds,
               "les": les,
               "lss": lss,
+              "lfs": lfs,
+              "lgs": lgs,
               "lahf": lahf,
               "sahf": sahf,
               "lar": lar,

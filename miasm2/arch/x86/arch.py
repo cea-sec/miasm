@@ -3533,8 +3533,13 @@ addop("jmpf", [bs8(0xff), stk] + rmmod(d5))
 addop("lahf", [bs8(0x9f)])
 addop("lar", [bs8(0x0f), bs8(0x02)] + rmmod(rmreg))
 
-# XXX TODO LDS LES ...
 addop("lea", [bs8(0x8d)] + rmmod(rmreg))
+addop("les", [bs8(0xc4)] + rmmod(rmreg))
+addop("lds", [bs8(0xc5)] + rmmod(rmreg))
+addop("lss", [bs8(0x0f), bs8(0xb2)] + rmmod(rmreg))
+addop("lfs", [bs8(0x0f), bs8(0xb4)] + rmmod(rmreg))
+addop("lgs", [bs8(0x0f), bs8(0xb5)] + rmmod(rmreg))
+
 addop("leave", [bs8(0xc9)])
 
 addop("lodsb", [bs8(0xac)])
