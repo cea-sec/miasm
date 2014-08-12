@@ -969,6 +969,29 @@ def call(ir, instr, dst):
     myesp = mRSP[instr.mode][:opmode]
     n = ExprId(ir.get_next_label(instr), instr.mode)
 
+
+    if (isinstance(dst, ExprOp) and dst.op == "segm"):
+        # call far
+        if instr.mode != 16:
+            raise NotImplementedError('add 32 bit support!')
+        segm = dst.args[0]
+        base = dst.args[1]
+        m1 = segm.zeroExtend(CS.size)
+        m2 = base.zeroExtend(meip.size)
+        e.append(ExprAff(CS, m1))
+        e.append(ExprAff(meip, m2))
+
+        c = myesp + ExprInt_fromsize(s, -s/8)
+        e.append(ExprAff(ExprMem(c, size=s).zeroExtend(s), CS.zeroExtend(s)))
+
+        c = myesp + ExprInt_fromsize(s, -2*s/8)
+        e.append(ExprAff(ExprMem(c, size=s).zeroExtend(s), meip.zeroExtend(s)))
+
+        c = myesp + ExprInt_fromsize(s, (-2*s) / 8)
+        e.append(ExprAff(myesp, c))
+        return meip, e, []
+
+
     c = myesp + ExprInt_fromsize(s, (-s / 8))
     e.append(ExprAff(myesp, c))
     if ir.do_stk_segm:
