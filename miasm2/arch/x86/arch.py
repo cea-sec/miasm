@@ -3257,6 +3257,30 @@ class bs_op_mode_no64(bsi):
         return opmode == self.mode
 
 
+class bs_mode64(bsi):
+    def encode(self):
+        if self.parent.mode != 64:
+            return False
+        return super(bs_mode64, self).encode()
+
+    def decode(self, v):
+        if self.parent.mode != 64:
+            return False
+        return True
+
+class bs_modeno64(bsi):
+    def encode(self):
+        if self.parent.mode == 64:
+            return False
+        return super(bs_mode64, self).encode()
+
+    def decode(self, v):
+        if self.parent.mode == 64:
+            return False
+        return True
+
+
+
 bs_opmode16 = bs(l=0, cls=(bs_op_mode,), mode = 16, fname="fopmode")
 bs_opmode32 = bs(l=0, cls=(bs_op_mode,), mode = 32, fname="fopmode")
 bs_opmode64 = bs(l=0, cls=(bs_op_mode,), mode = 64, fname="fopmode")
@@ -3268,6 +3292,9 @@ bs_admode64 = bs(l=0, cls=(bs_ad_mode,), mode = 64, fname="fadmode")
 
 bs_opmode16_no64 = bs(l=0, cls=(bs_op_mode_no64,), mode = 16, fname="fopmode")
 bs_opmode32_no64 = bs(l=0, cls=(bs_op_mode_no64,), mode = 32, fname="fopmode")
+
+bs_mode64 = bs(l=0, cls=(bs_mode64,), fname="fopmode")
+bs_modeno64 = bs(l=0, cls=(bs_modeno64,), fname="fopmode")
 
 # class ia32_call(mn_x86):
 #    fields = [bs8(0xff)] + rmmod(d3)
@@ -3575,10 +3602,7 @@ addop("movsd", [bs8(0xa5), bs_opmode32])
 addop("movsq", [bs8(0xa5), bs_opmode64])
 
 addop("movsx", [bs8(0x0f), bs("1011111"), w8, sx] + rmmod(rmreg, rm_arg_sx))
-# addop("movsxd", [bs8(0x63), sxd] + rmmod(rmreg, rm_arg_sxd))
-type("movsxd", (mn_x86,), {
-     "fields": [bs8(0x63), sxd] + rmmod(rmreg, rm_arg_sxd),
-     "modes": [64], 'alias': False})
+addop("movsxd", [bs8(0x63), sxd, bs_mode64] + rmmod(rmreg, rm_arg_sxd))
 
 addop("movups",
       [bs8(0x0f), bs8(0x10), xmm, no_xmm_pref] + rmmod(rmreg, rm_arg))
