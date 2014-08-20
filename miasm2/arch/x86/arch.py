@@ -3257,22 +3257,22 @@ class bs_op_mode_no64(bsi):
         return opmode == self.mode
 
 
-class bs_mode64(bsi):
+class bs_op_mode64(bsi):
     def encode(self):
         if self.parent.mode != 64:
             return False
-        return super(bs_mode64, self).encode()
+        return super(bs_op_mode64, self).encode()
 
     def decode(self, v):
         if self.parent.mode != 64:
             return False
         return True
 
-class bs_modeno64(bsi):
+class bs_op_modeno64(bsi):
     def encode(self):
         if self.parent.mode == 64:
             return False
-        return super(bs_mode64, self).encode()
+        return super(bs_op_modeno64, self).encode()
 
     def decode(self, v):
         if self.parent.mode == 64:
@@ -3293,8 +3293,8 @@ bs_admode64 = bs(l=0, cls=(bs_ad_mode,), mode = 64, fname="fadmode")
 bs_opmode16_no64 = bs(l=0, cls=(bs_op_mode_no64,), mode = 16, fname="fopmode")
 bs_opmode32_no64 = bs(l=0, cls=(bs_op_mode_no64,), mode = 32, fname="fopmode")
 
-bs_mode64 = bs(l=0, cls=(bs_mode64,), fname="fopmode")
-bs_modeno64 = bs(l=0, cls=(bs_modeno64,), fname="fopmode")
+bs_mode64 = bs(l=0, cls=(bs_op_mode64,))
+bs_modeno64 = bs(l=0, cls=(bs_op_modeno64,))
 
 # class ia32_call(mn_x86):
 #    fields = [bs8(0xff)] + rmmod(d3)
