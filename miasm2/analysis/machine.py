@@ -8,6 +8,7 @@ class Machine(object):
     __dis_engine = None   # Disassembly engine
     __mn = None           # Machine instance
     __ira = None          # IR analyser
+    __jitter = None       # Jit engine
 
     __available = ["arm", "armt", "sh4", "x86_16", "x86_32", "x86_64", "msp430",
                    "mips32b", "mips32l"]
@@ -15,11 +16,17 @@ class Machine(object):
 
     def __init__(self, machine_name):
 
+        dis_engine = None
+        mn = None
+        ira = None
+        jitter = None
+
         # Import on runtime for performance issue
         if machine_name == "arm":
             from miasm2.arch.arm.disasm import dis_arm as dis_engine
             from miasm2.arch.arm.arch import mn_arm as mn
             from miasm2.arch.arm.ira import ir_a_arm as ira
+            from miasm2.jitter.jitload import jitter_arm as jitter
         elif machine_name == "armt":
             from miasm2.arch.arm.disasm import dis_armt as dis_engine
             from miasm2.arch.arm.arch import mn_armt as mn
@@ -32,18 +39,22 @@ class Machine(object):
             from miasm2.arch.x86.disasm import dis_x86_16 as dis_engine
             from miasm2.arch.x86.arch import mn_x86 as mn
             from miasm2.arch.x86.ira import ir_a_x86_16 as ira
+            from miasm2.jitter.jitload import jitter_x86_16 as jitter
         elif machine_name == "x86_32":
             from miasm2.arch.x86.disasm import dis_x86_32 as dis_engine
             from miasm2.arch.x86.arch import mn_x86 as mn
             from miasm2.arch.x86.ira import ir_a_x86_32 as ira
+            from miasm2.jitter.jitload import jitter_x86_32 as jitter
         elif machine_name == "x86_64":
             from miasm2.arch.x86.disasm import dis_x86_64 as dis_engine
             from miasm2.arch.x86.arch import mn_x86 as mn
             from miasm2.arch.x86.ira import ir_a_x86_64 as ira
+            from miasm2.jitter.jitload import jitter_x86_64 as jitter
         elif machine_name == "msp430":
             from miasm2.arch.msp430.disasm import dis_msp430 as dis_engine
             from miasm2.arch.msp430.arch import mn_msp430 as mn
             from miasm2.arch.msp430.ira import ir_a_msp430 as ira
+            from miasm2.jitter.jitload import jitter_msp430 as jitter
         elif machine_name == "mips32b":
             from miasm2.arch.mips32.disasm import dis_mips32b as dis_engine
             from miasm2.arch.mips32.arch import mn_mips32b as mn
@@ -58,6 +69,7 @@ class Machine(object):
         self.__dis_engine = dis_engine
         self.__mn = mn
         self.__ira = ira
+        self.__jitter = jitter
 
     def get_dis_engine(self):
         return self.__dis_engine
@@ -70,6 +82,10 @@ class Machine(object):
     def get_ira(self):
         return self.__ira
     ira = property(get_ira)
+
+    def get_jitter(self):
+        return self.__jitter
+    jitter = property(get_jitter)
 
     @classmethod
     def available_machine(cls):
