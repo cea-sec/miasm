@@ -9,6 +9,7 @@ class Machine(object):
     __mn = None           # Machine instance
     __ira = None          # IR analyser
     __jitter = None       # Jit engine
+    __gdbserver = None    # GdbServer handler
 
     __available = ["arm", "armt", "sh4", "x86_16", "x86_32", "x86_64", "msp430",
                    "mips32b", "mips32l"]
@@ -20,6 +21,7 @@ class Machine(object):
         mn = None
         ira = None
         jitter = None
+        gdbserver = None
 
         # Import on runtime for performance issue
         if machine_name == "arm":
@@ -45,6 +47,7 @@ class Machine(object):
             from miasm2.arch.x86.arch import mn_x86 as mn
             from miasm2.arch.x86.ira import ir_a_x86_32 as ira
             from miasm2.jitter.jitload import jitter_x86_32 as jitter
+            from miasm2.analysis.gdbserver import GdbServer_x86_32 as gdbserver
         elif machine_name == "x86_64":
             from miasm2.arch.x86.disasm import dis_x86_64 as dis_engine
             from miasm2.arch.x86.arch import mn_x86 as mn
@@ -55,6 +58,7 @@ class Machine(object):
             from miasm2.arch.msp430.arch import mn_msp430 as mn
             from miasm2.arch.msp430.ira import ir_a_msp430 as ira
             from miasm2.jitter.jitload import jitter_msp430 as jitter
+            from miasm2.analysis.gdbserver import GdbServer_msp430 as gdbserver
         elif machine_name == "mips32b":
             from miasm2.arch.mips32.disasm import dis_mips32b as dis_engine
             from miasm2.arch.mips32.arch import mn_mips32b as mn
@@ -70,6 +74,7 @@ class Machine(object):
         self.__mn = mn
         self.__ira = ira
         self.__jitter = jitter
+        self.__gdbserver = gdbserver
 
     def get_dis_engine(self):
         return self.__dis_engine
@@ -86,6 +91,10 @@ class Machine(object):
     def get_jitter(self):
         return self.__jitter
     jitter = property(get_jitter)
+
+    def get_gdbserver(self):
+        return self.__gdbserver
+    gdbserver = property(get_gdbserver)
 
     @classmethod
     def available_machine(cls):
