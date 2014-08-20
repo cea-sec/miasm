@@ -8,10 +8,9 @@ from miasm2.core.asmbloc import *
 from miasm2.expression.simplifications import expr_simp
 from optparse import OptionParser
 from miasm2.core.cpu import dum_arg
-import cProfile
 from miasm2.expression.expression import *
 from miasm2.core.interval import interval
-from miasm2.core.utils import hexdump
+from miasm2.analysis.machine import Machine
 
 log = logging.getLogger("dis")
 console_handler = logging.StreamHandler()
@@ -28,7 +27,7 @@ if filename and os.path.isfile(filename):
 
 parser = OptionParser(usage="usage: %prog [options] file address")
 parser.add_option('-m', "--architecture", dest="machine", metavar="MACHINE",
-                  help="architecture: arm, x86_16, x86_32, x86_64, msp430")
+                  help="architecture: " + ",".join(Machine.available_machine()))
 parser.add_option('-f', "--followcall", dest="followcall", action="store_true",
                   default=False,
                   help="follow call")
@@ -88,55 +87,14 @@ if options.verbose:
     log_asmbloc.setLevel(logging.DEBUG)
 
 log.info("import machine...")
-mode = None
-dis_cb = None
-
-
-if options.machine == "arm":
-    from miasm2.arch.arm.disasm import dis_arm as dis_engine
-    from miasm2.arch.arm.arch import mn_arm as mn
-    from miasm2.arch.arm.ira import ir_a_arm as ira
-elif options.machine == "armt":
-    from miasm2.arch.arm.disasm import dis_armt as dis_engine
-    from miasm2.arch.arm.arch import mn_armt as mn
-    from miasm2.arch.arm.ira import ir_a_armt as ira
-elif options.machine == "sh4":
-    from miasm2.arch.sh4.disasm import dis_sha4 as dis_engine
-    from miasm2.arch.sh4.arch import mn_sh4 as mn
-    from miasm2.arch.sh4.ira import ir_a_sh4 as ira
-elif options.machine == "x86_16":
-    from miasm2.arch.x86.disasm import dis_x86_16 as dis_engine
-    from miasm2.arch.x86.arch import mn_x86 as mn
-    from miasm2.arch.x86.ira import ir_a_x86_16 as ira
-elif options.machine == "x86_32":
-    from miasm2.arch.x86.disasm import dis_x86_32 as dis_engine
-    from miasm2.arch.x86.arch import mn_x86 as mn
-    from miasm2.arch.x86.ira import ir_a_x86_32 as ira
-elif options.machine == "x86_64":
-    from miasm2.arch.x86.disasm import dis_x86_64 as dis_engine
-    from miasm2.arch.x86.arch import mn_x86 as mn
-    from miasm2.arch.x86.ira import ir_a_x86_64 as ira
-elif options.machine == "msp430":
-    from miasm2.arch.msp430.disasm import dis_msp430 as dis_engine
-    from miasm2.arch.msp430.arch import mn_msp430 as mn
-    from miasm2.arch.msp430.ira import ir_a_msp430 as ira
-elif options.machine == "mips32b":
-    from miasm2.arch.mips32.disasm import dis_mips32b as dis_engine
-    from miasm2.arch.mips32.arch import mn_mips32b as mn
-    from miasm2.arch.mips32.ira import ir_a_mips32 as ira
-elif options.machine == "mips32l":
-    from miasm2.arch.mips32.disasm import dis_mips32l as dis_engine
-    from miasm2.arch.mips32.arch import mn_mips32l as mn
-    from miasm2.arch.mips32.ira import ir_a_mips32 as ira
-else:
-    raise ValueError('unknown machine')
+machine = Machine(options.machine)
+mn, dis_engine, ira = machine.mn, machine.dis_engine, machine.ira
 log.info('ok')
 
 if options.bw != None:
     options.bw = int(options.bw)
 if options.funcswd != None:
     options.funcswd = int(options.funcswd)
-machine = options.machine
 
 log.info('load binary')
 b = open(fname).read()
