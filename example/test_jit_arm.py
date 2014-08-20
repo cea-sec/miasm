@@ -3,9 +3,8 @@
 from argparse import ArgumentParser
 from miasm2.analysis import debugging, gdbserver
 
-from miasm2.arch.arm.arch import mn_arm
-from miasm2.jitter.jitload import *
-
+from miasm2.jitter.jitload import vm_load_elf, libimp, preload_elf
+from miasm2.analysis.machine import Machine
 
 parser = ArgumentParser(
     description="""Sandbox an elf binary with arm engine
@@ -30,11 +29,11 @@ parser.add_argument("binary",
 parser.add_argument("addr",
                     help="start exec on addr")
 
-
+machine = Machine("arm")
 
 def jit_arm_binary(args):
     filepath, entryp = args.binary, int(args.addr, 16)
-    myjit = jitter_arm(jit_type = args.jitter)
+    myjit = machine.jitter(jit_type = args.jitter)
     myjit.init_stack()
 
     # Log level (if available with jitter engine)

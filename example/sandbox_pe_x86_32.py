@@ -1,13 +1,11 @@
 import sys
 import os
 from argparse import ArgumentParser
-from miasm2.arch.x86.arch import mn_x86
-from miasm2.jitter.jitload import jitter_x86_32, vm_load_pe, preload_pe, libimp
+from miasm2.jitter.jitload import vm_load_pe, preload_pe, libimp
 from miasm2.jitter.jitload import bin_stream_vm
 from miasm2.jitter.csts import *
 from miasm2.jitter.os_dep import win_api_x86_32
-from miasm2.analysis import debugging, gdbserver
-import inspect
+from miasm2.analysis import debugging, gdbserver, machine
 
 # Debug settings #
 from pdb import pm
@@ -73,7 +71,7 @@ def code_sentinelle(jitter):
     return True
 
 # x86 32 bits engine instanciation
-myjit = jitter_x86_32(jit_type=args.jitter)
+myjit = machine.Machine("x86_32").jitter(jit_type=args.jitter)
 myjit.init_stack()
 libs = libimp()
 

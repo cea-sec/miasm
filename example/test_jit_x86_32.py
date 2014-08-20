@@ -1,10 +1,9 @@
 import sys
 import os
 from argparse import ArgumentParser
-from miasm2.arch.x86.arch import mn_x86
-from miasm2.jitter.jitload import jitter_x86_32
 from miasm2.jitter.jitload import bin_stream_vm
 from miasm2.jitter.csts import *
+from miasm2.analysis.machine import Machine
 
 from pdb import pm
 
@@ -25,7 +24,8 @@ def code_sentinelle(jitter):
     jitter.pc = 0
     return True
 
-myjit = jitter_x86_32(args.jitter)
+
+myjit = Machine("x86_32").jitter(args.jitter)
 myjit.init_stack()
 
 data = open(args.filename).read()
