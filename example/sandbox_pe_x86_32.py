@@ -5,7 +5,7 @@ from miasm2.jitter.jitload import vm_load_pe, preload_pe, libimp
 from miasm2.jitter.jitload import bin_stream_vm
 from miasm2.jitter.csts import *
 from miasm2.jitter.os_dep import win_api_x86_32
-from miasm2.analysis import debugging, gdbserver, machine
+from miasm2.analysis import debugging, machine
 
 # Debug settings #
 from pdb import pm
@@ -71,7 +71,8 @@ def code_sentinelle(jitter):
     return True
 
 # x86 32 bits engine instanciation
-myjit = machine.Machine("x86_32").jitter(jit_type=args.jitter)
+machine = machine.Machine("x86_32")
+myjit = machine.jitter(jit_type=args.jitter)
 myjit.init_stack()
 libs = libimp()
 
@@ -107,7 +108,7 @@ if any([args.debugging, args.gdbserver]):
         cmd = debugging.DebugCmd(dbg)
         cmd.cmdloop()
     else:
-        gdb = gdbserver.GdbServer_x86_32(dbg, args.gdbserver)
+        gdb = machine.gdbserver(dbg, args.gdbserver)
         print("Listenning on port %d" % args.gdbserver)
         gdb.run()
 
