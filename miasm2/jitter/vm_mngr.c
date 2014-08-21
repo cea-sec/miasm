@@ -190,8 +190,8 @@ static uint64_t memory_page_read(vm_mngr_t* vm_mngr, unsigned int my_size, uint6
 	else{
 		unsigned int new_size = my_size;
 		int index = 0;
-		fprintf(stderr, "read multiple page! %"PRIX64" %d\n", ad, new_size);
-		dump_memory_page_pool(vm_mngr);
+		//fprintf(stderr, "read multiple page! %"PRIX64" %d\n", ad, new_size);
+		//dump_memory_page_pool(vm_mngr);
 		while (new_size){
 			mpn = get_memory_page_from_address(vm_mngr, ad);
 			if (!mpn)
@@ -275,8 +275,8 @@ static void memory_page_write(vm_mngr_t* vm_mngr, unsigned int my_size,
 	}
 	/* write is multiple page wide */
 	else{
-		fprintf(stderr, "write multiple page! %"PRIX64" %d\n", ad, my_size);
-		dump_memory_page_pool(vm_mngr);
+		//fprintf(stderr, "write multiple page! %"PRIX64" %d\n", ad, my_size);
+		//dump_memory_page_pool(vm_mngr);
 		switch(my_size){
 
 		case 8:
