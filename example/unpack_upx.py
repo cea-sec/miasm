@@ -10,13 +10,12 @@ from elfesteem import *
 from elfesteem.strpatchwork import StrPatchwork
 
 from miasm2.core import asmbloc
-from miasm2.arch.x86.arch import mn_x86
-from miasm2.arch.x86.disasm import dis_x86_32
-from miasm2.jitter.jitload import jitter_x86_32, vm_load_pe, preload_pe, libimp
+from miasm2.jitter.jitload import vm_load_pe, preload_pe, libimp
 from miasm2.jitter.jitload import bin_stream_vm
 from miasm2.jitter.csts import *
 from miasm2.jitter.os_dep import win_api_x86_32
 
+from miasm2.analysis.machine import Machine
 # Debug settings #
 from pdb import pm
 
@@ -56,7 +55,8 @@ else:
     logging.basicConfig(level=logging.WARNING)
 
 # Init arch
-myjit = jitter_x86_32(jit_type=args.jitter)
+machine = Machine("x86_32")
+myjit = machine.jitter(args.jitter)
 myjit.init_stack()
 
 # Log level (if available with jitter engine)
@@ -74,7 +74,7 @@ if args.verbose is True:
 ep = e.rva2virt(e.Opthdr.AddressOfEntryPoint)
 
 # Ensure there is one and only one leave (for OEP discovering)
-mdis = dis_x86_32(myjit.bs)
+mdis = machine.dis_engine(myjit.bs)
 mdis.dont_dis_nulstart_bloc = True
 ab = mdis.dis_multibloc(ep)
 
