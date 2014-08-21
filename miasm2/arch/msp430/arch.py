@@ -179,7 +179,7 @@ class instruction_msp430(instruction):
         return [self.args[0]]
 
     def get_symbol_size(self, symbol, symbol_pool):
-        return self.mode
+        return 16
 
     def fixDstOffset(self):
         e = self.args[0]
@@ -190,7 +190,7 @@ class instruction_msp430(instruction):
             log.warning('dynamic dst %r' % e)
             return
         # return ExprInt32(e.arg - (self.offset + self.l))
-        self.args[0] = ExprInt_fromsize(self.mode, e.arg)
+        self.args[0] = ExprInt_fromsize(16, e.arg - (self.offset + self.l))
 
     def get_info(self, c):
         pass
@@ -202,7 +202,6 @@ class instruction_msp430(instruction):
     def get_args_expr(self):
         args = []
         for a in self.args:
-            # a = a.replace_expr(replace_regs[self.mode])
             args.append(a)
         return args
 
