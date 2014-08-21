@@ -70,16 +70,15 @@ class bin_stream_str(bin_stream):
         self.l = len(bin)
 
     def getbytes(self, start, l=1):
-        if start + l > self.l:
+        if start + l + self.shift > self.l:
             raise IOError
 
         return super(bin_stream_str, self).getbytes(start + self.shift, l)
 
     def readbs(self, l=1):
-        if self.offset + l > self.l:
+        if self.offset + l + self.shift > self.l:
             raise IOError
         self.offset += l
-        print hex(self.offset + self.shift)
         return self.bin[self.offset - l + self.shift:self.offset + self.shift]
 
     def writebs(self, l=1):
@@ -93,10 +92,10 @@ class bin_stream_str(bin_stream):
         self.offset = val
 
     def __len__(self):
-        return len(self.bin) - self.offset + self.shift
+        return len(self.bin) - (self.offset + self.shift)
 
     def getlen(self):
-        return len(self.bin) - self.offset + self.shift
+        return len(self.bin) - (self.offset + self.shift)
 
 
 class bin_stream_file(bin_stream):
