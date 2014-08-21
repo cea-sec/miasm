@@ -65,6 +65,7 @@ all_tests = {
             ["asm_box_x86_32_mod.py"],
             ["asm_box_x86_32_mod_self.py"],
             ["asm_box_x86_32_repmod.py"],
+            ["asm_msp430_sc.py"],
             ["disasm_01.py"],
             ["disasm_02.py"],
             ["disasm_03.py", "box_upx.exe", "0x410f90"],
@@ -82,6 +83,7 @@ all_tests = {
             ["test_dis.py", "-g", "-s", "-m", "arm", "demo_arm.bin", "0"],
             ["test_dis.py", "-g", "-s", "-m",
                 "x86_32", "box_x86_32.bin", "0x401000"],
+            ["test_dis.py", "-g", "-s", "-m", "msp430", "msp430_sc.bin", "0"],
             ["expression/solve_condition_stp.py",
                 "expression/simple_test.bin"],
         ],
@@ -90,6 +92,7 @@ all_tests = {
                     ["unpack_upx.py", "box_upx.exe"], # Take 5 mins on a Core i5
                     ["test_jit_x86_32.py", "x86_32_sc.bin"],
                     ["test_jit_arm.py", "md5_arm", "A684"],
+                    ["test_jit_msp430.py", "msp430_sc.bin", "0"],
                     ["sandbox_pe_x86_32.py", "box_x86_32.bin"],
                     ["sandbox_pe_x86_32.py", "box_x86_32_enc.bin"],
                     ["sandbox_pe_x86_32.py", "box_x86_32_mod.bin"],
