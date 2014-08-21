@@ -3,11 +3,12 @@
 
 import unittest
 import logging
-
-from miasm2.jitter.jitload import jitter_x86_32
+from miasm2.analysis.machine import Machine
 import miasm2.jitter.os_dep.win_api_x86_32 as winapi
 
-jit = jitter_x86_32()
+machine = Machine("x86_32")
+
+jit = machine.jitter()
 jit.init_stack()
 
 

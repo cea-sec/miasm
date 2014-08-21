@@ -1,4 +1,5 @@
 import struct
+import inspect
 
 upck8 = lambda x: struct.unpack('B', x)[0]
 upck16 = lambda x: struct.unpack('H', x)[0]
@@ -44,3 +45,6 @@ class keydefaultdict(collections.defaultdict):
             raise KeyError(key)
         value = self[key] = self.default_factory(key)
         return value
+
+def whoami():
+    return inspect.stack()[2][3]

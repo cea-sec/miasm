@@ -28,7 +28,7 @@ class Machine(object):
             from miasm2.arch.arm.disasm import dis_arm as dis_engine
             from miasm2.arch.arm.arch import mn_arm as mn
             from miasm2.arch.arm.ira import ir_a_arm as ira
-            from miasm2.jitter.jitload import jitter_arm as jitter
+            from miasm2.arch.arm.jit import jitter_arm as jitter
         elif machine_name == "armt":
             from miasm2.arch.arm.disasm import dis_armt as dis_engine
             from miasm2.arch.arm.arch import mn_armt as mn
@@ -41,18 +41,18 @@ class Machine(object):
             from miasm2.arch.x86.disasm import dis_x86_16 as dis_engine
             from miasm2.arch.x86.arch import mn_x86 as mn
             from miasm2.arch.x86.ira import ir_a_x86_16 as ira
-            from miasm2.jitter.jitload import jitter_x86_16 as jitter
+            from miasm2.arch.x86.jit import jitter_x86_16 as jitter
         elif machine_name == "x86_32":
             from miasm2.arch.x86.disasm import dis_x86_32 as dis_engine
             from miasm2.arch.x86.arch import mn_x86 as mn
             from miasm2.arch.x86.ira import ir_a_x86_32 as ira
-            from miasm2.jitter.jitload import jitter_x86_32 as jitter
+            from miasm2.arch.x86.jit import jitter_x86_32 as jitter
             from miasm2.analysis.gdbserver import GdbServer_x86_32 as gdbserver
         elif machine_name == "x86_64":
             from miasm2.arch.x86.disasm import dis_x86_64 as dis_engine
             from miasm2.arch.x86.arch import mn_x86 as mn
             from miasm2.arch.x86.ira import ir_a_x86_64 as ira
-            from miasm2.jitter.jitload import jitter_x86_64 as jitter
+            from miasm2.arch.x86.jit import jitter_x86_64 as jitter
         elif machine_name == "msp430":
             from miasm2.arch.msp430.disasm import dis_msp430 as dis_engine
             from miasm2.arch.msp430.arch import mn_msp430 as mn
