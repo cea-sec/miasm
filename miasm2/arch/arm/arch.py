@@ -518,7 +518,7 @@ class mn_arm(cls_mn):
         return info
 
     @classmethod
-    def getbits(cls, bs, start, n):
+    def getbits(cls, bs, attrib, start, n):
         if not n:
             return 0
         o = 0
@@ -633,7 +633,7 @@ class mn_armt(cls_mn):
         return info
 
     @classmethod
-    def getbits(cls, bs, start, n):
+    def getbits(cls, bs, attrib, start, n):
         if not n:
             return 0
         o = 0

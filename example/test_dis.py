@@ -112,6 +112,9 @@ elif b.startswith('\x7fELF'):
 
 
 if bs is None or options.shiftoffset is not None:
+
+    if options.shiftoffset is None:
+        options.shiftoffset = "0"
     shift = int(options.shiftoffset, 16)
     log.warning('fallback to string input (offset=%s)' % hex(shift))
     bs = bin_stream_str(b, shift=shift)

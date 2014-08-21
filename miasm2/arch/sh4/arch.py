@@ -482,7 +482,7 @@ class mn_sh4(cls_mn):
         return info
 
     @classmethod
-    def getbits(cls, bs, start, n):
+    def getbits(cls, bs, attrib, start, n):
         if not n:
             return 0
         o = 0

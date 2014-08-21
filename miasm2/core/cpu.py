@@ -1020,7 +1020,7 @@ class cls_mn(object):
     instruction = instruction
 
     @classmethod
-    def guess_mnemo(cls, bs, mode, pre_dis_info, offset):
+    def guess_mnemo(cls, bs, attrib, pre_dis_info, offset):
         candidates = []
 
         candidates = set()
@@ -1040,14 +1040,14 @@ class cls_mn(object):
             # print bvalo, 'len', l, fmask, fbits, fname, flen, 'TTT', bs_l * 8,  offset_b, l
             if flen is not None:
                 # print 'flen'
-                l = flen(mode, fname_values)
+                l = flen(attrib, fname_values)
             # print 'len', fname, l
             if l is not None:
                 # print fname, hex(bs_l), l
                 if bs_l * 8 - offset_b < l:
                     continue
                 # print hex(offset_b)
-                v = cls.getbits(bs, offset_b, l)
+                v = cls.getbits(bs, attrib, offset_b, l)
                 # print 'TEST', bval, fname, offset_b, cpt, (l, fmask, fbits),
                 # hex(v), hex(v & fmask), hex(fbits), v & fmask == fbits
                 offset_b += l
@@ -1063,7 +1063,7 @@ class cls_mn(object):
                 else:
                     todo.append((dict(fname_values), (nb, v), offset_b))
 
-        candidates = [c for c in candidates]  # if c.mode == mode]
+        candidates = [c for c in candidates]  # if c.attrib == attrib]
 
         if not candidates:
             raise Disasm_Exception('cannot disasm (guess) at %X' % offset)
@@ -1117,7 +1117,7 @@ class cls_mn(object):
         return True
 
     @classmethod
-    def getbits(cls, bs, offset_b, l):
+    def getbits(cls, bs, attrib, offset_b, l):
         return bs.getbits(offset_b, l)
 
     @classmethod
@@ -1125,8 +1125,8 @@ class cls_mn(object):
         return bs.getbytes(offset, l)
 
     @classmethod
-    def pre_dis(cls, v_o, mode_o, offset):
-        return {}, v_o, mode_o, offset, 0
+    def pre_dis(cls, v_o, attrib, offset):
+        return {}, v_o, attrib, offset, 0
 
     def post_dis(self):
         return self
@@ -1213,7 +1213,7 @@ class cls_mn(object):
                     if bs_l * 8 - offset_b < l:
                         getok = False
                         break
-                    bv = cls.getbits(bs, offset_b, l)
+                    bv = cls.getbits(bs, mode, offset_b, l)
                     offset_b += l
                     if not f.fname in fname_values:
                         fname_values[f.fname] = bv

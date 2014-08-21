@@ -239,7 +239,7 @@ class mn_msp430(cls_mn):
         assert l % 16 == 00, "len %r" % l
 
     @classmethod
-    def getbits(cls, bs, start, n):
+    def getbits(cls, bs, attrib, start, n):
         if not n:
             return 0
         o = 0
