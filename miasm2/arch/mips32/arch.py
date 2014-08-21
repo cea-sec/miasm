@@ -178,9 +178,9 @@ class instruction_mips32(instruction):
         return args
 
 
-class mn_mips32b(cls_mn):
+class mn_mips32(cls_mn):
     delayslot = 0
-    name = "mips32l"
+    name = "mips32"
     regs = regs_module
     bintree = {}
     num = 0
@@ -212,7 +212,7 @@ class mn_mips32b(cls_mn):
         o = 0
         while n:
             offset = start / 8
-            n_offset = cls.endian_offset(offset)
+            n_offset = cls.endian_offset(attrib, offset)
             c = cls.getbytes(bs, n_offset, 1)
             if not c:
                 raise IOError
@@ -228,8 +228,13 @@ class mn_mips32b(cls_mn):
         return o
 
     @classmethod
-    def endian_offset(cls, offset):
-        return offset
+    def endian_offset(cls, attrib, offset):
+        if attrib == "l":
+            return (offset & ~3) + 3 - offset % 4
+        elif attrib == "b":
+            return offset
+        else:
+            raise NotImplementedError('bad attrib')
 
     @classmethod
     def check_mnemo(cls, fields):
@@ -246,34 +251,8 @@ class mn_mips32b(cls_mn):
         return [(subcls, name, bases, dct, fields)]
 
     def value(self, mode):
-        v = super(mn_mips32b, self).value(mode)
+        v = super(mn_mips32, self).value(mode)
         return [x for x in v]
-
-
-
-
-class mn_mips32l(mn_mips32b):
-    delayslot = 0
-    name = "mips32b"
-    regs = regs_module
-    bintree = {}
-    num = 0
-    all_mn = []
-    all_mn_mode = defaultdict(list)
-    all_mn_name = defaultdict(list)
-    all_mn_inst = defaultdict(list)
-    pc = PC
-    sp = SP
-    instruction = instruction_mips32
-    max_instruction_len = 4
-
-    @classmethod
-    def endian_offset(cls, offset):
-        return (offset & ~3) + 3 - offset % 4
-
-    def value(self, mode):
-        v = super(mn_mips32b, self).value(mode)
-        return [x[::-1] for x in v]
 
 
 def mips32op(name, fields, args=None, alias=False):
@@ -281,8 +260,8 @@ def mips32op(name, fields, args=None, alias=False):
     dct["alias"] = alias
     if args is not None:
         dct['args'] = args
-    type(name, (mn_mips32l,), dct)
-    type(name, (mn_mips32b,), dct)
+    type(name, (mn_mips32,), dct)
+    #type(name, (mn_mips32b,), dct)
 
 
 class mips32_reg(reg_noarg, m_arg):

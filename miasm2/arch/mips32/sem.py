@@ -1,6 +1,6 @@
 from miasm2.expression.expression import *
 from miasm2.ir.ir import ir, irbloc
-from miasm2.arch.mips32.arch import mn_mips32l, mn_mips32b
+from miasm2.arch.mips32.arch import mn_mips32
 from miasm2.arch.mips32.regs import *
 
 def addiu(ir, instr, a, b, c):
@@ -450,9 +450,9 @@ def get_mnemo_expr(ir, instr, *args):
 class ir_mips32(ir):
 
     def __init__(self, symbol_pool=None):
-        ir.__init__(self, mn_mips32l, None, symbol_pool)
-        self.pc = mn_mips32l.getpc()
-        self.sp = mn_mips32l.getsp()
+        ir.__init__(self, mn_mips32, None, symbol_pool)
+        self.pc = mn_mips32.getpc()
+        self.sp = mn_mips32.getsp()
 
     def get_ir(self, instr):
         args = instr.args

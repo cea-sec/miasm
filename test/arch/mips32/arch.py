@@ -220,17 +220,17 @@ for s, l in reg_tests_mips32:
     print "-" * 80
     s = s[12:]
     b = h2i((l))
-    mn = mn_mips32b.dis(b)
+    mn = mn_mips32.dis(b, 'b')
     print [str(x) for x in mn.args]
     print s
     print mn
     assert(str(mn) == s)
     # print hex(b)
     # print [str(x.get()) for x in mn.args]
-    l = mn_mips32b.fromstring(s)
+    l = mn_mips32.fromstring(s)
     # print l
     assert(str(l) == s)
-    a = mn_mips32b.asm(l)
+    a = mn_mips32.asm(l, 'b')
     print [x for x in a]
     print repr(b)
     # print mn.args

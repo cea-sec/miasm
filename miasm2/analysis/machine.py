@@ -61,11 +61,11 @@ class Machine(object):
             from miasm2.analysis.gdbserver import GdbServer_msp430 as gdbserver
         elif machine_name == "mips32b":
             from miasm2.arch.mips32.disasm import dis_mips32b as dis_engine
-            from miasm2.arch.mips32.arch import mn_mips32b as mn
+            from miasm2.arch.mips32.arch import mn_mips32 as mn
             from miasm2.arch.mips32.ira import ir_a_mips32 as ira
         elif machine_name == "mips32l":
             from miasm2.arch.mips32.disasm import dis_mips32l as dis_engine
-            from miasm2.arch.mips32.arch import mn_mips32l as mn
+            from miasm2.arch.mips32.arch import mn_mips32 as mn
             from miasm2.arch.mips32.ira import ir_a_mips32 as ira
         else:
             raise ValueError('Unknown machine: %s' % machine_name)
