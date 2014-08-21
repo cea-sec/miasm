@@ -11,6 +11,7 @@ from miasm2.core.cpu import dum_arg
 from miasm2.expression.expression import *
 from miasm2.core.interval import interval
 from miasm2.analysis.machine import Machine
+from pdb import pm
 
 log = logging.getLogger("dis")
 console_handler = logging.StreamHandler()
@@ -18,8 +19,6 @@ console_handler.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
 log.addHandler(console_handler)
 log.setLevel(logging.INFO)
 
-
-# log_asmbloc.setLevel(logging.DEBUG)
 filename = os.environ.get('PYTHONSTARTUP')
 if filename and os.path.isfile(filename):
     execfile(filename)
@@ -65,7 +64,7 @@ parser.add_option('-s', "--simplify", dest="simplify", action="store_true",
                   help="for test purpose")
 
 parser.add_option('-o', "--shiftoffset", dest="shiftoffset",
-                  default="0",
+                  default=None,
                   help="shift input str by offset")
 
 parser.add_option(
@@ -111,7 +110,8 @@ elif b.startswith('\x7fELF'):
     bs = bin_stream_elf(e.virt)
     default_addr = e.Ehdr.entry
 
-if bs is None:
+
+if bs is None or options.shiftoffset is not None:
     shift = int(options.shiftoffset, 16)
     log.warning('fallback to string input (offset=%s)' % hex(shift))
     bs = bin_stream_str(b, shift=shift)
