@@ -12,6 +12,6 @@ class dis_mips32b(disasmEngine):
 class dis_mips32l(disasmEngine):
     attrib = "l"
     def __init__(self, bs=None, **kwargs):
-        super(dis_mips32l, self).__init__(mn_mips32l, self.attrib, bs, **kwargs)
+        super(dis_mips32l, self).__init__(mn_mips32, self.attrib, bs, **kwargs)
 
 
