@@ -57,7 +57,7 @@ class Machine(object):
             from miasm2.arch.msp430.disasm import dis_msp430 as dis_engine
             from miasm2.arch.msp430.arch import mn_msp430 as mn
             from miasm2.arch.msp430.ira import ir_a_msp430 as ira
-            from miasm2.jitter.jitload import jitter_msp430 as jitter
+            from miasm2.arch.msp430.jit import jitter_msp430 as jitter
             from miasm2.analysis.gdbserver import GdbServer_msp430 as gdbserver
         elif machine_name == "mips32b":
             from miasm2.arch.mips32.disasm import dis_mips32b as dis_engine

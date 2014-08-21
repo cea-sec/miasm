@@ -583,3 +583,4 @@ offimm = bs(l=10, cls=(msp430_offs,), fname="offs")
 bs_f2_jcc = bs_name(l=3, name={'jnz': 0, 'jz': 1, 'jnc': 2, 'jc': 3, 'jn': 4,
                                'jge': 5, 'jl': 6, 'jmp': 7})
 addop("f2_3", [bs('001'), bs_f2_jcc, offimm])
+
