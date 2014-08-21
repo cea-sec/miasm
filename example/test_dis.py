@@ -101,14 +101,20 @@ b = open(fname).read()
 default_addr = 0
 bs = None
 if b.startswith('MZ'):
-    e = pe_init.PE(b)
-    if e.isPE() and e.NTsig.signature_value == 0x4550:
-        bs = bin_stream_pe(e.virt)
-        default_addr = e.rva2virt(e.Opthdr.AddressOfEntryPoint)
+    try:
+        e = pe_init.PE(b)
+        if e.isPE() and e.NTsig.signature_value == 0x4550:
+            bs = bin_stream_pe(e.virt)
+            default_addr = e.rva2virt(e.Opthdr.AddressOfEntryPoint)
+    except:
+        log.error('Cannot read PE!')
 elif b.startswith('\x7fELF'):
-    e = elf_init.ELF(b)
-    bs = bin_stream_elf(e.virt)
-    default_addr = e.Ehdr.entry
+    try:
+        e = elf_init.ELF(b)
+        bs = bin_stream_elf(e.virt)
+        default_addr = e.Ehdr.entry
+    except:
+        log.error('Cannot read ELF!')
 
 
 if bs is None or options.shiftoffset is not None:
