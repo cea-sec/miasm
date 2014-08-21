@@ -208,6 +208,10 @@ reg_tests_mips32 = [
     ("8BA10124    INS        A0, A1, 0x0, 0x8",
      "7CA43804"),
 
+    ("XXXXXXXX    MOVZ       S0, T1, A2",
+     "0126800a"),
+    ("XXXXXXXX    JAL        0x7C0B0AC",
+     "0df02c2b"),
 
 ]
 

@@ -18,6 +18,13 @@ def sw(ir, instr, a, b):
     e.append(ExprAff(b, a))
     return None, e, []
 
+def jal(ir, instr, a):
+    e = []
+    n = ExprId(ir.get_next_break_label(instr))
+    e.append(ExprAff(PC, a))
+    e.append(ExprAff(RA, n))
+    return a, e, []
+
 def jalr(ir, instr, a, b):
     e = []
     n = ExprId(ir.get_next_break_label(instr))
@@ -148,6 +155,14 @@ def movn(ir, instr, a, b, c):
     e_do.append(ExprAff(a, b))
 
     return ExprCond(c, lbl_do, lbl_skip), [], [irbloc(lbl_do.name, lbl_skip, [e_do])]
+
+def movz(ir, instr, a, b, c):
+    lbl_do = ExprId(ir.gen_label(), instr.mode)
+    lbl_skip = ExprId(ir.get_next_label(instr), instr.mode)
+    e_do = []
+    e_do.append(ExprAff(a, b))
+
+    return ExprCond(c, lbl_skip, lbl_do), [], [irbloc(lbl_do.name, lbl_skip, [e_do])]
 
 def srl(ir, instr, a, b, c):
     e = []
@@ -376,6 +391,7 @@ mnemo_func = {
     "sh" : sh,
     "sb" : sb,
     "jalr" : jalr,
+    "jal" : jal,
     "bal" : bal,
     "b" : l_b,
     "lbu" : lbu,
@@ -402,6 +418,7 @@ mnemo_func = {
     "sltiu" : sltu,
     "subu" : l_sub,
     "movn" : movn,
+    "movz" : movz,
     "srl" : srl,
     "sra" : sra,
     "srav" : srav,

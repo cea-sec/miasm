@@ -52,7 +52,7 @@ class additional_info:
         self.except_on_instr = False
 br_flt = ['BC1F']
 
-br_0 = ['B', 'JR', 'BAL', 'JALR']
+br_0 = ['B', 'JR', 'BAL', 'JAL', 'JALR']
 br_1 = ['BGEZ', 'BLTZ', 'BGTZ', 'BLEZ', 'BC1T', 'BC1F'] + br_flt
 br_2 = ['BEQ', 'BEQL', 'BNE']
 
@@ -116,7 +116,7 @@ class instruction_mips32(instruction):
     def breakflow(self):
         if self.name == 'BREAK':
             return False
-        if self.name.startswith('B') or self.name in ['JR', 'J', 'JALR']:
+        if self.name.startswith('B') or self.name in ['JR', 'J', 'JAL', 'JALR']:
             return True
         return False
 
@@ -542,6 +542,7 @@ bs_arith = bs_name(l=6, name={'ADDU':0b100001,
                               'SUBU':0b100011,
                               'NOR':0b100111,
                               'MOVN':0b001011,
+                              'MOVZ':0b001010,
                               })
 
 bs_shift = bs_name(l=6, name={'SLL':0b000000,
@@ -643,6 +644,7 @@ mips32op("sltiu",   [bs('001011'), rs, rt, s16imm], [rt, rs, s16imm])
 
 
 mips32op("j",       [bs('000010'), instr_index])
+mips32op("jal",     [bs('000011'), instr_index])
 mips32op("jalr",    [bs('000000'), rs, bs('00000'), rd, hint, bs('001001')])
 mips32op("jr",      [bs('000000'), rs, bs('0000000000'), hint, bs('001000')])
 
