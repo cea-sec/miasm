@@ -9,6 +9,8 @@ from miasm2.expression.expression import *
 regs32_str = ["R%d" % i for i in xrange(13)] + ["SP", "LR", "PC"]
 regs32_expr = [ExprId(x, 32) for x in regs32_str]
 
+exception_flags = ExprId('exception_flags', 32)
+
 
 R0 = regs32_expr[0]
 R1 = regs32_expr[1]
@@ -63,7 +65,8 @@ cf_init = ExprId("cf_init", size=1)
 
 all_regs_ids = [
     R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, SP, LR, PC,
-    zf, nf, of, cf
+    zf, nf, of, cf,
+    exception_flags
 ]
 
 all_regs_ids_no_alias = all_regs_ids
@@ -74,7 +77,8 @@ all_regs_ids_init = [R0_init, R1_init, R2_init, R3_init,
                      R4_init, R5_init, R6_init, R7_init,
                      R8_init, R9_init, R10_init, R11_init,
                      R12_init, SP_init, LR_init, PC_init,
-                     zf_init, nf_init, of_init, cf_init
+                     zf_init, nf_init, of_init, cf_init,
+                     ExprInt32(0)
                      ]
 
 regs_init = {}

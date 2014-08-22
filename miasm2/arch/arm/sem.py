@@ -701,7 +701,7 @@ def stmdb(ir, instr, a, b):
 def svc(ir, instr, a):
     # XXX TODO implement
     e = [
-        ExprAff(ExprId('vmmngr.exception_flags'), ExprInt32(EXCEPT_PRIV_INSN))]
+        ExprAff(ExprId(exception_flags), ExprInt32(EXCEPT_PRIV_INSN))]
     return None, e
 
 
