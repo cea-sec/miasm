@@ -1,76 +1,14 @@
 from miasm2.expression.expression import *
 from miasm2.ir.ir import ir, irbloc
 from miasm2.arch.arm.arch import mn_arm, mn_armt
+from miasm2.arch.arm.regs import *
+
 
 # liris.cnrs.fr/~mmrissa/lib/exe/fetch.php?media=armv7-a-r-manual.pdf
 
 EXCEPT_PRIV_INSN = (1 << 17)
 
 # CPSR: N Z C V
-
-reg_r0 = 'R0'
-reg_r1 = 'R1'
-reg_r2 = 'R2'
-reg_r3 = 'R3'
-reg_r4 = 'R4'
-reg_r5 = 'R5'
-reg_r6 = 'R6'
-reg_r7 = 'R7'
-reg_r8 = 'R8'
-reg_r9 = 'R9'
-reg_r10 = 'R10'
-reg_r11 = 'R11'
-reg_r12 = 'R12'
-reg_sp = 'SP'
-reg_lr = 'LR'
-reg_pc = 'PC'
-
-reg_zf = 'zf'
-reg_nf = 'nf'
-reg_of = 'of'
-reg_cf = 'cf'
-
-zf = ExprId(reg_zf, size=1)
-nf = ExprId(reg_nf, size=1)
-of = ExprId(reg_of, size=1)
-cf = ExprId(reg_cf, size=1)
-
-R0 = ExprId(reg_r0)
-R1 = ExprId(reg_r1)
-R2 = ExprId(reg_r2)
-R3 = ExprId(reg_r3)
-R4 = ExprId(reg_r4)
-R5 = ExprId(reg_r5)
-R6 = ExprId(reg_r6)
-R7 = ExprId(reg_r7)
-R8 = ExprId(reg_r8)
-R9 = ExprId(reg_r9)
-R10 = ExprId(reg_r10)
-R11 = ExprId(reg_r11)
-R12 = ExprId(reg_r12)
-SP = ExprId(reg_sp)
-LR = ExprId(reg_lr)
-PC = ExprId(reg_pc)
-
-
-all_registers = [
-    R0,
-    R1,
-    R2,
-    R3,
-    R4,
-    R5,
-    R6,
-    R7,
-    R8,
-    R9,
-    R10,
-    R11,
-    R12,
-    SP,
-    LR,
-    PC,
-]
 
 
 def update_flag_zf(a):
@@ -701,7 +639,7 @@ def stmdb(ir, instr, a, b):
 def svc(ir, instr, a):
     # XXX TODO implement
     e = [
-        ExprAff(ExprId(exception_flags), ExprInt32(EXCEPT_PRIV_INSN))]
+        ExprAff(exception_flags, ExprInt32(EXCEPT_PRIV_INSN))]
     return None, e
 
 
