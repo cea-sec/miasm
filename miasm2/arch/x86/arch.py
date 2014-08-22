@@ -48,7 +48,6 @@ replace_regs64 = {
     R8W:  R8[:16], R9W:  R9[:16], R10W: R10[:16], R11W: R11[:16],
     R12W: R12[:16], R13W: R13[:16], R14W: R14[:16], R15W: R15[:16],
 
-
     EAX: RAX[:32], ECX: RCX[:32], EDX: RDX[:32], EBX: RBX[:32],
     ESP: RSP[:32], EBP: RBP[:32], ESI: RSI[:32], EDI: RDI[:32],
     R8D: R8[:32], R9D: R9[:32], R10D: R10[:32], R11D: R11[:32],
@@ -56,6 +55,7 @@ replace_regs64 = {
 
     IP: RIP[:16], EIP: RIP[:32],
 
+    float_st0: ExprId("ST(0)", 64),
 }
 
 replace_regs32 = {
@@ -65,7 +65,9 @@ replace_regs32 = {
     AX: EAX[:16], CX: ECX[:16], DX: EDX[:16], BX: EBX[:16],
     SP: ESP[:16], BP: EBP[:16], SI: ESI[:16], DI: EDI[:16],
 
-    IP: EIP[:16]
+    IP: EIP[:16],
+
+    float_st0: ExprId("ST(0)", 64),
 }
 
 replace_regs16 = {
@@ -74,6 +76,8 @@ replace_regs16 = {
 
     AX: AX[:16],  CX: CX[:16],  DX: DX[:16],  BX: BX[:16],
     SP: SP[:16],  BP: BP[:16],  SI: SI[:16],  DI: DI[:16],
+
+    float_st0: ExprId("ST(0)", 64),
 }
 
 replace_regs = {16: replace_regs16,
