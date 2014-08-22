@@ -965,7 +965,7 @@ unsigned int cpuid(unsigned int a, unsigned int reg_num)
 	return 0;
 }
 
-#define DEBUG_MIASM_DOUBLE
+//#define DEBUG_MIASM_DOUBLE
 
 void dump_float(void)
 {
