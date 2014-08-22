@@ -99,7 +99,6 @@ class JitCore_Tcc(jitcore.JitCore):
         # os.path.join(os.path.dirname(os.path.realpath(__file__)), "jitter")
         lib_dir = os.path.dirname(os.path.realpath(__file__))
         libs = []
-        libs.append(os.path.join(lib_dir, 'vm_mngr.so'))
         libs.append(os.path.join(lib_dir, 'arch/JitCore_%s.so' % (arch.name)))
         libs = ';'.join(libs)
         jittcc_path = Jittcc.__file__

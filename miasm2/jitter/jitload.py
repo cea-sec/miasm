@@ -7,8 +7,6 @@ import struct
 from elfesteem import pe
 from elfesteem import cstruct
 from elfesteem import *
-from vm_mngr import *
-from vm_mngr import VmMngr
 
 from csts import *
 from miasm2.core.utils import *
@@ -27,14 +25,6 @@ hnd = logging.StreamHandler()
 hnd.setFormatter(logging.Formatter("[%(levelname)s]: %(message)s"))
 log.addHandler(hnd)
 log.setLevel(logging.CRITICAL)
-
-"""
-name2jit = {'x86':JitCore_x86,
-            'arm':JitCore_arm,
-            'msp430':JitCore_msp430,
-            }
-"""
-
 
 def whoami():
     return inspect.stack()[2][3]
@@ -430,25 +420,6 @@ def vm_load_elf(vm, fname, **kargs):
         data += (((len(data) + 0xFFF) & ~0xFFF) - len(data)) * "\x00"
         vm.vm_add_memory_page(r_vaddr, PAGE_READ | PAGE_WRITE, data)
     return e
-"""
-def init_jitter(arch, attrib):
-    jitarch = name2jit[(arch.name, attrib)]
-    jitarch.vm_init_regs()
-    init_memory_page_pool()
-    init_code_bloc_pool()
-    init_memory_breakpoint()
-    jit_tcc_init(arch, attrib)
-
-def init_stack(arch, attrib, stack_size = 0x10000, stack_base = 0x1230000, **kargs):
-    jitarch = name2jit[(arch.name, attrib)]
-
-    vm_add_memory_page(stack_base, PAGE_READ|PAGE_WRITE, "\x00"*stack_size)
-    regs = jitarch.vm_get_gpreg()
-    regs[arch.sp[attrib].name] = stack_base+stack_size
-    jitarch.vm_set_gpreg(regs)
-    regs = jitarch.vm_get_gpreg()
-"""
-
 
 def vm_load_pe_lib(fname_in, libs, lib_path_base, patch_vm_imp, **kargs):
     fname = os.path.join(lib_path_base, fname_in)
@@ -592,7 +563,7 @@ class jitter:
             raise ValueError("unsupported jit arch!")
 
         self.cpu = jcore.JitCpu()
-        self.vm = VmMngr()
+        self.vm = jcore.VmMngr()
         self.bs = bin_stream_vm(self.vm)
         self.my_ir = my_ir
         init_arch_C(self.arch)

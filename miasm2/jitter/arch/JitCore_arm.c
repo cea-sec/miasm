@@ -65,7 +65,7 @@ typedef struct {
 
 
 
-PyObject* vm_get_gpreg(JitCpu* self)
+PyObject* cpu_get_gpreg(JitCpu* self)
 {
     PyObject *dict = PyDict_New();
     PyObject *o;
@@ -128,7 +128,7 @@ PyObject* _vm_set_gpreg(JitCpu* self, PyObject *dict)
     return NULL;
 }
 
-PyObject* vm_set_gpreg(JitCpu* self, PyObject *args)
+PyObject* cpu_set_gpreg(JitCpu* self, PyObject *args)
 {
 	PyObject* dict;
 	if (!PyArg_ParseTuple(args, "O", &dict))
@@ -139,7 +139,7 @@ PyObject* vm_set_gpreg(JitCpu* self, PyObject *args)
 }
 
 
-PyObject* vm_set_exception(JitCpu* self, PyObject* args)
+PyObject* cpu_set_exception(JitCpu* self, PyObject* args)
 {
 	PyObject *item1;
 	uint64_t i;
@@ -154,13 +154,13 @@ PyObject* vm_set_exception(JitCpu* self, PyObject* args)
 	return Py_None;
 }
 
-PyObject* vm_get_exception(JitCpu* self, PyObject* args)
+PyObject* cpu_get_exception(JitCpu* self, PyObject* args)
 {
 	return PyLong_FromUnsignedLongLong((uint64_t)self->vmcpu.exception_flags);
 }
 
 
-PyObject * vm_init_regs(JitCpu* self)
+PyObject * cpu_init_regs(JitCpu* self)
 {
 	memset(&self->vmcpu, 0, sizeof(vm_cpu_t));
 
@@ -184,7 +184,7 @@ void dump_gpregs(vm_cpu_t* vmcpu)
 }
 
 
-PyObject * vm_dump_gpregs(JitCpu* self, PyObject* args)
+PyObject * cpu_dump_gpregs(JitCpu* self, PyObject* args)
 {
 	vm_cpu_t* vmcpu;
 
@@ -230,17 +230,17 @@ static PyMemberDef JitCpu_members[] = {
 };
 
 static PyMethodDef JitCpu_methods[] = {
-	{"vm_init_regs", (PyCFunction)vm_init_regs, METH_NOARGS,
+	{"vm_init_regs", (PyCFunction)cpu_init_regs, METH_NOARGS,
 	 "X"},
-	{"vm_dump_gpregs", (PyCFunction)vm_dump_gpregs, METH_NOARGS,
+	{"vm_dump_gpregs", (PyCFunction)cpu_dump_gpregs, METH_NOARGS,
 	 "X"},
-	{"vm_get_gpreg", (PyCFunction)vm_get_gpreg, METH_NOARGS,
+	{"vm_get_gpreg", (PyCFunction)cpu_get_gpreg, METH_NOARGS,
 	 "X"},
-	{"vm_set_gpreg", (PyCFunction)vm_set_gpreg, METH_VARARGS,
+	{"vm_set_gpreg", (PyCFunction)cpu_set_gpreg, METH_VARARGS,
 	 "X"},
-	{"vm_get_exception", (PyCFunction)vm_get_exception, METH_VARARGS,
+	{"vm_get_exception", (PyCFunction)cpu_get_exception, METH_VARARGS,
 	 "X"},
-	{"vm_set_exception", (PyCFunction)vm_set_exception, METH_VARARGS,
+	{"vm_set_exception", (PyCFunction)cpu_set_exception, METH_VARARGS,
 	 "X"},
 	{NULL}  /* Sentinel */
 };
@@ -533,6 +533,9 @@ initJitCore_arm(void)
 
     Py_INCREF(&JitCpuType);
     PyModule_AddObject(m, "JitCpu", (PyObject *)&JitCpuType);
+
+    /* init vm */
+    init_vm_mngr(m);
 
 }
 

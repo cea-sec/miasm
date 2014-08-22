@@ -14,8 +14,9 @@ class JitCore_LLVM(jitcore.JitCore):
     "JiT management, using LLVM as backend"
 
     # Architecture dependant libraries
-    arch_dependent_libs = {"x86": "arch/JitCore_x86.so",
-                           "arm": "arch/JitCore_arm.so"}
+    arch_dependent_libs = {"x86": "JitCore_x86.so",
+                           "arm": "JitCore_arm.so",
+                           "msp430": "JitCore_msp430.so"}
 
     def __init__(self, my_ir, bs=None):
         super(JitCore_LLVM, self).__init__(my_ir, bs)
@@ -35,12 +36,9 @@ class JitCore_LLVM(jitcore.JitCore):
         # Library to load within Jit context
         libs_to_load = []
 
-        # Get the vm_mngr librairy
-        lib_dir = os.path.dirname(os.path.realpath(__file__))
-        vm_mngr_path = os.path.join(lib_dir, 'vm_mngr.so')
-        libs_to_load.append(vm_mngr_path)
-
         # Get architecture dependant Jitcore library (if any)
+        lib_dir = os.path.dirname(os.path.realpath(__file__))
+        lib_dir = os.path.join(lib_dir, 'arch')
         try:
             jit_lib = os.path.join(
                 lib_dir, self.arch_dependent_libs[arch.name])

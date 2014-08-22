@@ -915,7 +915,7 @@ static PyMethodDef Vm_Mngr_Methods[] = {
 
 };
 
-
+/*
 PyMODINIT_FUNC
 initvm_mngr(void)
 {
@@ -936,4 +936,23 @@ initvm_mngr(void)
     PyModule_AddObject(m, "VmMngr", (PyObject *)&VmMngrType);
 
 }
+*/
 
+/*
+  return
+  0 on success
+  -1 on error
+*/
+int init_vm_mngr(PyObject* m)
+{
+    if (PyType_Ready(&VmMngrType) < 0)
+	return -1;
+
+    Vm_Mngr_Error = PyErr_NewException("vm_mngr_.error", NULL, NULL);
+    Py_INCREF(Vm_Mngr_Error);
+    PyModule_AddObject(m, "error", Vm_Mngr_Error);
+
+    Py_INCREF(&VmMngrType);
+    PyModule_AddObject(m, "VmMngr", (PyObject *)&VmMngrType);
+
+}
