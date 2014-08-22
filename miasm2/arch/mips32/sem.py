@@ -59,7 +59,7 @@ def lhu(ir, instr, a, b):
 def beq(ir, instr, a, b, c):
     e = []
     n = ExprId(ir.get_next_break_label(instr))
-    dst_o = ExprCond(a-b, c, n)
+    dst_o = ExprCond(a-b, n, c)
     e = [ExprAff(PC, dst_o)]
     return dst_o, e, []
 
@@ -73,7 +73,7 @@ def bgez(ir, instr, a, b):
 def bne(ir, instr, a, b, c):
     e = []
     n = ExprId(ir.get_next_break_label(instr))
-    dst_o = ExprCond(a-b, n, c)
+    dst_o = ExprCond(a-b, c, n)
     e = [ExprAff(PC, dst_o)]
     return dst_o, e, []
 
@@ -486,3 +486,7 @@ class ir_mips32(ir):
                         {self.pc: ExprInt32(instr.offset + 4)}))
                     irs[i] = x
         return dst, instr_ir, extra_ir
+
+    def get_next_break_label(self, instr):
+        l = self.symbol_pool.getby_offset_create(instr.offset  + 8)
+        return l

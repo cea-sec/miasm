@@ -9,6 +9,8 @@ gen_reg('PC', globals())
 gen_reg('R_LO', globals())
 gen_reg('R_HI', globals())
 
+PC_init = ExprId("PC_init")
+
 regs32_str = ["ZERO", 'AT', 'V0', 'V1'] +\
     ['A%d'%i for i in xrange(4)] +\
     ['T%d'%i for i in xrange(8)] +\
@@ -42,9 +44,9 @@ regs_flt_expr, regs_flt_init, fltregs = gen_regs(regs_flt_str, globals())
 regs_fcc_expr, regs_fcc_init, fccregs = gen_regs(regs_fcc_str, globals())
 
 
-all_regs_ids = gpregs_expr + regs_flt_expr + regs_fcc_expr
+all_regs_ids = [PC] + gpregs_expr + regs_flt_expr + regs_fcc_expr
 all_regs_ids_byname = dict([(x.name, x) for x in all_regs_ids])
-all_regs_ids_init = gpregs_init + regs_flt_init + regs_fcc_init
+all_regs_ids_init = [PC_init] + gpregs_init + regs_flt_init + regs_fcc_init
 
 regs_init = {}
 for i, r in enumerate(all_regs_ids):

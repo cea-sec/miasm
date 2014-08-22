@@ -559,6 +559,8 @@ class jitter:
             from arch import JitCore_arm as jcore
         elif arch_name == "msp430":
             from arch import JitCore_msp430 as jcore
+        elif arch_name == "mips32":
+            from arch import JitCore_mips32 as jcore
         else:
             raise ValueError("unsupported jit arch!")
 

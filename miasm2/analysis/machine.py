@@ -63,10 +63,12 @@ class Machine(object):
             from miasm2.arch.mips32.disasm import dis_mips32b as dis_engine
             from miasm2.arch.mips32.arch import mn_mips32 as mn
             from miasm2.arch.mips32.ira import ir_a_mips32 as ira
+            #from miasm2.arch.mips32.jit import jitter_mips32 as jitter
         elif machine_name == "mips32l":
             from miasm2.arch.mips32.disasm import dis_mips32l as dis_engine
             from miasm2.arch.mips32.arch import mn_mips32 as mn
             from miasm2.arch.mips32.ira import ir_a_mips32 as ira
+            from miasm2.arch.mips32.jit import jitter_mips32 as jitter
         else:
             raise ValueError('Unknown machine: %s' % machine_name)
 

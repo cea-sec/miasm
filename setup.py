@@ -21,38 +21,26 @@ def buil_all():
               'miasm2/jitter/arch',
               'miasm2/jitter/os_dep',
               ]
-    """
     ext_modules_no_tcc = [
-        Extension("miasm2.jitter.vm_mngr",
-                  ["miasm2/jitter/vm_mngr.c",
-                   "miasm2/jitter/vm_mngr_py.c"]),
         Extension("miasm2.jitter.arch.JitCore_x86",
-                  ["miasm2/jitter/arch/JitCore_x86.c"]),
+                  ["miasm2/jitter/vm_mngr.c",
+                   "miasm2/jitter/vm_mngr_py.c",
+                   "miasm2/jitter/arch/JitCore_x86.c"]),
         Extension("miasm2.jitter.arch.JitCore_arm",
-                  ["miasm2/jitter/arch/JitCore_arm.c"]),
+                  ["miasm2/jitter/vm_mngr.c",
+                   "miasm2/jitter/vm_mngr_py.c",
+                   "miasm2/jitter/arch/JitCore_arm.c"]),
         Extension("miasm2.jitter.arch.JitCore_msp430",
-                  ["miasm2/jitter/arch/JitCore_msp430.c"]),
+                  ["miasm2/jitter/vm_mngr.c",
+                   "miasm2/jitter/vm_mngr_py.c",
+                   "miasm2/jitter/arch/JitCore_msp430.c"]),
+        Extension("miasm2.jitter.arch.JitCore_mips32",
+                  ["miasm2/jitter/vm_mngr.c",
+                   "miasm2/jitter/vm_mngr_py.c",
+                   "miasm2/jitter/arch/JitCore_mips32.c"]),
         Extension("miasm2.jitter.Jitllvm",
                   ["miasm2/jitter/Jitllvm.c"]),
         ]
-
-    ext_modules_all = [
-        Extension("miasm2.jitter.vm_mngr",
-                  ["miasm2/jitter/vm_mngr.c",
-                   "miasm2/jitter/vm_mngr_py.c"]),
-        Extension("miasm2.jitter.arch.JitCore_x86",
-                  ["miasm2/jitter/arch/JitCore_x86.c"]),
-        Extension("miasm2.jitter.arch.JitCore_arm",
-                  ["miasm2/jitter/arch/JitCore_arm.c"]),
-        Extension("miasm2.jitter.arch.JitCore_msp430",
-                  ["miasm2/jitter/arch/JitCore_msp430.c"]),
-        Extension("miasm2.jitter.Jitllvm",
-                  ["miasm2/jitter/Jitllvm.c"]),
-        Extension("miasm2.jitter.Jittcc",
-                  ["miasm2/jitter/Jittcc.c"],
-                  libraries=["tcc"])
-        ]
-    """
 
     ext_modules_all = [
         Extension("miasm2.jitter.arch.JitCore_x86",
@@ -67,6 +55,10 @@ def buil_all():
                   ["miasm2/jitter/vm_mngr.c",
                    "miasm2/jitter/vm_mngr_py.c",
                    "miasm2/jitter/arch/JitCore_msp430.c"]),
+        Extension("miasm2.jitter.arch.JitCore_mips32",
+                  ["miasm2/jitter/vm_mngr.c",
+                   "miasm2/jitter/vm_mngr_py.c",
+                   "miasm2/jitter/arch/JitCore_mips32.c"]),
         Extension("miasm2.jitter.Jitllvm",
                   ["miasm2/jitter/Jitllvm.c"]),
         Extension("miasm2.jitter.Jittcc",
@@ -76,9 +68,8 @@ def buil_all():
 
     print 'building'
     build_ok = False
-    #for name, ext_modules in [('all', ext_modules_all),
-    #                          ('notcc', ext_modules_no_tcc)]:
-    for name, ext_modules in [('all', ext_modules_all)]:
+    for name, ext_modules in [('all', ext_modules_all),
+                              ('notcc', ext_modules_no_tcc)]:
         print 'build with', repr(name)
         try:
             s = setup(
