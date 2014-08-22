@@ -96,7 +96,7 @@ class instruction_mips32(instruction):
         return i
 
     def dstflow2label(self, symbol_pool):
-        if self.name == "J":
+        if self.name in ["J", 'JAL']:
             e = self.args[0].arg
             ad = (self.offset & (0xFFFFFFFF ^ ((1<< 28)-1))) + e
             l = symbol_pool.getby_offset_create(ad)
@@ -188,8 +188,8 @@ class mn_mips32(cls_mn):
     all_mn_mode = defaultdict(list)
     all_mn_name = defaultdict(list)
     all_mn_inst = defaultdict(list)
-    pc = PC
-    sp = SP
+    pc = {'l':PC, 'b':PC}
+    sp = {'l':SP, 'b':SP}
     instruction = instruction_mips32
     max_instruction_len = 4
 
@@ -252,7 +252,13 @@ class mn_mips32(cls_mn):
 
     def value(self, mode):
         v = super(mn_mips32, self).value(mode)
-        return [x for x in v]
+        if mode == 'l':
+            return [x[::-1] for x in v]
+        elif mode == 'b':
+            return [x for x in v]
+        else:
+            raise NotImplementedError('bad attrib')
+
 
 
 def mips32op(name, fields, args=None, alias=False):
