@@ -19,6 +19,7 @@
 #include "structmember.h"
 #include <stdint.h>
 #include <inttypes.h>
+#include <signal.h>
 #include "queue.h"
 #include "vm_mngr.h"
 
@@ -38,6 +39,8 @@ typedef struct {
 	vm_mngr_t vm_mngr;
 } VmMngr;
 
+/* XXX POC signals */
+VmMngr* global_vmmngr;
 
 PyObject* _vm_get_exception(unsigned int xcpt)
 {
@@ -105,6 +108,20 @@ PyObject* vm_get_mem_base_addr(VmMngr* self, PyObject* item)
 	}
 	return PyLong_FromUnsignedLongLong((uint64_t)addr_base);
 }
+
+static void sig_alarm(int signo)
+{
+	global_vmmngr->vm_mngr.exception_flags |= BREAK_SIGALARM;
+	return;
+}
+
+PyObject* set_alarm(VmMngr* self)
+{
+	global_vmmngr = self;
+	signal(SIGALRM, sig_alarm);
+	return PyLong_FromUnsignedLongLong((uint64_t)0);
+}
+
 
 
 PyObject* vm_add_memory_page(VmMngr* self, PyObject* args)
@@ -780,6 +797,8 @@ static PyMethodDef VmMngr_methods[] = {
 	{"vm_reset_memory_breakpoint", (PyCFunction)vm_reset_memory_breakpoint, METH_VARARGS,
 	 "X"},
 	{"vm_reset_code_bloc_pool", (PyCFunction)vm_reset_code_bloc_pool, METH_VARARGS,
+	 "X"},
+	{"set_alarm", (PyCFunction)set_alarm, METH_VARARGS,
 	 "X"},
 	{"vm_call_pyfunc_from_globals",(PyCFunction)vm_call_pyfunc_from_globals, METH_VARARGS,
 	 "X"},
