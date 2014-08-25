@@ -271,6 +271,7 @@ PyObject* vm_get_mem(VmMngr* self, PyObject* args)
 	while (my_size){
 		mpn = get_memory_page_from_address(&self->vm_mngr, buf_addr);
 		if (!mpn){
+			free(buf_out);
 			PyErr_SetString(PyExc_RuntimeError, "cannot find address");
 			return 0;
 		}
@@ -725,6 +726,9 @@ PyObject* add_jitbloc(VmMngr* self, PyObject* args)
 static void
 VmMngr_dealloc(VmMngr* self)
 {
+    vm_reset_memory_page_pool(self, NULL);
+    vm_reset_code_bloc_pool(self, NULL);
+    vm_reset_memory_breakpoint(self, NULL);
     self->ob_type->tp_free((PyObject*)self);
 }
 
