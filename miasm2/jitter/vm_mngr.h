@@ -61,7 +61,7 @@ LIST_HEAD(memory_breakpoint_info_head, memory_breakpoint_info);
 #define BREAKPOINT_READ 1
 #define BREAKPOINT_WRITE 2
 
-
+#define BREAK_SIGALARM 1<<5
 
 #define MAX_MEMORY_PAGE_POOL_TAB 0x100000
 #define MEMORY_PAGE_POOL_MASK_BIT 12
