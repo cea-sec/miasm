@@ -38,7 +38,7 @@ char **lib_array = NULL;
 //char *libcodenat_path = NULL;
 
 
-void tcc_init_state(void)
+TCCState * tcc_init_state(void)
 {
 	int i;
 
@@ -57,10 +57,20 @@ void tcc_init_state(void)
 	for (i=0;i<include_array_count; i++){
 		tcc_add_include_path(tcc_state, include_array[i]);
 	}
+
+	return tcc_state;
 }
 
 
-
+PyObject* tcc_end(PyObject* self, PyObject* args)
+{
+	if (tcc_state) {
+		tcc_delete(tcc_state);
+		tcc_state = NULL;
+	}
+	Py_INCREF(Py_None);
+	return Py_None;
+}
 
 PyObject* tcc_set_emul_lib_path(PyObject* self, PyObject* args)
 {
@@ -109,6 +119,7 @@ PyObject* tcc_set_emul_lib_path(PyObject* self, PyObject* args)
 	*/
 	Py_INCREF(Py_None);
 
+	tcc_state = tcc_init_state();
 
 	return Py_None;
 }
@@ -133,8 +144,6 @@ PyObject* tcc_compil(PyObject* self, PyObject* args)
 	char* func_code;
 	int (*entry)(void);
 
-	tcc_init_state();
-
 	if (!PyArg_ParseTuple(args, "ss", &func_name, &func_code))
 		return NULL;
 
@@ -154,6 +163,7 @@ PyObject* tcc_compil(PyObject* self, PyObject* args)
 		fprintf(stderr, "%s\n", func_name);
 		exit(0);
 	}
+
 	return PyLong_FromUnsignedLongLong((uint64_t)entry);
 
 }
@@ -207,6 +217,8 @@ static PyMethodDef TccMethods[] = {
      "tcc exec bloc"},
     {"tcc_compil",  tcc_compil, METH_VARARGS,
      "tcc compil"},
+    {"tcc_end",  tcc_end, METH_VARARGS,
+     "tcc end"},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 

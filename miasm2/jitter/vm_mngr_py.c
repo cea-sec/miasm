@@ -873,89 +873,7 @@ static PyTypeObject VmMngrType = {
     VmMngr_new,                /* tp_new */
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 static PyObject *Vm_Mngr_Error;
-
-
-static PyMethodDef Vm_Mngr_Methods[] = {
-
-    {NULL, NULL, 0, NULL}        /* Sentinel */
-
-};
-
-/*
-PyMODINIT_FUNC
-initvm_mngr(void)
-{
-    PyObject *m;
-
-    if (PyType_Ready(&VmMngrType) < 0)
-	return;
-
-    m = Py_InitModule("vm_mngr", Vm_Mngr_Methods);
-    if (m == NULL)
-	    return;
-
-    Vm_Mngr_Error = PyErr_NewException("vm_mngr_.error", NULL, NULL);
-    Py_INCREF(Vm_Mngr_Error);
-    PyModule_AddObject(m, "error", Vm_Mngr_Error);
-
-    Py_INCREF(&VmMngrType);
-    PyModule_AddObject(m, "VmMngr", (PyObject *)&VmMngrType);
-
-}
-*/
 
 /*
   return
@@ -974,4 +892,5 @@ int init_vm_mngr(PyObject* m)
     Py_INCREF(&VmMngrType);
     PyModule_AddObject(m, "VmMngr", (PyObject *)&VmMngrType);
 
+    return 0;
 }

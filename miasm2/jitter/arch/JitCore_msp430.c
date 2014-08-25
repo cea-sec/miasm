@@ -667,6 +667,7 @@ static PyMethodDef JitCore_msp430_Methods[] = {
 
 static PyObject *JitCore_msp430_Error;
 
+extern int init_vm_mngr(PyObject* m);
 PyMODINIT_FUNC
 initJitCore_msp430(void)
 {

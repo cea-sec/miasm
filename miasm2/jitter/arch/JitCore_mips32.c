@@ -598,6 +598,7 @@ static PyMethodDef JitCore_mips32_Methods[] = {
 
 static PyObject *JitCore_mips32_Error;
 
+extern int init_vm_mngr(PyObject* m);
 PyMODINIT_FUNC
 initJitCore_mips32(void)
 {

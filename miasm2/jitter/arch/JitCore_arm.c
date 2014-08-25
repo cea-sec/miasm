@@ -515,6 +515,7 @@ static PyMethodDef JitCore_arm_Methods[] = {
 
 static PyObject *JitCore_arm_Error;
 
+extern int init_vm_mngr(PyObject* m);
 PyMODINIT_FUNC
 initJitCore_arm(void)
 {

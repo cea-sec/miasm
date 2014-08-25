@@ -121,6 +121,9 @@ class JitCore_Tcc(jitcore.JitCore):
         include_files = ";".join(include_files)
         Jittcc.tcc_set_emul_lib_path(include_files, libs)
 
+    def __del__(self):
+        Jittcc.tcc_end()
+
     def jitirblocs(self, label, irblocs):
         # irbloc = self.lbl2irbloc[lbl]
         f_name = "bloc_%s" % label.name
