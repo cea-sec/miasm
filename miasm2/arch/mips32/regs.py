@@ -47,6 +47,7 @@ regs_fcc_expr, regs_fcc_init, fccregs = gen_regs(regs_fcc_str, globals())
 all_regs_ids = [PC] + gpregs_expr + regs_flt_expr + regs_fcc_expr
 all_regs_ids_byname = dict([(x.name, x) for x in all_regs_ids])
 all_regs_ids_init = [PC_init] + gpregs_init + regs_flt_init + regs_fcc_init
+all_regs_ids_no_alias = all_regs_ids[:]
 
 regs_init = {}
 for i, r in enumerate(all_regs_ids):

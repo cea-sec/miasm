@@ -16,7 +16,8 @@ class JitCore_LLVM(jitcore.JitCore):
     # Architecture dependant libraries
     arch_dependent_libs = {"x86": "JitCore_x86.so",
                            "arm": "JitCore_arm.so",
-                           "msp430": "JitCore_msp430.so"}
+                           "msp430": "JitCore_msp430.so",
+                           "mips32": "JitCore_mips32.so"}
 
     def __init__(self, my_ir, bs=None):
         super(JitCore_LLVM, self).__init__(my_ir, bs)
