@@ -40,3 +40,4 @@ myjit.add_breakpoint(0x1337beef, code_sentinelle)
 
 myjit.init_run(run_addr)
 myjit.continue_run()
+del(myjit)

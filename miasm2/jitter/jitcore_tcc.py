@@ -94,6 +94,7 @@ class JitCore_Tcc(jitcore.JitCore):
         super(JitCore_Tcc, self).__init__(my_ir, bs)
         self.resolver = resolver()
         self.exec_wrapper = Jittcc.tcc_exec_bloc
+        self.tcc_states =[]
 
     def load(self, arch):
         # os.path.join(os.path.dirname(os.path.realpath(__file__)), "jitter")
@@ -122,7 +123,8 @@ class JitCore_Tcc(jitcore.JitCore):
         Jittcc.tcc_set_emul_lib_path(include_files, libs)
 
     def __del__(self):
-        Jittcc.tcc_end()
+        for tcc_state in self.tcc_states:
+            Jittcc.tcc_end(tcc_state)
 
     def jitirblocs(self, label, irblocs):
         # irbloc = self.lbl2irbloc[lbl]
@@ -140,7 +142,8 @@ class JitCore_Tcc(jitcore.JitCore):
         # print func_code
         # open('tmp_%.4d.c'%self.jitcount, "w").write(func_code)
         self.jitcount += 1
-        mcode = jit_tcc_compil(f_name, func_code)
+        tcc_state, mcode = jit_tcc_compil(f_name, func_code)
+        self.tcc_states.append(tcc_state)
         jcode = jit_tcc_code(mcode)
         self.lbl2jitbloc[label.offset] = mcode
         self.addr2obj[label.offset] = jcode

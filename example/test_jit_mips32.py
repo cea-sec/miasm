@@ -33,6 +33,11 @@ parser.add_argument("addr",
 
 machine = Machine("mips32l")
 
+def code_sentinelle(jitter):
+    jitter.run = False
+    jitter.pc = 0
+    return True
+
 def jit_mips32_binary(args):
     filepath, entryp = args.binary, int(args.addr, 16)
     myjit = machine.jitter(jit_type = args.jitter)
@@ -44,7 +49,7 @@ def jit_mips32_binary(args):
     myjit.jit.log_newbloc = args.log_newbloc
 
     myjit.vm.vm_add_memory_page(0, PAGE_READ | PAGE_WRITE, open(filepath).read())
-    myjit.add_breakpoint(0x1337BEEF, lambda _: exit(0))
+    myjit.add_breakpoint(0x1337BEEF, code_sentinelle)
 
 
     # for stack

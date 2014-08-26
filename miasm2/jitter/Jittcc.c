@@ -24,10 +24,6 @@
 
 
 
-/* tcc global state */
-TCCState *tcc_state = NULL;
-
-
 int include_array_count = 0;
 char **include_array = NULL;
 
@@ -41,7 +37,7 @@ char **lib_array = NULL;
 TCCState * tcc_init_state(void)
 {
 	int i;
-
+	TCCState *tcc_state = NULL;
 	tcc_state = tcc_new();
 	if (!tcc_state) {
 		fprintf(stderr, "Impossible de creer un contexte TCC\n");
@@ -64,10 +60,11 @@ TCCState * tcc_init_state(void)
 
 PyObject* tcc_end(PyObject* self, PyObject* args)
 {
-	if (tcc_state) {
-		tcc_delete(tcc_state);
-		tcc_state = NULL;
-	}
+	TCCState *tcc_state = NULL;
+	if (!PyArg_ParseTuple(args, "K", &tcc_state))
+		return NULL;
+	tcc_delete(tcc_state);
+
 	Py_INCREF(Py_None);
 	return Py_None;
 }
@@ -119,7 +116,6 @@ PyObject* tcc_set_emul_lib_path(PyObject* self, PyObject* args)
 	*/
 	Py_INCREF(Py_None);
 
-	tcc_state = tcc_init_state();
 
 	return Py_None;
 }
@@ -143,6 +139,10 @@ PyObject* tcc_compil(PyObject* self, PyObject* args)
 	char* func_name;
 	char* func_code;
 	int (*entry)(void);
+	TCCState *tcc_state = NULL;
+	PyObject* ret;
+
+	tcc_state = tcc_init_state();
 
 	if (!PyArg_ParseTuple(args, "ss", &func_name, &func_code))
 		return NULL;
@@ -150,21 +150,31 @@ PyObject* tcc_compil(PyObject* self, PyObject* args)
 	if (tcc_compile_string(tcc_state, func_code) != 0) {
 		fprintf(stderr, "Erreur de compilation !\n");
 		fprintf(stderr, "%s\n", func_code);
-		exit(0);
+		exit(1);
 	}
 	/* XXX use tinycc devel with -fPIC patch in makefile */
 	if (tcc_relocate(tcc_state, TCC_RELOCATE_AUTO) < 0) {
 		fprintf(stderr, "tcc relocate error\n");
-		exit(0);
+		exit(1);
 	}
 	entry = tcc_get_symbol(tcc_state, func_name);
 	if (!entry){
 		fprintf(stderr, "Erreur de symbole %s!\n", func_name);
 		fprintf(stderr, "%s\n", func_name);
-		exit(0);
+		exit(1);
 	}
 
-	return PyLong_FromUnsignedLongLong((uint64_t)entry);
+	ret = PyTuple_New(2);
+	if (ret == NULL) {
+		fprintf(stderr, "Erreur alloc %s!\n", func_name);
+		fprintf(stderr, "%s\n", func_name);
+		exit(1);
+	}
+
+	PyTuple_SetItem(ret, 0, PyLong_FromUnsignedLongLong((uint64_t)tcc_state));
+	PyTuple_SetItem(ret, 1, PyLong_FromUnsignedLongLong((uint64_t)entry));
+
+	return ret;
 
 }
 
