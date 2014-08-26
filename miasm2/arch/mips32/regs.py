@@ -25,6 +25,12 @@ regs_flt_str = ['F%d'%i for i in xrange(0x20)]
 
 regs_fcc_str = ['FCC%d'%i for i in xrange(8)]
 
+R_LO = ExprId('R_LO', 32)
+R_HI = ExprId('R_HI', 32)
+
+R_LO_init = ExprId('R_LO_init', 32)
+R_HI_init = ExprId('R_HI_init', 32)
+
 
 cpr0_str = ["CPR0_%d"%x for x in xrange(0x100)]
 cpr0_str[0] = "INDEX"
@@ -44,9 +50,9 @@ regs_flt_expr, regs_flt_init, fltregs = gen_regs(regs_flt_str, globals())
 regs_fcc_expr, regs_fcc_init, fccregs = gen_regs(regs_fcc_str, globals())
 
 
-all_regs_ids = [PC] + gpregs_expr + regs_flt_expr + regs_fcc_expr
+all_regs_ids = [PC, R_LO, R_HI] + gpregs_expr + regs_flt_expr + regs_fcc_expr
 all_regs_ids_byname = dict([(x.name, x) for x in all_regs_ids])
-all_regs_ids_init = [PC_init] + gpregs_init + regs_flt_init + regs_fcc_init
+all_regs_ids_init = [PC_init, R_LO_init, R_HI_init] + gpregs_init + regs_flt_init + regs_fcc_init
 all_regs_ids_no_alias = all_regs_ids[:]
 
 regs_init = {}
