@@ -458,7 +458,7 @@ class CallbackHandler(object):
 
     def set_callback(self, name, *args):
         "Set the list of callback for key 'name'"
-        self.callbacks[name] = args
+        self.callbacks[name] = list(args)
 
     def get_callbacks(self, name):
         "Return the list of callbacks associated to key 'name'"
@@ -623,6 +623,14 @@ class jitter:
         @callback: function with definition (jitter instance)
         """
         self.breakpoints_handler.add_callback(addr, callback)
+        self.jit.add_disassembly_splits(addr)
+
+    def set_breakpoint(self, addr, *args):
+        """Set callbacks associated with addr.
+        @addr: breakpoint address
+        @args: functions with definition (jitter instance)
+        """
+        self.breakpoints_handler.set_callback(addr, *args)
         self.jit.add_disassembly_splits(addr)
 
     def remove_breakpoints_by_callback(self, callback):
