@@ -84,3 +84,5 @@ all_regs_ids_init = [R0_init, R1_init, R2_init, R3_init,
 regs_init = {}
 for i, r in enumerate(all_regs_ids):
     regs_init[r] = all_regs_ids_init[i]
+
+regs_flt_expr = []

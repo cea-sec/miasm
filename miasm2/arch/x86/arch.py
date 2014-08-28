@@ -55,7 +55,16 @@ replace_regs64 = {
 
     IP: RIP[:16], EIP: RIP[:32],
 
-    float_st0: ExprId("ST(0)", 64),
+    ExprId("ST", 64): float_st0,
+    ExprId("ST(0)", 64): float_st0,
+    ExprId("ST(1)", 64): float_st1,
+    ExprId("ST(2)", 64): float_st2,
+    ExprId("ST(3)", 64): float_st3,
+    ExprId("ST(4)", 64): float_st4,
+    ExprId("ST(5)", 64): float_st5,
+    ExprId("ST(6)", 64): float_st6,
+    ExprId("ST(7)", 64): float_st7,
+
 }
 
 replace_regs32 = {
@@ -67,7 +76,17 @@ replace_regs32 = {
 
     IP: EIP[:16],
 
-    float_st0: ExprId("ST(0)", 64),
+
+    ExprId("ST", 64): float_st0,
+    ExprId("ST(0)", 64): float_st0,
+    ExprId("ST(1)", 64): float_st1,
+    ExprId("ST(2)", 64): float_st2,
+    ExprId("ST(3)", 64): float_st3,
+    ExprId("ST(4)", 64): float_st4,
+    ExprId("ST(5)", 64): float_st5,
+    ExprId("ST(6)", 64): float_st6,
+    ExprId("ST(7)", 64): float_st7,
+
 }
 
 replace_regs16 = {
@@ -77,7 +96,17 @@ replace_regs16 = {
     AX: AX[:16],  CX: CX[:16],  DX: DX[:16],  BX: BX[:16],
     SP: SP[:16],  BP: BP[:16],  SI: SI[:16],  DI: DI[:16],
 
-    float_st0: ExprId("ST(0)", 64),
+
+    ExprId("ST", 64): float_st0,
+    ExprId("ST(0)", 64): float_st0,
+    ExprId("ST(1)", 64): float_st1,
+    ExprId("ST(2)", 64): float_st2,
+    ExprId("ST(3)", 64): float_st3,
+    ExprId("ST(4)", 64): float_st4,
+    ExprId("ST(5)", 64): float_st5,
+    ExprId("ST(6)", 64): float_st6,
+    ExprId("ST(7)", 64): float_st7,
+
 }
 
 replace_regs = {16: replace_regs16,

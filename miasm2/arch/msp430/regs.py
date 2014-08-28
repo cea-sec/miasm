@@ -105,3 +105,5 @@ all_regs_ids_init = [PC_init, SP_init, SR_init, R3_init,
 regs_init = {}
 for i, r in enumerate(all_regs_ids):
     regs_init[r] = all_regs_ids_init[i]
+
+regs_flt_expr = []

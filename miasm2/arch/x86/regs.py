@@ -248,15 +248,6 @@ reg_float_address = 'reg_float_address'
 reg_float_ds = 'reg_float_ds'
 
 
-reg_float_st0 = 'float_st0'
-reg_float_st1 = 'float_st1'
-reg_float_st2 = 'float_st2'
-reg_float_st3 = 'float_st3'
-reg_float_st4 = 'float_st4'
-reg_float_st5 = 'float_st5'
-reg_float_st6 = 'float_st6'
-reg_float_st7 = 'float_st7'
-
 
 dr0 = ExprId(reg_dr0)
 dr1 = ExprId(reg_dr1)
@@ -342,14 +333,14 @@ float_cs = ExprId(reg_float_cs, size=16)
 float_address = ExprId(reg_float_address)
 float_ds = ExprId(reg_float_ds, size=16)
 
-float_st0 = ExprId("ST", 64)
-float_st1 = ExprId("ST(1)", 64)
-float_st2 = ExprId("ST(2)", 64)
-float_st3 = ExprId("ST(3)", 64)
-float_st4 = ExprId("ST(4)", 64)
-float_st5 = ExprId("ST(5)", 64)
-float_st6 = ExprId("ST(6)", 64)
-float_st7 = ExprId("ST(7)", 64)
+float_st0 = ExprId("float_st0", 64)
+float_st1 = ExprId("float_st1", 64)
+float_st2 = ExprId("float_st2", 64)
+float_st3 = ExprId("float_st3", 64)
+float_st4 = ExprId("float_st4", 64)
+float_st5 = ExprId("float_st5", 64)
+float_st6 = ExprId("float_st6", 64)
+float_st7 = ExprId("float_st7", 64)
 
 EAX_init = ExprId('EAX_init')
 EBX_init = ExprId('EBX_init')
@@ -428,6 +419,9 @@ for i, r in enumerate(all_regs_ids):
     all_regs_ids_init[i].is_term = True
     regs_init[r] = all_regs_ids_init[i]
 
+regs_flt_expr = [float_st0, float_st1, float_st2, float_st3,
+                 float_st4, float_st5, float_st6, float_st7,
+             ]
 
 mRAX = {16: AX, 32: EAX, 64: RAX}
 mRBX = {16: BX, 32: EBX, 64: RBX}

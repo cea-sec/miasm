@@ -167,6 +167,72 @@ typedef struct {
 	uint64_t pfmem64_19;
 
 
+	double F0;
+	double F1;
+	double F2;
+	double F3;
+	double F4;
+	double F5;
+	double F6;
+	double F7;
+	double F8;
+	double F9;
+	double F10;
+	double F11;
+	double F12;
+	double F13;
+	double F14;
+	double F15;
+	double F16;
+	double F17;
+	double F18;
+	double F19;
+	double F20;
+	double F21;
+	double F22;
+	double F23;
+	double F24;
+	double F25;
+	double F26;
+	double F27;
+	double F28;
+	double F29;
+	double F30;
+	double F31;
+
+	double F0_new;
+	double F1_new;
+	double F2_new;
+	double F3_new;
+	double F4_new;
+	double F5_new;
+	double F6_new;
+	double F7_new;
+	double F8_new;
+	double F9_new;
+	double F10_new;
+	double F11_new;
+	double F12_new;
+	double F13_new;
+	double F14_new;
+	double F15_new;
+	double F16_new;
+	double F17_new;
+	double F18_new;
+	double F19_new;
+	double F20_new;
+	double F21_new;
+	double F22_new;
+	double F23_new;
+	double F24_new;
+	double F25_new;
+	double F26_new;
+	double F27_new;
+	double F28_new;
+	double F29_new;
+	double F30_new;
+	double F31_new;
+
 
 }vm_cpu_t;
 

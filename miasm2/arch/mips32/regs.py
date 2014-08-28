@@ -46,7 +46,7 @@ cpr0_str[152] = "WATCHHI"
 regs_cpr0_expr, regs_cpr0_init, regs_cpr0_info = gen_regs(cpr0_str, globals())
 
 gpregs_expr, gpregs_init, gpregs = gen_regs(regs32_str, globals())
-regs_flt_expr, regs_flt_init, fltregs = gen_regs(regs_flt_str, globals())
+regs_flt_expr, regs_flt_init, fltregs = gen_regs(regs_flt_str, globals(), sz=64)
 regs_fcc_expr, regs_fcc_init, fccregs = gen_regs(regs_fcc_str, globals())
 
 

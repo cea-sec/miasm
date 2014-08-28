@@ -30,6 +30,14 @@ main:
   CALL toto
 toto:
   POP  EDI
+
+  PUSH 0
+  FLD1
+  FLD1
+  FADD ST, ST(1)
+  FIST  DWORD PTR [ESP]
+  POP  EAX
+
   MOV  ESP, EBP
   POP  EBP
   RET

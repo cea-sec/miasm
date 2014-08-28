@@ -183,58 +183,15 @@ for size in [8, 16, 32, 64]:
         prefetch_id.append(c)
         prefetch_id_size[size].append(c)
 
-
-reg_float_st0 = 'float_st0'
-reg_float_st1 = 'float_st1'
-reg_float_st2 = 'float_st2'
-reg_float_st3 = 'float_st3'
-reg_float_st4 = 'float_st4'
-reg_float_st5 = 'float_st5'
-reg_float_st6 = 'float_st6'
-reg_float_st7 = 'float_st7'
-
-
-float_st0 = ExprId(reg_float_st0, 64)
-float_st1 = ExprId(reg_float_st1, 64)
-float_st2 = ExprId(reg_float_st2, 64)
-float_st3 = ExprId(reg_float_st3, 64)
-float_st4 = ExprId(reg_float_st4, 64)
-float_st5 = ExprId(reg_float_st5, 64)
-float_st6 = ExprId(reg_float_st6, 64)
-float_st7 = ExprId(reg_float_st7, 64)
-
-fltregs32_str = ["ST(%d)" % i for i in xrange(8)]
-fltregs32_expr = [ExprId(x, 64) for x in fltregs32_str]
-
-
-float_id_e = [
-    float_st0,
-    float_st1,
-    float_st2,
-    float_st3,
-    float_st4,
-    float_st5,
-    float_st6,
-    float_st7,
-] + fltregs32_expr
-
-
 def init_arch_C(arch):
     arch.id2Cid = {}
     for x in arch.regs.all_regs_ids + prefetch_id:
         arch.id2Cid[x] = ExprId('vmcpu->' + str(x), x.size)
-    for i in xrange(8):
-        arch.id2Cid[ExprId('ST(%d)' % i, 64)] = ExprId(
-            'vmcpu->' + "float_st%d" % i, 64)
 
     arch.id2newCid = {}
 
     for x in arch.regs.all_regs_ids + prefetch_id:
         arch.id2newCid[x] = ExprId('vmcpu->%s_new' % x, x.size)
-
-    for i in xrange(8):
-        arch.id2newCid[ExprId('ST(%d)' % i, 64)] = ExprId(
-            'vmcpu->' + "float_st%d_new" % i, 64)
 
 
 def patch_c_id(arch, e):
@@ -418,7 +375,7 @@ def Expr2C(my_ir, l, exprs, gen_exception_code=False):
         if isinstance(dst, ExprId):
             id_to_update.append(dst)
             str_dst = patch_c_new_id(my_ir.arch, dst)
-            if dst in float_id_e:
+            if dst in my_ir.arch.regs.regs_flt_expr:
                 # dont mask float affectation
                 out.append('%s = (%s);' % (str_dst, str_src))
             else:
