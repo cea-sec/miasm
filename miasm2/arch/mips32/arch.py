@@ -622,13 +622,15 @@ mips32op("s_l",     [bs_s_l, base, rt, s16imm_noarg], [rt, base])
 mips32op("mfc0",    [bs('010000'), bs('00000'), rt, cpr0, bs('00000000'), cpr])
 mips32op("mfc1",    [bs('010001'), bs('00000'), rt, fs, bs('00000000000')])
 
+mips32op("ldc1",    [bs('110101'), base, ft, s16imm_noarg], [ft, base])
+
 mips32op("mov",     [bs('010001'), bs_fmt, bs('00000'), fs, fd, bs('000110')], [fd, fs])
 
 mips32op("add",     [bs('010001'), bs_fmt, ft, fs, fd, bs_arithfmt], [fd, fs, ft])
 
 mips32op("divu",    [bs('000000'), rs, rt, bs('0000000000'), bs('011011')])
 mips32op("mult",    [bs('000000'), rs, rt, bs('0000000000'), bs('011000')])
-mips32op("multu",    [bs('000000'), rs, rt, bs('0000000000'), bs('011001')])
+mips32op("multu",   [bs('000000'), rs, rt, bs('0000000000'), bs('011001')])
 mips32op("mflo",    [bs('000000'), bs('0000000000'), rd, bs('00000'), bs('010010')])
 mips32op("mfhi",    [bs('000000'), bs('0000000000'), rd, bs('00000'), bs('010000')])
 

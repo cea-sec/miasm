@@ -213,6 +213,8 @@ reg_tests_mips32 = [
     ("XXXXXXXX    JAL        0x7C0B0AC",
      "0df02c2b"),
 
+    ("XXXXXXXX    LDC1       F22, 0xFFFF9148(V0)",
+     "D4569148"),
 ]
 
 
