@@ -601,6 +601,7 @@ bs_bcc = bs_name(l=5, name = {"BGEZ":    0b00001,
 
 
 
+mips32op("addi",    [bs('001000'), rs, rt, s16imm], [rt, rs, s16imm])
 mips32op("addiu",   [bs('001001'), rs, rt, s16imm], [rt, rs, s16imm])
 mips32op("nop",     [bs('0'*32)], alias = True)
 mips32op("lui",     [bs('001111'), bs('00000'), rt, u16imm])
