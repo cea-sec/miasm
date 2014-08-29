@@ -226,3 +226,23 @@ class ira:
                 eq
             irb.irs = [eqs]
             irb.lines = [None]
+
+    def sizeof_char(self):
+        "Return the size of a char in bits"
+        raise NotImplementedError("Abstract method")
+
+    def sizeof_short(self):
+        "Return the size of a short in bits"
+        raise NotImplementedError("Abstract method")
+
+    def sizeof_int(self):
+        "Return the size of an int in bits"
+        raise NotImplementedError("Abstract method")
+
+    def sizeof_long(self):
+        "Return the size of a long in bits"
+        raise NotImplementedError("Abstract method")
+
+    def sizeof_pointer(self):
+        "Return the size of a void* in bits"
+        raise NotImplementedError("Abstract method")

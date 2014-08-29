@@ -104,6 +104,21 @@ class ir_a_arm(ir_a_arm_base):
     def get_out_regs(self, b):
         return set([self.ret_reg, self.sp])
 
+    def sizeof_char(self):
+        return 8
+
+    def sizeof_short(self):
+        return 16
+
+    def sizeof_int(self):
+        return 32
+
+    def sizeof_long(self):
+        return 32
+
+    def sizeof_pointer(self):
+        return 32
+
 
 class ir_a_armt(ir_armt, ir_a_arm):
 

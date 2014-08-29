@@ -72,6 +72,21 @@ class ir_a_x86_32(ir_x86_32, ir_a_x86_16):
         ir_x86_32.__init__(self, symbol_pool)
         self.ret_reg = self.arch.regs.EAX
 
+    def sizeof_char(self):
+        return 8
+
+    def sizeof_short(self):
+        return 16
+
+    def sizeof_int(self):
+        return 32
+
+    def sizeof_long(self):
+        return 32
+
+    def sizeof_pointer(self):
+        return 32
+
 
 class ir_a_x86_64(ir_x86_64, ir_a_x86_16):
 
