@@ -415,6 +415,7 @@ def vm_load_elf(vm, fname, **kargs):
         log.debug('%s %s %s' %
                   (hex(p.ph.vaddr), hex(p.ph.offset), hex(p.ph.filesz)))
         data = e._content[p.ph.offset:p.ph.offset + p.ph.filesz]
+        data += max(0, (p.ph.memsz) - len(data)) * "\x00"
         r_vaddr = p.ph.vaddr & ~0xFFF
         data = (p.ph.vaddr - r_vaddr) * "\x00" + data
         data += (((len(data) + 0xFFF) & ~0xFFF) - len(data)) * "\x00"
