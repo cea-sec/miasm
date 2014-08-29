@@ -56,14 +56,15 @@ OF(A-B) = ((A XOR D) AND (A XOR B)) < 0
 
 
 float_list = [
-    float_st0,
-    float_st1,
-    float_st2,
-    float_st3,
-    float_st4,
-    float_st5,
-    float_st6,
-    float_st7,
+    ExprId("ST", 64),
+    ExprId("ST(0)", 64),
+    ExprId("ST(1)", 64),
+    ExprId("ST(2)", 64),
+    ExprId("ST(3)", 64),
+    ExprId("ST(4)", 64),
+    ExprId("ST(5)", 64),
+    ExprId("ST(6)", 64),
+    ExprId("ST(7)", 64),
 ]
 
 
