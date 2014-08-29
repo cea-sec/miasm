@@ -187,7 +187,6 @@ def movzx(ir, instr, a, b):
     e = [ExprAff(a, b.zeroExtend(a.size))]
     return None, e, []
 
-
 def movsx(ir, instr, a, b):
     e = [ExprAff(a, b.signExtend(a.size))]
     return None, e, []
@@ -1641,6 +1640,22 @@ def movs(ir, instr, size):
 
     return ExprCond(df, lbl_df_1, lbl_df_0), e, [e0, e1]
 
+def movsd(ir, instr, a, b):
+    e = []
+    if isinstance(a, ExprId) and isinstance(b, ExprMem):
+        b = ExprMem(b.arg, a.size)
+    elif isinstance(a, ExprMem) and isinstance(b, ExprId):
+        a = ExprMem(a.arg, b.size)
+
+    e.append(ExprAff(a, b))
+    return None, e, []
+
+def movsd_dispatch(ir, instr, a = None, b = None):
+    if a is None and b is None:
+        return movs(ir, instr, 32)
+    else:
+        return movsd(ir, instr, a, b)
+
 
 def float_prev(flt):
     if not flt in float_list:
@@ -3000,7 +3015,7 @@ mnemo_func = {'mov': mov,
 
               'movsb': lambda ir, instr: movs(ir, instr, 8),
               'movsw': lambda ir, instr: movs(ir, instr, 16),
-              'movsd': lambda ir, instr: movs(ir, instr, 32),
+              'movsd': movsd_dispatch,
               'movsq': lambda ir, instr: movs(ir, instr, 64),
               'fcomp': fcomp,
               'ficomp': ficomp,
@@ -3205,6 +3220,9 @@ class ir_x86_16(ir):
         if instr.additional_info.g1.value & 6 == 0 or \
                 not instr.name in repeat_mn:
             return dst, instr_ir, extra_ir
+        if instr.name == "MOVSD" and len(instr.args) == 2:
+            return dst, instr_ir, extra_ir
+
         instr.additional_info.except_on_instr = True
         # get instruction size
         s = {"B": 8, "W": 16, "D": 32, 'Q': 64}[instr.name[-1]]
