@@ -16,6 +16,7 @@ from jitcore_python import JitCore_Python
 from miasm2.core.bin_stream import bin_stream
 
 from miasm2.ir.ir2C import init_arch_C
+from miasm2.core.interval import interval
 import inspect
 
 import logging
@@ -408,18 +409,35 @@ def vm_load_pe(vm, fname, align_s=True, load_hdr=True,
 
 
 def vm_load_elf(vm, fname, **kargs):
+    """
+    Very dirty elf loader
+    TODO XXX: implement real loader
+    """
+    #log.setLevel(logging.DEBUG)
     e = elf_init.ELF(open(fname, 'rb').read(), **kargs)
+    i = interval()
+    all_data = {}
     for p in e.ph.phlist:
         if p.ph.type != 1:
             continue
-        log.debug('%s %s %s' %
-                  (hex(p.ph.vaddr), hex(p.ph.offset), hex(p.ph.filesz)))
-        data = e._content[p.ph.offset:p.ph.offset + p.ph.filesz]
-        data += max(0, (p.ph.memsz) - len(data)) * "\x00"
-        r_vaddr = p.ph.vaddr & ~0xFFF
-        data = (p.ph.vaddr - r_vaddr) * "\x00" + data
-        data += (((len(data) + 0xFFF) & ~0xFFF) - len(data)) * "\x00"
-        vm.vm_add_memory_page(r_vaddr, PAGE_READ | PAGE_WRITE, data)
+        log.debug('%s %s %s %s' %
+                  (hex(p.ph.vaddr), hex(p.ph.memsz), hex(p.ph.offset), hex(p.ph.filesz)))
+        data_o = e._content[p.ph.offset:p.ph.offset + p.ph.filesz]
+        addr_o = p.ph.vaddr
+        a_addr = addr_o & ~0xFFF
+        b_addr = addr_o + max(p.ph.memsz, p.ph.filesz)
+        b_addr = (b_addr + 0xFFF) & ~0xFFF
+        all_data[addr_o] = data_o
+        # -2: Trick to avoid merging 2 consecutive pages
+        i += [(a_addr, b_addr-2)]
+    for a, b in i.intervals:
+        #print hex(a), hex(b)
+        vm.vm_add_memory_page(a, PAGE_READ | PAGE_WRITE, "\x00"*(b+2-a))
+
+    #vm.vm_dump_memory_page_pool()
+
+    for r_vaddr, data in all_data.items():
+        vm.vm_set_mem(r_vaddr, data)
     return e
 
 def vm_load_pe_lib(fname_in, libs, lib_path_base, patch_vm_imp, **kargs):
