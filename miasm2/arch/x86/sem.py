@@ -1701,6 +1701,8 @@ def fcom(ir, instr, a, b = None):
 
     e = []
     if isinstance(b, ExprMem):
+        if b.size > 64:
+            raise NotImplementedError('float to long')
         b = ExprOp('mem_%.2d_to_double'%b.size, b)
 
 
@@ -1775,6 +1777,8 @@ def ficomp(ir, instr, a, b = None):
 
 def fld(ir, instr, a):
     if isinstance(a, ExprMem):
+        if a.size > 64:
+            raise NotImplementedError('float to long')
         src = ExprOp('mem_%.2d_to_double' % a.size, a)
     else:
         src = a
@@ -1798,6 +1802,8 @@ def fld(ir, instr, a):
 def fst(ir, instr, a):
     e = []
     if isinstance(a, ExprMem):
+        if a.size > 64:
+            raise NotImplementedError('float to long')
         src = ExprOp('double_to_mem_%2d' % a.size, float_st0)
     else:
         src = float_st0
@@ -1877,6 +1883,8 @@ def fadd(ir, instr, a, b=None):
         a = float_st0
     e = []
     if isinstance(b, ExprMem):
+        if b.size > 64:
+            raise NotImplementedError('float to long')
         src = ExprOp('mem_%.2d_to_double' % b.size, b)
     else:
         src = b
@@ -1891,6 +1899,8 @@ def fiadd(ir, instr, a, b=None):
         a = float_st0
     e = []
     if isinstance(b, ExprMem):
+        if b.size > 64:
+            raise NotImplementedError('float to long')
         src = ExprOp('mem_%.2d_to_double' % b.size, b)
     else:
         src = b
@@ -1905,6 +1915,8 @@ def faddp(ir, instr, a, b=None):
         a = float_st0
     e = []
     if isinstance(b, ExprMem):
+        if b.size > 64:
+            raise NotImplementedError('float to long')
         src = ExprOp('mem_%.2d_to_double' % b.size, b)
     else:
         src = b
@@ -1954,6 +1966,8 @@ def fsub(ir, instr, a, b=None):
         a = float_st0
     e = []
     if isinstance(b, ExprMem):
+        if b.size > 64:
+            raise NotImplementedError('float to long')
         src = ExprOp('mem_%.2d_to_double' % b.size, b)
     else:
         src = b
@@ -1967,6 +1981,8 @@ def fsubp(ir, instr, a, b=None):
         a = float_st0
     e = []
     if isinstance(b, ExprMem):
+        if b.size > 64:
+            raise NotImplementedError('float to long')
         src = ExprOp('mem_%.2d_to_double' % b.size, b)
     else:
         src = b
@@ -1982,6 +1998,8 @@ def fsubr(ir, instr, a, b=None):
         a = float_st0
     e = []
     if isinstance(b, ExprMem):
+        if b.size > 64:
+            raise NotImplementedError('float to long')
         src = ExprOp('mem_%.2d_to_double' % b.size, b)
     else:
         src = b
@@ -1996,6 +2014,8 @@ def fmul(ir, instr, a, b=None):
         a = float_st0
     e = []
     if isinstance(b, ExprMem):
+        if b.size > 64:
+            raise NotImplementedError('float to long')
         src = ExprOp('mem_%.2d_to_double' % b.size, b)
     else:
         src = b
@@ -2009,6 +2029,8 @@ def fimul(ir, instr, a, b=None):
         a = float_st0
     e = []
     if isinstance(b, ExprMem):
+        if b.size > 64:
+            raise NotImplementedError('float to long')
         src = ExprOp('mem_%.2d_to_double' % b.size, b)
     else:
         src = b
@@ -2023,6 +2045,8 @@ def fdiv(ir, instr, a, b=None):
         a = float_st0
     e = []
     if isinstance(b, ExprMem):
+        if b.size > 64:
+            raise NotImplementedError('float to long')
         src = ExprOp('mem_%.2d_to_double' % b.size, b)
     else:
         src = b
@@ -2036,6 +2060,8 @@ def fdivr(ir, instr, a, b=None):
         a = float_st0
     e = []
     if isinstance(b, ExprMem):
+        if b.size > 64:
+            raise NotImplementedError('float to long')
         src = ExprOp('mem_%.2d_to_double' % b.size, b)
     else:
         src = b
@@ -2050,6 +2076,8 @@ def fidiv(ir, instr, a, b=None):
         a = float_st0
     e = []
     if isinstance(b, ExprMem):
+        if b.size > 64:
+            raise NotImplementedError('float to long')
         src = ExprOp('mem_%.2d_to_double' % b.size, b)
     else:
         src = b
@@ -2064,6 +2092,8 @@ def fidivr(ir, instr, a, b=None):
         a = float_st0
     e = []
     if isinstance(b, ExprMem):
+        if b.size > 64:
+            raise NotImplementedError('float to long')
         src = ExprOp('mem_%.2d_to_double' % b.size, b)
     else:
         src = b
@@ -2079,6 +2109,8 @@ def fdivp(ir, instr, a, b=None):
         a = float_st0
     e = []
     if isinstance(b, ExprMem):
+        if b.size > 64:
+            raise NotImplementedError('float to long')
         src = ExprOp('mem_%.2d_to_double' % b.size, b)
     else:
         src = b
@@ -2095,6 +2127,8 @@ def fmulp(ir, instr, a, b=None):
         a = float_st0
     e = []
     if isinstance(b, ExprMem):
+        if b.size > 64:
+            raise NotImplementedError('float to long')
         src = ExprOp('mem_%.2d_to_double' % b.size, b)
     else:
         src = b
@@ -2107,6 +2141,8 @@ def fmulp(ir, instr, a, b=None):
 def ftan(ir, instr, a):
     e = []
     if isinstance(a, ExprMem):
+        if a.size > 64:
+            raise NotImplementedError('float to long')
         src = ExprOp('mem_%.2d_to_double' % a.size, a)
     else:
         src = a
@@ -2118,6 +2154,8 @@ def ftan(ir, instr, a):
 def fxch(ir, instr, a):
     e = []
     if isinstance(a, ExprMem):
+        if a.size > 64:
+            raise NotImplementedError('float to long')
         src = ExprOp('mem_%.2d_to_double' % a.size, a)
     else:
         src = a
