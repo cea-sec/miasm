@@ -6,7 +6,7 @@ log = logging.getLogger("binary")
 console_handler = logging.StreamHandler()
 console_handler.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
 log.addHandler(console_handler)
-log.setLevel(logging.INFO)
+log.setLevel(logging.ERROR)
 
 class Container(object):
     def __init__(self, filename, vm = None, addr = None):
