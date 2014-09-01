@@ -490,3 +490,39 @@ class ir_mips32(ir):
     def get_next_break_label(self, instr):
         l = self.symbol_pool.getby_offset_create(instr.offset  + 8)
         return l
+
+    def add_bloc(self, bloc, gen_pc_updt = False):
+        c = None
+        ir_blocs_all = []
+        for l in bloc.lines:
+            if c is None:
+                # print 'new c'
+                label = self.get_label(l)
+                c = irbloc(label)
+                ir_blocs_all.append(c)
+                bloc_dst = None
+            # print 'Translate', l
+            dst, ir_bloc_cur, ir_blocs_extra = self.instr2ir(l)
+            # print ir_bloc_cur
+            # for xxx in ir_bloc_cur:
+            #    print "\t", xxx
+            assert((dst is None) or (bloc_dst is None))
+            bloc_dst = dst
+            #if bloc_dst is not None:
+            #    c.dst = bloc_dst
+            if dst is not None:
+                ir_bloc_cur.append(ExprAff(PC_FETCH, dst))
+                c.dst = PC_FETCH
+            if gen_pc_updt is not False:
+                self.gen_pc_update(c, l)
+
+            c.irs.append(ir_bloc_cur)
+            c.lines.append(l)
+            if ir_blocs_extra:
+                # print 'split'
+                for b in ir_blocs_extra:
+                    b.lines = [l] * len(b.irs)
+                ir_blocs_all += ir_blocs_extra
+                c = None
+        self.post_add_bloc(bloc, ir_blocs_all)
+        return ir_blocs_all

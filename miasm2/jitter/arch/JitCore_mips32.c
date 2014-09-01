@@ -59,6 +59,7 @@ reg_dict gpreg_dict[] = { {.name = "ZERO", .offset = offsetof(vm_cpu_t, ZERO)},
 			  {.name = "FP", .offset = offsetof(vm_cpu_t, FP)},
 			  {.name = "RA", .offset = offsetof(vm_cpu_t, RA)},
 			  {.name = "PC", .offset = offsetof(vm_cpu_t, PC)},
+			  {.name = "PC_FETCH", .offset = offsetof(vm_cpu_t, PC_FETCH)},
 			  {.name = "R_LO", .offset = offsetof(vm_cpu_t, R_LO)},
 			  {.name = "R_HI", .offset = offsetof(vm_cpu_t, R_HI)},
 };
@@ -119,6 +120,7 @@ PyObject* cpu_get_gpreg(JitCpu* self)
     get_reg(FP);
     get_reg(RA);
     get_reg(PC);
+    get_reg(PC_FETCH);
     get_reg(R_LO);
     get_reg(R_HI);
 
@@ -323,6 +325,7 @@ getset_reg_u32(SP);
 getset_reg_u32(FP);
 getset_reg_u32(RA);
 getset_reg_u32(PC);
+getset_reg_u32(PC_FETCH);
 getset_reg_u32(R_LO);
 getset_reg_u32(R_HI);
 
@@ -376,6 +379,7 @@ PyObject* get_gpreg_offset_all(void)
     get_reg_off(FP);
     get_reg_off(RA);
     get_reg_off(PC);
+    get_reg_off(PC_FETCH);
     get_reg_off(R_LO);
     get_reg_off(R_HI);
 
@@ -412,6 +416,7 @@ PyObject* get_gpreg_offset_all(void)
     get_reg_off(FP_new);
     get_reg_off(RA_new);
     get_reg_off(PC_new);
+    get_reg_off(PC_FETCH_new);
     get_reg_off(R_LO_new);
     get_reg_off(R_HI_new);
 
@@ -547,6 +552,7 @@ static PyGetSetDef JitCpu_getseters[] = {
     {"FP" , (getter)JitCpu_get_FP , (setter)JitCpu_set_FP , "FP" , NULL},
     {"RA" , (getter)JitCpu_get_RA , (setter)JitCpu_set_RA , "RA" , NULL},
     {"PC" , (getter)JitCpu_get_PC , (setter)JitCpu_set_PC , "PC" , NULL},
+    {"PC_FETCH" , (getter)JitCpu_get_PC_FETCH , (setter)JitCpu_set_PC_FETCH , "PC_FETCH" , NULL},
     {"R_LO" , (getter)JitCpu_get_R_LO , (setter)JitCpu_set_R_LO , "R_LO" , NULL},
     {"R_HI" , (getter)JitCpu_get_R_HI , (setter)JitCpu_set_R_HI , "R_HI" , NULL},
 

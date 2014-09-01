@@ -38,6 +38,7 @@ typedef struct {
 	uint32_t FP;
 	uint32_t RA;
 	uint32_t PC;
+	uint32_t PC_FETCH;
 	uint32_t R_LO;
 	uint32_t R_HI;
 
@@ -74,6 +75,7 @@ typedef struct {
 	uint32_t FP_new;
 	uint32_t RA_new;
 	uint32_t PC_new;
+	uint32_t PC_FETCH_new;
 	uint32_t R_LO_new;
 	uint32_t R_HI_new;
 

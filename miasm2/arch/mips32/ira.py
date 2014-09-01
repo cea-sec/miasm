@@ -19,10 +19,7 @@ class ir_a_mips32(ir_mips32, ira):
 
     # for test XXX TODO
     def set_dead_regs(self, b):
-        b.rw[-1][1].add(self.arch.regs.zf)
-        b.rw[-1][1].add(self.arch.regs.nf)
-        b.rw[-1][1].add(self.arch.regs.of)
-        b.rw[-1][1].add(self.arch.regs.cf)
+        pass
 
     def call_effects(self, ad):
         irs = [[ExprAff(self.ret_reg, ExprOp('call_func_ret', ad, self.sp)),
