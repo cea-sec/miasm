@@ -118,17 +118,14 @@ def mul(ir, instr, a, b, c):
     e.append(ExprAff(a, ExprOp('imul', b, c)))
     return None, e, []
 
-def sltu(ir, instr, a, b, c):
+def sltu(ir, instr, a, x, y):
     e = []
-    e.append(ExprAff(a, (b-c).msb().zeroExtend(32)))
+    e.append(ExprAff(a, (((x - y) ^ ((x ^ y) & ((x - y) ^ x))) ^ x ^ y).msb().zeroExtend(32)))
     return None, e, []
 
-def slt(ir, instr, a, b, c):
+def slt(ir, instr, a, x, y):
     e = []
-    #nf - of
-    # TODO CHECK
-    f = (b-c).msb() ^ (((a ^ c) & (~(a ^ b)))).msb()
-    e.append(ExprAff(a, f.zeroExtend(32)))
+    e.append(ExprAff(a, ((x - y) ^ ((x ^ y) & ((x - y) ^ x))).zeroExtend(32)))
     return None, e, []
 
 def l_sub(ir, instr, a, b, c):
