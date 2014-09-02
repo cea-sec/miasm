@@ -70,8 +70,8 @@ def jit_mips32_binary(args):
 
     else:
         print(myjit.continue_run())
-
+    return myjit
 if __name__ == '__main__':
     from sys import stderr
     args = parser.parse_args()
-    jit_mips32_binary(args)
+    myjit = jit_mips32_binary(args)

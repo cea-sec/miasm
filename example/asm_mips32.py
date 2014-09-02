@@ -30,14 +30,16 @@ st = StrPatchwork()
 blocs, symbol_pool = parse_asm.parse_txt(mn_mips32, "l", '''
 main:
     ADDIU      A0, ZERO, 0x10
-    ADDIU         A1, ZERO, 0
+    ADDIU      A1, ZERO, 0
 loop:
     ADDIU      A1, A1, 0x1
-    ADDIU      A0, A0, 0xFFFFFFFF
     BNE        A0, ZERO, loop
-    NOP
+    ADDIU      A0, A0, 0xFFFFFFFF
+
+    ADDIU      A2, A2, 0x1
+    MOVN       A1, ZERO, ZERO
     JR         RA
-    NOP
+    ADDIU      A2, A2, 0x1
 ''')
 
 # fix shellcode addr
