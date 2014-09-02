@@ -149,16 +149,16 @@ def sh(ir, instr, a, b):
     return None, e, []
 
 def movn(ir, instr, a, b, c):
-    lbl_do = ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = ExprId(ir.get_next_label(instr), instr.mode)
+    lbl_do = ExprId(ir.gen_label(), 32)
+    lbl_skip = ExprId(ir.get_next_label(instr), 32)
     e_do = []
     e_do.append(ExprAff(a, b))
 
     return ExprCond(c, lbl_do, lbl_skip), [], [irbloc(lbl_do.name, lbl_skip, [e_do])]
 
 def movz(ir, instr, a, b, c):
-    lbl_do = ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = ExprId(ir.get_next_label(instr), instr.mode)
+    lbl_do = ExprId(ir.gen_label(), 32)
+    lbl_skip = ExprId(ir.get_next_label(instr), 32)
     e_do = []
     e_do.append(ExprAff(a, b))
 
