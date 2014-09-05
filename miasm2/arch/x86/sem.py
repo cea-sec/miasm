@@ -392,7 +392,7 @@ def sar(ir, instr, a, b):
         ExprAff(cf, new_cf),
         ExprAff(of, ExprInt_from(of, 0)),
         ExprAff(a, c),
-        ExprAdd(ir.IRDst, lbl_skip)
+        ExprAff(ir.IRDst, lbl_skip)
     ]
 
     e_do += update_flag_znp(c)
