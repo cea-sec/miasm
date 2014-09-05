@@ -60,6 +60,14 @@ mystr:
    NOP
    NOP
    CMOVZ EAX, EBX
+   ; test shr
+   NOP
+   SHR EAX, 1
+   NOP
+   NOP
+   SHR EAX, CL
+   NOP
+
    MOV  ESP, EBP
    POP  EBP
    RET

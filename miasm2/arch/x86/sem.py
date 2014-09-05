@@ -392,7 +392,6 @@ def sar(ir, instr, a, b):
         ExprAff(cf, new_cf),
         ExprAff(of, ExprInt_from(of, 0)),
         ExprAff(a, c),
-        ExprAff(ir.IRDst, lbl_skip)
     ]
 
     e_do += update_flag_znp(c)
@@ -403,6 +402,8 @@ def sar(ir, instr, a, b):
             return e_do, []
         else:
             return [], []
+
+    e_do.append(ExprAff(ir.IRDst, lbl_skip))
 
     e = []
     e.append(ExprAff(ir.IRDst, ExprCond(shifter, lbl_do, lbl_skip)))
@@ -423,7 +424,6 @@ def shr(ir, instr, a, b):
         ExprAff(cf, new_cf),
         ExprAff(of, ExprInt_from(of, 0)),
         ExprAff(a, c),
-        ExprAff(ir.IRDst, lbl_skip)
     ]
 
     e_do += update_flag_znp(c)
@@ -434,6 +434,8 @@ def shr(ir, instr, a, b):
             return e_do, []
         else:
             return [], []
+
+    e_do.append(ExprAff(ir.IRDst, lbl_skip))
 
     e = []
     e.append(ExprAff(ir.IRDst, ExprCond(shifter, lbl_do, lbl_skip)))
