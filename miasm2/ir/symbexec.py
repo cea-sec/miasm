@@ -272,7 +272,7 @@ class symbexec:
         return o
 
     def substract_mems(self, a, b):
-        ex = ExprOp('-', b.arg, a.arg)
+        ex = b.arg - a.arg
         ex = self.expr_simp(self.eval_expr(ex, {}))
         if not isinstance(ex, ExprInt):
             return None
