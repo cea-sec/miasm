@@ -410,21 +410,34 @@ def sar(ir, instr, a, b):
 
 
 def shr(ir, instr, a, b):
-    e = []
-    # TODO FIX AS SAR!
+
     shifter = get_shift(a, b)
     c = ExprOp('>>', a, shifter)
 
+    lbl_do = ExprId(ir.gen_label(), instr.mode)
+    lbl_skip = ExprId(ir.get_next_label(instr), instr.mode)
+
     new_cf = ExprOp('>>', a, (shifter - ExprInt_from(a, 1)))[:1]
-    e.append(ExprAff(cf, ExprCond(shifter,
-                                  new_cf,
-                                  cf)
-                     )
-             )
-    e.append(ExprAff(of, a.msb()))
-    e += update_flag_znp(c)
-    e.append(ExprAff(a, c))
-    return e, []
+
+    e_do = [
+        ExprAff(cf, new_cf),
+        ExprAff(of, ExprInt_from(of, 0)),
+        ExprAff(a, c),
+        ExprAff(ir.IRDst, lbl_skip)
+    ]
+
+    e_do += update_flag_znp(c)
+
+    # dont generate conditional shifter on constant
+    if isinstance(shifter, ExprInt):
+        if int(shifter.arg) != 0:
+            return e_do, []
+        else:
+            return [], []
+
+    e = []
+    e.append(ExprAff(ir.IRDst, ExprCond(shifter, lbl_do, lbl_skip)))
+    return e, [irbloc(lbl_do.name, [e_do])]
 
 
 def shrd_cl(ir, instr, a, b):
