@@ -1575,7 +1575,7 @@ def cqo(ir, instr):
     e = []
     tempRAX = mRAX[instr.mode][:64]
     tempRDX = mRDX[instr.mode][:64]
-    c = tempEAX.signExtend(128)
+    c = tempRAX.signExtend(128)
     e.append(ExprAff(tempRAX, c[:64]))
     e.append(ExprAff(tempRDX, c[64:127]))
     return e, []
