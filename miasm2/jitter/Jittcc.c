@@ -53,7 +53,6 @@ TCCState * tcc_init_state(void)
 	for (i=0;i<include_array_count; i++){
 		tcc_add_include_path(tcc_state, include_array[i]);
 	}
-
 	return tcc_state;
 }
 
@@ -75,7 +74,6 @@ PyObject* tcc_set_emul_lib_path(PyObject* self, PyObject* args)
 	char* lib_arg;
 
 	char* str1, * str2;
-
 	if (!PyArg_ParseTuple(args, "ss",
 			      &include_arg,
 			      &lib_arg))
@@ -129,17 +127,15 @@ typedef struct {
 
 PyObject* tcc_exec_bloc(PyObject* self, PyObject* args)
 {
-	//PyObject* (*func)(void*, void*);
-	block_id (*func)(void*, void*);
+	void (*func)(block_id*, void*, void*);
 	uint64_t vm;
 	uint64_t cpu;
 	PyObject* ret;
-	block_id BlockDst;
+	block_id BlockDst = {0, 0};
 
 	if (!PyArg_ParseTuple(args, "KKK", &func, &cpu, &vm))
 		return NULL;
-	BlockDst = func((void*)cpu, (void*)vm);
-
+	func(&BlockDst, (void*)cpu, (void*)vm);
 	ret = PyTuple_New(2);
 	if (ret == NULL) {
 		fprintf(stderr, "Erreur alloc!\n");

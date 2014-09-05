@@ -1,10 +1,8 @@
 #include <Python.h>
 #include "JitCore.h"
 
-block_id Resolve_dst(uint64_t addr, uint64_t is_local)
+void Resolve_dst(block_id* b, uint64_t addr, uint64_t is_local)
 {
-	block_id b;
-	b.address = addr;
-	b.is_local = is_local;
-	return b;
+	b->address = addr;
+	b->is_local = is_local;
 }

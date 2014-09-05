@@ -70,4 +70,4 @@ typedef struct {
 	uint64_t address;
 } block_id;
 
-block_id Resolve_dst(uint64_t addr, uint64_t is_local);
+void Resolve_dst(block_id* BlockDst, uint64_t addr, uint64_t is_local);

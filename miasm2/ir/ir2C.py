@@ -209,7 +209,7 @@ pre_instr_test_exception = r"""
 // pre instruction test exception
 if (vm_mngr->exception_flags) {
     %s;
-    RETURN_PC;
+    return;
 }
 """
 
@@ -218,14 +218,14 @@ code_exception_fetch_mem_at_instr = r"""
 // except fetch mem at instr
 if (vm_mngr->exception_flags & EXCEPT_DO_NOT_UPDATE_PC) {
     %s;
-    RETURN_PC;
+    return;
 }
 """
 code_exception_fetch_mem_post_instr = r"""
 // except fetch mem post instr
 if (vm_mngr->exception_flags) {
     %s;
-    RETURN_PC;
+    return;
 }
 """
 
@@ -234,14 +234,14 @@ code_exception_fetch_mem_at_instr_noautomod = r"""
 // except fetch mem at instr noauto
 if ((vm_mngr->exception_flags & ~EXCEPT_CODE_AUTOMOD) & EXCEPT_DO_NOT_UPDATE_PC) {
     %s;
-    RETURN_PC;
+    return;
 }
 """
 code_exception_fetch_mem_post_instr_noautomod = r"""
 // except post instr noauto
 if (vm_mngr->exception_flags & ~EXCEPT_CODE_AUTOMOD) {
     %s;
-    RETURN_PC;
+    return;
 }
 """
 
@@ -250,7 +250,7 @@ code_exception_at_instr = r"""
 // except at instr
 if (vmcpu->exception_flags && vmcpu->exception_flags > EXCEPT_NUM_UPDT_EIP) {
     %s;
-    RETURN_PC;
+    return;
 }
 """
 
@@ -263,7 +263,7 @@ if (vmcpu->exception_flags) {
     else {
       %s;
     }
-    RETURN_PC;
+    return;
 }
 """
 
@@ -271,7 +271,7 @@ if (vmcpu->exception_flags) {
 code_exception_at_instr_noautomod = r"""
 if ((vmcpu->exception_flags & ~EXCEPT_CODE_AUTOMOD) && vmcpu->exception_flags > EXCEPT_NUM_UPDT_EIP) {
     %s;
-    RETURN_PC;
+    return;
 }
 """
 
@@ -283,13 +283,16 @@ if (vmcpu->exception_flags & ~EXCEPT_CODE_AUTOMOD) {
     else {
       %s;
     }
-    RETURN_PC;
+    return;
 }
 """
 
 goto_local_code = r"""
-if (BlockDst.is_local) {
-    goto *local_labels[BlockDst.address];
+if (BlockDst->is_local) {
+    goto *local_labels[BlockDst->address];
+}
+else {
+    return;
 }
 """
 
@@ -311,23 +314,23 @@ def set_pc(ir_arch, src):
 
 
 def gen_resolve_int(ir_arch, e):
-    return 'Resolve_dst(%X, 0)'%(e)
+    return 'Resolve_dst(BlockDst, %X, 0)'%(e)
 
 def gen_resolve_id_lbl(ir_arch, e):
     if e.name.name.startswith("lbl_gen_"):
         # TODO XXX CLEAN
-        return 'Resolve_dst(0x%X, 1)'%(e.name.index)
+        return 'Resolve_dst(BlockDst, 0x%X, 1)'%(e.name.index)
     else:
-        return 'Resolve_dst(0x%X, 0)'%(e.name.offset)
+        return 'Resolve_dst(BlockDst, 0x%X, 0)'%(e.name.offset)
 
 def gen_resolve_id(ir_arch, e):
-    return 'Resolve_dst(%s, 0)'%(patch_c_id(ir_arch.arch, e).toC())
+    return 'Resolve_dst(BlockDst, %s, 0)'%(patch_c_id(ir_arch.arch, e).toC())
 
 def gen_resolve_mem(ir_arch, e):
-    return 'Resolve_dst(%s, 0)'%(patch_c_id(ir_arch.arch, e).toC())
+    return 'Resolve_dst(BlockDst, %s, 0)'%(patch_c_id(ir_arch.arch, e).toC())
 
 def gen_resolve_other(ir_arch, e):
-    return 'Resolve_dst(%s, 0)'%(patch_c_id(ir_arch.arch, e).toC())
+    return 'Resolve_dst(BlockDst, %s, 0)'%(patch_c_id(ir_arch.arch, e).toC())
 
 def gen_resolve_dst_simple(ir_arch, e):
     if isinstance(e, ExprInt):
@@ -347,11 +350,11 @@ def gen_irdst(ir_arch, e):
     if isinstance(e, ExprCond):
         dst_cond_c = patch_c_id(ir_arch.arch, e.cond).toC()
         out.append("if (%s)"%dst_cond_c)
-        out.append('    BlockDst = %s;'%(gen_resolve_dst_simple(ir_arch, e.src1)))
+        out.append('    %s;'%(gen_resolve_dst_simple(ir_arch, e.src1)))
         out.append("else")
-        out.append('    BlockDst = %s;'%(gen_resolve_dst_simple(ir_arch, e.src2)))
+        out.append('    %s;'%(gen_resolve_dst_simple(ir_arch, e.src2)))
     else:
-        out.append('BlockDst = %s;'%(gen_resolve_dst_simple(ir_arch, e)))
+        out.append('%s;'%(gen_resolve_dst_simple(ir_arch, e)))
     return out
 
 def Expr2C(ir_arch, l, exprs, gen_exception_code=False):
@@ -450,7 +453,7 @@ def Expr2C(ir_arch, l, exprs, gen_exception_code=False):
 
         if e.dst == ir_arch.arch.pc[ir_arch.attrib]:
             pc_is_dst = True
-            out_pc += ["RETURN_PC;"]
+            out_pc += ["return;"]
 
     # if len(id_to_update) != len(set(id_to_update)):
     # raise ValueError('Not implemented: multi dst to same id!', str([str(x)
@@ -461,12 +464,12 @@ def Expr2C(ir_arch, l, exprs, gen_exception_code=False):
         if fetch_mem:
             e = set_pc(ir_arch, l.offset & mask_int)
             s1 = "%s" % patch_c_id(ir_arch.arch, e).toC()
-            s1 += ';\n    BlockDst = Resolve_dst(0x%X, 0);\n'%(l.offset & mask_int)
+            s1 += ';\n    Resolve_dst(BlockDst, 0x%X, 0)'%(l.offset & mask_int)
             out.append(code_exception_fetch_mem_at_instr_noautomod % s1)
         if set_exception_flags:
             e = set_pc(ir_arch, l.offset & mask_int)
             s1 = "%s" % patch_c_id(ir_arch.arch, e).toC()
-            s1 += ';\n    BlockDst = Resolve_dst(0x%X, 0);\n'%(l.offset & mask_int)
+            s1 += ';\n    Resolve_dst(BlockDst, 0x%X, 0)'%(l.offset & mask_int)
             out.append(code_exception_at_instr_noautomod % s1)
 
     for i in id_to_update:
@@ -481,14 +484,14 @@ def Expr2C(ir_arch, l, exprs, gen_exception_code=False):
         if set_exception_flags:
             if pc_is_dst:
                 post_instr.append("if (vm_mngr->exception_flags) { " +
-                    "/*pc = 0x%X; */RETURN_PC; }" % (l.offset))
+                    "/*pc = 0x%X; */return; }" % (l.offset))
             else:
                 e = set_pc(ir_arch, l.offset & mask_int)
                 s1 = "%s" % patch_c_id(ir_arch.arch, e).toC()
-                s1 += ';\n    BlockDst = Resolve_dst(0x%X, 0);\n'%(l.offset & mask_int)
+                s1 += ';\n    Resolve_dst(BlockDst, 0x%X, 0)'%(l.offset & mask_int)
                 e = set_pc(ir_arch, (l.offset + l.l) & mask_int)
                 s2 = "%s" % patch_c_id(ir_arch.arch, e).toC()
-                s2 += ';\n    BlockDst = Resolve_dst(0x%X, 0);\n'%((l.offset + l.l) & mask_int)
+                s2 += ';\n    Resolve_dst(BlockDst, 0x%X, 0)'%((l.offset + l.l) & mask_int)
                 post_instr.append(
                     code_exception_post_instr_noautomod % (s1, s2))
 
@@ -500,7 +503,7 @@ def Expr2C(ir_arch, l, exprs, gen_exception_code=False):
 
             e = set_pc(ir_arch, offset & mask_int)
             s1 = "%s" % patch_c_id(ir_arch.arch, e).toC()
-            s1 += ';\n    BlockDst = Resolve_dst(0x%X, 0);\n'%(offset & mask_int)
+            s1 += ';\n    Resolve_dst(BlockDst, 0x%X, 0)'%(offset & mask_int)
             post_instr.append(
                 code_exception_fetch_mem_post_instr_noautomod % (s1))
 
@@ -540,7 +543,7 @@ def ir2C(ir_arch, irbloc, lbl_done,
         if l.offset not in lbl_done:
             e = set_pc(ir_arch, l.offset & mask_int)
             s1 = "%s" % patch_c_id(ir_arch.arch, e).toC()
-            s1 += ';\n    BlockDst = Resolve_dst(0x%X, 0);\n'%(l.offset & mask_int)
+            s1 += ';\n    Resolve_dst(BlockDst, 0x%X, 0)'%(l.offset & mask_int)
             out.append([pre_instr_test_exception % (s1)])
             lbl_done.add(l.offset)
 
@@ -561,7 +564,7 @@ def ir2C(ir_arch, irbloc, lbl_done,
 def irblocs2C(ir_arch, resolvers, label, irblocs,
     gen_exception_code=False, log_mn=False, log_regs=False):
     out = []
-    out.append("block_id BlockDst = {0, 0};")
+
     lbls = [b.label for b in irblocs]
     lbls_local = []
     for l in lbls:
@@ -598,7 +601,6 @@ def irblocs2C(ir_arch, resolvers, label, irblocs,
                 out.append(l)
         dst = irbloc.dst
         out.append("")
-        out.append("return BlockDst;")
 
     return out
 
