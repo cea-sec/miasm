@@ -4,6 +4,7 @@
 from miasm2.expression.expression import *
 from miasm2.core.cpu import gen_reg, gen_regs
 
+
 gen_reg('PC', globals())
 gen_reg('PC_FETCH', globals())
 

@@ -64,3 +64,10 @@
 		return 0;						\
 	}
 
+
+typedef struct {
+	uint8_t is_local;
+	uint64_t address;
+} block_id;
+
+block_id Resolve_dst(uint64_t addr, uint64_t is_local);

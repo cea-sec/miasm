@@ -121,17 +121,37 @@ PyObject* tcc_set_emul_lib_path(PyObject* self, PyObject* args)
 }
 
 
+typedef struct {
+	uint8_t is_local;
+	uint64_t address;
+} block_id;
+
+
 PyObject* tcc_exec_bloc(PyObject* self, PyObject* args)
 {
-	PyObject* (*func)(void*, void*);
+	//PyObject* (*func)(void*, void*);
+	block_id (*func)(void*, void*);
 	uint64_t vm;
 	uint64_t cpu;
 	PyObject* ret;
+	block_id BlockDst;
 
 	if (!PyArg_ParseTuple(args, "KKK", &func, &cpu, &vm))
 		return NULL;
-	ret = func((void*)cpu, (void*)vm);
-	return ret;
+	BlockDst = func((void*)cpu, (void*)vm);
+
+	ret = PyTuple_New(2);
+	if (ret == NULL) {
+		fprintf(stderr, "Erreur alloc!\n");
+		exit(1);
+	}
+
+	if (BlockDst.is_local == 1) {
+		fprintf(stderr, "return on local label!\n");
+		exit(1);
+	}
+
+	return PyLong_FromUnsignedLongLong(BlockDst.address);
 }
 
 PyObject* tcc_compil(PyObject* self, PyObject* args)

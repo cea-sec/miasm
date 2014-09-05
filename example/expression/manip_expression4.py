@@ -71,11 +71,11 @@ def get_modified_symbols(sb):
     return out
 
 
-def intra_bloc_flow_symb(my_ir, flow_graph, irbloc):
+def intra_bloc_flow_symb(ir_arch, flow_graph, irbloc):
     symbols_init = {}
     for i, r in enumerate(all_regs_ids):
         symbols_init[r] = all_regs_ids_init[i]
-    sb = symbexec(mn_x86, symbols_init)
+    sb = symbexec(ir_arch, symbols_init)
     sb.emulbloc(irbloc)
     print '*' * 40
     print irbloc
@@ -138,19 +138,19 @@ def node2str(self, n):
     return out
 
 
-def gen_bloc_data_flow_graph(my_ir, in_str, ad):  # arch, attrib, pool_bin, bloc, symbol_pool):
+def gen_bloc_data_flow_graph(ir_arch, in_str, ad):  # arch, attrib, pool_bin, bloc, symbol_pool):
     out_str = ""
 
-    # my_ir = ir_x86_32(symbol_pool)
+    # ir_arch = ir_x86_32(symbol_pool)
 
-    for irbloc in my_ir.blocs.values():
+    for irbloc in ir_arch.blocs.values():
         print irbloc
 
-    my_ir.gen_graph()
-    my_ir.dead_simp()
+    ir_arch.gen_graph()
+    ir_arch.dead_simp()
 
     irbloc_0 = None
-    for irbloc in my_ir.blocs.values():
+    for irbloc in ir_arch.blocs.values():
         if irbloc.label.offset == ad:
             irbloc_0 = irbloc
             break
@@ -162,17 +162,17 @@ def gen_bloc_data_flow_graph(my_ir, in_str, ad):  # arch, attrib, pool_bin, bloc
 
     bloc2w = {}
 
-    for irbloc in my_ir.blocs.values():
-        intra_bloc_flow_raw(my_ir, flow_graph, irbloc)
-        # intra_bloc_flow_symb(my_ir, flow_graph, irbloc)
+    for irbloc in ir_arch.blocs.values():
+        intra_bloc_flow_raw(ir_arch, flow_graph, irbloc)
+        # intra_bloc_flow_symb(ir_arch, flow_graph, irbloc)
 
-    for irbloc in my_ir.blocs.values():
+    for irbloc in ir_arch.blocs.values():
         print irbloc
         print 'IN', [str(x) for x in irbloc.in_nodes]
         print 'OUT', [str(x) for x in irbloc.out_nodes]
 
     print '*' * 20, 'interbloc', '*' * 20
-    inter_bloc_flow(my_ir, flow_graph, irbloc_0.label)
+    inter_bloc_flow(ir_arch, flow_graph, irbloc_0.label)
 
     # sys.path.append('/home/serpilliere/projet/m2_devel/miasm2/core')
     # from graph_qt import graph_qt
@@ -191,19 +191,19 @@ print 'ok'
 
 
 print 'generating dataflow graph for:'
-my_ir = ir_a_x86_32(mdis.symbol_pool)
+ir_arch = ir_a_x86_32(mdis.symbol_pool)
 
 blocs = ab
 for bloc in blocs:
     print bloc
-    my_ir.add_bloc(bloc)
-for irbloc in my_ir.blocs.values():
+    ir_arch.add_bloc(bloc)
+for irbloc in ir_arch.blocs.values():
     print irbloc
     if irbloc.label.offset != 0:
         continue
 
 
-out_str = gen_bloc_data_flow_graph(my_ir, mdis.bs, ad)
+out_str = gen_bloc_data_flow_graph(ir_arch, mdis.bs, ad)
 
 print '*' * 40
 print """

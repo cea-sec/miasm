@@ -156,7 +156,8 @@ typedef struct {
 
 }vm_cpu_t;
 
-#define RETURN_PC return PyLong_FromUnsignedLongLong(vmcpu->PC);
+//#define RETURN_PC return PyLong_FromUnsignedLongLong(vmcpu->PC);
+#define RETURN_PC return BlockDst;
 
 uint16_t bcdadd_16(uint16_t a, uint16_t b);
 

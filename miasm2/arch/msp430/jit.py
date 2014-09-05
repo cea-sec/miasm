@@ -17,7 +17,7 @@ class jitter_msp430(jitter):
         from miasm2.arch.msp430.sem import ir_msp430
         sp = asmbloc.asm_symbol_pool()
         jitter.__init__(self, ir_msp430(sp), *args, **kwargs)
-        self.my_ir.jit_pc = self.my_ir.arch.regs.PC
+        self.ir_arch.jit_pc = self.ir_arch.arch.regs.PC
 
     def vm_push_uint16_t(self, v):
         regs = self.cpu.vm_get_gpreg()

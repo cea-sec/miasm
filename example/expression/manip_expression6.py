@@ -42,26 +42,26 @@ print symbol_pool
 resolved_b, patches = asmbloc.asm_resolve_final(mn_x86, 32, blocs, symbol_pool)
 
 # Translate to IR
-my_ir = ir_a_x86_32(symbol_pool)
+ir_arch = ir_a_x86_32(symbol_pool)
 for b in blocs:
     print 'add bloc'
     print b
-    my_ir.add_bloc(b)
+    ir_arch.add_bloc(b)
 
 # Display IR
-for lbl, b in my_ir.blocs.items():
+for lbl, b in ir_arch.blocs.items():
     print b
 
 # Dead propagation
-my_ir.gen_graph()
-out = my_ir.graph()
+ir_arch.gen_graph()
+out = ir_arch.graph()
 open('graph.txt', 'w').write(out)
 print '*' * 80
-my_ir.dead_simp()
-out2 = my_ir.graph()
+ir_arch.dead_simp()
+out2 = ir_arch.graph()
 open('graph2.txt', 'w').write(out2)
 
 # Display new IR
 print 'new ir blocs'
-for lbl, b in my_ir.blocs.items():
+for lbl, b in ir_arch.blocs.items():
     print b

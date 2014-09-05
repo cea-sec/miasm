@@ -17,7 +17,7 @@ from miasm2.core import parse_asm, asmbloc
 
 
 logging.getLogger('cpuhelper').setLevel(logging.ERROR)
-EXCLUDE_REGS = set()
+EXCLUDE_REGS = set([ir_32().IRDst, ir_64().IRDst])
 
 m32 = 32
 m64 = 64
@@ -25,7 +25,7 @@ m64 = 64
 def symb_exec(interm, inputstate, debug):
     sympool = dict(regs_init)
     sympool.update(inputstate)
-    symexec = symbexec(mn, sympool)
+    symexec = symbexec(interm, sympool)
     symexec.emul_ir_blocs(interm, 0)
     if debug:
         for k, v in symexec.symbols.items():

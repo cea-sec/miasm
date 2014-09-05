@@ -61,7 +61,8 @@ class ir_a_arm(ir_a_arm_base):
             lbl = bloc.get_next()
             new_lbl = self.gen_label()
             irs = self.call_effects(pc_val)
-            nbloc = irbloc(new_lbl, ExprId(lbl, size=self.pc.size), irs)
+            irs.append([ExprAff(self.IRDst, ExprId(lbl, size=self.pc.size))])
+            nbloc = irbloc(new_lbl, irs)
             nbloc.lines = [l]
             self.blocs[new_lbl] = nbloc
             irb.dst = ExprId(new_lbl, size=self.pc.size)

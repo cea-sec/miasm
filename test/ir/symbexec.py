@@ -8,7 +8,7 @@ class TestSymbExec(unittest.TestCase):
 
     def test_ClassDef(self):
         from miasm2.expression.expression import ExprInt32, ExprId, ExprMem, ExprCompose
-        from miasm2.arch.x86.arch import mn_x86
+        from miasm2.arch.x86.sem import ir_x86_32
         from miasm2.ir.symbexec import symbexec
 
         addrX = ExprInt32(-1)
@@ -34,7 +34,7 @@ class TestSymbExec(unittest.TestCase):
         id_eax = ExprId('eax_init')
 
         e = symbexec(
-            mn_x86, {mem0: id_x, mem1: id_y, mem9: id_x, mem40w: id_x, mem50v: id_y, id_a: addr0, id_eax: addr0})
+            ir_x86_32(), {mem0: id_x, mem1: id_y, mem9: id_x, mem40w: id_x, mem50v: id_y, id_a: addr0, id_eax: addr0})
         self.assertEqual(e.find_mem_by_addr(addr0), mem0)
         self.assertEqual(e.find_mem_by_addr(addrX), None)
         self.assertEqual(e.eval_ExprMem(ExprMem(addr1 - addr1)), id_x)

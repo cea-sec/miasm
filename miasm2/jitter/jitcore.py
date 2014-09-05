@@ -24,13 +24,13 @@ class JitCore(object):
 
     "JiT management. This is an abstract class"
 
-    def __init__(self, my_ir, bs=None):
+    def __init__(self, ir_arch, bs=None):
         """Initialise a JitCore instance.
-        @my_ir: ir instance for current architecture
+        @ir_arch: ir instance for current architecture
         @bs: bitstream
         """
 
-        self.my_ir = my_ir
+        self.ir_arch = ir_arch
         self.bs = bs
         self.known_blocs = {}
         self.lbl2jitbloc = {}
@@ -98,7 +98,7 @@ class JitCore(object):
         @b: the bloc to add
         """
 
-        irblocs = self.my_ir.add_bloc(b, gen_pc_updt = True)
+        irblocs = self.ir_arch.add_bloc(b, gen_pc_updt = True)
         b.irblocs = irblocs
         self.jitirblocs(b.label, irblocs)
 
@@ -109,18 +109,18 @@ class JitCore(object):
         if isinstance(addr, asmbloc.asm_label):
             addr = addr.offset
 
-        l = self.my_ir.symbol_pool.getby_offset_create(addr)
+        l = self.ir_arch.symbol_pool.getby_offset_create(addr)
         cur_bloc = asmbloc.asm_bloc(l)
 
         # Disassemble it
         try:
-            asmbloc.dis_bloc(self.my_ir.arch, self.bs, cur_bloc, addr,
-                             set(), self.my_ir.symbol_pool, [],
+            asmbloc.dis_bloc(self.ir_arch.arch, self.bs, cur_bloc, addr,
+                             set(), self.ir_arch.symbol_pool, [],
                              follow_call=False, patch_instr_symb=True,
                              dontdis_retcall=False,
                              lines_wd=self.options["jit_maxline"],
                              # max 10 asm lines
-                             attrib=self.my_ir.attrib,
+                             attrib=self.ir_arch.attrib,
                              split_dis=self.split_dis)
         except IOError:
             # vm_exception_flag is set
@@ -161,7 +161,7 @@ class JitCore(object):
         """
 
         if lbl is None:
-            lbl = cpu.vm_get_gpreg()[self.my_ir.pc.name]
+            lbl = cpu.vm_get_gpreg()[self.ir_arch.pc.name]
 
         if not lbl in self.lbl2jitbloc:
             # Need to JiT the bloc

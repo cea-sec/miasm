@@ -17,6 +17,8 @@ from elfesteem.strpatchwork import StrPatchwork
 
 from miasm2.arch.x86.disasm import dis_x86_32 as dis_engine
 
+from pdb import pm
+
 
 filename = os.environ.get('PYTHONSTARTUP')
 if filename and os.path.isfile(filename):
@@ -35,22 +37,22 @@ if not args:
     sys.exit(0)
 
 
-def get_bloc(my_ir, mdis, ad):
+def get_bloc(ir_arch, mdis, ad):
     if isinstance(ad, asmbloc.asm_label):
         l = ad
     else:
         l = mdis.symbol_pool.getby_offset_create(ad)
-    if not l in my_ir.blocs:
+    if not l in ir_arch.blocs:
         ad = l.offset
         b = mdis.dis_bloc(ad)
-        my_ir.add_bloc(b)
-    b = my_ir.get_bloc(l)
+        ir_arch.add_bloc(b)
+    b = ir_arch.get_bloc(l)
     if b is None:
         raise LookupError('no bloc found at that address: %s' % l)
     return b
 
 
-def emul_symb(my_ir, mdis, states_todo, states_done):
+def emul_symb(ir_arch, mdis, states_todo, states_done):
     while states_todo:
         ad, symbols, conds = states_todo.pop()
         print '*' * 40, "addr", ad, '*' * 40
@@ -58,11 +60,11 @@ def emul_symb(my_ir, mdis, states_todo, states_done):
             print 'skip', ad
             continue
         states_done.add((ad, symbols, conds))
-        sb = symbexec(mn, {})
+        sb = symbexec(ir_arch, {})
         sb.symbols = symbols.copy()
-        if my_ir.pc in sb.symbols:
-            del(sb.symbols[my_ir.pc])
-        b = get_bloc(my_ir, mdis, ad)
+        if ir_arch.pc in sb.symbols:
+            del(sb.symbols[ir_arch.pc])
+        b = get_bloc(ir_arch, mdis, ad)
 
         print 'run bloc'
         print b
@@ -156,7 +158,9 @@ if __name__ == '__main__':
     my_symbols = dict([(x.name, x) for x in my_symbols])
     my_symbols.update(mn_x86.regs.all_regs_ids_byname)
 
-    sb = symbexec(mn, symbols_init)
+    ir_arch = ir_x86_32(mdis.symbol_pool)
+
+    sb = symbexec(ir_arch, symbols_init)
 
     blocs, symbol_pool = parse_asm.parse_txt(mn_x86, 32, '''
     PUSH argv
@@ -164,27 +168,26 @@ if __name__ == '__main__':
     PUSH ret_addr
     ''')
 
-    my_ir = ir_x86_32(mdis.symbol_pool)
 
     b = blocs[0][0]
     print b
     # add fake address and len to parsed instructions
     for i, l in enumerate(b.lines):
         l.offset, l.l = i, 1
-    my_ir.add_bloc(b)
-    irb = get_bloc(my_ir, mdis, 0)
+    ir_arch.add_bloc(b)
+    irb = get_bloc(ir_arch, mdis, 0)
     sb.emulbloc(irb)
     sb.dump_mem()
 
-    # reset my_ir blocs
-    my_ir.blocs = {}
+    # reset ir_arch blocs
+    ir_arch.blocs = {}
 
     states_todo = set()
     states_done = set()
     states_todo.add((uint32(ad), sb.symbols, ()))
 
     # emul blocs, propagate states
-    emul_symb(my_ir, mdis, states_todo, states_done)
+    emul_symb(ir_arch, mdis, states_todo, states_done)
 
     all_info = []
 
@@ -199,7 +202,7 @@ if __name__ == '__main__':
 
     all_cases = set()
 
-    sb = symbexec(mn, symbols_init)
+    sb = symbexec(ir_arch, symbols_init)
     for ad, reqs_cond in all_info:
         all_ids = set()
         for k, v in reqs_cond:

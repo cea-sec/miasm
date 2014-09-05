@@ -26,12 +26,12 @@ def arm_guess_subcall(
     ira = get_ira(mnemo, attrib)
 
     sp = asm_symbol_pool()
-    my_ir = ira(sp)
+    ir_arch = ira(sp)
     print '###'
     print cur_bloc
-    my_ir.add_bloc(cur_bloc)
+    ir_arch.add_bloc(cur_bloc)
 
-    ir_blocs = my_ir.blocs.values()
+    ir_blocs = ir_arch.blocs.values()
     # flow_graph = DiGraph()
     to_add = set()
     for irb in ir_blocs:
@@ -41,7 +41,7 @@ def arm_guess_subcall(
         lr_val = None
         for exprs in irb.irs:
             for e in exprs:
-                if e.dst == my_ir.pc:
+                if e.dst == ir_arch.pc:
                     pc_val = e.src
                 if e.dst == mnemo.regs.LR:
                     lr_val = e.src
@@ -75,10 +75,10 @@ def arm_guess_jump_table(
     jrb = ExprId('jrb')
 
     sp = asm_symbol_pool()
-    my_ir = ira(sp)
-    my_ir.add_bloc(cur_bloc)
+    ir_arch = ira(sp)
+    ir_arch.add_bloc(cur_bloc)
 
-    ir_blocs = my_ir.blocs.values()
+    ir_blocs = ir_arch.blocs.values()
     for irb in ir_blocs:
         # print 'X'*40
         # print irb
@@ -86,7 +86,7 @@ def arm_guess_jump_table(
         # lr_val = None
         for exprs in irb.irs:
             for e in exprs:
-                if e.dst == my_ir.pc:
+                if e.dst == ir_arch.pc:
                     pc_val = e.src
                 # if e.dst == mnemo.regs.LR:
                 #    lr_val = e.src

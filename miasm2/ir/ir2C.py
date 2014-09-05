@@ -257,10 +257,12 @@ if (vmcpu->exception_flags && vmcpu->exception_flags > EXCEPT_NUM_UPDT_EIP) {
 code_exception_post_instr = r"""
 // except post instr
 if (vmcpu->exception_flags) {
-    if (vmcpu->exception_flags > EXCEPT_NUM_UPDT_EIP)
+    if (vmcpu->exception_flags > EXCEPT_NUM_UPDT_EIP) {
       %s;
-    else
+    }
+    else {
       %s;
+    }
     RETURN_PC;
 }
 """
@@ -275,14 +277,21 @@ if ((vmcpu->exception_flags & ~EXCEPT_CODE_AUTOMOD) && vmcpu->exception_flags > 
 
 code_exception_post_instr_noautomod = r"""
 if (vmcpu->exception_flags & ~EXCEPT_CODE_AUTOMOD) {
-    if (vmcpu->exception_flags > EXCEPT_NUM_UPDT_EIP)
+    if (vmcpu->exception_flags > EXCEPT_NUM_UPDT_EIP) {
       %s;
-    else
+    }
+    else {
       %s;
+    }
     RETURN_PC;
 }
 """
 
+goto_local_code = r"""
+if (BlockDst.is_local) {
+    goto *local_labels[BlockDst.address];
+}
+"""
 
 my_size_mask = {1: 1, 2: 3, 3: 7, 7: 0x7f,
                 8: 0xFF,
@@ -293,15 +302,59 @@ my_size_mask = {1: 1, 2: 3, 3: 7, 7: 0x7f,
 exception_flags = ExprId('exception_flags', 32)
 
 
-def set_pc(my_ir, src):
-    dst = my_ir.jit_pc
+def set_pc(ir_arch, src):
+    dst = ir_arch.jit_pc
     if not isinstance(src, Expr):
         src = ExprInt_from(dst, src)
     e = ExprAff(dst, src.zeroExtend(dst.size))
     return e
 
 
-def Expr2C(my_ir, l, exprs, gen_exception_code=False):
+def gen_resolve_int(ir_arch, e):
+    return 'Resolve_dst(%X, 0)'%(e)
+
+def gen_resolve_id_lbl(ir_arch, e):
+    if e.name.name.startswith("lbl_gen_"):
+        # TODO XXX CLEAN
+        return 'Resolve_dst(0x%X, 1)'%(e.name.index)
+    else:
+        return 'Resolve_dst(0x%X, 0)'%(e.name.offset)
+
+def gen_resolve_id(ir_arch, e):
+    return 'Resolve_dst(%s, 0)'%(patch_c_id(ir_arch.arch, e).toC())
+
+def gen_resolve_mem(ir_arch, e):
+    return 'Resolve_dst(%s, 0)'%(patch_c_id(ir_arch.arch, e).toC())
+
+def gen_resolve_other(ir_arch, e):
+    return 'Resolve_dst(%s, 0)'%(patch_c_id(ir_arch.arch, e).toC())
+
+def gen_resolve_dst_simple(ir_arch, e):
+    if isinstance(e, ExprInt):
+        return gen_resolve_int(ir_arch, e)
+    elif isinstance(e, ExprId) and isinstance(e.name, asmbloc.asm_label):
+        return gen_resolve_id_lbl(ir_arch, e)
+    elif isinstance(e, ExprId):
+        return gen_resolve_id(ir_arch, e)
+    elif isinstance(e, ExprMem):
+        return gen_resolve_mem(ir_arch, e)
+    else:
+        return gen_resolve_other(ir_arch, e)
+
+
+def gen_irdst(ir_arch, e):
+    out = []
+    if isinstance(e, ExprCond):
+        dst_cond_c = patch_c_id(ir_arch.arch, e.cond).toC()
+        out.append("if (%s)"%dst_cond_c)
+        out.append('    BlockDst = %s;'%(gen_resolve_dst_simple(ir_arch, e.src1)))
+        out.append("else")
+        out.append('    BlockDst = %s;'%(gen_resolve_dst_simple(ir_arch, e.src2)))
+    else:
+        out.append('BlockDst = %s;'%(gen_resolve_dst_simple(ir_arch, e)))
+    return out
+
+def Expr2C(ir_arch, l, exprs, gen_exception_code=False):
     id_to_update = []
     out = ["// %s" % (l)]
     out_pc = []
@@ -312,8 +365,8 @@ def Expr2C(my_ir, l, exprs, gen_exception_code=False):
     prefect_index = {8: 0, 16: 0, 32: 0, 64: 0}
     new_expr = []
 
-    e = set_pc(my_ir, l.offset & mask_int)
-    #out.append("%s;" % patch_c_id(my_ir.arch, e).toC())
+    e = set_pc(ir_arch, l.offset & mask_int)
+    #out.append("%s;" % patch_c_id(ir_arch.arch, e).toC())
 
     pc_is_dst = False
     fetch_mem = False
@@ -360,22 +413,31 @@ def Expr2C(my_ir, l, exprs, gen_exception_code=False):
     mem_k = src_mem.keys()
     mem_k.sort()
     for k in mem_k:
-        str_src = patch_c_id(my_ir.arch, k).toC()
-        str_dst = patch_c_id(my_ir.arch, src_mem[k]).toC()
+        str_src = patch_c_id(ir_arch.arch, k).toC()
+        str_dst = patch_c_id(ir_arch.arch, src_mem[k]).toC()
         out.append('%s = %s;' % (str_dst, str_src))
     src_w_len = {}
     for k, v in src_mem.items():
         src_w_len[k] = v
     for e in new_expr:
+
         src, dst = e.src, e.dst
         # reload src using prefetch
         src = src.replace_expr(src_w_len)
-        str_src = patch_c_id(my_ir.arch, src).toC()
-        str_dst = patch_c_id(my_ir.arch, dst).toC()
+        if dst is ir_arch.IRDst:
+            out += gen_irdst(ir_arch, src)
+            continue
+
+
+        str_src = patch_c_id(ir_arch.arch, src).toC()
+        str_dst = patch_c_id(ir_arch.arch, dst).toC()
+
+
+
         if isinstance(dst, ExprId):
             id_to_update.append(dst)
-            str_dst = patch_c_new_id(my_ir.arch, dst)
-            if dst in my_ir.arch.regs.regs_flt_expr:
+            str_dst = patch_c_new_id(ir_arch.arch, dst)
+            if dst in ir_arch.arch.regs.regs_flt_expr:
                 # dont mask float affectation
                 out.append('%s = (%s);' % (str_dst, str_src))
             else:
@@ -386,7 +448,7 @@ def Expr2C(my_ir, l, exprs, gen_exception_code=False):
             str_dst = str_dst.replace('MEM_LOOKUP', 'MEM_WRITE')
             out_mem.append('%s, %s);' % (str_dst[:-1], str_src))
 
-        if e.dst == my_ir.arch.pc[my_ir.attrib]:
+        if e.dst == ir_arch.arch.pc[ir_arch.attrib]:
             pc_is_dst = True
             out_pc += ["RETURN_PC;"]
 
@@ -397,17 +459,21 @@ def Expr2C(my_ir, l, exprs, gen_exception_code=False):
 
     if gen_exception_code:
         if fetch_mem:
-            e = set_pc(my_ir, l.offset & mask_int)
-            s1 = "%s" % patch_c_id(my_ir.arch, e).toC()
+            e = set_pc(ir_arch, l.offset & mask_int)
+            s1 = "%s" % patch_c_id(ir_arch.arch, e).toC()
+            s1 += ';\n    BlockDst = Resolve_dst(0x%X, 0);\n'%(l.offset & mask_int)
             out.append(code_exception_fetch_mem_at_instr_noautomod % s1)
         if set_exception_flags:
-            e = set_pc(my_ir, l.offset & mask_int)
-            s1 = "%s" % patch_c_id(my_ir.arch, e).toC()
+            e = set_pc(ir_arch, l.offset & mask_int)
+            s1 = "%s" % patch_c_id(ir_arch.arch, e).toC()
+            s1 += ';\n    BlockDst = Resolve_dst(0x%X, 0);\n'%(l.offset & mask_int)
             out.append(code_exception_at_instr_noautomod % s1)
 
     for i in id_to_update:
+        if i is ir_arch.IRDst:
+            continue
         out.append('%s = %s;' %
-                   (patch_c_id(my_ir.arch, i), patch_c_new_id(my_ir.arch, i)))
+                   (patch_c_id(ir_arch.arch, i), patch_c_new_id(ir_arch.arch, i)))
 
     post_instr = []
     # test stop exec ####
@@ -417,10 +483,12 @@ def Expr2C(my_ir, l, exprs, gen_exception_code=False):
                 post_instr.append("if (vm_mngr->exception_flags) { " +
                     "/*pc = 0x%X; */RETURN_PC; }" % (l.offset))
             else:
-                e = set_pc(my_ir, l.offset & mask_int)
-                s1 = "%s" % patch_c_id(my_ir.arch, e).toC()
-                e = set_pc(my_ir, (l.offset + l.l) & mask_int)
-                s2 = "%s" % patch_c_id(my_ir.arch, e).toC()
+                e = set_pc(ir_arch, l.offset & mask_int)
+                s1 = "%s" % patch_c_id(ir_arch.arch, e).toC()
+                s1 += ';\n    BlockDst = Resolve_dst(0x%X, 0);\n'%(l.offset & mask_int)
+                e = set_pc(ir_arch, (l.offset + l.l) & mask_int)
+                s2 = "%s" % patch_c_id(ir_arch.arch, e).toC()
+                s2 += ';\n    BlockDst = Resolve_dst(0x%X, 0);\n'%((l.offset + l.l) & mask_int)
                 post_instr.append(
                     code_exception_post_instr_noautomod % (s1, s2))
 
@@ -430,8 +498,9 @@ def Expr2C(my_ir, l, exprs, gen_exception_code=False):
             else:
                 offset = l.offset + l.l
 
-            e = set_pc(my_ir, offset & mask_int)
-            s1 = "%s" % patch_c_id(my_ir.arch, e).toC()
+            e = set_pc(ir_arch, offset & mask_int)
+            s1 = "%s" % patch_c_id(ir_arch.arch, e).toC()
+            s1 += ';\n    BlockDst = Resolve_dst(0x%X, 0);\n'%(offset & mask_int)
             post_instr.append(
                 code_exception_fetch_mem_post_instr_noautomod % (s1))
 
@@ -459,17 +528,19 @@ def expr2pyobj(arch, e):
     return src_c
 
 
-def ir2C(my_ir, irbloc, lbl_done,
+def ir2C(ir_arch, irbloc, lbl_done,
     gen_exception_code=False, log_mn=False, log_regs=False):
     out = []
     # print "TRANS"
     # print irbloc
     out.append(["%s:" % irbloc.label.name])
+    #out.append(['printf("%s:\n");' % irbloc.label.name])
     assert(len(irbloc.irs) == len(irbloc.lines))
     for l, exprs in zip(irbloc.lines, irbloc.irs):
         if l.offset not in lbl_done:
-            e = set_pc(my_ir, l.offset & mask_int)
-            s1 = "%s" % patch_c_id(my_ir.arch, e).toC()
+            e = set_pc(ir_arch, l.offset & mask_int)
+            s1 = "%s" % patch_c_id(ir_arch.arch, e).toC()
+            s1 += ';\n    BlockDst = Resolve_dst(0x%X, 0);\n'%(l.offset & mask_int)
             out.append([pre_instr_test_exception % (s1)])
             lbl_done.add(l.offset)
 
@@ -481,14 +552,34 @@ def ir2C(my_ir, irbloc, lbl_done,
         # print l
         # gen pc update
         post_instr = ""
-        c_code, post_instr, _ = Expr2C(my_ir, l, exprs, gen_exception_code)
+        c_code, post_instr, _ = Expr2C(ir_arch, l, exprs, gen_exception_code)
         out.append(c_code + post_instr)
+    out.append([goto_local_code ] )
     return out
 
 
-def irblocs2C(my_ir, resolvers, label, irblocs,
+def irblocs2C(ir_arch, resolvers, label, irblocs,
     gen_exception_code=False, log_mn=False, log_regs=False):
     out = []
+    out.append("block_id BlockDst = {0, 0};")
+    lbls = [b.label for b in irblocs]
+    lbls_local = []
+    for l in lbls:
+        if l.name.startswith('lbl_gen_'):
+            l.index = int(l.name[8:], 16)
+            lbls_local.append(l)
+    lbl_index_min, lbl_index_max = 0, 0
+    lbls_index = [l.index for l in lbls if hasattr(l, 'index')]
+    lbls_local.sort(key=lambda x:x.index)
+
+    if lbls_index:
+        lbl_index_min = min(lbls_index)
+        lbl_index_max = max(lbls_index)
+        for l in lbls_local:
+            l.index -= lbl_index_min
+
+    out.append("void* local_labels[] = {%s};"%(', '.join(["&&%s"%l.name for l in lbls_local])))
+
     out.append("goto %s;" % label.name)
     bloc_labels = [x.label for x in irblocs]
     assert(label in bloc_labels)
@@ -498,57 +589,16 @@ def irblocs2C(my_ir, resolvers, label, irblocs,
     for irbloc in irblocs:
         # XXXX TEST
         if irbloc.label.offset is None:
-            b_out = ir2C(my_ir, irbloc, lbl_done, gen_exception_code)
+            b_out = ir2C(ir_arch, irbloc, lbl_done, gen_exception_code)
         else:
             b_out = ir2C(
-                my_ir, irbloc, lbl_done, gen_exception_code, log_mn, log_regs)
+                ir_arch, irbloc, lbl_done, gen_exception_code, log_mn, log_regs)
         for exprs in b_out:
             for l in exprs:
                 out.append(l)
         dst = irbloc.dst
         out.append("")
-        if asmbloc.expr_is_label(dst):
-            if dst.name in bloc_labels:
-                out.append("goto %s;" % dst.name.name)
-            else:
-                resolver = resolvers.get_resolver(dst.name.offset)
+        out.append("return BlockDst;")
 
-                e = set_pc(my_ir, dst.name.offset & mask_int)
-                #out.append("%s;" % patch_c_id(my_ir.arch, e).toC())
-                out.append(resolver.ret())
-        elif isinstance(dst, ExprSlice) and isinstance(dst.arg, ExprId):
-            e = set_pc(my_ir, dst)
-            #out.append("%s;" % patch_c_id(my_ir.arch, e).toC())
-
-            e = patch_c_id(my_ir.arch, dst).toC()
-            out.append("return PyLong_FromUnsignedLongLong(%s);" % e)
-
-        elif isinstance(dst, ExprId):
-            e = set_pc(my_ir, dst)
-            #out.append("%s;" % patch_c_id(my_ir.arch, e).toC())
-
-            e = patch_c_id(my_ir.arch, dst).toC()
-            out.append("return PyLong_FromUnsignedLongLong(%s);" % e)
-        elif isinstance(dst, ExprCond):
-            dst_cond_c = patch_c_id(my_ir.arch, dst.cond).toC()
-            out.append("if (%s)" % dst_cond_c)
-
-            if dst.src1.name in bloc_labels:
-                out.append("    goto %s;" % dst.src1.name.name)
-            else:
-                resolver = resolvers.get_resolver(dst.src1.name.offset)
-                out.append(resolver.ret())
-
-            out.append("else")
-
-            if dst.src2.name in bloc_labels:
-                out.append("    goto %s;" % dst.src2.name.name)
-            else:
-                resolver = resolvers.get_resolver(dst.src2.name.offset)
-                out.append(resolver.ret())
-
-        else:
-            raise NotImplementedError('unknown type for dst: %s' % type(dst))
-    #print '\n'.join(out)
     return out
 

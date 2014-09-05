@@ -30,17 +30,29 @@ from miasm2.core.asmbloc import asm_symbol_pool
 
 class irbloc:
 
-    def __init__(self, label, dst=None, irs=None, lines=None):
+    def __init__(self, label, irs, lines = []):
         assert(isinstance(label, asmbloc.asm_label))
         self.label = label
-        self.dst = dst
-        self.lines = []
-        self.irs = []
-        if irs is not None:
-            self.irs = irs
-        if lines is not None:
-            self.lines = lines
+        self.irs = irs
+        self.lines = lines
         self.except_automod = True
+        self._dst = None
+
+
+    def get_dst(self):
+        if self._dst is not None:
+            return self._dst
+        dst = None
+        for ir in self.irs:
+            for i in ir:
+                if isinstance(i.dst, m2_expr.ExprId) and i.dst.name == "IRDst":
+                    if dst is not None:
+                        raise ValueError('Multiple destinations!')
+                    dst = i.src
+        self._dst = dst
+        return dst
+
+    dst = property(get_dst)
 
     def get_rw(self):
         self.r = []
@@ -82,7 +94,6 @@ class irbloc:
             for e in expr:
                 o.append('\t%s' % e)
             o.append("")
-        o.append('\tDst: %s' % self.dst)
 
         return "\n".join(o)
 
@@ -100,8 +111,8 @@ class ir(object):
         self.attrib = attrib
 
     def instr2ir(self, l):
-        dst, ir_bloc_cur, ir_blocs_extra = self.get_ir(l)
-        return dst, ir_bloc_cur, ir_blocs_extra
+        ir_bloc_cur, ir_blocs_extra = self.get_ir(l)
+        return ir_bloc_cur, ir_blocs_extra
 
     def get_bloc(self, ad):
         if isinstance(ad, m2_expr.ExprId) and isinstance(ad.name,
@@ -194,28 +205,19 @@ class ir(object):
         ir_blocs_all = []
         for l in bloc.lines:
             if c is None:
-                # print 'new c'
                 label = self.get_label(l)
-                c = irbloc(label)
+                c = irbloc(label, [], [])
                 ir_blocs_all.append(c)
-                bloc_dst = None
-            # print 'Translate', l
-            dst, ir_bloc_cur, ir_blocs_extra = self.instr2ir(l)
-            # print ir_bloc_cur
-            # for xxx in ir_bloc_cur:
-            #    print "\t", xxx
-            assert((dst is None) or (bloc_dst is None))
-            bloc_dst = dst
-            if bloc_dst is not None:
-                c.dst = bloc_dst
+            ir_bloc_cur, ir_blocs_extra = self.instr2ir(l)
 
             if gen_pc_updt is not False:
                 self.gen_pc_update(c, l)
 
             c.irs.append(ir_bloc_cur)
             c.lines.append(l)
+
+
             if ir_blocs_extra:
-                # print 'split'
                 for b in ir_blocs_extra:
                     b.lines = [l] * len(b.irs)
                 ir_blocs_all += ir_blocs_extra
@@ -246,7 +248,8 @@ class ir(object):
                 continue
             dst = m2_expr.ExprId(self.get_next_label(bloc.lines[-1]),
                                  self.pc.size)
-            b.dst = dst
+            b.irs.append([m2_expr.ExprAff(self.IRDst, dst)])
+            b.lines.append(b.lines[-1])
 
     def gen_edges(self, bloc, ir_blocs):
         pass

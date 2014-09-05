@@ -8,7 +8,7 @@ def get_node_name(label, i, n):
     return n_name
 
 
-def intra_bloc_flow_raw(my_ir, flow_graph, irb):
+def intra_bloc_flow_raw(ir_arch, flow_graph, irb):
     """
     Create data flow for an irbloc using raw IR expressions
     """
@@ -64,7 +64,7 @@ def intra_bloc_flow_raw(my_ir, flow_graph, irb):
     irb.out_nodes = out_nodes
 
 
-def intra_bloc_flow_symbexec(my_ir, flow_graph, irb):
+def intra_bloc_flow_symbexec(ir_arch, flow_graph, irb):
     """
     Create data flow for an irbloc using symbolic execution
     """
@@ -73,13 +73,13 @@ def intra_bloc_flow_symbexec(my_ir, flow_graph, irb):
     current_nodes = {}
 
     symbols_init = {}
-    for r in my_ir.arch.regs.all_regs_ids:
-        # symbols_init[r] = my_ir.arch.regs.all_regs_ids_init[i]
+    for r in ir_arch.arch.regs.all_regs_ids:
+        # symbols_init[r] = ir_arch.arch.regs.all_regs_ids_init[i]
         x = ExprId(r.name, r.size)
         x.is_term = True
         symbols_init[r] = x
 
-    sb = symbexec(my_ir.arch, dict(symbols_init))
+    sb = symbexec(ir_arch, dict(symbols_init))
     sb.emulbloc(irb)
     # print "*"*40
     # print irb
@@ -110,7 +110,7 @@ def intra_bloc_flow_symbexec(my_ir, flow_graph, irb):
     irb.out_nodes = out_nodes
 
 
-def inter_bloc_flow_link(my_ir, flow_graph, todo, link_exec_to_data):
+def inter_bloc_flow_link(ir_arch, flow_graph, todo, link_exec_to_data):
     lbl, current_nodes, exec_nodes = todo
     # print 'TODO'
     # print lbl
@@ -118,10 +118,10 @@ def inter_bloc_flow_link(my_ir, flow_graph, todo, link_exec_to_data):
     current_nodes = dict(current_nodes)
 
     # link current nodes to bloc in_nodes
-    if not lbl in my_ir.blocs:
+    if not lbl in ir_arch.blocs:
         print "cannot find bloc!!", lbl
         return set()
-    irb = my_ir.blocs[lbl]
+    irb = ir_arch.blocs[lbl]
     # pp(('IN', lbl, [(str(x[0]), str(x[1])) for x in current_nodes.items()]))
     to_del = set()
     for n_r, node_n_r in irb.in_nodes.items():
@@ -149,7 +149,7 @@ def inter_bloc_flow_link(my_ir, flow_graph, todo, link_exec_to_data):
     x_nodes = tuple(sorted(list(irb.dst.get_r())))
 
     todo = set()
-    for lbl_dst in my_ir.g.successors(irb.label):
+    for lbl_dst in ir_arch.g.successors(irb.label):
         todo.add((lbl_dst, tuple(current_nodes.items()), x_nodes))
 
     # pp(('OUT', lbl, [(str(x[0]), str(x[1])) for x in current_nodes.items()]))
@@ -157,19 +157,19 @@ def inter_bloc_flow_link(my_ir, flow_graph, todo, link_exec_to_data):
     return todo
 
 
-def create_implicit_flow(my_ir, flow_graph):
+def create_implicit_flow(ir_arch, flow_graph):
 
     # first fix IN/OUT
     # If a son read a node which in not in OUT, add it
-    todo = set(my_ir.blocs.keys())
+    todo = set(ir_arch.blocs.keys())
     while todo:
         lbl = todo.pop()
-        irb = my_ir.blocs[lbl]
-        for lbl_son in my_ir.g.successors(irb.label):
-            if not lbl_son in my_ir.blocs:
+        irb = ir_arch.blocs[lbl]
+        for lbl_son in ir_arch.g.successors(irb.label):
+            if not lbl_son in ir_arch.blocs:
                 print "cannot find bloc!!", lbl
                 continue
-            irb_son = my_ir.blocs[lbl_son]
+            irb_son = ir_arch.blocs[lbl_son]
             for n_r in irb_son.in_nodes:
                 if n_r in irb.out_nodes:
                     continue
@@ -188,13 +188,13 @@ def create_implicit_flow(my_ir, flow_graph):
                     irb.in_nodes[n_r] = irb.label, 0, n_r
                 node_n_r = irb.in_nodes[n_r]
                 # print "###", node_n_r
-                for lbl_p in my_ir.g.predecessors(irb.label):
+                for lbl_p in ir_arch.g.predecessors(irb.label):
                     todo.add(lbl_p)
 
                 flow_graph.add_uniq_edge(node_n_r, node_n_w)
 
 
-def inter_bloc_flow(my_ir, flow_graph, irb_0, link_exec_to_data=True):
+def inter_bloc_flow(ir_arch, flow_graph, irb_0, link_exec_to_data=True):
 
     todo = set()
     done = set()
@@ -205,7 +205,7 @@ def inter_bloc_flow(my_ir, flow_graph, irb_0, link_exec_to_data=True):
         if state in done:
             continue
         done.add(state)
-        out = inter_bloc_flow_link(my_ir, flow_graph, state, link_exec_to_data)
+        out = inter_bloc_flow_link(ir_arch, flow_graph, state, link_exec_to_data)
         todo.update(out)
 
 
@@ -219,20 +219,20 @@ class symb_exec_func:
     There is no real magic here, loops and complex merging will certainly fail.
     """
 
-    def __init__(self, my_ir):
+    def __init__(self, ir_arch):
         self.todo = set()
         self.stateby_ad = {}
         self.cpt = {}
         self.states_var_done = set()
         self.states_done = set()
         self.total_done = 0
-        self.my_ir = my_ir
+        self.ir_arch = ir_arch
 
     def add_state(self, parent, ad, state):
         variables = dict(state.symbols.items())
 
         # get bloc dead, and remove from state
-        b = self.my_ir.get_bloc(ad)
+        b = self.ir_arch.get_bloc(ad)
         if b is None:
             raise ValueError("unknown bloc! %s" % ad)
         """
@@ -299,28 +299,7 @@ class symb_exec_func:
             #    print "state done"
             #    continue
 
-            sb = symbexec(self.my_ir.arch, dict(s))
-            """
-            if (not is_dispatcher(ad)) and len(self.stateby_ad[ad]) > 10:
-                print "DROP", ad
-                continue
+            sb = symbexec(self.ir_arch, dict(s))
 
-            if (not is_dispatcher(ad)) and len(self.stateby_ad[ad]) > 5:
-                print ad
-                big_keys = diff_states(*self.stateby_ad[ad])
-                print big_keys
-                print "MERGE", ad
-
-                if not big_keys:
-                    return parent, sb
-                #assert(len(big_keys) == 1)
-                s_out = []
-                for k, v in s:
-                    if k not in big_keys :
-                        s_out.append((k, v))
-                sb = symbexec(mn, dict(s_out))
-                return parent, ad, sb
-                #diff_states(*self.stateby_ad[ad])
-            """
             return parent, ad, sb
         return None

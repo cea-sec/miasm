@@ -560,18 +560,18 @@ class jitter:
 
     "Main class for JIT handling"
 
-    def __init__(self, my_ir, jit_type="tcc"):
+    def __init__(self, ir_arch, jit_type="tcc"):
         """Init an instance of jitter.
-        @my_ir: ir instance for this architecture
+        @ir_arch: ir instance for this architecture
         @jit_type: JiT backend to use. Available options are:
             - "tcc"
             - "llvm"
             - "python"
         """
 
-        self.arch = my_ir.arch
-        self.attrib = my_ir.attrib
-        arch_name = my_ir.arch.name  # (my_ir.arch.name, my_ir.attrib)
+        self.arch = ir_arch.arch
+        self.attrib = ir_arch.attrib
+        arch_name = ir_arch.arch.name  # (ir_arch.arch.name, ir_arch.attrib)
         if arch_name == "x86":
             from arch import JitCore_x86 as jcore
         elif arch_name == "arm":
@@ -586,15 +586,15 @@ class jitter:
         self.cpu = jcore.JitCpu()
         self.vm = jcore.VmMngr()
         self.bs = bin_stream_vm(self.vm)
-        self.my_ir = my_ir
+        self.ir_arch = ir_arch
         init_arch_C(self.arch)
 
         if jit_type == "tcc":
-            self.jit = JitCore_Tcc(self.my_ir, self.bs)
+            self.jit = JitCore_Tcc(self.ir_arch, self.bs)
         elif jit_type == "llvm":
-            self.jit = JitCore_LLVM(self.my_ir, self.bs)
+            self.jit = JitCore_LLVM(self.ir_arch, self.bs)
         elif jit_type == "python":
-            self.jit = JitCore_Python(self.my_ir, self.bs)
+            self.jit = JitCore_Python(self.ir_arch, self.bs)
         else:
             raise Exception("Unkown JiT Backend")
 
@@ -605,7 +605,7 @@ class jitter:
 
         self.vm.vm_set_addr2obj(self.jit.addr2obj)
 
-        self.jit.load(self.arch)
+        self.jit.load()
         self.stack_size = 0x10000
         self.stack_base = 0x1230000
 

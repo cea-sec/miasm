@@ -21,7 +21,7 @@ for bbl in disasm: ir.add_bloc(bbl)
 symbols_init =  {}
 for i, r in enumerate(all_regs_ids):
     symbols_init[r] = all_regs_ids_init[i]
-symb = symbexec(mn_x86, symbols_init)
+symb = symbexec(ir, symbols_init)
 
 block = ir.get_bloc(0)
 

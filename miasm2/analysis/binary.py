@@ -1,6 +1,7 @@
 from miasm2.core.bin_stream import *
 import logging
 from miasm2.jitter.jitload import vm_load_pe, vm_load_elf
+from miasm2.jitter.csts import PAGE_READ
 
 log = logging.getLogger("binary")
 console_handler = logging.StreamHandler()

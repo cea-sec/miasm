@@ -93,17 +93,15 @@ def mov_b(ir, instr, a, b):
     else:
         a = a[:8].zeroExtend(16)
     e.append(ExprAff(b, a))
-    return None, e, []
+    return e, []
 
 
 def mov_w(ir, instr, a, b):
     e, a, b = mng_autoinc(a, b, 16)
     e.append(ExprAff(b, a))
     if b == ir.pc:
-        dst = PC
-    else:
-        dst = None
-    return dst, e, []
+        e.append(ExprAff(ir.IRDst, a))
+    return e, []
 
 
 def and_b(ir, instr, a, b):
@@ -113,7 +111,7 @@ def and_b(ir, instr, a, b):
     e += update_flag_zn_r(c)
     e += update_flag_cf_inv_zf(c)
     e += [ExprAff(of, ExprInt1(0))]
-    return None, e, []
+    return e, []
 
 
 def and_w(ir, instr, a, b):
@@ -123,7 +121,7 @@ def and_w(ir, instr, a, b):
     e += update_flag_zn_r(c)
     e += update_flag_cf_inv_zf(c)
     e += [ExprAff(of, ExprInt1(0))]
-    return None, e, []
+    return e, []
 
 
 def bic_b(ir, instr, a, b):
@@ -131,21 +129,21 @@ def bic_b(ir, instr, a, b):
     c = (a[:8] ^ ExprInt8(0xff)) & b[:8]
     c = c.zeroExtend(b.size)
     e.append(ExprAff(b, c))
-    return None, e, []
+    return e, []
 
 
 def bic_w(ir, instr, a, b):
     e, a, b = mng_autoinc(a, b, 16)
     c = (a ^ ExprInt16(0xffff)) & b
     e.append(ExprAff(b, c))
-    return None, e, []
+    return e, []
 
 
 def bis_w(ir, instr, a, b):
     e, a, b = mng_autoinc(a, b, 16)
     c = a | b
     e.append(ExprAff(b, c))
-    return None, e, []
+    return e, []
 
 
 def bit_w(ir, instr, a, b):
@@ -154,7 +152,7 @@ def bit_w(ir, instr, a, b):
     e += update_flag_zn_r(c)
     e += update_flag_cf_inv_zf(c)
     e.append(ExprAff(of, ExprInt1(0)))
-    return None, e, []
+    return e, []
 
 """
 def sub_b(ir, instr, a, b):
@@ -176,7 +174,7 @@ def sub_w(ir, instr, a, b):
     # micrcorruption
     # e += update_flag_sub_of(a, b, c)
     # e += update_flag_sub_of(b, a, c)
-    return None, e, []
+    return e, []
 
 
 def add_w(ir, instr, a, b):
@@ -186,7 +184,7 @@ def add_w(ir, instr, a, b):
     e += update_flag_zn_r(c)
     e += update_flag_add_cf(a, b, c)
     e += update_flag_add_of(a, b, c)
-    return None, e, []
+    return e, []
 
 
 def dadd_w(ir, instr, a, b):
@@ -205,7 +203,7 @@ def dadd_w(ir, instr, a, b):
     e.append(ExprAff(cf, ExprOp("bcdadd_cf", b, a)))  # +zeroExtend(cf, 16))))
 
     # of : undefined
-    return None, e, []
+    return e, []
 
 
 def xor_w(ir, instr, a, b):
@@ -215,14 +213,14 @@ def xor_w(ir, instr, a, b):
     e += update_flag_zn_r(c)
     e += update_flag_cf_inv_zf(c)
     e.append(ExprAff(of, b.msb() & a.msb()))
-    return None, e, []
+    return e, []
 
 
 def push_w(ir, instr, a):
     e = []
     e.append(ExprAff(ExprMem(SP - ExprInt16(2), 16), a))
     e.append(ExprAff(SP, SP - ExprInt16(2)))
-    return None, e, []
+    return e, []
 
 
 def call(ir, instr, a):
@@ -231,7 +229,8 @@ def call(ir, instr, a):
     e.append(ExprAff(ExprMem(SP - ExprInt16(2), 16), n))
     e.append(ExprAff(SP, SP - ExprInt16(2)))
     e.append(ExprAff(PC, a))
-    return PC, e, []
+    e.append(ExprAff(ir.IRDst, a))
+    return e, []
 
 
 def swpb(ir, instr, a):
@@ -239,7 +238,7 @@ def swpb(ir, instr, a):
     x, y = a[:8], a[8:16]
     e.append(ExprAff(a, ExprCompose([(y, 0, 8),
                                      (x, 8, 16)])))
-    return None, e, []
+    return e, []
 
 
 def cmp_w(ir, instr, a, b):
@@ -248,7 +247,7 @@ def cmp_w(ir, instr, a, b):
     e += update_flag_zn_r(c)
     e += update_flag_sub_cf(a, b, c)
     e += update_flag_sub_of(a, b, c)
-    return None, e, []
+    return e, []
 
 
 def cmp_b(ir, instr, a, b):
@@ -257,55 +256,62 @@ def cmp_b(ir, instr, a, b):
     e += update_flag_zn_r(c)
     e += update_flag_sub_cf(a[:8], b[:8], c)
     e += update_flag_sub_of(a[:8], b[:8], c)
-    return None, e, []
+    return e, []
 
 
 def jz(ir, instr, a):
     n = ExprId(ir.get_next_label(instr), 16)
     e = []
     e.append(ExprAff(PC, ExprCond(zf, a, n)))
-    return PC, e, []
+    e.append(ExprAff(ir.IRDst, ExprCond(zf, a, n)))
+    return e, []
 
 
 def jnz(ir, instr, a):
     n = ExprId(ir.get_next_label(instr), 16)
     e = []
     e.append(ExprAff(PC, ExprCond(zf, n, a)))
-    return PC, e, []
+    e.append(ExprAff(ir.IRDst, ExprCond(zf, n, a)))
+    return e, []
 
 
 def jl(ir, instr, a):
     n = ExprId(ir.get_next_label(instr), 16)
     e = []
     e.append(ExprAff(PC, ExprCond(nf ^ of, a, n)))
-    return PC, e, []
+    e.append(ExprAff(ir.IRDst, ExprCond(nf ^ of, a, n)))
+    return e, []
 
 
 def jc(ir, instr, a):
     n = ExprId(ir.get_next_label(instr), 16)
     e = []
     e.append(ExprAff(PC, ExprCond(cf, a, n)))
-    return PC, e, []
+    e.append(ExprAff(ir.IRDst, ExprCond(cf, a, n)))
+    return e, []
 
 
 def jnc(ir, instr, a):
     n = ExprId(ir.get_next_label(instr), 16)
     e = []
     e.append(ExprAff(PC, ExprCond(cf, n, a)))
-    return PC, e, []
+    e.append(ExprAff(ir.IRDst, ExprCond(cf, n, a)))
+    return e, []
 
 
 def jge(ir, instr, a):
     n = ExprId(ir.get_next_label(instr), 16)
     e = []
     e.append(ExprAff(PC, ExprCond(nf ^ of, n, a)))
-    return PC, e, []
+    e.append(ExprAff(ir.IRDst, ExprCond(nf ^ of, n, a)))
+    return e, []
 
 
 def jmp(ir, instr, a):
     e = []
     e.append(ExprAff(PC, a))
-    return PC, e, []
+    e.append(ExprAff(ir.IRDst, a))
+    return e, []
 
 
 def rrc_w(ir, instr, a):
@@ -322,7 +328,7 @@ def rrc_w(ir, instr, a):
     e += reset_sr_res()
 
     e.append(ExprAff(of, ExprInt1(0)))
-    return None, e, []
+    return e, []
 
 
 def rra_w(ir, instr, a):
@@ -340,7 +346,7 @@ def rra_w(ir, instr, a):
     e += reset_sr_res()
 
     e.append(ExprAff(of, ExprInt1(0)))
-    return None, e, []
+    return e, []
 
 
 def sxt(ir, instr, a):
@@ -352,7 +358,7 @@ def sxt(ir, instr, a):
     e += update_flag_cf_inv_zf(c)
     e.append(ExprAff(of, ExprInt1(0)))
 
-    return None, e, []
+    return e, []
 
 mnemo_func = {
     "mov.b": mov_b,
@@ -412,6 +418,7 @@ class ir_msp430(ir):
         ir.__init__(self, mn_msp430, None, symbol_pool)
         self.pc = PC
         self.sp = SP
+        self.IRDst = ExprId('IRDst', 16)
 
     def mod_pc(self, instr, instr_ir, extra_ir):
         pass
@@ -419,10 +426,10 @@ class ir_msp430(ir):
     def get_ir(self, instr):
         # print instr#, args
         args = instr.args
-        dst, instr_ir, extra_ir = mnemo_func[instr.name](self, instr, *args)
+        instr_ir, extra_ir = mnemo_func[instr.name](self, instr, *args)
         self.mod_sr(instr, instr_ir, extra_ir)
 
-        return dst, instr_ir, extra_ir
+        return instr_ir, extra_ir
 
     def mod_sr(self, instr, instr_ir, extra_ir):
         for i, x in enumerate(instr_ir):

@@ -414,8 +414,8 @@ try:
 except ImportError:
     llvm = False
 
-# if llvm.version != (3,2):
-#    llvm = False
+# TODO XXX: fix llvm jitter (deactivated for the moment)
+llvm = False
 
 if llvm is False:
     print "%(red)s[LLVM]%(end)s Python 'py-llvm 3.2' module is required for llvm tests" % colors

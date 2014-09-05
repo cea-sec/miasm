@@ -22,27 +22,49 @@ base_expr.setParseAction(my_var_parser)
 
 blocs, symbol_pool = parse_asm.parse_txt(mn_x86, 32, '''
 main:
-  PUSH EBP
-  MOV  EBP, ESP
-  SUB  ESP, 0x100
-  MOV  EAX, 0x1337
-  LEA  ESI, DWORD PTR [mystr]
-  CALL toto
-toto:
-  POP  EDI
-
-  PUSH 0
-  FLD1
-  FLD1
-  FADD ST, ST(1)
-  FIST  DWORD PTR [ESP]
-  POP  EAX
-
-  MOV  ESP, EBP
-  POP  EBP
-  RET
+   PUSH EBP
+   MOV  EBP, ESP
+   SUB  ESP, 0x100
+   MOV  EAX, 0x1337
+   ; test ptr manip
+   LEA  ESI, DWORD PTR [mystr^toto]
+   CALL toto
 mystr:
 .string "test string"
+ toto:
+   POP  EDI
+
+   PUSH EDI
+   ; test scasb
+   XOR  EAX, EAX
+   XOR  ECX, ECX
+   DEC  ECX
+   REPNE SCASB
+   NOT  ECX
+   DEC  ECX
+
+   ; test movsb
+   POP  ESI
+   LEA  EDI, DWORD PTR [EBP-0x100]
+   REPE  MOVSB
+
+   ; test float
+   PUSH 0
+   FLD1
+   FLD1
+   FADD ST, ST(1)
+   FIST  DWORD PTR [ESP]
+   POP  EAX
+
+   ; test cond mnemo
+   NOP
+   NOP
+   CMOVZ EAX, EBX
+   MOV  ESP, EBP
+   POP  EBP
+   RET
+
+
 ''')
 
 # fix shellcode addr

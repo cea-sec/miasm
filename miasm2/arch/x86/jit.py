@@ -17,21 +17,21 @@ class jitter_x86_16(jitter):
     def __init__(self, *args, **kwargs):
         sp = asmbloc.asm_symbol_pool()
         jitter.__init__(self, ir_x86_16(sp), *args, **kwargs)
-        self.my_ir.jit_pc = self.my_ir.arch.regs.RIP
-        self.my_ir.do_stk_segm = False
-        self.orig_irbloc_fix_regs_for_mode = self.my_ir.irbloc_fix_regs_for_mode
-        self.my_ir.irbloc_fix_regs_for_mode = self.my_irbloc_fix_regs_for_mode
+        self.ir_arch.jit_pc = self.ir_arch.arch.regs.RIP
+        self.ir_arch.do_stk_segm = False
+        self.orig_irbloc_fix_regs_for_mode = self.ir_arch.irbloc_fix_regs_for_mode
+        self.ir_arch.irbloc_fix_regs_for_mode = self.ir_archbloc_fix_regs_for_mode
 
-    def my_irbloc_fix_regs_for_mode(self, irbloc, attrib=64):
+    def ir_archbloc_fix_regs_for_mode(self, irbloc, attrib=64):
         self.orig_irbloc_fix_regs_for_mode(irbloc, 64)
 
     def vm_push_uint16_t(self, v):
-        self.cpu.SP -= self.my_ir.sp.size / 8
+        self.cpu.SP -= self.ir_arch.sp.size / 8
         self.vm.vm_set_mem(self.cpu.SP, pck16(v))
 
     def vm_pop_uint16_t(self):
-        x = upck16(self.vm.vm_get_mem(self.cpu.SP, self.my_ir.sp.size / 8))
-        self.cpu.SP += self.my_ir.sp.size / 8
+        x = upck16(self.vm.vm_get_mem(self.cpu.SP, self.ir_arch.sp.size / 8))
+        self.cpu.SP += self.ir_arch.sp.size / 8
         return x
 
     def get_stack_arg(self, n):
@@ -48,22 +48,22 @@ class jitter_x86_32(jitter):
     def __init__(self, *args, **kwargs):
         sp = asmbloc.asm_symbol_pool()
         jitter.__init__(self, ir_x86_32(sp), *args, **kwargs)
-        self.my_ir.jit_pc = self.my_ir.arch.regs.RIP
-        self.my_ir.do_stk_segm = False
+        self.ir_arch.jit_pc = self.ir_arch.arch.regs.RIP
+        self.ir_arch.do_stk_segm = False
 
-        self.orig_irbloc_fix_regs_for_mode = self.my_ir.irbloc_fix_regs_for_mode
-        self.my_ir.irbloc_fix_regs_for_mode = self.my_irbloc_fix_regs_for_mode
+        self.orig_irbloc_fix_regs_for_mode = self.ir_arch.irbloc_fix_regs_for_mode
+        self.ir_arch.irbloc_fix_regs_for_mode = self.ir_archbloc_fix_regs_for_mode
 
-    def my_irbloc_fix_regs_for_mode(self, irbloc, attrib=64):
+    def ir_archbloc_fix_regs_for_mode(self, irbloc, attrib=64):
         self.orig_irbloc_fix_regs_for_mode(irbloc, 64)
 
     def vm_push_uint32_t(self, v):
-        self.cpu.ESP -= self.my_ir.sp.size / 8
+        self.cpu.ESP -= self.ir_arch.sp.size / 8
         self.vm.vm_set_mem(self.cpu.ESP, pck32(v))
 
     def vm_pop_uint32_t(self):
-        x = upck32(self.vm.vm_get_mem(self.cpu.ESP, self.my_ir.sp.size / 8))
-        self.cpu.ESP += self.my_ir.sp.size / 8
+        x = upck32(self.vm.vm_get_mem(self.cpu.ESP, self.ir_arch.sp.size / 8))
+        self.cpu.ESP += self.ir_arch.sp.size / 8
         return x
 
     def get_stack_arg(self, n):
@@ -123,7 +123,7 @@ class jitter_x86_32(jitter):
                 log.debug('%s' % repr(fname))
                 raise ValueError('unknown api', hex(jitter.vm_pop_uint32_t()), repr(fname))
             f(jitter)
-            jitter.pc = getattr(jitter.cpu, jitter.my_ir.pc.name)
+            jitter.pc = getattr(jitter.cpu, jitter.ir_arch.pc.name)
             return True
 
         for f_addr in libs.fad2cname:
@@ -139,22 +139,22 @@ class jitter_x86_64(jitter):
     def __init__(self, *args, **kwargs):
         sp = asmbloc.asm_symbol_pool()
         jitter.__init__(self, ir_x86_64(sp), *args, **kwargs)
-        self.my_ir.jit_pc = self.my_ir.arch.regs.RIP
-        self.my_ir.do_stk_segm = False
+        self.ir_arch.jit_pc = self.ir_arch.arch.regs.RIP
+        self.ir_arch.do_stk_segm = False
 
-        self.orig_irbloc_fix_regs_for_mode = self.my_ir.irbloc_fix_regs_for_mode
-        self.my_ir.irbloc_fix_regs_for_mode = self.my_irbloc_fix_regs_for_mode
+        self.orig_irbloc_fix_regs_for_mode = self.ir_arch.irbloc_fix_regs_for_mode
+        self.ir_arch.irbloc_fix_regs_for_mode = self.ir_archbloc_fix_regs_for_mode
 
-    def my_irbloc_fix_regs_for_mode(self, irbloc, attrib=64):
+    def ir_archbloc_fix_regs_for_mode(self, irbloc, attrib=64):
         self.orig_irbloc_fix_regs_for_mode(irbloc, 64)
 
     def vm_push_uint64_t(self, v):
-        self.cpu.RSP -= self.my_ir.sp.size / 8
+        self.cpu.RSP -= self.ir_arch.sp.size / 8
         self.vm.vm_set_mem(self.cpu.RSP, pck64(v))
 
     def vm_pop_uint64_t(self):
-        x = upck64(self.vm.vm_get_mem(self.cpu.RSP, self.my_ir.sp.size / 8))
-        self.cpu.RSP += self.my_ir.sp.size / 8
+        x = upck64(self.vm.vm_get_mem(self.cpu.RSP, self.ir_arch.sp.size / 8))
+        self.cpu.RSP += self.ir_arch.sp.size / 8
         return x
 
     def get_stack_arg(self, n):

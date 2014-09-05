@@ -94,7 +94,6 @@ class ira:
                 for l in irs:
                     ir_txt.append(str(l))
                 ir_txt.append("")
-            ir_txt.append("DstBloc: %s" % str(b.dst))
             ir_txt.append("")
             all_lbls[id(lbl)] = "\l\\\n".join(ir_txt)
         for l, v in all_lbls.items():
@@ -212,7 +211,7 @@ class ira:
                 x = ExprId(r.name, r.size)
                 x.is_term = True
                 symbols_init[r] = x
-            sb = symbexec(self.arch, dict(symbols_init))
+            sb = symbexec(self, dict(symbols_init))
             sb.emulbloc(irb)
             eqs = []
             for n_w in sb.symbols:

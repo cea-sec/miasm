@@ -16,8 +16,8 @@ class jitter_mips32(jitter):
     def __init__(self, *args, **kwargs):
         sp = asmbloc.asm_symbol_pool()
         jitter.__init__(self, ir_mips32(sp), *args, **kwargs)
-        self.my_ir.jit_pc = self.my_ir.arch.regs.PC
-        self.my_ir.attrib = 'l'
+        self.ir_arch.jit_pc = self.ir_arch.arch.regs.PC
+        self.ir_arch.attrib = 'l'
 
     def vm_push_uint32_t(self, v):
         self.cpu.SP -= 4

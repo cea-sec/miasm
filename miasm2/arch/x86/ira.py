@@ -59,7 +59,9 @@ class ir_a_x86_16(ir_x86_16, ira):
             lbl = bloc.get_next()
             new_lbl = self.gen_label()
             irs = self.call_effects(l.args[0])
-            nbloc = irbloc(new_lbl, ExprId(lbl, size=self.pc.size), irs)
+            irs.append([ExprAff(self.IRDst, ExprId(lbl, size=self.pc.size))])
+
+            nbloc = irbloc(new_lbl, irs)
             nbloc.lines = [l]
             self.blocs[new_lbl] = nbloc
             b.dst = ExprId(new_lbl, size=self.pc.size)

@@ -290,4 +290,5 @@ uint16_t umod16(vm_cpu_t* vmcpu, uint16_t a, uint16_t b);
 int16_t idiv16(vm_cpu_t* vmcpu, int16_t a, int16_t b);
 int16_t imod16(vm_cpu_t* vmcpu, int16_t a, int16_t b);
 
-#define RETURN_PC return PyLong_FromUnsignedLongLong(vmcpu->RIP);
+//#define RETURN_PC return PyLong_FromUnsignedLongLong(vmcpu->RIP);
+#define RETURN_PC return BlockDst;

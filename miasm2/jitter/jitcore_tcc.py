@@ -30,6 +30,7 @@ def gen_core(arch, attrib):
     txt = ""
     txt += '#include "%s/queue.h"\n' % lib_dir
     txt += '#include "%s/vm_mngr.h"\n' % lib_dir
+    txt += '#include "%s/arch/JitCore.h"\n' % lib_dir
     txt += '#include "%s/arch/JitCore_%s.h"\n' % (lib_dir, arch.name)
 
     txt += r'''
@@ -38,11 +39,11 @@ def gen_core(arch, attrib):
     return txt
 
 
-def gen_C_source(my_ir, func_code):
+def gen_C_source(ir_arch, func_code):
     c_source = ""
     c_source += "\n".join(func_code)
 
-    c_source = gen_core(my_ir.arch, my_ir.attrib) + c_source
+    c_source = gen_core(ir_arch.arch, ir_arch.attrib) + c_source
 
     c_source = """
  #ifdef __x86_64__
@@ -90,17 +91,18 @@ class JitCore_Tcc(jitcore.JitCore):
 
     "JiT management, using LibTCC as backend"
 
-    def __init__(self, my_ir, bs=None):
-        super(JitCore_Tcc, self).__init__(my_ir, bs)
+    def __init__(self, ir_arch, bs=None):
+        super(JitCore_Tcc, self).__init__(ir_arch, bs)
         self.resolver = resolver()
         self.exec_wrapper = Jittcc.tcc_exec_bloc
         self.tcc_states =[]
+        self.ir_arch = ir_arch
 
-    def load(self, arch):
+    def load(self):
         # os.path.join(os.path.dirname(os.path.realpath(__file__)), "jitter")
         lib_dir = os.path.dirname(os.path.realpath(__file__))
         libs = []
-        libs.append(os.path.join(lib_dir, 'arch/JitCore_%s.so' % (arch.name)))
+        libs.append(os.path.join(lib_dir, 'arch/JitCore_%s.so' % (self.ir_arch.arch.name)))
         libs = ';'.join(libs)
         jittcc_path = Jittcc.__file__
         include_dir = os.path.dirname(jittcc_path)
@@ -127,20 +129,18 @@ class JitCore_Tcc(jitcore.JitCore):
             Jittcc.tcc_end(tcc_state)
 
     def jitirblocs(self, label, irblocs):
-        # irbloc = self.lbl2irbloc[lbl]
         f_name = "bloc_%s" % label.name
-        f_declaration = \
-            'PyObject* %s(vm_cpu_t* vmcpu, vm_mngr_t* vm_mngr)' % f_name
-        out = irblocs2C(self.my_ir, self.resolver, label, irblocs,
+        f_declaration = 'block_id %s(vm_cpu_t* vmcpu, vm_mngr_t* vm_mngr)' % f_name
+        out = irblocs2C(self.ir_arch, self.resolver, label, irblocs,
                         gen_exception_code=True,
                         log_mn=self.log_mn,
                         log_regs=self.log_regs)
         out = [f_declaration + '{'] + out + ['}\n']
         c_code = out
 
-        func_code = gen_C_source(self.my_ir, c_code)
-        # print func_code
-        # open('tmp_%.4d.c'%self.jitcount, "w").write(func_code)
+        func_code = gen_C_source(self.ir_arch, c_code)
+
+        open('tmp_%.4d.c'%self.jitcount, "w").write(func_code)
         self.jitcount += 1
         tcc_state, mcode = jit_tcc_compil(f_name, func_code)
         self.tcc_states.append(tcc_state)
@@ -148,4 +148,3 @@ class JitCore_Tcc(jitcore.JitCore):
         self.lbl2jitbloc[label.offset] = mcode
         self.addr2obj[label.offset] = jcode
         self.addr2objref[label.offset] = objref(jcode)
-        # print "ADDR2CODE", hex(b.label.offset), hex(id(jcode))

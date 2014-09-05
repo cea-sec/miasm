@@ -49,18 +49,19 @@ def update_engine_from_cpu(cpu, exec_engine):
 class JitCore_Python(jitcore.JitCore):
     "JiT management, using Miasm2 Symbol Execution engine as backend"
 
-    def __init__(self, my_ir, bs=None):
-        super(JitCore_Python, self).__init__(my_ir, bs)
+    def __init__(self, ir_arch, bs=None):
+        super(JitCore_Python, self).__init__(ir_arch, bs)
         self.symbexec = None
+        self.ir_arch = ir_arch
 
-    def load(self, arch):
+    def load(self):
         "Preload symbols according to current architecture"
 
         symbols_init =  {}
-        for i, r in enumerate(arch.regs.all_regs_ids_no_alias):
-            symbols_init[r] = arch.regs.all_regs_ids_init[i]
+        for i, r in enumerate(self.ir_arch.arch.regs.all_regs_ids_no_alias):
+            symbols_init[r] = self.ir_arch.arch.regs.all_regs_ids_init[i]
 
-        self.symbexec = symbexec(arch, symbols_init,
+        self.symbexec = symbexec(self.ir_arch, symbols_init,
                                  func_read = self.func_read,
                                  func_write = self.func_write)
 
@@ -157,7 +158,7 @@ class JitCore_Python(jitcore.JitCore):
                         return line.offset
 
                 # Get next bloc address
-                ad = expr_simp(exec_engine.eval_expr(irb.dst))
+                ad = expr_simp(exec_engine.eval_expr(self.ir_arch.IRDst))
 
                 # Updates @cpu instance according to new CPU values
                 update_cpu_from_engine(cpu, exec_engine)

@@ -800,8 +800,7 @@ def gen_non_free_mapping(group_bloc, dont_erase=[]):
     return non_free_mapping
 
 
-def resolve_symbol(
-    group_bloc, symbol_pool, dont_erase=[], max_offset=0xFFFFFFFF):
+def resolve_symbol(group_bloc, symbol_pool, dont_erase=[], max_offset=0xFFFFFFFF):
     """
     place all asmblocs
     """

@@ -19,8 +19,8 @@ class JitCore_LLVM(jitcore.JitCore):
                            "msp430": "JitCore_msp430.so",
                            "mips32": "JitCore_mips32.so"}
 
-    def __init__(self, my_ir, bs=None):
-        super(JitCore_LLVM, self).__init__(my_ir, bs)
+    def __init__(self, ir_arch, bs=None):
+        super(JitCore_LLVM, self).__init__(ir_arch, bs)
 
         self.options.update({"safe_mode": False,   # Verify each function
                              "optimise": False,     # Optimise functions
@@ -31,8 +31,9 @@ class JitCore_LLVM(jitcore.JitCore):
 
         self.exec_wrapper = Jitllvm.llvm_exec_bloc
         self.exec_engines = []
+        self.ir_arch = ir_arch
 
-    def load(self, arch):
+    def load(self):
 
         # Library to load within Jit context
         libs_to_load = []
@@ -42,7 +43,7 @@ class JitCore_LLVM(jitcore.JitCore):
         lib_dir = os.path.join(lib_dir, 'arch')
         try:
             jit_lib = os.path.join(
-                lib_dir, self.arch_dependent_libs[arch.name])
+                lib_dir, self.arch_dependent_libs[self.ir_arch.arch.name])
             libs_to_load.append(jit_lib)
         except KeyError:
             pass
@@ -54,10 +55,10 @@ class JitCore_LLVM(jitcore.JitCore):
         self.context.optimise_level()
 
         # Save the current architecture parameters
-        self.arch = arch
+        self.arch = self.ir_arch.arch
 
         # Get the correspondance between registers and vmcpu struct
-        mod_name = "miasm2.jitter.arch.JitCore_%s" % (arch.name)
+        mod_name = "miasm2.jitter.arch.JitCore_%s" % (self.ir_arch.arch.name)
         mod = importlib.import_module(mod_name)
         self.context.set_vmcpu(mod.get_gpreg_offset_all())
 
@@ -65,7 +66,7 @@ class JitCore_LLVM(jitcore.JitCore):
         self.mod_base_str = str(self.context.mod)
 
         # Set IRs transformation to apply
-        self.context.set_IR_transformation(self.my_ir.expr_fix_regs_for_mode)
+        self.context.set_IR_transformation(self.ir_arch.expr_fix_regs_for_mode)
 
     def add_bloc(self, bloc):
 

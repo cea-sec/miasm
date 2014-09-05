@@ -52,21 +52,21 @@ class bin_stream_ida(bin_stream_str):
         return 0x7FFFFFFF - self.offset - self.shift
 
 
-def expr2colorstr(my_ir, e):
+def expr2colorstr(ir_arch, e):
     # print "XXX", e
     if isinstance(e, ExprId):
         s = str(e)
-        if e in my_ir.arch.regs.all_regs_ids:
+        if e in ir_arch.arch.regs.all_regs_ids:
             s = idaapi.COLSTR(s, idaapi.SCOLOR_REG)
     elif isinstance(e, ExprInt):
         s = str(e)
         s = idaapi.COLSTR(s, idaapi.SCOLOR_NUMBER)
     elif isinstance(e, ExprMem):
-        s = '@%d[%s]' % (e.size, expr2colorstr(my_ir, e.arg))
+        s = '@%d[%s]' % (e.size, expr2colorstr(ir_arch, e.arg))
     elif isinstance(e, ExprOp):
         out = []
         for a in e.args:
-            s = expr2colorstr(my_ir, a)
+            s = expr2colorstr(ir_arch, a)
             if isinstance(a, ExprOp):
                 s = "(%s)" % s
             out.append(s)
@@ -76,14 +76,14 @@ def expr2colorstr(my_ir, e):
             s = (" " + e.op + " ").join(out)
     elif isinstance(e, ExprAff):
         s = "%s = %s" % (
-            expr2colorstr(my_ir, e.dst), expr2colorstr(my_ir, e.src))
+            expr2colorstr(ir_arch, e.dst), expr2colorstr(ir_arch, e.src))
     elif isinstance(e, ExprCond):
-        cond = expr2colorstr(my_ir, e.cond)
-        src1 = expr2colorstr(my_ir, e.src1)
-        src2 = expr2colorstr(my_ir, e.src2)
+        cond = expr2colorstr(ir_arch, e.cond)
+        src1 = expr2colorstr(ir_arch, e.src1)
+        src2 = expr2colorstr(ir_arch, e.src2)
         s = "(%s?%s:%s)" % (cond, src1, src2)
     elif isinstance(e, ExprSlice):
-        s = "(%s)[%d:%d]" % (expr2colorstr(my_ir, e.arg), e.start, e.stop)
+        s = "(%s)[%d:%d]" % (expr2colorstr(ir_arch, e.arg), e.start, e.stop)
     else:
         s = str(e)
     # print repr(s)
@@ -97,7 +97,7 @@ def color_irbloc(irbloc):
     o.append(lbl)
     for i, expr in enumerate(irbloc.irs):
         for e in expr:
-            s = expr2colorstr(my_ir, e)
+            s = expr2colorstr(ir_arch, e)
             s = idaapi.COLSTR(s, idaapi.SCOLOR_INSN)
             o.append('    %s' % s)
         o.append("")
@@ -112,10 +112,10 @@ def color_irbloc(irbloc):
 
 class GraphMiasmIR(GraphViewer):
 
-    def __init__(self, my_ir, title, result):
+    def __init__(self, ir_arch, title, result):
         GraphViewer.__init__(self, title)
         print 'init'
-        self.my_ir = my_ir
+        self.ir_arch = ir_arch
         self.result = result
         self.names = {}
 
@@ -123,22 +123,22 @@ class GraphMiasmIR(GraphViewer):
         print 'refresh'
         self.Clear()
         addr_id = {}
-        for irbloc in self.my_ir.blocs.values():
+        for irbloc in self.ir_arch.blocs.values():
             id_irbloc = self.AddNode(color_irbloc(irbloc))
             addr_id[irbloc] = id_irbloc
 
-        for irbloc in self.my_ir.blocs.values():
+        for irbloc in self.ir_arch.blocs.values():
             if not irbloc:
                 continue
-            dst = my_ir.dst_trackback(irbloc)
+            dst = ir_arch.dst_trackback(irbloc)
             for d in dst:
-                if not self.my_ir.ExprIsLabel(d):
+                if not self.ir_arch.ExprIsLabel(d):
                     continue
 
                 d = d.name
-                if not d in self.my_ir.blocs:
+                if not d in self.ir_arch.blocs:
                     continue
-                b = self.my_ir.blocs[d]
+                b = self.ir_arch.blocs[d]
                 node1 = addr_id[irbloc]
                 node2 = addr_id[b]
                 self.AddEdge(node1, node2)
@@ -228,7 +228,7 @@ print fname
 
 bs = bin_stream_ida()
 mdis = dis_engine(bs)
-my_ir = ira(mdis.symbol_pool)
+ir_arch = ira(mdis.symbol_pool)
 
 # populate symbols with ida names
 for ad, name in Names():
@@ -253,24 +253,24 @@ print "generating IR... %x" % ad
 for b in ab:
     print 'ADD'
     print b
-    my_ir.add_bloc(b)
+    ir_arch.add_bloc(b)
 
 
 print "IR ok... %x" % ad
 
-for irb in my_ir.blocs.values():
+for irb in ir_arch.blocs.values():
     for irs in irb.irs:
         for i, e in enumerate(irs):
             e.dst, e.src = expr_simp(e.dst), expr_simp(e.src)
 
-my_ir.gen_graph()
-out = my_ir.graph()
+ir_arch.gen_graph()
+out = ir_arch.graph()
 open('/tmp/graph.txt', 'w').write(out)
 
 
-# my_ir.dead_simp()
+# ir_arch.dead_simp()
 
-g = GraphMiasmIR(my_ir, "Miasm IR graph", None)
+g = GraphMiasmIR(ir_arch, "Miasm IR graph", None)
 
 
 def mycb(*test):
@@ -319,14 +319,14 @@ def get_modified_symbols(sb):
     return out
 
 
-def gen_bloc_data_flow_graph(my_ir, in_str, ad):  # arch, attrib, pool_bin, bloc, symbol_pool):
+def gen_bloc_data_flow_graph(ir_arch, in_str, ad):  # arch, attrib, pool_bin, bloc, symbol_pool):
     out_str = ""
 
-    my_ir.gen_graph()
-    # my_ir.dead_simp()
+    ir_arch.gen_graph()
+    # ir_arch.dead_simp()
 
     irbloc_0 = None
-    for irbloc in my_ir.blocs.values():
+    for irbloc in ir_arch.blocs.values():
         if irbloc.label.offset == ad:
             irbloc_0 = irbloc
             break
@@ -337,23 +337,23 @@ def gen_bloc_data_flow_graph(my_ir, in_str, ad):  # arch, attrib, pool_bin, bloc
 
     bloc2w = {}
 
-    for irbloc in my_ir.blocs.values():
-        # intra_bloc_flow_raw(my_ir, flow_graph, irbloc)
-        intra_bloc_flow_symbexec(my_ir, flow_graph, irbloc)
-        # intra_bloc_flow_symb(my_ir, flow_graph, irbloc)
+    for irbloc in ir_arch.blocs.values():
+        # intra_bloc_flow_raw(ir_arch, flow_graph, irbloc)
+        intra_bloc_flow_symbexec(ir_arch, flow_graph, irbloc)
+        # intra_bloc_flow_symb(ir_arch, flow_graph, irbloc)
 
-    for irbloc in my_ir.blocs.values():
+    for irbloc in ir_arch.blocs.values():
         print irbloc
         print 'IN', [str(x) for x in irbloc.in_nodes]
         print 'OUT', [str(x) for x in irbloc.out_nodes]
 
     print '*' * 20, 'interbloc', '*' * 20
-    inter_bloc_flow(my_ir, flow_graph, irbloc_0.label, False)
+    inter_bloc_flow(ir_arch, flow_graph, irbloc_0.label, False)
 
     print 'Dataflow roots:'
     for node in flow_graph.roots():
         lbl, i, n = node
-        if n in my_ir.arch.regs.all_regs_ids:
+        if n in ir_arch.arch.regs.all_regs_ids:
             print node
 
     open('data.txt', 'w').write(flow_graph.dot())
@@ -408,7 +408,7 @@ class GraphMiasmIRFlow(GraphViewer):
 
 
 #print "gen bloc data flow"
-#flow_graph = gen_bloc_data_flow_graph(my_ir, bs, ad)
+#flow_graph = gen_bloc_data_flow_graph(ir_arch, bs, ad)
 #def node2str(self, n):
 #    return "%s, %s\\l%s" % n
 #flow_graph.node2str = lambda n: node2str(flow_graph, n)

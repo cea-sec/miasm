@@ -190,7 +190,7 @@ class Debugguer(object):
     def set_reg_value(self, reg_name, value):
 
         # Handle PC case
-        if reg_name == self.myjit.my_ir.pc.name:
+        if reg_name == self.myjit.ir_arch.pc.name:
             self.init_run(value)
 
         setattr(self.myjit.cpu, reg_name, value)

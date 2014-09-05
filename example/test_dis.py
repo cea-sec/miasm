@@ -223,19 +223,19 @@ log.info('total lines %s' % total_l)
 if options.gen_ir:
     log.info("generating IR")
 
-    my_ir = ira(mdis.symbol_pool)
-    my_ir.blocs = {}
+    ir_arch = ira(mdis.symbol_pool)
+    ir_arch.blocs = {}
     for ad, all_bloc in all_funcs_blocs.items():
         log.info("generating IR... %x" % ad)
         for b in all_bloc:
-            my_ir.add_bloc(b)
+            ir_arch.add_bloc(b)
 
     log.info("Gen Graph... %x" % ad)
 
-    my_ir.gen_graph()
+    ir_arch.gen_graph()
 
     if options.simplify:
-        my_ir.dead_simp()
+        ir_arch.dead_simp()
 
-    out = my_ir.graph()
+    out = ir_arch.graph()
     open('graph_irflow.txt', 'w').write(out)

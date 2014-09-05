@@ -6,13 +6,12 @@ import logging
 
 from miasm2.ir.symbexec import symbexec
 from miasm2.arch.msp430.arch import mn_msp430 as mn, mode_msp430 as mode
-from miasm2.arch.msp430.sem import ir_msp430 as ir
+from miasm2.arch.msp430.sem import ir_msp430 as ir_arch
 from miasm2.arch.msp430.regs import *
 from miasm2.expression.expression import *
 
 logging.getLogger('cpuhelper').setLevel(logging.ERROR)
-EXCLUDE_REGS = set([res])
-
+EXCLUDE_REGS = set([res, ir_arch().IRDst])
 
 def M(addr):
     return ExprMem(ExprInt_fromsize(16, addr), 16)
@@ -21,12 +20,12 @@ def M(addr):
 def compute(asm, inputstate={}, debug=False):
     sympool = dict(regs_init)
     sympool.update({k: ExprInt_from(k, v) for k, v in inputstate.iteritems()})
-    symexec = symbexec(mn, sympool)
+    interm = ir_arch()
+    symexec = symbexec(interm, sympool)
     instr = mn.fromstring(asm, mode)
     code = mn.asm(instr)[0]
     instr = mn.dis(code, mode)
     instr.offset = inputstate.get(PC, 0)
-    interm = ir()
     interm.add_instr(instr)
     symexec.emul_ir_blocs(interm, instr.offset)
     if debug:

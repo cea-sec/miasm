@@ -16,7 +16,7 @@ class jitter_arm(jitter):
     def __init__(self, *args, **kwargs):
         sp = asmbloc.asm_symbol_pool()
         jitter.__init__(self, ir_arm(sp), *args, **kwargs)
-        self.my_ir.jit_pc = self.my_ir.arch.regs.PC
+        self.ir_arch.jit_pc = self.ir_arch.arch.regs.PC
 
     def vm_push_uint32_t(self, v):
         self.cpu.SP -= 4

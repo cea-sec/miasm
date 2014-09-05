@@ -6,6 +6,8 @@ from miasm2.analysis import debugging, gdbserver
 from miasm2.jitter.jitload import vm_load_elf, libimp, preload_elf
 from miasm2.analysis.machine import Machine
 
+from pdb import pm
+
 parser = ArgumentParser(
     description="""Sandbox an elf binary with arm engine
 (ex: test_jit_arm.py example/md5_arm A684)""")

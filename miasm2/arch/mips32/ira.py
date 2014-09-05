@@ -13,9 +13,6 @@ class ir_a_mips32(ir_mips32, ira):
         ir_mips32.__init__(self, symbol_pool)
         self.ret_reg = self.arch.regs.V0
 
-    def get_next_break_label(self, instr):
-        l = self.symbol_pool.getby_offset_create(instr.offset  + 8)
-        return l
 
     # for test XXX TODO
     def set_dead_regs(self, b):
@@ -58,7 +55,8 @@ class ir_a_mips32(ir_mips32, ira):
             lbl = bloc.get_next()
             new_lbl = self.gen_label()
             irs = self.call_effects(pc_val)
-            nbloc = irbloc(new_lbl, ExprId(lbl, size=self.pc.size), irs)
+            irs.append([ExprAff(IRDst, ExprId(lbl, size=self.pc.size))])
+            nbloc = irbloc(new_lbl, irs)
             nbloc.lines = [l]
             self.blocs[new_lbl] = nbloc
             irb.dst = ExprId(new_lbl, size=self.pc.size)

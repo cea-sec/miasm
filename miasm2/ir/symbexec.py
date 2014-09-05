@@ -81,7 +81,7 @@ class symbols():
 
 class symbexec:
 
-    def __init__(self, arch, known_symbols,
+    def __init__(self, ir_arch, known_symbols,
                  func_read=None,
                  func_write=None,
                  sb_expr_simp=expr_simp):
@@ -90,7 +90,7 @@ class symbexec:
             self.symbols[k] = v
         self.func_read = func_read
         self.func_write = func_write
-        self.arch = arch
+        self.ir_arch = ir_arch
         self.expr_simp = sb_expr_simp
 
     def find_mem_by_addr(self, e):
@@ -220,7 +220,7 @@ class symbexec:
 
     def modified_regs(self, init_state=None):
         if init_state is None:
-            init_state = self.arch.regs.regs_init
+            init_state = self.ir_arch.arch.regs.regs_init
         ids = self.symbols.symbols_id.keys()
         ids.sort()
         for i in ids:
@@ -246,9 +246,9 @@ class symbexec:
         ids = self.symbols.symbols_id.keys()
         ids.sort()
         for i in ids:
-            if i in self.arch.regs.regs_init and \
+            if i in self.ir_arch.arch.regs.regs_init and \
                     i in self.symbols.symbols_id and \
-                    self.symbols.symbols_id[i] == self.arch.regs.regs_init[i]:
+                    self.symbols.symbols_id[i] == self.ir_arch.arch.regs.regs_init[i]:
                 continue
             print i, self.symbols.symbols_id[i]
 
@@ -401,24 +401,22 @@ class symbexec:
             if step:
                 print '_' * 80
                 self.dump_id()
-        if bloc_ir.dst is None:
-            return None
-        return self.eval_expr(bloc_ir.dst)
+        return self.eval_expr(self.ir_arch.IRDst)
 
-    def emul_ir_bloc(self, myir, ad):
+    def emul_ir_bloc(self, myir, ad, step = False):
         b = myir.get_bloc(ad)
         if b is not None:
-            ad = self.emulbloc(b)
+            ad = self.emulbloc(b, step = step)
         return ad
 
-    def emul_ir_blocs(self, myir, ad, lbl_stop=None):
+    def emul_ir_blocs(self, myir, ad, lbl_stop=None, step = False):
         while True:
             b = myir.get_bloc(ad)
             if b is None:
                 break
             if b.label == lbl_stop:
                 break
-            ad = self.emulbloc(b)
+            ad = self.emulbloc(b, step = step)
         return ad
 
     def del_mem_above_stack(self, sp):
