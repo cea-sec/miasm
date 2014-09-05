@@ -106,3 +106,18 @@ class ir_a_x86_64(ir_x86_64, ir_a_x86_16):
                 ExprAff(self.sp, ExprOp('call_func_stack', ad, self.sp)),
                 ]]
         return irs
+
+    def sizeof_char(self):
+        return 8
+
+    def sizeof_short(self):
+        return 16
+
+    def sizeof_int(self):
+        return 32
+
+    def sizeof_long(self):
+        return 64
+
+    def sizeof_pointer(self):
+        return 64
