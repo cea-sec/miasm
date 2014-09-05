@@ -131,6 +131,11 @@ class JitCore(object):
             print cur_bloc
         if self.disasm_cb is not None:
             self.disasm_cb(cur_bloc)
+
+        # Check for empty blocks
+        if not cur_bloc.lines:
+            raise ValueError("Cannot JIT a block without any assembly line")
+
         # Update label -> bloc
         self.lbl2bloc[l] = cur_bloc
 
