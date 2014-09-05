@@ -58,8 +58,8 @@ class JitCore_Python(jitcore.JitCore):
         "Preload symbols according to current architecture"
 
         symbols_init =  {}
-        for i, r in enumerate(self.ir_arch.arch.regs.all_regs_ids_no_alias):
-            symbols_init[r] = self.ir_arch.arch.regs.all_regs_ids_init[i]
+        for r in self.ir_arch.arch.regs.all_regs_ids_no_alias:
+            symbols_init[r] = self.ir_arch.arch.regs.regs_init[r]
 
         self.symbexec = symbexec(self.ir_arch, symbols_init,
                                  func_read = self.func_read,
