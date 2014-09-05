@@ -140,7 +140,7 @@ class JitCore_Tcc(jitcore.JitCore):
 
         func_code = gen_C_source(self.ir_arch, c_code)
 
-        open('tmp_%.4d.c'%self.jitcount, "w").write(func_code)
+        # open('tmp_%.4d.c'%self.jitcount, "w").write(func_code)
         self.jitcount += 1
         tcc_state, mcode = jit_tcc_compil(f_name, func_code)
         self.tcc_states.append(tcc_state)
