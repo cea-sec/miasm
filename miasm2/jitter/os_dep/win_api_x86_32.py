@@ -304,7 +304,7 @@ def kernel32_HeapFree(myjit):
 def kernel32_GlobalAlloc(myjit):
     ret_ad, args = myjit.func_args_stdcall(2)
     uflags, msize = args
-    alloc_addr = get_next_alloc_addr(msize)
+    alloc_addr = alloc_mem(myjit, msize)
     myjit.func_ret_stdcall(ret_ad, alloc_addr)
 
 
