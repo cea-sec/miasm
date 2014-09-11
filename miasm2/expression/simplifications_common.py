@@ -208,6 +208,12 @@ def simp_cst_propagation(e_s, e):
         args0 = args[0].args[0]
         args = [args0, args1]
 
+    # A >> X >> Y  =>  A >> (X+Y)
+    if (op in ['<<', '>>'] and
+        isinstance(args[0], ExprOp) and
+        args[0].op == op):
+        args = [args[0].args[0], args[0].args[1] + args[1]]
+
     # ((A & A.mask)
     if op == "&" and args[-1] == e.mask:
         return ExprOp('&', *args[:-1])
