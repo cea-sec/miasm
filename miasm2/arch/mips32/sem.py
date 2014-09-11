@@ -60,6 +60,13 @@ def lhu(ir, instr, a, b):
     e.append(ExprAff(a, b.zeroExtend(32)))
     return e, []
 
+
+def lb(ir, instr, a, b):
+    e = []
+    b = ExprMem(b.arg, 8)
+    e.append(ExprAff(a, b.signExtend(32)))
+    return e, []
+
 def beq(ir, instr, a, b, c):
     e = []
     n = ExprId(ir.get_next_break_label(instr))
@@ -427,6 +434,7 @@ mnemo_func = {
     "b" : l_b,
     "lbu" : lbu,
     "lhu" : lhu,
+    "lb" : lb,
     "beq" : beq,
     "bgez" : bgez,
     "bltz" : bltz,
