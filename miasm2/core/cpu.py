@@ -1759,6 +1759,15 @@ class int32_noarg(imm_noarg):
         self.value = v & self.lmask
         return True
 
+class bs8(bs):
+    prio = default_prio
+
+    def __init__(self, v, cls=None, fname=None, **kargs):
+        super(bs8, self).__init__(int2bin(v, 8), 8,
+                                  cls=cls, fname=fname, **kargs)
+
+
+
 
 def swap_uint(size, i):
     if size == 8:

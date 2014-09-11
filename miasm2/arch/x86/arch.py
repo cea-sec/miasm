@@ -951,14 +951,6 @@ class mn_x86(cls_mn):
         return cand_same_mode + cand_diff_mode
 
 
-class bs8(bs):
-    prio = default_prio
-
-    def __init__(self, v, cls=None, fname=None, **kargs):
-        super(bs8, self).__init__(int2bin(v, 8), 8,
-                                  cls=cls, fname=fname, **kargs)
-
-
 class bs_modname_size(bs_divert):
     prio = 1
 
