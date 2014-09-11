@@ -394,6 +394,15 @@ def mult(ir, instr, a, b):
     e.append(ExprAff(R_HI, r[32:]))
     return e, []
 
+def multu(ir, instr, a, b):
+    e = []
+    size = a.size
+    r = a.zeroExtend(size * 2) * b.zeroExtend(size * 2)
+
+    e.append(ExprAff(R_LO, r[:32]))
+    e.append(ExprAff(R_HI, r[32:]))
+    return e, []
+
 def mfhi(ir, instr, a):
     e = []
     e.append(ExprAff(a, R_HI))
@@ -476,6 +485,7 @@ mnemo_func = {
     "bc1f" : bc1f,
     "cvt.d.w":cvt_d_w,
     "mult" : mult,
+    "multu" : multu,
 
     "mfhi" : mfhi,
     "mflo" : mflo,
