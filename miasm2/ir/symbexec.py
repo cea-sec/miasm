@@ -201,6 +201,8 @@ class symbexec:
         # print 'visit', e, e.is_term
         if e.is_term:
             return e
+        if e in eval_cache:
+            return eval_cache[e]
         c = e.__class__
         deal_class = {ExprId: self.eval_ExprId,
                       ExprInt: self.eval_ExprInt,
@@ -346,7 +348,7 @@ class symbexec:
     def eval_ir_expr(self, exprs):
         pool_out = {}
 
-        eval_cache = {}
+        eval_cache = dict(self.symbols.items())
 
         for e in exprs:
             if not isinstance(e, ExprAff):
@@ -377,10 +379,10 @@ class symbexec:
         mem_dst = []
         # src_dst = [(x.src, x.dst) for x in ir]
         src_dst = self.eval_ir_expr(ir)
-
+        eval_cache = dict(self.symbols.items())
         for dst, src in src_dst:
             if isinstance(dst, ExprMem):
-                mem_overlap = self.get_mem_overlapping(dst)
+                mem_overlap = self.get_mem_overlapping(dst, eval_cache)
                 for _, base in mem_overlap:
                     diff_mem = self.substract_mems(base, dst)
                     del(self.symbols[base])
@@ -401,7 +403,8 @@ class symbexec:
             if step:
                 print '_' * 80
                 self.dump_id()
-        return self.eval_expr(self.ir_arch.IRDst)
+        eval_cache = dict(self.symbols.items())
+        return self.eval_expr(self.ir_arch.IRDst, eval_cache)
 
     def emul_ir_bloc(self, myir, ad, step = False):
         b = myir.get_bloc(ad)
