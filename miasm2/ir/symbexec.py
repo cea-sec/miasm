@@ -79,7 +79,7 @@ class symbols():
         return s
 
 
-class symbexec:
+class symbexec(object):
 
     def __init__(self, ir_arch, known_symbols,
                  func_read=None,
