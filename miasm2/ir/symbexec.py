@@ -99,6 +99,8 @@ class symbexec(object):
         return None
 
     def eval_ExprId(self, e, eval_cache=None):
+        if eval_cache is None:
+            eval_cache = {}
         if isinstance(e.name, asmbloc.asm_label) and e.name.offset is not None:
             return ExprInt_from(e, e.name.offset)
         if not e in self.symbols:
@@ -110,6 +112,8 @@ class symbexec(object):
         return e
 
     def eval_ExprMem(self, e, eval_cache=None):
+        if eval_cache is None:
+            eval_cache = {}
         a_val = self.expr_simp(self.eval_expr(e.arg, eval_cache))
         if a_val != e.arg:
             a = self.expr_simp(ExprMem(a_val, size=e.size))
@@ -198,6 +202,8 @@ class symbexec(object):
         return tmp
 
     def eval_expr_visit(self, e, eval_cache=None):
+        if eval_cache is None:
+            eval_cache = {}
         # print 'visit', e, e.is_term
         if e.is_term:
             return e
@@ -217,6 +223,8 @@ class symbexec(object):
         return e
 
     def eval_expr(self, e, eval_cache=None):
+        if eval_cache is None:
+            eval_cache = {}
         r = e.visit(lambda x: self.eval_expr_visit(x, eval_cache))
         return r
 
@@ -321,6 +329,8 @@ class symbexec(object):
 
     # give mem stored overlapping requested mem ptr
     def get_mem_overlapping(self, e, eval_cache=None):
+        if eval_cache is None:
+            eval_cache = {}
         if not isinstance(e, ExprMem):
             raise ValueError('mem overlap bad arg')
         ov = []
