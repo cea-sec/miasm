@@ -194,6 +194,8 @@ reg_tests_mips32 = [
      "7C02B420"),
     ("8BA0F468    DI         ZERO",
      "41606000"),
+    ("XXXXXXXX    EI         ZERO",
+     "41606020"),
     ("8BA0F78C    WSBH       V1, V1",
      "7C0318A0"),
     ("8BA0F790    ROTR       V1, V1, 0x10",

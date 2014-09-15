@@ -413,6 +413,14 @@ def mflo(ir, instr, a):
     e.append(ExprAff(a, R_LO))
     return e, []
 
+def di(ir, instr, a):
+    return [], []
+
+def ei(ir, instr, a):
+    return [], []
+
+def ehb(ir, instr, a):
+    return [], []
 
 mnemo_func = {
     "addiu": addiu,
@@ -489,6 +497,10 @@ mnemo_func = {
 
     "mfhi" : mfhi,
     "mflo" : mflo,
+
+    "di" : di,
+    "ei" : ei,
+    "ehb" : ehb,
 
     }
 
