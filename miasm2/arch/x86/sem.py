@@ -1340,10 +1340,10 @@ def loop(ir, instr, dst):
 
     n = ExprId(ir.get_next_label(instr), instr.mode)
     c = myecx - ExprInt_from(myecx, 1)
+    dst_o = ExprCond(c, dst, n).zeroExtend(instr.mode)
     e.append(ExprAff(myecx, c))
-    e.append(ExprAff(meip, ExprCond(c, dst, n).zeroExtend(instr.mode)))
-    e.append(ExprAff(ir.IRDst, ExprCond(myecx, dst, n).zeroExtend(instr.mode)))
-    #dst_o = ExprCond(myecx, dst, n).zeroExtend(instr.mode)
+    e.append(ExprAff(meip, dst_o))
+    e.append(ExprAff(ir.IRDst, dst_o))
     return e, []
 
 
@@ -1362,15 +1362,9 @@ def loopne(ir, instr, dst):
     c &= zf ^ ExprInt1(1)
 
     e.append(ExprAff(myecx, myecx - ExprInt_from(myecx, 1)))
-    e.append(ExprAff(meip, ExprCond(c, dst, n).zeroExtend(instr.mode)))
-
-    # for dst, ecx has been modified!
-    c = ExprCond(mRCX[instr.mode][:s],
-                 ExprInt1(1),
-                 ExprInt1(0))
-    c &= zf ^ ExprInt1(1)
-    #dst_o = ExprCond(c, dst, n).zeroExtend(instr.mode)
-    e.append(ExprAff(ir.IRDst, ExprCond(c, dst, n).zeroExtend(instr.mode)))
+    dst_o = ExprCond(c, dst, n).zeroExtend(instr.mode)
+    e.append(ExprAff(meip, dst_o))
+    e.append(ExprAff(ir.IRDst, dst_o))
     return e, []
 
 
@@ -1389,14 +1383,7 @@ def loope(ir, instr, dst):
     e.append(ExprAff(myecx, myecx - ExprInt_from(myecx, 1)))
     dst_o = ExprCond(c, dst, n).zeroExtend(instr.mode)
     e.append(ExprAff(meip, dst_o))
-
-    # for dst, ecx has been modified!
-    c = ExprCond(mRCX[instr.mode][:s],
-                 ExprInt1(1),
-                 ExprInt1(0))
-    c &= zf
-    #dst_o = ExprCond(c, dst, n).zeroExtend(instr.mode)
-    e.append(ExprAff(ir.IRDst, ExprCond(c, dst, n).zeroExtend(instr.mode)))
+    e.append(ExprAff(ir.IRDst, dst_o))
     return e, []
 
 
