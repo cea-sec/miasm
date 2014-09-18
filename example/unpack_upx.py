@@ -96,7 +96,7 @@ if args.graph is True:
 # User defined methods
 
 
-def mygetproc(myjit):
+def kernel32_GetProcAddress(myjit):
     global libs
     ret_ad, args = myjit.func_args_stdcall(2)
     libbase, fname = args
@@ -112,10 +112,6 @@ def mygetproc(myjit):
 
     ad = libs.lib_get_add_func(libbase, fname, dst_ad)
     myjit.func_ret_stdcall(ret_ad, ad)
-
-
-def kernel32_GetProcAddress(myjit):
-    return mygetproc(myjit)
 
 # Set libs for win_32 api
 win_api_x86_32.winobjs.runtime_dll = libs
