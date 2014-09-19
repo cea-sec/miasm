@@ -3377,17 +3377,14 @@ class ir_x86_16(ir):
             if e.dst == zf:
                 zf_val = e.src
 
+        cond_dec = ExprCond(c_reg - ExprInt_from(c_reg, 1), ExprInt1(0), ExprInt1(1))
         # end condition
         if zf_val is None:
-            c_cond = ExprCond(c_reg, ExprInt1(0), ExprInt1(1))
+            c_cond = cond_dec
         elif instr.additional_info.g1.value & 2:  # REPNE
-            # c_cond = ExprCond(c_reg, ExprInt1(0), ExprInt1(1)) | (zf_val)
-            c_cond = ExprCond(c_reg, ExprInt1(0), ExprInt1(1)) | (zf)
+            c_cond = cond_dec | zf
         elif instr.additional_info.g1.value & 4:  # REP
-            # c_cond = ExprCond(c_reg, ExprInt1(0), ExprInt1(1)) |
-            # (zf_val^ExprInt32(1))
-            c_cond = ExprCond(
-                c_reg, ExprInt1(0), ExprInt1(1)) | (zf ^ ExprInt1(1))
+            c_cond = cond_dec | (zf ^ ExprInt1(1))
 
         # gen while
         lbl_do = ExprId(self.gen_label(), instr.mode)
