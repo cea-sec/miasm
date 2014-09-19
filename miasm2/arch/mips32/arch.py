@@ -688,6 +688,7 @@ mips32op("ext",     [bs('011111'), rs, rt, esize, epos, bs('000000')], [rt, rs, 
 mips32op("ins",     [bs('011111'), rs, rt, eposh, epos, bs('000100')], [rt, rs, epos, eposh])
 
 mips32op("seb",     [bs('011111'), bs('00000'), rt, rd, bs('10000'), bs('100000')], [rd, rt])
+mips32op("seh",     [bs('011111'), bs('00000'), rt, rd, bs('11000'), bs('100000')], [rd, rt])
 mips32op("wsbh",    [bs('011111'), bs('00000'), rt, rd, bs('00010'), bs('100000')], [rd, rt])
 
 mips32op("di",      [bs('010000'), bs('01011'), rt, bs('01100'), bs('00000'), bs('0'), bs('00'), bs('000')])

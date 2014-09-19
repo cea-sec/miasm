@@ -225,6 +225,11 @@ def seb(ir, instr, a, b):
     e.append(ExprAff(a, b[:8].signExtend(32)))
     return e, []
 
+def seh(ir, instr, a, b):
+    e = []
+    e.append(ExprAff(a, b[:16].signExtend(32)))
+    return e, []
+
 def bltz(ir, instr, a, b):
     e = []
     n = ExprId(ir.get_next_break_label(instr))
@@ -475,6 +480,7 @@ mnemo_func = {
     "xori" : l_xor,
     "xor" : l_xor,
     "seb" : seb,
+    "seh" : seh,
     "bltz" : bltz,
     "blez" : blez,
     "wsbh" : wsbh,
