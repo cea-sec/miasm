@@ -348,8 +348,8 @@ def vm_load_pe(vm, fname, align_s=True, load_hdr=True,
 
     if aligned:
         if load_hdr:
-            hdr_len = max(0x200, e.NThdr.sectionalignment)
-            min_len = min(e.SHList[0].addr, hdr_len)
+            hdr_len = max(0x200, e.NThdr.sizeofheaders)
+            min_len = min(e.SHList[0].addr, 0x1000)#e.NThdr.sizeofheaders)
             pe_hdr = e.content[:hdr_len]
             pe_hdr = pe_hdr + min_len * "\x00"
             pe_hdr = pe_hdr[:min_len]
