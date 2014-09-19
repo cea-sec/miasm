@@ -81,6 +81,7 @@ all_tests = {
             ["expression/simplification_tools.py"],
             ["expression/asm_to_ir.py"],
             ["expression/expr_grapher.py"],
+            ["expression/simplification_add.py"],
             ["test_dis.py", "-g", "-s", "-m", "arm", "demo_arm.bin", "0"],
             ["test_dis.py", "-g", "-s", "-m",
                 "x86_32", "box_x86_32.bin", "0x401000"],
