@@ -24,6 +24,8 @@ all_tests = {
         "architecture": [
             ["arch/x86/arch.py"],
             ["arch/x86/sem.py"],
+            ["arch/x86/unit/mn_strings.py"],
+            ["arch/x86/unit/mn_float.py"],
             ["arch/arm/arch.py"],
             ["arch/arm/sem.py"],
             ["arch/msp430/arch.py"],
