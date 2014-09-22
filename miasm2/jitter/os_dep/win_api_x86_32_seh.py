@@ -20,7 +20,6 @@
 #
 import logging
 from elfesteem import pe_init
-from miasm2.jitter.vm_mngr import *
 from miasm2.jitter.csts import *
 from miasm2.core.utils import *
 from miasm2.arch import x86
