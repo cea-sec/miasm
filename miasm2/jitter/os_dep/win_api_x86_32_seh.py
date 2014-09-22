@@ -22,7 +22,7 @@ import logging
 from elfesteem import pe_init
 from miasm2.jitter.csts import *
 from miasm2.core.utils import *
-from miasm2.arch import x86
+import miasm2.arch.x86.regs as x86_regs
 import os
 
 # Constants Windows
@@ -840,7 +840,7 @@ def set_win_fs_0(myjit, fs=4):
     regs['FS'] = 0x4
     myjit.cpu.vm_set_gpreg(regs)
     myjit.cpu.vm_set_segm_base(regs['FS'], FS_0_AD)
-    segm_to_do = set([x86.regs.FS])
+    segm_to_do = set([x86_regs.FS])
     return segm_to_do
 
 
