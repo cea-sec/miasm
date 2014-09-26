@@ -144,6 +144,15 @@ class JitCore_Python(jitcore.JitCore):
                     if line.offset not in offsets_jitted:
                         offsets_jitted.add(line.offset)
 
+                        # Log registers values
+                        if self.log_regs:
+                            update_cpu_from_engine(cpu, exec_engine)
+                            cpu.vm_dump_gpregs()
+
+                        # Log instruction
+                        if self.log_mn:
+                            print "%08x %s" % (line.offset, line)
+
                         # Check for memory exception
                         if (vmmngr.vm_get_exception() != 0):
                             update_cpu_from_engine(cpu, exec_engine)
