@@ -2247,3 +2247,5 @@ armtop("blx", [bs('11110'), tsign, timm10H,
                bs('11'), tj1, bs('0'), tj2, timm10L, bs('0')])
 armtop("cbz", [bs('101100'), imm1, bs('1'), imm5_off, rnl], [rnl, imm5_off])
 armtop("cbnz", [bs('101110'), imm1, bs('1'), imm5_off, rnl], [rnl, imm5_off])
+
+armtop("bkpt", [bs('1011'), bs('1110'), imm8])
