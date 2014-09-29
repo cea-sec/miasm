@@ -2,6 +2,7 @@
 #-*- coding:utf-8 -*-
 
 import logging
+from pdb import pm
 from pyparsing import *
 from miasm2.expression.expression import *
 from miasm2.core.cpu import *
@@ -1806,13 +1807,18 @@ class armt_reg_wb(arm_reg_wb):
     def decode(self, v):
         v = v & self.lmask
         e = self.reg_info.expr[v]
-        e = ExprOp('wback', e)
+        if not e in self.parent.trlist.expr.args:
+            e = ExprOp('wback', e)
         self.expr = e
         return True
 
     def encode(self):
         e = self.expr
-        self.value = self.reg_info.expr.index(e.args[0])
+        if isinstance(e, ExprOp):
+            if e.op != 'wback':
+                return False
+            e = e.args[0]
+        self.value = self.reg_info.expr.index(e)
         return True
 
 
@@ -1877,7 +1883,7 @@ tswi_i = bs(l=8, cls=(arm_imm,), fname="swi_i")
 
 off8s = bs(l=8, cls=(arm_offs,), fname="offs")
 trlistpclr = bs(l=8, cls=(armt_rlist_pclr,))
-trlist = bs(l=8, cls=(armt_rlist,))
+trlist = bs(l=8, cls=(armt_rlist,), fname="trlist", order = -1)
 
 rbl_wb = bs(l=3, cls=(armt_reg_wb,), fname='rb')
 

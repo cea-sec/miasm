@@ -397,8 +397,10 @@ reg_tests_armt = [
     ("00220f44    PUSH       {R2, R3}",
      "0cb4"),
 
-    ("00076c54    LDMIA      R1!, {R0, R1}",
+    ("00076c54    LDMIA      R1, {R0, R1}",
      "03c9"),
+    ("XXXXXXXX    LDMIA      R5!, {R0-R3}",
+     "0fcd"),
     ("000a1c16    STMIA      R6!, {R0-R3}",
      "0fc6"),
 
