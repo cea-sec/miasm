@@ -406,6 +406,7 @@ class instruction_arm(instruction):
         if not isinstance(e, ExprInt):
             log.debug('dyn dst %r' % e)
             return
+        # Can't find the +4 reason in doc
         off = e.arg - (self.offset + 4 + self.l)
         if int(off % 4):
             raise ValueError('strange offset! %r' % off)
@@ -473,6 +474,21 @@ class instruction_armt(instruction_arm):
         if self.name in ['BL', 'BLX']:
             return True
         return False
+
+    def fixDstOffset(self):
+        e = self.args[0]
+        if self.offset is None:
+            raise ValueError('symbol not resolved %s' % l)
+        if not isinstance(e, ExprInt):
+            log.debug('dyn dst %r' % e)
+            return
+        # The first +2 is to compensate instruction len, but strangely, 32 bits
+        # thumb2 instructions len is 2... For the second +2, didn't find it in
+        # the doc.
+        off = e.arg - (self.offset + 2 + 2)
+        if int(off % 2):
+            raise ValueError('strange offset! %r' % off)
+        self.args[0] = ExprInt32(off)
 
 mode_arm = 'arm'
 mode_armthumb = 'armt'
@@ -573,21 +589,6 @@ class mn_arm(cls_mn):
     def value(self, mode):
         v = super(mn_arm, self).value(mode)
         return [x[::-1] for x in v]
-
-    def fixDstOffset(self):
-        e = self.args[0].expr
-
-        if self.offset is None:
-            raise ValueError('symbol not resolved %s' % l)
-        if not isinstance(e, ExprInt):
-            # raise ValueError('dst must be int or label')
-            log.debug('dyn dst %r' % e)
-            return
-        # return ExprInt32(e.arg - (self.offset + self.l))
-        off = e.arg - (self.offset + 4 + self.l)
-        if int(off % 4):
-            raise ValueError('strange offset! %r' % off)
-        self.args[0].expr = ExprInt32(off / 4)
 
     def get_symbol_size(self, symbol, symbol_pool, mode):
         return 32

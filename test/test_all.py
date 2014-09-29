@@ -62,6 +62,7 @@ all_tests = {
         "assembler": [
             ["asm_x86.py"],
             ["asm_arm.py"],
+            ["asm_armt.py"],
             ["asm_box_x86_32.py"],
             ["asm_box_x86_32_enc.py"],
             ["asm_box_x86_32_mod.py"],
