@@ -1878,8 +1878,6 @@ pclr = bs(l=1, fname='pclr')
 
 sp = bs(l=0, cls=(arm_sp,))
 
-tswi_i = bs(l=8, cls=(arm_imm,), fname="swi_i")
-
 
 off8s = bs(l=8, cls=(arm_offs,), fname="offs")
 trlistpclr = bs(l=8, cls=(armt_rlist_pclr,))
@@ -1982,7 +1980,7 @@ armtop("pushpop",
 armtop("btransfersp", [bs('1100'),  bs_tbtransfer_name, rbl_wb, trlist])
 armtop("br", [bs('1101'),  bs_br_name, offs8])
 armtop("blx", [bs("01000111"),  bs('10'), rnl, bs('000')])
-armtop("swi", [bs('11011111'),  tswi_i])
+armtop("svc", [bs('11011111'),  imm8])
 armtop("b", [bs('11100'),  offs11])
 armtop("und", [bs('1101'), bs('1110'), imm8_d1])
 

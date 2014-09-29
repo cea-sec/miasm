@@ -456,6 +456,8 @@ reg_tests_armt = [
      "C5B2"),
     ("xxxxxxxx    BKPT       0x13",
      "13be"),
+    ("xxxxxxxx    SVC        0x13",
+     "13df"),
 
 ]
 print "#" * 40, 'armthumb', '#' * 40
