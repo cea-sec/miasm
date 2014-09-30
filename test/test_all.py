@@ -330,6 +330,7 @@ def run_test(test, coveragerc=None):
         write_colored("ERROR", "red", len(s))
         print outputs[1]
 
+    return testpy.returncode
 
 def run_test_parallel(test, current, global_state):
 
@@ -438,9 +439,13 @@ if llvm is False:
 
 if multiproc is False:
     done = list()
+    status = 0
     for test in test_iter(done):
-        run_test(test, coveragerc=coveragerc)
+        status |= run_test(test, coveragerc=coveragerc)
         done.append(test)
+
+    # Return an error code if a test failed
+    assert(status == 0)
 
 else:
     # Parallel version
