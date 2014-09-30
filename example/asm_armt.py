@@ -62,7 +62,7 @@ for b in blocs[0]:
 g = asmbloc.bloc2graph(blocs[0])
 open("graph.txt", "w").write(g)
 
-s = StrPatchwork(open('libandroid_runtime.so').read())
+s = StrPatchwork()
 
 print "symbols"
 print symbol_pool
