@@ -2954,3 +2954,11 @@ def msvcrt__wfopen(myjit):
 
 def msvcrt_fopen(myjit):
     msvcrt_myfopen(myjit, get_str_ansi)
+
+
+def msvcrt_strlen(myjit):
+    ret_ad, args = myjit.func_args_cdecl(1)
+    src, = args
+
+    s = get_str_ansi(myjit, src)
+    myjit.func_ret_cdecl(ret_ad, len(s))
