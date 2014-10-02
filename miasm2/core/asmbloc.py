@@ -608,7 +608,7 @@ shape = "box"
                 dst, name, cst = b.label.name, n.label.name, n.c_t
                 # out+='%s -> %s [ label = "%s" ];\n'%(b.label.name,
                 # n.label.name, n.c_t)
-            elif isinstance(b.label, asm_label):
+            elif isinstance(n.label, asm_label):
                 dst, name, cst = b.label.name, n.label.name, n.c_t
             else:
                 continue
