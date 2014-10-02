@@ -53,12 +53,13 @@ class Sandbox(object):
             self.jitter.jit.log_newbloc = True
 
     @classmethod
-    def parser(cls):
+    def parser(cls, *args, **kwargs):
         """
-        Return instance of instance parser with expecting options
+        Return instance of instance parser with expecting options.
+        Extra parameters are passed to parser initialisation.
         """
 
-        parser = ArgumentParser()
+        parser = ArgumentParser(*args, **kwargs)
         parser.add_argument('-a', "--address",
                             help="Force entry point address", default=None)
         parser.add_argument('-x', "--dumpall", action="store_true",
