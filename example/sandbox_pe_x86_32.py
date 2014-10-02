@@ -10,7 +10,7 @@ if filename and os.path.isfile(filename):
 # Insert here user defined methods
 
 # Parse arguments
-parser = Sandbox_Win_x86_32.parser()
+parser = Sandbox_Win_x86_32.parser(description="PE sandboxer")
 parser.add_argument("filename", help="PE Filename")
 options = parser.parse_args()
 

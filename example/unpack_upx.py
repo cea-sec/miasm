@@ -31,7 +31,7 @@ def kernel32_GetProcAddress(jitter):
 
 
 
-parser = Sandbox_Win_x86_32.parser()
+parser = Sandbox_Win_x86_32.parser(description="Generic UPX unpacker")
 parser.add_argument("filename", help="PE Filename")
 parser.add_argument('-v', "--verbose",
                     help="verbose mode", action="store_true")
