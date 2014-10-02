@@ -105,7 +105,6 @@ all_tests = {
                     ["sandbox_pe_x86_32.py", "box_x86_32_mod.bin"],
                     ["sandbox_pe_x86_32.py", "box_x86_32_repmod.bin"],
                     ["sandbox_pe_x86_32.py", "box_x86_32_mod_self.bin"],
-                    ["unpack_gen.py"],
                     ])),
         "order": [
             "assembler",
