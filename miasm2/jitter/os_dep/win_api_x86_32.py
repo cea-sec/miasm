@@ -48,9 +48,9 @@ def get_next_alloc_addr(size):
     return ret
 
 
-def alloc_mem(myjit, msize):
+def alloc_mem(jitter, msize):
     alloc_addr = get_next_alloc_addr(msize)
-    myjit.vm.vm_add_memory_page(
+    jitter.vm.vm_add_memory_page(
         alloc_addr, PAGE_READ | PAGE_WRITE, "\x00" * msize)
     return alloc_addr
 
@@ -255,24 +255,24 @@ class mdl:
         return struct.pack('LL', self.ad, self.l)
 
 
-def get_str_ansi(myjit, ad_str, max_char=None):
+def get_str_ansi(jitter, ad_str, max_char=None):
     l = 0
     tmp = ad_str
     while ((max_char is None or l < max_char) and
-        myjit.vm.vm_get_mem(tmp, 1) != "\x00"):
+        jitter.vm.vm_get_mem(tmp, 1) != "\x00"):
         tmp += 1
         l += 1
-    return myjit.vm.vm_get_mem(ad_str, l)
+    return jitter.vm.vm_get_mem(ad_str, l)
 
 
-def get_str_unic(myjit, ad_str, max_char=None):
+def get_str_unic(jitter, ad_str, max_char=None):
     l = 0
     tmp = ad_str
     while ((max_char is None or l < max_char) and
-        myjit.vm.vm_get_mem(tmp, 2) != "\x00\x00"):
+        jitter.vm.vm_get_mem(tmp, 2) != "\x00\x00"):
         tmp += 2
         l += 2
-    s = myjit.vm.vm_get_mem(ad_str, l)
+    s = jitter.vm.vm_get_mem(ad_str, l)
     s = s[::2]  # TODO: real unicode decoding
     return s
 
@@ -285,83 +285,83 @@ def set_str_unic(s):
     return "\x00".join(list(s)) + '\x00' * 3
 
 
-def kernel32_HeapAlloc(myjit):
-    ret_ad, args = myjit.func_args_stdcall(3)
+def kernel32_HeapAlloc(jitter):
+    ret_ad, args = jitter.func_args_stdcall(3)
     heap, flags, size = args
 
-    alloc_addr = alloc_mem(myjit, size)
+    alloc_addr = alloc_mem(jitter, size)
 
-    myjit.func_ret_stdcall(ret_ad, alloc_addr)
+    jitter.func_ret_stdcall(ret_ad, alloc_addr)
 
 
-def kernel32_HeapFree(myjit):
-    ret_ad, args = myjit.func_args_stdcall(3)
+def kernel32_HeapFree(jitter):
+    ret_ad, args = jitter.func_args_stdcall(3)
     heap, flags, pmem = args
 
-    myjit.func_ret_stdcall(ret_ad, 1)
+    jitter.func_ret_stdcall(ret_ad, 1)
 
 
-def kernel32_GlobalAlloc(myjit):
-    ret_ad, args = myjit.func_args_stdcall(2)
+def kernel32_GlobalAlloc(jitter):
+    ret_ad, args = jitter.func_args_stdcall(2)
     uflags, msize = args
-    alloc_addr = alloc_mem(myjit, msize)
-    myjit.func_ret_stdcall(ret_ad, alloc_addr)
+    alloc_addr = alloc_mem(jitter, msize)
+    jitter.func_ret_stdcall(ret_ad, alloc_addr)
 
 
-def kernel32_LocalFree(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def kernel32_LocalFree(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     lpvoid, = args
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def kernel32_LocalAlloc(myjit):
-    ret_ad, args = myjit.func_args_stdcall(2)
+def kernel32_LocalAlloc(jitter):
+    ret_ad, args = jitter.func_args_stdcall(2)
     uflags, msize = args
-    alloc_addr = alloc_mem(myjit, msize)
-    myjit.func_ret_stdcall(ret_ad, alloc_addr)
+    alloc_addr = alloc_mem(jitter, msize)
+    jitter.func_ret_stdcall(ret_ad, alloc_addr)
 
 
-def kernel32_GlobalFree(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def kernel32_GlobalFree(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     ad, = args
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def kernel32_IsDebuggerPresent(myjit):
-    ret_ad, args = myjit.func_args_stdcall(0)
-    myjit.func_ret_stdcall(ret_ad, winobjs.dbg_present)
+def kernel32_IsDebuggerPresent(jitter):
+    ret_ad, args = jitter.func_args_stdcall(0)
+    jitter.func_ret_stdcall(ret_ad, winobjs.dbg_present)
 
 
-def kernel32_CreateToolhelp32Snapshot(myjit):
-    ret_ad, args = myjit.func_args_stdcall(2)
+def kernel32_CreateToolhelp32Snapshot(jitter):
+    ret_ad, args = jitter.func_args_stdcall(2)
     dwflags, th32processid = args
-    myjit.func_ret_stdcall(ret_ad, winobjs.handle_toolhelpsnapshot)
+    jitter.func_ret_stdcall(ret_ad, winobjs.handle_toolhelpsnapshot)
 
 
-def kernel32_GetCurrentProcess(myjit):
-    ret_ad, args = myjit.func_args_stdcall(0)
-    myjit.func_ret_stdcall(ret_ad, winobjs.handle_curprocess)
+def kernel32_GetCurrentProcess(jitter):
+    ret_ad, args = jitter.func_args_stdcall(0)
+    jitter.func_ret_stdcall(ret_ad, winobjs.handle_curprocess)
 
 
-def kernel32_GetCurrentProcessId(myjit):
-    ret_ad, args = myjit.func_args_stdcall(0)
-    myjit.func_ret_stdcall(ret_ad, winobjs.dw_pid_cur)
+def kernel32_GetCurrentProcessId(jitter):
+    ret_ad, args = jitter.func_args_stdcall(0)
+    jitter.func_ret_stdcall(ret_ad, winobjs.dw_pid_cur)
 
 
-def kernel32_Process32First(myjit):
-    ret_ad, args = myjit.func_args_stdcall(2)
+def kernel32_Process32First(jitter):
+    ret_ad, args = jitter.func_args_stdcall(2)
     s_handle, ad_pentry = args
 
     pentry = struct.pack(
         'IIIIIIIII', *process_list[0][:-1]) + process_list[0][-1]
-    myjit.vm.vm_set_mem(ad_pentry, pentry)
+    jitter.vm.vm_set_mem(ad_pentry, pentry)
     winobjs.toolhelpsnapshot_info[s_handle] = 0
 
-    myjit.func_ret_stdcall(ret_ad, 1)
+    jitter.func_ret_stdcall(ret_ad, 1)
 
 
-def kernel32_Process32Next(myjit):
-    ret_ad, args = myjit.func_args_stdcall(2)
+def kernel32_Process32Next(jitter):
+    ret_ad, args = jitter.func_args_stdcall(2)
     s_handle, ad_pentry = args
 
     winobjs.toolhelpsnapshot_info[s_handle] += 1
@@ -372,23 +372,23 @@ def kernel32_Process32Next(myjit):
         n = winobjs.toolhelpsnapshot_info[s_handle]
         pentry = struct.pack(
             'IIIIIIIII', *process_list[n][:-1]) + process_list[n][-1]
-        myjit.vm.vm_set_mem(ad_pentry, pentry)
-    myjit.func_ret_stdcall(ret_ad, ret)
+        jitter.vm.vm_set_mem(ad_pentry, pentry)
+    jitter.func_ret_stdcall(ret_ad, ret)
 
 
-def kernel32_GetTickCount(myjit):
-    ret_ad, args = myjit.func_args_stdcall(0)
+def kernel32_GetTickCount(jitter):
+    ret_ad, args = jitter.func_args_stdcall(0)
     winobjs.tickcount += 1
-    myjit.func_ret_stdcall(ret_ad, winobjs.tickcount)
+    jitter.func_ret_stdcall(ret_ad, winobjs.tickcount)
 
 
-def kernel32_GetVersion(myjit):
-    ret_ad, args = myjit.func_args_stdcall(0)
-    myjit.func_ret_stdcall(ret_ad, winobjs.getversion)
+def kernel32_GetVersion(jitter):
+    ret_ad, args = jitter.func_args_stdcall(0)
+    jitter.func_ret_stdcall(ret_ad, winobjs.getversion)
 
 
-def kernel32_GetVersionEx(myjit, set_str = set_str_unic):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def kernel32_GetVersionEx(jitter, set_str = set_str_unic):
+    ret_ad, args = jitter.func_args_stdcall(1)
     ptr_struct, = args
 
     s = struct.pack("IIIII",
@@ -402,86 +402,86 @@ def kernel32_GetVersionEx(myjit, set_str = set_str_unic):
     t = s + (t + '\x00' * 128 * 2)[:128 * 2]
     t += struct.pack('HHHBB', 3, 0, 0x100, 1, 0)
     s = t
-    myjit.vm.vm_set_mem(ptr_struct, s)
-    myjit.func_ret_stdcall(ret_ad, 1)
+    jitter.vm.vm_set_mem(ptr_struct, s)
+    jitter.func_ret_stdcall(ret_ad, 1)
 
 
-kernel32_GetVersionExA = lambda myjit: kernel32_GetVersionEx(myjit, set_str_ansi)
-kernel32_GetVersionExW = lambda myjit: kernel32_GetVersionEx(myjit, set_str_unic)
+kernel32_GetVersionExA = lambda jitter: kernel32_GetVersionEx(jitter, set_str_ansi)
+kernel32_GetVersionExW = lambda jitter: kernel32_GetVersionEx(jitter, set_str_unic)
 
 
-def kernel32_GetPriorityClass(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def kernel32_GetPriorityClass(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     hwnd, = args
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def kernel32_SetPriorityClass(myjit):
-    ret_ad, args = myjit.func_args_stdcall(2)
+def kernel32_SetPriorityClass(jitter):
+    ret_ad, args = jitter.func_args_stdcall(2)
     hwnd, dwpclass = args
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def kernel32_CloseHandle(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def kernel32_CloseHandle(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     hwnd, = args
-    myjit.func_ret_stdcall(ret_ad, 1)
+    jitter.func_ret_stdcall(ret_ad, 1)
 
 
-def user32_GetForegroundWindow(myjit):
-    ret_ad, args = myjit.func_args_stdcall(0)
-    myjit.func_ret_stdcall(ret_ad, winobjs.getforegroundwindow)
+def user32_GetForegroundWindow(jitter):
+    ret_ad, args = jitter.func_args_stdcall(0)
+    jitter.func_ret_stdcall(ret_ad, winobjs.getforegroundwindow)
 
 
-def user32_FindWindowA(myjit):
-    ret_ad, args = myjit.func_args_stdcall(2)
+def user32_FindWindowA(jitter):
+    ret_ad, args = jitter.func_args_stdcall(2)
     pclassname, pwindowname = args
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def user32_GetTopWindow(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def user32_GetTopWindow(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     hwnd, = args
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def user32_BlockInput(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def user32_BlockInput(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     b, = args
-    myjit.func_ret_stdcall(ret_ad, 1)
+    jitter.func_ret_stdcall(ret_ad, 1)
 
 
-def advapi32_CryptAcquireContext(myjit, funcname, get_str):
-    ret_ad, args = myjit.func_args_stdcall(5)
+def advapi32_CryptAcquireContext(jitter, funcname, get_str):
+    ret_ad, args = jitter.func_args_stdcall(5)
     phprov, pszcontainer, pszprovider, dwprovtype, dwflags = args
 
     if pszprovider:
-        prov = get_str(myjit, pszprovider)
+        prov = get_str(jitter, pszprovider)
     else:
         prov = "NONE"
     log.debug('prov: %r'%prov)
-    myjit.vm.vm_set_mem(phprov, pck32(winobjs.cryptcontext_hwnd))
+    jitter.vm.vm_set_mem(phprov, pck32(winobjs.cryptcontext_hwnd))
 
-    myjit.func_ret_stdcall(ret_ad, 1)
-
-
-def advapi32_CryptAcquireContextA(myjit):
-    advapi32_CryptAcquireContext(myjit, whoami(), get_str_ansi)
+    jitter.func_ret_stdcall(ret_ad, 1)
 
 
-def advapi32_CryptAcquireContextW(myjit):
-    advapi32_CryptAcquireContext(myjit, whoami(), get_str_unic)
+def advapi32_CryptAcquireContextA(jitter):
+    advapi32_CryptAcquireContext(jitter, whoami(), get_str_ansi)
 
 
-def advapi32_CryptCreateHash(myjit):
-    ret_ad, args = myjit.func_args_stdcall(5)
+def advapi32_CryptAcquireContextW(jitter):
+    advapi32_CryptAcquireContext(jitter, whoami(), get_str_unic)
+
+
+def advapi32_CryptCreateHash(jitter):
+    ret_ad, args = jitter.func_args_stdcall(5)
     hprov, algid, hkey, dwflags, phhash = args
 
     winobjs.cryptcontext_num += 1
 
     if algid == 0x00008003:
         log.debug('algo is MD5')
-        myjit.vm.vm_set_mem(
+        jitter.vm.vm_set_mem(
             phhash, pck32(winobjs.cryptcontext_bnum + winobjs.cryptcontext_num))
         winobjs.cryptcontext[
             winobjs.cryptcontext_bnum + winobjs.cryptcontext_num] = hobj()
@@ -489,7 +489,7 @@ def advapi32_CryptCreateHash(myjit):
             winobjs.cryptcontext_bnum + winobjs.cryptcontext_num].h = MD5.new()
     elif algid == 0x00008004:
         log.debug('algo is SHA1')
-        myjit.vm.vm_set_mem(
+        jitter.vm.vm_set_mem(
             phhash, pck32(winobjs.cryptcontext_bnum + winobjs.cryptcontext_num))
         winobjs.cryptcontext[
             winobjs.cryptcontext_bnum + winobjs.cryptcontext_num] = hobj()
@@ -497,25 +497,25 @@ def advapi32_CryptCreateHash(myjit):
             winobjs.cryptcontext_bnum + winobjs.cryptcontext_num].h = SHA.new()
     else:
         raise ValueError('un impl algo1')
-    myjit.func_ret_stdcall(ret_ad, 1)
+    jitter.func_ret_stdcall(ret_ad, 1)
 
 
-def advapi32_CryptHashData(myjit):
-    ret_ad, args = myjit.func_args_stdcall(4)
+def advapi32_CryptHashData(jitter):
+    ret_ad, args = jitter.func_args_stdcall(4)
     hhash, pbdata, dwdatalen, dwflags = args
 
     if not hhash in winobjs.cryptcontext:
         raise ValueError("unknown crypt context")
 
-    data = myjit.vm.vm_get_mem(pbdata, dwdatalen)
+    data = jitter.vm.vm_get_mem(pbdata, dwdatalen)
     log.debug('will hash %X' % dwdatalen)
     log.debug(repr(data[:10]) + "...")
     winobjs.cryptcontext[hhash].h.update(data)
-    myjit.func_ret_stdcall(ret_ad, 1)
+    jitter.func_ret_stdcall(ret_ad, 1)
 
 
-def advapi32_CryptGetHashParam(myjit):
-    ret_ad, args = myjit.func_args_stdcall(5)
+def advapi32_CryptGetHashParam(jitter):
+    ret_ad, args = jitter.func_args_stdcall(5)
     hhash, param, pbdata, dwdatalen, dwflags = args
 
     if not hhash in winobjs.cryptcontext:
@@ -526,20 +526,20 @@ def advapi32_CryptGetHashParam(myjit):
         h = winobjs.cryptcontext[hhash].h.digest()
     else:
         raise ValueError('not impl', param)
-    myjit.vm.vm_set_mem(pbdata, h)
-    myjit.vm.vm_set_mem(dwdatalen, pck32(len(h)))
+    jitter.vm.vm_set_mem(pbdata, h)
+    jitter.vm.vm_set_mem(dwdatalen, pck32(len(h)))
 
-    myjit.func_ret_stdcall(ret_ad, 1)
+    jitter.func_ret_stdcall(ret_ad, 1)
 
 
-def advapi32_CryptReleaseContext(myjit):
-    ret_ad, args = myjit.func_args_stdcall(2)
+def advapi32_CryptReleaseContext(jitter):
+    ret_ad, args = jitter.func_args_stdcall(2)
     hhash, flags = args
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def advapi32_CryptDeriveKey(myjit):
-    ret_ad, args = myjit.func_args_stdcall(5)
+def advapi32_CryptDeriveKey(jitter):
+    ret_ad, args = jitter.func_args_stdcall(5)
     hprov, algid, hbasedata, dwflags, phkey = args
 
     if algid == 0x6801:
@@ -549,29 +549,29 @@ def advapi32_CryptDeriveKey(myjit):
     h = winobjs.cryptcontext[hbasedata].h.digest()
     log.debug('hash %r'% h)
     winobjs.cryptcontext[hbasedata].h_result = h
-    myjit.vm.vm_set_mem(phkey, pck32(hbasedata))
-    myjit.func_ret_stdcall(ret_ad, 1)
+    jitter.vm.vm_set_mem(phkey, pck32(hbasedata))
+    jitter.func_ret_stdcall(ret_ad, 1)
 
 
-def advapi32_CryptDestroyHash(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def advapi32_CryptDestroyHash(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     hhash, = args
-    myjit.func_ret_stdcall(ret_ad, 1)
+    jitter.func_ret_stdcall(ret_ad, 1)
 
 
-def advapi32_CryptDecrypt(myjit):
-    ret_ad, args = myjit.func_args_stdcall(5)
+def advapi32_CryptDecrypt(jitter):
+    ret_ad, args = jitter.func_args_stdcall(5)
     hkey, hhash, final, dwflags, pbdata, pdwdatalen = args
     raise NotImplementedError()
-    myjit.func_ret_stdcall(ret_ad, 1)
+    jitter.func_ret_stdcall(ret_ad, 1)
 
 
-def kernel32_CreateFile(myjit, funcname, get_str):
-    ret_ad, args = myjit.func_args_stdcall(7)
+def kernel32_CreateFile(jitter, funcname, get_str):
+    ret_ad, args = jitter.func_args_stdcall(7)
     (lpfilename, access, dwsharedmode, lpsecurityattr,
      dwcreationdisposition, dwflagsandattr, htemplatefile) = args
 
-    fname = get_str(myjit, lpfilename)
+    fname = get_str(jitter, lpfilename)
     log.debug('fname %s' % fname )
     fname_o = fname[:]
     ret = 0xffffffff
@@ -664,19 +664,19 @@ def kernel32_CreateFile(myjit, funcname, get_str):
         # h = open(f, 'rb+')
         # ret = winobjs.handle_pool.add(f, h)
     log.debug('ret %x' % ret)
-    myjit.func_ret_stdcall(ret_ad, ret)
+    jitter.func_ret_stdcall(ret_ad, ret)
 
 
-def kernel32_CreateFileA(myjit):
-    kernel32_CreateFile(myjit, whoami(), get_str_ansi)
+def kernel32_CreateFileA(jitter):
+    kernel32_CreateFile(jitter, whoami(), get_str_ansi)
 
 
-def kernel32_CreateFileW(myjit):
-    kernel32_CreateFile(myjit, whoami(), lambda x, y: get_str_unic(myjit, y))
+def kernel32_CreateFileW(jitter):
+    kernel32_CreateFile(jitter, whoami(), lambda x, y: get_str_unic(jitter, y))
 
 
-def kernel32_ReadFile(myjit):
-    ret_ad, args = myjit.func_args_stdcall(5)
+def kernel32_ReadFile(jitter):
+    ret_ad, args = jitter.func_args_stdcall(5)
     (hwnd, lpbuffer, nnumberofbytestoread,
      lpnumberofbytesread, lpoverlapped) = args
 
@@ -700,14 +700,14 @@ def kernel32_ReadFile(myjit):
 
     if data is not None:
         if (lpnumberofbytesread):
-            myjit.vm.vm_set_mem(lpnumberofbytesread, pck32(len(data)))
-        myjit.vm.vm_set_mem(lpbuffer, data)
+            jitter.vm.vm_set_mem(lpnumberofbytesread, pck32(len(data)))
+        jitter.vm.vm_set_mem(lpbuffer, data)
 
-    myjit.func_ret_stdcall(ret_ad, 1)
+    jitter.func_ret_stdcall(ret_ad, 1)
 
 
-def kernel32_GetFileSize(myjit):
-    ret_ad, args = myjit.func_args_stdcall(2)
+def kernel32_GetFileSize(jitter):
+    ret_ad, args = jitter.func_args_stdcall(2)
     hwnd, lpfilesizehight = args
 
     if hwnd == winobjs.module_cur_hwnd:
@@ -719,12 +719,12 @@ def kernel32_GetFileSize(myjit):
         raise ValueError('unknown hwnd!')
 
     if lpfilesizehight != 0:
-        myjit.vm.vm_set_mem(lpfilesizehight, pck32(ret))
-    myjit.func_ret_stdcall(ret_ad, ret)
+        jitter.vm.vm_set_mem(lpfilesizehight, pck32(ret))
+    jitter.func_ret_stdcall(ret_ad, ret)
 
 
-def kernel32_GetFileSizeEx(myjit):
-    ret_ad, args = myjit.func_args_stdcall(2)
+def kernel32_GetFileSizeEx(jitter):
+    ret_ad, args = jitter.func_args_stdcall(2)
     hwnd, lpfilesizehight = args
 
     if hwnd == winobjs.module_cur_hwnd:
@@ -737,19 +737,19 @@ def kernel32_GetFileSizeEx(myjit):
 
     if lpfilesizehight == 0:
         raise NotImplementedError("Untested case")
-    myjit.vm.vm_set_mem(lpfilesizehight, pck32(
+    jitter.vm.vm_set_mem(lpfilesizehight, pck32(
         l & 0xffffffff) + pck32((l >> 32) & 0xffffffff))
-    myjit.func_ret_stdcall(ret_ad, 1)
+    jitter.func_ret_stdcall(ret_ad, 1)
 
 
-def kernel32_FlushInstructionCache(myjit):
-    ret_ad, args = myjit.func_args_stdcall(3)
+def kernel32_FlushInstructionCache(jitter):
+    ret_ad, args = jitter.func_args_stdcall(3)
     hprocess, lpbasead, dwsize = args
-    myjit.func_ret_stdcall(ret_ad, 0x1337)
+    jitter.func_ret_stdcall(ret_ad, 0x1337)
 
 
-def kernel32_VirtualProtect(myjit):
-    ret_ad, args = myjit.func_args_stdcall(4)
+def kernel32_VirtualProtect(jitter):
+    ret_ad, args = jitter.func_args_stdcall(4)
     lpvoid, dwsize, flnewprotect, lpfloldprotect = args
 
     # XXX mask hpart
@@ -757,17 +757,17 @@ def kernel32_VirtualProtect(myjit):
 
     if not flnewprotect in access_dict:
         raise ValueError('unknown access dw!')
-    myjit.vm.vm_set_mem_access(lpvoid, access_dict[flnewprotect])
+    jitter.vm.vm_set_mem_access(lpvoid, access_dict[flnewprotect])
 
     # XXX todo real old protect
     if lpfloldprotect:
-        myjit.vm.vm_set_mem(lpfloldprotect, pck32(0x40))
+        jitter.vm.vm_set_mem(lpfloldprotect, pck32(0x40))
 
-    myjit.func_ret_stdcall(ret_ad, 1)
+    jitter.func_ret_stdcall(ret_ad, 1)
 
 
-def kernel32_VirtualAlloc(myjit):
-    ret_ad, args = myjit.func_args_stdcall(4)
+def kernel32_VirtualAlloc(jitter):
+    ret_ad, args = jitter.func_args_stdcall(4)
     lpvoid, dwsize, alloc_type, flprotect = args
 
     access_dict = {0x0: 0,
@@ -787,43 +787,43 @@ def kernel32_VirtualAlloc(myjit):
 
     if lpvoid == 0:
         alloc_addr = get_next_alloc_addr(dwsize)
-        myjit.vm.vm_add_memory_page(
+        jitter.vm.vm_add_memory_page(
             alloc_addr, access_dict[flprotect], "\x00" * dwsize)
     else:
-        all_mem = myjit.vm.vm_get_all_memory()
+        all_mem = jitter.vm.vm_get_all_memory()
         if lpvoid in all_mem:
             alloc_addr = lpvoid
-            myjit.vm.vm_set_mem_access(lpvoid, access_dict[flprotect])
+            jitter.vm.vm_set_mem_access(lpvoid, access_dict[flprotect])
         else:
             alloc_addr = get_next_alloc_addr(dwsize)
             # alloc_addr = lpvoid
-            myjit.vm.vm_add_memory_page(
+            jitter.vm.vm_add_memory_page(
                 alloc_addr, access_dict[flprotect], "\x00" * dwsize)
 
     log.debug('Memory addr: %x' %alloc_addr)
-    myjit.func_ret_stdcall(ret_ad, alloc_addr)
+    jitter.func_ret_stdcall(ret_ad, alloc_addr)
 
 
-def kernel32_VirtualFree(myjit):
-    ret_ad, args = myjit.func_args_stdcall(3)
+def kernel32_VirtualFree(jitter):
+    ret_ad, args = jitter.func_args_stdcall(3)
     lpvoid, dwsize, alloc_type = args
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def user32_GetWindowLongA(myjit):
-    ret_ad, args = myjit.func_args_stdcall(2)
+def user32_GetWindowLongA(jitter):
+    ret_ad, args = jitter.func_args_stdcall(2)
     hwnd, nindex = args
-    myjit.func_ret_stdcall(ret_ad, winobjs.windowlong_dw)
+    jitter.func_ret_stdcall(ret_ad, winobjs.windowlong_dw)
 
 
-def user32_SetWindowLongA(myjit):
-    ret_ad, args = myjit.func_args_stdcall(3)
+def user32_SetWindowLongA(jitter):
+    ret_ad, args = jitter.func_args_stdcall(3)
     hwnd, nindex, newlong = args
-    myjit.func_ret_stdcall(ret_ad, winobjs.windowlong_dw)
+    jitter.func_ret_stdcall(ret_ad, winobjs.windowlong_dw)
 
 
-def kernel32_GetModuleFileName(myjit, funcname, set_str):
-    ret_ad, args = myjit.func_args_stdcall(3)
+def kernel32_GetModuleFileName(jitter, funcname, set_str):
+    ret_ad, args = jitter.func_args_stdcall(3)
     hmodule, lpfilename, nsize = args
 
     if hmodule in [0, winobjs.hcurmodule]:
@@ -846,25 +846,25 @@ def kernel32_GetModuleFileName(myjit, funcname, set_str):
         l = len(p)
 
     if p:
-        myjit.vm.vm_set_mem(lpfilename, set_str(p))
+        jitter.vm.vm_set_mem(lpfilename, set_str(p))
 
-    myjit.func_ret_stdcall(ret_ad, l)
-
-
-def kernel32_GetModuleFileNameA(myjit):
-    kernel32_GetModuleFileName(myjit, whoami(), set_str_ansi)
+    jitter.func_ret_stdcall(ret_ad, l)
 
 
-def kernel32_GetModuleFileNameW(myjit):
-    kernel32_GetModuleFileName(myjit, whoami(), set_str_unic)
+def kernel32_GetModuleFileNameA(jitter):
+    kernel32_GetModuleFileName(jitter, whoami(), set_str_ansi)
 
 
-def kernel32_CreateMutex(myjit, funcname, get_str):
-    ret_ad, args = myjit.func_args_stdcall(3)
+def kernel32_GetModuleFileNameW(jitter):
+    kernel32_GetModuleFileName(jitter, whoami(), set_str_unic)
+
+
+def kernel32_CreateMutex(jitter, funcname, get_str):
+    ret_ad, args = jitter.func_args_stdcall(3)
     mutexattr, initowner, lpname = args
 
     if lpname:
-        name = get_str(myjit, lpname)
+        name = get_str(jitter, lpname)
         log.debug(name)
     else:
         name = None
@@ -882,26 +882,26 @@ def kernel32_CreateMutex(myjit, funcname, get_str):
         else:
             winobjs.mutex[name] = id(name)
             ret = winobjs.mutex[name]
-    myjit.func_ret_stdcall(ret_ad, ret)
+    jitter.func_ret_stdcall(ret_ad, ret)
 
 
-def kernel32_CreateMutexA(myjit):
-    kernel32_CreateMutex(myjit, whoami(), get_str_ansi)
+def kernel32_CreateMutexA(jitter):
+    kernel32_CreateMutex(jitter, whoami(), get_str_ansi)
 
 
-def kernel32_CreateMutexW(myjit):
-    kernel32_CreateMutex(myjit, whoami(), get_str_unic)
+def kernel32_CreateMutexW(jitter):
+    kernel32_CreateMutex(jitter, whoami(), get_str_unic)
 
 
-def shell32_SHGetSpecialFolderLocation(myjit):
-    ret_ad, args = myjit.func_args_stdcall(3)
+def shell32_SHGetSpecialFolderLocation(jitter):
+    ret_ad, args = jitter.func_args_stdcall(3)
     hwndowner, nfolder, ppidl = args
-    myjit.vm.vm_set_mem(ppidl, pck32(nfolder))
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.vm.vm_set_mem(ppidl, pck32(nfolder))
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def kernel32_SHGetPathFromIDList(myjit, funcname, set_str):
-    ret_ad, args = myjit.func_args_stdcall(2)
+def kernel32_SHGetPathFromIDList(jitter, funcname, set_str):
+    ret_ad, args = jitter.func_args_stdcall(2)
     pidl, ppath = args
 
     if pidl == 7:  # CSIDL_STARTUP:
@@ -909,71 +909,71 @@ def kernel32_SHGetPathFromIDList(myjit, funcname, set_str):
         s = set_str(s)
     else:
         raise ValueError('pidl not implemented', pidl)
-    myjit.vm.vm_set_mem(ppath, s)
-    myjit.func_ret_stdcall(ret_ad, 1)
+    jitter.vm.vm_set_mem(ppath, s)
+    jitter.func_ret_stdcall(ret_ad, 1)
 
 
-def shell32_SHGetPathFromIDListW(myjit):
-    kernel32_SHGetPathFromIDList(myjit, whoami(), set_str_unic)
+def shell32_SHGetPathFromIDListW(jitter):
+    kernel32_SHGetPathFromIDList(jitter, whoami(), set_str_unic)
 
 
-def shell32_SHGetPathFromIDListA(myjit):
-    kernel32_SHGetPathFromIDList(myjit, whoami(), set_str_ansi)
+def shell32_SHGetPathFromIDListA(jitter):
+    kernel32_SHGetPathFromIDList(jitter, whoami(), set_str_ansi)
 
 
-def kernel32_GetLastError(myjit):
-    ret_ad, args = myjit.func_args_stdcall(0)
-    myjit.func_ret_stdcall(ret_ad, winobjs.lastwin32error)
+def kernel32_GetLastError(jitter):
+    ret_ad, args = jitter.func_args_stdcall(0)
+    jitter.func_ret_stdcall(ret_ad, winobjs.lastwin32error)
 
 
-def kernel32_SetLastError(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def kernel32_SetLastError(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     e, = args
     # lasterr addr
     # ad = seh_helper.FS_0_AD + 0x34
-    # myjit.vm.vm_set_mem(ad, pck32(e))
+    # jitter.vm.vm_set_mem(ad, pck32(e))
     winobjs.lastwin32error = e
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def kernel32_RestoreLastError(myjit):
-    kernel32_SetLastError(myjit)
+def kernel32_RestoreLastError(jitter):
+    kernel32_SetLastError(jitter)
 
 
-def kernel32_LoadLibraryA(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def kernel32_LoadLibraryA(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     dllname, = args
 
-    libname = get_str_ansi(myjit, dllname, 0x100)
+    libname = get_str_ansi(jitter, dllname, 0x100)
     log.info(libname)
 
     ret = winobjs.runtime_dll.lib_get_add_base(libname)
     log.info("ret %x" %ret)
-    myjit.func_ret_stdcall(ret_ad, ret)
+    jitter.func_ret_stdcall(ret_ad, ret)
 
 
-def kernel32_LoadLibraryExA(myjit):
-    ret_ad, args = myjit.func_args_stdcall(3)
+def kernel32_LoadLibraryExA(jitter):
+    ret_ad, args = jitter.func_args_stdcall(3)
     dllname, hfile, flags = args
 
     if hfile != 0:
         raise NotImplementedError("Untested case")
-    libname = get_str_ansi(myjit, dllname, 0x100)
+    libname = get_str_ansi(jitter, dllname, 0x100)
     log.info(libname)
 
     ret = winobjs.runtime_dll.lib_get_add_base(libname)
     log.info("ret %x" % ret)
-    myjit.func_ret_stdcall(ret_ad, ret)
+    jitter.func_ret_stdcall(ret_ad, ret)
 
 
-def kernel32_GetProcAddress(myjit):
-    ret_ad, args = myjit.func_args_stdcall(2)
+def kernel32_GetProcAddress(jitter):
+    ret_ad, args = jitter.func_args_stdcall(2)
     libbase, fname = args
     fname = fname & 0xFFFFFFFF
     if fname < 0x10000:
         fname = fname
     else:
-        fname = get_str_ansi(myjit, fname, 0x100)
+        fname = get_str_ansi(jitter, fname, 0x100)
         if not fname:
             fname = None
     log.info(fname)
@@ -983,27 +983,27 @@ def kernel32_GetProcAddress(myjit):
         ad = 0
     ad = winobjs.runtime_dll.lib_get_add_func(libbase, fname)
 
-    myjit.func_ret_stdcall(ret_ad, ad)
+    jitter.func_ret_stdcall(ret_ad, ad)
 
 
-def kernel32_LoadLibraryW(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def kernel32_LoadLibraryW(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     dllname, = args
 
-    libname = get_str_unic(myjit, dllname, 0x100)
+    libname = get_str_unic(jitter, dllname, 0x100)
     log.info(libname)
 
     ret = winobjs.runtime_dll.lib_get_add_base(libname)
     log.info("ret %x", ret)
-    myjit.func_ret_stdcall(ret_ad, ret)
+    jitter.func_ret_stdcall(ret_ad, ret)
 
 
-def kernel32_GetModuleHandle(myjit, funcname, get_str):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def kernel32_GetModuleHandle(jitter, funcname, get_str):
+    ret_ad, args = jitter.func_args_stdcall(1)
     dllname, = args
 
     if dllname:
-        libname = get_str(myjit, dllname)
+        libname = get_str(jitter, dllname)
         log.info(libname)
         if libname:
             ret = winobjs.runtime_dll.lib_get_add_base(libname)
@@ -1013,21 +1013,21 @@ def kernel32_GetModuleHandle(myjit, funcname, get_str):
     else:
         ret = winobjs.current_pe.NThdr.ImageBase
         log.debug("default img base %x", ret)
-    myjit.func_ret_stdcall(ret_ad, ret)
+    jitter.func_ret_stdcall(ret_ad, ret)
 
 
-def kernel32_GetModuleHandleA(myjit):
-    kernel32_GetModuleHandle(myjit, whoami(), get_str_ansi)
+def kernel32_GetModuleHandleA(jitter):
+    kernel32_GetModuleHandle(jitter, whoami(), get_str_ansi)
 
 
-def kernel32_GetModuleHandleW(myjit):
-    kernel32_GetModuleHandle(myjit, whoami(), get_str_unic)
+def kernel32_GetModuleHandleW(jitter):
+    kernel32_GetModuleHandle(jitter, whoami(), get_str_unic)
 
 
-def kernel32_VirtualLock(myjit):
-    ret_ad, args = myjit.func_args_stdcall(2)
+def kernel32_VirtualLock(jitter):
+    ret_ad, args = jitter.func_args_stdcall(2)
     lpaddress, dwsize = args
-    myjit.func_ret_stdcall(ret_ad, 1)
+    jitter.func_ret_stdcall(ret_ad, 1)
 
 
 class systeminfo:
@@ -1056,119 +1056,119 @@ class systeminfo:
                            self.ProcessorRevision)
 
 
-def kernel32_GetSystemInfo(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def kernel32_GetSystemInfo(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     sys_ptr, = args
     sysinfo = systeminfo()
-    myjit.vm.vm_set_mem(sys_ptr, sysinfo.pack())
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.vm.vm_set_mem(sys_ptr, sysinfo.pack())
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def kernel32_IsWow64Process(myjit):
-    ret_ad, args = myjit.func_args_stdcall(2)
+def kernel32_IsWow64Process(jitter):
+    ret_ad, args = jitter.func_args_stdcall(2)
     h, bool_ptr = args
 
-    myjit.vm.vm_set_mem(bool_ptr, pck32(0))
-    myjit.func_ret_stdcall(ret_ad, 1)
+    jitter.vm.vm_set_mem(bool_ptr, pck32(0))
+    jitter.func_ret_stdcall(ret_ad, 1)
 
 
-def kernel32_GetCommandLineA(myjit):
-    ret_ad, args = myjit.func_args_stdcall(0)
+def kernel32_GetCommandLineA(jitter):
+    ret_ad, args = jitter.func_args_stdcall(0)
     s = winobjs.module_path + '\x00'
     s = '"%s"' % s
-    alloc_addr = alloc_mem(myjit, 0x1000)
-    myjit.vm.vm_set_mem(alloc_addr, s)
-    myjit.func_ret_stdcall(ret_ad, alloc_addr)
+    alloc_addr = alloc_mem(jitter, 0x1000)
+    jitter.vm.vm_set_mem(alloc_addr, s)
+    jitter.func_ret_stdcall(ret_ad, alloc_addr)
 
 
-def kernel32_GetCommandLineW(myjit):
-    ret_ad, args = myjit.func_args_stdcall(0)
+def kernel32_GetCommandLineW(jitter):
+    ret_ad, args = jitter.func_args_stdcall(0)
     s = winobjs.module_path + '\x00'
     s = set_str_unic('"%s"' % s)
-    alloc_addr = alloc_mem(myjit, 0x1000)
-    myjit.vm.vm_set_mem(alloc_addr, s)
-    myjit.func_ret_stdcall(ret_ad, alloc_addr)
+    alloc_addr = alloc_mem(jitter, 0x1000)
+    jitter.vm.vm_set_mem(alloc_addr, s)
+    jitter.func_ret_stdcall(ret_ad, alloc_addr)
 
 
-def shell32_CommandLineToArgvW(myjit):
-    ret_ad, args = myjit.func_args_stdcall(2)
+def shell32_CommandLineToArgvW(jitter):
+    ret_ad, args = jitter.func_args_stdcall(2)
     pcmd, pnumargs = args
-    cmd = get_str_unic(myjit, pcmd)
+    cmd = get_str_unic(jitter, pcmd)
     log.debug(cmd)
     tks = cmd.split(' ')
-    addr = alloc_mem(myjit, len(cmd) * 2 + 4 * len(tks))
-    addr_ret = alloc_mem(myjit, 4 * (len(tks) + 1))
+    addr = alloc_mem(jitter, len(cmd) * 2 + 4 * len(tks))
+    addr_ret = alloc_mem(jitter, 4 * (len(tks) + 1))
     o = 0
     for i, t in enumerate(tks):
         x = set_str_unic(t) + "\x00\x00"
-        myjit.vm.vm_set_mem(addr_ret + 4 * i, pck32(addr + o))
-        myjit.vm.vm_set_mem(addr + o, x)
+        jitter.vm.vm_set_mem(addr_ret + 4 * i, pck32(addr + o))
+        jitter.vm.vm_set_mem(addr + o, x)
         o += len(x) + 2
 
-    myjit.vm.vm_set_mem(addr_ret + 4 * i, pck32(0))
-    myjit.vm.vm_set_mem(pnumargs, pck32(len(tks)))
-    myjit.func_ret_stdcall(ret_ad, addr_ret)
+    jitter.vm.vm_set_mem(addr_ret + 4 * i, pck32(0))
+    jitter.vm.vm_set_mem(pnumargs, pck32(len(tks)))
+    jitter.func_ret_stdcall(ret_ad, addr_ret)
 
 
-def cryptdll_MD5Init(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def cryptdll_MD5Init(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     ad_ctx, = args
     index = len(winobjs.cryptdll_md5_h)
     h = MD5.new()
     winobjs.cryptdll_md5_h[index] = h
 
-    myjit.vm.vm_set_mem(ad_ctx, pck32(index))
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.vm.vm_set_mem(ad_ctx, pck32(index))
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def cryptdll_MD5Update(myjit):
-    ret_ad, args = myjit.func_args_stdcall(3)
+def cryptdll_MD5Update(jitter):
+    ret_ad, args = jitter.func_args_stdcall(3)
     ad_ctx, ad_input, inlen = args
 
-    index = myjit.vm.vm_get_mem(ad_ctx, 4)
+    index = jitter.vm.vm_get_mem(ad_ctx, 4)
     index = upck32(index)
     if not index in winobjs.cryptdll_md5_h:
         raise ValueError('unknown h context', index)
 
-    data = myjit.vm.vm_get_mem(ad_input, inlen)
+    data = jitter.vm.vm_get_mem(ad_input, inlen)
     winobjs.cryptdll_md5_h[index].update(data)
     log.debug(hexdump(data))
 
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def cryptdll_MD5Final(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def cryptdll_MD5Final(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     ad_ctx, = args
 
-    index = myjit.vm.vm_get_mem(ad_ctx, 4)
+    index = jitter.vm.vm_get_mem(ad_ctx, 4)
     index = upck32(index)
     if not index in winobjs.cryptdll_md5_h:
         raise ValueError('unknown h context', index)
     h = winobjs.cryptdll_md5_h[index].digest()
-    myjit.vm.vm_set_mem(ad_ctx + 88, h)
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.vm.vm_set_mem(ad_ctx + 88, h)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def ntdll_RtlInitAnsiString(myjit):
-    ret_ad, args = myjit.func_args_stdcall(2)
+def ntdll_RtlInitAnsiString(jitter):
+    ret_ad, args = jitter.func_args_stdcall(2)
     ad_ctx, ad_str = args
 
-    s = get_str_ansi(myjit, ad_str)
+    s = get_str_ansi(jitter, ad_str)
     l = len(s)
-    myjit.vm.vm_set_mem(ad_ctx, pck16(l) + pck16(l + 1) + pck32(ad_str))
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.vm.vm_set_mem(ad_ctx, pck16(l) + pck16(l + 1) + pck32(ad_str))
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def ntdll_RtlHashUnicodeString(myjit):
-    ret_ad, args = myjit.func_args_stdcall(4)
+def ntdll_RtlHashUnicodeString(jitter):
+    ret_ad, args = jitter.func_args_stdcall(4)
     ad_ctxu, case_i, h_id, phout = args
 
     if h_id != 1:
         raise ValueError('unk hash unicode', h_id)
 
-    l1, l2, ptra = struct.unpack('HHL', myjit.vm.vm_get_mem(ad_ctxu, 8))
-    s = myjit.vm.vm_get_mem(ptra, l1)
+    l1, l2, ptra = struct.unpack('HHL', jitter.vm.vm_get_mem(ad_ctxu, 8))
+    s = jitter.vm.vm_get_mem(ptra, l1)
     s = s[:-1]
     hv = 0
 
@@ -1176,41 +1176,41 @@ def ntdll_RtlHashUnicodeString(myjit):
         s = s.lower()
     for c in s:
         hv = ((65599 * hv) + ord(c)) & 0xffffffff
-    myjit.vm.vm_set_mem(phout, pck32(hv))
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.vm.vm_set_mem(phout, pck32(hv))
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def kernel32_RtlMoveMemory(myjit):
-    ret_ad, args = myjit.func_args_stdcall(3)
+def kernel32_RtlMoveMemory(jitter):
+    ret_ad, args = jitter.func_args_stdcall(3)
     ad_dst, ad_src, m_len = args
-    data = myjit.vm.vm_get_mem(ad_src, m_len)
-    myjit.vm.vm_set_mem(ad_dst, data)
+    data = jitter.vm.vm_get_mem(ad_src, m_len)
+    jitter.vm.vm_set_mem(ad_dst, data)
 
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def ntdll_RtlAnsiCharToUnicodeChar(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def ntdll_RtlAnsiCharToUnicodeChar(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     ad_ad_ch, = args
-    ad_ch = upck32(myjit.vm.vm_get_mem(ad_ad_ch, 4))
-    ch = ord(myjit.vm.vm_get_mem(ad_ch, 1))
-    myjit.vm.vm_set_mem(ad_ad_ch, pck32(ad_ch + 1))
+    ad_ch = upck32(jitter.vm.vm_get_mem(ad_ad_ch, 4))
+    ch = ord(jitter.vm.vm_get_mem(ad_ch, 1))
+    jitter.vm.vm_set_mem(ad_ad_ch, pck32(ad_ch + 1))
 
-    myjit.func_ret_stdcall(ret_ad, ch)
+    jitter.func_ret_stdcall(ret_ad, ch)
 
 
-def ntdll_RtlFindCharInUnicodeString(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def ntdll_RtlFindCharInUnicodeString(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     flags, main_str_ad, search_chars_ad, pos_ad = args
 
     if flags != 0:
         raise ValueError('unk flags')
 
-    ml1, ml2, mptra = struct.unpack('HHL', myjit.vm.vm_get_mem(main_str_ad, 8))
+    ml1, ml2, mptra = struct.unpack('HHL', jitter.vm.vm_get_mem(main_str_ad, 8))
     sl1, sl2, sptra = struct.unpack(
-        'HHL', myjit.vm.vm_get_mem(search_chars_ad, 8))
-    main_data = myjit.vm.vm_get_mem(mptra, ml1)[:-1]
-    search_data = myjit.vm.vm_get_mem(sptra, sl1)[:-1]
+        'HHL', jitter.vm.vm_get_mem(search_chars_ad, 8))
+    main_data = jitter.vm.vm_get_mem(mptra, ml1)[:-1]
+    search_data = jitter.vm.vm_get_mem(sptra, sl1)[:-1]
 
     pos = None
     for i, c in enumerate(main_data):
@@ -1222,64 +1222,64 @@ def ntdll_RtlFindCharInUnicodeString(myjit):
             break
     if pos is None:
         ret = 0xC0000225
-        myjit.vm.vm_set_mem(pos_ad, pck32(0))
+        jitter.vm.vm_set_mem(pos_ad, pck32(0))
     else:
         ret = 0
-        myjit.vm.vm_set_mem(pos_ad, pck32(pos))
+        jitter.vm.vm_set_mem(pos_ad, pck32(pos))
 
-    myjit.func_ret_stdcall(ret_ad, ret)
+    jitter.func_ret_stdcall(ret_ad, ret)
 
 
-def ntdll_RtlComputeCrc32(myjit):
-    ret_ad, args = myjit.func_args_stdcall(3)
+def ntdll_RtlComputeCrc32(jitter):
+    ret_ad, args = jitter.func_args_stdcall(3)
     dwinit, pdata, ilen = args
 
-    data = myjit.vm.vm_get_mem(pdata, ilen)
+    data = jitter.vm.vm_get_mem(pdata, ilen)
     crc_r = crc32(data, dwinit)
-    myjit.func_ret_stdcall(ret_ad, crc_r)
+    jitter.func_ret_stdcall(ret_ad, crc_r)
 
 
-def ntdll_RtlExtendedIntegerMultiply(myjit):
-    ret_ad, args = myjit.func_args_stdcall(3)
+def ntdll_RtlExtendedIntegerMultiply(jitter):
+    ret_ad, args = jitter.func_args_stdcall(3)
     b2, b1, bm = args
     a = (b1 << 32) + b2
     a = a * bm
-    myjit.func_ret_stdcall(ret_ad, a & 0xffffffff, (a >> 32) & 0xffffffff)
+    jitter.func_ret_stdcall(ret_ad, a & 0xffffffff, (a >> 32) & 0xffffffff)
 
 
-def ntdll_RtlLargeIntegerAdd(myjit):
-    ret_ad, args = myjit.func_args_stdcall(4)
+def ntdll_RtlLargeIntegerAdd(jitter):
+    ret_ad, args = jitter.func_args_stdcall(4)
     a2, a1, b2, b1 = args
     a = (a1 << 32) + a2 + (b1 << 32) + b2
-    myjit.func_ret_stdcall(ret_ad, a & 0xffffffff, (a >> 32) & 0xffffffff)
+    jitter.func_ret_stdcall(ret_ad, a & 0xffffffff, (a >> 32) & 0xffffffff)
 
 
-def ntdll_RtlLargeIntegerShiftRight(myjit):
-    ret_ad, args = myjit.func_args_stdcall(3)
+def ntdll_RtlLargeIntegerShiftRight(jitter):
+    ret_ad, args = jitter.func_args_stdcall(3)
     a2, a1, m = args
     a = ((a1 << 32) + a2) >> m
-    myjit.func_ret_stdcall(ret_ad, a & 0xffffffff, (a >> 32) & 0xffffffff)
+    jitter.func_ret_stdcall(ret_ad, a & 0xffffffff, (a >> 32) & 0xffffffff)
 
 
-def ntdll_RtlEnlargedUnsignedMultiply(myjit):
-    ret_ad, args = myjit.func_args_stdcall(2)
+def ntdll_RtlEnlargedUnsignedMultiply(jitter):
+    ret_ad, args = jitter.func_args_stdcall(2)
     a, b = args
     a = a * b
-    myjit.func_ret_stdcall(ret_ad, a & 0xffffffff, (a >> 32) & 0xffffffff)
+    jitter.func_ret_stdcall(ret_ad, a & 0xffffffff, (a >> 32) & 0xffffffff)
 
 
-def ntdll_RtlLargeIntegerSubtract(myjit):
-    ret_ad, args = myjit.func_args_stdcall(4)
+def ntdll_RtlLargeIntegerSubtract(jitter):
+    ret_ad, args = jitter.func_args_stdcall(4)
     a2, a1, b2, b1 = args
     a = (a1 << 32) + a2 - (b1 << 32) + b2
-    myjit.func_ret_stdcall(ret_ad, a & 0xffffffff, (a >> 32) & 0xffffffff)
+    jitter.func_ret_stdcall(ret_ad, a & 0xffffffff, (a >> 32) & 0xffffffff)
 
 
-def ntdll_RtlCompareMemory(myjit):
-    ret_ad, args = myjit.func_args_stdcall(3)
+def ntdll_RtlCompareMemory(jitter):
+    ret_ad, args = jitter.func_args_stdcall(3)
     ad1, ad2, m_len = args
-    data1 = myjit.vm.vm_get_mem(ad1, m_len)
-    data2 = myjit.vm.vm_get_mem(ad2, m_len)
+    data1 = jitter.vm.vm_get_mem(ad1, m_len)
+    data2 = jitter.vm.vm_get_mem(ad2, m_len)
 
     i = 0
     while data1[i] == data2[i]:
@@ -1287,43 +1287,43 @@ def ntdll_RtlCompareMemory(myjit):
         if i >= m_len:
             break
 
-    myjit.func_ret_stdcall(ret_ad, i)
+    jitter.func_ret_stdcall(ret_ad, i)
 
 
-def user32_GetMessagePos(myjit):
-    ret_ad, args = myjit.func_args_stdcall(0)
-    myjit.func_ret_stdcall(ret_ad, 0x00110022)
+def user32_GetMessagePos(jitter):
+    ret_ad, args = jitter.func_args_stdcall(0)
+    jitter.func_ret_stdcall(ret_ad, 0x00110022)
 
 
-def kernel32_Sleep(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def kernel32_Sleep(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     t, = args
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def ntdll_ZwUnmapViewOfSection(myjit):
-    ret_ad, args = myjit.func_args_stdcall(2)
+def ntdll_ZwUnmapViewOfSection(jitter):
+    ret_ad, args = jitter.func_args_stdcall(2)
     h, ad = args
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def kernel32_IsBadReadPtr(myjit):
-    ret_ad, args = myjit.func_args_stdcall(2)
+def kernel32_IsBadReadPtr(jitter):
+    ret_ad, args = jitter.func_args_stdcall(2)
     lp, ucb = args
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def ntoskrnl_KeInitializeEvent(myjit):
-    ret_ad, args = myjit.func_args_stdcall(3)
+def ntoskrnl_KeInitializeEvent(jitter):
+    ret_ad, args = jitter.func_args_stdcall(3)
     my_event, my_type, my_state = args
-    myjit.vm.vm_set_mem(my_event, pck32(winobjs.win_event_num))
+    jitter.vm.vm_set_mem(my_event, pck32(winobjs.win_event_num))
     winobjs.win_event_num += 1
 
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def ntoskrnl_RtlGetVersion(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def ntoskrnl_RtlGetVersion(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     ptr_version, = args
 
     s = struct.pack("IIIII",
@@ -1334,24 +1334,24 @@ def ntoskrnl_RtlGetVersion(myjit):
                     0x2,   # platform id
                     ) + set_str_unic("Service pack 4")
 
-    myjit.vm.vm_set_mem(ptr_version, s)
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.vm.vm_set_mem(ptr_version, s)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def ntoskrnl_RtlVerifyVersionInfo(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def ntoskrnl_RtlVerifyVersionInfo(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     ptr_version, = args
 
-    s = myjit.vm.vm_get_mem(ptr_version, 0x5 * 4)
+    s = jitter.vm.vm_get_mem(ptr_version, 0x5 * 4)
     s_size, s_majv, s_minv, s_buildn, s_platform = struct.unpack('IIIII', s)
     raise NotImplementedError("Untested case")
-    myjit.vm.vm_set_mem(ptr_version, s)
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.vm.vm_set_mem(ptr_version, s)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def hal_ExAcquireFastMutex(myjit):
-    ret_ad, args = myjit.func_args_stdcall(0)
-    myjit.func_ret_stdcall(ret_ad, 0)
+def hal_ExAcquireFastMutex(jitter):
+    ret_ad, args = jitter.func_args_stdcall(0)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
 def mdl2ad(n):
@@ -1362,183 +1362,183 @@ def ad2mdl(ad):
     return ((ad - winobjs.nt_mdl_ad) & 0xFFFFFFFFL) / 0x10
 
 
-def ntoskrnl_IoAllocateMdl(myjit):
-    ret_ad, args = myjit.func_args_stdcall(5)
+def ntoskrnl_IoAllocateMdl(jitter):
+    ret_ad, args = jitter.func_args_stdcall(5)
     v_addr, l, second_buf, chargequota, pirp = args
     m = mdl(v_addr, l)
     winobjs.nt_mdl[winobjs.nt_mdl_cur] = m
-    myjit.vm.vm_set_mem(mdl2ad(winobjs.nt_mdl_cur), str(m))
-    myjit.func_ret_stdcall(ret_ad, mdl2ad(winobjs.nt_mdl_cur))
+    jitter.vm.vm_set_mem(mdl2ad(winobjs.nt_mdl_cur), str(m))
+    jitter.func_ret_stdcall(ret_ad, mdl2ad(winobjs.nt_mdl_cur))
     winobjs.nt_mdl_cur += 1
 
 
-def ntoskrnl_MmProbeAndLockPages(myjit):
-    ret_ad, args = myjit.func_args_stdcall(3)
+def ntoskrnl_MmProbeAndLockPages(jitter):
+    ret_ad, args = jitter.func_args_stdcall(3)
     p_mdl, access_mode, op = args
 
     if not ad2mdl(p_mdl) in winobjs.nt_mdl:
         raise ValueError('unk mdl', hex(p_mdl))
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def ntoskrnl_MmMapLockedPagesSpecifyCache(myjit):
-    ret_ad, args = myjit.func_args_stdcall(6)
+def ntoskrnl_MmMapLockedPagesSpecifyCache(jitter):
+    ret_ad, args = jitter.func_args_stdcall(6)
     p_mdl, access_mode, cache_type, base_ad, bugcheckonfailure, priority = args
     if not ad2mdl(p_mdl) in winobjs.nt_mdl:
         raise ValueError('unk mdl', hex(p_mdl))
 
-    myjit.func_ret_stdcall(ret_ad, winobjs.nt_mdl[ad2mdl(p_mdl)].ad)
+    jitter.func_ret_stdcall(ret_ad, winobjs.nt_mdl[ad2mdl(p_mdl)].ad)
 
 
-def ntoskrnl_MmProtectMdlSystemAddress(myjit):
-    ret_ad, args = myjit.func_args_stdcall(2)
+def ntoskrnl_MmProtectMdlSystemAddress(jitter):
+    ret_ad, args = jitter.func_args_stdcall(2)
     p_mdl, prot = args
     if not ad2mdl(p_mdl) in winobjs.nt_mdl:
         raise ValueError('unk mdl', hex(p_mdl))
 
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def ntoskrnl_MmUnlockPages(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def ntoskrnl_MmUnlockPages(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     p_mdl, = args
     if not ad2mdl(p_mdl) in winobjs.nt_mdl:
         raise ValueError('unk mdl', hex(p_mdl))
 
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def ntoskrnl_IoFreeMdl(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def ntoskrnl_IoFreeMdl(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     p_mdl, = args
     if not ad2mdl(p_mdl) in winobjs.nt_mdl:
         raise ValueError('unk mdl', hex(p_mdl))
     del(winobjs.nt_mdl[ad2mdl(p_mdl)])
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def hal_ExReleaseFastMutex(myjit):
-    ret_ad, args = myjit.func_args_stdcall(0)
-    myjit.func_ret_stdcall(ret_ad, 0)
+def hal_ExReleaseFastMutex(jitter):
+    ret_ad, args = jitter.func_args_stdcall(0)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def ntoskrnl_RtlQueryRegistryValues(myjit):
-    ret_ad, args = myjit.func_args_stdcall(5)
+def ntoskrnl_RtlQueryRegistryValues(jitter):
+    ret_ad, args = jitter.func_args_stdcall(5)
     relativeto, path, querytable, context, environ = args
-    p = get_str_unic(myjit, path)
-    myjit.func_ret_stdcall(ret_ad, 0)
+    p = get_str_unic(jitter, path)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def ntoskrnl_ExAllocatePoolWithTagPriority(myjit):
-    ret_ad, args = myjit.func_args_stdcall(4)
+def ntoskrnl_ExAllocatePoolWithTagPriority(jitter):
+    ret_ad, args = jitter.func_args_stdcall(4)
     pool_type, nbr_of_bytes, tag, priority = args
 
     alloc_addr = get_next_alloc_addr(nbr_of_bytes)
-    myjit.vm.vm_add_memory_page(
+    jitter.vm.vm_add_memory_page(
         alloc_addr, PAGE_READ | PAGE_WRITE, "\x00" * nbr_of_bytes)
 
-    myjit.func_ret_stdcall(ret_ad, alloc_addr)
+    jitter.func_ret_stdcall(ret_ad, alloc_addr)
 
 
-def my_lstrcmp(myjit, funcname, get_str):
-    ret_ad, args = myjit.func_args_stdcall(2)
+def my_lstrcmp(jitter, funcname, get_str):
+    ret_ad, args = jitter.func_args_stdcall(2)
     ptr_str1, ptr_str2 = args
     s1 = get_str(ptr_str1)
     s2 = get_str(ptr_str2)
-    myjit.func_ret_stdcall(ret_ad, cmp(s1, s2))
+    jitter.func_ret_stdcall(ret_ad, cmp(s1, s2))
 
 
-def kernel32_lstrcmpA(myjit):
-    my_lstrcmp(myjit, whoami(), lambda x: get_str_ansi(myjit, x))
+def kernel32_lstrcmpA(jitter):
+    my_lstrcmp(jitter, whoami(), lambda x: get_str_ansi(jitter, x))
 
 
-def kernel32_lstrcmpiA(myjit):
-    my_lstrcmp(myjit, whoami(), lambda x: get_str_ansi(myjit, x).lower())
+def kernel32_lstrcmpiA(jitter):
+    my_lstrcmp(jitter, whoami(), lambda x: get_str_ansi(jitter, x).lower())
 
 
-def kernel32_lstrcmpW(myjit):
-    my_lstrcmp(myjit, whoami(), lambda x: get_str_unic(myjit, x))
+def kernel32_lstrcmpW(jitter):
+    my_lstrcmp(jitter, whoami(), lambda x: get_str_unic(jitter, x))
 
 
-def kernel32_lstrcmpiW(myjit):
-    my_lstrcmp(myjit, whoami(), lambda x: get_str_unic(myjit, x).lower())
+def kernel32_lstrcmpiW(jitter):
+    my_lstrcmp(jitter, whoami(), lambda x: get_str_unic(jitter, x).lower())
 
 
-def kernel32_lstrcmpi(myjit):
-    my_lstrcmp(myjit, whoami(), lambda x: get_str_ansi(myjit, x).lower())
+def kernel32_lstrcmpi(jitter):
+    my_lstrcmp(jitter, whoami(), lambda x: get_str_ansi(jitter, x).lower())
 
 
-def my_strcpy(myjit, funcname, get_str, set_str):
-    ret_ad, args = myjit.func_args_stdcall(2)
+def my_strcpy(jitter, funcname, get_str, set_str):
+    ret_ad, args = jitter.func_args_stdcall(2)
     ptr_str1, ptr_str2 = args
-    s2 = get_str(myjit, ptr_str2)
-    myjit.vm.vm_set_mem(ptr_str1, set_str(s2))
-    myjit.func_ret_stdcall(ret_ad, ptr_str1)
+    s2 = get_str(jitter, ptr_str2)
+    jitter.vm.vm_set_mem(ptr_str1, set_str(s2))
+    jitter.func_ret_stdcall(ret_ad, ptr_str1)
 
 
-def kernel32_lstrcpyW(myjit):
-    my_strcpy(myjit, whoami(), get_str_unic,
+def kernel32_lstrcpyW(jitter):
+    my_strcpy(jitter, whoami(), get_str_unic,
               lambda x: set_str_unic(x) + "\x00\x00")
 
 
-def kernel32_lstrcpyA(myjit):
-    my_strcpy(myjit, whoami(), get_str_ansi, lambda x: x + "\x00")
+def kernel32_lstrcpyA(jitter):
+    my_strcpy(jitter, whoami(), get_str_ansi, lambda x: x + "\x00")
 
 
-def kernel32_lstrcpy(myjit):
-    my_strcpy(myjit, whoami(), get_str_ansi, lambda x: x + "\x00")
+def kernel32_lstrcpy(jitter):
+    my_strcpy(jitter, whoami(), get_str_ansi, lambda x: x + "\x00")
 
 
-def kernel32_lstrcpyn(myjit):
-    ret_ad, args = myjit.func_args_stdcall(3)
+def kernel32_lstrcpyn(jitter):
+    ret_ad, args = jitter.func_args_stdcall(3)
     ptr_str1, ptr_str2, mlen = args
-    s2 = get_str_ansi(myjit, ptr_str2)
+    s2 = get_str_ansi(jitter, ptr_str2)
     s2 = s2[:mlen]
-    myjit.vm.vm_set_mem(ptr_str1, s2)
+    jitter.vm.vm_set_mem(ptr_str1, s2)
 
-    myjit.func_ret_stdcall(ret_ad, ptr_str1)
+    jitter.func_ret_stdcall(ret_ad, ptr_str1)
 
 
-def my_strlen(myjit, funcname, get_str, mylen):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def my_strlen(jitter, funcname, get_str, mylen):
+    ret_ad, args = jitter.func_args_stdcall(1)
     arg_src, = args
-    src = get_str(myjit, arg_src)
-    myjit.func_ret_stdcall(ret_ad, mylen(src))
+    src = get_str(jitter, arg_src)
+    jitter.func_ret_stdcall(ret_ad, mylen(src))
 
 
-def kernel32_lstrlenA(myjit):
-    my_strlen(myjit, whoami(), get_str_ansi, lambda x: len(x))
+def kernel32_lstrlenA(jitter):
+    my_strlen(jitter, whoami(), get_str_ansi, lambda x: len(x))
 
 
-def kernel32_lstrlenW(myjit):
-    my_strlen(myjit, whoami(), get_str_unic, lambda x: len(x))
+def kernel32_lstrlenW(jitter):
+    my_strlen(jitter, whoami(), get_str_unic, lambda x: len(x))
 
 
-def kernel32_lstrlen(myjit):
-    my_strlen(myjit, whoami(), get_str_ansi, lambda x: len(x))
+def kernel32_lstrlen(jitter):
+    my_strlen(jitter, whoami(), get_str_ansi, lambda x: len(x))
 
 
-def my_lstrcat(myjit, funcname, get_str):
-    ret_ad, args = myjit.func_args_stdcall(3)
+def my_lstrcat(jitter, funcname, get_str):
+    ret_ad, args = jitter.func_args_stdcall(3)
     ptr_str1, ptr_str2 = args
-    s1 = get_str(myjit, ptr_str1)
-    s2 = get_str(myjit, ptr_str2)
+    s1 = get_str(jitter, ptr_str1)
+    s2 = get_str(jitter, ptr_str2)
 
     s = s1 + s2
-    myjit.vm.vm_set_mem(ptr_str1, s1 + s2)
-    myjit.func_ret_stdcall(ret_ad, ptr_str1)
+    jitter.vm.vm_set_mem(ptr_str1, s1 + s2)
+    jitter.func_ret_stdcall(ret_ad, ptr_str1)
 
 
-def kernel32_lstrcatA(myjit):
-    my_lstrcat(myjit, whoami(), get_str_ansi)
+def kernel32_lstrcatA(jitter):
+    my_lstrcat(jitter, whoami(), get_str_ansi)
 
 
-def kernel32_lstrcatW(myjit):
-    my_lstrcat(myjit, whoami(), get_str_unic)
+def kernel32_lstrcatW(jitter):
+    my_lstrcat(jitter, whoami(), get_str_unic)
 
 
-def kernel32_GetUserGeoID(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def kernel32_GetUserGeoID(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     geoclass, = args
     if geoclass == 14:
         ret = 12345678
@@ -1547,66 +1547,66 @@ def kernel32_GetUserGeoID(myjit):
     else:
         raise ValueError('unknown geolcass')
 
-    myjit.func_ret_stdcall(ret_ad, ret)
+    jitter.func_ret_stdcall(ret_ad, ret)
 
 
-def my_GetVolumeInformation(myjit, funcname, get_str, set_str):
-    ret_ad, args = myjit.func_args_stdcall(8)
+def my_GetVolumeInformation(jitter, funcname, get_str, set_str):
+    ret_ad, args = jitter.func_args_stdcall(8)
     (lprootpathname, lpvolumenamebuffer, nvolumenamesize,
      lpvolumeserialnumber, lpmaximumcomponentlength, lpfilesystemflags,
      lpfilesystemnamebuffer, nfilesystemnamesize) = args
 
 
     if lprootpathname:
-        s = get_str(myjit, lprootpathname)
+        s = get_str(jitter, lprootpathname)
 
     if lpvolumenamebuffer:
         s = "volumename"
         s = s[:nvolumenamesize]
-        myjit.vm.vm_set_mem(lpvolumenamebuffer, set_str(s))
+        jitter.vm.vm_set_mem(lpvolumenamebuffer, set_str(s))
 
     if lpvolumeserialnumber:
-        myjit.vm.vm_set_mem(lpvolumeserialnumber, pck32(11111111))
+        jitter.vm.vm_set_mem(lpvolumeserialnumber, pck32(11111111))
     if lpmaximumcomponentlength:
-        myjit.vm.vm_set_mem(lpmaximumcomponentlength, pck32(0xff))
+        jitter.vm.vm_set_mem(lpmaximumcomponentlength, pck32(0xff))
     if lpfilesystemflags:
-        myjit.vm.vm_set_mem(lpfilesystemflags, pck32(22222222))
+        jitter.vm.vm_set_mem(lpfilesystemflags, pck32(22222222))
 
     if lpfilesystemnamebuffer:
         s = "filesystemname"
         s = s[:nfilesystemnamesize]
-        myjit.vm.vm_set_mem(lpfilesystemnamebuffer, set_str(s))
+        jitter.vm.vm_set_mem(lpfilesystemnamebuffer, set_str(s))
 
-    myjit.func_ret_stdcall(ret_ad, 1)
+    jitter.func_ret_stdcall(ret_ad, 1)
 
 
-def kernel32_GetVolumeInformationA(myjit):
+def kernel32_GetVolumeInformationA(jitter):
     my_GetVolumeInformation(
-        myjit, whoami(), get_str_ansi, lambda x: x + "\x00")
+        jitter, whoami(), get_str_ansi, lambda x: x + "\x00")
 
 
-def kernel32_GetVolumeInformationW(myjit):
-    my_GetVolumeInformation(myjit, whoami(), get_str_unic, set_str_unic)
+def kernel32_GetVolumeInformationW(jitter):
+    my_GetVolumeInformation(jitter, whoami(), get_str_unic, set_str_unic)
 
 
-def kernel32_MultiByteToWideChar(myjit):
-    ret_ad, args = myjit.func_args_stdcall(6)
+def kernel32_MultiByteToWideChar(jitter):
+    ret_ad, args = jitter.func_args_stdcall(6)
     (codepage, dwflags, lpmultibytestr,
      cbmultibyte, lpwidecharstr, cchwidechar) = args
 
-    src = get_str_ansi(myjit, lpmultibytestr) + '\x00'
+    src = get_str_ansi(jitter, lpmultibytestr) + '\x00'
     l = len(src)
 
     src = "\x00".join(list(src))
-    myjit.vm.vm_set_mem(lpwidecharstr, src)
-    myjit.func_ret_stdcall(ret_ad, l)
+    jitter.vm.vm_set_mem(lpwidecharstr, src)
+    jitter.func_ret_stdcall(ret_ad, l)
 
 
-def my_GetEnvironmentVariable(myjit, funcname, get_str, set_str, mylen):
-    ret_ad, args = myjit.func_args_stdcall(3)
+def my_GetEnvironmentVariable(jitter, funcname, get_str, set_str, mylen):
+    ret_ad, args = jitter.func_args_stdcall(3)
     lpname, lpbuffer, nsize = args
 
-    s = get_str(myjit, lpname)
+    s = get_str(jitter, lpname)
     if get_str == get_str_unic:
         s = s
     log.debug('variable %r' % s)
@@ -1615,64 +1615,64 @@ def my_GetEnvironmentVariable(myjit, funcname, get_str, set_str, mylen):
     else:
         log.warning('WARNING unknown env variable %r' % s)
         v = ""
-    myjit.vm.vm_set_mem(lpbuffer, v)
-    myjit.func_ret_stdcall(ret_ad, mylen(v))
+    jitter.vm.vm_set_mem(lpbuffer, v)
+    jitter.func_ret_stdcall(ret_ad, mylen(v))
 
 
-def my_GetSystemDirectory(myjit, funcname, set_str):
-    ret_ad, args = myjit.func_args_stdcall(2)
+def my_GetSystemDirectory(jitter, funcname, set_str):
+    ret_ad, args = jitter.func_args_stdcall(2)
     lpbuffer, usize = args
 
     s = "c:\\windows\\system32"
     l = len(s)
     s = set_str(s)
-    myjit.vm.vm_set_mem(lpbuffer, s)
+    jitter.vm.vm_set_mem(lpbuffer, s)
 
-    myjit.func_ret_stdcall(ret_ad, l)
-
-
-def kernel32_GetSystemDirectoryA(myjit):
-    my_GetSystemDirectory(myjit, whoami(), set_str_ansi)
+    jitter.func_ret_stdcall(ret_ad, l)
 
 
-def kernel32_GetSystemDirectoryW(myjit):
-    my_GetSystemDirectory(myjit, whoami(), set_str_unic)
+def kernel32_GetSystemDirectoryA(jitter):
+    my_GetSystemDirectory(jitter, whoami(), set_str_ansi)
 
 
-def my_CreateDirectory(myjit, funcname, get_str):
-    ret_ad, args = myjit.func_args_stdcall(2)
+def kernel32_GetSystemDirectoryW(jitter):
+    my_GetSystemDirectory(jitter, whoami(), set_str_unic)
+
+
+def my_CreateDirectory(jitter, funcname, get_str):
+    ret_ad, args = jitter.func_args_stdcall(2)
     lppath, secattrib = args
-    p = get_str(myjit, lppath)
-    myjit.func_ret_stdcall(ret_ad, 0x1337)
+    p = get_str(jitter, lppath)
+    jitter.func_ret_stdcall(ret_ad, 0x1337)
 
 
-def kernel32_CreateDirectoryW(myjit):
-    my_CreateDirectory(myjit, whoami(), get_str_unic)
+def kernel32_CreateDirectoryW(jitter):
+    my_CreateDirectory(jitter, whoami(), get_str_unic)
 
 
-def kernel32_CreateDirectoryA(myjit):
-    my_CreateDirectory(myjit, whoami(), get_str_ansi)
+def kernel32_CreateDirectoryA(jitter):
+    my_CreateDirectory(jitter, whoami(), get_str_ansi)
 
 
-def kernel32_GetEnvironmentVariableA(myjit):
-    my_GetEnvironmentVariable(myjit, whoami(),
+def kernel32_GetEnvironmentVariableA(jitter):
+    my_GetEnvironmentVariable(jitter, whoami(),
                               get_str_ansi,
                               lambda x: x + "\x00",
                               lambda x: len(x))
 
 
-def kernel32_GetEnvironmentVariableW(myjit):
-    my_GetEnvironmentVariable(myjit, whoami(),
+def kernel32_GetEnvironmentVariableW(jitter):
+    my_GetEnvironmentVariable(jitter, whoami(),
                               get_str_unic,
                               lambda x: "\x00".join(list(x + "\x00")),
                               lambda x: len(x))
 
 
-def my_CreateEvent(myjit, funcname, get_str):
-    ret_ad, args = myjit.func_args_stdcall(4)
+def my_CreateEvent(jitter, funcname, get_str):
+    ret_ad, args = jitter.func_args_stdcall(4)
     lpeventattributes, bmanualreset, binitialstate, lpname = args
     if lpname:
-        s = get_str(myjit, lpname)
+        s = get_str(jitter, lpname)
     else:
         s = None
     if not s in winobjs.events_pool:
@@ -1680,19 +1680,19 @@ def my_CreateEvent(myjit, funcname, get_str):
     else:
         log.warning('WARNING: known event')
 
-    myjit.func_ret_stdcall(ret_ad, id(s))
+    jitter.func_ret_stdcall(ret_ad, id(s))
 
 
-def kernel32_CreateEventA(myjit):
-    my_CreateEvent(myjit, whoami(), get_str_ansi)
+def kernel32_CreateEventA(jitter):
+    my_CreateEvent(jitter, whoami(), get_str_ansi)
 
 
-def kernel32_CreateEventW(myjit):
-    my_CreateEvent(myjit, whoami(), get_str_unic)
+def kernel32_CreateEventW(jitter):
+    my_CreateEvent(jitter, whoami(), get_str_unic)
 
 
-def kernel32_WaitForSingleObject(myjit):
-    ret_ad, args = myjit.func_args_stdcall(2)
+def kernel32_WaitForSingleObject(jitter):
+    ret_ad, args = jitter.func_args_stdcall(2)
     handle, dwms = args
 
     t_start = time.time() * 1000
@@ -1713,34 +1713,34 @@ def kernel32_WaitForSingleObject(myjit):
             ret = 0xffffffff
             break
         time.sleep(0.1)
-    myjit.func_ret_stdcall(ret_ad, ret)
+    jitter.func_ret_stdcall(ret_ad, ret)
 
 
-def kernel32_SetFileAttributesA(myjit):
-    ret_ad, args = myjit.func_args_stdcall(2)
+def kernel32_SetFileAttributesA(jitter):
+    ret_ad, args = jitter.func_args_stdcall(2)
     lpfilename, dwfileattributes = args
 
     if lpfilename:
-        fname = get_str_ansi(myjit, lpfilename)
+        fname = get_str_ansi(jitter, lpfilename)
         ret = 1
     else:
         ret = 0
-        myjit.vm.vm_set_mem(seh_helper.FS_0_AD + 0x34, pck32(3))
+        jitter.vm.vm_set_mem(seh_helper.FS_0_AD + 0x34, pck32(3))
 
-    myjit.func_ret_stdcall(ret_ad, ret)
+    jitter.func_ret_stdcall(ret_ad, ret)
 
 
-def ntdll_RtlMoveMemory(myjit):
-    ret_ad, args = myjit.func_args_stdcall(3)
+def ntdll_RtlMoveMemory(jitter):
+    ret_ad, args = jitter.func_args_stdcall(3)
     dst, src, l = args
-    s = myjit.vm.vm_get_mem(src, l)
-    myjit.vm.vm_set_mem(dst, s)
+    s = jitter.vm.vm_get_mem(src, l)
+    jitter.vm.vm_set_mem(dst, s)
 
-    myjit.func_ret_stdcall(ret_ad, 1)
+    jitter.func_ret_stdcall(ret_ad, 1)
 
 
-def ntdll_ZwQuerySystemInformation(myjit):
-    ret_ad, args = myjit.func_args_stdcall(4)
+def ntdll_ZwQuerySystemInformation(jitter):
+    ret_ad, args = jitter.func_args_stdcall(4)
     (systeminformationclass, systeminformation,
      systeminformationl, returnl) = args
     if systeminformationclass == 2:
@@ -1748,39 +1748,39 @@ def ntdll_ZwQuerySystemInformation(myjit):
         o = struct.pack('II', 0x22222222, 0x33333333)
         o += "\x00" * systeminformationl
         o = o[:systeminformationl]
-        myjit.vm.vm_set_mem(systeminformation, o)
+        jitter.vm.vm_set_mem(systeminformation, o)
     else:
         raise ValueError('unknown sysinfo class', systeminformationclass)
 
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def ntdll_ZwProtectVirtualMemory(myjit):
-    ret_ad, args = myjit.func_args_stdcall(5)
+def ntdll_ZwProtectVirtualMemory(jitter):
+    ret_ad, args = jitter.func_args_stdcall(5)
     handle, lppvoid, pdwsize, flnewprotect, lpfloldprotect = args
 
-    ad = upck32(myjit.vm.vm_get_mem(lppvoid, 4))
-    dwsize = upck32(myjit.vm.vm_get_mem(pdwsize, 4))
+    ad = upck32(jitter.vm.vm_get_mem(lppvoid, 4))
+    dwsize = upck32(jitter.vm.vm_get_mem(pdwsize, 4))
     # XXX mask hpart
     flnewprotect &= 0xFFF
 
     if not flnewprotect in access_dict:
         raise ValueError('unknown access dw!')
-    myjit.vm.vm_set_mem_access(ad, access_dict[flnewprotect])
+    jitter.vm.vm_set_mem_access(ad, access_dict[flnewprotect])
 
     # XXX todo real old protect
-    myjit.vm.vm_set_mem(lpfloldprotect, pck32(0x40))
+    jitter.vm.vm_set_mem(lpfloldprotect, pck32(0x40))
 
     dump_memory_page_pool_py()
-    myjit.func_ret_stdcall(ret_ad, 1)
+    jitter.func_ret_stdcall(ret_ad, 1)
 
 
-def ntdll_ZwAllocateVirtualMemory(myjit):
-    ret_ad, args = myjit.func_args_stdcall(6)
+def ntdll_ZwAllocateVirtualMemory(jitter):
+    ret_ad, args = jitter.func_args_stdcall(6)
     handle, lppvoid, zerobits, pdwsize, alloc_type, flprotect = args
 
-    ad = upck32(myjit.vm.vm_get_mem(lppvoid, 4))
-    dwsize = upck32(myjit.vm.vm_get_mem(pdwsize, 4))
+    ad = upck32(jitter.vm.vm_get_mem(lppvoid, 4))
+    dwsize = upck32(jitter.vm.vm_get_mem(pdwsize, 4))
 
     access_dict = {0x0: 0,
                    0x1: 0,
@@ -1798,172 +1798,172 @@ def ntdll_ZwAllocateVirtualMemory(myjit):
         raise ValueError('unknown access dw!')
 
     alloc_addr = get_next_alloc_addr(dwsize)
-    myjit.vm.vm_add_memory_page(
+    jitter.vm.vm_add_memory_page(
         alloc_addr, access_dict[flprotect], "\x00" * dwsize)
-    myjit.vm.vm_set_mem(lppvoid, pck32(alloc_addr))
+    jitter.vm.vm_set_mem(lppvoid, pck32(alloc_addr))
 
     dump_memory_page_pool_py()
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def ntdll_ZwFreeVirtualMemory(myjit):
-    ret_ad, args = myjit.func_args_stdcall(4)
+def ntdll_ZwFreeVirtualMemory(jitter):
+    ret_ad, args = jitter.func_args_stdcall(4)
     handle, lppvoid, pdwsize, alloc_type = args
-    ad = upck32(myjit.vm.vm_get_mem(lppvoid, 4))
-    dwsize = upck32(myjit.vm.vm_get_mem(pdwsize, 4))
+    ad = upck32(jitter.vm.vm_get_mem(lppvoid, 4))
+    dwsize = upck32(jitter.vm.vm_get_mem(pdwsize, 4))
 
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def ntdll_RtlInitString(myjit):
-    ret_ad, args = myjit.func_args_stdcall(2)
+def ntdll_RtlInitString(jitter):
+    ret_ad, args = jitter.func_args_stdcall(2)
     pstring, source = args
-    s = get_str_ansi(myjit, source)
+    s = get_str_ansi(jitter, source)
 
     l = len(s) + 1
 
     o = struct.pack('HHI', l, l, source)
-    myjit.vm.vm_set_mem(pstring, o)
+    jitter.vm.vm_set_mem(pstring, o)
 
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def ntdll_RtlAnsiStringToUnicodeString(myjit):
-    ret_ad, args = myjit.func_args_stdcall(3)
+def ntdll_RtlAnsiStringToUnicodeString(jitter):
+    ret_ad, args = jitter.func_args_stdcall(3)
     dst, src, alloc_str = args
 
-    l1, l2, p_src = struct.unpack('HHI', myjit.vm.vm_get_mem(src, 0x8))
-    s = get_str_ansi(myjit, p_src)
+    l1, l2, p_src = struct.unpack('HHI', jitter.vm.vm_get_mem(src, 0x8))
+    s = get_str_ansi(jitter, p_src)
     s = ("\x00".join(s + "\x00"))
     l = len(s) + 1
     if alloc_str:
         alloc_addr = get_next_alloc_addr(l)
-        myjit.vm.vm_add_memory_page(
+        jitter.vm.vm_add_memory_page(
             alloc_addr, PAGE_READ | PAGE_WRITE, "\x00" * l)
     else:
         alloc_addr = p_src
-    myjit.vm.vm_set_mem(alloc_addr, s)
+    jitter.vm.vm_set_mem(alloc_addr, s)
     o = struct.pack('HHI', l, l, alloc_addr)
-    myjit.vm.vm_set_mem(dst, o)
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.vm.vm_set_mem(dst, o)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def ntdll_LdrLoadDll(myjit):
-    ret_ad, args = myjit.func_args_stdcall(4)
+def ntdll_LdrLoadDll(jitter):
+    ret_ad, args = jitter.func_args_stdcall(4)
     path, flags, modname, modhandle = args
 
-    l1, l2, p_src = struct.unpack('HHI', myjit.vm.vm_get_mem(modname, 0x8))
-    s = get_str_unic(myjit, p_src)
+    l1, l2, p_src = struct.unpack('HHI', jitter.vm.vm_get_mem(modname, 0x8))
+    s = get_str_unic(jitter, p_src)
     libname = s.lower()
 
     ad = winobjs.runtime_dll.lib_get_add_base(libname)
-    myjit.vm.vm_set_mem(modhandle, pck32(ad))
+    jitter.vm.vm_set_mem(modhandle, pck32(ad))
 
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def ntdll_RtlFreeUnicodeString(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def ntdll_RtlFreeUnicodeString(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     src, = args
 
-    l1, l2, p_src = struct.unpack('HHI', myjit.vm.vm_get_mem(src, 0x8))
-    s = get_str_unic(myjit, p_src)
+    l1, l2, p_src = struct.unpack('HHI', jitter.vm.vm_get_mem(src, 0x8))
+    s = get_str_unic(jitter, p_src)
 
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def ntdll_LdrGetProcedureAddress(myjit):
-    ret_ad, args = myjit.func_args_stdcall(4)
+def ntdll_LdrGetProcedureAddress(jitter):
+    ret_ad, args = jitter.func_args_stdcall(4)
     libbase, pfname, opt, p_ad = args
 
-    l1, l2, p_src = struct.unpack('HHI', myjit.vm.vm_get_mem(pfname, 0x8))
-    fname = get_str_ansi(myjit, p_src)
+    l1, l2, p_src = struct.unpack('HHI', jitter.vm.vm_get_mem(pfname, 0x8))
+    fname = get_str_ansi(jitter, p_src)
 
     ad = winobjs.runtime_dll.lib_get_add_func(libbase, fname)
 
-    myjit.vm.vm_set_mem(p_ad, pck32(ad))
+    jitter.vm.vm_set_mem(p_ad, pck32(ad))
 
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def ntdll_memset(myjit):
-    ret_ad, args = myjit.func_args_stdcall(3)
+def ntdll_memset(jitter):
+    ret_ad, args = jitter.func_args_stdcall(3)
     arg_addr, arg_c, arg_size = args
 
-    myjit.vm.vm_set_mem(arg_addr, chr(arg_c) * arg_size)
-    myjit.func_ret_stdcall(ret_ad, arg_addr)
+    jitter.vm.vm_set_mem(arg_addr, chr(arg_c) * arg_size)
+    jitter.func_ret_stdcall(ret_ad, arg_addr)
 
 
-def msvcrt_memset(myjit):
-    ret_ad, args = myjit.func_args_cdecl(3)
+def msvcrt_memset(jitter):
+    ret_ad, args = jitter.func_args_cdecl(3)
     arg_addr, arg_c, arg_size = args
 
-    myjit.vm.vm_set_mem(arg_addr, chr(arg_c) * arg_size)
-    myjit.func_ret_cdecl(ret_ad, arg_addr)
+    jitter.vm.vm_set_mem(arg_addr, chr(arg_c) * arg_size)
+    jitter.func_ret_cdecl(ret_ad, arg_addr)
 
 
-def msvcrt_memcpy(myjit):
-    ret_ad, args = myjit.func_args_cdecl(3)
+def msvcrt_memcpy(jitter):
+    ret_ad, args = jitter.func_args_cdecl(3)
     dst, src, size = args
 
-    s = myjit.vm.vm_get_mem(src, size)
-    myjit.vm.vm_set_mem(dst, s)
-    myjit.func_ret_cdecl(ret_ad, dst)
+    s = jitter.vm.vm_get_mem(src, size)
+    jitter.vm.vm_set_mem(dst, s)
+    jitter.func_ret_cdecl(ret_ad, dst)
 
 
-def msvcrt_memcmp(myjit):
-    ret_ad, args = myjit.func_args_cdecl(3)
+def msvcrt_memcmp(jitter):
+    ret_ad, args = jitter.func_args_cdecl(3)
     ps1, ps2, size = args
 
-    s1 = myjit.vm.vm_get_mem(ps1, size)
-    s2 = myjit.vm.vm_get_mem(ps2, size)
+    s1 = jitter.vm.vm_get_mem(ps1, size)
+    s2 = jitter.vm.vm_get_mem(ps2, size)
     ret = cmp(s1, s2)
-    myjit.func_ret_cdecl(ret_ad, ret)
+    jitter.func_ret_cdecl(ret_ad, ret)
 
 
-def shlwapi_PathFindExtensionA(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def shlwapi_PathFindExtensionA(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     path_ad, = args
 
-    path = get_str_ansi(myjit, path_ad)
+    path = get_str_ansi(jitter, path_ad)
     i = path.rfind('.')
     if i == -1:
         i = path_ad + len(path)
     else:
         i = path_ad + i
-    myjit.func_ret_stdcall(ret_ad, i)
+    jitter.func_ret_stdcall(ret_ad, i)
 
 
-def shlwapi_PathRemoveFileSpecW(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def shlwapi_PathRemoveFileSpecW(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     path_ad, = args
 
-    path = get_str_unic(myjit, path_ad)
+    path = get_str_unic(jitter, path_ad)
     i = path.rfind('\\')
     if i == -1:
         i = 0
-    myjit.vm.vm_set_mem(path_ad + i * 2, "\x00\x00")
-    path = get_str_unic(myjit, path_ad)
-    myjit.func_ret_stdcall(ret_ad, 1)
+    jitter.vm.vm_set_mem(path_ad + i * 2, "\x00\x00")
+    path = get_str_unic(jitter, path_ad)
+    jitter.func_ret_stdcall(ret_ad, 1)
 
 
-def shlwapi_PathIsPrefixW(myjit):
-    ret_ad, args = myjit.func_args_stdcall(2)
+def shlwapi_PathIsPrefixW(jitter):
+    ret_ad, args = jitter.func_args_stdcall(2)
     ptr_prefix, ptr_path = args
-    prefix = get_str_unic(myjit, ptr_prefix)
-    path = get_str_unic(myjit, ptr_path)
+    prefix = get_str_unic(jitter, ptr_prefix)
+    path = get_str_unic(jitter, ptr_path)
 
     if path.startswith(prefix):
         ret = 1
     else:
         ret = 0
-    myjit.func_ret_stdcall(ret_ad, ret)
+    jitter.func_ret_stdcall(ret_ad, ret)
 
 
-def shlwapi_PathIsDirectoryW(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def shlwapi_PathIsDirectoryW(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     ppath, = args
-    fname = get_str_unic(myjit, ppath)
+    fname = get_str_unic(jitter, ppath)
 
     fname = fname.replace('\\', "/").lower()
     f = os.path.join('file_sb', fname)
@@ -1973,67 +1973,67 @@ def shlwapi_PathIsDirectoryW(myjit):
     if stat.S_ISDIR(s.st_mode):
         ret = 1
 
-    myjit.func_ret_cdecl(ret_ad, ret)
+    jitter.func_ret_cdecl(ret_ad, ret)
 
 
 def shlwapi_PathIsFileSpec(funcname, get_str):
-    ret_ad, args = myjit.func_args_stdcall(1)
+    ret_ad, args = jitter.func_args_stdcall(1)
     path_ad, = args
-    path = get_str(myjit, path_ad)
+    path = get_str(jitter, path_ad)
     if path.find(':') != -1 and path.find('\\') != -1:
         ret = 0
     else:
         ret = 1
 
-    myjit.func_ret_stdcall(ret_ad, ret)
+    jitter.func_ret_stdcall(ret_ad, ret)
 
 
-def shlwapi_PathGetDriveNumber(myjit, funcname, get_str):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def shlwapi_PathGetDriveNumber(jitter, funcname, get_str):
+    ret_ad, args = jitter.func_args_stdcall(1)
     path_ad, = args
-    path = get_str(myjit, path_ad)
+    path = get_str(jitter, path_ad)
     l = ord(path[0].upper()) - ord('A')
     if 0 <= l <= 25:
         ret = l
     else:
         ret = -1
 
-    myjit.func_ret_stdcall(ret_ad, ret)
+    jitter.func_ret_stdcall(ret_ad, ret)
 
 
-def shlwapi_PathGetDriveNumberA(myjit):
-    shlwapi_PathGetDriveNumber(myjit, whoami(), get_str_ansi)
+def shlwapi_PathGetDriveNumberA(jitter):
+    shlwapi_PathGetDriveNumber(jitter, whoami(), get_str_ansi)
 
 
-def shlwapi_PathGetDriveNumberW(myjit):
-    shlwapi_PathGetDriveNumber(myjit, whoami(), get_str_unic)
+def shlwapi_PathGetDriveNumberW(jitter):
+    shlwapi_PathGetDriveNumber(jitter, whoami(), get_str_unic)
 
 
-def shlwapi_PathIsFileSpecA(myjit):
+def shlwapi_PathIsFileSpecA(jitter):
     shlwapi_PathIsFileSpec(whoami(), get_str_ansi)
 
 
-def shlwapi_PathIsFileSpecW(myjit):
+def shlwapi_PathIsFileSpecW(jitter):
     shlwapi_PathIsFileSpec(whoami(), get_str_unic)
 
 
-def shlwapi_StrToIntA(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def shlwapi_StrToIntA(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     i_str_ad, = args
-    i_str = get_str_ansi(myjit, i_str_ad)
+    i_str = get_str_ansi(jitter, i_str_ad)
     try:
         i = int(i_str)
     except:
         log.warning('WARNING cannot convert int')
         i = 0
 
-    myjit.func_ret_stdcall(ret_ad, i)
+    jitter.func_ret_stdcall(ret_ad, i)
 
 
-def shlwapi_StrToInt64Ex(myjit, funcname, get_str):
-    ret_ad, args = myjit.func_args_stdcall(3)
+def shlwapi_StrToInt64Ex(jitter, funcname, get_str):
+    ret_ad, args = jitter.func_args_stdcall(3)
     pstr, flags, pret = args
-    i_str = get_str(myjit, pstr)
+    i_str = get_str(jitter, pstr)
     if get_str is get_str_unic:
         i_str = i_str
 
@@ -2044,69 +2044,69 @@ def shlwapi_StrToInt64Ex(myjit, funcname, get_str):
     else:
         raise ValueError('cannot decode int')
 
-    myjit.vm.vm_set_mem(pret, struct.pack('q', r))
+    jitter.vm.vm_set_mem(pret, struct.pack('q', r))
 
-    myjit.func_ret_stdcall(ret_ad, i)
-
-
-def shlwapi_StrToInt64ExA(myjit):
-    shlwapi_StrToInt64Ex(myjit, whoami(), get_str_ansi)
+    jitter.func_ret_stdcall(ret_ad, i)
 
 
-def shlwapi_StrToInt64ExW(myjit):
-    shlwapi_StrToInt64Ex(myjit, whoami(), get_str_unic)
+def shlwapi_StrToInt64ExA(jitter):
+    shlwapi_StrToInt64Ex(jitter, whoami(), get_str_ansi)
 
 
-def user32_IsCharAlpha(myjit, funcname, get_str):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def shlwapi_StrToInt64ExW(jitter):
+    shlwapi_StrToInt64Ex(jitter, whoami(), get_str_unic)
+
+
+def user32_IsCharAlpha(jitter, funcname, get_str):
+    ret_ad, args = jitter.func_args_stdcall(1)
     c, = args
     try:
         c = chr(c)
     except:
         log.error('bad char %r' % c)
         c = "\x00"
-    if c.isalpha(myjit):
+    if c.isalpha(jitter):
         ret = 1
     else:
         ret = 0
-    myjit.func_ret_stdcall(ret_ad, ret)
+    jitter.func_ret_stdcall(ret_ad, ret)
 
 
-def user32_IsCharAlphaA(myjit):
-    user32_IsCharAlpha(myjit, whoami(), get_str_ansi)
+def user32_IsCharAlphaA(jitter):
+    user32_IsCharAlpha(jitter, whoami(), get_str_ansi)
 
 
-def user32_IsCharAlphaW(myjit):
-    user32_IsCharAlpha(myjit, whoami(), get_str_unic)
+def user32_IsCharAlphaW(jitter):
+    user32_IsCharAlpha(jitter, whoami(), get_str_unic)
 
 
-def user32_IsCharAlphaNumericA(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def user32_IsCharAlphaNumericA(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     c, = args
     c = chr(c)
-    if c.isalnum(myjit):
+    if c.isalnum(jitter):
         ret = 1
     else:
         ret = 0
-    myjit.func_ret_stdcall(ret_ad, ret)
+    jitter.func_ret_stdcall(ret_ad, ret)
 
 
-def shlwapi_StrCmpNIA(myjit):
-    ret_ad, args = myjit.func_args_stdcall(3)
+def shlwapi_StrCmpNIA(jitter):
+    ret_ad, args = jitter.func_args_stdcall(3)
     ptr_str1, ptr_str2, nchar = args
-    s1 = get_str_ansi(myjit, ptr_str1).lower()
-    s2 = get_str_ansi(myjit, ptr_str2).lower()
+    s1 = get_str_ansi(jitter, ptr_str1).lower()
+    s2 = get_str_ansi(jitter, ptr_str2).lower()
     s1 = s1[:nchar]
     s2 = s2[:nchar]
 
-    myjit.func_ret_stdcall(ret_ad, cmp(s1, s2))
+    jitter.func_ret_stdcall(ret_ad, cmp(s1, s2))
 
 
-def advapi32_RegOpenKeyEx(myjit, funcname, get_str):
-    ret_ad, args = myjit.func_args_stdcall(5)
+def advapi32_RegOpenKeyEx(jitter, funcname, get_str):
+    ret_ad, args = jitter.func_args_stdcall(5)
     hkey, subkey, reserved, access, phandle = args
     if subkey:
-        s_subkey = get_str(myjit, subkey).lower()
+        s_subkey = get_str(jitter, subkey).lower()
     else:
         s_subkey = ""
 
@@ -2121,49 +2121,49 @@ def advapi32_RegOpenKeyEx(myjit, funcname, get_str):
         else:
             log.error('unknown skey')
 
-    myjit.vm.vm_set_mem(phandle, pck32(ret_hkey))
+    jitter.vm.vm_set_mem(phandle, pck32(ret_hkey))
 
-    myjit.func_ret_stdcall(ret_ad, ret)
-
-
-def advapi32_RegOpenKeyExA(myjit):
-    advapi32_RegOpenKeyEx(myjit, whoami(), get_str_ansi)
+    jitter.func_ret_stdcall(ret_ad, ret)
 
 
-def advapi32_RegOpenKeyExW(myjit):
-    advapi32_RegOpenKeyEx(myjit, whoami(), get_str_unic)
+def advapi32_RegOpenKeyExA(jitter):
+    advapi32_RegOpenKeyEx(jitter, whoami(), get_str_ansi)
 
 
-def advapi32_RegSetValue(myjit, funcname, get_str):
-    ret_ad, args = myjit.func_args_stdcall(5)
+def advapi32_RegOpenKeyExW(jitter):
+    advapi32_RegOpenKeyEx(jitter, whoami(), get_str_unic)
+
+
+def advapi32_RegSetValue(jitter, funcname, get_str):
+    ret_ad, args = jitter.func_args_stdcall(5)
     hkey, psubkey, valuetype, pvalue, length = args
     if psubkey:
-        subkey = get_str(myjit, psubkey).lower()
+        subkey = get_str(jitter, psubkey).lower()
     else:
         subkey = ""
 
     if pvalue:
-        value = myjit.vm.vm_get_mem(pvalue, length)
+        value = jitter.vm.vm_get_mem(pvalue, length)
     else:
         value = None
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def advapi32_RegSetValueA(myjit):
-    advapi32_RegSetValue(myjit, whoami(), get_str_ansi)
+def advapi32_RegSetValueA(jitter):
+    advapi32_RegSetValue(jitter, whoami(), get_str_ansi)
 
 
-def advapi32_RegSetValueW(myjit):
-    advapi32_RegSetValue(myjit, whoami(), get_str_unic)
+def advapi32_RegSetValueW(jitter):
+    advapi32_RegSetValue(jitter, whoami(), get_str_unic)
 
 
-def kernel32_GetThreadLocale(myjit):
-    ret_ad, args = myjit.func_args_stdcall(0)
-    myjit.func_ret_stdcall(ret_ad, 0x40c)
+def kernel32_GetThreadLocale(jitter):
+    ret_ad, args = jitter.func_args_stdcall(0)
+    jitter.func_ret_stdcall(ret_ad, 0x40c)
 
 
-def kernel32_GetLocaleInfo(myjit, funcname, set_str):
-    ret_ad, args = myjit.func_args_stdcall(4)
+def kernel32_GetLocaleInfo(jitter, funcname, set_str):
+    ret_ad, args = jitter.func_args_stdcall(4)
     localeid, lctype, lplcdata, cchdata = args
 
     buf = None
@@ -2172,51 +2172,51 @@ def kernel32_GetLocaleInfo(myjit, funcname, set_str):
         if lctype == 0x3:
             buf = "ENGLISH"
             buf = buf[:cchdata - 1]
-            myjit.vm.vm_set_mem(lplcdata, set_str(buf))
+            jitter.vm.vm_set_mem(lplcdata, set_str(buf))
             ret = len(buf)
     else:
         raise ValueError('unimpl localeid')
 
-    myjit.func_ret_stdcall(ret_ad, ret)
+    jitter.func_ret_stdcall(ret_ad, ret)
 
 
-def kernel32_GetLocaleInfoA(myjit):
-    kernel32_GetLocaleInfo(myjit, whoami(), set_str_ansi)
+def kernel32_GetLocaleInfoA(jitter):
+    kernel32_GetLocaleInfo(jitter, whoami(), set_str_ansi)
 
 
-def kernel32_GetLocaleInfoW(myjit):
-    kernel32_GetLocaleInfo(myjit, whoami(), set_str_unic)
+def kernel32_GetLocaleInfoW(jitter):
+    kernel32_GetLocaleInfo(jitter, whoami(), set_str_unic)
 
 
-def kernel32_TlsAlloc(myjit):
-    ret_ad, args = myjit.func_args_stdcall(0)
+def kernel32_TlsAlloc(jitter):
+    ret_ad, args = jitter.func_args_stdcall(0)
     winobjs.tls_index += 1
-    myjit.func_ret_stdcall(ret_ad, winobjs.tls_index)
+    jitter.func_ret_stdcall(ret_ad, winobjs.tls_index)
 
 
-def kernel32_TlsFree(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
-    myjit.func_ret_stdcall(ret_ad, 0)
+def kernel32_TlsFree(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def kernel32_TlsSetValue(myjit):
-    ret_ad, args = myjit.func_args_stdcall(2)
+def kernel32_TlsSetValue(jitter):
+    ret_ad, args = jitter.func_args_stdcall(2)
     tlsindex, tlsvalue = args
     winobjs.tls_values[tlsindex] = tlsvalue
-    myjit.func_ret_stdcall(ret_ad, 1)
+    jitter.func_ret_stdcall(ret_ad, 1)
 
 
-def kernel32_TlsGetValue(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def kernel32_TlsGetValue(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     tlsindex, = args
 
     if not tlsindex in winobjs.tls_values:
         raise ValueError("unknown tls val", repr(tlsindex))
-    myjit.func_ret_stdcall(ret_ad, winobjs.tls_values[tlsindex])
+    jitter.func_ret_stdcall(ret_ad, winobjs.tls_values[tlsindex])
 
 
-def user32_GetKeyboardType(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def user32_GetKeyboardType(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     typeflag, = args
 
     ret = 0
@@ -2225,40 +2225,40 @@ def user32_GetKeyboardType(myjit):
     else:
         raise ValueError('unimpl keyboard type')
 
-    myjit.func_ret_stdcall(ret_ad, ret)
+    jitter.func_ret_stdcall(ret_ad, ret)
 
 
-def kernel32_GetStartupInfo(myjit, funcname, set_str):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def kernel32_GetStartupInfo(jitter, funcname, set_str):
+    ret_ad, args = jitter.func_args_stdcall(1)
     ptr, = args
 
     s = "\x00" * 0x2c + "\x81\x00\x00\x00" + "\x0a"
 
-    myjit.vm.vm_set_mem(ptr, s)
-    myjit.func_ret_stdcall(ret_ad, ptr)
+    jitter.vm.vm_set_mem(ptr, s)
+    jitter.func_ret_stdcall(ret_ad, ptr)
 
 
-def kernel32_GetStartupInfoA(myjit):
-    kernel32_GetStartupInfo(myjit, whoami(), set_str_ansi)
+def kernel32_GetStartupInfoA(jitter):
+    kernel32_GetStartupInfo(jitter, whoami(), set_str_ansi)
 
 
-def kernel32_GetStartupInfoW(myjit):
-    kernel32_GetStartupInfo(myjit, whoami(), set_str_unic)
+def kernel32_GetStartupInfoW(jitter):
+    kernel32_GetStartupInfo(jitter, whoami(), set_str_unic)
 
 
-def kernel32_GetCurrentThreadId(myjit):
-    ret_ad, args = myjit.func_args_stdcall(0)
-    myjit.func_ret_stdcall(ret_ad, 0x113377)
+def kernel32_GetCurrentThreadId(jitter):
+    ret_ad, args = jitter.func_args_stdcall(0)
+    jitter.func_ret_stdcall(ret_ad, 0x113377)
 
 
-def kernel32_InitializeCriticalSection(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def kernel32_InitializeCriticalSection(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     lpcritic, = args
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def user32_GetSystemMetrics(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def user32_GetSystemMetrics(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     nindex, = args
 
     ret = 0
@@ -2266,19 +2266,19 @@ def user32_GetSystemMetrics(myjit):
         ret = 0
     else:
         raise ValueError('unimpl index')
-    myjit.func_ret_stdcall(ret_ad, ret)
+    jitter.func_ret_stdcall(ret_ad, ret)
 
 
-def wsock32_WSAStartup(myjit):
-    ret_ad, args = myjit.func_args_stdcall(2)
+def wsock32_WSAStartup(jitter):
+    ret_ad, args = jitter.func_args_stdcall(2)
     version, pwsadata = args
-    myjit.vm.vm_set_mem(pwsadata, "\x01\x01\x02\x02WinSock 2.0\x00")
+    jitter.vm.vm_set_mem(pwsadata, "\x01\x01\x02\x02WinSock 2.0\x00")
 
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def kernel32_GetLocalTime(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def kernel32_GetLocalTime(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     lpsystemtime, = args
 
     s = struct.pack('HHHHHHHH',
@@ -2291,12 +2291,12 @@ def kernel32_GetLocalTime(myjit):
                     00,   # seconds
                     999,  # millisec
                     )
-    myjit.vm.vm_set_mem(lpsystemtime, s)
-    myjit.func_ret_stdcall(ret_ad, lpsystemtime)
+    jitter.vm.vm_set_mem(lpsystemtime, s)
+    jitter.func_ret_stdcall(ret_ad, lpsystemtime)
 
 
-def kernel32_GetSystemTime(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def kernel32_GetSystemTime(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     lpsystemtime, = args
 
     s = struct.pack('HHHHHHHH',
@@ -2309,16 +2309,16 @@ def kernel32_GetSystemTime(myjit):
                     00,   # seconds
                     999,  # millisec
                     )
-    myjit.vm.vm_set_mem(lpsystemtime, s)
-    myjit.func_ret_stdcall(ret_ad, lpsystemtime)
+    jitter.vm.vm_set_mem(lpsystemtime, s)
+    jitter.func_ret_stdcall(ret_ad, lpsystemtime)
 
 
-def kernel32_CreateFileMapping(myjit, funcname, get_str):
-    ret_ad, args = myjit.func_args_stdcall(6)
+def kernel32_CreateFileMapping(jitter, funcname, get_str):
+    ret_ad, args = jitter.func_args_stdcall(6)
     hfile, lpattr, flprotect, dwmaximumsizehigh, dwmaximumsizelow, lpname = args
 
     if lpname:
-        f = get_str(myjit, lpname)
+        f = get_str(jitter, lpname)
     else:
         f = None
 
@@ -2327,19 +2327,19 @@ def kernel32_CreateFileMapping(myjit, funcname, get_str):
 
     ret = winobjs.handle_pool.add('filemapping', hfile)
 
-    myjit.func_ret_stdcall(ret_ad, ret)
+    jitter.func_ret_stdcall(ret_ad, ret)
 
 
-def kernel32_CreateFileMappingA(myjit):
-    kernel32_CreateFileMapping(myjit, whoami(), get_str_ansi)
+def kernel32_CreateFileMappingA(jitter):
+    kernel32_CreateFileMapping(jitter, whoami(), get_str_ansi)
 
 
-def kernel32_CreateFileMappingW(myjit):
-    kernel32_CreateFileMapping(myjit, whoami(), get_str_unic)
+def kernel32_CreateFileMappingW(jitter):
+    kernel32_CreateFileMapping(jitter, whoami(), get_str_unic)
 
 
-def kernel32_MapViewOfFile(myjit):
-    ret_ad, args = myjit.func_args_stdcall(5)
+def kernel32_MapViewOfFile(jitter):
+    ret_ad, args = jitter.func_args_stdcall(5)
     hfile, flprotect, dwfileoffsethigh, dwfileoffsetlow, length = args
 
     if not hfile in winobjs.handle_pool:
@@ -2372,17 +2372,17 @@ def kernel32_MapViewOfFile(myjit):
     if not flprotect in access_dict:
         raise ValueError('unknown access dw!')
 
-    alloc_addr = alloc_mem(myjit, len(data))
-    myjit.vm.vm_set_mem(alloc_addr, data)
+    alloc_addr = alloc_mem(jitter, len(data))
+    jitter.vm.vm_set_mem(alloc_addr, data)
 
     winobjs.handle_mapped[
         alloc_addr] = hfile_o, dwfileoffsethigh, dwfileoffsetlow, length
 
-    myjit.func_ret_stdcall(ret_ad, alloc_addr)
+    jitter.func_ret_stdcall(ret_ad, alloc_addr)
 
 
-def kernel32_UnmapViewOfFile(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def kernel32_UnmapViewOfFile(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     ad, = args
 
     if not ad in winobjs.handle_mapped:
@@ -2390,64 +2390,64 @@ def kernel32_UnmapViewOfFile(myjit):
     """
     hfile_o, dwfileoffsethigh, dwfileoffsetlow, length = winobjs.handle_mapped[ad]
     off = (dwfileoffsethigh<<32) | dwfileoffsetlow
-    s = myjit.vm.vm_get_mem(ad, length)
+    s = jitter.vm.vm_get_mem(ad, length)
     hfile_o.info.seek(off)
     hfile_o.info.write(s)
     hfile_o.info.close()
     """
-    myjit.func_ret_stdcall(ret_ad, 1)
+    jitter.func_ret_stdcall(ret_ad, 1)
 
 
-def kernel32_GetDriveType(myjit, funcname, get_str):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def kernel32_GetDriveType(jitter, funcname, get_str):
+    ret_ad, args = jitter.func_args_stdcall(1)
     pathname, = args
 
 
-    p = get_str(myjit, pathname)
+    p = get_str(jitter, pathname)
     p = p.upper()
 
     ret = 0
     if p[0] == "C":
         ret = 3
 
-    myjit.func_ret_stdcall(ret_ad, ret)
+    jitter.func_ret_stdcall(ret_ad, ret)
 
 
-def kernel32_GetDriveTypeA(myjit):
-    kernel32_GetDriveType(myjit, whoami(), get_str_ansi)
+def kernel32_GetDriveTypeA(jitter):
+    kernel32_GetDriveType(jitter, whoami(), get_str_ansi)
 
 
-def kernel32_GetDriveTypeW(myjit):
-    kernel32_GetDriveType(myjit, whoami(), get_str_unic)
+def kernel32_GetDriveTypeW(jitter):
+    kernel32_GetDriveType(jitter, whoami(), get_str_unic)
 
 
-def kernel32_GetDiskFreeSpace(myjit, funcname, get_str):
-    ret_ad, args = myjit.func_args_stdcall(5)
+def kernel32_GetDiskFreeSpace(jitter, funcname, get_str):
+    ret_ad, args = jitter.func_args_stdcall(5)
     (lprootpathname, lpsectorpercluster, lpbytespersector,
      lpnumberoffreeclusters, lptotalnumberofclusters) = args
 
     if lprootpathname:
-        rootpath = get_str(myjit, lprootpathname)
+        rootpath = get_str(jitter, lprootpathname)
     else:
         rootpath = ""
 
-    myjit.vm.vm_set_mem(lpsectorpercluster, pck32(8))
-    myjit.vm.vm_set_mem(lpbytespersector, pck32(0x200))
-    myjit.vm.vm_set_mem(lpnumberoffreeclusters, pck32(0x222222))
-    myjit.vm.vm_set_mem(lptotalnumberofclusters, pck32(0x333333))
-    myjit.func_ret_stdcall(ret_ad, 1)
+    jitter.vm.vm_set_mem(lpsectorpercluster, pck32(8))
+    jitter.vm.vm_set_mem(lpbytespersector, pck32(0x200))
+    jitter.vm.vm_set_mem(lpnumberoffreeclusters, pck32(0x222222))
+    jitter.vm.vm_set_mem(lptotalnumberofclusters, pck32(0x333333))
+    jitter.func_ret_stdcall(ret_ad, 1)
 
 
-def kernel32_GetDiskFreeSpaceA(myjit):
-    kernel32_GetDiskFreeSpace(myjit, whoami(), get_str_ansi)
+def kernel32_GetDiskFreeSpaceA(jitter):
+    kernel32_GetDiskFreeSpace(jitter, whoami(), get_str_ansi)
 
 
-def kernel32_GetDiskFreeSpaceW(myjit):
-    kernel32_GetDiskFreeSpace(myjit, whoami(), get_str_unic)
+def kernel32_GetDiskFreeSpaceW(jitter):
+    kernel32_GetDiskFreeSpace(jitter, whoami(), get_str_unic)
 
 
-def kernel32_VirtualQuery(myjit):
-    ret_ad, args = myjit.func_args_stdcall(3)
+def kernel32_VirtualQuery(jitter):
+    ret_ad, args = jitter.func_args_stdcall(3)
     ad, lpbuffer, dwl = args
 
     access_dict = {0x0: 0,
@@ -2461,7 +2461,7 @@ def kernel32_VirtualQuery(myjit):
                        }
     access_dict_inv = dict([(x[1], x[0]) for x in access_dict.items()])
 
-    all_mem = myjit.vm.vm_get_all_memory()
+    all_mem = jitter.vm.vm_get_all_memory()
     found = None
     for basead, m in all_mem.items():
         if basead <= ad < basead + m['size']:
@@ -2480,27 +2480,27 @@ def kernel32_VirtualQuery(myjit):
                     0x1000,
                     access_dict_inv[m['access']],
                     0x01000000)
-    myjit.vm.vm_set_mem(lpbuffer, s)
+    jitter.vm.vm_set_mem(lpbuffer, s)
 
-    myjit.func_ret_stdcall(ret_ad, dwl)
+    jitter.func_ret_stdcall(ret_ad, dwl)
 
 
-def kernel32_GetProcessAffinityMask(myjit):
-    ret_ad, args = myjit.func_args_stdcall(3)
+def kernel32_GetProcessAffinityMask(jitter):
+    ret_ad, args = jitter.func_args_stdcall(3)
     hprocess, procaffmask, systemaffmask = args
-    myjit.vm.vm_set_mem(procaffmask, pck32(1))
-    myjit.vm.vm_set_mem(systemaffmask, pck32(1))
+    jitter.vm.vm_set_mem(procaffmask, pck32(1))
+    jitter.vm.vm_set_mem(systemaffmask, pck32(1))
 
-    myjit.func_ret_stdcall(ret_ad, 1)
-
-
-def msvcrt_rand(myjit):
-    ret_ad, args = myjit.func_args_cdecl(0)
-    myjit.func_ret_stdcall(ret_ad, 0x666)
+    jitter.func_ret_stdcall(ret_ad, 1)
 
 
-def kernel32_SetFilePointer(myjit):
-    ret_ad, args = myjit.func_args_stdcall(4)
+def msvcrt_rand(jitter):
+    ret_ad, args = jitter.func_args_cdecl(0)
+    jitter.func_ret_stdcall(ret_ad, 0x666)
+
+
+def kernel32_SetFilePointer(jitter):
+    ret_ad, args = jitter.func_args_stdcall(4)
     hwnd, distance, p_distance_high, movemethod = args
 
     if hwnd == winobjs.module_cur_hwnd:
@@ -2519,11 +2519,11 @@ def kernel32_SetFilePointer(myjit):
         data = wh.info.seek(distance)
     else:
         raise ValueError('unknown filename')
-    myjit.func_ret_stdcall(ret_ad, distance)
+    jitter.func_ret_stdcall(ret_ad, distance)
 
 
-def kernel32_SetFilePointerEx(myjit):
-    ret_ad, args = myjit.func_args_stdcall(5)
+def kernel32_SetFilePointerEx(jitter):
+    ret_ad, args = jitter.func_args_stdcall(5)
     hwnd, distance_l, distance_h, pnewfileptr, movemethod = args
 
     distance = distance_l | (distance_h << 32)
@@ -2548,36 +2548,36 @@ def kernel32_SetFilePointerEx(myjit):
         data = wh.info.seek(distance)
     else:
         raise ValueError('unknown filename')
-    myjit.func_ret_stdcall(ret_ad, 1)
+    jitter.func_ret_stdcall(ret_ad, 1)
 
 
-def kernel32_SetEndOfFile(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def kernel32_SetEndOfFile(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     hwnd, = args
     if hwnd in winobjs.handle_pool:
         wh = winobjs.handle_pool[hwnd]
         wh.info.seek(0, 2)
     else:
         raise ValueError('unknown filename')
-    myjit.func_ret_stdcall(ret_ad, 1)
+    jitter.func_ret_stdcall(ret_ad, 1)
 
 
-def kernel32_FlushFileBuffers(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def kernel32_FlushFileBuffers(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     hwnd, = args
     if hwnd in winobjs.handle_pool:
         pass
     else:
         raise ValueError('unknown filename')
-    myjit.func_ret_stdcall(ret_ad, 1)
+    jitter.func_ret_stdcall(ret_ad, 1)
 
 
-def kernel32_WriteFile(myjit):
-    ret_ad, args = myjit.func_args_stdcall(5)
+def kernel32_WriteFile(jitter):
+    ret_ad, args = jitter.func_args_stdcall(5)
     (hwnd, lpbuffer, nnumberofbytestowrite,
      lpnumberofbyteswrite, lpoverlapped) = args
 
-    data = myjit.vm.vm_get_mem(lpbuffer, nnumberofbytestowrite)
+    data = jitter.vm.vm_get_mem(lpbuffer, nnumberofbytestowrite)
 
     if hwnd == winobjs.module_cur_hwnd:
         pass
@@ -2596,24 +2596,24 @@ def kernel32_WriteFile(myjit):
         raise ValueError('unknown filename')
 
     if (lpnumberofbyteswrite):
-        myjit.vm.vm_set_mem(lpnumberofbyteswrite, pck32(len(data)))
+        jitter.vm.vm_set_mem(lpnumberofbyteswrite, pck32(len(data)))
 
-    myjit.func_ret_stdcall(ret_ad, 1)
+    jitter.func_ret_stdcall(ret_ad, 1)
 
 
-def user32_IsCharUpperA(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def user32_IsCharUpperA(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     c, = args
 
     if c & 0x20:
         ret = 0
     else:
         ret = 1
-    myjit.func_ret_stdcall(ret_ad, ret)
+    jitter.func_ret_stdcall(ret_ad, ret)
 
 
-def user32_IsCharLowerA(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def user32_IsCharLowerA(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     c, = args
 
     if c & 0x20:
@@ -2621,164 +2621,164 @@ def user32_IsCharLowerA(myjit):
     else:
         ret = 0
 
-    myjit.func_ret_stdcall(ret_ad, ret)
+    jitter.func_ret_stdcall(ret_ad, ret)
 
 
-def kernel32_GetSystemDefaultLangID(myjit):
-    ret_ad, args = myjit.func_args_stdcall(0)
-    myjit.func_ret_stdcall(ret_ad, 0x409)  # encglish
+def kernel32_GetSystemDefaultLangID(jitter):
+    ret_ad, args = jitter.func_args_stdcall(0)
+    jitter.func_ret_stdcall(ret_ad, 0x409)  # encglish
 
 
-def msvcrt_malloc(myjit):
-    ret_ad, args = myjit.func_args_cdecl(1)
+def msvcrt_malloc(jitter):
+    ret_ad, args = jitter.func_args_cdecl(1)
     msize, = args
-    addr = alloc_mem(myjit, msize)
-    myjit.func_ret_cdecl(ret_ad, addr)
+    addr = alloc_mem(jitter, msize)
+    jitter.func_ret_cdecl(ret_ad, addr)
 
 
-def msvcrt_free(myjit):
-    ret_ad, args = myjit.func_args_cdecl(1)
+def msvcrt_free(jitter):
+    ret_ad, args = jitter.func_args_cdecl(1)
     ptr, = args
-    myjit.func_ret_cdecl(ret_ad, 0)
+    jitter.func_ret_cdecl(ret_ad, 0)
 
 
-def msvcrt_fopen(myjit):
-    ret_ad, args = myjit.func_args_cdecl(2)
+def msvcrt_fopen(jitter):
+    ret_ad, args = jitter.func_args_cdecl(2)
     fname, rw = args
 
-    fname = get_str_ansi(myjit, fname)
-    rw = get_str_ansi(myjit, rw)
+    fname = get_str_ansi(jitter, fname)
+    rw = get_str_ansi(jitter, rw)
     log.debug((fname, rw))
     if rw in ['rb', 'wb+']:
         fname = fname.replace('\\', "/").lower()
         f = os.path.join('file_sb', fname)
         h = open(f, rw)
         eax = winobjs.handle_pool.add(f, h)
-        alloc_addr = alloc_mem(myjit, 0x20)
-        myjit.vm.vm_set_mem(alloc_addr, pck32(0x11112222) + pck32(
+        alloc_addr = alloc_mem(jitter, 0x20)
+        jitter.vm.vm_set_mem(alloc_addr, pck32(0x11112222) + pck32(
             0) + pck32(0) + pck32(0) + pck32(eax))  # pck32(0x11112222)
     else:
         raise NotImplementedError("Untested case")
 
-    myjit.func_ret_cdecl(ret_ad, alloc_addr)
+    jitter.func_ret_cdecl(ret_ad, alloc_addr)
 
 
-def msvcrt_fseek(myjit):
-    ret_ad, args = myjit.func_args_cdecl(3)
+def msvcrt_fseek(jitter):
+    ret_ad, args = jitter.func_args_cdecl(3)
     stream, offset, orig = args
-    fd = upck32(myjit.vm.vm_get_mem(stream + 0x10, 4))
+    fd = upck32(jitter.vm.vm_get_mem(stream + 0x10, 4))
 
     if not fd in winobjs.handle_pool:
         raise NotImplementedError("Untested case")
     o = winobjs.handle_pool[fd]
     o.info.seek(offset, orig)
-    myjit.func_ret_cdecl(ret_ad, 0)
+    jitter.func_ret_cdecl(ret_ad, 0)
 
 
-def msvcrt_ftell(myjit):
-    ret_ad, args = myjit.func_args_cdecl(1)
+def msvcrt_ftell(jitter):
+    ret_ad, args = jitter.func_args_cdecl(1)
     stream, = args
-    fd = upck32(myjit.vm.vm_get_mem(stream + 0x10, 4))
+    fd = upck32(jitter.vm.vm_get_mem(stream + 0x10, 4))
 
     if not fd in winobjs.handle_pool:
         raise NotImplementedError("Untested case")
     o = winobjs.handle_pool[fd]
     off = o.info.tell()
-    myjit.func_ret_cdecl(ret_ad, off)
+    jitter.func_ret_cdecl(ret_ad, off)
 
 
-def msvcrt_rewind(myjit):
-    ret_ad, args = myjit.func_args_cdecl(1)
+def msvcrt_rewind(jitter):
+    ret_ad, args = jitter.func_args_cdecl(1)
     stream, = args
-    fd = upck32(myjit.vm.vm_get_mem(stream + 0x10, 4))
+    fd = upck32(jitter.vm.vm_get_mem(stream + 0x10, 4))
 
     if not fd in winobjs.handle_pool:
         raise NotImplementedError("Untested case")
     o = winobjs.handle_pool[fd]
     off = o.info.seek(0, 0)
-    myjit.func_ret_cdecl(ret_ad, 0)
+    jitter.func_ret_cdecl(ret_ad, 0)
 
 
-def msvcrt_fread(myjit):
-    ret_ad, args = myjit.func_args_cdecl(4)
+def msvcrt_fread(jitter):
+    ret_ad, args = jitter.func_args_cdecl(4)
     buf, size, nmemb, stream = args
-    fd = upck32(myjit.vm.vm_get_mem(stream + 0x10, 4))
+    fd = upck32(jitter.vm.vm_get_mem(stream + 0x10, 4))
     if not fd in winobjs.handle_pool:
         raise NotImplementedError("Untested case")
 
     data = winobjs.handle_pool[fd].info.read(size * nmemb)
-    myjit.vm.vm_set_mem(buf, data)
-    myjit.func_ret_cdecl(ret_ad, nmemb)
+    jitter.vm.vm_set_mem(buf, data)
+    jitter.func_ret_cdecl(ret_ad, nmemb)
 
 
-def msvcrt_fclose(myjit):
-    ret_ad, args = myjit.func_args_cdecl(1)
+def msvcrt_fclose(jitter):
+    ret_ad, args = jitter.func_args_cdecl(1)
     stream, = args
-    fd = upck32(myjit.vm.vm_get_mem(stream + 0x10, 4))
+    fd = upck32(jitter.vm.vm_get_mem(stream + 0x10, 4))
 
     if not fd in winobjs.handle_pool:
         raise NotImplementedError("Untested case")
     o = winobjs.handle_pool[fd]
     off = o.info.close()
-    myjit.func_ret_cdecl(ret_ad, 0)
+    jitter.func_ret_cdecl(ret_ad, 0)
 
 
-def msvcrt_atexit(myjit):
-    ret_ad, args = myjit.func_args_cdecl(1)
+def msvcrt_atexit(jitter):
+    ret_ad, args = jitter.func_args_cdecl(1)
     func, = args
-    myjit.func_ret_cdecl(ret_ad, 0)
+    jitter.func_ret_cdecl(ret_ad, 0)
 
 
-def user32_MessageBoxA(myjit):
-    ret_ad, args = myjit.func_args_stdcall(4)
+def user32_MessageBoxA(jitter):
+    ret_ad, args = jitter.func_args_stdcall(4)
     hwnd, lptext, lpcaption, utype = args
 
-    text = get_str_ansi(myjit, lptext)
-    caption = get_str_ansi(myjit, lpcaption)
+    text = get_str_ansi(jitter, lptext)
+    caption = get_str_ansi(jitter, lpcaption)
 
     log.info('Caption: %r Text: %r' %(caption, text))
 
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def kernel32_myGetTempPath(myjit, func):
-    ret_ad, args = myjit.func_args_stdcall(2)
+def kernel32_myGetTempPath(jitter, func):
+    ret_ad, args = jitter.func_args_stdcall(2)
     l, buf = args
 
     l = 'c:\\temp\\'
-    myjit.vm.vm_set_mem(buf, func(l + '\x00'))
-    myjit.func_ret_stdcall(ret_ad, len(l))
+    jitter.vm.vm_set_mem(buf, func(l + '\x00'))
+    jitter.func_ret_stdcall(ret_ad, len(l))
 
 
-def kernel32_GetTempPathA(myjit):
-    kernel32_myGetTempPath(myjit, set_str_ansi)
+def kernel32_GetTempPathA(jitter):
+    kernel32_myGetTempPath(jitter, set_str_ansi)
 
 
-def kernel32_GetTempPathW(myjit):
-    kernel32_myGetTempPath(myjit, set_str_unic)
+def kernel32_GetTempPathW(jitter):
+    kernel32_myGetTempPath(jitter, set_str_unic)
 
 
 temp_num = 0
 
 
-def kernel32_GetTempFileNameA(myjit):
+def kernel32_GetTempFileNameA(jitter):
     global temp_num
-    ret_ad, args = myjit.func_args_stdcall(4)
+    ret_ad, args = jitter.func_args_stdcall(4)
     path, ext, unique, buf = args
 
     temp_num += 1
     if ext:
-        ext = get_str_ansi(myjit, ext)
+        ext = get_str_ansi(jitter, ext)
     else:
         ext = 'tmp'
     if path:
-        path = get_str_ansi(myjit, path)
+        path = get_str_ansi(jitter, path)
     else:
         path = "xxx"
     fname = path + "\\" + "temp%.4d" % temp_num + "." + ext
-    myjit.vm.vm_set_mem(buf, fname)
+    jitter.vm.vm_set_mem(buf, fname)
 
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
 class win32_find_data:
@@ -2848,22 +2848,22 @@ class find_data_mngr:
         return fname
 
 
-def kernel32_FindFirstFileA(myjit):
-    ret_ad, args = myjit.func_args_stdcall(2)
+def kernel32_FindFirstFileA(jitter):
+    ret_ad, args = jitter.func_args_stdcall(2)
     pfilepattern, pfindfiledata = args
 
-    filepattern = get_str_ansi(myjit, pfilepattern)
+    filepattern = get_str_ansi(jitter, pfilepattern)
     h = winobjs.find_data.findfirst(filepattern)
 
     fname = winobjs.find_data.findnext(h)
     fdata = win32_find_data(cfilename=fname)
 
-    myjit.vm.vm_set_mem(pfindfiledata, fdata.toStruct())
-    myjit.func_ret_stdcall(ret_ad, h)
+    jitter.vm.vm_set_mem(pfindfiledata, fdata.toStruct())
+    jitter.func_ret_stdcall(ret_ad, h)
 
 
-def kernel32_FindNextFileA(myjit):
-    ret_ad, args = myjit.func_args_stdcall(2)
+def kernel32_FindNextFileA(jitter):
+    ret_ad, args = jitter.func_args_stdcall(2)
     handle, pfindfiledata = args
 
     fname = winobjs.find_data.findnext(handle)
@@ -2872,17 +2872,17 @@ def kernel32_FindNextFileA(myjit):
     else:
         ret = 1
         fdata = win32_find_data(cfilename=fname)
-        myjit.vm.vm_set_mem(pfindfiledata, fdata.toStruct())
+        jitter.vm.vm_set_mem(pfindfiledata, fdata.toStruct())
 
-    myjit.func_ret_stdcall(ret_ad, ret)
+    jitter.func_ret_stdcall(ret_ad, ret)
 
 
-def kernel32_GetNativeSystemInfo(myjit):
-    ret_ad, args = myjit.func_args_stdcall(1)
+def kernel32_GetNativeSystemInfo(jitter):
+    ret_ad, args = jitter.func_args_stdcall(1)
     sys_ptr, = args
     sysinfo = systeminfo()
-    myjit.vm.vm_set_mem(sys_ptr, sysinfo.pack())
-    myjit.func_ret_stdcall(ret_ad, 0)
+    jitter.vm.vm_set_mem(sys_ptr, sysinfo.pack())
+    jitter.func_ret_stdcall(ret_ad, 0)
 
 
 def raw2guid(r):
@@ -2911,25 +2911,25 @@ def int2base(x, base):
     return ''.join(digits)
 
 
-def msvcrt__ultow(myjit):
-    ret_ad, args = myjit.func_args_cdecl(3)
+def msvcrt__ultow(jitter):
+    ret_ad, args = jitter.func_args_cdecl(3)
     value, p, radix = args
 
     value &= 0xFFFFFFFF
     if not radix in [10, 16, 20]:
         TODO_TEST
     s = int2base(value, radix)
-    myjit.vm.vm_set_mem(p, set_str_unic(s + "\x00"))
-    myjit.func_ret_cdecl(ret_ad, p)
+    jitter.vm.vm_set_mem(p, set_str_unic(s + "\x00"))
+    jitter.func_ret_cdecl(ret_ad, p)
 
 
-def msvcrt_myfopen(myjit, func):
-    ret_ad, args = myjit.func_args_cdecl(2)
+def msvcrt_myfopen(jitter, func):
+    ret_ad, args = jitter.func_args_cdecl(2)
     pfname, pmode = args
 
 
-    fname = func(myjit, pfname)
-    rw = func(myjit, pmode)
+    fname = func(jitter, pfname)
+    rw = func(jitter, pmode)
     log.debug(fname)
     log.debug(rw)
 
@@ -2939,26 +2939,26 @@ def msvcrt_myfopen(myjit, func):
         h = open(f, rw)
         eax = winobjs.handle_pool.add(f, h)
         dwsize = 0x20
-        alloc_addr = alloc_mem(myjit, dwsize)
+        alloc_addr = alloc_mem(jitter, dwsize)
         pp = pck32(0x11112222)+pck32(0)+pck32(0)+pck32(0)+pck32(eax)#pdw(0x11112222)
-        myjit.vm.vm_set_mem(alloc_addr, pp)
+        jitter.vm.vm_set_mem(alloc_addr, pp)
 
 
     else:
         raise ValueError('unknown access mode %s'%rw)
 
-    myjit.func_ret_cdecl(ret_ad, alloc_addr)
+    jitter.func_ret_cdecl(ret_ad, alloc_addr)
 
-def msvcrt__wfopen(myjit):
-    msvcrt_myfopen(myjit, get_str_unic)
+def msvcrt__wfopen(jitter):
+    msvcrt_myfopen(jitter, get_str_unic)
 
-def msvcrt_fopen(myjit):
-    msvcrt_myfopen(myjit, get_str_ansi)
+def msvcrt_fopen(jitter):
+    msvcrt_myfopen(jitter, get_str_ansi)
 
 
-def msvcrt_strlen(myjit):
-    ret_ad, args = myjit.func_args_cdecl(1)
+def msvcrt_strlen(jitter):
+    ret_ad, args = jitter.func_args_cdecl(1)
     src, = args
 
-    s = get_str_ansi(myjit, src)
-    myjit.func_ret_cdecl(ret_ad, len(s))
+    s = get_str_ansi(jitter, src)
+    jitter.func_ret_cdecl(ret_ad, len(s))
