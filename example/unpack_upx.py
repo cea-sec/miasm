@@ -13,21 +13,21 @@ if filename and os.path.isfile(filename):
 
 # User defined methods
 
-def kernel32_GetProcAddress(myjit):
-    ret_ad, args = myjit.func_args_stdcall(2)
+def kernel32_GetProcAddress(jitter):
+    ret_ad, args = jitter.func_args_stdcall(2)
     libbase, fname = args
 
-    dst_ad = myjit.cpu.EBX
+    dst_ad = jitter.cpu.EBX
     logging.info('EBX ' + hex(dst_ad))
 
     if fname < 0x10000:
         fname = fname
     else:
-        fname = myjit.get_str_ansi(fname)
+        fname = jitter.get_str_ansi(fname)
     logging.info(fname)
 
     ad = sb.libs.lib_get_add_func(libbase, fname, dst_ad)
-    myjit.func_ret_stdcall(ret_ad, ad)
+    jitter.func_ret_stdcall(ret_ad, ad)
 
 
 
@@ -78,8 +78,8 @@ if options.verbose is True:
     sb.jitter.vm.vm_dump_memory_page_pool()
 
 
-def update_binary(myjit):
-    sb.pe.Opthdr.AddressOfEntryPoint = sb.pe.virt2rva(myjit.pc)
+def update_binary(jitter):
+    sb.pe.Opthdr.AddressOfEntryPoint = sb.pe.virt2rva(jitter.pc)
     logging.info('updating binary')
     for s in sb.pe.SHList:
         sdata = sb.jitter.vm.vm_get_mem(sb.pe.rva2virt(s.addr), s.rawsize)
