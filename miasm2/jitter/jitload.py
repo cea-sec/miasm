@@ -788,11 +788,12 @@ class jitter:
 
 
 def vm2pe(myjit, fname, libs=None, e_orig=None,
-          max_addr=1 << 64, min_addr=0x401000,
+          max_addr=1 << 64, min_addr=None,
           min_section_offset=0x1000, img_base=None,
           added_funcs=None):
     mye = pe_init.PE()
-
+    if min_addr is None:
+        min_addr=e_orig.rva2virt(e_orig.SHList[0].addr)
     if img_base is None:
         img_base = e_orig.NThdr.ImageBase
 
