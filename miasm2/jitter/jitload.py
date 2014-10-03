@@ -298,41 +298,57 @@ class libimp:
                 self.fad2cname[ad] = c_name
                 self.fad2info[ad] = libad, imp_ord_or_name
 
-    def gen_new_lib(self, e, filter=lambda x: True):
+    def gen_new_lib(self, target_pe, filter=lambda _: True):
+        """Gen a new DirImport description
+        @target_pe: PE instance
+        @filter: (boolean f(address)) restrict addresses to keep
+        """
+
         new_lib = []
-        for n, ad in self.name2off.items():
-            out_ads = dict()
-            for k, vs in self.lib_imp2dstad[ad].items():
-                for v in vs:
-                    out_ads[v] = k
-            all_ads = self.lib_imp2dstad[ad].values()
-            all_ads = reduce(lambda x, y: x + list(y), all_ads, [])
-            all_ads = [x for x in all_ads if filter(x)]
-            log.debug('ads: %s' % [hex(x) for x in all_ads])
-            all_ads.sort()
-            # first, drop None
+        for lib_name, ad in self.name2off.items():
+            # Build an IMAGE_IMPORT_DESCRIPTOR
+
+            # Get fixed addresses
+            out_ads = dict() # addr -> func_name
+            for func_name, dst_addresses in self.lib_imp2dstad[ad].items():
+                out_ads.update({addr:func_name for addr in dst_addresses})
+
+            # Filter available addresses according to @filter
+            all_ads = [addr for addr in out_ads.keys() if filter(addr)]
+            log.debug('ads: %s' % map(hex, all_ads))
             if not all_ads:
                 continue
+
+            # Keep non-NULL elements
+            all_ads.sort()
             for i, x in enumerate(all_ads):
-                if not x in [0,  None]:
+                if x not in [0,  None]:
                     break
             all_ads = all_ads[i:]
+
             while all_ads:
+                # Find libname's Import Address Table
                 othunk = all_ads[0]
                 i = 0
                 while i + 1 < len(all_ads) and all_ads[i] + 4 == all_ads[i + 1]:
                     i += 1
-                funcs = [out_ads[x] for x in all_ads[:i + 1]]
+                # 'i + 1' is IAT's length
+
+                # Effectively build an IMAGE_IMPORT_DESCRIPTOR
+                funcs = [out_ads[addr] for addr in all_ads[:i + 1]]
                 try:
-                    rva = e.virt2rva(othunk)
+                    rva = target_pe.virt2rva(othunk)
                 except pe.InvalidOffset:
-                    rva = None
-                if rva is not None:  # e.is_in_virt_address(othunk):
-                    new_lib.append(({"name": n,
+                    pass
+                else:
+                    new_lib.append(({"name": lib_name,
                                      "firstthunk": rva},
                                     funcs)
                                    )
+
+                # Update elements to handle
                 all_ads = all_ads[i + 1:]
+
         return new_lib
 
 
