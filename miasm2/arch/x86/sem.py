@@ -123,13 +123,14 @@ def arith_flag(a, b, c):
 
 # checked: ok for adc add because b & c before +cf
 
+def update_flag_add_cf(op1, op2, res):
+    "Compute cf in @res = @op1 + @op2"
+    return ExprAff(cf, (((op1 ^ op2) ^ res) ^ ((op1 ^ res) & (~(op1 ^ op2)))).msb())
 
-def update_flag_add_cf(a, b, c):
-    return ExprAff(cf, (((a ^ b) ^ c) ^ ((a ^ c) & (~(a ^ b)))).msb())
 
-
-def update_flag_add_of(a, b, c):
-    return ExprAff(of, (((a ^ c) & (~(a ^ b)))).msb())
+def update_flag_add_of(op1, op2, res):
+    "Compute of in @res = @op1 + @op2"
+    return ExprAff(of, (((op1 ^ res) & (~(op1 ^ op2)))).msb())
 
 
 # checked: ok for sbb add because b & c before +cf

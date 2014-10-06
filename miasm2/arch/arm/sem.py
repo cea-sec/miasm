@@ -12,20 +12,11 @@ EXCEPT_PRIV_INSN = (1 << 17)
 
 
 def update_flag_zf(a):
-    return [ExprAff(zf, ExprCond(a, ExprInt_from(zf, 0), ExprInt_from(zf, 1)))]
+    return [ExprAff(zf, ExprCond(a, ExprInt1(0), ExprInt1(1)))]
 
 
 def update_flag_nf(a):
     return [ExprAff(nf, a.msb())]
-
-
-def update_flag_pf(a):
-    return [ExprAff(pf, ExprOp('parity', a))]
-
-
-def update_flag_af(a):
-    return [ExprAff(af, ExprCond(a & ExprInt_from(a, 0x10),
-                                 ExprInt_from(af, 1), ExprInt_from(af, 0)))]
 
 
 def update_flag_zn(a):
@@ -61,14 +52,14 @@ def arith_flag(a, b, c):
 
 # checked: ok for adc add because b & c before +cf
 
+def update_flag_add_cf(op1, op2, res):
+    "Compute cf in @res = @op1 + @op2"
+    return ExprAff(cf, (((op1 ^ op2) ^ res) ^ ((op1 ^ res) & (~(op1 ^ op2)))).msb())
 
-def update_flag_add_cf(a, b, c):
-    return ExprAff(cf,
-        ((((a ^ b) ^ c) ^ ((a ^ c) & (~(a ^ b)))).msb()) ^ ExprInt1(1))
 
-
-def update_flag_add_of(a, b, c):
-    return ExprAff(of, (((a ^ c) & (~(a ^ b)))).msb())
+def update_flag_add_of(op1, op2, res):
+    "Compute of in @res = @op1 + @op2"
+    return ExprAff(of, (((op1 ^ res) & (~(op1 ^ op2)))).msb())
 
 
 # checked: ok for sbb add because b & c before +cf
