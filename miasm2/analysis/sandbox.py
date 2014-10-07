@@ -86,7 +86,7 @@ class Sandbox(object):
         @addr: (int) start address
         """
         if addr is None and self.options.address is not None:
-            addr = int(options.address, 16)
+            addr = int(self.options.address, 16)
 
         if any([self.options.debugging, self.options.gdbserver]):
             dbg = debugging.Debugguer(self.jitter)
@@ -245,6 +245,19 @@ class Arch_x86_32(Arch):
                           help="Use segments fs:")
 
 
+class Arch_arml(Arch):
+    _ARCH_ = "arm"
+    STACK_SIZE = 0x100000
+
+    def __init__(self):
+        super(Arch_arml, self).__init__()
+
+        # Init stack
+        self.jitter.stack_size = self.STACK_SIZE
+        self.jitter.init_stack()
+
+
+
 class Sandbox_Win_x86_32(Sandbox, Arch_x86_32, OS_Win):
 
     @staticmethod
@@ -303,3 +316,27 @@ class Sandbox_Linux_x86_32(Sandbox, Arch_x86_32, OS_Linux):
         if addr is None:
             addr = self.entry_point
         super(Sandbox_Linux_x86_32, self).run(addr)
+
+
+
+class Sandbox_Linux_arml(Sandbox, Arch_arml, OS_Linux):
+
+    @staticmethod
+    def code_sentinelle(jitter):
+        print 'Emulation stop'
+        jitter.run = False
+        return False
+
+    def __init__(self, *args, **kwargs):
+        Sandbox.__init__(self, *args, **kwargs)
+
+        self.jitter.cpu.LR = 0x1337beef
+
+        # Set the runtime guard
+        self.jitter.add_breakpoint(0x1337beef, self.__class__.code_sentinelle)
+
+
+    def run(self, addr = None):
+        if addr is None and self.options.address is not None:
+            addr = int(self.options.address, 16)
+        super(Sandbox_Linux_arml, self).run(addr)

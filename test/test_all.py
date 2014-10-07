@@ -97,7 +97,7 @@ all_tests = {
                          map(all_jit, [
                     ["unpack_upx.py", "box_upx.exe"], # Take 5 mins on a Core i5
                     ["test_jit_x86_32.py", "x86_32_sc.bin"],
-                    ["test_jit_arm.py", "md5_arm", "A684"],
+                    ["test_jit_arm.py", "md5_arm", "-a", "A684"],
                     ["test_jit_msp430.py", "msp430_sc.bin", "0"],
                     ["test_jit_mips32.py", "mips32_sc.bin", "0"],
                     ["sandbox_pe_x86_32.py", "box_x86_32.bin"],
