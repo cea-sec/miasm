@@ -48,7 +48,7 @@ else:
     logging.basicConfig(level=logging.WARNING)
 
 if options.verbose is True:
-    sb.jitter.vm.vm_dump_memory_page_pool()
+    sb.jitter.vm.dump_memory_page_pool()
 
 
 ep = sb.entry_point
@@ -75,14 +75,14 @@ if options.graph is True:
 
 
 if options.verbose is True:
-    sb.jitter.vm.vm_dump_memory_page_pool()
+    sb.jitter.vm.dump_memory_page_pool()
 
 
 def update_binary(jitter):
     sb.pe.Opthdr.AddressOfEntryPoint = sb.pe.virt2rva(jitter.pc)
     logging.info('updating binary')
     for s in sb.pe.SHList:
-        sdata = sb.jitter.vm.vm_get_mem(sb.pe.rva2virt(s.addr), s.rawsize)
+        sdata = sb.jitter.vm.get_mem(sb.pe.rva2virt(s.addr), s.rawsize)
         sb.pe.virt[sb.pe.rva2virt(s.addr)] = sdata
 
 
@@ -92,7 +92,7 @@ sb.jitter.add_breakpoint(end_label, update_binary)
 
 sb.run()
 
-regs = sb.jitter.cpu.vm_get_gpreg()
+regs = sb.jitter.cpu.get_gpreg()
 new_dll = []
 # XXXXX
 

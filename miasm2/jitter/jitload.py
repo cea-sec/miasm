@@ -43,14 +43,14 @@ class bin_stream_vm(bin_stream):
 
     def getbytes(self, start, l=1):
         try:
-            s = self.vm.vm_get_mem(start + self.base_offset, l)
+            s = self.vm.get_mem(start + self.base_offset, l)
         except:
             raise IOError('cannot get mem ad', hex(start))
         return s
 
     def readbs(self, l=1):
         try:
-            s = self.vm.vm_get_mem(self.offset + self.base_offset, l)
+            s = self.vm.get_mem(self.offset + self.base_offset, l)
         except:
             raise IOError('cannot get mem ad', hex(self.offset))
         self.offset += l
@@ -94,7 +94,7 @@ def preload_pe(vm, e, runtime_lib, patch_vm_imp=True):
             libname_s = canon_libname_libfunc(libname, libfunc)
             dyn_funcs[libname_s] = ad_libfunc
             if patch_vm_imp:
-                vm.vm_set_mem(
+                vm.set_mem(
                     ad, struct.pack(cstruct.size2type[e._wsize], ad_libfunc))
     return dyn_funcs
 
@@ -124,7 +124,7 @@ def preload_elf(vm, e, runtime_lib, patch_vm_imp=True):
             if patch_vm_imp:
                 log.debug('patch %s %s %s' %
                           (hex(ad), hex(ad_libfunc), libfunc))
-                vm.vm_set_mem(
+                vm.set_mem(
                     ad, struct.pack(cstruct.size2type[e.size], ad_libfunc))
     return runtime_lib, dyn_funcs
 
@@ -369,7 +369,7 @@ def vm_load_pe(vm, fname, align_s=True, load_hdr=True,
             pe_hdr = e.content[:hdr_len]
             pe_hdr = pe_hdr + min_len * "\x00"
             pe_hdr = pe_hdr[:min_len]
-            vm.vm_add_memory_page(
+            vm.add_memory_page(
                 e.NThdr.ImageBase, PAGE_READ | PAGE_WRITE, pe_hdr)
         if align_s:
             for i, s in enumerate(e.SHList[:-1]):
@@ -384,7 +384,7 @@ def vm_load_pe(vm, fname, align_s=True, load_hdr=True,
             data += "\x00" * (s.size - len(data))
             # log.debug('SECTION %s %s' % (hex(s.addr),
             # hex(e.rva2virt(s.addr))))
-            vm.vm_add_memory_page(
+            vm.add_memory_page(
                 e.rva2virt(s.addr), PAGE_READ | PAGE_WRITE, data)
             # s.offset = s.addr
         return e
@@ -415,12 +415,12 @@ def vm_load_pe(vm, fname, align_s=True, load_hdr=True,
     log.debug('%s %s %s' %
               (hex(min_addr), hex(max_addr), hex(max_addr - min_addr)))
 
-    vm.vm_add_memory_page(min_addr,
+    vm.add_memory_page(min_addr,
                           PAGE_READ | PAGE_WRITE,
                           (max_addr - min_addr) * "\x00")
     for s in e.SHList:
         log.debug('%s %s' % (hex(e.rva2virt(s.addr)), len(s.data)))
-        vm.vm_set_mem(e.rva2virt(s.addr), str(s.data))
+        vm.set_mem(e.rva2virt(s.addr), str(s.data))
     return e
 
 
@@ -448,12 +448,12 @@ def vm_load_elf(vm, fname, **kargs):
         i += [(a_addr, b_addr-2)]
     for a, b in i.intervals:
         #print hex(a), hex(b)
-        vm.vm_add_memory_page(a, PAGE_READ | PAGE_WRITE, "\x00"*(b+2-a))
+        vm.add_memory_page(a, PAGE_READ | PAGE_WRITE, "\x00"*(b+2-a))
 
-    #vm.vm_dump_memory_page_pool()
+    #vm.dump_memory_page_pool()
 
     for r_vaddr, data in all_data.items():
-        vm.vm_set_mem(r_vaddr, data)
+        vm.set_mem(r_vaddr, data)
     return e
 
 def vm_load_pe_lib(fname_in, libs, lib_path_base, patch_vm_imp, **kargs):
@@ -614,12 +614,12 @@ class jitter:
         else:
             raise Exception("Unkown JiT Backend")
 
-        self.cpu.vm_init_regs()
-        self.vm.vm_init_memory_page_pool()
-        self.vm.vm_init_code_bloc_pool()
-        self.vm.vm_init_memory_breakpoint()
+        self.cpu.init_regs()
+        self.vm.init_memory_page_pool()
+        self.vm.init_code_bloc_pool()
+        self.vm.init_memory_breakpoint()
 
-        self.vm.vm_set_addr2obj(self.jit.addr2obj)
+        self.vm.set_addr2obj(self.jit.addr2obj)
 
         self.jit.load()
         self.stack_size = 0x10000
@@ -636,11 +636,11 @@ class jitter:
 
         def exception_automod(jitter):
             "Tell the JiT backend to update blocs modified"
-            addr = self.vm.vm_get_last_write_ad()
-            size = self.vm.vm_get_last_write_size()
+            addr = self.vm.get_last_write_ad()
+            size = self.vm.get_last_write_size()
 
             self.jit.updt_automod_code(self.vm, addr, size)
-            self.vm.vm_set_exception(0)
+            self.vm.set_exception(0)
 
             return True
 
@@ -752,16 +752,16 @@ class jitter:
         return None
 
     def init_stack(self):
-        self.vm.vm_add_memory_page(
+        self.vm.add_memory_page(
             self.stack_base, PAGE_READ | PAGE_WRITE, "\x00" * self.stack_size)
         sp = self.arch.getsp(self.attrib)
         setattr(self.cpu, sp.name, self.stack_base + self.stack_size)
-        # regs = self.cpu.vm_get_gpreg()
+        # regs = self.cpu.get_gpreg()
         # regs[sp.name] = self.stack_base+self.stack_size
-        # self.cpu.vm_set_gpreg(regs)
+        # self.cpu.set_gpreg(regs)
 
     def get_exception(self):
-        return self.cpu.vm_get_exception() | self.vm.vm_get_exception()
+        return self.cpu.get_exception() | self.vm.get_exception()
 
     # commun functions
     def get_str_ansi(self, addr, max_char=None):
@@ -771,10 +771,10 @@ class jitter:
         l = 0
         tmp = addr
         while ((max_char is None or l < max_char) and
-            self.vm.vm_get_mem(tmp, 1) != "\x00"):
+            self.vm.get_mem(tmp, 1) != "\x00"):
             tmp += 1
             l += 1
-        return self.vm.vm_get_mem(addr, l)
+        return self.vm.get_mem(addr, l)
 
     def get_str_unic(self, addr, max_char=None):
         """Get unicode str from vm.
@@ -783,22 +783,22 @@ class jitter:
         l = 0
         tmp = addr
         while ((max_char is None or l < max_char) and
-            self.vm.vm_get_mem(tmp, 2) != "\x00\x00"):
+            self.vm.get_mem(tmp, 2) != "\x00\x00"):
             tmp += 2
             l += 2
-        s = self.vm.vm_get_mem(addr, l)
+        s = self.vm.get_mem(addr, l)
         s = s[::2]  # TODO: real unicode decoding
         return s
 
     def set_str_ansi(self, addr, s):
         """Set an ansi string in memory"""
         s = s + "\x00"
-        self.vm.vm_set_mem(addr, s)
+        self.vm.set_mem(addr, s)
 
     def set_str_unic(self, addr, s):
         """Set an unicode string in memory"""
         s = "\x00".join(list(s)) + '\x00' * 3
-        self.vm.vm_set_mem(addr, s)
+        self.vm.set_mem(addr, s)
 
 
 
@@ -814,7 +814,7 @@ def vm2pe(myjit, fname, libs=None, e_orig=None,
         img_base = e_orig.NThdr.ImageBase
 
     mye.NThdr.ImageBase = img_base
-    all_mem = myjit.vm.vm_get_all_memory()
+    all_mem = myjit.vm.get_all_memory()
     addrs = all_mem.keys()
     addrs.sort()
     mye.Opthdr.AddressOfEntryPoint = mye.virt2rva(myjit.cpu.EIP)

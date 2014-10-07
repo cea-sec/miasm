@@ -71,7 +71,7 @@ class JitCore_Python(jitcore.JitCore):
 
         addr = expr_mem.arg.arg.arg
         size = expr_mem.size / 8
-        value = self.vmmngr.vm_get_mem(addr, size)
+        value = self.vmmngr.get_mem(addr, size)
 
         return m2_expr.ExprInt_fromsize(expr_mem.size,
                                         int(value[::-1].encode("hex"), 16))
@@ -97,7 +97,7 @@ class JitCore_Python(jitcore.JitCore):
         content = content.decode("hex")[::-1]
 
         # Write in VmMngr context
-        self.vmmngr.vm_set_mem(addr, content)
+        self.vmmngr.set_mem(addr, content)
 
     def jitirblocs(self, label, irblocs):
         """Create a python function corresponding to an irblocs' group.
@@ -147,14 +147,14 @@ class JitCore_Python(jitcore.JitCore):
                         # Log registers values
                         if self.log_regs:
                             update_cpu_from_engine(cpu, exec_engine)
-                            cpu.vm_dump_gpregs()
+                            cpu.dump_gpregs()
 
                         # Log instruction
                         if self.log_mn:
                             print "%08x %s" % (line.offset, line)
 
                         # Check for memory exception
-                        if (vmmngr.vm_get_exception() != 0):
+                        if (vmmngr.get_exception() != 0):
                             update_cpu_from_engine(cpu, exec_engine)
                             return line.offset
 
@@ -162,7 +162,7 @@ class JitCore_Python(jitcore.JitCore):
                     exec_engine.eval_ir(ir)
 
                     # Check for memory exception which do not update PC
-                    if (vmmngr.vm_get_exception() & csts.EXCEPT_DO_NOT_UPDATE_PC != 0):
+                    if (vmmngr.get_exception() & csts.EXCEPT_DO_NOT_UPDATE_PC != 0):
                         update_cpu_from_engine(cpu, exec_engine)
                         return line.offset
 

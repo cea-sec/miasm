@@ -334,7 +334,7 @@ def create_modules_chain(myjit, modules_name):
         m_o += "\x00".join(bpath) + "\x00"
         m_o += "\x00" * 3
         # out += m_o
-        myjit.vm.vm_set_mem(addr, m_o)
+        myjit.vm.set_mem(addr, m_o)
     return modules_info
 
 
@@ -380,7 +380,7 @@ def fix_InLoadOrderModuleList(myjit, module_info):
         e, bname, addr = olist[i]
         p_e, p_bname, p_addr = olist[(i - 1) % len(olist)]
         n_e, n_bname, n_addr = olist[(i + 1) % len(olist)]
-        myjit.vm.vm_set_mem(addr + 0, pck32(n_addr) + pck32(p_addr))
+        myjit.vm.set_mem(addr + 0, pck32(n_addr) + pck32(p_addr))
 
 
 def fix_InMemoryOrderModuleList(myjit, module_info):
@@ -424,7 +424,7 @@ def fix_InMemoryOrderModuleList(myjit, module_info):
         e, bname, addr = olist[i]
         p_e, p_bname, p_addr = olist[(i - 1) % len(olist)]
         n_e, n_bname, n_addr = olist[(i + 1) % len(olist)]
-        myjit.vm.vm_set_mem(
+        myjit.vm.set_mem(
             addr + 0x8, pck32(n_addr + 0x8) + pck32(p_addr + 0x8))
 
 
@@ -460,7 +460,7 @@ def fix_InInitializationOrderModuleList(myjit, module_info):
         e, bname, addr = olist[i]
         p_e, p_bname, p_addr = olist[(i - 1) % len(olist)]
         n_e, n_bname, n_addr = olist[(i + 1) % len(olist)]
-        myjit.vm.vm_set_mem(
+        myjit.vm.set_mem(
             addr + 0x10, pck32(n_addr + 0x10) + pck32(p_addr + 0x10))
 
 
@@ -468,10 +468,10 @@ def add_process_env(myjit):
     env_str = 'ALLUSEESPROFILE=C:\\Documents and Settings\\All Users\x00'
     env_str = '\x00'.join(env_str)
     env_str += "\x00" * 0x10
-    myjit.vm.vm_add_memory_page(process_environment_address,
+    myjit.vm.add_memory_page(process_environment_address,
                                 PAGE_READ | PAGE_WRITE,
                                 env_str)
-    myjit.vm.vm_set_mem(process_environment_address, env_str)
+    myjit.vm.set_mem(process_environment_address, env_str)
 
 
 def add_process_parameters(myjit):
@@ -479,9 +479,9 @@ def add_process_parameters(myjit):
     o += pck32(0x1000)  # size
     o += "E" * (0x48 - len(o))
     o += pck32(process_environment_address)
-    myjit.vm.vm_add_memory_page(process_parameters_address,
-                                PAGE_READ | PAGE_WRITE,
-                                o)
+    myjit.vm.add_memory_page(process_parameters_address,
+                             PAGE_READ | PAGE_WRITE,
+                             o)
 
 
 def build_fake_InLoadOrderModuleList(modules_name):
@@ -595,15 +595,15 @@ all_seh_ad = dict([(x, None)
 def init_seh(myjit):
     global seh_count
     seh_count = 0
-    # myjit.vm.vm_add_memory_page(tib_address, PAGE_READ | PAGE_WRITE,
+    # myjit.vm.add_memory_page(tib_address, PAGE_READ | PAGE_WRITE,
     # p(default_seh) + p(0) * 11 + p(peb_address))
-    myjit.vm.vm_add_memory_page(
+    myjit.vm.add_memory_page(
         FS_0_AD, PAGE_READ | PAGE_WRITE, build_fake_teb())
-    # myjit.vm.vm_add_memory_page(peb_address, PAGE_READ | PAGE_WRITE, p(0) *
+    # myjit.vm.add_memory_page(peb_address, PAGE_READ | PAGE_WRITE, p(0) *
     # 3 + p(peb_ldr_data_address))
-    myjit.vm.vm_add_memory_page(
+    myjit.vm.add_memory_page(
         peb_address, PAGE_READ | PAGE_WRITE, build_fake_peb())
-    # myjit.vm.vm_add_memory_page(peb_ldr_data_address, PAGE_READ |
+    # myjit.vm.add_memory_page(peb_ldr_data_address, PAGE_READ |
     # PAGE_WRITE, p(0) * 3 + p(in_load_order_module_list_address) + p(0) *
     # 0x20)
 
@@ -613,7 +613,7 @@ def init_seh(myjit):
     ldr_data += "\x00"*(InLoadOrderModuleList_offset - len(ldr_data))
     ldr_data += build_fake_InLoadOrderModuleList(loaded_modules)
     """
-    myjit.vm.vm_add_memory_page(
+    myjit.vm.add_memory_page(
         LDR_AD, PAGE_READ | PAGE_WRITE, "\x00" * MAX_MODULES * 0x1000)
     module_info = create_modules_chain(myjit, loaded_modules)
     fix_InLoadOrderModuleList(myjit, module_info)
@@ -621,23 +621,23 @@ def init_seh(myjit):
     fix_InInitializationOrderModuleList(myjit, module_info)
 
     ldr_data = build_fake_ldr_data(module_info)
-    myjit.vm.vm_set_mem(LDR_AD, ldr_data)
+    myjit.vm.set_mem(LDR_AD, ldr_data)
     add_process_env(myjit)
     add_process_parameters(myjit)
 
-    # myjit.vm.vm_add_memory_page(in_load_order_module_list_address,
+    # myjit.vm.add_memory_page(in_load_order_module_list_address,
     #     PAGE_READ | PAGE_WRITE, p(0) * 40)
-    # myjit.vm.vm_add_memory_page(in_load_order_module_list_address,
+    # myjit.vm.add_memory_page(in_load_order_module_list_address,
     #     PAGE_READ | PAGE_WRITE, build_fake_inordermodule(loaded_modules))
-    myjit.vm.vm_add_memory_page(default_seh, PAGE_READ | PAGE_WRITE, pck32(
+    myjit.vm.add_memory_page(default_seh, PAGE_READ | PAGE_WRITE, pck32(
         0xffffffff) + pck32(0x41414141) + pck32(0x42424242))
 
-    myjit.vm.vm_add_memory_page(
+    myjit.vm.add_memory_page(
         context_address, PAGE_READ | PAGE_WRITE, '\x00' * 0x2cc)
-    myjit.vm.vm_add_memory_page(
+    myjit.vm.add_memory_page(
         exception_record_address, PAGE_READ | PAGE_WRITE, '\x00' * 200)
 
-    myjit.vm.vm_add_memory_page(
+    myjit.vm.add_memory_page(
         FAKE_SEH_B_AD, PAGE_READ | PAGE_WRITE, 0x10000 * "\x00")
 
 # http://www.codeproject.com/KB/system/inject2exe.aspx#RestorethefirstRegistersContext5_1
@@ -727,7 +727,7 @@ def free_seh_place(ad):
 
 def fake_seh_handler(myjit, except_code):
     global seh_count
-    regs = myjit.cpu.vm_get_gpreg()
+    regs = myjit.cpu.get_gpreg()
     print '-> exception at', hex(myjit.cpu.EIP), seh_count
     seh_count += 1
 
@@ -752,22 +752,22 @@ def fake_seh_handler(myjit, except_code):
     # seh = (get_memory_page_max_address_py()+0x1000)&0xfffff000
 
     # Get current seh (fs:[0])
-    seh_ptr = upck32(myjit.vm.vm_get_mem(tib_address, 4))
+    seh_ptr = upck32(myjit.vm.get_mem(tib_address, 4))
 
     # Retrieve seh fields
     old_seh, eh, safe_place = struct.unpack(
-        'III', myjit.vm.vm_get_mem(seh_ptr, 0xc))
+        'III', myjit.vm.get_mem(seh_ptr, 0xc))
 
     print '-> seh_ptr', hex(seh_ptr), '-> { old_seh',
     print hex(old_seh), 'eh', hex(eh), 'safe_place', hex(safe_place), '}'
     # print '-> write SEH at', hex(seh&0xffffffff)
 
     # Write current seh
-    # myjit.vm.vm_add_memory_page(seh, PAGE_READ | PAGE_WRITE, p(old_seh) +
+    # myjit.vm.add_memory_page(seh, PAGE_READ | PAGE_WRITE, p(old_seh) +
     # p(eh) + p(safe_place) + p(0x99999999))
 
     # Write context
-    myjit.vm.vm_set_mem(context_address, ctxt)
+    myjit.vm.set_mem(context_address, ctxt)
 
     # Write exception_record
 
@@ -784,28 +784,28 @@ def fake_seh_handler(myjit, except_code):
     } EXCEPTION_RECORD, *PEXCEPTION_RECORD;
     """
 
-    myjit.vm.vm_set_mem(exception_record_address, pck32(except_code) +
-                        pck32(0) + pck32(0) + pck32(myjit.cpu.EIP) +
-                        pck32(0) + pck32(0))
+    myjit.vm.set_mem(exception_record_address, pck32(except_code) +
+                     pck32(0) + pck32(0) + pck32(myjit.cpu.EIP) +
+                     pck32(0) + pck32(0))
 
     # Prepare the stack
-    myjit.vm_push_uint32_t(context_address)               # Context
-    myjit.vm_push_uint32_t(seh_ptr)                       # SEH
-    myjit.vm_push_uint32_t(exception_record_address)      # ExceptRecords
-    myjit.vm_push_uint32_t(return_from_exception)         # Ret address
+    myjit.push_uint32_t(context_address)               # Context
+    myjit.push_uint32_t(seh_ptr)                       # SEH
+    myjit.push_uint32_t(exception_record_address)      # ExceptRecords
+    myjit.push_uint32_t(return_from_exception)         # Ret address
 
     # Set fake new current seh for exception
     fake_seh_ad = get_free_seh_place()
     print hex(fake_seh_ad)
-    myjit.vm.vm_set_mem(fake_seh_ad, pck32(seh_ptr) + pck32(
+    myjit.vm.set_mem(fake_seh_ad, pck32(seh_ptr) + pck32(
         0xaaaaaaaa) + pck32(0xaaaaaabb) + pck32(0xaaaaaacc))
-    myjit.vm.vm_set_mem(tib_address, pck32(fake_seh_ad))
+    myjit.vm.set_mem(tib_address, pck32(fake_seh_ad))
 
     dump_seh(myjit)
 
     print '-> jumping at', hex(eh)
-    myjit.vm.vm_set_exception(0)
-    myjit.cpu.vm_set_exception(0)
+    myjit.vm.set_exception(0)
+    myjit.cpu.set_exception(0)
 
     # XXX set ebx to nul?
     myjit.cpu.EBX = 0
@@ -818,14 +818,14 @@ fake_seh_handler.base = FAKE_SEH_B_AD
 def dump_seh(myjit):
     print 'dump_seh:'
     print '-> tib_address:', hex(tib_address)
-    cur_seh_ptr = upck32(myjit.vm.vm_get_mem(tib_address, 4))
+    cur_seh_ptr = upck32(myjit.vm.get_mem(tib_address, 4))
     indent = 1
     loop = 0
     while True:
         if loop > 5:
             print "too many seh, quit"
             return
-        prev_seh, eh = struct.unpack('II', myjit.vm.vm_get_mem(cur_seh_ptr, 8))
+        prev_seh, eh = struct.unpack('II', myjit.vm.get_mem(cur_seh_ptr, 8))
         print '\t' * indent + 'seh_ptr:', hex(cur_seh_ptr),
         print ' -> { prev_seh:', hex(prev_seh), 'eh:', hex(eh), '}'
         if prev_seh in [0xFFFFFFFF, 0]:
@@ -836,10 +836,10 @@ def dump_seh(myjit):
 
 
 def set_win_fs_0(myjit, fs=4):
-    regs = myjit.cpu.vm_get_gpreg()
+    regs = myjit.cpu.get_gpreg()
     regs['FS'] = 0x4
-    myjit.cpu.vm_set_gpreg(regs)
-    myjit.cpu.vm_set_segm_base(regs['FS'], FS_0_AD)
+    myjit.cpu.set_gpreg(regs)
+    myjit.cpu.set_segm_base(regs['FS'], FS_0_AD)
     segm_to_do = set([x86_regs.FS])
     return segm_to_do
 
@@ -857,15 +857,15 @@ def return_from_seh(myjit):
     "Handle return after a call to fake seh handler"
 
     # Get current context
-    myjit.cpu.ESP = upck32(myjit.vm.vm_get_mem(context_address + 0xc4, 4))
+    myjit.cpu.ESP = upck32(myjit.vm.get_mem(context_address + 0xc4, 4))
     logging.info('-> new esp: %x' % myjit.cpu.ESP)
 
     # Rebuild SEH
-    old_seh = upck32(myjit.vm.vm_get_mem(tib_address, 4))
-    new_seh = upck32(myjit.vm.vm_get_mem(old_seh, 4))
+    old_seh = upck32(myjit.vm.get_mem(tib_address, 4))
+    new_seh = upck32(myjit.vm.get_mem(old_seh, 4))
     logging.info('-> old seh: %x' % old_seh)
     logging.info('-> new seh: %x' % new_seh)
-    myjit.vm.vm_set_mem(tib_address, pck32(new_seh))
+    myjit.vm.set_mem(tib_address, pck32(new_seh))
 
     dump_seh(myjit)
 
@@ -879,7 +879,7 @@ def return_from_seh(myjit):
         print '-> context:', hex(ctxt_ptr)
 
         # Get registers changes
-        ctxt_str = myjit.vm.vm_get_mem(ctxt_ptr, 0x2cc)
+        ctxt_str = myjit.vm.get_mem(ctxt_ptr, 0x2cc)
         regs = ctxt2regs(ctxt_str)
         myjit.pc = regs["EIP"]
         for reg_name, reg_value in regs.items():

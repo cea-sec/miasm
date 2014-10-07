@@ -41,8 +41,8 @@ class Container(object):
             if vm is not None:
                 if addr is None:
                     raise ValueError('set load addr')
-                vm.vm_add_memory_page(addr,
-                                      PAGE_READ,
-                                      data)
+                vm.add_memory_page(addr,
+                                   PAGE_READ,
+                                   data)
 
         self.e, self.bs, self.ep = e, bs, ep

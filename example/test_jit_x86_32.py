@@ -30,11 +30,11 @@ myjit.init_stack()
 
 data = open(args.filename).read()
 run_addr = 0x40000000
-myjit.vm.vm_add_memory_page(run_addr, PAGE_READ | PAGE_WRITE, data)
+myjit.vm.add_memory_page(run_addr, PAGE_READ | PAGE_WRITE, data)
 
 myjit.jit.log_regs = True
 myjit.jit.log_mn = True
-myjit.vm_push_uint32_t(0x1337beef)
+myjit.push_uint32_t(0x1337beef)
 
 myjit.add_breakpoint(0x1337beef, code_sentinelle)
 

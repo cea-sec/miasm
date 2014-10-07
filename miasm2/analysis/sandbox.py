@@ -257,10 +257,10 @@ class Sandbox_Win_x86_32(Sandbox, Arch_x86_32, OS_Win):
         Sandbox.__init__(self, *args, **kwargs)
 
         # Pre-stack some arguments
-        self.jitter.vm_push_uint32_t(2)
-        self.jitter.vm_push_uint32_t(1)
-        self.jitter.vm_push_uint32_t(0)
-        self.jitter.vm_push_uint32_t(0x1337beef)
+        self.jitter.push_uint32_t(2)
+        self.jitter.push_uint32_t(1)
+        self.jitter.push_uint32_t(0)
+        self.jitter.push_uint32_t(0x1337beef)
 
         # Set the runtime guard
         self.jitter.add_breakpoint(0x1337beef, self.__class__.code_sentinelle)
@@ -287,10 +287,10 @@ class Sandbox_Linux_x86_32(Sandbox, Arch_x86_32, OS_Linux):
         Sandbox.__init__(self, *args, **kwargs)
 
         # Pre-stack some arguments
-        self.jitter.vm_push_uint32_t(2)
-        self.jitter.vm_push_uint32_t(1)
-        self.jitter.vm_push_uint32_t(0)
-        self.jitter.vm_push_uint32_t(0x1337beef)
+        self.jitter.push_uint32_t(2)
+        self.jitter.push_uint32_t(1)
+        self.jitter.push_uint32_t(0)
+        self.jitter.push_uint32_t(0x1337beef)
 
         # Set the runtime guard
         self.jitter.add_breakpoint(0x1337beef, self.__class__.code_sentinelle)

@@ -85,7 +85,7 @@ class Debugguer(object):
                                                             write=write)
         dbm = DebugBreakpointMemory(addr, size, access_type)
         self.hw_bp_list.append(dbm)
-        self.myjit.vm.vm_add_memory_breakpoint(addr, size, access_type)
+        self.myjit.vm.add_memory_breakpoint(addr, size, access_type)
 
     def remove_breakpoint(self, dbs):
         "remove the DebugBreakpointSoft instance"
@@ -100,7 +100,7 @@ class Debugguer(object):
     def remove_memory_breakpoint(self, dbm):
         "remove the DebugBreakpointMemory instance"
         self.hw_bp_list.remove(dbm)
-        self.myjit.vm.vm_remove_memory_breakpoint(dbm.addr, dbm.access_type)
+        self.myjit.vm.remove_memory_breakpoint(dbm.addr, dbm.access_type)
 
     def remove_memory_breakpoint_by_addr_access(self, addr, read=False,
                                                 write=False):
@@ -140,8 +140,8 @@ class Debugguer(object):
                 print "Memory breakpoint reached!"
 
                 # Remove flag
-                except_flag = self.myjit.vm.vm_get_exception()
-                self.myjit.vm.vm_set_exception(except_flag ^ res.except_flag)
+                except_flag = self.myjit.vm.get_exception()
+                self.myjit.vm.set_exception(except_flag ^ res.except_flag)
 
             else:
                 raise NotImplementedError("Unknown Except")
@@ -170,11 +170,11 @@ class Debugguer(object):
     def get_mem(self, addr, size=0xF):
         "hexdump @addr, size"
 
-        hexdump(self.myjit.vm.vm_get_mem(addr, size))
+        hexdump(self.myjit.vm.get_mem(addr, size))
 
     def get_mem_raw(self, addr, size=0xF):
         "hexdump @addr, size"
-        return self.myjit.vm.vm_get_mem(addr, size)
+        return self.myjit.vm.get_mem(addr, size)
 
     def watch_mem(self, addr, size=0xF):
         self.mem_watched.append((addr, size))
@@ -197,7 +197,7 @@ class Debugguer(object):
 
     def get_gpreg_all(self):
         "Return general purposes registers"
-        return self.myjit.cpu.vm_get_gpreg()
+        return self.myjit.cpu.get_gpreg()
 
 
 class DebugCmd(cmd.Cmd, object):

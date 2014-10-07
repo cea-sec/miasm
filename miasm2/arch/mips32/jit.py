@@ -19,17 +19,17 @@ class jitter_mips32(jitter):
         self.ir_arch.jit_pc = self.ir_arch.arch.regs.PC
         self.ir_arch.attrib = 'l'
 
-    def vm_push_uint32_t(self, v):
+    def push_uint32_t(self, v):
         self.cpu.SP -= 4
-        self.vm.vm_set_mem(self.cpu.SP, pck32(v))
+        self.vm.set_mem(self.cpu.SP, pck32(v))
 
-    def vm_pop_uint32_t(self):
-        x = upck32(self.vm.vm_get_mem(self.cpu.SP, 4))
+    def pop_uint32_t(self):
+        x = upck32(self.vm.get_mem(self.cpu.SP, 4))
         self.cpu.SP += 4
         return x
 
     def get_stack_arg(self, n):
-        x = upck32(self.vm.vm_get_mem(self.cpu.SP + 4 * n, 4))
+        x = upck32(self.vm.get_mem(self.cpu.SP + 4 * n, 4))
         return x
 
     def init_run(self, *args, **kwargs):

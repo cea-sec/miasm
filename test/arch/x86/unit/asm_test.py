@@ -63,9 +63,9 @@ class Asm_Test(object):
 
     def run(self):
         run_addr = 0
-        self.myjit.vm.vm_add_memory_page(run_addr, PAGE_READ | PAGE_WRITE, self.assembly)
+        self.myjit.vm.add_memory_page(run_addr, PAGE_READ | PAGE_WRITE, self.assembly)
 
-        self.myjit.vm_push_uint32_t(0x1337beef)
+        self.myjit.push_uint32_t(0x1337beef)
 
         self.myjit.add_breakpoint(0x1337beef, lambda x:False)
 

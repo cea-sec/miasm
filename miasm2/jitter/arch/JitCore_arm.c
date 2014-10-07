@@ -230,17 +230,17 @@ static PyMemberDef JitCpu_members[] = {
 };
 
 static PyMethodDef JitCpu_methods[] = {
-	{"vm_init_regs", (PyCFunction)cpu_init_regs, METH_NOARGS,
+	{"init_regs", (PyCFunction)cpu_init_regs, METH_NOARGS,
 	 "X"},
-	{"vm_dump_gpregs", (PyCFunction)cpu_dump_gpregs, METH_NOARGS,
+	{"dump_gpregs", (PyCFunction)cpu_dump_gpregs, METH_NOARGS,
 	 "X"},
-	{"vm_get_gpreg", (PyCFunction)cpu_get_gpreg, METH_NOARGS,
+	{"get_gpreg", (PyCFunction)cpu_get_gpreg, METH_NOARGS,
 	 "X"},
-	{"vm_set_gpreg", (PyCFunction)cpu_set_gpreg, METH_VARARGS,
+	{"set_gpreg", (PyCFunction)cpu_set_gpreg, METH_VARARGS,
 	 "X"},
-	{"vm_get_exception", (PyCFunction)cpu_get_exception, METH_VARARGS,
+	{"get_exception", (PyCFunction)cpu_get_exception, METH_VARARGS,
 	 "X"},
-	{"vm_set_exception", (PyCFunction)cpu_set_exception, METH_VARARGS,
+	{"set_exception", (PyCFunction)cpu_set_exception, METH_VARARGS,
 	 "X"},
 	{NULL}  /* Sentinel */
 };

@@ -25,17 +25,17 @@ class jitter_x86_16(jitter):
     def ir_archbloc_fix_regs_for_mode(self, irbloc, attrib=64):
         self.orig_irbloc_fix_regs_for_mode(irbloc, 64)
 
-    def vm_push_uint16_t(self, v):
+    def push_uint16_t(self, v):
         self.cpu.SP -= self.ir_arch.sp.size / 8
-        self.vm.vm_set_mem(self.cpu.SP, pck16(v))
+        self.vm.set_mem(self.cpu.SP, pck16(v))
 
-    def vm_pop_uint16_t(self):
-        x = upck16(self.vm.vm_get_mem(self.cpu.SP, self.ir_arch.sp.size / 8))
+    def pop_uint16_t(self):
+        x = upck16(self.vm.get_mem(self.cpu.SP, self.ir_arch.sp.size / 8))
         self.cpu.SP += self.ir_arch.sp.size / 8
         return x
 
     def get_stack_arg(self, n):
-        x = upck16(self.vm.vm_get_mem(self.cpu.SP + 4 * n, 4))
+        x = upck16(self.vm.get_mem(self.cpu.SP + 4 * n, 4))
         return x
 
     def init_run(self, *args, **kwargs):
@@ -57,27 +57,27 @@ class jitter_x86_32(jitter):
     def ir_archbloc_fix_regs_for_mode(self, irbloc, attrib=64):
         self.orig_irbloc_fix_regs_for_mode(irbloc, 64)
 
-    def vm_push_uint32_t(self, v):
+    def push_uint32_t(self, v):
         self.cpu.ESP -= self.ir_arch.sp.size / 8
-        self.vm.vm_set_mem(self.cpu.ESP, pck32(v))
+        self.vm.set_mem(self.cpu.ESP, pck32(v))
 
-    def vm_pop_uint32_t(self):
-        x = upck32(self.vm.vm_get_mem(self.cpu.ESP, self.ir_arch.sp.size / 8))
+    def pop_uint32_t(self):
+        x = upck32(self.vm.get_mem(self.cpu.ESP, self.ir_arch.sp.size / 8))
         self.cpu.ESP += self.ir_arch.sp.size / 8
         return x
 
     def get_stack_arg(self, n):
-        x = upck32(self.vm.vm_get_mem(self.cpu.ESP + 4 * n, 4))
+        x = upck32(self.vm.get_mem(self.cpu.ESP + 4 * n, 4))
         return x
 
     # calling conventions
 
     # stdcall
     def func_args_stdcall(self, n_args):
-        ret_ad = self.vm_pop_uint32_t()
+        ret_ad = self.pop_uint32_t()
         args = []
         for _ in xrange(n_args):
-            args.append(self.vm_pop_uint32_t())
+            args.append(self.pop_uint32_t())
         log.debug('%s %s %s' % (whoami(), hex(ret_ad), [hex(x) for x in args]))
         return ret_ad, args
 
@@ -90,7 +90,7 @@ class jitter_x86_32(jitter):
 
     # cdecl
     def func_args_cdecl(self, n_args, dolog=True):
-        ret_ad = self.vm_pop_uint32_t()
+        ret_ad = self.pop_uint32_t()
         args = []
         for i in xrange(n_args):
             args.append(self.get_stack_arg(i))
@@ -121,7 +121,7 @@ class jitter_x86_32(jitter):
                 f = win_api_x86_32.__dict__[fname]
             else:
                 log.debug('%s' % repr(fname))
-                raise ValueError('unknown api', hex(jitter.vm_pop_uint32_t()), repr(fname))
+                raise ValueError('unknown api', hex(jitter.pop_uint32_t()), repr(fname))
             f(jitter)
             jitter.pc = getattr(jitter.cpu, jitter.ir_arch.pc.name)
             return True
@@ -148,17 +148,17 @@ class jitter_x86_64(jitter):
     def ir_archbloc_fix_regs_for_mode(self, irbloc, attrib=64):
         self.orig_irbloc_fix_regs_for_mode(irbloc, 64)
 
-    def vm_push_uint64_t(self, v):
+    def push_uint64_t(self, v):
         self.cpu.RSP -= self.ir_arch.sp.size / 8
-        self.vm.vm_set_mem(self.cpu.RSP, pck64(v))
+        self.vm.set_mem(self.cpu.RSP, pck64(v))
 
-    def vm_pop_uint64_t(self):
-        x = upck64(self.vm.vm_get_mem(self.cpu.RSP, self.ir_arch.sp.size / 8))
+    def pop_uint64_t(self):
+        x = upck64(self.vm.get_mem(self.cpu.RSP, self.ir_arch.sp.size / 8))
         self.cpu.RSP += self.ir_arch.sp.size / 8
         return x
 
     def get_stack_arg(self, n):
-        x = upck64(self.vm.vm_get_mem(self.cpu.RSP + 8 * n, 8))
+        x = upck64(self.vm.get_mem(self.cpu.RSP + 8 * n, 8))
         return x
 
     def init_run(self, *args, **kwargs):

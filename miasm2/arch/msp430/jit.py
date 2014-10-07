@@ -19,22 +19,22 @@ class jitter_msp430(jitter):
         jitter.__init__(self, ir_msp430(sp), *args, **kwargs)
         self.ir_arch.jit_pc = self.ir_arch.arch.regs.PC
 
-    def vm_push_uint16_t(self, v):
-        regs = self.cpu.vm_get_gpreg()
+    def push_uint16_t(self, v):
+        regs = self.cpu.get_gpreg()
         regs['SP'] -= 2
-        self.cpu.vm_set_gpreg(regs)
-        self.vm.vm_set_mem(regs['SP'], pck16(v))
+        self.cpu.set_gpreg(regs)
+        self.vm.set_mem(regs['SP'], pck16(v))
 
-    def vm_pop_uint16_t(self):
-        regs = self.cpu.vm_get_gpreg()
-        x = upck16(self.vm.vm_get_mem(regs['SP'], 2))
+    def pop_uint16_t(self):
+        regs = self.cpu.get_gpreg()
+        x = upck16(self.vm.get_mem(regs['SP'], 2))
         regs['SP'] += 2
-        self.cpu.vm_set_gpreg(regs)
+        self.cpu.set_gpreg(regs)
         return x
 
     def get_stack_arg(self, n):
-        regs = self.cpu.vm_get_gpreg()
-        x = upck16(self.vm.vm_get_mem(regs['SP'] + 2 * n, 2))
+        regs = self.cpu.get_gpreg()
+        x = upck16(self.vm.get_mem(regs['SP'] + 2 * n, 2))
         return x
 
     def init_run(self, *args, **kwargs):

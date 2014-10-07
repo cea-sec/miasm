@@ -42,16 +42,16 @@ def jit_msp430_binary(args):
     myjit.jit.log_mn = args.log_mn
     myjit.jit.log_newbloc = args.log_newbloc
 
-    myjit.vm.vm_add_memory_page(0, PAGE_READ | PAGE_WRITE, open(filepath).read())
+    myjit.vm.add_memory_page(0, PAGE_READ | PAGE_WRITE, open(filepath).read())
     myjit.add_breakpoint(0x1337, lambda _: exit(0))
 
 
     # for stack
-    myjit.vm.vm_add_memory_page(0xF000, PAGE_READ | PAGE_WRITE, "\x00"*0x1000)
+    myjit.vm.add_memory_page(0xF000, PAGE_READ | PAGE_WRITE, "\x00"*0x1000)
 
     myjit.cpu.SP = 0xF800
 
-    myjit.vm_push_uint16_t(0x1337)
+    myjit.push_uint16_t(0x1337)
     myjit.init_run(entryp)
 
 

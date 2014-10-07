@@ -25,7 +25,7 @@ def xxx_memcpy(jitter):
     copies n bytes from memory area src to memory area dest.
     '''
     ret_addr, (dest, src, n) = jitter.func_args_stdcall(3)
-    jitter.vm.vm_set_mem(dest, jitter.vm.vm_get_mem(src, n))
+    jitter.vm.set_mem(dest, jitter.vm.get_mem(src, n))
     return jitter.func_ret_stdcall(ret_addr, dest)
 
 
@@ -38,7 +38,7 @@ def xxx_puts(jitter):
     '''
     ret_addr, (s,) = jitter.func_args_stdcall(1)
     while True:
-        c = jitter.vm.vm_get_mem(s, 1)
+        c = jitter.vm.get_mem(s, 1)
         s += 1
         if c == '\x00':
             break
@@ -57,14 +57,14 @@ def xxx_snprintf(jitter):
     ret_addr, (str, size, format) = jitter.func_args_stdcall(3)
     curarg, output = 3, ''
     while True:
-        c = jitter.vm.vm_get_mem(format, 1)
+        c = jitter.vm.get_mem(format, 1)
         format += 1
         if c == '\x00':
             break
         if c == '%':
             token = '%'
             while True:
-                c = jitter.vm.vm_get_mem(format, 1)
+                c = jitter.vm.get_mem(format, 1)
                 format += 1
                 token += c
                 if c in '%cdfsux':
@@ -74,5 +74,5 @@ def xxx_snprintf(jitter):
         output += c
     output = output[:size - 1]
     ret = len(output)
-    jitter.vm.vm_set_mem(str, output + '\x00')
+    jitter.vm.set_mem(str, output + '\x00')
     return jitter.func_ret_stdcall(ret_addr, ret)

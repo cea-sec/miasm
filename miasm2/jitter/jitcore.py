@@ -81,9 +81,9 @@ class JitCore(object):
 
         self.blocs_mem_interval += interval([(bloc.ad_min, bloc.ad_max - 1)])
 
-        vm.vm_reset_code_bloc_pool()
+        vm.reset_code_bloc_pool()
         for a, b in self.blocs_mem_interval:
-            vm.vm_add_code_bloc(a, b + 1)
+            vm.add_code_bloc(a, b + 1)
 
     def jitirblocs(self, label, irblocs):
         """JiT a group of irblocs.
@@ -166,7 +166,7 @@ class JitCore(object):
         """
 
         if lbl is None:
-            lbl = cpu.vm_get_gpreg()[self.ir_arch.pc.name]
+            lbl = cpu.get_gpreg()[self.ir_arch.pc.name]
 
         if not lbl in self.lbl2jitbloc:
             # Need to JiT the bloc
@@ -195,11 +195,11 @@ class JitCore(object):
         """
 
         # Reset the current pool
-        vm.vm_reset_code_bloc_pool()
+        vm.reset_code_bloc_pool()
 
         # Add blocs in the pool
         for a, b in self.blocs_mem_interval:
-            vm.vm_add_code_bloc(a, b + 1)
+            vm.add_code_bloc(a, b + 1)
 
     def del_bloc_in_range(self, ad1, ad2):
         """Find and remove jitted bloc in range [ad1, ad2].

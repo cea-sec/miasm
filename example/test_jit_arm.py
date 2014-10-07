@@ -48,9 +48,9 @@ def jit_arm_binary(args):
     preload_elf(myjit.vm, elf, libs)
     myjit.add_lib_handler(libs)
     myjit.add_breakpoint(0x1337BEEF, lambda _: exit(0))
-    regs = myjit.cpu.vm_get_gpreg()
+    regs = myjit.cpu.get_gpreg()
     regs['LR'] = 0x1337BEEF
-    myjit.cpu.vm_set_gpreg(regs)
+    myjit.cpu.set_gpreg(regs)
     myjit.init_run(entryp)
 
 

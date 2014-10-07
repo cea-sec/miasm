@@ -311,11 +311,11 @@ class GdbServer(object):
         return self.dbg.get_reg_value(reg_name)
 
     def read_memory(self, addr, size):
-        except_flag_vm = self.dbg.myjit.vm.vm_get_exception()
+        except_flag_vm = self.dbg.myjit.vm.get_exception()
         try:
             return self.dbg.get_mem_raw(addr, size).encode("hex")
         except RuntimeError:
-            self.dbg.myjit.vm.vm_set_exception(except_flag_vm)
+            self.dbg.myjit.vm.set_exception(except_flag_vm)
             return "00" * size
 
 

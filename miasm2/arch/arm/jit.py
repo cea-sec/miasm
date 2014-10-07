@@ -18,17 +18,17 @@ class jitter_arm(jitter):
         jitter.__init__(self, ir_arm(sp), *args, **kwargs)
         self.ir_arch.jit_pc = self.ir_arch.arch.regs.PC
 
-    def vm_push_uint32_t(self, v):
+    def push_uint32_t(self, v):
         self.cpu.SP -= 4
-        self.vm.vm_set_mem(self.cpu.SP, pck32(v))
+        self.vm.set_mem(self.cpu.SP, pck32(v))
 
-    def vm_pop_uint32_t(self):
-        x = upck32(self.vm.vm_get_mem(self.cpu.SP, 4))
+    def pop_uint32_t(self):
+        x = upck32(self.vm.get_mem(self.cpu.SP, 4))
         self.cpu.SP += 4
         return x
 
     def get_stack_arg(self, n):
-        x = upck32(self.vm.vm_get_mem(self.cpu.SP + 4 * n, 4))
+        x = upck32(self.vm.get_mem(self.cpu.SP + 4 * n, 4))
         return x
 
     # calling conventions
@@ -36,7 +36,7 @@ class jitter_arm(jitter):
     def func_args_stdcall(self, n_args):
         args = []
         for i in xrange(min(n_args, 4)):
-            args.append(self.cpu.vm_get_gpreg()['R%d' % i])
+            args.append(self.cpu.get_gpreg()['R%d' % i])
         for i in xrange(max(0, n_args - 4)):
             args.append(self.get_stack_arg(i))
 
@@ -52,7 +52,7 @@ class jitter_arm(jitter):
 
     def get_arg_n_stdcall(self, n):
         if n < 4:
-            arg = self.cpu.vm_get_gpreg()['R%d' % n]
+            arg = self.cpu.get_gpreg()['R%d' % n]
         else:
             arg = self.get_stack_arg(n-4)
         return arg
