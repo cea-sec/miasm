@@ -17,9 +17,9 @@ def buil_all():
               'miasm2/expression',
               'miasm2/ir',
               'miasm2/analysis',
+              'miasm2/os_dep',
               'miasm2/jitter',
               'miasm2/jitter/arch',
-              'miasm2/jitter/os_dep',
               ]
     ext_modules_no_tcc = [
         Extension("miasm2.jitter.arch.JitCore_x86",

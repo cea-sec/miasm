@@ -111,7 +111,7 @@ class jitter_x86_32(jitter):
         if user_globals is None:
             user_globals = {}
 
-        from miasm2.jitter.os_dep import win_api_x86_32
+        from miasm2.os_dep import win_api_x86_32
 
         def handle_lib(jitter):
             fname = libs.fad2cname[jitter.pc]

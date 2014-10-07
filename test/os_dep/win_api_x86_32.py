@@ -4,7 +4,7 @@
 import unittest
 import logging
 from miasm2.analysis.machine import Machine
-import miasm2.jitter.os_dep.win_api_x86_32 as winapi
+import miasm2.os_dep.win_api_x86_32 as winapi
 
 machine = Machine("x86_32")
 

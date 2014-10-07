@@ -58,7 +58,7 @@ class jitter_arm(jitter):
         return arg
 
     def add_lib_handler(self, libs):
-        from miasm2.jitter.os_dep import linux_stdlib
+        from miasm2.os_dep import linux_stdlib
         for offset, fname in libs.fad2cname.iteritems():
             if fname in linux_stdlib.__dict__:
                 self.add_breakpoint(offset, linux_stdlib.__dict__[fname])
