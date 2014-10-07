@@ -57,14 +57,32 @@ class jitter_arm(jitter):
             arg = self.get_stack_arg(n-4)
         return arg
 
-    def add_lib_handler(self, libs):
+    def add_lib_handler(self, libs, user_globals=None):
+        """Add a function to handle libs call with breakpoints
+        @libs: libimp instance
+        @user_globals: dictionnary for defined user function
+        """
+        if user_globals is None:
+            user_globals = {}
+
         from miasm2.os_dep import linux_stdlib
-        for offset, fname in libs.fad2cname.iteritems():
-            if fname in linux_stdlib.__dict__:
-                self.add_breakpoint(offset, linux_stdlib.__dict__[fname])
+
+        def handle_lib(jitter):
+            fname = libs.fad2cname[jitter.pc]
+            if fname in user_globals:
+                f = user_globals[fname]
+            elif fname in linux_stdlib.__dict__:
+                f = linux_stdlib.__dict__[fname]
             else:
-                log.warning(
-                    'jitter libhandler: %s function not found!' % fname)
+                log.debug('%s' % repr(fname))
+                raise ValueError('unknown api', hex(jitter.pop_uint32_t()), repr(fname))
+            f(jitter)
+            jitter.pc = getattr(jitter.cpu, jitter.ir_arch.pc.name)
+            return True
+
+        for f_addr in libs.fad2cname:
+            self.add_breakpoint(f_addr, handle_lib)
+
 
     def init_run(self, *args, **kwargs):
         jitter.init_run(self, *args, **kwargs)
