@@ -27,6 +27,7 @@ import stat
 import time
 from miasm2.jitter.csts import *
 from miasm2.core.utils import *
+from miasm2.os_dep.common import *
 import string
 import logging
 
@@ -39,20 +40,6 @@ log.setLevel(logging.WARN)
 
 MAX_PATH = 260
 
-
-def get_next_alloc_addr(size):
-    global alloc_ad
-    ret = winobjs.alloc_ad
-    winobjs.alloc_ad = (winobjs.alloc_ad + size + winobjs.alloc_align - 1)
-    winobjs.alloc_ad &= (0xffffffff ^ (winobjs.alloc_align - 1))
-    return ret
-
-
-def alloc_mem(jitter, msize):
-    alloc_addr = get_next_alloc_addr(msize)
-    jitter.vm.add_memory_page(
-        alloc_addr, PAGE_READ | PAGE_WRITE, "\x00" * msize)
-    return alloc_addr
 
 """
 typedef struct tagPROCESSENTRY32 {
@@ -134,6 +121,7 @@ class c_winobjs:
     def __init__(self):
         self.alloc_ad = 0x20000000
         self.alloc_align = 0x1000
+        self.heap = heap()
         self.handle_toolhelpsnapshot = 0xaaaa00
         self.toolhelpsnapshot_info = {}
         self.handle_curprocess = 0xaaaa01
@@ -255,41 +243,13 @@ class mdl:
         return struct.pack('LL', self.ad, self.l)
 
 
-def get_str_ansi(jitter, ad_str, max_char=None):
-    l = 0
-    tmp = ad_str
-    while ((max_char is None or l < max_char) and
-        jitter.vm.get_mem(tmp, 1) != "\x00"):
-        tmp += 1
-        l += 1
-    return jitter.vm.get_mem(ad_str, l)
-
-
-def get_str_unic(jitter, ad_str, max_char=None):
-    l = 0
-    tmp = ad_str
-    while ((max_char is None or l < max_char) and
-        jitter.vm.get_mem(tmp, 2) != "\x00\x00"):
-        tmp += 2
-        l += 2
-    s = jitter.vm.get_mem(ad_str, l)
-    s = s[::2]  # TODO: real unicode decoding
-    return s
-
-
-def set_str_ansi(s):
-    return s + "\x00"
-
-
-def set_str_unic(s):
-    return "\x00".join(list(s)) + '\x00' * 3
 
 
 def kernel32_HeapAlloc(jitter):
     ret_ad, args = jitter.func_args_stdcall(3)
     heap, flags, size = args
 
-    alloc_addr = alloc_mem(jitter, size)
+    alloc_addr = winobjs.heap.alloc(jitter, size)
 
     jitter.func_ret_stdcall(ret_ad, alloc_addr)
 
@@ -304,7 +264,7 @@ def kernel32_HeapFree(jitter):
 def kernel32_GlobalAlloc(jitter):
     ret_ad, args = jitter.func_args_stdcall(2)
     uflags, msize = args
-    alloc_addr = alloc_mem(jitter, msize)
+    alloc_addr = winobjs.heap.alloc(jitter, msize)
     jitter.func_ret_stdcall(ret_ad, alloc_addr)
 
 
@@ -317,7 +277,7 @@ def kernel32_LocalFree(jitter):
 def kernel32_LocalAlloc(jitter):
     ret_ad, args = jitter.func_args_stdcall(2)
     uflags, msize = args
-    alloc_addr = alloc_mem(jitter, msize)
+    alloc_addr = winobjs.heap.alloc(jitter, msize)
     jitter.func_ret_stdcall(ret_ad, alloc_addr)
 
 
@@ -786,7 +746,7 @@ def kernel32_VirtualAlloc(jitter):
         raise ValueError('unknown access dw!')
 
     if lpvoid == 0:
-        alloc_addr = get_next_alloc_addr(dwsize)
+        alloc_addr = winobjs.heap.next_addr(dwsize)
         jitter.vm.add_memory_page(
             alloc_addr, access_dict[flprotect], "\x00" * dwsize)
     else:
@@ -795,7 +755,7 @@ def kernel32_VirtualAlloc(jitter):
             alloc_addr = lpvoid
             jitter.vm.set_mem_access(lpvoid, access_dict[flprotect])
         else:
-            alloc_addr = get_next_alloc_addr(dwsize)
+            alloc_addr = winobjs.heap.next_addr(dwsize)
             # alloc_addr = lpvoid
             jitter.vm.add_memory_page(
                 alloc_addr, access_dict[flprotect], "\x00" * dwsize)
@@ -1076,7 +1036,7 @@ def kernel32_GetCommandLineA(jitter):
     ret_ad, args = jitter.func_args_stdcall(0)
     s = winobjs.module_path + '\x00'
     s = '"%s"' % s
-    alloc_addr = alloc_mem(jitter, 0x1000)
+    alloc_addr = winobjs.heap.alloc(jitter, 0x1000)
     jitter.vm.set_mem(alloc_addr, s)
     jitter.func_ret_stdcall(ret_ad, alloc_addr)
 
@@ -1085,7 +1045,7 @@ def kernel32_GetCommandLineW(jitter):
     ret_ad, args = jitter.func_args_stdcall(0)
     s = winobjs.module_path + '\x00'
     s = set_str_unic('"%s"' % s)
-    alloc_addr = alloc_mem(jitter, 0x1000)
+    alloc_addr = winobjs.heap.alloc(jitter, 0x1000)
     jitter.vm.set_mem(alloc_addr, s)
     jitter.func_ret_stdcall(ret_ad, alloc_addr)
 
@@ -1096,8 +1056,8 @@ def shell32_CommandLineToArgvW(jitter):
     cmd = get_str_unic(jitter, pcmd)
     log.debug(cmd)
     tks = cmd.split(' ')
-    addr = alloc_mem(jitter, len(cmd) * 2 + 4 * len(tks))
-    addr_ret = alloc_mem(jitter, 4 * (len(tks) + 1))
+    addr = winobjs.heap.alloc(jitter, len(cmd) * 2 + 4 * len(tks))
+    addr_ret = winobjs.heap.alloc(jitter, 4 * (len(tks) + 1))
     o = 0
     for i, t in enumerate(tks):
         x = set_str_unic(t) + "\x00\x00"
@@ -1433,7 +1393,7 @@ def ntoskrnl_ExAllocatePoolWithTagPriority(jitter):
     ret_ad, args = jitter.func_args_stdcall(4)
     pool_type, nbr_of_bytes, tag, priority = args
 
-    alloc_addr = get_next_alloc_addr(nbr_of_bytes)
+    alloc_addr = winobjs.heap.next_addr(nbr_of_bytes)
     jitter.vm.add_memory_page(
         alloc_addr, PAGE_READ | PAGE_WRITE, "\x00" * nbr_of_bytes)
 
@@ -1797,7 +1757,7 @@ def ntdll_ZwAllocateVirtualMemory(jitter):
     if not flprotect in access_dict:
         raise ValueError('unknown access dw!')
 
-    alloc_addr = get_next_alloc_addr(dwsize)
+    alloc_addr = winobjs.heap.next_addr(dwsize)
     jitter.vm.add_memory_page(
         alloc_addr, access_dict[flprotect], "\x00" * dwsize)
     jitter.vm.set_mem(lppvoid, pck32(alloc_addr))
@@ -1837,7 +1797,7 @@ def ntdll_RtlAnsiStringToUnicodeString(jitter):
     s = ("\x00".join(s + "\x00"))
     l = len(s) + 1
     if alloc_str:
-        alloc_addr = get_next_alloc_addr(l)
+        alloc_addr = winobjs.heap.next_addr(l)
         jitter.vm.add_memory_page(
             alloc_addr, PAGE_READ | PAGE_WRITE, "\x00" * l)
     else:
@@ -2372,7 +2332,7 @@ def kernel32_MapViewOfFile(jitter):
     if not flprotect in access_dict:
         raise ValueError('unknown access dw!')
 
-    alloc_addr = alloc_mem(jitter, len(data))
+    alloc_addr = winobjs.heap.alloc(jitter, len(data))
     jitter.vm.set_mem(alloc_addr, data)
 
     winobjs.handle_mapped[
@@ -2632,7 +2592,7 @@ def kernel32_GetSystemDefaultLangID(jitter):
 def msvcrt_malloc(jitter):
     ret_ad, args = jitter.func_args_cdecl(1)
     msize, = args
-    addr = alloc_mem(jitter, msize)
+    addr = winobjs.heap.alloc(jitter, msize)
     jitter.func_ret_cdecl(ret_ad, addr)
 
 
@@ -2654,7 +2614,7 @@ def msvcrt_fopen(jitter):
         f = os.path.join('file_sb', fname)
         h = open(f, rw)
         eax = winobjs.handle_pool.add(f, h)
-        alloc_addr = alloc_mem(jitter, 0x20)
+        alloc_addr = winobjs.heap.alloc(jitter, 0x20)
         jitter.vm.set_mem(alloc_addr, pck32(0x11112222) + pck32(
             0) + pck32(0) + pck32(0) + pck32(eax))  # pck32(0x11112222)
     else:
@@ -2939,7 +2899,7 @@ def msvcrt_myfopen(jitter, func):
         h = open(f, rw)
         eax = winobjs.handle_pool.add(f, h)
         dwsize = 0x20
-        alloc_addr = alloc_mem(jitter, dwsize)
+        alloc_addr = winobjs.heap.alloc(jitter, dwsize)
         pp = pck32(0x11112222)+pck32(0)+pck32(0)+pck32(0)+pck32(eax)#pdw(0x11112222)
         jitter.vm.set_mem(alloc_addr, pp)
 
