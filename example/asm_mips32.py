@@ -25,9 +25,10 @@ my_var_parser = parse_ast(my_ast_id2expr, my_ast_int2expr)
 base_expr.setParseAction(my_var_parser)
 
 
-st = StrPatchwork()
+st_l = StrPatchwork()
+st_b = StrPatchwork()
 
-blocs, symbol_pool = parse_asm.parse_txt(mn_mips32, "l", '''
+txt = '''
 main:
     ADDIU      A0, ZERO, 0x10
     ADDIU      A1, ZERO, 0
@@ -40,19 +41,29 @@ loop:
     MOVN       A1, ZERO, ZERO
     JR         RA
     ADDIU      A2, A2, 0x1
-''')
+'''
+
+blocs_b, symbol_pool_b = parse_asm.parse_txt(mn_mips32, "b", txt)
+blocs_l, symbol_pool_l = parse_asm.parse_txt(mn_mips32, "l", txt)
 
 # fix shellcode addr
-symbol_pool.set_offset(symbol_pool.getby_name("main"), 0)
+symbol_pool_b.set_offset(symbol_pool_b.getby_name("main"), 0)
+symbol_pool_l.set_offset(symbol_pool_l.getby_name("main"), 0)
 
-for b in blocs[0]:
+for b in blocs_b[0]:
     print b
 
-resolved_b, patches = asmbloc.asm_resolve_final(
-    mn_mips32, 'l', blocs[0], symbol_pool)
-print patches
+resolved_b, patches_b = asmbloc.asm_resolve_final(
+    mn_mips32, blocs_b[0], symbol_pool_b)
+resolved_l, patches_l = asmbloc.asm_resolve_final(
+    mn_mips32, blocs_l[0], symbol_pool_l)
+print patches_b
+print patches_l
 
-for offset, raw in patches.items():
-    st[offset] = raw
+for offset, raw in patches_b.items():
+    st_b[offset] = raw
+for offset, raw in patches_l.items():
+    st_l[offset] = raw
 
-open('mips32_sc.bin', 'wb').write(str(st))
+open('mips32_sc_b.bin', 'wb').write(str(st_l))
+open('mips32_sc_l.bin', 'wb').write(str(st_l))

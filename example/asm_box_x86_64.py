@@ -58,7 +58,7 @@ for b in blocs[0]:
     print b
 
 resolved_b, patches = asmbloc.asm_resolve_final(
-    mn_x86, 64, blocs[0], symbol_pool,
+    mn_x86, blocs[0], symbol_pool,
     max_offset=0xFFFFFFFFFFFFFFFF)
 print patches
 

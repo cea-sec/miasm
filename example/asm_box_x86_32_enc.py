@@ -87,7 +87,7 @@ print "symbols"
 print symbol_pool
 
 resolved_b, patches = asmbloc.asm_resolve_final(
-    mn_x86, 32, blocs[0], symbol_pool)
+    mn_x86, blocs[0], symbol_pool)
 print patches
 
 ad_start = symbol_pool.getby_name_create("msgbox_encrypted_start").offset

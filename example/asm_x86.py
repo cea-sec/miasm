@@ -79,7 +79,7 @@ mystr:
 symbol_pool.set_offset(symbol_pool.getby_name("main"), 0x0)
 s = StrPatchwork()
 resolved_b, patches = asmbloc.asm_resolve_final(
-    mn_x86, '32', blocs[0], symbol_pool)
+    mn_x86, blocs[0], symbol_pool)
 for offset, raw in patches.items():
     s[offset] = raw
 

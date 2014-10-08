@@ -618,7 +618,7 @@ shape = "box"
     return out
 
 
-def conservative_asm(mnemo, mode, instr, symbols, conservative):
+def conservative_asm(mnemo, instr, symbols, conservative):
     """
     Asm instruction;
     Try to keep original instruction bytes if it exists
@@ -647,7 +647,7 @@ def fix_expr_val(e, symbols):
     return e
 
 
-def guess_blocs_size(mnemo, mode, blocs, symbols):
+def guess_blocs_size(mnemo, blocs, symbols):
     """
     Asm and compute max bloc length
     """
@@ -952,7 +952,7 @@ def calc_symbol_offset(symbol_pool):
             s_to_use.add(l)
 
 
-def asmbloc_final(mnemo, mode, blocs, symbol_pool, symb_reloc_off=None, conservative = False):
+def asmbloc_final(mnemo, blocs, symbol_pool, symb_reloc_off=None, conservative = False):
     log_asmbloc.info("asmbloc_final")
     if symb_reloc_off is None:
         symb_reloc_off = {}
@@ -1002,7 +1002,7 @@ def asmbloc_final(mnemo, mode, blocs, symbol_pool, symb_reloc_off=None, conserva
                 symbol_reloc_off = []
                 old_l = instr.l
                 c, candidates = conservative_asm(
-                    mnemo, mode, instr, symbol_reloc_off, conservative)
+                    mnemo, instr, symbol_reloc_off, conservative)
 
                 # print candidates
                 for i, e in enumerate(sav_a):
@@ -1050,19 +1050,18 @@ def asmbloc_final(mnemo, mode, blocs, symbol_pool, symb_reloc_off=None, conserva
         symb_reloc_off[a] = b
 
 
-def asm_resolve_final(mnemo, mode, blocs, symbol_pool, dont_erase=[],
+def asm_resolve_final(mnemo, blocs, symbol_pool, dont_erase=[],
                       max_offset=0xFFFFFFFF,
                       symb_reloc_off=None, constrain_pos=False):
     if symb_reloc_off is None:
         symb_reloc_off = {}
-    # asmbloc(mnemo, mode, blocs, symbol_pool)
-    guess_blocs_size(mnemo, mode, blocs, symbol_pool)
+    guess_blocs_size(mnemo, blocs, symbol_pool)
     bloc_g = group_blocs(blocs)
 
     resolved_b = resolve_symbol(bloc_g, symbol_pool, dont_erase=dont_erase,
                                 max_offset=max_offset)
 
-    asmbloc_final(mnemo, mode, resolved_b, symbol_pool, symb_reloc_off)
+    asmbloc_final(mnemo, resolved_b, symbol_pool, symb_reloc_off)
     written_bytes = {}
     patches = {}
     for b, t in resolved_b:

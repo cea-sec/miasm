@@ -94,7 +94,7 @@ for b in blocs[0]:
     print b
 
 resolved_b, patches = asmbloc.asm_resolve_final(
-    mn_x86, 32, blocs[0], symbol_pool)
+    mn_x86, blocs[0], symbol_pool)
 print patches
 
 for offset, raw in patches.items():

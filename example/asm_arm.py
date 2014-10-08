@@ -73,7 +73,7 @@ print "symbols"
 print symbol_pool
 # dont erase from start to shell code padading
 resolved_b, patches = asmbloc.asm_resolve_final(
-    my_mn, 'arm', blocs[0], symbol_pool)
+    my_mn, blocs[0], symbol_pool)
 print patches
 
 for offset, raw in patches.items():
