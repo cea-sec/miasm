@@ -491,8 +491,6 @@ class instruction_armt(instruction_arm):
             raise ValueError('strange offset! %r' % off)
         self.args[0] = ExprInt32(off)
 
-mode_arm = 'arm'
-mode_armthumb = 'armt'
 
 
 class mn_arm(cls_mn):
@@ -505,25 +503,17 @@ class mn_arm(cls_mn):
     all_mn_mode = defaultdict(list)
     all_mn_name = defaultdict(list)
     all_mn_inst = defaultdict(list)
-    pc = {mode_arm: PC, mode_armthumb: PC}
-    sp = {mode_arm: SP, mode_armthumb: SP}
+    pc = {'l':PC, 'b':PC}
+    sp = {'l':SP, 'b':SP}
     instruction = instruction_arm
     max_instruction_len = 4
 
     @classmethod
-    def fromstring(cls, s, mode='arm'):
-        return super(mn_arm, cls).fromstring(s, mode)
-
-    @classmethod
-    def dis(cls, bs_o, mode_o='arm', offset=0):
-        return super(mn_arm, cls).dis(bs_o, mode_o, offset)
-
-    @classmethod
-    def getpc(cls, attrib):
+    def getpc(cls, attrib = None):
         return PC
 
     @classmethod
-    def getsp(cls, attrib):
+    def getsp(cls, attrib = None):
         return SP
 
     def additional_info(self):
@@ -542,8 +532,9 @@ class mn_arm(cls_mn):
         if n > bs.getlen() * 8:
             raise ValueError('not enought bits %r %r' % (n, len(bs.bin) * 8))
         while n:
-            i = start / 8
-            c = cls.getbytes(bs, i)
+            offset = start / 8
+            n_offset = cls.endian_offset(attrib, offset)
+            c = cls.getbytes(bs, n_offset, 1)
             if not c:
                 raise IOError
             c = ord(c)
@@ -558,13 +549,13 @@ class mn_arm(cls_mn):
         return o
 
     @classmethod
-    def getbytes(cls, bs, offset, l=1):
-        out = ""
-        for _ in xrange(l):
-            n_offset = (offset & ~3) + 3 - offset % 4
-            out += bs.getbytes(n_offset, 1)
-            offset += 1
-        return out
+    def endian_offset(cls, attrib, offset):
+        if attrib == "l":
+            return (offset & ~3) + 3 - offset % 4
+        elif attrib == "b":
+            return offset
+        else:
+            raise NotImplementedError('bad attrib')
 
     @classmethod
     def check_mnemo(cls, fields):
@@ -584,12 +575,18 @@ class mn_arm(cls_mn):
 
     @classmethod
     def gen_modes(cls, subcls, name, bases, dct, fields):
-        dct['mode'] = mode_arm
+        dct['mode'] = None
         return [(subcls, name, bases, dct, fields)]
 
     def value(self, mode):
         v = super(mn_arm, self).value(mode)
-        return [x[::-1] for x in v]
+        if mode == 'l':
+            return [x[::-1] for x in v]
+        elif mode == 'b':
+            return [x for x in v]
+        else:
+            raise NotImplementedError('bad attrib')
+
 
     def get_symbol_size(self, symbol, symbol_pool, mode):
         return 32
@@ -611,19 +608,11 @@ class mn_armt(cls_mn):
     max_instruction_len = 8
 
     @classmethod
-    def fromstring(cls, s, mode='armt'):
-        return super(mn_armt, cls).fromstring(s, mode)
-
-    @classmethod
-    def dis(cls, bs_o, mode_o='armt', offset=0):
-        return super(mn_armt, cls).dis(bs_o, mode_o, offset)
-
-    @classmethod
-    def getpc(cls, attrib):
+    def getpc(cls, attrib = None):
         return PC
 
     @classmethod
-    def getsp(cls, attrib):
+    def getsp(cls, attrib = None):
         return SP
 
     def additional_info(self):
@@ -634,6 +623,7 @@ class mn_armt(cls_mn):
         info.cond = 14  # COND_ALWAYS
         return info
 
+
     @classmethod
     def getbits(cls, bs, attrib, start, n):
         if not n:
@@ -642,8 +632,9 @@ class mn_armt(cls_mn):
         if n > bs.getlen() * 8:
             raise ValueError('not enought bits %r %r' % (n, len(bs.bin) * 8))
         while n:
-            i = start / 8
-            c = cls.getbytes(bs, i)
+            offset = start / 8
+            n_offset = cls.endian_offset(attrib, offset)
+            c = cls.getbytes(bs, n_offset, 1)
             if not c:
                 raise IOError
             c = ord(c)
@@ -658,13 +649,13 @@ class mn_armt(cls_mn):
         return o
 
     @classmethod
-    def getbytes(cls, bs, offset, l=1):
-        out = ""
-        for _ in xrange(l):
-            n_offset = (offset & ~1) + 1 - offset % 2
-            out += bs.getbytes(n_offset, 1)
-            offset += 1
-        return out
+    def endian_offset(cls, attrib, offset):
+        if attrib == "l":
+            return (offset & ~1) + 1 - offset % 2
+        elif attrib == "b":
+            return offset
+        else:
+            raise NotImplementedError('bad attrib')
 
     @classmethod
     def check_mnemo(cls, fields):
@@ -681,18 +672,23 @@ class mn_armt(cls_mn):
 
     @classmethod
     def gen_modes(cls, subcls, name, bases, dct, fields):
-        dct['mode'] = mode_armthumb
+        dct['mode'] = None
         return [(subcls, name, bases, dct, fields)]
 
     def value(self, mode):
         v = super(mn_armt, self).value(mode)
-        out = []
-        for x in v:
-            if len(x) == 2:
-                out.append(x[::-1])
-            elif len(x) == 4:
-                out.append(x[:2][::-1] + x[2:4][::-1])
-        return out
+        if mode == 'l':
+            out = []
+            for x in v:
+                if len(x) == 2:
+                    out.append(x[::-1])
+                elif len(x) == 4:
+                    out.append(x[:2][::-1] + x[2:4][::-1])
+            return out
+        elif mode == 'b':
+            return [x for x in v]
+        else:
+            raise NotImplementedError('bad attrib')
 
     def get_args_expr(self):
         args = [a.expr for a in self.args]
