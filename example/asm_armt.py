@@ -23,7 +23,7 @@ def my_ast_id2expr(t):
 my_var_parser = parse_ast(my_ast_id2expr, my_ast_int2expr)
 base_expr.setParseAction(my_var_parser)
 
-blocs, symbol_pool = parse_asm.parse_txt(my_mn, "armt", '''
+txt = '''
 memcpy:
      PUSH    {R0-R3, LR}
      B       test_end
@@ -51,29 +51,38 @@ main:
 
 mystr:
 .string "toto"
-''')
+'''
+
+blocs_b, symbol_pool_b = parse_asm.parse_txt(my_mn, "b", txt)
+blocs_l, symbol_pool_l = parse_asm.parse_txt(my_mn, "l", txt)
 
 # fix shellcode addr
-symbol_pool.set_offset(symbol_pool.getby_name("main"), 0x3a4b8)
+symbol_pool_b.set_offset(symbol_pool_b.getby_name("main"), 0)
+symbol_pool_l.set_offset(symbol_pool_l.getby_name("main"), 0)
 
-for b in blocs[0]:
-    print b
 # graph sc####
-g = asmbloc.bloc2graph(blocs[0])
+g = asmbloc.bloc2graph(blocs_b[0])
 open("graph.txt", "w").write(g)
 
-s = StrPatchwork()
+s_b = StrPatchwork()
+s_l = StrPatchwork()
 
 print "symbols"
-print symbol_pool
+print symbol_pool_b
 # dont erase from start to shell code padading
-resolved_b, patches = asmbloc.asm_resolve_final(
-    my_mn, blocs[0], symbol_pool)
-print patches
+resolved_b, patches_b = asmbloc.asm_resolve_final(
+    my_mn, blocs_b[0], symbol_pool_b)
+resolved__l, patches_l = asmbloc.asm_resolve_final(
+    my_mn, blocs_l[0], symbol_pool_l)
+print patches_b
+print patches_l
 
 
 
-for offset, raw in patches.items():
-    s[offset] = raw
+for offset, raw in patches_b.items():
+    s_b[offset] = raw
+for offset, raw in patches_l.items():
+    s_l[offset] = raw
 
-open('demo_armt.bin', 'wb').write(str(s))
+open('demo_armt_b.bin', 'wb').write(str(s_b))
+open('demo_armt_l.bin', 'wb').write(str(s_l))

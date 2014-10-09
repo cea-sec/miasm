@@ -4,13 +4,13 @@
 from miasm2.expression.expression import *
 from miasm2.ir.ir import ir, irbloc
 from miasm2.ir.analysis import ira
-from miasm2.arch.mips32.sem import ir_mips32
+from miasm2.arch.mips32.sem import ir_mips32l, ir_mips32b
 from miasm2.arch.mips32.regs import *
 from miasm2.core.asmbloc import expr_is_int_or_label, expr_is_label
-class ir_a_mips32(ir_mips32, ira):
 
+class ir_a_mips32l(ir_mips32l, ira):
     def __init__(self, symbol_pool=None):
-        ir_mips32.__init__(self, symbol_pool)
+        ir_mips32l.__init__(self, symbol_pool)
         self.ret_reg = self.arch.regs.V0
 
 
@@ -79,3 +79,9 @@ class ir_a_mips32(ir_mips32, ira):
     def sizeof_pointer(self):
         return 32
 
+
+
+class ir_a_mips32b(ir_mips32b, ir_a_mips32l):
+    def __init__(self, symbol_pool=None):
+        ir_mips32b.__init__(self, symbol_pool)
+        self.ret_reg = self.arch.regs.V0

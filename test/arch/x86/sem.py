@@ -48,7 +48,7 @@ def compute_txt(ir, mode, txt, inputstate={}, debug=False):
     blocs, symbol_pool = parse_asm.parse_txt(mn, mode, txt)
     symbol_pool.set_offset(symbol_pool.getby_name("main"), 0x0)
     resolved_b, patches = asmbloc.asm_resolve_final(
-        mn, str(mode), blocs[0], symbol_pool)
+        mn, blocs[0], symbol_pool)
     interm = ir(symbol_pool)
     for bbl in resolved_b:
         interm.add_bloc(bbl[0])

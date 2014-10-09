@@ -22,11 +22,12 @@ def my_ast_id2expr(t):
 my_var_parser = parse_ast(my_ast_id2expr, my_ast_int2expr)
 base_expr.setParseAction(my_var_parser)
 
-blocs, symbol_pool = parse_asm.parse_txt(my_mn, "arm", '''
+txt = '''
 main:
   STMFD  SP!, {R4, R5, LR}
   MOV    R0, mystr & 0xffff
   ORR    R0, R0, mystr & 0xffff0000
+  MOV    R4, R0
   MOV    R1, mystrend & 0xffff
   ORR    R1, R1, mystrend & 0xffff0000
 xxx:
@@ -38,15 +39,8 @@ loop:
   STRB   R3, [R0], 1
   CMP    R0, R1
   BNE    loop
-  EOR    R0, R0, R0
-  BNE    end
-  EOR    R1, R1, R1
-  EOR    R2, R2, R2
-  EORGE  R1, R1, R1
-  EORGE  R2, R2, R2
-  ADDLTS R2, R2, R2
-  SUBEQ  R2, R2, R2
 end:
+  MOV    R0, R4
   LDMFD  SP!, {R4, R5, PC}
 key:
 .long 0x11223344
@@ -56,27 +50,36 @@ mystrend:
 .long 0
 test:
 .long mystrend - key + 0x1122
-''')
+'''
+
+blocs_b, symbol_pool_b = parse_asm.parse_txt(my_mn, "b", txt)
+blocs_l, symbol_pool_l = parse_asm.parse_txt(my_mn, "l", txt)
+
 
 # fix shellcode addr
-symbol_pool.set_offset(symbol_pool.getby_name("main"), 0x0)
+symbol_pool_b.set_offset(symbol_pool_b.getby_name("main"), 0x0)
+symbol_pool_l.set_offset(symbol_pool_l.getby_name("main"), 0x0)
 
-for b in blocs[0]:
-    print b
 # graph sc####
-g = asmbloc.bloc2graph(blocs[0])
+g = asmbloc.bloc2graph(blocs_l[0])
 open("graph.txt", "w").write(g)
 
-s = StrPatchwork()
+s_b = StrPatchwork()
+s_l = StrPatchwork()
 
 print "symbols"
-print symbol_pool
+print symbol_pool_l
 # dont erase from start to shell code padading
-resolved_b, patches = asmbloc.asm_resolve_final(
-    my_mn, blocs[0], symbol_pool)
-print patches
+resolved_b, patches_b = asmbloc.asm_resolve_final(
+    my_mn, blocs_b[0], symbol_pool_b)
+resolved_l, patches_l = asmbloc.asm_resolve_final(
+    my_mn, blocs_l[0], symbol_pool_l)
+print patches_b
 
-for offset, raw in patches.items():
-    s[offset] = raw
+for offset, raw in patches_b.items():
+    s_b[offset] = raw
+for offset, raw in patches_l.items():
+    s_l[offset] = raw
 
-open('demo_arm.bin', 'wb').write(str(s))
+open('demo_arm_b.bin', 'w').write(str(s_b))
+open('demo_arm_l.bin', 'w').write(str(s_l))

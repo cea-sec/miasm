@@ -1116,10 +1116,9 @@ class arminfo:
     # offset
 
 
-class ir_arm(ir):
-
+class ir_arml(ir):
     def __init__(self, symbol_pool=None):
-        ir.__init__(self, mn_arm, "arm", symbol_pool)
+        ir.__init__(self, mn_arm, "l", symbol_pool)
         self.pc = PC
         self.sp = SP
         self.IRDst = ExprId('IRDst', 32)
@@ -1152,14 +1151,27 @@ class ir_arm(ir):
         return instr_ir, extra_ir
 
 
-class ir_armt(ir):
-
+class ir_armb(ir_arml):
     def __init__(self, symbol_pool=None):
-        ir.__init__(self, mn_armt, "armt", symbol_pool)
+        ir.__init__(self, mn_arm, "b", symbol_pool)
+        self.pc = PC
+        self.sp = SP
+        self.IRDst = ExprId('IRDst', 32)
+
+class ir_armtl(ir):
+    def __init__(self, symbol_pool=None):
+        ir.__init__(self, mn_armt, "l", symbol_pool)
         self.pc = PC
         self.sp = SP
         self.IRDst = ExprId('IRDst', 32)
 
     def get_ir(self, instr):
         return get_mnemo_expr(self, instr, *instr.args)
+
+class ir_armtb(ir_armtl):
+    def __init__(self, symbol_pool=None):
+        ir.__init__(self, mn_armt, "b", symbol_pool)
+        self.pc = PC
+        self.sp = SP
+        self.IRDst = ExprId('IRDst', 32)
 

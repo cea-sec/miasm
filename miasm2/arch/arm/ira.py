@@ -4,22 +4,26 @@
 from miasm2.expression.expression import *
 from miasm2.ir.ir import ir, irbloc
 from miasm2.ir.analysis import ira
-from miasm2.arch.arm.sem import ir_arm, ir_armt
+from miasm2.arch.arm.sem import ir_arml, ir_armtl, ir_armb, ir_armtb
 from miasm2.arch.arm.regs import *
 # from miasm2.core.graph import DiGraph
 
 
-class ir_a_arm_base(ir_arm, ira):
-
+class ir_a_arml_base(ir_arml, ira):
     def __init__(self, symbol_pool=None):
-        ir_arm.__init__(self, symbol_pool)
+        ir_arml.__init__(self, symbol_pool)
+        self.ret_reg = self.arch.regs.R0
+
+class ir_a_armb_base(ir_armb, ira):
+    def __init__(self, symbol_pool=None):
+        ir_armb.__init__(self, symbol_pool)
         self.ret_reg = self.arch.regs.R0
 
 
-class ir_a_arm(ir_a_arm_base):
+class ir_a_arml(ir_a_arml_base):
 
     def __init__(self, symbol_pool=None):
-        ir_a_arm_base.__init__(self, symbol_pool)
+        ir_a_arml_base.__init__(self, symbol_pool)
         self.ret_reg = self.arch.regs.R0
 
     # for test XXX TODO
@@ -120,9 +124,19 @@ class ir_a_arm(ir_a_arm_base):
     def sizeof_pointer(self):
         return 32
 
+class ir_a_armb(ir_a_armb_base, ir_a_arml):
 
-class ir_a_armt(ir_armt, ir_a_arm):
+    def __init__(self, symbol_pool=None):
+        ir_a_armb_base.__init__(self, symbol_pool)
+        self.ret_reg = self.arch.regs.R0
 
+
+class ir_a_armtl(ir_armtl, ir_a_arml):
     def __init__(self, symbol_pool):
-        ir_armt.__init__(self, symbol_pool)
+        ir_armtl.__init__(self, symbol_pool)
+        self.ret_reg = self.arch.regs.R0
+
+class ir_a_armtb(ir_a_armtl, ir_armtb, ir_a_armb):
+    def __init__(self, symbol_pool):
+        ir_armtb.__init__(self, symbol_pool)
         self.ret_reg = self.arch.regs.R0

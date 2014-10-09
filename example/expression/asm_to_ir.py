@@ -39,7 +39,7 @@ for b in blocs:
 
 print "symbols:"
 print symbol_pool
-resolved_b, patches = asmbloc.asm_resolve_final(mn_x86, 32, blocs, symbol_pool)
+resolved_b, patches = asmbloc.asm_resolve_final(mn_x86, blocs, symbol_pool)
 
 # Translate to IR
 ir_arch = ir_a_x86_32(symbol_pool)

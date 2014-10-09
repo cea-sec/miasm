@@ -24,15 +24,24 @@ class Machine(object):
         gdbserver = None
 
         # Import on runtime for performance issue
-        if machine_name == "arm":
-            from miasm2.arch.arm.disasm import dis_arm as dis_engine
+        if machine_name == "arml":
+            from miasm2.arch.arm.disasm import dis_arml as dis_engine
             from miasm2.arch.arm.arch import mn_arm as mn
-            from miasm2.arch.arm.ira import ir_a_arm as ira
-            from miasm2.arch.arm.jit import jitter_arm as jitter
-        elif machine_name == "armt":
-            from miasm2.arch.arm.disasm import dis_armt as dis_engine
+            from miasm2.arch.arm.ira import ir_a_arml as ira
+            from miasm2.arch.arm.jit import jitter_arml as jitter
+        elif machine_name == "armb":
+            from miasm2.arch.arm.disasm import dis_armb as dis_engine
+            from miasm2.arch.arm.arch import mn_arm as mn
+            from miasm2.arch.arm.ira import ir_a_armb as ira
+            from miasm2.arch.arm.jit import jitter_armb as jitter
+        elif machine_name == "armtl":
+            from miasm2.arch.arm.disasm import dis_armtl as dis_engine
             from miasm2.arch.arm.arch import mn_armt as mn
-            from miasm2.arch.arm.ira import ir_a_armt as ira
+            from miasm2.arch.arm.ira import ir_a_armtl as ira
+        elif machine_name == "armtb":
+            from miasm2.arch.arm.disasm import dis_armtb as dis_engine
+            from miasm2.arch.arm.arch import mn_armt as mn
+            from miasm2.arch.arm.ira import ir_a_armtb as ira
         elif machine_name == "sh4":
             from miasm2.arch.sh4.disasm import dis_sha4 as dis_engine
             from miasm2.arch.sh4.arch import mn_sh4 as mn
@@ -62,13 +71,13 @@ class Machine(object):
         elif machine_name == "mips32b":
             from miasm2.arch.mips32.disasm import dis_mips32b as dis_engine
             from miasm2.arch.mips32.arch import mn_mips32 as mn
-            from miasm2.arch.mips32.ira import ir_a_mips32 as ira
-            #from miasm2.arch.mips32.jit import jitter_mips32 as jitter
+            from miasm2.arch.mips32.ira import ir_a_mips32b as ira
+            from miasm2.arch.mips32.jit import jitter_mips32b as jitter
         elif machine_name == "mips32l":
             from miasm2.arch.mips32.disasm import dis_mips32l as dis_engine
             from miasm2.arch.mips32.arch import mn_mips32 as mn
-            from miasm2.arch.mips32.ira import ir_a_mips32 as ira
-            from miasm2.arch.mips32.jit import jitter_mips32 as jitter
+            from miasm2.arch.mips32.ira import ir_a_mips32l as ira
+            from miasm2.arch.mips32.jit import jitter_mips32l as jitter
         else:
             raise ValueError('Unknown machine: %s' % machine_name)
 

@@ -36,16 +36,24 @@ def cb_arm_disasm(mn, attrib, pool_bin, cur_bloc, offsets_to_dis, symbol_pool):
         func(mn, attrib, pool_bin, cur_bloc, offsets_to_dis, symbol_pool)
 
 
-class dis_arm(disasmEngine):
-    attrib = 'arm'
-
+class dis_armb(disasmEngine):
+    attrib = 'b'
     def __init__(self, bs=None, **kwargs):
-        super(dis_arm, self).__init__(mn_arm, self.attrib, bs, **kwargs)
+        super(dis_armb, self).__init__(mn_arm, self.attrib, bs, **kwargs)
         self.dis_bloc_callback = cb_arm_disasm
 
-
-class dis_armt(disasmEngine):
-    attrib = 'armt'
-
+class dis_arml(disasmEngine):
+    attrib = 'l'
     def __init__(self, bs=None, **kwargs):
-        super(dis_armt, self).__init__(mn_armt, self.attrib, bs, **kwargs)
+        super(dis_arml, self).__init__(mn_arm, self.attrib, bs, **kwargs)
+        self.dis_bloc_callback = cb_arm_disasm
+
+class dis_armtb(disasmEngine):
+    attrib = 'b'
+    def __init__(self, bs=None, **kwargs):
+        super(dis_armtb, self).__init__(mn_armt, self.attrib, bs, **kwargs)
+
+class dis_armtl(disasmEngine):
+    attrib = 'l'
+    def __init__(self, bs=None, **kwargs):
+        super(dis_armtl, self).__init__(mn_armt, self.attrib, bs, **kwargs)

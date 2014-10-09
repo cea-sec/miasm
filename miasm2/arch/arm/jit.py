@@ -1,7 +1,7 @@
 from miasm2.jitter.jitload import jitter
 from miasm2.core import asmbloc
 from miasm2.core.utils import *
-from miasm2.arch.arm.sem import ir_arm
+from miasm2.arch.arm.sem import ir_arml
 
 import logging
 
@@ -11,11 +11,12 @@ hnd.setFormatter(logging.Formatter("[%(levelname)s]: %(message)s"))
 log.addHandler(hnd)
 log.setLevel(logging.CRITICAL)
 
-class jitter_arm(jitter):
+class jitter_arml(jitter):
 
     def __init__(self, *args, **kwargs):
         sp = asmbloc.asm_symbol_pool()
-        jitter.__init__(self, ir_arm(sp), *args, **kwargs)
+        jitter.__init__(self, ir_arml(sp), *args, **kwargs)
+        self.vm.set_little_endian()
         self.ir_arch.jit_pc = self.ir_arch.arch.regs.PC
 
     def push_uint32_t(self, v):
@@ -87,3 +88,8 @@ class jitter_arm(jitter):
     def init_run(self, *args, **kwargs):
         jitter.init_run(self, *args, **kwargs)
         self.cpu.PC = self.pc
+
+class jitter_armb(jitter_arml):
+    def __init__(self, *args, **kwargs):
+        jitter_arml.__init__(self)
+        self.vm.set_big_endian()

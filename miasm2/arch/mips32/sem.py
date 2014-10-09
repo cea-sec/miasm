@@ -522,10 +522,10 @@ def get_mnemo_expr(ir, instr, *args):
     instr, extra_ir = mnemo_func[instr.name.lower()](ir, instr, *args)
     return instr, extra_ir
 
-class ir_mips32(ir):
+class ir_mips32l(ir):
 
     def __init__(self, symbol_pool=None):
-        ir.__init__(self, mn_mips32, None, symbol_pool)
+        ir.__init__(self, mn_mips32, 'l', symbol_pool)
         self.pc = mn_mips32.getpc()
         self.sp = mn_mips32.getsp()
         self.IRDst = ExprId('IRDst', 32)
@@ -590,3 +590,10 @@ class ir_mips32(ir):
         self.post_add_bloc(bloc, ir_blocs_all)
         return ir_blocs_all
     """
+
+class ir_mips32b(ir_mips32l):
+    def __init__(self, symbol_pool=None):
+        ir.__init__(self, mn_mips32, 'b', symbol_pool)
+        self.pc = mn_mips32.getpc()
+        self.sp = mn_mips32.getsp()
+        self.IRDst = ExprId('IRDst', 32)

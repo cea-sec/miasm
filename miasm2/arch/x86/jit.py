@@ -17,6 +17,7 @@ class jitter_x86_16(jitter):
     def __init__(self, *args, **kwargs):
         sp = asmbloc.asm_symbol_pool()
         jitter.__init__(self, ir_x86_16(sp), *args, **kwargs)
+        self.vm.set_little_endian()
         self.ir_arch.jit_pc = self.ir_arch.arch.regs.RIP
         self.ir_arch.do_stk_segm = False
         self.orig_irbloc_fix_regs_for_mode = self.ir_arch.irbloc_fix_regs_for_mode
@@ -48,6 +49,7 @@ class jitter_x86_32(jitter):
     def __init__(self, *args, **kwargs):
         sp = asmbloc.asm_symbol_pool()
         jitter.__init__(self, ir_x86_32(sp), *args, **kwargs)
+        self.vm.set_little_endian()
         self.ir_arch.jit_pc = self.ir_arch.arch.regs.RIP
         self.ir_arch.do_stk_segm = False
 
@@ -139,6 +141,7 @@ class jitter_x86_64(jitter):
     def __init__(self, *args, **kwargs):
         sp = asmbloc.asm_symbol_pool()
         jitter.__init__(self, ir_x86_64(sp), *args, **kwargs)
+        self.vm.set_little_endian()
         self.ir_arch.jit_pc = self.ir_arch.arch.regs.RIP
         self.ir_arch.do_stk_segm = False
 

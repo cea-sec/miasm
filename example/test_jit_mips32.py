@@ -10,7 +10,7 @@ from pdb import pm
 
 parser = ArgumentParser(
     description="""Sandbox raw binary with mips32 engine
-(ex: test_jit_mips32.py example/mips32_sc.bin 0)""")
+(ex: test_jit_mips32.py example/mips32_sc_l.bin 0)""")
 parser.add_argument("-r", "--log-regs",
                     help="Log registers value for each instruction",
                     action="store_true")

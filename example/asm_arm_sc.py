@@ -27,7 +27,7 @@ base_expr.setParseAction(my_var_parser)
 
 st = StrPatchwork()
 
-blocs, symbol_pool = parse_asm.parse_txt(mn_arm, 'arm', '''
+blocs, symbol_pool = parse_asm.parse_txt(mn_arm, 'l', '''
 main:
     MOV R1, R0
     MOV R2, 0x100

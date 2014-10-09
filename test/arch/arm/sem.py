@@ -5,8 +5,8 @@ import unittest
 import logging
 
 from miasm2.ir.symbexec import symbexec
-from miasm2.arch.arm.arch import mn_arm as mn, mode_arm as mode
-from miasm2.arch.arm.sem import ir_arm as ir_arch
+from miasm2.arch.arm.arch import mn_arm as mn
+from miasm2.arch.arm.sem import ir_arml as ir_arch
 from miasm2.arch.arm.regs import *
 from miasm2.expression.expression import *
 
@@ -23,9 +23,9 @@ def compute(asm, inputstate={}, debug=False):
     sympool.update({k: ExprInt_from(k, v) for k, v in inputstate.iteritems()})
     interm = ir_arch()
     symexec = symbexec(interm, sympool)
-    instr = mn.fromstring(asm, mode)
+    instr = mn.fromstring(asm, "l")
     code = mn.asm(instr)[0]
-    instr = mn.dis(code, mode)
+    instr = mn.dis(code, "l")
     instr.offset = inputstate.get(PC, 0)
     interm.add_instr(instr)
     symexec.emul_ir_blocs(interm, instr.offset)

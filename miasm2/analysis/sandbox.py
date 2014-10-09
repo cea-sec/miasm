@@ -246,7 +246,7 @@ class Arch_x86_32(Arch):
 
 
 class Arch_arml(Arch):
-    _ARCH_ = "arm"
+    _ARCH_ = "arml"
     STACK_SIZE = 0x100000
 
     def __init__(self):

@@ -26,7 +26,7 @@ if 0:
 
 if 0:
     import cProfile
-    cProfile.run('mn_arm.dis("\xe1\xa0\xa0\x06", mode_arm)')
+    cProfile.run('mn_arm.dis("\xe1\xa0\xa0\x06", "l")')
     # l = mn_arm.dis(bin_stream("\xe1\xa0\xa0\x06"), mode_arm)
     # print l
     """
@@ -240,14 +240,14 @@ for s, l in reg_tests_arm:
     print "-" * 80
     s = s[12:]
     b = h2i((l))
-    mn = mn_arm.dis(b, mode_arm)
+    mn = mn_arm.dis(b, 'l')
     print [str(x) for x in mn.args]
     print s
     print mn
     assert(str(mn) == s)
     # print hex(b)
     # print [str(x.get()) for x in mn.args]
-    l = mn_arm.fromstring(s, mode_arm)
+    l = mn_arm.fromstring(s, 'l')
     # print l
     assert(str(l) == s)
     a = mn_arm.asm(l)
@@ -467,14 +467,14 @@ for s, l in reg_tests_armt:
     s = s[12:]
     b = h2i((l))
     print b.encode('hex')
-    mn = mn_armt.dis(b, mode_armthumb)
+    mn = mn_armt.dis(b, 'l')
     print [str(x) for x in mn.args]
     print s
     print mn
     assert(str(mn) == s)
     # print hex(b)
     # print [str(x.get()) for x in mn.args]
-    l = mn_armt.fromstring(s, mode_armthumb)
+    l = mn_armt.fromstring(s, 'l')
     # print l
     assert(str(l) == s)
     a = mn_armt.asm(l)
@@ -496,7 +496,7 @@ parse_tests = [
 
 for l in parse_tests:
     print "-"*80
-    l = mn_arm.fromstring(l, mode_arm)
+    l = mn_arm.fromstring(l, 'l')
     print l.name, ", ".join([str(a) for a in l.args])
 """
 
@@ -517,7 +517,7 @@ off = 0
 instr_num = 0
 ts = time.time()
 while off < bs.getlen():
-    mn = mn_arm.dis(bs, mode_arm, off)
+    mn = mn_arm.dis(bs, 'l', off)
     instr_num += 1
     off += 4
 print 'instr per sec:', instr_num / (time.time() - ts)
@@ -537,11 +537,11 @@ off = 0
 instr_num = 0
 ts = time.time()
 while off < bs.getlen():
-    mn = mn_armt.dis(bs, mode_armthumb, off)
+    mn = mn_armt.dis(bs, 'l', off)
     # print instr_num, off, str(mn)
     instr_num += 1
     off += mn.l
 print 'instr per sec:', instr_num / (time.time() - ts)
 
 import cProfile
-cProfile.run(r'mn_arm.dis("\xe1\xa0\xa0\x06", mode_arm)')
+cProfile.run(r'mn_arm.dis("\xe1\xa0\xa0\x06", "l")')
