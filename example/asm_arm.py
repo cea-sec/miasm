@@ -31,8 +31,7 @@ main:
   MOV    R1, mystrend & 0xffff
   ORR    R1, R1, mystrend & 0xffff0000
 xxx:
-  LDR    R2, [PC, key-$]
-  LDR    R6, [PC, test-$]
+  LDRB    R2, [PC, key-$]
 loop:
   LDRB   R3, [R0]
   EOR    R3, R3, R2
@@ -43,13 +42,11 @@ end:
   MOV    R0, R4
   LDMFD  SP!, {R4, R5, PC}
 key:
-.long 0x11223344
+.byte 0x11
 mystr:
 .string "test string"
 mystrend:
 .long 0
-test:
-.long mystrend - key + 0x1122
 '''
 
 blocs_b, symbol_pool_b = parse_asm.parse_txt(my_mn, "b", txt)

@@ -1,7 +1,7 @@
 from miasm2.jitter.jitload import jitter
 from miasm2.core import asmbloc
 from miasm2.core.utils import *
-from miasm2.arch.arm.sem import ir_arml
+from miasm2.arch.arm.sem import ir_armb, ir_arml
 
 import logging
 
@@ -90,6 +90,9 @@ class jitter_arml(jitter):
         self.cpu.PC = self.pc
 
 class jitter_armb(jitter_arml):
+
     def __init__(self, *args, **kwargs):
-        jitter_arml.__init__(self)
+        sp = asmbloc.asm_symbol_pool()
+        jitter.__init__(self, ir_armb(sp), *args, **kwargs)
         self.vm.set_big_endian()
+        self.ir_arch.jit_pc = self.ir_arch.arch.regs.PC

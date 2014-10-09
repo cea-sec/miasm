@@ -104,6 +104,8 @@ all_tests = {
                     ["test_jit_arm.py", "md5_arm", "-a", "A684"],
                     ["test_jit_msp430.py", "msp430_sc.bin", "0"],
                     ["test_jit_mips32.py", "mips32_sc_l.bin", "0"],
+                    ["test_jit_arm_sc.py", "0", "demo_arm_b.bin", "b", "-a", "0"],
+                    ["test_jit_arm_sc.py", "0", "demo_arm_l.bin", "l", "-a", "0"],
                     ["sandbox_pe_x86_32.py", "box_x86_32.bin"],
                     ["sandbox_pe_x86_32.py", "box_x86_32_enc.bin"],
                     ["sandbox_pe_x86_32.py", "box_x86_32_mod.bin"],

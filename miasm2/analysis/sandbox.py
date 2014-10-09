@@ -4,12 +4,18 @@ from miasm2.analysis.machine import Machine
 from miasm2.jitter.jitload import vm_load_pe, preload_pe, libimp
 from miasm2.jitter.jitload import vm_load_elf, libimp, preload_elf
 from miasm2.os_dep import win_api_x86_32, win_api_x86_32_seh
-
+from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
 
 class Sandbox(object):
     """
     Parent class for Sandbox abstraction
     """
+
+    @staticmethod
+    def code_sentinelle(jitter):
+        print 'Emulation stop'
+        jitter.run = False
+        return False
 
     @classmethod
     def _classes_(cls):
@@ -219,6 +225,25 @@ class OS_Linux(OS):
         # Library calls handler
         self.jitter.add_lib_handler(libs, custom_methods)
 
+class OS_Linux_str(OS):
+    def __init__(self, custom_methods, *args, **kwargs):
+        super(OS_Linux_str, self).__init__(custom_methods, *args, **kwargs)
+
+        # Import manager
+        libs = libimp()
+        self.libs = libs
+
+        data = open(self.fname).read()
+        self.options.load_base_addr = int(self.options.load_base_addr, 16)
+        self.jitter.vm.add_memory_page(self.options.load_base_addr, PAGE_READ | PAGE_WRITE, data)
+
+        # Library calls handler
+        self.jitter.add_lib_handler(libs, custom_methods)
+
+    @classmethod
+    def update_parser(cls, parser):
+        parser.add_argument("load_base_addr", help="load base address")
+
 
 
 class Arch_x86_32(Arch):
@@ -256,15 +281,20 @@ class Arch_arml(Arch):
         self.jitter.stack_size = self.STACK_SIZE
         self.jitter.init_stack()
 
+class Arch_armb(Arch):
+    _ARCH_ = "armb"
+    STACK_SIZE = 0x100000
+
+    def __init__(self):
+        super(Arch_armb, self).__init__()
+
+        # Init stack
+        self.jitter.stack_size = self.STACK_SIZE
+        self.jitter.init_stack()
+
 
 
 class Sandbox_Win_x86_32(Sandbox, Arch_x86_32, OS_Win):
-
-    @staticmethod
-    def code_sentinelle(jitter):
-        print 'Emulation stop'
-        jitter.run = False
-        return False
 
     def __init__(self, *args, **kwargs):
         Sandbox.__init__(self, *args, **kwargs)
@@ -289,12 +319,6 @@ class Sandbox_Win_x86_32(Sandbox, Arch_x86_32, OS_Win):
 
 
 class Sandbox_Linux_x86_32(Sandbox, Arch_x86_32, OS_Linux):
-
-    @staticmethod
-    def code_sentinelle(jitter):
-        print 'Emulation stop'
-        jitter.run = False
-        return False
 
     def __init__(self, *args, **kwargs):
         Sandbox.__init__(self, *args, **kwargs)
@@ -321,12 +345,6 @@ class Sandbox_Linux_x86_32(Sandbox, Arch_x86_32, OS_Linux):
 
 class Sandbox_Linux_arml(Sandbox, Arch_arml, OS_Linux):
 
-    @staticmethod
-    def code_sentinelle(jitter):
-        print 'Emulation stop'
-        jitter.run = False
-        return False
-
     def __init__(self, *args, **kwargs):
         Sandbox.__init__(self, *args, **kwargs)
 
@@ -340,3 +358,36 @@ class Sandbox_Linux_arml(Sandbox, Arch_arml, OS_Linux):
         if addr is None and self.options.address is not None:
             addr = int(self.options.address, 16)
         super(Sandbox_Linux_arml, self).run(addr)
+
+class Sandbox_Linux_armb_str(Sandbox, Arch_armb, OS_Linux_str):
+
+    def __init__(self, *args, **kwargs):
+        Sandbox.__init__(self, *args, **kwargs)
+
+        self.jitter.cpu.LR = 0x1337beef
+
+        # Set the runtime guard
+        self.jitter.add_breakpoint(0x1337beef, self.__class__.code_sentinelle)
+
+
+    def run(self, addr = None):
+        if addr is None and self.options.address is not None:
+            addr = int(self.options.address, 16)
+        super(Sandbox_Linux_armb_str, self).run(addr)
+
+
+class Sandbox_Linux_arml_str(Sandbox, Arch_arml, OS_Linux_str):
+
+    def __init__(self, *args, **kwargs):
+        Sandbox.__init__(self, *args, **kwargs)
+
+        self.jitter.cpu.LR = 0x1337beef
+
+        # Set the runtime guard
+        self.jitter.add_breakpoint(0x1337beef, self.__class__.code_sentinelle)
+
+
+    def run(self, addr = None):
+        if addr is None and self.options.address is not None:
+            addr = int(self.options.address, 16)
+        super(Sandbox_Linux_arml_str, self).run(addr)
