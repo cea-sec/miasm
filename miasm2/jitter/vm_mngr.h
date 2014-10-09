@@ -22,7 +22,6 @@
 #define __BYTE_ORDER __BYTE_ORDER__
 #endif
 
-#if __BYTE_ORDER == __BIG_ENDIAN
 #define Endian16_Swap(value) \
       ((((uint16_t)((value) & 0x00FF)) << 8) | \
        (((uint16_t)((value) & 0xFF00)) >> 8))
@@ -42,13 +41,6 @@
 	 ((((uint64_t)value)>>24) & 0x0000000000FF0000ULL)  |	      \
 	 ((((uint64_t)value)>>40) & 0x000000000000FF00ULL)  |	      \
 	 ((((uint64_t)value)>>56) & 0x00000000000000FFULL))
-#else
-#define Endian16_Swap(value) (value)
-
-#define Endian32_Swap(value) (value)
-
-#define Endian64_Swap(value) (value)
-#endif
 
 
 
@@ -66,9 +58,11 @@ LIST_HEAD(memory_breakpoint_info_head, memory_breakpoint_info);
 #define MAX_MEMORY_PAGE_POOL_TAB 0x100000
 #define MEMORY_PAGE_POOL_MASK_BIT 12
 #define PAGE_SIZE (1<<MEMORY_PAGE_POOL_MASK_BIT)
+#define VM_BIG_ENDIAN 1
+#define VM_LITTLE_ENDIAN 2
 
 typedef struct {
-
+	int sex;
 	struct memory_page_list_head memory_page_pool;
 	struct code_bloc_list_head code_bloc_pool;
 	struct memory_breakpoint_info_head memory_breakpoint_pool;

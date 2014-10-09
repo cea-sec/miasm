@@ -52,6 +52,29 @@ struct memory_breakpoint_info_head memory_breakpoint_pool;
 
 
 
+uint16_t set_endian16(vm_mngr_t* vm_mngr, uint16_t val)
+{
+	if (vm_mngr->sex == __BYTE_ORDER)
+		return val;
+	else
+		return Endian16_Swap(val);
+}
+
+uint32_t set_endian32(vm_mngr_t* vm_mngr, uint32_t val)
+{
+	if (vm_mngr->sex == __BYTE_ORDER)
+		return val;
+	else
+		return Endian32_Swap(val);
+}
+
+uint64_t set_endian64(vm_mngr_t* vm_mngr, uint64_t val)
+{
+	if (vm_mngr->sex == __BYTE_ORDER)
+		return val;
+	else
+		return Endian64_Swap(val);
+}
 
 
 void print_val(uint64_t base, uint64_t addr)
@@ -171,15 +194,15 @@ static uint64_t memory_page_read(vm_mngr_t* vm_mngr, unsigned int my_size, uint6
 			break;
 		case 16:
 			ret = *((unsigned short*)addr)&0xFFFF;
-			ret = Endian16_Swap(ret);
+			ret = set_endian16(vm_mngr, ret);
 			break;
 		case 32:
 			ret = *((unsigned int*)addr)&0xFFFFFFFF;
-			ret = Endian32_Swap(ret);
+			ret = set_endian32(vm_mngr, ret);
 			break;
 		case 64:
 			ret = *((uint64_t*)addr)&0xFFFFFFFFFFFFFFFFULL;
-			ret = Endian64_Swap(ret);
+			ret = set_endian64(vm_mngr, ret);
 			break;
 		default:
 			exit(0);
@@ -207,13 +230,13 @@ static uint64_t memory_page_read(vm_mngr_t* vm_mngr, unsigned int my_size, uint6
 			ret = ret;
 			break;
 		case 16:
-			ret = Endian16_Swap(ret);
+			ret = set_endian16(vm_mngr, ret);
 			break;
 		case 32:
-			ret = Endian32_Swap(ret);
+			ret = set_endian32(vm_mngr, ret);
 			break;
 		case 64:
-			ret = Endian64_Swap(ret);
+			ret = set_endian64(vm_mngr, ret);
 			break;
 		default:
 			exit(0);
@@ -257,15 +280,15 @@ static void memory_page_write(vm_mngr_t* vm_mngr, unsigned int my_size,
 			*((unsigned char*)addr) = src&0xFF;
 			break;
 		case 16:
-			src = Endian16_Swap(src);
+			src = set_endian16(vm_mngr, src);
 			*((unsigned short*)addr) = src&0xFFFF;
 			break;
 		case 32:
-			src = Endian32_Swap(src);
+			src = set_endian32(vm_mngr, src);
 			*((unsigned int*)addr) = src&0xFFFFFFFF;
 			break;
 		case 64:
-			src = Endian64_Swap(src);
+			src = set_endian64(vm_mngr, src);
 			*((uint64_t*)addr) = src&0xFFFFFFFFFFFFFFFFULL;
 			break;
 		default:
@@ -283,13 +306,13 @@ static void memory_page_write(vm_mngr_t* vm_mngr, unsigned int my_size,
 			src = src;
 			break;
 		case 16:
-			src = Endian16_Swap(src);
+			src = set_endian16(vm_mngr, src);
 			break;
 		case 32:
-			src = Endian32_Swap(src);
+			src = set_endian32(vm_mngr, src);
 			break;
 		case 64:
-			src = Endian64_Swap(src);
+			src = set_endian64(vm_mngr, src);
 			break;
 		default:
 			exit(0);

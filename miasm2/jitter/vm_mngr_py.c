@@ -705,6 +705,23 @@ PyObject* vm_set_addr2obj(VmMngr* self, PyObject* args)
 }
 
 
+static PyObject *
+vm_set_big_endian(VmMngr *self, PyObject *value, void *closure)
+{
+	self->vm_mngr.sex   = __BIG_ENDIAN;
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
+static PyObject *
+vm_set_little_endian(VmMngr *self, PyObject *value, void *closure)
+{
+	self->vm_mngr.sex   = __LITTLE_ENDIAN;
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
+
 
 /*
 PyObject* add_jitbloc(VmMngr* self, PyObject* args)
@@ -814,6 +831,11 @@ static PyMethodDef VmMngr_methods[] = {
 	{"get_last_write_ad", (PyCFunction)vm_get_last_write_ad, METH_VARARGS,
 	 "X"},
 	{"get_last_write_size",(PyCFunction)vm_get_last_write_size, METH_VARARGS,
+	 "X"},
+
+	{"set_big_endian",(PyCFunction)vm_set_big_endian, METH_VARARGS,
+	 "X"},
+	{"set_little_endian",(PyCFunction)vm_set_little_endian, METH_VARARGS,
 	 "X"},
 
 	{NULL}  /* Sentinel */
