@@ -603,13 +603,15 @@ def push(ir, instr, a):
     opmode, admode = s, instr.v_admode()
     # special case segment regs
     if a in [ES, CS, SS, DS, FS, GS]:
-        pass
+        off = admode
+    else:
+        off = a.size
     if not s in [16, 32, 64]:
         raise ValueError('bad size stacker!')
     if isinstance(a, ExprInt):
         a = ExprInt_fromsize(s, a.arg)
 
-    c = mRSP[instr.mode][:s] - ExprInt_fromsize(s, s / 8)
+    c = mRSP[instr.mode][:s] - ExprInt_fromsize(s, off / 8)
     e.append(ExprAff(mRSP[instr.mode][:s], c))
     # we sub vopmode to stack, but mem access is arg size wide
     if ir.do_stk_segm:
@@ -625,10 +627,12 @@ def pop(ir, instr, a):
     opmode, admode = s, instr.v_admode()
     # special case segment regs
     if a in [ES, CS, SS, DS, FS, GS]:
-        s = admode
+        off = admode
+    else:
+        off = a.size
     if not s in [16, 32, 64]:
         raise ValueError('bad size stacker!')
-    new_esp = mRSP[instr.mode][:s] + ExprInt_fromsize(s, s / 8)
+    new_esp = mRSP[instr.mode][:s] + ExprInt_fromsize(s, off / 8)
     e.append(ExprAff(mRSP[instr.mode][:s], new_esp))
     # XXX FIX XXX for pop [esp]
     if isinstance(a, ExprMem):
