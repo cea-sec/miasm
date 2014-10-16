@@ -556,7 +556,7 @@ def kernel32_CreateFile(jitter, funcname, get_str):
         fname = fname.replace('\\', "/").lower()
         # go in sandbox files
         f = os.path.join('file_sb', fname)
-        if access & 0x80000000:
+        if access & 0x80000000 or access == 1:
             # read
             if dwcreationdisposition == 2:
                 # create_always
@@ -589,6 +589,17 @@ def kernel32_CreateFile(jitter, funcname, get_str):
                     open(f, 'w')
                     h = open(f, 'rb+')
                     ret = winobjs.handle_pool.add(f, h)
+            elif dwcreationdisposition == 4:
+                # open_always
+                if os.access(f, os.R_OK):
+                    s = os.stat(f)
+                    if stat.S_ISDIR(s.st_mode):
+                        ret = winobjs.handle_pool.add(f, 0x1337)
+                    else:
+                        h = open(f, 'rb+')
+                        ret = winobjs.handle_pool.add(f, h)
+                else:
+                    raise NotImplementedError("Untested case")
             else:
                 raise NotImplementedError("Untested case")
         elif access & 0x40000000:
