@@ -313,7 +313,7 @@ class Sandbox_Win_x86_32(Sandbox, Arch_x86_32, OS_Win):
         """
         If addr is not set, use entrypoint
         """
-        if addr is None:
+        if addr is None and self.options.address is None:
             addr = self.entry_point
         super(Sandbox_Win_x86_32, self).run(addr)
 
