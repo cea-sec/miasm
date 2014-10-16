@@ -5,6 +5,7 @@ from miasm2.jitter.jitload import vm_load_pe, preload_pe, libimp
 from miasm2.jitter.jitload import vm_load_elf, libimp, preload_elf
 from miasm2.os_dep import win_api_x86_32, win_api_x86_32_seh
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
+from miasm2.analysis import debugging
 
 class Sandbox(object):
     """
