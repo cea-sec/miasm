@@ -80,7 +80,8 @@ class jitter_x86_32(jitter):
         args = []
         for _ in xrange(n_args):
             args.append(self.pop_uint32_t())
-        log.debug('%s %s %s' % (whoami(), hex(ret_ad), [hex(x) for x in args]))
+        if log.level <= logging.DEBUG:
+            log.debug('%s %s %s' % (whoami(), hex(ret_ad), [hex(x) for x in args]))
         return ret_ad, args
 
     def func_ret_stdcall(self, ret_addr, ret_value1=None, ret_value2=None):
@@ -96,7 +97,7 @@ class jitter_x86_32(jitter):
         args = []
         for i in xrange(n_args):
             args.append(self.get_stack_arg(i))
-        if dolog:
+        if dolog and log.level <= logging.DEBUG:
             log.debug('%s %s %s' %
                       (whoami(), hex(ret_ad), [hex(x) for x in args]))
         return ret_ad, args
