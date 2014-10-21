@@ -11,8 +11,8 @@ class Machine(object):
     __jitter = None       # Jit engine
     __gdbserver = None    # GdbServer handler
 
-    __available = ["arm", "armt", "sh4", "x86_16", "x86_32", "x86_64", "msp430",
-                   "mips32b", "mips32l"]
+    __available = ["arml", "armb", "armtl", "armtb", "sh4", "x86_16", "x86_32",
+                   "x86_64", "msp430", "mips32b", "mips32l"]
 
 
     def __init__(self, machine_name):
