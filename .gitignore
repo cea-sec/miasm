@@ -1,0 +1,6 @@
+# Build directory
+/build/*
+# Emacs files
+*~
+# Compiled python files
+*\.pyc
