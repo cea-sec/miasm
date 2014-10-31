@@ -65,6 +65,18 @@ def simp_cst_propagation(e_s, e):
                 x1 = mod_size2int[i1.arg.size](i1.arg)
                 x2 = mod_size2int[i2.arg.size](i2.arg)
                 o = mod_size2uint[i1.arg.size](x1 % x2)
+            elif op == 'umod':
+                assert(i2.arg.arg)
+                x1 = mod_size2uint[i1.arg.size](i1.arg)
+                x2 = mod_size2uint[i2.arg.size](i2.arg)
+                o = mod_size2uint[i1.arg.size](x1 % x2)
+            elif op == 'udiv':
+                assert(i2.arg.arg)
+                x1 = mod_size2uint[i1.arg.size](i1.arg)
+                x2 = mod_size2uint[i2.arg.size](i2.arg)
+                o = mod_size2uint[i1.arg.size](x1 / x2)
+
+
 
             o = ExprInt_fromsize(i1.size, o)
             args.append(o)
@@ -115,7 +127,7 @@ def simp_cst_propagation(e_s, e):
 
     # op A => A
     if op in ['+', '*', '^', '&', '|', '>>', '<<',
-        'a>>', '<<<', '>>>', 'idiv', 'imod'] and len(args) == 1:
+              'a>>', '<<<', '>>>', 'idiv', 'imod', 'umod', 'udiv'] and len(args) == 1:
         return args[0]
 
     # A-B => A + (-B)
