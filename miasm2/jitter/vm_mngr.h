@@ -177,8 +177,9 @@ unsigned int my_imul08(unsigned int a, unsigned int b);
 
 void vm_throw(vm_mngr_t* vm_mngr, unsigned long flags);
 int shift_right_arith(unsigned int size, int a, unsigned int b);
-unsigned int shift_right_logic(unsigned int size, unsigned int a, unsigned int b);
-int shift_left_logic(unsigned int size, unsigned int a, unsigned int b);
+
+uint64_t shift_right_logic(uint64_t size, uint64_t a, uint64_t b);
+uint64_t shift_left_logic(uint64_t size, uint64_t a, uint64_t b);
 /*
 int shift_left_logic_08(unsigned int a, unsigned int b);
 int shift_left_logic_16(unsigned int a, unsigned int b);
@@ -200,7 +201,7 @@ unsigned int umul16_hi(unsigned short a, unsigned short b);
 
 unsigned int div_op(unsigned int size, unsigned int a, unsigned int b, unsigned int c);
 unsigned int rem_op(unsigned int size, unsigned int a, unsigned int b, unsigned int c);
-unsigned int rot_left(unsigned int size, unsigned int a, unsigned int b);
+uint64_t rot_left(uint64_t size, uint64_t a, uint64_t b);
 unsigned int rot_right(unsigned int size, unsigned int a, unsigned int b);
 int rcl_rez_op(unsigned int size, unsigned int a, unsigned int b, unsigned int cf);
 int rcl_cf_op(unsigned int size, unsigned int a, unsigned int b, unsigned int cf);
@@ -352,6 +353,8 @@ unsigned int load_tr_segment_selector(unsigned int d);
 	((((unsigned short)(a)) >> ((unsigned int)(b)&0x1f))&0xffff)
 #define shift_right_logic_32(a, b)\
 	((((unsigned int)(a)) >> ((unsigned int)(b)&0x1f))&0xffffffff)
+#define shift_right_logic_64(a, b)\
+	((((int64_t)(a)) >> ((int64_t)(b)&0x3f))&0xffffffffffffffff)
 
 #define shift_left_logic_08(a, b)\
 	(((a)<<((b)&0x1f))&0xff)
@@ -359,5 +362,7 @@ unsigned int load_tr_segment_selector(unsigned int d);
 	(((a)<<((b)&0x1f))&0xffff)
 #define shift_left_logic_32(a, b)\
 	(((a)<<((b)&0x1f))&0xffffffff)
+#define shift_left_logic_64(a, b)\
+	(((a)<<((b)&0x3f))&0xffffffffffffffff)
 
 #endif

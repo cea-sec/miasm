@@ -597,10 +597,10 @@ int shift_right_arith_32(int a, unsigned int b)
 	return (i32_a >> b)&0xffffffff;
 }
 */
-unsigned int shift_right_logic(unsigned int size,
-			       unsigned int a, unsigned int b)
+uint64_t shift_right_logic(uint64_t size,
+			   uint64_t a, uint64_t b)
 {
-    unsigned int u32_a;
+    uint64_t u32_a;
     unsigned short u16_a;
     unsigned char u8_a;
     switch(size){
@@ -614,7 +614,7 @@ unsigned int shift_right_logic(unsigned int size,
 		    u32_a = a;
 		    return (u32_a >> b)&0xffffffff;
 	    default:
-		    fprintf(stderr, "inv size in shift %d\n", size);
+		    fprintf(stderr, "inv size in shift %"PRIx64"\n", size);
 		    exit(0);
     }
 }
@@ -640,7 +640,8 @@ int shift_right_logic_32(unsigned int a, unsigned int b)
 	return (u32_a >> b)&0xffffffff;
 }
 */
-int shift_left_logic(unsigned int size, unsigned int a, unsigned int b)
+
+uint64_t shift_left_logic(uint64_t size, uint64_t a, uint64_t b)
 {
     switch(size){
 	    case 8:
@@ -649,8 +650,10 @@ int shift_left_logic(unsigned int size, unsigned int a, unsigned int b)
 		    return (a<<b)&0xffff;
 	    case 32:
 		    return (a<<b)&0xffffffff;
+	    case 64:
+		    return (a<<b)&0xffffffffffffffff;
 	    default:
-		    fprintf(stderr, "inv size in shift %d\n", size);
+		    fprintf(stderr, "inv size in shift %"PRIx64"\n", size);
 		    exit(0);
     }
 }
@@ -788,11 +791,11 @@ unsigned int rem_op(unsigned int size, unsigned int a, unsigned int b, unsigned 
 }
 
 
-unsigned int rot_left(unsigned int size, unsigned int a, unsigned int b)
+uint64_t rot_left(uint64_t size, uint64_t a, uint64_t b)
 {
-    unsigned int tmp;
+    uint64_t tmp;
 
-    b = b&0x1F;
+    b = b&0x3F;
     b %= size;
     switch(size){
 	    case 8:
@@ -804,8 +807,11 @@ unsigned int rot_left(unsigned int size, unsigned int a, unsigned int b)
 	    case 32:
 		    tmp = (a << b) | ((a&0xFFFFFFFF) >> (size-b));
 		    return tmp&0xffffffff;
+	    case 64:
+		    tmp = (a << b) | ((a&0xFFFFFFFFFFFFFFFF) >> (size-b));
+		    return tmp&0xFFFFFFFFFFFFFFFF;
 	    default:
-		    fprintf(stderr, "inv size in rotleft %d\n", size);
+		    fprintf(stderr, "inv size in rotleft %"PRIX64"\n", size);
 		    exit(0);
     }
 }
