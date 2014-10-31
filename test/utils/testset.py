@@ -158,23 +158,43 @@ class TestSet(object):
             # Report task finish
             message_queue.put(MessageTaskDone(test, error))
 
+    @staticmethod
+    def fast_unify(seq, idfun=None):
+        """Order preserving unifying list function
+        @seq: list to unify
+        @idfun: marker function (default is identity)
+        """
+        if idfun is None:
+            idfun = lambda x: x
+        seen = {}
+        result = []
+        for item in seq:
+            marker = idfun(item)
+
+            if marker in seen:
+                continue
+            seen[marker] = 1
+            result.append(item)
+        return result
+
     def clean(self):
         "Remove produced files"
 
+        # Build the list of products
+        products = []
+        current_directory = os.getcwd()
         for test in self.tests_done:
-            # Go to the expected directory
-            current_directory = os.getcwd()
-            os.chdir(test.base_dir)
-
-            # Remove files
             for product in test.products:
-                try:
-                    os.remove(product)
-                except OSError:
-                    print "Cleanning error: Unable to remove %s" % product
+                # Get the full product path
+                products.append(os.path.join(current_directory, test.base_dir,
+                                             product))
 
-            # Restore directory
-            os.chdir(current_directory)
+        # Unify the list and remove products
+        for product in TestSet.fast_unify(products):
+            try:
+                os.remove(product)
+            except OSError:
+                print "Cleanning error: Unable to remove %s" % product
 
     def add_additionnal_args(self, args):
         """Add arguments to used on the test command line
