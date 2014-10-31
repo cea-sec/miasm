@@ -114,8 +114,14 @@ for script in [["symbol_exec.py"],
                ]:
     testset += Test(script, base_dir="example")
 ## Jitter
-for script, dep in [(["unpack_upx.py", "box_upx.exe"], []), # Take 5 mins on a Core i5
-                    (["test_jit_x86_32.py", "x86_32_sc.bin"], []),
+
+# Take 5 mins on a Core i5
+for jitter in ["tcc", "llvm", "python"]:
+    testset += Test(["unpack_upx.py", "box_upx.exe"] + ["--jitter", jitter],
+                    base_dir="example",
+                    products=["box_upx_exe_unupx.bin"])
+
+for script, dep in [(["test_jit_x86_32.py", "x86_32_sc.bin"], []),
                     (["test_jit_arm.py", "md5_arm", "-a", "A684"], []),
                     (["test_jit_msp430.py", "msp430_sc.bin", "0"],
                      [test_msp430]),
