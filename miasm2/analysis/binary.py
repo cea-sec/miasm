@@ -60,4 +60,21 @@ class Container(object):
                                    PAGE_READ,
                                    data)
 
-        self.e, self.bs, self.ep = e, bs, ep
+        self._entry_point = ep
+        self._bin_stream = bs
+        self._executable = e
+
+    @property
+    def bin_stream(self):
+        "Return the BinStream instance corresponding to container content"
+        return self._bin_stream
+
+    @property
+    def executable(self):
+        "Return the abstract instance standing for parsed executable"
+        return self._executable
+
+    @property
+    def entry_point(self):
+        "Return the detected entry_point"
+        return self._entry_point
