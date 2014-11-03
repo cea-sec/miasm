@@ -4,10 +4,8 @@ import time
 
 from miasm2.analysis.binary import Container
 from miasm2.core.asmbloc import *
-from miasm2.expression.simplifications import expr_simp
 from optparse import OptionParser
-from miasm2.core.cpu import dum_arg
-from miasm2.expression.expression import *
+from miasm2.expression.expression import ExprId
 from miasm2.core.interval import interval
 from miasm2.analysis.machine import Machine
 from pdb import pm
