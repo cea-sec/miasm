@@ -11,10 +11,8 @@ if len(sys.argv) != 3:
 
 fname = sys.argv[1]
 ad = int(sys.argv[2], 16)
-e = pe_init.PE(open(fname).read())
-bs = bin_stream_pe(e.virt)
-
-mdis = dis_x86_32(bs)
+cont = Container.from_stream(open(sys.argv[1]))
+mdis = dis_x86_32(cont.bin_stream)
 # inform the engine not to disasm nul instructions
 mdis.dont_dis_nulstart_bloc = True
 blocs = mdis.dis_multibloc(ad)

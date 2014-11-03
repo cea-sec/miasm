@@ -2,8 +2,7 @@ import sys
 import os
 import time
 
-from miasm2.core.bin_stream import bin_stream_elf, bin_stream_pe, bin_stream_str
-from elfesteem import *
+from miasm2.analysis.binary import Container
 from miasm2.core.asmbloc import *
 from miasm2.expression.simplifications import expr_simp
 from optparse import OptionParser
@@ -95,36 +94,13 @@ if options.bw != None:
 if options.funcswd != None:
     options.funcswd = int(options.funcswd)
 
-log.info('load binary')
-b = open(fname).read()
+log.info('Load binary')
+with open(fname) as fdesc:
+    cont = Container.from_stream(fdesc, addr=options.shiftoffset)
 
-default_addr = 0
-bs = None
-if b.startswith('MZ'):
-    try:
-        e = pe_init.PE(b)
-        if e.isPE() and e.NTsig.signature_value == 0x4550:
-            bs = bin_stream_pe(e.virt)
-            default_addr = e.rva2virt(e.Opthdr.AddressOfEntryPoint)
-    except:
-        log.error('Cannot read PE!')
-elif b.startswith('\x7fELF'):
-    try:
-        e = elf_init.ELF(b)
-        bs = bin_stream_elf(e.virt)
-        default_addr = e.Ehdr.entry
-    except:
-        log.error('Cannot read ELF!')
-
-
-if bs is None or options.shiftoffset is not None:
-
-    if options.shiftoffset is None:
-        options.shiftoffset = "0"
-    shift = int(options.shiftoffset, 16)
-    log.warning('fallback to string input (offset=%s)' % hex(shift))
-    bs = bin_stream_str(b, shift=shift)
-
+default_addr = cont.entry_point
+bs = cont.bin_stream
+e = cont.executable
 
 log.info('ok')
 mdis = dis_engine(bs)
