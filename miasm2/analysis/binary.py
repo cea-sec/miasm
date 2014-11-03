@@ -1,6 +1,7 @@
 import logging
 
 from miasm2.core.bin_stream import *
+from elfesteem import pe_init, elf_init
 from miasm2.jitter.jitload import vm_load_pe, vm_load_elf
 from miasm2.jitter.csts import PAGE_READ
 
@@ -23,7 +24,8 @@ class Container(object):
         "Instanciate a container and parse the binary"
 
         # Initialisation
-        data = open(filename).read()
+        with open(filename) as fdesc:
+            data = fdesc.read()
         log.info('load binary')
         e, bs, ep = None, None, None
 
