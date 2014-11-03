@@ -1,18 +1,34 @@
 import argparse
 import time
+import os
+
 from utils.test import Test
 from utils.testset import TestSet
 from utils import cosmetics, monothread, screendisplay
 
 testset = TestSet("../")
+TAGS = {"regression": "REGRESSION", # Regression tests
+        "example": "EXAMPLE", # Examples
+        "long": "LONG", # Very time consumming tests
+        }
 
 # Regression tests
+class RegressionTest(Test):
+    """Regression tests specificities:
+    - @base_dir: test/@base_dir
+    - @tags: TAGS["regression"]"""
+
+    def __init__(self, *args, **kwargs):
+        super(RegressionTest, self).__init__(*args, **kwargs)
+        self.base_dir = os.path.join("test", self.base_dir)
+        self.tags.append(TAGS["regression"])
+
 ## Architecture
-testset += Test(["x86/arch.py"], base_dir="test/arch",
-                products=["x86_speed_reg_test.bin",
-                          "regression_test16_ia32.bin",
-                          "regression_test32_ia32.bin",
-                          "regression_test64_ia32.bin"])
+testset += RegressionTest(["x86/arch.py"], base_dir="arch",
+                          products=["x86_speed_reg_test.bin",
+                                    "regression_test16_ia32.bin",
+                                    "regression_test32_ia32.bin",
+                                    "regression_test64_ia32.bin"])
 for script in ["x86/sem.py",
                "x86/unit/mn_strings.py",
                "x86/unit/mn_float.py",
@@ -23,50 +39,57 @@ for script in ["x86/sem.py",
                "sh4/arch.py",
                "mips32/arch.py",
                ]:
-    testset += Test([script], base_dir="test/arch")
+    testset += RegressionTest([script], base_dir="arch")
 ## Core
 for script in ["interval.py",
                "graph.py",
                "parse_asm.py",
                ]:
-    testset += Test([script], base_dir="test/core")
+    testset += RegressionTest([script], base_dir="core")
 ## Expression
 for script in ["modint.py",
                "stp.py",
                "simplifications.py",
                ]:
-    testset += Test([script], base_dir="test/expression")
+    testset += RegressionTest([script], base_dir="expression")
 ## IR
 for script in ["ir2C.py",
                "symbexec.py",
                ]:
-    testset += Test([script], base_dir="test/ir")
+    testset += RegressionTest([script], base_dir="ir")
 ## OS_DEP
 for script in ["win_api_x86_32.py",
                ]:
-    testset += Test([script], base_dir="test/os_dep")
+    testset += RegressionTest([script], base_dir="os_dep")
+
 # Examples
+class Example(Test):
+    """Examples specificities:
+    - @base_dir: example/@base_dir
+    - @tags: TAGS["example"]"""
+
+    def __init__(self, *args, **kwargs):
+        super(Example, self).__init__(*args, **kwargs)
+        self.base_dir = os.path.join("example", self.base_dir)
+        self.tags.append(TAGS["example"])
+
 ## Assembler
-testset += Test(['asm_x86.py'], base_dir="example",
-                products=["demo_x86_32.bin"])
-test_arm = Test(["asm_arm.py"], base_dir="example",
-                products=["demo_arm_l.bin", "demo_arm_b.bin"])
-test_armt = Test(["asm_armt.py"], base_dir="example",
-                products=["demo_armt_l.bin", "demo_armt_b.bin"])
-test_box = Test(["asm_box_x86_32.py"], base_dir="example",
-                products=["box_x86_32.bin"])
-test_box_enc = Test(["asm_box_x86_32_enc.py"], base_dir="example",
-                    products=["box_x86_32_enc.bin"])
-test_box_mod = Test(["asm_box_x86_32_mod.py"], base_dir="example",
-                    products=["box_x86_32_mod.bin"])
-test_box_mod_self = Test(["asm_box_x86_32_mod_self.py"], base_dir="example",
-                         products=["box_x86_32_mod_self.bin"])
-test_box_repmod = Test(["asm_box_x86_32_repmod.py"], base_dir="example",
-                       products=["box_x86_32_repmod.bin"])
-test_msp430 = Test(["asm_msp430_sc.py"], base_dir="example",
-                   products=["msp430_sc.bin"])
-test_mips32 = Test(["asm_mips32.py"], base_dir="example",
-                   products=["mips32_sc_b.bin", "mips32_sc_l.bin"])
+testset += Example(['asm_x86.py'], products=["demo_x86_32.bin"])
+test_arm = Example(["asm_arm.py"], products=["demo_arm_l.bin", "demo_arm_b.bin"])
+test_armt = Example(["asm_armt.py"], products=["demo_armt_l.bin",
+                                               "demo_armt_b.bin"])
+test_box = Example(["asm_box_x86_32.py"], products=["box_x86_32.bin"])
+test_box_enc = Example(["asm_box_x86_32_enc.py"],
+                       products=["box_x86_32_enc.bin"])
+test_box_mod = Example(["asm_box_x86_32_mod.py"],
+                       products=["box_x86_32_mod.bin"])
+test_box_mod_self = Example(["asm_box_x86_32_mod_self.py"],
+                            products=["box_x86_32_mod_self.bin"])
+test_box_repmod = Example(["asm_box_x86_32_repmod.py"],
+                          products=["box_x86_32_repmod.bin"])
+test_msp430 = Example(["asm_msp430_sc.py"], products=["msp430_sc.bin"])
+test_mips32 = Example(["asm_mips32.py"], products=["mips32_sc_b.bin",
+                                                   "mips32_sc_l.bin"])
 
 testset += test_arm
 testset += test_armt
@@ -81,24 +104,24 @@ for script in [["disasm_01.py"],
                ["disasm_02.py"],
                ["disasm_03.py", "box_upx.exe", "0x410f90"],
                ]:
-    testset += Test(script, base_dir="example")
+    testset += Example(script)
 ## Expression
-testset += Test(["test_dis.py", "-g", "-s", "-m", "arml", "demo_arm_l.bin", "0"],
-                base_dir = "example", depends=[test_arm])
-testset += Test(["test_dis.py", "-g", "-s", "-m", "armb", "demo_arm_b.bin", "0"],
-                base_dir = "example", depends=[test_arm])
-testset += Test(["test_dis.py", "-g", "-s", "-m", "armtl", "demo_armt_l.bin", "0"],
-                base_dir = "example", depends=[test_armt])
-testset += Test(["test_dis.py", "-g", "-s", "-m", "armtb", "demo_armt_b.bin", "0"],
-                base_dir = "example", depends=[test_armt])
-testset += Test(["test_dis.py", "-g", "-s", "-m", "x86_32", "box_x86_32.bin",
-                 "0x401000"], base_dir="example", depends=[test_box])
-testset += Test(["test_dis.py", "-g", "-s", "-m", "msp430", "msp430_sc.bin", "0"],
-                base_dir = "example", depends=[test_msp430])
-testset += Test(["test_dis.py", "-g", "-s", "-m", "mips32l", "mips32_sc_l.bin",
-                 "0"], base_dir = "example", depends=[test_mips32])
-testset += Test(["test_dis.py", "-g", "-s", "-m", "mips32b", "mips32_sc_b.bin",
-                 "0"], base_dir = "example", depends=[test_mips32])
+testset += Example(["test_dis.py", "-g", "-s", "-m", "arml", "demo_arm_l.bin", "0"],
+                   depends=[test_arm])
+testset += Example(["test_dis.py", "-g", "-s", "-m", "armb", "demo_arm_b.bin", "0"],
+                   depends=[test_arm])
+testset += Example(["test_dis.py", "-g", "-s", "-m", "armtl", "demo_armt_l.bin", "0"],
+                   depends=[test_armt])
+testset += Example(["test_dis.py", "-g", "-s", "-m", "armtb", "demo_armt_b.bin", "0"],
+                   depends=[test_armt])
+testset += Example(["test_dis.py", "-g", "-s", "-m", "x86_32", "box_x86_32.bin",
+                    "0x401000"], depends=[test_box])
+testset += Example(["test_dis.py", "-g", "-s", "-m", "msp430", "msp430_sc.bin", "0"],
+                   depends=[test_msp430])
+testset += Example(["test_dis.py", "-g", "-s", "-m", "mips32l", "mips32_sc_l.bin",
+                    "0"], depends=[test_mips32])
+testset += Example(["test_dis.py", "-g", "-s", "-m", "mips32b", "mips32_sc_b.bin",
+                    "0"], depends=[test_mips32])
 for script in [["symbol_exec.py"],
                ["expression/basic_op.py"],
                ["expression/get_read_write.py"],
@@ -112,14 +135,15 @@ for script in [["symbol_exec.py"],
                ["expression/solve_condition_stp.py",
                 "expression/simple_test.bin"],
                ]:
-    testset += Test(script, base_dir="example")
+    testset += Example(script)
 ## Jitter
 
-# Take 5 mins on a Core i5
 for jitter in ["tcc", "llvm", "python"]:
-    testset += Test(["unpack_upx.py", "box_upx.exe"] + ["--jitter", jitter],
-                    base_dir="example",
-                    products=["box_upx_exe_unupx.bin"])
+    # Take 5 min on a Core i5
+    tags = [TAGS["long"]] if jitter == "python" else []
+    testset += Example(["unpack_upx.py", "box_upx.exe"] + ["--jitter", jitter],
+                       products=["box_upx_exe_unupx.bin"],
+                       tags=tags)
 
 for script, dep in [(["test_jit_x86_32.py", "x86_32_sc.bin"], []),
                     (["test_jit_arm.py", "md5_arm", "-a", "A684"], []),
@@ -142,8 +166,8 @@ for script, dep in [(["test_jit_x86_32.py", "x86_32_sc.bin"], []),
                      [test_box_mod_self]),
                     ]:
     for jitter in ["tcc", "llvm", "python"]:
-        testset += Test(script + ["--jitter", jitter], base_dir="example",
-                        depends=dep)
+        testset += Example(script + ["--jitter", jitter],
+                           depends=dep)
 
 
 if __name__ == "__main__":
@@ -153,11 +177,26 @@ if __name__ == "__main__":
                         action="store_true")
     parser.add_argument("-c", "--coverage", help="Include code coverage",
                         action="store_true")
+    parser.add_argument("-t", "--ommit-tags", help="Ommit tests based on tags \
+(tag1,tag2). Available tags are %s. \
+By default, no tag is ommited." % ", ".join(TAGS.keys()), default="")
     args = parser.parse_args()
 
+    ## Parse multiproc argument
     multiproc = True
     if args.mono is True or args.coverage is True:
         multiproc = False
+
+    ## Parse ommit-tags argument
+    exclude_tags = []
+    for tag in args.ommit_tags.split(","):
+        if not tag:
+            continue
+        if tag not in TAGS:
+            print "%(red)s[TAG]%(end)s" % cosmetics.colors, \
+                "Unkown tag '%s'" % tag
+            exit(-1)
+        exclude_tags.append(TAGS[tag])
 
     # Handle coverage
     coveragerc = None
@@ -231,6 +270,9 @@ if __name__ == "__main__":
         screendisplay.init(testset.cpu_c)
         testset.set_callback(task_done=screendisplay.task_done,
                              task_new=screendisplay.task_new)
+
+    # Filter testset according to tags
+    testset.filter_tags(exclude_tags=exclude_tags)
 
     # Run tests
     testset.run()
