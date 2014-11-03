@@ -1,7 +1,9 @@
-from miasm2.core.bin_stream import *
 import logging
+
+from miasm2.core.bin_stream import *
 from miasm2.jitter.jitload import vm_load_pe, vm_load_elf
 from miasm2.jitter.csts import PAGE_READ
+
 
 log = logging.getLogger("binary")
 console_handler = logging.StreamHandler()
@@ -9,12 +11,23 @@ console_handler.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
 log.addHandler(console_handler)
 log.setLevel(logging.ERROR)
 
+
 class Container(object):
+    """Container abstraction layer
+
+    This class aims to offer a common interface for abstracting container
+    such as PE and ELF.
+    """
+
     def __init__(self, filename, vm = None, addr = None):
+        "Instanciate a container and parse the binary"
+
+        # Initialisation
         data = open(filename).read()
         log.info('load binary')
         e, bs, ep = None, None, None
 
+        # Parse container header and instanciate common elements
         if data.startswith('MZ'):
             try:
                 if vm is not None:
