@@ -10,6 +10,7 @@ testset = TestSet("../")
 TAGS = {"regression": "REGRESSION", # Regression tests
         "example": "EXAMPLE", # Examples
         "long": "LONG", # Very time consumming tests
+        "llvm": "LLVM", # LLVM dependency is required
         }
 
 # Regression tests
@@ -140,10 +141,12 @@ for script in [["symbol_exec.py"],
 
 for jitter in ["tcc", "llvm", "python"]:
     # Take 5 min on a Core i5
-    tags = [TAGS["long"]] if jitter == "python" else []
+    tags = {"python": [TAGS["long"]],
+            "llvm": [TAGS["llvm"]],
+            }
     testset += Example(["unpack_upx.py", "box_upx.exe"] + ["--jitter", jitter],
                        products=["box_upx_exe_unupx.bin"],
-                       tags=tags)
+                       tags=tags.get(jitter, []))
 
 for script, dep in [(["test_jit_x86_32.py", "x86_32_sc.bin"], []),
                     (["test_jit_arm.py", "md5_arm", "-a", "A684"], []),
@@ -166,8 +169,9 @@ for script, dep in [(["test_jit_x86_32.py", "x86_32_sc.bin"], []),
                      [test_box_mod_self]),
                     ]:
     for jitter in ["tcc", "llvm", "python"]:
+        tags = [TAGS["llvm"]] if jitter == "llvm" else []
         testset += Example(script + ["--jitter", jitter],
-                           depends=dep)
+                           depends=dep, tags=tags)
 
 
 if __name__ == "__main__":
@@ -252,14 +256,8 @@ By default, no tag is ommited." % ", ".join(TAGS.keys()), default="")
             "'py-llvm 3.2' module is required for llvm tests"
 
         # Remove llvm tests
-        for test in testset.tests:
-            if "llvm" in test.command_line:
-                testset.tests.remove(test)
-                print "%(red)s[LLVM]%(end)s Remove" % cosmetics.colors, \
-                    " ".join(test.command_line)
-
-        # Let the user see messages
-        time.sleep(0.5)
+        if "llvm" not in exclude_tags:
+            exclude_tags.append(TAGS["llvm"])
 
     # Set callbacks
     if multiproc is False:
