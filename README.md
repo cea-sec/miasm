@@ -1,5 +1,22 @@
 Reverse engineering framework in Python
 
+**Table of Contents** 
+
+- [What is Miasm?](#user-content-what-is-miasm)
+- [Basic examples](#user-content-basic-examples)
+	- [Assembling / Disassembling](#user-content-assembling--disassembling)
+	- [Intermediate representation](#user-content-intermediate-representation)
+	- [Emulation](#user-content-emulation)
+	- [Symbolic execution](#user-content-symbolic-execution)
+- [How does it work?](#user-content-how-does-it-work)
+- [Documentation](#user-content-documentation)
+- [Obtaining Miasm](#user-content-obtaining-miasm)
+	- [Software requirements](#user-content-software-requirements)
+	- [Configuration](#user-content-configuration)
+- [Testing](#user-content-testing)
+- [They already use Miasm:](#user-content-they-already-use-miasm)
+- [Misc](#user-content-misc)
+
 
 What is Miasm?
 ==============
@@ -14,7 +31,6 @@ a non exhaustive list of features:
 * Emulating using JIT (dynamic code analysis, unpacking, ...)
 * Expression simplification for automatic de-obfuscation
 * ...
-
 
 Basic examples
 ==============
