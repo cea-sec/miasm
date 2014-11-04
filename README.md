@@ -509,8 +509,8 @@ Some options can be specified:
 * Code coverage instrumentation: `-c`
 * Only fast tests: `-t long` (excludes the long tests)
 
-They already use Miasm:
-=======================
+They already use Miasm
+======================
 * [Sibyl](https://github.com/cea-sec/Sibyl): A function divination tool
 
 
