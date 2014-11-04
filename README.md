@@ -14,7 +14,7 @@ Reverse engineering framework in Python
 	- [Software requirements](#user-content-software-requirements)
 	- [Configuration](#user-content-configuration)
 - [Testing](#user-content-testing)
-- [They already use Miasm:](#user-content-they-already-use-miasm)
+- [They already use Miasm](#user-content-they-already-use-miasm)
 - [Misc](#user-content-misc)
 
 
