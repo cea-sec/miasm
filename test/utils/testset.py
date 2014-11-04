@@ -244,3 +244,31 @@ class TestSet(object):
     def tests_passed(self):
         "Return a non zero value if at least one test failed"
         return self.errorcode
+
+    def filter_tags(self, include_tags=None, exclude_tags=None):
+        """Filter tests by tags
+        @include_tags: list of tags' name (whitelist)
+        @exclude_tags: list of tags' name (blacklist)
+        @include_tags and @exclude_tags cannot be used together"""
+
+        if include_tags and exclude_tags:
+            raise ValueError("Include and Exclude cannot be used together")
+
+        new_testset_include = []
+        new_testset_exclude = list(self.tests)
+
+        # Update include and exclude lists
+        for index, test in enumerate(self.tests):
+            for tag in test.tags:
+                if exclude_tags and tag in exclude_tags:
+                    new_testset_exclude.remove(test)
+                    break
+                if include_tags and tag in include_tags:
+                    new_testset_include.append(test)
+                    break
+
+        # Update testset list
+        if include_tags:
+            self.tests = new_testset_include
+        elif exclude_tags:
+            self.tests = new_testset_exclude
