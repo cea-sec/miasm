@@ -109,33 +109,33 @@ class Machine(object):
         self.__log_jit = log_jit
         self.__log_arch = log_arch
 
-    def get_dis_engine(self):
+    @property
+    def dis_engine(self):
         return self.__dis_engine
-    dis_engine = property(get_dis_engine)
 
-    def get_mn(self):
+    @property
+    def mn(self):
         return self.__mn
-    mn = property(get_mn)
 
-    def get_ira(self):
+    @property
+    def ira(self):
         return self.__ira
-    ira = property(get_ira)
 
-    def get_jitter(self):
+    @property
+    def jitter(self):
         return self.__jitter
-    jitter = property(get_jitter)
 
-    def get_gdbserver(self):
+    @property
+    def gdbserver(self):
         return self.__gdbserver
-    gdbserver = property(get_gdbserver)
 
-    def get_log_jit(self):
+    @property
+    def log_jit(self):
         return self.__log_jit
-    log_jit = property(get_log_jit)
 
-    def get_log_arch(self):
+    @property
+    def log_arch(self):
         return self.__log_arch
-    log_arch = property(get_log_arch)
 
     @classmethod
     def available_machine(cls):
