@@ -1,4 +1,5 @@
 import os, sys
+import logging
 from argparse import ArgumentParser
 from miasm2.analysis.machine import Machine
 from miasm2.jitter.jitload import vm_load_pe, preload_pe, libimp
@@ -56,6 +57,9 @@ class Sandbox(object):
             self.jitter.jit.log_mn = True
             self.jitter.jit.log_regs = True
 
+        if not self.options.quiet_function_calls:
+            self.machine.log_jit.setLevel(logging.DEBUG)
+
         if self.options.dumpblocs:
             self.jitter.jit.log_newbloc = True
 
@@ -82,6 +86,8 @@ class Sandbox(object):
         parser.add_argument("-j", "--jitter",
                             help="Jitter engine. Possible values are: tcc (default), llvm, python",
                             default="tcc")
+        parser.add_argument('-q', "--quiet-function-calls", action="store_true",
+                            help="Don't log function calls")
 
         for base_cls in cls._classes_():
             base_cls.update_parser(parser)
