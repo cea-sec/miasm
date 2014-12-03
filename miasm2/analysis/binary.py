@@ -1,8 +1,6 @@
 import logging
 
 from miasm2.core.bin_stream import *
-from elfesteem import pe_init, elf_init
-from miasm2.jitter.jitload import vm_load_pe, vm_load_elf
 from miasm2.jitter.csts import PAGE_READ
 
 
@@ -112,7 +110,11 @@ class Container(object):
 class ContainerPE(Container):
     "Container abstraction for PE"
 
+
     def parse(self, data, vm=None):
+        from miasm2.jitter.loader.pe import vm_load_pe, preload_pe
+        from elfesteem import pe_init
+
         # Parse signature
         if not data.startswith('MZ'):
             raise ContainerSignatureException()
@@ -144,6 +146,9 @@ class ContainerELF(Container):
     "Container abstraction for ELF"
 
     def parse(self, data, vm=None):
+        from miasm2.jitter.loader.elf import vm_load_elf, preload_elf
+        from elfesteem import elf_init
+
         # Parse signature
         if not data.startswith('\x7fELF'):
             raise ContainerSignatureException()
