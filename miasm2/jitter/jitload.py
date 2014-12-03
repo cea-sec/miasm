@@ -10,9 +10,6 @@ from elfesteem import *
 
 from csts import *
 from miasm2.core.utils import *
-from jitcore_tcc import JitCore_Tcc
-from jitcore_llvm import JitCore_LLVM
-from jitcore_python import JitCore_Python
 from miasm2.core.bin_stream import bin_stream
 
 from miasm2.ir.ir2C import init_arch_C
@@ -26,6 +23,22 @@ hnd = logging.StreamHandler()
 hnd.setFormatter(logging.Formatter("[%(levelname)s]: %(message)s"))
 log.addHandler(hnd)
 log.setLevel(logging.CRITICAL)
+
+try:
+    from jitcore_tcc import JitCore_Tcc
+except ImportError:
+    log.error('cannot import jit tcc')
+
+try:
+    from jitcore_llvm import JitCore_LLVM
+except ImportError:
+    log.error('cannot import jit llvm')
+
+try:
+    from jitcore_python import JitCore_Python
+except ImportError:
+    log.error('cannot import jit python')
+
 
 def whoami():
     return inspect.stack()[2][3]
