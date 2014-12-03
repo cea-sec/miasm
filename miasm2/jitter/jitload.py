@@ -5,7 +5,7 @@ from miasm2.core import asmbloc
 
 from miasm2.jitter.csts import *
 from miasm2.core.utils import *
-from miasm2.core.bin_stream import bin_stream
+from miasm2.core.bin_stream import bin_stream_vm
 from miasm2.ir.ir2C import init_arch_C
 
 import logging
@@ -30,41 +30,6 @@ try:
     from jitcore_python import JitCore_Python
 except ImportError:
     log.error('cannot import jit python')
-
-
-class bin_stream_vm(bin_stream):
-
-    def __init__(self, vm, offset=0L, base_offset=0L):
-        self.offset = offset
-        self.base_offset = base_offset
-        self.vm = vm
-
-    def getlen(self):
-        return 0xFFFFFFFFFFFFFFFF
-
-    def getbytes(self, start, l=1):
-        try:
-            s = self.vm.get_mem(start + self.base_offset, l)
-        except:
-            raise IOError('cannot get mem ad', hex(start))
-        return s
-
-    def readbs(self, l=1):
-        try:
-            s = self.vm.get_mem(self.offset + self.base_offset, l)
-        except:
-            raise IOError('cannot get mem ad', hex(self.offset))
-        self.offset += l
-        return s
-
-    def writebs(self, l=1):
-        raise ValueError('writebs unsupported')
-
-    def setoffset(self, val):
-        self.offset = val
-
-
-
 
 
 class CallbackHandler(object):
