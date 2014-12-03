@@ -3,10 +3,9 @@
 import os
 from miasm2.core import asmbloc
 
-from csts import *
+from miasm2.jitter.csts import *
 from miasm2.core.utils import *
 from miasm2.core.bin_stream import bin_stream
-
 from miasm2.ir.ir2C import init_arch_C
 
 import logging
