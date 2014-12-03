@@ -2,11 +2,10 @@ import os, sys
 import logging
 from argparse import ArgumentParser
 from miasm2.analysis.machine import Machine
-from miasm2.jitter.jitload import vm_load_pe, preload_pe, libimp
-from miasm2.jitter.jitload import vm_load_elf, libimp, preload_elf
 from miasm2.os_dep import win_api_x86_32, win_api_x86_32_seh
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm2.analysis import debugging
+from miasm2.jitter.loader.utils import libimp
 
 class Sandbox(object):
     """
@@ -160,6 +159,8 @@ class OS_Win(OS):
                ]
 
     def __init__(self, custom_methods, *args, **kwargs):
+        from miasm2.jitter.loader.pe import vm_load_pe, preload_pe
+
         super(OS_Win, self).__init__(custom_methods, *args, **kwargs)
 
         # Import manager
@@ -219,6 +220,8 @@ class OS_Win(OS):
 class OS_Linux(OS):
 
     def __init__(self, custom_methods, *args, **kwargs):
+        from miasm2.jitter.loader.elf import vm_load_elf, preload_elf
+
         super(OS_Linux, self).__init__(custom_methods, *args, **kwargs)
 
         # Import manager
