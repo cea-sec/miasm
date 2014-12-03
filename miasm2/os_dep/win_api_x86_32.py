@@ -805,7 +805,8 @@ def kernel32_GetModuleFileName(jitter, funcname, set_str):
                         for x in winobjs.runtime_dll.name2off.items()])
         p = name_inv[hmodule]
     else:
-        log.warning('unknown module %x' % hmodule)
+        log.warning('Unknown module 0x%x.' + \
+                        'Set winobjs.hcurmodule and retry' % hmodule)
         p = None
 
     if p is None:
