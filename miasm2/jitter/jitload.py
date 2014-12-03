@@ -8,8 +8,6 @@ from miasm2.core.utils import *
 from miasm2.core.bin_stream import bin_stream
 
 from miasm2.ir.ir2C import init_arch_C
-from miasm2.core.interval import interval
-import inspect
 
 import logging
 
@@ -33,10 +31,6 @@ try:
     from jitcore_python import JitCore_Python
 except ImportError:
     log.error('cannot import jit python')
-
-
-def whoami():
-    return inspect.stack()[2][3]
 
 
 class bin_stream_vm(bin_stream):
