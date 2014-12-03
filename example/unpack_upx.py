@@ -88,12 +88,11 @@ def update_binary(jitter):
 # Set callbacks
 sb.jitter.add_breakpoint(end_label, update_binary)
 
-
+# Run
 sb.run()
 
-regs = sb.jitter.cpu.get_gpreg()
+# Rebuild PE
 new_dll = []
-# XXXXX
 
 sb.pe.SHList.align_sections(0x1000, 0x1000)
 logging.info(repr(sb.pe.SHList))
