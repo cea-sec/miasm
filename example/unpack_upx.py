@@ -1,10 +1,9 @@
-from pdb import pm
 import os
-from miasm2.analysis.sandbox import Sandbox_Win_x86_32
 import logging
-from miasm2.core import asmbloc
-from elfesteem.strpatchwork import StrPatchwork
+from pdb import pm
 from elfesteem import pe
+from miasm2.analysis.sandbox import Sandbox_Win_x86_32
+from miasm2.core import asmbloc
 
 filename = os.environ.get('PYTHONSTARTUP')
 if filename and os.path.isfile(filename):
