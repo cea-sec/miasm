@@ -20,6 +20,7 @@ def buil_all():
               'miasm2/os_dep',
               'miasm2/jitter',
               'miasm2/jitter/arch',
+              'miasm2/jitter/loader',
               ]
     ext_modules_no_tcc = [
         Extension("miasm2.jitter.arch.JitCore_x86",
