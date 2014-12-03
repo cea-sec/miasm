@@ -105,7 +105,7 @@ class Sandbox(object):
             self.dbg = dbg
             dbg.init_run(addr)
 
-            if self.options.gdbserver is not False:
+            if self.options.gdbserver:
                 port = self.options.gdbserver
                 print "Listen on port %d" % port
                 gdb = self.machine.gdbserver(dbg, port)
