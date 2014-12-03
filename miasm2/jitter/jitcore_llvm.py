@@ -1,10 +1,7 @@
 import os
 import importlib
 import hashlib
-try:
-    from llvmconvert import *
-except ImportError:
-    pass
+from llvmconvert import *
 import jitcore
 import Jitllvm
 
