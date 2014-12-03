@@ -2,54 +2,20 @@ import sys
 
 # Set your path first!
 sys.path.append("/home/serpilliere/tools/pyparsing/pyparsing-2.0.1/build/lib.linux-x86_64-2.7")
-sys.path.append("/home/serpilliere/projet/m2_devel/build/lib.linux-x86_64-2.7")
+sys.path.append("/home/serpilliere/projet/miasm/build/lib.linux-x86_64-2.7")
+sys.path.append("/home/serpilliere/projet/elfesteem/build/lib.linux-x86_64-2.7")
 
-from miasm2.core.bin_stream import bin_stream_str
+from idaapi import GraphViewer
+
+from miasm2.core.bin_stream_ida import bin_stream_ida
 from miasm2.core.asmbloc import *
 from miasm2.expression.simplifications import expr_simp
 from miasm2.expression.expression import *
+from miasm2.analysis.machine import Machine
 
 from miasm2.analysis.data_analysis import intra_bloc_flow_raw, inter_bloc_flow
 from miasm2.analysis.data_analysis import intra_bloc_flow_symbexec
 
-from idaapi import *
-import idautils
-
-
-class bin_stream_ida(bin_stream_str):
-    # ida should provide Byte function
-
-    # dont generate xrange using address computation:
-    # it can raise error on overflow 7FFFFFFF with 32 bit python
-    def getbytes(self, start, l=1):
-        o = ""
-        for ad in xrange(l):
-            o += chr(Byte(ad + start - self.shift))
-        return o
-
-    def readbs(self, l=1):
-        if self.offset + l > self.l:
-            raise IOError
-        o = self.getbytes(self.offset)
-        self.offset += l
-        return p
-
-    def writebs(self, l=1):
-        raise ValueError('writebs unsupported')
-
-    def __str__(self):
-        raise NotImplementedError('not fully functional')
-        out = self.bin[self.offset - self.shift:]
-        return out
-
-    def setoffset(self, val):
-        self.offset = val
-
-    def __len__(self):
-        return 0x7FFFFFFF
-
-    def getlen(self):
-        return 0x7FFFFFFF - self.offset - self.shift
 
 
 def expr2colorstr(ir_arch, e):
@@ -179,47 +145,45 @@ if processor_name == "metapc":
     # HACK: check 32/64 using INF_START_SP
     max_size = GetLongPrm(INF_START_SP)
     if max_size == 0x80:  # TODO XXX check
-        from miasm2.arch.x86.disasm import dis_x86_16 as dis_engine
-        from miasm2.arch.x86.x86.ira import ir_a_x86_16 as ira
+        machine = Machine("x86_16")
     elif max_size == 0xFFFFFFFF:
-        from miasm2.arch.x86.disasm import dis_x86_32 as dis_engine
-        from miasm2.arch.x86.ira import ir_a_x86_32 as ira
-
+        machine = Machine("x86_32")
     elif max_size == 0xFFFFFFFFFFFFFFFF:
-        from miasm2.arch.x86.disasm import dis_x86_64 as dis_engine
-        from miasm2.arch.x86.ira import ir_a_x86_64 as ira
-
+        machine = Machine("x86_64")
     else:
         raise ValueError('cannot guess 32/64 bit! (%x)' % max_size)
 elif processor_name == "ARM":
     # TODO ARM/thumb
-    # hack for thumb: place armt = True in globals :/
+    # hack for thumb: set armt = True in globals :/
+    # set bigendiant = True is bigendian
     is_armt = globals().get('armt', False)
+    is_bigendian = globals().get('bigendian', False)
     if is_armt:
-        from miasm2.arch.arm.disasm import dis_armt as dis_engine
-        from miasm2.arch.arm.ira import ir_a_armt as ira
+        if is_bigendian:
+            machine = Machine("armtb")
+        else:
+            machine = Machine("armtl")
     else:
-        from miasm2.arch.arm.disasm import dis_arm as dis_engine
-        from miasm2.arch.arm.ira import ir_a_arm as ira
+        if is_bigendian:
+            machine = Machine("armb")
+        else:
+            machine = Machine("arml")
 
     from miasm2.analysis.disasm_cb import arm_guess_subcall, arm_guess_jump_table
     guess_funcs.append(arm_guess_subcall)
     guess_funcs.append(arm_guess_jump_table)
 
 elif processor_name == "msp430":
-    # TODO ARM/thumb
-    from miasm2.arch.msp430.disasm import dis_msp430 as dis_engine
-    from miasm2.arch.msp430.ira import ir_a_msp430 as ira
+    machine = Machine("msp430")
 elif processor_name == "mipsl":
-    from miasm2.arch.mips32.disasm import dis_mips32l as dis_engine
-    from miasm2.arch.mips32.ira import ir_a_mips32 as ira
+    machine = Machine("mipsl")
 elif processor_name == "mipsb":
-    from miasm2.arch.mips32.disasm import dis_mips32b as dis_engine
-    from miasm2.arch.mips32.ira import ir_a_mips32 as ira
-
+    machine = Machine("mipsb")
 else:
     print repr(processor_name)
     raise NotImplementedError('not fully functional')
+
+mn, dis_engine, ira = machine.mn, machine.dis_engine, machine.ira
 
 print "Arch", dis_engine
 
