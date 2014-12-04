@@ -107,34 +107,52 @@ for script in [["disasm_01.py"],
                ]:
     testset += Example(script)
 ## Expression
-testset += Example(["test_dis.py", "-g", "-s", "-m", "arml", "demo_arm_l.bin", "0"],
-                   depends=[test_arm])
-testset += Example(["test_dis.py", "-g", "-s", "-m", "armb", "demo_arm_b.bin", "0"],
-                   depends=[test_arm])
-testset += Example(["test_dis.py", "-g", "-s", "-m", "armtl", "demo_armt_l.bin", "0"],
+class ExampleTestDis(Example):
+    """TestDis specificities:
+    - script: test_dis.py
+    - flags: -g -s -m
+    - @products: graph_execflow.txt, graph_irflow.txt, lines.txt, out.txt
+    """
+
+    def __init__(self, *args, **kwargs):
+        super(ExampleTestDis, self).__init__(*args, **kwargs)
+        self.command_line = ["test_dis.py", "-g", "-s", "-m"] + \
+            self.command_line
+        self.products += ["graph_execflow.txt", "graph_irflow.txt", "lines.txt",
+                          "out.txt"]
+
+testset += ExampleTestDis(["arml", "demo_arm_l.bin", "0"], depends=[test_arm])
+testset += ExampleTestDis(["armb", "demo_arm_b.bin", "0"], depends=[test_arm])
+testset += ExampleTestDis(["armtl", "demo_armt_l.bin", "0"],
                    depends=[test_armt])
-testset += Example(["test_dis.py", "-g", "-s", "-m", "armtb", "demo_armt_b.bin", "0"],
+testset += ExampleTestDis(["armtb", "demo_armt_b.bin", "0"],
                    depends=[test_armt])
-testset += Example(["test_dis.py", "-g", "-s", "-m", "x86_32", "box_x86_32.bin",
-                    "0x401000"], depends=[test_box])
-testset += Example(["test_dis.py", "-g", "-s", "-m", "msp430", "msp430_sc.bin", "0"],
+testset += ExampleTestDis(["x86_32", "box_x86_32.bin", "0x401000"],
+                          depends=[test_box])
+testset += ExampleTestDis(["msp430", "msp430_sc.bin", "0"],
                    depends=[test_msp430])
-testset += Example(["test_dis.py", "-g", "-s", "-m", "mips32l", "mips32_sc_l.bin",
-                    "0"], depends=[test_mips32])
-testset += Example(["test_dis.py", "-g", "-s", "-m", "mips32b", "mips32_sc_b.bin",
-                    "0"], depends=[test_mips32])
+testset += ExampleTestDis(["mips32l", "mips32_sc_l.bin", "0"],
+                          depends=[test_mips32])
+testset += ExampleTestDis(["mips32b", "mips32_sc_b.bin", "0"],
+                          depends=[test_mips32])
+
+testset += Example(["expression/graph_dataflow.py",
+                    "expression/sc_connect_back.bin", "0x2e"],
+                   products=["data.txt"])
+testset += Example(["expression/asm_to_ir.py"],
+                   products=["graph.txt", "graph2.txt"])
+testset += Example(["expression/get_read_write.py"],
+                   products=["graph_instr.txt"])
+testset += Example(["expression/solve_condition_stp.py",
+                    "expression/simple_test.bin"],
+                   products=["graph_instr.txt"])
+
 for script in [["symbol_exec.py"],
                ["expression/basic_op.py"],
-               ["expression/get_read_write.py"],
                ["expression/basic_simplification.py"],
-               ["expression/graph_dataflow.py",
-                "expression/sc_connect_back.bin", "0x2e"],
                ["expression/simplification_tools.py"],
-               ["expression/asm_to_ir.py"],
                ["expression/expr_grapher.py"],
                ["expression/simplification_add.py"],
-               ["expression/solve_condition_stp.py",
-                "expression/simple_test.bin"],
                ]:
     testset += Example(script)
 ## Jitter
