@@ -3,13 +3,10 @@
 import os
 from miasm2.core import asmbloc
 
-from csts import *
+from miasm2.jitter.csts import *
 from miasm2.core.utils import *
-from miasm2.core.bin_stream import bin_stream
-
+from miasm2.core.bin_stream import bin_stream_vm
 from miasm2.ir.ir2C import init_arch_C
-from miasm2.core.interval import interval
-import inspect
 
 import logging
 
@@ -33,45 +30,6 @@ try:
     from jitcore_python import JitCore_Python
 except ImportError:
     log.error('cannot import jit python')
-
-
-def whoami():
-    return inspect.stack()[2][3]
-
-
-class bin_stream_vm(bin_stream):
-
-    def __init__(self, vm, offset=0L, base_offset=0L):
-        self.offset = offset
-        self.base_offset = base_offset
-        self.vm = vm
-
-    def getlen(self):
-        return 0xFFFFFFFFFFFFFFFF
-
-    def getbytes(self, start, l=1):
-        try:
-            s = self.vm.get_mem(start + self.base_offset, l)
-        except:
-            raise IOError('cannot get mem ad', hex(start))
-        return s
-
-    def readbs(self, l=1):
-        try:
-            s = self.vm.get_mem(self.offset + self.base_offset, l)
-        except:
-            raise IOError('cannot get mem ad', hex(self.offset))
-        self.offset += l
-        return s
-
-    def writebs(self, l=1):
-        raise ValueError('writebs unsupported')
-
-    def setoffset(self, val):
-        self.offset = val
-
-
-
 
 
 class CallbackHandler(object):
@@ -393,79 +351,3 @@ class jitter:
         """Set an unicode string in memory"""
         s = "\x00".join(list(s)) + '\x00' * 3
         self.vm.set_mem(addr, s)
-
-
-
-
-def vm2pe(myjit, fname, libs=None, e_orig=None,
-          min_addr=None, max_addr=None,
-          min_section_offset=0x1000, img_base=None,
-          added_funcs=None):
-    mye = pe_init.PE()
-
-    if min_addr is None and e_orig is not None:
-        min_addr = min([e_orig.rva2virt(s.addr) for s in e_orig.SHList])
-    if max_addr is None and e_orig is not None:
-        max_addr = max([e_orig.rva2virt(s.addr + s.size) for s in e_orig.SHList])
-
-
-    if img_base is None:
-        img_base = e_orig.NThdr.ImageBase
-
-    mye.NThdr.ImageBase = img_base
-    all_mem = myjit.vm.get_all_memory()
-    addrs = all_mem.keys()
-    addrs.sort()
-    mye.Opthdr.AddressOfEntryPoint = mye.virt2rva(myjit.cpu.EIP)
-    first = True
-    for ad in addrs:
-        if not min_addr <= ad < max_addr:
-            continue
-        log.debug('%s' % hex(ad))
-        if first:
-            mye.SHList.add_section(
-                "%.8X" % ad,
-                addr=ad - mye.NThdr.ImageBase,
-                data=all_mem[ad]['data'],
-                offset=min_section_offset)
-        else:
-            mye.SHList.add_section(
-                "%.8X" % ad,
-                addr=ad - mye.NThdr.ImageBase,
-                data=all_mem[ad]['data'])
-        first = False
-    if libs:
-        if added_funcs is not None:
-            # name_inv = dict([(x[1], x[0]) for x in libs.name2off.items()])
-
-            for addr, funcaddr in added_func:
-                libbase, dllname = libs.fad2info[funcaddr]
-                libs.lib_get_add_func(libbase, dllname, addr)
-
-        new_dll = libs.gen_new_lib(mye, lambda x: mye.virt.is_addr_in(x))
-    else:
-        new_dll = {}
-
-    log.debug('%s' % new_dll)
-
-    mye.DirImport.add_dlldesc(new_dll)
-    s_imp = mye.SHList.add_section("import", rawsize=len(mye.DirImport))
-    mye.DirImport.set_rva(s_imp.addr)
-    log.debug('%s' % repr(mye.SHList))
-    if e_orig:
-        # resource
-        xx = str(mye)
-        mye.content = xx
-        ad = e_orig.NThdr.optentries[pe.DIRECTORY_ENTRY_RESOURCE].rva
-        log.debug('dirres %s' % hex(ad))
-        if ad != 0:
-            mye.NThdr.optentries[pe.DIRECTORY_ENTRY_RESOURCE].rva = ad
-            mye.DirRes = pe.DirRes.unpack(xx, ad, mye)
-            # log.debug('%s' % repr(mye.DirRes))
-            s_res = mye.SHList.add_section(
-                name="myres", rawsize=len(mye.DirRes))
-            mye.DirRes.set_rva(s_res.addr)
-            log.debug('%s' % repr(mye.DirRes))
-    # generation
-    open(fname, 'w').write(str(mye))
-    return mye

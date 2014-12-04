@@ -171,3 +171,35 @@ class bin_stream_pe(bin_stream):
 
 class bin_stream_elf(bin_stream_pe):
     pass
+
+
+class bin_stream_vm(bin_stream):
+
+    def __init__(self, vm, offset=0L, base_offset=0L):
+        self.offset = offset
+        self.base_offset = base_offset
+        self.vm = vm
+
+    def getlen(self):
+        return 0xFFFFFFFFFFFFFFFF
+
+    def getbytes(self, start, l=1):
+        try:
+            s = self.vm.get_mem(start + self.base_offset, l)
+        except:
+            raise IOError('cannot get mem ad', hex(start))
+        return s
+
+    def readbs(self, l=1):
+        try:
+            s = self.vm.get_mem(self.offset + self.base_offset, l)
+        except:
+            raise IOError('cannot get mem ad', hex(self.offset))
+        self.offset += l
+        return s
+
+    def writebs(self, l=1):
+        raise ValueError('writebs unsupported')
+
+    def setoffset(self, val):
+        self.offset = val
