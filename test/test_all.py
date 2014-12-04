@@ -123,18 +123,23 @@ testset += Example(["test_dis.py", "-g", "-s", "-m", "mips32l", "mips32_sc_l.bin
                     "0"], depends=[test_mips32])
 testset += Example(["test_dis.py", "-g", "-s", "-m", "mips32b", "mips32_sc_b.bin",
                     "0"], depends=[test_mips32])
+testset += Example(["expression/graph_dataflow.py",
+                    "expression/sc_connect_back.bin", "0x2e"],
+                   products=["data.txt"])
+testset += Example(["expression/asm_to_ir.py"],
+                   products=["graph.txt", "graph2.txt"])
+testset += Example(["expression/get_read_write.py"],
+                   products=["graph_instr.txt"])
+testset += Example(["expression/solve_condition_stp.py",
+                    "expression/simple_test.bin"],
+                   products=["graph_instr.txt"])
+
 for script in [["symbol_exec.py"],
                ["expression/basic_op.py"],
-               ["expression/get_read_write.py"],
                ["expression/basic_simplification.py"],
-               ["expression/graph_dataflow.py",
-                "expression/sc_connect_back.bin", "0x2e"],
                ["expression/simplification_tools.py"],
-               ["expression/asm_to_ir.py"],
                ["expression/expr_grapher.py"],
                ["expression/simplification_add.py"],
-               ["expression/solve_condition_stp.py",
-                "expression/simple_test.bin"],
                ]:
     testset += Example(script)
 ## Jitter
