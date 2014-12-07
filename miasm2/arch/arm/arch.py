@@ -1142,6 +1142,8 @@ class arm_rlist(m_arg):
         for i in xrange(0x10):
             if 1 << i & v:
                 out.append(gpregs.expr[i])
+        if not out:
+            return False
         e = ExprOp('reglist', *out)
         if self.parent.sbit.value == 1:
             e = ExprOp('sbit', e)
@@ -1285,7 +1287,6 @@ lowb = bs(l=1, fname='lowb')
 offs_blx = bs(l=24, cls=(arm_offs_blx,), fname="offs")
 
 fix_cond = bs("1111", fname="cond")
-
 
 class arm_immed(m_arg):
     parser = deref
@@ -1751,6 +1752,8 @@ class armt_rlist(m_arg):
         for i in xrange(0x10):
             if 1 << i & v:
                 out.append(gpregs.expr[i])
+        if not out:
+            return False
         e = ExprOp('reglist', *out)
         self.expr = e
         return True
@@ -1791,6 +1794,8 @@ class armt_rlist_pclr(armt_rlist):
                 out += [regs_expr[14]]
             else:
                 out += [regs_expr[15]]
+        if not out:
+            return False
         e = ExprOp('reglist', *out)
         self.expr = e
         return True
@@ -2006,6 +2011,8 @@ class armt_gpreg_rm_shift_off(arm_reg):
 
     def decode(self, v):
         v = v & self.lmask
+        if v >= len(gpregs_nosppc.expr):
+            return False
         r = gpregs_nosppc.expr[v]
 
         i = int(self.parent.imm5_3.value) << 2
