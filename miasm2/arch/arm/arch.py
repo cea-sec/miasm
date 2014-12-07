@@ -1288,6 +1288,17 @@ offs_blx = bs(l=24, cls=(arm_offs_blx,), fname="offs")
 
 fix_cond = bs("1111", fname="cond")
 
+class mul_part_x(bs_mod_name):
+    prio = 5
+    mn_mod = ['B', 'T']
+
+class mul_part_y(bs_mod_name):
+    prio = 6
+    mn_mod = ['B', 'T']
+
+mul_x = mul_part_x(l=1, fname='x', mn_mod=['B', 'T'])
+mul_y = mul_part_y(l=1, fname='y', mn_mod=['B', 'T'])
+
 class arm_immed(m_arg):
     parser = deref
 
@@ -1453,6 +1464,8 @@ armop("data_mov",
       [bs('00'), immop, bs_data_mov_name, scc, bs('0000'), rd, op2], [rd, op2])
 armop("data_test", [bs('00'), immop, bs_data_test_name, dumscc, rn, dumr, op2])
 armop("b", [bs('101'), lnk, offs])
+
+armop("smul", [bs('00010110'), rd, bs('0000'), rs, bs('1'), mul_y, mul_x, bs('0'), rm], [rd, rm, rs])
 
 # TODO TEST
 #armop("und", [bs('011'), imm20, bs('1'), imm4])
