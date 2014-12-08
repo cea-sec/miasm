@@ -159,12 +159,12 @@ class OS_Win(OS):
                ]
 
     def __init__(self, custom_methods, *args, **kwargs):
-        from miasm2.jitter.loader.pe import vm_load_pe, preload_pe
+        from miasm2.jitter.loader.pe import vm_load_pe, preload_pe, libimp_pe
 
         super(OS_Win, self).__init__(custom_methods, *args, **kwargs)
 
         # Import manager
-        libs = libimp()
+        libs = libimp_pe()
         self.libs = libs
         win_api_x86_32.winobjs.runtime_dll = libs
 
@@ -220,12 +220,12 @@ class OS_Win(OS):
 class OS_Linux(OS):
 
     def __init__(self, custom_methods, *args, **kwargs):
-        from miasm2.jitter.loader.elf import vm_load_elf, preload_elf
+        from miasm2.jitter.loader.elf import vm_load_elf, preload_elf, libimp_elf
 
         super(OS_Linux, self).__init__(custom_methods, *args, **kwargs)
 
         # Import manager
-        libs = libimp()
+        libs = libimp_elf()
         self.libs = libs
 
         elf = vm_load_elf(self.jitter.vm, self.fname)
@@ -237,10 +237,11 @@ class OS_Linux(OS):
 
 class OS_Linux_str(OS):
     def __init__(self, custom_methods, *args, **kwargs):
+        from miasm2.jitter.loader.elf import libimp_elf
         super(OS_Linux_str, self).__init__(custom_methods, *args, **kwargs)
 
         # Import manager
-        libs = libimp()
+        libs = libimp_elf()
         self.libs = libs
 
         data = open(self.fname).read()
