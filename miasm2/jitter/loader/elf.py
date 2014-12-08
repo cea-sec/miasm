@@ -5,7 +5,7 @@ from elfesteem import pe
 from elfesteem import cstruct
 from elfesteem import *
 from miasm2.jitter.csts import *
-from utils import canon_libname_libfunc
+from utils import canon_libname_libfunc, libimp
 from miasm2.core.interval import interval
 
 import logging
@@ -78,3 +78,6 @@ def vm_load_elf(vm, fname, **kargs):
     for r_vaddr, data in all_data.items():
         vm.set_mem(r_vaddr, data)
     return e
+
+class libimp_elf(libimp):
+    pass
