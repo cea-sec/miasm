@@ -196,6 +196,11 @@ reg_tests_arm = [
     ("C03E6440    SMLAL      R2, R0, R1, R0",
      "9120E0E0"),
 
+    ("00003904    SMULBB     R0, R0, R1",
+     "800160E1"),
+    ("00003904    SMULBT     R0, R0, R1",
+     "C00160E1"),
+
     ("C00CFA40    BLX        R12",
      "3CFF2FE1"),
     ("C010DE1C    BLX        0x1ECCEA",
