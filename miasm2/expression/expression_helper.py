@@ -226,11 +226,12 @@ class Variables_Identifier(object):
         has_change = True
         while has_change:
             has_change = False
-            for var_id, var_value in self._vars.items():
+            for var_id, var_value in self._vars.iteritems():
                 cur = var_value
 
                 # Do not replace with itself
-                to_replace = {v_val:v_id for v_id, v_val in self._vars.items()
+                to_replace = {v_val:v_id
+                              for v_id, v_val in self._vars.iteritems()
                               if v_id != var_id}
                 var_value = var_value.replace_expr(to_replace)
 
@@ -242,15 +243,15 @@ class Variables_Identifier(object):
 
         # Replace in the original equation
         self._equation = expr.replace_expr({v_val: v_id for v_id, v_val
-                                            in self._vars.items()})
+                                            in self._vars.iteritems()})
 
         # Compute variables dependencies
         self._vars_ordered = collections.OrderedDict()
-        todo = set(self._vars.keys())
+        todo = set(self._vars.iterkeys())
         needs = {}
 
         ## Build initial needs
-        for var_id, var_expr in self._vars.items():
+        for var_id, var_expr in self._vars.iteritems():
             needs[var_id] = [var_name
                              for var_name in var_expr.get_r(mem_read=True)
                              if self.is_var_identifier(var_name)]
@@ -347,7 +348,7 @@ class Variables_Identifier(object):
     def __str__(self):
         "Display variables and final equation"
         out = ""
-        for var_id, var_expr in self.vars.items():
+        for var_id, var_expr in self.vars.iteritems():
             out += "%s = %s\n" % (var_id, var_expr)
         out += "Final: %s" % self.equation
         return out
