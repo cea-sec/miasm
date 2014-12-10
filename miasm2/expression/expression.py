@@ -866,7 +866,7 @@ class ExprCompose(Expr):
 
     def get_w(self):
         return reduce(lambda x, y:
-            x.union(y[0].get_r(mem_read, cst_read)), self.args, set())
+            x.union(y[0].get_w()), self.args, set())
 
     def __contains__(self, e):
         if self == e:
