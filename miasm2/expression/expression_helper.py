@@ -17,6 +17,9 @@
 #
 
 # Expressions manipulation functions
+import random
+import string
+
 import miasm2.expression.expression as m2_expr
 
 
@@ -195,3 +198,172 @@ def get_missing_interval(all_intervals, i_min=0, i_max=32):
             missing_i.append((last_pos, start))
         last_pos = stop
     return missing_i
+
+
+class ExprRandom(object):
+    """Return an expression randomly generated"""
+
+    # Identifiers length
+    identifier_len = 5
+    # Identifiers' name charset
+    identifier_charset = string.letters
+    # Number max value
+    number_max = 0xFFFFFFFF
+    # Available operations
+    operations_by_args_number = {1: ["-"],
+                                 2: ["<<", "<<<", ">>", ">>>"],
+                                 "2+": ["+", "*", "&", "|", "^"],
+                                 }
+    # Maximum number of argument for operations
+    operations_max_args_number = 5
+    # If set, output expression is a perfect tree
+    perfect_tree = True
+    # Max argument size in slice, relative to slice size
+    slice_add_size = 10
+    # Maximum number of layer in compose
+    compose_max_layer = 5
+    # Maximum size of memory address in bits
+    memory_max_address_size = 32
+    # Re-use already generated elements to mimic a more realistic behavior
+    reuse_element = True
+    generated_elements = {} # (depth, size) -> [Expr]
+
+    @classmethod
+    def identifier(cls, size=32):
+        """Return a random identifier
+        @size: (optional) identifier size
+        """
+        return m2_expr.ExprId("".join([random.choice(cls.identifier_charset)
+                                       for _ in xrange(cls.identifier_len)]),
+                              size=size)
+
+    @classmethod
+    def number(cls, size=32):
+        """Return a random number
+        @size: (optional) number max bits
+        """
+        num = random.randint(0, cls.number_max % (2**size))
+        return m2_expr.ExprInt_fromsize(size, num)
+
+    @classmethod
+    def atomic(cls, size=32):
+        """Return an atomic Expression
+        @size: (optional) Expr size
+        """
+        available_funcs = [cls.identifier, cls.number]
+        return random.choice(available_funcs)(size=size)
+
+    @classmethod
+    def operation(cls, size=32, depth=1):
+        """Return an ExprOp
+        @size: (optional) Operation size
+        @depth: (optional) Expression depth
+        """
+        operand_type = random.choice(cls.operations_by_args_number.keys())
+        if isinstance(operand_type, str) and "+" in operand_type:
+            number_args = random.randint(int(operand_type[:-1]),
+                                         cls.operations_max_args_number)
+        else:
+            number_args = operand_type
+
+        args = [cls._gen(size=size, depth=depth - 1)
+                for _ in xrange(number_args)]
+        operand = random.choice(cls.operations_by_args_number[operand_type])
+        return m2_expr.ExprOp(operand,
+                              *args)
+
+    @classmethod
+    def slice(cls, size=32, depth=1):
+        """Return an ExprSlice
+        @size: (optional) Operation size
+        @depth: (optional) Expression depth
+        """
+        start = random.randint(0, size)
+        stop = start + size
+        return cls._gen(size=random.randint(stop, stop + cls.slice_add_size),
+                       depth=depth - 1)[start:stop]
+
+    @classmethod
+    def compose(cls, size=32, depth=1):
+        """Return an ExprCompose
+        @size: (optional) Operation size
+        @depth: (optional) Expression depth
+        """
+        # First layer
+        upper_bound = random.randint(1, size)
+        args = [(cls._gen(size=upper_bound, depth=depth - 1), 0, upper_bound)]
+
+        # Next layers
+        while (upper_bound < size):
+            if len(args) == (cls.compose_max_layer - 1):
+                # We reach the maximum size
+                upper_bound = size
+            else:
+                upper_bound = random.randint(args[-1][-1] + 1, size)
+
+            args.append((cls._gen(size=upper_bound - args[-1][-1]),
+                         args[-1][-1],
+                         upper_bound))
+
+        return m2_expr.ExprCompose(args)
+
+    @classmethod
+    def memory(cls, size=32, depth=1):
+        """Return an ExprMem
+        @size: (optional) Operation size
+        @depth: (optional) Expression depth
+        """
+
+        address_size = random.randint(1, cls.memory_max_address_size)
+        return m2_expr.ExprMem(cls._gen(size=address_size,
+                                       depth=depth - 1),
+                               size=size)
+
+    @classmethod
+    def _gen(cls, size=32, depth=1):
+        """Internal function for generating sub-expression according to options
+        @size: (optional) Operation size
+        @depth: (optional) Expression depth
+        /!\ @generated_elements is left modified
+        """
+        # Perfect tree handling
+        if not cls.perfect_tree:
+            depth = random.randint(max(0, depth - 2), depth)
+
+        # Element re-use
+        if cls.reuse_element and random.choice([True, False]) and \
+                (depth, size) in cls.generated_elements:
+            return random.choice(cls.generated_elements[(depth, size)])
+
+        # Recursion stop
+        if depth == 0:
+            return cls.atomic(size=size)
+
+        # Build a more complex expression
+        available_funcs = [cls.operation, cls.slice, cls.compose, cls.memory]
+        gen = random.choice(available_funcs)(size=size, depth=depth)
+
+        # Save it
+        new_value = cls.generated_elements.get((depth, size), []) + [gen]
+        cls.generated_elements[(depth, size)] = new_value
+        return gen
+
+    @classmethod
+    def get(cls, size=32, depth=1, clean=True):
+        """Return a randomly generated expression
+        @size: (optional) Operation size
+        @depth: (optional) Expression depth
+        @clean: (optional) Clean expression cache between two calls
+        """
+        # Init state
+        if clean:
+            cls.generated_elements = {}
+
+        # Get an element
+        got = cls._gen(size=size, depth=depth)
+
+        # Clear state
+        if clean:
+            cls.generated_elements = {}
+
+        return got
