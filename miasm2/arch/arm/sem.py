@@ -29,7 +29,8 @@ def update_flag_zn(a):
 def update_flag_logic(a):
     e = []
     e += update_flag_zn(a)
-    e.append(ExprAff(cf, ExprInt1(0)))
+    # XXX TODO: set cf if ROT imm in argument
+    #e.append(ExprAff(cf, ExprInt1(0)))
     return e
 
 
@@ -63,13 +64,15 @@ def update_flag_add_of(op1, op2, res):
 
 
 # checked: ok for sbb add because b & c before +cf
-def update_flag_sub_cf(a, b, c):
+def update_flag_sub_cf(op1, op2, res):
+    "Compote CF in @res = @op1 - @op2"
     return ExprAff(cf,
-        ((((a ^ b) ^ c) ^ ((a ^ c) & (a ^ b))).msb()) ^ ExprInt1(1))
+        ((((op1 ^ op2) ^ res) ^ ((op1 ^ res) & (op1 ^ op2))).msb()) ^ ExprInt1(1))
 
 
-def update_flag_sub_of(a, b, c):
-    return ExprAff(of, (((a ^ c) & (a ^ b))).msb())
+def update_flag_sub_of(op1, op2, res):
+    "Compote OF in @res = @op1 - @op2"
+    return ExprAff(of, (((op1 ^ res) & (op1 ^ op2))).msb())
 
 # z = x+y (+cf?)
 
@@ -211,7 +214,7 @@ def rsbs(ir, instr, a, b, c=None):
         b, c = a, b
     r = c - b
     e += update_flag_arith(r)
-    e += update_flag_sub(b, c, r)
+    e += update_flag_sub(c, b, r)
     e.append(ExprAff(a, r))
     dst = get_dst(a)
     if dst is not None:
@@ -296,7 +299,7 @@ def l_cmp(ir, instr, a, b, c=None):
         b, c = a, b
     r = b - c
     e += update_flag_arith(r)
-    e += update_flag_sub(c, b, r)
+    e += update_flag_sub(b, c, r)
     return e
 
 
