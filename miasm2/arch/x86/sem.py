@@ -134,12 +134,14 @@ def update_flag_add_of(op1, op2, res):
 
 
 # checked: ok for sbb add because b & c before +cf
-def update_flag_sub_cf(a, b, c):
-    return ExprAff(cf, (((a ^ b) ^ c) ^ ((a ^ c) & (a ^ b))).msb())
+def update_flag_sub_cf(op1, op2, res):
+    "Compote CF in @res = @op1 - @op2"
+    return ExprAff(cf, (((op1 ^ op2) ^ res) ^ ((op1 ^ res) & (op1 ^ op2))).msb())
 
 
-def update_flag_sub_of(a, b, c):
-    return ExprAff(of, (((a ^ c) & (a ^ b))).msb())
+def update_flag_sub_of(op1, op2, res):
+    "Compote OF in @res = @op1 - @op2"
+    return ExprAff(of, (((op1 ^ res) & (op1 ^ op2))).msb())
 
 # z = x+y (+cf?)
 
