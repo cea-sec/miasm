@@ -17,6 +17,10 @@
 #
 
 # Expressions manipulation functions
+import re
+import itertools
+import collections
+
 import miasm2.expression.expression as m2_expr
 
 
@@ -195,3 +199,156 @@ def get_missing_interval(all_intervals, i_min=0, i_max=32):
             missing_i.append((last_pos, start))
         last_pos = stop
     return missing_i
+
+
+class Variables_Identifier(object):
+    """Identify variables in an expression.
+    Returns:
+    - variables with their corresponding values
+    - original expression with variables translated
+    """
+
+    var_identifier = re.compile("v\d+")
+
+    def __init__(self, expr):
+        """Set the expression @expr to handle and launch variable identification
+        process"""
+
+        # Init
+        self.var_indice = itertools.count()
+        self.var_asked = set()
+        self._vars = {} # VarID -> Expr
+
+        # Launch recurrence
+        self.find_variables_rec(expr)
+
+        # Compute inter-variable dependencies
+        has_change = True
+        while has_change:
+            has_change = False
+            for var_id, var_value in self._vars.iteritems():
+                cur = var_value
+
+                # Do not replace with itself
+                to_replace = {v_val:v_id
+                              for v_id, v_val in self._vars.iteritems()
+                              if v_id != var_id}
+                var_value = var_value.replace_expr(to_replace)
+
+                if cur != var_value:
+                    # Force @self._vars update
+                    has_change = True
+                    self._vars[var_id] = var_value
+                    break
+
+        # Replace in the original equation
+        self._equation = expr.replace_expr({v_val: v_id for v_id, v_val
+                                            in self._vars.iteritems()})
+
+        # Compute variables dependencies
+        self._vars_ordered = collections.OrderedDict()
+        todo = set(self._vars.iterkeys())
+        needs = {}
+
+        ## Build initial needs
+        for var_id, var_expr in self._vars.iteritems():
+            needs[var_id] = [var_name
+                             for var_name in var_expr.get_r(mem_read=True)
+                             if self.is_var_identifier(var_name)]
+
+        ## Build order list
+        while todo:
+            done = set()
+            for var_id in todo:
+                all_met = True
+                for need in needs[var_id]:
+                    if need not in self._vars_ordered:
+                        # A dependency is not met
+                        all_met = False
+                        break
+
+                if not all_met:
+                    continue
+
+                # All dependencies are already met, add current
+                self._vars_ordered[var_id] = self._vars[var_id]
+                done.add(var_id)
+
+            # Update the todo list
+            for element_done in done:
+                todo.remove(element_done)
+
+    @classmethod
+    def is_var_identifier(cls, expr):
+        "Return True iff expr seems to be a variable identifier"
+        if not isinstance(expr, m2_expr.ExprId):
+            return False
+
+        match = cls.var_identifier.match(expr.name)
+        return match is not None and match.group(0) == expr.name
+
+    def find_variables_rec(self, expr):
+        """Recursive method called by find_variable to expand @expr.
+        Set @var_names and @var_values.
+        This implementation is faster than an expression visitor because
+        we do not rebuild each expression.
+        """
+
+        if (expr in self.var_asked):
+            # Expr has already been asked
+
+            if (expr not in self._vars.values()):
+                # Create var
+                identifier = m2_expr.ExprId("v%s" % self.var_indice.next(),
+                                    size = expr.size)
+                self._vars[identifier] = expr
+
+            # Recursion stop case
+            return
+        else:
+            # First time for @expr
+            self.var_asked.add(expr)
+
+        if isinstance(expr, m2_expr.ExprOp):
+            for a in expr.args:
+                self.find_variables_rec(a)
+
+        elif isinstance(expr, m2_expr.ExprInt):
+            pass
+
+        elif isinstance(expr, m2_expr.ExprId):
+            pass
+
+        elif isinstance(expr, m2_expr.ExprMem):
+            self.find_variables_rec(expr.arg)
+
+        elif isinstance(expr, m2_expr.ExprCompose):
+            for a in expr.args:
+                self.find_variables_rec(list(a)[0])
+
+        elif isinstance(expr, m2_expr.ExprSlice):
+            self.find_variables_rec(expr.arg)
+
+        elif isinstance(expr, m2_expr.ExprCond):
+            self.find_variables_rec(expr.cond)
+            self.find_variables_rec(expr.src1)
+            self.find_variables_rec(expr.src2)
+
+        else:
+            raise NotImplementedError("Type not handled: %s" % expr)
+
+    @property
+    def vars(self):
+        return self._vars_ordered
+
+    @property
+    def equation(self):
+        return self._equation
+
+    def __str__(self):
+        "Display variables and final equation"
+        out = ""
+        for var_id, var_expr in self.vars.iteritems():
+            out += "%s = %s\n" % (var_id, var_expr)
+        out += "Final: %s" % self.equation
+        return out
