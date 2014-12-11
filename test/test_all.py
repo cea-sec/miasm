@@ -154,6 +154,7 @@ for script in [["symbol_exec.py"],
                ["expression/simplification_tools.py"],
                ["expression/expr_grapher.py"],
                ["expression/simplification_add.py"],
+               ["expression/expr_random.py"],
                ]:
     testset += Example(script)
 ## Jitter
