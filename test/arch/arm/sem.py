@@ -9,6 +9,7 @@ from miasm2.arch.arm.arch import mn_arm as mn
 from miasm2.arch.arm.sem import ir_arml as ir_arch
 from miasm2.arch.arm.regs import *
 from miasm2.expression.expression import *
+from pdb import pm
 
 logging.getLogger('cpuhelper').setLevel(logging.ERROR)
 EXCLUDE_REGS = set([ir_arch().IRDst])
@@ -33,9 +34,17 @@ def compute(asm, inputstate={}, debug=False):
         for k, v in symexec.symbols.items():
             if regs_init.get(k, None) != v:
                 print k, v
-    return {k: v.arg.arg for k, v in symexec.symbols.items()
-            if k not in EXCLUDE_REGS and regs_init.get(k, None) != v}
-
+    out = {}
+    for k, v in symexec.symbols.items():
+        if k in EXCLUDE_REGS:
+            continue
+        elif regs_init.get(k, None) == v:
+            continue
+        elif isinstance(v, ExprInt):
+            out[k] = v.arg.arg
+        else:
+            out[k] = v
+    return out
 
 class TestARMSemantic(unittest.TestCase):
 
@@ -263,68 +272,26 @@ class TestARMSemantic(unittest.TestCase):
         # §A8.8.13:                AND{S}{<c>}{<q>} {<Rd>,} <Rn>, #<const>
         self.assertRaises(
             ValueError, compute, 'AND          R4,   0x00000001 ')
-        self.assertEqual(compute('AND                R4,    R4,   0x00000001 ',   {
-                                 R4: 0xDEADBEEF, }), {R4: 0x00000001, })
-        self.assertEqual(compute('AND                R4,    R4,   0x00000000 ',   {
-                                 R4: 0x00000000, }), {R4: 0x00000000, })
-        self.assertEqual(compute('AND                PC,    R4,   0x00000001 ',   {
-                                 R4: 0xFFFFFFFF, PC: 0x55555555, }), {R4: 0xFFFFFFFF, PC: 0x00000001, })
-        self.assertEqual(compute('AND                PC,    R4,   0x00000000 ',   {
-                                 R4: 0xFFFFFFFF, PC: 0x55555555, }), {R4: 0xFFFFFFFF, PC: 0x00000000, })
-        self.assertEqual(compute('ANDS               R4,    R4,   0x000000FF ',   {R4: 0xFFFFFF00, }), {
-                         nf: 0, zf: 1, cf: 0,     R4: 0x00000000, })
-        self.assertEqual(compute('ANDS               R4,    R4,   0xFF000000 ',   {R4: 0xFF000000, }), {
-                         nf: 1, zf: 0, cf: 0,     R4: 0xFF000000, })
-        self.assertEqual(compute('ANDS               PC,    R4,   0x000000FF ',   {
-                                 R4: 0xFFFFFF00, PC: 0x55555555, }), {R4: 0xFFFFFF00, PC: 0x00000000, })
-        self.assertEqual(compute('ANDS               PC,    R4,   0xFF000000 ',   {
-                                 R4: 0xFF000000, PC: 0x55555555, }), {R4: 0xFF000000, PC: 0xFF000000, })
+        self.assertEqual(compute('AND                R4,    R4,   0x00000001 ',   {R4: 0xDEADBEEF, }), {R4: 0x00000001, })
+        self.assertEqual(compute('AND                R4,    R4,   0x00000000 ',   {R4: 0x00000000, }), {R4: 0x00000000, })
+        self.assertEqual(compute('AND                PC,    R4,   0x00000001 ',   {R4: 0xFFFFFFFF, PC: 0x55555555, }), {R4: 0xFFFFFFFF, PC: 0x00000001, })
+        self.assertEqual(compute('AND                PC,    R4,   0x00000000 ',   {R4: 0xFFFFFFFF, PC: 0x55555555, }), {R4: 0xFFFFFFFF, PC: 0x00000000, })
 
         # §A8.8.14:                AND{S}{<c>}{<q>} {<Rd>,} <Rn>, <Rm> {,<shift>}
         self.assertRaises(
             ValueError, compute, 'AND          R4,   R5          ')
-        self.assertEqual(compute('AND                R4,    R4,   R5          ',  {
-                                 R4: 0xFFFFFFFE, R5: 0x00000001, }), {R4: 0x00000000, R5: 0x00000001, })
-        self.assertEqual(compute('AND                R4,    R4,   R5    LSL 1 ',  {
-                                 R4: 0x00000011, R5: 0x00000008, }), {R4: 0x00000010, R5: 0x00000008, })
-        self.assertEqual(compute('AND                R4,    R4,   R5    LSR 2 ',  {
-                                 R4: 0xFFFFFFFF, R5: 0x80000041, }), {R4: 0x20000010, R5: 0x80000041, })
-        self.assertEqual(compute('AND                R4,    R4,   R5    ASR 3 ',  {
-                                 R4: 0xF00000FF, R5: 0x80000081, }), {R4: 0xF0000010, R5: 0x80000081, })
-        self.assertEqual(compute('AND                R4,    R4,   R5    ROR 4 ',  {
-                                 R4: 0xFFFFFFFF, R5: 0x000000FF, }), {R4: 0xF000000F, R5: 0x000000FF, })
-        self.assertEqual(compute('AND                R4,    R4,   R5    RRX   ',  {
-                                 cf: 1, R4: 0xFFFFFFFF, R5: 0x00000101, }), {cf: 1,     R4: 0x80000080, R5: 0x00000101, })
-        self.assertEqual(compute('ANDS               R4,    R4,   R5          ',  {R4: 0xFFFFFFFE, R5: 0x00000001, }), {
-                         nf: 0, zf: 1, cf: 0,     R4: 0x00000000, R5: 0x00000001, })
-        self.assertEqual(compute('ANDS               R4,    R4,   R5    LSL 1 ',  {R4: 0x00000011, R5: 0x00000008, }), {
-                         nf: 0, zf: 0, cf: 0,     R4: 0x00000010, R5: 0x00000008, })
-        self.assertEqual(compute('ANDS               R4,    R4,   R5    LSR 2 ',  {R4: 0xFFFFFFFF, R5: 0x80000041, }), {
-                         nf: 0, zf: 0, cf: 0,     R4: 0x20000010, R5: 0x80000041, })
-        self.assertEqual(compute('ANDS               R4,    R4,   R5    ASR 3 ',  {R4: 0xF00000FF, R5: 0x80000081, }), {
-                         nf: 1, zf: 0, cf: 0,     R4: 0xF0000010, R5: 0x80000081, })
-        self.assertEqual(compute('ANDS               R4,    R4,   R5    ROR 4 ',  {R4: 0xFFFFFFFF, R5: 0x000000FF, }), {
-                         nf: 1, zf: 0, cf: 0,     R4: 0xF000000F, R5: 0x000000FF, })
-        self.assertEqual(compute('ANDS               R4,    R4,   R5    RRX   ',  {cf: 1, R4: 0xFFFFFFFF, R5: 0x00000101, }), {
-                         nf: 1, zf: 0, cf: 0,     R4: 0x80000080, R5: 0x00000101, })
+        self.assertEqual(compute('AND                R4,    R4,   R5          ',  {R4: 0xFFFFFFFE, R5: 0x00000001, }), {R4: 0x00000000, R5: 0x00000001, })
+        self.assertEqual(compute('AND                R4,    R4,   R5    LSL 1 ',  {R4: 0x00000011, R5: 0x00000008, }), {R4: 0x00000010, R5: 0x00000008, })
+        self.assertEqual(compute('AND                R4,    R4,   R5    LSR 2 ',  {R4: 0xFFFFFFFF, R5: 0x80000041, }), {R4: 0x20000010, R5: 0x80000041, })
+        self.assertEqual(compute('AND                R4,    R4,   R5    ASR 3 ',  {R4: 0xF00000FF, R5: 0x80000081, }), {R4: 0xF0000010, R5: 0x80000081, })
+        self.assertEqual(compute('AND                R4,    R4,   R5    ROR 4 ',  {R4: 0xFFFFFFFF, R5: 0x000000FF, }), {R4: 0xF000000F, R5: 0x000000FF, })
+        self.assertEqual(compute('AND                R4,    R4,   R5    RRX   ',  {R4: 0xFFFFFFFF, R5: 0x00000101, }), {R4: ExprCompose([(ExprInt_fromsize(31, 0x80),0,31), (cf_init,31,32)]), R5: 0x00000101, })
 
         # §A8.8.15:                AND{S}{<c>}{<q>} {<Rd>,} <Rn>, <Rm>, <type> <Rs>
-        self.assertEqual(compute('AND                R4,    R6,   R4    LSL R5',  {
-                                 R4: 0x00000001, R5: 0x00000004, R6: -1, }), {R4: 0x00000010, R5: 0x00000004, R6: 0xFFFFFFFF, })
-        self.assertEqual(compute('AND                R4,    R6,   R4    LSR R5',  {
-                                 R4: 0x00000110, R5: 0x80000004, R6: -1, }), {R4: 0x00000011, R5: 0x80000004, R6: 0xFFFFFFFF, })
-        self.assertEqual(compute('AND                R4,    R6,   R4    ASR R5',  {
-                                 R4: 0x80000010, R5: 0xF0000001, R6: -1, }), {R4: 0xC0000008, R5: 0xF0000001, R6: 0xFFFFFFFF, })
-        self.assertEqual(compute('AND                R4,    R6,   R4    ROR R5',  {
-                                 R4: 0x000000FF, R5: 0x00000F04, R6: -1, }), {R4: 0xF000000F, R5: 0x00000F04, R6: 0xFFFFFFFF, })
-        self.assertEqual(compute('ANDS               R4,    R6,   R4    LSL R5',  {R4: 0x00000001, R5: 0x00000004, R6: -1, }), {
-                         nf: 0, zf: 0, cf: 0,     R4: 0x00000010, R5: 0x00000004, R6: 0xFFFFFFFF, })
-        self.assertEqual(compute('ANDS               R4,    R6,   R4    LSR R5',  {R4: 0x00000110, R5: 0x80000004, R6: -1, }), {
-                         nf: 0, zf: 0, cf: 0,     R4: 0x00000011, R5: 0x80000004, R6: 0xFFFFFFFF, })
-        self.assertEqual(compute('ANDS               R4,    R6,   R4    ASR R5',  {R4: 0x80000010, R5: 0xF0000001, R6: -1, }), {
-                         nf: 1, zf: 0, cf: 0,     R4: 0xC0000008, R5: 0xF0000001, R6: 0xFFFFFFFF, })
-        self.assertEqual(compute('ANDS               R4,    R6,   R4    ROR R5',  {R4: 0x000000FF, R5: 0x00000F04, R6: -1, }), {
-                         nf: 1, zf: 0, cf: 0,     R4: 0xF000000F, R5: 0x00000F04, R6: 0xFFFFFFFF, })
+        self.assertEqual(compute('AND                R4,    R6,   R4    LSL R5',  {R4: 0x00000001, R5: 0x00000004, R6: -1, }), {R4: 0x00000010, R5: 0x00000004, R6: 0xFFFFFFFF, })
+        self.assertEqual(compute('AND                R4,    R6,   R4    LSR R5',  {R4: 0x00000110, R5: 0x80000004, R6: -1, }), {R4: 0x00000011, R5: 0x80000004, R6: 0xFFFFFFFF, })
+        self.assertEqual(compute('AND                R4,    R6,   R4    ASR R5',  {R4: 0x80000010, R5: 0xF0000001, R6: -1, }), {R4: 0xC0000008, R5: 0xF0000001, R6: 0xFFFFFFFF, })
+        self.assertEqual(compute('AND                R4,    R6,   R4    ROR R5',  {R4: 0x000000FF, R5: 0x00000F04, R6: -1, }), {R4: 0xF000000F, R5: 0x00000F04, R6: 0xFFFFFFFF, })
 
     def test_ASR(self):
         # §A8.8.16:                ASR{S}{<c>}{<q>} {<Rd>,} <Rm>, #<imm>    <==>    MOV{S}{<c>}{<q>} {<Rd>,} <Rm>, ASR #<n>
@@ -351,6 +318,150 @@ class TestARMSemantic(unittest.TestCase):
                          { nf: 1, zf: 0, cf: 0, of: 0, R2: 0x80000000, R3: 0xFFFFFFFF})
         self.assertEqual(compute('SUBS               R3,    R2,   R3 ', {R2: 0x80000001, R3: 0x80000000}),
                          { nf: 0, zf: 0, cf: 1, of: 0, R2: 0x80000001, R3: 0x1})
+
+    def test_CMP(self):
+        # Test against qemu
+        self.assertEqual(compute('CMP                R0,    R1 ', {R0: 0x11223344, R1: 0x88223344}),
+                         { nf: 1, zf: 0, cf: 0, of: 1, R0: 0x11223344, R1: 0x88223344})
+
+        self.assertEqual(compute('SUBS               R3,    R2,   R3 ', {R2: 0x2, R3: 0x1}),
+                         { nf: 0, zf: 0, cf: 1, of: 0, R2: 0x00000002, R3: 0x1})
+        self.assertEqual(compute('SUBS               R3,    R2,   R3 ', {R2: 0x1, R3: 0x2}),
+                         { nf: 1, zf: 0, cf: 0, of: 0, R2: 0x00000001, R3: 0xFFFFFFFF})
+        self.assertEqual(compute('SUBS               R3,    R2,   R3 ', {R2: 0x0, R3: 0xFFFFFFFF}),
+                         { nf: 0, zf: 0, cf: 0, of: 0, R2: 0x00000000, R3: 0x1})
+        self.assertEqual(compute('SUBS               R3,    R2,   R3 ', {R2: 0xFFFFFFFF, R3: 0x0}),
+                         { nf: 1, zf: 0, cf: 1, of: 0, R2: 0xFFFFFFFF, R3: 0xFFFFFFFF})
+        self.assertEqual(compute('SUBS               R3,    R2,   R3 ', {R2: 0x1, R3: 0x7FFFFFFF}),
+                         { nf: 1, zf: 0, cf: 0, of: 0, R2: 0x00000001, R3: 0x80000002})
+        self.assertEqual(compute('SUBS               R3,    R2,   R3 ', {R2: 0x7FFFFFFF, R3: 0x1}),
+                         { nf: 0, zf: 0, cf: 1, of: 0, R2: 0x7FFFFFFF, R3: 0x7FFFFFFE})
+        self.assertEqual(compute('SUBS               R3,    R2,   R3 ', {R2: 0x80000000, R3: 0x80000001}),
+                         { nf: 1, zf: 0, cf: 0, of: 0, R2: 0x80000000, R3: 0xFFFFFFFF})
+        self.assertEqual(compute('SUBS               R3,    R2,   R3 ', {R2: 0x80000001, R3: 0x80000000}),
+                         { nf: 0, zf: 0, cf: 1, of: 0, R2: 0x80000001, R3: 0x1})
+
+
+
+    def test_ADDS(self):
+        self.assertEqual(compute('ADDS   R2, R2, R3', {R2: 0x2, R3: 0x1}), {R2: 0x3, R3: 0x1, of: 0x0, zf: 0x0, cf: 0x0, nf: 0x0})
+        self.assertEqual(compute('ADDS   R2, R2, R3', {R2: 0x1, R3: 0x2}), {R2: 0x3, R3: 0x2, of: 0x0, zf: 0x0, cf: 0x0, nf: 0x0})
+        self.assertEqual(compute('ADDS   R2, R2, R3', {R2: 0x0, R3: 0xffffffffL}), {R2: 0xffffffffL, R3: 0xffffffffL, of: 0x0, zf: 0x0, cf: 0x0, nf: 0x1})
+        self.assertEqual(compute('ADDS   R2, R2, R3', {R2: 0xffffffffL, R3: 0x0}), {R2: 0xffffffffL, R3: 0x0, of: 0x0, zf: 0x0, cf: 0x0, nf: 0x1})
+        self.assertEqual(compute('ADDS   R2, R2, R3', {R2: 0x1, R3: 0x7fffffff}), {R2: 0x80000000L, R3: 0x7fffffff, of: 0x1, zf: 0x0, cf: 0x0, nf: 0x1})
+        self.assertEqual(compute('ADDS   R2, R2, R3', {R2: 0x7fffffff, R3: 0x1}), {R2: 0x80000000L, R3: 0x1, of: 0x1, zf: 0x0, cf: 0x0, nf: 0x1})
+        self.assertEqual(compute('ADDS   R2, R2, R3', {R2: 0x80000000L, R3: 0x80000001L}), {R2: 0x1, R3: 0x80000001L, of: 0x1, zf: 0x0, cf: 0x1, nf: 0x0})
+        self.assertEqual(compute('ADDS   R2, R2, R3', {R2: 0x80000001L, R3: 0x80000000L}), {R2: 0x1, R3: 0x80000000L, of: 0x1, zf: 0x0, cf: 0x1, nf: 0x0})
+
+    def test_ANDS(self):
+        self.assertEqual(compute('ANDS   R2, R2, R3', {R2: 0x2, R3: 0x1}), {zf: 0x1, R2: 0x0, nf: 0x0, R3: 0x1})
+        self.assertEqual(compute('ANDS   R2, R2, R3', {R2: 0x1, R3: 0x2}), {zf: 0x1, R2: 0x0, nf: 0x0, R3: 0x2})
+        self.assertEqual(compute('ANDS   R2, R2, R3', {R2: 0x0, R3: 0xffffffffL}), {zf: 0x1, R2: 0x0, nf: 0x0, R3: 0xffffffffL})
+        self.assertEqual(compute('ANDS   R2, R2, R3', {R2: 0xffffffffL, R3: 0x0}), {zf: 0x1, R2: 0x0, nf: 0x0, R3: 0x0})
+        self.assertEqual(compute('ANDS   R2, R2, R3', {R2: 0x1, R3: 0x7fffffff}), {zf: 0x0, R2: 0x1, nf: 0x0, R3: 0x7fffffff})
+        self.assertEqual(compute('ANDS   R2, R2, R3', {R2: 0x7fffffff, R3: 0x1}), {zf: 0x0, R2: 0x1, nf: 0x0, R3: 0x1})
+        self.assertEqual(compute('ANDS   R2, R2, R3', {R2: 0x80000000L, R3: 0x80000001L}), {zf: 0x0, R2: 0x80000000L, nf: 0x1, R3: 0x80000001L})
+        self.assertEqual(compute('ANDS   R2, R2, R3', {R2: 0x80000001L, R3: 0x80000000L}), {zf: 0x0, R2: 0x80000000L, nf: 0x1, R3: 0x80000000L})
+
+    def test_BICS(self):
+        self.assertEqual(compute('BICS   R2, R2, R3', {R2: 0x2, R3: 0x1}), {zf: 0x0, R2: 0x2, nf: 0x0, R3: 0x1})
+        self.assertEqual(compute('BICS   R2, R2, R3', {R2: 0x1, R3: 0x2}), {zf: 0x0, R2: 0x1, nf: 0x0, R3: 0x2})
+        self.assertEqual(compute('BICS   R2, R2, R3', {R2: 0x0, R3: 0xffffffffL}), {zf: 0x1, R2: 0x0, nf: 0x0, R3: 0xffffffffL})
+        self.assertEqual(compute('BICS   R2, R2, R3', {R2: 0xffffffffL, R3: 0x0}), {zf: 0x0, R2: 0xffffffffL, nf: 0x1, R3: 0x0})
+        self.assertEqual(compute('BICS   R2, R2, R3', {R2: 0x1, R3: 0x7fffffff}), {zf: 0x1, R2: 0x0, nf: 0x0, R3: 0x7fffffff})
+        self.assertEqual(compute('BICS   R2, R2, R3', {R2: 0x7fffffff, R3: 0x1}), {zf: 0x0, R2: 0x7ffffffe, nf: 0x0, R3: 0x1})
+        self.assertEqual(compute('BICS   R2, R2, R3', {R2: 0x80000000L, R3: 0x80000001L}), {zf: 0x1, R2: 0x0, nf: 0x0, R3: 0x80000001L})
+        self.assertEqual(compute('BICS   R2, R2, R3', {R2: 0x80000001L, R3: 0x80000000L}), {zf: 0x0, R2: 0x1, nf: 0x0, R3: 0x80000000L})
+
+    def test_CMN(self):
+        self.assertEqual(compute('CMN   R2, R3', {R2: 0x2, R3: 0x1}), {R2: 0x2, R3: 0x1, of: 0x0, zf: 0x0, cf: 0x0, nf: 0x0})
+        self.assertEqual(compute('CMN   R2, R3', {R2: 0x1, R3: 0x2}), {R2: 0x1, R3: 0x2, of: 0x0, zf: 0x0, cf: 0x0, nf: 0x0})
+        self.assertEqual(compute('CMN   R2, R3', {R2: 0x0, R3: 0xffffffffL}), {R2: 0x0, R3: 0xffffffffL, of: 0x0, zf: 0x0, cf: 0x0, nf: 0x1})
+        self.assertEqual(compute('CMN   R2, R3', {R2: 0xffffffffL, R3: 0x0}), {R2: 0xffffffffL, R3: 0x0, of: 0x0, zf: 0x0, cf: 0x0, nf: 0x1})
+        self.assertEqual(compute('CMN   R2, R3', {R2: 0x1, R3: 0x7fffffff}), {R2: 0x1, R3: 0x7fffffff, of: 0x1, zf: 0x0, cf: 0x0, nf: 0x1})
+        self.assertEqual(compute('CMN   R2, R3', {R2: 0x7fffffff, R3: 0x1}), {R2: 0x7fffffff, R3: 0x1, of: 0x1, zf: 0x0, cf: 0x0, nf: 0x1})
+        self.assertEqual(compute('CMN   R2, R3', {R2: 0x80000000L, R3: 0x80000001L}), {R2: 0x80000000L, R3: 0x80000001L, of: 0x1, zf: 0x0, cf: 0x1, nf: 0x0})
+        self.assertEqual(compute('CMN   R2, R3', {R2: 0x80000001L, R3: 0x80000000L}), {R2: 0x80000001L, R3: 0x80000000L, of: 0x1, zf: 0x0, cf: 0x1, nf: 0x0})
+
+    def test_CMP(self):
+        self.assertEqual(compute('CMP   R2, R3', {R2: 0x2, R3: 0x1}), {R2: 0x2, R3: 0x1, of: 0x0, zf: 0x0, cf: 0x1, nf: 0x0})
+        self.assertEqual(compute('CMP   R2, R3', {R2: 0x1, R3: 0x2}), {R2: 0x1, R3: 0x2, of: 0x0, zf: 0x0, cf: 0x0, nf: 0x1})
+        self.assertEqual(compute('CMP   R2, R3', {R2: 0x0, R3: 0xffffffffL}), {R2: 0x0, R3: 0xffffffffL, of: 0x0, zf: 0x0, cf: 0x0, nf: 0x0})
+        self.assertEqual(compute('CMP   R2, R3', {R2: 0xffffffffL, R3: 0x0}), {R2: 0xffffffffL, R3: 0x0, of: 0x0, zf: 0x0, cf: 0x1, nf: 0x1})
+        self.assertEqual(compute('CMP   R2, R3', {R2: 0x1, R3: 0x7fffffff}), {R2: 0x1, R3: 0x7fffffff, of: 0x0, zf: 0x0, cf: 0x0, nf: 0x1})
+        self.assertEqual(compute('CMP   R2, R3', {R2: 0x7fffffff, R3: 0x1}), {R2: 0x7fffffff, R3: 0x1, of: 0x0, zf: 0x0, cf: 0x1, nf: 0x0})
+        self.assertEqual(compute('CMP   R2, R3', {R2: 0x80000000L, R3: 0x80000001L}), {R2: 0x80000000L, R3: 0x80000001L, of: 0x0, zf: 0x0, cf: 0x0, nf: 0x1})
+        self.assertEqual(compute('CMP   R2, R3', {R2: 0x80000001L, R3: 0x80000000L}), {R2: 0x80000001L, R3: 0x80000000L, of: 0x0, zf: 0x0, cf: 0x1, nf: 0x0})
+
+    def test_EORS(self):
+        self.assertEqual(compute('EORS   R2, R2, R3', {R2: 0x2, R3: 0x1}), {zf: 0x0, R2: 0x3, nf: 0x0, R3: 0x1})
+        self.assertEqual(compute('EORS   R2, R2, R3', {R2: 0x1, R3: 0x2}), {zf: 0x0, R2: 0x3, nf: 0x0, R3: 0x2})
+        self.assertEqual(compute('EORS   R2, R2, R3', {R2: 0x0, R3: 0xffffffffL}), {zf: 0x0, R2: 0xffffffffL, nf: 0x1, R3: 0xffffffffL})
+        self.assertEqual(compute('EORS   R2, R2, R3', {R2: 0xffffffffL, R3: 0x0}), {zf: 0x0, R2: 0xffffffffL, nf: 0x1, R3: 0x0})
+        self.assertEqual(compute('EORS   R2, R2, R3', {R2: 0x1, R3: 0x7fffffff}), {zf: 0x0, R2: 0x7ffffffe, nf: 0x0, R3: 0x7fffffff})
+        self.assertEqual(compute('EORS   R2, R2, R3', {R2: 0x7fffffff, R3: 0x1}), {zf: 0x0, R2: 0x7ffffffe, nf: 0x0, R3: 0x1})
+        self.assertEqual(compute('EORS   R2, R2, R3', {R2: 0x80000000L, R3: 0x80000001L}), {zf: 0x0, R2: 0x1, nf: 0x0, R3: 0x80000001L})
+        self.assertEqual(compute('EORS   R2, R2, R3', {R2: 0x80000001L, R3: 0x80000000L}), {zf: 0x0, R2: 0x1, nf: 0x0, R3: 0x80000000L})
+
+    def test_MULS(self):
+        self.assertEqual(compute('MULS   R2, R2, R3', {R2: 0x2, R3: 0x1}), {zf: 0x0, R2: 0x2, nf: 0x0, R3: 0x1})
+        self.assertEqual(compute('MULS   R2, R2, R3', {R2: 0x1, R3: 0x2}), {zf: 0x0, R2: 0x2, nf: 0x0, R3: 0x2})
+        self.assertEqual(compute('MULS   R2, R2, R3', {R2: 0x0, R3: 0xffffffffL}), {zf: 0x1, R2: 0x0, nf: 0x0, R3: 0xffffffffL})
+        self.assertEqual(compute('MULS   R2, R2, R3', {R2: 0xffffffffL, R3: 0x0}), {zf: 0x1, R2: 0x0, nf: 0x0, R3: 0x0})
+        self.assertEqual(compute('MULS   R2, R2, R3', {R2: 0x1, R3: 0x7fffffff}), {zf: 0x0, R2: 0x7fffffff, nf: 0x0, R3: 0x7fffffff})
+        self.assertEqual(compute('MULS   R2, R2, R3', {R2: 0x7fffffff, R3: 0x1}), {zf: 0x0, R2: 0x7fffffff, nf: 0x0, R3: 0x1})
+        self.assertEqual(compute('MULS   R2, R2, R3', {R2: 0x80000000L, R3: 0x80000001L}), {zf: 0x0, R2: 0x80000000L, nf: 0x1, R3: 0x80000001L})
+        self.assertEqual(compute('MULS   R2, R2, R3', {R2: 0x80000001L, R3: 0x80000000L}), {zf: 0x0, R2: 0x80000000L, nf: 0x1, R3: 0x80000000L})
+
+    def test_ORRS(self):
+        self.assertEqual(compute('ORRS   R2, R2, R3', {R2: 0x2, R3: 0x1}), {zf: 0x0, R2: 0x3, nf: 0x0, R3: 0x1})
+        self.assertEqual(compute('ORRS   R2, R2, R3', {R2: 0x1, R3: 0x2}), {zf: 0x0, R2: 0x3, nf: 0x0, R3: 0x2})
+        self.assertEqual(compute('ORRS   R2, R2, R3', {R2: 0x0, R3: 0xffffffffL}), {zf: 0x0, R2: 0xffffffffL, nf: 0x1, R3: 0xffffffffL})
+        self.assertEqual(compute('ORRS   R2, R2, R3', {R2: 0xffffffffL, R3: 0x0}), {zf: 0x0, R2: 0xffffffffL, nf: 0x1, R3: 0x0})
+        self.assertEqual(compute('ORRS   R2, R2, R3', {R2: 0x1, R3: 0x7fffffff}), {zf: 0x0, R2: 0x7fffffff, nf: 0x0, R3: 0x7fffffff})
+        self.assertEqual(compute('ORRS   R2, R2, R3', {R2: 0x7fffffff, R3: 0x1}), {zf: 0x0, R2: 0x7fffffff, nf: 0x0, R3: 0x1})
+        self.assertEqual(compute('ORRS   R2, R2, R3', {R2: 0x80000000L, R3: 0x80000001L}), {zf: 0x0, R2: 0x80000001L, nf: 0x1, R3: 0x80000001L})
+        self.assertEqual(compute('ORRS   R2, R2, R3', {R2: 0x80000001L, R3: 0x80000000L}), {zf: 0x0, R2: 0x80000001L, nf: 0x1, R3: 0x80000000L})
+
+    def test_RSBS(self):
+        self.assertEqual(compute('RSBS   R2, R2, R3', {R2: 0x2, R3: 0x1}), {R2: 0xffffffffL, R3: 0x1, of: 0x0, zf: 0x0, cf: 0x0, nf: 0x1})
+        self.assertEqual(compute('RSBS   R2, R2, R3', {R2: 0x1, R3: 0x2}), {R2: 0x1, R3: 0x2, of: 0x0, zf: 0x0, cf: 0x1, nf: 0x0})
+        self.assertEqual(compute('RSBS   R2, R2, R3', {R2: 0x0, R3: 0xffffffffL}), {R2: 0xffffffffL, R3: 0xffffffffL, of: 0x0, zf: 0x0, cf: 0x1, nf: 0x1})
+        self.assertEqual(compute('RSBS   R2, R2, R3', {R2: 0xffffffffL, R3: 0x0}), {R2: 0x1, R3: 0x0, of: 0x0, zf: 0x0, cf: 0x0, nf: 0x0})
+        self.assertEqual(compute('RSBS   R2, R2, R3', {R2: 0x1, R3: 0x7fffffff}), {R2: 0x7ffffffe, R3: 0x7fffffff, of: 0x0, zf: 0x0, cf: 0x1, nf: 0x0})
+        self.assertEqual(compute('RSBS   R2, R2, R3', {R2: 0x7fffffff, R3: 0x1}), {R2: 0x80000002L, R3: 0x1, of: 0x0, zf: 0x0, cf: 0x0, nf: 0x1})
+        self.assertEqual(compute('RSBS   R2, R2, R3', {R2: 0x80000000L, R3: 0x80000001L}), {R2: 0x1, R3: 0x80000001L, of: 0x0, zf: 0x0, cf: 0x1, nf: 0x0})
+        self.assertEqual(compute('RSBS   R2, R2, R3', {R2: 0x80000001L, R3: 0x80000000L}), {R2: 0xffffffffL, R3: 0x80000000L, of: 0x0, zf: 0x0, cf: 0x0, nf: 0x1})
+
+    def test_SUBS(self):
+        self.assertEqual(compute('SUBS   R2, R2, R3', {R2: 0x2, R3: 0x1}), {R2: 0x1, R3: 0x1, of: 0x0, zf: 0x0, cf: 0x1, nf: 0x0})
+        self.assertEqual(compute('SUBS   R2, R2, R3', {R2: 0x1, R3: 0x2}), {R2: 0xffffffffL, R3: 0x2, of: 0x0, zf: 0x0, cf: 0x0, nf: 0x1})
+        self.assertEqual(compute('SUBS   R2, R2, R3', {R2: 0x0, R3: 0xffffffffL}), {R2: 0x1, R3: 0xffffffffL, of: 0x0, zf: 0x0, cf: 0x0, nf: 0x0})
+        self.assertEqual(compute('SUBS   R2, R2, R3', {R2: 0xffffffffL, R3: 0x0}), {R2: 0xffffffffL, R3: 0x0, of: 0x0, zf: 0x0, cf: 0x1, nf: 0x1})
+        self.assertEqual(compute('SUBS   R2, R2, R3', {R2: 0x1, R3: 0x7fffffff}), {R2: 0x80000002L, R3: 0x7fffffff, of: 0x0, zf: 0x0, cf: 0x0, nf: 0x1})
+        self.assertEqual(compute('SUBS   R2, R2, R3', {R2: 0x7fffffff, R3: 0x1}), {R2: 0x7ffffffe, R3: 0x1, of: 0x0, zf: 0x0, cf: 0x1, nf: 0x0})
+        self.assertEqual(compute('SUBS   R2, R2, R3', {R2: 0x80000000L, R3: 0x80000001L}), {R2: 0xffffffffL, R3: 0x80000001L, of: 0x0, zf: 0x0, cf: 0x0, nf: 0x1})
+        self.assertEqual(compute('SUBS   R2, R2, R3', {R2: 0x80000001L, R3: 0x80000000L}), {R2: 0x1, R3: 0x80000000L, of: 0x0, zf: 0x0, cf: 0x1, nf: 0x0})
+
+    def test_TEQ(self):
+        self.assertEqual(compute('TEQ   R2, R3', {R2: 0x2, R3: 0x1}), {zf: 0x0, R2: 0x2, nf: 0x0, R3: 0x1})
+        self.assertEqual(compute('TEQ   R2, R3', {R2: 0x1, R3: 0x2}), {zf: 0x0, R2: 0x1, nf: 0x0, R3: 0x2})
+        self.assertEqual(compute('TEQ   R2, R3', {R2: 0x0, R3: 0xffffffffL}), {zf: 0x0, R2: 0x0, nf: 0x1, R3: 0xffffffffL})
+        self.assertEqual(compute('TEQ   R2, R3', {R2: 0xffffffffL, R3: 0x0}), {zf: 0x0, R2: 0xffffffffL, nf: 0x1, R3: 0x0})
+        self.assertEqual(compute('TEQ   R2, R3', {R2: 0x1, R3: 0x7fffffff}), {zf: 0x0, R2: 0x1, nf: 0x0, R3: 0x7fffffff})
+        self.assertEqual(compute('TEQ   R2, R3', {R2: 0x7fffffff, R3: 0x1}), {zf: 0x0, R2: 0x7fffffff, nf: 0x0, R3: 0x1})
+        self.assertEqual(compute('TEQ   R2, R3', {R2: 0x80000000L, R3: 0x80000001L}), {zf: 0x0, R2: 0x80000000L, nf: 0x0, R3: 0x80000001L})
+        self.assertEqual(compute('TEQ   R2, R3', {R2: 0x80000001L, R3: 0x80000000L}), {zf: 0x0, R2: 0x80000001L, nf: 0x0, R3: 0x80000000L})
+
+    def test_TST(self):
+        self.assertEqual(compute('TST   R2, R3', {R2: 0x2, R3: 0x1}), {zf: 0x1, R2: 0x2, nf: 0x0, R3: 0x1})
+        self.assertEqual(compute('TST   R2, R3', {R2: 0x1, R3: 0x2}), {zf: 0x1, R2: 0x1, nf: 0x0, R3: 0x2})
+        self.assertEqual(compute('TST   R2, R3', {R2: 0x0, R3: 0xffffffffL}), {zf: 0x1, R2: 0x0, nf: 0x0, R3: 0xffffffffL})
+        self.assertEqual(compute('TST   R2, R3', {R2: 0xffffffffL, R3: 0x0}), {zf: 0x1, R2: 0xffffffffL, nf: 0x0, R3: 0x0})
+        self.assertEqual(compute('TST   R2, R3', {R2: 0x1, R3: 0x7fffffff}), {zf: 0x0, R2: 0x1, nf: 0x0, R3: 0x7fffffff})
+        self.assertEqual(compute('TST   R2, R3', {R2: 0x7fffffff, R3: 0x1}), {zf: 0x0, R2: 0x7fffffff, nf: 0x0, R3: 0x1})
+        self.assertEqual(compute('TST   R2, R3', {R2: 0x80000000L, R3: 0x80000001L}), {zf: 0x0, R2: 0x80000000L, nf: 0x1, R3: 0x80000001L})
+        self.assertEqual(compute('TST   R2, R3', {R2: 0x80000001L, R3: 0x80000000L}), {zf: 0x0, R2: 0x80000001L, nf: 0x1, R3: 0x80000000L})
 
 
 if __name__ == '__main__':
