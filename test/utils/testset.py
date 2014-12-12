@@ -1,5 +1,6 @@
 import os
 import subprocess
+import sys
 from multiprocessing import cpu_count, Queue, Process
 from test import Test
 
@@ -142,7 +143,8 @@ class TestSet(object):
             os.chdir(test.base_dir)
 
             # Launch test
-            testpy = subprocess.Popen(["python"] + init_args + test.command_line,
+            testpy = subprocess.Popen(([sys.executable] +
+                                       init_args + test.command_line),
                                       stdout=subprocess.PIPE,
                                       stderr=subprocess.PIPE)
             outputs = testpy.communicate()
