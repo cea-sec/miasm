@@ -16,6 +16,7 @@ def buil_all():
               'miasm2/core',
               'miasm2/expression',
               'miasm2/ir',
+              'miasm2/ir/translators',
               'miasm2/analysis',
               'miasm2/os_dep',
               'miasm2/jitter',
