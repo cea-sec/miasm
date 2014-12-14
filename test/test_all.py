@@ -24,14 +24,12 @@ class RegressionTest(Test):
         self.base_dir = os.path.join("test", self.base_dir)
         self.tags.append(TAGS["regression"])
 
-"""
 ## Architecture
 testset += RegressionTest(["x86/arch.py"], base_dir="arch",
                           products=["x86_speed_reg_test.bin",
                                     "regression_test16_ia32.bin",
                                     "regression_test32_ia32.bin",
                                     "regression_test64_ia32.bin"])
-"""
 for script in ["x86/sem.py",
                "x86/unit/mn_strings.py",
                "x86/unit/mn_float.py",
