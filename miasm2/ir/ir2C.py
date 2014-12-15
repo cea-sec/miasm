@@ -1,6 +1,7 @@
 from miasm2.expression.expression import *
 from miasm2.expression.simplifications import expr_simp
 from miasm2.core import asmbloc
+from miasm2.ir.translators.C import TranslatorC
 import logging
 
 
@@ -10,167 +11,6 @@ console_handler.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
 log_to_c_h.addHandler(console_handler)
 log_to_c_h.setLevel(logging.WARN)
 
-
-def ExprInt_toC(self):
-    return str(self)
-
-
-def ExprId_toC(self):
-    if isinstance(self.name, asmbloc.asm_label):
-        return "0x%x" % self.name.offset
-    return str(self)
-
-
-def ExprAff_toC(self):
-    return "%s = %s" % (self.dst.toC(), self.src.toC())
-
-
-def ExprCond_toC(self):
-    return "(%s?%s:%s)" % (self.cond.toC(), self.src1.toC(), self.src2.toC())
-
-
-def ExprMem_toC(self):
-    return "MEM_LOOKUP_%.2d(vm_mngr, %s)" % (self._size, self.arg.toC())
-
-
-def ExprOp_toC(self):
-    dct_shift = {'a>>': "right_arith",
-                 '>>': "right_logic",
-                 '<<': "left_logic",
-                 'a<<': "left_logic",
-                 }
-    dct_rot = {'<<<': 'rot_left',
-               '>>>': 'rot_right',
-               }
-    dct_div = {'div8': "div_op",
-               'div16': "div_op",
-               'div32': "div_op",
-               'idiv32': "div_op",  # XXX to test
-               '<<<c_rez': 'rcl_rez_op',
-               '<<<c_cf': 'rcl_cf_op',
-               '>>>c_rez': 'rcr_rez_op',
-               '>>>c_cf': 'rcr_cf_op',
-               }
-    if len(self.args) == 1:
-        if self.op == 'parity':
-            return "parity(%s&0x%x)" % (
-                self.args[0].toC(), size2mask(self.args[0].size))
-        elif self.op == '!':
-            return "(~ %s)&0x%x" % (
-                self.args[0].toC(), size2mask(self.args[0].size))
-        elif self.op in ["hex2bcd", "bcd2hex"]:
-            return "%s_%d(%s)" % (
-                self.op, self.args[0].size, self.args[0].toC())
-        elif (self.op.startswith("double_to_") or
-              self.op.endswith("_to_double")   or
-              self.op.startswith("access_")    or
-              self.op.startswith("load_")      or
-              self.op in ["-", "ftan", "frndint", "f2xm1",
-                "fsin", "fsqrt", "fabs", "fcos"]):
-            return "%s(%s)" % (self.op, self.args[0].toC())
-        else:
-            raise ValueError('unknown op: %r' % self.op)
-    elif len(self.args) == 2:
-        if self.op == "==":
-            return '(((%s&0x%x) == (%s&0x%x))?1:0)' % (
-                self.args[0].toC(), size2mask(self.args[0].size),
-                self.args[1].toC(), size2mask(self.args[1].size))
-        elif self.op in dct_shift:
-            return 'shift_%s_%.2d(%s , %s)' % (dct_shift[self.op],
-                                               self.args[0].size,
-                                               self.args[0].toC(),
-                                               self.args[1].toC())
-        elif self.is_associative():
-            o = ['(%s&0x%x)' % (a.toC(), size2mask(a.size)) for a in self.args]
-            o = str(self.op).join(o)
-            return "((%s)&0x%x)" % (o, size2mask(self.args[0].size))
-        elif self.op in ["%", "/"]:
-            o = ['(%s&0x%x)' % (a.toC(), size2mask(a.size)) for a in self.args]
-            o = str(self.op).join(o)
-            return "((%s)&0x%x)" % (o, size2mask(self.args[0].size))
-        elif self.op in ['-']:
-            return '(((%s&0x%x) %s (%s&0x%x))&0x%x)' % (
-                self.args[0].toC(), size2mask(self.args[0].size),
-                str(self.op),
-                self.args[1].toC(), size2mask(self.args[1].size),
-                size2mask(self.args[0].size))
-        elif self.op in dct_rot:
-            return '(%s(%s, %s, %s) &0x%x)' % (dct_rot[self.op],
-                                               self.args[0].size,
-                                               self.args[0].toC(),
-                                               self.args[1].toC(),
-                                               size2mask(self.args[0].size))
-        elif self.op in ['bsr', 'bsf']:
-            return 'my_%s(%s, %s)' % (self.op,
-                                      self.args[0].toC(),
-                                      self.args[1].toC())
-        elif self.op.startswith('cpuid'):
-            return "%s(%s, %s)" % (
-                self.op, self.args[0].toC(), self.args[1].toC())
-        elif self.op.startswith("fcom"):
-            return "%s(%s, %s)" % (
-                self.op, self.args[0].toC(), self.args[1].toC())
-        elif self.op in ["fadd", "fsub", "fdiv", 'fmul', "fscale"]:
-            return "%s(%s, %s)" % (
-                self.op, self.args[0].toC(), self.args[1].toC())
-        elif self.op == "segm":
-            return "segm2addr(vmcpu, %s, %s)" % (
-                self.args[0].toC(), self.args[1].toC())
-        elif self.op in ['udiv', 'umod', 'idiv', 'imod']:
-            return '%s%d(vmcpu, %s, %s)' % (self.op,
-                                            self.args[0].size,
-                                            self.args[0].toC(),
-                                            self.args[1].toC())
-        elif self.op in ["bcdadd", "bcdadd_cf"]:
-            return "%s_%d(%s, %s)" % (self.op, self.args[0].size,
-                                      self.args[0].toC(),
-                                      self.args[1].toC())
-        else:
-            raise ValueError('unknown op: %r' % self.op)
-    elif len(self.args) == 3 and self.op in dct_div:
-        return '(%s(%s, %s, %s, %s) &0x%x)' % (dct_div[self.op],
-                                               self.args[0].size,
-                                               self.args[0].toC(),
-                                               self.args[1].toC(),
-                                               self.args[2].toC(),
-                                               size2mask(self.args[0].size))
-    elif len(self.args) >= 3 and self.is_associative():  # ?????
-        o = ['(%s&0x%x)' % (a.toC(), size2mask(a.size)) for a in self.args]
-        o = str(self.op).join(o)
-        r = "((%s)&0x%x)" % (o, size2mask(self.args[0].size))
-        return r
-    else:
-        raise NotImplementedError('unknown op: %s' % self)
-
-
-def ExprSlice_toC(self):
-    # XXX check mask for 64 bit & 32 bit compat
-    return "((%s>>%d) & 0x%X)" % (self.arg.toC(),
-                                  self.start,
-                                  (1 << (self.stop - self.start)) - 1)
-
-
-def ExprCompose_toC(self):
-    out = []
-    # XXX check mask for 64 bit & 32 bit compat
-    dst_cast = "uint%d_t" % self.size
-    for x in self.args:
-        out.append("(((%s)(%s & 0x%X)) << %d)" % (dst_cast,
-                                                  x[0].toC(),
-                  (1 << (x[2] - x[1])) - 1,
-            x[1]))
-    out = ' | '.join(out)
-    return '(' + out + ')'
-
-
-ExprInt.toC = ExprInt_toC
-ExprId.toC = ExprId_toC
-ExprAff.toC = ExprAff_toC
-ExprCond.toC = ExprCond_toC
-ExprMem.toC = ExprMem_toC
-ExprOp.toC = ExprOp_toC
-ExprSlice.toC = ExprSlice_toC
-ExprCompose.toC = ExprCompose_toC
 
 prefetch_id = []
 prefetch_id_size = {}
@@ -324,13 +164,13 @@ def gen_resolve_id_lbl(ir_arch, e):
         return 'Resolve_dst(BlockDst, 0x%X, 0)'%(e.name.offset)
 
 def gen_resolve_id(ir_arch, e):
-    return 'Resolve_dst(BlockDst, %s, 0)'%(patch_c_id(ir_arch.arch, e).toC())
+    return 'Resolve_dst(BlockDst, %s, 0)'%(TranslatorC.from_expr(patch_c_id(ir_arch.arch, e)))
 
 def gen_resolve_mem(ir_arch, e):
-    return 'Resolve_dst(BlockDst, %s, 0)'%(patch_c_id(ir_arch.arch, e).toC())
+    return 'Resolve_dst(BlockDst, %s, 0)'%(TranslatorC.from_expr(patch_c_id(ir_arch.arch, e)))
 
 def gen_resolve_other(ir_arch, e):
-    return 'Resolve_dst(BlockDst, %s, 0)'%(patch_c_id(ir_arch.arch, e).toC())
+    return 'Resolve_dst(BlockDst, %s, 0)'%(TranslatorC.from_expr(patch_c_id(ir_arch.arch, e)))
 
 def gen_resolve_dst_simple(ir_arch, e):
     if isinstance(e, ExprInt):
@@ -348,7 +188,7 @@ def gen_resolve_dst_simple(ir_arch, e):
 def gen_irdst(ir_arch, e):
     out = []
     if isinstance(e, ExprCond):
-        dst_cond_c = patch_c_id(ir_arch.arch, e.cond).toC()
+        dst_cond_c = TranslatorC.from_expr(patch_c_id(ir_arch.arch, e.cond))
         out.append("if (%s)"%dst_cond_c)
         out.append('    %s;'%(gen_resolve_dst_simple(ir_arch, e.src1)))
         out.append("else")
@@ -369,7 +209,7 @@ def Expr2C(ir_arch, l, exprs, gen_exception_code=False):
     new_expr = []
 
     e = set_pc(ir_arch, l.offset & mask_int)
-    #out.append("%s;" % patch_c_id(ir_arch.arch, e).toC())
+    #out.append("%s;" % patch_c_id(ir_arch.arch, e)))
 
     pc_is_dst = False
     fetch_mem = False
@@ -416,8 +256,8 @@ def Expr2C(ir_arch, l, exprs, gen_exception_code=False):
     mem_k = src_mem.keys()
     mem_k.sort()
     for k in mem_k:
-        str_src = patch_c_id(ir_arch.arch, k).toC()
-        str_dst = patch_c_id(ir_arch.arch, src_mem[k]).toC()
+        str_src = TranslatorC.from_expr(patch_c_id(ir_arch.arch, k))
+        str_dst = TranslatorC.from_expr(patch_c_id(ir_arch.arch, src_mem[k]))
         out.append('%s = %s;' % (str_dst, str_src))
     src_w_len = {}
     for k, v in src_mem.items():
@@ -432,8 +272,8 @@ def Expr2C(ir_arch, l, exprs, gen_exception_code=False):
             continue
 
 
-        str_src = patch_c_id(ir_arch.arch, src).toC()
-        str_dst = patch_c_id(ir_arch.arch, dst).toC()
+        str_src = TranslatorC.from_expr(patch_c_id(ir_arch.arch, src))
+        str_dst = TranslatorC.from_expr(patch_c_id(ir_arch.arch, dst))
 
 
 
@@ -463,12 +303,12 @@ def Expr2C(ir_arch, l, exprs, gen_exception_code=False):
     if gen_exception_code:
         if fetch_mem:
             e = set_pc(ir_arch, l.offset & mask_int)
-            s1 = "%s" % patch_c_id(ir_arch.arch, e).toC()
+            s1 = "%s" % TranslatorC.from_expr(patch_c_id(ir_arch.arch, e))
             s1 += ';\n    Resolve_dst(BlockDst, 0x%X, 0)'%(l.offset & mask_int)
             out.append(code_exception_fetch_mem_at_instr_noautomod % s1)
         if set_exception_flags:
             e = set_pc(ir_arch, l.offset & mask_int)
-            s1 = "%s" % patch_c_id(ir_arch.arch, e).toC()
+            s1 = "%s" % TranslatorC.from_expr(patch_c_id(ir_arch.arch, e))
             s1 += ';\n    Resolve_dst(BlockDst, 0x%X, 0)'%(l.offset & mask_int)
             out.append(code_exception_at_instr_noautomod % s1)
 
@@ -487,10 +327,10 @@ def Expr2C(ir_arch, l, exprs, gen_exception_code=False):
                     "/*pc = 0x%X; */return; }" % (l.offset))
             else:
                 e = set_pc(ir_arch, l.offset & mask_int)
-                s1 = "%s" % patch_c_id(ir_arch.arch, e).toC()
+                s1 = "%s" % TranslatorC.from_expr(patch_c_id(ir_arch.arch, e))
                 s1 += ';\n    Resolve_dst(BlockDst, 0x%X, 0)'%(l.offset & mask_int)
                 e = set_pc(ir_arch, (l.offset + l.l) & mask_int)
-                s2 = "%s" % patch_c_id(ir_arch.arch, e).toC()
+                s2 = "%s" % TranslatorC.from_expr(patch_c_id(ir_arch.arch, e))
                 s2 += ';\n    Resolve_dst(BlockDst, 0x%X, 0)'%((l.offset + l.l) & mask_int)
                 post_instr.append(
                     code_exception_post_instr_noautomod % (s1, s2))
@@ -502,7 +342,7 @@ def Expr2C(ir_arch, l, exprs, gen_exception_code=False):
                 offset = l.offset + l.l
 
             e = set_pc(ir_arch, offset & mask_int)
-            s1 = "%s" % patch_c_id(ir_arch.arch, e).toC()
+            s1 = "%s" % TranslatorC.from_expr(patch_c_id(ir_arch.arch, e))
             s1 += ';\n    Resolve_dst(BlockDst, 0x%X, 0)'%(offset & mask_int)
             post_instr.append(
                 code_exception_fetch_mem_post_instr_noautomod % (s1))
@@ -542,7 +382,7 @@ def ir2C(ir_arch, irbloc, lbl_done,
     for l, exprs in zip(irbloc.lines, irbloc.irs):
         if l.offset not in lbl_done:
             e = set_pc(ir_arch, l.offset & mask_int)
-            s1 = "%s" % patch_c_id(ir_arch.arch, e).toC()
+            s1 = "%s" % TranslatorC.from_expr(patch_c_id(ir_arch.arch, e))
             s1 += ';\n    Resolve_dst(BlockDst, 0x%X, 0)'%(l.offset & mask_int)
             out.append([pre_instr_test_exception % (s1)])
             lbl_done.add(l.offset)
