@@ -1,6 +1,6 @@
 import random
 
-from miasm2.expression.expression import ExprId
+from miasm2.expression.expression import *
 from miasm2.expression.expression_helper import ExprRandom
 from miasm2.ir.translators import Translator
 
@@ -15,17 +15,14 @@ class ExprRandom_OpSubRange(ExprRandom):
 print "[+] Compute a random expression:"
 expr = ExprRandom_OpSubRange.get(depth=8)
 print "-> %s" % expr
-print ""
+print
 
-print "[+] Translate in Python:"
-exprPython = Translator.to_language("Python").from_expr(expr)
-print exprPython
-print ""
-
-print "[+] Translate in C:"
-exprC = Translator.to_language("C").from_expr(expr)
-print exprC
-print ""
+target_exprs = {lang:Translator.to_language(lang).from_expr(expr)
+                for lang in Translator.available_languages()}
+for target_lang, target_expr in target_exprs.iteritems():
+    print "[+] Translate in %s:" % target_lang
+    print target_expr
+    print
 
 print "[+] Eval in Python:"
 def memory(addr, size):
@@ -39,4 +36,8 @@ for expr_id in expr.get_r(mem_read=True):
         print "Declare var: %s = 0x%x" % (expr_id.name, value)
         globals()[expr_id.name] = value
 
-print "-> 0x%x" % eval(exprPython)
+print "-> 0x%x" % eval(target_exprs["Python"])
+
+print "[+] Validate the Miasm syntax rebuilding"
+exprRebuild = eval(target_exprs["Miasm"])
+assert(expr == exprRebuild)
