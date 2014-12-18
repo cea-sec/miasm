@@ -390,8 +390,8 @@ def ir2C(ir_arch, irbloc, lbl_done,
             if log_regs:
                 out.append([r'dump_gpregs(vmcpu);'])
 
-                if log_mn:
-                    out.append(['printf("%.8X %s\\n");' % (l.offset, str(l))])
+            if log_mn:
+                out.append(['printf("%.8X %s\\n");' % (l.offset, str(l))])
         # print l
         # gen pc update
         post_instr = ""
