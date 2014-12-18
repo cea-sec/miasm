@@ -160,20 +160,18 @@ def vm_load_pe(vm, fdata, align_s=True, load_hdr=True,
     return e
 
 
-def vm_load_pe_lib(fname_in, libs, lib_path_base, patch_vm_imp, **kargs):
+def vm_load_pe_lib(fname_in, libs, lib_path_base, **kargs):
     fname = os.path.join(lib_path_base, fname_in)
     with open(fname) as fstream:
         e = vm_load_pe(fstream.read(), **kargs)
     libs.add_export_lib(e, fname_in)
-    # preload_pe(e, libs, patch_vm_imp)
     return e
 
 
-def vm_load_pe_libs(libs_name, libs, lib_path_base="win_dll",
-                    patch_vm_imp=True, **kargs):
+def vm_load_pe_libs(libs_name, libs, lib_path_base="win_dll", **kargs):
     lib_imgs = {}
     for fname in libs_name:
-        e = vm_load_pe_lib(fname, libs, lib_path_base, patch_vm_imp)
+        e = vm_load_pe_lib(fname, libs, lib_path_base)
         lib_imgs[fname] = e
     return lib_imgs
 
