@@ -88,9 +88,9 @@ def get_export_name_addr_list(e):
 
 
 
-def vm_load_pe(vm, fname, align_s=True, load_hdr=True,
+def vm_load_pe(vm, fdata, align_s=True, load_hdr=True,
                **kargs):
-    e = pe_init.PE(open(fname, 'rb').read(), **kargs)
+    e = pe_init.PE(fdata, **kargs)
 
     aligned = True
     for s in e.SHList:
@@ -162,7 +162,8 @@ def vm_load_pe(vm, fname, align_s=True, load_hdr=True,
 
 def vm_load_pe_lib(fname_in, libs, lib_path_base, patch_vm_imp, **kargs):
     fname = os.path.join(lib_path_base, fname_in)
-    e = vm_load_pe(fname, **kargs)
+    with open(fname) as fstream:
+        e = vm_load_pe(fstream.read(), **kargs)
     libs.add_export_lib(e, fname_in)
     # preload_pe(e, libs, patch_vm_imp)
     return e
