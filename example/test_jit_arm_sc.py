@@ -4,7 +4,6 @@ from miasm2.analysis import debugging, gdbserver
 
 from miasm2.analysis.sandbox import Sandbox_Linux_armb_str
 from miasm2.analysis.sandbox import Sandbox_Linux_arml_str
-from miasm2.jitter.loader.elf import vm_load_elf, preload_elf
 from miasm2.analysis.machine import Machine
 from elfesteem.strpatchwork import StrPatchwork
 import logging
