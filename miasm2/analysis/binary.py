@@ -122,7 +122,7 @@ class ContainerPE(Container):
         # Build executable instance
         try:
             if vm is not None:
-                self._executable = vm_load_pe(vm, filename)
+                self._executable = vm_load_pe(vm, data)
             else:
                 self._executable = pe_init.PE(data)
         except Exception, error:
@@ -156,7 +156,7 @@ class ContainerELF(Container):
         # Build executable instance
         try:
             if vm is not None:
-                self._executable = vm_load_elf(vm, filename)
+                self._executable = vm_load_elf(vm, data)
             else:
                 self._executable = elf_init.ELF(data)
         except Exception, error:
