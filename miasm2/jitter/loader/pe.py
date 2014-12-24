@@ -1,13 +1,15 @@
+import os
 import struct
+import logging
 from collections import defaultdict
 
 from elfesteem import pe
 from elfesteem import cstruct
 from elfesteem import *
-from miasm2.jitter.csts import *
-from utils import canon_libname_libfunc, libimp
 
-import logging
+from miasm2.jitter.csts import *
+from miasm2.jitter.loader.utils import canon_libname_libfunc, libimp
+
 
 log = logging.getLogger('loader_pe')
 hnd = logging.StreamHandler()
