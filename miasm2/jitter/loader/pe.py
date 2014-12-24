@@ -185,8 +185,9 @@ def vm_load_pe(vm, fdata, align_s=True, load_hdr=True, **kargs):
     return pe
 
 
-def vm_load_pe_lib(fname_in, libs, lib_path_base, **kargs):
+def vm_load_pe_lib(vm, fname_in, libs, lib_path_base, **kargs):
     """Call vm_load_pe on @fname_in and update @libs accordingly
+    @vm: VmMngr instance
     @fname_in: library name
     @libs: libimp_pe instance
     @lib_path_base: DLLs relative path
@@ -195,20 +196,21 @@ def vm_load_pe_lib(fname_in, libs, lib_path_base, **kargs):
     """
     fname = os.path.join(lib_path_base, fname_in)
     with open(fname) as fstream:
-        pe = vm_load_pe(fstream.read(), **kargs)
+        pe = vm_load_pe(vm, fstream.read(), **kargs)
     libs.add_export_lib(pe, fname_in)
     return pe
 
 
-def vm_load_pe_libs(libs_name, libs, lib_path_base="win_dll", **kargs):
+def vm_load_pe_libs(vm, libs_name, libs, lib_path_base="win_dll", **kargs):
     """Call vm_load_pe_lib on each @libs_name filename
+    @vm: VmMngr instance
     @libs_name: list of str
     @libs: libimp_pe instance
     @lib_path_base: (optional) DLLs relative path
     Return a dictionnary Filename -> PE instances
     Extra arguments are passed to vm_load_pe_lib
     """
-    return {fname: vm_load_pe_lib(fname, libs, lib_path_base, **kargs)
+    return {fname: vm_load_pe_lib(vm, fname, libs, lib_path_base, **kargs)
             for fname in libs_name}
 
 

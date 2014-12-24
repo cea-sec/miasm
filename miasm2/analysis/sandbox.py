@@ -173,7 +173,7 @@ class OS_Win(OS):
             all_pe = []
 
             # Load libs in memory
-            all_pe = vm_load_pe_libs(self.ALL_IMP_DLL, libs)
+            all_pe = vm_load_pe_libs(self.jitter.vm, self.ALL_IMP_DLL, libs)
 
             # Patch libs imports
             for pe in all_pe.values():
