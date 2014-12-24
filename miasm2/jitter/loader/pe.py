@@ -206,7 +206,7 @@ def vm_load_pe_libs(libs_name, libs, lib_path_base="win_dll", **kargs):
     Return a dictionnary Filename -> PE instances
     Extra arguments are passed to vm_load_pe_lib
     """
-    return {fname: vm_load_pe_lib(fname, libs, lib_path_base, **kwargs)
+    return {fname: vm_load_pe_lib(fname, libs, lib_path_base, **kargs)
             for fname in libs_name}
 
 
