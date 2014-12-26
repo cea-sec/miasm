@@ -159,7 +159,7 @@ class OS_Win(OS):
                ]
 
     def __init__(self, custom_methods, *args, **kwargs):
-        from miasm2.jitter.loader.pe import vm_load_pe, preload_pe, libimp_pe
+        from miasm2.jitter.loader.pe import vm_load_pe, vm_load_pe_libs, preload_pe, libimp_pe
 
         super(OS_Win, self).__init__(custom_methods, *args, **kwargs)
 
@@ -173,19 +173,15 @@ class OS_Win(OS):
             all_pe = []
 
             # Load libs in memory
-            for dll_fname in self.ALL_IMP_DLL:
-                fname = os.path.join('win_dll', dll_fname)
-                e_lib = vm_load_pe(self.jitter.vm, fname)
-
-                libs.add_export_lib(e_lib, dll_fname)
-                all_pe.append(e_lib)
+            all_pe = vm_load_pe_libs(self.jitter.vm, self.ALL_IMP_DLL, libs)
 
             # Patch libs imports
-            for pe in all_pe:
+            for pe in all_pe.values():
                 preload_pe(self.jitter.vm, pe, libs)
 
         # Load main pe
-        self.pe = vm_load_pe(self.jitter.vm, self.fname)
+        with open(self.fname) as fstream:
+            self.pe = vm_load_pe(self.jitter.vm, fstream.read())
 
         # Fix pe imports
         preload_pe(self.jitter.vm, self.pe, libs)
@@ -225,17 +221,16 @@ class OS_Linux(OS):
         super(OS_Linux, self).__init__(custom_methods, *args, **kwargs)
 
         # Import manager
-        libs = libimp_elf()
-        self.libs = libs
+        self.libs = libimp_elf()
 
-        elf = vm_load_elf(self.jitter.vm, self.fname)
-        self.elf = elf
-        preload_elf(self.jitter.vm, elf, libs)
+        with open(self.fname) as fstream:
+            self.elf = vm_load_elf(self.jitter.vm, fstream.read())
+        preload_elf(self.jitter.vm, self.elf, self.libs)
 
-        self.entry_point = elf.Ehdr.entry
+        self.entry_point = self.elf.Ehdr.entry
 
         # Library calls handler
-        self.jitter.add_lib_handler(libs, custom_methods)
+        self.jitter.add_lib_handler(self.libs, custom_methods)
 
 class OS_Linux_str(OS):
     def __init__(self, custom_methods, *args, **kwargs):

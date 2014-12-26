@@ -47,13 +47,13 @@ def preload_elf(vm, e, runtime_lib, patch_vm_imp=True):
 
 
 
-def vm_load_elf(vm, fname, **kargs):
+def vm_load_elf(vm, fdata, **kargs):
     """
     Very dirty elf loader
     TODO XXX: implement real loader
     """
     #log.setLevel(logging.DEBUG)
-    e = elf_init.ELF(open(fname, 'rb').read(), **kargs)
+    e = elf_init.ELF(fdata, **kargs)
     i = interval()
     all_data = {}
     for p in e.ph.phlist:

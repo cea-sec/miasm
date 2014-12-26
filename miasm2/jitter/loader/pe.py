@@ -1,13 +1,15 @@
+import os
 import struct
+import logging
 from collections import defaultdict
 
 from elfesteem import pe
 from elfesteem import cstruct
 from elfesteem import *
-from miasm2.jitter.csts import *
-from utils import canon_libname_libfunc, libimp
 
-import logging
+from miasm2.jitter.csts import *
+from miasm2.jitter.loader.utils import canon_libname_libfunc, libimp
+
 
 log = logging.getLogger('loader_pe')
 hnd = logging.StreamHandler()
@@ -88,93 +90,128 @@ def get_export_name_addr_list(e):
 
 
 
-def vm_load_pe(vm, fname, align_s=True, load_hdr=True,
-               **kargs):
-    e = pe_init.PE(open(fname, 'rb').read(), **kargs)
+def vm_load_pe(vm, fdata, align_s=True, load_hdr=True, **kargs):
+    """Load a PE in memory (@vm) from a data buffer @fdata
+    @vm: VmMngr instance
+    @fdata: data buffer to parse
+    @align_s: (optional) If False, keep gaps between section
+    @load_hdr: (optional) If False, do not load the NThdr in memory
+    Return the corresponding PE instance.
 
+    Extra arguments are passed to PE instanciation.
+    If all sections are aligned, they will be mapped on several different pages
+    Otherwise, a big page is created, containing all sections
+    """
+    # Parse and build a PE instance
+    pe = pe_init.PE(fdata, **kargs)
+
+    # Check if all section are aligned
     aligned = True
-    for s in e.SHList:
-        if s.addr & 0xFFF:
+    for section in pe.SHList:
+        if section.addr & 0xFFF:
             aligned = False
             break
 
     if aligned:
+        # Loader NT header
         if load_hdr:
-            hdr_len = max(0x200, e.NThdr.sizeofheaders)
-            min_len = min(e.SHList[0].addr, 0x1000)#e.NThdr.sizeofheaders)
-            pe_hdr = e.content[:hdr_len]
-            pe_hdr = pe_hdr + min_len * "\x00"
-            pe_hdr = pe_hdr[:min_len]
-            vm.add_memory_page(
-                e.NThdr.ImageBase, PAGE_READ | PAGE_WRITE, pe_hdr)
-        if align_s:
-            for i, s in enumerate(e.SHList[:-1]):
-                s.size = e.SHList[i + 1].addr - s.addr
-                s.rawsize = s.size
-                s.data = strpatchwork.StrPatchwork(s.data[:s.size])
-                s.offset = s.addr
-            s = e.SHList[-1]
-            s.size = (s.size + 0xfff) & 0xfffff000
-        for s in e.SHList:
-            data = str(s.data)
-            data += "\x00" * (s.size - len(data))
-            # log.debug('SECTION %s %s' % (hex(s.addr),
-            # hex(e.rva2virt(s.addr))))
-            vm.add_memory_page(
-                e.rva2virt(s.addr), PAGE_READ | PAGE_WRITE, data)
-            # s.offset = s.addr
-        return e
+            # Header length
+            hdr_len = max(0x200, pe.NThdr.sizeofheaders)
+            # Page minimum size
+            min_len = min(pe.SHList[0].addr, 0x1000)
 
-    # not aligned
-    log.warning('pe is not aligned, creating big section')
-    min_addr = None
+            # Get and pad the pe_hdr
+            pe_hdr = pe.content[:hdr_len] + max(0, (min_len - hdr_len)) * "\x00"
+            vm.add_memory_page(pe.NThdr.ImageBase, PAGE_READ | PAGE_WRITE,
+                               pe_hdr)
+
+        # Align sections size
+        if align_s:
+            # Use the next section address to compute the new size
+            for i, section in enumerate(pe.SHList[:-1]):
+                new_size = pe.SHList[i + 1].addr - section.addr
+                section.size = new_size
+                section.rawsize = new_size
+                section.data = strpatchwork.StrPatchwork(section.data[:new_size])
+                section.offset = section.addr
+
+            # Last section alignement
+            last_section = pe.SHList[-1]
+            last_section.size = (last_section.size + 0xfff) & 0xfffff000
+
+        # Pad sections with null bytes and map them
+        for section in pe.SHList:
+            data = str(section.data)
+            data += "\x00" * (section.size - len(data))
+            vm.add_memory_page(pe.rva2virt(section.addr),
+                               PAGE_READ | PAGE_WRITE, data)
+
+        return pe
+
+    # At least one section is not aligned
+    log.warning('PE is not aligned, creating big section')
+    min_addr = 0 if load_hdr else None
     max_addr = None
     data = ""
 
-    if load_hdr:
-        data = e.content[:0x400]
-        data += (e.SHList[0].addr - len(data)) * "\x00"
-        min_addr = 0
+    for i, section in enumerate(pe.SHList):
+        if i < len(pe.SHList) - 1:
+            # If it is not the last section, use next section address
+            section.size = pe.SHList[i + 1].addr - section.addr
+        section.rawsize = section.size
+        section.offset = section.addr
 
-    for i, s in enumerate(e.SHList):
-        if i < len(e.SHList) - 1:
-            s.size = e.SHList[i + 1].addr - s.addr
-        s.rawsize = s.size
-        s.offset = s.addr
+        # Update min and max addresses
+        if min_addr is None or section.addr < min_addr:
+            min_addr = section.addr
+        if max_addr is None or section.addr + section.size > max_addr:
+            max_addr = section.addr + max(section.size, len(section.data))
 
-        if min_addr is None or s.addr < min_addr:
-            min_addr = s.addr
-        if max_addr is None or s.addr + s.size > max_addr:
-            max_addr = s.addr + max(s.size, len(s.data))
-    min_addr = e.rva2virt(min_addr)
-    max_addr = e.rva2virt(max_addr)
-    log.debug('%s %s %s' %
-              (hex(min_addr), hex(max_addr), hex(max_addr - min_addr)))
+    min_addr = pe.rva2virt(min_addr)
+    max_addr = pe.rva2virt(max_addr)
+    log.debug('Min: 0x%x, Max: 0x%x, Size: 0x%x' % (min_addr, max_addr,
+                                                    (max_addr - min_addr)))
 
+    # Create only one big section containing the whole PE
     vm.add_memory_page(min_addr,
-                          PAGE_READ | PAGE_WRITE,
-                          (max_addr - min_addr) * "\x00")
-    for s in e.SHList:
-        log.debug('%s %s' % (hex(e.rva2virt(s.addr)), len(s.data)))
-        vm.set_mem(e.rva2virt(s.addr), str(s.data))
-    return e
+                       PAGE_READ | PAGE_WRITE,
+                       (max_addr - min_addr) * "\x00")
+
+    # Copy each sections content in memory
+    for section in pe.SHList:
+        log.debug('Map 0x%x bytes to 0x%x' % (len(s.data), pe.rva2virt(s.addr)))
+        vm.set_mem(pe.rva2virt(s.addr), str(s.data))
+
+    return pe
 
 
-def vm_load_pe_lib(fname_in, libs, lib_path_base, patch_vm_imp, **kargs):
+def vm_load_pe_lib(vm, fname_in, libs, lib_path_base, **kargs):
+    """Call vm_load_pe on @fname_in and update @libs accordingly
+    @vm: VmMngr instance
+    @fname_in: library name
+    @libs: libimp_pe instance
+    @lib_path_base: DLLs relative path
+    Return the corresponding PE instance
+    Extra arguments are passed to vm_load_pe
+    """
     fname = os.path.join(lib_path_base, fname_in)
-    e = vm_load_pe(fname, **kargs)
-    libs.add_export_lib(e, fname_in)
-    # preload_pe(e, libs, patch_vm_imp)
-    return e
+    with open(fname) as fstream:
+        pe = vm_load_pe(vm, fstream.read(), **kargs)
+    libs.add_export_lib(pe, fname_in)
+    return pe
 
 
-def vm_load_pe_libs(libs_name, libs, lib_path_base="win_dll",
-                    patch_vm_imp=True, **kargs):
-    lib_imgs = {}
-    for fname in libs_name:
-        e = vm_load_pe_lib(fname, libs, lib_path_base, patch_vm_imp)
-        lib_imgs[fname] = e
-    return lib_imgs
+def vm_load_pe_libs(vm, libs_name, libs, lib_path_base="win_dll", **kargs):
+    """Call vm_load_pe_lib on each @libs_name filename
+    @vm: VmMngr instance
+    @libs_name: list of str
+    @libs: libimp_pe instance
+    @lib_path_base: (optional) DLLs relative path
+    Return a dictionnary Filename -> PE instances
+    Extra arguments are passed to vm_load_pe_lib
+    """
+    return {fname: vm_load_pe_lib(vm, fname, libs, lib_path_base, **kargs)
+            for fname in libs_name}
 
 
 def vm_fix_imports_pe_libs(lib_imgs, libs, lib_path_base="win_dll",
