@@ -1,10 +1,17 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
 
+import logging
+
 from miasm2.ir.symbexec import symbexec
 from miasm2.core.graph import DiGraph
 from miasm2.expression.expression import *
 
+log = logging.getLogger("analysis")
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
+log.addHandler(console_handler)
+log.setLevel(logging.WARNING)
 
 class ira:
 
@@ -76,6 +83,7 @@ class ira:
                         self.g.add_edge(lbl, d.name)
 
     def graph(self):
+        """Output the graphviz script"""
         out = """
     digraph asm_graph {
     size="80,50";
@@ -83,14 +91,14 @@ class ira:
     fontsize = "16",
     shape = "box"
     ];
-    """
+        """
         all_lbls = {}
         for lbl in self.g.nodes():
             if not lbl in self.blocs:
                 continue
-            b = self.blocs[lbl]
+            irb = self.blocs[lbl]
             ir_txt = [str(lbl)]
-            for irs in b.irs:
+            for irs in irb.irs:
                 for l in irs:
                     ir_txt.append(str(l))
                 ir_txt.append("")
@@ -104,12 +112,19 @@ class ira:
         out += '}'
         return out
 
-    def remove_dead(self, b):
-        for ir, _, c_out in zip(b.irs, b.c_in, b.c_out):
+    def remove_dead(self, irb):
+        """Remove dead affectations using previous liveness analysis
+        @irb: irbloc instance
+        PRE: compute_in_out(@irb)
+        """
+        for ir, _, c_out in zip(irb.irs, irb.c_in, irb.c_out):
             j = 0
             while j < len(ir):
                 i_cur = ir[j]
                 if not isinstance(i_cur.dst, ExprId):
+                    pass
+                elif i_cur.dst == self.IRDst:
+                    # never delete irdst
                     pass
                 elif (isinstance(i_cur.src, ExprOp) and
                     i_cur.src.op.startswith('call')):
@@ -131,75 +146,109 @@ class ira:
     def add_unused_regs(self):
         pass
 
-    def compute_in_out(self, b):
+    def dump_bloc_state(self, irb):
+        print '*'*80
+        for i, (ir, c_in, c_out) in enumerate(zip(irb.irs, irb.c_in, irb.c_out)):
+            print 'ir'
+            for x in ir:
+                print '\t', x
+            print 'R', [str(x) for x in irb.r[i]]#c_in]
+            print 'W', [str(x) for x in irb.w[i]]#c_out]
+            print 'IN', [str(x) for x in c_in]
+            print 'OUT', [str(x) for x in c_out]
+
+        print 'OUT final', [str(x) for x in irb.c_out[-1]]
+
+    def compute_in_out(self, irb):
+        """Liveness computation for a single bloc
+        @irb: irbloc instance
+        Return True iff bloc state has changed
+        """
+
         # get out/in from bloc sons
         modified = False
         # set b in
-        if b.c_in[-1] != set(b.r[-1].union(b.c_out[-1].difference(b.w[-1]))):
+        if irb.c_in[-1] != set(irb.r[-1].union(irb.c_out[-1].difference(irb.w[-1]))):
             modified = True
-        b.c_in[-1] = set(b.r[-1].union(b.c_out[-1].difference(b.w[-1])))
+        irb.c_in[-1] = set(irb.r[-1].union(irb.c_out[-1].difference(irb.w[-1])))
 
         # set b out
         c_out = set()
         has_son = False
-        for n_son in self.g.successors(b.label):
+        for n_son in self.g.successors(irb.label):
             # print n_me, n_son
             has_son = True
             if not n_son in self.blocs:
-                print "leaf has lost her sons!"
+                log.error("leaf has lost her sons!")
                 continue
             b_son = self.blocs[n_son]
             c_out.update(b_son.c_in[0])
         if not has_son:
             # special case: leaf nodes architecture dependant
-            c_out = self.get_out_regs(b)
-        if b.c_out[-1] != set(c_out):
+            c_out = self.get_out_regs(irb)
+        if irb.c_out[-1] != set(c_out):
             modified = True
-        b.c_out[-1] = set(c_out)
+        irb.c_out[-1] = set(c_out)
 
         # get out/in for bloc
-        for i in reversed(xrange(len(b.irs))):
-            if b.c_in[i] != set(b.r[i].union(b.c_out[i].difference(b.w[i]))):
+        for i in reversed(xrange(len(irb.irs))):
+            if irb.c_in[i] != set(irb.r[i].union(irb.c_out[i].difference(irb.w[i]))):
                 modified = True
-            b.c_in[i] = set(b.r[i].union(b.c_out[i].difference(b.w[i])))
-            if b.c_out[i] != set(b.c_in[i + 1]):
+            irb.c_in[i] = set(irb.r[i].union(irb.c_out[i].difference(irb.w[i])))
+            if irb.c_out[i] != set(irb.c_in[i + 1]):
                 modified = True
-            b.c_out[i] = set(b.c_in[i + 1])
+            irb.c_out[i] = set(irb.c_in[i + 1])
+
         return modified
 
     def test_in_out_fix(self):
+        """Return True iff a fixed point has been reached during liveness
+        analysis"""
+
         fixed = True
-        for n in self.g.nodes():
-            if not n in self.blocs:
+        for node in self.g.nodes():
+            if not node in self.blocs:
                 # leaf has lost her son
                 continue
-            b = self.blocs[n]
-            if b.c_in != b.l_in or b.c_out != b.l_out:
+            irb = self.blocs[node]
+            if irb.c_in != irb.l_in or irb.c_out != irb.l_out:
                 fixed = False
-            b.l_in = [set(x) for x in b.c_in]
-            b.l_out = [set(x) for x in b.c_out]
+            irb.l_in = [set(x) for x in irb.c_in]
+            irb.l_out = [set(x) for x in irb.c_out]
         return fixed
 
     def compute_dead(self):
+        """Iterate liveness analysis until a fixed point is reached.
+        PRE: gen_graph()
+        """
+        # Update r/w variables for all irblocs
         self.get_rw()
 
         it = 0
         fixed_point = False
-        print 'iteration...',
+        log.debug('iteration...')
         while not fixed_point:
-            print it,
+            log.debug(it)
             it += 1
             for n in self.g.nodes():
                 if not n in self.blocs:
                     # leaf has lost her son
                     continue
-                b = self.blocs[n]
-                self.compute_in_out(b)
+                irb = self.blocs[n]
+                self.compute_in_out(irb)
 
             fixed_point = self.test_in_out_fix()
-        print
 
     def dead_simp(self):
+        """This function is used to analyse relation of a * complete function *
+        This mean the blocs under study represent a solid full function graph.
+
+        Ref: CS 5470 Compiler Techniques and Principles (Liveness
+        analysis/Dataflow equations)
+
+        PRE: call to gen_graph
+        """
+
         self.compute_dead()
         self.remove_blocs_dead()
         self.simplify_blocs()
