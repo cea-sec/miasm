@@ -62,7 +62,7 @@ class ira:
 
         return done
 
-    def gen_graph(self, link_all = False):
+    def gen_graph(self, link_all = True):
         """
         Gen irbloc digraph
         @link_all: also gen edges to non present irblocs
@@ -103,20 +103,28 @@ class ira:
                     ir_txt.append(str(l))
                 ir_txt.append("")
             ir_txt.append("")
-            all_lbls[id(lbl)] = "\l\\\n".join(ir_txt)
+            all_lbls[hash(lbl)] = "\l\\\n".join(ir_txt)
         for l, v in all_lbls.items():
+            # print l, v
             out += '%s [label="%s"];\n' % (l, v)
 
         for a, b in self.g.edges():
-            out += '%s -> %s;\n' % (id(a), id(b))
+            # print 'edge', a, b, hash(a), hash(b)
+            out += '%s -> %s;\n' % (hash(a), hash(b))
         out += '}'
         return out
 
     def remove_dead(self, irb):
         """Remove dead affectations using previous liveness analysis
         @irb: irbloc instance
+        Return True iff the bloc state has changed
         PRE: compute_in_out(@irb)
         """
+
+        # print 'state1'
+        # self.dump_bloc_state(irb)
+
+        modified = False
         for ir, _, c_out in zip(irb.irs, irb.c_in, irb.c_out):
             j = 0
             while j < len(ir):
@@ -132,12 +140,23 @@ class ira:
                     pass
                 elif not i_cur.dst in c_out:
                     del(ir[j])
+                    modified = True
                     continue
                 j += 1
 
+        # print 'state2'
+        # self.dump_bloc_state(irb)
+
+        return modified
+
     def remove_blocs_dead(self):
+        """Call remove_dead on each irbloc
+        Return True iff one of the bloc state has changed
+        """
+        modified = False
         for b in self.blocs.values():
-            self.remove_dead(b)
+            modified |= self.remove_dead(b)
+        return modified
 
     # for test XXX TODO
     def set_dead_regs(self, b):
@@ -164,7 +183,6 @@ class ira:
         @irb: irbloc instance
         Return True iff bloc state has changed
         """
-
         # get out/in from bloc sons
         modified = False
         # set b in
@@ -176,13 +194,14 @@ class ira:
         c_out = set()
         has_son = False
         for n_son in self.g.successors(irb.label):
-            # print n_me, n_son
             has_son = True
             if not n_son in self.blocs:
-                log.error("leaf has lost her sons!")
-                continue
-            b_son = self.blocs[n_son]
-            c_out.update(b_son.c_in[0])
+                # If the son is not defined, we will propagate our current out
+                # nodes to the in nodes's son
+                son_c_in = irb.c_out_missing
+            else:
+                son_c_in = self.blocs[n_son].c_in[0]
+            c_out.update(son_c_in)
         if not has_son:
             # special case: leaf nodes architecture dependant
             c_out = self.get_out_regs(irb)
@@ -217,12 +236,32 @@ class ira:
             irb.l_out = [set(x) for x in irb.c_out]
         return fixed
 
+    def fill_missing_son_c_in(self):
+        """Find nodes with missing sons in graph, and add virtual link to all
+        written variables of all parents.
+        PRE: gen_graph() and get_rw()"""
+
+        for node in self.g.nodes():
+            if not node in self.blocs:
+                continue
+            self.blocs[node].c_out_missing = set()
+            has_all_son = True
+            for node_son in self.g.successors(node):
+                if not node_son in self.blocs:
+                    has_all_son = False
+                    break
+            if has_all_son:
+                continue
+            parents = self.g.get_all_parents(node)
+            for parent in parents:
+                irb = self.blocs[parent]
+                for var_w in irb.w:
+                    self.blocs[node].c_out_missing.update(var_w)
+
     def compute_dead(self):
         """Iterate liveness analysis until a fixed point is reached.
         PRE: gen_graph()
         """
-        # Update r/w variables for all irblocs
-        self.get_rw()
 
         it = 0
         fixed_point = False
@@ -249,8 +288,20 @@ class ira:
         PRE: call to gen_graph
         """
 
-        self.compute_dead()
-        self.remove_blocs_dead()
+        modified = True
+        while modified:
+            log.debug('dead_simp step')
+
+            # Update r/w variables for all irblocs
+            self.get_rw()
+            # Fill c_in for missing sons
+            self.fill_missing_son_c_in()
+
+            # Liveness step
+            self.compute_dead()
+            modified = self.remove_blocs_dead()
+
+        # Simplify expressions
         self.simplify_blocs()
 
     def gen_equations(self):
