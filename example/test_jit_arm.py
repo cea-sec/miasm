@@ -9,7 +9,7 @@ import logging
 from pdb import pm
 
 parser = Sandbox_Linux_arml.parser(description="""Sandbox an elf binary with arm engine
-(ex: test_jit_arm.py example/md5_arm -a A684)""")
+(ex: test_jit_arm.py samples/md5_arm -a A684)""")
 parser.add_argument("filename", help="PE Filename")
 parser.add_argument('-v', "--verbose",
                     help="verbose mode", action="store_true")

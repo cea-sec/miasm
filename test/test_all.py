@@ -180,7 +180,8 @@ for jitter in ["tcc", "llvm", "python"]:
                        tags=tags.get(jitter, []))
 
 for script, dep in [(["test_jit_x86_32.py", "x86_32_sc.bin"], []),
-                    (["test_jit_arm.py", "md5_arm", "-a", "A684"], []),
+                    (["test_jit_arm.py", Example.get_sample("md5_arm"), "-a",
+                      "A684"], []),
                     (["test_jit_msp430.py", "msp430_sc.bin", "0"],
                      [test_msp430]),
                     (["test_jit_mips32.py", "mips32_sc_l.bin", "0"],
