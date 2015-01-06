@@ -52,6 +52,17 @@ class irbloc:
         self._dst = dst
         return dst
 
+    def set_dst(self, value):
+        dst = None
+        for ir in self.irs:
+            for i in ir:
+                if isinstance(i.dst, m2_expr.ExprId) and i.dst.name == "IRDst":
+                    if dst is not None:
+                        raise ValueError('Multiple destinations!')
+                    dst = value
+                    i.src = value
+        self._dst = value
+
     dst = property(get_dst)
 
     def get_rw(self):
