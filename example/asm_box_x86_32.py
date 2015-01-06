@@ -1,4 +1,5 @@
 #! /usr/bin/env python
+from argparse import ArgumentParser
 from pdb import pm
 
 from elfesteem import pe_init
@@ -8,6 +9,10 @@ from miasm2.arch.x86.arch import mn_x86, base_expr
 from miasm2.core import parse_asm
 from miasm2.expression.expression import *
 from miasm2.core import asmbloc
+
+parser = ArgumentParser("x86 32bits assembler")
+parser.add_argument("source", help="Source to assemble")
+args = parser.parse_args()
 
 pe = pe_init.PE()
 s_text = pe.SHList.add_section(name="text", addr=0x1000, rawsize=0x1000)
@@ -31,20 +36,10 @@ def my_ast_id2expr(t):
 my_var_parser = parse_ast(my_ast_id2expr, my_ast_int2expr)
 base_expr.setParseAction(my_var_parser)
 
-blocs, symbol_pool = parse_asm.parse_txt(mn_x86, 32, '''
-main:
-    PUSH 0
-    PUSH title
-    PUSH msg
-    PUSH 0
-    CALL DWORD PTR [ MessageBoxA ]
-    RET
+with open(args.source) as fstream:
+    source = fstream.read()
 
-title:
-.string "Hello!"
-msg:
-.string "World!"
-''')
+blocs, symbol_pool = parse_asm.parse_txt(mn_x86, 32, source)
 
 # fix shellcode addr
 symbol_pool.set_offset(symbol_pool.getby_name("main"), pe.rva2virt(s_text.addr))
@@ -62,4 +57,5 @@ print patches
 for offset, raw in patches.items():
     pe.virt[offset] = raw
 
-open('box_x86_32.bin', 'wb').write(str(pe))
+output = args.source.replace(".S", ".bin")
+open(output, 'wb').write(str(pe))
