@@ -5,7 +5,7 @@ from miasm2.analysis.binary import Container
 
 if len(sys.argv) != 3:
     print 'Example:'
-    print "%s box_upx.exe 0x410f90" % sys.argv[0]
+    print "%s samples/box_upx.exe 0x410f90" % sys.argv[0]
     sys.exit(0)
 
 ad = int(sys.argv[2], 16)

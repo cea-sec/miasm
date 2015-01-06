@@ -73,10 +73,19 @@ class Example(Test):
     - @base_dir: example/@base_dir
     - @tags: TAGS["example"]"""
 
+    # Directory containing samples for examples
+    sample_dir = "samples"
+
     def __init__(self, *args, **kwargs):
         super(Example, self).__init__(*args, **kwargs)
         self.base_dir = os.path.join("example", self.base_dir)
         self.tags.append(TAGS["example"])
+
+    @classmethod
+    def get_sample(cls, sample_name):
+        "Return the relative path of @sample_name"
+        return os.path.join(cls.sample_dir, sample_name)
+
 
 ## Assembler
 testset += Example(['asm_x86.py'], products=["demo_x86_32.bin"])
@@ -104,7 +113,7 @@ testset += test_msp430
 testset += test_mips32
 for script in [["disasm_01.py"],
                ["disasm_02.py"],
-               ["disasm_03.py", "box_upx.exe", "0x410f90"],
+               ["disasm_03.py", Example.get_sample("box_upx.exe"), "0x410f90"],
                ]:
     testset += Example(script)
 ## Expression
@@ -165,8 +174,9 @@ for jitter in ["tcc", "llvm", "python"]:
     tags = {"python": [TAGS["long"]],
             "llvm": [TAGS["llvm"]],
             }
-    testset += Example(["unpack_upx.py", "box_upx.exe"] + ["--jitter", jitter],
-                       products=["box_upx_exe_unupx.bin"],
+    testset += Example(["unpack_upx.py", Example.get_sample("box_upx.exe")] +
+                       ["--jitter", jitter],
+                       products=[Example.get_sample("box_upx_exe_unupx.bin")],
                        tags=tags.get(jitter, []))
 
 for script, dep in [(["test_jit_x86_32.py", "x86_32_sc.bin"], []),
