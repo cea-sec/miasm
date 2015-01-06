@@ -83,26 +83,23 @@ testset += Example(['asm_x86.py'], products=["demo_x86_32.bin"])
 test_arm = Example(["asm_arm.py"], products=["demo_arm_l.bin", "demo_arm_b.bin"])
 test_armt = Example(["asm_armt.py"], products=["demo_armt_l.bin",
                                                "demo_armt_b.bin"])
-test_box = Example(["asm_box_x86_32.py"], products=["box_x86_32.bin"])
+
+test_box = {}
+test_box_names = ["mod", "mod_self", "repmod", "simple"]
+for source in test_box_names:
+    test_box[source] = Example(["asm_box_x86_32.py", "x86_32_" + source + ".S"],
+                               products=["x86_32_" + source + ".bin"])
+    testset += test_box[source]
+
 test_box_enc = Example(["asm_box_x86_32_enc.py"],
                        products=["box_x86_32_enc.bin"])
-test_box_mod = Example(["asm_box_x86_32_mod.py"],
-                       products=["box_x86_32_mod.bin"])
-test_box_mod_self = Example(["asm_box_x86_32_mod_self.py"],
-                            products=["box_x86_32_mod_self.bin"])
-test_box_repmod = Example(["asm_box_x86_32_repmod.py"],
-                          products=["box_x86_32_repmod.bin"])
 test_msp430 = Example(["asm_msp430_sc.py"], products=["msp430_sc.bin"])
 test_mips32 = Example(["asm_mips32.py"], products=["mips32_sc_b.bin",
                                                    "mips32_sc_l.bin"])
 
 testset += test_arm
 testset += test_armt
-testset += test_box
 testset += test_box_enc
-testset += test_box_mod
-testset += test_box_mod_self
-testset += test_box_repmod
 testset += test_msp430
 testset += test_mips32
 for script in [["disasm_01.py"],
@@ -131,8 +128,8 @@ testset += ExampleTestDis(["armtl", "demo_armt_l.bin", "0"],
                    depends=[test_armt])
 testset += ExampleTestDis(["armtb", "demo_armt_b.bin", "0"],
                    depends=[test_armt])
-testset += ExampleTestDis(["x86_32", "box_x86_32.bin", "0x401000"],
-                          depends=[test_box])
+testset += ExampleTestDis(["x86_32", "x86_32_simple.bin", "0x401000"],
+                          depends=[test_box["simple"]])
 testset += ExampleTestDis(["msp430", "msp430_sc.bin", "0"],
                    depends=[test_msp430])
 testset += ExampleTestDis(["mips32l", "mips32_sc_l.bin", "0"],
@@ -182,16 +179,11 @@ for script, dep in [(["test_jit_x86_32.py", "x86_32_sc.bin"], []),
                       "0"], [test_arm]),
                     (["test_jit_arm_sc.py", "0", "demo_arm_l.bin", "l", "-a",
                       "0"], [test_arm]),
-                    (["sandbox_pe_x86_32.py", "box_x86_32.bin"], [test_box]),
                     (["sandbox_pe_x86_32.py", "box_x86_32_enc.bin"],
                      [test_box_enc]),
-                    (["sandbox_pe_x86_32.py", "box_x86_32_mod.bin"],
-                     [test_box_mod]),
-                    (["sandbox_pe_x86_32.py", "box_x86_32_repmod.bin"],
-                     [test_box_repmod]),
-                    (["sandbox_pe_x86_32.py", "box_x86_32_mod_self.bin"],
-                     [test_box_mod_self]),
-                    ]:
+                    ] + [(["sandbox_pe_x86_32.py", "x86_32_" + name + ".bin"],
+                          [test_box[name]])
+                         for name in test_box_names]:
     for jitter in ["tcc", "llvm", "python"]:
         tags = [TAGS["llvm"]] if jitter == "llvm" else []
         testset += Example(script + ["--jitter", jitter],
