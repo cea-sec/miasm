@@ -1,5 +1,5 @@
 from miasm2.arch.x86.arch import mn_x86
-from miasm2.arch.x86.regs import *
+from miasm2.arch.x86.regs import EDX
 
 l = mn_x86.fromstring('MOV EAX, EBX', 32)
 print "instruction:", l
