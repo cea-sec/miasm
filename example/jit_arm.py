@@ -7,7 +7,7 @@ from miasm2.analysis.sandbox import Sandbox_Linux_arml
 
 # Get arguments
 parser = Sandbox_Linux_arml.parser(description="""Sandbox an elf binary with arm
- engine (ex: test_jit_arm.py samples/md5_arm -a A684)""")
+ engine (ex: jit_arm.py samples/md5_arm -a A684)""")
 parser.add_argument("filename", help="ELF Filename")
 parser.add_argument('-v', "--verbose", help="verbose mode", action="store_true")
 options = parser.parse_args()

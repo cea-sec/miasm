@@ -11,7 +11,7 @@ import logging
 from pdb import pm
 
 parser = Sandbox_Linux_arml_str.parser(description="""Sandbox an elf binary with arm engine
-(ex: test_jit_arm_sc.py example/demo_arm_l.bin)""")
+(ex: jit_arm_sc.py example/demo_arm_l.bin)""")
 parser.add_argument("filename", help="string Filename")
 parser.add_argument("endianess", help="endianness [b/l]")
 parser.add_argument('-v', "--verbose",
