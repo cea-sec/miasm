@@ -1,12 +1,14 @@
 #! /usr/bin/env python
 
-from miasm2.core.cpu import parse_ast
-from miasm2.arch.arm.arch import mn_armt, base_expr, variable
-from miasm2.core import parse_asm
-from miasm2.expression.expression import *
-from miasm2.core import asmbloc
-from elfesteem.strpatchwork import StrPatchwork
 from pdb import pm
+
+from elfesteem.strpatchwork import StrPatchwork
+
+from miasm2.core.cpu import parse_ast
+from miasm2.arch.arm.arch import mn_armt, base_expr
+from miasm2.core import parse_asm
+import miasm2.expression.expression as m2_expr
+from miasm2.core import asmbloc
 
 my_mn = mn_armt
 
@@ -14,11 +16,11 @@ reg_and_id = dict(mn_armt.regs.all_regs_ids_byname)
 
 
 def my_ast_int2expr(a):
-    return ExprInt32(a)
+    return m2_expr.ExprInt32(a)
 
 
 def my_ast_id2expr(t):
-    return reg_and_id.get(t, ExprId(t, size=32))
+    return reg_and_id.get(t, m2_expr.ExprId(t, size=32))
 
 my_var_parser = parse_ast(my_ast_id2expr, my_ast_int2expr)
 base_expr.setParseAction(my_var_parser)
