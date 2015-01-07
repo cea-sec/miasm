@@ -9,14 +9,14 @@ from miasm2.arch.x86.arch import mn_x86, base_expr
 from miasm2.core import parse_asm
 import miasm2.expression.expression as m2_expr
 
-e = pe_init.PE()
-s_text = e.SHList.add_section(name="text", addr=0x1000, rawsize=0x1000)
-s_iat = e.SHList.add_section(name="iat", rawsize=0x100)
+pe = pe_init.PE()
+s_text = pe.SHList.add_section(name="text", addr=0x1000, rawsize=0x1000)
+s_iat = pe.SHList.add_section(name="iat", rawsize=0x100)
 new_dll = [({"name": "USER32.dll",
              "firstthunk": s_iat.addr}, ["MessageBoxA"])]
-e.DirImport.add_dlldesc(new_dll)
-s_myimp = e.SHList.add_section(name="myimp", rawsize=len(e.DirImport))
-e.DirImport.set_rva(s_myimp.addr)
+pe.DirImport.add_dlldesc(new_dll)
+s_myimp = pe.SHList.add_section(name="myimp", rawsize=len(pe.DirImport))
+pe.DirImport.set_rva(s_myimp.addr)
 
 reg_and_id = dict(mn_x86.regs.all_regs_ids_byname)
 
@@ -74,10 +74,10 @@ msg:
 
 
 # fix shellcode addr
-symbol_pool.set_offset(symbol_pool.getby_name("main"), e.rva2virt(s_text.addr))
+symbol_pool.set_offset(symbol_pool.getby_name("main"), pe.rva2virt(s_text.addr))
 symbol_pool.set_offset(symbol_pool.getby_name_create(
-    "MessageBoxA"), e.DirImport.get_funcvirt('MessageBoxA'))
-e.Opthdr.AddressOfEntryPoint = s_text.addr
+    "MessageBoxA"), pe.DirImport.get_funcvirt('MessageBoxA'))
+pe.Opthdr.AddressOfEntryPoint = s_text.addr
 
 for b in blocs[0]:
     print b
@@ -99,6 +99,6 @@ for ad, val in patches.items():
         new_patches[ad] = "".join([chr(ord(x) ^ 0x42) for x in val])
 
 for offset, raw in new_patches.items():
-    e.virt[offset] = raw
+    pe.virt[offset] = raw
 
-open('box_x86_32_enc.bin', 'wb').write(str(e))
+open('box_x86_32_enc.bin', 'wb').write(str(pe))
