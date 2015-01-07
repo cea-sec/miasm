@@ -182,7 +182,8 @@ for jitter in ["tcc", "llvm", "python"]:
                        products=[Example.get_sample("box_upx_exe_unupx.bin")],
                        tags=tags.get(jitter, []))
 
-for script, dep in [(["test_jit_x86_32.py", "x86_32_sc.bin"], []),
+for script, dep in [(["test_jit_x86_32.py",
+                      Example.get_sample("x86_32_sc.bin")], []),
                     (["test_jit_arm.py", Example.get_sample("md5_arm"), "-a",
                       "A684"], []),
                     (["test_jit_msp430.py", "msp430_sc.bin", "0"],
