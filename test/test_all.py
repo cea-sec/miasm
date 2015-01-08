@@ -114,7 +114,7 @@ testset += test_box_enc
 testset += test_msp430
 testset += test_mips32
 for script in [["disasm_single_instr.py"],
-               ["disasm_02.py"],
+               ["disasm_function.py"],
                ["disasm_03.py", Example.get_sample("box_upx.exe"), "0x410f90"],
                ]:
     testset += Example(script)
