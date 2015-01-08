@@ -123,14 +123,13 @@ for script in [["disasm_single_instr.py"],
 class ExampleTestDis(Example):
     """TestDis specificities:
     - script: test_dis.py
-    - flags: -g -s -m
+    - flags: -g -s
     - @products: graph_execflow.txt, graph_irflow.txt, lines.txt, out.txt
     """
 
     def __init__(self, *args, **kwargs):
         super(ExampleTestDis, self).__init__(*args, **kwargs)
-        self.command_line = ["test_dis.py", "-g", "-s", "-m"] + \
-            self.command_line
+        self.command_line = ["test_dis.py", "-g", "-s"] + self.command_line
         self.products += ["graph_execflow.txt", "graph_irflow.txt", "lines.txt",
                           "out.txt"]
 
