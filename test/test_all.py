@@ -113,7 +113,7 @@ testset += test_armt
 testset += test_box_enc
 testset += test_msp430
 testset += test_mips32
-for script in [["disasm_01.py"],
+for script in [["disasm_single_instr.py"],
                ["disasm_02.py"],
                ["disasm_03.py", Example.get_sample("box_upx.exe"), "0x410f90"],
                ]:
