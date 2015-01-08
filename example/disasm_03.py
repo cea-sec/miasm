@@ -8,12 +8,12 @@ if len(sys.argv) != 3:
     print "%s samples/box_upx.exe 0x410f90" % sys.argv[0]
     sys.exit(0)
 
-ad = int(sys.argv[2], 16)
+addr = int(sys.argv[2], 16)
 cont = Container.from_stream(open(sys.argv[1]))
 mdis = dis_x86_32(cont.bin_stream)
-# inform the engine not to disasm nul instructions
+# Inform the engine to avoid disassembling null instructions
 mdis.dont_dis_nulstart_bloc = True
-blocs = mdis.dis_multibloc(ad)
+blocs = mdis.dis_multibloc(addr)
 
-g = bloc2graph(blocs)
-open('graph.txt', 'w').write(g)
+graph = bloc2graph(blocs)
+open('graph.txt', 'w').write(graph)
