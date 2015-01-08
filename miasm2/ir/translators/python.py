@@ -31,8 +31,7 @@ class TranslatorPython(Translator):
         out = cls.from_expr(expr.arg)
         if expr.start != 0:
             out = "(%s >> %d)" % (out, expr.start)
-        return "(%s & 0x%x)" % (cls.from_expr(expr.arg),
-                                (1 << (expr.stop - expr.start)) - 1)
+        return "(%s & 0x%x)" % (out, (1 << (expr.stop - expr.start)) - 1)
 
     @classmethod
     def from_ExprCompose(cls, expr):
