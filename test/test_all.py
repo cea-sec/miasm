@@ -120,33 +120,35 @@ for script in [["disasm_single_instr.py"],
                ]:
     testset += Example(script)
 ## Expression
-class ExampleTestDis(Example):
+class ExampleDisasmFull(Example):
     """TestDis specificities:
-    - script: test_dis.py
+    - script: disasm_full.py
     - flags: -g -s
     - @products: graph_execflow.txt, graph_irflow.txt, lines.txt, out.txt
     """
 
     def __init__(self, *args, **kwargs):
-        super(ExampleTestDis, self).__init__(*args, **kwargs)
-        self.command_line = ["test_dis.py", "-g", "-s"] + self.command_line
+        super(ExampleDisasmFull, self).__init__(*args, **kwargs)
+        self.command_line = ["disasm_full.py", "-g", "-s"] + self.command_line
         self.products += ["graph_execflow.txt", "graph_irflow.txt", "lines.txt",
                           "out.txt"]
 
-testset += ExampleTestDis(["arml", "demo_arm_l.bin", "0"], depends=[test_arm])
-testset += ExampleTestDis(["armb", "demo_arm_b.bin", "0"], depends=[test_arm])
-testset += ExampleTestDis(["armtl", "demo_armt_l.bin", "0"],
+testset += ExampleDisasmFull(["arml", "demo_arm_l.bin", "0"],
+                             depends=[test_arm])
+testset += ExampleDisasmFull(["armb", "demo_arm_b.bin", "0"],
+                             depends=[test_arm])
+testset += ExampleDisasmFull(["armtl", "demo_armt_l.bin", "0"],
                    depends=[test_armt])
-testset += ExampleTestDis(["armtb", "demo_armt_b.bin", "0"],
+testset += ExampleDisasmFull(["armtb", "demo_armt_b.bin", "0"],
                    depends=[test_armt])
-testset += ExampleTestDis(["x86_32", Example.get_sample("x86_32_simple.bin"),
+testset += ExampleDisasmFull(["x86_32", Example.get_sample("x86_32_simple.bin"),
                            "0x401000"],
                           depends=[test_box["simple"]])
-testset += ExampleTestDis(["msp430", "msp430_sc.bin", "0"],
+testset += ExampleDisasmFull(["msp430", "msp430_sc.bin", "0"],
                    depends=[test_msp430])
-testset += ExampleTestDis(["mips32l", "mips32_sc_l.bin", "0"],
+testset += ExampleDisasmFull(["mips32l", "mips32_sc_l.bin", "0"],
                           depends=[test_mips32])
-testset += ExampleTestDis(["mips32b", "mips32_sc_b.bin", "0"],
+testset += ExampleDisasmFull(["mips32b", "mips32_sc_b.bin", "0"],
                           depends=[test_mips32])
 
 testset += Example(["expression/graph_dataflow.py",
