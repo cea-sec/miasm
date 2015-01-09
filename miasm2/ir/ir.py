@@ -53,6 +53,7 @@ class irbloc:
         return dst
 
     def set_dst(self, value):
+        """Find and replace the IRDst affectation's source by @value"""
         dst = None
         for ir in self.irs:
             for i in ir:

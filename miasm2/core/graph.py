@@ -27,13 +27,16 @@ class DiGraph:
         self._nodes_to[n] = []
         self._nodes_from[n] = []
 
-    def del_node(self, n):
-        if n in self._nodes:
-            self._nodes.remove(n)
-        for pred in self.predecessors(n):
-            self.del_edge(pred, n)
-        for succ in self.successors(n):
-            self.del_edge(n, succ)
+    def del_node(self, node):
+        """Delete the @node of the graph; Also delete every edge to/from this
+        @node"""
+
+        if node in self._nodes:
+            self._nodes.remove(node)
+        for pred in self.predecessors(node):
+            self.del_edge(pred, node)
+        for succ in self.successors(node):
+            self.del_edge(node, succ)
 
     def add_edge(self, a, b):
         if not a in self._nodes:
