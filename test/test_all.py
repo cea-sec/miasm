@@ -119,7 +119,7 @@ for script in [["disasm_single_instr.py"],
                 "0x410f90"],
                ]:
     testset += Example(script)
-## Expression
+
 class ExampleDisasmFull(Example):
     """TestDis specificities:
     - script: disasm_full.py
@@ -151,15 +151,16 @@ testset += ExampleDisasmFull(["mips32l", "mips32_sc_l.bin", "0"],
 testset += ExampleDisasmFull(["mips32b", "mips32_sc_b.bin", "0"],
                           depends=[test_mips32])
 
+## Expression
 testset += Example(["expression/graph_dataflow.py",
-                    "expression/sc_connect_back.bin", "0x2e"],
+                    Example.get_sample("sc_connect_back.bin"), "0x2e"],
                    products=["data.txt"])
 testset += Example(["expression/asm_to_ir.py"],
                    products=["graph.txt", "graph2.txt"])
 testset += Example(["expression/get_read_write.py"],
                    products=["graph_instr.txt"])
 testset += Example(["expression/solve_condition_stp.py",
-                    "expression/simple_test.bin"],
+                    Example.get_sample("simple_test.bin")],
                    products=["graph_instr.txt"])
 
 for script in [["expression/basic_op.py"],
