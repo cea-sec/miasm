@@ -2884,7 +2884,7 @@ def xorps(ir, instr, a, b):
     e = []
     if isinstance(b, ExprMem):
         b = ExprMem(b.arg, a.size)
-    e.append(ExprAff(a, ExprOp('xorps', a, b)))
+    e.append(ExprAff(a, ExprOp('^', a, b)))
     return e, []
 
 ### MMX/SSE/AVX operations
