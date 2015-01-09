@@ -162,8 +162,7 @@ testset += Example(["expression/solve_condition_stp.py",
                     "expression/simple_test.bin"],
                    products=["graph_instr.txt"])
 
-for script in [["symbol_exec.py"],
-               ["expression/basic_op.py"],
+for script in [["expression/basic_op.py"],
                ["expression/basic_simplification.py"],
                ["expression/simplification_tools.py"],
                ["expression/expr_grapher.py"],
@@ -172,8 +171,11 @@ for script in [["symbol_exec.py"],
                ["expression/expr_translate.py"],
                ]:
     testset += Example(script)
-## Jitter
 
+## Symbolic Execution
+testset += Example(["symbol_exec/single_instr.py"])
+
+## Jitter
 for jitter in ["tcc", "llvm", "python"]:
     # Take 5 min on a Core i5
     tags = {"python": [TAGS["long"]],
