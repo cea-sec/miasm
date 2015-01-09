@@ -67,9 +67,9 @@ class ir_a_arml(ir_a_arml_base):
             irs = self.call_effects(pc_val)
             irs.append([ExprAff(self.IRDst, ExprId(lbl, size=self.pc.size))])
             nbloc = irbloc(new_lbl, irs)
-            nbloc.lines = [l]
+            nbloc.lines = [l]*len(irs)
             self.blocs[new_lbl] = nbloc
-            irb.dst = ExprId(new_lbl, size=self.pc.size)
+            irb.set_dst(ExprId(new_lbl, size=self.pc.size))
 
         """
         if not bloc.lines:

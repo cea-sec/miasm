@@ -27,6 +27,17 @@ class DiGraph:
         self._nodes_to[n] = []
         self._nodes_from[n] = []
 
+    def del_node(self, node):
+        """Delete the @node of the graph; Also delete every edge to/from this
+        @node"""
+
+        if node in self._nodes:
+            self._nodes.remove(node)
+        for pred in self.predecessors(node):
+            self.del_edge(pred, node)
+        for succ in self.successors(node):
+            self.del_edge(node, succ)
+
     def add_edge(self, a, b):
         if not a in self._nodes:
             self.add_node(a)
@@ -96,6 +107,20 @@ class DiGraph:
                 if path and path[0] == a:
                     out.append(path + [b])
         return out
+
+    def get_all_parents(self, node):
+        """Return every parents nodes for a given @node"""
+
+        todo = set([node])
+        done = set()
+        while todo:
+            node = todo.pop()
+            if node in done:
+                continue
+            done.add(node)
+            for parent in self.predecessors(node):
+                todo.add(parent)
+        return done
 
     def node2str(self, n):
         return str(n)
