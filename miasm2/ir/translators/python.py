@@ -57,7 +57,7 @@ class TranslatorPython(Translator):
                                              args[0],
                                              (1 << expr.size) - 1)
             else:
-                return "(%s & 0x%x)" % ((" %s " % expr.op).join(args),
+                return "((%s) & 0x%x)" % ((" %s " % expr.op).join(args),
                                         (1 << expr.size) - 1)
         elif expr.op == "parity":
             return "(%s & 0x1)" % cls.from_expr(expr.args[0])
