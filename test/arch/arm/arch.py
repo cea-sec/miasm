@@ -237,6 +237,9 @@ reg_tests_arm = [
     ("XXXXXXXX    UXTH       R0, R2",
      "7200FFE6"),
 
+    ("XXXXXXXX    BFC        R0, 0x0, 0xD",
+     "1f00cce7"),
+
 
 ]
 ts = time.time()

@@ -1528,6 +1528,7 @@ lsb = bs(l=5, cls=(arm_imm, m_arg))
 
 armop("ubfx", [bs('0111111'), widthm1, rd, lsb, bs('101'), rn], [rd, rn, lsb, widthm1])
 
+armop("bfc", [bs('0111110'), widthm1, rd, lsb, bs('001'), bs('1111')], [rd, lsb, widthm1])
 #
 # thumnb #######################
 #
