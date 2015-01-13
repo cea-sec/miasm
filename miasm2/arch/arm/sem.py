@@ -871,6 +871,28 @@ def ubfx(ir, instr, a, b, c, d):
         e.append(ExprAff(ir.IRDst, r))
     return e
 
+def bfc(ir, instr, a, b, c):
+    e = []
+    start = int(b.arg)
+    stop = start + int(c.arg)
+    out = []
+    last = 0
+    if start:
+        out.append((a[:start], 0, start))
+        last = start
+    if stop - start:
+        out.append((ExprInt32(0)[last:stop], last, stop))
+        last = stop
+    if last < 32:
+        out.append((a[last:], last, 32))
+    r = ExprCompose(out)
+    e.append(ExprAff(a, r))
+    dst = None
+    if PC in a.get_r():
+        dst = PC
+        e.append(ExprAff(ir.IRDst, r))
+    return e
+
 
 
 COND_EQ = 0
@@ -1009,6 +1031,7 @@ mnemo_condm0 = {'add': add,
                 'sxtb': sxtb,
                 'sxth': sxth,
                 'ubfx': ubfx,
+                'bfc': bfc,
                 }
 
 mnemo_condm1 = {'adds': add,
