@@ -525,7 +525,7 @@ class ExprCond(Expr):
         self._size = self.src1.size
 
     def __str__(self):
-        return "%s?(%s,%s)" % (str(self.cond), str(self.src1), str(self.src2))
+        return "(%s?(%s,%s))" % (str(self.cond), str(self.src1), str(self.src2))
 
     def get_r(self, mem_read=False, cst_read=False):
         out_src1 = self.src1.get_r(mem_read, cst_read)
