@@ -456,34 +456,15 @@ sudo python setup.py install
 ```
 
 * To use the jitter, TCC or LLVM is recommended
-* LibTCC needs a little fix in the `Makefile`:
-  * remove libtcc-dev from the system to avoid conflicts
-  * clone [tinycc release_0_9_26](http://repo.or.cz/w/tinycc.git/snapshot/d5e22108a0dc48899e44a158f91d5b3215eb7fe6.tar.gz)
-  * edit the `Makefile`
-  * add option `-fPIC` to the `CFLAGS` definition: `CFLAGS+= -fPIC`
-
-```
-#
-# Tiny C Compiler Makefile
-#
-
-TOP ?= .
-include $(TOP)/config.mak
-VPATH = $(top_srcdir)
-
-CPPFLAGS = -I$(TOP) # for config.h
-
-# ADD NEXT LINE:
-CFLAGS+= -fPIC
-...
-```
-
-  * `./configure && make && make install`
-  * LLVM
-    * Debian (testing/unstable): install python-llvm
-    * Debian stable/Ubuntu/Kali/whatever: install from [llvmpy](http://www.llvmpy.org/)
-    * Windows: python-llvm is not supported :/
-  * Build and install Miasm:
+* LibTCC needs to be configured with the `--disable-static` option
+  * remove `libtcc-dev` from the system to avoid conflicts
+  * clone [TinyCC](http://repo.or.cz/tinycc.git)
+  * `./configure --disable-static && make && make install`
+* LLVM
+  * Debian (testing/unstable): install python-llvm
+  * Debian stable/Ubuntu/Kali/whatever: install from [llvmpy](http://www.llvmpy.org/)
+  * Windows: python-llvm is not supported :/
+* Build and install Miasm:
 ```
 $ cd miasm_directory
 $ python setup.py build
