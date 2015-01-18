@@ -102,25 +102,32 @@ class ExampleDir(Example):
 
 
 ## Assembler
-testset += Example(['asm_x86.py'], products=["demo_x86_32.bin"])
-test_arm = Example(["asm_arm.py"], products=["demo_arm_l.bin", "demo_arm_b.bin"])
-test_armt = Example(["asm_armt.py"], products=["demo_armt_l.bin",
-                                               "demo_armt_b.bin"])
+class ExampleAssembler(ExampleDir):
+    """Assembler examples specificities:
+    - script path begins with "asm/"
+    """
+    example_dir = "asm"
+
+
+testset += ExampleAssembler(['x86.py'], products=["demo_x86_32.bin"])
+test_arm = ExampleAssembler(["arm.py"],
+                            products=["demo_arm_l.bin", "demo_arm_b.bin"])
+test_armt = ExampleAssembler(["armt.py"], products=["demo_armt_l.bin",
+                                                    "demo_armt_b.bin"])
 
 test_box = {}
 test_box_names = ["mod", "mod_self", "repmod", "simple"]
 for source in test_box_names:
-    test_box[source] = Example(["asm_box_x86_32.py",
-                                Example.get_sample("x86_32_" + source + ".S")],
-                               products=[Example.get_sample("x86_32_" + source +
-                                                            ".bin")])
+    sample_base = Example.get_sample("x86_32_" + source)
+    test_box[source] = ExampleAssembler(["box_x86_32.py", sample_base + ".S"],
+                                        products=[sample_base + ".bin"])
     testset += test_box[source]
 
-test_box_enc = Example(["asm_box_x86_32_enc.py"],
-                       products=["box_x86_32_enc.bin"])
-test_msp430 = Example(["asm_msp430_sc.py"], products=["msp430_sc.bin"])
-test_mips32 = Example(["asm_mips32.py"], products=["mips32_sc_b.bin",
-                                                   "mips32_sc_l.bin"])
+test_box_enc = ExampleAssembler(["box_x86_32_enc.py"],
+                                products=["box_x86_32_enc.bin"])
+test_msp430 = ExampleAssembler(["msp430_sc.py"], products=["msp430_sc.bin"])
+test_mips32 = ExampleAssembler(["mips32.py"], products=["mips32_sc_b.bin",
+                                                        "mips32_sc_l.bin"])
 
 testset += test_arm
 testset += test_armt
