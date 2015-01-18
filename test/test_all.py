@@ -87,6 +87,20 @@ class Example(Test):
         return os.path.join(cls.sample_dir, sample_name)
 
 
+class ExampleDir(Example):
+    "Launch examples from a given directory"
+
+    example_dir = ""
+
+    def __init__(self, *args, **kwargs):
+        if not self.example_dir:
+            raise NotImplementedError("ExampleDir should be inherited")
+
+        super(ExampleDir, self).__init__(*args, **kwargs)
+        self.command_line[0] = os.path.join(self.example_dir,
+                                            self.command_line[0])
+
+
 ## Assembler
 testset += Example(['asm_x86.py'], products=["demo_x86_32.bin"])
 test_arm = Example(["asm_arm.py"], products=["demo_arm_l.bin", "demo_arm_b.bin"])
@@ -152,26 +166,34 @@ testset += ExampleDisasmFull(["mips32b", "mips32_sc_b.bin", "0"],
                           depends=[test_mips32])
 
 ## Expression
-testset += Example(["expression/graph_dataflow.py",
-                    Example.get_sample("sc_connect_back.bin"), "0x2e"],
-                   products=["data.txt"])
-testset += Example(["expression/asm_to_ir.py"],
-                   products=["graph.txt", "graph2.txt"])
-testset += Example(["expression/get_read_write.py"],
-                   products=["graph_instr.txt"])
-testset += Example(["expression/solve_condition_stp.py",
-                    Example.get_sample("simple_test.bin")],
-                   products=["graph_instr.txt"])
+class ExampleExpression(ExampleDir):
+    """Expression examples specificities:
+    - script path begins with "expression/"
+    """
+    example_dir = "expression"
 
-for script in [["expression/basic_op.py"],
-               ["expression/basic_simplification.py"],
-               ["expression/simplification_tools.py"],
-               ["expression/expr_grapher.py"],
-               ["expression/simplification_add.py"],
-               ["expression/expr_random.py"],
-               ["expression/expr_translate.py"],
+
+testset += ExampleExpression(["graph_dataflow.py",
+                              Example.get_sample("sc_connect_back.bin"),
+                              "0x2e"],
+                             products=["data.txt"])
+testset += ExampleExpression(["asm_to_ir.py"],
+                             products=["graph.txt", "graph2.txt"])
+testset += ExampleExpression(["get_read_write.py"],
+                             products=["graph_instr.txt"])
+testset += ExampleExpression(["solve_condition_stp.py",
+                              Example.get_sample("simple_test.bin")],
+                             products=["graph_instr.txt"])
+
+for script in [["basic_op.py"],
+               ["basic_simplification.py"],
+               ["simplification_tools.py"],
+               ["expr_grapher.py"],
+               ["simplification_add.py"],
+               ["expr_random.py"],
+               ["expr_translate.py"],
                ]:
-    testset += Example(script)
+    testset += ExampleExpression(script)
 
 ## Symbolic Execution
 testset += Example(["symbol_exec/single_instr.py"])
