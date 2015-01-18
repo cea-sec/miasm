@@ -199,38 +199,43 @@ for script in [["basic_op.py"],
 testset += Example(["symbol_exec/single_instr.py"])
 
 ## Jitter
-for jitter in ["tcc", "llvm", "python"]:
+class ExampleJitter(ExampleDir):
+    """Jitter examples specificities:
+    - script path begins with "jitter/"
+    """
+    example_dir = "jitter"
+    jitter_engines = ["tcc", "llvm", "python"]
+
+for jitter in ExampleJitter.jitter_engines:
     # Take 5 min on a Core i5
     tags = {"python": [TAGS["long"]],
             "llvm": [TAGS["llvm"]],
             }
-    testset += Example(["unpack_upx.py", Example.get_sample("box_upx.exe")] +
-                       ["--jitter", jitter],
-                       products=[Example.get_sample("box_upx_exe_unupx.bin")],
-                       tags=tags.get(jitter, []))
+    testset += ExampleJitter(["unpack_upx.py",
+                              Example.get_sample("box_upx.exe")] +
+                             ["--jitter", jitter],
+                             products=[Example.get_sample("box_upx_exe_unupx.bin")],
+                             tags=tags.get(jitter, []))
 
-for script, dep in [(["jit_x86_32.py",
-                      Example.get_sample("x86_32_sc.bin")], []),
-                    (["jit_arm.py", Example.get_sample("md5_arm"), "-a",
-                      "A684"], []),
-                    (["jit_msp430.py", "msp430_sc.bin", "0"],
-                     [test_msp430]),
-                    (["jit_mips32.py", "mips32_sc_l.bin", "0"],
-                     [test_mips32]),
-                    (["jit_arm_sc.py", "0", "demo_arm_b.bin", "b", "-a",
-                      "0"], [test_arm]),
-                    (["jit_arm_sc.py", "0", "demo_arm_l.bin", "l", "-a",
-                      "0"], [test_arm]),
+for script, dep in [(["x86_32.py", Example.get_sample("x86_32_sc.bin")], []),
+                    (["arm.py", Example.get_sample("md5_arm"), "-a", "A684"],
+                     []),
+                    (["msp430.py", "msp430_sc.bin", "0"], [test_msp430]),
+                    (["mips32.py", "mips32_sc_l.bin", "0"], [test_mips32]),
+                    (["arm_sc.py", "0", "demo_arm_b.bin", "b", "-a", "0"],
+                     [test_arm]),
+                    (["arm_sc.py", "0", "demo_arm_l.bin", "l", "-a", "0"],
+                     [test_arm]),
                     (["sandbox_pe_x86_32.py", "box_x86_32_enc.bin"],
                      [test_box_enc]),
                     ] + [(["sandbox_pe_x86_32.py",
                            Example.get_sample("x86_32_" + name + ".bin")],
                           [test_box[name]])
                          for name in test_box_names]:
-    for jitter in ["tcc", "llvm", "python"]:
+    for jitter in ExampleJitter.jitter_engines:
         tags = [TAGS["llvm"]] if jitter == "llvm" else []
-        testset += Example(script + ["--jitter", jitter],
-                           depends=dep, tags=tags)
+        testset += ExampleJitter(script + ["--jitter", jitter], depends=dep,
+                                 tags=tags)
 
 
 if __name__ == "__main__":
