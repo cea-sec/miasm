@@ -134,25 +134,37 @@ testset += test_armt
 testset += test_box_enc
 testset += test_msp430
 testset += test_mips32
-for script in [["disasm_single_instr.py"],
-               ["disasm_function.py"],
-               ["disasm_file.py", Example.get_sample("box_upx.exe"),
-                "0x410f90"],
+
+
+class ExampleDisassembler(ExampleDir):
+    """Disassembler examples specificities:
+    - script path begins with "disasm/"
+    """
+    example_dir = "disasm"
+
+
+for script in [["single_instr.py"],
+               ["function.py"],
+               ["file.py", Example.get_sample("box_upx.exe"), "0x410f90"],
                ]:
-    testset += Example(script)
+    testset += ExampleDisassembler(script)
+
 
 class ExampleDisasmFull(Example):
-    """TestDis specificities:
-    - script: disasm_full.py
+    """DisasmFull specificities:
+    - script: disasm/full.py
     - flags: -g -s
     - @products: graph_execflow.txt, graph_irflow.txt, lines.txt, out.txt
     """
 
     def __init__(self, *args, **kwargs):
         super(ExampleDisasmFull, self).__init__(*args, **kwargs)
-        self.command_line = ["disasm_full.py", "-g", "-s"] + self.command_line
+        self.command_line = [os.path.join(ExampleDisassembler.example_dir,
+                                          "full.py"),
+                             "-g", "-s"] + self.command_line
         self.products += ["graph_execflow.txt", "graph_irflow.txt", "lines.txt",
                           "out.txt"]
+
 
 testset += ExampleDisasmFull(["arml", "demo_arm_l.bin", "0"],
                              depends=[test_arm])
@@ -171,6 +183,7 @@ testset += ExampleDisasmFull(["mips32l", "mips32_sc_l.bin", "0"],
                           depends=[test_mips32])
 testset += ExampleDisasmFull(["mips32b", "mips32_sc_b.bin", "0"],
                           depends=[test_mips32])
+
 
 ## Expression
 class ExampleExpression(ExampleDir):
