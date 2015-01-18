@@ -1,3 +1,4 @@
+import errno
 import os
 import subprocess
 import sys
@@ -105,7 +106,13 @@ class TestSet(object):
 
         # Main loop
         while True:
-            message = self.message_queue.get()
+            message = None
+            while message is None:
+                try:
+                    message = self.message_queue.get()
+                except IOError as e:
+                    if e.errno != errno.EINTR:
+                        raise
             if isinstance(message, MessageClose):
                 # Poison pill
                 break
