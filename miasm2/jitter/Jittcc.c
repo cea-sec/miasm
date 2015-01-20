@@ -168,7 +168,7 @@ PyObject* tcc_compil(PyObject* self, PyObject* args)
 		fprintf(stderr, "%s\n", func_code);
 		exit(1);
 	}
-	/* XXX use tinycc devel with -fPIC patch in makefile */
+	/* XXX configure tinycc install with --disable-static */
 	if (tcc_relocate(tcc_state, TCC_RELOCATE_AUTO) < 0) {
 		fprintf(stderr, "tcc relocate error\n");
 		exit(1);
