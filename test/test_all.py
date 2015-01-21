@@ -277,7 +277,7 @@ By default, no tag is ommited." % ", ".join(TAGS.keys()), default="")
             "'py-llvm 3.2' module is required for llvm tests"
 
         # Remove llvm tests
-        if "llvm" not in exclude_tags:
+        if TAGS["llvm"] not in exclude_tags:
             exclude_tags.append(TAGS["llvm"])
 
     # Set callbacks
