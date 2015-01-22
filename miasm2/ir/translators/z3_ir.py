@@ -229,9 +229,30 @@ if __name__ == '__main__':
                 assert equiv(value, constraints[addr.as_long()])
 
     # equiv short test
+    # --------------------------------------------------------------------------
     assert equiv(z3.BitVec('a', 32) + z3.BitVecVal(3, 32) - z3.BitVecVal(1, 32),
                  z3.BitVec('a', 32) + z3.BitVecVal(2, 32))
 
+    # Z3Mem short tests
+    # --------------------------------------------------------------------------
+    mem = Z3Mem(endianness='<') # little endian  
+    eax = z3.BitVec('EAX', 32)
+    assert equiv(
+             # @32[EAX]
+             mem.get(eax, 32),
+             # @16[EAX+2] . @16[EAX]
+             z3.Concat(mem.get(eax+2, 16), 
+                       mem.get(eax, 16)))
+
+    # --------------------------------------------------------------------------
+    ax = z3.BitVec('AX', 16) 
+    assert not equiv(
+            # @16[EAX] with EAX = ZeroExtend(AX)
+            mem.get(z3.ZeroExt(16, ax), 16),
+            # @16[AX]
+            mem.get(ax, 16))
+
+    # TranslatorZ3 tests
     # --------------------------------------------------------------------------
     e = ExprId('x', 32)
     ez3 = Translator.to_language('z3').from_expr(e)
@@ -305,4 +326,6 @@ if __name__ == '__main__':
 
     z3_e5 = z3.Extract(31, 0, z3.Concat(z3_four, z3_e)) * z3_five
     assert equiv(ez3, z3_e5)
+
+    print "TranslatorZ3 tests are OK!"
 
