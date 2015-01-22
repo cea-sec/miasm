@@ -108,32 +108,52 @@ class ExampleAssembler(ExampleDir):
     """
     example_dir = "asm"
 
+class ExampleShellcode(Example):
+    """Specificities:
+    - script: asm/shellcode.py
+    - @products: graph.txt + 3rd arg
+    - apply get_sample on each products (!= graph.txt)
+    - apply get_sample on the 2nd and 3rd arg (source, output)
+    """
 
-testset += ExampleAssembler(['x86.py'], products=["demo_x86_32.bin"])
-test_arm = ExampleAssembler(["arm.py"],
-                            products=["demo_arm_l.bin", "demo_arm_b.bin"])
-test_armt = ExampleAssembler(["armt.py"], products=["demo_armt_l.bin",
-                                                    "demo_armt_b.bin"])
+    def __init__(self, *args, **kwargs):
+        super(ExampleShellcode, self).__init__(*args, **kwargs)
+        self.command_line = [os.path.join(ExampleAssembler.example_dir,
+                                          "shellcode.py"),
+                             self.command_line[0]] + \
+                             map(Example.get_sample, self.command_line[1:3]) + \
+                             self.command_line[3:]
+        self.products = [self.command_line[3], "graph.txt"]
+
+
+testset += ExampleShellcode(['x86_32', 'x86_32_manip_ptr.S', "demo_x86_32.bin"])
+
+test_armb = ExampleShellcode(["armb", "arm_simple.S", "demo_arm_b.bin"])
+test_arml = ExampleShellcode(["arml", "arm_simple.S", "demo_arm_l.bin"])
+test_armtb = ExampleShellcode(["armtb", "armt.S", "demo_armt_b.bin"])
+test_armtl = ExampleShellcode(["armtl", "armt.S", "demo_armt_l.bin"])
 
 test_box = {}
-test_box_names = ["mod", "mod_self", "repmod", "simple"]
+test_box_names = ["mod", "mod_self", "repmod", "simple", "enc"]
 for source in test_box_names:
-    sample_base = Example.get_sample("x86_32_" + source)
-    test_box[source] = ExampleAssembler(["box_x86_32.py", sample_base + ".S"],
-                                        products=[sample_base + ".bin"])
+    sample_base = "x86_32_" + source
+    args = ["x86_32", sample_base + ".S", sample_base + ".bin", "--PE"]
+    if source == "enc":
+        args += ["--encrypt","msgbox_encrypted_start", "msgbox_encrypted_stop"]
+    test_box[source] = ExampleShellcode(args)
     testset += test_box[source]
 
-test_box_enc = ExampleAssembler(["box_x86_32_enc.py"],
-                                products=["box_x86_32_enc.bin"])
-test_msp430 = ExampleAssembler(["msp430_sc.py"], products=["msp430_sc.bin"])
-test_mips32 = ExampleAssembler(["mips32.py"], products=["mips32_sc_b.bin",
-                                                        "mips32_sc_l.bin"])
+test_msp430 = ExampleShellcode(["msp430", "msp430.S", "msp430_sc.bin"])
+test_mips32b = ExampleShellcode(["mips32b", "mips32.S", "mips32_sc_b.bin"])
+test_mips32l = ExampleShellcode(["mips32l", "mips32.S", "mips32_sc_l.bin"])
 
-testset += test_arm
-testset += test_armt
-testset += test_box_enc
+testset += test_armb
+testset += test_arml
+testset += test_armtb
+testset += test_armtl
 testset += test_msp430
-testset += test_mips32
+testset += test_mips32b
+testset += test_mips32l
 
 
 class ExampleDisassembler(ExampleDir):
@@ -166,23 +186,22 @@ class ExampleDisasmFull(Example):
                           "out.txt"]
 
 
-testset += ExampleDisasmFull(["arml", "demo_arm_l.bin", "0"],
-                             depends=[test_arm])
-testset += ExampleDisasmFull(["armb", "demo_arm_b.bin", "0"],
-                             depends=[test_arm])
-testset += ExampleDisasmFull(["armtl", "demo_armt_l.bin", "0"],
-                   depends=[test_armt])
-testset += ExampleDisasmFull(["armtb", "demo_armt_b.bin", "0"],
-                   depends=[test_armt])
+testset += ExampleDisasmFull(["arml", Example.get_sample("demo_arm_l.bin"),
+                              "0"], depends=[test_arml])
+testset += ExampleDisasmFull(["armb", Example.get_sample("demo_arm_b.bin"),
+                              "0"], depends=[test_armb])
+testset += ExampleDisasmFull(["armtl", Example.get_sample("demo_armt_l.bin"),
+                              "0"], depends=[test_armtl])
+testset += ExampleDisasmFull(["armtb", Example.get_sample("demo_armt_b.bin"),
+                              "0"], depends=[test_armtb])
 testset += ExampleDisasmFull(["x86_32", Example.get_sample("x86_32_simple.bin"),
-                           "0x401000"],
-                          depends=[test_box["simple"]])
-testset += ExampleDisasmFull(["msp430", "msp430_sc.bin", "0"],
-                   depends=[test_msp430])
-testset += ExampleDisasmFull(["mips32l", "mips32_sc_l.bin", "0"],
-                          depends=[test_mips32])
-testset += ExampleDisasmFull(["mips32b", "mips32_sc_b.bin", "0"],
-                          depends=[test_mips32])
+                              "0x401000"], depends=[test_box["simple"]])
+testset += ExampleDisasmFull(["msp430", Example.get_sample("msp430_sc.bin"),
+                              "0"], depends=[test_msp430])
+testset += ExampleDisasmFull(["mips32l", Example.get_sample("mips32_sc_l.bin"),
+                              "0"], depends=[test_mips32l])
+testset += ExampleDisasmFull(["mips32b", Example.get_sample("mips32_sc_b.bin"),
+                              "0"], depends=[test_mips32b])
 
 
 ## Expression
@@ -240,14 +259,14 @@ for jitter in ExampleJitter.jitter_engines:
 for script, dep in [(["x86_32.py", Example.get_sample("x86_32_sc.bin")], []),
                     (["arm.py", Example.get_sample("md5_arm"), "-a", "A684"],
                      []),
-                    (["msp430.py", "msp430_sc.bin", "0"], [test_msp430]),
-                    (["mips32.py", "mips32_sc_l.bin", "0"], [test_mips32]),
-                    (["arm_sc.py", "0", "demo_arm_b.bin", "b", "-a", "0"],
-                     [test_arm]),
-                    (["arm_sc.py", "0", "demo_arm_l.bin", "l", "-a", "0"],
-                     [test_arm]),
-                    (["sandbox_pe_x86_32.py", "box_x86_32_enc.bin"],
-                     [test_box_enc]),
+                    (["msp430.py", Example.get_sample("msp430_sc.bin"), "0"],
+                     [test_msp430]),
+                    (["mips32.py", Example.get_sample("mips32_sc_l.bin"), "0"],
+                     [test_mips32l]),
+                    (["arm_sc.py", "0", Example.get_sample("demo_arm_b.bin"),
+                      "b", "-a", "0"], [test_armb]),
+                    (["arm_sc.py", "0", Example.get_sample("demo_arm_l.bin"),
+                      "l", "-a", "0"], [test_arml]),
                     ] + [(["sandbox_pe_x86_32.py",
                            Example.get_sample("x86_32_" + name + ".bin")],
                           [test_box[name]])
