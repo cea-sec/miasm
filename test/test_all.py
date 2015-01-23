@@ -11,6 +11,7 @@ TAGS = {"regression": "REGRESSION", # Regression tests
         "example": "EXAMPLE", # Examples
         "long": "LONG", # Very time consumming tests
         "llvm": "LLVM", # LLVM dependency is required
+        "z3": "Z3", # Z3 dependecy is needed
         }
 
 # Regression tests
@@ -59,6 +60,8 @@ for script in ["ir2C.py",
                "symbexec.py",
                ]:
     testset += RegressionTest([script], base_dir="ir")
+testset += RegressionTest(["z3_ir.py"], base_dir="ir/translators",
+                          tags=[TAGS["z3"]])
 ## OS_DEP
 for script in ["win_api_x86_32.py",
                ]:
@@ -279,6 +282,15 @@ By default, no tag is ommited." % ", ".join(TAGS.keys()), default="")
         # Remove llvm tests
         if TAGS["llvm"] not in exclude_tags:
             exclude_tags.append(TAGS["llvm"])
+
+    # Handle Z3 dependency
+    try:
+        import z3
+    except ImportError:
+        print "%(red)s[Z3]%(end)s" % cosmetics.colors + \
+            "Z3 and its python binding are necessary for TranslatorZ3."
+        if TAGS["z3"] not in exclude_tags:
+            exclude_tags.append(TAGS["z3"])
 
     # Set callbacks
     if multiproc is False:
