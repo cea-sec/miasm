@@ -372,7 +372,7 @@ By default, no tag is ommited." % ", ".join(TAGS.keys()), default="")
     try:
         import z3
     except ImportError:
-        print "%(red)s[Z3]%(end)s" % cosmetics.colors + \
+        print "%(red)s[Z3]%(end)s " % cosmetics.colors + \
             "Z3 and its python binding are necessary for TranslatorZ3."
         if TAGS["z3"] not in exclude_tags:
             exclude_tags.append(TAGS["z3"])
