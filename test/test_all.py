@@ -116,11 +116,6 @@ class ExampleShellcode(ExampleAssembler):
 
 testset += ExampleShellcode(['x86_32', 'x86_32_manip_ptr.S', "demo_x86_32.bin"])
 
-test_armb = ExampleShellcode(["armb", "arm_simple.S", "demo_arm_b.bin"])
-test_arml = ExampleShellcode(["arml", "arm_simple.S", "demo_arm_l.bin"])
-test_armtb = ExampleShellcode(["armtb", "armt.S", "demo_armt_b.bin"])
-test_armtl = ExampleShellcode(["armtl", "armt.S", "demo_armt_l.bin"])
-
 test_box = {}
 test_box_names = ["mod", "mod_self", "repmod", "simple", "enc"]
 for source in test_box_names:
@@ -131,9 +126,15 @@ for source in test_box_names:
     test_box[source] = ExampleShellcode(args)
     testset += test_box[source]
 
+test_armb = ExampleShellcode(["armb", "arm_simple.S", "demo_arm_b.bin"])
+test_arml = ExampleShellcode(["arml", "arm_simple.S", "demo_arm_l.bin"])
+test_armtb = ExampleShellcode(["armtb", "armt.S", "demo_armt_b.bin"])
+test_armtl = ExampleShellcode(["armtl", "armt.S", "demo_armt_l.bin"])
 test_msp430 = ExampleShellcode(["msp430", "msp430.S", "msp430_sc.bin"])
 test_mips32b = ExampleShellcode(["mips32b", "mips32.S", "mips32_sc_b.bin"])
 test_mips32l = ExampleShellcode(["mips32l", "mips32.S", "mips32_sc_l.bin"])
+test_x86_64 = ExampleShellcode(["x86_64", "x86_64.S", "demo_x86_64.bin",
+                                "--PE"])
 
 testset += test_armb
 testset += test_arml
@@ -142,7 +143,7 @@ testset += test_armtl
 testset += test_msp430
 testset += test_mips32b
 testset += test_mips32l
-
+testset += test_x86_64
 
 class ExampleDisassembler(Example):
     """Disassembler examples specificities:
@@ -188,6 +189,8 @@ testset += ExampleDisasmFull(["mips32l", Example.get_sample("mips32_sc_l.bin"),
                               "0"], depends=[test_mips32l])
 testset += ExampleDisasmFull(["mips32b", Example.get_sample("mips32_sc_b.bin"),
                               "0"], depends=[test_mips32b])
+testset += ExampleDisasmFull(["x86_64", Example.get_sample("demo_x86_64.bin"),
+                              "0x401000"], depends=[test_x86_64])
 
 
 ## Expression
