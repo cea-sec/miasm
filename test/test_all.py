@@ -74,11 +74,14 @@ class Example(Test):
     - @tags: TAGS["example"]"""
 
     # Directory containing samples for examples
-    sample_dir = "samples"
+    sample_dir = os.path.join("..", "samples")
+    example_dir = ""
 
     def __init__(self, *args, **kwargs):
+        if not self.example_dir:
+            raise NotImplementedError("ExampleDir should be inherited")
         super(Example, self).__init__(*args, **kwargs)
-        self.base_dir = os.path.join("example", self.base_dir)
+        self.base_dir = os.path.join(self.base_dir, "example", self.example_dir)
         self.tags.append(TAGS["example"])
 
     @classmethod
@@ -87,28 +90,14 @@ class Example(Test):
         return os.path.join(cls.sample_dir, sample_name)
 
 
-class ExampleDir(Example):
-    "Launch examples from a given directory"
-
-    example_dir = ""
-
-    def __init__(self, *args, **kwargs):
-        if not self.example_dir:
-            raise NotImplementedError("ExampleDir should be inherited")
-
-        super(ExampleDir, self).__init__(*args, **kwargs)
-        self.command_line[0] = os.path.join(self.example_dir,
-                                            self.command_line[0])
-
-
 ## Assembler
-class ExampleAssembler(ExampleDir):
+class ExampleAssembler(Example):
     """Assembler examples specificities:
     - script path begins with "asm/"
     """
     example_dir = "asm"
 
-class ExampleShellcode(Example):
+class ExampleShellcode(ExampleAssembler):
     """Specificities:
     - script: asm/shellcode.py
     - @products: graph.txt + 3rd arg
@@ -118,8 +107,7 @@ class ExampleShellcode(Example):
 
     def __init__(self, *args, **kwargs):
         super(ExampleShellcode, self).__init__(*args, **kwargs)
-        self.command_line = [os.path.join(ExampleAssembler.example_dir,
-                                          "shellcode.py"),
+        self.command_line = ["shellcode.py",
                              self.command_line[0]] + \
                              map(Example.get_sample, self.command_line[1:3]) + \
                              self.command_line[3:]
@@ -156,7 +144,7 @@ testset += test_mips32b
 testset += test_mips32l
 
 
-class ExampleDisassembler(ExampleDir):
+class ExampleDisassembler(Example):
     """Disassembler examples specificities:
     - script path begins with "disasm/"
     """
@@ -170,7 +158,7 @@ for script in [["single_instr.py"],
     testset += ExampleDisassembler(script)
 
 
-class ExampleDisasmFull(Example):
+class ExampleDisasmFull(ExampleDisassembler):
     """DisasmFull specificities:
     - script: disasm/full.py
     - flags: -g -s
@@ -179,11 +167,8 @@ class ExampleDisasmFull(Example):
 
     def __init__(self, *args, **kwargs):
         super(ExampleDisasmFull, self).__init__(*args, **kwargs)
-        self.command_line = [os.path.join(ExampleDisassembler.example_dir,
-                                          "full.py"),
-                             "-g", "-s"] + self.command_line
-        self.products += ["graph_execflow.txt", "graph_irflow.txt", "lines.txt",
-                          "out.txt"]
+        self.command_line = ["full.py", "-g", "-s"] + self.command_line
+        self.products += ["graph_execflow.txt", "graph_irflow.txt", "lines.txt"]
 
 
 testset += ExampleDisasmFull(["arml", Example.get_sample("demo_arm_l.bin"),
@@ -205,7 +190,7 @@ testset += ExampleDisasmFull(["mips32b", Example.get_sample("mips32_sc_b.bin"),
 
 
 ## Expression
-class ExampleExpression(ExampleDir):
+class ExampleExpression(Example):
     """Expression examples specificities:
     - script path begins with "expression/"
     """
@@ -235,15 +220,24 @@ for script in [["basic_op.py"],
     testset += ExampleExpression(script)
 
 ## Symbolic Execution
-testset += Example(["symbol_exec/single_instr.py"])
+class ExampleSymbolExec(Example):
+    """Symbol Exec examples specificities:
+    - script path begins with "symbol_exec/"
+    """
+
+    example_dir = "symbol_exec"
+
+
+testset += ExampleSymbolExec(["single_instr.py"])
 
 ## Jitter
-class ExampleJitter(ExampleDir):
+class ExampleJitter(Example):
     """Jitter examples specificities:
     - script path begins with "jitter/"
     """
     example_dir = "jitter"
     jitter_engines = ["tcc", "llvm", "python"]
+
 
 for jitter in ExampleJitter.jitter_engines:
     # Take 5 min on a Core i5
