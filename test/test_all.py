@@ -128,6 +128,8 @@ for source in test_box_names:
 
 test_armb = ExampleShellcode(["armb", "arm_simple.S", "demo_arm_b.bin"])
 test_arml = ExampleShellcode(["arml", "arm_simple.S", "demo_arm_l.bin"])
+test_armb_sc = ExampleShellcode(["armb", "arm_sc.S", "demo_arm2_b.bin"])
+test_arml_sc = ExampleShellcode(["arml", "arm_sc.S", "demo_arm2_l.bin"])
 test_armtb = ExampleShellcode(["armtb", "armt.S", "demo_armt_b.bin"])
 test_armtl = ExampleShellcode(["armtl", "armt.S", "demo_armt_l.bin"])
 test_msp430 = ExampleShellcode(["msp430", "msp430.S", "msp430_sc.bin"])
@@ -138,6 +140,8 @@ test_x86_64 = ExampleShellcode(["x86_64", "x86_64.S", "demo_x86_64.bin",
 
 testset += test_armb
 testset += test_arml
+testset += test_armb_sc
+testset += test_arml_sc
 testset += test_armtb
 testset += test_armtl
 testset += test_msp430
@@ -177,6 +181,10 @@ testset += ExampleDisasmFull(["arml", Example.get_sample("demo_arm_l.bin"),
                               "0"], depends=[test_arml])
 testset += ExampleDisasmFull(["armb", Example.get_sample("demo_arm_b.bin"),
                               "0"], depends=[test_armb])
+testset += ExampleDisasmFull(["arml", Example.get_sample("demo_arm2_l.bin"),
+                              "0"], depends=[test_arml_sc])
+testset += ExampleDisasmFull(["armb", Example.get_sample("demo_arm2_b.bin"),
+                              "0"], depends=[test_armb_sc])
 testset += ExampleDisasmFull(["armtl", Example.get_sample("demo_armt_l.bin"),
                               "0"], depends=[test_armtl])
 testset += ExampleDisasmFull(["armtb", Example.get_sample("demo_armt_b.bin"),
