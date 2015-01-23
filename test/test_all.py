@@ -151,11 +151,12 @@ class ExampleDisassembler(Example):
     example_dir = "disasm"
 
 
-for script in [["single_instr.py"],
-               ["function.py"],
-               ["file.py", Example.get_sample("box_upx.exe"), "0x410f90"],
-               ]:
-    testset += ExampleDisassembler(script)
+for script, prods in [(["single_instr.py"], []),
+                      (["function.py"], ["graph.txt"]),
+                      (["file.py", Example.get_sample("box_upx.exe"),
+                        "0x410f90"], ["graph.txt"]),
+                      ]:
+    testset += ExampleDisassembler(script, products=prods)
 
 
 class ExampleDisasmFull(ExampleDisassembler):
@@ -207,7 +208,7 @@ testset += ExampleExpression(["get_read_write.py"],
                              products=["graph_instr.txt"])
 testset += ExampleExpression(["solve_condition_stp.py",
                               Example.get_sample("simple_test.bin")],
-                             products=["graph_instr.txt"])
+                             products=["graph_instr.txt", "out.txt"])
 
 for script in [["basic_op.py"],
                ["basic_simplification.py"],
