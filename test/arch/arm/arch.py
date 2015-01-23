@@ -191,6 +191,8 @@ reg_tests_arm = [
 
     ("0002F5B0    UMULL      R2, R3, R3, R2",
      "932283E0"),
+    ("0002F5B4    UMLAL      R3, R4, R5, LR",
+     "953EA4E0"),
     ("C045D260    SMULL      R3, R2, LR, R2",
      "9E32C2E0"),
     ("C03E6440    SMLAL      R2, R0, R1, R0",

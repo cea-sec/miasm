@@ -1449,6 +1449,8 @@ armop("mul", [bs('000000'), bs('0'), scc, rd,
       bs('0000'), rs, bs('1001'), rm], [rd, rm, rs])
 armop("umull", [bs('000010'),
       bs('0'), scc, rd, rdl, rs, bs('1001'), rm], [rdl, rd, rm, rs])
+armop("umlal", [bs('000010'),
+      bs('1'), scc, rd, rdl, rs, bs('1001'), rm], [rdl, rd, rm, rs])
 armop("smull", [bs('000011'), bs('0'), scc, rd,
       rdl, rs, bs('1001'), rm], [rdl, rd, rm, rs])
 armop("smlal", [bs('000011'), bs('1'), scc, rd,
