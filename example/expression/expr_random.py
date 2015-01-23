@@ -1,10 +1,14 @@
 import string
+import random
 
 from miasm2.expression.expression_helper import ExprRandom
 
 print "Simple expression generator\n"
 
 depth = 8
+seed = 0
+random.seed(seed)
+
 print "- An ID:"
 print ExprRandom.identifier()
 print "- A number:"
