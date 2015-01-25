@@ -470,6 +470,37 @@ def muls(ir, instr, a, b, c = None):
         e.append(ExprAff(ir.IRDst, r))
     return e
 
+def umull(ir, instr, a, b, c, d):
+    e = []
+    r = c.zeroExtend(64) * d.zeroExtend(64)
+    e.append(ExprAff(a, r[0:32]))
+    e.append(ExprAff(b, r[32:64]))
+    # r15/IRDst not allowed as output
+    return e
+
+def umlal(ir, instr, a, b, c, d):
+    e = []
+    r = c.zeroExtend(64) * d.zeroExtend(64) + ExprCompose([(a, 0, 32), (b, 32, 64)])
+    e.append(ExprAff(a, r[0:32]))
+    e.append(ExprAff(b, r[32:64]))
+    # r15/IRDst not allowed as output
+    return e
+
+def smull(ir, instr, a, b, c, d):
+    e = []
+    r = c.signExtend(64) * d.signExtend(64)
+    e.append(ExprAff(a, r[0:32]))
+    e.append(ExprAff(b, r[32:64]))
+    # r15/IRDst not allowed as output
+    return e
+
+def smlal(ir, instr, a, b, c, d):
+    e = []
+    r = c.signExtend(64) * d.signExtend(64) + ExprCompose([(a, 0, 32), (b, 32, 64)])
+    e.append(ExprAff(a, r[0:32]))
+    e.append(ExprAff(b, r[32:64]))
+    # r15/IRDst not allowed as output
+    return e
 
 def b(ir, instr, a):
     e = []
@@ -1012,6 +1043,10 @@ mnemo_condm0 = {'add': add,
                 'neg': neg,
 
                 'mul': mul,
+                'umull': umull,
+                'umlal': umlal,
+                'smull': smull,
+                'smlal': smlal,
                 'mla': mla,
                 'ldr': ldr,
                 'ldrd': ldrd,
