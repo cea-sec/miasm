@@ -97,6 +97,9 @@ class ExampleAssembler(Example):
     """
     example_dir = "asm"
 
+
+testset += ExampleAssembler(["simple.py"])
+
 class ExampleShellcode(ExampleAssembler):
     """Specificities:
     - script: asm/shellcode.py
