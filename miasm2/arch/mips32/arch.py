@@ -50,10 +50,9 @@ deref = deref_off | deref_nooff
 class additional_info:
     def __init__(self):
         self.except_on_instr = False
-br_flt = ['BC1F']
 
-br_0 = ['B', 'JR', 'BAL', 'JAL', 'JALR']
-br_1 = ['BGEZ', 'BLTZ', 'BGTZ', 'BLEZ', 'BC1T', 'BC1F'] + br_flt
+br_0 = ['B', 'J', 'JR', 'BAL', 'JAL', 'JALR']
+br_1 = ['BGEZ', 'BLTZ', 'BGTZ', 'BLEZ', 'BC1T', 'BC1F']
 br_2 = ['BEQ', 'BEQL', 'BNE']
 
 
@@ -78,9 +77,7 @@ class instruction_mips32(instruction):
     def dstflow(self):
         if self.name == 'BREAK':
             return False
-        if self.name.startswith('B'):
-            return True
-        if self.name in ['JAL', 'JALR', 'JR', 'J']:
+        if self.name in br_0 + br_1 + br_2:
             return True
         return False
 
@@ -116,18 +113,14 @@ class instruction_mips32(instruction):
     def breakflow(self):
         if self.name == 'BREAK':
             return False
-        if self.name.startswith('B') or self.name in ['JR', 'J', 'JAL', 'JALR']:
+        if self.name in br_0 + br_1 + br_2:
             return True
         return False
 
     def is_subcall(self):
-        if self.name in ['JAL', 'JALR']:
+        if self.name in ['JAL', 'JALR', 'BAL']:
             return True
         return False
-
-        if self.name == 'BLX':
-            return True
-        return self.additional_info.lnk
 
     def getdstflow(self, symbol_pool):
         if self.name in br_0:
