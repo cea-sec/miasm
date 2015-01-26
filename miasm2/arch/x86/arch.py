@@ -16,6 +16,12 @@ console_handler.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
 log.addHandler(console_handler)
 log.setLevel(logging.WARN)
 
+conditional_branch = ["JO", "JNO", "JB", "JAE",
+                      "JZ", "JNZ", "JBE", "JA",
+                      "JS", "JNS", "JPE", "JNP",
+                      #"L", "NL", "NG", "G"]
+                      "JL", "JGE", "JLE", "JG"]
+unconditional_branch = ['JMP']
 
 f_isad = "AD"
 f_s08 = "S08"
@@ -465,7 +471,7 @@ class instruction_x86(instruction):
         return self.additional_info.v_admode
 
     def dstflow(self):
-        if self.name.startswith('J'):
+        if self.name in conditional_branch + unconditional_branch:
             return True
         if self.name.startswith('LOOP'):
             return True
@@ -491,7 +497,7 @@ class instruction_x86(instruction):
             return
 
     def breakflow(self):
-        if self.name.startswith('J'):
+        if self.name in conditional_branch + unconditional_branch:
             return True
         if self.name.startswith('LOOP'):
             return True
@@ -507,10 +513,10 @@ class instruction_x86(instruction):
         return self.name in ['CALL', 'HLT', 'IRET', 'ICEBP']
 
     def splitflow(self):
-        if self.name.startswith('JMP'):
-            return False
-        if self.name.startswith('J'):
+        if self.name in conditional_branch:
             return True
+        if self.name in unconditional_branch:
+            return False
         if self.name.startswith('LOOP'):
             return True
         if self.name.startswith('INT'):
