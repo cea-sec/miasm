@@ -1029,8 +1029,7 @@ def asmbloc_final(mnemo, blocs, symbol_pool, symb_reloc_off=None, conservative =
 
 
 def asm_resolve_final(mnemo, blocs, symbol_pool, dont_erase=[],
-                      max_offset=0xFFFFFFFF,
-                      symb_reloc_off=None, constrain_pos=False):
+                      max_offset=0xFFFFFFFF, symb_reloc_off=None):
     if symb_reloc_off is None:
         symb_reloc_off = {}
     guess_blocs_size(mnemo, blocs)
