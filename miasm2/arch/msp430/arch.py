@@ -16,6 +16,9 @@ console_handler.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
 log.addHandler(console_handler)
 log.setLevel(logging.DEBUG)
 
+conditional_branch = ['jnz', 'jz', 'jnc', 'jc',
+                      'jn', 'jge', 'jl']
+unconditional_branch = ['jmp']
 
 def deref2expr_nooff(s, l, t):
     t = t[0]
@@ -152,7 +155,7 @@ class instruction_msp430(instruction):
         self.args[0] = s
 
     def breakflow(self):
-        if self.name.startswith('j'):
+        if self.name in conditional_branch + unconditional_branch:
             return True
         if self.name.startswith('ret'):
             return True
@@ -163,10 +166,10 @@ class instruction_msp430(instruction):
         return self.name in ['call']
 
     def splitflow(self):
-        if self.name.startswith('jmp'):
-            return False
-        if self.name.startswith('j'):
+        if self.name in conditional_branch:
             return True
+        if self.name in unconditional_branch:
+            return False
         return self.name in ['call']
 
     def setdstflow(self, a):
