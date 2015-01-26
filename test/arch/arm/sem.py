@@ -463,6 +463,30 @@ class TestARMSemantic(unittest.TestCase):
         self.assertEqual(compute('TST   R2, R3', {R2: 0x80000000L, R3: 0x80000001L}), {zf: 0x0, R2: 0x80000000L, nf: 0x1, R3: 0x80000001L})
         self.assertEqual(compute('TST   R2, R3', {R2: 0x80000001L, R3: 0x80000000L}), {zf: 0x0, R2: 0x80000001L, nf: 0x1, R3: 0x80000000L})
 
+    def test_UMULL(self):
+        self.assertEqual(compute('UMULL R1, R2, R4, R5', {R4: 0x0L, R5: 0x0L}), {R1: 0x0L, R2: 0x0L, R4: 0x0L, R5: 0x0L})
+        self.assertEqual(compute('UMULL R0, R1, R2, R3', {R2: 0x1L, R3: 0x80808080L}), {R0: 0x80808080L, R1: 0x0L, R2: 0x1L, R3: 0x80808080L})
+        self.assertEqual(compute('UMULL R2, R3, R4, R5', {R4: 0x12345678L, R5: 0x87654321L}), {R2: 0x70b88d78L, R3: 0x09a0cd05L, R4: 0x12345678L, R5: 0x87654321L})
+        self.assertEqual(compute('UMULL R2, R3, R4, R5', {R4: 0xffffffffL, R5: 0x00000002L}), {R2: 0xfffffffeL, R3: 0x00000001L, R4: 0xffffffffL, R5: 0x00000002L})
+
+    def test_UMLAL(self):
+        self.assertEqual(compute('UMLAL R1, R2, R4, R5', {R1: 0x0L, R2: 0x0L, R4: 0x1L, R5: 0x0L}), {R1: 0x0L, R2: 0x0L, R4: 0x1L, R5: 0x0L})
+        self.assertEqual(compute('UMLAL R0, R1, R2, R3', {R0: 0x0L, R1: 0x0L, R2: 0x1L, R3: 0x80808080L}), {R0: 0x80808080L, R1: 0x0L, R2: 0x1L, R3: 0x80808080L})
+        self.assertEqual(compute('UMLAL R2, R3, R4, R5', {R2: 0xffffffffL, R3: 0x0L, R4: 0x12345678L, R5: 0x87654321L}), {R2: 0x70b88d77L, R3: 0x09a0cd06L, R4: 0x12345678L, R5: 0x87654321L})
+        self.assertEqual(compute('UMLAL R2, R3, R4, R5', {R2: 0xffffffffL, R3: 0x2L, R4: 0x12345678L, R5: 0x87654321L}), {R2: 0x70b88d77L, R3: 0x09a0cd08L, R4: 0x12345678L, R5: 0x87654321L})
+
+    def test_SMULL(self):
+        self.assertEqual(compute('SMULL R1, R2, R4, R5', {R4: 0x0L, R5: 0x0L}), {R1: 0x0L, R2: 0x0L, R4: 0x0L, R5: 0x0L})
+        self.assertEqual(compute('SMULL R0, R1, R2, R3', {R2: 0x1L, R3: 0x80808080L}), {R0: 0x80808080L, R1: 0xffffffffL, R2: 0x1L, R3: 0x80808080L})
+        self.assertEqual(compute('SMULL R0, R1, R2, R3', {R2: 0xffff0000L, R3: 0xffff0000L}), {R0: 0x0L, R1: 0x1L, R2: 0xffff0000L, R3: 0xffff0000L})
+        self.assertEqual(compute('SMULL R2, R3, R4, R5', {R4: 0x12345678L, R5: 0x87654321L}), {R2: 0x70b88d78L, R3: 0xf76c768dL, R4: 0x12345678L, R5: 0x87654321L})
+        self.assertEqual(compute('SMULL R2, R3, R4, R5', {R4: 0xffffffffL, R5: 0x00000002L}), {R2: 0xfffffffeL, R3: 0xffffffffL, R4: 0xffffffffL, R5: 0x00000002L})
+
+    def test_SMLAL(self):
+        self.assertEqual(compute('SMLAL R1, R2, R4, R5', {R1: 0x0L, R2: 0x0L, R4: 0x1L, R5: 0x0L}), {R1: 0x0L, R2: 0x0L, R4: 0x1L, R5: 0x0L})
+        self.assertEqual(compute('SMLAL R0, R1, R2, R3', {R0: 0x0L, R1: 0x0L, R2: 0x1L, R3: 0x80808080L}), {R0: 0x80808080L, R1: 0xffffffffL, R2: 0x1L, R3: 0x80808080L})
+        self.assertEqual(compute('SMLAL R2, R3, R4, R5', {R2: 0xffffffffL, R3: 0x0L, R4: 0x12345678L, R5: 0x87654321L}), {R2: 0x70b88d77L, R3: 0xf76c768eL, R4: 0x12345678L, R5: 0x87654321L})
+        self.assertEqual(compute('SMLAL R2, R3, R4, R5', {R2: 0xffffffffL, R3: 0x00000002L, R4: 0x12345678L, R5: 0x87654321L}), {R2: 0x70b88d77L, R3: 0xf76c7690L, R4: 0x12345678L, R5: 0x87654321L})
 
 if __name__ == '__main__':
     testsuite = unittest.TestLoader().loadTestsFromTestCase(TestARMSemantic)
