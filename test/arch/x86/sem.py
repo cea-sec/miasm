@@ -51,7 +51,7 @@ def compute_txt(ir, mode, txt, inputstate={}, debug=False):
         mn, blocs[0], symbol_pool)
     interm = ir(symbol_pool)
     for bbl in resolved_b:
-        interm.add_bloc(bbl[0])
+        interm.add_bloc(bbl)
     return symb_exec(interm, inputstate, debug)
 
 op_add = lambda a, b: a+b

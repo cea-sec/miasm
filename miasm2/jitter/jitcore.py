@@ -116,8 +116,7 @@ class JitCore(object):
         try:
             asmbloc.dis_bloc(self.ir_arch.arch, self.bs, cur_bloc, addr,
                              set(), self.ir_arch.symbol_pool, [],
-                             follow_call=False, patch_instr_symb=True,
-                             dontdis_retcall=False,
+                             follow_call=False, dontdis_retcall=False,
                              lines_wd=self.options["jit_maxline"],
                              # max 10 asm lines
                              attrib=self.ir_arch.attrib,
