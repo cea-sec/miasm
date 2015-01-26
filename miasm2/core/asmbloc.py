@@ -1206,87 +1206,13 @@ def bloc_find_path_next(blocs, blocby_label, a, b, path=None):
     return all_path
 
 
-def bloc_merge(blocs, symbol_pool, dont_merge=[]):
-    i = -1
-    """
-    # TODO XXXX implement find all path for digraph
-
-    g = blist2graph(blocs)
-    g.lbl2node = dict([(b.label, b) for b in blocs])
-
-    while i<len(blocs)-1:
-        i+=1
-        b = blocs[i]
-        if b.label in dont_merge:
-            continue
-
-        successors = [x for x in g.successors(b.label)]
-        predecessors = [x for x in g.predecessors(b.label)]
-        # if bloc doesn't self ref
-        if b.label in successors:
-            continue
-        # and bloc has only one parent
-        if len(predecessors) != 1:
-            continue
-        # may merge
-        bpl = predecessors[0]
-
-        # and parent has only one son
-        p_s = [x for x in g.successors(bpl)]
-        if len(p_s)!=1:
-            continue
-
-        bp = g.lbl2node[bpl]
-        # and parent has not a next constraint yet
-        found = False
-        for gpl in g.predecessors(bpl):
-            gp = g.lbl2node[gpl]
-            for x in gp.bto:
-                if x.c_t != asm_constraint.c_next:
-                    continue
-                if x.label == bpl:
-                    found = True
-                    break
-            if found:
-                break
-        if found:
-            continue
-        if bp.lines:
-            l = bp.lines[-1]
-            #jmp opt; jcc opt
-            if l.is_subcall():
-                continue
-            if l.breakflow() and l.dstflow():
-                bp.lines.pop()
-        #merge
-        #sons = b.bto[:]
-
-        # update parents
-        for s in b.bto:
-            if not isinstance(s.label, asm_label): continue
-            if s.label.name == None:
-                continue
-            if not s.label in g.lbl2node:
-                print "unknown parent XXX"
-                continue
-            bs = g.lbl2node[s.label]
-            for p in g.predecessors(bs.label):
-                if p == b.label:
-                    bs.parents.discard(p)
-                    bs.parents.add(bp.label)
-        bp.lines+=b.lines
-        bp.bto = b.bto
-        #symbol_pool.remove(b.label)
-        del(blocs[i])
-        i = -1
-
-    return
-    """
+def bloc_merge(blocs, dont_merge=[]):
     blocby_label = {}
     for b in blocs:
         blocby_label[b.label] = b
         b.parents = find_parents(blocs, b.label)
 
+    i = -1
     while i < len(blocs) - 1:
         i += 1
         b = blocs[i]
@@ -1339,7 +1265,7 @@ def bloc_merge(blocs, symbol_pool, dont_merge=[]):
                     bs.parents.add(bp.label)
         bp.lines += b.lines
         bp.bto = b.bto
-        # symbol_pool.remove(b.label)
+
         del(blocs[i])
         i = -1
 
