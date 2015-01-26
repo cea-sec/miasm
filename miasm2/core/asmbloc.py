@@ -368,8 +368,7 @@ class asm_symbol_pool:
 
 def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool,
              dont_dis=[], split_dis=[
-             ], follow_call=False, patch_instr_symb=True,
-             dontdis_retcall=False, lines_wd=None,
+             ], follow_call=False, dontdis_retcall=False, lines_wd=None,
              dis_bloc_callback=None, dont_dis_nulstart_bloc=False,
              attrib={}):
     # pool_bin.offset = offset
@@ -515,8 +514,7 @@ def split_bloc(mnemo, attrib, pool_bin, blocs,
 
 
 def dis_bloc_all(mnemo, pool_bin, offset, job_done, symbol_pool, dont_dis=[],
-                 split_dis=[], follow_call=False, patch_instr_symb=True,
-                 dontdis_retcall=False,
+                 split_dis=[], follow_call=False, dontdis_retcall=False,
                  blocs_wd=None, lines_wd=None, blocs=None,
                  dis_bloc_callback=None, dont_dis_nulstart_bloc=False,
                  attrib={}):
@@ -553,8 +551,7 @@ def dis_bloc_all(mnemo, pool_bin, offset, job_done, symbol_pool, dont_dis=[],
         l = symbol_pool.getby_offset_create(n)
         cur_bloc = asm_bloc(l)
         todo += dis_bloc(mnemo, pool_bin, cur_bloc, n, job_done, symbol_pool,
-                         dont_dis, split_dis, follow_call, patch_instr_symb,
-                         dontdis_retcall,
+                         dont_dis, split_dis, follow_call, dontdis_retcall,
                          dis_bloc_callback=dis_bloc_callback,
                          lines_wd=lines_wd,
                          dont_dis_nulstart_bloc=dont_dis_nulstart_bloc,
@@ -1358,7 +1355,6 @@ class disasmEngine(object):
         self.dont_dis = []
         self.split_dis = []
         self.follow_call = False
-        self.patch_instr_symb = True
         self.dontdis_retcall = False
         self.lines_wd = None
         self.blocs_wd = None
@@ -1374,7 +1370,6 @@ class disasmEngine(object):
                  self.symbol_pool,
                  dont_dis=self.dont_dis, split_dis=self.split_dis,
                  follow_call=self.follow_call,
-                 patch_instr_symb=self.patch_instr_symb,
                  dontdis_retcall=self.dontdis_retcall,
                  lines_wd=self.lines_wd,
                  dis_bloc_callback=self.dis_bloc_callback,
@@ -1387,7 +1382,6 @@ class disasmEngine(object):
                              self.symbol_pool,
                              dont_dis=self.dont_dis, split_dis=self.split_dis,
                              follow_call=self.follow_call,
-                             patch_instr_symb=self.patch_instr_symb,
                              dontdis_retcall=self.dontdis_retcall,
                              blocs_wd=self.blocs_wd,
                              lines_wd=self.lines_wd,
