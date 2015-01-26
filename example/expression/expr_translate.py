@@ -4,6 +4,7 @@ from miasm2.expression.expression import *
 from miasm2.expression.expression_helper import ExprRandom
 from miasm2.ir.translators import Translator
 
+random.seed(0)
 
 class ExprRandom_OpSubRange(ExprRandom):
     operations_by_args_number = {1: ["-"],

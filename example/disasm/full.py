@@ -1,14 +1,13 @@
-import sys
 import os
-import time
+import logging
+from argparse import ArgumentParser
+from pdb import pm
 
 from miasm2.analysis.binary import Container
-from miasm2.core.asmbloc import *
-from optparse import OptionParser
+from miasm2.core.asmbloc import log_asmbloc, asm_label, bloc2graph
 from miasm2.expression.expression import ExprId
 from miasm2.core.interval import interval
 from miasm2.analysis.machine import Machine
-from pdb import pm
 
 log = logging.getLogger("dis")
 console_handler = logging.StreamHandler()
@@ -21,80 +20,49 @@ if filename and os.path.isfile(filename):
     execfile(filename)
 
 
-parser = OptionParser(usage="usage: %prog [options] file address")
-parser.add_option('-m', "--architecture", dest="machine", metavar="MACHINE",
-                  help="architecture: " + ",".join(Machine.available_machine()))
-parser.add_option('-f', "--followcall", dest="followcall", action="store_true",
-                  default=False,
-                  help="follow call")
+parser = ArgumentParser("Disassemble a binary")
+parser.add_argument('architecture', help="architecture: " + \
+                        ",".join(Machine.available_machine()))
+parser.add_argument('filename', help="File to disassemble")
+parser.add_argument('address', help="Starting address for disassembly engine",
+                    nargs="+")
+parser.add_argument('-f', "--followcall", action="store_true",
+                    help="Follow call instructions")
+parser.add_argument('-b', "--blockwatchdog", default=None, type=int,
+                    help="Maximum number of basic block to disassemble")
+parser.add_argument('-n', "--funcswatchdog", default=None, type=int,
+                    help="Maximum number of function to disassemble")
+parser.add_argument('-r', "--recurfunctions", action="store_true",
+                    help="Disassemble founded functions")
+parser.add_argument('-v', "--verbose", action="store_true", help="Verbose mode")
+parser.add_argument('-g', "--gen_ir", action="store_true",
+                    help="Compute the intermediate representation")
+parser.add_argument('-z', "--dis-nulstart-block", action="store_true",
+                    help="Do not disassemble NULL starting block")
+parser.add_argument('-l', "--dontdis-retcall", action="store_true",
+                    help="If set, disassemble only call destinations")
+parser.add_argument('-s', "--simplify", action="store_true",
+                    help="Use the liveness analysis pass")
+parser.add_argument('-o', "--shiftoffset", default=None, type=int,
+                    help="Shift input binary by an offset")
+parser.add_argument('-a', "--try-disasm-all", action="store_true",
+                    help="Try to disassemble the whole binary")
+parser.add_argument('-i', "--image", action="store_true",
+                    help="Display image representation of disasm")
 
-parser.add_option('-b', "--blocwatchdog", dest="bw",
-                  default=None,
-                  help="address to disasemble")
+args = parser.parse_args()
 
-parser.add_option('-n', "--funcsnumwatchdog", dest="funcswd",
-                  default=None,
-                  help="max func to disasm")
-
-parser.add_option(
-    '-r', "--recurfunctions", dest="recurfunctions", action="store_true",
-    default=False,
-    help="disasm found functions")
-
-parser.add_option('-v', "--verbose", dest="verbose", action="store_true",
-                  default=False,
-                  help="verbose")
-
-parser.add_option('-g', "--gen_ir", dest="gen_ir", action="store_true",
-                  default=False,
-                  help="gen intermediate representation")
-
-parser.add_option('-z', "--dis_nulstart_bloc", dest="dis_nulstart_bloc",
-                  action="store_true", default=False,
-                  help="dont_dis_nulstart_bloc")
-parser.add_option('-l', "--dontdis_retcall", dest="dontdis_retcall",
-                  action="store_true", default=False,
-                  help="only disasm call dst")
-
-parser.add_option('-s', "--simplify", dest="simplify", action="store_true",
-                  default=False,
-                  help="for test purpose")
-
-parser.add_option('-o', "--shiftoffset", dest="shiftoffset",
-                  default=None,
-                  help="shift input str by offset")
-
-parser.add_option(
-    '-a', "--trydisasmall", dest="trydisasmall", action="store_true",
-    default=False,
-    help="try disasm all binary")
-
-parser.add_option('-i', "--image", dest="image", action="store_true",
-                  default=False,
-                  help="display image representation of disasm")
-
-(options, args) = parser.parse_args(sys.argv[1:])
-if not args:
-    parser.print_help()
-    sys.exit(0)
-fname = args[0]
-
-if options.verbose:
+if args.verbose:
     log_asmbloc.setLevel(logging.DEBUG)
 
 log.info("import machine...")
-machine = Machine(options.machine)
+machine = Machine(args.architecture)
 mn, dis_engine, ira = machine.mn, machine.dis_engine, machine.ira
 log.info('ok')
 
-if options.bw != None:
-    options.bw = int(options.bw)
-if options.funcswd != None:
-    options.funcswd = int(options.funcswd)
-
 log.info('Load binary')
-with open(fname) as fdesc:
-    cont = Container.from_stream(fdesc, addr=options.shiftoffset)
+with open(args.filename) as fdesc:
+    cont = Container.from_stream(fdesc, addr=args.shiftoffset)
 
 default_addr = cont.entry_point
 bs = cont.bin_stream
@@ -103,12 +71,12 @@ e = cont.executable
 log.info('ok')
 mdis = dis_engine(bs)
 # configure disasm engine
-mdis.dontdis_retcall = options.dontdis_retcall
-mdis.blocs_wd = options.bw
-mdis.dont_dis_nulstart_bloc = not options.dis_nulstart_bloc
+mdis.dontdis_retcall = args.dontdis_retcall
+mdis.blocs_wd = args.blockwatchdog
+mdis.dont_dis_nulstart_bloc = not args.dis_nulstart_block
 
 todo = []
-addrs = [int(a, 16) for a in args[1:]]
+addrs = [int(a, 16) for a in args.address]
 
 if len(addrs) == 0 and default_addr is not None:
     addrs.append(default_addr)
@@ -140,9 +108,9 @@ while not finish and todo:
             for l in b.lines:
                 done_interval += interval([(l.offset, l.offset + l.l)])
 
-        if options.funcswd is not None:
-            options.funcswd -= 1
-        if options.recurfunctions:
+        if args.funcswatchdog is not None:
+            args.funcswatchdog -= 1
+        if args.recurfunctions:
             for b in ab:
                 i = b.get_subcall_instr()
                 if not i:
@@ -152,10 +120,10 @@ while not finish and todo:
                         continue
                     todo.append((mdis, i, d.name.offset))
 
-        if options.funcswd is not None and options.funcswd <= 0:
+        if args.funcswatchdog is not None and args.funcswatchdog <= 0:
             finish = True
 
-    if options.trydisasmall:
+    if args.try_disasm_all:
         for a, b in done_interval.intervals:
             if b in done:
                 continue
@@ -180,7 +148,7 @@ all_lines = []
 total_l = 0
 
 print done_interval
-if options.image:
+if args.image:
     log.info('build img')
     done_interval.show()
 
@@ -194,7 +162,7 @@ log.info('total lines %s' % total_l)
 
 
 # Bonus, generate IR graph
-if options.gen_ir:
+if args.gen_ir:
     log.info("generating IR")
 
     ir_arch = ira(mdis.symbol_pool)
@@ -208,7 +176,7 @@ if options.gen_ir:
 
     ir_arch.gen_graph()
 
-    if options.simplify:
+    if args.simplify:
         ir_arch.dead_simp()
 
     out = ir_arch.graph()

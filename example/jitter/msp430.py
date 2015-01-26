@@ -7,7 +7,7 @@ from miasm2.analysis.machine import Machine
 
 parser = ArgumentParser(
     description="""Sandbox raw binary with msp430 engine
-(ex: test_jit_msp430.py example/msp430_sc.bin 0)""")
+(ex: jit_msp430.py example/msp430_sc.bin 0)""")
 parser.add_argument("-r", "--log-regs",
                     help="Log registers value for each instruction",
                     action="store_true")

@@ -73,129 +73,217 @@ class Example(Test):
     - @base_dir: example/@base_dir
     - @tags: TAGS["example"]"""
 
+    # Directory containing samples for examples
+    sample_dir = os.path.join("..", "samples")
+    example_dir = ""
+
     def __init__(self, *args, **kwargs):
+        if not self.example_dir:
+            raise NotImplementedError("ExampleDir should be inherited")
         super(Example, self).__init__(*args, **kwargs)
-        self.base_dir = os.path.join("example", self.base_dir)
+        self.base_dir = os.path.join(self.base_dir, "example", self.example_dir)
         self.tags.append(TAGS["example"])
 
-## Assembler
-testset += Example(['asm_x86.py'], products=["demo_x86_32.bin"])
-test_arm = Example(["asm_arm.py"], products=["demo_arm_l.bin", "demo_arm_b.bin"])
-test_armt = Example(["asm_armt.py"], products=["demo_armt_l.bin",
-                                               "demo_armt_b.bin"])
-test_box = Example(["asm_box_x86_32.py"], products=["box_x86_32.bin"])
-test_box_enc = Example(["asm_box_x86_32_enc.py"],
-                       products=["box_x86_32_enc.bin"])
-test_box_mod = Example(["asm_box_x86_32_mod.py"],
-                       products=["box_x86_32_mod.bin"])
-test_box_mod_self = Example(["asm_box_x86_32_mod_self.py"],
-                            products=["box_x86_32_mod_self.bin"])
-test_box_repmod = Example(["asm_box_x86_32_repmod.py"],
-                          products=["box_x86_32_repmod.bin"])
-test_msp430 = Example(["asm_msp430_sc.py"], products=["msp430_sc.bin"])
-test_mips32 = Example(["asm_mips32.py"], products=["mips32_sc_b.bin",
-                                                   "mips32_sc_l.bin"])
+    @classmethod
+    def get_sample(cls, sample_name):
+        "Return the relative path of @sample_name"
+        return os.path.join(cls.sample_dir, sample_name)
 
-testset += test_arm
-testset += test_armt
-testset += test_box
-testset += test_box_enc
-testset += test_box_mod
-testset += test_box_mod_self
-testset += test_box_repmod
+
+## Assembler
+class ExampleAssembler(Example):
+    """Assembler examples specificities:
+    - script path begins with "asm/"
+    """
+    example_dir = "asm"
+
+
+testset += ExampleAssembler(["simple.py"])
+
+class ExampleShellcode(ExampleAssembler):
+    """Specificities:
+    - script: asm/shellcode.py
+    - @products: graph.txt + 3rd arg
+    - apply get_sample on each products (!= graph.txt)
+    - apply get_sample on the 2nd and 3rd arg (source, output)
+    """
+
+    def __init__(self, *args, **kwargs):
+        super(ExampleShellcode, self).__init__(*args, **kwargs)
+        self.command_line = ["shellcode.py",
+                             self.command_line[0]] + \
+                             map(Example.get_sample, self.command_line[1:3]) + \
+                             self.command_line[3:]
+        self.products = [self.command_line[3], "graph.txt"]
+
+
+testset += ExampleShellcode(['x86_32', 'x86_32_manip_ptr.S', "demo_x86_32.bin"])
+
+test_box = {}
+test_box_names = ["mod", "mod_self", "repmod", "simple", "enc"]
+for source in test_box_names:
+    sample_base = "x86_32_" + source
+    args = ["x86_32", sample_base + ".S", sample_base + ".bin", "--PE"]
+    if source == "enc":
+        args += ["--encrypt","msgbox_encrypted_start", "msgbox_encrypted_stop"]
+    test_box[source] = ExampleShellcode(args)
+    testset += test_box[source]
+
+test_armb = ExampleShellcode(["armb", "arm_simple.S", "demo_arm_b.bin"])
+test_arml = ExampleShellcode(["arml", "arm_simple.S", "demo_arm_l.bin"])
+test_armb_sc = ExampleShellcode(["armb", "arm_sc.S", "demo_arm2_b.bin"])
+test_arml_sc = ExampleShellcode(["arml", "arm_sc.S", "demo_arm2_l.bin"])
+test_armtb = ExampleShellcode(["armtb", "armt.S", "demo_armt_b.bin"])
+test_armtl = ExampleShellcode(["armtl", "armt.S", "demo_armt_l.bin"])
+test_msp430 = ExampleShellcode(["msp430", "msp430.S", "msp430_sc.bin"])
+test_mips32b = ExampleShellcode(["mips32b", "mips32.S", "mips32_sc_b.bin"])
+test_mips32l = ExampleShellcode(["mips32l", "mips32.S", "mips32_sc_l.bin"])
+test_x86_64 = ExampleShellcode(["x86_64", "x86_64.S", "demo_x86_64.bin",
+                                "--PE"])
+
+testset += test_armb
+testset += test_arml
+testset += test_armb_sc
+testset += test_arml_sc
+testset += test_armtb
+testset += test_armtl
 testset += test_msp430
-testset += test_mips32
-for script in [["disasm_01.py"],
-               ["disasm_02.py"],
-               ["disasm_03.py", "box_upx.exe", "0x410f90"],
-               ]:
-    testset += Example(script)
-## Expression
-class ExampleTestDis(Example):
-    """TestDis specificities:
-    - script: test_dis.py
-    - flags: -g -s -m
+testset += test_mips32b
+testset += test_mips32l
+testset += test_x86_64
+
+class ExampleDisassembler(Example):
+    """Disassembler examples specificities:
+    - script path begins with "disasm/"
+    """
+    example_dir = "disasm"
+
+
+for script, prods in [(["single_instr.py"], []),
+                      (["function.py"], ["graph.txt"]),
+                      (["file.py", Example.get_sample("box_upx.exe"),
+                        "0x410f90"], ["graph.txt"]),
+                      ]:
+    testset += ExampleDisassembler(script, products=prods)
+
+
+class ExampleDisasmFull(ExampleDisassembler):
+    """DisasmFull specificities:
+    - script: disasm/full.py
+    - flags: -g -s
     - @products: graph_execflow.txt, graph_irflow.txt, lines.txt, out.txt
     """
 
     def __init__(self, *args, **kwargs):
-        super(ExampleTestDis, self).__init__(*args, **kwargs)
-        self.command_line = ["test_dis.py", "-g", "-s", "-m"] + \
-            self.command_line
-        self.products += ["graph_execflow.txt", "graph_irflow.txt", "lines.txt",
-                          "out.txt"]
+        super(ExampleDisasmFull, self).__init__(*args, **kwargs)
+        self.command_line = ["full.py", "-g", "-s"] + self.command_line
+        self.products += ["graph_execflow.txt", "graph_irflow.txt", "lines.txt"]
 
-testset += ExampleTestDis(["arml", "demo_arm_l.bin", "0"], depends=[test_arm])
-testset += ExampleTestDis(["armb", "demo_arm_b.bin", "0"], depends=[test_arm])
-testset += ExampleTestDis(["armtl", "demo_armt_l.bin", "0"],
-                   depends=[test_armt])
-testset += ExampleTestDis(["armtb", "demo_armt_b.bin", "0"],
-                   depends=[test_armt])
-testset += ExampleTestDis(["x86_32", "box_x86_32.bin", "0x401000"],
-                          depends=[test_box])
-testset += ExampleTestDis(["msp430", "msp430_sc.bin", "0"],
-                   depends=[test_msp430])
-testset += ExampleTestDis(["mips32l", "mips32_sc_l.bin", "0"],
-                          depends=[test_mips32])
-testset += ExampleTestDis(["mips32b", "mips32_sc_b.bin", "0"],
-                          depends=[test_mips32])
 
-testset += Example(["expression/graph_dataflow.py",
-                    "expression/sc_connect_back.bin", "0x2e"],
-                   products=["data.txt"])
-testset += Example(["expression/asm_to_ir.py"],
-                   products=["graph.txt", "graph2.txt"])
-testset += Example(["expression/get_read_write.py"],
-                   products=["graph_instr.txt"])
-testset += Example(["expression/solve_condition_stp.py",
-                    "expression/simple_test.bin"],
-                   products=["graph_instr.txt"])
+testset += ExampleDisasmFull(["arml", Example.get_sample("demo_arm_l.bin"),
+                              "0"], depends=[test_arml])
+testset += ExampleDisasmFull(["armb", Example.get_sample("demo_arm_b.bin"),
+                              "0"], depends=[test_armb])
+testset += ExampleDisasmFull(["arml", Example.get_sample("demo_arm2_l.bin"),
+                              "0"], depends=[test_arml_sc])
+testset += ExampleDisasmFull(["armb", Example.get_sample("demo_arm2_b.bin"),
+                              "0"], depends=[test_armb_sc])
+testset += ExampleDisasmFull(["armtl", Example.get_sample("demo_armt_l.bin"),
+                              "0"], depends=[test_armtl])
+testset += ExampleDisasmFull(["armtb", Example.get_sample("demo_armt_b.bin"),
+                              "0"], depends=[test_armtb])
+testset += ExampleDisasmFull(["x86_32", Example.get_sample("x86_32_simple.bin"),
+                              "0x401000"], depends=[test_box["simple"]])
+testset += ExampleDisasmFull(["msp430", Example.get_sample("msp430_sc.bin"),
+                              "0"], depends=[test_msp430])
+testset += ExampleDisasmFull(["mips32l", Example.get_sample("mips32_sc_l.bin"),
+                              "0"], depends=[test_mips32l])
+testset += ExampleDisasmFull(["mips32b", Example.get_sample("mips32_sc_b.bin"),
+                              "0"], depends=[test_mips32b])
+testset += ExampleDisasmFull(["x86_64", Example.get_sample("demo_x86_64.bin"),
+                              "0x401000"], depends=[test_x86_64])
 
-for script in [["symbol_exec.py"],
-               ["expression/basic_op.py"],
-               ["expression/basic_simplification.py"],
-               ["expression/simplification_tools.py"],
-               ["expression/expr_grapher.py"],
-               ["expression/simplification_add.py"],
-               ["expression/expr_random.py"],
-               ["expression/expr_translate.py"],
+
+## Expression
+class ExampleExpression(Example):
+    """Expression examples specificities:
+    - script path begins with "expression/"
+    """
+    example_dir = "expression"
+
+
+testset += ExampleExpression(["graph_dataflow.py",
+                              Example.get_sample("sc_connect_back.bin"),
+                              "0x2e"],
+                             products=["data.txt"])
+testset += ExampleExpression(["asm_to_ir.py"],
+                             products=["graph.txt", "graph2.txt"])
+testset += ExampleExpression(["get_read_write.py"],
+                             products=["graph_instr.txt"])
+testset += ExampleExpression(["solve_condition_stp.py",
+                              Example.get_sample("simple_test.bin")],
+                             products=["graph_instr.txt", "out.txt"])
+
+for script in [["basic_op.py"],
+               ["basic_simplification.py"],
+               ["simplification_tools.py"],
+               ["expr_grapher.py"],
+               ["simplification_add.py"],
+               ["expr_random.py"],
+               ["expr_translate.py"],
                ]:
-    testset += Example(script)
-## Jitter
+    testset += ExampleExpression(script)
 
-for jitter in ["tcc", "llvm", "python"]:
+## Symbolic Execution
+class ExampleSymbolExec(Example):
+    """Symbol Exec examples specificities:
+    - script path begins with "symbol_exec/"
+    """
+
+    example_dir = "symbol_exec"
+
+
+testset += ExampleSymbolExec(["single_instr.py"])
+
+## Jitter
+class ExampleJitter(Example):
+    """Jitter examples specificities:
+    - script path begins with "jitter/"
+    """
+    example_dir = "jitter"
+    jitter_engines = ["tcc", "llvm", "python"]
+
+
+for jitter in ExampleJitter.jitter_engines:
     # Take 5 min on a Core i5
     tags = {"python": [TAGS["long"]],
             "llvm": [TAGS["llvm"]],
             }
-    testset += Example(["unpack_upx.py", "box_upx.exe"] + ["--jitter", jitter],
-                       products=["box_upx_exe_unupx.bin"],
-                       tags=tags.get(jitter, []))
+    testset += ExampleJitter(["unpack_upx.py",
+                              Example.get_sample("box_upx.exe")] +
+                             ["--jitter", jitter],
+                             products=[Example.get_sample("box_upx_exe_unupx.bin")],
+                             tags=tags.get(jitter, []))
 
-for script, dep in [(["test_jit_x86_32.py", "x86_32_sc.bin"], []),
-                    (["test_jit_arm.py", "md5_arm", "-a", "A684"], []),
-                    (["test_jit_msp430.py", "msp430_sc.bin", "0"],
+for script, dep in [(["x86_32.py", Example.get_sample("x86_32_sc.bin")], []),
+                    (["arm.py", Example.get_sample("md5_arm"), "-a", "A684"],
+                     []),
+                    (["msp430.py", Example.get_sample("msp430_sc.bin"), "0"],
                      [test_msp430]),
-                    (["test_jit_mips32.py", "mips32_sc_l.bin", "0"],
-                     [test_mips32]),
-                    (["test_jit_arm_sc.py", "0", "demo_arm_b.bin", "b", "-a",
-                      "0"], [test_arm]),
-                    (["test_jit_arm_sc.py", "0", "demo_arm_l.bin", "l", "-a",
-                      "0"], [test_arm]),
-                    (["sandbox_pe_x86_32.py", "box_x86_32.bin"], [test_box]),
-                    (["sandbox_pe_x86_32.py", "box_x86_32_enc.bin"],
-                     [test_box_enc]),
-                    (["sandbox_pe_x86_32.py", "box_x86_32_mod.bin"],
-                     [test_box_mod]),
-                    (["sandbox_pe_x86_32.py", "box_x86_32_repmod.bin"],
-                     [test_box_repmod]),
-                    (["sandbox_pe_x86_32.py", "box_x86_32_mod_self.bin"],
-                     [test_box_mod_self]),
-                    ]:
-    for jitter in ["tcc", "llvm", "python"]:
+                    (["mips32.py", Example.get_sample("mips32_sc_l.bin"), "0"],
+                     [test_mips32l]),
+                    (["arm_sc.py", "0", Example.get_sample("demo_arm_b.bin"),
+                      "b", "-a", "0"], [test_armb]),
+                    (["arm_sc.py", "0", Example.get_sample("demo_arm_l.bin"),
+                      "l", "-a", "0"], [test_arml]),
+                    ] + [(["sandbox_pe_x86_32.py",
+                           Example.get_sample("x86_32_" + name + ".bin")],
+                          [test_box[name]])
+                         for name in test_box_names]:
+    for jitter in ExampleJitter.jitter_engines:
         tags = [TAGS["llvm"]] if jitter == "llvm" else []
-        testset += Example(script + ["--jitter", jitter],
-                           depends=dep, tags=tags)
+        testset += ExampleJitter(script + ["--jitter", jitter], depends=dep,
+                                 tags=tags)
 
 
 if __name__ == "__main__":
@@ -287,7 +375,7 @@ By default, no tag is ommited." % ", ".join(TAGS.keys()), default="")
     try:
         import z3
     except ImportError:
-        print "%(red)s[Z3]%(end)s" % cosmetics.colors + \
+        print "%(red)s[Z3]%(end)s " % cosmetics.colors + \
             "Z3 and its python binding are necessary for TranslatorZ3."
         if TAGS["z3"] not in exclude_tags:
             exclude_tags.append(TAGS["z3"])

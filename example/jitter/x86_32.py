@@ -1,8 +1,6 @@
-import sys
 import os
 from argparse import ArgumentParser
-from miasm2.jitter.jitload import bin_stream_vm
-from miasm2.jitter.csts import *
+from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm2.analysis.machine import Machine
 
 from pdb import pm

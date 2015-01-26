@@ -108,6 +108,7 @@ class Machine(object):
         self.__gdbserver = gdbserver
         self.__log_jit = log_jit
         self.__log_arch = log_arch
+        self.__base_expr = arch.base_expr
 
     @property
     def dis_engine(self):
@@ -136,6 +137,10 @@ class Machine(object):
     @property
     def log_arch(self):
         return self.__log_arch
+
+    @property
+    def base_expr(self):
+        return self.__base_expr
 
     @classmethod
     def available_machine(cls):
