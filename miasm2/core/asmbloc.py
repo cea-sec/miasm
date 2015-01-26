@@ -871,7 +871,7 @@ def resolve_symbol(group_bloc, symbol_pool, dont_erase=[], max_offset=0xFFFFFFFF
                 continue
             resolving = True
             log_asmbloc.info("bloc %s resolved" % unr_bloc[i].label)
-            bloc_list.append((unr_bloc[i], 0))
+            bloc_list.append(unr_bloc[i])
             g_found = None
             for g in g_tab:
                 if unr_bloc[i] in group_bloc[g]:
@@ -959,11 +959,11 @@ def asmbloc_final(mnemo, blocs, symbol_pool, symb_reloc_off=None, conservative =
             symbols.add_label(s, v.offset_g)
         # print symbols
         # test if bad encoded relative
-        for b, t in blocs:
+        for bloc in blocs:
 
             offset_i = 0
-            my_symb_reloc_off[b.label] = []
-            for instr in b.lines:
+            my_symb_reloc_off[bloc.label] = []
+            for instr in bloc.lines:
                 if isinstance(instr, asm_raw):
                     if isinstance(instr.raw, list):
                         # fix special asm_raw
@@ -976,7 +976,7 @@ def asmbloc_final(mnemo, blocs, symbol_pool, symb_reloc_off=None, conservative =
                     offset_i += instr.l
                     continue
                 sav_a = instr.args[:]
-                instr.offset = b.label.offset_g + offset_i
+                instr.offset = bloc.label.offset_g + offset_i
                 args_e = instr.resolve_args_with_symbols(symbols)
                 for i, e in enumerate(args_e):
                     instr.args[i] = e
@@ -995,17 +995,14 @@ def asmbloc_final(mnemo, blocs, symbol_pool, symb_reloc_off=None, conservative =
 
                 if len(c) != instr.l:
                     # good len, bad offset...XXX
-                    b.blen = b.blen - old_l + len(c)
+                    bloc.blen = bloc.blen - old_l + len(c)
                     instr.data = c
                     instr.l = len(c)
                     fini = False
                     continue
                 found = False
                 for cpos, c in enumerate(candidates):
-                    # if len(c) == len(instr.data):
                     if len(c) == instr.l:
-                        # print 'UPDD', repr(instr.data), repr(c)
-                        # b.blen = b.blen-old_l+len(c)
                         instr.data = c
                         instr.l = len(c)
 
@@ -1020,7 +1017,7 @@ def asmbloc_final(mnemo, blocs, symbol_pool, symb_reloc_off=None, conservative =
                     my_s = None
 
                 if my_s is not None:
-                    my_symb_reloc_off[b.label].append(offset_i + my_s)
+                    my_symb_reloc_off[bloc.label].append(offset_i + my_s)
                 offset_i += instr.l
                 assert(len(instr.data) == instr.l)
     # we have fixed all relative values
@@ -1048,19 +1045,18 @@ def asm_resolve_final(mnemo, blocs, symbol_pool, dont_erase=[],
     asmbloc_final(mnemo, resolved_b, symbol_pool, symb_reloc_off)
     written_bytes = {}
     patches = {}
-    for b, t in resolved_b:
-        offset = b.label.offset
-        for i in b.lines:
-            assert(i.data is not None)
-            patches[offset] = i.data
-            for c in range(i.l):
-                if offset + c in written_bytes:
+    for bloc in resolved_b:
+        offset = bloc.label.offset
+        for line in bloc.lines:
+            assert(line.data is not None)
+            patches[offset] = line.data
+            for cur_pos in xrange(line.l):
+                if offset + cur_pos in written_bytes:
                     raise ValueError(
                         "overlapping bytes in asssembly %X" % int(offset))
-                written_bytes[offset + c] = 1
-            i.offset = offset
-            i.l = i.l
-            offset += i.l
+                written_bytes[offset + cur_pos] = 1
+            line.offset = offset
+            offset += line.l
 
     return resolved_b, patches
 

@@ -30,7 +30,7 @@ symbol_pool.set_offset(symbol_pool.getby_name("main"), 0x0)
 resolved_b, patches = asmbloc.asm_resolve_final(mn_x86, blocs[0], symbol_pool)
 
 # Show resolved blocs
-for bloc, dummy in resolved_b:
+for bloc in resolved_b:
     print bloc
 
 # Print offset -> bytes
