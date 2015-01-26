@@ -2,15 +2,15 @@
 #-*- coding:utf-8 -*-
 
 import logging
+import inspect
+
+
 import miasm2.expression.expression as m2_expr
 from miasm2.expression.simplifications import expr_simp
-
 from miasm2.expression.modint import moduint, modint
-from miasm2.core.graph import DiGraph
 from miasm2.core.utils import Disasm_Exception, pck
 from miasm2.core.graph import DiGraph
 
-import inspect
 
 log_asmbloc = logging.getLogger("asmbloc")
 console_handler = logging.StreamHandler()
@@ -29,23 +29,18 @@ def is_int(a):
 
 
 def expr_is_label(e):
-    if isinstance(e, m2_expr.ExprId) and isinstance(e.name, asm_label):
-        return True
-    return False
+    return isinstance(e, m2_expr.ExprId) and isinstance(e.name, asm_label)
 
 
 def expr_is_int_or_label(e):
-    if isinstance(e, m2_expr.ExprInt):
-        return True
-    if isinstance(e, m2_expr.ExprId) and isinstance(e.name, asm_label):
-        return True
-    return False
+    return isinstance(e, m2_expr.ExprInt) or \
+        (isinstance(e, m2_expr.ExprId) and isinstance(e.name, asm_label))
 
 
 class asm_label:
+    "Stand for an assembly label"
 
     def __init__(self, name="", offset=None):
-        # print whoami()
         self.fixedblocs = False
         if is_int(name):
             name = "loc_%.16X" % (int(name) & 0xFFFFFFFFFFFFFFFF)
@@ -476,8 +471,6 @@ def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool,
 
 def split_bloc(mnemo, attrib, pool_bin, blocs,
     symbol_pool, more_ref=None, dis_bloc_callback=None):
-    i = -1
-    err = False
     if not more_ref:
         more_ref = []
 
@@ -507,7 +500,6 @@ def split_bloc(mnemo, attrib, pool_bin, blocs,
             log_asmbloc.debug("split bloc %x" % off)
             if new_b is None:
                 log_asmbloc.error("cannot split %x!!" % off)
-                err = True
                 break
             if dis_bloc_callback:
                 offsets_to_dis = set(
@@ -519,10 +511,6 @@ def split_bloc(mnemo, attrib, pool_bin, blocs,
             blocs.append(new_b)
             a, b = cb.get_range()
 
-        """
-        if err:
-            break
-        """
     return blocs
 
 
@@ -778,7 +766,6 @@ def gen_non_free_mapping(group_bloc, dont_erase=[]):
     non_free_mapping = {}
     # calculate free space for bloc placing
     for g in group_bloc:
-        rest_len = 0
         g.fixedblocs = False
         # if a label in the group is fixed
         diff_offset = 0
@@ -808,7 +795,6 @@ def resolve_symbol(group_bloc, symbol_pool, dont_erase=[], max_offset=0xFFFFFFFF
     log_asmbloc.info(str(dont_erase))
     bloc_list = []
     unr_bloc = reduce(lambda x, y: x + group_bloc[y], group_bloc, [])
-    ending_ad = []
 
     non_free_mapping = gen_non_free_mapping(group_bloc, dont_erase)
     free_interval = gen_free_space_intervals(non_free_mapping, max_offset)
@@ -911,11 +897,11 @@ def resolve_symbol(group_bloc, symbol_pool, dont_erase=[], max_offset=0xFFFFFFFF
             continue
 
         for g in g_tab:
-            print g
+            log_asmbloc.debug(g)
             if g.fixedblocs:
-                print "fixed"
+                log_asmbloc.debug("fixed")
             else:
-                print "not fixed"
+                log_asmbloc.debug("not fixed")
         raise ValueError('enable to fix bloc')
     return bloc_list
 
@@ -976,7 +962,6 @@ def asmbloc_final(mnemo, blocs, symbol_pool, symb_reloc_off=None, conservative =
         for b, t in blocs:
 
             offset_i = 0
-            blen = 0
             my_symb_reloc_off[b.label] = []
             for instr in b.lines:
                 if isinstance(instr, asm_raw):
@@ -1037,7 +1022,6 @@ def asmbloc_final(mnemo, blocs, symbol_pool, symb_reloc_off=None, conservative =
                 if my_s is not None:
                     my_symb_reloc_off[b.label].append(offset_i + my_s)
                 offset_i += instr.l
-                blen += instr.l
                 assert(len(instr.data) == instr.l)
     # we have fixed all relative values
     # recompute good offsets
@@ -1220,7 +1204,7 @@ def bloc_find_path_next(blocs, blocby_label, a, b, path=None):
         if x.c_t != asm_constraint.c_next:
             continue
         if not x.label in blocby_label:
-            print 'XXX unknown label'
+            log_asmbloc.error('XXX unknown label')
             continue
         x = blocby_label[x.label]
         all_path += bloc_find_path_next(blocs, blocby_label, x, b, path + [a])
@@ -1354,7 +1338,7 @@ def bloc_merge(blocs, symbol_pool, dont_merge=[]):
             if s.label.name == None:
                 continue
             if not s.label in blocby_label:
-                print "unknown parent XXX"
+                log_asmbloc.error("unknown parent XXX")
                 continue
             bs = blocby_label[s.label]
             for p in list(bs.parents):
@@ -1388,7 +1372,6 @@ class disasmEngine(object):
         self.__dict__.update(kwargs)
 
     def dis_bloc(self, offset):
-        job_done = set()
         l = self.symbol_pool.getby_offset_create(offset)
         current_bloc = asm_bloc(l)
         dis_bloc(self.arch, self.bs, current_bloc, offset, self.job_done,
