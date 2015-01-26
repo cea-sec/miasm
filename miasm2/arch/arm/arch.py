@@ -75,6 +75,10 @@ pregs_expr = [ExprId(x) for x in pregs_str]
 
 p_regs = reg_info(pregs_str, pregs_expr)
 
+conditional_branch = ["BEQ", "BNE", "BCS", "BCC", "BMI", "BPL", "BVS",
+                      "BVC", "BHI", "BLS", "BGE", "BLT", "BGT", "BLE"]
+
+unconditional_branch = ["B", "BX", "BL", "BLX"]
 
 # parser helper ###########
 
@@ -352,9 +356,7 @@ class instruction_arm(instruction):
 
 
     def dstflow(self):
-        if self.name.startswith('BIC'):
-            return False
-        return self.name.startswith('B')
+        return self.name in conditional_branch + unconditional_branch
 
     def dstflow2label(self, symbol_pool):
         e = self.args[0]
@@ -369,11 +371,10 @@ class instruction_arm(instruction):
         self.args[0] = s
 
     def breakflow(self):
-        if self.name.startswith('B') and not self.name.startswith('BIC'):
+        if self.name in conditional_branch + unconditional_branch:
             return True
         if self.name.startswith("LDM") and PC in self.args[1].args:
             return True
-
         if self.args and PC in self.args[0].get_r():
             return True
         return False
@@ -384,8 +385,6 @@ class instruction_arm(instruction):
         return self.additional_info.lnk
 
     def getdstflow(self, symbol_pool):
-        if self.name in ['CBZ', 'CBNZ']:
-            return [self.args[1]]
         return [self.args[0]]
 
     def splitflow(self):
@@ -427,11 +426,9 @@ class instruction_armt(instruction_arm):
         super(instruction_armt, self).__init__(*args, **kargs)
 
     def dstflow(self):
-        if self.name.startswith('BIC'):
-            return False
         if self.name in ["CBZ", "CBNZ"]:
             return True
-        return self.name.startswith('B')
+        return self.name in conditional_branch + unconditional_branch
 
     def dstflow2label(self, symbol_pool):
         if self.name in ["CBZ", "CBNZ"]:
@@ -452,10 +449,7 @@ class instruction_armt(instruction_arm):
             self.args[0] = s
 
     def breakflow(self):
-        if self.name in ['B', 'BX', 'BL', 'BLX',
-                         'BEQ', 'BNE', 'BCS', 'BCC', 'BMI', 'BPL', 'BVS',
-                         'BVC', 'BHI', 'BLS', 'BGE', 'BLT', 'BGT', 'BLE',
-                         'CBZ', 'CBNZ']:
+        if self.name in conditional_branch + unconditional_branch +["CBZ", "CBNZ"]:
             return True
         if self.name.startswith("LDM") and PC in self.args[1].args:
             return True
@@ -463,18 +457,18 @@ class instruction_armt(instruction_arm):
             return True
         return False
 
+    def getdstflow(self, symbol_pool):
+        if self.name in ['CBZ', 'CBNZ']:
+            return [self.args[1]]
+        return [self.args[0]]
+
     def splitflow(self):
-        if self.name in ['BL', 'BLX',
-                         'BEQ', 'BNE', 'BCS', 'BCC', 'BMI', 'BPL', 'BVS',
-                         'BVC', 'BHI', 'BLS', 'BGE', 'BLT', 'BGT', 'BLE',
-                         'CBZ', 'CBNZ']:
+        if self.name in conditional_branch + ['BL', 'BLX', 'CBZ', 'CBNZ']:
             return True
         return False
 
     def is_subcall(self):
-        if self.name in ['BL', 'BLX']:
-            return True
-        return False
+        return self.name in ['BL', 'BLX']
 
     def fixDstOffset(self):
         e = self.args[0]
