@@ -632,7 +632,7 @@ def fix_expr_val(e, symbols):
     return e
 
 
-def guess_blocs_size(mnemo, blocs, symbols):
+def guess_blocs_size(mnemo, blocs):
     """
     Asm and compute max bloc length
     """
@@ -1033,7 +1033,7 @@ def asm_resolve_final(mnemo, blocs, symbol_pool, dont_erase=[],
                       symb_reloc_off=None, constrain_pos=False):
     if symb_reloc_off is None:
         symb_reloc_off = {}
-    guess_blocs_size(mnemo, blocs, symbol_pool)
+    guess_blocs_size(mnemo, blocs)
     bloc_g = group_blocs(blocs)
 
     resolved_b = resolve_symbol(bloc_g, symbol_pool, dont_erase=dont_erase,
