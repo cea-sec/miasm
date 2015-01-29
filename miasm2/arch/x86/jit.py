@@ -106,32 +106,6 @@ class jitter_x86_32(jitter):
         self.cpu.EIP = ret_addr
         self.cpu.EAX = ret_value
 
-    def add_lib_handler(self, libs, user_globals=None):
-        """Add a function to handle libs call with breakpoints
-        @libs: libimp instance
-        @user_globals: dictionnary for defined user function
-        """
-        if user_globals is None:
-            user_globals = {}
-
-        from miasm2.os_dep import win_api_x86_32
-
-        def handle_lib(jitter):
-            fname = libs.fad2cname[jitter.pc]
-            if fname in user_globals:
-                f = user_globals[fname]
-            elif fname in win_api_x86_32.__dict__:
-                f = win_api_x86_32.__dict__[fname]
-            else:
-                log.debug('%s' % repr(fname))
-                raise ValueError('unknown api', hex(jitter.pop_uint32_t()), repr(fname))
-            f(jitter)
-            jitter.pc = getattr(jitter.cpu, jitter.ir_arch.pc.name)
-            return True
-
-        for f_addr in libs.fad2cname:
-            self.add_breakpoint(f_addr, handle_lib)
-
     def init_run(self, *args, **kwargs):
         jitter.init_run(self, *args, **kwargs)
         self.cpu.EIP = self.pc
@@ -164,10 +138,6 @@ class jitter_x86_64(jitter):
     def get_stack_arg(self, n):
         x = upck64(self.vm.get_mem(self.cpu.RSP + 8 * n, 8))
         return x
-
-    def init_run(self, *args, **kwargs):
-        jitter.init_run(self, *args, **kwargs)
-        self.cpu.RIP = self.pc
 
     def func_args_stdcall(self, n_args):
         args_regs = ['RCX', 'RDX', 'R8', 'R9']
@@ -207,28 +177,6 @@ class jitter_x86_64(jitter):
             self.cpu.RAX = ret_value
         return True
 
-    def add_lib_handler(self, libs, user_globals=None):
-        """Add a function to handle libs call with breakpoints
-        @libs: libimp instance
-        @user_globals: dictionnary for defined user function
-        """
-        if user_globals is None:
-            user_globals = {}
-
-        from miasm2.os_dep import win_api_x86_32
-
-        def handle_lib(jitter):
-            fname = libs.fad2cname[jitter.pc]
-            if fname in user_globals:
-                f = user_globals[fname]
-            elif fname in win_api_x86_32.__dict__:
-                f = win_api_x86_32.__dict__[fname]
-            else:
-                log.debug('%s' % repr(fname))
-                raise ValueError('unknown api', hex(jitter.pop_uint64_t()), repr(fname))
-            f(jitter)
-            jitter.pc = getattr(jitter.cpu, jitter.ir_arch.pc.name)
-            return True
-
-        for f_addr in libs.fad2cname:
-            self.add_breakpoint(f_addr, handle_lib)
+    def init_run(self, *args, **kwargs):
+        jitter.init_run(self, *args, **kwargs)
+        self.cpu.RIP = self.pc

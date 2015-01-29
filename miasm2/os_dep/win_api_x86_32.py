@@ -954,7 +954,7 @@ def kernel32_GetProcAddress(jitter):
     else:
         ad = 0
     ad = winobjs.runtime_dll.lib_get_add_func(libbase, fname)
-
+    jitter.add_breakpoint(ad, jitter.handle_lib)
     jitter.func_ret_stdcall(ret_ad, ad)
 
 

@@ -160,8 +160,11 @@ class OS_Win(OS):
 
     def __init__(self, custom_methods, *args, **kwargs):
         from miasm2.jitter.loader.pe import vm_load_pe, vm_load_pe_libs, preload_pe, libimp_pe
+        from miasm2.os_dep import win_api_x86_32
+        methods = win_api_x86_32.__dict__
+        methods.update(custom_methods)
 
-        super(OS_Win, self).__init__(custom_methods, *args, **kwargs)
+        super(OS_Win, self).__init__(methods, *args, **kwargs)
 
         # Import manager
         libs = libimp_pe()
@@ -187,7 +190,7 @@ class OS_Win(OS):
         preload_pe(self.jitter.vm, self.pe, libs)
 
         # Library calls handler
-        self.jitter.add_lib_handler(libs, custom_methods)
+        self.jitter.add_lib_handler(libs, methods)
 
         # Manage SEH
         if self.options.use_seh:
@@ -217,8 +220,11 @@ class OS_Linux(OS):
 
     def __init__(self, custom_methods, *args, **kwargs):
         from miasm2.jitter.loader.elf import vm_load_elf, preload_elf, libimp_elf
+        from miasm2.os_dep import linux_stdlib
+        methods = linux_stdlib.__dict__
+        methods.update(custom_methods)
 
-        super(OS_Linux, self).__init__(custom_methods, *args, **kwargs)
+        super(OS_Linux, self).__init__(methods, *args, **kwargs)
 
         # Import manager
         self.libs = libimp_elf()
@@ -230,12 +236,16 @@ class OS_Linux(OS):
         self.entry_point = self.elf.Ehdr.entry
 
         # Library calls handler
-        self.jitter.add_lib_handler(self.libs, custom_methods)
+        self.jitter.add_lib_handler(self.libs, methods)
 
 class OS_Linux_str(OS):
     def __init__(self, custom_methods, *args, **kwargs):
         from miasm2.jitter.loader.elf import libimp_elf
-        super(OS_Linux_str, self).__init__(custom_methods, *args, **kwargs)
+        from miasm2.os_dep import linux_stdlib
+        methods = linux_stdlib.__dict__
+        methods.update(custom_methods)
+
+        super(OS_Linux_str, self).__init__(methods, *args, **kwargs)
 
         # Import manager
         libs = libimp_elf()
@@ -246,7 +256,7 @@ class OS_Linux_str(OS):
         self.jitter.vm.add_memory_page(self.options.load_base_addr, PAGE_READ | PAGE_WRITE, data)
 
         # Library calls handler
-        self.jitter.add_lib_handler(libs, custom_methods)
+        self.jitter.add_lib_handler(libs, methods)
 
     @classmethod
     def update_parser(cls, parser):

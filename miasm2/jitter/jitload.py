@@ -40,8 +40,10 @@ class CallbackHandler(object):
         self.callbacks = {}  # Key -> [callback list]
 
     def add_callback(self, name, callback):
-        "Add a callback to the key 'name'"
-        self.callbacks[name] = self.callbacks.get(name, []) + [callback]
+        """Add a callback to the key @name, iff the @callback isn't already
+        assigned to it"""
+        if callback not in self.callbacks.get(name, []):
+            self.callbacks[name] = self.callbacks.get(name, []) + [callback]
 
     def set_callback(self, name, *args):
         "Set the list of callback for key 'name'"
@@ -351,3 +353,36 @@ class jitter:
         """Set an unicode string in memory"""
         s = "\x00".join(list(s)) + '\x00' * 3
         self.vm.set_mem(addr, s)
+
+    @staticmethod
+    def handle_lib(jitter):
+        """Resolve the name of the function which cause the handler call. Then
+        call the corresponding handler from users callback.
+        """
+        fname = jitter.libs.fad2cname[jitter.pc]
+        if fname in jitter.user_globals:
+            func = jitter.user_globals[fname]
+        else:
+            log.debug('%s' % repr(fname))
+            raise ValueError('unknown api', hex(jitter.pc), repr(fname))
+        func(jitter)
+        jitter.pc = getattr(jitter.cpu, jitter.ir_arch.pc.name)
+        return True
+
+    def handle_function(self, f_addr):
+        """Add a brakpoint which will trigger the function handler"""
+        self.add_breakpoint(f_addr, self.handle_lib)
+
+    def add_lib_handler(self, libs, user_globals=None):
+        """Add a function to handle libs call with breakpoints
+        @libs: libimp instance
+        @user_globals: dictionnary for defined user function
+        """
+        if user_globals is None:
+            user_globals = {}
+
+        self.libs = libs
+        self.user_globals = user_globals
+
+        for f_addr in libs.fad2cname:
+            self.handle_function(f_addr)
