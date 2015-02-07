@@ -16,44 +16,7 @@ from miasm2.analysis.machine import Machine
 from miasm2.analysis.data_analysis import intra_bloc_flow_raw, inter_bloc_flow
 from miasm2.analysis.data_analysis import intra_bloc_flow_symbexec
 
-
-
-def expr2colorstr(ir_arch, e):
-    # print "XXX", e
-    if isinstance(e, ExprId):
-        s = str(e)
-        if e in ir_arch.arch.regs.all_regs_ids:
-            s = idaapi.COLSTR(s, idaapi.SCOLOR_REG)
-    elif isinstance(e, ExprInt):
-        s = str(e)
-        s = idaapi.COLSTR(s, idaapi.SCOLOR_NUMBER)
-    elif isinstance(e, ExprMem):
-        s = '@%d[%s]' % (e.size, expr2colorstr(ir_arch, e.arg))
-    elif isinstance(e, ExprOp):
-        out = []
-        for a in e.args:
-            s = expr2colorstr(ir_arch, a)
-            if isinstance(a, ExprOp):
-                s = "(%s)" % s
-            out.append(s)
-        if len(out) == 1:
-            s = "%s %s" % (e.op, str(out[0]))
-        else:
-            s = (" " + e.op + " ").join(out)
-    elif isinstance(e, ExprAff):
-        s = "%s = %s" % (
-            expr2colorstr(ir_arch, e.dst), expr2colorstr(ir_arch, e.src))
-    elif isinstance(e, ExprCond):
-        cond = expr2colorstr(ir_arch, e.cond)
-        src1 = expr2colorstr(ir_arch, e.src1)
-        src2 = expr2colorstr(ir_arch, e.src2)
-        s = "(%s?%s:%s)" % (cond, src1, src2)
-    elif isinstance(e, ExprSlice):
-        s = "(%s)[%d:%d]" % (expr2colorstr(ir_arch, e.arg), e.start, e.stop)
-    else:
-        s = str(e)
-    # print repr(s)
-    return s
+from utils import guess_machine, expr2colorstr
 
 
 def color_irbloc(irbloc):
@@ -63,7 +26,7 @@ def color_irbloc(irbloc):
     o.append(lbl)
     for i, expr in enumerate(irbloc.irs):
         for e in expr:
-            s = expr2colorstr(ir_arch, e)
+            s = expr2colorstr(ir_arch.arch.regs.all_regs_ids, e)
             s = idaapi.COLSTR(s, idaapi.SCOLOR_INSN)
             o.append('    %s' % s)
         o.append("")
@@ -137,52 +100,7 @@ class GraphMiasmIR(GraphViewer):
 
 from miasm2.analysis.disasm_cb import guess_funcs, guess_multi_cb
 
-
-processor_name = GetLongPrm(INF_PROCNAME)
-dis_engine = None
-if processor_name == "metapc":
-
-    # HACK: check 32/64 using INF_START_SP
-    max_size = GetLongPrm(INF_START_SP)
-    if max_size == 0x80:  # TODO XXX check
-        machine = Machine("x86_16")
-    elif max_size == 0xFFFFFFFF:
-        machine = Machine("x86_32")
-    elif max_size == 0xFFFFFFFFFFFFFFFF:
-        machine = Machine("x86_64")
-    else:
-        raise ValueError('cannot guess 32/64 bit! (%x)' % max_size)
-elif processor_name == "ARM":
-    # TODO ARM/thumb
-    # hack for thumb: set armt = True in globals :/
-    # set bigendiant = True is bigendian
-    is_armt = globals().get('armt', False)
-    is_bigendian = globals().get('bigendian', False)
-    if is_armt:
-        if is_bigendian:
-            machine = Machine("armtb")
-        else:
-            machine = Machine("armtl")
-    else:
-        if is_bigendian:
-            machine = Machine("armb")
-        else:
-            machine = Machine("arml")
-
-    from miasm2.analysis.disasm_cb import arm_guess_subcall, arm_guess_jump_table
-    guess_funcs.append(arm_guess_subcall)
-    guess_funcs.append(arm_guess_jump_table)
-
-elif processor_name == "msp430":
-    machine = Machine("msp430")
-elif processor_name == "mipsl":
-    machine = Machine("mipsl")
-elif processor_name == "mipsb":
-    machine = Machine("mipsb")
-else:
-    print repr(processor_name)
-    raise NotImplementedError('not fully functional')
-
+machine = guess_machine()
 mn, dis_engine, ira = machine.mn, machine.dis_engine, machine.ira
 
 print "Arch", dis_engine
