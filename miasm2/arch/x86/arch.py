@@ -20,7 +20,9 @@ conditional_branch = ["JO", "JNO", "JB", "JAE",
                       "JZ", "JNZ", "JBE", "JA",
                       "JS", "JNS", "JPE", "JNP",
                       #"L", "NL", "NG", "G"]
-                      "JL", "JGE", "JLE", "JG"]
+                      "JL", "JGE", "JLE", "JG",
+                      "JCXZ", "JECXZ", "JRCXZ"]
+
 unconditional_branch = ['JMP']
 
 f_isad = "AD"
