@@ -4,64 +4,8 @@ import idaapi
 import idc
 from miasm2.expression.expression_helper import Variables_Identifier
 from miasm2.expression.expression import ExprAff
-from miasm2.ir.translators import Translator
 
-from utils import expr2colorstr
-
-
-class translatorForm(Form):
-    """Translator Form.
-
-    Offer a ComboBox with available languages (ie. IR translators) and the
-    corresponding translation."""
-
-    flags = (Form.MultiLineTextControl.TXTF_FIXEDFONT | \
-                 Form.MultiLineTextControl.TXTF_READONLY)
-
-    def __init__(self, expr):
-        "@expr: Expr instance"
-
-        # Init
-        self.languages = list(Translator.available_languages())
-        self.expr = expr
-
-        # Initial translation
-        text = Translator.to_language(self.languages[0]).from_expr(self.expr)
-
-        # Create the Form
-        Form.__init__(self, r"""STARTITEM 0
-Python Expression
-{FormChangeCb}
-<Language:{cbLanguage}>
-<Translation:{result}>
-""", {
-            'result': Form.MultiLineTextControl(text=text,
-                                                flags=translatorForm.flags),
-            'cbLanguage': Form.DropdownListControl(
-                    items=self.languages,
-                    readonly=True,
-                    selval=0),
-            'FormChangeCb': Form.FormChangeCb(self.OnFormChange),
-        })
-
-    def OnFormChange(self, fid):
-        if fid == self.cbLanguage.id:
-            # Display the Field (may be hide)
-            self.ShowField(self.result, True)
-
-            # Translate the expression
-            dest_lang = self.languages[self.GetControlValue(self.cbLanguage)]
-            try:
-                text = Translator.to_language(dest_lang).from_expr(self.expr)
-            except Exception, error:
-                self.ShowField(self.result, False)
-                return -1
-
-            # Update the form
-            self.SetControlValue(self.result,
-                                 textctrl_info_t(text=str(text),
-                                                 flags=translatorForm.flags))
-        return 1
+from utils import expr2colorstr, translatorForm
 
 
 class symbolicexec_t(idaapi.simplecustviewer_t):
