@@ -261,13 +261,12 @@ class OS_Linux_str(OS):
         parser.add_argument("load_base_addr", help="load base address")
 
 
-
-class Arch_x86_32(Arch):
-    _ARCH_ = "x86_32"
+class Arch_x86(Arch):
+    _ARCH_ = None # Arch name
     STACK_SIZE = 0x100000
 
     def __init__(self):
-        super(Arch_x86_32, self).__init__()
+        super(Arch_x86, self).__init__()
 
         if self.options.usesegm:
             self.jitter.ir_arch.do_stk_segm=  True
@@ -283,7 +282,15 @@ class Arch_x86_32(Arch):
     @classmethod
     def update_parser(cls, parser):
         parser.add_argument('-s', "--usesegm", action="store_true",
-                          help="Use segments fs:")
+                          help="Use segments")
+
+
+class Arch_x86_32(Arch_x86):
+    _ARCH_ = "x86_32"
+
+
+class Arch_x86_64(Arch):
+    _ARCH_ = "x86_64"
 
 
 class Arch_arml(Arch):
@@ -332,6 +339,31 @@ class Sandbox_Win_x86_32(Sandbox, Arch_x86_32, OS_Win):
         if addr is None and self.options.address is None:
             addr = self.entry_point
         super(Sandbox_Win_x86_32, self).run(addr)
+
+
+class Sandbox_Win_x86_64(Sandbox, Arch_x86_64, OS_Win):
+
+    def __init__(self, *args, **kwargs):
+        Sandbox.__init__(self, *args, **kwargs)
+
+        # reserve stack for local reg
+        for i in xrange(0x4):
+            self.jitter.push_uint64_t(0)
+
+        # Pre-stack some arguments
+        self.jitter.push_uint64_t(0x1337beef)
+
+        # Set the runtime guard
+        self.jitter.add_breakpoint(0x1337beef, self.__class__.code_sentinelle)
+
+
+    def run(self, addr = None):
+        """
+        If addr is not set, use entrypoint
+        """
+        if addr is None and self.options.address is None:
+            addr = self.entry_point
+        super(Sandbox_Win_x86_64, self).run(addr)
 
 
 class Sandbox_Linux_x86_32(Sandbox, Arch_x86_32, OS_Linux):
