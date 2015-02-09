@@ -3,8 +3,30 @@ import operator
 import idaapi
 import idc
 from miasm2.expression.expression_helper import Variables_Identifier
+from miasm2.expression.expression import ExprAff
+from miasm2.ir.translators import Translator
 
 from utils import expr2colorstr
+
+
+class translatorForm(Form):
+    """Form showing a translation of a Miasm expression to a Python equivalent
+    one"""
+
+    def __init__(self, expr):
+        "@expr: Expr instance"
+
+        # Translation
+        text = Translator.to_language("Miasm").from_expr(expr)
+
+        # Create the Form
+        Form.__init__(self, r"""STARTITEM 0
+Python Expression
+
+<Multilinetext:{txtMultiLineText}>
+""", {
+            'txtMultiLineText': Form.MultiLineTextControl(text=text)
+        })
 
 
 class symbolicexec_t(idaapi.simplecustviewer_t):
@@ -29,6 +51,13 @@ class symbolicexec_t(idaapi.simplecustviewer_t):
 
         self.Refresh()
 
+    def translate_expr(self, line_nb):
+        element = self.line2eq[line_nb]
+        expr = ExprAff(*element)
+        form = translatorForm(expr)
+        form.Compile()
+        form.Execute()
+
     def Create(self, equations, machine, *args, **kwargs):
         if not super(symbolicexec_t, self).Create(*args, **kwargs):
             return False
@@ -40,12 +69,15 @@ class symbolicexec_t(idaapi.simplecustviewer_t):
         self.print_lines()
 
         self.menu_expand = self.AddPopupMenu("Expand [E]")
+        self.menu_translate = self.AddPopupMenu("Get in Python [P]")
         return True
 
     def OnPopupMenu(self, menu_id):
         if menu_id == self.menu_expand:
             self.expand(self.GetLineNo())
             self.print_lines()
+        if menu_id == self.menu_translate:
+            self.translate_expr(self.GetLineNo())
         return True
 
     def OnKeydown(self, vkey, shift):
@@ -56,6 +88,9 @@ class symbolicexec_t(idaapi.simplecustviewer_t):
         # E (expand)
         if vkey == 69:
             self.OnPopupMenu(self.menu_expand)
+        # P (translate in python)
+        if vkey == 80:
+            self.OnPopupMenu(self.menu_translate)
         return False
 
 
