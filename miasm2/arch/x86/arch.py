@@ -23,7 +23,7 @@ conditional_branch = ["JO", "JNO", "JB", "JAE",
                       "JL", "JGE", "JLE", "JG",
                       "JCXZ", "JECXZ", "JRCXZ"]
 
-unconditional_branch = ['JMP']
+unconditional_branch = ['JMP', 'JMPF']
 
 f_isad = "AD"
 f_s08 = "S08"
