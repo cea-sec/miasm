@@ -10,23 +10,58 @@ from utils import expr2colorstr
 
 
 class translatorForm(Form):
-    """Form showing a translation of a Miasm expression to a Python equivalent
-    one"""
+    """Translator Form.
+
+    Offer a ComboBox with available languages (ie. IR translators) and the
+    corresponding translation."""
+
+    flags = (Form.MultiLineTextControl.TXTF_FIXEDFONT | \
+                 Form.MultiLineTextControl.TXTF_READONLY)
 
     def __init__(self, expr):
         "@expr: Expr instance"
 
-        # Translation
-        text = Translator.to_language("Miasm").from_expr(expr)
+        # Init
+        self.languages = list(Translator.available_languages())
+        self.expr = expr
+
+        # Initial translation
+        text = Translator.to_language(self.languages[0]).from_expr(self.expr)
 
         # Create the Form
         Form.__init__(self, r"""STARTITEM 0
 Python Expression
-
-<Multilinetext:{txtMultiLineText}>
+{FormChangeCb}
+<Language:{cbLanguage}>
+<Translation:{result}>
 """, {
-            'txtMultiLineText': Form.MultiLineTextControl(text=text)
+            'result': Form.MultiLineTextControl(text=text,
+                                                flags=translatorForm.flags),
+            'cbLanguage': Form.DropdownListControl(
+                    items=self.languages,
+                    readonly=True,
+                    selval=0),
+            'FormChangeCb': Form.FormChangeCb(self.OnFormChange),
         })
+
+    def OnFormChange(self, fid):
+        if fid == self.cbLanguage.id:
+            # Display the Field (may be hide)
+            self.ShowField(self.result, True)
+
+            # Translate the expression
+            dest_lang = self.languages[self.GetControlValue(self.cbLanguage)]
+            try:
+                text = Translator.to_language(dest_lang).from_expr(self.expr)
+            except Exception, error:
+                self.ShowField(self.result, False)
+                return -1
+
+            # Update the form
+            self.SetControlValue(self.result,
+                                 textctrl_info_t(text=str(text),
+                                                 flags=translatorForm.flags))
+        return 1
 
 
 class symbolicexec_t(idaapi.simplecustviewer_t):
@@ -69,7 +104,7 @@ class symbolicexec_t(idaapi.simplecustviewer_t):
         self.print_lines()
 
         self.menu_expand = self.AddPopupMenu("Expand [E]")
-        self.menu_translate = self.AddPopupMenu("Get in Python [P]")
+        self.menu_translate = self.AddPopupMenu("Translate [T]")
         return True
 
     def OnPopupMenu(self, menu_id):
@@ -88,8 +123,8 @@ class symbolicexec_t(idaapi.simplecustviewer_t):
         # E (expand)
         if vkey == 69:
             self.OnPopupMenu(self.menu_expand)
-        # P (translate in python)
-        if vkey == 80:
+        # T (translate)
+        if vkey == 84:
             self.OnPopupMenu(self.menu_translate)
         return False
 
