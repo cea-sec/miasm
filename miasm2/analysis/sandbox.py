@@ -14,7 +14,6 @@ class Sandbox(object):
 
     @staticmethod
     def code_sentinelle(jitter):
-        print 'Emulation stop'
         jitter.run = False
         return False
 
@@ -117,9 +116,8 @@ class Sandbox(object):
                 cmd.cmdloop()
 
         else:
-            print "Start emulation", hex(addr)
             self.jitter.init_run(addr)
-            print self.jitter.continue_run()
+            self.jitter.continue_run()
 
 
 class OS(object):
