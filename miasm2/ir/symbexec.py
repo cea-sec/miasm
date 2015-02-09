@@ -153,7 +153,7 @@ class symbexec(object):
                 if out:
                     missing_slice = self.rest_slice(out, 0, a.size)
                     for sa, sb in missing_slice:
-                        ptr = self.expr_simp(a_val + ExprInt32(sa / 8))
+                        ptr = self.expr_simp(a_val + ExprInt_from(a_val, sa / 8))
                         mm = ExprMem(ptr, size=sb - sa)
                         mm.is_term = True
                         mm.is_simp = True
