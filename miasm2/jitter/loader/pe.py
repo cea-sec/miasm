@@ -180,8 +180,8 @@ def vm_load_pe(vm, fdata, align_s=True, load_hdr=True, **kargs):
 
     # Copy each sections content in memory
     for section in pe.SHList:
-        log.debug('Map 0x%x bytes to 0x%x' % (len(s.data), pe.rva2virt(s.addr)))
-        vm.set_mem(pe.rva2virt(s.addr), str(s.data))
+        log.debug('Map 0x%x bytes to 0x%x' % (len(section.data), pe.rva2virt(section.addr)))
+        vm.set_mem(pe.rva2virt(section.addr), str(section.data))
 
     return pe
 
