@@ -1821,16 +1821,16 @@ def fucomip(ir, instr, a, b):
 
 
 def fcomp(ir, instr, a, b = None):
-    dst, e, extra = fcom(ir, instr, a, b)
+    e, extra = fcom(ir, instr, a, b)
     e += float_pop()
     e += set_float_cs_eip(instr)
-    return dst, e, extra
+    return e, extra
 
 def ficomp(ir, instr, a, b = None):
-    dst, e, extra = ficom(ir, instr, a, b)
+    e, extra = ficom(ir, instr, a, b)
     e += float_pop()
     e += set_float_cs_eip(instr)
-    return dst, e, extra
+    return e, extra
 
 
 def fld(ir, instr, a):
@@ -1872,9 +1872,9 @@ def fst(ir, instr, a):
 
 
 def fstp(ir, instr, a):
-    dst, e, extra = fst(ir, instr, a)
+    e, extra = fst(ir, instr, a)
     e += float_pop(a)
-    return dst, e, extra
+    return e, extra
 
 
 def fist(ir, instr, a):
@@ -1885,9 +1885,9 @@ def fist(ir, instr, a):
     return e, []
 
 def fistp(ir, instr, a):
-    dst, e, extra = fist(ir, instr, a)
+    e, extra = fist(ir, instr, a)
     e += float_pop(a)
-    return dst, e, extra
+    return e, extra
 
 def fist(ir, instr, a):
     e = []
@@ -1910,9 +1910,9 @@ def fild(ir, instr, a):
     src = ExprOp('int_%.2d_to_double' % a.size, a)
     e = []
     e += set_float_cs_eip(instr)
-    dst, e_fld, extra = fld(ir, instr, src)
+    e_fld, extra = fld(ir, instr, src)
     e += e_fld
-    return dst, e, extra
+    return e, extra
 
 
 def fldz(ir, instr):
