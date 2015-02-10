@@ -16,7 +16,8 @@ class symbolicexec_t(idaapi.simplecustviewer_t):
 
     def expand(self, linenum):
         element = self.line2eq[linenum]
-        expanded = Variables_Identifier(element[1])
+        expanded = Variables_Identifier(element[1],
+                                        var_prefix="%s_v" % element[0])
         self.line2eq = self.line2eq[0:linenum] + \
             expanded.vars.items() + \
             [(element[0], expanded.equation)] + \

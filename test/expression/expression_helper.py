@@ -35,6 +35,19 @@ class TestExpressionExpressionHelper(unittest.TestCase):
             new_expr = new_expr.replace_expr({var_id: var_value})
         self.assertEqual(exprf, new_expr)
 
+        # Test prefix
+        vi = Variables_Identifier(exprf, var_prefix="prefix_v")
+
+        # Use __str__
+        print vi
+
+        # Test the result
+        new_expr = vi.equation
+        ## Force replace in the variable dependency order
+        for var_id, var_value in reversed(vi.vars.items()):
+            new_expr = new_expr.replace_expr({var_id: var_value})
+        self.assertEqual(exprf, new_expr)
+
 if __name__ == '__main__':
     testcase = TestExpressionExpressionHelper
     testsuite = unittest.TestLoader().loadTestsFromTestCase(testcase)
