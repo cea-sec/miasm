@@ -257,9 +257,13 @@ class Variables_Identifier(object):
 
         ## Build initial needs
         for var_id, var_expr in self._vars.iteritems():
+            ### Handle corner cases while using Variable Identifier on an
+            ### already computed equation
             needs[var_id] = [var_name
                              for var_name in var_expr.get_r(mem_read=True)
-                             if self.is_var_identifier(var_name)]
+                             if self.is_var_identifier(var_name) and \
+                                 var_name in todo and \
+                                 var_name != var_id]
 
         ## Build order list
         while todo:
@@ -271,7 +275,6 @@ class Variables_Identifier(object):
                         # A dependency is not met
                         all_met = False
                         break
-
                 if not all_met:
                     continue
 
