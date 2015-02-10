@@ -164,8 +164,9 @@ def vm_load_pe(vm, fdata, align_s=True, load_hdr=True, **kargs):
         # Update min and max addresses
         if min_addr is None or section.addr < min_addr:
             min_addr = section.addr
-        if max_addr is None or section.addr + section.size > max_addr:
-            max_addr = section.addr + max(section.size, len(section.data))
+        max_section_len = max(section.size, len(section.data))
+        if max_addr is None or section.addr + max_section_len > max_addr:
+            max_addr = section.addr + max_section_len
 
     min_addr = pe.rva2virt(min_addr)
     max_addr = pe.rva2virt(max_addr)
@@ -179,8 +180,8 @@ def vm_load_pe(vm, fdata, align_s=True, load_hdr=True, **kargs):
 
     # Copy each sections content in memory
     for section in pe.SHList:
-        log.debug('Map 0x%x bytes to 0x%x' % (len(s.data), pe.rva2virt(s.addr)))
-        vm.set_mem(pe.rva2virt(s.addr), str(s.data))
+        log.debug('Map 0x%x bytes to 0x%x' % (len(section.data), pe.rva2virt(section.addr)))
+        vm.set_mem(pe.rva2virt(section.addr), str(section.data))
 
     return pe
 
