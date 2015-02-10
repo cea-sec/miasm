@@ -635,7 +635,9 @@ def pop(ir, instr, a):
     if not s in [16, 32, 64]:
         raise ValueError('bad size stacker!')
     new_esp = mRSP[instr.mode][:s] + ExprInt_fromsize(s, off / 8)
-    e.append(ExprAff(mRSP[instr.mode][:s], new_esp))
+    # don't generate ESP incrementation on POP ESP
+    if a != ir.sp:
+        e.append(ExprAff(mRSP[instr.mode][:s], new_esp))
     # XXX FIX XXX for pop [esp]
     if isinstance(a, ExprMem):
         a = a.replace_expr({mRSP[instr.mode]: new_esp})
