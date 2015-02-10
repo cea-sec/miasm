@@ -2333,11 +2333,9 @@ def hlt(ir, instr):
 
 def rdtsc(ir, instr):
     e = []
-    myEAX = mRAX[instr.mode]
-    myEDX = mRDX[instr.mode]
     e.append(ExprAff(tsc1, tsc1 + ExprInt32(1)))
-    e.append(ExprAff(myEAX, tsc1))
-    e.append(ExprAff(myEDX, tsc2))
+    e.append(ExprAff(mRAX[32], tsc1))
+    e.append(ExprAff(mRDX[32], tsc2))
     return e, []
 
 
