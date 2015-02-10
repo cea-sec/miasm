@@ -2005,6 +2005,9 @@ def fnstenv(ir, instr, a):
                                ])
 
     s = instr.mode
+    # The behaviour in 64bit is identical to 64 bit
+    # This will truncate addresses
+    s = min(32, s)
     ad = ExprMem(a.arg, size=16)
     e.append(ExprAff(ad, float_control))
     ad = ExprMem(a.arg + ExprInt_from(a.arg, s / 8 * 1), size=16)
