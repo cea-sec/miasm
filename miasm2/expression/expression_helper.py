@@ -17,7 +17,6 @@
 #
 
 # Expressions manipulation functions
-import re
 import itertools
 import collections
 import random
@@ -210,16 +209,20 @@ class Variables_Identifier(object):
     - original expression with variables translated
     """
 
-    var_identifier = re.compile("v\d+")
+    # Attribute used to distinguish created variables from original ones
+    is_var_ident = "is_var_ident"
 
-    def __init__(self, expr):
+    def __init__(self, expr, var_prefix="v"):
         """Set the expression @expr to handle and launch variable identification
-        process"""
+        process
+        @expr: Expr instance
+        @var_prefix: (optional) prefix of the variable name, default is 'v'"""
 
         # Init
         self.var_indice = itertools.count()
         self.var_asked = set()
         self._vars = {} # VarID -> Expr
+        self.var_prefix = var_prefix
 
         # Launch recurrence
         self.find_variables_rec(expr)
@@ -254,9 +257,13 @@ class Variables_Identifier(object):
 
         ## Build initial needs
         for var_id, var_expr in self._vars.iteritems():
+            ### Handle corner cases while using Variable Identifier on an
+            ### already computed equation
             needs[var_id] = [var_name
                              for var_name in var_expr.get_r(mem_read=True)
-                             if self.is_var_identifier(var_name)]
+                             if self.is_var_identifier(var_name) and \
+                                 var_name in todo and \
+                                 var_name != var_id]
 
         ## Build order list
         while todo:
@@ -268,7 +275,6 @@ class Variables_Identifier(object):
                         # A dependency is not met
                         all_met = False
                         break
-
                 if not all_met:
                     continue
 
@@ -282,12 +288,12 @@ class Variables_Identifier(object):
 
     @classmethod
     def is_var_identifier(cls, expr):
-        "Return True iff expr seems to be a variable identifier"
+        "Return True iff @expr is a variable identifier"
         if not isinstance(expr, m2_expr.ExprId):
             return False
 
-        match = cls.var_identifier.match(expr.name)
-        return match is not None and match.group(0) == expr.name
+        return hasattr(expr, cls.is_var_ident) and \
+            getattr(expr, cls.is_var_ident) == True
 
     def find_variables_rec(self, expr):
         """Recursive method called by find_variable to expand @expr.
@@ -301,8 +307,10 @@ class Variables_Identifier(object):
 
             if (expr not in self._vars.values()):
                 # Create var
-                identifier = m2_expr.ExprId("v%s" % self.var_indice.next(),
-                                    size = expr.size)
+                identifier = m2_expr.ExprId("%s%s" % (self.var_prefix,
+                                                      self.var_indice.next()),
+                                            size = expr.size)
+                setattr(identifier, self.__class__.is_var_ident, True)
                 self._vars[identifier] = expr
 
             # Recursion stop case
