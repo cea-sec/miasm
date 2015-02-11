@@ -126,7 +126,7 @@ class bin_stream_file(bin_stream):
 
 class bin_stream_container(bin_stream):
 
-    def __init__(self, virt_view="", offset=0L):
+    def __init__(self, virt_view, offset=0L):
         bin_stream.__init__(self)
         self.bin = virt_view
         self.l = virt_view.max_addr()
@@ -154,8 +154,11 @@ class bin_stream_container(bin_stream):
     def setoffset(self, val):
         self.offset = val
 
+
 class bin_stream_pe(bin_stream_container):
     pass
+
+
 class bin_stream_elf(bin_stream_container):
     pass
 
