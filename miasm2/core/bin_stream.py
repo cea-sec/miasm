@@ -32,17 +32,21 @@ class bin_stream(object):
         return self.bin[start:start + l]
 
     def getbits(self, start, n):
+        """Return the bits from the bit stream
+        @start: the offset in bits
+        @n: number of bits to read
+        """
         if not n:
             return 0
         o = 0
         if n > self.getlen() * 8:
-            raise ValueError('not enought bits %r %r' % (n, len(self.bin) * 8))
+            raise IOError('not enough bits %r %r' % (n, len(self.bin) * 8))
         while n:
             # print 'xxx', n, start
             i = start / 8
             c = self.getbytes(i)
             if not c:
-                raise IOError
+                raise IOError('cannot get bytes')
             c = ord(c)
             # print 'o', hex(c)
             r = 8 - start % 8
@@ -60,29 +64,24 @@ class bin_stream(object):
 
 class bin_stream_str(bin_stream):
 
-    def __init__(self, bin="", offset=0L, shift=0):
+    def __init__(self, input_str="", offset=0L, shift=0):
         bin_stream.__init__(self)
-        if offset > len(bin):
-            raise IOError
-        self.bin = bin
+        self.bin = input_str
         self.offset = offset
         self.shift = shift
-        self.l = len(bin)
+        self.l = len(input_str)
 
     def getbytes(self, start, l=1):
         if start + l + self.shift > self.l:
-            raise IOError
+            raise IOError("not enough bytes in str")
 
         return super(bin_stream_str, self).getbytes(start + self.shift, l)
 
     def readbs(self, l=1):
         if self.offset + l + self.shift > self.l:
-            raise IOError
+            raise IOError("not enough bytes in str")
         self.offset += l
         return self.bin[self.offset - l + self.shift:self.offset + self.shift]
-
-    def writebs(self, l=1):
-        raise ValueError('writebs unsupported')
 
     def __str__(self):
         out = self.bin[self.offset + self.shift:]
@@ -91,85 +90,73 @@ class bin_stream_str(bin_stream):
     def setoffset(self, val):
         self.offset = val
 
-    def __len__(self):
-        return len(self.bin) - (self.offset + self.shift)
-
     def getlen(self):
-        return len(self.bin) - (self.offset + self.shift)
+        return self.l - (self.offset + self.shift)
 
 
 class bin_stream_file(bin_stream):
 
-    def __init__(self, bin, offset=0L):
+    def __init__(self, bin, offset=0L, shift=0):
         bin_stream.__init__(self)
         self.bin = bin
         self.bin.seek(0, 2)
+        self.shift = shift
         self.l = self.bin.tell()
         self.offset = offset
 
     def getoffset(self):
-        return self.bin.tell()
+        return self.bin.tell() - self.shift
 
     def setoffset(self, val):
-        self.bin.seek(val)
+        self.bin.seek(val +  self.shift)
     offset = property(getoffset, setoffset)
 
     def readbs(self, l=1):
-        if self.offset + l > self.l:
-            raise IOError
+        if self.offset + l + self.shift > self.l:
+            raise IOError("not enough bytes in file")
         return self.bin.read(l)
-
-    def writebs(self, l=1):
-        if self.offset + l > self.l:
-            raise IOError
-        return self.bin.write(l)
 
     def __str__(self):
         return str(self.bin)
 
+    def getlen(self):
+        return self.l - (self.offset + self.shift)
 
-class bin_stream_pe(bin_stream):
 
-    def __init__(self, bin="", offset=0L):
+
+class bin_stream_container(bin_stream):
+
+    def __init__(self, virt_view="", offset=0L):
         bin_stream.__init__(self)
-        # print 'ELF/PE'
-        self.mylen = len(bin)
-        if offset > bin.__len__():
-            raise IOError
-        self.bin = bin
+        self.bin = virt_view
+        self.l = virt_view.max_addr()
         self.offset = offset
-        self.l = bin.__len__()
 
     def is_addr_in(self, ad):
         return self.bin.is_addr_in(ad)
 
     def getlen(self):
-        return self.mylen
-        # s = self.bin.parent.SHList[-1]
-        # l = self.bin.parent.rva2virt(s.addr+s.size)
-        # return l
+        return self.l
 
     def readbs(self, l=1):
         if self.offset + l > self.l:
-            raise IOError
+            raise IOError("not enough bytes")
         self.offset += l
         return self.bin(self.offset - l, self.offset)
-
-    def writebs(self, l=1):
-        raise ValueError('writebs unsupported')
 
     def getbytes(self, start, l=1):
         return self.bin(start, start + l)
 
     def __str__(self):
-        out = self.bin[self.offset:]
+        out = self.bin(self.offset, self.l)
         return out
 
     def setoffset(self, val):
         self.offset = val
 
-
-class bin_stream_elf(bin_stream_pe):
+class bin_stream_pe(bin_stream_container):
+    pass
+class bin_stream_elf(bin_stream_container):
     pass
 
 
@@ -197,9 +184,6 @@ class bin_stream_vm(bin_stream):
             raise IOError('cannot get mem ad', hex(self.offset))
         self.offset += l
         return s
-
-    def writebs(self, l=1):
-        raise ValueError('writebs unsupported')
 
     def setoffset(self, val):
         self.offset = val
