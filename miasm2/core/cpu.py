@@ -1044,10 +1044,12 @@ class cls_mn(object):
             # print 'len', fname, l
             if l is not None:
                 # print fname, hex(bs_l), l
-                if bs_l * 8 - offset_b < l:
-                    continue
                 # print hex(offset_b)
-                v = cls.getbits(bs, attrib, offset_b, l)
+                try:
+                    v = cls.getbits(bs, attrib, offset_b, l)
+                except IOError:
+                    # Raised if offset is out of bound
+                    continue
                 # print 'TEST', bval, fname, offset_b, cpt, (l, fmask, fbits),
                 # hex(v), hex(v & fmask), hex(fbits), v & fmask == fbits
                 offset_b += l
