@@ -40,6 +40,7 @@ def guess_machine():
             else:
                 machine = Machine("arml")
 
+        from miasm2.analysis.disasm_cb import guess_funcs, guess_multi_cb
         from miasm2.analysis.disasm_cb import arm_guess_subcall, arm_guess_jump_table
         guess_funcs.append(arm_guess_subcall)
         guess_funcs.append(arm_guess_jump_table)

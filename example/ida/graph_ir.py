@@ -11,7 +11,6 @@ from miasm2.core.bin_stream_ida import bin_stream_ida
 from miasm2.core.asmbloc import *
 from miasm2.expression.simplifications import expr_simp
 from miasm2.expression.expression import *
-from miasm2.analysis.machine import Machine
 
 from miasm2.analysis.data_analysis import intra_bloc_flow_raw, inter_bloc_flow
 from miasm2.analysis.data_analysis import intra_bloc_flow_symbexec
@@ -97,8 +96,6 @@ class GraphMiasmIR(GraphViewer):
             print "Failed to add popup menu item!"
         return True
 
-
-from miasm2.analysis.disasm_cb import guess_funcs, guess_multi_cb
 
 machine = guess_machine()
 mn, dis_engine, ira = machine.mn, machine.dis_engine, machine.ira
