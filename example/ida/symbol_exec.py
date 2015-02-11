@@ -75,7 +75,6 @@ class symbolicexec_t(idaapi.simplecustviewer_t):
 
 
 def symbolic_exec():
-    from miasm2.analysis.machine import Machine
     from miasm2.ir.symbexec import symbexec
     from miasm2.core.bin_stream_ida import bin_stream_ida
 
