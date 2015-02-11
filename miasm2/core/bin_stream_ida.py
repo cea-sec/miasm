@@ -1,4 +1,4 @@
-from idc import Byte
+from idc import Byte, SegEnd
 
 from miasm2.core.bin_stream import bin_stream_str
 
@@ -6,8 +6,6 @@ from miasm2.core.bin_stream import bin_stream_str
 class bin_stream_ida(bin_stream_str):
     """
     bin_stream implementation for IDA
-
-    IDA should provide Byte function
 
     Don't generate xrange using address computation:
     It can raise error on overflow 7FFFFFFF with 32 bit python
@@ -20,13 +18,10 @@ class bin_stream_ida(bin_stream_str):
 
     def readbs(self, l=1):
         if self.offset + l > self.l:
-            raise IOError
+            raise IOError("not enough bytes")
         o = self.getbytes(self.offset)
         self.offset += l
         return p
-
-    def writebs(self, l=1):
-        raise ValueError('writebs unsupported')
 
     def __str__(self):
         raise NotImplementedError('Not fully functional')
@@ -34,8 +29,5 @@ class bin_stream_ida(bin_stream_str):
     def setoffset(self, val):
         self.offset = val
 
-    def __len__(self):
-        return 0x7FFFFFFF
-
     def getlen(self):
-        return 0x7FFFFFFF - self.offset - self.shift
+        return SegEnd(0) - (self.offset + self.shift)
