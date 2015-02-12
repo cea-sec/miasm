@@ -2882,6 +2882,15 @@ def movd(ir, instr, a, b):
         e.append(ExprAff(a, b[0:32]))
     return e, []
 
+def movdqu(ir, instr, a, b):
+    e = []
+    if isinstance(a, ExprMem):
+        a = ExprMem(a.arg, b.size)
+    elif isinstance(b, ExprMem):
+        b = ExprMem(b.arg, a.size)
+    e.append(ExprAff(a, b))
+    return e, []
+
 
 def xorps(ir, instr, a, b):
     e = []
@@ -3275,6 +3284,7 @@ mnemo_func = {'mov': mov,
               "fnclex": fnclex,
               "str": l_str,
               "movd": movd,
+              "movdqu":movdqu,
               "movaps": movaps,
               "xorps": xorps,
 
