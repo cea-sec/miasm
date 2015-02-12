@@ -312,6 +312,22 @@ def simp_cst_propagation(e_s, e):
         return ExprCompose(filter_args)
 
 
+    # Compose(a) OP Compose(b) with a/b same bounds => Compose(a OP b)
+    if op in ['|', '&', '^'] and all([isinstance(arg, ExprCompose) for arg in args]):
+        bounds = set()
+        for arg in args:
+            bound = tuple([(start, stop) for (expr, start, stop) in arg.args])
+            bounds.add(bound)
+        if len(bounds) == 1:
+            bound = list(bounds)[0]
+            new_args = [[expr] for (expr, start, stop) in args[0].args]
+            for sub_arg in args[1:]:
+                for i, (expr, start, stop) in enumerate(sub_arg.args):
+                    new_args[i].append(expr)
+            for i, arg in enumerate(new_args):
+                new_args[i] = ExprOp(op, *arg), bound[i][0], bound[i][1]
+            return ExprCompose(new_args)
+
     return ExprOp(op, *args)
 
 
