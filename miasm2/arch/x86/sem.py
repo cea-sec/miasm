@@ -1399,21 +1399,13 @@ def loope(ir, instr, dst):
 # XXX size to do; eflag
 def div(ir, instr, a):
     e = []
-    s = a.size
-    if s == 8:
+    size = a.size
+    if size == 8:
         b = mRAX[instr.mode][:16]
-    elif s == 16:
-        s1, s2 = mRDX[instr.mode][:16], mRAX[instr.mode][:16]
-        b = ExprCompose([(s1, 0, 16),
-                         (s1, 16, 32)])
-    elif s == 32:
-        s1, s2 = mRDX[instr.mode][:32], mRAX[instr.mode][:32]
-        b = ExprCompose([(s2, 0, 32),
-                         (s1, 32, 64)])
-    elif s == 64:
-        s1, s2 = mRDX[instr.mode], mRAX[instr.mode]
-        b = ExprCompose([(s2, 0, 64),
-                         (s1, 64, 128)])
+    elif size in [16, 32, 64]:
+        s1, s2 = mRDX[size], mRAX[size]
+        b = ExprCompose([(s2, 0, size),
+                         (s1, size, size*2)])
     else:
         raise ValueError('div arg not impl', a)
 
@@ -1421,12 +1413,12 @@ def div(ir, instr, a):
     c_r = ExprOp('umod', b, a.zeroExtend(b.size))
 
     # if 8 bit div, only ax is affected
-    if s == 8:
+    if size == 8:
         e.append(ExprAff(b, ExprCompose([(c_d[:8], 0, 8),
                                          (c_r[:8], 8, 16)])))
     else:
-        e.append(ExprAff(s1, c_r[:s]))
-        e.append(ExprAff(s2, c_d[:s]))
+        e.append(ExprAff(s1, c_r[:size]))
+        e.append(ExprAff(s2, c_d[:size]))
     return e, []
 
 # XXX size to do; eflag
@@ -1434,18 +1426,14 @@ def div(ir, instr, a):
 
 def idiv(ir, instr, a):
     e = []
-    s = a.size
+    size = a.size
 
-    if s == 8:
+    if size == 8:
         b = mRAX[instr.mode][:16]
-    elif s == 16:
-        s1, s2 = mRDX[instr.mode][:16], mRAX[instr.mode][:16]
-        b = ExprCompose([(s1, 0, 16),
-                         (s1, 16, 32)])
-    elif s == 32:
-        s1, s2 = mRDX[instr.mode][:32], mRAX[instr.mode][:32]
-        b = ExprCompose([(s2, 0, 32),
-                         (s1, 32, 64)])
+    elif size in [16, 32]:
+        s1, s2 = mRDX[size], mRAX[size]
+        b = ExprCompose([(s2, 0, size),
+                         (s1, size, size*2)])
     else:
         raise ValueError('div arg not impl', a)
 
@@ -1453,12 +1441,12 @@ def idiv(ir, instr, a):
     c_r = ExprOp('imod', b, a.signExtend(b.size))
 
     # if 8 bit div, only ax is affected
-    if s == 8:
+    if size == 8:
         e.append(ExprAff(b, ExprCompose([(c_d[:8], 0, 8),
                                          (c_r[:8], 8, 16)])))
     else:
-        e.append(ExprAff(s1, c_r[:s]))
-        e.append(ExprAff(s2, c_d[:s]))
+        e.append(ExprAff(s1, c_r[:size]))
+        e.append(ExprAff(s2, c_d[:size]))
     return e, []
 
 # XXX size to do; eflag
@@ -1469,10 +1457,10 @@ def mul(ir, instr, a):
     size = a.size
     if a.size in [16, 32, 64]:
         result = ExprOp('*',
-                        mRAX[instr.mode][:size].zeroExtend(size * 2),
+                        mRAX[size].zeroExtend(size * 2),
                         a.zeroExtend(size * 2))
-        e.append(ExprAff(mRAX[instr.mode][:size], result[:size]))
-        e.append(ExprAff(mRDX[instr.mode][:size], result[size:size * 2]))
+        e.append(ExprAff(mRAX[size], result[:size]))
+        e.append(ExprAff(mRDX[size], result[size:size * 2]))
 
     elif a.size == 8:
         result = ExprOp('*',
@@ -1498,10 +1486,10 @@ def imul(ir, instr, a, b=None, c=None):
     if b is None:
         if size in [16, 32, 64]:
             result = ExprOp('*',
-                            mRAX[instr.mode][:size].signExtend(size * 2),
+                            mRAX[size].signExtend(size * 2),
                             a.signExtend(size * 2))
-            e.append(ExprAff(mRAX[instr.mode][:size], result[:size]))
-            e.append(ExprAff(mRDX[instr.mode][:size], result[size:size * 2]))
+            e.append(ExprAff(mRAX[size], result[:size]))
+            e.append(ExprAff(mRDX[size], result[size:size * 2]))
         elif size == 8:
             dst = mRAX[instr.mode][:16]
             result = ExprOp('*',
