@@ -12,6 +12,7 @@ b = ExprId('b')
 c = ExprId('c')
 d = ExprId('d')
 e = ExprId('e')
+f = ExprId('f', size=64)
 
 m = ExprMem(a)
 s = a[:8]
@@ -157,6 +158,46 @@ to_test = [(ExprInt32(1) - ExprInt32(1), ExprInt32(0)),
      ExprInt_fromsize(a.size, -1)),
     (ExprOp('-', ExprInt8(1), ExprInt8(0)),
      ExprInt8(1)),
+
+    (ExprCompose([(a, 0, 32), (ExprInt32(0), 32, 64)]) << ExprInt64(0x20),
+     ExprCompose([(ExprInt32(0), 0, 32), (a, 32, 64)])),
+    (ExprCompose([(a, 0, 32), (ExprInt32(0), 32, 64)]) << ExprInt64(0x10),
+     ExprCompose([(ExprInt16(0), 0, 16), (a, 16, 48), (ExprInt16(0), 48, 64)])),
+    (ExprCompose([(a, 0, 32), (ExprInt32(0), 32, 64)]) << ExprInt64(0x30),
+     ExprCompose([(ExprInt_fromsize(48, 0), 0, 48), (a[:0x10], 48, 64)])),
+    (ExprCompose([(a, 0, 32), (ExprInt32(0), 32, 64)]) << ExprInt64(0x11),
+     ExprCompose([(ExprInt_fromsize(0x11, 0), 0, 0x11), (a, 0x11, 0x31), (ExprInt_fromsize(0xF, 0), 0x31, 0x40)])),
+    (ExprCompose([(a, 0, 32), (ExprInt32(0), 32, 64)]) << ExprInt64(0x40),
+     ExprInt64(0)),
+    (ExprCompose([(a, 0, 32), (ExprInt32(0), 32, 64)]) << ExprInt64(0x50),
+     ExprInt64(0)),
+
+    (ExprCompose([(ExprInt32(0), 0, 32), (a, 32, 64)]) >> ExprInt64(0x20),
+     ExprCompose([(a, 0, 32), (ExprInt32(0), 32, 64)])),
+    (ExprCompose([(ExprInt32(0), 0, 32), (a, 32, 64)]) >> ExprInt64(0x10),
+     ExprCompose([(ExprInt16(0), 0, 16), (a, 16, 48), (ExprInt16(0), 48, 64)])),
+    (ExprCompose([(ExprInt32(0), 0, 32), (a, 32, 64)]) >> ExprInt64(0x30),
+     ExprCompose([(a[0x10:], 0, 16), (ExprInt_fromsize(48, 0), 16, 64)])),
+    (ExprCompose([(ExprInt32(0), 0, 32), (a, 32, 64)]) >> ExprInt64(0x11),
+     ExprCompose([(ExprInt_fromsize(0xf, 0), 0, 0xf), (a, 0xf, 0x2f), (ExprInt_fromsize(0x11, 0), 0x2f, 0x40)])),
+    (ExprCompose([(ExprInt32(0), 0, 32), (a, 32, 64)]) >> ExprInt64(0x40),
+     ExprInt64(0)),
+    (ExprCompose([(ExprInt32(0), 0, 32), (a, 32, 64)]) >> ExprInt64(0x50),
+     ExprInt64(0)),
+
+
+    (ExprCompose([(a, 0, 32), (b, 32, 64)]) << ExprInt64(0x20),
+     ExprCompose([(ExprInt32(0), 0, 32), (a, 32, 64)])),
+    (ExprCompose([(a, 0, 32), (b, 32, 64)]) << ExprInt64(0x10),
+     ExprCompose([(ExprInt16(0), 0, 16), (a, 16, 48), (b[:16], 48, 64)])),
+
+    (ExprCompose([(a, 0, 32), (b, 32, 64)]) | ExprCompose([(c, 0, 32), (d, 32, 64)]),
+     ExprCompose([(a|c, 0, 32), (b|d, 32, 64)])),
+    (ExprCompose([(a, 0, 32), (ExprInt32(0), 32, 64)]) | ExprCompose([(ExprInt32(0), 0, 32), (d, 32, 64)]),
+     ExprCompose([(a, 0, 32), (d, 32, 64)])),
+    (ExprCompose([(f[:32], 0, 32), (ExprInt32(0), 32, 64)]) | ExprCompose([(ExprInt32(0), 0, 32), (f[32:], 32, 64)]),
+     f),
+
 ]
 
 for e, e_check in to_test[:]:

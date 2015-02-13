@@ -263,6 +263,71 @@ def simp_cst_propagation(e_s, e):
             return -ExprOp(op, *new_args)
         args = new_args
 
+    # A << int with A ExprCompose => move index
+    if op == "<<" and isinstance(args[0], ExprCompose) and isinstance(args[1], ExprInt):
+        final_size = args[0].size
+        shift = int(args[1].arg)
+        new_args = []
+        # shift indexes
+        for expr, start, stop in args[0].args:
+            new_args.append((expr, start+shift, stop+shift))
+        # filter out expression
+        filter_args = []
+        min_index = final_size
+        for expr, start, stop in new_args:
+            if start >= final_size:
+                continue
+            if stop > final_size:
+                expr = expr[:expr.size  - (stop - final_size)]
+                stop = final_size
+            filter_args.append((expr, start, stop))
+            min_index = min(start, min_index)
+        # create entry 0
+        expr = ExprInt_fromsize(min_index, 0)
+        filter_args = [(expr, 0, min_index)] + filter_args
+        return ExprCompose(filter_args)
+
+    # A >> int with A ExprCompose => move index
+    if op == ">>" and isinstance(args[0], ExprCompose) and isinstance(args[1], ExprInt):
+        final_size = args[0].size
+        shift = int(args[1].arg)
+        new_args = []
+        # shift indexes
+        for expr, start, stop in args[0].args:
+            new_args.append((expr, start-shift, stop-shift))
+        # filter out expression
+        filter_args = []
+        max_index = 0
+        for expr, start, stop in new_args:
+            if stop <= 0:
+                continue
+            if start < 0:
+                expr = expr[-start:]
+                start = 0
+            filter_args.append((expr, start, stop))
+            max_index = max(stop, max_index)
+        # create entry 0
+        expr = ExprInt_fromsize(final_size - max_index, 0)
+        filter_args += [(expr, max_index, final_size)]
+        return ExprCompose(filter_args)
+
+
+    # Compose(a) OP Compose(b) with a/b same bounds => Compose(a OP b)
+    if op in ['|', '&', '^'] and all([isinstance(arg, ExprCompose) for arg in args]):
+        bounds = set()
+        for arg in args:
+            bound = tuple([(start, stop) for (expr, start, stop) in arg.args])
+            bounds.add(bound)
+        if len(bounds) == 1:
+            bound = list(bounds)[0]
+            new_args = [[expr] for (expr, start, stop) in args[0].args]
+            for sub_arg in args[1:]:
+                for i, (expr, start, stop) in enumerate(sub_arg.args):
+                    new_args[i].append(expr)
+            for i, arg in enumerate(new_args):
+                new_args[i] = ExprOp(op, *arg), bound[i][0], bound[i][1]
+            return ExprCompose(new_args)
+
     return ExprOp(op, *args)
 
 
