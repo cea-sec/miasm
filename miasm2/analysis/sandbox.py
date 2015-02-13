@@ -289,7 +289,7 @@ class Arch_x86_32(Arch_x86):
     _ARCH_ = "x86_32"
 
 
-class Arch_x86_64(Arch):
+class Arch_x86_64(Arch_x86):
     _ARCH_ = "x86_64"
 
 
