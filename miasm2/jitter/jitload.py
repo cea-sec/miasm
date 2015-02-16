@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 
+import logging
+from functools import wraps
+from collections import Sequence, namedtuple
+
 from miasm2.jitter.csts import *
 from miasm2.core.utils import *
 from miasm2.core.bin_stream import bin_stream_vm
 from miasm2.ir.ir2C import init_arch_C
-
-import logging
 
 log = logging.getLogger('jitload.py')
 hnd = logging.StreamHandler()
@@ -28,6 +30,21 @@ try:
 except ImportError:
     log.error('cannot import jit python')
 
+def named_arguments(func):
+    """Function decorator to allow the use of .func_args_stdcall()
+    methods with either the number of arguments or the list of the
+    argument names.
+
+    @func: function
+    """
+    @wraps(func)
+    def newfunc(self, args):
+        if isinstance(args, Sequence):
+            ret_ad, arg_vals = func(self, len(args))
+            return ret_ad, namedtuple("args", args)(*arg_vals)
+        else:
+            return func(self, args)
+    return newfunc
 
 class CallbackHandler(object):
 
