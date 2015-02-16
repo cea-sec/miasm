@@ -27,7 +27,7 @@ from miasm2.expression.simplifications import expr_simp
 from miasm2.core.asmbloc import asm_symbol_pool
 
 
-class irbloc:
+class irbloc(object):
 
     def __init__(self, label, irs, lines = []):
         assert(isinstance(label, asmbloc.asm_label))
@@ -63,7 +63,7 @@ class irbloc:
                     i.src = value
         self._dst = value
 
-    dst = property(get_dst)
+    dst = property(get_dst, set_dst)
 
     def get_rw(self):
         self.r = []
