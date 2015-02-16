@@ -954,8 +954,8 @@ class mn_x86(cls_mn):
         for c, v in candidates:
             if v_opmode(c) != instr.mode:
                 cand_diff_mode += v
-        cand_same_mode.sort(key=lambda x: len(x))
-        cand_diff_mode.sort(key=lambda x: len(x))
+        cand_same_mode.sort(key=len)
+        cand_diff_mode.sort(key=len)
         return cand_same_mode + cand_diff_mode
 
 

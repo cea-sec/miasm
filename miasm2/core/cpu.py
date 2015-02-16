@@ -1514,7 +1514,7 @@ class cls_mn(object):
         o = []
         for c, v in candidates:
             o += v
-        o.sort(key=lambda x: len(x))
+        o.sort(key=len)
         return o
 
     def value(self, mode):
