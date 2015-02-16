@@ -1,4 +1,4 @@
-from miasm2.core.asmbloc import asm_constraint, disasmEngine
+from miasm2.core.asmbloc import disasmEngine
 from arch import mn_mips32
 
 

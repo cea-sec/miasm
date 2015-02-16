@@ -1,7 +1,6 @@
 import struct
 from collections import defaultdict
 
-from elfesteem import pe
 from elfesteem import cstruct
 from elfesteem import *
 from miasm2.jitter.csts import *

@@ -2,7 +2,6 @@
 #-*- coding:utf-8 -*-
 
 import logging
-from pdb import pm
 from pyparsing import *
 from miasm2.expression.expression import *
 from miasm2.core.cpu import *

@@ -20,7 +20,6 @@ from miasm2.expression.expression import *
 from miasm2.expression.simplifications import expr_simp
 from miasm2.arch.x86.regs import *
 from miasm2.arch.x86.arch import mn_x86, repeat_mn, replace_regs
-from miasm2.core.asmbloc import expr_is_int_or_label
 from miasm2.ir.ir import ir, irbloc
 import math
 import struct

@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 
-import os
-from miasm2.core import asmbloc
-
 from miasm2.jitter.csts import *
 from miasm2.core.utils import *
 from miasm2.core.bin_stream import bin_stream_vm

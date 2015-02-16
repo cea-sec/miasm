@@ -9,7 +9,7 @@ from collections import defaultdict
 from miasm2.core.bin_stream import bin_stream
 import regs as regs_module
 from regs import *
-from pdb import pm
+
 
 log = logging.getLogger("mips32dis")
 console_handler = logging.StreamHandler()
