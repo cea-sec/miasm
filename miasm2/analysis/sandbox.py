@@ -5,7 +5,7 @@ from miasm2.analysis.machine import Machine
 from miasm2.os_dep import win_api_x86_32_seh
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm2.analysis import debugging
-
+from miasm2.jitter.jitload import log_func
 
 class Sandbox(object):
     """
@@ -56,7 +56,7 @@ class Sandbox(object):
             self.jitter.jit.log_regs = True
 
         if not self.options.quiet_function_calls:
-            self.machine.log_jit.setLevel(logging.DEBUG)
+            log_func.setLevel(logging.INFO)
 
         if self.options.dumpblocs:
             self.jitter.jit.log_newbloc = True
