@@ -915,7 +915,6 @@ class mn_x86(cls_mn):
 
     def getnextflow(self, symbol_pool):
         raise NotImplementedError('not fully functional')
-        return self.offset + 4
 
     def ir_pre_instruction(self):
         return [ExprAff(mRIP[self.mode],

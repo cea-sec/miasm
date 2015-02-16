@@ -219,7 +219,7 @@ class asm_bloc:
             l = self.lines[i]
             if l.splitflow() or l.breakflow():
                 raise NotImplementedError('not fully functional')
-                return l
+
 
     def get_subcall_instr(self):
         if not self.lines:

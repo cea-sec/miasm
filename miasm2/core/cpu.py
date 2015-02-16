@@ -1564,7 +1564,7 @@ class cls_mn(object):
                     if ((index, [xx[1].value for xx in to_decode]) in todo or
                         (index, [xx[1].value for xx in to_decode]) in done):
                         raise NotImplementedError('not fully functional')
-                        continue
+
                     for p, f in to_decode:
                         fnew = f.clone()
                         o.append((p, fnew))
