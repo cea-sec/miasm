@@ -16,20 +16,23 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 import struct
+import inspect
+import os
+import stat
+import time
+import string
+import logging
+from collections import namedtuple
+from zlib import crc32
+
 try:
     from Crypto.Hash import MD5, SHA
 except ImportError:
     print "cannot find crypto, skipping"
-import inspect
-from zlib import crc32
-import os
-import stat
-import time
+
 from miasm2.jitter.csts import *
 from miasm2.core.utils import *
 from miasm2.os_dep.common import *
-import string
-import logging
 
 log = logging.getLogger("win_api_x86_32")
 console_handler = logging.StreamHandler()
