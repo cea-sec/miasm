@@ -23,7 +23,6 @@ from miasm2.arch.x86.arch import mn_x86, repeat_mn, replace_regs
 from miasm2.ir.ir import ir, irbloc
 import math
 import struct
-from regs import *
 
 # interrupt with eip update after instr
 EXCEPT_SOFT_BP = (1 << 1)

@@ -6,7 +6,7 @@ from pyparsing import *
 from miasm2.core.cpu import *
 from miasm2.expression.expression import *
 from collections import defaultdict
-from regs import *
+from miasm2.arch.sh4.regs import *
 
 
 jra = ExprId('jra')

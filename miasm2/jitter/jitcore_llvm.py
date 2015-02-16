@@ -1,8 +1,8 @@
 import os
 import importlib
 import hashlib
-from llvmconvert import *
-import jitcore
+from miasm2.jitter.llvmconvert import *
+import miasm2.jitter.jitcore as jitcore
 import Jitllvm
 
 

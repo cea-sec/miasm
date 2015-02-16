@@ -6,8 +6,8 @@ from miasm2.expression.expression import *
 from pyparsing import *
 from miasm2.core.cpu import *
 from collections import defaultdict
-import regs as regs_module
-from regs import *
+import miasm2.arch.x86.regs as regs_module
+from miasm2.arch.x86.regs import *
 from miasm2.ir.ir import *
 
 log = logging.getLogger("x86_arch")

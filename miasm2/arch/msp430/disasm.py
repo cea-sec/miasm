@@ -1,5 +1,5 @@
 from miasm2.core.asmbloc import disasmEngine
-from arch import mn_msp430
+from miasm2.arch.msp430.arch import mn_msp430
 
 
 class dis_msp430(disasmEngine):

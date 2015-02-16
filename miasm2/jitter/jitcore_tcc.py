@@ -4,7 +4,7 @@
 import os
 from miasm2.ir.ir2C import irblocs2C
 from subprocess import Popen, PIPE
-import jitcore
+import miasm2.jitter.jitcore as jitcore
 from distutils.sysconfig import get_python_inc
 import Jittcc
 

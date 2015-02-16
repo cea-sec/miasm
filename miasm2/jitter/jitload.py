@@ -14,17 +14,17 @@ log.addHandler(hnd)
 log.setLevel(logging.CRITICAL)
 
 try:
-    from jitcore_tcc import JitCore_Tcc
+    from miasm2.jitter.jitcore_tcc import JitCore_Tcc
 except ImportError:
     log.error('cannot import jit tcc')
 
 try:
-    from jitcore_llvm import JitCore_LLVM
+    from miasm2.jitter.jitcore_llvm import JitCore_LLVM
 except ImportError:
     log.error('cannot import jit llvm')
 
 try:
-    from jitcore_python import JitCore_Python
+    from miasm2.jitter.jitcore_python import JitCore_Python
 except ImportError:
     log.error('cannot import jit python')
 
@@ -140,13 +140,13 @@ class jitter:
         self.attrib = ir_arch.attrib
         arch_name = ir_arch.arch.name  # (ir_arch.arch.name, ir_arch.attrib)
         if arch_name == "x86":
-            from arch import JitCore_x86 as jcore
+            from miasm2.jitter.arch import JitCore_x86 as jcore
         elif arch_name == "arm":
-            from arch import JitCore_arm as jcore
+            from miasm2.jitter.arch import JitCore_arm as jcore
         elif arch_name == "msp430":
-            from arch import JitCore_msp430 as jcore
+            from miasm2.jitter.arch import JitCore_msp430 as jcore
         elif arch_name == "mips32":
-            from arch import JitCore_mips32 as jcore
+            from miasm2.jitter.arch import JitCore_mips32 as jcore
         else:
             raise ValueError("unsupported jit arch!")
 

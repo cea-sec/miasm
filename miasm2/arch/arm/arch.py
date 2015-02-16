@@ -7,8 +7,8 @@ from miasm2.expression.expression import *
 from miasm2.core.cpu import *
 from collections import defaultdict
 from miasm2.core.bin_stream import bin_stream
-import regs as regs_module
-from regs import *
+import miasm2.arch.arm.regs as regs_module
+from miasm2.arch.arm.regs import *
 
 # A1 encoding
 
