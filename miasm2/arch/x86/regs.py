@@ -1,4 +1,4 @@
-from miasm2.expression.expression import *
+from miasm2.expression.expression import ExprId
 from miasm2.core.cpu import reg_info
 
 

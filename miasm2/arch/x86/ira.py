@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
 
-from miasm2.expression.expression import *
+from miasm2.expression.expression import ExprAff, ExprOp, ExprId
 from miasm2.core.graph import DiGraph
 from miasm2.ir.ir import ir, irbloc
 from miasm2.ir.analysis import ira
