@@ -1,10 +1,9 @@
-from miasm2.jitter.jitload import jitter
+import logging
+
+from miasm2.jitter.jitload import jitter, named_arguments
 from miasm2.core import asmbloc
 from miasm2.core.utils import *
 from miasm2.arch.x86.sem import ir_x86_16, ir_x86_32, ir_x86_64
-
-
-import logging
 
 log = logging.getLogger('jit_x86')
 hnd = logging.StreamHandler()
@@ -75,13 +74,10 @@ class jitter_x86_32(jitter):
     # calling conventions
 
     # stdcall
+    @named_arguments
     def func_args_stdcall(self, n_args):
         ret_ad = self.pop_uint32_t()
-        args = []
-        for _ in xrange(n_args):
-            args.append(self.pop_uint32_t())
-        if log.level <= logging.DEBUG:
-            log.debug('%s %s %s' % (whoami(), hex(ret_ad), [hex(x) for x in args]))
+        args = [self.pop_uint32_t() for _ in xrange(n_args)]
         return ret_ad, args
 
     def func_ret_stdcall(self, ret_addr, ret_value1=None, ret_value2=None):
@@ -92,14 +88,10 @@ class jitter_x86_32(jitter):
             self.cpu.EDX = ret_value
 
     # cdecl
-    def func_args_cdecl(self, n_args, dolog=True):
+    @named_arguments
+    def func_args_cdecl(self, n_args):
         ret_ad = self.pop_uint32_t()
-        args = []
-        for i in xrange(n_args):
-            args.append(self.get_stack_arg(i))
-        if dolog and log.level <= logging.DEBUG:
-            log.debug('%s %s %s' %
-                      (whoami(), hex(ret_ad), [hex(x) for x in args]))
+        args = [self.get_stack_arg(i) for i in xrange(n_args)]
         return ret_ad, args
 
     def func_ret_cdecl(self, ret_addr, ret_value):
@@ -139,17 +131,15 @@ class jitter_x86_64(jitter):
         x = upck64(self.vm.get_mem(self.cpu.RSP + 8 * n, 8))
         return x
 
+    @named_arguments
     def func_args_stdcall(self, n_args):
         args_regs = ['RCX', 'RDX', 'R8', 'R9']
         ret_ad = self.pop_uint64_t()
-
         args = []
         for i in xrange(min(n_args, 4)):
             args.append(self.cpu.get_gpreg()[args_regs[i]])
         for i in xrange(max(0, n_args - 4)):
             args.append(self.get_stack_arg(i))
-
-        log.debug('%s %s %s' % (whoami(), hex(ret_ad), [hex(x) for x in args]))
         return ret_ad, args
 
     def func_ret_stdcall(self, ret_addr, ret_value=None):
@@ -158,17 +148,15 @@ class jitter_x86_64(jitter):
             self.cpu.RAX = ret_value
         return True
 
+    @named_arguments
     def func_args_cdecl(self, n_args):
         args_regs = ['RCX', 'RDX', 'R8', 'R9']
         ret_ad = self.pop_uint64_t()
-
         args = []
         for i in xrange(min(n_args, 4)):
             args.append(self.cpu.get_gpreg()[args_regs[i]])
         for i in xrange(max(0, n_args - 4)):
             args.append(self.get_stack_arg(i))
-
-        log.debug('%s %s %s' % (whoami(), hex(ret_ad), [hex(x) for x in args]))
         return ret_ad, args
 
     def func_ret_cdecl(self, ret_addr, ret_value=None):
