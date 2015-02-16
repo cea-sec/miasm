@@ -498,7 +498,7 @@ class bs_cond_off_s(bs_cond):
             raise NotImplementedError("unknown value v[a_s] = %d" % v['a_s'])
 
     def encode(self):
-        return super(bs_cond, self).encode()
+        return super(bs_cond_off_s, self).encode()
 
     def decode(self, v):
         if self.l == 0:

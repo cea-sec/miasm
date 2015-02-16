@@ -2589,7 +2589,7 @@ class bs_cond_scale(bs_cond):
             self.value = 0
             self.l = 0
             return True
-        return super(bs_cond, self).encode()
+        return super(bs_cond_scale, self).encode()
 
     def decode(self, v):
         self.value = v
