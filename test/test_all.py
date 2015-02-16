@@ -48,13 +48,12 @@ for script in ["x86/sem.py",
 class SemanticTestAsm(RegressionTest):
     """Assemble an asm file"""
 
-    shellcode_script = os.path.join("example", "asm", "shellcode.py")
+    shellcode_script = os.path.join("..", "example", "asm", "shellcode.py")
     container_dct = {"PE": "--PE"}
 
     def __init__(self, arch, container, *args, **kwargs):
         super(SemanticTestAsm, self).__init__(*args, **kwargs)
-        self.base_dir = os.path.join(self.base_dir, "..")
-        sample_dir = os.path.join("test", "samples", arch)
+        sample_dir = os.path.join("samples", arch)
         base_filename = os.path.join(sample_dir, self.command_line[0])
         input_filename = base_filename + ".S"
         output_filename = base_filename + ".bin"
@@ -70,12 +69,11 @@ class SemanticTestExec(RegressionTest):
     """Execute a binary file"""
 
     launcher_dct = {("PE", "x86_64"): "sandbox_pe_x86_64.py"}
-    launcher_base = os.path.join("example", "jitter")
+    launcher_base = os.path.join("..", "example", "jitter")
 
     def __init__(self, arch, container, address, *args, **kwargs):
         super(SemanticTestExec, self).__init__(*args, **kwargs)
-        self.base_dir = os.path.join(self.base_dir, "..")
-        sample_dir = os.path.join("test", "samples", arch)
+        sample_dir = os.path.join("samples", arch)
         base_filename = os.path.join(sample_dir, self.command_line[0])
         input_filename = base_filename + ".bin"
         launcher = os.path.join(self.launcher_base,
