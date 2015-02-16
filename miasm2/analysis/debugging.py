@@ -446,20 +446,20 @@ class DebugCmd(cmd.Cmd, object):
     def help_dump(self):
         print "Dump <addr> [size]. Dump size bytes at addr."
 
-    def do_run(self, arg):
+    def do_run(self, _):
         self.dbg.run()
 
     def help_run(self):
         print "Launch or continue the current program"
 
-    def do_exit(self, s):
+    def do_exit(self, _):
         return True
 
-    def do_exec(self, l):
+    def do_exec(self, line):
         try:
-            print eval(l)
-        except Exception, e:
-            print "*** Error: %s" % e
+            print eval(line)
+        except Exception, error:
+            print "*** Error: %s" % error
 
     def help_exec(self):
         print "Exec a python command."
