@@ -1,7 +1,7 @@
 from miasm2.expression.expression import *
 from miasm2.ir.ir import ir, irbloc
 from miasm2.arch.mips32.arch import mn_mips32
-from miasm2.arch.mips32.regs import *
+from miasm2.arch.mips32.regs import R_LO, R_HI, PC, RA
 
 def addiu(ir, instr, a, b, c):
     """Adds a register @b and a sign-extended immediate value @c and stores the
