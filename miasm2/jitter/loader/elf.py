@@ -1,11 +1,10 @@
 import struct
 from collections import defaultdict
 
-from elfesteem import pe
 from elfesteem import cstruct
 from elfesteem import *
 from miasm2.jitter.csts import *
-from utils import canon_libname_libfunc, libimp
+from miasm2.jitter.loader.utils import canon_libname_libfunc, libimp
 from miasm2.core.interval import interval
 
 import logging

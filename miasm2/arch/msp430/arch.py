@@ -7,8 +7,8 @@ from miasm2.expression.expression import *
 from miasm2.core.cpu import *
 from collections import defaultdict
 from miasm2.core.bin_stream import bin_stream
-import regs as regs_module
-from regs import *
+import miasm2.arch.msp430.regs as regs_module
+from miasm2.arch.msp430.regs import *
 
 log = logging.getLogger("armdis")
 console_handler = logging.StreamHandler()
@@ -47,18 +47,13 @@ def deref_expr(s, l, t):
     t = t[0]
     assert(len(t) == 1)
     t = t[0]
-    if isinstance(t, ExprId):
+    if isinstance(t, ExprId) or \
+            isinstance(t, ExprInt) or \
+            isinstance(t, ExprMem) or \
+            (isinstance(t, ExprOp) and t.op == "autoinc"):
         return t
-    elif isinstance(t, ExprInt):
-        return t
-    elif isinstance(t, ExprMem):
-        return t
-    elif isinstance(t, ExprOp) and t.op == "autoinc":
-        return t
+
     raise NotImplementedError('not fully functional')
-    if t[-1] == '!':
-        return ExprOp('wback', *t[:-1])
-    return t[0]
 
 
 def f_reg2expr(t):
@@ -301,7 +296,6 @@ class mn_msp430(cls_mn):
 
     def getnextflow(self, symbol_pool):
         raise NotImplementedError('not fully functional')
-        return self.offset + 4
 
 
 def addop(name, fields, args=None, alias=False):
@@ -498,7 +492,7 @@ class bs_cond_off_s(bs_cond):
             raise NotImplementedError("unknown value v[a_s] = %d" % v['a_s'])
 
     def encode(self):
-        return super(bs_cond, self).encode()
+        return super(bs_cond_off_s, self).encode()
 
     def decode(self, v):
         if self.l == 0:

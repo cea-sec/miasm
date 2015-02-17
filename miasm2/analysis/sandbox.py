@@ -1,11 +1,11 @@
-import os, sys
 import logging
 from argparse import ArgumentParser
+
 from miasm2.analysis.machine import Machine
-from miasm2.os_dep import win_api_x86_32, win_api_x86_32_seh
+from miasm2.os_dep import win_api_x86_32_seh
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm2.analysis import debugging
-from miasm2.jitter.loader.utils import libimp
+
 
 class Sandbox(object):
     """

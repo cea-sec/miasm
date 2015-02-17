@@ -3,7 +3,6 @@ import operator
 
 import z3
 
-import miasm2.expression.expression as m2_expr
 from miasm2.ir.translators.translator import Translator
 
 log = logging.getLogger("translator_z3")

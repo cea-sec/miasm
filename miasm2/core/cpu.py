@@ -8,8 +8,8 @@ from pyparsing import *
 from miasm2.expression.expression import *
 from miasm2.core import asmbloc
 from collections import defaultdict
-from bin_stream import bin_stream, bin_stream_str
-from utils import Disasm_Exception
+from miasm2.core.bin_stream import bin_stream, bin_stream_str
+from miasm2.core.utils import Disasm_Exception
 from miasm2.expression.simplifications import expr_simp
 
 log = logging.getLogger("cpuhelper")
@@ -1514,7 +1514,7 @@ class cls_mn(object):
         o = []
         for c, v in candidates:
             o += v
-        o.sort(key=lambda x: len(x))
+        o.sort(key=len)
         return o
 
     def value(self, mode):
@@ -1564,7 +1564,7 @@ class cls_mn(object):
                     if ((index, [xx[1].value for xx in to_decode]) in todo or
                         (index, [xx[1].value for xx in to_decode]) in done):
                         raise NotImplementedError('not fully functional')
-                        continue
+
                     for p, f in to_decode:
                         fnew = f.clone()
                         o.append((p, fnew))

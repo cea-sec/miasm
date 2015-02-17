@@ -17,7 +17,7 @@
 #
 from miasm2.core import asmbloc
 from miasm2.core.interval import interval
-from csts import *
+from miasm2.jitter.csts import *
 
 
 class JitCore(object):

@@ -6,8 +6,8 @@ from miasm2.expression.expression import *
 from pyparsing import *
 from miasm2.core.cpu import *
 from collections import defaultdict
-import regs as regs_module
-from regs import *
+import miasm2.arch.x86.regs as regs_module
+from miasm2.arch.x86.regs import *
 from miasm2.ir.ir import *
 
 log = logging.getLogger("x86_arch")
@@ -915,7 +915,6 @@ class mn_x86(cls_mn):
 
     def getnextflow(self, symbol_pool):
         raise NotImplementedError('not fully functional')
-        return self.offset + 4
 
     def ir_pre_instruction(self):
         return [ExprAff(mRIP[self.mode],
@@ -954,8 +953,8 @@ class mn_x86(cls_mn):
         for c, v in candidates:
             if v_opmode(c) != instr.mode:
                 cand_diff_mode += v
-        cand_same_mode.sort(key=lambda x: len(x))
-        cand_diff_mode.sort(key=lambda x: len(x))
+        cand_same_mode.sort(key=len)
+        cand_diff_mode.sort(key=len)
         return cand_same_mode + cand_diff_mode
 
 
@@ -2589,7 +2588,7 @@ class bs_cond_scale(bs_cond):
             self.value = 0
             self.l = 0
             return True
-        return super(bs_cond, self).encode()
+        return super(bs_cond_scale, self).encode()
 
     def decode(self, v):
         self.value = v

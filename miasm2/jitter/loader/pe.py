@@ -266,7 +266,7 @@ def vm2pe(myjit, fname, libs=None, e_orig=None,
                 libbase, dllname = libs.fad2info[funcaddr]
                 libs.lib_get_add_func(libbase, dllname, addr)
 
-        new_dll = libs.gen_new_lib(mye, lambda x: mye.virt.is_addr_in(x))
+        new_dll = libs.gen_new_lib(mye, mye.virt.is_addr_in)
     else:
         new_dll = {}
 

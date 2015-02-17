@@ -14,7 +14,6 @@
 #
 ################################################################################
 
-import itertools
 import miasm2.expression.expression as m2_expr
 
 # Define tokens

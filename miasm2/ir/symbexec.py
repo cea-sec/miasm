@@ -32,10 +32,10 @@ class symbols():
         if not isinstance(a, ExprMem):
             return self.symbols_id.__getitem__(a)
         if not a.arg in self.symbols_mem:
-            raise KeyError, a
+            raise KeyError(a)
         m = self.symbols_mem.__getitem__(a.arg)
         if m[0].size != a.size:
-            raise KeyError, a
+            raise KeyError(a)
         return m[1]
 
     def __setitem__(self, a, v):

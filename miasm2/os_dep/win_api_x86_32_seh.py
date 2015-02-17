@@ -590,7 +590,7 @@ def build_fake_InLoadOrderModuleList(modules_name):
 all_seh_ad = dict([(x, None)
                   for x in xrange(FAKE_SEH_B_AD, FAKE_SEH_B_AD + 0x1000, 0x20)])
 # http://blog.fireeye.com/research/2010/08/download_exec_notes.html
-
+seh_count = 0
 
 def init_seh(myjit):
     global seh_count

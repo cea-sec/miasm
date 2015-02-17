@@ -1,5 +1,5 @@
 from miasm2.core.asmbloc import asm_constraint, disasmEngine
-from arch import mn_arm, mn_armt
+from miasm2.arch.arm.arch import mn_arm, mn_armt
 
 
 def cb_arm_fix_call(

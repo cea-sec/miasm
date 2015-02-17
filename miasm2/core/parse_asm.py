@@ -2,7 +2,6 @@
 #-*- coding:utf-8 -*-
 
 import re
-import struct
 import miasm2.expression.expression as m2_expr
 from miasm2.core.asmbloc import *
 from miasm2.core.utils import pck
