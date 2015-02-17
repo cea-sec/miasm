@@ -4,21 +4,26 @@ from miasm2.arch.mips32.arch import mn_mips32
 from miasm2.arch.mips32.regs import *
 
 def addiu(ir, instr, a, b, c):
+    """Adds a register @b and a sign-extended immediate value @c and stores the
+    result in a register @a"""
     e = []
     e.append(ExprAff(a, b+c))
     return e, []
 
 def lw(ir, instr, a, b):
+    "A word is loaded into a register @a from the specified address @b."
     e = []
     e.append(ExprAff(a, b))
     return e, []
 
 def sw(ir, instr, a, b):
+    "The contents of @b is stored at the specified address @a."
     e = []
     e.append(ExprAff(b, a))
     return e, []
 
 def jal(ir, instr, a):
+    "Jumps to the calculated address @a and stores the return address in $RA"
     e = []
     n = ExprId(ir.get_next_break_label(instr))
     e.append(ExprAff(PC, a))
@@ -27,6 +32,8 @@ def jal(ir, instr, a):
     return e, []
 
 def jalr(ir, instr, a, b):
+    """Jump to an address stored in a register @a, and store the return address
+    in another register @b"""
     e = []
     n = ExprId(ir.get_next_break_label(instr))
     e.append(ExprAff(PC, a))
@@ -49,12 +56,16 @@ def l_b(ir, instr, a):
     return e, []
 
 def lbu(ir, instr, a, b):
+    """A byte is loaded (unsigned extended) into a register @a from the
+    specified address @b."""
     e = []
     b = ExprMem(b.arg, 8)
     e.append(ExprAff(a, b.zeroExtend(32)))
     return e, []
 
 def lhu(ir, instr, a, b):
+    """A word is loaded (unsigned extended) into a register @a from the
+    specified address @b."""
     e = []
     b = ExprMem(b.arg, 16)
     e.append(ExprAff(a, b.zeroExtend(32)))
@@ -62,12 +73,14 @@ def lhu(ir, instr, a, b):
 
 
 def lb(ir, instr, a, b):
+    "A byte is loaded into a register @a from the specified address @b."
     e = []
     b = ExprMem(b.arg, 8)
     e.append(ExprAff(a, b.signExtend(32)))
     return e, []
 
 def beq(ir, instr, a, b, c):
+    "Branches on @c if the quantities of two registers @a, @b are equal"
     e = []
     n = ExprId(ir.get_next_break_label(instr))
     dst_o = ExprCond(a-b, n, c)
@@ -77,6 +90,8 @@ def beq(ir, instr, a, b, c):
     return e, []
 
 def bgez(ir, instr, a, b):
+    """Branches on @b if the quantities of register @a is greater than or equal
+    to zero"""
     e = []
     n = ExprId(ir.get_next_break_label(instr))
     dst_o = ExprCond(a.msb(), n, b)
@@ -86,6 +101,7 @@ def bgez(ir, instr, a, b):
     return e, []
 
 def bne(ir, instr, a, b, c):
+    "Branches on @c if the quantities of two registers @a, @b are NOT equal"
     e = []
     n = ExprId(ir.get_next_break_label(instr))
     dst_o = ExprCond(a-b, c, n)
@@ -95,31 +111,41 @@ def bne(ir, instr, a, b, c):
     return e, []
 
 def lui(ir, instr, a, b):
+    """The immediate value @b is shifted left 16 bits and stored in the register
+    @a. The lower 16 bits are zeroes."""
     e = []
     e.append(ExprAff(a, ExprCompose([(ExprInt16(0), 0, 16),
                                      (b[:16], 16, 32)])))
     return e, []
 
 def nop(ir, instr):
+    """Do nothing"""
     return [], []
 
 def j(ir, instr, a):
+    """Jump to an address @a"""
     e = []
     e.append(ExprAff(PC, a))
     e.append(ExprAff(ir.IRDst, a))
     return e, []
 
 def l_or(ir, instr, a, b, c):
+    """Bitwise logical ors two registers @b, @c and stores the result in a
+    register @a"""
     e = []
     e.append(ExprAff(a, b|c))
     return e, []
 
 def nor(ir, instr, a, b, c):
+    """Bitwise logical Nors two registers @b, @c and stores the result in a
+    register @a"""
     e = []
     e.append(ExprAff(a, (b|c)^ExprInt32(0xFFFFFFFF)))
     return e, []
 
 def l_and(ir, instr, a, b, c):
+    """Bitwise logical ands two registers @b, @c and stores the result in a
+    register @a"""
     e = []
     e.append(ExprAff(a, b&c))
     return e, []
@@ -132,16 +158,21 @@ def ext(ir, instr, a, b, c, d):
     return e, []
 
 def mul(ir, instr, a, b, c):
+    """Multiplies @b by $c and stores the result in @a."""
     e = []
     e.append(ExprAff(a, ExprOp('imul', b, c)))
     return e, []
 
 def sltu(ir, instr, a, x, y):
+    """If @y is less than @x (unsigned), @a is set to one. It gets zero
+    otherwise."""
     e = []
     e.append(ExprAff(a, (((x - y) ^ ((x ^ y) & ((x - y) ^ x))) ^ x ^ y).msb().zeroExtend(32)))
     return e, []
 
 def slt(ir, instr, a, x, y):
+    """If @y is less than @x (signed), @a is set to one. It gets zero
+    otherwise."""
     e = []
     e.append(ExprAff(a, ((x - y) ^ ((x ^ y) & ((x - y) ^ x))).zeroExtend(32)))
     return e, []
@@ -152,6 +183,7 @@ def l_sub(ir, instr, a, b, c):
     return e, []
 
 def sb(ir, instr, a, b):
+    "The least significant byte of @a is stored at the specified address @b."
     e = []
     b = ExprMem(b.arg, 8)
     e.append(ExprAff(b, a[:8]))
@@ -186,11 +218,15 @@ def movz(ir, instr, a, b, c):
     return e, [irbloc(lbl_do.name, [e_do], [])]
 
 def srl(ir, instr, a, b, c):
+    """Shifts a register value @b right by the shift amount @c and places the
+    value in the destination register @a. Zeroes are shifted in."""
     e = []
     e.append(ExprAff(a, b >> c))
     return e, []
 
 def sra(ir, instr, a, b, c):
+    """Shifts a register value @b right by the shift amount @c and places the
+    value in the destination register @a. The sign bit is shifted in."""
     e = []
     e.append(ExprAff(a, ExprOp('a>>', b, c)))
     return e, []
@@ -206,16 +242,22 @@ def sll(ir, instr, a, b, c):
     return e, []
 
 def srlv(ir, instr, a, b, c):
+    """Shifts a register value @b right by the amount specified in @c and places
+    the value in the destination register @a. Zeroes are shifted in."""
     e = []
     e.append(ExprAff(a, b >> (c & ExprInt32(0x1F))))
     return e, []
 
 def sllv(ir, instr, a, b, c):
+    """Shifts a register value @b left by the amount specified in @c and places
+    the value in the destination register @a. Zeroes are shifted in."""
     e = []
     e.append(ExprAff(a, b << (c & ExprInt32(0x1F))))
     return e, []
 
 def l_xor(ir, instr, a, b, c):
+    """Exclusive ors two registers @b, @c and stores the result in a register
+    @c"""
     e = []
     e.append(ExprAff(a, b^c))
     return e, []
@@ -231,6 +273,7 @@ def seh(ir, instr, a, b):
     return e, []
 
 def bltz(ir, instr, a, b):
+    """Branches on @b if the register @a is less than zero"""
     e = []
     n = ExprId(ir.get_next_break_label(instr))
     dst_o = ExprCond(a.msb(), b, n)
@@ -240,6 +283,7 @@ def bltz(ir, instr, a, b):
     return e, []
 
 def blez(ir, instr, a, b):
+    """Branches on @b if the register @a is less than or equal to zero"""
     e = []
     n = ExprId(ir.get_next_break_label(instr))
     cond = ExprCond(a, ExprInt1(1), ExprInt1(0)) | a.msb()
@@ -250,6 +294,7 @@ def blez(ir, instr, a, b):
     return e, []
 
 def bgtz(ir, instr, a, b):
+    """Branches on @b if the register @a is greater than zero"""
     e = []
     n = ExprId(ir.get_next_break_label(instr))
     cond = ExprCond(a, ExprInt1(1), ExprInt1(0)) | a.msb()
@@ -398,6 +443,7 @@ def cvt_d_w(ir, instr, a, b):
     return e, []
 
 def mult(ir, instr, a, b):
+    """Multiplies (signed) @a by @b and stores the result in $R_HI:$R_LO"""
     e = []
     size = a.size
     r = a.signExtend(size * 2) * b.signExtend(size * 2)
@@ -407,6 +453,7 @@ def mult(ir, instr, a, b):
     return e, []
 
 def multu(ir, instr, a, b):
+    """Multiplies (unsigned) @a by @b and stores the result in $R_HI:$R_LO"""
     e = []
     size = a.size
     r = a.zeroExtend(size * 2) * b.zeroExtend(size * 2)
@@ -416,11 +463,13 @@ def multu(ir, instr, a, b):
     return e, []
 
 def mfhi(ir, instr, a):
+    "The contents of register $R_HI are moved to the specified register @a."
     e = []
     e.append(ExprAff(a, R_HI))
     return e, []
 
 def mflo(ir, instr, a):
+    "The contents of register R_LO are moved to the specified register @a."
     e = []
     e.append(ExprAff(a, R_LO))
     return e, []
