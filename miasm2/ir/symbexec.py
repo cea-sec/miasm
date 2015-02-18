@@ -1,4 +1,5 @@
-from miasm2.expression.expression import *
+import miasm2.expression.expression as m2_expr
+from miasm2.expression.modint import int32
 from miasm2.expression.simplifications import expr_simp
 from miasm2.core import asmbloc
 import logging
@@ -22,14 +23,14 @@ class symbols():
             self[k] = v
 
     def __contains__(self, a):
-        if not isinstance(a, ExprMem):
+        if not isinstance(a, m2_expr.ExprMem):
             return self.symbols_id.__contains__(a)
         if not self.symbols_mem.__contains__(a.arg):
             return False
         return self.symbols_mem[a.arg][0].size == a.size
 
     def __getitem__(self, a):
-        if not isinstance(a, ExprMem):
+        if not isinstance(a, m2_expr.ExprMem):
             return self.symbols_id.__getitem__(a)
         if not a.arg in self.symbols_mem:
             raise KeyError(a)
@@ -39,7 +40,7 @@ class symbols():
         return m[1]
 
     def __setitem__(self, a, v):
-        if not isinstance(a, ExprMem):
+        if not isinstance(a, m2_expr.ExprMem):
             self.symbols_id.__setitem__(a, v)
             return
         self.symbols_mem.__setitem__(a.arg, (a, v))
@@ -51,7 +52,7 @@ class symbols():
             yield self.symbols_mem[a][0]
 
     def __delitem__(self, a):
-        if not isinstance(a, ExprMem):
+        if not isinstance(a, m2_expr.ExprMem):
             self.symbols_id.__delitem__(a)
         else:
             self.symbols_mem.__delitem__(a.arg)
@@ -102,7 +103,7 @@ class symbexec(object):
         if eval_cache is None:
             eval_cache = {}
         if isinstance(e.name, asmbloc.asm_label) and e.name.offset is not None:
-            return ExprInt_from(e, e.name.offset)
+            return m2_expr.ExprInt_from(e, e.name.offset)
         if not e in self.symbols:
             # raise ValueError('unknown symbol %s'% e)
             return e
@@ -116,7 +117,7 @@ class symbexec(object):
             eval_cache = {}
         a_val = self.expr_simp(self.eval_expr(e.arg, eval_cache))
         if a_val != e.arg:
-            a = self.expr_simp(ExprMem(a_val, size=e.size))
+            a = self.expr_simp(m2_expr.ExprMem(a_val, size=e.size))
         else:
             a = e
         if a in self.symbols:
@@ -139,13 +140,13 @@ class symbexec(object):
                     # x_size = self.symbols[x].size
                     if off >= 0:
                         m = min(a.size - off * 8, x.size)
-                        ee = ExprSlice(self.symbols[x], 0, m)
+                        ee = m2_expr.ExprSlice(self.symbols[x], 0, m)
                         ee = self.expr_simp(ee)
                         out.append((ee, off_base, off_base + m))
                         off_base += m
                     else:
                         m = min(a.size - off * 8, x.size)
-                        ee = ExprSlice(self.symbols[x], -off * 8, m)
+                        ee = m2_expr.ExprSlice(self.symbols[x], -off * 8, m)
                         ff = self.expr_simp(ee)
                         new_off_base = off_base + m + off * 8
                         out.append((ff, off_base, new_off_base))
@@ -153,18 +154,20 @@ class symbexec(object):
                 if out:
                     missing_slice = self.rest_slice(out, 0, a.size)
                     for sa, sb in missing_slice:
-                        ptr = self.expr_simp(a_val + ExprInt_from(a_val, sa / 8))
-                        mm = ExprMem(ptr, size=sb - sa)
+                        ptr = self.expr_simp(
+                            a_val + m2_expr.ExprInt_from(a_val, sa / 8)
+                        )
+                        mm = m2_expr.ExprMem(ptr, size=sb - sa)
                         mm.is_term = True
                         mm.is_simp = True
                         out.append((mm, sa, sb))
                     out.sort(key=lambda x: x[1])
                     # for e, sa, sb in out:
                     #    print str(e), sa, sb
-                    ee = ExprSlice(ExprCompose(out), 0, a.size)
+                    ee = m2_expr.ExprSlice(m2_expr.ExprCompose(out), 0, a.size)
                     ee = self.expr_simp(ee)
                     return ee
-            if self.func_read and isinstance(a.arg, ExprInt):
+            if self.func_read and isinstance(a.arg, m2_expr.ExprInt):
                 return self.func_read(a)
             else:
                 # XXX hack test
@@ -180,7 +183,7 @@ class symbexec(object):
                 v = self.find_mem_by_addr(ptr)
                 if v is None:
                     # raise ValueError("cannot find %s in mem"%str(ptr))
-                    val = ExprMem(ptr, 8)
+                    val = m2_expr.ExprMem(ptr, 8)
                     v = val
                     diff_size = 8
                 elif rest >= v.size:
@@ -193,12 +196,16 @@ class symbexec(object):
                 out.append(val)
                 ptr_index += diff_size
                 rest -= diff_size
-                ptr = self.expr_simp(self.eval_expr(ExprOp('+', ptr,
-                    ExprInt_from(ptr, v.size / 8)), eval_cache))
-            e = self.expr_simp(ExprCompose(out))
+                ptr = self.expr_simp(
+                    self.eval_expr(
+                        m2_expr.ExprOp('+', ptr,
+                                       m2_expr.ExprInt_from(ptr, v.size / 8)),
+                        eval_cache)
+                )
+            e = self.expr_simp(m2_expr.ExprCompose(out))
             return e
         # part lookup
-        tmp = self.expr_simp(ExprSlice(self.symbols[tmp], 0, a.size))
+        tmp = self.expr_simp(m2_expr.ExprSlice(self.symbols[tmp], 0, a.size))
         return tmp
 
     def eval_expr_visit(self, e, eval_cache=None):
@@ -210,15 +217,16 @@ class symbexec(object):
         if e in eval_cache:
             return eval_cache[e]
         c = e.__class__
-        deal_class = {ExprId: self.eval_ExprId,
-                      ExprInt: self.eval_ExprInt,
-                      ExprMem: self.eval_ExprMem,
+        deal_class = {m2_expr.ExprId: self.eval_ExprId,
+                      m2_expr.ExprInt: self.eval_ExprInt,
+                      m2_expr.ExprMem: self.eval_ExprMem,
                       }
         # print 'eval', e
         if c in deal_class:
             e = deal_class[c](e, eval_cache)
         # print "ret", e
-        if not (isinstance(e, ExprId) or isinstance(e, ExprInt)):
+        if not (isinstance(e, m2_expr.ExprId) or isinstance(e,
+                                                            m2_expr.ExprInt)):
             e.is_term = True
         return e
 
@@ -284,7 +292,7 @@ class symbexec(object):
     def substract_mems(self, a, b):
         ex = b.arg - a.arg
         ex = self.expr_simp(self.eval_expr(ex, {}))
-        if not isinstance(ex, ExprInt):
+        if not isinstance(ex, m2_expr.ExprInt):
             return None
         ptr_diff = int(int32(ex.arg))
         out = []
@@ -295,14 +303,15 @@ class symbexec(object):
             if sub_size >= a.size:
                 pass
             else:
-                ex = ExprOp('+', a.arg, ExprInt_from(a.arg, sub_size / 8))
+                ex = m2_expr.ExprOp('+', a.arg,
+                                    m2_expr.ExprInt_from(a.arg, sub_size / 8))
                 ex = self.expr_simp(self.eval_expr(ex, {}))
 
                 rest_ptr = ex
                 rest_size = a.size - sub_size
 
                 val = self.symbols[a][sub_size:a.size]
-                out = [(ExprMem(rest_ptr, rest_size), val)]
+                out = [(m2_expr.ExprMem(rest_ptr, rest_size), val)]
         else:
             #[a         ]
             # XXXX[b   ]YY
@@ -314,24 +323,25 @@ class symbexec(object):
             # part X
             if ptr_diff > 0:
                 val = self.symbols[a][0:ptr_diff * 8]
-                out.append((ExprMem(a.arg, ptr_diff * 8), val))
+                out.append((m2_expr.ExprMem(a.arg, ptr_diff * 8), val))
             # part Y
             if ptr_diff * 8 + b.size < a.size:
 
-                ex = ExprOp('+', b.arg, ExprInt_from(b.arg, b.size / 8))
+                ex = m2_expr.ExprOp('+', b.arg,
+                                    m2_expr.ExprInt_from(b.arg, b.size / 8))
                 ex = self.expr_simp(self.eval_expr(ex, {}))
 
                 rest_ptr = ex
                 rest_size = a.size - (ptr_diff * 8 + b.size)
                 val = self.symbols[a][ptr_diff * 8 + b.size:a.size]
-                out.append((ExprMem(ex, val.size), val))
+                out.append((m2_expr.ExprMem(ex, val.size), val))
         return out
 
     # give mem stored overlapping requested mem ptr
     def get_mem_overlapping(self, e, eval_cache=None):
         if eval_cache is None:
             eval_cache = {}
-        if not isinstance(e, ExprMem):
+        if not isinstance(e, m2_expr.ExprMem):
             raise ValueError('mem overlap bad arg')
         ov = []
         # suppose max mem size is 64 bytes, compute all reachable addresses
@@ -339,14 +349,15 @@ class symbexec(object):
         base_ptr = self.expr_simp(e.arg)
         for i in xrange(-7, e.size / 8):
             ex = self.expr_simp(
-                self.eval_expr(base_ptr + ExprInt_from(e.arg, i), eval_cache))
+                self.eval_expr(base_ptr + m2_expr.ExprInt_from(e.arg, i),
+                               eval_cache))
             to_test.append((i, ex))
 
         for i, x in to_test:
             if not x in self.symbols.symbols_mem:
                 continue
             ex = self.expr_simp(self.eval_expr(e.arg - x, eval_cache))
-            if not isinstance(ex, ExprInt):
+            if not isinstance(ex, m2_expr.ExprInt):
                 raise ValueError('ex is not ExprInt')
             ptr_diff = int32(ex.arg)
             if ptr_diff >= self.symbols.symbols_mem[x][1].size / 8:
@@ -361,24 +372,24 @@ class symbexec(object):
         eval_cache = dict(self.symbols.items())
 
         for e in exprs:
-            if not isinstance(e, ExprAff):
+            if not isinstance(e, m2_expr.ExprAff):
                 raise TypeError('not affect', str(e))
 
             src = self.eval_expr(e.src, eval_cache)
-            if isinstance(e.dst, ExprMem):
+            if isinstance(e.dst, m2_expr.ExprMem):
                 a = self.eval_expr(e.dst.arg, eval_cache)
                 a = self.expr_simp(a)
                 # search already present mem
                 tmp = None
                 # test if mem lookup is known
-                tmp = ExprMem(a, e.dst.size)
+                tmp = m2_expr.ExprMem(a, e.dst.size)
                 dst = tmp
-                if self.func_write and isinstance(dst.arg, ExprInt):
+                if self.func_write and isinstance(dst.arg, m2_expr.ExprInt):
                     self.func_write(self, dst, src, pool_out)
                 else:
                     pool_out[dst] = src
 
-            elif isinstance(e.dst, ExprId):
+            elif isinstance(e.dst, m2_expr.ExprId):
                 pool_out[e.dst] = src
             else:
                 raise ValueError("affected zarb", str(e.dst))
@@ -391,11 +402,11 @@ class symbexec(object):
         src_dst = self.eval_ir_expr(ir)
         eval_cache = dict(self.symbols.items())
         for dst, src in src_dst:
-            if isinstance(dst, ExprMem):
+            if isinstance(dst, m2_expr.ExprMem):
                 mem_overlap = self.get_mem_overlapping(dst, eval_cache)
                 for _, base in mem_overlap:
                     diff_mem = self.substract_mems(base, dst)
-                    del(self.symbols[base])
+                    del self.symbols[base]
                     for new_mem, new_val in diff_mem:
                         new_val.is_term = True
                         self.symbols[new_mem] = new_val
@@ -403,7 +414,7 @@ class symbexec(object):
             # print 'SRCo', src_o
             # src_o.is_term = True
             self.symbols[dst] = src_o
-            if isinstance(dst, ExprMem):
+            if isinstance(dst, m2_expr.ExprMem):
                 mem_dst.append(dst)
         return mem_dst
 
@@ -416,20 +427,20 @@ class symbexec(object):
         eval_cache = dict(self.symbols.items())
         return self.eval_expr(self.ir_arch.IRDst, eval_cache)
 
-    def emul_ir_bloc(self, myir, ad, step = False):
+    def emul_ir_bloc(self, myir, ad, step=False):
         b = myir.get_bloc(ad)
         if b is not None:
-            ad = self.emulbloc(b, step = step)
+            ad = self.emulbloc(b, step=step)
         return ad
 
-    def emul_ir_blocs(self, myir, ad, lbl_stop=None, step = False):
+    def emul_ir_blocs(self, myir, ad, lbl_stop=None, step=False):
         while True:
             b = myir.get_bloc(ad)
             if b is None:
                 break
             if b.label == lbl_stop:
                 break
-            ad = self.emulbloc(b, step = step)
+            ad = self.emulbloc(b, step=step)
         return ad
 
     def del_mem_above_stack(self, sp):
@@ -438,9 +449,9 @@ class symbexec(object):
             # print mem_ad, sp_val
             diff = self.eval_expr(mem_ad - sp_val, {})
             diff = expr_simp(diff)
-            if not isinstance(diff, ExprInt):
+            if not isinstance(diff, m2_expr.ExprInt):
                 continue
             m = expr_simp(diff.msb())
             if m.arg == 1:
-                del(self.symbols[mem])
+                del self.symbols[mem]
 

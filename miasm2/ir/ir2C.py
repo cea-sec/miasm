@@ -1,4 +1,4 @@
-from miasm2.expression.expression import *
+import miasm2.expression.expression as m2_expr
 from miasm2.expression.simplifications import expr_simp
 from miasm2.core import asmbloc
 from miasm2.ir.translators.C import TranslatorC
@@ -18,7 +18,7 @@ for size in [8, 16, 32, 64]:
     prefetch_id_size[size] = []
     for i in xrange(20):
         name = 'pfmem%.2d_%d' % (size, i)
-        c = ExprId(name, size)
+        c = m2_expr.ExprId(name, size)
         globals()[name] = c
         prefetch_id.append(c)
         prefetch_id_size[size].append(c)
@@ -26,12 +26,12 @@ for size in [8, 16, 32, 64]:
 def init_arch_C(arch):
     arch.id2Cid = {}
     for x in arch.regs.all_regs_ids + prefetch_id:
-        arch.id2Cid[x] = ExprId('vmcpu->' + str(x), x.size)
+        arch.id2Cid[x] = m2_expr.ExprId('vmcpu->' + str(x), x.size)
 
     arch.id2newCid = {}
 
     for x in arch.regs.all_regs_ids + prefetch_id:
-        arch.id2newCid[x] = ExprId('vmcpu->%s_new' % x, x.size)
+        arch.id2newCid[x] = m2_expr.ExprId('vmcpu->%s_new' % x, x.size)
 
 
 def patch_c_id(arch, e):
@@ -142,14 +142,14 @@ my_size_mask = {1: 1, 2: 3, 3: 7, 7: 0x7f,
                 32: 0xFFFFFFFF,
                 64: 0xFFFFFFFFFFFFFFFFL}
 
-exception_flags = ExprId('exception_flags', 32)
+exception_flags = m2_expr.ExprId('exception_flags', 32)
 
 
 def set_pc(ir_arch, src):
     dst = ir_arch.jit_pc
-    if not isinstance(src, Expr):
-        src = ExprInt_from(dst, src)
-    e = ExprAff(dst, src.zeroExtend(dst.size))
+    if not isinstance(src, m2_expr.Expr):
+        src = m2_expr.ExprInt_from(dst, src)
+    e = m2_expr.ExprAff(dst, src.zeroExtend(dst.size))
     return e
 
 
@@ -173,13 +173,14 @@ def gen_resolve_other(ir_arch, e):
     return 'Resolve_dst(BlockDst, %s, 0)'%(TranslatorC.from_expr(patch_c_id(ir_arch.arch, e)))
 
 def gen_resolve_dst_simple(ir_arch, e):
-    if isinstance(e, ExprInt):
+    if isinstance(e, m2_expr.ExprInt):
         return gen_resolve_int(ir_arch, e)
-    elif isinstance(e, ExprId) and isinstance(e.name, asmbloc.asm_label):
+    elif isinstance(e, m2_expr.ExprId) and isinstance(e.name,
+                                                      asmbloc.asm_label):
         return gen_resolve_id_lbl(ir_arch, e)
-    elif isinstance(e, ExprId):
+    elif isinstance(e, m2_expr.ExprId):
         return gen_resolve_id(ir_arch, e)
-    elif isinstance(e, ExprMem):
+    elif isinstance(e, m2_expr.ExprMem):
         return gen_resolve_mem(ir_arch, e)
     else:
         return gen_resolve_other(ir_arch, e)
@@ -187,7 +188,7 @@ def gen_resolve_dst_simple(ir_arch, e):
 
 def gen_irdst(ir_arch, e):
     out = []
-    if isinstance(e, ExprCond):
+    if isinstance(e, m2_expr.ExprCond):
         dst_cond_c = TranslatorC.from_expr(patch_c_id(ir_arch.arch, e.cond))
         out.append("if (%s)"%dst_cond_c)
         out.append('    %s;'%(gen_resolve_dst_simple(ir_arch, e.src1)))
@@ -215,16 +216,16 @@ def Expr2C(ir_arch, l, exprs, gen_exception_code=False):
     fetch_mem = False
     set_exception_flags = False
     for e in exprs:
-        assert(isinstance(e, ExprAff))
-        assert(not isinstance(e.dst, ExprOp))
-        if isinstance(e.dst, ExprId):
+        assert isinstance(e, m2_expr.ExprAff)
+        assert not isinstance(e.dst, m2_expr.ExprOp)
+        if isinstance(e.dst, m2_expr.ExprId):
             if not e.dst in dst_dict:
                 dst_dict[e.dst] = []
             dst_dict[e.dst].append(e)
         else:
             new_expr.append(e)
         # test exception flags
-        ops = get_expr_ops(e)
+        ops = m2_expr.get_expr_ops(e)
         if set(['umod', 'udiv']).intersection(ops):
             set_exception_flags = True
         if e.dst == exception_flags:
@@ -234,7 +235,7 @@ def Expr2C(ir_arch, l, exprs, gen_exception_code=False):
         # search mem lookup for generate mem read prefetch
         rs = e.src.get_r(mem_read=True)
         for r in rs:
-            if (not isinstance(r, ExprMem)) or r in src_mem:
+            if (not isinstance(r, m2_expr.ExprMem)) or r in src_mem:
                 continue
             fetch_mem = True
             index = prefect_index[r.size]
@@ -277,7 +278,7 @@ def Expr2C(ir_arch, l, exprs, gen_exception_code=False):
 
 
 
-        if isinstance(dst, ExprId):
+        if isinstance(dst, m2_expr.ExprId):
             id_to_update.append(dst)
             str_dst = patch_c_new_id(ir_arch.arch, dst)
             if dst in ir_arch.arch.regs.regs_flt_expr:
@@ -286,7 +287,7 @@ def Expr2C(ir_arch, l, exprs, gen_exception_code=False):
             else:
                 out.append('%s = (%s)&0x%X;' % (str_dst, str_src,
                                                 my_size_mask[src.size]))
-        elif isinstance(dst, ExprMem):
+        elif isinstance(dst, m2_expr.ExprMem):
             fetch_mem = True
             str_dst = str_dst.replace('MEM_LOOKUP', 'MEM_WRITE')
             out_mem.append('%s, %s);' % (str_dst[:-1], str_src))
@@ -352,15 +353,15 @@ def Expr2C(ir_arch, l, exprs, gen_exception_code=False):
 
 
 def label2offset(e):
-    if not isinstance(e, ExprId):
+    if not isinstance(e, m2_expr.ExprId):
         return e
     if not isinstance(e.name, asmbloc.asm_label):
         return e
-    return ExprInt_from(e, e.name.offset)
+    return m2_expr.ExprInt_from(e, e.name.offset)
 
 
 def expr2pyobj(arch, e):
-    if isinstance(e, ExprId):
+    if isinstance(e, m2_expr.ExprId):
         if isinstance(e.name, asmbloc.asm_label):
             src_c = 'PyString_FromStringAndSize("%s", %d)' % (
                 e.name.name, len(e.name.name))
@@ -378,7 +379,7 @@ def ir2C(ir_arch, irbloc, lbl_done,
     # print irbloc
     out.append(["%s:" % irbloc.label.name])
     #out.append(['printf("%s:\n");' % irbloc.label.name])
-    assert(len(irbloc.irs) == len(irbloc.lines))
+    assert len(irbloc.irs) == len(irbloc.lines)
     for l, exprs in zip(irbloc.lines, irbloc.irs):
         if l.offset not in lbl_done:
             e = set_pc(ir_arch, l.offset & mask_int)
@@ -425,7 +426,7 @@ def irblocs2C(ir_arch, resolvers, label, irblocs,
 
     out.append("goto %s;" % label.name)
     bloc_labels = [x.label for x in irblocs]
-    assert(label in bloc_labels)
+    assert label in bloc_labels
 
     lbl_done = set([None])
 

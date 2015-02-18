@@ -1,4 +1,5 @@
-from miasm2.expression.expression import *
+from miasm2.expression.expression \
+    import get_expr_mem, get_list_rw, ExprId, ExprInt
 from miasm2.ir.symbexec import symbexec
 
 

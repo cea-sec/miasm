@@ -1,6 +1,6 @@
 import logging
 
-from miasm2.core.bin_stream import *
+from miasm2.core.bin_stream import bin_stream_str, bin_stream_elf, bin_stream_pe
 from miasm2.jitter.csts import PAGE_READ
 
 
