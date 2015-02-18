@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
 
-from miasm2.expression.expression import *
+from miasm2.expression.expression import ExprInt, ExprId, ExprMem, MatchExpr
 from miasm2.expression.simplifications import expr_simp
-from miasm2.core.asmbloc import *
-from miasm2.core.utils import *
+from miasm2.core.asmbloc \
+    import asm_symbol_pool, asm_constraint_next, asm_constraint_to
+from miasm2.core.utils import upck32
 # from miasm2.core.graph import DiGraph
 
 
