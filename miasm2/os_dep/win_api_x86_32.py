@@ -29,9 +29,10 @@ try:
 except ImportError:
     print "cannot find crypto, skipping"
 
-from miasm2.jitter.csts import *
-from miasm2.core.utils import *
-from miasm2.os_dep.common import *
+from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE, PAGE_EXEC
+from miasm2.core.utils import pck16, pck32, upck32, hexdump
+from miasm2.os_dep.common \
+    import heap, set_str_ansi, set_str_unic, get_str_ansi, get_str_unic
 from miasm2.os_dep.win_api_x86_32_seh import FS_0_AD
 
 log = logging.getLogger("win_api_x86_32")

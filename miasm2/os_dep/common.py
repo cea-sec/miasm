@@ -1,4 +1,4 @@
-from miasm2.jitter.csts import *
+from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
 
 def get_str_ansi(jitter, ad_str, max_char=None):
     l = 0
