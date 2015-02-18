@@ -4,7 +4,6 @@ import re
 
 import miasm2.expression.expression as m2_expr
 import miasm2.core.asmbloc as asmbloc
-from miasm2.core.utils import pck
 from miasm2.core.cpu import gen_base_expr, parse_ast
 
 declarator = {'byte': 8,
@@ -90,7 +89,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
                 line = line.replace(r'\n', '\n').replace(r'\r', '\r')
                 raw = line[line.find(r'"') + 1:line.rfind(r"'")] + "\x00"
                 raw = raw.decode('string_escape')
-                raw = "".join(map(lambda x: x + '\x00', raw))
+                raw = "".join([string + '\x00' for string in raw])
                 lines.append(asmbloc.asm_raw(raw))
                 continue
             if directive in declarator:
@@ -98,10 +97,9 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
                 data_raw = data_raw.split(',')
                 size = declarator[directive]
                 data_int = []
-                has_symb = False
 
                 # parser
-                variable, operand, base_expr = gen_base_expr()
+                base_expr = gen_base_expr()[2]
                 my_var_parser = parse_ast(lambda x:m2_expr.ExprId(x, size),
                                           lambda x:
                                               m2_expr.ExprInt_fromsize(size, x))
@@ -111,7 +109,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
                     b = b.strip()
                     x = base_expr.parseString(b)[0]
                     data_int.append(x.canonize())
-                p = size2pck[size]
+
                 raw = data_int
                 x = asmbloc.asm_raw(raw)
                 x.element_size = size
@@ -159,6 +157,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
 
     blocs_sections = []
     bloc_num = 0
+    b = None
     for lines in [lines_text, lines_data, lines_bss]:
         state = 0
         i = 0
@@ -246,7 +245,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
 
                     i += 1
 
-    for b in blocs_sections[0]:
-        asmbloc.log_asmbloc.info(b)
+    for block in blocs_sections[0]:
+        asmbloc.log_asmbloc.info(block)
 
     return blocs_sections, symbol_pool
