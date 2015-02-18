@@ -1132,7 +1132,9 @@ class cls_mn(object):
                     total_l += l
                     f.l = l
                     f.is_present = True
-                    log.debug("FIELD", f.__class__, f.fname, offset_b, l)
+                    log.debug("FIELD %s %s %s %s" % (f.__class__,
+                                                     f.fname,
+                                                     offset_b, l))
                     if bs_l * 8 - offset_b < l:
                         getok = False
                         break

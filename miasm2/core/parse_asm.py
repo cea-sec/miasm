@@ -100,7 +100,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
 
                 # parser
                 base_expr = gen_base_expr()[2]
-                my_var_parser = parse_ast(lambda x:m2_expr.ExprId(x, size),
+                my_var_parser = parse_ast(lambda x: m2_expr.ExprId(x, size),
                                           lambda x:
                                               m2_expr.ExprInt_fromsize(size, x))
                 base_expr.setParseAction(my_var_parser)
@@ -153,7 +153,6 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
 
     asmbloc.log_asmbloc.info("___pre asm oki___")
     # make blocs
-    # gen_label_index = 0
 
     blocs_sections = []
     bloc_num = 0
@@ -166,7 +165,6 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
         bloc_to_nlink = None
         block_may_link = False
         while i < len(lines):
-            # print 'DEAL', lines[i], state
             # no current bloc
             if state == 0:
                 if not isinstance(lines[i], asmbloc.asm_label):
@@ -181,35 +179,25 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
                     state = 1
                     i += 1
                     if bloc_to_nlink:
-                        # print 'nlink!'
                         bloc_to_nlink.addto(asmbloc.asm_constraint(b.label,
                                                                    C_NEXT))
                         bloc_to_nlink = None
 
             # in bloc
             elif state == 1:
-                # asmbloc.asm_raw
                 if isinstance(lines[i], asmbloc.asm_raw):
                     if hasattr(lines[i], 'split'):
                         state = 0
                         block_may_link = False
                         i += 1
-                    else: #if lines[i].raw.startswith('.dontsplit'):
-                        # raw asm are link by default
-                        # print 'dontsplit'
+                    else:
                         state = 1
                         block_may_link = True
                         b.addline(lines[i])
                         i += 1
-                    """
-                    else:
-                        b.addline(lines[i])
-                        i += 1
-                    """
                 # asmbloc.asm_label
                 elif isinstance(lines[i], asmbloc.asm_label):
                     if block_may_link:
-                        # print 'nlink!'
                         b.addto(
                             asmbloc.asm_constraint(lines[i], C_NEXT))
                         block_may_link = False
