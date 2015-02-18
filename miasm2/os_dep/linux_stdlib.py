@@ -54,18 +54,18 @@ def xxx_snprintf(jitter):
 
     writes to string str according to format format and at most size bytes.
     '''
-    ret_addr, (str, size, format) = jitter.func_args_stdcall(3)
+    ret_addr, (string, size, fmt) = jitter.func_args_stdcall(3)
     curarg, output = 3, ''
     while True:
-        c = jitter.vm.get_mem(format, 1)
-        format += 1
+        c = jitter.vm.get_mem(fmt, 1)
+        fmt += 1
         if c == '\x00':
             break
         if c == '%':
             token = '%'
             while True:
-                c = jitter.vm.get_mem(format, 1)
-                format += 1
+                c = jitter.vm.get_mem(fmt, 1)
+                fmt += 1
                 token += c
                 if c in '%cdfsux':
                     break
@@ -74,5 +74,5 @@ def xxx_snprintf(jitter):
         output += c
     output = output[:size - 1]
     ret = len(output)
-    jitter.vm.set_mem(str, output + '\x00')
+    jitter.vm.set_mem(string, output + '\x00')
     return jitter.func_ret_stdcall(ret_addr, ret)

@@ -146,14 +146,14 @@ def expr_simp_inverse(expr_simp, e):
 
     # Check for 2 symetric cases
     if r is False:
-            to_match = (ExprOp_inf_signed(jok1, jok2) ^ jok_small)
-            r = __MatchExprWrap(e,
-                                to_match,
-                                [jok1, jok2, jok_small])
+        to_match = (ExprOp_inf_signed(jok1, jok2) ^ jok_small)
+        r = __MatchExprWrap(e,
+                            to_match,
+                            [jok1, jok2, jok_small])
 
-            if r is False:
-                return e
-            cur_sig = TOK_INF_SIGNED
+        if r is False:
+            return e
+        cur_sig = TOK_INF_SIGNED
     else:
         cur_sig = TOK_INF_UNSIGNED
 

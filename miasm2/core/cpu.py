@@ -4,10 +4,12 @@
 import re
 import struct
 import logging
-from pyparsing import *
-from miasm2.expression.expression import *
-from miasm2.core import asmbloc
 from collections import defaultdict
+
+import pyparsing
+
+import miasm2.expression.expression as m2_expr
+from miasm2.core import asmbloc
 from miasm2.core.bin_stream import bin_stream, bin_stream_str
 from miasm2.core.utils import Disasm_Exception
 from miasm2.expression.simplifications import expr_simp
@@ -17,8 +19,6 @@ console_handler = logging.StreamHandler()
 console_handler.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
 log.addHandler(console_handler)
 log.setLevel(logging.WARN)
-
-# size2int = {8:ExprInt8, 16:ExprInt16, 32:ExprInt32,64:ExprInt64}
 
 
 class bitobj:
@@ -81,9 +81,9 @@ def literal_list(l):
     l = l[:]
     l.sort()
     l = l[::-1]
-    o = Literal(l[0])
+    o = pyparsing.Literal(l[0])
     for x in l[1:]:
-        o |= Literal(x)
+        o |= pyparsing.Literal(x)
     return o
 
 
@@ -118,7 +118,7 @@ def gen_reg(rname, env, sz=32):
 
     """
     rnamel = rname.lower()
-    r = ExprId(rname, sz)
+    r = m2_expr.ExprId(rname, sz)
     reg_str = [rname]
     reg_expr = [r]
     regi = reg_info(reg_str, reg_expr)
@@ -137,8 +137,8 @@ def gen_regs(rnames, env, sz=32):
     regs_expr = []
     regs_init = []
     for rname in rnames:
-        r = ExprId(rname, sz)
-        r_init = ExprId(rname+'_init', sz)
+        r = m2_expr.ExprId(rname, sz)
+        r_init = m2_expr.ExprId(rname+'_init', sz)
         regs_str.append(rname)
         regs_expr.append(r)
         regs_init.append(r_init)
@@ -148,26 +148,23 @@ def gen_regs(rnames, env, sz=32):
     return regs_expr, regs_init, reginfo
 
 
-LPARENTHESIS = Literal("(")
-RPARENTHESIS = Literal(")")
-
-
-#
+LPARENTHESIS = pyparsing.Literal("(")
+RPARENTHESIS = pyparsing.Literal(")")
 
 
 def int2expr(t):
     v = t[0]
-    return (ExprInt, v)
+    return (m2_expr.ExprInt, v)
 
 
 def parse_op(t):
     v = t[0]
-    return (ExprOp, v)
+    return (m2_expr.ExprOp, v)
 
 
 def parse_id(t):
     v = t[0]
-    return (ExprId, v)
+    return (m2_expr.ExprId, v)
 
 
 def ast_parse_op(t):
@@ -175,14 +172,14 @@ def ast_parse_op(t):
         return t[0]
     if len(t) == 2:
         if t[0] in ['-', '+', '!']:
-            return ExprOp(t[0], t[1])
+            return m2_expr.ExprOp(t[0], t[1])
     if len(t) == 3:
         args = [t[0], t[2]]
         if t[1] == '-':
             # a - b => a + (-b)
             t[1] = '+'
             t[2] = - t[2]
-        return ExprOp(t[1], t[0], t[2])
+        return m2_expr.ExprOp(t[1], t[0], t[2])
     t = t[::-1]
     while len(t) >= 3:
         o1, op, o2 = t.pop(), t.pop(), t.pop()
@@ -190,7 +187,7 @@ def ast_parse_op(t):
             # a - b => a + (-b)
             op = '+'
             o2 = - o2
-        e = ExprOp(op, o1, o2)
+        e = m2_expr.ExprOp(op, o1, o2)
         t.append(e)
     if len(t) != 1:
         raise NotImplementedError('strange op')
@@ -198,20 +195,20 @@ def ast_parse_op(t):
 
 
 def ast_id2expr(a):
-    return ExprId(a, 32)
+    return m2_expr.ExprId(a, 32)
 
 
 def ast_int2expr(a):
-    return ExprInt32(a)
+    return m2_expr.ExprInt32(a)
 
 
 def ast_raw2expr(a, my_id2expr, my_int2expr):
     assert(isinstance(a, tuple))
-    if a[0] is ExprId:
+    if a[0] is m2_expr.ExprId:
         e = my_id2expr(a[1])
-    elif a[0] is ExprInt:
+    elif a[0] is m2_expr.ExprInt:
         e = my_int2expr(a[1])
-    elif a[0] is ExprOp:
+    elif a[0] is m2_expr.ExprOp:
         out = []
         for x in a[1]:
             if isinstance(x, tuple):
@@ -225,11 +222,11 @@ def ast_raw2expr(a, my_id2expr, my_int2expr):
 
 def ast_get_ids(a):
     assert(isinstance(a, tuple))
-    if a[0] is ExprId:
+    if a[0] is m2_expr.ExprId:
         return set([a[1]])
-    elif a[0] is ExprInt:
+    elif a[0] is m2_expr.ExprInt:
         return set()
-    elif a[0] is ExprOp:
+    elif a[0] is m2_expr.ExprOp:
         out = set()
         for x in a[1]:
             if isinstance(x, tuple):
@@ -240,9 +237,9 @@ def ast_get_ids(a):
 
 def _extract_ast_core(a):
     assert(isinstance(a, tuple))
-    if a[0] in [ExprInt, ExprId]:
+    if a[0] in [m2_expr.ExprInt, m2_expr.ExprId]:
         return a
-    elif a[0] is ExprOp:
+    elif a[0] is m2_expr.ExprOp:
         out = []
         for x in a[1]:
             if isinstance(x, tuple):
@@ -256,16 +253,14 @@ def _extract_ast_core(a):
 def extract_ast_core(v, my_id2expr, my_int2expr):
     ast_tokens = _extract_ast_core(v)
     ids = ast_get_ids(ast_tokens)
-    # print 'IDS', ids
     ids_expr = [my_id2expr(x) for x in ids]
-    # print 'IDS_expr', ids_expr
     sizes = set([i.size for i in ids_expr])
-    # print "SIZE", sizes
+
     if len(sizes) == 0:
         pass
     elif len(sizes) == 1:
         size = sizes.pop()
-        my_int2expr = lambda x: ExprInt_fromsize(size, x)
+        my_int2expr = lambda x: m2_expr.ExprInt_fromsize(size, x)
     else:
         raise ValueError('multiple sizes in ids')
     e = ast_raw2expr(ast_tokens, my_id2expr, my_int2expr)
@@ -281,7 +276,7 @@ class parse_ast:
 
     def __call__(self, v):
         v = v[0]
-        if isinstance(v, Expr):
+        if isinstance(v, m2_expr.Expr):
             return v
         return self.extract_ast_core(v, self.id2expr, self.int2expr)
 
@@ -291,34 +286,42 @@ def neg_int(t):
     return x
 
 
-integer = Word(nums).setParseAction(lambda s, l, t: int(t[0]))
-hex_int = Combine(Literal('0x') + Word(hexnums)).setParseAction(
-    lambda s, l, t: int(t[0], 16))
+integer = pyparsing.Word(pyparsing.nums).setParseAction(lambda _a, _b, t:
+                                                            int(t[0]))
+hex_word = pyparsing.Literal('0x') + pyparsing.Word(pyparsing.hexnums)
+hex_int = pyparsing.Combine(hex_word).setParseAction(lambda _a, _b, t:
+                                                         int(t[0], 16))
 
 # str_int = (Optional('-') + (hex_int | integer))
 str_int_pos = (hex_int | integer)
-str_int_neg = (Suppress('-') + (hex_int | integer)).setParseAction(neg_int)
+str_int_neg = (pyparsing.Suppress('-') + \
+                   (hex_int | integer)).setParseAction(neg_int)
 
 str_int = str_int_pos | str_int_neg
 str_int.setParseAction(int2expr)
 
-logicop = oneOf('& | ^ >> << <<< >>>')
-signop = oneOf('+ -')
-multop = oneOf('* / %')
-plusop = oneOf('+ -')
+logicop = pyparsing.oneOf('& | ^ >> << <<< >>>')
+signop = pyparsing.oneOf('+ -')
+multop = pyparsing.oneOf('* / %')
+plusop = pyparsing.oneOf('+ -')
 
 
 def gen_base_expr():
-    variable = Word(alphas + "_$.", alphanums + "_")
+    variable = pyparsing.Word(pyparsing.alphas + "_$.",
+                              pyparsing.alphanums + "_")
     variable.setParseAction(parse_id)
     operand = str_int | variable
-    base_expr = operatorPrecedence(operand,
-                                   [("!", 1, opAssoc.RIGHT, parse_op),
-                                    (logicop, 2, opAssoc.RIGHT, parse_op),
-                                    (signop, 1, opAssoc.RIGHT, parse_op),
-                                    (multop, 2, opAssoc.LEFT, parse_op),
-                                    (plusop, 2, opAssoc.LEFT, parse_op), ]
-                                   )
+    base_expr = pyparsing.operatorPrecedence(operand,
+                                   [("!", 1, pyparsing.opAssoc.RIGHT, parse_op),
+                                    (logicop, 2, pyparsing.opAssoc.RIGHT,
+                                     parse_op),
+                                    (signop, 1, pyparsing.opAssoc.RIGHT,
+                                     parse_op),
+                                    (multop, 2, pyparsing.opAssoc.LEFT,
+                                     parse_op),
+                                    (plusop, 2, pyparsing.opAssoc.LEFT,
+                                     parse_op),
+                                    ])
     return variable, operand, base_expr
 
 
@@ -326,9 +329,6 @@ variable, operand, base_expr = gen_base_expr()
 
 my_var_parser = parse_ast(ast_id2expr, ast_int2expr)
 base_expr.setParseAction(my_var_parser)
-
-#
-
 
 default_prio = 0x1337
 
@@ -357,11 +357,7 @@ class bs(object):
     def __init__(self, strbits=None, l=None, cls=None,
                  fname=None, order=0, flen=None, **kargs):
         if fname is None:
-            # fname = hex(id((strbits, l, cls, fname, order, flen, kargs)))
-            # fname = hex(id((strbits, l, fname, order, flen)))
-            # print str((strbits, l, cls, fname, order, flen, kargs))
             fname = hex(id(str((strbits, l, cls, fname, order, flen, kargs))))
-            # print fname
         if strbits is None:
             strbits = ""  # "X"*l
         elif l is None:
@@ -388,8 +384,6 @@ class bs(object):
                 fmask |= 1
         lmask = (1 << l) - 1
         # gen conditional field
-        # if flen is None:
-        #    flen = lambda mode, v:l
         if cls:
             for b in cls:
                 if 'flen' in b.__dict__:
@@ -429,7 +423,6 @@ class bs(object):
         # bsi added at end of list
         # used to use first function of added class
         bases += [bsi]
-        # new_c = type(c_name, tuple(bases), {})
         k = c_name, tuple(bases)
         if k in self.all_new_c:
             new_c = self.all_new_c[k]
@@ -485,7 +478,6 @@ class bsi(object):
         return True
 
     def encode(self):
-        # self.value = v&self.lmask
         return True
 
     def clone(self):
@@ -507,7 +499,7 @@ class bsi(object):
         l = [self.strbits, self.l, self.cls,
              self.fname, self.order, self.lmask, self.fbits,
              self.fmask, self.value]  # + kargs
-        # l = [self.value]
+
         return hash(tuple(l))
 
 
@@ -567,9 +559,7 @@ class bs_mod_name(bs_divert):
                 f = bs(**args)
                 nfields[i] = f
                 ndct = dict(dct)
-                # new_name = ndct['name'] + new_name
                 ndct['name'] = self.modname(ndct['name'], value)
-                # ndct['name'] = new_name
                 out.append((cls, new_name, bases, ndct, nfields))
         return out
 
@@ -584,7 +574,6 @@ class bs_cond(bsi):
 class bs_swapargs(bs_divert):
 
     def divert(self, i, candidates):
-        # print candidates
         out = []
         for cls, name, bases, dct, fields in candidates:
             # args not permuted
@@ -602,7 +591,6 @@ class bs_swapargs(bs_divert):
             a = ap.pop(0)
             b = ap.pop(0)
             ndct['args_permut'] = [b, a] + ap
-            # print ndct['args_permut']
             # gen fix field
             f = gen_bsint(1, self.args['l'], self.args)
             nfields[i] = f
@@ -728,7 +716,6 @@ def factor_one_bit(tree):
     if len(tree) == 1:
         return tree
     for k, v in tree.items():
-        # print k, v
         if k == "mn":
             new_keys[k] = v
             continue
@@ -742,7 +729,6 @@ def factor_one_bit(tree):
         nfbits = fbits & ((1 << (l - 1)) - 1)
         ck = 1, cfmask, cfbits, None, flen
         nk = l - 1, nfmask, nfbits, fname, flen
-        # print ck
         if nk in new_keys[ck]:
             raise NotImplementedError('not fully functional')
         new_keys[ck][nk] = v
@@ -824,8 +810,6 @@ def graph_tree(tree):
           digraph G {
           """
     for a, b in nodes:
-        # print a, id(a)
-        # print b, id(b)
         if b == 'mn':
             continue
         out += "%s -> %s;\n" % (id(a), id(b))
@@ -838,13 +822,7 @@ def add_candidate_to_tree(tree, c):
     for f in c.fields:
         if f.l == 0:
             continue
-        # print len(bits), f.l
-        # if f.flen:
-        #    pass
-        # print f
         node = f.l, f.fmask, f.fbits, f.fname, f.flen
-        # node = f.strbits, f.l, f.cls, f.fname, f.order, f.lmask, f.fbits,
-        # f.fmask, f.value#, tuple(f.kargs.items())
 
         if not node in branch:
             branch[node] = {}
@@ -878,10 +856,8 @@ class metamn(type):
         if name == "cls_mn" or name.startswith('mn_'):
             return type.__new__(mcs, name, bases, dct)
         alias = dct.get('alias', False)
-        # fields = [bm_cond]+dct['fields']
+
         fields = bases[0].mod_fields(dct['fields'])
-        # print 'f1', dct['fields']
-        # print 'f2', fields
         if not 'name' in dct:
             dct["name"] = bases[0].getmn(name)
         if 'args' in dct:
@@ -901,9 +877,7 @@ class metamn(type):
         f_ordered.sort(key=lambda x: (x[1].prio, x[0]))
         candidates = bases[0].gen_modes(mcs, name, bases, dct, fields)
         for i, fc in f_ordered:
-            # print fc, isinstance(fc, bs_divert)
             if isinstance(fc, bs_divert):
-                # print 'iiii', fc
                 candidates = fc.divert(i, candidates)
         for cls, name, bases, dct, fields in candidates:
             ndct = dict(dct)
@@ -917,10 +891,6 @@ class metamn(type):
             bases[0].num += 1
             bases[0].all_mn.append(c)
             mode = dct['mode']
-            # print 'add mnemo', c.name, c.mode, len(bases[0].all_mn_mode[mode])
-            # print fields
-            # if 'args_permut' in dct:
-            #    print dct['args_permut']
             bases[0].all_mn_mode[mode].append(c)
             bases[0].all_mn_name[c.name].append(c)
             i = c()
@@ -935,10 +905,7 @@ class metamn(type):
                     raise ValueError('f is not bsi')
                 if f.l == 0:
                     continue
-                # if f.fmask:
                 o += f.strbits
-            # print o, len(o)
-            # fd
         return c
 
 
@@ -957,10 +924,8 @@ class instruction(object):
     def __str__(self):
         o = "%-10s " % self.name
         args = []
-        #args_str = self.args_str
-        #for arg, arg_str in zip(self.args, args_str):
         for i, arg in enumerate(self.args):
-            if not isinstance(arg, Expr):
+            if not isinstance(arg, m2_expr.Expr):
                 raise ValueError('zarb arg type')
             x = self.arg2str(arg, pos = i)
             args.append(x)
@@ -968,7 +933,7 @@ class instruction(object):
         return o
 
     def get_asm_offset(self, x):
-        return ExprInt_from(x, self.offset)
+        return m2_expr.ExprInt_from(x, self.offset)
 
     def resolve_args_with_symbols(self, symbols=None):
         if symbols is None:
@@ -977,7 +942,7 @@ class instruction(object):
         for a in self.args:
             e = a
             # try to resolve symbols using symbols (0 for default value)
-            ids = get_expr_ids(e)
+            ids = m2_expr.get_expr_ids(e)
             fixed_ids = {}
             for x in ids:
                 if isinstance(x.name, asmbloc.asm_label):
@@ -994,20 +959,18 @@ class instruction(object):
                     continue
                 if symbols[name].offset is None:
                     default_size = self.get_symbol_size(x, symbols)
-                    value = ExprInt_fromsize(default_size, 0)  # default value
+                    # default value
+                    value = m2_expr.ExprInt_fromsize(default_size, 0)
                 else:
                     size = x.size
                     if size is None:
                         default_size = self.get_symbol_size(x, symbols)
                         size = default_size
-                    value = ExprInt_fromsize(size, symbols[name].offset)
+                    value = m2_expr.ExprInt_fromsize(size, symbols[name].offset)
                 fixed_ids[x] = value
             e = e.replace_expr(fixed_ids)
-            # print 'replaced e', e, fixed_ids
             e = expr_simp(e)
-            # print 'replaced e simp', e, fixed_ids
             args_out.append(e)
-        # print "args out", [str(x) for x in args_out]
         return args_out
 
     def get_info(self, c):
@@ -1033,39 +996,30 @@ class cls_mn(object):
             bs_l = bs.getlen()
         else:
             bs_l = len(bs)
-        # print fname_values
         for fname_values, branch, offset_b in todo:
             (l, fmask, fbits, fname, flen), vals = branch
             cpt += 1
-            # print bvalo, 'len', l, fmask, fbits, fname, flen, 'TTT', bs_l * 8,  offset_b, l
+
             if flen is not None:
-                # print 'flen'
                 l = flen(attrib, fname_values)
-            # print 'len', fname, l
             if l is not None:
-                # print fname, hex(bs_l), l
-                # print hex(offset_b)
                 try:
                     v = cls.getbits(bs, attrib, offset_b, l)
                 except IOError:
                     # Raised if offset is out of bound
                     continue
-                # print 'TEST', bval, fname, offset_b, cpt, (l, fmask, fbits),
-                # hex(v), hex(v & fmask), hex(fbits), v & fmask == fbits
                 offset_b += l
                 if v & fmask != fbits:
                     continue
                 if fname is not None and not fname in fname_values:
-                    # print "YY", fname_values, fname, bval
                     fname_values[fname] = v
-            # print vals
             for nb, v in vals.items():
                 if 'mn' in nb:
                     candidates.update(v)
                 else:
                     todo.append((dict(fname_values), (nb, v), offset_b))
 
-        candidates = [c for c in candidates]  # if c.attrib == attrib]
+        candidates = [c for c in candidates]
 
         if not candidates:
             raise Disasm_Exception('cannot disasm (guess) at %X' % offset)
@@ -1074,17 +1028,12 @@ class cls_mn(object):
     def reset_class(self):
         for f in self.fields_order:
             if f.strbits and isbin(f.strbits):
-                # print 'a',
                 f.value = int(f.strbits, 2)
             elif 'default_val' in f.kargs:
-                # print 'b',
                 f.value = int(f.kargs['default_val'], 2)
             else:
-                # print 'c',
                 f.value = None
-            # print "reset", f.fname, f.value
             if f.fname:
-                # print 'SET asm', f.fname
                 setattr(self, f.fname, f)
 
     def init_class(self):
@@ -1101,11 +1050,8 @@ class cls_mn(object):
 
             if isinstance(f, m_arg):
                 args.append(f)
-            # print f, fc.fname
             if f.fname:
-                # print 'SET asm', f.fname
                 setattr(self, f.fname, f)
-        # print args
         if hasattr(self, 'args_permut'):
             args = [args[self.args_permut[i]]
                     for i in xrange(len(self.args_permut))]
@@ -1145,18 +1091,13 @@ class cls_mn(object):
     def dis(cls, bs_o, mode_o = None, offset=0):
         if not isinstance(bs_o, bin_stream):
             bs_o = bin_stream_str(bs_o)
-        loggg = False
-        # bs_o == 'fg\x11\x90\x00\x00'#False#'\x48\x15\x44\x33\x22\x11'==bs_o
-        # print 'disfunc', repr(bs_o)
+
         offset_o = offset
-        # print 'DIS', hex(offset), mode_o#repr(bs_o.bin)
         pre_dis_info, bs, mode, offset, prefix_len = cls.pre_dis(
             bs_o, mode_o, offset)
         candidates = cls.guess_mnemo(bs, mode, pre_dis_info, offset)
-        # print 'guess', repr(v), mode, prefix.rex_w
         out = []
         out_c = []
-        # print 'DIS CAND', len(candidates), mode
         if hasattr(bs, 'getlen'):
             bs_l = bs.getlen()
         else:
@@ -1164,54 +1105,36 @@ class cls_mn(object):
 
         alias = False
         for c in candidates:
-            # print 'RRR'
-            if loggg:
-                print "*" * 40, mode, c.mode
-                print c.fields
-            # c.mode_o = mode_o
-            # off = c.parse_prefix(mode_o, v)
-            # bits = bin_stream(v)#[:c.mn_len/8])
+            log.debug("*" * 40, mode, c.mode)
+            log.debug(c.fields)
 
-            # c = c()
-            # c.init_class()
             c = cls.all_mn_inst[c][0]
-            # c.init_class()
+
             c.reset_class()
             c.mode = mode
-            # for f in c.fields_order: print f.is_present
 
-            if not c.add_pre_dis_info(pre_dis_info):  # = prefix#cls.mnprefix()
+            if not c.add_pre_dis_info(pre_dis_info):
                 continue
-            # print "zz", c.rex_w.value
-            """
-            if prefix.opmode != c.mp[1]:
-                continue
-            if prefix.admode != c.mp[2]:
-                continue
-            """
 
             args = []
             todo = {}
             getok = True
             fname_values = dict(pre_dis_info)
             offset_b = offset * 8
-            # print pre_dis_info
+
             total_l = 0
             for i, f in enumerate(c.fields_order):
-                # print 'XX', i, f, id(f)
-                # print 'ZZ', c.rex_x.value
                 if f.flen is not None:
                     l = f.flen(mode, fname_values)
                 else:
                     l = f.l
-                # print 'len', l
-                # print "zz", c.rex_w, c.rex_w.value
                 if l is not None:
                     total_l += l
                     f.l = l
                     f.is_present = True
-                    if loggg:
-                        print "FIELD", f.__class__, f.fname, offset_b, l
+                    log.debug("FIELD %s %s %s %s" % (f.__class__,
+                                                     f.fname,
+                                                     offset_b, l))
                     if bs_l * 8 - offset_b < l:
                         getok = False
                         break
@@ -1224,19 +1147,12 @@ class cls_mn(object):
                     f.is_present = False
                     todo[i] = None
 
-                # print "decode", id(f), f.fname,
-                # print "l", l, "off", offset_b, "v", todo[i]
-            # print "zzz", c.rex_w, c.rex_w.value
-
             if not getok:
                 continue
 
-            # print 'PRIOdec', [(x[0], x[1].order) for x in c.to_decode]
             for i in c.to_decode:
                 f = c.fields_order[i]
                 if f.is_present:
-                    # print "zz", f.fname, f.is_present, c.rex_w.value,
-                    # c.rex_b.value, c.rex_x.value
                     ret = f.decode(todo[i])
                     if not ret:
                         log.debug("cannot decode %r" % (f))
@@ -1246,7 +1162,7 @@ class cls_mn(object):
                 continue
             for a in c.args:
                 a.expr = expr_simp(a.expr)
-            # print offset, offset_o, total_l
+
             c.l = prefix_len + total_l / 8
             c.b = cls.getbytes(bs, offset, total_l / 8)
             c.offset = offset_o
@@ -1260,7 +1176,6 @@ class cls_mn(object):
             instr.b = cls.getbytes(bs, offset, total_l / 8)
             instr.offset = offset_o
             instr.get_info(c)
-            # instr = c.post_dis()
             if c.alias:
                 alias = True
             out.append(instr)
@@ -1276,10 +1191,6 @@ class cls_mn(object):
                 if o.alias:
                     return out[i]
             raise NotImplementedError('not fully functional')
-            # for xx in out:
-            #    print xx
-            # if xx.name == "ADC":
-            #    pass
         return out[0]
 
     @classmethod
@@ -1289,25 +1200,15 @@ class cls_mn(object):
         if not name:
             raise ValueError('cannot find name', s)
         name = name[0]
-        # print "mnemo_name", name
+
         if not name in cls.all_mn_name:
             raise ValueError('unknown name', name)
-        clist = [x for x in cls.all_mn_name[name]]  # if x.mode == mode]
+        clist = [x for x in cls.all_mn_name[name]]
         out = []
         out_args = []
         parsers = defaultdict(dict)
-        # print 'ASM CAND', len(clist), name
 
         for cc in clist:
-            #"""
-            # c = cc()
-            # c.init_class()
-            #"""
-            """
-            c = cls.all_mn_inst[cc][0]
-            c.reset_class()
-            c.mode = mode
-            """
             for c in cls.get_cls_instance(cc, mode):
                 args_expr = []
                 args_str = s[len(name):].strip(' ')
@@ -1318,7 +1219,6 @@ class cls_mn(object):
 
                 for i, f in enumerate(c.args):
                     start_i = len_o - len(args_str)
-                    # print i, "will parse", repr(args_str)
                     if type(f.parser) == tuple:
                         parser = f.parser
                     else:
@@ -1328,9 +1228,7 @@ class cls_mn(object):
                             continue
                         try:
                             total_scans += 1
-                            # print type(p)
                             v, start, stop = p.scanString(args_str).next()
-                            # print "pp", args_str, v, start, stop
                         except StopIteration:
                             v, start, stop = [None], None, None
                         if start != 0:
@@ -1338,16 +1236,12 @@ class cls_mn(object):
                         parsers[(i, start_i)][p] = v[0], start, stop
 
                     start, stop = f.fromstring(args_str, parsers[(i, start_i)])
-                    # print args_str, start, stop#, f.expr
-                    # if start is not None: print f.expr
                     if start != 0:
                         log.debug("cannot fromstring %r" % (args_str))
                         cannot_parse = True
-                        # print "cannot_parse1"
                         break
                     if f.expr is None:
                         raise NotImplementedError('not fully functional')
-                    # print "f expr", repr(f.expr)
                     f.expr = expr_simp(f.expr)
                     args_expr.append(f.expr)
                     a = args_str[start:stop]
@@ -1356,21 +1250,10 @@ class cls_mn(object):
                         args_str = args_str[1:]
                     args_str = args_str.strip(' ')
                 if args_str:
-                    # print "cannot_parse", repr(args_str)
                     cannot_parse = True
                 if cannot_parse:
                     continue
-                # print [x for x in c.args]
-                # print [str(x) for x in c.args]
-                """
-                try:
-                    c.value()
-                except Exception, e:
-                    log.debug("cannot encode %r\n%s"%(e, traceback.format_exc()))
-                    cannot_parse = True
-                if cannot_parse:
-                    continue
-                """
+
                 out.append(c)
                 out_args.append(args_expr)
                 break
@@ -1384,21 +1267,6 @@ class cls_mn(object):
 
         instr = cls.instruction(c.name, mode, c_args,
                                 additional_info=c.additional_info())
-        # instruction(name, attrib, args, args_str, additional_info):
-        # c = c()
-        # c.init_class()
-        # re parse instruction
-        """
-        args_str = s[len(name):].strip(' ')
-        for i, f in enumerate(c.args):
-            if isinstance(f, m_arg):
-                start, stop = f.fromstring(args_str)
-                args_str = args_str[stop:].strip(' ')
-                if args_str.startswith(','):
-                    args_str = args_str[1:]
-                args_str = args_str.strip(' ')
-        """
-
         return instr
 
     def dup_info(self, infos):
@@ -1417,71 +1285,29 @@ class cls_mn(object):
 
     @classmethod
     def asm(cls, instr, symbols=None):
-        # t = time.time()
         """
         Re asm instruction by searching mnemo using name and args. We then
         can modify args and get the hex of a modified instruction
         """
         clist = cls.all_mn_name[instr.name]
-        clist = [x for x in clist]  # if x.mode == instr.mode]
-        # print 'ASM CAN', len(clist)
+        clist = [x for x in clist]
         vals = []
         candidates = []
-        # print "resolve"
         args = instr.resolve_args_with_symbols(symbols)
-        # print "ok", [str(x) for x in args]
-        """
-        args = []
-        for i, f in enumerate(cls.args):
-            e = f.expr
-            # try to resolve symbols using symbols (0 for default value)
-            if symbols:
-                #print 'origine', e
-                ids = get_expr_ids(e)
-                fixed_ids = {}
-                for x in ids:
-                    if not x.name in symbols:
-                        #print 'not IN', x
-                        continue
-                    if symbols[x.name].offset is None:
-                        value = ExprInt32(0) # default value
-                    else:
-                        value = ExprInt_fromsize(x.size, symbols[x.name].offset)
-                    fixed_ids[x] = value
-                e = e.replace_expr(fixed_ids)
-                #print 'replaced e', e, fixed_ids
-                e = expr_simp(e)
-                #print 'replaced e simp', e, fixed_ids
-            args.append(e)
-        """
+
         for cc in clist:
-            # if cc.mode != cls.mode:
-            #    continue
-            """
-            c = c()
-            c.init_class()
-            """
+
             for c in cls.get_cls_instance(
                 cc, instr.mode, instr.additional_info):
-
-                # c = cls.all_mn_inst[cc][0]
-                # c = cc()
-                # c.init_class()
 
                 cannot_parse = False
                 if len(c.args) != len(instr.args):
                     continue
-                # print c.mode, c.mp, c.fields[6:]
-                # print "eee", c.fields
-                # print [str(x.expr) for x in cls.args]
+
                 # only fix args expr
                 for i in xrange(len(c.args)):
                     c.args[i].expr = args[i]
-                # print 'ARGS', [str(x) for x in args]
-                # for a in c.args:
-                #    print a.expr,
-                # print
-                # print instr.mode
+
                 v = c.value(instr.mode)
                 if not v:
                     log.debug("cannot encode %r" % (c))
@@ -1495,18 +1321,8 @@ class cls_mn(object):
                              (instr.name, [str(x) for x in instr.args]))
         if len(vals) != 1:
             log.debug('asm multiple args ret default')
-            # raise ValueError("cannot parse %r (%d cand)"%(s, len(out)))
-            """
-            for x in out:
-                print repr(x.value())
-                print [str(a.expr) for a in x.args]
-            """
-        vals = cls.filter_asm_candidates(instr, candidates)
-        # vals = list(set(vals))
-        # vals.sort(key=lambda x:len(x))
-        # dt = time.time() - t
-        # print 'TIME', dt, str(cls)
 
+        vals = cls.filter_asm_candidates(instr, candidates)
         return vals
 
     @classmethod
@@ -1518,36 +1334,25 @@ class cls_mn(object):
         return o
 
     def value(self, mode):
-        # print 'PRIOenc', [(x, self.fields_order[x].order) for x in
-        # self.to_decode[::-1]]
         todo = [(0, [(x, self.fields_order[x]) for x in self.to_decode[::-1]])]
-        # print todo
+
         result = []
         done = []
         cpt = 0
 
-        # print 'VALUE'#, self.fields[6:]
         while todo:
             index, to_decode = todo.pop()
             # TEST XXX
             for i, f in to_decode:
                 setattr(self, f.fname, f)
-            # print 'todo:', len(todo), index, to_decode
-            # print "OOOOOOO"
-            # if (index, hash(tuple(to_decode))) in done:
             if (index, [x[1].value for x in to_decode]) in done:
-                # print 'skip', to_decode
                 continue
             done.append((index, [x[1].value for x in to_decode]))
 
-            # done.append((index, to_decode))
             cpt += 1
             can_encode = True
             for i, f in to_decode[index:]:
-                # print 'before', f.value, repr(f)
                 ret = f.encode()
-                # print 'encode', len(todo), index, f.fname, f.value, f.l, ret
-                # print 'ret', ret
                 if not ret:
                     log.debug('cannot encode %r' % f)
                     can_encode = False
@@ -1556,7 +1361,6 @@ class cls_mn(object):
                 if ret is True:
                     continue
 
-                # print ret, index
                 gcpt = 0
                 for i in ret:
                     gcpt += 1
@@ -1570,13 +1374,12 @@ class cls_mn(object):
                         o.append((p, fnew))
                     todo.append((index, o))
                 can_encode = False
-                # print 'gcpt', gcpt
+
                 break
             if not can_encode:
                 continue
             result.append(to_decode)
-        # print 'CPT', cpt
-        # print "HEX", len(result), result
+
         return self.decoded2bytes(result)
 
     def encodefields(self, decoded):
@@ -1587,8 +1390,7 @@ class cls_mn(object):
             if f.value is None:
                 continue
             bits.putbits(f.value, f.l)
-            # if f.l:
-            #    print f.l, hex(f.value), len(bits.bits), bits.bits
+
         xx = bits.tostring()
         return bits.tostring()
 
@@ -1599,7 +1401,7 @@ class cls_mn(object):
         out = []
         for decoded in result:
             decoded.sort()
-            # print [f.value for p, f in decoded]
+
             o = self.encodefields(decoded)
             if o is None:
                 continue
@@ -1615,7 +1417,8 @@ class cls_mn(object):
         args = []
         for arg in self.args:
             # XXX todo test
-            if not (isinstance(arg, Expr) or isinstance(arg.expr, Expr)):
+            if not (isinstance(arg, m2_expr.Expr) or
+                    isinstance(arg.expr, m2_expr.Expr)):
                 raise ValueError('zarb arg type')
             x = str(arg)
             args.append(x)
@@ -1626,7 +1429,8 @@ class cls_mn(object):
         args = []
         for arg in self.args:
             # XXX todo test
-            if not (isinstance(arg, Expr) or isinstance(arg.expr, Expr)):
+            if not (isinstance(arg, m2_expr.Expr) or
+                    isinstance(arg.expr, m2_expr.Expr)):
                 raise ValueError('zarb arg type')
             x = str(arg)
             args.append(x)
@@ -1641,10 +1445,10 @@ class cls_mn(object):
         dst = self.getdstflow(symbol_pool)
         args = []
         for d in dst:
-            if isinstance(d, ExprInt):
+            if isinstance(d, m2_expr.ExprInt):
                 l = symbol_pool.getby_offset_create(int(d.arg))
-                # print l
-                a = ExprId(l.name, d.size)
+
+                a = m2_expr.ExprId(l.name, d.size)
             else:
                 a = d
             args.append(a)
@@ -1655,21 +1459,18 @@ class cls_mn(object):
 
 
 class imm_noarg(object):
-    # parser = str_int
     intsize = 32
     intmask = (1 << intsize) - 1
-    # expr2int = lambda self,x:int(self.expr.arg&self.lmask)
 
     def int2expr(self, v):
         if (v & ~self.intmask) != 0:
             return None
-        return ExprInt_fromsize(self.intsize, v)
+        return m2_expr.ExprInt_fromsize(self.intsize, v)
 
     def expr2int(self, e):
-        if not isinstance(e, ExprInt):
+        if not isinstance(e, m2_expr.ExprInt):
             return None
         v = int(e.arg)
-        # print "testimm2", hex(v), hex(self.intmask)
         if v & ~self.intmask != 0:
             return None
         return v
@@ -1684,11 +1485,11 @@ class imm_noarg(object):
                 return None, None
         if e is None:
             return None, None
-        # print 'fromstring', hex(e), self.int2expr
-        assert(isinstance(e, Expr))
+
+        assert(isinstance(e, m2_expr.Expr))
         if isinstance(e, tuple):
             self.expr = self.int2expr(e[1])
-        elif isinstance(e, Expr):
+        elif isinstance(e, m2_expr.Expr):
             self.expr = e
         else:
             raise TypeError('zarb expr')
@@ -1726,19 +1527,19 @@ class imm_noarg(object):
 
 
 class imm08_noarg(object):
-    int2expr = lambda self, x: ExprInt08(x)
+    int2expr = lambda self, x: m2_expr.ExprInt08(x)
 
 
 class imm16_noarg(object):
-    int2expr = lambda self, x: ExprInt16(x)
+    int2expr = lambda self, x: m2_expr.ExprInt16(x)
 
 
 class imm32_noarg(object):
-    int2expr = lambda self, x: ExprInt32(x)
+    int2expr = lambda self, x: m2_expr.ExprInt32(x)
 
 
 class imm64_noarg(object):
-    int2expr = lambda self, x: ExprInt64(x)
+    int2expr = lambda self, x: m2_expr.ExprInt64(x)
 
 
 class int32_noarg(imm_noarg):
@@ -1752,7 +1553,7 @@ class int32_noarg(imm_noarg):
         return True
 
     def encode(self):
-        if not isinstance(self.expr, ExprInt):
+        if not isinstance(self.expr, m2_expr.ExprInt):
             return False
         v = int(self.expr.arg)
         if sign_ext(v & self.lmask, self.l, self.intsize) != v:

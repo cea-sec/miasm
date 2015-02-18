@@ -561,7 +561,7 @@ def kernel32_CreateFile(jitter, funcname, get_str):
                     if stat.S_ISDIR(s.st_mode):
                         ret = winobjs.handle_pool.add(f, 0x1337)
                     else:
-                        h = open(f, 'rb+')
+                        h = open(f, 'r+b')
                         ret = winobjs.handle_pool.add(f, h)
                 else:
                     log.warning("FILE %r DOES NOT EXIST!" % fname)
@@ -573,7 +573,7 @@ def kernel32_CreateFile(jitter, funcname, get_str):
                     winobjs.lastwin32error = 80
                 else:
                     open(f, 'w')
-                    h = open(f, 'rb+')
+                    h = open(f, 'r+b')
                     ret = winobjs.handle_pool.add(f, h)
             elif args.dwcreationdisposition == 4:
                 # open_always
@@ -582,7 +582,7 @@ def kernel32_CreateFile(jitter, funcname, get_str):
                     if stat.S_ISDIR(s.st_mode):
                         ret = winobjs.handle_pool.add(f, 0x1337)
                     else:
-                        h = open(f, 'rb+')
+                        h = open(f, 'r+b')
                         ret = winobjs.handle_pool.add(f, h)
                 else:
                     raise NotImplementedError("Untested case")
@@ -601,7 +601,7 @@ def kernel32_CreateFile(jitter, funcname, get_str):
                         # open dir
                         ret = winobjs.handle_pool.add(f, 0x1337)
                     else:
-                        h = open(f, 'rb+')
+                        h = open(f, 'r+b')
                         ret = winobjs.handle_pool.add(f, h)
                 else:
                     raise NotImplementedError("Untested case")  # to test

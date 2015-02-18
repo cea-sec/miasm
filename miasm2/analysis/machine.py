@@ -51,10 +51,8 @@ class Machine(object):
             mn = arch.mn_armt
             from miasm2.arch.arm.ira import ir_a_armtb as ira
         elif machine_name == "sh4":
-            from miasm2.arch.sh4.disasm import dis_sha4 as dis_engine
             from miasm2.arch.sh4 import arch
             mn = arch.mn_sh4
-            from miasm2.arch.sh4.ira import ir_a_sh4 as ira
         elif machine_name == "x86_16":
             from miasm2.arch.x86.disasm import dis_x86_16 as dis_engine
             from miasm2.arch.x86 import arch, jit

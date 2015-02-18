@@ -1,59 +1,62 @@
-INT_EQ = 0
-INT_B_IN_A = 1
-INT_A_IN_B = -1
-INT_DISJOIN = 2
-INT_JOIN = 3
-INT_JOIN_AB = 4
-INT_JOIN_BA = 5
-
-# 0  => eq
-# 1  => b in a
-# -1 => a in b
-# 2  => disjoin
-# 3  => join
-# 4  => join a,b touch
-# 5  => join b,a touch
+INT_EQ = 0      # Equivalent
+INT_B_IN_A = 1  # B in A
+INT_A_IN_B = -1 # A in B
+INT_DISJOIN = 2 # Disjoint
+INT_JOIN = 3    # Overlap
+INT_JOIN_AB = 4 # B starts at the end of A
+INT_JOIN_BA = 5 # A starts at the end of B
 
 
-def cmp_interval(a, b):
-    if a == b:
+def cmp_interval(inter1, inter2):
+    """Compare @inter1 and @inter2 and returns the associated INT_* case
+    @inter1, @inter2: interval instance
+    """
+    if inter1 == inter2:
         return INT_EQ
-    a1, a2 = a
-    b1, b2 = b
-    if a1 <= b1 and a2 >= b2:
-        return INT_B_IN_A
-    if b1 <= a1 and b2 >= a2:
-        return INT_A_IN_B
-    if a2 + 1 == b1:
-        return INT_JOIN_AB
-    if b2 + 1 == a1:
-        return INT_JOIN_BA
-    if a1 > b2 + 1 or b1 > a2 + 1:
-        return INT_DISJOIN
-    return INT_JOIN
 
-# interval is: [a, b]
+    inter1_start, inter1_stop = inter1
+    inter2_start, inter2_stop = inter2
+    result = INT_JOIN
+    if inter1_start <= inter2_start and inter1_stop >= inter2_stop:
+        result = INT_B_IN_A
+    if inter2_start <= inter1_start and inter2_stop >= inter1_stop:
+        result = INT_A_IN_B
+    if inter1_stop + 1 == inter2_start:
+        result = INT_JOIN_AB
+    if inter2_stop + 1 == inter1_start:
+        result = INT_JOIN_BA
+    if inter1_start > inter2_stop + 1 or inter2_start > inter1_stop + 1:
+        result = INT_DISJOIN
+    return result
 
 
-class interval:
+class interval(object):
+    """Stands for intervals with integer bounds
 
-    def __init__(self, a=None):
-        if a is None:
-            a = []
-        if isinstance(a, interval):
-            a = a.intervals
+    Offers common methods to work with interval"""
+
+    def __init__(self, bounds=None):
+        """Instance an interval object
+        @bounds: (optional) list of (int, int) and/or interval instance
+        """
+        if bounds is None:
+            bounds = []
+        elif isinstance(bounds, interval):
+            bounds = bounds.intervals
         self.is_cannon = False
-        self.intervals = a
+        self.intervals = bounds
         self.cannon()
 
     def __iter__(self):
-        for x in self.intervals:
-            yield x
+        """Iterate on intervals"""
+        for inter in self.intervals:
+            yield inter
 
-    @classmethod
-    def cannon_list(cls, tmp):
+    @staticmethod
+    def cannon_list(tmp):
         """
         Return a cannonizes list of intervals
+        @tmp: list of (int, int)
         """
         tmp = sorted([x for x in tmp if x[0] <= x[1]])
         out = []
@@ -63,7 +66,7 @@ class interval:
         while tmp:
             x = tmp.pop()
             rez = cmp_interval(out[-1], x)
-            # print out[-1], x, rez
+
             if rez == INT_EQ:
                 continue
             elif rez == INT_DISJOIN:
@@ -83,6 +86,7 @@ class interval:
         return out[::-1]
 
     def cannon(self):
+        "Apply .cannon_list() on self contained intervals"
         if self.is_cannon is True:
             return
         self.intervals = interval.cannon_list(self.intervals)
@@ -130,12 +134,12 @@ class interval:
             i += 1
             x = to_test[i]
             if x[0] > x[1]:
-                del(to_test[i])
+                del to_test[i]
                 i -= 1
                 continue
 
             while to_del and to_del[0][1] < x[0]:
-                del(to_del[0])
+                del to_del[0]
 
             for y in to_del:
                 if y[0] > x[1]:
@@ -144,15 +148,15 @@ class interval:
                 if rez == INT_DISJOIN:
                     continue
                 elif rez == INT_EQ:
-                    del(to_test[i])
+                    del to_test[i]
                     i -= 1
                     break
                 elif rez == INT_A_IN_B:
-                    del(to_test[i])
+                    del to_test[i]
                     i -= 1
                     break
                 elif rez == INT_B_IN_A:
-                    del(to_test[i])
+                    del to_test[i]
                     i1 = (x[0], y[0] - 1)
                     i2 = (y[1] + 1, x[1])
                     to_test[i:i] = [i1, i2]
@@ -161,7 +165,7 @@ class interval:
                 elif rez in [INT_JOIN_AB, INT_JOIN_BA]:
                     continue
                 elif rez == INT_JOIN:
-                    del(to_test[i])
+                    del to_test[i]
                     if x[0] < y[0]:
                         to_test[i:i] = [(x[0], y[0] - 1)]
                     else:
@@ -175,13 +179,11 @@ class interval:
     def __and__(self, v):
         out = []
         for x in self.intervals:
-            # print "x", x
             if x[0] > x[1]:
                 continue
             for y in v.intervals:
-                # print 'y', y
                 rez = cmp_interval(x, y)
-                # print x, y, rez
+
                 if rez == INT_DISJOIN:
                     continue
                 elif rez == INT_EQ:
@@ -208,13 +210,14 @@ class interval:
         return interval(out)
 
     def hull(self):
+        "Return the first and the last bounds of intervals"
         if not self.intervals:
             return None, None
         return self.intervals[0][0], self.intervals[-1][1]
 
     def show(self, img_x=1350, img_y=20, dry_run=False):
         """
-        show image representing the itnerval
+        show image representing the interval
         """
         try:
             import Image
@@ -229,8 +232,7 @@ class interval:
 
         print hex(i_min), hex(i_max)
 
-        def addr2x(addr):
-            return (addr - i_min) * img_x / (i_max - i_min)
+        addr2x = lambda addr: (addr - i_min) * img_x / (i_max - i_min)
         for a, b in self.intervals:
             draw.rectangle((addr2x(a), 0, addr2x(b), img_y), (200, 0, 0))
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
 
-from miasm2.expression.expression import *
+from miasm2.expression.expression import ExprId
 from miasm2.core.cpu import gen_reg, gen_regs
 
 
@@ -53,9 +53,11 @@ regs_flt_expr, regs_flt_init, fltregs = gen_regs(regs_flt_str, globals(), sz=64)
 regs_fcc_expr, regs_fcc_init, fccregs = gen_regs(regs_fcc_str, globals())
 
 
-all_regs_ids = [PC, PC_FETCH, R_LO, R_HI] + gpregs_expr + regs_flt_expr + regs_fcc_expr
+all_regs_ids = [PC, PC_FETCH, R_LO, R_HI] + gpregs_expr + regs_flt_expr + \
+    regs_fcc_expr
 all_regs_ids_byname = dict([(x.name, x) for x in all_regs_ids])
-all_regs_ids_init = [PC_init, PC_FETCH_init, R_LO_init, R_HI_init] + gpregs_init + regs_flt_init + regs_fcc_init
+all_regs_ids_init = [PC_init, PC_FETCH_init, R_LO_init, R_HI_init] + \
+    gpregs_init + regs_flt_init + regs_fcc_init
 all_regs_ids_no_alias = all_regs_ids[:]
 
 regs_init = {}

@@ -70,7 +70,7 @@ class asm_label:
 
     def __eq__(self, a):
         if isinstance(a, asm_label):
-            return self._hash == a._hash
+            return self._hash == hash(a)
         else:
             return False
 
@@ -154,7 +154,7 @@ class asm_bloc:
         self.lines.append(l)
 
     def addto(self, c):
-        assert(type(self.bto) is set)
+        assert type(self.bto) is set
         self.bto.add(c)
 
     def split(self, offset, l):
@@ -274,21 +274,21 @@ class asm_symbol_pool:
         """
         if isinstance(obj, asm_label):
             if obj.name in self.s:
-                del(self.s[obj.name])
+                del self.s[obj.name]
             if obj.offset is not None and obj.offset in self.s_offset:
-                del(self.s_offset[obj.offset])
+                del self.s_offset[obj.offset]
         else:
             offset = int(obj)
             if offset in self.s_offset:
                 obj = self.s_offset[offset]
-                del(self.s_offset[offset])
+                del self.s_offset[offset]
             if obj.name in self.s:
-                del(self.s[obj.name])
+                del self.s[obj.name]
 
     def del_offset(self, l=None):
         if l is not None:
             if l.offset in self.s_offset:
-                del(self.s_offset[l.offset])
+                del self.s_offset[l.offset]
             l.offset = None
         else:
             self.s_offset = {}
@@ -317,7 +317,7 @@ class asm_symbol_pool:
         if not s.name in self.s:
             log_asmbloc.warn('unk symb')
             return
-        del(self.s[s.name])
+        del self.s[s.name]
         s.name = newname
         self.s[s.name] = s
 
@@ -327,7 +327,7 @@ class asm_symbol_pool:
         if not label.name in self.s:
             raise ValueError('label %s not in symbol pool' % label)
         if not isinstance(label.offset, list) and label.offset in self.s_offset:
-            del(self.s_offset[label.offset])
+            del self.s_offset[label.offset]
         label.offset = offset
         if not isinstance(label.offset, list):
             self.s_offset[label.offset] = label
@@ -440,7 +440,8 @@ def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool,
             dst = instr.getdstflow(symbol_pool)
             dstn = []
             for d in dst:
-                if isinstance(d, m2_expr.ExprId) and isinstance(d.name, asm_label):
+                if isinstance(d, m2_expr.ExprId) and \
+                        isinstance(d.name, asm_label):
                     dstn.append(d.name)
             dst = dstn
             if (not instr.is_subcall()) or follow_call:
@@ -699,7 +700,7 @@ def group_blocs(blocs):
                 continue
             if c.label in groups_bloc:
                 b += groups_bloc[c.label]
-                del(groups_bloc[c.label])
+                del groups_bloc[c.label]
                 groups_bloc[b[0].label] = b
                 found_in_group = True
                 break
@@ -784,7 +785,8 @@ def gen_non_free_mapping(group_bloc, dont_erase=[]):
     return non_free_mapping
 
 
-def resolve_symbol(group_bloc, symbol_pool, dont_erase=[], max_offset=0xFFFFFFFF):
+def resolve_symbol(group_bloc, symbol_pool, dont_erase=[],
+                   max_offset=0xFFFFFFFF):
     """
     place all asmblocs
     """
@@ -824,7 +826,7 @@ def resolve_symbol(group_bloc, symbol_pool, dont_erase=[], max_offset=0xFFFFFFFF
                         log_asmbloc.debug(
                             "consumed %d rest: %d" % (g.total_max_l, int(tmp)))
                         free_interval[g] = tmp
-                        del(free_interval[x])
+                        del free_interval[x]
                         symbol_pool.set_offset(
                             g, [group_bloc[x][-1].label, group_bloc[x][-1], 1])
                         g.fixedblocs = True
@@ -853,7 +855,7 @@ def resolve_symbol(group_bloc, symbol_pool, dont_erase=[], max_offset=0xFFFFFFFF
             log_asmbloc.debug(
                 "consumed %d rest: %d" % (g.total_max_l, int(tmp)))
             free_interval[g] = tmp
-            del(free_interval[k])
+            del free_interval[k]
 
             g.fixedblocs = True
             break
@@ -910,8 +912,6 @@ def calc_symbol_offset(symbol_pool):
 
     for label in symbol_pool.items():
         if label.offset is None:
-            # raise ValueError("symbol missing?", label)
-            #print "symbol missing?? %s" % label
             label.offset_g = None
             continue
         if not is_int(label.offset):
@@ -935,7 +935,8 @@ def calc_symbol_offset(symbol_pool):
             s_to_use.add(l)
 
 
-def asmbloc_final(mnemo, blocs, symbol_pool, symb_reloc_off=None, conservative = False):
+def asmbloc_final(mnemo, blocs, symbol_pool, symb_reloc_off=None,
+                  conservative=False):
     log_asmbloc.info("asmbloc_final")
     if symb_reloc_off is None:
         symb_reloc_off = {}
@@ -954,7 +955,6 @@ def asmbloc_final(mnemo, blocs, symbol_pool, symb_reloc_off=None, conservative =
         symbols = asm_symbol_pool()
         for s, v in symbol_pool.s.items():
             symbols.add_label(s, v.offset_g)
-        # print symbols
         # test if bad encoded relative
         for bloc in blocs:
 
@@ -986,7 +986,6 @@ def asmbloc_final(mnemo, blocs, symbol_pool, symb_reloc_off=None, conservative =
                 c, candidates = conservative_asm(
                     mnemo, instr, symbol_reloc_off, conservative)
 
-                # print candidates
                 for i, e in enumerate(sav_a):
                     instr.args[i] = e
 
@@ -1016,12 +1015,10 @@ def asmbloc_final(mnemo, blocs, symbol_pool, symb_reloc_off=None, conservative =
                 if my_s is not None:
                     my_symb_reloc_off[bloc.label].append(offset_i + my_s)
                 offset_i += instr.l
-                assert(len(instr.data) == instr.l)
+                assert len(instr.data) == instr.l
     # we have fixed all relative values
     # recompute good offsets
     for label in symbol_pool.items():
-        # if label.offset_g is None:
-        #    fdfd
         symbol_pool.set_offset(label, label.offset_g)
 
     for a, b in my_symb_reloc_off.items():
@@ -1044,7 +1041,7 @@ def asm_resolve_final(mnemo, blocs, symbol_pool, dont_erase=[],
     for bloc in resolved_b:
         offset = bloc.label.offset
         for line in bloc.lines:
-            assert(line.data is not None)
+            assert line.data is not None
             patches[offset] = line.data
             for cur_pos in xrange(line.l):
                 if offset + cur_pos in written_bytes:
@@ -1232,10 +1229,9 @@ def bloc_merge(blocs, dont_merge=[]):
         # and parent has only one son
         if len(bp.bto) != 1:
             continue
-        """
-        and will not create next loop composed of constraint_next from son to
-        parent
-        """
+        # and will not create next loop composed of constraint_next from son to
+        # parent
+
         path = bloc_find_path_next(blocs, blocby_label, b, bp)
         if path:
             continue
@@ -1266,7 +1262,7 @@ def bloc_merge(blocs, dont_merge=[]):
         bp.lines += b.lines
         bp.bto = b.bto
 
-        del(blocs[i])
+        del blocs[i]
         i = -1
 
 
