@@ -322,8 +322,6 @@ class ira:
                 eqs.append(ExprAff(n_w, v))
             print '*' * 40
             print irb
-            for eq in eqs:
-                eq
             irb.irs = [eqs]
             irb.lines = [None]
 

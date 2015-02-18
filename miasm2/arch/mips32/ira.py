@@ -49,8 +49,8 @@ class ir_a_mips32l(ir_mips32l, ira):
             #print 'TEST', l, hex(lr_val.arg), hex(l.offset + 8)
             #print lr_val.arg, hex(l.offset + l.l)
             if lr_val.arg != l.offset + 8:
-                fds
-                continue
+                raise ValueError("Wrong arg")
+
             # print 'IS CALL!'
             lbl = bloc.get_next()
             new_lbl = self.gen_label()

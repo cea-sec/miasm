@@ -77,7 +77,7 @@ class Debugguer(object):
 
     def init_memory_breakpoint(self):
         "Set exception handler on EXCEPT_BREAKPOINT_INTERN"
-        self.myjit.exception_handler
+        raise NotImplementedError("Not implemented")
 
     def add_memory_breakpoint(self, addr, size, read=False, write=False):
         "add mem bp @[addr, addr + size], on read/write/both"

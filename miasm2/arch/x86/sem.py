@@ -1845,18 +1845,15 @@ def ficom(ir, instr, a, b = None):
 
 
 def fcomi(ir, instr, a):
-    # Invalid emulation
-    InvalidEmulation
+    raise NotImplementedError("Invalid emulation")
 
 
 def fcomip(ir, instr, a):
-    # Invalid emulation
-    InvalidEmulation
+    raise NotImplementedError("Invalid emulation")
 
 
 def fucomi(ir, instr, a):
-    # Invalid emulation
-    InvalidEmulation
+    raise NotImplementedError("Invalid emulation")
 
 
 def fucomip(ir, instr, a, b):

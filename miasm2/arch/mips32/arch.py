@@ -486,8 +486,7 @@ class bs_cond(bs_mod_name):
               ]
 
     def modname(self, name, f_i):
-        fds
-        return name + self.args['mn_mod'][f_i]
+        raise NotImplementedError("Not implemented")
 
 
 class bs_cond_name(bs_divert):

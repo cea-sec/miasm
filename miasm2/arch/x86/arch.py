@@ -2564,15 +2564,15 @@ class bs_cl1(bsi, m_arg):
 
 
 def sib_cond(cls, mode, v):
-        if admode_prefix((mode, v["opmode"], v["admode"])) == 16:
-            return None
-        if v['mod'] == 0b11:
-            return None
-        elif v['rm'] == 0b100:
-            return cls.ll
-        else:
-            return None
-        return v['rm'] == 0b100
+    if admode_prefix((mode, v["opmode"], v["admode"])) == 16:
+        return None
+    if v['mod'] == 0b11:
+        return None
+    elif v['rm'] == 0b100:
+        return cls.ll
+    else:
+        return None
+    return v['rm'] == 0b100
 
 
 class bs_cond_scale(bs_cond):
