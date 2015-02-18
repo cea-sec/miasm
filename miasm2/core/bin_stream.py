@@ -96,9 +96,9 @@ class bin_stream_str(bin_stream):
 
 class bin_stream_file(bin_stream):
 
-    def __init__(self, bin, offset=0L, shift=0):
+    def __init__(self, binary, offset=0L, shift=0):
         bin_stream.__init__(self)
-        self.bin = bin
+        self.bin = binary
         self.bin.seek(0, 2)
         self.shift = shift
         self.l = self.bin.tell()

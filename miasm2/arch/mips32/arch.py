@@ -497,7 +497,7 @@ class bs_cond_name(bs_divert):
                '.LT', '.NGE', '.LE', '.NGT']
               ]
 
-    def divert(self, i, candidates):
+    def divert(self, index, candidates):
         out = []
         for candidate in candidates:
             cls, name, bases, dct, fields = candidate
@@ -511,7 +511,7 @@ class bs_cond_name(bs_divert):
                 args = dict(self.args)
                 args.update({'strbits': s})
                 f = bs(**args)
-                nfields[i] = f
+                nfields[index] = f
                 ndct = dict(dct)
                 ndct['name'] = name + new_name
                 out.append((cls, new_name, bases, ndct, nfields))

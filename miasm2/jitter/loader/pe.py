@@ -354,10 +354,10 @@ class libimp_pe(libimp):
                 self.fad2cname[ad] = c_name
                 self.fad2info[ad] = libad, imp_ord_or_name
 
-    def gen_new_lib(self, target_pe, filter=lambda _: True):
+    def gen_new_lib(self, target_pe, flt=lambda _: True):
         """Gen a new DirImport description
         @target_pe: PE instance
-        @filter: (boolean f(address)) restrict addresses to keep
+        @flt: (boolean f(address)) restrict addresses to keep
         """
 
         new_lib = []
@@ -369,8 +369,8 @@ class libimp_pe(libimp):
             for func_name, dst_addresses in self.lib_imp2dstad[ad].items():
                 out_ads.update({addr:func_name for addr in dst_addresses})
 
-            # Filter available addresses according to @filter
-            all_ads = [addr for addr in out_ads.keys() if filter(addr)]
+            # Filter available addresses according to @flt
+            all_ads = [addr for addr in out_ads.keys() if flt(addr)]
             log.debug('ads: %s' % map(hex, all_ads))
             if not all_ads:
                 continue
