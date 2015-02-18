@@ -52,10 +52,11 @@ class interval(object):
         for inter in self.intervals:
             yield inter
 
-    @classmethod
-    def cannon_list(cls, tmp):
+    @staticmethod
+    def cannon_list(tmp):
         """
         Return a cannonizes list of intervals
+        @tmp: list of (int, int)
         """
         tmp = sorted([x for x in tmp if x[0] <= x[1]])
         out = []
