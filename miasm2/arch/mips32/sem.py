@@ -509,6 +509,7 @@ mnemo_func = {
     "bltz" : bltz,
     "bgtz" : bgtz,
     "bne" : bne,
+    "bnel" : bne,
     "lui" : lui,
     "nop" : nop,
     "j" : j,

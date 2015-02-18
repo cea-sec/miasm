@@ -53,15 +53,17 @@ class additional_info:
 
 br_0 = ['B', 'J', 'JR', 'BAL', 'JAL', 'JALR']
 br_1 = ['BGEZ', 'BLTZ', 'BGTZ', 'BLEZ', 'BC1T', 'BC1F']
-br_2 = ['BEQ', 'BEQL', 'BNE']
+br_2 = ['BEQ', 'BEQL', 'BNE', 'BNEL']
 
+ins_nodelay = ['BNEL']
 
 class instruction_mips32(instruction):
     delayslot = 1
 
     def __init__(self, *args, **kargs):
         super(instruction_mips32, self).__init__(*args, **kargs)
-
+        if args[0] in ins_nodelay:
+            self.delayslot = 0
 
     @staticmethod
     def arg2str(e, pos = None):
@@ -170,7 +172,6 @@ class instruction_mips32(instruction):
         args = [a for a in self.args]
         return args
 
-
 class mn_mips32(cls_mn):
     delayslot = 0
     name = "mips32"
@@ -252,8 +253,6 @@ class mn_mips32(cls_mn):
         else:
             raise NotImplementedError('bad attrib')
 
-
-
 def mips32op(name, fields, args=None, alias=False):
     dct = {"fields": fields}
     dct["alias"] = alias
@@ -261,7 +260,6 @@ def mips32op(name, fields, args=None, alias=False):
         dct['args'] = args
     type(name, (mn_mips32,), dct)
     #type(name, (mn_mips32b,), dct)
-
 
 class mips32_reg(reg_noarg, m_arg):
     pass
@@ -631,6 +629,8 @@ mips32op("mfhi",    [bs('000000'), bs('0000000000'), rd, bs('00000'), bs('010000
 
 mips32op("b",       [bs('000100'), bs('00000'), bs('00000'), soff], alias = True)
 mips32op("bne",     [bs('000101'), rs, rt, soff])
+mips32op("bnel",    [bs('010101'), rs, rt, soff])
+
 mips32op("beq",     [bs('000100'), rs, rt, soff])
 
 mips32op("blez",    [bs('000110'), rs, bs('00000'), soff])
