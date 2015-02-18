@@ -13,19 +13,16 @@ if filename and os.path.isfile(filename):
 # User defined methods
 
 def kernel32_GetProcAddress(jitter):
-    ret_ad, args = jitter.func_args_stdcall(2)
-    libbase, fname = args
+    ret_ad, args = jitter.func_args_stdcall(["libbase", "fname"])
 
     dst_ad = jitter.cpu.EBX
     logging.info('EBX ' + hex(dst_ad))
 
-    if fname < 0x10000:
-        fname = fname
-    else:
-        fname = jitter.get_str_ansi(fname)
+    fname = (args.fname if args.fname < 0x10000
+             else jitter.get_str_ansi(args.fname))
     logging.info(fname)
 
-    ad = sb.libs.lib_get_add_func(libbase, fname, dst_ad)
+    ad = sb.libs.lib_get_add_func(args.libbase, fname, dst_ad)
     jitter.func_ret_stdcall(ret_ad, ad)
 
 
