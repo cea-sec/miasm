@@ -37,7 +37,7 @@ class TestIrIr2C(unittest.TestCase):
         self.translationTest(
             ExprOp('-',       *args[:2]), r'(((0x0&0xffffffff) - (0x1&0xffffffff))&0xffffffff)')
         self.translationTest(
-            ExprOp('bsr',     *args[:2]), r'my_bsr(0x0, 0x1)')
+            ExprOp('bsr',     *args[:1]), r'x86_bsr(0x0, 0x20)')
         self.translationTest(
             ExprOp('cpuid0',  *args[:2]), r'cpuid0(0x0, 0x1)')
         self.translationTest(

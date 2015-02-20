@@ -68,7 +68,9 @@ class SemanticTestAsm(RegressionTest):
 class SemanticTestExec(RegressionTest):
     """Execute a binary file"""
 
-    launcher_dct = {("PE", "x86_64"): "sandbox_pe_x86_64.py"}
+    launcher_dct = {("PE", "x86_64"): "sandbox_pe_x86_64.py",
+                    ("PE", "x86_32"): "sandbox_pe_x86_32.py",
+                }
     launcher_base = os.path.join("..", "example", "jitter")
 
     def __init__(self, arch, container, address, *args, **kwargs):
@@ -86,9 +88,13 @@ class SemanticTestExec(RegressionTest):
 
 
 test_x86_64_mul_div = SemanticTestAsm("x86_64", "PE", ["mul_div"])
+test_x86_32_bsr_bsf = SemanticTestAsm("x86_32", "PE", ["bsr_bsf"])
 testset += test_x86_64_mul_div
+testset += test_x86_32_bsr_bsf
 testset += SemanticTestExec("x86_64", "PE", 0x401000, ["mul_div"],
                             depends=[test_x86_64_mul_div])
+testset += SemanticTestExec("x86_32", "PE", 0x401000, ["bsr_bsf"],
+                            depends=[test_x86_32_bsr_bsf])
 
 ## Core
 for script in ["interval.py",
