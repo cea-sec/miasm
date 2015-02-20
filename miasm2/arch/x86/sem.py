@@ -2496,32 +2496,41 @@ def aas(ir, instr, ):
     return e, []
 
 
+def bsr_bsf(ir, instr, a, b, op_name):
+    """
+    IF SRC == 0
+        ZF = 1
+        DEST is left unchanged
+    ELSE
+        ZF = 0
+        DEST = @op_name(SRC)
+    """
+    lbl_src_null = m2_expr.ExprId(ir.gen_label(), instr.mode)
+    lbl_src_not_null = m2_expr.ExprId(ir.gen_label(), instr.mode)
+    lbl_next = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
+
+    aff_dst = m2_expr.ExprAff(ir.IRDst, lbl_next)
+    e = [m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(b,
+                                                    lbl_src_not_null,
+                                                    lbl_src_null))]
+    e_src_null = []
+    e_src_null.append(m2_expr.ExprAff(zf, m2_expr.ExprInt_from(zf, 1)))
+    # XXX destination is undefined
+    e_src_null.append(aff_dst)
+
+    e_src_not_null = []
+    e_src_not_null.append(m2_expr.ExprAff(zf, m2_expr.ExprInt_from(zf, 0)))
+    e_src_not_null.append(m2_expr.ExprAff(a, m2_expr.ExprOp(op_name, b)))
+    e_src_not_null.append(aff_dst)
+
+    return e, [irbloc(lbl_src_null.name, [e_src_null]),
+               irbloc(lbl_src_not_null.name, [e_src_not_null])]
+
 def bsf(ir, instr, a, b):
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-
-    e = [m2_expr.ExprAff(zf, m2_expr.ExprCond(b, m2_expr.ExprInt_from(zf, 0),
-                                              m2_expr.ExprInt_from(zf, 1)))]
-
-    e_do = []
-    e_do.append(m2_expr.ExprAff(a, m2_expr.ExprOp('bsf', b)))
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(b, lbl_do, lbl_skip)))
-    return e, [irbloc(lbl_do.name, [e_do])]
-
+    return bsr_bsf(ir, instr, a, b, "bsf")
 
 def bsr(ir, instr, a, b):
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-
-    e = [m2_expr.ExprAff(zf, m2_expr.ExprCond(b, m2_expr.ExprInt_from(zf, 0),
-                                              m2_expr.ExprInt_from(zf, 1)))]
-
-    e_do = []
-    e_do.append(m2_expr.ExprAff(a, m2_expr.ExprOp('bsr', b)))
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(b, lbl_do, lbl_skip)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+    return bsr_bsf(ir, instr, a, b, "bsr")
 
 
 def arpl(ir, instr, a, b):

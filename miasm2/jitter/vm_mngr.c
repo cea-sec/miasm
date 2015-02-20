@@ -915,26 +915,29 @@ int rcr_cf_op(unsigned int size, unsigned int a, unsigned int b, unsigned int cf
 {
 	return rcl_cf_op(size, a, size+1-b, cf);
 }
-unsigned int my_bsr(unsigned int a, unsigned int b)
+
+unsigned int x86_bsr(uint64_t src, unsigned int size)
 {
 	int i;
 
-	for (i=31; i>=0; i--){
-		if (b & (1<<i))
+	for (i=size-1; i>=0; i--){
+		if (src & (1<<i))
 			return i;
 	}
-	return a;
+	fprintf(stderr, "sanity check error bsr\n");
+	exit(0);
 }
 
-unsigned int my_bsf(unsigned int a, unsigned int b)
+unsigned int x86_bsf(uint64_t src, unsigned int size)
 {
 	int i;
 
-	for (i=0; i<32; i++){
-		if (b & (1<<i))
+	for (i=0; i<size; i++){
+		if (src & (1<<i))
 			return i;
 	}
-	return a;
+	fprintf(stderr, "sanity check error bsf\n");
+	exit(0);
 }
 
 
