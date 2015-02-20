@@ -3745,7 +3745,7 @@ addop("popad", [bs8(0x61), bs_opmode32])
 # popf_name = {16:'POPF', 32:'POPFD', 64:'POPFQ'}
 # bs_popf_name = bs_modname_size(l=0, name=popf_name)
 # addop("popf", [bs8(0x9d), bs_popf_name])
-addop("popf", [bs8(0x9d), bs_opmode16])
+addop("popfw", [bs8(0x9d), bs_opmode16])
 addop("popfd", [bs8(0x9d), bs_opmode32])
 addop("popfq", [bs8(0x9d), bs_opmode64])
 
@@ -3775,7 +3775,7 @@ addop("pushad", [bs8(0x60), bs_opmode32_no64])
 # pushf_name = {16:'PUSHF', 32:'PUSHFD', 64:'PUSHFQ'}
 # bs_pushf_name = bs_modname_size(l=0, name=pushf_name)
 # addop("pushf", [bs8(0x9c), bs_pushf_name])
-addop("pushf", [bs8(0x9c), bs_opmode16])
+addop("pushfw", [bs8(0x9c), bs_opmode16])
 addop("pushfd", [bs8(0x9c), bs_opmode32])
 addop("pushfq", [bs8(0x9c), bs_opmode64])
 

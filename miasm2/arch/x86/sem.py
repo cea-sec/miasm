@@ -970,7 +970,7 @@ def popfd(ir, instr):
 
 
 def popfw(ir, instr):
-    tmp = m2_expr.ExprMem(esp)
+    tmp = m2_expr.ExprMem(mRSP[instr.mode])
     e = []
     e.append(m2_expr.ExprAff(cf, m2_expr.ExprSlice(tmp, 0, 1)))
     e.append(m2_expr.ExprAff(pf, m2_expr.ExprSlice(tmp, 2, 3)))
@@ -983,7 +983,7 @@ def popfw(ir, instr):
     e.append(m2_expr.ExprAff(of, m2_expr.ExprSlice(tmp, 11, 12)))
     e.append(m2_expr.ExprAff(iopl, m2_expr.ExprSlice(tmp, 12, 14)))
     e.append(m2_expr.ExprAff(nt, m2_expr.ExprSlice(tmp, 14, 15)))
-    e.append(m2_expr.ExprAff(esp, esp + m2_expr.ExprInt32(2)))
+    e.append(m2_expr.ExprAff(mRSP[instr.mode], mRSP[instr.mode] + m2_expr.ExprInt_fromsize(mRSP[instr.mode].size, 2)))
     return e, []
 
 
