@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-class DiGraph:
+class DiGraph(object):
     """Implementation of directed graph"""
 
     def __init__(self):
