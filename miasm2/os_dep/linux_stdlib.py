@@ -12,8 +12,8 @@ def xxx_isprint(jitter):
 
     checks for any printable character including space.
     '''
-    ret_addr, (c,)  = jitter.func_args_stdcall(1)
-    ret = chr(c & 0xFF) in printable and 1 or 0
+    ret_addr, args  = jitter.func_args_stdcall(['c'])
+    ret = 1 if chr(args.c & 0xFF) in printable else 0
     return jitter.func_ret_stdcall(ret_addr, ret)
 
 
@@ -24,9 +24,9 @@ def xxx_memcpy(jitter):
 
     copies n bytes from memory area src to memory area dest.
     '''
-    ret_addr, (dest, src, n) = jitter.func_args_stdcall(3)
-    jitter.vm.set_mem(dest, jitter.vm.get_mem(src, n))
-    return jitter.func_ret_stdcall(ret_addr, dest)
+    ret_addr, args = jitter.func_args_stdcall(['dest', 'src', 'n'])
+    jitter.vm.set_mem(args.dest, jitter.vm.get_mem(args.src, args.n))
+    return jitter.func_ret_stdcall(ret_addr, args.dest)
 
 
 def xxx_puts(jitter):
@@ -36,13 +36,13 @@ def xxx_puts(jitter):
 
     writes the string s and a trailing newline to stdout.
     '''
-    ret_addr, (s,) = jitter.func_args_stdcall(1)
-    while True:
-        c = jitter.vm.get_mem(s, 1)
-        s += 1
-        if c == '\x00':
-            break
-        stdout.write(c)
+    ret_addr, args = jitter.func_args_stdcall(['s'])
+    index = args.s
+    char = jitter.vm.get_mem(index, 1)
+    while char != '\x00':
+        stdout.write(char)
+        index += 1
+        char = jitter.vm.get_mem(index, 1)
     stdout.write('\n')
     return jitter.func_ret_stdcall(ret_addr, 1)
 
@@ -54,25 +54,26 @@ def xxx_snprintf(jitter):
 
     writes to string str according to format format and at most size bytes.
     '''
-    ret_addr, (string, size, fmt) = jitter.func_args_stdcall(3)
-    curarg, output = 3, ''
+    ret_addr, args = jitter.func_args_stdcall(['string', 'size', 'fmt'])
+    curarg, output, fmt = 3, '', args.fmt
+    size = args.size if args.size else 1
     while True:
-        c = jitter.vm.get_mem(fmt, 1)
+        char = jitter.vm.get_mem(fmt, 1)
         fmt += 1
-        if c == '\x00':
+        if char == '\x00':
             break
-        if c == '%':
+        if char == '%':
             token = '%'
             while True:
-                c = jitter.vm.get_mem(fmt, 1)
+                char = jitter.vm.get_mem(fmt, 1)
                 fmt += 1
-                token += c
-                if c in '%cdfsux':
+                token += char
+                if char in '%cdfsux':
                     break
-            c = token % jitter.get_arg_n_stdcall(curarg)
+            char = token % jitter.get_arg_n_stdcall(curarg)
             curarg += 1
-        output += c
+        output += char
     output = output[:size - 1]
     ret = len(output)
-    jitter.vm.set_mem(string, output + '\x00')
+    jitter.vm.set_mem(args.string, output + '\x00')
     return jitter.func_ret_stdcall(ret_addr, ret)
