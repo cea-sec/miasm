@@ -2521,7 +2521,6 @@ def bsr(ir, instr, a, b):
     e_do.append(m2_expr.ExprAff(a, m2_expr.ExprOp('bsr', a, b)))
     e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
     e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(b, lbl_do, lbl_skip)))
-
     return e, [irbloc(lbl_do.name, [e_do])]
 
 
