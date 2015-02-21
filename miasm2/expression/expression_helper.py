@@ -210,9 +210,6 @@ class Variables_Identifier(object):
     - original expression with variables translated
     """
 
-    # Attribute used to distinguish created variables from original ones
-    is_var_ident = "is_var_ident"
-
     def __init__(self, expr, var_prefix="v"):
         """Set the expression @expr to handle and launch variable identification
         process
@@ -287,13 +284,11 @@ class Variables_Identifier(object):
             for element_done in done:
                 todo.remove(element_done)
 
-    @classmethod
-    def is_var_identifier(cls, expr):
+    def is_var_identifier(self, expr):
         "Return True iff @expr is a variable identifier"
         if not isinstance(expr, m2_expr.ExprId):
             return False
-
-        return expr.is_var_ident
+        return expr in self._vars
 
     def find_variables_rec(self, expr):
         """Recursive method called by find_variable to expand @expr.
@@ -310,7 +305,6 @@ class Variables_Identifier(object):
                 identifier = m2_expr.ExprId("%s%s" % (self.var_prefix,
                                                       self.var_indice.next()),
                                             size = expr.size)
-                identifier.is_var_ident = True
                 self._vars[identifier] = expr
 
             # Recursion stop case

@@ -283,11 +283,8 @@ class ira(ir):
 
     def gen_equations(self):
         for irb in self.blocs.values():
-            symbols_init = {}
-            for r in self.arch.regs.all_regs_ids:
-                x = ExprId(r.name, r.size)
-                x.is_term = True
-                symbols_init[r] = x
+            symbols_init = dict(self.arch.regs.all_regs_ids_init)
+
             sb = symbexec(self, dict(symbols_init))
             sb.emulbloc(irb)
             eqs = []

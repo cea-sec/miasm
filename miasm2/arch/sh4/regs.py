@@ -78,7 +78,6 @@ all_regs_ids_init = [ExprId("%s_init" % x.name, x.size) for x in all_regs_ids]
 
 regs_init = {}
 for i, r in enumerate(all_regs_ids):
-    all_regs_ids_init[i].is_term = True
     regs_init[r] = all_regs_ids_init[i]
 
 regs_flt_expr = []
