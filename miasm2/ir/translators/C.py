@@ -50,7 +50,7 @@ class TranslatorC(Translator):
 
     @classmethod
     def from_ExprMem(cls, expr):
-        return "MEM_LOOKUP_%.2d(vm_mngr, %s)" % (expr._size,
+        return "MEM_LOOKUP_%.2d(vm_mngr, %s)" % (expr.size,
                                                  cls.from_expr(expr.arg))
 
     @classmethod

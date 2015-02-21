@@ -3,6 +3,8 @@ import sys
 from idaapi import GraphViewer
 from miasm2.core.bin_stream_ida import bin_stream_ida
 from miasm2.core.asmbloc import *
+from miasm2.expression import expression as m2_expr
+
 from miasm2.expression.simplifications import expr_simp
 from miasm2.analysis.machine import Machine
 from miasm2.analysis.depgraph import DependencyGraph, DependencyGraph_NoMemory
@@ -133,8 +135,8 @@ for bloc in blocs:
 # Simplify affectations
 for irb in ir_arch.blocs.values():
     for irs in irb.irs:
-        for i, e in enumerate(irs):
-            e.dst, e.src = expr_simp(e.dst), expr_simp(e.src)
+        for i, expr in enumerate(irs):
+            irs[i] = m2_expr.ExprAff(expr_simp(expr.dst), expr_simp(expr.src))
 
 # Build the IRA Graph
 ir_arch.gen_graph()

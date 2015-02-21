@@ -64,9 +64,11 @@ def merge_sliceto_slice(args):
     final_sources = []
     sorted_s = []
     for x in sources_int.values():
+        x = list(x)
         # mask int
         v = x[0].arg & ((1 << (x[2] - x[1])) - 1)
-        x[0].arg = v
+        x[0] = m2_expr.ExprInt_from(x[0], v)
+        x = tuple(x)
         sorted_s.append((x[1], x))
     sorted_s.sort()
     while sorted_s:
@@ -81,7 +83,7 @@ def merge_sliceto_slice(args):
             a = m2_expr.mod_size2uint[size](
                 (int(out[0].arg) << (out[1] - s_start)) +
                  int(sorted_s[-1][1][0].arg))
-            out[0].arg = a
+            out[0] = m2_expr.ExprInt(a)
             sorted_s.pop()
             out[1] = s_start
         out[0] = m2_expr.ExprInt_fromsize(size, out[0].arg)
