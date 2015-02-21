@@ -32,6 +32,27 @@ import itertools
 from miasm2.expression.modint import *
 from miasm2.core.graph import DiGraph
 
+# Define tokens
+TOK_INF = "<"
+TOK_INF_SIGNED = TOK_INF + "s"
+TOK_INF_UNSIGNED = TOK_INF + "u"
+TOK_INF_EQUAL = "<="
+TOK_INF_EQUAL_SIGNED = TOK_INF_EQUAL + "s"
+TOK_INF_EQUAL_UNSIGNED = TOK_INF_EQUAL + "u"
+TOK_EQUAL = "=="
+TOK_POS = "pos"
+TOK_POS_STRICT = "Spos"
+
+# Hashing constants
+EXPRINT = 1
+EXPRID = 2
+EXPRAFF = 3
+EXPRCOND = 4
+EXPRMEM = 5
+EXPROP = 6
+EXPRSLICE = 5
+EXPRCOMPOSE = 5
+
 
 def visit_chk(visitor):
     "Function decorator launching callback on Expression visit"
@@ -45,15 +66,6 @@ def visit_chk(visitor):
         return e_new2
     return wrapped
 
-# Hashing constants
-EXPRINT = 1
-EXPRID = 2
-EXPRAFF = 3
-EXPRCOND = 4
-EXPRMEM = 5
-EXPROP = 6
-EXPRSLICE = 5
-EXPRCOMPOSE = 5
 
 # Expression display
 
@@ -108,12 +120,12 @@ class Expr(object):
 
     def set_size(self, value):
         raise ValueError('size is not mutable')
-    size = property(lambda self: self._size)
 
     def __init__(self, arg):
         self.arg = arg
 
     # Common operations
+
     def __str__(self):
         return str(self.arg)
 
@@ -201,17 +213,17 @@ class Expr(object):
             if e in dct:
                 return dct[e]
             return e
+
         return self.visit(lambda e: my_replace(e, dct))
 
     def canonize(self):
         "Canonize the Expression"
 
         def must_canon(e):
-            # print 'test VISIT', e
-            return not e.is_simp
+            return not e.is_canon
 
-        def my_canon(e):
-            if e.is_simp:
+        def canonize_visitor(e):
+            if e.is_canon:
                 return e
             if isinstance(e, ExprOp):
                 if e.is_associative():
@@ -230,8 +242,10 @@ class Expr(object):
                 new_e = ExprCompose(canonize_expr_list_compose(e.args))
             else:
                 new_e = e
+            new_e.is_canon = True
             return new_e
-        return self.visit(my_canon, must_canon)
+
+        return self.visit(canonize_visitor, must_canon)
 
     def msb(self):
         "Return the Most Significant Bit"
@@ -288,6 +302,7 @@ class Expr(object):
 
     def set_mask(self, value):
         raise ValueError('mask is not mutable')
+
     mask = property(lambda self: ExprInt_fromsize(self.size, -1))
 
 
@@ -308,9 +323,12 @@ class ExprInt(Expr):
         if not is_modint(arg):
             raise ValueError('arg must by numpy int! %s' % arg)
 
-        self.arg = arg
-        self._size = self.arg.size
-        self._hash = self.myhash()
+        self.__arg = arg
+        self.__size = self.arg.size
+        self._hash = self.exprhash()
+
+    size = property(lambda self: self.__size)
+    arg = property(lambda self: self.__arg)
 
     def __get_int(self):
         "Return self integer representation"
@@ -331,11 +349,11 @@ class ExprInt(Expr):
     def get_w(self):
         return set()
 
+    def exprhash(self):
+        return hash((EXPRINT, self.arg, self.size))
+
     def __contains__(self, e):
         return self == e
-
-    def myhash(self):
-        return hash((EXPRINT, self.arg, self.size))
 
     def __repr__(self):
         return Expr.__repr__(self)[:-1] + " 0x%X>" % self.__get_int()
@@ -364,16 +382,17 @@ class ExprId(Expr):
      - variable v1
      """
 
-    def __init__(self, name, size=32, is_term=False):
+    def __init__(self, name, size=32):
         """Create an identifier
         @name: str, identifier's name
         @size: int, identifier's size
-        @is_term: boolean, is the identifier a terminal expression ?
         """
 
-        self.name, self._size = name, size
-        self.is_term = is_term
-        self._hash = self.myhash()
+        self.__name, self.__size = name, size
+        self._hash = self.exprhash()
+
+    size = property(lambda self: self.__size)
+    name = property(lambda self: self.__name)
 
     def __str__(self):
         return str(self.name)
@@ -384,12 +403,12 @@ class ExprId(Expr):
     def get_w(self):
         return set([self])
 
+    def exprhash(self):
+        # TODO XXX: hash size ??
+        return hash((EXPRID, self.name, self.__size))
+
     def __contains__(self, e):
         return self == e
-
-    def myhash(self):
-        # TODO XXX: hash size ??
-        return hash((EXPRID, self.name, self._size))
 
     def __repr__(self):
         return Expr.__repr__(self)[:-1] + " %s>" % self.name
@@ -399,7 +418,7 @@ class ExprId(Expr):
         return self
 
     def copy(self):
-        return ExprId(self.name, self._size)
+        return ExprId(self.name, self.size)
 
     def depth(self):
         return 1
@@ -421,7 +440,6 @@ class ExprAff(Expr):
         @dst: Expr, affectation destination
         @src: Expr, affectation source
         """
-
         if dst.size != src.size:
             raise ValueError(
                 "sanitycheck: ExprAff args must have same size! %s" %
@@ -429,18 +447,22 @@ class ExprAff(Expr):
 
         if isinstance(dst, ExprSlice):
             # Complete the source with missing slice parts
-            self.dst = dst.arg
+            self.__dst = dst.arg
             rest = [(ExprSlice(dst.arg, r[0], r[1]), r[0], r[1])
                     for r in dst.slice_rest()]
             all_a = [(src, dst.start, dst.stop)] + rest
             all_a.sort(key=lambda x: x[1])
-            self.src = ExprCompose(all_a)
+            self.__src = ExprCompose(all_a)
 
         else:
-            self.dst, self.src = dst, src
+            self.__dst, self.__src = dst, src
 
-        self._hash = self.myhash()
-        self._size = self.dst.size
+        self.__size = self.dst.size
+        self._hash = self.exprhash()
+
+    size = property(lambda self: self.__size)
+    dst = property(lambda self: self.__dst)
+    src = property(lambda self: self.__src)
 
     def __str__(self):
         return "%s = %s" % (str(self.dst), str(self.src))
@@ -457,11 +479,11 @@ class ExprAff(Expr):
         else:
             return self.dst.get_w()
 
+    def exprhash(self):
+        return hash((EXPRAFF, self.dst._hash, self.src._hash))
+
     def __contains__(self, e):
         return self == e or self.src.__contains__(e) or self.dst.__contains__(e)
-
-    def myhash(self):
-        return hash((EXPRAFF, self.dst._hash, self.src._hash))
 
     # XXX /!\ for hackish expraff to slice
     def get_modified_slice(self):
@@ -474,9 +496,9 @@ class ExprAff(Expr):
         modified_s = []
         for x in self.src.args:
             if (not isinstance(x[0], ExprSlice) or
-                x[0].arg != dst    or
+                x[0].arg != dst or
                 x[1] != x[0].start or
-                x[2] != x[0].stop):
+                    x[2] != x[0].stop):
                 # If x is not the initial expression
                 modified_s.append(x)
         return modified_s
@@ -519,10 +541,15 @@ class ExprCond(Expr):
         @src2: Expr, value if condition is evaled zero
         """
 
-        self.cond, self.src1, self.src2 = cond, src1, src2
+        self.__cond, self.__src1, self.__src2 = cond, src1, src2
         assert(src1.size == src2.size)
-        self._hash = self.myhash()
-        self._size = self.src1.size
+        self.__size = self.src1.size
+        self._hash = self.exprhash()
+
+    size = property(lambda self: self.__size)
+    cond = property(lambda self: self.__cond)
+    src1 = property(lambda self: self.__src1)
+    src2 = property(lambda self: self.__src2)
 
     def __str__(self):
         return "(%s?(%s,%s))" % (str(self.cond), str(self.src1), str(self.src2))
@@ -531,20 +558,20 @@ class ExprCond(Expr):
         out_src1 = self.src1.get_r(mem_read, cst_read)
         out_src2 = self.src2.get_r(mem_read, cst_read)
         return self.cond.get_r(mem_read,
-            cst_read).union(out_src1).union(out_src2)
+                               cst_read).union(out_src1).union(out_src2)
 
     def get_w(self):
         return set()
+
+    def exprhash(self):
+        return hash((EXPRCOND, self.cond._hash,
+                     self.src1._hash, self.src2._hash))
 
     def __contains__(self, e):
         return (self == e or
                 self.cond.__contains__(e) or
                 self.src1.__contains__(e) or
                 self.src2.__contains__(e))
-
-    def myhash(self):
-        return hash((EXPRCOND, self.cond._hash,
-            self.src1._hash, self.src2._hash))
 
     @visit_chk
     def visit(self, cb, tv=None):
@@ -592,11 +619,14 @@ class ExprMem(Expr):
             raise ValueError(
                 'ExprMem: arg must be an Expr (not %s)' % type(arg))
 
-        self.arg, self._size = arg, size
-        self._hash = self.myhash()
+        self.__arg, self.__size = arg, size
+        self._hash = self.exprhash()
+
+    size = property(lambda self: self.__size)
+    arg = property(lambda self: self.__arg)
 
     def __str__(self):
-        return "@%d[%s]" % (self._size, str(self.arg))
+        return "@%d[%s]" % (self.size, str(self.arg))
 
     def get_r(self, mem_read=False, cst_read=False):
         if mem_read:
@@ -607,22 +637,22 @@ class ExprMem(Expr):
     def get_w(self):
         return set([self])  # [memreg]
 
+    def exprhash(self):
+        return hash((EXPRMEM, self.arg._hash, self.__size))
+
     def __contains__(self, e):
         return self == e or self.arg.__contains__(e)
-
-    def myhash(self):
-        return hash((EXPRMEM, self.arg._hash, self._size))
 
     @visit_chk
     def visit(self, cb, tv=None):
         arg = self.arg.visit(cb, tv)
         if arg == self.arg:
             return self
-        return ExprMem(arg, self._size)
+        return ExprMem(arg, self.size)
 
     def copy(self):
         arg = self.arg.copy()
-        return ExprMem(arg, size=self._size)
+        return ExprMem(arg, size=self.size)
 
     def is_op_segm(self):
         return isinstance(self.arg, ExprOp) and self.arg.op == 'segm'
@@ -664,14 +694,20 @@ class ExprOp(Expr):
         if not isinstance(op, str):
             raise ValueError("ExprOp: 'op' argument must be a string")
 
-        self.op, self.args = op, tuple(args)
-        self._hash = self.myhash()
+        self.__op, self.__args = op, tuple(args)
 
         # Set size for special cases
         if self.op in [
-            '==', 'parity', 'fcom_c0', 'fcom_c1', 'fcom_c2', 'fcom_c3',
-            "access_segment_ok", "load_segment_limit_ok", "bcdadd_cf",
+                '==', 'parity', 'fcom_c0', 'fcom_c1', 'fcom_c2', 'fcom_c3',
+                "access_segment_ok", "load_segment_limit_ok", "bcdadd_cf",
                 "ucomiss_zf", "ucomiss_pf", "ucomiss_cf"]:
+            sz = 1
+        elif self.op in [TOK_INF, TOK_INF_SIGNED,
+                         TOK_INF_UNSIGNED, TOK_INF_EQUAL,
+                         TOK_INF_EQUAL_SIGNED, TOK_INF_EQUAL_UNSIGNED,
+                         TOK_EQUAL, TOK_POS,
+                         TOK_POS_STRICT,
+                         ]:
             sz = 1
         elif self.op in ['mem_16_to_double', 'mem_32_to_double',
                          'mem_64_to_double', 'mem_80_to_double',
@@ -695,7 +731,12 @@ class ExprOp(Expr):
                 # All arguments have the same size
                 sz = list(sizes)[0]
 
-        self._size = sz
+        self.__size = sz
+        self._hash = self.exprhash()
+
+    size = property(lambda self: self.__size)
+    op = property(lambda self: self.__op)
+    args = property(lambda self: self.__args)
 
     def __str__(self):
         if self.is_associative():
@@ -712,10 +753,14 @@ class ExprOp(Expr):
 
     def get_r(self, mem_read=False, cst_read=False):
         return reduce(lambda x, y:
-            x.union(y.get_r(mem_read, cst_read)), self.args, set())
+                      x.union(y.get_r(mem_read, cst_read)), self.args, set())
 
     def get_w(self):
         raise ValueError('op cannot be written!', self)
+
+    def exprhash(self):
+        h_hargs = [x._hash for x in self.args]
+        return hash((EXPROP, self.op, tuple(h_hargs)))
 
     def __contains__(self, e):
         if self == e:
@@ -724,10 +769,6 @@ class ExprOp(Expr):
             if a.__contains__(e):
                 return True
         return False
-
-    def myhash(self):
-        h_hargs = [x._hash for x in self.args]
-        return hash((EXPROP, self.op, tuple(h_hargs)))
 
     def is_associative(self):
         "Return True iff current operation is associative"
@@ -764,9 +805,14 @@ class ExprSlice(Expr):
 
     def __init__(self, arg, start, stop):
         assert(start < stop)
-        self.arg, self.start, self.stop = arg, start, stop
-        self._hash = self.myhash()
-        self._size = self.stop - self.start
+        self.__arg, self.__start, self.__stop = arg, start, stop
+        self.__size = self.__stop - self.__start
+        self._hash = self.exprhash()
+
+    size = property(lambda self: self.__size)
+    arg = property(lambda self: self.__arg)
+    start = property(lambda self: self.__start)
+    stop = property(lambda self: self.__stop)
 
     def __str__(self):
         return "%s[%d:%d]" % (str(self.arg), self.start, self.stop)
@@ -777,13 +823,13 @@ class ExprSlice(Expr):
     def get_w(self):
         return self.arg.get_w()
 
+    def exprhash(self):
+        return hash((EXPRSLICE, self.arg._hash, self.start, self.stop))
+
     def __contains__(self, e):
         if self == e:
             return True
         return self.arg.__contains__(e)
-
-    def myhash(self):
-        return hash((EXPRSLICE, self.arg._hash, self.start, self.stop))
 
     @visit_chk
     def visit(self, cb, tv=None):
@@ -850,23 +896,30 @@ class ExprCompose(Expr):
         for e, a, b in args:
             assert(a >= 0 and b >= 0)
             o.append(tuple([e, a, b]))
-        self.args = tuple(o)
+        self.__args = tuple(o)
 
-        self._hash = self.myhash()
-        self._size = max([x[2]
-                         for x in self.args]) - min([x[1] for x in self.args])
+        self.__size = max([x[2]
+                           for x in self.args]) - min([x[1] for x in self.args])
+        self._hash = self.exprhash()
+
+    size = property(lambda self: self.__size)
+    args = property(lambda self: self.__args)
 
     def __str__(self):
         return '{' + ', '.join(['%s,%d,%d' %
-            (str(x[0]), x[1], x[2]) for x in self.args]) + '}'
+                                (str(x[0]), x[1], x[2]) for x in self.args]) + '}'
 
     def get_r(self, mem_read=False, cst_read=False):
         return reduce(lambda x, y:
-            x.union(y[0].get_r(mem_read, cst_read)), self.args, set())
+                      x.union(y[0].get_r(mem_read, cst_read)), self.args, set())
 
     def get_w(self):
         return reduce(lambda x, y:
-            x.union(y[0].get_w()), self.args, set())
+                      x.union(y[0].get_w()), self.args, set())
+
+    def exprhash(self):
+        h_args = [EXPRCOMPOSE] + [(x[0]._hash, x[1], x[2]) for x in self.args]
+        return hash(tuple(h_args))
 
     def __contains__(self, e):
         if self == e:
@@ -877,10 +930,6 @@ class ExprCompose(Expr):
             if a[0].__contains__(e):
                 return True
         return False
-
-    def myhash(self):
-        h_args = [EXPRCOMPOSE] + [(x[0]._hash, x[1], x[2]) for x in self.args]
-        return hash(tuple(h_args))
 
     @visit_chk
     def visit(self, cb, tv=None):
@@ -966,7 +1015,7 @@ def compare_exprs(e1, e2):
         x = cmp(e1.name, e2.name)
         if x:
             return x
-        return cmp(e1._size, e2._size)
+        return cmp(e1.size, e2.size)
     elif c1 == ExprAff:
         raise NotImplementedError(
             "Comparaison from an ExprAff not yet implemented")
@@ -983,7 +1032,7 @@ def compare_exprs(e1, e2):
         x = compare_exprs(e1.arg, e2.arg)
         if x:
             return x
-        return cmp(e1._size, e2._size)
+        return cmp(e1.size, e2.size)
     elif c1 == ExprOp:
         if e1.op != e2.op:
             return cmp(e1.op, e2.op)
@@ -1138,7 +1187,7 @@ def MatchExpr(e, m, tks, result=None):
     elif isinstance(e, ExprMem):
         if not isinstance(m, ExprMem):
             return False
-        if e._size != m._size:
+        if e.size != m.size:
             return False
         return MatchExpr(e.arg, m.arg, tks, result)
 
