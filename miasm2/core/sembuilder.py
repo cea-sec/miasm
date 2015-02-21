@@ -16,7 +16,7 @@ class MiasmTransformer(ast.NodeTransformer):
     X if Y else Z -> ExprCond(Y, X, Z)
     'X'(Y)        -> ExprOp('X', Y)
     ('X' % Y)(Z)  -> ExprOp('X' % Y, Z)
-    {a, b}        -> ExprCompose([a, 0, a.size], [b, a.size, a.size + b.size])
+    {a, b}        -> ExprCompose([(a, 0, a.size), (b, a.size, a.size + b.size)])
     """
 
     # Parsers
@@ -95,7 +95,7 @@ class MiasmTransformer(ast.NodeTransformer):
         return call
 
     def visit_Set(self, node):
-        "{a, b} -> ExprCompose([a, 0, a.size], [b, a.size, a.size + b.size])"
+        "{a, b} -> ExprCompose([(a, 0, a.size)], (b, a.size, a.size + b.size)])"
         if len(node.elts) == 0:
             return node
 
@@ -109,7 +109,7 @@ class MiasmTransformer(ast.NodeTransformer):
                                   right=ast.Attribute(value=elt,
                                                       attr='size',
                                                       ctx=ast.Load()))
-            new_elts.append(ast.List(elts=[elt, index, new_index],
+            new_elts.append(ast.Tuple(elts=[elt, index, new_index],
                                      ctx=ast.Load()))
             index = new_index
         return ast.Call(func=ast.Name(id='ExprCompose',

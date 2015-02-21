@@ -86,7 +86,7 @@ def merge_sliceto_slice(args):
             sorted_s.pop()
             out[1] = s_start
         out[0] = m2_expr.ExprInt(int(out[0]), size)
-        final_sources.append((start, out))
+        final_sources.append((start, tuple(out)))
 
     final_sources_int = final_sources
     # check if same sources have corresponding start/stop
