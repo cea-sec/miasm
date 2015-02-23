@@ -496,8 +496,8 @@ class ExprAff(Expr):
         modified_s = []
         for x in self.src.args:
             if (not isinstance(x[0], ExprSlice) or
-                x[0].arg != dst or
-                x[1] != x[0].start or
+                    x[0].arg != dst or
+                    x[1] != x[0].start or
                     x[2] != x[0].stop):
                 # If x is not the initial expression
                 modified_s.append(x)
