@@ -100,6 +100,7 @@ testset += SemanticTestExec("x86_32", "PE", 0x401000, ["bsr_bsf"],
 for script in ["interval.py",
                "graph.py",
                "parse_asm.py",
+               "utils.py",
                ]:
     testset += RegressionTest([script], base_dir="core")
 ## Expression
