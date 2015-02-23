@@ -139,8 +139,8 @@ print "IR ok... %x" % ad
 
 for irb in ir_arch.blocs.values():
     for irs in irb.irs:
-        for i, e in enumerate(irs):
-            e.dst, e.src = expr_simp(e.dst), expr_simp(e.src)
+        for i, expr in enumerate(irs):
+            irs[i] = ExprAff(expr_simp(expr.dst), expr_simp(expr.src))
 
 ir_arch.gen_graph()
 out = ir_arch.graph()

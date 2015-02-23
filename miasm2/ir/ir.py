@@ -55,12 +55,12 @@ class irbloc(object):
         """Find and replace the IRDst affectation's source by @value"""
         dst = None
         for ir in self.irs:
-            for i in ir:
-                if isinstance(i.dst, m2_expr.ExprId) and i.dst.name == "IRDst":
+            for i, expr in enumerate(ir):
+                if isinstance(expr.dst, m2_expr.ExprId) and expr.dst.name == "IRDst":
                     if dst is not None:
                         raise ValueError('Multiple destinations!')
                     dst = value
-                    i.src = value
+                    ir[i] = m2_expr.ExprAff(expr.dst, value)
         self._dst = value
 
     dst = property(get_dst, set_dst)
@@ -296,8 +296,7 @@ class ir(object):
         for b in self.blocs.values():
             for ir in b.irs:
                 for i, r in enumerate(ir):
-                    ir[i].src = expr_simp(r.src)
-                    ir[i].dst = expr_simp(r.dst)
+                    ir[i] = m2_expr.ExprAff(expr_simp(r.dst), expr_simp(r.src))
 
     def replace_expr_in_ir(self, bloc, rep):
         for irs in bloc.irs:

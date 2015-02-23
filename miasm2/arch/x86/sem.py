@@ -3515,8 +3515,9 @@ class ir_x86_16(ir):
 
         for b in extra_ir:
             for ir in b.irs:
-                for e in ir:
-                    e.src = e.src.replace_expr({lbl_next: lbl_end})
+                for i, e in enumerate(ir):
+                    src = e.src.replace_expr({lbl_next: lbl_end})
+                    ir[i] = m2_expr.ExprAff(e.dst, src)
         cond_bloc = []
         cond_bloc.append(m2_expr.ExprAff(c_reg,
                                          c_reg - m2_expr.ExprInt_from(c_reg,
@@ -3586,19 +3587,21 @@ class ir_x86_64(ir_x86_16):
 
     def mod_pc(self, instr, instr_ir, extra_ir):
         # fix RIP for 64 bit
-        for i, x in enumerate(instr_ir):
-            if x.dst != self.pc:
-                x.dst = x.dst.replace_expr(
+        for i, expr in enumerate(instr_ir):
+            dst, src = expr.dst, expr.src
+            if dst != self.pc:
+                dst = dst.replace_expr(
                     {self.pc: m2_expr.ExprInt64(instr.offset + instr.l)})
-            x = m2_expr.ExprAff(x.dst, x.src.replace_expr(
-                {self.pc: m2_expr.ExprInt64(instr.offset + instr.l)}))
-            instr_ir[i] = x
+            src = src.replace_expr(
+                {self.pc: m2_expr.ExprInt64(instr.offset + instr.l)})
+            instr_ir[i] = m2_expr.ExprAff(dst, src)
         for b in extra_ir:
             for irs in b.irs:
-                for i, x in enumerate(irs):
-                    if x.dst != self.pc:
+                for i, expr in enumerate(irs):
+                    dst, src = expr.dst, expr.src
+                    if dst != self.pc:
                         new_pc = m2_expr.ExprInt64(instr.offset + instr.l)
-                        x.dst = x.dst.replace_expr({self.pc: new_pc})
-                    x = m2_expr.ExprAff(x.dst, x.src.replace_expr(
-                        {self.pc: m2_expr.ExprInt64(instr.offset + instr.l)}))
-                    irs[i] = x
+                        dst = dst.replace_expr({self.pc: new_pc})
+                    src = src.replace_expr(
+                        {self.pc: m2_expr.ExprInt64(instr.offset + instr.l)})
+                    irs[i] = m2_expr.ExprAff(dst, src)

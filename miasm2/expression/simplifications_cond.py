@@ -16,16 +16,6 @@
 
 import miasm2.expression.expression as m2_expr
 
-# Define tokens
-TOK_INF = "<"
-TOK_INF_SIGNED = TOK_INF + "s"
-TOK_INF_UNSIGNED = TOK_INF + "u"
-TOK_INF_EQUAL = "<="
-TOK_INF_EQUAL_SIGNED = TOK_INF_EQUAL + "s"
-TOK_INF_EQUAL_UNSIGNED = TOK_INF_EQUAL + "u"
-TOK_EQUAL = "=="
-TOK_POS = "pos"
-TOK_POS_STRICT = "Spos"
 
 # Jokers for expression matching
 
@@ -40,22 +30,21 @@ jok_small = m2_expr.ExprId("jok_small", 1)
 def __ExprOp_cond(op, arg1, arg2):
     "Return an ExprOp standing for arg1 op arg2 with size to 1"
     ec = m2_expr.ExprOp(op, arg1, arg2)
-    ec._size = 1
     return ec
 
 
 def ExprOp_inf_signed(arg1, arg2):
     "Return an ExprOp standing for arg1 <s arg2"
-    return __ExprOp_cond(TOK_INF_SIGNED, arg1, arg2)
+    return __ExprOp_cond(m2_expr.TOK_INF_SIGNED, arg1, arg2)
 
 
 def ExprOp_inf_unsigned(arg1, arg2):
     "Return an ExprOp standing for arg1 <s arg2"
-    return __ExprOp_cond(TOK_INF_UNSIGNED, arg1, arg2)
+    return __ExprOp_cond(m2_expr.TOK_INF_UNSIGNED, arg1, arg2)
 
 def ExprOp_equal(arg1, arg2):
     "Return an ExprOp standing for arg1 == arg2"
-    return __ExprOp_cond(TOK_EQUAL, arg1, arg2)
+    return __ExprOp_cond(m2_expr.TOK_EQUAL, arg1, arg2)
 
 
 # Catching conditions forms
@@ -153,9 +142,9 @@ def expr_simp_inverse(expr_simp, e):
 
         if r is False:
             return e
-        cur_sig = TOK_INF_SIGNED
+        cur_sig = m2_expr.TOK_INF_SIGNED
     else:
-        cur_sig = TOK_INF_UNSIGNED
+        cur_sig = m2_expr.TOK_INF_UNSIGNED
 
 
     arg = __check_msb(r[jok_small])
@@ -172,7 +161,7 @@ def expr_simp_inverse(expr_simp, e):
     if r[jok1] not in op_args or r[jok2] not in op_args:
         return e
 
-    if cur_sig == TOK_INF_UNSIGNED:
+    if cur_sig == m2_expr.TOK_INF_UNSIGNED:
         return ExprOp_inf_signed(r[jok1], r[jok2])
     else:
         return ExprOp_inf_unsigned(r[jok1], r[jok2])
@@ -193,7 +182,7 @@ def expr_simp_equal(expr_simp, e):
 
 def exec_inf_unsigned(expr_simp, e):
     "Compute x <u y"
-    if e.op != TOK_INF_UNSIGNED:
+    if e.op != m2_expr.TOK_INF_UNSIGNED:
         return e
 
     arg1, arg2 = e.args
@@ -221,7 +210,7 @@ def __comp_signed(arg1, arg2):
 def exec_inf_signed(expr_simp, e):
     "Compute x <s y"
 
-    if e.op != TOK_INF_SIGNED:
+    if e.op != m2_expr.TOK_INF_SIGNED:
         return e
 
     arg1, arg2 = e.args
@@ -234,7 +223,7 @@ def exec_inf_signed(expr_simp, e):
 def exec_equal(expr_simp, e):
     "Compute x == y"
 
-    if e.op != TOK_EQUAL:
+    if e.op != m2_expr.TOK_EQUAL:
         return e
 
     arg1, arg2 = e.args

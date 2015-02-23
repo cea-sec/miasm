@@ -432,11 +432,12 @@ class ir_msp430(ir):
 
     def mod_sr(self, instr, instr_ir, extra_ir):
         for i, x in enumerate(instr_ir):
-            x.src = x.src.replace_expr({SR: composed_sr})
+            x = ExprAff(x.dst, x.src.replace_expr({SR: composed_sr}))
+            instr_ir[i] = x
             if x.dst != SR:
                 continue
             xx = ComposeExprAff(composed_sr, x.src)
-            instr_ir[i:i + 1] = xx
+            instr_ir[i] = xx
         for i, x in enumerate(instr_ir):
             x = ExprAff(x.dst, x.src.replace_expr(
                 {self.pc: ExprInt16(instr.offset + instr.l)}))
