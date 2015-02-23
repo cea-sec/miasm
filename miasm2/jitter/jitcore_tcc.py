@@ -92,11 +92,18 @@ class JitCore_Tcc(jitcore.JitCore):
     "JiT management, using LibTCC as backend"
 
     def __init__(self, ir_arch, bs=None):
+        self.jitted_block_delete_cb = self.deleteCB
         super(JitCore_Tcc, self).__init__(ir_arch, bs)
         self.resolver = resolver()
         self.exec_wrapper = Jittcc.tcc_exec_bloc
-        self.tcc_states =[]
+        self.tcc_states = {}
         self.ir_arch = ir_arch
+
+    def deleteCB(self, offset):
+        "Free the TCCState corresponding to @offset"
+        if offset in self.tcc_states:
+            Jittcc.tcc_end(self.tcc_states[offset])
+            del self.tcc_states[offset]
 
     def load(self):
         # os.path.join(os.path.dirname(os.path.realpath(__file__)), "jitter")
@@ -120,12 +127,11 @@ class JitCore_Tcc(jitcore.JitCore):
         include_files = [x[1:]
             for x in include_files if x.startswith(' /usr/include')]
         include_files += [include_dir, get_python_inc()]
-
         include_files = ";".join(include_files)
         Jittcc.tcc_set_emul_lib_path(include_files, libs)
 
     def __del__(self):
-        for tcc_state in self.tcc_states:
+        for tcc_state in self.tcc_states.values():
             Jittcc.tcc_end(tcc_state)
 
     def jitirblocs(self, label, irblocs):
@@ -143,8 +149,8 @@ class JitCore_Tcc(jitcore.JitCore):
         # open('tmp_%.4d.c'%self.jitcount, "w").write(func_code)
         self.jitcount += 1
         tcc_state, mcode = jit_tcc_compil(f_name, func_code)
-        self.tcc_states.append(tcc_state)
         jcode = jit_tcc_code(mcode)
         self.lbl2jitbloc[label.offset] = mcode
+        self.tcc_states[label.offset] = tcc_state
         self.addr2obj[label.offset] = jcode
         self.addr2objref[label.offset] = objref(jcode)
