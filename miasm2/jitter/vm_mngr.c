@@ -1296,6 +1296,7 @@ struct memory_page_node * create_memory_page_node(uint64_t ad, unsigned int size
 	}
 	p = malloc(size);
 	if (!p){
+		free(mpn);
 		fprintf(stderr, "cannot alloc %d\n", size);
 		return NULL;
 	}
