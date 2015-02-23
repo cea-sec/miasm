@@ -29,6 +29,7 @@
 
 
 import itertools
+from operator import itemgetter
 from miasm2.expression.modint import *
 from miasm2.core.graph import DiGraph
 
@@ -885,11 +886,18 @@ class ExprCompose(Expr):
         @args: tuple(Expr, int, int)
         """
 
+        last_stop = 0
+        args = sorted(args, key=itemgetter(1))
         for e, start, stop in args:
             if e.size != stop - start:
                 raise ValueError(
                     "sanitycheck: ExprCompose args must have correct size!" +
                     " %r %r %r" % (e, e.size, stop - start))
+            if last_stop != start:
+                raise ValueError(
+                    "sanitycheck: ExprCompose args must be contiguous!" +
+                    " %r" % (args))
+            last_stop = stop
 
         # Transform args to lists
         o = []
