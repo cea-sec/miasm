@@ -71,7 +71,7 @@ class JitCore(object):
     def load(self, arch, attrib):
         "Initialise the Jitter according to arch and attrib"
 
-        raise Exception("DO NOT instanciate JitCore")
+        raise NotImplementedError("Abstract class")
 
     def get_bloc_min_max(self, cur_bloc):
         "Update cur_bloc to set min/max address"
@@ -95,7 +95,7 @@ class JitCore(object):
         @irblocs: a gorup of irblocs
         """
 
-        raise Exception("DO NOT instanciate JitCore")
+        raise NotImplementedError("Abstract class")
 
     def add_bloc(self, b):
         """Add a bloc to JiT and JiT it.
