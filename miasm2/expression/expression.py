@@ -126,7 +126,6 @@ class Expr(object):
         self.arg = arg
 
     size = property(lambda self: self._size)
-    hash = property(lambda self: self._hash)
 
     # Common operations
 
@@ -158,7 +157,7 @@ class Expr(object):
 
     def __eq__(self, a):
         if isinstance(a, Expr):
-            return self.hash == a.hash
+            return hash(self) == hash(a)
         else:
             return False
 
@@ -481,7 +480,7 @@ class ExprAff(Expr):
             return self._dst.get_w()
 
     def _exprhash(self):
-        return hash((EXPRAFF, self._dst.hash, self._src.hash))
+        return hash((EXPRAFF, hash(self._dst), hash(self._src)))
 
     def __contains__(self, e):
         return self == e or self._src.__contains__(e) or self._dst.__contains__(e)
@@ -565,8 +564,8 @@ class ExprCond(Expr):
         return set()
 
     def _exprhash(self):
-        return hash((EXPRCOND, self.cond.hash,
-                     self._src1.hash, self._src2.hash))
+        return hash((EXPRCOND, hash(self.cond),
+                     hash(self._src1), hash(self._src2)))
 
     def __contains__(self, e):
         return (self == e or
@@ -638,7 +637,7 @@ class ExprMem(Expr):
         return set([self])  # [memreg]
 
     def _exprhash(self):
-        return hash((EXPRMEM, self._arg.hash, self._size))
+        return hash((EXPRMEM, hash(self._arg), self._size))
 
     def __contains__(self, e):
         return self == e or self._arg.__contains__(e)
@@ -758,7 +757,7 @@ class ExprOp(Expr):
         raise ValueError('op cannot be written!', self)
 
     def _exprhash(self):
-        h_hargs = [arg.hash for arg in self._args]
+        h_hargs = [hash(arg) for arg in self._args]
         return hash((EXPROP, self._op, tuple(h_hargs)))
 
     def __contains__(self, e):
@@ -823,7 +822,7 @@ class ExprSlice(Expr):
         return self._arg.get_w()
 
     def _exprhash(self):
-        return hash((EXPRSLICE, self._arg.hash, self._start, self._stop))
+        return hash((EXPRSLICE, hash(self._arg), self._start, self._stop))
 
     def __contains__(self, e):
         if self == e:
@@ -923,7 +922,7 @@ class ExprCompose(Expr):
                       elements.union(arg[0].get_w()), self._args, set())
 
     def _exprhash(self):
-        h_args = [EXPRCOMPOSE] + [(arg[0].hash, arg[1], arg[2])
+        h_args = [EXPRCOMPOSE] + [(hash(arg[0]), arg[1], arg[2])
                                   for arg in self._args]
         return hash(tuple(h_args))
 
