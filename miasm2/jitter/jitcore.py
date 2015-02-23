@@ -17,12 +17,16 @@
 #
 from miasm2.core import asmbloc
 from miasm2.core.interval import interval
+from miasm2.core.utils import BoundedDict
 from miasm2.jitter.csts import *
 
 
 class JitCore(object):
 
     "JiT management. This is an abstract class"
+
+    jitted_block_delete_cb = None
+    jitted_block_max_size = 10000
 
     def __init__(self, ir_arch, bs=None):
         """Initialise a JitCore instance.
@@ -33,7 +37,8 @@ class JitCore(object):
         self.ir_arch = ir_arch
         self.bs = bs
         self.known_blocs = {}
-        self.lbl2jitbloc = {}
+        self.lbl2jitbloc = BoundedDict(self.jitted_block_max_size,
+                                       delete_cb=self.jitted_block_delete_cb)
         self.lbl2bloc = {}
         self.log_mn = False
         self.log_regs = False
@@ -67,7 +72,7 @@ class JitCore(object):
     def load(self, arch, attrib):
         "Initialise the Jitter according to arch and attrib"
 
-        raise Exception("DO NOT instanciate JitCore")
+        raise NotImplementedError("Abstract class")
 
     def get_bloc_min_max(self, cur_bloc):
         "Update cur_bloc to set min/max address"
@@ -91,7 +96,7 @@ class JitCore(object):
         @irblocs: a gorup of irblocs
         """
 
-        raise Exception("DO NOT instanciate JitCore")
+        raise NotImplementedError("Abstract class")
 
     def add_bloc(self, b):
         """Add a bloc to JiT and JiT it.
