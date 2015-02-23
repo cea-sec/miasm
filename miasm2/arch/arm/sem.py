@@ -1191,11 +1191,11 @@ class ir_arml(ir):
             if args[-1].op == 'rrx':
                 args[-1] = ExprCompose(
                     [(args[-1].args[0][1:], 0, 31), (cf, 31, 32)])
-            elif args[-1].op in ['<<', '>>', '<<a', 'a>>', '<<<', '>>>']:
-                if isinstance(args[-1].args[-1], ExprId):
-                    args[-1] = ExprOp(args[-1].op,
-                                      args[-1].args[0],
-                                      args[-1].args[-1][:8].zeroExtend(32))
+            elif (args[-1].op in ['<<', '>>', '<<a', 'a>>', '<<<', '>>>'] and
+                  isinstance(args[-1].args[-1], ExprId)):
+                args[-1] = ExprOp(args[-1].op,
+                                  args[-1].args[0],
+                                  args[-1].args[-1][:8].zeroExtend(32))
         instr_ir, extra_ir = get_mnemo_expr(self, instr, *args)
         # if self.name.startswith('B'):
         #    return instr_ir, extra_ir
