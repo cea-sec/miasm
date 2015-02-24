@@ -154,7 +154,7 @@ def set_pc(ir_arch, src):
 
 
 def gen_resolve_int(ir_arch, e):
-    return 'Resolve_dst(BlockDst, %X, 0)'%(e)
+    return 'Resolve_dst(BlockDst, 0x%X, 0)' % (e.arg)
 
 def gen_resolve_id_lbl(ir_arch, e):
     if e.name.name.startswith("lbl_gen_"):
