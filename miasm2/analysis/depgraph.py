@@ -508,11 +508,15 @@ class DependencyGraph(object):
 
             # No more dependencies
             if len(depdict.pending) == 0:
-                yield depdict
+                yield depdict.copy()
                 continue
+
+            # Has a predecessor ?
+            is_final = True
 
             # Propagate the DependencyDict to all parents
             for label, irb_len in self._get_previousblocks(depdict.label):
+                is_final = False
 
                 ## Duplicate the DependencyDict
                 new_depdict = depdict.extend(label)
@@ -529,8 +533,9 @@ class DependencyGraph(object):
                 ## Manage the new element
                 todo.append(new_depdict)
 
-            # Return the node if it's a final one, ie. it's a head
-            if depdict.label in heads:
+            # Return the node if it's a final one, ie. it's a head (in graph
+            # or defined by caller)
+            if is_final or depdict.label in heads:
                 yield depdict.copy()
 
     def get(self, label, elements, line_nb, heads):
