@@ -508,7 +508,7 @@ class DependencyGraph(object):
 
             # No more dependencies
             if len(depdict.pending) == 0:
-                yield depdict
+                yield depdict.copy()
                 continue
 
             # Propagate the DependencyDict to all parents
