@@ -20,6 +20,7 @@ class Machine(object):
         dis_engine = None
         mn = None
         ira = None
+        ir = None
         jitter = None
         gdbserver = None
         jit = None
@@ -34,22 +35,26 @@ class Machine(object):
             mn = arch.mn_arm
             jitter = jit.jitter_arml
             from miasm2.arch.arm.ira import ir_a_arml as ira
+            from miasm2.arch.arm.sem import ir_arml as ir
         elif machine_name == "armb":
             from miasm2.arch.arm.disasm import dis_armb as dis_engine
             from miasm2.arch.arm import arch, jit
             mn = arch.mn_arm
             jitter = jit.jitter_armb
             from miasm2.arch.arm.ira import ir_a_armb as ira
+            from miasm2.arch.arm.sem import ir_armb as ir
         elif machine_name == "armtl":
             from miasm2.arch.arm.disasm import dis_armtl as dis_engine
             from miasm2.arch.arm import arch
             mn = arch.mn_armt
             from miasm2.arch.arm.ira import ir_a_armtl as ira
+            from miasm2.arch.arm.sem import ir_armtl as ir
         elif machine_name == "armtb":
             from miasm2.arch.arm.disasm import dis_armtb as dis_engine
             from miasm2.arch.arm import arch
             mn = arch.mn_armt
             from miasm2.arch.arm.ira import ir_a_armtb as ira
+            from miasm2.arch.arm.sem import ir_armtb as ir
         elif machine_name == "sh4":
             from miasm2.arch.sh4 import arch
             mn = arch.mn_sh4
@@ -59,12 +64,14 @@ class Machine(object):
             mn = arch.mn_x86
             jitter = jit.jitter_x86_16
             from miasm2.arch.x86.ira import ir_a_x86_16 as ira
+            from miasm2.arch.x86.sem import ir_x86_16 as ir
         elif machine_name == "x86_32":
             from miasm2.arch.x86.disasm import dis_x86_32 as dis_engine
             from miasm2.arch.x86 import arch, jit
             mn = arch.mn_x86
             jitter = jit.jitter_x86_32
             from miasm2.arch.x86.ira import ir_a_x86_32 as ira
+            from miasm2.arch.x86.sem import ir_x86_32 as ir
             from miasm2.analysis.gdbserver import GdbServer_x86_32 as gdbserver
         elif machine_name == "x86_64":
             from miasm2.arch.x86.disasm import dis_x86_64 as dis_engine
@@ -72,12 +79,14 @@ class Machine(object):
             mn = arch.mn_x86
             jitter = jit.jitter_x86_64
             from miasm2.arch.x86.ira import ir_a_x86_64 as ira
+            from miasm2.arch.x86.sem import ir_x86_64 as ir
         elif machine_name == "msp430":
             from miasm2.arch.msp430.disasm import dis_msp430 as dis_engine
             from miasm2.arch.msp430 import arch, jit
             mn = arch.mn_msp430
             jitter = jit.jitter_msp430
             from miasm2.arch.msp430.ira import ir_a_msp430 as ira
+            from miasm2.arch.msp430.sem import ir_msp430 as ir
             from miasm2.analysis.gdbserver import GdbServer_msp430 as gdbserver
         elif machine_name == "mips32b":
             from miasm2.arch.mips32.disasm import dis_mips32b as dis_engine
@@ -85,12 +94,14 @@ class Machine(object):
             mn = arch.mn_mips32
             jitter = jit.jitter_mips32b
             from miasm2.arch.mips32.ira import ir_a_mips32b as ira
+            from miasm2.arch.mips32.sem import ir_mips32b as ir
         elif machine_name == "mips32l":
             from miasm2.arch.mips32.disasm import dis_mips32l as dis_engine
             from miasm2.arch.mips32 import arch, jit
             mn = arch.mn_mips32
             jitter = jit.jitter_mips32l
             from miasm2.arch.mips32.ira import ir_a_mips32l as ira
+            from miasm2.arch.mips32.sem import ir_mips32l as ir
         else:
             raise ValueError('Unknown machine: %s' % machine_name)
 
@@ -107,6 +118,7 @@ class Machine(object):
         self.__log_jit = log_jit
         self.__log_arch = log_arch
         self.__base_expr = arch.base_expr
+        self.__ir = ir
 
     @property
     def dis_engine(self):
@@ -119,6 +131,10 @@ class Machine(object):
     @property
     def ira(self):
         return self.__ira
+
+    @property
+    def ir(self):
+        return self.__ir
 
     @property
     def jitter(self):
