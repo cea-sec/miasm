@@ -57,7 +57,8 @@ if args.verbose:
 
 log.info("import machine...")
 machine = Machine(args.architecture)
-mn, dis_engine, ira = machine.mn, machine.dis_engine, machine.ira
+mn, dis_engine = machine.mn, machine.dis_engine
+ira, ir = machine.ira, machine.ir
 log.info('ok')
 
 log.info('Load binary')
@@ -163,21 +164,31 @@ log.info('total lines %s' % total_l)
 
 # Bonus, generate IR graph
 if args.gen_ir:
-    log.info("generating IR")
+    log.info("generating IR and IR analysis")
 
-    ir_arch = ira(mdis.symbol_pool)
+    ir_arch = ir(mdis.symbol_pool)
+    ir_arch_a = ira(mdis.symbol_pool)
     ir_arch.blocs = {}
+    ir_arch_a.blocs = {}
     for ad, all_bloc in all_funcs_blocs.items():
         log.info("generating IR... %x" % ad)
         for b in all_bloc:
+            ir_arch_a.add_bloc(b)
             ir_arch.add_bloc(b)
+
+    log.info("Print blocs (without analyse)")
+    for label, bloc in ir_arch.blocs.iteritems():
+        print bloc
 
     log.info("Gen Graph... %x" % ad)
 
-    ir_arch.gen_graph()
+    log.info("Print blocs (with analyse)")
+    for label, bloc in ir_arch_a.blocs.iteritems():
+        print bloc
+    ir_arch_a.gen_graph()
 
     if args.simplify:
-        ir_arch.dead_simp()
+        ir_arch_a.dead_simp()
 
-    out = ir_arch.graph()
+    out = ir_arch_a.graph()
     open('graph_irflow.txt', 'w').write(out)
