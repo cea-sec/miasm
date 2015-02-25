@@ -216,3 +216,45 @@ shape = "box"
             for succ in self.successors_iter(node):
                 todo.add(succ)
         return dict(dominators)
+
+
+    def compute_postdominators(self, leaf):
+        """Compute postdominators of the graph"""
+        nodes = set(self.reachable_parents(leaf))
+        postdominators = defaultdict(set)
+        for node in nodes:
+            postdominators[node].update(nodes)
+
+        postdominators[leaf] = set([leaf])
+        modified = True
+        todo = set(nodes)
+
+        while todo:
+            node = todo.pop()
+
+            # Leaf state must not be changed
+            if node == leaf:
+                continue
+
+            # Compute intersection of all successors'postdominators
+            new_post_dom = None
+            for succ in self.successors_iter(node):
+                if not succ in nodes:
+                    continue
+                if new_post_dom is None:
+                    new_post_dom = set(postdominators[succ])
+                new_post_dom.intersection_update(postdominators[succ])
+
+            # We are not a leaf to we have at least one post dominator
+            assert(new_post_dom is not None)
+
+            new_post_dom.update(set([node]))
+
+            # If intersection has changed, add sons to the todo list
+            if new_post_dom == postdominators[node]:
+                continue
+
+            postdominators[node] = new_post_dom
+            for succ in self.predecessors_iter(node):
+                todo.add(succ)
+        return dict(postdominators)
