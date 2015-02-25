@@ -119,20 +119,6 @@ class DiGraph(object):
                     out.append(path + [b])
         return out
 
-    def get_all_parents(self, node):
-        """Return every parents nodes for a given @node"""
-
-        todo = set([node])
-        done = set()
-        while todo:
-            node = todo.pop()
-            if node in done:
-                continue
-            done.add(node)
-            for parent in self.predecessors(node):
-                todo.add(parent)
-        return done
-
     def node2str(self, n):
         return str(n)
 
@@ -162,42 +148,71 @@ shape = "box"
         return out
 
 
+    def reachable_sons(self, head):
+        """Compute every nodes reachable from node @head"""
 
-    def compute_dominators(self):
+        todo = set([head])
+        reachable = set()
+        while todo:
+            node = todo.pop()
+            if node in reachable:
+                continue
+            reachable.add(node)
+            yield node
+            for succ in self.successors_iter(node):
+                todo.add(succ)
+
+    def reachable_parents(self, leaf):
+        """Compute every parents of node @leaf"""
+
+        todo = set([leaf])
+        reachable = set()
+        while todo:
+            node = todo.pop()
+            if node in reachable:
+                continue
+            reachable.add(node)
+            yield node
+            for pred in self.predecessors_iter(node):
+                todo.add(pred)
+
+    def compute_dominators(self, head):
         """Compute dominators of the graph"""
-        nodes = self.nodes()
-        heads = self.heads()
-
+        nodes = set(self.reachable_sons(head))
         dominators = defaultdict(set)
-        for node in self.nodes():
+        for node in nodes:
             dominators[node].update(nodes)
-        for node in heads:
-            dominators[node] = set([node])
 
+        dominators[head] = set([head])
         modified = True
-        todo = nodes.difference(heads)
+        todo = set(nodes)
 
         while todo:
             node = todo.pop()
 
             # Heads state must not be changed
-            if node in heads:
+            if node == head:
                 continue
 
             # Compute intersection of all predecessors'dominators
             new_dom = None
-            for pred in self.predecessors(node):
+            for pred in self.predecessors_iter(node):
+                if not pred in nodes:
+                    continue
                 if new_dom is None:
                     new_dom = set(dominators[pred])
                 new_dom.intersection_update(dominators[pred])
-            if new_dom is None:
-                new_dom = set()
+
+            # We are not a head to we have at least one dominator
+            assert(new_dom is not None)
+
             new_dom.update(set([node]))
 
             # If intersection has changed, add sons to the todo list
             if new_dom == dominators[node]:
                 continue
+
             dominators[node] = new_dom
-            for succ in self.successors(node):
+            for succ in self.successors_iter(node):
                 todo.add(succ)
         return dict(dominators)

@@ -32,7 +32,7 @@ g1.add_edge(5, 2)
 g1.add_edge(2, 6)
 
 
-dominators = g1.compute_dominators()
+dominators = g1.compute_dominators(1)
 assert(dominators[1] == set([1]))
 assert(dominators[2] == set([1, 2]))
 assert(dominators[3] == set([1, 2, 3]))
