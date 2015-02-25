@@ -39,3 +39,17 @@ assert(dominators[3] == set([1, 2, 3]))
 assert(dominators[4] == set([1, 2, 4]))
 assert(dominators[5] == set([1, 2, 5]))
 assert(dominators[6] == set([1, 2, 6]))
+
+# Regression test with multiple heads
+g2 = DiGraph()
+g2.add_edge(1, 2)
+g2.add_edge(2, 3)
+g2.add_edge(3, 4)
+g2.add_edge(5, 6)
+g2.add_edge(6, 3)
+
+dominators = g2.compute_dominators(5)
+assert(dominators[3] == set([3, 5, 6]))
+assert(dominators[4] == set([3, 4, 5, 6]))
+assert(dominators[5] == set([5]))
+assert(dominators[6] == set([5, 6]))
