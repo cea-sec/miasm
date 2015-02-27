@@ -380,16 +380,17 @@ def v_opmode_info(size, opmode, rex_w, stk):
         else:
             return size
     elif size == 64:
+        # Rex has the maximum priority
+        # Then opmode
+        # Then stacker
         if rex_w == 1:
             return 64
-        elif stk:
-            if opmode == 1:
-                return 16
-            else:
-                return 64
         elif opmode == 1:
             return 16
-        return 32
+        elif stk:
+            return 64
+        else:
+            return 32
 
 
 def v_opmode(p):
@@ -464,7 +465,6 @@ class instruction_x86(instruction):
 
     def __init__(self, *args, **kargs):
         super(instruction_x86, self).__init__(*args, **kargs)
-        self.additional_info.stk = hasattr(self, 'stk')
 
     def v_opmode(self):
         return self.additional_info.v_opmode
@@ -563,6 +563,7 @@ class instruction_x86(instruction):
     def get_info(self, c):
         self.additional_info.g1.value = c.g1.value
         self.additional_info.g2.value = c.g2.value
+        self.additional_info.stk = hasattr(c, 'stk')
         self.additional_info.v_opmode = c.v_opmode()
         self.additional_info.v_admode = c.v_admode()
         self.additional_info.prefix = c.prefix
@@ -662,6 +663,7 @@ class mn_x86(cls_mn):
         info = additional_info()
         info.g1.value = self.g1.value
         info.g2.value = self.g2.value
+        info.stk = hasattr(self, 'stk')
         info.v_opmode = self.v_opmode()
         info.prefixed = ""
         if hasattr(self, 'prefixed'):
@@ -773,12 +775,11 @@ class mn_x86(cls_mn):
                 c.reset_class()
                 c.add_pre_dis_info()
                 c.dup_info(infos)
-
                 c.mode = mode
                 c.opmode = opmode
                 c.admode = admode
 
-                if hasattr(c, "fopmode") and c.fopmode.mode == 64:
+                if not hasattr(c, 'stk') and hasattr(c, "fopmode") and c.fopmode.mode == 64:
                     c.rex_w.value = 1
                 yield c
 
@@ -814,18 +815,10 @@ class mn_x86(cls_mn):
 
     def add_pre_dis_info(self, pre_dis_info=None):
         # print 'add_pre_dis_info', pre_dis_info
-
         if pre_dis_info is None:
             return True
         if hasattr(self, "prefixed") and self.prefixed.default == "\x66":
             pre_dis_info['opmode'] = 0
-            # if self.opmode != 0:
-            #    return False
-
-        # if pre_dis_info['opmode'] != self.opmode:
-        #    return False
-        # if pre_dis_info['admode'] != self.admode:
-        #    return False
         self.opmode = pre_dis_info['opmode']
         self.admode = pre_dis_info['admode']
 
@@ -836,8 +829,6 @@ class mn_x86(cls_mn):
         if (hasattr(self, "prefixed") and
             not pre_dis_info['prefix'].endswith(self.prefixed.default)):
             return False
-        # print self.rex_w.value, pre_dis_info['rex_w']
-        # print 'rex', self.rex_w.value, self.rex_b.value, self.rex_x.value
         if (self.rex_w.value is not None and
             self.rex_w.value != pre_dis_info['rex_w']):
             return False
@@ -850,17 +841,6 @@ class mn_x86(cls_mn):
         self.g1.value = pre_dis_info['g1']
         self.g2.value = pre_dis_info['g2']
         self.prefix = pre_dis_info['prefix']
-        # self.prefixed = pre_dis_info['prefixed']
-
-        """
-        if hasattr(self, "p_"):
-            self.prefixed = self.p_.default
-            if self.p_.default == "\x66":
-                pre_dis_info['opmode'] = 0
-                if self.opmode != 0:
-                    return False
-        #self.pre_dis_info = pre_dis_info
-        """
         return True
 
     def post_asm(self, v):
@@ -3262,7 +3242,6 @@ class bs_op_mode(bsi):
 
     def decode(self, v):
         opmode = self.parent.v_opmode()
-        # print "MODE", opmode, self.mode
         return opmode == self.mode
 
 
@@ -3568,9 +3547,9 @@ addop("invlpg", [bs8(0x0f), bs8(0x01)] + rmmod(d7))
 # iret_name = {16:'IRET', 32:'IRETD', 64:'IRETQ'}
 # bs_iret_name = bs_modname_size(l=0, name=iret_name)
 # addop("iret", [bs8(0xcf), stk, bs_iret_name])
-addop("iret", [bs8(0xcf), stk, bs_opmode16])
-addop("iretd", [bs8(0xcf), stk, bs_opmode32])
-addop("iretq", [bs8(0xcf), stk, bs_opmode64])
+addop("iret", [bs8(0xcf), bs_opmode16])
+addop("iretd", [bs8(0xcf), bs_opmode32])
+addop("iretq", [bs8(0xcf), bs_opmode64])
 
 addop("j", [bs('0111'), cond, rel_off08])
 # bs_jecxz_name = bs_modname_jecx(l=0)
@@ -3587,7 +3566,7 @@ addop("jmp", [bs8(0xe9), rel_off])
 addop("jmp", [bs8(0xff), stk] + rmmod(d4))
 addop("jmpf", [bs8(0xea), moff, msegoff])
 
-addop("jmpf", [bs8(0xff), stk] + rmmod(d5))
+addop("jmpf", [bs8(0xff)] + rmmod(d5))
 
 addop("lahf", [bs8(0x9f)])
 addop("lar", [bs8(0x0f), bs8(0x02)] + rmmod(rmreg))
@@ -3599,7 +3578,7 @@ addop("lss", [bs8(0x0f), bs8(0xb2)] + rmmod(rmreg))
 addop("lfs", [bs8(0x0f), bs8(0xb4)] + rmmod(rmreg))
 addop("lgs", [bs8(0x0f), bs8(0xb5)] + rmmod(rmreg))
 
-addop("leave", [bs8(0xc9)])
+addop("leave", [bs8(0xc9), stk])
 
 addop("lodsb", [bs8(0xac)])
 # lods_name = {16:'LODSW', 32:'LODSD', 64:'LODSQ'}
@@ -3730,24 +3709,24 @@ addop("outsd", [bs8(0x6f), bs_opmode64])
 
 addop("pop", [bs8(0x8f), stk] + rmmod(d0))
 addop("pop", [bs("01011"), stk, reg])
-addop("pop", [bs8(0x1f), d_ds])
-addop("pop", [bs8(0x07), d_es])
-addop("pop", [bs8(0x17), d_ss])
-addop("pop", [bs8(0x0f), bs8(0xa1), d_fs])
-addop("pop", [bs8(0x0f), bs8(0xa9), d_gs])
+addop("pop", [bs8(0x1f), stk, d_ds])
+addop("pop", [bs8(0x07), stk, d_es])
+addop("pop", [bs8(0x17), stk, d_ss])
+addop("pop", [bs8(0x0f), stk, bs8(0xa1), d_fs])
+addop("pop", [bs8(0x0f), stk, bs8(0xa9), d_gs])
 
 # popa_name = {16:'POPA', 32:'POPAD'}
 # bs_popa_name = bs_modname_size(l=0, name=popa_name)
 # addop("popa", [bs8(0x61), bs_popa_name])
-addop("popa", [bs8(0x61), bs_opmode16])
-addop("popad", [bs8(0x61), bs_opmode32])
+addop("popa", [bs8(0x61), stk, bs_opmode16])
+addop("popad", [bs8(0x61), stk, bs_opmode32])
 
 # popf_name = {16:'POPF', 32:'POPFD', 64:'POPFQ'}
 # bs_popf_name = bs_modname_size(l=0, name=popf_name)
 # addop("popf", [bs8(0x9d), bs_popf_name])
-addop("popfw", [bs8(0x9d), bs_opmode16])
-addop("popfd", [bs8(0x9d), bs_opmode32])
-addop("popfq", [bs8(0x9d), bs_opmode64])
+addop("popfw", [bs8(0x9d), stk, bs_opmode16])
+addop("popfd", [bs8(0x9d), stk, bs_opmode32])
+addop("popfq", [bs8(0x9d), stk, bs_opmode64])
 
 addop("prefetch0", [bs8(0x0f), bs8(0x18)] + rmmod(d1, rm_arg_m08))
 addop("prefetch1", [bs8(0x0f), bs8(0x18)] + rmmod(d2, rm_arg_m08))
@@ -3758,26 +3737,26 @@ addop("push", [bs8(0xff), stk] + rmmod(d6))
 addop("push", [bs("01010"), stk, reg])
 addop("push", [bs8(0x6a), rel_off08, stk])
 addop("push", [bs8(0x68), d_imm, stk])
-addop("push", [bs8(0x0e), d_cs])
-addop("push", [bs8(0x16), d_ss])
-addop("push", [bs8(0x1e), d_ds])
-addop("push", [bs8(0x06), d_es])
-addop("push", [bs8(0x0f), bs8(0xa0), d_fs])
-addop("push", [bs8(0x0f), bs8(0xa8), d_gs])
+addop("push", [bs8(0x0e), stk, d_cs])
+addop("push", [bs8(0x16), stk, d_ss])
+addop("push", [bs8(0x1e), stk, d_ds])
+addop("push", [bs8(0x06), stk, d_es])
+addop("push", [bs8(0x0f), stk, bs8(0xa0), d_fs])
+addop("push", [bs8(0x0f), stk, bs8(0xa8), d_gs])
 
 # pusha_name = {16:'PUSHA', 32:'PUSHAD'}
 # bs_pusha_name = bs_modname_size(l=0, name=pusha_name)
 # addop("pusha", [bs8(0x60), bs_pusha_name])
-addop("pusha", [bs8(0x60), bs_opmode16_no64])
-addop("pushad", [bs8(0x60), bs_opmode32_no64])
+addop("pusha", [bs8(0x60), stk, bs_opmode16_no64])
+addop("pushad", [bs8(0x60), stk, bs_opmode32_no64])
 
 
 # pushf_name = {16:'PUSHF', 32:'PUSHFD', 64:'PUSHFQ'}
 # bs_pushf_name = bs_modname_size(l=0, name=pushf_name)
 # addop("pushf", [bs8(0x9c), bs_pushf_name])
-addop("pushfw", [bs8(0x9c), bs_opmode16])
-addop("pushfd", [bs8(0x9c), bs_opmode32])
-addop("pushfq", [bs8(0x9c), bs_opmode64])
+addop("pushfw", [bs8(0x9c), stk, bs_opmode16])
+addop("pushfd", [bs8(0x9c), stk, bs_opmode32])
+addop("pushfq", [bs8(0x9c), stk, bs_opmode64])
 
 addop("rcl", [bs('110100'), d_cl1, w8] +
       rmmod(d2, rm_arg_w8), [rm_arg_w8, d_cl1])

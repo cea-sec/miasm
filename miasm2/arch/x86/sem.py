@@ -1137,14 +1137,13 @@ def retf(ir, instr, a=None):
 
 def leave(ir, instr):
     opmode, admode = instr.v_opmode(), instr.v_admode()
-    s = opmode
-    myesp = mRSP[instr.mode]
-
+    size = instr.mode
+    myesp = mRSP[size]
     e = []
-    e.append(m2_expr.ExprAff(mRBP[s],
-                             m2_expr.ExprMem(mRBP[instr.mode], size=s)))
+    e.append(m2_expr.ExprAff(mRBP[size],
+                             m2_expr.ExprMem(mRBP[size], size=size)))
     e.append(m2_expr.ExprAff(myesp,
-    m2_expr.ExprInt_fromsize(instr.mode, instr.mode / 8) + mRBP[instr.mode]))
+                             m2_expr.ExprInt_fromsize(size, size / 8) + mRBP[size]))
     return e, []
 
 
