@@ -1,4 +1,5 @@
 from idc import Byte, SegEnd
+from idautils import Segments
 
 from miasm2.core.bin_stream import bin_stream_str
 
@@ -30,4 +31,9 @@ class bin_stream_ida(bin_stream_str):
         self.offset = val
 
     def getlen(self):
-        return SegEnd(0) - (self.offset + self.shift)
+        # Lazy version
+        if hasattr(self, "_getlen"):
+            return self._getlen
+        max_addr = SegEnd(list(Segments())[-1]  - (self.offset + self.shift))
+        self._getlen = max_addr
+        return max_addr
