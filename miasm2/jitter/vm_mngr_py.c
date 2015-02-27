@@ -232,6 +232,11 @@ PyObject* vm_set_mem_access(VmMngr* self, PyObject* args)
 	PyGetInt(access, page_access);
 
 	mpn = get_memory_page_from_address(&self->vm_mngr, page_addr);
+	if (!mpn){
+		PyErr_SetString(PyExc_RuntimeError, "cannot find address");
+		return 0;
+	}
+
 	mpn->access = page_access;
 	return PyLong_FromUnsignedLongLong((uint64_t)ret);
 }
