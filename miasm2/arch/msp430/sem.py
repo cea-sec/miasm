@@ -244,8 +244,8 @@ def cmp_w(ir, instr, a, b):
     e, a, b = mng_autoinc(a, b, 16)
     c = b - a
     e += update_flag_zn_r(c)
-    e += update_flag_sub_cf(a, b, c)
-    e += update_flag_sub_of(a, b, c)
+    e += update_flag_sub_cf(b, a, c)
+    e += update_flag_sub_of(b, a, c)
     return e, []
 
 
@@ -253,8 +253,8 @@ def cmp_b(ir, instr, a, b):
     e, a, b = mng_autoinc(a, b, 8)
     c = b[:8] - a[:8]
     e += update_flag_zn_r(c)
-    e += update_flag_sub_cf(a[:8], b[:8], c)
-    e += update_flag_sub_of(a[:8], b[:8], c)
+    e += update_flag_sub_cf(b[:8], a[:8], c)
+    e += update_flag_sub_of(b[:8], a[:8], c)
     return e, []
 
 
