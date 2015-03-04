@@ -3509,6 +3509,8 @@ addop("fxrstor", [bs8(0x0f), bs8(0xae)]
       + rmmod(d1, rm_arg_m80))  # XXX TODO m512
 addop("fxsave", [bs8(0x0f), bs8(0xae)]
       + rmmod(d0, rm_arg_m80))  # XXX TODO m512
+addop("stmxcsr", [bs8(0x0f), bs8(0xae)] + rmmod(d3))
+addop("ldmxcsr", [bs8(0x0f), bs8(0xae)] + rmmod(d2))
 
 addop("fxtract", [bs8(0xd9), bs8(0xf4)])
 addop("fyl2x", [bs8(0xd9), bs8(0xf1)])
