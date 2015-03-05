@@ -1,4 +1,6 @@
 import sys
+import os
+import tempfile
 
 # Set your path first!
 sys.path.append("/home/serpilliere/tools/pyparsing/pyparsing-2.0.1/build/lib.linux-x86_64-2.7")
@@ -144,7 +146,7 @@ for irb in ir_arch.blocs.values():
 
 ir_arch.gen_graph()
 out = ir_arch.graph()
-open('/tmp/graph.txt', 'w').write(out)
+open(os.path.join(tempfile.gettempdir(), 'graph.txt'), 'wb').write(out)
 
 
 # ir_arch.dead_simp()
