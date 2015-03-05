@@ -1512,6 +1512,11 @@ reg_tests = [
     (m64, "00000000    SYSRET",
      "0f07"),
 
+    (m32, "00000000    STMXCSR    DWORD PTR [EAX]",
+     "0fAE18"),
+    (m32, "00000000    LDMXCSR    DWORD PTR [EAX]",
+     "0fAE10"),
+
 
 
     (m32, "00000000    TEST       AL, 0x11",
