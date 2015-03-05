@@ -1,4 +1,6 @@
 import sys
+import os
+import tempfile
 
 from idaapi import GraphViewer
 from miasm2.core.bin_stream_ida import bin_stream_ida
@@ -175,7 +177,7 @@ def treat_element():
 
     sol_nb += 1
     print "Get graph number %02d" % sol_nb
-    filename = "/tmp/solution_0x%08x_%02d.dot" % (addr, sol_nb)
+    filename = os.path.join(tempfile.gettempdir(), "solution_0x%08x_%02d.dot" % (addr, sol_nb))
     print "Dump the graph to %s" % filename
     open(filename, "w").write(graph.graph.dot())
 
