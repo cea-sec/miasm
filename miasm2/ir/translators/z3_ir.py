@@ -190,7 +190,9 @@ class TranslatorZ3(Translator):
             if expr in cls._cache:
                 return cls._cache[expr]
             else:
-                return super(TranslatorZ3, cls).from_expr(expr)
+                ret = super(TranslatorZ3, cls).from_expr(expr)
+                cls._cache[expr] = ret
+                return ret
         finally:
             # Clean cache and Z3Mem if this call is the root call
             if del_cache:
