@@ -1,5 +1,6 @@
 """Provide dependency graph"""
 import itertools
+
 import miasm2.expression.expression as m2_expr
 from miasm2.core.graph import DiGraph
 from miasm2.core.asmbloc import asm_label
@@ -274,6 +275,8 @@ class DependencyDict(object):
         # Map
         while todo:
             node = todo.pop()
+            if node in used_nodes:
+                continue
             used_nodes.add(node)
             if not node in self._cache:
                 continue
