@@ -1,5 +1,6 @@
 """Provide dependency graph"""
 import itertools
+
 import miasm2.expression.expression as m2_expr
 from miasm2.core.graph import DiGraph
 from miasm2.core.asmbloc import asm_label
@@ -274,6 +275,8 @@ class DependencyDict(object):
         # Map
         while todo:
             node = todo.pop()
+            if node in used_nodes:
+                continue
             used_nodes.add(node)
             if not node in self._cache:
                 continue
@@ -492,7 +495,7 @@ class DependencyGraph(object):
         current_depdict.pending.update(depnodes)
 
         # Init the work list
-        done = []
+        done = {}
         todo = [current_depdict]
 
         while todo:
@@ -501,10 +504,14 @@ class DependencyGraph(object):
             # Update the dependencydict until fixed point is reached
             self._updateDependencyDict(depdict)
 
+            # Clean irrelevant path
+            depdict.filter_used_nodes(depnodes)
+
             # Avoid infinite loops
-            if depdict in done:
+            label = depdict.label
+            if depdict in done.get(label, []):
                 continue
-            done.append(depdict)
+            done.setdefault(label, []).append(depdict)
 
             # No more dependencies
             if len(depdict.pending) == 0:
