@@ -458,7 +458,7 @@ sudo python setup.py install
 * To use the jitter, TCC or LLVM is recommended
 * LibTCC needs to be configured with the `--disable-static` option
   * remove `libtcc-dev` from the system to avoid conflicts
-  * clone [TinyCC](http://repo.or.cz/tinycc.git)
+  * clone [TinyCC](http://repo.or.cz/tinycc.git) and use [latest stable version](http://repo.or.cz/w/tinycc.git/tags)
   * `./configure --disable-static && make && make install`
 * LLVM
   * Debian (testing/unstable): install python-llvm
