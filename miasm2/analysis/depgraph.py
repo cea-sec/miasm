@@ -504,6 +504,9 @@ class DependencyGraph(object):
             # Update the dependencydict until fixed point is reached
             self._updateDependencyDict(depdict)
 
+            # Clean irrelevant path
+            depdict.filter_used_nodes(depnodes)
+
             # Avoid infinite loops
             label = depdict.label
             if depdict in done.get(label, []):
