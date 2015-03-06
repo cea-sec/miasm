@@ -495,7 +495,7 @@ class DependencyGraph(object):
         current_depdict.pending.update(depnodes)
 
         # Init the work list
-        done = []
+        done = {}
         todo = [current_depdict]
 
         while todo:
@@ -505,9 +505,10 @@ class DependencyGraph(object):
             self._updateDependencyDict(depdict)
 
             # Avoid infinite loops
-            if depdict in done:
+            label = depdict.label
+            if depdict in done.get(label, []):
                 continue
-            done.append(depdict)
+            done.setdefault(label, []).append(depdict)
 
             # No more dependencies
             if len(depdict.pending) == 0:
