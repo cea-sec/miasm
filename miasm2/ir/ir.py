@@ -146,7 +146,7 @@ class ir(object):
         """
         If multiple affection to a same ExprId are present in @affect_list,
         merge them (in place).
-        For instance, XCGH AX, AL semantic is
+        For instance, XCGH AH, AL semantic is
         [
             RAX = {RAX[0:8],0,8, RAX[0:8],8,16, RAX[16:64],16,64}
             RAX = {RAX[8:16],0,8, RAX[8:64],8,64}
@@ -173,21 +173,22 @@ class ir(object):
                 continue
 
             # Find collision
-            e_colision = reduce(
-                lambda x, y: x + y, [e.get_modified_slice() for e in expr_list])
-
+            e_colision = reduce(lambda x, y: x.union(y),
+                                (e.get_modified_slice() for e in expr_list),
+                                set())
             # Sort interval collision
-            known_intervals = sorted([(x[1], x[2]) for x in set(e_colision)])
+            known_intervals = sorted([(x[1], x[2]) for x in e_colision])
 
             # Fill with missing data
-            missing_i = get_missing_interval(known_intervals, 0, e.src.size)
+            missing_i = get_missing_interval(known_intervals, 0, dst.size)
 
-            rest = [(m2_expr.ExprSlice(dst, r[0], r[1]), r[0], r[1])
-                    for r in missing_i]
+            remaining = ((m2_expr.ExprSlice(dst, *interval),
+                          interval[0],
+                          interval[1])
+                         for interval in missing_i)
 
             # Build the merging expression
-            slices = e_colision + rest
-            slices.sort(key=lambda x: x[1])
+            slices = sorted(e_colision.union(remaining), key=lambda x: x[1])
             final_dst = m2_expr.ExprCompose(slices)
 
             # Remove unused expression
