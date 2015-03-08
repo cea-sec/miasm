@@ -616,7 +616,6 @@ static PyMethodDef JitCore_mips32_Methods[] = {
 
 static PyObject *JitCore_mips32_Error;
 
-extern int init_vm_mngr(PyObject* m);
 PyMODINIT_FUNC
 initJitCore_mips32(void)
 {
@@ -635,9 +634,6 @@ initJitCore_mips32(void)
 
     Py_INCREF(&JitCpuType);
     PyModule_AddObject(m, "JitCpu", (PyObject *)&JitCpuType);
-
-    /* init vm */
-    init_vm_mngr(m);
 
 }
 

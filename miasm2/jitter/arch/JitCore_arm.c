@@ -515,7 +515,6 @@ static PyMethodDef JitCore_arm_Methods[] = {
 
 static PyObject *JitCore_arm_Error;
 
-extern int init_vm_mngr(PyObject* m);
 PyMODINIT_FUNC
 initJitCore_arm(void)
 {
@@ -534,9 +533,6 @@ initJitCore_arm(void)
 
     Py_INCREF(&JitCpuType);
     PyModule_AddObject(m, "JitCpu", (PyObject *)&JitCpuType);
-
-    /* init vm */
-    init_vm_mngr(m);
 
 }
 

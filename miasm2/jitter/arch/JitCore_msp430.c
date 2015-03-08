@@ -667,7 +667,6 @@ static PyMethodDef JitCore_msp430_Methods[] = {
 
 static PyObject *JitCore_msp430_Error;
 
-extern int init_vm_mngr(PyObject* m);
 PyMODINIT_FUNC
 initJitCore_msp430(void)
 {
@@ -686,9 +685,6 @@ initJitCore_msp430(void)
 
     Py_INCREF(&JitCpuType);
     PyModule_AddObject(m, "JitCpu", (PyObject *)&JitCpuType);
-
-    /* init vm */
-    init_vm_mngr(m);
 
 }
 
