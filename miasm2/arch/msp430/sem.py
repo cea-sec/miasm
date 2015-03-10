@@ -437,7 +437,7 @@ class ir_msp430(ir):
             if x.dst != SR:
                 continue
             xx = ComposeExprAff(composed_sr, x.src)
-            instr_ir[i] = xx
+            instr_ir[i:i+1] = xx
         for i, x in enumerate(instr_ir):
             x = ExprAff(x.dst, x.src.replace_expr(
                 {self.pc: ExprInt16(instr.offset + instr.l)}))
