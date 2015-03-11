@@ -148,8 +148,9 @@ shape = "box"
         return out
 
 
-    def reachable_sons(self, head):
-        """Compute every nodes reachable from node @head"""
+    def _reachable_nodes(self, head, next_cb):
+        """Generic algorithm to compute every nodes reachable from/to node
+        @head"""
 
         todo = set([head])
         reachable = set()
@@ -159,29 +160,30 @@ shape = "box"
                 continue
             reachable.add(node)
             yield node
-            for succ in self.successors_iter(node):
-                todo.add(succ)
+            for next_node in next_cb(node):
+                todo.add(next_node)
+
+    def reachable_sons(self, head):
+        """Compute every nodes reachable from node @head"""
+        return self._reachable_nodes(head, self.successors_iter)
 
     def reachable_parents(self, leaf):
         """Compute every parents of node @leaf"""
+        return self._reachable_nodes(leaf, self.predecessors_iter)
 
-        todo = set([leaf])
-        reachable = set()
-        while todo:
-            node = todo.pop()
-            if node in reachable:
-                continue
-            reachable.add(node)
-            yield node
-            for pred in self.predecessors_iter(node):
-                todo.add(pred)
+    def _compute_generic_dominators(self, head, reachable_cb, prev_cb, next_cb):
+        """Generic algorithm to compute either the dominators or postdominators
+        of the graph.
+        @head: the head/leaf of the graph
+        @reachable_cb: sons/parents of the head/leaf
+        @prev_cb: return predecessors/succesors of a node
+        @next_cb: return succesors/predecessors of a node
+        """
 
-    def compute_dominators(self, head):
-        """Compute dominators of the graph"""
-        nodes = set(self.reachable_sons(head))
-        dominators = defaultdict(set)
+        nodes = set(reachable_cb(head))
+        dominators = {}
         for node in nodes:
-            dominators[node].update(nodes)
+            dominators[node] = set(nodes)
 
         dominators[head] = set([head])
         modified = True
@@ -196,7 +198,7 @@ shape = "box"
 
             # Compute intersection of all predecessors'dominators
             new_dom = None
-            for pred in self.predecessors_iter(node):
+            for pred in prev_cb(node):
                 if not pred in nodes:
                     continue
                 if new_dom is None:
@@ -213,48 +215,20 @@ shape = "box"
                 continue
 
             dominators[node] = new_dom
-            for succ in self.successors_iter(node):
+            for succ in next_cb(node):
                 todo.add(succ)
-        return dict(dominators)
+        return dominators
 
+    def compute_dominators(self, head):
+        """Compute the dominators of the graph"""
+        return self._compute_generic_dominators(head,
+                                                self.reachable_sons,
+                                                self.predecessors_iter,
+                                                self.successors_iter)
 
     def compute_postdominators(self, leaf):
-        """Compute postdominators of the graph"""
-        nodes = set(self.reachable_parents(leaf))
-        postdominators = defaultdict(set)
-        for node in nodes:
-            postdominators[node].update(nodes)
-
-        postdominators[leaf] = set([leaf])
-        modified = True
-        todo = set(nodes)
-
-        while todo:
-            node = todo.pop()
-
-            # Leaf state must not be changed
-            if node == leaf:
-                continue
-
-            # Compute intersection of all successors'postdominators
-            new_post_dom = None
-            for succ in self.successors_iter(node):
-                if not succ in nodes:
-                    continue
-                if new_post_dom is None:
-                    new_post_dom = set(postdominators[succ])
-                new_post_dom.intersection_update(postdominators[succ])
-
-            # We are not a leaf to we have at least one post dominator
-            assert(new_post_dom is not None)
-
-            new_post_dom.update(set([node]))
-
-            # If intersection has changed, add sons to the todo list
-            if new_post_dom == postdominators[node]:
-                continue
-
-            postdominators[node] = new_post_dom
-            for succ in self.predecessors_iter(node):
-                todo.add(succ)
-        return dict(postdominators)
+        """Compute the postdominators of the graph"""
+        return self._compute_generic_dominators(leaf,
+                                                self.reachable_parents,
+                                                self.successors_iter,
+                                                self.predecessors_iter)
