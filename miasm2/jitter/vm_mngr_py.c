@@ -868,7 +868,7 @@ static PyGetSetDef VmMngr_getseters[] = {
 static PyTypeObject VmMngrType = {
     PyObject_HEAD_INIT(NULL)
     0,                         /*ob_size*/
-    "JitCore_x86_32.VmMngr",   /*tp_name*/
+    "VmMngr",                  /*tp_name*/
     sizeof(VmMngr),            /*tp_basicsize*/
     0,                         /*tp_itemsize*/
     (destructor)VmMngr_dealloc,/*tp_dealloc*/
@@ -907,24 +907,30 @@ static PyTypeObject VmMngrType = {
     VmMngr_new,                /* tp_new */
 };
 
+
+static PyMethodDef VmMngr_Methods[] = {
+	{NULL, NULL, 0, NULL}        /* Sentinel */
+
+};
+
 static PyObject *Vm_Mngr_Error;
 
-/*
-  return
-  0 on success
-  -1 on error
-*/
-int init_vm_mngr(PyObject* m)
+PyMODINIT_FUNC
+initVmMngr(void)
 {
-    if (PyType_Ready(&VmMngrType) < 0)
-	return -1;
+    PyObject *m;
 
-    Vm_Mngr_Error = PyErr_NewException("vm_mngr_.error", NULL, NULL);
+    if (PyType_Ready(&VmMngrType) < 0)
+	return;
+
+    m = Py_InitModule("VmMngr", VmMngr_Methods);
+    if (m == NULL)
+	    return;
+
+    Vm_Mngr_Error = PyErr_NewException("VmMngr.error", NULL, NULL);
     Py_INCREF(Vm_Mngr_Error);
     PyModule_AddObject(m, "error", Vm_Mngr_Error);
 
     Py_INCREF(&VmMngrType);
-    PyModule_AddObject(m, "VmMngr", (PyObject *)&VmMngrType);
-
-    return 0;
+    PyModule_AddObject(m, "Vm", (PyObject *)&VmMngrType);
 }

@@ -8,6 +8,7 @@ from miasm2.jitter.csts import *
 from miasm2.core.utils import *
 from miasm2.core.bin_stream import bin_stream_vm
 from miasm2.ir.ir2C import init_arch_C
+from miasm2.jitter import VmMngr
 
 hnd = logging.StreamHandler()
 hnd.setFormatter(logging.Formatter("[%(levelname)s]: %(message)s"))
@@ -187,8 +188,9 @@ class jitter:
         else:
             raise ValueError("unsupported jit arch!")
 
+        self.vm = VmMngr.Vm()
         self.cpu = jcore.JitCpu()
-        self.vm = jcore.VmMngr()
+
         self.bs = bin_stream_vm(self.vm)
         self.ir_arch = ir_arch
         init_arch_C(self.arch)

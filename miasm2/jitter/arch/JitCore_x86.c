@@ -815,7 +815,6 @@ static PyMethodDef JitCore_x86_Methods[] = {
 
 static PyObject *JitCore_x86_Error;
 
-extern int init_vm_mngr(PyObject* m);
 PyMODINIT_FUNC
 initJitCore_x86(void)
 {
@@ -834,9 +833,6 @@ initJitCore_x86(void)
 
     Py_INCREF(&JitCpuType);
     PyModule_AddObject(m, "JitCpu", (PyObject *)&JitCpuType);
-
-    /* init vm */
-    init_vm_mngr(m);
 
 }
 
