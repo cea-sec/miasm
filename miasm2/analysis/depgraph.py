@@ -354,13 +354,13 @@ class DependencyResult(object):
         """
         # Init
         new_ira = (self._ira.__class__)()
-        lines = self.relevant_nodes
+        depnodes = self.relevant_nodes
         affects = []
 
         # Build a single affectation block according to history
         for label in self.relevant_labels[::-1]:
-            affected_lines = set(line.line_nb for line in lines
-                                 if line.label == label)
+            affected_lines = set(depnode.line_nb for depnode in depnodes
+                                 if depnode.label == label)
             irs = self._ira.blocs[label].irs
             for line_nb in sorted(affected_lines):
                 affects.append(irs[line_nb])
