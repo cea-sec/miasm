@@ -346,7 +346,7 @@ class DependencyResult(object):
     def input(self):
         return self._input_depnodes
 
-    def emul(self):
+    def emul(self, step=False):
         """Symbolic execution of relevant nodes according to the history
         Return the values of input nodes' elements
 
@@ -368,7 +368,7 @@ class DependencyResult(object):
         # Eval the block
         temp_label = asm_label("Temp")
         sb = symbexec(new_ira, new_ira.arch.regs.regs_init)
-        sb.emulbloc(irbloc(temp_label, affects))
+        sb.emulbloc(irbloc(temp_label, affects), step=step)
 
         # Return only inputs values (others could be wrongs)
         return {depnode.element: sb.symbols[depnode.element]
