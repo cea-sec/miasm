@@ -280,6 +280,21 @@ g10_ira.g.add_uniq_edge(g10_irb1.label, g10_irb1.label)
 
 g10_ira.blocs = dict([(irb.label, irb) for irb in [g10_irb1, g10_irb2]])
 
+# graph 11
+
+g11_ira = IRATest()
+g11_ira.g = GraphTest(g11_ira)
+
+g11_irb0 = gen_irbloc(lbl0, [ [ExprAff(a, cst1),
+                               ExprAff(b, cst2)] ])
+g11_irb1 = gen_irbloc(lbl1, [ [ExprAff(a, b),
+                               ExprAff(b, a)] ])
+g11_irb2 = gen_irbloc(lbl2, [ [ExprAff(a, a - b)] ])
+
+g11_ira.g.add_uniq_edge(g11_irb0.label, g11_irb1.label)
+g11_ira.g.add_uniq_edge(g11_irb1.label, g11_irb2.label)
+
+g11_ira.blocs = dict([(irb.label, irb) for irb in [g11_irb0, g11_irb1, g11_irb2]])
 
 # Test graph 1
 
@@ -543,6 +558,32 @@ g10_output1 = {"graph": g10_test1,
                "has_loop": True}
 
 
+# Test 11: no dual bloc emulation
+g11_test1 = DepNodeTest(g11_ira)
+
+g11_test1_dn1 = DependencyNode(g11_irb2.label, a, len(g11_irb2.irs))
+g11_test1_dn2 = DependencyNode(g11_irb2.label, a, 0)
+g11_test1_dn3 = DependencyNode(g11_irb2.label, b, 0)
+g11_test1_dn4 = DependencyNode(g11_irb1.label, a, 0)
+g11_test1_dn5 = DependencyNode(g11_irb1.label, b, 0)
+g11_test1_dn6 = DependencyNode(g11_irb0.label, cst1, 0)
+g11_test1_dn7 = DependencyNode(g11_irb0.label, cst2, 0)
+
+g11_test1.add_uniq_edge(g11_test1_dn7, g11_test1_dn5)
+g11_test1.add_uniq_edge(g11_test1_dn6, g11_test1_dn4)
+g11_test1.add_uniq_edge(g11_test1_dn5, g11_test1_dn2)
+g11_test1.add_uniq_edge(g11_test1_dn4, g11_test1_dn3)
+g11_test1.add_uniq_edge(g11_test1_dn3, g11_test1_dn1)
+g11_test1.add_uniq_edge(g11_test1_dn2, g11_test1_dn1)
+
+g11_input = (set([g11_test1_dn1]), set([g11_irb0.label]))
+
+g11_output1 = {"graph": g11_test1,
+               "emul": {a: ExprInt32(0x1)},
+               "unresolved": set(),
+               "has_loop": False}
+
+
 # Launch tests
 for i, test in enumerate([(g1_ira, g1_input, [g1_output1]),
                           (g2_ira, g2_input, [g2_output1]),
@@ -554,6 +595,7 @@ for i, test in enumerate([(g1_ira, g1_input, [g1_output1]),
                           (g8_ira, g8_input, [g8_output1, g8_output2]),
                           (g8_ira, g9_input, [g9_output1, g9_output2]),
                           (g10_ira, g10_input, [g10_output1]),
+                          (g11_ira, g11_input, [g11_output1]),
                       ]):
     # Extract test elements
     print "[+] Test", i+1
