@@ -23,6 +23,13 @@
 #include "queue.h"
 #include "vm_mngr.h"
 
+#if defined(__DARWIN_BIG_ENDIAN) && !defined(__BIG_ENDIAN)
+#define __BIG_ENDIAN	__DARWIN_BIG_ENDIAN
+#endif
+#if defined(__DARWIN_LITTLE_ENDIAN) && !defined(__LITTLE_ENDIAN)
+#define __LITTLE_ENDIAN	__DARWIN_LITTLE_ENDIAN
+#endif
+
 #define MIN(a,b)  (((a)<(b))?(a):(b))
 #define MAX(a,b)  (((a)>(b))?(a):(b))
 
