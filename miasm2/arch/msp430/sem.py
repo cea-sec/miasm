@@ -176,6 +176,21 @@ def sub_w(ir, instr, a, b):
     return e, []
 
 
+def add_b(ir, instr, a, b):
+    e, a, b = mng_autoinc(a, b, 8)
+    if isinstance(b, ExprMem):
+        b = ExprMem(b.arg, 8)
+    else:
+        b = b[:8]
+    a = a[:8]
+    c = b + a
+    e.append(ExprAff(b, c))
+    e += update_flag_zn_r(c)
+    e += update_flag_add_cf(a, b, c)
+    e += update_flag_add_of(a, b, c)
+    return e, []
+
+
 def add_w(ir, instr, a, b):
     e, a, b = mng_autoinc(a, b, 16)
     c = b + a
@@ -369,6 +384,7 @@ mnemo_func = {
     "bis.w": bis_w,
     "bit.w": bit_w,
     "sub.w": sub_w,
+    "add.b": add_b,
     "add.w": add_w,
     "push.w": push_w,
     "dadd.w": dadd_w,
