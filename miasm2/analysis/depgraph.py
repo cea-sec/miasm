@@ -359,8 +359,8 @@ class DependencyResult(object):
 
         # Build a single affectation block according to history
         for label in self.relevant_labels[::-1]:
-            affected_lines = [line.line_nb for line in lines
-                              if line.label == label]
+            affected_lines = set(line.line_nb for line in lines
+                                 if line.label == label)
             irs = self._ira.blocs[label].irs
             for line_nb in sorted(affected_lines):
                 affects.append(irs[line_nb])
