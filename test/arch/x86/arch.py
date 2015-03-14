@@ -1938,3 +1938,8 @@ import cProfile
 # cProfile.run(r'mn_x86.dis("\x81\x54\x18\xfe\x44\x33\x22\x11", m32)')
 cProfile.run('profile_dis(o)')
 # profile_dis(o)
+
+# Test instruction representation with prefix
+instr_bytes = '\x65\xc7\x00\x09\x00\x00\x00'
+inst = mn_x86.dis(instr_bytes, 32, 0)
+assert(inst.b == instr_bytes)
