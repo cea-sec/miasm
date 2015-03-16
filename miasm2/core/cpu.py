@@ -1164,7 +1164,7 @@ class cls_mn(object):
                 a.expr = expr_simp(a.expr)
 
             c.l = prefix_len + total_l / 8
-            c.b = cls.getbytes(bs, offset, total_l / 8)
+            c.b = cls.getbytes(bs, offset_o, c.l)
             c.offset = offset_o
             c = c.post_dis()
             if c is None:
@@ -1173,7 +1173,7 @@ class cls_mn(object):
             instr = cls.instruction(c.name, mode, c_args,
                                     additional_info=c.additional_info())
             instr.l = prefix_len + total_l / 8
-            instr.b = cls.getbytes(bs, offset, total_l / 8)
+            instr.b = cls.getbytes(bs, offset_o, instr.l)
             instr.offset = offset_o
             instr.get_info(c)
             if c.alias:
