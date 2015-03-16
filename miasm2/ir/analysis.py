@@ -253,7 +253,7 @@ class ira:
                     break
             if has_all_son:
                 continue
-            parents = self.g.get_all_parents(node)
+            parents = self.g.reachable_parents(node)
             for parent in parents:
                 irb = self.blocs[parent]
                 for var_w in irb.w:

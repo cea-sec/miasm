@@ -119,20 +119,6 @@ class DiGraph(object):
                     out.append(path + [b])
         return out
 
-    def get_all_parents(self, node):
-        """Return every parents nodes for a given @node"""
-
-        todo = set([node])
-        done = set()
-        while todo:
-            node = todo.pop()
-            if node in done:
-                continue
-            done.add(node)
-            for parent in self.predecessors(node):
-                todo.add(parent)
-        return done
-
     def node2str(self, n):
         return str(n)
 
@@ -162,42 +148,87 @@ shape = "box"
         return out
 
 
+    def _reachable_nodes(self, head, next_cb):
+        """Generic algorithm to compute every nodes reachable from/to node
+        @head"""
 
-    def compute_dominators(self):
-        """Compute dominators of the graph"""
-        nodes = self.nodes()
-        heads = self.heads()
+        todo = set([head])
+        reachable = set()
+        while todo:
+            node = todo.pop()
+            if node in reachable:
+                continue
+            reachable.add(node)
+            yield node
+            for next_node in next_cb(node):
+                todo.add(next_node)
 
-        dominators = defaultdict(set)
-        for node in self.nodes():
-            dominators[node].update(nodes)
-        for node in heads:
-            dominators[node] = set([node])
+    def reachable_sons(self, head):
+        """Compute every nodes reachable from node @head"""
+        return self._reachable_nodes(head, self.successors_iter)
 
+    def reachable_parents(self, leaf):
+        """Compute every parents of node @leaf"""
+        return self._reachable_nodes(leaf, self.predecessors_iter)
+
+    def _compute_generic_dominators(self, head, reachable_cb, prev_cb, next_cb):
+        """Generic algorithm to compute either the dominators or postdominators
+        of the graph.
+        @head: the head/leaf of the graph
+        @reachable_cb: sons/parents of the head/leaf
+        @prev_cb: return predecessors/succesors of a node
+        @next_cb: return succesors/predecessors of a node
+        """
+
+        nodes = set(reachable_cb(head))
+        dominators = {}
+        for node in nodes:
+            dominators[node] = set(nodes)
+
+        dominators[head] = set([head])
         modified = True
-        todo = nodes.difference(heads)
+        todo = set(nodes)
 
         while todo:
             node = todo.pop()
 
             # Heads state must not be changed
-            if node in heads:
+            if node == head:
                 continue
 
             # Compute intersection of all predecessors'dominators
             new_dom = None
-            for pred in self.predecessors(node):
+            for pred in prev_cb(node):
+                if not pred in nodes:
+                    continue
                 if new_dom is None:
                     new_dom = set(dominators[pred])
                 new_dom.intersection_update(dominators[pred])
-            if new_dom is None:
-                new_dom = set()
+
+            # We are not a head to we have at least one dominator
+            assert(new_dom is not None)
+
             new_dom.update(set([node]))
 
             # If intersection has changed, add sons to the todo list
             if new_dom == dominators[node]:
                 continue
+
             dominators[node] = new_dom
-            for succ in self.successors(node):
+            for succ in next_cb(node):
                 todo.add(succ)
-        return dict(dominators)
+        return dominators
+
+    def compute_dominators(self, head):
+        """Compute the dominators of the graph"""
+        return self._compute_generic_dominators(head,
+                                                self.reachable_sons,
+                                                self.predecessors_iter,
+                                                self.successors_iter)
+
+    def compute_postdominators(self, leaf):
+        """Compute the postdominators of the graph"""
+        return self._compute_generic_dominators(leaf,
+                                                self.reachable_parents,
+                                                self.successors_iter,
+                                                self.predecessors_iter)
