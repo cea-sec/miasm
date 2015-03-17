@@ -8,7 +8,6 @@ from miasm2.jitter.csts import *
 from miasm2.core.utils import *
 from miasm2.core.bin_stream import bin_stream_vm
 from miasm2.ir.ir2C import init_arch_C
-from miasm2.jitter import VmMngr
 
 hnd = logging.StreamHandler()
 hnd.setFormatter(logging.Formatter("[%(levelname)s]: %(message)s"))
@@ -33,6 +32,12 @@ try:
     from miasm2.jitter.jitcore_python import JitCore_Python
 except ImportError:
     log.error('cannot import jit python')
+
+try:
+    from miasm2.jitter import VmMngr
+except ImportError:
+    log.error('cannot import VmMngr')
+
 
 def named_arguments(func):
     """Function decorator to allow the use of .func_args_*() methods
