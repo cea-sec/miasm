@@ -56,7 +56,7 @@ class ira:
                     out.remove(o)
 
             for o in out:
-                if not o in found:
+                if o not in found:
                     follow.add(o)
             todo = follow
         out = self.sort_dst(todo, done)
@@ -95,7 +95,7 @@ class ira:
         """
         all_lbls = {}
         for lbl in self.g.nodes():
-            if not lbl in self.blocs:
+            if lbl not in self.blocs:
                 continue
             irb = self.blocs[lbl]
             ir_txt = [str(lbl)]
@@ -139,7 +139,7 @@ class ira:
                     i_cur.src.op.startswith('call')):
                     # /!\ never remove ir calls
                     pass
-                elif not i_cur.dst in c_out:
+                elif i_cur.dst not in c_out:
                     del(ir[j])
                     modified = True
                     continue
@@ -190,7 +190,7 @@ class ira:
         has_son = False
         for n_son in self.g.successors(irb.label):
             has_son = True
-            if not n_son in self.blocs:
+            if n_son not in self.blocs:
                 # If the son is not defined, we will propagate our current out
                 # nodes to the in nodes's son
                 son_c_in = irb.c_out_missing
@@ -228,7 +228,7 @@ class ira:
 
         fixed = True
         for node in self.g.nodes():
-            if not node in self.blocs:
+            if node not in self.blocs:
                 # leaf has lost her son
                 continue
             irb = self.blocs[node]
@@ -244,12 +244,12 @@ class ira:
         PRE: gen_graph() and get_rw()"""
 
         for node in self.g.nodes():
-            if not node in self.blocs:
+            if node not in self.blocs:
                 continue
             self.blocs[node].c_out_missing = set()
             has_all_son = True
             for node_son in self.g.successors(node):
-                if not node_son in self.blocs:
+                if node_son not in self.blocs:
                     has_all_son = False
                     break
             if has_all_son:
@@ -272,7 +272,7 @@ class ira:
             log.debug(it)
             it += 1
             for n in self.g.nodes():
-                if not n in self.blocs:
+                if n not in self.blocs:
                     # leaf has lost her son
                     continue
                 irb = self.blocs[n]
