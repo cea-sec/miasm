@@ -21,11 +21,11 @@ if filename and os.path.isfile(filename):
 
 
 parser = ArgumentParser("Disassemble a binary")
-parser.add_argument('architecture', help="architecture: " + \
-                        ",".join(Machine.available_machine()))
 parser.add_argument('filename', help="File to disassemble")
 parser.add_argument('address', help="Starting address for disassembly engine",
-                    nargs="+")
+                    nargs="*")
+parser.add_argument('-m', '--architecture', help="architecture: " + \
+                        ",".join(Machine.available_machine()))
 parser.add_argument('-f', "--followcall", action="store_true",
                     help="Follow call instructions")
 parser.add_argument('-b', "--blockwatchdog", default=None, type=int,
@@ -55,12 +55,6 @@ args = parser.parse_args()
 if args.verbose:
     log_asmbloc.setLevel(logging.DEBUG)
 
-log.info("import machine...")
-machine = Machine(args.architecture)
-mn, dis_engine = machine.mn, machine.dis_engine
-ira, ir = machine.ira, machine.ir
-log.info('ok')
-
 log.info('Load binary')
 with open(args.filename) as fdesc:
     cont = Container.from_stream(fdesc, addr=args.shiftoffset)
@@ -68,8 +62,21 @@ with open(args.filename) as fdesc:
 default_addr = cont.entry_point
 bs = cont.bin_stream
 e = cont.executable
-
 log.info('ok')
+
+log.info("import machine...")
+# Use the guessed architecture or the specified one
+arch = args.architecture if args.architecture else cont.arch
+if not arch:
+    print "Architecture recognition fail. Please specify it in arguments"
+    exit(-1)
+
+# Instance the arch-dependent machine
+machine = Machine(arch)
+mn, dis_engine = machine.mn, machine.dis_engine
+ira, ir = machine.ira, machine.ir
+log.info('ok')
+
 mdis = dis_engine(bs)
 # configure disasm engine
 mdis.dontdis_retcall = args.dontdis_retcall

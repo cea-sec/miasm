@@ -236,6 +236,8 @@ for script, prods in [(["single_instr.py"], []),
                       (["function.py"], ["graph.txt"]),
                       (["file.py", Example.get_sample("box_upx.exe"),
                         "0x410f90"], ["graph.txt"]),
+                      (["full.py", Example.get_sample("box_upx.exe")],
+                       ["graph_execflow.txt", "lines.txt"]),
                       ]:
     testset += ExampleDisassembler(script, products=prods)
 
@@ -249,7 +251,7 @@ class ExampleDisasmFull(ExampleDisassembler):
 
     def __init__(self, *args, **kwargs):
         super(ExampleDisasmFull, self).__init__(*args, **kwargs)
-        self.command_line = ["full.py", "-g", "-s"] + self.command_line
+        self.command_line = ["full.py", "-g", "-s", "-m"] + self.command_line
         self.products += ["graph_execflow.txt", "graph_irflow.txt", "lines.txt"]
 
 

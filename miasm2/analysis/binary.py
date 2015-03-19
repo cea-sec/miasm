@@ -88,6 +88,13 @@ class Container(object):
 
     def __init__(self, *args, **kwargs):
         "Alias for 'parse'"
+        # Init attributes
+        self._executable = None
+        self._bin_stream = None
+        self._entry_point = None
+        self._arch = None
+
+        # Launch parsing
         self.parse(*args, **kwargs)
 
     @property
@@ -105,14 +112,18 @@ class Container(object):
         "Return the detected entry_point"
         return self._entry_point
 
+    @property
+    def arch(self):
+        "Return the guessed architecture"
+        return self._arch
+
 
 ## Format dependent classes
 class ContainerPE(Container):
     "Container abstraction for PE"
 
-
     def parse(self, data, vm=None):
-        from miasm2.jitter.loader.pe import vm_load_pe, preload_pe
+        from miasm2.jitter.loader.pe import vm_load_pe, preload_pe, guess_arch
         from elfesteem import pe_init
 
         # Parse signature
@@ -133,6 +144,9 @@ class ContainerPE(Container):
                 self._executable.NTsig.signature_value != 0x4550:
             raise ContainerSignatureException()
 
+        # Guess the architecture
+        self._arch = guess_arch(self._executable)
+
         # Build the bin_stream instance and set the entry point
         try:
             self._bin_stream = bin_stream_pe(self._executable.virt)
@@ -146,7 +160,8 @@ class ContainerELF(Container):
     "Container abstraction for ELF"
 
     def parse(self, data, vm=None):
-        from miasm2.jitter.loader.elf import vm_load_elf, preload_elf
+        from miasm2.jitter.loader.elf import \
+            vm_load_elf, preload_elf, guess_arch
         from elfesteem import elf_init
 
         # Parse signature
@@ -161,6 +176,9 @@ class ContainerELF(Container):
                 self._executable = elf_init.ELF(data)
         except Exception, error:
             raise ContainerParsingException('Cannot read ELF: %s' % error)
+
+        # Guess the architecture
+        self._arch = guess_arch(self._executable)
 
         # Build the bin_stream instance and set the entry point
         try:
