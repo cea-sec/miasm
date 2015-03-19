@@ -86,17 +86,6 @@ class irbloc(object):
             self.c_in.append(set())
             self.l_out.append(set())
             self.l_in.append(set())
-        # get rw for dst
-        i = self.dst
-        r, w = set(), set()
-        if i is not None:
-            r.update([x for x in i.get_r(True) if isinstance(x, m2_expr.ExprId)])
-        self.r.append(r)
-        self.w.append(w)
-        self.c_out.append(set())
-        self.c_in.append(set())
-        self.l_out.append(set())
-        self.l_in.append(set())
 
     def __str__(self):
         o = []
