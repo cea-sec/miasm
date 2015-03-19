@@ -158,7 +158,8 @@ class ContainerELF(Container):
     "Container abstraction for ELF"
 
     def parse(self, data, vm=None):
-        from miasm2.jitter.loader.elf import vm_load_elf, preload_elf
+        from miasm2.jitter.loader.elf import \
+            vm_load_elf, preload_elf, guess_arch
         from elfesteem import elf_init
 
         # Parse signature
@@ -173,6 +174,9 @@ class ContainerELF(Container):
                 self._executable = elf_init.ELF(data)
         except Exception, error:
             raise ContainerParsingException('Cannot read ELF: %s' % error)
+
+        # Guess the architecture
+        self._arch = guess_arch(self._executable)
 
         # Build the bin_stream instance and set the entry point
         try:
