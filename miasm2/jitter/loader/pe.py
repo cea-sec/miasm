@@ -406,3 +406,13 @@ class libimp_pe(libimp):
                 all_ads = all_ads[i + 1:]
 
         return new_lib
+
+# machine -> arch
+PE_machine = {0x14c: "x86_32",
+              0x8664: "x86_64",
+              }
+
+def guess_arch(pe):
+    """Return the architecture specified by the PE container @pe.
+    If unknown, return None"""
+    return PE_machine.get(pe.Coffhdr.machine, None)

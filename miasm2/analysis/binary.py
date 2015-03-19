@@ -122,9 +122,8 @@ class Container(object):
 class ContainerPE(Container):
     "Container abstraction for PE"
 
-
     def parse(self, data, vm=None):
-        from miasm2.jitter.loader.pe import vm_load_pe, preload_pe
+        from miasm2.jitter.loader.pe import vm_load_pe, preload_pe, guess_arch
         from elfesteem import pe_init
 
         # Parse signature
@@ -144,6 +143,9 @@ class ContainerPE(Container):
         if not self._executable.isPE() or \
                 self._executable.NTsig.signature_value != 0x4550:
             raise ContainerSignatureException()
+
+        # Guess the architecture
+        self._arch = guess_arch(self._executable)
 
         # Build the bin_stream instance and set the entry point
         try:
