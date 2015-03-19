@@ -25,7 +25,7 @@ parser.add_argument('architecture', help="architecture: " + \
                         ",".join(Machine.available_machine()))
 parser.add_argument('filename', help="File to disassemble")
 parser.add_argument('address', help="Starting address for disassembly engine",
-                    nargs="+")
+                    nargs="*")
 parser.add_argument('-f', "--followcall", action="store_true",
                     help="Follow call instructions")
 parser.add_argument('-b', "--blockwatchdog", default=None, type=int,
