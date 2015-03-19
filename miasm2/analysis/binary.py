@@ -92,6 +92,7 @@ class Container(object):
         self._executable = None
         self._bin_stream = None
         self._entry_point = None
+        self._arch = None
 
         # Launch parsing
         self.parse(*args, **kwargs)
@@ -110,6 +111,11 @@ class Container(object):
     def entry_point(self):
         "Return the detected entry_point"
         return self._entry_point
+
+    @property
+    def arch(self):
+        "Return the guessed architecture"
+        return self._arch
 
 
 ## Format dependent classes
