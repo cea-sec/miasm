@@ -88,6 +88,12 @@ class Container(object):
 
     def __init__(self, *args, **kwargs):
         "Alias for 'parse'"
+        # Init attributes
+        self._executable = None
+        self._bin_stream = None
+        self._entry_point = None
+
+        # Launch parsing
         self.parse(*args, **kwargs)
 
     @property
