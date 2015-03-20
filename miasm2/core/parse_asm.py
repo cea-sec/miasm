@@ -124,7 +124,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
                 lines.append(x)
                 continue
             if directive == 'dontsplit':  # custom command
-                lines.append(asmbloc.asm_raw(line.strip()))
+                lines.append(asmbloc.asm_raw())
                 continue
             if directive in ['file', 'intel_syntax', 'globl', 'local',
                              'type', 'size', 'align', 'ident', 'section']:
