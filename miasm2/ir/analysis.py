@@ -56,7 +56,7 @@ class ira:
                     out.remove(o)
 
             for o in out:
-                if not o in found:
+                if o not in found:
                     follow.add(o)
             todo = follow
         out = self.sort_dst(todo, done)
@@ -95,7 +95,7 @@ class ira:
         """
         all_lbls = {}
         for lbl in self.g.nodes():
-            if not lbl in self.blocs:
+            if lbl not in self.blocs:
                 continue
             irb = self.blocs[lbl]
             ir_txt = [str(lbl)]
@@ -139,7 +139,7 @@ class ira:
                     i_cur.src.op.startswith('call')):
                     # /!\ never remove ir calls
                     pass
-                elif not i_cur.dst in c_out:
+                elif i_cur.dst not in c_out:
                     del(ir[j])
                     modified = True
                     continue
@@ -177,26 +177,20 @@ class ira:
             print 'IN', [str(x) for x in c_in]
             print 'OUT', [str(x) for x in c_out]
 
-        print 'OUT final', [str(x) for x in irb.c_out[-1]]
 
     def compute_in_out(self, irb):
         """Liveness computation for a single bloc
         @irb: irbloc instance
         Return True iff bloc state has changed
         """
-        # get out/in from bloc sons
         modified = False
-        # set b in
-        if irb.c_in[-1] != set(irb.r[-1].union(irb.c_out[-1].difference(irb.w[-1]))):
-            modified = True
-        irb.c_in[-1] = set(irb.r[-1].union(irb.c_out[-1].difference(irb.w[-1])))
 
-        # set b out
+        # Compute OUT for last irb entry
         c_out = set()
         has_son = False
         for n_son in self.g.successors(irb.label):
             has_son = True
-            if not n_son in self.blocs:
+            if n_son not in self.blocs:
                 # If the son is not defined, we will propagate our current out
                 # nodes to the in nodes's son
                 son_c_in = irb.c_out_missing
@@ -204,20 +198,27 @@ class ira:
                 son_c_in = self.blocs[n_son].c_in[0]
             c_out.update(son_c_in)
         if not has_son:
-            # special case: leaf nodes architecture dependant
+            # Special case: leaf nodes architecture dependant
             c_out = self.get_out_regs(irb)
-        if irb.c_out[-1] != set(c_out):
-            modified = True
-        irb.c_out[-1] = set(c_out)
 
-        # get out/in for bloc
+        if irb.c_out[-1] != c_out:
+            irb.c_out[-1] = c_out
+            modified = True
+
+        # Compute out/in intra bloc
         for i in reversed(xrange(len(irb.irs))):
-            if irb.c_in[i] != set(irb.r[i].union(irb.c_out[i].difference(irb.w[i]))):
+            new_in = set(irb.r[i].union(irb.c_out[i].difference(irb.w[i])))
+            if irb.c_in[i] != new_in:
+                irb.c_in[i] = new_in
                 modified = True
-            irb.c_in[i] = set(irb.r[i].union(irb.c_out[i].difference(irb.w[i])))
-            if irb.c_out[i] != set(irb.c_in[i + 1]):
+
+            if i >= len(irb.irs) - 1:
+                # Last out has been previously updated
+                continue
+            new_out = set(irb.c_in[i + 1])
+            if irb.c_out[i] != new_out:
+                irb.c_out[i] = new_out
                 modified = True
-            irb.c_out[i] = set(irb.c_in[i + 1])
 
         return modified
 
@@ -227,7 +228,7 @@ class ira:
 
         fixed = True
         for node in self.g.nodes():
-            if not node in self.blocs:
+            if node not in self.blocs:
                 # leaf has lost her son
                 continue
             irb = self.blocs[node]
@@ -243,12 +244,12 @@ class ira:
         PRE: gen_graph() and get_rw()"""
 
         for node in self.g.nodes():
-            if not node in self.blocs:
+            if node not in self.blocs:
                 continue
             self.blocs[node].c_out_missing = set()
             has_all_son = True
             for node_son in self.g.successors(node):
-                if not node_son in self.blocs:
+                if node_son not in self.blocs:
                     has_all_son = False
                     break
             if has_all_son:
@@ -271,7 +272,7 @@ class ira:
             log.debug(it)
             it += 1
             for n in self.g.nodes():
-                if not n in self.blocs:
+                if n not in self.blocs:
                     # leaf has lost her son
                     continue
                 irb = self.blocs[n]
