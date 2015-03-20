@@ -1,5 +1,6 @@
 """Provide dependency graph"""
 import itertools
+from collections import namedtuple
 
 import miasm2.expression.expression as m2_expr
 from miasm2.core.graph import DiGraph
@@ -7,7 +8,6 @@ from miasm2.core.asmbloc import asm_label
 from miasm2.expression.simplifications import expr_simp
 from miasm2.ir.symbexec import symbexec
 from miasm2.ir.ir import irbloc
-
 
 class DependencyNode(object):
     """Node elements of a DependencyGraph
@@ -374,6 +374,8 @@ class DependencyResult(object):
                 for depnode in self.input}
 
 
+FollowExpr = namedtuple("FollowExpr", ["follow", "element"])
+
 class DependencyGraph(object):
     """Implementation of a dependency graph
 
@@ -383,15 +385,86 @@ class DependencyGraph(object):
     *explicitely* involved in the equation of given element.
     """
 
-    def __init__(self, ira):
+    def __init__(self, ira, apply_simp=True, follow_mem=True,
+                 follow_call=True):
         """Create a DependencyGraph linked to @ira
+        The IRA graph must have been computed
+
         @ira: IRAnalysis instance
+
+        Following arguments define filters used to generate dependencies
+        @apply_simp: (optional) Apply expr_simp
+        @follow_mem: (optional) Track memory syntaxically
+        @follow_call: (optional) Track throught "call"
         """
         # Init
         self._ira = ira
 
         # The IRA graph must be computed
-        self._ira.gen_graph()
+        assert(hasattr(self._ira, 'g'))
+
+        # Create callback filters. The order is relevant.
+        self._cb_follow = []
+        if apply_simp:
+            self._cb_follow.append(self._follow_simp_expr)
+        if follow_mem:
+            self._cb_follow.append(self._follow_mem)
+        else:
+            self._cb_follow.append(self._follow_nomem)
+        if not follow_call:
+            self._cb_follow.append(self._follow_nocall)
+
+    @staticmethod
+    def _follow_simp_expr(exprs):
+        """Simplify expression so avoid tracking useless elements,
+        as: XOR EAX, EAX
+        """
+        follow = set()
+        for expr in exprs:
+            follow.add(expr_simp(expr))
+        return follow, set()
+
+    @staticmethod
+    def _follow_mem_wrapper(exprs, mem_read):
+        follow = set()
+        for expr in exprs:
+            follow.update(expr.get_r(mem_read=mem_read, cst_read=True))
+        return follow, set()
+
+    @staticmethod
+    def _follow_mem(exprs):
+        """Follow expression from memory pointer"""
+        return DependencyGraph._follow_mem_wrapper(exprs, True)
+
+    @staticmethod
+    def _follow_nomem(exprs):
+        """Don't follow expression from memory pointer"""
+        return DependencyGraph._follow_mem_wrapper(exprs, False)
+
+    @staticmethod
+    def _follow_nocall(exprs):
+        """Don't follow expression from sub_call"""
+        follow = set()
+        nofollow = set()
+        for expr in exprs:
+            if isinstance(expr, m2_expr.ExprOp) and expr.op.startswith('call'):
+                nofollow.add(expr)
+            else:
+                follow.add(expr)
+        return follow, nofollow
+
+    def _follow_apply_cb(self, expr):
+        follow = set([expr])
+        nofollow = set()
+
+        for cb in self._cb_follow:
+            follow, nofollow_tmp = cb(follow)
+            nofollow.update(nofollow_tmp)
+
+        out = set(FollowExpr(True, expr) for expr in follow)
+        out.update(set(FollowExpr(False, expr) for expr in nofollow))
+
+        return out
 
     def _get_irs(self, label):
         "Return the irs associated to @label"
@@ -403,7 +476,8 @@ class DependencyGraph(object):
         return self._get_irs(depnode.label)[depnode.line_nb - 1]
 
     def _resolve_depNode(self, depnode):
-        """Compute and return the dependencies involved by @depnode"""
+        """Compute and return the dependencies involved by @depnode
+        Return a set of FollowExpr"""
 
         if isinstance(depnode.element, m2_expr.ExprInt):
             # A constant does not have any dependency
@@ -417,27 +491,27 @@ class DependencyGraph(object):
             # Intra-block resolving
             ## Get dependencies
             read = set()
+
             modifier = False
 
             for affect in self._get_affblock(depnode):
                 if affect.dst == depnode.element:
-                    ### Avoid tracking useless elements, as XOR EAX, EAX
-                    src = expr_simp(affect.src)
-
-                    read.update(src.get_r(mem_read=True, cst_read=True))
+                    elements = self._follow_apply_cb(affect.src)
+                    read.update(elements)
                     modifier = True
 
             ## If it's not a modifier affblock, reinject current element
             if not modifier:
-                read = set([depnode.element])
+                read = set([FollowExpr(True, depnode.element)])
 
             ## Build output
             dependencies = set()
-            for element in read:
-                dependencies.add(DependencyNode(depnode.label,
-                                                element,
-                                                depnode.line_nb - 1,
-                                                modifier=modifier))
+            for follow_expr in read:
+                dependencies.add(FollowExpr(follow_expr.follow,
+                                            DependencyNode(depnode.label,
+                                                           follow_expr.element,
+                                                           depnode.line_nb - 1,
+                                                           modifier=modifier)))
             output = dependencies
 
         return output
@@ -465,10 +539,13 @@ class DependencyGraph(object):
 
             # Find dependency of the current depnode
             sub_depnodes = self._resolve_depNode(depnode)
-            depdict.cache[depnode] = sub_depnodes
+            depdict.cache[depnode] = set(follow_expr.element
+                                         for follow_expr in sub_depnodes)
 
             # Add to the worklist its dependencies
-            todo.update(sub_depnodes)
+            todo.update(set(follow_expr.element
+                            for follow_expr in sub_depnodes
+                            if follow_expr.follow))
 
         # Pending states will be override in cache
         for depnode in depdict.pending:
@@ -596,24 +673,3 @@ class DependencyGraph(object):
         """
         return self.get(label, elements, len(self._get_irs(label)), heads)
 
-
-class DependencyGraph_NoMemory(DependencyGraph):
-    """Dependency graph without memory tracking.
-
-    That way, the output has following properties:
-    - Only explicit dependencies are followed
-    - Soundness: all results are corrects
-    - Completeness: all possible solutions are founds
-    """
-
-    def _resolve_depNode(self, depnode):
-        """Compute and return the dependencies involved by @depnode"""
-        # Get inital elements
-        result = super(DependencyGraph_NoMemory, self)._resolve_depNode(depnode)
-
-        # If @depnode depends on a memory element, give up
-        for node in result:
-            if isinstance(node.element, m2_expr.ExprMem):
-                return set()
-
-        return result
