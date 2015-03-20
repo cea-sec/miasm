@@ -353,7 +353,6 @@ class DependencyResult(object):
         /!\ The emulation is not safe if there is a loop in the relevant labels
         """
         # Init
-        new_ira = (self._ira.__class__)()
         depnodes = self.relevant_nodes
         affects = []
 
@@ -367,7 +366,7 @@ class DependencyResult(object):
 
         # Eval the block
         temp_label = asm_label("Temp")
-        sb = symbexec(new_ira, new_ira.arch.regs.regs_init)
+        sb = symbexec(self._ira, self._ira.arch.regs.regs_init)
         sb.emulbloc(irbloc(temp_label, affects), step=step)
 
         # Return only inputs values (others could be wrongs)
