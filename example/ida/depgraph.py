@@ -9,7 +9,7 @@ from miasm2.expression import expression as m2_expr
 
 from miasm2.expression.simplifications import expr_simp
 from miasm2.analysis.machine import Machine
-from miasm2.analysis.depgraph import DependencyGraph, DependencyGraph_NoMemory
+from miasm2.analysis.depgraph import DependencyGraph
 
 from utils import guess_machine
 
@@ -49,8 +49,8 @@ Track the element:
 <Line number:{iLineNb}>
 
 Method to use:
-<Best effort:{rBest}>
-<No memory (sound & complete):{rNoMem}>{cMethod}>
+<Follow Memory:{rNoMem}>
+<Follow Call:{rNoCall}>{cMethod}>
 
 <Highlight color:{cColor}>
 """, {
@@ -60,7 +60,7 @@ Method to use:
                     selval=reg_default),
             'cMode': Form.RadGroupControl(("rBeforeLine", "rAfterLine",
                                            "rEndBlock")),
-            'cMethod': Form.RadGroupControl(("rBest", "rNoMem")),
+            'cMethod': Form.ChkGroupControl(("rNoMem", "rNoCall")),
             'iLineNb': Form.NumericInput(tp=Form.FT_RAWHEX,
                                          value=line_nb),
             'cbBBL': Form.DropdownListControl(
@@ -97,14 +97,11 @@ Method to use:
         return set([ir_arch.arch.regs.all_regs_ids_byname[value]])
 
     @property
-    def method(self):
+    def depgraph(self):
         value = self.cMethod.value
-        if value == 0:
-            return DependencyGraph
-        elif value == 1:
-            return DependencyGraph_NoMemory
-        else:
-            raise ValueError("Unknown method")
+        return DependencyGraph(self.ira,
+                               follow_mem=value & 1,
+                               follow_call=value & 2)
 
     @property
     def color(self):
@@ -148,7 +145,7 @@ settings = depGraphSettingsForm(ir_arch)
 settings.Execute()
 
 # Get dependency graphs
-dg = (settings.method)(ir_arch)
+dg = settings.depgraph
 graphs = dg.get(settings.label, settings.elements, settings.line_nb,
                 set([ir_arch.symbol_pool.getby_offset(func.startEA)]))
 

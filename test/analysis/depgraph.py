@@ -3,7 +3,7 @@ from miasm2.core.asmbloc import asm_label
 from miasm2.ir.analysis import ira
 from miasm2.ir.ir import ir, irbloc
 from miasm2.core.graph import DiGraph
-from miasm2.analysis.depgraph import DependencyNode, DependencyGraph, DependencyDict, DependencyGraph_NoMemory
+from miasm2.analysis.depgraph import DependencyNode, DependencyGraph, DependencyDict
 from pdb import pm
 
 a = ExprId("a")
@@ -58,9 +58,6 @@ class IRATest(ir, ira):
         ir.__init__(self, arch, 32, symbol_pool)
         self.IRDst = pc
 
-    def gen_graph(self):
-        return
-
 class GraphTest(DiGraph):
     def __init__(self, ira):
         self.ira = ira
@@ -72,9 +69,6 @@ class GraphTest(DiGraph):
         if sorted(self._edges) != sorted(graph._edges):
             return False
         return True
-
-    def gen_graph(self):
-        return
 
     def node2str(self, node):
         if not node in self.ira.blocs:
@@ -603,7 +597,9 @@ for i, test in enumerate([(g1_ira, g1_input, [g1_output1]),
     open("graph_%02d.dot" % (i+1), "w").write(g_ira.g.dot())
     # Test classes
     for g_dep in [DependencyGraph(g_ira),
-                  DependencyGraph_NoMemory(g_ira)]:
+                  DependencyGraph(g_ira, apply_simp=False),
+                  DependencyGraph(g_ira, follow_mem=False),
+                  DependencyGraph(g_ira, follow_mem=False, follow_call=False)]:
         print " - Class %s" % g_dep.__class__.__name__
 
         ## Test public APIs
