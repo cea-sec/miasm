@@ -3,6 +3,7 @@ import operator
 
 import z3
 
+from miasm2.core.asmbloc import asm_label
 from miasm2.ir.translators.translator import Translator
 
 log = logging.getLogger("translator_z3")
@@ -117,7 +118,10 @@ class TranslatorZ3(Translator):
 
     @classmethod
     def from_ExprId(cls, expr):
-        return z3.BitVec(str(expr), expr.size)
+        if isinstance(expr.name, asm_label) and expr.name.offset is not None:
+            return z3.BitVecVal(expr.name.offset, expr.size)
+        else:
+            return z3.BitVec(str(expr), expr.size)
 
     @classmethod
     def from_ExprMem(cls, expr):
