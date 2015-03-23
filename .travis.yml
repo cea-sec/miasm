@@ -7,6 +7,9 @@ apt_packages:
 - gcc
 - libpython2.7-dev
 - unzip
-before_install:
-- "git clone http://repo.or.cz/tinycc.git tinycc && cd tinycc && git checkout d5e22108a0dc48899e44a158f91d5b3215eb7fe6 && ./configure --disable-static && make && sudo make install && cd .. && hg clone https://code.google.com/p/elfesteem/ elfesteem && cd elfesteem && python setup.py install && cd .. && pip install pyparsing && python setup.py install && sudo ldconfig"
+before_script:
+- "git clone http://repo.or.cz/tinycc.git tinycc && cd tinycc && git checkout d5e22108a0dc48899e44a158f91d5b3215eb7fe6 && ./configure --disable-static && make && sudo make install && sudo ldconfig && cd ..;"
+- "hg clone https://code.google.com/p/elfesteem/ elfesteem && cd elfesteem && python setup.py install && cd ..;"
+- "pip install pyparsing"
+- "python setup.py install"
 script: "cd test && python test_all.py -m"
