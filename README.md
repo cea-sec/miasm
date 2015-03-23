@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/cea-sec/miasm.svg)](https://travis-ci.org/cea-sec/miasm)
+
 Reverse engineering framework in Python
 
 **Table of Contents** 
