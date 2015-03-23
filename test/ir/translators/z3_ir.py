@@ -1,5 +1,6 @@
 import z3
 
+from miasm2.core.asmbloc import asm_label
 from miasm2.expression.expression import *
 from miasm2.ir.translators.translator import Translator
 from miasm2.ir.translators.z3_ir import TranslatorZ3, Z3Mem
@@ -136,6 +137,11 @@ for miasm_int, res in [(five, -5), (four, -4)]:
     ez3 = Translator.to_language('z3').from_expr(e6)
     z3_e6 = z3.BitVecVal(res, 32)
     assert equiv(ez3, z3_e6)
+
+# --------------------------------------------------------------------------
+# Should just not throw anything
+e7 = ExprId(asm_label("label_histoire", 0xdeadbeef), 32)
+ez3 = Translator.to_language('z3').from_expr(e7)
 
 print "TranslatorZ3 tests are OK."
 

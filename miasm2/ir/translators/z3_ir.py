@@ -117,7 +117,7 @@ class TranslatorZ3(Translator):
 
     @classmethod
     def from_ExprId(cls, expr):
-        return z3.BitVec(expr.name, expr.size)
+        return z3.BitVec(str(expr), expr.size)
 
     @classmethod
     def from_ExprMem(cls, expr):
