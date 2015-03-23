@@ -109,37 +109,37 @@ class TranslatorZ3(Translator):
     __LANG__ = "z3"
     # Operations translation
     trivial_ops = ["+", "-", "/", "%", "&", "^", "|", "*", "<<"]
-    _cache = None
-    _mem = None
 
-    @classmethod
-    def from_ExprInt(cls, expr):
+    def __init__(self, endianness="<", **kwargs):
+        """Instance a Z3 translator
+        @endianness: (optional) memory endianness
+        """
+        super(TranslatorZ3, self).__init__(**kwargs)
+        self._mem = Z3Mem(endianness)
+
+    def from_ExprInt(self, expr):
         return z3.BitVecVal(expr.arg.arg, expr.size)
 
-    @classmethod
-    def from_ExprId(cls, expr):
+    def from_ExprId(self, expr):
         if isinstance(expr.name, asm_label) and expr.name.offset is not None:
             return z3.BitVecVal(expr.name.offset, expr.size)
         else:
             return z3.BitVec(str(expr), expr.size)
 
-    @classmethod
-    def from_ExprMem(cls, expr):
-        addr = cls.from_expr(expr.arg)
-        return cls._mem.get(addr, expr.size)
+    def from_ExprMem(self, expr):
+        addr = self.from_expr(expr.arg)
+        return self._mem.get(addr, expr.size)
 
-    @classmethod
-    def from_ExprSlice(cls, expr):
-        res = cls.from_expr(expr.arg)
+    def from_ExprSlice(self, expr):
+        res = self.from_expr(expr.arg)
         res = z3.Extract(expr.stop-1, expr.start, res)
         return res
 
-    @classmethod
-    def from_ExprCompose(cls, expr):
+    def from_ExprCompose(self, expr):
         res = None
         args = sorted(expr.args, key=operator.itemgetter(2)) # sort by start off
         for subexpr, start, stop in args:
-            sube = cls.from_expr(subexpr)
+            sube = self.from_expr(subexpr)
             e = z3.Extract(stop-start-1, 0, sube)
             if res:
                 res = z3.Concat(e, res)
@@ -147,20 +147,19 @@ class TranslatorZ3(Translator):
                 res = e
         return res
 
-    @classmethod
-    def from_ExprCond(cls, expr):
-        cond = cls.from_expr(expr.cond)
-        src1 = cls.from_expr(expr.src1)
-        src2 = cls.from_expr(expr.src2)
+    def from_ExprCond(self, expr):
+        cond = self.from_expr(expr.cond)
+        src1 = self.from_expr(expr.src1)
+        src2 = self.from_expr(expr.src2)
         return z3.If(cond != 0, src1, src2)
 
-    @classmethod
-    def from_ExprOp(cls, expr):
-        args = map(cls.from_expr, expr.args)
+    def from_ExprOp(self, expr):
+        args = map(self.from_expr, expr.args)
         res = args[0]
+
         if len(args) > 1:
             for arg in args[1:]:
-                if expr.op in cls.trivial_ops:
+                if expr.op in self.trivial_ops:
                     res = eval("res %s arg" % expr.op)
                 elif expr.op == ">>":
                     res = z3.LShR(res, arg)
@@ -179,40 +178,14 @@ class TranslatorZ3(Translator):
             res = -res
         else:
             raise NotImplementedError("Unsupported OP yet: %s" % expr.op)
+
         return res
 
-    @classmethod
-    def from_ExprAff(cls, expr):
-        src = cls.from_expr(expr.src)
-        dst = cls.from_expr(expr.dst)
+    def from_ExprAff(self, expr):
+        src = self.from_expr(expr.src)
+        dst = self.from_expr(expr.dst)
         return (src == dst)
 
-    @classmethod
-    def from_expr(cls, expr, endianness="<"):
-        # This mess is just to handle cache and Z3Mem instance management
-        # Might be improved in the future
-        del_cache = False
-        del_mem = False
-        if cls._cache is None:
-            cls._cache = {}
-            del_cache = True
-        if cls._mem is None:
-            cls._mem = Z3Mem(endianness)
-            del_mem = True
-
-        try:
-            if expr in cls._cache:
-                return cls._cache[expr]
-            else:
-                ret = super(TranslatorZ3, cls).from_expr(expr)
-                cls._cache[expr] = ret
-                return ret
-        finally:
-            # Clean cache and Z3Mem if this call is the root call
-            if del_cache:
-                cls._cache = None
-            if del_mem:
-                cls._mem = None
 
 # Register the class
 Translator.register(TranslatorZ3)
