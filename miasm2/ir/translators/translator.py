@@ -34,75 +34,66 @@ class Translator(object):
         "Return the list of registered languages"
         return [translator.__LANG__ for translator in cls.available_translators]
 
-    @classmethod
-    def from_ExprInt(cls, expr):
+    def from_ExprInt(self, expr):
         """Translate an ExprInt
         @expr: ExprInt to translate
         """
         raise NotImplementedError("Abstract method")
 
-    @classmethod
-    def from_ExprId(cls, expr):
+    def from_ExprId(self, expr):
         """Translate an ExprId
         @expr: ExprId to translate
         """
         raise NotImplementedError("Abstract method")
 
-    @classmethod
-    def from_ExprCompose(cls, expr):
+    def from_ExprCompose(self, expr):
         """Translate an ExprCompose
         @expr: ExprCompose to translate
         """
         raise NotImplementedError("Abstract method")
 
-    @classmethod
-    def from_ExprSlice(cls, expr):
+    def from_ExprSlice(self, expr):
         """Translate an ExprSlice
         @expr: ExprSlice to translate
         """
         raise NotImplementedError("Abstract method")
 
-    @classmethod
-    def from_ExprOp(cls, expr):
+    def from_ExprOp(self, expr):
         """Translate an ExprOp
         @expr: ExprOp to translate
         """
         raise NotImplementedError("Abstract method")
 
-    @classmethod
-    def from_ExprMem(cls, expr):
+    def from_ExprMem(self, expr):
         """Translate an ExprMem
         @expr: ExprMem to translate
         """
         raise NotImplementedError("Abstract method")
 
-    @classmethod
-    def from_ExprAff(cls, expr):
+    def from_ExprAff(self, expr):
         """Translate an ExprAff
         @expr: ExprAff to translate
         """
         raise NotImplementedError("Abstract method")
 
-    @classmethod
-    def from_ExprCond(cls, expr):
+    def from_ExprCond(self, expr):
         """Translate an ExprCond
         @expr: ExprCond to translate
         """
         raise NotImplementedError("Abstract method")
 
-    @classmethod
-    def from_expr(cls, expr):
+    def from_expr(self, expr):
         """Translate an expression according to its type
         @expr: expression to translate
         """
-        handlers = {m2_expr.ExprInt: cls.from_ExprInt,
-                    m2_expr.ExprId: cls.from_ExprId,
-                    m2_expr.ExprCompose: cls.from_ExprCompose,
-                    m2_expr.ExprSlice: cls.from_ExprSlice,
-                    m2_expr.ExprOp: cls.from_ExprOp,
-                    m2_expr.ExprMem: cls.from_ExprMem,
-                    m2_expr.ExprAff: cls.from_ExprAff,
-                    m2_expr.ExprCond: cls.from_ExprCond
+        handlers = {m2_expr.ExprInt: self.from_ExprInt,
+                    m2_expr.ExprId: self.from_ExprId,
+                    m2_expr.ExprCompose: self.from_ExprCompose,
+                    m2_expr.ExprSlice: self.from_ExprSlice,
+                    m2_expr.ExprOp: self.from_ExprOp,
+                    m2_expr.ExprMem: self.from_ExprMem,
+                    m2_expr.ExprAff: self.from_ExprAff,
+                    m2_expr.ExprCond: self.from_ExprCond
                     }
         for target, handler in handlers.iteritems():
             if isinstance(expr, target):
