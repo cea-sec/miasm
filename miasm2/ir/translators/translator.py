@@ -17,15 +17,15 @@ class Translator(object):
         cls.available_translators.append(translator)
 
     @classmethod
-    def to_language(cls, target_lang):
-        """Return the corresponding translator
+    def to_language(cls, target_lang, *args, **kwargs):
+        """Return the corresponding translator instance
         @target_lang: str (case insensitive) wanted language
         Raise a NotImplementedError in case of unmatched language
         """
         target_lang = target_lang.lower()
         for translator in cls.available_translators:
             if translator.__LANG__.lower() == target_lang:
-                return translator
+                return translator(*args, **kwargs)
 
         raise NotImplementedError("Unknown target language: %s" % target_lang)
 
