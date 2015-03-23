@@ -1,4 +1,5 @@
 import miasm2.expression.expression as m2_expr
+from miasm2.core.utils import BoundedDict
 
 
 class Translator(object):
@@ -33,6 +34,12 @@ class Translator(object):
     def available_languages(cls):
         "Return the list of registered languages"
         return [translator.__LANG__ for translator in cls.available_translators]
+
+    def __init__(self, cache_size=1000):
+        """Instance a translator
+        @cache_size: (optional) Expr cache size
+        """
+        self._cache = BoundedDict(cache_size)
 
     def from_ExprInt(self, expr):
         """Translate an ExprInt
@@ -86,6 +93,11 @@ class Translator(object):
         """Translate an expression according to its type
         @expr: expression to translate
         """
+        # Use cache
+        if expr in self._cache:
+            return self._cache[expr]
+
+        # Handle Expr type
         handlers = {m2_expr.ExprInt: self.from_ExprInt,
                     m2_expr.ExprId: self.from_ExprId,
                     m2_expr.ExprCompose: self.from_ExprCompose,
@@ -97,6 +109,9 @@ class Translator(object):
                     }
         for target, handler in handlers.iteritems():
             if isinstance(expr, target):
-                return handler(expr)
+                ## Compute value and update the internal cache
+                ret = handler(expr)
+                self._cache[expr] = ret
+                return ret
         raise ValueError("Unhandled type for %s" % expr)
 
