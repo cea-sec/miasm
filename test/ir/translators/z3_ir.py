@@ -119,5 +119,21 @@ ez3 = Translator.to_language('z3').from_expr(e5)
 z3_e5 = z3.Extract(31, 0, z3.Concat(z3_four, z3_e)) * z3_five
 assert equiv(ez3, z3_e5)
 
+# --------------------------------------------------------------------------
+# Parity
+for miasm_int, res in [(five, 1), (four, 0)]:
+    e6 = ExprOp('parity', miasm_int)
+    ez3 = Translator.to_language('z3').from_expr(e6)
+    z3_e6 = z3.BitVecVal(res, 1)
+    assert equiv(ez3, z3_e6)
+
+# --------------------------------------------------------------------------
+# '-'
+for miasm_int, res in [(five, -5), (four, -4)]:
+    e6 = ExprOp('-', miasm_int)
+    ez3 = Translator.to_language('z3').from_expr(e6)
+    z3_e6 = z3.BitVecVal(res, 32)
+    assert equiv(ez3, z3_e6)
+
 print "TranslatorZ3 tests are OK."
 

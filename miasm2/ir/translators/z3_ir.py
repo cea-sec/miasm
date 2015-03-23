@@ -154,17 +154,24 @@ class TranslatorZ3(Translator):
     def from_ExprOp(cls, expr):
         args = map(cls.from_expr, expr.args)
         res = args[0]
-        for arg in args[1:]:
-            if expr.op in cls.trivial_ops:
-                res = eval("res %s arg" % expr.op)
-            elif expr.op == ">>":
-                res = z3.LShR(res, arg)
-            elif expr.op == "a>>":
-                res = res >> arg
-            elif expr.op == "a<<":
-                res = res << arg
-            else:
-                raise NotImplementedError("Unsupported OP yet: %s" % expr.op)
+        if len(args) > 1:
+            for arg in args[1:]:
+                if expr.op in cls.trivial_ops:
+                    res = eval("res %s arg" % expr.op)
+                elif expr.op == ">>":
+                    res = z3.LShR(res, arg)
+                elif expr.op == "a>>":
+                    res = res >> arg
+                elif expr.op == "a<<":
+                    res = res << arg
+                else:
+                    raise NotImplementedError("Unsupported OP yet: %s" % expr.op)
+        elif expr.op == 'parity':
+            res = z3.Extract(0, 0, res)
+        elif expr.op == '-':
+            res = -res
+        else:
+            raise NotImplementedError("Unsupported OP yet: %s" % expr.op)
         return res
 
     @classmethod
