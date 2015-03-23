@@ -121,7 +121,9 @@ assert equiv(ez3, z3_e5)
 
 # --------------------------------------------------------------------------
 # Parity
-for miasm_int, res in [(five, 1), (four, 0)]:
+seven = ExprInt32(7)
+one0seven = ExprInt32(0x107)
+for miasm_int, res in [(five, 1), (four, 0), (seven, 0), (one0seven, 0)]:
     e6 = ExprOp('parity', miasm_int)
     ez3 = Translator.to_language('z3').from_expr(e6)
     z3_e6 = z3.BitVecVal(res, 1)

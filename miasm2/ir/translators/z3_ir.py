@@ -167,7 +167,10 @@ class TranslatorZ3(Translator):
                 else:
                     raise NotImplementedError("Unsupported OP yet: %s" % expr.op)
         elif expr.op == 'parity':
-            res = z3.Extract(0, 0, res)
+            arg = z3.Extract(7, 0, res)
+            res = z3.BitVecVal(1, 1)
+            for i in xrange(8):
+                res = res ^ z3.Extract(i, i, arg)
         elif expr.op == '-':
             res = -res
         else:
