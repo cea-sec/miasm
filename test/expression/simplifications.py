@@ -36,7 +36,7 @@ x = ExprMem(a + b + ExprInt32(0x42))
 # Define tests: (expression to simplify, expected value)
 to_test = [(ExprInt32(1) - ExprInt32(1), ExprInt32(0)),
            ((ExprInt32(5) + c + a + b - a + ExprInt32(1) - ExprInt32(5)),
-            b + c + ExprInt32(1)),
+            ExprOp('+', b, c, ExprInt32(1))),
            (a + b + c - a - b - c + a, a),
            (a + a + b + c - (a + (b + c)), a),
            (c ^ b ^ a ^ c ^ b, a),
@@ -52,13 +52,13 @@ to_test = [(ExprInt32(1) - ExprInt32(1), ExprInt32(0)),
            (ExprOp('<<<', a, ExprOp('<<<', b, c)),
             ExprOp('<<<', a, ExprOp('<<<', b, c))),
            (ExprOp('<<<', ExprOp('<<<', a, b), c),
-            ExprOp('<<<', ExprOp('<<<', a, b), c)),
+            ExprOp('<<<', a, (b+c))),
            (ExprOp('<<<', ExprOp('>>>', a, b), c),
-            ExprOp('<<<', ExprOp('>>>', a, b), c)),
+            ExprOp('>>>', a, (b-c))),
            (ExprOp('>>>', ExprOp('<<<', a, b), c),
-            ExprOp('>>>', ExprOp('<<<', a, b), c)),
+            ExprOp('<<<', a, (b-c))),
            (ExprOp('>>>', ExprOp('<<<', a, b), b),
-            ExprOp('>>>', ExprOp('<<<', a, b), b)),
+            a),
 
 
            (ExprOp('>>>', ExprOp('<<<', a, ExprInt32(10)), ExprInt32(2)),
@@ -137,7 +137,7 @@ to_test = [(ExprInt32(1) - ExprInt32(1), ExprInt32(0)),
     (ExprOp('*', -a, -b, c, ExprInt32(0x12)),
      ExprOp('*', a, b, c, ExprInt32(0x12))),
     (ExprOp('*', -a, -b, -c, ExprInt32(0x12)),
-     ExprOp('*', -a, b, c, ExprInt32(0x12))),
+     - ExprOp('*', a, b, c, ExprInt32(0x12))),
     (a | ExprInt32(0xffffffff),
      ExprInt32(0xffffffff)),
     (ExprCond(a, ExprInt32(1), ExprInt32(2)) * ExprInt32(4),
@@ -197,13 +197,15 @@ to_test = [(ExprInt32(1) - ExprInt32(1), ExprInt32(0)),
      ExprCompose([(a, 0, 32), (d, 32, 64)])),
     (ExprCompose([(f[:32], 0, 32), (ExprInt32(0), 32, 64)]) | ExprCompose([(ExprInt32(0), 0, 32), (f[32:], 32, 64)]),
      f),
+    ((ExprCompose([(a, 0, 32), (ExprInt32(0), 32, 64)]) * ExprInt64(0x123))[32:64],
+     (ExprCompose([(a, 0, 32), (ExprInt32(0), 32, 64)]) * ExprInt64(0x123))[32:64])
+
 
 ]
 
 for e, e_check in to_test[:]:
     #
     print "#" * 80
-    e_check = expr_simp(e_check)
     # print str(e), str(e_check)
     e_new = expr_simp(e)
     print "original: ", str(e), "new: ", str(e_new)
