@@ -447,9 +447,8 @@ def simp_slice(e_s, e):
         e = ExprCond(e.arg.cond, src1, src2)
 
     # (a * int)[0:y] => (a[0:y] * int[0:y])
-    elif (isinstance(e.arg, ExprOp) and
-        e.arg.op == "*" and
-        isinstance(e.arg.args[-1], ExprInt)):
+    elif (e.start == 0 and isinstance(e.arg, ExprOp) and
+        e.arg.op == "*" and isinstance(e.arg.args[-1], ExprInt)):
         args = [e_s.expr_simp_wrapper(a[e.start:e.stop]) for a in e.arg.args]
         e = ExprOp(e.arg.op, *args)
 
