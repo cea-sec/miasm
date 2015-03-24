@@ -304,8 +304,11 @@ def xor(ir, instr, a, b):
 
 def pxor(ir, instr, a, b):
     e = []
+    if isinstance(a, m2_expr.ExprMem):
+        a = m2_expr.ExprMem(a.arg, b.size)
+    if isinstance(b, m2_expr.ExprMem):
+        b = m2_expr.ExprMem(b.arg, a.size)
     c = a ^ b
-    # e += update_flag_logic(c)
     e.append(m2_expr.ExprAff(a, c))
     return e, []
 
