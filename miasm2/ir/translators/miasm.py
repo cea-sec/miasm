@@ -6,45 +6,37 @@ class TranslatorMiasm(Translator):
 
     __LANG__ = "Miasm"
 
-    @classmethod
-    def from_ExprId(cls, expr):
+    def from_ExprId(self, expr):
         return "ExprId(%s, size=%d)" % (repr(expr.name), expr.size)
 
-    @classmethod
-    def from_ExprInt(cls, expr):
+    def from_ExprInt(self, expr):
         return "ExprInt_fromsize(%d, 0x%x)" % (expr.size, int(expr.arg))
 
-    @classmethod
-    def from_ExprCond(cls, expr):
-        return "ExprCond(%s, %s, %s)" % (cls.from_expr(expr.cond),
-                                         cls.from_expr(expr.src1),
-                                         cls.from_expr(expr.src2))
+    def from_ExprCond(self, expr):
+        return "ExprCond(%s, %s, %s)" % (self.from_expr(expr.cond),
+                                         self.from_expr(expr.src1),
+                                         self.from_expr(expr.src2))
 
-    @classmethod
-    def from_ExprSlice(cls, expr):
-        return "ExprSlice(%s, %d, %d)" % (cls.from_expr(expr.arg),
+    def from_ExprSlice(self, expr):
+        return "ExprSlice(%s, %d, %d)" % (self.from_expr(expr.arg),
                                           expr.start,
                                           expr.stop)
 
-    @classmethod
-    def from_ExprOp(cls, expr):
+    def from_ExprOp(self, expr):
         return "ExprOp(%s, %s)" % (repr(expr.op),
-                                   ", ".join(map(cls.from_expr, expr.args)))
+                                   ", ".join(map(self.from_expr, expr.args)))
 
-    @classmethod
-    def from_ExprCompose(cls, expr):
-        args = ["(%s, %d, %d)" % (cls.from_expr(arg), start, stop)
+    def from_ExprCompose(self, expr):
+        args = ["(%s, %d, %d)" % (self.from_expr(arg), start, stop)
                 for arg, start, stop in expr.args]
         return "ExprCompose([%s])" % ", ".join(args)
 
-    @classmethod
-    def from_ExprAff(cls, expr):
-        return "ExprAff(%s, %s)" % (cls.from_expr(expr.dst),
-                                    cls.from_expr(expr.src))
+    def from_ExprAff(self, expr):
+        return "ExprAff(%s, %s)" % (self.from_expr(expr.dst),
+                                    self.from_expr(expr.src))
 
-    @classmethod
-    def from_ExprMem(cls, expr):
-        return "ExprMem(%s, size=%d)" % (cls.from_expr(expr.arg), expr.size)
+    def from_ExprMem(self, expr):
+        return "ExprMem(%s, size=%d)" % (self.from_expr(expr.arg), expr.size)
 
 
 # Register the class

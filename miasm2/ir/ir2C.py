@@ -1,7 +1,7 @@
 import miasm2.expression.expression as m2_expr
 from miasm2.expression.simplifications import expr_simp
 from miasm2.core import asmbloc
-from miasm2.ir.translators.C import TranslatorC
+from miasm2.ir.translators import Translator
 import logging
 
 
@@ -11,6 +11,8 @@ console_handler.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
 log_to_c_h.addHandler(console_handler)
 log_to_c_h.setLevel(logging.WARN)
 
+# Miasm to C translator
+translator = Translator.to_language("C")
 
 prefetch_id = []
 prefetch_id_size = {}
@@ -164,13 +166,13 @@ def gen_resolve_id_lbl(ir_arch, e):
         return 'Resolve_dst(BlockDst, 0x%X, 0)'%(e.name.offset)
 
 def gen_resolve_id(ir_arch, e):
-    return 'Resolve_dst(BlockDst, %s, 0)'%(TranslatorC.from_expr(patch_c_id(ir_arch.arch, e)))
+    return 'Resolve_dst(BlockDst, %s, 0)'%(translator.from_expr(patch_c_id(ir_arch.arch, e)))
 
 def gen_resolve_mem(ir_arch, e):
-    return 'Resolve_dst(BlockDst, %s, 0)'%(TranslatorC.from_expr(patch_c_id(ir_arch.arch, e)))
+    return 'Resolve_dst(BlockDst, %s, 0)'%(translator.from_expr(patch_c_id(ir_arch.arch, e)))
 
 def gen_resolve_other(ir_arch, e):
-    return 'Resolve_dst(BlockDst, %s, 0)'%(TranslatorC.from_expr(patch_c_id(ir_arch.arch, e)))
+    return 'Resolve_dst(BlockDst, %s, 0)'%(translator.from_expr(patch_c_id(ir_arch.arch, e)))
 
 def gen_resolve_dst_simple(ir_arch, e):
     if isinstance(e, m2_expr.ExprInt):
@@ -189,7 +191,7 @@ def gen_resolve_dst_simple(ir_arch, e):
 def gen_irdst(ir_arch, e):
     out = []
     if isinstance(e, m2_expr.ExprCond):
-        dst_cond_c = TranslatorC.from_expr(patch_c_id(ir_arch.arch, e.cond))
+        dst_cond_c = translator.from_expr(patch_c_id(ir_arch.arch, e.cond))
         out.append("if (%s)"%dst_cond_c)
         out.append('    %s;'%(gen_resolve_dst_simple(ir_arch, e.src1)))
         out.append("else")
@@ -257,8 +259,8 @@ def Expr2C(ir_arch, l, exprs, gen_exception_code=False):
     mem_k = src_mem.keys()
     mem_k.sort()
     for k in mem_k:
-        str_src = TranslatorC.from_expr(patch_c_id(ir_arch.arch, k))
-        str_dst = TranslatorC.from_expr(patch_c_id(ir_arch.arch, src_mem[k]))
+        str_src = translator.from_expr(patch_c_id(ir_arch.arch, k))
+        str_dst = translator.from_expr(patch_c_id(ir_arch.arch, src_mem[k]))
         out.append('%s = %s;' % (str_dst, str_src))
     src_w_len = {}
     for k, v in src_mem.items():
@@ -273,8 +275,8 @@ def Expr2C(ir_arch, l, exprs, gen_exception_code=False):
             continue
 
 
-        str_src = TranslatorC.from_expr(patch_c_id(ir_arch.arch, src))
-        str_dst = TranslatorC.from_expr(patch_c_id(ir_arch.arch, dst))
+        str_src = translator.from_expr(patch_c_id(ir_arch.arch, src))
+        str_dst = translator.from_expr(patch_c_id(ir_arch.arch, dst))
 
 
 
@@ -304,12 +306,12 @@ def Expr2C(ir_arch, l, exprs, gen_exception_code=False):
     if gen_exception_code:
         if fetch_mem:
             e = set_pc(ir_arch, l.offset & mask_int)
-            s1 = "%s" % TranslatorC.from_expr(patch_c_id(ir_arch.arch, e))
+            s1 = "%s" % translator.from_expr(patch_c_id(ir_arch.arch, e))
             s1 += ';\n    Resolve_dst(BlockDst, 0x%X, 0)'%(l.offset & mask_int)
             out.append(code_exception_fetch_mem_at_instr_noautomod % s1)
         if set_exception_flags:
             e = set_pc(ir_arch, l.offset & mask_int)
-            s1 = "%s" % TranslatorC.from_expr(patch_c_id(ir_arch.arch, e))
+            s1 = "%s" % translator.from_expr(patch_c_id(ir_arch.arch, e))
             s1 += ';\n    Resolve_dst(BlockDst, 0x%X, 0)'%(l.offset & mask_int)
             out.append(code_exception_at_instr_noautomod % s1)
 
@@ -328,10 +330,10 @@ def Expr2C(ir_arch, l, exprs, gen_exception_code=False):
                     "/*pc = 0x%X; */return; }" % (l.offset))
             else:
                 e = set_pc(ir_arch, l.offset & mask_int)
-                s1 = "%s" % TranslatorC.from_expr(patch_c_id(ir_arch.arch, e))
+                s1 = "%s" % translator.from_expr(patch_c_id(ir_arch.arch, e))
                 s1 += ';\n    Resolve_dst(BlockDst, 0x%X, 0)'%(l.offset & mask_int)
                 e = set_pc(ir_arch, (l.offset + l.l) & mask_int)
-                s2 = "%s" % TranslatorC.from_expr(patch_c_id(ir_arch.arch, e))
+                s2 = "%s" % translator.from_expr(patch_c_id(ir_arch.arch, e))
                 s2 += ';\n    Resolve_dst(BlockDst, 0x%X, 0)'%((l.offset + l.l) & mask_int)
                 post_instr.append(
                     code_exception_post_instr_noautomod % (s1, s2))
@@ -343,7 +345,7 @@ def Expr2C(ir_arch, l, exprs, gen_exception_code=False):
                 offset = l.offset + l.l
 
             e = set_pc(ir_arch, offset & mask_int)
-            s1 = "%s" % TranslatorC.from_expr(patch_c_id(ir_arch.arch, e))
+            s1 = "%s" % translator.from_expr(patch_c_id(ir_arch.arch, e))
             s1 += ';\n    Resolve_dst(BlockDst, 0x%X, 0)'%(offset & mask_int)
             post_instr.append(
                 code_exception_fetch_mem_post_instr_noautomod % (s1))
@@ -383,7 +385,7 @@ def ir2C(ir_arch, irbloc, lbl_done,
     for l, exprs in zip(irbloc.lines, irbloc.irs):
         if l.offset not in lbl_done:
             e = set_pc(ir_arch, l.offset & mask_int)
-            s1 = "%s" % TranslatorC.from_expr(patch_c_id(ir_arch.arch, e))
+            s1 = "%s" % translator.from_expr(patch_c_id(ir_arch.arch, e))
             s1 += ';\n    Resolve_dst(BlockDst, 0x%X, 0)'%(l.offset & mask_int)
             out.append([pre_instr_test_exception % (s1)])
             lbl_done.add(l.offset)

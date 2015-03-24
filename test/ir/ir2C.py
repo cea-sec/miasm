@@ -7,16 +7,17 @@ import unittest
 class TestIrIr2C(unittest.TestCase):
 
     def translationTest(self, expr, expected):
-        from miasm2.ir.translators.C import TranslatorC
+        from miasm2.ir.translators import Translator
 
-        self.assertEqual(TranslatorC.from_expr(expr), expected)
+        translator = Translator.to_language("C")
+        self.assertEqual(translator.from_expr(expr), expected)
 
     def test_ExprOp_toC(self):
         from miasm2.expression.expression import ExprInt32, ExprOp
-        from miasm2.ir.translators.C import TranslatorC
+        from miasm2.ir.translators.C import Translator
 
         args = [ExprInt32(i) for i in xrange(9)]
-
+        translator = Translator.to_language("C")
 
         # Unary operators
         self.translationTest(
@@ -26,7 +27,7 @@ class TestIrIr2C(unittest.TestCase):
         self.translationTest(
             ExprOp('hex2bcd', *args[:1]), r'hex2bcd_32(0x0)')
         self.translationTest(ExprOp('fabs',    *args[:1]), r'fabs(0x0)')
-        self.assertRaises(NotImplementedError, TranslatorC.from_expr,
+        self.assertRaises(NotImplementedError, translator.from_expr,
                           ExprOp('X', *args[:1]))
 
         # Binary operators
@@ -50,7 +51,7 @@ class TestIrIr2C(unittest.TestCase):
             ExprOp('imod',    *args[:2]), r'imod32(vmcpu, 0x0, 0x1)')
         self.translationTest(
             ExprOp('bcdadd',  *args[:2]), r'bcdadd_32(0x0, 0x1)')
-        self.assertRaises(NotImplementedError, TranslatorC.from_expr,
+        self.assertRaises(NotImplementedError, translator.from_expr,
                           ExprOp('X', *args[:2]))
 
         # Ternary operators
@@ -60,7 +61,7 @@ class TestIrIr2C(unittest.TestCase):
         # Other cases
         self.translationTest(
             ExprOp('+',       *args[:3]), r'(((0x0&0xffffffff)+(0x1&0xffffffff)+(0x2&0xffffffff))&0xffffffff)')
-        self.assertRaises(NotImplementedError, TranslatorC.from_expr,
+        self.assertRaises(NotImplementedError, translator.from_expr,
                           ExprOp('X', *args[:3]))
 
 if __name__ == '__main__':

@@ -3,7 +3,7 @@ import z3
 from miasm2.core.asmbloc import asm_label
 from miasm2.expression.expression import *
 from miasm2.ir.translators.translator import Translator
-from miasm2.ir.translators.z3_ir import TranslatorZ3, Z3Mem
+from miasm2.ir.translators.z3_ir import Z3Mem
 
 # Some examples of use/unit tests.
 
@@ -98,7 +98,7 @@ check_interp(model[mem.get_mem_array(32)],
              [(0xdeadbeef, 2), (0xdeadbeef + 3, 0)])
 
 # --------------------------------------------------------------------------
-ez3 = TranslatorZ3.from_expr(e4, endianness=">")
+ez3 = Translator.to_language("z3", endianness=">").from_expr(e4)
 
 memb = Z3Mem(endianness=">")
 z3_emem = memb.get(z3.BitVecVal(0xdeadbeef, 32), 32)

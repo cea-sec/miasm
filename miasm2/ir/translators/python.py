@@ -13,45 +13,38 @@ class TranslatorPython(Translator):
     # Operations translation
     op_no_translate = ["+", "-", "/", "%", ">>", "<<", "&", "^", "|", "*"]
 
-    @classmethod
-    def from_ExprInt(cls, expr):
+    def from_ExprInt(self, expr):
         return str(expr)
 
-    @classmethod
-    def from_ExprId(cls, expr):
+    def from_ExprId(self, expr):
         return str(expr)
 
-    @classmethod
-    def from_ExprMem(cls, expr):
-        return "memory(%s, 0x%x)" % (cls.from_expr(expr.arg),
+    def from_ExprMem(self, expr):
+        return "memory(%s, 0x%x)" % (self.from_expr(expr.arg),
                                      expr.size / 8)
 
-    @classmethod
-    def from_ExprSlice(cls, expr):
-        out = cls.from_expr(expr.arg)
+    def from_ExprSlice(self, expr):
+        out = self.from_expr(expr.arg)
         if expr.start != 0:
             out = "(%s >> %d)" % (out, expr.start)
         return "(%s & 0x%x)" % (out, (1 << (expr.stop - expr.start)) - 1)
 
-    @classmethod
-    def from_ExprCompose(cls, expr):
+    def from_ExprCompose(self, expr):
         out = []
         for subexpr, start, stop in expr.args:
-            out.append("((%s & 0x%x) << %d)" % (cls.from_expr(subexpr),
+            out.append("((%s & 0x%x) << %d)" % (self.from_expr(subexpr),
                                                  (1 << (stop - start)) - 1,
                                                  start))
         return "(%s)" % ' | '.join(out)
 
-    @classmethod
-    def from_ExprCond(cls, expr):
-        return "(%s if (%s) else %s)" % (cls.from_expr(expr.src1),
-                                         cls.from_expr(expr.cond),
-                                         cls.from_expr(expr.src2))
+    def from_ExprCond(self, expr):
+        return "(%s if (%s) else %s)" % (self.from_expr(expr.src1),
+                                         self.from_expr(expr.cond),
+                                         self.from_expr(expr.src2))
 
-    @classmethod
-    def from_ExprOp(cls, expr):
-        if expr.op in cls.op_no_translate:
-            args = map(cls.from_expr, expr.args)
+    def from_ExprOp(self, expr):
+        if expr.op in self.op_no_translate:
+            args = map(self.from_expr, expr.args)
             if len(expr.args) == 1:
                 return "((%s %s) & 0x%x)" % (expr.op,
                                              args[0],
@@ -60,13 +53,12 @@ class TranslatorPython(Translator):
                 return "((%s) & 0x%x)" % ((" %s " % expr.op).join(args),
                                         (1 << expr.size) - 1)
         elif expr.op == "parity":
-            return "(%s & 0x1)" % cls.from_expr(expr.args[0])
+            return "(%s & 0x1)" % self.from_expr(expr.args[0])
 
         raise NotImplementedError("Unknown operator: %s" % expr.op)
 
-    @classmethod
-    def from_ExprAff(cls, expr):
-        return "%s = %s" % tuple(map(cls.from_expr, (expr.dst, expr.src)))
+    def from_ExprAff(self, expr):
+        return "%s = %s" % tuple(map(self.from_expr, (expr.dst, expr.src)))
 
 
 # Register the class
