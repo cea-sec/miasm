@@ -302,6 +302,16 @@ def xor(ir, instr, a, b):
     return e, []
 
 
+def pxor(ir, instr, a, b):
+    e = []
+    if isinstance(a, m2_expr.ExprMem):
+        a = m2_expr.ExprMem(a.arg, b.size)
+    if isinstance(b, m2_expr.ExprMem):
+        b = m2_expr.ExprMem(b.arg, a.size)
+    c = a ^ b
+    e.append(m2_expr.ExprAff(a, c))
+    return e, []
+
 def l_or(ir, instr, a, b):
     e = []
     c = a | b
@@ -3138,6 +3148,7 @@ mnemo_func = {'mov': mov,
               'not': l_not,
               'cmp': l_cmp,
               'xor': xor,
+              'pxor': pxor,
               'or': l_or,
               'and': l_and,
               'test': l_test,
