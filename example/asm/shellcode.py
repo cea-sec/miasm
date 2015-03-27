@@ -88,9 +88,7 @@ graph = asmbloc.bloc2graph(blocs[0])
 open("graph.txt", "w").write(graph)
 
 # Apply patches
-resolved_b, patches = asmbloc.asm_resolve_final(machine.mn,
-                                                blocs[0],
-                                                symbol_pool)
+patches = asmbloc.asm_resolve_final(machine.mn, blocs[0], symbol_pool)
 if args.encrypt:
     # Encrypt code
     ad_start = symbol_pool.getby_name_create(args.encrypt[0]).offset
