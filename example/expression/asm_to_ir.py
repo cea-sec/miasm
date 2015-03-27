@@ -7,13 +7,6 @@ from miasm2.arch.x86.ira import ir_a_x86_32
 from pdb import pm
 
 
-def my_ast_int2expr(a):
-    return ExprInt32(a)
-
-my_var_parser = parse_ast(ast_id2expr, my_ast_int2expr)
-base_expr.setParseAction(my_var_parser)
-
-
 # First, asm code
 blocs, symbol_pool = parse_asm.parse_txt(mn_x86, 32, '''
 main:

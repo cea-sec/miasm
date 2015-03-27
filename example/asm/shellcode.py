@@ -58,15 +58,6 @@ else:
     virt = st
     output = st
 
-# Fix the AST parser
-def my_ast_int2expr(a):
-    return m2_expr.ExprInt_fromsize(size, a)
-
-def my_ast_id2expr(t):
-    return reg_and_id.get(t, m2_expr.ExprId(t, size=size))
-
-my_var_parser = parse_ast(my_ast_id2expr, my_ast_int2expr)
-base_expr.setParseAction(my_var_parser)
 
 # Get and parse the source code
 with open(args.source) as fstream:
