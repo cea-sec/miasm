@@ -9,6 +9,7 @@ from collections import defaultdict
 from miasm2.core.bin_stream import bin_stream
 import miasm2.arch.arm.regs as regs_module
 from miasm2.arch.arm.regs import *
+from miasm2.core.asmbloc import asm_label
 
 # A1 encoding
 
@@ -167,7 +168,7 @@ int_or_expr = base_expr
 
 def ast_id2expr(t):
     if not t in mn_arm.regs.all_regs_ids_byname:
-        r = ExprId(t)
+        r = ExprId(asm_label(t))
     else:
         r = mn_arm.regs.all_regs_ids_byname[t]
     return r

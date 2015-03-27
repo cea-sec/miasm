@@ -9,6 +9,7 @@ from collections import defaultdict
 from miasm2.core.bin_stream import bin_stream
 import miasm2.arch.msp430.regs as regs_module
 from miasm2.arch.msp430.regs import *
+from miasm2.core.asmbloc import asm_label
 
 log = logging.getLogger("armdis")
 console_handler = logging.StreamHandler()
@@ -73,7 +74,7 @@ PINC = Suppress("+")
 
 def ast_id2expr(t):
     if not t in mn_msp430.regs.all_regs_ids_byname:
-        r = ExprId(t, 16)
+        r = ExprId(asm_label(t), 16)
     else:
         r = mn_msp430.regs.all_regs_ids_byname[t]
     return r

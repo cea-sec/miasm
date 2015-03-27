@@ -30,6 +30,25 @@ def guess_next_new_label(symbol_pool, gen_label_index=0):
             return symbol_pool.add_label(name)
         i += 1
 
+def replace_expr_labels(e, symbol_pool, replace_id):
+    if not isinstance(e, m2_expr.ExprId):
+        return e
+    if not isinstance(e.name, asmbloc.asm_label):
+        return e
+    old_lbl = e.name
+    new_lbl = symbol_pool.getby_name_create(old_lbl.name)
+    replace_id[e] = m2_expr.ExprId(new_lbl, e.size)
+    return m2_expr.ExprId(new_lbl, e.size)
+
+def replace_orphan_labels(instr, symbol_pool):
+    for i, arg in enumerate(instr.args):
+        replace_id = {}
+        arg.visit(lambda e:replace_expr_labels(e,
+                                               symbol_pool,
+                                               replace_id))
+        instr.args[i] = instr.args[i].replace_expr(replace_id)
+
+
 
 def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
     if symbol_pool is None:
@@ -147,6 +166,10 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
             line = line[:line.find(';')]
         line = line.strip(' ').strip('\t')
         instr = mnemo.fromstring(line, attrib)
+
+        # replace orphan asm_label with labels from symbol_pool
+        replace_orphan_labels(instr, symbol_pool)
+
         if instr.dstflow():
             instr.dstflow2label(symbol_pool)
         lines.append(instr)

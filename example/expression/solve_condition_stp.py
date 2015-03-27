@@ -138,12 +138,13 @@ if __name__ == '__main__':
     def my_ast_int2expr(a):
         return ExprInt32(a)
 
-    def my_ast_id2expr(t):
-        if t in reg_and_id:
-            r = reg_and_id[t]
+    # Modifify parser to avoid label creation in PUSH argc
+    def my_ast_id2expr(string_parsed):
+        if string_parsed in reg_and_id:
+            return reg_and_id[string_parsed]
         else:
-            r = ExprId(t, size=32)
-        return r
+            return ExprId(string_parsed, size=32)
+
     my_var_parser = parse_ast(my_ast_id2expr, my_ast_int2expr)
     base_expr.setParseAction(my_var_parser)
 

@@ -5,8 +5,9 @@ from pyparsing import *
 from miasm2.core.cpu import *
 from miasm2.expression.expression import *
 from collections import defaultdict
+import miasm2.arch.sh4.regs as regs_module
 from miasm2.arch.sh4.regs import *
-
+from miasm2.core.asmbloc import asm_label
 
 jra = ExprId('jra')
 jrb = ExprId('jrb')
@@ -35,8 +36,12 @@ def parse_pcandimmimm(t):
     t = t[0]
     return (t[0] & t[1]) + t[2]
 
-def ast_id2expr(a):
-    return ExprId(a, 32)
+def ast_id2expr(t):
+    if not t in mn_sh4.regs.all_regs_ids_byname:
+        r = ExprId(asm_label(t))
+    else:
+        r = mn_sh4.regs.all_regs_ids_byname[t]
+    return r
 
 def ast_int2expr(a):
     return ExprInt32(a)
@@ -465,6 +470,7 @@ class instruction_sh4(instruction):
 
 class mn_sh4(cls_mn):
     bintree = {}
+    regs = regs_module
     num = 0
     all_mn = []
     all_mn_mode = defaultdict(list)

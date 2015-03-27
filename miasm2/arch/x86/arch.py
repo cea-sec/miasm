@@ -9,6 +9,7 @@ from collections import defaultdict
 import miasm2.arch.x86.regs as regs_module
 from miasm2.arch.x86.regs import *
 from miasm2.ir.ir import *
+from miasm2.core.asmbloc import asm_label
 
 log = logging.getLogger("x86_arch")
 console_handler = logging.StreamHandler()
@@ -225,7 +226,7 @@ variable, operand, base_expr = gen_base_expr()
 
 def ast_id2expr(t):
     if not t in mn_x86.regs.all_regs_ids_byname:
-        r = ExprId(t)
+        r = ExprId(asm_label(t))
     else:
         r = mn_x86.regs.all_regs_ids_byname[t]
     return r
@@ -486,10 +487,13 @@ class instruction_x86(instruction):
         if self.additional_info.g1.value & 6 and self.name in repeat_mn:
             return
         e = self.args[0]
-        if isinstance(e, ExprId) and not e.name in all_regs_ids_byname:
-            l = symbol_pool.getby_name_create(e.name)
-            s = ExprId(l, e.size)
-            self.args[0] = s
+        if isinstance(e, ExprId):
+            if isinstance(e.name, asm_label):
+                pass
+            elif not e.name in all_regs_ids_byname:
+                l = symbol_pool.getby_name_create(e.name)
+                s = ExprId(l, e.size)
+                self.args[0] = s
         elif isinstance(e, ExprInt):
             ad = e.arg + int(self.offset) + self.l
             l = symbol_pool.getby_offset_create(ad)
