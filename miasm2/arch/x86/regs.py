@@ -388,6 +388,10 @@ all_regs_ids = [
     float_stack_ptr,
     mm0, mm1, mm2, mm3, mm4, mm5, mm6, mm7,
 
+    XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7,
+    XMM8, XMM9, XMM10, XMM11, XMM12, XMM13, XMM14, XMM15,
+
+
     exception_flags,
 ] + fltregs32_expr
 
@@ -406,6 +410,9 @@ all_regs_ids_no_alias = [
     dr0, dr1, dr2, dr3, dr4, dr5, dr6, dr7,
     float_stack_ptr,
     mm0, mm1, mm2, mm3, mm4, mm5, mm6, mm7,
+    XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7,
+    XMM8, XMM9, XMM10, XMM11, XMM12, XMM13, XMM14, XMM15,
+
 
     exception_flags,
 ] + fltregs32_expr
