@@ -947,14 +947,14 @@ class instruction(object):
             for x in ids:
                 if isinstance(x.name, asmbloc.asm_label):
                     name = x.name.name
+                    # special symbol $
+                    if name == '$':
+                        fixed_ids[x] = self.get_asm_offset(x)
+                        continue
                     if not name in symbols:
                         raise ValueError('unresolved symbol! %r' % x)
                 else:
                     name = x.name
-                # special symbol
-                if name == '$':
-                    fixed_ids[x] = self.get_asm_offset(x)
-                    continue
                 if not name in symbols:
                     continue
                 if symbols[name].offset is None:
@@ -981,6 +981,8 @@ class cls_mn(object):
     __metaclass__ = metamn
     args_symb = []
     instruction = instruction
+    # Block's offset alignement
+    alignment = 1
 
     @classmethod
     def guess_mnemo(cls, bs, attrib, pre_dis_info, offset):

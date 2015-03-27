@@ -485,6 +485,10 @@ class instruction_armt(instruction_arm):
             raise ValueError('strange offset! %r' % off)
         self.args[0] = ExprInt32(off)
 
+    def get_asm_offset(self, x):
+        # ADR XXX, PC, imm => PC is 4 aligned + imm
+        new_offset = ((self.offset+self.l)/4)*4
+        return ExprInt_from(x, new_offset)
 
 
 class mn_arm(cls_mn):
@@ -501,6 +505,7 @@ class mn_arm(cls_mn):
     sp = {'l':SP, 'b':SP}
     instruction = instruction_arm
     max_instruction_len = 4
+    alignment = 4
 
     @classmethod
     def getpc(cls, attrib = None):
@@ -599,7 +604,8 @@ class mn_armt(cls_mn):
     pc = PC
     sp = SP
     instruction = instruction_armt
-    max_instruction_len = 8
+    max_instruction_len = 4
+    alignment = 4
 
     @classmethod
     def getpc(cls, attrib = None):
@@ -784,7 +790,9 @@ class arm_offs(arm_imm):
         return v << 2
 
     def encodeval(self, v):
-        return v >> 2
+        if v%4 == 0:
+            return v >> 2
+        return False
 
     def decode(self, v):
         v = v & self.lmask

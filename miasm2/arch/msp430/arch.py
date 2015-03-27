@@ -188,8 +188,7 @@ class instruction_msp430(instruction):
             # raise ValueError('dst must be int or label')
             log.warning('dynamic dst %r', e)
             return
-        # return ExprInt32(e.arg - (self.offset + self.l))
-        self.args[0] = ExprInt_fromsize(16, e.arg - (self.offset + self.l))
+        self.args[0] = ExprInt_fromsize(16, (e.arg - (self.offset + self.l))/2)
 
     def get_info(self, c):
         pass

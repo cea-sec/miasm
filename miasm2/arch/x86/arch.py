@@ -488,12 +488,8 @@ class instruction_x86(instruction):
             return
         e = self.args[0]
         if isinstance(e, ExprId):
-            if isinstance(e.name, asm_label):
-                pass
-            elif not e.name in all_regs_ids_byname:
-                l = symbol_pool.getby_name_create(e.name)
-                s = ExprId(l, e.size)
-                self.args[0] = s
+            if not isinstance(e.name, asm_label) and e not in all_regs_ids:
+                raise ValueError("ExprId must be a label or a register")
         elif isinstance(e, ExprInt):
             ad = e.arg + int(self.offset) + self.l
             l = symbol_pool.getby_offset_create(ad)

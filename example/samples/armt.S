@@ -15,7 +15,7 @@ main:
      PUSH    {LR}
      SUB     SP, 0x100
      MOV     R0, SP
-     ADD     R1, PC, mystr-$+6
+     ADD     R1, PC, mystr-$
      MOV     R0, R0
      EORS    R2, R2
      ADDS    R2, R2, 0x4
