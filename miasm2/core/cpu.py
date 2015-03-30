@@ -654,12 +654,12 @@ class reg_noarg(object):
 
     def encode(self):
         if not self.expr in self.reg_info.expr:
-            log.debug("cannot encode reg %r" % self.expr)
+            log.debug("cannot encode reg %r", self.expr)
             return False
         self.value = self.reg_info.expr.index(self.expr)
         if self.value > self.lmask:
-            log.debug("cannot encode field value %x %x" %
-                      (self.value, self.lmask))
+            log.debug("cannot encode field value %x %x",
+                      self.value, self.lmask)
             return False
         return True
 
@@ -1132,9 +1132,8 @@ class cls_mn(object):
                     total_l += l
                     f.l = l
                     f.is_present = True
-                    log.debug("FIELD %s %s %s %s" % (f.__class__,
-                                                     f.fname,
-                                                     offset_b, l))
+                    log.debug("FIELD %s %s %s %s", f.__class__, f.fname,
+                              offset_b, l)
                     if bs_l * 8 - offset_b < l:
                         getok = False
                         break
@@ -1155,7 +1154,7 @@ class cls_mn(object):
                 if f.is_present:
                     ret = f.decode(todo[i])
                     if not ret:
-                        log.debug("cannot decode %r" % (f))
+                        log.debug("cannot decode %r", f)
                         break
 
             if not ret:
@@ -1237,7 +1236,7 @@ class cls_mn(object):
 
                     start, stop = f.fromstring(args_str, parsers[(i, start_i)])
                     if start != 0:
-                        log.debug("cannot fromstring %r" % (args_str))
+                        log.debug("cannot fromstring %r", args_str)
                         cannot_parse = True
                         break
                     if f.expr is None:
@@ -1310,7 +1309,7 @@ class cls_mn(object):
 
                 v = c.value(instr.mode)
                 if not v:
-                    log.debug("cannot encode %r" % (c))
+                    log.debug("cannot encode %r", c)
                     cannot_parse = True
                 if cannot_parse:
                     continue
@@ -1354,7 +1353,7 @@ class cls_mn(object):
             for i, f in to_decode[index:]:
                 ret = f.encode()
                 if not ret:
-                    log.debug('cannot encode %r' % f)
+                    log.debug('cannot encode %r', f)
                     can_encode = False
                     break
                 index += 1
@@ -1494,7 +1493,7 @@ class imm_noarg(object):
         else:
             raise TypeError('zarb expr')
         if self.expr is None:
-            log.debug('cannot fromstring int %r' % s)
+            log.debug('cannot fromstring int %r', s)
             return None, None
         return start, stop
 

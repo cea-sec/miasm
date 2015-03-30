@@ -185,7 +185,7 @@ class instruction_msp430(instruction):
             raise ValueError('symbol not resolved %s' % l)
         if not isinstance(e, ExprInt):
             # raise ValueError('dst must be int or label')
-            log.warning('dynamic dst %r' % e)
+            log.warning('dynamic dst %r', e)
             return
         # return ExprInt32(e.arg - (self.offset + self.l))
         self.args[0] = ExprInt_fromsize(16, e.arg - (self.offset + self.l))

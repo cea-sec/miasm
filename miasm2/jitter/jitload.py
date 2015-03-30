@@ -55,19 +55,19 @@ def named_arguments(func):
             ret_ad, arg_vals = func(self, len(args))
             arg_vals = namedtuple("args", args)(*arg_vals)
             # func_name(arguments) return address
-            log_func.info('%s(%s) ret addr: %s' % (
+            log_func.info('%s(%s) ret addr: %s',
                 whoami(),
                 ', '.join("%s=0x%x" % (field, value)
                           for field, value in arg_vals._asdict().iteritems()),
-                hex(ret_ad)))
+                hex(ret_ad))
             return ret_ad, namedtuple("args", args)(*arg_vals)
         else:
             ret_ad, arg_vals = func(self, args)
             # func_name(arguments) return address
-            log_func.info('%s(%s) ret addr: %s' % (
+            log_func.info('%s(%s) ret addr: %s',
                 whoami(),
                 ', '.join(hex(arg) for arg in arg_vals),
-                hex(ret_ad)))
+                hex(ret_ad))
             return ret_ad, arg_vals
     return newfunc
 
@@ -404,7 +404,7 @@ class jitter:
         if fname in jitter.user_globals:
             func = jitter.user_globals[fname]
         else:
-            log.debug('%s' % repr(fname))
+            log.debug('%r', fname)
             raise ValueError('unknown api', hex(jitter.pc), repr(fname))
         func(jitter)
         jitter.pc = getattr(jitter.cpu, jitter.ir_arch.pc.name)

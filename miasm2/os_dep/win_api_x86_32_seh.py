@@ -861,13 +861,13 @@ def return_from_seh(myjit):
 
     # Get current context
     myjit.cpu.ESP = upck32(myjit.vm.get_mem(context_address + 0xc4, 4))
-    logging.info('-> new esp: %x' % myjit.cpu.ESP)
+    logging.info('-> new esp: %x', myjit.cpu.ESP)
 
     # Rebuild SEH
     old_seh = upck32(myjit.vm.get_mem(tib_address, 4))
     new_seh = upck32(myjit.vm.get_mem(old_seh, 4))
-    logging.info('-> old seh: %x' % old_seh)
-    logging.info('-> new seh: %x' % new_seh)
+    logging.info('-> old seh: %x', old_seh)
+    logging.info('-> new seh: %x', new_seh)
     myjit.vm.set_mem(tib_address, pck32(new_seh))
 
     dump_seh(myjit)
@@ -888,7 +888,7 @@ def return_from_seh(myjit):
         for reg_name, reg_value in regs.items():
             setattr(myjit.cpu, reg_name, reg_value)
 
-        logging.info('-> context::Eip: %x' % myjit.pc)
+        logging.info('-> context::Eip: %x', myjit.pc)
 
     elif myjit.cpu.EAX == -1:
         raise NotImplementedError("-> seh try to go to the next handler")

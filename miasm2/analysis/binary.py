@@ -46,7 +46,7 @@ class Container(object):
             addr = 0
         else:
             # Force fallback mode
-            log.warning('Fallback to string input (offset=%s)' % hex(addr))
+            log.warning('Fallback to string input (offset=%s)', hex(addr))
             return cls.fallback_container(data, vm, addr)
 
         # Try each available format
@@ -59,7 +59,7 @@ class Container(object):
                 log.error(error)
 
         # Fallback mode
-        log.warning('Fallback to string input (offset=%s)' % hex(addr))
+        log.warning('Fallback to string input (offset=%s)', hex(addr))
         return cls.fallback_container(data, vm, addr)
 
     @classmethod

@@ -43,7 +43,7 @@ class GdbServer(object):
             data = self.sock.recv(4096)
             all_data += data
 
-        logging.debug("<- %r" % all_data)
+        logging.debug("<- %r", all_data)
         self.recv_queue += self.parse_messages(all_data)
 
     def parse_messages(self, data):
@@ -258,7 +258,7 @@ class GdbServer(object):
                 data = "+"
             else:
                 data = "$%s#%s" % (msg, self.compute_checksum(msg))
-            logging.debug("-> %r" % data)
+            logging.debug("-> %r", data)
             self.sock.send(data)
         self.send_queue = []
 

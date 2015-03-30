@@ -403,7 +403,7 @@ def advapi32_CryptAcquireContext(jitter, funcname, get_str):
                                              "pszprovider", "dwprovtype",
                                              "dwflags"])
     prov = get_str(jitter, args.pszprovider) if args.pszprovider else "NONE"
-    log.debug('prov: %r' % prov)
+    log.debug('prov: %r', prov)
     jitter.vm.set_mem(args.phprov, pck32(winobjs.cryptcontext_hwnd))
     jitter.func_ret_stdcall(ret_ad, 1)
 
@@ -455,7 +455,7 @@ def advapi32_CryptHashData(jitter):
         raise ValueError("unknown crypt context")
 
     data = jitter.vm.get_mem(args.pbdata, args.dwdatalen)
-    log.debug('will hash %X' % args.dwdatalen)
+    log.debug('will hash %X', args.dwdatalen)
     log.debug(repr(data[:10]) + "...")
     winobjs.cryptcontext[args.hhash].h.update(data)
     jitter.func_ret_stdcall(ret_ad, 1)
@@ -493,7 +493,7 @@ def advapi32_CryptDeriveKey(jitter):
     else:
         raise ValueError('un impl algo2')
     h = winobjs.cryptcontext[args.hbasedata].h.digest()
-    log.debug('hash %r'% h)
+    log.debug('hash %r', h)
     winobjs.cryptcontext[args.hbasedata].h_result = h
     jitter.vm.set_mem(args.phkey, pck32(args.hbasedata))
     jitter.func_ret_stdcall(ret_ad, 1)
@@ -520,7 +520,7 @@ def kernel32_CreateFile(jitter, funcname, get_str):
                                              "dwflagsandattr",
                                              "htemplatefile"])
     fname = get_str(jitter, args.lpfilename)
-    log.debug('fname %s' % fname)
+    log.debug('fname %s', fname)
     fname_o = fname[:]
     ret = 0xffffffff
 
@@ -532,7 +532,7 @@ def kernel32_CreateFile(jitter, funcname, get_str):
     else:
         f = fname_o
     """
-    log.debug("%r %r"%(f.lower(), winobjs.module_path.lower()))
+    log.debug("%r %r", f.lower(), winobjs.module_path.lower())
     is_original_file = f.lower() == winobjs.module_path.lower()
 
     if fname.upper() in [r"\\.\SICE", r"\\.\NTICE", r"\\.\SIWVID"]:
@@ -564,7 +564,7 @@ def kernel32_CreateFile(jitter, funcname, get_str):
                         h = open(f, 'r+b')
                         ret = winobjs.handle_pool.add(f, h)
                 else:
-                    log.warning("FILE %r DOES NOT EXIST!" % fname)
+                    log.warning("FILE %r DOES NOT EXIST!", fname)
             elif args.dwcreationdisposition == 1:
                 # create new
                 if os.access(f, os.R_OK):
@@ -620,7 +620,7 @@ def kernel32_CreateFile(jitter, funcname, get_str):
 
         # h = open(f, 'rb+')
         # ret = winobjs.handle_pool.add(f, h)
-    log.debug('ret %x' % ret)
+    log.debug('ret %x', ret)
     jitter.func_ret_stdcall(ret_ad, ret)
 
 
@@ -752,7 +752,7 @@ def kernel32_VirtualAlloc(jitter):
             jitter.vm.add_memory_page(
                 alloc_addr, access_dict[args.flprotect], "\x00" * args.dwsize)
 
-    log.debug('Memory addr: %x' %alloc_addr)
+    log.debug('Memory addr: %x', alloc_addr)
     jitter.func_ret_stdcall(ret_ad, alloc_addr)
 
 
@@ -783,7 +783,7 @@ def kernel32_GetModuleFileName(jitter, funcname, set_str):
         p = name_inv[args.hmodule]
     else:
         log.warning(('Unknown module 0x%x.' + \
-                        'Set winobjs.hcurmodule and retry') % args.hmodule)
+                        'Set winobjs.hcurmodule and retry'), args.hmodule)
         p = None
 
     if p is None:
@@ -893,7 +893,7 @@ def kernel32_LoadLibraryA(jitter):
     log.info(libname)
 
     ret = winobjs.runtime_dll.lib_get_add_base(libname)
-    log.info("ret %x" %ret)
+    log.info("ret %x", ret)
     jitter.func_ret_stdcall(ret_ad, ret)
 
 
@@ -906,7 +906,7 @@ def kernel32_LoadLibraryExA(jitter):
     log.info(libname)
 
     ret = winobjs.runtime_dll.lib_get_add_base(libname)
-    log.info("ret %x" % ret)
+    log.info("ret %x", ret)
     jitter.func_ret_stdcall(ret_ad, ret)
 
 
@@ -1525,11 +1525,11 @@ def my_GetEnvironmentVariable(jitter, funcname, get_str, set_str, mylen):
     s = get_str(jitter, args.lpname)
     if get_str == get_str_unic:
         s = s
-    log.debug('variable %r' % s)
+    log.debug('variable %r', s)
     if s in winobjs.env_variables:
         v = set_str(winobjs.env_variables[s])
     else:
-        log.warning('WARNING unknown env variable %r' % s)
+        log.warning('WARNING unknown env variable %r', s)
         v = ""
     jitter.vm.set_mem(args.lpbuffer, v)
     jitter.func_ret_stdcall(ret_ad, mylen(v))
@@ -1946,7 +1946,7 @@ def user32_IsCharAlpha(jitter, funcname, get_str):
     try:
         c = chr(args.c)
     except:
-        log.error('bad char %r' % args.c)
+        log.error('bad char %r', args.c)
         c = "\x00"
     if c.isalpha(jitter):
         ret = 1
@@ -2214,7 +2214,7 @@ def kernel32_MapViewOfFile(jitter):
     data = fd.read(args.length) if args.length else args.read()
     length = len(data)
 
-    log.debug('mapp total: %x' %len(data))
+    log.debug('mapp total: %x', len(data))
     access_dict = {0x0: 0,
                    0x1: 0,
                    0x2: PAGE_READ,
@@ -2541,7 +2541,7 @@ def user32_MessageBoxA(jitter):
     text = get_str_ansi(jitter, args.lptext)
     caption = get_str_ansi(jitter, args.lpcaption)
 
-    log.info('Caption: %r Text: %r' % (caption, text))
+    log.info('Caption: %r Text: %r', caption, text)
 
     jitter.func_ret_stdcall(ret_ad, 0)
 

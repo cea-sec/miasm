@@ -170,8 +170,8 @@ def vm_load_pe(vm, fdata, align_s=True, load_hdr=True, **kargs):
 
     min_addr = pe.rva2virt(min_addr)
     max_addr = pe.rva2virt(max_addr)
-    log.debug('Min: 0x%x, Max: 0x%x, Size: 0x%x' % (min_addr, max_addr,
-                                                    (max_addr - min_addr)))
+    log.debug('Min: 0x%x, Max: 0x%x, Size: 0x%x', min_addr, max_addr,
+              (max_addr - min_addr))
 
     # Create only one big section containing the whole PE
     vm.add_memory_page(min_addr,
@@ -180,7 +180,8 @@ def vm_load_pe(vm, fdata, align_s=True, load_hdr=True, **kargs):
 
     # Copy each sections content in memory
     for section in pe.SHList:
-        log.debug('Map 0x%x bytes to 0x%x' % (len(section.data), pe.rva2virt(section.addr)))
+        log.debug('Map 0x%x bytes to 0x%x', len(section.data),
+                  pe.rva2virt(section.addr))
         vm.set_mem(pe.rva2virt(section.addr), str(section.data))
 
     return pe
@@ -245,7 +246,7 @@ def vm2pe(myjit, fname, libs=None, e_orig=None,
     for ad in addrs:
         if not min_addr <= ad < max_addr:
             continue
-        log.debug('%s' % hex(ad))
+        log.debug("0x%x", ad)
         if first:
             mye.SHList.add_section(
                 "%.8X" % ad,
@@ -270,18 +271,18 @@ def vm2pe(myjit, fname, libs=None, e_orig=None,
     else:
         new_dll = {}
 
-    log.debug('%s' % new_dll)
+    log.debug('%s', new_dll)
 
     mye.DirImport.add_dlldesc(new_dll)
     s_imp = mye.SHList.add_section("import", rawsize=len(mye.DirImport))
     mye.DirImport.set_rva(s_imp.addr)
-    log.debug('%s' % repr(mye.SHList))
+    log.debug('%r', mye.SHList)
     if e_orig:
         # resource
         xx = str(mye)
         mye.content = xx
         ad = e_orig.NThdr.optentries[pe.DIRECTORY_ENTRY_RESOURCE].rva
-        log.debug('dirres %s' % hex(ad))
+        log.debug('dirres 0x%x', ad)
         if ad != 0:
             mye.NThdr.optentries[pe.DIRECTORY_ENTRY_RESOURCE].rva = ad
             mye.DirRes = pe.DirRes.unpack(xx, ad, mye)
@@ -289,7 +290,7 @@ def vm2pe(myjit, fname, libs=None, e_orig=None,
             s_res = mye.SHList.add_section(
                 name="myres", rawsize=len(mye.DirRes))
             mye.DirRes.set_rva(s_res.addr)
-            log.debug('%s' % repr(mye.DirRes))
+            log.debug('%r', mye.DirRes)
     # generation
     open(fname, 'w').write(str(mye))
     return mye
@@ -303,7 +304,7 @@ class libimp_pe(libimp):
         if name in self.name2off:
             ad = self.name2off[name]
         else:
-            log.debug('new lib %s' % name)
+            log.debug('new lib %s', name)
             ad = e.NThdr.ImageBase
             libad = ad
             self.name2off[name] = ad
@@ -371,7 +372,7 @@ class libimp_pe(libimp):
 
             # Filter available addresses according to @flt
             all_ads = [addr for addr in out_ads.keys() if flt(addr)]
-            log.debug('ads: %s' % map(hex, all_ads))
+            log.debug('ads: %s', map(hex, all_ads))
             if not all_ads:
                 continue
 
