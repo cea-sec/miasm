@@ -158,7 +158,7 @@ class asm_bloc:
         self.bto.add(c)
 
     def split(self, offset, l):
-        log_asmbloc.debug('split at %x' % offset)
+        log_asmbloc.debug('split at %x', offset)
         i = -1
         offsets = [x.offset for x in self.lines]
         if not l.offset in offsets:
@@ -172,13 +172,13 @@ class asm_bloc:
 
         self.lines, new_bloc.lines = self.lines[:i], self.lines[i:]
         flow_mod_instr = self.get_flow_instr()
-        log_asmbloc.debug('flow mod %r' % flow_mod_instr)
+        log_asmbloc.debug('flow mod %r', flow_mod_instr)
         c = asm_constraint(l, asm_constraint.c_next)
         # move dst if flowgraph modifier was in original bloc
         # (usecase: split delayslot bloc)
         if flow_mod_instr:
             for xx in self.bto:
-                log_asmbloc.debug('lbl %s' % xx)
+                log_asmbloc.debug('lbl %s', xx)
             c_next = set(
                 [x for x in self.bto if x.c_t == asm_constraint.c_next])
             c_to = [x for x in self.bto if x.c_t != asm_constraint.c_next]
@@ -367,7 +367,7 @@ def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool,
     delayslot_count = mnemo.delayslot
     offsets_to_dis = set()
     add_next_offset = False
-    log_asmbloc.debug("dis at %X" % int(offset))
+    log_asmbloc.debug("dis at %X", int(offset))
     while not in_delayslot or delayslot_count > 0:
         if in_delayslot:
             delayslot_count -= 1
@@ -395,13 +395,13 @@ def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool,
             instr = None
 
         if instr is None:
-            log_asmbloc.warning("cannot disasm at %X" % int(off_i))
+            log_asmbloc.warning("cannot disasm at %X", int(off_i))
             cur_bloc.add_cst(off_i, asm_constraint.c_bad, symbol_pool)
             break
 
         # XXX TODO nul start block option
         if dont_dis_nulstart_bloc and instr.b.count('\x00') == instr.l:
-            log_asmbloc.warning("reach nul instr at %X" % int(off_i))
+            log_asmbloc.warning("reach nul instr at %X", int(off_i))
             cur_bloc.add_cst(off_i, asm_constraint.c_bad, symbol_pool)
             break
 
@@ -411,7 +411,7 @@ def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool,
             break
 
         job_done.add(offset)
-        log_asmbloc.debug("dis at %X" % int(offset))
+        log_asmbloc.debug("dis at %X", int(offset))
 
         offset += instr.l
         log_asmbloc.debug(instr)
@@ -487,9 +487,9 @@ def split_bloc(mnemo, attrib, pool_bin, blocs,
                 continue
             l = symbol_pool.getby_offset_create(off)
             new_b = cb.split(off, l)
-            log_asmbloc.debug("split bloc %x" % off)
+            log_asmbloc.debug("split bloc %x", off)
             if new_b is None:
-                log_asmbloc.error("cannot split %x!!" % off)
+                log_asmbloc.error("cannot split %x!!", off)
                 break
             if dis_bloc_callback:
                 offsets_to_dis = set(
@@ -518,7 +518,7 @@ def dis_bloc_all(mnemo, pool_bin, offset, job_done, symbol_pool, dont_dis=[],
     while len(todo):
         bloc_cpt += 1
         if blocs_wd is not None and bloc_cpt > blocs_wd:
-            log_asmbloc.debug("blocs watchdog reached at %X" % int(offset))
+            log_asmbloc.debug("blocs watchdog reached at %X", int(offset))
             break
 
         n = int(todo.pop(0))
@@ -655,7 +655,7 @@ def guess_blocs_size(mnemo, blocs):
         b.blen = blen
         # bloc with max rel values encoded
         b.blen_max = blen + blen_max
-        log_asmbloc.info("blen: %d max: %d" % (b.blen, b.blen_max))
+        log_asmbloc.info("blen: %d max: %d", b.blen, b.blen_max)
 
 
 def group_blocs(blocs):
@@ -839,7 +839,7 @@ def resolve_symbol(group_bloc, symbol_pool, dont_erase=[],
                     if c.label == g:
                         tmp = free_interval[x] - g.total_max_l
                         log_asmbloc.debug(
-                            "consumed %d rest: %d" % (g.total_max_l, int(tmp)))
+                            "consumed %d rest: %d", g.total_max_l, int(tmp))
                         free_interval[g] = tmp
                         del free_interval[x]
                         symbol_pool.set_offset(
@@ -868,7 +868,7 @@ def resolve_symbol(group_bloc, symbol_pool, dont_erase=[],
                 g, AsmBlockLinkNext(group_bloc[k][-1].label))
             tmp = free_interval[k] - g.total_max_l
             log_asmbloc.debug(
-                "consumed %d rest: %d" % (g.total_max_l, int(tmp)))
+                "consumed %d rest: %d", g.total_max_l, int(tmp))
             free_interval[g] = tmp
             del free_interval[k]
 
@@ -884,7 +884,7 @@ def resolve_symbol(group_bloc, symbol_pool, dont_erase=[],
                 i += 1
                 continue
             resolving = True
-            log_asmbloc.info("bloc %s resolved" % unr_bloc[i].label)
+            log_asmbloc.info("bloc %s resolved", unr_bloc[i].label)
             bloc_list.append(unr_bloc[i])
             g_found = None
             for g in g_tab:

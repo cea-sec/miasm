@@ -554,7 +554,7 @@ class instruction_x86(instruction):
             raise ValueError('symbol not resolved %s' % l)
         if not isinstance(e, ExprInt):
             # raise ValueError('dst must be int or label')
-            log.warning('dynamic dst %r' % e)
+            log.warning('dynamic dst %r', e)
             return
         # return ExprInt32(e.arg - (self.offset + self.l))
         self.args[0] = ExprInt_fromsize(
@@ -2445,7 +2445,7 @@ class x86_rm_reg_noarg(object):
             i = gpregs08_64.expr.index(self.expr)
             self.parent.rex_p.value = 1
         else:
-            log.debug("cannot encode reg %r" % self.expr)
+            log.debug("cannot encode reg %r", self.expr)
             return False
         # print "zzz", opmode, self.expr, i, self.parent.mode
         if self.parent.v_opmode() == 64:
@@ -2462,8 +2462,8 @@ class x86_rm_reg_noarg(object):
                 i -= 8
         self.value = i
         if self.value > self.lmask:
-            log.debug("cannot encode field value %x %x" %
-                      (self.value, self.lmask))
+            log.debug("cannot encode field value %x %x",
+                      self.value, self.lmask)
             return False
         # print 'RR ok'
         return True
@@ -2671,7 +2671,7 @@ class bs_cond_imm(bs_cond_scale, m_arg):
             self.expr = e
 
         if self.expr is None:
-            log.debug('cannot fromstring int %r' % s)
+            log.debug('cannot fromstring int %r', s)
             return None, None
         return start, stop
 
@@ -2936,7 +2936,7 @@ class bs_movoff(m_arg):
             return None, None
         e = v[0]
         if e is None:
-            log.debug('cannot fromstring int %r' % s)
+            log.debug('cannot fromstring int %r', s)
             return None, None
         self.expr = e
         return start, stop
@@ -3004,7 +3004,7 @@ class bs_msegoff(m_arg):
         e = v[0]
         print "XXX", e
         if e is None:
-            log.debug('cannot fromstring int %r' % s)
+            log.debug('cannot fromstring int %r', s)
             return None, None
         self.expr = e
         return start, stop

@@ -32,13 +32,13 @@ class libimp:
         if not "." in name:
             log.debug('warning adding .dll to modulename')
             name += '.dll'
-            log.debug('%s' % name)
+            log.debug(name)
 
         if name in self.name2off:
             ad = self.name2off[name]
         else:
             ad = self.libbase_ad
-            log.debug('new lib %s %s' % (name, hex(ad)))
+            log.debug('new lib %s 0x%x', name, ad)
             self.name2off[name] = ad
             self.libbase2lastad[ad] = ad + 0x1
             self.lib_imp2ad[ad] = {}

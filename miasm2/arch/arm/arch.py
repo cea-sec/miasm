@@ -403,7 +403,7 @@ class instruction_arm(instruction):
         if self.offset is None:
             raise ValueError('symbol not resolved %s' % l)
         if not isinstance(e, ExprInt):
-            log.debug('dyn dst %r' % e)
+            log.debug('dyn dst %r', e)
             return
         # Can't find the +4 reason in doc
         off = e.arg - (self.offset + 4 + self.l)
@@ -474,7 +474,7 @@ class instruction_armt(instruction_arm):
         if self.offset is None:
             raise ValueError('symbol not resolved %s' % l)
         if not isinstance(e, ExprInt):
-            log.debug('dyn dst %r' % e)
+            log.debug('dyn dst %r', e)
             return
         # The first +2 is to compensate instruction len, but strangely, 32 bits
         # thumb2 instructions len is 2... For the second +2, didn't find it in
@@ -846,7 +846,7 @@ class arm_imm8_12(m_arg):
             return True
         e = e.args[1]
         if not isinstance(e, ExprInt):
-            log.debug('should be int %r' % e)
+            log.debug('should be int %r', e)
             return False
         v = int(e.arg)
         if v < 0 or v & (1 << 31):
@@ -1080,7 +1080,7 @@ class arm_op2imm(arm_imm8_12):
             return True
         # rot reg
         if not isinstance(e.args[1], ExprOp):
-            log.debug('bad reg rot2 %r' % e)
+            log.debug('bad reg rot2 %r', e)
             return False
         e = e.args[1]
         rm = gpregs.expr.index(e.args[0])
@@ -1571,10 +1571,10 @@ class arm_offreg(m_arg):
     def encode(self):
         e = self.expr
         if not (isinstance(e, ExprOp) and e.op == "preinc"):
-            log.debug('cannot encode %r' % e)
+            log.debug('cannot encode %r', e)
             return False
         if e.args[0] != self.off_reg:
-            log.debug('cannot encode reg %r' % e.args[0])
+            log.debug('cannot encode reg %r', e.args[0])
             return False
         v = int(e.args[1].arg)
         v = self.encodeval(v)
@@ -1605,10 +1605,10 @@ class arm_offpc(arm_offreg):
             return False
         e = e.arg
         if not (isinstance(e, ExprOp) and e.op == "preinc"):
-            log.debug('cannot encode %r' % e)
+            log.debug('cannot encode %r', e)
             return False
         if e.args[0] != self.off_reg:
-            log.debug('cannot encode reg %r' % e.args[0])
+            log.debug('cannot encode reg %r', e.args[0])
             return False
         v = int(e.args[1].arg)
         v >>= 2
@@ -1684,7 +1684,7 @@ class arm_deref(m_arg):
             return False
         e = e.arg
         if not (isinstance(e, ExprOp) and e.op == 'preinc'):
-            log.debug('cannot encode %r' % e)
+            log.debug('cannot encode %r', e)
             return False
         off = e.args[1]
         if isinstance(off, ExprId):
@@ -1692,11 +1692,11 @@ class arm_deref(m_arg):
         elif isinstance(off, ExprInt):
             self.parent.off.expr = off
         else:
-            log.debug('cannot encode off %r' % off)
+            log.debug('cannot encode off %r', off)
             return False
         self.value = gpregs.expr.index(e.args[0])
         if self.value >= 1 << self.l:
-            log.debug('cannot encode reg %r' % off)
+            log.debug('cannot encode reg %r', off)
             return False
         return True
 
@@ -1716,7 +1716,7 @@ class arm_offbw(imm_noarg):
         v = int(self.expr.arg)
         if self.parent.trb.value == 0:
             if v & 3:
-                log.debug('off must be aligned %r' % v)
+                log.debug('off must be aligned %r', v)
                 return False
             v >>= 2
         self.value = v
@@ -1736,7 +1736,7 @@ class arm_offh(imm_noarg):
             return False
         v = int(self.expr.arg)
         if v & 1:
-            log.debug('off must be aligned %r' % v)
+            log.debug('off must be aligned %r', v)
             return False
         v >>= 1
         self.value = v
