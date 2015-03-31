@@ -416,9 +416,9 @@ class instruction_arm(instruction):
         args = [a for a in self.args]
         return args
 
-    def get_asm_offset(self, x):
+    def get_asm_offset(self, expr):
         # LDR XXX, [PC, offset] => PC is self.offset+8
-        return ExprInt_from(x, self.offset+8)
+        return ExprInt_from(expr, self.offset+8)
 
 class instruction_armt(instruction_arm):
 
@@ -485,10 +485,10 @@ class instruction_armt(instruction_arm):
             raise ValueError('strange offset! %r' % off)
         self.args[0] = ExprInt32(off)
 
-    def get_asm_offset(self, x):
+    def get_asm_offset(self, expr):
         # ADR XXX, PC, imm => PC is 4 aligned + imm
         new_offset = ((self.offset+self.l)/4)*4
-        return ExprInt_from(x, new_offset)
+        return ExprInt_from(expr, new_offset)
 
 
 class mn_arm(cls_mn):
