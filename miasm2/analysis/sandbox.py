@@ -184,6 +184,8 @@ class OS_Win(OS):
         with open(self.fname) as fstream:
             self.pe = vm_load_pe(self.jitter.vm, fstream.read())
 
+        win_api_x86_32.winobjs.current_pe = self.pe
+
         # Fix pe imports
         preload_pe(self.jitter.vm, self.pe, libs)
 
