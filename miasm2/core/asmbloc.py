@@ -625,12 +625,12 @@ def fix_expr_val(e, symbols):
 
 def guess_blocs_size(mnemo, blocs):
     """
-    Asm and compute max bloc length
+    Asm and compute max bloc size
     """
     for b in blocs:
         log_asmbloc.debug('---')
-        blen = 0
-        blen_max = 0
+        size = 0
+        max_size = 0
         for instr in b.lines:
             if isinstance(instr, asm_raw):
                 # for special asm_raw, only extract len
@@ -650,64 +650,59 @@ def guess_blocs_size(mnemo, blocs):
                 data = None
             instr.data = data
             instr.l = l
-            blen += l
+            size += l
 
-        b.blen = blen
+        b.size = size
         # bloc with max rel values encoded
-        b.blen_max = blen + blen_max
-        log_asmbloc.info("blen: %d max: %d", b.blen, b.blen_max)
+        b.size_max = size + max_size
+        log_asmbloc.info("size: %d max: %d", b.size, b.size_max)
 
 
-def group_blocs(blocs):
+def group_constrained_blocs(blocks):
     """
-    this function group asm blocs with next constraints
+    Return a list of grouped asm blocks linked by "next_constraints"
+    @blocks: a list of asm block
+
     """
-    log_asmbloc.info('group_blocs')
+    log_asmbloc.info('group_constrained_blocs')
+
     # group adjacent blocs
-    rest = blocs[:]
-    groups_bloc = {}
-    d = dict([(x.label, x) for x in rest])
-    log_asmbloc.debug([str(x.label) for x in rest])
+    remaining_blocks = blocks[:]
+    known_block_chains = {}
+    lbl2block = {block.label:block for block in blocks}
 
-    while rest:
-        b = [rest.pop()]
-        # find recursive son
-        fini = False
-        while not fini:
-            fini = True
-            for c in b[-1].bto:
-                if c.c_t != asm_constraint.c_next:
-                    continue
-                if c.label in d and d[c.label] in rest:
-                    b.append(d[c.label])
-                    rest.remove(d[c.label])
-                    fini = False
-                    break
-        # check if son in group:
-        found_in_group = False
-        for c in b[-1].bto:
-            if c.c_t != asm_constraint.c_next:
-                continue
-            if c.label in groups_bloc:
-                b += groups_bloc[c.label]
-                del groups_bloc[c.label]
-                groups_bloc[b[0].label] = b
-                found_in_group = True
+
+    while remaining_blocks:
+        # Create a new block chain
+        block_chain = [remaining_blocks.pop()]
+
+        # Find son in remainings blocks linked with a next constraint
+        while True:
+            next_label = block_chain[-1].get_next()
+            if next_label is None or next_label not in lbl2block:
+                break
+            next_block = lbl2block[next_label]
+            if next_block in remaining_blocks:
+                block_chain.append(next_block)
+                remaining_blocks.remove(next_block)
+                next_label = next_block.get_next()
+            else:
                 break
 
-        if not found_in_group:
-            groups_bloc[b[0].label] = b
+        # Check if son is in a known block group:
+        if next_label is not None and next_label in known_block_chains:
+            block_chain += known_block_chains[next_label]
+            del known_block_chains[next_label]
 
-    # create max label range for bigbloc
-    for l in groups_bloc:
-        l.total_max_l = reduce(lambda x, y: x + y.blen_max, groups_bloc[l], 0)
-        log_asmbloc.debug(("offset totalmax l", l.offset, l.total_max_l))
-        if is_int(l.offset):
-            hof = hex(int(l.offset))
-        else:
-            hof = l.name
-        log_asmbloc.debug(("offset totalmax l", hof, l.total_max_l))
-    return groups_bloc
+        known_block_chains[block_chain[0].label] = block_chain
+
+    # Compute max len for each block chain
+    for label in known_block_chains:
+        label.chain_max_size = reduce(lambda x, block: x + block.size_max,
+                                   known_block_chains[label], 0)
+        log_asmbloc.debug(("offset maxlen", label.offset, label.chain_max_size))
+
+    return known_block_chains
 
 
 def gen_free_space_intervals(f, max_offset=0xFFFFFFFF):
@@ -759,13 +754,13 @@ def gen_non_free_mapping(group_bloc, dont_erase=[]):
         diff_offset = 0
         for b in group_bloc[g]:
             if not is_int(b.label.offset):
-                diff_offset += b.blen_max
+                diff_offset += b.size_max
                 continue
             g.fixedblocs = True
             g.offset_free = b.label.offset - diff_offset
             break
         if g.fixedblocs:
-            non_free_mapping[g] = g.total_max_l
+            non_free_mapping[g] = g.chain_max_size
 
     log_asmbloc.debug("non free bloc:")
     log_asmbloc.debug(non_free_mapping)
@@ -793,12 +788,12 @@ class AsmBlockLink(object):
 class AsmBlockLinkNext(AsmBlockLink):
 
     def resolve(self, parent_label, label2block):
-        parent_label.offset_g = self.label.offset_g + label2block[self.label].blen
+        parent_label.offset_g = self.label.offset_g + label2block[self.label].size
 
 class AsmBlockLinkPrev(AsmBlockLink):
 
     def resolve(self, parent_label, label2block):
-        parent_label.offset_g = self.label.offset_g - label2block[parent_label].blen
+        parent_label.offset_g = self.label.offset_g - label2block[parent_label].size
 
 def resolve_symbol(group_bloc, symbol_pool, dont_erase=[],
                    max_offset=0xFFFFFFFF):
@@ -815,7 +810,7 @@ def resolve_symbol(group_bloc, symbol_pool, dont_erase=[],
     log_asmbloc.debug(free_interval)
 
     # first big ones
-    g_tab = [(x.total_max_l, x) for x in group_bloc]
+    g_tab = [(x.chain_max_size, x) for x in group_bloc]
     g_tab.sort()
     g_tab.reverse()
     g_tab = [x[1] for x in g_tab]
@@ -831,15 +826,15 @@ def resolve_symbol(group_bloc, symbol_pool, dont_erase=[],
         for x in group_bloc:
             if not x in free_interval.keys():
                 continue
-            if free_interval[x] < g.total_max_l:
+            if free_interval[x] < g.chain_max_size:
                 continue
 
             for b in group_bloc[x]:
                 for c in b.bto:
                     if c.label == g:
-                        tmp = free_interval[x] - g.total_max_l
+                        tmp = free_interval[x] - g.chain_max_size
                         log_asmbloc.debug(
-                            "consumed %d rest: %d", g.total_max_l, int(tmp))
+                            "consumed %d rest: %d", g.chain_max_size, int(tmp))
                         free_interval[g] = tmp
                         del free_interval[x]
                         symbol_pool.set_offset(
@@ -862,13 +857,13 @@ def resolve_symbol(group_bloc, symbol_pool, dont_erase=[],
         k_tab = [x[1] for x in k_tab]
         # choose free_interval
         for k in k_tab:
-            if g.total_max_l > free_interval[k]:
+            if g.chain_max_size > free_interval[k]:
                 continue
             symbol_pool.set_offset(
                 g, AsmBlockLinkNext(group_bloc[k][-1].label))
-            tmp = free_interval[k] - g.total_max_l
+            tmp = free_interval[k] - g.chain_max_size
             log_asmbloc.debug(
-                "consumed %d rest: %d", g.total_max_l, int(tmp))
+                "consumed %d rest: %d", g.chain_max_size, int(tmp))
             free_interval[g] = tmp
             del free_interval[k]
 
@@ -1009,7 +1004,7 @@ def asmbloc_final(mnemo, blocs, symbol_pool, symb_reloc_off=None,
 
                 if len(c) != instr.l:
                     # good len, bad offset...XXX
-                    bloc.blen = bloc.blen - old_l + len(c)
+                    bloc.size = bloc.size - old_l + len(c)
                     instr.data = c
                     instr.l = len(c)
                     fini = False
@@ -1048,7 +1043,7 @@ def asm_resolve_final(mnemo, blocs, symbol_pool, dont_erase=[],
     if symb_reloc_off is None:
         symb_reloc_off = {}
     guess_blocs_size(mnemo, blocs)
-    bloc_g = group_blocs(blocs)
+    bloc_g = group_constrained_blocs(blocs)
 
     resolved_b = resolve_symbol(bloc_g, symbol_pool, dont_erase=dont_erase,
                                 max_offset=max_offset)
@@ -1069,7 +1064,7 @@ def asm_resolve_final(mnemo, blocs, symbol_pool, dont_erase=[],
             line.offset = offset
             offset += line.l
 
-    return resolved_b, patches
+    return patches
 
 
 def blist2graph(ab):
