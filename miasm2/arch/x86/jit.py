@@ -85,7 +85,7 @@ class jitter_x86_32(jitter):
         if ret_value1 is not None:
             self.cpu.EAX = ret_value1
         if ret_value2 is not None:
-            self.cpu.EDX = ret_value
+            self.cpu.EDX = ret_value2
 
     # cdecl
     @named_arguments
