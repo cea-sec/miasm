@@ -215,6 +215,12 @@ class interval(object):
             return None, None
         return self.intervals[0][0], self.intervals[-1][1]
 
+
+    @property
+    def empty(self):
+        """Return True iff the interval is empty"""
+        return not self.intervals
+
     def show(self, img_x=1350, img_y=20, dry_run=False):
         """
         show image representing the interval
