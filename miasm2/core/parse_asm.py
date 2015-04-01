@@ -19,11 +19,14 @@ size2pck = {8: 'B',
             64: 'Q',
             }
 
-class directive_align:
+class DirectiveAlign(object):
+    """Stand for alignment representation"""
+
     def __init__(self, alignment=1):
         self.alignment = alignment
+
     def __str__(self):
-        return "alignment %s"%self.alignment
+        return "Alignment %s" % self.alignment
 
 def guess_next_new_label(symbol_pool, gen_label_index=0):
     i = 0
@@ -35,17 +38,22 @@ def guess_next_new_label(symbol_pool, gen_label_index=0):
             return symbol_pool.add_label(name)
         i += 1
 
-def replace_expr_labels(e, symbol_pool, replace_id):
-    if not isinstance(e, m2_expr.ExprId):
-        return e
-    if not isinstance(e.name, asmbloc.asm_label):
-        return e
-    old_lbl = e.name
+def replace_expr_labels(expr, symbol_pool, replace_id):
+    """Create asm_label of the expression @expr in the @symbol_pool
+    Update @replace_id"""
+
+    if not (isinstance(expr, m2_expr.ExprId) and
+            isinstance(expr.name, asmbloc.asm_label)):
+        return expr
+
+    old_lbl = expr.name
     new_lbl = symbol_pool.getby_name_create(old_lbl.name)
-    replace_id[e] = m2_expr.ExprId(new_lbl, e.size)
-    return m2_expr.ExprId(new_lbl, e.size)
+    replace_id[expr] = m2_expr.ExprId(new_lbl, expr.size)
+    return replace_id[expr]
 
 def replace_orphan_labels(instr, symbol_pool):
+    """Link orphan labels used by @instr to the @symbol_pool"""
+
     for i, arg in enumerate(instr.args):
         replace_id = {}
         arg.visit(lambda e:replace_expr_labels(e,
@@ -152,7 +160,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
                 continue
             if directive == "align":
                 align_value = int(line[r.end():])
-                lines.append(directive_align(align_value))
+                lines.append(DirectiveAlign(align_value))
                 continue
             if directive in ['file', 'intel_syntax', 'globl', 'local',
                              'type', 'size', 'align', 'ident', 'section']:
@@ -227,7 +235,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
                         block_may_link = True
                         b.addline(lines[i])
                         i += 1
-                elif isinstance(lines[i], directive_align):
+                elif isinstance(lines[i], DirectiveAlign):
                     b.alignment = lines[i].alignment
                     i += 1
                 # asmbloc.asm_label
