@@ -45,14 +45,16 @@ class Machine(object):
             from miasm2.arch.arm.sem import ir_armb as ir
         elif machine_name == "armtl":
             from miasm2.arch.arm.disasm import dis_armtl as dis_engine
-            from miasm2.arch.arm import arch
+            from miasm2.arch.arm import arch, jit
             mn = arch.mn_armt
+            jitter = jit.jitter_armtl
             from miasm2.arch.arm.ira import ir_a_armtl as ira
             from miasm2.arch.arm.sem import ir_armtl as ir
         elif machine_name == "armtb":
             from miasm2.arch.arm.disasm import dis_armtb as dis_engine
-            from miasm2.arch.arm import arch
+            from miasm2.arch.arm import arch, jit
             mn = arch.mn_armt
+            jitter = jit.jitter_armtb
             from miasm2.arch.arm.ira import ir_a_armtb as ira
             from miasm2.arch.arm.sem import ir_armtb as ir
         elif machine_name == "sh4":

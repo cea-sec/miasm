@@ -3,7 +3,7 @@ import logging
 from miasm2.jitter.jitload import jitter, named_arguments
 from miasm2.core import asmbloc
 from miasm2.core.utils import *
-from miasm2.arch.arm.sem import ir_armb, ir_arml
+from miasm2.arch.arm.sem import ir_armb, ir_arml, ir_armtl, ir_armtb
 
 log = logging.getLogger('jit_arm')
 hnd = logging.StreamHandler()
@@ -68,3 +68,18 @@ class jitter_armb(jitter_arml):
         jitter.__init__(self, ir_armb(sp), *args, **kwargs)
         self.vm.set_big_endian()
         self.ir_arch.jit_pc = self.ir_arch.arch.regs.PC
+
+class jitter_armtl(jitter_arml):
+    def __init__(self,*args,**kwargs):
+        sp = asmbloc.asm_symbol_pool()
+        jitter.__init__(self, ir_armtl(sp), *args, **kwargs)
+        self.vm.set_little_endian()
+        self.ir_arch.jit_pc = self.ir_arch.arch.regs.PC
+
+class jitter_armtb(jitter_armb):
+     def __init__(self, *args, **kwargs):
+        sp = asmbloc.asm_symbol_pool()
+        jitter.__init__(self, ir_armtb(sp), *args, **kwargs)
+        self.vm.set_big_endian()
+        self.ir_arch.jit_pc = self.ir_arch.arch.regs.PC
+

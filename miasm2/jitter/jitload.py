@@ -184,7 +184,7 @@ class jitter:
         arch_name = ir_arch.arch.name  # (ir_arch.arch.name, ir_arch.attrib)
         if arch_name == "x86":
             from miasm2.jitter.arch import JitCore_x86 as jcore
-        elif arch_name == "arm":
+        elif arch_name in ["arm","armt"]:
             from miasm2.jitter.arch import JitCore_arm as jcore
         elif arch_name == "msp430":
             from miasm2.jitter.arch import JitCore_msp430 as jcore

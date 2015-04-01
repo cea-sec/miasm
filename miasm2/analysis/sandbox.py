@@ -318,6 +318,17 @@ class Arch_armb(Arch):
         self.jitter.init_stack()
 
 
+class Arch_armtl(Arch_arml):
+    _ARCH_ = "armtl"
+    def __init__(self):
+        super(Arch_armtl,self).__init__()
+
+
+class Arch_armtb(Arch_armb):
+    _ARCH_ = "armtb"
+    def __init__(self):
+        super(Arch_armtb,self).__init__()
+
 
 class Sandbox_Win_x86_32(Sandbox, Arch_x86_32, OS_Win):
 
@@ -408,6 +419,30 @@ class Sandbox_Linux_arml(Sandbox, Arch_arml, OS_Linux):
         if addr is None and self.options.address is not None:
             addr = int(self.options.address, 16)
         super(Sandbox_Linux_arml, self).run(addr)
+
+class Sandbox_Linux_armtl(Sandbox,Arch_armtl,OS_Linux):
+    def __init__(self,*args,**kwargs):
+        Sandbox.__init__(self, *args, **kwargs)
+        self.jitter.cpu.LR = 0x1337beef
+
+        # Set the runtime guard
+        self.jitter.add_breakpoint(0x1337beef, self.__class__.code_sentinelle)
+    def run(self, addr = None):
+        if addr is None and self.options.address is not None:
+            addr = int(self.options.address, 16)
+        super(Sandbox_Linux_armtl, self).run(addr)
+
+class Sandbox_Linux_armtb(Sandbox,Arch_armtb,OS_Linux):
+    def __init__(self,*args,**kwargs):
+        Sandbox.__init__(self, *args, **kwargs)
+        self.jitter.cpu.LR = 0x1337beef
+
+        # Set the runtime guard
+        self.jitter.add_breakpoint(0x1337beef, self.__class__.code_sentinelle)
+    def run(self, addr = None):
+        if addr is None and self.options.address is not None:
+            addr = int(self.options.address, 16)
+        super(Sandbox_Linux_armtb, self).run(addr)
 
 class Sandbox_Linux_armb_str(Sandbox, Arch_armb, OS_Linux_str):
 
