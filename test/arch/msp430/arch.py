@@ -72,9 +72,9 @@ reg_tests_msp = [
     ("443a    call       0x4B66",
      "b012664b"),
 
-    ("4442    jmp        0xFFFA",
+    ("4442    jmp        0xFFFC",
      "fd3f"),
-    ("4422    jnz        0xFFF2",
+    ("4422    jnz        0xFFF4",
      "f923"),
 
     ("xxxx    mov.b      @R13+, 0x0(R14)",

@@ -491,7 +491,7 @@ class instruction_x86(instruction):
             if not isinstance(e.name, asm_label) and e not in all_regs_ids:
                 raise ValueError("ExprId must be a label or a register")
         elif isinstance(e, ExprInt):
-            ad = e.arg + int(self.offset) + self.l
+            ad = e.arg + int(self.offset)
             l = symbol_pool.getby_offset_create(ad)
             s = ExprId(l, e.size)
             self.args[0] = s
@@ -558,7 +558,7 @@ class instruction_x86(instruction):
             return
         # return ExprInt32(e.arg - (self.offset + self.l))
         self.args[0] = ExprInt_fromsize(
-            self.mode, e.arg - (self.offset + self.l))
+            self.mode, e.arg - self.offset)
 
     def get_info(self, c):
         self.additional_info.g1.value = c.g1.value
@@ -846,9 +846,9 @@ class mn_x86(cls_mn):
     def post_asm(self, v):
         return v
 
-    def encodefields(self, decoded):
-        v = super(mn_x86, self).encodefields(decoded)
 
+    def gen_prefix(self):
+        v = ""
         rex = 0x40
         if self.g1.value is None:
             self.g1.value = 0
@@ -890,8 +890,14 @@ class mn_x86(cls_mn):
             if hasattr(self, 'no_xmm_pref'):
                 return None
             v = "\x66" + v
-
         return v
+
+    def encodefields(self, decoded):
+        v = super(mn_x86, self).encodefields(decoded)
+        prefix = self.gen_prefix()
+        if prefix is None:
+            return None
+        return prefix + v
 
     def getnextflow(self, symbol_pool):
         raise NotImplementedError('not fully functional')
@@ -2834,19 +2840,54 @@ class bs_rel_off(bs_cond_imm):  # m_arg):
             # else:
             #    self.l = 32
         l = offsize(self.parent)
+        prefix = self.parent.gen_prefix()
+        parent_len = len(prefix) * 8 + self.parent.l + self.l
+        assert(parent_len % 8 == 0)
 
-        # l = self.parent.v_opmode()#self.parent.args[0].expr.size
-        # print 'imm enc', l, self.parent.rex_w.value
-        v = int(self.expr.arg)
+        v = int(self.expr.arg - parent_len/8)
+        if prefix is None:
+            raise StopIteration
         mask = ((1 << self.l) - 1)
-        # print 'ext', self.l, l, hex(v), hex(sign_ext(v & ((1<<self.l)-1),
-        # self.l, l))
         if self.l > l:
             raise StopIteration
         if v != sign_ext(v & mask, self.l, l):
             raise StopIteration
         self.value = swap_uint(self.l, v & ((1 << self.l) - 1))
-        # print hex(self.value)
+        yield True
+
+    def decode(self, v):
+        v = swap_uint(self.l, v)
+        size = offsize(self.parent)
+        v = sign_ext(v, self.l, size)
+        v += self.parent.l
+        v = ExprInt_fromsize(size, v)
+        self.expr = v
+        return True
+
+class bs_s08(bs_rel_off):
+    parser = int_or_expr
+
+    @classmethod
+    def flen(cls, mode, v):
+        return 8
+
+    def encode(self):
+        if not isinstance(self.expr, ExprInt):
+            raise StopIteration
+        arg0_expr = self.parent.args[0].expr
+        if self.l != 0:
+            l = self.l
+        else:
+            l = self.parent.v_opmode()
+            self.l = l
+        l = offsize(self.parent)
+        v = int(self.expr.arg)
+        mask = ((1 << self.l) - 1)
+        if self.l > l:
+            raise StopIteration
+        if v != sign_ext(v & mask, self.l, l):
+            raise StopIteration
+        self.value = swap_uint(self.l, v & ((1 << self.l) - 1))
         yield True
 
     def decode(self, v):
@@ -2855,7 +2896,6 @@ class bs_rel_off(bs_cond_imm):  # m_arg):
         v = sign_ext(v, self.l, size)
         v = ExprInt_fromsize(size, v)
         self.expr = v
-        # print self.expr, repr(self.expr)
         return True
 
 
@@ -3002,7 +3042,6 @@ class bs_msegoff(m_arg):
         except StopIteration:
             return None, None
         e = v[0]
-        print "XXX", e
         if e is None:
             log.debug('cannot fromstring int %r', s)
             return None, None
@@ -3075,6 +3114,7 @@ sib_base = bs(l=3, cls=(bs_cond_index,), fname = "sib_base")
 
 disp = bs(l=0, cls=(bs_cond_disp,), fname = "disp")
 
+s08 = bs(l=8, cls=(bs_s08, ))
 
 u08 = bs(l=8, cls=(x86_08, m_arg))
 u07 = bs(l=7, cls=(x86_08, m_arg))
@@ -3130,8 +3170,10 @@ d_ss = bs(l=0, cls=(bs_ss, ), fname='ss')
 d_fs = bs(l=0, cls=(bs_fs, ), fname='fs')
 d_gs = bs(l=0, cls=(bs_gs, ), fname='gs')
 
-rel_off = bs(l=0, cls=(bs_rel_off,), fname="off")
-rel_off08 = bs(l=8, cls=(bs_rel_off08,), fname="off")
+# Offset must be decoded in last position to have final instruction len
+rel_off = bs(l=0, cls=(bs_rel_off,), fname="off", order=-1)
+# Offset must be decoded in last position to have final instruction len
+rel_off08 = bs(l=8, cls=(bs_rel_off08,), fname="off", order=-1)
 moff = bs(l=0, cls=(bs_moff,), fname="off")
 msegoff = bs(l=16, cls=(bs_msegoff,), fname="mseg")
 movoff = bs(l=0, cls=(bs_movoff,), fname="off")
@@ -3737,7 +3779,7 @@ addop("prefetchnta", [bs8(0x0f), bs8(0x18)] + rmmod(d0, rm_arg_m08))
 
 addop("push", [bs8(0xff), stk] + rmmod(d6))
 addop("push", [bs("01010"), stk, reg])
-addop("push", [bs8(0x6a), rel_off08, stk])
+addop("push", [bs8(0x6a), s08, stk])
 addop("push", [bs8(0x68), d_imm, stk])
 addop("push", [bs8(0x0e), stk, d_cs])
 addop("push", [bs8(0x16), stk, d_ss])

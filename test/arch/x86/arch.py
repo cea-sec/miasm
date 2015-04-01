@@ -232,10 +232,10 @@ reg_tests = [
      "0fba2842"),
 
 
-    (m32, "00000000    CALL       0x112233",
-     "e833221100"),
-    (m64, "00000000    CALL       0x112233",
-     "e833221100"),
+    (m32, "00000000    CALL       0x112235",
+     "e830221100"),
+    (m64, "00000000    CALL       0x112235",
+     "e830221100"),
     (m32, "00000000    CALL       DWORD PTR [EAX]",
      "ff10"),
     (m64, "00000000    CALL       QWORD PTR [RAX]",
@@ -761,11 +761,11 @@ reg_tests = [
      "48CF"),
 
     (m32, "00000000    JA         0x12",
-     "7712"),
+     "7710"),
     (m32, "00000000    JA         0xFFFFFFEE",
-     "77EE"),
+     "77EC"),
     (m64, "00000000    JA         0xFFFFFFFFFFFFFFEE",
-     "77EE"),
+     "77EC"),
 
     #(m32, "00000000    JA         0xFFEE",
     # "6677EE"),
@@ -774,19 +774,19 @@ reg_tests = [
 
 
     (m16, "00000000    JCXZ       0xFFEE",
-     "E3EE"),
+     "E3EC"),
     (m16, "00000000    JECXZ      0xFFEE",
-     "67E3EE"),
+     "67E3EB"),
     (m32, "00000000    JECXZ      0xFFFFFFEE",
-     "E3EE"),
+     "E3EC"),
     (m32, "00000000    JCXZ       0xFFFFFFEE",
-     "67E3EE"),
+     "67E3EB"),
     (m32, "00000000    JCXZ       0xFFEE",
-     "6667E3EE"),
+     "6667E3EA"),
     (m64, "00000000    JRCXZ      0xFFFFFFFFFFFFFFEE",
-     "E3EE"),
+     "E3EC"),
     (m64, "00000000    JECXZ      0xFFFFFFFFFFFFFFEE",
-     "67E3EE"),
+     "67E3EB"),
 
 
     (m32, "00000000    MOV        BYTE PTR [EAX], AL",
@@ -1160,6 +1160,9 @@ reg_tests = [
 
     (m64, "00000000    PUSH       0x11223344",
      "6844332211"),
+
+    (m32, "00000000    PUSH       0xFFFFFF80",
+     "6a80"),
 
     (m32, "00000000    PUSH       CS",
      "0e"),

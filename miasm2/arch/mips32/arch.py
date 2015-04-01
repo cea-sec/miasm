@@ -179,7 +179,7 @@ class instruction_mips32(cpu.instruction):
             raise ValueError('symbol not resolved %s' % self.l)
         if not isinstance(e, ExprInt):
             return
-        off = e.arg - (self.offset + self.l)
+        off = e.arg - self.offset
         print "diff", e, hex(self.offset)
         print hex(off)
         if int(off % 4):
@@ -327,13 +327,15 @@ class mips32_soff_noarg(mips32_imm):
         v = v & self.lmask
         v <<= 2
         v = cpu.sign_ext(v, 16+2, 32)
-        self.expr = ExprInt32(v)
+        # Add pipeline offset
+        self.expr = ExprInt32(v + 4)
         return True
 
     def encode(self):
         if not isinstance(self.expr, ExprInt):
             return False
-        v = self.expr.arg.arg
+        # Remove pipeline offset
+        v = int(self.expr.arg - 4)
         if v & 0x80000000:
             nv = v & ((1 << 16+2) - 1)
             assert( v == cpu.sign_ext(nv, 16+2, 32))
