@@ -19,6 +19,11 @@ size2pck = {8: 'B',
             64: 'Q',
             }
 
+class directive_align:
+    def __init__(self, alignment=1):
+        self.alignment = alignment
+    def __str__(self):
+        return "alignment %s"%self.alignment
 
 def guess_next_new_label(symbol_pool, gen_label_index=0):
     i = 0
@@ -145,6 +150,10 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
             if directive == 'dontsplit':  # custom command
                 lines.append(asmbloc.asm_raw())
                 continue
+            if directive == "align":
+                align_value = int(line[r.end():])
+                lines.append(directive_align(align_value))
+                continue
             if directive in ['file', 'intel_syntax', 'globl', 'local',
                              'type', 'size', 'align', 'ident', 'section']:
                 continue
@@ -195,7 +204,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
                     lines[i:i] = [l]
                 else:
                     l = lines[i]
-                    b = asmbloc.asm_bloc(l)
+                    b = asmbloc.asm_bloc(l, alignment=mnemo.alignment)
                     b.bloc_num = bloc_num
                     bloc_num += 1
                     blocs.append(b)
@@ -218,6 +227,9 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
                         block_may_link = True
                         b.addline(lines[i])
                         i += 1
+                elif isinstance(lines[i], directive_align):
+                    b.alignment = lines[i].alignment
+                    i += 1
                 # asmbloc.asm_label
                 elif isinstance(lines[i], asmbloc.asm_label):
                     if block_may_link:
