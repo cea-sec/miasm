@@ -138,8 +138,9 @@ testset += RegressionTest(["depgraph.py"], base_dir="analysis",
                                     "graph_test_09_00.dot",
                                     "graph_test_09_01.dot",
                                     "graph_test_10_00.dot",
+                                    "graph_test_11_00.dot",
                                     ] + ["graph_%02d.dot" % test_nb
-                                         for test_nb in xrange(1, 11)])
+                                         for test_nb in xrange(1, 12)])
 
 # Examples
 class Example(Test):
