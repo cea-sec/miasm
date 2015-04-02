@@ -9,6 +9,7 @@ from collections import defaultdict
 from miasm2.core.bin_stream import bin_stream
 import miasm2.arch.arm.regs as regs_module
 from miasm2.arch.arm.regs import *
+from miasm2.core.asmbloc import asm_label
 
 # A1 encoding
 
@@ -167,7 +168,7 @@ int_or_expr = base_expr
 
 def ast_id2expr(t):
     if not t in mn_arm.regs.all_regs_ids_byname:
-        r = ExprId(t)
+        r = ExprId(asm_label(t))
     else:
         r = mn_arm.regs.all_regs_ids_byname[t]
     return r
@@ -362,9 +363,9 @@ class instruction_arm(instruction):
         if not isinstance(e, ExprInt):
             return
         if self.name == 'BLX':
-            ad = e.arg + 8 + self.offset
+            ad = e.arg + self.offset
         else:
-            ad = e.arg + 8 + self.offset
+            ad = e.arg + self.offset
         l = symbol_pool.getby_offset_create(ad)
         s = ExprId(l, e.size)
         self.args[0] = s
@@ -405,8 +406,7 @@ class instruction_arm(instruction):
         if not isinstance(e, ExprInt):
             log.debug('dyn dst %r', e)
             return
-        # Can't find the +4 reason in doc
-        off = e.arg - (self.offset + 4 + self.l)
+        off = e.arg - self.offset
         if int(off % 4):
             raise ValueError('strange offset! %r' % off)
         self.args[0] = ExprInt32(off)
@@ -415,9 +415,9 @@ class instruction_arm(instruction):
         args = [a for a in self.args]
         return args
 
-    def get_asm_offset(self, x):
+    def get_asm_offset(self, expr):
         # LDR XXX, [PC, offset] => PC is self.offset+8
-        return ExprInt_from(x, self.offset+8)
+        return ExprInt_from(expr, self.offset+8)
 
 class instruction_armt(instruction_arm):
 
@@ -437,9 +437,9 @@ class instruction_armt(instruction_arm):
         if not isinstance(e, ExprInt):
             return
         if self.name == 'BLX':
-            ad = e.arg + 4 + (self.offset & 0xfffffffc)
+            ad = e.arg + (self.offset & 0xfffffffc)
         else:
-            ad = e.arg + 4 + self.offset
+            ad = e.arg + self.offset
         l = symbol_pool.getby_offset_create(ad)
         s = ExprId(l, e.size)
         if self.name in ["CBZ", "CBNZ"]:
@@ -479,11 +479,15 @@ class instruction_armt(instruction_arm):
         # The first +2 is to compensate instruction len, but strangely, 32 bits
         # thumb2 instructions len is 2... For the second +2, didn't find it in
         # the doc.
-        off = e.arg - (self.offset + 2 + 2)
+        off = e.arg - self.offset
         if int(off % 2):
             raise ValueError('strange offset! %r' % off)
         self.args[0] = ExprInt32(off)
 
+    def get_asm_offset(self, expr):
+        # ADR XXX, PC, imm => PC is 4 aligned + imm
+        new_offset = ((self.offset+self.l)/4)*4
+        return ExprInt_from(expr, new_offset)
 
 
 class mn_arm(cls_mn):
@@ -500,6 +504,7 @@ class mn_arm(cls_mn):
     sp = {'l':SP, 'b':SP}
     instruction = instruction_arm
     max_instruction_len = 4
+    alignment = 4
 
     @classmethod
     def getpc(cls, attrib = None):
@@ -598,7 +603,8 @@ class mn_armt(cls_mn):
     pc = PC
     sp = SP
     instruction = instruction_armt
-    max_instruction_len = 8
+    max_instruction_len = 4
+    alignment = 4
 
     @classmethod
     def getpc(cls, attrib = None):
@@ -780,9 +786,16 @@ class arm_offs(arm_imm):
         return ExprInt_fromsize(self.intsize, v)
 
     def decodeval(self, v):
-        return v << 2
+        v <<= 2
+        # Add pipeline offset
+        v += 8
+        return v
 
     def encodeval(self, v):
+        if v%4 != 0:
+            return False
+        # Remove pipeline offset
+        v -= 8
         return v >> 2
 
     def decode(self, v):
@@ -1193,13 +1206,16 @@ class arm_offs_blx(arm_imm):
         v = v & self.lmask
         v = (v << 2) + (self.parent.lowb.value << 1)
         v = sign_ext(v, 26, 32)
+        # Add pipeline offset
+        v += 8
         self.expr = ExprInt32(v)
         return True
 
     def encode(self):
         if not isinstance(self.expr, ExprInt):
             return False
-        v = self.expr.arg.arg
+        # Remove pipeline offset
+        v = int(self.expr.arg - 8)
         if v & 0x80000000:
             v &= (1 << 26) - 1
         self.parent.lowb.value = (v >> 1) & 1
@@ -1626,28 +1642,17 @@ class arm_offsp(arm_offpc):
 class arm_offspc(arm_offs):
 
     def decodeval(self, v):
-        return v << 1
-
-    def encodeval(self, v):
-        return v >> 1
-
-
-class arm_offspchl(arm_offs):
-
-    def decodeval(self, v):
-        if self.parent.hl.value == 0:
-            return v << 12
-        else:
-            return v << 1
-
-    def encodeval(self, v):
-        if v > (1 << 12):
-            self.parent.hl.value = 0
-            v >>= 12
-        else:
-            self.parent.hl.value = 1
-            v >>= 1
+        v = v << 1
+        # Add pipeline offset
+        v += 2 + 2
         return v
+
+    def encodeval(self, v):
+        # Remove pipeline offset
+        v -= 2 + 2
+        if v % 2 == 0:
+            return v >> 1
+        return False
 
 
 class arm_off8sppc(arm_imm):
@@ -1898,7 +1903,6 @@ rbl_wb = bs(l=3, cls=(armt_reg_wb,), fname='rb')
 offs8 = bs(l=8, cls=(arm_offspc,), fname="offs")
 offs11 = bs(l=11, cls=(arm_offspc,), fname="offs")
 
-offs11hl = bs(l=11, cls=(arm_offspchl,), fname="offs")
 hl = bs(l=1, prio=default_prio + 1, fname='hl')
 off8sppc = bs(l=8, cls=(arm_off8sppc,), fname="off")
 

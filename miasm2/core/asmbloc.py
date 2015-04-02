@@ -10,18 +10,13 @@ from miasm2.expression.simplifications import expr_simp
 from miasm2.expression.modint import moduint, modint
 from miasm2.core.utils import Disasm_Exception, pck
 from miasm2.core.graph import DiGraph
+from miasm2.core.interval import interval
 
-
-log_asmbloc = logging.getLogger("asmbloc")
+log_asmbloc = logging.getLogger("asmblock")
 console_handler = logging.StreamHandler()
 console_handler.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
 log_asmbloc.addHandler(console_handler)
 log_asmbloc.setLevel(logging.WARNING)
-
-
-def whoami():
-    return inspect.stack()[2][3]
-
 
 def is_int(a):
     return isinstance(a, int) or isinstance(a, long) or \
@@ -50,7 +45,6 @@ class asm_label:
             self.offset = offset
         else:
             self.offset = int(offset)
-        self._hash = hash((self.name, self.offset))
 
     def __str__(self):
         if isinstance(self.offset, (int, long)):
@@ -65,23 +59,12 @@ class asm_label:
         rep += '>'
         return rep
 
-    def __hash__(self):
-        return self._hash
-
-    def __eq__(self, a):
-        if isinstance(a, asm_label):
-            return self._hash == hash(a)
-        else:
-            return False
-
-
 class asm_raw:
     def __init__(self, raw=""):
         self.raw = raw
 
     def __str__(self):
         return repr(self.raw)
-
 
 class asm_constraint(object):
     c_to = "c_to"
@@ -91,19 +74,9 @@ class asm_constraint(object):
     def __init__(self, label=None, c_t=c_to):
         self.label = label
         self.c_t = c_t
-        self._hash = hash((self.label, self.c_t))
 
     def __str__(self):
         return "%s:%s" % (str(self.c_t), str(self.label))
-
-    def __hash__(self):
-        return self._hash
-
-    def __eq__(self, a):
-        if isinstance(a, asm_constraint):
-            return self._hash == a._hash
-        else:
-            return False
 
 
 class asm_constraint_next(asm_constraint):
@@ -127,12 +100,13 @@ class asm_constraint_bad(asm_constraint):
             label, c_t=asm_constraint.c_bad)
 
 
-class asm_bloc:
+class asm_bloc(object):
 
-    def __init__(self, label=None):
+    def __init__(self, label=None, alignment=1):
         self.bto = set()
         self.lines = []
         self.label = label
+        self.alignment = alignment
 
     def __str__(self):
         out = []
@@ -320,6 +294,8 @@ class asm_symbol_pool:
         """
         if not label.name in self._name2label:
             raise ValueError('label %s not in symbol pool' % label)
+        if offset is not None and offset in self._offset2label:
+            raise ValueError('Conflict in label %s' % label)
         self._offset2label.pop(label.offset, None)
         label.offset = offset
         if is_int(label.offset):
@@ -503,7 +479,6 @@ def split_bloc(mnemo, attrib, pool_bin, blocs,
 
     return blocs
 
-
 def dis_bloc_all(mnemo, pool_bin, offset, job_done, symbol_pool, dont_dis=[],
                  split_dis=[], follow_call=False, dontdis_retcall=False,
                  blocs_wd=None, lines_wd=None, blocs=None,
@@ -612,26 +587,26 @@ def conservative_asm(mnemo, instr, symbols, conservative):
                 return c, candidates
     return candidates[0], candidates
 
-def fix_expr_val(e, symbols):
+def fix_expr_val(expr, symbols):
+    """Resolve an expression @expr using @symbols"""
     def expr_calc(e):
         if isinstance(e, m2_expr.ExprId):
             s = symbols._name2label[e.name]
             e = m2_expr.ExprInt_from(e, s.offset)
         return e
-    e = e.visit(expr_calc)
-    e = expr_simp(e)
-    return e
+    result = expr.visit(expr_calc)
+    result = expr_simp(result)
+    if not isinstance(result, m2_expr.ExprInt):
+        raise RuntimeError('Cannot resolve symbol %s' % expr)
+    return result
 
 
-def guess_blocs_size(mnemo, blocs):
-    """
-    Asm and compute max bloc length
-    """
-    for b in blocs:
-        log_asmbloc.debug('---')
-        blen = 0
-        blen_max = 0
-        for instr in b.lines:
+def guess_blocks_size(mnemo, blocks):
+    """Asm and compute max block size"""
+
+    for block in blocks:
+        size = 0
+        for instr in block.lines:
             if isinstance(instr, asm_raw):
                 # for special asm_raw, only extract len
                 if isinstance(instr.raw, list):
@@ -646,431 +621,383 @@ def guess_blocs_size(mnemo, blocs):
                 else:
                     raise NotImplementedError('asm raw')
             else:
-                l = mnemo.max_instruction_len
+                # Assemble the instruction to retrieve its len.
+                # If the instruction uses symbol it will fail
+                # In this case, the max_instruction_len is used
+                try:
+                    candidates = mnemo.asm(instr)
+                    l = len(candidates[-1])
+                except:
+                    l = mnemo.max_instruction_len
                 data = None
             instr.data = data
             instr.l = l
-            blen += l
+            size += l
 
-        b.blen = blen
-        # bloc with max rel values encoded
-        b.blen_max = blen + blen_max
-        log_asmbloc.info("blen: %d max: %d", b.blen, b.blen_max)
+        block.size = size
+        block.max_size = size
+        log_asmbloc.info("size: %d max: %d", block.size, block.max_size)
 
-
-def group_blocs(blocs):
+def fix_label_offset(symbol_pool, label, offset, modified):
+    """Fix the @label offset to @offset. If the @offset has changed, add @label
+    to @modified
+    @symbol_pool: current symbol_pool
     """
-    this function group asm blocs with next constraints
-    """
-    log_asmbloc.info('group_blocs')
-    # group adjacent blocs
-    rest = blocs[:]
-    groups_bloc = {}
-    d = dict([(x.label, x) for x in rest])
-    log_asmbloc.debug([str(x.label) for x in rest])
+    if label.offset == offset:
+        return
+    symbol_pool.set_offset(label, offset)
+    modified.add(label)
 
-    while rest:
-        b = [rest.pop()]
-        # find recursive son
-        fini = False
-        while not fini:
-            fini = True
-            for c in b[-1].bto:
-                if c.c_t != asm_constraint.c_next:
-                    continue
-                if c.label in d and d[c.label] in rest:
-                    b.append(d[c.label])
-                    rest.remove(d[c.label])
-                    fini = False
-                    break
-        # check if son in group:
-        found_in_group = False
-        for c in b[-1].bto:
-            if c.c_t != asm_constraint.c_next:
-                continue
-            if c.label in groups_bloc:
-                b += groups_bloc[c.label]
-                del groups_bloc[c.label]
-                groups_bloc[b[0].label] = b
-                found_in_group = True
+
+class BlockChain(object):
+    """Manage blocks linked with an asm_constraint_next"""
+
+    def __init__(self, symbol_pool, blocks):
+        self.symbol_pool = symbol_pool
+        self.blocks = blocks
+        self.place()
+
+    @property
+    def pinned(self):
+        """Return True iff at least one block is pinned"""
+        return self.pinned_block_idx is not None
+
+    def _set_pinned_block_idx(self):
+        self.pinned_block_idx = None
+        for i, block in enumerate(self.blocks):
+            if is_int(block.label.offset):
+                if self.pinned_block_idx is not None:
+                    raise ValueError("Multiples pinned block detected")
+                self.pinned_block_idx = i
+
+
+    def place(self):
+        """Compute BlockChain min_offset and max_offset using pinned block and
+        blocks' size
+        """
+        self._set_pinned_block_idx()
+        self.max_size = 0
+        for block in self.blocks:
+            self.max_size += block.max_size + block.alignment - 1
+
+        # Check if chain has one block pinned
+        if not self.pinned:
+            return
+
+
+        offset_base = self.blocks[self.pinned_block_idx].label.offset
+        assert(offset_base % self.blocks[self.pinned_block_idx].alignment == 0)
+
+        self.offset_min = offset_base
+        for block in self.blocks[:self.pinned_block_idx-1:-1]:
+            self.offset_min -= block.max_size + (block.alignment - block.max_size) % block.alignment
+
+        self.offset_max = offset_base
+        for block in self.blocks[self.pinned_block_idx:]:
+            self.offset_max += block.max_size + (block.alignment - block.max_size) % block.alignment
+
+    def merge(self, chain):
+        """Best effort merge two block chains
+        Return the list of resulting blockchains"""
+        self.blocks += chain.blocks
+        self.place()
+        return [self]
+
+    def fix_blocks(self, modified_labels):
+        """Propagate a pinned to its blocks' neighbour
+        @modified_labels: store new pinned labels"""
+
+        if not self.pinned:
+            raise ValueError('Trying to fix unpinned block')
+
+        # Propagate offset to blocks before pinned block
+        pinned_block = self.blocks[self.pinned_block_idx]
+        offset = pinned_block.label.offset
+        if offset % pinned_block.alignment != 0:
+            raise RuntimeError('Bad alignment')
+
+        for block in self.blocks[:self.pinned_block_idx-1:-1]:
+            new_offset = offset - block.size
+            new_offset = new_offset - new_offset % pinned_block.alignment
+            fix_label_offset(self.symbol_pool,
+                             block.label,
+                             new_offset,
+                             modified_labels)
+
+        # Propagate offset to blocks after pinned block
+        offset = pinned_block.label.offset + pinned_block.size
+
+        last_block = pinned_block
+        for block in self.blocks[self.pinned_block_idx+1:]:
+            offset += (- offset) % last_block.alignment
+            fix_label_offset(self.symbol_pool,
+                             block.label,
+                             offset,
+                             modified_labels)
+            offset += block.size
+            last_block = block
+        return modified_labels
+
+
+class BlockChainWedge(object):
+    """Stand for wedges between blocks"""
+
+    def __init__(self, symbol_pool, offset, size):
+        self.symbol_pool = symbol_pool
+        self.offset = offset
+        self.max_size = size
+        self.offset_min = offset
+        self.offset_max = offset + size
+
+    def merge(self, chain):
+        """Best effort merge two block chains
+        Return the list of resulting blockchains"""
+        chain.blocks[0].label.offset = self.offset_max
+        chain.place()
+        return [self, chain]
+
+
+def group_constrained_blocks(symbol_pool, blocks):
+    """
+    Return the BlockChains list built from grouped asm blocks linked by
+    asm_constraint_next
+    @blocks: a list of asm block
+    """
+    log_asmbloc.info('group_constrained_blocks')
+
+    # Group adjacent blocks
+    remaining_blocks = list(blocks)
+    known_block_chains = {}
+    lbl2block = {block.label:block for block in blocks}
+
+    while remaining_blocks:
+        # Create a new block chain
+        block_list = [remaining_blocks.pop()]
+
+        # Find sons in remainings blocks linked with a next constraint
+        while True:
+            # Get next block
+            next_label = block_list[-1].get_next()
+            if next_label is None or next_label not in lbl2block:
                 break
+            next_block = lbl2block[next_label]
 
-        if not found_in_group:
-            groups_bloc[b[0].label] = b
+            # Add the block at the end of the current chain
+            if next_block not in remaining_blocks:
+                break
+            block_list.append(next_block)
+            remaining_blocks.remove(next_block)
 
-    # create max label range for bigbloc
-    for l in groups_bloc:
-        l.total_max_l = reduce(lambda x, y: x + y.blen_max, groups_bloc[l], 0)
-        log_asmbloc.debug(("offset totalmax l", l.offset, l.total_max_l))
-        if is_int(l.offset):
-            hof = hex(int(l.offset))
-        else:
-            hof = l.name
-        log_asmbloc.debug(("offset totalmax l", hof, l.total_max_l))
-    return groups_bloc
+        # Check if son is in a known block group
+        if next_label is not None and next_label in known_block_chains:
+            block_list += known_block_chains[next_label]
+            del known_block_chains[next_label]
 
+        known_block_chains[block_list[0].label] = block_list
 
-def gen_free_space_intervals(f, max_offset=0xFFFFFFFF):
-    interval = {}
-    offset_label = dict([(x.offset_free, x) for x in f])
-    offset_label_order = offset_label.keys()
-    offset_label_order.sort()
-    offset_label_order.append(max_offset)
-    offset_label_order.reverse()
-
-    unfree_stop = 0L
-    while len(offset_label_order) > 1:
-        offset = offset_label_order.pop()
-        offset_end = offset + f[offset_label[offset]]
-        prev = 0
-        if unfree_stop > offset_end:
-            space = 0
-        else:
-            space = offset_label_order[-1] - offset_end
-            if space < 0:
-                space = 0
-            interval[offset_label[offset]] = space
-            if offset_label_order[-1] in offset_label:
-                prev = offset_label[offset_label_order[-1]]
-                prev = f[prev]
-
-        interval[offset_label[offset]] = space
-
-        unfree_stop = max(
-            unfree_stop, offset_end, offset_label_order[-1] + prev)
-    return interval
+    out_block_chains = []
+    for label in known_block_chains:
+        chain = BlockChain(symbol_pool, known_block_chains[label])
+        out_block_chains.append(chain)
+    return out_block_chains
 
 
-def add_dont_erase(f, dont_erase=[]):
-    tmp_symbol_pool = asm_symbol_pool()
-    for a, b in dont_erase:
-        l = tmp_symbol_pool.add_label(a, a)
-        l.offset_free = a
-        f[l] = b - a
-    return
+def get_blockchains_address_interval(blockChains, dst_interval):
+    """Compute the interval used by the pinned @blockChains
+    Check if the placed chains are in the @dst_interval"""
 
+    allocated_interval = interval()
+    for chain in blockChains:
+        if not chain.pinned:
+            continue
+        chain_interval = interval([(chain.offset_min, chain.offset_max-1)])
+        if chain_interval not in dst_interval:
+            raise ValueError('Chain placed out of destination interval')
+        allocated_interval += chain_interval
+    return allocated_interval
 
-def gen_non_free_mapping(group_bloc, dont_erase=[]):
-    non_free_mapping = {}
-    # calculate free space for bloc placing
-    for g in group_bloc:
-        g.fixedblocs = False
-        # if a label in the group is fixed
-        diff_offset = 0
-        for b in group_bloc[g]:
-            if not is_int(b.label.offset):
-                diff_offset += b.blen_max
-                continue
-            g.fixedblocs = True
-            g.offset_free = b.label.offset - diff_offset
-            break
-        if g.fixedblocs:
-            non_free_mapping[g] = g.total_max_l
+def resolve_symbol(blockChains, symbol_pool, dst_interval=None):
+    """Place @blockChains in the @dst_interval"""
 
-    log_asmbloc.debug("non free bloc:")
-    log_asmbloc.debug(non_free_mapping)
-    add_dont_erase(non_free_mapping, dont_erase)
-    log_asmbloc.debug("non free more:")
-    log_asmbloc.debug(non_free_mapping)
-    return non_free_mapping
-
-
-
-class AsmBlockLink(object):
-    """Location contraint between blocks"""
-
-    def __init__(self, label):
-        self.label = label
-
-    def resolve(self, parent_label, label2block):
-        """
-        Resolve the @parent_label.offset_g
-        @parent_label: parent label
-        @label2block: dictionnary which links labels to blocks
-        """
-        raise NotImplementedError("Abstract method")
-
-class AsmBlockLinkNext(AsmBlockLink):
-
-    def resolve(self, parent_label, label2block):
-        parent_label.offset_g = self.label.offset_g + label2block[self.label].blen
-
-class AsmBlockLinkPrev(AsmBlockLink):
-
-    def resolve(self, parent_label, label2block):
-        parent_label.offset_g = self.label.offset_g - label2block[parent_label].blen
-
-def resolve_symbol(group_bloc, symbol_pool, dont_erase=[],
-                   max_offset=0xFFFFFFFF):
-    """
-    place all asmblocs
-    """
     log_asmbloc.info('resolve_symbol')
-    log_asmbloc.info(str(dont_erase))
-    bloc_list = []
-    unr_bloc = reduce(lambda x, y: x + group_bloc[y], group_bloc, [])
+    if dst_interval is None:
+        dst_interval = interval([(0, 0xFFFFFFFFFFFFFFFF)])
 
-    non_free_mapping = gen_non_free_mapping(group_bloc, dont_erase)
-    free_interval = gen_free_space_intervals(non_free_mapping, max_offset)
-    log_asmbloc.debug(free_interval)
+    forbidden_interval = interval([(-1, 0xFFFFFFFFFFFFFFFF+1)]) - dst_interval
+    allocated_interval = get_blockchains_address_interval(blockChains,
+                                                          dst_interval)
+    log_asmbloc.debug('allocated interval: %s', allocated_interval)
 
-    # first big ones
-    g_tab = [(x.total_max_l, x) for x in group_bloc]
-    g_tab.sort()
-    g_tab.reverse()
-    g_tab = [x[1] for x in g_tab]
+    pinned_chains = [chain for chain in blockChains if chain.pinned]
 
-    # g_tab => label of grouped blov
-    # group_bloc => dict of grouped bloc labeled-key
+    # Add wedge in forbidden intervals
+    for start, stop in forbidden_interval.intervals:
+        wedge = BlockChainWedge(symbol_pool, offset=start, size=stop+1-start)
+        pinned_chains.append(wedge)
 
-    # first, near callee placing algo
-    for g in g_tab:
-        if g.fixedblocs:
+    # Try to place bigger blockChains first
+    pinned_chains.sort(key=lambda x:x.offset_min)
+    blockChains.sort(key=lambda x:-x.max_size)
+
+    fixed_chains = list(pinned_chains)
+
+    log_asmbloc.debug("place chains")
+    for chain in blockChains:
+        if chain.pinned:
             continue
-        finish = False
-        for x in group_bloc:
-            if not x in free_interval.keys():
-                continue
-            if free_interval[x] < g.total_max_l:
-                continue
+        fixed = False
+        for i in xrange(1, len(fixed_chains)):
+            prev_chain = fixed_chains[i-1]
+            next_chain = fixed_chains[i]
 
-            for b in group_bloc[x]:
-                for c in b.bto:
-                    if c.label == g:
-                        tmp = free_interval[x] - g.total_max_l
-                        log_asmbloc.debug(
-                            "consumed %d rest: %d", g.total_max_l, int(tmp))
-                        free_interval[g] = tmp
-                        del free_interval[x]
-                        symbol_pool.set_offset(
-                            g, AsmBlockLinkNext(group_bloc[x][-1].label))
-                        g.fixedblocs = True
-                        finish = True
-                        break
-                if finish:
-                    break
-            if finish:
+            if prev_chain.offset_max + chain.max_size < next_chain.offset_min:
+                new_chains = prev_chain.merge(chain)
+                fixed_chains[i-1:i] = new_chains
+                fixed = True
                 break
+        if not fixed:
+            raise RuntimeError('Cannot find enough space to place blocks')
 
-    # second, bigger in smaller algo
-    for g in g_tab:
-        if g.fixedblocs:
+    return [chain for chain in fixed_chains if isinstance(chain, BlockChain)]
+
+def filter_exprid_label(exprs):
+    """Extract labels from list of ExprId @exprs"""
+    return set(expr.name for expr in exprs if isinstance(expr.name, asm_label))
+
+def get_block_labels(block):
+    """Extract labels used by @block"""
+    symbols = set()
+    for instr in block.lines:
+        if isinstance(instr, asm_raw):
+            if isinstance(instr.raw, list):
+                for expr in instr.raw:
+                    symbols.update(m2_expr.get_expr_ids(expr))
+        else:
+            for arg in instr.args:
+                symbols.update(m2_expr.get_expr_ids(arg))
+    labels = filter_exprid_label(symbols)
+    return labels
+
+def assemble_block(mnemo, block, symbol_pool, conservative=False):
+    """Assemble a @block using @symbol_pool
+    @conservative: (optional) use original bytes when possible
+    """
+    offset_i = 0
+
+    for instr in block.lines:
+        if isinstance(instr, asm_raw):
+            if isinstance(instr.raw, list):
+                # Fix special asm_raw
+                data = ""
+                for expr in instr.raw:
+                    expr_int = fix_expr_val(expr, symbol_pool)
+                    data += pck[expr_int.size](expr_int.arg)
+                instr.data = data
+
+            instr.offset = offset_i
+            offset_i += instr.l
             continue
-        # chose smaller free_interval first
-        k_tab = [(free_interval[x], x) for x in free_interval]
-        k_tab.sort()
-        k_tab = [x[1] for x in k_tab]
-        # choose free_interval
-        for k in k_tab:
-            if g.total_max_l > free_interval[k]:
-                continue
-            symbol_pool.set_offset(
-                g, AsmBlockLinkNext(group_bloc[k][-1].label))
-            tmp = free_interval[k] - g.total_max_l
-            log_asmbloc.debug(
-                "consumed %d rest: %d", g.total_max_l, int(tmp))
-            free_interval[g] = tmp
-            del free_interval[k]
 
-            g.fixedblocs = True
+        # Assemble an instruction
+        saved_args = list(instr.args)
+        instr.offset = block.label.offset + offset_i
+
+        # Replace instruction's arguments by resolved ones
+        instr.args = instr.resolve_args_with_symbols(symbol_pool)
+
+        if instr.dstflow():
+            instr.fixDstOffset()
+
+        old_l = instr.l
+        cached_candidate, candidates = conservative_asm(
+            mnemo, instr, symbol_pool, conservative)
+
+        # Restore original arguments
+        instr.args = saved_args
+
+        # We need to update the block size
+        block.size = block.size - old_l + len(cached_candidate)
+        instr.data = cached_candidate
+        instr.l = len(cached_candidate)
+
+        offset_i += instr.l
+
+
+def asmbloc_final(mnemo, blocks, blockChains, symbol_pool, conservative=False):
+    """Resolve and assemble @blockChains using @symbol_pool until fixed point is
+    reached"""
+
+    log_asmbloc.debug("asmbloc_final")
+
+    # Init structures
+    lbl2block = {block.label:block for block in blocks}
+    blocks_using_label = {}
+    for block in blocks:
+        labels = get_block_labels(block)
+        for label in labels:
+            blocks_using_label.setdefault(label, set()).add(block)
+
+    block2chain = {}
+    for chain in blockChains:
+        for block in chain.blocks:
+            block2chain[block] = chain
+
+    # Init worklist
+    blocks_to_rework = set(blocks)
+
+    # Fix and re-assemble blocks until fixed point is reached
+    while True:
+
+        # Propagate pinned blocks into chains
+        modified_labels = set()
+        for chain in blockChains:
+            chain.fix_blocks(modified_labels)
+
+        for label in modified_labels:
+            # Retrive block with modified reference
+            if label in lbl2block:
+                blocks_to_rework.add(lbl2block[label])
+
+            # Enqueue blocks referencing a modified label
+            if label not in blocks_using_label:
+                continue
+            for block in blocks_using_label[label]:
+                blocks_to_rework.add(block)
+
+        # No more work
+        if not blocks_to_rework:
             break
 
-    while unr_bloc:
-        # propagate know offset
-        resolving = False
-        i = 0
-        while i < len(unr_bloc):
-            if unr_bloc[i].label.offset is None:
-                i += 1
-                continue
-            resolving = True
-            log_asmbloc.info("bloc %s resolved", unr_bloc[i].label)
-            bloc_list.append(unr_bloc[i])
-            g_found = None
-            for g in g_tab:
-                if unr_bloc[i] in group_bloc[g]:
-                    if g_found is not None:
-                        raise ValueError('blocin multiple group!!!')
-                    g_found = g
-            my_group = group_bloc[g_found]
+        while blocks_to_rework:
+            block = blocks_to_rework.pop()
+            assemble_block(mnemo, block, symbol_pool, conservative)
 
-            index = my_group.index(unr_bloc[i])
-            if index > 0 and my_group[index - 1] in unr_bloc:
-                symbol_pool.set_offset(
-                    my_group[index - 1].label,
-                    AsmBlockLinkPrev(unr_bloc[i].label))
-            if index < len(my_group) - 1 and my_group[index + 1] in unr_bloc:
-                symbol_pool.set_offset(
-                    my_group[index + 1].label,
-                    AsmBlockLinkNext(unr_bloc[i].label))
-            del unr_bloc[i]
+def asm_resolve_final(mnemo, blocks, symbol_pool, dst_interval=None):
+    """Resolve and assemble @blocks using @symbol_pool into interval
+    @dst_interval"""
 
-        if not resolving:
-            log_asmbloc.warn("cannot resolve symbol! (no symbol fix found)")
-        else:
-            continue
+    guess_blocks_size(mnemo, blocks)
+    blockChains = group_constrained_blocks(symbol_pool, blocks)
+    resolved_blockChains = resolve_symbol(blockChains, symbol_pool, dst_interval)
 
-        for g in g_tab:
-            log_asmbloc.debug(g)
-            if g.fixedblocs:
-                log_asmbloc.debug("fixed")
-            else:
-                log_asmbloc.debug("not fixed")
-        raise ValueError('enable to fix bloc')
-    return bloc_list
-
-
-def calc_symbol_offset(symbol_pool, blocks):
-    """Resolve dependencies between @blocks"""
-
-    # Labels resolved
-    pinned_labels = set()
-    # Link an unreferenced label to its reference label
-    linked_labels = {}
-    # Label -> block
-    label2block = dict((block.label, block) for block in blocks)
-
-    # Find pinned labels and labels to resolve
-    for label in symbol_pool.items:
-        if label.offset is None:
-            pass
-        elif is_int(label.offset):
-            pinned_labels.add(label)
-        elif isinstance(label.offset, AsmBlockLink):
-            # construct dependant blocs tree
-            linked_labels.setdefault(label.offset.label, set()).add(label)
-        else:
-            raise ValueError('Unknown offset type')
-        label.offset_g = label.offset
-
-    # Resolve labels
-    while pinned_labels:
-        ref_label = pinned_labels.pop()
-        for unresolved_label in linked_labels.get(ref_label, []):
-            if ref_label.offset_g is None:
-                raise ValueError("unknown symbol: %s" % str(ref_label.name))
-            unresolved_label.offset.resolve(unresolved_label, label2block)
-            pinned_labels.add(unresolved_label)
-
-
-def asmbloc_final(mnemo, blocs, symbol_pool, symb_reloc_off=None,
-                  conservative=False):
-    log_asmbloc.info("asmbloc_final")
-    if symb_reloc_off is None:
-        symb_reloc_off = {}
-    fini = False
-    # asm with minimal instr len
-    # check if dst label are ok to this encoded form
-    # recompute if not
-    # TODO XXXX: implement todo list to remove n^high complexity!
-    while fini is not True:
-
-        fini = True
-        my_symb_reloc_off = {}
-
-        calc_symbol_offset(symbol_pool, blocs)
-
-        symbols = asm_symbol_pool()
-        for s, v in symbol_pool._name2label.items():
-            symbols.add_label(s, v.offset_g)
-        # test if bad encoded relative
-        for bloc in blocs:
-
-            offset_i = 0
-            my_symb_reloc_off[bloc.label] = []
-            for instr in bloc.lines:
-                if isinstance(instr, asm_raw):
-                    if isinstance(instr.raw, list):
-                        # fix special asm_raw
-                        data = ""
-                        for x in instr.raw:
-                            e = fix_expr_val(x, symbols)
-                            data+= pck[e.size](e.arg)
-                        instr.data = data
-
-                    offset_i += instr.l
-                    continue
-                sav_a = instr.args[:]
-                instr.offset = bloc.label.offset_g + offset_i
-                args_e = instr.resolve_args_with_symbols(symbols)
-                for i, e in enumerate(args_e):
-                    instr.args[i] = e
-
-                if instr.dstflow():
-                    instr.fixDstOffset()
-
-                symbol_reloc_off = []
-                old_l = instr.l
-                c, candidates = conservative_asm(
-                    mnemo, instr, symbol_reloc_off, conservative)
-
-                for i, e in enumerate(sav_a):
-                    instr.args[i] = e
-
-                if len(c) != instr.l:
-                    # good len, bad offset...XXX
-                    bloc.blen = bloc.blen - old_l + len(c)
-                    instr.data = c
-                    instr.l = len(c)
-                    fini = False
-                    continue
-                found = False
-                for cpos, c in enumerate(candidates):
-                    if len(c) == instr.l:
-                        instr.data = c
-                        instr.l = len(c)
-
-                        found = True
-                        break
-                if not found:
-                    raise ValueError('something wrong in instr.data')
-
-                if cpos < len(symbol_reloc_off):
-                    my_s = symbol_reloc_off[cpos]
-                else:
-                    my_s = None
-
-                if my_s is not None:
-                    my_symb_reloc_off[bloc.label].append(offset_i + my_s)
-                offset_i += instr.l
-                assert len(instr.data) == instr.l
-    # we have fixed all relative values
-    # recompute good offsets
-    for label in symbol_pool.items:
-        symbol_pool.set_offset(label, label.offset_g)
-
-    for a, b in my_symb_reloc_off.items():
-        symb_reloc_off[a] = b
-
-
-def asm_resolve_final(mnemo, blocs, symbol_pool, dont_erase=[],
-                      max_offset=0xFFFFFFFF, symb_reloc_off=None):
-    if symb_reloc_off is None:
-        symb_reloc_off = {}
-    guess_blocs_size(mnemo, blocs)
-    bloc_g = group_blocs(blocs)
-
-    resolved_b = resolve_symbol(bloc_g, symbol_pool, dont_erase=dont_erase,
-                                max_offset=max_offset)
-
-    asmbloc_final(mnemo, resolved_b, symbol_pool, symb_reloc_off)
-    written_bytes = {}
+    asmbloc_final(mnemo, blocks, resolved_blockChains, symbol_pool)
     patches = {}
-    for bloc in resolved_b:
-        offset = bloc.label.offset
-        for line in bloc.lines:
-            assert line.data is not None
-            patches[offset] = line.data
-            for cur_pos in xrange(line.l):
-                if offset + cur_pos in written_bytes:
-                    raise ValueError(
-                        "overlapping bytes in asssembly %X" % int(offset))
-                written_bytes[offset + cur_pos] = 1
-            line.offset = offset
-            offset += line.l
+    output_interval = interval()
 
-    return resolved_b, patches
-
+    for block in blocks:
+        offset = block.label.offset
+        for instr in block.lines:
+            if not instr.data:
+                # Empty line
+                continue
+            assert len(instr.data) == instr.l
+            patches[offset] = instr.data
+            instruction_interval = interval([(offset, offset + instr.l-1)])
+            if not (instruction_interval & output_interval).empty:
+                raise RuntimeError("overlapping bytes %X" % int(offset))
+            instr.offset = offset
+            offset += instr.l
+    return patches
 
 def blist2graph(ab):
     """

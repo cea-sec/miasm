@@ -932,8 +932,8 @@ class instruction(object):
         o += self.gen_args(args)
         return o
 
-    def get_asm_offset(self, x):
-        return m2_expr.ExprInt_from(x, self.offset)
+    def get_asm_offset(self, expr):
+        return m2_expr.ExprInt_from(expr, self.offset)
 
     def resolve_args_with_symbols(self, symbols=None):
         if symbols is None:
@@ -947,14 +947,14 @@ class instruction(object):
             for x in ids:
                 if isinstance(x.name, asmbloc.asm_label):
                     name = x.name.name
+                    # special symbol $
+                    if name == '$':
+                        fixed_ids[x] = self.get_asm_offset(x)
+                        continue
                     if not name in symbols:
                         raise ValueError('unresolved symbol! %r' % x)
                 else:
                     name = x.name
-                # special symbol
-                if name == '$':
-                    fixed_ids[x] = self.get_asm_offset(x)
-                    continue
                 if not name in symbols:
                     continue
                 if symbols[name].offset is None:
@@ -981,6 +981,8 @@ class cls_mn(object):
     __metaclass__ = metamn
     args_symb = []
     instruction = instruction
+    # Block's offset alignement
+    alignment = 1
 
     @classmethod
     def guess_mnemo(cls, bs, attrib, pre_dis_info, offset):
@@ -1149,6 +1151,7 @@ class cls_mn(object):
             if not getok:
                 continue
 
+            c.l = prefix_len + total_l / 8
             for i in c.to_decode:
                 f = c.fields_order[i]
                 if f.is_present:
@@ -1162,7 +1165,6 @@ class cls_mn(object):
             for a in c.args:
                 a.expr = expr_simp(a.expr)
 
-            c.l = prefix_len + total_l / 8
             c.b = cls.getbytes(bs, offset_o, c.l)
             c.offset = offset_o
             c = c.post_dis()
@@ -1333,14 +1335,14 @@ class cls_mn(object):
         return o
 
     def value(self, mode):
-        todo = [(0, [(x, self.fields_order[x]) for x in self.to_decode[::-1]])]
+        todo = [(0, 0, [(x, self.fields_order[x]) for x in self.to_decode[::-1]])]
 
         result = []
         done = []
         cpt = 0
 
         while todo:
-            index, to_decode = todo.pop()
+            index, cur_len, to_decode = todo.pop()
             # TEST XXX
             for i, f in to_decode:
                 setattr(self, f.fname, f)
@@ -1351,11 +1353,14 @@ class cls_mn(object):
             cpt += 1
             can_encode = True
             for i, f in to_decode[index:]:
+                f.parent.l = cur_len
                 ret = f.encode()
                 if not ret:
                     log.debug('cannot encode %r', f)
                     can_encode = False
                     break
+                if f.value is not None and f.l:
+                    cur_len += f.l
                 index += 1
                 if ret is True:
                     continue
@@ -1364,14 +1369,14 @@ class cls_mn(object):
                 for i in ret:
                     gcpt += 1
                     o = []
-                    if ((index, [xx[1].value for xx in to_decode]) in todo or
-                        (index, [xx[1].value for xx in to_decode]) in done):
+                    if ((index, cur_len, [xx[1].value for xx in to_decode]) in todo or
+                        (index, cur_len, [xx[1].value for xx in to_decode]) in done):
                         raise NotImplementedError('not fully functional')
 
                     for p, f in to_decode:
                         fnew = f.clone()
                         o.append((p, fnew))
-                    todo.append((index, o))
+                    todo.append((index, cur_len, o))
                 can_encode = False
 
                 break

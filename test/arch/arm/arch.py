@@ -66,13 +66,13 @@ reg_tests_arm = [
      "002094e0"),
     ("0003EA9C    MVN        R7, R2",
      "0270e0e1"),
-    ("C00CD4DC    BL         0x7C",
+    ("C00CD4DC    BL         0x84",
      "1F0000EB"),
-    ("C00CF110    BL         0xFFFFFDEC",
+    ("C00CF110    BL         0xFFFFFDF4",
      "7BFFFFEB"),
 
 
-    ("000829b0    BLNE       0xFFF87110",
+    ("000829b0    BLNE       0xFFF87118",
      "441cfe1b"),
 
     ("C00EC608    TEQ        R4, R5",
@@ -205,7 +205,7 @@ reg_tests_arm = [
 
     ("C00CFA40    BLX        R12",
      "3CFF2FE1"),
-    ("C010DE1C    BLX        0x1ECCEA",
+    ("C010DE1C    BLX        0x1ECCF2",
      "3AB307FB"),
 
     ("00013028    MOV        R9, 0x6E75",
@@ -217,7 +217,7 @@ reg_tests_arm = [
     ("0004A38C    CLZ        R3, R2",
      "123F6FE1"),
 
-    ("C0132564    BLX        0xFFFCF06C",
+    ("C0132564    BLX        0xFFFCF074",
      "1B3CFFFA"),
 
     ("C0297028    QADD       R7, R6, R6",
@@ -414,15 +414,15 @@ reg_tests_armt = [
     ("000a1c16    STMIA      R6!, {R0-R3}",
      "0fc6"),
 
-    ("0006af78    BEQ        0x6",
+    ("0006af78    BEQ        0xA",
      "03d0"),
-    ("000747b4    BCC        0xFFFFFFE6",
+    ("000747b4    BCC        0xFFFFFFEA",
      "f3d3"),
     # swi
 
-    ("0007479c    B          0xE",
+    ("0007479c    B          0x12",
      "07e0"),
-    ("0006b946    B          0xFFFFFFE4",
+    ("0006b946    B          0xFFFFFFE8",
      "f2e7"),
     ("C010163C    BLX        0x1F916C",
      "F9F1B6E8"),

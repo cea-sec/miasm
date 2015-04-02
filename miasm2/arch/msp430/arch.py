@@ -9,6 +9,7 @@ from collections import defaultdict
 from miasm2.core.bin_stream import bin_stream
 import miasm2.arch.msp430.regs as regs_module
 from miasm2.arch.msp430.regs import *
+from miasm2.core.asmbloc import asm_label
 
 log = logging.getLogger("armdis")
 console_handler = logging.StreamHandler()
@@ -73,7 +74,7 @@ PINC = Suppress("+")
 
 def ast_id2expr(t):
     if not t in mn_msp430.regs.all_regs_ids_byname:
-        r = ExprId(t, 16)
+        r = ExprId(asm_label(t), 16)
     else:
         r = mn_msp430.regs.all_regs_ids_byname[t]
     return r
@@ -143,7 +144,7 @@ class instruction_msp430(instruction):
         if self.name == "call":
             ad = e.arg
         else:
-            ad = e.arg + int(self.offset) + self.l
+            ad = e.arg + int(self.offset)
 
         l = symbol_pool.getby_offset_create(ad)
         s = ExprId(l, e.size)
@@ -187,8 +188,11 @@ class instruction_msp430(instruction):
             # raise ValueError('dst must be int or label')
             log.warning('dynamic dst %r', e)
             return
-        # return ExprInt32(e.arg - (self.offset + self.l))
-        self.args[0] = ExprInt_fromsize(16, e.arg - (self.offset + self.l))
+
+        # Call argument is an absolute offset
+        # Other offsets are relative to instruction offset
+        if self.name != "call":
+            self.args[0] =  ExprInt_fromsize(16, e.arg - self.offset)
 
     def get_info(self, c):
         pass
@@ -522,9 +526,16 @@ class msp430_offs(imm_noarg, m_arg):
         return ExprInt_fromsize(16, v)
 
     def decodeval(self, v):
-        return v << 1
+        v <<= 1
+        v += self.parent.l
+        return v
 
     def encodeval(self, v):
+        plen = self.parent.l + self.l
+        assert(plen % 8 == 0)
+        v -= plen / 8
+        if v % 2 != 0:
+            return False
         return v >> 1
 
     def decode(self, v):
@@ -574,8 +585,8 @@ bs_f2_nobw = bs_name(l=3, name={'swpb': 1, 'sxt': 3,
                                 'call': 5})
 addop("f2_2", [bs('000100'), bs_f2_nobw, bs('0'), a_s, sreg, off_s])
 
-
-offimm = bs(l=10, cls=(msp430_offs,), fname="offs")
+# Offset must be decoded in last position to have final instruction len
+offimm = bs(l=10, cls=(msp430_offs,), fname="offs", order=-1)
 
 bs_f2_jcc = bs_name(l=3, name={'jnz': 0, 'jz': 1, 'jnc': 2, 'jc': 3, 'jn': 4,
                                'jge': 5, 'jl': 6, 'jmp': 7})

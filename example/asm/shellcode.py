@@ -9,6 +9,7 @@ from miasm2.core.cpu import parse_ast
 from miasm2.core import parse_asm, asmbloc
 import miasm2.expression.expression as m2_expr
 from miasm2.analysis.machine import Machine
+from miasm2.core.interval import interval
 
 parser = ArgumentParser("Multi-arch (32 bits) assembler")
 parser.add_argument('architecture', help="architecture: " + \
@@ -34,6 +35,7 @@ except ValueError:
     size = 32
 reg_and_id = dict(machine.mn.regs.all_regs_ids_byname)
 base_expr = machine.base_expr
+dst_interval = None
 
 # Output format
 if args.PE:
@@ -50,7 +52,8 @@ if args.PE:
     addr_main = pe.rva2virt(s_text.addr)
     virt = pe.virt
     output = pe
-
+    dst_interval = interval([(pe.rva2virt(s_text.addr),
+                              pe.rva2virt(s_text.addr + s_text.size))])
 else:
     st = StrPatchwork()
 
@@ -58,15 +61,6 @@ else:
     virt = st
     output = st
 
-# Fix the AST parser
-def my_ast_int2expr(a):
-    return m2_expr.ExprInt_fromsize(size, a)
-
-def my_ast_id2expr(t):
-    return reg_and_id.get(t, m2_expr.ExprId(t, size=size))
-
-my_var_parser = parse_ast(my_ast_id2expr, my_ast_int2expr)
-base_expr.setParseAction(my_var_parser)
 
 # Get and parse the source code
 with open(args.source) as fstream:
@@ -88,9 +82,10 @@ graph = asmbloc.bloc2graph(blocs[0])
 open("graph.txt", "w").write(graph)
 
 # Apply patches
-resolved_b, patches = asmbloc.asm_resolve_final(machine.mn,
-                                                blocs[0],
-                                                symbol_pool)
+patches = asmbloc.asm_resolve_final(machine.mn,
+                                    blocs[0],
+                                    symbol_pool,
+                                    dst_interval)
 if args.encrypt:
     # Encrypt code
     ad_start = symbol_pool.getby_name_create(args.encrypt[0]).offset

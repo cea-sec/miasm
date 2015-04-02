@@ -10,7 +10,7 @@ from miasm2.expression.expression import ExprMem, ExprInt, ExprInt32, ExprId
 from miasm2.core.bin_stream import bin_stream
 import miasm2.arch.mips32.regs as regs
 import miasm2.core.cpu as cpu
-
+from miasm2.core.asmbloc import asm_label
 
 log = logging.getLogger("mips32dis")
 console_handler = logging.StreamHandler()
@@ -47,6 +47,26 @@ deref_nooff = Group(LPARENTHESIS + gpregs.parser + \
                         RPARENTHESIS).setParseAction(deref2expr_nooff)
 deref = deref_off | deref_nooff
 
+
+variable, operand, base_expr = cpu.gen_base_expr()
+
+int_or_expr = base_expr
+
+
+def ast_id2expr(t):
+    if not t in mn_mips32.regs.all_regs_ids_byname:
+        r = ExprId(asm_label(t))
+    else:
+        r = mn_mips32.regs.all_regs_ids_byname[t]
+    return r
+
+
+def ast_int2expr(a):
+    return ExprInt32(a)
+
+
+my_var_parser = cpu.parse_ast(ast_id2expr, ast_int2expr)
+base_expr.setParseAction(my_var_parser)
 
 class additional_info:
     def __init__(self):
@@ -159,7 +179,7 @@ class instruction_mips32(cpu.instruction):
             raise ValueError('symbol not resolved %s' % self.l)
         if not isinstance(e, ExprInt):
             return
-        off = e.arg - (self.offset + self.l)
+        off = e.arg - self.offset
         print "diff", e, hex(self.offset)
         print hex(off)
         if int(off % 4):
@@ -307,13 +327,15 @@ class mips32_soff_noarg(mips32_imm):
         v = v & self.lmask
         v <<= 2
         v = cpu.sign_ext(v, 16+2, 32)
-        self.expr = ExprInt32(v)
+        # Add pipeline offset
+        self.expr = ExprInt32(v + 4)
         return True
 
     def encode(self):
         if not isinstance(self.expr, ExprInt):
             return False
-        v = self.expr.arg.arg
+        # Remove pipeline offset
+        v = int(self.expr.arg - 4)
         if v & 0x80000000:
             nv = v & ((1 << 16+2) - 1)
             assert( v == cpu.sign_ext(nv, 16+2, 32))

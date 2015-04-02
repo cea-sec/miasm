@@ -49,6 +49,7 @@ assert((i2 in i3) is False)
 
 assert((i3 in i2))
 assert((i2 in i3) is False)
+assert((i3 in i14))
 
 assert(interval.cannon_list(i1.intervals) == i1.intervals)
 

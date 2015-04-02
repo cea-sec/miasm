@@ -100,20 +100,20 @@ class interval(object):
             o = "[]"
         return o
 
-    def __contains__(self, i):
-        if isinstance(i, interval):
-            for x in self.intervals:
-                is_out = True
-                for y in i.intervals:
-                    if cmp_interval(x, y) in [INT_EQ, INT_B_IN_A]:
-                        is_out = False
+    def __contains__(self, other):
+        if isinstance(other, interval):
+            for intervalB in other.intervals:
+                is_in = False
+                for intervalA in self.intervals:
+                    if cmp_interval(intervalA, intervalB) in [INT_EQ, INT_B_IN_A]:
+                        is_in = True
                         break
-                if is_out:
+                if not is_in:
                     return False
             return True
         else:
-            for x in self.intervals:
-                if x[0] <= i <= x[1]:
+            for intervalA in self.intervals:
+                if intervalA[0] <= other <= intervalA[1]:
                     return True
             return False
 
@@ -214,6 +214,12 @@ class interval(object):
         if not self.intervals:
             return None, None
         return self.intervals[0][0], self.intervals[-1][1]
+
+
+    @property
+    def empty(self):
+        """Return True iff the interval is empty"""
+        return not self.intervals
 
     def show(self, img_x=1350, img_y=20, dry_run=False):
         """

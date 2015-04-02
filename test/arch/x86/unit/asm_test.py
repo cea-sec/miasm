@@ -20,18 +20,6 @@ if filename and os.path.isfile(filename):
 
 reg_and_id = dict(mn_x86.regs.all_regs_ids_byname)
 
-
-def my_ast_int2expr(a):
-    return ExprInt32(a)
-
-
-def my_ast_id2expr(t):
-    return reg_and_id.get(t, ExprId(t, size=32))
-
-my_var_parser = parse_ast(my_ast_id2expr, my_ast_int2expr)
-base_expr.setParseAction(my_var_parser)
-
-
 class Asm_Test(object):
     def __init__(self):
         self.myjit = Machine("x86_32").jitter()
@@ -53,8 +41,7 @@ class Asm_Test(object):
         # fix shellcode addr
         symbol_pool.set_offset(symbol_pool.getby_name("main"), 0x0)
         s = StrPatchwork()
-        resolved_b, patches = asmbloc.asm_resolve_final(
-            mn_x86, blocs[0], symbol_pool)
+        patches = asmbloc.asm_resolve_final(mn_x86, blocs[0], symbol_pool)
         for offset, raw in patches.items():
             s[offset] = raw
 

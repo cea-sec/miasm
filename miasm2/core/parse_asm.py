@@ -19,6 +19,14 @@ size2pck = {8: 'B',
             64: 'Q',
             }
 
+class DirectiveAlign(object):
+    """Stand for alignment representation"""
+
+    def __init__(self, alignment=1):
+        self.alignment = alignment
+
+    def __str__(self):
+        return "Alignment %s" % self.alignment
 
 def guess_next_new_label(symbol_pool, gen_label_index=0):
     i = 0
@@ -29,6 +37,30 @@ def guess_next_new_label(symbol_pool, gen_label_index=0):
         if l is None:
             return symbol_pool.add_label(name)
         i += 1
+
+def replace_expr_labels(expr, symbol_pool, replace_id):
+    """Create asm_label of the expression @expr in the @symbol_pool
+    Update @replace_id"""
+
+    if not (isinstance(expr, m2_expr.ExprId) and
+            isinstance(expr.name, asmbloc.asm_label)):
+        return expr
+
+    old_lbl = expr.name
+    new_lbl = symbol_pool.getby_name_create(old_lbl.name)
+    replace_id[expr] = m2_expr.ExprId(new_lbl, expr.size)
+    return replace_id[expr]
+
+def replace_orphan_labels(instr, symbol_pool):
+    """Link orphan labels used by @instr to the @symbol_pool"""
+
+    for i, arg in enumerate(instr.args):
+        replace_id = {}
+        arg.visit(lambda e:replace_expr_labels(e,
+                                               symbol_pool,
+                                               replace_id))
+        instr.args[i] = instr.args[i].replace_expr(replace_id)
+
 
 
 def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
@@ -126,6 +158,10 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
             if directive == 'dontsplit':  # custom command
                 lines.append(asmbloc.asm_raw())
                 continue
+            if directive == "align":
+                align_value = int(line[r.end():])
+                lines.append(DirectiveAlign(align_value))
+                continue
             if directive in ['file', 'intel_syntax', 'globl', 'local',
                              'type', 'size', 'align', 'ident', 'section']:
                 continue
@@ -147,6 +183,10 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
             line = line[:line.find(';')]
         line = line.strip(' ').strip('\t')
         instr = mnemo.fromstring(line, attrib)
+
+        # replace orphan asm_label with labels from symbol_pool
+        replace_orphan_labels(instr, symbol_pool)
+
         if instr.dstflow():
             instr.dstflow2label(symbol_pool)
         lines.append(instr)
@@ -172,7 +212,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
                     lines[i:i] = [l]
                 else:
                     l = lines[i]
-                    b = asmbloc.asm_bloc(l)
+                    b = asmbloc.asm_bloc(l, alignment=mnemo.alignment)
                     b.bloc_num = bloc_num
                     bloc_num += 1
                     blocs.append(b)
@@ -195,6 +235,9 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
                         block_may_link = True
                         b.addline(lines[i])
                         i += 1
+                elif isinstance(lines[i], DirectiveAlign):
+                    b.alignment = lines[i].alignment
+                    i += 1
                 # asmbloc.asm_label
                 elif isinstance(lines[i], asmbloc.asm_label):
                     if block_may_link:
