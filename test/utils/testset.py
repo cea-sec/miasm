@@ -10,20 +10,20 @@ class Message(object):
     pass
 
 
-class MessageTaskNew(object):
+class MessageTaskNew(Message):
     "Stand for a new task"
     def __init__(self, task):
         self.task = task
 
 
-class MessageTaskDone(object):
+class MessageTaskDone(Message):
     "Stand for a task done"
     def __init__(self, task, error):
         self.task = task
         self.error = error
 
 
-class MessageClose(object):
+class MessageClose(Message):
     "Close the channel"
     pass
 
