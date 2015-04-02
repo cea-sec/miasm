@@ -208,7 +208,7 @@ class TestSet(object):
         "Launch tests"
 
         # Go in the right directory
-        current_directory = os.getcwd()
+        self.current_directory = os.getcwd()
         os.chdir(self.base_dir)
 
         # Launch workers
@@ -237,11 +237,17 @@ class TestSet(object):
         for p in processes:
             p.join()
 
+    def end(self, clean=True):
+        """End a testset run
+        @clean: (optional) if set, remove tests products
+        PRE: run()
+        """
         # Clean
-        self._clean()
+        if clean:
+            self._clean()
 
         # Restore directory
-        os.chdir(current_directory)
+        os.chdir(self.current_directory)
 
     def tests_passed(self):
         "Return a non zero value if at least one test failed"

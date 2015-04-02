@@ -371,6 +371,8 @@ if __name__ == "__main__":
     parser.add_argument("-t", "--ommit-tags", help="Ommit tests based on tags \
 (tag1,tag2). Available tags are %s. \
 By default, no tag is ommited." % ", ".join(TAGS.keys()), default="")
+    parser.add_argument("-n", "--do-not-clean",
+                        help="Do not clean tests products", action="store_true")
     args = parser.parse_args()
 
     ## Parse multiproc argument
@@ -470,6 +472,9 @@ By default, no tag is ommited." % ", ".join(TAGS.keys()), default="")
 
     # Run tests
     testset.run()
+
+    # Finalize
+    testset.end(clean=not args.do_not_clean)
 
     # Exit with an error if at least a test failed
     exit(testset.tests_passed())
