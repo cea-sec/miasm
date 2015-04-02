@@ -76,7 +76,7 @@ class TestSet(object):
         if task_new:
             self.task_new_cb = task_new
 
-    def add_tasks(self):
+    def _add_tasks(self):
         "Add tests to do, regarding to dependencies"
         for test in self.tests:
             # Check dependencies
@@ -100,7 +100,7 @@ class TestSet(object):
         if len(self.tests_done) == self.init_tests_number:
             self.message_queue.put(MessageClose())
 
-    def messages_handler(self):
+    def _messages_handler(self):
         "Manage message between Master and Workers"
 
         # Main loop
@@ -115,7 +115,7 @@ class TestSet(object):
             elif isinstance(message, MessageTaskDone):
                 # A task has been done
                 self.tests_done.append(message.task)
-                self.add_tasks()
+                self._add_tasks()
                 self.task_done_cb(message.task, message.error)
                 if message.error is not None:
                     self.errorcode = -1
@@ -179,7 +179,7 @@ class TestSet(object):
             result.append(item)
         return result
 
-    def clean(self):
+    def _clean(self):
         "Remove produced files"
 
         # Build the list of products
@@ -224,10 +224,10 @@ class TestSet(object):
         # Add initial tasks
         self.init_tests_number = len(self.tests)
         # Initial tasks
-        self.add_tasks()
+        self._add_tasks()
 
         # Handle messages
-        self.messages_handler()
+        self._messages_handler()
 
         # Close queue and join processes
         self.todo_queue.close()
@@ -238,7 +238,7 @@ class TestSet(object):
             p.join()
 
         # Clean
-        self.clean()
+        self._clean()
 
         # Restore directory
         os.chdir(current_directory)
