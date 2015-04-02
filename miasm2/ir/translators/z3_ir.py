@@ -169,6 +169,8 @@ class TranslatorZ3(Translator):
                     res = res << arg
                 elif expr.op == "idiv":
                     res = res / arg
+                elif expr.op == "call_func_ret":
+                    res = arg
                 else:
                     raise NotImplementedError("Unsupported OP yet: %s" % expr.op)
         elif expr.op == 'parity':
