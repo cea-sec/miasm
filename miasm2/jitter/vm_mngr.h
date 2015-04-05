@@ -175,6 +175,9 @@ unsigned short MEM_LOOKUP_16_PASSTHROUGH(uint64_t addr);
 unsigned int MEM_LOOKUP_32_PASSTHROUGH(uint64_t addr);
 uint64_t MEM_LOOKUP_64_PASSTHROUGH(uint64_t addr);
 
+int vm_read_mem(vm_mngr_t* vm_mngr, uint64_t addr, char** buffer_ptr, uint64_t size);
+int vm_write_mem(vm_mngr_t* vm_mngr, uint64_t addr, char *buffer, uint64_t size);
+
 
 unsigned int parity(unsigned int a);
 unsigned int my_imul08(unsigned int a, unsigned int b);

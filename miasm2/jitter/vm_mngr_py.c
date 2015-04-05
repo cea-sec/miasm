@@ -172,49 +172,6 @@ PyObject* vm_add_memory_page(VmMngr* self, PyObject* args)
 
 
 
-
-PyObject* vm_set_mem(VmMngr* self, PyObject* args)
-{
-	PyObject *addr;
-	PyObject *item_str;
-
-	uint64_t buf_size;
-	char* buf_data;
-	Py_ssize_t length;
-	int ret = 0x1337;
-	uint64_t val;
-	uint64_t l;
-	struct memory_page_node * mpn;
-
-	if (!PyArg_ParseTuple(args, "OO", &addr, &item_str))
-		return NULL;
-
-	PyGetInt(addr, val);
-
-	if(!PyString_Check(item_str))
-		RAISE(PyExc_TypeError,"arg must be str");
-
-	buf_size = PyString_Size(item_str);
-	PyString_AsStringAndSize(item_str, &buf_data, &length);
-
-
-	check_write_code_bloc(&self->vm_mngr, buf_size*8, val);
-	/* write is multiple page wide */
-	while (buf_size){
-		mpn = get_memory_page_from_address(&self->vm_mngr, val);
-		if (!mpn){
-			PyErr_SetString(PyExc_RuntimeError, "cannot find address");
-			return 0;
-		}
-		l = MIN(buf_size, mpn->size - (val-mpn->ad));
-		memcpy(mpn->ad_hp + (val-mpn->ad), buf_data, l);
-		buf_data += l;
-		val += l;
-		buf_size -= l;
-	}
-	return PyLong_FromUnsignedLongLong((uint64_t)ret);
-}
-
 PyObject* vm_set_mem_access(VmMngr* self, PyObject* args)
 {
 	PyObject *addr;
@@ -241,63 +198,70 @@ PyObject* vm_set_mem_access(VmMngr* self, PyObject* args)
 	return PyLong_FromUnsignedLongLong((uint64_t)ret);
 }
 
+PyObject* vm_set_mem(VmMngr* self, PyObject* args)
+{
+       PyObject *py_addr;
+       PyObject *py_buffer;
+       Py_ssize_t py_length;
+
+       char * buffer;
+       uint64_t size;
+       uint64_t addr;
+       int ret = 0x1337;
+
+       if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_buffer))
+	      return NULL;
+
+       PyGetInt(py_addr, addr);
+
+       if(!PyString_Check(py_buffer))
+	      RAISE(PyExc_TypeError,"arg must be str");
+
+       size = PyString_Size(py_buffer);
+       PyString_AsStringAndSize(py_buffer, &buffer, &py_length);
+
+       ret = vm_write_mem(&self->vm_mngr, addr, buffer, size);
+       if (ret < 0)
+	      RAISE(PyExc_TypeError,"arg must be str");
+
+       check_write_code_bloc(&self->vm_mngr, size*8, addr);
+
+       Py_INCREF(Py_None);
+       return Py_None;
+}
+
 
 
 
 PyObject* vm_get_mem(VmMngr* self, PyObject* args)
 {
-	PyObject *item;
-	PyObject *item_len;
+       PyObject *py_addr;
+       PyObject *py_len;
 
-	uint64_t buf_addr;
-	uint64_t buf_len;
-	PyObject *obj_out;
-	struct memory_page_node * mpn;
-	char * buf_out;
-	char * addr_tmp;
-	char * addr_out;
-	uint64_t off;
-	uint64_t l;
-	uint64_t my_size;
+       uint64_t addr;
+       uint64_t size;
+       PyObject *obj_out;
+       char * buf_out;
+       int ret;
 
-	if (!PyArg_ParseTuple(args, "OO", &item, &item_len))
-		return NULL;
+       if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_len))
+	      return NULL;
 
-	PyGetInt(item, buf_addr);
-	PyGetInt(item_len, buf_len);
+       PyGetInt(py_addr, addr);
+       PyGetInt(py_len, size);
 
-	my_size = buf_len;
-	buf_out = malloc(buf_len);
-	if (!buf_out){
-		fprintf(stderr, "cannot alloc read\n");
-		exit(-1);
-	}
+       ret = vm_read_mem(&self->vm_mngr, addr, &buf_out, size);
+       if (ret < 0) {
+	      free(buf_out);
+	      PyErr_SetString(PyExc_RuntimeError, "cannot find address");
+	      return NULL;
+       }
 
-	addr_out = buf_out;
-
-	/* read is multiple page wide */
-	while (my_size){
-		mpn = get_memory_page_from_address(&self->vm_mngr, buf_addr);
-		if (!mpn){
-			free(buf_out);
-			PyErr_SetString(PyExc_RuntimeError, "cannot find address");
-			return 0;
-		}
-
-		off = buf_addr - mpn->ad;
-		addr_tmp = &((char*)mpn->ad_hp)[off];
-
-		l = MIN(my_size, mpn->size - off);
-		memcpy(addr_out, addr_tmp, l);
-		my_size -= l;
-		addr_out +=l;
-		buf_addr +=l;
-	}
-
-	obj_out = PyString_FromStringAndSize(buf_out, buf_len);
-	free(buf_out);
-	return obj_out;
+       obj_out = PyString_FromStringAndSize(buf_out, size);
+       free(buf_out);
+       return obj_out;
 }
+
 
 PyObject* vm_add_memory_breakpoint(VmMngr* self, PyObject* args)
 {
@@ -738,7 +702,7 @@ PyObject* add_jitbloc(VmMngr* self, PyObject* args)
 
 	if (!PyArg_ParseTuple(args, "O", &addr2obj))
 		return NULL;
-	
+
 	Py_INCREF(Py_None);
 	return Py_None;
 

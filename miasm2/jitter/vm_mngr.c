@@ -537,6 +537,66 @@ uint64_t MEM_LOOKUP_64(vm_mngr_t* vm_mngr, uint64_t addr)
     return ret;
 }
 
+
+int vm_read_mem(vm_mngr_t* vm_mngr, uint64_t addr, char** buffer_ptr, uint64_t size)
+{
+       char* buffer;
+       uint64_t len;
+       struct memory_page_node * mpn;
+
+       buffer = malloc(size);
+       *buffer_ptr = buffer;
+       if (!buffer){
+	      fprintf(stderr, "cannot alloc read\n");
+	      exit(-1);
+       }
+
+       /* read is multiple page wide */
+       while (size){
+	      mpn = get_memory_page_from_address(vm_mngr, addr);
+	      if (!mpn){
+		      free(*buffer_ptr);
+		      PyErr_SetString(PyExc_RuntimeError, "cannot find address");
+		      return -1;
+	      }
+
+	      len = MIN(size, mpn->size - (addr - mpn->ad));
+	      memcpy(buffer, (char*)(mpn->ad_hp + (addr - mpn->ad)), len);
+	      buffer += len;
+	      addr += len;
+	      size -= len;
+       }
+
+       return 0;
+}
+
+int vm_write_mem(vm_mngr_t* vm_mngr, uint64_t addr, char *buffer, uint64_t size)
+{
+       uint64_t len;
+       struct memory_page_node * mpn;
+
+       check_write_code_bloc(vm_mngr, size * 8, addr);
+
+       /* write is multiple page wide */
+       while (size){
+	      mpn = get_memory_page_from_address(vm_mngr, addr);
+	      if (!mpn){
+		      PyErr_SetString(PyExc_RuntimeError, "cannot find address");
+		      return -1;
+	      }
+
+	      len = MIN(size, mpn->size - (addr - mpn->ad));
+	      memcpy(mpn->ad_hp + (addr-mpn->ad), buffer, len);
+	      buffer += len;
+	      addr += len;
+	      size -= len;
+       }
+
+       return 0;
+}
+
+
+
 unsigned int parity(unsigned int a)
 {
 #if defined(__builtin_parity)
