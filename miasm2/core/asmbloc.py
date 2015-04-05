@@ -752,7 +752,7 @@ class BlockChainWedge(object):
     def merge(self, chain):
         """Best effort merge two block chains
         Return the list of resulting blockchains"""
-        chain.blocks[0].label.offset = self.offset_max
+        self.symbol_pool.set_offset(chain.blocks[0].label, self.offset_max)
         chain.place()
         return [self, chain]
 
