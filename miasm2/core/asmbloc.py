@@ -972,9 +972,31 @@ def asmbloc_final(mnemo, blocks, blockChains, symbol_pool, conservative=False):
             block = blocks_to_rework.pop()
             assemble_block(mnemo, block, symbol_pool, conservative)
 
+
+def sanity_check_blocks(blocks):
+    """Do sanity checks on blocks' constraints:
+    * no multiple next constraint to same block
+    * no next constraint to self"""
+
+    blocks_graph = basicblocs(blocks)
+    graph = blocks_graph.g
+    for label in graph.nodes():
+        if blocks_graph.blocs[label].get_next() == label:
+            raise RuntimeError('Bad constraint: self in next')
+        pred_next = set()
+        for pred in graph.predecessors(label):
+            if not pred in blocks_graph.blocs:
+                continue
+            if blocks_graph.blocs[pred].get_next() == label:
+                pred_next.add(pred)
+        if len(pred_next) > 1:
+            raise RuntimeError("Too many next constraints for bloc %r"%label)
+
 def asm_resolve_final(mnemo, blocks, symbol_pool, dst_interval=None):
     """Resolve and assemble @blocks using @symbol_pool into interval
     @dst_interval"""
+
+    sanity_check_blocks(blocks)
 
     guess_blocks_size(mnemo, blocks)
     blockChains = group_constrained_blocks(symbol_pool, blocks)
