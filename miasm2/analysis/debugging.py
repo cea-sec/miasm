@@ -1,5 +1,6 @@
 import cmd
 from miasm2.core.utils import hexdump
+from miasm2.core.interval import interval
 import miasm2.jitter.csts as csts
 from miasm2.jitter.jitload import ExceptionHandle
 
@@ -152,7 +153,8 @@ class Debugguer(object):
         "Step in jit"
 
         self.myjit.jit.set_options(jit_maxline=1)
-        self.myjit.jit.updt_automod_code(self.myjit.vm, self.myjit.pc, 8)
+        self.myjit.jit.addr_mod = interval([(self.myjit.pc, self.myjit.pc)])
+        self.myjit.jit.updt_automod_code(self.myjit.vm)
 
         res = self.myjit.continue_run(step=True)
         self.handle_exception(res)

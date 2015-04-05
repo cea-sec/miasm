@@ -79,9 +79,6 @@ typedef struct {
 
 	uint64_t exception_flags;
 	uint64_t exception_flags_new;
-	uint64_t last_write_ad;
-	uint64_t last_write_size ;
-	PyObject *cb_automod;
 	PyObject *addr2obj;
 }vm_mngr_t;
 
@@ -150,20 +147,19 @@ struct memory_breakpoint_info {
 
 int is_mem_mapped(vm_mngr_t* vm_mngr, uint64_t ad);
 uint64_t get_mem_base_addr(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t *addr_base);
-void MEM_WRITE(vm_mngr_t* vm_mngr, unsigned int my_size, uint64_t addr, unsigned int src);
 unsigned int MEM_LOOKUP(vm_mngr_t* vm_mngr, unsigned int my_size, uint64_t addr);
 
 
-void MEM_WRITE_08(vm_mngr_t* vm_mngr, uint64_t addr, unsigned char src);
-void MEM_WRITE_16(vm_mngr_t* vm_mngr, uint64_t addr, unsigned short src);
-void MEM_WRITE_32(vm_mngr_t* vm_mngr, uint64_t addr, unsigned int src);
-void MEM_WRITE_64(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t src);
+void vm_MEM_WRITE_08(vm_mngr_t* vm_mngr, uint64_t addr, unsigned char src);
+void vm_MEM_WRITE_16(vm_mngr_t* vm_mngr, uint64_t addr, unsigned short src);
+void vm_MEM_WRITE_32(vm_mngr_t* vm_mngr, uint64_t addr, unsigned int src);
+void vm_MEM_WRITE_64(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t src);
 
 
-unsigned char MEM_LOOKUP_08(vm_mngr_t* vm_mngr, uint64_t addr);
-unsigned short MEM_LOOKUP_16(vm_mngr_t* vm_mngr, uint64_t addr);
-unsigned int MEM_LOOKUP_32(vm_mngr_t* vm_mngr, uint64_t addr);
-uint64_t MEM_LOOKUP_64(vm_mngr_t* vm_mngr, uint64_t addr);
+unsigned char vm_MEM_LOOKUP_08(vm_mngr_t* vm_mngr, uint64_t addr);
+unsigned short vm_MEM_LOOKUP_16(vm_mngr_t* vm_mngr, uint64_t addr);
+unsigned int vm_MEM_LOOKUP_32(vm_mngr_t* vm_mngr, uint64_t addr);
+uint64_t vm_MEM_LOOKUP_64(vm_mngr_t* vm_mngr, uint64_t addr);
 
 
 void MEM_WRITE_08_PASSTHROUGH(uint64_t addr, unsigned char src);

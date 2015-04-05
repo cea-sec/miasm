@@ -51,6 +51,7 @@ class JitCore(object):
         self.blocs_mem_interval = interval()
         self.disasm_cb = None
         self.split_dis = set()
+        self.addr_mod = interval()
 
         self.options = {"jit_maxline": 50  # Maximum number of line jitted
                         }
@@ -249,13 +250,17 @@ class JitCore(object):
 
         return modified_blocs
 
-    def updt_automod_code(self, vm, addr, size):
+    def updt_automod_code(self, vm):
         """Remove code jitted in range [addr, addr + size]
         @vm: VmMngr instance
         @addr: Address of modified code in sandbox
         @size: Modification range size (in bits)
         """
-
-        self.del_bloc_in_range(addr, addr + size / 8)
+        for addr_start, addr_stop in self.addr_mod:
+            self.del_bloc_in_range(addr_start, addr_stop+1)
         self.__updt_jitcode_mem_range(vm)
+        self.addr_mod = interval()
 
+    def automod_cb(self, addr=0, size=0):
+        self.addr_mod+= interval([(addr, addr+size/8 - 1)])
+        return None

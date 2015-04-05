@@ -22,6 +22,7 @@
 #include <signal.h>
 #include "queue.h"
 #include "vm_mngr.h"
+#include "vm_mngr_py.h"
 
 #define MIN(a,b)  (((a)<(b))?(a):(b))
 #define MAX(a,b)  (((a)>(b))?(a):(b))
@@ -32,12 +33,6 @@ extern struct code_bloc_list_head code_bloc_pool;
 #define RAISE(errtype, msg) {PyObject* p; p = PyErr_Format( errtype, msg ); return p;}
 
 
-
-typedef struct {
-	PyObject_HEAD
-	PyObject *vmmngr;
-	vm_mngr_t vm_mngr;
-} VmMngr;
 
 /* XXX POC signals */
 VmMngr* global_vmmngr;
@@ -305,16 +300,6 @@ PyObject* vm_remove_memory_breakpoint(VmMngr* self, PyObject* args)
 }
 
 
-PyObject* vm_get_last_write_ad(VmMngr* self, PyObject* args)
-{
-	return PyInt_FromLong((uint64_t)self->vm_mngr.last_write_ad);
-}
-
-PyObject* vm_get_last_write_size(VmMngr* self, PyObject* args)
-{
-	return PyLong_FromUnsignedLongLong((uint64_t)self->vm_mngr.last_write_size);
-}
-
 PyObject* vm_set_exception(VmMngr* self, PyObject* args)
 {
 	PyObject *item1;
@@ -441,60 +426,6 @@ PyObject* vm_reset_code_bloc_pool(VmMngr* self, PyObject* args)
 }
 
 
-
-
-
-
-PyObject* vm_call_pyfunc_from_globals(VmMngr* self, PyObject* args)
-{
-	char* funcname;
-	PyObject  *mod,  *func, *rslt, *globals, *func_globals;
-
-
-	if (!PyArg_ParseTuple(args, "s", &funcname))
-		return NULL;
-
-
-	fprintf(stderr, "getting pyfunc %s\n", funcname);
-	mod = PyEval_GetBuiltins();
-
-	if (!mod) {
-		fprintf(stderr, "cannot find module\n");
-		exit(0);
-	}
-
-	func_globals = PyDict_GetItemString(mod, "globals");
-	if (!func_globals) {
-		fprintf(stderr, "cannot find function globals\n");
-		exit(0);
-	}
-
-	if (!PyCallable_Check (func_globals)) {
-		fprintf(stderr, "function not callable\n");
-		exit(0);
-	}
-
-	globals = PyObject_CallObject (func_globals, NULL);
-	if (!globals) {
-		fprintf(stderr, "cannot get globals\n");
-		exit(0);
-	}
-
-	func = PyDict_GetItemString (globals, funcname);
-	if (!func) {
-		fprintf(stderr, "cannot find function %s\n", funcname);
-		exit(0);
-	}
-
-	if (!PyCallable_Check (func)) {
-		fprintf(stderr, "function not callable\n");
-		exit(0);
-	}
-
-	rslt = PyObject_CallObject (func, NULL);
-	return rslt;
-}
-
 PyObject* vm_add_code_bloc(VmMngr *self, PyObject *args)
 {
 	PyObject *item1;
@@ -526,138 +457,6 @@ PyObject* vm_dump_code_bloc_pool(VmMngr* self)
 
 }
 
-
-PyObject* vm_exec_blocs(VmMngr* self, PyObject* args)
-{
-	PyObject* my_eip;
-	PyObject* b;
-	PyObject* module;
-	PyObject* func;
-	PyObject* meip;
-	uint64_t tmp;
-
-	PyObject* known_blocs;
-	PyObject* e;
-
-	if (!PyArg_ParseTuple(args, "OO", &my_eip, &known_blocs))
-		return NULL;
-
-	if(!PyDict_Check(known_blocs))
-		RAISE(PyExc_TypeError, "arg must be dict");
-
-	PyGetInt(my_eip, tmp);
-	meip = PyLong_FromUnsignedLongLong((uint64_t)tmp);
-	while (1){
-		b = PyDict_GetItem(known_blocs, meip);
-		if (b == NULL)
-			return meip;
-
-		module = PyObject_GetAttrString(b, "module_c");
-		if (module == NULL){
-			fprintf(stderr, "assert eip module_c in pyobject\n");
-			exit(0);
-		}
-		func = PyObject_GetAttrString(module, "func");
-		if (func == NULL){
-			fprintf(stderr, "assert func module_c in pyobject\n");
-			exit(0);
-		}
-
-		Py_DECREF(module);
-		if (!PyCallable_Check (func)) {
-			fprintf(stderr, "function not callable\n");
-			exit(0);
-		}
-		Py_DECREF(meip);
-		//printf("exec bloc %"PRIX64"\n", tmp);
-		meip = PyObject_CallObject (func, NULL);
-
-		Py_DECREF(func);
-		e = PyErr_Occurred ();
-		if (e){
-			fprintf(stderr, "exception\n");
-			return meip;
-		}
-
-		if (self->vm_mngr.exception_flags)
-			return meip;
-
-	}
-}
-
-
-
-PyObject* vm_exec_bloc(PyObject* self, PyObject* args)
-{
-	PyObject* b;
-	PyObject* module;
-	PyObject* func;
-	PyObject* meip;
-	uint64_t tmp;
-
-	PyObject* my_eip;
-	PyObject* known_blocs;
-	PyObject* e;
-
-	if (!PyArg_ParseTuple(args, "OO", &my_eip, &known_blocs))
-		return NULL;
-
-
-	if (PyInt_Check(my_eip)){
-		tmp = (uint64_t)PyInt_AsLong(my_eip);
-	}
-	else if (PyLong_Check(my_eip)){
-		tmp = (uint64_t)PyLong_AsUnsignedLongLong(my_eip);
-	}
-	else{
-		RAISE(PyExc_TypeError,"arg1 must be int");
-	}
-
-	meip = PyInt_FromLong((long)tmp);
-	b = PyDict_GetItem(known_blocs, my_eip);
-	if (b == NULL)
-		return meip;
-	module = PyObject_GetAttrString(b, "module_c");
-	if (module == NULL)
-		return meip;
-	func = PyObject_GetAttrString(module, "func");
-	if (func == NULL)
-		return meip;
-	Py_DECREF(module);
-	if (!PyCallable_Check (func)) {
-		fprintf(stderr, "function not callable\n");
-		exit(0);
-	}
-	Py_DECREF(meip);
-	meip = PyObject_CallObject (func, NULL);
-
-	Py_DECREF(func);
-	e = PyErr_Occurred ();
-	if (e){
-		fprintf(stderr, "exception\n");
-		return meip;
-	}
-
-	return meip;
-}
-
-
-PyObject* vm_set_automod_cb(VmMngr* self, PyObject* args)
-{
-	PyObject* cb_automod;
-
-	if (!PyArg_ParseTuple(args, "O", &cb_automod))
-		return NULL;
-
-	if (self->vm_mngr.cb_automod != NULL){
-		Py_DECREF(self->vm_mngr.cb_automod);
-	}
-
-	Py_INCREF(cb_automod);
-	self->vm_mngr.cb_automod = cb_automod;
-	Py_INCREF(Py_None);
-	return Py_None;
-}
 
 PyObject* vm_set_addr2obj(VmMngr* self, PyObject* args)
 {
@@ -759,15 +558,9 @@ static PyMethodDef VmMngr_methods[] = {
 	 "X"},
 	{"set_mem", (PyCFunction)vm_set_mem, METH_VARARGS,
 	 "X"},
-	{"set_automod_cb", (PyCFunction)vm_set_automod_cb, METH_VARARGS,
-	 "X"},
 	{"set_addr2obj", (PyCFunction)vm_set_addr2obj, METH_VARARGS,
 	 "X"},
 	{"add_code_bloc",(PyCFunction)vm_add_code_bloc, METH_VARARGS,
-	 "X"},
-	{"exec_bloc",(PyCFunction)vm_exec_bloc, METH_VARARGS,
-	 "X"},
-	{"exec_blocs",(PyCFunction)vm_exec_blocs, METH_VARARGS,
 	 "X"},
 	{"get_mem", (PyCFunction)vm_get_mem, METH_VARARGS,
 	 "X"},
@@ -793,16 +586,9 @@ static PyMethodDef VmMngr_methods[] = {
 	 "X"},
 	{"set_alarm", (PyCFunction)set_alarm, METH_VARARGS,
 	 "X"},
-	{"call_pyfunc_from_globals",(PyCFunction)vm_call_pyfunc_from_globals, METH_VARARGS,
-	 "X"},
-
 	{"get_exception",(PyCFunction)vm_get_exception, METH_VARARGS,
 	 "X"},
 	{"get_exception",(PyCFunction)vm_get_exception, METH_VARARGS,
-	 "X"},
-	{"get_last_write_ad", (PyCFunction)vm_get_last_write_ad, METH_VARARGS,
-	 "X"},
-	{"get_last_write_size",(PyCFunction)vm_get_last_write_size, METH_VARARGS,
 	 "X"},
 
 	{"set_big_endian",(PyCFunction)vm_set_big_endian, METH_VARARGS,

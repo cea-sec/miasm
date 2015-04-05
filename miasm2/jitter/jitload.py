@@ -217,8 +217,11 @@ class jitter:
         self.vm.set_addr2obj(self.jit.addr2obj)
 
         self.jit.load()
+        self.cpu.vmmngr = self.vm
+        self.cpu.jitter = self.jit
         self.stack_size = 0x10000
         self.stack_base = 0x1230000
+
 
         # Init callback handler
         self.breakpoints_handler = CallbackHandler()
@@ -231,10 +234,8 @@ class jitter:
 
         def exception_automod(jitter):
             "Tell the JiT backend to update blocs modified"
-            addr = self.vm.get_last_write_ad()
-            size = self.vm.get_last_write_size()
 
-            self.jit.updt_automod_code(self.vm, addr, size)
+            self.jit.updt_automod_code(jitter.vm)
             self.vm.set_exception(0)
 
             return True

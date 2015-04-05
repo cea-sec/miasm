@@ -266,6 +266,8 @@ typedef struct {
 	uint64_t MM7_new;
 
 	uint32_t segm_base[0x10000];
+	PyObject *pyvm;
+	PyObject *jitter;
 
 }vm_cpu_t;
 

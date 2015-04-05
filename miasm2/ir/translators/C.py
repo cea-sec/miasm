@@ -45,8 +45,8 @@ class TranslatorC(Translator):
                                         (expr.cond, expr.src1, expr.src2)))
 
     def from_ExprMem(self, expr):
-        return "MEM_LOOKUP_%.2d(vm_mngr, %s)" % (expr.size,
-                                                 self.from_expr(expr.arg))
+        return "MEM_LOOKUP_%.2d(vmcpu, %s)" % (expr.size,
+                                               self.from_expr(expr.arg))
 
     def from_ExprOp(self, expr):
         if len(expr.args) == 1:

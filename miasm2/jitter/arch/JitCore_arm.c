@@ -3,6 +3,9 @@
 #include "structmember.h"
 #include <stdint.h>
 #include <inttypes.h>
+#include "../queue.h"
+#include "../vm_mngr.h"
+#include "../vm_mngr_py.h"
 #include "JitCore_arm.h"
 
 #define RAISE(errtype, msg) {PyObject* p; p = PyErr_Format( errtype, msg ); return p;}
@@ -225,6 +228,154 @@ JitCpu_set_cpu(JitCpu *self, PyObject *value, void *closure)
 	return -1;
 }
 
+
+static PyObject *
+JitCpu_get_vmmngr(JitCpu *self, void *closure)
+{
+	return self->vmcpu.pyvm;
+}
+
+static PyObject *
+JitCpu_set_vmmngr(JitCpu *self, PyObject *value, void *closure)
+{
+	self->vmcpu.pyvm = value;
+	return 0;
+}
+
+static PyObject *
+JitCpu_get_jitter(JitCpu *self, void *closure)
+{
+	return self->vmcpu.jitter;
+}
+
+static PyObject *
+JitCpu_set_jitter(JitCpu *self, PyObject *value, void *closure)
+{
+	self->vmcpu.jitter = value;
+	return 0;
+}
+
+uint8_t MEM_LOOKUP_08(vm_cpu_t* vmcpu, uint64_t addr)
+{
+	return vm_MEM_LOOKUP_08(&(((VmMngr*)vmcpu->pyvm)->vm_mngr), addr);
+}
+
+uint16_t MEM_LOOKUP_16(vm_cpu_t* vmcpu, uint64_t addr)
+{
+	return vm_MEM_LOOKUP_16(&(((VmMngr*)vmcpu->pyvm)->vm_mngr), addr);
+}
+
+uint32_t MEM_LOOKUP_32(vm_cpu_t* vmcpu, uint64_t addr)
+{
+	return vm_MEM_LOOKUP_32(&(((VmMngr*)vmcpu->pyvm)->vm_mngr), addr);
+}
+
+uint64_t MEM_LOOKUP_64(vm_cpu_t* vmcpu, uint64_t addr)
+{
+	return vm_MEM_LOOKUP_64(&(((VmMngr*)vmcpu->pyvm)->vm_mngr), addr);
+}
+
+
+
+void check_automod(vm_cpu_t* vmcpu, uint64_t addr, int size)
+{
+	PyObject *result;
+
+	if (!((((VmMngr*)vmcpu->pyvm)->vm_mngr).exception_flags & EXCEPT_CODE_AUTOMOD))
+		return;
+	result = PyObject_CallMethod((PyObject *)vmcpu->jitter, "automod_cb", "LL", addr, size);
+	Py_DECREF(result);
+
+}
+
+void MEM_WRITE_08(vm_cpu_t* vmcpu, uint64_t addr, uint8_t src)
+{
+	vm_MEM_WRITE_08(&(((VmMngr*)vmcpu->pyvm)->vm_mngr), addr, src);
+	check_automod(vmcpu, addr, 8);
+}
+
+void MEM_WRITE_16(vm_cpu_t* vmcpu, uint64_t addr, uint16_t src)
+{
+	vm_MEM_WRITE_16(&(((VmMngr*)vmcpu->pyvm)->vm_mngr), addr, src);
+	check_automod(vmcpu, addr, 16);
+}
+
+void MEM_WRITE_32(vm_cpu_t* vmcpu, uint64_t addr, uint32_t src)
+{
+	vm_MEM_WRITE_32(&(((VmMngr*)vmcpu->pyvm)->vm_mngr), addr, src);
+	check_automod(vmcpu, addr, 32);
+}
+
+void MEM_WRITE_64(vm_cpu_t* vmcpu, uint64_t addr, uint64_t src)
+{
+	vm_MEM_WRITE_64(&(((VmMngr*)vmcpu->pyvm)->vm_mngr), addr, src);
+	check_automod(vmcpu, addr, 64);
+}
+
+
+
+PyObject* vm_set_mem(JitCpu *self, PyObject* args)
+{
+       PyObject *py_addr;
+       PyObject *py_buffer;
+       Py_ssize_t py_length;
+
+       char * buffer;
+       uint64_t size;
+       uint64_t addr;
+       int ret = 0x1337;
+
+       if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_buffer))
+	       return NULL;
+
+       PyGetInt(py_addr, addr);
+
+       if(!PyString_Check(py_buffer))
+	       RAISE(PyExc_TypeError,"arg must be str");
+
+       size = PyString_Size(py_buffer);
+       PyString_AsStringAndSize(py_buffer, &buffer, &py_length);
+
+       ret = vm_write_mem(&(((VmMngr*)self->vmcpu.pyvm)->vm_mngr), addr, buffer, size);
+       if (ret < 0)
+	       RAISE(PyExc_TypeError,"arg must be str");
+       check_automod(&self->vmcpu, addr, size*8);
+
+       Py_INCREF(Py_None);
+       return Py_None;
+}
+
+PyObject* vm_get_mem(JitCpu *self, PyObject* args)
+{
+       PyObject *py_addr;
+       PyObject *py_len;
+
+       uint64_t addr;
+       uint64_t size;
+       PyObject *obj_out;
+       char * buf_out;
+       int ret;
+
+       if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_len))
+	       return NULL;
+
+       PyGetInt(py_addr, addr);
+       PyGetInt(py_len, size);
+
+       ret = vm_read_mem(&(((VmMngr*)self->vmcpu.pyvm)->vm_mngr), addr, &buf_out, size);
+       if (ret < 0) {
+	       free(buf_out);
+	       PyErr_SetString(PyExc_RuntimeError, "cannot find address");
+	       return NULL;
+       }
+
+       obj_out = PyString_FromStringAndSize(buf_out, size);
+       free(buf_out);
+       return obj_out;
+}
+
+
+
 static PyMemberDef JitCpu_members[] = {
     {NULL}  /* Sentinel */
 };
@@ -241,6 +392,10 @@ static PyMethodDef JitCpu_methods[] = {
 	{"get_exception", (PyCFunction)cpu_get_exception, METH_VARARGS,
 	 "X"},
 	{"set_exception", (PyCFunction)cpu_set_exception, METH_VARARGS,
+	 "X"},
+	{"set_mem", (PyCFunction)vm_set_mem, METH_VARARGS,
+	 "X"},
+	{"get_mem", (PyCFunction)vm_get_mem, METH_VARARGS,
 	 "X"},
 	{NULL}  /* Sentinel */
 };
@@ -432,6 +587,17 @@ static PyGetSetDef JitCpu_getseters[] = {
      (getter)JitCpu_get_cpu, (setter)JitCpu_set_cpu,
      "first name",
      NULL},
+    {"vmmngr",
+     (getter)JitCpu_get_vmmngr, (setter)JitCpu_set_vmmngr,
+     "vmmngr",
+     NULL},
+
+    {"jitter",
+     (getter)JitCpu_get_jitter, (setter)JitCpu_set_jitter,
+     "jitter",
+     NULL},
+
+
 
     {"R0" , (getter)JitCpu_get_R0 , (setter)JitCpu_set_R0 , "R0" , NULL},
     {"R1" , (getter)JitCpu_get_R1 , (setter)JitCpu_set_R1 , "R1" , NULL},

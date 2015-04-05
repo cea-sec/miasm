@@ -235,6 +235,8 @@ typedef struct {
 	double F30_new;
 	double F31_new;
 
+	PyObject *pyvm;
+	PyObject *jitter;
 
 }vm_cpu_t;
 
