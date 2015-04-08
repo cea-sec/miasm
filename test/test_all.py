@@ -105,6 +105,7 @@ for script in ["interval.py",
     testset += RegressionTest([script], base_dir="core")
 ## Expression
 for script in ["modint.py",
+               "expression.py",
                "stp.py",
                "simplifications.py",
                "expression_helper.py",
