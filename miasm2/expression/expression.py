@@ -119,6 +119,9 @@ class Expr(object):
     is_canon = False  # Expression already canonised
     is_eval = False   # Expression already evalued
 
+    _hash = None
+    _repr = None
+
     def set_size(self, value):
         raise ValueError('size is not mutable')
 
@@ -150,16 +153,33 @@ class Expr(object):
         return self.arg.get_w()
 
     def __repr__(self):
-        return "<%s_%d_0x%x>" % (self.__class__.__name__, self.size, id(self))
+        if self._repr is None:
+            self._repr = self._exprrepr()
+        return self._repr
 
     def __hash__(self):
+        if self._hash is None:
+            self._hash = self._exprhash()
         return self._hash
 
-    def __eq__(self, a):
-        if isinstance(a, Expr):
-            return hash(self) == hash(a)
-        else:
+    def pre_eq(self, other):
+        """Return True if ids are equal;
+        False if instances are obviously not equal
+        None if we cannot simply decide"""
+
+        if id(self) == id(other):
+            return True
+        if self.__class__ is not other.__class__:
             return False
+        if hash(self) != hash(other):
+            return False
+        return None
+
+    def __eq__(self, other):
+        res = self.pre_eq(other)
+        if res is not None:
+            return res
+        return repr(self) == repr(other)
 
     def __ne__(self, a):
         return not self.__eq__(a)
@@ -328,9 +348,15 @@ class ExprInt(Expr):
 
         self._arg = arg
         self._size = self.arg.size
-        self._hash = self._exprhash()
 
     arg = property(lambda self: self._arg)
+
+    def __eq__(self, other):
+        res = self.pre_eq(other)
+        if res is not None:
+            return res
+        return (self._arg == other._arg and
+                self._size == other._size)
 
     def __get_int(self):
         "Return self integer representation"
@@ -354,11 +380,12 @@ class ExprInt(Expr):
     def _exprhash(self):
         return hash((EXPRINT, self._arg, self._size))
 
+    def _exprrepr(self):
+        return "%s(%r)" % (self.__class__.__name__, self._arg)
+
     def __contains__(self, e):
         return self == e
 
-    def __repr__(self):
-        return Expr.__repr__(self)[:-1] + " 0x%X>" % self.__get_int()
 
     @visit_chk
     def visit(self, cb, tv=None):
@@ -391,9 +418,15 @@ class ExprId(Expr):
         """
 
         self._name, self._size = name, size
-        self._hash = self._exprhash()
 
     name = property(lambda self: self._name)
+
+    def __eq__(self, other):
+        res = self.pre_eq(other)
+        if res is not None:
+            return res
+        return (self._name == other._name and
+                self._size == other._size)
 
     def __str__(self):
         return str(self._name)
@@ -408,11 +441,11 @@ class ExprId(Expr):
         # TODO XXX: hash size ??
         return hash((EXPRID, self._name, self._size))
 
+    def _exprrepr(self):
+        return "%s(%r, %d)" % (self.__class__.__name__, self._name, self._size)
+
     def __contains__(self, e):
         return self == e
-
-    def __repr__(self):
-        return Expr.__repr__(self)[:-1] + " %s>" % self._name
 
     @visit_chk
     def visit(self, cb, tv=None):
@@ -459,10 +492,10 @@ class ExprAff(Expr):
             self._dst, self._src = dst, src
 
         self._size = self.dst.size
-        self._hash = self._exprhash()
 
     dst = property(lambda self: self._dst)
     src = property(lambda self: self._src)
+
 
     def __str__(self):
         return "%s = %s" % (str(self._dst), str(self._src))
@@ -481,6 +514,9 @@ class ExprAff(Expr):
 
     def _exprhash(self):
         return hash((EXPRAFF, hash(self._dst), hash(self._src)))
+
+    def _exprrepr(self):
+        return "%s(%r, %r)" % (self.__class__.__name__, self._dst, self._src)
 
     def __contains__(self, e):
         return self == e or self._src.__contains__(e) or self._dst.__contains__(e)
@@ -545,7 +581,6 @@ class ExprCond(Expr):
 
         self._cond, self._src1, self._src2 = cond, src1, src2
         self._size = self.src1.size
-        self._hash = self._exprhash()
 
     cond = property(lambda self: self._cond)
     src1 = property(lambda self: self._src1)
@@ -566,6 +601,10 @@ class ExprCond(Expr):
     def _exprhash(self):
         return hash((EXPRCOND, hash(self.cond),
                      hash(self._src1), hash(self._src2)))
+
+    def _exprrepr(self):
+        return "%s(%r, %r, %r)" % (self.__class__.__name__,
+                                   self._cond, self._src1, self._src2)
 
     def __contains__(self, e):
         return (self == e or
@@ -620,7 +659,6 @@ class ExprMem(Expr):
                 'ExprMem: arg must be an Expr (not %s)' % type(arg))
 
         self._arg, self._size = arg, size
-        self._hash = self._exprhash()
 
     arg = property(lambda self: self._arg)
 
@@ -638,6 +676,10 @@ class ExprMem(Expr):
 
     def _exprhash(self):
         return hash((EXPRMEM, hash(self._arg), self._size))
+
+    def _exprrepr(self):
+        return "%s(%r, %r)" % (self.__class__.__name__,
+                               self._arg, self._size)
 
     def __contains__(self, e):
         return self == e or self._arg.__contains__(e)
@@ -731,7 +773,6 @@ class ExprOp(Expr):
                 sz = list(sizes)[0]
 
         self._size = sz
-        self._hash = self._exprhash()
 
     op = property(lambda self: self._op)
     args = property(lambda self: self._args)
@@ -759,6 +800,10 @@ class ExprOp(Expr):
     def _exprhash(self):
         h_hargs = [hash(arg) for arg in self._args]
         return hash((EXPROP, self._op, tuple(h_hargs)))
+
+    def _exprrepr(self):
+        return "%s(%r, %s)" % (self.__class__.__name__, self._op,
+                               ', '.join(repr(arg) for arg in self._args))
 
     def __contains__(self, e):
         if self == e:
@@ -806,7 +851,6 @@ class ExprSlice(Expr):
 
         self._arg, self._start, self._stop = arg, start, stop
         self._size = self._stop - self._start
-        self._hash = self._exprhash()
 
     arg = property(lambda self: self._arg)
     start = property(lambda self: self._start)
@@ -823,6 +867,10 @@ class ExprSlice(Expr):
 
     def _exprhash(self):
         return hash((EXPRSLICE, hash(self._arg), self._start, self._stop))
+
+    def _exprrepr(self):
+        return "%s(%r, %d, %d)" % (self.__class__.__name__, self._arg,
+                                   self._start, self._stop)
 
     def __contains__(self, e):
         if self == e:
@@ -905,7 +953,6 @@ class ExprCompose(Expr):
         self._args = tuple(o)
 
         self._size = self._args[-1][2]
-        self._hash = self._exprhash()
 
     args = property(lambda self: self._args)
 
@@ -925,6 +972,9 @@ class ExprCompose(Expr):
         h_args = [EXPRCOMPOSE] + [(hash(arg[0]), arg[1], arg[2])
                                   for arg in self._args]
         return hash(tuple(h_args))
+
+    def _exprrepr(self):
+        return "%s(%r)" % (self.__class__.__name__, self._args)
 
     def __contains__(self, e):
         if self == e:
