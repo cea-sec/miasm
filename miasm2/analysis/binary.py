@@ -84,7 +84,7 @@ class Container(object):
 
     def parse(self, data, *args, **kwargs):
         "Launch parsing of @data"
-        raise NotImplentedError("Abstract method")
+        raise NotImplementedError("Abstract method")
 
     def __init__(self, *args, **kwargs):
         "Alias for 'parse'"
