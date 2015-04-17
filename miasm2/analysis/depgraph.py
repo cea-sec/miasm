@@ -475,6 +475,18 @@ class DependencyGraph(object):
         LINE_NB must be > 0"""
         return self._get_irs(depnode.label)[depnode.line_nb - 1]
 
+    @staticmethod
+    def _followExpr_to_depnodes(follow_exprs, label, line, modifier):
+        "Build a set of DependencyNode from the @follow_exprs set of FollowExpr"
+        dependencies = set()
+        for follow_expr in follow_exprs:
+            dependencies.add(FollowExpr(follow_expr.follow,
+                                        DependencyNode(label,
+                                                       follow_expr.element,
+                                                       line,
+                                                       modifier=modifier)))
+        return dependencies
+
     def _resolve_depNode(self, depnode):
         """Compute and return the dependencies involved by @depnode
         Return a set of FollowExpr"""
@@ -505,14 +517,8 @@ class DependencyGraph(object):
                 read = set([FollowExpr(True, depnode.element)])
 
             ## Build output
-            dependencies = set()
-            for follow_expr in read:
-                dependencies.add(FollowExpr(follow_expr.follow,
-                                            DependencyNode(depnode.label,
-                                                           follow_expr.element,
-                                                           depnode.line_nb - 1,
-                                                           modifier=modifier)))
-            output = dependencies
+            output = self._followExpr_to_depnodes(read, depnode.label,
+                                                  depnode.line_nb - 1, modifier)
 
         return output
 
@@ -556,11 +562,12 @@ class DependencyGraph(object):
 
     def _get_previousblocks(self, label):
         """Return an iterator on predecessors blocks of @label, with their
-        lengths"""
+        lengths and full block"""
         preds = self._ira.g.predecessors_iter(label)
         for pred_label in preds:
-            length = len(self._get_irs(pred_label))
-            yield (pred_label, length)
+            block = self._ira.blocs[pred_label]
+            length = len(block.irs)
+            yield (pred_label, length, block)
 
     def _processInterBloc(self, depnodes, heads):
         """Create a DependencyDict from @depnodes, and propagate DependencyDicts
@@ -598,7 +605,7 @@ class DependencyGraph(object):
             is_final = True
 
             # Propagate the DependencyDict to all parents
-            for label, irb_len in self._get_previousblocks(depdict.label):
+            for label, irb_len, block in self._get_previousblocks(depdict.label):
                 is_final = False
 
                 ## Duplicate the DependencyDict
