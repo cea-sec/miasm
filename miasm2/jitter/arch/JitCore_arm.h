@@ -137,10 +137,6 @@ typedef struct {
 	uint64_t pfmem64_18;
 	uint64_t pfmem64_19;
 
-
-	PyObject *pyvm;
-	PyObject *jitter;
-
 }vm_cpu_t;
 
 

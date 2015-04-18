@@ -193,8 +193,6 @@ class JitCore_Python(jitcore.JitCore):
         # Get Python function corresponding to @label
         fc_ptr = self.lbl2jitbloc[label]
 
-        # Update memory state
-        self.vmmngr = vmmngr
         self.cpu = cpu
 
         # Execute the function

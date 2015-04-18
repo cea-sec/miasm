@@ -30,7 +30,8 @@ def gen_core(arch, attrib):
     txt = ""
     txt += '#include "%s/queue.h"\n' % lib_dir
     txt += '#include "%s/vm_mngr.h"\n' % lib_dir
-    txt += '#include "%s/arch/JitCore.h"\n' % lib_dir
+    txt += '#include "%s/vm_mngr_py.h"\n' % lib_dir
+    txt += '#include "%s/JitCore.h"\n' % lib_dir
     txt += '#include "%s/arch/JitCore_%s.h"\n' % (lib_dir, arch.name)
 
     txt += r'''
@@ -137,7 +138,7 @@ class JitCore_Tcc(jitcore.JitCore):
 
     def jitirblocs(self, label, irblocs):
         f_name = "bloc_%s" % label.name
-        f_declaration = 'void %s(block_id * BlockDst, vm_cpu_t* vmcpu, vm_mngr_t* vm_mngr)' % f_name
+        f_declaration = 'void %s(block_id * BlockDst, JitCpu* jitcpu)' % f_name
         out = irblocs2C(self.ir_arch, self.resolver, label, irblocs,
                         gen_exception_code=True,
                         log_mn=self.log_mn,

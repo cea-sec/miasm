@@ -28,12 +28,12 @@ for size in [8, 16, 32, 64]:
 def init_arch_C(arch):
     arch.id2Cid = {}
     for x in arch.regs.all_regs_ids + prefetch_id:
-        arch.id2Cid[x] = m2_expr.ExprId('vmcpu->' + str(x), x.size)
+        arch.id2Cid[x] = m2_expr.ExprId('((vm_cpu_t*)jitcpu->cpu)->' + str(x), x.size)
 
     arch.id2newCid = {}
 
     for x in arch.regs.all_regs_ids + prefetch_id:
-        arch.id2newCid[x] = m2_expr.ExprId('vmcpu->%s_new' % x, x.size)
+        arch.id2newCid[x] = m2_expr.ExprId('((vm_cpu_t*)jitcpu->cpu)->%s_new' % x, x.size)
 
 
 def patch_c_id(arch, e):
@@ -49,7 +49,7 @@ mask_int = 0xffffffffffffffff
 
 pre_instr_test_exception = r"""
 // pre instruction test exception
-if (vm_mngr->exception_flags) {
+if (VM_exception_flag) {
     %s;
     return;
 }
@@ -58,14 +58,14 @@ if (vm_mngr->exception_flags) {
 
 code_exception_fetch_mem_at_instr = r"""
 // except fetch mem at instr
-if (vm_mngr->exception_flags & EXCEPT_DO_NOT_UPDATE_PC) {
+if (VM_exception_flag & EXCEPT_DO_NOT_UPDATE_PC) {
     %s;
     return;
 }
 """
 code_exception_fetch_mem_post_instr = r"""
 // except fetch mem post instr
-if (vm_mngr->exception_flags) {
+if (VM_exception_flag) {
     %s;
     return;
 }
@@ -74,14 +74,14 @@ if (vm_mngr->exception_flags) {
 
 code_exception_fetch_mem_at_instr_noautomod = r"""
 // except fetch mem at instr noauto
-if ((vm_mngr->exception_flags & ~EXCEPT_CODE_AUTOMOD) & EXCEPT_DO_NOT_UPDATE_PC) {
+if ((VM_exception_flag & ~EXCEPT_CODE_AUTOMOD) & EXCEPT_DO_NOT_UPDATE_PC) {
     %s;
     return;
 }
 """
 code_exception_fetch_mem_post_instr_noautomod = r"""
 // except post instr noauto
-if (vm_mngr->exception_flags & ~EXCEPT_CODE_AUTOMOD) {
+if (VM_exception_flag & ~EXCEPT_CODE_AUTOMOD) {
     %s;
     return;
 }
@@ -90,7 +90,7 @@ if (vm_mngr->exception_flags & ~EXCEPT_CODE_AUTOMOD) {
 
 code_exception_at_instr = r"""
 // except at instr
-if (vmcpu->exception_flags && vmcpu->exception_flags > EXCEPT_NUM_UPDT_EIP) {
+if (CPU_exception_flag && CPU_exception_flag > EXCEPT_NUM_UPDT_EIP) {
     %s;
     return;
 }
@@ -98,8 +98,8 @@ if (vmcpu->exception_flags && vmcpu->exception_flags > EXCEPT_NUM_UPDT_EIP) {
 
 code_exception_post_instr = r"""
 // except post instr
-if (vmcpu->exception_flags) {
-    if (vmcpu->exception_flags > EXCEPT_NUM_UPDT_EIP) {
+if (CPU_exception_flag) {
+    if (CPU_exception_flag > EXCEPT_NUM_UPDT_EIP) {
       %s;
     }
     else {
@@ -111,15 +111,15 @@ if (vmcpu->exception_flags) {
 
 
 code_exception_at_instr_noautomod = r"""
-if ((vmcpu->exception_flags & ~EXCEPT_CODE_AUTOMOD) && vmcpu->exception_flags > EXCEPT_NUM_UPDT_EIP) {
+if ((CPU_exception_flag & ~EXCEPT_CODE_AUTOMOD) && (CPU_exception_flag > EXCEPT_NUM_UPDT_EIP)) {
     %s;
     return;
 }
 """
 
 code_exception_post_instr_noautomod = r"""
-if (vmcpu->exception_flags & ~EXCEPT_CODE_AUTOMOD) {
-    if (vmcpu->exception_flags > EXCEPT_NUM_UPDT_EIP) {
+if (CPU_exception_flag & ~EXCEPT_CODE_AUTOMOD) {
+    if (CPU_exception_flag > EXCEPT_NUM_UPDT_EIP) {
       %s;
     }
     else {
@@ -326,7 +326,7 @@ def Expr2C(ir_arch, l, exprs, gen_exception_code=False):
     if gen_exception_code:
         if set_exception_flags:
             if pc_is_dst:
-                post_instr.append("if (vm_mngr->exception_flags) { " +
+                post_instr.append("if (VM_exception_flag) { " +
                     "/*pc = 0x%X; */return; }" % (l.offset))
             else:
                 e = set_pc(ir_arch, l.offset & mask_int)
@@ -391,7 +391,7 @@ def ir2C(ir_arch, irbloc, lbl_done,
             lbl_done.add(l.offset)
 
             if log_regs:
-                out.append([r'dump_gpregs(vmcpu);'])
+                out.append([r'dump_gpregs(jitcpu->cpu);'])
 
             if log_mn:
                 out.append(['printf("%.8X %s\\n");' % (l.offset, str(l))])

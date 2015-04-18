@@ -1,5 +1,5 @@
 #include <Python.h>
-#include "JitCore.h"
+#include "../JitCore.h"
 #include "structmember.h"
 #include <stdint.h>
 #include <inttypes.h>
@@ -8,24 +8,6 @@
 #include "../vm_mngr_py.h"
 #include "JitCore_msp430.h"
 
-#define RAISE(errtype, msg) {PyObject* p; p = PyErr_Format( errtype, msg ); return p;}
-
-typedef struct _reg_dict{
-    char* name;
-    unsigned long offset;
-} reg_dict;
-
-
-#define PyGetInt(item, value)						\
-	if (PyInt_Check(item)){						\
-		value = (uint64_t)PyInt_AsLong(item);			\
-	}								\
-	else if (PyLong_Check(item)){					\
-		value = (uint64_t)PyLong_AsUnsignedLongLong(item);	\
-	}								\
-	else{								\
-		RAISE(PyExc_TypeError,"arg must be int");		\
-	}								\
 
 reg_dict gpreg_dict[] = { {.name = "PC", .offset = offsetof(vm_cpu_t, PC)},
 			  {.name = "SP", .offset = offsetof(vm_cpu_t, SP)},
@@ -59,20 +41,6 @@ reg_dict gpreg_dict[] = { {.name = "PC", .offset = offsetof(vm_cpu_t, PC)},
 };
 
 /************************** JitCpu object **************************/
-
-typedef struct {
-	PyObject_HEAD
-	PyObject *cpu; /* cpu */
-	vm_cpu_t vmcpu;
-} JitCpu;
-
-
-
-#define get_reg(reg)  do {						\
-		o = PyLong_FromUnsignedLongLong((uint64_t)self->vmcpu.reg); \
-		PyDict_SetItemString(dict, #reg, o);			\
-		Py_DECREF(o);						\
-	} while(0);
 
 
 
@@ -114,11 +82,234 @@ PyObject* cpu_get_gpreg(JitCpu* self)
     return dict;
 }
 
-#define get_reg_off(reg)  do {						\
-		o = PyLong_FromUnsignedLongLong((uint64_t)offsetof(vm_cpu_t, reg)); \
-		PyDict_SetItemString(dict, #reg, o);			\
-		Py_DECREF(o);						\
-	} while(0);
+
+PyObject* cpu_set_gpreg(JitCpu* self, PyObject *args)
+{
+    PyObject* dict;
+    PyObject *d_key, *d_value = NULL;
+    Py_ssize_t pos = 0;
+    uint64_t val;
+    unsigned int i, found;
+
+    if (!PyArg_ParseTuple(args, "O", &dict))
+	    return NULL;
+    if(!PyDict_Check(dict))
+	    RAISE(PyExc_TypeError, "arg must be dict");
+    while(PyDict_Next(dict, &pos, &d_key, &d_value)){
+	    if(!PyString_Check(d_key))
+		    RAISE(PyExc_TypeError, "key must be str");
+
+	    PyGetInt(d_value, val);
+
+	    found = 0;
+	    for (i=0; i < sizeof(gpreg_dict)/sizeof(reg_dict); i++){
+		    if (strcmp(PyString_AsString(d_key), gpreg_dict[i].name))
+			    continue;
+		    *((uint32_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset)) = val;
+		    found = 1;
+		    break;
+	    }
+
+	    if (found)
+		    continue;
+	    fprintf(stderr, "unkown key: %s\n", PyString_AsString(d_key));
+	    RAISE(PyExc_ValueError, "unkown reg");
+    }
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+
+
+
+PyObject * cpu_init_regs(JitCpu* self)
+{
+	memset(self->cpu, 0, sizeof(vm_cpu_t));
+
+	Py_INCREF(Py_None);
+	return Py_None;
+
+}
+
+void dump_gpregs(vm_cpu_t* vmcpu)
+{
+
+	printf("PC  %.4"PRIX32" SP  %.4"PRIX32"  R3  %.4"PRIX32" ",
+	       vmcpu->PC, vmcpu->SP, vmcpu->R3);
+	printf("R4  %.4"PRIX32" R5  %.4"PRIX32" R6  %.4"PRIX32" R7  %.4"PRIX32"\n",
+	       vmcpu->R4, vmcpu->R5, vmcpu->R6, vmcpu->R7);
+	printf("R8  %.4"PRIX32" R9  %.4"PRIX32" R10 %.4"PRIX32" R11 %.4"PRIX32" ",
+	       vmcpu->R8, vmcpu->R9, vmcpu->R10, vmcpu->R11);
+	printf("R12 %.4"PRIX32" R13 %.4"PRIX32" R14 %.4"PRIX32" R15 %.4"PRIX32"\n",
+	       vmcpu->R12, vmcpu->R13, vmcpu->R14, vmcpu->R15);
+	printf("zf %.4"PRIX32" nf %.4"PRIX32" of %.4"PRIX32" cf %.4"PRIX32"\n",
+	       vmcpu->zf, vmcpu->nf, vmcpu->of, vmcpu->cf);
+}
+
+
+PyObject * cpu_dump_gpregs(JitCpu* self, PyObject* args)
+{
+	vm_cpu_t* vmcpu;
+
+	vmcpu = self->cpu;
+	dump_gpregs(vmcpu);
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
+
+PyObject* cpu_set_exception(JitCpu* self, PyObject* args)
+{
+	PyObject *item1;
+	uint64_t i;
+
+	if (!PyArg_ParseTuple(args, "O", &item1))
+		return NULL;
+
+	PyGetInt(item1, i);
+
+	((vm_cpu_t*)self->cpu)->exception_flags = i;
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
+PyObject* cpu_get_exception(JitCpu* self, PyObject* args)
+{
+	return PyLong_FromUnsignedLongLong((uint64_t)(((vm_cpu_t*)self->cpu)->exception_flags));
+}
+
+
+
+
+
+void check_automod(JitCpu* jitcpu, uint64_t addr, int size)
+{
+	PyObject *result;
+
+	if (!(((VmMngr*)jitcpu->pyvm)->vm_mngr.exception_flags & EXCEPT_CODE_AUTOMOD))
+		return;
+	result = PyObject_CallMethod(jitcpu->jitter, "automod_cb", "LL", addr, size);
+	Py_DECREF(result);
+
+}
+
+void MEM_WRITE_08(JitCpu* jitcpu, uint64_t addr, uint8_t src)
+{
+	vm_MEM_WRITE_08(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr, src);
+	check_automod(jitcpu, addr, 8);
+}
+
+void MEM_WRITE_16(JitCpu* jitcpu, uint64_t addr, uint16_t src)
+{
+	vm_MEM_WRITE_16(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr, src);
+	check_automod(jitcpu, addr, 16);
+}
+
+void MEM_WRITE_32(JitCpu* jitcpu, uint64_t addr, uint32_t src)
+{
+	vm_MEM_WRITE_32(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr, src);
+	check_automod(jitcpu, addr, 32);
+}
+
+void MEM_WRITE_64(JitCpu* jitcpu, uint64_t addr, uint64_t src)
+{
+	vm_MEM_WRITE_64(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr, src);
+	check_automod(jitcpu, addr, 64);
+}
+
+
+PyObject* vm_set_mem(JitCpu *self, PyObject* args)
+{
+       PyObject *py_addr;
+       PyObject *py_buffer;
+       Py_ssize_t py_length;
+
+       char * buffer;
+       uint64_t size;
+       uint64_t addr;
+       int ret = 0x1337;
+
+       if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_buffer))
+	       return NULL;
+
+       PyGetInt(py_addr, addr);
+
+       if(!PyString_Check(py_buffer))
+	       RAISE(PyExc_TypeError,"arg must be str");
+
+       size = PyString_Size(py_buffer);
+       PyString_AsStringAndSize(py_buffer, &buffer, &py_length);
+
+       ret = vm_write_mem(&(((VmMngr*)self->pyvm)->vm_mngr), addr, buffer, size);
+       if (ret < 0)
+	       RAISE(PyExc_TypeError,"arg must be str");
+       check_automod(self, addr, size*8);
+
+       Py_INCREF(Py_None);
+       return Py_None;
+}
+
+static PyMemberDef JitCpu_members[] = {
+    {NULL}  /* Sentinel */
+};
+
+static PyMethodDef JitCpu_methods[] = {
+	{"init_regs", (PyCFunction)cpu_init_regs, METH_NOARGS,
+	 "X"},
+	{"dump_gpregs", (PyCFunction)cpu_dump_gpregs, METH_NOARGS,
+	 "X"},
+	{"get_gpreg", (PyCFunction)cpu_get_gpreg, METH_NOARGS,
+	 "X"},
+	{"set_gpreg", (PyCFunction)cpu_set_gpreg, METH_VARARGS,
+	 "X"},
+	{"get_exception", (PyCFunction)cpu_get_exception, METH_VARARGS,
+	 "X"},
+	{"set_exception", (PyCFunction)cpu_set_exception, METH_VARARGS,
+	 "X"},
+	{"set_mem", (PyCFunction)vm_set_mem, METH_VARARGS,
+	 "X"},
+	{"get_mem", (PyCFunction)vm_get_mem, METH_VARARGS,
+	 "X"},
+	{NULL}  /* Sentinel */
+};
+
+static int
+JitCpu_init(JitCpu *self, PyObject *args, PyObject *kwds)
+{
+	self->cpu = malloc(sizeof(vm_cpu_t));
+	if (self->cpu == NULL) {
+		fprintf(stderr, "cannot alloc vm_cpu_t\n");
+		exit(0);
+	}
+	return 0;
+}
+
+getset_reg_u16(PC);
+getset_reg_u16(SP);
+getset_reg_u16(R3);
+getset_reg_u16(R4);
+getset_reg_u16(R5);
+getset_reg_u16(R6);
+getset_reg_u16(R7);
+getset_reg_u16(R8);
+getset_reg_u16(R9);
+getset_reg_u16(R10);
+getset_reg_u16(R11);
+getset_reg_u16(R12);
+getset_reg_u16(R13);
+getset_reg_u16(R14);
+getset_reg_u16(R15);
+getset_reg_u16(zf);
+getset_reg_u16(nf);
+getset_reg_u16(of);
+getset_reg_u16(cf);
+getset_reg_u16(cpuoff);
+getset_reg_u16(gie);
+getset_reg_u16(osc);
+getset_reg_u16(scg0);
+getset_reg_u16(scg1);
+getset_reg_u16(res);
+
 
 
 PyObject* get_gpreg_offset_all(void)
@@ -262,445 +453,9 @@ PyObject* get_gpreg_offset_all(void)
 }
 
 
-PyObject* _vm_set_gpreg(JitCpu* self, PyObject *dict)
-{
-    PyObject *d_key, *d_value = NULL;
-    Py_ssize_t pos = 0;
-    uint64_t val;
-    unsigned int i, found;
-
-    if(!PyDict_Check(dict))
-	    RAISE(PyExc_TypeError, "arg must be dict");
-    while(PyDict_Next(dict, &pos, &d_key, &d_value)){
-	    if(!PyString_Check(d_key))
-		    RAISE(PyExc_TypeError, "key must be str");
-
-	    PyGetInt(d_value, val);
-
-
-	    found = 0;
-	    for (i=0; i < sizeof(gpreg_dict)/sizeof(reg_dict); i++){
-		    if (strcmp(PyString_AsString(d_key), gpreg_dict[i].name))
-			    continue;
-		    *((uint32_t*)(((char*)&(self->vmcpu)) + gpreg_dict[i].offset)) = val;
-		    found = 1;
-		    break;
-	    }
-
-	    if (found)
-		    continue;
-	    fprintf(stderr, "unkown key: %s\n", PyString_AsString(d_key));
-	    RAISE(PyExc_ValueError, "unkown reg");
-    }
-    return NULL;
-}
-/*
-uint8_t const bcd2bin_data[] = {
-	 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 0, 0, 0, 0, 0, 0,
-	10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 0, 0, 0, 0, 0, 0,
-	20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 0, 0, 0, 0, 0, 0,
-	30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 0, 0, 0, 0, 0, 0,
-	40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 0, 0, 0, 0, 0, 0,
-	50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 0, 0, 0, 0, 0, 0,
-	60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 0, 0, 0, 0, 0, 0,
-	70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 0, 0, 0, 0, 0, 0,
-	80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 0, 0, 0, 0, 0, 0,
-	90, 91, 92, 93, 94, 95, 96, 97, 98, 99
-};
-
-uint8_t const bin2bcd_data[] = {
-	0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
-	0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19,
-	0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29,
-	0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39,
-	0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49,
-	0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59,
-	0x60, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69,
-	0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79,
-	0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89,
-	0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99
-};
-
-uint16_t bcdadd_16(uint16_t a, uint16_t b)
-{
-	int carry = 0;
-	int i,j = 0;
-	uint16_t res = 0;
-	int nib_a, nib_b;
-	for (i = 0; i < 16; i += 4) {
-		nib_a = (a  >> i) & (0xF);
-		nib_b = (b >> i) & (0xF);
-
-		j = (carry + nib_a + nib_b);
-		if (j >= 10) {
-			carry = 1;
-			j -= 10;
-			j &=0xf;
-		}
-		else {
-			carry = 0;
-		}
-		res += j << i;
-	}
-	return res;
-}
-
-uint16_t bcdadd_cf_16(uint16_t a, uint16_t b)
-{
-	int carry = 0;
-	int i,j = 0;
-	int nib_a, nib_b;
-	for (i = 0; i < 16; i += 4) {
-		nib_a = (a >> i) & (0xF);
-		nib_b = (b >> i) & (0xF);
-
-		j = (carry + nib_a + nib_b);
-		if (j >= 10) {
-			carry = 1;
-			j -= 10;
-			j &=0xf;
-		}
-		else {
-			carry = 0;
-		}
-	}
-	return carry;
-}
-
-
-uint16_t hex2bcd_16(uint16_t a)
-{
-	return bcd2bin_data[a & 0xFF] + (bcd2bin_data[(a >> 8) & 0xFF] * 100);
-}
-
-uint8_t hex2bcd_8(uint8_t a)
-{
-	return bcd2bin_data[a & 0xFF];
-}
-
-uint8_t bcd2hex_8(uint8_t a)
-{
-	return bin2bcd_data[a & 0xFF];
-}
-
-uint16_t bcd2hex_16(uint16_t a)
-{
-	return bcd2bin_data[a % 100] | (bcd2bin_data[(a / 100)] << 8);
-}
-*/
-
-PyObject* cpu_set_gpreg(JitCpu* self, PyObject *args)
-{
-	PyObject* dict;
-	if (!PyArg_ParseTuple(args, "O", &dict))
-		return NULL;
-	_vm_set_gpreg(self, dict);
-	Py_INCREF(Py_None);
-	return Py_None;
-}
-
-
-PyObject* cpu_set_exception(JitCpu* self, PyObject* args)
-{
-	PyObject *item1;
-	uint64_t i;
-
-	if (!PyArg_ParseTuple(args, "O", &item1))
-		return NULL;
-
-	PyGetInt(item1, i);
-
-	self->vmcpu.exception_flags = i;
-	Py_INCREF(Py_None);
-	return Py_None;
-}
-
-PyObject* cpu_get_exception(JitCpu* self, PyObject* args)
-{
-	return PyLong_FromUnsignedLongLong((uint64_t)self->vmcpu.exception_flags);
-}
-
-
-PyObject * cpu_init_regs(JitCpu* self)
-{
-	memset(&self->vmcpu, 0, sizeof(vm_cpu_t));
-
-	Py_INCREF(Py_None);
-	return Py_None;
-
-}
-
-void dump_gpregs(vm_cpu_t* vmcpu)
-{
-
-	printf("PC  %.4"PRIX32" SP  %.4"PRIX32"  R3  %.4"PRIX32" ",
-	       vmcpu->PC, vmcpu->SP, vmcpu->R3);
-	printf("R4  %.4"PRIX32" R5  %.4"PRIX32" R6  %.4"PRIX32" R7  %.4"PRIX32"\n",
-	       vmcpu->R4, vmcpu->R5, vmcpu->R6, vmcpu->R7);
-	printf("R8  %.4"PRIX32" R9  %.4"PRIX32" R10 %.4"PRIX32" R11 %.4"PRIX32" ",
-	       vmcpu->R8, vmcpu->R9, vmcpu->R10, vmcpu->R11);
-	printf("R12 %.4"PRIX32" R13 %.4"PRIX32" R14 %.4"PRIX32" R15 %.4"PRIX32"\n",
-	       vmcpu->R12, vmcpu->R13, vmcpu->R14, vmcpu->R15);
-	printf("zf %.4"PRIX32" nf %.4"PRIX32" of %.4"PRIX32" cf %.4"PRIX32"\n",
-	       vmcpu->zf, vmcpu->nf, vmcpu->of, vmcpu->cf);
-}
-
-
-PyObject * cpu_dump_gpregs(JitCpu* self, PyObject* args)
-{
-	vm_cpu_t* vmcpu;
-
-	vmcpu = &self->vmcpu;
-	dump_gpregs(vmcpu);
-	Py_INCREF(Py_None);
-	return Py_None;
-}
-
-
-
-static void
-JitCpu_dealloc(JitCpu* self)
-{
-    self->ob_type->tp_free((PyObject*)self);
-}
-
-
-static PyObject *
-JitCpu_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
-{
-    JitCpu *self;
-
-    self = (JitCpu *)type->tp_alloc(type, 0);
-    return (PyObject *)self;
-}
-
-static PyObject *
-JitCpu_get_cpu(JitCpu *self, void *closure)
-{
-	return PyLong_FromUnsignedLongLong((uint64_t)&(self->vmcpu));
-}
-
-static int
-JitCpu_set_cpu(JitCpu *self, PyObject *value, void *closure)
-{
-	PyErr_SetString(PyExc_TypeError, "immutable cpu");
-	return -1;
-}
-
-
-
-static PyObject *
-JitCpu_get_vmmngr(JitCpu *self, void *closure)
-{
-	return self->vmcpu.pyvm;
-}
-
-static PyObject *
-JitCpu_set_vmmngr(JitCpu *self, PyObject *value, void *closure)
-{
-	self->vmcpu.pyvm = value;
-	return 0;
-}
-
-static PyObject *
-JitCpu_get_jitter(JitCpu *self, void *closure)
-{
-	return self->vmcpu.jitter;
-}
-
-static PyObject *
-JitCpu_set_jitter(JitCpu *self, PyObject *value, void *closure)
-{
-	self->vmcpu.jitter = value;
-	return 0;
-}
-
-uint8_t MEM_LOOKUP_08(vm_cpu_t* vmcpu, uint64_t addr)
-{
-	return vm_MEM_LOOKUP_08(&(((VmMngr*)vmcpu->pyvm)->vm_mngr), addr);
-}
-
-uint16_t MEM_LOOKUP_16(vm_cpu_t* vmcpu, uint64_t addr)
-{
-	return vm_MEM_LOOKUP_16(&(((VmMngr*)vmcpu->pyvm)->vm_mngr), addr);
-}
-
-uint32_t MEM_LOOKUP_32(vm_cpu_t* vmcpu, uint64_t addr)
-{
-	return vm_MEM_LOOKUP_32(&(((VmMngr*)vmcpu->pyvm)->vm_mngr), addr);
-}
-
-uint64_t MEM_LOOKUP_64(vm_cpu_t* vmcpu, uint64_t addr)
-{
-	return vm_MEM_LOOKUP_64(&(((VmMngr*)vmcpu->pyvm)->vm_mngr), addr);
-}
-
-
-
-void check_automod(vm_cpu_t* vmcpu, uint64_t addr, int size)
-{
-	PyObject *result;
-
-	if (!((((VmMngr*)vmcpu->pyvm)->vm_mngr).exception_flags & EXCEPT_CODE_AUTOMOD))
-		return;
-	result = PyObject_CallMethod((PyObject *)vmcpu->jitter, "automod_cb", "LL", addr, size);
-	Py_DECREF(result);
-
-}
-
-void MEM_WRITE_08(vm_cpu_t* vmcpu, uint64_t addr, uint8_t src)
-{
-	vm_MEM_WRITE_08(&(((VmMngr*)vmcpu->pyvm)->vm_mngr), addr, src);
-	check_automod(vmcpu, addr, 8);
-}
-
-void MEM_WRITE_16(vm_cpu_t* vmcpu, uint64_t addr, uint16_t src)
-{
-	vm_MEM_WRITE_16(&(((VmMngr*)vmcpu->pyvm)->vm_mngr), addr, src);
-	check_automod(vmcpu, addr, 16);
-}
-
-void MEM_WRITE_32(vm_cpu_t* vmcpu, uint64_t addr, uint32_t src)
-{
-	vm_MEM_WRITE_32(&(((VmMngr*)vmcpu->pyvm)->vm_mngr), addr, src);
-	check_automod(vmcpu, addr, 32);
-}
-
-void MEM_WRITE_64(vm_cpu_t* vmcpu, uint64_t addr, uint64_t src)
-{
-	vm_MEM_WRITE_64(&(((VmMngr*)vmcpu->pyvm)->vm_mngr), addr, src);
-	check_automod(vmcpu, addr, 64);
-}
-
-
-
-
-PyObject* vm_set_mem(JitCpu *self, PyObject* args)
-{
-       PyObject *py_addr;
-       PyObject *py_buffer;
-       Py_ssize_t py_length;
-
-       char * buffer;
-       uint64_t size;
-       uint64_t addr;
-       int ret = 0x1337;
-
-       if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_buffer))
-	       return NULL;
-
-       PyGetInt(py_addr, addr);
-
-       if(!PyString_Check(py_buffer))
-	       RAISE(PyExc_TypeError,"arg must be str");
-
-       size = PyString_Size(py_buffer);
-       PyString_AsStringAndSize(py_buffer, &buffer, &py_length);
-
-       ret = vm_write_mem(&(((VmMngr*)self->vmcpu.pyvm)->vm_mngr), addr, buffer, size);
-       if (ret < 0)
-	       RAISE(PyExc_TypeError,"arg must be str");
-       check_automod(&self->vmcpu, addr, size*8);
-
-       Py_INCREF(Py_None);
-       return Py_None;
-}
-
-PyObject* vm_get_mem(JitCpu *self, PyObject* args)
-{
-       PyObject *py_addr;
-       PyObject *py_len;
-
-       uint64_t addr;
-       uint64_t size;
-       PyObject *obj_out;
-       char * buf_out;
-       int ret;
-
-       if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_len))
-	       return NULL;
-
-       PyGetInt(py_addr, addr);
-       PyGetInt(py_len, size);
-
-       ret = vm_read_mem(&(((VmMngr*)self->vmcpu.pyvm)->vm_mngr), addr, &buf_out, size);
-       if (ret < 0) {
-	       free(buf_out);
-	       PyErr_SetString(PyExc_RuntimeError, "cannot find address");
-	       return NULL;
-       }
-
-       obj_out = PyString_FromStringAndSize(buf_out, size);
-       free(buf_out);
-       return obj_out;
-}
-
-
-
-static PyMemberDef JitCpu_members[] = {
-    {NULL}  /* Sentinel */
-};
-
-static PyMethodDef JitCpu_methods[] = {
-	{"init_regs", (PyCFunction)cpu_init_regs, METH_NOARGS,
-	 "X"},
-	{"dump_gpregs", (PyCFunction)cpu_dump_gpregs, METH_NOARGS,
-	 "X"},
-	{"get_gpreg", (PyCFunction)cpu_get_gpreg, METH_NOARGS,
-	 "X"},
-	{"set_gpreg", (PyCFunction)cpu_set_gpreg, METH_VARARGS,
-	 "X"},
-	{"get_exception", (PyCFunction)cpu_get_exception, METH_VARARGS,
-	 "X"},
-	{"set_exception", (PyCFunction)cpu_set_exception, METH_VARARGS,
-	 "X"},
-	{"set_mem", (PyCFunction)vm_set_mem, METH_VARARGS,
-	 "X"},
-	{"get_mem", (PyCFunction)vm_get_mem, METH_VARARGS,
-	 "X"},
-	{NULL}  /* Sentinel */
-};
-
-static int
-JitCpu_init(JitCpu *self, PyObject *args, PyObject *kwds)
-{
-	return 0;
-}
-
-getset_reg_u16(PC);
-getset_reg_u16(SP);
-getset_reg_u16(R3);
-getset_reg_u16(R4);
-getset_reg_u16(R5);
-getset_reg_u16(R6);
-getset_reg_u16(R7);
-getset_reg_u16(R8);
-getset_reg_u16(R9);
-getset_reg_u16(R10);
-getset_reg_u16(R11);
-getset_reg_u16(R12);
-getset_reg_u16(R13);
-getset_reg_u16(R14);
-getset_reg_u16(R15);
-getset_reg_u16(zf);
-getset_reg_u16(nf);
-getset_reg_u16(of);
-getset_reg_u16(cf);
-getset_reg_u16(cpuoff);
-getset_reg_u16(gie);
-getset_reg_u16(osc);
-getset_reg_u16(scg0);
-getset_reg_u16(scg1);
-getset_reg_u16(res);
-
-
 
 
 static PyGetSetDef JitCpu_getseters[] = {
-    {"cpu",
-     (getter)JitCpu_get_cpu, (setter)JitCpu_set_cpu,
-     "first name",
-     NULL},
     {"vmmngr",
      (getter)JitCpu_get_vmmngr, (setter)JitCpu_set_vmmngr,
      "vmmngr",
