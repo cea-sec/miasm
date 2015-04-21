@@ -374,7 +374,34 @@ class DependencyResult(object):
                 for depnode in self.input}
 
 
-FollowExpr = namedtuple("FollowExpr", ["follow", "element"])
+class FollowExpr(object):
+    "Stand for an element (expression, depnode, ...) to follow or not"
+
+    def __init__(self, follow, element):
+        self.follow = follow
+        self.element = element
+
+    @staticmethod
+    def to_depnodes(follow_exprs, label, line, modifier):
+        """Build a set of FollowExpr(DependencyNode) from the @follow_exprs set
+        of FollowExpr"""
+        dependencies = set()
+        for follow_expr in follow_exprs:
+            dependencies.add(FollowExpr(follow_expr.follow,
+                                        DependencyNode(label,
+                                                       follow_expr.element,
+                                                       line,
+                                                       modifier=modifier)))
+        return dependencies
+
+    @staticmethod
+    def extract_depnodes(follow_exprs, only_follow=False):
+        """Extract depnodes from a set of FollowExpr(Depnodes)
+        @only_follow: (optional) extract only elements to follow"""
+        return set(follow_expr.element
+                   for follow_expr in follow_exprs
+                   if not(only_follow) or follow_expr.follow)
+
 
 class DependencyGraph(object):
     """Implementation of a dependency graph
@@ -475,18 +502,6 @@ class DependencyGraph(object):
         LINE_NB must be > 0"""
         return self._get_irs(depnode.label)[depnode.line_nb - 1]
 
-    @staticmethod
-    def _followExpr_to_depnodes(follow_exprs, label, line, modifier):
-        "Build a set of DependencyNode from the @follow_exprs set of FollowExpr"
-        dependencies = set()
-        for follow_expr in follow_exprs:
-            dependencies.add(FollowExpr(follow_expr.follow,
-                                        DependencyNode(label,
-                                                       follow_expr.element,
-                                                       line,
-                                                       modifier=modifier)))
-        return dependencies
-
     def _resolve_depNode(self, depnode):
         """Compute and return the dependencies involved by @depnode
         Return a set of FollowExpr"""
@@ -517,8 +532,8 @@ class DependencyGraph(object):
                 read = set([FollowExpr(True, depnode.element)])
 
             ## Build output
-            output = self._followExpr_to_depnodes(read, depnode.label,
-                                                  depnode.line_nb - 1, modifier)
+            output = FollowExpr.to_depnodes(read, depnode.label,
+                                                        depnode.line_nb - 1, modifier)
 
         return output
 
@@ -545,13 +560,11 @@ class DependencyGraph(object):
 
             # Find dependency of the current depnode
             sub_depnodes = self._resolve_depNode(depnode)
-            depdict.cache[depnode] = set(follow_expr.element
-                                         for follow_expr in sub_depnodes)
+            depdict.cache[depnode] = FollowExpr.extract_depnodes(sub_depnodes)
 
             # Add to the worklist its dependencies
-            todo.update(set(follow_expr.element
-                            for follow_expr in sub_depnodes
-                            if follow_expr.follow))
+            todo.update(FollowExpr.extract_depnodes(sub_depnodes,
+                                                    only_follow=True))
 
         # Pending states will be override in cache
         for depnode in depdict.pending:
