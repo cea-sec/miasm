@@ -615,15 +615,16 @@ for i, test in enumerate([(g1_ira, g1_input, [g1_output1]),
             g_list = list(g_list)
             ### Dump outputs graphs for debug means
             for j, result in enumerate(g_list):
-                open("graph_test_%02d_%02d.dot" % (i+1, j), "w").write(result.graph.dot())
+                open("graph_test_%02d_%02d.dot" % (i + 1, j),
+                     "w").write(result.graph.dot())
 
             ### The number of results should be the same
             print " - - - number of results"
             assert(len(g_list) == len(g_test_list))
 
             ### Match the right result (unordered)
-            for i, result in enumerate(g_list):
-                print " - - - result %d" % i
+            for j, result in enumerate(g_list):
+                print " - - - result %d" % j
                 found = False
                 for expected in g_test_list:
                     if expected["graph"].__eq__(result.graph):
