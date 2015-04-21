@@ -4,7 +4,7 @@ from collections import namedtuple
 
 import miasm2.expression.expression as m2_expr
 from miasm2.core.graph import DiGraph
-from miasm2.core.asmbloc import asm_label
+from miasm2.core.asmbloc import asm_label, expr_is_label
 from miasm2.expression.simplifications import expr_simp
 from miasm2.ir.symbexec import symbexec
 from miasm2.ir.ir import irbloc
@@ -409,15 +409,16 @@ class DependencyGraph(object):
     A dependency graph contains DependencyNode as nodes. The oriented edges
     stand for a dependency.
     The dependency graph is made of the lines of a group of IRblock
-    *explicitely* involved in the equation of given element.
+    *explicitely* or *implicitely* involved in the equation of given element.
     """
 
-    def __init__(self, ira, apply_simp=True, follow_mem=True,
+    def __init__(self, ira, implicit=False, apply_simp=True, follow_mem=True,
                  follow_call=True):
         """Create a DependencyGraph linked to @ira
         The IRA graph must have been computed
 
         @ira: IRAnalysis instance
+        @implicit: (optional) Imply implicit dependencies
 
         Following arguments define filters used to generate dependencies
         @apply_simp: (optional) Apply expr_simp
@@ -426,6 +427,7 @@ class DependencyGraph(object):
         """
         # Init
         self._ira = ira
+        self._implicit = implicit
 
         # The IRA graph must be computed
         assert(hasattr(self._ira, 'g'))
@@ -440,6 +442,7 @@ class DependencyGraph(object):
             self._cb_follow.append(self._follow_nomem)
         if not follow_call:
             self._cb_follow.append(self._follow_nocall)
+        self._cb_follow.append(self._follow_label)
 
     @staticmethod
     def _follow_simp_expr(exprs):
@@ -449,6 +452,16 @@ class DependencyGraph(object):
         follow = set()
         for expr in exprs:
             follow.add(expr_simp(expr))
+        return follow, set()
+
+    @staticmethod
+    def _follow_label(exprs):
+        """Do not follow labels"""
+        follow = set()
+        for expr in exprs:
+            if expr_is_label(expr):
+                continue
+            follow.add(expr)
         return follow, set()
 
     @staticmethod
@@ -632,6 +645,20 @@ class DependencyGraph(object):
                     ### The new node has to be computed in _updateDependencyDict
                     new_depdict.cache[depnode_head] = set([new_depnode])
                     new_depdict.pending.add(new_depnode)
+
+                    ### Handle implicit dependencies
+                    if self._implicit:
+                        follow_exprs = self._follow_apply_cb(block.dst)
+                        fexpr_depnodes = FollowExpr.to_depnodes(follow_exprs,
+                                                                label,
+                                                                block.dst_linenb,
+                                                                False)
+                        extracted = FollowExpr.extract_depnodes(fexpr_depnodes)
+                        extfllw = FollowExpr.extract_depnodes(fexpr_depnodes,
+                                                              only_follow=True)
+                        new_depdict.cache[depnode_head].update(extracted)
+                        new_depdict.pending.update(extfllw)
+
 
                 ## Manage the new element
                 todo.append(new_depdict)
