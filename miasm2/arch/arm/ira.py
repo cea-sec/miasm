@@ -69,7 +69,7 @@ class ir_a_arml(ir_a_arml_base):
             nbloc = irbloc(new_lbl, irs)
             nbloc.lines = [l]*len(irs)
             self.blocs[new_lbl] = nbloc
-            irb.set_dst(ExprId(new_lbl, size=self.pc.size))
+            irb.dst = ExprId(new_lbl, size=self.pc.size)
 
         """
         if not bloc.lines:

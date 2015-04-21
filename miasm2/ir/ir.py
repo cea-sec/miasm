@@ -36,34 +36,42 @@ class irbloc(object):
         self.lines = lines
         self.except_automod = True
         self._dst = None
+        self._dst_linenb = None
 
 
-    def get_dst(self):
+    def _get_dst(self):
+        """Find the IRDst affectation and update dst, dst_linenb accordingly"""
         if self._dst is not None:
             return self._dst
         dst = None
-        for ir in self.irs:
+        for linenb, ir in enumerate(self.irs):
             for i in ir:
                 if isinstance(i.dst, m2_expr.ExprId) and i.dst.name == "IRDst":
                     if dst is not None:
                         raise ValueError('Multiple destinations!')
                     dst = i.src
+                    dst_linenb = linenb
         self._dst = dst
+        self._dst_linenb = linenb
         return dst
 
-    def set_dst(self, value):
+    def _set_dst(self, value):
         """Find and replace the IRDst affectation's source by @value"""
-        dst = None
-        for ir in self.irs:
-            for i, expr in enumerate(ir):
-                if isinstance(expr.dst, m2_expr.ExprId) and expr.dst.name == "IRDst":
-                    if dst is not None:
-                        raise ValueError('Multiple destinations!')
-                    dst = value
-                    ir[i] = m2_expr.ExprAff(expr.dst, value)
+        if self._dst_linenb is None:
+            self._get_dst()
+
+        ir = self.irs[self._dst_linenb]
+        for i, expr in enumerate(ir):
+            if isinstance(expr.dst, m2_expr.ExprId) and expr.dst.name == "IRDst":
+                ir[i] = m2_expr.ExprAff(expr.dst, value)
         self._dst = value
 
-    dst = property(get_dst, set_dst)
+    dst = property(_get_dst, _set_dst)
+
+    @property
+    def dst_linenb(self):
+        """Line number of the IRDst setting statement in the current irs"""
+        return self._dst_linenb
 
     def get_rw(self):
         self.r = []
