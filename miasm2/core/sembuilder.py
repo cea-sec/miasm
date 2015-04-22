@@ -90,6 +90,7 @@ class SemBuilder(object):
         # Get the function AST
         parsed = ast.parse(inspect.getsource(func))
         fc_ast = parsed.body[0]
+        argument_names = [name.id for name in fc_ast.args.args]
         body = []
 
         # AffBlock of the current instruction
@@ -99,6 +100,15 @@ class SemBuilder(object):
             if isinstance(statement, ast.Assign):
                 src = self.transformer.visit(statement.value)
                 dst = self.transformer.visit(statement.targets[0])
+
+                if (isinstance(dst, ast.Name) and
+                    dst.id not in argument_names and
+                    dst.id not in self.ctx):
+                    # Real variable declaration
+                    statement.value = src
+                    body.append(statement)
+                    continue
+
                 dst.ctx = ast.Load()
 
                 res = ast.Call(func=ast.Name(id='ExprAff',
