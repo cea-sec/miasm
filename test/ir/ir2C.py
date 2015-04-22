@@ -46,9 +46,9 @@ class TestIrIr2C(unittest.TestCase):
         self.translationTest(
             ExprOp('fadd',    *args[:2]), r'fadd(0x0, 0x1)')
         self.translationTest(
-            ExprOp('segm',    *args[:2]), r'segm2addr(vmcpu, 0x0, 0x1)')
+            ExprOp('segm',    *args[:2]), r'segm2addr(jitcpu, 0x0, 0x1)')
         self.translationTest(
-            ExprOp('imod',    *args[:2]), r'imod32(vmcpu, 0x0, 0x1)')
+            ExprOp('imod',    *args[:2]), r'imod32(jitcpu, 0x0, 0x1)')
         self.translationTest(
             ExprOp('bcdadd',  *args[:2]), r'bcdadd_32(0x0, 0x1)')
         self.assertRaises(NotImplementedError, translator.from_expr,

@@ -195,7 +195,7 @@ class ExampleShellcode(ExampleAssembler):
 testset += ExampleShellcode(['x86_32', 'x86_32_manip_ptr.S', "demo_x86_32.bin"])
 
 test_box = {}
-test_box_names = ["mod", "mod_self", "repmod", "simple", "enc", "pop_esp"]
+test_box_names = ["mod", "mod_self", "repmod", "simple", "enc", "pop_esp", "automod"]
 for source in test_box_names:
     sample_base = "x86_32_" + source
     args = ["x86_32", sample_base + ".S", sample_base + ".bin", "--PE"]

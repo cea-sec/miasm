@@ -235,7 +235,6 @@ typedef struct {
 	double F30_new;
 	double F31_new;
 
-
 }vm_cpu_t;
 
 

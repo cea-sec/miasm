@@ -22,6 +22,7 @@
 #include <signal.h>
 #include "queue.h"
 #include "vm_mngr.h"
+#include "vm_mngr_py.h"
 
 #define MIN(a,b)  (((a)<(b))?(a):(b))
 #define MAX(a,b)  (((a)>(b))?(a):(b))
@@ -32,12 +33,6 @@ extern struct code_bloc_list_head code_bloc_pool;
 #define RAISE(errtype, msg) {PyObject* p; p = PyErr_Format( errtype, msg ); return p;}
 
 
-
-typedef struct {
-	PyObject_HEAD
-	PyObject *vmmngr;
-	vm_mngr_t vm_mngr;
-} VmMngr;
 
 /* XXX POC signals */
 VmMngr* global_vmmngr;
@@ -172,49 +167,6 @@ PyObject* vm_add_memory_page(VmMngr* self, PyObject* args)
 
 
 
-
-PyObject* vm_set_mem(VmMngr* self, PyObject* args)
-{
-	PyObject *addr;
-	PyObject *item_str;
-
-	uint64_t buf_size;
-	char* buf_data;
-	Py_ssize_t length;
-	int ret = 0x1337;
-	uint64_t val;
-	uint64_t l;
-	struct memory_page_node * mpn;
-
-	if (!PyArg_ParseTuple(args, "OO", &addr, &item_str))
-		return NULL;
-
-	PyGetInt(addr, val);
-
-	if(!PyString_Check(item_str))
-		RAISE(PyExc_TypeError,"arg must be str");
-
-	buf_size = PyString_Size(item_str);
-	PyString_AsStringAndSize(item_str, &buf_data, &length);
-
-
-	check_write_code_bloc(&self->vm_mngr, buf_size*8, val);
-	/* write is multiple page wide */
-	while (buf_size){
-		mpn = get_memory_page_from_address(&self->vm_mngr, val);
-		if (!mpn){
-			PyErr_SetString(PyExc_RuntimeError, "cannot find address");
-			return 0;
-		}
-		l = MIN(buf_size, mpn->size - (val-mpn->ad));
-		memcpy(mpn->ad_hp + (val-mpn->ad), buf_data, l);
-		buf_data += l;
-		val += l;
-		buf_size -= l;
-	}
-	return PyLong_FromUnsignedLongLong((uint64_t)ret);
-}
-
 PyObject* vm_set_mem_access(VmMngr* self, PyObject* args)
 {
 	PyObject *addr;
@@ -241,63 +193,69 @@ PyObject* vm_set_mem_access(VmMngr* self, PyObject* args)
 	return PyLong_FromUnsignedLongLong((uint64_t)ret);
 }
 
+PyObject* vm_set_mem(VmMngr* self, PyObject* args)
+{
+       PyObject *py_addr;
+       PyObject *py_buffer;
+       Py_ssize_t py_length;
+
+       char * buffer;
+       uint64_t size;
+       uint64_t addr;
+       int ret = 0x1337;
+
+       if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_buffer))
+	      return NULL;
+
+       PyGetInt(py_addr, addr);
+
+       if(!PyString_Check(py_buffer))
+	      RAISE(PyExc_TypeError,"arg must be str");
+
+       size = PyString_Size(py_buffer);
+       PyString_AsStringAndSize(py_buffer, &buffer, &py_length);
+
+       ret = vm_write_mem(&self->vm_mngr, addr, buffer, size);
+       if (ret < 0)
+	      RAISE(PyExc_TypeError,"arg must be str");
+
+       check_write_code_bloc(&self->vm_mngr, size*8, addr);
+
+       Py_INCREF(Py_None);
+       return Py_None;
+}
+
 
 
 
 PyObject* vm_get_mem(VmMngr* self, PyObject* args)
 {
-	PyObject *item;
-	PyObject *item_len;
+       PyObject *py_addr;
+       PyObject *py_len;
 
-	uint64_t buf_addr;
-	uint64_t buf_len;
-	PyObject *obj_out;
-	struct memory_page_node * mpn;
-	char * buf_out;
-	char * addr_tmp;
-	char * addr_out;
-	uint64_t off;
-	uint64_t l;
-	uint64_t my_size;
+       uint64_t addr;
+       uint64_t size;
+       PyObject *obj_out;
+       char * buf_out;
+       int ret;
 
-	if (!PyArg_ParseTuple(args, "OO", &item, &item_len))
-		return NULL;
+       if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_len))
+	      return NULL;
 
-	PyGetInt(item, buf_addr);
-	PyGetInt(item_len, buf_len);
+       PyGetInt(py_addr, addr);
+       PyGetInt(py_len, size);
 
-	my_size = buf_len;
-	buf_out = malloc(buf_len);
-	if (!buf_out){
-		fprintf(stderr, "cannot alloc read\n");
-		exit(-1);
-	}
+       ret = vm_read_mem(&self->vm_mngr, addr, &buf_out, size);
+       if (ret < 0) {
+	      PyErr_SetString(PyExc_RuntimeError, "cannot find address");
+	      return NULL;
+       }
 
-	addr_out = buf_out;
-
-	/* read is multiple page wide */
-	while (my_size){
-		mpn = get_memory_page_from_address(&self->vm_mngr, buf_addr);
-		if (!mpn){
-			free(buf_out);
-			PyErr_SetString(PyExc_RuntimeError, "cannot find address");
-			return 0;
-		}
-
-		off = buf_addr - mpn->ad;
-		addr_tmp = &((char*)mpn->ad_hp)[off];
-
-		l = MIN(my_size, mpn->size - off);
-		memcpy(addr_out, addr_tmp, l);
-		my_size -= l;
-		addr_out +=l;
-		buf_addr +=l;
-	}
-
-	obj_out = PyString_FromStringAndSize(buf_out, buf_len);
-	free(buf_out);
-	return obj_out;
+       obj_out = PyString_FromStringAndSize(buf_out, size);
+       free(buf_out);
+       return obj_out;
 }
+
 
 PyObject* vm_add_memory_breakpoint(VmMngr* self, PyObject* args)
 {
@@ -340,16 +298,6 @@ PyObject* vm_remove_memory_breakpoint(VmMngr* self, PyObject* args)
 	return Py_None;
 }
 
-
-PyObject* vm_get_last_write_ad(VmMngr* self, PyObject* args)
-{
-	return PyInt_FromLong((uint64_t)self->vm_mngr.last_write_ad);
-}
-
-PyObject* vm_get_last_write_size(VmMngr* self, PyObject* args)
-{
-	return PyLong_FromUnsignedLongLong((uint64_t)self->vm_mngr.last_write_size);
-}
 
 PyObject* vm_set_exception(VmMngr* self, PyObject* args)
 {
@@ -477,60 +425,6 @@ PyObject* vm_reset_code_bloc_pool(VmMngr* self, PyObject* args)
 }
 
 
-
-
-
-
-PyObject* vm_call_pyfunc_from_globals(VmMngr* self, PyObject* args)
-{
-	char* funcname;
-	PyObject  *mod,  *func, *rslt, *globals, *func_globals;
-
-
-	if (!PyArg_ParseTuple(args, "s", &funcname))
-		return NULL;
-
-
-	fprintf(stderr, "getting pyfunc %s\n", funcname);
-	mod = PyEval_GetBuiltins();
-
-	if (!mod) {
-		fprintf(stderr, "cannot find module\n");
-		exit(0);
-	}
-
-	func_globals = PyDict_GetItemString(mod, "globals");
-	if (!func_globals) {
-		fprintf(stderr, "cannot find function globals\n");
-		exit(0);
-	}
-
-	if (!PyCallable_Check (func_globals)) {
-		fprintf(stderr, "function not callable\n");
-		exit(0);
-	}
-
-	globals = PyObject_CallObject (func_globals, NULL);
-	if (!globals) {
-		fprintf(stderr, "cannot get globals\n");
-		exit(0);
-	}
-
-	func = PyDict_GetItemString (globals, funcname);
-	if (!func) {
-		fprintf(stderr, "cannot find function %s\n", funcname);
-		exit(0);
-	}
-
-	if (!PyCallable_Check (func)) {
-		fprintf(stderr, "function not callable\n");
-		exit(0);
-	}
-
-	rslt = PyObject_CallObject (func, NULL);
-	return rslt;
-}
-
 PyObject* vm_add_code_bloc(VmMngr *self, PyObject *args)
 {
 	PyObject *item1;
@@ -562,138 +456,6 @@ PyObject* vm_dump_code_bloc_pool(VmMngr* self)
 
 }
 
-
-PyObject* vm_exec_blocs(VmMngr* self, PyObject* args)
-{
-	PyObject* my_eip;
-	PyObject* b;
-	PyObject* module;
-	PyObject* func;
-	PyObject* meip;
-	uint64_t tmp;
-
-	PyObject* known_blocs;
-	PyObject* e;
-
-	if (!PyArg_ParseTuple(args, "OO", &my_eip, &known_blocs))
-		return NULL;
-
-	if(!PyDict_Check(known_blocs))
-		RAISE(PyExc_TypeError, "arg must be dict");
-
-	PyGetInt(my_eip, tmp);
-	meip = PyLong_FromUnsignedLongLong((uint64_t)tmp);
-	while (1){
-		b = PyDict_GetItem(known_blocs, meip);
-		if (b == NULL)
-			return meip;
-
-		module = PyObject_GetAttrString(b, "module_c");
-		if (module == NULL){
-			fprintf(stderr, "assert eip module_c in pyobject\n");
-			exit(0);
-		}
-		func = PyObject_GetAttrString(module, "func");
-		if (func == NULL){
-			fprintf(stderr, "assert func module_c in pyobject\n");
-			exit(0);
-		}
-
-		Py_DECREF(module);
-		if (!PyCallable_Check (func)) {
-			fprintf(stderr, "function not callable\n");
-			exit(0);
-		}
-		Py_DECREF(meip);
-		//printf("exec bloc %"PRIX64"\n", tmp);
-		meip = PyObject_CallObject (func, NULL);
-
-		Py_DECREF(func);
-		e = PyErr_Occurred ();
-		if (e){
-			fprintf(stderr, "exception\n");
-			return meip;
-		}
-
-		if (self->vm_mngr.exception_flags)
-			return meip;
-
-	}
-}
-
-
-
-PyObject* vm_exec_bloc(PyObject* self, PyObject* args)
-{
-	PyObject* b;
-	PyObject* module;
-	PyObject* func;
-	PyObject* meip;
-	uint64_t tmp;
-
-	PyObject* my_eip;
-	PyObject* known_blocs;
-	PyObject* e;
-
-	if (!PyArg_ParseTuple(args, "OO", &my_eip, &known_blocs))
-		return NULL;
-
-
-	if (PyInt_Check(my_eip)){
-		tmp = (uint64_t)PyInt_AsLong(my_eip);
-	}
-	else if (PyLong_Check(my_eip)){
-		tmp = (uint64_t)PyLong_AsUnsignedLongLong(my_eip);
-	}
-	else{
-		RAISE(PyExc_TypeError,"arg1 must be int");
-	}
-
-	meip = PyInt_FromLong((long)tmp);
-	b = PyDict_GetItem(known_blocs, my_eip);
-	if (b == NULL)
-		return meip;
-	module = PyObject_GetAttrString(b, "module_c");
-	if (module == NULL)
-		return meip;
-	func = PyObject_GetAttrString(module, "func");
-	if (func == NULL)
-		return meip;
-	Py_DECREF(module);
-	if (!PyCallable_Check (func)) {
-		fprintf(stderr, "function not callable\n");
-		exit(0);
-	}
-	Py_DECREF(meip);
-	meip = PyObject_CallObject (func, NULL);
-
-	Py_DECREF(func);
-	e = PyErr_Occurred ();
-	if (e){
-		fprintf(stderr, "exception\n");
-		return meip;
-	}
-
-	return meip;
-}
-
-
-PyObject* vm_set_automod_cb(VmMngr* self, PyObject* args)
-{
-	PyObject* cb_automod;
-
-	if (!PyArg_ParseTuple(args, "O", &cb_automod))
-		return NULL;
-
-	if (self->vm_mngr.cb_automod != NULL){
-		Py_DECREF(self->vm_mngr.cb_automod);
-	}
-
-	Py_INCREF(cb_automod);
-	self->vm_mngr.cb_automod = cb_automod;
-	Py_INCREF(Py_None);
-	return Py_None;
-}
 
 PyObject* vm_set_addr2obj(VmMngr* self, PyObject* args)
 {
@@ -738,7 +500,7 @@ PyObject* add_jitbloc(VmMngr* self, PyObject* args)
 
 	if (!PyArg_ParseTuple(args, "O", &addr2obj))
 		return NULL;
-	
+
 	Py_INCREF(Py_None);
 	return Py_None;
 
@@ -795,15 +557,9 @@ static PyMethodDef VmMngr_methods[] = {
 	 "X"},
 	{"set_mem", (PyCFunction)vm_set_mem, METH_VARARGS,
 	 "X"},
-	{"set_automod_cb", (PyCFunction)vm_set_automod_cb, METH_VARARGS,
-	 "X"},
 	{"set_addr2obj", (PyCFunction)vm_set_addr2obj, METH_VARARGS,
 	 "X"},
 	{"add_code_bloc",(PyCFunction)vm_add_code_bloc, METH_VARARGS,
-	 "X"},
-	{"exec_bloc",(PyCFunction)vm_exec_bloc, METH_VARARGS,
-	 "X"},
-	{"exec_blocs",(PyCFunction)vm_exec_blocs, METH_VARARGS,
 	 "X"},
 	{"get_mem", (PyCFunction)vm_get_mem, METH_VARARGS,
 	 "X"},
@@ -829,16 +585,9 @@ static PyMethodDef VmMngr_methods[] = {
 	 "X"},
 	{"set_alarm", (PyCFunction)set_alarm, METH_VARARGS,
 	 "X"},
-	{"call_pyfunc_from_globals",(PyCFunction)vm_call_pyfunc_from_globals, METH_VARARGS,
-	 "X"},
-
 	{"get_exception",(PyCFunction)vm_get_exception, METH_VARARGS,
 	 "X"},
 	{"get_exception",(PyCFunction)vm_get_exception, METH_VARARGS,
-	 "X"},
-	{"get_last_write_ad", (PyCFunction)vm_get_last_write_ad, METH_VARARGS,
-	 "X"},
-	{"get_last_write_size",(PyCFunction)vm_get_last_write_size, METH_VARARGS,
 	 "X"},
 
 	{"set_big_endian",(PyCFunction)vm_set_big_endian, METH_VARARGS,

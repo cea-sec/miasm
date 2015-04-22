@@ -71,7 +71,7 @@ class JitCore_Python(jitcore.JitCore):
 
         addr = expr_mem.arg.arg.arg
         size = expr_mem.size / 8
-        value = self.vmmngr.get_mem(addr, size)
+        value = self.cpu.get_mem(addr, size)
 
         return m2_expr.ExprInt_fromsize(expr_mem.size,
                                         int(value[::-1].encode("hex"), 16))
@@ -97,7 +97,7 @@ class JitCore_Python(jitcore.JitCore):
         content = content.decode("hex")[::-1]
 
         # Write in VmMngr context
-        self.vmmngr.set_mem(addr, content)
+        self.cpu.set_mem(addr, content)
 
     def jitirblocs(self, label, irblocs):
         """Create a python function corresponding to an irblocs' group.
@@ -193,8 +193,7 @@ class JitCore_Python(jitcore.JitCore):
         # Get Python function corresponding to @label
         fc_ptr = self.lbl2jitbloc[label]
 
-        # Update memory state
-        self.vmmngr = vmmngr
+        self.cpu = cpu
 
         # Execute the function
         return fc_ptr(cpu, vmmngr)

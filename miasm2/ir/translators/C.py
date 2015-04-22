@@ -45,8 +45,8 @@ class TranslatorC(Translator):
                                         (expr.cond, expr.src1, expr.src2)))
 
     def from_ExprMem(self, expr):
-        return "MEM_LOOKUP_%.2d(vm_mngr, %s)" % (expr.size,
-                                                 self.from_expr(expr.arg))
+        return "MEM_LOOKUP_%.2d(jitcpu, %s)" % (expr.size,
+                                                self.from_expr(expr.arg))
 
     def from_ExprOp(self, expr):
         if len(expr.args) == 1:
@@ -106,13 +106,13 @@ class TranslatorC(Translator):
                 return "%s(%s, %s)" % (expr.op, self.from_expr(expr.args[0]),
                                        self.from_expr(expr.args[1]))
             elif expr.op == "segm":
-                return "segm2addr(vmcpu, %s, %s)" % (
+                return "segm2addr(jitcpu, %s, %s)" % (
                     self.from_expr(expr.args[0]), self.from_expr(expr.args[1]))
             elif expr.op in ['udiv', 'umod', 'idiv', 'imod']:
-                return '%s%d(vmcpu, %s, %s)' % (expr.op,
-                                                expr.args[0].size,
-                                                self.from_expr(expr.args[0]),
-                                                self.from_expr(expr.args[1]))
+                return '%s%d(jitcpu, %s, %s)' % (expr.op,
+                                                 expr.args[0].size,
+                                                 self.from_expr(expr.args[0]),
+                                                 self.from_expr(expr.args[1]))
             elif expr.op in ["bcdadd", "bcdadd_cf"]:
                 return "%s_%d(%s, %s)" % (expr.op, expr.args[0].size,
                                           self.from_expr(expr.args[0]),

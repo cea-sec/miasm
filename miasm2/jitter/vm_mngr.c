@@ -395,13 +395,7 @@ void dump_code_bloc(vm_mngr_t* vm_mngr)
 void check_write_code_bloc(vm_mngr_t* vm_mngr, uint64_t my_size, uint64_t addr)
 {
 	struct code_bloc_node * cbp;
-	vm_mngr->last_write_ad = addr;
-	vm_mngr->last_write_size = my_size;
 
-
-
-	//if(vmmngr.my_tick> my_tick)
-	//	printf("M_WRITE %2d %.8X %.8X\n", my_size, addr, src);
 	if (!(addr + my_size/8 <= vm_mngr->code_bloc_pool_ad_min ||
 	      addr >=vm_mngr->code_bloc_pool_ad_max)){
 		LIST_FOREACH(cbp, &vm_mngr->code_bloc_pool, next){
@@ -444,98 +438,113 @@ PyObject* addr2BlocObj(vm_mngr_t* vm_mngr, uint64_t addr)
 	return b;
 }
 
-/*
-PyObject* add_code_resolver(vm_mngr_t* vm_mngr, uint64_t addr)
-{
-	pyaddr = PyLong_FromUnsignedLongLong(addr);
 
-	func_resolver* f = malloc(sizeof(func_resolver));
-	f->func = addr2blocobj;
-	fsdfsd
-	return f;
-}
-*/
-/*
-void MEM_WRITE(vm_mngr_t* vm_mngr, unsigned int my_size, uint64_t addr, unsigned int src)
-{
-	struct code_bloc_node * cbp;
-
-	vm_mngr->last_write_ad = addr;
-	vm_mngr->last_write_size = my_size;
-
-	//if(vmmngr.my_tick> my_tick)
-	//	printf("M_WRITE %2d %.8X %.8X\n", my_size, addr, src);
-	if (!(addr + my_size/8 <= vm_mngr->code_bloc_pool_ad_min ||
-	      addr >= vm_mngr->code_bloc_pool_ad_max)){
-		LIST_FOREACH(cbp, &vm_mngr->code_bloc_pool, next){
-			if ((cbp->ad_start <= addr + my_size/8) &&
-			    (addr < cbp->ad_stop)){
-#ifdef DEBUG_MIASM_AUTOMOD_CODE
-				fprintf(stderr, "self modifying code %"PRIX64" %.8X\n",
-				       addr, my_size);
-#endif
-				vm_mngr->exception_flags |= EXCEPT_CODE_AUTOMOD;
-				break;
-			}
-		}
-	}
-
-	memory_page_write(vm_mngr, my_size, addr, src);
-}
-*/
-void MEM_WRITE_08(vm_mngr_t* vm_mngr, uint64_t addr, unsigned char src)
+void vm_MEM_WRITE_08(vm_mngr_t* vm_mngr, uint64_t addr, unsigned char src)
 {
 	check_write_code_bloc(vm_mngr, 8, addr);
 	memory_page_write(vm_mngr, 8, addr, src);
 }
 
-void MEM_WRITE_16(vm_mngr_t* vm_mngr, uint64_t addr, unsigned short src)
+void vm_MEM_WRITE_16(vm_mngr_t* vm_mngr, uint64_t addr, unsigned short src)
 {
 	check_write_code_bloc(vm_mngr, 16, addr);
 	memory_page_write(vm_mngr, 16, addr, src);
 }
-void MEM_WRITE_32(vm_mngr_t* vm_mngr, uint64_t addr, unsigned int src)
+void vm_MEM_WRITE_32(vm_mngr_t* vm_mngr, uint64_t addr, unsigned int src)
 {
 	check_write_code_bloc(vm_mngr, 32, addr);
 	memory_page_write(vm_mngr, 32, addr, src);
 }
-void MEM_WRITE_64(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t src)
+void vm_MEM_WRITE_64(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t src)
 {
 	check_write_code_bloc(vm_mngr, 64, addr);
 	memory_page_write(vm_mngr, 64, addr, src);
 }
 
-unsigned int MEM_LOOKUP(vm_mngr_t* vm_mngr, unsigned int my_size, uint64_t addr)
-{
-    unsigned int ret;
-    ret = memory_page_read(vm_mngr, my_size, addr);
-    return ret;
-}
-
-unsigned char MEM_LOOKUP_08(vm_mngr_t* vm_mngr, uint64_t addr)
+unsigned char vm_MEM_LOOKUP_08(vm_mngr_t* vm_mngr, uint64_t addr)
 {
     unsigned char ret;
     ret = memory_page_read(vm_mngr, 8, addr);
     return ret;
 }
-unsigned short MEM_LOOKUP_16(vm_mngr_t* vm_mngr, uint64_t addr)
+unsigned short vm_MEM_LOOKUP_16(vm_mngr_t* vm_mngr, uint64_t addr)
 {
     unsigned short ret;
     ret = memory_page_read(vm_mngr, 16, addr);
     return ret;
 }
-unsigned int MEM_LOOKUP_32(vm_mngr_t* vm_mngr, uint64_t addr)
+unsigned int vm_MEM_LOOKUP_32(vm_mngr_t* vm_mngr, uint64_t addr)
 {
     unsigned int ret;
     ret = memory_page_read(vm_mngr, 32, addr);
     return ret;
 }
-uint64_t MEM_LOOKUP_64(vm_mngr_t* vm_mngr, uint64_t addr)
+uint64_t vm_MEM_LOOKUP_64(vm_mngr_t* vm_mngr, uint64_t addr)
 {
     uint64_t ret;
     ret = memory_page_read(vm_mngr, 64, addr);
     return ret;
 }
+
+
+int vm_read_mem(vm_mngr_t* vm_mngr, uint64_t addr, char** buffer_ptr, uint64_t size)
+{
+       char* buffer;
+       uint64_t len;
+       struct memory_page_node * mpn;
+
+       buffer = malloc(size);
+       *buffer_ptr = buffer;
+       if (!buffer){
+	      fprintf(stderr, "cannot alloc read\n");
+	      exit(-1);
+       }
+
+       /* read is multiple page wide */
+       while (size){
+	      mpn = get_memory_page_from_address(vm_mngr, addr);
+	      if (!mpn){
+		      free(*buffer_ptr);
+		      PyErr_SetString(PyExc_RuntimeError, "cannot find address");
+		      return -1;
+	      }
+
+	      len = MIN(size, mpn->size - (addr - mpn->ad));
+	      memcpy(buffer, (char*)(mpn->ad_hp + (addr - mpn->ad)), len);
+	      buffer += len;
+	      addr += len;
+	      size -= len;
+       }
+
+       return 0;
+}
+
+int vm_write_mem(vm_mngr_t* vm_mngr, uint64_t addr, char *buffer, uint64_t size)
+{
+       uint64_t len;
+       struct memory_page_node * mpn;
+
+       check_write_code_bloc(vm_mngr, size * 8, addr);
+
+       /* write is multiple page wide */
+       while (size){
+	      mpn = get_memory_page_from_address(vm_mngr, addr);
+	      if (!mpn){
+		      PyErr_SetString(PyExc_RuntimeError, "cannot find address");
+		      return -1;
+	      }
+
+	      len = MIN(size, mpn->size - (addr - mpn->ad));
+	      memcpy(mpn->ad_hp + (addr-mpn->ad), buffer, len);
+	      buffer += len;
+	      addr += len;
+	      size -= len;
+       }
+
+       return 0;
+}
+
+
 
 unsigned int parity(unsigned int a)
 {
