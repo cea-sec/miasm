@@ -2,155 +2,130 @@ import miasm2.expression.expression as m2_expr
 from miasm2.ir.ir import ir, irbloc
 from miasm2.arch.mips32.arch import mn_mips32
 from miasm2.arch.mips32.regs import R_LO, R_HI, PC, RA
+from miasm2.core.sembuilder import SemBuilder
 
 
-def addiu(ir, instr, a, b, c):
-    """Adds a register @b and a sign-extended immediate value @c and stores the
-    result in a register @a"""
-    e = []
-    e.append(m2_expr.ExprAff(a, b+c))
-    return e, []
-
-def lw(ir, instr, a, b):
-    "A word is loaded into a register @a from the specified address @b."
-    e = []
-    e.append(m2_expr.ExprAff(a, b))
-    return e, []
-
-def sw(ir, instr, a, b):
-    "The contents of @b is stored at the specified address @a."
-    e = []
-    e.append(m2_expr.ExprAff(b, a))
-    return e, []
-
-def jal(ir, instr, a):
-    "Jumps to the calculated address @a and stores the return address in $RA"
-    e = []
-    n = m2_expr.ExprId(ir.get_next_break_label(instr))
-    e.append(m2_expr.ExprAff(PC, a))
-    e.append(m2_expr.ExprAff(ir.IRDst, a))
-    e.append(m2_expr.ExprAff(RA, n))
-    return e, []
-
-def jalr(ir, instr, a, b):
-    """Jump to an address stored in a register @a, and store the return address
-    in another register @b"""
-    e = []
-    n = m2_expr.ExprId(ir.get_next_break_label(instr))
-    e.append(m2_expr.ExprAff(PC, a))
-    e.append(m2_expr.ExprAff(ir.IRDst, a))
-    e.append(m2_expr.ExprAff(b, n))
-    return e, []
-
-def bal(ir, instr, a):
-    e = []
-    n = m2_expr.ExprId(ir.get_next_break_label(instr))
-    e.append(m2_expr.ExprAff(PC, a))
-    e.append(m2_expr.ExprAff(ir.IRDst, a))
-    e.append(m2_expr.ExprAff(RA, n))
-    return e, []
-
-def l_b(ir, instr, a):
-    e = []
-    e.append(m2_expr.ExprAff(PC, a))
-    e.append(m2_expr.ExprAff(ir.IRDst, a))
-    return e, []
-
-def lbu(ir, instr, a, b):
-    """A byte is loaded (unsigned extended) into a register @a from the
-    specified address @b."""
-    e = []
-    b = m2_expr.ExprMem(b.arg, 8)
-    e.append(m2_expr.ExprAff(a, b.zeroExtend(32)))
-    return e, []
-
-def lhu(ir, instr, a, b):
-    """A word is loaded (unsigned extended) into a register @a from the
-    specified address @b."""
-    e = []
-    b = m2_expr.ExprMem(b.arg, 16)
-    e.append(m2_expr.ExprAff(a, b.zeroExtend(32)))
-    return e, []
+# SemBuilder context
+ctx = {"R_LO": R_LO,
+       "R_HI": R_HI,
+       "PC": PC,
+       "RA": RA}
+ctx.update(m2_expr.__dict__)
+sbuild = SemBuilder(ctx)
 
 
-def lb(ir, instr, a, b):
-    "A byte is loaded into a register @a from the specified address @b."
-    e = []
-    b = m2_expr.ExprMem(b.arg, 8)
-    e.append(m2_expr.ExprAff(a, b.signExtend(32)))
-    return e, []
+@sbuild.parse
+def addiu(Arg1, Arg2, Arg3):
+    """Adds a register @Arg3 and a sign-extended immediate value @Arg2 and
+    stores the result in a register @Arg1"""
+    Arg1 = Arg2 + Arg3
 
-def beq(ir, instr, a, b, c):
-    "Branches on @c if the quantities of two registers @a, @b are equal"
-    e = []
-    n = m2_expr.ExprId(ir.get_next_break_label(instr))
-    dst_o = m2_expr.ExprCond(a-b, n, c)
-    e = [m2_expr.ExprAff(PC, dst_o),
-         m2_expr.ExprAff(ir.IRDst, dst_o)
-     ]
-    return e, []
+@sbuild.parse
+def lw(Arg1, Arg2):
+    "A word is loaded into a register @Arg1 from the specified address @Arg2."
+    Arg1 = Arg2
 
-def bgez(ir, instr, a, b):
-    """Branches on @b if the quantities of register @a is greater than or equal
-    to zero"""
-    e = []
-    n = m2_expr.ExprId(ir.get_next_break_label(instr))
-    dst_o = m2_expr.ExprCond(a.msb(), n, b)
-    e = [m2_expr.ExprAff(PC, dst_o),
-         m2_expr.ExprAff(ir.IRDst, dst_o)
-     ]
-    return e, []
+@sbuild.parse
+def sw(Arg1, Arg2):
+    "The contents of @Arg2 is stored at the specified address @Arg1."
+    Arg2 = Arg1
 
-def bne(ir, instr, a, b, c):
-    "Branches on @c if the quantities of two registers @a, @b are NOT equal"
-    e = []
-    n = m2_expr.ExprId(ir.get_next_break_label(instr))
-    dst_o = m2_expr.ExprCond(a-b, c, n)
-    e = [m2_expr.ExprAff(PC, dst_o),
-         m2_expr.ExprAff(ir.IRDst, dst_o)
-    ]
-    return e, []
+@sbuild.parse
+def jal(Arg1):
+    "Jumps to the calculated address @Arg1 and stores the return address in $RA"
+    PC = Arg1
+    ir.IRDst = Arg1
+    RA = ExprId(ir.get_next_break_label(instr))
 
-def lui(ir, instr, a, b):
-    """The immediate value @b is shifted left 16 bits and stored in the register
-    @a. The lower 16 bits are zeroes."""
-    e = []
-    e.append(m2_expr.ExprAff(a,
-                             m2_expr.ExprCompose([(m2_expr.ExprInt16(0), 0, 16),
-                                                  (b[:16], 16, 32)])))
-    return e, []
+@sbuild.parse
+def jalr(Arg1, Arg2):
+    """Jump to an address stored in a register @Arg1, and store the return
+    address in another register @Arg2"""
+    PC = Arg1
+    ir.IRDst = Arg1
+    Arg2 = ExprId(ir.get_next_break_label(instr))
 
-def nop(ir, instr):
+@sbuild.parse
+def bal(Arg1):
+    PC = Arg1
+    ir.IRDst = Arg1
+    RA = ExprId(ir.get_next_break_label(instr))
+
+@sbuild.parse
+def l_b(Arg1):
+    PC = Arg1
+    ir.IRDst = Arg1
+
+@sbuild.parse
+def lbu(Arg1, Arg2):
+    """A byte is loaded (unsigned extended) into a register @Arg1 from the
+    specified address @Arg2."""
+    Arg1 = mem8[Arg2.arg].zeroExtend(32)
+
+@sbuild.parse
+def lhu(Arg1, Arg2):
+    """A word is loaded (unsigned extended) into a register @Arg1 from the
+    specified address @Arg2."""
+    Arg1 = mem16[Arg2.arg].zeroExtend(32)
+
+@sbuild.parse
+def lb(Arg1, Arg2):
+    "A byte is loaded into a register @Arg1 from the specified address @Arg2."
+    Arg1 = mem8[Arg2.arg].signExtend(32)
+
+@sbuild.parse
+def beq(Arg1, Arg2, Arg3):
+    "Branches on @Arg3 if the quantities of two registers @Arg1, @Arg2 are eq"
+    PC = ExprId(ir.get_next_break_label(instr)) if Arg1 - Arg2 else Arg3
+    ir.IRDst = ExprId(ir.get_next_break_label(instr)) if Arg1 - Arg2 else Arg3
+
+@sbuild.parse
+def bgez(Arg1, Arg2):
+    """Branches on @Arg2 if the quantities of register @Arg1 is greater than or
+    equal to zero"""
+    PC = ExprId(ir.get_next_break_label(instr)) if Arg1.msb() else Arg2
+    ir.IRDst = ExprId(ir.get_next_break_label(instr)) if Arg1.msb() else Arg2
+
+@sbuild.parse
+def bne(Arg1, Arg2, Arg3):
+    """Branches on @Arg3 if the quantities of two registers @Arg1, @Arg2 are NOT
+    equal"""
+    PC = Arg3 if Arg1 - Arg2 else ExprId(ir.get_next_break_label(instr))
+    ir.IRDst = Arg3 if Arg1 - Arg2 else ExprId(ir.get_next_break_label(instr))
+
+@sbuild.parse
+def lui(Arg1, Arg2):
+    """The immediate value @Arg2 is shifted left 16 bits and stored in the
+    register @Arg1. The lower 16 bits are zeroes."""
+    Arg1 = ExprCompose([(i16(0), 0, 16), (Arg2[:16], 16, 32)])
+
+@sbuild.parse
+def nop():
     """Do nothing"""
-    return [], []
 
-def j(ir, instr, a):
-    """Jump to an address @a"""
-    e = []
-    e.append(m2_expr.ExprAff(PC, a))
-    e.append(m2_expr.ExprAff(ir.IRDst, a))
-    return e, []
+@sbuild.parse
+def j(Arg1):
+    """Jump to an address @Arg1"""
+    PC = Arg1
+    ir.IRDst = Arg1
 
-def l_or(ir, instr, a, b, c):
-    """Bitwise logical ors two registers @b, @c and stores the result in a
-    register @a"""
-    e = []
-    e.append(m2_expr.ExprAff(a, b|c))
-    return e, []
+@sbuild.parse
+def l_or(Arg1, Arg2, Arg3):
+    """Bitwise logical ors two registers @Arg2, @Arg3 and stores the result in a
+    register @Arg1"""
+    Arg1 = Arg2 | Arg3
 
-def nor(ir, instr, a, b, c):
-    """Bitwise logical Nors two registers @b, @c and stores the result in a
-    register @a"""
-    e = []
-    e.append(m2_expr.ExprAff(a, (b|c)^m2_expr.ExprInt32(0xFFFFFFFF)))
-    return e, []
+@sbuild.parse
+def nor(Arg1, Arg2, Arg3):
+    """Bitwise logical Nors two registers @Arg2, @Arg3 and stores the result in
+    a register @Arg1"""
+    Arg1 = (Arg2 | Arg3) ^ i32(-1)
 
-def l_and(ir, instr, a, b, c):
-    """Bitwise logical ands two registers @b, @c and stores the result in a
-    register @a"""
-    e = []
-    e.append(m2_expr.ExprAff(a, b&c))
-    return e, []
+@sbuild.parse
+def l_and(Arg1, Arg2, Arg3):
+    """Bitwise logical ands two registers @Arg2, @Arg3 and stores the result in
+    a register @Arg1"""
+    Arg1 = Arg2 & Arg3
 
 def ext(ir, instr, a, b, c, d):
     e = []
