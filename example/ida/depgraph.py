@@ -50,7 +50,8 @@ Track the element:
 
 Method to use:
 <Follow Memory:{rNoMem}>
-<Follow Call:{rNoCall}>{cMethod}>
+<Follow Call:{rNoCall}>
+<Implicit dependencies:{rImplicit}>{cMethod}>
 
 <Highlight color:{cColor}>
 """, {
@@ -60,7 +61,7 @@ Method to use:
                     selval=reg_default),
             'cMode': Form.RadGroupControl(("rBeforeLine", "rAfterLine",
                                            "rEndBlock")),
-            'cMethod': Form.ChkGroupControl(("rNoMem", "rNoCall")),
+            'cMethod': Form.ChkGroupControl(("rNoMem", "rNoCall", "rImplicit")),
             'iLineNb': Form.NumericInput(tp=Form.FT_RAWHEX,
                                          value=line_nb),
             'cbBBL': Form.DropdownListControl(
@@ -100,6 +101,7 @@ Method to use:
     def depgraph(self):
         value = self.cMethod.value
         return DependencyGraph(self.ira,
+                               implicit=value & 4,
                                follow_mem=value & 1,
                                follow_call=value & 2)
 
