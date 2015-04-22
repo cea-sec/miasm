@@ -76,22 +76,25 @@ def lb(Arg1, Arg2):
 @sbuild.parse
 def beq(Arg1, Arg2, Arg3):
     "Branches on @Arg3 if the quantities of two registers @Arg1, @Arg2 are eq"
-    PC = ExprId(ir.get_next_break_label(instr)) if Arg1 - Arg2 else Arg3
-    ir.IRDst = ExprId(ir.get_next_break_label(instr)) if Arg1 - Arg2 else Arg3
+    dst = ExprId(ir.get_next_break_label(instr)) if Arg1 - Arg2 else Arg3
+    PC = dst
+    ir.IRDst = dst
 
 @sbuild.parse
 def bgez(Arg1, Arg2):
     """Branches on @Arg2 if the quantities of register @Arg1 is greater than or
     equal to zero"""
-    PC = ExprId(ir.get_next_break_label(instr)) if Arg1.msb() else Arg2
-    ir.IRDst = ExprId(ir.get_next_break_label(instr)) if Arg1.msb() else Arg2
+    dst = ExprId(ir.get_next_break_label(instr)) if Arg1.msb() else Arg2
+    PC = dst
+    ir.IRDst = dst
 
 @sbuild.parse
 def bne(Arg1, Arg2, Arg3):
     """Branches on @Arg3 if the quantities of two registers @Arg1, @Arg2 are NOT
     equal"""
-    PC = Arg3 if Arg1 - Arg2 else ExprId(ir.get_next_break_label(instr))
-    ir.IRDst = Arg3 if Arg1 - Arg2 else ExprId(ir.get_next_break_label(instr))
+    dst = Arg3 if Arg1 - Arg2 else ExprId(ir.get_next_break_label(instr))
+    PC = dst
+    ir.IRDst = dst
 
 @sbuild.parse
 def lui(Arg1, Arg2):
