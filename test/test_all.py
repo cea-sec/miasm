@@ -101,6 +101,7 @@ for script in ["interval.py",
                "graph.py",
                "parse_asm.py",
                "utils.py",
+               "sembuilder.py",
                ]:
     testset += RegressionTest([script], base_dir="core")
 ## Expression
