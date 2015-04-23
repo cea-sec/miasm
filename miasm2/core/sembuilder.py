@@ -11,6 +11,8 @@ class MiasmTransformer(ast.NodeTransformer):
     memX[Y]       -> ExprMem(Y, X)
     iX(Y)         -> ExprIntX(Y)
     X if Y else Z -> ExprCond(Y, X, Z)
+    'X'(Y)        -> ExprOp('X', Y)
+    ('X' % Y)(Z)  -> ExprOp('X' % Y, Z)
     """
 
     # Parsers
@@ -20,23 +22,40 @@ class MiasmTransformer(ast.NodeTransformer):
     # Visitors
 
     def visit_Call(self, node):
-        """iX(Y) -> ExprIntX(Y)"""
-        # Match the function name
-        if not isinstance(node.func, ast.Name):
+        """iX(Y) -> ExprIntX(Y),
+        'X'(Y) -> ExprOp('X', Y), ('X' % Y)(Z) -> ExprOp('X' % Y, Z)"""
+        if isinstance(node.func, ast.Name):
+            # iX(Y) -> ExprIntX(Y)
+            fc_name = node.func.id
+
+            # Match the function name
+            new_name = fc_name
+            integer = self.parse_integer.search(fc_name)
+
+            # Do replacement
+            if integer is not None:
+                new_name = "ExprInt%s" % integer.groups()[0]
+
+            # Replace in the node
+            node.func.id = new_name
+
+        elif (isinstance(node.func, ast.Str) or
+              (isinstance(node.func, ast.BinOp) and
+               isinstance(node.func.op, ast.Mod) and
+               isinstance(node.func.left, ast.Str))):
+            # 'op'(args...) -> ExprOp('op', args...)
+            # ('op' % (fmt))(args...) -> ExprOp('op' % (fmt), args...)
+            op_name = node.func
+
+            # Do replacement
+            node.func = ast.Name(id="ExprOp", ctx=ast.Load())
+            node.args[0:0] = [op_name]
+            node.args = map(self.visit, node.args)
+
+        else:
             # TODO: launch visitor on node
-            return node
+            pass
 
-        fc_name = node.func.id
-        new_name = fc_name
-        integer = self.parse_integer.search(fc_name)
-
-        # Do replacement
-        if integer is not None:
-            new_name = "ExprInt%s" % integer.groups()[0]
-
-        # Replace in the node
-        node.func.id = new_name
-        # TODO: launch visitor on node
         return node
 
     def visit_Subscript(self, node):
@@ -104,6 +123,7 @@ class SemBuilder(object):
                 if (isinstance(dst, ast.Name) and
                     dst.id not in argument_names and
                     dst.id not in self.ctx):
+
                     # Real variable declaration
                     statement.value = src
                     body.append(statement)
