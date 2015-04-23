@@ -130,52 +130,41 @@ def l_and(Arg1, Arg2, Arg3):
     a register @Arg1"""
     Arg1 = Arg2 & Arg3
 
-def ext(ir, instr, a, b, c, d):
-    e = []
+@sbuild.parse
+def ext(a, b, c, d):
     pos = int(c.arg)
     size = int(d.arg)
-    e.append(m2_expr.ExprAff(a, b[pos:pos+size].zeroExtend(32)))
-    return e, []
+    a = b[pos:pos + size].zeroExtend(32)
 
-def mul(ir, instr, a, b, c):
+@sbuild.parse
+def mul(a, b, c):
     """Multiplies @b by $c and stores the result in @a."""
-    e = []
-    e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('imul', b, c)))
-    return e, []
+    a = 'imul'(b, c)
 
-def sltu(ir, instr, a, x, y):
+@sbuild.parse
+def sltu(a, x, y):
     """If @y is less than @x (unsigned), @a is set to one. It gets zero
     otherwise."""
-    e = []
-    value = (((x - y) ^ ((x ^ y) & ((x - y) ^ x))) ^ x ^ y).msb().zeroExtend(32)
-    e.append(m2_expr.ExprAff(a, value))
-    return e, []
+    a = (((x - y) ^ ((x ^ y) & ((x - y) ^ x))) ^ x ^ y).msb().zeroExtend(32)
 
-def slt(ir, instr, a, x, y):
+@sbuild.parse
+def slt(a, x, y):
     """If @y is less than @x (signed), @a is set to one. It gets zero
     otherwise."""
-    e = []
-    value = ((x - y) ^ ((x ^ y) & ((x - y) ^ x))).zeroExtend(32)
-    e.append(m2_expr.ExprAff(a, value))
-    return e, []
+    a = ((x - y) ^ ((x ^ y) & ((x - y) ^ x))).zeroExtend(32)
 
-def l_sub(ir, instr, a, b, c):
-    e = []
-    e.append(m2_expr.ExprAff(a, b-c))
-    return e, []
+@sbuild.parse
+def l_sub(a, b, c):
+    a = b - c
 
-def sb(ir, instr, a, b):
+@sbuild.parse
+def sb(a, b):
     "The least significant byte of @a is stored at the specified address @b."
-    e = []
-    b = m2_expr.ExprMem(b.arg, 8)
-    e.append(m2_expr.ExprAff(b, a[:8]))
-    return e, []
+    mem8[b.arg] = a[:8]
 
-def sh(ir, instr, a, b):
-    e = []
-    b = m2_expr.ExprMem(b.arg, 16)
-    e.append(m2_expr.ExprAff(b, a[:16]))
-    return e, []
+@sbuild.parse
+def sh(a, b):
+    mem16[b.arg] = a[:16]
 
 def movn(ir, instr, a, b, c):
     lbl_do = m2_expr.ExprId(ir.gen_label(), 32)
@@ -199,167 +188,134 @@ def movz(ir, instr, a, b, c):
 
     return e, [irbloc(lbl_do.name, [e_do], [])]
 
-def srl(ir, instr, a, b, c):
+@sbuild.parse
+def srl(a, b, c):
     """Shifts a register value @b right by the shift amount @c and places the
     value in the destination register @a. Zeroes are shifted in."""
-    e = []
-    e.append(m2_expr.ExprAff(a, b >> c))
-    return e, []
+    a = b >> c
 
-def sra(ir, instr, a, b, c):
+@sbuild.parse
+def sra(a, b, c):
     """Shifts a register value @b right by the shift amount @c and places the
     value in the destination register @a. The sign bit is shifted in."""
-    e = []
-    e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('a>>', b, c)))
-    return e, []
+    a = 'a>>'(b, c)
 
-def srav(ir, instr, a, b, c):
-    e = []
-    value = m2_expr.ExprOp('a>>', b, c&m2_expr.ExprInt32(0x1F))
-    e.append(m2_expr.ExprAff(a, value))
-    return e, []
+@sbuild.parse
+def srav(a, b, c):
+    a = 'a>>'(b, c & i32(0x1F))
 
-def sll(ir, instr, a, b, c):
-    e = []
-    e.append(m2_expr.ExprAff(a, b<<c))
-    return e, []
+@sbuild.parse
+def sll(a, b, c):
+    a = b << c
 
-def srlv(ir, instr, a, b, c):
+@sbuild.parse
+def srlv(a, b, c):
     """Shifts a register value @b right by the amount specified in @c and places
     the value in the destination register @a. Zeroes are shifted in."""
-    e = []
-    e.append(m2_expr.ExprAff(a, b >> (c & m2_expr.ExprInt32(0x1F))))
-    return e, []
+    a = b >> (c & i32(0x1F))
 
-def sllv(ir, instr, a, b, c):
+@sbuild.parse
+def sllv(a, b, c):
     """Shifts a register value @b left by the amount specified in @c and places
     the value in the destination register @a. Zeroes are shifted in."""
-    e = []
-    e.append(m2_expr.ExprAff(a, b << (c & m2_expr.ExprInt32(0x1F))))
-    return e, []
+    a = b << (c & i32(0x1F))
 
-def l_xor(ir, instr, a, b, c):
+@sbuild.parse
+def l_xor(a, b, c):
     """Exclusive ors two registers @b, @c and stores the result in a register
     @c"""
-    e = []
-    e.append(m2_expr.ExprAff(a, b^c))
-    return e, []
+    a = b ^ c
 
-def seb(ir, instr, a, b):
-    e = []
-    e.append(m2_expr.ExprAff(a, b[:8].signExtend(32)))
-    return e, []
+@sbuild.parse
+def seb(a, b):
+    a = b[:8].signExtend(32)
 
-def seh(ir, instr, a, b):
-    e = []
-    e.append(m2_expr.ExprAff(a, b[:16].signExtend(32)))
-    return e, []
+@sbuild.parse
+def seh(a, b):
+    a = b[:16].signExtend(32)
 
-def bltz(ir, instr, a, b):
+@sbuild.parse
+def bltz(a, b):
     """Branches on @b if the register @a is less than zero"""
-    e = []
-    n = m2_expr.ExprId(ir.get_next_break_label(instr))
-    dst_o = m2_expr.ExprCond(a.msb(), b, n)
-    e = [m2_expr.ExprAff(PC, dst_o),
-         m2_expr.ExprAff(ir.IRDst, dst_o)
-    ]
-    return e, []
+    dst_o = b if a.msb() else ExprId(ir.get_next_break_label(instr))
+    PC = dst_o
+    ir.IRDst = dst_o
 
-def blez(ir, instr, a, b):
+@sbuild.parse
+def blez(a, b):
     """Branches on @b if the register @a is less than or equal to zero"""
-    e = []
-    n = m2_expr.ExprId(ir.get_next_break_label(instr))
-    cond = m2_expr.ExprCond(a, m2_expr.ExprInt1(1),
-                            m2_expr.ExprInt1(0)) | a.msb()
-    dst_o = m2_expr.ExprCond(cond, b, n)
-    e = [m2_expr.ExprAff(PC, dst_o),
-         m2_expr.ExprAff(ir.IRDst, dst_o)
-    ]
-    return e, []
+    cond = (i1(1) if a else i1(0)) | a.msb()
+    dst_o = b if cond else ExprId(ir.get_next_break_label(instr))
+    PC = dst_o
+    ir.IRDst = dst_o
 
-def bgtz(ir, instr, a, b):
+@sbuild.parse
+def bgtz(a, b):
     """Branches on @b if the register @a is greater than zero"""
-    e = []
-    n = m2_expr.ExprId(ir.get_next_break_label(instr))
-    cond = m2_expr.ExprCond(a, m2_expr.ExprInt1(1),
-                            m2_expr.ExprInt1(0)) | a.msb()
-    dst_o = m2_expr.ExprCond(cond, n, b)
-    e = [m2_expr.ExprAff(PC, dst_o),
-         m2_expr.ExprAff(ir.IRDst, dst_o)
-     ]
-    return e, []
+    cond = (i1(1) if a else i1(0)) | a.msb()
+    dst_o = ExprId(ir.get_next_break_label(instr)) if cond else b
+    PC = dst_o
+    ir.IRDst = dst_o
 
-def wsbh(ir, instr, a, b):
-    e = [m2_expr.ExprAff(a, m2_expr.ExprCompose([(b[8:16],  0, 8),
-                                 (b[0:8]  , 8, 16),
-                                 (b[24:32], 16, 24),
-                                 (b[16:24], 24, 32)]))]
-    return e, []
+@sbuild.parse
+def wsbh(a, b):
+    a = ExprCompose([(b[8:16],  0, 8),
+                     (b[0:8]  , 8, 16),
+                     (b[24:32], 16, 24),
+                     (b[16:24], 24, 32)])
 
-def rotr(ir, instr, a, b, c):
-    e = []
-    e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('>>>', b, c)))
-    return e, []
+@sbuild.parse
+def rotr(a, b, c):
+    a = '>>>'(b, c)
 
-def add_d(ir, instr, a, b, c):
+@sbuild.parse
+def add_d(a, b, c):
     # XXX TODO check
-    e = []
-    e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('fadd', b, c)))
-    return e, []
+    a = 'fadd'(b, c)
 
-def sub_d(ir, instr, a, b, c):
+@sbuild.parse
+def sub_d(a, b, c):
     # XXX TODO check
-    e = []
-    e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('fsub', b, c)))
-    return e, []
+    a = 'fsub'(b, c)
 
-def div_d(ir, instr, a, b, c):
+@sbuild.parse
+def div_d(a, b, c):
     # XXX TODO check
-    e = []
-    e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('fdiv', b, c)))
-    return e, []
+    a = 'fdiv'(b, c)
 
-def mul_d(ir, instr, a, b, c):
+@sbuild.parse
+def mul_d(a, b, c):
     # XXX TODO check
-    e = []
-    e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('fmul', b, c)))
-    return e, []
+    a = 'fmul'(b, c)
 
-def mov_d(ir, instr, a, b):
+@sbuild.parse
+def mov_d(a, b):
     # XXX TODO check
-    e = []
-    e.append(m2_expr.ExprAff(a, b))
-    return e, []
+    a = b
 
-def mfc0(ir, instr, a, b):
-    e = []
-    e.append(m2_expr.ExprAff(a, b))
-    return e, []
+@sbuild.parse
+def mfc0(a, b):
+    a = b
 
-def mfc1(ir, instr, a, b):
-    e = []
-    e.append(m2_expr.ExprAff(a, b))
-    return e, []
+@sbuild.parse
+def mfc1(a, b):
+    a = b
 
-def mtc0(ir, instr, a, b):
-    e = []
-    e.append(m2_expr.ExprAff(b, a))
-    return e, []
+@sbuild.parse
+def mtc0(a, b):
+    b = a
 
-def mtc1(ir, instr, a, b):
-    e = []
-    e.append(m2_expr.ExprAff(b, a))
-    return e, []
+@sbuild.parse
+def mtc1(a, b):
+    b = a
 
-def tlbwi(ir, instr):
-    # TODO XXX
-    e = []
-    return e, []
+@sbuild.parse
+def tlbwi():
+    "TODO XXX"
 
-def tlbp(ir, instr):
-    # TODO XXX
-    e = []
-    return e, []
+@sbuild.parse
+def tlbp():
+    "TODO XXX"
 
 def ins(ir, instr, a, b, c, d):
     e = []
@@ -378,95 +334,80 @@ def ins(ir, instr, a, b, c, d):
     return e, []
 
 
-def lwc1(ir, instr, a, b):
-    e = []
-    src = m2_expr.ExprOp('mem_%.2d_to_single' % b.size, b)
-    e.append(m2_expr.ExprAff(a, src))
-    return e, []
+@sbuild.parse
+def lwc1(a, b):
+    a = ('mem_%.2d_to_single' % b.size)(b)
 
-def swc1(ir, instr, a, b):
-    e = []
-    src = m2_expr.ExprOp('single_to_mem_%.2d' % a.size, a)
-    e.append(m2_expr.ExprAff(b, src))
-    return e, []
+@sbuild.parse
+def swc1(a, b):
+    b = ('single_to_mem_%.2d' % a.size)(a)
 
-def c_lt_d(ir, instr, a, b, c):
-    e = []
-    e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('fcomp_lt', b, c)))
-    return e, []
+@sbuild.parse
+def c_lt_d(a, b, c):
+    a = 'fcomp_lt'(b, c)
 
-def c_eq_d(ir, instr, a, b, c):
-    e = []
-    e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('fcomp_eq', b, c)))
-    return e, []
+@sbuild.parse
+def c_eq_d(a, b, c):
+    a = 'fcomp_eq'(b, c)
 
-def c_le_d(ir, instr, a, b, c):
-    e = []
-    e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('fcomp_le', b, c)))
-    return e, []
+@sbuild.parse
+def c_le_d(a, b, c):
+    a = 'fcomp_le'(b, c)
 
-def bc1t(ir, instr, a, b):
-    e = []
-    n = m2_expr.ExprId(ir.get_next_break_label(instr))
-    dst_o = m2_expr.ExprCond(a, b, n)
-    e = [m2_expr.ExprAff(PC, dst_o)]
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+@sbuild.parse
+def bc1t(a, b):
+    dst_o = b if a else ExprId(ir.get_next_break_label(instr))
+    PC = dst_o
+    ir.IRDst = dst_o
 
-def bc1f(ir, instr, a, b):
-    e = []
-    n = m2_expr.ExprId(ir.get_next_break_label(instr))
-    dst_o = m2_expr.ExprCond(a, n, b)
-    e = [m2_expr.ExprAff(PC, dst_o)]
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+@sbuild.parse
+def bc1f(a, b):
+    dst_o = ExprId(ir.get_next_break_label(instr)) if a else b
+    PC = dst_o
+    ir.IRDst = dst_o
 
-def cvt_d_w(ir, instr, a, b):
-    e = []
+@sbuild.parse
+def cvt_d_w(a, b):
     # TODO XXX
-    e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('flt_d_w', b)))
-    return e, []
+    a = 'flt_d_w'(b)
 
-def mult(ir, instr, a, b):
+@sbuild.parse
+def mult(a, b):
     """Multiplies (signed) @a by @b and stores the result in $R_HI:$R_LO"""
-    e = []
     size = a.size
-    r = a.signExtend(size * 2) * b.signExtend(size * 2)
+    result = a.signExtend(size * 2) * b.signExtend(size * 2)
+    R_LO = result[:32]
+    R_HI = result[32:]
 
-    e.append(m2_expr.ExprAff(R_LO, r[:32]))
-    e.append(m2_expr.ExprAff(R_HI, r[32:]))
-    return e, []
-
-def multu(ir, instr, a, b):
+@sbuild.parse
+def multu(a, b):
     """Multiplies (unsigned) @a by @b and stores the result in $R_HI:$R_LO"""
-    e = []
     size = a.size
-    r = a.zeroExtend(size * 2) * b.zeroExtend(size * 2)
+    result = a.zeroExtend(size * 2) * b.zeroExtend(size * 2)
+    R_LO = result[:32]
+    R_HI = result[32:]
 
-    e.append(m2_expr.ExprAff(R_LO, r[:32]))
-    e.append(m2_expr.ExprAff(R_HI, r[32:]))
-    return e, []
-
-def mfhi(ir, instr, a):
+@sbuild.parse
+def mfhi(a):
     "The contents of register $R_HI are moved to the specified register @a."
-    e = []
-    e.append(m2_expr.ExprAff(a, R_HI))
-    return e, []
+    a = R_HI
 
-def mflo(ir, instr, a):
+@sbuild.parse
+def mflo(a):
     "The contents of register R_LO are moved to the specified register @a."
-    e = []
-    e.append(m2_expr.ExprAff(a, R_LO))
-    return e, []
+    a = R_LO
 
-def di(ir, instr, a):
-    return [], []
+@sbuild.parse
+def di(a):
+    "NOP"
 
-def ei(ir, instr, a):
-    return [], []
+@sbuild.parse
+def ei(a):
+    "NOP"
 
-def ehb(ir, instr, a):
-    return [], []
+@sbuild.parse
+def ehb(a):
+    "NOP"
 
 mnemo_func = {
     "addiu": addiu,
