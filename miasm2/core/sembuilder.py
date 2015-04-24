@@ -4,6 +4,9 @@ import inspect
 import ast
 import re
 
+import miasm2.expression.expression as m2_expr
+from miasm2.ir.ir import irbloc
+
 
 class MiasmTransformer(ast.NodeTransformer):
     """AST visitor translating DSL to Miasm expression
@@ -99,8 +102,14 @@ class SemBuilder(object):
         """Create a SemBuilder
         @ctx: context dictionnary used during parsing
         """
-        self.ctx = dict(ctx)
+        # Init
         self.transformer = MiasmTransformer()
+        self.ctx = dict(m2_expr.__dict__)
+        self.ctx["irbloc"] = irbloc
+
+        # Update context
+        self.ctx.update(ctx)
+
 
     def parse(self, func):
         """Function decorator, returning a correct method from a pseudo-Python

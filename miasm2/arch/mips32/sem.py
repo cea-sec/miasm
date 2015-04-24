@@ -10,7 +10,6 @@ ctx = {"R_LO": R_LO,
        "R_HI": R_HI,
        "PC": PC,
        "RA": RA}
-ctx.update(m2_expr.__dict__)
 sbuild = SemBuilder(ctx)
 
 
