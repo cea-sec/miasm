@@ -209,7 +209,7 @@ PyObject* cpu_get_exception(JitCpu* self, PyObject* args)
 
 
 
-void check_automod(JitCpu* jitcpu, uint64_t addr, int size)
+void check_automod(JitCpu* jitcpu, uint64_t addr, uint64_t size)
 {
 	PyObject *result;
 
