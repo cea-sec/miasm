@@ -198,7 +198,10 @@ to_test = [(ExprInt32(1) - ExprInt32(1), ExprInt32(0)),
     (ExprCompose([(f[:32], 0, 32), (ExprInt32(0), 32, 64)]) | ExprCompose([(ExprInt32(0), 0, 32), (f[32:], 32, 64)]),
      f),
     ((ExprCompose([(a, 0, 32), (ExprInt32(0), 32, 64)]) * ExprInt64(0x123))[32:64],
-     (ExprCompose([(a, 0, 32), (ExprInt32(0), 32, 64)]) * ExprInt64(0x123))[32:64])
+     (ExprCompose([(a, 0, 32), (ExprInt32(0), 32, 64)]) * ExprInt64(0x123))[32:64]),
+
+    (ExprInt32(0x12),
+     ExprInt32(0x12L))
 
 
 ]
