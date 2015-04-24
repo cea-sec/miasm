@@ -116,19 +116,26 @@ class SemBuilder(object):
         """Return a dictionnary name -> func of parsed functions"""
         return self._functions.copy()
 
-    def parse(self, func):
-        """Function decorator, returning a correct method from a pseudo-Python
-        one"""
+    @staticmethod
+    def _create_labels():
+        """Return the AST standing for label creations"""
+        out = ast.parse("lbl_end = ExprId(ir.get_next_instr(instr))").body
+        out += ast.parse("lbl_if = ExprId(ir.gen_label())").body
+        return out
 
-        # Get the function AST
-        parsed = ast.parse(inspect.getsource(func))
-        fc_ast = parsed.body[0]
-        argument_names = [name.id for name in fc_ast.args.args]
-        body = []
+    def _parse_body(self, body, argument_names):
+        """Recursive function transforming a @body to a block expression
+        Return:
+         - AST to append to body (real python statements)
+         - a list of blocks, ie list of affblock, ie list of ExprAff (AST)"""
 
-        # AffBlock of the current instruction
-        new_ast = []
-        for statement in fc_ast.body:
+        # Init
+        ## Real instructions
+        real_body = []
+        ## Final blocks
+        blocks = [[[]]]
+
+        for statement in body:
 
             if isinstance(statement, ast.Assign):
                 src = self.transformer.visit(statement.value)
@@ -140,7 +147,7 @@ class SemBuilder(object):
 
                     # Real variable declaration
                     statement.value = src
-                    body.append(statement)
+                    real_body.append(statement)
                     continue
 
                 dst.ctx = ast.Load()
@@ -152,22 +159,112 @@ class SemBuilder(object):
                                starargs=None,
                                kwargs=None)
 
-                new_ast.append(res)
+                blocks[-1][-1].append(res)
 
             elif (isinstance(statement, ast.Expr) and
                   isinstance(statement.value, ast.Str)):
                 # String (docstring, comment, ...) -> keep it
-                body.append(statement)
+                real_body.append(statement)
+
+            elif (isinstance(statement, ast.If) and
+                  not statement.orelse):
+                # Create jumps : ir.IRDst = lbl_if if cond else lbl_end
+                cond = statement.test
+                real_body += self._create_labels()
+
+                lbl_end = ast.Name(id='lbl_end', ctx=ast.Load())
+                lbl_if = ast.Name(id='lbl_if', ctx=ast.Load())
+                dst = ast.Call(func=ast.Name(id='ExprCond',
+                                             ctx=ast.Load()),
+                               args=[cond,
+                                     lbl_if,
+                                     lbl_end],
+                               keywords=[],
+                               starargs=None,
+                               kwargs=None)
+
+                if (isinstance(cond, ast.UnaryOp) and
+                    isinstance(cond.op, ast.Not)):
+                    ## if not cond -> switch exprCond
+                    dst.args[1:] = dst.args[1:][::-1]
+                    dst.args[0] = cond.operand
+
+                IRDst = ast.Attribute(value=ast.Name(id='ir',
+                                                     ctx=ast.Load()),
+                                      attr='IRDst', ctx=ast.Load())
+                blocks[-1][-1].append(ast.Call(func=ast.Name(id='ExprAff',
+                                                             ctx=ast.Load()),
+                                               args=[IRDst, dst],
+                                               keywords=[],
+                                               starargs=None,
+                                               kwargs=None))
+
+                # Create the new blocks
+                sub_blocks, sub_body = self._parse_body(statement.body,
+                                                        argument_names)
+                if len(sub_blocks) > 1:
+                    raise RuntimeError("Imbricated if unimplemented")
+
+                ## Close the last block
+                jmp_end = ast.Call(func=ast.Name(id='ExprAff',
+                                                 ctx=ast.Load()),
+                                   args=[IRDst, lbl_end],
+                                   keywords=[],
+                                   starargs=None,
+                                   kwargs=None)
+                sub_blocks[-1][-1].append(jmp_end)
+                sub_blocks[-1][-1] = ast.List(elts=sub_blocks[-1][-1],
+                                              ctx=ast.Load())
+                sub_blocks[-1] = ast.List(elts=sub_blocks[-1],
+                                          ctx=ast.Load())
+
+                ## Replace the block with a call to 'irbloc'
+                lbl_if_name = ast.Attribute(value=ast.Name(id='lbl_if',
+                                                           ctx=ast.Load()),
+                                            attr='name', ctx=ast.Load())
+
+                sub_blocks[-1] = ast.Call(func=ast.Name(id='irbloc',
+                                                        ctx=ast.Load()),
+                                          args=[lbl_if_name,
+                                                sub_blocks[-1]],
+                                          keywords=[],
+                                          starargs=None,
+                                          kwargs=None)
+                blocks += sub_blocks
+                real_body += sub_body
+
+                # Prepare a new block for following statement
+                blocks.append([[]])
+
             else:
                 # TODO: real var, +=, /=, -=, <<=, >>=, if/else, ...
                 raise RuntimeError("Unimplemented %s" % statement)
 
+        return blocks, real_body
+
+    def parse(self, func):
+        """Function decorator, returning a correct method from a pseudo-Python
+        one"""
+
+        # Get the function AST
+        parsed = ast.parse(inspect.getsource(func))
+        fc_ast = parsed.body[0]
+        argument_names = [name.id for name in fc_ast.args.args]
+
+        # Translate (blocks[0][0] is the current instr)
+        blocks, body = self._parse_body(fc_ast.body, argument_names)
+
         # Build the new function
         fc_ast.args.args[0:0] = [ast.Name(id='ir', ctx=ast.Param()),
                                  ast.Name(id='instr', ctx=ast.Param())]
-        body.append(ast.Return(value=ast.Tuple(elts=[ast.List(elts=new_ast,
+        cur_instr = blocks[0][0]
+        if len(blocks[-1][0]) == 0:
+            ## Last block can be empty
+            blocks.pop()
+        other_blocks = blocks[1:]
+        body.append(ast.Return(value=ast.Tuple(elts=[ast.List(elts=cur_instr,
                                                               ctx=ast.Load()),
-                                                     ast.List(elts=[],
+                                                     ast.List(elts=other_blocks,
                                                               ctx=ast.Load())],
                                                ctx=ast.Load())))
 
