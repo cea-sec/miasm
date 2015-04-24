@@ -165,27 +165,15 @@ def sb(a, b):
 def sh(a, b):
     mem16[b.arg] = a[:16]
 
-def movn(ir, instr, a, b, c):
-    lbl_do = m2_expr.ExprId(ir.gen_label(), 32)
-    lbl_skip = m2_expr.ExprId(ir.get_next_instr(instr), 32)
-    e_do = []
-    e_do.append(m2_expr.ExprAff(a, b))
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e = []
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(c, lbl_do, lbl_skip)))
+@sbuild.parse
+def movn(a, b, c):
+    if c:
+        a = b
 
-    return e, [irbloc(lbl_do.name, [e_do], [])]
-
-def movz(ir, instr, a, b, c):
-    lbl_do = m2_expr.ExprId(ir.gen_label(), 32)
-    lbl_skip = m2_expr.ExprId(ir.get_next_instr(instr), 32)
-    e_do = []
-    e_do.append(m2_expr.ExprAff(a, b))
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e = []
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(c, lbl_skip, lbl_do)))
-
-    return e, [irbloc(lbl_do.name, [e_do], [])]
+@sbuild.parse
+def movz(a, b, c):
+    if not c:
+        a = b
 
 @sbuild.parse
 def srl(a, b, c):
@@ -423,8 +411,6 @@ mnemo_func.update({
         'ins': ins,
         'jr': j,
         'mov.d': mov_d,
-        'movn': movn,
-        'movz': movz,
         'mul.d': mul_d,
         'or': l_or,
         'ori': l_or,
