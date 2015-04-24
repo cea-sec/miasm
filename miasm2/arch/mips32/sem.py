@@ -14,287 +14,292 @@ sbuild = SemBuilder(ctx)
 
 
 @sbuild.parse
-def addiu(Arg1, Arg2, Arg3):
-    """Adds a register @Arg3 and a sign-extended immediate value @Arg2 and
-    stores the result in a register @Arg1"""
-    Arg1 = Arg2 + Arg3
+def addiu(arg1, arg2, arg3):
+    """Adds a register @arg3 and a sign-extended immediate value @arg2 and
+    stores the result in a register @arg1"""
+    arg1 = arg2 + arg3
 
 @sbuild.parse
-def lw(Arg1, Arg2):
-    "A word is loaded into a register @Arg1 from the specified address @Arg2."
-    Arg1 = Arg2
+def lw(arg1, arg2):
+    "A word is loaded into a register @arg1 from the specified address @arg2."
+    arg1 = arg2
 
 @sbuild.parse
-def sw(Arg1, Arg2):
-    "The contents of @Arg2 is stored at the specified address @Arg1."
-    Arg2 = Arg1
+def sw(arg1, arg2):
+    "The contents of @arg2 is stored at the specified address @arg1."
+    arg2 = arg1
 
 @sbuild.parse
-def jal(Arg1):
-    "Jumps to the calculated address @Arg1 and stores the return address in $RA"
-    PC = Arg1
-    ir.IRDst = Arg1
+def jal(arg1):
+    "Jumps to the calculated address @arg1 and stores the return address in $RA"
+    PC = arg1
+    ir.IRDst = arg1
     RA = ExprId(ir.get_next_break_label(instr))
 
 @sbuild.parse
-def jalr(Arg1, Arg2):
-    """Jump to an address stored in a register @Arg1, and store the return
-    address in another register @Arg2"""
-    PC = Arg1
-    ir.IRDst = Arg1
-    Arg2 = ExprId(ir.get_next_break_label(instr))
+def jalr(arg1, arg2):
+    """Jump to an address stored in a register @arg1, and store the return
+    address in another register @arg2"""
+    PC = arg1
+    ir.IRDst = arg1
+    arg2 = ExprId(ir.get_next_break_label(instr))
 
 @sbuild.parse
-def bal(Arg1):
-    PC = Arg1
-    ir.IRDst = Arg1
+def bal(arg1):
+    PC = arg1
+    ir.IRDst = arg1
     RA = ExprId(ir.get_next_break_label(instr))
 
 @sbuild.parse
-def l_b(Arg1):
-    PC = Arg1
-    ir.IRDst = Arg1
+def l_b(arg1):
+    PC = arg1
+    ir.IRDst = arg1
 
 @sbuild.parse
-def lbu(Arg1, Arg2):
-    """A byte is loaded (unsigned extended) into a register @Arg1 from the
-    specified address @Arg2."""
-    Arg1 = mem8[Arg2.arg].zeroExtend(32)
+def lbu(arg1, arg2):
+    """A byte is loaded (unsigned extended) into a register @arg1 from the
+    specified address @arg2."""
+    arg1 = mem8[arg2.arg].zeroExtend(32)
 
 @sbuild.parse
-def lhu(Arg1, Arg2):
-    """A word is loaded (unsigned extended) into a register @Arg1 from the
-    specified address @Arg2."""
-    Arg1 = mem16[Arg2.arg].zeroExtend(32)
+def lhu(arg1, arg2):
+    """A word is loaded (unsigned extended) into a register @arg1 from the
+    specified address @arg2."""
+    arg1 = mem16[arg2.arg].zeroExtend(32)
 
 @sbuild.parse
-def lb(Arg1, Arg2):
-    "A byte is loaded into a register @Arg1 from the specified address @Arg2."
-    Arg1 = mem8[Arg2.arg].signExtend(32)
+def lb(arg1, arg2):
+    "A byte is loaded into a register @arg1 from the specified address @arg2."
+    arg1 = mem8[arg2.arg].signExtend(32)
 
 @sbuild.parse
-def beq(Arg1, Arg2, Arg3):
-    "Branches on @Arg3 if the quantities of two registers @Arg1, @Arg2 are eq"
-    dst = ExprId(ir.get_next_break_label(instr)) if Arg1 - Arg2 else Arg3
+def beq(arg1, arg2, arg3):
+    "Branches on @arg3 if the quantities of two registers @arg1, @arg2 are eq"
+    dst = ExprId(ir.get_next_break_label(instr)) if arg1 - arg2 else arg3
     PC = dst
     ir.IRDst = dst
 
 @sbuild.parse
-def bgez(Arg1, Arg2):
-    """Branches on @Arg2 if the quantities of register @Arg1 is greater than or
+def bgez(arg1, arg2):
+    """Branches on @arg2 if the quantities of register @arg1 is greater than or
     equal to zero"""
-    dst = ExprId(ir.get_next_break_label(instr)) if Arg1.msb() else Arg2
+    dst = ExprId(ir.get_next_break_label(instr)) if arg1.msb() else arg2
     PC = dst
     ir.IRDst = dst
 
 @sbuild.parse
-def bne(Arg1, Arg2, Arg3):
-    """Branches on @Arg3 if the quantities of two registers @Arg1, @Arg2 are NOT
+def bne(arg1, arg2, arg3):
+    """Branches on @arg3 if the quantities of two registers @arg1, @arg2 are NOT
     equal"""
-    dst = Arg3 if Arg1 - Arg2 else ExprId(ir.get_next_break_label(instr))
+    dst = arg3 if arg1 - arg2 else ExprId(ir.get_next_break_label(instr))
     PC = dst
     ir.IRDst = dst
 
 @sbuild.parse
-def lui(Arg1, Arg2):
-    """The immediate value @Arg2 is shifted left 16 bits and stored in the
-    register @Arg1. The lower 16 bits are zeroes."""
-    Arg1 = ExprCompose([(i16(0), 0, 16), (Arg2[:16], 16, 32)])
+def lui(arg1, arg2):
+    """The immediate value @arg2 is shifted left 16 bits and stored in the
+    register @arg1. The lower 16 bits are zeroes."""
+    arg1 = ExprCompose([(i16(0), 0, 16), (arg2[:16], 16, 32)])
 
 @sbuild.parse
 def nop():
     """Do nothing"""
 
 @sbuild.parse
-def j(Arg1):
-    """Jump to an address @Arg1"""
-    PC = Arg1
-    ir.IRDst = Arg1
+def j(arg1):
+    """Jump to an address @arg1"""
+    PC = arg1
+    ir.IRDst = arg1
 
 @sbuild.parse
-def l_or(Arg1, Arg2, Arg3):
-    """Bitwise logical ors two registers @Arg2, @Arg3 and stores the result in a
-    register @Arg1"""
-    Arg1 = Arg2 | Arg3
+def l_or(arg1, arg2, arg3):
+    """Bitwise logical ors two registers @arg2, @arg3 and stores the result in a
+    register @arg1"""
+    arg1 = arg2 | arg3
 
 @sbuild.parse
-def nor(Arg1, Arg2, Arg3):
-    """Bitwise logical Nors two registers @Arg2, @Arg3 and stores the result in
-    a register @Arg1"""
-    Arg1 = (Arg2 | Arg3) ^ i32(-1)
+def nor(arg1, arg2, arg3):
+    """Bitwise logical Nors two registers @arg2, @arg3 and stores the result in
+    a register @arg1"""
+    arg1 = (arg2 | arg3) ^ i32(-1)
 
 @sbuild.parse
-def l_and(Arg1, Arg2, Arg3):
-    """Bitwise logical ands two registers @Arg2, @Arg3 and stores the result in
-    a register @Arg1"""
-    Arg1 = Arg2 & Arg3
+def l_and(arg1, arg2, arg3):
+    """Bitwise logical ands two registers @arg2, @arg3 and stores the result in
+    a register @arg1"""
+    arg1 = arg2 & arg3
 
 @sbuild.parse
-def ext(a, b, c, d):
-    pos = int(c.arg)
-    size = int(d.arg)
-    a = b[pos:pos + size].zeroExtend(32)
+def ext(arg1, arg2, arg3, arg4):
+    pos = int(arg3.arg)
+    size = int(arg4.arg)
+    arg1 = arg2[pos:pos + size].zeroExtend(32)
 
 @sbuild.parse
-def mul(a, b, c):
-    """Multiplies @b by $c and stores the result in @a."""
-    a = 'imul'(b, c)
+def mul(arg1, arg2, arg3):
+    """Multiplies @arg2 by $arg3 and stores the result in @arg1."""
+    arg1 = 'imul'(arg2, arg3)
 
 @sbuild.parse
-def sltu(a, x, y):
-    """If @y is less than @x (unsigned), @a is set to one. It gets zero
+def sltu(arg1, arg2, arg3):
+    """If @arg3 is less than @arg2 (unsigned), @arg1 is set to one. It gets zero
     otherwise."""
-    a = (((x - y) ^ ((x ^ y) & ((x - y) ^ x))) ^ x ^ y).msb().zeroExtend(32)
+    arg1 = (((arg2 - arg3) ^ ((arg2 ^ arg3) & ((arg2 - arg3) ^ arg2))) ^ arg2 ^ arg3).msb().zeroExtend(32)
 
 @sbuild.parse
-def slt(a, x, y):
-    """If @y is less than @x (signed), @a is set to one. It gets zero
+def slt(arg1, arg2, arg3):
+    """If @arg3 is less than @arg2 (signed), @arg1 is set to one. It gets zero
     otherwise."""
-    a = ((x - y) ^ ((x ^ y) & ((x - y) ^ x))).zeroExtend(32)
+    arg1 = ((arg2 - arg3) ^ ((arg2 ^ arg3) & ((arg2 - arg3) ^ arg2))).zeroExtend(32)
 
 @sbuild.parse
-def l_sub(a, b, c):
-    a = b - c
+def l_sub(arg1, arg2, arg3):
+    arg1 = arg2 - arg3
 
 @sbuild.parse
-def sb(a, b):
-    "The least significant byte of @a is stored at the specified address @b."
-    mem8[b.arg] = a[:8]
+def sb(arg1, arg2):
+    """The least significant byte of @arg1 is stored at the specified address
+    @arg2."""
+    mem8[arg2.arg] = arg1[:8]
 
 @sbuild.parse
-def sh(a, b):
-    mem16[b.arg] = a[:16]
+def sh(arg1, arg2):
+    mem16[arg2.arg] = arg1[:16]
 
 @sbuild.parse
-def movn(a, b, c):
-    if c:
-        a = b
+def movn(arg1, arg2, arg3):
+    if arg3:
+        arg1 = arg2
 
 @sbuild.parse
-def movz(a, b, c):
-    if not c:
-        a = b
+def movz(arg1, arg2, arg3):
+    if not arg3:
+        arg1 = arg2
 
 @sbuild.parse
-def srl(a, b, c):
-    """Shifts a register value @b right by the shift amount @c and places the
-    value in the destination register @a. Zeroes are shifted in."""
-    a = b >> c
+def srl(arg1, arg2, arg3):
+    """Shifts arg1 register value @arg2 right by the shift amount @arg3 and
+    places the value in the destination register @arg1.
+    Zeroes are shifted in."""
+    arg1 = arg2 >> arg3
 
 @sbuild.parse
-def sra(a, b, c):
-    """Shifts a register value @b right by the shift amount @c and places the
-    value in the destination register @a. The sign bit is shifted in."""
-    a = 'a>>'(b, c)
+def sra(arg1, arg2, arg3):
+    """Shifts arg1 register value @arg2 right by the shift amount @arg3 and
+    places the value in the destination register @arg1. The sign bit is shifted
+    in."""
+    arg1 = 'a>>'(arg2, arg3)
 
 @sbuild.parse
-def srav(a, b, c):
-    a = 'a>>'(b, c & i32(0x1F))
+def srav(arg1, arg2, arg3):
+    arg1 = 'a>>'(arg2, arg3 & i32(0x1F))
 
 @sbuild.parse
-def sll(a, b, c):
-    a = b << c
+def sll(arg1, arg2, arg3):
+    arg1 = arg2 << arg3
 
 @sbuild.parse
-def srlv(a, b, c):
-    """Shifts a register value @b right by the amount specified in @c and places
-    the value in the destination register @a. Zeroes are shifted in."""
-    a = b >> (c & i32(0x1F))
+def srlv(arg1, arg2, arg3):
+    """Shifts a register value @arg2 right by the amount specified in @arg3 and
+    places the value in the destination register @arg1.
+    Zeroes are shifted in."""
+    arg1 = arg2 >> (arg3 & i32(0x1F))
 
 @sbuild.parse
-def sllv(a, b, c):
-    """Shifts a register value @b left by the amount specified in @c and places
-    the value in the destination register @a. Zeroes are shifted in."""
-    a = b << (c & i32(0x1F))
+def sllv(arg1, arg2, arg3):
+    """Shifts a register value @arg2 left by the amount specified in @arg3 and
+    places the value in the destination register @arg1.
+    Zeroes are shifted in."""
+    arg1 = arg2 << (arg3 & i32(0x1F))
 
 @sbuild.parse
-def l_xor(a, b, c):
-    """Exclusive ors two registers @b, @c and stores the result in a register
-    @c"""
-    a = b ^ c
+def l_xor(arg1, arg2, arg3):
+    """Exclusive ors two registers @arg2, @arg3 and stores the result in a
+    register @arg3"""
+    arg1 = arg2 ^ arg3
 
 @sbuild.parse
-def seb(a, b):
-    a = b[:8].signExtend(32)
+def seb(arg1, arg2):
+    arg1 = arg2[:8].signExtend(32)
 
 @sbuild.parse
-def seh(a, b):
-    a = b[:16].signExtend(32)
+def seh(arg1, arg2):
+    arg1 = arg2[:16].signExtend(32)
 
 @sbuild.parse
-def bltz(a, b):
-    """Branches on @b if the register @a is less than zero"""
-    dst_o = b if a.msb() else ExprId(ir.get_next_break_label(instr))
+def bltz(arg1, arg2):
+    """Branches on @arg2 if the register @arg1 is less than zero"""
+    dst_o = arg2 if arg1.msb() else ExprId(ir.get_next_break_label(instr))
     PC = dst_o
     ir.IRDst = dst_o
 
 @sbuild.parse
-def blez(a, b):
-    """Branches on @b if the register @a is less than or equal to zero"""
-    cond = (i1(1) if a else i1(0)) | a.msb()
-    dst_o = b if cond else ExprId(ir.get_next_break_label(instr))
+def blez(arg1, arg2):
+    """Branches on @arg2 if the register @arg1 is less than or equal to zero"""
+    cond = (i1(1) if arg1 else i1(0)) | arg1.msb()
+    dst_o = arg2 if cond else ExprId(ir.get_next_break_label(instr))
     PC = dst_o
     ir.IRDst = dst_o
 
 @sbuild.parse
-def bgtz(a, b):
-    """Branches on @b if the register @a is greater than zero"""
-    cond = (i1(1) if a else i1(0)) | a.msb()
-    dst_o = ExprId(ir.get_next_break_label(instr)) if cond else b
+def bgtz(arg1, arg2):
+    """Branches on @arg2 if the register @arg1 is greater than zero"""
+    cond = (i1(1) if arg1 else i1(0)) | arg1.msb()
+    dst_o = ExprId(ir.get_next_break_label(instr)) if cond else arg2
     PC = dst_o
     ir.IRDst = dst_o
 
 @sbuild.parse
-def wsbh(a, b):
-    a = ExprCompose([(b[8:16],  0, 8),
-                     (b[0:8]  , 8, 16),
-                     (b[24:32], 16, 24),
-                     (b[16:24], 24, 32)])
+def wsbh(arg1, arg2):
+    arg1 = ExprCompose([(arg2[8:16],  0, 8),
+                        (arg2[0:8]  , 8, 16),
+                        (arg2[24:32], 16, 24),
+                        (arg2[16:24], 24, 32)])
 
 @sbuild.parse
-def rotr(a, b, c):
-    a = '>>>'(b, c)
+def rotr(arg1, arg2, arg3):
+    arg1 = '>>>'(arg2, arg3)
 
 @sbuild.parse
-def add_d(a, b, c):
+def add_d(arg1, arg2, arg3):
     # XXX TODO check
-    a = 'fadd'(b, c)
+    arg1 = 'fadd'(arg2, arg3)
 
 @sbuild.parse
-def sub_d(a, b, c):
+def sub_d(arg1, arg2, arg3):
     # XXX TODO check
-    a = 'fsub'(b, c)
+    arg1 = 'fsub'(arg2, arg3)
 
 @sbuild.parse
-def div_d(a, b, c):
+def div_d(arg1, arg2, arg3):
     # XXX TODO check
-    a = 'fdiv'(b, c)
+    arg1 = 'fdiv'(arg2, arg3)
 
 @sbuild.parse
-def mul_d(a, b, c):
+def mul_d(arg1, arg2, arg3):
     # XXX TODO check
-    a = 'fmul'(b, c)
+    arg1 = 'fmul'(arg2, arg3)
 
 @sbuild.parse
-def mov_d(a, b):
+def mov_d(arg1, arg2):
     # XXX TODO check
-    a = b
+    arg1 = arg2
 
 @sbuild.parse
-def mfc0(a, b):
-    a = b
+def mfc0(arg1, arg2):
+    arg1 = arg2
 
 @sbuild.parse
-def mfc1(a, b):
-    a = b
+def mfc1(arg1, arg2):
+    arg1 = arg2
 
 @sbuild.parse
-def mtc0(a, b):
-    b = a
+def mtc0(arg1, arg2):
+    arg2 = arg1
 
 @sbuild.parse
-def mtc1(a, b):
-    b = a
+def mtc1(arg1, arg2):
+    arg2 = arg1
 
 @sbuild.parse
 def tlbwi():
@@ -322,78 +327,78 @@ def ins(ir, instr, a, b, c, d):
 
 
 @sbuild.parse
-def lwc1(a, b):
-    a = ('mem_%.2d_to_single' % b.size)(b)
+def lwc1(arg1, arg2):
+    arg1 = ('mem_%.2d_to_single' % arg2.size)(arg2)
 
 @sbuild.parse
-def swc1(a, b):
-    b = ('single_to_mem_%.2d' % a.size)(a)
+def swc1(arg1, arg2):
+    arg2 = ('single_to_mem_%.2d' % arg1.size)(arg1)
 
 @sbuild.parse
-def c_lt_d(a, b, c):
-    a = 'fcomp_lt'(b, c)
+def c_lt_d(arg1, arg2, arg3):
+    arg1 = 'fcomp_lt'(arg2, arg3)
 
 @sbuild.parse
-def c_eq_d(a, b, c):
-    a = 'fcomp_eq'(b, c)
+def c_eq_d(arg1, arg2, arg3):
+    arg1 = 'fcomp_eq'(arg2, arg3)
 
 @sbuild.parse
-def c_le_d(a, b, c):
-    a = 'fcomp_le'(b, c)
+def c_le_d(arg1, arg2, arg3):
+    arg1 = 'fcomp_le'(arg2, arg3)
 
 @sbuild.parse
-def bc1t(a, b):
-    dst_o = b if a else ExprId(ir.get_next_break_label(instr))
+def bc1t(arg1, arg2):
+    dst_o = arg2 if arg1 else ExprId(ir.get_next_break_label(instr))
     PC = dst_o
     ir.IRDst = dst_o
 
 @sbuild.parse
-def bc1f(a, b):
-    dst_o = ExprId(ir.get_next_break_label(instr)) if a else b
+def bc1f(arg1, arg2):
+    dst_o = ExprId(ir.get_next_break_label(instr)) if arg1 else arg2
     PC = dst_o
     ir.IRDst = dst_o
 
 @sbuild.parse
-def cvt_d_w(a, b):
+def cvt_d_w(arg1, arg2):
     # TODO XXX
-    a = 'flt_d_w'(b)
+    arg1 = 'flt_d_w'(arg2)
 
 @sbuild.parse
-def mult(a, b):
-    """Multiplies (signed) @a by @b and stores the result in $R_HI:$R_LO"""
-    size = a.size
-    result = a.signExtend(size * 2) * b.signExtend(size * 2)
+def mult(arg1, arg2):
+    """Multiplies (signed) @arg1 by @arg2 and stores the result in $R_HI:$R_LO"""
+    size = arg1.size
+    result = arg1.signExtend(size * 2) * arg2.signExtend(size * 2)
     R_LO = result[:32]
     R_HI = result[32:]
 
 @sbuild.parse
-def multu(a, b):
-    """Multiplies (unsigned) @a by @b and stores the result in $R_HI:$R_LO"""
-    size = a.size
-    result = a.zeroExtend(size * 2) * b.zeroExtend(size * 2)
+def multu(arg1, arg2):
+    """Multiplies (unsigned) @arg1 by @arg2 and stores the result in $R_HI:$R_LO"""
+    size = arg1.size
+    result = arg1.zeroExtend(size * 2) * arg2.zeroExtend(size * 2)
     R_LO = result[:32]
     R_HI = result[32:]
 
 @sbuild.parse
-def mfhi(a):
-    "The contents of register $R_HI are moved to the specified register @a."
-    a = R_HI
+def mfhi(arg1):
+    "The contents of register $R_HI are moved to the specified register @arg1."
+    arg1 = R_HI
 
 @sbuild.parse
-def mflo(a):
-    "The contents of register R_LO are moved to the specified register @a."
-    a = R_LO
+def mflo(arg1):
+    "The contents of register R_LO are moved to the specified register @arg1."
+    arg1 = R_LO
 
 @sbuild.parse
-def di(a):
+def di(arg1):
     "NOP"
 
 @sbuild.parse
-def ei(a):
+def ei(arg1):
     "NOP"
 
 @sbuild.parse
-def ehb(a):
+def ehb(arg1):
     "NOP"
 
 mnemo_func = sbuild.functions
