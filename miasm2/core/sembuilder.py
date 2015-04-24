@@ -104,12 +104,17 @@ class SemBuilder(object):
         """
         # Init
         self.transformer = MiasmTransformer()
-        self.ctx = dict(m2_expr.__dict__)
-        self.ctx["irbloc"] = irbloc
+        self._ctx = dict(m2_expr.__dict__)
+        self._ctx["irbloc"] = irbloc
+        self._functions = {}
 
         # Update context
-        self.ctx.update(ctx)
+        self._ctx.update(ctx)
 
+    @property
+    def functions(self):
+        """Return a dictionnary name -> func of parsed functions"""
+        return self._functions.copy()
 
     def parse(self, func):
         """Function decorator, returning a correct method from a pseudo-Python
@@ -131,7 +136,7 @@ class SemBuilder(object):
 
                 if (isinstance(dst, ast.Name) and
                     dst.id not in argument_names and
-                    dst.id not in self.ctx):
+                    dst.id not in self._ctx):
 
                     # Real variable declaration
                     statement.value = src
@@ -177,8 +182,9 @@ class SemBuilder(object):
         # Compile according to the context
         fixed = ast.fix_missing_locations(ret)
         codeobj = compile(fixed, '<string>', 'exec')
-        ctx = self.ctx.copy()
+        ctx = self._ctx.copy()
         eval(codeobj, ctx)
 
         # Get the function back
+        self._functions[fc_ast.name] = ctx[fc_ast.name]
         return ctx[fc_ast.name]
