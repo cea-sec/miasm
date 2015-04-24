@@ -128,7 +128,6 @@ for script in ["win_api_x86_32.py",
 testset += RegressionTest(["depgraph.py"], base_dir="analysis",
                           products=["graph_test_01_00.dot",
                                     "graph_test_02_00.dot",
-                                    "graph_test_02_01.dot",
                                     "graph_test_03_00.dot",
                                     "graph_test_03_01.dot",
                                     "graph_test_04_00.dot",
@@ -322,6 +321,15 @@ class ExampleSymbolExec(Example):
 
 
 testset += ExampleSymbolExec(["single_instr.py"])
+for options, nb_sol in [([], 8),
+                        (["-i"], 12)]:
+    testset += ExampleSymbolExec(["depgraph.py",
+                                  Example.get_sample("simple_test.bin"),
+                                  "-m", "x86_32", "0x0", "0x8b",
+                                  "eax"] + options,
+                                 products=["sol_%d.dot" % nb
+                                           for nb in xrange(nb_sol)])
+
 
 ## Jitter
 class ExampleJitter(Example):
