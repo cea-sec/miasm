@@ -346,13 +346,18 @@ class DependencyResult(object):
     def input(self):
         return self._input_depnodes
 
-    def emul(self, step=False):
+    def emul(self, ctx=None, step=False):
         """Symbolic execution of relevant nodes according to the history
         Return the values of input nodes' elements
+        @ctx: (optional) Initial context as dictionnary
+        @step: (optional) Verbose execution
 
         /!\ The emulation is not safe if there is a loop in the relevant labels
         """
         # Init
+        ctx_init = self._ira.arch.regs.regs_init
+        if ctx is not None:
+            ctx_init.update(ctx)
         depnodes = self.relevant_nodes
         affects = []
 
@@ -366,7 +371,7 @@ class DependencyResult(object):
 
         # Eval the block
         temp_label = asm_label("Temp")
-        sb = symbexec(self._ira, self._ira.arch.regs.regs_init)
+        sb = symbexec(self._ira, ctx_init)
         sb.emulbloc(irbloc(temp_label, affects), step=step)
 
         # Return only inputs values (others could be wrongs)
