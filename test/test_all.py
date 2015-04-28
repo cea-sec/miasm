@@ -322,7 +322,7 @@ class ExampleSymbolExec(Example):
 
 testset += ExampleSymbolExec(["single_instr.py"])
 for options, nb_sol in [([], 8),
-                        (["-i"], 12)]:
+                        (["-i", "--rename-args"], 12)]:
     testset += ExampleSymbolExec(["depgraph.py",
                                   Example.get_sample("simple_test.bin"),
                                   "-m", "x86_32", "0x0", "0x8b",
