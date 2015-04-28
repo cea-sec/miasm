@@ -52,11 +52,11 @@ class DiGraph(object):
         self._nodes_succ[a].append(b)
         self._nodes_pred[b].append(a)
 
-    def add_uniq_edge(self, a, b):
-        if (a, b) in self._edges:
-            return
-        else:
-            self.add_edge(a, b)
+    def add_uniq_edge(self, src, dst):
+        """Add an edge from @src to @dst if it doesn't already exist"""
+        if (src not in self._nodes_succ or
+            dst not in self._nodes_succ[src]):
+            self.add_edge(src, dst)
 
     def del_edge(self, a, b):
         self._edges.remove((a, b))
