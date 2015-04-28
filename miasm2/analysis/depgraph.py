@@ -2,7 +2,10 @@
 import itertools
 from collections import namedtuple
 
-import z3
+try:
+    import z3
+except ImportError:
+    pass
 
 import miasm2.expression.expression as m2_expr
 from miasm2.core.graph import DiGraph
