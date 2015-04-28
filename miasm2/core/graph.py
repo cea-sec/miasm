@@ -6,8 +6,10 @@ class DiGraph(object):
     def __init__(self):
         self._nodes = set()
         self._edges = []
-        self._nodes_to = {}
-        self._nodes_from = {}
+        # N -> Nodes N2 with a edge (N -> N2)
+        self._nodes_succ = {}
+        # N -> Nodes N2 with a edge (N2 -> N)
+        self._nodes_pred = {}
 
     def __repr__(self):
         out = []
@@ -27,8 +29,8 @@ class DiGraph(object):
         if n in self._nodes:
             return
         self._nodes.add(n)
-        self._nodes_to[n] = []
-        self._nodes_from[n] = []
+        self._nodes_succ[n] = []
+        self._nodes_pred[n] = []
 
     def del_node(self, node):
         """Delete the @node of the graph; Also delete every edge to/from this
@@ -47,8 +49,8 @@ class DiGraph(object):
         if not b in self._nodes:
             self.add_node(b)
         self._edges.append((a, b))
-        self._nodes_to[a].append((a, b))
-        self._nodes_from[b].append((a, b))
+        self._nodes_succ[a].append((a, b))
+        self._nodes_pred[b].append((a, b))
 
     def add_uniq_edge(self, a, b):
         if (a, b) in self._edges:
@@ -58,22 +60,22 @@ class DiGraph(object):
 
     def del_edge(self, a, b):
         self._edges.remove((a, b))
-        self._nodes_to[a].remove((a, b))
-        self._nodes_from[b].remove((a, b))
+        self._nodes_succ[a].remove((a, b))
+        self._nodes_pred[b].remove((a, b))
 
     def predecessors_iter(self, n):
-        if not n in self._nodes_from:
+        if not n in self._nodes_pred:
             raise StopIteration
-        for a, _ in self._nodes_from[n]:
+        for a, _ in self._nodes_pred[n]:
             yield a
 
     def predecessors(self, n):
         return [x for x in self.predecessors_iter(n)]
 
     def successors_iter(self, n):
-        if not n in self._nodes_to:
+        if not n in self._nodes_succ:
             raise StopIteration
-        for _, b in self._nodes_to[n]:
+        for _, b in self._nodes_succ[n]:
             yield b
 
     def successors(self, n):
@@ -81,7 +83,7 @@ class DiGraph(object):
 
     def leaves_iter(self):
         for n in self._nodes:
-            if len(self._nodes_to[n]) == 0:
+            if len(self._nodes_succ[n]) == 0:
                 yield n
 
     def leaves(self):
@@ -89,7 +91,7 @@ class DiGraph(object):
 
     def heads_iter(self):
         for node in self._nodes:
-            if len(self._nodes_from[node]) == 0:
+            if len(self._nodes_pred[node]) == 0:
                 yield node
 
     def heads(self):
@@ -97,7 +99,7 @@ class DiGraph(object):
 
     def roots_iter(self):
         for n in self._nodes:
-            if len(self._nodes_from[n]) == 0:
+            if len(self._nodes_pred[n]) == 0:
                 yield n
 
     def roots(self):
