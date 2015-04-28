@@ -403,30 +403,27 @@ class DependencyResultImplicit(DependencyResult):
         sb = symbexec(self._ira, ctx_init)
         temp_label = asm_label("Temp")
         history = self.relevant_labels[::-1]
+        history_size = len(history)
 
         for hist_nb, label in enumerate(history):
             # Build block with relevant lines only
             affected_lines = set(depnode.line_nb for depnode in depnodes
                                  if depnode.label == label)
             irs = self._ira.blocs[label].irs
-            dst = self._ira.blocs[label].dst
             affects = []
 
             for line_nb in sorted(affected_lines):
                 affects.append(irs[line_nb])
 
             # Emul the block and get back destination
-            sb.emulbloc(irbloc(temp_label, affects), step=step)
-            try:
-                next_label = history[hist_nb + 1]
-            except IndexError:
-                pass
-            dst_eq = sb.eval_expr(dst)
-            expected = sb.eval_expr(m2_expr.ExprId(next_label, 32))
+            dst = sb.emulbloc(irbloc(temp_label, affects), step=step)
 
             # Add constraint
-            constraint = m2_expr.ExprAff(dst_eq, expected)
-            solver.add(Translator.to_language("z3").from_expr(constraint))
+            if hist_nb + 1 < history_size:
+                next_label = history[hist_nb + 1]
+                expected = sb.eval_expr(m2_expr.ExprId(next_label, 32))
+                constraint = m2_expr.ExprAff(dst, expected)
+                solver.add(Translator.to_language("z3").from_expr(constraint))
 
         # Save the solver
         self._solver = solver
@@ -534,11 +531,13 @@ class DependencyGraph(object):
     def _follow_label(exprs):
         """Do not follow labels"""
         follow = set()
+        unfollow = set()
         for expr in exprs:
             if expr_is_label(expr):
-                continue
-            follow.add(expr)
-        return follow, set()
+                unfollow.add(expr)
+            else:
+                follow.add(expr)
+        return follow, unfollow
 
     @staticmethod
     def _follow_mem_wrapper(exprs, mem_read):
@@ -622,7 +621,7 @@ class DependencyGraph(object):
 
             ## Build output
             output = FollowExpr.to_depnodes(read, depnode.label,
-                                                        depnode.line_nb - 1, modifier)
+                                            depnode.line_nb - 1, modifier)
 
         return output
 
@@ -664,12 +663,11 @@ class DependencyGraph(object):
 
     def _get_previousblocks(self, label):
         """Return an iterator on predecessors blocks of @label, with their
-        lengths and full block"""
+        lengths"""
         preds = self._ira.g.predecessors_iter(label)
         for pred_label in preds:
-            block = self._ira.blocs[pred_label]
-            length = len(block.irs)
-            yield (pred_label, length, block)
+            length = len(self._get_irs(pred_label))
+            yield (pred_label, length)
 
     def _processInterBloc(self, depnodes, heads):
         """Create a DependencyDict from @depnodes, and propagate DependencyDicts
@@ -707,11 +705,17 @@ class DependencyGraph(object):
             is_final = True
 
             # Propagate the DependencyDict to all parents
-            for label, irb_len, block in self._get_previousblocks(depdict.label):
+            for label, irb_len in self._get_previousblocks(depdict.label):
                 is_final = False
 
                 ## Duplicate the DependencyDict
                 new_depdict = depdict.extend(label)
+
+                if self._implicit:
+                    ### Implicit dependencies: IRDst will be link with heads
+                    implicit_depnode = DependencyNode(label, self._ira.IRDst,
+                                                      irb_len, modifier=False)
+                    new_depdict.pending.add(implicit_depnode)
 
                 ## Create links between DependencyDict
                 for depnode_head in depdict.pending:
@@ -724,16 +728,7 @@ class DependencyGraph(object):
 
                     ### Handle implicit dependencies
                     if self._implicit:
-                        follow_exprs = self._follow_apply_cb(block.dst)
-                        fexpr_depnodes = FollowExpr.to_depnodes(follow_exprs,
-                                                                label,
-                                                                block.dst_linenb,
-                                                                False)
-                        extracted = FollowExpr.extract_depnodes(fexpr_depnodes)
-                        extfllw = FollowExpr.extract_depnodes(fexpr_depnodes,
-                                                              only_follow=True)
-                        new_depdict.cache[depnode_head].update(extracted)
-                        new_depdict.pending.update(extfllw)
+                        new_depdict.cache[depnode_head].add(implicit_depnode)
 
 
                 ## Manage the new element
