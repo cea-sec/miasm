@@ -49,8 +49,8 @@ class DiGraph(object):
         if not b in self._nodes:
             self.add_node(b)
         self._edges.append((a, b))
-        self._nodes_succ[a].append((a, b))
-        self._nodes_pred[b].append((a, b))
+        self._nodes_succ[a].append(b)
+        self._nodes_pred[b].append(a)
 
     def add_uniq_edge(self, a, b):
         if (a, b) in self._edges:
@@ -60,14 +60,14 @@ class DiGraph(object):
 
     def del_edge(self, a, b):
         self._edges.remove((a, b))
-        self._nodes_succ[a].remove((a, b))
-        self._nodes_pred[b].remove((a, b))
+        self._nodes_succ[a].remove(b)
+        self._nodes_pred[b].remove(a)
 
     def predecessors_iter(self, n):
         if not n in self._nodes_pred:
             raise StopIteration
-        for a, _ in self._nodes_pred[n]:
-            yield a
+        for n_pred in self._nodes_pred[n]:
+            yield n_pred
 
     def predecessors(self, n):
         return [x for x in self.predecessors_iter(n)]
@@ -75,8 +75,8 @@ class DiGraph(object):
     def successors_iter(self, n):
         if not n in self._nodes_succ:
             raise StopIteration
-        for _, b in self._nodes_succ[n]:
-            yield b
+        for n_suc in self._nodes_succ[n]:
+            yield n_suc
 
     def successors(self, n):
         return [x for x in self.successors_iter(n)]
