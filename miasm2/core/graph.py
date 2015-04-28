@@ -13,10 +13,10 @@ class DiGraph(object):
 
     def __repr__(self):
         out = []
-        for n in self._nodes:
-            out.append(str(n))
-        for a, b in self._edges:
-            out.append("%s -> %s" % (a, b))
+        for node in self._nodes:
+            out.append(str(node))
+        for src, dst in self._edges:
+            out.append("%s -> %s" % (src, dst))
         return '\n'.join(out)
 
     def nodes(self):
@@ -25,12 +25,12 @@ class DiGraph(object):
     def edges(self):
         return self._edges
 
-    def add_node(self, n):
-        if n in self._nodes:
+    def add_node(self, node):
+        if node in self._nodes:
             return
-        self._nodes.add(n)
-        self._nodes_succ[n] = []
-        self._nodes_pred[n] = []
+        self._nodes.add(node)
+        self._nodes_succ[node] = []
+        self._nodes_pred[node] = []
 
     def del_node(self, node):
         """Delete the @node of the graph; Also delete every edge to/from this
@@ -43,14 +43,14 @@ class DiGraph(object):
         for succ in self.successors(node):
             self.del_edge(node, succ)
 
-    def add_edge(self, a, b):
-        if not a in self._nodes:
-            self.add_node(a)
-        if not b in self._nodes:
-            self.add_node(b)
-        self._edges.append((a, b))
-        self._nodes_succ[a].append(b)
-        self._nodes_pred[b].append(a)
+    def add_edge(self, src, dst):
+        if not src in self._nodes:
+            self.add_node(src)
+        if not dst in self._nodes:
+            self.add_node(dst)
+        self._edges.append((src, dst))
+        self._nodes_succ[src].append(dst)
+        self._nodes_pred[dst].append(src)
 
     def add_uniq_edge(self, src, dst):
         """Add an edge from @src to @dst if it doesn't already exist"""
@@ -58,73 +58,67 @@ class DiGraph(object):
             dst not in self._nodes_succ[src]):
             self.add_edge(src, dst)
 
-    def del_edge(self, a, b):
-        self._edges.remove((a, b))
-        self._nodes_succ[a].remove(b)
-        self._nodes_pred[b].remove(a)
+    def del_edge(self, src, dst):
+        self._edges.remove((src, dst))
+        self._nodes_succ[src].remove(dst)
+        self._nodes_pred[dst].remove(src)
 
-    def predecessors_iter(self, n):
-        if not n in self._nodes_pred:
+    def predecessors_iter(self, node):
+        if not node in self._nodes_pred:
             raise StopIteration
-        for n_pred in self._nodes_pred[n]:
+        for n_pred in self._nodes_pred[node]:
             yield n_pred
 
-    def predecessors(self, n):
-        return [x for x in self.predecessors_iter(n)]
+    def predecessors(self, node):
+        return [x for x in self.predecessors_iter(node)]
 
-    def successors_iter(self, n):
-        if not n in self._nodes_succ:
+    def successors_iter(self, node):
+        if not node in self._nodes_succ:
             raise StopIteration
-        for n_suc in self._nodes_succ[n]:
+        for n_suc in self._nodes_succ[node]:
             yield n_suc
 
-    def successors(self, n):
-        return [x for x in self.successors_iter(n)]
+    def successors(self, node):
+        return [x for x in self.successors_iter(node)]
 
     def leaves_iter(self):
-        for n in self._nodes:
-            if len(self._nodes_succ[n]) == 0:
-                yield n
+        for node in self._nodes:
+            if not self._nodes_succ[node]:
+                yield node
 
     def leaves(self):
         return [x for x in self.leaves_iter()]
 
     def heads_iter(self):
         for node in self._nodes:
-            if len(self._nodes_pred[node]) == 0:
+            if not self._nodes_pred[node]:
                 yield node
-
-    def heads(self):
-        return [node for node in self.heads_iter()]
-
-    def roots_iter(self):
-        for n in self._nodes:
-            if len(self._nodes_pred[n]) == 0:
-                yield n
 
     def roots(self):
         return [x for x in self.roots_iter()]
 
-    def find_path(self, a, b, cycles_count=0, done=None):
+    def find_path(self, src, dst, cycles_count=0, done=None):
         if done is None:
             done = {}
-        if b in done and done[b] > cycles_count:
+        if dst in done and done[dst] > cycles_count:
             return [[]]
-        if a == b:
-            return [[a]]
+        if src == dst:
+            return [[src]]
         out = []
-        for n in self.predecessors(b):
+        for node in self.predecessors(dst):
             done_n = dict(done)
-            done_n[b] = done_n.get(b, 0) + 1
-            for path in self.find_path(a, n, cycles_count, done_n):
-                if path and path[0] == a:
-                    out.append(path + [b])
+            done_n[dst] = done_n.get(dst, 0) + 1
+            for path in self.find_path(src, node, cycles_count, done_n):
+                if path and path[0] == src:
+                    out.append(path + [dst])
         return out
 
-    def node2str(self, n):
-        return str(n)
+    @staticmethod
+    def node2str(node):
+        return str(node)
 
-    def edge2str(self, a, b):
+    @staticmethod
+    def edge2str(src, dst):
         return ""
 
     def dot(self):
@@ -138,19 +132,19 @@ fontsize = "16",
 shape = "box"
 ];
 """
-        for n in self.nodes():
+        for node in self.nodes():
             out += '%s [label="%s"];\n' % (
-                hash(n) & 0xFFFFFFFFFFFFFFFF, self.node2str(n))
+                hash(node) & 0xFFFFFFFFFFFFFFFF, self.node2str(node))
 
-        for a, b in self.edges():
-            out += '%s -> %s [label="%s"]\n' % (hash(a) & 0xFFFFFFFFFFFFFFFF,
-                                                hash(b) & 0xFFFFFFFFFFFFFFFF,
-                                                self.edge2str(a, b))
+        for src, dst in self.edges():
+            out += '%s -> %s [label="%s"]\n' % (hash(src) & 0xFFFFFFFFFFFFFFFF,
+                                                hash(dst) & 0xFFFFFFFFFFFFFFFF,
+                                                self.edge2str(src, dst))
         out += "}"
         return out
 
-
-    def _reachable_nodes(self, head, next_cb):
+    @staticmethod
+    def _reachable_nodes(head, next_cb):
         """Generic algorithm to compute every nodes reachable from/to node
         @head"""
 
@@ -173,7 +167,8 @@ shape = "box"
         """Compute every parents of node @leaf"""
         return self._reachable_nodes(leaf, self.predecessors_iter)
 
-    def _compute_generic_dominators(self, head, reachable_cb, prev_cb, next_cb):
+    @staticmethod
+    def _compute_generic_dominators(head, reachable_cb, prev_cb, next_cb):
         """Generic algorithm to compute either the dominators or postdominators
         of the graph.
         @head: the head/leaf of the graph
