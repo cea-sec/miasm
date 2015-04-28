@@ -75,3 +75,11 @@ for sol_nb, sol in enumerate(dg.get(current_block.label, elements, line_nb, set(
 	print "Solution %d: %s -> %s" % (sol_nb,
 					 result,
 					 fname)
+        if args.implicit:
+            sat = sol.is_satisfiable
+            constraints = ""
+            if sat:
+                constraints = {}
+                for element in sol.constraints:
+                    constraints[element] = sol.constraints[element]
+            print "\tSatisfiability: %s %s" % (sat, constraints)

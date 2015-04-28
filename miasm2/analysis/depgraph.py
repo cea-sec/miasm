@@ -2,12 +2,15 @@
 import itertools
 from collections import namedtuple
 
+import z3
+
 import miasm2.expression.expression as m2_expr
 from miasm2.core.graph import DiGraph
 from miasm2.core.asmbloc import asm_label, expr_is_label
 from miasm2.expression.simplifications import expr_simp
 from miasm2.ir.symbexec import symbexec
 from miasm2.ir.ir import irbloc
+from miasm2.ir.translators import Translator
 
 class DependencyNode(object):
     """Node elements of a DependencyGraph
@@ -379,6 +382,71 @@ class DependencyResult(object):
                 for depnode in self.input}
 
 
+class DependencyResultImplicit(DependencyResult):
+    """Stand for a result of a DependencyGraph with implicit option
+
+    Provide path constraints using the z3 solver"""
+
+    # Z3 Solver instance
+    _solver = None
+
+    def emul(self, ctx=None, step=False):
+        # Init
+        ctx_init = self._ira.arch.regs.regs_init
+        if ctx is not None:
+            ctx_init.update(ctx)
+        depnodes = self.relevant_nodes
+        solver = z3.Solver()
+        sb = symbexec(self._ira, ctx_init)
+        temp_label = asm_label("Temp")
+        history = self.relevant_labels[::-1]
+
+        for hist_nb, label in enumerate(history):
+            # Build block with relevant lines only
+            affected_lines = set(depnode.line_nb for depnode in depnodes
+                                 if depnode.label == label)
+            irs = self._ira.blocs[label].irs
+            dst = self._ira.blocs[label].dst
+            affects = []
+
+            for line_nb in sorted(affected_lines):
+                affects.append(irs[line_nb])
+
+            # Emul the block and get back destination
+            sb.emulbloc(irbloc(temp_label, affects), step=step)
+            try:
+                next_label = history[hist_nb + 1]
+            except IndexError:
+                pass
+            dst_eq = sb.eval_expr(dst)
+            expected = sb.eval_expr(m2_expr.ExprId(next_label, 32))
+
+            # Add constraint
+            constraint = m2_expr.ExprAff(dst_eq, expected)
+            solver.add(Translator.to_language("z3").from_expr(constraint))
+
+        # Save the solver
+        self._solver = solver
+
+        # Return only inputs values (others could be wrongs)
+        return {depnode.element: sb.symbols[depnode.element]
+                for depnode in self.input}
+
+    @property
+    def is_satisfiable(self):
+        """Return True iff the solution path admits at least one solution
+        PRE: 'emul'
+        """
+        return self._solver.check().r > 0
+
+    @property
+    def constraints(self):
+        """If satisfiable, return a valid solution as a Z3 Model instance"""
+        if not self.is_satisfiable:
+            raise ValueError("Unsatisfiable")
+        return self._solver.model()
+
+
 class FollowExpr(object):
     "Stand for an element (expression, depnode, ...) to follow or not"
 
@@ -694,6 +762,7 @@ class DependencyGraph(object):
 
         # Unify solutions
         unified = []
+        cls_res = DependencyResultImplicit if self._implicit else DependencyResult
         for final_depdict in depdicts:
             ## Keep only relevant nodes
             final_depdict.clean_modifiers_in_cache()
@@ -703,7 +772,7 @@ class DependencyGraph(object):
             if final_depdict not in unified:
                 unified.append(final_depdict)
                 ### Return solutions as DiGraph
-                yield DependencyResult(self._ira, final_depdict, input_depnodes)
+                yield cls_res(self._ira, final_depdict, input_depnodes)
 
     def get_fromDepNodes(self, depnodes, heads):
         """Alias for the get() method. Use the attributes of @depnodes as
