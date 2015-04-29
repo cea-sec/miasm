@@ -94,8 +94,8 @@ class DiGraph(object):
             if not self._nodes_pred[node]:
                 yield node
 
-    def roots(self):
-        return [x for x in self.roots_iter()]
+    def heads(self):
+        return [x for x in self.heads_iter()]
 
     def find_path(self, src, dst, cycles_count=0, done=None):
         if done is None:
