@@ -152,6 +152,11 @@ class Expr(object):
     def get_w(self):
         return self.arg.get_w()
 
+    def is_function_call(self):
+        """Returns true if the considered Expr is a function call
+        """
+        return False
+
     def __repr__(self):
         if self._repr is None:
             self._repr = self._exprrepr()
@@ -511,6 +516,9 @@ class ExprAff(Expr):
             return set([self._dst])  # [memreg]
         else:
             return self._dst.get_w()
+
+    def is_function_call(self):
+        return isinstance(self.src, ExprOp) and self.src.op.startswith('call')
 
     def _exprhash(self):
         return hash((EXPRAFF, hash(self._dst), hash(self._src)))

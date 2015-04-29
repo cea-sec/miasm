@@ -73,27 +73,40 @@ class irbloc(object):
         """Line number of the IRDst setting statement in the current irs"""
         return self._dst_linenb
 
-    def get_rw(self):
+    def get_rw(self, regs_ids):
+        """
+        Computes the variables read and written by each instructions
+        Initialize attributes needed for in/out and reach computation.
+        @regs_ids : ids of registers used in IR
+        """
         self.r = []
         self.w = []
-        self.c_out = []
-        self.c_in = []
-        self.l_out = []
-        self.l_in = []
-        for ir in self.irs:
+        self.cur_reach = [{reg: set() for reg in regs_ids}
+                          for _ in xrange(len(self.irs))]
+        self.prev_reach = [{reg: set() for reg in regs_ids}
+                           for _ in xrange(len(self.irs))]
+        self.cur_kill = [{reg: set() for reg in regs_ids}
+                         for _ in xrange(len(self.irs))]
+        self.prev_kill = [{reg: set() for reg in regs_ids}
+                          for _ in xrange(len(self.irs))]
+        self.defout = [{reg: set() for reg in regs_ids}
+                       for _ in xrange(len(self.irs))]
+
+        for k, ir in enumerate(self.irs):
             r, w = set(), set()
             for i in ir:
-                r.update([x for x in i.get_r(True) if isinstance(x, m2_expr.ExprId)])
-                w.update([x for x in i.get_w() if isinstance(x, m2_expr.ExprId)])
+                r.update(x for x in i.get_r(True)
+                         if isinstance(x, m2_expr.ExprId))
+                w.update(x for x in i.get_w()
+                         if isinstance(x, m2_expr.ExprId))
                 if isinstance(i.dst, m2_expr.ExprMem):
-                    r.update([x for x in i.dst.arg.get_r(True)
-                    if isinstance(x, m2_expr.ExprId)])
+                    r.update(x for x in i.dst.arg.get_r(True)
+                             if isinstance(x, m2_expr.ExprId))
+                self.defout[k].update((x, {(self.label, k, i)})
+                                      for x in i.get_w()
+                                      if isinstance(x, m2_expr.ExprId))
             self.r.append(r)
             self.w.append(w)
-            self.c_out.append(set())
-            self.c_in.append(set())
-            self.l_out.append(set())
-            self.l_in.append(set())
 
     def __str__(self):
         o = []
@@ -301,9 +314,13 @@ class ir(object):
             for i, l in enumerate(irs):
                 irs[i] = l.replace_expr(rep)
 
-    def get_rw(self):
+    def get_rw(self, regs_ids = []):
+        """
+        Calls get_rw(irb) for each bloc
+        @regs_ids : ids of registers used in IR
+        """
         for b in self.blocs.values():
-            b.get_rw()
+            b.get_rw(regs_ids)
 
     def ExprIsLabel(self, l):
         return isinstance(l, m2_expr.ExprId) and isinstance(l.name,

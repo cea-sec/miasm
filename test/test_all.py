@@ -117,6 +117,11 @@ for script in ["ir2C.py",
                "symbexec.py",
                ]:
     testset += RegressionTest([script], base_dir="ir")
+testset += RegressionTest(["analysis.py"], base_dir="ir",
+                          products=[fname for fnames in (
+            ["simp_graph_%02d.dot" % test_nb, "graph_%02d.dot" % test_nb]
+            for test_nb in xrange(1, 18))
+                                    for fname in fnames])
 testset += RegressionTest(["z3_ir.py"], base_dir="ir/translators",
                           tags=[TAGS["z3"]])
 ## OS_DEP
