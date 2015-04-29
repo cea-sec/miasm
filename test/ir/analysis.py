@@ -1,3 +1,4 @@
+""" Test cases for dead code elimination"""
 from miasm2.expression.expression import ExprId, ExprInt32, ExprAff, ExprMem
 from miasm2.core.asmbloc import asm_label
 from miasm2.ir.analysis import ira
@@ -18,24 +19,24 @@ r_init = ExprId("r_init") # Return register
 pc = ExprId("pc")
 sp = ExprId("sp")
 
-cst1 = ExprInt32(0x11)
-cst2 = ExprInt32(0x12)
-cst3 = ExprInt32(0x13)
+CST1 = ExprInt32(0x11)
+CST2 = ExprInt32(0x12)
+CST3 = ExprInt32(0x13)
 
-lbl0 = asm_label("lbl0")
-lbl1 = asm_label("lbl1")
-lbl2 = asm_label("lbl2")
-lbl3 = asm_label("lbl3")
-lbl4 = asm_label("lbl4")
-lbl5 = asm_label("lbl5")
-lbl6 = asm_label("lbl6")
+LBL0 = asm_label("lbl0")
+LBL1 = asm_label("lbl1")
+LBL2 = asm_label("lbl2")
+LBL3 = asm_label("lbl3")
+LBL4 = asm_label("lbl4")
+LBL5 = asm_label("lbl5")
+LBL6 = asm_label("lbl6")
 
 
 
-def gen_irbloc(lbl, exprs):
-    lines = [None for i in xrange(len(exprs))]
-    irb = irbloc(lbl, exprs, lines)
-    return irb
+def gen_irbloc(label, exprs):
+    lines = [None for _ in xrange(len(exprs))]
+    irbl = irbloc(label, exprs, lines)
+    return irbl
 
 
 class Regs(object):
@@ -45,10 +46,10 @@ class Regs(object):
 class Arch(object):
     regs = Regs()
 
-    def getpc(self, attrib):
+    def getpc(self, _):
         return pc
 
-    def getsp(self, attrib):
+    def getsp(self, _):
         return sp
 
 class IRATest(ir, ira):
@@ -59,595 +60,634 @@ class IRATest(ir, ira):
         self.IRDst = pc
         self.ret_reg = r
 
-    def get_out_regs(self, b):
+    def get_out_regs(self, _):
         return set([self.ret_reg, self.sp])
 
 # graph 1 : Simple graph with dead and alive variables
 
-g1_ira = IRATest()
+G1_IRA = IRATest()
 
-g1_irb0 = gen_irbloc(lbl0, [ [ExprAff(a, cst1)], [ExprAff(b, cst2)] ])
-g1_irb1 = gen_irbloc(lbl1, [ [ExprAff(a, b)] ])
-g1_irb2 = gen_irbloc(lbl2, [ [ExprAff(r, a)] ])
+G1_IRB0 = gen_irbloc(LBL0, [[ExprAff(a, CST1)], [ExprAff(b, CST2)]])
+G1_IRB1 = gen_irbloc(LBL1, [[ExprAff(a, b)]])
+G1_IRB2 = gen_irbloc(LBL2, [[ExprAff(r, a)]])
 
-g1_ira.gen_graph()
+G1_IRA.gen_graph()
 
-g1_ira.g.add_uniq_edge(g1_irb0.label, g1_irb1.label)
-g1_ira.g.add_uniq_edge(g1_irb1.label, g1_irb2.label)
+G1_IRA.g.add_uniq_edge(G1_IRB0.label, G1_IRB1.label)
+G1_IRA.g.add_uniq_edge(G1_IRB1.label, G1_IRB2.label)
 
-g1_ira.blocs = {irb.label : irb for irb in [g1_irb0, g1_irb1, g1_irb2]}
+G1_IRA.blocs = {irb.label : irb for irb in [G1_IRB0, G1_IRB1, G1_IRB2]}
 
 # Expected output for graph 1
-g1_exp_ira = IRATest()
+G1_EXP_IRA = IRATest()
 
-g1_exp_irb0 = gen_irbloc(lbl0, [ [], [ExprAff(b, cst2)] ])
-g1_exp_irb1 = gen_irbloc(lbl1, [ [ExprAff(a, b)] ])
-g1_exp_irb2 = gen_irbloc(lbl2, [ [ExprAff(r, a)] ])
+G1_EXP_IRB0 = gen_irbloc(LBL0, [[], [ExprAff(b, CST2)]])
+G1_EXP_IRB1 = gen_irbloc(LBL1, [[ExprAff(a, b)]])
+G1_EXP_IRB2 = gen_irbloc(LBL2, [[ExprAff(r, a)]])
 
-g1_exp_ira.blocs = {irb.label : irb for irb in [g1_exp_irb0, g1_exp_irb1, g1_exp_irb2]}
+G1_EXP_IRA.blocs = {irb.label : irb for irb in [G1_EXP_IRB0, G1_EXP_IRB1,
+                                                G1_EXP_IRB2]}
 
 # graph 2 : Natural loop with dead variable
 
-g2_ira = IRATest()
+G2_IRA = IRATest()
 
-g2_irb0 = gen_irbloc(lbl0, [ [ExprAff(a, cst1)], [ExprAff(r, cst1)] ])
-g2_irb1 = gen_irbloc(lbl1, [ [ExprAff(a, a+cst1)] ])
-g2_irb2 = gen_irbloc(lbl2, [ [ExprAff(a, r)] ])
+G2_IRB0 = gen_irbloc(LBL0, [[ExprAff(a, CST1)], [ExprAff(r, CST1)]])
+G2_IRB1 = gen_irbloc(LBL1, [[ExprAff(a, a+CST1)]])
+G2_IRB2 = gen_irbloc(LBL2, [[ExprAff(a, r)]])
 
-g2_ira.gen_graph()
+G2_IRA.gen_graph()
 
-g2_ira.g.add_uniq_edge(g2_irb0.label, g2_irb1.label)
-g2_ira.g.add_uniq_edge(g2_irb1.label, g2_irb2.label)
-g2_ira.g.add_uniq_edge(g2_irb1.label, g2_irb1.label)
+G2_IRA.g.add_uniq_edge(G2_IRB0.label, G2_IRB1.label)
+G2_IRA.g.add_uniq_edge(G2_IRB1.label, G2_IRB2.label)
+G2_IRA.g.add_uniq_edge(G2_IRB1.label, G2_IRB1.label)
 
-g2_ira.blocs = {irb.label : irb for irb in [g2_irb0, g2_irb1, g2_irb2]}
+G2_IRA.blocs = {irb.label : irb for irb in [G2_IRB0, G2_IRB1, G2_IRB2]}
 
 # Expected output for graph 2
-g2_exp_ira = IRATest()
+G2_EXP_IRA = IRATest()
 
-g2_exp_irb0 = gen_irbloc(lbl0, [ [], [ExprAff(r, cst1)] ])
-g2_exp_irb1 = gen_irbloc(lbl1, [ [] ])
-g2_exp_irb2 = gen_irbloc(lbl2, [ [] ])
+G2_EXP_IRB0 = gen_irbloc(LBL0, [[], [ExprAff(r, CST1)]])
+G2_EXP_IRB1 = gen_irbloc(LBL1, [[]])
+G2_EXP_IRB2 = gen_irbloc(LBL2, [[]])
 
-g2_exp_ira.blocs = {irb.label : irb for irb in [g2_exp_irb0, g2_exp_irb1, g2_exp_irb2]}
+G2_EXP_IRA.blocs = {irb.label : irb for irb in [G2_EXP_IRB0, G2_EXP_IRB1,
+                                                G2_EXP_IRB2]}
 
 # graph 3 : Natural loop with alive variables
 
-g3_ira = IRATest()
+G3_IRA = IRATest()
 
-g3_irb0 = gen_irbloc(lbl0, [ [ExprAff(a, cst1)] ])
-g3_irb1 = gen_irbloc(lbl1, [ [ExprAff(a, a+cst1)] ])
-g3_irb2 = gen_irbloc(lbl2, [ [ExprAff(r, a)] ])
+G3_IRB0 = gen_irbloc(LBL0, [[ExprAff(a, CST1)]])
+G3_IRB1 = gen_irbloc(LBL1, [[ExprAff(a, a+CST1)]])
+G3_IRB2 = gen_irbloc(LBL2, [[ExprAff(r, a)]])
 
-g3_ira.gen_graph()
+G3_IRA.gen_graph()
 
-g3_ira.g.add_uniq_edge(g3_irb0.label, g3_irb1.label)
-g3_ira.g.add_uniq_edge(g3_irb1.label, g3_irb2.label)
-g3_ira.g.add_uniq_edge(g3_irb1.label, g3_irb1.label)
+G3_IRA.g.add_uniq_edge(G3_IRB0.label, G3_IRB1.label)
+G3_IRA.g.add_uniq_edge(G3_IRB1.label, G3_IRB2.label)
+G3_IRA.g.add_uniq_edge(G3_IRB1.label, G3_IRB1.label)
 
-g3_ira.blocs = {irb.label : irb for irb in [g3_irb0, g3_irb1, g3_irb2]}
+G3_IRA.blocs = {irb.label : irb for irb in [G3_IRB0, G3_IRB1, G3_IRB2]}
 
 # Expected output for graph 3
-g3_exp_ira = IRATest()
+G3_EXP_IRA = IRATest()
 
-g3_exp_irb0 = gen_irbloc(lbl0, [ [ExprAff(a, cst1)] ])
-g3_exp_irb1 = gen_irbloc(lbl1, [ [ExprAff(a, a+cst1)] ])
-g3_exp_irb2 = gen_irbloc(lbl2, [ [ExprAff(r, a)] ])
+G3_EXP_IRB0 = gen_irbloc(LBL0, [[ExprAff(a, CST1)]])
+G3_EXP_IRB1 = gen_irbloc(LBL1, [[ExprAff(a, a+CST1)]])
+G3_EXP_IRB2 = gen_irbloc(LBL2, [[ExprAff(r, a)]])
 
-g3_exp_ira.blocs = {irb.label : irb for irb in [g3_exp_irb0, g3_exp_irb1, g3_exp_irb2]}
+G3_EXP_IRA.blocs = {irb.label : irb for irb in [G3_EXP_IRB0, G3_EXP_IRB1,
+                                                G3_EXP_IRB2]}
 
 # graph 4 : If/else with dead variables
 
-g4_ira = IRATest()
+G4_IRA = IRATest()
 
-g4_irb0 = gen_irbloc(lbl0, [ [ExprAff(a, cst1)] ])
-g4_irb1 = gen_irbloc(lbl1, [ [ExprAff(a, a+cst1)] ])
-g4_irb2 = gen_irbloc(lbl2, [ [ExprAff(a, a+cst2)] ])
-g4_irb3 = gen_irbloc(lbl3, [ [ExprAff(a, cst3)], [ExprAff(r, a)] ])
+G4_IRB0 = gen_irbloc(LBL0, [[ExprAff(a, CST1)]])
+G4_IRB1 = gen_irbloc(LBL1, [[ExprAff(a, a+CST1)]])
+G4_IRB2 = gen_irbloc(LBL2, [[ExprAff(a, a+CST2)]])
+G4_IRB3 = gen_irbloc(LBL3, [[ExprAff(a, CST3)], [ExprAff(r, a)]])
 
-g4_ira.gen_graph()
+G4_IRA.gen_graph()
 
-g4_ira.g.add_uniq_edge(g4_irb0.label, g4_irb1.label)
-g4_ira.g.add_uniq_edge(g4_irb0.label, g4_irb2.label)
-g4_ira.g.add_uniq_edge(g4_irb1.label, g4_irb3.label)
-g4_ira.g.add_uniq_edge(g4_irb2.label, g4_irb3.label)
+G4_IRA.g.add_uniq_edge(G4_IRB0.label, G4_IRB1.label)
+G4_IRA.g.add_uniq_edge(G4_IRB0.label, G4_IRB2.label)
+G4_IRA.g.add_uniq_edge(G4_IRB1.label, G4_IRB3.label)
+G4_IRA.g.add_uniq_edge(G4_IRB2.label, G4_IRB3.label)
 
-g4_ira.blocs = {irb.label : irb for irb in [g4_irb0, g4_irb1, g4_irb2, g4_irb3]}
+G4_IRA.blocs = {irb.label : irb for irb in [G4_IRB0, G4_IRB1, G4_IRB2,
+                                            G4_IRB3]}
 
 # Expected output for graph 4
-g4_exp_ira = IRATest()
+G4_EXP_IRA = IRATest()
 
-g4_exp_irb0 = gen_irbloc(lbl0, [ [] ])
-g4_exp_irb1 = gen_irbloc(lbl1, [ [] ])
-g4_exp_irb2 = gen_irbloc(lbl2, [ [] ])
-g4_exp_irb3 = gen_irbloc(lbl3, [ [ExprAff(a, cst3)], [ExprAff(r, a)] ])
+G4_EXP_IRB0 = gen_irbloc(LBL0, [[]])
+G4_EXP_IRB1 = gen_irbloc(LBL1, [[]])
+G4_EXP_IRB2 = gen_irbloc(LBL2, [[]])
+G4_EXP_IRB3 = gen_irbloc(LBL3, [[ExprAff(a, CST3)], [ExprAff(r, a)]])
 
-g4_exp_ira.gen_graph()
+G4_EXP_IRA.gen_graph()
 
-g4_exp_ira.blocs = {irb.label : irb for irb in [g4_exp_irb0, g4_exp_irb1, g4_exp_irb2, g4_exp_irb3]}
+G4_EXP_IRA.blocs = {irb.label : irb for irb in [G4_EXP_IRB0, G4_EXP_IRB1,
+                                                G4_EXP_IRB2, G4_EXP_IRB3]}
 
 # graph 5 : Loop and If/else with dead variables
 
-g5_ira = IRATest()
+G5_IRA = IRATest()
 
-g5_irb0 = gen_irbloc(lbl0, [ [ExprAff(a, cst1)] ])
-g5_irb1 = gen_irbloc(lbl1, [ [ExprAff(r, cst2)] ])
-g5_irb2 = gen_irbloc(lbl2, [ [ExprAff(a, a+cst2)] ])
-g5_irb3 = gen_irbloc(lbl3, [ [ExprAff(a, a+cst3)] ])
-g5_irb4 = gen_irbloc(lbl4, [ [ExprAff(a, a+cst1)] ])
-g5_irb5 = gen_irbloc(lbl5, [ [ExprAff(a, r)] ])
+G5_IRB0 = gen_irbloc(LBL0, [[ExprAff(a, CST1)]])
+G5_IRB1 = gen_irbloc(LBL1, [[ExprAff(r, CST2)]])
+G5_IRB2 = gen_irbloc(LBL2, [[ExprAff(a, a+CST2)]])
+G5_IRB3 = gen_irbloc(LBL3, [[ExprAff(a, a+CST3)]])
+G5_IRB4 = gen_irbloc(LBL4, [[ExprAff(a, a+CST1)]])
+G5_IRB5 = gen_irbloc(LBL5, [[ExprAff(a, r)]])
 
-g5_ira.gen_graph()
+G5_IRA.gen_graph()
 
-g5_ira.g.add_uniq_edge(g5_irb0.label, g5_irb1.label)
-g5_ira.g.add_uniq_edge(g5_irb1.label, g5_irb2.label)
-g5_ira.g.add_uniq_edge(g5_irb1.label, g5_irb3.label)
-g5_ira.g.add_uniq_edge(g5_irb2.label, g5_irb4.label)
-g5_ira.g.add_uniq_edge(g5_irb3.label, g5_irb4.label)
-g5_ira.g.add_uniq_edge(g5_irb4.label, g5_irb5.label)
-g5_ira.g.add_uniq_edge(g5_irb4.label, g5_irb1.label)
+G5_IRA.g.add_uniq_edge(G5_IRB0.label, G5_IRB1.label)
+G5_IRA.g.add_uniq_edge(G5_IRB1.label, G5_IRB2.label)
+G5_IRA.g.add_uniq_edge(G5_IRB1.label, G5_IRB3.label)
+G5_IRA.g.add_uniq_edge(G5_IRB2.label, G5_IRB4.label)
+G5_IRA.g.add_uniq_edge(G5_IRB3.label, G5_IRB4.label)
+G5_IRA.g.add_uniq_edge(G5_IRB4.label, G5_IRB5.label)
+G5_IRA.g.add_uniq_edge(G5_IRB4.label, G5_IRB1.label)
 
-g5_ira.blocs = {irb.label : irb for irb in [g5_irb0, g5_irb1, g5_irb2, g5_irb3, g5_irb4, g5_irb5]}
+G5_IRA.blocs = {irb.label : irb for irb in [G5_IRB0, G5_IRB1, G5_IRB2, G5_IRB3,
+                                            G5_IRB4, G5_IRB5]}
 
 # Expected output for graph 5
-g5_exp_ira = IRATest()
+G5_EXP_IRA = IRATest()
 
-g5_exp_irb0 = gen_irbloc(lbl0, [ [] ])
-g5_exp_irb1 = gen_irbloc(lbl1, [ [ExprAff(r, cst2)] ])
-g5_exp_irb2 = gen_irbloc(lbl2, [ [] ])
-g5_exp_irb3 = gen_irbloc(lbl3, [ [] ])
-g5_exp_irb4 = gen_irbloc(lbl4, [ [] ])
-g5_exp_irb5 = gen_irbloc(lbl5, [ [] ])
+G5_EXP_IRB0 = gen_irbloc(LBL0, [[]])
+G5_EXP_IRB1 = gen_irbloc(LBL1, [[ExprAff(r, CST2)]])
+G5_EXP_IRB2 = gen_irbloc(LBL2, [[]])
+G5_EXP_IRB3 = gen_irbloc(LBL3, [[]])
+G5_EXP_IRB4 = gen_irbloc(LBL4, [[]])
+G5_EXP_IRB5 = gen_irbloc(LBL5, [[]])
 
-g5_exp_ira.gen_graph()
+G5_EXP_IRA.gen_graph()
 
-g5_exp_ira.blocs = {irb.label : irb for irb in [g5_exp_irb0, g5_exp_irb1, g5_exp_irb2, g5_exp_irb3, g5_exp_irb4, g5_exp_irb5]}
+G5_EXP_IRA.blocs = {irb.label : irb for irb in [G5_EXP_IRB0, G5_EXP_IRB1,
+                                                G5_EXP_IRB2, G5_EXP_IRB3,
+                                                G5_EXP_IRB4, G5_EXP_IRB5]}
 
-# graph 6 : Natural loop with dead variables symetric affectation (a = b <-> b = a )
+# graph 6 : Natural loop with dead variables symetric affectation
+# (a = b <-> b = a )
 
-g6_ira = IRATest()
+G6_IRA = IRATest()
 
-g6_irb0 = gen_irbloc(lbl0, [ [ExprAff(a, cst1)] ])
-g6_irb1 = gen_irbloc(lbl1, [ [ExprAff(b, a)] ])
-g6_irb2 = gen_irbloc(lbl2, [ [ExprAff(a, b)] ])
-g6_irb3 = gen_irbloc(lbl3, [ [ExprAff(r, cst2)] ])
+G6_IRB0 = gen_irbloc(LBL0, [[ExprAff(a, CST1)]])
+G6_IRB1 = gen_irbloc(LBL1, [[ExprAff(b, a)]])
+G6_IRB2 = gen_irbloc(LBL2, [[ExprAff(a, b)]])
+G6_IRB3 = gen_irbloc(LBL3, [[ExprAff(r, CST2)]])
 
 
-g6_ira.gen_graph()
+G6_IRA.gen_graph()
 
-g6_ira.g.add_uniq_edge(g6_irb0.label, g6_irb1.label)
-g6_ira.g.add_uniq_edge(g6_irb1.label, g6_irb2.label)
-g6_ira.g.add_uniq_edge(g6_irb2.label, g6_irb1.label)
-g6_ira.g.add_uniq_edge(g6_irb2.label, g6_irb3.label)
+G6_IRA.g.add_uniq_edge(G6_IRB0.label, G6_IRB1.label)
+G6_IRA.g.add_uniq_edge(G6_IRB1.label, G6_IRB2.label)
+G6_IRA.g.add_uniq_edge(G6_IRB2.label, G6_IRB1.label)
+G6_IRA.g.add_uniq_edge(G6_IRB2.label, G6_IRB3.label)
 
-g6_ira.blocs = {irb.label : irb for irb in [g6_irb0, g6_irb1, g6_irb2, g6_irb3]}
+G6_IRA.blocs = {irb.label : irb for irb in [G6_IRB0, G6_IRB1, G6_IRB2,
+                                            G6_IRB3]}
 
 # Expected output for graph 6
-g6_exp_ira = IRATest()
+G6_EXP_IRA = IRATest()
 
-g6_exp_irb0 = gen_irbloc(lbl0, [ [] ])
-g6_exp_irb1 = gen_irbloc(lbl1, [ [] ])
-g6_exp_irb2 = gen_irbloc(lbl2, [ [] ])
-g6_exp_irb3 = gen_irbloc(lbl3, [ [ExprAff(r, cst2)] ])
+G6_EXP_IRB0 = gen_irbloc(LBL0, [[]])
+G6_EXP_IRB1 = gen_irbloc(LBL1, [[]])
+G6_EXP_IRB2 = gen_irbloc(LBL2, [[]])
+G6_EXP_IRB3 = gen_irbloc(LBL3, [[ExprAff(r, CST2)]])
 
-g6_exp_ira.blocs = {irb.label : irb for irb in [g6_exp_irb0, g6_exp_irb1, g6_exp_irb2, g6_exp_irb3]}
+G6_EXP_IRA.blocs = {irb.label : irb for irb in [G6_EXP_IRB0, G6_EXP_IRB1,
+                                                G6_EXP_IRB2, G6_EXP_IRB3]}
 
 # graph 7 : Double entry loop with dead variables
 
-g7_ira = IRATest()
+G7_IRA = IRATest()
 
-g7_irb0 = gen_irbloc(lbl0, [ [ExprAff(a, cst1)], [ExprAff(r, cst1)] ])
-g7_irb1 = gen_irbloc(lbl1, [ [ExprAff(a, a+cst1)] ])
-g7_irb2 = gen_irbloc(lbl2, [ [ExprAff(a, a+cst2)] ])
-g7_irb3 = gen_irbloc(lbl3, [ [ExprAff(a, r)] ])
-
-
-g7_ira.gen_graph()
-
-g7_ira.g.add_uniq_edge(g7_irb0.label, g7_irb1.label)
-g7_ira.g.add_uniq_edge(g7_irb1.label, g7_irb2.label)
-g7_ira.g.add_uniq_edge(g7_irb2.label, g7_irb1.label)
-g7_ira.g.add_uniq_edge(g7_irb2.label, g7_irb3.label)
-g7_ira.g.add_uniq_edge(g7_irb0.label, g7_irb2.label)
+G7_IRB0 = gen_irbloc(LBL0, [[ExprAff(a, CST1)], [ExprAff(r, CST1)]])
+G7_IRB1 = gen_irbloc(LBL1, [[ExprAff(a, a+CST1)]])
+G7_IRB2 = gen_irbloc(LBL2, [[ExprAff(a, a+CST2)]])
+G7_IRB3 = gen_irbloc(LBL3, [[ExprAff(a, r)]])
 
 
-g7_ira.blocs = {irb.label : irb for irb in [g7_irb0, g7_irb1, g7_irb2, g7_irb3]}
+G7_IRA.gen_graph()
+
+G7_IRA.g.add_uniq_edge(G7_IRB0.label, G7_IRB1.label)
+G7_IRA.g.add_uniq_edge(G7_IRB1.label, G7_IRB2.label)
+G7_IRA.g.add_uniq_edge(G7_IRB2.label, G7_IRB1.label)
+G7_IRA.g.add_uniq_edge(G7_IRB2.label, G7_IRB3.label)
+G7_IRA.g.add_uniq_edge(G7_IRB0.label, G7_IRB2.label)
+
+
+G7_IRA.blocs = {irb.label : irb for irb in [G7_IRB0, G7_IRB1, G7_IRB2,
+                                            G7_IRB3]}
 
 # Expected output for graph 7
-g7_exp_ira = IRATest()
+G7_EXP_IRA = IRATest()
 
-g7_exp_irb0 = gen_irbloc(lbl0, [ [],  [ExprAff(r, cst1)] ])
-g7_exp_irb1 = gen_irbloc(lbl1, [ [] ])
-g7_exp_irb2 = gen_irbloc(lbl2, [ [] ])
-g7_exp_irb3 = gen_irbloc(lbl3, [ [] ])
+G7_EXP_IRB0 = gen_irbloc(LBL0, [[], [ExprAff(r, CST1)]])
+G7_EXP_IRB1 = gen_irbloc(LBL1, [[]])
+G7_EXP_IRB2 = gen_irbloc(LBL2, [[]])
+G7_EXP_IRB3 = gen_irbloc(LBL3, [[]])
 
-g7_exp_ira.blocs = {irb.label : irb for irb in [g7_exp_irb0, g7_exp_irb1, g7_exp_irb2, g7_exp_irb3]}
+G7_EXP_IRA.blocs = {irb.label : irb for irb in [G7_EXP_IRB0, G7_EXP_IRB1,
+                                                G7_EXP_IRB2, G7_EXP_IRB3]}
 
 # graph 8 : Nested loops with dead variables
 
-g8_ira = IRATest()
+G8_IRA = IRATest()
 
-g8_irb0 = gen_irbloc(lbl0, [ [ExprAff(a, cst1)], [ExprAff(b, cst1)] ])
-g8_irb1 = gen_irbloc(lbl1, [ [ExprAff(a, a+cst1)] ])
-g8_irb2 = gen_irbloc(lbl2, [ [ExprAff(b, b+cst2)] ])
-g8_irb3 = gen_irbloc(lbl3, [ [ExprAff(a, b)] ])
-
-
-g8_ira.gen_graph()
-
-g8_ira.g.add_uniq_edge(g8_irb0.label, g8_irb1.label)
-g8_ira.g.add_uniq_edge(g8_irb1.label, g8_irb2.label)
-g8_ira.g.add_uniq_edge(g8_irb2.label, g8_irb1.label)
-g8_ira.g.add_uniq_edge(g8_irb2.label, g8_irb3.label)
-g8_ira.g.add_uniq_edge(g8_irb3.label, g8_irb2.label)
+G8_IRB0 = gen_irbloc(LBL0, [[ExprAff(a, CST1)], [ExprAff(b, CST1)]])
+G8_IRB1 = gen_irbloc(LBL1, [[ExprAff(a, a+CST1)]])
+G8_IRB2 = gen_irbloc(LBL2, [[ExprAff(b, b+CST2)]])
+G8_IRB3 = gen_irbloc(LBL3, [[ExprAff(a, b)]])
 
 
-g8_ira.blocs = {irb.label : irb for irb in [g8_irb0, g8_irb1, g8_irb2, g8_irb3]}
+G8_IRA.gen_graph()
+
+G8_IRA.g.add_uniq_edge(G8_IRB0.label, G8_IRB1.label)
+G8_IRA.g.add_uniq_edge(G8_IRB1.label, G8_IRB2.label)
+G8_IRA.g.add_uniq_edge(G8_IRB2.label, G8_IRB1.label)
+G8_IRA.g.add_uniq_edge(G8_IRB2.label, G8_IRB3.label)
+G8_IRA.g.add_uniq_edge(G8_IRB3.label, G8_IRB2.label)
+
+
+G8_IRA.blocs = {irb.label : irb for irb in [G8_IRB0, G8_IRB1, G8_IRB2,
+                                            G8_IRB3]}
 
 # Expected output for graph 8
 
-g8_exp_ira = IRATest()
+G8_EXP_IRA = IRATest()
 
-g8_exp_irb0 = gen_irbloc(lbl0, [ [],  [] ])
-g8_exp_irb1 = gen_irbloc(lbl1, [ [] ])
-g8_exp_irb2 = gen_irbloc(lbl2, [ [] ])
-g8_exp_irb3 = gen_irbloc(lbl3, [ [] ])
+G8_EXP_IRB0 = gen_irbloc(LBL0, [[], []])
+G8_EXP_IRB1 = gen_irbloc(LBL1, [[]])
+G8_EXP_IRB2 = gen_irbloc(LBL2, [[]])
+G8_EXP_IRB3 = gen_irbloc(LBL3, [[]])
 
-g8_exp_ira.blocs = {irb.label : irb for irb in [g8_exp_irb0, g8_exp_irb1, g8_exp_irb2, g8_exp_irb3]}
+G8_EXP_IRA.blocs = {irb.label : irb for irb in [G8_EXP_IRB0, G8_EXP_IRB1,
+                                                G8_EXP_IRB2, G8_EXP_IRB3]}
 
 # graph 9 : Miultiple-exits loops with dead variables
 
-g9_ira = IRATest()
+G9_IRA = IRATest()
 
-g9_irb0 = gen_irbloc(lbl0, [ [ExprAff(a, cst1)], [ExprAff(b, cst1)] ])
-g9_irb1 = gen_irbloc(lbl1, [ [ExprAff(a, a+cst1)], [ExprAff(b, b+cst1)] ])
-g9_irb2 = gen_irbloc(lbl2, [ [ExprAff(a, a+cst2)], [ExprAff(b, b+cst2)] ])
-g9_irb3 = gen_irbloc(lbl3, [ [ExprAff(a, b)] ])
-g9_irb4 = gen_irbloc(lbl4, [ [ExprAff(r, a)], [ExprAff(r, b)] ])
-
-
-g9_ira.gen_graph()
-
-g9_ira.g.add_uniq_edge(g9_irb0.label, g9_irb4.label)
-g9_ira.g.add_uniq_edge(g9_irb0.label, g9_irb1.label)
-g9_ira.g.add_uniq_edge(g9_irb1.label, g9_irb0.label)
-g9_ira.g.add_uniq_edge(g9_irb1.label, g9_irb4.label)
-g9_ira.g.add_uniq_edge(g9_irb1.label, g9_irb2.label)
-g9_ira.g.add_uniq_edge(g9_irb2.label, g9_irb0.label)
-g9_ira.g.add_uniq_edge(g9_irb2.label, g9_irb3.label)
-g9_ira.g.add_uniq_edge(g9_irb3.label, g9_irb4.label)
+G9_IRB0 = gen_irbloc(LBL0, [[ExprAff(a, CST1)], [ExprAff(b, CST1)]])
+G9_IRB1 = gen_irbloc(LBL1, [[ExprAff(a, a+CST1)], [ExprAff(b, b+CST1)]])
+G9_IRB2 = gen_irbloc(LBL2, [[ExprAff(a, a+CST2)], [ExprAff(b, b+CST2)]])
+G9_IRB3 = gen_irbloc(LBL3, [[ExprAff(a, b)]])
+G9_IRB4 = gen_irbloc(LBL4, [[ExprAff(r, a)], [ExprAff(r, b)]])
 
 
-g9_ira.blocs = {irb.label : irb for irb in [g9_irb0, g9_irb1, g9_irb2, g9_irb3,  g9_irb4]}
+G9_IRA.gen_graph()
+
+G9_IRA.g.add_uniq_edge(G9_IRB0.label, G9_IRB4.label)
+G9_IRA.g.add_uniq_edge(G9_IRB0.label, G9_IRB1.label)
+G9_IRA.g.add_uniq_edge(G9_IRB1.label, G9_IRB0.label)
+G9_IRA.g.add_uniq_edge(G9_IRB1.label, G9_IRB4.label)
+G9_IRA.g.add_uniq_edge(G9_IRB1.label, G9_IRB2.label)
+G9_IRA.g.add_uniq_edge(G9_IRB2.label, G9_IRB0.label)
+G9_IRA.g.add_uniq_edge(G9_IRB2.label, G9_IRB3.label)
+G9_IRA.g.add_uniq_edge(G9_IRB3.label, G9_IRB4.label)
+
+
+G9_IRA.blocs = {irb.label : irb for irb in [G9_IRB0, G9_IRB1, G9_IRB2,
+                                            G9_IRB3, G9_IRB4]}
 
 # Expected output for graph 9
 
-g9_exp_ira = IRATest()
+G9_EXP_IRA = IRATest()
 
-g9_exp_irb0 = gen_irbloc(lbl0, [ [], [ExprAff(b, cst1)] ])
-g9_exp_irb1 = gen_irbloc(lbl1, [ [], [ExprAff(b, b+cst1)] ])
-g9_exp_irb2 = gen_irbloc(lbl2, [ [], [ExprAff(b, b+cst2)] ])
-g9_exp_irb3 = gen_irbloc(lbl3, [ [] ])
-g9_exp_irb4 = gen_irbloc(lbl4, [ [], [ExprAff(r, b)] ])
+G9_EXP_IRB0 = gen_irbloc(LBL0, [[], [ExprAff(b, CST1)]])
+G9_EXP_IRB1 = gen_irbloc(LBL1, [[], [ExprAff(b, b+CST1)]])
+G9_EXP_IRB2 = gen_irbloc(LBL2, [[], [ExprAff(b, b+CST2)]])
+G9_EXP_IRB3 = gen_irbloc(LBL3, [[]])
+G9_EXP_IRB4 = gen_irbloc(LBL4, [[], [ExprAff(r, b)]])
 
-g9_exp_ira.blocs = {irb.label : irb for irb in [g9_exp_irb0, g9_exp_irb1, g9_exp_irb2, g9_exp_irb3, g9_exp_irb4]}
+G9_EXP_IRA.blocs = {irb.label : irb for irb in [G9_EXP_IRB0, G9_EXP_IRB1,
+                                                G9_EXP_IRB2, G9_EXP_IRB3,
+                                                G9_EXP_IRB4]}
 
-# graph 10 : Natural loop with alive variables symetric affectation (a = b <-> b = a )
+# graph 10 : Natural loop with alive variables symetric affectation
+# (a = b <-> b = a )
 
-g10_ira = IRATest()
+G10_IRA = IRATest()
 
-g10_irb0 = gen_irbloc(lbl0, [ [ExprAff(a, cst1)] ])
-g10_irb1 = gen_irbloc(lbl1, [ [ExprAff(b, a)] ])
-g10_irb2 = gen_irbloc(lbl2, [ [ExprAff(a, b)] ])
-g10_irb3 = gen_irbloc(lbl3, [ [ExprAff(r, cst1)] ])
+G10_IRB0 = gen_irbloc(LBL0, [[ExprAff(a, CST1)]])
+G10_IRB1 = gen_irbloc(LBL1, [[ExprAff(b, a)]])
+G10_IRB2 = gen_irbloc(LBL2, [[ExprAff(a, b)]])
+G10_IRB3 = gen_irbloc(LBL3, [[ExprAff(r, CST1)]])
 
 
-g10_ira.gen_graph()
+G10_IRA.gen_graph()
 
-g10_ira.g.add_uniq_edge(g10_irb0.label, g10_irb1.label)
-g10_ira.g.add_uniq_edge(g10_irb1.label, g10_irb2.label)
-g10_ira.g.add_uniq_edge(g10_irb2.label, g10_irb1.label)
-g10_ira.g.add_uniq_edge(g10_irb2.label, g10_irb3.label)
+G10_IRA.g.add_uniq_edge(G10_IRB0.label, G10_IRB1.label)
+G10_IRA.g.add_uniq_edge(G10_IRB1.label, G10_IRB2.label)
+G10_IRA.g.add_uniq_edge(G10_IRB2.label, G10_IRB1.label)
+G10_IRA.g.add_uniq_edge(G10_IRB2.label, G10_IRB3.label)
 
-g10_ira.blocs = {irb.label : irb for irb in [g10_irb0, g10_irb1, g10_irb2, g10_irb3]}
+G10_IRA.blocs = {irb.label : irb for irb in [G10_IRB0, G10_IRB1,
+                                             G10_IRB2, G10_IRB3]}
 
 # Expected output for graph 10
-g10_exp_ira = IRATest()
+G10_EXP_IRA = IRATest()
 
-g10_exp_irb0 = gen_irbloc(lbl0, [ [] ])
-g10_exp_irb1 = gen_irbloc(lbl1, [ [] ])
-g10_exp_irb2 = gen_irbloc(lbl2, [ [] ])
-g10_exp_irb3 = gen_irbloc(lbl3, [ [ExprAff(r, cst1)] ])
+G10_EXP_IRB0 = gen_irbloc(LBL0, [[]])
+G10_EXP_IRB1 = gen_irbloc(LBL1, [[]])
+G10_EXP_IRB2 = gen_irbloc(LBL2, [[]])
+G10_EXP_IRB3 = gen_irbloc(LBL3, [[ExprAff(r, CST1)]])
 
-g10_exp_ira.blocs = {irb.label : irb for irb in [g10_exp_irb0, g10_exp_irb1, g10_exp_irb2, g10_exp_irb3]}
+G10_EXP_IRA.blocs = {irb.label : irb for irb in [G10_EXP_IRB0, G10_EXP_IRB1,
+                                                 G10_EXP_IRB2, G10_EXP_IRB3]}
 
 # graph 11 : If/Else conditions with alive variables
 
-g11_ira = IRATest()
+G11_IRA = IRATest()
 
-g11_irb0 = gen_irbloc(lbl0, [ [ExprAff(a, b)] ])
-g11_irb1 = gen_irbloc(lbl1, [ [ExprAff(b, a)] ])
-g11_irb2 = gen_irbloc(lbl2, [ [ExprAff(r, a)] ])
-g11_irb3 = gen_irbloc(lbl3, [ [ExprAff(a, a+cst1)] ])
-g11_irb4 = gen_irbloc(lbl4, [ [ExprAff(b, b+cst1)] ])
+G11_IRB0 = gen_irbloc(LBL0, [[ExprAff(a, b)]])
+G11_IRB1 = gen_irbloc(LBL1, [[ExprAff(b, a)]])
+G11_IRB2 = gen_irbloc(LBL2, [[ExprAff(r, a)]])
+G11_IRB3 = gen_irbloc(LBL3, [[ExprAff(a, a+CST1)]])
+G11_IRB4 = gen_irbloc(LBL4, [[ExprAff(b, b+CST1)]])
 
 
-g11_ira.gen_graph()
+G11_IRA.gen_graph()
 
-g11_ira.g.add_uniq_edge(g11_irb0.label, g11_irb1.label)
-#g11_ira.g.add_uniq_edge(g11_irb3.label, g11_irb1.label)
-g11_ira.g.add_uniq_edge(g11_irb1.label, g11_irb0.label)
-#g11_ira.g.add_uniq_edge(g11_irb4.label, g11_irb0.label)
-g11_ira.g.add_uniq_edge(g11_irb1.label, g11_irb2.label)
+G11_IRA.g.add_uniq_edge(G11_IRB0.label, G11_IRB1.label)
+#G11_IRA.g.add_uniq_edge(G11_IRB3.label, G11_IRB1.label)
+G11_IRA.g.add_uniq_edge(G11_IRB1.label, G11_IRB0.label)
+#G11_IRA.g.add_uniq_edge(G11_IRB4.label, G11_IRB0.label)
+G11_IRA.g.add_uniq_edge(G11_IRB1.label, G11_IRB2.label)
 
-g11_ira.blocs = {irb.label : irb for irb in [g11_irb0, g11_irb1, g11_irb2]} #, g11_irb3, g11_irb4]}
+G11_IRA.blocs = {irb.label : irb for irb in [G11_IRB0, G11_IRB1, G11_IRB2]}
 
 # Expected output for graph 11
-g11_exp_ira = IRATest()
+G11_EXP_IRA = IRATest()
 
-g11_exp_irb0 = gen_irbloc(lbl0, [ [ExprAff(a, b)] ])
-g11_exp_irb1 = gen_irbloc(lbl1, [ [ExprAff(b, a)] ])
-g11_exp_irb2 = gen_irbloc(lbl2, [ [ExprAff(r, a)] ])
-#g11_exp_irb3 = gen_irbloc(lbl3, [ [ExprAff(a, a+cst1)] ])
-#g11_exp_irb4 = gen_irbloc(lbl4, [ [ExprAff(b, b+cst1)] ])
+G11_EXP_IRB0 = gen_irbloc(LBL0, [[ExprAff(a, b)]])
+G11_EXP_IRB1 = gen_irbloc(LBL1, [[ExprAff(b, a)]])
+G11_EXP_IRB2 = gen_irbloc(LBL2, [[ExprAff(r, a)]])
+#G11_EXP_IRB3 = gen_irbloc(LBL3, [[ExprAff(a, a+CST1)]])
+#G11_EXP_IRB4 = gen_irbloc(LBL4, [[ExprAff(b, b+CST1)]])
 
-g11_exp_ira.blocs = {irb.label : irb for irb in [g11_exp_irb0, g11_exp_irb1, g11_exp_irb2]} #, g11_exp_irb3, g11_exp_irb4]}
+G11_EXP_IRA.blocs = {irb.label : irb for irb in [G11_EXP_IRB0, G11_EXP_IRB1,
+                                                 G11_EXP_IRB2]}
 
-# graph 12 : Graph with multiple out points and useless definitions of out register
+# graph 12 : Graph with multiple out points and useless definitions
+# of return register
 
-g12_ira = IRATest()
+G12_IRA = IRATest()
 
-g12_irb0 = gen_irbloc(lbl0, [ [ExprAff(r, cst1)], [ExprAff(a, cst2)] ])
-g12_irb1 = gen_irbloc(lbl1, [ [ExprAff(r, cst2)] ])
-g12_irb2 = gen_irbloc(lbl2, [ [ExprAff(r, a)], [ExprAff(b, cst3)] ])
-g12_irb3 = gen_irbloc(lbl3, [ [ExprAff(r, cst3)] ])
-g12_irb4 = gen_irbloc(lbl4, [ [ExprAff(r, cst2)] ])
-g12_irb5 = gen_irbloc(lbl5, [ [ExprAff(r, b)] ])
+G12_IRB0 = gen_irbloc(LBL0, [[ExprAff(r, CST1)], [ExprAff(a, CST2)]])
+G12_IRB1 = gen_irbloc(LBL1, [[ExprAff(r, CST2)]])
+G12_IRB2 = gen_irbloc(LBL2, [[ExprAff(r, a)], [ExprAff(b, CST3)]])
+G12_IRB3 = gen_irbloc(LBL3, [[ExprAff(r, CST3)]])
+G12_IRB4 = gen_irbloc(LBL4, [[ExprAff(r, CST2)]])
+G12_IRB5 = gen_irbloc(LBL5, [[ExprAff(r, b)]])
 
-g12_ira.gen_graph()
+G12_IRA.gen_graph()
 
-g12_ira.g.add_uniq_edge(g12_irb0.label, g12_irb1.label)
-g12_ira.g.add_uniq_edge(g12_irb0.label, g12_irb2.label)
-g12_ira.g.add_uniq_edge(g12_irb2.label, g12_irb3.label)
-g12_ira.g.add_uniq_edge(g12_irb2.label, g12_irb4.label)
-g12_ira.g.add_uniq_edge(g12_irb4.label, g12_irb5.label)
+G12_IRA.g.add_uniq_edge(G12_IRB0.label, G12_IRB1.label)
+G12_IRA.g.add_uniq_edge(G12_IRB0.label, G12_IRB2.label)
+G12_IRA.g.add_uniq_edge(G12_IRB2.label, G12_IRB3.label)
+G12_IRA.g.add_uniq_edge(G12_IRB2.label, G12_IRB4.label)
+G12_IRA.g.add_uniq_edge(G12_IRB4.label, G12_IRB5.label)
 
-g12_ira.blocs = {irb.label : irb for irb in [g12_irb0, g12_irb1, g12_irb2, g12_irb3, g12_irb4, g12_irb5]}
+G12_IRA.blocs = {irb.label : irb for irb in [G12_IRB0, G12_IRB1, G12_IRB2,
+                                             G12_IRB3, G12_IRB4, G12_IRB5]}
 
 # Expected output for graph 12
-g12_exp_ira = IRATest()
+G12_EXP_IRA = IRATest()
 
-g12_exp_irb0 = gen_irbloc(lbl0, [ [], [] ])
-g12_exp_irb1 = gen_irbloc(lbl1, [ [ExprAff(r, cst2)] ])
-g12_exp_irb2 = gen_irbloc(lbl2, [ [], [ExprAff(b, cst3)] ])
-g12_exp_irb3 = gen_irbloc(lbl3, [ [ExprAff(r, cst3)] ])
-g12_exp_irb4 = gen_irbloc(lbl4, [ [] ])
-g12_exp_irb5 = gen_irbloc(lbl5, [ [ExprAff(r, b)] ])
+G12_EXP_IRB0 = gen_irbloc(LBL0, [[], []])
+G12_EXP_IRB1 = gen_irbloc(LBL1, [[ExprAff(r, CST2)]])
+G12_EXP_IRB2 = gen_irbloc(LBL2, [[], [ExprAff(b, CST3)]])
+G12_EXP_IRB3 = gen_irbloc(LBL3, [[ExprAff(r, CST3)]])
+G12_EXP_IRB4 = gen_irbloc(LBL4, [[]])
+G12_EXP_IRB5 = gen_irbloc(LBL5, [[ExprAff(r, b)]])
 
 
-g12_exp_ira.blocs = {irb.label : irb for irb in [g12_exp_irb0, g12_exp_irb1, g12_exp_irb2, g12_exp_irb3, g12_exp_irb4, g12_exp_irb5]}
+G12_EXP_IRA.blocs = {irb.label : irb for irb in [G12_EXP_IRB0, G12_EXP_IRB1,
+                                                 G12_EXP_IRB2, G12_EXP_IRB3,
+                                                 G12_EXP_IRB4, G12_EXP_IRB5]}
 
 # graph 13 : Graph where a leaf has lost its son
 
-g13_ira = IRATest()
+G13_IRA = IRATest()
 
-g13_irb0 = gen_irbloc(lbl0, [ [ExprAff(a, cst1)], [ExprAff(b, cst2)] ])
-g13_irb1 = gen_irbloc(lbl1, [ [ExprAff(r, b)] ])
-g13_irb2 = gen_irbloc(lbl2, [  [ExprAff(d, cst2)], [ExprAff(a, b+cst1), ExprAff(c, a+b)] ])
-g13_irb3 = gen_irbloc(lbl3, [ [] ]) # lost son
-g13_irb4 = gen_irbloc(lbl4, [ [ExprAff(b, cst2)] ])
+G13_IRB0 = gen_irbloc(LBL0, [[ExprAff(a, CST1)], [ExprAff(b, CST2)]])
+G13_IRB1 = gen_irbloc(LBL1, [[ExprAff(r, b)]])
+G13_IRB2 = gen_irbloc(LBL2, [[ExprAff(d, CST2)], [ExprAff(a, b+CST1),
+                                                   ExprAff(c, a+b)]])
+G13_IRB3 = gen_irbloc(LBL3, [[]]) # lost son
+G13_IRB4 = gen_irbloc(LBL4, [[ExprAff(b, CST2)]])
 
-g13_ira.gen_graph()
+G13_IRA.gen_graph()
 
-g13_ira.g.add_uniq_edge(g13_irb0.label, g13_irb1.label)
-g13_ira.g.add_uniq_edge(g13_irb0.label, g13_irb4.label)
-g13_ira.g.add_uniq_edge(g13_irb2.label, g13_irb3.label)
-g13_ira.g.add_uniq_edge(g13_irb4.label, g13_irb2.label)
+G13_IRA.g.add_uniq_edge(G13_IRB0.label, G13_IRB1.label)
+G13_IRA.g.add_uniq_edge(G13_IRB0.label, G13_IRB4.label)
+G13_IRA.g.add_uniq_edge(G13_IRB2.label, G13_IRB3.label)
+G13_IRA.g.add_uniq_edge(G13_IRB4.label, G13_IRB2.label)
 
-g13_ira.blocs = {irb.label : irb for irb in [g13_irb0, g13_irb1, g13_irb2, g13_irb4]}
+G13_IRA.blocs = {irb.label : irb for irb in [G13_IRB0, G13_IRB1, G13_IRB2,
+                                             G13_IRB4]}
 
 # Expected output for graph 13
-g13_exp_ira =  IRATest()
+G13_EXP_IRA = IRATest()
 
-g13_exp_irb0 = gen_irbloc(lbl0, [ [ExprAff(a, cst1)], [ExprAff(b, cst2)] ])
-g13_exp_irb1 = gen_irbloc(lbl1, [ [ExprAff(r, b)] ])
-g13_exp_irb2 = gen_irbloc(lbl2, [ [ExprAff(d, cst2)], [ExprAff(a, b+cst1), ExprAff(c, a+b)] ])
-g13_exp_irb3 = gen_irbloc(lbl3, [ [] ])
-g13_exp_irb4 = gen_irbloc(lbl4, [ [ExprAff(b, cst2)] ])
+G13_EXP_IRB0 = gen_irbloc(LBL0, [[ExprAff(a, CST1)], [ExprAff(b, CST2)]])
+G13_EXP_IRB1 = gen_irbloc(LBL1, [[ExprAff(r, b)]])
+G13_EXP_IRB2 = gen_irbloc(LBL2, [[ExprAff(d, CST2)], [ExprAff(a, b+CST1),
+                                                      ExprAff(c, a+b)]])
+G13_EXP_IRB3 = gen_irbloc(LBL3, [[]])
+G13_EXP_IRB4 = gen_irbloc(LBL4, [[ExprAff(b, CST2)]])
 
-g13_exp_ira.blocs = {irb.label: irb for irb in [g13_exp_irb0, g13_exp_irb1, g13_exp_irb2, g13_exp_irb4]}
+G13_EXP_IRA.blocs = {irb.label: irb for irb in [G13_EXP_IRB0, G13_EXP_IRB1,
+                                                G13_EXP_IRB2, G13_EXP_IRB4]}
 
-#g13_exp_ira = g13_ira
+#G13_EXP_IRA = G13_IRA
 
-# graph 14 : Graph where variable assigned multiple times in a block but still useful in the end
+# graph 14 : Graph where variable assigned multiple times in a block but still
+# useful in the end
 
-g14_ira = IRATest()
+G14_IRA = IRATest()
 
-g14_irb0 = gen_irbloc(lbl0, [ [ExprAff(a, cst1)], [ExprAff(c, a)], [ExprAff(a, cst2)] ])
-g14_irb1 = gen_irbloc(lbl1, [ [ExprAff(r, a+c)] ])
+G14_IRB0 = gen_irbloc(LBL0, [[ExprAff(a, CST1)], [ExprAff(c, a)],
+                             [ExprAff(a, CST2)]])
+G14_IRB1 = gen_irbloc(LBL1, [[ExprAff(r, a+c)]])
 
-g14_ira.gen_graph()
+G14_IRA.gen_graph()
 
-g14_ira.g.add_uniq_edge(g14_irb0.label, g14_irb1.label)
+G14_IRA.g.add_uniq_edge(G14_IRB0.label, G14_IRB1.label)
 
-g14_ira.blocs = {irb.label : irb for irb in [g14_irb0, g14_irb1]}
-
-# Expected output for graph 1
-g14_exp_ira = IRATest()
-
-g14_exp_irb0 = gen_irbloc(lbl0, [ [ExprAff(a, cst1)], [ExprAff(c, a)], [ExprAff(a, cst2)] ])
-g14_exp_irb1 = gen_irbloc(lbl1, [ [ExprAff(r, a+c)] ])
-
-g14_exp_ira.blocs = {irb.label: irb for irb in [g14_exp_irb0, g14_exp_irb1]}
-
-# graph 15 : Graph where variable assigned multiple and read at the same time, but useless
-
-g15_ira = IRATest()
-
-g15_irb0 = gen_irbloc(lbl0, [ [ExprAff(a, cst2)], [ExprAff(a, cst1), ExprAff(b, a+cst2), ExprAff(c,cst1)] ])
-g15_irb1 = gen_irbloc(lbl1, [ [ExprAff(r, a)] ])
-
-g15_ira.gen_graph()
-
-g15_ira.g.add_uniq_edge(g15_irb0.label, g15_irb1.label)
-
-g15_ira.blocs = {irb.label : irb for irb in [g15_irb0, g15_irb1]}
+G14_IRA.blocs = {irb.label : irb for irb in [G14_IRB0, G14_IRB1]}
 
 # Expected output for graph 1
-g15_exp_ira = IRATest()
+G14_EXP_IRA = IRATest()
 
-g15_exp_irb0 = gen_irbloc(lbl0, [ [], [ExprAff(a, cst1)] ])
-g15_exp_irb1 = gen_irbloc(lbl1, [ [ExprAff(r, a)] ])
+G14_EXP_IRB0 = gen_irbloc(LBL0, [[ExprAff(a, CST1)], [ExprAff(c, a)],
+                                 [ExprAff(a, CST2)]])
+G14_EXP_IRB1 = gen_irbloc(LBL1, [[ExprAff(r, a+c)]])
 
-g15_exp_ira.blocs = {irb.label: irb for irb in [g15_exp_irb0, g15_exp_irb1]}
+G14_EXP_IRA.blocs = {irb.label: irb for irb in [G14_EXP_IRB0, G14_EXP_IRB1]}
+
+# graph 15 : Graph where variable assigned multiple and read at the same time,
+# but useless
+
+G15_IRA = IRATest()
+
+G15_IRB0 = gen_irbloc(LBL0, [[ExprAff(a, CST2)], [ExprAff(a, CST1),
+                                                  ExprAff(b, a+CST2),
+                                                  ExprAff(c, CST1)]])
+G15_IRB1 = gen_irbloc(LBL1, [[ExprAff(r, a)]])
+
+G15_IRA.gen_graph()
+
+G15_IRA.g.add_uniq_edge(G15_IRB0.label, G15_IRB1.label)
+
+G15_IRA.blocs = {irb.label : irb for irb in [G15_IRB0, G15_IRB1]}
+
+# Expected output for graph 1
+G15_EXP_IRA = IRATest()
+
+G15_EXP_IRB0 = gen_irbloc(LBL0, [[], [ExprAff(a, CST1)]])
+G15_EXP_IRB1 = gen_irbloc(LBL1, [[ExprAff(r, a)]])
+
+G15_EXP_IRA.blocs = {irb.label: irb for irb in [G15_EXP_IRB0, G15_EXP_IRB1]}
 
 # graph 16 : Graph where variable assigned multiple times in the same bloc
 
-g16_ira = IRATest()
+G16_IRA = IRATest()
 
-g16_irb0 = gen_irbloc(lbl0, [ [ExprAff(a, cst1), ExprAff(b, cst2), ExprAff(c,cst3)], [ExprAff(a, c+cst1), ExprAff(b, c+cst2)] ])
-g16_irb1 = gen_irbloc(lbl1, [ [ExprAff(r, a+b)], [ExprAff(r, c+r)] ])
-g16_irb2 = gen_irbloc(lbl2, [ [] ])
+G16_IRB0 = gen_irbloc(LBL0, [[ExprAff(a, CST1), ExprAff(b, CST2),
+                              ExprAff(c, CST3)], [ExprAff(a, c+CST1),
+                              ExprAff(b, c+CST2)]])
+G16_IRB1 = gen_irbloc(LBL1, [[ExprAff(r, a+b)], [ExprAff(r, c+r)]])
+G16_IRB2 = gen_irbloc(LBL2, [[]])
 
-g16_ira.gen_graph()
+G16_IRA.gen_graph()
 
-g16_ira.g.add_uniq_edge(g16_irb0.label, g16_irb1.label)
-g16_ira.g.add_uniq_edge(g16_irb1.label, g16_irb2.label)
+G16_IRA.g.add_uniq_edge(G16_IRB0.label, G16_IRB1.label)
+G16_IRA.g.add_uniq_edge(G16_IRB1.label, G16_IRB2.label)
 
-g16_ira.blocs = {irb.label : irb for irb in [g16_irb0, g16_irb1]}
+G16_IRA.blocs = {irb.label : irb for irb in [G16_IRB0, G16_IRB1]}
 
 # Expected output for graph 1
-g16_exp_ira = IRATest()
+G16_EXP_IRA = IRATest()
 
-g16_exp_irb0 = gen_irbloc(lbl0, [ [ExprAff(c, cst3)], [ExprAff(a, c + cst1), ExprAff(b, c + cst2)] ])
-g16_exp_irb1 = gen_irbloc(lbl1, [ [ExprAff(r, a+b)], [ExprAff(r, c+r)] ])
+G16_EXP_IRB0 = gen_irbloc(LBL0, [[ExprAff(c, CST3)], [ExprAff(a, c + CST1),
+                                                      ExprAff(b, c + CST2)]])
+G16_EXP_IRB1 = gen_irbloc(LBL1, [[ExprAff(r, a+b)], [ExprAff(r, c+r)]])
 
-g16_exp_ira.blocs = {irb.label: irb for irb in [g16_exp_irb0, g16_exp_irb1]}
+G16_EXP_IRA.blocs = {irb.label: irb for irb in [G16_EXP_IRB0, G16_EXP_IRB1]}
 
 # graph 17 : parallel ir
 
-g17_ira = IRATest()
+G17_IRA = IRATest()
 
-g17_irb0 = gen_irbloc(lbl0, [ [ExprAff(a, a*b),
+G17_IRB0 = gen_irbloc(LBL0, [[ExprAff(a, a*b),
                                ExprAff(b, c),
-                               ExprAff(c, cst1)],
+                               ExprAff(c, CST1)],
 
-                              [ExprAff(d, d+ cst2)],
+                              [ExprAff(d, d+ CST2)],
 
-                              [ExprAff(a, cst1),
+                              [ExprAff(a, CST1),
                                ExprAff(b, a),
                                ExprAff(c, b)],
 
-                              [ExprAff(ExprMem(d+cst1), a),
+                              [ExprAff(ExprMem(d+CST1), a),
                                ExprAff(a, b),
                                ExprAff(b, c),
-                               ExprAff(c, cst1)],
+                               ExprAff(c, CST1)],
 
-                              [ExprAff(a, cst1),
+                              [ExprAff(a, CST1),
                                ExprAff(b, a),
                                ExprAff(c, b)],
 
-                              [ExprAff(ExprMem(d+cst2), a),
+                              [ExprAff(ExprMem(d+CST2), a),
                                ExprAff(a, b),
                                ExprAff(b, c),
-                               ExprAff(c, cst1)],
+                               ExprAff(c, CST1)],
 
 
-                              [ExprAff(a, cst2),
+                              [ExprAff(a, CST2),
                                ExprAff(b, a),
                                ExprAff(c, b)],
 
-                              [ExprAff(a, a+cst1)],
+                              [ExprAff(a, a+CST1)],
 
                               [ExprAff(d, a),
                                ExprAff(a, d)],
 
-                              [ExprAff(d, d+cst1)],
+                              [ExprAff(d, d+CST1)],
 
-                              [ExprAff(a, cst2),
+                              [ExprAff(a, CST2),
                                ExprAff(b, a),
                                ExprAff(c, b)],
 
-                              [ExprAff(a, a+cst2)],
+                              [ExprAff(a, a+CST2)],
 
-                              [ExprAff(a, cst2),
+                              [ExprAff(a, CST2),
                                ExprAff(b, a),
                                ExprAff(c, b)],
 
-                              [ExprAff(a, cst1),
+                              [ExprAff(a, CST1),
                                ExprAff(b, a),
                                ExprAff(c, b)],
 
                               [ExprAff(ExprMem(d), a+b+c)],
 
-                          ])
+                         ])
 
-g17_ira.gen_graph()
+G17_IRA.gen_graph()
 
-g17_ira.blocs = {irb.label : irb for irb in [g17_irb0]}
+G17_IRA.blocs = {irb.label : irb for irb in [G17_IRB0]}
 
-g17_ira.g.add_node(g17_irb0.label)
+G17_IRA.g.add_node(G17_IRB0.label)
 
 # Expected output for graph 17
-g17_exp_ira = IRATest()
+G17_EXP_IRA = IRATest()
 
-g17_exp_irb0 = gen_irbloc(lbl0, [[],
+G17_EXP_IRB0 = gen_irbloc(LBL0, [[],
 
-                              [ExprAff(d, d+ cst2)],
+                              [ExprAff(d, d+ CST2)],
 
-                              [ExprAff(a, cst1)],
+                              [ExprAff(a, CST1)],
 
-                              [ExprAff(ExprMem(d+cst1), a)],
+                              [ExprAff(ExprMem(d+CST1), a)],
 
-                              [ExprAff(a, cst1)],
+                              [ExprAff(a, CST1)],
 
-                              [ExprAff(ExprMem(d+cst2), a)],
+                              [ExprAff(ExprMem(d+CST2), a)],
 
-                              [ExprAff(a, cst2)],
+                              [ExprAff(a, CST2)],
 
-                              [ExprAff(a, a+cst1)],
+                              [ExprAff(a, a+CST1)],
 
                               [ExprAff(d, a)],
 
-                              [ExprAff(d, d+cst1)],
+                              [ExprAff(d, d+CST1)],
 
-                              [ExprAff(a, cst2)],
+                              [ExprAff(a, CST2)],
 
-                              [ExprAff(a, a+cst2)],
+                              [ExprAff(a, a+CST2)],
 
-                              [ExprAff(a, cst2),
+                              [ExprAff(a, CST2),
                                ExprAff(b, a)],
 
-                              [ExprAff(a, cst1),
+                              [ExprAff(a, CST1),
                                ExprAff(b, a),
                                ExprAff(c, b)],
 
-                              g17_irb0.irs[14] 
-                             # Trick because a+b+c != ((a+b)+c)  
-                          ])
+                              G17_IRB0.irs[14]
+                            # Trick because a+b+c != ((a+b)+c)
+                         ])
 
-g17_exp_ira.blocs = {irb.label : irb for irb in [g17_exp_irb0]}
+G17_EXP_IRA.blocs = {irb.label : irb for irb in [G17_EXP_IRB0]}
 
 # Begining  of tests
 
-for test_nb, test in enumerate([(g1_ira, g1_exp_ira),
-                          (g2_ira, g2_exp_ira),
-                          (g3_ira, g3_exp_ira),
-                          (g4_ira, g4_exp_ira),
-                          (g5_ira, g5_exp_ira),
-                          (g6_ira, g6_exp_ira),
-                          (g7_ira, g7_exp_ira),
-                          (g8_ira, g8_exp_ira),
-                          (g9_ira, g9_exp_ira),
-                          (g10_ira, g10_exp_ira),
-                          (g11_ira, g11_exp_ira),
-                          (g12_ira, g12_exp_ira),
-                          (g13_ira, g13_exp_ira),
-                          (g14_ira, g14_exp_ira),
-                          (g15_ira, g15_exp_ira),
-                          (g16_ira, g16_exp_ira),
-                          (g17_ira, g17_exp_ira)
-                      ]):
+for test_nb, test in enumerate([(G1_IRA, G1_EXP_IRA),
+                          (G2_IRA, G2_EXP_IRA),
+                          (G3_IRA, G3_EXP_IRA),
+                          (G4_IRA, G4_EXP_IRA),
+                          (G5_IRA, G5_EXP_IRA),
+                          (G6_IRA, G6_EXP_IRA),
+                          (G7_IRA, G7_EXP_IRA),
+                          (G8_IRA, G8_EXP_IRA),
+                          (G9_IRA, G9_EXP_IRA),
+                          (G10_IRA, G10_EXP_IRA),
+                          (G11_IRA, G11_EXP_IRA),
+                          (G12_IRA, G12_EXP_IRA),
+                          (G13_IRA, G13_EXP_IRA),
+                          (G14_IRA, G14_EXP_IRA),
+                          (G15_IRA, G15_EXP_IRA),
+                          (G16_IRA, G16_EXP_IRA),
+                          (G17_IRA, G17_EXP_IRA)
+                     ]):
     # Extract test elements
     g_ira, g_exp_ira = test
 
