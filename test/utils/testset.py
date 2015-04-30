@@ -202,7 +202,7 @@ class TestSet(object):
         """Add arguments to used on the test command line
         @args: list of str
         """
-        self.add_additionnal_args += args
+        self.additional_args += args
 
     def run(self):
         "Launch tests"
