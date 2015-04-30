@@ -13,6 +13,8 @@ from miasm2.ir.symbexec import symbexec
 parser = ArgumentParser("Simple expression use for generating dataflow graph")
 parser.add_argument("filename", help="File to analyse")
 parser.add_argument("addr", help="Function's address")
+parser.add_argument("-s", "--symb", help="Symbolic execution mode",
+                    action="store_true")
 args = parser.parse_args()
 
 
@@ -108,7 +110,7 @@ def node2str(self, node):
     return out
 
 
-def gen_bloc_data_flow_graph(ir_arch, ad):
+def gen_bloc_data_flow_graph(ir_arch, ad, block_flow_cb):
     for irbloc in ir_arch.blocs.values():
         print irbloc
 
@@ -125,8 +127,7 @@ def gen_bloc_data_flow_graph(ir_arch, ad):
     flow_graph.node2str = lambda n: node2str(flow_graph, n)
 
     for irbloc in ir_arch.blocs.values():
-        intra_bloc_flow_raw(ir_arch, flow_graph, irbloc)
-        # intra_bloc_flow_symb(ir_arch, flow_graph, irbloc)
+        block_flow_cb(ir_arch, flow_graph, irbloc)
 
     for irbloc in ir_arch.blocs.values():
         print irbloc
@@ -164,7 +165,12 @@ for irbloc in ir_arch.blocs.values():
         continue
 
 
-gen_bloc_data_flow_graph(ir_arch, ad)
+if args.symb:
+    block_flow_cb = intra_bloc_flow_symb
+else:
+    block_flow_cb = intra_bloc_flow_raw
+
+gen_bloc_data_flow_graph(ir_arch, ad, block_flow_cb)
 
 print '*' * 40
 print """
