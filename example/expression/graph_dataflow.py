@@ -54,10 +54,11 @@ def get_modified_symbols(sb):
     ids = sb.symbols.symbols_id.keys()
     ids.sort()
     out = {}
+    regs_init = sb.ir_arch.arch.regs.regs_init
     for i in ids:
-        if i in sb.arch.regs.regs_init and \
+        if i in regs_init and \
                 i in sb.symbols.symbols_id and \
-                sb.symbols.symbols_id[i] == sb.arch.regs.regs_init[i]:
+                sb.symbols.symbols_id[i] == regs_init[i]:
             continue
         # print i, sb.symbols.symbols_id[i]
         out[i] = sb.symbols.symbols_id[i]
