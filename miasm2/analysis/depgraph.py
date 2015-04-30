@@ -562,7 +562,7 @@ class DependencyGraph(object):
         follow = set()
         nofollow = set()
         for expr in exprs:
-            if isinstance(expr, m2_expr.ExprOp) and expr.op.startswith('call'):
+            if expr.is_function_call():
                 nofollow.add(expr)
             else:
                 follow.add(expr)
