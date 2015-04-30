@@ -495,8 +495,8 @@ class DependencyGraph(object):
 
         Following arguments define filters used to generate dependencies
         @apply_simp: (optional) Apply expr_simp
-        @follow_mem: (optional) Track memory syntaxically
-        @follow_call: (optional) Track throught "call"
+        @follow_mem: (optional) Track memory syntactically
+        @follow_call: (optional) Track through "call"
         """
         # Init
         self._ira = ira
