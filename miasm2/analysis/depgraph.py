@@ -495,8 +495,8 @@ class DependencyGraph(object):
 
         Following arguments define filters used to generate dependencies
         @apply_simp: (optional) Apply expr_simp
-        @follow_mem: (optional) Track memory syntaxically
-        @follow_call: (optional) Track throught "call"
+        @follow_mem: (optional) Track memory syntactically
+        @follow_call: (optional) Track through "call"
         """
         # Init
         self._ira = ira
@@ -562,7 +562,7 @@ class DependencyGraph(object):
         follow = set()
         nofollow = set()
         for expr in exprs:
-            if isinstance(expr, m2_expr.ExprOp) and expr.op.startswith('call'):
+            if expr.is_function_call():
                 nofollow.add(expr)
             else:
                 follow.add(expr)

@@ -40,7 +40,6 @@ class ira:
     def dst_trackback(self, b):
         dst = b.dst
         todo = set([dst])
-        out = set()
         done = set()
 
         for irs in reversed(b.irs):
@@ -63,7 +62,6 @@ class ira:
                 if o not in found:
                     follow.add(o)
             todo = follow
-        out = self.sort_dst(todo, done)
 
         return done
 
