@@ -295,10 +295,11 @@ class ExampleExpression(Example):
     example_dir = "expression"
 
 
-testset += ExampleExpression(["graph_dataflow.py",
-                              Example.get_sample("sc_connect_back.bin"),
-                              "0x2e"],
-                             products=["data.txt"])
+for args in [[], ["--symb"]]:
+    testset += ExampleExpression(["graph_dataflow.py",
+                                  Example.get_sample("sc_connect_back.bin"),
+                                  "0x2e"] + args,
+                                 products=["data.txt"])
 testset += ExampleExpression(["asm_to_ir.py"],
                              products=["graph.txt", "graph2.txt"])
 testset += ExampleExpression(["get_read_write.py"],

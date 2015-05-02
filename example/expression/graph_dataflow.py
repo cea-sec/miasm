@@ -1,42 +1,21 @@
-import os
-import sys
-from miasm2.expression.expression import *
-from miasm2.expression.simplifications import expr_simp
-from miasm2.arch.x86.ira import ir_a_x86_32
-from miasm2.arch.x86.arch import mn_x86
-from miasm2.core import asmbloc
-from miasm2.core.bin_stream import bin_stream_str
-from elfesteem import pe_init
-from optparse import OptionParser
+from argparse import ArgumentParser
 from pdb import pm
-from miasm2.ir.ir import ir
-from miasm2.arch.x86.regs import *
+from pprint import pprint
+
+from miasm2.expression.expression import get_expr_mem
+from miasm2.arch.x86.ira import ir_a_x86_32
 from miasm2.arch.x86.disasm import dis_x86_32
-
 from miasm2.analysis.data_analysis import intra_bloc_flow_raw, inter_bloc_flow
-
 from miasm2.core.graph import DiGraph
 from miasm2.ir.symbexec import symbexec
 
-from pprint import pprint as pp
 
-filename = os.environ.get('PYTHONSTARTUP')
-if filename and os.path.isfile(filename):
-    execfile(filename)
-
-print """
-Simple expression use for generating dataflow graph
-Exemple:
-python manip_expression4.py  sc_connect_back.bin 0x2e
-"""
-
-
-parser = OptionParser(usage="usage: %prog [options] sc_connect_back.bin")
-
-(options, args) = parser.parse_args(sys.argv[1:])
-if len(args) != 2:
-    parser.print_help()
-    sys.exit(0)
+parser = ArgumentParser("Simple expression use for generating dataflow graph")
+parser.add_argument("filename", help="File to analyse")
+parser.add_argument("addr", help="Function's address")
+parser.add_argument("-s", "--symb", help="Symbolic execution mode",
+                    action="store_true")
+args = parser.parse_args()
 
 
 def node_x_2_id(n, x):
@@ -44,49 +23,44 @@ def node_x_2_id(n, x):
 
 
 def get_node_name(label, i, n):
-    # n_name = "%s_%d_%s"%(label.name, i, n)
     n_name = (label.name, i, n)
     return n_name
 
 
 def get_modified_symbols(sb):
-    # get modified IDS
+    # Get modified IDS
     ids = sb.symbols.symbols_id.keys()
     ids.sort()
     out = {}
+    regs_init = sb.ir_arch.arch.regs.regs_init
     for i in ids:
-        if i in sb.arch.regs.regs_init and \
+        if i in regs_init and \
                 i in sb.symbols.symbols_id and \
-                sb.symbols.symbols_id[i] == sb.arch.regs.regs_init[i]:
+                sb.symbols.symbols_id[i] == regs_init[i]:
             continue
-        # print i, sb.symbols.symbols_id[i]
         out[i] = sb.symbols.symbols_id[i]
 
-    # get mem IDS
+    # Get mem IDS
     mems = sb.symbols.symbols_mem.values()
     for m, v in mems:
         print m, v
         out[m] = v
-    pp([(str(x[0]), str(x[1])) for x in out.items()])
+    pprint([(str(x[0]), str(x[1])) for x in out.items()])
     return out
 
 
 def intra_bloc_flow_symb(ir_arch, flow_graph, irbloc):
-    symbols_init = {}
-    for i, r in enumerate(all_regs_ids):
-        symbols_init[r] = all_regs_ids_init[i]
+    symbols_init = ir_arch.arch.regs.regs_init.copy()
     sb = symbexec(ir_arch, symbols_init)
     sb.emulbloc(irbloc)
     print '*' * 40
     print irbloc
-    # sb.dump_mem()
-    # sb.dump_id()
     in_nodes = {}
     out_nodes = {}
 
     out = get_modified_symbols(sb)
     current_nodes = {}
-    # gen mem arg to mem node links
+    # Gen mem arg to mem node links
     for dst, src in out.items():
         for n in [dst, src]:
 
@@ -98,7 +72,7 @@ def intra_bloc_flow_symb(ir_arch, flow_graph, irbloc):
             if not n == src:
                 continue
             o_r = n.arg.get_r(mem_read=False, cst_read=True)
-            for n_r in o_r:
+            for i, n_r in enumerate(o_r):
                 if n_r in current_nodes:
                     node_n_r = current_nodes[n_r]
                 else:
@@ -107,7 +81,7 @@ def intra_bloc_flow_symb(ir_arch, flow_graph, irbloc):
                     in_nodes[n_r] = node_n_r
                 flow_graph.add_uniq_edge(node_n_r, node_n_w)
 
-    # gen data flow links
+    # Gen data flow links
     for dst, src in out.items():
         nodes_r = src.get_r(mem_read=False, cst_read=True)
         nodes_w = set([dst])
@@ -131,18 +105,12 @@ def intra_bloc_flow_symb(ir_arch, flow_graph, irbloc):
     irbloc.out_nodes = out_nodes
 
 
-def node2str(self, n):
-    label, i, node = n
-    # print n
-    out = "%s,%s\\l\\\n%s" % n
+def node2str(self, node):
+    out = "%s,%s\\l\\\n%s" % node
     return out
 
 
-def gen_bloc_data_flow_graph(ir_arch, in_str, ad):  # arch, attrib, pool_bin, bloc, symbol_pool):
-    out_str = ""
-
-    # ir_arch = ir_x86_32(symbol_pool)
-
+def gen_bloc_data_flow_graph(ir_arch, ad, block_flow_cb):
     for irbloc in ir_arch.blocs.values():
         print irbloc
 
@@ -157,14 +125,9 @@ def gen_bloc_data_flow_graph(ir_arch, in_str, ad):  # arch, attrib, pool_bin, bl
     assert(irbloc_0 is not None)
     flow_graph = DiGraph()
     flow_graph.node2str = lambda n: node2str(flow_graph, n)
-    done = set()
-    todo = set([irbloc_0.label])
-
-    bloc2w = {}
 
     for irbloc in ir_arch.blocs.values():
-        intra_bloc_flow_raw(ir_arch, flow_graph, irbloc)
-        # intra_bloc_flow_symb(ir_arch, flow_graph, irbloc)
+        block_flow_cb(ir_arch, flow_graph, irbloc)
 
     for irbloc in ir_arch.blocs.values():
         print irbloc
@@ -174,14 +137,13 @@ def gen_bloc_data_flow_graph(ir_arch, in_str, ad):  # arch, attrib, pool_bin, bl
     print '*' * 20, 'interbloc', '*' * 20
     inter_bloc_flow(ir_arch, flow_graph, irbloc_0.label)
 
-    # sys.path.append('/home/serpilliere/projet/m2_devel/miasm2/core')
     # from graph_qt import graph_qt
     # graph_qt(flow_graph)
     open('data.txt', 'w').write(flow_graph.dot())
 
 
-data = open(args[0]).read()
-ad = int(args[1], 16)
+data = open(args.filename).read()
+ad = int(args.addr, 16)
 
 print 'disasm...'
 mdis = dis_x86_32(data)
@@ -203,7 +165,12 @@ for irbloc in ir_arch.blocs.values():
         continue
 
 
-out_str = gen_bloc_data_flow_graph(ir_arch, mdis.bs, ad)
+if args.symb:
+    block_flow_cb = intra_bloc_flow_symb
+else:
+    block_flow_cb = intra_bloc_flow_raw
+
+gen_bloc_data_flow_graph(ir_arch, ad, block_flow_cb)
 
 print '*' * 40
 print """
