@@ -312,3 +312,26 @@ shape = "box"
                     idoms[n] = p
                     break
         return idoms
+
+    def compute_dominance_frontier(self, head):
+        """
+        Compute the dominance frontier of the graph
+
+        Source: Cooper, Keith D., Timothy J. Harvey, and Ken Kennedy.
+        "A simple, fast dominance algorithm."
+        Software Practice & Experience 4 (2001), p. 9
+        """
+        idoms = self.compute_immediate_dominators(head)
+        df = {}
+
+        for n in idoms:
+            if self._nodes_pred[n] >= 2:
+                for p in self.predecessors_iter(n):
+                    runner = p
+                    while runner != idoms[n]:
+                        if n not in df:
+                            df[n] = set()
+
+                        df[n].add(runner)
+                        runner = idoms[runner]
+        return df
