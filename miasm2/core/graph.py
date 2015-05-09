@@ -306,7 +306,7 @@ shape = "box"
         dominators = self.compute_dominators(head)
         idoms = {}
 
-        for n in dominators.keys():
+        for n in dominators:
             for p in self.reachable_parents(n):
                 if p in dominators[n] and n != p:
                     idoms[n] = p
