@@ -300,3 +300,15 @@ shape = "box"
         return self._walk_generic_dominator(node,
                                             postdominators,
                                             self.successors_iter)
+
+    def compute_immediate_dominators(self, head):
+        """Compute the immediate dominators of the graph"""
+        dominators = self.compute_dominators(head)
+        idoms = {}
+
+        for n in dominators.keys():
+            for p in self.reachable_parents(n):
+                if p in dominators[n] and n != p:
+                    idoms[n] = p
+                    break
+        return idoms
