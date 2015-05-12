@@ -328,6 +328,8 @@ shape = "box"
             if self._nodes_pred[n] >= 2:
                 for p in self.predecessors_iter(n):
                     runner = p
+                    if runner not in idoms:
+                        continue
                     while runner != idoms[n]:
                         if n not in df:
                             df[n] = set()
