@@ -54,12 +54,19 @@ g2.add_edge(2, 3)
 g2.add_edge(3, 4)
 g2.add_edge(5, 6)
 g2.add_edge(6, 3)
+g2.add_edge(4, 7)
+g2.add_edge(4, 8)
+g2.add_edge(7, 9)
+g2.add_edge(8, 9)
 
 dominators = g2.compute_dominators(5)
 assert(dominators == {3: set([3, 5, 6]),
                       4: set([3, 4, 5, 6]),
                       5: set([5]),
-                      6: set([5, 6])})
+                      6: set([5, 6]),
+                      7: set([3, 4, 5, 6, 7]),
+                      8: set([3, 4, 5, 6, 8]),
+                      9: set([3, 4, 5, 6, 9])})
 
 
 assert(list(g2.walk_dominators(1, dominators)) == [])
@@ -113,3 +120,36 @@ assert(list(g2.walk_postdominators(3, postdominators)) == [4])
 assert(list(g2.walk_postdominators(4, postdominators)) == [])
 assert(list(g2.walk_postdominators(5, postdominators)) == [6, 3, 4])
 assert(list(g2.walk_postdominators(6, postdominators)) == [3, 4])
+
+idoms = g1.compute_immediate_dominators(1)
+assert(idoms == {2: 1,
+                 3: 2,
+                 4: 2,
+                 5: 2,
+                 6: 2})
+
+idoms = g2.compute_immediate_dominators(1)
+assert(idoms == {2: 1,
+                 3: 2,
+                 4: 3,
+                 7: 4,
+                 8: 4,
+                 9: 4})
+
+idoms = g2.compute_immediate_dominators(5)
+assert(idoms == {3: 6,
+                 4: 3,
+                 6: 5,
+                 7: 4,
+                 8: 4,
+                 9: 4})
+
+frontier = g1.compute_dominance_frontier(1)
+assert(frontier == {2: set([2, 5]),
+                    5: set([3, 4])})
+
+frontier = g2.compute_dominance_frontier(1)
+assert(frontier == {9: set([7, 8])})
+
+frontier = g2.compute_dominance_frontier(5)
+assert(frontier == {9: set([7, 8])})
