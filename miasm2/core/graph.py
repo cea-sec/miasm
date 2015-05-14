@@ -306,10 +306,10 @@ shape = "box"
         dominators = self.compute_dominators(head)
         idoms = {}
 
-        for n in dominators:
-            for p in self.reachable_parents(n):
-                if p in dominators[n] and n != p:
-                    idoms[n] = p
+        for node in dominators:
+            for predecessor in self.reachable_parents(node):
+                if predecessor in dominators[node] and node != predecessor:
+                    idoms[node] = predecessor
                     break
         return idoms
 
@@ -322,18 +322,18 @@ shape = "box"
         Software Practice & Experience 4 (2001), p. 9
         """
         idoms = self.compute_immediate_dominators(head)
-        df = {}
+        frontier = {}
 
-        for n in idoms:
-            if self._nodes_pred[n] >= 2:
-                for p in self.predecessors_iter(n):
-                    runner = p
+        for node in idoms:
+            if self._nodes_pred[node] >= 2:
+                for predecessor in self.predecessors_iter(node):
+                    runner = predecessor
                     if runner not in idoms:
                         continue
-                    while runner != idoms[n]:
-                        if n not in df:
-                            df[n] = set()
+                    while runner != idoms[node]:
+                        if node not in frontier:
+                            frontier[node] = set()
 
-                        df[n].add(runner)
+                        frontier[node].add(runner)
                         runner = idoms[runner]
-        return df
+        return frontier
