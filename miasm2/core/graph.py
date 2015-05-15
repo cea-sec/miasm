@@ -145,7 +145,7 @@ shape = "box"
 
     @staticmethod
     def _reachable_nodes(head, next_cb):
-        """Generic algorithm to compute every nodes reachable from/to node
+        """Generic algorithm to compute all nodes reachable from/to node
         @head"""
 
         todo = set([head])
@@ -160,11 +160,13 @@ shape = "box"
                 todo.add(next_node)
 
     def reachable_sons(self, head):
-        """Compute every nodes reachable from node @head"""
+        """Compute all nodes reachable from node @head. Each son is an
+        immediate successor of an arbitrary, already yielded son of @head"""
         return self._reachable_nodes(head, self.successors_iter)
 
     def reachable_parents(self, leaf):
-        """Compute every parents of node @leaf"""
+        """Compute all parents of node @leaf. Each parent is an immediate
+        predecessor of an arbitrary, already yielded parent of @leaf"""
         return self._reachable_nodes(leaf, self.predecessors_iter)
 
     @staticmethod
@@ -302,7 +304,12 @@ shape = "box"
                                             self.successors_iter)
 
     def compute_immediate_dominators(self, head):
-        """Compute the immediate dominators of the graph"""
+        """
+        Compute the immediate dominators of the graph
+
+        Depends on the implementation characteristics of reachable_parents.
+        Modifications could break this algorithm.
+        """
         dominators = self.compute_dominators(head)
         idoms = {}
 
