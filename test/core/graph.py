@@ -145,11 +145,15 @@ assert(idoms == {3: 6,
                  9: 4})
 
 frontier = g1.compute_dominance_frontier(1)
-assert(frontier == {2: set([2, 5]),
-                    5: set([3, 4])})
+assert(frontier == {2: set([2]),
+                    3: set([5]),
+                    4: set([5]),
+                    5: set([2])})
 
 frontier = g2.compute_dominance_frontier(1)
-assert(frontier == {9: set([7, 8])})
+assert(frontier == {7: set([9]),
+                    8: set([9])})
 
 frontier = g2.compute_dominance_frontier(5)
-assert(frontier == {9: set([7, 8])})
+assert(frontier == {7: set([9]),
+                    8: set([9])})

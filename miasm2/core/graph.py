@@ -338,9 +338,9 @@ shape = "box"
                     if runner not in idoms:
                         continue
                     while runner != idoms[node]:
-                        if node not in frontier:
-                            frontier[node] = set()
+                        if runner not in frontier:
+                            frontier[runner] = set()
 
-                        frontier[node].add(runner)
+                        frontier[runner].add(node)
                         runner = idoms[runner]
         return frontier
