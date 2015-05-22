@@ -428,7 +428,10 @@ emulate library functions effects.
 
 Documentation
 =============
+
 TODO
+
+An auto-generated documentation is available [here](http://miasmdoc.ajax.re).
 
 Obtaining Miasm
 ===============
