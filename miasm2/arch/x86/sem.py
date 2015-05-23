@@ -3281,6 +3281,7 @@ mnemo_func = {'mov': mov,
               'lodsb': lambda ir, instr: lods(ir, instr, 8),
               'lodsw': lambda ir, instr: lods(ir, instr, 16),
               'lodsd': lambda ir, instr: lods(ir, instr, 32),
+              'lodsq': lambda ir, instr: lods(ir, instr, 64),
 
               'movsb': lambda ir, instr: movs(ir, instr, 8),
               'movsw': lambda ir, instr: movs(ir, instr, 16),
