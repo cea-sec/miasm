@@ -226,7 +226,11 @@ def vm2pe(myjit, fname, libs=None, e_orig=None,
           min_addr=None, max_addr=None,
           min_section_offset=0x1000, img_base=None,
           added_funcs=None):
-    mye = pe_init.PE()
+    if e_orig:
+        size = e_orig._wsize
+    else:
+        size = 32
+    mye = pe_init.PE(wsize=size)
 
     if min_addr is None and e_orig is not None:
         min_addr = min([e_orig.rva2virt(s.addr) for s in e_orig.SHList])
@@ -241,7 +245,7 @@ def vm2pe(myjit, fname, libs=None, e_orig=None,
     all_mem = myjit.vm.get_all_memory()
     addrs = all_mem.keys()
     addrs.sort()
-    mye.Opthdr.AddressOfEntryPoint = mye.virt2rva(myjit.cpu.EIP)
+    mye.Opthdr.AddressOfEntryPoint = mye.virt2rva(myjit.pc)
     first = True
     for ad in addrs:
         if not min_addr <= ad < max_addr:
