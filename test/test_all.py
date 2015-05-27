@@ -243,7 +243,7 @@ class ExampleDisassembler(Example):
 for script, prods in [(["single_instr.py"], []),
                       (["function.py"], ["graph.txt"]),
                       (["file.py", Example.get_sample("box_upx.exe"),
-                        "0x410f90"], ["graph.txt"]),
+                        "0x407570"], ["graph.txt"]),
                       (["full.py", Example.get_sample("box_upx.exe")],
                        ["graph_execflow.txt", "lines.txt"]),
                       ]:
