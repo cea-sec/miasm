@@ -304,17 +304,12 @@ shape = "box"
                                             self.successors_iter)
 
     def compute_immediate_dominators(self, head):
-        """
-        Compute the immediate dominators of the graph
-
-        Depends on the implementation characteristics of reachable_parents.
-        Modifications could break this algorithm.
-        """
+        """Compute the immediate dominators of the graph"""
         dominators = self.compute_dominators(head)
         idoms = {}
 
         for node in dominators:
-            for predecessor in self.reachable_parents(node):
+            for predecessor in self.walk_dominators(node, dominators):
                 if predecessor in dominators[node] and node != predecessor:
                     idoms[node] = predecessor
                     break
