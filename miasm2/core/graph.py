@@ -229,3 +229,74 @@ shape = "box"
                                                 self.reachable_parents,
                                                 self.successors_iter,
                                                 self.predecessors_iter)
+
+    @staticmethod
+    def _walk_generic_dominator(node, gen_dominators, succ_cb):
+        """Generic algorithm to return an iterator of the ordered list of
+        @node's dominators/post_dominator.
+
+        The function doesn't return the self reference in dominators.
+        @node: The start node
+        @gen_dominators: The dictionnary containing at least node's
+        dominators/post_dominators
+        @succ_cb: return predecessors/succesors of a node
+
+        """
+        # Init
+        done = set()
+        if node not in gen_dominators:
+            # We are in a branch which doesn't reach head
+            return
+        node_gen_dominators = set(gen_dominators[node])
+        todo = set([node])
+
+        # Avoid working on itself
+        node_gen_dominators.remove(node)
+
+        # For each level
+        while node_gen_dominators:
+            new_node = None
+
+            # Worklist pattern
+            while todo:
+                node = todo.pop()
+                if node in done:
+                    continue
+                if node in node_gen_dominators:
+                    new_node = node
+                    break
+
+                # Avoid loops
+                done.add(node)
+
+                # Look for the next level
+                for pred in succ_cb(node):
+                    todo.add(pred)
+
+            # Return the node; it's the next starting point
+            assert(new_node is not None)
+            yield new_node
+            node_gen_dominators.remove(new_node)
+            todo = set([new_node])
+
+    def walk_dominators(self, node, dominators):
+        """Return an iterator of the ordered list of @node's dominators
+        The function doesn't return the self reference in dominators.
+        @node: The start node
+        @dominators: The dictionnary containing at least node's dominators
+        """
+        return self._walk_generic_dominator(node,
+                                            dominators,
+                                            self.predecessors_iter)
+
+    def walk_postdominators(self, node, postdominators):
+        """Return an iterator of the ordered list of @node's postdominators
+        The function doesn't return the self reference in postdominators.
+        @node: The start node
+        @postdominators: The dictionnary containing at least node's
+        postdominators
+
+        """
+        return self._walk_generic_dominator(node,
+                                            postdominators,
+                                            self.successors_iter)
