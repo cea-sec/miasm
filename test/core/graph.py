@@ -75,6 +75,9 @@ assert(list(g2.walk_dominators(3, dominators)) == [6, 5])
 assert(list(g2.walk_dominators(4, dominators)) == [3, 6, 5])
 assert(list(g2.walk_dominators(5, dominators)) == [])
 assert(list(g2.walk_dominators(6, dominators)) == [5])
+assert(list(g2.walk_dominators(7, dominators)) == [4, 3, 6, 5])
+assert(list(g2.walk_dominators(8, dominators)) == [4, 3, 6, 5])
+assert(list(g2.walk_dominators(9, dominators)) == [4, 3, 6, 5])
 
 postdominators = g1.compute_postdominators(6)
 assert(postdominators == {1: set([1, 2, 6]),
@@ -120,6 +123,10 @@ assert(list(g2.walk_postdominators(3, postdominators)) == [4])
 assert(list(g2.walk_postdominators(4, postdominators)) == [])
 assert(list(g2.walk_postdominators(5, postdominators)) == [6, 3, 4])
 assert(list(g2.walk_postdominators(6, postdominators)) == [3, 4])
+assert(list(g2.walk_postdominators(7, postdominators)) == [])
+assert(list(g2.walk_postdominators(8, postdominators)) == [])
+assert(list(g2.walk_postdominators(9, postdominators)) == [])
+
 
 idoms = g1.compute_immediate_dominators(1)
 assert(idoms == {2: 1,
