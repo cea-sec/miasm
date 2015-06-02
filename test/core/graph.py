@@ -40,6 +40,13 @@ assert(dominators == {1: set([1]),
                       5: set([1, 2, 5]),
                       6: set([1, 2, 6])})
 
+assert(list(g1.walk_dominators(1, dominators)) == [])
+assert(list(g1.walk_dominators(2, dominators)) == [1])
+assert(list(g1.walk_dominators(3, dominators)) == [2, 1])
+assert(list(g1.walk_dominators(4, dominators)) == [2, 1])
+assert(list(g1.walk_dominators(5, dominators)) == [2, 1])
+assert(list(g1.walk_dominators(6, dominators)) == [2, 1])
+
 # Regression test with multiple heads
 g2 = DiGraph()
 g2.add_edge(1, 2)
@@ -55,6 +62,13 @@ assert(dominators == {3: set([3, 5, 6]),
                       6: set([5, 6])})
 
 
+assert(list(g2.walk_dominators(1, dominators)) == [])
+assert(list(g2.walk_dominators(2, dominators)) == [])
+assert(list(g2.walk_dominators(3, dominators)) == [6, 5])
+assert(list(g2.walk_dominators(4, dominators)) == [3, 6, 5])
+assert(list(g2.walk_dominators(5, dominators)) == [])
+assert(list(g2.walk_dominators(6, dominators)) == [5])
+
 postdominators = g1.compute_postdominators(6)
 assert(postdominators == {1: set([1, 2, 6]),
                           2: set([2, 6]),
@@ -63,12 +77,27 @@ assert(postdominators == {1: set([1, 2, 6]),
                           5: set([2, 5, 6]),
                           6: set([6])})
 
+assert(list(g1.walk_postdominators(1, postdominators)) == [2, 6])
+assert(list(g1.walk_postdominators(2, postdominators)) == [6])
+assert(list(g1.walk_postdominators(3, postdominators)) == [5, 2, 6])
+assert(list(g1.walk_postdominators(4, postdominators)) == [5, 2, 6])
+assert(list(g1.walk_postdominators(5, postdominators)) == [2, 6])
+assert(list(g1.walk_postdominators(6, postdominators)) == [])
+
+
 postdominators = g1.compute_postdominators(5)
 assert(postdominators == {1: set([1, 2, 5]),
                           2: set([2, 5]),
                           3: set([3, 5]),
                           4: set([4, 5]),
                           5: set([5])})
+
+assert(list(g1.walk_postdominators(1, postdominators)) == [2, 5])
+assert(list(g1.walk_postdominators(2, postdominators)) == [5])
+assert(list(g1.walk_postdominators(3, postdominators)) == [5])
+assert(list(g1.walk_postdominators(4, postdominators)) == [5])
+assert(list(g1.walk_postdominators(5, postdominators)) == [])
+assert(list(g1.walk_postdominators(6, postdominators)) == [])
 
 postdominators = g2.compute_postdominators(4)
 assert(postdominators == {1: set([1, 2, 3, 4]),
@@ -77,3 +106,10 @@ assert(postdominators == {1: set([1, 2, 3, 4]),
                           4: set([4]),
                           5: set([3, 4, 5, 6]),
                           6: set([3, 4, 6])})
+
+assert(list(g2.walk_postdominators(1, postdominators)) == [2, 3, 4])
+assert(list(g2.walk_postdominators(2, postdominators)) == [3, 4])
+assert(list(g2.walk_postdominators(3, postdominators)) == [4])
+assert(list(g2.walk_postdominators(4, postdominators)) == [])
+assert(list(g2.walk_postdominators(5, postdominators)) == [6, 3, 4])
+assert(list(g2.walk_postdominators(6, postdominators)) == [3, 4])
