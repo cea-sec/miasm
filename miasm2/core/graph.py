@@ -145,7 +145,7 @@ shape = "box"
 
     @staticmethod
     def _reachable_nodes(head, next_cb):
-        """Generic algorithm to compute every nodes reachable from/to node
+        """Generic algorithm to compute all nodes reachable from/to node
         @head"""
 
         todo = set([head])
@@ -160,11 +160,13 @@ shape = "box"
                 todo.add(next_node)
 
     def reachable_sons(self, head):
-        """Compute every nodes reachable from node @head"""
+        """Compute all nodes reachable from node @head. Each son is an
+        immediate successor of an arbitrary, already yielded son of @head"""
         return self._reachable_nodes(head, self.successors_iter)
 
     def reachable_parents(self, leaf):
-        """Compute every parents of node @leaf"""
+        """Compute all parents of node @leaf. Each parent is an immediate
+        predecessor of an arbitrary, already yielded parent of @leaf"""
         return self._reachable_nodes(leaf, self.predecessors_iter)
 
     @staticmethod
@@ -300,3 +302,40 @@ shape = "box"
         return self._walk_generic_dominator(node,
                                             postdominators,
                                             self.successors_iter)
+
+    def compute_immediate_dominators(self, head):
+        """Compute the immediate dominators of the graph"""
+        dominators = self.compute_dominators(head)
+        idoms = {}
+
+        for node in dominators:
+            for predecessor in self.walk_dominators(node, dominators):
+                if predecessor in dominators[node] and node != predecessor:
+                    idoms[node] = predecessor
+                    break
+        return idoms
+
+    def compute_dominance_frontier(self, head):
+        """
+        Compute the dominance frontier of the graph
+
+        Source: Cooper, Keith D., Timothy J. Harvey, and Ken Kennedy.
+        "A simple, fast dominance algorithm."
+        Software Practice & Experience 4 (2001), p. 9
+        """
+        idoms = self.compute_immediate_dominators(head)
+        frontier = {}
+
+        for node in idoms:
+            if self._nodes_pred[node] >= 2:
+                for predecessor in self.predecessors_iter(node):
+                    runner = predecessor
+                    if runner not in idoms:
+                        continue
+                    while runner != idoms[node]:
+                        if runner not in frontier:
+                            frontier[runner] = set()
+
+                        frontier[runner].add(node)
+                        runner = idoms[runner]
+        return frontier
