@@ -466,7 +466,7 @@ def split_bloc(mnemo, attrib, pool_bin, blocs,
             log_asmbloc.debug("split bloc %x", off)
             if new_b is None:
                 log_asmbloc.error("cannot split %x!!", off)
-                break
+                continue
             if dis_bloc_callback:
                 offsets_to_dis = set(
                     [x.label.offset for x in new_b.bto
