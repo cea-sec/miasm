@@ -201,8 +201,59 @@ to_test = [(ExprInt32(1) - ExprInt32(1), ExprInt32(0)),
      (ExprCompose([(a, 0, 32), (ExprInt32(0), 32, 64)]) * ExprInt64(0x123))[32:64]),
 
     (ExprInt32(0x12),
-     ExprInt32(0x12L))
+     ExprInt32(0x12L)),
 
+
+    (ExprCompose(((a, 0, 32), (b, 32, 64), (c, 64, 96)))[:16],
+     a[:16]),
+    (ExprCompose(((a, 0, 32), (b, 32, 64), (c, 64, 96)))[16:32],
+     a[16:]),
+    (ExprCompose(((a, 0, 32), (b, 32, 64), (c, 64, 96)))[32:48],
+     b[:16]),
+    (ExprCompose(((a, 0, 32), (b, 32, 64), (c, 64, 96)))[48:64],
+     b[16:]),
+    (ExprCompose(((a, 0, 32), (b, 32, 64), (c, 64, 96)))[64:80],
+     c[:16]),
+    (ExprCompose(((a, 0, 32), (b, 32, 64), (c, 64, 96)))[80:],
+     c[16:]),
+    (ExprCompose(((a, 0, 32), (b, 32, 64), (c, 64, 96)))[80:82],
+     c[16:18]),
+    (ExprCompose(((a, 0, 32), (b, 32, 64), (c, 64, 96)))[16:48],
+     ExprCompose(((a[16:], 0, 16), (b[:16], 16, 32)))),
+    (ExprCompose(((a, 0, 32), (b, 32, 64), (c, 64, 96)))[48:80],
+     ExprCompose(((b[16:], 0, 16), (c[:16], 16, 32)))),
+
+    (ExprCompose(((a[0:8], 0, 8),
+                  (b[8:16], 8, 16),
+                  (ExprInt(uint48(0x0L)), 16, 64)))[12:32],
+     ExprCompose(((b[12:16], 0, 4), (ExprInt(uint16(0)), 4, 20)))
+       ),
+
+    (ExprCompose(((ExprCompose(((a[:8], 0, 8),
+                                (ExprInt(uint56(0x0L)), 8, 64)))[8:32]
+                   &
+                   ExprInt(uint24(0x1L)), 0, 24),
+                  (ExprInt(uint40(0x0L)), 24, 64))),
+     ExprInt64(0)),
+
+    (ExprCompose(((ExprCompose(((a[:8], 0, 8),
+                                (ExprInt(uint56(0x0L)), 8, 64)))[:8]
+                   &
+                   ExprInt(uint8(0x1L)), 0, 8),
+                  (ExprInt(uint56(0x0L)), 8, 64))),
+     ExprCompose(((a[:8]&ExprInt8(1), 0, 8), (ExprInt(uint56(0)), 8, 64)))),
+
+    (ExprCompose(((ExprCompose(((a[:8], 0, 8),
+                                (ExprInt(uint56(0x0L)), 8, 64)))[:32]
+                   &
+                   ExprInt(uint32(0x1L)), 0, 32),
+                  (ExprInt(uint32(0x0L)), 32, 64))),
+     ExprCompose(((ExprCompose(((ExprSlice(a, 0, 8), 0, 8),
+                                (ExprInt(uint24(0x0L)), 8, 32)))
+                   &
+                   ExprInt(uint32(0x1L)), 0, 32),
+                  (ExprInt(uint32(0x0L)), 32, 64)))
+       ),
 
 ]
 

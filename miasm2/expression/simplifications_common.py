@@ -416,12 +416,43 @@ def simp_slice(e_s, e):
         new_e = ExprSlice(e.arg.arg, e.start + e.arg.start,
                           e.start + e.arg.start + (e.stop - e.start))
         return new_e
-    # Slice(Compose(A), x) => Slice(A, y)
     elif isinstance(e.arg, ExprCompose):
+        # Slice(Compose(A), x) => Slice(A, y)
         for a in e.arg.args:
             if a[1] <= e.start and a[2] >= e.stop:
                 new_e = a[0][e.start - a[1]:e.stop - a[1]]
                 return new_e
+        # Slice(Compose(A, B, C), x) => Compose(A, B, C) with truncated A/B/C
+        out = []
+        for arg, s_start, s_stop in e.arg.args:
+            # arg is before slice start
+            if e.start >= s_stop:
+                continue
+            # arg is after slice stop
+            elif e.stop <= s_start:
+                continue
+            # arg is fully included in slice
+            elif e.start <= s_start and s_stop <= e.stop:
+                out.append((arg, s_start, s_stop))
+                continue
+            # arg is truncated at start
+            if e.start > s_start:
+                slice_start = e.start - s_start
+                a_start = 0
+            else:
+                # arg is not truncated at start
+                slice_start = 0
+                a_start = s_start - e.start
+            # a is truncated at stop
+            if e.stop < s_stop:
+                slice_stop = arg.size + e.stop - s_stop - slice_start
+                a_stop = e.stop - e.start
+            else:
+                slice_stop = arg.size
+                a_stop = s_stop - e.start
+            out.append((arg[slice_start:slice_stop], a_start, a_stop))
+        return ExprCompose(out)
+
     # ExprMem(x, size)[:A] => ExprMem(x, a)
     # XXXX todo hum, is it safe?
     elif (isinstance(e.arg, ExprMem) and
