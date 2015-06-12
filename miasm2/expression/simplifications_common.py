@@ -15,8 +15,6 @@ def simp_cst_propagation(e_s, e):
      """
 
     # merge associatif op
-    if not isinstance(e, ExprOp):
-        return e
     args = list(e.args)
     op = e.op
     # simpl integer manip
@@ -334,8 +332,6 @@ def simp_cst_propagation(e_s, e):
 def simp_cond_op_int(e_s, e):
     "Extract conditions from operations"
 
-    if not isinstance(e, ExprOp):
-        return e
     if not e.op in ["+", "|", "^", "&", "*", '<<', '>>', 'a>>']:
         return e
     if len(e.args) < 2:
@@ -361,8 +357,6 @@ def simp_cond_op_int(e_s, e):
 
 def simp_cond_factor(e_s, e):
     "Merge similar conditions"
-    if not isinstance(e, ExprOp):
-        return e
     if not e.op in ["+", "|", "^", "&", "*", '<<', '>>', 'a>>']:
         return e
     if len(e.args) < 2:
@@ -552,8 +546,6 @@ def simp_compose(e_s, e):
 
 def simp_cond(e_s, e):
     "Common simplifications on ExprCond"
-    if not isinstance(e, ExprCond):
-        return e
     # eval exprcond src1/src2 with satifiable/unsatisfiable condition
     # propagation
     if (not isinstance(e.cond, ExprInt)) and e.cond.size == 1:
