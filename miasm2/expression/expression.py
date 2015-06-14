@@ -735,10 +735,19 @@ class ExprOp(Expr):
 
         if len(sizes) != 1:
             # Special cases : operande sizes can differ
-            if op not in ["segm"]:
+            if op not in ["segm", "ite"]:
                 raise ValueError(
                     "sanitycheck: ExprOp args must have same size! %s" %
                                  ([(str(arg), arg.size) for arg in args]))
+
+        if op in ["ite"]:
+            if len(args) != 3:
+                raise ValueError("sanitycheck: ExprOp 'ite' must have three args!")
+
+            elif args[1].size != args[2].size:
+                raise ValueError(
+                    "sanitycheck: ExprOp 'ite' args must have same size! %s" %
+                                 ([(str(arg), arg.size) for arg in args[1:]]))
 
         if not isinstance(op, str):
             raise ValueError("ExprOp: 'op' argument must be a string")
@@ -771,7 +780,7 @@ class ExprOp(Expr):
             sz = 64
         elif self._op in ['double_to_mem_80', 'double_to_int_80', 'double_trunc_to_int_80']:
             sz = 80
-        elif self._op in ['segm']:
+        elif self._op in ['segm', 'ite']:
             sz = self._args[1].size
         else:
             if None in sizes:
