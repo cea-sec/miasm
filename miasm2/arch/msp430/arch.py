@@ -11,7 +11,7 @@ import miasm2.arch.msp430.regs as regs_module
 from miasm2.arch.msp430.regs import *
 from miasm2.core.asmbloc import asm_label
 
-log = logging.getLogger("armdis")
+log = logging.getLogger("msp430dis")
 console_handler = logging.StreamHandler()
 console_handler.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
 log.addHandler(console_handler)
