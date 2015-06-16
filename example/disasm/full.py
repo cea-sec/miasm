@@ -89,7 +89,7 @@ addrs = [int(a, 16) for a in args.address]
 if len(addrs) == 0 and default_addr is not None:
     addrs.append(default_addr)
 for ad in addrs:
-    todo = [(mdis, None, ad)]
+    todo += [(mdis, None, ad)]
 
 done = set()
 all_funcs = set()
