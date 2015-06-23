@@ -958,9 +958,8 @@ class instruction(object):
                 if not name in symbols:
                     continue
                 if symbols[name].offset is None:
-                    default_size = self.get_symbol_size(x, symbols)
-                    # default value
-                    value = m2_expr.ExprInt_fromsize(default_size, 0)
+                    raise ValueError('The offset of label "%s" cannot be '
+                                     'determined' % name)
                 else:
                     size = x.size
                     if size is None:

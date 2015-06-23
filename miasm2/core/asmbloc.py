@@ -292,6 +292,8 @@ class asm_symbol_pool:
         Note that there is a special case when the offset is a list
         it happens when offsets are recomputed in resolve_symbol*
         """
+        if label is None:
+            raise ValueError('label should not be None')
         if not label.name in self._name2label:
             raise ValueError('label %s not in symbol pool' % label)
         if offset is not None and offset in self._offset2label:
