@@ -712,15 +712,16 @@ def kernel32_VirtualAlloc(jitter):
     ret_ad, args = jitter.func_args_stdcall(['lpvoid', 'dwsize',
                                              'alloc_type', 'flprotect'])
 
-    access_dict = {0x0: 0,
-                   0x1: 0,
-                   0x2: PAGE_READ,
-                   0x4: PAGE_READ | PAGE_WRITE,
-                   0x10: PAGE_EXEC,
-                   0x20: PAGE_EXEC | PAGE_READ,
-                   0x40: PAGE_EXEC | PAGE_READ | PAGE_WRITE,
-                   0x100: 0
-                       }
+    access_dict = {
+        0x0: 0,
+        0x1: 0,
+        0x2: PAGE_READ,
+        0x4: PAGE_READ | PAGE_WRITE,
+        0x10: PAGE_EXEC,
+        0x20: PAGE_EXEC | PAGE_READ,
+        0x40: PAGE_EXEC | PAGE_READ | PAGE_WRITE,
+        0x100: 0,
+    }
 
     # access_dict_inv = dict([(x[1], x[0]) for x in access_dict.items()])
 
@@ -767,13 +768,13 @@ def kernel32_GetModuleFileName(jitter, funcname, set_str):
     if args.hmodule in [0, winobjs.hcurmodule]:
         p = winobjs.module_path[:]
     elif (winobjs.runtime_dll and
-        args.hmodule in winobjs.runtime_dll.name2off.values()):
+          args.hmodule in winobjs.runtime_dll.name2off.values()):
         name_inv = dict([(x[1], x[0])
                         for x in winobjs.runtime_dll.name2off.items()])
         p = name_inv[args.hmodule]
     else:
-        log.warning(('Unknown module 0x%x.' + \
-                        'Set winobjs.hcurmodule and retry'), args.hmodule)
+        log.warning(('Unknown module 0x%x.' +
+                     'Set winobjs.hcurmodule and retry'), args.hmodule)
         p = None
 
     if p is None:
@@ -1682,15 +1683,16 @@ def ntdll_ZwAllocateVirtualMemory(jitter):
     # ad = upck32(jitter.vm.get_mem(args.lppvoid, 4))
     dwsize = upck32(jitter.vm.get_mem(args.pdwsize, 4))
 
-    access_dict = {0x0: 0,
-                   0x1: 0,
-                   0x2: PAGE_READ,
-                   0x4: PAGE_READ | PAGE_WRITE,
-                   0x10: PAGE_EXEC,
-                   0x20: PAGE_EXEC | PAGE_READ,
-                   0x40: PAGE_EXEC | PAGE_READ | PAGE_WRITE,
-                   0x100: 0
-                       }
+    access_dict = {
+        0x0: 0,
+        0x1: 0,
+        0x2: PAGE_READ,
+        0x4: PAGE_READ | PAGE_WRITE,
+        0x10: PAGE_EXEC,
+        0x20: PAGE_EXEC | PAGE_READ,
+        0x40: PAGE_EXEC | PAGE_READ | PAGE_WRITE,
+        0x100: 0,
+    }
 
     # access_dict_inv = dict([(x[1], x[0]) for x in access_dict.items()])
 
@@ -2203,15 +2205,16 @@ def kernel32_MapViewOfFile(jitter):
     length = len(data)
 
     log.debug('mapp total: %x', len(data))
-    access_dict = {0x0: 0,
-                   0x1: 0,
-                   0x2: PAGE_READ,
-                   0x4: PAGE_READ | PAGE_WRITE,
-                   0x10: PAGE_EXEC,
-                   0x20: PAGE_EXEC | PAGE_READ,
-                   0x40: PAGE_EXEC | PAGE_READ | PAGE_WRITE,
-                   0x100: 0
-                       }
+    access_dict = {
+        0x0: 0,
+        0x1: 0,
+        0x2: PAGE_READ,
+        0x4: PAGE_READ | PAGE_WRITE,
+        0x10: PAGE_EXEC,
+        0x20: PAGE_EXEC | PAGE_READ,
+        0x40: PAGE_EXEC | PAGE_READ | PAGE_WRITE,
+        0x100: 0,
+    }
     # access_dict_inv = dict([(x[1], x[0]) for x in access_dict.items()])
 
     if not args.flprotect in access_dict:
@@ -2289,15 +2292,16 @@ def kernel32_GetDiskFreeSpaceW(jitter):
 def kernel32_VirtualQuery(jitter):
     ret_ad, args = jitter.func_args_stdcall(["ad", "lpbuffer", "dwl"])
 
-    access_dict = {0x0: 0,
-                   0x1: 0,
-                   0x2: PAGE_READ,
-                   0x4: PAGE_READ | PAGE_WRITE,
-                   0x10: PAGE_EXEC,
-                   0x20: PAGE_EXEC | PAGE_READ,
-                   0x40: PAGE_EXEC | PAGE_READ | PAGE_WRITE,
-                   0x100: 0
-               }
+    access_dict = {
+        0x0: 0,
+        0x1: 0,
+        0x2: PAGE_READ,
+        0x4: PAGE_READ | PAGE_WRITE,
+        0x10: PAGE_EXEC,
+        0x20: PAGE_EXEC | PAGE_READ,
+        0x40: PAGE_EXEC | PAGE_READ | PAGE_WRITE,
+        0x100: 0,
+    }
     access_dict_inv = dict([(x[1], x[0]) for x in access_dict.iteritems()])
 
     all_mem = jitter.vm.get_all_memory()
@@ -2721,14 +2725,15 @@ def msvcrt_myfopen(jitter, func):
         #pdw(0x11112222)
         jitter.vm.set_mem(alloc_addr, pp)
 
-
     else:
-        raise ValueError('unknown access mode %s'%rw)
+        raise ValueError('unknown access mode %s' % rw)
 
     jitter.func_ret_cdecl(ret_ad, alloc_addr)
 
+
 def msvcrt__wfopen(jitter):
     msvcrt_myfopen(jitter, get_str_unic)
+
 
 def msvcrt_fopen(jitter):
     msvcrt_myfopen(jitter, get_str_ansi)
