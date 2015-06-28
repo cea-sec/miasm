@@ -1,4 +1,9 @@
+import os
+
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
+
+BASE_SB_PATH = "file_sb"
+
 
 def get_str_ansi(jitter, ad_str, max_char=None):
     l = 0
@@ -31,8 +36,6 @@ def set_str_unic(s):
     # TODO: real unicode encoding
     return "\x00".join(list(s)) + '\x00' * 3
 
-
-
 class heap(object):
     "Light heap simulation"
 
@@ -62,3 +65,20 @@ class heap(object):
         jitter.vm.add_memory_page(addr, PAGE_READ | PAGE_WRITE, "\x00" * size)
         return addr
 
+
+def windows_to_sbpath(path):
+    """Convert a Windows path to a valid filename within the sandbox
+    base directory.
+
+    """
+    path = [elt for elt in path.lower().replace('/', '_').split('\\') if elt]
+    return os.path.join(BASE_SB_PATH, *path)
+
+
+def unix_to_sbpath(path):
+    """Convert a POSIX path to a valid filename within the sandbox
+    base directory.
+
+    """
+    path = [elt for elt in path.split('/') if elt]
+    return os.path.join(BASE_SB_PATH, *path)

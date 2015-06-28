@@ -31,8 +31,9 @@ except ImportError:
 
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE, PAGE_EXEC
 from miasm2.core.utils import pck16, pck32, upck32, hexdump
-from miasm2.os_dep.common \
-    import heap, set_str_ansi, set_str_unic, get_str_ansi, get_str_unic
+from miasm2.os_dep.common import \
+    heap, set_str_ansi, set_str_unic, get_str_ansi, get_str_unic, \
+    windows_to_sbpath
 from miasm2.os_dep.win_api_x86_32_seh import FS_0_AD
 
 log = logging.getLogger("win_api_x86_32")
@@ -245,8 +246,6 @@ class mdl:
 
     def __str__(self):
         return struct.pack('LL', self.ad, self.l)
-
-
 
 
 def kernel32_HeapAlloc(jitter):
@@ -521,69 +520,60 @@ def kernel32_CreateFile(jitter, funcname, get_str):
                                              "htemplatefile"])
     fname = get_str(jitter, args.lpfilename)
     log.debug('fname %s', fname)
-    fname_o = fname[:]
     ret = 0xffffffff
 
-    # test if file is original binary
-    f = fname_o
-    """
-    if "\\" in fname_o:
-        f = fname_o[fname_o.rfind('\\')+1:]
-    else:
-        f = fname_o
-    """
-    log.debug("%r %r", f.lower(), winobjs.module_path.lower())
-    is_original_file = f.lower() == winobjs.module_path.lower()
+    log.debug("%r %r", fname.lower(), winobjs.module_path.lower())
+    is_original_file = fname.lower() == winobjs.module_path.lower()
 
     if fname.upper() in [r"\\.\SICE", r"\\.\NTICE", r"\\.\SIWVID"]:
         pass
     elif fname.upper() in ['NUL']:
         ret = winobjs.module_cur_hwnd
     else:
-        # nuxify path
-        fname = fname.replace('\\', "/").lower()
-        # go in sandbox files
-        f = os.path.join('file_sb', fname)
+        # sandox path
+        sb_fname = windows_to_sbpath(fname)
         if args.access & 0x80000000 or args.access == 1:
             # read
             if args.dwcreationdisposition == 2:
                 # create_always
-                if os.access(f, os.R_OK):
+                if os.access(sb_fname, os.R_OK):
                     # but file exist
                     pass
                 else:
                     raise NotImplementedError("Untested case")  # to test
-                    # h = open(f, 'rb+')
+                    # h = open(sb_fname, 'rb+')
             elif args.dwcreationdisposition == 3:
                 # open_existing
-                if os.access(f, os.R_OK):
-                    s = os.stat(f)
+                if os.access(sb_fname, os.R_OK):
+                    s = os.stat(sb_fname)
                     if stat.S_ISDIR(s.st_mode):
-                        ret = winobjs.handle_pool.add(f, 0x1337)
+                        ret = winobjs.handle_pool.add(sb_fname, 0x1337)
                     else:
-                        h = open(f, 'r+b')
-                        ret = winobjs.handle_pool.add(f, h)
+                        h = open(sb_fname, 'r+b')
+                        ret = winobjs.handle_pool.add(sb_fname, h)
                 else:
                     log.warning("FILE %r DOES NOT EXIST!", fname)
             elif args.dwcreationdisposition == 1:
                 # create new
-                if os.access(f, os.R_OK):
+                if os.access(sb_fname, os.R_OK):
                     # file exist
                     # ret = 80
                     winobjs.lastwin32error = 80
                 else:
-                    open(f, 'w')
-                    h = open(f, 'r+b')
-                    ret = winobjs.handle_pool.add(f, h)
+                    # first create an empty file
+                    open(sb_fname, 'w').close()
+                    # then open
+                    h = open(sb_fname, 'r+b')
+                    ret = winobjs.handle_pool.add(sb_fname, h)
             elif args.dwcreationdisposition == 4:
                 # open_always
-                if os.access(f, os.R_OK):
-                    s = os.stat(f)
+                if os.access(sb_fname, os.R_OK):
+                    s = os.stat(sb_fname)
                     if stat.S_ISDIR(s.st_mode):
-                        ret = winobjs.handle_pool.add(f, 0x1337)
+                        ret = winobjs.handle_pool.add(sb_fname, 0x1337)
                     else:
-                        h = open(f, 'r+b')
-                        ret = winobjs.handle_pool.add(f, h)
+                        h = open(sb_fname, 'r+b')
+                        ret = winobjs.handle_pool.add(sb_fname, h)
                 else:
                     raise NotImplementedError("Untested case")
             else:
@@ -595,14 +585,14 @@ def kernel32_CreateFile(jitter, funcname, get_str):
                 if is_original_file:
                     # cannot open self in write mode!
                     pass
-                elif os.access(f, os.R_OK):
-                    s = os.stat(f)
+                elif os.access(sb_fname, os.R_OK):
+                    s = os.stat(sb_fname)
                     if stat.S_ISDIR(s.st_mode):
                         # open dir
-                        ret = winobjs.handle_pool.add(f, 0x1337)
+                        ret = winobjs.handle_pool.add(sb_fname, 0x1337)
                     else:
-                        h = open(f, 'r+b')
-                        ret = winobjs.handle_pool.add(f, h)
+                        h = open(sb_fname, 'r+b')
+                        ret = winobjs.handle_pool.add(sb_fname, h)
                 else:
                     raise NotImplementedError("Untested case")  # to test
             elif args.dwcreationdisposition == 5:
@@ -613,13 +603,13 @@ def kernel32_CreateFile(jitter, funcname, get_str):
                     raise NotImplementedError("Untested case")  # to test
             else:
                 # raise NotImplementedError("Untested case") # to test
-                h = open(f, 'w')
-                ret = winobjs.handle_pool.add(f, h)
+                h = open(sb_fname, 'w')
+                ret = winobjs.handle_pool.add(sb_fname, h)
         else:
             raise NotImplementedError("Untested case")
 
-        # h = open(f, 'rb+')
-        # ret = winobjs.handle_pool.add(f, h)
+        # h = open(sb_fname, 'rb+')
+        # ret = winobjs.handle_pool.add(sb_fname, h)
     log.debug('ret %x', ret)
     jitter.func_ret_stdcall(ret_ad, ret)
 
@@ -1853,10 +1843,9 @@ def shlwapi_PathIsDirectoryW(jitter):
     ret_ad, args = jitter.func_args_stdcall(['ptr_path'])
     fname = get_str_unic(jitter, args.ptr_path)
 
-    fname = fname.replace('\\', "/").lower()
-    f = os.path.join('file_sb', fname)
+    sb_fname = windows_to_sbpath(fname)
 
-    s = os.stat(f)
+    s = os.stat(sb_fname)
     ret = 0
     if stat.S_ISDIR(s.st_mode):
         ret = 1
@@ -2723,10 +2712,9 @@ def msvcrt_myfopen(jitter, func):
     log.debug(rw)
 
     if rw in ['r', 'rb', 'wb+']:
-        fname = fname.replace('\\', "/").lower()
-        f = os.path.join('file_sb', fname)
-        h = open(f, rw)
-        eax = winobjs.handle_pool.add(f, h)
+        sb_fname = windows_to_sbpath(fname)
+        h = open(sb_fname, rw)
+        eax = winobjs.handle_pool.add(sb_fname, h)
         dwsize = 0x20
         alloc_addr = winobjs.heap.alloc(jitter, dwsize)
         pp = pck32(0x11112222) + pck32(0) + pck32(0) + pck32(0) + pck32(eax)
