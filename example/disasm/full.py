@@ -82,6 +82,7 @@ mdis = dis_engine(bs)
 mdis.dontdis_retcall = args.dontdis_retcall
 mdis.blocs_wd = args.blockwatchdog
 mdis.dont_dis_nulstart_bloc = not args.dis_nulstart_block
+mdis.follow_call = args.followcall
 
 todo = []
 addrs = [int(a, 16) for a in args.address]
