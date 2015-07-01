@@ -518,6 +518,10 @@ def kernel32_CreateFile(jitter, funcname, get_str):
                                              "dwcreationdisposition",
                                              "dwflagsandattr",
                                              "htemplatefile"])
+    if args.lpfilename == 0:
+        jitter.func_ret_stdcall(ret_ad, 0xffffffff)
+        return
+
     fname = get_str(jitter, args.lpfilename)
     log.debug('fname %s', fname)
     ret = 0xffffffff
@@ -2541,7 +2545,8 @@ def user32_MessageBoxA(jitter):
 def kernel32_myGetTempPath(jitter, func):
     ret_ad, args = jitter.func_args_stdcall(["l", "buf"])
     l = 'c:\\temp\\'
-    jitter.vm.set_mem(args.buf, func(l + '\x00'))
+    if len(l) < args.l:
+        jitter.vm.set_mem(args.buf, func(l + '\x00'))
     jitter.func_ret_stdcall(ret_ad, len(l))
 
 
