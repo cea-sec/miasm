@@ -2214,7 +2214,7 @@ def kernel32_MapViewOfFile(jitter):
     hfile_o = winobjs.handle_pool[hmap.info]
     fd = hfile_o.info
     fd.seek((args.dwfileoffsethigh << 32) | args.dwfileoffsetlow)
-    data = fd.read(args.length) if args.length else args.read()
+    data = fd.read(args.length) if args.length else fd.read()
     length = len(data)
 
     log.debug('mapp total: %x', len(data))
