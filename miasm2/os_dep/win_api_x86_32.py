@@ -23,6 +23,7 @@ import time
 import string
 import logging
 from zlib import crc32
+from StringIO import StringIO
 
 try:
     from Crypto.Hash import MD5, SHA
@@ -2175,10 +2176,18 @@ def kernel32_CreateFileMapping(jitter, funcname, get_str):
                                              "dwmaximumsizelow", "lpname"])
     # f = get_str(jitter, args.lpname) if args.lpname else None
 
-    if not args.hfile in winobjs.handle_pool:
-        raise ValueError('unknown handle')
+    if args.hfile == 0xffffffff:
+        # Create null mapping
+        if args.dwmaximumsizehigh:
+            raise NotImplementedError("Untested case")
+        hmap = StringIO("\x00"*args.dwmaximumsizelow)
+        hmap_handle = winobjs.handle_pool.add('filemem', hmap)
 
-    ret = winobjs.handle_pool.add('filemapping', args.hfile)
+        ret = winobjs.handle_pool.add('filemapping', hmap_handle)
+    else:
+        if not args.hfile in winobjs.handle_pool:
+            raise ValueError('unknown handle')
+        ret = winobjs.handle_pool.add('filemapping', args.hfile)
     jitter.func_ret_stdcall(ret_ad, ret)
 
 
