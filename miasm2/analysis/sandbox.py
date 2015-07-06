@@ -352,7 +352,7 @@ class Sandbox_Win_x86_64(Sandbox, Arch_x86_64, OS_Win):
         for i in xrange(0x4):
             self.jitter.push_uint64_t(0)
 
-        # Pre-stack some arguments
+        # Pre-stack return address
         self.jitter.push_uint64_t(0x1337beef)
 
         # Set the runtime guard
@@ -401,7 +401,7 @@ class Sandbox_Linux_x86_64(Sandbox, Arch_x86_64, OS_Linux):
         for i in xrange(0x4):
             self.jitter.push_uint64_t(0)
 
-        # Pre-stack some arguments
+        # Pre-stack return address
         self.jitter.push_uint64_t(0x1337beef)
 
         # Set the runtime guard
