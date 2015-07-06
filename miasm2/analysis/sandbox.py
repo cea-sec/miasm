@@ -352,7 +352,7 @@ class Sandbox_Win_x86_64(Sandbox, Arch_x86_64, OS_Win):
         for i in xrange(0x4):
             self.jitter.push_uint64_t(0)
 
-        # Pre-stack some arguments
+        # Pre-stack return address
         self.jitter.push_uint64_t(0x1337beef)
 
         # Set the runtime guard
@@ -391,6 +391,30 @@ class Sandbox_Linux_x86_32(Sandbox, Arch_x86_32, OS_Linux):
             addr = self.entry_point
         super(Sandbox_Linux_x86_32, self).run(addr)
 
+
+class Sandbox_Linux_x86_64(Sandbox, Arch_x86_64, OS_Linux):
+
+    def __init__(self, *args, **kwargs):
+        Sandbox.__init__(self, *args, **kwargs)
+
+        # reserve stack for local reg
+        for i in xrange(0x4):
+            self.jitter.push_uint64_t(0)
+
+        # Pre-stack return address
+        self.jitter.push_uint64_t(0x1337beef)
+
+        # Set the runtime guard
+        self.jitter.add_breakpoint(0x1337beef, self.__class__.code_sentinelle)
+
+
+    def run(self, addr = None):
+        """
+        If addr is not set, use entrypoint
+        """
+        if addr is None and self.options.address is None:
+            addr = self.entry_point
+        super(Sandbox_Linux_x86_64, self).run(addr)
 
 
 class Sandbox_Linux_arml(Sandbox, Arch_arml, OS_Linux):
