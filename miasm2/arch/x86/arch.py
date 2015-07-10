@@ -791,7 +791,7 @@ class mn_x86(cls_mn):
                 m = a.expr
                 a.expr = ExprMem(
                     ExprOp('segm', enc2segm[self.g2.value], m.arg), m.size)
-        if self.name == 'LEA':
+        if self.name in ['LEA', 'LDS', 'LES', 'LFS', 'LGS', 'LSS']:
             if not isinstance(self.args[1].expr, ExprMem):
                 return None
         return self
