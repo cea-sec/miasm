@@ -254,6 +254,8 @@ to_test = [(ExprInt32(1) - ExprInt32(1), ExprInt32(0)),
                    ExprInt(uint32(0x1L)), 0, 32),
                   (ExprInt(uint32(0x0L)), 32, 64)))
        ),
+    (ExprCompose([(a[:16], 0, 16), (b[:16], 16, 32)])[8:32],
+     ExprCompose([(a[8:16], 0, 8), (b[:16], 8, 24)])),
 
 ]
 
