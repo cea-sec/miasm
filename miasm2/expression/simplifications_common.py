@@ -427,7 +427,7 @@ def simp_slice(e_s, e):
                 continue
             # arg is fully included in slice
             elif e.start <= s_start and s_stop <= e.stop:
-                out.append((arg, s_start, s_stop))
+                out.append((arg, s_start - e.start, s_stop - e.start))
                 continue
             # arg is truncated at start
             if e.start > s_start:
