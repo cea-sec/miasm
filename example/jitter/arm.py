@@ -22,7 +22,7 @@ else:
     logging.basicConfig(level=logging.WARNING)
 
 if options.verbose is True:
-    sb.jitter.vm.dump_memory_page_pool()
+    print sb.jitter.vm
 
 if options.address is None:
     raise ValueError('Invalid address')
