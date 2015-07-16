@@ -353,16 +353,15 @@ PyObject* vm_reset_memory_breakpoint(VmMngr* self, PyObject* args)
 
 }
 
-
-
-
-
-
-PyObject* vm_dump_memory_page_pool(VmMngr* self, PyObject* args)
+PyObject *vm_dump(PyObject* self)
 {
-	dump_memory_page_pool(&self->vm_mngr);
-	Py_INCREF(Py_None);
-	return Py_None;
+	char* buf_final;
+	PyObject* ret_obj;
+
+	buf_final = dump(&((VmMngr* )self)->vm_mngr);
+	ret_obj = PyString_FromString(buf_final);
+	free(buf_final);
+	return ret_obj;
 }
 
 PyObject* vm_dump_memory_breakpoint(VmMngr* self, PyObject* args)
@@ -571,8 +570,6 @@ static PyMethodDef VmMngr_methods[] = {
 	 "X"},
 	{"set_exception", (PyCFunction)vm_set_exception, METH_VARARGS,
 	 "X"},
-	{"dump_memory_page_pool", (PyCFunction)vm_dump_memory_page_pool, METH_VARARGS,
-	 "X"},
 	{"dump_memory_breakpoint", (PyCFunction)vm_dump_memory_breakpoint, METH_VARARGS,
 	 "X"},
 	{"get_all_memory",(PyCFunction)vm_get_all_memory, METH_VARARGS,
@@ -613,7 +610,6 @@ static PyGetSetDef VmMngr_getseters[] = {
     {NULL}  /* Sentinel */
 };
 
-
 static PyTypeObject VmMngrType = {
     PyObject_HEAD_INIT(NULL)
     0,                         /*ob_size*/
@@ -625,7 +621,7 @@ static PyTypeObject VmMngrType = {
     0,                         /*tp_getattr*/
     0,                         /*tp_setattr*/
     0,                         /*tp_compare*/
-    0,                         /*tp_repr*/
+    vm_dump,                   /*tp_repr*/
     0,                         /*tp_as_number*/
     0,                         /*tp_as_sequence*/
     0,                         /*tp_as_mapping*/
