@@ -73,7 +73,6 @@ def vm_load_elf(vm, fdata, **kargs):
         #print hex(a), hex(b)
         vm.add_memory_page(a, PAGE_READ | PAGE_WRITE, "\x00"*(b+2-a))
 
-    #vm.dump_memory_page_pool()
 
     for r_vaddr, data in all_data.items():
         vm.set_mem(r_vaddr, data)

@@ -1675,7 +1675,6 @@ def ntdll_ZwProtectVirtualMemory(jitter):
     # XXX todo real old protect
     jitter.vm.set_mem(args.lpfloldprotect, pck32(0x40))
 
-    # dump_memory_page_pool_py()
     jitter.func_ret_stdcall(ret_ad, 1)
 
 
@@ -1709,7 +1708,6 @@ def ntdll_ZwAllocateVirtualMemory(jitter):
         alloc_addr, access_dict[args.flprotect], "\x00" * dwsize)
     jitter.vm.set_mem(args.lppvoid, pck32(alloc_addr))
 
-    # dump_memory_page_pool_py()
     jitter.func_ret_stdcall(ret_ad, 0)
 
 

@@ -249,7 +249,7 @@ RIP 0000000040000013
 Interacting with the jitter:
 
 ```
->>> jitter.vm.dump_memory_page_pool()
+>>> jitter.vm
 ad 1230000 size 10000 RW_ hpad 0x2854b40
 ad 40000000 size 16 RW_ hpad 0x25e0ed0
 
