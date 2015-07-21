@@ -620,54 +620,56 @@ def dec(ir, instr, a):
     return e, []
 
 
-def push(ir, instr, a):
+def push_gen(ir, instr, a, size):
     e = []
-    s = instr.mode
-    size = instr.v_opmode()
-    opmode, admode = s, instr.v_admode()
-    # special case segment regs
-    if a in [ES, CS, SS, DS, FS, GS]:
-        off = admode
-    else:
-        off = a.size
-    if not s in [16, 32, 64]:
+    if not size in [16, 32, 64]:
         raise ValueError('bad size stacker!')
-    if isinstance(a, m2_expr.ExprInt):
-        a = m2_expr.ExprInt_fromsize(s, a.arg)
+    if a.size < size:
+        a = a.zeroExtend(size)
+    elif a.size == size:
+        pass
+    else:
+        raise ValueError('strange arg size')
 
-    c = mRSP[instr.mode][:s] - m2_expr.ExprInt_fromsize(s, off / 8)
-    e.append(m2_expr.ExprAff(mRSP[instr.mode][:s], c))
-    # we sub vopmode to stack, but mem access is arg size wide
+    sp = mRSP[instr.mode]
+    new_sp = sp - m2_expr.ExprInt_from(sp, size / 8)
+    e.append(m2_expr.ExprAff(sp, new_sp))
     if ir.do_stk_segm:
-        c = m2_expr.ExprOp('segm', SS, c)
-    e.append(m2_expr.ExprAff(m2_expr.ExprMem(c, a.size), a))
+        new_sp = m2_expr.ExprOp('segm', SS, new_sp)
+    e.append(m2_expr.ExprAff(m2_expr.ExprMem(new_sp, size), a))
     return e, []
 
+def push(ir, instr, a):
+    return push_gen(ir, instr, a, instr.mode)
 
-def pop(ir, instr, a):
+def pushw(ir, instr, a):
+    return push_gen(ir, instr, a, 16)
+
+
+def pop_gen(ir, instr, a, size):
     e = []
-    s = instr.mode
-    size = instr.v_opmode()
-    opmode, admode = s, instr.v_admode()
-    # special case segment regs
-    if a in [ES, CS, SS, DS, FS, GS]:
-        off = admode
-    else:
-        off = a.size
-    if not s in [16, 32, 64]:
+    if not size in [16, 32, 64]:
         raise ValueError('bad size stacker!')
-    new_esp = mRSP[instr.mode][:s] + m2_expr.ExprInt_fromsize(s, off / 8)
+
+    sp = mRSP[instr.mode]
+    new_sp = sp + m2_expr.ExprInt_from(sp, size / 8)
     # don't generate ESP incrementation on POP ESP
     if a != ir.sp:
-        e.append(m2_expr.ExprAff(mRSP[instr.mode][:s], new_esp))
+        e.append(m2_expr.ExprAff(sp, new_sp))
     # XXX FIX XXX for pop [esp]
     if isinstance(a, m2_expr.ExprMem):
-        a = a.replace_expr({mRSP[instr.mode]: new_esp})
-    c = mRSP[instr.mode][:s]
+        a = a.replace_expr({sp: new_sp})
+    c = sp
     if ir.do_stk_segm:
         c = m2_expr.ExprOp('segm', SS, c)
     e.append(m2_expr.ExprAff(a, m2_expr.ExprMem(c, a.size)))
     return e, []
+
+def pop(ir, instr, a):
+    return pop_gen(ir, instr, a, instr.mode)
+
+def popw(ir, instr, a):
+    return pop_gen(ir, instr, a, 16)
 
 
 def sete(ir, instr, a):
@@ -944,7 +946,7 @@ def pushfd(ir, instr):
 
 
 def pushfw(ir, instr):
-    return push(ir, instr, compose_eflag(16))
+    return pushw(ir, instr, compose_eflag(16))
 
 
 def popfd(ir, instr):
@@ -3175,7 +3177,9 @@ mnemo_func = {'mov': mov,
               'inc': inc,
               'dec': dec,
               'push': push,
+              'pushw': pushw,
               'pop': pop,
+              'popw': popw,
               'sete': sete,
               'setnz': setnz,
               'setl': setl,
