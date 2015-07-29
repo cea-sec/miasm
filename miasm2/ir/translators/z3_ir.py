@@ -169,6 +169,12 @@ class TranslatorZ3(Translator):
                     res = res << arg
                 elif expr.op == "idiv":
                     res = res / arg
+                elif expr.op == "udiv":
+                    res = z3.UDiv(res, arg)
+                elif expr.op == "imod":
+                    res = res % arg
+                elif expr.op == "umod":
+                    res = z3.URem(res, arg)
                 else:
                     raise NotImplementedError("Unsupported OP yet: %s" % expr.op)
         elif expr.op == 'parity':
