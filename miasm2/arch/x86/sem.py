@@ -20,6 +20,7 @@ import miasm2.expression.expression as m2_expr
 from miasm2.expression.simplifications import expr_simp
 from miasm2.arch.x86.regs import *
 from miasm2.arch.x86.arch import mn_x86, repeat_mn, replace_regs
+from miasm2.expression.expression_helper import expr_cmps, expr_cmpu
 from miasm2.ir.ir import ir, irbloc
 import math
 import struct
@@ -2458,9 +2459,65 @@ def rdtsc(ir, instr):
     return e, []
 
 
-# XXX TODO
 def daa(ir, instr):
-    return [], None
+    e = []
+    r_al = mRAX[instr.mode][:8]
+
+    cond1 = expr_cmpu(r_al[:4], m2_expr.ExprInt_fromsize(4, 0x9)) | af
+    e.append(m2_expr.ExprAff(af, cond1))
+
+
+    cond2 = expr_cmpu(m2_expr.ExprInt8(6), r_al)
+    cond3 = expr_cmpu(r_al, m2_expr.ExprInt8(0x99)) | cf
+
+
+    cf_c1 = m2_expr.ExprCond(cond1,
+                             cf | (cond2),
+                             m2_expr.ExprInt1(0))
+    new_cf = m2_expr.ExprCond(cond3,
+                              m2_expr.ExprInt1(1),
+                              m2_expr.ExprInt1(0))
+    e.append(m2_expr.ExprAff(cf, new_cf))
+
+    al_c1 = m2_expr.ExprCond(cond1,
+                             r_al + m2_expr.ExprInt8(6),
+                             r_al)
+
+    new_al = m2_expr.ExprCond(cond3,
+                              al_c1 + m2_expr.ExprInt8(0x60),
+                              al_c1)
+    e.append(m2_expr.ExprAff(r_al, new_al))
+    return e, []
+
+def das(ir, instr):
+    e = []
+    r_al = mRAX[instr.mode][:8]
+
+    cond1 = expr_cmpu(r_al[:4], m2_expr.ExprInt_fromsize(4, 0x9)) | af
+    e.append(m2_expr.ExprAff(af, cond1))
+
+
+    cond2 = expr_cmpu(m2_expr.ExprInt8(6), r_al)
+    cond3 = expr_cmpu(r_al, m2_expr.ExprInt8(0x99)) | cf
+
+
+    cf_c1 = m2_expr.ExprCond(cond1,
+                             cf | (cond2),
+                             m2_expr.ExprInt1(0))
+    new_cf = m2_expr.ExprCond(cond3,
+                              m2_expr.ExprInt1(1),
+                              cf_c1)
+    e.append(m2_expr.ExprAff(cf, new_cf))
+
+    al_c1 = m2_expr.ExprCond(cond1,
+                             r_al - m2_expr.ExprInt8(6),
+                             r_al)
+
+    new_al = m2_expr.ExprCond(cond3,
+                              al_c1 - m2_expr.ExprInt8(0x60),
+                              al_c1)
+    e.append(m2_expr.ExprAff(r_al, new_al))
+    return e, []
 
 
 def aam(ir, instr, a):
@@ -3314,6 +3371,7 @@ mnemo_func = {'mov': mov,
               'cqo': cqo,
 
               'daa': daa,
+              'das': das,
               'aam': aam,
               'aad': aad,
               'aaa': aaa,
