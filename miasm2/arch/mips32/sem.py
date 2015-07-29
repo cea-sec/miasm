@@ -150,7 +150,7 @@ def sltu(arg1, arg2, arg3):
 def slt(arg1, arg2, arg3):
     """If @arg3 is less than @arg2 (signed), @arg1 is set to one. It gets zero
     otherwise."""
-    arg1 = ((arg2 - arg3) ^ ((arg2 ^ arg3) & ((arg2 - arg3) ^ arg2))).zeroExtend(32)
+    arg1 = ((arg2 - arg3) ^ ((arg2 ^ arg3) & ((arg2 - arg3) ^ arg2))).msb().zeroExtend(32)
 
 @sbuild.parse
 def l_sub(arg1, arg2, arg3):
