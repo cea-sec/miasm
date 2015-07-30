@@ -3,6 +3,7 @@
 #
 from pdb import pm
 from miasm2.expression.expression import *
+from miasm2.expression.expression_helper import expr_cmpu, expr_cmps
 from miasm2.expression.simplifications import expr_simp, ExpressionSimplifier
 from miasm2.expression.simplifications_cond import ExprOp_inf_signed, ExprOp_inf_unsigned, ExprOp_equal
 
@@ -264,6 +265,38 @@ to_test = [(ExprInt32(1) - ExprInt32(1), ExprInt32(0)),
      a[:16]),
     ((a << ExprInt32(16))[24:32],
      a[8:16]),
+    (expr_cmpu(ExprInt32(0), ExprInt32(0)),
+     ExprInt1(0)),
+    (expr_cmpu(ExprInt32(10), ExprInt32(0)),
+     ExprInt1(1)),
+    (expr_cmpu(ExprInt32(10), ExprInt32(5)),
+     ExprInt1(1)),
+    (expr_cmpu(ExprInt32(5), ExprInt32(10)),
+     ExprInt1(0)),
+    (expr_cmpu(ExprInt32(-1), ExprInt32(0)),
+     ExprInt1(1)),
+    (expr_cmpu(ExprInt32(-1), ExprInt32(-1)),
+     ExprInt1(0)),
+    (expr_cmpu(ExprInt32(0), ExprInt32(-1)),
+     ExprInt1(0)),
+    (expr_cmps(ExprInt32(0), ExprInt32(0)),
+     ExprInt1(0)),
+    (expr_cmps(ExprInt32(10), ExprInt32(0)),
+     ExprInt1(1)),
+    (expr_cmps(ExprInt32(10), ExprInt32(5)),
+     ExprInt1(1)),
+    (expr_cmps(ExprInt32(5), ExprInt32(10)),
+     ExprInt1(0)),
+    (expr_cmps(ExprInt32(-1), ExprInt32(0)),
+     ExprInt1(0)),
+    (expr_cmps(ExprInt32(-1), ExprInt32(-1)),
+     ExprInt1(0)),
+    (expr_cmps(ExprInt32(0), ExprInt32(-1)),
+     ExprInt1(1)),
+    (expr_cmps(ExprInt32(-5), ExprInt32(-10)),
+     ExprInt1(1)),
+    (expr_cmps(ExprInt32(-10), ExprInt32(-5)),
+     ExprInt1(0)),
 
 ]
 

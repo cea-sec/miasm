@@ -533,3 +533,22 @@ class ExprRandom(object):
             cls.generated_elements = {}
 
         return got
+
+def _expr_cmp_gen(arg1, arg2):
+    return (arg2 - arg1) ^ ((arg2 ^ arg1) & ((arg2 - arg1) ^ arg2))
+
+def expr_cmpu(arg1, arg2):
+    """
+    Returns a one bit long Expression:
+    * 1 if @arg1 is strictly greater than @arg2 (unsigned)
+    * 0 otherwise.
+    """
+    return (_expr_cmp_gen(arg1, arg2) ^ arg2 ^ arg1).msb()
+
+def expr_cmps(arg1, arg2):
+    """
+    Returns a one bit long Expression:
+    * 1 if @arg1 is strictly greater than @arg2 (signed)
+    * 0 otherwise.
+    """
+    return _expr_cmp_gen(arg1, arg2).msb()
