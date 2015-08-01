@@ -109,10 +109,10 @@ class TranslatorC(Translator):
                 return "segm2addr(jitcpu, %s, %s)" % (
                     self.from_expr(expr.args[0]), self.from_expr(expr.args[1]))
             elif expr.op in ['udiv', 'umod', 'idiv', 'imod']:
-                return '%s%d(jitcpu, %s, %s)' % (expr.op,
-                                                 expr.args[0].size,
-                                                 self.from_expr(expr.args[0]),
-                                                 self.from_expr(expr.args[1]))
+                return '%s%d((vm_cpu_t*)jitcpu->cpu, %s, %s)' % (expr.op,
+                                                                 expr.args[0].size,
+                                                                 self.from_expr(expr.args[0]),
+                                                                 self.from_expr(expr.args[1]))
             elif expr.op in ["bcdadd", "bcdadd_cf"]:
                 return "%s_%d(%s, %s)" % (expr.op, expr.args[0].size,
                                           self.from_expr(expr.args[0]),
