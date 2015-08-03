@@ -317,6 +317,29 @@ class Arch_armb(Arch):
         self.jitter.stack_size = self.STACK_SIZE
         self.jitter.init_stack()
 
+class Arch_aarch64l(Arch):
+    _ARCH_ = "aarch64l"
+    STACK_SIZE = 0x100000
+
+    def __init__(self):
+        super(Arch_aarch64l, self).__init__()
+
+        # Init stack
+        self.jitter.stack_size = self.STACK_SIZE
+        self.jitter.init_stack()
+
+
+class Arch_aarch64b(Arch):
+    _ARCH_ = "aarch64b"
+    STACK_SIZE = 0x100000
+
+    def __init__(self):
+        super(Arch_aarch64b, self).__init__()
+
+        # Init stack
+        self.jitter.stack_size = self.STACK_SIZE
+        self.jitter.init_stack()
+
 
 
 class Sandbox_Win_x86_32(Sandbox, Arch_x86_32, OS_Win):
@@ -465,3 +488,20 @@ class Sandbox_Linux_arml_str(Sandbox, Arch_arml, OS_Linux_str):
         if addr is None and self.options.address is not None:
             addr = int(self.options.address, 16)
         super(Sandbox_Linux_arml_str, self).run(addr)
+
+
+class Sandbox_Linux_aarch64l(Sandbox, Arch_aarch64l, OS_Linux):
+
+    def __init__(self, *args, **kwargs):
+        Sandbox.__init__(self, *args, **kwargs)
+
+        self.jitter.cpu.LR = 0x1337beef
+
+        # Set the runtime guard
+        self.jitter.add_breakpoint(0x1337beef, self.__class__.code_sentinelle)
+
+
+    def run(self, addr = None):
+        if addr is None and self.options.address is not None:
+            addr = int(self.options.address, 16)
+        super(Sandbox_Linux_aarch64l, self).run(addr)
