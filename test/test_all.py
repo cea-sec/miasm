@@ -363,6 +363,8 @@ for jitter in ExampleJitter.jitter_engines:
 for script, dep in [(["x86_32.py", Example.get_sample("x86_32_sc.bin")], []),
                     (["arm.py", Example.get_sample("md5_arm"), "-a", "A684"],
                      []),
+                    (["sandbox_elf_aarch64l.py", Example.get_sample("md5_aarch64l"), "-a", "0x400A00"],
+                     []),
                     (["msp430.py", Example.get_sample("msp430_sc.bin"), "0"],
                      [test_msp430]),
                     (["mips32.py", Example.get_sample("mips32_sc_l.bin"), "0"],
