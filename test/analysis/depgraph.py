@@ -133,15 +133,15 @@ class DepNodeTest(DiGraph):
         return True
 
     def node2str(self, node):
-        assert(node.label in self.ira.blocs)
-        out = "(%s, %s, %s)\\l"%(node.label.name,
+        assert node.label in self.ira.blocs
+        out = "(%s, %s, %s)\\l" % (node.label.name,
                                  node.element,
                                  node.line_nb)
-        if not (0 <= node.line_nb < len(self.ira.blocs[node.label].irs)):
+        if not 0 <= node.line_nb < len(self.ira.blocs[node.label].irs):
             return out
         exprs = self.ira.blocs[node.label].irs[node.line_nb]
         exprs_str = '\\l'.join([str(x) for x in exprs])
-        return "%s %s"%(out, exprs_str)
+        return "%s %s" % (out, exprs_str)
 
 # Test structures
 print "[+] Test structures"
@@ -1007,7 +1007,6 @@ G14_TEST2_1.add_uniq_edge(G14_TEST2_0_DN7, G14_TEST1_1_DN7)
 G14_TEST2_1.add_uniq_edge(G14_TEST2_0_DN7, G14_TEST1_1_DN8)
 
 
-
 DN14_UR_D = DependencyNode(G14_IRB0.label, D, 0, 0).nostep_repr
 DN14_UR_C = DependencyNode(G14_IRB0.label, C, 0, 0).nostep_repr
 
@@ -1142,7 +1141,7 @@ for test_nb, test in enumerate([(G1_IRA, G1_INPUT, G1_OUTPUT),
 
         # Test public APIs
         for api_i, g_list in enumerate(
-            [g_dep.get_fromDepNodes(depnodes, heads),
+            [g_dep.get_from_depnodes(depnodes, heads),
              g_dep.get(list(depnodes)[0].label,
                        [depnode.element for
                         depnode in depnodes],
@@ -1202,12 +1201,12 @@ for test_nb, test in enumerate([(G1_IRA, G1_INPUT, G1_OUTPUT),
                     error = "emul"
                     found = False
                     for exp_nb in xrange(len(g_list)):
-                        if (emul_result == g_test_output["emul"][exp_nb]  and
+                        if (emul_result == g_test_output["emul"][exp_nb] and
                             getattr(result, "unresolved") ==
                             g_test_output[unresolved_test_key][exp_nb] and
                             g_test_output["has_loop"][exp_nb] ==
                             getattr(result, "has_loop")
-                            ):
+                                ):
                             found = True
                             break
                     assert found
