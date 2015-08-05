@@ -135,22 +135,21 @@ for script in ["win_api_x86_32.py",
 
 ## Analysis
 testset += RegressionTest(["depgraph.py"], base_dir="analysis",
-                          products=["graph_test_01_00.dot",
-                                    "graph_test_02_00.dot",
-                                    "graph_test_03_00.dot",
-                                    "graph_test_03_01.dot",
-                                    "graph_test_04_00.dot",
-                                    "graph_test_05_00.dot",
-                                    "graph_test_06_00.dot",
-                                    "graph_test_07_00.dot",
-                                    "graph_test_08_00.dot",
-                                    "graph_test_08_01.dot",
-                                    "graph_test_09_00.dot",
-                                    "graph_test_09_01.dot",
-                                    "graph_test_10_00.dot",
-                                    "graph_test_11_00.dot",
-                                    ] + ["graph_%02d.dot" % test_nb
-                                         for test_nb in xrange(1, 12)])
+                          products=[fname for fnames in (
+                              ["graph_test_%02d_00.dot" % test_nb,
+                               "graph_%02d.dot" % test_nb]
+                              for test_nb in xrange(1, 17))
+                                    for fname in fnames] +
+                          ["graph_test_03_01.dot",
+                           "graph_test_05_01.dot",
+                           "graph_test_08_01.dot",
+                           "graph_test_09_01.dot",
+                           "graph_test_10_01.dot",
+                           "graph_test_12_01.dot",
+                           "graph_test_13_01.dot",
+                           "graph_test_14_01.dot",
+                           "graph_test_15_01.dot"
+                       ])
 
 # Examples
 class Example(Test):
