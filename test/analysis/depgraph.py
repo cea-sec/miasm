@@ -1,72 +1,104 @@
-from miasm2.expression.expression import ExprId, ExprInt32, ExprAff
+"""Regression test module for DependencyGraph"""
+from miasm2.expression.expression import ExprId, ExprInt32, ExprAff, ExprCond
 from miasm2.core.asmbloc import asm_label
 from miasm2.ir.analysis import ira
 from miasm2.ir.ir import ir, irbloc
 from miasm2.core.graph import DiGraph
-from miasm2.analysis.depgraph import DependencyNode, DependencyGraph, DependencyDict
-from pdb import pm
+from miasm2.analysis.depgraph import DependencyNode, DependencyGraph,\
+    DependencyDict
+from itertools import count
 
-a = ExprId("a")
-b = ExprId("b")
-c = ExprId("c")
-d = ExprId("d")
+STEP_COUNTER = count()
+A = ExprId("a")
+B = ExprId("b")
+C = ExprId("c")
+D = ExprId("d")
+R = ExprId("r")
 
-a_init = ExprId("a_init")
-b_init = ExprId("b_init")
-c_init = ExprId("c_init")
-d_init = ExprId("d_init")
+A_INIT = ExprId("a_init")
+B_INIT = ExprId("b_init")
+C_INIT = ExprId("c_init")
+D_INIT = ExprId("d_init")
 
-pc = ExprId("pc")
-sp = ExprId("sp")
+PC = ExprId("pc")
+SP = ExprId("sp")
 
-cst1 = ExprInt32(0x11)
-cst2 = ExprInt32(0x12)
-cst3 = ExprInt32(0x13)
+CST1 = ExprInt32(0x11)
+CST2 = ExprInt32(0x12)
+CST3 = ExprInt32(0x13)
+CST22 = ExprInt32(0x22)
+CST23 = ExprInt32(0x23)
+CST24 = ExprInt32(0x24)
+CST33 = ExprInt32(0x33)
+CST35 = ExprInt32(0x35)
+CST37 = ExprInt32(0x37)
 
-lbl0 = asm_label("lbl0")
-lbl1 = asm_label("lbl1")
-lbl2 = asm_label("lbl2")
-lbl3 = asm_label("lbl3")
-lbl4 = asm_label("lbl4")
-lbl5 = asm_label("lbl5")
-lbl6 = asm_label("lbl6")
-
+LBL0 = asm_label("lbl0")
+LBL1 = asm_label("lbl1")
+LBL2 = asm_label("lbl2")
+LBL3 = asm_label("lbl3")
+LBL4 = asm_label("lbl4")
+LBL5 = asm_label("lbl5")
+LBL6 = asm_label("lbl6")
 
 
 def gen_irbloc(lbl, exprs):
-    lines = [None for i in xrange(len(exprs))]
-    irb = irbloc(lbl, exprs, lines)
-    return irb
+    """ Returns an IRBlock with empty lines.
+    Used only for tests purpose
+    """
+    lines = [None for _ in xrange(len(exprs))]
+    return irbloc(lbl, exprs, lines)
 
 
 class Regs(object):
-    regs_init = {a: a_init, b: b_init, c: c_init, d: d_init}
+
+    """Fake registers for tests """
+    regs_init = {A: A_INIT, B: B_INIT, C: C_INIT, D: D_INIT}
+    all_regs_ids = [A, B, C, D, SP, PC, R]
+
 
 class Arch(object):
+
+    """Fake architecture for tests """
     regs = Regs()
 
     def getpc(self, attrib):
-        return pc
+        return PC
 
     def getsp(self, attrib):
-        return sp
+        return SP
+
 
 class IRATest(ir, ira):
+
+    """Fake IRA class for tests"""
 
     def __init__(self, symbol_pool=None):
         arch = Arch()
         ir.__init__(self, arch, 32, symbol_pool)
-        self.IRDst = pc
+        self.IRDst = PC
+        self.ret_reg = R
+
+    def get_out_regs(self, _):
+        return set([self.ret_reg, self.sp])
+
 
 class GraphTest(DiGraph):
-    def __init__(self, ira):
-        self.ira = ira
+
+    """Fake graph representation class for test cases"""
+
+    def __init__(self, pira):
+        self.ira = pira
         super(GraphTest, self).__init__()
 
     def __eq__(self, graph):
-        if self._nodes != graph._nodes:
+        if (sorted([node.nostep_repr for node in self._nodes])
+                != sorted([node.nostep_repr for node in graph.nodes])):
             return False
-        if sorted(self._edges) != sorted(graph._edges):
+        if (sorted([(src.nostep_repr, dst.nostep_repr)
+                    for (src, dst) in self._edges])
+            != sorted([(src.nostep_repr, dst.nostep_repr)
+                       for (src, dst) in graph.edges()])):
             return False
         return True
 
@@ -76,15 +108,27 @@ class GraphTest(DiGraph):
         else:
             return str(self.ira.blocs[node])
 
+
 class DepNodeTest(DiGraph):
-    def __init__(self, ira):
-        self.ira = ira
+
+    """Fake graph class to represent expected test results"""
+
+    def __init__(self, pira):
+        self.ira = pira
         super(DepNodeTest, self).__init__()
 
     def __eq__(self, graph):
-        if self._nodes != graph._nodes:
+        if (len(self._nodes) != len(graph.nodes()) or
+                len(self._edges) != len(graph.edges())):
             return False
-        if sorted(self._edges) != sorted(graph._edges):
+
+        if (set([n.nostep_repr for n in self._nodes]) !=
+                set([n.nostep_repr for n in graph.nodes()])):
+            return False
+        if (sorted([(src.nostep_repr, dst.nostep_repr)
+                    for (src, dst) in self._edges])
+        != sorted([(src.nostep_repr, dst.nostep_repr)
+                   for (src, dst) in graph.edges()])):
             return False
         return True
 
@@ -103,539 +147,1096 @@ class DepNodeTest(DiGraph):
 print "[+] Test structures"
 
 print "[+] Test DependencyDict"
-dd0 = DependencyDict(lbl0, [])
-depnodes_0 = [DependencyNode(lbl0, a, i) for i in xrange(10)][::-1]
+DD0 = DependencyDict(LBL0, [])
+DEPNODES_0 = [DependencyNode(LBL0, A, linenb, next(STEP_COUNTER))
+              for linenb in xrange(10)][::-1]
 
-## Heads
-assert(list(dd0.heads()) == [])
-assert(dd0.is_head(depnodes_0[-1]) == True)
-assert(dd0.is_head(depnodes_0[0]) == False)
-dd0.cache[depnodes_0[-1]] = set(depnodes_0[-1:])
-assert(list(dd0.heads()) == [depnodes_0[-1]])
+# Heads
+assert list(DD0.heads()) == []
+assert DD0.is_head(DEPNODES_0[-1]) == True
+assert DD0.is_head(DEPNODES_0[0]) == False
+DD0.cache[DEPNODES_0[-1]] = set(DEPNODES_0[-1:])
+assert list(DD0.heads()) == [DEPNODES_0[-1]]
 
-## Extend
-dd1 = dd0.extend(lbl1)
+# Extend
+DD1 = DD0.extend(LBL1)
 
-assert(dd1.label == lbl1)
-assert(dd1.history == [dd0])
-assert(dd1.cache == dd0.cache)
-assert(dd1.pending == set())
-assert(dd1 != dd0)
+assert DD1.label == LBL1
+assert DD1.history == [DD0]
+assert DD1.cache == DD0.cache
+assert DD1.pending == set()
+assert DD1 != DD0
 
-dd1.cache[depnodes_0[4]] = set(depnodes_0[5:9])
-assert(dd1.cache != dd0.cache)
+DD1.cache[DEPNODES_0[4]] = set(DEPNODES_0[5:9])
+assert DD1.cache != DD0.cache
 
-dd2 = dd0.copy()
-assert(dd2.label == lbl0)
-assert(dd2.history == [])
-assert(dd2.cache == dd0.cache)
-assert(dd2.pending == dd0.pending)
-assert(dd2 == dd0)
+DD2 = DD0.copy()
+assert DD2.label == LBL0
+assert DD2.history == []
+assert DD2.cache == DD0.cache
+assert DD2.pending == DD0.pending
+assert DD2 == DD0
 
-dd2.cache[depnodes_0[4]] = set(depnodes_0[5:9])
-assert(dd2.cache != dd0.cache)
+DD2.cache[DEPNODES_0[4]] = set(DEPNODES_0[5:9])
+assert DD2.cache != DD0.cache
+
+
+print "   [+] Test dictionnary equality"
+DNA = DependencyNode(LBL2, A, 0, next(STEP_COUNTER))
+DNB = DependencyNode(LBL1, B, 1, next(STEP_COUNTER))
+DNC = DependencyNode(LBL1, C, 0, next(STEP_COUNTER), True)
+DNB2 = DependencyNode(LBL1, B, 1, next(STEP_COUNTER))
+DNC2 = DependencyNode(LBL1, C, 0, next(STEP_COUNTER), True)
+DNB3 = DependencyNode(LBL1, B, 1, next(STEP_COUNTER))
+DNC3 = DependencyNode(LBL1, C, 0, next(STEP_COUNTER), True)
+
+DDCT1 = DependencyDict(LBL1, [])
+DDCT1.cache.update({DNA: set([DNB]), DNB: set([DNC])})
+
+DDCT2 = DDCT1.extend(LBL1)
+DDCT2.cache.update({DNA: set([DNB]), DNB: set([DNC]),
+                    DNC: set([DNB2]), DNB2: set([DNC2])
+                    })
+
+DDCT3 = DDCT2.extend(LBL1)
+DDCT3.cache.update(
+    {DNA: set([DNB]), DNB: set([DNC]),
+     DNC: set([DNB2]), DNB2: set([DNC2]),
+     DNC2: set([DNB3]), DNB3: set([DNC3])})
+
+assert not DDCT1.__eq__(DDCT2)
+assert DDCT2.__eq__(DDCT3)
 
 print "[+] DependencyDict OK !"
 print "[+] Structures OK !"
 
 # graph 1
 
-g1_ira = IRATest()
-g1_ira.g = GraphTest(g1_ira)
+G1_IRA = IRATest()
+G1_IRA.g = GraphTest(G1_IRA)
 
-g1_irb0 = gen_irbloc(lbl0, [ [ExprAff(c, cst1)] ])
-g1_irb1 = gen_irbloc(lbl1, [ [ExprAff(b, c)] ])
-g1_irb2 = gen_irbloc(lbl2, [ [ExprAff(a, b)] ])
+G1_IRB0 = gen_irbloc(LBL0, [[ExprAff(C, CST1)]])
+G1_IRB1 = gen_irbloc(LBL1, [[ExprAff(B, C)]])
+G1_IRB2 = gen_irbloc(LBL2, [[ExprAff(A, B)]])
 
-g1_ira.g.add_uniq_edge(g1_irb0.label, g1_irb1.label)
-g1_ira.g.add_uniq_edge(g1_irb1.label, g1_irb2.label)
+G1_IRA.g.add_uniq_edge(G1_IRB0.label, G1_IRB1.label)
+G1_IRA.g.add_uniq_edge(G1_IRB1.label, G1_IRB2.label)
 
-g1_ira.blocs = dict([(irb.label, irb) for irb in [g1_irb0, g1_irb1, g1_irb2]])
+G1_IRA.blocs = dict([(irb.label, irb) for irb in [G1_IRB0, G1_IRB1, G1_IRB2]])
 
 # graph 2
 
-g2_ira = IRATest()
-g2_ira.g = GraphTest(g2_ira)
+G2_IRA = IRATest()
+G2_IRA.g = GraphTest(G2_IRA)
 
-g2_irb0 = gen_irbloc(lbl0, [ [ExprAff(c, cst1)] ])
-g2_irb1 = gen_irbloc(lbl1, [ [ExprAff(b, cst2)] ])
-g2_irb2 = gen_irbloc(lbl2, [ [ExprAff(a, b+c)] ])
+G2_IRB0 = gen_irbloc(LBL0, [[ExprAff(C, CST1)]])
+G2_IRB1 = gen_irbloc(LBL1, [[ExprAff(B, CST2)]])
+G2_IRB2 = gen_irbloc(LBL2, [[ExprAff(A, B + C)]])
 
-g2_ira.g.add_uniq_edge(g2_irb0.label, g2_irb1.label)
-g2_ira.g.add_uniq_edge(g2_irb1.label, g2_irb2.label)
+G2_IRA.g.add_uniq_edge(G2_IRB0.label, G2_IRB1.label)
+G2_IRA.g.add_uniq_edge(G2_IRB1.label, G2_IRB2.label)
 
-g2_ira.blocs = dict([(irb.label, irb) for irb in [g2_irb0, g2_irb1, g2_irb2]])
+G2_IRA.blocs = dict([(irb.label, irb) for irb in [G2_IRB0, G2_IRB1, G2_IRB2]])
 
 
 # graph 3
 
-g3_ira = IRATest()
-g3_ira.g = GraphTest(g3_ira)
+G3_IRA = IRATest()
+G3_IRA.g = GraphTest(G3_IRA)
 
-g3_irb0 = gen_irbloc(lbl0, [ [ExprAff(c, cst1)] ])
-g3_irb1 = gen_irbloc(lbl1, [ [ExprAff(b, cst2)] ])
-g3_irb2 = gen_irbloc(lbl2, [ [ExprAff(b, cst3)] ])
-g3_irb3 = gen_irbloc(lbl3, [ [ExprAff(a, b+c)] ])
+G3_IRB0 = gen_irbloc(LBL0, [[ExprAff(C, CST1)]])
+G3_IRB1 = gen_irbloc(LBL1, [[ExprAff(B, CST2)]])
+G3_IRB2 = gen_irbloc(LBL2, [[ExprAff(B, CST3)]])
+G3_IRB3 = gen_irbloc(LBL3, [[ExprAff(A, B + C)]])
 
-g3_ira.g.add_uniq_edge(g3_irb0.label, g3_irb1.label)
-g3_ira.g.add_uniq_edge(g3_irb0.label, g3_irb2.label)
-g3_ira.g.add_uniq_edge(g3_irb1.label, g3_irb3.label)
-g3_ira.g.add_uniq_edge(g3_irb2.label, g3_irb3.label)
+G3_IRA.g.add_uniq_edge(G3_IRB0.label, G3_IRB1.label)
+G3_IRA.g.add_uniq_edge(G3_IRB0.label, G3_IRB2.label)
+G3_IRA.g.add_uniq_edge(G3_IRB1.label, G3_IRB3.label)
+G3_IRA.g.add_uniq_edge(G3_IRB2.label, G3_IRB3.label)
 
-g3_ira.blocs = dict([(irb.label, irb) for irb in [g3_irb0, g3_irb1,
-                                                  g3_irb2, g3_irb3]])
+G3_IRA.blocs = dict([(irb.label, irb) for irb in [G3_IRB0, G3_IRB1,
+                                                  G3_IRB2, G3_IRB3]])
 
 # graph 4
 
-g4_ira = IRATest()
-g4_ira.g = GraphTest(g4_ira)
+G4_IRA = IRATest()
+G4_IRA.g = GraphTest(G4_IRA)
 
-g4_irb0 = gen_irbloc(lbl0, [ [ExprAff(c, cst1)] ])
-g4_irb1 = gen_irbloc(lbl1, [ [ExprAff(c, c+cst2)] ])
-g4_irb2 = gen_irbloc(lbl2, [ [ExprAff(a, b)] ])
+G4_IRB0 = gen_irbloc(LBL0, [[ExprAff(C, CST1)]])
+G4_IRB1 = gen_irbloc(LBL1, [[ExprAff(C, C + CST2)]])
+G4_IRB2 = gen_irbloc(LBL2, [[ExprAff(A, B)]])
 
-g4_ira.g.add_uniq_edge(g4_irb0.label, g4_irb1.label)
-g4_ira.g.add_uniq_edge(g4_irb1.label, g4_irb2.label)
-g4_ira.g.add_uniq_edge(g4_irb1.label, g4_irb1.label)
+G4_IRA.g.add_uniq_edge(G4_IRB0.label, G4_IRB1.label)
+G4_IRA.g.add_uniq_edge(G4_IRB1.label, G4_IRB2.label)
+G4_IRA.g.add_uniq_edge(G4_IRB1.label, G4_IRB1.label)
 
-g4_ira.blocs = dict([(irb.label, irb) for irb in [g4_irb0, g4_irb1, g4_irb2]])
+G4_IRA.blocs = dict([(irb.label, irb) for irb in [G4_IRB0, G4_IRB1, G4_IRB2]])
 
 
 # graph 5
 
-g5_ira = IRATest()
-g5_ira.g = GraphTest(g5_ira)
+G5_IRA = IRATest()
+G5_IRA.g = GraphTest(G5_IRA)
 
-g5_irb0 = gen_irbloc(lbl0, [ [ExprAff(b, cst1)] ])
-g5_irb1 = gen_irbloc(lbl1, [ [ExprAff(b, b+cst2)] ])
-g5_irb2 = gen_irbloc(lbl2, [ [ExprAff(a, b)] ])
+G5_IRB0 = gen_irbloc(LBL0, [[ExprAff(B, CST1)]])
+G5_IRB1 = gen_irbloc(LBL1, [[ExprAff(B, B + CST2)]])
+G5_IRB2 = gen_irbloc(LBL2, [[ExprAff(A, B)]])
 
-g5_ira.g.add_uniq_edge(g5_irb0.label, g5_irb1.label)
-g5_ira.g.add_uniq_edge(g5_irb1.label, g5_irb2.label)
-g5_ira.g.add_uniq_edge(g5_irb1.label, g5_irb1.label)
+G5_IRA.g.add_uniq_edge(G5_IRB0.label, G5_IRB1.label)
+G5_IRA.g.add_uniq_edge(G5_IRB1.label, G5_IRB2.label)
+G5_IRA.g.add_uniq_edge(G5_IRB1.label, G5_IRB1.label)
 
-g5_ira.blocs = dict([(irb.label, irb) for irb in [g5_irb0, g5_irb1, g5_irb2]])
+G5_IRA.blocs = dict([(irb.label, irb) for irb in [G5_IRB0, G5_IRB1, G5_IRB2]])
 
 # graph 6
 
-g6_ira = IRATest()
-g6_ira.g = GraphTest(g6_ira)
+G6_IRA = IRATest()
+G6_IRA.g = GraphTest(G6_IRA)
 
-g6_irb0 = gen_irbloc(lbl0, [ [ExprAff(b, cst1)] ])
-g6_irb1 = gen_irbloc(lbl1, [ [ExprAff(a, b)] ])
+G6_IRB0 = gen_irbloc(LBL0, [[ExprAff(B, CST1)]])
+G6_IRB1 = gen_irbloc(LBL1, [[ExprAff(A, B)]])
 
-g6_ira.g.add_uniq_edge(g6_irb0.label, g6_irb1.label)
-g6_ira.g.add_uniq_edge(g6_irb1.label, g6_irb1.label)
+G6_IRA.g.add_uniq_edge(G6_IRB0.label, G6_IRB1.label)
+G6_IRA.g.add_uniq_edge(G6_IRB1.label, G6_IRB1.label)
 
-g6_ira.blocs = dict([(irb.label, irb) for irb in [g6_irb0, g6_irb1]])
+G6_IRA.blocs = dict([(irb.label, irb) for irb in [G6_IRB0, G6_IRB1]])
 
 # graph 7
 
-g7_ira = IRATest()
-g7_ira.g = GraphTest(g7_ira)
+G7_IRA = IRATest()
+G7_IRA.g = GraphTest(G7_IRA)
 
-g7_irb0 = gen_irbloc(lbl0, [ [ExprAff(c, cst1)] ])
-g7_irb1 = gen_irbloc(lbl1, [ [ExprAff(b, c)], [ExprAff(a, b)]  ])
-g7_irb2 = gen_irbloc(lbl2, [ [ExprAff(d, a)]  ])
+G7_IRB0 = gen_irbloc(LBL0, [[ExprAff(C, CST1)]])
+G7_IRB1 = gen_irbloc(LBL1, [[ExprAff(B, C)], [ExprAff(A, B)]])
+G7_IRB2 = gen_irbloc(LBL2, [[ExprAff(D, A)]])
 
-g7_ira.g.add_uniq_edge(g7_irb0.label, g7_irb1.label)
-g7_ira.g.add_uniq_edge(g7_irb1.label, g7_irb1.label)
-g7_ira.g.add_uniq_edge(g7_irb1.label, g7_irb2.label)
+G7_IRA.g.add_uniq_edge(G7_IRB0.label, G7_IRB1.label)
+G7_IRA.g.add_uniq_edge(G7_IRB1.label, G7_IRB1.label)
+G7_IRA.g.add_uniq_edge(G7_IRB1.label, G7_IRB2.label)
 
-g7_ira.blocs = dict([(irb.label, irb) for irb in [g7_irb0, g7_irb1, g7_irb2]])
+G7_IRA.blocs = dict([(irb.label, irb) for irb in [G7_IRB0, G7_IRB1, G7_IRB2]])
 
 # graph 8
 
-g8_ira = IRATest()
-g8_ira.g = GraphTest(g8_ira)
+G8_IRA = IRATest()
+G8_IRA.g = GraphTest(G8_IRA)
 
-g8_irb0 = gen_irbloc(lbl0, [ [ExprAff(c, cst1)] ])
-g8_irb1 = gen_irbloc(lbl1, [ [ExprAff(b, c)], [ExprAff(c, d)]  ])
-g8_irb2 = gen_irbloc(lbl2, [ [ExprAff(a, b)]  ])
+G8_IRB0 = gen_irbloc(LBL0, [[ExprAff(C, CST1)]])
+G8_IRB1 = gen_irbloc(LBL1, [[ExprAff(B, C)], [ExprAff(C, D)]])
+G8_IRB2 = gen_irbloc(LBL2, [[ExprAff(A, B)]])
 
-g8_ira.g.add_uniq_edge(g8_irb0.label, g8_irb1.label)
-g8_ira.g.add_uniq_edge(g8_irb1.label, g8_irb1.label)
-g8_ira.g.add_uniq_edge(g8_irb1.label, g8_irb2.label)
+G8_IRA.g.add_uniq_edge(G8_IRB0.label, G8_IRB1.label)
+G8_IRA.g.add_uniq_edge(G8_IRB1.label, G8_IRB1.label)
+G8_IRA.g.add_uniq_edge(G8_IRB1.label, G8_IRB2.label)
 
-g8_ira.blocs = dict([(irb.label, irb) for irb in [g8_irb0, g8_irb1, g8_irb2]])
+G8_IRA.blocs = dict([(irb.label, irb) for irb in [G8_IRB0, G8_IRB1, G8_IRB2]])
 
 # graph 9 is graph 8
 
 # graph 10
 
-g10_ira = IRATest()
-g10_ira.g = GraphTest(g10_ira)
+G10_IRA = IRATest()
+G10_IRA.g = GraphTest(G10_IRA)
 
-g10_irb1 = gen_irbloc(lbl1, [ [ExprAff(b, b+cst2)] ])
-g10_irb2 = gen_irbloc(lbl2, [ [ExprAff(a, b)] ])
+G10_IRB1 = gen_irbloc(LBL1, [[ExprAff(B, B + CST2)]])
+G10_IRB2 = gen_irbloc(LBL2, [[ExprAff(A, B)]])
 
-g10_ira.g.add_uniq_edge(g10_irb1.label, g10_irb2.label)
-g10_ira.g.add_uniq_edge(g10_irb1.label, g10_irb1.label)
+G10_IRA.g.add_uniq_edge(G10_IRB1.label, G10_IRB2.label)
+G10_IRA.g.add_uniq_edge(G10_IRB1.label, G10_IRB1.label)
 
-g10_ira.blocs = dict([(irb.label, irb) for irb in [g10_irb1, g10_irb2]])
+G10_IRA.blocs = dict([(irb.label, irb) for irb in [G10_IRB1, G10_IRB2]])
 
 # graph 11
 
-g11_ira = IRATest()
-g11_ira.g = GraphTest(g11_ira)
+G11_IRA = IRATest()
+G11_IRA.g = GraphTest(G11_IRA)
 
-g11_irb0 = gen_irbloc(lbl0, [ [ExprAff(a, cst1),
-                               ExprAff(b, cst2)] ])
-g11_irb1 = gen_irbloc(lbl1, [ [ExprAff(a, b),
-                               ExprAff(b, a)] ])
-g11_irb2 = gen_irbloc(lbl2, [ [ExprAff(a, a - b)] ])
+G11_IRB0 = gen_irbloc(LBL0, [[ExprAff(A, CST1),
+                              ExprAff(B, CST2)]])
+G11_IRB1 = gen_irbloc(LBL1, [[ExprAff(A, B),
+                              ExprAff(B, A)]])
+G11_IRB2 = gen_irbloc(LBL2, [[ExprAff(A, A - B)]])
 
-g11_ira.g.add_uniq_edge(g11_irb0.label, g11_irb1.label)
-g11_ira.g.add_uniq_edge(g11_irb1.label, g11_irb2.label)
+G11_IRA.g.add_uniq_edge(G11_IRB0.label, G11_IRB1.label)
+G11_IRA.g.add_uniq_edge(G11_IRB1.label, G11_IRB2.label)
 
-g11_ira.blocs = dict([(irb.label, irb) for irb in [g11_irb0, g11_irb1, g11_irb2]])
+G11_IRA.blocs = dict([(irb.label, irb)
+                     for irb in [G11_IRB0, G11_IRB1, G11_IRB2]])
+
+# graph 12
+
+G12_IRA = IRATest()
+G12_IRA.g = GraphTest(G12_IRA)
+
+G12_IRB0 = gen_irbloc(LBL0, [[ExprAff(B, CST1)]])
+G12_IRB1 = gen_irbloc(LBL1, [[ExprAff(A, B)], [ExprAff(B, B + CST2)]])
+G12_IRB2 = gen_irbloc(LBL2, [[ExprAff(B, A)]])
+
+G12_IRA.g.add_uniq_edge(G12_IRB0.label, G12_IRB1.label)
+G12_IRA.g.add_uniq_edge(G12_IRB1.label, G12_IRB2.label)
+G12_IRA.g.add_uniq_edge(G12_IRB1.label, G12_IRB1.label)
+
+G12_IRA.blocs = dict([(irb.label, irb) for irb in [G12_IRB0, G12_IRB1,
+                                                   G12_IRB2]])
+
+
+# graph 13
+
+G13_IRA = IRATest()
+G13_IRA.g = GraphTest(G13_IRA)
+
+G13_IRB0 = gen_irbloc(LBL0, [[ExprAff(A, CST1)],
+                             #[ExprAff(B, A)],
+                             [ExprAff(G13_IRA.IRDst,
+                                      ExprId(LBL1))]])
+G13_IRB1 = gen_irbloc(LBL1, [[ExprAff(C, A)],
+                             #[ExprAff(A, A + CST1)],
+                             [ExprAff(G13_IRA.IRDst,
+                                      ExprCond(R, ExprId(LBL2),
+                                               ExprId(LBL1)))]])
+
+G13_IRB2 = gen_irbloc(LBL2, [[ExprAff(B, A + CST3)], [ExprAff(A, B + CST3)],
+                             [ExprAff(G13_IRA.IRDst,
+                                      ExprId(LBL1))]])
+
+G13_IRB3 = gen_irbloc(LBL3, [[ExprAff(R, C)]])
+
+G13_IRA.g.add_uniq_edge(G13_IRB0.label, G13_IRB1.label)
+G13_IRA.g.add_uniq_edge(G13_IRB1.label, G13_IRB2.label)
+G13_IRA.g.add_uniq_edge(G13_IRB2.label, G13_IRB1.label)
+G13_IRA.g.add_uniq_edge(G13_IRB1.label, G13_IRB3.label)
+
+G13_IRA.blocs = dict([(irb.label, irb) for irb in [G13_IRB0, G13_IRB1,
+                                                   G13_IRB2, G13_IRB3]])
+
+# graph 14
+
+G14_IRA = IRATest()
+G14_IRA.g = GraphTest(G14_IRA)
+
+G14_IRB0 = gen_irbloc(LBL0, [[ExprAff(A, CST1)],
+                             [ExprAff(G14_IRA.IRDst,
+                                      ExprId(LBL1))]
+                             ])
+G14_IRB1 = gen_irbloc(LBL1, [[ExprAff(B, A)],
+                             [ExprAff(G14_IRA.IRDst,
+                                      ExprCond(C, ExprId(LBL2),
+                                               ExprId(LBL3)))]
+                             ])
+
+G14_IRB2 = gen_irbloc(LBL2, [[ExprAff(D, A)],
+                             [ExprAff(A, D + CST1)],
+                             [ExprAff(G14_IRA.IRDst,
+                                      ExprId(LBL1))]
+                             ])
+
+G14_IRB3 = gen_irbloc(LBL3, [[ExprAff(R, D + B)]])
+
+G14_IRA.g.add_uniq_edge(G14_IRB0.label, G14_IRB1.label)
+G14_IRA.g.add_uniq_edge(G14_IRB1.label, G14_IRB2.label)
+G14_IRA.g.add_uniq_edge(G14_IRB2.label, G14_IRB1.label)
+G14_IRA.g.add_uniq_edge(G14_IRB1.label, G14_IRB3.label)
+
+G14_IRA.blocs = dict([(irb.label, irb) for irb in [G14_IRB0, G14_IRB1,
+                                                   G14_IRB2, G14_IRB3]])
+
+# graph 16
+
+G15_IRA = IRATest()
+G15_IRA.g = GraphTest(G15_IRA)
+
+G15_IRB0 = gen_irbloc(LBL0, [[ExprAff(A, CST1)]])
+G15_IRB1 = gen_irbloc(LBL1, [[ExprAff(D, A + B)],
+                             [ExprAff(C, D)],
+                             [ExprAff(B, C)]])
+G15_IRB2 = gen_irbloc(LBL2, [[ExprAff(R, B)]])
+
+G15_IRA.g.add_uniq_edge(G15_IRB0.label, G15_IRB1.label)
+G15_IRA.g.add_uniq_edge(G15_IRB1.label, G15_IRB2.label)
+G15_IRA.g.add_uniq_edge(G15_IRB1.label, G15_IRB1.label)
+
+G15_IRA.blocs = dict([(irb.label, irb) for irb in [G15_IRB0, G15_IRB1,
+                                                   G15_IRB2]])
+
+# graph 16
+
+G16_IRA = IRATest()
+G16_IRA.g = GraphTest(G16_IRA)
+
+G16_IRB0 = gen_irbloc(LBL0, [[ExprAff(A, CST1)]])
+G16_IRB1 = gen_irbloc(LBL1, [[ExprAff(R, D)]])
+G16_IRB2 = gen_irbloc(LBL2, [[ExprAff(D, A)]])
+G16_IRB3 = gen_irbloc(LBL3, [[ExprAff(R, D)]])
+G16_IRB4 = gen_irbloc(LBL4, [[ExprAff(R, A)]])
+G16_IRB5 = gen_irbloc(LBL5, [[ExprAff(R, A)]])
+
+G16_IRA.g.add_uniq_edge(G16_IRB0.label, G16_IRB1.label)
+G16_IRA.g.add_uniq_edge(G16_IRB1.label, G16_IRB2.label)
+G16_IRA.g.add_uniq_edge(G16_IRB2.label, G16_IRB1.label)
+G16_IRA.g.add_uniq_edge(G16_IRB1.label, G16_IRB3.label)
+G16_IRA.g.add_uniq_edge(G16_IRB3.label, G16_IRB1.label)
+G16_IRA.g.add_uniq_edge(G16_IRB1.label, G16_IRB4.label)
+G16_IRA.g.add_uniq_edge(G16_IRB4.label, G16_IRB1.label)
+G16_IRA.g.add_uniq_edge(G16_IRB1.label, G16_IRB5.label)
+
+G16_IRA.blocs = dict([(irb.label, irb) for irb in [G16_IRB0, G16_IRB1,
+                                                   G16_IRB2, G16_IRB3,
+                                                   G16_IRB4, G16_IRB5]])
+
+# graph 17
+
+G17_IRA = IRATest()
+G17_IRA.g = GraphTest(G17_IRA)
+
+G17_IRB0 = gen_irbloc(LBL0, [[ExprAff(A, CST1)],
+                             [ExprAff(G17_IRA.IRDst,
+                                      ExprId(LBL1))]])
+G17_IRB1 = gen_irbloc(LBL1, [[ExprAff(R, D)],
+                             [ExprAff(G17_IRA.IRDst,
+                                      ExprCond(C, ExprId(LBL2),
+                                               ExprId(LBL1)))]])
+
+G17_IRB2 = gen_irbloc(LBL2, [[ExprAff(D, A)],
+                             [ExprAff(A, A + CST1)],
+                             [ExprAff(G17_IRA.IRDst,
+                                      ExprId(LBL1))]])
+
+G17_IRB3 = gen_irbloc(LBL3, [[ExprAff(R, A + D)]])
+
+G17_IRA.g.add_uniq_edge(G17_IRB0.label, G17_IRB1.label)
+G17_IRA.g.add_uniq_edge(G17_IRB1.label, G17_IRB2.label)
+G17_IRA.g.add_uniq_edge(G17_IRB2.label, G17_IRB1.label)
+G17_IRA.g.add_uniq_edge(G17_IRB1.label, G17_IRB3.label)
+
+G17_IRA.blocs = dict([(irb.label, irb) for irb in [G17_IRB0, G17_IRB1,
+                                                   G17_IRB2, G17_IRB3]])
 
 # Test graph 1
 
-g1_test1 = DepNodeTest(g1_ira)
+G1_TEST1 = DepNodeTest(G1_IRA)
 
-g1_test1_dn1 = DependencyNode(g1_irb2.label, a, len(g1_irb2.irs))
-g1_test1_dn2 = DependencyNode(g1_irb2.label, b, 0)
-g1_test1_dn3 = DependencyNode(g1_irb1.label, c, 0)
-g1_test1_dn4 = DependencyNode(g1_irb0.label, cst1, 0)
+G1_TEST1_DN1 = DependencyNode(
+    G1_IRB2.label, A, len(G1_IRB2.irs), next(STEP_COUNTER))
+G1_TEST1_DN2 = DependencyNode(G1_IRB2.label, B, 0, next(STEP_COUNTER))
+G1_TEST1_DN3 = DependencyNode(G1_IRB1.label, C, 0, next(STEP_COUNTER))
+G1_TEST1_DN4 = DependencyNode(G1_IRB0.label, CST1, 0, next(STEP_COUNTER))
 
-g1_test1.add_uniq_edge(g1_test1_dn4, g1_test1_dn3)
-g1_test1.add_uniq_edge(g1_test1_dn3, g1_test1_dn2)
-g1_test1.add_uniq_edge(g1_test1_dn2, g1_test1_dn1)
+G1_TEST1.add_uniq_edge(G1_TEST1_DN4, G1_TEST1_DN3)
+G1_TEST1.add_uniq_edge(G1_TEST1_DN3, G1_TEST1_DN2)
+G1_TEST1.add_uniq_edge(G1_TEST1_DN2, G1_TEST1_DN1)
 
-g1_input = (set([g1_test1_dn1]), set([g1_irb0.label]))
-g1_output1 = {"graph": g1_test1,
-              "emul": {a: cst1},
-              "unresolved": set(),
-              "has_loop": False}
+G1_INPUT = (set([G1_TEST1_DN1]), set([G1_IRB0.label]))
+
+G1_OUTPUT = {"graph": [G1_TEST1],
+             "emul": [{A: CST1}],
+             "unresolved": [set()],
+             "has_loop": [False]}
 
 # Test graph 2
 
-g2_test1 = DepNodeTest(g2_ira)
+G2_TEST1 = DepNodeTest(G2_IRA)
 
-g2_test1_dn1 = DependencyNode(g2_irb2.label, a, len(g2_irb2.irs))
-g2_test1_dn2 = DependencyNode(g2_irb2.label, b, 0)
-g2_test1_dn3 = DependencyNode(g2_irb2.label, c, 0)
-g2_test1_dn4 = DependencyNode(g2_irb1.label, cst2, 0)
-g2_test1_dn5 = DependencyNode(g2_irb0.label, cst1, 0)
+G2_TEST1_DN1 = DependencyNode(
+    G2_IRB2.label, A, len(G2_IRB2.irs), next(STEP_COUNTER))
+G2_TEST1_DN2 = DependencyNode(G2_IRB2.label, B, 0, next(STEP_COUNTER))
+G2_TEST1_DN3 = DependencyNode(G2_IRB2.label, C, 0, next(STEP_COUNTER))
+G2_TEST1_DN4 = DependencyNode(G2_IRB1.label, CST2, 0, next(STEP_COUNTER))
+G2_TEST1_DN5 = DependencyNode(G2_IRB0.label, CST1, 0, next(STEP_COUNTER))
 
-g2_test1.add_uniq_edge(g2_test1_dn5, g2_test1_dn3)
-g2_test1.add_uniq_edge(g2_test1_dn4, g2_test1_dn2)
-g2_test1.add_uniq_edge(g2_test1_dn2, g2_test1_dn1)
-g2_test1.add_uniq_edge(g2_test1_dn3, g2_test1_dn1)
+G2_TEST1.add_uniq_edge(G2_TEST1_DN5, G2_TEST1_DN3)
+G2_TEST1.add_uniq_edge(G2_TEST1_DN4, G2_TEST1_DN2)
+G2_TEST1.add_uniq_edge(G2_TEST1_DN2, G2_TEST1_DN1)
+G2_TEST1.add_uniq_edge(G2_TEST1_DN3, G2_TEST1_DN1)
 
-g2_input = (set([g2_test1_dn1]), set([g2_irb0.label]))
-g2_output1 = {"graph": g2_test1,
-              "emul": {a: ExprInt32(int(cst1.arg) + int(cst2.arg))},
-              "unresolved": set(),
-              "has_loop": False}
+G2_INPUT = (set([G2_TEST1_DN1]), set([G2_IRB0.label]))
+G2_OUTPUT = {"graph": [G2_TEST1],
+             "emul": [{A: ExprInt32(int(CST1.arg) + int(CST2.arg))}],
+             "unresolved": [set()],
+             "has_loop": [False]}
 
 # Test graph 3
 
-g3_test1_0 = DepNodeTest(g3_ira)
-g3_test1_1 = DepNodeTest(g3_ira)
+G3_TEST1_0 = DepNodeTest(G3_IRA)
+G3_TEST1_1 = DepNodeTest(G3_IRA)
 
-g3_test1_0_dn1 = DependencyNode(g3_irb3.label, a, len(g3_irb3.irs))
-g3_test1_0_dn2 = DependencyNode(g3_irb3.label, b, 0)
-g3_test1_0_dn3 = DependencyNode(g3_irb3.label, c, 0)
-g3_test1_0_dn4 = DependencyNode(g3_irb2.label, cst3, 0)
-g3_test1_0_dn5 = DependencyNode(g3_irb0.label, cst1, 0)
+G3_TEST1_0_DN1 = DependencyNode(
+    G3_IRB3.label, A, len(G3_IRB3.irs), next(STEP_COUNTER))
+G3_TEST1_0_DN2 = DependencyNode(G3_IRB3.label, B, 0, next(STEP_COUNTER))
+G3_TEST1_0_DN3 = DependencyNode(G3_IRB3.label, C, 0, next(STEP_COUNTER))
+G3_TEST1_0_DN4 = DependencyNode(G3_IRB2.label, CST3, 0, next(STEP_COUNTER))
+G3_TEST1_0_DN5 = DependencyNode(G3_IRB0.label, CST1, 0, next(STEP_COUNTER))
 
-g3_test1_1_dn1 = DependencyNode(g3_irb3.label, a, len(g3_irb3.irs))
-g3_test1_1_dn2 = DependencyNode(g3_irb3.label, b, 0)
-g3_test1_1_dn3 = DependencyNode(g3_irb3.label, c, 0)
-g3_test1_1_dn4 = DependencyNode(g3_irb1.label, cst2, 0)
-g3_test1_1_dn5 = DependencyNode(g3_irb0.label, cst1, 0)
+G3_TEST1_1_DN2 = DependencyNode(G3_IRB3.label, B, 0, next(STEP_COUNTER))
+G3_TEST1_1_DN3 = DependencyNode(G3_IRB3.label, C, 0, next(STEP_COUNTER))
+G3_TEST1_1_DN4 = DependencyNode(G3_IRB1.label, CST2, 0, next(STEP_COUNTER))
+G3_TEST1_1_DN5 = DependencyNode(G3_IRB0.label, CST1, 0, next(STEP_COUNTER))
 
-g3_test1_0.add_uniq_edge(g3_test1_0_dn5, g3_test1_0_dn3)
-g3_test1_0.add_uniq_edge(g3_test1_0_dn4, g3_test1_0_dn2)
-g3_test1_0.add_uniq_edge(g3_test1_0_dn2, g3_test1_0_dn1)
-g3_test1_0.add_uniq_edge(g3_test1_0_dn3, g3_test1_0_dn1)
+G3_TEST1_0.add_uniq_edge(G3_TEST1_0_DN5, G3_TEST1_0_DN3)
+G3_TEST1_0.add_uniq_edge(G3_TEST1_0_DN4, G3_TEST1_0_DN2)
+G3_TEST1_0.add_uniq_edge(G3_TEST1_0_DN2, G3_TEST1_0_DN1)
+G3_TEST1_0.add_uniq_edge(G3_TEST1_0_DN3, G3_TEST1_0_DN1)
 
-g3_test1_1.add_uniq_edge(g3_test1_1_dn5, g3_test1_1_dn3)
-g3_test1_1.add_uniq_edge(g3_test1_1_dn4, g3_test1_1_dn2)
-g3_test1_1.add_uniq_edge(g3_test1_1_dn2, g3_test1_1_dn1)
-g3_test1_1.add_uniq_edge(g3_test1_1_dn3, g3_test1_0_dn1)
+G3_TEST1_1.add_uniq_edge(G3_TEST1_1_DN5, G3_TEST1_1_DN3)
+G3_TEST1_1.add_uniq_edge(G3_TEST1_1_DN4, G3_TEST1_1_DN2)
+G3_TEST1_1.add_uniq_edge(G3_TEST1_1_DN2, G3_TEST1_0_DN1)
+G3_TEST1_1.add_uniq_edge(G3_TEST1_1_DN3, G3_TEST1_0_DN1)
 
-g3_input = (set([g3_test1_0_dn1]), set([g3_irb0.label]))
+G3_INPUT = (set([G3_TEST1_0_DN1]), set([G3_IRB0.label]))
 
-g3_output1 = {"graph": g3_test1_0,
-              "emul": {a: ExprInt32(int(cst1.arg) + int(cst3.arg))},
-              "unresolved": set(),
-              "has_loop": False}
-
-g3_output2 = {"graph": g3_test1_1,
-              "emul": {a: ExprInt32(int(cst1.arg) + int(cst2.arg))},
-              "unresolved": set(),
-              "has_loop": False}
+G3_OUTPUT = {"graph": [G3_TEST1_0, G3_TEST1_1],
+             "emul": [{A: ExprInt32(int(CST1.arg) + int(CST3.arg))},
+                      {A: ExprInt32(int(CST1.arg) + int(CST2.arg))}],
+             "unresolved": [set(),
+                            set()],
+             "has_loop": [False, False]}
 
 # Test graph 4
 
-g4_test1 = DepNodeTest(g4_ira)
+G4_TEST1 = DepNodeTest(G4_IRA)
 
-g4_test1_dn1 = DependencyNode(g4_irb2.label, a, len(g2_irb0.irs))
-g4_test1_dn2 = DependencyNode(g4_irb2.label, b, 0)
-g4_test1_dn3 = DependencyNode(g4_irb0.label, b, 0)
+G4_TEST1_DN1 = DependencyNode(
+    G4_IRB2.label, A, len(G2_IRB0.irs), next(STEP_COUNTER))
+G4_TEST1_DN2 = DependencyNode(G4_IRB2.label, B, 0, next(STEP_COUNTER))
+G4_TEST1_DN3 = DependencyNode(G4_IRB0.label, B, 0, 10)
+G4_TEST1_DN4 = DependencyNode(G4_IRB0.label, G4_IRA.IRDst, 0, 0)
 
-g4_test1.add_uniq_edge(g4_test1_dn2, g4_test1_dn1)
+G4_TEST1.add_uniq_edge(G4_TEST1_DN2, G4_TEST1_DN1)
 
-g4_input = (set([g4_test1_dn1]), set([g4_irb0.label]))
+G4_INPUT = (set([G4_TEST1_DN1]), set([G4_IRB0.label]))
 
-g4_output1 = {"graph": g4_test1,
-              "emul": {a: b_init},
-              "unresolved": set([g4_test1_dn3]),
-              "has_loop": False}
+G4_OUTPUT = {"graph": [G4_TEST1],
+             "emul": [{A: B_INIT}],
+             "unresolved": [set([G4_TEST1_DN3.nostep_repr])],
+             "has_loop": [False]}
 
 # Test graph 5
 
-g5_test1 = DepNodeTest(g5_ira)
+G5_TEST1_0 = DepNodeTest(G5_IRA)
+G5_TEST1_1 = DepNodeTest(G5_IRA)
 
-g5_test1_dn1 = DependencyNode(g5_irb2.label, a, len(g5_irb2.irs))
-g5_test1_dn2 = DependencyNode(g5_irb2.label, b, 0)
-g5_test1_dn3 = DependencyNode(g5_irb1.label, b, 0)
-g5_test1_dn4 = DependencyNode(g5_irb0.label, cst1, 0)
-g5_test1_dn5 = DependencyNode(g5_irb1.label, cst2, 0)
+G5_TEST1_0_DN1 = DependencyNode(
+    G5_IRB2.label, A, len(G5_IRB2.irs), next(STEP_COUNTER))
+G5_TEST1_0_DN2 = DependencyNode(G5_IRB2.label, B, 0, next(STEP_COUNTER))
+G5_TEST1_0_DN3 = DependencyNode(G5_IRB1.label, B, 0, next(STEP_COUNTER))
+G5_TEST1_0_DN4 = DependencyNode(G5_IRB0.label, CST1, 0, next(STEP_COUNTER))
+G5_TEST1_0_DN5 = DependencyNode(G5_IRB1.label, CST2, 0, next(STEP_COUNTER))
 
-g5_test1.add_uniq_edge(g5_test1_dn4, g5_test1_dn3)
-g5_test1.add_uniq_edge(g5_test1_dn3, g5_test1_dn2)
-g5_test1.add_uniq_edge(g5_test1_dn5, g5_test1_dn2)
-g5_test1.add_uniq_edge(g5_test1_dn2, g5_test1_dn1)
+G5_TEST1_0.add_uniq_edge(G5_TEST1_0_DN4, G5_TEST1_0_DN3)
+G5_TEST1_0.add_uniq_edge(G5_TEST1_0_DN3, G5_TEST1_0_DN2)
+G5_TEST1_0.add_uniq_edge(G5_TEST1_0_DN5, G5_TEST1_0_DN2)
+G5_TEST1_0.add_uniq_edge(G5_TEST1_0_DN2, G5_TEST1_0_DN1)
 
-g5_input = (set([g5_test1_dn1]), set([g5_irb0.label]))
+G5_TEST1_1_DN3 = DependencyNode(G5_IRB1.label, B, 0, next(STEP_COUNTER))
+G5_TEST1_1_DN5 = DependencyNode(G5_IRB1.label, CST2, 0, next(STEP_COUNTER))
 
-g5_output1 = {"graph": g5_test1,
-              "emul": {},
-              "unresolved": set(),
-              "has_loop": True}
+G5_TEST1_1.add_uniq_edge(G5_TEST1_0_DN4, G5_TEST1_1_DN3)
+G5_TEST1_1.add_uniq_edge(G5_TEST1_1_DN3, G5_TEST1_0_DN3)
+G5_TEST1_1.add_uniq_edge(G5_TEST1_1_DN5, G5_TEST1_0_DN3)
+G5_TEST1_1.add_uniq_edge(G5_TEST1_0_DN3, G5_TEST1_0_DN2)
+G5_TEST1_1.add_uniq_edge(G5_TEST1_0_DN5, G5_TEST1_0_DN2)
+G5_TEST1_1.add_uniq_edge(G5_TEST1_0_DN2, G5_TEST1_0_DN1)
+
+G5_INPUT = (set([G5_TEST1_0_DN1]), set([G5_IRB0.label]))
+
+G5_OUTPUT = {"graph": [G5_TEST1_0, G5_TEST1_1],
+             "emul": [{A: CST35}, {A: CST23}],
+             "unresolved": [set(), set()],
+             "has_loop": [True, False]}
 
 # Test graph 6
 
-g6_test1_0 = DepNodeTest(g6_ira)
+G6_TEST1_0 = DepNodeTest(G6_IRA)
 
-g6_test1_0_dn1 = DependencyNode(g6_irb1.label, a, len(g6_irb1.irs))
-g6_test1_0_dn2 = DependencyNode(g6_irb1.label, b, 0)
-g6_test1_0_dn3 = DependencyNode(g6_irb0.label, cst1, 0)
+G6_TEST1_0_DN1 = DependencyNode(
+    G6_IRB1.label, A, len(G6_IRB1.irs), next(STEP_COUNTER))
+G6_TEST1_0_DN2 = DependencyNode(G6_IRB1.label, B, 0, next(STEP_COUNTER))
+G6_TEST1_0_DN3 = DependencyNode(G6_IRB0.label, CST1, 0, next(STEP_COUNTER))
 
 
-g6_test1_0.add_uniq_edge(g6_test1_0_dn3, g6_test1_0_dn2)
-g6_test1_0.add_uniq_edge(g6_test1_0_dn2, g6_test1_0_dn1)
+G6_TEST1_0.add_uniq_edge(G6_TEST1_0_DN3, G6_TEST1_0_DN2)
+G6_TEST1_0.add_uniq_edge(G6_TEST1_0_DN2, G6_TEST1_0_DN1)
 
-g6_input = (set([g6_test1_0_dn1]), set([g6_irb0.label]))
+G6_INPUT = (set([G6_TEST1_0_DN1]), set([G6_IRB0.label]))
 
-g6_output1 = {"graph": g6_test1_0,
-              "emul": {a: cst1},
-              "unresolved": set(),
-              "has_loop": True}
+G6_OUTPUT = {"graph": [G6_TEST1_0],
+             "emul": [{A: CST1}],
+             "unresolved": [set()],
+             "has_loop": [False]}
 
 # Test graph 7
 
-g7_test1_0 = DepNodeTest(g7_ira)
+G7_TEST1_0 = DepNodeTest(G7_IRA)
 
-g7_test1_0_dn1 = DependencyNode(g7_irb2.label, a, len(g7_irb2.irs))
-g7_test1_0_dn2 = DependencyNode(g7_irb1.label, b, 1)
-g7_test1_0_dn3 = DependencyNode(g7_irb1.label, c, 0)
-g7_test1_0_dn4 = DependencyNode(g7_irb0.label, cst1, 0)
+G7_TEST1_0_DN1 = DependencyNode(
+    G7_IRB2.label, A, len(G7_IRB2.irs), next(STEP_COUNTER))
+G7_TEST1_0_DN2 = DependencyNode(G7_IRB1.label, B, 1, next(STEP_COUNTER))
+G7_TEST1_0_DN3 = DependencyNode(G7_IRB1.label, C, 0, next(STEP_COUNTER))
+G7_TEST1_0_DN4 = DependencyNode(G7_IRB0.label, CST1, 0, next(STEP_COUNTER))
 
 
-g7_test1_0.add_uniq_edge(g7_test1_0_dn4, g7_test1_0_dn3)
-g7_test1_0.add_uniq_edge(g7_test1_0_dn3, g7_test1_0_dn2)
-g7_test1_0.add_uniq_edge(g7_test1_0_dn2, g7_test1_0_dn1)
+G7_TEST1_0.add_uniq_edge(G7_TEST1_0_DN4, G7_TEST1_0_DN3)
+G7_TEST1_0.add_uniq_edge(G7_TEST1_0_DN3, G7_TEST1_0_DN2)
+G7_TEST1_0.add_uniq_edge(G7_TEST1_0_DN2, G7_TEST1_0_DN1)
 
-g7_input = (set([g7_test1_0_dn1]), set([g7_irb0.label]))
+G7_INPUT = (set([G7_TEST1_0_DN1]), set([G7_IRB0.label]))
 
-g7_output1 = {"graph": g7_test1_0,
-              "emul": {a: cst1},
-              "unresolved": set(),
-              "has_loop": True}
+G7_OUTPUT = {"graph": [G7_TEST1_0],
+             "emul": [{A: CST1}],
+             "unresolved": [set()],
+             "has_loop": [False]}
 
 # Test graph 8
 
-g8_test1_0 = DepNodeTest(g8_ira)
-g8_test1_1 = DepNodeTest(g8_ira)
+G8_TEST1_0 = DepNodeTest(G8_IRA)
+G8_TEST1_1 = DepNodeTest(G8_IRA)
 
-g8_test1_0_dn1 = DependencyNode(g8_irb2.label, a, len(g8_irb2.irs))
-g8_test1_0_dn2 = DependencyNode(g8_irb2.label, b, 0)
-g8_test1_0_dn3 = DependencyNode(g8_irb1.label, c, 0)
-g8_test1_0_dn4 = DependencyNode(g8_irb0.label, cst1, 0)
+G8_TEST1_0_DN1 = DependencyNode(
+    G8_IRB2.label, A, len(G8_IRB2.irs), next(STEP_COUNTER))
+G8_TEST1_0_DN2 = DependencyNode(G8_IRB2.label, B, 0, next(STEP_COUNTER))
+G8_TEST1_0_DN3 = DependencyNode(G8_IRB1.label, C, 0, next(STEP_COUNTER))
+G8_TEST1_0_DN4 = DependencyNode(G8_IRB0.label, CST1, 0, next(STEP_COUNTER))
 
-g8_test1_1_dn1 = DependencyNode(g8_irb2.label, a, len(g8_irb2.irs))
-g8_test1_1_dn2 = DependencyNode(g8_irb2.label, b, 0)
-g8_test1_1_dn3 = DependencyNode(g8_irb1.label, c, 0)
-g8_test1_1_dn4 = DependencyNode(g8_irb1.label, d, 1)
+G8_TEST1_1_DN1 = DependencyNode(
+    G8_IRB2.label, A, len(G8_IRB2.irs), next(STEP_COUNTER))
+G8_TEST1_1_DN2 = DependencyNode(G8_IRB2.label, B, 0, next(STEP_COUNTER))
+G8_TEST1_1_DN3 = DependencyNode(G8_IRB1.label, C, 0, next(STEP_COUNTER))
+G8_TEST1_1_DN4 = DependencyNode(G8_IRB1.label, D, 1, next(STEP_COUNTER))
 
-g8_test1_1_dn5 = DependencyNode(g8_irb0.label, d, 0)
+G8_TEST1_1_DN5 = DependencyNode(G8_IRB0.label, D, 0, next(STEP_COUNTER))
 
 
-g8_test1_0.add_uniq_edge(g8_test1_0_dn4, g8_test1_0_dn3)
-g8_test1_0.add_uniq_edge(g8_test1_0_dn3, g8_test1_0_dn2)
-g8_test1_0.add_uniq_edge(g8_test1_0_dn2, g8_test1_0_dn1)
+G8_TEST1_0.add_uniq_edge(G8_TEST1_0_DN4, G8_TEST1_0_DN3)
+G8_TEST1_0.add_uniq_edge(G8_TEST1_0_DN3, G8_TEST1_0_DN2)
+G8_TEST1_0.add_uniq_edge(G8_TEST1_0_DN2, G8_TEST1_0_DN1)
 
-g8_test1_1.add_uniq_edge(g8_test1_1_dn4, g8_test1_1_dn3)
-g8_test1_1.add_uniq_edge(g8_test1_1_dn3, g8_test1_1_dn2)
-g8_test1_1.add_uniq_edge(g8_test1_1_dn2, g8_test1_1_dn1)
+G8_TEST1_1.add_uniq_edge(G8_TEST1_1_DN4, G8_TEST1_1_DN3)
+G8_TEST1_1.add_uniq_edge(G8_TEST1_1_DN3, G8_TEST1_1_DN2)
+G8_TEST1_1.add_uniq_edge(G8_TEST1_1_DN2, G8_TEST1_1_DN1)
 
-g8_input = (set([g8_test1_0_dn1]), set([g3_irb0.label]))
+G8_INPUT = (set([G8_TEST1_0_DN1]), set([G3_IRB0.label]))
 
-g8_output1 = {"graph": g8_test1_0,
-              "emul": {a: cst1},
-              "unresolved": set(),
-              "has_loop": False}
-
-g8_output2 = {"graph": g8_test1_1,
-              "emul": {a: d_init},
-              "unresolved": set([g8_test1_1_dn5]),
-              "has_loop": True}
-
+G8_OUTPUT = {"graph": [G8_TEST1_0, G8_TEST1_1],
+             "emul": [{A: D_INIT}, {A: CST1}],
+             "unresolved": [set([G8_TEST1_1_DN5.nostep_repr]), set()],
+             "has_loop": [True, False]}
 
 # Test 9: Multi elements
 
-g9_test1_0 = DepNodeTest(g8_ira)
-g9_test1_1 = DepNodeTest(g8_ira)
+G9_TEST1_0 = DepNodeTest(G8_IRA)
+G9_TEST1_1 = DepNodeTest(G8_IRA)
 
-g9_test1_0_dn1 = DependencyNode(g8_irb2.label, a, len(g8_irb2.irs))
-g9_test1_0_dn2 = DependencyNode(g8_irb2.label, b, 0)
-g9_test1_0_dn3 = DependencyNode(g8_irb1.label, c, 0)
-g9_test1_0_dn4 = DependencyNode(g8_irb0.label, cst1, 0)
-g9_test1_0_dn5 = DependencyNode(g8_irb2.label, c, len(g8_irb2.irs))
-g9_test1_0_dn6 = DependencyNode(g8_irb1.label, d, 1)
+G9_TEST1_0_DN1 = DependencyNode(
+    G8_IRB2.label, A, len(G8_IRB2.irs), next(STEP_COUNTER))
+G9_TEST1_0_DN2 = DependencyNode(G8_IRB2.label, B, 0, next(STEP_COUNTER))
+G9_TEST1_0_DN3 = DependencyNode(G8_IRB1.label, C, 0, next(STEP_COUNTER))
+G9_TEST1_0_DN4 = DependencyNode(G8_IRB0.label, CST1, 0, next(STEP_COUNTER))
+G9_TEST1_0_DN5 = DependencyNode(
+    G8_IRB2.label, C, len(G8_IRB2.irs), next(STEP_COUNTER))
+G9_TEST1_0_DN6 = DependencyNode(G8_IRB1.label, D, 1, next(STEP_COUNTER))
 
-g9_test1_1_dn1 = DependencyNode(g8_irb2.label, a, len(g8_irb2.irs))
-g9_test1_1_dn2 = DependencyNode(g8_irb2.label, b, 0)
-g9_test1_1_dn3 = DependencyNode(g8_irb1.label, c, 0)
-g9_test1_1_dn4 = DependencyNode(g8_irb1.label, d, 1)
-g9_test1_1_dn5 = DependencyNode(g8_irb2.label, c, len(g8_irb2.irs))
+G9_TEST1_1_DN1 = DependencyNode(
+    G8_IRB2.label, A, len(G8_IRB2.irs), next(STEP_COUNTER))
+G9_TEST1_1_DN2 = DependencyNode(G8_IRB2.label, B, 0, next(STEP_COUNTER))
+G9_TEST1_1_DN3 = DependencyNode(G8_IRB1.label, C, 0, next(STEP_COUNTER))
+G9_TEST1_1_DN4 = DependencyNode(G8_IRB1.label, D, 1, next(STEP_COUNTER))
+G9_TEST1_1_DN5 = DependencyNode(
+    G8_IRB2.label, C, len(G8_IRB2.irs), next(STEP_COUNTER))
+G9_TEST1_1_DN6 = DependencyNode(G8_IRB1.label, D, 1, next(STEP_COUNTER))
 
 
-g9_test1_0.add_uniq_edge(g9_test1_0_dn4, g9_test1_0_dn3)
-g9_test1_0.add_uniq_edge(g9_test1_0_dn3, g9_test1_0_dn2)
-g9_test1_0.add_uniq_edge(g9_test1_0_dn2, g9_test1_0_dn1)
-g9_test1_0.add_uniq_edge(g9_test1_0_dn6, g9_test1_0_dn5)
+G9_TEST1_0.add_uniq_edge(G9_TEST1_0_DN4, G9_TEST1_0_DN3)
+G9_TEST1_0.add_uniq_edge(G9_TEST1_0_DN3, G9_TEST1_0_DN2)
+G9_TEST1_0.add_uniq_edge(G9_TEST1_0_DN2, G9_TEST1_0_DN1)
+G9_TEST1_0.add_uniq_edge(G9_TEST1_0_DN6, G9_TEST1_0_DN5)
 
-g9_test1_1.add_uniq_edge(g9_test1_1_dn4, g9_test1_1_dn5)
-g9_test1_1.add_uniq_edge(g9_test1_1_dn4, g9_test1_1_dn3)
-g9_test1_1.add_uniq_edge(g9_test1_1_dn3, g9_test1_1_dn2)
-g9_test1_1.add_uniq_edge(g9_test1_1_dn2, g9_test1_1_dn1)
+G9_TEST1_1.add_uniq_edge(G9_TEST1_1_DN6, G9_TEST1_1_DN5)
+G9_TEST1_1.add_uniq_edge(G9_TEST1_1_DN4, G9_TEST1_1_DN3)
+G9_TEST1_1.add_uniq_edge(G9_TEST1_1_DN3, G9_TEST1_1_DN2)
+G9_TEST1_1.add_uniq_edge(G9_TEST1_1_DN2, G9_TEST1_1_DN1)
 
-g9_input = (set([g9_test1_0_dn1, g9_test1_0_dn5]), set([g8_irb0.label]))
+G9_INPUT = (set([G9_TEST1_0_DN1, G9_TEST1_0_DN5]), set([G8_IRB0.label]))
 
-g9_output1 = {"graph": g9_test1_0,
-              "emul": {a: cst1,
-                       c: d_init},
-              "unresolved": set([g8_test1_1_dn5]),
-              "has_loop": False}
-
-g9_output2 = {"graph": g9_test1_1,
-              "emul": {a: d_init,
-                       c: d_init},
-              "unresolved": set([g8_test1_1_dn5]),
-              "has_loop": True}
-
+G9_OUTPUT = {"graph": [G9_TEST1_1, G9_TEST1_0],
+             "emul": [{A: D_INIT, C: D_INIT},
+                      {A: CST1, C: D_INIT}],
+             "unresolved": [set([G8_TEST1_1_DN5.nostep_repr]),
+                            set([G8_TEST1_1_DN5.nostep_repr])],
+             "has_loop": [True, False]}
 
 # Test 10: loop at beginning
 
-g10_test1 = DepNodeTest(g10_ira)
+G10_TEST1_0 = DepNodeTest(G10_IRA)
+G10_TEST1_1 = DepNodeTest(G10_IRA)
 
-g10_test1_dn1 = DependencyNode(g10_irb2.label, a, len(g10_irb2.irs))
-g10_test1_dn2 = DependencyNode(g10_irb2.label, b, 0)
-g10_test1_dn3 = DependencyNode(g10_irb1.label, b, 0)
-g10_test1_dn4 = DependencyNode(g10_irb1.label, cst2, 0)
+G10_TEST1_0_DN1 = DependencyNode(
+    G10_IRB2.label, A, len(G10_IRB2.irs), next(STEP_COUNTER))
+G10_TEST1_0_DN2 = DependencyNode(G10_IRB2.label, B, 0, next(STEP_COUNTER))
+G10_TEST1_0_DN3 = DependencyNode(G10_IRB1.label, B, 0, next(STEP_COUNTER))
+G10_TEST1_0_DN4 = DependencyNode(G10_IRB1.label, CST2, 0, next(STEP_COUNTER))
 
-g10_test1.add_uniq_edge(g10_test1_dn3, g10_test1_dn2)
-g10_test1.add_uniq_edge(g10_test1_dn4, g10_test1_dn2)
-g10_test1.add_uniq_edge(g10_test1_dn2, g10_test1_dn1)
+G10_TEST1_0.add_uniq_edge(G10_TEST1_0_DN3, G10_TEST1_0_DN2)
+G10_TEST1_0.add_uniq_edge(G10_TEST1_0_DN4, G10_TEST1_0_DN2)
+G10_TEST1_0.add_uniq_edge(G10_TEST1_0_DN2, G10_TEST1_0_DN1)
 
-g10_input = (set([g10_test1_dn1]), set([g10_irb1.label]))
+G10_TEST1_1_DN3 = DependencyNode(G10_IRB1.label, B, 0, next(STEP_COUNTER))
+G10_TEST1_1_DN4 = DependencyNode(G10_IRB1.label, CST2, 0, next(STEP_COUNTER))
 
-g10_output1 = {"graph": g10_test1,
-               "emul": {},
-               "unresolved": set([g10_test1_dn3]),
-               "has_loop": True}
+G10_TEST1_1.add_uniq_edge(G10_TEST1_1_DN3, G10_TEST1_0_DN3)
+G10_TEST1_1.add_uniq_edge(G10_TEST1_1_DN4, G10_TEST1_0_DN3)
+G10_TEST1_1.add_uniq_edge(G10_TEST1_0_DN3, G10_TEST1_0_DN2)
+G10_TEST1_1.add_uniq_edge(G10_TEST1_0_DN4, G10_TEST1_0_DN2)
+G10_TEST1_1.add_uniq_edge(G10_TEST1_0_DN2, G10_TEST1_0_DN1)
+
+G10_INPUT = (set([G10_TEST1_0_DN1]), set([G10_IRB1.label]))
+
+G10_OUTPUT = {"graph": [G10_TEST1_0, G10_TEST1_1],
+              "emul": [{A: B_INIT + CST24}, {A: B_INIT + CST2}],
+              "unresolved": [set([G10_TEST1_0_DN3.nostep_repr]),
+                             set([G10_TEST1_0_DN3.nostep_repr])],
+              "has_loop": [True, False]}
 
 
 # Test 11: no dual bloc emulation
-g11_test1 = DepNodeTest(g11_ira)
+G11_TEST1 = DepNodeTest(G11_IRA)
 
-g11_test1_dn1 = DependencyNode(g11_irb2.label, a, len(g11_irb2.irs))
-g11_test1_dn2 = DependencyNode(g11_irb2.label, a, 0)
-g11_test1_dn3 = DependencyNode(g11_irb2.label, b, 0)
-g11_test1_dn4 = DependencyNode(g11_irb1.label, a, 0)
-g11_test1_dn5 = DependencyNode(g11_irb1.label, b, 0)
-g11_test1_dn6 = DependencyNode(g11_irb0.label, cst1, 0)
-g11_test1_dn7 = DependencyNode(g11_irb0.label, cst2, 0)
+G11_TEST1_DN1 = DependencyNode(
+    G11_IRB2.label, A, len(G11_IRB2.irs), next(STEP_COUNTER))
+G11_TEST1_DN2 = DependencyNode(G11_IRB2.label, A, 0, next(STEP_COUNTER))
+G11_TEST1_DN3 = DependencyNode(G11_IRB2.label, B, 0, next(STEP_COUNTER))
+G11_TEST1_DN4 = DependencyNode(G11_IRB1.label, A, 0, next(STEP_COUNTER))
+G11_TEST1_DN5 = DependencyNode(G11_IRB1.label, B, 0, next(STEP_COUNTER))
+G11_TEST1_DN6 = DependencyNode(G11_IRB0.label, CST1, 0, next(STEP_COUNTER))
+G11_TEST1_DN7 = DependencyNode(G11_IRB0.label, CST2, 0, next(STEP_COUNTER))
 
-g11_test1.add_uniq_edge(g11_test1_dn7, g11_test1_dn5)
-g11_test1.add_uniq_edge(g11_test1_dn6, g11_test1_dn4)
-g11_test1.add_uniq_edge(g11_test1_dn5, g11_test1_dn2)
-g11_test1.add_uniq_edge(g11_test1_dn4, g11_test1_dn3)
-g11_test1.add_uniq_edge(g11_test1_dn3, g11_test1_dn1)
-g11_test1.add_uniq_edge(g11_test1_dn2, g11_test1_dn1)
+G11_TEST1.add_uniq_edge(G11_TEST1_DN7, G11_TEST1_DN5)
+G11_TEST1.add_uniq_edge(G11_TEST1_DN6, G11_TEST1_DN4)
+G11_TEST1.add_uniq_edge(G11_TEST1_DN5, G11_TEST1_DN2)
+G11_TEST1.add_uniq_edge(G11_TEST1_DN4, G11_TEST1_DN3)
+G11_TEST1.add_uniq_edge(G11_TEST1_DN3, G11_TEST1_DN1)
+G11_TEST1.add_uniq_edge(G11_TEST1_DN2, G11_TEST1_DN1)
 
-g11_input = (set([g11_test1_dn1]), set([g11_irb0.label]))
+G11_INPUT = (set([G11_TEST1_DN1]), set([G11_IRB0.label]))
 
-g11_output1 = {"graph": g11_test1,
-               "emul": {a: ExprInt32(0x1)},
-               "unresolved": set(),
-               "has_loop": False}
+G11_OUTPUT = {"graph": [G11_TEST1],
+              "emul": [{A: ExprInt32(0x1)}],
+              "unresolved": [set()],
+              "has_loop": [False]}
+# Test graph 12
 
+G12_TEST1_0 = DepNodeTest(G12_IRA)
+G12_TEST1_1 = DepNodeTest(G12_IRA)
+
+G12_TEST1_0_DN1 = DependencyNode(G12_IRB2.label, B, 1, next(STEP_COUNTER))
+G12_TEST1_0_DN2 = DependencyNode(G12_IRB2.label, A, 0, next(STEP_COUNTER))
+G12_TEST1_0_DN3 = DependencyNode(G12_IRB1.label, B, 0, next(STEP_COUNTER))
+G12_TEST1_0_DN4 = DependencyNode(G12_IRB0.label, CST1, 0, next(STEP_COUNTER))
+
+
+G12_TEST1_0.add_uniq_edge(G12_TEST1_0_DN2, G12_TEST1_0_DN1)
+G12_TEST1_0.add_uniq_edge(G12_TEST1_0_DN3, G12_TEST1_0_DN2)
+G12_TEST1_0.add_uniq_edge(G12_TEST1_0_DN4, G12_TEST1_0_DN3)
+
+G12_TEST1_1_DN3 = DependencyNode(G12_IRB1.label, B, 1, next(STEP_COUNTER))
+G12_TEST1_1_DN5 = DependencyNode(G12_IRB1.label, CST2, 1, next(STEP_COUNTER))
+
+G12_TEST1_1.add_uniq_edge(G12_TEST1_0_DN4, G12_TEST1_1_DN3)
+G12_TEST1_1.add_uniq_edge(G12_TEST1_1_DN5, G12_TEST1_0_DN3)
+G12_TEST1_1.add_uniq_edge(G12_TEST1_1_DN3, G12_TEST1_0_DN3)
+G12_TEST1_1.add_uniq_edge(G12_TEST1_0_DN3, G12_TEST1_0_DN2)
+G12_TEST1_1.add_uniq_edge(G12_TEST1_0_DN2, G12_TEST1_0_DN1)
+
+
+G12_INPUT = (set([G12_TEST1_0_DN1]), set([]))
+
+G12_OUTPUT = {"graph": [G12_TEST1_0, G12_TEST1_1],
+              "emul": [{B: CST23}, {B: CST1}],
+              "unresolved": [set(), set()],
+              "has_loop": [True, False]}
+
+# Test graph 13:
+
+# All filters
+G13_TEST1_0 = DepNodeTest(G13_IRA)
+G13_TEST1_1 = DepNodeTest(G13_IRA)
+
+G13_TEST1_0_DN1 = DependencyNode(G13_IRB0.label, CST1, 0, next(STEP_COUNTER))
+G13_TEST1_0_DN2 = DependencyNode(G13_IRB1.label, A, 0, next(STEP_COUNTER))
+G13_TEST1_0_DN3 = DependencyNode(G13_IRB3.label, C, 0, next(STEP_COUNTER))
+G13_TEST1_0_DN4 = DependencyNode(G13_IRB3.label, R, 1, next(STEP_COUNTER))
+
+G13_TEST1_0.add_uniq_edge(G13_TEST1_0_DN3, G13_TEST1_0_DN4)
+G13_TEST1_0.add_uniq_edge(G13_TEST1_0_DN2, G13_TEST1_0_DN3)
+G13_TEST1_0.add_uniq_edge(G13_TEST1_0_DN1, G13_TEST1_0_DN2)
+
+G13_TEST1_1_DN5 = DependencyNode(G13_IRB2.label, A, 0, next(STEP_COUNTER))
+G13_TEST1_1_DN6 = DependencyNode(G13_IRB2.label, CST3, 0, next(STEP_COUNTER))
+G13_TEST1_1_DN7 = DependencyNode(G13_IRB2.label, B, 1, next(STEP_COUNTER))
+G13_TEST1_1_DN8 = DependencyNode(G13_IRB2.label, CST3, 1, next(STEP_COUNTER))
+
+G13_TEST1_1.add_uniq_edge(G13_TEST1_0_DN3, G13_TEST1_0_DN4)
+G13_TEST1_1.add_uniq_edge(G13_TEST1_0_DN2, G13_TEST1_0_DN3)
+
+G13_TEST1_1.add_uniq_edge(G13_TEST1_1_DN7, G13_TEST1_0_DN2)
+G13_TEST1_1.add_uniq_edge(G13_TEST1_1_DN8, G13_TEST1_0_DN2)
+G13_TEST1_1.add_uniq_edge(G13_TEST1_1_DN5, G13_TEST1_1_DN7)
+G13_TEST1_1.add_uniq_edge(G13_TEST1_1_DN6, G13_TEST1_1_DN7)
+
+G13_TEST1_1.add_uniq_edge(G13_TEST1_0_DN1, G13_TEST1_1_DN5)
+
+# Implicit dependencies
+
+G13_TEST2_0 = DepNodeTest(G13_IRA)
+G13_TEST2_1 = DepNodeTest(G13_IRA)
+
+G13_TEST2_0_DN1 = DependencyNode(G13_IRB0.label, CST1, 0, next(STEP_COUNTER))
+G13_TEST2_0_DN2 = DependencyNode(G13_IRB1.label, A, 0, next(STEP_COUNTER))
+G13_TEST2_0_DN3 = DependencyNode(G13_IRB3.label, C, 0, next(STEP_COUNTER))
+G13_TEST2_0_DN4 = DependencyNode(G13_IRB3.label, R, 1, next(STEP_COUNTER))
+G13_TEST2_0_DN5 = DependencyNode(G13_IRB1.label, R, 1, next(STEP_COUNTER))
+
+G13_TEST2_0.add_uniq_edge(G13_TEST2_0_DN3, G13_TEST2_0_DN4)
+G13_TEST2_0.add_uniq_edge(G13_TEST2_0_DN2, G13_TEST2_0_DN3)
+G13_TEST2_0.add_uniq_edge(G13_TEST2_0_DN1, G13_TEST2_0_DN2)
+G13_TEST2_0.add_uniq_edge(G13_TEST2_0_DN5, G13_TEST2_0_DN3)
+
+G13_TEST2_1_DN5 = DependencyNode(G13_IRB2.label, A, 0, next(STEP_COUNTER))
+G13_TEST2_1_DN6 = DependencyNode(G13_IRB2.label, CST3, 0, next(STEP_COUNTER))
+G13_TEST2_1_DN7 = DependencyNode(G13_IRB2.label, B, 1, next(STEP_COUNTER))
+G13_TEST2_1_DN8 = DependencyNode(G13_IRB2.label, CST3, 1, next(STEP_COUNTER))
+G13_TEST2_1_DN9 = DependencyNode(G13_IRB1.label, R, 1, next(STEP_COUNTER))
+
+G13_TEST2_1.add_uniq_edge(G13_TEST2_0_DN3, G13_TEST2_0_DN4)
+G13_TEST2_1.add_uniq_edge(G13_TEST2_0_DN2, G13_TEST2_0_DN3)
+G13_TEST2_1.add_uniq_edge(G13_TEST2_0_DN5, G13_TEST2_0_DN3)
+
+G13_TEST2_1.add_uniq_edge(G13_TEST2_1_DN7, G13_TEST2_0_DN2)
+G13_TEST2_1.add_uniq_edge(G13_TEST2_1_DN8, G13_TEST2_0_DN2)
+G13_TEST2_1.add_uniq_edge(G13_TEST2_1_DN5, G13_TEST2_1_DN7)
+G13_TEST2_1.add_uniq_edge(G13_TEST2_1_DN6, G13_TEST2_1_DN7)
+
+G13_TEST2_1.add_uniq_edge(G13_TEST2_0_DN1, G13_TEST2_1_DN5)
+G13_TEST2_1.add_uniq_edge(G13_TEST2_1_DN9, G13_TEST2_0_DN5)
+G13_TEST2_1.add_uniq_edge(G13_TEST2_1_DN9, G13_TEST2_1_DN5)
+
+
+DN13_UR_R = DependencyNode(G13_IRB0.label, R, 0, 0).nostep_repr
+
+G13_INPUT = (set([G13_TEST1_0_DN4]), set([]))
+
+G13_OUTPUT = {"graph": [G13_TEST1_0, G13_TEST1_1],
+              "graph_implicit": [G13_TEST2_0, G13_TEST2_1],
+              "emul": [{R: CST37}, {R: CST1}],
+              "unresolved": [set(), set()],
+              "unresolved_implicit": [set([DN13_UR_R]), set([DN13_UR_R])],
+              "has_loop": [True, False]}
+
+# Test graph 14
+
+# All filters
+G14_TEST1_0 = DepNodeTest(G14_IRA)
+G14_TEST1_1 = DepNodeTest(G14_IRA)
+
+G14_TEST1_0_DN1 = DependencyNode(G14_IRB3.label, R, 1, next(STEP_COUNTER))
+G14_TEST1_0_DN2 = DependencyNode(G14_IRB3.label, D, 0, next(STEP_COUNTER))
+G14_TEST1_0_DN3 = DependencyNode(G14_IRB3.label, B, 0, next(STEP_COUNTER))
+G14_TEST1_0_DN4 = DependencyNode(G14_IRB1.label, A, 0, next(STEP_COUNTER))
+G14_TEST1_0_DN5 = DependencyNode(G14_IRB0.label, CST1, 0, next(STEP_COUNTER))
+
+G14_TEST1_0.add_uniq_edge(G14_TEST1_0_DN2, G14_TEST1_0_DN1)
+G14_TEST1_0.add_uniq_edge(G14_TEST1_0_DN3, G14_TEST1_0_DN1)
+
+G14_TEST1_0.add_uniq_edge(G14_TEST1_0_DN4, G14_TEST1_0_DN3)
+G14_TEST1_0.add_uniq_edge(G14_TEST1_0_DN5, G14_TEST1_0_DN4)
+
+G14_TEST1_1_DN5 = DependencyNode(G14_IRB2.label, D, 1, next(STEP_COUNTER))
+G14_TEST1_1_DN6 = DependencyNode(G14_IRB2.label, CST1, 1, next(STEP_COUNTER))
+G14_TEST1_1_DN7 = DependencyNode(G14_IRB2.label, A, 0, next(STEP_COUNTER))
+G14_TEST1_1_DN8 = DependencyNode(
+    G14_IRB2.label, A, 0, next(STEP_COUNTER) + 1)
+G14_TEST1_1_DN9 = DependencyNode(
+    G14_IRB0.label, CST1, 0, next(STEP_COUNTER) + 1)
+
+# 1 loop
+G14_TEST1_1.add_uniq_edge(G14_TEST1_0_DN2, G14_TEST1_0_DN1)
+G14_TEST1_1.add_uniq_edge(G14_TEST1_0_DN3, G14_TEST1_0_DN1)
+
+G14_TEST1_1.add_uniq_edge(G14_TEST1_0_DN4, G14_TEST1_0_DN3)
+G14_TEST1_1.add_uniq_edge(G14_TEST1_1_DN5, G14_TEST1_0_DN4)
+G14_TEST1_1.add_uniq_edge(G14_TEST1_1_DN6, G14_TEST1_0_DN4)
+G14_TEST1_1.add_uniq_edge(G14_TEST1_1_DN7, G14_TEST1_1_DN5)
+G14_TEST1_1.add_uniq_edge(G14_TEST1_0_DN5, G14_TEST1_1_DN7)
+
+G14_TEST1_1.add_uniq_edge(G14_TEST1_1_DN8, G14_TEST1_0_DN2)
+G14_TEST1_1.add_uniq_edge(G14_TEST1_1_DN9, G14_TEST1_1_DN8)
+
+# Implicit dependencies
+G14_TEST2_0 = DepNodeTest(G14_IRA)
+G14_TEST2_1 = DepNodeTest(G14_IRA)
+
+G14_TEST2_0_DN6 = DependencyNode(G14_IRB1.label, C, 1, next(STEP_COUNTER))
+
+G14_TEST2_0.add_uniq_edge(G14_TEST1_0_DN2, G14_TEST1_0_DN1)
+G14_TEST2_0.add_uniq_edge(G14_TEST1_0_DN3, G14_TEST1_0_DN1)
+
+G14_TEST2_0.add_uniq_edge(G14_TEST1_0_DN4, G14_TEST1_0_DN3)
+G14_TEST2_0.add_uniq_edge(G14_TEST1_0_DN5, G14_TEST1_0_DN4)
+
+G14_TEST2_0.add_uniq_edge(G14_TEST2_0_DN6, G14_TEST1_0_DN3)
+G14_TEST2_0.add_uniq_edge(G14_TEST2_0_DN6, G14_TEST1_0_DN2)
+
+# 1 loop
+G14_TEST2_0_DN7 = DependencyNode(G14_IRB1.label, C, 1, next(STEP_COUNTER))
+
+G14_TEST2_1.add_uniq_edge(G14_TEST1_0_DN2, G14_TEST1_0_DN1)
+G14_TEST2_1.add_uniq_edge(G14_TEST1_0_DN3, G14_TEST1_0_DN1)
+
+G14_TEST2_1.add_uniq_edge(G14_TEST1_0_DN4, G14_TEST1_0_DN3)
+G14_TEST2_1.add_uniq_edge(G14_TEST1_1_DN5, G14_TEST1_0_DN4)
+G14_TEST2_1.add_uniq_edge(G14_TEST1_1_DN6, G14_TEST1_0_DN4)
+G14_TEST2_1.add_uniq_edge(G14_TEST1_1_DN7, G14_TEST1_1_DN5)
+G14_TEST2_1.add_uniq_edge(G14_TEST1_0_DN5, G14_TEST1_1_DN7)
+
+G14_TEST2_1.add_uniq_edge(G14_TEST1_1_DN8, G14_TEST1_0_DN2)
+G14_TEST2_1.add_uniq_edge(G14_TEST1_1_DN9, G14_TEST1_1_DN8)
+
+G14_TEST2_1.add_uniq_edge(G14_TEST2_0_DN6, G14_TEST1_0_DN3)
+G14_TEST2_1.add_uniq_edge(G14_TEST2_0_DN6, G14_TEST1_0_DN2)
+
+G14_TEST2_1.add_uniq_edge(G14_TEST2_0_DN7, G14_TEST2_0_DN6)
+G14_TEST2_1.add_uniq_edge(G14_TEST2_0_DN7, G14_TEST1_1_DN7)
+G14_TEST2_1.add_uniq_edge(G14_TEST2_0_DN7, G14_TEST1_1_DN8)
+
+
+
+DN14_UR_D = DependencyNode(G14_IRB0.label, D, 0, 0).nostep_repr
+DN14_UR_C = DependencyNode(G14_IRB0.label, C, 0, 0).nostep_repr
+
+G14_INPUT = (set([G14_TEST1_0_DN1]), set([]))
+
+G14_OUTPUT = {"graph": [G14_TEST1_0, G14_TEST1_1],
+              "graph_implicit": [G14_TEST2_0, G14_TEST2_1],
+              "emul": [{R: CST33}, {R: D_INIT + CST1}],
+              "unresolved": [set(), set([DN14_UR_D])],
+              "unresolved_implicit": [set([DN14_UR_C]),
+                                      set([DN14_UR_D, DN14_UR_C])],
+              "has_loop": [True, False]}
+
+# Test graph 15
+
+G15_TEST1_0 = DepNodeTest(G15_IRA)
+G15_TEST1_1 = DepNodeTest(G15_IRA)
+
+G15_TEST1_0_DN1 = DependencyNode(G15_IRB2.label, R, 1, next(STEP_COUNTER))
+G15_TEST1_0_DN2 = DependencyNode(G15_IRB2.label, B, 0, next(STEP_COUNTER))
+G15_TEST1_0_DN3 = DependencyNode(G15_IRB1.label, C, 2, next(STEP_COUNTER))
+G15_TEST1_0_DN4 = DependencyNode(G15_IRB1.label, D, 1, next(STEP_COUNTER))
+G15_TEST1_0_DN5 = DependencyNode(G15_IRB1.label, B, 0, next(STEP_COUNTER))
+G15_TEST1_0_DN6 = DependencyNode(G15_IRB1.label, A, 0, next(STEP_COUNTER))
+G15_TEST1_0_DN7 = DependencyNode(G15_IRB0.label, CST1, 0, next(STEP_COUNTER))
+G15_TEST1_0_DN8 = DependencyNode(G15_IRB1.label, C, 2, next(STEP_COUNTER))
+G15_TEST1_0_DN9 = DependencyNode(G15_IRB1.label, D, 1, next(STEP_COUNTER))
+G15_TEST1_0_DN10 = DependencyNode(G15_IRB1.label, A, 0, next(STEP_COUNTER))
+G15_TEST1_0_DN11 = DependencyNode(G15_IRB1.label, B, 0, next(STEP_COUNTER))
+G15_TEST1_0_DN12 = DependencyNode(
+    G15_IRB0.label, CST1, 0, next(STEP_COUNTER))
+
+
+# 1 loop
+G15_TEST1_0.add_uniq_edge(G15_TEST1_0_DN2, G15_TEST1_0_DN1)
+G15_TEST1_0.add_uniq_edge(G15_TEST1_0_DN3, G15_TEST1_0_DN2)
+G15_TEST1_0.add_uniq_edge(G15_TEST1_0_DN4, G15_TEST1_0_DN3)
+G15_TEST1_0.add_uniq_edge(G15_TEST1_0_DN5, G15_TEST1_0_DN4)
+G15_TEST1_0.add_uniq_edge(G15_TEST1_0_DN6, G15_TEST1_0_DN4)
+
+G15_TEST1_0.add_uniq_edge(G15_TEST1_0_DN7, G15_TEST1_0_DN6)
+
+G15_TEST1_0.add_uniq_edge(G15_TEST1_0_DN8, G15_TEST1_0_DN5)
+G15_TEST1_0.add_uniq_edge(G15_TEST1_0_DN9, G15_TEST1_0_DN8)
+G15_TEST1_0.add_uniq_edge(G15_TEST1_0_DN10, G15_TEST1_0_DN9)
+G15_TEST1_0.add_uniq_edge(G15_TEST1_0_DN11, G15_TEST1_0_DN9)
+
+G15_TEST1_0.add_uniq_edge(G15_TEST1_0_DN12, G15_TEST1_0_DN10)
+
+
+# 0 loop
+
+G15_TEST1_1.add_uniq_edge(G15_TEST1_0_DN2, G15_TEST1_0_DN1)
+G15_TEST1_1.add_uniq_edge(G15_TEST1_0_DN3, G15_TEST1_0_DN2)
+G15_TEST1_1.add_uniq_edge(G15_TEST1_0_DN4, G15_TEST1_0_DN3)
+G15_TEST1_1.add_uniq_edge(G15_TEST1_0_DN5, G15_TEST1_0_DN4)
+G15_TEST1_1.add_uniq_edge(G15_TEST1_0_DN6, G15_TEST1_0_DN4)
+G15_TEST1_1.add_uniq_edge(G15_TEST1_0_DN7, G15_TEST1_0_DN6)
+
+G15_INPUT = (set([G15_TEST1_0_DN1]), set([]))
+
+DN15_UNRESOLVED = DependencyNode(G15_IRB0.label, B, 0, 0).nostep_repr
+G15_OUTPUT = {"graph": [G15_TEST1_0, G15_TEST1_1],
+              "emul": [{R: B_INIT + CST22}, {R: B_INIT + CST1}],
+              "unresolved": [set([DN15_UNRESOLVED]), set([DN15_UNRESOLVED])],
+              "has_loop": [True, False]}
+
+# Test graph 16
+G16_TEST1_0_DN1 = DependencyNode(G16_IRB5.label, R, 1, next(STEP_COUNTER))
+G16_TEST1_0_DN2 = DependencyNode(G16_IRB5.label, A, 0, next(STEP_COUNTER))
+G16_TEST1_0_DN3 = DependencyNode(G16_IRB0.label, CST1, 0, next(STEP_COUNTER))
+
+G16_TEST1_0 = DepNodeTest(G16_IRA)
+
+G16_TEST1_0.add_uniq_edge(G16_TEST1_0_DN3, G16_TEST1_0_DN2)
+G16_TEST1_0.add_uniq_edge(G16_TEST1_0_DN2, G16_TEST1_0_DN1)
+
+G16_INPUT = (set([G16_TEST1_0_DN1]), set([]))
+
+G16_OUTPUT = {"graph": [G16_TEST1_0],
+              "emul": [{R: CST1}],
+              "unresolved": [set()],
+              "has_loop": [False]}
+
+FAILED = set()
 
 # Launch tests
-for i, test in enumerate([(g1_ira, g1_input, [g1_output1]),
-                          (g2_ira, g2_input, [g2_output1]),
-                          (g3_ira, g3_input, [g3_output1, g3_output2]),
-                          (g4_ira, g4_input, [g4_output1]),
-                          (g5_ira, g5_input, [g5_output1]),
-                          (g6_ira, g6_input, [g6_output1]),
-                          (g7_ira, g7_input, [g7_output1]),
-                          (g8_ira, g8_input, [g8_output1, g8_output2]),
-                          (g8_ira, g9_input, [g9_output1, g9_output2]),
-                          (g10_ira, g10_input, [g10_output1]),
-                          (g11_ira, g11_input, [g11_output1]),
-                      ]):
+for test_nb, test in enumerate([(G1_IRA, G1_INPUT, G1_OUTPUT),
+                                (G2_IRA, G2_INPUT, G2_OUTPUT),
+                                (G3_IRA, G3_INPUT, G3_OUTPUT),
+                                (G4_IRA, G4_INPUT, G4_OUTPUT),
+                                (G5_IRA, G5_INPUT, G5_OUTPUT),
+                                (G6_IRA, G6_INPUT, G6_OUTPUT),
+                                (G7_IRA, G7_INPUT, G7_OUTPUT),
+                                (G8_IRA, G8_INPUT, G8_OUTPUT),
+                                (G8_IRA, G9_INPUT, G9_OUTPUT),
+                                (G10_IRA, G10_INPUT, G10_OUTPUT),
+                                (G11_IRA, G11_INPUT, G11_OUTPUT),
+                                (G12_IRA, G12_INPUT, G12_OUTPUT),
+                                (G13_IRA, G13_INPUT, G13_OUTPUT),
+                                (G14_IRA, G14_INPUT, G14_OUTPUT),
+                                (G15_IRA, G15_INPUT, G15_OUTPUT),
+                                (G16_IRA, G16_INPUT, G16_OUTPUT),
+                                ]):
     # Extract test elements
-    print "[+] Test", i+1
-    g_ira, (depnodes, heads), g_test_list = test
-    open("graph_%02d.dot" % (i+1), "w").write(g_ira.g.dot())
+    print "[+] Test", test_nb + 1
+    g_ira, (depnodes, heads), g_test_output = test
+
+    open("graph_%02d.dot" % (test_nb + 1), "w").write(g_ira.g.dot())
+
+    # Different options
+    suffix_key_list = ["", "_nosimp", "_nomem", "_nocall",
+                       "_implicit"]
     # Test classes
-    for g_dep in [DependencyGraph(g_ira),
-                  DependencyGraph(g_ira, apply_simp=False),
-                  DependencyGraph(g_ira, follow_mem=False),
-                  DependencyGraph(g_ira, follow_mem=False, follow_call=False)]:
-        print " - Class %s" % g_dep.__class__.__name__
+    for g_ind, g_dep in enumerate([DependencyGraph(g_ira),
+                                   DependencyGraph(g_ira, apply_simp=False),
+                                   DependencyGraph(g_ira, follow_mem=False),
+                                   DependencyGraph(g_ira, follow_mem=False,
+                                                   follow_call=False),
+                                   DependencyGraph(g_ira, implicit=True),
+                                   ]):
+        print " - Class %s - %s" % (g_dep.__class__.__name__,
+                                    suffix_key_list[g_ind])
 
-        ## Test public APIs
-        for api_i, g_list in enumerate([g_dep.get_fromDepNodes(depnodes, heads),
-                                        g_dep.get(list(depnodes)[0].label,
-                                                  [depnode.element for
-                                                   depnode in depnodes],
-                                                  list(depnodes)[0].line_nb,
-                                                  heads)]):
-            print " - - API %s" % ("get_fromDepNodes" if api_i == 0 else "get")
+        # Select the correct result key
+        mode_suffix = suffix_key_list[g_ind]
+        graph_test_key = "graph" + mode_suffix
+        if not g_test_output.has_key(graph_test_key):
+            graph_test_key = "graph"
 
-            ### Expand result iterator
+        expected_results = g_test_output[graph_test_key]
+
+        # Test public APIs
+        for api_i, g_list in enumerate(
+            [g_dep.get_fromDepNodes(depnodes, heads),
+             g_dep.get(list(depnodes)[0].label,
+                       [depnode.element for
+                        depnode in depnodes],
+                       list(depnodes)[0].line_nb,
+                       heads)
+             ]):
+            print " - - API %s" % ("get_from_depnodes"
+                                   if api_i == 0 else "get")
+
+            # Expand result iterator
             g_list = list(g_list)
-            ### Dump outputs graphs for debug means
-            for j, result in enumerate(g_list):
-                open("graph_test_%02d_%02d.dot" % (i + 1, j),
-                     "w").write(result.graph.dot())
 
-            ### The number of results should be the same
-            print " - - - number of results"
-            assert(len(g_list) == len(g_test_list))
+            # Dump outputs graphs for debug means
+            for result_nb, result_graph in enumerate(g_list):
+                open("graph_test_%02d_%02d.dot" % (test_nb + 1, result_nb),
+                     "w").write(result_graph.graph.dot())
 
-            ### Match the right result (unordered)
-            for j, result in enumerate(g_list):
-                print " - - - result %d" % j
-                found = False
-                for expected in g_test_list:
-                    if expected["graph"].__eq__(result.graph):
-                        found = True
-                        break
-                assert(found)
+            try:
+                # The number of results should be the same
+                print " - - - number of results %d/%d" % (len(g_list),
+                                                          len(expected_results))
 
-                #### @expected is the corresponding result, test for properties
-                print " - - - - emul"
-                if not expected["has_loop"]:
-                    assert(expected["emul"] == result.emul())
-                for element in ["unresolved"]: # TODO: has_loop
-                    print " - - - - %s" % element
-                    assert(expected[element] == getattr(result, element))
+                error = 'len:' + \
+                        str(len(g_list)) + '/' + str(len(expected_results))
+                assert len(g_list) == len(expected_results)
+
+                # Check that every result appears in expected_results
+                for j, result in enumerate(g_list):
+                    print " - - - result %d" % j
+                    found = False
+                    for expected in expected_results:
+                        if expected.__eq__(result.graph):
+                            found = True
+                error = "found1"
+                assert found
+
+                # Check that every expected result appears in real results
+                for j, expected in enumerate(expected_results):
+                    print " - - - expected %d" % j
+                    found = False
+                    for result in g_list:
+                        if expected.__eq__(result.graph):
+                            found = True
+                error = "found2"
+                assert found
+
+                # Test emulation results and other properties
+                unresolved_test_key = "unresolved" + mode_suffix
+                if not g_test_output.has_key(unresolved_test_key):
+                    unresolved_test_key = "unresolved"
+
+                # Check that every computed result was expected
+                for emul_nb, result in enumerate(g_list):
+                    print " - - - - emul %d" % emul_nb
+                    emul_result = result.emul()
+
+                    error = "emul"
+                    found = False
+                    for exp_nb in xrange(len(g_list)):
+                        if (emul_result == g_test_output["emul"][exp_nb]  and
+                            getattr(result, "unresolved") ==
+                            g_test_output[unresolved_test_key][exp_nb] and
+                            g_test_output["has_loop"][exp_nb] ==
+                            getattr(result, "has_loop")
+                            ):
+                            found = True
+                            break
+                    assert found
+
+                # Check that every expected result has been computed
+                for exp_nb in xrange(len(g_list)):
+                    print " - - - - emul %d" % exp_nb
+
+                    error = "emul2"
+                    found = False
+                    for emul_nb, result in enumerate(g_list):
+                        emul_result = result.emul()
+                        if (emul_result == g_test_output["emul"][exp_nb] and
+                            getattr(result, "unresolved") ==
+                            g_test_output[unresolved_test_key][exp_nb] and
+                            g_test_output["has_loop"][exp_nb] ==
+                            getattr(result, "has_loop")
+                            ):
+                            found = True
+                            break
+                    assert found
+
+            except AssertionError:
+                FAILED.add((test_nb + 1, error))
+                continue
+
+if FAILED:
+    print "FAILED :", len(FAILED)
+    for i in sorted(FAILED, key=lambda (u, _): u):
+        print i,
+else:
+    print "SUCCESS"
