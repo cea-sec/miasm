@@ -236,57 +236,6 @@ uint64_t segm2addr(JitCpu* jitcpu, uint64_t segm, uint64_t addr)
 }
 
 
-#define UDIV(sizeA)						\
-    uint ## sizeA ## _t udiv ## sizeA (vm_cpu_t* vmcpu, uint ## sizeA ## _t a, uint ## sizeA ## _t b) \
-	    {								\
-	    uint ## sizeA ## _t r;						\
-	    if (b == 0) {						\
-		    vmcpu->exception_flags |= EXCEPT_INT_DIV_BY_ZERO;	\
-		    return 0;						\
-	    }								\
-	    r = a/b;							\
-	    return r;							\
-	    }
-
-
-#define UMOD(sizeA)						\
-    uint ## sizeA ## _t umod ## sizeA (vm_cpu_t* vmcpu, uint ## sizeA ## _t a, uint ## sizeA ## _t b) \
-	    {								\
-	    uint ## sizeA ## _t r;						\
-	    if (b == 0) {						\
-		    vmcpu->exception_flags |= EXCEPT_INT_DIV_BY_ZERO;	\
-		    return 0;						\
-	    }								\
-	    r = a%b;							\
-	    return r;							\
-	    }
-
-
-#define IDIV(sizeA)						\
-    int ## sizeA ## _t idiv ## sizeA (vm_cpu_t* vmcpu, int ## sizeA ## _t a, int ## sizeA ## _t b) \
-	    {								\
-	    int ## sizeA ## _t r;						\
-	    if (b == 0) {						\
-		    vmcpu->exception_flags |= EXCEPT_INT_DIV_BY_ZERO;	\
-		    return 0;						\
-	    }								\
-	    r = a/b;							\
-	    return r;							\
-	    }
-
-
-#define IMOD(sizeA)						\
-    int ## sizeA ## _t imod ## sizeA (vm_cpu_t* vmcpu, int ## sizeA ## _t a, int ## sizeA ## _t b) \
-	    {								\
-	    int ## sizeA ## _t r;						\
-	    if (b == 0) {						\
-		    vmcpu->exception_flags |= EXCEPT_INT_DIV_BY_ZERO;	\
-		    return 0;						\
-	    }								\
-	    r = a%b;							\
-	    return r;							\
-	    }
-
 UDIV(16)
 UDIV(32)
 UDIV(64)
