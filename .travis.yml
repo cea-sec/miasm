@@ -23,7 +23,7 @@ before_script:
 - "cp tinycc/libtcc.h include"
 - "cp tinycc/libtcc.so.1.0 tinycc/libtcc.so"
 # install elfesteem
-- "hg clone https://code.google.com/p/elfesteem/ elfesteem && cd elfesteem && python setup.py install && cd ..;"
+- "git clone https://github.com/serpilliere/elfesteem elfesteem && cd elfesteem && python setup.py install && cd ..;"
 # install pyparsing
 - "pip install pyparsing"
 # install z3
