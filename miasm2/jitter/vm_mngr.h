@@ -205,7 +205,7 @@ unsigned int umul16_hi(unsigned short a, unsigned short b);
 unsigned int div_op(unsigned int size, unsigned int a, unsigned int b, unsigned int c);
 unsigned int rem_op(unsigned int size, unsigned int a, unsigned int b, unsigned int c);
 uint64_t rot_left(uint64_t size, uint64_t a, uint64_t b);
-unsigned int rot_right(unsigned int size, unsigned int a, unsigned int b);
+uint64_t rot_right(uint64_t size, uint64_t a, uint64_t b);
 int rcl_rez_op(unsigned int size, unsigned int a, unsigned int b, unsigned int cf);
 int rcl_cf_op(unsigned int size, unsigned int a, unsigned int b, unsigned int cf);
 
