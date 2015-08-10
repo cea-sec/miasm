@@ -12,7 +12,8 @@ class Machine(object):
     __gdbserver = None    # GdbServer handler
 
     __available = ["arml", "armb", "armtl", "armtb", "sh4", "x86_16", "x86_32",
-                   "x86_64", "msp430", "mips32b", "mips32l"]
+                   "x86_64", "msp430", "mips32b", "mips32l",
+                   "aarch64l", "aarch64b"]
 
 
     def __init__(self, machine_name):
@@ -43,6 +44,20 @@ class Machine(object):
             jitter = jit.jitter_armb
             from miasm2.arch.arm.ira import ir_a_armb as ira
             from miasm2.arch.arm.sem import ir_armb as ir
+        elif machine_name == "aarch64l":
+            from miasm2.arch.aarch64.disasm import dis_aarch64l as dis_engine
+            from miasm2.arch.aarch64 import arch, jit
+            mn = arch.mn_aarch64
+            jitter = jit.jitter_aarch64l
+            from miasm2.arch.aarch64.ira import ir_a_aarch64l as ira
+            from miasm2.arch.aarch64.sem import ir_aarch64l as ir
+        elif machine_name == "aarch64b":
+            from miasm2.arch.aarch64.disasm import dis_aarch64b as dis_engine
+            from miasm2.arch.aarch64 import arch, jit
+            mn = arch.mn_aarch64
+            jitter = jit.jitter_aarch64b
+            from miasm2.arch.aarch64.ira import ir_a_aarch64b as ira
+            from miasm2.arch.aarch64.sem import ir_aarch64b as ir
         elif machine_name == "armtl":
             from miasm2.arch.arm.disasm import dis_armtl as dis_engine
             from miasm2.arch.arm import arch

@@ -40,6 +40,7 @@ for script in ["x86/sem.py",
                "x86/unit/mn_das.py",
                "arm/arch.py",
                "arm/sem.py",
+               "aarch64/unit/mn_ubfm.py",
                "msp430/arch.py",
                "msp430/sem.py",
                "sh4/arch.py",
@@ -214,6 +215,8 @@ for source in test_box_names:
 
 test_armb = ExampleShellcode(["armb", "arm_simple.S", "demo_arm_b.bin"])
 test_arml = ExampleShellcode(["arml", "arm_simple.S", "demo_arm_l.bin"])
+test_aarch64b = ExampleShellcode(["aarch64b", "aarch64_simple.S", "demo_aarch64_b.bin"])
+test_aarch64l = ExampleShellcode(["aarch64l", "aarch64_simple.S", "demo_aarch64_l.bin"])
 test_armb_sc = ExampleShellcode(["armb", "arm_sc.S", "demo_arm2_b.bin"])
 test_arml_sc = ExampleShellcode(["arml", "arm_sc.S", "demo_arm2_l.bin"])
 test_armtb = ExampleShellcode(["armtb", "armt.S", "demo_armt_b.bin"])
@@ -226,6 +229,8 @@ test_x86_64 = ExampleShellcode(["x86_64", "x86_64.S", "demo_x86_64.bin",
 
 testset += test_armb
 testset += test_arml
+testset += test_aarch64b
+testset += test_aarch64l
 testset += test_armb_sc
 testset += test_arml_sc
 testset += test_armtb
@@ -277,6 +282,10 @@ testset += ExampleDisasmFull(["armtl", Example.get_sample("demo_armt_l.bin"),
                               "0"], depends=[test_armtl])
 testset += ExampleDisasmFull(["armtb", Example.get_sample("demo_armt_b.bin"),
                               "0"], depends=[test_armtb])
+testset += ExampleDisasmFull(["aarch64l", Example.get_sample("demo_aarch64_l.bin"),
+                              "0"], depends=[test_aarch64l])
+testset += ExampleDisasmFull(["aarch64b", Example.get_sample("demo_aarch64_b.bin"),
+                              "0"], depends=[test_aarch64b])
 testset += ExampleDisasmFull(["x86_32", Example.get_sample("x86_32_simple.bin"),
                               "0x401000"], depends=[test_box["simple"]])
 testset += ExampleDisasmFull(["msp430", Example.get_sample("msp430_sc.bin"),
@@ -287,6 +296,8 @@ testset += ExampleDisasmFull(["mips32b", Example.get_sample("mips32_sc_b.bin"),
                               "0"], depends=[test_mips32b])
 testset += ExampleDisasmFull(["x86_64", Example.get_sample("demo_x86_64.bin"),
                               "0x401000"], depends=[test_x86_64])
+testset += ExampleDisasmFull(["aarch64l", Example.get_sample("md5_aarch64l"),
+                              "0x400A00"], depends=[test_aarch64l])
 
 
 ## Expression
@@ -362,6 +373,8 @@ for jitter in ExampleJitter.jitter_engines:
 
 for script, dep in [(["x86_32.py", Example.get_sample("x86_32_sc.bin")], []),
                     (["arm.py", Example.get_sample("md5_arm"), "-a", "A684"],
+                     []),
+                    (["sandbox_elf_aarch64l.py", Example.get_sample("md5_aarch64l"), "-a", "0x400A00"],
                      []),
                     (["msp430.py", Example.get_sample("msp430_sc.bin"), "0"],
                      [test_msp430]),

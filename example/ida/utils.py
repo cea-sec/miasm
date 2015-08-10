@@ -5,21 +5,27 @@ from miasm2.analysis.machine import Machine
 from miasm2.ir.translators import Translator
 import miasm2.expression.expression as m2_expr
 
+def max_size_to_size(max_size):
+    for size in [16, 32, 64]:
+        if (1 << size) - 1 == max_size:
+            return size
+    return None
 
 def guess_machine():
     "Return an instance of Machine corresponding to the IDA guessed processor"
 
     processor_name = GetLongPrm(INF_PROCNAME)
+    max_size = GetLongPrm(INF_START_SP)
+    size = max_size_to_size(max_size)
 
     if processor_name == "metapc":
 
         # HACK: check 32/64 using INF_START_SP
-        max_size = GetLongPrm(INF_START_SP)
         if max_size == 0x80:  # TODO XXX check
             machine = Machine("x86_16")
-        elif max_size == 0xFFFFFFFF:
+        elif size == 32:
             machine = Machine("x86_32")
-        elif max_size == 0xFFFFFFFFFFFFFFFF:
+        elif size == 64:
             machine = Machine("x86_64")
         else:
             raise ValueError('cannot guess 32/64 bit! (%x)' % max_size)
@@ -27,18 +33,20 @@ def guess_machine():
         # TODO ARM/thumb
         # hack for thumb: set armt = True in globals :/
         # set bigendiant = True is bigendian
+        # Thumb, size, endian
+        info2machine = {(True, 32, True): "armtb",
+                        (True, 32, False): "armtl",
+                        (False, 32, True): "armb",
+                        (False, 32, False): "arml",
+                        (False, 64, True): "aarch64b",
+                        (False, 64, False): "aarch64l",
+                        }
         is_armt = globals().get('armt', False)
         is_bigendian = globals().get('bigendian', False)
-        if is_armt:
-            if is_bigendian:
-                machine = Machine("armtb")
-            else:
-                machine = Machine("armtl")
-        else:
-            if is_bigendian:
-                machine = Machine("armb")
-            else:
-                machine = Machine("arml")
+        infos = (is_armt, size, is_bigendian)
+        if not infos in info2machine:
+            raise NotImplementedError('not fully functional')
+        machine = Machine(info2machine[infos])
 
         from miasm2.analysis.disasm_cb import guess_funcs, guess_multi_cb
         from miasm2.analysis.disasm_cb import arm_guess_subcall, arm_guess_jump_table

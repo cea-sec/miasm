@@ -85,6 +85,8 @@ class libimp_elf(libimp):
 # machine, size, sex -> arch_name
 ELF_machine = {(elf_csts.EM_ARM, 32, elf_csts.ELFDATA2LSB): "arml",
                (elf_csts.EM_ARM, 32, elf_csts.ELFDATA2MSB): "armb",
+               (elf_csts.EM_AARCH64, 64, elf_csts.ELFDATA2LSB): "aarch64l",
+               (elf_csts.EM_AARCH64, 64, elf_csts.ELFDATA2MSB): "aarch64b",
                (elf_csts.EM_MIPS, 32, elf_csts.ELFDATA2MSB): "mips32b",
                (elf_csts.EM_MIPS, 32, elf_csts.ELFDATA2LSB): "mips32l",
                (elf_csts.EM_386, 32, elf_csts.ELFDATA2LSB): "x86_32",

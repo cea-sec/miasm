@@ -821,11 +821,11 @@ uint64_t rot_left(uint64_t size, uint64_t a, uint64_t b)
     }
 }
 
-unsigned int rot_right(unsigned int size, unsigned int a, unsigned int b)
+uint64_t rot_right(uint64_t size, uint64_t a, uint64_t b)
 {
-    unsigned int tmp;
+    uint64_t tmp;
 
-    b = b&0x1F;
+    b = b&0x3F;
     b %= size;
     switch(size){
 	    case 8:
@@ -837,8 +837,11 @@ unsigned int rot_right(unsigned int size, unsigned int a, unsigned int b)
 	    case 32:
 		    tmp = ((a&0xFFFFFFFF) >> b) | (a << (size-b));
 		    return tmp&0xffffffff;
+	    case 64:
+		    tmp = ((a&0xFFFFFFFFFFFFFFFF) >> b) | (a << (size-b));
+		    return tmp&0xFFFFFFFFFFFFFFFF;
 	    default:
-		    fprintf(stderr, "inv size in rotleft %d\n", size);
+		    fprintf(stderr, "inv size in rotright %"PRIX64"\n", size);
 		    exit(0);
     }
 }
@@ -1699,3 +1702,5 @@ uint64_t get_exception_flag(vm_mngr_t* vm_mngr)
 {
 	return vm_mngr->exception_flags;
 }
+
+
