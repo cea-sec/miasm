@@ -456,8 +456,8 @@ Configuration
 
 * Install elfesteem
 ```
-hg clone https://code.google.com/p/elfesteem/
-cd elfesteem_directory
+git clone https://github.com/serpilliere/elfesteem.git elfesteem
+cd elfesteem
 python setup.py build
 sudo python setup.py install
 ```
