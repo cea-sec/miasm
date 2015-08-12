@@ -449,7 +449,7 @@ Miasm uses:
 * or LLVM v3.2 with python-llvm, see below
 * python-pyparsing
 * python-dev
-* elfesteem from [Elfesteem](http://code.google.com/p/elfesteem/)
+* elfesteem from [Elfesteem](https://github.com/serpilliere/elfesteem.git)
 
 Configuration
 -------------
