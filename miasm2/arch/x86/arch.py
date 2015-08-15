@@ -482,9 +482,6 @@ class instruction_x86(instruction):
             return True
         if self.name.startswith('LOOP'):
             return True
-        # repxx yyy generate split flow
-        # if self.g1.value & 6 and self.name in repeat_mn:
-        #    return True
         return self.name in ['CALL']
 
     def dstflow2label(self, symbol_pool):
@@ -513,9 +510,6 @@ class instruction_x86(instruction):
             return True
         if self.name.startswith('SYS'):
             return True
-        # repxx yyy generate split flow
-        # if self.g1.value & 6 and self.name in repeat_mn:
-        #    return True
         return self.name in ['CALL', 'HLT', 'IRET', 'ICEBP']
 
     def splitflow(self):
@@ -529,9 +523,6 @@ class instruction_x86(instruction):
             return True
         if self.name.startswith('SYS'):
             return True
-        # repxx yyy generate split flow
-        # if self.g1.value & 6 and self.name in repeat_mn:
-        #    return True
         return self.name in ['CALL']
 
     def setdstflow(self, a):
@@ -544,7 +535,6 @@ class instruction_x86(instruction):
         if self.additional_info.g1.value & 6 and self.name in repeat_mn:
             ad = int(self.offset)
             l = symbol_pool.getby_offset_create(ad)
-            # XXX size ???
             s = ExprId(l, self.v_opmode())
             return [s]
         return [self.args[0]]
@@ -557,10 +547,8 @@ class instruction_x86(instruction):
         if self.offset is None:
             raise ValueError('symbol not resolved %s' % l)
         if not isinstance(e, ExprInt):
-            # raise ValueError('dst must be int or label')
             log.warning('dynamic dst %r', e)
             return
-        # return ExprInt32(e.arg - (self.offset + self.l))
         self.args[0] = ExprInt_fromsize(
             self.mode, e.arg - self.offset)
 
@@ -605,7 +593,6 @@ class instruction_x86(instruction):
             else:
                 e = e.arg
             if isinstance(e, ExprOp):
-                # s = str(e.arg)[1:-1]
                 s = str(e).replace('(', '').replace(')', '')
             else:
                 s = str(e)
@@ -726,7 +713,6 @@ class mn_x86(cls_mn):
         while True:
             c = v.getbytes(offset)
             if c == '\x66':
-                # pre_dis_info.opmode = 1
                 pre_dis_info['opmode'] = 1
             elif c == '\x67':
                 pre_dis_info['admode'] = 1
@@ -764,14 +750,12 @@ class mn_x86(cls_mn):
                 break
             pre_dis_info['prefix'] += c
             offset += 1
-        # pre_dis_info.b = v[:offset]
         return pre_dis_info, v, mode, offset, offset - offset_o
 
     @classmethod
     def get_cls_instance(cls, cc, mode, infos=None):
         for opmode in [0, 1]:
             for admode in [0, 1]:
-                # c = cls.all_mn_inst[cc][0]
                 c = cc()
                 c.init_class()
 
@@ -806,18 +790,12 @@ class mn_x86(cls_mn):
 
     def reset_class(self):
         super(mn_x86, self).reset_class()
-        # self.rex_w.value, self.rex_b.value,
-        # self.rex_x.value = None, None, None
-        # self.opmode.value, self.admode.value = None, None
         if hasattr(self, "opmode"):
             del(self.opmode)
         if hasattr(self, "admode"):
             del(self.admode)
-        # self.opmode = 0
-        # self.admode = 0
 
     def add_pre_dis_info(self, pre_dis_info=None):
-        # print 'add_pre_dis_info', pre_dis_info
         if pre_dis_info is None:
             return True
         if hasattr(self, "prefixed") and self.prefixed.default == "\x66":
@@ -920,10 +898,8 @@ class mn_x86(cls_mn):
                 (c.g1.value & 2 or c.g1.value & 4 or c.opmode)):
                 continue
             if hasattr(c, "fopmode") and v_opmode(c) != c.fopmode.mode:
-                # print 'DROP', c, v_opmode(c), c.fopmode.mode
                 continue
             if hasattr(c, "fadmode") and v_admode(c) != c.fadmode.mode:
-                # print 'DROP', c, v_opmode(c), c.fopmode.mode
                 continue
             # relative dstflow must not have opmode set
             # (affect IP instead of EIP for instance)
@@ -935,7 +911,6 @@ class mn_x86(cls_mn):
 
             out.append((c, v))
         candidates = out
-        # return [x[1][0] for x in candidates]
         for c, v in candidates:
             if v_opmode(c) == instr.mode:
                 cand_same_mode += v
@@ -963,7 +938,6 @@ class bs_modname_size(bs_divert):
                 if mode in self.args['name']:
                     nfields = fields[:]
                     f, i = getfieldindexby_name(nfields, 'rex_w')
-                    # f = bs("1", l=0, fname = 'rex_w')
                     f = bs("1", l=0, cls=(bs_fbit,), fname="rex_w")
                     osize = v_opmode_info(size, opmode, 1, 0)
                     nfields[i] = f
@@ -977,7 +951,6 @@ class bs_modname_size(bs_divert):
                     nfields = fields[:]
                     nfields = nfields[:-1]
                     f, i = getfieldindexby_name(nfields, 'rex_w')
-                    # f = bs("0", l=0, fname = 'rex_w')
                     f = bs("0", l=0, cls=(bs_fbit,), fname="rex_w")
                     osize = v_opmode_info(size, opmode, 0, 0)
                     nfields[i] = f
@@ -1177,9 +1150,6 @@ class x86_s08to16(x86_imm):
                     int(v & ((1 << self.in_size) - 1)), self.in_size, out_size):
                     pass
                 else:
-                    # print 'cannot encode1', hex(v),
-                    # print hex(sign_ext(int(v&((1<<self.in_size)-1)),
-                    #     self.in_size, out_size))
                     # test with rex_w
                     self.parent.rex_w.value = 1
                     opmode = self.parent.v_opmode()
@@ -1187,9 +1157,6 @@ class x86_s08to16(x86_imm):
                     if (v != sign_ext(
                         int(v & ((1 << self.in_size) - 1)),
                         self.in_size, out_size)):
-                        # print 'cannot encode2', hex(v),
-                        # hex(sign_ext(int(v&((1<<self.in_size)-1)),
-                        # self.in_size, out_size))
                         return False
                     else:
                         pass
@@ -1197,9 +1164,6 @@ class x86_s08to16(x86_imm):
                 pass
         if v != sign_ext(
             int(v & ((1 << self.in_size) - 1)), self.in_size, out_size):
-            # print 'cannot encode3', hex(v),
-            # hex(sign_ext(int(v&((1<<self.in_size)-1)), self.in_size,
-            # self.out_size))
             return False
         v = self.encodeval(v)
         self.value = (v & 0xffffffff) & self.lmask
@@ -1228,7 +1192,6 @@ class x86_s08to32(x86_s08to16):
             v = ExprInt32(sign_ext(v, self.in_size, 32))
 
         self.expr = v
-        # print "INT1", self.parent.rex_w.value, self.expr, self.expr.size
         return True
 
 
@@ -1248,7 +1211,6 @@ class x86_s08to64(x86_s08to16):
             v = ExprInt32(sign_ext(v, self.in_size, 32))
 
         self.expr = v
-        # print "INT1X", self.parent.prefix.rex_w, self.expr, self.expr.size
         return True
 
 
@@ -1279,8 +1241,6 @@ class bs_eax(m_arg):
         self.value = 0
         p = self.parent
         e = self.expr
-        # print "EEEEE", e, p.w8.value
-        # print 'XXX', p.mode, p.opmode
         osize = p.v_opmode()
         if hasattr(p, 'w8'):
             if p.w8.value is None:
@@ -1838,7 +1798,7 @@ def expr2modrm(expr, parent, w8, sx=0, xmm=0, mm=0):
         else:
             return parse_mem(expr, parent, w8, sx, xmm, mm)
 
-    elif expr.size == 64 and not expr in gpregs_mm.expr:
+    elif expr.size == 64 and expr not in gpregs_mm.expr:
         if hasattr(parent, 'sd'):
             parent.sd.value = 1
         elif hasattr(parent, 'wd'):
@@ -1875,8 +1835,6 @@ def expr2modrm(expr, parent, w8, sx=0, xmm=0, mm=0):
             else:
                 return None, None, False
         if w8 == 0:
-            # if (p.v_opmode() == 64 or p.rex_p.value == 1) and e in
-            # gpregs08_64.expr:
             if parent.mode == 64 and expr in gpregs08_64.expr:
                 r = gpregs08_64
                 parent.rex_p.value = 1
@@ -1904,7 +1862,7 @@ def expr2modrm(expr, parent, w8, sx=0, xmm=0, mm=0):
 def modrm2expr(modrm, parent, w8, sx=0, xmm=0, mm=0):
     o = []
     if not modrm[f_isad]:
-        modrm_k = [x[0] for x in modrm.items() if x[1] == 1]
+        modrm_k = [x[0] for x in modrm.iteritems() if x[1] == 1]
         if len(modrm_k) != 1:
             raise ValueError('strange reg encoding %r' % modrm)
         modrm_k = modrm_k[0]
@@ -1998,7 +1956,6 @@ class x86_rm_arg(m_arg):
         return True
 
     def gen_cand(self, v_cand, admode):
-        # print "GEN CAND"
         if not admode in modrm2byte:
             # XXX TODO: 64bit
             raise StopIteration
@@ -2013,7 +1970,6 @@ class x86_rm_arg(m_arg):
         moddd = False
         for v in v_cand:
             new_v_cand.append(v)
-            # print 'CANDI', v, admode
             if f_imm in v and int(v[f_imm][1].arg) == 0:
                 v = dict(v)
                 del(v[f_imm])
@@ -2024,33 +1980,21 @@ class x86_rm_arg(m_arg):
 
         out_c = []
         for v in v_cand:
-            # print 'UU', v
             disp = None
             # patch value in modrm
             if f_imm in v:
                 size, disp = v[f_imm]
                 disp = int(disp.arg)
-                # disp = swap_uint(f_imm2size[size], int(disp))
 
                 v[f_imm] = size
             vo = v
-            # print 'vv', v, disp
             v = v.items()
             v.sort()
             v = tuple(v)
-            # print "II", v, admode
-            # print 'III', v
-            # if (8, 1) in v:
-            #    pass
             if not v in modrm2byte[admode]:
-                # print 'cannot find'
                 continue
-            # print "FOUND1", v
             xx = modrm2byte[admode][v]
-            # if opmode == 64 and admode == 64:
-            #    pdb.set_trace()
 
-            # print "FOUND2", xx
             # default case
             for x in xx:
                 if type(x) == tuple:
@@ -2058,26 +2002,13 @@ class x86_rm_arg(m_arg):
                 else:
                     modrm = x
                     sib = None
-                # print 'mod sib', hex(modrm), sib
-                # print p.sib_scale
-                # print p.sib_base
-                # print p.sib_index
 
                 # 16 bit cannot have sib
                 if (not sib is None) and admode == 16:
                     continue
-                # if ((p.sib_scale and sib is None) or
-                #     (p.sib_scale is None and sib)):
-                # log.debug('dif sib %r %r'%(p.sib_scale, sib))
-                #    continue
-                # print hex(modrm), sib
-                # p.mod.value, dum, p.rm.value = getmodrm(modrm)
                 rex = modrm >> 8  # 0# XXX HACK REM temporary REX modrm>>8
                 if rex and admode != 64:
                     continue
-                # print 'prefix', hex(rex)
-                # p.rex_x.value = o_rex_x
-                # p.rex_b.value = o_rex_b
 
                 p.rex_x.value = (rex >> 1) & 1
                 p.rex_b.value = rex & 1
@@ -2091,44 +2022,12 @@ class x86_rm_arg(m_arg):
                 # check re on parent
                 if re != p.reg.value:
                     continue
-                # p.mod.value.append(mod)
-                # p.rm.value.append(rm)
 
                 if sib:
-                    # print 'REX', p.rex_x.value, p.rex_b.value
-                    # print hex(modrm), hex(sib)
-                    # if (modrm & 0xFF == 4 and sib & 0xFF == 0x5
-                    #    and p.rex_b.value ==1 and p.rex_x.value == 0):
-                    #    pass
                     s_scale, s_index, s_base = getmodrm(sib)
-                    # p.sib_scale.value, p.sib_index.value,
-                    # p.sib_base.value = getmodrm(sib)
-                    # p.sib_scale.decode(mod)
-                    # p.sib_index.decode(re)
-                    # p.sib_base.decode(rm)
-                    # p.sib_scale.value.append(mod)
-                    # p.sib_index.value.append(re)
-                    # p.sib_base.value.append(rm)
                 else:
-                    # p.sib_scale.value.append(None)
-                    # p.sib_index.value.append(None)
-                    # p.sib_base.value.append(None)
                     s_scale, s_index, s_base = None, None, None
 
-                # print 'IIII', repr(p.disp), f_imm in v
-                # if p.disp and not f_imm in vo:
-                #    continue
-                # if not p.disp and f_imm in vo:
-                #    continue
-                # if p.disp:
-                #    if p.disp.l != f_imm2size[vo[f_imm]]:
-                #        continue
-                # print "DISP", repr(p.disp), p.disp.l
-                # p.disp.value = int(disp.arg)
-                # print 'append'
-                # print mod, rm, s_scale, s_index, s_base, disp
-                # print p.mod, p.rm
-                # out_c.append((mod, rm, s_scale, s_index, s_base, disp))
                 p.mod.value = mod
                 p.rm.value = rm
                 p.sib_scale.value = s_scale
@@ -2176,13 +2075,10 @@ class x86_rm_w8(x86_rm_arg):
             else:
                 p.w8.value = 1
 
-        # print 'TTTTT', e
         v_cand, segm, ok = expr2modrm(e, p, p.w8.value)
         if segm:
             p.g2.value = segm2enc[segm]
-        # print "REZ2", v_cand, ok
         for x in self.gen_cand(v_cand, p.v_admode()):
-            # print 'REZ', p.rex_x.value
             yield x
 
 
@@ -2313,10 +2209,8 @@ class x86_rm_m80(x86_rm_arg):
     msize = 80
 
     def decode(self, v):
-        # print 'TTTT'
         p = self.parent
         xx = self.get_modrm()
-        # print "aaa", xx
         e = modrm2expr(xx, p, 1)
         if not isinstance(e, ExprMem):
             return False
@@ -2335,7 +2229,6 @@ class x86_rm_m80(x86_rm_arg):
         if mode == 64:
             mode = 32
         e = ExprMem(e.arg, mode)
-        # print "eEEE", e
         v_cand, segm, ok = expr2modrm(e, p, 1)
         for x in self.gen_cand(v_cand, p.v_admode()):
             yield x
@@ -2355,15 +2248,8 @@ class x86_rm_m08(x86_rm_arg):
         e = self.expr
         if e.size != 8:
             raise StopIteration
-        """
-        if not isinstance(e, ExprMem) or e.size != self.msize:
-            raise StopIteration
-        """
         p = self.parent
         mode = p.mode
-        # if mode == 64:
-        #    mode = 32
-        # e = ExprMem(e.arg, mode)
         v_cand, segm, ok = expr2modrm(e, p, 0)
         for x in self.gen_cand(v_cand, p.v_admode()):
             yield x
@@ -2379,15 +2265,11 @@ class x86_rm_mm(x86_rm_m80):
     is_xmm = False
 
     def decode(self, v):
-        # print 'TTTT'
         p = self.parent
         xx = self.get_modrm()
-        # print "aaa", xx
-        #modrm2expr(m, p, w8, sx=0, xmm=0, mm=0):
         expr = modrm2expr(xx, p, 0, 0, self.is_xmm, self.is_mm)
         if isinstance(expr, ExprMem) and expr.size != self.msize:
             expr = ExprMem(expr.arg, self.msize)
-        # print 'RRR', e
         self.expr = expr
         return True
 
@@ -2408,10 +2290,7 @@ class x86_rm_mm(x86_rm_m80):
             elif self.is_mm:
                 expr = ExprMem(expr.arg, 64)
 
-        #expr2modrm(e, p, w8, sx=0, xmm=0, mm=0):
-        # print "eeeEEE", e
         v_cand, segm, ok = expr2modrm(expr, p, 0, 0, self.is_xmm, self.is_mm)
-        # print v_cand, segm, p.v_admode()
         for x in self.gen_cand(v_cand, p.v_admode()):
             yield x
 
@@ -2444,12 +2323,10 @@ class x86_rm_reg_noarg(object):
     parser = gpreg
 
     def fromstring(self, s, parser_result=None):
-        # print 'parsing reg', s, opmode
         if not hasattr(self.parent, 'sx') and hasattr(self.parent, "w8"):
             self.parent.w8.value = 1
         if parser_result:
             e, start, stop = parser_result[self.parser]
-            # print 'reg result', e, start, stop
             if e is None:
                 return None, None
             self.expr = e
@@ -2468,7 +2345,6 @@ class x86_rm_reg_noarg(object):
                 return None, None
             self.parent.w8.value = 0
 
-        # print 'parsed', s, self.expr
         return start, stop
 
     def getrexsize(self):
@@ -2486,7 +2362,6 @@ class x86_rm_reg_noarg(object):
         r = size2gpregs[opmode]
         if p.mode == 64 and self.getrexsize():
             v |= 0x8
-        # print "XXX", p.v_opmode(), p.rex_p.value
         if p.v_opmode() == 64 or p.rex_p.value == 1:
             if not hasattr(p, 'sx') and (hasattr(p, 'w8') and p.w8.value == 0):
                 r = gpregs08_64
@@ -2610,7 +2485,6 @@ class bs_fbit(bsi):
 
     def decode(self, v):
         # value already decoded in pre_dis_info
-        # print "jj", self.value
         return True
 
 
@@ -2679,9 +2553,6 @@ class bs_cond_disp(bs_cond):
 
     @classmethod
     def flen(cls, mode, v):
-        # print 'disp cond', mode,
-        # print v, v_admode_info(mode, v['opmode'], v['admode'])
-        # if v_admode_info(mode, v['opmode'], v['admode']) ==16:
         if admode_prefix((mode, v['opmode'], v['admode'])) == 16:
             if v['mod'] == 0b00:
                 if v['rm'] == 0b110:
@@ -2752,8 +2623,6 @@ class bs_cond_imm(bs_cond_scale, m_arg):
             l = self.parent.args[0].expr.size
         else:
             l = self.parent.v_opmode()
-        # l = min(l, self.max_size)
-        # l = offsize(self.parent)
         if isinstance(self.expr, ExprInt):
             v = int(self.expr.arg)
             mask = ((1 << l) - 1)
@@ -2772,8 +2641,6 @@ class bs_cond_imm(bs_cond_scale, m_arg):
             if 'se' in v and v['se'] == 1:
                 return 8
             else:
-                # osize = v_opmode_info(mode, v['opmode'], v['admode'])
-                # osize = opmode_prefix((mode, v['opmode'], v['admode']))
                 osize = v_opmode_info(mode, v['opmode'], v['rex_w'], 0)
                 osize = min(osize, cls.max_size)
                 return osize
@@ -2795,12 +2662,9 @@ class bs_cond_imm(bs_cond_scale, m_arg):
 
             self.l = l
             mask = ((1 << self.l) - 1)
-            # print 'ext', self.l, l, hex(v), hex(sign_ext(v & ((1<<self.l)-1),
-            # self.l, l))
             if v != sign_ext(v & mask, self.l, l):
                 raise StopIteration
             self.value = swap_uint(self.l, v & ((1 << self.l) - 1))
-            # print hex(self.value)
             yield True
             raise StopIteration
 
@@ -2808,10 +2672,8 @@ class bs_cond_imm(bs_cond_scale, m_arg):
         if arg0_expr.size == 64:
             self.parent.rex_w.value = 1
 
-        l = self.parent.v_opmode()  # self.parent.args[0].expr.size
-        # print 'imm enc', l, self.parent.rex_w.value
+        l = self.parent.v_opmode()
         v = int(self.expr.arg)
-        # print "imms size", l, hex(v), arg0_expr.size
         if arg0_expr.size == 8:
             if not hasattr(self.parent, 'w8'):
                 raise StopIteration
@@ -2822,11 +2684,8 @@ class bs_cond_imm(bs_cond_scale, m_arg):
         elif hasattr(self.parent, 'se'):
             if hasattr(self.parent, 'w8'):
                 self.parent.w8.value = 1
-            # print 'test', 8, hex(v),
-            # print hex(sign_ext(v & 0xFF, 8, arg0_expr.size))
             # try to generate signed extended version
             if v == sign_ext(v & 0xFF, 8, arg0_expr.size):
-                # print 'setse'
                 self.parent.se.value = 1
                 self.l = 8
                 self.value = v & 0xFF
@@ -2839,15 +2698,11 @@ class bs_cond_imm(bs_cond_scale, m_arg):
             self.l = self.getmaxlen()
         else:
             self.l = l
-        # l = min(l, self.max_size)
 
         mask = ((1 << self.l) - 1)
-        # print 'ext', self.l, l, hex(v), hex(sign_ext(v & ((1<<self.l)-1),
-        # self.l, l))
         if v != sign_ext(v & mask, self.l, l):
             raise StopIteration
         self.value = swap_uint(self.l, v & ((1 << self.l) - 1))
-        # print hex(self.value)
         yield True
 
     def decode(self, v):
@@ -2860,7 +2715,6 @@ class bs_cond_imm(bs_cond_scale, m_arg):
         v = sign_ext(v, self.l, l_out)
         v = ExprInt_fromsize(l_out, v)
         self.expr = v
-        # print self.expr, repr(self.expr)
         return True
 
 
@@ -2882,7 +2736,7 @@ class bs_cond_imm64(bs_cond_imm):
             return 8
 
 
-class bs_rel_off(bs_cond_imm):  # m_arg):
+class bs_rel_off(bs_cond_imm):
     parser = int_or_expr
 
     def fromstring(self, s, parser_result=None):
@@ -2918,12 +2772,8 @@ class bs_rel_off(bs_cond_imm):  # m_arg):
         if self.l != 0:
             l = self.l
         else:
-            l = self.parent.v_opmode()  # self.parent.args[0].expr.size
+            l = self.parent.v_opmode()
             self.l = l
-            # if l == 16:
-            #    self.l = 16
-            # else:
-            #    self.l = 32
         l = offsize(self.parent)
         prefix = self.parent.gen_prefix()
         parent_len = len(prefix) * 8 + self.parent.l + self.l
@@ -3009,20 +2859,16 @@ class bs_moff(bsi):
             raise StopIteration
         if not isinstance(m.args[1], ExprInt):
             raise StopIteration
-        l = self.parent.v_opmode()  # self.parent.args[0].expr.size
+        l = self.parent.v_opmode()
         if l == 16:
             self.l = 16
         else:
             self.l = 32
-        # print 'imm enc', l, self.parent.rex_w.value
         v = int(m.args[1].arg)
         mask = ((1 << self.l) - 1)
-        # print 'ext', self.l, l, hex(v), hex(sign_ext(v & ((1<<self.l)-1),
-        # self.l, l))
         if v != sign_ext(v & mask, self.l, l):
             raise StopIteration
         self.value = swap_uint(self.l, v & ((1 << self.l) - 1))
-        # print hex(self.value)
         yield True
 
     def decode(self, v):
@@ -3034,7 +2880,6 @@ class bs_moff(bsi):
         v = sign_ext(v, self.l, opmode)
         v = ExprInt_fromsize(opmode, v)
         self.expr = v
-        # print self.expr, repr(self.expr)
         return True
 
 
@@ -3046,7 +2891,6 @@ class bs_movoff(m_arg):
             e, start, stop = parser_result[self.parser]
             if e is None:
                 return None, None
-            # print 'fromstring', hex(e), self.int2expr
             if not isinstance(e, ExprMem):
                 return None, None
             self.expr = e
@@ -3082,7 +2926,6 @@ class bs_movoff(m_arg):
         if not isinstance(e, ExprMem) or not isinstance(e.arg, ExprInt):
             raise StopIteration
         self.l = p.v_admode()
-        # print 'imm enc', l, self.parent.rex_w.value
         v = int(e.arg.arg)
         mask = ((1 << self.l) - 1)
         if v != mask & v:
@@ -3106,7 +2949,6 @@ class bs_movoff(m_arg):
         if self.parent.w8.value == 0:
             size = 8
         self.expr = ExprMem(v, size)
-        # print self.expr, repr(self.expr)
         return True
 
 
@@ -3140,12 +2982,9 @@ class bs_msegoff(m_arg):
             raise StopIteration
         if not isinstance(self.expr.args[1], ExprInt):
             raise StopIteration
-        l = self.parent.v_opmode()  # self.parent.args[0].expr.size
-        # print 'imm enc', l, self.parent.rex_w.value
+        l = self.parent.v_opmode()
         v = int(self.expr.args[0].arg)
         mask = ((1 << self.l) - 1)
-        # print 'ext', self.l, l, hex(v), hex(sign_ext(v & ((1<<self.l)-1),
-        # self.l, l))
         if v != sign_ext(v & mask, self.l, l):
             raise StopIteration
         self.value = swap_uint(self.l, v & ((1 << self.l) - 1))
@@ -3155,11 +2994,9 @@ class bs_msegoff(m_arg):
         opmode = self.parent.v_opmode()
         v = swap_uint(self.l, v)
         self.value = v
-        #v = sign_ext(v, self.l, opmode)
         v = ExprInt16(v)
         e = ExprOp('segm', v, self.parent.off.expr)
         self.expr = e
-        # print self.expr, repr(self.expr)
         return True
 
 
@@ -3237,11 +3074,9 @@ class field_size:
 
 d_imm64 = bs(l=0, fname="imm64")
 
-# d_eax = bs_eax(l=0)
 d_eax = bs(l=0, cls=(bs_eax, ), fname='eax')
 d_edx = bs(l=0, cls=(bs_edx, ), fname='edx')
 d_st = bs(l=0, cls=(x86_reg_st, ), fname='st')
-# d_imm = bs(l=0, cls=(bs_cond_imm,), fname="imm")
 d_imm = bs(l=0, cls=(bs_cond_imm,), fname="imm")
 d_imm64 = bs(l=0, cls=(bs_cond_imm64,), fname="imm")
 d_ax = bs(l=0, cls=(r_ax, ), fname='ax')
@@ -3388,7 +3223,6 @@ class bs_ad_mode(bsi):
 
     def decode(self, v):
         admode = self.parent.v_admode()
-        # print "MODE", opmode, self.mode
         return admode == self.mode
 
 
@@ -3403,7 +3237,6 @@ class bs_op_mode_no64(bsi):
         if self.parent.mode == 64:
             return False
         opmode = self.parent.v_opmode()
-        # print "MODE", opmode, self.mode
         return opmode == self.mode
 
 
@@ -3446,10 +3279,6 @@ bs_opmode32_no64 = bs(l=0, cls=(bs_op_mode_no64,), mode = 32, fname="fopmode")
 bs_mode64 = bs(l=0, cls=(bs_op_mode64,))
 bs_modeno64 = bs(l=0, cls=(bs_op_modeno64,))
 
-# class ia32_call(mn_x86):
-#    fields = [bs8(0xff)] + rmmod(d3)
-# conv_name = {16:'CBW', 32:'CWDE', 64:'CDQE'}
-# bs_conv_name = bs_modname_size(l=0, name=conv_name)
 addop("cbw", [bs8(0x98), bs_opmode16])
 addop("cwde", [bs8(0x98), bs_opmode32])
 addop("cdqe", [bs8(0x98), bs_opmode64])
@@ -3469,9 +3298,6 @@ addop("cmp", [bs("001110"), swapargs, w8] +
 
 
 addop("cmpsb", [bs8(0xa6)])
-# cmps_name = {16:'CMPSW', 32:'CMPSD', 64:'CMPSQ'}
-# bs_cmps_name = bs_modname_size(l=0, name=cmps_name)
-# addop("cmps", [bs8(0xa7), bs_cmps_name])
 addop("cmpsw", [bs8(0xa7), bs_opmode16])
 addop("cmpsd", [bs8(0xa7), bs_opmode32])
 addop("cmpsq", [bs8(0xa7), bs_opmode64])
@@ -3481,9 +3307,6 @@ addop("cmpxchg", [bs8(0x0f), bs('1011000'), w8]
 # XXX TODO CMPXCHG8/16
 addop("cpuid", [bs8(0x0f), bs8(0xa2)])
 
-# convbis_name = {16:'CWD', 32:'CDQ', 64:'CQO'}
-# bs_convbis_name = bs_modname_size(l=0, name=convbis_name)
-# addop("convbis", [bs8(0x99), bs_convbis_name])
 addop("cwd", [bs8(0x99), bs_opmode16])
 addop("cdq", [bs8(0x99), bs_opmode32])
 addop("cqo", [bs8(0x99), bs_opmode64])
@@ -3672,9 +3495,6 @@ addop("inc", [bs('1111111'), w8] + rmmod(d0, rm_arg_w8))
 addop("inc", [bs('01000'), reg])
 
 addop("insb", [bs8(0x6c)])
-# ins_name = {16:'INSW', 32:'INSD', 64:'INSD'}
-# bs_ins_name = bs_modname_size(l=0, name=ins_name)
-# addop("ins", [bs8(0x6d), bs_ins_name])
 addop("insw", [bs8(0x6d), bs_opmode16])
 addop("insd", [bs8(0x6d), bs_opmode32])
 addop("insd", [bs8(0x6d), bs_opmode64])
@@ -3685,16 +3505,11 @@ addop("into", [bs8(0xce)])
 addop("invd", [bs8(0x0f), bs8(0x08)])
 addop("invlpg", [bs8(0x0f), bs8(0x01)] + rmmod(d7))
 
-# iret_name = {16:'IRET', 32:'IRETD', 64:'IRETQ'}
-# bs_iret_name = bs_modname_size(l=0, name=iret_name)
-# addop("iret", [bs8(0xcf), stk, bs_iret_name])
 addop("iret", [bs8(0xcf), bs_opmode16])
 addop("iretd", [bs8(0xcf), bs_opmode32])
 addop("iretq", [bs8(0xcf), bs_opmode64])
 
 addop("j", [bs('0111'), cond, rel_off08])
-# bs_jecxz_name = bs_modname_jecx(l=0)
-# addop("jecxz", [bs8(0xe3), rel_off08, bs_jecxz_name])
 
 addop("jcxz", [bs8(0xe3), rel_off08, bs_admode16])
 addop("jecxz", [bs8(0xe3), rel_off08, bs_admode32])
@@ -3722,9 +3537,6 @@ addop("lgs", [bs8(0x0f), bs8(0xb5)] + rmmod(rmreg))
 addop("leave", [bs8(0xc9), stk])
 
 addop("lodsb", [bs8(0xac)])
-# lods_name = {16:'LODSW', 32:'LODSD', 64:'LODSQ'}
-# bs_lods_name = bs_modname_size(l=0, name=lods_name)
-# addop("lods", [bs8(0xad), bs_lods_name])
 addop("lodsw", [bs8(0xad), bs_opmode16])
 addop("lodsd", [bs8(0xad), bs_opmode32])
 addop("lodsq", [bs8(0xad), bs_opmode64])
@@ -3746,9 +3558,6 @@ addop("mov", [bs8(0x0f), bs("001000"), swapargs, bs('0')]
 addop("mov", [bs8(0x0f), bs("001000"), swapargs, bs('1')]
       + rmmod(drreg), [rm_arg, drreg])
 addop("movsb", [bs8(0xa4)])
-# movs_name = {16:'MOVSW', 32:'MOVSD', 64:'MOVSQ'}
-# bs_movs_name = bs_modname_size(l=0, name=movs_name)
-# addop("movs", [bs8(0xa5), bs_movs_name])
 addop("movsw", [bs8(0xa5), bs_opmode16])
 addop("movsd", [bs8(0xa5), bs_opmode32])
 addop("movsq", [bs8(0xa5), bs_opmode64])
@@ -3821,9 +3630,6 @@ addop("cvttss2si",
       [bs8(0x0f), bs8(0x2c), xmmreg, pref_f3] + rmmod(rmreg, rm_arg))
 
 
-# type("movupd", (mn_x86,), {"fields":[bs8(0x0f), bs8(0x10), pref_f2]
-# + rmmod(rmreg, rm_arg_sxd), 'prefixed':'\xf2'})
-
 addop("movzx", [bs8(0x0f), bs("1011011"), w8, sx] + rmmod(rmreg, rm_arg_sx))
 addop("mul", [bs('1111011'), w8] + rmmod(d4, rm_arg_w8))
 
@@ -3838,9 +3644,6 @@ addop("out", [bs("1110011"), w8, u08, d_eax])
 addop("out", [bs("1110111"), w8, d_edx, d_eax])
 
 addop("outsb", [bs8(0x6e)])
-# outs_name = {16:'OUTSW', 32:'OUTSD', 64:'OUTSD'}
-# bs_outs_name = bs_modname_size(l=0, name=outs_name)
-# addop("outs", [bs8(0x6f), bs_outs_name])
 addop("outsw", [bs8(0x6f), bs_opmode16])
 addop("outsd", [bs8(0x6f), bs_opmode32])
 addop("outsd", [bs8(0x6f), bs_opmode64])
@@ -3873,15 +3676,9 @@ addop("pop", [bs8(0x0f), stk, bs8(0xa1), d_fs, bs_opmode64])
 addop("pop", [bs8(0x0f), stk, bs8(0xa9), d_gs, bs_opmode64])
 
 
-# popa_name = {16:'POPA', 32:'POPAD'}
-# bs_popa_name = bs_modname_size(l=0, name=popa_name)
-# addop("popa", [bs8(0x61), bs_popa_name])
 addop("popa", [bs8(0x61), stk, bs_opmode16])
 addop("popad", [bs8(0x61), stk, bs_opmode32])
 
-# popf_name = {16:'POPF', 32:'POPFD', 64:'POPFQ'}
-# bs_popf_name = bs_modname_size(l=0, name=popf_name)
-# addop("popf", [bs8(0x9d), bs_popf_name])
 addop("popfw", [bs8(0x9d), stk, bs_opmode16])
 addop("popfd", [bs8(0x9d), stk, bs_opmode32])
 addop("popfq", [bs8(0x9d), stk, bs_opmode64])
@@ -3924,16 +3721,10 @@ addop("push", [bs8(0x06), stk, d_es, bs_opmode64])
 addop("push", [bs8(0x0f), stk, bs8(0xa0), d_fs, bs_opmode64])
 addop("push", [bs8(0x0f), stk, bs8(0xa8), d_gs, bs_opmode64])
 
-# pusha_name = {16:'PUSHA', 32:'PUSHAD'}
-# bs_pusha_name = bs_modname_size(l=0, name=pusha_name)
-# addop("pusha", [bs8(0x60), bs_pusha_name])
 addop("pusha", [bs8(0x60), stk, bs_opmode16_no64])
 addop("pushad", [bs8(0x60), stk, bs_opmode32_no64])
 
 
-# pushf_name = {16:'PUSHF', 32:'PUSHFD', 64:'PUSHFQ'}
-# bs_pushf_name = bs_modname_size(l=0, name=pushf_name)
-# addop("pushf", [bs8(0x9c), bs_pushf_name])
 addop("pushfw", [bs8(0x9c), stk, bs_opmode16])
 addop("pushfd", [bs8(0x9c), stk, bs_opmode32])
 addop("pushfq", [bs8(0x9c), stk, bs_opmode64])
@@ -3971,9 +3762,6 @@ addop("sar", [bs('110100'), d_cl1, w8] +
 addop("sar", [bs('1100000'), w8] + rmmod(d7, rm_arg_w8) + [u08])
 
 addop("scasb", [bs8(0xae)])
-# scas_name = {16:'SCASW', 32:'SCASD', 64:'SCASQ'}
-# bs_scas_name = bs_modname_size(l=0, name=scas_name)
-# addop("scas", [bs8(0xaf), bs_scas_name])
 addop("scasw", [bs8(0xaf), bs_opmode16])
 addop("scasd", [bs8(0xaf), bs_opmode32])
 addop("scasq", [bs8(0xaf), bs_opmode64])
@@ -4007,9 +3795,6 @@ addop("stc", [bs8(0xf9)])
 addop("std", [bs8(0xfd)])
 addop("sti", [bs8(0xfb)])
 addop("stosb", [bs8(0xaa)])
-# stos_name = {16:'STOSW', 32:'STOSD', 64:'STOSQ'}
-# bs_stos_name = bs_modname_size(l=0, name=stos_name)
-# addop("stos", [bs8(0xab), bs_stos_name])
 addop("stosw", [bs8(0xab), bs_opmode16])
 addop("stosd", [bs8(0xab), bs_opmode32])
 addop("stosq", [bs8(0xab), bs_opmode64])
@@ -4065,10 +3850,6 @@ addop("xgetbv", [bs8(0x0f), bs8(0x01), bs8(0xd0)])
 
 ## Move
 # SSE
-# movaps_name = {16:'MOVAPD', 32:'MOVAPS', 64:'MOVAPS'}
-# bs_movaps_name = bs_modname_size(l=0, name=movaps_name)
-# addop("movaps", [bs8(0x0f), bs("0010100"), swapargs, xmm] + rmmod(rmreg,
-# rm_arg) + [ bs_movaps_name], [rmreg, rm_arg])
 addop("movapd", [bs8(0x0f), bs("0010100"), swapargs, xmm]
       + rmmod(xmm_reg, rm_arg_xmm) + [bs_opmode16], [xmm_reg, rm_arg_xmm])
 addop("movaps", [bs8(0x0f), bs("0010100"), swapargs, xmm]
@@ -4134,10 +3915,6 @@ addop("divpd", [bs8(0x0f), bs8(0x5e), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
 
 ## XOR
 # SSE
-# xorps_name = {16:'XORPD', 32:'XORPS', 64:'XORPS'}
-# bs_xorps_name = bs_modname_size(l=0, name=xorps_name)
-# addop("xorps", [bs8(0x0f), bs8(0x57), xmm] + rmmod(rmreg) + [
-# bs_xorps_name] )
 addop("xorpd", [bs8(0x0f), bs8(0x57), xmm] + rmmod(xmm_reg, rm_arg_xmm) + [bs_opmode16])
 addop("xorps", [bs8(0x0f), bs8(0x57), xmm] + rmmod(xmm_reg, rm_arg_xmm) + [bs_opmode32])
 addop("xorps", [bs8(0x0f), bs8(0x57), xmm] + rmmod(xmm_reg, rm_arg_xmm) + [bs_opmode64])
