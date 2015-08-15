@@ -487,14 +487,14 @@ class instruction_x86(instruction):
     def dstflow2label(self, symbol_pool):
         if self.additional_info.g1.value & 6 and self.name in repeat_mn:
             return
-        e = self.args[0]
-        if isinstance(e, ExprId):
-            if not isinstance(e.name, asm_label) and e not in all_regs_ids:
+        expr = self.args[0]
+        if isinstance(expr, ExprId):
+            if not isinstance(expr.name, asm_label) and expr not in all_regs_ids:
                 raise ValueError("ExprId must be a label or a register")
-        elif isinstance(e, ExprInt):
-            ad = e.arg + int(self.offset)
+        elif isinstance(expr, ExprInt):
+            ad = expr.arg + int(self.offset)
             l = symbol_pool.getby_offset_create(ad)
-            s = ExprId(l, e.size)
+            s = ExprId(l, expr.size)
             self.args[0] = s
         else:
             return
@@ -543,14 +543,14 @@ class instruction_x86(instruction):
         return self.mode
 
     def fixDstOffset(self):
-        e = self.args[0]
+        expr = self.args[0]
         if self.offset is None:
             raise ValueError('symbol not resolved %s' % l)
-        if not isinstance(e, ExprInt):
-            log.warning('dynamic dst %r', e)
+        if not isinstance(expr, ExprInt):
+            log.warning('dynamic dst %r', expr)
             return
         self.args[0] = ExprInt_fromsize(
-            self.mode, e.arg - self.offset)
+            self.mode, expr.arg - self.offset)
 
     def get_info(self, c):
         self.additional_info.g1.value = c.g1.value
@@ -581,26 +581,26 @@ class instruction_x86(instruction):
         return args
 
     @staticmethod
-    def arg2str(e, pos = None):
-        if isinstance(e, ExprId) or isinstance(e, ExprInt):
-            o = str(e)
-        elif isinstance(e, ExprMem):
-            sz = SIZE2MEMPREFIX[e.size]
+    def arg2str(expr, pos=None):
+        if isinstance(expr, ExprId) or isinstance(expr, ExprInt):
+            o = str(expr)
+        elif isinstance(expr, ExprMem):
+            sz = SIZE2MEMPREFIX[expr.size]
             segm = ""
-            if e.is_op_segm():
-                segm = "%s:" % e.arg.args[0]
-                e = e.arg.args[1]
+            if expr.is_op_segm():
+                segm = "%s:" % expr.arg.args[0]
+                expr = expr.arg.args[1]
             else:
-                e = e.arg
-            if isinstance(e, ExprOp):
-                s = str(e).replace('(', '').replace(')', '')
+                expr = expr.arg
+            if isinstance(expr, ExprOp):
+                s = str(expr).replace('(', '').replace(')', '')
             else:
-                s = str(e)
+                s = str(expr)
             o = sz + ' PTR %s[%s]' % (segm, s)
-        elif isinstance(e, ExprOp) and e.op == 'segm':
-            o = "%s:%s" % (e.args[0], e.args[1])
+        elif isinstance(expr, ExprOp) and expr.op == 'segm':
+            o = "%s:%s" % (expr.args[0], expr.args[1])
         else:
-            raise ValueError('check this %r' % e)
+            raise ValueError('check this %r' % expr)
         return "%s" % o
 
 
@@ -1086,9 +1086,8 @@ class x86_08_ne(x86_imm):
         v = swap_uint(self.l, v)
         p = self.parent
         admode = p.v_admode()
-        e = sign_ext(v, self.intsize, admode)
-        e = ExprInt_fromsize(admode, e)
-        self.expr = e
+        expr = sign_ext(v, self.intsize, admode)
+        self.expr = ExprInt_fromsize(admode, expr)
         return True
 
 
@@ -1158,10 +1157,6 @@ class x86_s08to16(x86_imm):
                         int(v & ((1 << self.in_size) - 1)),
                         self.in_size, out_size)):
                         return False
-                    else:
-                        pass
-            else:
-                pass
         if v != sign_ext(
             int(v & ((1 << self.in_size) - 1)), self.in_size, out_size):
             return False
@@ -1229,38 +1224,38 @@ class bs_eax(m_arg):
 
     def decode(self, v):
         p = self.parent
-        e = None
+        expr = None
         if hasattr(p, 'w8') and p.w8.value == 0:
-            e = regs08_expr[self.rindex]
+            expr = regs08_expr[self.rindex]
         else:
-            e = size2gpregs[p.v_opmode()].expr[self.rindex]
-        self.expr = e
+            expr = size2gpregs[p.v_opmode()].expr[self.rindex]
+        self.expr = expr
         return True
 
     def encode(self):
         self.value = 0
         p = self.parent
-        e = self.expr
+        expr = self.expr
         osize = p.v_opmode()
         if hasattr(p, 'w8'):
             if p.w8.value is None:
                 # XXX TODO: priority in w8 erase?
-                if e.size == 8:
+                if expr.size == 8:
                     p.w8.value = 0
                 else:
                     p.w8.value = 1
         if hasattr(p, 'w8') and p.w8.value == 0:
-            return e == regs08_expr[self.rindex]
+            return expr == regs08_expr[self.rindex]
         elif p.mode in [16, 32]:
-            return e == size2gpregs[osize].expr[self.rindex]
+            return expr == size2gpregs[osize].expr[self.rindex]
         elif p.mode == 64:
-            if e == size2gpregs[64].expr[self.rindex]:
+            if expr == size2gpregs[64].expr[self.rindex]:
                 p.rex_w.value = 1
                 return True
-            elif e == size2gpregs[osize].expr[self.rindex]:
+            elif expr == size2gpregs[osize].expr[self.rindex]:
                 return True
             return False
-
+        return False
 
 class bs_seg(m_arg):
     reg_info = r_eax_all
@@ -1875,27 +1870,27 @@ def modrm2expr(modrm, parent, w8, sx=0, xmm=0, mm=0):
         else:
             opmode = parent.v_opmode()
         if xmm:
-            e = gpregs_xmm.expr[modrm_k]
+            expr = gpregs_xmm.expr[modrm_k]
         elif mm:
-            e = gpregs_mm.expr[modrm_k]
+            expr = gpregs_mm.expr[modrm_k]
         elif opmode == 8 and (parent.v_opmode() == 64 or parent.rex_p.value == 1):
-            e = gpregs08_64.expr[modrm_k]
+            expr = gpregs08_64.expr[modrm_k]
         else:
-            e = size2gpregs[opmode].expr[modrm_k]
-        return e
+            expr = size2gpregs[opmode].expr[modrm_k]
+        return expr
     admode = parent.v_admode()
     opmode = parent.v_opmode()
     for modrm_k, scale in modrm.items():
-        if type(modrm_k) in [int, long]:
-            e = size2gpregs[admode].expr[modrm_k]
+        if isinstance(modrm_k, (int, long)):
+            expr = size2gpregs[admode].expr[modrm_k]
             if scale != 1:
-                e = ExprInt_fromsize(admode, scale) * e
-            o.append(e)
+                expr = ExprInt_fromsize(admode, scale) * expr
+            o.append(expr)
     if f_imm in modrm:
         if parent.disp.value is None:
             return None
         o.append(ExprInt_fromsize(admode, parent.disp.expr.arg))
-    e = ExprOp('+', *o)
+    expr = ExprOp('+', *o)
     if w8 == 0:
         opmode = 8
     elif sx == 1:
@@ -1907,8 +1902,8 @@ def modrm2expr(modrm, parent, w8, sx=0, xmm=0, mm=0):
     elif mm:
         opmode = 64
 
-    e = ExprMem(e, size=opmode)
-    return e
+    expr = ExprMem(expr, size=opmode)
+    return expr
 
 
 class x86_rm_arg(m_arg):
@@ -1916,11 +1911,10 @@ class x86_rm_arg(m_arg):
 
     def fromstring(self, s, parser_result=None):
         start, stop = super(x86_rm_arg, self).fromstring(s, parser_result)
-        e = self.expr
         p = self.parent
         if start is None:
             return None, None
-        s = e.size
+        s = self.expr.size
         return start, stop
 
     def get_modrm(self):
@@ -1949,11 +1943,8 @@ class x86_rm_arg(m_arg):
     def decode(self, v):
         p = self.parent
         xx = self.get_modrm()
-        e = modrm2expr(xx, p, 1)
-        if e is None:
-            return False
-        self.expr = e
-        return True
+        self.expr = modrm2expr(xx, p, 1)
+        return self.expr is not None
 
     def gen_cand(self, v_cand, admode):
         if not admode in modrm2byte:
@@ -2042,13 +2033,12 @@ class x86_rm_arg(m_arg):
         raise StopIteration
 
     def encode(self):
-        e = self.expr
-        if isinstance(e, ExprInt):
+        if isinstance(self.expr, ExprInt):
             raise StopIteration
         p = self.parent
         admode = p.v_admode()
-        mode = e.size
-        v_cand, segm, ok = expr2modrm(e, p, 1)
+        mode = self.expr.size
+        v_cand, segm, ok = expr2modrm(self.expr, p, 1)
         if segm:
             p.g2.value = segm2enc[segm]
         for x in self.gen_cand(v_cand, admode):
@@ -2060,22 +2050,20 @@ class x86_rm_w8(x86_rm_arg):
     def decode(self, v):
         p = self.parent
         xx = self.get_modrm()
-        e = modrm2expr(xx, p, p.w8.value)
-        self.expr = e
-        return e is not None
+        self.expr = modrm2expr(xx, p, p.w8.value)
+        return self.expr is not None
 
     def encode(self):
-        e = self.expr
-        if isinstance(e, ExprInt):
+        if isinstance(self.expr, ExprInt):
             raise StopIteration
         p = self.parent
         if p.w8.value is None:
-            if e.size == 8:
+            if self.expr.size == 8:
                 p.w8.value = 0
             else:
                 p.w8.value = 1
 
-        v_cand, segm, ok = expr2modrm(e, p, p.w8.value)
+        v_cand, segm, ok = expr2modrm(self.expr, p, p.w8.value)
         if segm:
             p.g2.value = segm2enc[segm]
         for x in self.gen_cand(v_cand, p.v_admode()):
@@ -2087,21 +2075,19 @@ class x86_rm_sx(x86_rm_arg):
     def decode(self, v):
         p = self.parent
         xx = self.get_modrm()
-        e = modrm2expr(xx, p, p.w8.value, 1)
-        self.expr = e
-        return e is not None
+        self.expr = modrm2expr(xx, p, p.w8.value, 1)
+        return self.expr is not None
 
     def encode(self):
-        e = self.expr
-        if isinstance(e, ExprInt):
+        if isinstance(self.expr, ExprInt):
             raise StopIteration
         p = self.parent
         if p.w8.value is None:
-            if e.size == 8:
+            if self.expr.size == 8:
                 p.w8.value = 0
             else:
                 p.w8.value = 1
-        v_cand, segm, ok = expr2modrm(e, p, p.w8.value, 1)
+        v_cand, segm, ok = expr2modrm(self.expr, p, p.w8.value, 1)
         if segm:
             p.g2.value = segm2enc[segm]
         for x in self.gen_cand(v_cand, p.v_admode()):
@@ -2113,16 +2099,14 @@ class x86_rm_sxd(x86_rm_arg):
     def decode(self, v):
         p = self.parent
         xx = self.get_modrm()
-        e = modrm2expr(xx, p, 1, 2)
-        self.expr = e
-        return e is not None
+        self.expr = modrm2expr(xx, p, 1, 2)
+        return self.expr is not None
 
     def encode(self):
-        e = self.expr
-        if isinstance(e, ExprInt):
+        if isinstance(self.expr, ExprInt):
             raise StopIteration
         p = self.parent
-        v_cand, segm, ok = expr2modrm(e, p, 1, 2)
+        v_cand, segm, ok = expr2modrm(self.expr, p, 1, 2)
         if segm:
             p.g2.value = segm2enc[segm]
         for x in self.gen_cand(v_cand, p.v_admode()):
@@ -2134,25 +2118,24 @@ class x86_rm_sd(x86_rm_arg):
     def decode(self, v):
         p = self.parent
         xx = self.get_modrm()
-        e = modrm2expr(xx, p, 1)
-        if not isinstance(e, ExprMem):
+        expr = modrm2expr(xx, p, 1)
+        if not isinstance(expr, ExprMem):
             return False
         if p.sd.value == 0:
-            e = ExprMem(e.arg, 32)
+            expr = ExprMem(expr.arg, 32)
         else:
-            e = ExprMem(e.arg, 64)
-        self.expr = e
-        return e is not None
+            expr = ExprMem(expr.arg, 64)
+        self.expr = expr
+        return self.expr is not None
 
     def encode(self):
-        e = self.expr
-        if isinstance(e, ExprInt):
+        if isinstance(self.expr, ExprInt):
             raise StopIteration
         p = self.parent
-        if not e.size in [32, 64]:
+        if not self.expr.size in [32, 64]:
             raise StopIteration
         p.sd.value = 0
-        v_cand, segm, ok = expr2modrm(e, p, 1)
+        v_cand, segm, ok = expr2modrm(self.expr, p, 1)
         for x in self.gen_cand(v_cand, p.v_admode()):
             yield x
 
@@ -2162,23 +2145,22 @@ class x86_rm_wd(x86_rm_arg):
     def decode(self, v):
         p = self.parent
         xx = self.get_modrm()
-        e = modrm2expr(xx, p, 1)
-        if not isinstance(e, ExprMem):
+        expr = modrm2expr(xx, p, 1)
+        if not isinstance(expr, ExprMem):
             return False
         if p.wd.value == 0:
-            e = ExprMem(e.arg, 32)
+            expr = ExprMem(expr.arg, 32)
         else:
-            e = ExprMem(e.arg, 16)
-        self.expr = e
-        return e is not None
+            expr = ExprMem(expr.arg, 16)
+        self.expr = expr
+        return self.expr is not None
 
     def encode(self):
-        e = self.expr
-        if isinstance(e, ExprInt):
+        if isinstance(self.expr, ExprInt):
             raise StopIteration
         p = self.parent
         p.wd.value = 0
-        v_cand, segm, ok = expr2modrm(e, p, 1)
+        v_cand, segm, ok = expr2modrm(self.expr, p, 1)
         for x in self.gen_cand(v_cand, p.v_admode()):
             yield x
 
@@ -2188,19 +2170,17 @@ class x86_rm_m64(x86_rm_arg):
     def decode(self, v):
         p = self.parent
         xx = self.get_modrm()
-        e = modrm2expr(xx, p, 1)
-        if not isinstance(e, ExprMem):
+        expr = modrm2expr(xx, p, 1)
+        if not isinstance(expr, ExprMem):
             return False
-        e = ExprMem(e.arg, 64)
-        self.expr = e
-        return e is not None
+        self.expr = ExprMem(expr.arg, 64)
+        return self.expr is not None
 
     def encode(self):
-        e = self.expr
-        if isinstance(e, ExprInt):
+        if isinstance(self.expr, ExprInt):
             raise StopIteration
         p = self.parent
-        v_cand, segm, ok = expr2modrm(e, p, 0, 0, 0, 1)
+        v_cand, segm, ok = expr2modrm(self.expr, p, 0, 0, 0, 1)
         for x in self.gen_cand(v_cand, p.v_admode()):
             yield x
 
@@ -2211,25 +2191,23 @@ class x86_rm_m80(x86_rm_arg):
     def decode(self, v):
         p = self.parent
         xx = self.get_modrm()
-        e = modrm2expr(xx, p, 1)
-        if not isinstance(e, ExprMem):
+        expr = modrm2expr(xx, p, 1)
+        if not isinstance(expr, ExprMem):
             return False
-        e = ExprMem(e.arg, self.msize)
-        self.expr = e
-        return e is not None
+        self.expr = ExprMem(expr.arg, self.msize)
+        return self.expr is not None
 
     def encode(self):
-        e = self.expr
-        if isinstance(e, ExprInt):
+        if isinstance(self.expr, ExprInt):
             raise StopIteration
-        if not isinstance(e, ExprMem) or e.size != self.msize:
+        if not isinstance(self.expr, ExprMem) or self.expr.size != self.msize:
             raise StopIteration
         p = self.parent
         mode = p.mode
         if mode == 64:
             mode = 32
-        e = ExprMem(e.arg, mode)
-        v_cand, segm, ok = expr2modrm(e, p, 1)
+        self.expr = ExprMem(self.expr.arg, mode)
+        v_cand, segm, ok = expr2modrm(self.expr, p, 1)
         for x in self.gen_cand(v_cand, p.v_admode()):
             yield x
 
@@ -2240,17 +2218,15 @@ class x86_rm_m08(x86_rm_arg):
     def decode(self, v):
         p = self.parent
         xx = self.get_modrm()
-        e = modrm2expr(xx, p, 0)
-        self.expr = e
-        return e is not None
+        self.expr = modrm2expr(xx, p, 0)
+        return self.expr is not None
 
     def encode(self):
-        e = self.expr
-        if e.size != 8:
+        if self.expr.size != 8:
             raise StopIteration
         p = self.parent
         mode = p.mode
-        v_cand, segm, ok = expr2modrm(e, p, 0)
+        v_cand, segm, ok = expr2modrm(self.expr, p, 0)
         for x in self.gen_cand(v_cand, p.v_admode()):
             yield x
 
@@ -2365,8 +2341,7 @@ class x86_rm_reg_noarg(object):
         if p.v_opmode() == 64 or p.rex_p.value == 1:
             if not hasattr(p, 'sx') and (hasattr(p, 'w8') and p.w8.value == 0):
                 r = gpregs08_64
-        e = r.expr[v]
-        self.expr = e
+        self.expr = r.expr[v]
         return True
 
     def encode(self):
@@ -2412,14 +2387,13 @@ class x86_rm_reg_mm(x86_rm_reg_noarg, m_arg):
     def decode(self, v):
         if self.parent.mode == 64 and self.getrexsize():
             v |= 0x8
-        e = self.selreg.expr[v]
-        self.expr = e
+        self.expr = self.selreg.expr[v]
         return True
 
     def encode(self):
         if not isinstance(self.expr, ExprId):
             return False
-        if not self.expr in self.selreg.expr:
+        if self.expr not in self.selreg.expr:
             return False
         i = self.selreg.expr.index(self.expr)
         if self.parent.mode == 64 and i > 7:
@@ -2611,13 +2585,13 @@ class bs_cond_imm(bs_cond_scale, m_arg):
 
     def fromstring(self, s, parser_result=None):
         if parser_result:
-            e, start, stop = parser_result[self.parser]
+            expr, start, stop = parser_result[self.parser]
         else:
             try:
-                e, start, stop = self.parser.scanString(s).next()
+                expr, start, stop = self.parser.scanString(s).next()
             except StopIteration:
-                e = None
-        self.expr = e
+                expr = None
+        self.expr = expr
 
         if len(self.parent.args) > 1:
             l = self.parent.args[0].expr.size
@@ -2627,8 +2601,7 @@ class bs_cond_imm(bs_cond_scale, m_arg):
             v = int(self.expr.arg)
             mask = ((1 << l) - 1)
             v = v & mask
-            e = ExprInt_fromsize(l, v)
-            self.expr = e
+            self.expr = ExprInt_fromsize(l, v)
 
         if self.expr is None:
             log.debug('cannot fromstring int %r', s)
@@ -2741,20 +2714,19 @@ class bs_rel_off(bs_cond_imm):
 
     def fromstring(self, s, parser_result=None):
         if parser_result:
-            e, start, stop = parser_result[self.parser]
+            expr, start, stop = parser_result[self.parser]
         else:
             try:
-                e, start, stop = self.parser.scanString(s).next()
+                expr, start, stop = self.parser.scanString(s).next()
             except StopIteration:
-                e = None
-        self.expr = e
+                expr = None
+        self.expr = expr
         l = self.parent.mode
         if isinstance(self.expr, ExprInt):
             v = int(self.expr.arg)
             mask = ((1 << l) - 1)
             v = v & mask
-            e = ExprInt_fromsize(l, v)
-            self.expr = e
+            self.expr = ExprInt_fromsize(l, v)
         return start, stop
 
     @classmethod
@@ -2903,11 +2875,10 @@ class bs_movoff(m_arg):
             return None, None
         if not isinstance(e, ExprMem):
             return None, None
-        e = v[0]
-        if e is None:
+        self.expr = v[0]
+        if self.expr is None:
             log.debug('cannot fromstring int %r', s)
             return None, None
-        self.expr = e
         return start, stop
 
     @classmethod
@@ -2921,12 +2892,11 @@ class bs_movoff(m_arg):
         return asize
 
     def encode(self):
-        e = self.expr
         p = self.parent
-        if not isinstance(e, ExprMem) or not isinstance(e.arg, ExprInt):
+        if not isinstance(self.expr, ExprMem) or not isinstance(self.expr.arg, ExprInt):
             raise StopIteration
         self.l = p.v_admode()
-        v = int(e.arg.arg)
+        v = int(self.expr.arg.arg)
         mask = ((1 << self.l) - 1)
         if v != mask & v:
             raise StopIteration
@@ -2968,11 +2938,10 @@ class bs_msegoff(m_arg):
             v, start, stop = self.parser.scanString(s).next()
         except StopIteration:
             return None, None
-        e = v[0]
-        if e is None:
+        self.expr = v[0]
+        if self.expr is None:
             log.debug('cannot fromstring int %r', s)
             return None, None
-        self.expr = e
         return start, stop
 
     def encode(self):
@@ -2995,8 +2964,7 @@ class bs_msegoff(m_arg):
         v = swap_uint(self.l, v)
         self.value = v
         v = ExprInt16(v)
-        e = ExprOp('segm', v, self.parent.off.expr)
-        self.expr = e
+        self.expr = ExprOp('segm', v, self.parent.off.expr)
         return True
 
 
