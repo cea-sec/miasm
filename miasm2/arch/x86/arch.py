@@ -1190,23 +1190,12 @@ class x86_s08to32(x86_s08to16):
         return True
 
 
-class x86_s08to64(x86_s08to16):
+class x86_s08to64(x86_s08to32):
     in_size = 8
     out_size = 64
 
     def myexpr(self, x):
         return ExprInt64(x)
-
-    def decode(self, v):
-        v = v & self.lmask
-        v = self.decodeval(v)
-        if self.parent.rex_w.value == 1:
-            v = ExprInt64(sign_ext(v, self.in_size, 64))
-        else:
-            v = ExprInt32(sign_ext(v, self.in_size, 32))
-
-        self.expr = v
-        return True
 
 
 class x86_s32to64(x86_s08to32):
@@ -2114,6 +2103,11 @@ class x86_rm_sxd(x86_rm_arg):
 
 
 class x86_rm_sd(x86_rm_arg):
+    out_size = 64
+    def get_s_value(self):
+        return self.parent.sd.value
+    def set_s_value(self, value):
+        self.parent.sd.value = value
 
     def decode(self, v):
         p = self.parent
@@ -2121,10 +2115,10 @@ class x86_rm_sd(x86_rm_arg):
         expr = modrm2expr(xx, p, 1)
         if not isinstance(expr, ExprMem):
             return False
-        if p.sd.value == 0:
+        if self.get_s_value() == 0:
             expr = ExprMem(expr.arg, 32)
         else:
-            expr = ExprMem(expr.arg, 64)
+            expr = ExprMem(expr.arg, self.out_size)
         self.expr = expr
         return self.expr is not None
 
@@ -2134,26 +2128,18 @@ class x86_rm_sd(x86_rm_arg):
         p = self.parent
         if not self.expr.size in [32, 64]:
             raise StopIteration
-        p.sd.value = 0
+        self.set_s_value(0)
         v_cand, segm, ok = expr2modrm(self.expr, p, 1)
         for x in self.gen_cand(v_cand, p.v_admode()):
             yield x
 
 
-class x86_rm_wd(x86_rm_arg):
-
-    def decode(self, v):
-        p = self.parent
-        xx = self.get_modrm()
-        expr = modrm2expr(xx, p, 1)
-        if not isinstance(expr, ExprMem):
-            return False
-        if p.wd.value == 0:
-            expr = ExprMem(expr.arg, 32)
-        else:
-            expr = ExprMem(expr.arg, 16)
-        self.expr = expr
-        return self.expr is not None
+class x86_rm_wd(x86_rm_sd):
+    out_size = 16
+    def get_s_value(self):
+        return self.parent.wd.value
+    def set_s_value(self, value):
+        self.parent.wd.value = value
 
     def encode(self):
         if isinstance(self.expr, ExprInt):
@@ -2166,6 +2152,7 @@ class x86_rm_wd(x86_rm_arg):
 
 
 class x86_rm_m64(x86_rm_arg):
+    msize = 64
 
     def decode(self, v):
         p = self.parent
@@ -2173,7 +2160,7 @@ class x86_rm_m64(x86_rm_arg):
         expr = modrm2expr(xx, p, 1)
         if not isinstance(expr, ExprMem):
             return False
-        self.expr = ExprMem(expr.arg, 64)
+        self.expr = ExprMem(expr.arg, self.msize)
         return self.expr is not None
 
     def encode(self):
@@ -2185,17 +2172,8 @@ class x86_rm_m64(x86_rm_arg):
             yield x
 
 
-class x86_rm_m80(x86_rm_arg):
+class x86_rm_m80(x86_rm_m64):
     msize = 80
-
-    def decode(self, v):
-        p = self.parent
-        xx = self.get_modrm()
-        expr = modrm2expr(xx, p, 1)
-        if not isinstance(expr, ExprMem):
-            return False
-        self.expr = ExprMem(expr.arg, self.msize)
-        return self.expr is not None
 
     def encode(self):
         if isinstance(self.expr, ExprInt):
