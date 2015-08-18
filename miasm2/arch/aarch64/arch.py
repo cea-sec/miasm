@@ -1626,7 +1626,7 @@ aarch64op("mvn",  [sf, bs('01'), bs('01010'), shift, bs('1'), rm_sft, imm6, bs('
 aarch64op("eor",  [sf, bs('10'), bs('01010'), shift, bs('0'), rm_sft, imm6, rn, rd], [rd, rn, rm_sft])
 aarch64op("eon",  [sf, bs('10'), bs('01010'), shift, bs('1'), rm_sft, imm6, rn, rd], [rd, rn, rm_sft])
 aarch64op("ands", [sf, bs('11'), bs('01010'), shift, bs('0'), rm_sft, imm6, rn, rd], [rd, rn, rm_sft])
-aarch64op("tst",  [sf, bs('11'), bs('01010'), shift, bs('0'), rm_sft, imm6, rn, bs('11111')], [rn, rm_sft])
+aarch64op("tst",  [sf, bs('11'), bs('01010'), shift, bs('0'), rm_sft, imm6, rn, bs('11111')], [rn, rm_sft], alias=True)
 aarch64op("bics", [sf, bs('11'), bs('01010'), shift, bs('1'), rm_sft, imm6, rn, rd], [rd, rn, rm_sft])
 
 # move reg
@@ -1776,7 +1776,7 @@ aarch64op("movk", [sf, bs('11'), bs('100101'), hw, imm16_hw_sc, rd], [rd, imm16_
 ldstp_name = {'STP': 0b0, 'LDP': 0b1}
 bs_ldstp_name = bs_name(l=1, name=ldstp_name)
 aarch64op("ldstp", [sf, bs('0'), bs('101'), bs('0'), bs('0'), post_pre, bs('1'), bs_ldstp_name, simm7, rt2, rn64_deref_sf, rt], [rt, rt2, rn64_deref_sf])
-#aarch64op("ldstp", [sf, bs('0'), bs('101'), bs('0'), bs('0'), bs('1'), bs('0'), bs_ldstp_name, simm7, rt2, rn64_deref_sf, rt], [rt, rt2, rn64_deref_sf])
+aarch64op("ldstp", [sf, bs('0'), bs('101'), bs('0'), bs('0'), bs('1'), bs('0'), bs_ldstp_name, simm7, rt2, rn64_deref_sf, rt], [rt, rt2, rn64_deref_sf])
 
 aarch64op("ldstp", [sdsize, bs('101'), bs('1'), bs('0'), post_pre, bs('1'), bs_ldstp_name, uimm7, sd2, rn64_deref_sd, sd1], [sd1, sd2, rn64_deref_sd])
 aarch64op("ldstp", [sdsize, bs('101'), bs('1'), bs('0'), bs('1'), bs('0'), bs_ldstp_name, uimm7, sd2, rn64_deref_sd, sd1], [sd1, sd2, rn64_deref_sd])
