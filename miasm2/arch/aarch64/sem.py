@@ -240,6 +240,13 @@ def ands(ir, instr, arg1, arg2, arg3):
     e.append(m2_expr.ExprAff(arg1, res))
     return e, []
 
+def tst(ir, instr, arg1, arg2):
+    e = []
+    arg2 = extend_arg(arg1, arg2)
+    res = arg1 & arg2
+    e += update_flag_logic(res)
+    return e, []
+
 
 @sbuild.parse
 def lsl(arg1, arg2, arg3):
@@ -383,10 +390,11 @@ def get_mem_access(mem):
     return addr, updt
 
 
-def strb(ir, instr, arg1, arg2):
+
+def ldr(ir, instr, arg1, arg2):
     e = []
     addr, updt = get_mem_access(arg2)
-    e.append(m2_expr.ExprAff(m2_expr.ExprMem(addr, 8), arg1[:8]))
+    e.append(m2_expr.ExprAff(arg1, m2_expr.ExprMem(addr, arg1.size)))
     if updt:
         e.append(updt)
     return e, []
@@ -402,7 +410,17 @@ def ldrb(ir, instr, arg1, arg2):
     return e, []
 
 
-def str(ir, instr, arg1, arg2):
+def ldrh(ir, instr, arg1, arg2):
+    e = []
+    addr, updt = get_mem_access(arg2)
+    e.append(
+        m2_expr.ExprAff(arg1, m2_expr.ExprMem(addr, 16).zeroExtend(arg1.size)))
+    if updt:
+        e.append(updt)
+    return e, []
+
+
+def l_str(ir, instr, arg1, arg2):
     e = []
     addr, updt = get_mem_access(arg2)
     e.append(m2_expr.ExprAff(m2_expr.ExprMem(addr, arg1.size), arg1))
@@ -411,10 +429,19 @@ def str(ir, instr, arg1, arg2):
     return e, []
 
 
-def ldr(ir, instr, arg1, arg2):
+def strb(ir, instr, arg1, arg2):
     e = []
     addr, updt = get_mem_access(arg2)
-    e.append(m2_expr.ExprAff(arg1, m2_expr.ExprMem(addr, arg1.size)))
+    e.append(m2_expr.ExprAff(m2_expr.ExprMem(addr, 8), arg1[:8]))
+    if updt:
+        e.append(updt)
+    return e, []
+
+
+def strh(ir, instr, arg1, arg2):
+    e = []
+    addr, updt = get_mem_access(arg2)
+    e.append(m2_expr.ExprAff(m2_expr.ExprMem(addr, 16), arg1[:16]))
     if updt:
         e.append(updt)
     return e, []
@@ -475,10 +502,28 @@ def ubfm(ir, instr, arg1, arg2, arg3, arg4):
     e.append(m2_expr.ExprAff(arg1, res))
     return e, []
 
+def bfm(ir, instr, arg1, arg2, arg3, arg4):
+    e = []
+    rim, sim = int(arg3.arg), int(arg4.arg) + 1
+    if sim > rim:
+        res = arg2[rim:sim]
+        e.append(m2_expr.ExprAff(arg1[:sim-rim], res))
+    else:
+        shift_i = arg2.size - rim
+        shift = m2_expr.ExprInt_from(arg2, shift_i)
+        res = arg2[:sim]
+        e.append(m2_expr.ExprAff(arg1[shift_i:shift_i+sim], res))
+    return e, []
+
 
 @sbuild.parse
 def madd(arg1, arg2, arg3, arg4):
     arg1 = arg2 * arg3 + arg4
+
+
+@sbuild.parse
+def msub(arg1, arg2, arg3, arg4):
+    arg1 = arg4 - (arg2 * arg3)
 
 
 @sbuild.parse
@@ -623,11 +668,20 @@ def br(arg1):
 def nop():
     """Do nothing"""
 
+
+
+@sbuild.parse
+def extr(arg1, arg2, arg3, arg4):
+    compose = m2_expr.ExprCompose([(arg2, 0, arg2.size),
+                                   (arg3, arg2.size, arg2.size+arg3.size)])
+    arg1 = compose[int(arg4.arg):int(arg4.arg)+arg1.size]
+
 mnemo_func = sbuild.functions
 mnemo_func.update({
     'and': and_l,
     'adds': adds,
     'ands': ands,
+    'tst': tst,
     'subs': subs,
     'cmp': cmp,
     'cmn': cmn,
@@ -653,18 +707,30 @@ mnemo_func.update({
     'stp': stp,
     'ldp': ldp,
 
-    'str': str,
     'ldr': ldr,
+    'ldrb': ldrb,
+    'ldrh': ldrh,
 
-    'ldur': ldr,  # XXXX CHECK
+    'ldur': ldr,
+    'ldurb': ldrb,
+    'ldurh': ldrh,
+
+    'str': l_str,
+    'strb': strb,
+    'strh': strh,
+
+    'stur': l_str,
+    'sturb': strb,
+    'sturh': strh,
 
     'ldrsw': ldrsw,
 
-    'strb': strb,
-    'ldrb': ldrb,
 
+    'bfm': bfm,
     'sbfm': sbfm,
     'ubfm': ubfm,
+
+    'extr': extr,
 
 })
 
