@@ -764,12 +764,7 @@ class ir_aarch64l(ir):
                                           args[-1].args[0],
                                           args[-1].args[-1][:8].zeroExtend(32))
         instr_ir, extra_ir = get_mnemo_expr(self, instr, *args)
-        # for i, expr in enumerate(instr_ir):
-        #    instr_ir[i] = self.expraff_fix_regs_for_mode(expr)
-        # for b in extra_ir:
-        #    for irs in b.irs:
-        #        for i, expr in enumerate(irs):
-        #            irs[i] = self.expraff_fix_regs_for_mode(expr)
+        self.mod_pc(instr, instr_ir, extra_ir)
         return instr_ir, extra_ir
 
     def expr_fix_regs_for_mode(self, e):
@@ -796,6 +791,23 @@ class ir_aarch64l(ir):
                 irs[i] = self.expr_fix_regs_for_mode(e)
         irbloc.dst = self.expr_fix_regs_for_mode(irbloc.dst)
 
+    def mod_pc(self, instr, instr_ir, extra_ir):
+        "Replace PC by the instruction's offset"
+        cur_offset = m2_expr.ExprInt64(instr.offset)
+        for i, expr in enumerate(instr_ir):
+            dst, src = expr.dst, expr.src
+            if dst != self.pc:
+                dst = dst.replace_expr({self.pc: cur_offset})
+            src = src.replace_expr({self.pc: cur_offset})
+            instr_ir[i] = m2_expr.ExprAff(dst, src)
+        for b in extra_ir:
+            for irs in b.irs:
+                for i, expr in enumerate(irs):
+                    dst, src = expr.dst, expr.src
+                    if dst != self.pc:
+                        dst = dst.replace_expr({self.pc: cur_offset})
+                    src = src.replace_expr({self.pc: cur_offset})
+                    irs[i] = m2_expr.ExprAff(dst, src)
 
 class ir_aarch64b(ir_aarch64l):
 
