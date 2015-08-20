@@ -394,6 +394,13 @@ class DependencyDict(object):
                     self._cache[depnode] = self._cache.get(key, set()).copy()
                     self.pending.discard(key)
                     self.pending.add(depnode)
+
+                    # Replace occurence of key to remove
+                    for dependencies in self._cache.values():
+                        if key in dependencies:
+                            dependencies.remove(key)
+                            dependencies.add(depnode)
+
                 if self._cache.has_key(key):
                     del self._cache[key]
 
@@ -613,7 +620,7 @@ class FollowExpr(object):
         self.element = element
 
     @staticmethod
-    def to_depnodes(follow_exprs, label, line, modifier, counter):
+    def to_depnodes(follow_exprs, label, line, modifier, step):
         """Build a set of FollowExpr(DependencyNode) from the @follow_exprs set
         of FollowExpr"""
         dependencies = set()
@@ -622,7 +629,7 @@ class FollowExpr(object):
                                         DependencyNode(label,
                                                        follow_expr.element,
                                                        line,
-                                                       next(counter),
+                                                       step,
                                                        modifier=modifier)))
         return dependencies
 
@@ -662,6 +669,7 @@ class DependencyGraph(object):
         self._ira = ira
         self._implicit = implicit
         self._step_counter = itertools.count()
+        self._current_step = next(self._step_counter)
 
         # The IRA graph must be computed
         assert hasattr(self._ira, 'g')
@@ -682,6 +690,16 @@ class DependencyGraph(object):
     def step_counter(self):
         "Iteration counter"
         return self._step_counter
+
+    @property
+    def current_step(self):
+        "Current value of iteration counter"
+        return self._current_step
+
+    def inc_step(self):
+        "Increment and return the current step"
+        self._current_step = next(self._step_counter)
+        return self._current_step
 
     @staticmethod
     def _follow_simp_expr(exprs):
@@ -788,8 +806,7 @@ class DependencyGraph(object):
             # Build output
             output = FollowExpr.to_depnodes(read, depnode.label,
                                             depnode.line_nb - 1, modifier,
-                                            self.step_counter)
-
+                                            self.current_step)
         return output
 
     def _resolve_intrablock_dep(self, depdict):
@@ -854,6 +871,7 @@ class DependencyGraph(object):
 
             # Update the dependencydict until fixed point is reached
             self._resolve_intrablock_dep(depdict)
+            self.inc_step()
 
             # Clean irrelevant path
             depdict.filter_unmodifier_loops(self._implicit, self._ira.IRDst)
@@ -883,7 +901,7 @@ class DependencyGraph(object):
                     # Implicit dependencies: IRDst will be link with heads
                     implicit_depnode = DependencyNode(label, self._ira.IRDst,
                                                       irb_len,
-                                                      next(self.step_counter),
+                                                      self.current_step,
                                                       modifier=False)
 
                 # Create links between DependencyDict
@@ -891,7 +909,7 @@ class DependencyGraph(object):
                     # Follow the head element in the parent
                     new_depnode = DependencyNode(label, depnode_head.element,
                                                  irb_len,
-                                                 next(self.step_counter))
+                                                 self.current_step)
                     # The new node has to be analysed
                     new_depdict.cache[depnode_head] = set([new_depnode])
                     new_depdict.pending.add(new_depnode)
@@ -924,7 +942,7 @@ class DependencyGraph(object):
         input_depnodes = set()
         for element in elements:
             input_depnodes.add(DependencyNode(label, element, line_nb,
-                                              next(self.step_counter)))
+                                              self.current_step))
 
         # Compute final depdicts
         depdicts = self._compute_interblock_dep(input_depnodes, heads)
