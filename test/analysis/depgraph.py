@@ -13,7 +13,6 @@ try:
     import z3
 except ImportError:
     EMULATION=False
-    pass
 
 STEP_COUNTER = count()
 A = ExprId("a")
@@ -116,7 +115,7 @@ class GraphTest(DiGraph):
 
     def node2str(self, node):
         if isinstance(node, asm_label):
-            if not node in self.ira.blocs:
+            if node not in self.ira.blocs:
                 return str(node)
             else:
                 return str(self.ira.blocs[node])
