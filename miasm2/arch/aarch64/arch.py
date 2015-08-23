@@ -421,7 +421,7 @@ class instruction_aarch64(instruction):
         off = e.arg - self.offset
         if int(off % 4):
             raise ValueError('strange offset! %r' % off)
-        self.args[index] = m2_expr.ExprInt32(off)
+        self.args[index] = m2_expr.ExprInt64(off)
 
 
 
