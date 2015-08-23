@@ -929,17 +929,14 @@ class aarch64_gpreg_ext2(reg_noarg, m_arg):
         return self.parent.size.value
 
     def encode(self):
-        print "DECODE", self.expr
         if not isinstance(self.expr, m2_expr.ExprOp):
             return False
         arg0, arg1 = self.expr.args
         if not (isinstance(self.expr, m2_expr.ExprOp) and self.expr.op == 'segm'):
             return False
-        print 'OKI'
         if not arg0 in self.parent.rn.reg_info.expr:
             return False
         self.parent.rn.value = self.parent.rn.reg_info.expr.index(arg0)
-        print 'tt', arg0
         is_reg = False
         self.parent.shift.value = 0
         if isinstance(arg1, m2_expr.ExprId):
@@ -950,14 +947,12 @@ class aarch64_gpreg_ext2(reg_noarg, m_arg):
             reg = arg1.args[0]
         else:
             return False
-        print 'ISR', is_reg
         if not (reg.size in gpregs_info and
                 reg in gpregs_info[reg.size].expr):
             return False
         self.value = gpregs_info[reg.size].expr.index(reg)
         if is_reg:
             return True
-        print 'test int', arg1.args
         if not (isinstance(arg1.args[1], m2_expr.ExprInt)):
             return False
         if arg1.op not in EXT2_OP_INV:
@@ -969,7 +964,6 @@ class aarch64_gpreg_ext2(reg_noarg, m_arg):
 
         if arg1.args[1].arg != self.get_size():
             return False
-        print "RR", arg1.args[1].arg
 
         self.parent.shift.value = 1
 
@@ -1432,7 +1426,6 @@ class aarch64_b40(m_arg):
         size = self.parent.args[0].expr.size
         value = int(self.expr.arg)
         self.value = value & self.lmask
-        print 'TT', hex(value)
         if self.parent.sf.value is None:
             self.parent.sf.value = value >> self.l
             return True
