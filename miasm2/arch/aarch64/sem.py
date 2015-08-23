@@ -765,6 +765,8 @@ class ir_aarch64l(ir):
                                           args[-1].args[-1][:8].zeroExtend(32))
         instr_ir, extra_ir = get_mnemo_expr(self, instr, *args)
         self.mod_pc(instr, instr_ir, extra_ir)
+        instr_ir, extra_ir = self.del_dst_zr(instr, instr_ir, extra_ir)
+
         return instr_ir, extra_ir
 
     def expr_fix_regs_for_mode(self, e):
@@ -808,6 +810,19 @@ class ir_aarch64l(ir):
                         dst = dst.replace_expr({self.pc: cur_offset})
                     src = src.replace_expr({self.pc: cur_offset})
                     irs[i] = m2_expr.ExprAff(dst, src)
+
+
+    def del_dst_zr(self, instr, instr_ir, extra_ir):
+        "Writes to zero register are discarded"
+        regs_to_fix = [WZR, XZR]
+        instr_ir = [expr for expr in instr_ir if expr.dst not in regs_to_fix]
+
+        for b in extra_ir:
+            for i, irs in eunmerate(b.irs):
+                b.irs[i] = [expr for expr in irs if expr.dst not in regs_to_fix]
+
+        return instr_ir, extra_ir
+
 
 class ir_aarch64b(ir_aarch64l):
 
