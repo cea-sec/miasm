@@ -421,7 +421,7 @@ class instruction_aarch64(instruction):
         off = e.arg - self.offset
         if int(off % 4):
             raise ValueError('strange offset! %r' % off)
-        self.args[index] = m2_expr.ExprInt32(off)
+        self.args[index] = m2_expr.ExprInt64(off)
 
 
 
@@ -929,17 +929,14 @@ class aarch64_gpreg_ext2(reg_noarg, m_arg):
         return self.parent.size.value
 
     def encode(self):
-        print "DECODE", self.expr
         if not isinstance(self.expr, m2_expr.ExprOp):
             return False
         arg0, arg1 = self.expr.args
         if not (isinstance(self.expr, m2_expr.ExprOp) and self.expr.op == 'segm'):
             return False
-        print 'OKI'
         if not arg0 in self.parent.rn.reg_info.expr:
             return False
         self.parent.rn.value = self.parent.rn.reg_info.expr.index(arg0)
-        print 'tt', arg0
         is_reg = False
         self.parent.shift.value = 0
         if isinstance(arg1, m2_expr.ExprId):
@@ -950,14 +947,12 @@ class aarch64_gpreg_ext2(reg_noarg, m_arg):
             reg = arg1.args[0]
         else:
             return False
-        print 'ISR', is_reg
         if not (reg.size in gpregs_info and
                 reg in gpregs_info[reg.size].expr):
             return False
         self.value = gpregs_info[reg.size].expr.index(reg)
         if is_reg:
             return True
-        print 'test int', arg1.args
         if not (isinstance(arg1.args[1], m2_expr.ExprInt)):
             return False
         if arg1.op not in EXT2_OP_INV:
@@ -969,7 +964,6 @@ class aarch64_gpreg_ext2(reg_noarg, m_arg):
 
         if arg1.args[1].arg != self.get_size():
             return False
-        print "RR", arg1.args[1].arg
 
         self.parent.shift.value = 1
 
@@ -1432,7 +1426,6 @@ class aarch64_b40(m_arg):
         size = self.parent.args[0].expr.size
         value = int(self.expr.arg)
         self.value = value & self.lmask
-        print 'TT', hex(value)
         if self.parent.sf.value is None:
             self.parent.sf.value = value >> self.l
             return True
@@ -1626,7 +1619,7 @@ aarch64op("mvn",  [sf, bs('01'), bs('01010'), shift, bs('1'), rm_sft, imm6, bs('
 aarch64op("eor",  [sf, bs('10'), bs('01010'), shift, bs('0'), rm_sft, imm6, rn, rd], [rd, rn, rm_sft])
 aarch64op("eon",  [sf, bs('10'), bs('01010'), shift, bs('1'), rm_sft, imm6, rn, rd], [rd, rn, rm_sft])
 aarch64op("ands", [sf, bs('11'), bs('01010'), shift, bs('0'), rm_sft, imm6, rn, rd], [rd, rn, rm_sft])
-aarch64op("tst",  [sf, bs('11'), bs('01010'), shift, bs('0'), rm_sft, imm6, rn, bs('11111')], [rn, rm_sft])
+aarch64op("tst",  [sf, bs('11'), bs('01010'), shift, bs('0'), rm_sft, imm6, rn, bs('11111')], [rn, rm_sft], alias=True)
 aarch64op("bics", [sf, bs('11'), bs('01010'), shift, bs('1'), rm_sft, imm6, rn, rd], [rd, rn, rm_sft])
 
 # move reg
@@ -1776,7 +1769,7 @@ aarch64op("movk", [sf, bs('11'), bs('100101'), hw, imm16_hw_sc, rd], [rd, imm16_
 ldstp_name = {'STP': 0b0, 'LDP': 0b1}
 bs_ldstp_name = bs_name(l=1, name=ldstp_name)
 aarch64op("ldstp", [sf, bs('0'), bs('101'), bs('0'), bs('0'), post_pre, bs('1'), bs_ldstp_name, simm7, rt2, rn64_deref_sf, rt], [rt, rt2, rn64_deref_sf])
-#aarch64op("ldstp", [sf, bs('0'), bs('101'), bs('0'), bs('0'), bs('1'), bs('0'), bs_ldstp_name, simm7, rt2, rn64_deref_sf, rt], [rt, rt2, rn64_deref_sf])
+aarch64op("ldstp", [sf, bs('0'), bs('101'), bs('0'), bs('0'), bs('1'), bs('0'), bs_ldstp_name, simm7, rt2, rn64_deref_sf, rt], [rt, rt2, rn64_deref_sf])
 
 aarch64op("ldstp", [sdsize, bs('101'), bs('1'), bs('0'), post_pre, bs('1'), bs_ldstp_name, uimm7, sd2, rn64_deref_sd, sd1], [sd1, sd2, rn64_deref_sd])
 aarch64op("ldstp", [sdsize, bs('101'), bs('1'), bs('0'), bs('1'), bs('0'), bs_ldstp_name, uimm7, sd2, rn64_deref_sd, sd1], [sd1, sd2, rn64_deref_sd])
