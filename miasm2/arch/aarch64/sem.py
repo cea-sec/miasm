@@ -818,7 +818,7 @@ class ir_aarch64l(ir):
         instr_ir = [expr for expr in instr_ir if expr.dst not in regs_to_fix]
 
         for b in extra_ir:
-            for i, irs in eunmerate(b.irs):
+            for i, irs in enumerate(b.irs):
                 b.irs[i] = [expr for expr in irs if expr.dst not in regs_to_fix]
 
         return instr_ir, extra_ir
