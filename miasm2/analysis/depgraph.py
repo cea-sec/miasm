@@ -68,9 +68,10 @@ class DependencyNode(object):
 
     def __str__(self):
         """Returns a string representation of DependencyNode"""
-        return "<%s %s %s %s M:%s>" % (self.__class__.__name__,
-                                       self.label.name, self.element,
-                                       self.line_nb, self.modifier)
+        return "<%s %s %s %s M:%s S:%s>" % (self.__class__.__name__,
+                                            self.label.name, self.element,
+                                            self.line_nb, self.modifier,
+                                            self.step)
 
     def __repr__(self):
         """Returns a string representation of DependencyNode"""
@@ -110,9 +111,8 @@ class DependencyNode(object):
     @modifier.setter
     def modifier(self, value):
         """Evaluating the current line involves a modification of tracked
-        dependencies"""
-        if not isinstance(value, bool):
-            raise ValueError("Modifier must be a boolean")
+        dependencies if @value.
+        @value: boolean"""
         self._modifier = value
 
 
@@ -139,7 +139,7 @@ class CacheWrapper(IterableUserDict):
         afterward.
         """
         if self._nostep_keys is None:
-            self._nostep_keys = set([key.nostep_repr for key in self.data])
+            self._nostep_keys = set(key.nostep_repr for key in self.data)
         return self._nostep_keys
 
     @property
@@ -153,7 +153,7 @@ class CacheWrapper(IterableUserDict):
             self._nostep_cache = {}
             for (node, values) in self.data.iteritems():
                 self._nostep_cache.setdefault(node.nostep_repr, set()).update(
-                    set([val.nostep_repr for val in values]))
+                    set(val.nostep_repr for val in values))
         return self._nostep_cache
 
 
@@ -245,8 +245,12 @@ class DependencyDict(object):
 
     def _get_modifiers_in_cache(self, depnode, force=False):
         """Recursively find nodes in the path of @depnode which are modifiers.
-        Update the internal cache
-        If @depnode is already managed (ie. in @depnode_queued), abort"""
+        Update the internal cache If @depnode is already managed (ie. in
+        @depnode_queued), abort
+        @depnode: DependencyNode
+        @force (optionnal): boolean, compute modifiers even if @depnode is a
+        modifier node.
+        """
 
         # Base case
         if depnode not in self._cache:
@@ -266,7 +270,7 @@ class DependencyDict(object):
             parallels.append(self._get_modifiers_in_cache(depnode))
 
         if parallels:
-            for parallel in itertools.product(*[p for p in parallels if p]):
+            for parallel in itertools.product(*(p for p in parallels if p)):
                 out.update(parallel)
 
         return out
@@ -366,6 +370,8 @@ class DependencyDict(object):
         """
         Remove unmodifier node creating dependency loops over
         pending elements in cache.
+        @implicit: boolean
+        @irdst: ExprId instance of IRDst register
         """
 
         previous_dict = None
@@ -388,12 +394,19 @@ class DependencyDict(object):
 
             to_remove.update(self._non_modifier_in_loop(depnode))
 
-            # Remove unused elements
+            # Replace unused keys by previous ones
             for key in to_remove:
                 if depnode.nostep_repr == key.nostep_repr:
                     self._cache[depnode] = self._cache.get(key, set()).copy()
                     self.pending.discard(key)
                     self.pending.add(depnode)
+
+                    # Replace occurences of key to remove
+                    for dependencies in self._cache.itervalues():
+                        if key in dependencies:
+                            dependencies.remove(key)
+                            dependencies.add(depnode)
+
                 if self._cache.has_key(key):
                     del self._cache[key]
 
@@ -466,8 +479,8 @@ class DependencyResult(object):
     @property
     def unresolved(self):
         """Set of nodes whose dependencies weren't found"""
-        return set([node.nostep_repr for node in self._depdict.pending
-                    if node.element != self._ira.IRDst])
+        return set(node.nostep_repr for node in self._depdict.pending
+                    if node.element != self._ira.IRDst)
 
     @property
     def relevant_nodes(self):
@@ -484,7 +497,7 @@ class DependencyResult(object):
         The history order is preserved.
         """
         # Get used labels
-        used_labels = set([depnode.label for depnode in self.relevant_nodes])
+        used_labels = set(depnode.label for depnode in self.relevant_nodes)
 
         # Keep history order
         output = []
@@ -613,16 +626,22 @@ class FollowExpr(object):
         self.element = element
 
     @staticmethod
-    def to_depnodes(follow_exprs, label, line, modifier, counter):
+    def to_depnodes(follow_exprs, label, line, modifier, step):
         """Build a set of FollowExpr(DependencyNode) from the @follow_exprs set
-        of FollowExpr"""
+        of FollowExpr
+        @follow_exprs: set of FollowExpr
+        @label: asm_label instance
+        @line: integer
+        @modifier: boolean
+        @step: integer
+        """
         dependencies = set()
         for follow_expr in follow_exprs:
             dependencies.add(FollowExpr(follow_expr.follow,
                                         DependencyNode(label,
                                                        follow_expr.element,
                                                        line,
-                                                       next(counter),
+                                                       step,
                                                        modifier=modifier)))
         return dependencies
 
@@ -662,6 +681,7 @@ class DependencyGraph(object):
         self._ira = ira
         self._implicit = implicit
         self._step_counter = itertools.count()
+        self._current_step = next(self._step_counter)
 
         # The IRA graph must be computed
         assert hasattr(self._ira, 'g')
@@ -682,6 +702,16 @@ class DependencyGraph(object):
     def step_counter(self):
         "Iteration counter"
         return self._step_counter
+
+    @property
+    def current_step(self):
+        "Current value of iteration counter"
+        return self._current_step
+
+    def inc_step(self):
+        "Increment and return the current step"
+        self._current_step = next(self._step_counter)
+        return self._current_step
 
     @staticmethod
     def _follow_simp_expr(exprs):
@@ -788,8 +818,7 @@ class DependencyGraph(object):
             # Build output
             output = FollowExpr.to_depnodes(read, depnode.label,
                                             depnode.line_nb - 1, modifier,
-                                            self.step_counter)
-
+                                            self.current_step)
         return output
 
     def _resolve_intrablock_dep(self, depdict):
@@ -841,7 +870,7 @@ class DependencyGraph(object):
         """Create a DependencyDict from @depnodes, and propagate
         DependencyDicts through all blocs
         """
-        # Create an DependencyDict which will only contain our depnodes
+        # Create a DependencyDict which will only contain our depnodes
         current_depdict = DependencyDict(list(depnodes)[0].label, [])
         current_depdict.pending.update(depnodes)
 
@@ -854,6 +883,7 @@ class DependencyGraph(object):
 
             # Update the dependencydict until fixed point is reached
             self._resolve_intrablock_dep(depdict)
+            self.inc_step()
 
             # Clean irrelevant path
             depdict.filter_unmodifier_loops(self._implicit, self._ira.IRDst)
@@ -883,7 +913,7 @@ class DependencyGraph(object):
                     # Implicit dependencies: IRDst will be link with heads
                     implicit_depnode = DependencyNode(label, self._ira.IRDst,
                                                       irb_len,
-                                                      next(self.step_counter),
+                                                      self.current_step,
                                                       modifier=False)
 
                 # Create links between DependencyDict
@@ -891,7 +921,7 @@ class DependencyGraph(object):
                     # Follow the head element in the parent
                     new_depnode = DependencyNode(label, depnode_head.element,
                                                  irb_len,
-                                                 next(self.step_counter))
+                                                 self.current_step)
                     # The new node has to be analysed
                     new_depdict.cache[depnode_head] = set([new_depnode])
                     new_depdict.pending.add(new_depnode)
@@ -924,7 +954,7 @@ class DependencyGraph(object):
         input_depnodes = set()
         for element in elements:
             input_depnodes.add(DependencyNode(label, element, line_nb,
-                                              next(self.step_counter)))
+                                              self.current_step))
 
         # Compute final depdicts
         depdicts = self._compute_interblock_dep(input_depnodes, heads)
@@ -954,7 +984,7 @@ class DependencyGraph(object):
         @heads: set of asm_label instances
         """
         lead = list(depnodes)[0]
-        elements = set([depnode.element for depnode in depnodes])
+        elements = set(depnode.element for depnode in depnodes)
         return self.get(lead.label, elements, lead.line_nb, heads)
 
     def get_from_end(self, label, elements, heads):
