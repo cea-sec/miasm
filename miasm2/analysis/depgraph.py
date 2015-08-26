@@ -25,6 +25,8 @@ class DependencyNode(object):
     line.
     """
 
+    __slots__ = ["_label", "_element", "_line_nb", "_modifier",
+                 "_step", "_nostep_repr", "_hash"]
     def __init__(self, label, element, line_nb, step, modifier=False):
         """Create a dependency node with:
         @label: asm_label instance
@@ -160,6 +162,7 @@ class CacheWrapper(IterableUserDict):
 class DependencyDict(object):
 
     """Internal structure for the DependencyGraph algorithm"""
+    __slots__ = ["_label", "_history", "_pending", "_cache"]
 
     def __init__(self, label, history):
         """Create a DependencyDict
@@ -559,6 +562,8 @@ class DependencyResultImplicit(DependencyResult):
     """Stand for a result of a DependencyGraph with implicit option
 
     Provide path constraints using the z3 solver"""
+    __slots__ = ["_ira", "_depdict", "_input_depnodes", "_graph",
+                 "_has_loop", "_solver"]
 
     # Z3 Solver instance
     _solver = None
@@ -620,6 +625,7 @@ class DependencyResultImplicit(DependencyResult):
 class FollowExpr(object):
 
     "Stand for an element (expression, depnode, ...) to follow or not"
+    __slots__ = ["follow", "element"]
 
     def __init__(self, follow, element):
         self.follow = follow
