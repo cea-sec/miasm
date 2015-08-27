@@ -25,6 +25,8 @@ class DependencyNode(object):
     line.
     """
 
+    __slots__ = ["_label", "_element", "_line_nb", "_modifier",
+                 "_step", "_nostep_repr", "_hash"]
     def __init__(self, label, element, line_nb, step, modifier=False):
         """Create a dependency node with:
         @label: asm_label instance
@@ -160,6 +162,7 @@ class CacheWrapper(IterableUserDict):
 class DependencyDict(object):
 
     """Internal structure for the DependencyGraph algorithm"""
+    __slots__ = ["_label", "_history", "_pending", "_cache"]
 
     def __init__(self, label, history):
         """Create a DependencyDict
@@ -243,47 +246,59 @@ class DependencyDict(object):
         resolution"""
         return self._pending
 
-    def _get_modifiers_in_cache(self, depnode, force=False):
-        """Recursively find nodes in the path of @depnode which are modifiers.
-        Update the internal cache If @depnode is already managed (ie. in
-        @depnode_queued), abort
-        @depnode: DependencyNode
-        @force (optionnal): boolean, compute modifiers even if @depnode is a
-        modifier node.
-        """
+    def _get_modifiers_in_cache(self, nodes_heads):
+        """Find modifier nodes in cache starting from @nodes_heads.
+        Returns new cache"""
+        # 'worklist_depnode' order is needed (depth first)
+        worklist_depnodes = list(nodes_heads)
+        # Temporary cache
+        cache = {}
+        # Partially resolved 'cache' elements
+        worklist = []
 
-        # Base case
-        if depnode not in self._cache:
-            # Constant does not have any dependencies
-            return [depnode] if depnode.modifier else []
+        # Build worklist and cache for non modifiers
+        while worklist_depnodes:
+            depnode = worklist_depnodes.pop()
+            # Resolve node dependencies
+            if depnode in cache:
+                # Depnode previously resolved
+                continue
 
-        if depnode.modifier and not force:
-            return [depnode]
+            if depnode not in self._cache:
+                # Final node
+                if not depnode.modifier:
+                    cache[depnode] = []
+                continue
 
-        # Recursion
-        dependencies = self._cache[depnode]
+            # Propagate to son
+            dependencies = self._cache[depnode]
+            for son in dependencies:
+                worklist_depnodes.append(son)
+            # Save partially resolved dependency
+            worklist.append((depnode, dependencies))
 
-        out = set()
-        # Launch on each depnodes
-        parallels = []
-        for depnode in dependencies:
-            parallels.append(self._get_modifiers_in_cache(depnode))
-
-        if parallels:
-            for parallel in itertools.product(*(p for p in parallels if p)):
+        # Convert worklist to cache
+        while worklist:
+            depnode, dependencies = worklist.pop()
+            parallels = []
+            for node in dependencies:
+                if node.modifier:
+                    parallels.append([node])
+                else:
+                    parallels.append(cache[node])
+            out = set()
+            for parallel in itertools.product(*[p for p in parallels if p]):
                 out.update(parallel)
+            cache[depnode] = out
 
-        return out
+        return cache
 
-    def clean_modifiers_in_cache(self):
+    def clean_modifiers_in_cache(self, node_heads):
         """Remove intermediary states (non modifier depnodes) in the internal
         cache values"""
 
-        cache_out = CacheWrapper()
-        for depnode in self._cache:
-            cache_out[depnode] = self._get_modifiers_in_cache(depnode,
-                                                              force=True)
-        self._cache = cache_out
+        self._cache = CacheWrapper(self._get_modifiers_in_cache(node_heads))
+
 
     def _build_depgraph(self, depnode):
         """Recursively build the final list of DiGraph, and clean up unmodifier
@@ -559,6 +574,8 @@ class DependencyResultImplicit(DependencyResult):
     """Stand for a result of a DependencyGraph with implicit option
 
     Provide path constraints using the z3 solver"""
+    __slots__ = ["_ira", "_depdict", "_input_depnodes", "_graph",
+                 "_has_loop", "_solver"]
 
     # Z3 Solver instance
     _solver = None
@@ -620,6 +637,7 @@ class DependencyResultImplicit(DependencyResult):
 class FollowExpr(object):
 
     "Stand for an element (expression, depnode, ...) to follow or not"
+    __slots__ = ["follow", "element"]
 
     def __init__(self, follow, element):
         self.follow = follow
@@ -966,7 +984,7 @@ class DependencyGraph(object):
 
         for final_depdict in depdicts:
             # Keep only relevant nodes
-            final_depdict.clean_modifiers_in_cache()
+            final_depdict.clean_modifiers_in_cache(input_depnodes)
             final_depdict.filter_used_nodes(input_depnodes)
 
             # Remove duplicate solutions
