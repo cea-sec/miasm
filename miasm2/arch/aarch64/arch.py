@@ -179,9 +179,9 @@ all_extend_t = literal_list(extend_lst).setParseAction(op_ext_reg)
 all_extend2_t = literal_list(extend2_lst).setParseAction(op_ext_reg)
 
 
-gpreg32_extend = (gpregs32_info.parser + Optional(
+gpregz32_extend = (gpregsz32_info.parser + Optional(
     all_extend_t + int_or_expr32)).setParseAction(extend2expr)
-gpreg64_extend = (gpregs64_info.parser + Optional(
+gpregz64_extend = (gpregsz64_info.parser + Optional(
     all_extend_t + int_or_expr64)).setParseAction(extend2expr)
 
 
@@ -198,7 +198,7 @@ shiftimm_off_sc = shiftimm_imm_sc | int_or_expr
 
 
 shift_off = (shift32_off | shift64_off)
-reg_ext_off = (gpreg32_extend | gpreg64_extend)
+reg_ext_off = (gpregz32_extend | gpregz64_extend)
 
 gpregs_32_64 = (gpregs32_info.parser | gpregs64_info.parser)
 gpregsz_32_64 = (gpregsz32_info.parser | gpregsz64_info.parser | int_or_expr)
@@ -893,9 +893,9 @@ class aarch64_gpreg_ext(reg_noarg, m_arg):
             return False
         reg, amount = self.expr.args
 
-        if not reg in gpregs_info[self.expr.size].expr:
+        if not reg in gpregsz_info[self.expr.size].expr:
             return False
-        self.value = gpregs_info[self.expr.size].expr.index(reg)
+        self.value = gpregsz_info[self.expr.size].expr.index(reg)
         option = extend_lst.index(self.expr.op)
         if self.expr.size != OPTION2SIZE[option]:
             if not test_set_sf(self.parent, self.expr.size):
@@ -909,7 +909,7 @@ class aarch64_gpreg_ext(reg_noarg, m_arg):
             size = 64 if self.parent.sf.value else 32
         else:
             size = OPTION2SIZE[self.parent.option.value]
-        reg = gpregs_info[size].expr[v]
+        reg = gpregsz_info[size].expr[v]
 
         self.expr = m2_expr.ExprOp(extend_lst[self.parent.option.value],
                            reg, m2_expr.ExprInt_from(reg, self.parent.imm.value))
@@ -974,9 +974,9 @@ class aarch64_gpreg_ext2(reg_noarg, m_arg):
         if opt in [0, 1, 4, 5]:
             return False
         elif opt in [2, 6]:
-            reg_expr = gpregs32_info.expr
+            reg_expr = gpregsz32_info.expr
         elif opt in [3, 7]:
-            reg_expr = gpregs64_info.expr
+            reg_expr = gpregsz64_info.expr
         arg = reg_expr[v]
 
         if opt in EXT2_OP:
@@ -1445,9 +1445,12 @@ rs = bs(l=5, cls=(aarch64_gpreg,), fname="rs")
 rm = bs(l=5, cls=(aarch64_gpreg,), fname="rm")
 rd = bs(l=5, cls=(aarch64_gpreg,), fname="rd")
 ra = bs(l=5, cls=(aarch64_gpregz,), fname="ra")
-rt = bs(l=5, cls=(aarch64_gpreg,), fname="rt")
-rt2 = bs(l=5, cls=(aarch64_gpreg,), fname="rt2")
+rt = bs(l=5, cls=(aarch64_gpregz,), fname="rt")
+rt2 = bs(l=5, cls=(aarch64_gpregz,), fname="rt2")
 rn0 = bs(l=5, cls=(aarch64_gpreg0,), fname="rn")
+
+rmz = bs(l=5, cls=(aarch64_gpregz,), fname="rm")
+rnz = bs(l=5, cls=(aarch64_gpregz,), fname="rn")
 
 
 rn_n1 = bs(l=5, cls=(aarch64_gpreg_n1,), fname="rn")
@@ -1623,7 +1626,7 @@ aarch64op("tst",  [sf, bs('11'), bs('01010'), shift, bs('0'), rm_sft, imm6, rn, 
 aarch64op("bics", [sf, bs('11'), bs('01010'), shift, bs('1'), rm_sft, imm6, rn, rd], [rd, rn, rm_sft])
 
 # move reg
-aarch64op("mov",  [sf, bs('01'), bs('01010'), bs('00'), bs('0'), rm, bs('000000'), bs('11111'), rd], [rd, rm], alias=True)
+aarch64op("mov",  [sf, bs('01'), bs('01010'), bs('00'), bs('0'), rmz, bs('000000'), bs('11111'), rd], [rd, rmz], alias=True)
 
 
 
@@ -1852,10 +1855,10 @@ aarch64op("ucvtf", [sf, bs('0'), bs('0'), bs('11110'), bs('0'), sdsize1, bs('1')
 
 
 # conditional select p.158
-aarch64op("csel",  [sf, bs('0'), bs('0'), bs('11010100'), rm, cond_arg, bs('00'), rn, rd], [rd, rn, rm, cond_arg])
-aarch64op("csinc", [sf, bs('0'), bs('0'), bs('11010100'), rm, cond_arg, bs('01'), rn, rd], [rd, rn, rm, cond_arg])
-aarch64op("csinv", [sf, bs('1'), bs('0'), bs('11010100'), rm, cond_arg, bs('00'), rn, rd], [rd, rn, rm, cond_arg])
-aarch64op("csneg", [sf, bs('1'), bs('0'), bs('11010100'), rm, cond_arg, bs('01'), rn, rd], [rd, rn, rm, cond_arg])
+aarch64op("csel",  [sf, bs('0'), bs('0'), bs('11010100'), rmz, cond_arg, bs('00'), rnz, rd], [rd, rnz, rmz, cond_arg])
+aarch64op("csinc", [sf, bs('0'), bs('0'), bs('11010100'), rmz, cond_arg, bs('01'), rnz, rd], [rd, rnz, rmz, cond_arg])
+aarch64op("csinv", [sf, bs('1'), bs('0'), bs('11010100'), rmz, cond_arg, bs('00'), rnz, rd], [rd, rnz, rmz, cond_arg])
+aarch64op("csneg", [sf, bs('1'), bs('0'), bs('11010100'), rmz, cond_arg, bs('01'), rnz, rd], [rd, rnz, rmz, cond_arg])
 aarch64op("cset",  [sf, bs('0'), bs('0'), bs('11010100'), bs('11111'), cond_inv_arg, bs('01'), bs('11111'), rd], [rd, cond_inv_arg], alias=True)
 aarch64op("csetm", [sf, bs('1'), bs('0'), bs('11010100'), bs('11111'), cond_inv_arg, bs('00'), bs('11111'), rd], [rd, cond_inv_arg], alias=True)
 
