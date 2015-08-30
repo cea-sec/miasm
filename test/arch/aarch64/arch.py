@@ -8,13 +8,14 @@ if filename and os.path.isfile(filename):
 
 
 reg_tests_aarch64 = [
+    ("XXXXXXXX    MOV        W1, WZR",
+     "E1031F2A"),
     ("XXXXXXXX    TST        W5, W3",
      "BF00036A"),
     ("XXXXXXXX    LDP        X19, X20, [SP, 0x10]",
      "F35341A9"),
     ("XXXXXXXX    STP        X24, X23, [SP, 0x10]",
      "F85F01A9"),
-
 
     ("004024DC    MVN        X1, X0",
      "E10320AA"),
@@ -1757,6 +1758,28 @@ reg_tests_aarch64 = [
 
     ("00484A08    BRK        0x3E8",
      "007D20D4"),
+
+    ("XXXXXXXX    LDR        WZR, [X20]",
+     "9F0240B9"),
+    ("XXXXXXXX    MADD       W0, W0, W1, WZR",
+     "007C011B"),
+    ("XXXXXXXX    STP        W20, WZR, [X19, 0x8]",
+     "747E0129"),
+    ("XXXXXXXX    STP        WZR, W20, [X19, 0x8]",
+     "7F520129"),
+    ("XXXXXXXX    STP        WZR, WZR, [X22, 0x2C]",
+     "DFFE0529"),
+    ("XXXXXXXX    STR        WZR, [X0, 0x14]",
+     "1F1400B9"),
+    ("XXXXXXXX    STRB       WZR, [X0, 0xFFF]",
+     "1FFC3F39"),
+
+    ("XXXXXXXX    CSEL       X22, X4, XZR, CS",
+     "96209F9A"),
+    ("XXXXXXXX    CSEL       X0, XZR, X0, EQ",
+     "E003809A"),
+    ("XXXXXXXX    ADD        X0, SP, XZR UXTX 0x0",
+     "E0633F8B"),
 ]
 
 
