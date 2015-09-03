@@ -430,3 +430,76 @@ shape = "box"
             for predecessor in self.predecessors_iter(node):
                 todo.append(predecessor)
         return done
+
+    def compute_strongly_connected_components(self):
+        """
+        Partitions the graph into strongly connected components.
+
+        Iterative implementation of Gabow's path-based SCC algorithm.
+        Source: Gabow, Harold N.
+        "Path-based depth-first search for strong and biconnected components."
+        Information Processing Letters 74.3 (2000), pp. 109--110
+
+        The iterative implementation is inspired by Mark Dickinson's
+        code:
+        http://code.activestate.com/recipes/
+        578507-strongly-connected-components-of-a-directed-graph/
+        :return: yield a strongly connected component
+        """
+        stack = []
+        boundaries = []
+        counter = len(self.nodes())
+
+        # init index with 0
+        index = {v: 0 for v in self.nodes()}
+
+        for node in self.nodes():
+            # next node if node was already visited
+            if index[node]:
+                continue
+
+            todo = [(0, node)]
+            done = set()
+
+            while todo:
+                val, node = todo.pop()
+
+                if node in done:
+                    continue
+
+                # node is unvisited
+                if val == 0:
+                    stack.append(node)
+                    index[node] = len(stack)
+                    boundaries.append(index[node])
+
+                    todo.append((-2, node))
+                    # follow successors
+                    for successor in self.successors_iter(node):
+                        todo.append((-1, successor))
+
+                # iterative handling of recursion algorithm
+                elif val == -1:
+                    # visit unvisited successor
+                    if index[node] == 0:
+                        todo.append((0, node))
+                    else:
+                        # contract cycle if necessary
+                        while index[node] < boundaries[-1]:
+                            boundaries.pop()
+
+                # merge strongly connected component
+                else:
+                    if index[node] == boundaries[-1]:
+                        boundaries.pop()
+                        counter += 1
+                        scc = set()
+
+                        while index[node] <= len(stack):
+                            popped = stack.pop()
+                            index[popped] = counter
+                            scc.add(popped)
+
+                            done.add(node)
+
+                        yield scc
