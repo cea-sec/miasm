@@ -164,3 +164,31 @@ assert(frontier == {7: set([9]),
 frontier = g2.compute_dominance_frontier(5)
 assert(frontier == {7: set([9]),
                     8: set([9])})
+
+# Regression test with natural loops and irreducible loops
+g3 = DiGraph()
+g3.add_edge(1, 2)
+g3.add_edge(1, 3)
+g3.add_edge(2, 4)
+g3.add_edge(2, 5)
+g3.add_edge(3, 7)
+g3.add_edge(3, 8)
+g3.add_edge(4, 9)
+g3.add_edge(5, 9)
+g3.add_edge(7, 6)
+g3.add_edge(8, 6)
+g3.add_edge(9, 6)
+g3.add_edge(9, 2)
+g3.add_edge(9, 1)
+g3.add_edge(7, 8)
+g3.add_edge(8, 7)
+
+loops = set([(backedge, frozenset(body)) for backedge, body in g3.compute_natural_loops(1)])
+assert(loops == {((1, 9), frozenset({1, 2, 4, 5, 9})),
+                 ((2, 9), frozenset({2, 4, 5, 9}))})
+
+sccs = set([frozenset(scc) for scc in g3.compute_strongly_connected_components()])
+assert(sccs == {frozenset({6}),
+                frozenset({7, 8}),
+                frozenset({3}),
+                frozenset({1, 2, 4, 5, 9})})
