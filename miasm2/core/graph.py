@@ -378,3 +378,55 @@ shape = "box"
     def walk_depth_first_backward(self, head):
         """Performs a depth first search on the reversed graph from @head"""
         return self._walk_generic_first(head, -1, self.predecessors_iter)
+
+    def compute_natural_loops(self, head):
+        """
+        Computes all natural loops in the graph.
+
+        Source: Aho, Alfred V., Lam, Monica S., Sethi, R. and Jeffrey Ullman.
+        "Compilers: Principles, Techniques, & Tools, Second Edition"
+        Pearson/Addison Wesley (2007), Chapter 9.6.6
+        :param head: head of the graph
+        :return: yield a tuple of the form (back edge, loop body)
+        """
+        for a, b in self.compute_back_edges(head):
+            body = self._compute_natural_loop_body(b, a)
+            yield ((b, a), body)
+
+    def compute_back_edges(self, head):
+        """
+        Computes all back edges from a node to a
+        dominator in the graph.
+        :param head: head of graph
+        :return: yield a back edge
+        """
+        dominators = self.compute_dominators(head)
+
+        # traverse graph
+        for node in self.walk_depth_first_forward(head):
+            for successor in self.successors_iter(node):
+                # check for a back edge to a dominator
+                if successor in dominators[node]:
+                    edge = (node, successor)
+                    yield edge
+
+    def _compute_natural_loop_body(self, head, leaf):
+        """
+        Computes the body of a natural loop by a depth-first
+        search on the reversed control flow graph.
+        :param head: leaf of the loop
+        :param leaf: header of the loop
+        :return: set containing loop body
+        """
+        todo = [leaf]
+        done = {head}
+
+        while todo:
+            node = todo.pop()
+            if node in done:
+                continue
+            done.add(node)
+
+            for predecessor in self.predecessors_iter(node):
+                todo.append(predecessor)
+        return done
