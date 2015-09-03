@@ -339,3 +339,42 @@ shape = "box"
                         frontier[runner].add(node)
                         runner = idoms[runner]
         return frontier
+
+    def _walk_generic_first(self, head, flag, succ_cb):
+        """
+        Generic algorithm to compute breadth or depth first search
+        for a node.
+        @head: the head of the graph
+        @flag: denotes if @todo is used as queue or stack
+        @succ_cb: returns a node's predecessors/successors
+        :return: next node
+        """
+        todo = [head]
+        done = set()
+
+        while todo:
+            node = todo.pop(flag)
+            if node in done:
+                continue
+            done.add(node)
+
+            for succ in succ_cb(node):
+                todo.append(succ)
+
+            yield node
+
+    def walk_breadth_first_forward(self, head):
+        """Performs a breath first search on the graph from @head"""
+        return self._walk_generic_first(head, 0, self.successors_iter)
+
+    def walk_depth_first_forward(self, head):
+        """Performs a depth first search on the graph from @head"""
+        return self._walk_generic_first(head, -1, self.successors_iter)
+
+    def walk_breadth_first_backward(self, head):
+        """Performs a breath first search on the reversed graph from @head"""
+        return self._walk_generic_first(head, 0, self.predecessors_iter)
+
+    def walk_depth_first_backward(self, head):
+        """Performs a depth first search on the reversed graph from @head"""
+        return self._walk_generic_first(head, -1, self.predecessors_iter)
