@@ -364,7 +364,7 @@ shape = "box"
             yield node
 
     def walk_breadth_first_forward(self, head):
-        """Performs a breath first search on the graph from @head"""
+        """Performs a breadth first search on the graph from @head"""
         return self._walk_generic_first(head, 0, self.successors_iter)
 
     def walk_depth_first_forward(self, head):
@@ -372,7 +372,7 @@ shape = "box"
         return self._walk_generic_first(head, -1, self.successors_iter)
 
     def walk_breadth_first_backward(self, head):
-        """Performs a breath first search on the reversed graph from @head"""
+        """Performs a breadth first search on the reversed graph from @head"""
         return self._walk_generic_first(head, 0, self.predecessors_iter)
 
     def walk_depth_first_backward(self, head):
