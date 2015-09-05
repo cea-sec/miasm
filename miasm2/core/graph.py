@@ -458,7 +458,7 @@ shape = "box"
             if index[node]:
                 continue
 
-            todo = [(0, node)]
+            todo = [('visit', node)]
             done = set()
 
             while todo:
@@ -468,21 +468,21 @@ shape = "box"
                     continue
 
                 # node is unvisited
-                if val == 0:
+                if val == 'visit':
                     stack.append(node)
                     index[node] = len(stack)
                     boundaries.append(index[node])
 
-                    todo.append((-2, node))
+                    todo.append(('merge', node))
                     # follow successors
                     for successor in self.successors_iter(node):
-                        todo.append((-1, successor))
+                        todo.append(('handle_recursion', successor))
 
                 # iterative handling of recursion algorithm
-                elif val == -1:
+                elif val == 'handle_recursion':
                     # visit unvisited successor
                     if index[node] == 0:
-                        todo.append((0, node))
+                        todo.append(('visit', node))
                     else:
                         # contract cycle if necessary
                         while index[node] < boundaries[-1]:
