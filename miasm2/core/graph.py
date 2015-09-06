@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 
 class DiGraph(object):
     """Implementation of directed graph"""
@@ -453,53 +453,57 @@ shape = "box"
         # init index with 0
         index = {v: 0 for v in self.nodes()}
 
+        # state machine for worklist algorithm
+        VISIT, HANDLE_RECURSION, MERGE = 0, 1, 2
+        NodeState = namedtuple('NodeState', ['state', 'node'])
+
         for node in self.nodes():
             # next node if node was already visited
             if index[node]:
                 continue
 
-            todo = [('visit', node)]
+            todo = [NodeState(VISIT, node)]
             done = set()
 
             while todo:
-                val, node = todo.pop()
+                current = todo.pop()
 
-                if node in done:
+                if current.node in done:
                     continue
 
                 # node is unvisited
-                if val == 'visit':
-                    stack.append(node)
-                    index[node] = len(stack)
-                    boundaries.append(index[node])
+                if current.state == VISIT:
+                    stack.append(current.node)
+                    index[current.node] = len(stack)
+                    boundaries.append(index[current.node])
 
-                    todo.append(('merge', node))
+                    todo.append(NodeState(MERGE, current.node))
                     # follow successors
-                    for successor in self.successors_iter(node):
-                        todo.append(('handle_recursion', successor))
+                    for successor in self.successors_iter(current.node):
+                        todo.append(NodeState(HANDLE_RECURSION, successor))
 
                 # iterative handling of recursion algorithm
-                elif val == 'handle_recursion':
+                elif current.state == HANDLE_RECURSION:
                     # visit unvisited successor
-                    if index[node] == 0:
-                        todo.append(('visit', node))
+                    if index[current.node] == 0:
+                        todo.append(NodeState(VISIT, current.node))
                     else:
                         # contract cycle if necessary
-                        while index[node] < boundaries[-1]:
+                        while index[current.node] < boundaries[-1]:
                             boundaries.pop()
 
                 # merge strongly connected component
                 else:
-                    if index[node] == boundaries[-1]:
+                    if index[current.node] == boundaries[-1]:
                         boundaries.pop()
                         counter += 1
                         scc = set()
 
-                        while index[node] <= len(stack):
+                        while index[current.node] <= len(stack):
                             popped = stack.pop()
                             index[popped] = counter
                             scc.add(popped)
 
-                            done.add(node)
+                            done.add(current.node)
 
                         yield scc
