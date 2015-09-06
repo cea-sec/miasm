@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 
 class DiGraph(object):
     """Implementation of directed graph"""
@@ -339,3 +339,171 @@ shape = "box"
                         frontier[runner].add(node)
                         runner = idoms[runner]
         return frontier
+
+    def _walk_generic_first(self, head, flag, succ_cb):
+        """
+        Generic algorithm to compute breadth or depth first search
+        for a node.
+        @head: the head of the graph
+        @flag: denotes if @todo is used as queue or stack
+        @succ_cb: returns a node's predecessors/successors
+        :return: next node
+        """
+        todo = [head]
+        done = set()
+
+        while todo:
+            node = todo.pop(flag)
+            if node in done:
+                continue
+            done.add(node)
+
+            for succ in succ_cb(node):
+                todo.append(succ)
+
+            yield node
+
+    def walk_breadth_first_forward(self, head):
+        """Performs a breadth first search on the graph from @head"""
+        return self._walk_generic_first(head, 0, self.successors_iter)
+
+    def walk_depth_first_forward(self, head):
+        """Performs a depth first search on the graph from @head"""
+        return self._walk_generic_first(head, -1, self.successors_iter)
+
+    def walk_breadth_first_backward(self, head):
+        """Performs a breadth first search on the reversed graph from @head"""
+        return self._walk_generic_first(head, 0, self.predecessors_iter)
+
+    def walk_depth_first_backward(self, head):
+        """Performs a depth first search on the reversed graph from @head"""
+        return self._walk_generic_first(head, -1, self.predecessors_iter)
+
+    def compute_natural_loops(self, head):
+        """
+        Computes all natural loops in the graph.
+
+        Source: Aho, Alfred V., Lam, Monica S., Sethi, R. and Jeffrey Ullman.
+        "Compilers: Principles, Techniques, & Tools, Second Edition"
+        Pearson/Addison Wesley (2007), Chapter 9.6.6
+        :param head: head of the graph
+        :return: yield a tuple of the form (back edge, loop body)
+        """
+        for a, b in self.compute_back_edges(head):
+            body = self._compute_natural_loop_body(b, a)
+            yield ((b, a), body)
+
+    def compute_back_edges(self, head):
+        """
+        Computes all back edges from a node to a
+        dominator in the graph.
+        :param head: head of graph
+        :return: yield a back edge
+        """
+        dominators = self.compute_dominators(head)
+
+        # traverse graph
+        for node in self.walk_depth_first_forward(head):
+            for successor in self.successors_iter(node):
+                # check for a back edge to a dominator
+                if successor in dominators[node]:
+                    edge = (node, successor)
+                    yield edge
+
+    def _compute_natural_loop_body(self, head, leaf):
+        """
+        Computes the body of a natural loop by a depth-first
+        search on the reversed control flow graph.
+        :param head: leaf of the loop
+        :param leaf: header of the loop
+        :return: set containing loop body
+        """
+        todo = [leaf]
+        done = {head}
+
+        while todo:
+            node = todo.pop()
+            if node in done:
+                continue
+            done.add(node)
+
+            for predecessor in self.predecessors_iter(node):
+                todo.append(predecessor)
+        return done
+
+    def compute_strongly_connected_components(self):
+        """
+        Partitions the graph into strongly connected components.
+
+        Iterative implementation of Gabow's path-based SCC algorithm.
+        Source: Gabow, Harold N.
+        "Path-based depth-first search for strong and biconnected components."
+        Information Processing Letters 74.3 (2000), pp. 109--110
+
+        The iterative implementation is inspired by Mark Dickinson's
+        code:
+        http://code.activestate.com/recipes/
+        578507-strongly-connected-components-of-a-directed-graph/
+        :return: yield a strongly connected component
+        """
+        stack = []
+        boundaries = []
+        counter = len(self.nodes())
+
+        # init index with 0
+        index = {v: 0 for v in self.nodes()}
+
+        # state machine for worklist algorithm
+        VISIT, HANDLE_RECURSION, MERGE = 0, 1, 2
+        NodeState = namedtuple('NodeState', ['state', 'node'])
+
+        for node in self.nodes():
+            # next node if node was already visited
+            if index[node]:
+                continue
+
+            todo = [NodeState(VISIT, node)]
+            done = set()
+
+            while todo:
+                current = todo.pop()
+
+                if current.node in done:
+                    continue
+
+                # node is unvisited
+                if current.state == VISIT:
+                    stack.append(current.node)
+                    index[current.node] = len(stack)
+                    boundaries.append(index[current.node])
+
+                    todo.append(NodeState(MERGE, current.node))
+                    # follow successors
+                    for successor in self.successors_iter(current.node):
+                        todo.append(NodeState(HANDLE_RECURSION, successor))
+
+                # iterative handling of recursion algorithm
+                elif current.state == HANDLE_RECURSION:
+                    # visit unvisited successor
+                    if index[current.node] == 0:
+                        todo.append(NodeState(VISIT, current.node))
+                    else:
+                        # contract cycle if necessary
+                        while index[current.node] < boundaries[-1]:
+                            boundaries.pop()
+
+                # merge strongly connected component
+                else:
+                    if index[current.node] == boundaries[-1]:
+                        boundaries.pop()
+                        counter += 1
+                        scc = set()
+
+                        while index[current.node] <= len(stack):
+                            popped = stack.pop()
+                            index[popped] = counter
+                            scc.add(popped)
+
+                            done.add(current.node)
+
+                        yield scc
