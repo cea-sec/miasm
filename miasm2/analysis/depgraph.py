@@ -712,6 +712,7 @@ class DependencyGraph(object):
         self._cb_follow.append(lambda exprs: self._follow_exprs(exprs,
                                                                 follow_mem,
                                                                 follow_call))
+        self._cb_follow.append(self._follow_nolabel)
 
     @property
     def step_counter(self):
@@ -784,7 +785,7 @@ class DependencyGraph(object):
         return follow, nofollow
 
     @staticmethod
-    def _follow_label(exprs):
+    def _follow_nolabel(exprs):
         """Do not follow labels"""
         follow = set()
         for expr in exprs:
