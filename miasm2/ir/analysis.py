@@ -167,7 +167,7 @@ class ira:
             # Function call, memory write or IRDst affectation
             for k, ir in enumerate(block.irs):
                 for i_cur in ir:
-                    if i_cur.is_function_call():
+                    if i_cur.src.is_function_call():
                         # /!\ never remove ir calls
                         useful.add((block.label, k, i_cur))
                     if isinstance(i_cur.dst, ExprMem):

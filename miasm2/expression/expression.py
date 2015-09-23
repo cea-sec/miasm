@@ -517,9 +517,6 @@ class ExprAff(Expr):
         else:
             return self._dst.get_w()
 
-    def is_function_call(self):
-        return isinstance(self.src, ExprOp) and self.src.op.startswith('call')
-
     def _exprhash(self):
         return hash((EXPRAFF, hash(self._dst), hash(self._src)))
 
@@ -820,6 +817,9 @@ class ExprOp(Expr):
             if arg.__contains__(e):
                 return True
         return False
+
+    def is_function_call(self):
+        return self._op.startswith('call')
 
     def is_associative(self):
         "Return True iff current operation is associative"
