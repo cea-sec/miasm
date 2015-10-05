@@ -135,17 +135,27 @@ class ir(object):
         ir_bloc_cur, ir_blocs_extra = self.get_ir(l)
         return ir_bloc_cur, ir_blocs_extra
 
-    def get_bloc(self, ad):
-        if isinstance(ad, m2_expr.ExprId) and isinstance(ad.name,
-                                                         asmbloc.asm_label):
+    def get_label(self, ad):
+        """Transforms an ExprId/ExprInt/label/int into a label
+        @ad: an ExprId/ExprInt/label/int"""
+
+        if (isinstance(ad, m2_expr.ExprId) and
+            isinstance(ad.name, asmbloc.asm_label)):
             ad = ad.name
         if isinstance(ad, m2_expr.ExprInt):
             ad = int(ad.arg)
         if type(ad) in [int, long]:
-            ad = self.symbol_pool.getby_offset(ad)
+            ad = self.symbol_pool.getby_offset_create(ad)
         elif isinstance(ad, asmbloc.asm_label):
-            ad = self.symbol_pool.getby_name(ad.name)
-        return self.blocs.get(ad, None)
+            ad = self.symbol_pool.getby_name_create(ad.name)
+        return ad
+
+    def get_bloc(self, ad):
+        """Returns the irbloc associated to an ExprId/ExprInt/label/int
+        @ad: an ExprId/ExprInt/label/int"""
+
+        label = self.get_label(ad)
+        return self.blocs.get(label, None)
 
     def add_instr(self, l, ad=0, gen_pc_updt = False):
         b = asmbloc.asm_bloc(l)
@@ -227,7 +237,7 @@ class ir(object):
         ir_blocs_all = []
         for l in bloc.lines:
             if c is None:
-                label = self.get_label(l)
+                label = self.get_instr_label(l)
                 c = irbloc(label, [], [])
                 ir_blocs_all.append(c)
             ir_bloc_cur, ir_blocs_extra = self.instr2ir(l)
@@ -290,9 +300,11 @@ class ir(object):
             self.blocs[irb.label] = irb
 
 
-    def get_label(self, instr):
-        l = self.symbol_pool.getby_offset_create(instr.offset)
-        return l
+    def get_instr_label(self, instr):
+        """Returns the label associated to an instruction
+        @instr: current instruction"""
+
+        return self.symbol_pool.getby_offset_create(instr.offset)
 
     def gen_label(self):
         # TODO: fix hardcoded offset
