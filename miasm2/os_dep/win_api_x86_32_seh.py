@@ -52,22 +52,20 @@ MAX_MODULES = 0x40
 tib_address = FS_0_AD
 peb_address = PEB_AD
 peb_ldr_data_offset = 0x1ea0
-peb_ldr_data_address = LDR_AD + peb_ldr_data_offset  # PEB_AD + 0x1000
+peb_ldr_data_address = LDR_AD + peb_ldr_data_offset
 
 
 modules_list_offset = 0x1f00
 
-InInitializationOrderModuleList_offset = 0x1ee0  # 0x1f48
+InInitializationOrderModuleList_offset = 0x1ee0
 InInitializationOrderModuleList_address = LDR_AD + \
-    InInitializationOrderModuleList_offset  # PEB_AD + 0x2000
+    InInitializationOrderModuleList_offset
 
 InLoadOrderModuleList_offset = 0x1ee0 + \
-    MAX_MODULES * 0x1000  # 0x1f48 + MAX_MODULES*0x1000
+    MAX_MODULES * 0x1000
 InLoadOrderModuleList_address = LDR_AD + \
-    InLoadOrderModuleList_offset  # PEB_AD + 0x2000
+    InLoadOrderModuleList_offset
 
-# in_load_order_module_1 = LDR_AD +
-# in_load_order_module_list_offset#PEB_AD + 0x3000
 default_seh = PEB_AD + 0x20000
 
 process_environment_address = 0x10000
@@ -85,8 +83,9 @@ loaded_modules = ["ntdll.dll", "kernel32.dll"]
 main_pe = None
 main_pe_name = "c:\\xxx\\toto.exe"
 
+MAX_SEH = 5
 
-def build_fake_teb(myjit, teb_address):
+def build_teb(myjit, teb_address):
     """
     +0x000 NtTib                     : _NT_TIB
     +0x01c EnvironmentPointer        : Ptr32 Void
@@ -109,7 +108,7 @@ def build_fake_teb(myjit, teb_address):
     myjit.vm.add_memory_page(teb_address, PAGE_READ | PAGE_WRITE, o)
 
 
-def build_fake_peb(myjit, peb_address):
+def build_peb(myjit, peb_address):
     """
     +0x000 InheritedAddressSpace    : UChar
     +0x001 ReadImageFileExecOptions : UChar
@@ -132,7 +131,7 @@ def build_fake_peb(myjit, peb_address):
     myjit.vm.add_memory_page(offset, PAGE_READ | PAGE_WRITE, o)
 
 
-def build_fake_ldr_data(myjit, modules_info):
+def build_ldr_data(myjit, modules_info):
     """
     +0x000 Length                          : Uint4B
     +0x004 Initialized                     : UChar
@@ -144,7 +143,6 @@ def build_fake_ldr_data(myjit, modules_info):
     o = ""
     # ldr offset pad
     offset = LDR_AD + peb_ldr_data_offset + 0xC
-    # text XXX
 
     # get main pe info
     m_e = None
@@ -168,7 +166,6 @@ def build_fake_ldr_data(myjit, modules_info):
     if not ntdll_e:
         log.warn('no ntdll, ldr data will be unconsistant')
     else:
-        print 'ntdll', hex(ntdll_e[2])
         data += pck32(ntdll_e[2] + 0x8) + pck32(0)  # XXX TODO
         data += pck32(ntdll_e[2] + 0x10) + pck32(0)
 
@@ -176,82 +173,6 @@ def build_fake_ldr_data(myjit, modules_info):
         myjit.vm.add_memory_page(offset, PAGE_READ | PAGE_WRITE, data)
 
 
-
-# def build_fake_InInitializationOrderModuleList(modules_name):
-#    """
-#    +0x000 Flink : Ptr32                                 -+ This distance
-#    +0x004 Blink : Ptr32                                  | is eight bytes
-#    +0x018 DllBase                        : Ptr32 Void   -+ DllBase
-#    +0x01c EntryPoint                     : Ptr32 Void
-#    +0x020 SizeOfImage                    : Uint4B
-#    +0x024 FullDllName                    : _UNICODE_STRING
-#    +0x02c BaseDllName                    : _UNICODE_STRING
-#    +0x034 Flags                          : Uint4B
-#    +0x038 LoadCount                      : Uint2B
-#    +0x03a TlsIndex                       : Uint2B
-#    +0x03c HashLinks                      : _LIST_ENTRY
-#    +0x03c SectionPointer                 : Ptr32 Void
-#    +0x040 CheckSum                       : Uint4B
-#    +0x044 TimeDateStamp                  : Uint4B
-#    +0x044 LoadedImports                  : Ptr32 Void
-#    +0x048 EntryPointActivationContext    : Ptr32 Void
-#    +0x04c PatchInformation               : Ptr32 Void
-#    """
-#
-#    o = ""
-#    offset_name = 0x700
-#    for i, m in enumerate(modules_name):
-# fname = os.path.join('win_dll', m)
-#        if isinstance(m, tuple):
-#            fname, e = m
-#        else:
-#            fname, e = m, None
-#        bname = os.path.split(fname)[1].lower()
-#        bname = "\x00".join(bname)+"\x00"
-#        print "add module", repr(bname)
-#        print hex(InInitializationOrderModuleList_address+i*0x1000)
-#        if e == None:
-#            e = pe_init.PE(open(fname, 'rb').read())
-#
-#        next_ad = InInitializationOrderModuleList_address + (i+1)*0x1000
-#        if i == len(modules_name) -1:
-#            next_ad = InInitializationOrderModuleList_address
-#        m_o = ""
-#        m_o += pck32(next_ad )
-#        m_o += pck32(InInitializationOrderModuleList_address + (i-1)*0x1000)
-#        m_o += pck32(next_ad + 8 )
-#        m_o += pck32(InInitializationOrderModuleList_address
-#            +  (i-1)*0x1000 + 8)
-#        m_o += pck32(next_ad + 0x10 )
-#        m_o += pck32(InInitializationOrderModuleList_address
-#            +  (i-1)*0x1000 + 0x10)
-#        m_o += pck32(e.NThdr.ImageBase)
-#        m_o += pck32(e.rva2virt(e.Opthdr.AddressOfEntryPoint))
-#        m_o += pck32(e.NThdr.sizeofimage)
-#
-#        m_o += (0x24 - len(m_o))*"A"
-#        print hex(len(bname)), repr(bname)
-#        m_o += struct.pack('HH', len(bname), len(bname)+2)
-#        m_o += pck32(InInitializationOrderModuleList_address
-#            +  i*0x1000+offset_name)
-#
-#        m_o += (0x2C - len(m_o))*"A"
-#        m_o += struct.pack('HH', len(bname), len(bname)+2)
-#        m_o += pck32(InInitializationOrderModuleList_address
-#            +  i*0x1000+offset_name)
-#
-#        m_o += (offset_name - len(m_o))*"B"
-#        m_o += bname
-#        m_o += "\x00"*3
-#
-#
-#        m_o += (0x1000 - len(m_o))*"J"
-#
-#        print "module", "%.8X"%e.NThdr.ImageBase, fname
-#
-#        o += m_o
-#    return o
-#
 dummy_e = pe_init.PE()
 dummy_e.NThdr.ImageBase = 0
 dummy_e.Opthdr.AddressOfEntryPoint = 0
@@ -259,6 +180,28 @@ dummy_e.NThdr.sizeofimage = 0
 
 
 def create_modules_chain(myjit, modules_name):
+    """
+    kd> dt nt!_LDR_DATA_TABLE_ENTRY
+    +0x000 InLoadOrderLinks : _LIST_ENTRY
+    +0x008 InMemoryOrderLinks : _LIST_ENTRY
+    +0x010 InInitializationOrderLinks : _LIST_ENTRY
+    +0x018 DllBase : Ptr32 Void
+    +0x01c EntryPoint : Ptr32 Void
+    +0x020 SizeOfImage : Uint4B
+    +0x024 FullDllName : _UNICODE_STRING
+    +0x02c BaseDllName : _UNICODE_STRING
+    +0x034 Flags : Uint4B
+    +0x038 LoadCount : Uint2B
+    +0x03a TlsIndex : Uint2B
+    +0x03c HashLinks : _LIST_ENTRY
+    +0x03c SectionPointer : Ptr32 Void
+    +0x040 CheckSum : Uint4B
+    +0x044 TimeDateStamp : Uint4B
+    +0x044 LoadedImports : Ptr32 Void
+    +0x048 EntryPointActivationContext : Ptr32 Void
+    +0x04c PatchInformation : Ptr32 Void
+    """
+
     modules_info = {}
     base_addr = LDR_AD + modules_list_offset  # XXXX
     offset_name = 0x500
@@ -268,16 +211,13 @@ def create_modules_chain(myjit, modules_name):
     for i, m in enumerate([(main_pe_name, main_pe),
         ("", dummy_e)] + modules_name):
         addr = base_addr + i * 0x1000
-        # fname = os.path.join('win_dll', m)
         if isinstance(m, tuple):
             fname, e = m
         else:
             fname, e = m, None
         bpath = fname.replace('/', '\\')
-        bname = os.path.split(fname)[1].lower()
-        bname = "\x00".join(bname) + "\x00"
-        # print "add module", repr(bname), repr(bpath)
-        # print hex(InInitializationOrderModuleList_address+i*0x1000)
+        bname_str = os.path.split(fname)[1].lower()
+        bname = "\x00".join(bname_str) + "\x00"
         if e is None:
             if i == 0:
                 full_name = fname
@@ -290,11 +230,9 @@ def create_modules_chain(myjit, modules_name):
                 e = None
         if e is None:
             continue
-        print "add module", hex(e.NThdr.ImageBase), repr(bname)
+        log.info("add module %r %r"%(hex(e.NThdr.ImageBase), bname_str))
 
         modules_info[bname] = addr, e
-
-        print hex(len(bname)), repr(bname)
 
         m_o = ""
         m_o += pck32(0)
@@ -471,109 +409,6 @@ def add_process_parameters(myjit):
                              o)
 
 
-def build_fake_InLoadOrderModuleList(modules_name):
-    """
-    +0x000 Flink : Ptr32                                 -+ This distance
-    +0x004 Blink : Ptr32                                  | is eight bytes
-    +0x018 DllBase                        : Ptr32 Void   -+ DllBase -> _IMAGE_DOS_HEADER
-    +0x01c EntryPoint                     : Ptr32 Void
-    +0x020 SizeOfImage                    : Uint4B
-    +0x024 FullDllName                    : _UNICODE_STRING
-    +0x02c BaseDllName                    : _UNICODE_STRING
-    +0x034 Flags                          : Uint4B
-    +0x038 LoadCount                      : Uint2B
-    +0x03a TlsIndex                       : Uint2B
-    +0x03c HashLinks                      : _LIST_ENTRY
-    +0x03c SectionPointer                 : Ptr32 Void
-    +0x040 CheckSum                       : Uint4B
-    +0x044 TimeDateStamp                  : Uint4B
-    +0x044 LoadedImports                  : Ptr32 Void
-    +0x048 EntryPointActivationContext    : Ptr32 Void
-    +0x04c PatchInformation               : Ptr32 Void
-    """
-
-    o = ""
-    offset_name = 0x700
-    first_name = "\x00".join(main_pe_name + "\x00\x00")
-
-    o = ""
-    o += pck32(InLoadOrderModuleList_address)
-    o += pck32(InLoadOrderModuleList_address +
-               (len(modules_name) - 1) * 0x1000)
-    o += pck32(InLoadOrderModuleList_address + 8)
-    o += pck32(InLoadOrderModuleList_address +
-               (len(modules_name) - 1) * 0x1000 + 8)
-    o += pck32(InLoadOrderModuleList_address + 0x10)
-    o += pck32(InLoadOrderModuleList_address +
-               (len(modules_name) - 1) * 0x1000 + 0x10)
-
-    if main_pe:
-        o += pck32(main_pe.NThdr.ImageBase)
-        o += pck32(main_pe.rva2virt(main_pe.Opthdr.AddressOfEntryPoint))
-    else:
-        # no fixed values
-        pass
-
-    o += (0x24 - len(o)) * "A"
-    o += struct.pack('HH', len(first_name), len(first_name))
-    o += pck32(InLoadOrderModuleList_address + offset_name)
-
-    o += (0x2C - len(o)) * "A"
-    o += struct.pack('HH', len(first_name), len(first_name))
-    o += pck32(InLoadOrderModuleList_address + offset_name)
-
-    o += (offset_name - len(o)) * "B"
-    o += first_name
-    o += (0x1000 - len(o)) * "C"
-    for i, m in enumerate(modules_name):
-        # fname = os.path.join('win_dll', m)
-        if isinstance(m, tuple):
-            fname, e = m
-        else:
-            fname, e = m, None
-        bname = os.path.split(fname)[1].lower()
-        bname = "\x00".join(bname) + "\x00"
-        print hex(InLoadOrderModuleList_address + i * 0x1000)
-        if e is None:
-            e = pe_init.PE(open(fname, 'rb').read())
-
-        print "add module", hex(e.NThdr.ImageBase), repr(bname)
-
-        next_ad = InLoadOrderModuleList_address + (i + 1) * 0x1000
-        if i == len(modules_name) - 1:
-            next_ad = InLoadOrderModuleList_address
-        m_o = ""
-        m_o += pck32(next_ad)
-        m_o += pck32(InLoadOrderModuleList_address + (i - 1) * 0x1000)
-        m_o += pck32(next_ad + 8)
-        m_o += pck32(InLoadOrderModuleList_address + (i - 1) * 0x1000 + 8)
-        m_o += pck32(next_ad + 0x10)
-        m_o += pck32(InLoadOrderModuleList_address + (i - 1) * 0x1000 + 0x10)
-        m_o += pck32(e.NThdr.ImageBase)
-        m_o += pck32(e.rva2virt(e.Opthdr.AddressOfEntryPoint))
-        m_o += pck32(e.NThdr.sizeofimage)
-
-        m_o += (0x24 - len(m_o)) * "A"
-        print hex(len(bname)), repr(bname)
-        m_o += struct.pack('HH', len(bname), len(bname) + 2)
-        m_o += pck32(InLoadOrderModuleList_address + i * 0x1000 + offset_name)
-
-        m_o += (0x2C - len(m_o)) * "A"
-        m_o += struct.pack('HH', len(bname), len(bname) + 2)
-        m_o += pck32(InLoadOrderModuleList_address + i * 0x1000 + offset_name)
-
-        m_o += (offset_name - len(m_o)) * "B"
-        m_o += bname
-        m_o += "\x00" * 3
-
-        m_o += (0x1000 - len(m_o)) * "J"
-
-        print "module", "%.8X" % e.NThdr.ImageBase, fname
-
-        o += m_o
-    return o
-
-
 all_seh_ad = dict([(x, None)
                   for x in xrange(FAKE_SEH_B_AD, FAKE_SEH_B_AD + 0x1000, 0x20)])
 # http://blog.fireeye.com/research/2010/08/download_exec_notes.html
@@ -582,28 +417,18 @@ seh_count = 0
 def init_seh(myjit):
     global seh_count
     seh_count = 0
-    build_fake_teb(myjit, FS_0_AD)
+    build_teb(myjit, FS_0_AD)
     build_peb(myjit, peb_address)
 
-    """
-    ldr_data += "\x00"*(InInitializationOrderModuleList_offset - len(ldr_data))
-    ldr_data += build_fake_InInitializationOrderModuleList(loaded_modules)
-    ldr_data += "\x00"*(InLoadOrderModuleList_offset - len(ldr_data))
-    ldr_data += build_fake_InLoadOrderModuleList(loaded_modules)
-    """
     module_info = create_modules_chain(myjit, loaded_modules)
     fix_InLoadOrderModuleList(myjit, module_info)
     fix_InMemoryOrderModuleList(myjit, module_info)
     fix_InInitializationOrderModuleList(myjit, module_info)
 
-    build_fake_ldr_data(myjit, module_info)
+    build_ldr_data(myjit, module_info)
     add_process_env(myjit)
     add_process_parameters(myjit)
 
-    # myjit.vm.add_memory_page(in_load_order_module_list_address,
-    #     PAGE_READ | PAGE_WRITE, p(0) * 40)
-    # myjit.vm.add_memory_page(in_load_order_module_list_address,
-    #     PAGE_READ | PAGE_WRITE, build_fake_inordermodule(loaded_modules))
     myjit.vm.add_memory_page(default_seh, PAGE_READ | PAGE_WRITE, pck32(
         0xffffffff) + pck32(0x41414141) + pck32(0x42424242))
 
@@ -638,33 +463,33 @@ def regs2ctxt(regs):
 def ctxt2regs(ctxt):
     ctxt = ctxt[:]
     regs = {}
-    # regs['ctxtsflags'] = upck32(ctxt[:4])
+    # ctxtsflags
     ctxt = ctxt[4:]
     for i in xrange(8):
         if i in [4, 5]:
             continue
-        # regs['dr%d'%i] = upck32(ctxt[:4])
+        # regs i
         ctxt = ctxt[4:]
 
     ctxt = ctxt[112:]  # skip float
 
-    # regs['seg_gs'] = upck32(ctxt[:4])
+    # gs
     ctxt = ctxt[4:]
-    # regs['seg_fs'] = upck32(ctxt[:4])
+    # fs
     ctxt = ctxt[4:]
-    # regs['seg_es'] = upck32(ctxt[:4])
+    # es
     ctxt = ctxt[4:]
-    # regs['seg_ds'] = upck32(ctxt[:4])
+    # ds
     ctxt = ctxt[4:]
 
     regs['EDI'], regs['ESI'], regs['EBX'], regs['EDX'], regs['ECX'], regs[
         'EAX'], regs['EBP'], regs['EIP'] = struct.unpack('I' * 8, ctxt[:4 * 8])
     ctxt = ctxt[4 * 8:]
 
-    # regs['seg_cs'] = upck32(ctxt[:4])
+    # cs
     ctxt = ctxt[4:]
 
-    # regs['eflag'] = upck32(ctxt[:4])
+    # eflag
     ctxt = ctxt[4:]
 
     regs['ESP'] = upck32(ctxt[:4])
@@ -709,8 +534,6 @@ def fake_seh_handler(myjit, except_code):
     # Help lambda
     p = lambda s: struct.pack('I', s)
 
-    # dump_gpregs_py()
-    # jitarch.dump_gpregs()
     # Forge a CONTEXT
     ctxt = '\x00\x00\x00\x00' + '\x00\x00\x00\x00' * 6 + '\x00' * 112
     ctxt += '\x00\x00\x00\x00' + '\x3b\x00\x00\x00' + '\x23\x00\x00\x00'
@@ -721,10 +544,6 @@ def fake_seh_handler(myjit, except_code):
             pck32(myjit.cpu.EBP) + pck32(myjit.cpu.EIP)
     ctxt += '\x23\x00\x00\x00' + '\x00\x00\x00\x00' + pck32(myjit.cpu.ESP)
     ctxt += '\x23\x00\x00\x00'
-    # ctxt = regs2ctxt(regs)
-
-    # Find a room for seh
-    # seh = (get_memory_page_max_address_py()+0x1000)&0xfffff000
 
     # Get current seh (fs:[0])
     seh_ptr = upck32(myjit.vm.get_mem(tib_address, 4))
@@ -735,11 +554,6 @@ def fake_seh_handler(myjit, except_code):
 
     print '-> seh_ptr', hex(seh_ptr), '-> { old_seh',
     print hex(old_seh), 'eh', hex(eh), 'safe_place', hex(safe_place), '}'
-    # print '-> write SEH at', hex(seh&0xffffffff)
-
-    # Write current seh
-    # myjit.vm.add_memory_page(seh, PAGE_READ | PAGE_WRITE, p(old_seh) +
-    # p(eh) + p(safe_place) + p(0x99999999))
 
     # Write context
     myjit.vm.set_mem(context_address, ctxt)
@@ -797,7 +611,7 @@ def dump_seh(myjit):
     indent = 1
     loop = 0
     while True:
-        if loop > 5:
+        if loop > MAX_SEH:
             print "too many seh, quit"
             return
         prev_seh, eh = struct.unpack('II', myjit.vm.get_mem(cur_seh_ptr, 8))
