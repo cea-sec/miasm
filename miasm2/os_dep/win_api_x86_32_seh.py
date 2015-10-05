@@ -86,7 +86,7 @@ main_pe = None
 main_pe_name = "c:\\xxx\\toto.exe"
 
 
-def build_fake_teb():
+def build_fake_teb(myjit, teb_address):
     """
     +0x000 NtTib                     : _NT_TIB
     +0x01c EnvironmentPointer        : Ptr32 Void
@@ -106,7 +106,7 @@ def build_fake_teb():
     o += pck32(peb_address)
     o += pck32(0x11223344)
 
-    return o
+    myjit.vm.add_memory_page(teb_address, PAGE_READ | PAGE_WRITE, o)
 
 
 def build_fake_peb(myjit, peb_address):
@@ -582,16 +582,8 @@ seh_count = 0
 def init_seh(myjit):
     global seh_count
     seh_count = 0
-    # myjit.vm.add_memory_page(tib_address, PAGE_READ | PAGE_WRITE,
-    # p(default_seh) + p(0) * 11 + p(peb_address))
-    myjit.vm.add_memory_page(
-        FS_0_AD, PAGE_READ | PAGE_WRITE, build_fake_teb())
-    # myjit.vm.add_memory_page(peb_address, PAGE_READ | PAGE_WRITE, p(0) *
-    # 3 + p(peb_ldr_data_address))
-    build_fake_peb(myjit, peb_address)
-    # myjit.vm.add_memory_page(peb_ldr_data_address, PAGE_READ |
-    # PAGE_WRITE, p(0) * 3 + p(in_load_order_module_list_address) + p(0) *
-    # 0x20)
+    build_fake_teb(myjit, FS_0_AD)
+    build_peb(myjit, peb_address)
 
     """
     ldr_data += "\x00"*(InInitializationOrderModuleList_offset - len(ldr_data))
