@@ -109,7 +109,7 @@ def build_fake_teb():
     return o
 
 
-def build_fake_peb():
+def build_fake_peb(myjit, peb_address):
     """
     +0x000 InheritedAddressSpace    : UChar
     +0x001 ReadImageFileExecOptions : UChar
@@ -121,33 +121,15 @@ def build_fake_peb():
     +0x010 processparameter
     """
 
-    offset_serverdata = 0x100
-    offset_data1 = 0x108
-    offset_data2 = 0x110
+    offset = peb_address + 8
     o = ""
-    o += "\x00" * 0x8
     if main_pe:
         o += pck32(main_pe.NThdr.ImageBase)
     else:
-        o += "AAAA"
+        offset += 4
     o += pck32(peb_ldr_data_address)
     o += pck32(process_parameters_address)
-
-    o += (0x54 - len(o)) * "A"
-    o += pck32(peb_address + offset_serverdata)
-    o += (0x64 - len(o)) * "E"
-    o += pck32(1)  # number of cpu
-
-    o += (offset_serverdata - len(o)) * "B"
-    o += pck32(0x33333333)
-    o += pck32(peb_address + offset_data1)
-    o += (offset_data1 - len(o)) * "C"
-    o += pck32(0x44444444)
-    o += pck32(peb_address + offset_data2)
-    o += (offset_data2 - len(o)) * "D"
-    o += pck32(0x55555555)
-    o += pck32(0x0077007C)
-    return o
+    myjit.vm.add_memory_page(offset, PAGE_READ | PAGE_WRITE, o)
 
 
 def build_fake_ldr_data(myjit, modules_info):
@@ -606,8 +588,7 @@ def init_seh(myjit):
         FS_0_AD, PAGE_READ | PAGE_WRITE, build_fake_teb())
     # myjit.vm.add_memory_page(peb_address, PAGE_READ | PAGE_WRITE, p(0) *
     # 3 + p(peb_ldr_data_address))
-    myjit.vm.add_memory_page(
-        peb_address, PAGE_READ | PAGE_WRITE, build_fake_peb())
+    build_fake_peb(myjit, peb_address)
     # myjit.vm.add_memory_page(peb_ldr_data_address, PAGE_READ |
     # PAGE_WRITE, p(0) * 3 + p(in_load_order_module_list_address) + p(0) *
     # 0x20)
