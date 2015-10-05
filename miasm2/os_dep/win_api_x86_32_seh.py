@@ -312,6 +312,8 @@ def create_modules_chain(myjit, modules_name):
 
         modules_info[bname] = addr, e
 
+        print hex(len(bname)), repr(bname)
+
         m_o = ""
         m_o += pck32(0)
         m_o += pck32(0)
@@ -322,25 +324,22 @@ def create_modules_chain(myjit, modules_name):
         m_o += pck32(e.NThdr.ImageBase)
         m_o += pck32(e.rva2virt(e.Opthdr.AddressOfEntryPoint))
         m_o += pck32(e.NThdr.sizeofimage)
-
-        m_o += (0x24 - len(m_o)) * "A"
-        print hex(len(bname)), repr(bname)
         m_o += struct.pack('HH', len(bname), len(bname) + 2)
         m_o += pck32(addr + offset_path)
-
-        m_o += (0x2C - len(m_o)) * "A"
         m_o += struct.pack('HH', len(bname), len(bname) + 2)
         m_o += pck32(addr + offset_name)
+        myjit.vm.add_memory_page(addr, PAGE_READ | PAGE_WRITE, m_o)
 
-        m_o += (offset_name - len(m_o)) * "B"
+        m_o = ""
         m_o += bname
         m_o += "\x00" * 3
+        myjit.vm.add_memory_page(addr + offset_name, PAGE_READ | PAGE_WRITE, m_o)
 
-        m_o += (offset_path - len(m_o)) * "B"
+        m_o = ""
         m_o += "\x00".join(bpath) + "\x00"
         m_o += "\x00" * 3
-        # out += m_o
-        myjit.vm.set_mem(addr, m_o)
+        myjit.vm.add_memory_page(addr + offset_path, PAGE_READ | PAGE_WRITE, m_o)
+
     return modules_info
 
 
