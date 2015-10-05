@@ -28,6 +28,7 @@ from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm2.core.utils import pck32, upck32
 import miasm2.arch.x86.regs as x86_regs
 
+
 # Constants Windows
 EXCEPTION_BREAKPOINT = 0x80000003
 EXCEPTION_ACCESS_VIOLATION = 0xc0000005
@@ -40,7 +41,7 @@ log = logging.getLogger("seh_helper")
 console_handler = logging.StreamHandler()
 console_handler.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
 log.addHandler(console_handler)
-log.setLevel(logging.WARN)
+log.setLevel(logging.INFO)
 
 FS_0_AD = 0x7ff70000
 PEB_AD = 0x7ffdf000
@@ -84,6 +85,7 @@ main_pe = None
 main_pe_name = "c:\\xxx\\toto.exe"
 
 MAX_SEH = 5
+
 
 def build_teb(myjit, teb_address):
     """
@@ -151,10 +153,10 @@ def build_ldr_data(myjit, modules_info):
             m_e = (e, bname, addr)
             break
     if not m_e:
-        log.warn('no main pe, ldr data will be unconsistant')
+        log.warn('No main pe, ldr data will be unconsistant')
         offset, data = offset + 8, ""
     else:
-        print 'inloadorder first', hex(m_e[2])
+        log.info('Ldr %x', m_e[2])
         data = pck32(m_e[2]) + pck32(0)
 
     # get ntdll
@@ -164,7 +166,7 @@ def build_ldr_data(myjit, modules_info):
             ntdll_e = (e, bname, addr)
             continue
     if not ntdll_e:
-        log.warn('no ntdll, ldr data will be unconsistant')
+        log.warn('No ntdll, ldr data will be unconsistant')
     else:
         data += pck32(ntdll_e[2] + 0x8) + pck32(0)  # XXX TODO
         data += pck32(ntdll_e[2] + 0x10) + pck32(0)
@@ -226,11 +228,11 @@ def create_modules_chain(myjit, modules_name):
             try:
                 e = pe_init.PE(open(full_name, 'rb').read())
             except IOError:
-                log.error('no main pe, ldr data will be unconsistant!!')
+                log.error('No main pe, ldr data will be unconsistant!')
                 e = None
         if e is None:
             continue
-        log.info("add module %r %r"%(hex(e.NThdr.ImageBase), bname_str))
+        log.info("Add module %x %r", e.NThdr.ImageBase, bname_str)
 
         modules_info[bname] = addr, e
 
@@ -264,7 +266,7 @@ def create_modules_chain(myjit, modules_name):
 
 
 def fix_InLoadOrderModuleList(myjit, module_info):
-    print "fix inloadorder"
+    log.debug("Fix InLoadOrderModuleList")
     # first binary is PE
     # last is dumm_e
     olist = []
@@ -279,14 +281,14 @@ def fix_InLoadOrderModuleList(myjit, module_info):
 
         if "/" in fname:
             fname = fname[fname.rfind("/") + 1:]
-        bname = '\x00'.join(fname) + '\x00'
+        bname_str = fname
+        bname = '\x00'.join(bname_str) + '\x00'
         if not bname.lower() in module_info:
-            log.warn('module not found, ldr data will be unconsistant')
+            log.warn('Module not found, ldr data will be unconsistant')
             continue
 
         addr, e = module_info[bname.lower()]
-    # for bname, (addr, e) in module_info.items():
-        print bname
+        log.debug(bname_str)
         if e == main_pe:
             m_e = (e, bname, addr)
             continue
@@ -295,7 +297,7 @@ def fix_InLoadOrderModuleList(myjit, module_info):
             continue
         olist.append((e, bname, addr))
     if not m_e or not d_e:
-        log.warn('no main pe, ldr data will be unconsistant')
+        log.warn('No main pe, ldr data will be unconsistant')
     else:
         olist[0:0] = [m_e]
     olist.append(d_e)
@@ -309,6 +311,7 @@ def fix_InLoadOrderModuleList(myjit, module_info):
 
 
 def fix_InMemoryOrderModuleList(myjit, module_info):
+    log.debug("Fix InMemoryOrderModuleList")
     # first binary is PE
     # last is dumm_e
     olist = []
@@ -323,13 +326,13 @@ def fix_InMemoryOrderModuleList(myjit, module_info):
 
         if "/" in fname:
             fname = fname[fname.rfind("/") + 1:]
-        bname = '\x00'.join(fname) + '\x00'
+        bname_str = fname
+        bname = '\x00'.join(bname_str) + '\x00'
         if not bname.lower() in module_info:
-            log.warn('module not found, ldr data will be unconsistant')
+            log.warn('Module not found, ldr data will be unconsistant')
             continue
         addr, e = module_info[bname.lower()]
-    # for bname, (addr, e) in module_info.items():
-        print bname
+        log.debug(bname_str)
         if e == main_pe:
             m_e = (e, bname, addr)
             continue
@@ -338,7 +341,7 @@ def fix_InMemoryOrderModuleList(myjit, module_info):
             continue
         olist.append((e, bname, addr))
     if not m_e or not d_e:
-        log.warn('no main pe, ldr data will be unconsistant')
+        log.warn('No main pe, ldr data will be unconsistant')
     else:
         olist[0:0] = [m_e]
     olist.append(d_e)
@@ -373,7 +376,7 @@ def fix_InInitializationOrderModuleList(myjit, module_info):
             continue
         olist.append((e, bname, addr))
     if not ntdll_e or not kernel_e or not d_e:
-        log.warn('no kernel ntdll, ldr data will be unconsistant')
+        log.warn('No kernel ntdll, ldr data will be unconsistant')
     else:
         olist[0:0] = [ntdll_e]
         olist[1:1] = [kernel_e]
@@ -413,6 +416,7 @@ all_seh_ad = dict([(x, None)
                   for x in xrange(FAKE_SEH_B_AD, FAKE_SEH_B_AD + 0x1000, 0x20)])
 # http://blog.fireeye.com/research/2010/08/download_exec_notes.html
 seh_count = 0
+
 
 def init_seh(myjit):
     global seh_count
@@ -496,7 +500,7 @@ def ctxt2regs(ctxt):
     ctxt = ctxt[4:]
 
     for a, b in regs.items():
-        print a, hex(b)
+        log.info('%r %x', a, b)
     # skip extended
     return regs
 
@@ -508,27 +512,27 @@ def get_free_seh_place():
     for ad in ads:
         v = all_seh_ad[ad]
         if v is None:
-            print 'TAKING SEH', hex(ad)
+            log.info('Taking seh %x', ad)
             all_seh_ad[ad] = True
             return ad
     raise ValueError('too many stacked seh ')
 
 
 def free_seh_place(ad):
-    print 'RELEASING SEH', hex(ad)
+    log.info('Releasing seh %x', ad)
 
     if not ad in all_seh_ad:
-        raise ValueError('zarb seh ad!', hex(ad))
+        raise ValueError('zarb seh ad! %x', ad)
     if all_seh_ad[ad] is not True:
         # @wisk typolol
-        raise ValueError('seh alreaedy remouvede?!!', hex(ad))
+        raise ValueError('seh alreaedy remouvede?!! %x', ad)
     all_seh_ad[ad] = None
 
 
 def fake_seh_handler(myjit, except_code):
     global seh_count
     regs = myjit.cpu.get_gpreg()
-    print '-> exception at', hex(myjit.cpu.EIP), seh_count
+    log.warning('Exception at %x %r', myjit.cpu.EIP, seh_count)
     seh_count += 1
 
     # Help lambda
@@ -552,8 +556,8 @@ def fake_seh_handler(myjit, except_code):
     old_seh, eh, safe_place = struct.unpack(
         'III', myjit.vm.get_mem(seh_ptr, 0xc))
 
-    print '-> seh_ptr', hex(seh_ptr), '-> { old_seh',
-    print hex(old_seh), 'eh', hex(eh), 'safe_place', hex(safe_place), '}'
+    log.info('seh_ptr %x { old_seh %x eh %x safe_place %x}',
+             seh_ptr, old_seh, eh, safe_place)
 
     # Write context
     myjit.vm.set_mem(context_address, ctxt)
@@ -585,14 +589,14 @@ def fake_seh_handler(myjit, except_code):
 
     # Set fake new current seh for exception
     fake_seh_ad = get_free_seh_place()
-    print hex(fake_seh_ad)
+    log.info("Fake seh ad %x", fake_seh_ad)
     myjit.vm.set_mem(fake_seh_ad, pck32(seh_ptr) + pck32(
         0xaaaaaaaa) + pck32(0xaaaaaabb) + pck32(0xaaaaaacc))
     myjit.vm.set_mem(tib_address, pck32(fake_seh_ad))
 
     dump_seh(myjit)
 
-    print '-> jumping at', hex(eh)
+    log.info('Jumping at %x', eh)
     myjit.vm.set_exception(0)
     myjit.cpu.set_exception(0)
 
@@ -605,18 +609,17 @@ fake_seh_handler.base = FAKE_SEH_B_AD
 
 
 def dump_seh(myjit):
-    print 'dump_seh:'
-    print '-> tib_address:', hex(tib_address)
+    log.info('Dump_seh. Tib_address: %x', tib_address)
     cur_seh_ptr = upck32(myjit.vm.get_mem(tib_address, 4))
     indent = 1
     loop = 0
     while True:
         if loop > MAX_SEH:
-            print "too many seh, quit"
+            log.warn("Too many seh, quit")
             return
         prev_seh, eh = struct.unpack('II', myjit.vm.get_mem(cur_seh_ptr, 8))
-        print '\t' * indent + 'seh_ptr:', hex(cur_seh_ptr),
-        print ' -> { prev_seh:', hex(prev_seh), 'eh:', hex(eh), '}'
+        log.info('\t' * indent + 'seh_ptr: %x { prev_seh: %x eh %x }',
+                 cur_seh_ptr, prev_seh, eh)
         if prev_seh in [0xFFFFFFFF, 0]:
             break
         cur_seh_ptr = prev_seh
@@ -647,13 +650,12 @@ def return_from_seh(myjit):
 
     # Get current context
     myjit.cpu.ESP = upck32(myjit.vm.get_mem(context_address + 0xc4, 4))
-    logging.info('-> new esp: %x', myjit.cpu.ESP)
+    log.info('New esp: %x', myjit.cpu.ESP)
 
     # Rebuild SEH
     old_seh = upck32(myjit.vm.get_mem(tib_address, 4))
     new_seh = upck32(myjit.vm.get_mem(old_seh, 4))
-    logging.info('-> old seh: %x', old_seh)
-    logging.info('-> new seh: %x', new_seh)
+    log.info('Old seh: %x New seh: %x', old_seh, new_seh)
     myjit.vm.set_mem(tib_address, pck32(new_seh))
 
     dump_seh(myjit)
@@ -663,9 +665,8 @@ def return_from_seh(myjit):
 
     if myjit.cpu.EAX == 0x0:
         # ExceptionContinueExecution
-        print '-> seh continues'
         ctxt_ptr = context_address
-        print '-> context:', hex(ctxt_ptr)
+        log.info('Seh continues Context: %x', ctxt_ptr)
 
         # Get registers changes
         ctxt_str = myjit.vm.get_mem(ctxt_ptr, 0x2cc)
@@ -674,7 +675,7 @@ def return_from_seh(myjit):
         for reg_name, reg_value in regs.items():
             setattr(myjit.cpu, reg_name, reg_value)
 
-        logging.info('-> context::Eip: %x', myjit.pc)
+        log.info('Context::Eip: %x', myjit.pc)
 
     elif myjit.cpu.EAX == -1:
         raise NotImplementedError("-> seh try to go to the next handler")
