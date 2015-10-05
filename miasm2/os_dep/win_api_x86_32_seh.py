@@ -150,7 +150,7 @@ def build_fake_peb():
     return o
 
 
-def build_fake_ldr_data(modules_info):
+def build_fake_ldr_data(myjit, modules_info):
     """
     +0x000 Length                          : Uint4B
     +0x004 Initialized                     : UChar
@@ -161,8 +161,7 @@ def build_fake_ldr_data(modules_info):
     """
     o = ""
     # ldr offset pad
-    o += "\x00" * peb_ldr_data_offset
-    o += "\x00" * 0xc
+    offset = LDR_AD + peb_ldr_data_offset + 0xC
     # text XXX
 
     # get main pe info
@@ -173,9 +172,10 @@ def build_fake_ldr_data(modules_info):
             break
     if not m_e:
         log.warn('no main pe, ldr data will be unconsistant')
+        offset, data = offset + 8, ""
     else:
         print 'inloadorder first', hex(m_e[2])
-        o += pck32(m_e[2]) + pck32(0)
+        data = pck32(m_e[2]) + pck32(0)
 
     # get ntdll
     ntdll_e = None
@@ -187,10 +187,13 @@ def build_fake_ldr_data(modules_info):
         log.warn('no ntdll, ldr data will be unconsistant')
     else:
         print 'ntdll', hex(ntdll_e[2])
-        o += pck32(ntdll_e[2] + 0x8) + pck32(0)  # XXX TODO
-        o += pck32(ntdll_e[2] + 0x10) + pck32(0)
+        data += pck32(ntdll_e[2] + 0x8) + pck32(0)  # XXX TODO
+        data += pck32(ntdll_e[2] + 0x10) + pck32(0)
 
-    return o
+    if data:
+        myjit.vm.add_memory_page(offset, PAGE_READ | PAGE_WRITE, data)
+
+
 
 # def build_fake_InInitializationOrderModuleList(modules_name):
 #    """
@@ -616,15 +619,12 @@ def init_seh(myjit):
     ldr_data += "\x00"*(InLoadOrderModuleList_offset - len(ldr_data))
     ldr_data += build_fake_InLoadOrderModuleList(loaded_modules)
     """
-    myjit.vm.add_memory_page(
-        LDR_AD, PAGE_READ | PAGE_WRITE, "\x00" * MAX_MODULES * 0x1000)
     module_info = create_modules_chain(myjit, loaded_modules)
     fix_InLoadOrderModuleList(myjit, module_info)
     fix_InMemoryOrderModuleList(myjit, module_info)
     fix_InInitializationOrderModuleList(myjit, module_info)
 
-    ldr_data = build_fake_ldr_data(module_info)
-    myjit.vm.set_mem(LDR_AD, ldr_data)
+    build_fake_ldr_data(myjit, module_info)
     add_process_env(myjit)
     add_process_parameters(myjit)
 
