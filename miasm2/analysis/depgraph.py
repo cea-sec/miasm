@@ -16,6 +16,7 @@ from miasm2.ir.symbexec import symbexec
 from miasm2.ir.ir import irbloc
 from miasm2.ir.translators import Translator
 
+
 class DependencyNode(object):
 
     """Node elements of a DependencyGraph
@@ -27,6 +28,7 @@ class DependencyNode(object):
 
     __slots__ = ["_label", "_element", "_line_nb", "_modifier",
                  "_step", "_nostep_repr", "_hash"]
+
     def __init__(self, label, element, line_nb, step, modifier=False):
         """Create a dependency node with:
         @label: asm_label instance
@@ -299,7 +301,6 @@ class DependencyDict(object):
 
         self._cache = CacheWrapper(self._get_modifiers_in_cache(node_heads))
 
-
     def _build_depgraph(self, depnode):
         """Recursively build the final list of DiGraph, and clean up unmodifier
         nodes
@@ -495,7 +496,7 @@ class DependencyResult(object):
     def unresolved(self):
         """Set of nodes whose dependencies weren't found"""
         return set(node.nostep_repr for node in self._depdict.pending
-                    if node.element != self._ira.IRDst)
+                   if node.element != self._ira.IRDst)
 
     @property
     def relevant_nodes(self):
@@ -708,13 +709,10 @@ class DependencyGraph(object):
         self._cb_follow = []
         if apply_simp:
             self._cb_follow.append(self._follow_simp_expr)
-        if follow_mem:
-            self._cb_follow.append(self._follow_mem)
-        else:
-            self._cb_follow.append(self._follow_nomem)
-        if not follow_call:
-            self._cb_follow.append(self._follow_nocall)
-        self._cb_follow.append(self._follow_label)
+        self._cb_follow.append(lambda exprs: self._follow_exprs(exprs,
+                                                                follow_mem,
+                                                                follow_call))
+        self._cb_follow.append(self._follow_nolabel)
 
     @property
     def step_counter(self):
@@ -742,7 +740,52 @@ class DependencyGraph(object):
         return follow, set()
 
     @staticmethod
-    def _follow_label(exprs):
+    def get_expr(expr, follow, nofollow):
+        """Update @follow/@nofollow according to insteresting nodes
+        Returns same expression (non modifier visitor).
+
+        @expr: expression to handle
+        @follow: set of nodes to follow
+        @nofollow: set of nodes not to follow
+        """
+        if isinstance(expr, m2_expr.ExprId):
+            follow.add(expr)
+        elif isinstance(expr, m2_expr.ExprInt):
+            nofollow.add(expr)
+        return expr
+
+    @staticmethod
+    def follow_expr(expr, follow, nofollow, follow_mem=False, follow_call=False):
+        """Returns True if we must visit sub expressions.
+        @expr: expression to browse
+        @follow: set of nodes to follow
+        @nofollow: set of nodes not to follow
+        @follow_mem: force the visit of memory sub expressions
+        @follow_call: force the visit of call sub expressions
+        """
+        if not follow_mem and isinstance(expr, m2_expr.ExprMem):
+            nofollow.add(expr)
+            return False
+        if not follow_call and expr.is_function_call():
+            nofollow.add(expr)
+            return False
+        return True
+
+    @classmethod
+    def _follow_exprs(cls, exprs, follow_mem=False, follow_call=False):
+        """Extracts subnodes from exprs and returns followed/non followed
+        expressions according to @follow_mem/@follow_call
+
+        """
+        follow, nofollow = set(), set()
+        for expr in exprs:
+            expr.visit(lambda x: cls.get_expr(x, follow, nofollow),
+                       lambda x: cls.follow_expr(x, follow, nofollow,
+                                                 follow_mem, follow_call))
+        return follow, nofollow
+
+    @staticmethod
+    def _follow_nolabel(exprs):
         """Do not follow labels"""
         follow = set()
         for expr in exprs:
@@ -750,36 +793,6 @@ class DependencyGraph(object):
                 follow.add(expr)
 
         return follow, set()
-
-    @staticmethod
-    def _follow_mem_wrapper(exprs, mem_read):
-        """Wrapper to follow or not expression from memory pointer"""
-        follow = set()
-        for expr in exprs:
-            follow.update(expr.get_r(mem_read=mem_read, cst_read=True))
-        return follow, set()
-
-    @staticmethod
-    def _follow_mem(exprs):
-        """Follow expression from memory pointer"""
-        return DependencyGraph._follow_mem_wrapper(exprs, True)
-
-    @staticmethod
-    def _follow_nomem(exprs):
-        """Don't follow expression from memory pointer"""
-        return DependencyGraph._follow_mem_wrapper(exprs, False)
-
-    @staticmethod
-    def _follow_nocall(exprs):
-        """Don't follow expression from sub_call"""
-        follow = set()
-        nofollow = set()
-        for expr in exprs:
-            if expr.is_function_call():
-                nofollow.add(expr)
-            else:
-                follow.add(expr)
-        return follow, nofollow
 
     def _follow_apply_cb(self, expr):
         """Apply callback functions to @expr
