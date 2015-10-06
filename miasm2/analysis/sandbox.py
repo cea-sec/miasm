@@ -266,6 +266,7 @@ class OS_Linux_str(OS):
 class Arch_x86(Arch):
     _ARCH_ = None # Arch name
     STACK_SIZE = 0x100000
+    STACK_BASE = 0x123000
 
     def __init__(self):
         super(Arch_x86, self).__init__()
@@ -278,6 +279,7 @@ class Arch_x86(Arch):
 
         # Init stack
         self.jitter.stack_size = self.STACK_SIZE
+        self.jitter.stack_base = self.STACK_BASE
         self.jitter.init_stack()
 
 
@@ -298,46 +300,54 @@ class Arch_x86_64(Arch_x86):
 class Arch_arml(Arch):
     _ARCH_ = "arml"
     STACK_SIZE = 0x100000
+    STACK_BASE = 0x100000
 
     def __init__(self):
         super(Arch_arml, self).__init__()
 
         # Init stack
         self.jitter.stack_size = self.STACK_SIZE
+        self.jitter.stack_base = self.STACK_BASE
         self.jitter.init_stack()
 
 class Arch_armb(Arch):
     _ARCH_ = "armb"
     STACK_SIZE = 0x100000
+    STACK_BASE = 0x100000
 
     def __init__(self):
         super(Arch_armb, self).__init__()
 
         # Init stack
         self.jitter.stack_size = self.STACK_SIZE
+        self.jitter.stack_base = self.STACK_BASE
         self.jitter.init_stack()
 
 class Arch_aarch64l(Arch):
     _ARCH_ = "aarch64l"
     STACK_SIZE = 0x100000
+    STACK_BASE = 0x100000
 
     def __init__(self):
         super(Arch_aarch64l, self).__init__()
 
         # Init stack
         self.jitter.stack_size = self.STACK_SIZE
+        self.jitter.stack_base = self.STACK_BASE
         self.jitter.init_stack()
 
 
 class Arch_aarch64b(Arch):
     _ARCH_ = "aarch64b"
     STACK_SIZE = 0x100000
+    STACK_BASE = 0x100000
 
     def __init__(self):
         super(Arch_aarch64b, self).__init__()
 
         # Init stack
         self.jitter.stack_size = self.STACK_SIZE
+        self.jitter.stack_base = self.STACK_BASE
         self.jitter.init_stack()
 
 
