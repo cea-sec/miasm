@@ -1520,6 +1520,7 @@ armop("uxth", [bs('01101111'), bs('1111'), rd, rot_rm, bs('00'), bs('0111'), rm_
 armop("sxtb", [bs('01101010'), bs('1111'), rd, rot_rm, bs('00'), bs('0111'), rm_noarg])
 armop("sxth", [bs('01101011'), bs('1111'), rd, rot_rm, bs('00'), bs('0111'), rm_noarg])
 
+armop("rev", [bs('01101011'), bs('1111'), rd, bs('1111'), bs('0011'), rm])
 
 class arm_widthm1(arm_imm, m_arg):
     def decode(self, v):
