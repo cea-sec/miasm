@@ -924,6 +924,15 @@ def bfc(ir, instr, a, b, c):
         e.append(ExprAff(ir.IRDst, r))
     return e
 
+def rev(ir, instr, a, b):
+    e = []
+    c = ExprCompose([(b[:8],      24, 32),
+                     (b[8:16],    16, 24),
+                     (b[16:24],   8, 16),
+                     (b[24:32],   0, 8)])
+    e.append(ExprAff(a, c))
+    return e
+
 
 
 COND_EQ = 0
@@ -1067,6 +1076,7 @@ mnemo_condm0 = {'add': add,
                 'sxth': sxth,
                 'ubfx': ubfx,
                 'bfc': bfc,
+                'rev': rev,
                 }
 
 mnemo_condm1 = {'adds': add,
