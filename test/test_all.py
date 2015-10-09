@@ -140,7 +140,7 @@ testset += RegressionTest(["depgraph.py"], base_dir="analysis",
                           products=[fname for fnames in (
                               ["graph_test_%02d_00.dot" % test_nb,
                                "graph_%02d.dot" % test_nb]
-                              for test_nb in xrange(1, 17))
+                              for test_nb in xrange(1, 18))
                                     for fname in fnames] +
                           ["graph_test_03_01.dot",
                            "graph_test_05_01.dot",
