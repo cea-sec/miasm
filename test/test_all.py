@@ -343,7 +343,7 @@ class ExampleSymbolExec(Example):
 
 testset += ExampleSymbolExec(["single_instr.py"])
 for options, nb_sol, tag in [([], 8, []),
-                             (["-i", "--rename-args"], 12, [TAGS["z3"]])]:
+                             (["-i", "--rename-args"], 10, [TAGS["z3"]])]:
     testset += ExampleSymbolExec(["depgraph.py",
                                   Example.get_sample("simple_test.bin"),
                                   "-m", "x86_32", "0x0", "0x8b",
