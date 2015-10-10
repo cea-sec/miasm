@@ -139,19 +139,19 @@ for script in ["win_api_x86_32.py",
 testset += RegressionTest(["depgraph.py"], base_dir="analysis",
                           products=[fname for fnames in (
                               ["graph_test_%02d_00.dot" % test_nb,
+                               "exp_graph_test_%02d_00.dot" % test_nb,
                                "graph_%02d.dot" % test_nb]
-                              for test_nb in xrange(1, 17))
+                              for test_nb in xrange(1, 18))
                                     for fname in fnames] +
-                          ["graph_test_03_01.dot",
-                           "graph_test_05_01.dot",
-                           "graph_test_08_01.dot",
-                           "graph_test_09_01.dot",
-                           "graph_test_10_01.dot",
-                           "graph_test_12_01.dot",
-                           "graph_test_13_01.dot",
-                           "graph_test_14_01.dot",
-                           "graph_test_15_01.dot"
-                       ])
+                          [fname for fnames in (
+                              ["graph_test_%02d_%02d.dot" % (test_nb, res_nb),
+                               "exp_graph_test_%02d_%02d.dot" % (test_nb,
+                                                                 res_nb)]
+                              for (test_nb, res_nb) in ((3, 1), (5, 1), (8, 1),
+                                                        (9, 1), (10, 1),
+                                                        (12, 1), (13, 1),
+                                                        (14, 1), (15, 1)))
+                           for fname in fnames])
 
 # Examples
 class Example(Test):
@@ -343,7 +343,7 @@ class ExampleSymbolExec(Example):
 
 testset += ExampleSymbolExec(["single_instr.py"])
 for options, nb_sol, tag in [([], 8, []),
-                             (["-i", "--rename-args"], 12, [TAGS["z3"]])]:
+                             (["-i", "--rename-args"], 10, [TAGS["z3"]])]:
     testset += ExampleSymbolExec(["depgraph.py",
                                   Example.get_sample("simple_test.bin"),
                                   "-m", "x86_32", "0x0", "0x8b",
