@@ -1451,6 +1451,7 @@ rn0 = bs(l=5, cls=(aarch64_gpreg0,), fname="rn")
 
 rmz = bs(l=5, cls=(aarch64_gpregz,), fname="rm")
 rnz = bs(l=5, cls=(aarch64_gpregz,), fname="rn")
+rdz = bs(l=5, cls=(aarch64_gpregz,), fname="rd")
 
 
 rn_n1 = bs(l=5, cls=(aarch64_gpreg_n1,), fname="rn")
@@ -1602,10 +1603,14 @@ aarch64op("addsub", [sf, bs_adsu_name, modf, bs('01011'), bs('00'), bs('1'), rm_
 aarch64op("neg", [sf, bs('1'), modf, bs('01011'), shift, bs('0'), rm_sft, imm6, bs('11111'), rd], [rd, rm_sft], alias=True)
 
 
-logic_name = {'AND': 0, 'ORR': 1, 'EOR': 2, 'ANDS': 3}
+logic_name = {'AND': 0, 'ORR': 1, 'EOR': 2}
 bs_logic_name = bs_name(l=2, name=logic_name)
 # logical (imm)
 aarch64op("logic", [sf, bs_logic_name, bs('100100'), immn, immr, imms, rn0, rd], [rd, rn0, imms])
+# ANDS
+aarch64op("ands", [sf, bs('11'), bs('100100'), immn, immr, imms, rn0, rdz], [rdz, rn0, imms])
+aarch64op("tst",  [sf, bs('11'), bs('100100'), immn, immr, imms, rn0, bs('11111')], [rn0, imms], alias=True)
+
 
 # bitfield move p.149
 logicbf_name = {'SBFM': 0b00, 'BFM': 0b01, 'UBFM': 0b10}
