@@ -402,9 +402,9 @@ if __name__ == "__main__":
                         action="store_true")
     parser.add_argument("-c", "--coverage", help="Include code coverage",
                         action="store_true")
-    parser.add_argument("-t", "--ommit-tags", help="Ommit tests based on tags \
+    parser.add_argument("-t", "--omit-tags", help="Omit tests based on tags \
 (tag1,tag2). Available tags are %s. \
-By default, no tag is ommited." % ", ".join(TAGS.keys()), default="")
+By default, no tag is omitted." % ", ".join(TAGS.keys()), default="")
     parser.add_argument("-n", "--do-not-clean",
                         help="Do not clean tests products", action="store_true")
     args = parser.parse_args()
@@ -414,9 +414,9 @@ By default, no tag is ommited." % ", ".join(TAGS.keys()), default="")
     if args.mono is True or args.coverage is True:
         multiproc = False
 
-    ## Parse ommit-tags argument
+    ## Parse omit-tags argument
     exclude_tags = []
-    for tag in args.ommit_tags.split(","):
+    for tag in args.omit_tags.split(","):
         if not tag:
             continue
         if tag not in TAGS:
