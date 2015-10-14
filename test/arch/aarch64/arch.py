@@ -118,6 +118,11 @@ reg_tests_aarch64 = [
      "000B1F72"),
     ("00079A80    ANDS       X20, X2, 0xFF",
      "541C40F2"),
+    ("XXXXXXXX    TST        W14, 0x1",
+     "DF010072"),
+    ("XXXXXXXX    ANDS       W12, W13, 0x1",
+     "AC010072"),
+
 
     ("0005BD5C    AND        W0, W0, W24",
      "0000180A"),
