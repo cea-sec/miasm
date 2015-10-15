@@ -139,9 +139,7 @@ class CallbackHandlerBitflag(CallbackHandler):
 
     # Overrides CallbackHandler's implem, but do not serve for optimization
     def has_callbacks(self, bitflag):
-        for b in self.callbacks.iterkeys():
-            if b & bitflag != 0:
-                return True
+        return any(cb_mask & bitflag != 0 for cb_mask in self.callbacks)
 
     def __call__(self, bitflag, *args):
         """Call each callbacks associated with bit set in bitflag. While
@@ -149,7 +147,7 @@ class CallbackHandlerBitflag(CallbackHandler):
         Iterator on other results"""
 
         res = True
-        for b in self.callbacks.iterkeys():
+        for b in self.callbacks:
 
             if b & bitflag != 0:
                 # If the flag matched
