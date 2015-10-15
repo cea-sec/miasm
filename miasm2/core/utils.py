@@ -75,7 +75,7 @@ class BoundedDict(UserDict.DictMixin):
         self._max_size = max_size
         self._size = len(self._data)
         # Do not use collections.Counter as it is quite slow
-        self._counter = dict((k, 1) for k in self._data.iterkeys())
+        self._counter = {k: 1 for k in self._data}
         self._delete_cb = delete_cb
 
     def __setitem__(self, asked_key, value):
@@ -99,7 +99,7 @@ class BoundedDict(UserDict.DictMixin):
                 self._size = self._min_size
 
                 # Reset use's counter
-                self._counter = dict((k, 1) for k in self._data.iterkeys())
+                self._counter = {k: 1 for k in self._data}
 
             # Avoid rechecking in dict: set to 1 here, add 1 otherwise
             self._counter[asked_key] = 1
