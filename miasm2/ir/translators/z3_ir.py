@@ -167,6 +167,10 @@ class TranslatorZ3(Translator):
                     res = res >> arg
                 elif expr.op == "a<<":
                     res = res << arg
+                elif expr.op == "<<<":
+                    res = z3.RotateLeft(res, arg)
+                elif expr.op == ">>>":
+                    res = z3.RotateRight(res, arg)
                 elif expr.op == "idiv":
                     res = res / arg
                 elif expr.op == "udiv":
