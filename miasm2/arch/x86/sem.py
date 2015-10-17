@@ -3094,13 +3094,8 @@ def movd(ir, instr, a, b):
     return e, []
 
 def movdqu(ir, instr, a, b):
-    e = []
-    if isinstance(a, m2_expr.ExprMem):
-        a = m2_expr.ExprMem(a.arg, b.size)
-    elif isinstance(b, m2_expr.ExprMem):
-        b = m2_expr.ExprMem(b.arg, a.size)
-    e.append(m2_expr.ExprAff(a, b))
-    return e, []
+    # XXX TODO alignement check
+    return [m2_expr.ExprAff(a, b)], []
 
 
 def xorps(ir, instr, a, b):
@@ -3537,6 +3532,7 @@ mnemo_func = {'mov': mov,
               "str": l_str,
               "movd": movd,
               "movdqu":movdqu,
+              "movdqa":movdqu,
               "movaps": movaps,
               "xorps": xorps,
               "xorpd": xorps,
