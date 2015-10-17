@@ -3260,6 +3260,12 @@ addop("cmpsq", [bs8(0xa7), bs_opmode64])
 addop("cmpxchg", [bs8(0x0f), bs('1011000'), w8]
       + rmmod(rmreg, rm_arg_w8), [rm_arg_w8, rmreg])
 # XXX TODO CMPXCHG8/16
+
+addop("comiss", [bs8(0x0f), bs8(0x2f), no_xmm_pref] +
+      rmmod(xmm_reg, rm_arg_xmm_m32), [xmm_reg, rm_arg_xmm_m32])
+addop("comisd", [bs8(0x0f), bs8(0x2f), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m64), [xmm_reg, rm_arg_xmm_m64])
+
 addop("cpuid", [bs8(0x0f), bs8(0xa2)])
 
 addop("cwd", [bs8(0x99), bs_opmode16])
