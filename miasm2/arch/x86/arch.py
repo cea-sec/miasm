@@ -3542,7 +3542,9 @@ addop("movupd", [bs8(0x0f), bs8(0x10), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
 
 addop("movd", [bs8(0x0f), bs('011'), swapargs, bs('1110'), no_xmm_pref] +
       rmmod(mm_reg, rm_arg), [mm_reg, rm_arg])
-addop("movd", [bs8(0x0f), bs('011'), swapargs, bs('1110'), pref_66] +
+addop("movd", [bs8(0x0f), bs('011'), swapargs, bs('1110'), pref_66, bs_opmode32] +
+      rmmod(xmm_reg, rm_arg), [xmm_reg, rm_arg])
+addop("movq", [bs8(0x0f), bs('011'), swapargs, bs('1110'), pref_66, bs_opmode64] +
       rmmod(xmm_reg, rm_arg), [xmm_reg, rm_arg])
 
 addop("movq", [bs8(0x0f), bs('011'), swapargs, bs('1111'), no_xmm_pref] +
