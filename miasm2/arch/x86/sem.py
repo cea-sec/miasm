@@ -3105,6 +3105,21 @@ def xorps(ir, instr, a, b):
     e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('^', a, b)))
     return e, []
 
+def rdmsr(ir, instr):
+    msr_addr = m2_expr.ExprId('MSR') + m2_expr.ExprInt32(8) * mRCX[instr.mode][:32]
+    e = []
+    e.append(m2_expr.ExprAff(mRAX[instr.mode][:32], m2_expr.ExprMem(msr_addr, 32)))
+    e.append(m2_expr.ExprAff(mRDX[instr.mode][:32], m2_expr.ExprMem(msr_addr + m2_expr.ExprInt_from(msr_addr, 4), 32)))
+    return e, []
+
+def wrmsr(ir, instr):
+    msr_addr = m2_expr.ExprId('MSR') + m2_expr.ExprInt32(8) * mRCX[instr.mode][:32]
+    e = []
+    src = m2_expr.ExprCompose([(mRAX[instr.mode][:32], 0, 32),
+                               (mRDX[instr.mode][:32], 32, 64)])
+    e.append(m2_expr.ExprAff(m2_expr.ExprMem(msr_addr, 64), src))
+    return e, []
+
 ### MMX/SSE/AVX operations
 ###
 
@@ -3597,7 +3612,10 @@ mnemo_func = {'mov': mov,
               ### Logical (floating-point)
               ###
 
-              "pand": pand
+              "pand": pand,
+
+              "rdmsr": rdmsr,
+              "wrmsr": wrmsr,
 
               }
 
