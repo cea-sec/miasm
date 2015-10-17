@@ -3586,16 +3586,6 @@ addop("andpd", [bs8(0x0f), bs8(0x54), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
 addop("maxsd", [bs8(0x0f), bs8(0x5f), pref_f2] + rmmod(xmm_reg, rm_arg_xmm_m64))
 addop("maxss", [bs8(0x0f), bs8(0x5f), pref_f3] + rmmod(xmm_reg, rm_arg_xmm_m32))
 
-addop("cvtsi2sd",
-      [bs8(0x0f), bs8(0x2a), xmmreg, pref_f2] + rmmod(xmm_reg, rm_arg))
-addop("cvtsi2ss",
-      [bs8(0x0f), bs8(0x2a), xmmreg, pref_f3] + rmmod(xmm_reg, rm_arg))
-
-
-addop("cvttsd2ss",
-      [bs8(0x0f), bs8(0x2c), xmmreg, pref_f2] + rmmod(rmreg, rm_arg))
-addop("cvttss2si",
-      [bs8(0x0f), bs8(0x2c), xmmreg, pref_f3] + rmmod(rmreg, rm_arg))
 
 
 addop("movzx", [bs8(0x0f), bs("1011011"), w8, sx] + rmmod(rmreg, rm_arg_sx))
@@ -3911,16 +3901,50 @@ addop("por", [bs8(0x0f), bs8(0xeb), pref_66] +
 ## SS -> SD
 ##
 
-# SSE
-addop("cvtss2sd", [bs8(0x0f), bs8(0x5a), pref_f3]
-      + rmmod(xmm_reg, rm_arg_xmm_m32))
-
-## SD -> SS
-##
-
-# SSE
+addop("cvtdq2pd", [bs8(0x0f), bs8(0xe6), pref_f3]
+      + rmmod(xmm_reg, rm_arg_xmm_m64))
+addop("cvtdq2ps", [bs8(0x0f), bs8(0x5b), no_xmm_pref]
+      + rmmod(xmm_reg, rm_arg_xmm))
+addop("cvtpd2dq", [bs8(0x0f), bs8(0xe6), pref_f2]
+      + rmmod(xmm_reg, rm_arg_xmm))
+addop("cvtpd2pi", [bs8(0x0f), bs8(0x2d), pref_66]
+      + rmmod(mm_reg, rm_arg_xmm))
+addop("cvtpd2ps", [bs8(0x0f), bs8(0x5a), pref_66]
+      + rmmod(xmm_reg, rm_arg_xmm))
+addop("cvtpi2pd", [bs8(0x0f), bs8(0x2a), pref_66]
+      + rmmod(xmm_reg, rm_arg_mm_m64))
+addop("cvtpi2ps", [bs8(0x0f), bs8(0x2a), no_xmm_pref]
+      + rmmod(xmm_reg, rm_arg_mm_m64))
+addop("cvtps2dq", [bs8(0x0f), bs8(0x5b), pref_66]
+      + rmmod(xmm_reg, rm_arg_xmm))
+addop("cvtps2pd", [bs8(0x0f), bs8(0x5a), no_xmm_pref]
+      + rmmod(xmm_reg, rm_arg_xmm_m64))
+addop("cvtps2pi", [bs8(0x0f), bs8(0x2d), no_xmm_pref]
+      + rmmod(mm_reg, rm_arg_xmm_m64))
+addop("cvtsd2si", [bs8(0x0f), bs8(0x2d), pref_f2]
+      + rmmod(reg, rm_arg_xmm_m64))
 addop("cvtsd2ss", [bs8(0x0f), bs8(0x5a), pref_f2]
       + rmmod(xmm_reg, rm_arg_xmm_m64))
+addop("cvtsi2sd", [bs8(0x0f), bs8(0x2a), pref_f2]
+      + rmmod(xmm_reg, rm_arg))
+addop("cvtsi2ss", [bs8(0x0f), bs8(0x2a), xmmreg, pref_f3]
+      + rmmod(xmm_reg, rm_arg))
+addop("cvtss2sd", [bs8(0x0f), bs8(0x5a), pref_f3]
+      + rmmod(xmm_reg, rm_arg_xmm_m32))
+addop("cvtss2si", [bs8(0x0f), bs8(0x2d), pref_f3]
+      + rmmod(rmreg, rm_arg_xmm_m32))
+addop("cvttpd2pi",[bs8(0x0f), bs8(0x2c), pref_66]
+      + rmmod(mm_reg, rm_arg_xmm))
+addop("cvttpd2dq",[bs8(0x0f), bs8(0xe6), pref_66]
+      + rmmod(xmm_reg, rm_arg_xmm))
+addop("cvttps2dq",[bs8(0x0f), bs8(0x5b), pref_f3]
+      + rmmod(xmm_reg, rm_arg_xmm))
+addop("cvttps2pi",[bs8(0x0f), bs8(0x2c), no_xmm_pref]
+      + rmmod(mm_reg, rm_arg_xmm_m64))
+addop("cvttsd2si",[bs8(0x0f), bs8(0x2c), pref_f2]
+      + rmmod(reg, rm_arg_xmm_m64))
+addop("cvttss2si",[bs8(0x0f), bs8(0x2c), pref_f3]
+      + rmmod(reg, rm_arg_xmm_m32))
 
 
 mn_x86.bintree = factor_one_bit(mn_x86.bintree)

@@ -3255,12 +3255,138 @@ def pminsw(ir, instr, a, b):
     e.append(m2_expr.ExprAff(a, m2_expr.ExprCond((a - b).msb(), a, b)))
     return e, []
 
+def cvtdq2pd(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:64], m2_expr.ExprOp('int_32_to_double', b[:32])))
+    e.append(m2_expr.ExprAff(a[64:128], m2_expr.ExprOp('int_32_to_double', b[32:64])))
+    return e, []
+
+def cvtdq2ps(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:32], m2_expr.ExprOp('int_32_to_float', b[:32])))
+    e.append(m2_expr.ExprAff(a[32:64], m2_expr.ExprOp('int_32_to_float', b[32:64])))
+    e.append(m2_expr.ExprAff(a[64:96], m2_expr.ExprOp('int_32_to_float', b[64:96])))
+    e.append(m2_expr.ExprAff(a[96:128], m2_expr.ExprOp('int_32_to_float', b[96:128])))
+    return e, []
+
+def cvtpd2dq(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:32], m2_expr.ExprOp('double_to_int_32', b[:64])))
+    e.append(m2_expr.ExprAff(a[32:64], m2_expr.ExprOp('double_to_int_32', b[64:128])))
+    e.append(m2_expr.ExprAff(a[64:128], m2_expr.ExprInt64(0)))
+    return e, []
+
+def cvtpd2pi(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:32], m2_expr.ExprOp('double_to_int_32', b[:64])))
+    e.append(m2_expr.ExprAff(a[32:64], m2_expr.ExprOp('double_to_int_32', b[64:128])))
+    return e, []
+
+def cvtpd2ps(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:32], m2_expr.ExprOp('double_to_float', b[:64])))
+    e.append(m2_expr.ExprAff(a[32:64], m2_expr.ExprOp('double_to_float', b[64:128])))
+    e.append(m2_expr.ExprAff(a[64:128], m2_expr.ExprInt64(0)))
+    return e, []
+
+def cvtpi2pd(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:64], m2_expr.ExprOp('int_32_to_double', b[:32])))
+    e.append(m2_expr.ExprAff(a[64:128], m2_expr.ExprOp('int_32_to_double', b[32:64])))
+    return e, []
+
+def cvtpi2ps(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:32], m2_expr.ExprOp('int_32_to_float', b[:32])))
+    e.append(m2_expr.ExprAff(a[32:64], m2_expr.ExprOp('int_32_to_float', b[32:64])))
+    return e, []
+
+def cvtps2dq(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:32], m2_expr.ExprOp('float_to_int_32', b[:32])))
+    e.append(m2_expr.ExprAff(a[32:64], m2_expr.ExprOp('float_to_int_32', b[32:64])))
+    e.append(m2_expr.ExprAff(a[64:96], m2_expr.ExprOp('float_to_int_32', b[64:96])))
+    e.append(m2_expr.ExprAff(a[96:128], m2_expr.ExprOp('float_to_int_32', b[96:128])))
+    return e, []
+
+def cvtps2pd(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:64], m2_expr.ExprOp('float_to_double', b[:32])))
+    e.append(m2_expr.ExprAff(a[64:128], m2_expr.ExprOp('float_to_double', b[32:64])))
+    return e, []
+
+def cvtps2pi(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:32], m2_expr.ExprOp('float_to_int_32', b[:32])))
+    e.append(m2_expr.ExprAff(a[32:64], m2_expr.ExprOp('float_to_int_32', b[32:64])))
+    return e, []
+
+def cvtsd2si(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:32], m2_expr.ExprOp('double_to_int_32', b[:64])))
+    return e, []
+
+def cvtsd2ss(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:32], m2_expr.ExprOp('double_to_float', b[:64])))
+    return e, []
 
 def cvtsi2sd(ir, instr, a, b):
     e = []
-    e.append(m2_expr.ExprAff(a[:b.size], m2_expr.ExprOp('cvtsi2sd', b)))
+    e.append(m2_expr.ExprAff(a[:64], m2_expr.ExprOp('int_32_to_double', b[:32])))
     return e, []
 
+def cvtsi2ss(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:32], m2_expr.ExprOp('int_32_to_float', b[:32])))
+    return e, []
+
+def cvtss2sd(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:64], m2_expr.ExprOp('float_to_double', b[:32])))
+    return e, []
+
+def cvtss2si(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:32], m2_expr.ExprOp('float_to_int_32', b[:32])))
+    return e, []
+
+def cvttpd2pi(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:32], m2_expr.ExprOp('double_trunc_to_int_32', b[:64])))
+    e.append(m2_expr.ExprAff(a[32:64], m2_expr.ExprOp('double_trunc_to_int_32', b[64:128])))
+    return e, []
+
+def cvttpd2dq(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:32], m2_expr.ExprOp('double_trunc_to_int_32', b[:64])))
+    e.append(m2_expr.ExprAff(a[32:64], m2_expr.ExprOp('double_trunc_to_int_32', b[64:128])))
+    e.append(m2_expr.ExprAff(a[64:128], m2_expr.ExprInt64(0)))
+    return e, []
+
+def cvttps2dq(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:32], m2_expr.ExprOp('float_trunc_to_int_32', b[:32])))
+    e.append(m2_expr.ExprAff(a[32:64], m2_expr.ExprOp('float_trunc_to_int_32', b[32:64])))
+    e.append(m2_expr.ExprAff(a[64:96], m2_expr.ExprOp('float_trunc_to_int_32', b[64:96])))
+    e.append(m2_expr.ExprAff(a[96:128], m2_expr.ExprOp('float_trunc_to_int_32', b[96:128])))
+    return e, []
+
+def cvttps2pi(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:32], m2_expr.ExprOp('float_trunc_to_int_32', b[:32])))
+    e.append(m2_expr.ExprAff(a[32:64], m2_expr.ExprOp('float_trunc_to_int_32', b[32:64])))
+    return e, []
+
+def cvttsd2si(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:32], m2_expr.ExprOp('double_trunc_to_int_32', b[:64])))
+    return e, []
+
+def cvttss2si(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:32], m2_expr.ExprOp('float_trunc_to_int_32', b[:32])))
+    return e, []
 
 def movss(ir, instr, a, b):
     e = []
@@ -3553,7 +3679,37 @@ mnemo_func = {'mov': mov,
               "xorpd": xorps,
 
               "pminsw": pminsw,
+              "cvtdq2pd": cvtdq2pd,
+              "cvtdq2ps": cvtdq2ps,
+              "cvtpd2dq": cvtpd2dq,
+              "cvtpd2pi": cvtpd2pi,
+              "cvtpd2ps": cvtpd2ps,
+              "cvtpi2pd": cvtpi2pd,
+              "cvtpi2ps": cvtpi2ps,
+              "cvtps2dq": cvtps2dq,
+              "cvtps2pd": cvtps2pd,
+              "cvtps2pi": cvtps2pi,
+              "cvtsd2si": cvtsd2si,
+              "cvtsd2ss": cvtsd2ss,
               "cvtsi2sd": cvtsi2sd,
+              "cvtsi2ss": cvtsi2ss,
+              "cvtss2sd": cvtss2sd,
+              "cvtss2si": cvtss2si,
+              "cvttpd2pi": cvttpd2pi,
+              "cvttpd2dq": cvttpd2dq,
+              "cvttps2dq": cvttps2dq,
+              "cvttps2pi": cvttps2pi,
+              "cvttsd2si": cvttsd2si,
+              "cvttss2si": cvttss2si,
+
+
+
+
+
+
+
+
+
               "movss": movss,
 
               "ucomiss": ucomiss,
