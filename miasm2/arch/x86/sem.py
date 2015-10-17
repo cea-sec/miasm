@@ -945,6 +945,8 @@ def compose_eflag(s=32):
 def pushfd(ir, instr):
     return push(ir, instr, compose_eflag())
 
+def pushfq(ir, instr):
+    return push(ir, instr, compose_eflag().zeroExtend(64))
 
 def pushfw(ir, instr):
     return pushw(ir, instr, compose_eflag(16))
@@ -971,7 +973,7 @@ def popfd(ir, instr):
     e.append(m2_expr.ExprAff(vip, m2_expr.ExprSlice(tmp, 20, 21)))
     e.append(m2_expr.ExprAff(i_d, m2_expr.ExprSlice(tmp, 21, 22)))
     e.append(m2_expr.ExprAff(mRSP[instr.mode],
-                             mRSP[instr.mode] + m2_expr.ExprInt32(4)))
+                             mRSP[instr.mode] + m2_expr.ExprInt_from(mRSP[instr.mode], instr.mode/8)))
     e.append(m2_expr.ExprAff(exception_flags,
                      m2_expr.ExprCond(m2_expr.ExprSlice(tmp, 8, 9),
                               m2_expr.ExprInt32(EXCEPT_SOFT_BP),
@@ -3352,8 +3354,10 @@ mnemo_func = {'mov': mov,
               'scasw': lambda ir, instr: scas(ir, instr, 16),
               'scasd': lambda ir, instr: scas(ir, instr, 32),
               'pushfd': pushfd,
+              'pushfq': pushfq,
               'pushfw': pushfw,
               'popfd': popfd,
+              'popfq': popfd,
               'popfw': popfw,
               'pushad': pushad,
               'pusha': pushad,
