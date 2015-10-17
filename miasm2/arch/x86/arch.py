@@ -3018,6 +3018,14 @@ class field_size:
     def get(self, opm, adm=None):
         return self.d[opm]
 
+class bs_mem(object):
+    def encode(self):
+        return self.value != 0b11
+
+    def decode(self, v):
+        self.value = v
+        return v != 0b11
+
 d_imm64 = bs(l=0, fname="imm64")
 
 d_eax = bs(l=0, cls=(bs_eax, ), fname='eax')
@@ -3044,6 +3052,7 @@ moff = bs(l=0, cls=(bs_moff,), fname="off")
 msegoff = bs(l=16, cls=(bs_msegoff,), fname="mseg")
 movoff = bs(l=0, cls=(bs_movoff,), fname="off")
 mod = bs(l=2, fname="mod")
+mod_mem = bs(l=2, cls=(bs_mem,), fname="mod")
 
 rmreg = bs(l=3, cls=(x86_rm_reg, ), order =1, fname = "reg")
 reg = bs(l=3, cls=(x86_reg, ), order =1, fname = "reg")
@@ -3090,8 +3099,8 @@ cond_list = ["O", "NO", "B", "AE",
 cond = bs_mod_name(l=4, fname='cond', mn_mod=cond_list)
 
 
-def rmmod(r, rm_arg_x=rm_arg):
-    return [mod, r, rm, sib_scale, sib_index, sib_base, disp, rm_arg_x]
+def rmmod(r, rm_arg_x=rm_arg, modrm=mod):
+    return [modrm, r, rm, sib_scale, sib_index, sib_base, disp, rm_arg_x]
 
 #
 # mode | reg | rm #
@@ -3480,6 +3489,10 @@ addop("lss", [bs8(0x0f), bs8(0xb2)] + rmmod(rmreg))
 addop("lfs", [bs8(0x0f), bs8(0xb4)] + rmmod(rmreg))
 addop("lgs", [bs8(0x0f), bs8(0xb5)] + rmmod(rmreg))
 
+addop("lgdt", [bs8(0x0f), bs8(0x01)] + rmmod(d2, modrm=mod_mem))
+addop("lidt", [bs8(0x0f), bs8(0x01)] + rmmod(d3, modrm=mod_mem))
+
+
 addop("leave", [bs8(0xc9), stk])
 
 addop("lodsb", [bs8(0xac)])
@@ -3725,7 +3738,7 @@ addop("sbb", [bs("000110"), swapargs, w8] +
       rmmod(rmreg, rm_arg_w8), [rm_arg_w8, rmreg])
 
 addop("set", [bs8(0x0f), bs('1001'), cond] + rmmod(regnoarg, rm_arg_m08))
-addop("sgdt", [bs8(0x0f), bs8(0x01)] + rmmod(d0))
+addop("sgdt", [bs8(0x0f), bs8(0x01)] + rmmod(d0, modrm=mod_mem))
 addop("shld", [bs8(0x0f), bs8(0xa4)] +
       rmmod(rmreg) + [u08], [rm_arg, rmreg, u08])
 addop("shld", [bs8(0x0f), bs8(0xa5)] +
@@ -3734,8 +3747,8 @@ addop("shrd", [bs8(0x0f), bs8(0xac)] +
       rmmod(rmreg) + [u08], [rm_arg, rmreg, u08])
 addop("shrd", [bs8(0x0f), bs8(0xad)] +
       rmmod(rmreg) + [d_cl], [rm_arg, rmreg, d_cl])
-addop("sidt", [bs8(0x0f), bs8(0x01)] + rmmod(d1))
-addop("sldt", [bs8(0x0f), bs8(0x00)] + rmmod(d0))
+addop("sidt", [bs8(0x0f), bs8(0x01)] + rmmod(d1, modrm=mod_mem))
+addop("sldt", [bs8(0x0f), bs8(0x00)] + rmmod(d0, modrm=mod_mem))
 addop("smsw", [bs8(0x0f), bs8(0x01)] + rmmod(d4))
 addop("stc", [bs8(0xf9)])
 addop("std", [bs8(0xfd)])
