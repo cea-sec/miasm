@@ -2326,6 +2326,8 @@ reg_tests = [
     (m64, "00000000    MOVQ       XMM1, QWORD PTR [R12+0xFFFFFFFFFFFFFFE0]",
      "f3410f7e4c24e0"),
 
+    (m64, "00000000    MOVQ       RCX, XMM0",
+     "66480F7EC1"),
 
     (m32, "00000000    PAND       MM2, MM6",
      "0fdbd6"),
