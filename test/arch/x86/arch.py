@@ -2459,6 +2459,18 @@ reg_tests = [
     (m32, "00000006    CVTSS2SD   XMM4, DWORD PTR [EAX+EDX*0x8]",
      "F30F5A24D0"),
 
+
+    (m32, "00000000    COMISS     XMM0, XMM0",
+    "0f2fc0"),
+    (m64, "00000000    COMISS     XMM0, XMM8",
+    "410f2fc0"),
+    (m64, "00000000    COMISS     XMM0, DWORD PTR [RAX]",
+    "0f2f00"),
+    (m64, "00000000    COMISS     XMM0, DWORD PTR [RSP+0x34]",
+    "0F2F442434"),
+    (m32, "00000000    COMISD     XMM7, XMM6",
+    "660F2FFE"),
+
 ]
 
 
