@@ -765,6 +765,11 @@ reg_tests = [
     (m32, "00000000    CALL       0x6655:0xFF332211",
      "9a112233FF5566"),
 
+    (m32, "00000000    CALL       DWORD PTR [0xFFFFFFA3]",
+     "FF1DA3FFFFFF"),
+    (m64, "00000000    CALL       QWORD PTR [RIP+0xFFFFFFFFFFFFFFA3]",
+     "FF1DA3FFFFFF"),
+
 
     (m16, "00000000    CBW",
      "98"),
@@ -2470,6 +2475,8 @@ reg_tests = [
     "0F2F442434"),
     (m32, "00000000    COMISD     XMM7, XMM6",
     "660F2FFE"),
+
+
 
 ]
 
