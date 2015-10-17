@@ -2132,7 +2132,7 @@ reg_tests = [
     (m32, "00000000    VERW       DWORD PTR [EAX]",
      "0f0028"),
 
-    (m32, "00000000    WBIND",
+    (m32, "00000000    WBINVD",
      "0f09"),
 
     (m32, "00000000    WRMSR",
