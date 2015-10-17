@@ -3115,22 +3115,35 @@ def xorps(ir, instr, a, b):
 def vec_vertical_sem(op, elt_size, reg_size, a, b):
     assert(reg_size % elt_size == 0)
     n = reg_size/elt_size
-    ops = [(m2_expr.ExprOp(op, a[i*elt_size:(i+1)*elt_size],
-                   b[i*elt_size:(i+1)*elt_size]),
-            i*elt_size,
-            (i+1)*elt_size) for i in xrange(0, n)]
+    if op == '-':
+        ops = [((a[i*elt_size:(i+1)*elt_size] - b[i*elt_size:(i+1)*elt_size]),
+               i*elt_size, (i+1)*elt_size) for i in xrange(0, n)]
+    else:
+        ops = [(m2_expr.ExprOp(op, a[i*elt_size:(i+1)*elt_size],
+                               b[i*elt_size:(i+1)*elt_size]),
+                i*elt_size,
+                (i+1)*elt_size) for i in xrange(0, n)]
+
     return m2_expr.ExprCompose(ops)
 
 def float_vec_vertical_sem(op, elt_size, reg_size, a, b):
     assert(reg_size % elt_size == 0)
     n = reg_size/elt_size
-    ops = [(m2_expr.ExprOp('double_to_int_%d' % elt_size, m2_expr.ExprOp(op,
-                   m2_expr.ExprOp('int_%d_to_double' % elt_size,
-                          a[i*elt_size:(i+1)*elt_size]),
-                   m2_expr.ExprOp('int_%d_to_double' % elt_size,
-                          b[i*elt_size:(i+1)*elt_size]))
-                  ),
-            i*elt_size, (i+1)*elt_size) for i in xrange(0, n)]
+
+    x_to_int, int_to_x = {32: ('float_to_int_%d', 'int_%d_to_float'),
+                          64: ('double_to_int_%d', 'int_%d_to_double')}[elt_size]
+    if op == '-':
+        ops = [(m2_expr.ExprOp(x_to_int % elt_size,
+                               m2_expr.ExprOp(int_to_x % elt_size, a[i*elt_size:(i+1)*elt_size]) -
+                               m2_expr.ExprOp(int_to_x % elt_size, b[i*elt_size:(i+1)*elt_size])),
+                i*elt_size, (i+1)*elt_size) for i in xrange(0, n)]
+    else:
+        ops = [(m2_expr.ExprOp(x_to_int % elt_size,
+                               m2_expr.ExprOp(op,
+                                              m2_expr.ExprOp(int_to_x % elt_size, a[i*elt_size:(i+1)*elt_size]),
+                                              m2_expr.ExprOp(int_to_x % elt_size, b[i*elt_size:(i+1)*elt_size]))),
+                i*elt_size, (i+1)*elt_size) for i in xrange(0, n)]
+
     return m2_expr.ExprCompose(ops)
 
 def __vec_vertical_instr_gen(op, elt_size, sem):
