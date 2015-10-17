@@ -3111,6 +3111,19 @@ def xorps(ir, instr, a, b):
 ### MMX/SSE/AVX operations
 ###
 
+def vec_op_clip(op, size):
+    """
+    Generate simd operations
+    @op: the operator
+    @size: size of an element
+    """
+    def vec_op_clip_instr(ir, instr, a, b):
+        if op == '-':
+            return [m2_expr.ExprAff(a[:size], a[:size] - b[:size])], []
+        else:
+            return [m2_expr.ExprAff(a[:size], m2_expr.ExprOp(op, a[:size], b[:size]))], []
+    return vec_op_clip_instr
+
 # Generic vertical operation
 def vec_vertical_sem(op, elt_size, reg_size, a, b):
     assert(reg_size % elt_size == 0)
@@ -3187,12 +3200,20 @@ psubq = vec_vertical_instr('-', 64)
 ###
 
 # SSE
+addss = vec_op_clip('+', 32)
+addsd = vec_op_clip('+', 64)
 addps = float_vec_vertical_instr('+', 32)
 addpd = float_vec_vertical_instr('+', 64)
+subss = vec_op_clip('-', 32)
+subsd = vec_op_clip('-', 64)
 subps = float_vec_vertical_instr('-', 32)
 subpd = float_vec_vertical_instr('-', 64)
+mulss = vec_op_clip('*', 32)
+mulsd = vec_op_clip('*', 64)
 mulps = float_vec_vertical_instr('*', 32)
 mulpd = float_vec_vertical_instr('*', 64)
+divss = vec_op_clip('/', 32)
+divsd = vec_op_clip('/', 64)
 divps = float_vec_vertical_instr('/', 32)
 divpd = float_vec_vertical_instr('/', 64)
 
@@ -3546,21 +3567,29 @@ mnemo_func = {'mov': mov,
 
               ## Additions
               # SSE
+              "addss": addss,
+              "addsd": addsd,
               "addps": addps,
               "addpd": addpd,
 
               ## Substractions
               # SSE
+              "subss": subss,
+              "subsd": subsd,
               "subps": subps,
               "subpd": subpd,
 
               ## Multiplications
               # SSE
+              "mulss": mulss,
+              "mulsd": mulsd,
               "mulps": mulps,
               "mulpd": mulpd,
 
               ## Divisions
               # SSE
+              "divss": divss,
+              "divsd": divsd,
               "divps": divps,
               "divpd": divpd,
 
