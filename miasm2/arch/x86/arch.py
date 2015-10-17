@@ -3785,7 +3785,7 @@ addop("test", [bs("1000010"), w8] +
 addop("ud2", [bs8(0x0f), bs8(0x0b)])
 addop("verr", [bs8(0x0f), bs8(0x00)] + rmmod(d4))
 addop("verw", [bs8(0x0f), bs8(0x00)] + rmmod(d5))
-addop("wbind", [bs8(0x0f), bs8(0x09)])
+addop("wbinvd", [bs8(0x0f), bs8(0x09)])
 addop("wrmsr", [bs8(0x0f), bs8(0x30)])
 addop("xadd", [bs8(0x0f), bs("1100000"), w8]
       + rmmod(rmreg, rm_arg_w8), [rm_arg_w8, rmreg])
