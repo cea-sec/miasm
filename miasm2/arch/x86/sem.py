@@ -3535,6 +3535,7 @@ mnemo_func = {'mov': mov,
               "movdqu":movdqu,
               "movaps": movaps,
               "xorps": xorps,
+              "xorpd": xorps,
 
               "pminsw": pminsw,
               "cvtsi2sd": cvtsi2sd,
