@@ -3164,6 +3164,7 @@ addop("bts", [bs8(0x0f), bs8(0xba)] + rmmod(d5) + [u08])
 
 addop("call", [bs8(0xe8), rel_off])
 addop("call", [bs8(0xff), stk] + rmmod(d2))
+addop("call", [bs8(0xff), stk] + rmmod(d3, modrm=mod_mem))
 addop("call", [bs8(0x9a), moff, msegoff])
 
 
