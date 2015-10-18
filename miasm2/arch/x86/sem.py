@@ -2257,6 +2257,23 @@ def fdivr(ir, instr, a, b=None):
     return e, []
 
 
+def fdivrp(ir, instr, a, b=None):
+    if b is None:
+        b = a
+        a = float_st0
+    e = []
+    if isinstance(b, m2_expr.ExprMem):
+        if b.size > 64:
+            raise NotImplementedError('float to long')
+        src = m2_expr.ExprOp('mem_%.2d_to_double' % b.size, b)
+    else:
+        src = b
+    e.append(m2_expr.ExprAff(float_prev(a), m2_expr.ExprOp('fdiv', src, a)))
+    e += set_float_cs_eip(instr)
+    e += float_pop(a)
+    return e, []
+
+
 def fidiv(ir, instr, a, b=None):
     if b is None:
         b = a
@@ -3708,6 +3725,7 @@ mnemo_func = {'mov': mov,
               'fmulp': fmulp,
               'fdiv': fdiv,
               'fdivr': fdivr,
+              'fdivrp': fdivrp,
               'fidiv': fidiv,
               'fidivr': fidivr,
               'fdivp': fdivp,
