@@ -2399,6 +2399,12 @@ def f2xm1(ir, instr):
     e += set_float_cs_eip(instr)
     return e, []
 
+def fchs(ir, instr):
+    e = []
+    e.append(m2_expr.ExprAff(float_st0, m2_expr.ExprOp('fchs', float_st0)))
+    e += set_float_cs_eip(instr)
+    return e, []
+
 
 def fsqrt(ir, instr):
     e = []
@@ -3623,6 +3629,7 @@ mnemo_func = {'mov': mov,
               'fcos': fcos,
               'fscale': fscale,
               'f2xm1': f2xm1,
+              'fchs': fchs,
               'fsqrt': fsqrt,
               'fabs': fabs,
               'fnstsw': fnstsw,
