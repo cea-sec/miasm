@@ -1682,7 +1682,7 @@ def cqo(ir, instr):
     tempRDX = mRDX[instr.mode][:64]
     c = tempRAX.signExtend(128)
     e.append(m2_expr.ExprAff(tempRAX, c[:64]))
-    e.append(m2_expr.ExprAff(tempRDX, c[64:127]))
+    e.append(m2_expr.ExprAff(tempRDX, c[64:128]))
     return e, []
 
 
