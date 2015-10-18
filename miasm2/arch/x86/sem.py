@@ -2686,7 +2686,6 @@ def cmovz(ir, instr, a, b):
     e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(zf, lbl_do, lbl_skip)))
     return e, [irbloc(lbl_do.name, [e_do])]
 
-
 def cmovnz(ir, instr, a, b):
     e = []
     lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
@@ -2694,6 +2693,26 @@ def cmovnz(ir, instr, a, b):
     e_do, extra_irs = mov(ir, instr, a, b)
     e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
     e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(zf, lbl_skip, lbl_do)))
+    return e, [irbloc(lbl_do.name, [e_do])]
+
+
+def cmovpe(ir, instr, a, b):
+    e = []
+    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
+    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
+    e_do, extra_irs = mov(ir, instr, a, b)
+    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
+    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(pf, lbl_do, lbl_skip)))
+    return e, [irbloc(lbl_do.name, [e_do])]
+
+
+def cmovnp(ir, instr, a, b):
+    e = []
+    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
+    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
+    e_do, extra_irs = mov(ir, instr, a, b)
+    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
+    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(pf, lbl_skip, lbl_do)))
     return e, [irbloc(lbl_do.name, [e_do])]
 
 
@@ -3617,6 +3636,8 @@ mnemo_func = {'mov': mov,
               'cmovz': cmovz,
               'cmove': cmovz,
               'cmovnz': cmovnz,
+              'cmovpe':cmovpe,
+              'cmovnp':cmovnp,
               'cmovge': cmovge,
               'cmovnl': cmovge,
               'cmovg': cmovg,
