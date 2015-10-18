@@ -1886,30 +1886,42 @@ def ficom(ir, instr, a, b = None):
 
 
 
-def fcomi(ir, instr, a):
-    raise NotImplementedError("Invalid emulation")
+def fcomi(ir, instr, a=None, b=None):
+    # TODO unordered float
+    if a is None and b is None:
+        a, b = float_st0, float_st1
+    elif b is None:
+        b = a
+        a = float_st0
 
-
-def fcomip(ir, instr, a):
-    raise NotImplementedError("Invalid emulation")
-
-
-def fucomi(ir, instr, a):
-    raise NotImplementedError("Invalid emulation")
-
-
-def fucomip(ir, instr, a, b):
     e = []
-    # XXX TODO add exception on NaN
+
     e.append(m2_expr.ExprAff(cf, m2_expr.ExprOp('fcom_c0', a, b)))
-    #e.append(m2_expr.ExprAff(float_c1, m2_expr.ExprOp('fcom_c1', a, b)))
     e.append(m2_expr.ExprAff(pf, m2_expr.ExprOp('fcom_c2', a, b)))
     e.append(m2_expr.ExprAff(zf, m2_expr.ExprOp('fcom_c3', a, b)))
 
-    e += float_pop()
+    e.append(m2_expr.ExprAff(of, m2_expr.ExprInt1(0)))
+    e.append(m2_expr.ExprAff(nf, m2_expr.ExprInt1(0)))
+    e.append(m2_expr.ExprAff(af, m2_expr.ExprInt1(0)))
 
     e += set_float_cs_eip(instr)
     return e, []
+
+
+def fcomip(ir, instr, a=None, b=None):
+    e, extra = fcomi(ir, instr, a, b)
+    e += float_pop()
+    e += set_float_cs_eip(instr)
+    return e, extra
+
+
+def fucomi(ir, instr, a=None, b=None):
+    # TODO unordered float
+    return fcomi(ir, instr, a, b)
+
+def fucomip(ir, instr, a=None, b=None):
+    # TODO unordered float
+    return fcomip(ir, instr, a, b)
 
 
 def fcomp(ir, instr, a=None, b=None):
@@ -3667,6 +3679,8 @@ mnemo_func = {'mov': mov,
               'fcomp': fcomp,
               'fcompp': fcompp,
               'ficomp': ficomp,
+              'fcomi': fcomi,
+              'fcomip': fcomip,
               'nop': nop,
               'fnop': nop,  # XXX
               'hlt': hlt,
