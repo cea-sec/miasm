@@ -3011,16 +3011,16 @@ def cpuid(ir, instr):
     e = []
     e.append(
         m2_expr.ExprAff(mRAX[instr.mode],
-        m2_expr.ExprOp('cpuid', mRAX[instr.mode], m2_expr.ExprInt32(0))))
+        m2_expr.ExprOp('cpuid', mRAX[instr.mode], m2_expr.ExprInt_fromsize(instr.mode, 0))))
     e.append(
         m2_expr.ExprAff(mRBX[instr.mode],
-        m2_expr.ExprOp('cpuid', mRAX[instr.mode], m2_expr.ExprInt32(1))))
+        m2_expr.ExprOp('cpuid', mRAX[instr.mode], m2_expr.ExprInt_fromsize(instr.mode, 1))))
     e.append(
         m2_expr.ExprAff(mRCX[instr.mode],
-        m2_expr.ExprOp('cpuid', mRAX[instr.mode], m2_expr.ExprInt32(2))))
+        m2_expr.ExprOp('cpuid', mRAX[instr.mode], m2_expr.ExprInt_fromsize(instr.mode, 2))))
     e.append(
         m2_expr.ExprAff(mRDX[instr.mode],
-        m2_expr.ExprOp('cpuid', mRAX[instr.mode], m2_expr.ExprInt32(3))))
+        m2_expr.ExprOp('cpuid', mRAX[instr.mode], m2_expr.ExprInt_fromsize(instr.mode, 3))))
     return e, []
 
 
