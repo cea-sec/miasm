@@ -248,7 +248,6 @@ reg_float_address = 'reg_float_address'
 reg_float_ds = 'reg_float_ds'
 
 
-
 dr0 = ExprId(reg_dr0)
 dr1 = ExprId(reg_dr1)
 dr2 = ExprId(reg_dr2)
@@ -342,6 +341,14 @@ float_st5 = ExprId("float_st5", 64)
 float_st6 = ExprId("float_st6", 64)
 float_st7 = ExprId("float_st7", 64)
 
+
+float_list = [float_st0, float_st1, float_st2, float_st3,
+              float_st4, float_st5, float_st6, float_st7]
+
+float_replace = {fltregs32_expr[i]: float_list[i] for i in xrange(8)}
+float_replace[r_st_all.expr[0]] = float_st0
+
+
 EAX_init = ExprId('EAX_init')
 EBX_init = ExprId('EBX_init')
 ECX_init = ExprId('ECX_init')
@@ -428,7 +435,7 @@ for i, r in enumerate(all_regs_ids):
 
 regs_flt_expr = [float_st0, float_st1, float_st2, float_st3,
                  float_st4, float_st5, float_st6, float_st7,
-             ]
+                 ]
 
 mRAX = {16: AX, 32: EAX, 64: RAX}
 mRBX = {16: BX, 32: EBX, 64: RBX}

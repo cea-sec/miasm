@@ -54,18 +54,6 @@ OF(A-B) = ((A XOR D) AND (A XOR B)) < 0
 """
 
 
-float_list = [
-    m2_expr.ExprId("ST", 64),
-    m2_expr.ExprId("ST(0)", 64),
-    m2_expr.ExprId("ST(1)", 64),
-    m2_expr.ExprId("ST(2)", 64),
-    m2_expr.ExprId("ST(3)", 64),
-    m2_expr.ExprId("ST(4)", 64),
-    m2_expr.ExprId("ST(5)", 64),
-    m2_expr.ExprId("ST(6)", 64),
-    m2_expr.ExprId("ST(7)", 64),
-]
-
 
 # XXX TODO make default check against 0 or not 0 (same eq as in C)
 
@@ -1815,38 +1803,34 @@ def movsd_dispatch(ir, instr, a = None, b = None):
         return movsd(ir, instr, a, b)
 
 
-def float_prev(flt):
+def float_prev(flt, popcount=1):
     if not flt in float_list:
         return None
     i = float_list.index(flt)
-    if i == 0:
+    if i < popcount:
         raise ValueError('broken index')
-    flt = float_list[i - 1]
+    flt = float_list[i - popcount]
     return flt
 
 
-def float_pop(avoid_flt=None):
-    avoid_flt = float_prev(avoid_flt)
+def float_pop(avoid_flt=None, popcount=1):
+    """
+    Generate floatpop semantic (@popcount times), avoiding the avoid_flt@ float
+    @avoid_flt: float avoided in the generated semantic
+    @popcount: pop count
+    """
+    avoid_flt = float_prev(avoid_flt, popcount)
     e = []
-    if avoid_flt != float_st0:
-        e.append(m2_expr.ExprAff(float_st0, float_st1))
-    if avoid_flt != float_st1:
-        e.append(m2_expr.ExprAff(float_st1, float_st2))
-    if avoid_flt != float_st2:
-        e.append(m2_expr.ExprAff(float_st2, float_st3))
-    if avoid_flt != float_st3:
-        e.append(m2_expr.ExprAff(float_st3, float_st4))
-    if avoid_flt != float_st4:
-        e.append(m2_expr.ExprAff(float_st4, float_st5))
-    if avoid_flt != float_st5:
-        e.append(m2_expr.ExprAff(float_st5, float_st6))
-    if avoid_flt != float_st6:
-        e.append(m2_expr.ExprAff(float_st6, float_st7))
-    if avoid_flt != float_st7:
-        e.append(m2_expr.ExprAff(float_st7, m2_expr.ExprInt_from(float_st7, 0)))
+    for i in xrange(8-popcount):
+        if avoid_flt != float_list[i]:
+            e.append(m2_expr.ExprAff(float_list[i],
+                                     float_list[i+popcount]))
+    for i in xrange(8-popcount, 8):
+        e.append(m2_expr.ExprAff(float_list[i],
+                                 m2_expr.ExprInt_from(float_list[i], 0)))
     e.append(
         m2_expr.ExprAff(float_stack_ptr,
-                        float_stack_ptr - m2_expr.ExprInt_fromsize(3, 1)))
+                        float_stack_ptr - m2_expr.ExprInt_fromsize(3, popcount)))
     return e
 
 # XXX TODO
@@ -3909,6 +3893,7 @@ class ir_x86_16(ir):
 
     def get_ir(self, instr):
         args = instr.args[:]
+        args = [arg.replace_expr(float_replace) for arg in args]
         my_ss = None
         if self.do_ds_segm:
             my_ss = DS
