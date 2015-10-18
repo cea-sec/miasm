@@ -61,6 +61,12 @@ m16 = 16  # (16, 16)
 m32 = 32  # (32, 32)
 m64 = 64  # (64, 64)
 reg_tests = [
+    (m16, "XXXXXXXX    CPUID",
+    "0fa2"),
+    (m32, "XXXXXXXX    CPUID",
+    "0fa2"),
+    (m64, "XXXXXXXX    CPUID",
+    "0fa2"),
 
 
     (m32, "XXXXXXXX    PMINSW     MM0, QWORD PTR [EAX]",
