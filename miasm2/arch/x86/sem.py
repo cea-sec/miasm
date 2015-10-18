@@ -1836,9 +1836,11 @@ def float_pop(avoid_flt=None, popcount=1):
 # XXX TODO
 
 
-def fcom(ir, instr, a, b = None):
+def fcom(ir, instr, a=None, b=None):
 
-    if b is None:
+    if a is None and b is None:
+        a, b = float_st0, float_st1
+    elif b is None:
         b = a
         a = float_st0
 
@@ -1910,11 +1912,19 @@ def fucomip(ir, instr, a, b):
     return e, []
 
 
-def fcomp(ir, instr, a, b = None):
+def fcomp(ir, instr, a=None, b=None):
     e, extra = fcom(ir, instr, a, b)
     e += float_pop()
     e += set_float_cs_eip(instr)
     return e, extra
+
+
+def fcompp(ir, instr, a=None, b=None):
+    e, extra = fcom(ir, instr, a, b)
+    e += float_pop(popcount=2)
+    e += set_float_cs_eip(instr)
+    return e, extra
+
 
 def ficomp(ir, instr, a, b = None):
     e, extra = ficom(ir, instr, a, b)
@@ -3655,6 +3665,7 @@ mnemo_func = {'mov': mov,
               'movsd': movsd_dispatch,
               'movsq': lambda ir, instr: movs(ir, instr, 64),
               'fcomp': fcomp,
+              'fcompp': fcompp,
               'ficomp': ficomp,
               'nop': nop,
               'fnop': nop,  # XXX
