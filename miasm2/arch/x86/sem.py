@@ -1996,6 +1996,46 @@ def fucompp(ir, instr, a=None, b=None):
     return fcompp(ir, instr, a, b)
 
 
+def comiss(ir, instr, a, b):
+    # TODO unordered float
+
+    e = []
+
+    a = m2_expr.ExprOp('int_32_to_float', a[:32])
+    b = m2_expr.ExprOp('int_32_to_float', b[:32])
+
+    e.append(m2_expr.ExprAff(cf, m2_expr.ExprOp('fcom_c0', a, b)))
+    e.append(m2_expr.ExprAff(pf, m2_expr.ExprOp('fcom_c2', a, b)))
+    e.append(m2_expr.ExprAff(zf, m2_expr.ExprOp('fcom_c3', a, b)))
+
+    e.append(m2_expr.ExprAff(of, m2_expr.ExprInt1(0)))
+    e.append(m2_expr.ExprAff(nf, m2_expr.ExprInt1(0)))
+    e.append(m2_expr.ExprAff(af, m2_expr.ExprInt1(0)))
+
+    e += set_float_cs_eip(instr)
+    return e, []
+
+
+def comisd(ir, instr, a, b):
+    # TODO unordered float
+
+    e = []
+
+    a = m2_expr.ExprOp('int_64_to_double', a[:64])
+    b = m2_expr.ExprOp('int_64_to_double', b[:64])
+
+    e.append(m2_expr.ExprAff(cf, m2_expr.ExprOp('fcom_c0', a, b)))
+    e.append(m2_expr.ExprAff(pf, m2_expr.ExprOp('fcom_c2', a, b)))
+    e.append(m2_expr.ExprAff(zf, m2_expr.ExprOp('fcom_c3', a, b)))
+
+    e.append(m2_expr.ExprAff(of, m2_expr.ExprInt1(0)))
+    e.append(m2_expr.ExprAff(nf, m2_expr.ExprInt1(0)))
+    e.append(m2_expr.ExprAff(af, m2_expr.ExprInt1(0)))
+
+    e += set_float_cs_eip(instr)
+    return e, []
+
+
 def fld(ir, instr, a):
     src = mem2double(a)
 
@@ -3753,6 +3793,8 @@ mnemo_func = {'mov': mov,
               'fucom': fucom,
               'fucomp': fucomp,
               'fucompp': fucompp,
+              'comiss': comiss,
+              'comisd': comisd,
               'fcomi': fcomi,
               'fcomip': fcomip,
               'nop': nop,
