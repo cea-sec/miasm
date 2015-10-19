@@ -2212,6 +2212,13 @@ reg_tests = [
     (m32, "00000000    XORPD      XMM1, XMM2",
      "660f57ca"),
 
+    (m32, "00000000    ORPS       XMM1, XMM2",
+     "0f56ca"),
+    (m32, "00000000    ORPS       XMM1, XMMWORD PTR [EDI+0x42]",
+     "0f564f42"),
+    (m32, "00000000    ORPD       XMM1, XMM2",
+     "660f56ca"),
+
     (m32, "00000000    MOVAPS     XMMWORD PTR [EBP+0xFFFFFFB8], XMM0",
      "0f2945b8"),
     (m32, "00000000    MOVAPS     XMM0, XMMWORD PTR [EBP+0xFFFFFFB8]",
@@ -2255,8 +2262,13 @@ reg_tests = [
      "f20f5911"),
 
 
-    (m32, "00000000    PXOR       XMM0, XMM0",
-     "0fefc0"),
+    (m32, "00000000    PXOR       MM0, MM1",
+     "0fefc1"),
+    (m32, "00000000    PXOR       XMM0, XMM1",
+     "660fefc1"),
+    (m32, "00000000    PXOR       XMM6, XMMWORD PTR [ECX+0x10]",
+     "660fef7110"),
+
     (m32, "00000000    UCOMISD    XMM0, QWORD PTR [EBP+0xFFFFFFD8]",
      "660f2e45d8"),
     (m32, "00000000    ANDPS      XMM0, XMMWORD PTR [EBX+0x2CBD27]",
@@ -2412,6 +2424,10 @@ reg_tests = [
 
     (m32, "00000000    POR        XMM0, XMM1",
      "660febc1"),
+    (m32, "00000000    POR        XMM6, XMMWORD PTR [ECX+0x10]",
+     "660febb110000000"),
+    (m32, "00000000    POR        MM6, QWORD PTR [ECX+0x10]",
+     "0febb110000000"),
 
     (m32, "00000000    MOVDQU     XMM1, XMMWORD PTR [ESI]",
      "f30f6f0e"),
