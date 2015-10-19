@@ -265,8 +265,8 @@ class OS_Linux_str(OS):
 
 class Arch_x86(Arch):
     _ARCH_ = None # Arch name
-    STACK_SIZE = 0x100000
-    STACK_BASE = 0x123000
+    STACK_SIZE = 0x10000
+    STACK_BASE = 0x130000
 
     def __init__(self):
         super(Arch_x86, self).__init__()
