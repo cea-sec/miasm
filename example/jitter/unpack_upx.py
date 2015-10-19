@@ -81,6 +81,9 @@ def update_binary(jitter):
         sdata = sb.jitter.vm.get_mem(sb.pe.rva2virt(s.addr), s.rawsize)
         sb.pe.virt[sb.pe.rva2virt(s.addr)] = sdata
 
+    # Stop execution
+    jitter.run = False
+    return False
 
 # Set callbacks
 sb.jitter.add_breakpoint(end_label, update_binary)
