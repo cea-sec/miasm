@@ -22,6 +22,16 @@ class DebugBreakpointSoft(DebugBreakpoint):
         return "Soft BP @0x%08x" % self.addr
 
 
+class DebugBreakpointTerminate(DebugBreakpoint):
+    "Stand for an execution termination"
+
+    def __init__(self, status):
+        self.status = status
+
+    def __str__(self):
+        return "Terminate with %s" % self.status
+
+
 class DebugBreakpointMemory(DebugBreakpoint):
 
     "Stand for memory breakpoint"
@@ -131,8 +141,9 @@ class Debugguer(object):
             self.myjit.jit.log_newbloc = newbloc
 
     def handle_exception(self, res):
-        if res is None:
-            return
+        if not res:
+            # A breakpoint has stopped the execution
+            return DebugBreakpointTerminate(res)
 
         if isinstance(res, DebugBreakpointSoft):
             print "Breakpoint reached @0x%08x" % res.addr
