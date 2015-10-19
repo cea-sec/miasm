@@ -293,10 +293,6 @@ def xor(ir, instr, a, b):
 
 def pxor(ir, instr, a, b):
     e = []
-    if isinstance(a, m2_expr.ExprMem):
-        a = m2_expr.ExprMem(a.arg, b.size)
-    if isinstance(b, m2_expr.ExprMem):
-        b = m2_expr.ExprMem(b.arg, a.size)
     c = a ^ b
     e.append(m2_expr.ExprAff(a, c))
     return e, []
@@ -3233,12 +3229,23 @@ def movapd(ir, instr, a, b):
     return [m2_expr.ExprAff(a, b)], []
 
 
+def andps(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('&', a, b)))
+    return e, []
+
+
+def orps(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('|', a, b)))
+    return e, []
+
+
 def xorps(ir, instr, a, b):
     e = []
-    if isinstance(b, m2_expr.ExprMem):
-        b = m2_expr.ExprMem(b.arg, a.size)
     e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('^', a, b)))
     return e, []
+
 
 def rdmsr(ir, instr):
     msr_addr = m2_expr.ExprId('MSR') + m2_expr.ExprInt32(8) * mRCX[instr.mode][:32]
@@ -3375,12 +3382,11 @@ def pand(ir, instr, a, b):
     e.append(m2_expr.ExprAff(a, c))
     return e, []
 
+
+def por(ir, instr, a, b):
     e = []
-    if isinstance(a, m2_expr.ExprMem):
-        a = m2_expr.ExprMem(a.arg, b.size)
-    if isinstance(b, m2_expr.ExprMem):
-        b = m2_expr.ExprMem(b.arg, a.size)
-    e.append(m2_expr.ExprAff(a, b))
+    c = a | b
+    e.append(m2_expr.ExprAff(a, c))
     return e, []
 
 
@@ -3836,6 +3842,10 @@ mnemo_func = {'mov': mov,
               "movupd": movapd, # XXX TODO alignement check
               "movaps": movapd, # XXX TODO alignement check
               "movups": movapd, # XXX TODO alignement check
+              "andps": andps,
+              "andpd": andps,
+              "orps": orps,
+              "orpd": orps,
               "xorps": xorps,
               "xorpd": xorps,
 
@@ -3930,6 +3940,7 @@ mnemo_func = {'mov': mov,
               ###
 
               "pand": pand,
+              "por": por,
 
               "rdmsr": rdmsr,
               "wrmsr": wrmsr,

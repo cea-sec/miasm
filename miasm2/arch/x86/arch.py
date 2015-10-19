@@ -3573,15 +3573,8 @@ addop("divsd", [bs8(0x0f), bs8(0x5e), pref_f2] + rmmod(xmm_reg, rm_arg_xmm_m64))
 addop("pminsw", [bs8(0x0f), bs8(0xea), no_xmm_pref] + rmmod(mm_reg, rm_arg_mm))
 addop("pminsw", [bs8(0x0f), bs8(0xea), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
 
-
-addop("pxor", [bs8(0x0f), bs8(0xef), xmm] + rmmod(xmm_reg, rm_arg_xmm))
-
 addop("ucomiss", [bs8(0x0f), bs8(0x2e), no_xmm_pref] + rmmod(xmm_reg, rm_arg_xmm_m32))
 addop("ucomisd", [bs8(0x0f), bs8(0x2e), pref_66] + rmmod(xmm_reg, rm_arg_xmm_m64))
-
-addop("andps", [bs8(0x0f), bs8(0x54), no_xmm_pref] + rmmod(xmm_reg, rm_arg_xmm))
-addop("andpd", [bs8(0x0f), bs8(0x54), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
-
 
 addop("maxsd", [bs8(0x0f), bs8(0x5f), pref_f2] + rmmod(xmm_reg, rm_arg_xmm_m64))
 addop("maxss", [bs8(0x0f), bs8(0x5f), pref_f3] + rmmod(xmm_reg, rm_arg_xmm_m32))
@@ -3797,7 +3790,6 @@ addop("xor", [bs("001100"), swapargs, w8] +
 addop("xgetbv", [bs8(0x0f), bs8(0x01), bs8(0xd0)])
 
 
-#addop("pand", [bs8(0x0f), bs8(0xdb), pref_66])# + rmmod(rmreg, rm_arg))
 
 #### MMX/SSE/AVX operations
 #### Categories are the same than here: https://software.intel.com/sites/landingpage/IntrinsicsGuide/
@@ -3872,10 +3864,16 @@ addop("divpd", [bs8(0x0f), bs8(0x5e), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
 ###
 
 ## XOR
-# SSE
-addop("xorpd", [bs8(0x0f), bs8(0x57), xmm] + rmmod(xmm_reg, rm_arg_xmm) + [bs_opmode16])
-addop("xorps", [bs8(0x0f), bs8(0x57), xmm] + rmmod(xmm_reg, rm_arg_xmm) + [bs_opmode32])
-addop("xorps", [bs8(0x0f), bs8(0x57), xmm] + rmmod(xmm_reg, rm_arg_xmm) + [bs_opmode64])
+addop("xorps", [bs8(0x0f), bs8(0x57), no_xmm_pref] + rmmod(xmm_reg, rm_arg_xmm))
+addop("xorpd", [bs8(0x0f), bs8(0x57), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
+
+## AND
+addop("andps", [bs8(0x0f), bs8(0x54), no_xmm_pref] + rmmod(xmm_reg, rm_arg_xmm))
+addop("andpd", [bs8(0x0f), bs8(0x54), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
+
+## OR
+addop("orps", [bs8(0x0f), bs8(0x56), no_xmm_pref] + rmmod(xmm_reg, rm_arg_xmm))
+addop("orpd", [bs8(0x0f), bs8(0x56), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
 
 ## AND
 # MMX
@@ -3892,6 +3890,14 @@ addop("por", [bs8(0x0f), bs8(0xeb), no_xmm_pref] +
 # SSE
 addop("por", [bs8(0x0f), bs8(0xeb), pref_66] +
       rmmod(xmm_reg, rm_arg_xmm), [xmm_reg, rm_arg_xmm])
+
+## XOR
+# MMX
+addop("pxor", [bs8(0x0f), bs8(0xef), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm))
+# MMX
+addop("pxor", [bs8(0x0f), bs8(0xef), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
 
 ### Convert
 ### SS = single precision
