@@ -149,6 +149,9 @@ class Debugguer(object):
         else:
             raise NotImplementedError("type res")
 
+        # Repropagate res
+        return res
+
     def step(self):
         "Step in jit"
 
@@ -165,9 +168,8 @@ class Debugguer(object):
         return res
 
     def run(self):
-        res = self.myjit.continue_run()
-        self.handle_exception(res)
-        return res
+        status = self.myjit.continue_run()
+        return self.handle_exception(status)
 
     def get_mem(self, addr, size=0xF):
         "hexdump @addr, size"
