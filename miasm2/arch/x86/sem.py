@@ -3228,6 +3228,11 @@ def movdqu(ir, instr, a, b):
     return [m2_expr.ExprAff(a, b)], []
 
 
+def movapd(ir, instr, a, b):
+    # XXX TODO alignement check
+    return [m2_expr.ExprAff(a, b)], []
+
+
 def xorps(ir, instr, a, b):
     e = []
     if isinstance(b, m2_expr.ExprMem):
@@ -3370,7 +3375,6 @@ def pand(ir, instr, a, b):
     e.append(m2_expr.ExprAff(a, c))
     return e, []
 
-def movaps(ir, instr, a, b):
     e = []
     if isinstance(a, m2_expr.ExprMem):
         a = m2_expr.ExprMem(a.arg, b.size)
@@ -3828,7 +3832,10 @@ mnemo_func = {'mov': mov,
               "movd": movd,
               "movdqu":movdqu,
               "movdqa":movdqu,
-              "movaps": movaps,
+              "movapd": movapd, # XXX TODO alignement check
+              "movupd": movapd, # XXX TODO alignement check
+              "movaps": movapd, # XXX TODO alignement check
+              "movups": movapd, # XXX TODO alignement check
               "xorps": xorps,
               "xorpd": xorps,
 
