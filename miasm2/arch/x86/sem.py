@@ -3213,12 +3213,14 @@ def l_str(ir, instr, a):
 
 def movd(ir, instr, a, b):
     e = []
-    if a.size == 64:
-        value = m2_expr.ExprCompose([(m2_expr.ExprInt32(0), 32, 64),
-                                     (b, 0, 32)])
-        e.append(m2_expr.ExprAff(a, value))
+    if a in regs_mm_expr:
+        e.append(m2_expr.ExprAff(a, m2_expr.ExprCompose([(b, 0, 32),
+                                                         (m2_expr.ExprInt32(0), 32, 64)])))
+    elif a in regs_xmm_expr:
+        e.append(m2_expr.ExprAff(a, m2_expr.ExprCompose([(b, 0, 32),
+                                                         (m2_expr.ExprInt_fromsize(96, 0), 32, 128)])))
     else:
-        e.append(m2_expr.ExprAff(a, b[0:32]))
+        e.append(m2_expr.ExprAff(a, b[:32]))
     return e, []
 
 def movdqu(ir, instr, a, b):
