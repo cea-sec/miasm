@@ -3518,7 +3518,16 @@ def cvttss2si(ir, instr, a, b):
 
 def movss(ir, instr, a, b):
     e = []
-    e.append(m2_expr.ExprAff(a[:b.size], m2_expr.ExprOp('movss', b)))
+    if not isinstance(a, m2_expr.ExprMem) and not isinstance(b, m2_expr.ExprMem):
+        # Source and Destination xmm
+        e.append(m2_expr.ExprAff(a[:32], b[:32]))
+    elif not isinstance(b, m2_expr.ExprMem) and isinstance(a, m2_expr.ExprMem):
+        # Source XMM Destination Mem
+        e.append(m2_expr.ExprAff(a, b[:32]))
+    else:
+        # Source Mem Destination XMM
+        e.append(m2_expr.ExprAff(a, m2_expr.ExprCompose([(b, 0, 32),
+                                                         (m2_expr.ExprInt_fromsize(96, 0), 32, 128)])))
     return e, []
 
 
