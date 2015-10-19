@@ -1856,6 +1856,32 @@ def fcom(ir, instr, a=None, b=None):
     return e, []
 
 
+def ftst(ir, instr):
+    a = float_st0
+
+    e = []
+    b = m2_expr.ExprOp('int_32_to_double', m2_expr.ExprInt32(0))
+    e.append(m2_expr.ExprAff(float_c0, m2_expr.ExprOp('fcom_c0', a, b)))
+    e.append(m2_expr.ExprAff(float_c1, m2_expr.ExprOp('fcom_c1', a, b)))
+    e.append(m2_expr.ExprAff(float_c2, m2_expr.ExprOp('fcom_c2', a, b)))
+    e.append(m2_expr.ExprAff(float_c3, m2_expr.ExprOp('fcom_c3', a, b)))
+
+    e += set_float_cs_eip(instr)
+    return e, []
+
+
+def fxam(ir, instr):
+    a = float_st0
+
+    e = []
+    e.append(m2_expr.ExprAff(float_c0, m2_expr.ExprOp('fxam_c0', a)))
+    e.append(m2_expr.ExprAff(float_c2, m2_expr.ExprOp('fxam_c2', a)))
+    e.append(m2_expr.ExprAff(float_c3, m2_expr.ExprOp('fxam_c3', a)))
+
+    e += set_float_cs_eip(instr)
+    return e, []
+
+
 def ficom(ir, instr, a, b = None):
 
     if b is None:
@@ -1939,6 +1965,21 @@ def ficomp(ir, instr, a, b = None):
     e += float_pop()
     e += set_float_cs_eip(instr)
     return e, extra
+
+
+def fucom(ir, instr, a=None, b=None):
+    # TODO unordered float
+    return fcom(ir, instr, a, b)
+
+
+def fucomp(ir, instr, a=None, b=None):
+    # TODO unordered float
+    return fcomp(ir, instr, a, b)
+
+
+def fucompp(ir, instr, a=None, b=None):
+    # TODO unordered float
+    return fcompp(ir, instr, a, b)
 
 
 def fld(ir, instr, a):
@@ -2038,6 +2079,27 @@ def fld1(ir, instr):
                                          m2_expr.ExprInt32(1)))
 
 
+def fldl2t(ir, instr):
+    value_f = math.log(10)/math.log(2)
+    value = struct.unpack('I', struct.pack('f', value_f))[0]
+    return fld(ir, instr, m2_expr.ExprOp('int_32_to_double',
+                                         m2_expr.ExprInt32(value)))
+
+
+def fldpi(ir, instr):
+    value_f = math.pi
+    value = struct.unpack('I', struct.pack('f', value_f))[0]
+    return fld(ir, instr, m2_expr.ExprOp('int_32_to_double',
+                                         m2_expr.ExprInt32(value)))
+
+
+def fldln2(ir, instr):
+    value_f = math.log(2)
+    value = struct.unpack('I', struct.pack('f', value_f))[0]
+    return fld(ir, instr, m2_expr.ExprOp('int_32_to_double',
+                                         m2_expr.ExprInt32(value)))
+
+
 def fldl2e(ir, instr):
     x = struct.pack('d', 1 / math.log(2))
     x = struct.unpack('Q', x)[0]
@@ -2084,6 +2146,61 @@ def fiadd(ir, instr, a, b=None):
     return e, []
 
 
+def fisub(ir, instr, a, b=None):
+    if b is None:
+        b = a
+        a = float_st0
+    e = []
+    if isinstance(b, m2_expr.ExprMem):
+        if b.size > 64:
+            raise NotImplementedError('float to long')
+        src = m2_expr.ExprOp('mem_%.2d_to_double' % b.size, b)
+    else:
+        src = b
+    e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('fisub', a, src)))
+    e += set_float_cs_eip(instr)
+    return e, []
+
+
+def fisubr(ir, instr, a, b=None):
+    if b is None:
+        b = a
+        a = float_st0
+    e = []
+    if isinstance(b, m2_expr.ExprMem):
+        if b.size > 64:
+            raise NotImplementedError('float to long')
+        src = m2_expr.ExprOp('mem_%.2d_to_double' % b.size, b)
+    else:
+        src = b
+    e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('fisub', src, a)))
+    e += set_float_cs_eip(instr)
+    return e, []
+
+
+def fpatan(ir, instr):
+    e = []
+    a = float_st1
+    e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('fpatan', float_st0, float_st1)))
+    e += set_float_cs_eip(instr)
+    e += float_pop(a)
+    return e, []
+
+
+def fprem(ir, instr):
+    e = []
+    e.append(m2_expr.ExprAff(float_st0, m2_expr.ExprOp('fprem', float_st0, float_st1)))
+    e += set_float_cs_eip(instr)
+    return e, []
+
+
+def fprem1(ir, instr):
+    e = []
+    e.append(m2_expr.ExprAff(float_st0, m2_expr.ExprOp('fprem1', float_st0, float_st1)))
+    e += set_float_cs_eip(instr)
+    return e, []
+
+
 def faddp(ir, instr, a, b=None):
     if b is None:
         b = a
@@ -2104,6 +2221,15 @@ def faddp(ir, instr, a, b=None):
 def fninit(ir, instr):
     e = []
     e += set_float_cs_eip(instr)
+    return e, []
+
+
+def fyl2x(ir, instr):
+    e = []
+    a = float_st1
+    e.append(m2_expr.ExprAff(float_prev(a), m2_expr.ExprOp('fyl2x', float_st0, float_st1)))
+    e += set_float_cs_eip(instr)
+    e += float_pop(a)
     return e, []
 
 
@@ -2188,6 +2314,23 @@ def fsubr(ir, instr, a, b=None):
         src = b
     e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('fsub', src, a)))
     e += set_float_cs_eip(instr)
+    return e, []
+
+
+def fsubrp(ir, instr, a, b=None):
+    if b is None:
+        b = a
+        a = float_st0
+    e = []
+    if isinstance(b, m2_expr.ExprMem):
+        if b.size > 64:
+            raise NotImplementedError('float to long')
+        src = m2_expr.ExprOp('mem_%.2d_to_double' % b.size, b)
+    else:
+        src = b
+    e.append(m2_expr.ExprAff(float_prev(a), m2_expr.ExprOp('fsub', src, a)))
+    e += set_float_cs_eip(instr)
+    e += float_pop(a)
     return e, []
 
 
@@ -2401,6 +2544,22 @@ def fcos(ir, instr):
     e = []
     e.append(m2_expr.ExprAff(float_st0, m2_expr.ExprOp('fcos', float_st0)))
     e += set_float_cs_eip(instr)
+    return e, []
+
+
+def fsincos(ir, instr):
+    e = []
+    e.append(m2_expr.ExprAff(float_st7, float_st6))
+    e.append(m2_expr.ExprAff(float_st6, float_st5))
+    e.append(m2_expr.ExprAff(float_st5, float_st4))
+    e.append(m2_expr.ExprAff(float_st4, float_st3))
+    e.append(m2_expr.ExprAff(float_st3, float_st2))
+    e.append(m2_expr.ExprAff(float_st2, float_st1))
+    e.append(m2_expr.ExprAff(float_st1, m2_expr.ExprOp('fsin', float_st0)))
+    e.append(m2_expr.ExprAff(float_st0, m2_expr.ExprOp('fcos', float_st0)))
+    e.append(
+        m2_expr.ExprAff(float_stack_ptr,
+                        float_stack_ptr + m2_expr.ExprInt_fromsize(3, 1)))
     return e, []
 
 
@@ -3717,6 +3876,9 @@ mnemo_func = {'mov': mov,
               'fcomp': fcomp,
               'fcompp': fcompp,
               'ficomp': ficomp,
+              'fucom': fucom,
+              'fucomp': fucomp,
+              'fucompp': fucompp,
               'fcomi': fcomi,
               'fcomip': fcomip,
               'nop': nop,
@@ -3731,16 +3893,26 @@ mnemo_func = {'mov': mov,
               'fld': fld,
               'fldz': fldz,
               'fld1': fld1,
+              'fldl2t': fldl2t,
+              'fldpi': fldpi,
+              'fldln2': fldln2,
               'fldl2e': fldl2e,
               'fldlg2': fldlg2,
               'fild': fild,
               'fadd': fadd,
               'fiadd': fiadd,
+              'fisub': fisub,
+              'fisubr': fisubr,
+              'fpatan': fpatan,
+              'fprem': fprem,
+              'fprem1': fprem1,
               'fninit': fninit,
+              'fyl2x': fyl2x,
               'faddp': faddp,
               'fsub': fsub,
               'fsubp': fsubp,
               'fsubr': fsubr,
+              'fsubrp': fsubrp,
               'fmul': fmul,
               'fimul': fimul,
               'fmulp': fmulp,
@@ -3755,6 +3927,7 @@ mnemo_func = {'mov': mov,
               'frndint': frndint,
               'fsin': fsin,
               'fcos': fcos,
+              'fsincos': fsincos,
               'fscale': fscale,
               'f2xm1': f2xm1,
               'fchs': fchs,
@@ -3803,6 +3976,8 @@ mnemo_func = {'mov': mov,
               'cpuid': cpuid,
               'jo': jo,
               'fcom': fcom,
+              'ftst': ftst,
+              'fxam': fxam,
               'ficom': ficom,
               'fcomi': fcomi,
               'fcomip': fcomip,
