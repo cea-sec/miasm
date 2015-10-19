@@ -134,7 +134,8 @@ class GdbServer(object):
             elif msg_type == "k":
                 # Kill
                 self.sock.close()
-                exit(1)
+                self.send_queue = []
+                self.sock = None
 
             elif msg_type == "!":
                 # Extending debugging will be used
