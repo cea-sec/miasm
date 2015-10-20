@@ -22,6 +22,16 @@ class DebugBreakpointSoft(DebugBreakpoint):
         return "Soft BP @0x%08x" % self.addr
 
 
+class DebugBreakpointTerminate(DebugBreakpoint):
+    "Stand for an execution termination"
+
+    def __init__(self, status):
+        self.status = status
+
+    def __str__(self):
+        return "Terminate with %s" % self.status
+
+
 class DebugBreakpointMemory(DebugBreakpoint):
 
     "Stand for memory breakpoint"
@@ -131,8 +141,9 @@ class Debugguer(object):
             self.myjit.jit.log_newbloc = newbloc
 
     def handle_exception(self, res):
-        if res is None:
-            return
+        if not res:
+            # A breakpoint has stopped the execution
+            return DebugBreakpointTerminate(res)
 
         if isinstance(res, DebugBreakpointSoft):
             print "Breakpoint reached @0x%08x" % res.addr
@@ -148,6 +159,9 @@ class Debugguer(object):
                 raise NotImplementedError("Unknown Except")
         else:
             raise NotImplementedError("type res")
+
+        # Repropagate res
+        return res
 
     def step(self):
         "Step in jit"
@@ -165,9 +179,8 @@ class Debugguer(object):
         return res
 
     def run(self):
-        res = self.myjit.continue_run()
-        self.handle_exception(res)
-        return res
+        status = self.myjit.continue_run()
+        return self.handle_exception(status)
 
     def get_mem(self, addr, size=0xF):
         "hexdump @addr, size"

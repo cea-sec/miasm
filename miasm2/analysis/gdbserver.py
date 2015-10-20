@@ -134,7 +134,8 @@ class GdbServer(object):
             elif msg_type == "k":
                 # Kill
                 self.sock.close()
-                exit(1)
+                self.send_queue = []
+                self.sock = None
 
             elif msg_type == "!":
                 # Extending debugging will be used
@@ -245,6 +246,12 @@ class GdbServer(object):
                         self.send_queue.append("S05")
                     else:
                         raise NotImplementedError("Unknown Except")
+                elif isinstance(ret, debugging.DebugBreakpointTerminate):
+                    # Connexion should close, but keep it running as a TRAP
+                    # The connexion will be close on instance destruction
+                    print ret
+                    self.status = "S05"
+                    self.send_queue.append("S05")
                 else:
                     raise NotImplementedError()
 
