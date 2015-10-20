@@ -3,6 +3,7 @@
 
 import logging
 import inspect
+import re
 
 
 import miasm2.expression.expression as m2_expr
@@ -530,45 +531,71 @@ def dis_bloc_all(mnemo, pool_bin, offset, job_done, symbol_pool, dont_dis=[],
     symbol_pool, dis_bloc_callback=dis_bloc_callback)
 
 
-def bloc2graph(blocs, label=False, lines=True):
-    # rankdir=LR;
-    out = """
-digraph asm_graph {
-size="80,50";
-node [
-fontsize = "16",
-shape = "box"
-];
-"""
-    for b in blocs:
-        out += '%s [\n' % b.label.name
-        out += 'label = "'
+def bloc2graph(blocks, label=False, lines=True):
+    """Render dot graph of @blocks"""
 
-        out += b.label.name + "\\l\\\n"
+    escape_chars = re.compile('['+re.escape('{}')+']')
+    label_attr = 'colspan="2" align="center" bgcolor="grey"'
+    edge_attr = 'label = "%s" color="%s" style="bold"'
+    td_attr = 'align="left"'
+    block_attr = 'shape="Mrecord" fontname="Courier New"'
+
+    out = ["digraph asm_graph {"]
+    fix_chars = lambda x: '\\' + x.group()
+
+    # Generate basic blocks
+    out_blocks = []
+    for block in blocks:
+        out_block = '%s [\n' % block.label.name
+        out_block += "%s " % block_attr
+        out_block += 'label =<<table border="0" cellborder="0" cellpadding="3">'
+
+        block_label = '<tr><td %s>%s</td></tr>' % (label_attr, block.label.name)
+        block_html_lines = []
         if lines:
-            for l in b.lines:
+            for line in block.lines:
                 if label:
-                    out += "%.8X " % l.offset
-                out += ("%s\\l\\\n" % l).replace('"', '\\"')
-        out += '"\n];\n'
+                    out_render = "%.8X</td><td %s> " % (line.offset, td_attr)
+                else:
+                    out_render = ""
+                out_render += escape_chars.sub(fix_chars, str(line))
+                block_html_lines.append(out_render)
+        block_html_lines = ('<tr><td %s>' % td_attr +
+                           ('</td></tr><tr><td %s>' % td_attr).join(block_html_lines) +
+                           '</td></tr>')
+        out_block += "%s " % block_label
+        out_block += block_html_lines + "</table>> ];"
+        out_blocks.append(out_block)
 
-    for b in blocs:
-        for n in b.bto:
-            # print 'xxxx', n.label, n.label.__class__
-            # if isinstance(n.label, ExprId):
-            #    print n.label.name, n.label.name.__class__
-            if isinstance(n.label, m2_expr.ExprId):
-                dst, name, cst = b.label.name, n.label.name, n.c_t
-                # out+='%s -> %s [ label = "%s" ];\n'%(b.label.name,
-                # n.label.name, n.c_t)
-            elif isinstance(n.label, asm_label):
-                dst, name, cst = b.label.name, n.label.name, n.c_t
+    out += out_blocks
+
+    # Generate links
+    for block in blocks:
+        for next_b in block.bto:
+            if (isinstance(next_b.label, m2_expr.ExprId) or
+                isinstance(next_b.label, asm_label)):
+                src, dst, cst = block.label.name, next_b.label.name, next_b.c_t
             else:
                 continue
-            out += '%s -> %s [ label = "%s" ];\n' % (dst, name, cst)
+            if isinstance(src, asm_label):
+                src = src.name
+            if isinstance(dst, asm_label):
+                dst = dst.name
 
-    out += "}"
-    return out
+            edge_color = "black"
+            if next_b.c_t == asm_constraint.c_next:
+                edge_color = "red"
+            elif next_b.c_t == asm_constraint.c_to:
+                edge_color = "limegreen"
+            # special case
+            if len(block.bto) == 1:
+                edge_color = "blue"
+
+            out.append('%s -> %s' % (src, dst) +
+                       '[' + edge_attr % (cst, edge_color) + '];')
+
+    out.append("}")
+    return '\n'.join(out)
 
 
 def conservative_asm(mnemo, instr, symbols, conservative):
