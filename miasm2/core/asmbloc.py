@@ -19,6 +19,7 @@ console_handler.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
 log_asmbloc.addHandler(console_handler)
 log_asmbloc.setLevel(logging.WARNING)
 
+
 def is_int(a):
     return isinstance(a, int) or isinstance(a, long) or \
         isinstance(a, moduint) or isinstance(a, modint)
@@ -34,6 +35,7 @@ def expr_is_int_or_label(e):
 
 
 class asm_label:
+
     "Stand for an assembly label"
 
     def __init__(self, name="", offset=None):
@@ -60,12 +62,15 @@ class asm_label:
         rep += '>'
         return rep
 
+
 class asm_raw:
+
     def __init__(self, raw=""):
         self.raw = raw
 
     def __str__(self):
         return repr(self.raw)
+
 
 class asm_constraint(object):
     c_to = "c_to"
@@ -195,7 +200,6 @@ class asm_bloc(object):
             if l.splitflow() or l.breakflow():
                 raise NotImplementedError('not fully functional')
 
-
     def get_subcall_instr(self):
         if not self.lines:
             return None
@@ -229,11 +233,11 @@ class asm_symbol_pool:
 
         # Test for collisions
         if (label.offset in self._offset2label and
-            label != self._offset2label[label.offset]):
+                label != self._offset2label[label.offset]):
             raise ValueError('symbol %s has same offset as %s' %
                              (label, self._offset2label[label.offset]))
         if (label.name in self._name2label and
-            label != self._name2label[label.name]):
+                label != self._name2label[label.name]):
             raise ValueError('symbol %s has same name as %s' %
                              (label, self._name2label[label.name]))
 
@@ -439,7 +443,7 @@ def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool,
 
 
 def split_bloc(mnemo, attrib, pool_bin, blocs,
-    symbol_pool, more_ref=None, dis_bloc_callback=None):
+               symbol_pool, more_ref=None, dis_bloc_callback=None):
     if not more_ref:
         more_ref = []
 
@@ -473,7 +477,7 @@ def split_bloc(mnemo, attrib, pool_bin, blocs,
             if dis_bloc_callback:
                 offsets_to_dis = set(
                     [x.label.offset for x in new_b.bto
-                    if isinstance(x.label, asm_label)])
+                     if isinstance(x.label, asm_label)])
                 dis_bloc_callback(
                     mnemo, attrib, pool_bin, new_b, offsets_to_dis,
                     symbol_pool)
@@ -481,6 +485,7 @@ def split_bloc(mnemo, attrib, pool_bin, blocs,
             a, b = cb.get_range()
 
     return blocs
+
 
 def dis_bloc_all(mnemo, pool_bin, offset, job_done, symbol_pool, dont_dis=[],
                  split_dis=[], follow_call=False, dontdis_retcall=False,
@@ -528,13 +533,13 @@ def dis_bloc_all(mnemo, pool_bin, offset, job_done, symbol_pool, dont_dis=[],
         blocs.append(cur_bloc)
 
     return split_bloc(mnemo, attrib, pool_bin, blocs,
-    symbol_pool, dis_bloc_callback=dis_bloc_callback)
+                      symbol_pool, dis_bloc_callback=dis_bloc_callback)
 
 
 def bloc2graph(blocks, label=False, lines=True):
     """Render dot graph of @blocks"""
 
-    escape_chars = re.compile('['+re.escape('{}')+']')
+    escape_chars = re.compile('[' + re.escape('{}') + ']')
     label_attr = 'colspan="2" align="center" bgcolor="grey"'
     edge_attr = 'label = "%s" color="%s" style="bold"'
     td_attr = 'align="left"'
@@ -550,7 +555,8 @@ def bloc2graph(blocks, label=False, lines=True):
         out_block += "%s " % block_attr
         out_block += 'label =<<table border="0" cellborder="0" cellpadding="3">'
 
-        block_label = '<tr><td %s>%s</td></tr>' % (label_attr, block.label.name)
+        block_label = '<tr><td %s>%s</td></tr>' % (
+            label_attr, block.label.name)
         block_html_lines = []
         if lines:
             for line in block.lines:
@@ -561,8 +567,8 @@ def bloc2graph(blocks, label=False, lines=True):
                 out_render += escape_chars.sub(fix_chars, str(line))
                 block_html_lines.append(out_render)
         block_html_lines = ('<tr><td %s>' % td_attr +
-                           ('</td></tr><tr><td %s>' % td_attr).join(block_html_lines) +
-                           '</td></tr>')
+                            ('</td></tr><tr><td %s>' % td_attr).join(block_html_lines) +
+                            '</td></tr>')
         out_block += "%s " % block_label
         out_block += block_html_lines + "</table>> ];"
         out_blocks.append(out_block)
@@ -573,7 +579,7 @@ def bloc2graph(blocks, label=False, lines=True):
     for block in blocks:
         for next_b in block.bto:
             if (isinstance(next_b.label, m2_expr.ExprId) or
-                isinstance(next_b.label, asm_label)):
+                    isinstance(next_b.label, asm_label)):
                 src, dst, cst = block.label.name, next_b.label.name, next_b.c_t
             else:
                 continue
@@ -616,6 +622,7 @@ def conservative_asm(mnemo, instr, symbols, conservative):
                 return c, candidates
     return candidates[0], candidates
 
+
 def fix_expr_val(expr, symbols):
     """Resolve an expression @expr using @symbols"""
     def expr_calc(e):
@@ -643,7 +650,7 @@ def guess_blocks_size(mnemo, blocks):
                     if len(instr.raw) == 0:
                         l = 0
                     else:
-                        l = instr.raw[0].size/8 * len(instr.raw)
+                        l = instr.raw[0].size / 8 * len(instr.raw)
                 elif isinstance(instr.raw, str):
                     data = instr.raw
                     l = len(data)
@@ -667,6 +674,7 @@ def guess_blocks_size(mnemo, blocks):
         block.max_size = size
         log_asmbloc.info("size: %d max: %d", block.size, block.max_size)
 
+
 def fix_label_offset(symbol_pool, label, offset, modified):
     """Fix the @label offset to @offset. If the @offset has changed, add @label
     to @modified
@@ -679,6 +687,7 @@ def fix_label_offset(symbol_pool, label, offset, modified):
 
 
 class BlockChain(object):
+
     """Manage blocks linked with an asm_constraint_next"""
 
     def __init__(self, symbol_pool, blocks):
@@ -699,7 +708,6 @@ class BlockChain(object):
                     raise ValueError("Multiples pinned block detected")
                 self.pinned_block_idx = i
 
-
     def place(self):
         """Compute BlockChain min_offset and max_offset using pinned block and
         blocks' size
@@ -713,17 +721,18 @@ class BlockChain(object):
         if not self.pinned:
             return
 
-
         offset_base = self.blocks[self.pinned_block_idx].label.offset
         assert(offset_base % self.blocks[self.pinned_block_idx].alignment == 0)
 
         self.offset_min = offset_base
-        for block in self.blocks[:self.pinned_block_idx-1:-1]:
-            self.offset_min -= block.max_size + (block.alignment - block.max_size) % block.alignment
+        for block in self.blocks[:self.pinned_block_idx - 1:-1]:
+            self.offset_min -= block.max_size + \
+                (block.alignment - block.max_size) % block.alignment
 
         self.offset_max = offset_base
         for block in self.blocks[self.pinned_block_idx:]:
-            self.offset_max += block.max_size + (block.alignment - block.max_size) % block.alignment
+            self.offset_max += block.max_size + \
+                (block.alignment - block.max_size) % block.alignment
 
     def merge(self, chain):
         """Best effort merge two block chains
@@ -745,7 +754,7 @@ class BlockChain(object):
         if offset % pinned_block.alignment != 0:
             raise RuntimeError('Bad alignment')
 
-        for block in self.blocks[:self.pinned_block_idx-1:-1]:
+        for block in self.blocks[:self.pinned_block_idx - 1:-1]:
             new_offset = offset - block.size
             new_offset = new_offset - new_offset % pinned_block.alignment
             fix_label_offset(self.symbol_pool,
@@ -757,7 +766,7 @@ class BlockChain(object):
         offset = pinned_block.label.offset + pinned_block.size
 
         last_block = pinned_block
-        for block in self.blocks[self.pinned_block_idx+1:]:
+        for block in self.blocks[self.pinned_block_idx + 1:]:
             offset += (- offset) % last_block.alignment
             fix_label_offset(self.symbol_pool,
                              block.label,
@@ -769,6 +778,7 @@ class BlockChain(object):
 
 
 class BlockChainWedge(object):
+
     """Stand for wedges between blocks"""
 
     def __init__(self, symbol_pool, offset, size):
@@ -797,7 +807,7 @@ def group_constrained_blocks(symbol_pool, blocks):
     # Group adjacent blocks
     remaining_blocks = list(blocks)
     known_block_chains = {}
-    lbl2block = {block.label:block for block in blocks}
+    lbl2block = {block.label: block for block in blocks}
 
     while remaining_blocks:
         # Create a new block chain
@@ -839,11 +849,12 @@ def get_blockchains_address_interval(blockChains, dst_interval):
     for chain in blockChains:
         if not chain.pinned:
             continue
-        chain_interval = interval([(chain.offset_min, chain.offset_max-1)])
+        chain_interval = interval([(chain.offset_min, chain.offset_max - 1)])
         if chain_interval not in dst_interval:
             raise ValueError('Chain placed out of destination interval')
         allocated_interval += chain_interval
     return allocated_interval
+
 
 def resolve_symbol(blockChains, symbol_pool, dst_interval=None):
     """Place @blockChains in the @dst_interval"""
@@ -852,7 +863,8 @@ def resolve_symbol(blockChains, symbol_pool, dst_interval=None):
     if dst_interval is None:
         dst_interval = interval([(0, 0xFFFFFFFFFFFFFFFF)])
 
-    forbidden_interval = interval([(-1, 0xFFFFFFFFFFFFFFFF+1)]) - dst_interval
+    forbidden_interval = interval(
+        [(-1, 0xFFFFFFFFFFFFFFFF + 1)]) - dst_interval
     allocated_interval = get_blockchains_address_interval(blockChains,
                                                           dst_interval)
     log_asmbloc.debug('allocated interval: %s', allocated_interval)
@@ -861,12 +873,13 @@ def resolve_symbol(blockChains, symbol_pool, dst_interval=None):
 
     # Add wedge in forbidden intervals
     for start, stop in forbidden_interval.intervals:
-        wedge = BlockChainWedge(symbol_pool, offset=start, size=stop+1-start)
+        wedge = BlockChainWedge(
+            symbol_pool, offset=start, size=stop + 1 - start)
         pinned_chains.append(wedge)
 
     # Try to place bigger blockChains first
-    pinned_chains.sort(key=lambda x:x.offset_min)
-    blockChains.sort(key=lambda x:-x.max_size)
+    pinned_chains.sort(key=lambda x: x.offset_min)
+    blockChains.sort(key=lambda x: -x.max_size)
 
     fixed_chains = list(pinned_chains)
 
@@ -876,12 +889,12 @@ def resolve_symbol(blockChains, symbol_pool, dst_interval=None):
             continue
         fixed = False
         for i in xrange(1, len(fixed_chains)):
-            prev_chain = fixed_chains[i-1]
+            prev_chain = fixed_chains[i - 1]
             next_chain = fixed_chains[i]
 
             if prev_chain.offset_max + chain.max_size < next_chain.offset_min:
                 new_chains = prev_chain.merge(chain)
-                fixed_chains[i-1:i] = new_chains
+                fixed_chains[i - 1:i] = new_chains
                 fixed = True
                 break
         if not fixed:
@@ -889,9 +902,11 @@ def resolve_symbol(blockChains, symbol_pool, dst_interval=None):
 
     return [chain for chain in fixed_chains if isinstance(chain, BlockChain)]
 
+
 def filter_exprid_label(exprs):
     """Extract labels from list of ExprId @exprs"""
     return set(expr.name for expr in exprs if isinstance(expr.name, asm_label))
+
 
 def get_block_labels(block):
     """Extract labels used by @block"""
@@ -906,6 +921,7 @@ def get_block_labels(block):
                 symbols.update(m2_expr.get_expr_ids(arg))
     labels = filter_exprid_label(symbols)
     return labels
+
 
 def assemble_block(mnemo, block, symbol_pool, conservative=False):
     """Assemble a @block using @symbol_pool
@@ -959,7 +975,7 @@ def asmbloc_final(mnemo, blocks, blockChains, symbol_pool, conservative=False):
     log_asmbloc.debug("asmbloc_final")
 
     # Init structures
-    lbl2block = {block.label:block for block in blocks}
+    lbl2block = {block.label: block for block in blocks}
     blocks_using_label = {}
     for block in blocks:
         labels = get_block_labels(block)
@@ -1019,7 +1035,8 @@ def sanity_check_blocks(blocks):
             if blocks_graph.blocs[pred].get_next() == label:
                 pred_next.add(pred)
         if len(pred_next) > 1:
-            raise RuntimeError("Too many next constraints for bloc %r"%label)
+            raise RuntimeError("Too many next constraints for bloc %r" % label)
+
 
 def asm_resolve_final(mnemo, blocks, symbol_pool, dst_interval=None):
     """Resolve and assemble @blocks using @symbol_pool into interval
@@ -1029,7 +1046,8 @@ def asm_resolve_final(mnemo, blocks, symbol_pool, dst_interval=None):
 
     guess_blocks_size(mnemo, blocks)
     blockChains = group_constrained_blocks(symbol_pool, blocks)
-    resolved_blockChains = resolve_symbol(blockChains, symbol_pool, dst_interval)
+    resolved_blockChains = resolve_symbol(
+        blockChains, symbol_pool, dst_interval)
 
     asmbloc_final(mnemo, blocks, resolved_blockChains, symbol_pool)
     patches = {}
@@ -1043,12 +1061,13 @@ def asm_resolve_final(mnemo, blocks, symbol_pool, dst_interval=None):
                 continue
             assert len(instr.data) == instr.l
             patches[offset] = instr.data
-            instruction_interval = interval([(offset, offset + instr.l-1)])
+            instruction_interval = interval([(offset, offset + instr.l - 1)])
             if not (instruction_interval & output_interval).empty:
                 raise RuntimeError("overlapping bytes %X" % int(offset))
             instr.offset = offset
             offset += instr.l
     return patches
+
 
 def blist2graph(ab):
     """
@@ -1153,7 +1172,7 @@ def getbloc_parents(blocs, a, level=3, done=None, blocby_label=None):
 
 
 def getbloc_parents_strict(
-    blocs, a, level=3, rez=None, done=None, blocby_label=None):
+        blocs, a, level=3, rez=None, done=None, blocby_label=None):
 
     if not blocby_label:
         blocby_label = {}
@@ -1307,4 +1326,3 @@ class disasmEngine(object):
                              dont_dis_nulstart_bloc=self.dont_dis_nulstart_bloc,
                              attrib=self.attrib)
         return blocs
-
