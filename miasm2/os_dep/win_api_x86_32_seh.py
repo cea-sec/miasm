@@ -447,90 +447,96 @@ def init_seh(myjit):
 # http://www.codeproject.com/KB/system/inject2exe.aspx#RestorethefirstRegistersContext5_1
 
 
-def regs2ctxt(regs):
-    ctxt = ""
-    ctxt += '\x00\x00\x00\x00'  # ContextFlags
-    ctxt += '\x00\x00\x00\x00' * 6  # drX
-    ctxt += '\x00' * 112  # float context
-    ctxt += '\x00\x00\x00\x00' + '\x3b\x00\x00\x00' + \
-        '\x23\x00\x00\x00' + '\x23\x00\x00\x00'  # segment selectors
-    ctxt += pck32(regs['EDI']) + pck32(regs['ESI']) + pck32(regs['EBX']) + \
-        pck32(regs['EDX']) + pck32(regs['ECX']) + pck32(regs['EAX']) + \
-        pck32(regs['EBP']) + pck32(regs['EIP'])  # gpregs
-    ctxt += '\x23\x00\x00\x00'  # cs
-    ctxt += '\x00\x00\x00\x00'  # eflags
-    ctxt += pck32(regs['ESP'])  # esp
-    ctxt += '\x23\x00\x00\x00'  # ss segment selector
-    return ctxt
+def regs2ctxt(myjit):
+    """
+    Build x86_32 cpu context for exception handling
+    @myjit: jitload instance
+    """
+
+    ctxt = []
+    # ContextFlags
+    ctxt += [pck32(0x0)]
+    # DRX
+    ctxt += [pck32(0x0)] * 6
+    # Float context
+    ctxt += ['\x00' * 112]
+    # Segment selectors
+    ctxt += [pck32(reg) for reg in (myjit.cpu.GS, myjit.cpu.FS,
+                                    myjit.cpu.ES, myjit.cpu.DS)]
+    # Gpregs
+    ctxt += [pck32(reg) for reg in (myjit.cpu.EDI, myjit.cpu.ESI,
+                                    myjit.cpu.EBX, myjit.cpu.EDX,
+                                    myjit.cpu.ECX, myjit.cpu.EAX,
+                                    myjit.cpu.EBP, myjit.cpu.EIP)]
+    # CS
+    ctxt += [pck32(myjit.cpu.CS)]
+    # Eflags
+    # XXX TODO real eflag
+    ctxt += [pck32(0x0)]
+    # ESP
+    ctxt += [pck32(myjit.cpu.ESP)]
+    # SS
+    ctxt += [pck32(myjit.cpu.SS)]
+    return "".join(ctxt)
 
 
-def ctxt2regs(ctxt):
+def ctxt2regs(ctxt, myjit):
+    """
+    Restore x86_32 registers from an exception context
+    @ctxt: the serialized context
+    @myjit: jitload instance
+    """
+
     ctxt = ctxt[:]
-    regs = {}
-    # ctxtsflags
+    # ContextFlags
     ctxt = ctxt[4:]
-    for i in xrange(8):
-        if i in [4, 5]:
-            continue
-        # regs i
-        ctxt = ctxt[4:]
-
-    ctxt = ctxt[112:]  # skip float
-
+    # DRX XXX TODO
+    ctxt = ctxt[4*6:]
+    # Float context XXX TODO
+    ctxt = ctxt[112:]
     # gs
+    myjit.cpu.GS = upck32(ctxt[:4])
     ctxt = ctxt[4:]
     # fs
+    myjit.cpu.FS = upck32(ctxt[:4])
     ctxt = ctxt[4:]
     # es
+    myjit.cpu.ES = upck32(ctxt[:4])
     ctxt = ctxt[4:]
     # ds
+    myjit.cpu.DS = upck32(ctxt[:4])
     ctxt = ctxt[4:]
 
-    regs['EDI'], regs['ESI'], regs['EBX'], regs['EDX'], regs['ECX'], regs[
-        'EAX'], regs['EBP'], regs['EIP'] = struct.unpack('I' * 8, ctxt[:4 * 8])
-    ctxt = ctxt[4 * 8:]
-
-    # cs
+    # Gpregs
+    myjit.cpu.EDI = upck32(ctxt[:4])
+    ctxt = ctxt[4:]
+    myjit.cpu.ESI = upck32(ctxt[:4])
+    ctxt = ctxt[4:]
+    myjit.cpu.EBX = upck32(ctxt[:4])
+    ctxt = ctxt[4:]
+    myjit.cpu.EDX = upck32(ctxt[:4])
+    ctxt = ctxt[4:]
+    myjit.cpu.ECX = upck32(ctxt[:4])
+    ctxt = ctxt[4:]
+    myjit.cpu.EAX = upck32(ctxt[:4])
+    ctxt = ctxt[4:]
+    myjit.cpu.EBP = upck32(ctxt[:4])
+    ctxt = ctxt[4:]
+    myjit.cpu.EIP = upck32(ctxt[:4])
     ctxt = ctxt[4:]
 
-    # eflag
+    # CS
+    myjit.cpu.CS = upck32(ctxt[:4])
     ctxt = ctxt[4:]
-
-    regs['ESP'] = upck32(ctxt[:4])
+    # Eflag XXX TODO
     ctxt = ctxt[4:]
-
-    for a, b in regs.items():
-        log.info('%r %x', a, b)
-    # skip extended
-    return regs
-
-
-def get_free_seh_place():
-    global all_seh_ad
-    ads = all_seh_ad.keys()
-    ads.sort()
-    for ad in ads:
-        v = all_seh_ad[ad]
-        if v is None:
-            log.info('Taking seh %x', ad)
-            all_seh_ad[ad] = True
-            return ad
-    raise ValueError('too many stacked seh ')
-
-
-def free_seh_place(ad):
-    log.info('Releasing seh %x', ad)
-
-    if not ad in all_seh_ad:
-        raise ValueError('zarb seh ad! %x', ad)
-    if all_seh_ad[ad] is not True:
-        # @wisk typolol
-        raise ValueError('seh alreaedy remouvede?!! %x', ad)
-    all_seh_ad[ad] = None
+    # ESP
+    myjit.cpu.ESP = upck32(ctxt[:4])
+    ctxt = ctxt[4:]
 
 
 def fake_seh_handler(myjit, except_code):
-    global seh_count
+    global seh_count, context_address
     regs = myjit.cpu.get_gpreg()
     log.warning('Exception at %x %r', myjit.cpu.EIP, seh_count)
     seh_count += 1
@@ -539,15 +545,7 @@ def fake_seh_handler(myjit, except_code):
     p = lambda s: struct.pack('I', s)
 
     # Forge a CONTEXT
-    ctxt = '\x00\x00\x00\x00' + '\x00\x00\x00\x00' * 6 + '\x00' * 112
-    ctxt += '\x00\x00\x00\x00' + '\x3b\x00\x00\x00' + '\x23\x00\x00\x00'
-    ctxt += '\x23\x00\x00\x00'
-    ctxt += pck32(myjit.cpu.EDI) + pck32(myjit.cpu.ESI) + \
-            pck32(myjit.cpu.EBX) + pck32(myjit.cpu.EDX) + \
-            pck32(myjit.cpu.ECX) + pck32(myjit.cpu.EAX) + \
-            pck32(myjit.cpu.EBP) + pck32(myjit.cpu.EIP)
-    ctxt += '\x23\x00\x00\x00' + '\x00\x00\x00\x00' + pck32(myjit.cpu.ESP)
-    ctxt += '\x23\x00\x00\x00'
+    ctxt = regs2ctxt(myjit)
 
     # Get current seh (fs:[0])
     seh_ptr = upck32(myjit.vm.get_mem(tib_address, 4))
@@ -556,8 +554,17 @@ def fake_seh_handler(myjit, except_code):
     old_seh, eh, safe_place = struct.unpack(
         'III', myjit.vm.get_mem(seh_ptr, 0xc))
 
-    log.info('seh_ptr %x { old_seh %x eh %x safe_place %x}',
-             seh_ptr, old_seh, eh, safe_place)
+
+
+    # Get space on stack for exception handling
+    myjit.cpu.ESP -= 0x3c8
+    exception_base_address = myjit.cpu.ESP
+    exception_record_address = exception_base_address + 0xe8
+    context_address = exception_base_address + 0xfc
+    fake_seh_address = exception_base_address + 0x14
+
+    log.info('seh_ptr %x { old_seh %x eh %x safe_place %x} ctx_addr %x',
+             seh_ptr, old_seh, eh, safe_place, context_address)
 
     # Write context
     myjit.vm.set_mem(context_address, ctxt)
@@ -577,9 +584,9 @@ def fake_seh_handler(myjit, except_code):
     } EXCEPTION_RECORD, *PEXCEPTION_RECORD;
     """
 
-    myjit.vm.set_mem(exception_record_address, pck32(except_code) +
-                     pck32(0) + pck32(0) + pck32(myjit.cpu.EIP) +
-                     pck32(0) + pck32(0))
+    myjit.vm.set_mem(exception_record_address,
+                     pck32(except_code) + pck32(0) + pck32(0) +
+                     pck32(myjit.cpu.EIP) + pck32(0))
 
     # Prepare the stack
     myjit.push_uint32_t(context_address)               # Context
@@ -588,11 +595,10 @@ def fake_seh_handler(myjit, except_code):
     myjit.push_uint32_t(return_from_exception)         # Ret address
 
     # Set fake new current seh for exception
-    fake_seh_ad = get_free_seh_place()
-    log.info("Fake seh ad %x", fake_seh_ad)
-    myjit.vm.set_mem(fake_seh_ad, pck32(seh_ptr) + pck32(
+    log.info("Fake seh ad %x", fake_seh_address)
+    myjit.vm.set_mem(fake_seh_address, pck32(seh_ptr) + pck32(
         0xaaaaaaaa) + pck32(0xaaaaaabb) + pck32(0xaaaaaacc))
-    myjit.vm.set_mem(tib_address, pck32(fake_seh_ad))
+    myjit.vm.set_mem(tib_address, pck32(fake_seh_address))
 
     dump_seh(myjit)
 
@@ -649,6 +655,8 @@ def return_from_seh(myjit):
     "Handle return after a call to fake seh handler"
 
     # Get current context
+    context_address = upck32(myjit.vm.get_mem(myjit.cpu.ESP+0x8, 4))
+    log.info('Context address: %x', context_address)
     myjit.cpu.ESP = upck32(myjit.vm.get_mem(context_address + 0xc4, 4))
     log.info('New esp: %x', myjit.cpu.ESP)
 
@@ -660,9 +668,6 @@ def return_from_seh(myjit):
 
     dump_seh(myjit)
 
-    # Release SEH
-    free_seh_place(old_seh)
-
     if myjit.cpu.EAX == 0x0:
         # ExceptionContinueExecution
         ctxt_ptr = context_address
@@ -670,11 +675,8 @@ def return_from_seh(myjit):
 
         # Get registers changes
         ctxt_str = myjit.vm.get_mem(ctxt_ptr, 0x2cc)
-        regs = ctxt2regs(ctxt_str)
-        myjit.pc = regs["EIP"]
-        for reg_name, reg_value in regs.items():
-            setattr(myjit.cpu, reg_name, reg_value)
-
+        ctxt2regs(ctxt_str, myjit)
+        myjit.pc = myjit.cpu.EIP
         log.info('Context::Eip: %x', myjit.pc)
 
     elif myjit.cpu.EAX == -1:
