@@ -4069,6 +4069,9 @@ class ir_x86_16(ir):
                     args[i] = m2_expr.ExprMem(m2_expr.ExprOp('segm', my_ss,
                                                              a.arg), a.size)
 
+        if not instr.name.lower() in mnemo_func:
+            raise NotImplementedError("Mnemonic %s not implemented" % instr.name)
+
         instr_ir, extra_ir = mnemo_func[
             instr.name.lower()](self, instr, *args)
         self.mod_pc(instr, instr_ir, extra_ir)
