@@ -231,6 +231,26 @@ def gen_fcmov(ir, instr, cond, arg1, arg2, mov_if):
     return e, [irbloc(lbl_do.name, [e_do])]
 
 
+def gen_cmov(ir, instr, cond, arg1, arg2, mov_if):
+    """Generate cmov
+    @ir: ir instance
+    @instr: instruction instance
+    @cond: condition
+    @mov_if: invert condition if False"""
+
+    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
+    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
+    if mov_if:
+        dstA, dstB = lbl_do, lbl_skip
+    else:
+        dstA, dstB = lbl_skip, lbl_do
+    e = []
+    e_do, extra_irs = mov(ir, instr, arg1, arg2)
+    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
+    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(cond, dstA, dstB)))
+    return e, [irbloc(lbl_do.name, [e_do])]
+
+
 def mov(ir, instr, a, b):
     if a in [ES, CS, SS, DS, FS, GS]:
         b = b[:a.size]
@@ -2701,168 +2721,66 @@ def sldt(ir, instr, a):
 
 
 def cmovz(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = mov(ir, instr, a, b)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(zf, lbl_do, lbl_skip)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+    return gen_cmov(ir, instr, zf, a, b, True)
 
 def cmovnz(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = mov(ir, instr, a, b)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(zf, lbl_skip, lbl_do)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+    return gen_cmov(ir, instr, zf, a, b, False)
 
 
 def cmovpe(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = mov(ir, instr, a, b)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(pf, lbl_do, lbl_skip)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+    return gen_cmov(ir, instr, pf, a, b, True)
 
 
 def cmovnp(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = mov(ir, instr, a, b)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(pf, lbl_skip, lbl_do)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+    return gen_cmov(ir, instr, pf, a, b, False)
 
 
 def cmovge(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = mov(ir, instr, a, b)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(nf ^ of, lbl_skip,
-                                                        lbl_do)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+    return gen_cmov(ir, instr, nf^of, a, b, False)
 
 
 def cmovg(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = mov(ir, instr, a, b)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(zf | (nf ^ of),
-                                                        lbl_skip, lbl_do)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+    return gen_cmov(ir, instr, zf|(nf^of), a, b, False)
 
 
 def cmovl(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = mov(ir, instr, a, b)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(nf ^ of, lbl_do,
-                                                        lbl_skip)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+    return gen_cmov(ir, instr, nf^of, a, b, True)
 
 
 def cmovle(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = mov(ir, instr, a, b)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(zf | (nf ^ of), lbl_do,
-                                                        lbl_skip)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+    return gen_cmov(ir, instr, zf|(nf^of), a, b, True)
 
 
 def cmova(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = mov(ir, instr, a, b)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(cf | zf, lbl_skip,
-                                                        lbl_do)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+    return gen_cmov(ir, instr, cf|zf, a, b, False)
 
 
 def cmovae(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = mov(ir, instr, a, b)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(cf, lbl_skip, lbl_do)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+    return gen_cmov(ir, instr, cf, a, b, False)
 
 
 def cmovbe(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = mov(ir, instr, a, b)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(cf | zf, lbl_do,
-                                                        lbl_skip)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+    return gen_cmov(ir, instr, cf|zf, a, b, True)
 
 
 def cmovb(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = mov(ir, instr, a, b)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(cf, lbl_do, lbl_skip)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+    return gen_cmov(ir, instr, cf, a, b, True)
 
 
 def cmovo(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = mov(ir, instr, a, b)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(of, lbl_do, lbl_skip)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+    return gen_cmov(ir, instr, of, a, b, True)
 
 
 def cmovno(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = mov(ir, instr, a, b)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(of, lbl_skip, lbl_do)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+    return gen_cmov(ir, instr, of, a, b, False)
 
 
 def cmovs(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = mov(ir, instr, a, b)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(nf, lbl_do, lbl_skip)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+    return gen_cmov(ir, instr, nf, a, b, True)
 
 
 def cmovns(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = mov(ir, instr, a, b)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(nf, lbl_skip, lbl_do)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+    return gen_cmov(ir, instr, nf, a, b, False)
 
 
 def icebp(ir, instr):
