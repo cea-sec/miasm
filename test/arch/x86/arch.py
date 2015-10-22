@@ -1,6 +1,10 @@
 import os
 import time
-from miasm2.arch.x86.arch import *
+import miasm2.expression.expression as m2_expr
+from miasm2.arch.x86.arch import mn_x86, deref_mem_ad, parse_ast, ast_int2expr, \
+    base_expr, rmarg, print_size
+from miasm2.arch.x86.sem import ir_x86_16, ir_x86_32, ir_x86_64
+from miasm2.core.bin_stream import bin_stream_str
 
 filename = os.environ.get('PYTHONSTARTUP')
 if filename and os.path.isfile(filename):
@@ -15,9 +19,9 @@ for s in ["[EAX]",
 
 print '---'
 
-mylabel16 = ExprId('mylabel16', 16)
-mylabel32 = ExprId('mylabel32', 32)
-mylabel64 = ExprId('mylabel64', 64)
+mylabel16 = m2_expr.ExprId('mylabel16', 16)
+mylabel32 = m2_expr.ExprId('mylabel32', 32)
+mylabel64 = m2_expr.ExprId('mylabel64', 64)
 
 reg_and_id = dict(mn_x86.regs.all_regs_ids_byname)
 reg_and_id.update({'mylabel16': mylabel16,
@@ -27,7 +31,7 @@ reg_and_id.update({'mylabel16': mylabel16,
 
 
 def my_ast_id2expr(t):
-    r = reg_and_id.get(t, ExprId(t, size=32))
+    r = reg_and_id.get(t, m2_expr.ExprId(t, size=32))
     return r
 
 my_var_parser = parse_ast(my_ast_id2expr, ast_int2expr)
