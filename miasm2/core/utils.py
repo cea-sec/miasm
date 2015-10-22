@@ -1,6 +1,7 @@
 import struct
 import inspect
 import UserDict
+from operator import itemgetter
 
 upck8 = lambda x: struct.unpack('B', x)[0]
 upck16 = lambda x: struct.unpack('H', x)[0]
@@ -73,7 +74,8 @@ class BoundedDict(UserDict.DictMixin):
         self._min_size = min_size if min_size else max_size / 3
         self._max_size = max_size
         self._size = len(self._data)
-        self._counter = collections.Counter(self._data.keys())
+        # Do not use collections.Counter as it is quite slow
+        self._counter = {k: 1 for k in self._data}
         self._delete_cb = delete_cb
 
     def __setitem__(self, asked_key, value):
@@ -83,31 +85,46 @@ class BoundedDict(UserDict.DictMixin):
 
             # Bound can only be reached on a new element
             if (self._size >= self._max_size):
-                most_commons = [key for key, _ in self._counter.most_common()]
+                most_common = sorted(self._counter.iteritems(),
+                                     key=itemgetter(1), reverse=True)
 
                 # Handle callback
                 if self._delete_cb is not None:
-                    for key in most_commons[self._min_size - 1:]:
+                    for key, _ in most_common[self._min_size - 1:]:
                         self._delete_cb(key)
 
                 # Keep only the most @_min_size used
                 self._data = {key:self._data[key]
-                              for key in most_commons[:self._min_size - 1]}
+                              for key, _ in most_common[:self._min_size - 1]}
                 self._size = self._min_size
 
                 # Reset use's counter
-                self._counter = collections.Counter(self._data.keys())
+                self._counter = {k: 1 for k in self._data}
+
+            # Avoid rechecking in dict: set to 1 here, add 1 otherwise
+            self._counter[asked_key] = 1
+        else:
+            self._counter[asked_key] += 1
 
         self._data[asked_key] = value
-        self._counter.update([asked_key])
+
+    def __contains__(self, key):
+        # Do not call has_key to avoid adding function call overhead
+        return key in self._data
+
+    def has_key(self, key):
+        return key in self._data
 
     def keys(self):
         "Return the list of dict's keys"
         return self._data.keys()
 
     def __getitem__(self, key):
-        self._counter.update([key])
-        return self._data[key]
+        # Retrieve data first to raise the proper exception on error
+        data = self._data[key]
+        # Should never raise, since the key is in self._data
+        self._counter[key] += 1
+        return data
 
     def __delitem__(self, key):
         if self._delete_cb is not None:
