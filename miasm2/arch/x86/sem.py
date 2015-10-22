@@ -211,6 +211,26 @@ def gen_jcc(ir, instr, cond, dst, jmp_if):
     return e, []
 
 
+def gen_fcmov(ir, instr, cond, arg1, arg2, mov_if):
+    """Generate fcmov
+    @ir: ir instance
+    @instr: instruction instance
+    @cond: condition
+    @mov_if: invert condition if False"""
+
+    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
+    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
+    if mov_if:
+        dstA, dstB = lbl_do, lbl_skip
+    else:
+        dstA, dstB = lbl_skip, lbl_do
+    e = []
+    e_do, extra_irs = [m2_expr.ExprAff(arg1, arg2)], []
+    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
+    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(cond, dstA, dstB)))
+    return e, [irbloc(lbl_do.name, [e_do])]
+
+
 def mov(ir, instr, a, b):
     if a in [ES, CS, SS, DS, FS, GS]:
         b = b[:a.size]
@@ -2414,83 +2434,35 @@ def fwait(ir, instr):
 
 
 def fcmovb(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = [m2_expr.ExprAff(a, b)], []
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(cf, lbl_do, lbl_skip)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+    return gen_fcmov(ir, instr, cf, a, b, True)
 
 
 def fcmove(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = [m2_expr.ExprAff(a, b)], []
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(zf, lbl_do, lbl_skip)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+    return gen_fcmov(ir, instr, zf, a, b, True)
 
 
 def fcmovbe(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = [m2_expr.ExprAff(a, b)], []
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(cf | zf, lbl_do, lbl_skip)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+    return gen_fcmov(ir, instr, cf|zf, a, b, True)
 
 
 def fcmovu(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = [m2_expr.ExprAff(a, b)], []
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(pf, lbl_do, lbl_skip)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+    return gen_fcmov(ir, instr, pf, a, b, True)
 
 
 def fcmovnb(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = [m2_expr.ExprAff(a, b)], []
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(cf, lbl_skip, lbl_do)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+    return gen_fcmov(ir, instr, cf, a, b, False)
 
 
 def fcmovne(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = [m2_expr.ExprAff(a, b)], []
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(zf, lbl_skip, lbl_do)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+    return gen_fcmov(ir, instr, zf, a, b, False)
 
 
 def fcmovnbe(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = [m2_expr.ExprAff(a, b)], []
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(cf | zf, lbl_skip, lbl_do)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+    return gen_fcmov(ir, instr, cf|zf, a, b, False)
 
 
 def fcmovnu(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = [m2_expr.ExprAff(a, b)], []
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(pf, lbl_skip, lbl_do)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+    return gen_fcmov(ir, instr, pf, a, b, False)
 
 
 def nop(ir, instr, a=None):
