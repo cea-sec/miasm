@@ -80,7 +80,8 @@ def buil_all():
                   ["miasm2/jitter/Jitllvm.c"]),
         Extension("miasm2.jitter.Jittcc",
                   ["miasm2/jitter/Jittcc.c"],
-                  libraries=["tcc"])
+                  libraries=["tcc"],
+                  library_dirs=["/usr/local/lib", "/usr/local/lib64"])
         ]
 
     print 'building'
