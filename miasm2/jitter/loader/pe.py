@@ -17,6 +17,7 @@ hnd.setFormatter(logging.Formatter("[%(levelname)s]: %(message)s"))
 log.addHandler(hnd)
 log.setLevel(logging.CRITICAL)
 
+
 def get_import_address_pe(e):
     import2addr = defaultdict(set)
     if e.DirImport.impdesc is None:
@@ -51,7 +52,6 @@ def preload_pe(vm, e, runtime_lib, patch_vm_imp=True):
                 vm.set_mem(
                     ad, struct.pack(cstruct.size2type[e._wsize], ad_libfunc))
     return dyn_funcs
-
 
 
 def is_redirected_export(e, ad):
@@ -89,7 +89,6 @@ def get_export_name_addr_list(e):
     return out
 
 
-
 def vm_load_pe(vm, fdata, align_s=True, load_hdr=True, **kargs):
     """Load a PE in memory (@vm) from a data buffer @fdata
     @vm: VmMngr instance
@@ -121,7 +120,8 @@ def vm_load_pe(vm, fdata, align_s=True, load_hdr=True, **kargs):
             min_len = min(pe.SHList[0].addr, 0x1000)
 
             # Get and pad the pe_hdr
-            pe_hdr = pe.content[:hdr_len] + max(0, (min_len - hdr_len)) * "\x00"
+            pe_hdr = pe.content[:hdr_len] + max(
+                0, (min_len - hdr_len)) * "\x00"
             vm.add_memory_page(pe.NThdr.ImageBase, PAGE_READ | PAGE_WRITE,
                                pe_hdr)
 
@@ -132,7 +132,8 @@ def vm_load_pe(vm, fdata, align_s=True, load_hdr=True, **kargs):
                 new_size = pe.SHList[i + 1].addr - section.addr
                 section.size = new_size
                 section.rawsize = new_size
-                section.data = strpatchwork.StrPatchwork(section.data[:new_size])
+                section.data = strpatchwork.StrPatchwork(
+                    section.data[:new_size])
                 section.offset = section.addr
 
             # Last section alignement
@@ -235,8 +236,8 @@ def vm2pe(myjit, fname, libs=None, e_orig=None,
     if min_addr is None and e_orig is not None:
         min_addr = min([e_orig.rva2virt(s.addr) for s in e_orig.SHList])
     if max_addr is None and e_orig is not None:
-        max_addr = max([e_orig.rva2virt(s.addr + s.size) for s in e_orig.SHList])
-
+        max_addr = max([e_orig.rva2virt(s.addr + s.size)
+                       for s in e_orig.SHList])
 
     if img_base is None:
         img_base = e_orig.NThdr.ImageBase
@@ -370,9 +371,9 @@ class libimp_pe(libimp):
             # Build an IMAGE_IMPORT_DESCRIPTOR
 
             # Get fixed addresses
-            out_ads = dict() # addr -> func_name
+            out_ads = dict()  # addr -> func_name
             for func_name, dst_addresses in self.lib_imp2dstad[ad].items():
-                out_ads.update({addr:func_name for addr in dst_addresses})
+                out_ads.update({addr: func_name for addr in dst_addresses})
 
             # Filter available addresses according to @flt
             all_ads = [addr for addr in out_ads.keys() if flt(addr)]
@@ -391,7 +392,8 @@ class libimp_pe(libimp):
                 # Find libname's Import Address Table
                 othunk = all_ads[0]
                 i = 0
-                while i + 1 < len(all_ads) and all_ads[i] + 4 == all_ads[i + 1]:
+                while (i + 1 < len(all_ads) and
+                       all_ads[i] + target_pe._wsize / 8 == all_ads[i + 1]):
                     i += 1
                 # 'i + 1' is IAT's length
 
@@ -416,6 +418,7 @@ class libimp_pe(libimp):
 PE_machine = {0x14c: "x86_32",
               0x8664: "x86_64",
               }
+
 
 def guess_arch(pe):
     """Return the architecture specified by the PE container @pe.
