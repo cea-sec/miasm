@@ -391,7 +391,8 @@ class libimp_pe(libimp):
                 # Find libname's Import Address Table
                 othunk = all_ads[0]
                 i = 0
-                while i + 1 < len(all_ads) and all_ads[i] + 4 == all_ads[i + 1]:
+                while (i + 1 < len(all_ads) and
+                       all_ads[i] + target_pe._wsize / 8 == all_ads[i + 1]):
                     i += 1
                 # 'i + 1' is IAT's length
 
