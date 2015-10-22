@@ -185,6 +185,32 @@ def float_implicit_st0(arg1, arg2):
         arg1 = float_st0
     return arg1, arg2
 
+
+def gen_jcc(ir, instr, cond, dst, jmp_if):
+    """
+    Macro to generate jcc semantic
+    @ir: ir instance
+    @instr: instruction
+    @cond: condtion of the jcc
+    @dst: the dstination if jcc is taken
+    @jmp_if: jump if/notif cond
+    """
+
+    e = []
+    meip = mRIP[instr.mode]
+    next_lbl = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
+    if jmp_if:
+        dstA, dstB = dst, next_lbl
+    else:
+        dstA, dstB = next_lbl, dst
+    mn_dst = m2_expr.ExprCond(cond,
+                              dstA.zeroExtend(instr.mode),
+                              dstB.zeroExtend(instr.mode))
+    e.append(m2_expr.ExprAff(meip, mn_dst))
+    e.append(m2_expr.ExprAff(ir.IRDst, mn_dst))
+    return e, []
+
+
 def mov(ir, instr, a, b):
     if a in [ES, CS, SS, DS, FS, GS]:
         b = b[:a.size]
@@ -1216,232 +1242,79 @@ def jmpf(ir, instr, a):
 
 
 def jz(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(zf,
-                             dst.zeroExtend(instr.mode),
-                             n.zeroExtend(instr.mode))
-    e = [m2_expr.ExprAff(meip, dst_o),
-         m2_expr.ExprAff(ir.IRDst, dst_o),
-     ]
-    return e, []
+    return gen_jcc(ir, instr, zf, dst, True)
 
 
 def jcxz(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(mRCX[instr.mode][:16],
-                             n.zeroExtend(instr.mode),
-                             dst.zeroExtend(instr.mode))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+    return gen_jcc(ir, instr, mRCX[instr.mode][:16], dst, False)
 
 
 def jecxz(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(mRCX[instr.mode][:32],
-                             n.zeroExtend(instr.mode),
-                             dst.zeroExtend(instr.mode))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+    return gen_jcc(ir, instr, mRCX[instr.mode][:32], dst, False)
 
 
 def jrcxz(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(mRCX[instr.mode],
-                             n.zeroExtend(instr.mode),
-                             dst.zeroExtend(instr.mode))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+    return gen_jcc(ir, instr, mRCX[instr.mode], dst, False)
 
 
 def jnz(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(zf,
-                             n.zeroExtend(instr.mode),
-                             dst.zeroExtend(instr.mode))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+    return gen_jcc(ir, instr, zf, dst, False)
 
 
 def jp(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(pf,
-                             dst.zeroExtend(instr.mode),
-                             n.zeroExtend(instr.mode))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+    return gen_jcc(ir, instr, pf, dst, True)
 
 
 def jnp(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(pf,
-                             n.zeroExtend(instr.mode),
-                             dst.zeroExtend(instr.mode))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+    return gen_jcc(ir, instr, pf, dst, False)
 
 
 def ja(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(cf | zf,
-                             n.zeroExtend(instr.mode),
-                             dst.zeroExtend(instr.mode))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+    return gen_jcc(ir, instr, cf|zf, dst, False)
 
 
 def jae(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(cf,
-                             n.zeroExtend(instr.mode),
-                             dst.zeroExtend(instr.mode))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+    return gen_jcc(ir, instr, cf, dst, False)
 
 
 def jb(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(cf,
-                             dst.zeroExtend(instr.mode),
-                             n.zeroExtend(instr.mode))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+    return gen_jcc(ir, instr, cf, dst, True)
 
 
 def jbe(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(cf | zf,
-                             dst.zeroExtend(instr.mode),
-                             n.zeroExtend(instr.mode))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+    return gen_jcc(ir, instr, cf|zf, dst, True)
 
 
 def jge(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(nf - of,
-                             n.zeroExtend(instr.mode),
-                             dst.zeroExtend(instr.mode))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+    return gen_jcc(ir, instr, nf-of, dst, False)
 
 
 def jg(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(zf | (nf - of),
-                             n.zeroExtend(instr.mode),
-                             dst.zeroExtend(instr.mode))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+    return gen_jcc(ir, instr, zf|(nf-of), dst, False)
 
 
 def jl(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(nf - of,
-                             dst.zeroExtend(instr.mode),
-                             n.zeroExtend(instr.mode))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+    return gen_jcc(ir, instr, nf-of, dst, True)
 
 
 def jle(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(zf | (nf - of),
-                             dst.zeroExtend(instr.mode),
-                             n.zeroExtend(instr.mode))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+    return gen_jcc(ir, instr, zf|(nf-of), dst, True)
 
 
 def js(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(nf,
-                             dst.zeroExtend(instr.mode),
-                             n.zeroExtend(instr.mode))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+    return gen_jcc(ir, instr, nf, dst, True)
 
 
 def jns(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(nf,
-                             n.zeroExtend(instr.mode),
-                             dst.zeroExtend(instr.mode))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+    return gen_jcc(ir, instr, nf, dst, False)
 
 
 def jo(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(of,
-                             dst.zeroExtend(instr.mode),
-                             n.zeroExtend(instr.mode))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+    return gen_jcc(ir, instr, of, dst, True)
 
 
 def jno(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(of,
-                             n.zeroExtend(instr.mode),
-                             dst.zeroExtend(instr.mode))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+    return gen_jcc(ir, instr, of, dst, False)
 
 
 def loop(ir, instr, dst):
