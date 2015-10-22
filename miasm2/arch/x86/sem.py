@@ -2453,36 +2453,36 @@ def fwait(ir, instr):
     return [], None
 
 
-def fcmovb(ir, instr, a, b):
-    return gen_fcmov(ir, instr, cf, a, b, True)
+def fcmovb(ir, instr, arg1, arg2):
+    return gen_fcmov(ir, instr, cf, arg1, arg2, True)
 
 
-def fcmove(ir, instr, a, b):
-    return gen_fcmov(ir, instr, zf, a, b, True)
+def fcmove(ir, instr, arg1, arg2):
+    return gen_fcmov(ir, instr, zf, arg1, arg2, True)
 
 
-def fcmovbe(ir, instr, a, b):
-    return gen_fcmov(ir, instr, cf|zf, a, b, True)
+def fcmovbe(ir, instr, arg1, arg2):
+    return gen_fcmov(ir, instr, cf|zf, arg1, arg2, True)
 
 
-def fcmovu(ir, instr, a, b):
-    return gen_fcmov(ir, instr, pf, a, b, True)
+def fcmovu(ir, instr, arg1, arg2):
+    return gen_fcmov(ir, instr, pf, arg1, arg2, True)
 
 
-def fcmovnb(ir, instr, a, b):
-    return gen_fcmov(ir, instr, cf, a, b, False)
+def fcmovnb(ir, instr, arg1, arg2):
+    return gen_fcmov(ir, instr, cf, arg1, arg2, False)
 
 
-def fcmovne(ir, instr, a, b):
-    return gen_fcmov(ir, instr, zf, a, b, False)
+def fcmovne(ir, instr, arg1, arg2):
+    return gen_fcmov(ir, instr, zf, arg1, arg2, False)
 
 
-def fcmovnbe(ir, instr, a, b):
-    return gen_fcmov(ir, instr, cf|zf, a, b, False)
+def fcmovnbe(ir, instr, arg1, arg2):
+    return gen_fcmov(ir, instr, cf|zf, arg1, arg2, False)
 
 
-def fcmovnu(ir, instr, a, b):
-    return gen_fcmov(ir, instr, pf, a, b, False)
+def fcmovnu(ir, instr, arg1, arg2):
+    return gen_fcmov(ir, instr, pf, arg1, arg2, False)
 
 
 def nop(ir, instr, a=None):
@@ -2720,67 +2720,67 @@ def sldt(ir, instr, a):
     return e, []
 
 
-def cmovz(ir, instr, a, b):
-    return gen_cmov(ir, instr, zf, a, b, True)
+def cmovz(ir, instr, arg1, arg2):
+    return gen_cmov(ir, instr, zf, arg1, arg2, True)
 
-def cmovnz(ir, instr, a, b):
-    return gen_cmov(ir, instr, zf, a, b, False)
-
-
-def cmovpe(ir, instr, a, b):
-    return gen_cmov(ir, instr, pf, a, b, True)
+def cmovnz(ir, instr, arg1, arg2):
+    return gen_cmov(ir, instr, zf, arg1, arg2, False)
 
 
-def cmovnp(ir, instr, a, b):
-    return gen_cmov(ir, instr, pf, a, b, False)
+def cmovpe(ir, instr, arg1, arg2):
+    return gen_cmov(ir, instr, pf, arg1, arg2, True)
 
 
-def cmovge(ir, instr, a, b):
-    return gen_cmov(ir, instr, nf^of, a, b, False)
+def cmovnp(ir, instr, arg1, arg2):
+    return gen_cmov(ir, instr, pf, arg1, arg2, False)
 
 
-def cmovg(ir, instr, a, b):
-    return gen_cmov(ir, instr, zf|(nf^of), a, b, False)
+def cmovge(ir, instr, arg1, arg2):
+    return gen_cmov(ir, instr, nf^of, arg1, arg2, False)
 
 
-def cmovl(ir, instr, a, b):
-    return gen_cmov(ir, instr, nf^of, a, b, True)
+def cmovg(ir, instr, arg1, arg2):
+    return gen_cmov(ir, instr, zf|(nf^of), arg1, arg2, False)
 
 
-def cmovle(ir, instr, a, b):
-    return gen_cmov(ir, instr, zf|(nf^of), a, b, True)
+def cmovl(ir, instr, arg1, arg2):
+    return gen_cmov(ir, instr, nf^of, arg1, arg2, True)
 
 
-def cmova(ir, instr, a, b):
-    return gen_cmov(ir, instr, cf|zf, a, b, False)
+def cmovle(ir, instr, arg1, arg2):
+    return gen_cmov(ir, instr, zf|(nf^of), arg1, arg2, True)
 
 
-def cmovae(ir, instr, a, b):
-    return gen_cmov(ir, instr, cf, a, b, False)
+def cmova(ir, instr, arg1, arg2):
+    return gen_cmov(ir, instr, cf|zf, arg1, arg2, False)
 
 
-def cmovbe(ir, instr, a, b):
-    return gen_cmov(ir, instr, cf|zf, a, b, True)
+def cmovae(ir, instr, arg1, arg2):
+    return gen_cmov(ir, instr, cf, arg1, arg2, False)
 
 
-def cmovb(ir, instr, a, b):
-    return gen_cmov(ir, instr, cf, a, b, True)
+def cmovbe(ir, instr, arg1, arg2):
+    return gen_cmov(ir, instr, cf|zf, arg1, arg2, True)
 
 
-def cmovo(ir, instr, a, b):
-    return gen_cmov(ir, instr, of, a, b, True)
+def cmovb(ir, instr, arg1, arg2):
+    return gen_cmov(ir, instr, cf, arg1, arg2, True)
 
 
-def cmovno(ir, instr, a, b):
-    return gen_cmov(ir, instr, of, a, b, False)
+def cmovo(ir, instr, arg1, arg2):
+    return gen_cmov(ir, instr, of, arg1, arg2, True)
 
 
-def cmovs(ir, instr, a, b):
-    return gen_cmov(ir, instr, nf, a, b, True)
+def cmovno(ir, instr, arg1, arg2):
+    return gen_cmov(ir, instr, of, arg1, arg2, False)
 
 
-def cmovns(ir, instr, a, b):
-    return gen_cmov(ir, instr, nf, a, b, False)
+def cmovs(ir, instr, arg1, arg2):
+    return gen_cmov(ir, instr, nf, arg1, arg2, True)
+
+
+def cmovns(ir, instr, arg1, arg2):
+    return gen_cmov(ir, instr, nf, arg1, arg2, False)
 
 
 def icebp(ir, instr):
