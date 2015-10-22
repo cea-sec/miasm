@@ -8,7 +8,6 @@ from miasm2.core.cpu import *
 from collections import defaultdict
 import miasm2.arch.x86.regs as regs_module
 from miasm2.arch.x86.regs import *
-from miasm2.ir.ir import *
 from miasm2.core.asmbloc import asm_label
 
 log = logging.getLogger("x86_arch")
@@ -2966,8 +2965,6 @@ sx = bs(l=0, fname="sx")
 sxd = bs(l=0, fname="sx")
 
 
-xmm = bs(l=0, fname="xmm")
-mm = bs(l=0, fname="mm")
 xmmreg = bs(l=0, fname="xmmreg")
 mmreg = bs(l=0, fname="mmreg")
 
@@ -3800,11 +3797,11 @@ addop("xgetbv", [bs8(0x0f), bs8(0x01), bs8(0xd0)])
 
 ## Move
 # SSE
-addop("movapd", [bs8(0x0f), bs("0010100"), swapargs, xmm]
+addop("movapd", [bs8(0x0f), bs("0010100"), swapargs]
       + rmmod(xmm_reg, rm_arg_xmm) + [bs_opmode16], [xmm_reg, rm_arg_xmm])
-addop("movaps", [bs8(0x0f), bs("0010100"), swapargs, xmm]
+addop("movaps", [bs8(0x0f), bs("0010100"), swapargs]
       + rmmod(xmm_reg, rm_arg_xmm) + [bs_opmode32], [xmm_reg, rm_arg_xmm])
-addop("movaps", [bs8(0x0f), bs("0010100"), swapargs, xmm]
+addop("movaps", [bs8(0x0f), bs("0010100"), swapargs]
       + rmmod(xmm_reg, rm_arg_xmm) + [bs_opmode64], [xmm_reg, rm_arg_xmm])
 addop("movdqu", [bs8(0x0f), bs("011"), swapargs, bs("1111"), pref_f3]
       + rmmod(xmm_reg, rm_arg_xmm), [xmm_reg, rm_arg_xmm])
