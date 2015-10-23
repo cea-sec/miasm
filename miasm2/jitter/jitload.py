@@ -137,11 +137,7 @@ class CallbackHandlerBitflag(CallbackHandler):
 
     "Handle a list of callback with conditions on bitflag"
 
-    # Overrides CallbackHandler's implem, but do not serve for optimization
-    def has_callbacks(self, bitflag):
-        return any(cb_mask & bitflag != 0 for cb_mask in self.callbacks)
-
-    def __call__(self, bitflag, *args):
+    def call_callbacks(self, bitflag, *args):
         """Call each callbacks associated with bit set in bitflag. While
         callbacks return True, continue with next callback.
         Iterator on other results"""
@@ -309,10 +305,9 @@ class jitter:
 
         # Check breakpoints
         old_pc = self.pc
-        if self.breakpoints_handler.has_callbacks(self.pc):
-            for res in self.breakpoints_handler(self.pc, self):
-                if res is not True:
-                    yield res
+        for res in self.breakpoints_handler.call_callbacks(self.pc, self):
+            if res is not True:
+                yield res
 
         # If a callback changed pc, re call every callback
         if old_pc != self.pc:
