@@ -211,7 +211,7 @@ def create_modules_chain(myjit, modules_name):
 
     out = ""
     for i, m in enumerate([(main_pe_name, main_pe),
-        ("", dummy_e)] + modules_name):
+                           ("", dummy_e)] + modules_name):
         addr = base_addr + i * 0x1000
         if isinstance(m, tuple):
             fname, e = m
@@ -255,12 +255,14 @@ def create_modules_chain(myjit, modules_name):
         m_o = ""
         m_o += bname
         m_o += "\x00" * 3
-        myjit.vm.add_memory_page(addr + offset_name, PAGE_READ | PAGE_WRITE, m_o)
+        myjit.vm.add_memory_page(
+            addr + offset_name, PAGE_READ | PAGE_WRITE, m_o)
 
         m_o = ""
         m_o += "\x00".join(bpath) + "\x00"
         m_o += "\x00" * 3
-        myjit.vm.add_memory_page(addr + offset_path, PAGE_READ | PAGE_WRITE, m_o)
+        myjit.vm.add_memory_page(
+            addr + offset_path, PAGE_READ | PAGE_WRITE, m_o)
 
     return modules_info
 
@@ -397,8 +399,8 @@ def add_process_env(myjit):
     env_str = '\x00'.join(env_str)
     env_str += "\x00" * 0x10
     myjit.vm.add_memory_page(process_environment_address,
-                                PAGE_READ | PAGE_WRITE,
-                                env_str)
+                             PAGE_READ | PAGE_WRITE,
+                             env_str)
     myjit.vm.set_mem(process_environment_address, env_str)
 
 
@@ -491,7 +493,7 @@ def ctxt2regs(ctxt, myjit):
     # ContextFlags
     ctxt = ctxt[4:]
     # DRX XXX TODO
-    ctxt = ctxt[4*6:]
+    ctxt = ctxt[4 * 6:]
     # Float context XXX TODO
     ctxt = ctxt[112:]
     # gs
@@ -553,8 +555,6 @@ def fake_seh_handler(myjit, except_code):
     # Retrieve seh fields
     old_seh, eh, safe_place = struct.unpack(
         'III', myjit.vm.get_mem(seh_ptr, 0xc))
-
-
 
     # Get space on stack for exception handling
     myjit.cpu.ESP -= 0x3c8
@@ -655,7 +655,7 @@ def return_from_seh(myjit):
     "Handle return after a call to fake seh handler"
 
     # Get current context
-    context_address = upck32(myjit.vm.get_mem(myjit.cpu.ESP+0x8, 4))
+    context_address = upck32(myjit.vm.get_mem(myjit.cpu.ESP + 0x8, 4))
     log.info('Context address: %x', context_address)
     myjit.cpu.ESP = upck32(myjit.vm.get_mem(context_address + 0xc4, 4))
     log.info('New esp: %x', myjit.cpu.ESP)
