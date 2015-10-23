@@ -138,7 +138,7 @@ class JitCore_Tcc(jitcore.JitCore):
 
     def jitirblocs(self, label, irblocs):
         f_name = "bloc_%s" % label.name
-        f_declaration = 'void %s(block_id * BlockDst, JitCpu* jitcpu)' % f_name
+        f_declaration = 'int %s(block_id * BlockDst, JitCpu* jitcpu)' % f_name
         out = irblocs2C(self.ir_arch, self.resolver, label, irblocs,
                         gen_exception_code=True,
                         log_mn=self.log_mn,
