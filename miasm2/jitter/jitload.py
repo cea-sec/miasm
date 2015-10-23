@@ -151,7 +151,8 @@ class CallbackHandlerBitflag(CallbackHandler):
 
             if b & bitflag != 0:
                 # If the flag matched
-                for res in self.call_callbacks(b, *args):
+                for res in super(CallbackHandlerBitflag,
+                                 self).call_callbacks(b, *args):
                     if res is not True:
                         yield res
 
