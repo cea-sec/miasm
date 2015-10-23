@@ -131,4 +131,7 @@ PyObject* vm_get_mem(JitCpu *self, PyObject* args);
 #define VM_exception_flag (((VmMngr*)jitcpu->pyvm)->vm_mngr.exception_flags)
 #define CPU_exception_flag (((vm_cpu_t*)jitcpu->cpu)->exception_flags)
 
+#define JIT_RET_EXCEPTION 1
+#define JIT_RET_NO_EXCEPTION 0
+
 #endif

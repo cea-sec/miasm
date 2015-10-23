@@ -51,7 +51,7 @@ pre_instr_test_exception = r"""
 // pre instruction test exception
 if (VM_exception_flag) {
     %s;
-    return;
+    return JIT_RET_EXCEPTION;
 }
 """
 
@@ -60,14 +60,14 @@ code_exception_fetch_mem_at_instr = r"""
 // except fetch mem at instr
 if (VM_exception_flag & EXCEPT_DO_NOT_UPDATE_PC) {
     %s;
-    return;
+    return JIT_RET_EXCEPTION;
 }
 """
 code_exception_fetch_mem_post_instr = r"""
 // except fetch mem post instr
 if (VM_exception_flag) {
     %s;
-    return;
+    return JIT_RET_EXCEPTION;
 }
 """
 
@@ -76,14 +76,14 @@ code_exception_fetch_mem_at_instr_noautomod = r"""
 // except fetch mem at instr noauto
 if ((VM_exception_flag & ~EXCEPT_CODE_AUTOMOD) & EXCEPT_DO_NOT_UPDATE_PC) {
     %s;
-    return;
+    return JIT_RET_EXCEPTION;
 }
 """
 code_exception_fetch_mem_post_instr_noautomod = r"""
 // except post instr noauto
 if (VM_exception_flag & ~EXCEPT_CODE_AUTOMOD) {
     %s;
-    return;
+    return JIT_RET_EXCEPTION;
 }
 """
 
@@ -92,7 +92,7 @@ code_exception_at_instr = r"""
 // except at instr
 if (CPU_exception_flag && CPU_exception_flag > EXCEPT_NUM_UPDT_EIP) {
     %s;
-    return;
+    return JIT_RET_EXCEPTION;
 }
 """
 
@@ -105,7 +105,7 @@ if (CPU_exception_flag) {
     else {
       %s;
     }
-    return;
+    return JIT_RET_EXCEPTION;
 }
 """
 
@@ -113,7 +113,7 @@ if (CPU_exception_flag) {
 code_exception_at_instr_noautomod = r"""
 if ((CPU_exception_flag & ~EXCEPT_CODE_AUTOMOD) && (CPU_exception_flag > EXCEPT_NUM_UPDT_EIP)) {
     %s;
-    return;
+    return JIT_RET_EXCEPTION;
 }
 """
 
@@ -125,7 +125,7 @@ if (CPU_exception_flag & ~EXCEPT_CODE_AUTOMOD) {
     else {
       %s;
     }
-    return;
+    return JIT_RET_EXCEPTION;
 }
 """
 
@@ -134,7 +134,7 @@ if (BlockDst->is_local) {
     goto *local_labels[BlockDst->address];
 }
 else {
-    return;
+    return JIT_RET_NO_EXCEPTION;
 }
 """
 
@@ -296,7 +296,7 @@ def Expr2C(ir_arch, l, exprs, gen_exception_code=False):
 
         if e.dst == ir_arch.arch.pc[ir_arch.attrib]:
             pc_is_dst = True
-            out_pc += ["return;"]
+            out_pc += ["return JIT_RET_NO_EXCEPTION;"]
 
     # if len(id_to_update) != len(set(id_to_update)):
     # raise ValueError('Not implemented: multi dst to same id!', str([str(x)
@@ -327,7 +327,7 @@ def Expr2C(ir_arch, l, exprs, gen_exception_code=False):
         if set_exception_flags:
             if pc_is_dst:
                 post_instr.append("if (VM_exception_flag) { " +
-                    "/*pc = 0x%X; */return; }" % (l.offset))
+                    "/*pc = 0x%X; */return JIT_RET_EXCEPTION; }" % (l.offset))
             else:
                 e = set_pc(ir_arch, l.offset & mask_int)
                 s1 = "%s" % translator.from_expr(patch_c_id(ir_arch.arch, e))
