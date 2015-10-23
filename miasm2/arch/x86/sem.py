@@ -54,18 +54,6 @@ OF(A-B) = ((A XOR D) AND (A XOR B)) < 0
 """
 
 
-float_list = [
-    m2_expr.ExprId("ST", 64),
-    m2_expr.ExprId("ST(0)", 64),
-    m2_expr.ExprId("ST(1)", 64),
-    m2_expr.ExprId("ST(2)", 64),
-    m2_expr.ExprId("ST(3)", 64),
-    m2_expr.ExprId("ST(4)", 64),
-    m2_expr.ExprId("ST(5)", 64),
-    m2_expr.ExprId("ST(6)", 64),
-    m2_expr.ExprId("ST(7)", 64),
-]
-
 
 # XXX TODO make default check against 0 or not 0 (same eq as in C)
 
@@ -175,6 +163,92 @@ def set_float_cs_eip(instr):
                              m2_expr.ExprInt_from(float_eip, instr.offset)))
     e.append(m2_expr.ExprAff(float_cs, CS))
     return e
+
+def mem2double(arg):
+    """
+    Add float convertion if argument is an ExprMem
+    @arg: argument to tranform
+    """
+    if isinstance(arg, m2_expr.ExprMem):
+        if arg.size > 64:
+            raise NotImplementedError('float to long')
+        return m2_expr.ExprOp('mem_%.2d_to_double' % arg.size, arg)
+    else:
+        return arg
+
+def float_implicit_st0(arg1, arg2):
+    """
+    Generate full float operators if one argument is implicit (float_st0)
+    """
+    if arg2 is None:
+        arg2 = arg1
+        arg1 = float_st0
+    return arg1, arg2
+
+
+def gen_jcc(ir, instr, cond, dst, jmp_if):
+    """
+    Macro to generate jcc semantic
+    @ir: ir instance
+    @instr: instruction
+    @cond: condtion of the jcc
+    @dst: the dstination if jcc is taken
+    @jmp_if: jump if/notif cond
+    """
+
+    e = []
+    meip = mRIP[instr.mode]
+    next_lbl = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
+    if jmp_if:
+        dstA, dstB = dst, next_lbl
+    else:
+        dstA, dstB = next_lbl, dst
+    mn_dst = m2_expr.ExprCond(cond,
+                              dstA.zeroExtend(instr.mode),
+                              dstB.zeroExtend(instr.mode))
+    e.append(m2_expr.ExprAff(meip, mn_dst))
+    e.append(m2_expr.ExprAff(ir.IRDst, mn_dst))
+    return e, []
+
+
+def gen_fcmov(ir, instr, cond, arg1, arg2, mov_if):
+    """Generate fcmov
+    @ir: ir instance
+    @instr: instruction instance
+    @cond: condition
+    @mov_if: invert condition if False"""
+
+    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
+    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
+    if mov_if:
+        dstA, dstB = lbl_do, lbl_skip
+    else:
+        dstA, dstB = lbl_skip, lbl_do
+    e = []
+    e_do, extra_irs = [m2_expr.ExprAff(arg1, arg2)], []
+    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
+    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(cond, dstA, dstB)))
+    return e, [irbloc(lbl_do.name, [e_do])]
+
+
+def gen_cmov(ir, instr, cond, arg1, arg2, mov_if):
+    """Generate cmov
+    @ir: ir instance
+    @instr: instruction instance
+    @cond: condition
+    @mov_if: invert condition if False"""
+
+    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
+    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
+    if mov_if:
+        dstA, dstB = lbl_do, lbl_skip
+    else:
+        dstA, dstB = lbl_skip, lbl_do
+    e = []
+    e_do, extra_irs = mov(ir, instr, arg1, arg2)
+    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
+    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(cond, dstA, dstB)))
+    return e, [irbloc(lbl_do.name, [e_do])]
 
 
 def mov(ir, instr, a, b):
@@ -305,10 +379,6 @@ def xor(ir, instr, a, b):
 
 def pxor(ir, instr, a, b):
     e = []
-    if isinstance(a, m2_expr.ExprMem):
-        a = m2_expr.ExprMem(a.arg, b.size)
-    if isinstance(b, m2_expr.ExprMem):
-        b = m2_expr.ExprMem(b.arg, a.size)
     c = a ^ b
     e.append(m2_expr.ExprAff(a, c))
     return e, []
@@ -945,6 +1015,8 @@ def compose_eflag(s=32):
 def pushfd(ir, instr):
     return push(ir, instr, compose_eflag())
 
+def pushfq(ir, instr):
+    return push(ir, instr, compose_eflag().zeroExtend(64))
 
 def pushfw(ir, instr):
     return pushw(ir, instr, compose_eflag(16))
@@ -971,7 +1043,7 @@ def popfd(ir, instr):
     e.append(m2_expr.ExprAff(vip, m2_expr.ExprSlice(tmp, 20, 21)))
     e.append(m2_expr.ExprAff(i_d, m2_expr.ExprSlice(tmp, 21, 22)))
     e.append(m2_expr.ExprAff(mRSP[instr.mode],
-                             mRSP[instr.mode] + m2_expr.ExprInt32(4)))
+                             mRSP[instr.mode] + m2_expr.ExprInt_from(mRSP[instr.mode], instr.mode/8)))
     e.append(m2_expr.ExprAff(exception_flags,
                      m2_expr.ExprCond(m2_expr.ExprSlice(tmp, 8, 9),
                               m2_expr.ExprInt32(EXCEPT_SOFT_BP),
@@ -1210,232 +1282,79 @@ def jmpf(ir, instr, a):
 
 
 def jz(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(zf,
-                             dst.zeroExtend(instr.mode),
-                             n.zeroExtend(instr.mode))
-    e = [m2_expr.ExprAff(meip, dst_o),
-         m2_expr.ExprAff(ir.IRDst, dst_o),
-     ]
-    return e, []
+    return gen_jcc(ir, instr, zf, dst, True)
 
 
 def jcxz(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(mRCX[instr.mode][:16],
-                             n.zeroExtend(instr.mode),
-                             dst.zeroExtend(instr.mode))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+    return gen_jcc(ir, instr, mRCX[instr.mode][:16], dst, False)
 
 
 def jecxz(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(mRCX[instr.mode][:32],
-                             n.zeroExtend(instr.mode),
-                             dst.zeroExtend(instr.mode))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+    return gen_jcc(ir, instr, mRCX[instr.mode][:32], dst, False)
 
 
 def jrcxz(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(mRCX[instr.mode],
-                             n.zeroExtend(instr.mode),
-                             dst.zeroExtend(instr.mode))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+    return gen_jcc(ir, instr, mRCX[instr.mode], dst, False)
 
 
 def jnz(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(zf,
-                             n.zeroExtend(instr.mode),
-                             dst.zeroExtend(instr.mode))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+    return gen_jcc(ir, instr, zf, dst, False)
 
 
 def jp(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(pf,
-                             dst.zeroExtend(instr.mode),
-                             n.zeroExtend(instr.mode))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+    return gen_jcc(ir, instr, pf, dst, True)
 
 
 def jnp(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(pf,
-                             n.zeroExtend(instr.mode),
-                             dst.zeroExtend(instr.mode))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+    return gen_jcc(ir, instr, pf, dst, False)
 
 
 def ja(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(cf | zf,
-                             n.zeroExtend(instr.mode),
-                             dst.zeroExtend(instr.mode))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+    return gen_jcc(ir, instr, cf|zf, dst, False)
 
 
 def jae(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(cf,
-                             n.zeroExtend(instr.mode),
-                             dst.zeroExtend(instr.mode))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+    return gen_jcc(ir, instr, cf, dst, False)
 
 
 def jb(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(cf,
-                             dst.zeroExtend(instr.mode),
-                             n.zeroExtend(instr.mode))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+    return gen_jcc(ir, instr, cf, dst, True)
 
 
 def jbe(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(cf | zf,
-                             dst.zeroExtend(instr.mode),
-                             n.zeroExtend(instr.mode))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+    return gen_jcc(ir, instr, cf|zf, dst, True)
 
 
 def jge(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(nf - of,
-                             n.zeroExtend(instr.mode),
-                             dst.zeroExtend(instr.mode))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+    return gen_jcc(ir, instr, nf-of, dst, False)
 
 
 def jg(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(zf | (nf - of),
-                             n.zeroExtend(instr.mode),
-                             dst.zeroExtend(instr.mode))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+    return gen_jcc(ir, instr, zf|(nf-of), dst, False)
 
 
 def jl(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(nf - of,
-                             dst.zeroExtend(instr.mode),
-                             n.zeroExtend(instr.mode))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+    return gen_jcc(ir, instr, nf-of, dst, True)
 
 
 def jle(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(zf | (nf - of),
-                             dst.zeroExtend(instr.mode),
-                             n.zeroExtend(instr.mode))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+    return gen_jcc(ir, instr, zf|(nf-of), dst, True)
 
 
 def js(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(nf,
-                             dst.zeroExtend(instr.mode),
-                             n.zeroExtend(instr.mode))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+    return gen_jcc(ir, instr, nf, dst, True)
 
 
 def jns(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(nf,
-                             n.zeroExtend(instr.mode),
-                             dst.zeroExtend(instr.mode))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+    return gen_jcc(ir, instr, nf, dst, False)
 
 
 def jo(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(of,
-                             dst.zeroExtend(instr.mode),
-                             n.zeroExtend(instr.mode))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+    return gen_jcc(ir, instr, of, dst, True)
 
 
 def jno(ir, instr, dst):
-    e = []
-    meip = mRIP[instr.mode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
-    dst_o = m2_expr.ExprCond(of,
-                             n.zeroExtend(instr.mode),
-                             dst.zeroExtend(instr.mode))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+    return gen_jcc(ir, instr, of, dst, False)
 
 
 def loop(ir, instr, dst):
@@ -1680,7 +1599,7 @@ def cqo(ir, instr):
     tempRDX = mRDX[instr.mode][:64]
     c = tempRAX.signExtend(128)
     e.append(m2_expr.ExprAff(tempRAX, c[:64]))
-    e.append(m2_expr.ExprAff(tempRDX, c[64:127]))
+    e.append(m2_expr.ExprAff(tempRDX, c[64:128]))
     return e, []
 
 
@@ -1813,55 +1732,49 @@ def movsd_dispatch(ir, instr, a = None, b = None):
         return movsd(ir, instr, a, b)
 
 
-def float_prev(flt):
+def float_prev(flt, popcount=1):
     if not flt in float_list:
         return None
     i = float_list.index(flt)
-    if i == 0:
+    if i < popcount:
         raise ValueError('broken index')
-    flt = float_list[i - 1]
+    flt = float_list[i - popcount]
     return flt
 
 
-def float_pop(avoid_flt=None):
-    avoid_flt = float_prev(avoid_flt)
+def float_pop(avoid_flt=None, popcount=1):
+    """
+    Generate floatpop semantic (@popcount times), avoiding the avoid_flt@ float
+    @avoid_flt: float avoided in the generated semantic
+    @popcount: pop count
+    """
+    avoid_flt = float_prev(avoid_flt, popcount)
     e = []
-    if avoid_flt != float_st0:
-        e.append(m2_expr.ExprAff(float_st0, float_st1))
-    if avoid_flt != float_st1:
-        e.append(m2_expr.ExprAff(float_st1, float_st2))
-    if avoid_flt != float_st2:
-        e.append(m2_expr.ExprAff(float_st2, float_st3))
-    if avoid_flt != float_st3:
-        e.append(m2_expr.ExprAff(float_st3, float_st4))
-    if avoid_flt != float_st4:
-        e.append(m2_expr.ExprAff(float_st4, float_st5))
-    if avoid_flt != float_st5:
-        e.append(m2_expr.ExprAff(float_st5, float_st6))
-    if avoid_flt != float_st6:
-        e.append(m2_expr.ExprAff(float_st6, float_st7))
-    if avoid_flt != float_st7:
-        e.append(m2_expr.ExprAff(float_st7, m2_expr.ExprInt_from(float_st7, 0)))
+    for i in xrange(8-popcount):
+        if avoid_flt != float_list[i]:
+            e.append(m2_expr.ExprAff(float_list[i],
+                                     float_list[i+popcount]))
+    for i in xrange(8-popcount, 8):
+        e.append(m2_expr.ExprAff(float_list[i],
+                                 m2_expr.ExprInt_from(float_list[i], 0)))
     e.append(
         m2_expr.ExprAff(float_stack_ptr,
-                        float_stack_ptr - m2_expr.ExprInt_fromsize(3, 1)))
+                        float_stack_ptr - m2_expr.ExprInt_fromsize(3, popcount)))
     return e
 
 # XXX TODO
 
 
-def fcom(ir, instr, a, b = None):
+def fcom(ir, instr, a=None, b=None):
 
-    if b is None:
+    if a is None and b is None:
+        a, b = float_st0, float_st1
+    elif b is None:
         b = a
         a = float_st0
 
     e = []
-    if isinstance(b, m2_expr.ExprMem):
-        if b.size > 64:
-            raise NotImplementedError('float to long')
-        b = m2_expr.ExprOp('mem_%.2d_to_double'%b.size, b)
-
+    b = mem2double(b)
 
     e.append(m2_expr.ExprAff(float_c0, m2_expr.ExprOp('fcom_c0', a, b)))
     e.append(m2_expr.ExprAff(float_c1, m2_expr.ExprOp('fcom_c1', a, b)))
@@ -1872,11 +1785,35 @@ def fcom(ir, instr, a, b = None):
     return e, []
 
 
+def ftst(ir, instr):
+    a = float_st0
+
+    e = []
+    b = m2_expr.ExprOp('int_32_to_double', m2_expr.ExprInt32(0))
+    e.append(m2_expr.ExprAff(float_c0, m2_expr.ExprOp('fcom_c0', a, b)))
+    e.append(m2_expr.ExprAff(float_c1, m2_expr.ExprOp('fcom_c1', a, b)))
+    e.append(m2_expr.ExprAff(float_c2, m2_expr.ExprOp('fcom_c2', a, b)))
+    e.append(m2_expr.ExprAff(float_c3, m2_expr.ExprOp('fcom_c3', a, b)))
+
+    e += set_float_cs_eip(instr)
+    return e, []
+
+
+def fxam(ir, instr):
+    a = float_st0
+
+    e = []
+    e.append(m2_expr.ExprAff(float_c0, m2_expr.ExprOp('fxam_c0', a)))
+    e.append(m2_expr.ExprAff(float_c2, m2_expr.ExprOp('fxam_c2', a)))
+    e.append(m2_expr.ExprAff(float_c3, m2_expr.ExprOp('fxam_c3', a)))
+
+    e += set_float_cs_eip(instr)
+    return e, []
+
+
 def ficom(ir, instr, a, b = None):
 
-    if b is None:
-        b = a
-        a = float_st0
+    a, b = float_implicit_st0(a, b)
 
     e = []
 
@@ -1898,37 +1835,57 @@ def ficom(ir, instr, a, b = None):
 
 
 
-def fcomi(ir, instr, a):
-    raise NotImplementedError("Invalid emulation")
+def fcomi(ir, instr, a=None, b=None):
+    # TODO unordered float
+    if a is None and b is None:
+        a, b = float_st0, float_st1
+    elif b is None:
+        b = a
+        a = float_st0
 
-
-def fcomip(ir, instr, a):
-    raise NotImplementedError("Invalid emulation")
-
-
-def fucomi(ir, instr, a):
-    raise NotImplementedError("Invalid emulation")
-
-
-def fucomip(ir, instr, a, b):
     e = []
-    # XXX TODO add exception on NaN
+
     e.append(m2_expr.ExprAff(cf, m2_expr.ExprOp('fcom_c0', a, b)))
-    #e.append(m2_expr.ExprAff(float_c1, m2_expr.ExprOp('fcom_c1', a, b)))
     e.append(m2_expr.ExprAff(pf, m2_expr.ExprOp('fcom_c2', a, b)))
     e.append(m2_expr.ExprAff(zf, m2_expr.ExprOp('fcom_c3', a, b)))
 
-    e += float_pop()
+    e.append(m2_expr.ExprAff(of, m2_expr.ExprInt1(0)))
+    e.append(m2_expr.ExprAff(nf, m2_expr.ExprInt1(0)))
+    e.append(m2_expr.ExprAff(af, m2_expr.ExprInt1(0)))
 
     e += set_float_cs_eip(instr)
     return e, []
 
 
-def fcomp(ir, instr, a, b = None):
+def fcomip(ir, instr, a=None, b=None):
+    e, extra = fcomi(ir, instr, a, b)
+    e += float_pop()
+    e += set_float_cs_eip(instr)
+    return e, extra
+
+
+def fucomi(ir, instr, a=None, b=None):
+    # TODO unordered float
+    return fcomi(ir, instr, a, b)
+
+def fucomip(ir, instr, a=None, b=None):
+    # TODO unordered float
+    return fcomip(ir, instr, a, b)
+
+
+def fcomp(ir, instr, a=None, b=None):
     e, extra = fcom(ir, instr, a, b)
     e += float_pop()
     e += set_float_cs_eip(instr)
     return e, extra
+
+
+def fcompp(ir, instr, a=None, b=None):
+    e, extra = fcom(ir, instr, a, b)
+    e += float_pop(popcount=2)
+    e += set_float_cs_eip(instr)
+    return e, extra
+
 
 def ficomp(ir, instr, a, b = None):
     e, extra = ficom(ir, instr, a, b)
@@ -1937,13 +1894,63 @@ def ficomp(ir, instr, a, b = None):
     return e, extra
 
 
+def fucom(ir, instr, a=None, b=None):
+    # TODO unordered float
+    return fcom(ir, instr, a, b)
+
+
+def fucomp(ir, instr, a=None, b=None):
+    # TODO unordered float
+    return fcomp(ir, instr, a, b)
+
+
+def fucompp(ir, instr, a=None, b=None):
+    # TODO unordered float
+    return fcompp(ir, instr, a, b)
+
+
+def comiss(ir, instr, a, b):
+    # TODO unordered float
+
+    e = []
+
+    a = m2_expr.ExprOp('int_32_to_float', a[:32])
+    b = m2_expr.ExprOp('int_32_to_float', b[:32])
+
+    e.append(m2_expr.ExprAff(cf, m2_expr.ExprOp('fcom_c0', a, b)))
+    e.append(m2_expr.ExprAff(pf, m2_expr.ExprOp('fcom_c2', a, b)))
+    e.append(m2_expr.ExprAff(zf, m2_expr.ExprOp('fcom_c3', a, b)))
+
+    e.append(m2_expr.ExprAff(of, m2_expr.ExprInt1(0)))
+    e.append(m2_expr.ExprAff(nf, m2_expr.ExprInt1(0)))
+    e.append(m2_expr.ExprAff(af, m2_expr.ExprInt1(0)))
+
+    e += set_float_cs_eip(instr)
+    return e, []
+
+
+def comisd(ir, instr, a, b):
+    # TODO unordered float
+
+    e = []
+
+    a = m2_expr.ExprOp('int_64_to_double', a[:64])
+    b = m2_expr.ExprOp('int_64_to_double', b[:64])
+
+    e.append(m2_expr.ExprAff(cf, m2_expr.ExprOp('fcom_c0', a, b)))
+    e.append(m2_expr.ExprAff(pf, m2_expr.ExprOp('fcom_c2', a, b)))
+    e.append(m2_expr.ExprAff(zf, m2_expr.ExprOp('fcom_c3', a, b)))
+
+    e.append(m2_expr.ExprAff(of, m2_expr.ExprInt1(0)))
+    e.append(m2_expr.ExprAff(nf, m2_expr.ExprInt1(0)))
+    e.append(m2_expr.ExprAff(af, m2_expr.ExprInt1(0)))
+
+    e += set_float_cs_eip(instr)
+    return e, []
+
+
 def fld(ir, instr, a):
-    if isinstance(a, m2_expr.ExprMem):
-        if a.size > 64:
-            raise NotImplementedError('float to long')
-        src = m2_expr.ExprOp('mem_%.2d_to_double' % a.size, a)
-    else:
-        src = a
+    src = mem2double(a)
 
     e = []
     e.append(m2_expr.ExprAff(float_st7, float_st6))
@@ -1964,14 +1971,15 @@ def fld(ir, instr, a):
 
 def fst(ir, instr, a):
     e = []
+
     if isinstance(a, m2_expr.ExprMem):
         if a.size > 64:
             raise NotImplementedError('float to long')
-        src = m2_expr.ExprOp('double_to_mem_%2d' % a.size, float_st0)
+        src = m2_expr.ExprOp('double_to_mem_%.2d' % a.size, a)
     else:
-        src = float_st0
-    e.append(m2_expr.ExprAff(a, src))
+        src = a
 
+    e.append(m2_expr.ExprAff(a, src))
     e += set_float_cs_eip(instr)
     return e, []
 
@@ -2034,6 +2042,27 @@ def fld1(ir, instr):
                                          m2_expr.ExprInt32(1)))
 
 
+def fldl2t(ir, instr):
+    value_f = math.log(10)/math.log(2)
+    value = struct.unpack('I', struct.pack('f', value_f))[0]
+    return fld(ir, instr, m2_expr.ExprOp('int_32_to_double',
+                                         m2_expr.ExprInt32(value)))
+
+
+def fldpi(ir, instr):
+    value_f = math.pi
+    value = struct.unpack('I', struct.pack('f', value_f))[0]
+    return fld(ir, instr, m2_expr.ExprOp('int_32_to_double',
+                                         m2_expr.ExprInt32(value)))
+
+
+def fldln2(ir, instr):
+    value_f = math.log(2)
+    value = struct.unpack('I', struct.pack('f', value_f))[0]
+    return fld(ir, instr, m2_expr.ExprOp('int_32_to_double',
+                                         m2_expr.ExprInt32(value)))
+
+
 def fldl2e(ir, instr):
     x = struct.pack('d', 1 / math.log(2))
     x = struct.unpack('Q', x)[0]
@@ -2049,48 +2078,68 @@ def fldlg2(ir, instr):
 
 
 def fadd(ir, instr, a, b=None):
-    if b is None:
-        b = a
-        a = float_st0
+    a, b = float_implicit_st0(a, b)
     e = []
-    if isinstance(b, m2_expr.ExprMem):
-        if b.size > 64:
-            raise NotImplementedError('float to long')
-        src = m2_expr.ExprOp('mem_%.2d_to_double' % b.size, b)
-    else:
-        src = b
+    src = mem2double(b)
     e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('fadd', a, src)))
 
     e += set_float_cs_eip(instr)
     return e, []
 
 def fiadd(ir, instr, a, b=None):
-    if b is None:
-        b = a
-        a = float_st0
+    a, b = float_implicit_st0(a, b)
     e = []
-    if isinstance(b, m2_expr.ExprMem):
-        if b.size > 64:
-            raise NotImplementedError('float to long')
-        src = m2_expr.ExprOp('mem_%.2d_to_double' % b.size, b)
-    else:
-        src = b
+    src = mem2double(b)
     e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('fiadd', a, src)))
     e += set_float_cs_eip(instr)
     return e, []
 
 
-def faddp(ir, instr, a, b=None):
-    if b is None:
-        b = a
-        a = float_st0
+def fisub(ir, instr, a, b=None):
+    a, b = float_implicit_st0(a, b)
     e = []
-    if isinstance(b, m2_expr.ExprMem):
-        if b.size > 64:
-            raise NotImplementedError('float to long')
-        src = m2_expr.ExprOp('mem_%.2d_to_double' % b.size, b)
-    else:
-        src = b
+    src = mem2double(b)
+    e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('fisub', a, src)))
+    e += set_float_cs_eip(instr)
+    return e, []
+
+
+def fisubr(ir, instr, a, b=None):
+    a, b = float_implicit_st0(a, b)
+    e = []
+    src = mem2double(b)
+    e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('fisub', src, a)))
+    e += set_float_cs_eip(instr)
+    return e, []
+
+
+def fpatan(ir, instr):
+    e = []
+    a = float_st1
+    e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('fpatan', float_st0, float_st1)))
+    e += set_float_cs_eip(instr)
+    e += float_pop(a)
+    return e, []
+
+
+def fprem(ir, instr):
+    e = []
+    e.append(m2_expr.ExprAff(float_st0, m2_expr.ExprOp('fprem', float_st0, float_st1)))
+    e += set_float_cs_eip(instr)
+    return e, []
+
+
+def fprem1(ir, instr):
+    e = []
+    e.append(m2_expr.ExprAff(float_st0, m2_expr.ExprOp('fprem1', float_st0, float_st1)))
+    e += set_float_cs_eip(instr)
+    return e, []
+
+
+def faddp(ir, instr, a, b=None):
+    a, b = float_implicit_st0(a, b)
+    e = []
+    src = mem2double(b)
     e.append(m2_expr.ExprAff(float_prev(a), m2_expr.ExprOp('fadd', a, src)))
     e += set_float_cs_eip(instr)
     e += float_pop(a)
@@ -2100,6 +2149,15 @@ def faddp(ir, instr, a, b=None):
 def fninit(ir, instr):
     e = []
     e += set_float_cs_eip(instr)
+    return e, []
+
+
+def fyl2x(ir, instr):
+    e = []
+    a = float_st1
+    e.append(m2_expr.ExprAff(float_prev(a), m2_expr.ExprOp('fyl2x', float_st0, float_st1)))
+    e += set_float_cs_eip(instr)
+    e += float_pop(a)
     return e, []
 
 
@@ -2140,31 +2198,17 @@ def fnstenv(ir, instr, a):
 
 
 def fsub(ir, instr, a, b=None):
-    if b is None:
-        b = a
-        a = float_st0
+    a, b = float_implicit_st0(a, b)
     e = []
-    if isinstance(b, m2_expr.ExprMem):
-        if b.size > 64:
-            raise NotImplementedError('float to long')
-        src = m2_expr.ExprOp('mem_%.2d_to_double' % b.size, b)
-    else:
-        src = b
+    src = mem2double(b)
     e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('fsub', a, src)))
     e += set_float_cs_eip(instr)
     return e, []
 
 def fsubp(ir, instr, a, b=None):
-    if b is None:
-        b = a
-        a = float_st0
+    a, b = float_implicit_st0(a, b)
     e = []
-    if isinstance(b, m2_expr.ExprMem):
-        if b.size > 64:
-            raise NotImplementedError('float to long')
-        src = m2_expr.ExprOp('mem_%.2d_to_double' % b.size, b)
-    else:
-        src = b
+    src = mem2double(b)
     e.append(m2_expr.ExprAff(float_prev(a), m2_expr.ExprOp('fsub', a, src)))
     e += set_float_cs_eip(instr)
     e += float_pop(a)
@@ -2172,110 +2216,81 @@ def fsubp(ir, instr, a, b=None):
 
 
 def fsubr(ir, instr, a, b=None):
-    if b is None:
-        b = a
-        a = float_st0
+    a, b = float_implicit_st0(a, b)
     e = []
-    if isinstance(b, m2_expr.ExprMem):
-        if b.size > 64:
-            raise NotImplementedError('float to long')
-        src = m2_expr.ExprOp('mem_%.2d_to_double' % b.size, b)
-    else:
-        src = b
+    src = mem2double(b)
     e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('fsub', src, a)))
     e += set_float_cs_eip(instr)
     return e, []
 
 
-def fmul(ir, instr, a, b=None):
-    if b is None:
-        b = a
-        a = float_st0
+def fsubrp(ir, instr, a, b=None):
+    a, b = float_implicit_st0(a, b)
     e = []
-    if isinstance(b, m2_expr.ExprMem):
-        if b.size > 64:
-            raise NotImplementedError('float to long')
-        src = m2_expr.ExprOp('mem_%.2d_to_double' % b.size, b)
-    else:
-        src = b
+    src = mem2double(b)
+    e.append(m2_expr.ExprAff(float_prev(a), m2_expr.ExprOp('fsub', src, a)))
+    e += set_float_cs_eip(instr)
+    e += float_pop(a)
+    return e, []
+
+
+def fmul(ir, instr, a, b=None):
+    a, b = float_implicit_st0(a, b)
+    e = []
+    src = mem2double(b)
     e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('fmul', a, src)))
     e += set_float_cs_eip(instr)
     return e, []
 
 def fimul(ir, instr, a, b=None):
-    if b is None:
-        b = a
-        a = float_st0
+    a, b = float_implicit_st0(a, b)
     e = []
-    if isinstance(b, m2_expr.ExprMem):
-        if b.size > 64:
-            raise NotImplementedError('float to long')
-        src = m2_expr.ExprOp('mem_%.2d_to_double' % b.size, b)
-    else:
-        src = b
+    src = mem2double(b)
     e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('fimul', a, src)))
     e += set_float_cs_eip(instr)
     return e, []
 
 
 def fdiv(ir, instr, a, b=None):
-    if b is None:
-        b = a
-        a = float_st0
+    a, b = float_implicit_st0(a, b)
     e = []
-    if isinstance(b, m2_expr.ExprMem):
-        if b.size > 64:
-            raise NotImplementedError('float to long')
-        src = m2_expr.ExprOp('mem_%.2d_to_double' % b.size, b)
-    else:
-        src = b
+    src = mem2double(b)
     e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('fdiv', a, src)))
     e += set_float_cs_eip(instr)
     return e, []
 
 def fdivr(ir, instr, a, b=None):
-    if b is None:
-        b = a
-        a = float_st0
+    a, b = float_implicit_st0(a, b)
     e = []
-    if isinstance(b, m2_expr.ExprMem):
-        if b.size > 64:
-            raise NotImplementedError('float to long')
-        src = m2_expr.ExprOp('mem_%.2d_to_double' % b.size, b)
-    else:
-        src = b
+    src = mem2double(b)
     e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('fdiv', src, a)))
     e += set_float_cs_eip(instr)
     return e, []
 
 
-def fidiv(ir, instr, a, b=None):
-    if b is None:
-        b = a
-        a = float_st0
+def fdivrp(ir, instr, a, b=None):
+    a, b = float_implicit_st0(a, b)
     e = []
-    if isinstance(b, m2_expr.ExprMem):
-        if b.size > 64:
-            raise NotImplementedError('float to long')
-        src = m2_expr.ExprOp('mem_%.2d_to_double' % b.size, b)
-    else:
-        src = b
+    src = mem2double(b)
+    e.append(m2_expr.ExprAff(float_prev(a), m2_expr.ExprOp('fdiv', src, a)))
+    e += set_float_cs_eip(instr)
+    e += float_pop(a)
+    return e, []
+
+
+def fidiv(ir, instr, a, b=None):
+    a, b = float_implicit_st0(a, b)
+    e = []
+    src = mem2double(b)
     e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('fidiv', a, src)))
     e += set_float_cs_eip(instr)
     return e, []
 
 
 def fidivr(ir, instr, a, b=None):
-    if b is None:
-        b = a
-        a = float_st0
+    a, b = float_implicit_st0(a, b)
     e = []
-    if isinstance(b, m2_expr.ExprMem):
-        if b.size > 64:
-            raise NotImplementedError('float to long')
-        src = m2_expr.ExprOp('mem_%.2d_to_double' % b.size, b)
-    else:
-        src = b
+    src = mem2double(b)
     e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('fidiv', src, a)))
     e += set_float_cs_eip(instr)
     return e, []
@@ -2283,16 +2298,9 @@ def fidivr(ir, instr, a, b=None):
 
 def fdivp(ir, instr, a, b=None):
     # Invalid emulation
-    if b is None:
-        b = a
-        a = float_st0
+    a, b = float_implicit_st0(a, b)
     e = []
-    if isinstance(b, m2_expr.ExprMem):
-        if b.size > 64:
-            raise NotImplementedError('float to long')
-        src = m2_expr.ExprOp('mem_%.2d_to_double' % b.size, b)
-    else:
-        src = b
+    src = mem2double(b)
     e.append(m2_expr.ExprAff(float_prev(a), m2_expr.ExprOp('fdiv', a, src)))
     e += set_float_cs_eip(instr)
     e += float_pop(a)
@@ -2301,16 +2309,9 @@ def fdivp(ir, instr, a, b=None):
 
 def fmulp(ir, instr, a, b=None):
     # Invalid emulation
-    if b is None:
-        b = a
-        a = float_st0
+    a, b = float_implicit_st0(a, b)
     e = []
-    if isinstance(b, m2_expr.ExprMem):
-        if b.size > 64:
-            raise NotImplementedError('float to long')
-        src = m2_expr.ExprOp('mem_%.2d_to_double' % b.size, b)
-    else:
-        src = b
+    src = mem2double(b)
     e.append(m2_expr.ExprAff(float_prev(a), m2_expr.ExprOp('fmul', a, src)))
     e += set_float_cs_eip(instr)
     e += float_pop(a)
@@ -2319,12 +2320,7 @@ def fmulp(ir, instr, a, b=None):
 
 def ftan(ir, instr, a):
     e = []
-    if isinstance(a, m2_expr.ExprMem):
-        if a.size > 64:
-            raise NotImplementedError('float to long')
-        src = m2_expr.ExprOp('mem_%.2d_to_double' % a.size, a)
-    else:
-        src = a
+    src = mem2double(a)
     e.append(m2_expr.ExprAff(float_st0, m2_expr.ExprOp('ftan', src)))
     e += set_float_cs_eip(instr)
     return e, []
@@ -2332,12 +2328,7 @@ def ftan(ir, instr, a):
 
 def fxch(ir, instr, a):
     e = []
-    if isinstance(a, m2_expr.ExprMem):
-        if a.size > 64:
-            raise NotImplementedError('float to long')
-        src = m2_expr.ExprOp('mem_%.2d_to_double' % a.size, a)
-    else:
-        src = a
+    src = mem2double(a)
     e.append(m2_expr.ExprAff(float_st0, src))
     e.append(m2_expr.ExprAff(src, float_st0))
     e += set_float_cs_eip(instr)
@@ -2383,6 +2374,22 @@ def fcos(ir, instr):
     return e, []
 
 
+def fsincos(ir, instr):
+    e = []
+    e.append(m2_expr.ExprAff(float_st7, float_st6))
+    e.append(m2_expr.ExprAff(float_st6, float_st5))
+    e.append(m2_expr.ExprAff(float_st5, float_st4))
+    e.append(m2_expr.ExprAff(float_st4, float_st3))
+    e.append(m2_expr.ExprAff(float_st3, float_st2))
+    e.append(m2_expr.ExprAff(float_st2, float_st1))
+    e.append(m2_expr.ExprAff(float_st1, m2_expr.ExprOp('fsin', float_st0)))
+    e.append(m2_expr.ExprAff(float_st0, m2_expr.ExprOp('fcos', float_st0)))
+    e.append(
+        m2_expr.ExprAff(float_stack_ptr,
+                        float_stack_ptr + m2_expr.ExprInt_fromsize(3, 1)))
+    return e, []
+
+
 def fscale(ir, instr):
     e = []
     e.append(m2_expr.ExprAff(float_st0, m2_expr.ExprOp('fscale', float_st0,
@@ -2394,6 +2401,12 @@ def fscale(ir, instr):
 def f2xm1(ir, instr):
     e = []
     e.append(m2_expr.ExprAff(float_st0, m2_expr.ExprOp('f2xm1', float_st0)))
+    e += set_float_cs_eip(instr)
+    return e, []
+
+def fchs(ir, instr):
+    e = []
+    e.append(m2_expr.ExprAff(float_st0, m2_expr.ExprOp('fchs', float_st0)))
     e += set_float_cs_eip(instr)
     return e, []
 
@@ -2438,6 +2451,38 @@ def fldcw(ir, instr, a):
 
 def fwait(ir, instr):
     return [], None
+
+
+def fcmovb(ir, instr, arg1, arg2):
+    return gen_fcmov(ir, instr, cf, arg1, arg2, True)
+
+
+def fcmove(ir, instr, arg1, arg2):
+    return gen_fcmov(ir, instr, zf, arg1, arg2, True)
+
+
+def fcmovbe(ir, instr, arg1, arg2):
+    return gen_fcmov(ir, instr, cf|zf, arg1, arg2, True)
+
+
+def fcmovu(ir, instr, arg1, arg2):
+    return gen_fcmov(ir, instr, pf, arg1, arg2, True)
+
+
+def fcmovnb(ir, instr, arg1, arg2):
+    return gen_fcmov(ir, instr, cf, arg1, arg2, False)
+
+
+def fcmovne(ir, instr, arg1, arg2):
+    return gen_fcmov(ir, instr, zf, arg1, arg2, False)
+
+
+def fcmovnbe(ir, instr, arg1, arg2):
+    return gen_fcmov(ir, instr, cf|zf, arg1, arg2, False)
+
+
+def fcmovnu(ir, instr, arg1, arg2):
+    return gen_fcmov(ir, instr, pf, arg1, arg2, False)
 
 
 def nop(ir, instr, a=None):
@@ -2675,150 +2720,67 @@ def sldt(ir, instr, a):
     return e, []
 
 
-def cmovz(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = mov(ir, instr, a, b)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(zf, lbl_do, lbl_skip)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+def cmovz(ir, instr, arg1, arg2):
+    return gen_cmov(ir, instr, zf, arg1, arg2, True)
+
+def cmovnz(ir, instr, arg1, arg2):
+    return gen_cmov(ir, instr, zf, arg1, arg2, False)
 
 
-def cmovnz(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = mov(ir, instr, a, b)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(zf, lbl_skip, lbl_do)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+def cmovpe(ir, instr, arg1, arg2):
+    return gen_cmov(ir, instr, pf, arg1, arg2, True)
 
 
-def cmovge(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = mov(ir, instr, a, b)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(nf ^ of, lbl_skip,
-                                                        lbl_do)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+def cmovnp(ir, instr, arg1, arg2):
+    return gen_cmov(ir, instr, pf, arg1, arg2, False)
 
 
-def cmovg(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = mov(ir, instr, a, b)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(zf | (nf ^ of),
-                                                        lbl_skip, lbl_do)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+def cmovge(ir, instr, arg1, arg2):
+    return gen_cmov(ir, instr, nf^of, arg1, arg2, False)
 
 
-def cmovl(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = mov(ir, instr, a, b)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(nf ^ of, lbl_do,
-                                                        lbl_skip)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+def cmovg(ir, instr, arg1, arg2):
+    return gen_cmov(ir, instr, zf|(nf^of), arg1, arg2, False)
 
 
-def cmovle(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = mov(ir, instr, a, b)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(zf | (nf ^ of), lbl_do,
-                                                        lbl_skip)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+def cmovl(ir, instr, arg1, arg2):
+    return gen_cmov(ir, instr, nf^of, arg1, arg2, True)
 
 
-def cmova(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = mov(ir, instr, a, b)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(cf | zf, lbl_skip,
-                                                        lbl_do)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+def cmovle(ir, instr, arg1, arg2):
+    return gen_cmov(ir, instr, zf|(nf^of), arg1, arg2, True)
 
 
-def cmovae(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = mov(ir, instr, a, b)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(cf, lbl_skip, lbl_do)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+def cmova(ir, instr, arg1, arg2):
+    return gen_cmov(ir, instr, cf|zf, arg1, arg2, False)
 
 
-def cmovbe(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = mov(ir, instr, a, b)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(cf | zf, lbl_do,
-                                                        lbl_skip)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+def cmovae(ir, instr, arg1, arg2):
+    return gen_cmov(ir, instr, cf, arg1, arg2, False)
 
 
-def cmovb(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = mov(ir, instr, a, b)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(cf, lbl_do, lbl_skip)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+def cmovbe(ir, instr, arg1, arg2):
+    return gen_cmov(ir, instr, cf|zf, arg1, arg2, True)
 
 
-def cmovo(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = mov(ir, instr, a, b)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(of, lbl_do, lbl_skip)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+def cmovb(ir, instr, arg1, arg2):
+    return gen_cmov(ir, instr, cf, arg1, arg2, True)
 
 
-def cmovno(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = mov(ir, instr, a, b)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(of, lbl_skip, lbl_do)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+def cmovo(ir, instr, arg1, arg2):
+    return gen_cmov(ir, instr, of, arg1, arg2, True)
 
 
-def cmovs(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = mov(ir, instr, a, b)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(nf, lbl_do, lbl_skip)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+def cmovno(ir, instr, arg1, arg2):
+    return gen_cmov(ir, instr, of, arg1, arg2, False)
 
 
-def cmovns(ir, instr, a, b):
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    e_do, extra_irs = mov(ir, instr, a, b)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(nf, lbl_skip, lbl_do)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+def cmovs(ir, instr, arg1, arg2):
+    return gen_cmov(ir, instr, nf, arg1, arg2, True)
+
+
+def cmovns(ir, instr, arg1, arg2):
+    return gen_cmov(ir, instr, nf, arg1, arg2, False)
 
 
 def icebp(ir, instr):
@@ -2881,16 +2843,16 @@ def cpuid(ir, instr):
     e = []
     e.append(
         m2_expr.ExprAff(mRAX[instr.mode],
-        m2_expr.ExprOp('cpuid', mRAX[instr.mode], m2_expr.ExprInt32(0))))
+        m2_expr.ExprOp('cpuid', mRAX[instr.mode], m2_expr.ExprInt_fromsize(instr.mode, 0))))
     e.append(
         m2_expr.ExprAff(mRBX[instr.mode],
-        m2_expr.ExprOp('cpuid', mRAX[instr.mode], m2_expr.ExprInt32(1))))
+        m2_expr.ExprOp('cpuid', mRAX[instr.mode], m2_expr.ExprInt_fromsize(instr.mode, 1))))
     e.append(
         m2_expr.ExprAff(mRCX[instr.mode],
-        m2_expr.ExprOp('cpuid', mRAX[instr.mode], m2_expr.ExprInt32(2))))
+        m2_expr.ExprOp('cpuid', mRAX[instr.mode], m2_expr.ExprInt_fromsize(instr.mode, 2))))
     e.append(
         m2_expr.ExprAff(mRDX[instr.mode],
-        m2_expr.ExprOp('cpuid', mRAX[instr.mode], m2_expr.ExprInt32(3))))
+        m2_expr.ExprOp('cpuid', mRAX[instr.mode], m2_expr.ExprInt_fromsize(instr.mode, 3))))
     return e, []
 
 
@@ -3083,54 +3045,108 @@ def l_str(ir, instr, a):
 
 def movd(ir, instr, a, b):
     e = []
-    if a.size == 64:
-        value = m2_expr.ExprCompose([(m2_expr.ExprInt32(0), 32, 64),
-                                     (b, 0, 32)])
-        e.append(m2_expr.ExprAff(a, value))
+    if a in regs_mm_expr:
+        e.append(m2_expr.ExprAff(a, m2_expr.ExprCompose([(b, 0, 32),
+                                                         (m2_expr.ExprInt32(0), 32, 64)])))
+    elif a in regs_xmm_expr:
+        e.append(m2_expr.ExprAff(a, m2_expr.ExprCompose([(b, 0, 32),
+                                                         (m2_expr.ExprInt_fromsize(96, 0), 32, 128)])))
     else:
-        e.append(m2_expr.ExprAff(a, b[0:32]))
+        e.append(m2_expr.ExprAff(a, b[:32]))
     return e, []
 
 def movdqu(ir, instr, a, b):
+    # XXX TODO alignement check
+    return [m2_expr.ExprAff(a, b)], []
+
+
+def movapd(ir, instr, a, b):
+    # XXX TODO alignement check
+    return [m2_expr.ExprAff(a, b)], []
+
+
+def andps(ir, instr, a, b):
     e = []
-    if isinstance(a, m2_expr.ExprMem):
-        a = m2_expr.ExprMem(a.arg, b.size)
-    elif isinstance(b, m2_expr.ExprMem):
-        b = m2_expr.ExprMem(b.arg, a.size)
-    e.append(m2_expr.ExprAff(a, b))
+    e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('&', a, b)))
+    return e, []
+
+
+def orps(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('|', a, b)))
     return e, []
 
 
 def xorps(ir, instr, a, b):
     e = []
-    if isinstance(b, m2_expr.ExprMem):
-        b = m2_expr.ExprMem(b.arg, a.size)
     e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('^', a, b)))
+    return e, []
+
+
+def rdmsr(ir, instr):
+    msr_addr = m2_expr.ExprId('MSR') + m2_expr.ExprInt32(8) * mRCX[instr.mode][:32]
+    e = []
+    e.append(m2_expr.ExprAff(mRAX[instr.mode][:32], m2_expr.ExprMem(msr_addr, 32)))
+    e.append(m2_expr.ExprAff(mRDX[instr.mode][:32], m2_expr.ExprMem(msr_addr + m2_expr.ExprInt_from(msr_addr, 4), 32)))
+    return e, []
+
+def wrmsr(ir, instr):
+    msr_addr = m2_expr.ExprId('MSR') + m2_expr.ExprInt32(8) * mRCX[instr.mode][:32]
+    e = []
+    src = m2_expr.ExprCompose([(mRAX[instr.mode][:32], 0, 32),
+                               (mRDX[instr.mode][:32], 32, 64)])
+    e.append(m2_expr.ExprAff(m2_expr.ExprMem(msr_addr, 64), src))
     return e, []
 
 ### MMX/SSE/AVX operations
 ###
 
+def vec_op_clip(op, size):
+    """
+    Generate simd operations
+    @op: the operator
+    @size: size of an element
+    """
+    def vec_op_clip_instr(ir, instr, a, b):
+        if op == '-':
+            return [m2_expr.ExprAff(a[:size], a[:size] - b[:size])], []
+        else:
+            return [m2_expr.ExprAff(a[:size], m2_expr.ExprOp(op, a[:size], b[:size]))], []
+    return vec_op_clip_instr
+
 # Generic vertical operation
 def vec_vertical_sem(op, elt_size, reg_size, a, b):
     assert(reg_size % elt_size == 0)
     n = reg_size/elt_size
-    ops = [(m2_expr.ExprOp(op, a[i*elt_size:(i+1)*elt_size],
-                   b[i*elt_size:(i+1)*elt_size]),
-            i*elt_size,
-            (i+1)*elt_size) for i in xrange(0, n)]
+    if op == '-':
+        ops = [((a[i*elt_size:(i+1)*elt_size] - b[i*elt_size:(i+1)*elt_size]),
+               i*elt_size, (i+1)*elt_size) for i in xrange(0, n)]
+    else:
+        ops = [(m2_expr.ExprOp(op, a[i*elt_size:(i+1)*elt_size],
+                               b[i*elt_size:(i+1)*elt_size]),
+                i*elt_size,
+                (i+1)*elt_size) for i in xrange(0, n)]
+
     return m2_expr.ExprCompose(ops)
 
 def float_vec_vertical_sem(op, elt_size, reg_size, a, b):
     assert(reg_size % elt_size == 0)
     n = reg_size/elt_size
-    ops = [(m2_expr.ExprOp('double_to_int_%d' % elt_size, m2_expr.ExprOp(op,
-                   m2_expr.ExprOp('int_%d_to_double' % elt_size,
-                          a[i*elt_size:(i+1)*elt_size]),
-                   m2_expr.ExprOp('int_%d_to_double' % elt_size,
-                          b[i*elt_size:(i+1)*elt_size]))
-                  ),
-            i*elt_size, (i+1)*elt_size) for i in xrange(0, n)]
+
+    x_to_int, int_to_x = {32: ('float_to_int_%d', 'int_%d_to_float'),
+                          64: ('double_to_int_%d', 'int_%d_to_double')}[elt_size]
+    if op == '-':
+        ops = [(m2_expr.ExprOp(x_to_int % elt_size,
+                               m2_expr.ExprOp(int_to_x % elt_size, a[i*elt_size:(i+1)*elt_size]) -
+                               m2_expr.ExprOp(int_to_x % elt_size, b[i*elt_size:(i+1)*elt_size])),
+                i*elt_size, (i+1)*elt_size) for i in xrange(0, n)]
+    else:
+        ops = [(m2_expr.ExprOp(x_to_int % elt_size,
+                               m2_expr.ExprOp(op,
+                                              m2_expr.ExprOp(int_to_x % elt_size, a[i*elt_size:(i+1)*elt_size]),
+                                              m2_expr.ExprOp(int_to_x % elt_size, b[i*elt_size:(i+1)*elt_size]))),
+                i*elt_size, (i+1)*elt_size) for i in xrange(0, n)]
+
     return m2_expr.ExprCompose(ops)
 
 def __vec_vertical_instr_gen(op, elt_size, sem):
@@ -3174,12 +3190,20 @@ psubq = vec_vertical_instr('-', 64)
 ###
 
 # SSE
+addss = vec_op_clip('+', 32)
+addsd = vec_op_clip('+', 64)
 addps = float_vec_vertical_instr('+', 32)
 addpd = float_vec_vertical_instr('+', 64)
+subss = vec_op_clip('-', 32)
+subsd = vec_op_clip('-', 64)
 subps = float_vec_vertical_instr('-', 32)
 subpd = float_vec_vertical_instr('-', 64)
+mulss = vec_op_clip('*', 32)
+mulsd = vec_op_clip('*', 64)
 mulps = float_vec_vertical_instr('*', 32)
 mulpd = float_vec_vertical_instr('*', 64)
+divss = vec_op_clip('/', 32)
+divsd = vec_op_clip('/', 64)
 divps = float_vec_vertical_instr('/', 32)
 divpd = float_vec_vertical_instr('/', 64)
 
@@ -3194,13 +3218,11 @@ def pand(ir, instr, a, b):
     e.append(m2_expr.ExprAff(a, c))
     return e, []
 
-def movaps(ir, instr, a, b):
+
+def por(ir, instr, a, b):
     e = []
-    if isinstance(a, m2_expr.ExprMem):
-        a = m2_expr.ExprMem(a.arg, b.size)
-    if isinstance(b, m2_expr.ExprMem):
-        b = m2_expr.ExprMem(b.arg, a.size)
-    e.append(m2_expr.ExprAff(a, b))
+    c = a | b
+    e.append(m2_expr.ExprAff(a, c))
     return e, []
 
 
@@ -3209,16 +3231,151 @@ def pminsw(ir, instr, a, b):
     e.append(m2_expr.ExprAff(a, m2_expr.ExprCond((a - b).msb(), a, b)))
     return e, []
 
+def cvtdq2pd(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:64], m2_expr.ExprOp('int_32_to_double', b[:32])))
+    e.append(m2_expr.ExprAff(a[64:128], m2_expr.ExprOp('int_32_to_double', b[32:64])))
+    return e, []
+
+def cvtdq2ps(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:32], m2_expr.ExprOp('int_32_to_float', b[:32])))
+    e.append(m2_expr.ExprAff(a[32:64], m2_expr.ExprOp('int_32_to_float', b[32:64])))
+    e.append(m2_expr.ExprAff(a[64:96], m2_expr.ExprOp('int_32_to_float', b[64:96])))
+    e.append(m2_expr.ExprAff(a[96:128], m2_expr.ExprOp('int_32_to_float', b[96:128])))
+    return e, []
+
+def cvtpd2dq(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:32], m2_expr.ExprOp('double_to_int_32', b[:64])))
+    e.append(m2_expr.ExprAff(a[32:64], m2_expr.ExprOp('double_to_int_32', b[64:128])))
+    e.append(m2_expr.ExprAff(a[64:128], m2_expr.ExprInt64(0)))
+    return e, []
+
+def cvtpd2pi(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:32], m2_expr.ExprOp('double_to_int_32', b[:64])))
+    e.append(m2_expr.ExprAff(a[32:64], m2_expr.ExprOp('double_to_int_32', b[64:128])))
+    return e, []
+
+def cvtpd2ps(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:32], m2_expr.ExprOp('double_to_float', b[:64])))
+    e.append(m2_expr.ExprAff(a[32:64], m2_expr.ExprOp('double_to_float', b[64:128])))
+    e.append(m2_expr.ExprAff(a[64:128], m2_expr.ExprInt64(0)))
+    return e, []
+
+def cvtpi2pd(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:64], m2_expr.ExprOp('int_32_to_double', b[:32])))
+    e.append(m2_expr.ExprAff(a[64:128], m2_expr.ExprOp('int_32_to_double', b[32:64])))
+    return e, []
+
+def cvtpi2ps(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:32], m2_expr.ExprOp('int_32_to_float', b[:32])))
+    e.append(m2_expr.ExprAff(a[32:64], m2_expr.ExprOp('int_32_to_float', b[32:64])))
+    return e, []
+
+def cvtps2dq(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:32], m2_expr.ExprOp('float_to_int_32', b[:32])))
+    e.append(m2_expr.ExprAff(a[32:64], m2_expr.ExprOp('float_to_int_32', b[32:64])))
+    e.append(m2_expr.ExprAff(a[64:96], m2_expr.ExprOp('float_to_int_32', b[64:96])))
+    e.append(m2_expr.ExprAff(a[96:128], m2_expr.ExprOp('float_to_int_32', b[96:128])))
+    return e, []
+
+def cvtps2pd(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:64], m2_expr.ExprOp('float_to_double', b[:32])))
+    e.append(m2_expr.ExprAff(a[64:128], m2_expr.ExprOp('float_to_double', b[32:64])))
+    return e, []
+
+def cvtps2pi(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:32], m2_expr.ExprOp('float_to_int_32', b[:32])))
+    e.append(m2_expr.ExprAff(a[32:64], m2_expr.ExprOp('float_to_int_32', b[32:64])))
+    return e, []
+
+def cvtsd2si(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:32], m2_expr.ExprOp('double_to_int_32', b[:64])))
+    return e, []
+
+def cvtsd2ss(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:32], m2_expr.ExprOp('double_to_float', b[:64])))
+    return e, []
 
 def cvtsi2sd(ir, instr, a, b):
     e = []
-    e.append(m2_expr.ExprAff(a[:b.size], m2_expr.ExprOp('cvtsi2sd', b)))
+    e.append(m2_expr.ExprAff(a[:64], m2_expr.ExprOp('int_32_to_double', b[:32])))
     return e, []
 
+def cvtsi2ss(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:32], m2_expr.ExprOp('int_32_to_float', b[:32])))
+    return e, []
+
+def cvtss2sd(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:64], m2_expr.ExprOp('float_to_double', b[:32])))
+    return e, []
+
+def cvtss2si(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:32], m2_expr.ExprOp('float_to_int_32', b[:32])))
+    return e, []
+
+def cvttpd2pi(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:32], m2_expr.ExprOp('double_trunc_to_int_32', b[:64])))
+    e.append(m2_expr.ExprAff(a[32:64], m2_expr.ExprOp('double_trunc_to_int_32', b[64:128])))
+    return e, []
+
+def cvttpd2dq(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:32], m2_expr.ExprOp('double_trunc_to_int_32', b[:64])))
+    e.append(m2_expr.ExprAff(a[32:64], m2_expr.ExprOp('double_trunc_to_int_32', b[64:128])))
+    e.append(m2_expr.ExprAff(a[64:128], m2_expr.ExprInt64(0)))
+    return e, []
+
+def cvttps2dq(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:32], m2_expr.ExprOp('float_trunc_to_int_32', b[:32])))
+    e.append(m2_expr.ExprAff(a[32:64], m2_expr.ExprOp('float_trunc_to_int_32', b[32:64])))
+    e.append(m2_expr.ExprAff(a[64:96], m2_expr.ExprOp('float_trunc_to_int_32', b[64:96])))
+    e.append(m2_expr.ExprAff(a[96:128], m2_expr.ExprOp('float_trunc_to_int_32', b[96:128])))
+    return e, []
+
+def cvttps2pi(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:32], m2_expr.ExprOp('float_trunc_to_int_32', b[:32])))
+    e.append(m2_expr.ExprAff(a[32:64], m2_expr.ExprOp('float_trunc_to_int_32', b[32:64])))
+    return e, []
+
+def cvttsd2si(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:32], m2_expr.ExprOp('double_trunc_to_int_32', b[:64])))
+    return e, []
+
+def cvttss2si(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:32], m2_expr.ExprOp('float_trunc_to_int_32', b[:32])))
+    return e, []
 
 def movss(ir, instr, a, b):
     e = []
-    e.append(m2_expr.ExprAff(a[:b.size], m2_expr.ExprOp('movss', b)))
+    if not isinstance(a, m2_expr.ExprMem) and not isinstance(b, m2_expr.ExprMem):
+        # Source and Destination xmm
+        e.append(m2_expr.ExprAff(a[:32], b[:32]))
+    elif not isinstance(b, m2_expr.ExprMem) and isinstance(a, m2_expr.ExprMem):
+        # Source XMM Destination Mem
+        e.append(m2_expr.ExprAff(a, b[:32]))
+    else:
+        # Source Mem Destination XMM
+        e.append(m2_expr.ExprAff(a, m2_expr.ExprCompose([(b, 0, 32),
+                                                         (m2_expr.ExprInt_fromsize(96, 0), 32, 128)])))
     return e, []
 
 
@@ -3318,8 +3475,10 @@ mnemo_func = {'mov': mov,
               'scasw': lambda ir, instr: scas(ir, instr, 16),
               'scasd': lambda ir, instr: scas(ir, instr, 32),
               'pushfd': pushfd,
+              'pushfq': pushfq,
               'pushfw': pushfw,
               'popfd': popfd,
+              'popfq': popfd,
               'popfw': popfw,
               'pushad': pushad,
               'pusha': pushad,
@@ -3392,7 +3551,15 @@ mnemo_func = {'mov': mov,
               'movsd': movsd_dispatch,
               'movsq': lambda ir, instr: movs(ir, instr, 64),
               'fcomp': fcomp,
+              'fcompp': fcompp,
               'ficomp': ficomp,
+              'fucom': fucom,
+              'fucomp': fucomp,
+              'fucompp': fucompp,
+              'comiss': comiss,
+              'comisd': comisd,
+              'fcomi': fcomi,
+              'fcomip': fcomip,
               'nop': nop,
               'fnop': nop,  # XXX
               'hlt': hlt,
@@ -3405,21 +3572,32 @@ mnemo_func = {'mov': mov,
               'fld': fld,
               'fldz': fldz,
               'fld1': fld1,
+              'fldl2t': fldl2t,
+              'fldpi': fldpi,
+              'fldln2': fldln2,
               'fldl2e': fldl2e,
               'fldlg2': fldlg2,
               'fild': fild,
               'fadd': fadd,
               'fiadd': fiadd,
+              'fisub': fisub,
+              'fisubr': fisubr,
+              'fpatan': fpatan,
+              'fprem': fprem,
+              'fprem1': fprem1,
               'fninit': fninit,
+              'fyl2x': fyl2x,
               'faddp': faddp,
               'fsub': fsub,
               'fsubp': fsubp,
               'fsubr': fsubr,
+              'fsubrp': fsubrp,
               'fmul': fmul,
               'fimul': fimul,
               'fmulp': fmulp,
               'fdiv': fdiv,
               'fdivr': fdivr,
+              'fdivrp': fdivrp,
               'fidiv': fidiv,
               'fidivr': fidivr,
               'fdivp': fdivp,
@@ -3428,14 +3606,24 @@ mnemo_func = {'mov': mov,
               'frndint': frndint,
               'fsin': fsin,
               'fcos': fcos,
+              'fsincos': fsincos,
               'fscale': fscale,
               'f2xm1': f2xm1,
+              'fchs': fchs,
               'fsqrt': fsqrt,
               'fabs': fabs,
               'fnstsw': fnstsw,
               'fnstcw': fnstcw,
               'fldcw': fldcw,
               'fwait': fwait,
+              'fcmovb':   fcmovb,
+              'fcmove':   fcmove,
+              'fcmovbe':  fcmovbe,
+              'fcmovu':   fcmovu,
+              'fcmovnb':  fcmovnb,
+              'fcmovne':  fcmovne,
+              'fcmovnbe': fcmovnbe,
+              'fcmovnu':  fcmovnu,
               'fnstenv': fnstenv,
               'sidt': sidt,
               'sldt': sldt,
@@ -3443,6 +3631,8 @@ mnemo_func = {'mov': mov,
               'cmovz': cmovz,
               'cmove': cmovz,
               'cmovnz': cmovnz,
+              'cmovpe':cmovpe,
+              'cmovnp':cmovnp,
               'cmovge': cmovge,
               'cmovnl': cmovge,
               'cmovg': cmovg,
@@ -3465,6 +3655,8 @@ mnemo_func = {'mov': mov,
               'cpuid': cpuid,
               'jo': jo,
               'fcom': fcom,
+              'ftst': ftst,
+              'fxam': fxam,
               'ficom': ficom,
               'fcomi': fcomi,
               'fcomip': fcomip,
@@ -3499,11 +3691,50 @@ mnemo_func = {'mov': mov,
               "str": l_str,
               "movd": movd,
               "movdqu":movdqu,
-              "movaps": movaps,
+              "movdqa":movdqu,
+              "movapd": movapd, # XXX TODO alignement check
+              "movupd": movapd, # XXX TODO alignement check
+              "movaps": movapd, # XXX TODO alignement check
+              "movups": movapd, # XXX TODO alignement check
+              "andps": andps,
+              "andpd": andps,
+              "orps": orps,
+              "orpd": orps,
               "xorps": xorps,
+              "xorpd": xorps,
 
               "pminsw": pminsw,
+              "cvtdq2pd": cvtdq2pd,
+              "cvtdq2ps": cvtdq2ps,
+              "cvtpd2dq": cvtpd2dq,
+              "cvtpd2pi": cvtpd2pi,
+              "cvtpd2ps": cvtpd2ps,
+              "cvtpi2pd": cvtpi2pd,
+              "cvtpi2ps": cvtpi2ps,
+              "cvtps2dq": cvtps2dq,
+              "cvtps2pd": cvtps2pd,
+              "cvtps2pi": cvtps2pi,
+              "cvtsd2si": cvtsd2si,
+              "cvtsd2ss": cvtsd2ss,
               "cvtsi2sd": cvtsi2sd,
+              "cvtsi2ss": cvtsi2ss,
+              "cvtss2sd": cvtss2sd,
+              "cvtss2si": cvtss2si,
+              "cvttpd2pi": cvttpd2pi,
+              "cvttpd2dq": cvttpd2dq,
+              "cvttps2dq": cvttps2dq,
+              "cvttps2pi": cvttps2pi,
+              "cvttsd2si": cvttsd2si,
+              "cvttss2si": cvttss2si,
+
+
+
+
+
+
+
+
+
               "movss": movss,
 
               "ucomiss": ucomiss,
@@ -3533,28 +3764,40 @@ mnemo_func = {'mov': mov,
 
               ## Additions
               # SSE
+              "addss": addss,
+              "addsd": addsd,
               "addps": addps,
               "addpd": addpd,
 
               ## Substractions
               # SSE
+              "subss": subss,
+              "subsd": subsd,
               "subps": subps,
               "subpd": subpd,
 
               ## Multiplications
               # SSE
+              "mulss": mulss,
+              "mulsd": mulsd,
               "mulps": mulps,
               "mulpd": mulpd,
 
               ## Divisions
               # SSE
+              "divss": divss,
+              "divsd": divsd,
               "divps": divps,
               "divpd": divpd,
 
               ### Logical (floating-point)
               ###
 
-              "pand": pand
+              "pand": pand,
+              "por": por,
+
+              "rdmsr": rdmsr,
+              "wrmsr": wrmsr,
 
               }
 
@@ -3576,6 +3819,7 @@ class ir_x86_16(ir):
 
     def get_ir(self, instr):
         args = instr.args[:]
+        args = [arg.replace_expr(float_replace) for arg in args]
         my_ss = None
         if self.do_ds_segm:
             my_ss = DS
@@ -3587,6 +3831,9 @@ class ir_x86_16(ir):
                 if isinstance(a, m2_expr.ExprMem) and not a.is_op_segm():
                     args[i] = m2_expr.ExprMem(m2_expr.ExprOp('segm', my_ss,
                                                              a.arg), a.size)
+
+        if not instr.name.lower() in mnemo_func:
+            raise NotImplementedError("Mnemonic %s not implemented" % instr.name)
 
         instr_ir, extra_ir = mnemo_func[
             instr.name.lower()](self, instr, *args)

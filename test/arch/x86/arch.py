@@ -1,6 +1,10 @@
 import os
 import time
-from miasm2.arch.x86.arch import *
+import miasm2.expression.expression as m2_expr
+from miasm2.arch.x86.arch import mn_x86, deref_mem_ad, parse_ast, ast_int2expr, \
+    base_expr, rmarg, print_size
+from miasm2.arch.x86.sem import ir_x86_16, ir_x86_32, ir_x86_64
+from miasm2.core.bin_stream import bin_stream_str
 
 filename = os.environ.get('PYTHONSTARTUP')
 if filename and os.path.isfile(filename):
@@ -15,9 +19,9 @@ for s in ["[EAX]",
 
 print '---'
 
-mylabel16 = ExprId('mylabel16', 16)
-mylabel32 = ExprId('mylabel32', 32)
-mylabel64 = ExprId('mylabel64', 64)
+mylabel16 = m2_expr.ExprId('mylabel16', 16)
+mylabel32 = m2_expr.ExprId('mylabel32', 32)
+mylabel64 = m2_expr.ExprId('mylabel64', 64)
 
 reg_and_id = dict(mn_x86.regs.all_regs_ids_byname)
 reg_and_id.update({'mylabel16': mylabel16,
@@ -27,7 +31,7 @@ reg_and_id.update({'mylabel16': mylabel16,
 
 
 def my_ast_id2expr(t):
-    r = reg_and_id.get(t, ExprId(t, size=32))
+    r = reg_and_id.get(t, m2_expr.ExprId(t, size=32))
     return r
 
 my_var_parser = parse_ast(my_ast_id2expr, ast_int2expr)
@@ -61,6 +65,12 @@ m16 = 16  # (16, 16)
 m32 = 32  # (32, 32)
 m64 = 64  # (64, 64)
 reg_tests = [
+    (m16, "XXXXXXXX    CPUID",
+    "0fa2"),
+    (m32, "XXXXXXXX    CPUID",
+    "0fa2"),
+    (m64, "XXXXXXXX    CPUID",
+    "0fa2"),
 
 
     (m32, "XXXXXXXX    PMINSW     MM0, QWORD PTR [EAX]",
@@ -765,6 +775,11 @@ reg_tests = [
     (m32, "00000000    CALL       0x6655:0xFF332211",
      "9a112233FF5566"),
 
+    (m32, "00000000    CALL       DWORD PTR [0xFFFFFFA3]",
+     "FF1DA3FFFFFF"),
+    (m64, "00000000    CALL       QWORD PTR [RIP+0xFFFFFFFFFFFFFFA3]",
+     "FF1DA3FFFFFF"),
+
 
     (m16, "00000000    CBW",
      "98"),
@@ -893,6 +908,20 @@ reg_tests = [
 
     (m32, "00000000    FCMOVB     ST, ST(2)",
      "dac2"),
+    (m32, "00000000    FCMOVE     ST, ST(2)",
+     "daca"),
+    (m32, "00000000    FCMOVBE    ST, ST(2)",
+     "dad2"),
+    (m32, "00000000    FCMOVU     ST, ST(2)",
+     "dada"),
+    (m32, "00000000    FCMOVNB    ST, ST(2)",
+     "dbc2"),
+    (m32, "00000000    FCMOVNE    ST, ST(2)",
+     "dbca"),
+    (m32, "00000000    FCMOVNBE   ST, ST(2)",
+     "dbd2"),
+    (m32, "00000000    FCMOVNU    ST, ST(2)",
+     "dbda"),
 
     (m32, "00000000    FCOM       DWORD PTR [EAX]",
      "d810"),
@@ -902,9 +931,13 @@ reg_tests = [
      "d818"),
     (m32, "00000000    FCOMP      QWORD PTR [EAX]",
      "dC18"),
+    (m32, "00000000    FCOM       ST, ST(1)",
+     "d8d1"),
     (m32, "00000000    FCOM       ST, ST(2)",
      "d8d2"),
 
+    (m32, "00000000    FCOMP      ST, ST(1)",
+     "d8d9"),
     (m32, "00000000    FCOMPP",
      "ded9"),
 
@@ -2056,6 +2089,14 @@ reg_tests = [
 
     (m32, "00000000    SIDT       DWORD PTR [EAX]",
      "0f0108"),
+    (m32, "00000000    SLDT       DWORD PTR [EAX]",
+     "0f0000"),
+
+
+    (m32, "00000000    LGDT       DWORD PTR [EAX]",
+     "0f0110"),
+    (m32, "00000000    LIDT       DWORD PTR [EAX]",
+     "0f0118"),
 
 
 
@@ -2119,7 +2160,7 @@ reg_tests = [
     (m32, "00000000    VERW       DWORD PTR [EAX]",
      "0f0028"),
 
-    (m32, "00000000    WBIND",
+    (m32, "00000000    WBINVD",
      "0f09"),
 
     (m32, "00000000    WRMSR",
@@ -2175,6 +2216,13 @@ reg_tests = [
     (m32, "00000000    XORPD      XMM1, XMM2",
      "660f57ca"),
 
+    (m32, "00000000    ORPS       XMM1, XMM2",
+     "0f56ca"),
+    (m32, "00000000    ORPS       XMM1, XMMWORD PTR [EDI+0x42]",
+     "0f564f42"),
+    (m32, "00000000    ORPD       XMM1, XMM2",
+     "660f56ca"),
+
     (m32, "00000000    MOVAPS     XMMWORD PTR [EBP+0xFFFFFFB8], XMM0",
      "0f2945b8"),
     (m32, "00000000    MOVAPS     XMM0, XMMWORD PTR [EBP+0xFFFFFFB8]",
@@ -2218,8 +2266,13 @@ reg_tests = [
      "f20f5911"),
 
 
-    (m32, "00000000    PXOR       XMM0, XMM0",
-     "0fefc0"),
+    (m32, "00000000    PXOR       MM0, MM1",
+     "0fefc1"),
+    (m32, "00000000    PXOR       XMM0, XMM1",
+     "660fefc1"),
+    (m32, "00000000    PXOR       XMM6, XMMWORD PTR [ECX+0x10]",
+     "660fef7110"),
+
     (m32, "00000000    UCOMISD    XMM0, QWORD PTR [EBP+0xFFFFFFD8]",
      "660f2e45d8"),
     (m32, "00000000    ANDPS      XMM0, XMMWORD PTR [EBX+0x2CBD27]",
@@ -2235,10 +2288,56 @@ reg_tests = [
     (m32, "00000000    MAXSS      XMM0, DWORD PTR [EBX+0x2CBD37]",
      "f30f5f8337bd2c00"),
 
+    (m32, "00000000    CVTDQ2PD   XMM0, XMM3",
+     "f30fe6c3"),
+    (m32, "00000000    CVTDQ2PS   XMM0, XMM3",
+     "0f5bc3"),
+    (m32, "00000000    CVTPD2DQ   XMM0, XMM3",
+     "f20fe6c3"),
+    (m32, "00000000    CVTPD2PI   MM0, XMM3",
+     "660f2dc3"),
+    (m32, "00000000    CVTPD2PS   XMM0, XMM3",
+     "660f5ac3"),
+    (m32, "00000000    CVTPI2PD   XMM0, MM3",
+     "660f2ac3"),
+    (m32, "00000000    CVTPI2PS   XMM0, MM3",
+     "0f2ac3"),
+    (m32, "00000000    CVTPS2DQ   XMM0, XMM3",
+     "660f5bc3"),
+    (m32, "00000000    CVTPS2PD   XMM0, XMM3",
+     "0f5ac3"),
+    (m32, "00000000    CVTPS2PI   MM0, XMM3",
+     "0f2dc3"),
+    (m32, "00000000    CVTSD2SI   EAX, XMM3",
+     "f20f2dc3"),
+    (m32, "00000000    CVTSD2SS   XMM0, XMM3",
+     "f20f5ac3"),
     (m32, "00000000    CVTSI2SD   XMM0, EBX",
      "f20f2ac3"),
     (m32, "00000000    CVTSI2SS   XMM0, EBX",
      "f30f2ac3"),
+    (m32, "00000000    CVTSS2SD   XMM0, XMM0",
+     "f30f5ac0"),
+    (m32, "00000000    CVTSS2SI   EAX, XMM3",
+     "f30f2dc3"),
+    (m32, "00000000    CVTTPD2PI  MM0, XMM3",
+     "660f2cc3"),
+    (m32, "00000000    CVTTPD2DQ  XMM0, XMM3",
+     "660fe6c3"),
+    (m32, "00000000    CVTTPS2DQ  XMM0, XMM3",
+     "f30f5bc3"),
+    (m32, "00000000    CVTTPS2PI  MM0, XMM3",
+     "0f2cc3"),
+    (m32, "00000000    CVTTSD2SI  EAX, XMM3",
+     "f20f2cc3"),
+    (m32, "00000000    CVTTSS2SI  EAX, XMM3",
+     "f30f2cc3"),
+
+
+
+
+    (m32, "00000000    CVTSI2SD   XMM0, EBX",
+     "f20f2ac3"),
 
     (m32, "00000000    PMINSW     MM0, MM1",
      "0feac1"),
@@ -2313,6 +2412,8 @@ reg_tests = [
     (m64, "00000000    MOVQ       XMM1, QWORD PTR [R12+0xFFFFFFFFFFFFFFE0]",
      "f3410f7e4c24e0"),
 
+    (m64, "00000000    MOVQ       RCX, XMM0",
+     "66480F7EC1"),
 
     (m32, "00000000    PAND       MM2, MM6",
      "0fdbd6"),
@@ -2327,6 +2428,10 @@ reg_tests = [
 
     (m32, "00000000    POR        XMM0, XMM1",
      "660febc1"),
+    (m32, "00000000    POR        XMM6, XMMWORD PTR [ECX+0x10]",
+     "660febb110000000"),
+    (m32, "00000000    POR        MM6, QWORD PTR [ECX+0x10]",
+     "0febb110000000"),
 
     (m32, "00000000    MOVDQU     XMM1, XMMWORD PTR [ESI]",
      "f30f6f0e"),
@@ -2441,8 +2546,6 @@ reg_tests = [
     ##
 
     # SSE
-    (m32, "00000000    CVTSS2SD   XMM0, XMM0",
-     "f30f5ac0"),
     (m32, "00000000    CVTSS2SD   XMM0, DWORD PTR [EBP+0xFFFFFFD0]",
      "f30f5a45d0"),
 
@@ -2450,6 +2553,20 @@ reg_tests = [
      "F20F5A24D0"),
     (m32, "00000006    CVTSS2SD   XMM4, DWORD PTR [EAX+EDX*0x8]",
      "F30F5A24D0"),
+
+
+    (m32, "00000000    COMISS     XMM0, XMM0",
+    "0f2fc0"),
+    (m64, "00000000    COMISS     XMM0, XMM8",
+    "410f2fc0"),
+    (m64, "00000000    COMISS     XMM0, DWORD PTR [RAX]",
+    "0f2f00"),
+    (m64, "00000000    COMISS     XMM0, DWORD PTR [RSP+0x34]",
+    "0F2F442434"),
+    (m32, "00000000    COMISD     XMM7, XMM6",
+    "660F2FFE"),
+
+
 
 ]
 

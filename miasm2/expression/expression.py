@@ -745,6 +745,7 @@ class ExprOp(Expr):
         # Set size for special cases
         if self._op in [
                 '==', 'parity', 'fcom_c0', 'fcom_c1', 'fcom_c2', 'fcom_c3',
+                'fxam_c0', 'fxam_c1', 'fxam_c2', 'fxam_c3',
                 "access_segment_ok", "load_segment_limit_ok", "bcdadd_cf",
                 "ucomiss_zf", "ucomiss_pf", "ucomiss_cf"]:
             sz = 1
@@ -760,13 +761,20 @@ class ExprOp(Expr):
                           'int_16_to_double', 'int_32_to_double',
                           'int_64_to_double', 'int_80_to_double']:
             sz = 64
-        elif self._op in ['double_to_mem_16', 'double_to_int_16', 'double_trunc_to_int_16']:
+        elif self._op in ['double_to_mem_16', 'double_to_int_16',
+                          'float_trunc_to_int_16', 'double_trunc_to_int_16']:
             sz = 16
-        elif self._op in ['double_to_mem_32', 'double_to_int_32', 'double_trunc_to_int_32']:
+        elif self._op in ['double_to_mem_32', 'double_to_int_32',
+                          'float_trunc_to_int_32', 'double_trunc_to_int_32',
+                          'double_to_float']:
             sz = 32
-        elif self._op in ['double_to_mem_64', 'double_to_int_64', 'double_trunc_to_int_64']:
+        elif self._op in ['double_to_mem_64', 'double_to_int_64',
+                          'float_trunc_to_int_64', 'double_trunc_to_int_64',
+                          'float_to_double']:
             sz = 64
-        elif self._op in ['double_to_mem_80', 'double_to_int_80', 'double_trunc_to_int_80']:
+        elif self._op in ['double_to_mem_80', 'double_to_int_80',
+                          'float_trunc_to_int_80',
+                          'double_trunc_to_int_80']:
             sz = 80
         elif self._op in ['segm']:
             sz = self._args[1].size

@@ -8,7 +8,6 @@ from miasm2.core.cpu import *
 from collections import defaultdict
 import miasm2.arch.x86.regs as regs_module
 from miasm2.arch.x86.regs import *
-from miasm2.ir.ir import *
 from miasm2.core.asmbloc import asm_label
 
 log = logging.getLogger("x86_arch")
@@ -510,7 +509,7 @@ class instruction_x86(instruction):
             return True
         if self.name.startswith('SYS'):
             return True
-        return self.name in ['CALL', 'HLT', 'IRET', 'ICEBP']
+        return self.name in ['CALL', 'HLT', 'IRET', 'IRETD', 'IRETQ', 'ICEBP']
 
     def splitflow(self):
         if self.name in conditional_branch:
@@ -2966,8 +2965,6 @@ sx = bs(l=0, fname="sx")
 sxd = bs(l=0, fname="sx")
 
 
-xmm = bs(l=0, fname="xmm")
-mm = bs(l=0, fname="mm")
 xmmreg = bs(l=0, fname="xmmreg")
 mmreg = bs(l=0, fname="mmreg")
 
@@ -3018,6 +3015,14 @@ class field_size:
     def get(self, opm, adm=None):
         return self.d[opm]
 
+class bs_mem(object):
+    def encode(self):
+        return self.value != 0b11
+
+    def decode(self, v):
+        self.value = v
+        return v != 0b11
+
 d_imm64 = bs(l=0, fname="imm64")
 
 d_eax = bs(l=0, cls=(bs_eax, ), fname='eax')
@@ -3044,6 +3049,7 @@ moff = bs(l=0, cls=(bs_moff,), fname="off")
 msegoff = bs(l=16, cls=(bs_msegoff,), fname="mseg")
 movoff = bs(l=0, cls=(bs_movoff,), fname="off")
 mod = bs(l=2, fname="mod")
+mod_mem = bs(l=2, cls=(bs_mem,), fname="mod")
 
 rmreg = bs(l=3, cls=(x86_rm_reg, ), order =1, fname = "reg")
 reg = bs(l=3, cls=(x86_reg, ), order =1, fname = "reg")
@@ -3090,8 +3096,8 @@ cond_list = ["O", "NO", "B", "AE",
 cond = bs_mod_name(l=4, fname='cond', mn_mod=cond_list)
 
 
-def rmmod(r, rm_arg_x=rm_arg):
-    return [mod, r, rm, sib_scale, sib_index, sib_base, disp, rm_arg_x]
+def rmmod(r, rm_arg_x=rm_arg, modrm=mod):
+    return [modrm, r, rm, sib_scale, sib_index, sib_base, disp, rm_arg_x]
 
 #
 # mode | reg | rm #
@@ -3155,6 +3161,7 @@ addop("bts", [bs8(0x0f), bs8(0xba)] + rmmod(d5) + [u08])
 
 addop("call", [bs8(0xe8), rel_off])
 addop("call", [bs8(0xff), stk] + rmmod(d2))
+addop("call", [bs8(0xff), stk] + rmmod(d3, modrm=mod_mem))
 addop("call", [bs8(0x9a), moff, msegoff])
 
 
@@ -3251,6 +3258,12 @@ addop("cmpsq", [bs8(0xa7), bs_opmode64])
 addop("cmpxchg", [bs8(0x0f), bs('1011000'), w8]
       + rmmod(rmreg, rm_arg_w8), [rm_arg_w8, rmreg])
 # XXX TODO CMPXCHG8/16
+
+addop("comiss", [bs8(0x0f), bs8(0x2f), no_xmm_pref] +
+      rmmod(xmm_reg, rm_arg_xmm_m32), [xmm_reg, rm_arg_xmm_m32])
+addop("comisd", [bs8(0x0f), bs8(0x2f), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m64), [xmm_reg, rm_arg_xmm_m64])
+
 addop("cpuid", [bs8(0x0f), bs8(0xa2)])
 
 addop("cwd", [bs8(0x99), bs_opmode16])
@@ -3480,6 +3493,10 @@ addop("lss", [bs8(0x0f), bs8(0xb2)] + rmmod(rmreg))
 addop("lfs", [bs8(0x0f), bs8(0xb4)] + rmmod(rmreg))
 addop("lgs", [bs8(0x0f), bs8(0xb5)] + rmmod(rmreg))
 
+addop("lgdt", [bs8(0x0f), bs8(0x01)] + rmmod(d2, modrm=mod_mem))
+addop("lidt", [bs8(0x0f), bs8(0x01)] + rmmod(d3, modrm=mod_mem))
+
+
 addop("leave", [bs8(0xc9), stk])
 
 addop("lodsb", [bs8(0xac)])
@@ -3522,7 +3539,9 @@ addop("movupd", [bs8(0x0f), bs8(0x10), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
 
 addop("movd", [bs8(0x0f), bs('011'), swapargs, bs('1110'), no_xmm_pref] +
       rmmod(mm_reg, rm_arg), [mm_reg, rm_arg])
-addop("movd", [bs8(0x0f), bs('011'), swapargs, bs('1110'), pref_66] +
+addop("movd", [bs8(0x0f), bs('011'), swapargs, bs('1110'), pref_66, bs_opmode32] +
+      rmmod(xmm_reg, rm_arg), [xmm_reg, rm_arg])
+addop("movq", [bs8(0x0f), bs('011'), swapargs, bs('1110'), pref_66, bs_opmode64] +
       rmmod(xmm_reg, rm_arg), [xmm_reg, rm_arg])
 
 addop("movq", [bs8(0x0f), bs('011'), swapargs, bs('1111'), no_xmm_pref] +
@@ -3551,29 +3570,12 @@ addop("divsd", [bs8(0x0f), bs8(0x5e), pref_f2] + rmmod(xmm_reg, rm_arg_xmm_m64))
 addop("pminsw", [bs8(0x0f), bs8(0xea), no_xmm_pref] + rmmod(mm_reg, rm_arg_mm))
 addop("pminsw", [bs8(0x0f), bs8(0xea), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
 
-
-addop("pxor", [bs8(0x0f), bs8(0xef), xmm] + rmmod(xmm_reg, rm_arg_xmm))
-
 addop("ucomiss", [bs8(0x0f), bs8(0x2e), no_xmm_pref] + rmmod(xmm_reg, rm_arg_xmm_m32))
 addop("ucomisd", [bs8(0x0f), bs8(0x2e), pref_66] + rmmod(xmm_reg, rm_arg_xmm_m64))
-
-addop("andps", [bs8(0x0f), bs8(0x54), no_xmm_pref] + rmmod(xmm_reg, rm_arg_xmm))
-addop("andpd", [bs8(0x0f), bs8(0x54), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
-
 
 addop("maxsd", [bs8(0x0f), bs8(0x5f), pref_f2] + rmmod(xmm_reg, rm_arg_xmm_m64))
 addop("maxss", [bs8(0x0f), bs8(0x5f), pref_f3] + rmmod(xmm_reg, rm_arg_xmm_m32))
 
-addop("cvtsi2sd",
-      [bs8(0x0f), bs8(0x2a), xmmreg, pref_f2] + rmmod(xmm_reg, rm_arg))
-addop("cvtsi2ss",
-      [bs8(0x0f), bs8(0x2a), xmmreg, pref_f3] + rmmod(xmm_reg, rm_arg))
-
-
-addop("cvttsd2ss",
-      [bs8(0x0f), bs8(0x2c), xmmreg, pref_f2] + rmmod(rmreg, rm_arg))
-addop("cvttss2si",
-      [bs8(0x0f), bs8(0x2c), xmmreg, pref_f3] + rmmod(rmreg, rm_arg))
 
 
 addop("movzx", [bs8(0x0f), bs("1011011"), w8, sx] + rmmod(rmreg, rm_arg_sx))
@@ -3725,7 +3727,7 @@ addop("sbb", [bs("000110"), swapargs, w8] +
       rmmod(rmreg, rm_arg_w8), [rm_arg_w8, rmreg])
 
 addop("set", [bs8(0x0f), bs('1001'), cond] + rmmod(regnoarg, rm_arg_m08))
-addop("sgdt", [bs8(0x0f), bs8(0x01)] + rmmod(d0))
+addop("sgdt", [bs8(0x0f), bs8(0x01)] + rmmod(d0, modrm=mod_mem))
 addop("shld", [bs8(0x0f), bs8(0xa4)] +
       rmmod(rmreg) + [u08], [rm_arg, rmreg, u08])
 addop("shld", [bs8(0x0f), bs8(0xa5)] +
@@ -3734,8 +3736,8 @@ addop("shrd", [bs8(0x0f), bs8(0xac)] +
       rmmod(rmreg) + [u08], [rm_arg, rmreg, u08])
 addop("shrd", [bs8(0x0f), bs8(0xad)] +
       rmmod(rmreg) + [d_cl], [rm_arg, rmreg, d_cl])
-addop("sidt", [bs8(0x0f), bs8(0x01)] + rmmod(d1))
-addop("sldt", [bs8(0x0f), bs8(0x00)] + rmmod(d0))
+addop("sidt", [bs8(0x0f), bs8(0x01)] + rmmod(d1, modrm=mod_mem))
+addop("sldt", [bs8(0x0f), bs8(0x00)] + rmmod(d0, modrm=mod_mem))
 addop("smsw", [bs8(0x0f), bs8(0x01)] + rmmod(d4))
 addop("stc", [bs8(0xf9)])
 addop("std", [bs8(0xfd)])
@@ -3763,7 +3765,7 @@ addop("test", [bs("1000010"), w8] +
 addop("ud2", [bs8(0x0f), bs8(0x0b)])
 addop("verr", [bs8(0x0f), bs8(0x00)] + rmmod(d4))
 addop("verw", [bs8(0x0f), bs8(0x00)] + rmmod(d5))
-addop("wbind", [bs8(0x0f), bs8(0x09)])
+addop("wbinvd", [bs8(0x0f), bs8(0x09)])
 addop("wrmsr", [bs8(0x0f), bs8(0x30)])
 addop("xadd", [bs8(0x0f), bs("1100000"), w8]
       + rmmod(rmreg, rm_arg_w8), [rm_arg_w8, rmreg])
@@ -3785,7 +3787,6 @@ addop("xor", [bs("001100"), swapargs, w8] +
 addop("xgetbv", [bs8(0x0f), bs8(0x01), bs8(0xd0)])
 
 
-#addop("pand", [bs8(0x0f), bs8(0xdb), pref_66])# + rmmod(rmreg, rm_arg))
 
 #### MMX/SSE/AVX operations
 #### Categories are the same than here: https://software.intel.com/sites/landingpage/IntrinsicsGuide/
@@ -3796,11 +3797,11 @@ addop("xgetbv", [bs8(0x0f), bs8(0x01), bs8(0xd0)])
 
 ## Move
 # SSE
-addop("movapd", [bs8(0x0f), bs("0010100"), swapargs, xmm]
+addop("movapd", [bs8(0x0f), bs("0010100"), swapargs]
       + rmmod(xmm_reg, rm_arg_xmm) + [bs_opmode16], [xmm_reg, rm_arg_xmm])
-addop("movaps", [bs8(0x0f), bs("0010100"), swapargs, xmm]
+addop("movaps", [bs8(0x0f), bs("0010100"), swapargs]
       + rmmod(xmm_reg, rm_arg_xmm) + [bs_opmode32], [xmm_reg, rm_arg_xmm])
-addop("movaps", [bs8(0x0f), bs("0010100"), swapargs, xmm]
+addop("movaps", [bs8(0x0f), bs("0010100"), swapargs]
       + rmmod(xmm_reg, rm_arg_xmm) + [bs_opmode64], [xmm_reg, rm_arg_xmm])
 addop("movdqu", [bs8(0x0f), bs("011"), swapargs, bs("1111"), pref_f3]
       + rmmod(xmm_reg, rm_arg_xmm), [xmm_reg, rm_arg_xmm])
@@ -3860,10 +3861,16 @@ addop("divpd", [bs8(0x0f), bs8(0x5e), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
 ###
 
 ## XOR
-# SSE
-addop("xorpd", [bs8(0x0f), bs8(0x57), xmm] + rmmod(xmm_reg, rm_arg_xmm) + [bs_opmode16])
-addop("xorps", [bs8(0x0f), bs8(0x57), xmm] + rmmod(xmm_reg, rm_arg_xmm) + [bs_opmode32])
-addop("xorps", [bs8(0x0f), bs8(0x57), xmm] + rmmod(xmm_reg, rm_arg_xmm) + [bs_opmode64])
+addop("xorps", [bs8(0x0f), bs8(0x57), no_xmm_pref] + rmmod(xmm_reg, rm_arg_xmm))
+addop("xorpd", [bs8(0x0f), bs8(0x57), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
+
+## AND
+addop("andps", [bs8(0x0f), bs8(0x54), no_xmm_pref] + rmmod(xmm_reg, rm_arg_xmm))
+addop("andpd", [bs8(0x0f), bs8(0x54), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
+
+## OR
+addop("orps", [bs8(0x0f), bs8(0x56), no_xmm_pref] + rmmod(xmm_reg, rm_arg_xmm))
+addop("orpd", [bs8(0x0f), bs8(0x56), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
 
 ## AND
 # MMX
@@ -3881,6 +3888,14 @@ addop("por", [bs8(0x0f), bs8(0xeb), no_xmm_pref] +
 addop("por", [bs8(0x0f), bs8(0xeb), pref_66] +
       rmmod(xmm_reg, rm_arg_xmm), [xmm_reg, rm_arg_xmm])
 
+## XOR
+# MMX
+addop("pxor", [bs8(0x0f), bs8(0xef), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm))
+# MMX
+addop("pxor", [bs8(0x0f), bs8(0xef), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
 ### Convert
 ### SS = single precision
 ### SD = double precision
@@ -3889,16 +3904,50 @@ addop("por", [bs8(0x0f), bs8(0xeb), pref_66] +
 ## SS -> SD
 ##
 
-# SSE
-addop("cvtss2sd", [bs8(0x0f), bs8(0x5a), pref_f3]
-      + rmmod(xmm_reg, rm_arg_xmm_m32))
-
-## SD -> SS
-##
-
-# SSE
+addop("cvtdq2pd", [bs8(0x0f), bs8(0xe6), pref_f3]
+      + rmmod(xmm_reg, rm_arg_xmm_m64))
+addop("cvtdq2ps", [bs8(0x0f), bs8(0x5b), no_xmm_pref]
+      + rmmod(xmm_reg, rm_arg_xmm))
+addop("cvtpd2dq", [bs8(0x0f), bs8(0xe6), pref_f2]
+      + rmmod(xmm_reg, rm_arg_xmm))
+addop("cvtpd2pi", [bs8(0x0f), bs8(0x2d), pref_66]
+      + rmmod(mm_reg, rm_arg_xmm))
+addop("cvtpd2ps", [bs8(0x0f), bs8(0x5a), pref_66]
+      + rmmod(xmm_reg, rm_arg_xmm))
+addop("cvtpi2pd", [bs8(0x0f), bs8(0x2a), pref_66]
+      + rmmod(xmm_reg, rm_arg_mm_m64))
+addop("cvtpi2ps", [bs8(0x0f), bs8(0x2a), no_xmm_pref]
+      + rmmod(xmm_reg, rm_arg_mm_m64))
+addop("cvtps2dq", [bs8(0x0f), bs8(0x5b), pref_66]
+      + rmmod(xmm_reg, rm_arg_xmm))
+addop("cvtps2pd", [bs8(0x0f), bs8(0x5a), no_xmm_pref]
+      + rmmod(xmm_reg, rm_arg_xmm_m64))
+addop("cvtps2pi", [bs8(0x0f), bs8(0x2d), no_xmm_pref]
+      + rmmod(mm_reg, rm_arg_xmm_m64))
+addop("cvtsd2si", [bs8(0x0f), bs8(0x2d), pref_f2]
+      + rmmod(reg, rm_arg_xmm_m64))
 addop("cvtsd2ss", [bs8(0x0f), bs8(0x5a), pref_f2]
       + rmmod(xmm_reg, rm_arg_xmm_m64))
+addop("cvtsi2sd", [bs8(0x0f), bs8(0x2a), pref_f2]
+      + rmmod(xmm_reg, rm_arg))
+addop("cvtsi2ss", [bs8(0x0f), bs8(0x2a), xmmreg, pref_f3]
+      + rmmod(xmm_reg, rm_arg))
+addop("cvtss2sd", [bs8(0x0f), bs8(0x5a), pref_f3]
+      + rmmod(xmm_reg, rm_arg_xmm_m32))
+addop("cvtss2si", [bs8(0x0f), bs8(0x2d), pref_f3]
+      + rmmod(rmreg, rm_arg_xmm_m32))
+addop("cvttpd2pi",[bs8(0x0f), bs8(0x2c), pref_66]
+      + rmmod(mm_reg, rm_arg_xmm))
+addop("cvttpd2dq",[bs8(0x0f), bs8(0xe6), pref_66]
+      + rmmod(xmm_reg, rm_arg_xmm))
+addop("cvttps2dq",[bs8(0x0f), bs8(0x5b), pref_f3]
+      + rmmod(xmm_reg, rm_arg_xmm))
+addop("cvttps2pi",[bs8(0x0f), bs8(0x2c), no_xmm_pref]
+      + rmmod(mm_reg, rm_arg_xmm_m64))
+addop("cvttsd2si",[bs8(0x0f), bs8(0x2c), pref_f2]
+      + rmmod(reg, rm_arg_xmm_m64))
+addop("cvttss2si",[bs8(0x0f), bs8(0x2c), pref_f3]
+      + rmmod(reg, rm_arg_xmm_m32))
 
 
 mn_x86.bintree = factor_one_bit(mn_x86.bintree)
