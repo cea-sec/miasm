@@ -183,7 +183,7 @@ class JitCore_Python(jitcore.JitCore):
         # Associate myfunc with current label
         self.lbl2jitbloc[label.offset] = myfunc
 
-    def jit_call(self, label, cpu, vmmngr):
+    def jit_call(self, label, cpu, vmmngr, _breakpoints):
         """Call the function label with cpu and vmmngr states
         @label: function's label
         @cpu: JitCpu instance

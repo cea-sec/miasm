@@ -153,17 +153,15 @@ class JitCore(object):
         # Update jitcode mem range
         self.add_bloc_to_mem_interval(vm, cur_bloc)
 
-    def jit_call(self, label, cpu, vmmngr):
+    def jit_call(self, label, cpu, _vmmngr, breakpoints):
         """Call the function label with cpu and vmmngr states
         @label: function's label
         @cpu: JitCpu instance
-        @vm: VmMngr instance
+        @breakpoints: Dict instance of used breakpoints
         """
+        return self.exec_wrapper(label, cpu, self.lbl2jitbloc.data, breakpoints)
 
-        fc_ptr = self.lbl2jitbloc[label]
-        return self.exec_wrapper(fc_ptr, cpu)
-
-    def runbloc(self, cpu, vm, lbl):
+    def runbloc(self, cpu, vm, lbl, breakpoints):
         """Run the bloc starting at lbl.
         @cpu: JitCpu instance
         @vm: VmMngr instance
@@ -178,7 +176,7 @@ class JitCore(object):
             self.disbloc(lbl, cpu, vm)
 
         # Run the bloc and update cpu/vmmngr state
-        ret = self.jit_call(lbl, cpu, vm)
+        ret = self.jit_call(lbl, cpu, vm, breakpoints)
 
         return ret
 

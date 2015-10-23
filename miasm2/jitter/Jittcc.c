@@ -124,23 +124,53 @@ typedef struct {
 	uint64_t address;
 } block_id;
 
+typedef int (*jitted_func)(block_id*, PyObject*);
+
 
 PyObject* tcc_exec_bloc(PyObject* self, PyObject* args)
 {
-	void (*func)(block_id*, PyObject*);
+	jitted_func func;
 	PyObject* jitcpu;
-	block_id BlockDst = {0, 0};
+	PyObject* func_py;
+	PyObject* lbl2ptr;
+	PyObject* breakpoints;
+	PyObject* retaddr = NULL;
+	int status;
+	block_id BlockDst;
 
-	if (!PyArg_ParseTuple(args, "KO", &func, &jitcpu))
+	if (!PyArg_ParseTuple(args, "OOOO", &retaddr, &jitcpu, &lbl2ptr, &breakpoints))
 		return NULL;
-	func(&BlockDst, jitcpu);
 
-	if (BlockDst.is_local == 1) {
-		fprintf(stderr, "return on local label!\n");
-		exit(1);
+	for (;;) {
+		// Init
+		BlockDst.is_local = 0;
+		BlockDst.address = 0;
+
+		// Get the expected jitted function address
+		func_py = PyDict_GetItem(lbl2ptr, retaddr);
+		if (func_py)
+			func = (jitted_func) PyInt_AsLong((PyObject*) func_py);
+		else {
+			if (BlockDst.is_local == 1) {
+				fprintf(stderr, "return on local label!\n");
+				exit(1);
+			}
+			// retaddr is not jitted yet
+			return retaddr;
+		}
+
+		// Execute it
+		status = func(&BlockDst, jitcpu);
+		retaddr = PyLong_FromUnsignedLongLong(BlockDst.address);
+
+		// Check exception
+		if (status)
+			return retaddr;
+
+		// Check breakpoint
+		if (PyDict_Contains(breakpoints, retaddr))
+			return retaddr;
 	}
-
-	return PyLong_FromUnsignedLongLong(BlockDst.address);
 }
 
 PyObject* tcc_compil(PyObject* self, PyObject* args)
