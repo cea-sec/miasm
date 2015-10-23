@@ -812,7 +812,7 @@ def push(ir, instr, a):
     regs = list(a.args)
     for i in xrange(len(regs)):
         r = SP + ExprInt32(-4 * (i + 1))
-        e.append(ExprAff(regs[i], ExprMem(r)))
+        e.append(ExprAff(ExprMem(r), regs[i]))
     r = SP + ExprInt32(-4 * len(regs))
     e.append(ExprAff(SP, r))
     return e
