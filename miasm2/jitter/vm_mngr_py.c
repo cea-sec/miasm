@@ -217,7 +217,7 @@ PyObject* vm_set_mem(VmMngr* self, PyObject* args)
 
        ret = vm_write_mem(&self->vm_mngr, addr, buffer, size);
        if (ret < 0)
-	      RAISE(PyExc_TypeError,"arg must be str");
+	      RAISE(PyExc_TypeError, "Error in set_mem");
 
        check_write_code_bloc(&self->vm_mngr, size*8, addr);
 
