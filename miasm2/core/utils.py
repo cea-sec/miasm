@@ -119,6 +119,11 @@ class BoundedDict(UserDict.DictMixin):
         "Return the list of dict's keys"
         return self._data.keys()
 
+    @property
+    def data(self):
+        "Return the current instance as a dictionnary"
+        return self._data
+
     def __getitem__(self, key):
         # Retrieve data first to raise the proper exception on error
         data = self._data[key]

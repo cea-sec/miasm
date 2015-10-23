@@ -161,7 +161,7 @@ class JitCore(object):
         @breakpoints: Dict instance of used breakpoints
         """
         # TODO useless vmmngr
-        return self.exec_wrapper(label, cpu, self.lbl2jitbloc._data, breakpoints)
+        return self.exec_wrapper(label, cpu, self.lbl2jitbloc.data, breakpoints)
 
     def runbloc(self, cpu, vm, lbl, breakpoints):
         """Run the bloc starting at lbl.
