@@ -158,6 +158,7 @@ class JitCore(object):
         @label: function's label
         @cpu: JitCpu instance
         @vm: VmMngr instance
+        @breakpoints: Dict instance of used breakpoints
         """
         # TODO useless vmmngr
         return self.exec_wrapper(label, cpu, self.lbl2jitbloc._data, breakpoints)
