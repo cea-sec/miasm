@@ -46,6 +46,7 @@ for script in ["x86/sem.py",
                "msp430/sem.py",
                "sh4/arch.py",
                "mips32/arch.py",
+               "mips32/unit/mn_bcc.py",
                ]:
     testset += RegressionTest([script], base_dir="arch")
 
