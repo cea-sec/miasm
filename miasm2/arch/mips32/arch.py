@@ -126,7 +126,7 @@ class instruction_mips32(cpu.instruction):
 
         if not isinstance(e, ExprInt):
             return
-        ad = e.arg + self.offset + 4
+        ad = e.arg + self.offset
         l = symbol_pool.getby_offset_create(ad)
         s = ExprId(l, e.size)
         self.args[ndx] = s
