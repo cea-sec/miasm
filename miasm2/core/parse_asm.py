@@ -19,7 +19,9 @@ size2pck = {8: 'B',
             64: 'Q',
             }
 
+
 class DirectiveAlign(object):
+
     """Stand for alignment representation"""
 
     def __init__(self, alignment=1):
@@ -27,6 +29,7 @@ class DirectiveAlign(object):
 
     def __str__(self):
         return "Alignment %s" % self.alignment
+
 
 def guess_next_new_label(symbol_pool, gen_label_index=0):
     i = 0
@@ -37,6 +40,7 @@ def guess_next_new_label(symbol_pool, gen_label_index=0):
         if l is None:
             return symbol_pool.add_label(name)
         i += 1
+
 
 def replace_expr_labels(expr, symbol_pool, replace_id):
     """Create asm_label of the expression @expr in the @symbol_pool
@@ -51,16 +55,16 @@ def replace_expr_labels(expr, symbol_pool, replace_id):
     replace_id[expr] = m2_expr.ExprId(new_lbl, expr.size)
     return replace_id[expr]
 
+
 def replace_orphan_labels(instr, symbol_pool):
     """Link orphan labels used by @instr to the @symbol_pool"""
 
     for i, arg in enumerate(instr.args):
         replace_id = {}
-        arg.visit(lambda e:replace_expr_labels(e,
-                                               symbol_pool,
-                                               replace_id))
+        arg.visit(lambda e: replace_expr_labels(e,
+                                                symbol_pool,
+                                                replace_id))
         instr.args[i] = instr.args[i].replace_expr(replace_id)
-
 
 
 def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
