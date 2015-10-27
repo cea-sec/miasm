@@ -391,7 +391,6 @@ class ExprInt(Expr):
     def __contains__(self, e):
         return self == e
 
-
     @visit_chk
     def visit(self, cb, tv=None):
         return self
@@ -500,7 +499,6 @@ class ExprAff(Expr):
 
     dst = property(lambda self: self._dst)
     src = property(lambda self: self._src)
-
 
     def __str__(self):
         return "%s = %s" % (str(self._dst), str(self._src))
@@ -624,7 +622,7 @@ class ExprCond(Expr):
         src2 = self._src2.visit(cb, tv)
         if (cond == self._cond and
             src1 == self._src1 and
-            src2 == self._src2):
+                src2 == self._src2):
             return self
         return ExprCond(cond, src1, src2)
 
@@ -795,7 +793,7 @@ class ExprOp(Expr):
             return '(' + self._op.join([str(arg) for arg in self._args]) + ')'
         if (self._op.startswith('call_func_') or
             len(self._args) > 2 or
-            self._op in ['parity', 'segm']):
+                self._op in ['parity', 'segm']):
             return self._op + '(' + ', '.join([str(arg) for arg in self._args]) + ')'
         if len(self._args) == 2:
             return ('(' + str(self._args[0]) +
