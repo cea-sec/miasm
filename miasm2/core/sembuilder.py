@@ -23,10 +23,13 @@ class MiasmTransformer(ast.NodeTransformer):
     parse_mem = re.compile("^mem([0-9]+)$")
 
     # Visitors
-
     def visit_Call(self, node):
         """iX(Y) -> ExprIntX(Y),
         'X'(Y) -> ExprOp('X', Y), ('X' % Y)(Z) -> ExprOp('X' % Y, Z)"""
+
+        # Recursive visit
+        node = self.generic_visit(node)
+
         if isinstance(node.func, ast.Name):
             # iX(Y) -> ExprIntX(Y)
             fc_name = node.func.id
@@ -53,16 +56,14 @@ class MiasmTransformer(ast.NodeTransformer):
             # Do replacement
             node.func = ast.Name(id="ExprOp", ctx=ast.Load())
             node.args[0:0] = [op_name]
-            node.args = map(self.visit, node.args)
-
-        else:
-            # TODO: launch visitor on node
-            pass
 
         return node
 
     def visit_Subscript(self, node):
         """memX[Y] -> ExprMem(Y, X)"""
+
+        # Recursive visit
+        node = self.generic_visit(node)
 
         # Detect the syntax
         if not isinstance(node.value, ast.Name):
@@ -70,7 +71,6 @@ class MiasmTransformer(ast.NodeTransformer):
         name = node.value.id
         mem = self.parse_mem.search(name)
         if mem is None:
-            # TODO: launch visitor on node
             return node
 
         # Do replacement
@@ -82,6 +82,10 @@ class MiasmTransformer(ast.NodeTransformer):
 
     def visit_IfExp(self, node):
         """X if Y else Z -> ExprCond(Y, X, Z)"""
+        # Recursive visit
+        node = self.generic_visit(node)
+
+        # Build the new ExprCond
         call = ast.Call(func=ast.Name(id='ExprCond', ctx=ast.Load()),
                         args=[self.visit(node.test),
                               self.visit(node.body),
