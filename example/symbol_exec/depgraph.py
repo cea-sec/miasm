@@ -55,7 +55,7 @@ if args.rename_args:
             init_ctx[e_mem] = ExprId("arg%d" % i)
 
 # Disassemble the targeted function
-blocks = mdis.dis_multibloc(int(args.func_addr, 16))
+blocks = mdis.dis_multibloc(int(args.func_addr, 0))
 
 # Generate IR
 for block in blocks:
@@ -71,7 +71,7 @@ dg = DependencyGraph(ir_arch, implicit=args.implicit,
 		     follow_call=not(args.unfollow_call))
 
 # Build information
-target_addr = int(args.target_addr, 16)
+target_addr = int(args.target_addr, 0)
 current_block = list(ir_arch.getby_offset(target_addr))[0]
 line_nb = 0
 for line_nb, line in enumerate(current_block.lines):

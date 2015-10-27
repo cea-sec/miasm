@@ -9,7 +9,7 @@ if len(sys.argv) != 3:
     print "%s samples/box_upx.exe 0x407570" % sys.argv[0]
     sys.exit(0)
 
-addr = int(sys.argv[2], 16)
+addr = int(sys.argv[2], 0)
 cont = Container.from_stream(open(sys.argv[1]))
 mdis = dis_x86_32(cont.bin_stream)
 # Inform the engine to avoid disassembling null instructions

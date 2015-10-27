@@ -273,10 +273,7 @@ class DebugCmd(cmd.Cmd, object):
 
     def add_breakpoints(self, bp_addr):
         for addr in bp_addr:
-            if "0x" in addr:
-                addr = int(addr, 16)
-            else:
-                addr = int(addr)
+	    addr = int(addr, 0)
 
             good = True
             for i, dbg_obj in enumerate(self.dbg.bp_list):
@@ -359,17 +356,11 @@ class DebugCmd(cmd.Cmd, object):
 
         args = arg.split(" ")
         if len(args) >= 2:
-            if "0x" in args[1]:
-                size = int(args[1], 16)
-            else:
-                size = int(args[1])
+            size = int(args[1], 0)
         else:
             size = 0xF
 
-        if "0x" in args[0]:
-            addr = int(args[0], 16)
-        else:
-            addr = int(args[0])
+        addr = int(args[0], 0)
 
         self.dbg.watch_mem(addr, size)
 
@@ -445,16 +436,10 @@ class DebugCmd(cmd.Cmd, object):
         else:
             args = arg.split(" ")
             if len(args) >= 2:
-                if "0x" in args[1]:
-                    size = int(args[1], 16)
-                else:
-                    size = int(args[1])
+                size = int(args[1], 0)
             else:
                 size = 0xF
-            if "0x" in args[0]:
-                addr = int(args[0], 16)
-            else:
-                addr = int(args[0])
+            addr = int(args[0], 0)
 
             self.dbg.get_mem(addr, size)
 
