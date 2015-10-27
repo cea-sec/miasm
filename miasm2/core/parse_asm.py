@@ -67,14 +67,10 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
     if symbol_pool is None:
         symbol_pool = asmbloc.asm_symbol_pool()
 
-    lines_text = []
-    lines_data = []
-    lines_bss = []
-
     C_NEXT = asmbloc.asm_constraint.c_next
     C_TO = asmbloc.asm_constraint.c_to
 
-    lines = lines_text
+    lines = []
     # parse each line
     for line in txt.split('\n'):
         # empty
@@ -98,14 +94,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
         if re.match(r'\s*\.', line):
             r = re.match(r'\s*\.(\S+)', line)
             directive = r.groups()[0]
-            if directive == 'text':
-                lines = lines_text
-                continue
-            if directive == 'data':
-                lines = lines_data
-                continue
-            if directive == 'bss':
-                lines = lines_bss
+            if directive in ['text', 'data', 'bss']:
                 continue
             if directive in ['string', 'ascii']:
                 # XXX HACK
@@ -194,89 +183,86 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
     asmbloc.log_asmbloc.info("___pre asm oki___")
     # make blocs
 
-    blocs_sections = []
     bloc_num = 0
     b = None
-    for lines in [lines_text, lines_data, lines_bss]:
-        state = 0
-        i = 0
-        blocs = []
-        blocs_sections.append(blocs)
-        bloc_to_nlink = None
-        block_may_link = False
-        while i < len(lines):
-            # no current bloc
-            if state == 0:
-                if not isinstance(lines[i], asmbloc.asm_label):
-                    l = guess_next_new_label(symbol_pool)
-                    lines[i:i] = [l]
-                else:
-                    l = lines[i]
-                    b = asmbloc.asm_bloc(l, alignment=mnemo.alignment)
-                    b.bloc_num = bloc_num
-                    bloc_num += 1
-                    blocs.append(b)
-                    state = 1
-                    i += 1
-                    if bloc_to_nlink:
-                        bloc_to_nlink.addto(asmbloc.asm_constraint(b.label,
-                                                                   C_NEXT))
-                        bloc_to_nlink = None
+    state = 0
+    i = 0
+    blocs = []
+    bloc_to_nlink = None
+    block_may_link = False
+    while i < len(lines):
+        # no current bloc
+        if state == 0:
+            if not isinstance(lines[i], asmbloc.asm_label):
+                l = guess_next_new_label(symbol_pool)
+                lines[i:i] = [l]
+            else:
+                l = lines[i]
+                b = asmbloc.asm_bloc(l, alignment=mnemo.alignment)
+                b.bloc_num = bloc_num
+                bloc_num += 1
+                blocs.append(b)
+                state = 1
+                i += 1
+                if bloc_to_nlink:
+                    bloc_to_nlink.addto(asmbloc.asm_constraint(b.label,
+                                                               C_NEXT))
+                    bloc_to_nlink = None
 
-            # in bloc
-            elif state == 1:
-                if isinstance(lines[i], asmbloc.asm_raw):
-                    if hasattr(lines[i], 'split'):
-                        state = 0
-                        block_may_link = False
-                        i += 1
-                    else:
-                        state = 1
-                        block_may_link = True
-                        b.addline(lines[i])
-                        i += 1
-                elif isinstance(lines[i], DirectiveAlign):
-                    b.alignment = lines[i].alignment
-                    i += 1
-                # asmbloc.asm_label
-                elif isinstance(lines[i], asmbloc.asm_label):
-                    if block_may_link:
-                        b.addto(
-                            asmbloc.asm_constraint(lines[i], C_NEXT))
-                        block_may_link = False
+        # in bloc
+        elif state == 1:
+            if isinstance(lines[i], asmbloc.asm_raw):
+                if hasattr(lines[i], 'split'):
                     state = 0
-                # instruction
-                else:
-                    b.addline(lines[i])
-                    if lines[i].dstflow():
-                        for x in lines[i].getdstflow(symbol_pool):
-                            if not isinstance(x, m2_expr.ExprId):
-                                continue
-                            if x in mnemo.regs.all_regs_ids:
-                                continue
-                            b.addto(asmbloc.asm_constraint(x, C_TO))
-
-                        # TODO XXX redo this really
-
-                        if not lines[i].breakflow() and i + 1 < len(lines):
-                            if isinstance(lines[i + 1], asmbloc.asm_label):
-                                l = lines[i + 1]
-                            else:
-                                l = guess_next_new_label(symbol_pool)
-                                lines[i + 1:i + 1] = [l]
-                        else:
-                            state = 0
-
-                        if lines[i].splitflow():
-                            bloc_to_nlink = b
-                    if not lines[i].breakflow() or lines[i].splitflow():
-                        block_may_link = True
-                    else:
-                        block_may_link = False
-
+                    block_may_link = False
                     i += 1
+                else:
+                    state = 1
+                    block_may_link = True
+                    b.addline(lines[i])
+                    i += 1
+            elif isinstance(lines[i], DirectiveAlign):
+                b.alignment = lines[i].alignment
+                i += 1
+            # asmbloc.asm_label
+            elif isinstance(lines[i], asmbloc.asm_label):
+                if block_may_link:
+                    b.addto(
+                        asmbloc.asm_constraint(lines[i], C_NEXT))
+                    block_may_link = False
+                state = 0
+            # instruction
+            else:
+                b.addline(lines[i])
+                if lines[i].dstflow():
+                    for x in lines[i].getdstflow(symbol_pool):
+                        if not isinstance(x, m2_expr.ExprId):
+                            continue
+                        if x in mnemo.regs.all_regs_ids:
+                            continue
+                        b.addto(asmbloc.asm_constraint(x, C_TO))
 
-    for block in blocs_sections[0]:
+                    # TODO XXX redo this really
+
+                    if not lines[i].breakflow() and i + 1 < len(lines):
+                        if isinstance(lines[i + 1], asmbloc.asm_label):
+                            l = lines[i + 1]
+                        else:
+                            l = guess_next_new_label(symbol_pool)
+                            lines[i + 1:i + 1] = [l]
+                    else:
+                        state = 0
+
+                    if lines[i].splitflow():
+                        bloc_to_nlink = b
+                if not lines[i].breakflow() or lines[i].splitflow():
+                    block_may_link = True
+                else:
+                    block_may_link = False
+
+                i += 1
+
+    for block in blocs:
         asmbloc.log_asmbloc.info(block)
 
-    return blocs_sections, symbol_pool
+    return blocs, symbol_pool
