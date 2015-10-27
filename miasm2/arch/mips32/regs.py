@@ -43,6 +43,7 @@ cpr0_str[40] = "PAGEMASK"
 cpr0_str[72] = "COUNT"
 cpr0_str[80] = "ENTRYHI"
 cpr0_str[104] = "CAUSE"
+cpr0_str[112] = "EPC"
 cpr0_str[128] = "CONFIG"
 cpr0_str[152] = "WATCHHI"
 
