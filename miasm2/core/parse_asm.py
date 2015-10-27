@@ -19,6 +19,14 @@ size2pck = {8: 'B',
             64: 'Q',
             }
 
+EMPTY_RE = re.compile(r'\s*$')
+COMMENT_RE = re.compile(r'\s*;\S*')
+LOCAL_LABEL_RE = re.compile(r'\s*(\.L\S+)\s*:')
+DIRECTIVE_START_RE = re.compile(r'\s*\.')
+DIRECTIVE_RE = re.compile(r'\s*\.(\S+)')
+LABEL_RE = re.compile(r'\s*(\S+)\s*:')
+FORGET_LABEL_RE = re.compile(r'\s*\.LF[BE]\d\s*:')
+
 
 class DirectiveAlign(object):
 
@@ -31,13 +39,15 @@ class DirectiveAlign(object):
         return "Alignment %s" % self.alignment
 
 
-def guess_next_new_label(symbol_pool, gen_label_index=0):
+def guess_next_new_label(symbol_pool):
+    """Generate a new label
+    @symbol_pool: the asm_symbol_pool instance"""
     i = 0
     gen_name = "loc_%.8X"
     while True:
         name = gen_name % i
-        l = symbol_pool.getby_name(name)
-        if l is None:
+        label = symbol_pool.getby_name(name)
+        if label is None:
             return symbol_pool.add_label(name)
         i += 1
 
@@ -67,7 +77,18 @@ def replace_orphan_labels(instr, symbol_pool):
         instr.args[i] = instr.args[i].replace_expr(replace_id)
 
 
-def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
+def parse_txt(mnemo, attrib, txt, symbol_pool=None):
+    """Parse an assembly listing. Returns a couple (blocks, symbol_pool), where
+    blocks is a list of asm_bloc and symbol_pool the associated asm_symbol_pool
+
+    @mnemo: architecture used
+    @attrib: architecture attribute
+    @txt: assembly listing
+    @symbol_pool: (optional) the asm_symbol_pool instance used to handle labels
+    of the listing
+
+    """
+
     if symbol_pool is None:
         symbol_pool = asmbloc.asm_symbol_pool()
 
@@ -78,26 +99,25 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
     # parse each line
     for line in txt.split('\n'):
         # empty
-        if re.match(r'\s*$', line):
+        if EMPTY_RE.match(line):
             continue
         # comment
-        if re.match(r'\s*;\S*', line):
+        if COMMENT_RE.match(line):
             continue
         # labels to forget
-        r = re.match(r'\s*\.LF[BE]\d\s*:', line)
-        if r:
+        if FORGET_LABEL_RE.match(line):
             continue
         # label beginning with .L
-        r = re.match(r'\s*(\.L\S+)\s*:', line)
-        if r:
-            l = r.groups()[0]
-            l = symbol_pool.getby_name_create(l)
-            lines.append(l)
+        match_re = LABEL_RE.match(line)
+        if match_re:
+            label_name = match_re.group(1)
+            label = symbol_pool.getby_name_create(label_name)
+            lines.append(label)
             continue
         # directive
-        if re.match(r'\s*\.', line):
-            r = re.match(r'\s*\.(\S+)', line)
-            directive = r.groups()[0]
+        if DIRECTIVE_START_RE.match(line):
+            match_re = DIRECTIVE_RE.match(line)
+            directive = match_re.group(1)
             if directive in ['text', 'data', 'bss']:
                 continue
             if directive in ['string', 'ascii']:
@@ -118,10 +138,10 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
                 lines.append(asmbloc.asm_raw(raw))
                 continue
             if directive in declarator:
-                data_raw = line[r.end():].split(' ', 1)[1]
+                data_raw = line[match_re.end():].split(' ', 1)[1]
                 data_raw = data_raw.split(',')
                 size = declarator[directive]
-                data_int = []
+                expr_list = []
 
                 # parser
                 base_expr = gen_base_expr()[2]
@@ -130,29 +150,28 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
                                               m2_expr.ExprInt(x, size))
                 base_expr.setParseAction(my_var_parser)
 
-                for b in data_raw:
-                    b = b.strip()
-                    x = base_expr.parseString(b)[0]
-                    data_int.append(x.canonize())
+                for element in data_raw:
+                    element = element.strip()
+                    element_expr = base_expr.parseString(element)[0]
+                    expr_list.append(element_expr.canonize())
 
-                raw = data_int
-                x = asmbloc.asm_raw(raw)
-                x.element_size = size
-                lines.append(x)
+                raw_data = asmbloc.asm_raw(expr_list)
+                raw_data.element_size = size
+                lines.append(raw_data)
                 continue
             if directive == 'comm':
                 # TODO
                 continue
             if directive == 'split':  # custom command
-                x = asmbloc.asm_raw()
-                x.split = True
-                lines.append(x)
+                raw_data = asmbloc.asm_raw()
+                raw_data.split = True
+                lines.append(raw_data)
                 continue
             if directive == 'dontsplit':  # custom command
                 lines.append(asmbloc.asm_raw())
                 continue
             if directive == "align":
-                align_value = int(line[r.end():])
+                align_value = int(line[match_re.end():])
                 lines.append(DirectiveAlign(align_value))
                 continue
             if directive in ['file', 'intel_syntax', 'globl', 'local',
@@ -164,11 +183,11 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
             raise ValueError("unknown directive %s" % str(directive))
 
         # label
-        r = re.match(r'\s*(\S+)\s*:', line)
-        if r:
-            l = r.groups()[0]
-            l = symbol_pool.getby_name_create(l)
-            lines.append(l)
+        match_re = LABEL_RE.match(line)
+        if match_re:
+            label_name = match_re.group(1)
+            label = symbol_pool.getby_name_create(label_name)
+            lines.append(label)
             continue
 
         # code
@@ -188,7 +207,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
     # make blocks
 
     block_num = 0
-    b = None
+    cur_block = None
     state = 0
     i = 0
     blocks = []
@@ -198,19 +217,20 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
         # no current block
         if state == 0:
             if not isinstance(lines[i], asmbloc.asm_label):
-                l = guess_next_new_label(symbol_pool)
-                lines[i:i] = [l]
+                label = guess_next_new_label(symbol_pool)
+                lines[i:i] = [label]
             else:
-                l = lines[i]
-                b = asmbloc.asm_bloc(l, alignment=mnemo.alignment)
-                b.block_num = block_num
+                line = lines[i]
+                cur_block = asmbloc.asm_bloc(line, alignment=mnemo.alignment)
+                cur_block.block_num = block_num
                 block_num += 1
-                blocks.append(b)
+                blocks.append(cur_block)
                 state = 1
                 i += 1
                 if block_to_nlink:
-                    block_to_nlink.addto(asmbloc.asm_constraint(b.label,
-                                                                C_NEXT))
+                    block_to_nlink.addto(
+                        asmbloc.asm_constraint(cur_block.label,
+                                               C_NEXT))
                     block_to_nlink = None
 
         # in block
@@ -223,42 +243,40 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
                 else:
                     state = 1
                     block_may_link = True
-                    b.addline(lines[i])
+                    cur_block.addline(lines[i])
                     i += 1
             elif isinstance(lines[i], DirectiveAlign):
-                b.alignment = lines[i].alignment
+                cur_block.alignment = lines[i].alignment
                 i += 1
             # asmbloc.asm_label
             elif isinstance(lines[i], asmbloc.asm_label):
                 if block_may_link:
-                    b.addto(
+                    cur_block.addto(
                         asmbloc.asm_constraint(lines[i], C_NEXT))
                     block_may_link = False
                 state = 0
             # instruction
             else:
-                b.addline(lines[i])
+                cur_block.addline(lines[i])
                 if lines[i].dstflow():
-                    for x in lines[i].getdstflow(symbol_pool):
-                        if not isinstance(x, m2_expr.ExprId):
+                    for dst in lines[i].getdstflow(symbol_pool):
+                        if not isinstance(dst, m2_expr.ExprId):
                             continue
-                        if x in mnemo.regs.all_regs_ids:
+                        if dst in mnemo.regs.all_regs_ids:
                             continue
-                        b.addto(asmbloc.asm_constraint(x, C_TO))
+                        cur_block.addto(asmbloc.asm_constraint(dst, C_TO))
 
                     # TODO XXX redo this really
 
                     if not lines[i].breakflow() and i + 1 < len(lines):
-                        if isinstance(lines[i + 1], asmbloc.asm_label):
-                            l = lines[i + 1]
-                        else:
-                            l = guess_next_new_label(symbol_pool)
-                            lines[i + 1:i + 1] = [l]
+                        if not isinstance(lines[i + 1], asmbloc.asm_label):
+                            label = guess_next_new_label(symbol_pool)
+                            lines[i + 1:i + 1] = [label]
                     else:
                         state = 0
 
                     if lines[i].splitflow():
-                        block_to_nlink = b
+                        block_to_nlink = cur_block
                 if not lines[i].breakflow() or lines[i].splitflow():
                     block_may_link = True
                 else:
