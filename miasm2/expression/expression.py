@@ -793,11 +793,13 @@ class ExprOp(Expr):
     def __str__(self):
         if self.is_associative():
             return '(' + self._op.join([str(arg) for arg in self._args]) + ')'
+        if (self._op.startswith('call_func_') or
+            len(self._args) > 2 or
+            self._op in ['parity', 'segm']):
+            return self._op + '(' + ', '.join([str(arg) for arg in self._args]) + ')'
         if len(self._args) == 2:
             return ('(' + str(self._args[0]) +
                     ' ' + self.op + ' ' + str(self._args[1]) + ')')
-        elif len(self._args) > 2:
-            return self._op + '(' + ', '.join([str(arg) for arg in self._args]) + ')'
         else:
             return reduce(lambda x, y: x + ' ' + str(y),
                           self._args,
