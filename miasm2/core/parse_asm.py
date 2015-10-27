@@ -181,17 +181,17 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
         lines.append(instr)
 
     asmbloc.log_asmbloc.info("___pre asm oki___")
-    # make blocs
+    # make blocks
 
-    bloc_num = 0
+    block_num = 0
     b = None
     state = 0
     i = 0
-    blocs = []
-    bloc_to_nlink = None
+    blocks = []
+    block_to_nlink = None
     block_may_link = False
     while i < len(lines):
-        # no current bloc
+        # no current block
         if state == 0:
             if not isinstance(lines[i], asmbloc.asm_label):
                 l = guess_next_new_label(symbol_pool)
@@ -199,17 +199,17 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
             else:
                 l = lines[i]
                 b = asmbloc.asm_bloc(l, alignment=mnemo.alignment)
-                b.bloc_num = bloc_num
-                bloc_num += 1
-                blocs.append(b)
+                b.block_num = block_num
+                block_num += 1
+                blocks.append(b)
                 state = 1
                 i += 1
-                if bloc_to_nlink:
-                    bloc_to_nlink.addto(asmbloc.asm_constraint(b.label,
-                                                               C_NEXT))
-                    bloc_to_nlink = None
+                if block_to_nlink:
+                    block_to_nlink.addto(asmbloc.asm_constraint(b.label,
+                                                                C_NEXT))
+                    block_to_nlink = None
 
-        # in bloc
+        # in block
         elif state == 1:
             if isinstance(lines[i], asmbloc.asm_raw):
                 if hasattr(lines[i], 'split'):
@@ -254,7 +254,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
                         state = 0
 
                     if lines[i].splitflow():
-                        bloc_to_nlink = b
+                        block_to_nlink = b
                 if not lines[i].breakflow() or lines[i].splitflow():
                     block_may_link = True
                 else:
@@ -262,7 +262,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
 
                 i += 1
 
-    for block in blocs:
+    for block in blocks:
         asmbloc.log_asmbloc.info(block)
 
-    return blocs, symbol_pool
+    return blocks, symbol_pool
