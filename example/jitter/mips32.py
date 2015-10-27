@@ -38,7 +38,7 @@ def code_sentinelle(jitter):
     return True
 
 def jit_mips32_binary(args):
-    filepath, entryp = args.binary, int(args.addr, 16)
+    filepath, entryp = args.binary, int(args.addr, 0)
     myjit = machine.jitter(jit_type = args.jitter)
     myjit.init_stack()
 

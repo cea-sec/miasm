@@ -97,7 +97,7 @@ class Sandbox(object):
         @addr: (int) start address
         """
         if addr is None and self.options.address is not None:
-            addr = int(self.options.address, 16)
+            addr = int(self.options.address, 0)
 
         if any([self.options.debugging, self.options.gdbserver]):
             dbg = debugging.Debugguer(self.jitter)
@@ -252,7 +252,7 @@ class OS_Linux_str(OS):
         self.libs = libs
 
         data = open(self.fname).read()
-        self.options.load_base_addr = int(self.options.load_base_addr, 16)
+        self.options.load_base_addr = int(self.options.load_base_addr, 0)
         self.jitter.vm.add_memory_page(self.options.load_base_addr, PAGE_READ | PAGE_WRITE, data)
 
         # Library calls handler
@@ -479,7 +479,7 @@ class Sandbox_Linux_armb_str(Sandbox, Arch_armb, OS_Linux_str):
 
     def run(self, addr = None):
         if addr is None and self.options.address is not None:
-            addr = int(self.options.address, 16)
+            addr = int(self.options.address, 0)
         super(Sandbox_Linux_armb_str, self).run(addr)
 
 
@@ -496,7 +496,7 @@ class Sandbox_Linux_arml_str(Sandbox, Arch_arml, OS_Linux_str):
 
     def run(self, addr = None):
         if addr is None and self.options.address is not None:
-            addr = int(self.options.address, 16)
+            addr = int(self.options.address, 0)
         super(Sandbox_Linux_arml_str, self).run(addr)
 
 
@@ -513,5 +513,5 @@ class Sandbox_Linux_aarch64l(Sandbox, Arch_aarch64l, OS_Linux):
 
     def run(self, addr = None):
         if addr is None and self.options.address is not None:
-            addr = int(self.options.address, 16)
+            addr = int(self.options.address, 0)
         super(Sandbox_Linux_aarch64l, self).run(addr)

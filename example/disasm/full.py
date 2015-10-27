@@ -43,7 +43,8 @@ parser.add_argument('-l', "--dontdis-retcall", action="store_true",
                     help="If set, disassemble only call destinations")
 parser.add_argument('-s', "--simplify", action="store_true",
                     help="Use the liveness analysis pass")
-parser.add_argument('-o', "--shiftoffset", default=None, type=int,
+parser.add_argument('-o', "--shiftoffset", default=None,
+                    type=lambda x: int(x, 0),
                     help="Shift input binary by an offset")
 parser.add_argument('-a', "--try-disasm-all", action="store_true",
                     help="Try to disassemble the whole binary")
@@ -85,7 +86,7 @@ mdis.dont_dis_nulstart_bloc = not args.dis_nulstart_block
 mdis.follow_call = args.followcall
 
 todo = []
-addrs = [int(a, 16) for a in args.address]
+addrs = [int(a, 0) for a in args.address]
 
 if len(addrs) == 0 and default_addr is not None:
     addrs.append(default_addr)

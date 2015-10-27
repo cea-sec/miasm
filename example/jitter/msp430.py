@@ -31,7 +31,7 @@ parser.add_argument("addr",
 machine = Machine("msp430")
 
 def jit_msp430_binary(args):
-    filepath, entryp = args.binary, int(args.addr, 16)
+    filepath, entryp = args.binary, int(args.addr, 0)
     myjit = machine.jitter(jit_type = args.jitter)
     myjit.init_stack()
 
