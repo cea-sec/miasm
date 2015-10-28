@@ -126,7 +126,7 @@ class instruction_mips32(cpu.instruction):
 
         if not isinstance(e, ExprInt):
             return
-        ad = e.arg + self.offset + 4
+        ad = e.arg + self.offset
         l = symbol_pool.getby_offset_create(ad)
         s = ExprId(l, e.size)
         self.args[ndx] = s
@@ -174,18 +174,14 @@ class instruction_mips32(cpu.instruction):
     def fixDstOffset(self):
         ndx = self.get_dst_num()
         e = self.args[ndx]
-        print 'FIX', ndx, e, self.offset, self.l
         if self.offset is None:
             raise ValueError('symbol not resolved %s' % self.l)
         if not isinstance(e, ExprInt):
             return
         off = e.arg - self.offset
-        print "diff", e, hex(self.offset)
-        print hex(off)
         if int(off % 4):
             raise ValueError('strange offset! %r' % off)
         self.args[ndx] = ExprInt32(off)
-        print 'final', self
 
     def get_args_expr(self):
         args = [a for a in self.args]
@@ -444,8 +440,6 @@ class mips32_eposh(mips32_imm, cpu.m_arg):
         return True
 
 
-class mips32_imm(mips32_imm):
-    pass
 
 
 class mips32_cpr(cpu.m_arg):
