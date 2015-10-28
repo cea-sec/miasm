@@ -77,6 +77,10 @@ def replace_orphan_labels(instr, symbol_pool):
         instr.args[i] = instr.args[i].replace_expr(replace_id)
 
 
+
+STATE_NO_BLOC = 0
+STATE_IN_BLOC = 1
+
 def parse_txt(mnemo, attrib, txt, symbol_pool=None):
     """Parse an assembly listing. Returns a couple (blocks, symbol_pool), where
     blocks is a list of asm_bloc and symbol_pool the associated asm_symbol_pool
@@ -208,14 +212,14 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
 
     block_num = 0
     cur_block = None
-    state = 0
+    state = STATE_NO_BLOC
     i = 0
     blocks = []
     block_to_nlink = None
     block_may_link = False
     while i < len(lines):
         # no current block
-        if state == 0:
+        if state == STATE_NO_BLOC:
             if not isinstance(lines[i], asmbloc.asm_label):
                 label = guess_next_new_label(symbol_pool)
                 lines[i:i] = [label]
@@ -225,7 +229,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
                 cur_block.block_num = block_num
                 block_num += 1
                 blocks.append(cur_block)
-                state = 1
+                state = STATE_IN_BLOC
                 i += 1
                 if block_to_nlink:
                     block_to_nlink.addto(
@@ -234,14 +238,14 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
                     block_to_nlink = None
 
         # in block
-        elif state == 1:
+        elif state == STATE_IN_BLOC:
             if isinstance(lines[i], asmbloc.asm_raw):
                 if hasattr(lines[i], 'split'):
-                    state = 0
+                    state = STATE_NO_BLOC
                     block_may_link = False
                     i += 1
                 else:
-                    state = 1
+                    state = STATE_IN_BLOC
                     block_may_link = True
                     cur_block.addline(lines[i])
                     i += 1
@@ -254,7 +258,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
                     cur_block.addto(
                         asmbloc.asm_constraint(lines[i], C_NEXT))
                     block_may_link = False
-                state = 0
+                state = STATE_NO_BLOC
             # instruction
             else:
                 cur_block.addline(lines[i])
@@ -273,7 +277,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
                             label = guess_next_new_label(symbol_pool)
                             lines[i + 1:i + 1] = [label]
                     else:
-                        state = 0
+                        state = STATE_NO_BLOC
 
                     if lines[i].splitflow():
                         block_to_nlink = cur_block
