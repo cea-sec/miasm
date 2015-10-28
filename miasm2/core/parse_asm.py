@@ -194,7 +194,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
                 lines.append(DirectiveDontSplit())
                 continue
             if directive == "align":
-                align_value = int(line[match_re.end():])
+                align_value = int(line[match_re.end():], 0)
                 lines.append(DirectiveAlign(align_value))
                 continue
             if directive in ['file', 'intel_syntax', 'globl', 'local',
