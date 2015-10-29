@@ -203,10 +203,14 @@ class asm_bloc(object):
     def get_subcall_instr(self):
         if not self.lines:
             return None
-        for i in xrange(-1, -1 - self.lines[0].delayslot - 1, -1):
+        delayslot = self.lines[0].delayslot
+        end_index = len(self.lines) - 1
+        ds_max_index = max(end_index - delayslot, 0)
+        for i in xrange(end_index, ds_max_index - 1, -1):
             l = self.lines[i]
             if l.is_subcall():
                 return l
+        return None
 
     def get_next(self):
         for x in self.bto:
