@@ -344,15 +344,21 @@ class ExprInt(Expr):
      - Constant 0x12345678 on 32bits
      """
 
-    def __init__(self, arg):
-        """Create an ExprInt from a numpy int
-        @arg: numpy int"""
+    def __init__(self, num, size=None):
+        """Create an ExprInt from a modint or num/size
+        @arg: modint or num
+        @size: (optionnal) int size"""
 
-        if not is_modint(arg):
-            raise ValueError('arg must by numpy int! %s' % arg)
-
-        self._arg = arg
-        self._size = self.arg.size
+        if is_modint(num):
+            self._arg = num
+            self._size = self.arg.size
+            if size is not None and num.size != size:
+                raise RuntimeError("size must match modint size")
+        elif size is not None:
+            self._arg = mod_size2uint[size](num)
+            self._size = self.arg.size
+        else:
+            raise ValueError('arg must by modint or (int,size)! %s' % num)
 
     arg = property(lambda self: self._arg)
 
