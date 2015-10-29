@@ -288,7 +288,7 @@ class Expr(object):
         if self.size == size:
             return self
         ad_size = size - self.size
-        n = ExprInt_fromsize(ad_size, 0)
+        n = ExprInt(0, ad_size)
         return ExprCompose([(self, 0, self.size),
                             (n, self.size, size)])
 
@@ -302,9 +302,8 @@ class Expr(object):
         ad_size = size - self.size
         c = ExprCompose([(self, 0, self.size),
                          (ExprCond(self.msb(),
-                                   ExprInt_fromsize(
-                                       ad_size, size2mask(ad_size)),
-                                   ExprInt_fromsize(ad_size, 0)),
+                                   ExprInt(size2mask(ad_size), ad_size),
+                                   ExprInt(0, ad_size)),
                           self.size, size)
                          ])
         return c
@@ -331,7 +330,7 @@ class Expr(object):
     def set_mask(self, value):
         raise ValueError('mask is not mutable')
 
-    mask = property(lambda self: ExprInt_fromsize(self.size, -1))
+    mask = property(lambda self: ExprInt(-1, self.size))
 
 
 class ExprInt(Expr):
@@ -1166,11 +1165,6 @@ def ExprInt64(i):
 def ExprInt_from(e, i):
     "Generate ExprInt with size equal to expression"
     return ExprInt(mod_size2uint[e.size](i))
-
-
-def ExprInt_fromsize(size, i):
-    "Generate ExprInt with a given size"
-    return ExprInt(mod_size2uint[size](i))
 
 
 def get_expr_ids_visit(e, ids):

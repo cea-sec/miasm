@@ -134,7 +134,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None, gen_label_index=0):
                 base_expr = gen_base_expr()[2]
                 my_var_parser = parse_ast(lambda x: m2_expr.ExprId(x, size),
                                           lambda x:
-                                              m2_expr.ExprInt_fromsize(size, x))
+                                              m2_expr.ExprInt(x, size))
                 base_expr.setParseAction(my_var_parser)
 
                 for b in data_raw:
