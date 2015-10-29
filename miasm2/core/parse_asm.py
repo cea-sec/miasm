@@ -148,7 +148,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
             if directive in ['string', 'ascii']:
                 # XXX HACK
                 line = line.replace(r'\n', '\n').replace(r'\r', '\r')
-                raw = line[line.find(r'"') + 1:line.rfind(r"'")]
+                raw = line[line.find(r'"') + 1:line.rfind(r'"')]
                 raw = raw.decode('string_escape')
                 if directive == 'string':
                     raw += "\x00"
@@ -157,7 +157,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
             if directive == 'ustring':
                 # XXX HACK
                 line = line.replace(r'\n', '\n').replace(r'\r', '\r')
-                raw = line[line.find(r'"') + 1:line.rfind(r"'")] + "\x00"
+                raw = line[line.find(r'"') + 1:line.rfind(r'"')] + "\x00"
                 raw = raw.decode('string_escape')
                 raw = "".join([string + '\x00' for string in raw])
                 lines.append(asmbloc.asm_raw(raw))
