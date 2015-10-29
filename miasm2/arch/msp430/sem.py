@@ -25,7 +25,7 @@ def bcd2hex(val):
 
 
 def reset_sr_res():
-    return [ExprAff(res, ExprInt_fromsize(7, 0))]
+    return [ExprAff(res, ExprInt(0, 7))]
 
 
 def update_flag_zf(a):

@@ -34,8 +34,8 @@ def update_engine_from_cpu(cpu, exec_engine):
     for symbol in exec_engine.symbols:
         if isinstance(symbol, m2_expr.ExprId):
             if hasattr(cpu, symbol.name):
-                value = m2_expr.ExprInt_fromsize(symbol.size,
-                                                 getattr(cpu, symbol.name))
+                value = m2_expr.ExprInt(getattr(cpu, symbol.name),
+                                        symbol.size)
                 exec_engine.symbols.symbols_id[symbol] = value
         else:
             raise NotImplementedError("Type not handled: %s" % symbol)
@@ -73,8 +73,8 @@ class JitCore_Python(jitcore.JitCore):
         size = expr_mem.size / 8
         value = self.cpu.get_mem(addr, size)
 
-        return m2_expr.ExprInt_fromsize(expr_mem.size,
-                                        int(value[::-1].encode("hex"), 16))
+        return m2_expr.ExprInt(int(value[::-1].encode("hex"), 16),
+                               expr_mem.size)
 
     def func_write(self, symb_exec, dest, data, mem_cache):
         """Memory read wrapper for symbolic execution

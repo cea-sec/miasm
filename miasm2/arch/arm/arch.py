@@ -783,7 +783,7 @@ class arm_offs(arm_imm):
     def int2expr(self, v):
         if v & ~self.intmask != 0:
             return None
-        return ExprInt_fromsize(self.intsize, v)
+        return ExprInt(v, self.intsize)
 
     def decodeval(self, v):
         v <<= 2

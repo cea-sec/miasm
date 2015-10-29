@@ -192,7 +192,7 @@ class instruction_msp430(instruction):
         # Call argument is an absolute offset
         # Other offsets are relative to instruction offset
         if self.name != "call":
-            self.args[0] =  ExprInt_fromsize(16, e.arg - self.offset)
+            self.args[0] =  ExprInt(int(e.arg) - self.offset, 16)
 
     def get_info(self, c):
         pass
@@ -328,34 +328,34 @@ class msp430_sreg_arg(reg_noarg, m_arg):
         e = self.reg_info.expr[v]
         if self.parent.a_s.value == 0b00:
             if e == R3:
-                self.expr = ExprInt_fromsize(size, 0)
+                self.expr = ExprInt(0, size)
             else:
                 self.expr = e
         elif self.parent.a_s.value == 0b01:
             if e == SR:
                 self.expr = ExprMem(ExprInt16(self.parent.off_s.value), size)
             elif e == R3:
-                self.expr = ExprInt_fromsize(size, 1)
+                self.expr = ExprInt(1, size)
             else:
                 self.expr = ExprMem(
                     e + ExprInt16(self.parent.off_s.value), size)
         elif self.parent.a_s.value == 0b10:
             if e == SR:
-                self.expr = ExprInt_fromsize(size, 4)
+                self.expr = ExprInt(4, size)
             elif e == R3:
-                self.expr = ExprInt_fromsize(size, 2)
+                self.expr = ExprInt(2, size)
             else:
                 self.expr = ExprMem(e, size)
         elif self.parent.a_s.value == 0b11:
             if e == SR:
-                self.expr = ExprInt_fromsize(size, 8)
+                self.expr = ExprInt(8, size)
             elif e == R3:
                 if self.parent.size.value == 0:
-                    self.expr = ExprInt_fromsize(size, 0xffff)
+                    self.expr = ExprInt(0xffff, size)
                 else:
-                    self.expr = ExprInt_fromsize(size, 0xff)
+                    self.expr = ExprInt(0xff, size)
             elif e == PC:
-                self.expr = ExprInt_fromsize(size, self.parent.off_s.value)
+                self.expr = ExprInt(self.parent.off_s.value, size)
             else:
                 self.expr = ExprOp('autoinc', e)
         else:
@@ -523,7 +523,7 @@ class msp430_offs(imm_noarg, m_arg):
     def int2expr(self, v):
         if v & ~self.intmask != 0:
             return None
-        return ExprInt_fromsize(16, v)
+        return ExprInt(v, 16)
 
     def decodeval(self, v):
         v <<= 1

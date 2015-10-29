@@ -260,7 +260,7 @@ def extract_ast_core(v, my_id2expr, my_int2expr):
         pass
     elif len(sizes) == 1:
         size = sizes.pop()
-        my_int2expr = lambda x: m2_expr.ExprInt_fromsize(size, x)
+        my_int2expr = lambda x: m2_expr.ExprInt(x, size)
     else:
         raise ValueError('multiple sizes in ids')
     e = ast_raw2expr(ast_tokens, my_id2expr, my_int2expr)
@@ -965,7 +965,7 @@ class instruction(object):
                     if size is None:
                         default_size = self.get_symbol_size(x, symbols)
                         size = default_size
-                    value = m2_expr.ExprInt_fromsize(size, symbols[name].offset)
+                    value = m2_expr.ExprInt(symbols[name].offset, size)
                 fixed_ids[x] = value
             e = e.replace_expr(fixed_ids)
             e = expr_simp(e)
@@ -1468,7 +1468,7 @@ class imm_noarg(object):
     def int2expr(self, v):
         if (v & ~self.intmask) != 0:
             return None
-        return m2_expr.ExprInt_fromsize(self.intsize, v)
+        return m2_expr.ExprInt(v, self.intsize)
 
     def expr2int(self, e):
         if not isinstance(e, m2_expr.ExprInt):

@@ -76,7 +76,7 @@ def simp_cst_propagation(e_s, e):
 
 
 
-            o = ExprInt_fromsize(i1.size, o)
+            o = ExprInt(o, i1.size)
             args.append(o)
 
     # bsf(int) => int
@@ -281,7 +281,7 @@ def simp_cst_propagation(e_s, e):
             filter_args.append((expr, start, stop))
             min_index = min(start, min_index)
         # create entry 0
-        expr = ExprInt_fromsize(min_index, 0)
+        expr = ExprInt(0, min_index)
         filter_args = [(expr, 0, min_index)] + filter_args
         return ExprCompose(filter_args)
 
@@ -305,7 +305,7 @@ def simp_cst_propagation(e_s, e):
             filter_args.append((expr, start, stop))
             max_index = max(stop, max_index)
         # create entry 0
-        expr = ExprInt_fromsize(final_size - max_index, 0)
+        expr = ExprInt(0, final_size - max_index)
         filter_args += [(expr, max_index, final_size)]
         return ExprCompose(filter_args)
 
@@ -401,7 +401,7 @@ def simp_slice(e_s, e):
     elif isinstance(e.arg, ExprInt):
         total_bit = e.stop - e.start
         mask = (1 << (e.stop - e.start)) - 1
-        return ExprInt_fromsize(total_bit, (e.arg.arg >> e.start) & mask)
+        return ExprInt(int((e.arg.arg >> e.start) & mask), total_bit)
     # Slice(Slice(A, x), y) => Slice(A, z)
     elif isinstance(e.arg, ExprSlice):
         if e.stop - e.start > e.arg.stop - e.arg.start:
@@ -511,18 +511,20 @@ def simp_compose(e_s, e):
     if len(args) == 1 and args[0][1] == 0 and args[0][2] == e.size:
         return args[0][0]
 
-    # {(X[X.size-z, 0, z), (0, z, X.size)} => (X >> x)
+    # {(X[z:], 0, X.size-z), (0, X.size-z, X.size)} => (X >> z)
     if (len(args) == 2 and
         isinstance(args[1][0], ExprInt) and
         args[1][0].arg == 0):
         a1 = args[0]
         a2 = args[1]
         if (isinstance(a1[0], ExprSlice) and
-            a1[1] == 0 and a1[0].stop == a1[0].arg.size):
-            if a2[1] == a1[0].size and a2[2] == a1[0].arg.size:
-                new_e = a1[0].arg >> ExprInt_fromsize(
-                    a1[0].arg.size, a1[0].start)
-                return new_e
+            a1[1] == 0 and
+            a1[0].stop == a1[0].arg.size and
+            a2[1] == a1[0].size and
+                a2[2] == a1[0].arg.size):
+            new_e = a1[0].arg >> ExprInt(
+                a1[0].start, a1[0].arg.size)
+            return new_e
 
     # Compose with ExprCond with integers for src1/src2 and intergers =>
     # propagage integers
