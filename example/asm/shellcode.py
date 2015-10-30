@@ -76,14 +76,14 @@ if args.PE:
                            pe.DirImport.get_funcvirt('MessageBoxA'))
 
 # Print and graph firsts blocs before patching it
-for bloc in blocs[0]:
+for bloc in blocs:
     print bloc
-graph = asmbloc.bloc2graph(blocs[0])
+graph = asmbloc.bloc2graph(blocs)
 open("graph.txt", "w").write(graph)
 
 # Apply patches
 patches = asmbloc.asm_resolve_final(machine.mn,
-                                    blocs[0],
+                                    blocs,
                                     symbol_pool,
                                     dst_interval)
 if args.encrypt:
