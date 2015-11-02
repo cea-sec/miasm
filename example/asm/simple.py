@@ -27,10 +27,10 @@ loop:
 symbol_pool.set_offset(symbol_pool.getby_name("main"), 0x0)
 
 # Spread information and resolve instructions offset
-patches = asmbloc.asm_resolve_final(mn_x86, blocs[0], symbol_pool)
+patches = asmbloc.asm_resolve_final(mn_x86, blocs, symbol_pool)
 
 # Show resolved blocs
-for bloc in blocs[0]:
+for bloc in blocs:
     print bloc
 
 # Print offset -> bytes

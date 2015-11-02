@@ -24,7 +24,12 @@ PyObject * JitCpu_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 
 PyObject * JitCpu_get_vmmngr(JitCpu *self, void *closure)
 {
-	return self->pyvm;
+	if (self->pyvm) {
+		Py_INCREF(self->pyvm);
+		return self->pyvm;
+	}
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 PyObject * JitCpu_set_vmmngr(JitCpu *self, PyObject *value, void *closure)
@@ -35,7 +40,12 @@ PyObject * JitCpu_set_vmmngr(JitCpu *self, PyObject *value, void *closure)
 
 PyObject * JitCpu_get_jitter(JitCpu *self, void *closure)
 {
-	return self->jitter;
+	if (self->jitter) {
+		Py_INCREF(self->jitter);
+		return self->jitter;
+	}
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 PyObject * JitCpu_set_jitter(JitCpu *self, PyObject *value, void *closure)

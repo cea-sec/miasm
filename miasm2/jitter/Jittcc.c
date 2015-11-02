@@ -141,6 +141,9 @@ PyObject* tcc_exec_bloc(PyObject* self, PyObject* args)
 	if (!PyArg_ParseTuple(args, "OOOO", &retaddr, &jitcpu, &lbl2ptr, &breakpoints))
 		return NULL;
 
+	/* The loop will decref retaddr always once */
+	Py_INCREF(retaddr);
+
 	for (;;) {
 		// Init
 		BlockDst.is_local = 0;
@@ -161,6 +164,7 @@ PyObject* tcc_exec_bloc(PyObject* self, PyObject* args)
 
 		// Execute it
 		status = func(&BlockDst, jitcpu);
+		Py_DECREF(retaddr);
 		retaddr = PyLong_FromUnsignedLongLong(BlockDst.address);
 
 		// Check exception

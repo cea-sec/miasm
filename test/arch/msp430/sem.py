@@ -14,7 +14,7 @@ logging.getLogger('cpuhelper').setLevel(logging.ERROR)
 EXCLUDE_REGS = set([res, ir_arch().IRDst])
 
 def M(addr):
-    return ExprMem(ExprInt_fromsize(16, addr), 16)
+    return ExprMem(ExprInt(addr, 16), 16)
 
 
 def compute(asm, inputstate={}, debug=False):

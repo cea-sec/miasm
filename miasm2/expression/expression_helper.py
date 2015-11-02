@@ -43,9 +43,8 @@ def merge_sliceto_slice(args):
             # sources_int[a.start] = a
             # copy ExprInt because we will inplace modify arg just below
             # /!\ TODO XXX never ever modify inplace args...
-            sources_int[a[1]] = (m2_expr.ExprInt_fromsize(a[2] - a[1],
-                                                          a[0].arg.__class__(
-                                                          a[0].arg)),
+            sources_int[a[1]] = (m2_expr.ExprInt(int(a[0].arg),
+                                                 a[2] - a[1]),
                                  a[1],
                                  a[2])
         elif isinstance(a[0], m2_expr.ExprSlice):
@@ -86,7 +85,7 @@ def merge_sliceto_slice(args):
             out[0] = m2_expr.ExprInt(a)
             sorted_s.pop()
             out[1] = s_start
-        out[0] = m2_expr.ExprInt_fromsize(size, out[0].arg)
+        out[0] = m2_expr.ExprInt(int(out[0].arg), size)
         final_sources.append((start, out))
 
     final_sources_int = final_sources
@@ -409,7 +408,7 @@ class ExprRandom(object):
         @size: (optional) number max bits
         """
         num = random.randint(0, cls.number_max % (2**size))
-        return m2_expr.ExprInt_fromsize(size, num)
+        return m2_expr.ExprInt(num, size)
 
     @classmethod
     def atomic(cls, size=32):

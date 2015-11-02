@@ -23,7 +23,6 @@ loop:
    RET
 ''')
 
-blocs = blocs[0]
 
 symbol_pool.set_offset(symbol_pool.getby_name("main"), 0x0)
 for b in blocs:

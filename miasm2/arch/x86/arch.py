@@ -548,8 +548,7 @@ class instruction_x86(instruction):
         if not isinstance(expr, ExprInt):
             log.warning('dynamic dst %r', expr)
             return
-        self.args[0] = ExprInt_fromsize(
-            self.mode, expr.arg - self.offset)
+        self.args[0] = ExprInt(int(expr.arg) - self.offset, self.mode)
 
     def get_info(self, c):
         self.additional_info.g1.value = c.g1.value
@@ -1085,8 +1084,8 @@ class x86_08_ne(x86_imm):
         v = swap_uint(self.l, v)
         p = self.parent
         admode = p.v_admode()
-        expr = sign_ext(v, self.intsize, admode)
-        self.expr = ExprInt_fromsize(admode, expr)
+        value = sign_ext(v, self.intsize, admode)
+        self.expr = ExprInt(value, admode)
         return True
 
 
@@ -1872,12 +1871,12 @@ def modrm2expr(modrm, parent, w8, sx=0, xmm=0, mm=0):
         if isinstance(modrm_k, (int, long)):
             expr = size2gpregs[admode].expr[modrm_k]
             if scale != 1:
-                expr = ExprInt_fromsize(admode, scale) * expr
+                expr = ExprInt(scale, admode) * expr
             o.append(expr)
     if f_imm in modrm:
         if parent.disp.value is None:
             return None
-        o.append(ExprInt_fromsize(admode, parent.disp.expr.arg))
+        o.append(ExprInt(int(parent.disp.expr.arg), admode))
     expr = ExprOp('+', *o)
     if w8 == 0:
         opmode = 8
@@ -2551,7 +2550,7 @@ class bs_cond_disp(bs_cond):
         v = swap_uint(self.l, v)
         self.value = v
         v = sign_ext(v, self.l, admode)
-        v = ExprInt_fromsize(admode, v)
+        v = ExprInt(v, admode)
         self.expr = v
         return True
 
@@ -2577,8 +2576,7 @@ class bs_cond_imm(bs_cond_scale, m_arg):
         if isinstance(self.expr, ExprInt):
             v = int(self.expr.arg)
             mask = ((1 << l) - 1)
-            v = v & mask
-            self.expr = ExprInt_fromsize(l, v)
+            self.expr = ExprInt(v & mask, l)
 
         if self.expr is None:
             log.debug('cannot fromstring int %r', s)
@@ -2663,8 +2661,7 @@ class bs_cond_imm(bs_cond_scale, m_arg):
         if hasattr(self.parent, 'w8') and self.parent.w8.value == 0:
             l_out = 8
         v = sign_ext(v, self.l, l_out)
-        v = ExprInt_fromsize(l_out, v)
-        self.expr = v
+        self.expr = ExprInt(v, l_out)
         return True
 
 
@@ -2702,8 +2699,7 @@ class bs_rel_off(bs_cond_imm):
         if isinstance(self.expr, ExprInt):
             v = int(self.expr.arg)
             mask = ((1 << l) - 1)
-            v = v & mask
-            self.expr = ExprInt_fromsize(l, v)
+            self.expr = ExprInt(v & mask, l)
         return start, stop
 
     @classmethod
@@ -2744,8 +2740,7 @@ class bs_rel_off(bs_cond_imm):
         size = offsize(self.parent)
         v = sign_ext(v, self.l, size)
         v += self.parent.l
-        v = ExprInt_fromsize(size, v)
-        self.expr = v
+        self.expr = ExprInt(v, size)
         return True
 
 class bs_s08(bs_rel_off):
@@ -2778,8 +2773,7 @@ class bs_s08(bs_rel_off):
         v = swap_uint(self.l, v)
         size = offsize(self.parent)
         v = sign_ext(v, self.l, size)
-        v = ExprInt_fromsize(size, v)
-        self.expr = v
+        self.expr = ExprInt(v, size)
         return True
 
 
@@ -2827,8 +2821,7 @@ class bs_moff(bsi):
         v = swap_uint(self.l, v)
         self.value = v
         v = sign_ext(v, self.l, opmode)
-        v = ExprInt_fromsize(opmode, v)
-        self.expr = v
+        self.expr = ExprInt(v, opmode)
         return True
 
 
@@ -2891,7 +2884,7 @@ class bs_movoff(m_arg):
         v = swap_uint(self.l, v)
         self.value = v
         v = sign_ext(v, self.l, l)
-        v = ExprInt_fromsize(l, v)
+        v = ExprInt(v, l)
         size = self.parent.v_opmode()
         if self.parent.w8.value == 0:
             size = 8

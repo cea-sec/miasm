@@ -56,9 +56,9 @@ def guess_machine():
     elif processor_name == "msp430":
         machine = Machine("msp430")
     elif processor_name == "mipsl":
-        machine = Machine("mipsl")
+        machine = Machine("mips32l")
     elif processor_name == "mipsb":
-        machine = Machine("mipsb")
+        machine = Machine("mips32b")
     else:
         print repr(processor_name)
         raise NotImplementedError('not fully functional')

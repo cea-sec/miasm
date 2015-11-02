@@ -16,7 +16,7 @@ EXCLUDE_REGS = set([ir_arch().IRDst])
 
 
 def M(addr):
-    return ExprMem(ExprInt_fromsize(16, addr), 16)
+    return ExprMem(ExprInt(addr, 16), 16)
 
 
 def compute(asm, inputstate={}, debug=False):
@@ -285,7 +285,7 @@ class TestARMSemantic(unittest.TestCase):
         self.assertEqual(compute('AND                R4,    R4,   R5    LSR 2 ',  {R4: 0xFFFFFFFF, R5: 0x80000041, }), {R4: 0x20000010, R5: 0x80000041, })
         self.assertEqual(compute('AND                R4,    R4,   R5    ASR 3 ',  {R4: 0xF00000FF, R5: 0x80000081, }), {R4: 0xF0000010, R5: 0x80000081, })
         self.assertEqual(compute('AND                R4,    R4,   R5    ROR 4 ',  {R4: 0xFFFFFFFF, R5: 0x000000FF, }), {R4: 0xF000000F, R5: 0x000000FF, })
-        self.assertEqual(compute('AND                R4,    R4,   R5    RRX   ',  {R4: 0xFFFFFFFF, R5: 0x00000101, }), {R4: ExprCompose([(ExprInt_fromsize(31, 0x80),0,31), (cf_init,31,32)]), R5: 0x00000101, })
+        self.assertEqual(compute('AND                R4,    R4,   R5    RRX   ',  {R4: 0xFFFFFFFF, R5: 0x00000101, }), {R4: ExprCompose([(ExprInt(0x80, 31),0,31), (cf_init,31,32)]), R5: 0x00000101, })
 
         # §A8.8.15:                AND{S}{<c>}{<q>} {<Rd>,} <Rn>, <Rm>, <type> <Rs>
         self.assertEqual(compute('AND                R4,    R6,   R4    LSL R5',  {R4: 0x00000001, R5: 0x00000004, R6: -1, }), {R4: 0x00000010, R5: 0x00000004, R6: 0xFFFFFFFF, })

@@ -10,7 +10,7 @@ class TranslatorMiasm(Translator):
         return "ExprId(%s, size=%d)" % (repr(expr.name), expr.size)
 
     def from_ExprInt(self, expr):
-        return "ExprInt_fromsize(%d, 0x%x)" % (expr.size, int(expr.arg))
+        return "ExprInt(0x%x, %d)" % (int(expr.arg), expr.size)
 
     def from_ExprCond(self, expr):
         return "ExprCond(%s, %s, %s)" % (self.from_expr(expr.cond),
