@@ -440,8 +440,9 @@ def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool,
         offsets_to_dis.add(offset)
 
     if dis_bloc_callback is not None:
-        dis_bloc_callback(
-            mnemo, attrib, pool_bin, cur_bloc, offsets_to_dis, symbol_pool)
+        dis_bloc_callback(mn=mnemo, attrib=attrib, pool_bin=pool_bin,
+                          cur_bloc=cur_bloc, offsets_to_dis=offsets_to_dis,
+                          symbol_pool=symbol_pool)
     # print 'dst', [hex(x) for x in offsets_to_dis]
     return offsets_to_dis
 
@@ -482,9 +483,9 @@ def split_bloc(mnemo, attrib, pool_bin, blocs,
                 offsets_to_dis = set(
                     [x.label.offset for x in new_b.bto
                      if isinstance(x.label, asm_label)])
-                dis_bloc_callback(
-                    mnemo, attrib, pool_bin, new_b, offsets_to_dis,
-                    symbol_pool)
+                dis_bloc_callback(mn=mnemo, attrib=attrib, pool_bin=pool_bin,
+                                  cur_bloc=new_b, offsets_to_dis=offsets_to_dis,
+                                  symbol_pool=symbol_pool)
             blocs.append(new_b)
             a, b = cb.get_range()
 
