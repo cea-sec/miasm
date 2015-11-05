@@ -2,8 +2,7 @@ from miasm2.core.asmbloc import asm_constraint, disasmEngine
 from miasm2.arch.arm.arch import mn_arm, mn_armt
 
 
-def cb_arm_fix_call(
-    mn, attrib, pool_bin, cur_bloc, offsets_to_dis, symbol_pool):
+def cb_arm_fix_call(mn, cur_bloc, symbol_pool, offsets_to_dis, *args, **kwargs):
     """
     for arm:
     MOV        LR, PC
@@ -19,11 +18,11 @@ def cb_arm_fix_call(
         return
     if l2.name != "MOV":
         return
-    # print cur_bloc
-    # print l1
-    if not l1.args[0] in mn.pc.values():
+
+    values = mn.pc.values()
+    if not l1.args[0] in values:
         return
-    if not l2.args[1] in mn.pc.values():
+    if not l2.args[1] in values:
         return
     cur_bloc.add_cst(l1.offset + 4, asm_constraint.c_next, symbol_pool)
     offsets_to_dis.add(l1.offset + 4)
@@ -31,9 +30,9 @@ def cb_arm_fix_call(
 cb_arm_funcs = [cb_arm_fix_call]
 
 
-def cb_arm_disasm(mn, attrib, pool_bin, cur_bloc, offsets_to_dis, symbol_pool):
+def cb_arm_disasm(*args, **kwargs):
     for func in cb_arm_funcs:
-        func(mn, attrib, pool_bin, cur_bloc, offsets_to_dis, symbol_pool)
+        func(*args, **kwargs)
 
 
 class dis_armb(disasmEngine):

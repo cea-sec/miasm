@@ -3,7 +3,7 @@ from miasm2.expression.expression import ExprId
 from miasm2.arch.x86.arch import mn_x86
 
 
-def cb_x86_callpop(mn, attrib, pool_bin, cur_bloc, offsets_to_dis, symbol_pool):
+def cb_x86_callpop(cur_bloc, *args, **kwargs):
     """
     1000: call 1005
     1005: pop
@@ -14,7 +14,6 @@ def cb_x86_callpop(mn, attrib, pool_bin, cur_bloc, offsets_to_dis, symbol_pool):
     1005: pop
 
     """
-
     if len(cur_bloc.lines) < 1:
         return
     l = cur_bloc.lines[-1]
@@ -33,9 +32,9 @@ def cb_x86_callpop(mn, attrib, pool_bin, cur_bloc, offsets_to_dis, symbol_pool):
 cb_x86_funcs = [cb_x86_callpop]
 
 
-def cb_x86_disasm(mn, attrib, pool_bin, cur_bloc, offsets_to_dis, symbol_pool):
+def cb_x86_disasm(*args, **kwargs):
     for func in cb_x86_funcs:
-        func(mn, attrib, pool_bin, cur_bloc, offsets_to_dis, symbol_pool)
+        func(*args, **kwargs)
 
 
 class dis_x86(disasmEngine):
