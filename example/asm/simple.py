@@ -3,8 +3,6 @@ from pprint import pprint
 
 from miasm2.arch.x86.arch import mn_x86
 from miasm2.core import parse_asm, asmbloc
-import miasm2.expression.expression as m2_expr
-from miasm2.core import asmbloc
 
 
 # Assemble code
