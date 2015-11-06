@@ -2,19 +2,14 @@ import sys
 import os
 import tempfile
 
-# Set your path first!
-sys.path.append("/home/serpilliere/tools/pyparsing/pyparsing-2.0.1/build/lib.linux-x86_64-2.7")
-sys.path.append("/home/serpilliere/projet/miasm/build/lib.linux-x86_64-2.7")
-sys.path.append("/home/serpilliere/projet/elfesteem/build/lib.linux-x86_64-2.7")
-
 from idaapi import GraphViewer
 
 from miasm2.core.bin_stream_ida import bin_stream_ida
 from miasm2.core.asmbloc import *
 from miasm2.expression.simplifications import expr_simp
 from miasm2.expression.expression import *
-
-from miasm2.analysis.data_analysis import inter_bloc_flow, intra_bloc_flow_symbexec
+from miasm2.analysis.data_analysis import inter_bloc_flow, \
+    intra_bloc_flow_symbexec
 
 from utils import guess_machine, expr2colorstr
 
