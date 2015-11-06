@@ -27,6 +27,10 @@ def kernel32_GetProcAddress(jitter):
 
     # Get the generated address of the library, and store it in memory to dst_ad
     ad = sb.libs.lib_get_add_func(args.libbase, fname, dst_ad)
+    # Add a breakpoint in case of a call on the resolved function
+    # NOTE: never append in UPX, just for skeleton
+    jitter.handle_function(ad)
+
     jitter.func_ret_stdcall(ret_ad, ad)
 
 
