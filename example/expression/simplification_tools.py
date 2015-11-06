@@ -1,5 +1,4 @@
 from miasm2.expression.expression import *
-from miasm2.expression.simplifications import expr_simp
 from pdb import pm
 import os
 
