@@ -13,7 +13,6 @@ from collections import defaultdict
 from optparse import OptionParser
 import subprocess
 from miasm2.core import parse_asm
-from elfesteem.strpatchwork import StrPatchwork
 
 from miasm2.arch.x86.disasm import dis_x86_32 as dis_engine
 
