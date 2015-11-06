@@ -89,6 +89,8 @@ sb.jitter.add_breakpoint(end_label, update_binary)
 sb.run()
 
 # Rebuild PE
+# Alternative solution: miasm2.jitter.loader.pe.vm2pe(sb.jitter, out_fname,
+# libs=sb.libs, e_orig=sb.pe)
 new_dll = []
 
 sb.pe.SHList.align_sections(0x1000, 0x1000)
