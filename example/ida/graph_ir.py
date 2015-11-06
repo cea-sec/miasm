@@ -14,8 +14,7 @@ from miasm2.core.asmbloc import *
 from miasm2.expression.simplifications import expr_simp
 from miasm2.expression.expression import *
 
-from miasm2.analysis.data_analysis import intra_bloc_flow_raw, inter_bloc_flow
-from miasm2.analysis.data_analysis import intra_bloc_flow_symbexec
+from miasm2.analysis.data_analysis import inter_bloc_flow, intra_bloc_flow_symbexec
 
 from utils import guess_machine, expr2colorstr
 
@@ -219,7 +218,6 @@ def gen_bloc_data_flow_graph(ir_arch, in_str, ad):  # arch, attrib, pool_bin, bl
     bloc2w = {}
 
     for irbloc in ir_arch.blocs.values():
-        # intra_bloc_flow_raw(ir_arch, flow_graph, irbloc)
         intra_bloc_flow_symbexec(ir_arch, flow_graph, irbloc)
         # intra_bloc_flow_symb(ir_arch, flow_graph, irbloc)
 
