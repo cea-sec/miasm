@@ -46,13 +46,10 @@ else:
 if options.verbose is True:
     print sb.jitter.vm
 
-
-ep = sb.entry_point
-
 # Ensure there is one and only one leave (for OEP discovering)
 mdis = sb.machine.dis_engine(sb.jitter.bs)
 mdis.dont_dis_nulstart_bloc = True
-ab = mdis.dis_multibloc(ep)
+ab = mdis.dis_multibloc(sb.entry_point)
 
 bb = asmbloc.basicblocs(ab)
 leaves = bb.get_bad_dst()
