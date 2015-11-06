@@ -108,7 +108,6 @@ sb.pe.DirImport.set_rva(s_myimp.addr)
 # XXXX TODO
 sb.pe.NThdr.optentries[pe.DIRECTORY_ENTRY_DELAY_IMPORT].rva = 0
 
-sb.pe.Opthdr.AddressOfEntryPoint = sb.pe.virt2rva(end_label)
 bname, fname = os.path.split(options.filename)
 fname = os.path.join(bname, fname.replace('.', '_'))
 open(fname + '_unupx.bin', 'w').write(str(sb.pe))
