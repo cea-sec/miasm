@@ -1,4 +1,3 @@
-from miasm2.core.graph import DiGraph
 from miasm2.expression.expression import *
 
 print "Simple Expression grapher demo"
