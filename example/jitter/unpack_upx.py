@@ -13,15 +13,19 @@ if filename and os.path.isfile(filename):
 # User defined methods
 
 def kernel32_GetProcAddress(jitter):
+    """Hook on GetProcAddress to note where UPX store imports pointer"""
     ret_ad, args = jitter.func_args_stdcall(["libbase", "fname"])
 
+    # When the function is called, EBX is a pointer on the destination buffer
     dst_ad = jitter.cpu.EBX
     logging.info('EBX ' + hex(dst_ad))
 
+    # Handle ordinal imports
     fname = (args.fname if args.fname < 0x10000
              else jitter.get_str_ansi(args.fname))
     logging.info(fname)
 
+    # Get the generated address of the library, and store it in memory to dst_ad
     ad = sb.libs.lib_get_add_func(args.libbase, fname, dst_ad)
     jitter.func_ret_stdcall(ret_ad, ad)
 
