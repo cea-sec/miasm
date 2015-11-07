@@ -1,14 +1,11 @@
-import sys
 import os
 import tempfile
 
-from idaapi import GraphViewer
 from miasm2.core.bin_stream_ida import bin_stream_ida
 from miasm2.core.asmbloc import *
 from miasm2.expression import expression as m2_expr
 
 from miasm2.expression.simplifications import expr_simp
-from miasm2.analysis.machine import Machine
 from miasm2.analysis.depgraph import DependencyGraph
 
 from utils import guess_machine

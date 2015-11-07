@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
 from argparse import ArgumentParser
-from miasm2.analysis import debugging, gdbserver
+from miasm2.analysis import debugging
 from miasm2.jitter.csts import *
 from miasm2.analysis.machine import Machine
 
@@ -64,6 +64,5 @@ def jit_msp430_binary(args):
         print(myjit.continue_run())
 
 if __name__ == '__main__':
-    from sys import stderr
     args = parser.parse_args()
     jit_msp430_binary(args)

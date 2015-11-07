@@ -1,5 +1,10 @@
 import os
 import sys
+import subprocess
+from collections import defaultdict
+from optparse import OptionParser
+from pdb import pm
+
 from miasm2.arch.x86.arch import *
 from miasm2.arch.x86.regs import *
 from miasm2.arch.x86.sem import *
@@ -9,15 +14,8 @@ from miasm2.expression.expression import get_rw
 from miasm2.ir.symbexec import symbexec
 from miasm2.expression.simplifications import expr_simp
 from miasm2.expression import stp
-from collections import defaultdict
-from optparse import OptionParser
-import subprocess
 from miasm2.core import parse_asm
-from elfesteem.strpatchwork import StrPatchwork
-
 from miasm2.arch.x86.disasm import dis_x86_32 as dis_engine
-
-from pdb import pm
 
 
 filename = os.environ.get('PYTHONSTARTUP')

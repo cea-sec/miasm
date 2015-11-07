@@ -1,10 +1,10 @@
-from miasm2.core.cpu import parse_ast, ast_id2expr
-from miasm2.arch.x86.arch import mn_x86, base_expr
+from pdb import pm
+
+from miasm2.arch.x86.arch import mn_x86
 from miasm2.core import parse_asm
 from miasm2.expression.expression import *
 from miasm2.core import asmbloc
 from miasm2.arch.x86.ira import ir_a_x86_32
-from pdb import pm
 
 
 # First, asm code

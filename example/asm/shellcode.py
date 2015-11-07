@@ -5,9 +5,7 @@ from pdb import pm
 from elfesteem import pe_init
 from elfesteem.strpatchwork import StrPatchwork
 
-from miasm2.core.cpu import parse_ast
 from miasm2.core import parse_asm, asmbloc
-import miasm2.expression.expression as m2_expr
 from miasm2.analysis.machine import Machine
 from miasm2.core.interval import interval
 
