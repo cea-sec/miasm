@@ -238,6 +238,8 @@ testset += RegressionTest(["depgraph.py"], base_dir="analysis",
                                                         (14, 1), (15, 1)))
                            for fname in fnames])
 
+testset += RegressionTest(["mem.py"], base_dir="analysis")
+
 # Examples
 class Example(Test):
     """Examples specificities:
