@@ -10,6 +10,11 @@ log.setLevel(logging.WARN)
 # allocator is a function(vm, size) -> allocated_address
 allocator = None
 
+def set_allocator(alloc_func):
+    global allocator
+    allocator = alloc_func
+
+
 # Helpers
 
 def indent(s, size=4):

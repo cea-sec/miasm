@@ -5,11 +5,10 @@
 import struct
 
 from miasm2.analysis.machine import Machine
-import miasm2.analysis.mem as mem_module
 from miasm2.analysis.mem import MemStruct, Num, Ptr, MemStr, MemArray,\
                                 MemSizedArray, Array, mem_array_type,\
                                 mem_sized_array_type, Struct, Inline, mem,\
-                                Union, BitField, MemSelf, MemVoid
+                                Union, BitField, MemSelf, MemVoid, set_allocator
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm2.os_dep.common import heap
 
@@ -74,7 +73,7 @@ assert mstruct.i == 0x11111111
 
 # From now, just use heap.vm_alloc
 my_heap = heap()
-mem_module.allocator = my_heap.vm_alloc
+set_allocator(my_heap.vm_alloc)
 
 
 # Ptr tests
@@ -445,4 +444,4 @@ print repr(memsarray)
 print repr(memstr)
 print repr(memstr3)
 
-print "Ok" # That's all folks!
+print "\nOk" # That's all folks!
