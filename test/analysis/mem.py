@@ -2,10 +2,16 @@
 
 # miasm2.analysis.mem tests
 
+import struct
 
 from miasm2.analysis.machine import Machine
-from miasm2.analysis.mem import *
+import miasm2.analysis.mem as mem_module
+from miasm2.analysis.mem import MemStruct, Num, Ptr, MemStr, MemArray,\
+                                MemSizedArray, Array, mem_array_type,\
+                                mem_sized_array_type, Struct, Inline, mem,\
+                                Union, BitField, MemSelf, MemVoid
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
+from miasm2.os_dep.common import heap
 
 # Two structures with some fields
 class OtherStruct(MemStruct):
@@ -29,26 +35,17 @@ class MyStruct(MemStruct):
 jitter = Machine("x86_32").jitter("python")
 jitter.init_stack()
 addr = 0x1000
-addr2 = 0x1100
-addr3 = 0x1200
-addr_str = 0x1300
-addr_str2 = 0x1400
-addr_str3 = 0x1500
-addr4 = 0x1600
-addr5 = 0x1700
-addr6 = 0x1800
-addr7 = 0x1900
-addr8 = 0x2000
-addr9 = 0x2100
-addr10 = 0x2200
-addr11 = 0x2300
-size = 0x2000
+size = 0x1000
+addr_str = 0x1100
+addr_str2 = 0x1200
+addr_str3 = 0x1300
 # Initialize all mem with 0xaa
 jitter.vm.add_memory_page(addr, PAGE_READ | PAGE_WRITE, "\xaa"*size)
 
 
 # MemStruct tests
 ## Creation
+# Use manual allocation with explicit addr for the first example
 mstruct = MyStruct(jitter.vm, addr)
 ## Fields are read from the virtual memory
 assert mstruct.num == 0xaaaaaaaa
@@ -75,37 +72,45 @@ assert mstruct.s == 0x11111111
 assert mstruct.i == 0x11111111
 
 
+# From now, just use heap.vm_alloc
+my_heap = heap()
+mem_module.allocator = my_heap.vm_alloc
+
+
 # Ptr tests
 ## Setup for Ptr tests
-other = OtherStruct(jitter.vm, addr2)
+# the addr field can now be omited since allocator is set
+other = OtherStruct(jitter.vm)
 other.foo = 0x1234
 assert other.foo == 0x1234
 
 ## Basic usage
 mstruct.other = other.get_addr()
-assert mstruct.other == addr2
+assert mstruct.other == other.get_addr()
 assert mstruct.deref_other == other
 assert mstruct.deref_other.foo == 0x1234
 
 ## Deref assignment
-other2 = OtherStruct(jitter.vm, addr3)
+other2 = OtherStruct(jitter.vm)
 other2.foo = 0xbeef
 assert mstruct.deref_other != other2
 mstruct.deref_other = other2
 assert mstruct.deref_other == other2
 assert mstruct.deref_other.foo == 0xbeef
-assert mstruct.other == addr2 # Addr did not change
+assert mstruct.other == other.get_addr() # Addr did not change
 assert other.foo == 0xbeef # Deref assignment copies by value
 assert other2.foo == 0xbeef
 assert other.get_addr() != other2.get_addr() # Not the same address
 assert other == other2 # But same value
 
 ## Same stuff for Ptr to MemField
-mstruct.i = addr7
+alloc_addr = my_heap.vm_alloc(jitter.vm,
+                              mstruct.get_field_type("i").dst_type.sizeof())
+mstruct.i = alloc_addr
 mstruct.deref_i.value = 8
 assert mstruct.deref_i.value == 8
-assert mstruct.i == addr7
-memval = struct.unpack("I", jitter.vm.get_mem(addr7, 4))[0]
+assert mstruct.i == alloc_addr
+memval = struct.unpack("I", jitter.vm.get_mem(alloc_addr, 4))[0]
 assert memval == 8
 
 
@@ -146,9 +151,11 @@ assert memstr3.value == memstr.value # But the python value is the same
 
 
 # MemArray tests
-memarray = MemArray(jitter.vm, addr6, Num("I"))
+# Allocate buffer manually, since memarray is unsized
+alloc_addr = my_heap.vm_alloc(jitter.vm, 0x100)
+memarray = MemArray(jitter.vm, alloc_addr, Num("I"))
 # This also works:
-_memarray = mem_array_type(Num("I"))(jitter.vm, addr6)
+_memarray = mem_array_type(Num("I"))(jitter.vm, alloc_addr)
 memarray[0] = 0x02
 assert memarray[0] == 0x02
 assert jitter.vm.get_mem(memarray.get_addr(),
@@ -187,9 +194,9 @@ except (ValueError):
 
 
 # MemSizedArray tests
-memsarray = MemSizedArray(jitter.vm, addr6, Num("I"), 10)
+memsarray = MemSizedArray(jitter.vm, None, Num("I"), 10)
 # This also works:
-_memsarray = mem_sized_array_type(Num("I"), 10)(jitter.vm, addr6)
+_memsarray = mem_sized_array_type(Num("I"), 10)(jitter.vm)
 # And mem_sized_array_type generates statically sized types
 assert _memsarray.sizeof() == len(memsarray)
 memsarray.memset('\xcc')
@@ -211,7 +218,7 @@ class MyStruct2(MemStruct):
         ("s2", Array(Num("B"), 10)),
     ]
 
-ms2 = MyStruct2(jitter.vm, addr5)
+ms2 = MyStruct2(jitter.vm)
 ms2.memset('\xaa')
 assert len(ms2) == 15
 
@@ -238,8 +245,8 @@ for val in ms2.s2:
     assert val == 1
 
 ### Field assignment (MemSizedArray)
-jitter.vm.set_mem(addr4, '\x02'*10)
-array2 = MemSizedArray(jitter.vm, addr4, Num("B"), 10)
+array2 = MemSizedArray(jitter.vm, None, Num("B"), 10)
+jitter.vm.set_mem(array2.get_addr(), '\x02'*10)
 for val in array2:
     assert val == 2
 ms2.s2 = array2
@@ -261,7 +268,7 @@ class ContStruct(MemStruct):
         ("last", Num("B")),
     ]
 
-cont = ContStruct(jitter.vm, addr4)
+cont = ContStruct(jitter.vm)
 cont.memset()
 assert len(cont) == 4
 assert len(cont.instruct) == 2
@@ -300,8 +307,8 @@ class UniStruct(MemStruct):
         ("last", Num("B")),
     ]
 
-uni = UniStruct(jitter.vm, addr8)
-jitter.vm.set_mem(addr8, ''.join(chr(x) for x in xrange(len(uni))))
+uni = UniStruct(jitter.vm)
+jitter.vm.set_mem(uni.get_addr(), ''.join(chr(x) for x in xrange(len(uni))))
 assert len(uni) == 6 # 1 + max(InStruct.sizeof(), 4) + 1
 assert uni.one == 0x00
 assert uni.instruct.foo == 0x01
@@ -326,7 +333,7 @@ class BitStruct(MemStruct):
         ])),
     ]
 
-bit = BitStruct(jitter.vm, addr9)
+bit = BitStruct(jitter.vm)
 bit.memset()
 assert bit.flags == 0
 assert bit.f1_1 == 0
@@ -351,52 +358,54 @@ assert bit.f4_1 == 1
 # Unhealthy ideas
 class UnhealthyIdeas(MemStruct):
     fields = [
-        ("f1", Ptr("I", MemArray, Struct("=Bf"))),
-        ("f2", Array(Ptr("I", MemStr), 10)),
-        ("f3", Ptr("I", MemSelf)),
-        ("f4", Array(Ptr("I", MemSelf), 2)),
-        ("f5", Ptr("I", Ptr("I", MemSelf))),
+        ("pastruct", Ptr("I", MemArray, Struct("=Bf"))),
+        ("apstr", Array(Ptr("I", MemStr), 10)),
+        ("pself", Ptr("I", MemSelf)),
+        ("apself", Array(Ptr("I", MemSelf), 2)),
+        ("ppself", Ptr("I", Ptr("I", MemSelf))),
     ]
 
 # Other way to handle self dependency and circular dependencies
 # NOTE: in this case, MemSelf would have been fine
 UnhealthyIdeas.fields.append(
-    ("f6", Ptr("I", Ptr("I", Ptr("I", UnhealthyIdeas)))))
+    ("pppself", Ptr("I", Ptr("I", Ptr("I", UnhealthyIdeas)))))
 # Regen all fields
 UnhealthyIdeas.gen_fields()
 
-ideas = UnhealthyIdeas(jitter.vm, addr7)
+p_size = Ptr("I", MemVoid).size()
+
+ideas = UnhealthyIdeas(jitter.vm)
 ideas.memset()
-ideas.f3 = ideas.get_addr()
-assert ideas == ideas.deref_f3
+ideas.pself = ideas.get_addr()
+assert ideas == ideas.deref_pself
 
-ideas.f4[0] = ideas.get_addr()
-assert ideas.f4.deref_get(0) == ideas
-ideas.f4[1] = addr6
-ideas.f4.deref_set(1, ideas)
-assert ideas.f4[1] != ideas.get_addr()
-assert ideas.f4.deref_get(1) == ideas
+ideas.apself[0] = ideas.get_addr()
+assert ideas.apself.deref_get(0) == ideas
+ideas.apself[1] = my_heap.vm_alloc(jitter.vm, UnhealthyIdeas.sizeof())
+ideas.apself.deref_set(1, ideas)
+assert ideas.apself[1] != ideas.get_addr()
+assert ideas.apself.deref_get(1) == ideas
 
-ideas.f5 = addr2
-ideas.deref_f5.value = ideas.get_addr()
-assert ideas.deref_f5.value == ideas.get_addr()
-assert ideas.deref_f5.deref_value == ideas
+ideas.ppself = my_heap.vm_alloc(jitter.vm, p_size)
+ideas.deref_ppself.value = ideas.get_addr()
+assert ideas.deref_ppself.value == ideas.get_addr()
+assert ideas.deref_ppself.deref_value == ideas
 
-ideas.deref_f5.value = addr3
-ideas.deref_f5.deref_value = ideas
-assert ideas.deref_f5.value != ideas.get_addr()
-assert ideas.deref_f5.deref_value == ideas
+ideas.deref_ppself.value = my_heap.vm_alloc(jitter.vm, UnhealthyIdeas.sizeof())
+ideas.deref_ppself.deref_value = ideas
+assert ideas.deref_ppself.value != ideas.get_addr()
+assert ideas.deref_ppself.deref_value == ideas
 
-ideas.f6 = addr4
-ideas.deref_f6.value = addr5
-ideas.deref_f6.deref_value.value = ideas.get_addr()
-assert ideas.deref_f6.deref_value.deref_value == ideas
+ideas.pppself = my_heap.vm_alloc(jitter.vm, p_size)
+ideas.deref_pppself.value = my_heap.vm_alloc(jitter.vm, p_size)
+ideas.deref_pppself.deref_value.value = ideas.get_addr()
+assert ideas.deref_pppself.deref_value.deref_value == ideas
 
 # Cast tests
 # MemStruct cast
 MemInt = mem(Num("I"))
 MemShort = mem(Num("H"))
-dword = MemInt(jitter.vm, addr10)
+dword = MemInt(jitter.vm)
 dword.value = 0x12345678
 assert isinstance(dword.cast(MemShort), MemShort)
 assert dword.cast(MemShort).value == 0x5678
@@ -417,7 +426,7 @@ assert MemShort(jitter.vm, ms2.s2.index2addr(4)).value == 0xabcd
 # void* style cast
 MemPtrVoid = mem(Ptr("I", MemVoid))
 MemPtrMyStruct = mem(Ptr("I", MyStruct))
-p = MemPtrVoid(jitter.vm, addr11)
+p = MemPtrVoid(jitter.vm)
 p.value = mstruct.get_addr()
 assert p.deref_value.cast(MyStruct) == mstruct
 assert p.cast(MemPtrMyStruct).deref_value == mstruct
@@ -427,7 +436,6 @@ print repr(mstruct), '\n'
 print repr(ms2), '\n'
 print repr(cont), '\n'
 print repr(uni), '\n'
-print repr(bit), '\n'
 print repr(bit), '\n'
 print repr(ideas), '\n'
 print repr(mem(Array(Inline(MyStruct2), 2))(jitter.vm, addr)), '\n'

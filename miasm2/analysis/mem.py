@@ -7,7 +7,8 @@ console_handler.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
 log.addHandler(console_handler)
 log.setLevel(logging.WARN)
 
-# TODO: alloc
+# allocator is a function(vm, size) -> allocated_address
+allocator = None
 
 # Helpers
 
@@ -150,22 +151,23 @@ class Ptr(Num):
         super(Ptr, self).set_self_type(self_type)
 
     def _fix_dst_type(self):
-        global classes
-
         if self._dst_type == MemSelf:
             if self.get_self_type() is not None:
                 self._dst_type = self.get_self_type()
             else:
                 raise ValueError("Unsupported usecase for MemSelf, sorry")
 
-    def deref_get(self, vm, addr):
+    @property
+    def dst_type(self):
         self._fix_dst_type()
-        return self._dst_type(vm, addr, *self._type_args, **self._type_kwargs)
+        return self._dst_type
+
+    def deref_get(self, vm, addr):
+        return self.dst_type(vm, addr, *self._type_args, **self._type_kwargs)
 
     def deref_set(self, vm, addr, val):
-        self._fix_dst_type()
         # Sanity check
-        if self._dst_type != val.__class__:
+        if self.dst_type != val.__class__:
             log.warning("Original type was %s, overriden by value of type %s",
                         self._dst_type.__name__, val.__class__.__name__)
 
@@ -381,10 +383,17 @@ class MemStruct(object):
 
     _size = None
 
-    def __init__(self, vm, addr, *args, **kwargs):
+    def __init__(self, vm, addr=None, *args, **kwargs):
+        global allocator
         super(MemStruct, self).__init__(*args, **kwargs)
         self._vm = vm
-        self._addr = addr
+        if addr is None:
+            if allocator is None:
+                raise ValueError("Cannot provide None address to MemStruct() if"
+                                 "%s.allocator is not set." % __name__)
+            self._addr = allocator(vm, self.get_size())
+        else:
+            self._addr = addr
 
     def get_addr(self, field_name=None):
         if field_name is not None:
@@ -401,6 +410,9 @@ class MemStruct(object):
 
     def get_size(self):
         return self.sizeof()
+
+    def get_field_type(self, name):
+        return self._attrs[name]['field']
 
     def get_attr(self, attr):
         if attr not in self._attrs:
@@ -438,7 +450,6 @@ class MemStruct(object):
             raise ValueError("byte must be a 1-lengthed str")
         self._vm.set_mem(self.get_addr(), byte * self.get_size())
 
-    # TODO: examples
     def cast(self, other_type, *type_args, **type_kwargs):
         return self.cast_field(None, other_type, *type_args, **type_kwargs)
 
@@ -544,14 +555,14 @@ class MemStr(MemStruct):
 class MemArray(MemStruct):
     _field_type = None
 
-    def __init__(self, vm, addr, field_type=None):
-        super(MemArray, self).__init__(vm, addr)
-        if self._field_type is None and field_type is not None:
+    def __init__(self, vm, addr=None, field_type=None):
+        if self._field_type is None:
             self._field_type = field_type
         if self._field_type is None:
             raise NotImplementedError(
                     "Provide field_type to instanciate this class, "
                     "or generate a subclass with mem_array_type.")
+        super(MemArray, self).__init__(vm, addr)
 
     @property
     def field_type(self):
@@ -632,10 +643,12 @@ def mem_array_type(field_type):
 class MemSizedArray(MemArray):
     _array_len = None
 
-    def __init__(self, vm, addr, field_type=None, length=None):
-        super(MemSizedArray, self).__init__(vm, addr, field_type)
-        if self._array_len is None and length is not None:
+    def __init__(self, vm, addr=None, field_type=None, length=None):
+        # Set the length before anything else to allow get_size() to work for
+        # allocation
+        if self._array_len is None:
             self._array_len = length
+        super(MemSizedArray, self).__init__(vm, addr, field_type)
         if self._array_len is None or self._field_type is None:
             raise NotImplementedError(
                     "Provide field_type and length to instanciate this class, "

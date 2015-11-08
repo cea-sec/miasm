@@ -60,9 +60,15 @@ class heap(object):
         @jitter: a jitter instance
         @size: the size to allocate
         """
+        return self.vm_alloc(jitter.vm, size)
 
+    def vm_alloc(self, vm, size):
+        """
+        @vm: a VmMngr instance
+        @size: the size to allocate
+        """
         addr = self.next_addr(size)
-        jitter.vm.add_memory_page(addr, PAGE_READ | PAGE_WRITE, "\x00" * size)
+        vm.add_memory_page(addr, PAGE_READ | PAGE_WRITE, "\x00" * size)
         return addr
 
 
