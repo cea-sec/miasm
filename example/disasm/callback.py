@@ -1,6 +1,5 @@
 from miasm2.core.bin_stream import bin_stream_str
-from miasm2.core.asmbloc import asm_constraint, asm_label
-from miasm2.expression.expression import ExprId
+from miasm2.core.asmbloc import asm_label, asm_constraint, expr_is_label
 from miasm2.arch.x86.disasm import dis_x86_32, cb_x86_funcs
 
 
@@ -15,17 +14,25 @@ def cb_x86_callpop(cur_bloc, symbol_pool, *args, **kwargs):
     1005: pop
 
     """
+    # Pattern matching
     if len(cur_bloc.lines) < 1:
         return
-    l = cur_bloc.lines[-1]
-    if l.name != 'CALL':
+    ## We want to match a CALL, always the last line of a basic block
+    last_instr = cur_bloc.lines[-1]
+    if last_instr.name != 'CALL':
         return
-    dst = l.args[0]
-    if not (isinstance(dst, ExprId) and isinstance(dst.name, asm_label)):
+    ## The destination must be a label
+    dst = last_instr.args[0]
+    if not expr_is_label(dst):
         return
-    if dst.name.offset != l.offset + l.l:
+    ## The destination must be the next instruction
+    if dst.name.offset != last_instr.offset + last_instr.l:
         return
-    l.name = 'PUSH'
+
+    # Update instruction instance
+    last_instr.name = 'PUSH'
+
+    # Update next blocks to process in the disassembly engine
     cur_bloc.bto.clear()
     cur_bloc.add_cst(dst.name.offset, asm_constraint.c_next, symbol_pool)
 
