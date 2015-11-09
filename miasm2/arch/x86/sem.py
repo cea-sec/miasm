@@ -2799,6 +2799,7 @@ def l_int(ir, instr, a):
         except_int = EXCEPT_INT_XX
     e.append(m2_expr.ExprAff(exception_flags,
                      m2_expr.ExprInt32(except_int)))
+    e.append(m2_expr.ExprAff(interrupt_num, a))
     return e, []
 
 
