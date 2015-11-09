@@ -77,7 +77,7 @@ if args.PE:
 for bloc in blocs:
     print bloc
 graph = asmbloc.bloc2graph(blocs)
-open("graph.txt", "w").write(graph)
+open("graph.dot", "w").write(graph)
 
 # Apply patches
 patches = asmbloc.asm_resolve_final(machine.mn,

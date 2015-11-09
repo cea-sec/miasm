@@ -15,4 +15,4 @@ for bloc in blocs:
     print bloc
 
 graph = bloc2graph(blocs)
-open('graph.txt', 'w').write(graph)
+open('graph.dot', 'w').write(graph)

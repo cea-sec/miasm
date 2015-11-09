@@ -150,7 +150,7 @@ for blocs in all_funcs_blocs.values():
 
 log.info('generate graph file')
 g = bloc2graph(all_blocs, True)
-open('graph_execflow.txt', 'w').write(g)
+open('graph_execflow.dot', 'w').write(g)
 
 log.info('generate intervals')
 
@@ -167,7 +167,7 @@ for i, j in done_interval.intervals:
 
 
 all_lines.sort(key=lambda x: x.offset)
-open('lines.txt', 'w').write('\n'.join([str(l) for l in all_lines]))
+open('lines.dot', 'w').write('\n'.join([str(l) for l in all_lines]))
 log.info('total lines %s' % total_l)
 
 
@@ -200,4 +200,4 @@ if args.gen_ir:
         ir_arch_a.dead_simp()
 
     out = ir_arch_a.graph()
-    open('graph_irflow.txt', 'w').write(out)
+    open('graph_irflow.dot', 'w').write(out)

@@ -23,4 +23,4 @@ for lbl, b in ir_arch.blocs.items():
         print
 ir_arch.gen_graph()
 g = ir_arch.graph()
-open('graph_instr.txt', 'w').write(g)
+open('graph_instr.dot', 'w').write(g)

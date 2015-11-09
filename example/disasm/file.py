@@ -17,4 +17,4 @@ mdis.dont_dis_nulstart_bloc = True
 blocs = mdis.dis_multibloc(addr)
 
 graph = bloc2graph(blocs)
-open('graph.txt', 'w').write(graph)
+open('graph.dot', 'w').write(graph)

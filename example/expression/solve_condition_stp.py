@@ -228,11 +228,11 @@ if __name__ == '__main__':
         rez = " AND ".join(all_csts)
         out.append("QUERY(NOT (%s));" % rez)
         end = "\n".join(out)
-        open('out.txt', 'w').write(end)
+        open('out.dot', 'w').write(end)
         try:
             cases = subprocess.check_output(["/home/serpilliere/tools/stp/stp",
                                              "-p",
-                                             "out.txt"])
+                                             "out.dot"])
         except OSError:
             print "ERF, cannot find stp"
             break
