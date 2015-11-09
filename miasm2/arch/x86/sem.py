@@ -2495,6 +2495,9 @@ def hlt(ir, instr):
 def rdtsc(ir, instr):
     e = []
     e.append(m2_expr.ExprAff(tsc1, tsc1 + m2_expr.ExprInt32(1)))
+    e.append(m2_expr.ExprAff(tsc2, tsc2 + ExprCond(tsc1 - tsc1.mask,
+                                                   ExprInt32(0),
+                                                   ExprInt32(1))))
     e.append(m2_expr.ExprAff(mRAX[32], tsc1))
     e.append(m2_expr.ExprAff(mRDX[32], tsc2))
     return e, []
