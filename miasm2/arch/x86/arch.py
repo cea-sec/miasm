@@ -1041,8 +1041,10 @@ class x86_imm(imm_noarg):
         return swap_uint(self.l, v)
 
 
-class x86_imm_fix(imm_noarg):
+class x86_imm_fix_08(imm_noarg):
     parser = base_expr
+    intsize = 8
+    intmask = (1 << intsize) - 1
 
     def decodeval(self, v):
         return self.ival
@@ -2980,7 +2982,7 @@ u16 = bs(l=16, cls=(x86_16, m_arg))
 u32 = bs(l=32, cls=(x86_32, m_arg))
 s3264 = bs(l=32, cls=(x86_s32to64, m_arg))
 
-u08_3 = bs(l=0, cls=(x86_imm_fix, m_arg), ival = 3)
+u08_3 = bs(l=0, cls=(x86_imm_fix_08, m_arg), ival = 3)
 
 d0 = bs("000", fname='reg')
 d1 = bs("001", fname='reg')
