@@ -120,7 +120,7 @@ ab = mdis.dis_multibloc(ad)
 
 print "generating graph"
 g = bloc2graph(ab, True)
-open('asm_flow.txt', 'w').write(g)
+open('asm_flow.dot', 'w').write(g)
 
 
 print "generating IR... %x" % ad
@@ -140,7 +140,7 @@ for irb in ir_arch.blocs.values():
 
 ir_arch.gen_graph()
 out = ir_arch.graph()
-open(os.path.join(tempfile.gettempdir(), 'graph.txt'), 'wb').write(out)
+open(os.path.join(tempfile.gettempdir(), 'graph.dot'), 'wb').write(out)
 
 
 # ir_arch.dead_simp()
@@ -230,7 +230,7 @@ def gen_bloc_data_flow_graph(ir_arch, in_str, ad):  # arch, attrib, pool_bin, bl
         if n in ir_arch.arch.regs.all_regs_ids:
             print node
 
-    open('data.txt', 'w').write(flow_graph.dot())
+    open('data.dot', 'w').write(flow_graph.dot())
     return flow_graph
 
 
@@ -286,7 +286,7 @@ class GraphMiasmIRFlow(GraphViewer):
 #def node2str(self, n):
 #    return "%s, %s\\l%s" % n
 #flow_graph.node2str = lambda n: node2str(flow_graph, n)
-#open('data_flow.txt', 'w').write(flow_graph.dot())
+#open('data_flow.dot', 'w').write(flow_graph.dot())
 
 # h =  GraphMiasmIRFlow(flow_graph, "Miasm IRFlow graph", None)
 # h.Show()

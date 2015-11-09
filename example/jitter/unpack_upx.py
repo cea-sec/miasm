@@ -40,7 +40,7 @@ parser.add_argument("filename", help="PE Filename")
 parser.add_argument('-v', "--verbose",
                     help="verbose mode", action="store_true")
 parser.add_argument("--graph",
-                    help="Export the CFG graph in graph.txt",
+                    help="Export the CFG graph in graph.dot",
                     action="store_true")
 options = parser.parse_args()
 sb = Sandbox_Win_x86_32(options.filename, options, globals())
@@ -72,7 +72,7 @@ logging.info(end_label)
 # Export CFG graph (dot format)
 if options.graph is True:
     g = asmbloc.bloc2graph(ab)
-    open("graph.txt", "w").write(g)
+    open("graph.dot", "w").write(g)
 
 
 if options.verbose is True:

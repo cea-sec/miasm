@@ -139,7 +139,7 @@ def gen_bloc_data_flow_graph(ir_arch, ad, block_flow_cb):
 
     # from graph_qt import graph_qt
     # graph_qt(flow_graph)
-    open('data.txt', 'w').write(flow_graph.dot())
+    open('data.dot', 'w').write(flow_graph.dot())
 
 
 data = open(args.filename).read()
@@ -175,8 +175,8 @@ gen_bloc_data_flow_graph(ir_arch, ad, block_flow_cb)
 print '*' * 40
 print """
  View with:
-dotty dataflow.txt
+dotty dataflow.dot
  or
  Generate ps with pdf:
-dot -Tps dataflow_xx.txt -o graph.ps
+dot -Tps dataflow_xx.dot -o graph.ps
 """
