@@ -69,7 +69,7 @@ class SemanticTestAsm(RegressionTest):
                              input_filename,
                              output_filename,
                              self.container_dct.get(container, '')]
-        self.products = [output_filename, "graph.txt"]
+        self.products = [output_filename, "graph.dot"]
 
 
 class SemanticTestExec(RegressionTest):
@@ -190,8 +190,8 @@ testset += ExampleAssembler(["simple.py"])
 class ExampleShellcode(ExampleAssembler):
     """Specificities:
     - script: asm/shellcode.py
-    - @products: graph.txt + 3rd arg
-    - apply get_sample on each products (!= graph.txt)
+    - @products: graph.dot + 3rd arg
+    - apply get_sample on each products (!= graph.dot)
     - apply get_sample on the 2nd and 3rd arg (source, output)
     """
 
@@ -201,7 +201,7 @@ class ExampleShellcode(ExampleAssembler):
                              self.command_line[0]] + \
                              map(Example.get_sample, self.command_line[1:3]) + \
                              self.command_line[3:]
-        self.products = [self.command_line[3], "graph.txt"]
+        self.products = [self.command_line[3], "graph.dot"]
 
 testset += ExampleShellcode(['x86_32', 'x86_32_manip_ptr.S', "demo_x86_32.bin"])
 
@@ -251,11 +251,11 @@ class ExampleDisassembler(Example):
 
 for script, prods in [(["single_instr.py"], []),
                       (["callback.py"], []),
-                      (["function.py"], ["graph.txt"]),
+                      (["function.py"], ["graph.dot"]),
                       (["file.py", Example.get_sample("box_upx.exe"),
-                        "0x407570"], ["graph.txt"]),
+                        "0x407570"], ["graph.dot"]),
                       (["full.py", Example.get_sample("box_upx.exe")],
-                       ["graph_execflow.txt", "lines.txt"]),
+                       ["graph_execflow.dot", "lines.dot"]),
                       ]:
     testset += ExampleDisassembler(script, products=prods)
 
@@ -264,13 +264,13 @@ class ExampleDisasmFull(ExampleDisassembler):
     """DisasmFull specificities:
     - script: disasm/full.py
     - flags: -g -s
-    - @products: graph_execflow.txt, graph_irflow.txt, lines.txt, out.txt
+    - @products: graph_execflow.dot, graph_irflow.dot, lines.dot, out.dot
     """
 
     def __init__(self, *args, **kwargs):
         super(ExampleDisasmFull, self).__init__(*args, **kwargs)
         self.command_line = ["full.py", "-g", "-s", "-m"] + self.command_line
-        self.products += ["graph_execflow.txt", "graph_irflow.txt", "lines.txt"]
+        self.products += ["graph_execflow.dot", "graph_irflow.dot", "lines.dot"]
 
 
 testset += ExampleDisasmFull(["arml", Example.get_sample("demo_arm_l.bin"),
@@ -315,14 +315,14 @@ for args in [[], ["--symb"]]:
     testset += ExampleExpression(["graph_dataflow.py",
                                   Example.get_sample("sc_connect_back.bin"),
                                   "0x2e"] + args,
-                                 products=["data.txt"])
+                                 products=["data.dot"])
 testset += ExampleExpression(["asm_to_ir.py"],
-                             products=["graph.txt", "graph2.txt"])
+                             products=["graph.dot", "graph2.dot"])
 testset += ExampleExpression(["get_read_write.py"],
-                             products=["graph_instr.txt"])
+                             products=["graph_instr.dot"])
 testset += ExampleExpression(["solve_condition_stp.py",
                               Example.get_sample("simple_test.bin")],
-                             products=["graph_instr.txt", "out.txt"])
+                             products=["graph_instr.dot", "out.dot"])
 
 for script in [["basic_op.py"],
                ["basic_simplification.py"],
