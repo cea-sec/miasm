@@ -73,11 +73,8 @@ def update_flag_pf(a):
                                            a & m2_expr.ExprInt_from(a, 0xFF)))]
 
 
-def update_flag_af(a):
-    return [m2_expr.ExprAff(af,
-                            m2_expr.ExprCond((a & m2_expr.ExprInt_from(a,0x10)),
-                                             m2_expr.ExprInt_from(af, 1),
-                                             m2_expr.ExprInt_from(af, 0)))]
+def update_flag_af(expr):
+    return [m2_expr.ExprAff(af, expr[4:5])]
 
 
 def update_flag_znp(a):
