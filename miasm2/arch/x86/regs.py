@@ -6,6 +6,7 @@ IP = ExprId('IP', 16)
 EIP = ExprId('EIP', 32)
 RIP = ExprId('RIP', 64)
 exception_flags = ExprId('exception_flags', 32)
+interrupt_num = ExprId('interrupt_num', 8)
 
 # GP
 
@@ -399,7 +400,7 @@ all_regs_ids = [
     XMM8, XMM9, XMM10, XMM11, XMM12, XMM13, XMM14, XMM15,
 
 
-    exception_flags,
+    exception_flags, interrupt_num,
 ] + fltregs32_expr
 
 all_regs_ids_no_alias = [
@@ -421,7 +422,7 @@ all_regs_ids_no_alias = [
     XMM8, XMM9, XMM10, XMM11, XMM12, XMM13, XMM14, XMM15,
 
 
-    exception_flags,
+    exception_flags, interrupt_num,
 ] + fltregs32_expr
 
 all_regs_ids_byname = dict([(x.name, x) for x in all_regs_ids])

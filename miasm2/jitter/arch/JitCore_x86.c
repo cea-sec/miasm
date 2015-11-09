@@ -197,9 +197,25 @@ PyObject* cpu_get_exception(JitCpu* self, PyObject* args)
 	return PyLong_FromUnsignedLongLong((uint64_t)(((vm_cpu_t*)self->cpu)->exception_flags));
 }
 
+PyObject* cpu_set_interrupt_num(JitCpu* self, PyObject* args)
+{
+	PyObject *item1;
+	uint64_t i;
 
+	if (!PyArg_ParseTuple(args, "O", &item1))
+		return NULL;
 
+	PyGetInt(item1, i);
 
+	((vm_cpu_t*)self->cpu)->interrupt_num = i;
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
+PyObject* cpu_get_interrupt_num(JitCpu* self, PyObject* args)
+{
+	return PyLong_FromUnsignedLongLong((uint64_t)(((vm_cpu_t*)self->cpu)->interrupt_num));
+}
 
 PyObject* cpu_set_segm_base(JitCpu* self, PyObject* args)
 {
@@ -348,6 +364,10 @@ static PyMethodDef JitCpu_methods[] = {
 	{"set_mem", (PyCFunction)vm_set_mem, METH_VARARGS,
 	 "X"},
 	{"get_mem", (PyCFunction)vm_get_mem, METH_VARARGS,
+	 "X"},
+	{"get_interrupt_num", (PyCFunction)cpu_get_interrupt_num, METH_VARARGS,
+	 "X"},
+	{"set_interrupt_num", (PyCFunction)cpu_set_interrupt_num, METH_VARARGS,
 	 "X"},
 	{NULL}  /* Sentinel */
 };
