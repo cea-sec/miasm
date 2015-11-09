@@ -13,16 +13,24 @@ if filename and os.path.isfile(filename):
 # User defined methods
 
 def kernel32_GetProcAddress(jitter):
+    """Hook on GetProcAddress to note where UPX stores import pointers"""
     ret_ad, args = jitter.func_args_stdcall(["libbase", "fname"])
 
+    # When the function is called, EBX is a pointer to the destination buffer
     dst_ad = jitter.cpu.EBX
     logging.info('EBX ' + hex(dst_ad))
 
+    # Handle ordinal imports
     fname = (args.fname if args.fname < 0x10000
              else jitter.get_str_ansi(args.fname))
     logging.info(fname)
 
+    # Get the generated address of the library, and store it in memory to dst_ad
     ad = sb.libs.lib_get_add_func(args.libbase, fname, dst_ad)
+    # Add a breakpoint in case of a call on the resolved function
+    # NOTE: never happens in UPX, just for skeleton
+    jitter.handle_function(ad)
+
     jitter.func_ret_stdcall(ret_ad, ad)
 
 
@@ -46,13 +54,10 @@ else:
 if options.verbose is True:
     print sb.jitter.vm
 
-
-ep = sb.entry_point
-
 # Ensure there is one and only one leave (for OEP discovering)
 mdis = sb.machine.dis_engine(sb.jitter.bs)
 mdis.dont_dis_nulstart_bloc = True
-ab = mdis.dis_multibloc(ep)
+ab = mdis.dis_multibloc(sb.entry_point)
 
 bb = asmbloc.basicblocs(ab)
 leaves = bb.get_bad_dst()
@@ -92,6 +97,8 @@ sb.jitter.add_breakpoint(end_label, update_binary)
 sb.run()
 
 # Rebuild PE
+# Alternative solution: miasm2.jitter.loader.pe.vm2pe(sb.jitter, out_fname,
+# libs=sb.libs, e_orig=sb.pe)
 new_dll = []
 
 sb.pe.SHList.align_sections(0x1000, 0x1000)
@@ -111,7 +118,6 @@ sb.pe.DirImport.set_rva(s_myimp.addr)
 # XXXX TODO
 sb.pe.NThdr.optentries[pe.DIRECTORY_ENTRY_DELAY_IMPORT].rva = 0
 
-sb.pe.Opthdr.AddressOfEntryPoint = sb.pe.virt2rva(end_label)
 bname, fname = os.path.split(options.filename)
 fname = os.path.join(bname, fname.replace('.', '_'))
 open(fname + '_unupx.bin', 'w').write(str(sb.pe))
