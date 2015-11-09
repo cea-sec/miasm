@@ -1,41 +1,13 @@
-from miasm2.core.asmbloc import asm_constraint, asm_label, disasmEngine
-from miasm2.expression.expression import ExprId
+from miasm2.core.asmbloc import disasmEngine
 from miasm2.arch.x86.arch import mn_x86
 
 
-def cb_x86_callpop(mn, attrib, pool_bin, cur_bloc, offsets_to_dis, symbol_pool):
-    """
-    1000: call 1005
-    1005: pop
-
-    Will give:
-
-    1000: push 1005
-    1005: pop
-
-    """
-
-    if len(cur_bloc.lines) < 1:
-        return
-    l = cur_bloc.lines[-1]
-    if l.name != 'CALL':
-        return
-    dst = l.args[0]
-    if not (isinstance(dst, ExprId) and isinstance(dst.name, asm_label)):
-        return
-    if dst.name.offset != l.offset + l.l:
-        return
-    l.name = 'PUSH'
-    cur_bloc.bto = set()
-    cur_bloc.add_cst(dst.name.offset, asm_constraint.c_next, symbol_pool)
+cb_x86_funcs = []
 
 
-cb_x86_funcs = [cb_x86_callpop]
-
-
-def cb_x86_disasm(mn, attrib, pool_bin, cur_bloc, offsets_to_dis, symbol_pool):
+def cb_x86_disasm(*args, **kwargs):
     for func in cb_x86_funcs:
-        func(mn, attrib, pool_bin, cur_bloc, offsets_to_dis, symbol_pool)
+        func(*args, **kwargs)
 
 
 class dis_x86(disasmEngine):

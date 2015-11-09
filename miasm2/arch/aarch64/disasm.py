@@ -4,9 +4,9 @@ from miasm2.arch.aarch64.arch import mn_aarch64
 cb_aarch64_funcs = []
 
 
-def cb_aarch64_disasm(mn, attrib, pool_bin, cur_bloc, offsets_to_dis, symbol_pool):
+def cb_aarch64_disasm(*args, **kwargs):
     for func in cb_aarch64_funcs:
-        func(mn, attrib, pool_bin, cur_bloc, offsets_to_dis, symbol_pool)
+        func(*args, **kwargs)
 
 
 class dis_aarch64b(disasmEngine):
