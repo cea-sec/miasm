@@ -68,7 +68,7 @@ class TranslatorC(Translator):
                   expr.op.startswith("access_")    or
                   expr.op.startswith("load_")      or
                   expr.op in ["-", "ftan", "frndint", "f2xm1",
-                              "fsin", "fsqrt", "fabs", "fcos"]):
+                              "fsin", "fsqrt", "fabs", "fcos", "fchs"]):
                 return "%s(%s)" % (expr.op, self.from_expr(expr.args[0]))
             else:
                 raise NotImplementedError('Unknown op: %r' % expr.op)

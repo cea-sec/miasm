@@ -1243,6 +1243,16 @@ double fabs(double a)
 	return b;
 }
 
+double fchs(double a)
+{
+	double b;
+	b = -a;
+#ifdef DEBUG_MIASM_DOUBLE
+	dump_float();
+	printf(" - %e -> %e\n", a, b);
+#endif
+	return b;
+}
 
 
 unsigned int fcom_c0(double a, double b)
