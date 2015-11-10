@@ -1276,6 +1276,17 @@ double fyl2x(double a, double b)
 	return c;
 }
 
+double fpatan(double a, double b)
+{
+	double c;
+	c = atan2(b, a);
+#ifdef DEBUG_MIASM_DOUBLE
+	dump_float();
+	printf("arctan(%e / %e) -> %e\n", b, a, c);
+#endif
+	return c;
+}
+
 unsigned int fcom_c0(double a, double b)
 {
 	if (a>=b)

@@ -373,6 +373,7 @@ double fabs(double a);
 double fprem(double a, double b);
 double fchs(double a);
 double fyl2x(double a, double b);
+double fpatan(double a, double b);
 unsigned int fcom_c0(double a, double b);
 unsigned int fcom_c1(double a, double b);
 unsigned int fcom_c2(double a, double b);
