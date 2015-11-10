@@ -267,7 +267,7 @@ def create_modules_chain(myjit, modules_name):
     return modules_info
 
 
-def fix_InLoadOrderModuleList(myjit, module_info):
+def fix_InLoadOrderModuleList(myjit, modules_info):
     log.debug("Fix InLoadOrderModuleList")
     # first binary is PE
     # last is dumm_e
@@ -285,11 +285,11 @@ def fix_InLoadOrderModuleList(myjit, module_info):
             fname = fname[fname.rfind("/") + 1:]
         bname_str = fname
         bname = '\x00'.join(bname_str) + '\x00'
-        if not bname.lower() in module_info:
+        if not bname.lower() in modules_info:
             log.warn('Module not found, ldr data will be unconsistant')
             continue
 
-        addr, e = module_info[bname.lower()]
+        addr, e = modules_info[bname.lower()]
         log.debug(bname_str)
         if e == main_pe:
             m_e = (e, bname, addr)
@@ -312,7 +312,7 @@ def fix_InLoadOrderModuleList(myjit, module_info):
         myjit.vm.set_mem(addr + 0, pck32(n_addr) + pck32(p_addr))
 
 
-def fix_InMemoryOrderModuleList(myjit, module_info):
+def fix_InMemoryOrderModuleList(myjit, modules_info):
     log.debug("Fix InMemoryOrderModuleList")
     # first binary is PE
     # last is dumm_e
@@ -330,10 +330,10 @@ def fix_InMemoryOrderModuleList(myjit, module_info):
             fname = fname[fname.rfind("/") + 1:]
         bname_str = fname
         bname = '\x00'.join(bname_str) + '\x00'
-        if not bname.lower() in module_info:
+        if not bname.lower() in modules_info:
             log.warn('Module not found, ldr data will be unconsistant')
             continue
-        addr, e = module_info[bname.lower()]
+        addr, e = modules_info[bname.lower()]
         log.debug(bname_str)
         if e == main_pe:
             m_e = (e, bname, addr)
@@ -358,13 +358,13 @@ def fix_InMemoryOrderModuleList(myjit, module_info):
             addr + 0x8, pck32(n_addr + 0x8) + pck32(p_addr + 0x8))
 
 
-def fix_InInitializationOrderModuleList(myjit, module_info):
+def fix_InInitializationOrderModuleList(myjit, modules_info):
     # first binary is ntdll
     # second binary is kernel32
     olist = []
     ntdll_e = None
     kernel_e = None
-    for bname, (addr, e) in module_info.items():
+    for bname, (addr, e) in modules_info.items():
         if bname[::2].lower() == "ntdll.dll":
             ntdll_e = (e, bname, addr)
             continue
@@ -426,12 +426,12 @@ def init_seh(myjit):
     build_teb(myjit, FS_0_AD)
     build_peb(myjit, peb_address)
 
-    module_info = create_modules_chain(myjit, loaded_modules)
-    fix_InLoadOrderModuleList(myjit, module_info)
-    fix_InMemoryOrderModuleList(myjit, module_info)
-    fix_InInitializationOrderModuleList(myjit, module_info)
+    modules_info = create_modules_chain(myjit, loaded_modules)
+    fix_InLoadOrderModuleList(myjit, modules_info)
+    fix_InMemoryOrderModuleList(myjit, modules_info)
+    fix_InInitializationOrderModuleList(myjit, modules_info)
 
-    build_ldr_data(myjit, module_info)
+    build_ldr_data(myjit, modules_info)
     add_process_env(myjit)
     add_process_parameters(myjit)
 
