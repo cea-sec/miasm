@@ -1358,6 +1358,13 @@ unsigned int fxam_c0(double a)
 	}
 }
 
+unsigned int fxam_c1(double a)
+{
+	if ((a < 0) || isnan(a))
+		return 1;
+	return 0;
+}
+
 unsigned int fxam_c2(double a)
 {
 	switch(fpclassify(a)) {

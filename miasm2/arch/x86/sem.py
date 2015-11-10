@@ -1800,6 +1800,7 @@ def fxam(ir, instr):
 
     e = []
     e.append(m2_expr.ExprAff(float_c0, m2_expr.ExprOp('fxam_c0', a)))
+    e.append(m2_expr.ExprAff(float_c1, m2_expr.ExprOp('fxam_c1', a)))
     e.append(m2_expr.ExprAff(float_c2, m2_expr.ExprOp('fxam_c2', a)))
     e.append(m2_expr.ExprAff(float_c3, m2_expr.ExprOp('fxam_c3', a)))
 
