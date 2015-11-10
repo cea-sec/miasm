@@ -87,7 +87,7 @@ main_pe_name = "c:\\xxx\\toto.exe"
 MAX_SEH = 5
 
 
-def build_teb(myjit, teb_address):
+def build_teb(jitter, teb_address):
     """
     Build TEB informations using following structure:
 
@@ -99,7 +99,7 @@ def build_teb(myjit, teb_address):
     +0x030 ProcessEnvironmentBlock   : Ptr32 _PEB
     +0x034 LastErrorValue            : Uint4B
     ...
-    @myjit: jitter instance
+    @jitter: jitter instance
     @teb_address: the TEB address
     """
 
@@ -112,10 +112,10 @@ def build_teb(myjit, teb_address):
     o += pck32(peb_address)
     o += pck32(0x11223344)
 
-    myjit.vm.add_memory_page(teb_address, PAGE_READ | PAGE_WRITE, o)
+    jitter.vm.add_memory_page(teb_address, PAGE_READ | PAGE_WRITE, o)
 
 
-def build_peb(myjit, peb_address):
+def build_peb(jitter, peb_address):
     """
     Build PEB informations using following structure:
 
@@ -128,7 +128,7 @@ def build_peb(myjit, peb_address):
     +0x00c Ldr                      : Ptr32 _PEB_LDR_DATA
     +0x010 processparameter
 
-    @myjit: jitter instance
+    @jitter: jitter instance
     @peb_address: the PEB address
     """
 
@@ -140,10 +140,10 @@ def build_peb(myjit, peb_address):
         offset += 4
     o += pck32(peb_ldr_data_address)
     o += pck32(process_parameters_address)
-    myjit.vm.add_memory_page(offset, PAGE_READ | PAGE_WRITE, o)
+    jitter.vm.add_memory_page(offset, PAGE_READ | PAGE_WRITE, o)
 
 
-def build_ldr_data(myjit, modules_info):
+def build_ldr_data(jitter, modules_info):
     """
     Build Loader informations using following structure:
 
@@ -154,7 +154,7 @@ def build_ldr_data(myjit, modules_info):
     +0x014 InMemoryOrderModuleList         : _LIST_ENTRY
     +0x01C InInitializationOrderModuleList         : _LIST_ENTRY
 
-    @myjit: myjit instance
+    @jitter: jitter instance
     @modules_info: LoadedModules instance
 
     """
@@ -180,7 +180,7 @@ def build_ldr_data(myjit, modules_info):
         data += pck32(ntdll_addr_entry + 0x10) + pck32(0)  # XXX TODO fix prev
 
     if data:
-        myjit.vm.add_memory_page(offset, PAGE_READ | PAGE_WRITE, data)
+        jitter.vm.add_memory_page(offset, PAGE_READ | PAGE_WRITE, data)
 
 
 class LoadedModules(object):
@@ -210,7 +210,7 @@ class LoadedModules(object):
         return "\n".join(out)
 
 
-def create_modules_chain(myjit, modules_name):
+def create_modules_chain(jitter, modules_name):
     """
     Create the modules entries. Those modules are not linked in this function.
 
@@ -234,7 +234,7 @@ def create_modules_chain(myjit, modules_name):
     +0x048 EntryPointActivationContext : Ptr32 Void
     +0x04c PatchInformation : Ptr32 Void
 
-    @myjit: jitter instance
+    @jitter: jitter instance
     @modules_name: a list of modules names
     """
 
@@ -289,18 +289,18 @@ def create_modules_chain(myjit, modules_name):
         m_o += pck32(addr + offset_path)
         m_o += struct.pack('HH', len(bname), len(bname) + 2)
         m_o += pck32(addr + offset_name)
-        myjit.vm.add_memory_page(addr, PAGE_READ | PAGE_WRITE, m_o)
+        jitter.vm.add_memory_page(addr, PAGE_READ | PAGE_WRITE, m_o)
 
         m_o = ""
         m_o += bname
         m_o += "\x00" * 3
-        myjit.vm.add_memory_page(
+        jitter.vm.add_memory_page(
             addr + offset_name, PAGE_READ | PAGE_WRITE, m_o)
 
         m_o = ""
         m_o += "\x00".join(bpath) + "\x00"
         m_o += "\x00" * 3
-        myjit.vm.add_memory_page(
+        jitter.vm.add_memory_page(
             addr + offset_path, PAGE_READ | PAGE_WRITE, m_o)
 
     return modules_info
@@ -414,34 +414,34 @@ def fix_InInitializationOrderModuleList(jitter, modules_info):
                            pck32(prev_module_entry + 0x10)))
 
 
-def add_process_env(myjit):
+def add_process_env(jitter):
     """
     Build a process environement structure
-    @myjit: jitter instance
+    @jitter: jitter instance
     """
 
     env_str = 'ALLUSEESPROFILE=C:\\Documents and Settings\\All Users\x00'
     env_str = '\x00'.join(env_str)
     env_str += "\x00" * 0x10
-    myjit.vm.add_memory_page(process_environment_address,
-                             PAGE_READ | PAGE_WRITE,
-                             env_str)
-    myjit.vm.set_mem(process_environment_address, env_str)
+    jitter.vm.add_memory_page(process_environment_address,
+                              PAGE_READ | PAGE_WRITE,
+                              env_str)
+    jitter.vm.set_mem(process_environment_address, env_str)
 
 
-def add_process_parameters(myjit):
+def add_process_parameters(jitter):
     """
     Build a process parameters structure
-    @myjit: jitter instance
+    @jitter: jitter instance
     """
 
     o = ""
     o += pck32(0x1000)  # size
     o += "E" * (0x48 - len(o))
     o += pck32(process_environment_address)
-    myjit.vm.add_memory_page(process_parameters_address,
-                             PAGE_READ | PAGE_WRITE,
-                             o)
+    jitter.vm.add_memory_page(process_parameters_address,
+                              PAGE_READ | PAGE_WRITE,
+                              o)
 
 
 all_seh_ad = dict([(x, None)
@@ -450,44 +450,44 @@ all_seh_ad = dict([(x, None)
 seh_count = 0
 
 
-def init_seh(myjit):
+def init_seh(jitter):
     """
     Build the modules entries and create double links
-    @myjit: jitter instance
+    @jitter: jitter instance
     """
 
     global seh_count
     seh_count = 0
-    build_teb(myjit, FS_0_AD)
-    build_peb(myjit, peb_address)
+    build_teb(jitter, FS_0_AD)
+    build_peb(jitter, peb_address)
 
-    modules_info = create_modules_chain(myjit, loaded_modules)
-    fix_InLoadOrderModuleList(myjit, modules_info)
-    fix_InMemoryOrderModuleList(myjit, modules_info)
-    fix_InInitializationOrderModuleList(myjit, modules_info)
+    modules_info = create_modules_chain(jitter, loaded_modules)
+    fix_InLoadOrderModuleList(jitter, modules_info)
+    fix_InMemoryOrderModuleList(jitter, modules_info)
+    fix_InInitializationOrderModuleList(jitter, modules_info)
 
-    build_ldr_data(myjit, modules_info)
-    add_process_env(myjit)
-    add_process_parameters(myjit)
+    build_ldr_data(jitter, modules_info)
+    add_process_env(jitter)
+    add_process_parameters(jitter)
 
-    myjit.vm.add_memory_page(default_seh, PAGE_READ | PAGE_WRITE, pck32(
+    jitter.vm.add_memory_page(default_seh, PAGE_READ | PAGE_WRITE, pck32(
         0xffffffff) + pck32(0x41414141) + pck32(0x42424242))
 
-    myjit.vm.add_memory_page(
+    jitter.vm.add_memory_page(
         context_address, PAGE_READ | PAGE_WRITE, '\x00' * 0x2cc)
-    myjit.vm.add_memory_page(
+    jitter.vm.add_memory_page(
         exception_record_address, PAGE_READ | PAGE_WRITE, '\x00' * 200)
 
-    myjit.vm.add_memory_page(
+    jitter.vm.add_memory_page(
         FAKE_SEH_B_AD, PAGE_READ | PAGE_WRITE, 0x10000 * "\x00")
 
 # http://www.codeproject.com/KB/system/inject2exe.aspx#RestorethefirstRegistersContext5_1
 
 
-def regs2ctxt(myjit):
+def regs2ctxt(jitter):
     """
     Build x86_32 cpu context for exception handling
-    @myjit: jitload instance
+    @jitter: jitload instance
     """
 
     ctxt = []
@@ -498,30 +498,30 @@ def regs2ctxt(myjit):
     # Float context
     ctxt += ['\x00' * 112]
     # Segment selectors
-    ctxt += [pck32(reg) for reg in (myjit.cpu.GS, myjit.cpu.FS,
-                                    myjit.cpu.ES, myjit.cpu.DS)]
+    ctxt += [pck32(reg) for reg in (jitter.cpu.GS, jitter.cpu.FS,
+                                    jitter.cpu.ES, jitter.cpu.DS)]
     # Gpregs
-    ctxt += [pck32(reg) for reg in (myjit.cpu.EDI, myjit.cpu.ESI,
-                                    myjit.cpu.EBX, myjit.cpu.EDX,
-                                    myjit.cpu.ECX, myjit.cpu.EAX,
-                                    myjit.cpu.EBP, myjit.cpu.EIP)]
+    ctxt += [pck32(reg) for reg in (jitter.cpu.EDI, jitter.cpu.ESI,
+                                    jitter.cpu.EBX, jitter.cpu.EDX,
+                                    jitter.cpu.ECX, jitter.cpu.EAX,
+                                    jitter.cpu.EBP, jitter.cpu.EIP)]
     # CS
-    ctxt += [pck32(myjit.cpu.CS)]
+    ctxt += [pck32(jitter.cpu.CS)]
     # Eflags
     # XXX TODO real eflag
     ctxt += [pck32(0x0)]
     # ESP
-    ctxt += [pck32(myjit.cpu.ESP)]
+    ctxt += [pck32(jitter.cpu.ESP)]
     # SS
-    ctxt += [pck32(myjit.cpu.SS)]
+    ctxt += [pck32(jitter.cpu.SS)]
     return "".join(ctxt)
 
 
-def ctxt2regs(ctxt, myjit):
+def ctxt2regs(ctxt, jitter):
     """
     Restore x86_32 registers from an exception context
     @ctxt: the serialized context
-    @myjit: jitload instance
+    @jitter: jitload instance
     """
 
     ctxt = ctxt[:]
@@ -532,74 +532,74 @@ def ctxt2regs(ctxt, myjit):
     # Float context XXX TODO
     ctxt = ctxt[112:]
     # gs
-    myjit.cpu.GS = upck32(ctxt[:4])
+    jitter.cpu.GS = upck32(ctxt[:4])
     ctxt = ctxt[4:]
     # fs
-    myjit.cpu.FS = upck32(ctxt[:4])
+    jitter.cpu.FS = upck32(ctxt[:4])
     ctxt = ctxt[4:]
     # es
-    myjit.cpu.ES = upck32(ctxt[:4])
+    jitter.cpu.ES = upck32(ctxt[:4])
     ctxt = ctxt[4:]
     # ds
-    myjit.cpu.DS = upck32(ctxt[:4])
+    jitter.cpu.DS = upck32(ctxt[:4])
     ctxt = ctxt[4:]
 
     # Gpregs
-    myjit.cpu.EDI = upck32(ctxt[:4])
+    jitter.cpu.EDI = upck32(ctxt[:4])
     ctxt = ctxt[4:]
-    myjit.cpu.ESI = upck32(ctxt[:4])
+    jitter.cpu.ESI = upck32(ctxt[:4])
     ctxt = ctxt[4:]
-    myjit.cpu.EBX = upck32(ctxt[:4])
+    jitter.cpu.EBX = upck32(ctxt[:4])
     ctxt = ctxt[4:]
-    myjit.cpu.EDX = upck32(ctxt[:4])
+    jitter.cpu.EDX = upck32(ctxt[:4])
     ctxt = ctxt[4:]
-    myjit.cpu.ECX = upck32(ctxt[:4])
+    jitter.cpu.ECX = upck32(ctxt[:4])
     ctxt = ctxt[4:]
-    myjit.cpu.EAX = upck32(ctxt[:4])
+    jitter.cpu.EAX = upck32(ctxt[:4])
     ctxt = ctxt[4:]
-    myjit.cpu.EBP = upck32(ctxt[:4])
+    jitter.cpu.EBP = upck32(ctxt[:4])
     ctxt = ctxt[4:]
-    myjit.cpu.EIP = upck32(ctxt[:4])
+    jitter.cpu.EIP = upck32(ctxt[:4])
     ctxt = ctxt[4:]
 
     # CS
-    myjit.cpu.CS = upck32(ctxt[:4])
+    jitter.cpu.CS = upck32(ctxt[:4])
     ctxt = ctxt[4:]
     # Eflag XXX TODO
     ctxt = ctxt[4:]
     # ESP
-    myjit.cpu.ESP = upck32(ctxt[:4])
+    jitter.cpu.ESP = upck32(ctxt[:4])
     ctxt = ctxt[4:]
 
 
-def fake_seh_handler(myjit, except_code):
+def fake_seh_handler(jitter, except_code):
     """
     Create an exception context
-    @myjit: jitter instance
+    @jitter: jitter instance
     @except_code: x86 exception code
     """
 
     global seh_count, context_address
-    regs = myjit.cpu.get_gpreg()
-    log.warning('Exception at %x %r', myjit.cpu.EIP, seh_count)
+    regs = jitter.cpu.get_gpreg()
+    log.warning('Exception at %x %r', jitter.cpu.EIP, seh_count)
     seh_count += 1
 
     # Help lambda
     p = lambda s: struct.pack('I', s)
 
     # Forge a CONTEXT
-    ctxt = regs2ctxt(myjit)
+    ctxt = regs2ctxt(jitter)
 
     # Get current seh (fs:[0])
-    seh_ptr = upck32(myjit.vm.get_mem(tib_address, 4))
+    seh_ptr = upck32(jitter.vm.get_mem(tib_address, 4))
 
     # Retrieve seh fields
     old_seh, eh, safe_place = struct.unpack(
-        'III', myjit.vm.get_mem(seh_ptr, 0xc))
+        'III', jitter.vm.get_mem(seh_ptr, 0xc))
 
     # Get space on stack for exception handling
-    myjit.cpu.ESP -= 0x3c8
-    exception_base_address = myjit.cpu.ESP
+    jitter.cpu.ESP -= 0x3c8
+    exception_base_address = jitter.cpu.ESP
     exception_record_address = exception_base_address + 0xe8
     context_address = exception_base_address + 0xfc
     fake_seh_address = exception_base_address + 0x14
@@ -608,7 +608,7 @@ def fake_seh_handler(myjit, except_code):
              seh_ptr, old_seh, eh, safe_place, context_address)
 
     # Write context
-    myjit.vm.set_mem(context_address, ctxt)
+    jitter.vm.set_mem(context_address, ctxt)
 
     # Write exception_record
 
@@ -625,51 +625,51 @@ def fake_seh_handler(myjit, except_code):
     } EXCEPTION_RECORD, *PEXCEPTION_RECORD;
     """
 
-    myjit.vm.set_mem(exception_record_address,
-                     pck32(except_code) + pck32(0) + pck32(0) +
-                     pck32(myjit.cpu.EIP) + pck32(0))
+    jitter.vm.set_mem(exception_record_address,
+                      pck32(except_code) + pck32(0) + pck32(0) +
+                      pck32(jitter.cpu.EIP) + pck32(0))
 
     # Prepare the stack
-    myjit.push_uint32_t(context_address)               # Context
-    myjit.push_uint32_t(seh_ptr)                       # SEH
-    myjit.push_uint32_t(exception_record_address)      # ExceptRecords
-    myjit.push_uint32_t(return_from_exception)         # Ret address
+    jitter.push_uint32_t(context_address)               # Context
+    jitter.push_uint32_t(seh_ptr)                       # SEH
+    jitter.push_uint32_t(exception_record_address)      # ExceptRecords
+    jitter.push_uint32_t(return_from_exception)         # Ret address
 
     # Set fake new current seh for exception
     log.info("Fake seh ad %x", fake_seh_address)
-    myjit.vm.set_mem(fake_seh_address, pck32(seh_ptr) + pck32(
+    jitter.vm.set_mem(fake_seh_address, pck32(seh_ptr) + pck32(
         0xaaaaaaaa) + pck32(0xaaaaaabb) + pck32(0xaaaaaacc))
-    myjit.vm.set_mem(tib_address, pck32(fake_seh_address))
+    jitter.vm.set_mem(tib_address, pck32(fake_seh_address))
 
-    dump_seh(myjit)
+    dump_seh(jitter)
 
     log.info('Jumping at %x', eh)
-    myjit.vm.set_exception(0)
-    myjit.cpu.set_exception(0)
+    jitter.vm.set_exception(0)
+    jitter.cpu.set_exception(0)
 
     # XXX set ebx to nul?
-    myjit.cpu.EBX = 0
+    jitter.cpu.EBX = 0
 
     return eh
 
 fake_seh_handler.base = FAKE_SEH_B_AD
 
 
-def dump_seh(myjit):
+def dump_seh(jitter):
     """
     Walk and dump the SEH entries
-    @myjit: jitter instance
+    @jitter: jitter instance
     """
 
     log.info('Dump_seh. Tib_address: %x', tib_address)
-    cur_seh_ptr = upck32(myjit.vm.get_mem(tib_address, 4))
+    cur_seh_ptr = upck32(jitter.vm.get_mem(tib_address, 4))
     indent = 1
     loop = 0
     while True:
         if loop > MAX_SEH:
             log.warn("Too many seh, quit")
             return
-        prev_seh, eh = struct.unpack('II', myjit.vm.get_mem(cur_seh_ptr, 8))
+        prev_seh, eh = struct.unpack('II', jitter.vm.get_mem(cur_seh_ptr, 8))
         log.info('\t' * indent + 'seh_ptr: %x { prev_seh: %x eh %x }',
                  cur_seh_ptr, prev_seh, eh)
         if prev_seh in [0xFFFFFFFF, 0]:
@@ -679,53 +679,53 @@ def dump_seh(myjit):
         loop += 1
 
 
-def set_win_fs_0(myjit, fs=4):
+def set_win_fs_0(jitter, fs=4):
     """
     Set FS segment selector and create its corresponding segment
-    @myjit: jitter instance
+    @jitter: jitter instance
     @fs: segment selector value
     """
 
-    regs = myjit.cpu.get_gpreg()
+    regs = jitter.cpu.get_gpreg()
     regs['FS'] = 0x4
-    myjit.cpu.set_gpreg(regs)
-    myjit.cpu.set_segm_base(regs['FS'], FS_0_AD)
+    jitter.cpu.set_gpreg(regs)
+    jitter.cpu.set_segm_base(regs['FS'], FS_0_AD)
     segm_to_do = set([x86_regs.FS])
     return segm_to_do
 
 
-def return_from_seh(myjit):
+def return_from_seh(jitter):
     """Handle the return from an exception handler
-    @myjit: jitter instance"""
+    @jitter: jitter instance"""
 
     # Get current context
-    context_address = upck32(myjit.vm.get_mem(myjit.cpu.ESP + 0x8, 4))
+    context_address = upck32(jitter.vm.get_mem(jitter.cpu.ESP + 0x8, 4))
     log.info('Context address: %x', context_address)
-    myjit.cpu.ESP = upck32(myjit.vm.get_mem(context_address + 0xc4, 4))
-    log.info('New esp: %x', myjit.cpu.ESP)
+    jitter.cpu.ESP = upck32(jitter.vm.get_mem(context_address + 0xc4, 4))
+    log.info('New esp: %x', jitter.cpu.ESP)
 
     # Rebuild SEH
-    old_seh = upck32(myjit.vm.get_mem(tib_address, 4))
-    new_seh = upck32(myjit.vm.get_mem(old_seh, 4))
+    old_seh = upck32(jitter.vm.get_mem(tib_address, 4))
+    new_seh = upck32(jitter.vm.get_mem(old_seh, 4))
     log.info('Old seh: %x New seh: %x', old_seh, new_seh)
-    myjit.vm.set_mem(tib_address, pck32(new_seh))
+    jitter.vm.set_mem(tib_address, pck32(new_seh))
 
-    dump_seh(myjit)
+    dump_seh(jitter)
 
-    if myjit.cpu.EAX == 0x0:
+    if jitter.cpu.EAX == 0x0:
         # ExceptionContinueExecution
         ctxt_ptr = context_address
         log.info('Seh continues Context: %x', ctxt_ptr)
 
         # Get registers changes
-        ctxt_str = myjit.vm.get_mem(ctxt_ptr, 0x2cc)
-        ctxt2regs(ctxt_str, myjit)
-        myjit.pc = myjit.cpu.EIP
-        log.info('Context::Eip: %x', myjit.pc)
+        ctxt_str = jitter.vm.get_mem(ctxt_ptr, 0x2cc)
+        ctxt2regs(ctxt_str, jitter)
+        jitter.pc = jitter.cpu.EIP
+        log.info('Context::Eip: %x', jitter.pc)
 
-    elif myjit.cpu.EAX == -1:
+    elif jitter.cpu.EAX == -1:
         raise NotImplementedError("-> seh try to go to the next handler")
 
-    elif myjit.cpu.EAX == 1:
+    elif jitter.cpu.EAX == 1:
         # ExceptionContinueSearch
         raise NotImplementedError("-> seh, gameover")
