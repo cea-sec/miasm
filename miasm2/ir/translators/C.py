@@ -104,7 +104,7 @@ class TranslatorC(Translator):
             elif (expr.op.startswith('cpuid') or
                   expr.op.startswith("fcom")  or
                   expr.op in ["fadd", "fsub", "fdiv", 'fmul', "fscale",
-                              "fprem", "fyl2x", "fpatan"]):
+                              "fprem", "fprem_lsb", "fyl2x", "fpatan"]):
                 return "%s(%s, %s)" % (expr.op, self.from_expr(expr.args[0]),
                                        self.from_expr(expr.args[1]))
             elif expr.op == "segm":

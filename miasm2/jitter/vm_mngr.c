@@ -1254,6 +1254,29 @@ double fprem(double a, double b)
 	return c;
 }
 
+unsigned int fprem_lsb(double a, double b)
+{
+	// Inspired from qemu/fpu_helper.c
+	double c;
+	signed long long int q;
+	c = a / b; /* ST0 / ST1 */
+	/* round dblq towards zero */
+	c = (c < 0.0) ? ceil(c) : floor(c);
+
+	/* convert dblq to q by truncating towards zero */
+	if (c < 0.0) {
+	    q = (signed long long int)(-c);
+	} else {
+	    q = (signed long long int)c;
+	}
+#ifdef DEBUG_MIASM_DOUBLE
+	dump_float();
+	printf("%e %% %e -> %d %d %d\n", a, b, q & 0x4,
+	       q & 0x2, q & 0x1);
+#endif
+	return q;
+}
+
 double fchs(double a)
 {
 	double b;

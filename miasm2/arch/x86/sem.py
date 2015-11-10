@@ -2131,6 +2131,14 @@ def fpatan(ir, instr):
 def fprem(ir, instr):
     e = []
     e.append(m2_expr.ExprAff(float_st0, m2_expr.ExprOp('fprem', float_st0, float_st1)))
+    # Remaining bits (ex: used in argument reduction in tan)
+    remain = m2_expr.ExprOp('fprem_lsb', float_st0, float_st1)
+    e += [m2_expr.ExprAff(float_c0, remain[2:3]),
+          m2_expr.ExprAff(float_c3, remain[1:2]),
+          m2_expr.ExprAff(float_c1, remain[0:1]),
+          # Consider the reduction is always completed
+          m2_expr.ExprAff(float_c2, m2_expr.ExprInt1(0)),
+    ]
     e += set_float_cs_eip(instr)
     return e, []
 
