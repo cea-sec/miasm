@@ -2210,6 +2210,42 @@ def fnstenv(ir, instr, a):
     e.append(m2_expr.ExprAff(ad, float_ds))
     return e, []
 
+def fldenv(ir, instr, a):
+    e = []
+    # Inspired from fnstenv (same TODOs / issues)
+
+    s = instr.mode
+    # The behaviour in 64bit is identical to 32 bit
+    # This will truncate addresses
+    s = min(32, s)
+
+    ## Float control
+    ad = m2_expr.ExprMem(a.arg, size=16)
+    e.append(m2_expr.ExprAff(float_control, ad))
+
+    ## Status word
+    ad = m2_expr.ExprMem(a.arg + m2_expr.ExprInt(s / 8 * 1, size=a.arg.size),
+                         size=16)
+    e += [m2_expr.ExprAff(x, y) for x, y in ((float_c0, ad[8:9]),
+                                             (float_c1, ad[9:10]),
+                                             (float_c2, ad[10:11]),
+                                             (float_stack_ptr, ad[11:14]),
+                                             (float_c3, ad[14:15]))
+          ]
+
+    ## EIP, CS, Address, DS
+    for offset, target in ((3, float_eip[:s]),
+                           (4, float_cs),
+                           (5, float_address[:s]),
+                           (6, float_ds)):
+        size = target.size
+        ad = m2_expr.ExprMem(a.arg + m2_expr.ExprInt(s / 8 * offset,
+                                                     size=a.arg.size),
+                             size=target.size)
+        e.append(m2_expr.ExprAff(target, ad))
+
+    return e, []
+
 
 def fsub(ir, instr, a, b=None):
     a, b = float_implicit_st0(a, b)
@@ -3643,6 +3679,7 @@ mnemo_func = {'mov': mov,
               'fcmovnbe': fcmovnbe,
               'fcmovnu':  fcmovnu,
               'fnstenv': fnstenv,
+              'fldenv': fldenv,
               'sidt': sidt,
               'sldt': sldt,
               'arpl': arpl,
