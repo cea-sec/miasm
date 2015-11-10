@@ -1733,7 +1733,8 @@ def float_prev(flt, popcount=1):
         return None
     i = float_list.index(flt)
     if i < popcount:
-        raise ValueError('broken index')
+        # Drop value (ex: FSTP ST(0))
+        return None
     flt = float_list[i - popcount]
     return flt
 
