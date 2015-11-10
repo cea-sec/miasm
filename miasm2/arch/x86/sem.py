@@ -1982,9 +1982,23 @@ def fst(ir, instr, a):
 
 
 def fstp(ir, instr, a):
-    e, extra = fst(ir, instr, a)
+    e = []
+
+    if isinstance(a, m2_expr.ExprMem):
+        if a.size > 64:
+            raise NotImplementedError('float to long')
+        src = m2_expr.ExprOp('double_to_mem_%.2d' % a.size, float_st0)
+        e.append(m2_expr.ExprAff(a, src))
+    else:
+        src = float_st0
+        if float_list.index(a) > 1:
+            # a = st0 -> st0 is dropped
+            # a = st1 -> st0 = st0, useless
+            e.append(m2_expr.ExprAff(float_prev(a), src))
+
+    e += set_float_cs_eip(instr)
     e += float_pop(a)
-    return e, extra
+    return e, []
 
 
 def fist(ir, instr, a):
