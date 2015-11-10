@@ -1971,9 +1971,9 @@ def fst(ir, instr, a):
     if isinstance(a, m2_expr.ExprMem):
         if a.size > 64:
             raise NotImplementedError('float to long')
-        src = m2_expr.ExprOp('double_to_mem_%.2d' % a.size, a)
+        src = m2_expr.ExprOp('double_to_mem_%.2d' % a.size, float_st0)
     else:
-        src = a
+        src = float_st0
 
     e.append(m2_expr.ExprAff(a, src))
     e += set_float_cs_eip(instr)
