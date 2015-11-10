@@ -370,6 +370,7 @@ double fscale(double a, double b);
 double f2xm1(double a);
 double fsqrt(double a);
 double fabs(double a);
+double fprem(double a, double b);
 double fchs(double a);
 unsigned int fcom_c0(double a, double b);
 unsigned int fcom_c1(double a, double b);

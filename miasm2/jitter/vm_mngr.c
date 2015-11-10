@@ -1243,6 +1243,17 @@ double fabs(double a)
 	return b;
 }
 
+double fprem(double a, double b)
+{
+	double c;
+	c = fmod(a, b);
+#ifdef DEBUG_MIASM_DOUBLE
+	dump_float();
+	printf("%e %% %e -> %e\n", a, b, c);
+#endif
+	return c;
+}
+
 double fchs(double a)
 {
 	double b;
