@@ -89,6 +89,8 @@ MAX_SEH = 5
 
 def build_teb(myjit, teb_address):
     """
+    Build TEB informations using following structure:
+
     +0x000 NtTib                     : _NT_TIB
     +0x01c EnvironmentPointer        : Ptr32 Void
     +0x020 ClientId                  : _CLIENT_ID
@@ -97,7 +99,10 @@ def build_teb(myjit, teb_address):
     +0x030 ProcessEnvironmentBlock   : Ptr32 _PEB
     +0x034 LastErrorValue            : Uint4B
     ...
+    @myjit: jitter instance
+    @teb_address: the TEB address
     """
+
     o = ""
     o += pck32(default_seh)
     o += (0x18 - len(o)) * "\x00"
@@ -112,6 +117,8 @@ def build_teb(myjit, teb_address):
 
 def build_peb(myjit, peb_address):
     """
+    Build PEB informations using following structure:
+
     +0x000 InheritedAddressSpace    : UChar
     +0x001 ReadImageFileExecOptions : UChar
     +0x002 BeingDebugged            : UChar
@@ -120,6 +127,9 @@ def build_peb(myjit, peb_address):
     +0x008 ImageBaseAddress         : Ptr32 Void
     +0x00c Ldr                      : Ptr32 _PEB_LDR_DATA
     +0x010 processparameter
+
+    @myjit: jitter instance
+    @peb_address: the PEB address
     """
 
     offset = peb_address + 8
@@ -135,12 +145,18 @@ def build_peb(myjit, peb_address):
 
 def build_ldr_data(myjit, modules_info):
     """
+    Build Loader informations using following structure:
+
     +0x000 Length                          : Uint4B
     +0x004 Initialized                     : UChar
     +0x008 SsHandle                        : Ptr32 Void
     +0x00c InLoadOrderModuleList           : _LIST_ENTRY
     +0x014 InMemoryOrderModuleList         : _LIST_ENTRY
     +0x01C InInitializationOrderModuleList         : _LIST_ENTRY
+
+    @myjit: myjit instance
+    @modules_info: LoadedModules instance
+
     """
     # ldr offset pad
     offset = LDR_AD + peb_ldr_data_offset + 0xC
@@ -181,7 +197,7 @@ class LoadedModules(object):
         """Track a new module
         @name: module name (with extension)
         @module: module object
-        @module_entry: addresse of the module entry
+        @module_entry: address of the module entry
         """
 
         self.modules.append(module)
@@ -196,6 +212,8 @@ class LoadedModules(object):
 
 def create_modules_chain(myjit, modules_name):
     """
+    Create the modules entries. Those modules are not linked in this function.
+
     kd> dt nt!_LDR_DATA_TABLE_ENTRY
     +0x000 InLoadOrderLinks : _LIST_ENTRY
     +0x008 InMemoryOrderLinks : _LIST_ENTRY
@@ -215,6 +233,9 @@ def create_modules_chain(myjit, modules_name):
     +0x044 LoadedImports : Ptr32 Void
     +0x048 EntryPointActivationContext : Ptr32 Void
     +0x04c PatchInformation : Ptr32 Void
+
+    @myjit: jitter instance
+    @modules_name: a list of modules names
     """
 
     modules_info = LoadedModules()
@@ -394,6 +415,11 @@ def fix_InInitializationOrderModuleList(jitter, modules_info):
 
 
 def add_process_env(myjit):
+    """
+    Build a process environement structure
+    @myjit: jitter instance
+    """
+
     env_str = 'ALLUSEESPROFILE=C:\\Documents and Settings\\All Users\x00'
     env_str = '\x00'.join(env_str)
     env_str += "\x00" * 0x10
@@ -404,6 +430,11 @@ def add_process_env(myjit):
 
 
 def add_process_parameters(myjit):
+    """
+    Build a process parameters structure
+    @myjit: jitter instance
+    """
+
     o = ""
     o += pck32(0x1000)  # size
     o += "E" * (0x48 - len(o))
@@ -420,6 +451,11 @@ seh_count = 0
 
 
 def init_seh(myjit):
+    """
+    Build the modules entries and create double links
+    @myjit: jitter instance
+    """
+
     global seh_count
     seh_count = 0
     build_teb(myjit, FS_0_AD)
@@ -537,6 +573,12 @@ def ctxt2regs(ctxt, myjit):
 
 
 def fake_seh_handler(myjit, except_code):
+    """
+    Create an exception context
+    @myjit: jitter instance
+    @except_code: x86 exception code
+    """
+
     global seh_count, context_address
     regs = myjit.cpu.get_gpreg()
     log.warning('Exception at %x %r', myjit.cpu.EIP, seh_count)
@@ -614,6 +656,11 @@ fake_seh_handler.base = FAKE_SEH_B_AD
 
 
 def dump_seh(myjit):
+    """
+    Walk and dump the SEH entries
+    @myjit: jitter instance
+    """
+
     log.info('Dump_seh. Tib_address: %x', tib_address)
     cur_seh_ptr = upck32(myjit.vm.get_mem(tib_address, 4))
     indent = 1
@@ -633,6 +680,12 @@ def dump_seh(myjit):
 
 
 def set_win_fs_0(myjit, fs=4):
+    """
+    Set FS segment selector and create its corresponding segment
+    @myjit: jitter instance
+    @fs: segment selector value
+    """
+
     regs = myjit.cpu.get_gpreg()
     regs['FS'] = 0x4
     myjit.cpu.set_gpreg(regs)
@@ -641,17 +694,9 @@ def set_win_fs_0(myjit, fs=4):
     return segm_to_do
 
 
-def add_modules_info(pe_in, pe_in_name="toto.exe", all_pe=None):
-    global main_pe, main_pe_name, loaded_modules
-    if all_pe is None:
-        all_pe = []
-    main_pe = pe_in
-    main_pe_name = pe_in_name
-    loaded_modules = all_pe
-
-
 def return_from_seh(myjit):
-    "Handle return after a call to fake seh handler"
+    """Handle the return from an exception handler
+    @myjit: jitter instance"""
 
     # Get current context
     context_address = upck32(myjit.vm.get_mem(myjit.cpu.ESP + 0x8, 4))
