@@ -2188,7 +2188,7 @@ def fnstenv(ir, instr, a):
                                ])
 
     s = instr.mode
-    # The behaviour in 64bit is identical to 64 bit
+    # The behaviour in 64bit is identical to 32 bit
     # This will truncate addresses
     s = min(32, s)
     ad = m2_expr.ExprMem(a.arg, size=16)
