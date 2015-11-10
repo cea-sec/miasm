@@ -1265,6 +1265,16 @@ double fchs(double a)
 	return b;
 }
 
+double fyl2x(double a, double b)
+{
+	double c;
+	c = b * (log(a) / log(2));
+#ifdef DEBUG_MIASM_DOUBLE
+	dump_float();
+	printf("%e * log(%e) -> %e\n", b, a, c);
+#endif
+	return c;
+}
 
 unsigned int fcom_c0(double a, double b)
 {
