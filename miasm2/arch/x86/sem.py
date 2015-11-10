@@ -2476,13 +2476,16 @@ def fabs(ir, instr):
 
 
 def fnstsw(ir, instr, dst):
-    args = [(m2_expr.ExprInt8(0),        0, 8),
-            (float_c0,           8, 9),
-            (float_c1,           9, 10),
-            (float_c2,           10, 11),
-            (float_stack_ptr,    11, 14),
-            (float_c3,           14, 15),
-            (m2_expr.ExprInt1(0), 15, 16)]
+    args = [
+        # Exceptions -> 0
+        (m2_expr.ExprInt8(0),0, 8),
+        (float_c0,           8, 9),
+        (float_c1,           9, 10),
+        (float_c2,           10, 11),
+        (float_stack_ptr,    11, 14),
+        (float_c3,           14, 15),
+        # B: FPU is not busy -> 0
+        (m2_expr.ExprInt1(0), 15, 16)]
     e = [m2_expr.ExprAff(dst, m2_expr.ExprCompose(args))]
     return e, []
 
