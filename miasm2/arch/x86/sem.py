@@ -1767,11 +1767,10 @@ def fcom(ir, instr, a=None, b=None):
     if a is None and b is None:
         a, b = float_st0, float_st1
     elif b is None:
-        b = a
+        b = mem2double(a)
         a = float_st0
 
     e = []
-    b = mem2double(b)
 
     e.append(m2_expr.ExprAff(float_c0, m2_expr.ExprOp('fcom_c0', a, b)))
     e.append(m2_expr.ExprAff(float_c1, m2_expr.ExprOp('fcom_c1', a, b)))
