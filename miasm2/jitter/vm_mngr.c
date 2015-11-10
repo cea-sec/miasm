@@ -1277,6 +1277,65 @@ unsigned int fcom_c3(double a, double b)
 	return 0;
 }
 
+unsigned int fxam_c0(double a)
+{
+	switch(fpclassify(a)) {
+		case FP_NAN:
+			return 1;
+		case FP_NORMAL:
+			return 0;
+		case FP_INFINITE:
+			return 1;
+		case FP_ZERO:
+			return 0;
+		case FP_SUBNORMAL:
+			return 0;
+		default:
+			// ClassEmpty
+			// ClassUnsupported
+			return 0;
+	}
+}
+
+unsigned int fxam_c2(double a)
+{
+	switch(fpclassify(a)) {
+		case FP_NAN:
+			return 0;
+		case FP_NORMAL:
+			return 1;
+		case FP_INFINITE:
+			return 1;
+		case FP_ZERO:
+			return 0;
+		case FP_SUBNORMAL:
+			return 1;
+		default:
+			// ClassEmpty
+			// ClassUnsupported
+			return 0;
+	}
+}
+
+unsigned int fxam_c3(double a)
+{
+	switch(fpclassify(a)) {
+		case FP_NAN:
+			return 0;
+		case FP_NORMAL:
+			return 0;
+		case FP_INFINITE:
+			return 0;
+		case FP_ZERO:
+			return 1;
+		case FP_SUBNORMAL:
+			return 1;
+		default:
+			// ClassEmpty
+			// ClassUnsupported
+			return 0;
+	}
+}
 
 unsigned int double_to_mem_32(double d)
 {

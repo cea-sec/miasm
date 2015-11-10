@@ -67,6 +67,7 @@ class TranslatorC(Translator):
                   expr.op.endswith("_to_double")   or
                   expr.op.startswith("access_")    or
                   expr.op.startswith("load_")      or
+                  expr.op.startswith("fxam_c")     or
                   expr.op in ["-", "ftan", "frndint", "f2xm1",
                               "fsin", "fsqrt", "fabs", "fcos", "fchs"]):
                 return "%s(%s)" % (expr.op, self.from_expr(expr.args[0]))

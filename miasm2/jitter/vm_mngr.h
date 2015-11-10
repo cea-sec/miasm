@@ -375,7 +375,9 @@ unsigned int fcom_c0(double a, double b);
 unsigned int fcom_c1(double a, double b);
 unsigned int fcom_c2(double a, double b);
 unsigned int fcom_c3(double a, double b);
-
+unsigned int fxam_c0(double a);
+unsigned int fxam_c2(double a);
+unsigned int fxam_c3(double a);
 
 
 double mem_32_to_double(unsigned int m);
