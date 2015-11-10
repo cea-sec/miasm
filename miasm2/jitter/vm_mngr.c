@@ -1312,6 +1312,8 @@ double fpatan(double a, double b)
 
 unsigned int fcom_c0(double a, double b)
 {
+	if (isnan(a) || isnan(b))
+		return 1;
 	if (a>=b)
 		return 0;
 	return 1;
@@ -1323,10 +1325,14 @@ unsigned int fcom_c1(double a, double b)
 }
 unsigned int fcom_c2(double a, double b)
 {
+	if (isnan(a) || isnan(b))
+		return 1;
 	return 0;
 }
 unsigned int fcom_c3(double a, double b)
 {
+	if (isnan(a) || isnan(b))
+		return 1;
 	if (a==b)
 		return 1;
 	return 0;
