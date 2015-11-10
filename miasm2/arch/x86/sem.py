@@ -2049,9 +2049,9 @@ def fldpi(ir, instr):
 
 def fldln2(ir, instr):
     value_f = math.log(2)
-    value = struct.unpack('I', struct.pack('f', value_f))[0]
-    return fld(ir, instr, m2_expr.ExprOp('int_32_to_double',
-                                         m2_expr.ExprInt32(value)))
+    value = struct.unpack('Q', struct.pack('d', value_f))[0]
+    return fld(ir, instr, m2_expr.ExprOp('mem_64_to_double',
+                                         m2_expr.ExprInt64(value)))
 
 
 def fldl2e(ir, instr):
