@@ -1083,6 +1083,18 @@ double int_64_to_double(uint64_t m)
 	return d;
 }
 
+int16_t double_to_int_16(double d)
+{
+	int16_t i;
+
+	i = (int16_t)d;
+#ifdef DEBUG_MIASM_DOUBLE
+	dump_float();
+	printf("%e int %d\n", d, i);
+#endif
+	return i;
+}
+
 int32_t double_to_int_32(double d)
 {
 	int32_t i;

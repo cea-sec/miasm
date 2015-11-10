@@ -390,6 +390,7 @@ double mem_64_to_double(uint64_t m);
 double int_16_to_double(unsigned int m);
 double int_32_to_double(unsigned int m);
 double int_64_to_double(uint64_t m);
+int16_t double_to_int_16(double d);
 int32_t double_to_int_32(double d);
 int64_t double_to_int_64(double d);
 double fadd(double a, double b);
