@@ -168,7 +168,8 @@ def mem2double(arg):
     """
     if isinstance(arg, m2_expr.ExprMem):
         if arg.size > 64:
-            raise NotImplementedError('float to long')
+            # TODO: move to 80 bits
+            arg = m2_expr.ExprMem(arg.arg, size=64)
         return m2_expr.ExprOp('mem_%.2d_to_double' % arg.size, arg)
     else:
         return arg
@@ -1986,7 +1987,9 @@ def fstp(ir, instr, a):
 
     if isinstance(a, m2_expr.ExprMem):
         if a.size > 64:
-            raise NotImplementedError('float to long')
+            # TODO: move to 80 bits
+            a = m2_expr.ExprMem(a.arg, size=64)
+
         src = m2_expr.ExprOp('double_to_mem_%.2d' % a.size, float_st0)
         e.append(m2_expr.ExprAff(a, src))
     else:
