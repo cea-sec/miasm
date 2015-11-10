@@ -2121,7 +2121,8 @@ def fisubr(ir, instr, a, b=None):
 def fpatan(ir, instr):
     e = []
     a = float_st1
-    e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('fpatan', float_st0, float_st1)))
+    e.append(m2_expr.ExprAff(float_prev(a),
+                             m2_expr.ExprOp('fpatan', float_st0, float_st1)))
     e += set_float_cs_eip(instr)
     e += float_pop(a)
     return e, []
