@@ -2000,14 +2000,6 @@ def fistp(ir, instr, a):
     e += float_pop(a)
     return e, extra
 
-def fist(ir, instr, a):
-    e = []
-    e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('double_to_int_%d' % a.size,
-                                               float_st0)))
-
-    e += set_float_cs_eip(instr)
-    return e, []
-
 def fisttp(ir, instr, a):
     e = []
     e.append(m2_expr.ExprAff(a,
@@ -2021,7 +2013,9 @@ def fisttp(ir, instr, a):
 
 def fild(ir, instr, a):
     # XXXXX
-    src = m2_expr.ExprOp('int_%.2d_to_double' % a.size, a)
+    src = m2_expr.ExprO
+
+    p('int_%.2d_to_double' % a.size, a)
     e = []
     e += set_float_cs_eip(instr)
     e_fld, extra = fld(ir, instr, src)
