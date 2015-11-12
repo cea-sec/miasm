@@ -2030,9 +2030,7 @@ def fisttp(ir, instr, a):
 
 def fild(ir, instr, a):
     # XXXXX
-    src = m2_expr.ExprO
-
-    p('int_%.2d_to_double' % a.size, a)
+    src = m2_expr.ExprOp('int_%.2d_to_double' % a.size, a)
     e = []
     e += set_float_cs_eip(instr)
     e_fld, extra = fld(ir, instr, src)
