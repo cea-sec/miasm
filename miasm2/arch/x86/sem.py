@@ -468,15 +468,23 @@ def rcr(ir, instr, a, b):
     return e, []
 
 
-def _shift_tpl(op, ir, instr, a, b, c=None):
-    """Template for generate shifter with operation `op`
+def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None):
+    """Template for generate shifter with operation @op
     A temporary basic block is generated to handle 0-shift
     @op: operation to execute
     @c (optional): if set, instruction has a bit provider
+    @op_inv (optional): opposite operation of @op. Must be provided if @c
     """
+    if c is not None:
+        shifter = get_shift(a, c)
+    else:
+        shifter = get_shift(a, b)
 
-    shifter = get_shift(a, b)
     res = m2_expr.ExprOp(op, a, shifter)
+    if c is not None:
+        shifter_inv = m2_expr.ExprInt_from(a, a.size) - c.zeroExtend(a.size)
+        res |= m2_expr.ExprOp(op_inv, b,
+                              shifter_inv)
 
     lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
     lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
@@ -533,20 +541,7 @@ def shrd_cl(ir, instr, a, b):
 
 
 def shrd(ir, instr, a, b, c):
-    e = []
-    shifter = get_shift(a, c)
-
-    d = (a >> shifter) | (b << (m2_expr.ExprInt_from(a, a.size) - shifter))
-    new_cf = (a >> (shifter - m2_expr.ExprInt_from(a, 1)))[:1]
-    e.append(m2_expr.ExprAff(cf, m2_expr.ExprCond(shifter,
-                                  new_cf,
-                                  cf)
-                     )
-             )
-    e.append(m2_expr.ExprAff(of, a.msb()))
-    e += update_flag_znp(d)
-    e.append(m2_expr.ExprAff(a, d))
-    return e, []
+    return _shift_tpl(">>", ir, instr, a, b, c, "<<")
 
 
 def sal(ir, instr, a, b):
