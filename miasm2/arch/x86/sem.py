@@ -483,9 +483,9 @@ def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None, left=False):
     res = m2_expr.ExprOp(op, a, shifter)
     cf_from_dst = m2_expr.ExprOp(op, a,
                                  (shifter - m2_expr.ExprInt_from(a, 1)))[:1]
+    i1 = m2_expr.ExprInt(1, size=a.size)
     if c is not None:
         # There is a source for new bits
-        i1 = m2_expr.ExprInt(1, size=a.size)
         isize = m2_expr.ExprInt(a.size, size=a.size)
         mask = m2_expr.ExprOp(op_inv, i1, (isize - shifter)) - i1
 
@@ -512,11 +512,12 @@ def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None, left=False):
     lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
     lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
 
+    value_of = a.msb() ^ a[-2:-1] if left else b[:1] ^ a.msb()
     e_do = [
         m2_expr.ExprAff(cf, new_cf),
-        m2_expr.ExprAff(of, m2_expr.ExprCond(shifter - m2_expr.ExprInt(1, size=shifter.size),
+        m2_expr.ExprAff(of, m2_expr.ExprCond(shifter - i1,
                                              m2_expr.ExprInt_from(of, 0),
-                                             b[:1] ^ a.msb())),
+                                             value_of)),
         m2_expr.ExprAff(a, res),
     ]
 
