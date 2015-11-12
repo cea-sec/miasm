@@ -168,7 +168,8 @@ def mem2double(arg):
     """
     if isinstance(arg, m2_expr.ExprMem):
         if arg.size > 64:
-            raise NotImplementedError('float to long')
+            # TODO: move to 80 bits
+            arg = m2_expr.ExprMem(arg.arg, size=64)
         return m2_expr.ExprOp('mem_%.2d_to_double' % arg.size, arg)
     else:
         return arg
@@ -1733,7 +1734,8 @@ def float_prev(flt, popcount=1):
         return None
     i = float_list.index(flt)
     if i < popcount:
-        raise ValueError('broken index')
+        # Drop value (ex: FSTP ST(0))
+        return None
     flt = float_list[i - popcount]
     return flt
 
@@ -1766,11 +1768,10 @@ def fcom(ir, instr, a=None, b=None):
     if a is None and b is None:
         a, b = float_st0, float_st1
     elif b is None:
-        b = a
+        b = mem2double(a)
         a = float_st0
 
     e = []
-    b = mem2double(b)
 
     e.append(m2_expr.ExprAff(float_c0, m2_expr.ExprOp('fcom_c0', a, b)))
     e.append(m2_expr.ExprAff(float_c1, m2_expr.ExprOp('fcom_c1', a, b)))
@@ -1800,6 +1801,7 @@ def fxam(ir, instr):
 
     e = []
     e.append(m2_expr.ExprAff(float_c0, m2_expr.ExprOp('fxam_c0', a)))
+    e.append(m2_expr.ExprAff(float_c1, m2_expr.ExprOp('fxam_c1', a)))
     e.append(m2_expr.ExprAff(float_c2, m2_expr.ExprOp('fxam_c2', a)))
     e.append(m2_expr.ExprAff(float_c3, m2_expr.ExprOp('fxam_c3', a)))
 
@@ -1971,9 +1973,9 @@ def fst(ir, instr, a):
     if isinstance(a, m2_expr.ExprMem):
         if a.size > 64:
             raise NotImplementedError('float to long')
-        src = m2_expr.ExprOp('double_to_mem_%.2d' % a.size, a)
+        src = m2_expr.ExprOp('double_to_mem_%.2d' % a.size, float_st0)
     else:
-        src = a
+        src = float_st0
 
     e.append(m2_expr.ExprAff(a, src))
     e += set_float_cs_eip(instr)
@@ -1981,9 +1983,25 @@ def fst(ir, instr, a):
 
 
 def fstp(ir, instr, a):
-    e, extra = fst(ir, instr, a)
+    e = []
+
+    if isinstance(a, m2_expr.ExprMem):
+        if a.size > 64:
+            # TODO: move to 80 bits
+            a = m2_expr.ExprMem(a.arg, size=64)
+
+        src = m2_expr.ExprOp('double_to_mem_%.2d' % a.size, float_st0)
+        e.append(m2_expr.ExprAff(a, src))
+    else:
+        src = float_st0
+        if float_list.index(a) > 1:
+            # a = st0 -> st0 is dropped
+            # a = st1 -> st0 = st0, useless
+            e.append(m2_expr.ExprAff(float_prev(a), src))
+
+    e += set_float_cs_eip(instr)
     e += float_pop(a)
-    return e, extra
+    return e, []
 
 
 def fist(ir, instr, a):
@@ -1998,14 +2016,6 @@ def fistp(ir, instr, a):
     e, extra = fist(ir, instr, a)
     e += float_pop(a)
     return e, extra
-
-def fist(ir, instr, a):
-    e = []
-    e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('double_to_int_%d' % a.size,
-                                               float_st0)))
-
-    e += set_float_cs_eip(instr)
-    return e, []
 
 def fisttp(ir, instr, a):
     e = []
@@ -2054,9 +2064,9 @@ def fldpi(ir, instr):
 
 def fldln2(ir, instr):
     value_f = math.log(2)
-    value = struct.unpack('I', struct.pack('f', value_f))[0]
-    return fld(ir, instr, m2_expr.ExprOp('int_32_to_double',
-                                         m2_expr.ExprInt32(value)))
+    value = struct.unpack('Q', struct.pack('d', value_f))[0]
+    return fld(ir, instr, m2_expr.ExprOp('mem_64_to_double',
+                                         m2_expr.ExprInt64(value)))
 
 
 def fldl2e(ir, instr):
@@ -2112,7 +2122,8 @@ def fisubr(ir, instr, a, b=None):
 def fpatan(ir, instr):
     e = []
     a = float_st1
-    e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('fpatan', float_st0, float_st1)))
+    e.append(m2_expr.ExprAff(float_prev(a),
+                             m2_expr.ExprOp('fpatan', float_st0, float_st1)))
     e += set_float_cs_eip(instr)
     e += float_pop(a)
     return e, []
@@ -2121,6 +2132,14 @@ def fpatan(ir, instr):
 def fprem(ir, instr):
     e = []
     e.append(m2_expr.ExprAff(float_st0, m2_expr.ExprOp('fprem', float_st0, float_st1)))
+    # Remaining bits (ex: used in argument reduction in tan)
+    remain = m2_expr.ExprOp('fprem_lsb', float_st0, float_st1)
+    e += [m2_expr.ExprAff(float_c0, remain[2:3]),
+          m2_expr.ExprAff(float_c3, remain[1:2]),
+          m2_expr.ExprAff(float_c1, remain[0:1]),
+          # Consider the reduction is always completed
+          m2_expr.ExprAff(float_c2, m2_expr.ExprInt1(0)),
+    ]
     e += set_float_cs_eip(instr)
     return e, []
 
@@ -2170,7 +2189,7 @@ def fnstenv(ir, instr, a):
                                ])
 
     s = instr.mode
-    # The behaviour in 64bit is identical to 64 bit
+    # The behaviour in 64bit is identical to 32 bit
     # This will truncate addresses
     s = min(32, s)
     ad = m2_expr.ExprMem(a.arg, size=16)
@@ -2190,6 +2209,42 @@ def fnstenv(ir, instr, a):
     ad = m2_expr.ExprMem(a.arg + m2_expr.ExprInt_from(a.arg, s / 8 * 6),
                          size=16)
     e.append(m2_expr.ExprAff(ad, float_ds))
+    return e, []
+
+def fldenv(ir, instr, a):
+    e = []
+    # Inspired from fnstenv (same TODOs / issues)
+
+    s = instr.mode
+    # The behaviour in 64bit is identical to 32 bit
+    # This will truncate addresses
+    s = min(32, s)
+
+    ## Float control
+    ad = m2_expr.ExprMem(a.arg, size=16)
+    e.append(m2_expr.ExprAff(float_control, ad))
+
+    ## Status word
+    ad = m2_expr.ExprMem(a.arg + m2_expr.ExprInt(s / 8 * 1, size=a.arg.size),
+                         size=16)
+    e += [m2_expr.ExprAff(x, y) for x, y in ((float_c0, ad[8:9]),
+                                             (float_c1, ad[9:10]),
+                                             (float_c2, ad[10:11]),
+                                             (float_stack_ptr, ad[11:14]),
+                                             (float_c3, ad[14:15]))
+          ]
+
+    ## EIP, CS, Address, DS
+    for offset, target in ((3, float_eip[:s]),
+                           (4, float_cs),
+                           (5, float_address[:s]),
+                           (6, float_ds)):
+        size = target.size
+        ad = m2_expr.ExprMem(a.arg + m2_expr.ExprInt(s / 8 * offset,
+                                                     size=a.arg.size),
+                             size=target.size)
+        e.append(m2_expr.ExprAff(target, ad))
+
     return e, []
 
 
@@ -2422,13 +2477,16 @@ def fabs(ir, instr):
 
 
 def fnstsw(ir, instr, dst):
-    args = [(m2_expr.ExprInt8(0),        0, 8),
-            (float_c0,           8, 9),
-            (float_c1,           9, 10),
-            (float_c2,           10, 11),
-            (float_stack_ptr,    11, 14),
-            (float_c3,           14, 15),
-            (m2_expr.ExprInt1(0), 15, 16)]
+    args = [
+        # Exceptions -> 0
+        (m2_expr.ExprInt8(0),0, 8),
+        (float_c0,           8, 9),
+        (float_c1,           9, 10),
+        (float_c2,           10, 11),
+        (float_stack_ptr,    11, 14),
+        (float_c3,           14, 15),
+        # B: FPU is not busy -> 0
+        (m2_expr.ExprInt1(0), 15, 16)]
     e = [m2_expr.ExprAff(dst, m2_expr.ExprCompose(args))]
     return e, []
 
@@ -3625,6 +3683,7 @@ mnemo_func = {'mov': mov,
               'fcmovnbe': fcmovnbe,
               'fcmovnu':  fcmovnu,
               'fnstenv': fnstenv,
+              'fldenv': fldenv,
               'sidt': sidt,
               'sldt': sldt,
               'arpl': arpl,

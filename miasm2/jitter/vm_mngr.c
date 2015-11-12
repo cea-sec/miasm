@@ -1083,6 +1083,18 @@ double int_64_to_double(uint64_t m)
 	return d;
 }
 
+int16_t double_to_int_16(double d)
+{
+	int16_t i;
+
+	i = (int16_t)d;
+#ifdef DEBUG_MIASM_DOUBLE
+	dump_float();
+	printf("%e int %d\n", d, i);
+#endif
+	return i;
+}
+
 int32_t double_to_int_32(double d)
 {
 	int32_t i;
@@ -1243,10 +1255,77 @@ double fabs(double a)
 	return b;
 }
 
+double fprem(double a, double b)
+{
+	double c;
+	c = fmod(a, b);
+#ifdef DEBUG_MIASM_DOUBLE
+	dump_float();
+	printf("%e %% %e -> %e\n", a, b, c);
+#endif
+	return c;
+}
 
+unsigned int fprem_lsb(double a, double b)
+{
+	// Inspired from qemu/fpu_helper.c
+	double c;
+	signed long long int q;
+	c = a / b; /* ST0 / ST1 */
+	/* round dblq towards zero */
+	c = (c < 0.0) ? ceil(c) : floor(c);
+
+	/* convert dblq to q by truncating towards zero */
+	if (c < 0.0) {
+	    q = (signed long long int)(-c);
+	} else {
+	    q = (signed long long int)c;
+	}
+#ifdef DEBUG_MIASM_DOUBLE
+	dump_float();
+	printf("%e %% %e -> %d %d %d\n", a, b, q & 0x4,
+	       q & 0x2, q & 0x1);
+#endif
+	return q;
+}
+
+double fchs(double a)
+{
+	double b;
+	b = -a;
+#ifdef DEBUG_MIASM_DOUBLE
+	dump_float();
+	printf(" - %e -> %e\n", a, b);
+#endif
+	return b;
+}
+
+double fyl2x(double a, double b)
+{
+	double c;
+	c = b * (log(a) / log(2));
+#ifdef DEBUG_MIASM_DOUBLE
+	dump_float();
+	printf("%e * log(%e) -> %e\n", b, a, c);
+#endif
+	return c;
+}
+
+double fpatan(double a, double b)
+{
+	double c;
+	c = atan2(b, a);
+#ifdef DEBUG_MIASM_DOUBLE
+	dump_float();
+	printf("arctan(%e / %e) -> %e\n", b, a, c);
+#endif
+	return c;
+}
 
 unsigned int fcom_c0(double a, double b)
 {
+	if (isnan(a) || isnan(b))
+		return 1;
 	if (a>=b)
 		return 0;
 	return 1;
@@ -1258,15 +1337,85 @@ unsigned int fcom_c1(double a, double b)
 }
 unsigned int fcom_c2(double a, double b)
 {
+	if (isnan(a) || isnan(b))
+		return 1;
 	return 0;
 }
 unsigned int fcom_c3(double a, double b)
 {
+	if (isnan(a) || isnan(b))
+		return 1;
 	if (a==b)
 		return 1;
 	return 0;
 }
 
+unsigned int fxam_c0(double a)
+{
+	switch(fpclassify(a)) {
+		case FP_NAN:
+			return 1;
+		case FP_NORMAL:
+			return 0;
+		case FP_INFINITE:
+			return 1;
+		case FP_ZERO:
+			return 0;
+		case FP_SUBNORMAL:
+			return 0;
+		default:
+			// ClassEmpty
+			// ClassUnsupported
+			return 0;
+	}
+}
+
+unsigned int fxam_c1(double a)
+{
+	if ((a < 0) || isnan(a))
+		return 1;
+	return 0;
+}
+
+unsigned int fxam_c2(double a)
+{
+	switch(fpclassify(a)) {
+		case FP_NAN:
+			return 0;
+		case FP_NORMAL:
+			return 1;
+		case FP_INFINITE:
+			return 1;
+		case FP_ZERO:
+			return 0;
+		case FP_SUBNORMAL:
+			return 1;
+		default:
+			// ClassEmpty
+			// ClassUnsupported
+			return 0;
+	}
+}
+
+unsigned int fxam_c3(double a)
+{
+	switch(fpclassify(a)) {
+		case FP_NAN:
+			return 0;
+		case FP_NORMAL:
+			return 0;
+		case FP_INFINITE:
+			return 0;
+		case FP_ZERO:
+			return 1;
+		case FP_SUBNORMAL:
+			return 1;
+		default:
+			// ClassEmpty
+			// ClassUnsupported
+			return 0;
+	}
+}
 
 unsigned int double_to_mem_32(double d)
 {

@@ -370,11 +370,19 @@ double fscale(double a, double b);
 double f2xm1(double a);
 double fsqrt(double a);
 double fabs(double a);
+double fprem(double a, double b);
+double fchs(double a);
+double fyl2x(double a, double b);
+double fpatan(double a, double b);
+unsigned int fprem_lsb(double a, double b);
 unsigned int fcom_c0(double a, double b);
 unsigned int fcom_c1(double a, double b);
 unsigned int fcom_c2(double a, double b);
 unsigned int fcom_c3(double a, double b);
-
+unsigned int fxam_c0(double a);
+unsigned int fxam_c1(double a);
+unsigned int fxam_c2(double a);
+unsigned int fxam_c3(double a);
 
 
 double mem_32_to_double(unsigned int m);
@@ -382,6 +390,7 @@ double mem_64_to_double(uint64_t m);
 double int_16_to_double(unsigned int m);
 double int_32_to_double(unsigned int m);
 double int_64_to_double(uint64_t m);
+int16_t double_to_int_16(double d);
 int32_t double_to_int_32(double d);
 int64_t double_to_int_64(double d);
 double fadd(double a, double b);
