@@ -468,7 +468,7 @@ def rcr(ir, instr, a, b):
     return e, []
 
 
-def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None):
+def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None, left=False):
     """Template for generate shifter with operation @op
     A temporary basic block is generated to handle 0-shift
     @op: operation to execute
@@ -493,6 +493,8 @@ def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None):
         # Overflow behavior if (shift / size % 2)
         cond_overflow = ((c - m2_expr.ExprInt(1, size=c.size)) &
                          m2_expr.ExprInt(a.size, c.size))
+        if left:
+            mask = ~mask
         mask = m2_expr.ExprCond(cond_overflow, ~mask, mask)
 
         # Build res with dst and src
@@ -602,26 +604,7 @@ def shld_cl(ir, instr, a, b):
 
 
 def shld(ir, instr, a, b, c):
-    e = []
-    shifter = c.zeroExtend(a.size) & m2_expr.ExprInt_from(a, 0x1f)
-    c = m2_expr.ExprOp('|',
-               a << shifter,
-               b >> (m2_expr.ExprInt_from(a, a.size) - shifter)
-               )
-
-    new_cf = (a >> (m2_expr.ExprInt_from(a, a.size) - shifter))[:1]
-    e.append(m2_expr.ExprAff(cf, m2_expr.ExprCond(shifter,
-                                  new_cf,
-                                  cf)
-                     )
-             )
-    # XXX todo: don't update flag if shifter is 0
-    e += update_flag_znp(c)
-    e.append(m2_expr.ExprAff(of, c.msb() ^ new_cf))
-    e.append(m2_expr.ExprAff(a, m2_expr.ExprCond(shifter,
-                                 c,
-                                 a)))
-    return e, []
+    return _shift_tpl("<<<", ir, instr, a, b, c, ">>>", left=True)
 
 
 # XXX todo ###
