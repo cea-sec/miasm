@@ -7,7 +7,9 @@ from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm2.analysis import debugging
 from miasm2.jitter.jitload import log_func
 
+
 class Sandbox(object):
+
     """
     Parent class for Sandbox abstraction
     """
@@ -29,9 +31,9 @@ class Sandbox(object):
 
             yield base_cls
 
-    classes = property(lambda x:x.__class__._classes_())
+    classes = property(lambda x: x.__class__._classes_())
 
-    def __init__(self, fname, options, custom_methods = {}):
+    def __init__(self, fname, options, custom_methods={}):
         """
         Initialize a sandbox
         @fname: str file name
@@ -84,7 +86,8 @@ class Sandbox(object):
         parser.add_argument("-j", "--jitter",
                             help="Jitter engine. Possible values are: tcc (default), llvm, python",
                             default="tcc")
-        parser.add_argument('-q', "--quiet-function-calls", action="store_true",
+        parser.add_argument(
+            '-q', "--quiet-function-calls", action="store_true",
                             help="Don't log function calls")
         parser.add_argument('-i', "--dependencies", action="store_true",
                             help="Load PE and its dependencies")
@@ -123,6 +126,7 @@ class Sandbox(object):
 
 
 class OS(object):
+
     """
     Parent class for OS abstraction
     """
@@ -136,12 +140,14 @@ class OS(object):
 
 
 class Arch(object):
+
     """
     Parent class for Arch abstraction
     """
 
     # Architecture name
     _ARCH_ = None
+
     def __init__(self):
         self.machine = Machine(self._ARCH_)
         self.jitter = self.machine.jitter(self.options.jitter)
@@ -216,7 +222,8 @@ class OS_Win(OS):
             win_api_x86_32_seh.init_seh(self.jitter)
             win_api_x86_32_seh.set_win_fs_0(self.jitter)
 
-        self.entry_point =  self.pe.rva2virt(self.pe.Opthdr.AddressOfEntryPoint)
+        self.entry_point = self.pe.rva2virt(
+            self.pe.Opthdr.AddressOfEntryPoint)
 
     @classmethod
     def update_parser(cls, parser):
@@ -254,7 +261,9 @@ class OS_Linux(OS):
         # Library calls handler
         self.jitter.add_lib_handler(self.libs, methods)
 
+
 class OS_Linux_str(OS):
+
     def __init__(self, custom_methods, *args, **kwargs):
         from miasm2.jitter.loader.elf import libimp_elf
         from miasm2.os_dep import linux_stdlib
@@ -269,7 +278,8 @@ class OS_Linux_str(OS):
 
         data = open(self.fname).read()
         self.options.load_base_addr = int(self.options.load_base_addr, 0)
-        self.jitter.vm.add_memory_page(self.options.load_base_addr, PAGE_READ | PAGE_WRITE, data)
+        self.jitter.vm.add_memory_page(
+            self.options.load_base_addr, PAGE_READ | PAGE_WRITE, data)
 
         # Library calls handler
         self.jitter.add_lib_handler(libs, methods)
@@ -280,7 +290,7 @@ class OS_Linux_str(OS):
 
 
 class Arch_x86(Arch):
-    _ARCH_ = None # Arch name
+    _ARCH_ = None  # Arch name
     STACK_SIZE = 0x10000
     STACK_BASE = 0x130000
 
@@ -288,8 +298,8 @@ class Arch_x86(Arch):
         super(Arch_x86, self).__init__()
 
         if self.options.usesegm:
-            self.jitter.ir_arch.do_stk_segm=  True
-            self.jitter.ir_arch.do_ds_segm=  True
+            self.jitter.ir_arch.do_stk_segm = True
+            self.jitter.ir_arch.do_ds_segm = True
             self.jitter.ir_arch.do_str_segm = True
             self.jitter.ir_arch.do_all_segm = True
 
@@ -298,11 +308,10 @@ class Arch_x86(Arch):
         self.jitter.stack_base = self.STACK_BASE
         self.jitter.init_stack()
 
-
     @classmethod
     def update_parser(cls, parser):
         parser.add_argument('-s', "--usesegm", action="store_true",
-                          help="Use segments")
+                            help="Use segments")
 
 
 class Arch_x86_32(Arch_x86):
@@ -326,6 +335,7 @@ class Arch_arml(Arch):
         self.jitter.stack_base = self.STACK_BASE
         self.jitter.init_stack()
 
+
 class Arch_armb(Arch):
     _ARCH_ = "armb"
     STACK_SIZE = 0x100000
@@ -338,6 +348,7 @@ class Arch_armb(Arch):
         self.jitter.stack_size = self.STACK_SIZE
         self.jitter.stack_base = self.STACK_BASE
         self.jitter.init_stack()
+
 
 class Arch_aarch64l(Arch):
     _ARCH_ = "aarch64l"
@@ -367,7 +378,6 @@ class Arch_aarch64b(Arch):
         self.jitter.init_stack()
 
 
-
 class Sandbox_Win_x86_32(Sandbox, Arch_x86_32, OS_Win):
 
     def __init__(self, *args, **kwargs):
@@ -382,8 +392,7 @@ class Sandbox_Win_x86_32(Sandbox, Arch_x86_32, OS_Win):
         # Set the runtime guard
         self.jitter.add_breakpoint(0x1337beef, self.__class__.code_sentinelle)
 
-
-    def run(self, addr = None):
+    def run(self, addr=None):
         """
         If addr is not set, use entrypoint
         """
@@ -407,8 +416,7 @@ class Sandbox_Win_x86_64(Sandbox, Arch_x86_64, OS_Win):
         # Set the runtime guard
         self.jitter.add_breakpoint(0x1337beef, self.__class__.code_sentinelle)
 
-
-    def run(self, addr = None):
+    def run(self, addr=None):
         """
         If addr is not set, use entrypoint
         """
@@ -431,8 +439,7 @@ class Sandbox_Linux_x86_32(Sandbox, Arch_x86_32, OS_Linux):
         # Set the runtime guard
         self.jitter.add_breakpoint(0x1337beef, self.__class__.code_sentinelle)
 
-
-    def run(self, addr = None):
+    def run(self, addr=None):
         """
         If addr is not set, use entrypoint
         """
@@ -456,8 +463,7 @@ class Sandbox_Linux_x86_64(Sandbox, Arch_x86_64, OS_Linux):
         # Set the runtime guard
         self.jitter.add_breakpoint(0x1337beef, self.__class__.code_sentinelle)
 
-
-    def run(self, addr = None):
+    def run(self, addr=None):
         """
         If addr is not set, use entrypoint
         """
@@ -476,11 +482,11 @@ class Sandbox_Linux_arml(Sandbox, Arch_arml, OS_Linux):
         # Set the runtime guard
         self.jitter.add_breakpoint(0x1337beef, self.__class__.code_sentinelle)
 
-
-    def run(self, addr = None):
+    def run(self, addr=None):
         if addr is None and self.options.address is not None:
             addr = int(self.options.address, 16)
         super(Sandbox_Linux_arml, self).run(addr)
+
 
 class Sandbox_Linux_armb_str(Sandbox, Arch_armb, OS_Linux_str):
 
@@ -492,8 +498,7 @@ class Sandbox_Linux_armb_str(Sandbox, Arch_armb, OS_Linux_str):
         # Set the runtime guard
         self.jitter.add_breakpoint(0x1337beef, self.__class__.code_sentinelle)
 
-
-    def run(self, addr = None):
+    def run(self, addr=None):
         if addr is None and self.options.address is not None:
             addr = int(self.options.address, 0)
         super(Sandbox_Linux_armb_str, self).run(addr)
@@ -509,8 +514,7 @@ class Sandbox_Linux_arml_str(Sandbox, Arch_arml, OS_Linux_str):
         # Set the runtime guard
         self.jitter.add_breakpoint(0x1337beef, self.__class__.code_sentinelle)
 
-
-    def run(self, addr = None):
+    def run(self, addr=None):
         if addr is None and self.options.address is not None:
             addr = int(self.options.address, 0)
         super(Sandbox_Linux_arml_str, self).run(addr)
@@ -526,8 +530,7 @@ class Sandbox_Linux_aarch64l(Sandbox, Arch_aarch64l, OS_Linux):
         # Set the runtime guard
         self.jitter.add_breakpoint(0x1337beef, self.__class__.code_sentinelle)
 
-
-    def run(self, addr = None):
+    def run(self, addr=None):
         if addr is None and self.options.address is not None:
             addr = int(self.options.address, 0)
         super(Sandbox_Linux_aarch64l, self).run(addr)
