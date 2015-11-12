@@ -481,15 +481,34 @@ def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None):
         shifter = get_shift(a, b)
 
     res = m2_expr.ExprOp(op, a, shifter)
+    cf_from_dst = m2_expr.ExprOp(op, a,
+                                 (shifter - m2_expr.ExprInt_from(a, 1)))[:1]
     if c is not None:
-        shifter_inv = m2_expr.ExprInt_from(a, a.size) - c.zeroExtend(a.size)
-        res |= m2_expr.ExprOp(op_inv, b,
-                              shifter_inv)
+        # There is a source for new bits
+        i1 = m2_expr.ExprInt(1, size=a.size)
+        isize = m2_expr.ExprInt(a.size, size=a.size)
+        mask = m2_expr.ExprOp(op_inv, i1, (isize - shifter)) - i1
+
+        # An overflow can occured, emulate the 'undefined behavior'
+        # Overflow behavior if (shift / size % 2)
+        cond_overflow = ((c - m2_expr.ExprInt(1, size=c.size)) &
+                         m2_expr.ExprInt(a.size, c.size))
+        mask = m2_expr.ExprCond(cond_overflow, ~mask, mask)
+
+        # Build res with dst and src
+        res = ((m2_expr.ExprOp(op, a, shifter) & mask) |
+               (m2_expr.ExprOp(op_inv, b, (isize - shifter)) & ~mask))
+
+        # Overflow case: cf come from src (bit number shifter % size)
+        cf_from_src = m2_expr.ExprOp(op, b,
+                                     (c.zeroExtend(b.size) & m2_expr.ExprInt(a.size - 1, b.size)) - i1)[:1]
+        new_cf = m2_expr.ExprCond(cond_overflow, cf_from_src, cf_from_dst)
+
+    else:
+        new_cf = cf_from_dst
 
     lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
     lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-
-    new_cf = m2_expr.ExprOp(op, a,(shifter - m2_expr.ExprInt_from(a, 1)))[:1]
 
     e_do = [
         m2_expr.ExprAff(cf, new_cf),
@@ -541,7 +560,7 @@ def shrd_cl(ir, instr, a, b):
 
 
 def shrd(ir, instr, a, b, c):
-    return _shift_tpl(">>", ir, instr, a, b, c, "<<")
+    return _shift_tpl(">>>", ir, instr, a, b, c, "<<<")
 
 
 def sal(ir, instr, a, b):
