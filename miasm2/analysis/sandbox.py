@@ -86,6 +86,8 @@ class Sandbox(object):
                             default="tcc")
         parser.add_argument('-q', "--quiet-function-calls", action="store_true",
                             help="Don't log function calls")
+        parser.add_argument('-i', "--dependencies", action="store_true",
+                            help="Load PE and its dependencies")
 
         for base_cls in cls._classes_():
             base_cls.update_parser(parser)
@@ -155,9 +157,11 @@ class OS_Win(OS):
                    "ole32.dll", "urlmon.dll",
                    "ws2_32.dll", 'advapi32.dll', "psapi.dll",
                ]
+    modules_path = "win_dll"
 
     def __init__(self, custom_methods, *args, **kwargs):
-        from miasm2.jitter.loader.pe import vm_load_pe, vm_load_pe_libs, preload_pe, libimp_pe
+        from miasm2.jitter.loader.pe import vm_load_pe, vm_load_pe_libs,\
+            preload_pe, libimp_pe, vm_load_pe_and_dependencies
         from miasm2.os_dep import win_api_x86_32
         methods = win_api_x86_32.__dict__
         methods.update(custom_methods)
@@ -169,20 +173,32 @@ class OS_Win(OS):
         self.libs = libs
         win_api_x86_32.winobjs.runtime_dll = libs
 
-        # Load library
-        if self.options.loadbasedll:
-            all_pe = []
-
-            # Load libs in memory
-            all_pe = vm_load_pe_libs(self.jitter.vm, self.ALL_IMP_DLL, libs)
-
-            # Patch libs imports
-            for pe in all_pe.values():
-                preload_pe(self.jitter.vm, pe, libs)
+        self.name2module = {}
 
         # Load main pe
         with open(self.fname) as fstream:
             self.pe = vm_load_pe(self.jitter.vm, fstream.read())
+            self.name2module[self.fname] = self.pe
+
+        # Load library
+        if self.options.loadbasedll:
+
+            # Load libs in memory
+            self.name2module.update(vm_load_pe_libs(self.jitter.vm,
+                                                    self.ALL_IMP_DLL,
+                                                    libs,
+                                                    self.modules_path))
+
+            # Patch libs imports
+            for pe in self.name2module.itervalues():
+                preload_pe(self.jitter.vm, pe, libs)
+
+        if self.options.dependencies:
+            vm_load_pe_and_dependencies(self.jitter.vm,
+                                        self.fname,
+                                        self.name2module,
+                                        libs,
+                                        self.modules_path)
 
         win_api_x86_32.winobjs.current_pe = self.pe
 

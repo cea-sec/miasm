@@ -10,12 +10,24 @@ from elfesteem import *
 from miasm2.jitter.csts import *
 from miasm2.jitter.loader.utils import canon_libname_libfunc, libimp
 
-
 log = logging.getLogger('loader_pe')
 hnd = logging.StreamHandler()
 hnd.setFormatter(logging.Formatter("[%(levelname)s]: %(message)s"))
 log.addHandler(hnd)
-log.setLevel(logging.CRITICAL)
+log.setLevel(logging.INFO)
+
+
+def get_pe_dependencies(pe_obj):
+    """Return dependency set
+    @pe_obj: pe object"""
+
+    if pe_obj.DirImport.impdesc is None:
+        return set()
+    out = set()
+    for dependency in pe_obj.DirImport.impdesc:
+        libname = dependency.dlldescname.name.lower()
+        out.add(libname)
+    return out
 
 
 def get_import_address_pe(e):
@@ -101,6 +113,7 @@ def vm_load_pe(vm, fdata, align_s=True, load_hdr=True, **kargs):
     If all sections are aligned, they will be mapped on several different pages
     Otherwise, a big page is created, containing all sections
     """
+
     # Parse and build a PE instance
     pe = pe_init.PE(fdata, **kargs)
 
@@ -197,6 +210,9 @@ def vm_load_pe_lib(vm, fname_in, libs, lib_path_base, **kargs):
     Return the corresponding PE instance
     Extra arguments are passed to vm_load_pe
     """
+
+    log.info('Loading module %r', fname_in)
+
     fname = os.path.join(lib_path_base, fname_in)
     with open(fname) as fstream:
         pe = vm_load_pe(vm, fstream.read(), **kargs)
@@ -204,7 +220,7 @@ def vm_load_pe_lib(vm, fname_in, libs, lib_path_base, **kargs):
     return pe
 
 
-def vm_load_pe_libs(vm, libs_name, libs, lib_path_base="win_dll", **kargs):
+def vm_load_pe_libs(vm, libs_name, libs, lib_path_base, **kargs):
     """Call vm_load_pe_lib on each @libs_name filename
     @vm: VmMngr instance
     @libs_name: list of str
@@ -217,7 +233,7 @@ def vm_load_pe_libs(vm, libs_name, libs, lib_path_base="win_dll", **kargs):
             for fname in libs_name}
 
 
-def vm_fix_imports_pe_libs(lib_imgs, libs, lib_path_base="win_dll",
+def vm_fix_imports_pe_libs(lib_imgs, libs, lib_path_base,
                            patch_vm_imp=True, **kargs):
     for e in lib_imgs.values():
         preload_pe(e, libs, patch_vm_imp)
@@ -303,7 +319,18 @@ def vm2pe(myjit, fname, libs=None, e_orig=None,
 
 class libimp_pe(libimp):
 
+    def __init__(self, *args, **kwargs):
+        super(libimp_pe, self).__init__(*args, **kwargs)
+        # dependency -> redirector
+        self.created_redirected_imports = {}
+
     def add_export_lib(self, e, name):
+        if name in self.created_redirected_imports:
+            log.error("%r has previously been created due to redirect\
+            imports due to %r. Change the loading order.",
+                      name, self.created_redirected_imports[name])
+            raise RuntimeError('Bad import: loading previously created import')
+
         self.all_exported_lib.append(e)
         # will add real lib addresses to database
         if name in self.name2off:
@@ -330,8 +357,6 @@ class libimp_pe(libimp):
                 ret = is_redirected_export(e, ad)
                 if ret:
                     exp_dname, exp_fname = ret
-                    # log.debug('export redirection %s' % imp_ord_or_name)
-                    # log.debug('source %s %s' % (exp_dname, exp_fname))
                     exp_dname = exp_dname + '.dll'
                     exp_dname = exp_dname.lower()
                     # if dll auto refes in redirection
@@ -341,17 +366,22 @@ class libimp_pe(libimp):
                             # schedule func
                             todo = [(imp_ord_or_name, ad)] + todo
                             continue
-                    elif not exp_dname in self.name2off:
-                        raise ValueError('load %r first' % exp_dname)
+                    else:
+                        # import redirected lib from non loaded dll
+                        if not exp_dname in self.name2off:
+                            log.warning("Create dummy entry for %r", exp_dname)
+                            self.created_redirected_imports.setdefault(
+                                exp_dname, set()).add(name)
+
+                        # Ensure import entry is created
+                        new_lib_base = self.lib_get_add_base(exp_dname)
+                        # Ensure function entry is created
+                        _ = self.lib_get_add_func(new_lib_base, exp_fname)
+
                     c_name = canon_libname_libfunc(exp_dname, exp_fname)
                     libad_tmp = self.name2off[exp_dname]
                     ad = self.lib_imp2ad[libad_tmp][exp_fname]
-                    # log.debug('%s' % hex(ad))
-                # if not imp_ord_or_name in self.lib_imp2dstad[libad]:
-                #    self.lib_imp2dstad[libad][imp_ord_or_name] = set()
-                # self.lib_imp2dstad[libad][imp_ord_or_name].add(dst_ad)
 
-                # log.debug('new imp %s %s' % (imp_ord_or_name, hex(ad)))
                 self.lib_imp2ad[libad][imp_ord_or_name] = ad
 
                 name_inv = dict([(x[1], x[0]) for x in self.name2off.items()])
@@ -413,6 +443,67 @@ class libimp_pe(libimp):
                 all_ads = all_ads[i + 1:]
 
         return new_lib
+
+
+def vm_load_pe_and_dependencies(vm, fname, name2module, runtime_lib,
+                                lib_path_base):
+    """Load a binary and all its dependencies. Returns a dictionnary containing
+    the association between binaries names and it's pe object
+
+    @vm: virtual memory manager instance
+    @fname: full path of the binary
+    @name2module: dict containing association between name and pe
+    object. Updated.
+    @runtime_lib: libimp instance
+    @lib_path_base: directory of the libraries containing dependencies
+
+    """
+
+    todo = [(fname, fname, 0)]
+    dependencies = []
+    weight2name = {}
+    done = set()
+
+    # Walk dependencies recursively
+    while todo:
+        name, fname, weight = todo.pop()
+        if name in done:
+            continue
+        done.add(name)
+        weight2name.setdefault(weight, set()).add(name)
+        if name in name2module:
+            pe_obj = name2module[name]
+        else:
+            try:
+                with open(fname) as fstream:
+                    log.info('Loading module %r', name)
+                    pe_obj = vm_load_pe(vm, fstream.read())
+            except IOError:
+                log.warning('Cannot open %s' % fname)
+                name2module[name] = None
+                continue
+            name2module[name] = pe_obj
+
+        new_dependencies = get_pe_dependencies(pe_obj)
+        todo += [(name, os.path.join(lib_path_base, name), weight - 1)
+                 for name in new_dependencies]
+
+    ordered_modules = sorted(weight2name.items())
+    for _, modules in ordered_modules:
+        for name in modules:
+            pe_obj = name2module[name]
+            if pe_obj is None:
+                continue
+            # Fix imports
+            if pe_obj.DirExport:
+                runtime_lib.add_export_lib(pe_obj, name)
+
+    for pe_obj in name2module.itervalues():
+        if pe_obj is None:
+            continue
+        preload_pe(vm, pe_obj, runtime_lib, patch_vm_imp=True)
+
+    return name2module
 
 # machine -> arch
 PE_machine = {0x14c: "x86_32",

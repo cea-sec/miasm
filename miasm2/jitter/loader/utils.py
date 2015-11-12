@@ -15,7 +15,7 @@ def canon_libname_libfunc(libname, libfunc):
         return str(dn), libfunc
 
 
-class libimp:
+class libimp(object):
 
     def __init__(self, lib_base_ad=0x71111000, **kargs):
         self.name2off = {}
