@@ -468,23 +468,28 @@ def rcr(ir, instr, a, b):
     return e, []
 
 
-def sar(ir, instr, a, b):
+def _shift_tpl(op, ir, instr, a, b, c=None):
+    """Template for generate shifter with operation `op`
+    A temporary basic block is generated to handle 0-shift
+    @op: operation to execute
+    @c (optional): if set, instruction has a bit provider
+    """
 
     shifter = get_shift(a, b)
-    c = m2_expr.ExprOp('a>>', a, shifter)
+    res = m2_expr.ExprOp(op, a, shifter)
 
     lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
     lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
 
-    new_cf = m2_expr.ExprOp('a>>', a,(shifter - m2_expr.ExprInt_from(a, 1)))[:1]
+    new_cf = m2_expr.ExprOp(op, a,(shifter - m2_expr.ExprInt_from(a, 1)))[:1]
 
     e_do = [
         m2_expr.ExprAff(cf, new_cf),
         m2_expr.ExprAff(of, m2_expr.ExprInt_from(of, 0)),
-        m2_expr.ExprAff(a, c),
+        m2_expr.ExprAff(a, res),
     ]
 
-    e_do += update_flag_znp(c)
+    e_do += update_flag_znp(res)
 
     # dont generate conditional shifter on constant
     if isinstance(shifter, m2_expr.ExprInt):
@@ -499,39 +504,14 @@ def sar(ir, instr, a, b):
     e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(shifter, lbl_do,
                                                         lbl_skip)))
     return e, [irbloc(lbl_do.name, [e_do])]
+
+
+def sar(ir, instr, a, b):
+    return _shift_tpl("a>>", ir, instr, a, b)
 
 
 def shr(ir, instr, a, b):
-
-    shifter = get_shift(a, b)
-    c = m2_expr.ExprOp('>>', a, shifter)
-
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-
-    new_cf = m2_expr.ExprOp('>>', a, (shifter - m2_expr.ExprInt_from(a, 1)))[:1]
-
-    e_do = [
-        m2_expr.ExprAff(cf, new_cf),
-        m2_expr.ExprAff(of, m2_expr.ExprInt_from(of, 0)),
-        m2_expr.ExprAff(a, c),
-    ]
-
-    e_do += update_flag_znp(c)
-
-    # dont generate conditional shifter on constant
-    if isinstance(shifter, m2_expr.ExprInt):
-        if int(shifter.arg) != 0:
-            return e_do, []
-        else:
-            return [], []
-
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-
-    e = []
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(shifter, lbl_do,
-                                                        lbl_skip)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+    return _shift_tpl(">>", ir, instr, a, b)
 
 
 def shrd_cl(ir, instr, a, b):
