@@ -512,7 +512,9 @@ def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None):
 
     e_do = [
         m2_expr.ExprAff(cf, new_cf),
-        m2_expr.ExprAff(of, m2_expr.ExprInt_from(of, 0)),
+        m2_expr.ExprAff(of, m2_expr.ExprCond(shifter - m2_expr.ExprInt(1, size=shifter.size),
+                                             m2_expr.ExprInt_from(of, 0),
+                                             b[:1] ^ a.msb())),
         m2_expr.ExprAff(a, res),
     ]
 
