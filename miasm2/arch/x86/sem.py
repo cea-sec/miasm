@@ -416,7 +416,7 @@ def get_shift(a, b):
     return shift
 
 def _rotate_tpl(ir, instr, a, b, op, left=False, include_cf=False):
-    """Template for generate rotater with operation @op
+    """Template to generate a rotater with operation @op
     A temporary basic block is generated to handle 0-rotate
     @op: operation to execute
     @left (optional): indicates a left rotate if set, default is False
@@ -478,7 +478,7 @@ def rcr(ir, instr, a, b):
 
 def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None, left=False,
                custom_of=None):
-    """Template for generate shifter with operation @op
+    """Template to generate a shifter with operation @op
     A temporary basic block is generated to handle 0-shift
     @op: operation to execute
     @c (optional): if set, instruction has a bit provider
