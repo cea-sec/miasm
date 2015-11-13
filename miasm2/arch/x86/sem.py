@@ -415,6 +415,42 @@ def get_shift(a, b):
     shift = expr_simp(shift)
     return shift
 
+def _rotate_tpl(ir, instr, a, b, op, op_cf=None):
+    """Template for generate rotater with operation @op
+    A temporary basic block is generated to handle 0-rotate
+    @op: operation to execute
+    @op_cf (optional): operation to use for carry flag. If not set, use @op
+    """
+    if op_cf is None:
+        op_cf = op
+
+    shifter = get_shift(a, b)
+    res = m2_expr.ExprOp(op, a, shifter, cf.zeroExtend(a.size))
+    new_cf = m2_expr.ExprOp(op_cf, a, shifter, cf.zeroExtend(a.size))[:1]
+
+    # Build basic blocks
+    e_do = [
+        m2_expr.ExprAff(cf, new_cf),
+        # hack (only valid if b=1)
+        m2_expr.ExprAff(of, res.msb() ^ new_cf),
+        m2_expr.ExprAff(a, res),
+    ]
+
+    # Don't generate conditional shifter on constant
+    if isinstance(shifter, m2_expr.ExprInt):
+        if int(shifter.arg) != 0:
+            return e_do, []
+        else:
+            return [], []
+
+    e = []
+    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
+    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
+    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
+    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(shifter, lbl_do,
+                                                        lbl_skip)))
+    return e, [irbloc(lbl_do.name, [e_do])]
+
 
 def l_rol(ir, instr, a, b):
     e = []
@@ -442,16 +478,7 @@ def l_ror(ir, instr, a, b):
 
 
 def rcl(ir, instr, a, b):
-    e = []
-    shifter = get_shift(a, b)
-    c = m2_expr.ExprOp('<<<c_rez', a, shifter, cf.zeroExtend(a.size))
-    new_cf = m2_expr.ExprOp('<<<c_cf', a, shifter, cf.zeroExtend(a.size))[:1]
-
-    e.append(m2_expr.ExprAff(cf, new_cf))
-    # hack (only valid if b=1)
-    e.append(m2_expr.ExprAff(of, c.msb() ^ new_cf))
-    e.append(m2_expr.ExprAff(a, c))
-    return e, []
+    return _rotate_tpl(ir, instr, a, b, '<<<c_rez', '<<<c_cf')
 
 
 def rcr(ir, instr, a, b):
