@@ -315,6 +315,8 @@ to_test = [(ExprInt32(1) - ExprInt32(1), ExprInt32(0)),
      ExprInt32(0x91A2B3C)),
     (ExprOp(">>>c_rez", icustom, i1, i1),
      ExprInt32(0x891A2B3C)),
+    (ExprOp("idiv", ExprInt16(0x0123), ExprInt16(0xfffb))[:8],
+     ExprInt8(0xc6)),
 ]
 
 for e, e_check in to_test[:]:
