@@ -1345,8 +1345,7 @@ def jno(ir, instr, dst):
 def loop(ir, instr, dst):
     e = []
     meip = mRIP[instr.mode]
-    s = instr.v_opmode()
-    opmode, admode = s, instr.v_admode()
+    admode = instr.v_admode()
     myecx = mRCX[instr.mode][:admode]
 
     n = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
@@ -1363,13 +1362,12 @@ def loop(ir, instr, dst):
 def loopne(ir, instr, dst):
     e = []
     meip = mRIP[instr.mode]
-    s = instr.v_opmode()
-    opmode, admode = s, instr.v_admode()
+    admode = instr.v_admode()
     myecx = mRCX[instr.mode][:admode]
 
     n = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
 
-    c = m2_expr.ExprCond(mRCX[instr.mode][:s] - m2_expr.ExprInt(1, s),
+    c = m2_expr.ExprCond(myecx - m2_expr.ExprInt(1, size=myecx.size),
                  m2_expr.ExprInt1(1),
                  m2_expr.ExprInt1(0))
     c &= zf ^ m2_expr.ExprInt1(1)
@@ -1386,12 +1384,11 @@ def loopne(ir, instr, dst):
 def loope(ir, instr, dst):
     e = []
     meip = mRIP[instr.mode]
-    s = instr.v_opmode()
-    opmode, admode = s, instr.v_admode()
+    admode = instr.v_admode()
     myecx = mRCX[instr.mode][:admode]
 
     n = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    c = m2_expr.ExprCond(mRCX[instr.mode][:s] - m2_expr.ExprInt(1, s),
+    c = m2_expr.ExprCond(myecx - m2_expr.ExprInt(1, size=myecx.size),
                  m2_expr.ExprInt1(1),
                  m2_expr.ExprInt1(0))
     c &= zf
