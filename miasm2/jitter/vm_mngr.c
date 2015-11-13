@@ -873,13 +873,13 @@ int rcl_rez_op(unsigned int size, unsigned int a, unsigned int b, unsigned int c
     b -=1;
     switch(size){
 	    case 8+1:
-		    tmp = (tmp << b) | ((tmp&0x1FF) >> (size-b));
+		    tmp = (tmp << b) | ((a&0x1FF) >> (size-b-1));
 		    return tmp&0xff;
 	    case 16+1:
-		    tmp = (tmp << b) | ((tmp&0x1FFFF) >> (size-b));
+		    tmp = (tmp << b) | ((a&0x1FFFF) >> (size-b-1));
 		    return tmp&0xffff;
 	    case 32+1:
-		    tmp = (tmp << b) | ((tmp&0x1FFFFFFFFULL) >> (size-b));
+		    tmp = (tmp << b) | ((a&0x1FFFFFFFFULL) >> (size-b-1));
 		    return tmp&0xffffffff;
 	    default:
 		    fprintf(stderr, "inv size in rclleft %d\n", size);
