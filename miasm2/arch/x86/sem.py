@@ -482,7 +482,12 @@ def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None, left=False):
 
     res = m2_expr.ExprOp(op, a, shifter)
     cf_from_dst = m2_expr.ExprOp(op, a,
-                                 (shifter - m2_expr.ExprInt_from(a, 1)))[:1]
+                                 (shifter - m2_expr.ExprInt_from(a, 1)))
+    if left:
+        cf_from_dst = cf_from_dst.msb()
+    else:
+        cf_from_dst = cf_from_dst[:1]
+
     i1 = m2_expr.ExprInt(1, size=a.size)
     if c is not None:
         # There is a source for new bits
@@ -491,11 +496,12 @@ def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None, left=False):
 
         # An overflow can occured, emulate the 'undefined behavior'
         # Overflow behavior if (shift / size % 2)
-        cond_overflow = ((c - m2_expr.ExprInt(1, size=c.size)) &
-                         m2_expr.ExprInt(a.size, c.size))
+        base_cond_overflow = c if left else (c - m2_expr.ExprInt(1, size=c.size))
+        cond_overflow = base_cond_overflow & m2_expr.ExprInt(a.size, c.size)
         if left:
-            mask = ~mask
-        mask = m2_expr.ExprCond(cond_overflow, ~mask, mask)
+            mask = m2_expr.ExprCond(cond_overflow, mask, ~mask)
+        else:
+            mask = m2_expr.ExprCond(cond_overflow, ~mask, mask)
 
         # Build res with dst and src
         res = ((m2_expr.ExprOp(op, a, shifter) & mask) |
@@ -503,7 +509,11 @@ def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None, left=False):
 
         # Overflow case: cf come from src (bit number shifter % size)
         cf_from_src = m2_expr.ExprOp(op, b,
-                                     (c.zeroExtend(b.size) & m2_expr.ExprInt(a.size - 1, b.size)) - i1)[:1]
+                                     (c.zeroExtend(b.size) & m2_expr.ExprInt(a.size - 1, b.size)) - i1)
+        if left:
+            cf_from_src = cf_from_src.msb()
+        else:
+            cf_from_src = cf_from_src[:1]
         new_cf = m2_expr.ExprCond(cond_overflow, cf_from_src, cf_from_dst)
 
     else:
