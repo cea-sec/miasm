@@ -461,16 +461,7 @@ def _rotate_tpl(ir, instr, a, b, op, left=False, include_cf=False):
 
 
 def l_rol(ir, instr, a, b):
-    e = []
-    shifter = get_shift(a, b)
-    c = m2_expr.ExprOp('<<<', a, shifter)
-
-    new_cf = c[:1]
-    e.append(m2_expr.ExprAff(cf, new_cf))
-    # hack (only valid if b=1)
-    e.append(m2_expr.ExprAff(of, c.msb() ^ new_cf))
-    e.append(m2_expr.ExprAff(a, c))
-    return e, []
+    return _rotate_tpl(ir, instr, a, b, '<<<', left=True)
 
 
 def l_ror(ir, instr, a, b):
