@@ -80,7 +80,7 @@ FAKE_SEH_B_AD = context_address + 0x2000
 
 cur_seh_ad = FAKE_SEH_B_AD
 
-loaded_modules = ["ntdll.dll", "kernel32.dll"]
+name2module = []
 main_pe = None
 main_pe_name = "c:\\xxx\\toto.exe"
 
@@ -210,7 +210,7 @@ class LoadedModules(object):
         return "\n".join(out)
 
 
-def create_modules_chain(jitter, modules_name):
+def create_modules_chain(jitter, name2module):
     """
     Create the modules entries. Those modules are not linked in this function.
 
@@ -235,7 +235,7 @@ def create_modules_chain(jitter, modules_name):
     +0x04c PatchInformation : Ptr32 Void
 
     @jitter: jitter instance
-    @modules_name: a list of modules names
+    @name2module: dict containing association between name and its pe instance
     """
 
     modules_info = LoadedModules()
@@ -249,31 +249,18 @@ def create_modules_chain(jitter, modules_name):
     dummy_e.NThdr.sizeofimage = 0
 
     out = ""
-    for i, m in enumerate([(main_pe_name, main_pe),
-                           ("", dummy_e)] + modules_name):
+    for i, (fname, pe_obj) in enumerate([("", dummy_e)] + name2module.items()):
+        if pe_obj is None:
+            log.warning("Unknown module: ommited from link list (%r)",
+                        fname)
+            continue
         addr = base_addr + i * 0x1000
-        if isinstance(m, tuple):
-            fname, e = m
-        else:
-            fname, e = m, None
         bpath = fname.replace('/', '\\')
         bname_str = os.path.split(fname)[1].lower()
         bname = "\x00".join(bname_str) + "\x00"
-        if e is None:
-            if i == 0:
-                full_name = fname
-            else:
-                full_name = os.path.join("win_dll", fname)
-            try:
-                e = pe_init.PE(open(full_name, 'rb').read())
-            except IOError:
-                log.error('No main pe, ldr data will be unconsistant!')
-                e = None
-        if e is None:
-            continue
-        log.info("Add module %x %r", e.NThdr.ImageBase, bname_str)
+        log.info("Add module %x %r", pe_obj.NThdr.ImageBase, bname_str)
 
-        modules_info.add(bname_str, e, addr)
+        modules_info.add(bname_str, pe_obj, addr)
 
         m_o = ""
         m_o += pck32(0)
@@ -282,9 +269,9 @@ def create_modules_chain(jitter, modules_name):
         m_o += pck32(0)
         m_o += pck32(0)
         m_o += pck32(0)
-        m_o += pck32(e.NThdr.ImageBase)
-        m_o += pck32(e.rva2virt(e.Opthdr.AddressOfEntryPoint))
-        m_o += pck32(e.NThdr.sizeofimage)
+        m_o += pck32(pe_obj.NThdr.ImageBase)
+        m_o += pck32(pe_obj.rva2virt(pe_obj.Opthdr.AddressOfEntryPoint))
+        m_o += pck32(pe_obj.NThdr.sizeofimage)
         m_o += struct.pack('HH', len(bname), len(bname) + 2)
         m_o += pck32(addr + offset_path)
         m_o += struct.pack('HH', len(bname), len(bname) + 2)
@@ -321,7 +308,7 @@ def fix_InLoadOrderModuleList(jitter, modules_info):
     dummy_pe = modules_info.name2module.get("", None)
     special_modules = [main_pe, kernel32_pe, ntdll_pe, dummy_pe]
     if not all(special_modules):
-        log.warn('No main pe, ldr data will be unconsistant')
+        log.warn('No main pe, ldr data will be unconsistant %r', special_modules)
         loaded_modules = modules_info.modules
     else:
         loaded_modules = [module for module in modules_info.modules
@@ -461,7 +448,7 @@ def init_seh(jitter):
     build_teb(jitter, FS_0_AD)
     build_peb(jitter, peb_address)
 
-    modules_info = create_modules_chain(jitter, loaded_modules)
+    modules_info = create_modules_chain(jitter, name2module)
     fix_InLoadOrderModuleList(jitter, modules_info)
     fix_InMemoryOrderModuleList(jitter, modules_info)
     fix_InInitializationOrderModuleList(jitter, modules_info)

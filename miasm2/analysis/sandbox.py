@@ -1,3 +1,4 @@
+import os
 import logging
 from argparse import ArgumentParser
 
@@ -180,11 +181,12 @@ class OS_Win(OS):
         win_api_x86_32.winobjs.runtime_dll = libs
 
         self.name2module = {}
+        fname_basename = os.path.basename(self.fname).lower()
 
         # Load main pe
         with open(self.fname) as fstream:
             self.pe = vm_load_pe(self.jitter.vm, fstream.read())
-            self.name2module[self.fname] = self.pe
+            self.name2module[fname_basename] = self.pe
 
         # Load library
         if self.options.loadbasedll:
@@ -201,7 +203,7 @@ class OS_Win(OS):
 
         if self.options.dependencies:
             vm_load_pe_and_dependencies(self.jitter.vm,
-                                        self.fname,
+                                        fname_basename,
                                         self.name2module,
                                         libs,
                                         self.modules_path)
@@ -216,9 +218,9 @@ class OS_Win(OS):
 
         # Manage SEH
         if self.options.use_seh:
-            win_api_x86_32_seh.main_pe_name = self.fname
+            win_api_x86_32_seh.main_pe_name = fname_basename
             win_api_x86_32_seh.main_pe = self.pe
-            win_api_x86_32_seh.loaded_modules = self.ALL_IMP_DLL
+            win_api_x86_32_seh.name2module = self.name2module
             win_api_x86_32_seh.init_seh(self.jitter)
             win_api_x86_32_seh.set_win_fs_0(self.jitter)
 
