@@ -73,8 +73,8 @@ def update_flag_pf(a):
                                            a & m2_expr.ExprInt_from(a, 0xFF)))]
 
 
-def update_flag_af(expr):
-    return [m2_expr.ExprAff(af, expr[4:5])]
+def update_flag_af(op1, op2, res):
+    return [m2_expr.ExprAff(af, (op1 ^ op2 ^ res)[4:5])]
 
 
 def update_flag_znp(a):
@@ -286,7 +286,7 @@ def add(ir, instr, a, b):
     e = []
     c = a + b
     e += update_flag_arith(c)
-    e += update_flag_af(c)
+    e += update_flag_af(a, b, c)
     e += update_flag_add(a, b, c)
     e.append(m2_expr.ExprAff(a, c))
     return e, []
@@ -296,7 +296,7 @@ def xadd(ir, instr, a, b):
     e = []
     c = a + b
     e += update_flag_arith(c)
-    e += update_flag_af(c)
+    e += update_flag_af(a, b, c)
     e += update_flag_add(b, a, c)
     e.append(m2_expr.ExprAff(b, a))
     e.append(m2_expr.ExprAff(a, c))
@@ -309,7 +309,7 @@ def adc(ir, instr, a, b):
                                        1, a.size),
                               (cf, 0, 1)]))
     e += update_flag_arith(c)
-    e += update_flag_af(c)
+    e += update_flag_af(a, b, c)
     e += update_flag_add(a, b, c)
     e.append(m2_expr.ExprAff(a, c))
     return e, []
@@ -319,7 +319,7 @@ def sub(ir, instr, a, b):
     e = []
     c = a - b
     e += update_flag_arith(c)
-    e += update_flag_af(c)
+    e += update_flag_af(a, b, c)
     e += update_flag_sub(a, b, c)
     e.append(m2_expr.ExprAff(a, c))
     return e, []
@@ -333,7 +333,7 @@ def sbb(ir, instr, a, b):
                                        1, a.size),
                               (cf, 0, 1)]))
     e += update_flag_arith(c)
-    e += update_flag_af(c)
+    e += update_flag_af(a, b, c)
     e += update_flag_sub(a, b, c)
     e.append(m2_expr.ExprAff(a, c))
     return e, []
@@ -346,7 +346,7 @@ def neg(ir, instr, b):
     c = a - b
     e += update_flag_arith(c)
     e += update_flag_sub(a, b, c)
-    e += update_flag_af(c)
+    e += update_flag_af(a, b, c)
     e.append(m2_expr.ExprAff(b, c))
     return e, []
 
@@ -363,7 +363,7 @@ def l_cmp(ir, instr, a, b):
     c = a - b
     e += update_flag_arith(c)
     e += update_flag_sub(a, b, c)
-    e += update_flag_af(c)
+    e += update_flag_af(a, b, c)
     return e, []
 
 
@@ -659,7 +659,7 @@ def inc(ir, instr, a):
     b = m2_expr.ExprInt_from(a, 1)
     c = a + b
     e += update_flag_arith(c)
-    e += update_flag_af(c)
+    e += update_flag_af(a, b, c)
 
     e.append(update_flag_add_of(a, b, c))
     e.append(m2_expr.ExprAff(a, c))
@@ -670,7 +670,7 @@ def dec(ir, instr, a):
     b = m2_expr.ExprInt_from(a, -1)
     c = a + b
     e += update_flag_arith(c)
-    e += update_flag_af(c)
+    e += update_flag_af(a, b, ~c)
 
     e.append(update_flag_add_of(a, b, c))
     e.append(m2_expr.ExprAff(a, c))
