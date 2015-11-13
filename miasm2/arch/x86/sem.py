@@ -415,19 +415,25 @@ def get_shift(a, b):
     shift = expr_simp(shift)
     return shift
 
-def _rotate_tpl(ir, instr, a, b, op, left=False):
+def _rotate_tpl(ir, instr, a, b, op, left=False, include_cf=False):
     """Template for generate rotater with operation @op
     A temporary basic block is generated to handle 0-rotate
     @op: operation to execute
     @left (optional): indicates a left rotate if set, default is False
+    @include_cf (optional): if set, add cf to @op inputs, default is False
     """
+    # Compute results
     shifter = get_shift(a, b)
-    res = m2_expr.ExprOp(op, a, shifter, cf.zeroExtend(a.size))
+    extended_args = (cf.zeroExtend(a.size),) if include_cf else ()
+    res = m2_expr.ExprOp(op, a, shifter, *extended_args)
 
+    # CF is computed with 1-less round than `res`
     new_cf = m2_expr.ExprOp(op, a,
                             shifter - m2_expr.ExprInt(1, size=shifter.size),
-                            cf.zeroExtend(a.size))
+                            *extended_args)
     new_cf = new_cf.msb() if left else new_cf[:1]
+
+    # OF is defined only for @b == 1
     new_of = m2_expr.ExprCond(b - m2_expr.ExprInt(1, size=b.size),
                               m2_expr.ExprInt(0, size=of.size),
                               res.msb() ^ new_cf if left else (a ^ res).msb())
@@ -468,23 +474,15 @@ def l_rol(ir, instr, a, b):
 
 
 def l_ror(ir, instr, a, b):
-    e = []
-    shifter = get_shift(a, b)
-    c = m2_expr.ExprOp('>>>', a, shifter)
-
-    e.append(m2_expr.ExprAff(cf, c.msb()))
-    # hack (only valid if b=1): when count == 1: a = msb-1(dest)
-    e.append(m2_expr.ExprAff(of, (c ^ a).msb()))
-    e.append(m2_expr.ExprAff(a, c))
-    return e, []
+    return _rotate_tpl(ir, instr, a, b, '>>>')
 
 
 def rcl(ir, instr, a, b):
-    return _rotate_tpl(ir, instr, a, b, '<<<c_rez', left=True)
+    return _rotate_tpl(ir, instr, a, b, '<<<c_rez', left=True, include_cf=True)
 
 
 def rcr(ir, instr, a, b):
-    return _rotate_tpl(ir, instr, a, b, '>>>c_rez')
+    return _rotate_tpl(ir, instr, a, b, '>>>c_rez', include_cf=True)
 
 
 def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None, left=False):
