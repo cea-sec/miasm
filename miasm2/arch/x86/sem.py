@@ -429,11 +429,13 @@ def _rotate_tpl(ir, instr, a, b, op, op_cf=None, left=False):
     res = m2_expr.ExprOp(op, a, shifter, cf.zeroExtend(a.size))
     new_cf = m2_expr.ExprOp(op_cf, a, shifter, cf.zeroExtend(a.size))[:1]
 
+    new_of = m2_expr.ExprCond(b - m2_expr.ExprInt(1, size=b.size),
+                              m2_expr.ExprInt(0, size=of.size),
+                              res.msb() ^ new_cf if left else (a ^ res).msb())
     # Build basic blocks
     e_do = [
         m2_expr.ExprAff(cf, new_cf),
-        # hack (only valid if b=1)
-        m2_expr.ExprAff(of, res.msb() ^ new_cf),
+        m2_expr.ExprAff(of, new_of),
         m2_expr.ExprAff(a, res),
     ]
 
