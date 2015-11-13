@@ -327,6 +327,39 @@ def simp_cst_propagation(e_s, e):
                 new_args[i] = ExprOp(op, *arg), bound[i][0], bound[i][1]
             return ExprCompose(new_args)
 
+    # <<<c_rez, >>>c_rez
+    if op in [">>>c_rez", "<<<c_rez"]:
+        assert len(args) == 3
+        dest, rounds, cf = args
+        # Skipped if rounds is 0
+        if (isinstance(rounds, ExprInt) and
+            int(rounds.arg) == 0):
+            return dest
+        elif all(map(lambda x: isinstance(x, ExprInt), args)):
+            # The expression can be resolved
+            tmp = int(dest.arg)
+            cf = int(cf.arg)
+            size = dest.size
+            tmp_count = (int(rounds.arg) &
+                         (0x3f if size == 64 else 0x1f)) % (size + 1)
+            if op == ">>>c_rez":
+                while (tmp_count != 0):
+                    tmp_cf = tmp & 1;
+                    tmp = (tmp >> 1) + (cf << (size - 1))
+                    cf = tmp_cf
+                    tmp_count -= 1
+                    tmp &= int(dest.mask.arg)
+            elif op == "<<<c_rez":
+                while (tmp_count != 0):
+                    tmp_cf = (tmp >> (size - 1)) & 1
+                    tmp = (tmp << 1) + cf
+                    cf = tmp_cf
+                    tmp_count -= 1
+                    tmp &= int(dest.mask.arg)
+            else:
+                raise RuntimeError("Unknown operation: %s" % op)
+            return ExprInt(tmp, size=dest.size)
+
     return ExprOp(op, *args)
 
 

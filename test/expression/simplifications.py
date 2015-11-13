@@ -18,8 +18,10 @@ f = ExprId('f', size=64)
 m = ExprMem(a)
 s = a[:8]
 
+i0 = ExprInt(uint32(0x0))
 i1 = ExprInt(uint32(0x1))
 i2 = ExprInt(uint32(0x2))
+icustom = ExprInt(uint32(0x12345678))
 cc = ExprCond(a, b, c)
 
 o = ExprCompose([(a[:8], 8, 16),
@@ -301,6 +303,18 @@ to_test = [(ExprInt32(1) - ExprInt32(1), ExprInt32(0)),
     (expr_cmps(ExprInt32(-10), ExprInt32(-5)),
      ExprInt1(0)),
 
+    (ExprOp("<<<c_rez", i1, i0, i0),
+     i1),
+    (ExprOp("<<<c_rez", i1, i1, i0),
+     ExprInt32(2)),
+    (ExprOp("<<<c_rez", i1, i1, i1),
+     ExprInt32(3)),
+    (ExprOp(">>>c_rez", icustom, i0, i0),
+     icustom),
+    (ExprOp(">>>c_rez", icustom, i1, i0),
+     ExprInt32(0x91A2B3C)),
+    (ExprOp(">>>c_rez", icustom, i1, i1),
+     ExprInt32(0x891A2B3C)),
 ]
 
 for e, e_check in to_test[:]:
