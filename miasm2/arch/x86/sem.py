@@ -476,13 +476,15 @@ def rcr(ir, instr, a, b):
     return _rotate_tpl(ir, instr, a, b, '>>>c_rez', include_cf=True)
 
 
-def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None, left=False):
+def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None, left=False,
+               custom_of=None):
     """Template for generate shifter with operation @op
     A temporary basic block is generated to handle 0-shift
     @op: operation to execute
     @c (optional): if set, instruction has a bit provider
     @op_inv (optional): opposite operation of @op. Must be provided if @c
     @left (optional): indicates a left shift if set, default is False
+    @custom_of (optional): if set, override the computed value of OF
     """
     if c is not None:
         shifter = get_shift(a, c)
@@ -523,7 +525,10 @@ def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None, left=False):
         new_cf = m2_expr.ExprCond(cond_overflow, cf_from_src, cf_from_dst)
 
     # Overflow flag, only occured when shifter is equal to 1
-    value_of = a.msb() ^ a[-2:-1] if left else b[:1] ^ a.msb()
+    if custom_of is None:
+        value_of = a.msb() ^ a[-2:-1] if left else b[:1] ^ a.msb()
+    else:
+        value_of = custom_of
 
     # Build basic blocks
     e_do = [
@@ -552,7 +557,9 @@ def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None, left=False):
 
 
 def sar(ir, instr, a, b):
-    return _shift_tpl("a>>", ir, instr, a, b)
+    # Fixup OF, always cleared if b != 0
+    i0 = m2_expr.ExprInt(0, size=of.size)
+    return _shift_tpl("a>>", ir, instr, a, b, custom_of=i0)
 
 
 def shr(ir, instr, a, b):
