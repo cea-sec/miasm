@@ -415,11 +415,12 @@ def get_shift(a, b):
     shift = expr_simp(shift)
     return shift
 
-def _rotate_tpl(ir, instr, a, b, op, op_cf=None):
+def _rotate_tpl(ir, instr, a, b, op, op_cf=None, left=False):
     """Template for generate rotater with operation @op
     A temporary basic block is generated to handle 0-rotate
     @op: operation to execute
     @op_cf (optional): operation to use for carry flag. If not set, use @op
+    @left (optional): indicates a left rotate if set, default is False
     """
     if op_cf is None:
         op_cf = op
@@ -478,21 +479,11 @@ def l_ror(ir, instr, a, b):
 
 
 def rcl(ir, instr, a, b):
-    return _rotate_tpl(ir, instr, a, b, '<<<c_rez', '<<<c_cf')
+    return _rotate_tpl(ir, instr, a, b, '<<<c_rez', '<<<c_cf', left=True)
 
 
 def rcr(ir, instr, a, b):
-    e = []
-    shifter = get_shift(a, b)
-    c = m2_expr.ExprOp('>>>c_rez', a, shifter, cf.zeroExtend(a.size))
-    new_cf = m2_expr.ExprOp('>>>c_cf', a, shifter, cf.zeroExtend(a.size))[:1]
-
-    e.append(m2_expr.ExprAff(cf, new_cf))
-    # hack (only valid if b=1)
-    e.append(m2_expr.ExprAff(of, (a ^ c).msb()))
-    e.append(m2_expr.ExprAff(a, c))
-
-    return e, []
+    return _rotate_tpl(ir, instr, a, b, '>>>c_rez', '>>>c_cf')
 
 
 def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None, left=False):
