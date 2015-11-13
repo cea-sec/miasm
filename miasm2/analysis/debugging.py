@@ -167,8 +167,8 @@ class Debugguer(object):
         "Step in jit"
 
         self.myjit.jit.set_options(jit_maxline=1)
-        self.myjit.jit.addr_mod = interval([(self.myjit.pc, self.myjit.pc)])
-        self.myjit.jit.updt_automod_code(self.myjit.vm)
+        # Reset all jitted blocks
+        self.myjit.jit.clear_jitted_blocks()
 
         res = self.myjit.continue_run(step=True)
         self.handle_exception(res)

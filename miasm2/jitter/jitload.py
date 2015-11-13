@@ -8,6 +8,7 @@ from miasm2.jitter.csts import *
 from miasm2.core.utils import *
 from miasm2.core.bin_stream import bin_stream_vm
 from miasm2.ir.ir2C import init_arch_C
+from miasm2.core.interval import interval
 
 hnd = logging.StreamHandler()
 hnd.setFormatter(logging.Formatter("[%(levelname)s]: %(message)s"))
@@ -261,6 +262,10 @@ class jitter:
         """
         self.breakpoints_handler.add_callback(addr, callback)
         self.jit.add_disassembly_splits(addr)
+        # De-jit previously jitted blocks
+        self.jit.addr_mod = interval([(addr, addr)])
+        self.jit.updt_automod_code(self.vm)
+
 
     def set_breakpoint(self, addr, *args):
         """Set callbacks associated with addr.
