@@ -335,48 +335,6 @@ class _MetaMemStruct(type):
         super(_MetaMemStruct, cls).__init__(name, bases, dct)
         cls.gen_fields()
 
-    def gen_fields(cls, fields=None):
-        if fields is None:
-            fields = cls.fields
-        cls._attrs = {}
-        offset = 0
-        for name, field in cls.fields:
-            # For reflexion
-            field.set_self_type(cls)
-            cls.gen_attr(name, field, offset)
-            offset += field.size()
-        cls._size = offset
-
-    def gen_attr(cls, name, field, offset):
-        # FIXME: move to gen_simple_arg?
-        cls._attrs[name] = {"field": field, "offset": offset}
-        cls._gen_simple_attr(name, field, offset)
-        if isinstance(field, Union):
-            cls._gen_union_attr(field, offset)
-
-    def _gen_simple_attr(cls, name, field, offset):
-        # Generate self.<name> getter and setter
-        setattr(cls, name, property(
-            # default parameter allow to bind the value of name for a given
-            # loop iteration
-            lambda self, name=name: self.get_attr(name),
-            lambda self, val, name=name: self.set_attr(name, val)
-        ))
-
-        # Generate self.deref_<name> getter and setter if this field is a
-        # Ptr
-        if isinstance(field, Ptr):
-            setattr(cls, "deref_%s" % name, property(
-                lambda self, name=name: self.deref_attr(name),
-                lambda self, val, name=name: self.set_deref_attr(name, val)
-            ))
-
-    def _gen_union_attr(cls, union_field, offset):
-        if not isinstance(union_field, Union):
-            raise ValueError("field should be an Union instance")
-        for name, field in union_field.field_list:
-            cls.gen_attr(name, field, offset)
-
     def __repr__(cls):
         return cls.__name__
 
@@ -387,6 +345,8 @@ class MemStruct(object):
     fields = []
 
     _size = None
+
+    # Classic usage methods
 
     def __init__(self, vm, addr=None, *args, **kwargs):
         global allocator
@@ -494,6 +454,54 @@ class MemStruct(object):
 
     def __ne__(self, other):
         return not (self == other)
+
+    # Field generation methods, voluntarily public
+
+    @classmethod
+    def gen_fields(cls, fields=None):
+        if fields is None:
+            fields = cls.fields
+        cls._attrs = {}
+        offset = 0
+        for name, field in cls.fields:
+            # For reflexion
+            field.set_self_type(cls)
+            cls.gen_attr(name, field, offset)
+            offset += field.size()
+        cls._size = offset
+
+    @classmethod
+    def gen_attr(cls, name, field, offset):
+        # FIXME: move to gen_simple_arg?
+        cls._attrs[name] = {"field": field, "offset": offset}
+        cls._gen_simple_attr(name, field, offset)
+        if isinstance(field, Union):
+            cls._gen_union_attr(field, offset)
+
+    @classmethod
+    def _gen_simple_attr(cls, name, field, offset):
+        # Generate self.<name> getter and setter
+        setattr(cls, name, property(
+            # default parameter allow to bind the value of name for a given
+            # loop iteration
+            lambda self, name=name: self.get_attr(name),
+            lambda self, val, name=name: self.set_attr(name, val)
+        ))
+
+        # Generate self.deref_<name> getter and setter if this field is a
+        # Ptr
+        if isinstance(field, Ptr):
+            setattr(cls, "deref_%s" % name, property(
+                lambda self, name=name: self.deref_attr(name),
+                lambda self, val, name=name: self.set_deref_attr(name, val)
+            ))
+
+    @classmethod
+    def _gen_union_attr(cls, union_field, offset):
+        if not isinstance(union_field, Union):
+            raise ValueError("field should be an Union instance")
+        for name, field in union_field.field_list:
+            cls.gen_attr(name, field, offset)
 
 
 class MemSelf(MemStruct):
