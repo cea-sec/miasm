@@ -563,7 +563,7 @@ def sar(ir, instr, a, b):
 
 
 def shr(ir, instr, a, b):
-    return _shift_tpl(">>", ir, instr, a, b)
+    return _shift_tpl(">>", ir, instr, a, b, custom_of=a.msb())
 
 
 def shrd_cl(ir, instr, a, b):
