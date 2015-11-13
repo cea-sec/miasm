@@ -474,6 +474,7 @@ def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None, left=False):
     @op: operation to execute
     @c (optional): if set, instruction has a bit provider
     @op_inv (optional): opposite operation of @op. Must be provided if @c
+    @left (optional): indicates a left shift if set, default is False
     """
     if c is not None:
         shifter = get_shift(a, c)
@@ -483,11 +484,9 @@ def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None, left=False):
     res = m2_expr.ExprOp(op, a, shifter)
     cf_from_dst = m2_expr.ExprOp(op, a,
                                  (shifter - m2_expr.ExprInt_from(a, 1)))
-    if left:
-        cf_from_dst = cf_from_dst.msb()
-    else:
-        cf_from_dst = cf_from_dst[:1]
+    cf_from_dst = cf_from_dst.msb() if left else cf_from_dst[:1]
 
+    new_cf = cf_from_dst
     i1 = m2_expr.ExprInt(1, size=a.size)
     if c is not None:
         # There is a source for new bits
@@ -499,6 +498,7 @@ def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None, left=False):
         base_cond_overflow = c if left else (c - m2_expr.ExprInt(1, size=c.size))
         cond_overflow = base_cond_overflow & m2_expr.ExprInt(a.size, c.size)
         if left:
+            # Overflow occurs one round before right
             mask = m2_expr.ExprCond(cond_overflow, mask, ~mask)
         else:
             mask = m2_expr.ExprCond(cond_overflow, ~mask, mask)
@@ -509,20 +509,15 @@ def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None, left=False):
 
         # Overflow case: cf come from src (bit number shifter % size)
         cf_from_src = m2_expr.ExprOp(op, b,
-                                     (c.zeroExtend(b.size) & m2_expr.ExprInt(a.size - 1, b.size)) - i1)
-        if left:
-            cf_from_src = cf_from_src.msb()
-        else:
-            cf_from_src = cf_from_src[:1]
+                                     (c.zeroExtend(b.size) &
+                                      m2_expr.ExprInt(a.size - 1, b.size)) - i1)
+        cf_from_src = cf_from_src.msb() if left else cf_from_src[:1]
         new_cf = m2_expr.ExprCond(cond_overflow, cf_from_src, cf_from_dst)
 
-    else:
-        new_cf = cf_from_dst
-
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-
+    # Overflow flag, only occured when shifter is equal to 1
     value_of = a.msb() ^ a[-2:-1] if left else b[:1] ^ a.msb()
+
+    # Build basic blocks
     e_do = [
         m2_expr.ExprAff(cf, new_cf),
         m2_expr.ExprAff(of, m2_expr.ExprCond(shifter - i1,
@@ -530,19 +525,19 @@ def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None, left=False):
                                              value_of)),
         m2_expr.ExprAff(a, res),
     ]
-
     e_do += update_flag_znp(res)
 
-    # dont generate conditional shifter on constant
+    # Don't generate conditional shifter on constant
     if isinstance(shifter, m2_expr.ExprInt):
         if int(shifter.arg) != 0:
             return e_do, []
         else:
             return [], []
 
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-
     e = []
+    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
+    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
+    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
     e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(shifter, lbl_do,
                                                         lbl_skip)))
     return e, [irbloc(lbl_do.name, [e_do])]
