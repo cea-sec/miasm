@@ -847,7 +847,7 @@ uint64_t rot_right(uint64_t size, uint64_t a, uint64_t b)
 }
 
 
-int rcl_rez_op(unsigned int size, unsigned int a, unsigned int b, unsigned int cf)
+unsigned int rcl_rez_op(unsigned int size, unsigned int a, unsigned int b, unsigned int cf)
 {
     uint64_t tmp;
 
@@ -887,41 +887,10 @@ int rcl_rez_op(unsigned int size, unsigned int a, unsigned int b, unsigned int c
     }
 }
 
-int rcr_rez_op(unsigned int size, unsigned int a, unsigned int b, unsigned int cf)
+unsigned int rcr_rez_op(unsigned int size, unsigned int a, unsigned int b, unsigned int cf)
 {
 	return rcl_rez_op(size, a, size+1-b, cf);
 
-}
-
-
-int rcl_cf_op(unsigned int size, unsigned int a, unsigned int b, unsigned int cf)
-{
-    uint64_t tmp;
-
-    tmp = (cf<< size) | a;
-
-    size++;
-    b %= size;
-
-    switch(size){
-	    case 8+1:
-		    tmp = (tmp << b) | ((tmp&0x1FF) >> (size-b));
-		    return (tmp>>8)&1;
-	    case 16+1:
-		    tmp = (tmp << b) | ((tmp&0x1FFFF) >> (size-b));
-		    return (tmp>>16)&1;
-	    case 32+1:
-		    tmp = (tmp << b) | ((tmp&0x1FFFFFFFFULL) >> (size-b));
-		    return (tmp>>32)&1;
-	    default:
-		    fprintf(stderr, "inv size in rclleft %d\n", size);
-		    exit(0);
-    }
-}
-
-int rcr_cf_op(unsigned int size, unsigned int a, unsigned int b, unsigned int cf)
-{
-	return rcl_cf_op(size, a, size+1-b, cf);
 }
 
 unsigned int x86_bsr(uint64_t src, unsigned int size)
