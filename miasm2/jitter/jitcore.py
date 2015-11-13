@@ -61,6 +61,12 @@ class JitCore(object):
 
         self.options.update(kwargs)
 
+    def clear_jitted_blocks(self):
+        "Reset all jitted blocks"
+        self.lbl2jitbloc.clear()
+        self.lbl2bloc.clear()
+        self.blocs_mem_interval = interval()
+
     def add_disassembly_splits(self, *args):
         """The disassembly engine will stop on address in args if they
         are not at the block beginning"""
