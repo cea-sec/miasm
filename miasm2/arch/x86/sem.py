@@ -73,8 +73,8 @@ def update_flag_pf(a):
                                            a & m2_expr.ExprInt_from(a, 0xFF)))]
 
 
-def update_flag_af(expr):
-    return [m2_expr.ExprAff(af, expr[4:5])]
+def update_flag_af(op1, op2, res):
+    return [m2_expr.ExprAff(af, (op1 ^ op2 ^ res)[4:5])]
 
 
 def update_flag_znp(a):
@@ -286,7 +286,7 @@ def add(ir, instr, a, b):
     e = []
     c = a + b
     e += update_flag_arith(c)
-    e += update_flag_af(c)
+    e += update_flag_af(a, b, c)
     e += update_flag_add(a, b, c)
     e.append(m2_expr.ExprAff(a, c))
     return e, []
@@ -296,7 +296,7 @@ def xadd(ir, instr, a, b):
     e = []
     c = a + b
     e += update_flag_arith(c)
-    e += update_flag_af(c)
+    e += update_flag_af(a, b, c)
     e += update_flag_add(b, a, c)
     e.append(m2_expr.ExprAff(b, a))
     e.append(m2_expr.ExprAff(a, c))
@@ -309,7 +309,7 @@ def adc(ir, instr, a, b):
                                        1, a.size),
                               (cf, 0, 1)]))
     e += update_flag_arith(c)
-    e += update_flag_af(c)
+    e += update_flag_af(a, b, c)
     e += update_flag_add(a, b, c)
     e.append(m2_expr.ExprAff(a, c))
     return e, []
@@ -319,7 +319,7 @@ def sub(ir, instr, a, b):
     e = []
     c = a - b
     e += update_flag_arith(c)
-    e += update_flag_af(c)
+    e += update_flag_af(a, b, c)
     e += update_flag_sub(a, b, c)
     e.append(m2_expr.ExprAff(a, c))
     return e, []
@@ -333,7 +333,7 @@ def sbb(ir, instr, a, b):
                                        1, a.size),
                               (cf, 0, 1)]))
     e += update_flag_arith(c)
-    e += update_flag_af(c)
+    e += update_flag_af(a, b, c)
     e += update_flag_sub(a, b, c)
     e.append(m2_expr.ExprAff(a, c))
     return e, []
@@ -346,7 +346,7 @@ def neg(ir, instr, b):
     c = a - b
     e += update_flag_arith(c)
     e += update_flag_sub(a, b, c)
-    e += update_flag_af(c)
+    e += update_flag_af(a, b, c)
     e.append(m2_expr.ExprAff(b, c))
     return e, []
 
@@ -363,7 +363,7 @@ def l_cmp(ir, instr, a, b):
     c = a - b
     e += update_flag_arith(c)
     e += update_flag_sub(a, b, c)
-    e += update_flag_af(c)
+    e += update_flag_af(a, b, c)
     return e, []
 
 
@@ -415,123 +415,155 @@ def get_shift(a, b):
     shift = expr_simp(shift)
     return shift
 
+def _rotate_tpl(ir, instr, a, b, op, left=False, include_cf=False):
+    """Template to generate a rotater with operation @op
+    A temporary basic block is generated to handle 0-rotate
+    @op: operation to execute
+    @left (optional): indicates a left rotate if set, default is False
+    @include_cf (optional): if set, add cf to @op inputs, default is False
+    """
+    # Compute results
+    shifter = get_shift(a, b)
+    extended_args = (cf.zeroExtend(a.size),) if include_cf else ()
+    res = m2_expr.ExprOp(op, a, shifter, *extended_args)
+
+    # CF is computed with 1-less round than `res`
+    new_cf = m2_expr.ExprOp(op, a,
+                            shifter - m2_expr.ExprInt(1, size=shifter.size),
+                            *extended_args)
+    new_cf = new_cf.msb() if left else new_cf[:1]
+
+    # OF is defined only for @b == 1
+    new_of = m2_expr.ExprCond(b - m2_expr.ExprInt(1, size=b.size),
+                              m2_expr.ExprInt(0, size=of.size),
+                              res.msb() ^ new_cf if left else (a ^ res).msb())
+    # Build basic blocks
+    e_do = [
+        m2_expr.ExprAff(cf, new_cf),
+        m2_expr.ExprAff(of, new_of),
+        m2_expr.ExprAff(a, res),
+    ]
+
+    # Don't generate conditional shifter on constant
+    if isinstance(shifter, m2_expr.ExprInt):
+        if int(shifter.arg) != 0:
+            return e_do, []
+        else:
+            return [], []
+
+    e = []
+    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
+    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
+    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
+    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(shifter, lbl_do,
+                                                        lbl_skip)))
+    return e, [irbloc(lbl_do.name, [e_do])]
+
 
 def l_rol(ir, instr, a, b):
-    e = []
-    shifter = get_shift(a, b)
-    c = m2_expr.ExprOp('<<<', a, shifter)
-
-    new_cf = c[:1]
-    e.append(m2_expr.ExprAff(cf, new_cf))
-    # hack (only valid if b=1)
-    e.append(m2_expr.ExprAff(of, c.msb() ^ new_cf))
-    e.append(m2_expr.ExprAff(a, c))
-    return e, []
+    return _rotate_tpl(ir, instr, a, b, '<<<', left=True)
 
 
 def l_ror(ir, instr, a, b):
-    e = []
-    shifter = get_shift(a, b)
-    c = m2_expr.ExprOp('>>>', a, shifter)
-
-    e.append(m2_expr.ExprAff(cf, c.msb()))
-    # hack (only valid if b=1): when count == 1: a = msb-1(dest)
-    e.append(m2_expr.ExprAff(of, (c ^ a).msb()))
-    e.append(m2_expr.ExprAff(a, c))
-    return e, []
+    return _rotate_tpl(ir, instr, a, b, '>>>')
 
 
 def rcl(ir, instr, a, b):
-    e = []
-    shifter = get_shift(a, b)
-    c = m2_expr.ExprOp('<<<c_rez', a, shifter, cf.zeroExtend(a.size))
-    new_cf = m2_expr.ExprOp('<<<c_cf', a, shifter, cf.zeroExtend(a.size))[:1]
-
-    e.append(m2_expr.ExprAff(cf, new_cf))
-    # hack (only valid if b=1)
-    e.append(m2_expr.ExprAff(of, c.msb() ^ new_cf))
-    e.append(m2_expr.ExprAff(a, c))
-    return e, []
+    return _rotate_tpl(ir, instr, a, b, '<<<c_rez', left=True, include_cf=True)
 
 
 def rcr(ir, instr, a, b):
+    return _rotate_tpl(ir, instr, a, b, '>>>c_rez', include_cf=True)
+
+
+def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None, left=False,
+               custom_of=None):
+    """Template to generate a shifter with operation @op
+    A temporary basic block is generated to handle 0-shift
+    @op: operation to execute
+    @c (optional): if set, instruction has a bit provider
+    @op_inv (optional): opposite operation of @op. Must be provided if @c
+    @left (optional): indicates a left shift if set, default is False
+    @custom_of (optional): if set, override the computed value of OF
+    """
+    if c is not None:
+        shifter = get_shift(a, c)
+    else:
+        shifter = get_shift(a, b)
+
+    res = m2_expr.ExprOp(op, a, shifter)
+    cf_from_dst = m2_expr.ExprOp(op, a,
+                                 (shifter - m2_expr.ExprInt_from(a, 1)))
+    cf_from_dst = cf_from_dst.msb() if left else cf_from_dst[:1]
+
+    new_cf = cf_from_dst
+    i1 = m2_expr.ExprInt(1, size=a.size)
+    if c is not None:
+        # There is a source for new bits
+        isize = m2_expr.ExprInt(a.size, size=a.size)
+        mask = m2_expr.ExprOp(op_inv, i1, (isize - shifter)) - i1
+
+        # An overflow can occured, emulate the 'undefined behavior'
+        # Overflow behavior if (shift / size % 2)
+        base_cond_overflow = c if left else (c - m2_expr.ExprInt(1, size=c.size))
+        cond_overflow = base_cond_overflow & m2_expr.ExprInt(a.size, c.size)
+        if left:
+            # Overflow occurs one round before right
+            mask = m2_expr.ExprCond(cond_overflow, mask, ~mask)
+        else:
+            mask = m2_expr.ExprCond(cond_overflow, ~mask, mask)
+
+        # Build res with dst and src
+        res = ((m2_expr.ExprOp(op, a, shifter) & mask) |
+               (m2_expr.ExprOp(op_inv, b, (isize - shifter)) & ~mask))
+
+        # Overflow case: cf come from src (bit number shifter % size)
+        cf_from_src = m2_expr.ExprOp(op, b,
+                                     (c.zeroExtend(b.size) &
+                                      m2_expr.ExprInt(a.size - 1, b.size)) - i1)
+        cf_from_src = cf_from_src.msb() if left else cf_from_src[:1]
+        new_cf = m2_expr.ExprCond(cond_overflow, cf_from_src, cf_from_dst)
+
+    # Overflow flag, only occured when shifter is equal to 1
+    if custom_of is None:
+        value_of = a.msb() ^ a[-2:-1] if left else b[:1] ^ a.msb()
+    else:
+        value_of = custom_of
+
+    # Build basic blocks
+    e_do = [
+        m2_expr.ExprAff(cf, new_cf),
+        m2_expr.ExprAff(of, m2_expr.ExprCond(shifter - i1,
+                                             m2_expr.ExprInt_from(of, 0),
+                                             value_of)),
+        m2_expr.ExprAff(a, res),
+    ]
+    e_do += update_flag_znp(res)
+
+    # Don't generate conditional shifter on constant
+    if isinstance(shifter, m2_expr.ExprInt):
+        if int(shifter.arg) != 0:
+            return e_do, []
+        else:
+            return [], []
+
     e = []
-    shifter = get_shift(a, b)
-    c = m2_expr.ExprOp('>>>c_rez', a, shifter, cf.zeroExtend(a.size))
-    new_cf = m2_expr.ExprOp('>>>c_cf', a, shifter, cf.zeroExtend(a.size))[:1]
-
-    e.append(m2_expr.ExprAff(cf, new_cf))
-    # hack (only valid if b=1)
-    e.append(m2_expr.ExprAff(of, (a ^ c).msb()))
-    e.append(m2_expr.ExprAff(a, c))
-
-    return e, []
+    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
+    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
+    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
+    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(shifter, lbl_do,
+                                                        lbl_skip)))
+    return e, [irbloc(lbl_do.name, [e_do])]
 
 
 def sar(ir, instr, a, b):
-
-    shifter = get_shift(a, b)
-    c = m2_expr.ExprOp('a>>', a, shifter)
-
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-
-    new_cf = m2_expr.ExprOp('a>>', a,(shifter - m2_expr.ExprInt_from(a, 1)))[:1]
-
-    e_do = [
-        m2_expr.ExprAff(cf, new_cf),
-        m2_expr.ExprAff(of, m2_expr.ExprInt_from(of, 0)),
-        m2_expr.ExprAff(a, c),
-    ]
-
-    e_do += update_flag_znp(c)
-
-    # dont generate conditional shifter on constant
-    if isinstance(shifter, m2_expr.ExprInt):
-        if int(shifter.arg) != 0:
-            return e_do, []
-        else:
-            return [], []
-
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-
-    e = []
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(shifter, lbl_do,
-                                                        lbl_skip)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+    # Fixup OF, always cleared if b != 0
+    i0 = m2_expr.ExprInt(0, size=of.size)
+    return _shift_tpl("a>>", ir, instr, a, b, custom_of=i0)
 
 
 def shr(ir, instr, a, b):
-
-    shifter = get_shift(a, b)
-    c = m2_expr.ExprOp('>>', a, shifter)
-
-    lbl_do = m2_expr.ExprId(ir.gen_label(), instr.mode)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-
-    new_cf = m2_expr.ExprOp('>>', a, (shifter - m2_expr.ExprInt_from(a, 1)))[:1]
-
-    e_do = [
-        m2_expr.ExprAff(cf, new_cf),
-        m2_expr.ExprAff(of, m2_expr.ExprInt_from(of, 0)),
-        m2_expr.ExprAff(a, c),
-    ]
-
-    e_do += update_flag_znp(c)
-
-    # dont generate conditional shifter on constant
-    if isinstance(shifter, m2_expr.ExprInt):
-        if int(shifter.arg) != 0:
-            return e_do, []
-        else:
-            return [], []
-
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-
-    e = []
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(shifter, lbl_do,
-                                                        lbl_skip)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+    return _shift_tpl(">>", ir, instr, a, b, custom_of=a.msb())
 
 
 def shrd_cl(ir, instr, a, b):
@@ -553,20 +585,7 @@ def shrd_cl(ir, instr, a, b):
 
 
 def shrd(ir, instr, a, b, c):
-    e = []
-    shifter = get_shift(a, c)
-
-    d = (a >> shifter) | (b << (m2_expr.ExprInt_from(a, a.size) - shifter))
-    new_cf = (a >> (shifter - m2_expr.ExprInt_from(a, 1)))[:1]
-    e.append(m2_expr.ExprAff(cf, m2_expr.ExprCond(shifter,
-                                  new_cf,
-                                  cf)
-                     )
-             )
-    e.append(m2_expr.ExprAff(of, a.msb()))
-    e += update_flag_znp(d)
-    e.append(m2_expr.ExprAff(a, d))
-    return e, []
+    return _shift_tpl(">>>", ir, instr, a, b, c, "<<<")
 
 
 def sal(ir, instr, a, b):
@@ -586,19 +605,7 @@ def sal(ir, instr, a, b):
 
 
 def shl(ir, instr, a, b):
-    e = []
-    shifter = get_shift(a, b)
-    c = a << shifter
-    new_cf = (a >> (m2_expr.ExprInt_from(a, a.size) - shifter))[:1]
-    e.append(m2_expr.ExprAff(cf, m2_expr.ExprCond(shifter,
-                                  new_cf,
-                                  cf)
-                     )
-             )
-    e += update_flag_znp(c)
-    e.append(m2_expr.ExprAff(of, c.msb() ^ new_cf))
-    e.append(m2_expr.ExprAff(a, c))
-    return e, []
+    return _shift_tpl("<<", ir, instr, a, b, left=True)
 
 
 def shld_cl(ir, instr, a, b):
@@ -606,26 +613,7 @@ def shld_cl(ir, instr, a, b):
 
 
 def shld(ir, instr, a, b, c):
-    e = []
-    shifter = c.zeroExtend(a.size) & m2_expr.ExprInt_from(a, 0x1f)
-    c = m2_expr.ExprOp('|',
-               a << shifter,
-               b >> (m2_expr.ExprInt_from(a, a.size) - shifter)
-               )
-
-    new_cf = (a >> (m2_expr.ExprInt_from(a, a.size) - shifter))[:1]
-    e.append(m2_expr.ExprAff(cf, m2_expr.ExprCond(shifter,
-                                  new_cf,
-                                  cf)
-                     )
-             )
-    # XXX todo: don't update flag if shifter is 0
-    e += update_flag_znp(c)
-    e.append(m2_expr.ExprAff(of, c.msb() ^ new_cf))
-    e.append(m2_expr.ExprAff(a, m2_expr.ExprCond(shifter,
-                                 c,
-                                 a)))
-    return e, []
+    return _shift_tpl("<<<", ir, instr, a, b, c, ">>>", left=True)
 
 
 # XXX todo ###
@@ -671,7 +659,7 @@ def inc(ir, instr, a):
     b = m2_expr.ExprInt_from(a, 1)
     c = a + b
     e += update_flag_arith(c)
-    e += update_flag_af(c)
+    e += update_flag_af(a, b, c)
 
     e.append(update_flag_add_of(a, b, c))
     e.append(m2_expr.ExprAff(a, c))
@@ -682,7 +670,7 @@ def dec(ir, instr, a):
     b = m2_expr.ExprInt_from(a, -1)
     c = a + b
     e += update_flag_arith(c)
-    e += update_flag_af(c)
+    e += update_flag_af(a, b, ~c)
 
     e.append(update_flag_add_of(a, b, c))
     e.append(m2_expr.ExprAff(a, c))
@@ -1357,8 +1345,7 @@ def jno(ir, instr, dst):
 def loop(ir, instr, dst):
     e = []
     meip = mRIP[instr.mode]
-    s = instr.v_opmode()
-    opmode, admode = s, instr.v_admode()
+    admode = instr.v_admode()
     myecx = mRCX[instr.mode][:admode]
 
     n = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
@@ -1375,13 +1362,12 @@ def loop(ir, instr, dst):
 def loopne(ir, instr, dst):
     e = []
     meip = mRIP[instr.mode]
-    s = instr.v_opmode()
-    opmode, admode = s, instr.v_admode()
+    admode = instr.v_admode()
     myecx = mRCX[instr.mode][:admode]
 
     n = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
 
-    c = m2_expr.ExprCond(mRCX[instr.mode][:s] - m2_expr.ExprInt(1, s),
+    c = m2_expr.ExprCond(myecx - m2_expr.ExprInt(1, size=myecx.size),
                  m2_expr.ExprInt1(1),
                  m2_expr.ExprInt1(0))
     c &= zf ^ m2_expr.ExprInt1(1)
@@ -1398,12 +1384,11 @@ def loopne(ir, instr, dst):
 def loope(ir, instr, dst):
     e = []
     meip = mRIP[instr.mode]
-    s = instr.v_opmode()
-    opmode, admode = s, instr.v_admode()
+    admode = instr.v_admode()
     myecx = mRCX[instr.mode][:admode]
 
     n = m2_expr.ExprId(ir.get_next_label(instr), instr.mode)
-    c = m2_expr.ExprCond(mRCX[instr.mode][:s] - m2_expr.ExprInt(1, s),
+    c = m2_expr.ExprCond(myecx - m2_expr.ExprInt(1, size=myecx.size),
                  m2_expr.ExprInt1(1),
                  m2_expr.ExprInt1(0))
     c &= zf

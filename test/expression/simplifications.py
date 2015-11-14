@@ -60,7 +60,10 @@ to_test = [(ExprInt32(1) - ExprInt32(1), ExprInt32(0)),
             ExprOp('<<<', a, (b-c))),
            (ExprOp('>>>', ExprOp('<<<', a, b), b),
             a),
-
+           (ExprOp(">>>", ExprInt16(0x1000), ExprInt16(0x11)),
+            ExprInt16(0x800)),
+           (ExprOp("<<<", ExprInt16(0x1000), ExprInt16(0x11)),
+            ExprInt16(0x2000)),
 
            (ExprOp('>>>', ExprOp('<<<', a, ExprInt32(10)), ExprInt32(2)),
             ExprOp('<<<', a, ExprInt32(8))),

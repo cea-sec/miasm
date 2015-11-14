@@ -23,9 +23,7 @@ class TranslatorC(Translator):
                'div32': "div_op",
                'idiv32': "div_op",  # XXX to test
                '<<<c_rez': 'rcl_rez_op',
-               '<<<c_cf': 'rcl_cf_op',
                '>>>c_rez': 'rcr_rez_op',
-               '>>>c_cf': 'rcr_cf_op',
                }
 
 

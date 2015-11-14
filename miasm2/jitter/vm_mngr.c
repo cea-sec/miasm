@@ -847,81 +847,40 @@ uint64_t rot_right(uint64_t size, uint64_t a, uint64_t b)
 }
 
 
-int rcl_rez_op(unsigned int size, unsigned int a, unsigned int b, unsigned int cf)
+unsigned int rcl_rez_op(unsigned int size, unsigned int a, unsigned int b, unsigned int cf)
 {
     uint64_t tmp;
+    uint64_t tmp_count;
+    uint64_t tmp_cf;
 
-
-    size++;
-    b %= size;
-
-    if (b == 0) {
-	    switch(size){
-		    case 8+1:
-			    return a&0xff;
-		    case 16+1:
-			    return a&0xffff;
-		    case 32+1:
-			    return a&0xffffffff;
-		    default:
-			    fprintf(stderr, "inv size in rclleft %d\n", size);
-			    exit(0);
-	    }
+    tmp = a;
+    // TODO 64bit mode
+    tmp_count = (b & 0x1f) % (size + 1);
+    while (tmp_count != 0) {
+	    tmp_cf = (tmp >> (size - 1)) & 1;
+	    tmp = (tmp << 1) + cf;
+	    cf = tmp_cf;
+	    tmp_count -= 1;
     }
-
-    tmp = (a<<1) | cf;
-    b -=1;
-    switch(size){
-	    case 8+1:
-		    tmp = (tmp << b) | ((tmp&0x1FF) >> (size-b));
-		    return tmp&0xff;
-	    case 16+1:
-		    tmp = (tmp << b) | ((tmp&0x1FFFF) >> (size-b));
-		    return tmp&0xffff;
-	    case 32+1:
-		    tmp = (tmp << b) | ((tmp&0x1FFFFFFFFULL) >> (size-b));
-		    return tmp&0xffffffff;
-	    default:
-		    fprintf(stderr, "inv size in rclleft %d\n", size);
-		    exit(0);
-    }
+    return tmp;
 }
 
-int rcr_rez_op(unsigned int size, unsigned int a, unsigned int b, unsigned int cf)
-{
-	return rcl_rez_op(size, a, size+1-b, cf);
-
-}
-
-
-int rcl_cf_op(unsigned int size, unsigned int a, unsigned int b, unsigned int cf)
+unsigned int rcr_rez_op(unsigned int size, unsigned int a, unsigned int b, unsigned int cf)
 {
     uint64_t tmp;
+    uint64_t tmp_count;
+    uint64_t tmp_cf;
 
-    tmp = (cf<< size) | a;
-
-    size++;
-    b %= size;
-
-    switch(size){
-	    case 8+1:
-		    tmp = (tmp << b) | ((tmp&0x1FF) >> (size-b));
-		    return (tmp>>8)&1;
-	    case 16+1:
-		    tmp = (tmp << b) | ((tmp&0x1FFFF) >> (size-b));
-		    return (tmp>>16)&1;
-	    case 32+1:
-		    tmp = (tmp << b) | ((tmp&0x1FFFFFFFFULL) >> (size-b));
-		    return (tmp>>32)&1;
-	    default:
-		    fprintf(stderr, "inv size in rclleft %d\n", size);
-		    exit(0);
+    tmp = a;
+    // TODO 64bit mode
+    tmp_count = (b & 0x1f) % (size + 1);
+    while (tmp_count != 0) {
+	    tmp_cf = tmp & 1;
+	    tmp = (tmp >> 1) + (cf << (size - 1));
+	    cf = tmp_cf;
+	    tmp_count -= 1;
     }
-}
-
-int rcr_cf_op(unsigned int size, unsigned int a, unsigned int b, unsigned int cf)
-{
-	return rcl_cf_op(size, a, size+1-b, cf);
+    return tmp;
 }
 
 unsigned int x86_bsr(uint64_t src, unsigned int size)
