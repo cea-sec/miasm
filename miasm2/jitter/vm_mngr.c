@@ -132,21 +132,16 @@ struct memory_page_node * get_memory_page_from_address(vm_mngr_t* vm_mngr, uint6
 		return mpn;
 
 	fprintf(stderr, "WARNING: address 0x%"PRIX64" is not mapped in virtual memory:\n", ad);
-	//dump_gpregs();
-	//exit(-1);
 	vm_mngr->exception_flags |= EXCEPT_ACCESS_VIOL;
 
 	return NULL;
 #else
 
-	//printf("search for page ad: %X\n", ad);
 	LIST_FOREACH(mpn, &vm_mngr->memory_page_pool, next){
 		if ((mpn->ad <= ad) && (ad < mpn->ad + mpn->size))
 			return mpn;
 	}
 	fprintf(stderr, "WARNING: address 0x%"PRIX64" is not mapped in virtual memory:\n", ad);
-	//dump_gpregs();
-	//exit(-1);
 	vm_mngr->exception_flags |= EXCEPT_ACCESS_VIOL;
 	return NULL;
 #endif
@@ -211,7 +206,6 @@ static uint64_t memory_page_read(vm_mngr_t* vm_mngr, unsigned int my_size, uint6
 	else{
 		unsigned int new_size = my_size;
 		int index = 0;
-		//fprintf(stderr, "read multiple page! %"PRIX64" %d\n", ad, new_size);
 		while (new_size){
 			mpn = get_memory_page_from_address(vm_mngr, ad);
 			if (!mpn)
@@ -295,7 +289,6 @@ static void memory_page_write(vm_mngr_t* vm_mngr, unsigned int my_size,
 	}
 	/* write is multiple page wide */
 	else{
-		//fprintf(stderr, "write multiple page! %"PRIX64" %d\n", ad, my_size);
 		switch(my_size){
 
 		case 8:
@@ -402,7 +395,6 @@ void check_write_code_bloc(vm_mngr_t* vm_mngr, uint64_t my_size, uint64_t addr)
 				fprintf(stderr, "self modifying code %"PRIX64" %.8X\n",
 				       addr, my_size);
 				fprintf(stderr, "**********************************\n");
-				//dump_code_bloc(vm_mngr);
 #endif
 				vm_mngr->exception_flags |= EXCEPT_CODE_AUTOMOD;
 
@@ -417,19 +409,13 @@ PyObject* addr2BlocObj(vm_mngr_t* vm_mngr, uint64_t addr)
 	PyObject* pyaddr;
 	PyObject* b;
 
-	//printf("addr2blocobj %"PRIx64"\n", addr);
 	pyaddr = PyLong_FromUnsignedLongLong(addr);
-	/*
-	Py_INCREF(pyaddr);
-	return pyaddr;
-	*/
 	b = PyDict_GetItem(vm_mngr->addr2obj, pyaddr);
 	if (b == NULL) {
 		Py_INCREF(Py_None);
 		return Py_None;
 	}
 
-	//printf("addr2blocobj OBJ %p\n", b);
 	Py_INCREF(b);
 	return b;
 }
@@ -492,7 +478,7 @@ int vm_read_mem(vm_mngr_t* vm_mngr, uint64_t addr, char** buffer_ptr, uint64_t s
        buffer = malloc(size);
        *buffer_ptr = buffer;
        if (!buffer){
-	      fprintf(stderr, "cannot alloc read\n");
+	      fprintf(stderr, "Error: cannot alloc read\n");
 	      exit(-1);
        }
 
@@ -501,7 +487,7 @@ int vm_read_mem(vm_mngr_t* vm_mngr, uint64_t addr, char** buffer_ptr, uint64_t s
 	      mpn = get_memory_page_from_address(vm_mngr, addr);
 	      if (!mpn){
 		      free(*buffer_ptr);
-		      PyErr_SetString(PyExc_RuntimeError, "cannot find address");
+		      PyErr_SetString(PyExc_RuntimeError, "Error: cannot find address");
 		      return -1;
 	      }
 
@@ -526,7 +512,7 @@ int vm_write_mem(vm_mngr_t* vm_mngr, uint64_t addr, char *buffer, uint64_t size)
        while (size){
 	      mpn = get_memory_page_from_address(vm_mngr, addr);
 	      if (!mpn){
-		      PyErr_SetString(PyExc_RuntimeError, "cannot find address");
+		      PyErr_SetString(PyExc_RuntimeError, "Error: cannot find address");
 		      return -1;
 	      }
 
@@ -747,7 +733,6 @@ int imul_hi_op_32(int a, int b)
 {
 	int64_t res = 0;
 	res = (int64_t)a*(int64_t)b;
-	//printf("%x %x dd %"PRIx64"\n", a, b, res);
 	return res>>32ULL;
 }
 
@@ -1407,13 +1392,13 @@ struct memory_page_node * create_memory_page_node(uint64_t ad, unsigned int size
 
 	mpn = malloc(sizeof(*mpn));
 	if (!mpn){
-		fprintf(stderr, "cannot alloc mpn\n");
+		fprintf(stderr, "Error: cannot alloc mpn\n");
 		return NULL;
 	}
 	p = malloc(size);
 	if (!p){
 		free(mpn);
-		fprintf(stderr, "cannot alloc %d\n", size);
+		fprintf(stderr, "Error: cannot alloc %d\n", size);
 		return NULL;
 	}
 	mpn->ad = ad;
@@ -1431,7 +1416,7 @@ struct code_bloc_node * create_code_bloc_node(uint64_t ad_start, uint64_t ad_sto
 
 	cbp = malloc(sizeof(*cbp));
 	if (!cbp){
-		fprintf(stderr, "cannot alloc cbp\n");
+		fprintf(stderr, "Error: cannot alloc cbp\n");
 		exit(-1);
 	}
 
@@ -1547,8 +1532,11 @@ int is_mpn_in_tab(vm_mngr_t* vm_mngr, struct memory_page_node* mpn_a)
 			continue;
 		if (mpn->ad + mpn->size  <= mpn_a->ad)
 			continue;
-		printf("is mpn in! %"PRIX64" %"PRIX64" \n", mpn_a->ad, mpn_a->size);
-		printf("known:! %"PRIX64" %"PRIX64" \n", mpn->ad, mpn->size);
+		fprintf(stderr,
+			"Error: attempt to add page (0x%"PRIX64" 0x%"PRIX64") "
+			"overlapping page (0x%"PRIX64" 0x%"PRIX64")\n",
+			mpn_a->ad, mpn_a->ad + mpn_a->size,
+			mpn->ad, mpn->ad + mpn->size);
 
 		return 1;
 	}
@@ -1608,7 +1596,7 @@ char* dump(vm_mngr_t* vm_mngr)
 
 	buf_final = malloc(1);
 	if (buf_final == NULL) {
-		printf("cannot alloc\n");
+		fprintf(stderr, "Error: cannot alloc\n");
 		exit(0);
 	}
 	buf_final[0] = '\x00';
@@ -1625,7 +1613,7 @@ char* dump(vm_mngr_t* vm_mngr)
 		total_len += length+1;
 		buf_final = realloc(buf_final, total_len);
 		if (buf_final == NULL) {
-			printf("cannot alloc\n");
+			fprintf(stderr, "Error: cannot alloc\n");
 			exit(0);
 		}
 		strcat(buf_final, buf);
@@ -1653,7 +1641,7 @@ void add_memory_breakpoint(vm_mngr_t* vm_mngr, uint64_t ad, uint64_t size, unsig
 	struct memory_breakpoint_info * mpn_a;
 	mpn_a = malloc(sizeof(*mpn_a));
 	if (!mpn_a) {
-		printf("cannot alloc\n");
+		fprintf(stderr, "Error: cannot alloc\n");
 		exit(0);
 	}
 	mpn_a->ad = ad;
