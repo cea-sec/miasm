@@ -269,11 +269,10 @@ def mov(ir, instr, a, b):
     return e, []
 
 
-def xchg(ir, instr, a, b):
-    e = []
-    e.append(m2_expr.ExprAff(a, b))
-    e.append(m2_expr.ExprAff(b, a))
-    return e, []
+@sbuild.parse
+def xchg(arg1, arg2):
+    arg1 = arg2
+    arg2 = arg1
 
 
 def movzx(ir, instr, a, b):
