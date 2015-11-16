@@ -2605,6 +2605,7 @@ def das(ir, instr):
                               al_c1 - m2_expr.ExprInt8(0x60),
                               al_c1)
     e.append(m2_expr.ExprAff(r_al, new_al))
+    e += update_flag_znp(new_al)
     return e, []
 
 
