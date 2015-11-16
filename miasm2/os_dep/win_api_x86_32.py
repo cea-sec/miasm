@@ -2129,7 +2129,7 @@ def user32_GetSystemMetrics(jitter):
 
 
 def wsock32_WSAStartup(jitter):
-    ret_ad, args = jitter.func_args_stdcall(["version, pwsadata"])
+    ret_ad, args = jitter.func_args_stdcall(["version", "pwsadata"])
     jitter.vm.set_mem(args.pwsadata, "\x01\x01\x02\x02WinSock 2.0\x00")
     jitter.func_ret_stdcall(ret_ad, 0)
 
