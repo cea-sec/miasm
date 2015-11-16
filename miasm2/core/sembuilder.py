@@ -152,6 +152,7 @@ class SemBuilder(object):
                     # Real variable declaration
                     statement.value = src
                     real_body.append(statement)
+                    self._ctx[dst.id] = src
                     continue
 
                 dst.ctx = ast.Load()
