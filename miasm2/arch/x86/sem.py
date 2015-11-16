@@ -2619,6 +2619,7 @@ def aam(ir, instr, a):
                          ])
     e += [m2_expr.ExprAff(mRAX[instr.mode], newEAX)]
     e += update_flag_arith(newEAX)
+    e.append(m2_expr.ExprAff(af, m2_expr.ExprInt1(0)))
     return e, []
 
 
