@@ -121,11 +121,14 @@ class SemBuilder(object):
         return self._functions.copy()
 
     @staticmethod
-    def _create_labels():
-        """Return the AST standing for label creations"""
+    def _create_labels(lbl_else=False):
+        """Return the AST standing for label creations
+        @lbl_else (optional): if set, create a label 'lbl_else'"""
         lbl_end = "lbl_end = ExprId(ir.get_next_label(instr), instr.mode)"
         out = ast.parse(lbl_end).body
         out += ast.parse("lbl_if = ExprId(ir.gen_label())").body
+        if lbl_else:
+            out += ast.parse("lbl_else = ExprId(ir.gen_label())").body
         return out
 
     def _parse_body(self, body, argument_names):
@@ -172,19 +175,21 @@ class SemBuilder(object):
                 # String (docstring, comment, ...) -> keep it
                 real_body.append(statement)
 
-            elif (isinstance(statement, ast.If) and
-                  not statement.orelse):
+            elif isinstance(statement, ast.If):
                 # Create jumps : ir.IRDst = lbl_if if cond else lbl_end
+                # if .. else .. are also handled
                 cond = statement.test
-                real_body += self._create_labels()
+                real_body += self._create_labels(lbl_else=True)
 
                 lbl_end = ast.Name(id='lbl_end', ctx=ast.Load())
                 lbl_if = ast.Name(id='lbl_if', ctx=ast.Load())
+                lbl_else = ast.Name(id='lbl_else', ctx=ast.Load()) \
+                           if statement.orelse else lbl_end
                 dst = ast.Call(func=ast.Name(id='ExprCond',
                                              ctx=ast.Load()),
                                args=[cond,
                                      lbl_if,
-                                     lbl_end],
+                                     lbl_else],
                                keywords=[],
                                starargs=None,
                                kwargs=None)
@@ -206,38 +211,42 @@ class SemBuilder(object):
                                                kwargs=None))
 
                 # Create the new blocks
-                sub_blocks, sub_body = self._parse_body(statement.body,
-                                                        argument_names)
-                if len(sub_blocks) > 1:
-                    raise RuntimeError("Imbricated if unimplemented")
+                elements = [(statement.body, 'lbl_if')]
+                if statement.orelse:
+                    elements.append((statement.orelse, 'lbl_else'))
+                for content, lbl_name in elements:
+                    sub_blocks, sub_body = self._parse_body(content,
+                                                            argument_names)
+                    if len(sub_blocks) > 1:
+                        raise RuntimeError("Imbricated if unimplemented")
 
-                ## Close the last block
-                jmp_end = ast.Call(func=ast.Name(id='ExprAff',
-                                                 ctx=ast.Load()),
-                                   args=[IRDst, lbl_end],
-                                   keywords=[],
-                                   starargs=None,
-                                   kwargs=None)
-                sub_blocks[-1][-1].append(jmp_end)
-                sub_blocks[-1][-1] = ast.List(elts=sub_blocks[-1][-1],
+                    ## Close the last block
+                    jmp_end = ast.Call(func=ast.Name(id='ExprAff',
+                                                     ctx=ast.Load()),
+                                       args=[IRDst, lbl_end],
+                                       keywords=[],
+                                       starargs=None,
+                                       kwargs=None)
+                    sub_blocks[-1][-1].append(jmp_end)
+                    sub_blocks[-1][-1] = ast.List(elts=sub_blocks[-1][-1],
+                                                  ctx=ast.Load())
+                    sub_blocks[-1] = ast.List(elts=sub_blocks[-1],
                                               ctx=ast.Load())
-                sub_blocks[-1] = ast.List(elts=sub_blocks[-1],
-                                          ctx=ast.Load())
 
-                ## Replace the block with a call to 'irbloc'
-                lbl_if_name = ast.Attribute(value=ast.Name(id='lbl_if',
-                                                           ctx=ast.Load()),
-                                            attr='name', ctx=ast.Load())
+                    ## Replace the block with a call to 'irbloc'
+                    lbl_if_name = ast.Attribute(value=ast.Name(id=lbl_name,
+                                                               ctx=ast.Load()),
+                                                attr='name', ctx=ast.Load())
 
-                sub_blocks[-1] = ast.Call(func=ast.Name(id='irbloc',
-                                                        ctx=ast.Load()),
-                                          args=[lbl_if_name,
-                                                sub_blocks[-1]],
-                                          keywords=[],
-                                          starargs=None,
-                                          kwargs=None)
-                blocks += sub_blocks
-                real_body += sub_body
+                    sub_blocks[-1] = ast.Call(func=ast.Name(id='irbloc',
+                                                            ctx=ast.Load()),
+                                              args=[lbl_if_name,
+                                                    sub_blocks[-1]],
+                                              keywords=[],
+                                              starargs=None,
+                                              kwargs=None)
+                    blocks += sub_blocks
+                    real_body += sub_body
 
                 # Prepare a new block for following statement
                 blocks.append([[]])
