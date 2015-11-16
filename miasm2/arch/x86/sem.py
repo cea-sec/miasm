@@ -2637,7 +2637,10 @@ def aad(ir, instr, a):
     return e, []
 
 
-def aaa(ir, instr):
+def _tpl_aaa(ir, instr, op):
+    """Templating for aaa, aas with operation @op
+    @op: operation to apply
+    """
     e = []
     r_al = mRAX[instr.mode][:8]
     r_ah = mRAX[instr.mode][8:16]
@@ -2650,7 +2653,8 @@ def aaa(ir, instr):
     cond |= af & i1
 
     to_add = m2_expr.ExprInt(0x106, size=r_ax.size)
-    new_ax = (r_ax + to_add) & m2_expr.ExprInt(0xff0f, size=r_ax.size)
+    new_ax = m2_expr.ExprOp(op, r_ax, to_add) & m2_expr.ExprInt(0xff0f,
+                                                                size=r_ax.size)
     # set AL
     e.append(m2_expr.ExprAff(r_ax, m2_expr.ExprCond(cond, new_ax, r_ax)))
     e.append(m2_expr.ExprAff(af, cond))
@@ -2658,33 +2662,12 @@ def aaa(ir, instr):
     return e, []
 
 
-def aas(ir, instr, ):
-    e = []
-    c = (mRAX[instr.mode][:8] & m2_expr.ExprInt8(0xf)) - m2_expr.ExprInt8(9)
+def aaa(ir, instr):
+    return _tpl_aaa(ir, instr, "+")
 
-    c = m2_expr.ExprCond(c.msb(),
-                 m2_expr.ExprInt1(0),
-                 m2_expr.ExprInt1(1)) & \
-        m2_expr.ExprCond(c,
-                 m2_expr.ExprInt1(1),
-                 m2_expr.ExprInt1(0))
 
-    c |= af & m2_expr.ExprInt1(1)
-    # set AL
-    m_al = m2_expr.ExprCond(c,
-                   (mRAX[instr.mode][:8] - m2_expr.ExprInt8(6)) & \
-                                m2_expr.ExprInt8(0xF),
-                    mRAX[instr.mode][:8] & m2_expr.ExprInt8(0xF))
-    m_ah = m2_expr.ExprCond(c,
-                    mRAX[instr.mode][8:16] - m2_expr.ExprInt8(1),
-                    mRAX[instr.mode][8:16])
-
-    e.append(m2_expr.ExprAff(mRAX[instr.mode], m2_expr.ExprCompose([
-        (m_al, 0, 8), (m_ah, 8, 16),
-        (mRAX[instr.mode][16:], 16, mRAX[instr.mode].size)])))
-    e.append(m2_expr.ExprAff(af, c))
-    e.append(m2_expr.ExprAff(cf, c))
-    return e, []
+def aas(ir, instr):
+    return _tpl_aaa(ir, instr, "-")
 
 
 def bsr_bsf(ir, instr, a, b, op_name):
