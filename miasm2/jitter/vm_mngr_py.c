@@ -378,11 +378,14 @@ PyObject* vm_get_all_memory(VmMngr* self, PyObject* args)
 	struct memory_page_node * mpn;
 	PyObject *dict;
 	PyObject *dict2;
+	int i;
 
 
 	dict =  PyDict_New();
 
-	LIST_FOREACH(mpn, &self->vm_mngr.memory_page_pool, next){
+	//LIST_FOREACH(mpn, &self->vm_mngr.memory_page_pool, next){
+	for (i=0;i<self->vm_mngr.memory_pages_number; i++) {
+		mpn = &self->vm_mngr.memory_pages_array[i];
 
 		dict2 =  PyDict_New();
 

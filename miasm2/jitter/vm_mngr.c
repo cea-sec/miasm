@@ -87,12 +87,14 @@ void print_val(uint64_t base, uint64_t addr)
 int is_mem_mapped(vm_mngr_t* vm_mngr, uint64_t ad)
 {
 	struct memory_page_node * mpn;
+	int i;
 	/*
 	mpn = memory_page_pool_tab[ad>>MEMORY_PAGE_POOL_MASK_BIT];
 	if ( mpn && (mpn->ad <= ad) && (ad < mpn->ad + mpn->size))
 		return 1;
 	*/
-	LIST_FOREACH(mpn, &vm_mngr->memory_page_pool, next){
+	for (i=0; i < vm_mngr->memory_pages_number; i++) {
+		mpn = &vm_mngr->memory_pages_array[i];
 		if ((mpn->ad <= ad)  && (ad <mpn->ad + mpn->size))
 			return 1;
 	}
@@ -107,6 +109,7 @@ int is_mem_mapped(vm_mngr_t* vm_mngr, uint64_t ad)
 uint64_t get_mem_base_addr(vm_mngr_t* vm_mngr, uint64_t ad, uint64_t *addr_base)
 {
 	struct memory_page_node * mpn;
+	int i;
 	/*
 	mpn = memory_page_pool_tab[ad>>MEMORY_PAGE_POOL_MASK_BIT];
 	if ( mpn && (mpn->ad <= ad) && (ad < mpn->ad + mpn->size)){
@@ -114,7 +117,8 @@ uint64_t get_mem_base_addr(vm_mngr_t* vm_mngr, uint64_t ad, uint64_t *addr_base)
 		return 1;
 	}
 	*/
-	LIST_FOREACH(mpn, &vm_mngr->memory_page_pool, next){
+	for (i=0; i < vm_mngr->memory_pages_number; i++) {
+		mpn = &vm_mngr->memory_pages_array[i];
 		if ((mpn->ad <= ad)  && (ad <mpn->ad + mpn->size)) {
 			*addr_base = mpn->ad;
 			return 1;
@@ -123,9 +127,37 @@ uint64_t get_mem_base_addr(vm_mngr_t* vm_mngr, uint64_t ad, uint64_t *addr_base)
 	return 0;
 }
 
+int midpoint(int imin, int imax)
+{
+	return (imin + imax) / 2;
+}
+
+
+int find_page_node(struct memory_page_node * array, uint64_t key, int imin, int imax)
+{
+	// continue searching while [imin,imax] is not empty
+	while (imin <= imax) {
+		// calculate the midpoint for roughly equal partition
+		int imid = midpoint(imin, imax);
+		if(array[imid].ad <= key && key < array[imid].ad + array[imid].size)
+			// key found at index imid
+			return imid;
+		// determine which subarray to search
+		else if (array[imid].ad < key)
+			// change min index to search upper subarray
+			imin = imid + 1;
+		else
+			// change max index to search lower subarray
+			imax = imid - 1;
+	}
+	// key was not found
+	return -1;
+}
+
 struct memory_page_node * get_memory_page_from_address(vm_mngr_t* vm_mngr, uint64_t ad)
 {
 	struct memory_page_node * mpn;
+	int i;
 #if 0
 	mpn = memory_page_pool_tab[ad>>MEMORY_PAGE_POOL_MASK_BIT];
 	if ( mpn && (mpn->ad <= ad) && (ad < mpn->ad + mpn->size))
@@ -137,7 +169,12 @@ struct memory_page_node * get_memory_page_from_address(vm_mngr_t* vm_mngr, uint6
 	return NULL;
 #else
 
-	LIST_FOREACH(mpn, &vm_mngr->memory_page_pool, next){
+	i = find_page_node(vm_mngr->memory_pages_array,
+			   ad,
+			   0,
+			   vm_mngr->memory_pages_number);
+	if (i >= 0) {
+		mpn = &vm_mngr->memory_pages_array[i];
 		if ((mpn->ad <= ad) && (ad < mpn->ad + mpn->size))
 			return mpn;
 	}
@@ -168,7 +205,7 @@ static uint64_t memory_page_read(vm_mngr_t* vm_mngr, unsigned int my_size, uint6
 		return 0;
 	}
 
-	/* check read breakpoint*/
+	/* check read breakpoint */
 	LIST_FOREACH(b, &vm_mngr->memory_breakpoint_pool, next){
 		if ((b->access & BREAKPOINT_READ) == 0)
 			continue;
@@ -1450,10 +1487,9 @@ void dump_code_bloc_pool(vm_mngr_t* vm_mngr)
 
 void init_memory_page_pool(vm_mngr_t* vm_mngr)
 {
-	unsigned int i;
-	LIST_INIT(&vm_mngr->memory_page_pool);
-	for (i=0;i<MAX_MEMORY_PAGE_POOL_TAB; i++)
-		vm_mngr->memory_page_pool_tab[i] = NULL;
+
+	vm_mngr->memory_pages_number = 0;
+	vm_mngr->memory_pages_array = NULL;
 }
 
 void init_code_bloc_pool(vm_mngr_t* vm_mngr)
@@ -1471,18 +1507,8 @@ void init_memory_breakpoint(vm_mngr_t* vm_mngr)
 
 void reset_memory_page_pool(vm_mngr_t* vm_mngr)
 {
-	struct memory_page_node * mpn;
-	unsigned int i;
-
-	while (!LIST_EMPTY(&vm_mngr->memory_page_pool)) {
-		mpn = LIST_FIRST(&vm_mngr->memory_page_pool);
-		LIST_REMOVE(mpn, next);
-		free(mpn->ad_hp);
-		free(mpn);
-	}
-	for (i=0;i<MAX_MEMORY_PAGE_POOL_TAB; i++)
-		vm_mngr->memory_page_pool_tab[i] = NULL;
-
+	free(vm_mngr->memory_pages_array);
+	vm_mngr->memory_pages_number = 0;
 }
 
 
@@ -1517,17 +1543,10 @@ void reset_memory_breakpoint(vm_mngr_t* vm_mngr)
 int is_mpn_in_tab(vm_mngr_t* vm_mngr, struct memory_page_node* mpn_a)
 {
 	struct memory_page_node * mpn;
+	int i;
 
-	/*
-	for (i=mpn_a->ad >> MEMORY_PAGE_POOL_MASK_BIT;
-	     i<(mpn_a->ad + mpn_a->size + PAGE_SIZE - 1)>>MEMORY_PAGE_POOL_MASK_BIT;
-	     i++){
-		if (memory_page_pool_tab[i] !=NULL){
-			return 1;
-		}
-	}
-	*/
-	LIST_FOREACH(mpn, &vm_mngr->memory_page_pool, next){
+	for (i=0;i<vm_mngr->memory_pages_number; i++) {
+		mpn = &vm_mngr->memory_pages_array[i];
 		if (mpn->ad >= mpn_a->ad + mpn_a->size)
 			continue;
 		if (mpn->ad + mpn->size  <= mpn_a->ad)
@@ -1563,23 +1582,37 @@ void insert_mpn_in_tab(struct memory_page_node* mpn_a)
 void add_memory_page(vm_mngr_t* vm_mngr, struct memory_page_node* mpn_a)
 {
 	struct memory_page_node * mpn;
-	struct memory_page_node * lmpn;
+	int i;
 
-	if (LIST_EMPTY(&vm_mngr->memory_page_pool)){
-		LIST_INSERT_HEAD(&vm_mngr->memory_page_pool, mpn_a, next);
-		insert_mpn_in_tab(mpn_a);
-		return;
-	}
-	LIST_FOREACH(mpn, &vm_mngr->memory_page_pool, next){
-		lmpn = mpn;
+	//printf("ad 0x%"PRIX64" size 0x%"PRIX64"\n", mpn_a->ad, mpn_a->size);
+	//printf("mem \n%s\n", dump(vm_mngr));
+
+	for (i=0; i < vm_mngr->memory_pages_number; i++) {
+		mpn = &vm_mngr->memory_pages_array[i];
 		if (mpn->ad < mpn_a->ad)
 			continue;
-		LIST_INSERT_BEFORE(mpn, mpn_a, next);
-		insert_mpn_in_tab(mpn_a);
-		return;
+		break;
 	}
-	LIST_INSERT_AFTER(lmpn, mpn_a, next);
-	insert_mpn_in_tab(mpn_a);
+
+	/*
+	printf("realloc %p %d\n", vm_mngr->memory_pages_array,
+					      sizeof(struct memory_page_node) *
+					      (vm_mngr->memory_pages_number+1));
+	*/
+	vm_mngr->memory_pages_array = realloc(vm_mngr->memory_pages_array,
+					      sizeof(struct memory_page_node) *
+					      (vm_mngr->memory_pages_number+1));
+
+	/*
+	printf("move %d\n", sizeof(struct memory_page_node) * (vm_mngr->memory_pages_number - i));
+	*/
+	memmove(&vm_mngr->memory_pages_array[i+1],
+		&vm_mngr->memory_pages_array[i],
+		sizeof(struct memory_page_node) * (vm_mngr->memory_pages_number - i)
+		);
+
+	vm_mngr->memory_pages_array[i] = *mpn_a;
+	vm_mngr->memory_pages_number ++;
 
 }
 
@@ -1592,6 +1625,7 @@ char* dump(vm_mngr_t* vm_mngr)
 	int length;
 	int total_len = 0;
 	char *buf_final;
+	int i;
 	struct memory_page_node * mpn;
 
 	buf_final = malloc(1);
@@ -1600,8 +1634,9 @@ char* dump(vm_mngr_t* vm_mngr)
 		exit(0);
 	}
 	buf_final[0] = '\x00';
-	LIST_FOREACH(mpn, &vm_mngr->memory_page_pool, next){
 
+	for (i=0; i< vm_mngr->memory_pages_number; i++) {
+		mpn = &vm_mngr->memory_pages_array[i];
 		length = snprintf(buf, sizeof(buf),
 				  "ad 0x%"PRIX64" size 0x%"PRIX64" %c%c%c\n",
 				  (uint64_t)mpn->ad,
@@ -1673,8 +1708,10 @@ unsigned int get_memory_page_next(vm_mngr_t* vm_mngr, unsigned int n_ad)
 {
 	struct memory_page_node * mpn;
 	uint64_t ad = 0;
+	int i;
 
-	LIST_FOREACH(mpn, &vm_mngr->memory_page_pool, next){
+	for (i=0; i < vm_mngr->memory_pages_number; i++) {
+		mpn = &vm_mngr->memory_pages_array[i];
 		if (mpn->ad < n_ad)
 			continue;
 

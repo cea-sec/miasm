@@ -65,13 +65,26 @@ LIST_HEAD(memory_breakpoint_info_head, memory_breakpoint_info);
 #define VM_BIG_ENDIAN 1
 #define VM_LITTLE_ENDIAN 2
 
+
+struct memory_page_node {
+	uint64_t ad;
+	uint64_t size;
+	uint64_t access;
+	void* ad_hp;
+	LIST_ENTRY(memory_page_node)   next;
+};
+
+
+
 typedef struct {
 	int sex;
-	struct memory_page_list_head memory_page_pool;
+	//struct memory_page_list_head memory_page_pool;
 	struct code_bloc_list_head code_bloc_pool;
 	struct memory_breakpoint_info_head memory_breakpoint_pool;
 
-	struct memory_page_node *memory_page_pool_tab[MAX_MEMORY_PAGE_POOL_TAB];
+	//struct memory_page_node *memory_page_pool_tab[MAX_MEMORY_PAGE_POOL_TAB];
+	int memory_pages_number;
+	struct memory_page_node* memory_pages_array;
 
 	unsigned int *code_addr_tab;
 	unsigned int code_bloc_pool_ad_min;
@@ -92,16 +105,6 @@ typedef struct {
 
 
 //extern vm_mngr_t vmmngr;
-
-struct memory_page_node {
-	uint64_t ad;
-	uint64_t size;
-	uint64_t access;
-	void* ad_hp;
-	LIST_ENTRY(memory_page_node)   next;
-};
-
-
 
 struct code_bloc_node {
 	uint64_t ad_start;
