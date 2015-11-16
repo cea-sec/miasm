@@ -1,0 +1,8 @@
+self modifying code:
+func1 = 0x1
+func2 = 0x2
+func3 = 0x3
+func4 = 0x4
+smc_code2(2) = 2
+smc_code2(3) = 3
+smc_code2(4) = 4

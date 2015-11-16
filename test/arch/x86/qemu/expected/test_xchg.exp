@@ -1,0 +1,27 @@
+xchgl      A=fbca7654 B=12345678
+xchgw      A=12347654 B=fbca5678
+xchgb      A=12345654 B=fbca7678
+xchgl      A=fbca7654 B=12345678
+xchgw      A=12347654 B=fbca5678
+xchgb      A=12345654 B=fbca7678
+xaddl      A=fbca7654 B=0dfecccc
+xaddw      A=12347654 B=fbcacccc
+xaddb      A=12345654 B=fbca76cc
+xaddl same res=2468acf0
+xaddl      A=fbca7654 B=0dfecccc
+xaddw      A=12347654 B=fbcacccc
+xaddb      A=12345654 B=fbca76cc
+cmpxchgl   EAX=fbca7654 A=12345678 C=12345678
+cmpxchgw   EAX=fbca7654 A=12345678 C=fbca5678
+cmpxchgb   EAX=fbca7654 A=12345678 C=fbca7678
+cmpxchgl   EAX=fffefdfc A=12345678 C=fbca7654
+cmpxchgw   EAX=fffefdfc A=12345678 C=fbca7654
+cmpxchgb   EAX=fffefdfc A=12345678 C=fbca7654
+cmpxchgl   EAX=fbca7654 A=12345678 C=12345678
+cmpxchgw   EAX=fbca7654 A=12345678 C=fbca5678
+cmpxchgb   EAX=fbca7654 A=12345678 C=fbca7678
+cmpxchgl   EAX=fffefdfc A=12345678 C=fbca7654
+cmpxchgw   EAX=fffefdfc A=12345678 C=fbca7654
+cmpxchgb   EAX=fffefdfc A=12345678 C=fbca7654
+cmpxchg8b: eax=65423456 edx=000fbca7 op1=000fbca765423456 CC=00
+cmpxchg8b: eax=6789abcd edx=00012345 op1=0006532432432434 CC=40

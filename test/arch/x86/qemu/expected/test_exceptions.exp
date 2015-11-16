@@ -1,0 +1,67 @@
+DIVZ exception:
+si_signo=8 si_errno=0 si_code=1 si_addr=0x08051781
+trapno=00000000 err=00000000 EIP=08051781
+BOUND exception:
+si_signo=11 si_errno=0 si_code=128 si_addr=0x00000000
+trapno=00000005 err=00000000 EIP=080517be
+segment exceptions:
+si_signo=11 si_errno=0 si_code=128 si_addr=0x00000000
+trapno=0000000d err=000091a0 EIP=080517e8
+si_signo=11 si_errno=0 si_code=128 si_addr=0x00000000
+trapno=0000000d err=00000000 EIP=08051802
+si_signo=7 si_errno=0 si_code=128 si_addr=0x00000000
+trapno=0000000b err=0000000c EIP=08051850
+PF exception:
+si_signo=11 si_errno=0 si_code=1 si_addr=0x00001234
+trapno=0000000e err=00000006 EIP=0805187b
+PF exception:
+si_signo=11 si_errno=0 si_code=1 si_addr=0x00001234
+trapno=0000000e err=00000004 EIP=080518aa
+UD2 exception:
+si_signo=4 si_errno=0 si_code=2 si_addr=0x080518d6
+trapno=00000006 err=00000000 EIP=080518d6
+lock nop exception:
+si_signo=4 si_errno=0 si_code=2 si_addr=0x080518f8
+trapno=00000006 err=00000000 EIP=080518f8
+INT exception:
+si_signo=11 si_errno=0 si_code=128 si_addr=0x00000000
+trapno=0000000d err=000007ea EIP=0805191a
+si_signo=11 si_errno=0 si_code=128 si_addr=0x00000000
+trapno=0000000d err=0000000a EIP=08051930
+si_signo=5 si_errno=0 si_code=128 si_addr=0x00000000
+trapno=00000003 err=00000000 EIP=08051948
+si_signo=11 si_errno=0 si_code=128 si_addr=0x00000000
+trapno=00000004 err=00000000 EIP=0805195e
+si_signo=11 si_errno=0 si_code=128 si_addr=0x00000000
+trapno=0000000d err=0000002a EIP=08051972
+INT3 exception:
+si_signo=5 si_errno=0 si_code=128 si_addr=0x00000000
+trapno=00000003 err=00000000 EIP=08051995
+CLI exception:
+si_signo=11 si_errno=0 si_code=128 si_addr=0x00000000
+trapno=0000000d err=00000000 EIP=080519b5
+STI exception:
+si_signo=11 si_errno=0 si_code=128 si_addr=0x00000000
+trapno=0000000d err=00000000 EIP=080519d6
+INTO exception:
+si_signo=11 si_errno=0 si_code=128 si_addr=0x00000000
+trapno=00000004 err=00000000 EIP=08051a00
+OUTB exception:
+si_signo=11 si_errno=0 si_code=128 si_addr=0x00000000
+trapno=0000000d err=00000000 EIP=08051a25
+INB exception:
+si_signo=11 si_errno=0 si_code=128 si_addr=0x00000000
+trapno=0000000d err=00000000 EIP=08051a4b
+REP OUTSB exception:
+si_signo=11 si_errno=0 si_code=128 si_addr=0x00000000
+trapno=0000000d err=00000000 EIP=08051a7f
+REP INSB exception:
+si_signo=11 si_errno=0 si_code=128 si_addr=0x00000000
+trapno=0000000d err=00000000 EIP=08051ab0
+HLT exception:
+si_signo=11 si_errno=0 si_code=128 si_addr=0x00000000
+trapno=0000000d err=00000000 EIP=08051ad2
+single step exception:
+si_signo=5 si_errno=0 si_code=2 si_addr=0x08051b41
+trapno=00000001 err=00000000 EIP=08051b41
+val=0xabcd
