@@ -2637,32 +2637,24 @@ def aad(ir, instr, a):
     return e, []
 
 
-def aaa(ir, instr, ):
+def aaa(ir, instr):
     e = []
-    c = (mRAX[instr.mode][:8] & m2_expr.ExprInt8(0xf)) - m2_expr.ExprInt8(9)
+    r_al = mRAX[instr.mode][:8]
+    r_ah = mRAX[instr.mode][8:16]
+    r_ax = mRAX[instr.mode][:16]
+    i0 = m2_expr.ExprInt1(0)
+    i1 = m2_expr.ExprInt1(1)
+    # cond: if (al & 0xf) > 9 OR af == 1
+    cond = (r_al & m2_expr.ExprInt8(0xf)) - m2_expr.ExprInt8(9)
+    cond = ~cond.msb() & m2_expr.ExprCond(cond, i1, i0)
+    cond |= af & i1
 
-    c = m2_expr.ExprCond(c.msb(),
-                 m2_expr.ExprInt1(0),
-                 m2_expr.ExprInt1(1)) & \
-        m2_expr.ExprCond(c,
-                 m2_expr.ExprInt1(1),
-                 m2_expr.ExprInt1(0))
-
-    c |= af & m2_expr.ExprInt1(1)
+    to_add = m2_expr.ExprInt(0x106, size=r_ax.size)
+    new_ax = (r_ax + to_add) & m2_expr.ExprInt(0xff0f, size=r_ax.size)
     # set AL
-    m_al = m2_expr.ExprCond(c,
-                            (mRAX[instr.mode][:8] + m2_expr.ExprInt8(6)) & \
-                                m2_expr.ExprInt8(0xF),
-                            mRAX[instr.mode][:8] & m2_expr.ExprInt8(0xF))
-    m_ah = m2_expr.ExprCond(c,
-                            mRAX[instr.mode][8:16] + m2_expr.ExprInt8(1),
-                            mRAX[instr.mode][8:16])
-
-    e.append(m2_expr.ExprAff(mRAX[instr.mode], m2_expr.ExprCompose([
-        (m_al, 0, 8), (m_ah, 8, 16),
-        (mRAX[instr.mode][16:], 16, mRAX[instr.mode].size)])))
-    e.append(m2_expr.ExprAff(af, c))
-    e.append(m2_expr.ExprAff(cf, c))
+    e.append(m2_expr.ExprAff(r_ax, m2_expr.ExprCond(cond, new_ax, r_ax)))
+    e.append(m2_expr.ExprAff(af, cond))
+    e.append(m2_expr.ExprAff(cf, cond))
     return e, []
 
 
