@@ -44,9 +44,9 @@ class moduint(object):
     def __div__(self, y):
         if isinstance(y, moduint):
             cls = self.maxcast(y)
-            return cls(self.arg / y.arg)
+            return cls(int(float(self.arg) / y.arg))
         else:
-            return self.__class__(self.arg / y)
+            return self.__class__(int(float(self.arg) / y))
 
     def __int__(self):
         return int(self.arg)
@@ -67,9 +67,9 @@ class moduint(object):
     def __mod__(self, y):
         if isinstance(y, moduint):
             cls = self.maxcast(y)
-            return cls(self.arg % y.arg)
+            return cls(self.arg - (y.arg * int(float(self.arg)/y.arg)))
         else:
-            return self.__class__(self.arg % y)
+            return self.__class__(self.arg - (y * int(float(self.arg)/y)))
 
     def __mul__(self, y):
         if isinstance(y, moduint):
