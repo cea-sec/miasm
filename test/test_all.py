@@ -105,10 +105,11 @@ QEMU_TESTS = {
     "jcc": ("tcc", "python"),
     "loop": ("tcc", "python"),
     "lea": ("tcc", "python"),
+    "self_modifying_code": ("tcc", "python"),
     "conv": ("tcc", "python"),
     # Unsupported
     # "floats", "bcd", "xchg", "string", "misc", "segs", "code16", "exceptions",
-    # "self_modifying_code", "single_step"
+    # "single_step"
 }
 
 
