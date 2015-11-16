@@ -51,6 +51,38 @@ for script in ["x86/sem.py",
                ]:
     testset += RegressionTest([script], base_dir="arch")
 
+### QEMU regression tests
+class QEMUTest(RegressionTest):
+    """Test against QEMU regression tests
+    An expected output is provided, computed on a x86 host"""
+
+    SCRIPT_NAME = "testqemu.py"
+    SAMPLE_NAME = "test-i386"
+    EXPECTED_PATH = "expected"
+
+    def __init__(self, name, *args, **kwargs):
+        super(QEMUTest, self).__init__([self.SCRIPT_NAME], *args, **kwargs)
+        self.base_dir = os.path.join(self.base_dir, "arch", "x86", "qemu")
+        test_name = "test_%s" % name
+        expected_output = os.path.join(self.EXPECTED_PATH, test_name) + ".exp"
+        self.command_line += [self.SAMPLE_NAME,
+                             test_name,
+                             expected_output,
+        ]
+
+for test_name in (
+        # Operations
+        "btr", "bts", "bt", "shrd", "shld", "rcl", "rcr", "ror",
+        "rol", "sar", "shr", "shl", "not", "neg", "dec", "inc",
+        "sbb", "adc", "cmp", "or", "and", "xor", "sub", "add",
+        # Specifics
+        "bsx", "mul", "lea", "conv"
+        # Unsupported
+        # "jcc", "loop", "floats", "bcd", "xchg", "string", "misc",
+        # "segs", "code16", "exceptions", "self_modifying_code", "single_step",
+):
+    testset += QEMUTest(test_name)
+
 
 ## Semantic
 class SemanticTestAsm(RegressionTest):
