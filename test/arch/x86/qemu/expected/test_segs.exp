@@ -1,0 +1,16 @@
+FS[1] = aa
+GS[1] = 55
+DS[1] = aa
+SS[tmp] = a5
+FS:reg = 0017:abcdef12
+larw: Z=1 1234f200
+larl: Z=1 00c0f200
+lslw: Z=1 12341fff
+lsll: Z=1 00001fff
+larw: Z=0 12345678
+larl: Z=0 12345678
+lslw: Z=0 12345678
+lsll: Z=0 12345678
+arplw A=1234567b B=0762123d R=1234567b z=0
+arplw A=12345679 B=0762123f R=1234567b z=1
+arplw A=12345679 B=0762123d R=12345679 z=0

@@ -1,0 +1,5 @@
+xlat: EAX=12345688
+func_lret=87654321
+func_iret=abcd4321
+popl esp=09abcdef
+popw esp=00bc6058

@@ -51,6 +51,72 @@ for script in ["x86/sem.py",
                ]:
     testset += RegressionTest([script], base_dir="arch")
 
+### QEMU regression tests
+class QEMUTest(RegressionTest):
+    """Test against QEMU regression tests
+    An expected output is provided, computed on a x86 host"""
+
+    SCRIPT_NAME = "testqemu.py"
+    SAMPLE_NAME = "test-i386"
+    EXPECTED_PATH = "expected"
+
+    def __init__(self, name, jitter, *args, **kwargs):
+        super(QEMUTest, self).__init__([self.SCRIPT_NAME], *args, **kwargs)
+        self.base_dir = os.path.join(self.base_dir, "arch", "x86", "qemu")
+        test_name = "test_%s" % name
+        expected_output = os.path.join(self.EXPECTED_PATH, test_name) + ".exp"
+        self.command_line += [self.SAMPLE_NAME,
+                              test_name,
+                              expected_output,
+                              "--jitter",
+                              jitter,
+        ]
+
+# Test name -> supported jitter engines
+QEMU_TESTS = {
+    # Operations
+    "btr": ("tcc", "python"),
+    "bts": ("tcc", "python"),
+    "bt": ("tcc", "python"),
+    "shrd": ("tcc", "python"),
+    "shld": ("tcc", "python"),
+    "rcl": ("tcc", "python"),
+    "rcr": ("tcc", "python"),
+    "ror": ("tcc", "python"),
+    "rol": ("tcc", "python"),
+    "sar": ("tcc", "python"),
+    "shr": ("tcc", "python"),
+    "shl": ("tcc", "python"),
+    "not": ("tcc", "python"),
+    "neg": ("tcc", "python"),
+    "dec": ("tcc", "python"),
+    "inc": ("tcc", "python"),
+    "sbb": ("tcc", "python"),
+    "adc": ("tcc", "python"),
+    "cmp": ("tcc", "python"),
+    "or": ("tcc", "python"),
+    "and": ("tcc", "python"),
+    "xor": ("tcc", "python"),
+    "sub": ("tcc", "python"),
+    "add": ("tcc", "python"),
+    # Specifics
+    "bsx": ("tcc", "python"),
+    "mul": ("tcc", "python"),
+    "jcc": ("tcc", "python"),
+    "loop": ("tcc", "python"),
+    "lea": ("tcc", "python"),
+    "self_modifying_code": ("tcc", "python"),
+    "conv": ("tcc", "python"),
+    # Unsupported
+    # "floats", "bcd", "xchg", "string", "misc", "segs", "code16", "exceptions",
+    # "single_step"
+}
+
+
+for test_name, jitters in QEMU_TESTS.iteritems():
+    for jitter_engine in jitters:
+        testset += QEMUTest(test_name, jitter_engine)
+
 
 ## Semantic
 class SemanticTestAsm(RegressionTest):

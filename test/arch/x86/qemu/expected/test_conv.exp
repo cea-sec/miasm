@@ -1,0 +1,5 @@
+cbw        A=8234a6f8 R=8234fff8
+cwde       A=8234a6f8 R=ffffa6f8
+cwd        A=8234a6f8 R=8234a6f8:8345ffff
+cdq        A=8234a6f8 R=8234a6f8:ffffffff
+bswapl    : A=12345678 R=78563412
