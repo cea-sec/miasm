@@ -29,6 +29,9 @@ import struct
 
 # SemBuilder context
 ctx = {'mRAX': mRAX,
+       'mRBX': mRBX,
+       'mRCX': mRCX,
+       'mRDX': mRDX,
        'zf': zf,
        }
 sbuild = SemBuilder(ctx)
@@ -2967,6 +2970,18 @@ def cmpxchg(arg1, arg2):
         arg1 = arg2
 
 
+@sbuild.parse
+def cmpxchg8b(arg1):
+    accumulator = {mRAX[instr.mode], mRDX[instr.mode]}
+    if accumulator - arg1:
+        zf = i1(0)
+        mRAX[instr.mode] = arg1[:instr.mode]
+        mRDX[instr.mode] = arg1[instr.mode:]
+    else:
+        zf = i1(1)
+        arg1 = {mRBX[instr.mode], mRCX[instr.mode]}
+
+
 def lds(ir, instr, a, b):
     e = []
     e.append(m2_expr.ExprAff(a, m2_expr.ExprMem(b.arg, size=a.size)))
@@ -3698,6 +3713,7 @@ mnemo_func = {'mov': mov,
               'out': l_out,
               "sysenter": l_sysenter,
               "cmpxchg": cmpxchg,
+              "cmpxchg8b": cmpxchg8b,
               "lds": lds,
               "les": les,
               "lss": lss,
