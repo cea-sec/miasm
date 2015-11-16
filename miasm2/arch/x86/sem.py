@@ -22,8 +22,16 @@ from miasm2.arch.x86.regs import *
 from miasm2.arch.x86.arch import mn_x86, repeat_mn, replace_regs
 from miasm2.expression.expression_helper import expr_cmps, expr_cmpu
 from miasm2.ir.ir import ir, irbloc
+from miasm2.core.sembuilder import SemBuilder
 import math
 import struct
+
+
+# SemBuilder context
+ctx = {'mRAX': mRAX,
+       'zf': zf,
+       }
+sbuild = SemBuilder(ctx)
 
 # interrupt with eip update after instr
 EXCEPT_SOFT_BP = (1 << 1)
@@ -2948,25 +2956,15 @@ def l_in(ir, instr, a, b):
     return e, []
 
 
-def cmpxchg(ir, instr, a, b):
-    e = []
-
-    c = mRAX[instr.mode][:a.size]
-    cond = c - a
-    e.append(
-        m2_expr.ExprAff(zf,
-                        m2_expr.ExprCond(cond,
-                                         m2_expr.ExprInt_from(zf, 0),
-                                         m2_expr.ExprInt_from(zf, 1))))
-    e.append(m2_expr.ExprAff(a, m2_expr.ExprCond(cond,
-                                 b,
-                                 a)
-                     ))
-    e.append(m2_expr.ExprAff(c, m2_expr.ExprCond(cond,
-                                 a,
-                                 c)
-                     ))
-    return e, []
+@sbuild.parse
+def cmpxchg(arg1, arg2):
+    accumulator = mRAX[instr.mode][:arg1.size]
+    if (accumulator - arg1):
+        zf = i1(0)
+        accumulator = arg1
+    else:
+        zf = i1(1)
+        arg1 = arg2
 
 
 def lds(ir, instr, a, b):
