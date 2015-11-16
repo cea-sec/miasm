@@ -107,8 +107,9 @@ QEMU_TESTS = {
     "lea": ("tcc", "python"),
     "self_modifying_code": ("tcc", "python"),
     "conv": ("tcc", "python"),
+    "bcd": ("tcc", "python"),
     # Unsupported
-    # "floats", "bcd", "xchg", "string", "misc", "segs", "code16", "exceptions",
+    # "floats", "xchg", "string", "misc", "segs", "code16", "exceptions",
     # "single_step"
 }
 
