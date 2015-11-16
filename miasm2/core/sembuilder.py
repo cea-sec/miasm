@@ -123,7 +123,8 @@ class SemBuilder(object):
     @staticmethod
     def _create_labels():
         """Return the AST standing for label creations"""
-        out = ast.parse("lbl_end = ExprId(ir.get_next_instr(instr))").body
+        lbl_end = "lbl_end = ExprId(ir.get_next_label(instr), instr.mode)"
+        out = ast.parse(lbl_end).body
         out += ast.parse("lbl_if = ExprId(ir.gen_label())").body
         return out
 
