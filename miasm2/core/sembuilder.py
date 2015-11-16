@@ -151,12 +151,13 @@ class SemBuilder(object):
 
                 if (isinstance(dst, ast.Name) and
                     dst.id not in argument_names and
-                    dst.id not in self._ctx):
+                    dst.id not in self._ctx and
+                    dst.id not in self._local_ctx):
 
                     # Real variable declaration
                     statement.value = src
                     real_body.append(statement)
-                    self._ctx[dst.id] = src
+                    self._local_ctx[dst.id] = src
                     continue
 
                 dst.ctx = ast.Load()
@@ -265,6 +266,9 @@ class SemBuilder(object):
         parsed = ast.parse(inspect.getsource(func))
         fc_ast = parsed.body[0]
         argument_names = [name.id for name in fc_ast.args.args]
+
+        # Init local cache
+        self._local_ctx = {}
 
         # Translate (blocks[0][0] is the current instr)
         blocks, body = self._parse_body(fc_ast.body, argument_names)
