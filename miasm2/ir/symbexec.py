@@ -410,7 +410,7 @@ class symbexec(object):
             self.symbols[dst] = src_o
             if isinstance(dst, m2_expr.ExprMem):
                 if self.func_write and isinstance(dst.arg, m2_expr.ExprInt):
-                    self.func_write(self, dst, src_o, {})
+                    self.func_write(self, dst, src_o)
                     del self.symbols[dst]
                 mem_dst.append(dst)
         return mem_dst

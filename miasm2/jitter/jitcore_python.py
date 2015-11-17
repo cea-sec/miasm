@@ -76,12 +76,11 @@ class JitCore_Python(jitcore.JitCore):
         return m2_expr.ExprInt(int(value[::-1].encode("hex"), 16),
                                expr_mem.size)
 
-    def func_write(self, symb_exec, dest, data, mem_cache):
+    def func_write(self, symb_exec, dest, data):
         """Memory read wrapper for symbolic execution
         @symb_exec: symbexec instance
         @dest: ExprMem instance
-        @data: Expr instance
-        @mem_cache: dict"""
+        @data: Expr instance"""
 
         # Get the content to write
         data = expr_simp(data)
