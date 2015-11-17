@@ -13,8 +13,14 @@ class IR(object):
     def get_next_instr(self, _):
         return asm_label("NEXT")
 
+    def get_next_label(self, _):
+        return asm_label("NEXT")
+
     def gen_label(self):
         return asm_label("GEN")
+
+class Instr(object):
+    mode = 32
 
 # Test
 sb = SemBuilder(m2_expr.__dict__)
@@ -28,15 +34,18 @@ def test(Arg1, Arg2, Arg3):
     Arg3 = Arg3 if Arg2 else i32(0)
     tmpvar = 'myop'(i32(2))
     Arg2 = ('myopsize%d' % Arg1.size)(tmpvar, Arg1)
+    alias = Arg1[:24]
 
     if not Arg1:
         Arg2 = Arg3
+    else:
+        alias = {i16(4), i8(5)}
 
 a = m2_expr.ExprId('A')
 b = m2_expr.ExprId('B')
 c = m2_expr.ExprId('C')
 ir = IR()
-instr = None
+instr = Instr()
 res = test(ir, instr, a, b, c)
 
 print "[+] Returned:"
