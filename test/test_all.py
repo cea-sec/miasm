@@ -110,9 +110,9 @@ QEMU_TESTS = {
     "bcd": ("tcc", "python"),
     "xchg": ("tcc", "python"),
     "string": ("tcc", "python"),
+    "misc": ("tcc", "python"),
     # Unsupported
-    # "floats", "misc", "segs", "code16", "exceptions",
-    # "single_step"
+    # "floats", "segs", "code16", "exceptions", "single_step"
 }
 
 
