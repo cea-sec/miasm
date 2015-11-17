@@ -13,6 +13,7 @@ TAGS = {"regression": "REGRESSION", # Regression tests
         "long": "LONG", # Very time consumming tests
         "llvm": "LLVM", # LLVM dependency is required
         "z3": "Z3", # Z3 dependecy is needed
+        "qemu": "QEMU", # QEMU tests (several tests)
         }
 
 # Regression tests
@@ -71,6 +72,8 @@ class QEMUTest(RegressionTest):
                               "--jitter",
                               jitter,
         ]
+        self.tags.append(TAGS["qemu"])
+
 
 # Test name -> supported jitter engines
 QEMU_TESTS = {
