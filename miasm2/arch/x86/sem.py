@@ -924,7 +924,6 @@ def bswap(ir, instr, a):
 
 
 def cmps(ir, instr, size):
-    lbl_cmp = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
     lbl_df_0 = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
     lbl_df_1 = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
     lbl_next = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
@@ -933,7 +932,7 @@ def cmps(ir, instr, size):
     a = m2_expr.ExprMem(mRDI[instr.mode][:s], size)
     b = m2_expr.ExprMem(mRSI[instr.mode][:s], size)
 
-    e, extra = l_cmp(ir, instr, a, b)
+    e, _ = l_cmp(ir, instr, b, a)
 
     e0 = []
     e0.append(m2_expr.ExprAff(a.arg,
@@ -957,7 +956,6 @@ def cmps(ir, instr, size):
 
 
 def scas(ir, instr, size):
-    lbl_cmp = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
     lbl_df_0 = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
     lbl_df_1 = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
     lbl_next = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
