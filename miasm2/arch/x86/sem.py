@@ -3422,6 +3422,18 @@ def ucomiss(ir, instr, a, b):
 
     return e, []
 
+
+def iret(ir, instr):
+    """IRET implementation
+    XXX: only support "no-privilege change"
+    """
+    size = instr.v_opmode()
+    exprs, _ = retf(ir, instr, m2_expr.ExprInt(size / 8, size=size))
+    tmp = mRSP[instr.mode][:size] + m2_expr.ExprInt((2 * size) / 8, size=size)
+    exprs += _tpl_eflags(tmp)
+    return exprs, []
+
+
 mnemo_func = {'mov': mov,
               'xchg': xchg,
               'movzx': movzx,
@@ -3518,6 +3530,8 @@ mnemo_func = {'mov': mov,
               'call': call,
               'ret': ret,
               'retf': retf,
+              'iret': iret,
+              'iretd': iret,
               'leave': leave,
               'enter': enter,
               'jmp': jmp,
