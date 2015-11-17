@@ -3252,6 +3252,10 @@ addop("cmpsq", [bs8(0xa7), bs_opmode64])
 
 addop("cmpxchg", [bs8(0x0f), bs('1011000'), w8]
       + rmmod(rmreg, rm_arg_w8), [rm_arg_w8, rmreg])
+addop("cmpxchg8b", [bs8(0x0f), bs8(0xc7), bs_opmode16] + rmmod(d1, rm_arg_m64))
+addop("cmpxchg8b", [bs8(0x0f), bs8(0xc7), bs_opmode32] + rmmod(d1, rm_arg_m64))
+addop("cmpxchg16b", [bs8(0x0f), bs8(0xc7), bs_opmode64] + rmmod(d1, rm_arg_m64))
+
 # XXX TODO CMPXCHG8/16
 
 addop("comiss", [bs8(0x0f), bs8(0x2f), no_xmm_pref] +

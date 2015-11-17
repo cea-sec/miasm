@@ -384,10 +384,7 @@ class symbexec(object):
                 # test if mem lookup is known
                 tmp = m2_expr.ExprMem(a, e.dst.size)
                 dst = tmp
-                if self.func_write and isinstance(dst.arg, m2_expr.ExprInt):
-                    self.func_write(self, dst, src, pool_out)
-                else:
-                    pool_out[dst] = src
+                pool_out[dst] = src
 
             elif isinstance(e.dst, m2_expr.ExprId):
                 pool_out[e.dst] = src
@@ -398,7 +395,6 @@ class symbexec(object):
 
     def eval_ir(self, ir):
         mem_dst = []
-        # src_dst = [(x.src, x.dst) for x in ir]
         src_dst = self.eval_ir_expr(ir)
         eval_cache = dict(self.symbols.items())
         for dst, src in src_dst:
@@ -411,10 +407,11 @@ class symbexec(object):
                         new_val.is_term = True
                         self.symbols[new_mem] = new_val
             src_o = self.expr_simp(src)
-            # print 'SRCo', src_o
-            # src_o.is_term = True
             self.symbols[dst] = src_o
             if isinstance(dst, m2_expr.ExprMem):
+                if self.func_write and isinstance(dst.arg, m2_expr.ExprInt):
+                    self.func_write(self, dst, src_o)
+                    del self.symbols[dst]
                 mem_dst.append(dst)
         return mem_dst
 

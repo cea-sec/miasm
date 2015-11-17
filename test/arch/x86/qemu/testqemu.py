@@ -45,6 +45,7 @@ def xxx___printf_chk(jitter):
     fmt = get_str_ansi(jitter, args.format)
     # Manage llx
     fmt = fmt.replace("llx", "lx")
+    fmt = fmt.replace("%016lx", "%016z")
 
     fmt_a = parse_fmt(fmt)
     esp = jitter.cpu.ESP
@@ -61,11 +62,16 @@ def xxx___printf_chk(jitter):
             a2 = upck32(jitter.vm.get_mem(esp + 8 + 4*(i+1), 4))
             a = struct.unpack("d", struct.pack("Q", a2 << 32 | a))[0]
             i += 1
+        elif x.lower() == 'z':
+            a2 = upck32(jitter.vm.get_mem(esp + 8 + 4*(i+1), 4))
+            a = a2 << 32 | a
+            i += 1
         else:
             raise RuntimeError("Not implemented format")
         args.append(a)
         i += 1
 
+    fmt = fmt.replace("%016z", "%016lx")
     output = fmt%(tuple(args))
     # NaN bad repr in Python
     output = output.replace("nan", "-nan")

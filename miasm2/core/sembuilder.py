@@ -16,6 +16,7 @@ class MiasmTransformer(ast.NodeTransformer):
     X if Y else Z -> ExprCond(Y, X, Z)
     'X'(Y)        -> ExprOp('X', Y)
     ('X' % Y)(Z)  -> ExprOp('X' % Y, Z)
+    {a, b}        -> ExprCompose([a, 0, a.size], [b, a.size, a.size + b.size])
     """
 
     # Parsers
@@ -93,6 +94,32 @@ class MiasmTransformer(ast.NodeTransformer):
                         keywords=[], starargs=None, kwargs=None)
         return call
 
+    def visit_Set(self, node):
+        "{a, b} -> ExprCompose([a, 0, a.size], [b, a.size, a.size + b.size])"
+        if len(node.elts) == 0:
+            return node
+
+        # Recursive visit
+        node = self.generic_visit(node)
+
+        new_elts = []
+        index = ast.Num(n=0)
+        for elt in node.elts:
+            new_index = ast.BinOp(op=ast.Add(), left=index,
+                                  right=ast.Attribute(value=elt,
+                                                      attr='size',
+                                                      ctx=ast.Load()))
+            new_elts.append(ast.List(elts=[elt, index, new_index],
+                                     ctx=ast.Load()))
+            index = new_index
+        return ast.Call(func=ast.Name(id='ExprCompose',
+                                      ctx=ast.Load()),
+                               args=[ast.List(elts=new_elts,
+                                              ctx=ast.Load())],
+                               keywords=[],
+                               starargs=None,
+                               kwargs=None)
+
 
 class SemBuilder(object):
     """Helper for building instruction's semantic side effects method
@@ -121,10 +148,14 @@ class SemBuilder(object):
         return self._functions.copy()
 
     @staticmethod
-    def _create_labels():
-        """Return the AST standing for label creations"""
-        out = ast.parse("lbl_end = ExprId(ir.get_next_instr(instr))").body
-        out += ast.parse("lbl_if = ExprId(ir.gen_label())").body
+    def _create_labels(lbl_else=False):
+        """Return the AST standing for label creations
+        @lbl_else (optional): if set, create a label 'lbl_else'"""
+        lbl_end = "lbl_end = ExprId(ir.get_next_label(instr), ir.IRDst.size)"
+        out = ast.parse(lbl_end).body
+        out += ast.parse("lbl_if = ExprId(ir.gen_label(), ir.IRDst.size)").body
+        if lbl_else:
+            out += ast.parse("lbl_else = ExprId(ir.gen_label(), ir.IRDst.size)").body
         return out
 
     def _parse_body(self, body, argument_names):
@@ -147,11 +178,13 @@ class SemBuilder(object):
 
                 if (isinstance(dst, ast.Name) and
                     dst.id not in argument_names and
-                    dst.id not in self._ctx):
+                    dst.id not in self._ctx and
+                    dst.id not in self._local_ctx):
 
                     # Real variable declaration
                     statement.value = src
                     real_body.append(statement)
+                    self._local_ctx[dst.id] = src
                     continue
 
                 dst.ctx = ast.Load()
@@ -170,19 +203,21 @@ class SemBuilder(object):
                 # String (docstring, comment, ...) -> keep it
                 real_body.append(statement)
 
-            elif (isinstance(statement, ast.If) and
-                  not statement.orelse):
+            elif isinstance(statement, ast.If):
                 # Create jumps : ir.IRDst = lbl_if if cond else lbl_end
+                # if .. else .. are also handled
                 cond = statement.test
-                real_body += self._create_labels()
+                real_body += self._create_labels(lbl_else=True)
 
                 lbl_end = ast.Name(id='lbl_end', ctx=ast.Load())
                 lbl_if = ast.Name(id='lbl_if', ctx=ast.Load())
+                lbl_else = ast.Name(id='lbl_else', ctx=ast.Load()) \
+                           if statement.orelse else lbl_end
                 dst = ast.Call(func=ast.Name(id='ExprCond',
                                              ctx=ast.Load()),
                                args=[cond,
                                      lbl_if,
-                                     lbl_end],
+                                     lbl_else],
                                keywords=[],
                                starargs=None,
                                kwargs=None)
@@ -204,38 +239,42 @@ class SemBuilder(object):
                                                kwargs=None))
 
                 # Create the new blocks
-                sub_blocks, sub_body = self._parse_body(statement.body,
-                                                        argument_names)
-                if len(sub_blocks) > 1:
-                    raise RuntimeError("Imbricated if unimplemented")
+                elements = [(statement.body, 'lbl_if')]
+                if statement.orelse:
+                    elements.append((statement.orelse, 'lbl_else'))
+                for content, lbl_name in elements:
+                    sub_blocks, sub_body = self._parse_body(content,
+                                                            argument_names)
+                    if len(sub_blocks) > 1:
+                        raise RuntimeError("Imbricated if unimplemented")
 
-                ## Close the last block
-                jmp_end = ast.Call(func=ast.Name(id='ExprAff',
-                                                 ctx=ast.Load()),
-                                   args=[IRDst, lbl_end],
-                                   keywords=[],
-                                   starargs=None,
-                                   kwargs=None)
-                sub_blocks[-1][-1].append(jmp_end)
-                sub_blocks[-1][-1] = ast.List(elts=sub_blocks[-1][-1],
+                    ## Close the last block
+                    jmp_end = ast.Call(func=ast.Name(id='ExprAff',
+                                                     ctx=ast.Load()),
+                                       args=[IRDst, lbl_end],
+                                       keywords=[],
+                                       starargs=None,
+                                       kwargs=None)
+                    sub_blocks[-1][-1].append(jmp_end)
+                    sub_blocks[-1][-1] = ast.List(elts=sub_blocks[-1][-1],
+                                                  ctx=ast.Load())
+                    sub_blocks[-1] = ast.List(elts=sub_blocks[-1],
                                               ctx=ast.Load())
-                sub_blocks[-1] = ast.List(elts=sub_blocks[-1],
-                                          ctx=ast.Load())
 
-                ## Replace the block with a call to 'irbloc'
-                lbl_if_name = ast.Attribute(value=ast.Name(id='lbl_if',
-                                                           ctx=ast.Load()),
-                                            attr='name', ctx=ast.Load())
+                    ## Replace the block with a call to 'irbloc'
+                    lbl_if_name = ast.Attribute(value=ast.Name(id=lbl_name,
+                                                               ctx=ast.Load()),
+                                                attr='name', ctx=ast.Load())
 
-                sub_blocks[-1] = ast.Call(func=ast.Name(id='irbloc',
-                                                        ctx=ast.Load()),
-                                          args=[lbl_if_name,
-                                                sub_blocks[-1]],
-                                          keywords=[],
-                                          starargs=None,
-                                          kwargs=None)
-                blocks += sub_blocks
-                real_body += sub_body
+                    sub_blocks[-1] = ast.Call(func=ast.Name(id='irbloc',
+                                                            ctx=ast.Load()),
+                                              args=[lbl_if_name,
+                                                    sub_blocks[-1]],
+                                              keywords=[],
+                                              starargs=None,
+                                              kwargs=None)
+                    blocks += sub_blocks
+                    real_body += sub_body
 
                 # Prepare a new block for following statement
                 blocks.append([[]])
@@ -254,6 +293,9 @@ class SemBuilder(object):
         parsed = ast.parse(inspect.getsource(func))
         fc_ast = parsed.body[0]
         argument_names = [name.id for name in fc_ast.args.args]
+
+        # Init local cache
+        self._local_ctx = {}
 
         # Translate (blocks[0][0] is the current instr)
         blocks, body = self._parse_body(fc_ast.body, argument_names)
