@@ -151,11 +151,11 @@ class SemBuilder(object):
     def _create_labels(lbl_else=False):
         """Return the AST standing for label creations
         @lbl_else (optional): if set, create a label 'lbl_else'"""
-        lbl_end = "lbl_end = ExprId(ir.get_next_label(instr), instr.mode)"
+        lbl_end = "lbl_end = ExprId(ir.get_next_label(instr), ir.IRDst.size)"
         out = ast.parse(lbl_end).body
-        out += ast.parse("lbl_if = ExprId(ir.gen_label())").body
+        out += ast.parse("lbl_if = ExprId(ir.gen_label(), ir.IRDst.size)").body
         if lbl_else:
-            out += ast.parse("lbl_else = ExprId(ir.gen_label())").body
+            out += ast.parse("lbl_else = ExprId(ir.gen_label(), ir.IRDst.size)").body
         return out
 
     def _parse_body(self, body, argument_names):
