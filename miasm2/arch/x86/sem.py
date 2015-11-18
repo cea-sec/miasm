@@ -1048,20 +1048,19 @@ def popfd(ir, instr):
     return e, []
 
 
+def _tpl_eflags(tmp):
+    """Extract eflags from @tmp
+    @tmp: Expr instance with a size >= 16
+    """
+    return [m2_expr.ExprAff(dest, tmp[base:base + dest.size])
+            for base, dest in ((0, cf), (2, pf), (4, af), (6, zf), (7, nf),
+                               (8, tf), (9, i_f), (10, df), (11, of),
+                               (12, iopl), (14, nt))]
+
+
 def popfw(ir, instr):
     tmp = m2_expr.ExprMem(mRSP[instr.mode])
-    e = []
-    e.append(m2_expr.ExprAff(cf, m2_expr.ExprSlice(tmp, 0, 1)))
-    e.append(m2_expr.ExprAff(pf, m2_expr.ExprSlice(tmp, 2, 3)))
-    e.append(m2_expr.ExprAff(af, m2_expr.ExprSlice(tmp, 4, 5)))
-    e.append(m2_expr.ExprAff(zf, m2_expr.ExprSlice(tmp, 6, 7)))
-    e.append(m2_expr.ExprAff(nf, m2_expr.ExprSlice(tmp, 7, 8)))
-    e.append(m2_expr.ExprAff(tf, m2_expr.ExprSlice(tmp, 8, 9)))
-    e.append(m2_expr.ExprAff(i_f, m2_expr.ExprSlice(tmp, 9, 10)))
-    e.append(m2_expr.ExprAff(df, m2_expr.ExprSlice(tmp, 10, 11)))
-    e.append(m2_expr.ExprAff(of, m2_expr.ExprSlice(tmp, 11, 12)))
-    e.append(m2_expr.ExprAff(iopl, m2_expr.ExprSlice(tmp, 12, 14)))
-    e.append(m2_expr.ExprAff(nt, m2_expr.ExprSlice(tmp, 14, 15)))
+    e = _tpl_eflags(tmp)
     e.append(m2_expr.ExprAff(mRSP[instr.mode], mRSP[instr.mode] + m2_expr.ExprInt(2, mRSP[instr.mode].size)))
     return e, []
 
@@ -3423,6 +3422,18 @@ def ucomiss(ir, instr, a, b):
 
     return e, []
 
+
+def iret(ir, instr):
+    """IRET implementation
+    XXX: only support "no-privilege change"
+    """
+    size = instr.v_opmode()
+    exprs, _ = retf(ir, instr, m2_expr.ExprInt(size / 8, size=size))
+    tmp = mRSP[instr.mode][:size] + m2_expr.ExprInt((2 * size) / 8, size=size)
+    exprs += _tpl_eflags(tmp)
+    return exprs, []
+
+
 mnemo_func = {'mov': mov,
               'xchg': xchg,
               'movzx': movzx,
@@ -3519,6 +3530,8 @@ mnemo_func = {'mov': mov,
               'call': call,
               'ret': ret,
               'retf': retf,
+              'iret': iret,
+              'iretd': iret,
               'leave': leave,
               'enter': enter,
               'jmp': jmp,
