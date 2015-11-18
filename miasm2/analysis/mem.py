@@ -1,3 +1,81 @@
+"""This module provides classes to manipulate C structures backed by a VmMngr
+object (a miasm VM virtual memory).
+
+The main idea is to declare the fields of the structure in the class:
+
+    # FIXME: "I" => "u32"
+    class MyStruct(MemStruct):
+        fields = [
+            # Integer field: just struct.pack fields with one value
+            ("num", Num("I")),
+            ("flags", Num("B")),
+            # Ptr fields are Num, but they can also be dereferenced
+            # (self.deref_<field>). Deref can be read and set.
+            ("other", Ptr("I", OtherStruct)),
+            # Ptr to a variable length String
+            ("s", Ptr("I", MemStr)),
+            ("i", Ptr("I", Num("I"))),
+        ]
+
+And access the fields:
+
+    mstruct = MyStruct(jitter.vm, addr)
+    mstruct.num = 3
+    assert mstruct.num == 3
+    mstruct.other = addr2
+    mstruct.deref_other = OtherStruct(jitter.vm, addr)
+
+The `addr` argument can be omited if an allocator is set, in which case the
+structure will be automatically allocated in memory:
+
+    my_heap = miasm2.os_dep.common.heap()
+    set_allocator(my_heap)
+
+Note that some structures (e.g. MemStr or MemArray) do not have a static size
+and cannot be allocated automatically.
+
+
+As you saw previously, to use this module, you just have to inherit from
+MemStruct and define a list of (<field_name>, <field_definition>). Availabe
+MemField classes are:
+
+    - Num: for number (float or int) handling
+    - Struct: abstraction over a simple struct pack/unpack
+    - Ptr: a pointer to another MemStruct instance
+    - Inline: include another MemStruct as a field (equivalent to having a
+      struct field into another struct in C)
+    - Array: a fixed size array of MemFields (points)
+    - Union: similar to `union` in C, list of MemFields at the same offset in a
+      structure; the union has the size of the biggest MemField
+    - BitField: similar to C bitfields, a list of
+      [(<field_name), (number_of_bits)]; creates fields that correspond to
+      certain bits of the field
+
+A MemField always has a fixed size in memory.
+
+
+Some special memory structures are already implemented; they all are subclasses
+of MemStruct with a custom implementation:
+
+    - MemSelf: this class is just a special marker to reference a MemStruct
+      subclass inside itself. Works with Ptr and Array (e.g. Ptr(_, MemSelf)
+      for a pointer the same type as the class who uses this kind of field)
+    - MemVoid: empty MemStruct, placeholder to be casted to an implemented
+      MemStruct subclass
+    - MemStr: represents a string in memory; the encoding can be passed to the
+      constructor (null terminated ascii/ansi or null terminated utf16)
+    - MemArray: an unsized array of MemField; unsized here means that there is
+      no defined sized for this array, equivalent to a int* or char*-style table
+      in C. It cannot be allocated automatically, since it has no known size
+    - MemSizedArray: a sized MemArray, can be automatically allocated in memory
+      and allows more operations than MemArray
+    - mem: a function that dynamically generates a MemStruct subclass from a
+      MemField. This class has only one field named "value".
+
+A MemStruct do not always have a static size (cls.sizeof()) nor a dynamic size
+(self.get_size()).
+"""
+
 import logging
 import struct
 
@@ -11,6 +89,13 @@ log.setLevel(logging.WARN)
 allocator = None
 
 def set_allocator(alloc_func):
+    """Sets an allocator for this module; allows to instanciate statically sized
+    MemStructs (i.e. sizeof() is implemented) without specifying the address
+    (the object is allocated by @alloc_func in the vm.
+
+    Args:
+        alloc_func: func(VmMngr) -> integer_address
+    """
     global allocator
     allocator = alloc_func
 
@@ -18,11 +103,18 @@ def set_allocator(alloc_func):
 # Helpers
 
 def indent(s, size=4):
+    """Indents a string with @size spaces"""
     return ' '*size + ('\n' + ' '*size).join(s.split('\n'))
- 
+
 
 # FIXME: copied from miasm2.os_dep.common and fixed
 def get_str_ansi(vm, addr, max_char=None):
+    """Gets a null terminated ANSI encoded string from a VmMngr.
+
+    Args:
+        vm: VmMngr instance
+        max_char: max number of characters to get in memory
+    """
     l = 0
     tmp = addr
     while ((max_char is None or l < max_char) and
@@ -34,6 +126,16 @@ def get_str_ansi(vm, addr, max_char=None):
 
 # TODO: get_raw_str_utf16 for length calculus
 def get_str_utf16(vm, addr, max_char=None):
+    """Gets a (double) null terminated utf16 little endian encoded string from
+    a VmMngr. This encoding is mainly used in Windows.
+
+    FIXME: the implementation do not work with codepoints that are encoded on
+    more than 2 bytes in utf16.
+
+    Args:
+        vm: VmMngr instance
+        max_char: max number of bytes to get in memory
+    """
     l = 0
     tmp = addr
     # TODO: test if fetching per page rather than 2 byte per 2 byte is worth it?
@@ -46,16 +148,26 @@ def get_str_utf16(vm, addr, max_char=None):
 
 
 def set_str_ansi(vm, addr, s):
+    """Encodes a string to null terminated ascii/ansi and sets it in a VmMngr
+    memory.
+
+    Args:
+        vm: VmMngr instance
+        addr: start address to serialize the string to
+        s: the str to serialize
+    """
     vm.set_mem(addr, s + "\x00")
 
 
 def set_str_utf16(vm, addr, s):
+    """Same as set_str_ansi with (double) null terminated utf16 encoding."""
     s = (s + '\x00').encode('utf-16le')
     vm.set_mem(addr, s)
 
 
 # MemField to MemStruct helper
 
+# TODO: cache generated types
 def mem(field):
     """Generates a MemStruct subclass from a field. The field's value can
     be accessed through self.value or self.deref_value if field is a Ptr.
@@ -69,33 +181,51 @@ def mem(field):
 # MemField classes
 
 class MemField(object):
-    """Base class to provide methods to set and get fields from virtual mem."""
+    """Base class to provide methods to set and get fields from virtual mem.
+
+    Subclasses can either override _pack and _unpack, or get and set if data
+    serialization requires more work (see Inline implementation for an example).
+    """
 
     _self_type = None
 
     def _pack(self, val):
-        """Returns a packed str"""
+        """Serializes the python value @val to a raw str"""
         raise NotImplementedError()
 
-    def _unpack(self, packed_str):
-        """Returns an object."""
+    def _unpack(self, raw_str):
+        """Deserializes a raw str to an object representing the python value
+        of this field.
+        """
         raise NotImplementedError()
 
     def set(self, vm, addr, val):
+        """Set a VmMngr memory from a value.
+
+        Args:
+            vm: VmMngr instance
+            addr: the start adress in memory to set
+            val: the python value to serialize in @vm at @addr
+        """
         raw = self._pack(val)
         vm.set_mem(addr, raw)
 
     def get(self, vm, addr):
+        """Get the python value of a field from a VmMngr memory at @addr."""
         raw = vm.get_mem(addr, self.size())
         return self._unpack(raw)
 
-    def get_self_type(self):
+    def _get_self_type(self):
         return self._self_type
 
-    def set_self_type(self, self_type):
+    def _set_self_type(self, self_type):
+        """If this field refers to MemSelf, replace it with @self_type (a
+        MemStruct subclass) when using it. Generally not used outside the lib.
+        """
         self._self_type = self_type
 
     def size(self):
+        """Returns the size in bytes of the serialized version of this field"""
         raise NotImplementedError()
 
     def __len__(self):
@@ -103,6 +233,10 @@ class MemField(object):
 
 
 class Struct(MemField):
+    """Dumb struct.pack/unpack field. Mainly used to factorize code.
+
+    Value is a tuple corresponding to the struct @fmt passed to the constructor.
+    """
 
     def __init__(self, fmt):
         self._fmt = fmt
@@ -110,8 +244,8 @@ class Struct(MemField):
     def _pack(self, fields):
         return struct.pack(self._fmt, *fields)
 
-    def _unpack(self, packed_str):
-        return struct.unpack(self._fmt, packed_str)
+    def _unpack(self, raw_str):
+        return struct.unpack(self._fmt, raw_str)
 
     def size(self):
         return struct.calcsize(self._fmt)
@@ -121,12 +255,17 @@ class Struct(MemField):
 
 
 class Num(Struct):
+    """Represents a number (integer or float). The number is encoded with
+    a struct-style format which must represent only one value.
+
+    TODO: use u32, i16, etc. for format.
+    """
 
     def _pack(self, number):
         return super(Num, self)._pack([number])
 
-    def _unpack(self, packed_str):
-        upck = super(Num, self)._unpack(packed_str)
+    def _unpack(self, raw_str):
+        upck = super(Num, self)._unpack(raw_str)
         if len(upck) > 1:
             raise ValueError("Num format string unpacks to multiple values, "
                              "should be 1")
@@ -134,6 +273,10 @@ class Num(Struct):
 
 
 class Ptr(Num):
+    """Special case of number of which value indicates the address of a
+    MemStruct. Provides deref_<field> as well as <field> when used, to set and
+    get the pointed MemStruct.
+    """
 
     def __init__(self, fmt, dst_type, *type_args, **type_kwargs):
         if not isinstance(dst_type, MemField) and\
@@ -146,31 +289,35 @@ class Ptr(Num):
         super(Ptr, self).__init__(fmt)
         if isinstance(dst_type, MemField):
             # Patch the field to propagate the MemSelf replacement
-            dst_type.get_self_type = lambda: self.get_self_type()
+            dst_type._get_self_type = lambda: self._get_self_type()
             dst_type = mem(dst_type)
         self._dst_type = dst_type
         self._type_args = type_args
         self._type_kwargs = type_kwargs
 
-    def set_self_type(self, self_type):
-        super(Ptr, self).set_self_type(self_type)
-
     def _fix_dst_type(self):
         if self._dst_type == MemSelf:
-            if self.get_self_type() is not None:
-                self._dst_type = self.get_self_type()
+            if self._get_self_type() is not None:
+                self._dst_type = self._get_self_type()
             else:
                 raise ValueError("Unsupported usecase for MemSelf, sorry")
 
     @property
     def dst_type(self):
+        """Returns the type (MemStruct subtype) this Ptr points to."""
         self._fix_dst_type()
         return self._dst_type
 
     def deref_get(self, vm, addr):
+        """Deserializes the data in @vm (VmMngr) at @addr to self.dst_type.
+        Equivalent to a pointer dereference rvalue in C.
+        """
         return self.dst_type(vm, addr, *self._type_args, **self._type_kwargs)
 
     def deref_set(self, vm, addr, val):
+        """Serializes the @val MemStruct subclass instance in @vm (VmMngr) at
+        @addr. Equivalent to a pointer dereference assignment in C.
+        """
         # Sanity check
         if self.dst_type != val.__class__:
             log.warning("Original type was %s, overriden by value of type %s",
@@ -184,6 +331,25 @@ class Ptr(Num):
 
 
 class Inline(MemField):
+    """Field used to inline a MemStruct in another MemStruct. Equivalent to
+    having a struct field in a C struct.
+
+    Concretely:
+
+        class MyStructClass(MemStruct):
+            fields = [("f1", Num("I")), ("f2", Num("I"))]
+
+        class Example(MemStruct):
+            fields = [("mystruct", Inline(MyStructClass))]
+
+        ex = Example(vm, addr)
+        ex.mystruct.f2 = 3 # inlined structure field access
+        ex.mystruct = MyStructClass(vm, addr2) # struct copy
+
+    It can be seen like a bridge to use a MemStruct as a MemField
+
+    TODO: make the Inline implicit when setting a field to be a MemStruct
+    """
 
     def __init__(self, inlined_type, *type_args, **type_kwargs):
         if not issubclass(inlined_type, MemStruct):
@@ -207,21 +373,38 @@ class Inline(MemField):
 
 
 class Array(MemField):
+    """A fixed size array (contiguous sequence) of a MemField subclass
+    elements. Similar to something like the char[10] type in C.
+
+    Getting an array field actually returns a MemSizedArray. Setting it is
+    possible with either a list or a MemSizedArray instance. Examples of syntax:
+
+        class Example(MemStruct):
+            fields = [("array", Array(Num("B"), 4))]
+
+        mystruct = Example(vm, addr)
+        mystruct.array[3] = 27
+        mystruct.array = [1, 4, 8, 9]
+        mystruct.array = MemSizedArray(vm, addr2, Num("B"), 4)
+    """
 
     def __init__(self, field_type, length):
         self._field_type = field_type
         self._array_len = length
 
-    def set_self_type(self, self_type):
-        super(Array, self).set_self_type(self_type)
-        self._field_type.set_self_type(self_type)
+    def _set_self_type(self, self_type):
+        super(Array, self)._set_self_type(self_type)
+        self._field_type._set_self_type(self_type)
 
     def set(self, vm, addr, val):
+        # MemSizedArray assignment
         if isinstance(val, MemSizedArray):
             if val.array_len != self._array_len or len(val) != self.size():
                 raise ValueError("Size mismatch in MemSizedArray assignment")
             raw = str(val)
             vm.set_mem(addr, raw)
+
+        # list assignment
         elif isinstance(val, list):
             if len(val) != self._array_len:
                 raise ValueError("Size mismatch in MemSizedArray assignment ")
@@ -229,6 +412,7 @@ class Array(MemField):
             for elt in val:
                 self._field_type.set(vm, addr + offset, elt)
                 offset += self._field_type.size()
+
         else:
             raise NotImplementedError(
                     "Assignment only implemented for list and MemSizedArray")
@@ -244,8 +428,27 @@ class Array(MemField):
 
 
 class Union(MemField):
+    """Allows to put multiple fields at the same offset in a MemStruct, similar
+    to unions in C. The Union will have the size of the largest of its fields.
+
+    Example:
+
+        class Example(MemStruct):
+            fields = [("uni", Union([
+                                  ("f1", Num("<B")),
+                                  ("f2", Num("<H"))
+                              ])
+                     )]
+
+        ex = Example(vm, addr)
+        ex.f2 = 0x1234
+        assert ex.f1 == 0x34
+        assert ex.uni == '\x34\x12'
+        assert ex.get_addr("f1") == ex.get_addr("f2")
+    """
+
     def __init__(self, field_list):
-        """[(name, field)] list"""
+        """field_list is a [(name, field)] list, see the class doc"""
         self.field_list = field_list
 
     def size(self):
@@ -267,6 +470,15 @@ class Union(MemField):
 
 
 class Bits(MemField):
+    """Helper class for BitField, not very useful on its own. Represents some
+    bits of a Num.
+
+    The @backing_num is used to know how to serialize/deserialize data in vm,
+    but getting/setting this fields only affects bits from @bit_offset to
+    @bit_offset + @bits. Masking and shifting is handled by the class, the aim
+    is to provide a transparent way to set and get some bits of a num.
+    """
+
     def __init__(self, backing_num, bits, bit_offset):
         if not isinstance(backing_num, Num):
             raise ValueError("backing_num should be a Num instance")
@@ -297,10 +509,14 @@ class Bits(MemField):
 
     @property
     def bit_size(self):
+        """Number of bits read/written by this class"""
         return self._bits
 
     @property
     def bit_offset(self):
+        """Offset in bits (beginning at 0, the LSB) from which to read/write
+        bits.
+        """
         return self._bit_offset
 
     def __repr__(self):
@@ -308,8 +524,36 @@ class Bits(MemField):
                                 self._bit_offset, self._bit_offset + self._bits)
 
 class BitField(Union):
+    """A C-like bitfield.
+
+    Constructed with a list [(<field_name>, <number_of_bits>)] and a
+    @backing_num. The @backing_num is a Num instance that determines the total
+    size of the bitfield and the way the bits are serialized/deserialized (big
+    endian int, little endian short...). Can be seen (and implemented) as a
+    Union of Bits fields.
+
+    Creates fields that allow to access the bitfield fields easily. Example:
+
+        class Example(MemStruct):
+            fields = [("bf", BitField(Num("B"), [
+                                ("f1", 2),
+                                ("f2", 4),
+                                ("f3", 1)
+                             ])
+                     )]
+
+        ex = Example(vm, addr)
+        ex.memset()
+        ex.f2 = 2
+        ex.f1 = 5 # 5 does not fit on two bits, it will be binarily truncated
+        assert ex.f1 == 3
+        assert ex.f2 == 2
+        assert ex.f3 == 0 # previously memset()
+        assert ex.bf == 3 + 2 << 2
+    """
+
     def __init__(self, backing_num, bit_list):
-        """bit_list: [(name, n_bits)]"""
+        """@backing num: Num intance, @bit_list: [(name, n_bits)]"""
         self._num = backing_num
         fields = []
         offset = 0
@@ -465,7 +709,7 @@ class MemStruct(object):
         offset = 0
         for name, field in cls.fields:
             # For reflexion
-            field.set_self_type(cls)
+            field._set_self_type(cls)
             cls.gen_attr(name, field, offset)
             offset += field.size()
         cls._size = offset

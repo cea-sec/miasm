@@ -20,10 +20,10 @@ class OtherStruct(MemStruct):
 
 class MyStruct(MemStruct):
     fields = [
-        # Integer field: just struct.pack fields with one value
+        # Number field: just struct.pack fields with one value
         ("num", Num("I")),
         ("flags", Num("B")),
-        # Ptr fields are Int, but they can also be dereferenced
+        # Ptr fields are Num, but they can also be dereferenced
         # (self.deref_<field>). Deref can be read and set.
         ("other", Ptr("I", OtherStruct)),
         # Ptr to a variable length String
