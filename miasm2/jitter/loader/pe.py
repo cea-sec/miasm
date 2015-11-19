@@ -446,7 +446,7 @@ class libimp_pe(libimp):
 
 
 def vm_load_pe_and_dependencies(vm, fname, name2module, runtime_lib,
-                                lib_path_base):
+                                lib_path_base, **kwargs):
     """Load a binary and all its dependencies. Returns a dictionnary containing
     the association between binaries names and it's pe object
 
@@ -477,7 +477,7 @@ def vm_load_pe_and_dependencies(vm, fname, name2module, runtime_lib,
             try:
                 with open(fname) as fstream:
                     log.info('Loading module %r', name)
-                    pe_obj = vm_load_pe(vm, fstream.read())
+                    pe_obj = vm_load_pe(vm, fstream.read(), **kwargs)
             except IOError:
                 log.warning('Cannot open %s' % fname)
                 name2module[name] = None

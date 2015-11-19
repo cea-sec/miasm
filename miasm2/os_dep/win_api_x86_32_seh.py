@@ -206,8 +206,7 @@ class LoadedModules(object):
         self.module2name[module] = name
 
     def __repr__(self):
-        out = self.name2module.iteritems()
-        return "\n".join(out)
+        return "\n".join([str(x) for x in self.name2module.iteritems()])
 
 
 def create_modules_chain(jitter, name2module):

@@ -43,7 +43,7 @@ parser.add_argument("--graph",
                     help="Export the CFG graph in graph.dot",
                     action="store_true")
 options = parser.parse_args()
-sb = Sandbox_Win_x86_32(options.filename, options, globals())
+sb = Sandbox_Win_x86_32(options.filename, options, globals(), parse_reloc=False)
 
 
 if options.verbose is True:

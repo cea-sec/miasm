@@ -34,7 +34,7 @@ class Sandbox(object):
 
     classes = property(lambda x: x.__class__._classes_())
 
-    def __init__(self, fname, options, custom_methods={}):
+    def __init__(self, fname, options, custom_methods={}, **kwargs):
         """
         Initialize a sandbox
         @fname: str file name
@@ -49,9 +49,9 @@ class Sandbox(object):
             if cls == Sandbox:
                 continue
             if issubclass(cls, OS):
-                cls.__init__(self, custom_methods)
+                cls.__init__(self, custom_methods, **kwargs)
             else:
-                cls.__init__(self)
+                cls.__init__(self, **kwargs)
 
         # Logging options
         if self.options.singlestep:
@@ -132,7 +132,7 @@ class OS(object):
     Parent class for OS abstraction
     """
 
-    def __init__(self, custom_methods):
+    def __init__(self, custom_methods, **kwargs):
         pass
 
     @classmethod
@@ -149,7 +149,7 @@ class Arch(object):
     # Architecture name
     _ARCH_ = None
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         self.machine = Machine(self._ARCH_)
         self.jitter = self.machine.jitter(self.options.jitter)
 
@@ -185,7 +185,7 @@ class OS_Win(OS):
 
         # Load main pe
         with open(self.fname) as fstream:
-            self.pe = vm_load_pe(self.jitter.vm, fstream.read())
+            self.pe = vm_load_pe(self.jitter.vm, fstream.read(), **kwargs)
             self.name2module[fname_basename] = self.pe
 
         # Load library
@@ -195,7 +195,8 @@ class OS_Win(OS):
             self.name2module.update(vm_load_pe_libs(self.jitter.vm,
                                                     self.ALL_IMP_DLL,
                                                     libs,
-                                                    self.modules_path))
+                                                    self.modules_path,
+                                                    **kwargs))
 
             # Patch libs imports
             for pe in self.name2module.itervalues():
@@ -206,7 +207,8 @@ class OS_Win(OS):
                                         fname_basename,
                                         self.name2module,
                                         libs,
-                                        self.modules_path)
+                                        self.modules_path,
+                                        **kwargs)
 
         win_api_x86_32.winobjs.current_pe = self.pe
 
@@ -255,7 +257,7 @@ class OS_Linux(OS):
         self.libs = libimp_elf()
 
         with open(self.fname) as fstream:
-            self.elf = vm_load_elf(self.jitter.vm, fstream.read())
+            self.elf = vm_load_elf(self.jitter.vm, fstream.read(), **kwargs)
         preload_elf(self.jitter.vm, self.elf, self.libs)
 
         self.entry_point = self.elf.Ehdr.entry
@@ -296,8 +298,8 @@ class Arch_x86(Arch):
     STACK_SIZE = 0x10000
     STACK_BASE = 0x130000
 
-    def __init__(self):
-        super(Arch_x86, self).__init__()
+    def __init__(self, **kwargs):
+        super(Arch_x86, self).__init__(**kwargs)
 
         if self.options.usesegm:
             self.jitter.ir_arch.do_stk_segm = True
@@ -329,8 +331,8 @@ class Arch_arml(Arch):
     STACK_SIZE = 0x100000
     STACK_BASE = 0x100000
 
-    def __init__(self):
-        super(Arch_arml, self).__init__()
+    def __init__(self, **kwargs):
+        super(Arch_arml, self).__init__(**kwargs)
 
         # Init stack
         self.jitter.stack_size = self.STACK_SIZE
@@ -343,8 +345,8 @@ class Arch_armb(Arch):
     STACK_SIZE = 0x100000
     STACK_BASE = 0x100000
 
-    def __init__(self):
-        super(Arch_armb, self).__init__()
+    def __init__(self, **kwargs):
+        super(Arch_armb, self).__init__(**kwargs)
 
         # Init stack
         self.jitter.stack_size = self.STACK_SIZE
@@ -357,8 +359,8 @@ class Arch_aarch64l(Arch):
     STACK_SIZE = 0x100000
     STACK_BASE = 0x100000
 
-    def __init__(self):
-        super(Arch_aarch64l, self).__init__()
+    def __init__(self, **kwargs):
+        super(Arch_aarch64l, self).__init__(**kwargs)
 
         # Init stack
         self.jitter.stack_size = self.STACK_SIZE
@@ -371,8 +373,8 @@ class Arch_aarch64b(Arch):
     STACK_SIZE = 0x100000
     STACK_BASE = 0x100000
 
-    def __init__(self):
-        super(Arch_aarch64b, self).__init__()
+    def __init__(self, **kwargs):
+        super(Arch_aarch64b, self).__init__(**kwargs)
 
         # Init stack
         self.jitter.stack_size = self.STACK_SIZE
