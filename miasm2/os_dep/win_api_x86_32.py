@@ -342,6 +342,7 @@ def kernel32_GetVersion(jitter):
 def kernel32_GetVersionEx(jitter, set_str=set_str_unic):
     ret_ad, args = jitter.func_args_stdcall(["ptr_struct"])
 
+    size = upck32(jitter.vm.get_mem(args.ptr_struct, 4))
     s = struct.pack("IIIII",
                     0x114,  # struct size
                     0x5,   # maj vers
@@ -352,7 +353,7 @@ def kernel32_GetVersionEx(jitter, set_str=set_str_unic):
     t = set_str("Service pack 4")
     t = s + (t + '\x00' * 128 * 2)[:128 * 2]
     t += struct.pack('HHHBB', 3, 0, 0x100, 1, 0)
-    s = t
+    s = t[:size]
     jitter.vm.set_mem(args.ptr_struct, s)
     jitter.func_ret_stdcall(ret_ad, 1)
 
@@ -384,7 +385,13 @@ def user32_GetForegroundWindow(jitter):
 
 
 def user32_FindWindowA(jitter):
-    ret_ad, _ = jitter.func_args_stdcall(["pclassname", "pwindowname"])
+    ret_ad, args = jitter.func_args_stdcall(["pclassname", "pwindowname"])
+    if args.pclassname:
+        classname = jitter.get_str_ansi(args.pclassname)
+        log.info("classname %s", classname)
+    if args.pwindowname:
+        windowname = jitter.get_str_ansi(args.pwindowname)
+        log.info("windowname %s", windowname)
     jitter.func_ret_stdcall(ret_ad, 0)
 
 
@@ -2010,8 +2017,10 @@ def advapi32_RegSetValue(jitter, funcname, get_str):
     ret_ad, args = jitter.func_args_stdcall(["hkey", "psubkey",
                                              "valuetype", "pvalue",
                                              "vlen"])
-    # subkey = get_str(jitter, args.psubkey).lower() if args.psubkey else ""
-    # value = jitter.vm.get_mem(args.pvalue, args.vlen) if args.pvalue else None
+    if args.psubkey:
+        log.debug("Subkey %s", get_str(jitter, args.psubkey))
+    if args.pvalue:
+        log.debug("Value %s", get_str(jitter, args.pvalue))
     jitter.func_ret_stdcall(ret_ad, 0)
 
 
@@ -2178,7 +2187,7 @@ def kernel32_CreateFileMapping(jitter, funcname, get_str):
         # Create null mapping
         if args.dwmaximumsizehigh:
             raise NotImplementedError("Untested case")
-        hmap = StringIO("\x00"*args.dwmaximumsizelow)
+        hmap = StringIO("\x00" * args.dwmaximumsizelow)
         hmap_handle = winobjs.handle_pool.add('filemem', hmap)
 
         ret = winobjs.handle_pool.add('filemapping', hmap_handle)
@@ -2369,7 +2378,7 @@ def kernel32_SetFilePointer(jitter):
         winobjs.files_hwnd[winobjs.module_cur_hwnd].seek(args.distance)
     elif args.hwnd in winobjs.handle_pool:
         wh = winobjs.handle_pool[args.hwnd]
-        # data = wh.info.seek(args.distance)
+        data = wh.info.seek(args.distance)
     else:
         raise ValueError('unknown filename')
     jitter.func_ret_stdcall(ret_ad, args.distance)
@@ -2734,7 +2743,6 @@ def msvcrt_myfopen(jitter, func):
         dwsize = 0x20
         alloc_addr = winobjs.heap.alloc(jitter, dwsize)
         pp = pck32(0x11112222) + pck32(0) + pck32(0) + pck32(0) + pck32(eax)
-        #pdw(0x11112222)
         jitter.vm.set_mem(alloc_addr, pp)
 
     else:
