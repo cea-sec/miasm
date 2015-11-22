@@ -89,7 +89,7 @@ log.setLevel(logging.WARN)
 allocator = None
 
 def set_allocator(alloc_func):
-    """Sets an allocator for this module; allows to instanciate statically sized
+    """Set an allocator for this module; allows to instanciate statically sized
     MemStructs (i.e. sizeof() is implemented) without specifying the address
     (the object is allocated by @alloc_func in the vm.
 
@@ -103,13 +103,13 @@ def set_allocator(alloc_func):
 # Helpers
 
 def indent(s, size=4):
-    """Indents a string with @size spaces"""
+    """Indent a string with @size spaces"""
     return ' '*size + ('\n' + ' '*size).join(s.split('\n'))
 
 
 # FIXME: copied from miasm2.os_dep.common and fixed
 def get_str_ansi(vm, addr, max_char=None):
-    """Gets a null terminated ANSI encoded string from a VmMngr.
+    """Get a null terminated ANSI encoded string from a VmMngr.
 
     Args:
         vm: VmMngr instance
@@ -121,12 +121,12 @@ def get_str_ansi(vm, addr, max_char=None):
            vm.get_mem(tmp, 1) != "\x00"):
         tmp += 1
         l += 1
-    return vm.get_mem(addr, l)
+    return vm.get_mem(addr, l).decode("latin1")
 
 
 # TODO: get_raw_str_utf16 for length calculus
 def get_str_utf16(vm, addr, max_char=None):
-    """Gets a (double) null terminated utf16 little endian encoded string from
+    """Get a (double) null terminated utf16 little endian encoded string from
     a VmMngr. This encoding is mainly used in Windows.
 
     FIXME: the implementation do not work with codepoints that are encoded on
@@ -148,7 +148,7 @@ def get_str_utf16(vm, addr, max_char=None):
 
 
 def set_str_ansi(vm, addr, s):
-    """Encodes a string to null terminated ascii/ansi and sets it in a VmMngr
+    """Encode a string to null terminated ascii/ansi and set it in a VmMngr
     memory.
 
     Args:
@@ -169,7 +169,7 @@ def set_str_utf16(vm, addr, s):
 
 # TODO: cache generated types
 def mem(field):
-    """Generates a MemStruct subclass from a field. The field's value can
+    """Generate a MemStruct subclass from a field. The field's value can
     be accessed through self.value or self.deref_value if field is a Ptr.
     """
     fields = [("value", field)]
@@ -225,7 +225,7 @@ class MemField(object):
         self._self_type = self_type
 
     def size(self):
-        """Returns the size in bytes of the serialized version of this field"""
+        """Return the size in bytes of the serialized version of this field"""
         raise NotImplementedError()
 
     def __len__(self):
@@ -279,6 +279,16 @@ class Ptr(Num):
     """
 
     def __init__(self, fmt, dst_type, *type_args, **type_kwargs):
+        """Args:
+            fmt: (str) Num compatible format that will be the Ptr representation
+                in memory
+            dst_type: (MemStruct or MemField) the MemStruct this Ptr points to.
+                If a MemField is given, it is transformed into a MemStruct with
+                mem(TheMemField).
+            *type_args, **type_kwargs: arguments to pass to the the pointed
+                MemStruct when instanciating it (e.g. for MemStr encoding or
+                MemArray field_type).
+        """
         if not isinstance(dst_type, MemField) and\
                 not (isinstance(dst_type, type) and\
                         issubclass(dst_type, MemStruct)) and\
@@ -304,7 +314,7 @@ class Ptr(Num):
 
     @property
     def dst_type(self):
-        """Returns the type (MemStruct subtype) this Ptr points to."""
+        """Return the type (MemStruct subtype) this Ptr points to."""
         self._fix_dst_type()
         return self._dst_type
 
@@ -574,6 +584,12 @@ class BitField(Union):
 # MemStruct classes
 
 class _MetaMemStruct(type):
+    """MemStruct metaclass. Triggers the magic that generates the class fields
+    from the cls.fields list.
+
+    Just calls MemStruct.gen_fields(), the actual implementation can seen be
+    there.
+    """
 
     def __init__(cls, name, bases, dct):
         super(_MetaMemStruct, cls).__init__(name, bases, dct)
@@ -584,6 +600,51 @@ class _MetaMemStruct(type):
 
 
 class MemStruct(object):
+    """Base class to implement VmMngr backed C-like structures in miasm.
+
+    The mechanism is the following:
+        - set a "fields" class field to be a list of
+          (<field_name (str)>, <MemField_subclass_instance>)
+        - instances of this class will have properties to interract with these
+          fields.
+
+    Example:
+        class Example(MemStruct):
+            fields = [
+                # Number field: just struct.pack fields with one value
+                ("num", Num("I")),
+                ("flags", Num("B")),
+                # Ptr fields are Num, but they can also be dereferenced
+                # (self.deref_<field>). Deref can be read and set.
+                ("other", Ptr("I", OtherStruct)),
+                ("i", Ptr("I", Num("I"))),
+                # Ptr to a variable length String
+                ("s", Ptr("I", MemStr)),
+            ]
+
+        mstruct = MyStruct(vm, addr)
+
+        # Field assignment modifies virtual memory
+        mstruct.num = 3
+        assert mstruct.num == 3
+        memval = struct.unpack("I", vm.get_mem(mstruct.get_addr(),
+                                                      4))[0]
+        assert memval == mstruct.num
+
+        # Memset sets the whole structure
+        mstruct.memset()
+        assert mstruct.num == 0
+        mstruct.memset('\x11')
+        assert mstruct.num == 0x11111111
+
+        other = OtherStruct(vm, addr2)
+        mstruct.other = other.get_addr()
+        assert mstruct.other == other.get_addr()
+        assert mstruct.deref_other == other
+        assert mstruct.deref_other.foo == 0x1234
+
+    See the various MemField doc for more information.
+    """
     __metaclass__ = _MetaMemStruct
 
     fields = []
@@ -605,7 +666,15 @@ class MemStruct(object):
             self._addr = addr
 
     def get_addr(self, field_name=None):
+        """Return the address of this MemStruct or one of its fields.
+
+        Args:
+            field_name: (str, optional) the name of the field to get the
+                address of
+        """
         if field_name is not None:
+            if field_name not in self._attrs:
+                raise ValueError("This structure has no %s field" % field_name)
             offset = self._attrs[field_name]['offset']
         else:
             offset = 0
@@ -613,63 +682,107 @@ class MemStruct(object):
 
     @classmethod
     def sizeof(cls):
+        """Return the static size of this structure, when available (it is the
+        case by default).
+        """
+        # Child classes can set cls._size if their size is not the sum of
+        # their fields
         if cls._size is None:
             return sum(a["field"].size() for a in cls._attrs.itervalues())
         return cls._size
 
     def get_size(self):
+        """Return the dynamic size of this structure (e.g. the size of an
+        instance). Defaults to sizeof for this base class.
+
+        For example, MemSizedArray defines get_size but not sizeof, as an
+        instance has a fixed size (because it has a fixed length and
+        field_type), but all the instance do not have the same size.
+        """
         return self.sizeof()
 
     def get_field_type(self, name):
+        """Return the MemField subclass instance describing field @name."""
         return self._attrs[name]['field']
 
-    def get_attr(self, attr):
-        if attr not in self._attrs:
+    def get_field(self, name):
+        """Get a field value by name.
+
+        Useless most of the time since fields are accessible via self.<name>.
+        """
+        if name not in self._attrs:
             raise AttributeError("'%s' object has no attribute '%s'"
-                                 % (self.__class__.__name__, attr))
-        field = self._attrs[attr]["field"]
-        offset = self._attrs[attr]["offset"]
+                                 % (self.__class__.__name__, name))
+        field = self._attrs[name]["field"]
+        offset = self._attrs[name]["offset"]
         return field.get(self._vm, self.get_addr() + offset)
 
-    def set_attr(self, attr, val):
-        if attr not in self._attrs:
+    def set_field(self, name, val):
+        """Set a field value by name. @val is the python value corresponding to
+        this field type.
+
+        Useless most of the time since fields are accessible via self.<name>.
+        """
+        if name not in self._attrs:
             raise AttributeError("'%s' object has no attribute '%s'"
-                                 % (self.__class__.__name__, attr))
-        field = self._attrs[attr]["field"]
-        offset = self._attrs[attr]["offset"]
+                                 % (self.__class__.__name__, name))
+        field = self._attrs[name]["field"]
+        offset = self._attrs[name]["offset"]
         field.set(self._vm, self.get_addr() + offset, val)
 
-    def deref_attr(self, attr):
-        addr = self.get_attr(attr)
-        field = self._attrs[attr]["field"]
+    def deref_field(self, name):
+        """Get the MemStruct pointed by <name> field.
+
+        Useless most of the time since fields are accessible via
+        self.deref_<name>.
+        """
+        addr = self.get_field(name)
+        field = self._attrs[name]["field"]
         assert isinstance(field, Ptr),\
                "Programming error: field should be a Ptr"
         return field.deref_get(self._vm, addr)
 
-    def set_deref_attr(self, attr, val):
-        addr = self.get_attr(attr)
-        field = self._attrs[attr]["field"]
+    def set_deref_field(self, name, val):
+        """Set the MemStruct pointed by <name> field. @val should be of the
+        type of the pointed MemStruct. The field must be a Ptr.
+
+        Useless most of the time since fields are accessible via
+        self.deref_<name>.
+        """
+        addr = self.get_field(name)
+        field = self._attrs[name]["field"]
         assert isinstance(field, Ptr),\
                "Programming error: field should be a Ptr"
         field.deref_set(self._vm, addr, val)
 
     def memset(self, byte='\x00'):
-        """memset(0)"""
+        """Fill the memory space of this MemStruct with @byte ('\x00' by
+        default). The size is retrieved with self.get_size() (dynamic size).
+        """
         if not isinstance(byte, str) or not len(byte) == 1:
             raise ValueError("byte must be a 1-lengthed str")
         self._vm.set_mem(self.get_addr(), byte * self.get_size())
 
     def cast(self, other_type, *type_args, **type_kwargs):
+        """Cast this MemStruct to another MemStruct (same address, same vm, but
+        different type). Return the casted MemStruct.
+        """
         return self.cast_field(None, other_type, *type_args, **type_kwargs)
 
     def cast_field(self, field_name, other_type, *type_args, **type_kwargs):
+        """Same as cast, but the address of the returned MemStruct is the
+        address at which @field_name is in the current MemStruct.
+        """
         return other_type(self._vm, self.get_addr(field_name),
                           *type_args, **type_kwargs)
 
     def __len__(self):
         return self.get_size()
 
-    def __str__(self):
+    def raw(self):
+        """Raw binary (str) representation of the MemStruct as it is in
+        memory.
+        """
         attrs = sorted(self._attrs.itervalues(), key=lambda a: a["offset"])
         out = []
         for attr in attrs:
@@ -678,12 +791,15 @@ class MemStruct(object):
             out.append(self._vm.get_mem(self.get_addr() + offset, field.size()))
         return ''.join(out)
 
+    def __str__(self):
+        return self.raw()
+
     def __repr__(self):
         attrs = sorted(self._attrs.iteritems(), key=lambda a: a[1]["offset"])
         out = []
         for name, attr in attrs:
             field = attr["field"]
-            val_repr = repr(self.get_attr(name))
+            val_repr = repr(self.get_field(name))
             if '\n' in val_repr:
                 val_repr = '\n' + indent(val_repr, 4)
             out.append("%s: %r = %s" % (name, field, val_repr))
@@ -699,10 +815,34 @@ class MemStruct(object):
     def __ne__(self, other):
         return not (self == other)
 
-    # Field generation methods, voluntarily public
+    # Field generation methods, voluntarily public to be able to regen fields
+    # after class definition
 
     @classmethod
     def gen_fields(cls, fields=None):
+        """Generate the fields of this class (so that they can be accessed with
+        self.<field_name>) from a @fields list, as described in the class doc.
+
+        Useful in case of a type cyclic dependency. For example, the following
+        is not possible in python:
+
+            class A(MemStruct):
+                fields = [("b", Ptr("I", B))]
+
+            class B(MemStruct):
+                fields = [("a", Ptr("I", A))]
+
+        With gen_fields, the following is the legal equivalent:
+
+            class A(MemStruct):
+                pass
+
+            class B(MemStruct):
+                fields = [("a", Ptr("I", A))]
+
+            A.fields = [("b", Ptr("I", B))]
+            a.gen_field()
+        """
         if fields is None:
             fields = cls.fields
         cls._attrs = {}
@@ -710,34 +850,39 @@ class MemStruct(object):
         for name, field in cls.fields:
             # For reflexion
             field._set_self_type(cls)
-            cls.gen_attr(name, field, offset)
+            cls.gen_field(name, field, offset)
             offset += field.size()
         cls._size = offset
 
     @classmethod
-    def gen_attr(cls, name, field, offset):
-        # FIXME: move to gen_simple_arg?
-        cls._attrs[name] = {"field": field, "offset": offset}
+    def gen_field(cls, name, field, offset):
+        """Generate only one field
+
+        Args:
+            @name: (str) the name of the field
+            @field: (MemField instance) the field type
+            @offset: (int) the offset of the field in the structure
+        """
         cls._gen_simple_attr(name, field, offset)
         if isinstance(field, Union):
             cls._gen_union_attr(field, offset)
 
     @classmethod
     def _gen_simple_attr(cls, name, field, offset):
+        cls._attrs[name] = {"field": field, "offset": offset}
+
         # Generate self.<name> getter and setter
         setattr(cls, name, property(
-            # default parameter allow to bind the value of name for a given
-            # loop iteration
-            lambda self, name=name: self.get_attr(name),
-            lambda self, val, name=name: self.set_attr(name, val)
+            lambda self: self.get_field(name),
+            lambda self, val: self.set_field(name, val)
         ))
 
         # Generate self.deref_<name> getter and setter if this field is a
         # Ptr
         if isinstance(field, Ptr):
             setattr(cls, "deref_%s" % name, property(
-                lambda self, name=name: self.deref_attr(name),
-                lambda self, val, name=name: self.set_deref_attr(name, val)
+                lambda self: self.deref_field(name),
+                lambda self, val: self.set_deref_field(name, val)
             ))
 
     @classmethod
@@ -745,15 +890,27 @@ class MemStruct(object):
         if not isinstance(union_field, Union):
             raise ValueError("field should be an Union instance")
         for name, field in union_field.field_list:
-            cls.gen_attr(name, field, offset)
+            cls.gen_field(name, field, offset)
 
 
 class MemSelf(MemStruct):
-    """Special Marker class for reference to current class in a Ptr."""
+    """Special Marker class for reference to current class in a Ptr or Array
+    (mostly Array of Ptr).
+
+    Example:
+        class ListNode(MemStruct):
+            fields = [
+                ("next", Ptr("<I", MemSelf)),
+                ("data", Ptr("<I", MemVoid)),
+            ]
+    """
     pass
 
 
 class MemVoid(MemStruct):
+    """Placeholder for e.g. Ptr to an undetermined type. Useful mostly when
+    casted to another type. Allows to implement C's "void*" pattern.
+    """
     def __repr__(self):
         return self.__class__.__name__
 
@@ -761,6 +918,17 @@ class MemVoid(MemStruct):
 # This does not use _MetaMemStruct features, impl is custom for strings,
 # because they are unsized. The only memory field is self.value.
 class MemStr(MemStruct):
+    """Implements a string representation in memory.
+
+    The @encoding is passed to the constructor, and is currently either null
+    terminated "ansi" (latin1) or (double) null terminated "utf16". Be aware
+    that the utf16 implementation is a bit buggy...
+
+    The string value can be got or set (with python str/unicode) through the
+    self.value attribute. String encoding/decoding is handled by the class.
+
+    This type is dynamically sized only (get_size is implemented, not sizeof).
+    """
     def __init__(self, vm, addr, encoding="ansi"):
         # TODO: encoding as lambda
         if encoding not in ["ansi", "utf16"]:
@@ -770,6 +938,7 @@ class MemStr(MemStruct):
 
     @property
     def value(self):
+        """Set the string value in memory"""
         if self._enc == "ansi":
             get_str = get_str_ansi
         elif self._enc == "utf16":
@@ -780,6 +949,7 @@ class MemStr(MemStruct):
 
     @value.setter
     def value(self, s):
+        """Get the string value from memory"""
         if self._enc == "ansi":
             set_str = set_str_ansi
         elif self._enc == "utf16":
@@ -789,8 +959,9 @@ class MemStr(MemStruct):
         set_str(self._vm, self.get_addr(), s)
 
     def get_size(self):
-        """FIXME Quite unsafe: it reads the string underneath to determine the
-        size
+        """This get_size implementation is quite unsafe: it reads the string
+        underneath to determine the size, it may therefore read a lot of memory
+        and provoke mem faults (analogous to strlen).
         """
         val = self.value
         if self._enc == "ansi":
@@ -801,7 +972,7 @@ class MemStr(MemStruct):
         else:
             raise NotImplementedError("Only 'ansi' and 'utf16' are implemented")
 
-    def __str__(self):
+    def raw(self):
         raw = self._vm.get_mem(self.get_addr(), self.get_size())
         return raw
 
@@ -810,6 +981,23 @@ class MemStr(MemStruct):
 
 
 class MemArray(MemStruct):
+    """An unsized array of type @field_type (a MemField subclass instance).
+    This class has no static or dynamic size.
+
+    It can be indexed for setting and getting elements, example:
+
+        array = MemArray(vm, addr, Num("I"))
+        array[2] = 5
+        array[4:8] = [0, 1, 2, 3]
+        print array[20]
+
+    If the @field_type is a Ptr, deref_get(index) and deref_set(index) can be
+    used to dereference a field at a given index in the array.
+
+    mem_array_type can be used to generate a type that includes the field_type.
+    Such a generated type can be instanciated with only vm and addr, as are
+    other MemStructs.
+    """
     _field_type = None
 
     def __init__(self, vm, addr=None, field_type=None):
@@ -823,6 +1011,9 @@ class MemArray(MemStruct):
 
     @property
     def field_type(self):
+        """Return the MemField subclass instance that represents the type of
+        this MemArray items.
+        """
         return self._field_type
 
     def _normalize_idx(self, idx):
@@ -843,6 +1034,8 @@ class MemArray(MemStruct):
             raise IndexError("Index %s out of bounds" % idx)
 
     def index2addr(self, idx):
+        """Return the address corresponding to a given @index in this MemArray.
+        """
         self._check_bounds(idx)
         addr = self.get_addr() + idx * self._field_type.size()
         return addr
@@ -858,6 +1051,9 @@ class MemArray(MemStruct):
             return self._field_type.get(self._vm, self.index2addr(idx))
 
     def deref_get(self, idx):
+        """If self.field_type is a Ptr, return the MemStruct self[idx] points
+        to.
+        """
         return self._field_type.deref_get(self._vm, self[idx])
 
     def __setitem__(self, idx, item):
@@ -871,6 +1067,9 @@ class MemArray(MemStruct):
             self._field_type.set(self._vm, self.index2addr(idx), item)
 
     def deref_set(self, idx, item):
+        """If self.field_type is a Ptr, set the MemStruct self[idx] points
+        to with @item.
+        """
         self._field_type.deref_set(self._vm, self[idx], item)
 
     # just a shorthand
@@ -882,7 +1081,7 @@ class MemArray(MemStruct):
         raise ValueError("%s is unsized, which makes some operations"
                          " impossible. Use MemSizedArray instead.")
 
-    def __str__(self):
+    def raw(self):
         raise ValueError("%s is unsized, which makes some operations"
                          " impossible. Use MemSizedArray instead.")
 
@@ -891,6 +1090,10 @@ class MemArray(MemStruct):
 
 
 def mem_array_type(field_type):
+    """Generate a MemArray subclass that has a fixed @field_type. It allows to
+    instanciate this class with only vm and addr argument, as are standard
+    MemStructs.
+    """
     array_type = type('MemArray_%r' % (field_type,),
                       (MemArray,),
                       {'_field_type': field_type})
@@ -898,6 +1101,12 @@ def mem_array_type(field_type):
 
 
 class MemSizedArray(MemArray):
+    """A fixed size MemArray. Its additional arg represents the @length (in
+    number of elements) of this array.
+
+    This type is dynamically sized. Use mem_sized_array_type to generate a
+    fixed @field_type and @array_len array which has a static size.
+    """
     _array_len = None
 
     def __init__(self, vm, addr=None, field_type=None, length=None):
@@ -913,6 +1122,7 @@ class MemSizedArray(MemArray):
 
     @property
     def array_len(self):
+        """The length, in number of elements, of this array."""
         return self._array_len
 
     def sizeof(cls):
@@ -937,7 +1147,7 @@ class MemSizedArray(MemArray):
         for i in xrange(self._array_len):
             yield self[i]
 
-    def __str__(self):
+    def raw(self):
         return self._vm.get_mem(self.get_addr(), self.get_size())
 
     def __repr__(self):
@@ -950,6 +1160,10 @@ class MemSizedArray(MemArray):
 
 
 def mem_sized_array_type(field_type, length):
+    """Generate a MemSizedArray subclass that has a fixed @field_type and a
+    fixed @length. This allows to instanciate the returned type with only
+    the vm and addr arguments, as are standard MemStructs.
+    """
     @classmethod
     def sizeof(cls):
         return cls._field_type.size() * cls._array_len
@@ -961,6 +1175,3 @@ def mem_sized_array_type(field_type, length):
                        'sizeof': sizeof})
     return array_type
 
-
-# IDEA: func_args_* functions could return a dynamically generated MemStruct
-# class instance
