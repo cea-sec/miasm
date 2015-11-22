@@ -797,6 +797,7 @@ class ExprOp(Expr):
         if self.is_associative():
             return '(' + self._op.join([str(arg) for arg in self._args]) + ')'
         if (self._op.startswith('call_func_') or
+            self._op == 'cpuid' or
             len(self._args) > 2 or
                 self._op in ['parity', 'segm']):
             return self._op + '(' + ', '.join([str(arg) for arg in self._args]) + ')'
