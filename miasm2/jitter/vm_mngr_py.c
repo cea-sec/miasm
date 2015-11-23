@@ -531,7 +531,7 @@ VmMngr_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 static PyObject *
 VmMngr_get_vmmngr(VmMngr *self, void *closure)
 {
-	return PyLong_FromUnsignedLongLong((uint64_t)&(self->vm_mngr));
+	return PyLong_FromUnsignedLongLong((uint64_t)(intptr_t)&(self->vm_mngr));
 }
 
 static int

@@ -79,7 +79,7 @@ uint64_t set_endian64(vm_mngr_t* vm_mngr, uint64_t val)
 
 void print_val(uint64_t base, uint64_t addr)
 {
-	uint64_t *ptr =  (uint64_t *) addr;
+	uint64_t *ptr = (uint64_t *) (intptr_t) addr;
 	fprintf(stderr, "addr 0x%"PRIX64" val 0x%"PRIX64"\n", addr-base, *ptr);
 }
 
