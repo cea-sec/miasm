@@ -3,7 +3,6 @@ import logging
 from argparse import ArgumentParser
 
 from miasm2.analysis.machine import Machine
-from miasm2.os_dep import win_api_x86_32_seh
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm2.analysis import debugging
 from miasm2.jitter.jitload import log_func
@@ -169,7 +168,7 @@ class OS_Win(OS):
     def __init__(self, custom_methods, *args, **kwargs):
         from miasm2.jitter.loader.pe import vm_load_pe, vm_load_pe_libs,\
             preload_pe, libimp_pe, vm_load_pe_and_dependencies
-        from miasm2.os_dep import win_api_x86_32
+        from miasm2.os_dep import win_api_x86_32, win_api_x86_32_seh
         methods = win_api_x86_32.__dict__
         methods.update(custom_methods)
 
@@ -222,6 +221,7 @@ class OS_Win(OS):
         if self.options.use_seh:
             win_api_x86_32_seh.main_pe_name = fname_basename
             win_api_x86_32_seh.main_pe = self.pe
+            win_api_x86_32.winobjs.hcurmodule = self.pe.NThdr.ImageBase
             win_api_x86_32_seh.name2module = self.name2module
             win_api_x86_32_seh.init_seh(self.jitter)
             win_api_x86_32_seh.set_win_fs_0(self.jitter)
