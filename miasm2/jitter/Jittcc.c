@@ -59,10 +59,12 @@ TCCState * tcc_init_state(void)
 
 PyObject* tcc_end(PyObject* self, PyObject* args)
 {
-	TCCState *tcc_state = NULL;
-	if (!PyArg_ParseTuple(args, "K", &tcc_state))
+	unsigned long long tmp = 0;
+
+	if (!PyArg_ParseTuple(args, "K", &tmp))
 		return NULL;
-	tcc_delete(tcc_state);
+
+	tcc_delete((TCCState *) (intptr_t) tmp);
 
 	Py_INCREF(Py_None);
 	return Py_None;
@@ -214,8 +216,8 @@ PyObject* tcc_compil(PyObject* self, PyObject* args)
 		exit(1);
 	}
 
-	PyTuple_SetItem(ret, 0, PyLong_FromUnsignedLongLong((uint64_t)tcc_state));
-	PyTuple_SetItem(ret, 1, PyLong_FromUnsignedLongLong((uint64_t)entry));
+	PyTuple_SetItem(ret, 0, PyLong_FromUnsignedLongLong((intptr_t) tcc_state));
+	PyTuple_SetItem(ret, 1, PyLong_FromUnsignedLongLong((intptr_t) entry));
 
 	return ret;
 
@@ -243,8 +245,8 @@ PyObject* tcc_loop_exec(PyObject* self, PyObject* args)
 		}
 
 		pArgs = PyTuple_New(2);
-		PyTuple_SetItem(pArgs, 0, PyLong_FromUnsignedLongLong((uint64_t)cpu));
-		PyTuple_SetItem(pArgs, 1, PyLong_FromUnsignedLongLong((uint64_t)vm));
+		PyTuple_SetItem(pArgs, 0, PyLong_FromUnsignedLongLong((intptr_t)cpu));
+		PyTuple_SetItem(pArgs, 1, PyLong_FromUnsignedLongLong((intptr_t)vm));
 		ret = PyObject_CallObject(func, pArgs);
 		Py_DECREF(2);
 
