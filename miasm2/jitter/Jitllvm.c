@@ -6,15 +6,17 @@
 
 PyObject* llvm_exec_bloc(PyObject* self, PyObject* args)
 {
+	uint64_t func_addr;
 	uint64_t (*func)(void*, void*);
 	uint64_t vm;
 	uint64_t cpu;
 	uint64_t ret;
 
-	if (!PyArg_ParseTuple(args, "KKK", &func, &cpu, &vm))
+	if (!PyArg_ParseTuple(args, "KKK", &func_addr, &cpu, &vm))
 		return NULL;
-	ret = func((void*)cpu, (void*)vm);
-	return PyLong_FromUnsignedLongLong( (uint64_t)ret);
+	func = (void *) (intptr_t) func_addr;
+	ret = func((void*)(intptr_t) cpu, (void*)(intptr_t) vm);
+	return PyLong_FromUnsignedLongLong(ret);
 }
 
 
