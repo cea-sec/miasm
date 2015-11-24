@@ -8,7 +8,8 @@ from miasm2.analysis.machine import Machine
 from miasm2.analysis.mem import MemStruct, Num, Ptr, MemStr, MemArray,\
                                 MemSizedArray, Array, mem_array_type,\
                                 mem_sized_array_type, Struct, Inline, mem,\
-                                Union, BitField, MemSelf, MemVoid, set_allocator
+                                Union, BitField, MemSelf, MemVoid, Bits, \
+                                set_allocator
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm2.os_dep.common import heap
 
@@ -429,6 +430,41 @@ p = MemPtrVoid(jitter.vm)
 p.value = mstruct.get_addr()
 assert p.deref_value.cast(MyStruct) == mstruct
 assert p.cast(MemPtrMyStruct).deref_value == mstruct
+
+# Field equality tests
+assert Struct("IH") == Struct("IH")
+assert Struct("I") != Struct("IH")
+assert Num("I") == Num("I")
+assert Num(">I") != Num("<I")
+assert Ptr("I", MyStruct) == Ptr("I", MyStruct)
+assert Ptr(">I", MyStruct) != Ptr("<I", MyStruct)
+assert Ptr("I", MyStruct) != Ptr("I", MyStruct2)
+assert Inline(MyStruct) == Inline(MyStruct)
+assert Inline(MyStruct) != Inline(MyStruct2)
+assert Array(Num("H"), 12) == Array(Num("H"), 12)
+assert Array(Num("H"), 11) != Array(Num("H"), 12)
+assert Array(Num("I"), 12) != Array(Num("H"), 12)
+assert Union([("f1", Num("B")), ("f2", Num("H"))]) == \
+        Union([("f1", Num("B")), ("f2", Num("H"))])
+assert Union([("f2", Num("B")), ("f2", Num("H"))]) != \
+        Union([("f1", Num("B")), ("f2", Num("H"))])
+assert Union([("f1", Num("B")), ("f2", Num("H"))]) != \
+        Union([("f1", Num("I")), ("f2", Num("H"))])
+assert Bits(Num("I"), 3, 8) == Bits(Num("I"), 3, 8)
+assert Bits(Num("I"), 3, 8) != Bits(Num("I"), 3, 8)
+assert Bits(Num("H"), 2, 8) != Bits(Num("I"), 3, 8)
+assert Bits(Num("I"), 3, 7) != Bits(Num("I"), 3, 8)
+assert BitField(Num("B"), [("f1", 2), ("f2", 4), ("f3", 1)]) == \
+        BitField(Num("B"), [("f1", 2), ("f2", 4), ("f3", 1)])
+assert BitField(Num("H"), [("f1", 2), ("f2", 4), ("f3", 1)]) != \
+        BitField(Num("B"), [("f1", 2), ("f2", 4), ("f3", 1)])
+assert BitField(Num("B"), [("f2", 2), ("f2", 4), ("f3", 1)]) != \
+        BitField(Num("B"), [("f1", 2), ("f2", 4), ("f3", 1)])
+assert BitField(Num("B"), [("f1", 1), ("f2", 4), ("f3", 1)]) != \
+        BitField(Num("B"), [("f1", 2), ("f2", 4), ("f3", 1)])
+
+
+# Repr tests
 
 print "Some struct reprs:\n"
 print repr(mstruct), '\n'
