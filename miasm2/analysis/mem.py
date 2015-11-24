@@ -875,11 +875,7 @@ class MemStruct(object):
         return '%r:\n' % self.__class__ + indent('\n'.join(out), 2)
 
     def __eq__(self, other):
-        # Do not test class equality, because of dynamically generated fields
-        # self.__class__ == other.__class__ and
-        # Could test attrs?
-        # TODO: self._attrs == other._attrs and
-        return str(self) == str(other)
+        return self.__class__ == other.__class__ and str(self) == str(other)
 
     def __ne__(self, other):
         return not self == other
@@ -1215,6 +1211,13 @@ class MemSizedArray(MemArray):
         else:
             items = ', '.join(item_reprs)
         return "[%s] [%r; %s]" % (items, self._field_type, self._array_len)
+
+    def __eq__(self, other):
+        # Special implementation to handle dynamic subclasses
+        return isinstance(other, MemSizedArray) and \
+                self._field_type == other._field_type and \
+                self._array_len == other._array_len and \
+                str(self) == str(other)
 
 
 def mem_array_type(field_type):

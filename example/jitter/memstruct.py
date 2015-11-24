@@ -184,7 +184,7 @@ assert link.size == 2
 # Make the Array Ptr point to the data's array field
 data.arrayptr = data.get_addr("array")
 # Now the pointer dereference is equal to the array field's value
-assert data.deref_arrayptr == data.array
+assert data.deref_arrayptr.value == data.array
 
 # Let's say that it is a DataStr:
 datastr = data.cast(DataStr)
