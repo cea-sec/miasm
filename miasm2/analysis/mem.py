@@ -259,6 +259,9 @@ class Struct(MemField):
     def __eq__(self, other):
         return self.__class__ == other.__class__ and self._fmt == other._fmt
 
+    def __hash__(self):
+        return hash(hash(self.__class__) + hash(self._fmt))
+
 
 class Num(Struct):
     """Represents a number (integer or float). The number is encoded with
@@ -351,6 +354,10 @@ class Ptr(Num):
                 self._type_args == other._type_args and \
                 self._type_kwargs == other._type_kwargs
 
+    def __hash__(self):
+        return hash(super(Ptr, self).__hash__() + hash(self._dst_type) +
+                hash(self._type_args) + hash(self._type_kwargs))
+
 
 class Inline(MemField):
     """Field used to inline a MemStruct in another MemStruct. Equivalent to
@@ -398,6 +405,10 @@ class Inline(MemField):
                 self._il_type == other._il_type and \
                 self._type_args == other._type_args and \
                 self._type_kwargs == other._type_kwargs
+
+    def __hash__(self):
+        return hash(hash(self.__class__) + hash(self._il_type) +
+                hash(self._type_args) + hash(self._type_kwargs))
 
 
 class Array(MemField):
@@ -459,6 +470,10 @@ class Array(MemField):
                 self.field_type == other.field_type and \
                 self.array_len == other.array_len
 
+    def __hash__(self):
+        return hash(hash(self.__class__) + hash(self.field_type) +
+                hash(self.array_len))
+
 
 class Union(MemField):
     """Allows to put multiple fields at the same offset in a MemStruct, similar
@@ -504,6 +519,9 @@ class Union(MemField):
     def __eq__(self, other):
         return self.__class__ == other.__class__ and \
                 self.field_list == other.field_list
+
+    def __hash__(self):
+        return hash(hash(self.__class__) + hash(self.field_list))
 
 
 class Bits(MemField):
@@ -565,6 +583,10 @@ class Bits(MemField):
                 self._num == other._num and self._bits == other._bits and \
                 self._bit_offset == other._bit_offset
 
+    def __hash__(self):
+        return hash(hash(self.__class__) + hash(self._num) + hash(self._bits) +
+                hash(self._bit_offset))
+
 
 class BitField(Union):
     """A C-like bitfield.
@@ -616,6 +638,9 @@ class BitField(Union):
     def __eq__(self, other):
         return self.__class__ == other.__class__ and \
                 self._num == other._num and super(BitField, self).__eq__(other)
+
+    def __hash__(self):
+        return hash(super(BitField, self).__hash__() + hash(self._num))
 
 
 # MemStruct classes
