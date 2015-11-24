@@ -85,8 +85,11 @@ console_handler.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
 log.addHandler(console_handler)
 log.setLevel(logging.WARN)
 
-# allocator is a function(vm, size) -> allocated_address
-allocator = None
+# ALLOCATOR is a function(vm, size) -> allocated_address
+ALLOCATOR = None
+
+# Cache for dynamically generated MemStructs
+DYN_MEM_STRUCT_CACHE = {}
 
 def set_allocator(alloc_func):
     """Set an allocator for this module; allows to instanciate statically sized
@@ -96,8 +99,8 @@ def set_allocator(alloc_func):
     Args:
         alloc_func: func(VmMngr) -> integer_address
     """
-    global allocator
-    allocator = alloc_func
+    global ALLOCATOR
+    ALLOCATOR = alloc_func
 
 
 # Helpers
@@ -167,14 +170,17 @@ def set_str_utf16(vm, addr, s):
 
 # MemField to MemStruct helper
 
-# TODO: cache generated types
 def mem(field):
     """Generate a MemStruct subclass from a field. The field's value can
     be accessed through self.value or self.deref_value if field is a Ptr.
     """
+    if field in DYN_MEM_STRUCT_CACHE:
+        return DYN_MEM_STRUCT_CACHE[field]
+
     fields = [("value", field)]
     # Build a type to contain the field type
     mem_type = type("Mem%r" % field, (MemStruct,), {'fields': fields})
+    DYN_MEM_STRUCT_CACHE[field] = mem_type
     return mem_type
 
 
@@ -356,7 +362,7 @@ class Ptr(Num):
 
     def __hash__(self):
         return hash(super(Ptr, self).__hash__() + hash(self._dst_type) +
-                hash(self._type_args) + hash(self._type_kwargs))
+                hash(self._type_args))
 
 
 class Inline(MemField):
@@ -408,7 +414,7 @@ class Inline(MemField):
 
     def __hash__(self):
         return hash(hash(self.__class__) + hash(self._il_type) +
-                hash(self._type_args) + hash(self._type_kwargs))
+                hash(self._type_args))
 
 
 class Array(MemField):
@@ -521,7 +527,7 @@ class Union(MemField):
                 self.field_list == other.field_list
 
     def __hash__(self):
-        return hash(hash(self.__class__) + hash(self.field_list))
+        return hash(hash(self.__class__) + hash(tuple(self.field_list)))
 
 
 class Bits(MemField):
@@ -716,14 +722,15 @@ class MemStruct(object):
     # Classic usage methods
 
     def __init__(self, vm, addr=None, *args, **kwargs):
-        global allocator
+        global ALLOCATOR
         super(MemStruct, self).__init__(*args, **kwargs)
         self._vm = vm
         if addr is None:
-            if allocator is None:
+            if ALLOCATOR is None:
                 raise ValueError("Cannot provide None address to MemStruct() if"
-                                 "%s.allocator is not set." % __name__)
-            self._addr = allocator(vm, self.get_size())
+                                 "%s.set_allocator has not been called."
+                                 % __name__)
+            self._addr = ALLOCATOR(vm, self.get_size())
         else:
             self._addr = addr
 
@@ -1151,17 +1158,6 @@ class MemArray(MemStruct):
         return "[%r, ...] [%r]" % (self[0], self._field_type)
 
 
-def mem_array_type(field_type):
-    """Generate a MemArray subclass that has a fixed @field_type. It allows to
-    instanciate this class with only vm and addr argument, as are standard
-    MemStructs.
-    """
-    array_type = type('MemArray_%r' % (field_type,),
-                      (MemArray,),
-                      {'_field_type': field_type})
-    return array_type
-
-
 class MemSizedArray(MemArray):
     """A fixed size MemArray. Its additional arg represents the @array_len (in
     number of elements) of this array.
@@ -1221,11 +1217,31 @@ class MemSizedArray(MemArray):
         return "[%s] [%r; %s]" % (items, self._field_type, self._array_len)
 
 
+def mem_array_type(field_type):
+    """Generate a MemArray subclass that has a fixed @field_type. It allows to
+    instanciate this class with only vm and addr argument, as are standard
+    MemStructs.
+    """
+    cache_key = (field_type, None)
+    if cache_key in DYN_MEM_STRUCT_CACHE:
+        return DYN_MEM_STRUCT_CACHE[cache_key]
+
+    array_type = type('MemArray_%r' % (field_type,),
+                      (MemArray,),
+                      {'_field_type': field_type})
+    DYN_MEM_STRUCT_CACHE[cache_key] = array_type
+    return array_type
+
+
 def mem_sized_array_type(field_type, array_len):
     """Generate a MemSizedArray subclass that has a fixed @field_type and a
     fixed @array_len. This allows to instanciate the returned type with only
     the vm and addr arguments, as are standard MemStructs.
     """
+    cache_key = (field_type, array_len)
+    if cache_key in DYN_MEM_STRUCT_CACHE:
+        return DYN_MEM_STRUCT_CACHE[cache_key]
+
     @classmethod
     def sizeof(cls):
         return cls._field_type.size() * cls._array_len
@@ -1235,5 +1251,6 @@ def mem_sized_array_type(field_type, array_len):
                       {'_array_len': array_len,
                        '_field_type': field_type,
                        'sizeof': sizeof})
+    DYN_MEM_STRUCT_CACHE[cache_key] = array_type
     return array_type
 

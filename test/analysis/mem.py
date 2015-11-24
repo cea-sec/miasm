@@ -292,9 +292,6 @@ assert cont.instruct.bar == 0x03
 assert cont.last == 0x04
 assert jitter.vm.get_mem(cont.get_addr(), len(cont)) == '\x01\x02\x03\x04'
 
-# Quick mem(MemField) test:
-assert mem(Num("f"))(jitter.vm, addr) == mem(Num("f"))(jitter.vm, addr)
-
 
 # Union test
 class UniStruct(MemStruct):
@@ -462,6 +459,19 @@ assert BitField(Num("B"), [("f2", 2), ("f2", 4), ("f3", 1)]) != \
         BitField(Num("B"), [("f1", 2), ("f2", 4), ("f3", 1)])
 assert BitField(Num("B"), [("f1", 1), ("f2", 4), ("f3", 1)]) != \
         BitField(Num("B"), [("f1", 2), ("f2", 4), ("f3", 1)])
+
+
+# Quick mem(MemField)/MemField hash test:
+assert mem(Num("f"))(jitter.vm, addr) == mem(Num("f"))(jitter.vm, addr)
+# Types are cached
+assert mem(Num("f")) == mem(Num("f"))
+assert mem(Num("d")) != mem(Num("f"))
+assert mem(Union([("f1", Num("I")), ("f2", Num("H"))])) == \
+        mem(Union([("f1", Num("I")), ("f2", Num("H"))]))
+assert mem_array_type(Num("B")) == mem_array_type(Num("B"))
+assert mem_array_type(Num("I")) != mem_array_type(Num("B"))
+assert mem_sized_array_type(Num("B"), 20) == mem_sized_array_type(Num("B"), 20)
+assert mem_sized_array_type(Num("B"), 19) != mem_sized_array_type(Num("B"), 20)
 
 
 # Repr tests
