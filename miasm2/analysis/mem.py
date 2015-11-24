@@ -425,7 +425,7 @@ class Array(MemField):
 
         else:
             raise NotImplementedError(
-                    "Assignment only implemented for list and MemSizedArray")
+                "Assignment only implemented for list and MemSizedArray")
 
     def get(self, vm, addr):
         return MemSizedArray(vm, addr, self._field_type, self._array_len)
@@ -813,7 +813,7 @@ class MemStruct(object):
         return str(self) == str(other)
 
     def __ne__(self, other):
-        return not (self == other)
+        return not self == other
 
     # Field generation methods, voluntarily public to be able to regen fields
     # after class definition
@@ -1005,8 +1005,8 @@ class MemArray(MemStruct):
             self._field_type = field_type
         if self._field_type is None:
             raise NotImplementedError(
-                    "Provide field_type to instanciate this class, "
-                    "or generate a subclass with mem_array_type.")
+                "Provide field_type to instanciate this class, "
+                "or generate a subclass with mem_array_type.")
         super(MemArray, self).__init__(vm, addr)
 
     @property
@@ -1117,8 +1117,8 @@ class MemSizedArray(MemArray):
         super(MemSizedArray, self).__init__(vm, addr, field_type)
         if self._array_len is None or self._field_type is None:
             raise NotImplementedError(
-                    "Provide field_type and length to instanciate this class, "
-                    "or generate a subclass with mem_sized_array_type.")
+                "Provide field_type and length to instanciate this class, "
+                "or generate a subclass with mem_sized_array_type.")
 
     @property
     def array_len(self):
