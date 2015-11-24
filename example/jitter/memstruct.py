@@ -7,7 +7,7 @@ as well.
 
 from miasm2.analysis.machine import Machine
 from miasm2.analysis.mem import MemStruct, MemSelf, MemVoid, MemStr,\
-                                Ptr, Num, Array, set_allocator
+                                MemSizedArray, Ptr, Num, Array, set_allocator
 from miasm2.os_dep.common import heap
 
 # Instanciate a heap
@@ -130,7 +130,7 @@ class DataArray(MemStruct):
         # MemStruct containing only one field named "value" will be created, so
         # that Ptr can point to a MemStruct instance. Here,
         # data_array.deref_array.value will allow to access an Array
-        ("arrayptr", Ptr("<I", Array(Num("B"), 16))),
+        ("arrayptr", Ptr("<I", MemSizedArray, Num("B"), 16)),
         # Array of 10 uint8
         ("array", Array(Num("B"), 16)),
     ]
@@ -184,7 +184,7 @@ assert link.size == 2
 # Make the Array Ptr point to the data's array field
 data.arrayptr = data.get_addr("array")
 # Now the pointer dereference is equal to the array field's value
-assert data.deref_arrayptr.value == data.array
+assert data.deref_arrayptr == data.array
 
 # Let's say that it is a DataStr:
 datastr = data.cast(DataStr)
