@@ -7,7 +7,7 @@ import struct
 from miasm2.analysis.machine import Machine
 from miasm2.analysis.mem import MemStruct, Num, Ptr, MemStr, MemArray,\
                                 MemSizedArray, Array, mem_array_type,\
-                                mem_sized_array_type, Struct, Inline, mem,\
+                                mem_sized_array_type, RawStruct, Inline, mem,\
                                 Union, BitField, MemSelf, MemVoid, Bits, \
                                 set_allocator
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
@@ -211,10 +211,10 @@ assert memsarray[0] == 2
 assert str(memsarray) == '\x02\x00\x00\x00' + '\xcc' * (4 * 9)
 
 
-# Atypical fields (Struct and Array)
+# Atypical fields (RawStruct and Array)
 class MyStruct2(MemStruct):
     fields = [
-        ("s1", Struct("=BI")),
+        ("s1", RawStruct("=BI")),
         ("s2", Array(Num("B"), 10)),
     ]
 
@@ -222,7 +222,7 @@ ms2 = MyStruct2(jitter.vm)
 ms2.memset('\xaa')
 assert len(ms2) == 15
 
-## Struct
+## RawStruct
 assert len(ms2.s1) == 2
 assert ms2.s1[0] == 0xaa
 assert ms2.s1[1] == 0xaaaaaaaa
@@ -355,7 +355,7 @@ assert bit.f4_1 == 1
 # Unhealthy ideas
 class UnhealthyIdeas(MemStruct):
     fields = [
-        ("pastruct", Ptr("I", MemArray, Struct("=Bf"))),
+        ("pastruct", Ptr("I", MemArray, RawStruct("=Bf"))),
         ("apstr", Array(Ptr("I", MemStr), 10)),
         ("pself", Ptr("I", MemSelf)),
         ("apself", Array(Ptr("I", MemSelf), 2)),
@@ -431,8 +431,8 @@ assert p.deref_value.cast(MyStruct) == mstruct
 assert p.cast(MemPtrMyStruct).deref_value == mstruct
 
 # Field equality tests
-assert Struct("IH") == Struct("IH")
-assert Struct("I") != Struct("IH")
+assert RawStruct("IH") == RawStruct("IH")
+assert RawStruct("I") != RawStruct("IH")
 assert Num("I") == Num("I")
 assert Num(">I") != Num("<I")
 assert Ptr("I", MyStruct) == Ptr("I", MyStruct)

@@ -41,7 +41,7 @@ MemStruct and define a list of (<field_name>, <field_definition>). Available
 MemField classes are:
 
     - Num: for number (float or int) handling
-    - Struct: abstraction over a simple struct pack/unpack
+    - RawStruct: abstraction over a simple struct pack/unpack
     - Ptr: a pointer to another MemStruct instance
     - Inline: include another MemStruct as a field (equivalent to having a
       struct field into another struct in C)
@@ -240,7 +240,7 @@ class MemField(object):
         return not self == other
 
 
-class Struct(MemField):
+class RawStruct(MemField):
     """Dumb struct.pack/unpack field. Mainly used to factorize code.
 
     Value is a tuple corresponding to the struct @fmt passed to the constructor.
@@ -268,7 +268,7 @@ class Struct(MemField):
         return hash((self.__class__, self._fmt))
 
 
-class Num(Struct):
+class Num(RawStruct):
     """Represents a number (integer or float). The number is encoded with
     a struct-style format which must represent only one value.
 
