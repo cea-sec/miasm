@@ -265,7 +265,7 @@ class Struct(MemField):
         return self.__class__ == other.__class__ and self._fmt == other._fmt
 
     def __hash__(self):
-        return hash(hash(self.__class__) + hash(self._fmt))
+        return hash((self.__class__, self._fmt))
 
 
 class Num(Struct):
@@ -360,8 +360,8 @@ class Ptr(Num):
                 self._type_kwargs == other._type_kwargs
 
     def __hash__(self):
-        return hash(super(Ptr, self).__hash__() + hash(self._dst_type) +
-                hash(self._type_args))
+        return hash((super(Ptr, self).__hash__(), self.dst_type,
+            self._type_args))
 
 
 class Inline(MemField):
@@ -412,8 +412,7 @@ class Inline(MemField):
                 self._type_kwargs == other._type_kwargs
 
     def __hash__(self):
-        return hash(hash(self.__class__) + hash(self._il_type) +
-                hash(self._type_args))
+        return hash((self.__class__, self._il_type, self._type_args))
 
 
 class Array(MemField):
@@ -476,8 +475,7 @@ class Array(MemField):
                 self.array_len == other.array_len
 
     def __hash__(self):
-        return hash(hash(self.__class__) + hash(self.field_type) +
-                hash(self.array_len))
+        return hash((self.__class__, self.field_type, self.array_len))
 
 
 class Union(MemField):
@@ -526,7 +524,7 @@ class Union(MemField):
                 self.field_list == other.field_list
 
     def __hash__(self):
-        return hash(hash(self.__class__) + hash(tuple(self.field_list)))
+        return hash((self.__class__, tuple(self.field_list)))
 
 
 class Bits(MemField):
@@ -589,8 +587,7 @@ class Bits(MemField):
                 self._bit_offset == other._bit_offset
 
     def __hash__(self):
-        return hash(hash(self.__class__) + hash(self._num) + hash(self._bits) +
-                hash(self._bit_offset))
+        return hash((self.__class__, self._num, self._bits, self._bit_offset))
 
 
 class BitField(Union):
@@ -645,7 +642,7 @@ class BitField(Union):
                 self._num == other._num and super(BitField, self).__eq__(other)
 
     def __hash__(self):
-        return hash(super(BitField, self).__hash__() + hash(self._num))
+        return hash((super(BitField, self).__hash__(), self._num))
 
 
 # MemStruct classes
