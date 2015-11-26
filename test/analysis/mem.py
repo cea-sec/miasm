@@ -183,13 +183,13 @@ assert memarray[2:4] == [3, 3]
 try:
     memarray[2:4] = [3, 3, 3]
     assert False, "Should raise, mismatched sizes"
-except (ValueError):
+except ValueError:
     pass
 
 try:
     memarray[1, 2]
     assert False, "Should raise, mismatched sizes"
-except (ValueError):
+except ValueError:
     pass
 
 
@@ -360,12 +360,13 @@ class UnhealthyIdeas(MemStruct):
         ("pself", Ptr("I", MemSelf)),
         ("apself", Array(Ptr("I", MemSelf), 2)),
         ("ppself", Ptr("I", Ptr("I", MemSelf))),
+        ("pppself", Ptr("I", Ptr("I", Ptr("I", MemSelf)))),
     ]
 
 # Other way to handle self dependency and circular dependencies
 # NOTE: in this case, MemSelf would have been fine
 UnhealthyIdeas.fields.append(
-    ("pppself", Ptr("I", Ptr("I", Ptr("I", UnhealthyIdeas)))))
+    ("pppself2", Ptr("I", Ptr("I", Ptr("I", UnhealthyIdeas)))))
 # Regen all fields
 UnhealthyIdeas.gen_fields()
 
@@ -397,6 +398,7 @@ ideas.pppself = my_heap.vm_alloc(jitter.vm, p_size)
 ideas.deref_pppself.value = my_heap.vm_alloc(jitter.vm, p_size)
 ideas.deref_pppself.deref_value.value = ideas.get_addr()
 assert ideas.deref_pppself.deref_value.deref_value == ideas
+
 
 # Cast tests
 # MemStruct cast

@@ -314,7 +314,13 @@ class Ptr(Num):
         if isinstance(dst_type, MemField):
             # Patch the field to propagate the MemSelf replacement
             dst_type._get_self_type = lambda: self._get_self_type()
-            dst_type = mem(dst_type)
+            # dst_type cannot be patched here, since _get_self_type of the outer
+            # class has not yet been set. Patching dst_type involves calling
+            # mem(dst_type), which will only return a type that does not point
+            # on MemSelf but on the right class only when _get_self_type of the
+            # outer class has been replaced by _MetaMemStruct.
+            # In short, dst_type = mem(dst_type) is not valid here, it is done
+            # lazily in _fix_dst_type
         self._dst_type = dst_type
         self._type_args = type_args
         self._type_kwargs = type_kwargs
@@ -325,6 +331,8 @@ class Ptr(Num):
                 self._dst_type = self._get_self_type()
             else:
                 raise ValueError("Unsupported usecase for MemSelf, sorry")
+        if isinstance(self._dst_type, MemField):
+            self._dst_type = mem(self._dst_type)
 
     @property
     def dst_type(self):
