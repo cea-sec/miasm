@@ -56,10 +56,6 @@ class LinkedList(MemStruct):
         ("size", Num("<I")),
     ]
 
-    def __init__(self, vm, *args, **kwargs):
-        super(LinkedList, self).__init__(vm, *args, **kwargs)
-        self.memset()
-
     def get_head(self):
         """Returns the head ListNode instance"""
         if self.head == 0:
@@ -156,6 +152,8 @@ vm = jitter.vm
 # Auto-allocated by my_heap. If you allocate memory at `addr`,
 # `link = LinkedList(vm, addr)` will use this allocation.
 link = LinkedList(vm)
+# Memset the struct (with '\x00' by default)
+link.memset()
 
 # Push three uninitialized structures
 link.push(DataArray(vm))
