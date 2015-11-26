@@ -38,21 +38,21 @@ and cannot be allocated automatically.
 
 As you saw previously, to use this module, you just have to inherit from
 MemStruct and define a list of (<field_name>, <field_definition>). Available
-MemField classes are:
+Type classes are:
 
     - Num: for number (float or int) handling
     - RawStruct: abstraction over a simple struct pack/unpack
     - Ptr: a pointer to another MemStruct instance
     - Inline: include another MemStruct as a field (equivalent to having a
       struct field into another struct in C)
-    - Array: a fixed size array of MemFields (points)
-    - Union: similar to `union` in C, list of MemFields at the same offset in a
-      structure; the union has the size of the biggest MemField
+    - Array: a fixed size array of Types (points)
+    - Union: similar to `union` in C, list of Types at the same offset in a
+      structure; the union has the size of the biggest Type
     - BitField: similar to C bitfields, a list of
       [(<field_name), (number_of_bits)]; creates fields that correspond to
       certain bits of the field
 
-A MemField always has a fixed size in memory.
+A Type always has a fixed size in memory.
 
 
 Some special memory structures are already implemented; they all are subclasses
@@ -65,13 +65,13 @@ of MemStruct with a custom implementation:
       MemStruct subclass
     - MemStr: represents a string in memory; the encoding can be passed to the
       constructor (null terminated ascii/ansi or null terminated utf16)
-    - MemArray: an unsized array of MemField; unsized here means that there is
+    - MemArray: an unsized array of Type; unsized here means that there is
       no defined sized for this array, equivalent to a int* or char*-style table
       in C. It cannot be allocated automatically, since it has no known size
     - MemSizedArray: a sized MemArray, can be automatically allocated in memory
       and allows more operations than MemArray
     - mem: a function that dynamically generates a MemStruct subclass from a
-      MemField. This class has only one field named "value".
+      Type. This class has only one field named "value".
 
 A MemStruct do not always have a static size (cls.sizeof()) nor a dynamic size
 (self.get_size()).
@@ -166,13 +166,13 @@ def set_str_utf16(vm, addr, s):
     vm.set_mem(addr, s)
 
 
-# MemField to MemStruct helper
+# Type to MemStruct helper
 
 def mem(field):
     """Generate a MemStruct subclass from a field. The field's value can
     be accessed through self.value or self.deref_value if field is a Ptr.
 
-    @field: a MemField instance.
+    @field: a Type instance.
     """
     if field in DYN_MEM_STRUCT_CACHE:
         return DYN_MEM_STRUCT_CACHE[field]
@@ -184,9 +184,9 @@ def mem(field):
     return mem_type
 
 
-# MemField classes
+# Type classes
 
-class MemField(object):
+class Type(object):
     """Base class to provide methods to set and get fields from virtual mem.
 
     Subclasses can either override _pack and _unpack, or get and set if data
@@ -194,6 +194,7 @@ class MemField(object):
     """
 
     _self_type = None
+    _fields = []
 
     def _pack(self, val):
         """Serializes the python value @val to a raw str"""
@@ -240,7 +241,7 @@ class MemField(object):
         return not self == other
 
 
-class RawStruct(MemField):
+class RawStruct(Type):
     """Dumb struct.pack/unpack field. Mainly used to factorize code.
 
     Value is a tuple corresponding to the struct @fmt passed to the constructor.
@@ -296,22 +297,22 @@ class Ptr(Num):
         """
         @fmt: (str) Num compatible format that will be the Ptr representation
             in memory
-        @dst_type: (MemStruct or MemField) the MemStruct this Ptr points to.
-            If a MemField is given, it is transformed into a MemStruct with
-            mem(TheMemField).
+        @dst_type: (MemStruct or Type) the MemStruct this Ptr points to.
+            If a Type is given, it is transformed into a MemStruct with
+            mem(TheType).
         *type_args, **type_kwargs: arguments to pass to the the pointed
             MemStruct when instanciating it (e.g. for MemStr encoding or
             MemArray field_type).
         """
-        if (not isinstance(dst_type, MemField) and
+        if (not isinstance(dst_type, Type) and
                 not (isinstance(dst_type, type) and
                         issubclass(dst_type, MemStruct)) and
                 not dst_type == MemSelf):
             raise ValueError("dst_type of Ptr must be a MemStruct type, a "
-                             "MemField instance, the MemSelf marker or a class "
+                             "Type instance, the MemSelf marker or a class "
                              "name.")
         super(Ptr, self).__init__(fmt)
-        if isinstance(dst_type, MemField):
+        if isinstance(dst_type, Type):
             # Patch the field to propagate the MemSelf replacement
             dst_type._get_self_type = lambda: self._get_self_type()
             # dst_type cannot be patched here, since _get_self_type of the outer
@@ -331,7 +332,7 @@ class Ptr(Num):
                 self._dst_type = self._get_self_type()
             else:
                 raise ValueError("Unsupported usecase for MemSelf, sorry")
-        if isinstance(self._dst_type, MemField):
+        if isinstance(self._dst_type, Type):
             self._dst_type = mem(self._dst_type)
 
     @property
@@ -372,7 +373,7 @@ class Ptr(Num):
             self._type_args))
 
 
-class Inline(MemField):
+class Inline(Type):
     """Field used to inline a MemStruct in another MemStruct. Equivalent to
     having a struct field in a C struct.
 
@@ -388,7 +389,7 @@ class Inline(MemField):
         ex.mystruct.f2 = 3 # inlined structure field access
         ex.mystruct = MyStructClass(vm, addr2) # struct copy
 
-    It can be seen like a bridge to use a MemStruct as a MemField
+    It can be seen like a bridge to use a MemStruct as a Type
 
     TODO: make the Inline implicit when setting a field to be a MemStruct
     """
@@ -423,8 +424,8 @@ class Inline(MemField):
         return hash((self.__class__, self._il_type, self._type_args))
 
 
-class Array(MemField):
-    """A fixed size array (contiguous sequence) of a MemField subclass
+class Array(Type):
+    """A fixed size array (contiguous sequence) of a Type subclass
     elements. Similar to something like the char[10] type in C.
 
     Getting an array field actually returns a MemSizedArray. Setting it is
@@ -486,7 +487,7 @@ class Array(MemField):
         return hash((self.__class__, self.field_type, self.array_len))
 
 
-class Union(MemField):
+class Union(Type):
     """Allows to put multiple fields at the same offset in a MemStruct, similar
     to unions in C. The Union will have the size of the largest of its fields.
 
@@ -535,7 +536,7 @@ class Union(MemField):
         return hash((self.__class__, tuple(self.field_list)))
 
 
-class Bits(MemField):
+class Bits(Type):
     """Helper class for BitField, not very useful on its own. Represents some
     bits of a Num.
 
@@ -676,7 +677,7 @@ class MemStruct(object):
 
     The mechanism is the following:
         - set a "fields" class field to be a list of
-          (<field_name (str)>, <MemField_subclass_instance>)
+          (<field_name (str)>, <Type_subclass_instance>)
         - instances of this class will have properties to interract with these
           fields.
 
@@ -715,7 +716,7 @@ class MemStruct(object):
         assert mstruct.deref_other == other
         assert mstruct.deref_other.foo == 0x1234
 
-    See the various MemField doc for more information.
+    See the various Type doc for more information.
     """
     __metaclass__ = _MetaMemStruct
 
@@ -774,7 +775,7 @@ class MemStruct(object):
         return self.sizeof()
 
     def get_field_type(self, name):
-        """Return the MemField subclass instance describing field @name."""
+        """Return the Type subclass instance describing field @name."""
         return self._attrs[name]['field']
 
     def get_field(self, name):
@@ -928,7 +929,7 @@ class MemStruct(object):
         """Generate only one field
 
         @name: (str) the name of the field
-        @field: (MemField instance) the field type
+        @field: (Type instance) the field type
         @offset: (int) the offset of the field in the structure
         """
         cls._gen_simple_attr(name, field, offset)
@@ -1049,7 +1050,7 @@ class MemStr(MemStruct):
 
 
 class MemArray(MemStruct):
-    """An unsized array of type @field_type (a MemField subclass instance).
+    """An unsized array of type @field_type (a Type subclass instance).
     This class has no static or dynamic size.
 
     It can be indexed for setting and getting elements, example:
@@ -1079,7 +1080,7 @@ class MemArray(MemStruct):
 
     @property
     def field_type(self):
-        """Return the MemField subclass instance that represents the type of
+        """Return the Type subclass instance that represents the type of
         this MemArray items.
         """
         return self._field_type
