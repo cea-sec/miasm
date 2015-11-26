@@ -4,7 +4,7 @@ log = logging.getLogger('loader_common')
 hnd = logging.StreamHandler()
 hnd.setFormatter(logging.Formatter("[%(levelname)s]: %(message)s"))
 log.addHandler(hnd)
-log.setLevel(logging.CRITICAL)
+log.setLevel(logging.INFO)
 
 
 def canon_libname_libfunc(libname, libfunc):
@@ -26,6 +26,7 @@ class libimp(object):
         self.fad2cname = {}
         self.fad2info = {}
         self.all_exported_lib = []
+        self.fake_libs = set()
 
     def lib_get_add_base(self, name):
         name = name.lower().strip(' ')
@@ -38,7 +39,8 @@ class libimp(object):
             ad = self.name2off[name]
         else:
             ad = self.libbase_ad
-            log.debug('new lib %s 0x%x', name, ad)
+            log.warning("Create dummy entry for %r", name)
+            self.fake_libs.add(name)
             self.name2off[name] = ad
             self.libbase2lastad[ad] = ad + 0x1
             self.lib_imp2ad[ad] = {}

@@ -242,7 +242,7 @@ def vm_fix_imports_pe_libs(lib_imgs, libs, lib_path_base,
 def vm2pe(myjit, fname, libs=None, e_orig=None,
           min_addr=None, max_addr=None,
           min_section_offset=0x1000, img_base=None,
-          added_funcs=None):
+          added_funcs=None, **kwargs):
     if e_orig:
         size = e_orig._wsize
     else:
@@ -288,7 +288,9 @@ def vm2pe(myjit, fname, libs=None, e_orig=None,
                 libbase, dllname = libs.fad2info[funcaddr]
                 libs.lib_get_add_func(libbase, dllname, addr)
 
-        new_dll = libs.gen_new_lib(mye, mye.virt.is_addr_in)
+        filter_import = kwargs.get(
+            'filter_import', lambda _, ad: mye.virt.is_addr_in(ad))
+        new_dll = libs.gen_new_lib(mye, filter_import)
     else:
         new_dll = {}
 
@@ -335,6 +337,10 @@ class libimp_pe(libimp):
         # will add real lib addresses to database
         if name in self.name2off:
             ad = self.name2off[name]
+            if e is not None and name in self.fake_libs:
+                log.error(
+                    "You are trying to load %r but it has been faked previously. Try loading this module earlier.", name)
+                raise RuntimeError("Bad import")
         else:
             log.debug('new lib %s', name)
             ad = e.NThdr.ImageBase
@@ -369,7 +375,6 @@ class libimp_pe(libimp):
                     else:
                         # import redirected lib from non loaded dll
                         if not exp_dname in self.name2off:
-                            log.warning("Create dummy entry for %r", exp_dname)
                             self.created_redirected_imports.setdefault(
                                 exp_dname, set()).add(name)
 
@@ -390,10 +395,10 @@ class libimp_pe(libimp):
                 self.fad2cname[ad] = c_name
                 self.fad2info[ad] = libad, imp_ord_or_name
 
-    def gen_new_lib(self, target_pe, flt=lambda _: True):
+    def gen_new_lib(self, target_pe, filter_import=lambda peobj, ad: True, **kwargs):
         """Gen a new DirImport description
         @target_pe: PE instance
-        @flt: (boolean f(address)) restrict addresses to keep
+        @filter_import: (boolean f(pe, address)) restrict addresses to keep
         """
 
         new_lib = []
@@ -405,8 +410,9 @@ class libimp_pe(libimp):
             for func_name, dst_addresses in self.lib_imp2dstad[ad].items():
                 out_ads.update({addr: func_name for addr in dst_addresses})
 
-            # Filter available addresses according to @flt
-            all_ads = [addr for addr in out_ads.keys() if flt(addr)]
+            # Filter available addresses according to @filter_import
+            all_ads = [
+                addr for addr in out_ads.keys() if filter_import(target_pe, addr)]
             log.debug('ads: %s', map(hex, all_ads))
             if not all_ads:
                 continue
@@ -476,10 +482,10 @@ def vm_load_pe_and_dependencies(vm, fname, name2module, runtime_lib,
         else:
             try:
                 with open(fname) as fstream:
-                    log.info('Loading module %r', name)
+                    log.info('Loading module name %r', fname)
                     pe_obj = vm_load_pe(vm, fstream.read(), **kwargs)
             except IOError:
-                log.warning('Cannot open %s' % fname)
+                log.error('Cannot open %s' % fname)
                 name2module[name] = None
                 continue
             name2module[name] = pe_obj
