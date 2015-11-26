@@ -1,5 +1,5 @@
 """This module provides classes to manipulate C structures backed by a VmMngr
-object (a miasm VM virtual memory).
+object (a miasm sandbox virtual memory).
 
 The main idea is to declare the fields of the structure in the class:
 
@@ -29,6 +29,7 @@ The `addr` argument can be omited if an allocator is set, in which case the
 structure will be automatically allocated in memory:
 
     my_heap = miasm2.os_dep.common.heap()
+    # the allocator is a func(VmMngr) -> integer_address
     set_allocator(my_heap)
 
 Note that some structures (e.g. MemStr or MemArray) do not have a static size
@@ -36,7 +37,7 @@ and cannot be allocated automatically.
 
 
 As you saw previously, to use this module, you just have to inherit from
-MemStruct and define a list of (<field_name>, <field_definition>). Availabe
+MemStruct and define a list of (<field_name>, <field_definition>). Available
 MemField classes are:
 
     - Num: for number (float or int) handling
@@ -86,6 +87,7 @@ log.addHandler(console_handler)
 log.setLevel(logging.WARN)
 
 # ALLOCATOR is a function(vm, size) -> allocated_address
+# TODO: as a MemStruct class attribute
 ALLOCATOR = None
 
 # Cache for dynamically generated MemStructs
@@ -96,8 +98,7 @@ def set_allocator(alloc_func):
     MemStructs (i.e. sizeof() is implemented) without specifying the address
     (the object is allocated by @alloc_func in the vm.
 
-    Args:
-        alloc_func: func(VmMngr) -> integer_address
+    @alloc_func: func(VmMngr) -> integer_address
     """
     global ALLOCATOR
     ALLOCATOR = alloc_func
@@ -114,9 +115,8 @@ def indent(s, size=4):
 def get_str_ansi(vm, addr, max_char=None):
     """Get a null terminated ANSI encoded string from a VmMngr.
 
-    Args:
-        vm: VmMngr instance
-        max_char: max number of characters to get in memory
+    @vm: VmMngr instance
+    @max_char: max number of characters to get in memory
     """
     l = 0
     tmp = addr
@@ -135,9 +135,8 @@ def get_str_utf16(vm, addr, max_char=None):
     FIXME: the implementation do not work with codepoints that are encoded on
     more than 2 bytes in utf16.
 
-    Args:
-        vm: VmMngr instance
-        max_char: max number of bytes to get in memory
+    @vm: VmMngr instance
+    @max_char: max number of bytes to get in memory
     """
     l = 0
     tmp = addr
@@ -154,9 +153,8 @@ def set_str_ansi(vm, addr, s):
     """Encode a string to null terminated ascii/ansi and set it in a VmMngr
     memory.
 
-    Args:
-        vm: VmMngr instance
-        addr: start address to serialize the string to
+    @vm: VmMngr instance
+    @addr: start address to serialize the string to
         s: the str to serialize
     """
     vm.set_mem(addr, s + "\x00")
@@ -173,6 +171,8 @@ def set_str_utf16(vm, addr, s):
 def mem(field):
     """Generate a MemStruct subclass from a field. The field's value can
     be accessed through self.value or self.deref_value if field is a Ptr.
+
+    @field: a MemField instance.
     """
     if field in DYN_MEM_STRUCT_CACHE:
         return DYN_MEM_STRUCT_CACHE[field]
@@ -208,10 +208,9 @@ class MemField(object):
     def set(self, vm, addr, val):
         """Set a VmMngr memory from a value.
 
-        Args:
-            vm: VmMngr instance
-            addr: the start adress in memory to set
-            val: the python value to serialize in @vm at @addr
+        @vm: VmMngr instance
+        @addr: the start adress in memory to set
+        @val: the python value to serialize in @vm at @addr
         """
         raw = self._pack(val)
         vm.set_mem(addr, raw)
@@ -281,7 +280,7 @@ class Num(Struct):
 
     def _unpack(self, raw_str):
         upck = super(Num, self)._unpack(raw_str)
-        if len(upck) > 1:
+        if len(upck) != 1:
             raise ValueError("Num format string unpacks to multiple values, "
                              "should be 1")
         return upck[0]
@@ -294,20 +293,20 @@ class Ptr(Num):
     """
 
     def __init__(self, fmt, dst_type, *type_args, **type_kwargs):
-        """Args:
-            fmt: (str) Num compatible format that will be the Ptr representation
-                in memory
-            dst_type: (MemStruct or MemField) the MemStruct this Ptr points to.
-                If a MemField is given, it is transformed into a MemStruct with
-                mem(TheMemField).
-            *type_args, **type_kwargs: arguments to pass to the the pointed
-                MemStruct when instanciating it (e.g. for MemStr encoding or
-                MemArray field_type).
         """
-        if not isinstance(dst_type, MemField) and\
-                not (isinstance(dst_type, type) and\
-                        issubclass(dst_type, MemStruct)) and\
-                not dst_type == MemSelf:
+        @fmt: (str) Num compatible format that will be the Ptr representation
+            in memory
+        @dst_type: (MemStruct or MemField) the MemStruct this Ptr points to.
+            If a MemField is given, it is transformed into a MemStruct with
+            mem(TheMemField).
+        *type_args, **type_kwargs: arguments to pass to the the pointed
+            MemStruct when instanciating it (e.g. for MemStr encoding or
+            MemArray field_type).
+        """
+        if (not isinstance(dst_type, MemField) and
+                not (isinstance(dst_type, type) and
+                        issubclass(dst_type, MemStruct)) and
+                not dst_type == MemSelf):
             raise ValueError("dst_type of Ptr must be a MemStruct type, a "
                              "MemField instance, the MemSelf marker or a class "
                              "name.")
@@ -459,7 +458,7 @@ class Array(MemField):
                 offset += self.field_type.size()
 
         else:
-            raise NotImplementedError(
+            raise RuntimeError(
                 "Assignment only implemented for list and MemSizedArray")
 
     def get(self, vm, addr):
@@ -737,9 +736,8 @@ class MemStruct(object):
     def get_addr(self, field_name=None):
         """Return the address of this MemStruct or one of its fields.
 
-        Args:
-            field_name: (str, optional) the name of the field to get the
-                address of
+        @field_name: (str, optional) the name of the field to get the
+            address of
         """
         if field_name is not None:
             if field_name not in self._attrs:
@@ -828,6 +826,7 @@ class MemStruct(object):
         """Fill the memory space of this MemStruct with @byte ('\x00' by
         default). The size is retrieved with self.get_size() (dynamic size).
         """
+        # TODO: multibyte patterns
         if not isinstance(byte, str) or not len(byte) == 1:
             raise ValueError("byte must be a 1-lengthed str")
         self._vm.set_mem(self.get_addr(), byte * self.get_size())
@@ -923,10 +922,9 @@ class MemStruct(object):
     def gen_field(cls, name, field, offset):
         """Generate only one field
 
-        Args:
-            @name: (str) the name of the field
-            @field: (MemField instance) the field type
-            @offset: (int) the offset of the field in the structure
+        @name: (str) the name of the field
+        @field: (MemField instance) the field type
+        @offset: (int) the offset of the field in the structure
         """
         cls._gen_simple_attr(name, field, offset)
         if isinstance(field, Union):
@@ -1093,7 +1091,7 @@ class MemArray(MemStruct):
 
     def _check_bounds(self, idx):
         idx = self._normalize_idx(idx)
-        if not isinstance(idx, int) and not isinstance(idx, long):
+        if not isinstance(idx, (int, long)):
             raise ValueError("index must be an int or a long")
         if idx < 0:
             raise IndexError("Index %s out of bounds" % idx)
@@ -1126,6 +1124,7 @@ class MemArray(MemStruct):
             idx = self._normalize_slice(idx)
             if len(item) != len(xrange(idx.start, idx.stop, idx.step)):
                 raise ValueError("Mismatched lengths in slice assignment")
+            # TODO: izip
             for i, val in zip(xrange(idx.start, idx.stop, idx.step), item):
                 self._field_type.set(self._vm, self.index2addr(i), val)
         else:
@@ -1143,12 +1142,13 @@ class MemArray(MemStruct):
 
     @classmethod
     def sizeof(cls):
-        raise ValueError("%s is unsized, which makes some operations"
-                         " impossible. Use MemSizedArray instead.")
+        raise ValueError("%s is unsized, it has no static size (sizeof). "
+                         "Use MemSizedArray instead." % cls)
 
     def raw(self):
-        raise ValueError("%s is unsized, which makes some operations"
-                         " impossible. Use MemSizedArray instead.")
+        raise ValueError("%s is unsized, which prevents from getting its full "
+                         "raw representation. Use MemSizedArray instead." %
+                         self.__class__)
 
     def __repr__(self):
         return "[%r, ...] [%r]" % (self[0], self._field_type)
@@ -1206,7 +1206,7 @@ class MemSizedArray(MemArray):
 
     def __repr__(self):
         item_reprs = [repr(item) for item in self]
-        if self.array_len > 0 and '\n' in item_reprs[0]:
+        if self._array_len > 0 and '\n' in item_reprs[0]:
             items = '\n' + indent(',\n'.join(item_reprs), 2) + '\n'
         else:
             items = ', '.join(item_reprs)
