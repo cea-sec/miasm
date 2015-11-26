@@ -55,20 +55,23 @@ class heap(object):
         self.addr &= self.mask ^ (self.align - 1)
         return ret
 
-    def alloc(self, jitter, size):
+    def alloc(self, jitter, size, perm=PAGE_READ|PAGE_WRITE):
         """
         @jitter: a jitter instance
         @size: the size to allocate
+        @perm: permission flags (see vm_alloc doc)
         """
-        return self.vm_alloc(jitter.vm, size)
+        return self.vm_alloc(jitter.vm, size, perm)
 
-    def vm_alloc(self, vm, size):
+    def vm_alloc(self, vm, size, perm=PAGE_READ|PAGE_WRITE):
         """
         @vm: a VmMngr instance
         @size: the size to allocate
+        @perm: permission flags (PAGE_READ, PAGE_WRITE, PAGE_EXEC or any `|`
+            combination of them); default is PAGE_READ|PAGE_WRITE
         """
         addr = self.next_addr(size)
-        vm.add_memory_page(addr, PAGE_READ | PAGE_WRITE, "\x00" * size)
+        vm.add_memory_page(addr, perm, "\x00" * size)
         return addr
 
 
