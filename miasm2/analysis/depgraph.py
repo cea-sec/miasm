@@ -202,7 +202,7 @@ class DependencyDict(object):
 
         # Initialize
         new_history = list(self.history)
-        depdict = DependencyDict(self.label, new_history)
+        depdict = self.__class__(self.label, new_history)
 
         # Copy values
         for key, values in self.cache.iteritems():
@@ -215,7 +215,7 @@ class DependencyDict(object):
         """Return a copy of itself, with itself in history and pending clean
         @label: asm_label instance for the new DependencyDict's label
         """
-        depdict = DependencyDict(label, list(self.history) + [self])
+        depdict = self.__class__(label, list(self.history) + [self])
         for key, values in self.cache.iteritems():
             depdict.cache[key] = set(values)
         return depdict
@@ -693,8 +693,8 @@ class DependencyGraph(object):
 
         Following arguments define filters used to generate dependencies
         @apply_simp: (optional) Apply expr_simp
-        @follow_mem: (optional) Track memory syntactically
-        @follow_call: (optional) Track through "call"
+        @follow_mem: (optional) Track memory subexpressions
+        @follow_call: (optional) Track call parameters
         """
         # Init
         self._ira = ira

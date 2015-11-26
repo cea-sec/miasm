@@ -53,7 +53,7 @@ def gen_irbloc(lbl, exprs):
     """ Returns an IRBlock with empty lines.
     Used only for tests purpose
     """
-    lines = [None for _ in xrange(len(exprs))]
+    lines = [None] * len(exprs)
     return irbloc(lbl, exprs, lines)
 
 
@@ -1116,7 +1116,7 @@ for test_nb, test in enumerate([(G1_IRA, G1_INPUT, G1_OUTPUT),
     print "[+] Test", test_nb + 1
     g_ira, (depnodes, heads), g_test_output = test
 
-    open("graph_%02d.dot" % (test_nb + 1), "w").write(g_ira.g.dot())
+    open("graph_dependence_%02d.dot" % (test_nb + 1), "w").write(g_ira.g.dot())
 
     # Different options
     suffix_key_list = ["", "_nosimp", "_nomem", "_nocall",
@@ -1159,12 +1159,8 @@ for test_nb, test in enumerate([(G1_IRA, G1_INPUT, G1_OUTPUT),
 
             # Dump outputs graphs for debug means
             for result_nb, result_graph in enumerate(g_list):
-                open("graph_test_%02d_%02d.dot" % (test_nb + 1, result_nb),
+                open("graph_dependence_test_%02d_%02d.dot" % (test_nb + 1, result_nb),
                      "w").write(result_graph.graph.dot())
-
-            for result_nb, result_graph in enumerate(expected_results):
-                open("exp_graph_test_%02d_%02d.dot" % (test_nb + 1, result_nb),
-                     "w").write(result_graph.dot())
 
             try:
                 # The number of results should be the same

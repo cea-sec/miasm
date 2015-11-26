@@ -212,20 +212,38 @@ for script in ["win_api_x86_32.py",
 ## Analysis
 testset += RegressionTest(["depgraph.py"], base_dir="analysis",
                           products=[fname for fnames in (
-                              ["graph_test_%02d_00.dot" % test_nb,
-                               "exp_graph_test_%02d_00.dot" % test_nb,
-                               "graph_%02d.dot" % test_nb]
+                              ["graph_dependence_test_%02d_00.dot" % test_nb,
+                               "graph_dependence_%02d.dot" % test_nb]
                               for test_nb in xrange(1, 18))
                                     for fname in fnames] +
-                          [fname for fnames in (
-                              ["graph_test_%02d_%02d.dot" % (test_nb, res_nb),
-                               "exp_graph_test_%02d_%02d.dot" % (test_nb,
-                                                                 res_nb)]
-                              for (test_nb, res_nb) in ((3, 1), (5, 1), (8, 1),
-                                                        (9, 1), (10, 1),
-                                                        (12, 1), (13, 1),
-                                                        (14, 1), (15, 1)))
-                           for fname in fnames])
+                          ["graph_dependence_test_03_01.dot",
+                           "graph_dependence_test_05_01.dot",
+                           "graph_dependence_test_08_01.dot",
+                           "graph_dependence_test_09_01.dot",
+                           "graph_dependence_test_10_01.dot",
+                           "graph_dependence_test_12_01.dot",
+                           "graph_dependence_test_13_01.dot",
+                           "graph_dependence_test_14_01.dot",
+                           "graph_dependence_test_15_01.dot"
+                       ])
+
+testset += RegressionTest(["influencegraph.py"], base_dir="analysis",
+                          products=[fname for fnames in (
+                              ["graph_influence_test_%02d_00.dot" % test_nb,
+                               "graph_influence_%02d.dot" % test_nb]
+                              for test_nb in xrange(1, 16))
+                                    for fname in fnames] +
+                          ["graph_influence_test_04_01.dot",
+                           "graph_influence_test_05_01.dot",
+                           "graph_influence_test_06_01.dot",
+                           "graph_influence_test_08_01.dot",
+                           "graph_influence_test_09_01.dot",
+                           "graph_influence_test_10_01.dot",
+                           "graph_influence_test_13_01.dot",
+                           "graph_influence_test_14_01.dot",
+                           "graph_influence_test_14_02.dot",
+                           "graph_influence_test_15_01.dot"
+                       ])
 
 # Examples
 class Example(Test):
