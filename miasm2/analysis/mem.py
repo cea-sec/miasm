@@ -4,7 +4,7 @@ object (a miasm sandbox virtual memory).
 The main idea is to declare the fields of the structure in the class:
 
     # FIXME: "I" => "u32"
-    class MyStruct(MemStruct):
+    class MyStruct(PinnedStruct):
         fields = [
             # Integer field: just struct.pack fields with one value
             ("num", Num("I")),
@@ -13,7 +13,7 @@ The main idea is to declare the fields of the structure in the class:
             # (self.deref_<field>). Deref can be read and set.
             ("other", Ptr("I", OtherStruct)),
             # Ptr to a variable length String
-            ("s", Ptr("I", MemStr)),
+            ("s", Ptr("I", PinnedStr)),
             ("i", Ptr("I", Num("I"))),
         ]
 
@@ -32,18 +32,18 @@ structure will be automatically allocated in memory:
     # the allocator is a func(VmMngr) -> integer_address
     set_allocator(my_heap)
 
-Note that some structures (e.g. MemStr or MemArray) do not have a static size
-and cannot be allocated automatically.
+Note that some structures (e.g. PinnedStr or PinnedArray) do not have a static
+size and cannot be allocated automatically.
 
 
 As you saw previously, to use this module, you just have to inherit from
-MemStruct and define a list of (<field_name>, <field_definition>). Available
+PinnedStruct and define a list of (<field_name>, <field_definition>). Available
 Type classes are:
 
     - Num: for number (float or int) handling
     - RawStruct: abstraction over a simple struct pack/unpack
-    - Ptr: a pointer to another MemStruct instance
-    - Inline: include another MemStruct as a field (equivalent to having a
+    - Ptr: a pointer to another PinnedType instance
+    - FIXME: TODEL Inline: include another PinnedStruct as a field (equivalent to having a
       struct field into another struct in C)
     - Array: a fixed size array of Types (points)
     - Union: similar to `union` in C, list of Types at the same offset in a
@@ -56,24 +56,25 @@ A Type always has a fixed size in memory.
 
 
 Some special memory structures are already implemented; they all are subclasses
-of MemStruct with a custom implementation:
+of PinnedType with a custom implementation:
 
-    - MemSelf: this class is just a special marker to reference a MemStruct
-      subclass inside itself. Works with Ptr and Array (e.g. Ptr(_, MemSelf)
-      for a pointer the same type as the class who uses this kind of field)
-    - MemVoid: empty MemStruct, placeholder to be casted to an implemented
-      MemStruct subclass
-    - MemStr: represents a string in memory; the encoding can be passed to the
+    - PinnedSelf: this class is just a special marker to reference a
+      PinnedStruct subclass inside itself. Works with Ptr and Array (e.g.
+      Ptr(_, PinnedSelf) for a pointer the same type as the class who uses this
+      kind of field)
+    - PinnedVoid: empty PinnedType, placeholder to be casted to an implemented
+      PinnedType subclass
+    - PinnedStr: represents a string in memory; the encoding can be passed to the
       constructor (null terminated ascii/ansi or null terminated utf16)
-    - MemArray: an unsized array of Type; unsized here means that there is
+    - PinnedArray: an unsized array of Type; unsized here means that there is
       no defined sized for this array, equivalent to a int* or char*-style table
       in C. It cannot be allocated automatically, since it has no known size
-    - MemSizedArray: a sized MemArray, can be automatically allocated in memory
-      and allows more operations than MemArray
-    - mem: a function that dynamically generates a MemStruct subclass from a
+    - PinnedSizedArray: a sized PinnedArray, can be automatically allocated in memory
+      and allows more operations than PinnedArray
+    - pin: a function that dynamically generates a PinnedStruct subclass from a
       Type. This class has only one field named "value".
 
-A MemStruct do not always have a static size (cls.sizeof()) nor a dynamic size
+A PinnedType do not always have a static size (cls.sizeof()) nor a dynamic size
 (self.get_size()).
 """
 
@@ -87,15 +88,15 @@ log.addHandler(console_handler)
 log.setLevel(logging.WARN)
 
 # ALLOCATOR is a function(vm, size) -> allocated_address
-# TODO: as a MemStruct class attribute
+# TODO: as a PinnedType class attribute
 ALLOCATOR = None
 
-# Cache for dynamically generated MemStructs
+# Cache for dynamically generated PinnedTypes
 DYN_MEM_STRUCT_CACHE = {}
 
 def set_allocator(alloc_func):
     """Set an allocator for this module; allows to instanciate statically sized
-    MemStructs (i.e. sizeof() is implemented) without specifying the address
+    PinnedTypes (i.e. sizeof() is implemented) without specifying the address
     (the object is allocated by @alloc_func in the vm.
 
     @alloc_func: func(VmMngr) -> integer_address
@@ -166,10 +167,10 @@ def set_str_utf16(vm, addr, s):
     vm.set_mem(addr, s)
 
 
-# Type to MemStruct helper
+# Type to PinnedType helper
 
-def mem(field):
-    """Generate a MemStruct subclass from a field. The field's value can
+def pin(field):
+    """Generate a PinnedStruct subclass from a field. The field's value can
     be accessed through self.value or self.deref_value if field is a Ptr.
 
     @field: a Type instance.
@@ -179,7 +180,7 @@ def mem(field):
 
     fields = [("value", field)]
     # Build a type to contain the field type
-    mem_type = type("Mem%r" % field, (MemStruct,), {'fields': fields})
+    mem_type = type("Pinned%r" % field, (PinnedStruct,), {'fields': fields})
     DYN_MEM_STRUCT_CACHE[field] = mem_type
     return mem_type
 
@@ -187,7 +188,7 @@ def mem(field):
 # Type classes
 
 class Type(object):
-    """Base class to provide methods to set and get fields from virtual mem.
+    """Base class to provide methods to set and get fields from virtual pin.
 
     Subclasses can either override _pack and _unpack, or get and set if data
     serialization requires more work (see Inline implementation for an example).
@@ -225,8 +226,8 @@ class Type(object):
         return self._self_type
 
     def _set_self_type(self, self_type):
-        """If this field refers to MemSelf, replace it with @self_type (a
-        MemStruct subclass) when using it. Generally not used outside the lib.
+        """If this field refers to PinnedSelf, replace it with @self_type (a
+        PinnedType subclass) when using it. Generally not used outside the lib.
         """
         self._self_type = self_type
 
@@ -289,55 +290,55 @@ class Num(RawStruct):
 
 class Ptr(Num):
     """Special case of number of which value indicates the address of a
-    MemStruct. Provides deref_<field> as well as <field> when used, to set and
-    get the pointed MemStruct.
+    PinnedType. Provides deref_<field> as well as <field> when used, to set and
+    get the pointed PinnedType.
     """
 
     def __init__(self, fmt, dst_type, *type_args, **type_kwargs):
         """
         @fmt: (str) Num compatible format that will be the Ptr representation
             in memory
-        @dst_type: (MemStruct or Type) the MemStruct this Ptr points to.
-            If a Type is given, it is transformed into a MemStruct with
-            mem(TheType).
+        @dst_type: (PinnedType or Type) the PinnedType this Ptr points to.
+            If a Type is given, it is transformed into a PinnedType with
+            pin(TheType).
         *type_args, **type_kwargs: arguments to pass to the the pointed
-            MemStruct when instanciating it (e.g. for MemStr encoding or
-            MemArray field_type).
+            PinnedType when instanciating it (e.g. for PinnedStr encoding or
+            PinnedArray field_type).
         """
         if (not isinstance(dst_type, Type) and
                 not (isinstance(dst_type, type) and
-                        issubclass(dst_type, MemStruct)) and
-                not dst_type == MemSelf):
-            raise ValueError("dst_type of Ptr must be a MemStruct type, a "
-                             "Type instance, the MemSelf marker or a class "
+                        issubclass(dst_type, PinnedType)) and
+                not dst_type == PinnedSelf):
+            raise ValueError("dst_type of Ptr must be a PinnedType type, a "
+                             "Type instance, the PinnedSelf marker or a class "
                              "name.")
         super(Ptr, self).__init__(fmt)
         if isinstance(dst_type, Type):
-            # Patch the field to propagate the MemSelf replacement
+            # Patch the field to propagate the PinnedSelf replacement
             dst_type._get_self_type = lambda: self._get_self_type()
             # dst_type cannot be patched here, since _get_self_type of the outer
             # class has not yet been set. Patching dst_type involves calling
-            # mem(dst_type), which will only return a type that does not point
-            # on MemSelf but on the right class only when _get_self_type of the
-            # outer class has been replaced by _MetaMemStruct.
-            # In short, dst_type = mem(dst_type) is not valid here, it is done
+            # pin(dst_type), which will only return a type that does not point
+            # on PinnedSelf but on the right class only when _get_self_type of the
+            # outer class has been replaced by _MetaPinnedStruct.
+            # In short, dst_type = pin(dst_type) is not valid here, it is done
             # lazily in _fix_dst_type
         self._dst_type = dst_type
         self._type_args = type_args
         self._type_kwargs = type_kwargs
 
     def _fix_dst_type(self):
-        if self._dst_type == MemSelf:
+        if self._dst_type == PinnedSelf:
             if self._get_self_type() is not None:
                 self._dst_type = self._get_self_type()
             else:
-                raise ValueError("Unsupported usecase for MemSelf, sorry")
+                raise ValueError("Unsupported usecase for PinnedSelf, sorry")
         if isinstance(self._dst_type, Type):
-            self._dst_type = mem(self._dst_type)
+            self._dst_type = pin(self._dst_type)
 
     @property
     def dst_type(self):
-        """Return the type (MemStruct subtype) this Ptr points to."""
+        """Return the type (PinnedType subtype) this Ptr points to."""
         self._fix_dst_type()
         return self._dst_type
 
@@ -348,7 +349,7 @@ class Ptr(Num):
         return self.dst_type(vm, addr, *self._type_args, **self._type_kwargs)
 
     def deref_set(self, vm, addr, val):
-        """Serializes the @val MemStruct subclass instance in @vm (VmMngr) at
+        """Serializes the @val PinnedType subclass instance in @vm (VmMngr) at
         @addr. Equivalent to a pointer dereference assignment in C.
         """
         # Sanity check
@@ -374,29 +375,29 @@ class Ptr(Num):
 
 
 class Inline(Type):
-    """Field used to inline a MemStruct in another MemStruct. Equivalent to
+    """Field used to inline a PinnedType in another PinnedType. Equivalent to
     having a struct field in a C struct.
 
     Concretely:
 
-        class MyStructClass(MemStruct):
+        class MyStructClass(PinnedStruct):
             fields = [("f1", Num("I")), ("f2", Num("I"))]
 
-        class Example(MemStruct):
+        class Example(PinnedStruct):
             fields = [("mystruct", Inline(MyStructClass))]
 
         ex = Example(vm, addr)
         ex.mystruct.f2 = 3 # inlined structure field access
         ex.mystruct = MyStructClass(vm, addr2) # struct copy
 
-    It can be seen like a bridge to use a MemStruct as a Type
+    It can be seen like a bridge to use a PinnedStruct as a Type
 
-    TODO: make the Inline implicit when setting a field to be a MemStruct
+    TODO: make the Inline implicit when setting a field to be a PinnedStruct
     """
 
     def __init__(self, inlined_type, *type_args, **type_kwargs):
-        if not issubclass(inlined_type, MemStruct):
-            raise ValueError("inlined type if Inline must be a MemStruct")
+        if not issubclass(inlined_type, PinnedStruct):
+            raise ValueError("inlined type if Inline must be a PinnedStruct")
         self._il_type = inlined_type
         self._type_args = type_args
         self._type_kwargs = type_kwargs
@@ -428,16 +429,16 @@ class Array(Type):
     """A fixed size array (contiguous sequence) of a Type subclass
     elements. Similar to something like the char[10] type in C.
 
-    Getting an array field actually returns a MemSizedArray. Setting it is
-    possible with either a list or a MemSizedArray instance. Examples of syntax:
+    Getting an array field actually returns a PinnedSizedArray. Setting it is
+    possible with either a list or a PinnedSizedArray instance. Examples of syntax:
 
-        class Example(MemStruct):
+        class Example(PinnedStruct):
             fields = [("array", Array(Num("B"), 4))]
 
         mystruct = Example(vm, addr)
         mystruct.array[3] = 27
         mystruct.array = [1, 4, 8, 9]
-        mystruct.array = MemSizedArray(vm, addr2, Num("B"), 4)
+        mystruct.array = PinnedSizedArray(vm, addr2, Num("B"), 4)
     """
 
     def __init__(self, field_type, array_len):
@@ -449,17 +450,17 @@ class Array(Type):
         self.field_type._set_self_type(self_type)
 
     def set(self, vm, addr, val):
-        # MemSizedArray assignment
-        if isinstance(val, MemSizedArray):
+        # PinnedSizedArray assignment
+        if isinstance(val, PinnedSizedArray):
             if val.array_len != self.array_len or len(val) != self.size():
-                raise ValueError("Size mismatch in MemSizedArray assignment")
+                raise ValueError("Size mismatch in PinnedSizedArray assignment")
             raw = str(val)
             vm.set_mem(addr, raw)
 
         # list assignment
         elif isinstance(val, list):
             if len(val) != self.array_len:
-                raise ValueError("Size mismatch in MemSizedArray assignment ")
+                raise ValueError("Size mismatch in PinnedSizedArray assignment ")
             offset = 0
             for elt in val:
                 self.field_type.set(vm, addr + offset, elt)
@@ -467,10 +468,10 @@ class Array(Type):
 
         else:
             raise RuntimeError(
-                "Assignment only implemented for list and MemSizedArray")
+                "Assignment only implemented for list and PinnedSizedArray")
 
     def get(self, vm, addr):
-        return MemSizedArray(vm, addr, self.field_type, self.array_len)
+        return PinnedSizedArray(vm, addr, self.field_type, self.array_len)
 
     def size(self):
         return self.field_type.size() * self.array_len
@@ -488,12 +489,12 @@ class Array(Type):
 
 
 class Union(Type):
-    """Allows to put multiple fields at the same offset in a MemStruct, similar
+    """Allows to put multiple fields at the same offset in a PinnedStruct, similar
     to unions in C. The Union will have the size of the largest of its fields.
 
     Example:
 
-        class Example(MemStruct):
+        class Example(PinnedStruct):
             fields = [("uni", Union([
                                   ("f1", Num("<B")),
                                   ("f2", Num("<H"))
@@ -610,7 +611,7 @@ class BitField(Union):
 
     Creates fields that allow to access the bitfield fields easily. Example:
 
-        class Example(MemStruct):
+        class Example(PinnedStruct):
             fields = [("bf", BitField(Num("B"), [
                                 ("f1", 2),
                                 ("f2", 4),
@@ -654,73 +655,28 @@ class BitField(Union):
         return hash((super(BitField, self).__hash__(), self._num))
 
 
-# MemStruct classes
+# PinnedType classes
 
-class _MetaMemStruct(type):
-    """MemStruct metaclass. Triggers the magic that generates the class fields
-    from the cls.fields list.
-
-    Just calls MemStruct.gen_fields(), the actual implementation can seen be
-    there.
-    """
-
-    def __init__(cls, name, bases, dct):
-        super(_MetaMemStruct, cls).__init__(name, bases, dct)
-        cls.gen_fields()
-
+class _MetaPinnedType(type):
     def __repr__(cls):
         return cls.__name__
 
 
-class MemStruct(object):
-    """Base class to implement VmMngr backed C-like structures in miasm.
+class _MetaPinnedStruct(_MetaPinnedType):
+    """PinnedStruct metaclass. Triggers the magic that generates the class fields
+    from the cls.fields list.
 
-    The mechanism is the following:
-        - set a "fields" class field to be a list of
-          (<field_name (str)>, <Type_subclass_instance>)
-        - instances of this class will have properties to interract with these
-          fields.
-
-    Example:
-        class Example(MemStruct):
-            fields = [
-                # Number field: just struct.pack fields with one value
-                ("num", Num("I")),
-                ("flags", Num("B")),
-                # Ptr fields are Num, but they can also be dereferenced
-                # (self.deref_<field>). Deref can be read and set.
-                ("other", Ptr("I", OtherStruct)),
-                ("i", Ptr("I", Num("I"))),
-                # Ptr to a variable length String
-                ("s", Ptr("I", MemStr)),
-            ]
-
-        mstruct = MyStruct(vm, addr)
-
-        # Field assignment modifies virtual memory
-        mstruct.num = 3
-        assert mstruct.num == 3
-        memval = struct.unpack("I", vm.get_mem(mstruct.get_addr(),
-                                                      4))[0]
-        assert memval == mstruct.num
-
-        # Memset sets the whole structure
-        mstruct.memset()
-        assert mstruct.num == 0
-        mstruct.memset('\x11')
-        assert mstruct.num == 0x11111111
-
-        other = OtherStruct(vm, addr2)
-        mstruct.other = other.get_addr()
-        assert mstruct.other == other.get_addr()
-        assert mstruct.deref_other == other
-        assert mstruct.deref_other.foo == 0x1234
-
-    See the various Type doc for more information.
+    Just calls PinnedStruct.gen_fields(), the actual implementation can seen be
+    there.
     """
-    __metaclass__ = _MetaMemStruct
 
-    fields = []
+    def __init__(cls, name, bases, dct):
+        super(_MetaPinnedStruct, cls).__init__(name, bases, dct)
+        cls.gen_fields()
+
+
+class PinnedType(object):
+    __metaclass__ = _MetaPinnedType
 
     _size = None
 
@@ -728,108 +684,43 @@ class MemStruct(object):
 
     def __init__(self, vm, addr=None, *args, **kwargs):
         global ALLOCATOR
-        super(MemStruct, self).__init__(*args, **kwargs)
+        super(PinnedType, self).__init__(*args, **kwargs)
         self._vm = vm
         if addr is None:
             if ALLOCATOR is None:
-                raise ValueError("Cannot provide None address to MemStruct() if"
+                raise ValueError("Cannot provide None address to PinnedType() if"
                                  "%s.set_allocator has not been called."
                                  % __name__)
             self._addr = ALLOCATOR(vm, self.get_size())
         else:
             self._addr = addr
 
-    def get_addr(self, field_name=None):
-        """Return the address of this MemStruct or one of its fields.
+    def get_addr(self, field=None):
+        """Return the address of this PinnedType or one of its fields.
 
-        @field_name: (str, optional) the name of the field to get the
-            address of
+        @field: (str, optional) used by subclasses to specify the name or index
+            of the field to get the address of
         """
-        if field_name is not None:
-            if field_name not in self._attrs:
-                raise ValueError("This structure has no %s field" % field_name)
-            offset = self._attrs[field_name]['offset']
-        else:
-            offset = 0
-        return self._addr + offset
+        return self._addr
 
     @classmethod
     def sizeof(cls):
-        """Return the static size of this structure, when available (it is the
-        case by default).
+        """ABSTRACT Return the static size of this type.
         """
-        # Child classes can set cls._size if their size is not the sum of
-        # their fields
-        if cls._size is None:
-            return sum(a["field"].size() for a in cls._attrs.itervalues())
-        return cls._size
+        raise NotImplementedError("Abstract")
 
     def get_size(self):
         """Return the dynamic size of this structure (e.g. the size of an
         instance). Defaults to sizeof for this base class.
 
-        For example, MemSizedArray defines get_size but not sizeof, as an
+        For example, PinnedSizedArray defines get_size but not sizeof, as an
         instance has a fixed size (because it has a fixed length and
         field_type), but all the instance do not have the same size.
         """
         return self.sizeof()
 
-    def get_field_type(self, name):
-        """Return the Type subclass instance describing field @name."""
-        return self._attrs[name]['field']
-
-    def get_field(self, name):
-        """Get a field value by name.
-
-        Useless most of the time since fields are accessible via self.<name>.
-        """
-        if name not in self._attrs:
-            raise AttributeError("'%s' object has no attribute '%s'"
-                                 % (self.__class__.__name__, name))
-        field = self._attrs[name]["field"]
-        offset = self._attrs[name]["offset"]
-        return field.get(self._vm, self.get_addr() + offset)
-
-    def set_field(self, name, val):
-        """Set a field value by name. @val is the python value corresponding to
-        this field type.
-
-        Useless most of the time since fields are accessible via self.<name>.
-        """
-        if name not in self._attrs:
-            raise AttributeError("'%s' object has no attribute '%s'"
-                                 % (self.__class__.__name__, name))
-        field = self._attrs[name]["field"]
-        offset = self._attrs[name]["offset"]
-        field.set(self._vm, self.get_addr() + offset, val)
-
-    def deref_field(self, name):
-        """Get the MemStruct pointed by <name> field.
-
-        Useless most of the time since fields are accessible via
-        self.deref_<name>.
-        """
-        addr = self.get_field(name)
-        field = self._attrs[name]["field"]
-        assert isinstance(field, Ptr),\
-               "Programming error: field should be a Ptr"
-        return field.deref_get(self._vm, addr)
-
-    def set_deref_field(self, name, val):
-        """Set the MemStruct pointed by <name> field. @val should be of the
-        type of the pointed MemStruct. The field must be a Ptr.
-
-        Useless most of the time since fields are accessible via
-        self.deref_<name>.
-        """
-        addr = self.get_field(name)
-        field = self._attrs[name]["field"]
-        assert isinstance(field, Ptr),\
-               "Programming error: field should be a Ptr"
-        field.deref_set(self._vm, addr, val)
-
     def memset(self, byte='\x00'):
-        """Fill the memory space of this MemStruct with @byte ('\x00' by
+        """Fill the memory space of this PinnedType with @byte ('\x00' by
         default). The size is retrieved with self.get_size() (dynamic size).
         """
         # TODO: multibyte patterns
@@ -838,32 +729,28 @@ class MemStruct(object):
         self._vm.set_mem(self.get_addr(), byte * self.get_size())
 
     def cast(self, other_type, *type_args, **type_kwargs):
-        """Cast this MemStruct to another MemStruct (same address, same vm, but
-        different type). Return the casted MemStruct.
+        """Cast this PinnedType to another PinnedType (same address, same vm, but
+        different type). Return the casted PinnedType.
         """
-        return self.cast_field(None, other_type, *type_args, **type_kwargs)
+        return other_type(self._vm, self.get_addr(), *type_args, **type_kwargs)
 
-    def cast_field(self, field_name, other_type, *type_args, **type_kwargs):
-        """Same as cast, but the address of the returned MemStruct is the
-        address at which @field_name is in the current MemStruct.
+    def cast_field(self, field, other_type, *type_args, **type_kwargs):
+        """ABSTRACT: Same as cast, but the address of the returned PinnedType
+        is the address at which @field is in the current PinnedType.
+
+        @field: field specification, for example its name for a struct, or an
+            index in an array. See the subclass doc.
         """
-        return other_type(self._vm, self.get_addr(field_name),
-                          *type_args, **type_kwargs)
+        raise NotImplementedError("Abstract")
+
+    def raw(self):
+        """Raw binary (str) representation of the PinnedType as it is in
+        memory.
+        """
+        return self._vm.get_mem(self.get_addr(), self.get_size())
 
     def __len__(self):
         return self.get_size()
-
-    def raw(self):
-        """Raw binary (str) representation of the MemStruct as it is in
-        memory.
-        """
-        attrs = sorted(self._attrs.itervalues(), key=lambda a: a["offset"])
-        out = []
-        for attr in attrs:
-            field = attr["field"]
-            offset = attr["offset"]
-            out.append(self._vm.get_mem(self.get_addr() + offset, field.size()))
-        return ''.join(out)
 
     def __str__(self):
         return self.raw()
@@ -885,6 +772,140 @@ class MemStruct(object):
     def __ne__(self, other):
         return not self == other
 
+
+class PinnedStruct(PinnedType):
+    """Base class to implement VmMngr backed C-like structures in miasm.
+
+    The mechanism is the following:
+        - set a "fields" class field to be a list of
+          (<field_name (str)>, <Type_subclass_instance>)
+        - instances of this class will have properties to interract with these
+          fields.
+
+    Example:
+        class Example(PinnedStruct):
+            fields = [
+                # Number field: just struct.pack fields with one value
+                ("num", Num("I")),
+                ("flags", Num("B")),
+                # Ptr fields are Num, but they can also be dereferenced
+                # (self.deref_<field>). Deref can be read and set.
+                ("other", Ptr("I", OtherStruct)),
+                ("i", Ptr("I", Num("I"))),
+                # Ptr to a variable length String
+                ("s", Ptr("I", PinnedStr)),
+            ]
+
+        mstruct = MyStruct(vm, addr)
+
+        # Field assignment modifies virtual memory
+        mstruct.num = 3
+        assert mstruct.num == 3
+        memval = struct.unpack("I", vm.get_mem(mstruct.get_addr(),
+                                                      4))[0]
+        assert memval == mstruct.num
+
+        # Pinnedset sets the whole structure
+        mstruct.memset()
+        assert mstruct.num == 0
+        mstruct.memset('\x11')
+        assert mstruct.num == 0x11111111
+
+        other = OtherStruct(vm, addr2)
+        mstruct.other = other.get_addr()
+        assert mstruct.other == other.get_addr()
+        assert mstruct.deref_other == other
+        assert mstruct.deref_other.foo == 0x1234
+
+    See the various Type doc for more information.
+    """
+    __metaclass__ = _MetaPinnedStruct
+
+    fields = []
+
+    @classmethod
+    def sizeof(cls):
+        # Child classes can set cls._size if their size is not the sum of
+        # their fields
+        if cls._size is None:
+            return sum(a["field"].size() for a in cls._attrs.itervalues())
+        return cls._size
+
+    def get_addr(self, field_name=None):
+        """
+        @field_name: (str, optional) the name of the field to get the
+            address of
+        """
+        if field_name is not None:
+            if field_name not in self._attrs:
+                raise ValueError("This structure has no %s field" % field_name)
+            offset = self._attrs[field_name]['offset']
+        else:
+            offset = 0
+        return self._addr + offset
+
+    def get_field_type(self, name):
+        """return the type subclass instance describing field @name."""
+        return self._attrs[name]['field']
+
+    def get_field(self, name):
+        """get a field value by name.
+
+        useless most of the time since fields are accessible via self.<name>.
+        """
+        if name not in self._attrs:
+            raise attributeerror("'%s' object has no attribute '%s'"
+                                 % (self.__class__.__name__, name))
+        field = self._attrs[name]["field"]
+        offset = self._attrs[name]["offset"]
+        return field.get(self._vm, self.get_addr() + offset)
+
+    def set_field(self, name, val):
+        """set a field value by name. @val is the python value corresponding to
+        this field type.
+
+        useless most of the time since fields are accessible via self.<name>.
+        """
+        if name not in self._attrs:
+            raise attributeerror("'%s' object has no attribute '%s'"
+                                 % (self.__class__.__name__, name))
+        field = self._attrs[name]["field"]
+        offset = self._attrs[name]["offset"]
+        field.set(self._vm, self.get_addr() + offset, val)
+
+    def deref_field(self, name):
+        """get the memstruct pointed by <name> field.
+
+        useless most of the time since fields are accessible via
+        self.deref_<name>.
+        """
+        addr = self.get_field(name)
+        field = self._attrs[name]["field"]
+        assert isinstance(field, Ptr),\
+               "programming error: field should be a Ptr"
+        return field.deref_get(self._vm, addr)
+
+    def set_deref_field(self, name, val):
+        """set the memstruct pointed by <name> field. @val should be of the
+        type of the pointed memstruct. the field must be a Ptr.
+
+        useless most of the time since fields are accessible via
+        self.deref_<name>.
+        """
+        addr = self.get_field(name)
+        field = self._attrs[name]["field"]
+        assert isinstance(field, Ptr),\
+               "programming error: field should be a Ptr"
+        field.deref_set(self._vm, addr, val)
+
+    def cast_field(self, field, other_type, *type_args, **type_kwargs):
+        """
+        @field: a field name
+        """
+        return other_type(self._vm, self.get_addr(field),
+                          *type_args, **type_kwargs)
+
+
     # Field generation methods, voluntarily public to be able to regen fields
     # after class definition
 
@@ -896,18 +917,18 @@ class MemStruct(object):
         Useful in case of a type cyclic dependency. For example, the following
         is not possible in python:
 
-            class A(MemStruct):
+            class A(PinnedStruct):
                 fields = [("b", Ptr("I", B))]
 
-            class B(MemStruct):
+            class B(PinnedStruct):
                 fields = [("a", Ptr("I", A))]
 
         With gen_fields, the following is the legal equivalent:
 
-            class A(MemStruct):
+            class A(PinnedStruct):
                 pass
 
-            class B(MemStruct):
+            class B(PinnedStruct):
                 fields = [("a", Ptr("I", A))]
 
             A.fields = [("b", Ptr("I", B))]
@@ -962,21 +983,21 @@ class MemStruct(object):
             cls.gen_field(name, field, offset)
 
 
-class MemSelf(MemStruct):
+class PinnedSelf(PinnedStruct):
     """Special Marker class for reference to current class in a Ptr or Array
     (mostly Array of Ptr).
 
     Example:
-        class ListNode(MemStruct):
+        class ListNode(PinnedStruct):
             fields = [
-                ("next", Ptr("<I", MemSelf)),
-                ("data", Ptr("<I", MemVoid)),
+                ("next", Ptr("<I", PinnedSelf)),
+                ("data", Ptr("<I", PinnedVoid)),
             ]
     """
     pass
 
 
-class MemVoid(MemStruct):
+class PinnedVoid(PinnedType):
     """Placeholder for e.g. Ptr to an undetermined type. Useful mostly when
     casted to another type. Allows to implement C's "void*" pattern.
     """
@@ -984,9 +1005,9 @@ class MemVoid(MemStruct):
         return self.__class__.__name__
 
 
-# This does not use _MetaMemStruct features, impl is custom for strings,
+# This does not use _MetaPinnedStruct features, impl is custom for strings,
 # because they are unsized. The only memory field is self.value.
-class MemStr(MemStruct):
+class PinnedStr(PinnedType):
     """Implements a string representation in memory.
 
     The @encoding is passed to the constructor, and is currently either null
@@ -1002,7 +1023,7 @@ class MemStr(MemStruct):
         # TODO: encoding as lambda
         if encoding not in ["ansi", "utf16"]:
             raise NotImplementedError("Only 'ansi' and 'utf16' are implemented")
-        super(MemStr, self).__init__(vm, addr)
+        super(PinnedStr, self).__init__(vm, addr)
         self._enc = encoding
 
     @property
@@ -1049,13 +1070,13 @@ class MemStr(MemStruct):
         return "%r(%s): %r" % (self.__class__, self._enc, self.value)
 
 
-class MemArray(MemStruct):
+class PinnedArray(PinnedType):
     """An unsized array of type @field_type (a Type subclass instance).
     This class has no static or dynamic size.
 
     It can be indexed for setting and getting elements, example:
 
-        array = MemArray(vm, addr, Num("I"))
+        array = PinnedArray(vm, addr, Num("I"))
         array[2] = 5
         array[4:8] = [0, 1, 2, 3]
         print array[20]
@@ -1065,7 +1086,7 @@ class MemArray(MemStruct):
 
     mem_array_type can be used to generate a type that includes the field_type.
     Such a generated type can be instanciated with only vm and addr, as are
-    other MemStructs.
+    other PinnedTypes.
     """
     _field_type = None
 
@@ -1076,12 +1097,12 @@ class MemArray(MemStruct):
             raise NotImplementedError(
                 "Provide field_type to instanciate this class, "
                 "or generate a subclass with mem_array_type.")
-        super(MemArray, self).__init__(vm, addr)
+        super(PinnedArray, self).__init__(vm, addr)
 
     @property
     def field_type(self):
         """Return the Type subclass instance that represents the type of
-        this MemArray items.
+        this PinnedArray items.
         """
         return self._field_type
 
@@ -1103,7 +1124,7 @@ class MemArray(MemStruct):
             raise IndexError("Index %s out of bounds" % idx)
 
     def index2addr(self, idx):
-        """Return the address corresponding to a given @index in this MemArray.
+        """Return the address corresponding to a given @index in this PinnedArray.
         """
         self._check_bounds(idx)
         addr = self.get_addr() + idx * self._field_type.size()
@@ -1120,7 +1141,7 @@ class MemArray(MemStruct):
             return self._field_type.get(self._vm, self.index2addr(idx))
 
     def deref_get(self, idx):
-        """If self.field_type is a Ptr, return the MemStruct self[idx] points
+        """If self.field_type is a Ptr, return the PinnedType self[idx] points
         to.
         """
         return self._field_type.deref_get(self._vm, self[idx])
@@ -1137,31 +1158,31 @@ class MemArray(MemStruct):
             self._field_type.set(self._vm, self.index2addr(idx), item)
 
     def deref_set(self, idx, item):
-        """If self.field_type is a Ptr, set the MemStruct self[idx] points
+        """If self.field_type is a Ptr, set the PinnedType self[idx] points
         to with @item.
         """
         self._field_type.deref_set(self._vm, self[idx], item)
 
     # just a shorthand
     def as_mem_str(self, encoding="ansi"):
-        return self.cast(MemStr, encoding)
+        return self.cast(PinnedStr, encoding)
 
     @classmethod
     def sizeof(cls):
         raise ValueError("%s is unsized, it has no static size (sizeof). "
-                         "Use MemSizedArray instead." % cls)
+                         "Use PinnedSizedArray instead." % cls)
 
     def raw(self):
         raise ValueError("%s is unsized, which prevents from getting its full "
-                         "raw representation. Use MemSizedArray instead." %
+                         "raw representation. Use PinnedSizedArray instead." %
                          self.__class__)
 
     def __repr__(self):
         return "[%r, ...] [%r]" % (self[0], self._field_type)
 
 
-class MemSizedArray(MemArray):
-    """A fixed size MemArray. Its additional arg represents the @array_len (in
+class PinnedSizedArray(PinnedArray):
+    """A fixed size PinnedArray. Its additional arg represents the @array_len (in
     number of elements) of this array.
 
     This type is dynamically sized. Use mem_sized_array_type to generate a
@@ -1174,7 +1195,7 @@ class MemSizedArray(MemArray):
         # allocation
         if self._array_len is None:
             self._array_len = array_len
-        super(MemSizedArray, self).__init__(vm, addr, field_type)
+        super(PinnedSizedArray, self).__init__(vm, addr, field_type)
         if self._array_len is None or self._field_type is None:
             raise NotImplementedError(
                 "Provide field_type and array_len to instanciate this class, "
@@ -1186,7 +1207,7 @@ class MemSizedArray(MemArray):
         return self._array_len
 
     def sizeof(cls):
-        raise ValueError("MemSizedArray is not statically sized. Use "
+        raise ValueError("PinnedSizedArray is not statically sized. Use "
                          "mem_sized_array_type to generate a type that is.")
 
     def get_size(self):
@@ -1220,32 +1241,32 @@ class MemSizedArray(MemArray):
 
     def __eq__(self, other):
         # Special implementation to handle dynamic subclasses
-        return isinstance(other, MemSizedArray) and \
+        return isinstance(other, PinnedSizedArray) and \
                 self._field_type == other._field_type and \
                 self._array_len == other._array_len and \
                 str(self) == str(other)
 
 
 def mem_array_type(field_type):
-    """Generate a MemArray subclass that has a fixed @field_type. It allows to
+    """Generate a PinnedArray subclass that has a fixed @field_type. It allows to
     instanciate this class with only vm and addr argument, as are standard
-    MemStructs.
+    PinnedTypes.
     """
     cache_key = (field_type, None)
     if cache_key in DYN_MEM_STRUCT_CACHE:
         return DYN_MEM_STRUCT_CACHE[cache_key]
 
-    array_type = type('MemArray_%r' % (field_type,),
-                      (MemArray,),
+    array_type = type('PinnedArray_%r' % (field_type,),
+                      (PinnedArray,),
                       {'_field_type': field_type})
     DYN_MEM_STRUCT_CACHE[cache_key] = array_type
     return array_type
 
 
 def mem_sized_array_type(field_type, array_len):
-    """Generate a MemSizedArray subclass that has a fixed @field_type and a
+    """Generate a PinnedSizedArray subclass that has a fixed @field_type and a
     fixed @array_len. This allows to instanciate the returned type with only
-    the vm and addr arguments, as are standard MemStructs.
+    the vm and addr arguments, as are standard PinnedTypes.
     """
     cache_key = (field_type, array_len)
     if cache_key in DYN_MEM_STRUCT_CACHE:
@@ -1255,8 +1276,8 @@ def mem_sized_array_type(field_type, array_len):
     def sizeof(cls):
         return cls._field_type.size() * cls._array_len
 
-    array_type = type('MemSizedArray_%r_%s' % (field_type, array_len),
-                      (MemSizedArray,),
+    array_type = type('PinnedSizedArray_%r_%s' % (field_type, array_len),
+                      (PinnedSizedArray,),
                       {'_array_len': array_len,
                        '_field_type': field_type,
                        'sizeof': sizeof})

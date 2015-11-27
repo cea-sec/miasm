@@ -6,14 +6,14 @@ as well.
 """
 
 from miasm2.analysis.machine import Machine
-from miasm2.analysis.mem import MemStruct, MemSelf, MemVoid, MemStr,\
-                                MemSizedArray, Ptr, Num, Array, set_allocator
+from miasm2.analysis.mem import PinnedStruct, PinnedSelf, PinnedVoid, PinnedStr,\
+                                PinnedSizedArray, Ptr, Num, Array, set_allocator
 from miasm2.os_dep.common import heap
 
 # Instanciate a heap
 my_heap = heap()
 # And set it as the default memory allocator, to avoid manual allocation and
-# explicit address passing to the MemStruct constructor
+# explicit address passing to the PinnedStruct constructor
 set_allocator(my_heap.vm_alloc)
 
 # Let's reimplement a simple C generic linked list mapped on a VmMngr!
@@ -21,18 +21,18 @@ set_allocator(my_heap.vm_alloc)
 # All the structures and methods will use the python objects but all the data
 # is in fact stored in the VmMngr
 
-class ListNode(MemStruct):
+class ListNode(PinnedStruct):
     fields = [
         # The "<I" is the struct-like format of the pointer in memory, in this
         # case a Little Endian 32 bits unsigned int
         # One way to handle reference to ListNode in ListNode is to use the
-        # special marker MemSelf.
+        # special marker PinnedSelf.
         # You could also set or modify ListNode.fields after the class
         # declaration and call ListNode.gen_fields()
-        ("next", Ptr("<I", MemSelf)),
-        # Ptr(_, MemVoid) is analogous to void*, MemVoid is just an empty
-        # MemStruct type
-        ("data", Ptr("<I", MemVoid)),
+        ("next", Ptr("<I", PinnedSelf)),
+        # Ptr(_, PinnedVoid) is analogous to void*, PinnedVoid is just an empty
+        # PinnedStruct type
+        ("data", Ptr("<I", PinnedVoid)),
     ]
 
     def get_next(self):
@@ -47,7 +47,7 @@ class ListNode(MemStruct):
             return self.deref_data
 
 
-class LinkedList(MemStruct):
+class LinkedList(PinnedStruct):
     fields = [
         ("head", Ptr("<I", ListNode)),
         ("tail", Ptr("<I", ListNode)),
@@ -118,24 +118,24 @@ class LinkedList(MemStruct):
 
 # Some data types to put in the LinkedList and play with:
 
-class DataArray(MemStruct):
+class DataArray(PinnedStruct):
     fields = [
         ("val1", Num("B")),
         ("val2", Num("B")),
-        # Ptr can also be instanciated with a MemField as an argument, a special
-        # MemStruct containing only one field named "value" will be created, so
-        # that Ptr can point to a MemStruct instance. Here,
+        # Ptr can also be instanciated with a PinnedField as an argument, a special
+        # PinnedStruct containing only one field named "value" will be created, so
+        # that Ptr can point to a PinnedStruct instance. Here,
         # data_array.deref_array.value will allow to access an Array
-        ("arrayptr", Ptr("<I", MemSizedArray, Num("B"), 16)),
+        ("arrayptr", Ptr("<I", PinnedSizedArray, Num("B"), 16)),
         # Array of 10 uint8
         ("array", Array(Num("B"), 16)),
     ]
 
-class DataStr(MemStruct):
+class DataStr(PinnedStruct):
     fields = [
         ("valshort", Num("H")),
         # Pointer to an utf16 null terminated string
-        ("data", Ptr("<I", MemStr, "utf16")),
+        ("data", Ptr("<I", PinnedStr, "utf16")),
     ]
 
 
@@ -152,7 +152,7 @@ vm = jitter.vm
 # Auto-allocated by my_heap. If you allocate memory at `addr`,
 # `link = LinkedList(vm, addr)` will use this allocation.
 link = LinkedList(vm)
-# Memset the struct (with '\x00' by default)
+# Pinnedset the struct (with '\x00' by default)
 link.memset()
 
 # Push three uninitialized structures
@@ -171,7 +171,7 @@ print repr(link), '\n'
 
 print "Its uninitialized data elements:"
 for data in link:
-    # __iter__ returns MemVoids here, just cast them to the real data type
+    # __iter__ returns PinnedVoids here, just cast them to the real data type
     real_data = data.cast(DataArray)
     print repr(real_data)
 print
@@ -202,10 +202,10 @@ assert data.val1 == 0x22 and data.val2 == 0x11
 
 # Let's play with strings
 memstr = datastr.deref_data
-# Note that memstr is MemStr(..., "utf16")
+# Note that memstr is PinnedStr(..., "utf16")
 memstr.value = 'Miams'
 
-print "Cast data.array to MemStr and set the string value:"
+print "Cast data.array to PinnedStr and set the string value:"
 print repr(memstr)
 print
 
@@ -213,10 +213,10 @@ print
 raw_miams = '\x00'.join('Miams') + '\x00'*3
 raw_miams_array = [ord(c) for c in raw_miams]
 assert list(data.array)[:len(raw_miams_array)] == raw_miams_array
-assert data.array.cast(MemStr, "utf16") == memstr
+assert data.array.cast(PinnedStr, "utf16") == memstr
 # Default is "ansi"
-assert data.array.cast(MemStr) != memstr
-assert data.array.cast(MemStr, "utf16").value == memstr.value
+assert data.array.cast(PinnedStr) != memstr
+assert data.array.cast(PinnedStr, "utf16").value == memstr.value
 
 print "See that the original array has been modified:"
 print repr(data)
