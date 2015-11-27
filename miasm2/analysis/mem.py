@@ -222,6 +222,32 @@ class Type(object):
         raw = vm.get_mem(addr, self.size())
         return self._unpack(raw)
 
+    @property
+    def pinned(self):
+        """Returns a class with a (vm, addr) constructor that allows to
+        interact with this type in memory.
+        @return: a PinnedType subclass.
+        """
+        # FIXME: PinnedStruct field changes
+        if self in DYN_MEM_STRUCT_CACHE:
+            return DYN_MEM_STRUCT_CACHE[self]
+        pinned_type = self._build_pinned_type()
+        DYN_MEM_STRUCT_CACHE[self] = pinned_type
+        return pinned_type
+
+    def _build_pinned_type(self):
+        """Builds the PinnedType subclass allowing to interract with this type.
+
+        Valled by self.pinned when it is not in cache.
+        """
+        pinned_base_class = self._get_pinned_base_class()
+        pinned_type = type("Pinned%r" % self, (pinned_base_class,),
+                           {'_type': self})
+        return pinned_type
+
+    def _get_pinned_base_class(self):
+        return PinnedValue
+
     def _get_self_type(self):
         return self._self_type
 
@@ -360,6 +386,9 @@ class Ptr(Num):
         # Actual job
         vm.set_mem(addr, str(val))
 
+    def _get_pinned_base_class(self):
+        return PinnedPtr
+
     def __repr__(self):
         return "%s(%r)" % (self.__class__.__name__, self._dst_type)
 
@@ -476,6 +505,18 @@ class Array(Type):
     def size(self):
         return self.field_type.size() * self.array_len
 
+    def _build_pinned_type(self):
+        @classmethod
+        def sizeof(cls):
+            return cls._field_type.size() * cls._array_len
+
+        pinned_type = type('Pinned%r' % self,
+                           (PinnedSizedArray,),
+                           {'_array_len': self.array_len,
+                            '_field_type': self.field_type,
+                            'sizeof': sizeof})
+        return pinned_type
+
     def __repr__(self):
         return "%r[%s]" % (self.field_type, self.array_len)
 
@@ -488,6 +529,7 @@ class Array(Type):
         return hash((self.__class__, self.field_type, self.array_len))
 
 
+# TODO: PinnedUnion
 class Union(Type):
     """Allows to put multiple fields at the same offset in a PinnedStruct, similar
     to unions in C. The Union will have the size of the largest of its fields.
@@ -655,6 +697,19 @@ class BitField(Union):
         return hash((super(BitField, self).__hash__(), self._num))
 
 
+class Void(Type):
+    """Represents the C void type."""
+    
+    def _build_pinned_type(self):
+        return PinnedVoid
+
+    def __eq__(self, other):
+        return self.__class__ == other.__class__
+
+    def __hash__(self):
+        return hash(self.__class__)
+
+
 # PinnedType classes
 
 class _MetaPinnedType(type):
@@ -771,6 +826,26 @@ class PinnedType(object):
 
     def __ne__(self, other):
         return not self == other
+
+
+class PinnedValue(PinnedType):
+    _type = None
+
+    def __init__(self, vm, addr=None, type_=None):
+        super(PinnedValue, self).__init__(vm, addr)
+        if type_ is not None:
+            self._type = type_
+        if self._type is None:
+            raise ValueError("Subclass PinnedPtr and define cls._type or pass a"
+                             " Ptr to the constructor")
+
+    @property
+    def val(self):
+        return self._type.get(self._vm, self._addr)
+
+    @val.setter
+    def val(self, value):
+        return self._type.set(self._vm, self._addr, value)
 
 
 class PinnedStruct(PinnedType):
@@ -1003,6 +1078,17 @@ class PinnedVoid(PinnedType):
     """
     def __repr__(self):
         return self.__class__.__name__
+
+
+class PinnedPtr(PinnedValue):
+
+    @property
+    def deref(self):
+        return self._type.deref_get(self._vm, self._addr)
+
+    @deref.setter
+    def deref(self, val):
+        return self._type.deref_set(self._vm, self._addr, val)
 
 
 # This does not use _MetaPinnedStruct features, impl is custom for strings,
