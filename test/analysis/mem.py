@@ -7,9 +7,9 @@ import struct
 from miasm2.analysis.machine import Machine
 from miasm2.analysis.mem import PinnedStruct, Num, Ptr, PinnedStr, PinnedArray,\
                                 PinnedSizedArray, Array, mem_array_type,\
-                                mem_sized_array_type, RawStruct, Inline, pin,\
+                                mem_sized_array_type, RawStruct, pin,\
                                 Union, BitField, PinnedSelf, PinnedVoid, Bits, \
-                                set_allocator
+                                set_allocator, PinnedUnion, Struct
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm2.os_dep.common import heap
 
@@ -24,8 +24,7 @@ class MyStruct(PinnedStruct):
         # Number field: just struct.pack fields with one value
         ("num", Num("I")),
         ("flags", Num("B")),
-        # Ptr fields are Num, but they can also be dereferenced
-        # (self.deref_<field>). Deref can be read and set.
+        # TODO: comment
         ("other", Ptr("I", OtherStruct)),
         # Ptr to a variable length String
         ("s", Ptr("I", PinnedStr)),
@@ -61,15 +60,15 @@ assert memval == 3
 mstruct.memset()
 assert mstruct.num == 0
 assert mstruct.flags == 0
-assert mstruct.other == 0
-assert mstruct.s == 0
-assert mstruct.i == 0
+assert mstruct.other.val == 0
+assert mstruct.s.val == 0
+assert mstruct.i.val == 0
 mstruct.memset('\x11')
 assert mstruct.num == 0x11111111
 assert mstruct.flags == 0x11
-assert mstruct.other == 0x11111111
-assert mstruct.s == 0x11111111
-assert mstruct.i == 0x11111111
+assert mstruct.other.val == 0x11111111
+assert mstruct.s.val == 0x11111111
+assert mstruct.i.val == 0x11111111
 
 
 # From now, just use heap.vm_alloc
@@ -85,19 +84,21 @@ other.foo = 0x1234
 assert other.foo == 0x1234
 
 ## Basic usage
-mstruct.other = other.get_addr()
-assert mstruct.other == other.get_addr()
-assert mstruct.deref_other == other
-assert mstruct.deref_other.foo == 0x1234
+mstruct.other.val = other.get_addr()
+# This also works for now:
+# mstruct.other = other.get_addr()
+assert mstruct.other.val == other.get_addr()
+assert mstruct.other.deref == other
+assert mstruct.other.deref.foo == 0x1234
 
 ## Deref assignment
 other2 = OtherStruct(jitter.vm)
 other2.foo = 0xbeef
-assert mstruct.deref_other != other2
-mstruct.deref_other = other2
-assert mstruct.deref_other == other2
-assert mstruct.deref_other.foo == 0xbeef
-assert mstruct.other == other.get_addr() # Addr did not change
+assert mstruct.other.deref != other2
+mstruct.other.deref = other2
+assert mstruct.other.deref == other2
+assert mstruct.other.deref.foo == 0xbeef
+assert mstruct.other.val == other.get_addr() # Addr did not change
 assert other.foo == 0xbeef # Deref assignment copies by value
 assert other2.foo == 0xbeef
 assert other.get_addr() != other2.get_addr() # Not the same address
@@ -105,11 +106,12 @@ assert other == other2 # But same value
 
 ## Same stuff for Ptr to PinnedField
 alloc_addr = my_heap.vm_alloc(jitter.vm,
-                              mstruct.get_field_type("i").dst_type.sizeof())
+                              mstruct.get_type().get_field_type("i")
+                                     .dst_type.sizeof())
 mstruct.i = alloc_addr
-mstruct.deref_i.value = 8
-assert mstruct.deref_i.value == 8
-assert mstruct.i == alloc_addr
+mstruct.i.deref.val = 8
+assert mstruct.i.deref.val == 8
+assert mstruct.i.val == alloc_addr
 memval = struct.unpack("I", jitter.vm.get_mem(alloc_addr, 4))[0]
 assert memval == 8
 
@@ -117,37 +119,37 @@ assert memval == 8
 # Str tests
 ## Basic tests
 memstr = PinnedStr(jitter.vm, addr_str)
-memstr.value = ""
-assert memstr.value == ""
+memstr.val = ""
+assert memstr.val == ""
 assert jitter.vm.get_mem(memstr.get_addr(), 1) == '\x00'
-memstr.value = "lala"
+memstr.val = "lala"
 assert jitter.vm.get_mem(memstr.get_addr(), memstr.get_size()) == 'lala\x00'
 jitter.vm.set_mem(memstr.get_addr(), 'MIAMs\x00')
-assert memstr.value == 'MIAMs'
+assert memstr.val == 'MIAMs'
 
 ## Ptr(PinnedStr) manipulations
-mstruct.s = memstr.get_addr()
-assert mstruct.s == addr_str
-assert mstruct.deref_s == memstr
-assert mstruct.deref_s.value == 'MIAMs'
-mstruct.deref_s.value = "That's all folks!"
-assert mstruct.deref_s.value == "That's all folks!"
-assert memstr.value == "That's all folks!"
+mstruct.s.val = memstr.get_addr()
+assert mstruct.s.val == addr_str
+assert mstruct.s.deref == memstr
+assert mstruct.s.deref.val == 'MIAMs'
+mstruct.s.deref.val = "That's all folks!"
+assert mstruct.s.deref.val == "That's all folks!"
+assert memstr.val == "That's all folks!"
 
 ## Other address, same value, same encoding
 memstr2 = PinnedStr(jitter.vm, addr_str2)
-memstr2.value = "That's all folks!"
+memstr2.val = "That's all folks!"
 assert memstr2.get_addr() != memstr.get_addr()
 assert memstr2 == memstr
 
 ## Same value, other encoding
 memstr3 = PinnedStr(jitter.vm, addr_str3, "utf16")
-memstr3.value = "That's all folks!"
+memstr3.val = "That's all folks!"
 assert memstr3.get_addr() != memstr.get_addr()
 assert memstr3.get_size() != memstr.get_size() # Size is different
 assert str(memstr3) != str(memstr) # Pinned representation is different
 assert memstr3 != memstr # Encoding is different, so they are not eq
-assert memstr3.value == memstr.value # But the python value is the same
+assert memstr3.val == memstr.val # But the python value is the same
 
 
 # PinnedArray tests
@@ -254,7 +256,7 @@ for val in ms2.s2:
     assert val == 2
 
 
-# Inline tests
+# Inlining a PinnedType tests
 class InStruct(PinnedStruct):
     fields = [
         ("foo", Num("B")),
@@ -264,7 +266,7 @@ class InStruct(PinnedStruct):
 class ContStruct(PinnedStruct):
     fields = [
         ("one", Num("B")),
-        ("instruct", Inline(InStruct)),
+        ("instruct", InStruct.get_type()),
         ("last", Num("B")),
     ]
 
@@ -298,7 +300,7 @@ class UniStruct(PinnedStruct):
     fields = [
         ("one", Num("B")),
         ("union", Union([
-            ("instruct", Inline(InStruct)),
+            ("instruct", InStruct.get_type()),
             ("i", Num(">I")),
         ])),
         ("last", Num("B")),
@@ -308,20 +310,21 @@ uni = UniStruct(jitter.vm)
 jitter.vm.set_mem(uni.get_addr(), ''.join(chr(x) for x in xrange(len(uni))))
 assert len(uni) == 6 # 1 + max(InStruct.sizeof(), 4) + 1
 assert uni.one == 0x00
-assert uni.instruct.foo == 0x01
-assert uni.instruct.bar == 0x02
-assert uni.i == 0x01020304
+assert uni.union.instruct.foo == 0x01
+assert uni.union.instruct.bar == 0x02
+assert uni.union.i == 0x01020304
 assert uni.last == 0x05
-uni.instruct.foo = 0x02
-assert uni.i == 0x02020304
-uni.i = 0x11223344
-assert uni.instruct.foo == 0x11
-assert uni.instruct.bar == 0x22
+uni.union.instruct.foo = 0x02
+assert uni.union.i == 0x02020304
+uni.union.i = 0x11223344
+assert uni.union.instruct.foo == 0x11
+assert uni.union.instruct.bar == 0x22
 
 
 # BitField test
-class BitStruct(PinnedStruct):
+class BitStruct(PinnedUnion):
     fields = [
+        ("flags_num", Num("H")),
         ("flags", BitField(Num("H"), [
             ("f1_1", 1),
             ("f2_5", 5),
@@ -332,24 +335,24 @@ class BitStruct(PinnedStruct):
 
 bit = BitStruct(jitter.vm)
 bit.memset()
-assert bit.flags == 0
-assert bit.f1_1 == 0
-assert bit.f2_5 == 0
-assert bit.f3_8 == 0
-assert bit.f4_1 == 0
-bit.f1_1 = 1
-bit.f2_5 = 0b10101
-bit.f3_8 = 0b10000001
-assert bit.flags == 0b0010000001101011
-assert bit.f1_1 == 1
-assert bit.f2_5 == 0b10101
-assert bit.f3_8 == 0b10000001
-assert bit.f4_1 == 0
-bit.flags = 0b1101010101011100
-assert bit.f1_1 == 0
-assert bit.f2_5 == 0b01110
-assert bit.f3_8 == 0b01010101
-assert bit.f4_1 == 1
+assert bit.flags_num == 0
+assert bit.flags.f1_1 == 0
+assert bit.flags.f2_5 == 0
+assert bit.flags.f3_8 == 0
+assert bit.flags.f4_1 == 0
+bit.flags.f1_1 = 1
+bit.flags.f2_5 = 0b10101
+bit.flags.f3_8 = 0b10000001
+assert bit.flags_num == 0b0010000001101011
+assert bit.flags.f1_1 == 1
+assert bit.flags.f2_5 == 0b10101
+assert bit.flags.f3_8 == 0b10000001
+assert bit.flags.f4_1 == 0
+bit.flags_num = 0b1101010101011100
+assert bit.flags.f1_1 == 0
+assert bit.flags.f2_5 == 0b01110
+assert bit.flags.f3_8 == 0b01010101
+assert bit.flags.f4_1 == 1
 
 
 # Unhealthy ideas
@@ -363,72 +366,83 @@ class UnhealthyIdeas(PinnedStruct):
         ("pppself", Ptr("I", Ptr("I", Ptr("I", PinnedSelf)))),
     ]
 
-# Other way to handle self dependency and circular dependencies
-# NOTE: in this case, PinnedSelf would have been fine
-UnhealthyIdeas.fields.append(
-    ("pppself2", Ptr("I", Ptr("I", Ptr("I", UnhealthyIdeas)))))
-# Regen all fields
-UnhealthyIdeas.gen_fields()
-
 p_size = Ptr("I", PinnedVoid).size()
 
 ideas = UnhealthyIdeas(jitter.vm)
 ideas.memset()
 ideas.pself = ideas.get_addr()
-assert ideas == ideas.deref_pself
+assert ideas == ideas.pself.deref
 
 ideas.apself[0] = ideas.get_addr()
-assert ideas.apself.deref_get(0) == ideas
+assert ideas.apself[0].deref == ideas
 ideas.apself[1] = my_heap.vm_alloc(jitter.vm, UnhealthyIdeas.sizeof())
-ideas.apself.deref_set(1, ideas)
+ideas.apself[1].deref = ideas
 assert ideas.apself[1] != ideas.get_addr()
-assert ideas.apself.deref_get(1) == ideas
+assert ideas.apself[1].deref == ideas
 
 ideas.ppself = my_heap.vm_alloc(jitter.vm, p_size)
-ideas.deref_ppself.value = ideas.get_addr()
-assert ideas.deref_ppself.value == ideas.get_addr()
-assert ideas.deref_ppself.deref_value == ideas
+ideas.ppself.deref.val = ideas.get_addr()
+assert ideas.ppself.deref.val == ideas.get_addr()
+assert ideas.ppself.deref.deref == ideas
 
-ideas.deref_ppself.value = my_heap.vm_alloc(jitter.vm, UnhealthyIdeas.sizeof())
-ideas.deref_ppself.deref_value = ideas
-assert ideas.deref_ppself.value != ideas.get_addr()
-assert ideas.deref_ppself.deref_value == ideas
+ideas.ppself.deref.val = my_heap.vm_alloc(jitter.vm, UnhealthyIdeas.sizeof())
+ideas.ppself.deref.deref = ideas
+assert ideas.ppself.deref.val != ideas.get_addr()
+assert ideas.ppself.deref.deref == ideas
 
 ideas.pppself = my_heap.vm_alloc(jitter.vm, p_size)
-ideas.deref_pppself.value = my_heap.vm_alloc(jitter.vm, p_size)
-ideas.deref_pppself.deref_value.value = ideas.get_addr()
-assert ideas.deref_pppself.deref_value.deref_value == ideas
+ideas.pppself.deref.val = my_heap.vm_alloc(jitter.vm, p_size)
+ideas.pppself.deref.deref.val = ideas.get_addr()
+assert ideas.pppself.deref.deref.deref == ideas
+
+
+# Circular dependencies
+class A(PinnedStruct):
+    pass
+
+class B(PinnedStruct):
+    fields = [("a", Ptr("I", A)),]
+
+# Gen A's fields after declaration
+A.gen_fields([("b", Ptr("I", B)),])
+
+a = A(jitter.vm)
+b = B(jitter.vm)
+a.b.val = b.get_addr()
+b.a.val = a.get_addr()
+assert a.b.deref == b
+assert b.a.deref == a
 
 
 # Cast tests
 # PinnedStruct cast
-PinnedInt = pin(Num("I"))
-PinnedShort = pin(Num("H"))
+PinnedInt = Num("I").pinned
+PinnedShort = Num("H").pinned
 dword = PinnedInt(jitter.vm)
-dword.value = 0x12345678
+dword.val = 0x12345678
 assert isinstance(dword.cast(PinnedShort), PinnedShort)
-assert dword.cast(PinnedShort).value == 0x5678
+assert dword.cast(PinnedShort).val == 0x5678
 
 # Field cast
 ms2.s2[0] = 0x34
 ms2.s2[1] = 0x12
-assert ms2.cast_field("s2", PinnedShort).value == 0x1234
+assert ms2.cast_field("s2", PinnedShort).val == 0x1234
 
 # Other method
-assert PinnedShort(jitter.vm, ms2.get_addr("s2")).value == 0x1234
+assert PinnedShort(jitter.vm, ms2.get_addr("s2")).val == 0x1234
 
 # Manual cast inside an Array
 ms2.s2[4] = 0xcd
 ms2.s2[5] = 0xab
-assert PinnedShort(jitter.vm, ms2.s2.index2addr(4)).value == 0xabcd
+assert PinnedShort(jitter.vm, ms2.s2.index2addr(4)).val == 0xabcd
 
 # void* style cast
-PinnedPtrVoid = pin(Ptr("I", PinnedVoid))
-PinnedPtrMyStruct = pin(Ptr("I", MyStruct))
+PinnedPtrVoid = Ptr("I", PinnedVoid).pinned
+PinnedPtrMyStruct = Ptr("I", MyStruct).pinned
 p = PinnedPtrVoid(jitter.vm)
-p.value = mstruct.get_addr()
-assert p.deref_value.cast(MyStruct) == mstruct
-assert p.cast(PinnedPtrMyStruct).deref_value == mstruct
+p.val = mstruct.get_addr()
+assert p.deref.cast(MyStruct) == mstruct
+assert p.cast(PinnedPtrMyStruct).deref == mstruct
 
 # Field equality tests
 assert RawStruct("IH") == RawStruct("IH")
@@ -438,11 +452,19 @@ assert Num(">I") != Num("<I")
 assert Ptr("I", MyStruct) == Ptr("I", MyStruct)
 assert Ptr(">I", MyStruct) != Ptr("<I", MyStruct)
 assert Ptr("I", MyStruct) != Ptr("I", MyStruct2)
-assert Inline(MyStruct) == Inline(MyStruct)
-assert Inline(MyStruct) != Inline(MyStruct2)
+assert MyStruct.get_type() == MyStruct.get_type()
+assert MyStruct.get_type() != MyStruct2.get_type()
 assert Array(Num("H"), 12) == Array(Num("H"), 12)
 assert Array(Num("H"), 11) != Array(Num("H"), 12)
 assert Array(Num("I"), 12) != Array(Num("H"), 12)
+assert Struct("a", [("f1", Num("B")), ("f2", Num("H"))]) == \
+        Struct("a", [("f1", Num("B")), ("f2", Num("H"))])
+assert Struct("a", [("f2", Num("B")), ("f2", Num("H"))]) != \
+        Struct("a", [("f1", Num("B")), ("f2", Num("H"))])
+assert Struct("a", [("f1", Num("B")), ("f2", Num("H"))]) != \
+        Struct("a", [("f1", Num("I")), ("f2", Num("H"))])
+assert Struct("a", [("f1", Num("B")), ("f2", Num("H"))]) != \
+        Struct("b", [("f1", Num("B")), ("f2", Num("H"))])
 assert Union([("f1", Num("B")), ("f2", Num("H"))]) == \
         Union([("f1", Num("B")), ("f2", Num("H"))])
 assert Union([("f2", Num("B")), ("f2", Num("H"))]) != \
@@ -463,17 +485,17 @@ assert BitField(Num("B"), [("f1", 1), ("f2", 4), ("f3", 1)]) != \
         BitField(Num("B"), [("f1", 2), ("f2", 4), ("f3", 1)])
 
 
-# Quick pin(PinnedField)/PinnedField hash test:
-assert pin(Num("f"))(jitter.vm, addr) == pin(Num("f"))(jitter.vm, addr)
+# Quick PinnedField.pinned/PinnedField hash test
+assert Num("f").pinned(jitter.vm, addr) == Num("f").pinned(jitter.vm, addr)
 # Types are cached
-assert pin(Num("f")) == pin(Num("f"))
-assert pin(Num("d")) != pin(Num("f"))
-assert pin(Union([("f1", Num("I")), ("f2", Num("H"))])) == \
-        pin(Union([("f1", Num("I")), ("f2", Num("H"))]))
+assert Num("f").pinned == Num("f").pinned
+assert Num("d").pinned != Num("f").pinned
+assert Union([("f1", Num("I")), ("f2", Num("H"))]).pinned == \
+        Union([("f1", Num("I")), ("f2", Num("H"))]).pinned
 assert mem_array_type(Num("B")) == mem_array_type(Num("B"))
 assert mem_array_type(Num("I")) != mem_array_type(Num("B"))
-assert mem_sized_array_type(Num("B"), 20) == mem_sized_array_type(Num("B"), 20)
-assert mem_sized_array_type(Num("B"), 19) != mem_sized_array_type(Num("B"), 20)
+assert Array(Num("B"), 20).pinned == Array(Num("B"), 20).pinned
+assert Array(Num("B"), 19).pinned != Array(Num("B"), 20).pinned
 
 
 # Repr tests
@@ -485,8 +507,8 @@ print repr(cont), '\n'
 print repr(uni), '\n'
 print repr(bit), '\n'
 print repr(ideas), '\n'
-print repr(pin(Array(Inline(MyStruct2), 2))(jitter.vm, addr)), '\n'
-print repr(pin(Num("f"))(jitter.vm, addr)), '\n'
+print repr(Array(MyStruct2.get_type(), 2).pinned(jitter.vm, addr)), '\n'
+print repr(Num("f").pinned(jitter.vm, addr)), '\n'
 print repr(memarray)
 print repr(memsarray)
 print repr(memstr)

@@ -72,7 +72,7 @@ of PinnedType with a custom implementation:
     - PinnedSizedArray: a sized PinnedArray, can be automatically allocated in memory
       and allows more operations than PinnedArray
     - pin: a function that dynamically generates a PinnedStruct subclass from a
-      Type. This class has only one field named "value".
+      Type. This class has only one field named "val".
 
 A PinnedType do not always have a static size (cls.sizeof()) nor a dynamic size
 (self.get_size()).
@@ -171,14 +171,14 @@ def set_str_utf16(vm, addr, s):
 
 def pin(field):
     """Generate a PinnedStruct subclass from a field. The field's value can
-    be accessed through self.value or self.deref_value if field is a Ptr.
+    be accessed through self.val or self.deref_val if field is a Ptr.
 
     @field: a Type instance.
     """
     if field in DYN_MEM_STRUCT_CACHE:
         return DYN_MEM_STRUCT_CACHE[field]
 
-    fields = [("value", field)]
+    fields = [("val", field)]
     # Build a type to contain the field type
     mem_type = type("Pinned%r" % field, (PinnedStruct,), {'fields': fields})
     DYN_MEM_STRUCT_CACHE[field] = mem_type
@@ -316,7 +316,11 @@ class Num(RawStruct):
 
 class Ptr(Num):
     """Special case of number of which value indicates the address of a
-    PinnedType. Provides deref_<field> as well as <field> when used, to set and
+    PinnedType.
+    
+    FIXME: DOC
+
+    Provides deref_<field> as well as <field> when used, to set and
     get the pointed PinnedType.
     """
 
@@ -360,7 +364,7 @@ class Ptr(Num):
             else:
                 raise ValueError("Unsupported usecase for PinnedSelf, sorry")
         if isinstance(self._dst_type, Type):
-            self._dst_type = pin(self._dst_type)
+            self._dst_type = self._dst_type.pinned
 
     @property
     def dst_type(self):
@@ -368,11 +372,28 @@ class Ptr(Num):
         self._fix_dst_type()
         return self._dst_type
 
+    def set(self, vm, addr, val):
+        if isinstance(val, PinnedType) and isinstance(val.get_type(), Ptr):
+            self.set_val(vm, addr, val.val)
+        else:
+            super(Ptr, self).set(vm, addr, val)
+
+    def get(self, vm, addr):
+        return self.pinned(vm, addr)
+
+    def get_val(self, vm, addr):
+        return super(Ptr, self).get(vm, addr)
+
+    def set_val(self, vm, addr, val):
+        return super(Ptr, self).set(vm, addr, val)
+
     def deref_get(self, vm, addr):
         """Deserializes the data in @vm (VmMngr) at @addr to self.dst_type.
         Equivalent to a pointer dereference rvalue in C.
         """
-        return self.dst_type(vm, addr, *self._type_args, **self._type_kwargs)
+        dst_addr = self.get_val(vm, addr)
+        return self.dst_type(vm, dst_addr,
+                             *self._type_args, **self._type_kwargs)
 
     def deref_set(self, vm, addr, val):
         """Serializes the @val PinnedType subclass instance in @vm (VmMngr) at
@@ -384,7 +405,8 @@ class Ptr(Num):
                         self._dst_type.__name__, val.__class__.__name__)
 
         # Actual job
-        vm.set_mem(addr, str(val))
+        dst_addr = self.get_val(vm, addr)
+        vm.set_mem(dst_addr, str(val))
 
     def _get_pinned_base_class(self):
         return PinnedPtr
@@ -403,7 +425,7 @@ class Ptr(Num):
             self._type_args))
 
 
-class Inline(Type):
+class Struct(Type):
     """Field used to inline a PinnedType in another PinnedType. Equivalent to
     having a struct field in a C struct.
 
@@ -424,34 +446,145 @@ class Inline(Type):
     TODO: make the Inline implicit when setting a field to be a PinnedStruct
     """
 
-    def __init__(self, inlined_type, *type_args, **type_kwargs):
-        if not issubclass(inlined_type, PinnedStruct):
-            raise ValueError("inlined type if Inline must be a PinnedStruct")
-        self._il_type = inlined_type
-        self._type_args = type_args
-        self._type_kwargs = type_kwargs
+    def __init__(self, name, fields):
+        self.name = name
+        # fields is immutable
+        self._fields = tuple(fields)
+        self._gen_fields()
+
+    def _gen_fields(self):
+        """Precompute useful metadata on self.fields."""
+        self._fields_desc = {}
+        offset = 0
+        for name, field in self._fields:
+            # For reflexion
+            field._set_self_type(self)
+            self._gen_field(name, field, offset)
+            offset += field.size()
+        self._size = offset
+
+    def _gen_field(self, name, field, offset):
+        """Generate only one field
+
+        @name: (str) the name of the field
+        @field: (Type instance) the field type
+        @offset: (int) the offset of the field in the structure
+        """
+        self._fields_desc[name] = {"field": field, "offset": offset}
+
+    @property
+    def fields(self):
+        return self._fields
 
     def set(self, vm, addr, val):
         raw = str(val)
         vm.set_mem(addr, raw)
 
     def get(self, vm, addr):
-        return self._il_type(vm, addr)
+        return self.pinned(vm, addr)
+
+    def get_field(self, vm, addr, name):
+        """get a field value by name.
+
+        useless most of the time since fields are accessible via self.<name>.
+        """
+        if name not in self._fields_desc:
+            raise ValueError("'%s' type has no field '%s'"
+                             % (self, name))
+        field = self.get_field_type(name)
+        offset = self.get_offset(name)
+        return field.get(vm, addr + offset)
+
+    def set_field(self, vm, addr, name, val):
+        """set a field value by name. @val is the python value corresponding to
+        this field type.
+
+        useless most of the time since fields are accessible via self.<name>.
+        """
+        if name not in self._fields_desc:
+            raise AttributeError("'%s' object has no attribute '%s'"
+                                 % (self.__class__.__name__, name))
+        field = self.get_field_type(name)
+        offset = self.get_offset(name)
+        field.set(vm, addr + offset, val)
 
     def size(self):
-        return self._il_type.sizeof()
+        # Child classes can set self._size if their size is not the sum of
+        # their fields
+        return sum(a["field"].size() for a in self._fields_desc.itervalues())
+
+    def get_offset(self, field_name):
+        """
+        @field_name: (str, optional) the name of the field to get the
+            offset of
+        """
+        if field_name not in self._fields_desc:
+            raise ValueError("This structure has no %s field" % field_name)
+        return self._fields_desc[field_name]['offset']
+
+    def get_field_type(self, name):
+        """return the type subclass instance describing field @name."""
+        # TODO: move it to Struct
+        return self._fields_desc[name]['field']
+
+    #def _build_pinned_type(self):
+    #    mem_type = type("PinnedStruct%s" % self.name,
+    #                    (PinnedStruct,),
+    #                    {'_type': self})
+    #    return mem_type
+
+    def _get_pinned_base_class(self):
+        return PinnedStruct
 
     def __repr__(self):
-        return "%s(%r)" % (self.__class__.__name__, self._il_type)
+        return "Struct%s" % self.name
 
     def __eq__(self, other):
         return self.__class__ == other.__class__ and \
-                self._il_type == other._il_type and \
-                self._type_args == other._type_args and \
-                self._type_kwargs == other._type_kwargs
+                self.fields == other.fields and \
+                self.name == other.name
 
     def __hash__(self):
-        return hash((self.__class__, self._il_type, self._type_args))
+        # Only hash name, not fields, because if a field is a Ptr to this
+        # Struct type, an infinite loop occurs
+        return hash((self.__class__, self.name))
+
+
+class Union(Struct):
+    """Allows to put multiple fields at the same offset in a PinnedStruct, similar
+    to unions in C. The Union will have the size of the largest of its fields.
+
+    Example:
+
+        class Example(PinnedStruct):
+            fields = [("uni", Union([
+                                  ("f1", Num("<B")),
+                                  ("f2", Num("<H"))
+                              ])
+                     )]
+
+        ex = Example(vm, addr)
+        ex.uni.f2 = 0x1234
+        assert ex.uni.f1 == 0x34
+    """
+
+    def __init__(self, field_list):
+        """field_list is a [(name, field)] list, see the class doc"""
+        super(Union, self).__init__("union", field_list)
+
+    def size(self):
+        return max(field.size() for _, field in self.fields)
+
+    def get_offset(self, field_name):
+        return 0
+
+    def _get_pinned_base_class(self):
+        return PinnedUnion
+
+    def __repr__(self):
+        fields_repr = ', '.join("%s: %r" % (name, field)
+                                for name, field in self.fields)
+        return "%s(%s)" % (self.__class__.__name__, fields_repr)
 
 
 class Array(Type):
@@ -527,56 +660,6 @@ class Array(Type):
 
     def __hash__(self):
         return hash((self.__class__, self.field_type, self.array_len))
-
-
-# TODO: PinnedUnion
-class Union(Type):
-    """Allows to put multiple fields at the same offset in a PinnedStruct, similar
-    to unions in C. The Union will have the size of the largest of its fields.
-
-    Example:
-
-        class Example(PinnedStruct):
-            fields = [("uni", Union([
-                                  ("f1", Num("<B")),
-                                  ("f2", Num("<H"))
-                              ])
-                     )]
-
-        ex = Example(vm, addr)
-        ex.f2 = 0x1234
-        assert ex.f1 == 0x34
-        assert ex.uni == '\x34\x12'
-        assert ex.get_addr("f1") == ex.get_addr("f2")
-    """
-
-    def __init__(self, field_list):
-        """field_list is a [(name, field)] list, see the class doc"""
-        self.field_list = field_list
-
-    def size(self):
-        return max(field.size() for _, field in self.field_list)
-
-    def set(self, vm, addr, val):
-        if not isinstance(val, str) or not len(str) == self.size():
-            raise ValueError("Union can only be set with raw str of the Union's"
-                             " size")
-        vm.set_mem(vm, addr, val)
-
-    def get(self, vm, addr):
-        return vm.get_mem(addr, self.size())
-
-    def __repr__(self):
-        fields_repr = ', '.join("%s: %r" % (name, field)
-                                for name, field in self.field_list)
-        return "%s(%s)" % (self.__class__.__name__, fields_repr)
-
-    def __eq__(self, other):
-        return self.__class__ == other.__class__ and \
-                self.field_list == other.field_list
-
-    def __hash__(self):
-        return hash((self.__class__, tuple(self.field_list)))
 
 
 class Bits(Type):
@@ -686,9 +769,6 @@ class BitField(Union):
     def set(self, vm, addr, val):
         self._num.set(vm, addr, val)
 
-    def get(self, vm, addr):
-        return self._num.get(vm, addr)
-
     def __eq__(self, other):
         return self.__class__ == other.__class__ and \
                 self._num == other._num and super(BitField, self).__eq__(other)
@@ -697,9 +777,13 @@ class BitField(Union):
         return hash((super(BitField, self).__hash__(), self._num))
 
 
+# TODO
+class Str(Type):
+    pass
+
 class Void(Type):
     """Represents the C void type."""
-    
+
     def _build_pinned_type(self):
         return PinnedVoid
 
@@ -727,19 +811,20 @@ class _MetaPinnedStruct(_MetaPinnedType):
 
     def __init__(cls, name, bases, dct):
         super(_MetaPinnedStruct, cls).__init__(name, bases, dct)
-        cls.gen_fields()
+        if cls.fields is not None:
+            cls.fields = tuple(cls.fields)
+        if cls.get_type() is not None or cls.fields is not None:
+            cls.gen_fields()
 
 
 class PinnedType(object):
     __metaclass__ = _MetaPinnedType
 
     _size = None
+    _type = None
 
-    # Classic usage methods
-
-    def __init__(self, vm, addr=None, *args, **kwargs):
+    def __init__(self, vm, addr=None, type_=None):
         global ALLOCATOR
-        super(PinnedType, self).__init__(*args, **kwargs)
         self._vm = vm
         if addr is None:
             if ALLOCATOR is None:
@@ -749,6 +834,11 @@ class PinnedType(object):
             self._addr = ALLOCATOR(vm, self.get_size())
         else:
             self._addr = addr
+        if type_ is not None:
+            self._type = type_
+        if self._type is None:
+            raise ValueError("Subclass PinnedType and define cls._type or pass "
+                             "a type to the constructor")
 
     def get_addr(self, field=None):
         """Return the address of this PinnedType or one of its fields.
@@ -759,10 +849,17 @@ class PinnedType(object):
         return self._addr
 
     @classmethod
-    def sizeof(cls):
-        """ABSTRACT Return the static size of this type.
+    def get_type(cls):
+        """Returns the Type instance representing the C type of this PinnedType.
         """
-        raise NotImplementedError("Abstract")
+        return cls._type
+
+    @classmethod
+    def sizeof(cls):
+        """Return the static size of this type. By default, it is the size
+        of the underlying type.
+        """
+        return cls._type.size()
 
     def get_size(self):
         """Return the dynamic size of this structure (e.g. the size of an
@@ -811,15 +908,7 @@ class PinnedType(object):
         return self.raw()
 
     def __repr__(self):
-        attrs = sorted(self._attrs.iteritems(), key=lambda a: a[1]["offset"])
-        out = []
-        for name, attr in attrs:
-            field = attr["field"]
-            val_repr = repr(self.get_field(name))
-            if '\n' in val_repr:
-                val_repr = '\n' + indent(val_repr, 4)
-            out.append("%s: %r = %s" % (name, field, val_repr))
-        return '%r:\n' % self.__class__ + indent('\n'.join(out), 2)
+        return "Pinned%r" % self._type
 
     def __eq__(self, other):
         return self.__class__ == other.__class__ and str(self) == str(other)
@@ -829,15 +918,6 @@ class PinnedType(object):
 
 
 class PinnedValue(PinnedType):
-    _type = None
-
-    def __init__(self, vm, addr=None, type_=None):
-        super(PinnedValue, self).__init__(vm, addr)
-        if type_ is not None:
-            self._type = type_
-        if self._type is None:
-            raise ValueError("Subclass PinnedPtr and define cls._type or pass a"
-                             " Ptr to the constructor")
 
     @property
     def val(self):
@@ -895,16 +975,7 @@ class PinnedStruct(PinnedType):
     See the various Type doc for more information.
     """
     __metaclass__ = _MetaPinnedStruct
-
-    fields = []
-
-    @classmethod
-    def sizeof(cls):
-        # Child classes can set cls._size if their size is not the sum of
-        # their fields
-        if cls._size is None:
-            return sum(a["field"].size() for a in cls._attrs.itervalues())
-        return cls._size
+    fields = None
 
     def get_addr(self, field_name=None):
         """
@@ -912,28 +983,17 @@ class PinnedStruct(PinnedType):
             address of
         """
         if field_name is not None:
-            if field_name not in self._attrs:
-                raise ValueError("This structure has no %s field" % field_name)
-            offset = self._attrs[field_name]['offset']
+            offset = self._type.get_offset(field_name)
         else:
             offset = 0
         return self._addr + offset
-
-    def get_field_type(self, name):
-        """return the type subclass instance describing field @name."""
-        return self._attrs[name]['field']
 
     def get_field(self, name):
         """get a field value by name.
 
         useless most of the time since fields are accessible via self.<name>.
         """
-        if name not in self._attrs:
-            raise attributeerror("'%s' object has no attribute '%s'"
-                                 % (self.__class__.__name__, name))
-        field = self._attrs[name]["field"]
-        offset = self._attrs[name]["offset"]
-        return field.get(self._vm, self.get_addr() + offset)
+        return self._type.get_field(self._vm, self.get_addr(), name)
 
     def set_field(self, name, val):
         """set a field value by name. @val is the python value corresponding to
@@ -941,37 +1001,7 @@ class PinnedStruct(PinnedType):
 
         useless most of the time since fields are accessible via self.<name>.
         """
-        if name not in self._attrs:
-            raise attributeerror("'%s' object has no attribute '%s'"
-                                 % (self.__class__.__name__, name))
-        field = self._attrs[name]["field"]
-        offset = self._attrs[name]["offset"]
-        field.set(self._vm, self.get_addr() + offset, val)
-
-    def deref_field(self, name):
-        """get the memstruct pointed by <name> field.
-
-        useless most of the time since fields are accessible via
-        self.deref_<name>.
-        """
-        addr = self.get_field(name)
-        field = self._attrs[name]["field"]
-        assert isinstance(field, Ptr),\
-               "programming error: field should be a Ptr"
-        return field.deref_get(self._vm, addr)
-
-    def set_deref_field(self, name, val):
-        """set the memstruct pointed by <name> field. @val should be of the
-        type of the pointed memstruct. the field must be a Ptr.
-
-        useless most of the time since fields are accessible via
-        self.deref_<name>.
-        """
-        addr = self.get_field(name)
-        field = self._attrs[name]["field"]
-        assert isinstance(field, Ptr),\
-               "programming error: field should be a Ptr"
-        field.deref_set(self._vm, addr, val)
+        return self._type.set_field(self._vm, self.get_addr(), name, val)
 
     def cast_field(self, field, other_type, *type_args, **type_kwargs):
         """
@@ -981,7 +1011,7 @@ class PinnedStruct(PinnedType):
                           *type_args, **type_kwargs)
 
 
-    # Field generation methods, voluntarily public to be able to regen fields
+    # Field generation methods, voluntarily public to be able to gen fields
     # after class definition
 
     @classmethod
@@ -1006,56 +1036,59 @@ class PinnedStruct(PinnedType):
             class B(PinnedStruct):
                 fields = [("a", Ptr("I", A))]
 
-            A.fields = [("b", Ptr("I", B))]
-            a.gen_field()
+            A.gen_fields([("b", Ptr("I", B))])
         """
-        if fields is None:
-            fields = cls.fields
-        cls._attrs = {}
-        offset = 0
-        for name, field in cls.fields:
-            # For reflexion
-            field._set_self_type(cls)
-            cls.gen_field(name, field, offset)
-            offset += field.size()
-        cls._size = offset
+        if fields is not None:
+            if cls.fields is not None:
+                raise ValueError("Cannot regen fields of a class. Setting "
+                                 "cls.fields at class definition and calling "
+                                 "gen_fields are mutually exclusive.")
+            cls.fields = fields
+
+        if cls._type is None:
+            if cls.fields is None:
+                raise ValueError("Cannot create a PinnedStruct subclass without"
+                                 " a cls._type or a cls.fields")
+            cls._type = cls._gen_type(cls.fields)
+
+        if cls._type in DYN_MEM_STRUCT_CACHE:
+            # FIXME: Maybe a warning would be better?
+            raise RuntimeError("Another PinnedType has the same type as this "
+                               "one. Use it instead.")
+
+        # Register this class so that another one will not be created when
+        # calling cls._type.pinned
+        DYN_MEM_STRUCT_CACHE[cls._type] = cls
+
+        cls._gen_attributes()
 
     @classmethod
-    def gen_field(cls, name, field, offset):
-        """Generate only one field
-
-        @name: (str) the name of the field
-        @field: (Type instance) the field type
-        @offset: (int) the offset of the field in the structure
-        """
-        cls._gen_simple_attr(name, field, offset)
-        if isinstance(field, Union):
-            cls._gen_union_attr(field, offset)
-
-    @classmethod
-    def _gen_simple_attr(cls, name, field, offset):
-        cls._attrs[name] = {"field": field, "offset": offset}
-
-        # Generate self.<name> getter and setter
-        setattr(cls, name, property(
-            lambda self: self.get_field(name),
-            lambda self, val: self.set_field(name, val)
-        ))
-
-        # Generate self.deref_<name> getter and setter if this field is a
-        # Ptr
-        if isinstance(field, Ptr):
-            setattr(cls, "deref_%s" % name, property(
-                lambda self: self.deref_field(name),
-                lambda self, val: self.set_deref_field(name, val)
+    def _gen_attributes(cls):
+        # Generate self.<name> getter and setters
+        for name, field in cls._type.fields:
+            setattr(cls, name, property(
+                lambda self, name=name: self.get_field(name),
+                lambda self, val, name=name: self.set_field(name, val)
             ))
 
     @classmethod
-    def _gen_union_attr(cls, union_field, offset):
-        if not isinstance(union_field, Union):
-            raise ValueError("field should be an Union instance")
-        for name, field in union_field.field_list:
-            cls.gen_field(name, field, offset)
+    def _gen_type(cls, fields):
+        return Struct(cls.__name__, fields)
+
+    def __repr__(self):
+        out = []
+        for name, field in self._type.fields:
+            val_repr = repr(self.get_field(name))
+            if '\n' in val_repr:
+                val_repr = '\n' + indent(val_repr, 4)
+            out.append("%s: %r = %s" % (name, field, val_repr))
+        return '%r:\n' % self.__class__ + indent('\n'.join(out), 2)
+
+
+class PinnedUnion(PinnedStruct):
+    @classmethod
+    def _gen_type(cls, fields):
+        return Union(fields)
 
 
 class PinnedSelf(PinnedStruct):
@@ -1069,18 +1102,29 @@ class PinnedSelf(PinnedStruct):
                 ("data", Ptr("<I", PinnedVoid)),
             ]
     """
-    pass
+    def __repr__(self):
+        return self.__class__.__name__
 
 
 class PinnedVoid(PinnedType):
     """Placeholder for e.g. Ptr to an undetermined type. Useful mostly when
     casted to another type. Allows to implement C's "void*" pattern.
     """
+    _type = Void()
+
     def __repr__(self):
         return self.__class__.__name__
 
 
 class PinnedPtr(PinnedValue):
+
+    @property
+    def val(self):
+        return self._type.get_val(self._vm, self._addr)
+
+    @val.setter
+    def val(self, value):
+        return self._type.set_val(self._vm, self._addr, value)
 
     @property
     def deref(self):
@@ -1089,6 +1133,10 @@ class PinnedPtr(PinnedValue):
     @deref.setter
     def deref(self, val):
         return self._type.deref_set(self._vm, self._addr, val)
+
+    def __repr__(self):
+        return "*%s" % hex(self.val)
+
 
 
 # This does not use _MetaPinnedStruct features, impl is custom for strings,
@@ -1101,7 +1149,7 @@ class PinnedStr(PinnedType):
     that the utf16 implementation is a bit buggy...
 
     The string value can be got or set (with python str/unicode) through the
-    self.value attribute. String encoding/decoding is handled by the class.
+    self.val attribute. String encoding/decoding is handled by the class.
 
     This type is dynamically sized only (get_size is implemented, not sizeof).
     """
@@ -1109,11 +1157,12 @@ class PinnedStr(PinnedType):
         # TODO: encoding as lambda
         if encoding not in ["ansi", "utf16"]:
             raise NotImplementedError("Only 'ansi' and 'utf16' are implemented")
-        super(PinnedStr, self).__init__(vm, addr)
+        # FIXME: Str type
+        super(PinnedStr, self).__init__(vm, addr, Str())
         self._enc = encoding
 
     @property
-    def value(self):
+    def val(self):
         """Set the string value in memory"""
         if self._enc == "ansi":
             get_str = get_str_ansi
@@ -1123,8 +1172,8 @@ class PinnedStr(PinnedType):
             raise NotImplementedError("Only 'ansi' and 'utf16' are implemented")
         return get_str(self._vm, self.get_addr())
 
-    @value.setter
-    def value(self, s):
+    @val.setter
+    def val(self, s):
         """Get the string value from memory"""
         if self._enc == "ansi":
             set_str = set_str_ansi
@@ -1139,7 +1188,7 @@ class PinnedStr(PinnedType):
         underneath to determine the size, it may therefore read a lot of memory
         and provoke mem faults (analogous to strlen).
         """
-        val = self.value
+        val = self.val
         if self._enc == "ansi":
             return len(val) + 1
         elif self._enc == "utf16":
@@ -1153,7 +1202,7 @@ class PinnedStr(PinnedType):
         return raw
 
     def __repr__(self):
-        return "%r(%s): %r" % (self.__class__, self._enc, self.value)
+        return "%r(%s): %r" % (self.__class__, self._enc, self.val)
 
 
 class PinnedArray(PinnedType):
@@ -1166,9 +1215,6 @@ class PinnedArray(PinnedType):
         array[2] = 5
         array[4:8] = [0, 1, 2, 3]
         print array[20]
-
-    If the @field_type is a Ptr, deref_get(index) and deref_set(index) can be
-    used to dereference a field at a given index in the array.
 
     mem_array_type can be used to generate a type that includes the field_type.
     Such a generated type can be instanciated with only vm and addr, as are
@@ -1183,7 +1229,9 @@ class PinnedArray(PinnedType):
             raise NotImplementedError(
                 "Provide field_type to instanciate this class, "
                 "or generate a subclass with mem_array_type.")
-        super(PinnedArray, self).__init__(vm, addr)
+        # FIXME: use underlying Array type
+        super(PinnedArray, self).__init__(vm, addr,
+                                          Array(self._field_type, None))
 
     @property
     def field_type(self):
@@ -1226,12 +1274,6 @@ class PinnedArray(PinnedType):
         else:
             return self._field_type.get(self._vm, self.index2addr(idx))
 
-    def deref_get(self, idx):
-        """If self.field_type is a Ptr, return the PinnedType self[idx] points
-        to.
-        """
-        return self._field_type.deref_get(self._vm, self[idx])
-
     def __setitem__(self, idx, item):
         if isinstance(idx, slice):
             idx = self._normalize_slice(idx)
@@ -1242,12 +1284,6 @@ class PinnedArray(PinnedType):
                 self._field_type.set(self._vm, self.index2addr(i), val)
         else:
             self._field_type.set(self._vm, self.index2addr(idx), item)
-
-    def deref_set(self, idx, item):
-        """If self.field_type is a Ptr, set the PinnedType self[idx] points
-        to with @item.
-        """
-        self._field_type.deref_set(self._vm, self[idx], item)
 
     # just a shorthand
     def as_mem_str(self, encoding="ansi"):

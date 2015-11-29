@@ -36,15 +36,15 @@ class ListNode(PinnedStruct):
     ]
 
     def get_next(self):
-        if self.next == 0:
+        if self.next.val == 0:
             return None
-        return self.deref_next
+        return self.next.deref
 
     def get_data(self, data_type=None):
         if data_type is not None:
-            return self.deref_data.cast(data_type)
+            return self.data.deref.cast(data_type)
         else:
-            return self.deref_data
+            return self.data.deref
 
 
 class LinkedList(PinnedStruct):
@@ -60,12 +60,12 @@ class LinkedList(PinnedStruct):
         """Returns the head ListNode instance"""
         if self.head == 0:
             return None
-        return self.deref_head
+        return self.head.deref
 
     def get_tail(self):
         if self.tail == 0:
             return None
-        return self.deref_tail
+        return self.tail.deref
 
     def push(self, data):
         # Allocate a new node
@@ -112,7 +112,7 @@ class LinkedList(PinnedStruct):
         if not self.empty():
             cur = self.get_head()
             while cur is not None:
-                yield cur.deref_data
+                yield cur.data.deref
                 cur = cur.get_next()
 
 
@@ -123,9 +123,9 @@ class DataArray(PinnedStruct):
         ("val1", Num("B")),
         ("val2", Num("B")),
         # Ptr can also be instanciated with a PinnedField as an argument, a special
-        # PinnedStruct containing only one field named "value" will be created, so
+        # PinnedStruct containing only one field named "val" will be created, so
         # that Ptr can point to a PinnedStruct instance. Here,
-        # data_array.deref_array.value will allow to access an Array
+        # data_array.array.deref.val will allow to access an Array
         ("arrayptr", Ptr("<I", PinnedSizedArray, Num("B"), 16)),
         # Array of 10 uint8
         ("array", Array(Num("B"), 16)),
@@ -163,7 +163,8 @@ link.push(DataArray(vm))
 # Size has been updated
 assert link.size == 3
 # If you get it directly from the VM, it is updated as well
-raw_size = vm.get_mem(link.get_addr("size"), link.get_field_type("size").size())
+raw_size = vm.get_mem(link.get_addr("size"), link.get_type()
+                                                 .get_field_type("size").size())
 assert raw_size == '\x03\x00\x00\x00'
 
 print "The linked list just built:"
@@ -182,7 +183,7 @@ assert link.size == 2
 # Make the Array Ptr point to the data's array field
 data.arrayptr = data.get_addr("array")
 # Now the pointer dereference is equal to the array field's value
-assert data.deref_arrayptr == data.array
+assert data.arrayptr.deref == data.array
 
 # Let's say that it is a DataStr:
 datastr = data.cast(DataStr)
@@ -201,9 +202,9 @@ datastr.valshort = 0x1122
 assert data.val1 == 0x22 and data.val2 == 0x11
 
 # Let's play with strings
-memstr = datastr.deref_data
+memstr = datastr.data.deref
 # Note that memstr is PinnedStr(..., "utf16")
-memstr.value = 'Miams'
+memstr.val = 'Miams'
 
 print "Cast data.array to PinnedStr and set the string value:"
 print repr(memstr)
@@ -216,7 +217,7 @@ assert list(data.array)[:len(raw_miams_array)] == raw_miams_array
 assert data.array.cast(PinnedStr, "utf16") == memstr
 # Default is "ansi"
 assert data.array.cast(PinnedStr) != memstr
-assert data.array.cast(PinnedStr, "utf16").value == memstr.value
+assert data.array.cast(PinnedStr, "utf16").val == memstr.val
 
 print "See that the original array has been modified:"
 print repr(data)
