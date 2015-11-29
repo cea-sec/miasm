@@ -7,9 +7,9 @@ import struct
 from miasm2.analysis.machine import Machine
 from miasm2.analysis.mem import PinnedStruct, Num, Ptr, PinnedStr, PinnedArray,\
                                 PinnedSizedArray, Array, mem_array_type,\
-                                mem_sized_array_type, RawStruct, pin,\
-                                Union, BitField, PinnedSelf, PinnedVoid, Bits, \
-                                set_allocator, PinnedUnion, Struct
+                                RawStruct, Union, BitField, PinnedSelf, \
+                                PinnedVoid, Bits, set_allocator, PinnedUnion, \
+                                Struct
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm2.os_dep.common import heap
 
@@ -198,8 +198,8 @@ except ValueError:
 # PinnedSizedArray tests
 memsarray = PinnedSizedArray(jitter.vm, None, Num("I"), 10)
 # This also works:
-_memsarray = mem_sized_array_type(Num("I"), 10)(jitter.vm)
-# And mem_sized_array_type generates statically sized types
+_memsarray = Array(Num("I"), 10).pinned(jitter.vm)
+# And Array(type, size).pinned generates statically sized types
 assert _memsarray.sizeof() == len(memsarray)
 memsarray.memset('\xcc')
 assert memsarray[0] == 0xcccccccc

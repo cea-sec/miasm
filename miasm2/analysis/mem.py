@@ -71,8 +71,6 @@ of PinnedType with a custom implementation:
       in C. It cannot be allocated automatically, since it has no known size
     - PinnedSizedArray: a sized PinnedArray, can be automatically allocated in memory
       and allows more operations than PinnedArray
-    - pin: a function that dynamically generates a PinnedStruct subclass from a
-      Type. This class has only one field named "val".
 
 A PinnedType do not always have a static size (cls.sizeof()) nor a dynamic size
 (self.get_size()).
@@ -167,28 +165,10 @@ def set_str_utf16(vm, addr, s):
     vm.set_mem(addr, s)
 
 
-# Type to PinnedType helper
-
-def pin(field):
-    """Generate a PinnedStruct subclass from a field. The field's value can
-    be accessed through self.val or self.deref_val if field is a Ptr.
-
-    @field: a Type instance.
-    """
-    if field in DYN_MEM_STRUCT_CACHE:
-        return DYN_MEM_STRUCT_CACHE[field]
-
-    fields = [("val", field)]
-    # Build a type to contain the field type
-    mem_type = type("Pinned%r" % field, (PinnedStruct,), {'fields': fields})
-    DYN_MEM_STRUCT_CACHE[field] = mem_type
-    return mem_type
-
-
 # Type classes
 
 class Type(object):
-    """Base class to provide methods to set and get fields from virtual pin.
+    """Base class to provide methods to set and get fields from virtual mem.
 
     Subclasses can either override _pack and _unpack, or get and set if data
     serialization requires more work (see Inline implementation for an example).
@@ -330,7 +310,7 @@ class Ptr(Num):
             in memory
         @dst_type: (PinnedType or Type) the PinnedType this Ptr points to.
             If a Type is given, it is transformed into a PinnedType with
-            pin(TheType).
+            TheType.pinned.
         *type_args, **type_kwargs: arguments to pass to the the pointed
             PinnedType when instanciating it (e.g. for PinnedStr encoding or
             PinnedArray field_type).
@@ -348,10 +328,10 @@ class Ptr(Num):
             dst_type._get_self_type = lambda: self._get_self_type()
             # dst_type cannot be patched here, since _get_self_type of the outer
             # class has not yet been set. Patching dst_type involves calling
-            # pin(dst_type), which will only return a type that does not point
+            # dst_type.pinned, which will only return a type that does not point
             # on PinnedSelf but on the right class only when _get_self_type of the
             # outer class has been replaced by _MetaPinnedStruct.
-            # In short, dst_type = pin(dst_type) is not valid here, it is done
+            # In short, dst_type = dst_type.pinned is not valid here, it is done
             # lazily in _fix_dst_type
         self._dst_type = dst_type
         self._type_args = type_args
@@ -1307,8 +1287,8 @@ class PinnedSizedArray(PinnedArray):
     """A fixed size PinnedArray. Its additional arg represents the @array_len (in
     number of elements) of this array.
 
-    This type is dynamically sized. Use mem_sized_array_type to generate a
-    fixed @field_type and @array_len array which has a static size.
+    This type is dynamically sized. Generate a fixed @field_type and @array_len
+    array which has a static size by using Array(type, size).pinned.
     """
     _array_len = None
 
@@ -1321,7 +1301,7 @@ class PinnedSizedArray(PinnedArray):
         if self._array_len is None or self._field_type is None:
             raise NotImplementedError(
                 "Provide field_type and array_len to instanciate this class, "
-                "or generate a subclass with mem_sized_array_type.")
+                "or generate a subclass with Array(type, size).pinned.")
 
     @property
     def array_len(self):
@@ -1330,7 +1310,7 @@ class PinnedSizedArray(PinnedArray):
 
     def sizeof(cls):
         raise ValueError("PinnedSizedArray is not statically sized. Use "
-                         "mem_sized_array_type to generate a type that is.")
+                         "Array(type, size).pinned to generate a type that is.")
 
     def get_size(self):
         return self._array_len * self._field_type.size()
@@ -1381,28 +1361,6 @@ def mem_array_type(field_type):
     array_type = type('PinnedArray_%r' % (field_type,),
                       (PinnedArray,),
                       {'_field_type': field_type})
-    DYN_MEM_STRUCT_CACHE[cache_key] = array_type
-    return array_type
-
-
-def mem_sized_array_type(field_type, array_len):
-    """Generate a PinnedSizedArray subclass that has a fixed @field_type and a
-    fixed @array_len. This allows to instanciate the returned type with only
-    the vm and addr arguments, as are standard PinnedTypes.
-    """
-    cache_key = (field_type, array_len)
-    if cache_key in DYN_MEM_STRUCT_CACHE:
-        return DYN_MEM_STRUCT_CACHE[cache_key]
-
-    @classmethod
-    def sizeof(cls):
-        return cls._field_type.size() * cls._array_len
-
-    array_type = type('PinnedSizedArray_%r_%s' % (field_type, array_len),
-                      (PinnedSizedArray,),
-                      {'_array_len': array_len,
-                       '_field_type': field_type,
-                       'sizeof': sizeof})
     DYN_MEM_STRUCT_CACHE[cache_key] = array_type
     return array_type
 
