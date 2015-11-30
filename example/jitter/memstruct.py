@@ -6,14 +6,14 @@ as well.
 """
 
 from miasm2.analysis.machine import Machine
-from miasm2.analysis.mem import PinnedStruct, Self, Void, Str, Array, Ptr, \
+from miasm2.analysis.mem import MemStruct, Self, Void, Str, Array, Ptr, \
                                 Num, Array, set_allocator
 from miasm2.os_dep.common import heap
 
 # Instanciate a heap
 my_heap = heap()
 # And set it as the default memory allocator, to avoid manual allocation and
-# explicit address passing to the PinnedType subclasses (like PinnedStruct)
+# explicit address passing to the MemType subclasses (like MemStruct)
 # constructor
 set_allocator(my_heap.vm_alloc)
 
@@ -22,7 +22,7 @@ set_allocator(my_heap.vm_alloc)
 # All the structures and methods will use the python objects but all the data
 # is in fact stored in the VmMngr
 
-class ListNode(PinnedStruct):
+class ListNode(MemStruct):
     fields = [
         # The "<I" is the struct-like format of the pointer in memory, in this
         # case a Little Endian 32 bits unsigned int.
@@ -48,10 +48,10 @@ class ListNode(PinnedStruct):
             return self.data.deref
 
 
-class LinkedList(PinnedStruct):
+class LinkedList(MemStruct):
     fields = [
         # For convenience, either a Type instance (like Self() or Num("I") or a
-        # PinnedStruct subclass can be passed to the Ptr constructor.
+        # MemStruct subclass can be passed to the Ptr constructor.
         ("head", Ptr("<I", ListNode)),
         ("tail", Ptr("<I", ListNode)),
         # Num can take any one-field struct-like format, including floats and
@@ -72,7 +72,7 @@ class LinkedList(PinnedStruct):
         return self.tail.deref
 
     def push(self, data):
-        """Push a data (PinnedType instance) to the linked list."""
+        """Push a data (MemType instance) to the linked list."""
         # Allocate a new node
         node = ListNode(self._vm)
 
@@ -125,19 +125,19 @@ class LinkedList(PinnedStruct):
 
 # Some data types to put in the LinkedList and play with:
 
-class DataArray(PinnedStruct):
+class DataArray(MemStruct):
     fields = [
         ("val1", Num("B")),
         ("val2", Num("B")),
         # Ptr can also be instanciated with a Type instance as an argument, the
-        # corresponding Pinnedtype will be returned when dereferencing
+        # corresponding Memtype will be returned when dereferencing
         # Here, data_array.array.deref will allow to access an Array
         ("arrayptr", Ptr("<I", Array(Num("B"), 16))),
         # Array of 10 uint8
         ("array", Array(Num("B"), 16)),
     ]
 
-class DataStr(PinnedStruct):
+class DataStr(MemStruct):
     fields = [
         ("valshort", Num("<H")),
         # Pointer to an utf16 null terminated string
@@ -179,7 +179,7 @@ print repr(link), '\n'
 
 print "Its uninitialized data elements:"
 for data in link:
-    # __iter__ returns PinnedVoids here, just cast them to the real data type
+    # __iter__ returns MemVoids here, just cast them to the real data type
     real_data = data.cast(DataArray)
     print repr(real_data)
 print
@@ -212,7 +212,7 @@ memstr = datastr.data.deref
 # Note that memstr is Str("utf16")
 memstr.val = 'Miams'
 
-print "Cast data.array to PinnedStr and set the string value:"
+print "Cast data.array to MemStr and set the string value:"
 print repr(memstr)
 print
 

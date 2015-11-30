@@ -5,20 +5,20 @@
 import struct
 
 from miasm2.analysis.machine import Machine
-from miasm2.analysis.mem import PinnedStruct, Num, Ptr, Str, \
+from miasm2.analysis.mem import MemStruct, Num, Ptr, Str, \
                                 Array, RawStruct, Union, \
                                 BitField, Self, Void, Bits, \
-                                set_allocator, PinnedUnion, Struct
+                                set_allocator, MemUnion, Struct
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm2.os_dep.common import heap
 
 # Two structures with some fields
-class OtherStruct(PinnedStruct):
+class OtherStruct(MemStruct):
     fields = [
         ("foo", Num("H")),
     ]
 
-class MyStruct(PinnedStruct):
+class MyStruct(MemStruct):
     fields = [
         # Number field: just struct.pack fields with one value
         ("num", Num("I")),
@@ -43,7 +43,7 @@ addr_str3 = 0x1300
 jitter.vm.add_memory_page(addr, PAGE_READ | PAGE_WRITE, "\xaa"*size)
 
 
-# PinnedStruct tests
+# MemStruct tests
 ## Creation
 # Use manual allocation with explicit addr for the first example
 mstruct = MyStruct(jitter.vm, addr)
@@ -57,7 +57,7 @@ assert mstruct.num == 3
 memval = struct.unpack("I", jitter.vm.get_mem(mstruct.get_addr(), 4))[0]
 assert memval == 3
 
-## Pinnedset sets the whole structure
+## Memset sets the whole structure
 mstruct.memset()
 assert mstruct.num == 0
 assert mstruct.flags == 0
@@ -105,7 +105,7 @@ assert other2.foo == 0xbeef
 assert other.get_addr() != other2.get_addr() # Not the same address
 assert other == other2 # But same value
 
-## Same stuff for Ptr to PinnedField
+## Same stuff for Ptr to MemField
 alloc_addr = my_heap.vm_alloc(jitter.vm,
                               mstruct.get_type().get_field_type("i")
                                      .dst_type.sizeof())
@@ -148,7 +148,7 @@ memstr3 = Str("utf16").pinned(jitter.vm, addr_str3)
 memstr3.val = "That's all folks!"
 assert memstr3.get_addr() != memstr.get_addr()
 assert memstr3.get_size() != memstr.get_size() # Size is different
-assert str(memstr3) != str(memstr) # Pinned representation is different
+assert str(memstr3) != str(memstr) # Mem representation is different
 assert memstr3 != memstr # Encoding is different, so they are not eq
 assert memstr3.val == memstr.val # But the python value is the same
 
@@ -204,7 +204,7 @@ assert str(memsarray) == '\x02\x00\x00\x00' + '\xcc' * (4 * 9)
 
 
 # Atypical fields (RawStruct and Array)
-class MyStruct2(PinnedStruct):
+class MyStruct2(MemStruct):
     fields = [
         ("s1", RawStruct("=BI")),
         ("s2", Array(Num("B"), 10)),
@@ -236,7 +236,7 @@ ms2.s2 = [1] * 10
 for val in ms2.s2:
     assert val == 1
 
-### Field assignment (PinnedSizedArray)
+### Field assignment (MemSizedArray)
 array2 = Array(Num("B"), 10).pinned(jitter.vm)
 jitter.vm.set_mem(array2.get_addr(), '\x02'*10)
 for val in array2:
@@ -246,14 +246,14 @@ for val in ms2.s2:
     assert val == 2
 
 
-# Inlining a PinnedType tests
-class InStruct(PinnedStruct):
+# Inlining a MemType tests
+class InStruct(MemStruct):
     fields = [
         ("foo", Num("B")),
         ("bar", Num("B")),
     ]
 
-class ContStruct(PinnedStruct):
+class ContStruct(MemStruct):
     fields = [
         ("one", Num("B")),
         ("instruct", InStruct.get_type()),
@@ -286,7 +286,7 @@ assert jitter.vm.get_mem(cont.get_addr(), len(cont)) == '\x01\x02\x03\x04'
 
 
 # Union test
-class UniStruct(PinnedStruct):
+class UniStruct(MemStruct):
     fields = [
         ("one", Num("B")),
         ("union", Union([
@@ -312,7 +312,7 @@ assert uni.union.instruct.bar == 0x22
 
 
 # BitField test
-class BitStruct(PinnedUnion):
+class BitStruct(MemUnion):
     fields = [
         ("flags_num", Num("H")),
         ("flags", BitField(Num("H"), [
@@ -346,7 +346,7 @@ assert bit.flags.f4_1 == 1
 
 
 # Unhealthy ideas
-class UnhealthyIdeas(PinnedStruct):
+class UnhealthyIdeas(MemStruct):
     fields = [
         ("pastruct", Ptr("I", Array(RawStruct("=Bf")))),
         ("apstr", Array(Ptr("I", Str()), 10)),
@@ -387,10 +387,10 @@ assert ideas.pppself.deref.deref.deref == ideas
 
 
 # Circular dependencies
-class A(PinnedStruct):
+class A(MemStruct):
     pass
 
-class B(PinnedStruct):
+class B(MemStruct):
     fields = [("a", Ptr("I", A)),]
 
 # Gen A's fields after declaration
@@ -405,30 +405,30 @@ assert b.a.deref == a
 
 
 # Cast tests
-# PinnedStruct cast
-PinnedInt = Num("I").pinned
-PinnedShort = Num("H").pinned
-dword = PinnedInt(jitter.vm)
+# MemStruct cast
+MemInt = Num("I").pinned
+MemShort = Num("H").pinned
+dword = MemInt(jitter.vm)
 dword.val = 0x12345678
-assert isinstance(dword.cast(PinnedShort), PinnedShort)
-assert dword.cast(PinnedShort).val == 0x5678
+assert isinstance(dword.cast(MemShort), MemShort)
+assert dword.cast(MemShort).val == 0x5678
 
 # Field cast
 ms2.s2[0] = 0x34
 ms2.s2[1] = 0x12
-assert ms2.cast_field("s2", PinnedShort).val == 0x1234
+assert ms2.cast_field("s2", MemShort).val == 0x1234
 
 # Other method
-assert PinnedShort(jitter.vm, ms2.get_addr("s2")).val == 0x1234
+assert MemShort(jitter.vm, ms2.get_addr("s2")).val == 0x1234
 
 # Manual cast inside an Array
 ms2.s2[4] = 0xcd
 ms2.s2[5] = 0xab
-assert PinnedShort(jitter.vm, ms2.s2.get_addr(4)).val == 0xabcd
+assert MemShort(jitter.vm, ms2.s2.get_addr(4)).val == 0xabcd
 
 # void* style cast
-PinnedPtrVoid = Ptr("I", Void()).pinned
-p = PinnedPtrVoid(jitter.vm)
+MemPtrVoid = Ptr("I", Void()).pinned
+p = MemPtrVoid(jitter.vm)
 p.val = mstruct.get_addr()
 assert p.deref.cast(MyStruct) == mstruct
 assert p.cast(Ptr("I", MyStruct)).deref == mstruct
@@ -474,7 +474,7 @@ assert BitField(Num("B"), [("f1", 1), ("f2", 4), ("f3", 1)]) != \
         BitField(Num("B"), [("f1", 2), ("f2", 4), ("f3", 1)])
 
 
-# Quick PinnedField.pinned/PinnedField hash test
+# Quick MemField.pinned/MemField hash test
 assert Num("f").pinned(jitter.vm, addr) == Num("f").pinned(jitter.vm, addr)
 # Types are cached
 assert Num("f").pinned == Num("f").pinned
