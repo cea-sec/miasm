@@ -426,11 +426,10 @@ assert PinnedShort(jitter.vm, ms2.s2.get_addr(4)).val == 0xabcd
 
 # void* style cast
 PinnedPtrVoid = Ptr("I", Void()).pinned
-PinnedPtrMyStruct = Ptr("I", MyStruct).pinned
 p = PinnedPtrVoid(jitter.vm)
 p.val = mstruct.get_addr()
 assert p.deref.cast(MyStruct) == mstruct
-assert p.cast(PinnedPtrMyStruct).deref == mstruct
+assert p.cast(Ptr("I", MyStruct)).deref == mstruct
 
 # Field equality tests
 assert RawStruct("IH") == RawStruct("IH")

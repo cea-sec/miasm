@@ -946,11 +946,16 @@ class PinnedType(object):
             raise ValueError("byte must be a 1-lengthed str")
         self._vm.set_mem(self.get_addr(), byte * self.get_size())
 
-    def cast(self, other_type, *type_args, **type_kwargs):
-        """Cast this PinnedType to another PinnedType (same address, same vm, but
-        different type). Return the casted PinnedType.
+    def cast(self, other_type):
+        """Cast this PinnedType to another PinnedType (same address, same vm,
+        but different type). Return the casted PinnedType.
+
+        @other_type: either a Type instance (other_type.pinned is used) or a
+            PinnedType subclass
         """
-        return other_type(self._vm, self.get_addr(), *type_args, **type_kwargs)
+        if isinstance(other_type, Type):
+            other_type = other_type.pinned
+        return other_type(self._vm, self.get_addr())
 
     def cast_field(self, field, other_type, *type_args, **type_kwargs):
         """ABSTRACT: Same as cast, but the address of the returned PinnedType
@@ -958,6 +963,8 @@ class PinnedType(object):
 
         @field: field specification, for example its name for a struct, or an
             index in an array. See the subclass doc.
+        @other_type: either a Type instance (other_type.pinned is used) or a
+            PinnedType subclass
         """
         raise NotImplementedError("Abstract")
 
@@ -1074,12 +1081,13 @@ class PinnedStruct(PinnedType):
         """
         return self._type.set_field(self._vm, self.get_addr(), name, val)
 
-    def cast_field(self, field, other_type, *type_args, **type_kwargs):
+    def cast_field(self, field, other_type):
         """
         @field: a field name
         """
-        return other_type(self._vm, self.get_addr(field),
-                          *type_args, **type_kwargs)
+        if isinstance(other_type, Type):
+            other_type = other_type.pinned
+        return other_type(self._vm, self.get_addr(field))
 
 
     # Field generation methods, voluntarily public to be able to gen fields
@@ -1276,10 +1284,6 @@ class PinnedArray(PinnedType):
 
     def __setitem__(self, idx, item):
         self.get_type().set_item(self._vm, self._addr, idx, item)
-
-    # just a shorthand
-    def as_mem_str(self, encoding="ansi"):
-        return self.cast(Str(encoding).pinned)
 
     def raw(self):
         raise ValueError("%s is unsized, which prevents from getting its full "

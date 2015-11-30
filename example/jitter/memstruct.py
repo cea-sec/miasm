@@ -214,10 +214,10 @@ print
 raw_miams = '\x00'.join('Miams') + '\x00'*3
 raw_miams_array = [ord(c) for c in raw_miams]
 assert list(data.array)[:len(raw_miams_array)] == raw_miams_array
-assert data.array.cast(Str("utf16").pinned) == memstr
+assert data.array.cast(Str("utf16")) == memstr
 # Default is "ansi"
-assert data.array.cast(Str().pinned) != memstr
-assert data.array.cast(Str("utf16").pinned).val == memstr.val
+assert data.array.cast(Str()) != memstr
+assert data.array.cast(Str("utf16")).val == memstr.val
 
 print "See that the original array has been modified:"
 print repr(data)
