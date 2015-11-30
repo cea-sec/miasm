@@ -208,7 +208,6 @@ class Type(object):
         interact with this type in memory.
         @return: a PinnedType subclass.
         """
-        # FIXME: PinnedStruct field changes
         if self in DYN_MEM_STRUCT_CACHE:
             return DYN_MEM_STRUCT_CACHE[self]
         pinned_type = self._build_pinned_type()
@@ -796,9 +795,53 @@ class BitField(Union):
         return hash((super(BitField, self).__hash__(), self._num))
 
 
-# TODO
 class Str(Type):
-    pass
+    def __init__(self, encoding="ansi"):
+        # TODO: encoding as lambda
+        if encoding not in ["ansi", "utf16"]:
+            raise NotImplementedError("Only 'ansi' and 'utf16' are implemented")
+        self._enc = encoding
+
+    def get(self, vm, addr):
+        """Set the string value in memory"""
+        if self._enc == "ansi":
+            get_str = get_str_ansi
+        elif self._enc == "utf16":
+            get_str = get_str_utf16
+        else:
+            raise NotImplementedError("Only 'ansi' and 'utf16' are implemented")
+        return get_str(vm, addr)
+
+    def set(self, vm, addr, s):
+        """Get the string value from memory"""
+        if self._enc == "ansi":
+            set_str = set_str_ansi
+        elif self._enc == "utf16":
+            set_str = set_str_utf16
+        else:
+            raise NotImplementedError("Only 'ansi' and 'utf16' are implemented")
+        set_str(vm, addr, s)
+
+    def size(self):
+        """This type is unsized."""
+        raise ValueError("Str is unsized")
+
+    @property
+    def enc(self):
+        return self._enc
+
+    def _get_pinned_base_class(self):
+        return PinnedStr
+
+    def __repr__(self):
+        return "%s(%s)" % (self.__class__.__name__, self.enc)
+
+    def __eq__(self, other):
+        return self.__class__ == other.__class__ and self._enc == other._enc
+
+    def __hash__(self):
+        return hash((self.__class__, self._enc))
+
 
 class Void(Type):
     """Represents the C void type."""
@@ -811,6 +854,10 @@ class Void(Type):
 
     def __hash__(self):
         return hash(self.__class__)
+
+class Self(Void):
+    def _build_pinned_type(self):
+        return PinnedSelf
 
 
 # PinnedType classes
@@ -946,7 +993,10 @@ class PinnedValue(PinnedType):
 
     @val.setter
     def val(self, value):
-        return self._type.set(self._vm, self._addr, value)
+        self._type.set(self._vm, self._addr, value)
+
+    def __repr__(self):
+        return "%r: %r" % (self.__class__, self.val)
 
 
 class PinnedStruct(PinnedType):
@@ -1138,7 +1188,6 @@ class PinnedVoid(PinnedType):
 
 
 class PinnedPtr(PinnedValue):
-
     @property
     def val(self):
         return self._type.get_val(self._vm, self._addr)
@@ -1159,10 +1208,9 @@ class PinnedPtr(PinnedValue):
         return "*%s" % hex(self.val)
 
 
-
 # This does not use _MetaPinnedStruct features, impl is custom for strings,
 # because they are unsized. The only memory field is self.value.
-class PinnedStr(PinnedType):
+class PinnedStr(PinnedValue):
     """Implements a string representation in memory.
 
     The @encoding is passed to the constructor, and is currently either null
@@ -1174,35 +1222,6 @@ class PinnedStr(PinnedType):
 
     This type is dynamically sized only (get_size is implemented, not sizeof).
     """
-    def __init__(self, vm, addr, encoding="ansi"):
-        # TODO: encoding as lambda
-        if encoding not in ["ansi", "utf16"]:
-            raise NotImplementedError("Only 'ansi' and 'utf16' are implemented")
-        # FIXME: Str type
-        super(PinnedStr, self).__init__(vm, addr, Str())
-        self._enc = encoding
-
-    @property
-    def val(self):
-        """Set the string value in memory"""
-        if self._enc == "ansi":
-            get_str = get_str_ansi
-        elif self._enc == "utf16":
-            get_str = get_str_utf16
-        else:
-            raise NotImplementedError("Only 'ansi' and 'utf16' are implemented")
-        return get_str(self._vm, self.get_addr())
-
-    @val.setter
-    def val(self, s):
-        """Get the string value from memory"""
-        if self._enc == "ansi":
-            set_str = set_str_ansi
-        elif self._enc == "utf16":
-            set_str = set_str_utf16
-        else:
-            raise NotImplementedError("Only 'ansi' and 'utf16' are implemented")
-        set_str(self._vm, self.get_addr(), s)
 
     def get_size(self):
         """This get_size implementation is quite unsafe: it reads the string
@@ -1210,9 +1229,9 @@ class PinnedStr(PinnedType):
         and provoke mem faults (analogous to strlen).
         """
         val = self.val
-        if self._enc == "ansi":
+        if self.get_type().enc == "ansi":
             return len(val) + 1
-        elif self._enc == "utf16":
+        elif self.get_type().enc == "utf16":
             # FIXME: real encoding...
             return len(val) * 2 + 2
         else:
@@ -1223,7 +1242,7 @@ class PinnedStr(PinnedType):
         return raw
 
     def __repr__(self):
-        return "%r(%s): %r" % (self.__class__, self._enc, self.val)
+        return "%r: %r" % (self.__class__, self.val)
 
 
 class PinnedArray(PinnedType):
@@ -1260,7 +1279,7 @@ class PinnedArray(PinnedType):
 
     # just a shorthand
     def as_mem_str(self, encoding="ansi"):
-        return self.cast(PinnedStr, encoding)
+        return self.cast(Str(encoding).pinned)
 
     def raw(self):
         raise ValueError("%s is unsized, which prevents from getting its full "

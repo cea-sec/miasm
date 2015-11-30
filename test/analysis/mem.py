@@ -5,9 +5,9 @@
 import struct
 
 from miasm2.analysis.machine import Machine
-from miasm2.analysis.mem import PinnedStruct, Num, Ptr, PinnedStr, PinnedArray,\
-                                PinnedSizedArray, Array, RawStruct, Union, \
-                                BitField, PinnedSelf, PinnedVoid, Bits, \
+from miasm2.analysis.mem import PinnedStruct, Num, Ptr, Str, \
+                                Array, RawStruct, Union, \
+                                BitField, Self, Void, Bits, \
                                 set_allocator, PinnedUnion, Struct
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm2.os_dep.common import heap
@@ -26,7 +26,7 @@ class MyStruct(PinnedStruct):
         # TODO: comment
         ("other", Ptr("I", OtherStruct)),
         # Ptr to a variable length String
-        ("s", Ptr("I", PinnedStr)),
+        ("s", Ptr("I", Str())),
         ("i", Ptr("I", Num("I"))),
     ]
 
@@ -117,7 +117,7 @@ assert memval == 8
 
 # Str tests
 ## Basic tests
-memstr = PinnedStr(jitter.vm, addr_str)
+memstr = Str().pinned(jitter.vm, addr_str)
 memstr.val = ""
 assert memstr.val == ""
 assert jitter.vm.get_mem(memstr.get_addr(), 1) == '\x00'
@@ -126,7 +126,7 @@ assert jitter.vm.get_mem(memstr.get_addr(), memstr.get_size()) == 'lala\x00'
 jitter.vm.set_mem(memstr.get_addr(), 'MIAMs\x00')
 assert memstr.val == 'MIAMs'
 
-## Ptr(PinnedStr) manipulations
+## Ptr(Str()) manipulations
 mstruct.s.val = memstr.get_addr()
 assert mstruct.s.val == addr_str
 assert mstruct.s.deref == memstr
@@ -136,13 +136,13 @@ assert mstruct.s.deref.val == "That's all folks!"
 assert memstr.val == "That's all folks!"
 
 ## Other address, same value, same encoding
-memstr2 = PinnedStr(jitter.vm, addr_str2)
+memstr2 = Str().pinned(jitter.vm, addr_str2)
 memstr2.val = "That's all folks!"
 assert memstr2.get_addr() != memstr.get_addr()
 assert memstr2 == memstr
 
 ## Same value, other encoding
-memstr3 = PinnedStr(jitter.vm, addr_str3, "utf16")
+memstr3 = Str("utf16").pinned(jitter.vm, addr_str3)
 memstr3.val = "That's all folks!"
 assert memstr3.get_addr() != memstr.get_addr()
 assert memstr3.get_size() != memstr.get_size() # Size is different
@@ -151,7 +151,7 @@ assert memstr3 != memstr # Encoding is different, so they are not eq
 assert memstr3.val == memstr.val # But the python value is the same
 
 
-# PinnedArray tests
+# Array tests
 # Allocate buffer manually, since memarray is unsized
 alloc_addr = my_heap.vm_alloc(jitter.vm, 0x100)
 memarray = Array(Num("I")).pinned(jitter.vm, alloc_addr)
@@ -346,15 +346,15 @@ assert bit.flags.f4_1 == 1
 # Unhealthy ideas
 class UnhealthyIdeas(PinnedStruct):
     fields = [
-        ("pastruct", Ptr("I", PinnedArray, RawStruct("=Bf"))),
-        ("apstr", Array(Ptr("I", PinnedStr), 10)),
-        ("pself", Ptr("I", PinnedSelf)),
-        ("apself", Array(Ptr("I", PinnedSelf), 2)),
-        ("ppself", Ptr("I", Ptr("I", PinnedSelf))),
-        ("pppself", Ptr("I", Ptr("I", Ptr("I", PinnedSelf)))),
+        ("pastruct", Ptr("I", Array(RawStruct("=Bf")))),
+        ("apstr", Array(Ptr("I", Str()), 10)),
+        ("pself", Ptr("I", Self())),
+        ("apself", Array(Ptr("I", Self()), 2)),
+        ("ppself", Ptr("I", Ptr("I", Self()))),
+        ("pppself", Ptr("I", Ptr("I", Ptr("I", Self())))),
     ]
 
-p_size = Ptr("I", PinnedVoid).size()
+p_size = Ptr("I", Void()).size()
 
 ideas = UnhealthyIdeas(jitter.vm)
 ideas.memset()
@@ -425,7 +425,7 @@ ms2.s2[5] = 0xab
 assert PinnedShort(jitter.vm, ms2.s2.get_addr(4)).val == 0xabcd
 
 # void* style cast
-PinnedPtrVoid = Ptr("I", PinnedVoid).pinned
+PinnedPtrVoid = Ptr("I", Void()).pinned
 PinnedPtrMyStruct = Ptr("I", MyStruct).pinned
 p = PinnedPtrVoid(jitter.vm)
 p.val = mstruct.get_addr()

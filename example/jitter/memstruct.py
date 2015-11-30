@@ -6,8 +6,8 @@ as well.
 """
 
 from miasm2.analysis.machine import Machine
-from miasm2.analysis.mem import PinnedStruct, PinnedSelf, PinnedVoid, PinnedStr,\
-                                PinnedSizedArray, Ptr, Num, Array, set_allocator
+from miasm2.analysis.mem import PinnedStruct, Self, Void, Str, Array, Ptr, \
+                                Num, Array, set_allocator
 from miasm2.os_dep.common import heap
 
 # Instanciate a heap
@@ -29,10 +29,10 @@ class ListNode(PinnedStruct):
         # special marker PinnedSelf.
         # You could also set or modify ListNode.fields after the class
         # declaration and call ListNode.gen_fields()
-        ("next", Ptr("<I", PinnedSelf)),
+        ("next", Ptr("<I", Self())),
         # Ptr(_, PinnedVoid) is analogous to void*, PinnedVoid is just an empty
         # PinnedStruct type
-        ("data", Ptr("<I", PinnedVoid)),
+        ("data", Ptr("<I", Void())),
     ]
 
     def get_next(self):
@@ -135,7 +135,7 @@ class DataStr(PinnedStruct):
     fields = [
         ("valshort", Num("H")),
         # Pointer to an utf16 null terminated string
-        ("data", Ptr("<I", PinnedStr, "utf16")),
+        ("data", Ptr("<I", Str("utf16"))),
     ]
 
 
@@ -152,7 +152,7 @@ vm = jitter.vm
 # Auto-allocated by my_heap. If you allocate memory at `addr`,
 # `link = LinkedList(vm, addr)` will use this allocation.
 link = LinkedList(vm)
-# Pinnedset the struct (with '\x00' by default)
+# memset the struct (with '\x00' by default)
 link.memset()
 
 # Push three uninitialized structures
@@ -203,7 +203,7 @@ assert data.val1 == 0x22 and data.val2 == 0x11
 
 # Let's play with strings
 memstr = datastr.data.deref
-# Note that memstr is PinnedStr(..., "utf16")
+# Note that memstr is Str("utf16")
 memstr.val = 'Miams'
 
 print "Cast data.array to PinnedStr and set the string value:"
@@ -214,10 +214,10 @@ print
 raw_miams = '\x00'.join('Miams') + '\x00'*3
 raw_miams_array = [ord(c) for c in raw_miams]
 assert list(data.array)[:len(raw_miams_array)] == raw_miams_array
-assert data.array.cast(PinnedStr, "utf16") == memstr
+assert data.array.cast(Str("utf16").pinned) == memstr
 # Default is "ansi"
-assert data.array.cast(PinnedStr) != memstr
-assert data.array.cast(PinnedStr, "utf16").val == memstr.val
+assert data.array.cast(Str().pinned) != memstr
+assert data.array.cast(Str("utf16").pinned).val == memstr.val
 
 print "See that the original array has been modified:"
 print repr(data)
