@@ -23,7 +23,9 @@ class MyStruct(PinnedStruct):
         # Number field: just struct.pack fields with one value
         ("num", Num("I")),
         ("flags", Num("B")),
-        # TODO: comment
+        # This field is a pointer to another struct, it has a numeric
+        # value (mystruct.other.val) and can be dereferenced to get an
+        # OtherStruct instance (mystruct.other.deref)
         ("other", Ptr("I", OtherStruct)),
         # Ptr to a variable length String
         ("s", Ptr("I", Str())),

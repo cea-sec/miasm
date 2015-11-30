@@ -13,10 +13,11 @@ from miasm2.os_dep.common import heap
 # Instanciate a heap
 my_heap = heap()
 # And set it as the default memory allocator, to avoid manual allocation and
-# explicit address passing to the PinnedStruct constructor
+# explicit address passing to the PinnedType subclasses (like PinnedStruct)
+# constructor
 set_allocator(my_heap.vm_alloc)
 
-# Let's reimplement a simple C generic linked list mapped on a VmMngr!
+# Let's reimplement a simple C generic linked list mapped on a VmMngr.
 
 # All the structures and methods will use the python objects but all the data
 # is in fact stored in the VmMngr
@@ -24,14 +25,14 @@ set_allocator(my_heap.vm_alloc)
 class ListNode(PinnedStruct):
     fields = [
         # The "<I" is the struct-like format of the pointer in memory, in this
-        # case a Little Endian 32 bits unsigned int
+        # case a Little Endian 32 bits unsigned int.
         # One way to handle reference to ListNode in ListNode is to use the
-        # special marker PinnedSelf.
-        # You could also set or modify ListNode.fields after the class
-        # declaration and call ListNode.gen_fields()
+        # special marker Self().
+        # You could also generate ListNode's fields with ListNode.gen_field
+        # after the class declaration, so that the ListNode is defined when
+        # fields are generated.
         ("next", Ptr("<I", Self())),
-        # Ptr(_, PinnedVoid) is analogous to void*, PinnedVoid is just an empty
-        # PinnedStruct type
+        # Ptr(_, Void()) is analogous to void*, Void() is a kind of "empty type"
         ("data", Ptr("<I", Void())),
     ]
 
@@ -49,6 +50,8 @@ class ListNode(PinnedStruct):
 
 class LinkedList(PinnedStruct):
     fields = [
+        # For convenience, either a Type instance (like Self() or Num("I") or a
+        # PinnedStruct subclass can be passed to the Ptr constructor.
         ("head", Ptr("<I", ListNode)),
         ("tail", Ptr("<I", ListNode)),
         # Num can take any one-field struct-like format, including floats and
@@ -63,11 +66,13 @@ class LinkedList(PinnedStruct):
         return self.head.deref
 
     def get_tail(self):
+        """Returns the tail ListNode instance"""
         if self.tail == 0:
             return None
         return self.tail.deref
 
     def push(self, data):
+        """Push a data (PinnedType instance) to the linked list."""
         # Allocate a new node
         node = ListNode(self._vm)
 
@@ -90,6 +95,7 @@ class LinkedList(PinnedStruct):
         self.size += 1
 
     def pop(self, data_type=None):
+        """Pop one data from the LinkedList."""
         # Nothing to pop
         if self.head == 0:
             return None
@@ -106,6 +112,7 @@ class LinkedList(PinnedStruct):
         return node.get_data(data_type)
 
     def empty(self):
+        """True if the list is empty."""
         return self.head == 0
 
     def __iter__(self):
@@ -122,10 +129,9 @@ class DataArray(PinnedStruct):
     fields = [
         ("val1", Num("B")),
         ("val2", Num("B")),
-        # Ptr can also be instanciated with a PinnedField as an argument, a special
-        # PinnedStruct containing only one field named "val" will be created, so
-        # that Ptr can point to a PinnedStruct instance. Here,
-        # data_array.array.deref.val will allow to access an Array
+        # Ptr can also be instanciated with a Type instance as an argument, the
+        # corresponding Pinnedtype will be returned when dereferencing
+        # Here, data_array.array.deref will allow to access an Array
         ("arrayptr", Ptr("<I", Array(Num("B"), 16))),
         # Array of 10 uint8
         ("array", Array(Num("B"), 16)),
@@ -133,7 +139,7 @@ class DataArray(PinnedStruct):
 
 class DataStr(PinnedStruct):
     fields = [
-        ("valshort", Num("H")),
+        ("valshort", Num("<H")),
         # Pointer to an utf16 null terminated string
         ("data", Ptr("<I", Str("utf16"))),
     ]
@@ -150,7 +156,8 @@ jitter = Machine("x86_32").jitter("python")
 vm = jitter.vm
 
 # Auto-allocated by my_heap. If you allocate memory at `addr`,
-# `link = LinkedList(vm, addr)` will use this allocation.
+# `link = LinkedList(vm, addr)` will use this allocation. If you just want
+# to read/modify existing struct, you may want to use the (vm, addr) syntax.
 link = LinkedList(vm)
 # memset the struct (with '\x00' by default)
 link.memset()
@@ -181,6 +188,7 @@ print
 data = link.pop(DataArray)
 assert link.size == 2
 # Make the Array Ptr point to the data's array field
+# Note: this is equivalent to data.arrayptr.val = ...
 data.arrayptr = data.get_addr("array")
 # Now the pointer dereference is equal to the array field's value
 assert data.arrayptr.deref == data.array
@@ -193,10 +201,8 @@ print repr(datastr)
 print
 
 # data and datastr really share the same memory:
-# Set these fields for later
 data.val1 = 0x34
 data.val2 = 0x12
-
 assert datastr.valshort == 0x1234
 datastr.valshort = 0x1122
 assert data.val1 == 0x22 and data.val2 == 0x11
