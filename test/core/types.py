@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 
-# miasm2.analysis.mem tests
+# miasm2.core.types tests
 
 import struct
 
 from miasm2.analysis.machine import Machine
-from miasm2.analysis.mem import MemStruct, Num, Ptr, Str, \
-                                Array, RawStruct, Union, \
-                                BitField, Self, Void, Bits, \
-                                set_allocator, MemUnion, Struct
+from miasm2.core.types import MemStruct, Num, Ptr, Str, \
+                              Array, RawStruct, Union, \
+                              BitField, Self, Void, Bits, \
+                              set_allocator, MemUnion, Struct
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm2.os_dep.common import heap
 

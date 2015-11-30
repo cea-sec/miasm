@@ -1,13 +1,13 @@
 #!/usr/bin/env python
-"""This script is just a short example of common usages for miasm2.analysis.mem.
-For a more complete view of what is possible, tests/analysis/mem.py covers
+"""This script is just a short example of common usages for miasm2.core.types.
+For a more complete view of what is possible, tests/core/types.py covers
 most of the module possibilities, and the module doc gives useful information
 as well.
 """
 
 from miasm2.analysis.machine import Machine
-from miasm2.analysis.mem import MemStruct, Self, Void, Str, Array, Ptr, \
-                                Num, Array, set_allocator
+from miasm2.core.types import MemStruct, Self, Void, Str, Array, Ptr, \
+                              Num, Array, set_allocator
 from miasm2.os_dep.common import heap
 
 # Instanciate a heap
@@ -145,7 +145,7 @@ class DataStr(MemStruct):
     ]
 
 
-print "This script demonstrates a LinkedList implementation using the mem "
+print "This script demonstrates a LinkedList implementation using the types "
 print "module in the first part, and how to play with some casts in the second."
 print
 
@@ -229,6 +229,6 @@ print "See that the original array has been modified:"
 print repr(data)
 print
 
-print "See test/analysis/mem.py and the miasm2.analysis.mem module doc for "
+print "See test/core/types.py and the miasm2.core.types module doc for "
 print "more information."
 

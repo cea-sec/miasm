@@ -191,6 +191,7 @@ for script in ["interval.py",
                "parse_asm.py",
                "utils.py",
                "sembuilder.py",
+               "types.py",
                ]:
     testset += RegressionTest([script], base_dir="core")
 ## Expression
@@ -237,8 +238,6 @@ testset += RegressionTest(["depgraph.py"], base_dir="analysis",
                                                         (12, 1), (13, 1),
                                                         (14, 1), (15, 1)))
                            for fname in fnames])
-
-testset += RegressionTest(["mem.py"], base_dir="analysis")
 
 # Examples
 class Example(Test):
@@ -483,6 +482,8 @@ for script, dep in [(["x86_32.py", Example.get_sample("x86_32_sc.bin")], []),
         tags = [TAGS["llvm"]] if jitter == "llvm" else []
         testset += ExampleJitter(script + ["--jitter", jitter], depends=dep,
                                  tags=tags)
+
+testset += ExampleJitter(["types.py"])
 
 
 if __name__ == "__main__":
