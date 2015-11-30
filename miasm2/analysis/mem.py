@@ -507,12 +507,6 @@ class Struct(Type):
         # TODO: move it to Struct
         return self._fields_desc[name]['field']
 
-    #def _build_pinned_type(self):
-    #    mem_type = type("PinnedStruct%s" % self.name,
-    #                    (PinnedStruct,),
-    #                    {'_type': self})
-    #    return mem_type
-
     def _get_pinned_base_class(self):
         return PinnedStruct
 
@@ -583,7 +577,7 @@ class Array(Type):
         mystruct.array = PinnedSizedArray(vm, addr2, Num("B"), 4)
     """
 
-    def __init__(self, field_type, array_len):
+    def __init__(self, field_type, array_len=None):
         self.field_type = field_type
         self.array_len = array_len
 
@@ -613,22 +607,67 @@ class Array(Type):
                 "Assignment only implemented for list and PinnedSizedArray")
 
     def get(self, vm, addr):
-        return PinnedSizedArray(vm, addr, self.field_type, self.array_len)
+        return self.pinned(vm, addr)
 
     def size(self):
-        return self.field_type.size() * self.array_len
+        if self.is_sized():
+            return self.get_offset(self.array_len)
+        else:
+            raise ValueError("%s is unsized, use an array with a fixed "
+                             "array_len instead." % self)
 
-    def _build_pinned_type(self):
-        @classmethod
-        def sizeof(cls):
-            return cls._field_type.size() * cls._array_len
+    def get_offset(self, idx):
+        return self.field_type.size() * idx
 
-        pinned_type = type('Pinned%r' % self,
-                           (PinnedSizedArray,),
-                           {'_array_len': self.array_len,
-                            '_field_type': self.field_type,
-                            'sizeof': sizeof})
-        return pinned_type
+    def get_item(self, vm, addr, idx):
+        """idx can be a slice"""
+        if isinstance(idx, slice):
+            res = []
+            idx = self._normalize_slice(idx)
+            for i in xrange(idx.start, idx.stop, idx.step):
+                res.append(self.field_type.get(vm, addr + self.get_offset(i)))
+            return res
+        else:
+            return self.field_type.get(vm, addr + self.get_offset(idx))
+
+    def set_item(self, vm, addr, idx, item):
+        if isinstance(idx, slice):
+            idx = self._normalize_slice(idx)
+            if len(item) != len(xrange(idx.start, idx.stop, idx.step)):
+                raise ValueError("Mismatched lengths in slice assignment")
+            # TODO: izip
+            for i, val in zip(xrange(idx.start, idx.stop, idx.step), item):
+                self.field_type.set(vm, addr + self.get_offset(i), val)
+        else:
+            self.field_type.set(vm, addr + self.get_offset(idx), item)
+
+    def is_sized(self):
+        return self.array_len is not None
+
+    def _normalize_idx(self, idx):
+        # Noop for this type
+        if self.is_sized() and idx < 0:
+            return self.get_size() - idx
+        return idx
+
+    def _normalize_slice(self, slice_):
+        start = slice_.start if slice_.start is not None else 0
+        stop = slice_.stop if slice_.stop is not None else self.get_size()
+        step = slice_.step if slice_.step is not None else 1
+        return slice(start, stop, step)
+
+    def _check_bounds(self, idx):
+        idx = self._normalize_idx(idx)
+        if not isinstance(idx, (int, long)):
+            raise ValueError("index must be an int or a long")
+        if idx < 0 or (self.is_sized() and idx >= self.size()):
+            raise IndexError("Index %s out of bounds" % idx)
+
+    def _get_pinned_base_class(self):
+        if self.is_sized():
+            return PinnedSizedArray
+        else:
+            return PinnedArray
 
     def __repr__(self):
         return "%r[%s]" % (self.field_type, self.array_len)
@@ -891,7 +930,9 @@ class PinnedType(object):
         return "Pinned%r" % self._type
 
     def __eq__(self, other):
-        return self.__class__ == other.__class__ and str(self) == str(other)
+        return self.__class__ == other.__class__ and \
+                self.get_type() == other.get_type() and \
+                str(self) == str(other)
 
     def __ne__(self, other):
         return not self == other
@@ -1200,79 +1241,26 @@ class PinnedArray(PinnedType):
     Such a generated type can be instanciated with only vm and addr, as are
     other PinnedTypes.
     """
-    _field_type = None
-
-    def __init__(self, vm, addr=None, field_type=None):
-        if self._field_type is None:
-            self._field_type = field_type
-        if self._field_type is None:
-            raise NotImplementedError(
-                "Provide field_type to instanciate this class, "
-                "or generate a subclass with mem_array_type.")
-        # FIXME: use underlying Array type
-        super(PinnedArray, self).__init__(vm, addr,
-                                          Array(self._field_type, None))
 
     @property
     def field_type(self):
         """Return the Type subclass instance that represents the type of
         this PinnedArray items.
         """
-        return self._field_type
+        return self.get_type().field_type
 
-    def _normalize_idx(self, idx):
-        # Noop for this type
-        return idx
-
-    def _normalize_slice(self, slice_):
-        start = slice_.start if slice_.start is not None else 0
-        stop = slice_.stop if slice_.stop is not None else self.get_size()
-        step = slice_.step if slice_.step is not None else 1
-        return slice(start, stop, step)
-
-    def _check_bounds(self, idx):
-        idx = self._normalize_idx(idx)
-        if not isinstance(idx, (int, long)):
-            raise ValueError("index must be an int or a long")
-        if idx < 0:
-            raise IndexError("Index %s out of bounds" % idx)
-
-    def index2addr(self, idx):
-        """Return the address corresponding to a given @index in this PinnedArray.
-        """
-        self._check_bounds(idx)
-        addr = self.get_addr() + idx * self._field_type.size()
-        return addr
+    def get_addr(self, idx=0):
+        return self._addr + self.get_type().get_offset(idx)
 
     def __getitem__(self, idx):
-        if isinstance(idx, slice):
-            res = []
-            idx = self._normalize_slice(idx)
-            for i in xrange(idx.start, idx.stop, idx.step):
-                res.append(self._field_type.get(self._vm, self.index2addr(i)))
-            return res
-        else:
-            return self._field_type.get(self._vm, self.index2addr(idx))
+        return self.get_type().get_item(self._vm, self._addr, idx)
 
     def __setitem__(self, idx, item):
-        if isinstance(idx, slice):
-            idx = self._normalize_slice(idx)
-            if len(item) != len(xrange(idx.start, idx.stop, idx.step)):
-                raise ValueError("Mismatched lengths in slice assignment")
-            # TODO: izip
-            for i, val in zip(xrange(idx.start, idx.stop, idx.step), item):
-                self._field_type.set(self._vm, self.index2addr(i), val)
-        else:
-            self._field_type.set(self._vm, self.index2addr(idx), item)
+        self.get_type().set_item(self._vm, self._addr, idx, item)
 
     # just a shorthand
     def as_mem_str(self, encoding="ansi"):
         return self.cast(PinnedStr, encoding)
-
-    @classmethod
-    def sizeof(cls):
-        raise ValueError("%s is unsized, it has no static size (sizeof). "
-                         "Use PinnedSizedArray instead." % cls)
 
     def raw(self):
         raise ValueError("%s is unsized, which prevents from getting its full "
@@ -1280,7 +1268,7 @@ class PinnedArray(PinnedType):
                          self.__class__)
 
     def __repr__(self):
-        return "[%r, ...] [%r]" % (self[0], self._field_type)
+        return "[%r, ...] [%r]" % (self[0], self.field_type)
 
 
 class PinnedSizedArray(PinnedArray):
@@ -1290,44 +1278,17 @@ class PinnedSizedArray(PinnedArray):
     This type is dynamically sized. Generate a fixed @field_type and @array_len
     array which has a static size by using Array(type, size).pinned.
     """
-    _array_len = None
-
-    def __init__(self, vm, addr=None, field_type=None, array_len=None):
-        # Set the length before anything else to allow get_size() to work for
-        # allocation
-        if self._array_len is None:
-            self._array_len = array_len
-        super(PinnedSizedArray, self).__init__(vm, addr, field_type)
-        if self._array_len is None or self._field_type is None:
-            raise NotImplementedError(
-                "Provide field_type and array_len to instanciate this class, "
-                "or generate a subclass with Array(type, size).pinned.")
 
     @property
     def array_len(self):
         """The length, in number of elements, of this array."""
-        return self._array_len
-
-    def sizeof(cls):
-        raise ValueError("PinnedSizedArray is not statically sized. Use "
-                         "Array(type, size).pinned to generate a type that is.")
+        return self.get_type().array_len
 
     def get_size(self):
-        return self._array_len * self._field_type.size()
-
-    def _normalize_idx(self, idx):
-        if idx < 0:
-            return self.get_size() - idx
-        return idx
-
-    def _check_bounds(self, idx):
-        if not isinstance(idx, int) and not isinstance(idx, long):
-            raise ValueError("index must be an int or a long")
-        if idx < 0 or idx >= self.get_size():
-            raise IndexError("Index %s out of bounds" % idx)
+        return self.get_type().size()
 
     def __iter__(self):
-        for i in xrange(self._array_len):
+        for i in xrange(self.get_type().array_len):
             yield self[i]
 
     def raw(self):
@@ -1335,32 +1296,9 @@ class PinnedSizedArray(PinnedArray):
 
     def __repr__(self):
         item_reprs = [repr(item) for item in self]
-        if self._array_len > 0 and '\n' in item_reprs[0]:
+        if self.array_len > 0 and '\n' in item_reprs[0]:
             items = '\n' + indent(',\n'.join(item_reprs), 2) + '\n'
         else:
             items = ', '.join(item_reprs)
-        return "[%s] [%r; %s]" % (items, self._field_type, self._array_len)
-
-    def __eq__(self, other):
-        # Special implementation to handle dynamic subclasses
-        return isinstance(other, PinnedSizedArray) and \
-                self._field_type == other._field_type and \
-                self._array_len == other._array_len and \
-                str(self) == str(other)
-
-
-def mem_array_type(field_type):
-    """Generate a PinnedArray subclass that has a fixed @field_type. It allows to
-    instanciate this class with only vm and addr argument, as are standard
-    PinnedTypes.
-    """
-    cache_key = (field_type, None)
-    if cache_key in DYN_MEM_STRUCT_CACHE:
-        return DYN_MEM_STRUCT_CACHE[cache_key]
-
-    array_type = type('PinnedArray_%r' % (field_type,),
-                      (PinnedArray,),
-                      {'_field_type': field_type})
-    DYN_MEM_STRUCT_CACHE[cache_key] = array_type
-    return array_type
+        return "[%s] [%r; %s]" % (items, self.field_type, self.array_len)
 

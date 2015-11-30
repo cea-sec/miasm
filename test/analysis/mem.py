@@ -6,10 +6,9 @@ import struct
 
 from miasm2.analysis.machine import Machine
 from miasm2.analysis.mem import PinnedStruct, Num, Ptr, PinnedStr, PinnedArray,\
-                                PinnedSizedArray, Array, mem_array_type,\
-                                RawStruct, Union, BitField, PinnedSelf, \
-                                PinnedVoid, Bits, set_allocator, PinnedUnion, \
-                                Struct
+                                PinnedSizedArray, Array, RawStruct, Union, \
+                                BitField, PinnedSelf, PinnedVoid, Bits, \
+                                set_allocator, PinnedUnion, Struct
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm2.os_dep.common import heap
 
@@ -155,9 +154,7 @@ assert memstr3.val == memstr.val # But the python value is the same
 # PinnedArray tests
 # Allocate buffer manually, since memarray is unsized
 alloc_addr = my_heap.vm_alloc(jitter.vm, 0x100)
-memarray = PinnedArray(jitter.vm, alloc_addr, Num("I"))
-# This also works:
-_memarray = mem_array_type(Num("I"))(jitter.vm, alloc_addr)
+memarray = Array(Num("I")).pinned(jitter.vm, alloc_addr)
 memarray[0] = 0x02
 assert memarray[0] == 0x02
 assert jitter.vm.get_mem(memarray.get_addr(),
@@ -188,19 +185,10 @@ try:
 except ValueError:
     pass
 
-try:
-    memarray[1, 2]
-    assert False, "Should raise, mismatched sizes"
-except ValueError:
-    pass
 
-
-# PinnedSizedArray tests
-memsarray = PinnedSizedArray(jitter.vm, None, Num("I"), 10)
-# This also works:
-_memsarray = Array(Num("I"), 10).pinned(jitter.vm)
+memsarray = Array(Num("I"), 10).pinned(jitter.vm)
 # And Array(type, size).pinned generates statically sized types
-assert _memsarray.sizeof() == len(memsarray)
+assert memsarray.sizeof() == Num("I").size() * 10
 memsarray.memset('\xcc')
 assert memsarray[0] == 0xcccccccc
 assert len(memsarray) == 10 * 4
@@ -247,7 +235,7 @@ for val in ms2.s2:
     assert val == 1
 
 ### Field assignment (PinnedSizedArray)
-array2 = PinnedSizedArray(jitter.vm, None, Num("B"), 10)
+array2 = Array(Num("B"), 10).pinned(jitter.vm)
 jitter.vm.set_mem(array2.get_addr(), '\x02'*10)
 for val in array2:
     assert val == 2
@@ -434,7 +422,7 @@ assert PinnedShort(jitter.vm, ms2.get_addr("s2")).val == 0x1234
 # Manual cast inside an Array
 ms2.s2[4] = 0xcd
 ms2.s2[5] = 0xab
-assert PinnedShort(jitter.vm, ms2.s2.index2addr(4)).val == 0xabcd
+assert PinnedShort(jitter.vm, ms2.s2.get_addr(4)).val == 0xabcd
 
 # void* style cast
 PinnedPtrVoid = Ptr("I", PinnedVoid).pinned
@@ -492,8 +480,8 @@ assert Num("f").pinned == Num("f").pinned
 assert Num("d").pinned != Num("f").pinned
 assert Union([("f1", Num("I")), ("f2", Num("H"))]).pinned == \
         Union([("f1", Num("I")), ("f2", Num("H"))]).pinned
-assert mem_array_type(Num("B")) == mem_array_type(Num("B"))
-assert mem_array_type(Num("I")) != mem_array_type(Num("B"))
+assert Array(Num("B")).pinned == Array(Num("B")).pinned
+assert Array(Num("I")).pinned != Array(Num("B")).pinned
 assert Array(Num("B"), 20).pinned == Array(Num("B"), 20).pinned
 assert Array(Num("B"), 19).pinned != Array(Num("B"), 20).pinned
 

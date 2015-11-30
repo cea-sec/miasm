@@ -126,7 +126,7 @@ class DataArray(PinnedStruct):
         # PinnedStruct containing only one field named "val" will be created, so
         # that Ptr can point to a PinnedStruct instance. Here,
         # data_array.array.deref.val will allow to access an Array
-        ("arrayptr", Ptr("<I", PinnedSizedArray, Num("B"), 16)),
+        ("arrayptr", Ptr("<I", Array(Num("B"), 16))),
         # Array of 10 uint8
         ("array", Array(Num("B"), 16)),
     ]
