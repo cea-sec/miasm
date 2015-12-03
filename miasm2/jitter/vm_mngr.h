@@ -49,7 +49,6 @@
 
 
 
-LIST_HEAD(memory_page_list_head, memory_page_node);
 LIST_HEAD(code_bloc_list_head, code_bloc_node);
 LIST_HEAD(memory_breakpoint_info_head, memory_breakpoint_info);
 
@@ -71,18 +70,15 @@ struct memory_page_node {
 	uint64_t size;
 	uint64_t access;
 	void* ad_hp;
-	LIST_ENTRY(memory_page_node)   next;
 };
 
 
 
 typedef struct {
 	int sex;
-	//struct memory_page_list_head memory_page_pool;
 	struct code_bloc_list_head code_bloc_pool;
 	struct memory_breakpoint_info_head memory_breakpoint_pool;
 
-	//struct memory_page_node *memory_page_pool_tab[MAX_MEMORY_PAGE_POOL_TAB];
 	int memory_pages_number;
 	struct memory_page_node* memory_pages_array;
 
@@ -186,11 +182,6 @@ int shift_right_arith(unsigned int size, int a, unsigned int b);
 
 uint64_t shift_right_logic(uint64_t size, uint64_t a, uint64_t b);
 uint64_t shift_left_logic(uint64_t size, uint64_t a, uint64_t b);
-/*
-int shift_left_logic_08(unsigned int a, unsigned int b);
-int shift_left_logic_16(unsigned int a, unsigned int b);
-int shift_left_logic_32(unsigned int a, unsigned int b);
-*/
 unsigned int mul_lo_op(unsigned int size, unsigned int a, unsigned int b);
 unsigned int mul_hi_op(unsigned int size, unsigned int a, unsigned int b);
 unsigned int imul_lo_op_08(char a, char b);
@@ -264,21 +255,6 @@ unsigned int rcl_rez_op(unsigned int size, unsigned int a, unsigned int b, unsig
 	    }
 
 
-//PyObject* _vm_push_uint32_t(PyObject *item);
-//PyObject* _vm_pop_uint32_t(void);
-////PyObject* _vm_put_str(PyObject *item);
-//PyObject* _vm_set_mem(PyObject *item, PyObject *item_str);
-//PyObject* _vm_set_mem_access(PyObject *addr, PyObject *access);
-//PyObject* _vm_get_str(PyObject *item, PyObject *item_len);
-//PyObject* _vm_add_memory_page(PyObject *item, PyObject *access, PyObject *item_str);
-//PyObject* _vm_add_code_bloc(PyObject *item1, PyObject *item2);//, PyObject *item3);
-//PyObject* _call_pyfunc_from_globals(char* funcname);
-//PyObject* _call_pyfunc_from_eip(void);
-//
-//PyObject* call_pyfunc_from_globals(char* funcname);
-//
-//PyObject* _vm_get_gpreg(void);
-
 void hexdump(char* m, unsigned int l);
 
 struct code_bloc_node * create_code_bloc_node(uint64_t ad_start, uint64_t ad_stop);
@@ -305,20 +281,12 @@ void check_write_code_bloc(vm_mngr_t* vm_mngr, uint64_t my_size, uint64_t addr);
 
 char* dump(vm_mngr_t* vm_mngr);
 void dump_memory_breakpoint_pool(vm_mngr_t* vm_mngr);
-//PyObject* _vm_get_all_memory(void);
 PyObject* addr2BlocObj(vm_mngr_t* vm_mngr, uint64_t addr);
 
 
 
 
 /********************************************/
-
-//PyObject* _vm_get_cpu_state(void);
-//PyObject*  _vm_set_cpu_state(PyObject * s_cpustate);
-
-
-//void memory_page_write(unsigned int my_size, uint64_t ad, unsigned int src);
-//unsigned int memory_page_read(unsigned int my_size, uint64_t ad);
 unsigned int get_memory_page_max_address(void);
 unsigned int get_memory_page_max_user_address(void);
 
@@ -354,11 +322,8 @@ void func_loadlib_fake(void);
 void func_getproc_fake(void);
 
 
-//PyObject* _vm_exec_bloc(PyObject* my_eip, PyObject* known_blocs);
-
 unsigned int cpuid(unsigned int a, unsigned int reg_num);
 double int2double(unsigned int m);
-//PyObject* _vm_exec_blocs(PyObject* my_eip);
 
 double fadd(double a, double b);
 double fsub(double a, double b);

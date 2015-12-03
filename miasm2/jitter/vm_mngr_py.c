@@ -145,10 +145,6 @@ PyObject* vm_add_memory_page(VmMngr* self, PyObject* args)
 	buf_size = PyString_Size(item_str);
 	PyString_AsStringAndSize(item_str, &buf_data, &length);
 
-	/*
-	fprintf(stderr, "add page %"PRIX64" %"PRIX64" %"PRIX64"\n",
-		page_addr, buf_size, page_access);
-	*/
 	mpn = create_memory_page_node(page_addr, buf_size, page_access);
 	if (mpn == NULL)
 		RAISE(PyExc_TypeError,"cannot create page");
@@ -383,7 +379,6 @@ PyObject* vm_get_all_memory(VmMngr* self, PyObject* args)
 
 	dict =  PyDict_New();
 
-	//LIST_FOREACH(mpn, &self->vm_mngr.memory_page_pool, next){
 	for (i=0;i<self->vm_mngr.memory_pages_number; i++) {
 		mpn = &self->vm_mngr.memory_pages_array[i];
 
@@ -492,24 +487,6 @@ vm_set_little_endian(VmMngr *self, PyObject *value, void *closure)
 	Py_INCREF(Py_None);
 	return Py_None;
 }
-
-
-
-/*
-PyObject* add_jitbloc(VmMngr* self, PyObject* args)
-{
-	PyObject* jitobj;
-
-	if (!PyArg_ParseTuple(args, "O", &addr2obj))
-		return NULL;
-
-	Py_INCREF(Py_None);
-	return Py_None;
-
-}
-*/
-
-
 
 
 static void
