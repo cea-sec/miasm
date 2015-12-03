@@ -54,10 +54,6 @@ class TestIrIr2C(unittest.TestCase):
         self.assertRaises(NotImplementedError, translator.from_expr,
                           ExprOp('X', *args[:2]))
 
-        # Ternary operators
-        self.translationTest(
-            ExprOp('div8',    *args[:3]), r'(div_op(32, 0x0, 0x1, 0x2) &0xffffffff)')
-
         # Other cases
         self.translationTest(
             ExprOp('+',       *args[:3]), r'(((0x0&0xffffffff)+(0x1&0xffffffff)+(0x2&0xffffffff))&0xffffffff)')

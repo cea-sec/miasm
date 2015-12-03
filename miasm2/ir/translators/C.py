@@ -18,13 +18,9 @@ class TranslatorC(Translator):
     dct_rot = {'<<<': 'rot_left',
                '>>>': 'rot_right',
                }
-    dct_div = {'div8': "div_op",
-               'div16': "div_op",
-               'div32': "div_op",
-               'idiv32': "div_op",  # XXX to test
-               '<<<c_rez': 'rcl_rez_op',
-               '>>>c_rez': 'rcr_rez_op',
-               }
+    dct_rotc = {'<<<c_rez': 'rcl_rez_op',
+                '>>>c_rez': 'rcr_rez_op',
+                }
 
 
     def from_ExprId(self, expr):
@@ -120,8 +116,8 @@ class TranslatorC(Translator):
             else:
                 raise NotImplementedError('Unknown op: %r' % expr.op)
 
-        elif len(expr.args) == 3 and expr.op in self.dct_div:
-            return '(%s(%s, %s, %s, %s) &0x%x)' % (self.dct_div[expr.op],
+        elif len(expr.args) == 3 and expr.op in self.dct_rotc:
+            return '(%s(%s, %s, %s, %s) &0x%x)' % (self.dct_rotc[expr.op],
                                                    expr.args[0].size,
                                                    self.from_expr(expr.args[0]),
                                                    self.from_expr(expr.args[1]),

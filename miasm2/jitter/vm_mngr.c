@@ -76,37 +76,7 @@ void print_val(uint64_t base, uint64_t addr)
 	fprintf(stderr, "addr 0x%"PRIX64" val 0x%"PRIX64"\n", addr-base, *ptr);
 }
 
-
-int is_mem_mapped(vm_mngr_t* vm_mngr, uint64_t ad)
-{
-	struct memory_page_node * mpn;
-	int i;
-	for (i=0; i < vm_mngr->memory_pages_number; i++) {
-		mpn = &vm_mngr->memory_pages_array[i];
-		if ((mpn->ad <= ad)  && (ad <mpn->ad + mpn->size))
-			return 1;
-	}
-
-	return 0;
-}
-
-
-/* Return the address base of the memory page containing addr */
-uint64_t get_mem_base_addr(vm_mngr_t* vm_mngr, uint64_t ad, uint64_t *addr_base)
-{
-	struct memory_page_node * mpn;
-	int i;
-	for (i=0; i < vm_mngr->memory_pages_number; i++) {
-		mpn = &vm_mngr->memory_pages_array[i];
-		if ((mpn->ad <= ad)  && (ad <mpn->ad + mpn->size)) {
-			*addr_base = mpn->ad;
-			return 1;
-		}
-	}
-	return 0;
-}
-
-int midpoint(int imin, int imax)
+inline int midpoint(int imin, int imax)
 {
 	return (imin + imax) / 2;
 }
@@ -693,39 +663,6 @@ unsigned int umul16_hi(unsigned short a, unsigned short b)
 	c = a*b;
 	return (c>>16) & 0xffff;
 }
-
-
-
-
-unsigned int div_op(unsigned int size, unsigned int a, unsigned int b, unsigned int c)
-{
-    int64_t num;
-    if (c == 0)
-    {
-	    //vmmngr.exception_flags |= EXCEPT_INT_DIV_BY_ZERO;
-	    return 0;
-    }
-    num = ((int64_t)a << size) + b;
-    num/=(int64_t)c;
-    return num;
-}
-
-
-unsigned int rem_op(unsigned int size, unsigned int a, unsigned int b, unsigned int c)
-{
-    int64_t num;
-
-    if (c == 0)
-    {
-	    //vmmngr.exception_flags |= EXCEPT_INT_DIV_BY_ZERO;
-	    return 0;
-    }
-
-    num = ((int64_t)a << size) + b;
-    num = (int64_t)num-c*(num/c);
-    return num;
-}
-
 
 uint64_t rot_left(uint64_t size, uint64_t a, uint64_t b)
 {
@@ -1448,7 +1385,7 @@ void reset_memory_breakpoint(vm_mngr_t* vm_mngr)
 
 }
 
-
+/* We don't use dichotomy here for the insertion */
 int is_mpn_in_tab(vm_mngr_t* vm_mngr, struct memory_page_node* mpn_a)
 {
 	struct memory_page_node * mpn;
@@ -1472,6 +1409,8 @@ int is_mpn_in_tab(vm_mngr_t* vm_mngr, struct memory_page_node* mpn_a)
 	return 0;
 }
 
+
+/* We don't use dichotomy here for the insertion */
 void add_memory_page(vm_mngr_t* vm_mngr, struct memory_page_node* mpn_a)
 {
 	struct memory_page_node * mpn;
@@ -1575,29 +1514,6 @@ void remove_memory_breakpoint(vm_mngr_t* vm_mngr, uint64_t ad, unsigned int acce
 			LIST_REMOVE(mpn, next);
 	}
 
-}
-
-
-
-
-
-
-
-unsigned int get_memory_page_next(vm_mngr_t* vm_mngr, unsigned int n_ad)
-{
-	struct memory_page_node * mpn;
-	uint64_t ad = 0;
-	int i;
-
-	for (i=0; i < vm_mngr->memory_pages_number; i++) {
-		mpn = &vm_mngr->memory_pages_array[i];
-		if (mpn->ad < n_ad)
-			continue;
-
-		if (ad == 0 || mpn->ad <ad)
-			ad = mpn->ad;
-	}
-	return ad;
 }
 
 
