@@ -120,6 +120,47 @@ class irbloc(object):
         return "\n".join(o)
 
 
+class DiGraphIR(DiGraph):
+    """DiGraph for IR instances"""
+
+    def __init__(self, blocks, *args, **kwargs):
+        """Instanciate a DiGraphIR
+        @blocks: IR blocks
+        """
+        self._blocks = blocks
+        super(DiGraphIR, self).__init__(*args, **kwargs)
+
+    def dot(self):
+        """Output the graphviz script"""
+        out = """
+    digraph asm_graph {
+    size="80,50";
+    node [
+    fontsize = "16",
+    shape = "box"
+    ];
+        """
+        all_lbls = {}
+        for lbl in self.nodes():
+            if lbl not in self._blocks:
+                continue
+            irb = self._blocks[lbl]
+            ir_txt = [str(lbl)]
+            for irs in irb.irs:
+                for l in irs:
+                    ir_txt.append(str(l))
+                ir_txt.append("")
+            ir_txt.append("")
+            all_lbls[hash(lbl)] = "\l\\\n".join(ir_txt)
+        for l, v in all_lbls.items():
+            out += '%s [label="%s"];\n' % (l, v)
+
+        for a, b in self.edges():
+            out += '%s -> %s;\n' % (hash(a), hash(b))
+        out += '}'
+        return out
+
+
 class ir(object):
 
     def __init__(self, arch, attrib, symbol_pool=None):
@@ -385,13 +426,10 @@ class ir(object):
         Gen irbloc digraph
         @link_all: also gen edges to non present irblocs
         """
-        self.g = DiGraph()
+        self.g = DiGraphIR(self.blocs)
         for lbl, b in self.blocs.items():
-            # print 'add', lbl
             self.g.add_node(lbl)
-            # dst = self.get_bloc_dst(b)
             dst = self.dst_trackback(b)
-            # print "\tdst", dst
             for d in dst:
                 if isinstance(d, m2_expr.ExprInt):
                     d = m2_expr.ExprId(
@@ -402,32 +440,4 @@ class ir(object):
 
     def graph(self):
         """Output the graphviz script"""
-        out = """
-    digraph asm_graph {
-    size="80,50";
-    node [
-    fontsize = "16",
-    shape = "box"
-    ];
-        """
-        all_lbls = {}
-        for lbl in self.g.nodes():
-            if lbl not in self.blocs:
-                continue
-            irb = self.blocs[lbl]
-            ir_txt = [str(lbl)]
-            for irs in irb.irs:
-                for l in irs:
-                    ir_txt.append(str(l))
-                ir_txt.append("")
-            ir_txt.append("")
-            all_lbls[hash(lbl)] = "\l\\\n".join(ir_txt)
-        for l, v in all_lbls.items():
-            # print l, v
-            out += '%s [label="%s"];\n' % (l, v)
-
-        for a, b in self.g.edges():
-            # print 'edge', a, b, hash(a), hash(b)
-            out += '%s -> %s;\n' % (hash(a), hash(b))
-        out += '}'
-        return out
+        return self.g.dot()
