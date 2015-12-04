@@ -111,22 +111,14 @@ console_handler.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
 log.addHandler(console_handler)
 log.setLevel(logging.WARN)
 
-# ALLOCATOR is a function(vm, size) -> allocated_address
-# TODO: as a MemType class attribute
-ALLOCATOR = None
-
 # Cache for dynamically generated MemTypes
 DYN_MEM_STRUCT_CACHE = {}
 
 def set_allocator(alloc_func):
-    """Set an allocator for this module; allows to instanciate statically sized
-    MemTypes (i.e. sizeof() is implemented) without specifying the address
-    (the object is allocated by @alloc_func in the vm.
-
-    @alloc_func: func(VmMngr) -> integer_address
+    """Shorthand to set the default allocator of MemType. See
+    MemType.set_allocator doc for more information.
     """
-    global ALLOCATOR
-    ALLOCATOR = alloc_func
+    MemType.set_allocator(alloc_func)
 
 
 # Helpers
@@ -1003,10 +995,12 @@ class MemType(object):
     """
     __metaclass__ = _MetaMemType
 
+    # allocator is a function(vm, size) -> allocated_address
+    allocator = None
+
     _type = None
 
     def __init__(self, vm, addr=None, type_=None):
-        global ALLOCATOR
         self._vm = vm
         if addr is None:
             self._addr = self.alloc(vm, self.get_size())
@@ -1020,14 +1014,27 @@ class MemType(object):
 
     @classmethod
     def alloc(cls, vm, size):
-        """Returns an allocated page of size @size if ALLOCATOR is set.
+        """Returns an allocated page of size @size if cls.allocator is set.
         Raises ValueError otherwise.
         """
-        if ALLOCATOR is None:
+        if cls.allocator is None:
             raise ValueError("Cannot provide None address to MemType() if"
                              "%s.set_allocator has not been called."
                              % __name__)
-        return ALLOCATOR(vm, size)
+        return cls.allocator(vm, size)
+
+    @classmethod
+    def set_allocator(cls, alloc_func):
+        """Set an allocator for this class; allows to instanciate statically
+        sized MemTypes (i.e. sizeof() is implemented) without specifying the
+        address (the object is allocated by @alloc_func in the vm).
+
+        You may call set_allocator on specific MemType classes if you want
+        to use a different allocator.
+
+        @alloc_func: func(VmMngr) -> integer_address
+        """
+        cls.allocator = alloc_func
 
     def get_addr(self, field=None):
         """Return the address of this MemType or one of its fields.
@@ -1373,8 +1380,8 @@ class MemStr(MemValue):
 
     @classmethod
     def from_str(cls, vm, py_str):
-        """Allocates a MemStr with the global ALLOCATOR with value py_str.
-        Raises a ValueError if ALLOCATOR is not set.
+        """Allocates a MemStr with the global allocator with value py_str.
+        Raises a ValueError if allocator is not set.
         """
         size = cls._type.value_size(py_str)
         addr = cls.alloc(vm, size)
