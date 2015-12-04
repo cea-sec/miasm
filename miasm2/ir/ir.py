@@ -25,6 +25,7 @@ from miasm2.expression.expression_helper import get_missing_interval
 from miasm2.core import asmbloc
 from miasm2.expression.simplifications import expr_simp
 from miasm2.core.asmbloc import asm_symbol_pool
+from miasm2.core.graph import DiGraph
 
 
 class irbloc(object):
@@ -335,5 +336,103 @@ class ir(object):
             b.get_rw(regs_ids)
 
     def ExprIsLabel(self, l):
+        #TODO : use expression helper
         return isinstance(l, m2_expr.ExprId) and isinstance(l.name,
                                                             asmbloc.asm_label)
+
+    def sort_dst(self, todo, done):
+        out = set()
+        while todo:
+            dst = todo.pop()
+            if self.ExprIsLabel(dst):
+                done.add(dst)
+            elif isinstance(dst, m2_expr.ExprMem) or isinstance(dst, m2_expr.ExprInt):
+                done.add(dst)
+            elif isinstance(dst, m2_expr.ExprCond):
+                todo.add(dst.src1)
+                todo.add(dst.src2)
+            elif isinstance(dst, m2_expr.ExprId):
+                out.add(dst)
+            else:
+                done.add(dst)
+        return out
+
+    def dst_trackback(self, b):
+        dst = b.dst
+        todo = set([dst])
+        done = set()
+
+        for irs in reversed(b.irs):
+            if len(todo) == 0:
+                break
+            out = self.sort_dst(todo, done)
+            found = set()
+            follow = set()
+            for i in irs:
+                if not out:
+                    break
+                for o in out:
+                    if i.dst == o:
+                        follow.add(i.src)
+                        found.add(o)
+                for o in found:
+                    out.remove(o)
+
+            for o in out:
+                if o not in found:
+                    follow.add(o)
+            todo = follow
+
+        return done
+
+    def gen_graph(self, link_all = True):
+        """
+        Gen irbloc digraph
+        @link_all: also gen edges to non present irblocs
+        """
+        self.g = DiGraph()
+        for lbl, b in self.blocs.items():
+            # print 'add', lbl
+            self.g.add_node(lbl)
+            # dst = self.get_bloc_dst(b)
+            dst = self.dst_trackback(b)
+            # print "\tdst", dst
+            for d in dst:
+                if isinstance(d, m2_expr.ExprInt):
+                    d = m2_expr.ExprId(
+                        self.symbol_pool.getby_offset_create(int(d.arg)))
+                if self.ExprIsLabel(d):
+                    if d.name in self.blocs or link_all is True:
+                        self.g.add_edge(lbl, d.name)
+
+    def graph(self):
+        """Output the graphviz script"""
+        out = """
+    digraph asm_graph {
+    size="80,50";
+    node [
+    fontsize = "16",
+    shape = "box"
+    ];
+        """
+        all_lbls = {}
+        for lbl in self.g.nodes():
+            if lbl not in self.blocs:
+                continue
+            irb = self.blocs[lbl]
+            ir_txt = [str(lbl)]
+            for irs in irb.irs:
+                for l in irs:
+                    ir_txt.append(str(l))
+                ir_txt.append("")
+            ir_txt.append("")
+            all_lbls[hash(lbl)] = "\l\\\n".join(ir_txt)
+        for l, v in all_lbls.items():
+            # print l, v
+            out += '%s [label="%s"];\n' % (l, v)
+
+        for a, b in self.g.edges():
+            # print 'edge', a, b, hash(a), hash(b)
+            out += '%s -> %s;\n' % (hash(a), hash(b))
+        out += '}'
+        return out
