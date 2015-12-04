@@ -229,7 +229,29 @@ print "See that the original array has been modified:"
 print repr(data)
 print
 
-# TODO: type manipulation examples
+# Some type manipulation examples, for example let's construct an argv for
+# a program:
+# Let's say that we have two arguments, +1 for the program name and +1 for the
+# final null ptr in argv, the array has 4 elements:
+argv_t = Array(Ptr("<I", Str()), 4)
+print "3 arguments argv type:", argv_t
+
+# alloc argv somewhere
+argv = argv_t.lval(vm)
+
+# Auto alloc with a buffer type
+MemStrAnsi = Str().lval
+argv[0].val = MemStrAnsi.from_str(vm, "./my-program").get_addr()
+argv[1].val = MemStrAnsi.from_str(vm, "arg1").get_addr()
+argv[2].val = MemStrAnsi.from_str(vm, "27").get_addr()
+argv[3].val = 0
+
+# If you changed your mind on the second arg, you could do:
+argv[2].deref.val = "42"
+
+print "An argv instance:", repr(argv)
+print "argv values:", repr([val.deref.val for val in argv[:-1]])
+print
 
 print "See test/core/types.py and the miasm2.core.types module doc for "
 print "more information."
