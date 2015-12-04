@@ -194,6 +194,7 @@ if args.gen_ir:
     log.info("Print blocs (with analyse)")
     for label, bloc in ir_arch_a.blocs.iteritems():
         print bloc
+    ir_arch.gen_graph()
     ir_arch_a.gen_graph()
 
     if args.simplify:
@@ -201,3 +202,5 @@ if args.gen_ir:
 
     out = ir_arch_a.graph()
     open('graph_irflow.dot', 'w').write(out)
+    out = ir_arch.graph()
+    open('graph_irflow_raw.dot', 'w').write(out)
