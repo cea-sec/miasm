@@ -2,7 +2,7 @@
 from miasm2.expression.expression import ExprId, ExprInt32, ExprAff, ExprMem
 from miasm2.core.asmbloc import asm_label
 from miasm2.ir.analysis import ira
-from miasm2.ir.ir import ir, irbloc
+from miasm2.ir.ir import irbloc
 
 a = ExprId("a")
 b = ExprId("b")
@@ -52,11 +52,13 @@ class Arch(object):
     def getsp(self, _):
         return sp
 
-class IRATest(ir, ira):
+class IRATest(ira):
+
+    """Fake IRA class for tests"""
 
     def __init__(self, symbol_pool=None):
         arch = Arch()
-        ir.__init__(self, arch, 32, symbol_pool)
+        super(IRATest, self).__init__(arch, 32, symbol_pool)
         self.IRDst = pc
         self.ret_reg = r
 

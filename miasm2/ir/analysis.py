@@ -4,6 +4,7 @@
 import logging
 
 from miasm2.ir.symbexec import symbexec
+from miasm2.ir.ir import ir
 from miasm2.expression.expression \
     import ExprAff, ExprCond, ExprId, ExprInt, ExprMem
 
@@ -13,7 +14,8 @@ console_handler.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
 log.addHandler(console_handler)
 log.setLevel(logging.WARNING)
 
-class ira:
+
+class ira(ir):
     """IR Analysis
     This class provides higher level manipulations on IR, such as dead
     instruction removals.

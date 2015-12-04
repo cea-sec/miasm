@@ -76,13 +76,13 @@ class Arch(object):
         return SP
 
 
-class IRATest(ir, ira):
+class IRATest(ira):
 
     """Fake IRA class for tests"""
 
     def __init__(self, symbol_pool=None):
         arch = Arch()
-        ir.__init__(self, arch, 32, symbol_pool)
+        super(IRATest, self).__init__(arch, 32, symbol_pool)
         self.IRDst = PC
         self.ret_reg = R
 
