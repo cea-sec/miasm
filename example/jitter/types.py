@@ -229,6 +229,8 @@ print "See that the original array has been modified:"
 print repr(data)
 print
 
+# TODO: type manipulation examples
+
 print "See test/core/types.py and the miasm2.core.types module doc for "
 print "more information."
 

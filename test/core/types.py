@@ -119,7 +119,7 @@ assert memval == 8
 
 # Str tests
 ## Basic tests
-memstr = Str().pinned(jitter.vm, addr_str)
+memstr = Str().lval(jitter.vm, addr_str)
 memstr.val = ""
 assert memstr.val == ""
 assert jitter.vm.get_mem(memstr.get_addr(), 1) == '\x00'
@@ -138,13 +138,13 @@ assert mstruct.s.deref.val == "That's all folks!"
 assert memstr.val == "That's all folks!"
 
 ## Other address, same value, same encoding
-memstr2 = Str().pinned(jitter.vm, addr_str2)
+memstr2 = Str().lval(jitter.vm, addr_str2)
 memstr2.val = "That's all folks!"
 assert memstr2.get_addr() != memstr.get_addr()
 assert memstr2 == memstr
 
 ## Same value, other encoding
-memstr3 = Str("utf16").pinned(jitter.vm, addr_str3)
+memstr3 = Str("utf16").lval(jitter.vm, addr_str3)
 memstr3.val = "That's all folks!"
 assert memstr3.get_addr() != memstr.get_addr()
 assert memstr3.get_size() != memstr.get_size() # Size is different
@@ -156,7 +156,7 @@ assert memstr3.val == memstr.val # But the python value is the same
 # Array tests
 # Allocate buffer manually, since memarray is unsized
 alloc_addr = my_heap.vm_alloc(jitter.vm, 0x100)
-memarray = Array(Num("I")).pinned(jitter.vm, alloc_addr)
+memarray = Array(Num("I")).lval(jitter.vm, alloc_addr)
 memarray[0] = 0x02
 assert memarray[0] == 0x02
 assert jitter.vm.get_mem(memarray.get_addr(),
@@ -188,8 +188,8 @@ except ValueError:
     pass
 
 
-memsarray = Array(Num("I"), 10).pinned(jitter.vm)
-# And Array(type, size).pinned generates statically sized types
+memsarray = Array(Num("I"), 10).lval(jitter.vm)
+# And Array(type, size).lval generates statically sized types
 assert memsarray.sizeof() == Num("I").size() * 10
 memsarray.memset('\xcc')
 assert memsarray[0] == 0xcccccccc
@@ -237,7 +237,7 @@ for val in ms2.s2:
     assert val == 1
 
 ### Field assignment (MemSizedArray)
-array2 = Array(Num("B"), 10).pinned(jitter.vm)
+array2 = Array(Num("B"), 10).lval(jitter.vm)
 jitter.vm.set_mem(array2.get_addr(), '\x02'*10)
 for val in array2:
     assert val == 2
@@ -406,8 +406,8 @@ assert b.a.deref == a
 
 # Cast tests
 # MemStruct cast
-MemInt = Num("I").pinned
-MemShort = Num("H").pinned
+MemInt = Num("I").lval
+MemShort = Num("H").lval
 dword = MemInt(jitter.vm)
 dword.val = 0x12345678
 assert isinstance(dword.cast(MemShort), MemShort)
@@ -427,7 +427,7 @@ ms2.s2[5] = 0xab
 assert MemShort(jitter.vm, ms2.s2.get_addr(4)).val == 0xabcd
 
 # void* style cast
-MemPtrVoid = Ptr("I", Void()).pinned
+MemPtrVoid = Ptr("I", Void()).lval
 p = MemPtrVoid(jitter.vm)
 p.val = mstruct.get_addr()
 assert p.deref.cast(MyStruct) == mstruct
@@ -474,17 +474,17 @@ assert BitField(Num("B"), [("f1", 1), ("f2", 4), ("f3", 1)]) != \
         BitField(Num("B"), [("f1", 2), ("f2", 4), ("f3", 1)])
 
 
-# Quick MemField.pinned/MemField hash test
-assert Num("f").pinned(jitter.vm, addr) == Num("f").pinned(jitter.vm, addr)
+# Quick MemField.lval/MemField hash test
+assert Num("f").lval(jitter.vm, addr) == Num("f").lval(jitter.vm, addr)
 # Types are cached
-assert Num("f").pinned == Num("f").pinned
-assert Num("d").pinned != Num("f").pinned
-assert Union([("f1", Num("I")), ("f2", Num("H"))]).pinned == \
-        Union([("f1", Num("I")), ("f2", Num("H"))]).pinned
-assert Array(Num("B")).pinned == Array(Num("B")).pinned
-assert Array(Num("I")).pinned != Array(Num("B")).pinned
-assert Array(Num("B"), 20).pinned == Array(Num("B"), 20).pinned
-assert Array(Num("B"), 19).pinned != Array(Num("B"), 20).pinned
+assert Num("f").lval == Num("f").lval
+assert Num("d").lval != Num("f").lval
+assert Union([("f1", Num("I")), ("f2", Num("H"))]).lval == \
+        Union([("f1", Num("I")), ("f2", Num("H"))]).lval
+assert Array(Num("B")).lval == Array(Num("B")).lval
+assert Array(Num("I")).lval != Array(Num("B")).lval
+assert Array(Num("B"), 20).lval == Array(Num("B"), 20).lval
+assert Array(Num("B"), 19).lval != Array(Num("B"), 20).lval
 
 
 # Repr tests
@@ -496,8 +496,8 @@ print repr(cont), '\n'
 print repr(uni), '\n'
 print repr(bit), '\n'
 print repr(ideas), '\n'
-print repr(Array(MyStruct2.get_type(), 2).pinned(jitter.vm, addr)), '\n'
-print repr(Num("f").pinned(jitter.vm, addr)), '\n'
+print repr(Array(MyStruct2.get_type(), 2).lval(jitter.vm, addr)), '\n'
+print repr(Num("f").lval(jitter.vm, addr)), '\n'
 print repr(memarray)
 print repr(memsarray)
 print repr(memstr)

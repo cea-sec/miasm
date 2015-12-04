@@ -1,5 +1,34 @@
-"""This module provides classes to manipulate C structures backed by a VmMngr
-object (a miasm sandbox virtual memory).
+"""This module provides classes to manipulate pure C types as well as their
+representation in memory. A typical usecase is to use this module to
+easily manipylate structures backed by a VmMngr object (a miasm sandbox virtual
+memory):
+
+    class ListNode(MemStruct):
+        fields = [
+            ("next", Ptr("<I", Self())),
+            ("data", Ptr("<I", Void())),
+        ]
+
+    class LinkedList(MemStruct):
+        fields = [
+            ("head", Ptr("<I", ListNode)),
+            ("tail", Ptr("<I", ListNode)),
+            ("size", Num("<I")),
+        ]
+
+    link = LinkedList(vm, addr1)
+    link.memset()
+    node = ListNode(vm, addr2)
+    node.memset()
+    link.head = node.get_addr()
+    link.tail = node.get_addr()
+    link.size += 1
+    assert link.head.deref == node
+    data = Num("<I").lval(vm, addr3)
+    data.val = 5
+    node.data = data.get_addr()
+    # see examples/jitter/types.py for more info
+
 
 It provides two families of classes, Type-s (Num, Ptr, Str...) and their
 associated MemType-s. A Type subclass instance represents a fully defined C
@@ -29,14 +58,13 @@ And some less common types:
     - RawStruct: abstraction over a simple struct pack/unpack (no mapping to a
       standard C type)
 
-For each type, the `.pinned` property returns a MemType subclass that
+For each type, the `.lval` property returns a MemType subclass that
 allows to access the field in memory.
 
 
 The easiest way to use the API to declare and manipulate new structures is to
 subclass MemStruct and define a list of (<field_name>, <field_definition>):
 
-    # FIXME: "I" => "u32"
     class MyStruct(MemStruct):
         fields = [
             # Scalar field: just struct.pack field with one value
@@ -210,9 +238,12 @@ class Type(object):
         return self._unpack(raw)
 
     @property
-    def pinned(self):
+    def lval(self):
         """Returns a class with a (vm, addr) constructor that allows to
         interact with this type in memory.
+
+        In compilation terms, it returns a class allowing to instanciate an
+        lvalue of this type.
 
         @return: a MemType subclass.
         """
@@ -225,7 +256,7 @@ class Type(object):
     def _build_pinned_type(self):
         """Builds the MemType subclass allowing to interract with this type.
 
-        Called by self.pinned when it is not in cache.
+        Called by self.lval when it is not in cache.
         """
         pinned_base_class = self._get_pinned_base_class()
         pinned_type = type("Mem%r" % self, (pinned_base_class,),
@@ -324,7 +355,7 @@ class Ptr(Num):
             in memory
         @dst_type: (MemType or Type) the MemType this Ptr points to.
             If a Type is given, it is transformed into a MemType with
-            TheType.pinned.
+            TheType.lval.
         *type_args, **type_kwargs: arguments to pass to the the pointed
             MemType when instanciating it (e.g. for MemStr encoding or
             MemArray field_type).
@@ -342,10 +373,10 @@ class Ptr(Num):
             dst_type._get_self_type = lambda: self._get_self_type()
             # dst_type cannot be patched here, since _get_self_type of the outer
             # class has not yet been set. Patching dst_type involves calling
-            # dst_type.pinned, which will only return a type that does not point
+            # dst_type.lval, which will only return a type that does not point
             # on MemSelf but on the right class only when _get_self_type of the
             # outer class has been replaced by _MetaMemStruct.
-            # In short, dst_type = dst_type.pinned is not valid here, it is done
+            # In short, dst_type = dst_type.lval is not valid here, it is done
             # lazily in _fix_dst_type
         self._dst_type = dst_type
         self._type_args = type_args
@@ -358,7 +389,7 @@ class Ptr(Num):
             else:
                 raise ValueError("Unsupported usecase for MemSelf, sorry")
         if isinstance(self._dst_type, Type):
-            self._dst_type = self._dst_type.pinned
+            self._dst_type = self._dst_type.lval
 
     @property
     def dst_type(self):
@@ -374,7 +405,7 @@ class Ptr(Num):
             super(Ptr, self).set(vm, addr, val)
 
     def get(self, vm, addr):
-        return self.pinned(vm, addr)
+        return self.lval(vm, addr)
 
     def get_val(self, vm, addr):
         """Get the numeric value of a Ptr"""
@@ -429,14 +460,14 @@ class Struct(Type):
 
     Mapped to MemStruct.
 
-    NOTE: The `.pinned` property of Struct creates classes on the fly. If an
+    NOTE: The `.lval` property of Struct creates classes on the fly. If an
     equivalent structure is created by subclassing MemStruct, an exception
     is raised to prevent creating multiple classes designating the same type.
 
     Example:
         s = Struct("Toto", [("f1", Num("I")), ("f2", Num("I"))])
 
-        Toto1 = s.pinned
+        Toto1 = s.lval
 
         # This raises an exception, because it describes the same structure as
         # Toto1
@@ -469,7 +500,7 @@ class Struct(Type):
         vm.set_mem(addr, raw)
 
     def get(self, vm, addr):
-        return self.pinned(vm, addr)
+        return self.lval(vm, addr)
 
     def get_field(self, vm, addr, name):
         """Get a field value by @name and base structure @addr in @vm VmMngr."""
@@ -618,7 +649,7 @@ class Array(Type):
                 "Assignment only implemented for list and MemSizedArray")
 
     def get(self, vm, addr):
-        return self.pinned(vm, addr)
+        return self.lval(vm, addr)
 
     def size(self):
         if self.is_sized():
@@ -949,7 +980,7 @@ class MemType(object):
     virtual memory.
 
     Globally, MemTypes are not meant to be used directly: specialized
-    subclasses are generated by Type(...).pinned and should be used instead.
+    subclasses are generated by Type(...).lval and should be used instead.
     The main exception is MemStruct, which you may want to subclass yourself
     for syntactic ease.
     """
@@ -1022,11 +1053,11 @@ class MemType(object):
         """Cast this MemType to another MemType (same address, same vm,
         but different type). Return the casted MemType.
 
-        @other_type: either a Type instance (other_type.pinned is used) or a
+        @other_type: either a Type instance (other_type.lval is used) or a
             MemType subclass
         """
         if isinstance(other_type, Type):
-            other_type = other_type.pinned
+            other_type = other_type.lval
         return other_type(self._vm, self.get_addr())
 
     def cast_field(self, field, other_type, *type_args, **type_kwargs):
@@ -1035,7 +1066,7 @@ class MemType(object):
 
         @field: field specification, for example its name for a struct, or an
             index in an array. See the subclass doc.
-        @other_type: either a Type instance (other_type.pinned is used) or a
+        @other_type: either a Type instance (other_type.lval is used) or a
             MemType subclass
         """
         raise NotImplementedError("Abstract")
@@ -1127,7 +1158,7 @@ class MemStruct(MemType):
         assert mstruct.other.deref.foo == 0x1234
 
     Note that:
-        MyStruct = Struct("MyStruct", <same fields>).pinned
+        MyStruct = Struct("MyStruct", <same fields>).lval
     is equivalent to the previous MyStruct declaration.
 
     See the various Type-s doc for more information. See MemStruct.gen_fields
@@ -1166,7 +1197,7 @@ class MemStruct(MemType):
     def cast_field(self, field, other_type):
         """In this implementation, @field is a field name"""
         if isinstance(other_type, Type):
-            other_type = other_type.pinned
+            other_type = other_type.lval
         return other_type(self._vm, self.get_addr(field))
 
     # Field generation method, voluntarily public to be able to gen fields
@@ -1214,7 +1245,7 @@ class MemStruct(MemType):
                                "one. Use it instead.")
 
         # Register this class so that another one will not be created when
-        # calling cls._type.pinned
+        # calling cls._type.lval
         DYN_MEM_STRUCT_CACHE[cls._type] = cls
 
         cls._gen_attributes()
@@ -1336,7 +1367,7 @@ class MemArray(MemType):
 
     It can be indexed for setting and getting elements, example:
 
-        array = Array(Num("I")).pinned(vm, addr))
+        array = Array(Num("I")).lval(vm, addr))
         array[2] = 5
         array[4:8] = [0, 1, 2, 3]
         print array[20]
@@ -1371,7 +1402,7 @@ class MemSizedArray(MemArray):
     """A fixed size MemArray.
 
     This type is dynamically sized. Generate a fixed @field_type and @array_len
-    array which has a static size by using Array(type, size).pinned.
+    array which has a static size by using Array(type, size).lval.
     """
 
     @property
