@@ -1248,3 +1248,6 @@ if FAILED:
         print i,
 else:
     print "SUCCESS"
+
+# Return an error status on error
+assert not FAILED
