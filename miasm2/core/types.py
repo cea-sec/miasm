@@ -102,6 +102,7 @@ Note that some structures (e.g. MemStr or MemArray) do not have a static
 size and cannot be allocated automatically.
 """
 
+import itertools
 import logging
 import struct
 
@@ -677,8 +678,8 @@ class Array(Type):
             idx = self._normalize_slice(idx)
             if len(item) != len(xrange(idx.start, idx.stop, idx.step)):
                 raise ValueError("Mismatched lengths in slice assignment")
-            # TODO: izip
-            for i, val in zip(xrange(idx.start, idx.stop, idx.step), item):
+            for i, val in itertools.izip(xrange(idx.start, idx.stop, idx.step),
+                                         item):
                 self.field_type.set(vm, addr + self.get_offset(i), val)
         else:
             idx = self._normalize_idx(idx)
