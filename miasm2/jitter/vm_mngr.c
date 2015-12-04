@@ -32,13 +32,6 @@
 
 
 
-/*
-struct memory_page_list_head memory_page_pool;
-struct code_bloc_list_head code_bloc_pool;
-
-struct memory_breakpoint_info_head memory_breakpoint_pool;
-*/
-
 /****************memory manager**************/
 
 
@@ -83,68 +76,50 @@ void print_val(uint64_t base, uint64_t addr)
 	fprintf(stderr, "addr 0x%"PRIX64" val 0x%"PRIX64"\n", addr-base, *ptr);
 }
 
-
-int is_mem_mapped(vm_mngr_t* vm_mngr, uint64_t ad)
+inline int midpoint(int imin, int imax)
 {
-	struct memory_page_node * mpn;
-	/*
-	mpn = memory_page_pool_tab[ad>>MEMORY_PAGE_POOL_MASK_BIT];
-	if ( mpn && (mpn->ad <= ad) && (ad < mpn->ad + mpn->size))
-		return 1;
-	*/
-	LIST_FOREACH(mpn, &vm_mngr->memory_page_pool, next){
-		if ((mpn->ad <= ad)  && (ad <mpn->ad + mpn->size))
-			return 1;
-	}
-
-	return 0;
+	return (imin + imax) / 2;
 }
 
 
-/* return the address base of the memory page
-   containing addr
-*/
-uint64_t get_mem_base_addr(vm_mngr_t* vm_mngr, uint64_t ad, uint64_t *addr_base)
+int find_page_node(struct memory_page_node * array, uint64_t key, int imin, int imax)
 {
-	struct memory_page_node * mpn;
-	/*
-	mpn = memory_page_pool_tab[ad>>MEMORY_PAGE_POOL_MASK_BIT];
-	if ( mpn && (mpn->ad <= ad) && (ad < mpn->ad + mpn->size)){
-		*addr_base = mpn->ad;
-		return 1;
+	// continue searching while [imin,imax] is not empty
+	while (imin <= imax) {
+		// calculate the midpoint for roughly equal partition
+		int imid = midpoint(imin, imax);
+		if(array[imid].ad <= key && key < array[imid].ad + array[imid].size)
+			// key found at index imid
+			return imid;
+		// determine which subarray to search
+		else if (array[imid].ad < key)
+			// change min index to search upper subarray
+			imin = imid + 1;
+		else
+			// change max index to search lower subarray
+			imax = imid - 1;
 	}
-	*/
-	LIST_FOREACH(mpn, &vm_mngr->memory_page_pool, next){
-		if ((mpn->ad <= ad)  && (ad <mpn->ad + mpn->size)) {
-			*addr_base = mpn->ad;
-			return 1;
-		}
-	}
-	return 0;
+	// key was not found
+	return -1;
 }
 
 struct memory_page_node * get_memory_page_from_address(vm_mngr_t* vm_mngr, uint64_t ad)
 {
 	struct memory_page_node * mpn;
-#if 0
-	mpn = memory_page_pool_tab[ad>>MEMORY_PAGE_POOL_MASK_BIT];
-	if ( mpn && (mpn->ad <= ad) && (ad < mpn->ad + mpn->size))
-		return mpn;
+	int i;
 
-	fprintf(stderr, "WARNING: address 0x%"PRIX64" is not mapped in virtual memory:\n", ad);
-	vm_mngr->exception_flags |= EXCEPT_ACCESS_VIOL;
-
-	return NULL;
-#else
-
-	LIST_FOREACH(mpn, &vm_mngr->memory_page_pool, next){
+	i = find_page_node(vm_mngr->memory_pages_array,
+			   ad,
+			   0,
+			   vm_mngr->memory_pages_number);
+	if (i >= 0) {
+		mpn = &vm_mngr->memory_pages_array[i];
 		if ((mpn->ad <= ad) && (ad < mpn->ad + mpn->size))
 			return mpn;
 	}
 	fprintf(stderr, "WARNING: address 0x%"PRIX64" is not mapped in virtual memory:\n", ad);
 	vm_mngr->exception_flags |= EXCEPT_ACCESS_VIOL;
 	return NULL;
-#endif
 }
 
 
@@ -168,7 +143,7 @@ static uint64_t memory_page_read(vm_mngr_t* vm_mngr, unsigned int my_size, uint6
 		return 0;
 	}
 
-	/* check read breakpoint*/
+	/* check read breakpoint */
 	LIST_FOREACH(b, &vm_mngr->memory_breakpoint_pool, next){
 		if ((b->access & BREAKPOINT_READ) == 0)
 			continue;
@@ -566,28 +541,7 @@ int shift_right_arith(unsigned int size, int a, unsigned int b)
 		    exit(0);
     }
 }
-/*
-int shift_right_arith_08(int a, unsigned int b)
-{
-	char i8_a;
-	i8_a = a;
-	return (i8_a >> b)&0xff;
-}
 
-int shift_right_arith_16(int a, unsigned int b)
-{
-	short i16_a;
-	i16_a = a;
-	return (i16_a >> b)&0xffff;
-}
-
-int shift_right_arith_32(int a, unsigned int b)
-{
-	int i32_a;
-	i32_a = a;
-	return (i32_a >> b)&0xffffffff;
-}
-*/
 uint64_t shift_right_logic(uint64_t size,
 			   uint64_t a, uint64_t b)
 {
@@ -609,28 +563,6 @@ uint64_t shift_right_logic(uint64_t size,
 		    exit(0);
     }
 }
-/*
-int shift_right_logic_08(unsigned int a, unsigned int b)
-{
-	unsigned char u8_a;
-	u8_a = a;
-	return (u8_a >> b)&0xff;
-}
-
-int shift_right_logic_16(unsigned int a, unsigned int b)
-{
-	unsigned short u16_a;
-	u16_a = a;
-	return (u16_a >> b)&0xffff;
-}
-
-int shift_right_logic_32(unsigned int a, unsigned int b)
-{
-	unsigned int u32_a;
-	u32_a = a;
-	return (u32_a >> b)&0xffffffff;
-}
-*/
 
 uint64_t shift_left_logic(uint64_t size, uint64_t a, uint64_t b)
 {
@@ -648,22 +580,6 @@ uint64_t shift_left_logic(uint64_t size, uint64_t a, uint64_t b)
 		    exit(0);
     }
 }
-/*
-int shift_left_logic_O8(unsigned int a, unsigned int b)
-{
-	return (a<<b)&0xff;
-}
-
-int shift_left_logic_16(unsigned int a, unsigned int b)
-{
-	return (a<<b)&0xffff;
-}
-
-int shift_left_logic_32(unsigned int a, unsigned int b)
-{
-	return (a<<b)&0xffffffff;
-}
-*/
 
 unsigned int mul_lo_op(unsigned int size, unsigned int a, unsigned int b)
 {
@@ -747,39 +663,6 @@ unsigned int umul16_hi(unsigned short a, unsigned short b)
 	c = a*b;
 	return (c>>16) & 0xffff;
 }
-
-
-
-
-unsigned int div_op(unsigned int size, unsigned int a, unsigned int b, unsigned int c)
-{
-    int64_t num;
-    if (c == 0)
-    {
-	    //vmmngr.exception_flags |= EXCEPT_INT_DIV_BY_ZERO;
-	    return 0;
-    }
-    num = ((int64_t)a << size) + b;
-    num/=(int64_t)c;
-    return num;
-}
-
-
-unsigned int rem_op(unsigned int size, unsigned int a, unsigned int b, unsigned int c)
-{
-    int64_t num;
-
-    if (c == 0)
-    {
-	    //vmmngr.exception_flags |= EXCEPT_INT_DIV_BY_ZERO;
-	    return 0;
-    }
-
-    num = ((int64_t)a << size) + b;
-    num = (int64_t)num-c*(num/c);
-    return num;
-}
-
 
 uint64_t rot_left(uint64_t size, uint64_t a, uint64_t b)
 {
@@ -1450,10 +1333,9 @@ void dump_code_bloc_pool(vm_mngr_t* vm_mngr)
 
 void init_memory_page_pool(vm_mngr_t* vm_mngr)
 {
-	unsigned int i;
-	LIST_INIT(&vm_mngr->memory_page_pool);
-	for (i=0;i<MAX_MEMORY_PAGE_POOL_TAB; i++)
-		vm_mngr->memory_page_pool_tab[i] = NULL;
+
+	vm_mngr->memory_pages_number = 0;
+	vm_mngr->memory_pages_array = NULL;
 }
 
 void init_code_bloc_pool(vm_mngr_t* vm_mngr)
@@ -1471,18 +1353,8 @@ void init_memory_breakpoint(vm_mngr_t* vm_mngr)
 
 void reset_memory_page_pool(vm_mngr_t* vm_mngr)
 {
-	struct memory_page_node * mpn;
-	unsigned int i;
-
-	while (!LIST_EMPTY(&vm_mngr->memory_page_pool)) {
-		mpn = LIST_FIRST(&vm_mngr->memory_page_pool);
-		LIST_REMOVE(mpn, next);
-		free(mpn->ad_hp);
-		free(mpn);
-	}
-	for (i=0;i<MAX_MEMORY_PAGE_POOL_TAB; i++)
-		vm_mngr->memory_page_pool_tab[i] = NULL;
-
+	free(vm_mngr->memory_pages_array);
+	vm_mngr->memory_pages_number = 0;
 }
 
 
@@ -1513,21 +1385,14 @@ void reset_memory_breakpoint(vm_mngr_t* vm_mngr)
 
 }
 
-
+/* We don't use dichotomy here for the insertion */
 int is_mpn_in_tab(vm_mngr_t* vm_mngr, struct memory_page_node* mpn_a)
 {
 	struct memory_page_node * mpn;
+	int i;
 
-	/*
-	for (i=mpn_a->ad >> MEMORY_PAGE_POOL_MASK_BIT;
-	     i<(mpn_a->ad + mpn_a->size + PAGE_SIZE - 1)>>MEMORY_PAGE_POOL_MASK_BIT;
-	     i++){
-		if (memory_page_pool_tab[i] !=NULL){
-			return 1;
-		}
-	}
-	*/
-	LIST_FOREACH(mpn, &vm_mngr->memory_page_pool, next){
+	for (i=0;i<vm_mngr->memory_pages_number; i++) {
+		mpn = &vm_mngr->memory_pages_array[i];
 		if (mpn->ad >= mpn_a->ad + mpn_a->size)
 			continue;
 		if (mpn->ad + mpn->size  <= mpn_a->ad)
@@ -1544,54 +1409,41 @@ int is_mpn_in_tab(vm_mngr_t* vm_mngr, struct memory_page_node* mpn_a)
 	return 0;
 }
 
-void insert_mpn_in_tab(struct memory_page_node* mpn_a)
-{
-	/*
-	for (i=mpn_a->ad >> MEMORY_PAGE_POOL_MASK_BIT;
-	     i<(mpn_a->ad + mpn_a->size + PAGE_SIZE - 1)>>MEMORY_PAGE_POOL_MASK_BIT;
-	     i++){
-		if (memory_page_pool_tab[i] !=NULL){
-			fprintf(stderr, "known page in tab\n");
-			exit(1);
-		}
-		memory_page_pool_tab[i] = mpn_a;
-	}
-	*/
 
-}
-
+/* We don't use dichotomy here for the insertion */
 void add_memory_page(vm_mngr_t* vm_mngr, struct memory_page_node* mpn_a)
 {
 	struct memory_page_node * mpn;
-	struct memory_page_node * lmpn;
+	int i;
 
-	if (LIST_EMPTY(&vm_mngr->memory_page_pool)){
-		LIST_INSERT_HEAD(&vm_mngr->memory_page_pool, mpn_a, next);
-		insert_mpn_in_tab(mpn_a);
-		return;
-	}
-	LIST_FOREACH(mpn, &vm_mngr->memory_page_pool, next){
-		lmpn = mpn;
+	for (i=0; i < vm_mngr->memory_pages_number; i++) {
+		mpn = &vm_mngr->memory_pages_array[i];
 		if (mpn->ad < mpn_a->ad)
 			continue;
-		LIST_INSERT_BEFORE(mpn, mpn_a, next);
-		insert_mpn_in_tab(mpn_a);
-		return;
+		break;
 	}
-	LIST_INSERT_AFTER(lmpn, mpn_a, next);
-	insert_mpn_in_tab(mpn_a);
+	vm_mngr->memory_pages_array = realloc(vm_mngr->memory_pages_array,
+					      sizeof(struct memory_page_node) *
+					      (vm_mngr->memory_pages_number+1));
+
+	memmove(&vm_mngr->memory_pages_array[i+1],
+		&vm_mngr->memory_pages_array[i],
+		sizeof(struct memory_page_node) * (vm_mngr->memory_pages_number - i)
+		);
+
+	vm_mngr->memory_pages_array[i] = *mpn_a;
+	vm_mngr->memory_pages_number ++;
 
 }
 
-/*
-   Return a char* representing the repr of vm_mngr_t object
-*/
+/* Return a char* representing the repr of vm_mngr_t object */
 char* dump(vm_mngr_t* vm_mngr)
 {
 	char buf[100];
 	int length;
 	int total_len = 0;
 	char *buf_final;
+	int i;
 	struct memory_page_node * mpn;
 
 	buf_final = malloc(1);
@@ -1600,8 +1452,9 @@ char* dump(vm_mngr_t* vm_mngr)
 		exit(0);
 	}
 	buf_final[0] = '\x00';
-	LIST_FOREACH(mpn, &vm_mngr->memory_page_pool, next){
 
+	for (i=0; i< vm_mngr->memory_pages_number; i++) {
+		mpn = &vm_mngr->memory_pages_array[i];
 		length = snprintf(buf, sizeof(buf),
 				  "ad 0x%"PRIX64" size 0x%"PRIX64" %c%c%c\n",
 				  (uint64_t)mpn->ad,
@@ -1664,59 +1517,6 @@ void remove_memory_breakpoint(vm_mngr_t* vm_mngr, uint64_t ad, unsigned int acce
 }
 
 
-
-
-
-
-
-unsigned int get_memory_page_next(vm_mngr_t* vm_mngr, unsigned int n_ad)
-{
-	struct memory_page_node * mpn;
-	uint64_t ad = 0;
-
-	LIST_FOREACH(mpn, &vm_mngr->memory_page_pool, next){
-		if (mpn->ad < n_ad)
-			continue;
-
-		if (ad == 0 || mpn->ad <ad)
-			ad = mpn->ad;
-	}
-	return ad;
-}
-
-
-#if 0
-unsigned int get_memory_page_from_min_ad(unsigned int size)
-{
-	struct memory_page_node * mpn;
-	unsigned int c_ad ;
-	unsigned int min_ad = min_page_ad;
-	int end = 0;
-	/* first, find free min ad */
-	while (!end){
-		end = 1;
-		LIST_FOREACH(mpn, &memory_page_pool, next){
-			c_ad = (mpn->ad + mpn->size+0x1000)&0xfffff000;
-			if (c_ad <= min_ad)
-				continue;
-			if (mpn->ad <= min_ad){
-				min_ad = c_ad;
-				end = 0;
-				break;
-			}
-			if (mpn->ad - min_ad < size){
-				min_ad = c_ad;
-				end = 0;
-				break;
-			}
-		}
-	}
-	return min_ad;
- }
-#endif
-
-
-
 /********************************************/
 
 void hexdump(char* m, unsigned int l)
@@ -1758,40 +1558,6 @@ void hexdump(char* m, unsigned int l)
 
 }
 
-
-
-
-unsigned int access_segment(unsigned int d)
-{
-	// XXX TODO
-	printf("access segment %X\n", d);
-	return 0;
-}
-unsigned int access_segment_ok(unsigned int d)
-{
-	// XXX TODO
-	printf("access segment ok %X\n", d);
-	return 0;
-}
-
-unsigned int load_segment_limit(unsigned int d)
-{
-	// XXX TODO
-	printf("load segment limit %X\n", d);
-	return 0;
-}
-unsigned int load_segment_limit_ok(unsigned int d)
-{
-	// XXX TODO
-	printf("load segment limit ok %X\n", d);
-	return 0;
-}
-
-unsigned int load_tr_segment_selector(unsigned int d)
-{
-	// XXX TODO
-	return 0;
-}
 
 // Return vm_mngr's exception flag value
 uint64_t get_exception_flag(vm_mngr_t* vm_mngr)
