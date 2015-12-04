@@ -335,16 +335,11 @@ class ir(object):
         for b in self.blocs.values():
             b.get_rw(regs_ids)
 
-    def ExprIsLabel(self, l):
-        #TODO : use expression helper
-        return isinstance(l, m2_expr.ExprId) and isinstance(l.name,
-                                                            asmbloc.asm_label)
-
     def sort_dst(self, todo, done):
         out = set()
         while todo:
             dst = todo.pop()
-            if self.ExprIsLabel(dst):
+            if asmbloc.expr_is_label(dst):
                 done.add(dst)
             elif isinstance(dst, m2_expr.ExprMem) or isinstance(dst, m2_expr.ExprInt):
                 done.add(dst)
@@ -401,7 +396,7 @@ class ir(object):
                 if isinstance(d, m2_expr.ExprInt):
                     d = m2_expr.ExprId(
                         self.symbol_pool.getby_offset_create(int(d.arg)))
-                if self.ExprIsLabel(d):
+                if asmbloc.expr_is_label(d):
                     if d.name in self.blocs or link_all is True:
                         self.g.add_edge(lbl, d.name)
 

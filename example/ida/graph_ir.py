@@ -56,7 +56,7 @@ class GraphMiasmIR(GraphViewer):
                 continue
             dst = ir_arch.dst_trackback(irbloc)
             for d in dst:
-                if not self.ir_arch.ExprIsLabel(d):
+                if not expr_is_label(d):
                     continue
 
                 d = d.name

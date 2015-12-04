@@ -3,6 +3,7 @@
 
 from miasm2.expression.expression import ExprAff, ExprOp, ExprId
 from miasm2.core.graph import DiGraph
+from miasm2.core.asmbloc import expr_is_label
 from miasm2.ir.ir import ir, irbloc
 from miasm2.ir.analysis import ira
 from miasm2.arch.x86.sem import ir_x86_16, ir_x86_32, ir_x86_64
@@ -46,7 +47,7 @@ class ir_a_x86_16(ir_x86_16, ira):
         if not l.is_subcall():
             return
         sub_call_dst = l.args[0]
-        if self.ExprIsLabel(sub_call_dst):
+        if expr_is_label(sub_call_dst):
             sub_call_dst = sub_call_dst.name
         for b in ir_blocs:
             l = b.lines[-1]
@@ -54,7 +55,7 @@ class ir_a_x86_16(ir_x86_16, ira):
             if not l.is_subcall():
                 continue
             sub_call_dst = l.args[0]
-            if self.ExprIsLabel(sub_call_dst):
+            if expr_is_label(sub_call_dst):
                 sub_call_dst = sub_call_dst.name
             lbl = bloc.get_next()
             new_lbl = self.gen_label()
