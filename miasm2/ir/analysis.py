@@ -14,6 +14,14 @@ log.addHandler(console_handler)
 log.setLevel(logging.WARNING)
 
 class ira:
+    """IR Analysis
+    This class provides higher level manipulations on IR, such as dead
+    instruction removals.
+
+    This class can be used as a common parent with `miasm2.ir.ir::ir` class.
+    For instance:
+        class ira_x86_16(ir_x86_16, ira)
+    """
 
     def ira_regs_ids(self):
         """Returns ids of all registers used in the IR"""
