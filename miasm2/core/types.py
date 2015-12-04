@@ -674,6 +674,7 @@ class Array(Type):
                 res.append(self.field_type.get(vm, addr + self.get_offset(i)))
             return res
         else:
+            idx = self._normalize_idx(idx)
             return self.field_type.get(vm, addr + self.get_offset(idx))
 
     def set_item(self, vm, addr, idx, item):
@@ -688,6 +689,7 @@ class Array(Type):
             for i, val in zip(xrange(idx.start, idx.stop, idx.step), item):
                 self.field_type.set(vm, addr + self.get_offset(i), val)
         else:
+            idx = self._normalize_idx(idx)
             self.field_type.set(vm, addr + self.get_offset(idx), item)
 
     def is_sized(self):
@@ -698,18 +700,21 @@ class Array(Type):
 
     def _normalize_idx(self, idx):
         # Noop for this type
-        if self.is_sized() and idx < 0:
-            return self.get_size() - idx
+        if self.is_sized():
+            if idx < 0:
+                idx = self.array_len + idx
+            self._check_bounds(idx)
         return idx
 
     def _normalize_slice(self, slice_):
         start = slice_.start if slice_.start is not None else 0
         stop = slice_.stop if slice_.stop is not None else self.get_size()
         step = slice_.step if slice_.step is not None else 1
+        start = self._normalize_idx(start)
+        stop = self._normalize_idx(stop)
         return slice(start, stop, step)
 
     def _check_bounds(self, idx):
-        idx = self._normalize_idx(idx)
         if not isinstance(idx, (int, long)):
             raise ValueError("index must be an int or a long")
         if idx < 0 or (self.is_sized() and idx >= self.size()):
@@ -722,7 +727,7 @@ class Array(Type):
             return MemArray
 
     def __repr__(self):
-        return "%r[%s]" % (self.field_type, self.array_len or "unsized")
+        return "[%r; %s]" % (self.field_type, self.array_len or "unsized")
 
     def __eq__(self, other):
         return self.__class__ == other.__class__ and \
@@ -899,6 +904,18 @@ class Str(Type):
         """This type is unsized."""
         raise ValueError("Str is unsized")
 
+    def value_size(self, py_str):
+        """Returns the in-memory size of a @py_str for this Str type (handles
+        encoding, i.e. will not return the same size for "utf16" and "ansi").
+        """
+        if self.enc == "ansi":
+            return len(py_str) + 1
+        elif self.enc == "utf16":
+            # FIXME: real encoding...
+            return len(py_str) * 2 + 2
+        else:
+            raise NotImplementedError("Only 'ansi' and 'utf16' are implemented")
+
     @property
     def enc(self):
         """This Str's encoding name (as a str)."""
@@ -992,11 +1009,7 @@ class MemType(object):
         global ALLOCATOR
         self._vm = vm
         if addr is None:
-            if ALLOCATOR is None:
-                raise ValueError("Cannot provide None address to MemType() if"
-                                 "%s.set_allocator has not been called."
-                                 % __name__)
-            self._addr = ALLOCATOR(vm, self.get_size())
+            self._addr = self.alloc(vm, self.get_size())
         else:
             self._addr = addr
         if type_ is not None:
@@ -1004,6 +1017,17 @@ class MemType(object):
         if self._type is None:
             raise ValueError("Subclass MemType and define cls._type or pass "
                              "a type to the constructor")
+
+    @classmethod
+    def alloc(cls, vm, size):
+        """Returns an allocated page of size @size if ALLOCATOR is set.
+        Raises ValueError otherwise.
+        """
+        if ALLOCATOR is None:
+            raise ValueError("Cannot provide None address to MemType() if"
+                             "%s.set_allocator has not been called."
+                             % __name__)
+        return ALLOCATOR(vm, size)
 
     def get_addr(self, field=None):
         """Return the address of this MemType or one of its fields.
@@ -1345,13 +1369,18 @@ class MemStr(MemValue):
         and provoke mem faults (analogous to strlen).
         """
         val = self.val
-        if self.get_type().enc == "ansi":
-            return len(val) + 1
-        elif self.get_type().enc == "utf16":
-            # FIXME: real encoding...
-            return len(val) * 2 + 2
-        else:
-            raise NotImplementedError("Only 'ansi' and 'utf16' are implemented")
+        return self.get_type().value_size(val)
+
+    @classmethod
+    def from_str(cls, vm, py_str):
+        """Allocates a MemStr with the global ALLOCATOR with value py_str.
+        Raises a ValueError if ALLOCATOR is not set.
+        """
+        size = cls._type.value_size(py_str)
+        addr = cls.alloc(vm, size)
+        memstr = cls(vm, addr)
+        memstr.val = py_str
+        return memstr
 
     def raw(self):
         raw = self._vm.get_mem(self.get_addr(), self.get_size())
