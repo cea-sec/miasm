@@ -172,6 +172,8 @@ class ir(object):
         self.sp = arch.getsp(attrib)
         self.arch = arch
         self.attrib = attrib
+        # Lazy structure
+        self._graph = None
 
     def instr2ir(self, l):
         ir_bloc_cur, ir_blocs_extra = self.get_ir(l)
@@ -421,14 +423,14 @@ class ir(object):
 
         return done
 
-    def gen_graph(self, link_all = True):
+    def _gen_graph(self, link_all = True):
         """
         Gen irbloc digraph
         @link_all: also gen edges to non present irblocs
         """
-        self.g = DiGraphIR(self.blocs)
+        self._graph = DiGraphIR(self.blocs)
         for lbl, b in self.blocs.items():
-            self.g.add_node(lbl)
+            self._graph.add_node(lbl)
             dst = self.dst_trackback(b)
             for d in dst:
                 if isinstance(d, m2_expr.ExprInt):
@@ -436,8 +438,12 @@ class ir(object):
                         self.symbol_pool.getby_offset_create(int(d.arg)))
                 if asmbloc.expr_is_label(d):
                     if d.name in self.blocs or link_all is True:
-                        self.g.add_edge(lbl, d.name)
+                        self._graph.add_edge(lbl, d.name)
 
+    @property
     def graph(self):
-        """Output the graphviz script"""
-        return self.g.dot()
+        """Get a DiGraph representation of current IR instance.
+        Lazy property, building the graph on-demand"""
+        if self._graph is None:
+            self._gen_graph()
+        return self._graph

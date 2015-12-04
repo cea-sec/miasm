@@ -136,9 +136,6 @@ for irb in ir_arch.blocs.values():
         for i, expr in enumerate(irs):
             irs[i] = m2_expr.ExprAff(expr_simp(expr.dst), expr_simp(expr.src))
 
-# Build the IRA Graph
-ir_arch.gen_graph()
-
 # Get settings
 settings = depGraphSettingsForm(ir_arch)
 settings.Execute()

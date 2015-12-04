@@ -61,12 +61,12 @@ class ira(ir):
 
         useful = set()
 
-        for node in self.g.nodes():
+        for node in self.graph.nodes():
             if node not in self.blocs:
                 continue
 
             block = self.blocs[node]
-            successors = self.g.successors(node)
+            successors = self.graph.successors(node)
             has_son = bool(successors)
             for p_son in successors:
                 if p_son not in self.blocs:
@@ -186,7 +186,7 @@ class ira(ir):
                       for key, value in irb.cur_reach[0].iteritems()}
 
         # Compute reach from predecessors
-        for n_pred in self.g.predecessors(irb.label):
+        for n_pred in self.graph.predecessors(irb.label):
             p_block = self.blocs[n_pred]
 
             # Handle each register definition
@@ -225,7 +225,7 @@ class ira(ir):
         analysis"""
 
         fixed = True
-        for node in self.g.nodes():
+        for node in self.graph.nodes():
             if node in self.blocs:
                 irb = self.blocs[node]
                 if (irb.cur_reach != irb.prev_reach or
@@ -241,13 +241,11 @@ class ira(ir):
 
         Source : Kennedy, K. (1979). A survey of data flow analysis techniques.
         IBM Thomas J. Watson Research Division, page 43
-
-        PRE: gen_graph()
         """
         fixed_point = False
         log.debug('iteration...')
         while not fixed_point:
-            for node in self.g.nodes():
+            for node in self.graph.nodes():
                 if node in self.blocs:
                     self.compute_reach_block(self.blocs[node])
             fixed_point = self._test_kill_reach_fix()
@@ -259,8 +257,6 @@ class ira(ir):
 
         Source : Kennedy, K. (1979). A survey of data flow analysis techniques.
         IBM Thomas J. Watson Research Division, page 43
-
-        PRE: gen_graph()
         """
         # Update r/w variables for all irblocs
         self.get_rw(self.ira_regs_ids())

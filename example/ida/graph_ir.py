@@ -138,8 +138,7 @@ for irb in ir_arch.blocs.values():
         for i, expr in enumerate(irs):
             irs[i] = ExprAff(expr_simp(expr.dst), expr_simp(expr.src))
 
-ir_arch.gen_graph()
-out = ir_arch.graph()
+out = ir_arch.graph.dot()
 open(os.path.join(tempfile.gettempdir(), 'graph.dot'), 'wb').write(out)
 
 
@@ -197,7 +196,6 @@ def get_modified_symbols(sb):
 def gen_bloc_data_flow_graph(ir_arch, in_str, ad):  # arch, attrib, pool_bin, bloc, symbol_pool):
     out_str = ""
 
-    ir_arch.gen_graph()
     # ir_arch.dead_simp()
 
     irbloc_0 = None

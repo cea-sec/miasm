@@ -21,6 +21,5 @@ for lbl, b in ir_arch.blocs.items():
         print 'read:   ', [str(x) for x in o_r]
         print 'written:', [str(x) for x in o_w]
         print
-ir_arch.gen_graph()
-g = ir_arch.graph()
-open('graph_instr.dot', 'w').write(g)
+
+open('graph_instr.dot', 'w').write(ir_arch.graph.dot())
