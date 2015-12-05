@@ -129,59 +129,94 @@ def indent(s, size=4):
     return ' '*size + ('\n' + ' '*size).join(s.split('\n'))
 
 
-# FIXME: copied from miasm2.os_dep.common and fixed
-def get_str_ansi(vm, addr, max_char=None):
-    """Get a null terminated ANSI encoded string from a VmMngr.
+# String generic getter/setter/len-er
+# TODO: make miasm2.os_dep.common and jitter ones use these ones
+
+def get_str(vm, addr, enc, max_char=None, end='\x00'):
+    """Get a @end (by default '\\x00') terminated @enc encoded string from a
+    VmMngr.
+
+    For example:
+        - get_str(vm, addr, "ascii") will read "foo\\x00" in memory and
+          return u"foo"
+        - get_str(vm, addr, "utf-16le") will read "f\\x00o\\x00o\\x00\\x00\\x00"
+          in memory and return u"foo" as well.
+
+    Setting @max_char=<n> and @end='' allows to read non null terminated strings
+    from memory.
 
     @vm: VmMngr instance
-    @max_char: max number of characters to get in memory
-    """
-    l = 0
-    tmp = addr
-    while ((max_char is None or l < max_char) and
-           vm.get_mem(tmp, 1) != "\x00"):
-        tmp += 1
-        l += 1
-    return vm.get_mem(addr, l).decode("latin1")
-
-
-# TODO: get_raw_str_utf16 for length calculus
-def get_str_utf16(vm, addr, max_char=None):
-    """Get a (double) null terminated utf16 little endian encoded string from
-    a VmMngr. This encoding is mainly used in Windows.
-
-    FIXME: the implementation do not work with codepoints that are encoded on
-    more than 2 bytes in utf16.
-
-    @vm: VmMngr instance
+    @addr: the address at which to read the string
+    @enc: the encoding of the string to read.
     @max_char: max number of bytes to get in memory
+    @end: the unencoded ending sequence of the string, by default "\\x00".
+        Unencoded here means that the actual ending sequence that this function
+        will look for is end.encode(enc), not directly @end.
     """
-    l = 0
-    tmp = addr
-    # TODO: test if fetching per page rather than 2 byte per 2 byte is worth it?
-    while ((max_char is None or l < max_char) and
-           vm.get_mem(tmp, 2) != "\x00\x00"):
-        tmp += 2
-        l += 2
-    s = vm.get_mem(addr, l)
-    return s.decode('utf-16le')
+    s = []
+    end_char= end.encode(enc)
+    step = len(end_char)
+    i = 0
+    while max_char is None or i < max_char:
+        c = vm.get_mem(addr + i, step)
+        if c == end_char:
+            break
+        s.append(c)
+        i += step
+    return ''.join(s).decode(enc)
 
+def raw_str(s, enc, end=u'\x00'):
+    """Returns a string representing @s as an @end (by default \\x00)
+    terminated @enc encoded string.
 
-def set_str_ansi(vm, addr, s):
-    """Encode a string to null terminated ascii/ansi and set it in a VmMngr
-    memory.
+    @s: the unicode str to serialize
+    @enc: the encoding to apply to @s and @end before serialization.
+    @end: the ending string/character to append to the string _before encoding_
+        and serialization (by default '\\x00')
+    """
+    return (s + end).encode(enc)
+
+def set_str(vm, addr, s, enc, end=u'\x00'):
+    """Encode a string to an @end (by default \\x00) terminated @enc encoded
+    string and set it in a VmMngr memory.
 
     @vm: VmMngr instance
     @addr: start address to serialize the string to
-        s: the str to serialize
+    @s: the unicode str to serialize
+    @enc: the encoding to apply to @s and @end before serialization.
+    @end: the ending string/character to append to the string _before encoding_
+        and serialization (by default '\\x00')
     """
-    vm.set_mem(addr, s + "\x00")
-
-
-def set_str_utf16(vm, addr, s):
-    """Same as set_str_ansi with (double) null terminated utf16 encoding."""
-    s = (s + '\x00').encode('utf-16le')
+    s = raw_str(s, enc, end=end)
     vm.set_mem(addr, s)
+
+def raw_len(py_unic_str, enc, end=u'\x00'):
+    """Returns the length in bytes of @py_unic_str in memory (once @end has been
+    added and the full str has been encoded). It returns exactly the room
+    necessary to call set_str with similar arguments.
+
+    @py_unic_str: the unicode str to work with
+    @enc: the encoding to encode @py_unic_str to
+    @end: the ending string/character to append to the string _before encoding_
+        (by default \\x00)
+    """
+    return len(raw_str(py_unic_str, enc))
+
+def enc_triplet(enc, max_char=None, end='\x00'):
+    """Returns a triplet of functions (get_str_enc, set_str_enc, raw_len_enc)
+    for a given encoding (as needed by Str to add an encoding). The prototypes
+    are:
+
+        - get_str_end: same as get_str without the @enc argument
+        - set_str_end: same as set_str without the @enc argument
+        - raw_len_enc: same as raw_len without the @enc argument
+    """
+    return (
+        lambda vm, addr, max_char=max_char, end=end: \
+                get_str(vm, addr, enc, max_char=max_char, end=end),
+        lambda vm, addr, s, end=end: set_str(vm, addr, s, enc, end=end),
+        lambda s, end=end: raw_len(s, enc, end=end),
+    )
 
 
 # Type classes
@@ -860,37 +895,77 @@ class Str(Type):
     """A string type that handles encoding. This type is unsized (no static
     size).
 
-    The @encoding is passed to the constructor, and is currently either null
-    terminated "ansi" (latin1) or (double) null terminated "utf16". Be aware
-    that the utf16 implementation is a bit buggy...
+    The @encoding is passed to the constructor, and is one of the keys of
+    Str.encodings, currently:
+        - ascii
+        - latin1
+        - ansi (= latin1)
+        - utf8 (= utf-8le)
+        - utf16 (= utf-16le, Windows UCS-2 compatible)
+    New encodings can be added with Str.add_encoding.
+    If an unknown encoding is passed to the constructor, Str will try to add it
+    to the available ones with Str.add_encoding.
 
     Mapped to MemStr.
     """
 
+    # Dict of {name: (getter, setter, raw_len)}
+    # Where:
+    #   - getter(vm, addr) -> unicode
+    #   - setter(vm, addr, unicode)
+    #   - raw_len(unicode_str) -> int (length of the str value one encoded in
+    #                                  memory)
+    # See enc_triplet()
+    #
+    # NOTE: this appears like it could be implemented only with
+    # (getter, raw_str), but this would cause trouble for length-prefixed str
+    # encoding (Pascal-style strings).
+    encodings = {
+        "ascii": enc_triplet("ascii"),
+        "latin1": enc_triplet("latin1"),
+        "ansi": enc_triplet("latin1"),
+        "utf8": enc_triplet("utf8"),
+        "utf16": enc_triplet("utf-16le"),
+    }
+
     def __init__(self, encoding="ansi"):
-        # TODO: encoding as lambda
-        if encoding not in ["ansi", "utf16"]:
-            raise NotImplementedError("Only 'ansi' and 'utf16' are implemented")
+        if encoding not in self.encodings:
+            self.add_encoding(encoding)
         self._enc = encoding
+
+    @classmethod
+    def add_encoding(cls, enc_name, str_enc=None, getter=None, setter=None,
+                     raw_len=None):
+        """Add an available Str encoding.
+
+        @enc_name: the name that will be used to designate this encoding in the
+            Str constructor
+        @str_end: (optional) the actual str encoding name if it differs from
+            @enc_name
+        @getter: (optional) func(vm, addr) -> unicode, to force usage of this
+            function to retrieve the str from memory
+        @setter: (optional) func(vm, addr, unicode), to force usage of this
+            function to set the str in memory
+        @raw_len: (optional) func(unicode_str) -> int (length of the str value
+            one encoded in memory), to force usage of this function to compute
+            the length of this string once in memory
+        """
+        default = enc_triplet(str_enc or enc_name)
+        actual = (
+            getter or default[0],
+            setter or default[1],
+            raw_len or default[2],
+        )
+        cls.encodings[enc_name] = actual
 
     def get(self, vm, addr):
         """Set the string value in memory"""
-        if self._enc == "ansi":
-            get_str = get_str_ansi
-        elif self._enc == "utf16":
-            get_str = get_str_utf16
-        else:
-            raise NotImplementedError("Only 'ansi' and 'utf16' are implemented")
+        get_str = self.encodings[self.enc][0]
         return get_str(vm, addr)
 
     def set(self, vm, addr, s):
         """Get the string value from memory"""
-        if self._enc == "ansi":
-            set_str = set_str_ansi
-        elif self._enc == "utf16":
-            set_str = set_str_utf16
-        else:
-            raise NotImplementedError("Only 'ansi' and 'utf16' are implemented")
+        set_str = self.encodings[self.enc][1]
         set_str(vm, addr, s)
 
     def size(self):
@@ -901,13 +976,8 @@ class Str(Type):
         """Returns the in-memory size of a @py_str for this Str type (handles
         encoding, i.e. will not return the same size for "utf16" and "ansi").
         """
-        if self.enc == "ansi":
-            return len(py_str) + 1
-        elif self.enc == "utf16":
-            # FIXME: real encoding...
-            return len(py_str) * 2 + 2
-        else:
-            raise NotImplementedError("Only 'ansi' and 'utf16' are implemented")
+        raw_len = self.encodings[self.enc][2]
+        return raw_len(py_str)
 
     @property
     def enc(self):
