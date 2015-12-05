@@ -262,7 +262,7 @@ class Type(object):
 
     def get(self, vm, addr):
         """Get the python value of a field from a VmMngr memory at @addr."""
-        raw = vm.get_mem(addr, self.size())
+        raw = vm.get_mem(addr, self.size)
         return self._unpack(raw)
 
     @property
@@ -306,12 +306,13 @@ class Type(object):
         """
         self._self_type = self_type
 
+    @property
     def size(self):
         """Return the size in bytes of the serialized version of this field"""
         raise NotImplementedError()
 
     def __len__(self):
-        return self.size()
+        return self.size
 
     def __neq__(self, other):
         return not self == other
@@ -332,6 +333,7 @@ class RawStruct(Type):
     def _unpack(self, raw_str):
         return struct.unpack(self._fmt, raw_str)
 
+    @property
     def size(self):
         return struct.calcsize(self._fmt)
 
@@ -517,7 +519,7 @@ class Struct(Type):
             # For reflexion
             field._set_self_type(self)
             self._fields_desc[name] = {"field": field, "offset": offset}
-            offset += field.size()
+            offset += field.size
 
     @property
     def fields(self):
@@ -549,8 +551,9 @@ class Struct(Type):
         offset = self.get_offset(name)
         field.set(vm, addr + offset, val)
 
+    @property
     def size(self):
-        return sum(field.size() for _, field in self.fields)
+        return sum(field.size for _, field in self.fields)
 
     def get_offset(self, field_name):
         """
@@ -609,8 +612,9 @@ class Union(Struct):
         """@field_list: a [(name, field)] list, see the class doc"""
         super(Union, self).__init__("union", field_list)
 
+    @property
     def size(self):
-        return max(field.size() for _, field in self.fields)
+        return max(field.size for _, field in self.fields)
 
     def get_offset(self, field_name):
         return 0
@@ -658,7 +662,7 @@ class Array(Type):
     def set(self, vm, addr, val):
         # MemSizedArray assignment
         if isinstance(val, MemSizedArray):
-            if val.array_len != self.array_len or len(val) != self.size():
+            if val.array_len != self.array_len or len(val) != self.size:
                 raise ValueError("Size mismatch in MemSizedArray assignment")
             raw = str(val)
             vm.set_mem(addr, raw)
@@ -670,7 +674,7 @@ class Array(Type):
             offset = 0
             for elt in val:
                 self.field_type.set(vm, addr + offset, elt)
-                offset += self.field_type.size()
+                offset += self.field_type.size
 
         else:
             raise RuntimeError(
@@ -679,6 +683,7 @@ class Array(Type):
     def get(self, vm, addr):
         return self.lval(vm, addr)
 
+    @property
     def size(self):
         if self.is_sized():
             return self.get_offset(self.array_len)
@@ -688,7 +693,7 @@ class Array(Type):
 
     def get_offset(self, idx):
         """Returns the offset of the item at index @idx."""
-        return self.field_type.size() * idx
+        return self.field_type.size * idx
 
     def get_item(self, vm, addr, idx):
         """Get the item(s) at index @idx.
@@ -745,7 +750,7 @@ class Array(Type):
     def _check_bounds(self, idx):
         if not isinstance(idx, (int, long)):
             raise ValueError("index must be an int or a long")
-        if idx < 0 or (self.is_sized() and idx >= self.size()):
+        if idx < 0 or (self.is_sized() and idx >= self.size):
             raise IndexError("Index %s out of bounds" % idx)
 
     def _get_pinned_base_class(self):
@@ -786,7 +791,7 @@ class Bits(Type):
     def set(self, vm, addr, val):
         val_mask = (1 << self._bits) - 1
         val_shifted = (val & val_mask) << self._bit_offset
-        num_size = self._num.size() * 8
+        num_size = self._num.size * 8
 
         full_num_mask = (1 << num_size) - 1
         num_mask = (~(val_mask << self._bit_offset)) & full_num_mask
@@ -801,8 +806,9 @@ class Bits(Type):
         res_val = (num_val >> self._bit_offset) & val_mask
         return res_val
 
+    @property
     def size(self):
-        return self._num.size()
+        return self._num.size
 
     @property
     def bit_size(self):
@@ -868,7 +874,7 @@ class BitField(Union):
         for name, bits in bit_list:
             fields.append((name, Bits(self._num, bits, offset)))
             offset += bits
-        if offset > self._num.size() * 8:
+        if offset > self._num.size == 8:
             raise ValueError("sum of bit lengths is > to the backing num size")
         super(BitField, self).__init__(fields)
 
@@ -968,6 +974,7 @@ class Str(Type):
         set_str = self.encodings[self.enc][1]
         set_str(vm, addr, s)
 
+    @property
     def size(self):
         """This type is unsized."""
         raise ValueError("Str is unsized")
@@ -1130,7 +1137,7 @@ class MemType(object):
         """Return the static size of this type. By default, it is the size
         of the underlying Type.
         """
-        return cls._type.size()
+        return cls._type.size
 
     def get_size(self):
         """Return the dynamic size of this structure (e.g. the size of an
@@ -1518,7 +1525,7 @@ class MemSizedArray(MemArray):
         return self.get_type().array_len
 
     def get_size(self):
-        return self.get_type().size()
+        return self.get_type().size
 
     def __iter__(self):
         for i in xrange(self.get_type().array_len):

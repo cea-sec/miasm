@@ -171,7 +171,7 @@ link.push(DataArray(vm))
 assert link.size == 3
 # If you get it directly from the VM, it is updated as well
 raw_size = vm.get_mem(link.get_addr("size"), link.get_type()
-                                                 .get_field_type("size").size())
+                                                 .get_field_type("size").size)
 assert raw_size == '\x03\x00\x00\x00'
 
 print "The linked list just built:"

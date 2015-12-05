@@ -160,11 +160,11 @@ memarray = Array(Num("I")).lval(jitter.vm, alloc_addr)
 memarray[0] = 0x02
 assert memarray[0] == 0x02
 assert jitter.vm.get_mem(memarray.get_addr(),
-                         Num("I").size()) == '\x02\x00\x00\x00'
+                         Num("I").size) == '\x02\x00\x00\x00'
 memarray[2] = 0xbbbbbbbb
 assert memarray[2] == 0xbbbbbbbb
-assert jitter.vm.get_mem(memarray.get_addr() + 2 * Num("I").size(),
-                         Num("I").size()) == '\xbb\xbb\xbb\xbb'
+assert jitter.vm.get_mem(memarray.get_addr() + 2 * Num("I").size,
+                         Num("I").size) == '\xbb\xbb\xbb\xbb'
 try:
     s = str(memarray)
     assert False, "Should raise"
@@ -190,7 +190,7 @@ except ValueError:
 
 memsarray = Array(Num("I"), 10).lval(jitter.vm)
 # And Array(type, size).lval generates statically sized types
-assert memsarray.sizeof() == Num("I").size() * 10
+assert memsarray.sizeof() == Num("I").size * 10
 memsarray.memset('\xcc')
 assert memsarray[0] == 0xcccccccc
 assert len(memsarray) == 10 * 4
@@ -356,7 +356,7 @@ class UnhealthyIdeas(MemStruct):
         ("pppself", Ptr("I", Ptr("I", Ptr("I", Self())))),
     ]
 
-p_size = Ptr("I", Void()).size()
+p_size = Ptr("I", Void()).size
 
 ideas = UnhealthyIdeas(jitter.vm)
 ideas.memset()
