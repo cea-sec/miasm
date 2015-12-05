@@ -486,6 +486,10 @@ assert Array(Num("I")).lval != Array(Num("B")).lval
 assert Array(Num("B"), 20).lval == Array(Num("B"), 20).lval
 assert Array(Num("B"), 19).lval != Array(Num("B"), 20).lval
 
+# MemStruct unicity test
+assert MyStruct == Struct(MyStruct.__name__, MyStruct.fields).lval
+assert MyStruct.get_type() == Struct(MyStruct.__name__, MyStruct.fields)
+
 
 # Repr tests
 
