@@ -22,16 +22,16 @@
 
 import miasm2.expression.expression as m2_expr
 from miasm2.expression.expression_helper import get_missing_interval
-from miasm2.core import asmbloc
 from miasm2.expression.simplifications import expr_simp
-from miasm2.core.asmbloc import asm_symbol_pool
+from miasm2.core.asmbloc import asm_symbol_pool, expr_is_label, asm_label, \
+    asm_bloc
 from miasm2.core.graph import DiGraph
 
 
 class irbloc(object):
 
     def __init__(self, label, irs, lines = []):
-        assert(isinstance(label, asmbloc.asm_label))
+        assert(isinstance(label, asm_label))
         self.label = label
         self.irs = irs
         self.lines = lines
@@ -184,13 +184,13 @@ class ir(object):
         @ad: an ExprId/ExprInt/label/int"""
 
         if (isinstance(ad, m2_expr.ExprId) and
-            isinstance(ad.name, asmbloc.asm_label)):
+            isinstance(ad.name, asm_label)):
             ad = ad.name
         if isinstance(ad, m2_expr.ExprInt):
             ad = int(ad.arg)
         if type(ad) in [int, long]:
             ad = self.symbol_pool.getby_offset_create(ad)
-        elif isinstance(ad, asmbloc.asm_label):
+        elif isinstance(ad, asm_label):
             ad = self.symbol_pool.getby_name_create(ad.name)
         return ad
 
@@ -202,7 +202,7 @@ class ir(object):
         return self.blocs.get(label, None)
 
     def add_instr(self, l, ad=0, gen_pc_updt = False):
-        b = asmbloc.asm_bloc(l)
+        b = asm_bloc(l)
         b.lines = [l]
         self.add_bloc(b, gen_pc_updt)
 
@@ -382,7 +382,7 @@ class ir(object):
         out = set()
         while todo:
             dst = todo.pop()
-            if asmbloc.expr_is_label(dst):
+            if expr_is_label(dst):
                 done.add(dst)
             elif isinstance(dst, m2_expr.ExprMem) or isinstance(dst, m2_expr.ExprInt):
                 done.add(dst)
@@ -436,9 +436,8 @@ class ir(object):
                 if isinstance(d, m2_expr.ExprInt):
                     d = m2_expr.ExprId(
                         self.symbol_pool.getby_offset_create(int(d.arg)))
-                if asmbloc.expr_is_label(d):
-                    if d.name in self.blocs or link_all is True:
-                        self._graph.add_edge(lbl, d.name)
+                if expr_is_label(d):
+                    self._graph.add_edge(lbl, d.name)
 
     @property
     def graph(self):
