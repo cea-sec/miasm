@@ -343,6 +343,8 @@ class ir(object):
 
             self.blocs[irb.label] = irb
 
+        # Forget graph if any
+        self._graph = None
 
     def get_instr_label(self, instr):
         """Returns the label associated to an instruction
