@@ -423,13 +423,12 @@ class ir(object):
 
         return done
 
-    def _gen_graph(self, link_all = True):
+    def _gen_graph(self):
         """
         Gen irbloc digraph
-        @link_all: also gen edges to non present irblocs
         """
         self._graph = DiGraphIR(self.blocs)
-        for lbl, b in self.blocs.items():
+        for lbl, b in self.blocs.iteritems():
             self._graph.add_node(lbl)
             dst = self.dst_trackback(b)
             for d in dst:
