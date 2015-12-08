@@ -24,7 +24,6 @@ import miasm2.expression.expression as m2_expr
 from miasm2.expression.expression_helper import get_missing_interval
 from miasm2.core import asmbloc
 from miasm2.expression.simplifications import expr_simp
-from miasm2.core.asmbloc import asm_symbol_pool
 
 
 class irbloc(object):
