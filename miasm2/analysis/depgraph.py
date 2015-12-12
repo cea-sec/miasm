@@ -686,7 +686,6 @@ class DependencyGraph(object):
     def __init__(self, ira, implicit=False, apply_simp=True, follow_mem=True,
                  follow_call=True):
         """Create a DependencyGraph linked to @ira
-        The IRA graph must have been computed
 
         @ira: IRAnalysis instance
         @implicit: (optional) Imply implicit dependencies
@@ -701,9 +700,6 @@ class DependencyGraph(object):
         self._implicit = implicit
         self._step_counter = itertools.count()
         self._current_step = next(self._step_counter)
-
-        # The IRA graph must be computed
-        assert hasattr(self._ira, 'g')
 
         # Create callback filters. The order is relevant.
         self._cb_follow = []
@@ -892,7 +888,7 @@ class DependencyGraph(object):
     def _get_previousblocks(self, label):
         """Return an iterator on predecessors blocks of @label, with their
         lengths"""
-        preds = self._ira.g.predecessors_iter(label)
+        preds = self._ira.graph.predecessors_iter(label)
         for pred_label in preds:
             length = len(self._get_irs(pred_label))
             yield (pred_label, length)

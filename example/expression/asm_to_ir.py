@@ -45,13 +45,10 @@ for lbl, b in ir_arch.blocs.items():
     print b
 
 # Dead propagation
-ir_arch.gen_graph()
-out = ir_arch.graph()
-open('graph.dot', 'w').write(out)
+open('graph.dot', 'w').write(ir_arch.graph.dot())
 print '*' * 80
 ir_arch.dead_simp()
-out2 = ir_arch.graph()
-open('graph2.dot', 'w').write(out2)
+open('graph2.dot', 'w').write(ir_arch.graph.dot())
 
 # Display new IR
 print 'new ir blocs'

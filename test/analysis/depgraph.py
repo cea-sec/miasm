@@ -76,13 +76,13 @@ class Arch(object):
         return SP
 
 
-class IRATest(ir, ira):
+class IRATest(ira):
 
     """Fake IRA class for tests"""
 
     def __init__(self, symbol_pool=None):
         arch = Arch()
-        ir.__init__(self, arch, 32, symbol_pool)
+        super(IRATest, self).__init__(arch, 32, symbol_pool)
         self.IRDst = PC
         self.ret_reg = R
 
@@ -206,8 +206,8 @@ G1_IRB0 = gen_irbloc(LBL0, [[ExprAff(C, CST1)]])
 G1_IRB1 = gen_irbloc(LBL1, [[ExprAff(B, C)]])
 G1_IRB2 = gen_irbloc(LBL2, [[ExprAff(A, B)]])
 
-G1_IRA.g.add_uniq_edge(G1_IRB0.label, G1_IRB1.label)
-G1_IRA.g.add_uniq_edge(G1_IRB1.label, G1_IRB2.label)
+G1_IRA.graph.add_uniq_edge(G1_IRB0.label, G1_IRB1.label)
+G1_IRA.graph.add_uniq_edge(G1_IRB1.label, G1_IRB2.label)
 
 G1_IRA.blocs = dict([(irb.label, irb) for irb in [G1_IRB0, G1_IRB1, G1_IRB2]])
 
@@ -220,8 +220,8 @@ G2_IRB0 = gen_irbloc(LBL0, [[ExprAff(C, CST1)]])
 G2_IRB1 = gen_irbloc(LBL1, [[ExprAff(B, CST2)]])
 G2_IRB2 = gen_irbloc(LBL2, [[ExprAff(A, B + C)]])
 
-G2_IRA.g.add_uniq_edge(G2_IRB0.label, G2_IRB1.label)
-G2_IRA.g.add_uniq_edge(G2_IRB1.label, G2_IRB2.label)
+G2_IRA.graph.add_uniq_edge(G2_IRB0.label, G2_IRB1.label)
+G2_IRA.graph.add_uniq_edge(G2_IRB1.label, G2_IRB2.label)
 
 G2_IRA.blocs = dict([(irb.label, irb) for irb in [G2_IRB0, G2_IRB1, G2_IRB2]])
 
@@ -236,10 +236,10 @@ G3_IRB1 = gen_irbloc(LBL1, [[ExprAff(B, CST2)]])
 G3_IRB2 = gen_irbloc(LBL2, [[ExprAff(B, CST3)]])
 G3_IRB3 = gen_irbloc(LBL3, [[ExprAff(A, B + C)]])
 
-G3_IRA.g.add_uniq_edge(G3_IRB0.label, G3_IRB1.label)
-G3_IRA.g.add_uniq_edge(G3_IRB0.label, G3_IRB2.label)
-G3_IRA.g.add_uniq_edge(G3_IRB1.label, G3_IRB3.label)
-G3_IRA.g.add_uniq_edge(G3_IRB2.label, G3_IRB3.label)
+G3_IRA.graph.add_uniq_edge(G3_IRB0.label, G3_IRB1.label)
+G3_IRA.graph.add_uniq_edge(G3_IRB0.label, G3_IRB2.label)
+G3_IRA.graph.add_uniq_edge(G3_IRB1.label, G3_IRB3.label)
+G3_IRA.graph.add_uniq_edge(G3_IRB2.label, G3_IRB3.label)
 
 G3_IRA.blocs = dict([(irb.label, irb) for irb in [G3_IRB0, G3_IRB1,
                                                   G3_IRB2, G3_IRB3]])
@@ -257,9 +257,9 @@ G4_IRB1 = gen_irbloc(LBL1, [[ExprAff(C, C + CST2)],
 
 G4_IRB2 = gen_irbloc(LBL2, [[ExprAff(A, B)]])
 
-G4_IRA.g.add_uniq_edge(G4_IRB0.label, G4_IRB1.label)
-G4_IRA.g.add_uniq_edge(G4_IRB1.label, G4_IRB2.label)
-G4_IRA.g.add_uniq_edge(G4_IRB1.label, G4_IRB1.label)
+G4_IRA.graph.add_uniq_edge(G4_IRB0.label, G4_IRB1.label)
+G4_IRA.graph.add_uniq_edge(G4_IRB1.label, G4_IRB2.label)
+G4_IRA.graph.add_uniq_edge(G4_IRB1.label, G4_IRB1.label)
 
 G4_IRA.blocs = dict([(irb.label, irb) for irb in [G4_IRB0, G4_IRB1, G4_IRB2]])
 
@@ -277,9 +277,9 @@ G5_IRB1 = gen_irbloc(LBL1, [[ExprAff(B, B + CST2)],
 
 G5_IRB2 = gen_irbloc(LBL2, [[ExprAff(A, B)]])
 
-G5_IRA.g.add_uniq_edge(G5_IRB0.label, G5_IRB1.label)
-G5_IRA.g.add_uniq_edge(G5_IRB1.label, G5_IRB2.label)
-G5_IRA.g.add_uniq_edge(G5_IRB1.label, G5_IRB1.label)
+G5_IRA.graph.add_uniq_edge(G5_IRB0.label, G5_IRB1.label)
+G5_IRA.graph.add_uniq_edge(G5_IRB1.label, G5_IRB2.label)
+G5_IRA.graph.add_uniq_edge(G5_IRB1.label, G5_IRB1.label)
 
 G5_IRA.blocs = dict([(irb.label, irb) for irb in [G5_IRB0, G5_IRB1, G5_IRB2]])
 
@@ -291,8 +291,8 @@ G6_IRA.g = GraphTest(G6_IRA)
 G6_IRB0 = gen_irbloc(LBL0, [[ExprAff(B, CST1)]])
 G6_IRB1 = gen_irbloc(LBL1, [[ExprAff(A, B)]])
 
-G6_IRA.g.add_uniq_edge(G6_IRB0.label, G6_IRB1.label)
-G6_IRA.g.add_uniq_edge(G6_IRB1.label, G6_IRB1.label)
+G6_IRA.graph.add_uniq_edge(G6_IRB0.label, G6_IRB1.label)
+G6_IRA.graph.add_uniq_edge(G6_IRB1.label, G6_IRB1.label)
 
 G6_IRA.blocs = dict([(irb.label, irb) for irb in [G6_IRB0, G6_IRB1]])
 
@@ -305,9 +305,9 @@ G7_IRB0 = gen_irbloc(LBL0, [[ExprAff(C, CST1)]])
 G7_IRB1 = gen_irbloc(LBL1, [[ExprAff(B, C)], [ExprAff(A, B)]])
 G7_IRB2 = gen_irbloc(LBL2, [[ExprAff(D, A)]])
 
-G7_IRA.g.add_uniq_edge(G7_IRB0.label, G7_IRB1.label)
-G7_IRA.g.add_uniq_edge(G7_IRB1.label, G7_IRB1.label)
-G7_IRA.g.add_uniq_edge(G7_IRB1.label, G7_IRB2.label)
+G7_IRA.graph.add_uniq_edge(G7_IRB0.label, G7_IRB1.label)
+G7_IRA.graph.add_uniq_edge(G7_IRB1.label, G7_IRB1.label)
+G7_IRA.graph.add_uniq_edge(G7_IRB1.label, G7_IRB2.label)
 
 G7_IRA.blocs = dict([(irb.label, irb) for irb in [G7_IRB0, G7_IRB1, G7_IRB2]])
 
@@ -320,9 +320,9 @@ G8_IRB0 = gen_irbloc(LBL0, [[ExprAff(C, CST1)]])
 G8_IRB1 = gen_irbloc(LBL1, [[ExprAff(B, C)], [ExprAff(C, D)]])
 G8_IRB2 = gen_irbloc(LBL2, [[ExprAff(A, B)]])
 
-G8_IRA.g.add_uniq_edge(G8_IRB0.label, G8_IRB1.label)
-G8_IRA.g.add_uniq_edge(G8_IRB1.label, G8_IRB1.label)
-G8_IRA.g.add_uniq_edge(G8_IRB1.label, G8_IRB2.label)
+G8_IRA.graph.add_uniq_edge(G8_IRB0.label, G8_IRB1.label)
+G8_IRA.graph.add_uniq_edge(G8_IRB1.label, G8_IRB1.label)
+G8_IRA.graph.add_uniq_edge(G8_IRB1.label, G8_IRB2.label)
 
 G8_IRA.blocs = dict([(irb.label, irb) for irb in [G8_IRB0, G8_IRB1, G8_IRB2]])
 
@@ -336,8 +336,8 @@ G10_IRA.g = GraphTest(G10_IRA)
 G10_IRB1 = gen_irbloc(LBL1, [[ExprAff(B, B + CST2)]])
 G10_IRB2 = gen_irbloc(LBL2, [[ExprAff(A, B)]])
 
-G10_IRA.g.add_uniq_edge(G10_IRB1.label, G10_IRB2.label)
-G10_IRA.g.add_uniq_edge(G10_IRB1.label, G10_IRB1.label)
+G10_IRA.graph.add_uniq_edge(G10_IRB1.label, G10_IRB2.label)
+G10_IRA.graph.add_uniq_edge(G10_IRB1.label, G10_IRB1.label)
 
 G10_IRA.blocs = dict([(irb.label, irb) for irb in [G10_IRB1, G10_IRB2]])
 
@@ -352,8 +352,8 @@ G11_IRB1 = gen_irbloc(LBL1, [[ExprAff(A, B),
                               ExprAff(B, A)]])
 G11_IRB2 = gen_irbloc(LBL2, [[ExprAff(A, A - B)]])
 
-G11_IRA.g.add_uniq_edge(G11_IRB0.label, G11_IRB1.label)
-G11_IRA.g.add_uniq_edge(G11_IRB1.label, G11_IRB2.label)
+G11_IRA.graph.add_uniq_edge(G11_IRB0.label, G11_IRB1.label)
+G11_IRA.graph.add_uniq_edge(G11_IRB1.label, G11_IRB2.label)
 
 G11_IRA.blocs = dict([(irb.label, irb)
                      for irb in [G11_IRB0, G11_IRB1, G11_IRB2]])
@@ -367,9 +367,9 @@ G12_IRB0 = gen_irbloc(LBL0, [[ExprAff(B, CST1)]])
 G12_IRB1 = gen_irbloc(LBL1, [[ExprAff(A, B)], [ExprAff(B, B + CST2)]])
 G12_IRB2 = gen_irbloc(LBL2, [[ExprAff(B, A)]])
 
-G12_IRA.g.add_uniq_edge(G12_IRB0.label, G12_IRB1.label)
-G12_IRA.g.add_uniq_edge(G12_IRB1.label, G12_IRB2.label)
-G12_IRA.g.add_uniq_edge(G12_IRB1.label, G12_IRB1.label)
+G12_IRA.graph.add_uniq_edge(G12_IRB0.label, G12_IRB1.label)
+G12_IRA.graph.add_uniq_edge(G12_IRB1.label, G12_IRB2.label)
+G12_IRA.graph.add_uniq_edge(G12_IRB1.label, G12_IRB1.label)
 
 G12_IRA.blocs = dict([(irb.label, irb) for irb in [G12_IRB0, G12_IRB1,
                                                    G12_IRB2]])
@@ -396,10 +396,10 @@ G13_IRB2 = gen_irbloc(LBL2, [[ExprAff(B, A + CST3)], [ExprAff(A, B + CST3)],
 
 G13_IRB3 = gen_irbloc(LBL3, [[ExprAff(R, C)]])
 
-G13_IRA.g.add_uniq_edge(G13_IRB0.label, G13_IRB1.label)
-G13_IRA.g.add_uniq_edge(G13_IRB1.label, G13_IRB2.label)
-G13_IRA.g.add_uniq_edge(G13_IRB2.label, G13_IRB1.label)
-G13_IRA.g.add_uniq_edge(G13_IRB1.label, G13_IRB3.label)
+G13_IRA.graph.add_uniq_edge(G13_IRB0.label, G13_IRB1.label)
+G13_IRA.graph.add_uniq_edge(G13_IRB1.label, G13_IRB2.label)
+G13_IRA.graph.add_uniq_edge(G13_IRB2.label, G13_IRB1.label)
+G13_IRA.graph.add_uniq_edge(G13_IRB1.label, G13_IRB3.label)
 
 G13_IRA.blocs = dict([(irb.label, irb) for irb in [G13_IRB0, G13_IRB1,
                                                    G13_IRB2, G13_IRB3]])
@@ -427,10 +427,10 @@ G14_IRB2 = gen_irbloc(LBL2, [[ExprAff(D, A)],
 
 G14_IRB3 = gen_irbloc(LBL3, [[ExprAff(R, D + B)]])
 
-G14_IRA.g.add_uniq_edge(G14_IRB0.label, G14_IRB1.label)
-G14_IRA.g.add_uniq_edge(G14_IRB1.label, G14_IRB2.label)
-G14_IRA.g.add_uniq_edge(G14_IRB2.label, G14_IRB1.label)
-G14_IRA.g.add_uniq_edge(G14_IRB1.label, G14_IRB3.label)
+G14_IRA.graph.add_uniq_edge(G14_IRB0.label, G14_IRB1.label)
+G14_IRA.graph.add_uniq_edge(G14_IRB1.label, G14_IRB2.label)
+G14_IRA.graph.add_uniq_edge(G14_IRB2.label, G14_IRB1.label)
+G14_IRA.graph.add_uniq_edge(G14_IRB1.label, G14_IRB3.label)
 
 G14_IRA.blocs = dict([(irb.label, irb) for irb in [G14_IRB0, G14_IRB1,
                                                    G14_IRB2, G14_IRB3]])
@@ -446,9 +446,9 @@ G15_IRB1 = gen_irbloc(LBL1, [[ExprAff(D, A + B)],
                              [ExprAff(B, C)]])
 G15_IRB2 = gen_irbloc(LBL2, [[ExprAff(R, B)]])
 
-G15_IRA.g.add_uniq_edge(G15_IRB0.label, G15_IRB1.label)
-G15_IRA.g.add_uniq_edge(G15_IRB1.label, G15_IRB2.label)
-G15_IRA.g.add_uniq_edge(G15_IRB1.label, G15_IRB1.label)
+G15_IRA.graph.add_uniq_edge(G15_IRB0.label, G15_IRB1.label)
+G15_IRA.graph.add_uniq_edge(G15_IRB1.label, G15_IRB2.label)
+G15_IRA.graph.add_uniq_edge(G15_IRB1.label, G15_IRB1.label)
 
 G15_IRA.blocs = dict([(irb.label, irb) for irb in [G15_IRB0, G15_IRB1,
                                                    G15_IRB2]])
@@ -465,14 +465,14 @@ G16_IRB3 = gen_irbloc(LBL3, [[ExprAff(R, D)]])
 G16_IRB4 = gen_irbloc(LBL4, [[ExprAff(R, A)]])
 G16_IRB5 = gen_irbloc(LBL5, [[ExprAff(R, A)]])
 
-G16_IRA.g.add_uniq_edge(G16_IRB0.label, G16_IRB1.label)
-G16_IRA.g.add_uniq_edge(G16_IRB1.label, G16_IRB2.label)
-G16_IRA.g.add_uniq_edge(G16_IRB2.label, G16_IRB1.label)
-G16_IRA.g.add_uniq_edge(G16_IRB1.label, G16_IRB3.label)
-G16_IRA.g.add_uniq_edge(G16_IRB3.label, G16_IRB1.label)
-G16_IRA.g.add_uniq_edge(G16_IRB1.label, G16_IRB4.label)
-G16_IRA.g.add_uniq_edge(G16_IRB4.label, G16_IRB1.label)
-G16_IRA.g.add_uniq_edge(G16_IRB1.label, G16_IRB5.label)
+G16_IRA.graph.add_uniq_edge(G16_IRB0.label, G16_IRB1.label)
+G16_IRA.graph.add_uniq_edge(G16_IRB1.label, G16_IRB2.label)
+G16_IRA.graph.add_uniq_edge(G16_IRB2.label, G16_IRB1.label)
+G16_IRA.graph.add_uniq_edge(G16_IRB1.label, G16_IRB3.label)
+G16_IRA.graph.add_uniq_edge(G16_IRB3.label, G16_IRB1.label)
+G16_IRA.graph.add_uniq_edge(G16_IRB1.label, G16_IRB4.label)
+G16_IRA.graph.add_uniq_edge(G16_IRB4.label, G16_IRB1.label)
+G16_IRA.graph.add_uniq_edge(G16_IRB1.label, G16_IRB5.label)
 
 G16_IRA.blocs = dict([(irb.label, irb) for irb in [G16_IRB0, G16_IRB1,
                                                    G16_IRB2, G16_IRB3,
@@ -489,8 +489,8 @@ G17_IRB1 = gen_irbloc(LBL1, [[ExprAff(A, D),
                               ExprAff(B, D)]])
 G17_IRB2 = gen_irbloc(LBL2, [[ExprAff(A, A - B)]])
 
-G17_IRA.g.add_uniq_edge(G17_IRB0.label, G17_IRB1.label)
-G17_IRA.g.add_uniq_edge(G17_IRB1.label, G17_IRB2.label)
+G17_IRA.graph.add_uniq_edge(G17_IRB0.label, G17_IRB1.label)
+G17_IRA.graph.add_uniq_edge(G17_IRB1.label, G17_IRB2.label)
 
 G17_IRA.blocs = dict([(irb.label, irb) for irb in [G17_IRB0, G17_IRB1,
                                                    G17_IRB2]])
@@ -1116,7 +1116,7 @@ for test_nb, test in enumerate([(G1_IRA, G1_INPUT, G1_OUTPUT),
     print "[+] Test", test_nb + 1
     g_ira, (depnodes, heads), g_test_output = test
 
-    open("graph_%02d.dot" % (test_nb + 1), "w").write(g_ira.g.dot())
+    open("graph_%02d.dot" % (test_nb + 1), "w").write(g_ira.graph.dot())
 
     # Different options
     suffix_key_list = ["", "_nosimp", "_nomem", "_nocall",

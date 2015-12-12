@@ -150,7 +150,7 @@ def inter_bloc_flow_link(ir_arch, flow_graph, todo, link_exec_to_data):
     x_nodes = tuple(sorted(list(irb.dst.get_r())))
 
     todo = set()
-    for lbl_dst in ir_arch.g.successors(irb.label):
+    for lbl_dst in ir_arch.graph.successors(irb.label):
         todo.add((lbl_dst, tuple(current_nodes.items()), x_nodes))
 
     # pp(('OUT', lbl, [(str(x[0]), str(x[1])) for x in current_nodes.items()]))
@@ -166,7 +166,7 @@ def create_implicit_flow(ir_arch, flow_graph):
     while todo:
         lbl = todo.pop()
         irb = ir_arch.blocs[lbl]
-        for lbl_son in ir_arch.g.successors(irb.label):
+        for lbl_son in ir_arch.graph.successors(irb.label):
             if not lbl_son in ir_arch.blocs:
                 print "cannot find bloc!!", lbl
                 continue
@@ -189,7 +189,7 @@ def create_implicit_flow(ir_arch, flow_graph):
                     irb.in_nodes[n_r] = irb.label, 0, n_r
                 node_n_r = irb.in_nodes[n_r]
                 # print "###", node_n_r
-                for lbl_p in ir_arch.g.predecessors(irb.label):
+                for lbl_p in ir_arch.graph.predecessors(irb.label):
                     todo.add(lbl_p)
 
                 flow_graph.add_uniq_edge(node_n_r, node_n_w)

@@ -114,7 +114,6 @@ def gen_bloc_data_flow_graph(ir_arch, ad, block_flow_cb):
     for irbloc in ir_arch.blocs.values():
         print irbloc
 
-    ir_arch.gen_graph()
     ir_arch.dead_simp()
 
     irbloc_0 = None

@@ -337,13 +337,15 @@ class ExampleDisasmFull(ExampleDisassembler):
     """DisasmFull specificities:
     - script: disasm/full.py
     - flags: -g -s
-    - @products: graph_execflow.dot, graph_irflow.dot, lines.dot, out.dot
+    - @products: graph_execflow.dot, graph_irflow.dot, graph_irflow_raw.dot,
+                 lines.dot, out.dot
     """
 
     def __init__(self, *args, **kwargs):
         super(ExampleDisasmFull, self).__init__(*args, **kwargs)
         self.command_line = ["full.py", "-g", "-s", "-m"] + self.command_line
-        self.products += ["graph_execflow.dot", "graph_irflow.dot", "lines.dot"]
+        self.products += ["graph_execflow.dot", "graph_irflow.dot",
+                          "graph_irflow_raw.dot", "lines.dot"]
 
 
 testset += ExampleDisasmFull(["arml", Example.get_sample("demo_arm_l.bin"),

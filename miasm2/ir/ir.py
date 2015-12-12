@@ -22,15 +22,16 @@
 
 import miasm2.expression.expression as m2_expr
 from miasm2.expression.expression_helper import get_missing_interval
-from miasm2.core import asmbloc
 from miasm2.expression.simplifications import expr_simp
-from miasm2.core.asmbloc import asm_symbol_pool
+from miasm2.core.asmbloc import asm_symbol_pool, expr_is_label, asm_label, \
+    asm_bloc
+from miasm2.core.graph import DiGraph
 
 
 class irbloc(object):
 
     def __init__(self, label, irs, lines = []):
-        assert(isinstance(label, asmbloc.asm_label))
+        assert(isinstance(label, asm_label))
         self.label = label
         self.irs = irs
         self.lines = lines
@@ -119,6 +120,47 @@ class irbloc(object):
         return "\n".join(o)
 
 
+class DiGraphIR(DiGraph):
+    """DiGraph for IR instances"""
+
+    def __init__(self, blocks, *args, **kwargs):
+        """Instanciate a DiGraphIR
+        @blocks: IR blocks
+        """
+        self._blocks = blocks
+        super(DiGraphIR, self).__init__(*args, **kwargs)
+
+    def dot(self):
+        """Output the graphviz script"""
+        out = """
+    digraph asm_graph {
+    size="80,50";
+    node [
+    fontsize = "16",
+    shape = "box"
+    ];
+        """
+        all_lbls = {}
+        for lbl in self.nodes():
+            if lbl not in self._blocks:
+                continue
+            irb = self._blocks[lbl]
+            ir_txt = [str(lbl)]
+            for irs in irb.irs:
+                for l in irs:
+                    ir_txt.append(str(l))
+                ir_txt.append("")
+            ir_txt.append("")
+            all_lbls[hash(lbl)] = "\l\\\n".join(ir_txt)
+        for l, v in all_lbls.items():
+            out += '%s [label="%s"];\n' % (l, v)
+
+        for a, b in self.edges():
+            out += '%s -> %s;\n' % (hash(a), hash(b))
+        out += '}'
+        return out
+
+
 class ir(object):
 
     def __init__(self, arch, attrib, symbol_pool=None):
@@ -130,6 +172,8 @@ class ir(object):
         self.sp = arch.getsp(attrib)
         self.arch = arch
         self.attrib = attrib
+        # Lazy structure
+        self._graph = None
 
     def instr2ir(self, l):
         ir_bloc_cur, ir_blocs_extra = self.get_ir(l)
@@ -140,13 +184,13 @@ class ir(object):
         @ad: an ExprId/ExprInt/label/int"""
 
         if (isinstance(ad, m2_expr.ExprId) and
-            isinstance(ad.name, asmbloc.asm_label)):
+            isinstance(ad.name, asm_label)):
             ad = ad.name
         if isinstance(ad, m2_expr.ExprInt):
             ad = int(ad.arg)
         if type(ad) in [int, long]:
             ad = self.symbol_pool.getby_offset_create(ad)
-        elif isinstance(ad, asmbloc.asm_label):
+        elif isinstance(ad, asm_label):
             ad = self.symbol_pool.getby_name_create(ad.name)
         return ad
 
@@ -158,7 +202,7 @@ class ir(object):
         return self.blocs.get(label, None)
 
     def add_instr(self, l, ad=0, gen_pc_updt = False):
-        b = asmbloc.asm_bloc(l)
+        b = asm_bloc(l)
         b.lines = [l]
         self.add_bloc(b, gen_pc_updt)
 
@@ -299,6 +343,8 @@ class ir(object):
 
             self.blocs[irb.label] = irb
 
+        # Forget graph if any
+        self._graph = None
 
     def get_instr_label(self, instr):
         """Returns the label associated to an instruction
@@ -334,6 +380,70 @@ class ir(object):
         for b in self.blocs.values():
             b.get_rw(regs_ids)
 
-    def ExprIsLabel(self, l):
-        return isinstance(l, m2_expr.ExprId) and isinstance(l.name,
-                                                            asmbloc.asm_label)
+    def sort_dst(self, todo, done):
+        out = set()
+        while todo:
+            dst = todo.pop()
+            if expr_is_label(dst):
+                done.add(dst)
+            elif isinstance(dst, m2_expr.ExprMem) or isinstance(dst, m2_expr.ExprInt):
+                done.add(dst)
+            elif isinstance(dst, m2_expr.ExprCond):
+                todo.add(dst.src1)
+                todo.add(dst.src2)
+            elif isinstance(dst, m2_expr.ExprId):
+                out.add(dst)
+            else:
+                done.add(dst)
+        return out
+
+    def dst_trackback(self, b):
+        dst = b.dst
+        todo = set([dst])
+        done = set()
+
+        for irs in reversed(b.irs):
+            if len(todo) == 0:
+                break
+            out = self.sort_dst(todo, done)
+            found = set()
+            follow = set()
+            for i in irs:
+                if not out:
+                    break
+                for o in out:
+                    if i.dst == o:
+                        follow.add(i.src)
+                        found.add(o)
+                for o in found:
+                    out.remove(o)
+
+            for o in out:
+                if o not in found:
+                    follow.add(o)
+            todo = follow
+
+        return done
+
+    def _gen_graph(self):
+        """
+        Gen irbloc digraph
+        """
+        self._graph = DiGraphIR(self.blocs)
+        for lbl, b in self.blocs.iteritems():
+            self._graph.add_node(lbl)
+            dst = self.dst_trackback(b)
+            for d in dst:
+                if isinstance(d, m2_expr.ExprInt):
+                    d = m2_expr.ExprId(
+                        self.symbol_pool.getby_offset_create(int(d.arg)))
+                if expr_is_label(d):
+                    self._graph.add_edge(lbl, d.name)
+
+    @property
+    def graph(self):
+        """Get a DiGraph representation of current IR instance.
+        Lazy property, building the graph on-demand"""
+        if self._graph is None:
+            self._gen_graph()
+        return self._graph
