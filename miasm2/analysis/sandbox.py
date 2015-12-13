@@ -184,7 +184,8 @@ class OS_Win(OS):
 
         # Load main pe
         with open(self.fname) as fstream:
-            self.pe = vm_load_pe(self.jitter.vm, fstream.read(), **kwargs)
+            self.pe = vm_load_pe(self.jitter.vm, fstream.read(),
+                                 load_hdr=self.options.load_hdr, **kwargs)
             self.name2module[fname_basename] = self.pe
 
         # Load library
@@ -231,10 +232,8 @@ class OS_Win(OS):
 
     @classmethod
     def update_parser(cls, parser):
-        parser.add_argument('-o', "--loadhdr", action="store_true",
+        parser.add_argument('-o', "--load-hdr", action="store_true",
                             help="Load pe hdr")
-        parser.add_argument('-e', "--loadmainpe", action="store_true",
-                            help="Load main pe")
         parser.add_argument('-y', "--use-seh", action="store_true",
                             help="Use windows SEH")
         parser.add_argument('-l', "--loadbasedll", action="store_true",
