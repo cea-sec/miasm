@@ -234,8 +234,6 @@ class OS_Win(OS):
     def update_parser(cls, parser):
         parser.add_argument('-o', "--load-hdr", action="store_true",
                             help="Load pe hdr")
-        parser.add_argument('-e', "--loadmainpe", action="store_true",
-                            help="Load main pe")
         parser.add_argument('-y', "--use-seh", action="store_true",
                             help="Use windows SEH")
         parser.add_argument('-l', "--loadbasedll", action="store_true",
