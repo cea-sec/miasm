@@ -86,7 +86,7 @@ def update_binary(jitter):
     logging.info('updating binary')
     for s in sb.pe.SHList:
         sdata = sb.jitter.vm.get_mem(sb.pe.rva2virt(s.addr), s.rawsize)
-        sb.pe.virt[sb.pe.rva2virt(s.addr)] = sdata
+        sb.pe.rva.set(s.addr, sdata)
 
     # Stop execution
     jitter.run = False

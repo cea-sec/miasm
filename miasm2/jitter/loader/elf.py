@@ -57,10 +57,10 @@ def vm_load_elf(vm, fdata, **kargs):
     i = interval()
     all_data = {}
     for p in e.ph.phlist:
-        if p.ph.type != 1:
+        if p.ph.type != elf_csts.PT_LOAD:
             continue
-        log.debug('0x%x 0x%x 0x%x 0x%x', p.ph.vaddr, p.ph.memsz, p.ph.offset,
-                  p.ph.filesz)
+        log.debug('0x%x 0x%x 0x%x 0x%x 0x%x', p.ph.vaddr, p.ph.memsz, p.ph.offset,
+                  p.ph.filesz, p.ph.type)
         data_o = e._content[p.ph.offset:p.ph.offset + p.ph.filesz]
         addr_o = p.ph.vaddr
         a_addr = addr_o & ~0xFFF

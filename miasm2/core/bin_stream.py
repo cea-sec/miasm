@@ -142,13 +142,13 @@ class bin_stream_container(bin_stream):
         if self.offset + l > self.l:
             raise IOError("not enough bytes")
         self.offset += l
-        return self.bin(self.offset - l, self.offset)
+        return self.bin.get(self.offset - l, self.offset)
 
     def getbytes(self, start, l=1):
-        return self.bin(start, start + l)
+        return self.bin.get(start, start + l)
 
     def __str__(self):
-        out = self.bin(self.offset, self.l)
+        out = self.bin.get(self.offset, self.offset + self.l)
         return out
 
     def setoffset(self, val):
