@@ -256,7 +256,8 @@ class InStruct(MemStruct):
 class ContStruct(MemStruct):
     fields = [
         ("one", Num("B")),
-        ("instruct", InStruct.get_type()),
+        # Shorthand for: ("instruct", InStruct.get_type()),
+        ("instruct", InStruct),
         ("last", Num("B")),
     ]
 
@@ -290,7 +291,7 @@ class UniStruct(MemStruct):
     fields = [
         ("one", Num("B")),
         ("union", Union([
-            ("instruct", InStruct.get_type()),
+            ("instruct", InStruct),
             ("i", Num(">I")),
         ])),
         ("last", Num("B")),

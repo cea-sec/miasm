@@ -507,19 +507,32 @@ class Struct(Type):
 
     def __init__(self, name, fields):
         self.name = name
-        # fields is immutable
-        self._fields = tuple(fields)
-        self._gen_fields()
+        # generates self._fields and self._fields_desc
+        self._gen_fields(fields)
 
-    def _gen_fields(self):
+    def _gen_fields(self, fields):
         """Precompute useful metadata on self.fields."""
         self._fields_desc = {}
         offset = 0
-        for name, field in self._fields:
+
+        # Build a proper (name, Field()) list, handling cases where the user
+        # supplies a MemType subclass instead of a Type instance
+        real_fields = []
+        for name, field in fields:
+            if isinstance(field, type) and issubclass(field, MemType):
+                if field._type is None:
+                    raise ValueError("%r has no static type; use a subclasses "
+                                     "with a non null _type or use a "
+                                     "Type instance")
+                field = field.get_type()
+            real_fields.append((name, field))
+
             # For reflexion
             field._set_self_type(self)
             self._fields_desc[name] = {"field": field, "offset": offset}
             offset += field.size
+        # fields is immutable
+        self._fields = tuple(real_fields)
 
     @property
     def fields(self):
