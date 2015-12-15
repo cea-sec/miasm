@@ -1362,6 +1362,10 @@ class MemStruct(MemType):
             offset = 0
         return self._addr + offset
 
+    def get_offset(self, field_name):
+        """Shorthand for self.get_type().get_offset(field_name)."""
+        return self._type.get_offset(field_name)
+
     def get_field(self, name):
         """Get a field value by name.
 
