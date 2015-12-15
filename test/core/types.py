@@ -491,6 +491,33 @@ assert Array(Num("B"), 19).lval != Array(Num("B"), 20).lval
 assert MyStruct == Struct(MyStruct.__name__, MyStruct.fields).lval
 assert MyStruct.get_type() == Struct(MyStruct.__name__, MyStruct.fields)
 
+# Anonymous Unions
+class Anon(MemStruct):
+    fields = [
+        ("a", Num("B")),
+        # If a field name evaluates to False ("" or None for example) and the
+        # field type is a Struct subclass (Struct, Union, BitField), the field
+        # is considered as an anonymous struct or union. Therefore, Anon will
+        # have b1, b2 and c1, c2 attributes in that case.
+        ("", Union([("b1", Num("B")), ("b2", Num("H"))])),
+        ("", Struct("", [("c1", Num("B")), ("c2", Num("B"))])),
+        ("d", Num("B")),
+    ]
+
+anon = Anon(jitter.vm)
+anon.memset()
+anon.a = 0x07
+anon.b2 = 0x0201
+anon.c1 = 0x55
+anon.c2 = 0x77
+anon.d = 0x33
+assert anon.a == 0x07
+assert anon.b1 == 0x01
+assert anon.b2 == 0x0201
+assert anon.c1 == 0x55
+assert anon.c2 == 0x77
+assert anon.d == 0x33
+
 
 # Repr tests
 

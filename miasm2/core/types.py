@@ -370,7 +370,7 @@ class Ptr(Num):
     MemType.
 
     Mapped to MemPtr (see its doc for more info):
-        
+
         assert isinstance(mystruct.ptr, MemPtr)
         mystruct.ptr = 0x4000 # Assign the Ptr numeric value
         mystruct.ptr.val = 0x4000 # Also assigns the Ptr numeric value
@@ -503,6 +503,24 @@ class Struct(Type):
         # Toto1
         class Toto(MemStruct):
             fields = [("f1", Num("I")), ("f2", Num("I"))]
+
+    Anonymous Struct, Union or BitField can be used if their field name
+    evaluates to False ("" or None). Such anonymous Struct field will generate
+    fields to the parent Struct, e.g.:
+        bla = Struct("Bla", [
+                   ("a", Num("B")),
+                   ("", Union([("b1", Num("B")), ("b2", Num("H"))])),
+                   ("", Struct("", [("c1", Num("B")), ("c2", Num("B"))])),
+               ]
+    Will have a b1, b2 and c1, c2 field directly accessible. The anonymous
+    fields are renamed to "__anon_<num>", with <num> an incremented number.
+
+    In such case, bla.fields will not contain b1, b2, c1 and c2 (only the 3
+    actual fields, with the anonymous ones renamed), but bla.all_fields will
+    return the 3 fields + b1, b2, c1 and c2 (and an information telling if it
+    has been generated from an anonymous Struct/Union).
+
+    bla.get_field(vm, addr, "b1") will work.
     """
 
     def __init__(self, name, fields):
@@ -518,24 +536,67 @@ class Struct(Type):
         # Build a proper (name, Field()) list, handling cases where the user
         # supplies a MemType subclass instead of a Type instance
         real_fields = []
-        for name, field in fields:
+        uniq_count = 0
+        for fname, field in fields:
             if isinstance(field, type) and issubclass(field, MemType):
                 if field._type is None:
                     raise ValueError("%r has no static type; use a subclasses "
                                      "with a non null _type or use a "
                                      "Type instance")
                 field = field.get_type()
-            real_fields.append((name, field))
 
             # For reflexion
             field._set_self_type(self)
-            self._fields_desc[name] = {"field": field, "offset": offset}
-            offset += field.size
+
+            # Anonymous Struct/Union
+            if not fname and isinstance(field, Struct):
+                # Generate field information
+                updated_fields = {
+                    name: {
+                        # Same field type than the anon field subfield
+                        'field': fd['field'],
+                        # But the current offset is added
+                        'offset': fd['offset'] + offset,
+                    }
+                    for name, fd in field._fields_desc.iteritems()
+                }
+
+                # Add the newly generated fields from the anon field
+                self._fields_desc.update(updated_fields)
+                real_fields += [(name, fld, True)
+                                for name, fld in field.fields]
+
+                # Rename the anonymous field
+                fname = '__anon_%x' % uniq_count
+                uniq_count += 1
+
+            self._fields_desc[fname] = {"field": field, "offset": offset}
+            real_fields.append((fname, field, False))
+            offset = self._next_offset(field, offset)
+
         # fields is immutable
         self._fields = tuple(real_fields)
 
+    def _next_offset(self, field, orig_offset):
+        return orig_offset + field.size
+
     @property
     def fields(self):
+        """Returns a sequence of (name, field) describing the fields of this
+        Struct, in order of offset.
+
+        Fields generated from anonymous Unions or Structs are excluded from
+        this sequence.
+        """
+        return tuple((name, field) for name, field, anon in self._fields
+                                   if not anon)
+
+    @property
+    def all_fields(self):
+        """Returns a sequence of (<name>, <field (Type instance)>, <is_anon>),
+        where is_anon is True when a field is generated from an anonymous
+        Struct or Union, and False for the fields that have been provided as is.
+        """
         return self._fields
 
     def set(self, vm, addr, val):
@@ -600,7 +661,7 @@ class Struct(Type):
 
 class Union(Struct):
     """Represents a C union.
-    
+
     Allows to put multiple fields at the same offset in a MemStruct,
     similar to unions in C. The Union will have the size of the largest of its
     fields.
@@ -629,8 +690,8 @@ class Union(Struct):
     def size(self):
         return max(field.size for _, field in self.fields)
 
-    def get_offset(self, field_name):
-        return 0
+    def _next_offset(self, field, orig_offset):
+        return orig_offset
 
     def _get_pinned_base_class(self):
         return MemUnion
@@ -1019,7 +1080,7 @@ class Str(Type):
 
 class Void(Type):
     """Represents the C void type.
-    
+
     Mapped to MemVoid.
     """
 
@@ -1035,7 +1096,7 @@ class Void(Type):
 
 class Self(Void):
     """Special marker to reference a type inside itself.
-    
+
     Mapped to MemSelf.
 
     Example:
@@ -1375,7 +1436,7 @@ class MemStruct(MemType):
     @classmethod
     def _gen_attributes(cls):
         # Generate self.<name> getter and setters
-        for name, field in cls._type.fields:
+        for name, field, _ in cls._type.all_fields:
             setattr(cls, name, property(
                 lambda self, name=name: self.get_field(name),
                 lambda self, val, name=name: self.set_field(name, val)
