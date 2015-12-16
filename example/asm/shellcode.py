@@ -96,8 +96,13 @@ if args.encrypt:
     patches = new_patches
 
 print patches
-for offset, raw in patches.items():
-    virt[offset] = raw
+if isinstance(virt, StrPatchwork):
+    for offset, raw in patches.items():
+        virt[offset] = raw
+else:
+    for offset, raw in patches.items():
+        virt.set(offset, raw)
+
 
 # Produce output
 open(args.output, 'wb').write(str(output))

@@ -70,7 +70,7 @@ def is_redirected_export(e, ad):
     # test is ad points to code or dll name
     out = ''
     for i in xrange(0x200):
-        c = e.virt(ad + i)
+        c = e.virt.get(ad + i)
         if c == "\x00":
             break
         out += c
