@@ -660,7 +660,6 @@ def cli(ir, instr):
 
 def sti(ir, instr):
     e = [m2_expr.ExprAff(exception_flags, m2_expr.ExprInt32(EXCEPT_PRIV_INSN))]
-    e = []  # XXX TODO HACK
     return e, []
 
 

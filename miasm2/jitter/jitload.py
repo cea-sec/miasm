@@ -144,12 +144,11 @@ class CallbackHandlerBitflag(CallbackHandler):
         Iterator on other results"""
 
         res = True
-        for b in self.callbacks:
-
-            if b & bitflag != 0:
+        for bitflag_expected in self.callbacks:
+            if bitflag_expected & bitflag == bitflag_expected:
                 # If the flag matched
                 for res in super(CallbackHandlerBitflag,
-                                 self).call_callbacks(b, *args):
+                                 self).call_callbacks(bitflag_expected, *args):
                     if res is not True:
                         yield res
 
