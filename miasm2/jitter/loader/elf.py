@@ -17,6 +17,7 @@ hnd.setFormatter(logging.Formatter("[%(levelname)s]: %(message)s"))
 log.addHandler(hnd)
 log.setLevel(logging.CRITICAL)
 
+
 def get_import_address_elf(e):
     import2addr = defaultdict(set)
     for sh in e.sh:
@@ -46,21 +47,21 @@ def preload_elf(vm, e, runtime_lib, patch_vm_imp=True):
     return runtime_lib, dyn_funcs
 
 
-
 def vm_load_elf(vm, fdata, **kargs):
     """
     Very dirty elf loader
     TODO XXX: implement real loader
     """
-    #log.setLevel(logging.DEBUG)
+    # log.setLevel(logging.DEBUG)
     e = elf_init.ELF(fdata, **kargs)
     i = interval()
     all_data = {}
     for p in e.ph.phlist:
-        if p.ph.type != 1:
+        if p.ph.type != elf_csts.PT_LOAD:
             continue
-        log.debug('0x%x 0x%x 0x%x 0x%x', p.ph.vaddr, p.ph.memsz, p.ph.offset,
-                  p.ph.filesz)
+        log.debug(
+            '0x%x 0x%x 0x%x 0x%x 0x%x', p.ph.vaddr, p.ph.memsz, p.ph.offset,
+                  p.ph.filesz, p.ph.type)
         data_o = e._content[p.ph.offset:p.ph.offset + p.ph.filesz]
         addr_o = p.ph.vaddr
         a_addr = addr_o & ~0xFFF
@@ -68,15 +69,15 @@ def vm_load_elf(vm, fdata, **kargs):
         b_addr = (b_addr + 0xFFF) & ~0xFFF
         all_data[addr_o] = data_o
         # -2: Trick to avoid merging 2 consecutive pages
-        i += [(a_addr, b_addr-2)]
+        i += [(a_addr, b_addr - 2)]
     for a, b in i.intervals:
-        #print hex(a), hex(b)
-        vm.add_memory_page(a, PAGE_READ | PAGE_WRITE, "\x00"*(b+2-a))
-
+        # print hex(a), hex(b)
+        vm.add_memory_page(a, PAGE_READ | PAGE_WRITE, "\x00" * (b + 2 - a))
 
     for r_vaddr, data in all_data.items():
         vm.set_mem(r_vaddr, data)
     return e
+
 
 class libimp_elf(libimp):
     pass
@@ -93,6 +94,7 @@ ELF_machine = {(elf_csts.EM_ARM, 32, elf_csts.ELFDATA2LSB): "arml",
                (elf_csts.EM_X86_64, 64, elf_csts.ELFDATA2LSB): "x86_64",
                (elf_csts.EM_SH, 32, elf_csts.ELFDATA2LSB): "sh4",
                }
+
 
 def guess_arch(elf):
     """Return the architecture specified by the ELF container @elf.

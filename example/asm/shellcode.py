@@ -10,8 +10,8 @@ from miasm2.analysis.machine import Machine
 from miasm2.core.interval import interval
 
 parser = ArgumentParser("Multi-arch (32 bits) assembler")
-parser.add_argument('architecture', help="architecture: " + \
-                        ",".join(Machine.available_machine()))
+parser.add_argument('architecture', help="architecture: " +
+                    ",".join(Machine.available_machine()))
 parser.add_argument("source", help="Source file to assemble")
 parser.add_argument("output", help="Output file")
 parser.add_argument("--PE", help="Create a PE with a few imports",
@@ -96,8 +96,13 @@ if args.encrypt:
     patches = new_patches
 
 print patches
-for offset, raw in patches.items():
-    virt[offset] = raw
+if isinstance(virt, StrPatchwork):
+    for offset, raw in patches.items():
+        virt[offset] = raw
+else:
+    for offset, raw in patches.items():
+        virt.set(offset, raw)
+
 
 # Produce output
 open(args.output, 'wb').write(str(output))

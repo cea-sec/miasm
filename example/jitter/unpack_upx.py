@@ -25,14 +25,14 @@ def kernel32_GetProcAddress(jitter):
              else jitter.get_str_ansi(args.fname))
     logging.info(fname)
 
-    # Get the generated address of the library, and store it in memory to dst_ad
+    # Get the generated address of the library, and store it in memory to
+    # dst_ad
     ad = sb.libs.lib_get_add_func(args.libbase, fname, dst_ad)
     # Add a breakpoint in case of a call on the resolved function
     # NOTE: never happens in UPX, just for skeleton
     jitter.handle_function(ad)
 
     jitter.func_ret_stdcall(ret_ad, ad)
-
 
 
 parser = Sandbox_Win_x86_32.parser(description="Generic UPX unpacker")
@@ -86,7 +86,7 @@ def update_binary(jitter):
     logging.info('updating binary')
     for s in sb.pe.SHList:
         sdata = sb.jitter.vm.get_mem(sb.pe.rva2virt(s.addr), s.rawsize)
-        sb.pe.virt[sb.pe.rva2virt(s.addr)] = sdata
+        sb.pe.rva.set(s.addr, sdata)
 
     # Stop execution
     jitter.run = False
