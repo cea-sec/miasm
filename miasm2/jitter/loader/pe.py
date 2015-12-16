@@ -157,8 +157,10 @@ def vm_load_pe(vm, fdata, align_s=True, load_hdr=True, **kargs):
         for section in pe.SHList:
             data = str(section.data)
             data += "\x00" * (section.size - len(data))
-            vm.add_memory_page(pe.rva2virt(section.addr),
-                               PAGE_READ | PAGE_WRITE, data)
+            attrib = PAGE_READ
+            if section.flags & 0x80000000:
+                attrib |= PAGE_WRITE
+            vm.add_memory_page(pe.rva2virt(section.addr), attrib, data)
 
         return pe
 
