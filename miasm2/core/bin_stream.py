@@ -108,7 +108,7 @@ class bin_stream_file(bin_stream):
         return self.bin.tell() - self.shift
 
     def setoffset(self, val):
-        self.bin.seek(val +  self.shift)
+        self.bin.seek(val + self.shift)
     offset = property(getoffset, setoffset)
 
     def readbs(self, l=1):
@@ -121,7 +121,6 @@ class bin_stream_file(bin_stream):
 
     def getlen(self):
         return self.l - (self.offset + self.shift)
-
 
 
 class bin_stream_container(bin_stream):
