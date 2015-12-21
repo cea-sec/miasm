@@ -1362,9 +1362,10 @@ class MemStruct(MemType):
             offset = 0
         return self._addr + offset
 
-    def get_offset(self, field_name):
+    @classmethod
+    def get_offset(cls, field_name):
         """Shorthand for self.get_type().get_offset(field_name)."""
-        return self._type.get_offset(field_name)
+        return cls.get_type().get_offset(field_name)
 
     def get_field(self, name):
         """Get a field value by name.
@@ -1574,6 +1575,11 @@ class MemArray(MemType):
 
     def get_addr(self, idx=0):
         return self._addr + self.get_type().get_offset(idx)
+
+    @classmethod
+    def get_offset(cls, idx):
+        """Shorthand for self.get_type().get_offset(idx)."""
+        return cls.get_type().get_offset(idx)
 
     def __getitem__(self, idx):
         return self.get_type().get_item(self._vm, self._addr, idx)

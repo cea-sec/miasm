@@ -518,6 +518,17 @@ assert anon.c1 == 0x55
 assert anon.c2 == 0x77
 assert anon.d == 0x33
 
+# get_offset
+for field, off in (("a", 0), ("b1", 1), ("b2", 1), ("c1", 3), ("c2", 4),
+                   ("d", 5)):
+    assert Anon.get_offset(field) == Anon.get_type().get_offset(field)
+    assert Anon.get_offset(field) == off
+
+arr_t = Array(Num("H"))
+for idx, off in ((0, 0), (1, 2), (30, 60)):
+    assert arr_t.get_offset(idx) == arr_t.lval.get_offset(idx)
+    assert arr_t.get_offset(idx) == off
+
 
 # Repr tests
 
