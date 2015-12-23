@@ -3561,6 +3561,27 @@ def pminud(ir, instr, a, b):
     return pminu(ir, instr, a, b, 32)
 
 
+
+def pcmpeq(ir, instr, a, b, size):
+    e = []
+    for i in xrange(0, a.size, size):
+        test = a[i:i+size] - b[i:i+size]
+        e.append(m2_expr.ExprAff(a[i:i+size],
+                                 m2_expr.ExprCond(test,
+                                                  m2_expr.ExprInt(0, size),
+                                                  m2_expr.ExprInt(-1, size))))
+    return e, []
+
+
+def pcmpeqb(ir, instr, a, b):
+    return pcmpeq(ir, instr, a, b, 8)
+
+def pcmpeqw(ir, instr, a, b):
+    return pcmpeq(ir, instr, a, b, 16)
+
+def pcmpeqd(ir, instr, a, b):
+    return pcmpeq(ir, instr, a, b, 32)
+
 mnemo_func = {'mov': mov,
               'xchg': xchg,
               'movzx': movzx,
@@ -3991,6 +4012,11 @@ mnemo_func = {'mov': mov,
               "pminub" : pminub,
               "pminuw" : pminuw,
               "pminud" : pminud,
+
+              "pcmpeqb" : pcmpeqb,
+              "pcmpeqw" : pcmpeqw,
+              "pcmpeqd" : pcmpeqd,
+
               }
 
 

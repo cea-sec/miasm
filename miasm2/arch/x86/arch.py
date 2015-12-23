@@ -4054,6 +4054,23 @@ addop("pminud", [bs8(0x0f), bs8(0x38), bs8(0x3b), pref_66] +
       rmmod(xmm_reg, rm_arg_xmm))
 
 
+addop("pcmpeqb", [bs8(0x0f), bs8(0x74), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm))
+addop("pcmpeqb", [bs8(0x0f), bs8(0x74), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
+addop("pcmpeqw", [bs8(0x0f), bs8(0x75), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm))
+addop("pcmpeqw", [bs8(0x0f), bs8(0x75), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
+addop("pcmpeqd", [bs8(0x0f), bs8(0x76), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm))
+addop("pcmpeqd", [bs8(0x0f), bs8(0x76), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
+
+
 mn_x86.bintree = factor_one_bit(mn_x86.bintree)
 # mn_x86.bintree = factor_fields_all(mn_x86.bintree)
 """
