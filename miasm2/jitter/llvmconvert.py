@@ -11,27 +11,25 @@
 #
 #
 
-import llvm
-import llvm.core as llvm_c
-import llvm.ee as llvm_e
-import llvm.passes as llvm_p
+from llvmlite import binding as llvm
+from llvmlite import ir as llvm_ir
 import miasm2.expression.expression as m2_expr
 import miasm2.jitter.csts as m2_csts
 import miasm2.core.asmbloc as m2_asmbloc
 
 
-class LLVMType(llvm_c.Type):
+class LLVMType(llvm_ir.Type):
 
     "Handle LLVM Type"
 
     int_cache = {}
 
     @classmethod
-    def int(cls, size=32):
+    def IntType(cls, size=32):
         try:
             return cls.int_cache[size]
         except KeyError:
-            cls.int_cache[size] = llvm_c.Type.int(size)
+            cls.int_cache[size] = llvm_ir.IntType(size)
             return cls.int_cache[size]
 
     @classmethod
@@ -43,7 +41,7 @@ class LLVMType(llvm_c.Type):
     def generic(cls, e):
         "Generic value for execution"
         if isinstance(e, m2_expr.ExprInt):
-            return llvm_e.GenericValue.int(LLVMType.int(e.size), int(e))
+            return llvm_e.GenericValue.int(LLVMType.IntType(e.size), int(e.arg))
         elif isinstance(e, llvm_e.GenericValue):
             return e
         else:
@@ -58,10 +56,7 @@ class LLVMContext():
 
     def __init__(self, name="mod"):
         "Initialize a context with a module named 'name'"
-        self.mod = llvm_c.Module.new(name)
-        self.pass_manager = llvm_p.FunctionPassManager.new(self.mod)
-        self.exec_engine = llvm_e.ExecutionEngine.new(self.mod)
-        self.add_fc(self.known_fc)
+        self.new_module(name)
 
     def optimise_level(self, classic_passes=True, dead_passes=True):
         """Set the optimisation level :
@@ -78,7 +73,7 @@ class LLVMContext():
         """
 
         # Set up the optimiser pipeline
-
+        """
         if classic_passes is True:
             # self.pass_manager.add(llvm_p.PASS_INSTCOMBINE)
             self.pass_manager.add(llvm_p.PASS_REASSOCIATE)
@@ -91,6 +86,20 @@ class LLVMContext():
             self.pass_manager.add(llvm_p.PASS_DIE)
 
         self.pass_manager.initialize()
+        """
+
+    def new_module(self, name="mod"):
+        self.mod = llvm_ir.Module(name=name)
+        # self.pass_manager = llvm.FunctionPassManager(self.mod)
+        llvm.initialize()
+        llvm.initialize_native_target()
+        llvm.initialize_native_asmprinter()
+        target = llvm.Target.from_default_triple()
+        target_machine = target.create_target_machine()
+        backing_mod = llvm.parse_assembly("")
+        self.exec_engine = llvm.create_mcjit_compiler(backing_mod,
+                                                      target_machine)
+        self.add_fc(self.known_fc)
 
     def get_execengine(self):
         "Return the Execution Engine associated with this context"
@@ -106,98 +115,103 @@ class LLVMContext():
 
     def add_shared_library(self, filename):
         "Load the shared library 'filename'"
-        return llvm_c.load_library_permanently(filename)
+        return llvm.load_library_permanently(filename)
 
     def add_fc(self, fc):
         "Add function into known_fc"
 
-        for name, detail in fc.items():
-            self.mod.add_function(LLVMType.function(detail["ret"],
-                                                    detail["args"]),
-                                  name)
+        for name, detail in fc.iteritems():
+            fnty = llvm_ir.FunctionType(detail["ret"], detail["args"])
+            llvm_ir.Function(self.mod, fnty, name=name)
 
 
 class LLVMContext_JIT(LLVMContext):
 
-    "Extend LLVMContext_JIT in order to handle memory management"
+    """Extend LLVMContext_JIT in order to handle memory management and custom
+    operations"""
 
     def __init__(self, library_filenames, name="mod"):
         "Init a LLVMContext object, and load the mem management shared library"
+        self.library_filenames = library_filenames
         LLVMContext.__init__(self, name)
-        for lib_fname in library_filenames:
+        self.vmcpu = {}
+        self.engines = []
+
+    def new_module(self, name="mod"):
+        LLVMContext.new_module(self, name)
+        for lib_fname in self.library_filenames:
             self.add_shared_library(lib_fname)
         self.add_memlookups()
         self.add_get_exceptionflag()
         self.add_op()
         self.add_log_functions()
-        self.vmcpu = {}
 
     def add_memlookups(self):
         "Add MEM_LOOKUP functions"
 
         fc = {}
-        p8 = llvm_c.PointerType.pointer(LLVMType.int(8))
+        p8 = llvm_ir.PointerType(LLVMType.IntType(8))
         for i in [8, 16, 32, 64]:
-            fc["MEM_LOOKUP_%02d" % i] = {"ret": LLVMType.int(i),
+            fc["vm_MEM_LOOKUP_%02d" % i] = {"ret": LLVMType.IntType(i),
                                          "args": [p8,
-                                                  LLVMType.int(64)]}
+                                                  LLVMType.IntType(64)]}
 
-            fc["MEM_WRITE_%02d" % i] = {"ret": LLVMType.void(),
+            fc["vm_MEM_WRITE_%02d" % i] = {"ret": llvm_ir.VoidType(),
                                         "args": [p8,
-                                                 LLVMType.int(64),
-                                                 LLVMType.int(i)]}
+                                                 LLVMType.IntType(64),
+                                                 LLVMType.IntType(i)]}
 
         self.add_fc(fc)
 
     def add_get_exceptionflag(self):
         "Add 'get_exception_flag' function"
-        p8 = llvm_c.PointerType.pointer(LLVMType.int(8))
-        self.add_fc({"get_exception_flag": {"ret": LLVMType.int(64),
+        p8 = llvm_ir.PointerType(LLVMType.IntType(8))
+        self.add_fc({"get_exception_flag": {"ret": LLVMType.IntType(64),
                                             "args": [p8]}})
 
     def add_op(self):
         "Add operations functions"
 
-        p8 = llvm_c.PointerType.pointer(LLVMType.int(8))
-        self.add_fc({"parity": {"ret": LLVMType.int(),
-                                "args": [LLVMType.int()]}})
-        self.add_fc({"rot_left": {"ret": LLVMType.int(),
-                                  "args": [LLVMType.int(),
-                                           LLVMType.int(),
-                                           LLVMType.int()]}})
-        self.add_fc({"rot_right": {"ret": LLVMType.int(),
-                                   "args": [LLVMType.int(),
-                                            LLVMType.int(),
-                                            LLVMType.int()]}})
+        p8 = llvm_ir.PointerType(LLVMType.IntType(8))
+        self.add_fc({"parity": {"ret": LLVMType.IntType(),
+                                "args": [LLVMType.IntType()]}})
+        self.add_fc({"rot_left": {"ret": LLVMType.IntType(),
+                                  "args": [LLVMType.IntType(),
+                                           LLVMType.IntType(),
+                                           LLVMType.IntType()]}})
+        self.add_fc({"rot_right": {"ret": LLVMType.IntType(),
+                                   "args": [LLVMType.IntType(),
+                                            LLVMType.IntType(),
+                                            LLVMType.IntType()]}})
 
-        self.add_fc({"segm2addr": {"ret": LLVMType.int(64),
+        self.add_fc({"segm2addr": {"ret": LLVMType.IntType(64),
                                    "args": [p8,
-                                            LLVMType.int(64),
-                                            LLVMType.int(64)]}})
+                                            LLVMType.IntType(64),
+                                            LLVMType.IntType(64)]}})
 
         for k in [8, 16]:
-            self.add_fc({"bcdadd_%s" % k: {"ret": LLVMType.int(k),
-                                           "args": [LLVMType.int(k),
-                                                    LLVMType.int(k)]}})
-            self.add_fc({"bcdadd_cf_%s" % k: {"ret": LLVMType.int(k),
-                                              "args": [LLVMType.int(k),
-                                                       LLVMType.int(k)]}})
+            self.add_fc({"bcdadd_%s" % k: {"ret": LLVMType.IntType(k),
+                                           "args": [LLVMType.IntType(k),
+                                                    LLVMType.IntType(k)]}})
+            self.add_fc({"bcdadd_cf_%s" % k: {"ret": LLVMType.IntType(k),
+                                              "args": [LLVMType.IntType(k),
+                                                       LLVMType.IntType(k)]}})
 
         for k in [16, 32, 64]:
-            self.add_fc({"imod%s" % k: {"ret": LLVMType.int(k),
+            self.add_fc({"imod%s" % k: {"ret": LLVMType.IntType(k),
                                         "args": [p8,
-                                                 LLVMType.int(k),
-                                                 LLVMType.int(k)]}})
-            self.add_fc({"idiv%s" % k: {"ret": LLVMType.int(k),
+                                                 LLVMType.IntType(k),
+                                                 LLVMType.IntType(k)]}})
+            self.add_fc({"idiv%s" % k: {"ret": LLVMType.IntType(k),
                                         "args": [p8,
-                                                 LLVMType.int(k),
-                                                 LLVMType.int(k)]}})
+                                                 LLVMType.IntType(k),
+                                                 LLVMType.IntType(k)]}})
 
     def add_log_functions(self):
         "Add functions for state logging"
 
-        p8 = llvm_c.PointerType.pointer(LLVMType.int(8))
-        self.add_fc({"dump_gpregs": {"ret": LLVMType.void(),
+        p8 = llvm_ir.PointerType(LLVMType.IntType(8))
+        self.add_fc({"dump_gpregs": {"ret": llvm_ir.VoidType(),
                                      "args": [p8]}})
 
     def set_vmcpu(self, lookup_table):
@@ -218,11 +232,12 @@ class LLVMFunction():
 
     # Default logging values
     log_mn = False
-    log_regs = False
+    log_regs = True
 
     def __init__(self, llvm_context, name="fc"):
         "Create a new function with name fc"
         self.llvm_context = llvm_context
+        self.llvm_context.new_module()
         self.mod = self.llvm_context.get_module()
 
         self.my_args = []  # (Expr, LLVMType, Name)
@@ -257,15 +272,14 @@ class LLVMFunction():
         "Init the function"
 
         # Build type for fc signature
-        fc_type = LLVMType.function(
-            self.ret_type, [k[1] for k in self.my_args])
+        fc_type = llvm_ir.FunctionType(self.ret_type, [k[1] for k in self.my_args])
 
         # Add fc in module
         try:
-            fc = self.mod.add_function(fc_type, self.name)
+            fc = llvm_ir.Function(self.mod, fc_type, name=self.name)
         except llvm.LLVMException:
             # Overwrite the previous function
-            previous_fc = self.mod.get_function_named(self.name)
+            previous_fc = self.mod.get_global(self.name)
             previous_fc.delete()
             fc = self.mod.add_function(fc_type, self.name)
 
@@ -292,7 +306,7 @@ class LLVMFunction():
         self.entry_bbl = self.append_basic_block("entry")
 
         # Instruction builder
-        self.builder = llvm_c.Builder.new(self.entry_bbl)
+        self.builder = llvm_ir.IRBuilder(self.entry_bbl)
 
     def CreateEntryBlockAlloca(self, var_type):
         "Create an alloca instruction at the beginning of the current fc"
@@ -328,11 +342,11 @@ class LLVMFunction():
 
             # Pointer cast
             ptr = builder.gep(self.local_vars["vmcpu"],
-                              [llvm_c.Constant.int(LLVMType.int(),
-                                                   offset)])
-            int_size = LLVMType.int(expr.size)
+                              [llvm_ir.Constant(LLVMType.IntType(),
+                                                offset)])
+            int_size = LLVMType.IntType(expr.size)
             ptr_casted = builder.bitcast(ptr,
-                                         llvm_c.PointerType.pointer(int_size))
+                                         llvm_ir.PointerType(int_size))
             # Store in cache
             self.local_vars_pointers[name] = ptr_casted
 
@@ -365,7 +379,7 @@ class LLVMFunction():
         builder = self.builder
 
         if isinstance(expr, m2_expr.ExprInt):
-            ret = llvm_c.Constant.int(LLVMType.int(expr.size), int(expr))
+            ret = llvm_ir.Constant(LLVMType.IntType(expr.size), int(expr.arg))
             self.update_cache(expr, ret)
             return ret
 
@@ -374,7 +388,7 @@ class LLVMFunction():
             if not isinstance(name, str):
                 # Resolve label
                 offset = name.offset
-                ret = llvm_c.Constant.int(LLVMType.int(expr.size), offset)
+                ret = llvm_ir.Constant(LLVMType.IntType(expr.size), offset)
                 self.update_cache(expr, ret)
                 return ret
 
@@ -394,35 +408,35 @@ class LLVMFunction():
             op = expr.op
 
             if op == "parity":
-                fc_ptr = self.mod.get_function_named("parity")
+                fc_ptr = self.mod.get_global("parity")
                 arg = builder.zext(self.add_ir(expr.args[0]),
-                                   LLVMType.int())
+                                   LLVMType.IntType())
                 ret = builder.call(fc_ptr, [arg])
-                ret = builder.trunc(ret, LLVMType.int(expr.size))
+                ret = builder.trunc(ret, LLVMType.IntType(expr.size))
                 self.update_cache(expr, ret)
                 return ret
 
             if op in ["<<<", ">>>"]:
                 fc_name = "rot_left" if op == "<<<" else "rot_right"
-                fc_ptr = self.mod.get_function_named(fc_name)
+                fc_ptr = self.mod.get_global(fc_name)
                 args = [self.add_ir(arg) for arg in expr.args]
                 arg_size = expr.args[0].size
                 if arg_size < 32:
                     # Cast args
-                    args = [builder.zext(arg, LLVMType.int(32))
+                    args = [builder.zext(arg, LLVMType.IntType(32))
                             for arg in args]
-                arg_size_cst = llvm_c.Constant.int(LLVMType.int(),
+                arg_size_cst = llvm_ir.Constant(LLVMType.IntType(),
                                                    arg_size)
                 ret = builder.call(fc_ptr, [arg_size_cst] + args)
                 if arg_size < 32:
                     # Cast ret
-                    ret = builder.trunc(ret, LLVMType.int(arg_size))
+                    ret = builder.trunc(ret, LLVMType.IntType(arg_size))
                 self.update_cache(expr, ret)
                 return ret
 
             if op == "bcdadd":
                 size = expr.args[0].size
-                fc_ptr = self.mod.get_function_named("bcdadd_%s" % size)
+                fc_ptr = self.mod.get_global("bcdadd_%s" % size)
                 args = [self.add_ir(arg) for arg in expr.args]
                 ret = builder.call(fc_ptr, args)
                 self.update_cache(expr, ret)
@@ -430,32 +444,32 @@ class LLVMFunction():
 
             if op == "bcdadd_cf":
                 size = expr.args[0].size
-                fc_ptr = self.mod.get_function_named("bcdadd_cf_%s" % size)
+                fc_ptr = self.mod.get_global("bcdadd_cf_%s" % size)
                 args = [self.add_ir(arg) for arg in expr.args]
                 ret = builder.call(fc_ptr, args)
-                ret = builder.trunc(ret, LLVMType.int(expr.size))
+                ret = builder.trunc(ret, LLVMType.IntType(expr.size))
                 self.update_cache(expr, ret)
                 return ret
 
             if op == "-":
-                zero = llvm_c.Constant.int(LLVMType.int(expr.size),
-                                           0)
+                zero = llvm_ir.Constant(LLVMType.IntType(expr.size),
+                                        0)
                 ret = builder.sub(zero, self.add_ir(expr.args[0]))
                 self.update_cache(expr, ret)
                 return ret
 
             if op == "segm":
-                fc_ptr = self.mod.get_function_named("segm2addr")
-                args_casted = [builder.zext(self.add_ir(arg), LLVMType.int(64))
+                fc_ptr = self.mod.get_global("segm2addr")
+                args_casted = [builder.zext(self.add_ir(arg), LLVMType.IntType(64))
                                for arg in expr.args]
                 args = [self.local_vars["vmcpu"]] + args_casted
                 ret = builder.call(fc_ptr, args)
-                ret = builder.trunc(ret, LLVMType.int(expr.size))
+                ret = builder.trunc(ret, LLVMType.IntType(expr.size))
                 self.update_cache(expr, ret)
                 return ret
 
             if op in ["imod", "idiv"]:
-                fc_ptr = self.mod.get_function_named(
+                fc_ptr = self.mod.get_global(
                     "%s%s" % (op, expr.args[0].size))
                 args_casted = [self.add_ir(arg) for arg in expr.args]
                 args = [self.local_vars["vmcpu"]] + args_casted
@@ -502,10 +516,10 @@ class LLVMFunction():
 
         if isinstance(expr, m2_expr.ExprMem):
 
-            fc_name = "MEM_LOOKUP_%02d" % expr.size
-            fc_ptr = self.mod.get_function_named(fc_name)
+            fc_name = "vm_MEM_LOOKUP_%02d" % expr.size
+            fc_ptr = self.mod.get_global(fc_name)
             addr_casted = builder.zext(self.add_ir(expr.arg),
-                                       LLVMType.int(64))
+                                       LLVMType.IntType(64))
 
             ret = builder.call(fc_ptr, [self.local_vars["vmmngr"],
                                         addr_casted])
@@ -516,13 +530,13 @@ class LLVMFunction():
         if isinstance(expr, m2_expr.ExprCond):
             # Compute cond
             cond = self.add_ir(expr.cond)
-            zero_casted = llvm_c.Constant.int(LLVMType.int(expr.cond.size),
+            zero_casted = llvm_ir.Constant(LLVMType.IntType(expr.cond.size),
                                               0)
-            condition_bool = builder.icmp(llvm_c.ICMP_NE, cond,
-                                          zero_casted)
+            condition_bool = builder.icmp_unsigned("!=", cond,
+                                                   zero_casted)
 
             # Alloc return var
-            alloca = self.CreateEntryBlockAlloca(LLVMType.int(expr.size))
+            alloca = self.CreateEntryBlockAlloca(LLVMType.IntType(expr.size))
 
             # Create bbls
             branch_id = self.new_branch_name()
@@ -564,22 +578,22 @@ class LLVMFunction():
 
             # Remove trailing bits
             if expr.start != 0:
-                to_shr = llvm_c.Constant.int(LLVMType.int(expr.arg.size),
-                                             expr.start)
+                to_shr = llvm_ir.Constant(LLVMType.IntType(expr.arg.size),
+                                          expr.start)
                 shred = builder.lshr(src,
                                      to_shr)
             else:
                 shred = src
 
             # Remove leading bits
-            to_and = llvm_c.Constant.int(LLVMType.int(expr.arg.size),
-                                         (1 << (expr.stop - expr.start)) - 1)
+            to_and = llvm_ir.Constant(LLVMType.IntType(expr.arg.size),
+                                      (1 << (expr.stop - expr.start)) - 1)
             anded = builder.and_(shred,
                                  to_and)
 
             # Cast into e.size
             ret = builder.trunc(anded,
-                                LLVMType.int(expr.size))
+                                LLVMType.IntType(expr.size))
 
             self.update_cache(expr, ret)
             return ret
@@ -589,22 +603,20 @@ class LLVMFunction():
             args = []
 
             # Build each part
-            for arg in expr.args:
-                src, start, stop = arg
-
-                # src & (stop - start)
+            for start, src in expr.iter_args():
+                # src & size
                 src = self.add_ir(src)
                 src_casted = builder.zext(src,
-                                          LLVMType.int(expr.size))
-                to_and = llvm_c.Constant.int(LLVMType.int(expr.size),
-                                             (1 << (stop - start)) - 1)
+                                          LLVMType.IntType(expr.size))
+                to_and = llvm_ir.Constant(LLVMType.IntType(expr.size),
+                                          (1 << src.type.width) - 1)
                 anded = builder.and_(src_casted,
                                      to_and)
 
                 if (start != 0):
                     # result << start
-                    to_shl = llvm_c.Constant.int(LLVMType.int(expr.size),
-                                                 start)
+                    to_shl = llvm_ir.Constant(LLVMType.IntType(expr.size),
+                                              start)
                     shled = builder.shl(anded, to_shl)
                     final = shled
                 else:
@@ -626,7 +638,7 @@ class LLVMFunction():
     def set_ret(self, var):
         "Cast @var and return it at the end of current bbl"
         if var.type.width < 64:
-            var_casted = self.builder.zext(var, LLVMType.int(64))
+            var_casted = self.builder.zext(var, LLVMType.IntType(64))
         else:
             var_casted = var
         self.builder.ret(var_casted)
@@ -638,9 +650,9 @@ class LLVMFunction():
         args = expr.get_r(True)
         for a in args:
             if not isinstance(a, m2_expr.ExprMem):
-                self.my_args.append((a, LLVMType.int(a.size), a.name))
+                self.my_args.append((a, LLVMType.IntType(a.size), a.name))
 
-        self.ret_type = LLVMType.int(expr.size)
+        self.ret_type = LLVMType.IntType(expr.size)
 
         # Initialise the function
         self.init_fc()
@@ -662,18 +674,21 @@ class LLVMFunction():
         if isinstance(dst, m2_expr.ExprId):
             dst_name = dst.name + "_new" if add_new else dst.name
 
-            ptr_casted = self.get_ptr_by_expr(
-                m2_expr.ExprId(dst_name, dst.size))
-            builder.store(src, ptr_casted)
+            if add_new or dst_name == "IRDst":
+                self.local_vars[dst_name] = src
+            else:
+                ptr_casted = self.get_ptr_by_expr(
+                    m2_expr.ExprId(dst_name, dst.size))
+                builder.store(src, ptr_casted)
 
         elif isinstance(dst, m2_expr.ExprMem):
             self.add_ir(dst.arg)
 
             # Function call
-            fc_name = "MEM_WRITE_%02d" % dst.size
-            fc_ptr = self.mod.get_function_named(fc_name)
+            fc_name = "vm_MEM_WRITE_%02d" % dst.size
+            fc_ptr = self.mod.get_global(fc_name)
             dst = self.add_ir(dst.arg)
-            dst_casted = builder.zext(dst, LLVMType.int(64))
+            dst_casted = builder.zext(dst, LLVMType.IntType(64))
             builder.call(fc_ptr, [self.local_vars["vmmngr"],
                                   dst_casted,
                                   src])
@@ -689,26 +704,26 @@ class LLVMFunction():
 
         # VmMngr "get_exception_flag" return's size
         size = 64
-        t_size = LLVMType.int(size)
+        t_size = LLVMType.IntType(size)
 
         # Current address
         pc_to_return = line.offset
 
         # Get exception flag value
         builder = self.builder
-        fc_ptr = self.mod.get_function_named("get_exception_flag")
+        fc_ptr = self.mod.get_global("get_exception_flag")
         exceptionflag = builder.call(fc_ptr, [self.local_vars["vmmngr"]])
 
         if except_do_not_update_pc is True:
             auto_mod_flag = m2_csts.EXCEPT_DO_NOT_UPDATE_PC
-            m2_flag = llvm_c.Constant.int(t_size, auto_mod_flag)
+            m2_flag = llvm_ir.Constant(t_size, auto_mod_flag)
             exceptionflag = builder.and_(exceptionflag, m2_flag)
 
         # Compute cond
-        zero_casted = llvm_c.Constant.int(t_size, 0)
-        condition_bool = builder.icmp(llvm_c.ICMP_NE,
-                                      exceptionflag,
-                                      zero_casted)
+        zero_casted = llvm_ir.Constant(t_size, 0)
+        condition_bool = builder.icmp_unsigned("!=",
+                                               exceptionflag,
+                                               zero_casted)
 
         # Create bbls
         branch_id = self.new_branch_name()
@@ -723,7 +738,7 @@ class LLVMFunction():
 
         # Then Bloc
         builder.position_at_end(then_block)
-        self.set_ret(llvm_c.Constant.int(self.ret_type, pc_to_return))
+        self.set_ret(llvm_ir.Constant(self.ret_type, pc_to_return))
 
         builder.position_at_end(merge_block)
 
@@ -741,13 +756,13 @@ class LLVMFunction():
 
         if self.log_regs is True:
             # Call dump general purpose registers
-            fc_ptr = self.mod.get_function_named("dump_gpregs")
+            fc_ptr = self.mod.get_global("dump_gpregs")
             builder.call(fc_ptr, [self.local_vars["vmcpu"]])
 
     def add_bloc(self, bloc, lines):
         "Add a bloc of instruction in the current function"
 
-        for instruction, line in zip(bloc, lines):
+        for assignblk, line in zip(bloc, lines):
             new_reg = set()
 
             # Check general errors only at the beggining of instruction
@@ -756,23 +771,24 @@ class LLVMFunction():
                 self.check_error(line)
 
                 # Log mn and registers if options is set
-                self.log_instruction(instruction, line)
+                self.log_instruction(assignblk, line)
 
 
             # Pass on empty instruction
-            if len(instruction) == 0:
+            if not assignblk:
                 continue
 
-            for expression in instruction:
+            for dst, src in assignblk.iteritems():
                 # Apply preinit transformation
                 for func in self.llvm_context.IR_transformation_functions:
-                    expression = func(expression)
+                    dst = func(dst)
+                    src = func(src)
 
                 # Treat current expression
-                self.affect(expression.src, expression.dst)
+                self.affect(src, dst)
 
                 # Save registers updated
-                new_reg.update(expression.dst.get_w())
+                new_reg.update(dst.get_w())
 
             # Check for errors (without updating PC)
             self.check_error(line, except_do_not_update_pc=True)
@@ -795,12 +811,12 @@ class LLVMFunction():
 
         # Build function signature
         self.my_args.append((m2_expr.ExprId("vmcpu"),
-                             llvm_c.PointerType.pointer(LLVMType.int(8)),
+                             llvm_ir.PointerType.pointer(LLVMType.IntType(8)),
                              "vmcpu"))
         self.my_args.append((m2_expr.ExprId("vmmngr"),
-                             llvm_c.PointerType.pointer(LLVMType.int(8)),
+                             llvm_ir.PointerType.pointer(LLVMType.IntType(8)),
                              "vmmngr"))
-        self.ret_type = LLVMType.int(final_expr.size)
+        self.ret_type = LLVMType.IntType(final_expr.size)
 
         # Initialise the function
         self.init_fc()
@@ -881,10 +897,10 @@ class LLVMFunction():
         if isinstance(dest, m2_expr.ExprCond):
             # Compute cond
             cond = self.add_ir(dest.cond)
-            zero_casted = llvm_c.Constant.int(LLVMType.int(dest.cond.size),
-                                              0)
-            condition_bool = builder.icmp(llvm_c.ICMP_NE, cond,
-                                          zero_casted)
+            zero_casted = llvm_ir.Constant(LLVMType.IntType(dest.cond.size),
+                                           0)
+            condition_bool = builder.icmp_unsigned("!=", cond,
+                                                   zero_casted)
 
             # Create bbls
             branch_id = self.new_branch_name()
@@ -907,6 +923,9 @@ class LLVMFunction():
         elif isinstance(dest, m2_expr.ExprSlice):
             self.gen_ret_or_branch(dest)
 
+        elif isinstance(dest, m2_expr.ExprMem):
+            self.set_ret(self.add_ir(m2_expr.ExprId("IRDst")))
+
         else:
             raise Exception("Bloc dst has to be an ExprId or an ExprCond")
 
@@ -916,14 +935,14 @@ class LLVMFunction():
 
         # Build function signature
         self.my_args.append((m2_expr.ExprId("vmcpu"),
-                             llvm_c.PointerType.pointer(LLVMType.int(8)),
+                             llvm_ir.PointerType(LLVMType.IntType(8)),
                              "vmcpu"))
         self.my_args.append((m2_expr.ExprId("vmmngr"),
-                             llvm_c.PointerType.pointer(LLVMType.int(8)),
+                             llvm_ir.PointerType(LLVMType.IntType(8)),
                              "vmmngr"))
         ret_size = 64
 
-        self.ret_type = LLVMType.int(ret_size)
+        self.ret_type = LLVMType.IntType(ret_size)
 
         # Initialise the function
         self.init_fc()
@@ -978,9 +997,19 @@ class LLVMFunction():
 
     def get_function_pointer(self):
         "Return a pointer on the Jitted function"
-        e = self.llvm_context.get_execengine()
+        # Parse our generated module
+        mod = llvm.parse_assembly( str( self.mod ) )
+        mod.verify()
+        # Now add the module and make sure it is ready for execution
+        target = llvm.Target.from_default_triple()
+        target_machine = target.create_target_machine()
+        engine = llvm.create_mcjit_compiler(mod,
+                                            target_machine)
+        engine.finalize_object()
 
-        return e.get_pointer_to_function(self.fc)
+        # For debug: obj_bin = target_machine.emit_object(mod)
+        self.llvm_context.engines.append(engine)
+        return engine.get_function_address(self.fc.name)
 
 # TODO:
 # - Add more expressions

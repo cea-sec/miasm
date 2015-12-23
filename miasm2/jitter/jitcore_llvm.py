@@ -68,7 +68,7 @@ class JitCore_LLVM(jitcore.JitCore):
     def add_bloc(self, bloc):
 
         # Search in IR cache
-        if self.options["cache_ir"] is not None:
+        if False and self.options["cache_ir"] is not None:
 
             # /!\ This part is under development
             # Use it at your own risk
@@ -153,3 +153,11 @@ class JitCore_LLVM(jitcore.JitCore):
 
         # Store a pointer on the function jitted code
         self.lbl2jitbloc[label.offset] = func.get_function_pointer()
+
+    def jit_call(self, label, cpu, _vmmngr, breakpoints):
+        """Call the function label with cpu and vmmngr states
+        @label: function's label
+        @cpu: JitCpu instance
+        @breakpoints: Dict instance of used breakpoints
+        """
+        return self.exec_wrapper(self.lbl2jitbloc[label], cpu, cpu.vmmngr.vmmngr)
