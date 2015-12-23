@@ -3536,6 +3536,31 @@ def pmaxud(ir, instr, a, b):
     return pmaxu(ir, instr, a, b, 32)
 
 
+def pminu(ir, instr, a, b, size):
+    e = []
+    for i in xrange(0, a.size, size):
+        op1 = a[i:i+size]
+        op2 = b[i:i+size]
+        res = op1 - op2
+        # Compote CF in @res = @op1 - @op2
+        ret = (((op1 ^ op2) ^ res) ^ ((op1 ^ res) & (op1 ^ op2))).msb()
+
+        e.append(m2_expr.ExprAff(a[i:i+size],
+                                 m2_expr.ExprCond(ret,
+                                                  a[i:i+size],
+                                                  b[i:i+size])))
+    return e, []
+
+def pminub(ir, instr, a, b):
+    return pminu(ir, instr, a, b, 8)
+
+def pminuw(ir, instr, a, b):
+    return pminu(ir, instr, a, b, 16)
+
+def pminud(ir, instr, a, b):
+    return pminu(ir, instr, a, b, 32)
+
+
 mnemo_func = {'mov': mov,
               'xchg': xchg,
               'movzx': movzx,
@@ -3962,6 +3987,10 @@ mnemo_func = {'mov': mov,
               "pmaxub" : pmaxub,
               "pmaxuw" : pmaxuw,
               "pmaxud" : pmaxud,
+
+              "pminub" : pminub,
+              "pminuw" : pminuw,
+              "pminud" : pminud,
               }
 
 

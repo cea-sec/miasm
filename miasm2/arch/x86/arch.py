@@ -4042,6 +4042,18 @@ addop("pmaxud", [bs8(0x0f), bs8(0x38), bs8(0x3f), pref_66] +
       rmmod(xmm_reg, rm_arg_xmm))
 
 
+addop("pminub", [bs8(0x0f), bs8(0xda), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm))
+addop("pminub", [bs8(0x0f), bs8(0xda), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
+addop("pminuw", [bs8(0x0f), bs8(0x38), bs8(0x3a), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
+addop("pminud", [bs8(0x0f), bs8(0x38), bs8(0x3b), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
+
 mn_x86.bintree = factor_one_bit(mn_x86.bintree)
 # mn_x86.bintree = factor_fields_all(mn_x86.bintree)
 """

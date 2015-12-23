@@ -2663,6 +2663,18 @@ reg_tests = [
     (m32, "00000000    PMAXUD     XMM2, XMMWORD PTR [EDX]",
     "660F383F12"),
 
+
+
+    (m32, "00000000    PMINUB     MM2, QWORD PTR [EDX]",
+    "0FDA12"),
+    (m32, "00000000    PMINUB     XMM2, XMMWORD PTR [EDX]",
+    "660FDA12"),
+
+    (m32, "00000000    PMINUW     XMM2, XMMWORD PTR [EDX]",
+    "660F383A12"),
+    (m32, "00000000    PMINUD     XMM2, XMMWORD PTR [EDX]",
+    "660F383B12"),
+
 ]
 
 
