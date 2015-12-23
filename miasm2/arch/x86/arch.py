@@ -3879,6 +3879,14 @@ addop("pand", [bs8(0x0f), bs8(0xdb), no_xmm_pref] +
 addop("pand", [bs8(0x0f), bs8(0xdb), pref_66] +
       rmmod(xmm_reg, rm_arg_xmm), [xmm_reg, rm_arg_xmm])
 
+## ANDN
+# MMX
+addop("pandn", [bs8(0x0f), bs8(0xdf), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm), [mm_reg, rm_arg_mm])
+# SSE
+addop("pandn", [bs8(0x0f), bs8(0xdf), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm), [xmm_reg, rm_arg_xmm])
+
 ## OR
 # MMX
 addop("por", [bs8(0x0f), bs8(0xeb), no_xmm_pref] +

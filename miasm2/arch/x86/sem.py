@@ -3248,6 +3248,13 @@ def pand(ir, instr, a, b):
     e.append(m2_expr.ExprAff(a, c))
     return e, []
 
+def pandn(ir, instr, a, b):
+    e = []
+    c = (a ^ a.mask) & b
+    # No flag affected
+    e.append(m2_expr.ExprAff(a, c))
+    return e, []
+
 
 def por(ir, instr, a, b):
     e = []
@@ -3861,6 +3868,7 @@ mnemo_func = {'mov': mov,
               ###
 
               "pand": pand,
+              "pandn": pandn,
               "por": por,
 
               "rdmsr": rdmsr,

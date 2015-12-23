@@ -2434,6 +2434,18 @@ reg_tests = [
     (m32, "00000000    PAND       XMM0, XMM4",
      "660fdbc4"),
 
+    (m32, "00000000    PANDN      MM2, MM6",
+     "0fdfd6"),
+    (m32, "00000000    PANDN      XMM2, XMM6",
+     "660fdfd6"),
+
+
+    (m32, "00000000    PANDN      MM0, MM4",
+     "0fdfc4"),
+    (m32, "00000000    PANDN      XMM0, XMM4",
+     "660fdfc4"),
+
+
     (m32, "00000000    POR        XMM0, XMM1",
      "660febc1"),
     (m32, "00000000    POR        XMM6, XMMWORD PTR [ECX+0x10]",
