@@ -4070,6 +4070,24 @@ addop("pcmpeqd", [bs8(0x0f), bs8(0x76), pref_66] +
       rmmod(xmm_reg, rm_arg_xmm))
 
 
+addop("punpckhbw", [bs8(0x0f), bs8(0x68), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm))
+addop("punpckhbw", [bs8(0x0f), bs8(0x68), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
+addop("punpckhwd", [bs8(0x0f), bs8(0x69), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm))
+addop("punpckhwd", [bs8(0x0f), bs8(0x69), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
+addop("punpckhdq", [bs8(0x0f), bs8(0x6a), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm))
+addop("punpckhdq", [bs8(0x0f), bs8(0x6a), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
+addop("punpckhqdq", [bs8(0x0f), bs8(0x6d), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
 
 mn_x86.bintree = factor_one_bit(mn_x86.bintree)
 # mn_x86.bintree = factor_fields_all(mn_x86.bintree)
