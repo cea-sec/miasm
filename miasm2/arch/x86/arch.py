@@ -2151,6 +2151,54 @@ class x86_rm_wd(x86_rm_sd):
             yield x
 
 
+class x86_rm_08(x86_rm_arg):
+    msize = 8
+
+    def decode(self, v):
+        p = self.parent
+        xx = self.get_modrm()
+        expr = modrm2expr(xx, p, 0)
+        if not isinstance(expr, ExprMem):
+            self.expr = expr
+            return True
+        self.expr = ExprMem(expr.arg, self.msize)
+        return self.expr is not None
+
+    def encode(self):
+        if isinstance(self.expr, ExprInt):
+            raise StopIteration
+        p = self.parent
+        v_cand, segm, ok = expr2modrm(self.expr, p, 0, 0, 0, 0)
+        for x in self.gen_cand(v_cand, p.v_admode()):
+            yield x
+
+class x86_rm_reg_m08(x86_rm_arg):
+    msize = 8
+
+    def decode(self, v):
+        ret = x86_rm_arg.decode(self, v)
+        if not ret:
+            return ret
+        if not isinstance(self.expr, ExprMem):
+            return True
+        self.expr = ExprMem(self.expr.arg, self.msize)
+        return self.expr is not None
+
+    def encode(self):
+        if isinstance(self.expr, ExprInt):
+            raise StopIteration
+        p = self.parent
+        if isinstance(self.expr, ExprMem):
+            expr = ExprMem(self.expr.arg, 32)
+        else:
+            expr = self.expr
+        v_cand, segm, ok = expr2modrm(expr, p, 1, 0, 0, 0)
+        for x in self.gen_cand(v_cand, p.v_admode()):
+            yield x
+
+class x86_rm_reg_m16(x86_rm_reg_m08):
+    msize = 16
+
 class x86_rm_m64(x86_rm_arg):
     msize = 64
 
@@ -3068,9 +3116,12 @@ rm_arg_sx = bs(l=0, cls=(x86_rm_sx,), fname='rmarg')
 rm_arg_sxd = bs(l=0, cls=(x86_rm_sxd,), fname='rmarg')
 rm_arg_sd = bs(l=0, cls=(x86_rm_sd,), fname='rmarg')
 rm_arg_wd = bs(l=0, cls=(x86_rm_wd,), fname='rmarg')
+rm_arg_08 = bs(l=0, cls=(x86_rm_08,), fname='rmarg')
+rm_arg_reg_m08 = bs(l=0, cls=(x86_rm_reg_m08,), fname='rmarg')
+rm_arg_reg_m16 = bs(l=0, cls=(x86_rm_reg_m16,), fname='rmarg')
+rm_arg_m08 = bs(l=0, cls=(x86_rm_m08,), fname='rmarg')
 rm_arg_m64 = bs(l=0, cls=(x86_rm_m64,), fname='rmarg')
 rm_arg_m80 = bs(l=0, cls=(x86_rm_m80,), fname='rmarg')
-rm_arg_m08 = bs(l=0, cls=(x86_rm_m08,), fname='rmarg')
 rm_arg_m16 = bs(l=0, cls=(x86_rm_m16,), fname='rmarg')
 
 rm_arg_mm = bs(l=0, cls=(x86_rm_mm,), fname='rmarg')
@@ -3725,7 +3776,7 @@ addop("sbb", [bs("100000"), se, w8] + rmmod(d3, rm_arg_w8) + [d_imm])
 addop("sbb", [bs("000110"), swapargs, w8] +
       rmmod(rmreg, rm_arg_w8), [rm_arg_w8, rmreg])
 
-addop("set", [bs8(0x0f), bs('1001'), cond] + rmmod(regnoarg, rm_arg_m08))
+addop("set", [bs8(0x0f), bs('1001'), cond] + rmmod(regnoarg, rm_arg_08))
 addop("sgdt", [bs8(0x0f), bs8(0x01)] + rmmod(d0, modrm=mod_mem))
 addop("shld", [bs8(0x0f), bs8(0xa4)] +
       rmmod(rmreg) + [u08], [rm_arg, rmreg, u08])
@@ -4107,6 +4158,20 @@ addop("punpckldq", [bs8(0x0f), bs8(0x62), pref_66] +
 
 addop("punpcklqdq", [bs8(0x0f), bs8(0x6c), pref_66] +
       rmmod(xmm_reg, rm_arg_xmm))
+
+
+
+addop("pinsrb", [bs8(0x0f), bs8(0x3a), bs8(0x20), pref_66] +
+      rmmod(xmm_reg, rm_arg_reg_m08) + [u08])
+addop("pinsrd", [bs8(0x0f), bs8(0x3a), bs8(0x22), pref_66, bs_opmode32] +
+      rmmod(xmm_reg, rm_arg) + [u08])
+addop("pinsrq", [bs8(0x0f), bs8(0x3a), bs8(0x22), pref_66] +
+      rmmod(xmm_reg, rm_arg_m64) + [bs_opmode64] + [u08])
+
+addop("pinsrw", [bs8(0x0f), bs8(0xc4), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_reg_m16) + [u08])
+addop("pinsrw", [bs8(0x0f), bs8(0xc4), pref_66] +
+      rmmod(xmm_reg, rm_arg_reg_m16) + [u08])
 
 
 mn_x86.bintree = factor_one_bit(mn_x86.bintree)

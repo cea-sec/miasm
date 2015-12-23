@@ -2729,6 +2729,50 @@ reg_tests = [
     (m32, "00000000    PUNPCKLQDQ XMM2, XMMWORD PTR [EDX]",
     "660F6C12"),
 
+
+    (m32, "00000000    PINSRB     XMM2, BYTE PTR [EDX], 0x5",
+    "660F3A201205"),
+
+    (m32, "00000000    PINSRW     MM2, WORD PTR [EDX], 0x5",
+    "0FC41205"),
+    (m32, "00000000    PINSRW     XMM2, WORD PTR [EDX], 0x5",
+    "660FC41205"),
+
+    (m32, "00000000    PINSRD     XMM2, DWORD PTR [EDX], 0x5",
+    "660F3A221205"),
+
+
+    (m64, "00000000    PINSRB     XMM2, BYTE PTR [RDX], 0x5",
+    "660F3A201205"),
+
+    (m64, "00000000    PINSRW     MM2, WORD PTR [RDX], 0x5",
+    "0FC41205"),
+    (m64, "00000000    PINSRW     XMM2, WORD PTR [RDX], 0x5",
+    "660FC41205"),
+
+
+    (m64, "00000000    PINSRB     XMM2, EDX, 0x5",
+    "660F3A20D205"),
+
+    (m64, "00000000    PINSRW     MM2, EDX, 0x5",
+    "0FC4D205"),
+    (m64, "00000000    PINSRW     XMM2, EDX, 0x5",
+    "660FC4D205"),
+
+    (m64, "00000000    PINSRB     XMM2, RDX, 0x5",
+    "66480F3A20D205"),
+
+    (m64, "00000000    PINSRW     MM2, RDX, 0x5",
+    "480FC4D205"),
+    (m64, "00000000    PINSRW     XMM2, RDX, 0x5",
+    "66480FC4D205"),
+
+
+    (m64, "00000000    PINSRD     XMM2, DWORD PTR [RDX], 0x5",
+    "660F3A221205"),
+    (m64, "00000000    PINSRQ     XMM2, QWORD PTR [RDX], 0x5",
+    "66480F3A221205"),
+
 ]
 
 

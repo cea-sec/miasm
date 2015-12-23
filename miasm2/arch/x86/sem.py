@@ -3622,6 +3622,33 @@ def punpcklqdq(ir, instr, a, b):
 
 
 
+def pinsr(ir, instr, a, b, c, size):
+    e = []
+
+    mask = {8 : 0xF,
+           16 : 0x7,
+           32 : 0x3,
+           64 : 0x1}[size]
+
+    sel = (int(c.arg) & mask) * size
+    e.append(m2_expr.ExprAff(a[sel:sel+size], b[:size]))
+
+    return e, []
+
+def pinsrb(ir, instr, a, b, c):
+    return pinsr(ir, instr, a, b, c, 8)
+
+def pinsrw(ir, instr, a, b, c):
+    return pinsr(ir, instr, a, b, c, 16)
+
+def pinsrd(ir, instr, a, b, c):
+    return pinsr(ir, instr, a, b, c, 32)
+
+def pinsrq(ir, instr, a, b, c):
+    return pinsr(ir, instr, a, b, c, 64)
+
+
+
 mnemo_func = {'mov': mov,
               'xchg': xchg,
               'movzx': movzx,
@@ -4067,6 +4094,11 @@ mnemo_func = {'mov': mov,
               "punpcklwd" : punpcklwd,
               "punpckldq" : punpckldq,
               "punpcklqdq" : punpcklqdq,
+
+              "pinsrb" : pinsrb,
+              "pinsrw" : pinsrw,
+              "pinsrd" : pinsrd,
+              "pinsrq" : pinsrq,
 
               }
 
