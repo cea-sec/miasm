@@ -2592,6 +2592,67 @@ reg_tests = [
     "660F380036"),
 
 
+    (m32, "00000000    PSRLQ      MM6, 0x5",
+    "0F73D605"),
+    (m32, "00000000    PSRLQ      XMM6, 0x5",
+    "660F73D605"),
+    (m32, "00000000    PSRLD      MM6, 0x5",
+    "0F72D605"),
+    (m32, "00000000    PSRLD      XMM6, 0x5",
+    "660F72D605"),
+    (m32, "00000000    PSRLW      MM6, 0x5",
+    "0F71D605"),
+    (m32, "00000000    PSRLW      XMM6, 0x5",
+    "660F71D605"),
+
+
+    (m32, "00000000    PSRLQ      MM2, QWORD PTR [EDX]",
+    "0FD312"),
+    (m32, "00000000    PSRLQ      XMM2, XMMWORD PTR [EDX]",
+    "660FD312"),
+
+    (m32, "00000000    PSRLD      MM2, QWORD PTR [EDX]",
+    "0FD212"),
+    (m32, "00000000    PSRLD      XMM2, XMMWORD PTR [EDX]",
+    "660FD212"),
+
+    (m32, "00000000    PSRLW      MM2, QWORD PTR [EDX]",
+    "0FD112"),
+    (m32, "00000000    PSRLW      XMM2, XMMWORD PTR [EDX]",
+    "660FD112"),
+
+
+
+
+    (m32, "00000000    PSLLQ      MM6, 0x5",
+    "0F73F605"),
+    (m32, "00000000    PSLLQ      XMM6, 0x5",
+    "660F73F605"),
+    (m32, "00000000    PSLLD      MM6, 0x5",
+    "0F72F605"),
+    (m32, "00000000    PSLLD      XMM6, 0x5",
+    "660F72F605"),
+    (m32, "00000000    PSLLW      MM6, 0x5",
+    "0F71F605"),
+    (m32, "00000000    PSLLW      XMM6, 0x5",
+    "660F71F605"),
+
+
+    (m32, "00000000    PSLLQ      MM2, QWORD PTR [EDX]",
+    "0FF312"),
+    (m32, "00000000    PSLLQ      XMM2, XMMWORD PTR [EDX]",
+    "660FF312"),
+
+    (m32, "00000000    PSLLD      MM2, QWORD PTR [EDX]",
+    "0FF212"),
+    (m32, "00000000    PSLLD      XMM2, XMMWORD PTR [EDX]",
+    "660FF212"),
+
+    (m32, "00000000    PSLLW      MM2, QWORD PTR [EDX]",
+    "0FF112"),
+    (m32, "00000000    PSLLW      XMM2, XMMWORD PTR [EDX]",
+    "660FF112"),
+
 
 ]
 

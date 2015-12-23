@@ -3963,6 +3963,71 @@ addop("cvttsd2si",[bs8(0x0f), bs8(0x2c), pref_f2]
 addop("cvttss2si",[bs8(0x0f), bs8(0x2c), pref_f3]
       + rmmod(reg, rm_arg_xmm_m32))
 
+addop("psrlq", [bs8(0x0f), bs8(0x73), no_xmm_pref] +
+      rmmod(d2, rm_arg_mm) + [u08], [rm_arg_mm, u08])
+addop("psrlq", [bs8(0x0f), bs8(0x73), pref_66] +
+      rmmod(d2, rm_arg_xmm) + [u08], [rm_arg_xmm, u08])
+
+addop("psrlq", [bs8(0x0f), bs8(0xd3), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm), [mm_reg, rm_arg_mm])
+addop("psrlq", [bs8(0x0f), bs8(0xd3), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm), [xmm_reg, rm_arg_xmm])
+
+
+addop("psrld", [bs8(0x0f), bs8(0x72), no_xmm_pref] +
+      rmmod(d2, rm_arg_mm) + [u08], [rm_arg_mm, u08])
+addop("psrld", [bs8(0x0f), bs8(0x72), pref_66] +
+      rmmod(d2, rm_arg_xmm) + [u08], [rm_arg_xmm, u08])
+
+addop("psrld", [bs8(0x0f), bs8(0xd2), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm), [mm_reg, rm_arg_mm])
+addop("psrld", [bs8(0x0f), bs8(0xd2), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm), [xmm_reg, rm_arg_xmm])
+
+
+addop("psrlw", [bs8(0x0f), bs8(0x71), no_xmm_pref] +
+      rmmod(d2, rm_arg_mm) + [u08], [rm_arg_mm, u08])
+addop("psrlw", [bs8(0x0f), bs8(0x71), pref_66] +
+      rmmod(d2, rm_arg_xmm) + [u08], [rm_arg_xmm, u08])
+
+addop("psrlw", [bs8(0x0f), bs8(0xd1), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm), [mm_reg, rm_arg_mm])
+addop("psrlw", [bs8(0x0f), bs8(0xd1), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm), [xmm_reg, rm_arg_xmm])
+
+
+
+addop("psllq", [bs8(0x0f), bs8(0x73), no_xmm_pref] +
+      rmmod(d6, rm_arg_mm) + [u08], [rm_arg_mm, u08])
+addop("psllq", [bs8(0x0f), bs8(0x73), pref_66] +
+      rmmod(d6, rm_arg_xmm) + [u08], [rm_arg_xmm, u08])
+
+addop("psllq", [bs8(0x0f), bs8(0xf3), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm), [mm_reg, rm_arg_mm])
+addop("psllq", [bs8(0x0f), bs8(0xf3), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm), [xmm_reg, rm_arg_xmm])
+
+
+addop("pslld", [bs8(0x0f), bs8(0x72), no_xmm_pref] +
+      rmmod(d6, rm_arg_mm) + [u08], [rm_arg_mm, u08])
+addop("pslld", [bs8(0x0f), bs8(0x72), pref_66] +
+      rmmod(d6, rm_arg_xmm) + [u08], [rm_arg_xmm, u08])
+
+addop("pslld", [bs8(0x0f), bs8(0xf2), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm), [mm_reg, rm_arg_mm])
+addop("pslld", [bs8(0x0f), bs8(0xf2), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm), [xmm_reg, rm_arg_xmm])
+
+
+addop("psllw", [bs8(0x0f), bs8(0x71), no_xmm_pref] +
+      rmmod(d6, rm_arg_mm) + [u08], [rm_arg_mm, u08])
+addop("psllw", [bs8(0x0f), bs8(0x71), pref_66] +
+      rmmod(d6, rm_arg_xmm) + [u08], [rm_arg_xmm, u08])
+
+addop("psllw", [bs8(0x0f), bs8(0xf1), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm), [mm_reg, rm_arg_mm])
+addop("psllw", [bs8(0x0f), bs8(0xf1), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm), [xmm_reg, rm_arg_xmm])
 
 mn_x86.bintree = factor_one_bit(mn_x86.bintree)
 # mn_x86.bintree = factor_fields_all(mn_x86.bintree)

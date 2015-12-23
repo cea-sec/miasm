@@ -3448,6 +3448,57 @@ def pshufb(ir, instr, a, b):
     return e, []
 
 
+def ps_rl_ll(ir, instr, a, b, op, size):
+    lbl_zero = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
+    lbl_do = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
+    lbl_next = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
+
+    if b.size == 8:
+        count = b.zeroExtend(a.size)
+    else:
+        count = b.zeroExtend(a.size)
+
+    mask = {16: 0xF,
+            32: 0x1F,
+            64: 0x3F}[size]
+    test = count & m2_expr.ExprInt(((1 << a.size) - 1) ^ mask, a.size)
+    e = [m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(test,
+                                                        lbl_zero,
+                                                        lbl_do))]
+
+    e_zero = [m2_expr.ExprAff(a, m2_expr.ExprInt(0, a.size)),
+              m2_expr.ExprAff(ir.IRDst, lbl_next)]
+
+    e_do = []
+    for i in xrange(0, a.size, size):
+        e.append(m2_expr.ExprAff(a[i:i+size], m2_expr.ExprOp(op,
+                                                             a[i:i+size],
+                                                             count[:size])))
+
+    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
+    return e, [irbloc(lbl_do.name, [e_do]), irbloc(lbl_zero.name, [e_zero])]
+
+def psrlw(ir, instr, a, b):
+    return ps_rl_ll(ir, instr, a, b, ">>", 16)
+
+def psrld(ir, instr, a, b):
+    return ps_rl_ll(ir, instr, a, b, ">>", 32)
+
+def psrlq(ir, instr, a, b):
+    return ps_rl_ll(ir, instr, a, b, ">>", 64)
+
+
+
+def psllw(ir, instr, a, b):
+    return ps_rl_ll(ir, instr, a, b, "<<", 16)
+
+def pslld(ir, instr, a, b):
+    return ps_rl_ll(ir, instr, a, b, "<<",  32)
+
+def psllq(ir, instr, a, b):
+    return ps_rl_ll(ir, instr, a, b, "<<",  64)
+
+
 def iret(ir, instr):
     """IRET implementation
     XXX: only support "no-privilege change"
@@ -3874,6 +3925,13 @@ mnemo_func = {'mov': mov,
               "rdmsr": rdmsr,
               "wrmsr": wrmsr,
               "pshufb" : pshufb,
+
+              "psrlw" : psrlw,
+              "psrld" : psrld,
+              "psrlq" : psrlq,
+              "psllw" : psllw,
+              "pslld" : pslld,
+              "psllq" : psllq,
               }
 
 
