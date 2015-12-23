@@ -3585,27 +3585,40 @@ def pcmpeqd(ir, instr, a, b):
 
 
 
-def punpckh(ir, instr, a, b, size):
+def punpck(ir, instr, a, b, size, off):
     e = []
     for i in xrange(a.size / (2 * size)):
-        src1 = a[size * i + a.size / 2 : size * i + a.size / 2 + size]
-        src2 = b[size * i + a.size / 2 : size * i + a.size / 2 + size]
+        src1 = a[size * i + off : size * i + off + size]
+        src2 = b[size * i + off : size * i + off + size]
         e.append(m2_expr.ExprAff(a[size * 2 * i : size * 2 * i + size], src1))
         e.append(m2_expr.ExprAff(a[size * (2 * i + 1) : size * (2 * i + 1) + size], src2))
     return e, []
 
 
 def punpckhbw(ir, instr, a, b):
-    return punpckh(ir, instr, a, b, 8)
+    return punpck(ir, instr, a, b, 8, a.size / 2)
 
 def punpckhwd(ir, instr, a, b):
-    return punpckh(ir, instr, a, b, 16)
+    return punpck(ir, instr, a, b, 16, a.size / 2)
 
 def punpckhdq(ir, instr, a, b):
-    return punpckh(ir, instr, a, b, 32)
+    return punpck(ir, instr, a, b, 32, a.size / 2)
 
 def punpckhqdq(ir, instr, a, b):
-    return punpckh(ir, instr, a, b, 64)
+    return punpck(ir, instr, a, b, 64, a.size / 2)
+
+
+def punpcklbw(ir, instr, a, b):
+    return punpck(ir, instr, a, b, 8, 0)
+
+def punpcklwd(ir, instr, a, b):
+    return punpck(ir, instr, a, b, 16, 0)
+
+def punpckldq(ir, instr, a, b):
+    return punpck(ir, instr, a, b, 32, 0)
+
+def punpcklqdq(ir, instr, a, b):
+    return punpck(ir, instr, a, b, 64, 0)
 
 
 
@@ -4048,6 +4061,12 @@ mnemo_func = {'mov': mov,
               "punpckhwd" : punpckhwd,
               "punpckhdq" : punpckhdq,
               "punpckhqdq" : punpckhqdq,
+
+
+              "punpcklbw" : punpcklbw,
+              "punpcklwd" : punpcklwd,
+              "punpckldq" : punpckldq,
+              "punpcklqdq" : punpcklqdq,
 
               }
 

@@ -4089,6 +4089,26 @@ addop("punpckhqdq", [bs8(0x0f), bs8(0x6d), pref_66] +
       rmmod(xmm_reg, rm_arg_xmm))
 
 
+
+addop("punpcklbw", [bs8(0x0f), bs8(0x60), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm))
+addop("punpcklbw", [bs8(0x0f), bs8(0x60), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
+addop("punpcklwd", [bs8(0x0f), bs8(0x61), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm))
+addop("punpcklwd", [bs8(0x0f), bs8(0x61), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
+addop("punpckldq", [bs8(0x0f), bs8(0x62), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm))
+addop("punpckldq", [bs8(0x0f), bs8(0x62), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
+addop("punpcklqdq", [bs8(0x0f), bs8(0x6c), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
+
 mn_x86.bintree = factor_one_bit(mn_x86.bintree)
 # mn_x86.bintree = factor_fields_all(mn_x86.bintree)
 """
