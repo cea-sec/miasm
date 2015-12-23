@@ -3422,6 +3422,25 @@ def ucomiss(ir, instr, a, b):
     return e, []
 
 
+
+def pshufb(ir, instr, a, b):
+    e = []
+    if a.size == 64:
+        bit_l = 3
+    elif a.size == 128:
+        bit_l = 4
+    else:
+        raise NotImplementedError("bad size")
+    for i in xrange(0, b.size, 8):
+        index = b[i:i+bit_l].zeroExtend(a.size) << m2_expr.ExprInt(3, a.size)
+        value = (a >> index)[:8]
+        e.append(m2_expr.ExprAff(a[i:i+8],
+                                 m2_expr.ExprCond(b[i+7:i+8],
+                                                  m2_expr.ExprInt8(0),
+                                                  value)))
+    return e, []
+
+
 def iret(ir, instr):
     """IRET implementation
     XXX: only support "no-privilege change"
@@ -3846,7 +3865,7 @@ mnemo_func = {'mov': mov,
 
               "rdmsr": rdmsr,
               "wrmsr": wrmsr,
-
+              "pshufb" : pshufb,
               }
 
 

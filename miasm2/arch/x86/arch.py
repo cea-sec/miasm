@@ -3895,6 +3895,13 @@ addop("pxor", [bs8(0x0f), bs8(0xef), no_xmm_pref] +
 addop("pxor", [bs8(0x0f), bs8(0xef), pref_66] +
       rmmod(xmm_reg, rm_arg_xmm))
 
+addop("pshufb", [bs8(0x0f), bs8(0x38), bs8(0x00), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm))
+addop("pshufb", [bs8(0x0f), bs8(0x38), bs8(0x00), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
+
+
 ### Convert
 ### SS = single precision
 ### SD = double precision

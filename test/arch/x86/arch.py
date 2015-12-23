@@ -2574,6 +2574,11 @@ reg_tests = [
     (m32, "00000000    COMISD     XMM7, XMM6",
     "660F2FFE"),
 
+    (m32, "00000000    PSHUFB     MM6, QWORD PTR [ESI]",
+    "0F380036"),
+    (m32, "00000000    PSHUFB     XMM6, XMMWORD PTR [ESI]",
+    "660F380036"),
+
 
 
 ]
