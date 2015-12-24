@@ -3648,6 +3648,33 @@ def pinsrq(ir, instr, a, b, c):
     return pinsr(ir, instr, a, b, c, 64)
 
 
+def pextr(ir, instr, a, b, c, size):
+    e = []
+
+    mask = {8 : 0xF,
+           16 : 0x7,
+           32 : 0x3,
+           64 : 0x1}[size]
+
+    sel = (int(c.arg) & mask) * size
+    e.append(m2_expr.ExprAff(a, b[sel:sel+size].zeroExtend(a.size)))
+
+    return e, []
+
+
+def pextrb(ir, instr, a, b, c):
+    return pextr(ir, instr, a, b, c, 8)
+
+def pextrw(ir, instr, a, b, c):
+    return pextr(ir, instr, a, b, c, 16)
+
+def pextrd(ir, instr, a, b, c):
+    return pextr(ir, instr, a, b, c, 32)
+
+def pextrq(ir, instr, a, b, c):
+    return pextr(ir, instr, a, b, c, 64)
+
+
 
 mnemo_func = {'mov': mov,
               'xchg': xchg,
@@ -4099,6 +4126,11 @@ mnemo_func = {'mov': mov,
               "pinsrw" : pinsrw,
               "pinsrd" : pinsrd,
               "pinsrq" : pinsrq,
+
+              "pextrb" : pextrb,
+              "pextrw" : pextrw,
+              "pextrd" : pextrd,
+              "pextrq" : pextrq,
 
               }
 

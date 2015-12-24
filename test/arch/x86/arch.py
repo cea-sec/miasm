@@ -2773,6 +2773,32 @@ reg_tests = [
     (m64, "00000000    PINSRQ     XMM2, QWORD PTR [RDX], 0x5",
     "66480F3A221205"),
 
+
+
+
+
+    (m32, "00000000    PEXTRB     BYTE PTR [EDX], XMM2, 0x5",
+    "660F3A141205"),
+    (m32, "00000000    PEXTRB     EAX, XMM2, 0x5",
+    "660F3A14D005"),
+
+    (m32, "00000000    PEXTRW     WORD PTR [EDX], XMM2, 0x5",
+    "660F3A151205"),
+
+
+    (m32, "00000000    PEXTRW     WORD PTR [EDX], MM2, 0x5",
+    "0FC51205"),
+    (m32, "00000000    PEXTRW     WORD PTR [EDX], XMM2, 0x5",
+    "660FC51205"),
+
+    (m32, "00000000    PEXTRD     DWORD PTR [EDX], XMM2, 0x5",
+    "660F3A161205"),
+
+    (m64, "00000000    PEXTRD     DWORD PTR [RDX], XMM2, 0x5",
+    "660F3A161205"),
+    (m64, "00000000    PEXTRQ     QWORD PTR [RDX], XMM2, 0x5",
+    "66480F3A161205"),
+
 ]
 
 

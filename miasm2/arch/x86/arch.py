@@ -4174,6 +4174,25 @@ addop("pinsrw", [bs8(0x0f), bs8(0xc4), pref_66] +
       rmmod(xmm_reg, rm_arg_reg_m16) + [u08])
 
 
+addop("pextrb", [bs8(0x0f), bs8(0x3a), bs8(0x14), pref_66] +
+      rmmod(xmm_reg, rm_arg_reg_m08) + [u08], [rm_arg_reg_m08, xmm_reg, u08])
+addop("pextrd", [bs8(0x0f), bs8(0x3a), bs8(0x16), pref_66, bs_opmode32] +
+      rmmod(xmm_reg, rm_arg) + [u08], [rm_arg, xmm_reg, u08])
+addop("pextrq", [bs8(0x0f), bs8(0x3a), bs8(0x16), pref_66] +
+      rmmod(xmm_reg, rm_arg_m64) + [bs_opmode64] + [u08], [rm_arg_m64, xmm_reg, u08])
+
+
+addop("pextrw", [bs8(0x0f), bs8(0x3a), bs8(0x15), pref_66] +
+      rmmod(xmm_reg, rm_arg_m16) + [u08], [rm_arg_m16, xmm_reg, u08])
+#addop("pextrw", [bs8(0x0f), bs8(0x3a), bs8(0x15), no_xmm_pref] +
+#      rmmod(mm_reg, rm_arg_m16) + [u08], [rm_arg_m16, mm_reg, u08])
+
+addop("pextrw", [bs8(0x0f), bs8(0xc5), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_reg_m16) + [u08], [rm_arg_reg_m16, mm_reg, u08])
+addop("pextrw", [bs8(0x0f), bs8(0xc5), pref_66] +
+      rmmod(xmm_reg, rm_arg_reg_m16) + [u08], [rm_arg_reg_m16, xmm_reg, u08])
+
+
 mn_x86.bintree = factor_one_bit(mn_x86.bintree)
 # mn_x86.bintree = factor_fields_all(mn_x86.bintree)
 """
