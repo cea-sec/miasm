@@ -3831,6 +3831,42 @@ def pextrq(ir, instr, a, b, c):
     return pextr(ir, instr, a, b, c, 64)
 
 
+def unpckhps(ir, instr, a, b):
+    e = []
+    src = m2_expr.ExprCompose([(a[64:96], 0, 32),
+                               (b[64:96], 32, 64),
+                               (a[96:128], 64, 96),
+                               (b[96:128], 96, 128)])
+    e.append(m2_expr.ExprAff(a, src))
+    return e, []
+
+
+def unpckhpd(ir, instr, a, b):
+    e = []
+    src = m2_expr.ExprCompose([(a[64:128], 0, 64),
+                               (b[64:128], 64, 128)])
+    e.append(m2_expr.ExprAff(a, src))
+    return e, []
+
+
+def unpcklps(ir, instr, a, b):
+    e = []
+    src = m2_expr.ExprCompose([(a[0:32], 0, 32),
+                               (b[0:32], 32, 64),
+                               (a[32:64], 64, 96),
+                               (b[32:64], 96, 128)])
+    e.append(m2_expr.ExprAff(a, src))
+    return e, []
+
+
+def unpcklpd(ir, instr, a, b):
+    e = []
+    src = m2_expr.ExprCompose([(a[0:64], 0, 64),
+                               (b[0:64], 64, 128)])
+    e.append(m2_expr.ExprAff(a, src))
+    return e, []
+
+
 mnemo_func = {'mov': mov,
               'xchg': xchg,
               'movzx': movzx,
@@ -4286,6 +4322,11 @@ mnemo_func = {'mov': mov,
               "pextrw": pextrw,
               "pextrd": pextrd,
               "pextrq": pextrq,
+
+              "unpckhps": unpckhps,
+              "unpckhpd": unpckhpd,
+              "unpcklps": unpcklps,
+              "unpcklpd": unpcklpd,
 
               }
 

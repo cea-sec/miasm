@@ -2799,6 +2799,17 @@ reg_tests = [
     (m64, "00000000    PEXTRQ     QWORD PTR [RDX], XMM2, 0x5",
     "66480F3A161205"),
 
+
+    (m32, "00000000    UNPCKHPS   XMM2, XMMWORD PTR [EDX]",
+     "0f1512"),
+    (m32, "00000000    UNPCKHPD   XMM2, XMMWORD PTR [EDX]",
+     "660f1512"),
+
+    (m32, "00000000    UNPCKLPS   XMM2, XMMWORD PTR [EDX]",
+     "0f1412"),
+    (m32, "00000000    UNPCKLPD   XMM2, XMMWORD PTR [EDX]",
+     "660f1412"),
+
 ]
 
 

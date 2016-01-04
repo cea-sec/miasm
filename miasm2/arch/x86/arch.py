@@ -4160,6 +4160,18 @@ addop("punpcklqdq", [bs8(0x0f), bs8(0x6c), pref_66] +
       rmmod(xmm_reg, rm_arg_xmm))
 
 
+addop("unpckhps", [bs8(0x0f), bs8(0x15), no_xmm_pref] +
+      rmmod(xmm_reg, rm_arg_xmm))
+addop("unpckhpd", [bs8(0x0f), bs8(0x15), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
+
+addop("unpcklps", [bs8(0x0f), bs8(0x14), no_xmm_pref] +
+      rmmod(xmm_reg, rm_arg_xmm))
+addop("unpcklpd", [bs8(0x0f), bs8(0x14), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
+
 
 addop("pinsrb", [bs8(0x0f), bs8(0x3a), bs8(0x20), pref_66] +
       rmmod(xmm_reg, rm_arg_reg_m08) + [u08])
