@@ -2238,6 +2238,33 @@ reg_tests = [
     (m32, "00000000    MOVAPD     XMMWORD PTR [EBP+0xFFFFFFB8], XMM0",
      "660f2945b8"),
 
+
+    (m32, "00000000    MOVLPD     XMM0, QWORD PTR [ESP+0x4]",
+     "660F12442404"),
+    (m32, "00000000    MOVLPS     XMM0, QWORD PTR [ESP+0x4]",
+     "0F12442404"),
+    (m32, "00000000    MOVLPD     QWORD PTR [ESP+0x4], XMM0",
+     "660F13442404"),
+    (m32, "00000000    MOVLPS     QWORD PTR [ESP+0x4], XMM0",
+     "0F13442404"),
+
+    (m32, "00000000    MOVHPD     XMM0, QWORD PTR [ESP+0x4]",
+     "660F16442404"),
+    (m32, "00000000    MOVHPS     XMM0, QWORD PTR [ESP+0x4]",
+     "0F16442404"),
+    (m32, "00000000    MOVHPD     QWORD PTR [ESP+0x4], XMM0",
+     "660F17442404"),
+    (m32, "00000000    MOVHPS     QWORD PTR [ESP+0x4], XMM0",
+     "0F17442404"),
+
+    (m32, "00000000    MOVLHPS    XMM2, XMM1",
+     "0F16D1"),
+    (m32, "00000000    MOVHLPS    XMM2, XMM1",
+     "0F12D1"),
+
+    (m32, "00000000    MOVDQ2Q    MM2, XMM1",
+     "F20Fd6D1"),
+
     (m32, "00000000    MOVUPS     XMM2, XMMWORD PTR [ECX]",
      "0f1011"),
     (m32, "00000000    MOVSD      XMM2, QWORD PTR [ECX]",

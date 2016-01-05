@@ -3867,6 +3867,34 @@ def unpcklpd(ir, instr, a, b):
     return e, []
 
 
+def movlpd(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:64], b[:64]))
+    return e, []
+
+
+def movlps(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:64], b[:64]))
+    return e, []
+
+
+def movhpd(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[64:128], b[:64]))
+    return e, []
+
+
+def movhps(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[64:128], b[:64]))
+    return e, []
+
+def movdq2q(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a, b[:64]))
+    return e, []
+
 mnemo_func = {'mov': mov,
               'xchg': xchg,
               'movzx': movzx,
@@ -4327,6 +4355,15 @@ mnemo_func = {'mov': mov,
               "unpckhpd": unpckhpd,
               "unpcklps": unpcklps,
               "unpcklpd": unpcklpd,
+
+              "movlpd": movlpd,
+              "movlps": movlps,
+              "movhpd": movhpd,
+              "movhps": movhps,
+              "movlhps": movhps,
+              "movhlps": movlps,
+              "movdq2q": movdq2q,
+
 
               }
 

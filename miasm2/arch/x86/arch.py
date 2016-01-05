@@ -2270,8 +2270,11 @@ class x86_rm_mm(x86_rm_m80):
         p = self.parent
         xx = self.get_modrm()
         expr = modrm2expr(xx, p, 0, 0, self.is_xmm, self.is_mm)
-        if isinstance(expr, ExprMem) and expr.size != self.msize:
-            expr = ExprMem(expr.arg, self.msize)
+        if isinstance(expr, ExprMem):
+            if self.msize is None:
+                return False
+            if expr.size != self.msize:
+                expr = ExprMem(expr.arg, self.msize)
         self.expr = expr
         return True
 
@@ -2318,6 +2321,11 @@ class x86_rm_xmm_m64(x86_rm_mm):
     is_mm = False
     is_xmm = True
 
+
+class x86_rm_xmm_reg(x86_rm_mm):
+    msize = None
+    is_mm = False
+    is_xmm = True
 
 class x86_rm_reg_noarg(object):
     prio = default_prio + 1
@@ -3130,6 +3138,7 @@ rm_arg_mm_m64 = bs(l=0, cls=(x86_rm_mm_m64,), fname='rmarg')
 rm_arg_xmm = bs(l=0, cls=(x86_rm_xmm,), fname='rmarg')
 rm_arg_xmm_m32 = bs(l=0, cls=(x86_rm_xmm_m32,), fname='rmarg')
 rm_arg_xmm_m64 = bs(l=0, cls=(x86_rm_xmm_m64,), fname='rmarg')
+rm_arg_xmm_reg = bs(l=0, cls=(x86_rm_xmm_reg,), fname='rmarg')
 
 swapargs = bs_swapargs(l=1, fname="swap", mn_mod=range(1 << 1))
 
@@ -3858,6 +3867,22 @@ addop("movdqu", [bs8(0x0f), bs("011"), swapargs, bs("1111"), pref_f3]
 addop("movdqa", [bs8(0x0f), bs("011"), swapargs, bs("1111"), pref_66]
       + rmmod(xmm_reg, rm_arg_xmm), [xmm_reg, rm_arg_xmm])
 
+addop("movhpd", [bs8(0x0f), bs("0001011"), swapargs, pref_66] +
+      rmmod(xmm_reg, rm_arg_m64), [xmm_reg, rm_arg_m64])
+addop("movhps", [bs8(0x0f), bs("0001011"), swapargs, no_xmm_pref] +
+      rmmod(xmm_reg, rm_arg_m64), [xmm_reg, rm_arg_m64])
+addop("movlpd", [bs8(0x0f), bs("0001001"), swapargs, pref_66] +
+      rmmod(xmm_reg, rm_arg_m64), [xmm_reg, rm_arg_m64])
+addop("movlps", [bs8(0x0f), bs("0001001"), swapargs, no_xmm_pref] +
+      rmmod(xmm_reg, rm_arg_m64), [xmm_reg, rm_arg_m64])
+
+addop("movhlps", [bs8(0x0f), bs8(0x12), no_xmm_pref] +
+      rmmod(xmm_reg, rm_arg_xmm_reg), [xmm_reg, rm_arg_xmm_reg])
+addop("movlhps", [bs8(0x0f), bs8(0x16), no_xmm_pref] +
+      rmmod(xmm_reg, rm_arg_xmm_reg), [xmm_reg, rm_arg_xmm_reg])
+
+addop("movdq2q", [bs8(0x0f), bs8(0xd6), pref_f2] +
+      rmmod(mm_reg, rm_arg_xmm_reg), [mm_reg, rm_arg_xmm_reg])
 
 
 ## Additions
