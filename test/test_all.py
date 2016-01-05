@@ -202,7 +202,7 @@ testset += RegressionTest(["analysis.py"], base_dir="ir",
             ["simp_graph_%02d.dot" % test_nb, "graph_%02d.dot" % test_nb]
             for test_nb in xrange(1, 18))
                                     for fname in fnames])
-testset += RegressionTest(["z3_ir.py"], base_dir="ir/translators",
+testset += RegressionTest(["z3_ir.py", "smt2.py"], base_dir="ir/translators",
                           tags=[TAGS["z3"]])
 ## OS_DEP
 for script in ["win_api_x86_32.py",
