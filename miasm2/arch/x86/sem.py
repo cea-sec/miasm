@@ -3949,6 +3949,15 @@ def sqrtss(ir, instr, a, b):
     return e, []
 
 
+def pmovmskb(ir, instr, a, b):
+    e = []
+    out = []
+    for i in xrange(b.size / 8):
+        out.append((b[8 * i + 7:8 * (i + 1)], i, i + 1))
+    src = m2_expr.ExprCompose(out)
+    e.append(m2_expr.ExprAff(a, src.zeroExtend(a.size)))
+    return e, []
+
 mnemo_func = {'mov': mov,
               'xchg': xchg,
               'movzx': movzx,
@@ -4425,6 +4434,8 @@ mnemo_func = {'mov': mov,
               "sqrtps": sqrtps,
               "sqrtsd": sqrtsd,
               "sqrtss": sqrtss,
+
+              "pmovmskb": pmovmskb,
 
               }
 

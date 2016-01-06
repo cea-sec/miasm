@@ -2327,6 +2327,11 @@ class x86_rm_xmm_reg(x86_rm_mm):
     is_mm = False
     is_xmm = True
 
+class x86_rm_mm_reg(x86_rm_mm):
+    msize = None
+    is_mm = True
+    is_xmm = False
+
 class x86_rm_reg_noarg(object):
     prio = default_prio + 1
 
@@ -3134,6 +3139,7 @@ rm_arg_m16 = bs(l=0, cls=(x86_rm_m16,), fname='rmarg')
 
 rm_arg_mm = bs(l=0, cls=(x86_rm_mm,), fname='rmarg')
 rm_arg_mm_m64 = bs(l=0, cls=(x86_rm_mm_m64,), fname='rmarg')
+rm_arg_mm_reg = bs(l=0, cls=(x86_rm_mm_reg,), fname='rmarg')
 
 rm_arg_xmm = bs(l=0, cls=(x86_rm_xmm,), fname='rmarg')
 rm_arg_xmm_m32 = bs(l=0, cls=(x86_rm_xmm_m32,), fname='rmarg')
@@ -4243,6 +4249,11 @@ addop("sqrtsd", [bs8(0x0f), bs8(0x51), pref_f2] +
       rmmod(xmm_reg, rm_arg_xmm_m64))
 addop("sqrtss", [bs8(0x0f), bs8(0x51), pref_f3] +
       rmmod(xmm_reg, rm_arg_xmm_m32))
+
+addop("pmovmskb", [bs8(0x0f), bs8(0xd7), no_xmm_pref] +
+      rmmod(reg, rm_arg_mm_reg))
+addop("pmovmskb", [bs8(0x0f), bs8(0xd7), pref_66] +
+      rmmod(reg, rm_arg_xmm_reg))
 
 
 mn_x86.bintree = factor_one_bit(mn_x86.bintree)
