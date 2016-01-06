@@ -3149,6 +3149,12 @@ def andps(ir, instr, a, b):
     return e, []
 
 
+def andnps(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('&', a ^ a.mask, b)))
+    return e, []
+
+
 def orps(ir, instr, a, b):
     e = []
     e.append(m2_expr.ExprAff(a, m2_expr.ExprOp('|', a, b)))
@@ -4254,6 +4260,8 @@ mnemo_func = {'mov': mov,
               "movups": movapd,  # XXX TODO alignement check
               "andps": andps,
               "andpd": andps,
+              "andnps": andnps,
+              "andnpd": andnps,
               "orps": orps,
               "orpd": orps,
               "xorps": xorps,

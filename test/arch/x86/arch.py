@@ -2314,6 +2314,11 @@ reg_tests = [
      "0f548327bd2c00"),
     (m32, "00000000    ANDPD      XMM0, XMMWORD PTR [EBX+0x2CBD27]",
      "660f548327bd2c00"),
+    (m32, "00000000    ANDNPS     XMM0, XMMWORD PTR [EBX+0x2CBD27]",
+     "0f558327bd2c00"),
+    (m32, "00000000    ANDNPD     XMM0, XMMWORD PTR [EBX+0x2CBD27]",
+     "660f558327bd2c00"),
+
 
     (m32, "00000000    SUBSD      XMM1, XMM0",
      "f20f5cc8"),

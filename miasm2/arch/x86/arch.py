@@ -3943,6 +3943,9 @@ addop("xorpd", [bs8(0x0f), bs8(0x57), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
 addop("andps", [bs8(0x0f), bs8(0x54), no_xmm_pref] + rmmod(xmm_reg, rm_arg_xmm))
 addop("andpd", [bs8(0x0f), bs8(0x54), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
 
+addop("andnps", [bs8(0x0f), bs8(0x55), no_xmm_pref] + rmmod(xmm_reg, rm_arg_xmm))
+addop("andnpd", [bs8(0x0f), bs8(0x55), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
+
 ## OR
 addop("orps", [bs8(0x0f), bs8(0x56), no_xmm_pref] + rmmod(xmm_reg, rm_arg_xmm))
 addop("orpd", [bs8(0x0f), bs8(0x56), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
