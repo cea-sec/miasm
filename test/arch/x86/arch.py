@@ -2853,6 +2853,11 @@ reg_tests = [
     (m32, "00000000    SQRTSS     XMM2, DWORD PTR [EDX]",
      "F30f5112"),
 
+    (m32, "00000000    PMOVMSKB   EAX, MM7",
+     "0FD7C7"),
+    (m32, "00000000    PMOVMSKB   EAX, XMM7",
+     "660FD7C7"),
+
 
 ]
 
