@@ -3983,6 +3983,8 @@ addop("pshufb", [bs8(0x0f), bs8(0x38), bs8(0x00), no_xmm_pref] +
       rmmod(mm_reg, rm_arg_mm))
 addop("pshufb", [bs8(0x0f), bs8(0x38), bs8(0x00), pref_66] +
       rmmod(xmm_reg, rm_arg_xmm))
+addop("pshufd", [bs8(0x0f), bs8(0x70), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm) + [u08])
 
 
 

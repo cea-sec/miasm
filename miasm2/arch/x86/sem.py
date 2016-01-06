@@ -3583,6 +3583,16 @@ def pshufb(ir, instr, a, b):
     return e, []
 
 
+def pshufd(ir, instr, a, b, c):
+    e = []
+    for i in xrange(4):
+        index = c[2 * i:2 * (i + 1)].zeroExtend(a.size)
+        index <<= m2_expr.ExprInt(5, a.size)
+        value = (a >> index)[:32]
+        e.append(m2_expr.ExprAff(a[32 * i:32 * (i + 1)], value))
+    return e, []
+
+
 def ps_rl_ll(ir, instr, a, b, op, size):
     lbl_zero = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
     lbl_do = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
@@ -4348,6 +4358,7 @@ mnemo_func = {'mov': mov,
               "rdmsr": rdmsr,
               "wrmsr": wrmsr,
               "pshufb": pshufb,
+              "pshufd": pshufd,
 
               "psrlw": psrlw,
               "psrld": psrld,

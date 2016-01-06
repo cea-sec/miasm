@@ -2617,6 +2617,8 @@ reg_tests = [
     "0F380036"),
     (m32, "00000000    PSHUFB     XMM6, XMMWORD PTR [ESI]",
     "660F380036"),
+    (m32, "00000000    PSHUFD     XMM6, XMMWORD PTR [ESI], 0xEE",
+    "660F7036EE"),
 
 
     (m32, "00000000    PSRLQ      MM6, 0x5",
