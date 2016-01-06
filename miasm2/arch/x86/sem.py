@@ -3890,10 +3890,48 @@ def movhps(ir, instr, a, b):
     e.append(m2_expr.ExprAff(a[64:128], b[:64]))
     return e, []
 
+
 def movdq2q(ir, instr, a, b):
     e = []
     e.append(m2_expr.ExprAff(a, b[:64]))
     return e, []
+
+
+def sqrt_gen(ir, instr, a, b, size):
+    e = []
+    out = []
+    for i in b.size / size:
+        out.append((m2_expr.ExprOp('fsqrt' % size,
+                                   b[i * size: (i + 1) * size]),
+                    i * size, (i + 1) * size))
+    src = m2_expr.ExprCompose(out)
+    e.append(m2_expr.ExprAff(a, src))
+    return e, []
+
+
+def sqrtpd(ir, instr, a, b):
+    return sqrt_gen(ir, instr, a, b, 64)
+
+
+def sqrtps(ir, instr, a, b):
+    return sqrt_gen(ir, instr, a, b, 32)
+
+
+def sqrtsd(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:64],
+                             m2_expr.ExprOp('fsqrt',
+                                            b[:64])))
+    return e, []
+
+
+def sqrtss(ir, instr, a, b):
+    e = []
+    e.append(m2_expr.ExprAff(a[:32],
+                             m2_expr.ExprOp('fsqrt',
+                                            b[:32])))
+    return e, []
+
 
 mnemo_func = {'mov': mov,
               'xchg': xchg,
@@ -4364,6 +4402,10 @@ mnemo_func = {'mov': mov,
               "movhlps": movlps,
               "movdq2q": movdq2q,
 
+              "sqrtpd": sqrtpd,
+              "sqrtps": sqrtps,
+              "sqrtsd": sqrtsd,
+              "sqrtss": sqrtss,
 
               }
 

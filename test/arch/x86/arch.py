@@ -2837,6 +2837,16 @@ reg_tests = [
     (m32, "00000000    UNPCKLPD   XMM2, XMMWORD PTR [EDX]",
      "660f1412"),
 
+    (m32, "00000000    SQRTPD     XMM2, XMMWORD PTR [EDX]",
+     "660f5112"),
+    (m32, "00000000    SQRTPS     XMM2, XMMWORD PTR [EDX]",
+     "0f5112"),
+    (m32, "00000000    SQRTSD     XMM2, QWORD PTR [EDX]",
+     "F20f5112"),
+    (m32, "00000000    SQRTSS     XMM2, DWORD PTR [EDX]",
+     "F30f5112"),
+
+
 ]
 
 

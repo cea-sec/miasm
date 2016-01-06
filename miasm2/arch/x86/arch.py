@@ -4230,6 +4230,16 @@ addop("pextrw", [bs8(0x0f), bs8(0xc5), pref_66] +
       rmmod(xmm_reg, rm_arg_reg_m16) + [u08], [rm_arg_reg_m16, xmm_reg, u08])
 
 
+addop("sqrtpd", [bs8(0x0f), bs8(0x51), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+addop("sqrtps", [bs8(0x0f), bs8(0x51), no_xmm_pref] +
+      rmmod(xmm_reg, rm_arg_xmm))
+addop("sqrtsd", [bs8(0x0f), bs8(0x51), pref_f2] +
+      rmmod(xmm_reg, rm_arg_xmm_m64))
+addop("sqrtss", [bs8(0x0f), bs8(0x51), pref_f3] +
+      rmmod(xmm_reg, rm_arg_xmm_m32))
+
+
 mn_x86.bintree = factor_one_bit(mn_x86.bintree)
 # mn_x86.bintree = factor_fields_all(mn_x86.bintree)
 """
