@@ -32,7 +32,7 @@ def smt2_and(a, b):
 
 def smt2_ite(cond, a, b):
     """
-    If-then-else: a ? b : c
+    If-then-else: cond ? a : b
     """
     return "(ite {} {} {})".format(cond, a, b)
 
@@ -188,7 +188,7 @@ def bv_rotate_left(a, b, size):
     symbolic values for b, the implementation is
     based on a C implementation.
 
-    Therefore, the rotation will be computes as
+    Therefore, the rotation will be computed as
     a << (b & (size - 1))) | (a >> (size - (b & (size - 1))))
 
     :param a: bit vector
@@ -217,7 +217,7 @@ def bv_rotate_right(a, b, size):
     symbolic values for b, the implementation is
     based on a C implementation.
 
-    Therefore, the rotation will be computes as
+    Therefore, the rotation will be computed as
     a >> (b & (size - 1))) | (a << (size - (b & (size - 1))))
 
     :param a: bit vector
