@@ -239,7 +239,7 @@ class TranslatorSMT2(Translator):
     def from_ExprAff(self, expr):
         src = self.from_expr(expr.src)
         dst = self.from_expr(expr.dst)
-        return "(assert {})".format(smt2_eq(src, dst))
+        return smt2_assert(smt2_eq(src, dst))
 
     def to_smt2(self, exprs, logic="QF_ABV"):
         """
