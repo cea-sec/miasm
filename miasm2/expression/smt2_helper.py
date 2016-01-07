@@ -23,11 +23,22 @@ def smt2_implies(a, b):
     return "(=> {} {})".format(a, b)
 
 
-def smt2_and(a, b):
+def smt2_and(*args):
     """
-    Conjunction: a and b
+    Conjunction: a and b and c ...
     """
-    return "(and {} {})".format(a, b)
+    # transform args into strings
+    args = [str(arg) for arg in args]
+    return "(and {})".format(' '.join(args))
+
+
+def smt2_or(*args):
+    """
+    Disjunction: a or b or c ...
+    """
+    # transform args into strings
+    args = [str(arg) for arg in args]
+    return "(or {})".format(' '.join(args))
 
 
 def smt2_ite(cond, a, b):
@@ -37,11 +48,20 @@ def smt2_ite(cond, a, b):
     return "(ite {} {} {})".format(cond, a, b)
 
 
-def smt2_distinct(a, b):
+def smt2_distinct(*args):
     """
-    Distinction: a != b
+    Distinction: a != b != c != ...
     """
-    return "(distinct {} {})".format(a, b)
+    # transform args into strings
+    args = [str(arg) for arg in args]
+    return "(distinct {})".format(' '.join(args))
+
+
+def smt2_assert(expr):
+    """
+    Assertion that @expr holds
+    """
+    return "(assert {})".format(expr)
 
 
 # definitions
