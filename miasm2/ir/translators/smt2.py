@@ -135,9 +135,7 @@ class TranslatorSMT2(Translator):
 
     def from_ExprId(self, expr):
         if isinstance(expr.name, asm_label) and expr.name.offset is not None:
-            if expr.name.offset not in self._bitvectors:
-                self._bitvectors[str(expr.name.offset)] = expr.size
-            return str(expr.name.offset)
+            return bit_vec_val(str(expr.name.offset), expr.size)
 
         else:
             if str(expr) not in self._bitvectors:
