@@ -45,6 +45,15 @@ reg_dict gpreg_dict[] = { {.name = "RAX", .offset = offsetof(vm_cpu_t, RAX)},
 			  {.name = "FS", .offset = offsetof(vm_cpu_t, FS)},
 			  {.name = "GS", .offset = offsetof(vm_cpu_t, GS)},
 
+			  {.name = "MM0", .offset = offsetof(vm_cpu_t, MM0)},
+			  {.name = "MM1", .offset = offsetof(vm_cpu_t, MM1)},
+			  {.name = "MM2", .offset = offsetof(vm_cpu_t, MM2)},
+			  {.name = "MM3", .offset = offsetof(vm_cpu_t, MM3)},
+			  {.name = "MM4", .offset = offsetof(vm_cpu_t, MM4)},
+			  {.name = "MM5", .offset = offsetof(vm_cpu_t, MM5)},
+			  {.name = "MM6", .offset = offsetof(vm_cpu_t, MM6)},
+			  {.name = "MM7", .offset = offsetof(vm_cpu_t, MM7)},
+
 };
 
 
@@ -95,6 +104,16 @@ PyObject* cpu_get_gpreg(JitCpu* self)
     get_reg(DS);
     get_reg(FS);
     get_reg(GS);
+
+    get_reg(MM0);
+    get_reg(MM1);
+    get_reg(MM2);
+    get_reg(MM3);
+    get_reg(MM4);
+    get_reg(MM5);
+    get_reg(MM6);
+    get_reg(MM7);
+
 
     return dict;
 }
@@ -475,6 +494,15 @@ getset_reg_R_u16(BP);
 
 getset_reg_R_u16(IP);
 
+getset_reg_u64(MM0);
+getset_reg_u64(MM1);
+getset_reg_u64(MM2);
+getset_reg_u64(MM3);
+getset_reg_u64(MM4);
+getset_reg_u64(MM5);
+getset_reg_u64(MM6);
+getset_reg_u64(MM7);
+
 
 PyObject* get_gpreg_offset_all(void)
 {
@@ -749,6 +777,15 @@ static PyGetSetDef JitCpu_getseters[] = {
     {"BP", (getter)JitCpu_get_BP, (setter)JitCpu_set_BP, "BP", NULL},
 
     {"IP", (getter)JitCpu_get_IP, (setter)JitCpu_set_IP, "IP", NULL},
+
+    {"MM0", (getter)JitCpu_get_MM0, (setter)JitCpu_set_MM0, "MM0", NULL},
+    {"MM1", (getter)JitCpu_get_MM1, (setter)JitCpu_set_MM1, "MM1", NULL},
+    {"MM2", (getter)JitCpu_get_MM2, (setter)JitCpu_set_MM2, "MM2", NULL},
+    {"MM3", (getter)JitCpu_get_MM3, (setter)JitCpu_set_MM3, "MM3", NULL},
+    {"MM4", (getter)JitCpu_get_MM4, (setter)JitCpu_set_MM4, "MM4", NULL},
+    {"MM5", (getter)JitCpu_get_MM5, (setter)JitCpu_set_MM5, "MM5", NULL},
+    {"MM6", (getter)JitCpu_get_MM6, (setter)JitCpu_set_MM6, "MM6", NULL},
+    {"MM7", (getter)JitCpu_get_MM7, (setter)JitCpu_set_MM7, "MM7", NULL},
 
 
     {NULL}  /* Sentinel */

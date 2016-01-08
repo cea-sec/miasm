@@ -2238,6 +2238,33 @@ reg_tests = [
     (m32, "00000000    MOVAPD     XMMWORD PTR [EBP+0xFFFFFFB8], XMM0",
      "660f2945b8"),
 
+
+    (m32, "00000000    MOVLPD     XMM0, QWORD PTR [ESP+0x4]",
+     "660F12442404"),
+    (m32, "00000000    MOVLPS     XMM0, QWORD PTR [ESP+0x4]",
+     "0F12442404"),
+    (m32, "00000000    MOVLPD     QWORD PTR [ESP+0x4], XMM0",
+     "660F13442404"),
+    (m32, "00000000    MOVLPS     QWORD PTR [ESP+0x4], XMM0",
+     "0F13442404"),
+
+    (m32, "00000000    MOVHPD     XMM0, QWORD PTR [ESP+0x4]",
+     "660F16442404"),
+    (m32, "00000000    MOVHPS     XMM0, QWORD PTR [ESP+0x4]",
+     "0F16442404"),
+    (m32, "00000000    MOVHPD     QWORD PTR [ESP+0x4], XMM0",
+     "660F17442404"),
+    (m32, "00000000    MOVHPS     QWORD PTR [ESP+0x4], XMM0",
+     "0F17442404"),
+
+    (m32, "00000000    MOVLHPS    XMM2, XMM1",
+     "0F16D1"),
+    (m32, "00000000    MOVHLPS    XMM2, XMM1",
+     "0F12D1"),
+
+    (m32, "00000000    MOVDQ2Q    MM2, XMM1",
+     "F20Fd6D1"),
+
     (m32, "00000000    MOVUPS     XMM2, XMMWORD PTR [ECX]",
      "0f1011"),
     (m32, "00000000    MOVSD      XMM2, QWORD PTR [ECX]",
@@ -2287,6 +2314,11 @@ reg_tests = [
      "0f548327bd2c00"),
     (m32, "00000000    ANDPD      XMM0, XMMWORD PTR [EBX+0x2CBD27]",
      "660f548327bd2c00"),
+    (m32, "00000000    ANDNPS     XMM0, XMMWORD PTR [EBX+0x2CBD27]",
+     "0f558327bd2c00"),
+    (m32, "00000000    ANDNPD     XMM0, XMMWORD PTR [EBX+0x2CBD27]",
+     "660f558327bd2c00"),
+
 
     (m32, "00000000    SUBSD      XMM1, XMM0",
      "f20f5cc8"),
@@ -2434,6 +2466,18 @@ reg_tests = [
     (m32, "00000000    PAND       XMM0, XMM4",
      "660fdbc4"),
 
+    (m32, "00000000    PANDN      MM2, MM6",
+     "0fdfd6"),
+    (m32, "00000000    PANDN      XMM2, XMM6",
+     "660fdfd6"),
+
+
+    (m32, "00000000    PANDN      MM0, MM4",
+     "0fdfc4"),
+    (m32, "00000000    PANDN      XMM0, XMM4",
+     "660fdfc4"),
+
+
     (m32, "00000000    POR        XMM0, XMM1",
      "660febc1"),
     (m32, "00000000    POR        XMM6, XMMWORD PTR [ECX+0x10]",
@@ -2574,6 +2618,245 @@ reg_tests = [
     (m32, "00000000    COMISD     XMM7, XMM6",
     "660F2FFE"),
 
+    (m32, "00000000    PSHUFB     MM6, QWORD PTR [ESI]",
+    "0F380036"),
+    (m32, "00000000    PSHUFB     XMM6, XMMWORD PTR [ESI]",
+    "660F380036"),
+    (m32, "00000000    PSHUFD     XMM6, XMMWORD PTR [ESI], 0xEE",
+    "660F7036EE"),
+
+
+    (m32, "00000000    PSRLQ      MM6, 0x5",
+    "0F73D605"),
+    (m32, "00000000    PSRLQ      XMM6, 0x5",
+    "660F73D605"),
+    (m32, "00000000    PSRLD      MM6, 0x5",
+    "0F72D605"),
+    (m32, "00000000    PSRLD      XMM6, 0x5",
+    "660F72D605"),
+    (m32, "00000000    PSRLW      MM6, 0x5",
+    "0F71D605"),
+    (m32, "00000000    PSRLW      XMM6, 0x5",
+    "660F71D605"),
+
+
+    (m32, "00000000    PSRLQ      MM2, QWORD PTR [EDX]",
+    "0FD312"),
+    (m32, "00000000    PSRLQ      XMM2, XMMWORD PTR [EDX]",
+    "660FD312"),
+
+    (m32, "00000000    PSRLD      MM2, QWORD PTR [EDX]",
+    "0FD212"),
+    (m32, "00000000    PSRLD      XMM2, XMMWORD PTR [EDX]",
+    "660FD212"),
+
+    (m32, "00000000    PSRLW      MM2, QWORD PTR [EDX]",
+    "0FD112"),
+    (m32, "00000000    PSRLW      XMM2, XMMWORD PTR [EDX]",
+    "660FD112"),
+
+
+
+
+    (m32, "00000000    PSLLQ      MM6, 0x5",
+    "0F73F605"),
+    (m32, "00000000    PSLLQ      XMM6, 0x5",
+    "660F73F605"),
+    (m32, "00000000    PSLLD      MM6, 0x5",
+    "0F72F605"),
+    (m32, "00000000    PSLLD      XMM6, 0x5",
+    "660F72F605"),
+    (m32, "00000000    PSLLW      MM6, 0x5",
+    "0F71F605"),
+    (m32, "00000000    PSLLW      XMM6, 0x5",
+    "660F71F605"),
+
+
+    (m32, "00000000    PSLLQ      MM2, QWORD PTR [EDX]",
+    "0FF312"),
+    (m32, "00000000    PSLLQ      XMM2, XMMWORD PTR [EDX]",
+    "660FF312"),
+
+    (m32, "00000000    PSLLD      MM2, QWORD PTR [EDX]",
+    "0FF212"),
+    (m32, "00000000    PSLLD      XMM2, XMMWORD PTR [EDX]",
+    "660FF212"),
+
+    (m32, "00000000    PSLLW      MM2, QWORD PTR [EDX]",
+    "0FF112"),
+    (m32, "00000000    PSLLW      XMM2, XMMWORD PTR [EDX]",
+    "660FF112"),
+
+    (m32, "00000000    PMAXUB     MM2, QWORD PTR [EDX]",
+    "0FDE12"),
+    (m32, "00000000    PMAXUB     XMM2, XMMWORD PTR [EDX]",
+    "660FDE12"),
+
+    (m32, "00000000    PMAXUW     XMM2, XMMWORD PTR [EDX]",
+    "660F383E12"),
+    (m32, "00000000    PMAXUD     XMM2, XMMWORD PTR [EDX]",
+    "660F383F12"),
+
+
+
+    (m32, "00000000    PMINUB     MM2, QWORD PTR [EDX]",
+    "0FDA12"),
+    (m32, "00000000    PMINUB     XMM2, XMMWORD PTR [EDX]",
+    "660FDA12"),
+
+    (m32, "00000000    PMINUW     XMM2, XMMWORD PTR [EDX]",
+    "660F383A12"),
+    (m32, "00000000    PMINUD     XMM2, XMMWORD PTR [EDX]",
+    "660F383B12"),
+
+
+    (m32, "00000000    PCMPEQB    MM2, QWORD PTR [EDX]",
+    "0F7412"),
+    (m32, "00000000    PCMPEQB    XMM2, XMMWORD PTR [EDX]",
+    "660F7412"),
+
+    (m32, "00000000    PCMPEQW    MM2, QWORD PTR [EDX]",
+    "0F7512"),
+    (m32, "00000000    PCMPEQW    XMM2, XMMWORD PTR [EDX]",
+    "660F7512"),
+
+    (m32, "00000000    PCMPEQD    MM2, QWORD PTR [EDX]",
+    "0F7612"),
+    (m32, "00000000    PCMPEQD    XMM2, XMMWORD PTR [EDX]",
+    "660F7612"),
+
+
+    (m32, "00000000    PUNPCKHBW  MM2, QWORD PTR [EDX]",
+    "0F6812"),
+    (m32, "00000000    PUNPCKHBW  XMM2, XMMWORD PTR [EDX]",
+    "660F6812"),
+
+    (m32, "00000000    PUNPCKHWD  MM2, QWORD PTR [EDX]",
+    "0F6912"),
+    (m32, "00000000    PUNPCKHWD  XMM2, XMMWORD PTR [EDX]",
+    "660F6912"),
+
+    (m32, "00000000    PUNPCKHDQ  MM2, QWORD PTR [EDX]",
+    "0F6A12"),
+    (m32, "00000000    PUNPCKHDQ  XMM2, XMMWORD PTR [EDX]",
+    "660F6A12"),
+
+    (m32, "00000000    PUNPCKHQDQ XMM2, XMMWORD PTR [EDX]",
+    "660F6D12"),
+
+
+    (m32, "00000000    PUNPCKLBW  MM2, QWORD PTR [EDX]",
+    "0F6012"),
+    (m32, "00000000    PUNPCKLBW  XMM2, XMMWORD PTR [EDX]",
+    "660F6012"),
+
+    (m32, "00000000    PUNPCKLWD  MM2, QWORD PTR [EDX]",
+    "0F6112"),
+    (m32, "00000000    PUNPCKLWD  XMM2, XMMWORD PTR [EDX]",
+    "660F6112"),
+
+    (m32, "00000000    PUNPCKLDQ  MM2, QWORD PTR [EDX]",
+    "0F6212"),
+    (m32, "00000000    PUNPCKLDQ  XMM2, XMMWORD PTR [EDX]",
+    "660F6212"),
+
+    (m32, "00000000    PUNPCKLQDQ XMM2, XMMWORD PTR [EDX]",
+    "660F6C12"),
+
+
+    (m32, "00000000    PINSRB     XMM2, BYTE PTR [EDX], 0x5",
+    "660F3A201205"),
+
+    (m32, "00000000    PINSRW     MM2, WORD PTR [EDX], 0x5",
+    "0FC41205"),
+    (m32, "00000000    PINSRW     XMM2, WORD PTR [EDX], 0x5",
+    "660FC41205"),
+
+    (m32, "00000000    PINSRD     XMM2, DWORD PTR [EDX], 0x5",
+    "660F3A221205"),
+
+
+    (m64, "00000000    PINSRB     XMM2, BYTE PTR [RDX], 0x5",
+    "660F3A201205"),
+
+    (m64, "00000000    PINSRW     MM2, WORD PTR [RDX], 0x5",
+    "0FC41205"),
+    (m64, "00000000    PINSRW     XMM2, WORD PTR [RDX], 0x5",
+    "660FC41205"),
+
+
+    (m64, "00000000    PINSRB     XMM2, EDX, 0x5",
+    "660F3A20D205"),
+
+    (m64, "00000000    PINSRW     MM2, EDX, 0x5",
+    "0FC4D205"),
+    (m64, "00000000    PINSRW     XMM2, EDX, 0x5",
+    "660FC4D205"),
+
+    (m64, "00000000    PINSRB     XMM2, RDX, 0x5",
+    "66480F3A20D205"),
+
+    (m64, "00000000    PINSRW     MM2, RDX, 0x5",
+    "480FC4D205"),
+    (m64, "00000000    PINSRW     XMM2, RDX, 0x5",
+    "66480FC4D205"),
+
+
+    (m64, "00000000    PINSRD     XMM2, DWORD PTR [RDX], 0x5",
+    "660F3A221205"),
+    (m64, "00000000    PINSRQ     XMM2, QWORD PTR [RDX], 0x5",
+    "66480F3A221205"),
+
+
+
+
+
+    (m32, "00000000    PEXTRB     BYTE PTR [EDX], XMM2, 0x5",
+    "660F3A141205"),
+    (m32, "00000000    PEXTRB     EAX, XMM2, 0x5",
+    "660F3A14D005"),
+
+    (m32, "00000000    PEXTRW     WORD PTR [EDX], XMM2, 0x5",
+    "660F3A151205"),
+
+
+    (m32, "00000000    PEXTRW     WORD PTR [EDX], MM2, 0x5",
+    "0FC51205"),
+    (m32, "00000000    PEXTRW     WORD PTR [EDX], XMM2, 0x5",
+    "660FC51205"),
+
+    (m32, "00000000    PEXTRD     DWORD PTR [EDX], XMM2, 0x5",
+    "660F3A161205"),
+
+    (m64, "00000000    PEXTRD     DWORD PTR [RDX], XMM2, 0x5",
+    "660F3A161205"),
+    (m64, "00000000    PEXTRQ     QWORD PTR [RDX], XMM2, 0x5",
+    "66480F3A161205"),
+
+
+    (m32, "00000000    UNPCKHPS   XMM2, XMMWORD PTR [EDX]",
+     "0f1512"),
+    (m32, "00000000    UNPCKHPD   XMM2, XMMWORD PTR [EDX]",
+     "660f1512"),
+
+    (m32, "00000000    UNPCKLPS   XMM2, XMMWORD PTR [EDX]",
+     "0f1412"),
+    (m32, "00000000    UNPCKLPD   XMM2, XMMWORD PTR [EDX]",
+     "660f1412"),
+
+    (m32, "00000000    SQRTPD     XMM2, XMMWORD PTR [EDX]",
+     "660f5112"),
+    (m32, "00000000    SQRTPS     XMM2, XMMWORD PTR [EDX]",
+     "0f5112"),
+    (m32, "00000000    SQRTSD     XMM2, QWORD PTR [EDX]",
+     "F20f5112"),
+    (m32, "00000000    SQRTSS     XMM2, DWORD PTR [EDX]",
+     "F30f5112"),
+
+    (m32, "00000000    PMOVMSKB   EAX, MM7",
+     "0FD7C7"),
+    (m32, "00000000    PMOVMSKB   EAX, XMM7",
+     "660FD7C7"),
 
 
 ]

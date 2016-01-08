@@ -2151,6 +2151,54 @@ class x86_rm_wd(x86_rm_sd):
             yield x
 
 
+class x86_rm_08(x86_rm_arg):
+    msize = 8
+
+    def decode(self, v):
+        p = self.parent
+        xx = self.get_modrm()
+        expr = modrm2expr(xx, p, 0)
+        if not isinstance(expr, ExprMem):
+            self.expr = expr
+            return True
+        self.expr = ExprMem(expr.arg, self.msize)
+        return self.expr is not None
+
+    def encode(self):
+        if isinstance(self.expr, ExprInt):
+            raise StopIteration
+        p = self.parent
+        v_cand, segm, ok = expr2modrm(self.expr, p, 0, 0, 0, 0)
+        for x in self.gen_cand(v_cand, p.v_admode()):
+            yield x
+
+class x86_rm_reg_m08(x86_rm_arg):
+    msize = 8
+
+    def decode(self, v):
+        ret = x86_rm_arg.decode(self, v)
+        if not ret:
+            return ret
+        if not isinstance(self.expr, ExprMem):
+            return True
+        self.expr = ExprMem(self.expr.arg, self.msize)
+        return self.expr is not None
+
+    def encode(self):
+        if isinstance(self.expr, ExprInt):
+            raise StopIteration
+        p = self.parent
+        if isinstance(self.expr, ExprMem):
+            expr = ExprMem(self.expr.arg, 32)
+        else:
+            expr = self.expr
+        v_cand, segm, ok = expr2modrm(expr, p, 1, 0, 0, 0)
+        for x in self.gen_cand(v_cand, p.v_admode()):
+            yield x
+
+class x86_rm_reg_m16(x86_rm_reg_m08):
+    msize = 16
+
 class x86_rm_m64(x86_rm_arg):
     msize = 64
 
@@ -2222,8 +2270,11 @@ class x86_rm_mm(x86_rm_m80):
         p = self.parent
         xx = self.get_modrm()
         expr = modrm2expr(xx, p, 0, 0, self.is_xmm, self.is_mm)
-        if isinstance(expr, ExprMem) and expr.size != self.msize:
-            expr = ExprMem(expr.arg, self.msize)
+        if isinstance(expr, ExprMem):
+            if self.msize is None:
+                return False
+            if expr.size != self.msize:
+                expr = ExprMem(expr.arg, self.msize)
         self.expr = expr
         return True
 
@@ -2270,6 +2321,16 @@ class x86_rm_xmm_m64(x86_rm_mm):
     is_mm = False
     is_xmm = True
 
+
+class x86_rm_xmm_reg(x86_rm_mm):
+    msize = None
+    is_mm = False
+    is_xmm = True
+
+class x86_rm_mm_reg(x86_rm_mm):
+    msize = None
+    is_mm = True
+    is_xmm = False
 
 class x86_rm_reg_noarg(object):
     prio = default_prio + 1
@@ -3068,17 +3129,22 @@ rm_arg_sx = bs(l=0, cls=(x86_rm_sx,), fname='rmarg')
 rm_arg_sxd = bs(l=0, cls=(x86_rm_sxd,), fname='rmarg')
 rm_arg_sd = bs(l=0, cls=(x86_rm_sd,), fname='rmarg')
 rm_arg_wd = bs(l=0, cls=(x86_rm_wd,), fname='rmarg')
+rm_arg_08 = bs(l=0, cls=(x86_rm_08,), fname='rmarg')
+rm_arg_reg_m08 = bs(l=0, cls=(x86_rm_reg_m08,), fname='rmarg')
+rm_arg_reg_m16 = bs(l=0, cls=(x86_rm_reg_m16,), fname='rmarg')
+rm_arg_m08 = bs(l=0, cls=(x86_rm_m08,), fname='rmarg')
 rm_arg_m64 = bs(l=0, cls=(x86_rm_m64,), fname='rmarg')
 rm_arg_m80 = bs(l=0, cls=(x86_rm_m80,), fname='rmarg')
-rm_arg_m08 = bs(l=0, cls=(x86_rm_m08,), fname='rmarg')
 rm_arg_m16 = bs(l=0, cls=(x86_rm_m16,), fname='rmarg')
 
 rm_arg_mm = bs(l=0, cls=(x86_rm_mm,), fname='rmarg')
 rm_arg_mm_m64 = bs(l=0, cls=(x86_rm_mm_m64,), fname='rmarg')
+rm_arg_mm_reg = bs(l=0, cls=(x86_rm_mm_reg,), fname='rmarg')
 
 rm_arg_xmm = bs(l=0, cls=(x86_rm_xmm,), fname='rmarg')
 rm_arg_xmm_m32 = bs(l=0, cls=(x86_rm_xmm_m32,), fname='rmarg')
 rm_arg_xmm_m64 = bs(l=0, cls=(x86_rm_xmm_m64,), fname='rmarg')
+rm_arg_xmm_reg = bs(l=0, cls=(x86_rm_xmm_reg,), fname='rmarg')
 
 swapargs = bs_swapargs(l=1, fname="swap", mn_mod=range(1 << 1))
 
@@ -3725,7 +3791,7 @@ addop("sbb", [bs("100000"), se, w8] + rmmod(d3, rm_arg_w8) + [d_imm])
 addop("sbb", [bs("000110"), swapargs, w8] +
       rmmod(rmreg, rm_arg_w8), [rm_arg_w8, rmreg])
 
-addop("set", [bs8(0x0f), bs('1001'), cond] + rmmod(regnoarg, rm_arg_m08))
+addop("set", [bs8(0x0f), bs('1001'), cond] + rmmod(regnoarg, rm_arg_08))
 addop("sgdt", [bs8(0x0f), bs8(0x01)] + rmmod(d0, modrm=mod_mem))
 addop("shld", [bs8(0x0f), bs8(0xa4)] +
       rmmod(rmreg) + [u08], [rm_arg, rmreg, u08])
@@ -3807,6 +3873,22 @@ addop("movdqu", [bs8(0x0f), bs("011"), swapargs, bs("1111"), pref_f3]
 addop("movdqa", [bs8(0x0f), bs("011"), swapargs, bs("1111"), pref_66]
       + rmmod(xmm_reg, rm_arg_xmm), [xmm_reg, rm_arg_xmm])
 
+addop("movhpd", [bs8(0x0f), bs("0001011"), swapargs, pref_66] +
+      rmmod(xmm_reg, rm_arg_m64), [xmm_reg, rm_arg_m64])
+addop("movhps", [bs8(0x0f), bs("0001011"), swapargs, no_xmm_pref] +
+      rmmod(xmm_reg, rm_arg_m64), [xmm_reg, rm_arg_m64])
+addop("movlpd", [bs8(0x0f), bs("0001001"), swapargs, pref_66] +
+      rmmod(xmm_reg, rm_arg_m64), [xmm_reg, rm_arg_m64])
+addop("movlps", [bs8(0x0f), bs("0001001"), swapargs, no_xmm_pref] +
+      rmmod(xmm_reg, rm_arg_m64), [xmm_reg, rm_arg_m64])
+
+addop("movhlps", [bs8(0x0f), bs8(0x12), no_xmm_pref] +
+      rmmod(xmm_reg, rm_arg_xmm_reg), [xmm_reg, rm_arg_xmm_reg])
+addop("movlhps", [bs8(0x0f), bs8(0x16), no_xmm_pref] +
+      rmmod(xmm_reg, rm_arg_xmm_reg), [xmm_reg, rm_arg_xmm_reg])
+
+addop("movdq2q", [bs8(0x0f), bs8(0xd6), pref_f2] +
+      rmmod(mm_reg, rm_arg_xmm_reg), [mm_reg, rm_arg_xmm_reg])
 
 
 ## Additions
@@ -3867,6 +3949,9 @@ addop("xorpd", [bs8(0x0f), bs8(0x57), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
 addop("andps", [bs8(0x0f), bs8(0x54), no_xmm_pref] + rmmod(xmm_reg, rm_arg_xmm))
 addop("andpd", [bs8(0x0f), bs8(0x54), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
 
+addop("andnps", [bs8(0x0f), bs8(0x55), no_xmm_pref] + rmmod(xmm_reg, rm_arg_xmm))
+addop("andnpd", [bs8(0x0f), bs8(0x55), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
+
 ## OR
 addop("orps", [bs8(0x0f), bs8(0x56), no_xmm_pref] + rmmod(xmm_reg, rm_arg_xmm))
 addop("orpd", [bs8(0x0f), bs8(0x56), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
@@ -3877,6 +3962,14 @@ addop("pand", [bs8(0x0f), bs8(0xdb), no_xmm_pref] +
       rmmod(mm_reg, rm_arg_mm), [mm_reg, rm_arg_mm])
 # SSE
 addop("pand", [bs8(0x0f), bs8(0xdb), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm), [xmm_reg, rm_arg_xmm])
+
+## ANDN
+# MMX
+addop("pandn", [bs8(0x0f), bs8(0xdf), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm), [mm_reg, rm_arg_mm])
+# SSE
+addop("pandn", [bs8(0x0f), bs8(0xdf), pref_66] +
       rmmod(xmm_reg, rm_arg_xmm), [xmm_reg, rm_arg_xmm])
 
 ## OR
@@ -3894,6 +3987,15 @@ addop("pxor", [bs8(0x0f), bs8(0xef), no_xmm_pref] +
 # MMX
 addop("pxor", [bs8(0x0f), bs8(0xef), pref_66] +
       rmmod(xmm_reg, rm_arg_xmm))
+
+addop("pshufb", [bs8(0x0f), bs8(0x38), bs8(0x00), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm))
+addop("pshufb", [bs8(0x0f), bs8(0x38), bs8(0x00), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+addop("pshufd", [bs8(0x0f), bs8(0x70), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm) + [u08])
+
+
 
 ### Convert
 ### SS = single precision
@@ -3947,6 +4049,211 @@ addop("cvttsd2si",[bs8(0x0f), bs8(0x2c), pref_f2]
       + rmmod(reg, rm_arg_xmm_m64))
 addop("cvttss2si",[bs8(0x0f), bs8(0x2c), pref_f3]
       + rmmod(reg, rm_arg_xmm_m32))
+
+addop("psrlq", [bs8(0x0f), bs8(0x73), no_xmm_pref] +
+      rmmod(d2, rm_arg_mm) + [u08], [rm_arg_mm, u08])
+addop("psrlq", [bs8(0x0f), bs8(0x73), pref_66] +
+      rmmod(d2, rm_arg_xmm) + [u08], [rm_arg_xmm, u08])
+
+addop("psrlq", [bs8(0x0f), bs8(0xd3), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm), [mm_reg, rm_arg_mm])
+addop("psrlq", [bs8(0x0f), bs8(0xd3), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm), [xmm_reg, rm_arg_xmm])
+
+
+addop("psrld", [bs8(0x0f), bs8(0x72), no_xmm_pref] +
+      rmmod(d2, rm_arg_mm) + [u08], [rm_arg_mm, u08])
+addop("psrld", [bs8(0x0f), bs8(0x72), pref_66] +
+      rmmod(d2, rm_arg_xmm) + [u08], [rm_arg_xmm, u08])
+
+addop("psrld", [bs8(0x0f), bs8(0xd2), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm), [mm_reg, rm_arg_mm])
+addop("psrld", [bs8(0x0f), bs8(0xd2), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm), [xmm_reg, rm_arg_xmm])
+
+
+addop("psrlw", [bs8(0x0f), bs8(0x71), no_xmm_pref] +
+      rmmod(d2, rm_arg_mm) + [u08], [rm_arg_mm, u08])
+addop("psrlw", [bs8(0x0f), bs8(0x71), pref_66] +
+      rmmod(d2, rm_arg_xmm) + [u08], [rm_arg_xmm, u08])
+
+addop("psrlw", [bs8(0x0f), bs8(0xd1), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm), [mm_reg, rm_arg_mm])
+addop("psrlw", [bs8(0x0f), bs8(0xd1), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm), [xmm_reg, rm_arg_xmm])
+
+
+
+addop("psllq", [bs8(0x0f), bs8(0x73), no_xmm_pref] +
+      rmmod(d6, rm_arg_mm) + [u08], [rm_arg_mm, u08])
+addop("psllq", [bs8(0x0f), bs8(0x73), pref_66] +
+      rmmod(d6, rm_arg_xmm) + [u08], [rm_arg_xmm, u08])
+
+addop("psllq", [bs8(0x0f), bs8(0xf3), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm), [mm_reg, rm_arg_mm])
+addop("psllq", [bs8(0x0f), bs8(0xf3), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm), [xmm_reg, rm_arg_xmm])
+
+
+addop("pslld", [bs8(0x0f), bs8(0x72), no_xmm_pref] +
+      rmmod(d6, rm_arg_mm) + [u08], [rm_arg_mm, u08])
+addop("pslld", [bs8(0x0f), bs8(0x72), pref_66] +
+      rmmod(d6, rm_arg_xmm) + [u08], [rm_arg_xmm, u08])
+
+addop("pslld", [bs8(0x0f), bs8(0xf2), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm), [mm_reg, rm_arg_mm])
+addop("pslld", [bs8(0x0f), bs8(0xf2), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm), [xmm_reg, rm_arg_xmm])
+
+
+addop("psllw", [bs8(0x0f), bs8(0x71), no_xmm_pref] +
+      rmmod(d6, rm_arg_mm) + [u08], [rm_arg_mm, u08])
+addop("psllw", [bs8(0x0f), bs8(0x71), pref_66] +
+      rmmod(d6, rm_arg_xmm) + [u08], [rm_arg_xmm, u08])
+
+addop("psllw", [bs8(0x0f), bs8(0xf1), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm), [mm_reg, rm_arg_mm])
+addop("psllw", [bs8(0x0f), bs8(0xf1), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm), [xmm_reg, rm_arg_xmm])
+
+
+addop("pmaxub", [bs8(0x0f), bs8(0xde), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm))
+addop("pmaxub", [bs8(0x0f), bs8(0xde), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
+addop("pmaxuw", [bs8(0x0f), bs8(0x38), bs8(0x3e), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
+addop("pmaxud", [bs8(0x0f), bs8(0x38), bs8(0x3f), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
+
+addop("pminub", [bs8(0x0f), bs8(0xda), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm))
+addop("pminub", [bs8(0x0f), bs8(0xda), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
+addop("pminuw", [bs8(0x0f), bs8(0x38), bs8(0x3a), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
+addop("pminud", [bs8(0x0f), bs8(0x38), bs8(0x3b), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
+
+addop("pcmpeqb", [bs8(0x0f), bs8(0x74), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm))
+addop("pcmpeqb", [bs8(0x0f), bs8(0x74), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
+addop("pcmpeqw", [bs8(0x0f), bs8(0x75), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm))
+addop("pcmpeqw", [bs8(0x0f), bs8(0x75), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
+addop("pcmpeqd", [bs8(0x0f), bs8(0x76), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm))
+addop("pcmpeqd", [bs8(0x0f), bs8(0x76), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
+
+addop("punpckhbw", [bs8(0x0f), bs8(0x68), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm))
+addop("punpckhbw", [bs8(0x0f), bs8(0x68), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
+addop("punpckhwd", [bs8(0x0f), bs8(0x69), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm))
+addop("punpckhwd", [bs8(0x0f), bs8(0x69), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
+addop("punpckhdq", [bs8(0x0f), bs8(0x6a), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm))
+addop("punpckhdq", [bs8(0x0f), bs8(0x6a), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
+addop("punpckhqdq", [bs8(0x0f), bs8(0x6d), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
+
+
+addop("punpcklbw", [bs8(0x0f), bs8(0x60), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm))
+addop("punpcklbw", [bs8(0x0f), bs8(0x60), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
+addop("punpcklwd", [bs8(0x0f), bs8(0x61), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm))
+addop("punpcklwd", [bs8(0x0f), bs8(0x61), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
+addop("punpckldq", [bs8(0x0f), bs8(0x62), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm))
+addop("punpckldq", [bs8(0x0f), bs8(0x62), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
+addop("punpcklqdq", [bs8(0x0f), bs8(0x6c), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
+
+addop("unpckhps", [bs8(0x0f), bs8(0x15), no_xmm_pref] +
+      rmmod(xmm_reg, rm_arg_xmm))
+addop("unpckhpd", [bs8(0x0f), bs8(0x15), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
+
+addop("unpcklps", [bs8(0x0f), bs8(0x14), no_xmm_pref] +
+      rmmod(xmm_reg, rm_arg_xmm))
+addop("unpcklpd", [bs8(0x0f), bs8(0x14), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
+
+
+addop("pinsrb", [bs8(0x0f), bs8(0x3a), bs8(0x20), pref_66] +
+      rmmod(xmm_reg, rm_arg_reg_m08) + [u08])
+addop("pinsrd", [bs8(0x0f), bs8(0x3a), bs8(0x22), pref_66, bs_opmode32] +
+      rmmod(xmm_reg, rm_arg) + [u08])
+addop("pinsrq", [bs8(0x0f), bs8(0x3a), bs8(0x22), pref_66] +
+      rmmod(xmm_reg, rm_arg_m64) + [bs_opmode64] + [u08])
+
+addop("pinsrw", [bs8(0x0f), bs8(0xc4), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_reg_m16) + [u08])
+addop("pinsrw", [bs8(0x0f), bs8(0xc4), pref_66] +
+      rmmod(xmm_reg, rm_arg_reg_m16) + [u08])
+
+
+addop("pextrb", [bs8(0x0f), bs8(0x3a), bs8(0x14), pref_66] +
+      rmmod(xmm_reg, rm_arg_reg_m08) + [u08], [rm_arg_reg_m08, xmm_reg, u08])
+addop("pextrd", [bs8(0x0f), bs8(0x3a), bs8(0x16), pref_66, bs_opmode32] +
+      rmmod(xmm_reg, rm_arg) + [u08], [rm_arg, xmm_reg, u08])
+addop("pextrq", [bs8(0x0f), bs8(0x3a), bs8(0x16), pref_66] +
+      rmmod(xmm_reg, rm_arg_m64) + [bs_opmode64] + [u08], [rm_arg_m64, xmm_reg, u08])
+
+
+addop("pextrw", [bs8(0x0f), bs8(0x3a), bs8(0x15), pref_66] +
+      rmmod(xmm_reg, rm_arg_m16) + [u08], [rm_arg_m16, xmm_reg, u08])
+#addop("pextrw", [bs8(0x0f), bs8(0x3a), bs8(0x15), no_xmm_pref] +
+#      rmmod(mm_reg, rm_arg_m16) + [u08], [rm_arg_m16, mm_reg, u08])
+
+addop("pextrw", [bs8(0x0f), bs8(0xc5), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_reg_m16) + [u08], [rm_arg_reg_m16, mm_reg, u08])
+addop("pextrw", [bs8(0x0f), bs8(0xc5), pref_66] +
+      rmmod(xmm_reg, rm_arg_reg_m16) + [u08], [rm_arg_reg_m16, xmm_reg, u08])
+
+
+addop("sqrtpd", [bs8(0x0f), bs8(0x51), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+addop("sqrtps", [bs8(0x0f), bs8(0x51), no_xmm_pref] +
+      rmmod(xmm_reg, rm_arg_xmm))
+addop("sqrtsd", [bs8(0x0f), bs8(0x51), pref_f2] +
+      rmmod(xmm_reg, rm_arg_xmm_m64))
+addop("sqrtss", [bs8(0x0f), bs8(0x51), pref_f3] +
+      rmmod(xmm_reg, rm_arg_xmm_m32))
+
+addop("pmovmskb", [bs8(0x0f), bs8(0xd7), no_xmm_pref] +
+      rmmod(reg, rm_arg_mm_reg))
+addop("pmovmskb", [bs8(0x0f), bs8(0xd7), pref_66] +
+      rmmod(reg, rm_arg_xmm_reg))
 
 
 mn_x86.bintree = factor_one_bit(mn_x86.bintree)
