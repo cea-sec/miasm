@@ -15,6 +15,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
+import math
 
 
 class bin_stream(object):
@@ -36,18 +37,19 @@ class bin_stream(object):
         @start: the offset in bits
         @n: number of bits to read
         """
-        if not n:
+        if n == 0:
             return 0
         o = 0
         if n > self.getlen() * 8:
             raise IOError('not enough bits %r %r' % (n, len(self.bin) * 8))
+        temp = self.getbytes(start / 8, int(math.ceil(n / 8.)))
+        if not temp:
+            raise IOError('cannot get bytes')
+        start = start % 8
         while n:
             # print 'xxx', n, start
             i = start / 8
-            c = self.getbytes(i)
-            if not c:
-                raise IOError('cannot get bytes')
-            c = ord(c)
+            c = ord(temp[i])
             # print 'o', hex(c)
             r = 8 - start % 8
             c &= (1 << r) - 1
