@@ -38,11 +38,13 @@ class bin_stream(object):
 
     def enter_atomic_mode(self):
         """Enter atomic mode. In this mode, read may be cached"""
+        assert not self._atomic_mode
         self._atomic_mode = True
         self._cache = BoundedDict(self.CACHE_SIZE)
 
     def leave_atomic_mode(self):
         """Leave atomic mode"""
+        assert self._atomic_mode
         self._atomic_mode = False
         self._cache = None
 
