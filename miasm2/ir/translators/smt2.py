@@ -134,9 +134,15 @@ class TranslatorSMT2(Translator):
         return bit_vec_val(expr.arg.arg, expr.size)
 
     def from_ExprId(self, expr):
-        if isinstance(expr.name, asm_label) and expr.name.offset is not None:
-            return bit_vec_val(str(expr.name.offset), expr.size)
-
+        if isinstance(expr.name, asm_label):
+            if expr.name.offset is not None:
+                return bit_vec_val(str(expr.name.offset), expr.size)
+            else:
+                # SMT2-escape expression name
+                name = "|{}|".format(str(expr.name))
+                if name not in self._bitvectors:
+                    self._bitvectors[name] = expr.size
+                return name
         else:
             if str(expr) not in self._bitvectors:
                 self._bitvectors[str(expr)] = expr.size
