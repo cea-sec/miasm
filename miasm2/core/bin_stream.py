@@ -37,31 +37,37 @@ class bin_stream(object):
         @start: the offset in bits
         @n: number of bits to read
         """
+        # Trivial case
         if n == 0:
             return 0
-        o = 0
+
+        # Get initial bytes
         if n > self.getlen() * 8:
             raise IOError('not enough bits %r %r' % (n, len(self.bin) * 8))
         temp = self.getbytes(start / 8, int(math.ceil(n / 8.)))
         if not temp:
             raise IOError('cannot get bytes')
+
+        # Init
         start = start % 8
+        out = 0
         while n:
-            # print 'xxx', n, start
-            i = start / 8
-            c = ord(temp[i])
-            # print 'o', hex(c)
-            r = 8 - start % 8
-            c &= (1 << r) - 1
-            # print 'm', hex(c)
-            l = min(r, n)
-            # print 'd', r-l
-            c >>= (r - l)
-            o <<= l
-            o |= c
-            n -= l
-            start += l
-        return o
+            # Get needed bits, working on maximum 8 bits at a time
+            cur_byte_idx = start / 8
+            new_bits = ord(temp[cur_byte_idx])
+            to_keep = 8 - start % 8
+            new_bits &= (1 << to_keep) - 1
+            cur_len = min(to_keep, n)
+            new_bits >>= (to_keep - cur_len)
+
+            # Update output
+            out <<= cur_len
+            out |= new_bits
+
+            # Update counters
+            n -= cur_len
+            start += cur_len
+        return out
 
 
 class bin_stream_str(bin_stream):
