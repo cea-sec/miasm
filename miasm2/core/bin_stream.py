@@ -16,9 +16,16 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 import math
+from miasm2.core.utils import BoundedDict
 
 
 class bin_stream(object):
+
+    # Cache must be initialized by entering atomic mode
+    _cache = None
+    CACHE_SIZE = 10000
+    # By default, no atomic mode
+    _atomic_mode = False
 
     def __init__(self, *args, **kargs):
         pass
@@ -29,8 +36,34 @@ class bin_stream(object):
     def hexdump(self, offset, l):
         return
 
-    def getbytes(self, start, l=1):
+    def enter_atomic_mode(self):
+        """Enter atomic mode. In this mode, read may be cached"""
+        self._atomic_mode = True
+        self._cache = BoundedDict(self.CACHE_SIZE)
+
+    def leave_atomic_mode(self):
+        """Leave atomic mode"""
+        self._atomic_mode = False
+        self._cache = None
+
+    def _getbytes(self, start, length):
         return self.bin[start:start + l]
+
+    def getbytes(self, start, l=1):
+        """Return the bytes from the bit stream
+        @start: starting offset (in byte)
+        @l: (optional) number of bytes to read
+
+        Wrapper on _getbytes, with atomic mode handling.
+        """
+        if self._atomic_mode:
+            val = self._cache.get((start,l), None)
+            if val is None:
+                val = self._getbytes(start, l)
+                self._cache[(start,l)] = val
+        else:
+            val = self._getbytes(start, l)
+        return val
 
     def getbits(self, start, n):
         """Return the bits from the bit stream
