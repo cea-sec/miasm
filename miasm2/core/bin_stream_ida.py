@@ -11,7 +11,7 @@ class bin_stream_ida(bin_stream_str):
     Don't generate xrange using address computation:
     It can raise error on overflow 7FFFFFFF with 32 bit python
     """
-    def getbytes(self, start, l=1):
+    def _getbytes(self, start, l=1):
         o = ""
         for ad in xrange(l):
             o += chr(Byte(ad + start - self.shift))

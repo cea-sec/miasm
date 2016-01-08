@@ -47,7 +47,7 @@ class bin_stream(object):
         self._cache = None
 
     def _getbytes(self, start, length):
-        return self.bin[start:start + l]
+        return self.bin[start:start + length]
 
     def getbytes(self, start, l=1):
         """Return the bytes from the bit stream
@@ -112,11 +112,11 @@ class bin_stream_str(bin_stream):
         self.shift = shift
         self.l = len(input_str)
 
-    def getbytes(self, start, l=1):
+    def _getbytes(self, start, l=1):
         if start + l + self.shift > self.l:
             raise IOError("not enough bytes in str")
 
-        return super(bin_stream_str, self).getbytes(start + self.shift, l)
+        return super(bin_stream_str, self)._getbytes(start + self.shift, l)
 
     def readbs(self, l=1):
         if self.offset + l + self.shift > self.l:
@@ -184,7 +184,7 @@ class bin_stream_container(bin_stream):
         self.offset += l
         return self.bin.get(self.offset - l, self.offset)
 
-    def getbytes(self, start, l=1):
+    def _getbytes(self, start, l=1):
         return self.bin.get(start, start + l)
 
     def __str__(self):
@@ -213,7 +213,7 @@ class bin_stream_vm(bin_stream):
     def getlen(self):
         return 0xFFFFFFFFFFFFFFFF
 
-    def getbytes(self, start, l=1):
+    def _getbytes(self, start, l=1):
         try:
             s = self.vm.get_mem(start + self.base_offset, l)
         except:
