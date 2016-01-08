@@ -1093,6 +1093,8 @@ class cls_mn(object):
         if not isinstance(bs_o, bin_stream):
             bs_o = bin_stream_str(bs_o)
 
+        bs_o.enter_atomic_mode()
+
         offset_o = offset
         pre_dis_info, bs, mode, offset, prefix_len = cls.pre_dis(
             bs_o, mode_o, offset)
@@ -1180,6 +1182,9 @@ class cls_mn(object):
                 alias = True
             out.append(instr)
             out_c.append(c)
+
+        bs_o.leave_atomic_mode()
+
         if not out:
             raise Disasm_Exception('cannot disasm at %X' % offset_o)
         if len(out) != 1:

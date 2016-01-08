@@ -375,7 +375,6 @@ def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool,
 
         off_i = offset
         try:
-            # print repr(pool_bin.getbytes(offset, 4))
             instr = mnemo.dis(pool_bin, attrib, offset)
         except (Disasm_Exception, IOError), e:
             log_asmbloc.warning(e)
