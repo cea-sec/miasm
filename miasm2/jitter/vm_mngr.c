@@ -1354,6 +1354,7 @@ void init_memory_breakpoint(vm_mngr_t* vm_mngr)
 void reset_memory_page_pool(vm_mngr_t* vm_mngr)
 {
 	free(vm_mngr->memory_pages_array);
+	vm_mngr->memory_pages_array = NULL;
 	vm_mngr->memory_pages_number = 0;
 }
 
