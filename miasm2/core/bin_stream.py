@@ -16,7 +16,6 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 import math
-from miasm2.core.utils import BoundedDict
 
 
 class bin_stream(object):
@@ -40,7 +39,7 @@ class bin_stream(object):
         """Enter atomic mode. In this mode, read may be cached"""
         assert not self._atomic_mode
         self._atomic_mode = True
-        self._cache = BoundedDict(self.CACHE_SIZE)
+        self._cache = {}
 
     def leave_atomic_mode(self):
         """Leave atomic mode"""
