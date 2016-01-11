@@ -189,7 +189,7 @@ class instruction_mips32(cpu.instruction):
 
 
 class mn_mips32(cpu.cls_mn):
-    delayslot = 0
+    delayslot = 1
     name = "mips32"
     regs = regs
     bintree = {}

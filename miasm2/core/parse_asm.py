@@ -238,10 +238,9 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
     delayslot = 0
     while i < len(lines):
         if delayslot:
+            delayslot -= 1
             if delayslot == 0:
                 state = STATE_NO_BLOC
-            else:
-                delayslot -= 1
         line = lines[i]
         # no current block
         if state == STATE_NO_BLOC:
@@ -311,9 +310,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
                 if not line.splitflow():
                     block_to_nlink = None
 
-                delayslot = line.delayslot
-                if delayslot == 0:
-                    state = STATE_NO_BLOC
+                delayslot = line.delayslot + 1
             else:
                 raise RuntimeError("unknown class %s" % line.__class__)
         i += 1
