@@ -78,6 +78,9 @@ class asm_constraint(object):
     c_bad = "c_bad"
 
     def __init__(self, label, c_t=c_to):
+        # Sanity check
+        assert isinstance(label, asm_label)
+
         self.label = label
         self.c_t = c_t
 

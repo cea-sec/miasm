@@ -305,7 +305,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
                             continue
                         if dst in mnemo.regs.all_regs_ids:
                             continue
-                        cur_block.addto(asmbloc.asm_constraint(dst, C_TO))
+                        cur_block.addto(asmbloc.asm_constraint(dst.name, C_TO))
 
                 if not line.splitflow():
                     block_to_nlink = None
