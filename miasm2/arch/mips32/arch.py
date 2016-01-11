@@ -297,7 +297,7 @@ class mips32_fccreg(mips32_reg):
     parser = reg_info.parser
 
 class mips32_imm(cpu.imm_noarg):
-    parser = cpu.base_expr
+    parser = base_expr
 
 
 class mips32_s16imm_noarg(mips32_imm):
