@@ -77,7 +77,7 @@ class asm_constraint(object):
     c_next = "c_next"
     c_bad = "c_bad"
 
-    def __init__(self, label=None, c_t=c_to):
+    def __init__(self, label, c_t=c_to):
         self.label = label
         self.c_t = c_t
 
@@ -87,21 +87,21 @@ class asm_constraint(object):
 
 class asm_constraint_next(asm_constraint):
 
-    def __init__(self, label=None):
+    def __init__(self, label):
         super(asm_constraint_next, self).__init__(
             label, c_t=asm_constraint.c_next)
 
 
 class asm_constraint_to(asm_constraint):
 
-    def __init__(self, label=None):
+    def __init__(self, label):
         super(asm_constraint_to, self).__init__(
             label, c_t=asm_constraint.c_to)
 
 
 class asm_constraint_bad(asm_constraint):
 
-    def __init__(self, label=None):
+    def __init__(self, label):
         super(asm_constraint_bad, self).__init__(
             label, c_t=asm_constraint.c_bad)
 
