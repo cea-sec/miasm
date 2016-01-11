@@ -1076,7 +1076,7 @@ double fsqrt(double a)
 double fabs(double a)
 {
 	double b;
-	b = abs(a);
+	b = fabs(a);
 #ifdef DEBUG_MIASM_DOUBLE
 	dump_float();
 	printf("%e abs %e\n", a, b);
