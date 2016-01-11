@@ -501,8 +501,6 @@ def split_bloc(mnemo, attrib, pool_bin, blocs,
     bloc_dst = [symbol_pool._offset2label[x] for x in more_ref]
     for b in blocs:
         for c in b.bto:
-            if not isinstance(c.label, asm_label):
-                continue
             if c.c_t == asm_constraint.c_bad:
                 continue
             bloc_dst.append(c.label)
@@ -525,9 +523,7 @@ def split_bloc(mnemo, attrib, pool_bin, blocs,
                 log_asmbloc.error("cannot split %x!!", off)
                 continue
             if dis_bloc_callback:
-                offsets_to_dis = set(
-                    [x.label.offset for x in new_b.bto
-                     if isinstance(x.label, asm_label)])
+                offsets_to_dis = set(x.label.offset for x in new_b.bto)
                 dis_bloc_callback(mn=mnemo, attrib=attrib, pool_bin=pool_bin,
                                   cur_bloc=new_b, offsets_to_dis=offsets_to_dis,
                                   symbol_pool=symbol_pool)
@@ -628,15 +624,7 @@ def bloc2graph(blocks, label=False, lines=True):
     # Generate links
     for block in blocks:
         for next_b in block.bto:
-            if (isinstance(next_b.label, m2_expr.ExprId) or
-                    isinstance(next_b.label, asm_label)):
-                src, dst, cst = block.label.name, next_b.label.name, next_b.c_t
-            else:
-                continue
-            if isinstance(src, asm_label):
-                src = src.name
-            if isinstance(dst, asm_label):
-                dst = dst.name
+            src, dst, cst = block.label.name, next_b.label.name, next_b.c_t
 
             edge_color = "black"
             if next_b.c_t == asm_constraint.c_next:
@@ -1145,8 +1133,7 @@ class basicblocs:
         self.blocs[b.label] = b
         self.g.add_node(b.label)
         for dst in b.bto:
-            if isinstance(dst.label, asm_label):
-                self.g.add_edge(b.label, dst.label)
+            self.g.add_edge(b.label, dst.label)
 
     def add_blocs(self, ab):
         for b in ab:
@@ -1164,7 +1151,7 @@ class basicblocs:
 def find_parents(blocs, l):
     p = set()
     for b in blocs:
-        if l in [x.label for x in b.bto if isinstance(x.label, asm_label)]:
+        if l in [x.label for x in b.bto]:
             p.add(b.label)
     return p
 
@@ -1312,8 +1299,6 @@ def bloc_merge(blocs, dont_merge=[]):
 
         # update parents
         for s in b.bto:
-            if not isinstance(s.label, asm_label):
-                continue
             if s.label.name == None:
                 continue
             if not s.label in blocby_label:
