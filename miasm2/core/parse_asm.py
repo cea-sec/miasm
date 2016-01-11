@@ -316,5 +316,9 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
         i += 1
 
     for block in blocks:
+        # Fix multiple constraints
+        block.fix_constraints()
+
+        # Log block
         asmbloc.log_asmbloc.info(block)
     return blocks, symbol_pool
