@@ -262,6 +262,36 @@ class asm_bloc(object):
                        for constraints in dests.itervalues())
 
 
+class asm_block_bad(asm_bloc):
+    """Stand for a *bad* ASM block (malformed, unreachable,
+    not disassembled, ...)"""
+
+    ERROR_TYPES = {-1: "Unknown error",
+               }
+
+    def __init__(self, label=None, alignment=1, errno=-1, *args, **kwargs):
+        """Instanciate an asm_block_bad.
+        @label, @alignement: same as asm_bloc.__init__
+        @errno: (optional) specify a error type associated with the block
+        """
+        super(asm_block_bad, self).__init__(label, alignment, *args, **kwargs)
+        self._errno = errno
+
+    def __str__(self):
+        return "\n".join([str(self.label),
+                          "\tBad block: %s" % self.ERROR_TYPES.get(self.errno,
+                                                                   self.errno)])
+
+    def addline(self, *args, **kwargs):
+        raise RuntimeError("An asm_block_bad cannot have line")
+
+    def addto(self, *args, **kwargs):
+        raise RuntimeError("An asm_block_bad cannot have bto")
+
+    def split(self, *args, **kwargs):
+        raise RuntimeError("An asm_block_bad cannot be splitted")
+
+
 class asm_symbol_pool:
 
     def __init__(self):
