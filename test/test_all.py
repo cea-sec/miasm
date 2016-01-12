@@ -213,6 +213,8 @@ testset += RegressionTest(["analysis.py"], base_dir="ir",
                                     for fname in fnames])
 testset += RegressionTest(["z3_ir.py"], base_dir="ir/translators",
                           tags=[TAGS["z3"]])
+testset += RegressionTest(["smt2.py"], base_dir="ir/translators",
+                          tags=[TAGS["z3"]])
 ## OS_DEP
 for script in ["win_api_x86_32.py",
                ]:
