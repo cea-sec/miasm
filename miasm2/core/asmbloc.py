@@ -137,7 +137,7 @@ class asm_bloc(object):
         self.lines.append(l)
 
     def addto(self, c):
-        assert type(self.bto) is set
+        assert isinstance(self.bto, set)
         self.bto.add(c)
 
     def split(self, offset, l):
@@ -182,9 +182,9 @@ class asm_bloc(object):
         return [x.offset for x in self.lines]
 
     def add_cst(self, offset, c_t, symbol_pool):
-        if type(offset) in [int, long]:
+        if isinstance(offset, (int, long)):
             l = symbol_pool.getby_offset_create(offset)
-        elif type(offset) is str:
+        elif isinstance(offset, str):
             l = symbol_pool.getby_name_create(offset)
         elif isinstance(offset, asm_label):
             l = offset
