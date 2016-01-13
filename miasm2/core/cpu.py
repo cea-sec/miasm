@@ -1020,11 +1020,7 @@ class cls_mn(object):
                 else:
                     todo.append((dict(fname_values), (nb, v), offset_b))
 
-        candidates = [c for c in candidates]
-
-        if not candidates:
-            raise Disasm_Exception('cannot disasm (guess) at %X' % offset)
-        return candidates
+        return [c for c in candidates]
 
     def reset_class(self):
         for f in self.fields_order:
@@ -1093,10 +1089,16 @@ class cls_mn(object):
         if not isinstance(bs_o, bin_stream):
             bs_o = bin_stream_str(bs_o)
 
+        bs_o.enter_atomic_mode()
+
         offset_o = offset
         pre_dis_info, bs, mode, offset, prefix_len = cls.pre_dis(
             bs_o, mode_o, offset)
         candidates = cls.guess_mnemo(bs, mode, pre_dis_info, offset)
+        if not candidates:
+            bs_o.leave_atomic_mode()
+            raise Disasm_Exception('cannot disasm (guess) at %X' % offset)
+
         out = []
         out_c = []
         if hasattr(bs, 'getlen'):
@@ -1180,6 +1182,9 @@ class cls_mn(object):
                 alias = True
             out.append(instr)
             out_c.append(c)
+
+        bs_o.leave_atomic_mode()
+
         if not out:
             raise Disasm_Exception('cannot disasm at %X' % offset_o)
         if len(out) != 1:

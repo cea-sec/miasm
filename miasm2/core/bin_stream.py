@@ -15,9 +15,16 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
+import math
 
 
 class bin_stream(object):
+
+    # Cache must be initialized by entering atomic mode
+    _cache = None
+    CACHE_SIZE = 10000
+    # By default, no atomic mode
+    _atomic_mode = False
 
     def __init__(self, *args, **kargs):
         pass
@@ -28,38 +35,73 @@ class bin_stream(object):
     def hexdump(self, offset, l):
         return
 
+    def enter_atomic_mode(self):
+        """Enter atomic mode. In this mode, read may be cached"""
+        assert not self._atomic_mode
+        self._atomic_mode = True
+        self._cache = {}
+
+    def leave_atomic_mode(self):
+        """Leave atomic mode"""
+        assert self._atomic_mode
+        self._atomic_mode = False
+        self._cache = None
+
+    def _getbytes(self, start, length):
+        return self.bin[start:start + length]
+
     def getbytes(self, start, l=1):
-        return self.bin[start:start + l]
+        """Return the bytes from the bit stream
+        @start: starting offset (in byte)
+        @l: (optional) number of bytes to read
+
+        Wrapper on _getbytes, with atomic mode handling.
+        """
+        if self._atomic_mode:
+            val = self._cache.get((start,l), None)
+            if val is None:
+                val = self._getbytes(start, l)
+                self._cache[(start,l)] = val
+        else:
+            val = self._getbytes(start, l)
+        return val
 
     def getbits(self, start, n):
         """Return the bits from the bit stream
         @start: the offset in bits
         @n: number of bits to read
         """
-        if not n:
+        # Trivial case
+        if n == 0:
             return 0
-        o = 0
+
+        # Get initial bytes
         if n > self.getlen() * 8:
             raise IOError('not enough bits %r %r' % (n, len(self.bin) * 8))
+        temp = self.getbytes(start / 8, int(math.ceil(n / 8.)))
+        if not temp:
+            raise IOError('cannot get bytes')
+
+        # Init
+        start = start % 8
+        out = 0
         while n:
-            # print 'xxx', n, start
-            i = start / 8
-            c = self.getbytes(i)
-            if not c:
-                raise IOError('cannot get bytes')
-            c = ord(c)
-            # print 'o', hex(c)
-            r = 8 - start % 8
-            c &= (1 << r) - 1
-            # print 'm', hex(c)
-            l = min(r, n)
-            # print 'd', r-l
-            c >>= (r - l)
-            o <<= l
-            o |= c
-            n -= l
-            start += l
-        return o
+            # Get needed bits, working on maximum 8 bits at a time
+            cur_byte_idx = start / 8
+            new_bits = ord(temp[cur_byte_idx])
+            to_keep = 8 - start % 8
+            new_bits &= (1 << to_keep) - 1
+            cur_len = min(to_keep, n)
+            new_bits >>= (to_keep - cur_len)
+
+            # Update output
+            out <<= cur_len
+            out |= new_bits
+
+            # Update counters
+            n -= cur_len
+            start += cur_len
+        return out
 
 
 class bin_stream_str(bin_stream):
@@ -71,11 +113,11 @@ class bin_stream_str(bin_stream):
         self.shift = shift
         self.l = len(input_str)
 
-    def getbytes(self, start, l=1):
+    def _getbytes(self, start, l=1):
         if start + l + self.shift > self.l:
             raise IOError("not enough bytes in str")
 
-        return super(bin_stream_str, self).getbytes(start + self.shift, l)
+        return super(bin_stream_str, self)._getbytes(start + self.shift, l)
 
     def readbs(self, l=1):
         if self.offset + l + self.shift > self.l:
@@ -143,7 +185,7 @@ class bin_stream_container(bin_stream):
         self.offset += l
         return self.bin.get(self.offset - l, self.offset)
 
-    def getbytes(self, start, l=1):
+    def _getbytes(self, start, l=1):
         return self.bin.get(start, start + l)
 
     def __str__(self):
@@ -172,7 +214,7 @@ class bin_stream_vm(bin_stream):
     def getlen(self):
         return 0xFFFFFFFFFFFFFFFF
 
-    def getbytes(self, start, l=1):
+    def _getbytes(self, start, l=1):
         try:
             s = self.vm.get_mem(start + self.base_offset, l)
         except:
