@@ -465,6 +465,7 @@ class additional_info:
 
 
 class instruction_x86(instruction):
+    __slots__ = []
     delayslot = 0
 
     def __init__(self, *args, **kargs):

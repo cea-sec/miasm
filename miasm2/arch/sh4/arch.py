@@ -386,6 +386,7 @@ class additional_info:
 
 
 class instruction_sh4(instruction):
+    __slots__ = []
     delayslot = 0
 
     def __init__(self, *args, **kargs):

@@ -910,6 +910,9 @@ class metamn(type):
 
 
 class instruction(object):
+    __slots__ = ["name", "mode", "args",
+                 "l", "b", "offset", "data",
+                 "additional_info", "delayslot"]
 
     def __init__(self, name, mode, args, additional_info=None):
         self.name = name

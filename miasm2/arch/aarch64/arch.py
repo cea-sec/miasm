@@ -325,6 +325,7 @@ conds_inv_expr, _, conds_inv_info = gen_regs(CONDS_INV, {})
 
 
 class instruction_aarch64(instruction):
+    __slots__ = []
     delayslot = 0
 
     def __init__(self, *args, **kargs):
