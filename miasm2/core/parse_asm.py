@@ -238,10 +238,9 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
     delayslot = 0
     while i < len(lines):
         if delayslot:
+            delayslot -= 1
             if delayslot == 0:
                 state = STATE_NO_BLOC
-            else:
-                delayslot -= 1
         line = lines[i]
         # no current block
         if state == STATE_NO_BLOC:
@@ -306,18 +305,20 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
                             continue
                         if dst in mnemo.regs.all_regs_ids:
                             continue
-                        cur_block.addto(asmbloc.asm_constraint(dst, C_TO))
+                        cur_block.addto(asmbloc.asm_constraint(dst.name, C_TO))
 
                 if not line.splitflow():
                     block_to_nlink = None
 
-                delayslot = line.delayslot
-                if delayslot == 0:
-                    state = STATE_NO_BLOC
+                delayslot = line.delayslot + 1
             else:
                 raise RuntimeError("unknown class %s" % line.__class__)
         i += 1
 
     for block in blocks:
+        # Fix multiple constraints
+        block.fix_constraints()
+
+        # Log block
         asmbloc.log_asmbloc.info(block)
     return blocks, symbol_pool
