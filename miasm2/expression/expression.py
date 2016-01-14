@@ -114,26 +114,27 @@ class Expr(object):
 
     "Parent class for Miasm Expressions"
 
-    is_term = False   # Terminal expression
-    is_simp = False   # Expression already simplified
-    is_canon = False  # Expression already canonised
-    is_eval = False   # Expression already evalued
+    __slots__ = ["is_term", "is_simp", "is_canon",
+                 "is_eval", "_hash", "_repr", "_size",
+                 "is_var_ident"]
 
-    _hash = None
-    _repr = None
 
     def set_size(self, value):
         raise ValueError('size is not mutable')
 
-    def __init__(self, arg):
-        self.arg = arg
+    def __init__(self):
+        self.is_term = False   # Terminal expression
+        self.is_simp = False   # Expression already simplified
+        self.is_canon = False  # Expression already canonised
+        self.is_eval = False   # Expression already evalued
+        self.is_var_ident = False # Expression not identifier
+
+        self._hash = None
+        self._repr = None
 
     size = property(lambda self: self._size)
 
     # Common operations
-
-    def __str__(self):
-        return str(self.arg)
 
     def __getitem__(self, i):
         if not isinstance(i, slice):
@@ -145,12 +146,6 @@ class Expr(object):
 
     def get_size(self):
         raise DeprecationWarning("use X.size instead of X.get_size()")
-
-    def get_r(self, mem_read=False, cst_read=False):
-        return self.arg.get_r(mem_read, cst_read)
-
-    def get_w(self):
-        return self.arg.get_w()
 
     def is_function_call(self):
         """Returns true if the considered Expr is a function call
@@ -343,10 +338,14 @@ class ExprInt(Expr):
      - Constant 0x12345678 on 32bits
      """
 
+    __slots__ = ["_arg"]
+
     def __init__(self, num, size=None):
         """Create an ExprInt from a modint or num/size
         @arg: modint or num
         @size: (optionnal) int size"""
+
+        super(ExprInt, self).__init__()
 
         if is_modint(num):
             self._arg = num
@@ -420,11 +419,14 @@ class ExprId(Expr):
      - variable v1
      """
 
+    __slots__ = ["_name"]
+
     def __init__(self, name, size=32):
         """Create an identifier
         @name: str, identifier's name
         @size: int, identifier's size
         """
+        super(ExprId, self).__init__()
 
         self._name, self._size = name, size
 
@@ -478,11 +480,16 @@ class ExprAff(Expr):
      - var1 <- 2
     """
 
+    __slots__ = ["_src", "_dst"]
+
     def __init__(self, dst, src):
         """Create an ExprAff for dst <- src
         @dst: Expr, affectation destination
         @src: Expr, affectation source
         """
+
+        super(ExprAff, self).__init__()
+
         if dst.size != src.size:
             raise ValueError(
                 "sanitycheck: ExprAff args must have same size! %s" %
@@ -578,12 +585,16 @@ class ExprCond(Expr):
      - if (cond) then ... else ...
     """
 
+    __slots__ = ["_cond", "_src1", "_src2"]
+
     def __init__(self, cond, src1, src2):
         """Create an ExprCond
         @cond: Expr, condition
         @src1: Expr, value if condition is evaled to not zero
         @src2: Expr, value if condition is evaled zero
         """
+
+        super(ExprCond, self).__init__()
 
         assert(src1.size == src2.size)
 
@@ -657,11 +668,16 @@ class ExprMem(Expr):
      - Memory write
     """
 
+    __slots__ = ["_arg", "_size"]
+
     def __init__(self, arg, size=32):
         """Create an ExprMem
         @arg: Expr, memory access address
         @size: int, memory access size
         """
+
+        super(ExprMem, self).__init__()
+
         if not isinstance(arg, Expr):
             raise ValueError(
                 'ExprMem: arg must be an Expr (not %s)' % type(arg))
@@ -725,11 +741,15 @@ class ExprOp(Expr):
      - parity bit(var1)
     """
 
+    __slots__ = ["_op", "_args"]
+
     def __init__(self, op, *args):
         """Create an ExprOp
         @op: str, operation
         @*args: Expr, operand list
         """
+
+        super(ExprOp, self).__init__()
 
         sizes = set([arg.size for arg in args])
 
@@ -868,7 +888,11 @@ class ExprOp(Expr):
 
 class ExprSlice(Expr):
 
+    __slots__ = ["_arg", "_start", "_stop"]
+
     def __init__(self, arg, start, stop):
+        super(ExprSlice, self).__init__()
+
         assert(start < stop)
 
         self._arg, self._start, self._stop = arg, start, stop
@@ -948,11 +972,15 @@ class ExprCompose(Expr):
     In the example, salad.size == 3.
     """
 
+    __slots__ = ["_args"]
+
     def __init__(self, args):
         """Create an ExprCompose
         The ExprCompose is contiguous and starts at 0
         @args: tuple(Expr, int, int)
         """
+
+        super(ExprCompose, self).__init__()
 
         last_stop = 0
         args = sorted(args, key=itemgetter(1))
