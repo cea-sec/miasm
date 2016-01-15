@@ -445,7 +445,7 @@ Software requirements
 
 Miasm uses:
 
-* LibTCC [tinycc](http://repo.or.cz/w/tinycc.git) to JIT code for emulation mode. See below
+* LibTCC [tinycc (ONLY version 0.9.26)](http://repo.or.cz/w/tinycc.git), to JIT code for emulation mode
 * or LLVM v3.2 with python-llvm, see below
 * python-pyparsing
 * python-dev
@@ -465,8 +465,12 @@ sudo python setup.py install
 * To use the jitter, TCC or LLVM is recommended
 * LibTCC needs to be configured with the `--disable-static` option
   * remove `libtcc-dev` from the system to avoid conflicts
-  * clone [TinyCC](http://repo.or.cz/tinycc.git) and use [latest stable version](http://repo.or.cz/w/tinycc.git/tags)
-  * `./configure --disable-static && make && make install`
+  * clone [TinyCC](http://repo.or.cz/tinycc.git): `git clone http://repo.or.cz/tinycc.git`
+  * set branch to version 0.9.26: `cd tinycc/` and `git checkout release_0_9_26`
+  * `./configure --disable-static`
+  * `make`
+  * `sudo make install`
+  * There may be an error on documentation generation
 * LLVM
   * Debian (testing/unstable): install python-llvm
   * Debian stable/Ubuntu/Kali/whatever: install from [llvmpy](http://www.llvmpy.org/)
