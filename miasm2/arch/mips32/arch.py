@@ -78,6 +78,7 @@ br_2 = ['BEQ', 'BEQL', 'BNE']
 
 
 class instruction_mips32(cpu.instruction):
+    __slots__ = []
     delayslot = 1
 
     def __init__(self, *args, **kargs):

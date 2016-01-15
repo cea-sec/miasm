@@ -293,8 +293,7 @@ class Variables_Identifier(object):
         if not isinstance(expr, m2_expr.ExprId):
             return False
 
-        return hasattr(expr, cls.is_var_ident) and \
-            getattr(expr, cls.is_var_ident) == True
+        return expr.is_var_ident
 
     def find_variables_rec(self, expr):
         """Recursive method called by find_variable to expand @expr.
@@ -311,7 +310,7 @@ class Variables_Identifier(object):
                 identifier = m2_expr.ExprId("%s%s" % (self.var_prefix,
                                                       self.var_indice.next()),
                                             size = expr.size)
-                setattr(identifier, self.__class__.is_var_ident, True)
+                identifier.is_var_ident = True
                 self._vars[identifier] = expr
 
             # Recursion stop case

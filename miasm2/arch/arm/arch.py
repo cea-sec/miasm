@@ -278,6 +278,7 @@ class additional_info:
 
 
 class instruction_arm(instruction):
+    __slots__ = []
     delayslot = 0
 
     def __init__(self, *args, **kargs):
@@ -420,6 +421,8 @@ class instruction_arm(instruction):
         return ExprInt_from(expr, self.offset+8)
 
 class instruction_armt(instruction_arm):
+    __slots__ = []
+    delayslot = 0
 
     def __init__(self, *args, **kargs):
         super(instruction_armt, self).__init__(*args, **kargs)
