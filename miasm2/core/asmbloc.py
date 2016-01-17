@@ -75,7 +75,6 @@ class asm_raw:
 class asm_constraint(object):
     c_to = "c_to"
     c_next = "c_next"
-    c_bad = "c_bad"
 
     def __init__(self, label, c_t=c_to):
         # Sanity check
@@ -100,13 +99,6 @@ class asm_constraint_to(asm_constraint):
     def __init__(self, label):
         super(asm_constraint_to, self).__init__(
             label, c_t=asm_constraint.c_to)
-
-
-class asm_constraint_bad(asm_constraint):
-
-    def __init__(self, label):
-        super(asm_constraint_bad, self).__init__(
-            label, c_t=asm_constraint.c_bad)
 
 
 class asm_bloc(object):
@@ -137,7 +129,7 @@ class asm_bloc(object):
         self.lines.append(l)
 
     def addto(self, c):
-        assert type(self.bto) is set
+        assert isinstance(self.bto, set)
         self.bto.add(c)
 
     def split(self, offset, l):
@@ -182,9 +174,9 @@ class asm_bloc(object):
         return [x.offset for x in self.lines]
 
     def add_cst(self, offset, c_t, symbol_pool):
-        if type(offset) in [int, long]:
+        if isinstance(offset, (int, long)):
             l = symbol_pool.getby_offset_create(offset)
-        elif type(offset) is str:
+        elif isinstance(offset, str):
             l = symbol_pool.getby_name_create(offset)
         elif isinstance(offset, asm_label):
             l = offset
@@ -227,7 +219,6 @@ class asm_bloc(object):
         @constraints: non-empty set of asm_constraint instance
 
         Always the same type -> one of the constraint
-        c_bad and something -> error
         c_next and c_to -> c_next
         """
         # Only one constraint
@@ -243,11 +234,7 @@ class asm_bloc(object):
         if len(cbytype) == 1:
             return next(iter(constraints))
 
-        # At least one c_bad and one other constraint
-        if asm_constraint.c_bad in cbytype:
-            raise RuntimeError("Bad type of constraints for the same destination")
-
-        # At least 2 types, c_bad not in types -> types = {c_next, c_to}
+        # At least 2 types -> types = {c_next, c_to}
         # c_to is included in c_next
         return next(iter(cbytype[asm_constraint.c_next]))
 
@@ -260,6 +247,38 @@ class asm_bloc(object):
 
         self.bto = set(self._filter_constraint(constraints)
                        for constraints in dests.itervalues())
+
+
+class asm_block_bad(asm_bloc):
+    """Stand for a *bad* ASM block (malformed, unreachable,
+    not disassembled, ...)"""
+
+    ERROR_TYPES = {-1: "Unknown error",
+                   0: "Unable to disassemble",
+                   1: "Reach a null starting block",
+    }
+
+    def __init__(self, label=None, alignment=1, errno=-1, *args, **kwargs):
+        """Instanciate an asm_block_bad.
+        @label, @alignement: same as asm_bloc.__init__
+        @errno: (optional) specify a error type associated with the block
+        """
+        super(asm_block_bad, self).__init__(label, alignment, *args, **kwargs)
+        self._errno = errno
+
+    def __str__(self):
+        error_txt = self.ERROR_TYPES.get(self._errno, self._errno)
+        return "\n".join([str(self.label),
+                          "\tBad block: %s" % error_txt])
+
+    def addline(self, *args, **kwargs):
+        raise RuntimeError("An asm_block_bad cannot have line")
+
+    def addto(self, *args, **kwargs):
+        raise RuntimeError("An asm_block_bad cannot have bto")
+
+    def split(self, *args, **kwargs):
+        raise RuntimeError("An asm_block_bad cannot be splitted")
 
 
 class asm_symbol_pool:
@@ -386,7 +405,7 @@ class asm_symbol_pool:
         return label
 
 
-def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool,
+def dis_bloc(mnemo, pool_bin, label, offset, job_done, symbol_pool,
              dont_dis=[], split_dis=[
              ], follow_call=False, dontdis_retcall=False, lines_wd=None,
              dis_bloc_callback=None, dont_dis_nulstart_bloc=False,
@@ -397,13 +416,14 @@ def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool,
     delayslot_count = mnemo.delayslot
     offsets_to_dis = set()
     add_next_offset = False
+    cur_block = asm_bloc(label)
     log_asmbloc.debug("dis at %X", int(offset))
     while not in_delayslot or delayslot_count > 0:
         if in_delayslot:
             delayslot_count -= 1
 
         if offset in dont_dis or (lines_cpt > 0 and offset in split_dis):
-            cur_bloc.add_cst(offset, asm_constraint.c_next, symbol_pool)
+            cur_block.add_cst(offset, asm_constraint.c_next, symbol_pool)
             offsets_to_dis.add(offset)
             break
 
@@ -413,7 +433,7 @@ def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool,
             break
 
         if offset in job_done:
-            cur_bloc.add_cst(offset, asm_constraint.c_next, symbol_pool)
+            cur_block.add_cst(offset, asm_constraint.c_next, symbol_pool)
             break
 
         off_i = offset
@@ -425,13 +445,25 @@ def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool,
 
         if instr is None:
             log_asmbloc.warning("cannot disasm at %X", int(off_i))
-            cur_bloc.add_cst(off_i, asm_constraint.c_bad, symbol_pool)
+            if not cur_block.lines:
+                # Block is empty -> bad block
+                cur_block = asm_block_bad(label, errno=0)
+            else:
+                # Block is not empty, stop the desassembly pass and add a
+                # constraint to the next block
+                cur_block.add_cst(off_i, asm_constraint.c_next, symbol_pool)
             break
 
         # XXX TODO nul start block option
         if dont_dis_nulstart_bloc and instr.b.count('\x00') == instr.l:
             log_asmbloc.warning("reach nul instr at %X", int(off_i))
-            cur_bloc.add_cst(off_i, asm_constraint.c_bad, symbol_pool)
+            if not cur_block.lines:
+                # Block is empty -> bad block
+                cur_block = asm_block_bad(label, errno=1)
+            else:
+                # Block is not empty, stop the desassembly pass and add a
+                # constraint to the next block
+                cur_block.add_cst(off_i, asm_constraint.c_next, symbol_pool)
             break
 
         # special case: flow graph modificator in delayslot
@@ -446,7 +478,7 @@ def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool,
         log_asmbloc.debug(instr)
         log_asmbloc.debug(instr.args)
 
-        cur_bloc.addline(instr)
+        cur_block.addline(instr)
         if not instr.breakflow():
             continue
         # test split
@@ -464,31 +496,29 @@ def dis_bloc(mnemo, pool_bin, cur_bloc, offset, job_done, symbol_pool,
                     dstn.append(d.name)
             dst = dstn
             if (not instr.is_subcall()) or follow_call:
-                cur_bloc.bto.update(
+                cur_block.bto.update(
                     [asm_constraint(x, asm_constraint.c_to) for x in dst])
 
         # get in delayslot mode
         in_delayslot = True
         delayslot_count = instr.delayslot
 
-    for c in cur_bloc.bto:
-        if c.c_t == asm_constraint.c_bad:
-            continue
+    for c in cur_block.bto:
         offsets_to_dis.add(c.label.offset)
 
     if add_next_offset:
-        cur_bloc.add_cst(offset, asm_constraint.c_next, symbol_pool)
+        cur_block.add_cst(offset, asm_constraint.c_next, symbol_pool)
         offsets_to_dis.add(offset)
 
     # Fix multiple constraints
-    cur_bloc.fix_constraints()
+    cur_block.fix_constraints()
 
     if dis_bloc_callback is not None:
         dis_bloc_callback(mn=mnemo, attrib=attrib, pool_bin=pool_bin,
-                          cur_bloc=cur_bloc, offsets_to_dis=offsets_to_dis,
+                          cur_bloc=cur_block, offsets_to_dis=offsets_to_dis,
                           symbol_pool=symbol_pool)
     # print 'dst', [hex(x) for x in offsets_to_dis]
-    return offsets_to_dis
+    return cur_block, offsets_to_dis
 
 
 def split_bloc(mnemo, attrib, pool_bin, blocs,
@@ -499,9 +529,9 @@ def split_bloc(mnemo, attrib, pool_bin, blocs,
     # get all possible dst
     bloc_dst = [symbol_pool._offset2label[x] for x in more_ref]
     for b in blocs:
+        if isinstance(b, asm_block_bad):
+            continue
         for c in b.bto:
-            if c.c_t == asm_constraint.c_bad:
-                continue
             bloc_dst.append(c.label)
 
     bloc_dst = [x.offset for x in bloc_dst if x.offset is not None]
@@ -567,15 +597,16 @@ def dis_bloc_all(mnemo, pool_bin, offset, job_done, symbol_pool, dont_dis=[],
                 break
         if dd_flag:
             continue
-        l = symbol_pool.getby_offset_create(n)
-        cur_bloc = asm_bloc(l)
-        todo += dis_bloc(mnemo, pool_bin, cur_bloc, n, job_done, symbol_pool,
-                         dont_dis, split_dis, follow_call, dontdis_retcall,
-                         dis_bloc_callback=dis_bloc_callback,
-                         lines_wd=lines_wd,
-                         dont_dis_nulstart_bloc=dont_dis_nulstart_bloc,
-                         attrib=attrib)
-        blocs.append(cur_bloc)
+        label = symbol_pool.getby_offset_create(n)
+        cur_block, nexts = dis_bloc(mnemo, pool_bin, label, n, job_done,
+                                    symbol_pool, dont_dis, split_dis,
+                                    follow_call, dontdis_retcall,
+                                    dis_bloc_callback=dis_bloc_callback,
+                                    lines_wd=lines_wd,
+                                    dont_dis_nulstart_bloc=dont_dis_nulstart_bloc,
+                                    attrib=attrib)
+        todo += nexts
+        blocs.append(cur_block)
 
     return split_bloc(mnemo, attrib, pool_bin, blocs,
                       symbol_pool, dis_bloc_callback=dis_bloc_callback)
@@ -1139,12 +1170,12 @@ class basicblocs:
             self.add(b)
 
     def get_bad_dst(self):
-        o = set()
-        for b in self.blocs.values():
-            for c in b.bto:
-                if c.c_t == asm_constraint.c_bad:
-                    o.add(b)
-        return o
+        out = set()
+        for block in self.blocs.values():
+            for constraint in block.bto:
+                if isinstance(self.blocs[constraint.label], asm_block_bad):
+                    out.add(block)
+        return out
 
 
 def find_parents(blocs, l):
@@ -1334,18 +1365,18 @@ class disasmEngine(object):
         self.__dict__.update(kwargs)
 
     def dis_bloc(self, offset):
-        l = self.symbol_pool.getby_offset_create(offset)
-        current_bloc = asm_bloc(l)
-        dis_bloc(self.arch, self.bs, current_bloc, offset, self.job_done,
-                 self.symbol_pool,
-                 dont_dis=self.dont_dis, split_dis=self.split_dis,
-                 follow_call=self.follow_call,
-                 dontdis_retcall=self.dontdis_retcall,
-                 lines_wd=self.lines_wd,
-                 dis_bloc_callback=self.dis_bloc_callback,
-                 dont_dis_nulstart_bloc=self.dont_dis_nulstart_bloc,
-                 attrib=self.attrib)
-        return current_bloc
+        label = self.symbol_pool.getby_offset_create(offset)
+        current_block, _ = dis_bloc(self.arch, self.bs, label, offset,
+                                    self.job_done, self.symbol_pool,
+                                    dont_dis=self.dont_dis,
+                                    split_dis=self.split_dis,
+                                    follow_call=self.follow_call,
+                                    dontdis_retcall=self.dontdis_retcall,
+                                    lines_wd=self.lines_wd,
+                                    dis_bloc_callback=self.dis_bloc_callback,
+                                    dont_dis_nulstart_bloc=self.dont_dis_nulstart_bloc,
+                                    attrib=self.attrib)
+        return current_block
 
     def dis_multibloc(self, offset, blocs=None):
         blocs = dis_bloc_all(self.arch, self.bs, offset, self.job_done,

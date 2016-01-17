@@ -121,21 +121,22 @@ class JitCore(object):
         if isinstance(addr, asmbloc.asm_label):
             addr = addr.offset
 
-        l = self.ir_arch.symbol_pool.getby_offset_create(addr)
-        cur_bloc = asmbloc.asm_bloc(l)
+        label = self.ir_arch.symbol_pool.getby_offset_create(addr)
 
         # Disassemble it
         try:
-            asmbloc.dis_bloc(self.ir_arch.arch, self.bs, cur_bloc, addr,
-                             set(), self.ir_arch.symbol_pool, [],
-                             follow_call=False, dontdis_retcall=False,
-                             lines_wd=self.options["jit_maxline"],
-                             # max 10 asm lines
-                             attrib=self.ir_arch.attrib,
-                             split_dis=self.split_dis)
+            cur_bloc, _ = asmbloc.dis_bloc(self.ir_arch.arch, self.bs, label,
+                                           addr, set(),
+                                           self.ir_arch.symbol_pool, [],
+                                           follow_call=False,
+                                           dontdis_retcall=False,
+                                           lines_wd=self.options["jit_maxline"],
+                                           # max 10 asm lines
+                                           attrib=self.ir_arch.attrib,
+                                           split_dis=self.split_dis)
         except IOError:
             # vm_exception_flag is set
-            pass
+            cur_bloc = asmbloc.asm_bloc(label)
 
         # Logging
         if self.log_newbloc:
@@ -148,7 +149,7 @@ class JitCore(object):
             raise ValueError("Cannot JIT a block without any assembly line")
 
         # Update label -> bloc
-        self.lbl2bloc[l] = cur_bloc
+        self.lbl2bloc[label] = cur_bloc
 
         # Store min/max bloc address needed in jit automod code
         self.get_bloc_min_max(cur_bloc)
