@@ -239,7 +239,7 @@ print "3 arguments argv type:", argv_t
 # alloc argv somewhere
 argv = argv_t.lval(vm)
 
-# Auto alloc with a buffer type
+# Auto alloc with the MemStr.from_str helper
 MemStrAnsi = Str().lval
 argv[0].val = MemStrAnsi.from_str(vm, "./my-program").get_addr()
 argv[1].val = MemStrAnsi.from_str(vm, "arg1").get_addr()
