@@ -1093,6 +1093,9 @@ class Void(Type):
     def __hash__(self):
         return hash(self.__class__)
 
+    def __repr__(self):
+        return self.__class__.__name__
+
 
 class Self(Void):
     """Special marker to reference a type inside itself.
