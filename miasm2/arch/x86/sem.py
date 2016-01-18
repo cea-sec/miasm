@@ -2860,7 +2860,6 @@ def icebp(ir, instr):
     return e, []
 # XXX
 
-
 def l_int(ir, instr, a):
     e = []
     # XXX
