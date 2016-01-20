@@ -572,3 +572,251 @@ class DiGraphSimplifier(object):
     def __call__(self, graph):
         """Wrapper on 'apply_simp'"""
         return self.apply_simp(graph)
+
+
+class MatchGraphJoker(object):
+    """MatchGraphJoker are joker nodes of MatchGraph, that is to say nodes which
+    stand for any node. Restrictions can be added to jokers.
+
+    If j1, j2 and j3 are MatchGraphJoker, one can quickly build a matcher for
+    the pattern:
+                                         |
+                                    +----v----+
+                                    |  (j1)   |
+                                    +----+----+
+                                         |
+                                    +----v----+
+                                    |  (j2)   |<---+
+                                    +----+--+-+    |
+                                         |  +------+
+                                    +----v----+
+                                    |  (j3)   |
+                                    +----+----+
+                                         |
+                                         v
+    Using:
+    >>> matcher = j1 >> j2 >> j3
+    >>> matcher += j2 >> j2
+    Or:
+    >>> matcher = j1 >> j2 >> j2 >> j3
+
+    """
+
+    def __init__(self, restrict_in=True, restrict_out=True, filt=None,
+                 name=None):
+        """Instanciate a MatchGraphJoker, with restrictions
+        @restrict_in: (optional) if set, the number of predecessors of the
+                      matched node must be the same than the joker node in the
+                      associated MatchGraph
+        @restrict_out: (optional) counterpart of @restrict_in for successors
+        @filt: (optional) function(node) -> boolean for filtering candidate node
+        @name: (optional) helper for displaying the current joker
+        """
+        if filt is None:
+            filt = lambda node: True
+        self.filt = filt
+        if name is None:
+            name = str(id(self))
+        self._name = name
+        self.restrict_in = restrict_in
+        self.restrict_out = restrict_out
+
+    def __rshift__(self, joker):
+        """Helper for describing a MatchGraph from @joker
+        J1 >> J2 stands for an edge going to J2 from J1
+        @joker: MatchGraphJoker instance
+        """
+        assert isinstance(joker, MatchGraphJoker)
+
+        graph = MatchGraph()
+        graph.add_node(self)
+        graph.add_node(joker)
+        graph.add_edge(self, joker)
+
+        # For future "A >> B" idiom construction
+        graph._last_node = joker
+
+        return graph
+
+    def __str__(self):
+        info = []
+        if not self.restrict_in:
+            info.append("In:*")
+        if not self.restrict_out:
+            info.append("Out:*")
+        return "Joker %s %s" % (self._name,
+                                "(%s)" % " ".join(info) if info else "")
+
+
+class MatchGraph(DiGraph):
+    """MatchGraph intends to be the counterpart of MatchExpr, but for DiGraph
+
+    This class provides API to match a given DiGraph pattern, with addidionnal
+    restrictions.
+    The implemented algorithm is a naive approach.
+
+    The recommended way to instanciate a MatchGraph is the use of
+    MatchGraphJoker.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super(MatchGraph, self).__init__(*args, **kwargs)
+        # Construction helper
+        self._last_node = None
+
+    # Construction helpers
+    def __rshift__(self, joker):
+        """Construction helper, adding @joker to the current graph as a son of
+        _last_node
+        @joker: MatchGraphJoker instance"""
+        assert isinstance(joker, MatchGraphJoker)
+        assert isinstance(self._last_node, MatchGraphJoker)
+
+        self.add_node(joker)
+        self.add_edge(self._last_node, joker)
+        self._last_node = joker
+        return self
+
+    def __add__(self, graph):
+        """Construction helper, merging @graph with self
+        @graph: MatchGraph instance
+        """
+        assert isinstance(graph, MatchGraph)
+
+        # Reset helpers flag
+        self._last_node = None
+        graph._last_node = None
+
+        # Merge graph into self
+        for node in graph.nodes():
+            self.add_node(node)
+        for edge in graph.edges():
+            self.add_edge(*edge)
+
+        return self
+
+    # Graph matching
+    def _check_node(self, candidate, expected, graph, partial_sol=None):
+        """Check if @candidate can stand for @expected in @graph, given @partial_sol
+        @candidate: @graph's node
+        @expected: MatchGraphJoker instance
+        @graph: DiGraph instance
+        @partial_sol: (optional) dictionnary of MatchGraphJoker -> @graph's node
+        standing for a partial solution
+        """
+        # Avoid having 2 different joker for the same node
+        if partial_sol and candidate in partial_sol.values():
+            return False
+
+        # Check lambda filtering
+        if not expected.filt(candidate):
+            return False
+
+        # Check arity
+        ## If filter_in/out, then arity must be the same
+        ## Otherwise, arity of the candidate must be at least equal
+        if ((expected.restrict_in == True and
+             len(self.predecessors(expected)) != len(graph.predecessors(candidate))) or
+            (expected.restrict_in == False and
+             len(self.predecessors(expected)) > len(graph.predecessors(candidate)))):
+            return False
+        if ((expected.restrict_out == True and
+             len(self.successors(expected)) != len(graph.successors(candidate))) or
+            (expected.restrict_out == False and
+             len(self.successors(expected)) > len(graph.successors(candidate)))):
+            return False
+
+        # Check edges with partial solution if any
+        if not partial_sol:
+            return True
+        for pred in self.predecessors(expected):
+            if (pred in partial_sol and
+                partial_sol[pred] not in graph.predecessors(candidate)):
+                return False
+
+        for succ in self.successors(expected):
+            if (succ in partial_sol and
+                partial_sol[succ] not in graph.successors(candidate)):
+                return False
+
+        # All checks OK
+        return True
+
+    def _propagate_sol(self, node, partial_sol, graph, todo, propagator):
+        """
+        Try to extend the current @partial_sol by propagating the solution using
+        @propagator on @node.
+        New solutions are added to @todo
+        """
+        real_node = partial_sol[node]
+        for candidate in propagator(self, node):
+            ## Edge already in the partial solution, skip it
+            if candidate in partial_sol:
+                continue
+
+            ## Check candidate
+            for candidate_real in propagator(graph, real_node):
+                if self._check_node(candidate_real, candidate, graph,
+                                    partial_sol):
+                    temp_sol = partial_sol.copy()
+                    temp_sol[candidate] = candidate_real
+                    if temp_sol not in todo:
+                        todo.append(temp_sol)
+
+    @staticmethod
+    def _propagate_successors(graph, node):
+        """Propagate through @node successors in @graph"""
+        return graph.successors_iter(node)
+
+    @staticmethod
+    def _propagate_predecessors(graph, node):
+        """Propagate through @node predecessors in @graph"""
+        return graph.predecessors_iter(node)
+
+    def match(self, graph):
+        """Naive subgraph matching between graph and self.
+        Iterator on matching solution, as dictionnary MatchGraphJoker -> @graph
+        @graph: DiGraph instance
+        In order to obtained correct and complete results, @graph must be
+        connected.
+        """
+        # Partial solution: nodes corrects, edges between these nodes corrects
+        # A partial solution is a dictionnary MatchGraphJoker -> @graph's node
+        todo = list() # Dictionnaries containing partial solution
+        done = list() # Aleady computed partial solutions
+
+        # Elect first candidates
+        to_match = next(iter(self._nodes))
+        for node in graph.nodes():
+            if self._check_node(node, to_match, graph):
+                to_add = {to_match: node}
+                if to_add not in todo:
+                    todo.append(to_add)
+
+        while todo:
+            # When a partial_sol is computed, if more precise partial solutions
+            # are found, they will be added to 'todo'
+            # -> using last entry of todo first performs a "depth first"
+            # approach on solutions
+            # -> the algorithm may converge faster to a solution, a desired
+            # behavior while doing graph simplification (stopping after one sol)
+            partial_sol = todo.pop()
+
+            # Avoid infinite loop and recurrent work
+            if partial_sol in done:
+                continue
+            done.append(partial_sol)
+
+            # If all nodes are matching, this is a potential solution
+            if len(partial_sol) == len(self._nodes):
+                yield partial_sol
+                continue
+
+            # Find node to tests using edges
+            for node in partial_sol:
+                self._propagate_sol(node, partial_sol, graph, todo,
+                                    MatchGraph._propagate_successors)
+                self._propagate_sol(node, partial_sol, graph, todo,
+                                    MatchGraph._propagate_predecessors)
+
+        raise StopIteration
