@@ -10,7 +10,7 @@ import miasm2.expression.expression as m2_expr
 from miasm2.expression.simplifications import expr_simp
 from miasm2.expression.modint import moduint, modint
 from miasm2.core.utils import Disasm_Exception, pck
-from miasm2.core.graph import DiGraph, DiGraphSimplifier
+from miasm2.core.graph import DiGraph, DiGraphSimplifier, MatchGraphJoker
 from miasm2.core.interval import interval
 
 
@@ -980,27 +980,22 @@ class AsmCFG(DiGraph):
         if rebuild_needed:
             self.rebuild_edges()
 
+
+# Out of _merge_blocks to be computed only once
+_acceptable_block = lambda block: (not isinstance(block, asm_block_bad) and
+                                   len(block.lines) > 0)
+_parent = MatchGraphJoker(restrict_in=False, filt=_acceptable_block)
+_son = MatchGraphJoker(restrict_out=False, filt=_acceptable_block)
+_expgraph = _parent >> _son
+
+
 def _merge_blocks(dg, graph):
+    """Graph simplification merging asm_bloc with one and only one son with this
+    son if this son has one and only one parent"""
+    for match in _expgraph.match(graph):
 
-    for block in graph.nodes():
-
-        # Acceptable block
-        if isinstance(block, asm_block_bad) or len(block.lines) == 0:
-            continue
-
-        # Only one son, not me
-        succs = graph.successors(block)
-        if len(succs) != 1:
-            continue
-        succ = succs[0]
-        if succ == block:
-            continue
-
-        # Son has only one parent, me
-        preds = graph.predecessors(succ)
-        if len(preds) != 1:
-            continue
-        assert preds[0] == block
+        # Get matching blocks
+        block, succ = match[_parent], match[_son]
 
         # Remove block last instruction if needed
         last_instr = block.lines[-1]
