@@ -103,7 +103,8 @@ class asm_constraint_to(asm_constraint):
 
 class asm_bloc(object):
 
-    def __init__(self, label=None, alignment=1):
+    def __init__(self, label, alignment=1):
+        assert isinstance(label, asm_label)
         self.bto = set()
         self.lines = []
         self.label = label
@@ -165,8 +166,10 @@ class asm_bloc(object):
         return new_bloc
 
     def get_range(self):
+        """Returns the offset hull of an asm_bloc"""
         if len(self.lines):
-            return self.lines[0].offset, self.lines[-1].offset
+            return (self.lines[0].offset,
+                    self.lines[-1].offset + self.lines[-1].l)
         else:
             return 0, 0
 
@@ -543,7 +546,7 @@ def split_bloc(mnemo, attrib, pool_bin, blocs,
         a, b = cb.get_range()
 
         for off in bloc_dst:
-            if not (off > a and off <= b):
+            if not (off > a and off < b):
                 continue
             l = symbol_pool.getby_offset_create(off)
             new_b = cb.split(off, l)

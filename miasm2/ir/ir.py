@@ -202,7 +202,7 @@ class ir(object):
         return self.blocs.get(label, None)
 
     def add_instr(self, l, ad=0, gen_pc_updt = False):
-        b = asm_bloc(l)
+        b = asm_bloc(self.gen_label())
         b.lines = [l]
         self.add_bloc(b, gen_pc_updt)
 
