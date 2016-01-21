@@ -103,7 +103,8 @@ class asm_constraint_to(asm_constraint):
 
 class asm_bloc(object):
 
-    def __init__(self, label=None, alignment=1):
+    def __init__(self, label, alignment=1):
+        assert isinstance(label, asm_label)
         self.bto = set()
         self.lines = []
         self.label = label
