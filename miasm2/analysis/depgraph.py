@@ -2,11 +2,17 @@
 
 import miasm2.expression.expression as m2_expr
 from miasm2.core.graph import DiGraph
-from miasm2.core.asmbloc import asm_label, expr_is_int_or_label
+from miasm2.core.asmbloc import asm_label, expr_is_int_or_label, expr_is_label
 from miasm2.expression.simplifications import expr_simp
 from miasm2.ir.symbexec import symbexec
 from miasm2.ir.ir import irbloc
+from miasm2.ir.translators import Translator
+from miasm2.expression.expression_helper import possible_values
 
+try:
+    import z3
+except ImportError:
+    pass
 
 
 class DependencyNode(object):
@@ -169,7 +175,7 @@ class DependencyState(object):
             self.links.add((depnode, None))
         else:
             # Link element to its known dependencies
-            for node_son in self.pending[depnode.element]:
+            for node_son in self.pending[element]:
                 self.links.add((depnode, node_son))
 
     def link_dependencies(self, element, line_nb, dependencies,
@@ -283,6 +289,104 @@ class DependencyResult(DependencyState):
         # Return only inputs values (others could be wrongs)
         return {element: symb_exec.symbols[element]
                 for element in self.inputs}
+
+
+class DependencyResultImplicit(DependencyResult):
+
+    """Stand for a result of a DependencyGraph with implicit option
+
+    Provide path constraints using the z3 solver"""
+    # Z3 Solver instance
+    _solver = None
+
+    unsat_expr = m2_expr.ExprAff(m2_expr.ExprInt(0, 1),
+                                 m2_expr.ExprInt(1, 1))
+
+    def gen_path_constraints(self, translator, expr, expected):
+        """Generate path constraint from @expr. Handle special case with
+        generated labels
+        """
+        out = []
+        expected_is_label = expr_is_label(expected)
+        for consval in possible_values(expr):
+            if (expected_is_label and
+                    consval.value != expected):
+                continue
+            if (not expected_is_label and
+                    expr_is_label(consval.value)):
+                continue
+
+            conds = z3.And(*[translator.from_expr(cond.to_constraint())
+                             for cond in consval.constraints])
+            if expected != consval.value:
+                conds = z3.And(conds,
+                               translator.from_expr(
+                                   m2_expr.ExprAff(consval.value,
+                                                   expected)))
+            out.append(conds)
+
+        if out:
+            conds = z3.Or(*out)
+        else:
+            # Ex: expr: lblgen1, expected: 0x1234
+            # -> Avoid unconsistent solution lblgen1 = 0x1234
+            conds = translator.from_expr(self.unsat_expr)
+        return conds
+
+    def emul(self, ctx=None, step=False):
+        # Init
+        ctx_init = self._ira.arch.regs.regs_init
+        if ctx is not None:
+            ctx_init.update(ctx)
+        depnodes = self.relevant_nodes
+        solver = z3.Solver()
+        symb_exec = symbexec(self._ira, ctx_init)
+        temp_label = asm_label("Temp")
+        history = self.history[::-1]
+        history_size = len(history)
+        translator = Translator.to_language("z3")
+        size = self._ira.IRDst.size
+
+        for hist_nb, label in enumerate(history):
+            # Build block with relevant lines only
+            affected_lines = set(depnode.line_nb for depnode in depnodes
+                                 if depnode.label == label)
+            irs = self._ira.blocs[label].irs
+            affects = []
+
+            for line_nb in sorted(affected_lines):
+                affects.append(irs[line_nb])
+
+            # Emul the block and get back destination
+            dst = symb_exec.emulbloc(irbloc(temp_label, affects), step=step)
+
+            # Add constraint
+            if hist_nb + 1 < history_size:
+                next_label = history[hist_nb + 1]
+                expected = symb_exec.eval_expr(m2_expr.ExprId(next_label,
+                                                              size))
+                solver.add(
+                    self.gen_path_constraints(translator, dst, expected))
+        # Save the solver
+        self._solver = solver
+
+        # Return only inputs values (others could be wrongs)
+        return {element: symb_exec.eval_expr(element)
+                for element in self.inputs}
+
+    @property
+    def is_satisfiable(self):
+        """Return True iff the solution path admits at least one solution
+        PRE: 'emul'
+        """
+        return self._solver.check() == z3.sat
+
+    @property
+    def constraints(self):
+        """If satisfiable, return a valid solution as a Z3 Model instance"""
+        if not self.is_satisfiable:
+            raise ValueError("Unsatisfiable")
+        return self._solver.model()
 
 
 class FollowExpr(object):
@@ -488,6 +592,7 @@ class DependencyGraph(object):
         state = DependencyState(label, elements, pending, line_nb)
         todo = set([state])
         done = set()
+        dpResultcls = DependencyResultImplicit if self._implicit else DependencyResult
 
         while todo:
             state = todo.pop()
@@ -499,9 +604,13 @@ class DependencyGraph(object):
             if (not state.pending or
                     state.label in heads or
                     not self._ira.graph.predecessors(state.label)):
-                yield DependencyResult(state, self._ira)
+                yield dpResultcls(state, self._ira)
                 if not state.pending:
                     continue
+
+            if self._implicit:
+                # Force IRDst to be tracked, except in the input block
+                state.pending[self._ira.IRDst] = set()
 
             # Propagate state to parents
             for pred in self._ira.graph.predecessors_iter(state.label):

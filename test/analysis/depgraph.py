@@ -1054,7 +1054,6 @@ for test_nb, test in enumerate([(G1_IRA, G1_INPUT),
             all_results.add(unflatGraph(flatGraph(result.graph)))
             open("graph_test_%02d_%02d.dot" % (test_nb + 1, i),
                  "w").write(dg2graph(result.graph))
-
         # print all_flat
         if g_ind == 0:
             all_flat = sorted(all_flat)
