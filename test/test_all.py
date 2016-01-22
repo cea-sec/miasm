@@ -322,6 +322,7 @@ test_mips32b = ExampleShellcode(["mips32b", "mips32.S", "mips32_sc_b.bin"])
 test_mips32l = ExampleShellcode(["mips32l", "mips32.S", "mips32_sc_l.bin"])
 test_x86_64 = ExampleShellcode(["x86_64", "x86_64.S", "demo_x86_64.bin",
                                 "--PE"])
+test_x86_32_if_reg = ExampleShellcode(['x86_32', 'x86_32_if_reg.S', "x86_32_if_reg.bin"])
 
 testset += test_armb
 testset += test_arml
@@ -335,6 +336,7 @@ testset += test_msp430
 testset += test_mips32b
 testset += test_mips32l
 testset += test_x86_64
+testset += test_x86_32_if_reg
 
 class ExampleDisassembler(Example):
     """Disassembler examples specificities:
@@ -387,6 +389,8 @@ testset += ExampleDisasmFull(["aarch64b", Example.get_sample("demo_aarch64_b.bin
                               "0"], depends=[test_aarch64b])
 testset += ExampleDisasmFull(["x86_32", Example.get_sample("x86_32_simple.bin"),
                               "0x401000"], depends=[test_box["simple"]])
+testset += ExampleDisasmFull(["x86_32", Example.get_sample("x86_32_if_reg.bin"),
+                              "0x0"], depends=[test_x86_32_if_reg])
 testset += ExampleDisasmFull(["msp430", Example.get_sample("msp430_sc.bin"),
                               "0"], depends=[test_msp430])
 testset += ExampleDisasmFull(["mips32l", Example.get_sample("mips32_sc_l.bin"),
@@ -441,13 +445,24 @@ class ExampleSymbolExec(Example):
 
 testset += ExampleSymbolExec(["single_instr.py"])
 for options, nb_sol, tag in [([], 8, []),
-                             (["-i", "--rename-args"], 10, [TAGS["z3"]])]:
+                             (["-i", "--rename-args"], 12, [TAGS["z3"]])]:
     testset += ExampleSymbolExec(["depgraph.py",
                                   Example.get_sample("simple_test.bin"),
                                   "-m", "x86_32", "0x0", "0x8b",
                                   "eax"] + options,
                                  products=["sol_%d.dot" % nb
                                            for nb in xrange(nb_sol)],
+                                 tags=tag)
+
+for options, nb_sol, tag in [([], 4, []),
+                             (["-i", "--rename-args"], 4, [TAGS["z3"]])]:
+    testset += ExampleSymbolExec(["depgraph.py",
+                                  Example.get_sample("x86_32_if_reg.bin"),
+                                  "-m", "x86_32", "0x0", "0x19",
+                                  "eax"] + options,
+                                 products=["sol_%d.dot" % nb
+                                           for nb in xrange(nb_sol)],
+                                 depends=[test_x86_32_if_reg],
                                  tags=tag)
 
 ## Jitter
