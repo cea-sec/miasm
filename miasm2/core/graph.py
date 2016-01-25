@@ -52,11 +52,16 @@ class DiGraph(object):
                     sorted(self._edges) == sorted(graph.edges())))
 
     def add_node(self, node):
+        """Add the node @node to the graph.
+        If the node was already present, return False.
+        Otherwise, return True
+        """
         if node in self._nodes:
-            return
+            return False
         self._nodes.add(node)
         self._nodes_succ[node] = []
         self._nodes_pred[node] = []
+        return True
 
     def del_node(self, node):
         """Delete the @node of the graph; Also delete every edge to/from this
