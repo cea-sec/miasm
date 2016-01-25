@@ -525,47 +525,6 @@ def dis_bloc(mnemo, pool_bin, label, offset, job_done, symbol_pool,
     return cur_block, offsets_to_dis
 
 
-def split_bloc(mnemo, attrib, pool_bin, blocs,
-               symbol_pool, more_ref=None, dis_bloc_callback=None):
-    if not more_ref:
-        more_ref = []
-
-    # get all possible dst
-    bloc_dst = [symbol_pool._offset2label[x] for x in more_ref]
-    for b in blocs:
-        if isinstance(b, asm_block_bad):
-            continue
-        for c in b.bto:
-            bloc_dst.append(c.label)
-
-    bloc_dst = [x.offset for x in bloc_dst if x.offset is not None]
-
-    j = -1
-    while j < len(blocs) - 1:
-        j += 1
-        cb = blocs[j]
-        a, b = cb.get_range()
-
-        for off in bloc_dst:
-            if not (off > a and off < b):
-                continue
-            l = symbol_pool.getby_offset_create(off)
-            new_b = cb.split(off, l)
-            log_asmbloc.debug("split bloc %x", off)
-            if new_b is None:
-                log_asmbloc.error("cannot split %x!!", off)
-                continue
-            if dis_bloc_callback:
-                offsets_to_dis = set(x.label.offset for x in new_b.bto)
-                dis_bloc_callback(mn=mnemo, attrib=attrib, pool_bin=pool_bin,
-                                  cur_bloc=new_b, offsets_to_dis=offsets_to_dis,
-                                  symbol_pool=symbol_pool)
-            blocs.append(new_b)
-            a, b = cb.get_range()
-
-    return blocs
-
-
 def dis_bloc_all(mnemo, pool_bin, offset, job_done, symbol_pool, dont_dis=[],
                  split_dis=[], follow_call=False, dontdis_retcall=False,
                  blocs_wd=None, lines_wd=None, blocs=None,
@@ -612,8 +571,8 @@ def dis_bloc_all(mnemo, pool_bin, offset, job_done, symbol_pool, dont_dis=[],
         todo += nexts
         blocs.add_node(cur_block)
 
-    return split_bloc(mnemo, attrib, pool_bin, blocs,
-                      symbol_pool, dis_bloc_callback=dis_bloc_callback)
+    blocs.apply_splitting(symbol_pool, dis_block_callback=dis_bloc_callback,
+                          mn=mnemo, attrib=attrib, pool_bin=pool_bin)
     return blocs
 
 
@@ -964,6 +923,62 @@ class BasicBlocks(DiGraph):
             block.size = size
             block.max_size = size
             log_asmbloc.info("size: %d max: %d", block.size, block.max_size)
+
+    def apply_splitting(self, symbol_pool, dis_block_callback=None, **kwargs):
+        """Consider @self' bto destinations and split block in @self if one of
+        these destinations jumps in the middle of this block.
+        In order to work, they must be only one block in @self per label in
+        @symbol_pool (which is true if @self come from the same disasmEngine).
+
+        @symbol_pool: asm_symbol_pool instance associated with @self'labels
+        @dis_block_callback: (optional) if set, this callback will be called on
+        new block destinations
+        @kwargs: (optional) named arguments to pass to dis_block_callback
+        """
+        # Get all possible destinations not yet resolved, with a resolved offset
+        block_dst = [label.offset
+                     for label in self.pendings
+                     if label.offset is not None]
+
+        todo = self.nodes().copy()
+        rebuild_needed = False
+
+        while todo:
+            # Find a block with a destination inside another one
+            cur_block = todo.pop()
+            range_start, range_stop = cur_block.get_range()
+
+            for off in block_dst:
+                if not (off > range_start and off <= range_stop):
+                    continue
+
+                # `cur_block` must be splitted at offset `off`
+                label = symbol_pool.getby_offset_create(off)
+                new_b = cur_block.split(off, label)
+                log_asmbloc.debug("Split block %x", off)
+                if new_b is None:
+                    log_asmbloc.error("Cannot split %x!!", off)
+                    continue
+
+                # The new block destinations may need to be disassembled
+                if dis_block_callback:
+                    offsets_to_dis = set(constraint.label.offset
+                                         for constraint in new_b.bto)
+                    dis_block_callback(cur_bloc=new_b,
+                                       offsets_to_dis=offsets_to_dis,
+                                       symbol_pool=symbol_pool, **kwargs)
+
+                # Update structure
+                rebuild_needed = True
+                self.add_node(new_b)
+
+                # The new block must be considered
+                todo.add(new_b)
+                range_start, range_stop = cur_block.get_range()
+
+        # Rebuild edges to match new blocks'bto
+        if rebuild_needed:
+            self.rebuild_edges()
 
 def _merge_blocks(dg, graph):
 
