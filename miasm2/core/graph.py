@@ -538,3 +538,37 @@ shape = "box"
                             done.add(current.node)
 
                         yield scc
+
+
+class DiGraphSimplifier(object):
+    """Wrapper on graph simplification passes.
+
+    Instance handle passes lists.
+    """
+
+    def __init__(self):
+        self.passes = []
+
+    def enable_passes(self, passes):
+        """Add @passes to passes to applied
+        @passes: sequence of function (DiGraphSimplifier, DiGraph) -> None
+        """
+        self.passes += passes
+
+    def apply_simp(self, graph):
+        """Apply enabled simplifications on graph @graph
+        @graph: DiGraph instance
+        """
+        while True:
+            new_graph = graph.copy()
+            for simp_func in self.passes:
+                simp_func(self, new_graph)
+
+            if new_graph == graph:
+                break
+            graph = new_graph
+        return new_graph
+
+    def __call__(self, graph):
+        """Wrapper on 'apply_simp'"""
+        return self.apply_simp(graph)
