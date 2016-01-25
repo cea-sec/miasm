@@ -194,6 +194,9 @@ for script in ["interval.py",
                "test_types.py",
                ]:
     testset += RegressionTest([script], base_dir="core")
+testset += RegressionTest(["asmbloc.py"], base_dir="core",
+                          products=["graph.dot", "graph2.dot",
+                                    "graph3.dot", "graph4.dot"])
 ## Expression
 for script in ["modint.py",
                "expression.py",
