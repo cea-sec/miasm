@@ -26,6 +26,25 @@ class DiGraph(object):
     def edges(self):
         return self._edges
 
+    def merge(self, graph):
+        """Merge the current graph with @graph
+        @graph: DiGraph instance
+        """
+        for node in graph._nodes:
+            self.add_node(node)
+        for edge in graph._edges:
+            self.add_edge(*edge)
+
+    def __add__(self, graph):
+        """Wrapper on `.merge`"""
+        self.merge(graph)
+        return self
+
+    def copy(self):
+        """Copy the current graph instance"""
+        graph = self.__class__()
+        return graph + self
+
     def __eq__(self, graph):
         if not isinstance(graph, self.__class__):
             return False

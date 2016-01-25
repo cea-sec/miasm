@@ -202,3 +202,18 @@ graph2.add_edge(2, 3)
 graph2.add_edge(1, 2)
 assert graph == graph2
 
+# Copy
+graph4 = graph.copy()
+assert graph == graph4
+
+# Merge
+graph3 = DiGraph()
+graph3.add_edge(3, 1)
+graph3.add_edge(1, 4)
+graph4 += graph3
+for node in graph3.nodes():
+    assert node in graph4.nodes()
+for edge in graph3.edges():
+    assert edge in graph4.edges()
+assert graph4.nodes() == graph.nodes().union(graph3.nodes())
+assert sorted(graph4.edges()) == sorted(graph.edges() + graph3.edges())
