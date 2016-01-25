@@ -596,7 +596,7 @@ class BasicBlocks(DiGraph):
         super(BasicBlocks, self).__init__(*args, **kwargs)
         # Edges -> constraint
         self.edges2constraint = {}
-        # Expected asm_label -> list( (src, dst), constraint )
+        # Expected asm_label -> set( (src, dst), constraint )
         self._pendings = {}
         # Label2block built on the fly
         self._label2block = {}
@@ -684,7 +684,7 @@ class BasicBlocks(DiGraph):
                 to_add = self.BasicBlocksPending(waiter=block,
                                                  constraint=constraint.c_t)
                 self._pendings.setdefault(constraint.label,
-                                          list()).append(to_add)
+                                          set()).add(to_add)
             else:
                 # Block is already in known nodes
                 self.add_edge(block, dst, constraint.c_t)
@@ -778,7 +778,7 @@ class BasicBlocks(DiGraph):
     # Helpers
     @property
     def pendings(self):
-        """Dictionnary of label -> list(BasicBlocksPending instance) indicating
+        """Dictionnary of label -> set(BasicBlocksPending instance) indicating
         which label are missing in the current instance.
         A label is missing if a block which is already in nodes has constraints
         with him (thanks to its .bto) and the corresponding block is not yet in
@@ -814,8 +814,8 @@ class BasicBlocks(DiGraph):
                 if dst is None:
                     # Missing destination, add to pendings
                     self._pendings.setdefault(constraint.label,
-                                              list()).append(self.BasicBlocksPending(block,
-                                                                                     constraint.c_t))
+                                              set()).add(self.BasicBlocksPending(block,
+                                                                                 constraint.c_t))
                     continue
                 edge = (block, dst)
                 edges.append(edge)

@@ -181,7 +181,7 @@ assert len(blocks) == 7
 assert len(blocks.pendings) == 1
 assert my_block_dst.label in blocks.pendings
 assert len(blocks.pendings[my_block_dst.label]) == 1
-pending = blocks.pendings[my_block_dst.label][0]
+pending = list(blocks.pendings[my_block_dst.label])[0]
 assert isinstance(pending, blocks.BasicBlocksPending)
 assert pending.waiter == my_block_src
 assert pending.constraint == asm_constraint.c_to
