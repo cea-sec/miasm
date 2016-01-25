@@ -10,7 +10,7 @@ import miasm2.expression.expression as m2_expr
 from miasm2.expression.simplifications import expr_simp
 from miasm2.expression.modint import moduint, modint
 from miasm2.core.utils import Disasm_Exception, pck
-from miasm2.core.graph import DiGraph
+from miasm2.core.graph import DiGraph, DiGraphSimplifier
 from miasm2.core.interval import interval
 
 
@@ -965,6 +965,51 @@ class BasicBlocks(DiGraph):
             block.max_size = size
             log_asmbloc.info("size: %d max: %d", block.size, block.max_size)
 
+def _merge_blocks(dg, graph):
+
+    for block in graph.nodes():
+
+        # Acceptable block
+        if isinstance(block, asm_block_bad) or len(block.lines) == 0:
+            continue
+
+        # Only one son, not me
+        succs = graph.successors(block)
+        if len(succs) != 1:
+            continue
+        succ = succs[0]
+        if succ == block:
+            continue
+
+        # Son has only one parent, me
+        preds = graph.predecessors(succ)
+        if len(preds) != 1:
+            continue
+        assert preds[0] == block
+
+        # Remove block last instruction if needed
+        last_instr = block.lines[-1]
+        if last_instr.delayslot > 0:
+            # TODO: delayslot
+            raise RuntimeError("Not implemented yet")
+
+        if last_instr.is_subcall():
+            continue
+        if last_instr.breakflow() and last_instr.dstflow():
+            block.lines.pop()
+
+        # Merge block
+        block.lines += succ.lines
+        for nextb in graph.successors_iter(succ):
+            graph.add_edge(block, nextb, graph.edges2constraint[(succ, nextb)])
+
+        graph.del_node(succ)
+        break
+
+
+bbl_simplifier = DiGraphSimplifier()
+bbl_simplifier.enable_passes([_merge_blocks])
+
 
 def conservative_asm(mnemo, instr, symbols, conservative):
     """
@@ -1371,176 +1416,6 @@ def asm_resolve_final(mnemo, blocks, symbol_pool, dst_interval=None):
             instr.offset = offset
             offset += instr.l
     return patches
-
-
-
-
-def find_parents(blocs, l):
-    p = set()
-    for b in blocs:
-        if l in [x.label for x in b.bto]:
-            p.add(b.label)
-    return p
-
-
-def bloc_blink(blocs):
-    for b in blocs:
-        b.parents = find_parents(blocs, b.label)
-
-
-def getbloc_around(blocs, a, level=3, done=None, blocby_label=None):
-
-    if not blocby_label:
-        blocby_label = {}
-        for b in blocs:
-            blocby_label[b.label] = b
-    if done is None:
-        done = set()
-
-    done.add(a)
-    if not level:
-        return done
-    for b in a.parents:
-        b = blocby_label[b]
-        if b in done:
-            continue
-        done.update(getbloc_around(blocs, b, level - 1, done, blocby_label))
-    for b in a.bto:
-        b = blocby_label[b.label]
-        if b in done:
-            continue
-        done.update(getbloc_around(blocs, b, level - 1, done, blocby_label))
-    return done
-
-
-def getbloc_parents(blocs, a, level=3, done=None, blocby_label=None):
-
-    if not blocby_label:
-        blocby_label = {}
-        for b in blocs:
-            blocby_label[b.label] = b
-    if done is None:
-        done = set()
-
-    done.add(a)
-    if not level:
-        return done
-    for b in a.parents:
-        b = blocby_label[b]
-        if b in done:
-            continue
-        done.update(getbloc_parents(blocs, b, level - 1, done, blocby_label))
-    return done
-
-# get ONLY level_X parents
-
-
-def getbloc_parents_strict(
-        blocs, a, level=3, rez=None, done=None, blocby_label=None):
-
-    if not blocby_label:
-        blocby_label = {}
-        for b in blocs:
-            blocby_label[b.label] = b
-    if rez is None:
-        rez = set()
-    if done is None:
-        done = set()
-
-    done.add(a)
-    if level == 0:
-        rez.add(a)
-    if not level:
-        return rez
-    for b in a.parents:
-        b = blocby_label[b]
-        if b in done:
-            continue
-        rez.update(getbloc_parents_strict(
-            blocs, b, level - 1, rez, done, blocby_label))
-    return rez
-
-
-def bloc_find_path_next(blocs, blocby_label, a, b, path=None):
-    if path == None:
-        path = []
-    if a == b:
-        return [path]
-
-    all_path = []
-    for x in a.bto:
-        if x.c_t != asm_constraint.c_next:
-            continue
-        if not x.label in blocby_label:
-            log_asmbloc.error('XXX unknown label')
-            continue
-        x = blocby_label[x.label]
-        all_path += bloc_find_path_next(blocs, blocby_label, x, b, path + [a])
-        # stop if at least one path found
-        if all_path:
-            return all_path
-    return all_path
-
-
-def bloc_merge(blocs, dont_merge=[]):
-    blocby_label = {}
-    for b in blocs:
-        blocby_label[b.label] = b
-        b.parents = find_parents(blocs, b.label)
-
-    i = -1
-    while i < len(blocs) - 1:
-        i += 1
-        b = blocs[i]
-        if b.label in dont_merge:
-            continue
-        p = set(b.parents)
-        # if bloc dont self ref
-        if b.label in p:
-            continue
-        # and bloc has only one parent
-        if len(p) != 1:
-            continue
-        # may merge
-        bpl = p.pop()
-        # bp = getblocby_label(blocs, bpl)
-        bp = blocby_label[bpl]
-        # and parent has only one son
-        if len(bp.bto) != 1:
-            continue
-        # and will not create next loop composed of constraint_next from son to
-        # parent
-
-        path = bloc_find_path_next(blocs, blocby_label, b, bp)
-        if path:
-            continue
-        if bp.lines:
-            l = bp.lines[-1]
-            # jmp opt; jcc opt
-            if l.is_subcall():
-                continue
-            if l.breakflow() and l.dstflow():
-                bp.lines.pop()
-        # merge
-        # sons = b.bto[:]
-
-        # update parents
-        for s in b.bto:
-            if s.label.name == None:
-                continue
-            if not s.label in blocby_label:
-                log_asmbloc.error("unknown parent XXX")
-                continue
-            bs = blocby_label[s.label]
-            for p in list(bs.parents):
-                if p == b.label:
-                    bs.parents.discard(p)
-                    bs.parents.add(bp.label)
-        bp.lines += b.lines
-        bp.bto = b.bto
-
-        del blocs[i]
-        i = -1
 
 
 class disasmEngine(object):
