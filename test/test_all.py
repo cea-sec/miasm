@@ -191,7 +191,7 @@ for script in ["interval.py",
                "parse_asm.py",
                "utils.py",
                "sembuilder.py",
-               "types.py",
+               "test_types.py",
                ]:
     testset += RegressionTest([script], base_dir="core")
 ## Expression
@@ -483,7 +483,7 @@ for script, dep in [(["x86_32.py", Example.get_sample("x86_32_sc.bin")], []),
         testset += ExampleJitter(script + ["--jitter", jitter], depends=dep,
                                  tags=tags)
 
-testset += ExampleJitter(["types.py"])
+testset += ExampleJitter(["example_types.py"])
 
 
 if __name__ == "__main__":
