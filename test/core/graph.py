@@ -192,3 +192,13 @@ assert(sccs == {frozenset({6}),
                 frozenset({7, 8}),
                 frozenset({3}),
                 frozenset({1, 2, 4, 5, 9})})
+
+# Equality
+graph = DiGraph()
+graph.add_edge(1, 2)
+graph.add_edge(2, 3)
+graph2 = DiGraph()
+graph2.add_edge(2, 3)
+graph2.add_edge(1, 2)
+assert graph == graph2
+

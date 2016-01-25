@@ -1,5 +1,6 @@
 from collections import defaultdict, namedtuple
 
+
 class DiGraph(object):
     """Implementation of directed graph"""
 
@@ -24,6 +25,12 @@ class DiGraph(object):
 
     def edges(self):
         return self._edges
+
+    def __eq__(self, graph):
+        if not isinstance(graph, self.__class__):
+            return False
+        return all((self._nodes == graph.nodes(),
+                    sorted(self._edges) == sorted(graph.edges())))
 
     def add_node(self, node):
         if node in self._nodes:
