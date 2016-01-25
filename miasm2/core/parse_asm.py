@@ -232,7 +232,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
     cur_block = None
     state = STATE_NO_BLOC
     i = 0
-    blocks = []
+    blocks = asmbloc.BasicBlocks()
     block_to_nlink = None
     block_may_link = False
     delayslot = 0
@@ -261,7 +261,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
                 cur_block = asmbloc.asm_bloc(line, alignment=mnemo.alignment)
                 i += 1
             # Generate the current bloc
-            blocks.append(cur_block)
+            blocks.add_node(cur_block)
             state = STATE_IN_BLOC
             if block_to_nlink:
                 block_to_nlink.addto(
