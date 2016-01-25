@@ -1,6 +1,5 @@
 import sys
 from miasm2.arch.x86.disasm import dis_x86_32
-from miasm2.core.asmbloc import bloc2graph
 from miasm2.analysis.binary import Container
 from pdb import pm
 
@@ -14,7 +13,6 @@ cont = Container.from_stream(open(sys.argv[1]))
 mdis = dis_x86_32(cont.bin_stream)
 # Inform the engine to avoid disassembling null instructions
 mdis.dont_dis_nulstart_bloc = True
-blocs = mdis.dis_multibloc(addr)
+blocks = mdis.dis_multibloc(addr)
 
-graph = bloc2graph(blocs)
-open('graph.dot', 'w').write(graph)
+open('graph.dot', 'w').write(blocks.dot())

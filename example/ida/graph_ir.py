@@ -119,8 +119,7 @@ print hex(ad)
 ab = mdis.dis_multibloc(ad)
 
 print "generating graph"
-g = bloc2graph(ab, True)
-open('asm_flow.dot', 'w').write(g)
+open('asm_flow.dot', 'w').write(ab.graph.dot(label=True))
 
 
 print "generating IR... %x" % ad
