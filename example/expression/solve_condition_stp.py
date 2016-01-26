@@ -168,7 +168,7 @@ if __name__ == '__main__':
     ''')
 
 
-    b = blocs[0]
+    b = list(blocs)[0]
     print b
     # add fake address and len to parsed instructions
     for i, l in enumerate(b.lines):

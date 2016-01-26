@@ -1,5 +1,6 @@
 from collections import defaultdict, namedtuple
 
+
 class DiGraph(object):
     """Implementation of directed graph"""
 
@@ -25,12 +26,42 @@ class DiGraph(object):
     def edges(self):
         return self._edges
 
+    def merge(self, graph):
+        """Merge the current graph with @graph
+        @graph: DiGraph instance
+        """
+        for node in graph._nodes:
+            self.add_node(node)
+        for edge in graph._edges:
+            self.add_edge(*edge)
+
+    def __add__(self, graph):
+        """Wrapper on `.merge`"""
+        self.merge(graph)
+        return self
+
+    def copy(self):
+        """Copy the current graph instance"""
+        graph = self.__class__()
+        return graph + self
+
+    def __eq__(self, graph):
+        if not isinstance(graph, self.__class__):
+            return False
+        return all((self._nodes == graph.nodes(),
+                    sorted(self._edges) == sorted(graph.edges())))
+
     def add_node(self, node):
+        """Add the node @node to the graph.
+        If the node was already present, return False.
+        Otherwise, return True
+        """
         if node in self._nodes:
-            return
+            return False
         self._nodes.add(node)
         self._nodes_succ[node] = []
         self._nodes_pred[node] = []
+        return True
 
     def del_node(self, node):
         """Delete the @node of the graph; Also delete every edge to/from this
@@ -507,3 +538,37 @@ shape = "box"
                             done.add(current.node)
 
                         yield scc
+
+
+class DiGraphSimplifier(object):
+    """Wrapper on graph simplification passes.
+
+    Instance handle passes lists.
+    """
+
+    def __init__(self):
+        self.passes = []
+
+    def enable_passes(self, passes):
+        """Add @passes to passes to applied
+        @passes: sequence of function (DiGraphSimplifier, DiGraph) -> None
+        """
+        self.passes += passes
+
+    def apply_simp(self, graph):
+        """Apply enabled simplifications on graph @graph
+        @graph: DiGraph instance
+        """
+        while True:
+            new_graph = graph.copy()
+            for simp_func in self.passes:
+                simp_func(self, new_graph)
+
+            if new_graph == graph:
+                break
+            graph = new_graph
+        return new_graph
+
+    def __call__(self, graph):
+        """Wrapper on 'apply_simp'"""
+        return self.apply_simp(graph)

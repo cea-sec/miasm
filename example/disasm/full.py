@@ -4,7 +4,7 @@ from argparse import ArgumentParser
 from pdb import pm
 
 from miasm2.analysis.binary import Container
-from miasm2.core.asmbloc import log_asmbloc, asm_label, bloc2graph
+from miasm2.core.asmbloc import log_asmbloc, asm_label, AsmCFG
 from miasm2.expression.expression import ExprId
 from miasm2.core.interval import interval
 from miasm2.analysis.machine import Machine
@@ -142,15 +142,13 @@ while not finish and todo:
 
 
 # Generate dotty graph
-all_blocs = []
+all_blocs = AsmCFG()
 for blocs in all_funcs_blocs.values():
     all_blocs += blocs
-    # for b in blocs:
-    #    print b
+
 
 log.info('generate graph file')
-g = bloc2graph(all_blocs, True)
-open('graph_execflow.dot', 'w').write(g)
+open('graph_execflow.dot', 'w').write(all_blocs.dot(label=True))
 
 log.info('generate intervals')
 

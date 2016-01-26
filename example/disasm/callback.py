@@ -63,5 +63,5 @@ blocks_after = mdis.dis_multibloc(0)
 print "\n".join(str(block) for block in blocks_after)
 
 # Ensure the callback has been called
-assert blocks[0].lines[0].name == "CALL"
-assert blocks_after[0].lines[0].name == "PUSH"
+assert blocks.heads()[0].lines[0].name == "CALL"
+assert blocks_after.heads()[0].lines[0].name == "PUSH"

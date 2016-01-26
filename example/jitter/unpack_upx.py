@@ -3,7 +3,7 @@ import logging
 from pdb import pm
 from elfesteem import pe
 from miasm2.analysis.sandbox import Sandbox_Win_x86_32
-from miasm2.core import asmbloc
+
 
 filename = os.environ.get('PYTHONSTARTUP')
 if filename and os.path.isfile(filename):
@@ -61,8 +61,7 @@ mdis = sb.machine.dis_engine(sb.jitter.bs)
 mdis.dont_dis_nulstart_bloc = True
 ab = mdis.dis_multibloc(sb.entry_point)
 
-bb = asmbloc.basicblocs(ab)
-leaves = bb.get_bad_dst()
+leaves = list(ab.get_bad_blocks_predecessors())
 assert(len(leaves) == 1)
 l = leaves.pop()
 logging.info(l)
@@ -73,8 +72,7 @@ logging.info(end_label)
 
 # Export CFG graph (dot format)
 if options.graph is True:
-    g = asmbloc.bloc2graph(ab)
-    open("graph.dot", "w").write(g)
+    open("graph.dot", "w").write(ab.graph.dot())
 
 
 if options.verbose is True:
