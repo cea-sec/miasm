@@ -532,7 +532,7 @@ def dis_bloc_all(mnemo, pool_bin, offset, job_done, symbol_pool, dont_dis=[],
                  attrib={}):
     log_asmbloc.info("dis bloc all")
     if blocs is None:
-        blocs = BasicBlocks()
+        blocs = AsmCFG()
     todo = [offset]
 
     bloc_cpt = 0
@@ -576,7 +576,7 @@ def dis_bloc_all(mnemo, pool_bin, offset, job_done, symbol_pool, dont_dis=[],
     return blocs
 
 
-class BasicBlocks(DiGraph):
+class AsmCFG(DiGraph):
     """Directed graph standing for a ASM Control Flow Graph with:
      - nodes: asm_bloc
      - edges: constraints between blocks, synchronized with asm_bloc's "bto"
@@ -584,16 +584,16 @@ class BasicBlocks(DiGraph):
     Specialized the .dot export and force the relation between block to be uniq,
     and associated with a constraint.
 
-    Offer helpers on BasicBlocks management, such as research by label, sanity
+    Offer helpers on AsmCFG management, such as research by label, sanity
     checking and mnemonic size guessing.
     """
 
     # Internal structure for pending management
-    BasicBlocksPending = namedtuple("BasicBlocksPending",
-                                    ["waiter", "constraint"])
+    AsmCFGPending = namedtuple("AsmCFGPending",
+                               ["waiter", "constraint"])
 
     def __init__(self, *args, **kwargs):
-        super(BasicBlocks, self).__init__(*args, **kwargs)
+        super(AsmCFG, self).__init__(*args, **kwargs)
         # Edges -> constraint
         self.edges2constraint = {}
         # Expected asm_label -> set( (src, dst), constraint )
@@ -603,20 +603,20 @@ class BasicBlocks(DiGraph):
 
     # Compatibility with old list API
     def append(self, *args, **kwargs):
-        raise DeprecationWarning("BasicBlocks is a graph, use add_node")
+        raise DeprecationWarning("AsmCFG is a graph, use add_node")
 
     def remove(self, *args, **kwargs):
-        raise DeprecationWarning("BasicBlocks is a graph, use del_node")
+        raise DeprecationWarning("AsmCFG is a graph, use del_node")
 
     def __getitem__(self, *args, **kwargs):
-        raise DeprecationWarning("Order of BasicBlocks elements is not reliable")
+        raise DeprecationWarning("Order of AsmCFG elements is not reliable")
 
     def __iter__(self):
         """Iterator on asm_bloc composing the current graph"""
         return iter(self._nodes)
 
     def __len__(self):
-        """Return the number of blocks in BasicBlocks"""
+        """Return the number of blocks in AsmCFG"""
         return len(self._nodes)
 
     # Manage graph with associated constraints
@@ -635,7 +635,7 @@ class BasicBlocks(DiGraph):
 
         # Add edge
         self.edges2constraint[(src, dst)] = constraint
-        super(BasicBlocks, self).add_edge(src, dst)
+        super(AsmCFG, self).add_edge(src, dst)
 
     def add_uniq_edge(self, src, dst, constraint):
         """Add an edge from @src to @dst if it doesn't already exist"""
@@ -653,7 +653,7 @@ class BasicBlocks(DiGraph):
 
         # Del edge
         del self.edges2constraint[(src, dst)]
-        super(BasicBlocks, self).del_edge(src, dst)
+        super(AsmCFG, self).del_edge(src, dst)
 
     def add_node(self, block):
         """Add the block @block to the current instance, if it is not already in
@@ -664,7 +664,7 @@ class BasicBlocks(DiGraph):
         aforementionned destinations.
         `self.pendings` indicates which blocks are not yet resolved.
         """
-        status = super(BasicBlocks, self).add_node(block)
+        status = super(AsmCFG, self).add_node(block)
         if not status:
             return status
 
@@ -681,8 +681,8 @@ class BasicBlocks(DiGraph):
                                         None)
             if dst is None:
                 # Block is yet unknown, add it to pendings
-                to_add = self.BasicBlocksPending(waiter=block,
-                                                 constraint=constraint.c_t)
+                to_add = self.AsmCFGPending(waiter=block,
+                                            constraint=constraint.c_t)
                 self._pendings.setdefault(constraint.label,
                                           set()).add(to_add)
             else:
@@ -692,7 +692,7 @@ class BasicBlocks(DiGraph):
         return status
 
     def del_node(self, block):
-        super(BasicBlocks, self).del_node(block)
+        super(AsmCFG, self).del_node(block)
         del self._label2block[block.label]
 
     def merge(self, graph):
@@ -778,7 +778,7 @@ class BasicBlocks(DiGraph):
     # Helpers
     @property
     def pendings(self):
-        """Dictionnary of label -> set(BasicBlocksPending instance) indicating
+        """Dictionnary of label -> set(AsmCFGPending instance) indicating
         which label are missing in the current instance.
         A label is missing if a block which is already in nodes has constraints
         with him (thanks to its .bto) and the corresponding block is not yet in
@@ -814,8 +814,8 @@ class BasicBlocks(DiGraph):
                 if dst is None:
                     # Missing destination, add to pendings
                     self._pendings.setdefault(constraint.label,
-                                              set()).add(self.BasicBlocksPending(block,
-                                                                                 constraint.c_t))
+                                              set()).add(self.AsmCFGPending(block,
+                                                                            constraint.c_t))
                     continue
                 edge = (block, dst)
                 edges.append(edge)

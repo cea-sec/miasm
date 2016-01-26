@@ -2,7 +2,7 @@ from pdb import pm
 
 from miasm2.arch.x86.disasm import dis_x86_32
 from miasm2.analysis.binary import Container
-from miasm2.core.asmbloc import BasicBlocks, asm_constraint, asm_bloc, \
+from miasm2.core.asmbloc import AsmCFG, asm_constraint, asm_bloc, \
     asm_label, asm_block_bad, asm_constraint_to, asm_constraint_next, \
     bbl_simplifier
 from miasm2.core.graph import DiGraphSimplifier
@@ -32,8 +32,8 @@ assert len(blocks) == 17
 assert len(blocks.heads()) == 1
 assert len(blocks.heads()[0].lines) == len(first_block.lines)
 
-# Test BasicBlocks
-assert isinstance(blocks, BasicBlocks)
+# Test AsmCFG
+assert isinstance(blocks, AsmCFG)
 assert len(blocks.pendings) == 0
 assert len(blocks.nodes()) == 17
 assert len(blocks.edges2constraint) == len(blocks.edges())
@@ -182,7 +182,7 @@ assert len(blocks.pendings) == 1
 assert my_block_dst.label in blocks.pendings
 assert len(blocks.pendings[my_block_dst.label]) == 1
 pending = list(blocks.pendings[my_block_dst.label])[0]
-assert isinstance(pending, blocks.BasicBlocksPending)
+assert isinstance(pending, blocks.AsmCFGPending)
 assert pending.waiter == my_block_src
 assert pending.constraint == asm_constraint.c_to
 ### Sanity check must fail
