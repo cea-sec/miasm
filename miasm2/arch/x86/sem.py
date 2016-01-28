@@ -1149,14 +1149,24 @@ def call(ir, instr, dst):
     myesp = mRSP[instr.mode][:opmode]
     n = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
 
-    if (isinstance(dst, m2_expr.ExprOp) and dst.op == "segm"):
-        # call far
-        if instr.mode != 16:
-            raise NotImplementedError('add 32 bit support!')
-        segm = dst.args[0]
-        base = dst.args[1]
-        m1 = segm.zeroExtend(CS.size)
-        m2 = base.zeroExtend(meip.size)
+    if isinstance(dst, m2_expr.ExprOp):
+        if dst.op == "segm":
+            # Far call segm:addr
+            if instr.mode not in [16, 32]:
+                raise RuntimeError('not supported')
+            segm = dst.args[0]
+            base = dst.args[1]
+            m1 = segm.zeroExtend(CS.size)
+            m2 = base.zeroExtend(meip.size)
+        elif dst.op == "far":
+            # Far call far [eax]
+            addr = dst.args[0].arg
+            m1 = m2_expr.ExprMem(addr, CS.size)
+            m2 = m2_expr.ExprMem(addr + m2_expr.ExprInt_from(addr, 2),
+                                 meip.size)
+        else:
+            raise RuntimeError("bad call operator")
+
         e.append(m2_expr.ExprAff(CS, m1))
         e.append(m2_expr.ExprAff(meip, m2))
 
@@ -1274,33 +1284,34 @@ def enter(ir, instr, a, b):
 def jmp(ir, instr, dst):
     e = []
     meip = mRIP[ir.IRDst.size]
-    e.append(m2_expr.ExprAff(meip, dst))  # dst.zeroExtend(ir.IRDst.size)))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst))  # dst.zeroExtend(ir.IRDst.size)))
 
-    if isinstance(dst, m2_expr.ExprMem):
-        dst = meip
-    return e, []
+    if isinstance(dst, m2_expr.ExprOp):
+        if dst.op == "segm":
+            # Far jmp segm:addr
+            segm = dst.args[0]
+            base = dst.args[1]
+            m1 = segm.zeroExtend(CS.size)
+            m2 = base.zeroExtend(meip.size)
+        elif dst.op == "far":
+            # Far jmp far [eax]
+            addr = dst.args[0].arg
+            m1 = m2_expr.ExprMem(addr, CS.size)
+            m2 = m2_expr.ExprMem(addr + m2_expr.ExprInt_from(addr, 2),
+                                 meip.size)
+        else:
+            raise RuntimeError("bad jmp operator")
 
+        e.append(m2_expr.ExprAff(CS, m1))
+        e.append(m2_expr.ExprAff(meip, m2))
+        e.append(m2_expr.ExprAff(ir.IRDst, m2))
 
-def jmpf(ir, instr, a):
-    e = []
-    meip = mRIP[ir.IRDst.size]
-    s = instr.mode
-    if (isinstance(a, m2_expr.ExprOp) and a.op == "segm"):
-        segm = a.args[0]
-        base = a.args[1]
-        m1 = segm.zeroExtend(
-            CS.size)  # m2_expr.ExprMem(m2_expr.ExprOp('segm', segm, base), 16)
-        m2 = base.zeroExtend(meip.size)
-                             # m2_expr.ExprMem(m2_expr.ExprOp('segm', segm,
-                             # base + m2_expr.ExprInt_from(base, 2)), s)
     else:
-        m1 = m2_expr.ExprMem(a, 16)
-        m2 = m2_expr.ExprMem(a + m2_expr.ExprInt_from(a, 2), meip.size)
+        # Classic jmp
+        e.append(m2_expr.ExprAff(meip, dst))
+        e.append(m2_expr.ExprAff(ir.IRDst, dst))
 
-    e.append(m2_expr.ExprAff(CS, m1))
-    e.append(m2_expr.ExprAff(meip, m2))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2))
+        if isinstance(dst, m2_expr.ExprMem):
+            dst = meip
     return e, []
 
 
@@ -4061,7 +4072,6 @@ mnemo_func = {'mov': mov,
               'leave': leave,
               'enter': enter,
               'jmp': jmp,
-              'jmpf': jmpf,
               'jz': jz,
               'je': jz,
               'jcxz': jcxz,

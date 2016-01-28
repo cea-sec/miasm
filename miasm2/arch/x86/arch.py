@@ -272,6 +272,8 @@ deref_ptr = Group(int_or_expr + COLON +
 
 PTR = Suppress('PTR')
 
+FAR = Suppress('FAR')
+
 
 BYTE = Literal('BYTE')
 WORD = Literal('WORD')
@@ -311,6 +313,9 @@ rmarg = Group(gpregs08.parser |
               ).setParseAction(getreg)
 
 rmarg |= deref_mem
+
+
+mem_far = FAR + deref_mem
 
 
 cl_or_imm = Group(r08_ecx.parser).setParseAction(getreg)
@@ -583,7 +588,13 @@ class instruction_x86(instruction):
     def arg2str(expr, pos=None):
         if isinstance(expr, ExprId) or isinstance(expr, ExprInt):
             o = str(expr)
-        elif isinstance(expr, ExprMem):
+        elif ((isinstance(expr, ExprOp) and expr.op == 'far' and
+               isinstance(expr.args[0], ExprMem)) or
+              isinstance(expr, ExprMem)):
+            if isinstance(expr, ExprOp):
+                prefix, expr = "FAR ", expr.args[0]
+            else:
+                prefix = ""
             sz = SIZE2MEMPREFIX[expr.size]
             segm = ""
             if expr.is_op_segm():
@@ -595,7 +606,7 @@ class instruction_x86(instruction):
                 s = str(expr).replace('(', '').replace(')', '')
             else:
                 s = str(expr)
-            o = sz + ' PTR %s[%s]' % (segm, s)
+            o = prefix + sz + ' PTR %s[%s]' % (segm, s)
         elif isinstance(expr, ExprOp) and expr.op == 'segm':
             o = "%s:%s" % (expr.args[0], expr.args[1])
         else:
@@ -2039,6 +2050,42 @@ class x86_rm_mem(x86_rm_arg):
             return None, None
         return start, stop
 
+
+class x86_rm_mem_far(x86_rm_arg):
+    parser = mem_far
+    def fromstring(self, s, parser_result=None):
+        self.expr = None
+        start, stop = super(x86_rm_mem_far, self).fromstring(s, parser_result)
+        if not isinstance(self.expr, ExprMem):
+            return None, None
+        self.expr = ExprOp('far', self.expr)
+        return start, stop
+
+    def decode(self, v):
+        ret = super(x86_rm_mem_far, self).decode(v)
+        if not ret:
+            return ret
+        if isinstance(self.expr, m2_expr.ExprMem):
+            self.expr = ExprOp('far', self.expr)
+        return True
+
+    def encode(self):
+        if not (isinstance(self.expr, m2_expr.ExprOp) and
+                self.expr.op == 'far'):
+            raise StopIteration
+
+        expr = self.expr.args[0]
+        if isinstance(expr, ExprInt):
+            raise StopIteration
+        p = self.parent
+        admode = p.v_admode()
+        mode = expr.size
+        v_cand, segm, ok = expr2modrm(expr, p, 1)
+        if segm:
+            p.g2.value = segm2enc[segm]
+        for x in self.gen_cand(v_cand, admode):
+            yield x
+
 class x86_rm_w8(x86_rm_arg):
 
     def decode(self, v):
@@ -3143,6 +3190,7 @@ rm_arg_m80 = bs(l=0, cls=(x86_rm_m80,), fname='rmarg')
 rm_arg_m16 = bs(l=0, cls=(x86_rm_m16,), fname='rmarg')
 
 rm_mem = bs(l=0, cls=(x86_rm_mem,), fname='rmarg')
+rm_mem_far = bs(l=0, cls=(x86_rm_mem_far,), fname='rmarg')
 
 rm_arg_mm = bs(l=0, cls=(x86_rm_mm,), fname='rmarg')
 rm_arg_mm_m64 = bs(l=0, cls=(x86_rm_mm_m64,), fname='rmarg')
@@ -3154,6 +3202,74 @@ rm_arg_xmm_m64 = bs(l=0, cls=(x86_rm_xmm_m64,), fname='rmarg')
 rm_arg_xmm_reg = bs(l=0, cls=(x86_rm_xmm_reg,), fname='rmarg')
 
 swapargs = bs_swapargs(l=1, fname="swap", mn_mod=range(1 << 1))
+
+
+class bs_op_mode(bsi):
+
+    def decode(self, v):
+        opmode = self.parent.v_opmode()
+        return opmode == self.mode
+
+
+class bs_ad_mode(bsi):
+
+    def decode(self, v):
+        admode = self.parent.v_admode()
+        return admode == self.mode
+
+
+class bs_op_mode_no64(bsi):
+
+    def encode(self):
+        if self.parent.mode == 64:
+            return False
+        return super(bs_op_mode_no64, self).encode()
+
+    def decode(self, v):
+        if self.parent.mode == 64:
+            return False
+        opmode = self.parent.v_opmode()
+        return opmode == self.mode
+
+
+class bs_op_mode64(bsi):
+    def encode(self):
+        if self.parent.mode != 64:
+            return False
+        return super(bs_op_mode64, self).encode()
+
+    def decode(self, v):
+        if self.parent.mode != 64:
+            return False
+        return True
+
+class bs_op_modeno64(bsi):
+    def encode(self):
+        if self.parent.mode == 64:
+            return False
+        return super(bs_op_modeno64, self).encode()
+
+    def decode(self, v):
+        if self.parent.mode == 64:
+            return False
+        return True
+
+
+
+bs_opmode16 = bs(l=0, cls=(bs_op_mode,), mode = 16, fname="fopmode")
+bs_opmode32 = bs(l=0, cls=(bs_op_mode,), mode = 32, fname="fopmode")
+bs_opmode64 = bs(l=0, cls=(bs_op_mode,), mode = 64, fname="fopmode")
+
+
+bs_admode16 = bs(l=0, cls=(bs_ad_mode,), mode = 16, fname="fadmode")
+bs_admode32 = bs(l=0, cls=(bs_ad_mode,), mode = 32, fname="fadmode")
+bs_admode64 = bs(l=0, cls=(bs_ad_mode,), mode = 64, fname="fadmode")
+
+bs_opmode16_no64 = bs(l=0, cls=(bs_op_mode_no64,), mode = 16, fname="fopmode")
+bs_opmode32_no64 = bs(l=0, cls=(bs_op_mode_no64,), mode = 32, fname="fopmode")
+
+bs_mode64 = bs(l=0, cls=(bs_op_mode64,))
+bs_modeno64 = bs(l=0, cls=(bs_op_modeno64,))
 
 
 cond_list = ["O", "NO", "B", "AE",
@@ -3229,76 +3345,9 @@ addop("bts", [bs8(0x0f), bs8(0xba)] + rmmod(d5) + [u08])
 
 addop("call", [bs8(0xe8), rel_off])
 addop("call", [bs8(0xff), stk] + rmmod(d2))
-addop("call", [bs8(0xff), stk] + rmmod(d3, modrm=mod_mem))
-addop("call", [bs8(0x9a), moff, msegoff])
+addop("call", [bs8(0xff), stk] + rmmod(d3, rm_arg_x=rm_mem_far, modrm=mod_mem))
+addop("call", [bs8(0x9a), bs_modeno64, moff, msegoff])
 
-
-class bs_op_mode(bsi):
-
-    def decode(self, v):
-        opmode = self.parent.v_opmode()
-        return opmode == self.mode
-
-
-class bs_ad_mode(bsi):
-
-    def decode(self, v):
-        admode = self.parent.v_admode()
-        return admode == self.mode
-
-
-class bs_op_mode_no64(bsi):
-
-    def encode(self):
-        if self.parent.mode == 64:
-            return False
-        return super(bs_op_mode_no64, self).encode()
-
-    def decode(self, v):
-        if self.parent.mode == 64:
-            return False
-        opmode = self.parent.v_opmode()
-        return opmode == self.mode
-
-
-class bs_op_mode64(bsi):
-    def encode(self):
-        if self.parent.mode != 64:
-            return False
-        return super(bs_op_mode64, self).encode()
-
-    def decode(self, v):
-        if self.parent.mode != 64:
-            return False
-        return True
-
-class bs_op_modeno64(bsi):
-    def encode(self):
-        if self.parent.mode == 64:
-            return False
-        return super(bs_op_modeno64, self).encode()
-
-    def decode(self, v):
-        if self.parent.mode == 64:
-            return False
-        return True
-
-
-
-bs_opmode16 = bs(l=0, cls=(bs_op_mode,), mode = 16, fname="fopmode")
-bs_opmode32 = bs(l=0, cls=(bs_op_mode,), mode = 32, fname="fopmode")
-bs_opmode64 = bs(l=0, cls=(bs_op_mode,), mode = 64, fname="fopmode")
-
-
-bs_admode16 = bs(l=0, cls=(bs_ad_mode,), mode = 16, fname="fadmode")
-bs_admode32 = bs(l=0, cls=(bs_ad_mode,), mode = 32, fname="fadmode")
-bs_admode64 = bs(l=0, cls=(bs_ad_mode,), mode = 64, fname="fadmode")
-
-bs_opmode16_no64 = bs(l=0, cls=(bs_op_mode_no64,), mode = 16, fname="fopmode")
-bs_opmode32_no64 = bs(l=0, cls=(bs_op_mode_no64,), mode = 32, fname="fopmode")
-
-bs_mode64 = bs(l=0, cls=(bs_op_mode64,))
-bs_modeno64 = bs(l=0, cls=(bs_op_modeno64,))
 
 addop("cbw", [bs8(0x98), bs_opmode16])
 addop("cwde", [bs8(0x98), bs_opmode32])
@@ -3551,9 +3600,9 @@ addop("jmp", [bs8(0xeb), rel_off08])
 addop("jmp", [bs8(0xe9), rel_off])
 # TODO XXX replace stk force64?
 addop("jmp", [bs8(0xff), stk] + rmmod(d4))
-addop("jmpf", [bs8(0xea), moff, msegoff])
+addop("jmp", [bs8(0xea), bs_modeno64, moff, msegoff])
 
-addop("jmpf", [bs8(0xff)] + rmmod(d5))
+addop("jmp", [bs8(0xff)] + rmmod(d5, rm_arg_x=rm_mem_far, modrm=mod_mem))
 
 addop("lahf", [bs8(0x9f)])
 addop("lar", [bs8(0x0f), bs8(0x02)] + rmmod(rmreg))

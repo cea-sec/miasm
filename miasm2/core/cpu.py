@@ -262,7 +262,8 @@ def extract_ast_core(v, my_id2expr, my_int2expr):
         size = sizes.pop()
         my_int2expr = lambda x: m2_expr.ExprInt(x, size)
     else:
-        raise ValueError('multiple sizes in ids')
+        # Multiple sizes in ids
+        raise StopIteration
     e = ast_raw2expr(ast_tokens, my_id2expr, my_int2expr)
     return e
 
