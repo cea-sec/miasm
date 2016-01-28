@@ -450,6 +450,7 @@ def dis_bloc(mnemo, pool_bin, label, offset, job_done, symbol_pool,
         if instr is None:
             log_asmbloc.warning("cannot disasm at %X", int(off_i))
             if not cur_block.lines:
+                job_done.add(offset)
                 # Block is empty -> bad block
                 cur_block = asm_block_bad(label, errno=0)
             else:
