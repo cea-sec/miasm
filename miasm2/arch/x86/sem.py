@@ -421,7 +421,10 @@ def l_test(ir, instr, a, b):
 
 def get_shift(a, b):
     # b.size must match a
-    b = b.zeroExtend(a.size)
+    if isinstance(b, m2_expr.ExprInt):
+        b = m2_expr.ExprInt(int(b.arg), a.size)
+    else:
+        b = b.zeroExtend(a.size)
     if a.size == 64:
         shift = b & m2_expr.ExprInt_from(b, 0x3f)
     else:
