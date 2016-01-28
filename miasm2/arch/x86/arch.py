@@ -777,9 +777,6 @@ class mn_x86(cls_mn):
                 m = a.expr
                 a.expr = ExprMem(
                     ExprOp('segm', enc2segm[self.g2.value], m.arg), m.size)
-        if self.name in ['LEA', 'LDS', 'LES', 'LFS', 'LGS', 'LSS']:
-            if not isinstance(self.args[1].expr, ExprMem):
-                return None
         return self
 
     def dup_info(self, infos):
@@ -2034,6 +2031,13 @@ class x86_rm_arg(m_arg):
         for x in self.gen_cand(v_cand, admode):
             yield x
 
+class x86_rm_mem(x86_rm_arg):
+    def fromstring(self, s, parser_result=None):
+        self.expr = None
+        start, stop = super(x86_rm_mem, self).fromstring(s, parser_result)
+        if not isinstance(self.expr, ExprMem):
+            return None, None
+        return start, stop
 
 class x86_rm_w8(x86_rm_arg):
 
@@ -3138,6 +3142,8 @@ rm_arg_m64 = bs(l=0, cls=(x86_rm_m64,), fname='rmarg')
 rm_arg_m80 = bs(l=0, cls=(x86_rm_m80,), fname='rmarg')
 rm_arg_m16 = bs(l=0, cls=(x86_rm_m16,), fname='rmarg')
 
+rm_mem = bs(l=0, cls=(x86_rm_mem,), fname='rmarg')
+
 rm_arg_mm = bs(l=0, cls=(x86_rm_mm,), fname='rmarg')
 rm_arg_mm_m64 = bs(l=0, cls=(x86_rm_mm_m64,), fname='rmarg')
 rm_arg_mm_reg = bs(l=0, cls=(x86_rm_mm_reg,), fname='rmarg')
@@ -3552,12 +3558,12 @@ addop("jmpf", [bs8(0xff)] + rmmod(d5))
 addop("lahf", [bs8(0x9f)])
 addop("lar", [bs8(0x0f), bs8(0x02)] + rmmod(rmreg))
 
-addop("lea", [bs8(0x8d)] + rmmod(rmreg))
-addop("les", [bs8(0xc4)] + rmmod(rmreg))
-addop("lds", [bs8(0xc5)] + rmmod(rmreg))
-addop("lss", [bs8(0x0f), bs8(0xb2)] + rmmod(rmreg))
-addop("lfs", [bs8(0x0f), bs8(0xb4)] + rmmod(rmreg))
-addop("lgs", [bs8(0x0f), bs8(0xb5)] + rmmod(rmreg))
+addop("lea", [bs8(0x8d)] + rmmod(rmreg, rm_arg_x=rm_mem, modrm=mod_mem))
+addop("les", [bs8(0xc4)] + rmmod(rmreg, rm_arg_x=rm_mem, modrm=mod_mem))
+addop("lds", [bs8(0xc5)] + rmmod(rmreg, rm_arg_x=rm_mem, modrm=mod_mem))
+addop("lss", [bs8(0x0f), bs8(0xb2)] + rmmod(rmreg, rm_arg_x=rm_mem, modrm=mod_mem))
+addop("lfs", [bs8(0x0f), bs8(0xb4)] + rmmod(rmreg, rm_arg_x=rm_mem, modrm=mod_mem))
+addop("lgs", [bs8(0x0f), bs8(0xb5)] + rmmod(rmreg, rm_arg_x=rm_mem, modrm=mod_mem))
 
 addop("lgdt", [bs8(0x0f), bs8(0x01)] + rmmod(d2, modrm=mod_mem))
 addop("lidt", [bs8(0x0f), bs8(0x01)] + rmmod(d3, modrm=mod_mem))
