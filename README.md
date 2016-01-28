@@ -36,6 +36,8 @@ a non exhaustive list of features:
 * Expression simplification for automatic de-obfuscation
 * ...
 
+See the official [blog](http://miasm.re) for more examples and demos.
+
 Basic examples
 ==============
 
