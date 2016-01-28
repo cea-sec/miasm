@@ -259,7 +259,8 @@ class asm_block_bad(asm_bloc):
 
     ERROR_TYPES = {-1: "Unknown error",
                    0: "Unable to disassemble",
-                   1: "Reach a null starting block",
+                   1: "Null starting block",
+                   2: "Address forbidden by dont_dis",
     }
 
     def __init__(self, label=None, alignment=1, errno=-1, *args, **kwargs):
@@ -426,7 +427,18 @@ def dis_bloc(mnemo, pool_bin, label, offset, job_done, symbol_pool,
         if in_delayslot:
             delayslot_count -= 1
 
-        if offset in dont_dis or (lines_cpt > 0 and offset in split_dis):
+        if offset in dont_dis:
+            if not cur_block.lines:
+                job_done.add(offset)
+                # Block is empty -> bad block
+                cur_block = asm_block_bad(label, errno=2)
+            else:
+                # Block is not empty, stop the desassembly pass and add a
+                # constraint to the next block
+                cur_block.add_cst(offset, asm_constraint.c_next, symbol_pool)
+            break
+
+        if lines_cpt > 0 and offset in split_dis:
             cur_block.add_cst(offset, asm_constraint.c_next, symbol_pool)
             offsets_to_dis.add(offset)
             break
@@ -547,19 +559,6 @@ def dis_bloc_all(mnemo, pool_bin, offset, job_done, symbol_pool, dont_dis=[],
         if n is None:
             continue
         if n in job_done:
-            continue
-
-        if n in dont_dis:
-            continue
-        dd_flag = False
-        for dd in dont_dis:
-            if not isinstance(dd, tuple):
-                continue
-            dd_a, dd_b = dd
-            if dd_a <= n < dd_b:
-                dd_flag = True
-                break
-        if dd_flag:
             continue
         label = symbol_pool.getby_offset_create(n)
         cur_block, nexts = dis_bloc(mnemo, pool_bin, label, n, job_done,
