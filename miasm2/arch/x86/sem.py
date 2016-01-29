@@ -592,24 +592,6 @@ def shr(ir, instr, a, b):
     return _shift_tpl(">>", ir, instr, a, b, custom_of=a.msb())
 
 
-def shrd_cl(ir, instr, a, b):
-    e = []
-    opmode, admode = s, instr.v_admode()
-    shifter = mRCX[instr.mode][:8].zeroExtend(a.size)
-    shifter &= m2_expr.ExprInt_from(a, 0x1f)
-    c = (a >> shifter) | (b << (m2_expr.ExprInt_from(a, a.size) - shifter))
-    new_cf = (a >> (shifter - m2_expr.ExprInt_from(a, 1)))[:1]
-    e.append(m2_expr.ExprAff(cf, m2_expr.ExprCond(shifter,
-                                                  new_cf,
-                                                  cf)
-                             )
-             )
-    e.append(m2_expr.ExprAff(of, a.msb()))
-    e += update_flag_znp(c)
-    e.append(m2_expr.ExprAff(a, c))
-    return e, []
-
-
 def shrd(ir, instr, a, b, c):
     return _shift_tpl(">>>", ir, instr, a, b, c, "<<<")
 
@@ -632,10 +614,6 @@ def sal(ir, instr, a, b):
 
 def shl(ir, instr, a, b):
     return _shift_tpl("<<", ir, instr, a, b, left=True)
-
-
-def shld_cl(ir, instr, a, b):
-    return shld(ir, instr, a, b, ecx)
 
 
 def shld(ir, instr, a, b, c):
@@ -4015,10 +3993,8 @@ mnemo_func = {'mov': mov,
               'rcr': rcr,
               'sar': sar,
               'shr': shr,
-              'shrd_cl': shrd_cl,
               'sal': sal,
               'shl': shl,
-              'shld_cl': shld_cl,
               'shld': shld,
               'cmc': cmc,
               'clc': clc,
