@@ -1218,7 +1218,7 @@ def ret(ir, instr, a=None):
         a = m2_expr.ExprInt(0, s)
         value = (myesp + (m2_expr.ExprInt((s / 8), s)))
     else:
-        a = a.zeroExtend(s)
+        a = m2_expr.ExprInt(int(a.arg), s)
         value = (myesp + (m2_expr.ExprInt((s / 8), s) + a))
 
     e.append(m2_expr.ExprAff(myesp, value))
