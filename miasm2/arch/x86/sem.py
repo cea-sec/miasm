@@ -272,6 +272,16 @@ def mov(ir, instr, a, b):
     return e, []
 
 
+def movq(ir, instr, dst, src):
+    if dst.size == src.size:
+        e = [m2_expr.ExprAff(dst, src)]
+    elif dst.size > src.size:
+        e = [m2_expr.ExprAff(dst, src.zeroExtend(dst.size))]
+    else:
+        e = [m2_expr.ExprAff(dst, src[:dst.size])]
+    return e, []
+
+
 @sbuild.parse
 def xchg(arg1, arg2):
     arg1 = arg2
@@ -2874,6 +2884,7 @@ def icebp(ir, instr):
     return e, []
 # XXX
 
+
 def l_int(ir, instr, a):
     e = []
     # XXX
@@ -4290,7 +4301,7 @@ mnemo_func = {'mov': mov,
               "xorps": xorps,
               "xorpd": xorps,
 
-              "movq": mov,
+              "movq": movq,
 
               "pminsw": pminsw,
               "cvtdq2pd": cvtdq2pd,
