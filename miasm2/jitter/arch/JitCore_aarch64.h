@@ -40,7 +40,6 @@ typedef struct {
 
 	uint64_t PC;
 
-
 	uint64_t X0_new;
 	uint64_t X1_new;
 	uint64_t X2_new;
@@ -87,7 +86,6 @@ typedef struct {
 	uint32_t of_new;
 	uint32_t cf_new;
 
-
 	uint8_t pfmem08_0;
 	uint8_t pfmem08_1;
 	uint8_t pfmem08_2;
@@ -108,7 +106,6 @@ typedef struct {
 	uint8_t pfmem08_17;
 	uint8_t pfmem08_18;
 	uint8_t pfmem08_19;
-
 
 	uint16_t pfmem16_0;
 	uint16_t pfmem16_1;
@@ -131,7 +128,6 @@ typedef struct {
 	uint16_t pfmem16_18;
 	uint16_t pfmem16_19;
 
-
 	uint32_t pfmem32_0;
 	uint32_t pfmem32_1;
 	uint32_t pfmem32_2;
@@ -152,7 +148,6 @@ typedef struct {
 	uint32_t pfmem32_17;
 	uint32_t pfmem32_18;
 	uint32_t pfmem32_19;
-
 
 	uint64_t pfmem64_0;
 	uint64_t pfmem64_1;
@@ -175,22 +170,21 @@ typedef struct {
 	uint64_t pfmem64_18;
 	uint64_t pfmem64_19;
 
-}vm_cpu_t;
+} vm_cpu_t;
 
+uint64_t udiv64(vm_cpu_t *vmcpu, uint64_t a, uint64_t b);
+uint64_t umod64(vm_cpu_t *vmcpu, uint64_t a, uint64_t b);
+int64_t idiv64(vm_cpu_t *vmcpu, int64_t a, int64_t b);
+int64_t imod64(vm_cpu_t *vmcpu, int64_t a, int64_t b);
 
-uint64_t udiv64(vm_cpu_t* vmcpu, uint64_t a, uint64_t b);
-uint64_t umod64(vm_cpu_t* vmcpu, uint64_t a, uint64_t b);
-int64_t idiv64(vm_cpu_t* vmcpu, int64_t a, int64_t b);
-int64_t imod64(vm_cpu_t* vmcpu, int64_t a, int64_t b);
+uint32_t udiv32(vm_cpu_t *vmcpu, uint32_t a, uint32_t b);
+uint32_t umod32(vm_cpu_t *vmcpu, uint32_t a, uint32_t b);
+int32_t idiv32(vm_cpu_t *vmcpu, int32_t a, int32_t b);
+int32_t imod32(vm_cpu_t *vmcpu, int32_t a, int32_t b);
 
-uint32_t udiv32(vm_cpu_t* vmcpu, uint32_t a, uint32_t b);
-uint32_t umod32(vm_cpu_t* vmcpu, uint32_t a, uint32_t b);
-int32_t idiv32(vm_cpu_t* vmcpu, int32_t a, int32_t b);
-int32_t imod32(vm_cpu_t* vmcpu, int32_t a, int32_t b);
-
-uint16_t udiv16(vm_cpu_t* vmcpu, uint16_t a, uint16_t b);
-uint16_t umod16(vm_cpu_t* vmcpu, uint16_t a, uint16_t b);
-int16_t idiv16(vm_cpu_t* vmcpu, int16_t a, int16_t b);
-int16_t imod16(vm_cpu_t* vmcpu, int16_t a, int16_t b);
+uint16_t udiv16(vm_cpu_t *vmcpu, uint16_t a, uint16_t b);
+uint16_t umod16(vm_cpu_t *vmcpu, uint16_t a, uint16_t b);
+int16_t idiv16(vm_cpu_t *vmcpu, int16_t a, int16_t b);
+int16_t imod16(vm_cpu_t *vmcpu, int16_t a, int16_t b);
 
 #define RETURN_PC return BlockDst;

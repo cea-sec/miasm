@@ -5,7 +5,6 @@ typedef struct {
 	uint32_t interrupt_num;
 	uint32_t interrupt_num_new;
 
-
 	/* gpregs */
 	uint64_t RAX;
 	uint64_t RBX;
@@ -131,13 +130,11 @@ typedef struct {
 	unsigned int reg_float_ds;
 	unsigned int reg_float_ds_new;
 
-
 	unsigned int tsc1;
 	unsigned int tsc2;
 
 	unsigned int tsc1_new;
 	unsigned int tsc2_new;
-
 
 	uint64_t ES;
 	uint64_t CS;
@@ -158,8 +155,6 @@ typedef struct {
 
 	unsigned int cr3;
 	unsigned int cr3_new;
-
-
 
 	uint8_t pfmem08_0;
 	uint8_t pfmem08_1;
@@ -182,7 +177,6 @@ typedef struct {
 	uint8_t pfmem08_18;
 	uint8_t pfmem08_19;
 
-
 	uint16_t pfmem16_0;
 	uint16_t pfmem16_1;
 	uint16_t pfmem16_2;
@@ -203,7 +197,6 @@ typedef struct {
 	uint16_t pfmem16_17;
 	uint16_t pfmem16_18;
 	uint16_t pfmem16_19;
-
 
 	uint32_t pfmem32_0;
 	uint32_t pfmem32_1;
@@ -226,7 +219,6 @@ typedef struct {
 	uint32_t pfmem32_18;
 	uint32_t pfmem32_19;
 
-
 	uint64_t pfmem64_0;
 	uint64_t pfmem64_1;
 	uint64_t pfmem64_2;
@@ -248,7 +240,6 @@ typedef struct {
 	uint64_t pfmem64_18;
 	uint64_t pfmem64_19;
 
-
 	uint64_t MM0;
 	uint64_t MM1;
 	uint64_t MM2;
@@ -269,29 +260,25 @@ typedef struct {
 
 	uint32_t segm_base[0x10000];
 
-}vm_cpu_t;
+} vm_cpu_t;
 
+void dump_gpregs(vm_cpu_t *vmcpu);
+uint64_t segm2addr(JitCpu *jitcpu, uint64_t segm, uint64_t addr);
 
+uint64_t udiv64(vm_cpu_t *vmcpu, uint64_t a, uint64_t b);
+uint64_t umod64(vm_cpu_t *vmcpu, uint64_t a, uint64_t b);
+int64_t idiv64(vm_cpu_t *vmcpu, int64_t a, int64_t b);
+int64_t imod64(vm_cpu_t *vmcpu, int64_t a, int64_t b);
 
+uint32_t udiv32(vm_cpu_t *vmcpu, uint32_t a, uint32_t b);
+uint32_t umod32(vm_cpu_t *vmcpu, uint32_t a, uint32_t b);
+int32_t idiv32(vm_cpu_t *vmcpu, int32_t a, int32_t b);
+int32_t imod32(vm_cpu_t *vmcpu, int32_t a, int32_t b);
 
-void dump_gpregs(vm_cpu_t* vmcpu);
-uint64_t segm2addr(JitCpu* jitcpu, uint64_t segm, uint64_t addr);
-
-
-uint64_t udiv64(vm_cpu_t* vmcpu, uint64_t a, uint64_t b);
-uint64_t umod64(vm_cpu_t* vmcpu, uint64_t a, uint64_t b);
-int64_t idiv64(vm_cpu_t* vmcpu, int64_t a, int64_t b);
-int64_t imod64(vm_cpu_t* vmcpu, int64_t a, int64_t b);
-
-uint32_t udiv32(vm_cpu_t* vmcpu, uint32_t a, uint32_t b);
-uint32_t umod32(vm_cpu_t* vmcpu, uint32_t a, uint32_t b);
-int32_t idiv32(vm_cpu_t* vmcpu, int32_t a, int32_t b);
-int32_t imod32(vm_cpu_t* vmcpu, int32_t a, int32_t b);
-
-uint16_t udiv16(vm_cpu_t* vmcpu, uint16_t a, uint16_t b);
-uint16_t umod16(vm_cpu_t* vmcpu, uint16_t a, uint16_t b);
-int16_t idiv16(vm_cpu_t* vmcpu, int16_t a, int16_t b);
-int16_t imod16(vm_cpu_t* vmcpu, int16_t a, int16_t b);
+uint16_t udiv16(vm_cpu_t *vmcpu, uint16_t a, uint16_t b);
+uint16_t umod16(vm_cpu_t *vmcpu, uint16_t a, uint16_t b);
+int16_t idiv16(vm_cpu_t *vmcpu, int16_t a, int16_t b);
+int16_t imod16(vm_cpu_t *vmcpu, int16_t a, int16_t b);
 
 //#define RETURN_PC return PyLong_FromUnsignedLongLong(vmcpu->RIP);
 #define RETURN_PC return BlockDst;

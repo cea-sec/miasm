@@ -50,7 +50,6 @@ typedef struct {
 	uint32_t scg1;
 	uint32_t res;
 
-
 	uint32_t zf_new;
 	uint32_t nf_new;
 	uint32_t of_new;
@@ -62,7 +61,6 @@ typedef struct {
 	uint32_t scg0_new;
 	uint32_t scg1_new;
 	uint32_t res_new;
-
 
 	uint8_t pfmem08_0;
 	uint8_t pfmem08_1;
@@ -85,7 +83,6 @@ typedef struct {
 	uint8_t pfmem08_18;
 	uint8_t pfmem08_19;
 
-
 	uint16_t pfmem16_0;
 	uint16_t pfmem16_1;
 	uint16_t pfmem16_2;
@@ -106,7 +103,6 @@ typedef struct {
 	uint16_t pfmem16_17;
 	uint16_t pfmem16_18;
 	uint16_t pfmem16_19;
-
 
 	uint32_t pfmem32_0;
 	uint32_t pfmem32_1;
@@ -129,7 +125,6 @@ typedef struct {
 	uint32_t pfmem32_18;
 	uint32_t pfmem32_19;
 
-
 	uint64_t pfmem64_0;
 	uint64_t pfmem64_1;
 	uint64_t pfmem64_2;
@@ -151,8 +146,7 @@ typedef struct {
 	uint64_t pfmem64_18;
 	uint64_t pfmem64_19;
 
-
-}vm_cpu_t;
+} vm_cpu_t;
 
 //#define RETURN_PC return PyLong_FromUnsignedLongLong(vmcpu->PC);
 #define RETURN_PC return BlockDst;
