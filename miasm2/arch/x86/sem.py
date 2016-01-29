@@ -273,13 +273,10 @@ def mov(ir, instr, a, b):
 
 
 def movq(ir, instr, dst, src):
-    if dst.size == src.size:
-        e = [m2_expr.ExprAff(dst, src)]
-    elif dst.size > src.size:
-        e = [m2_expr.ExprAff(dst, src.zeroExtend(dst.size))]
-    else:
-        e = [m2_expr.ExprAff(dst, src[:dst.size])]
-    return e, []
+    src_final = (src.zeroExtend(dst.size)
+                 if dst.size >= src.size else
+                 src[:dst.size])
+    return [m2_expr.ExprAff(dst, src_final)], []
 
 
 @sbuild.parse
@@ -3921,13 +3918,24 @@ def movlps(ir, instr, a, b):
 
 def movhpd(ir, instr, a, b):
     e = []
+    if b.size == 64:
+        e.append(m2_expr.ExprAff(a[64:128], b))
+    elif a.size == 64:
+        e.append(m2_expr.ExprAff(a, b[64:128]))
+    else:
+        raise RuntimeError("bad encoding!")
+    return e, []
+
+
+def movlhps(ir, instr, a, b):
+    e = []
     e.append(m2_expr.ExprAff(a[64:128], b[:64]))
     return e, []
 
 
-def movhps(ir, instr, a, b):
+def movhlps(ir, instr, a, b):
     e = []
-    e.append(m2_expr.ExprAff(a[64:128], b[:64]))
+    e.append(m2_expr.ExprAff(a[:64], b[64:128]))
     return e, []
 
 
@@ -4450,9 +4458,9 @@ mnemo_func = {'mov': mov,
               "movlpd": movlpd,
               "movlps": movlps,
               "movhpd": movhpd,
-              "movhps": movhps,
-              "movlhps": movhps,
-              "movhlps": movlps,
+              "movhps": movhpd,
+              "movlhps": movlhps,
+              "movhlps": movhlps,
               "movdq2q": movdq2q,
 
               "sqrtpd": sqrtpd,
