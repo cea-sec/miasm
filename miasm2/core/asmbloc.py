@@ -411,11 +411,16 @@ class asm_symbol_pool:
 
 
 def dis_bloc(mnemo, pool_bin, label, offset, job_done, symbol_pool,
-             dont_dis=[], split_dis=[
-             ], follow_call=False, dontdis_retcall=False, lines_wd=None,
-             dis_bloc_callback=None, dont_dis_nulstart_bloc=False,
-             attrib={}):
+             dont_dis=None, split_dis=None, follow_call=False,
+             dontdis_retcall=False, lines_wd=None, dis_bloc_callback=None,
+             dont_dis_nulstart_bloc=False, attrib=None):
     # pool_bin.offset = offset
+    if dont_dis is None:
+        dont_dis = []
+    if split_dis is None:
+        split_dis = []
+    if attrib is None:
+        attrib = {}
     lines_cpt = 0
     in_delayslot = False
     delayslot_count = mnemo.delayslot
@@ -538,12 +543,18 @@ def dis_bloc(mnemo, pool_bin, label, offset, job_done, symbol_pool,
     return cur_block, offsets_to_dis
 
 
-def dis_bloc_all(mnemo, pool_bin, offset, job_done, symbol_pool, dont_dis=[],
-                 split_dis=[], follow_call=False, dontdis_retcall=False,
+def dis_bloc_all(mnemo, pool_bin, offset, job_done, symbol_pool, dont_dis=None,
+                 split_dis=None, follow_call=False, dontdis_retcall=False,
                  blocs_wd=None, lines_wd=None, blocs=None,
                  dis_bloc_callback=None, dont_dis_nulstart_bloc=False,
-                 attrib={}):
+                 attrib=None):
     log_asmbloc.info("dis bloc all")
+    if dont_dis is None:
+        dont_dis = []
+    if split_dis is None:
+        split_dis = []
+    if attrib is None:
+        attrib = {}
     if blocs is None:
         blocs = AsmCFG()
     todo = [offset]
