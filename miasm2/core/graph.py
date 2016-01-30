@@ -166,14 +166,14 @@ class DiGraph(object):
 
     def node_attr(self, node):
         """
-        Returns a dictionnary of the @node's attributes
+        Returns a dictionary of the @node's attributes
         @node: a node of the graph
         """
         return {}
 
     def edge_attr(self, src, dst):
         """
-        Return a dictionnary of attributes for the edge between @src and @dst
+        Return a dictionary of attributes for the edge between @src and @dst
         @src: the source node of the edge
         @dst: the destination node of the edge
         """
@@ -340,7 +340,7 @@ class DiGraph(object):
 
         The function doesn't return the self reference in dominators.
         @node: The start node
-        @gen_dominators: The dictionnary containing at least node's
+        @gen_dominators: The dictionary containing at least node's
         dominators/post_dominators
         @succ_cb: return predecessors/succesors of a node
 
@@ -386,7 +386,7 @@ class DiGraph(object):
         """Return an iterator of the ordered list of @node's dominators
         The function doesn't return the self reference in dominators.
         @node: The start node
-        @dominators: The dictionnary containing at least node's dominators
+        @dominators: The dictionary containing at least node's dominators
         """
         return self._walk_generic_dominator(node,
                                             dominators,
@@ -396,7 +396,7 @@ class DiGraph(object):
         """Return an iterator of the ordered list of @node's postdominators
         The function doesn't return the self reference in postdominators.
         @node: The start node
-        @postdominators: The dictionnary containing at least node's
+        @postdominators: The dictionary containing at least node's
         postdominators
 
         """
@@ -771,7 +771,7 @@ class MatchGraph(DiGraph):
         @candidate: @graph's node
         @expected: MatchGraphJoker instance
         @graph: DiGraph instance
-        @partial_sol: (optional) dictionnary of MatchGraphJoker -> @graph's node
+        @partial_sol: (optional) dictionary of MatchGraphJoker -> @graph's node
         standing for a partial solution
         """
         # Avoid having 2 different joker for the same node
@@ -845,13 +845,13 @@ class MatchGraph(DiGraph):
 
     def match(self, graph):
         """Naive subgraph matching between graph and self.
-        Iterator on matching solution, as dictionnary MatchGraphJoker -> @graph
+        Iterator on matching solution, as dictionary MatchGraphJoker -> @graph
         @graph: DiGraph instance
         In order to obtained correct and complete results, @graph must be
         connected.
         """
         # Partial solution: nodes corrects, edges between these nodes corrects
-        # A partial solution is a dictionnary MatchGraphJoker -> @graph's node
+        # A partial solution is a dictionary MatchGraphJoker -> @graph's node
         todo = list() # Dictionnaries containing partial solution
         done = list() # Aleady computed partial solutions
 

@@ -752,7 +752,7 @@ class AsmCFG(DiGraph):
     # Helpers
     @property
     def pendings(self):
-        """Dictionnary of label -> set(AsmCFGPending instance) indicating
+        """Dictionary of label -> set(AsmCFGPending instance) indicating
         which label are missing in the current instance.
         A label is missing if a block which is already in nodes has constraints
         with him (thanks to its .bto) and the corresponding block is not yet in

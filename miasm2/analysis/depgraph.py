@@ -122,7 +122,7 @@ class DependencyNode(object):
 
 class CacheWrapper(IterableUserDict):
 
-    """Wrapper class for cache dictionnary"""
+    """Wrapper class for cache dictionary"""
 
     def __init__(self, dct=None):
         """Create a CacheWrapper with value @dct."""
@@ -148,9 +148,9 @@ class CacheWrapper(IterableUserDict):
 
     @property
     def nostep_cache(self):
-        """Dictionnary of DependencyNode and their dependencies,
+        """Dictionary of DependencyNode and their dependencies,
         without the step attribute.
-        The dictionnary is generated once when the method is called for the
+        The dictionary is generated once when the method is called for the
         first time and not updated afterward.
         """
         if self._nostep_cache is None:
@@ -239,12 +239,12 @@ class DependencyDict(object):
 
     @property
     def cache(self):
-        "Dictionnary of DependencyNode and their dependencies"
+        "Dictionary of DependencyNode and their dependencies"
         return self._cache
 
     @property
     def pending(self):
-        """Dictionnary of DependencyNode and their dependencies, waiting for
+        """Dictionary of DependencyNode and their dependencies, waiting for
         resolution"""
         return self._pending
 
@@ -530,7 +530,7 @@ class DependencyResult(object):
 
     @property
     def has_loop(self):
-        """True if current dictionnary has a loop"""
+        """True if current dictionary has a loop"""
         if self._has_loop is None:
             self._has_loop = (len(self.relevant_labels) !=
                               len(set(self.relevant_labels)))
@@ -539,7 +539,7 @@ class DependencyResult(object):
     def emul(self, ctx=None, step=False):
         """Symbolic execution of relevant nodes according to the history
         Return the values of input nodes' elements
-        @ctx: (optional) Initial context as dictionnary
+        @ctx: (optional) Initial context as dictionary
         @step: (optional) Verbose execution
 
         Warning: The emulation is not sound if the input nodes depend on loop

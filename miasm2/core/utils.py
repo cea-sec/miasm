@@ -53,7 +53,7 @@ def whoami():
 
 
 class BoundedDict(UserDict.DictMixin):
-    """Limited in size dictionnary.
+    """Limited in size dictionary.
 
     To reduce combinatory cost, once an upper limit @max_size is reached,
     @max_size - @min_size elements are suppressed.
@@ -65,7 +65,7 @@ class BoundedDict(UserDict.DictMixin):
     def __init__(self, max_size, min_size=None, initialdata=None,
                  delete_cb=None):
         """Create a BoundedDict
-        @max_size: maximum size of the dictionnary
+        @max_size: maximum size of the dictionary
         @min_size: (optional) number of most used element to keep when resizing
         @initialdata: (optional) dict instance with initial data
         @delete_cb: (optional) callback called when an element is removed
@@ -121,7 +121,7 @@ class BoundedDict(UserDict.DictMixin):
 
     @property
     def data(self):
-        "Return the current instance as a dictionnary"
+        "Return the current instance as a dictionary"
         return self._data
 
     def __getitem__(self, key):

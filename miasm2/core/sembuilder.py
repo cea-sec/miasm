@@ -131,7 +131,7 @@ class SemBuilder(object):
 
     def __init__(self, ctx):
         """Create a SemBuilder
-        @ctx: context dictionnary used during parsing
+        @ctx: context dictionary used during parsing
         """
         # Init
         self.transformer = MiasmTransformer()
@@ -144,7 +144,7 @@ class SemBuilder(object):
 
     @property
     def functions(self):
-        """Return a dictionnary name -> func of parsed functions"""
+        """Return a dictionary name -> func of parsed functions"""
         return self._functions.copy()
 
     @staticmethod

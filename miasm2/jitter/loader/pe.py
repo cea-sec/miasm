@@ -228,7 +228,7 @@ def vm_load_pe_libs(vm, libs_name, libs, lib_path_base, **kargs):
     @libs_name: list of str
     @libs: libimp_pe instance
     @lib_path_base: (optional) DLLs relative path
-    Return a dictionnary Filename -> PE instances
+    Return a dictionary Filename -> PE instances
     Extra arguments are passed to vm_load_pe_lib
     """
     return {fname: vm_load_pe_lib(vm, fname, libs, lib_path_base, **kargs)
@@ -455,7 +455,7 @@ class libimp_pe(libimp):
 
 def vm_load_pe_and_dependencies(vm, fname, name2module, runtime_lib,
                                 lib_path_base, **kwargs):
-    """Load a binary and all its dependencies. Returns a dictionnary containing
+    """Load a binary and all its dependencies. Returns a dictionary containing
     the association between binaries names and it's pe object
 
     @vm: virtual memory manager instance
