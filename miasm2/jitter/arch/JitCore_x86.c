@@ -54,6 +54,9 @@ reg_dict gpreg_dict[] = { {.name = "RAX", .offset = offsetof(vm_cpu_t, RAX)},
 			  {.name = "MM6", .offset = offsetof(vm_cpu_t, MM6)},
 			  {.name = "MM7", .offset = offsetof(vm_cpu_t, MM7)},
 
+			  {.name = "TSC1", .offset = offsetof(vm_cpu_t, tsc1)},
+			  {.name = "TSC2", .offset = offsetof(vm_cpu_t, tsc2)},
+
 };
 
 
@@ -114,6 +117,8 @@ PyObject* cpu_get_gpreg(JitCpu* self)
     get_reg(MM6);
     get_reg(MM7);
 
+    get_reg(tsc1);
+    get_reg(tsc2);
 
     return dict;
 }
@@ -503,6 +508,9 @@ getset_reg_u64(MM5);
 getset_reg_u64(MM6);
 getset_reg_u64(MM7);
 
+getset_reg_u32(tsc1);
+getset_reg_u32(tsc2);
+
 
 PyObject* get_gpreg_offset_all(void)
 {
@@ -710,6 +718,12 @@ PyObject* get_gpreg_offset_all(void)
     get_reg_off(MM5_new);
     get_reg_off(MM6_new);
     get_reg_off(MM7_new);
+
+    get_reg_off(tsc1);
+    get_reg_off(tsc2);
+    get_reg_off(tsc1_new);
+    get_reg_off(tsc2_new);
+
     return dict;
 }
 
@@ -786,6 +800,9 @@ static PyGetSetDef JitCpu_getseters[] = {
     {"MM5", (getter)JitCpu_get_MM5, (setter)JitCpu_set_MM5, "MM5", NULL},
     {"MM6", (getter)JitCpu_get_MM6, (setter)JitCpu_set_MM6, "MM6", NULL},
     {"MM7", (getter)JitCpu_get_MM7, (setter)JitCpu_set_MM7, "MM7", NULL},
+
+    {"TSC1", (getter)JitCpu_get_tsc1, (setter)JitCpu_set_tsc1, "TSC1", NULL},
+    {"TSC2", (getter)JitCpu_get_tsc2, (setter)JitCpu_set_tsc2, "TSC2", NULL},
 
 
     {NULL}  /* Sentinel */
