@@ -33,7 +33,7 @@ class Sandbox(object):
 
     classes = property(lambda x: x.__class__._classes_())
 
-    def __init__(self, fname, options, custom_methods={}, **kwargs):
+    def __init__(self, fname, options, custom_methods=None, **kwargs):
         """
         Initialize a sandbox
         @fname: str file name
@@ -44,6 +44,8 @@ class Sandbox(object):
         # Initialize
         self.fname = fname
         self.options = options
+        if custom_methods is None:
+            custom_methods = {}
         for cls in self.classes:
             if cls == Sandbox:
                 continue

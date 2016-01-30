@@ -30,8 +30,10 @@ from miasm2.core.graph import DiGraph
 
 class irbloc(object):
 
-    def __init__(self, label, irs, lines=[]):
+    def __init__(self, label, irs, lines=None):
         assert(isinstance(label, asm_label))
+        if lines is None:
+            lines = []
         self.label = label
         self.irs = irs
         self.lines = lines
@@ -133,7 +135,7 @@ class DiGraphIR(DiGraph):
     def node2lines(self, node):
         yield self.DotCellDescription(text=str(node.name),
                                       attr={'align': 'center',
-                                      'colspan': 2,
+                                            'colspan': 2,
                                             'bgcolor': 'grey'})
         if node not in self._blocks:
             yield [self.DotCellDescription(text="NOT PRESENT", attr={})]
@@ -384,11 +386,13 @@ class ir(object):
             for i, l in enumerate(irs):
                 irs[i] = l.replace_expr(rep)
 
-    def get_rw(self, regs_ids=[]):
+    def get_rw(self, regs_ids=None):
         """
         Calls get_rw(irb) for each bloc
         @regs_ids : ids of registers used in IR
         """
+        if regs_ids is None:
+            regs_ids = []
         for b in self.blocs.values():
             b.get_rw(regs_ids)
 
