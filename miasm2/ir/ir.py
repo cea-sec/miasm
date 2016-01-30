@@ -130,36 +130,49 @@ class DiGraphIR(DiGraph):
         self._blocks = blocks
         super(DiGraphIR, self).__init__(*args, **kwargs)
 
-    def dot(self):
-        """Output the graphviz script"""
-        out = """
-    digraph asm_graph {
-    size="80,50";
-    node [
-    fontsize = "16",
-    shape = "box"
-    ];
+    def node2lines(self, node):
+        yield self.DotCellDescription(text=str(node.name),
+                                      attr={'align': 'center',
+                                      'colspan': 2,
+                                            'bgcolor': 'grey'})
+        if node not in self._blocks:
+            yield [self.DotCellDescription(text="NOT PRESENT", attr={})]
+            raise StopIteration
+        for i, exprs in enumerate(self._blocks[node].irs):
+            for expr in exprs:
+                if self._dot_offset:
+                    yield [self.DotCellDescription(text="%-4d" % i, attr={}),
+                           self.DotCellDescription(text=str(expr), attr={})]
+                else:
+                    yield self.DotCellDescription(text=str(expr), attr={})
+            yield self.DotCellDescription(text="", attr={})
+
+    def edge_attr(self, src, dst):
+        if src not in self._blocks or dst not in self._blocks:
+            return {}
+        src_irdst = self._blocks[src].dst
+        edge_color = "blue"
+        if isinstance(src_irdst, m2_expr.ExprCond):
+            if (expr_is_label(src_irdst.src1) and
+                    src_irdst.src1.name == dst):
+                edge_color = "limegreen"
+            elif (expr_is_label(src_irdst.src2) and
+                  src_irdst.src2.name == dst):
+                edge_color = "red"
+        return {"color": edge_color}
+
+    def node_attr(self, node):
+        if node not in self._blocks:
+            return {'style': 'filled', 'fillcolor': 'red'}
+        return {}
+
+    def dot(self, offset=False):
         """
-        all_lbls = {}
-        for lbl in self.nodes():
-            if lbl not in self._blocks:
-                continue
-            irb = self._blocks[lbl]
-            ir_txt = [str(lbl)]
-            for irs in irb.irs:
-                for l in irs:
-                    ir_txt.append(str(l))
-                ir_txt.append("")
-            ir_txt.append("")
-            all_lbls[hash(lbl)] = "\l\\\n".join(ir_txt)
-        for l, v in all_lbls.items():
-            out += '%s [label="%s"];\n' % (l, v)
-
-        for a, b in self.edges():
-            out += '%s -> %s;\n' % (hash(a), hash(b))
-        out += '}'
-        return out
-
+        @offset: (optional) if set, add the corresponding line number in each
+        node
+        """
+        self._dot_offset = offset
+        return super(DiGraphIR, self).dot()
 
 class ir(object):
 

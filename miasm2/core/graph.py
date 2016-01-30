@@ -1,8 +1,13 @@
 from collections import defaultdict, namedtuple
+import re
 
 
 class DiGraph(object):
     """Implementation of directed graph"""
+
+    # Stand for a cell in a dot node rendering
+    DotCellDescription = namedtuple("DotCellDescription",
+                                    ["text", "attr"])
 
     def __init__(self):
         self._nodes = set()
@@ -144,35 +149,100 @@ class DiGraph(object):
                     out.append(path + [dst])
         return out
 
-    @staticmethod
-    def node2str(node):
-        return str(node)
+    def nodeid(self, node):
+        """
+        Returns uniq id for a @node
+        @node: a node of the graph
+        """
+        return hash(node) & 0xFFFFFFFFFFFFFFFF
+
+    def node2lines(self, node):
+        """
+        Returns an iterator on cells of the dot @node.
+        A DotCellDescription or a list of DotCellDescription are accepted
+        @node: a node of the graph
+        """
+        yield self.DotCellDescription(text=str(node), attr={})
+
+    def node_attr(self, node):
+        """
+        Returns a dictionnary of the @node's attributes
+        @node: a node of the graph
+        """
+        return {}
+
+    def edge_attr(self, src, dst):
+        """
+        Return a dictionnary of attributes for the edge between @src and @dst
+        @src: the source node of the edge
+        @dst: the destination node of the edge
+        """
+        return {}
 
     @staticmethod
-    def edge2str(src, dst):
-        return ""
+    def _fix_chars(token):
+        return "&#%04d;" % ord(token.group())
+
+    @staticmethod
+    def _attr2str(default_attr, attr):
+        return ' '.join('%s="%s"' % (name, value)
+                        for name, value in
+                        dict(default_attr,
+                             **attr).iteritems())
 
     def dot(self):
-        out = """
-digraph asm_graph {
-graph [
-splines=polyline,
-];
-node [
-fontsize = "16",
-shape = "box"
-];
-"""
-        for node in self.nodes():
-            out += '%s [label="%s"];\n' % (
-                hash(node) & 0xFFFFFFFFFFFFFFFF, self.node2str(node))
+        """Render dot graph with HTML"""
 
+        escape_chars = re.compile('[' + re.escape('{}') + '&|<>' + ']')
+        label_attr = 'colspan="2" align="center" bgcolor="grey"'
+        edge_attr = 'label = "%s" color="%s" style="bold"'
+        td_attr = {'align': 'left'}
+        nodes_attr = {'shape': 'Mrecord',
+                      'fontname': 'Courier New'}
+
+        out = ["digraph asm_graph {"]
+
+        # Generate basic nodes
+        out_nodes = []
+        for node in self.nodes():
+            node_id = self.nodeid(node)
+            out_node = '%s [\n' % node_id
+            out_node += self._attr2str(nodes_attr, self.node_attr(node))
+            out_node += 'label =<<table border="0" cellborder="0" cellpadding="3">'
+
+            node_html_lines = []
+
+            for lineDesc in self.node2lines(node):
+                out_render = ""
+                if isinstance(lineDesc, self.DotCellDescription):
+                    lineDesc = [lineDesc]
+                for col in lineDesc:
+                    out_render += "<td %s>%s</td>" % (
+                        self._attr2str(td_attr, col.attr),
+                        escape_chars.sub(self._fix_chars, str(col.text)))
+                node_html_lines.append(out_render)
+
+            node_html_lines = ('<tr>' +
+                               ('</tr><tr>').join(node_html_lines) +
+                               '</tr>')
+
+            out_node += node_html_lines + "</table>> ];"
+            out_nodes.append(out_node)
+
+        out += out_nodes
+
+        # Generate links
         for src, dst in self.edges():
-            out += '%s -> %s [label="%s"]\n' % (hash(src) & 0xFFFFFFFFFFFFFFFF,
-                                                hash(dst) & 0xFFFFFFFFFFFFFFFF,
-                                                self.edge2str(src, dst))
-        out += "}"
-        return out
+            attrs = self.edge_attr(src, dst)
+
+            attrs = ' '.join('%s="%s"' % (name, value)
+                             for name, value in attrs.iteritems())
+
+            out.append('%s -> %s' % (self.nodeid(src), self.nodeid(dst)) +
+                       '[' + attrs + '];')
+
+        out.append("}")
+        return '\n'.join(out)
 
     @staticmethod
     def _reachable_nodes(head, next_cb):
