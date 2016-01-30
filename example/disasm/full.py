@@ -148,7 +148,7 @@ for blocs in all_funcs_blocs.values():
 
 
 log.info('generate graph file')
-open('graph_execflow.dot', 'w').write(all_blocs.dot(label=True))
+open('graph_execflow.dot', 'w').write(all_blocs.dot(offset=True))
 
 log.info('generate intervals')
 

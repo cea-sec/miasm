@@ -428,7 +428,7 @@ class jitter:
     def add_lib_handler(self, libs, user_globals=None):
         """Add a function to handle libs call with breakpoints
         @libs: libimp instance
-        @user_globals: dictionnary for defined user function
+        @user_globals: dictionary for defined user function
         """
         if user_globals is None:
             user_globals = {}

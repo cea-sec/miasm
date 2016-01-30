@@ -3,7 +3,6 @@
 
 import logging
 import inspect
-import re
 from collections import namedtuple
 
 import miasm2.expression.expression as m2_expr
@@ -254,6 +253,7 @@ class asm_bloc(object):
 
 
 class asm_block_bad(asm_bloc):
+
     """Stand for a *bad* ASM block (malformed, unreachable,
     not disassembled, ...)"""
 
@@ -261,7 +261,7 @@ class asm_block_bad(asm_bloc):
                    0: "Unable to disassemble",
                    1: "Null starting block",
                    2: "Address forbidden by dont_dis",
-    }
+                   }
 
     def __init__(self, label=None, alignment=1, errno=-1, *args, **kwargs):
         """Instanciate an asm_block_bad.
@@ -577,6 +577,7 @@ def dis_bloc_all(mnemo, pool_bin, offset, job_done, symbol_pool, dont_dis=[],
 
 
 class AsmCFG(DiGraph):
+
     """Directed graph standing for a ASM Control Flow Graph with:
      - nodes: asm_bloc
      - edges: constraints between blocks, synchronized with asm_bloc's "bto"
@@ -640,7 +641,7 @@ class AsmCFG(DiGraph):
     def add_uniq_edge(self, src, dst, constraint):
         """Add an edge from @src to @dst if it doesn't already exist"""
         if (src not in self._nodes_succ or
-            dst not in self._nodes_succ[src]):
+                dst not in self._nodes_succ[src]):
             self.add_edge(src, dst, constraint)
 
     def del_edge(self, src, dst):
@@ -704,81 +705,54 @@ class AsmCFG(DiGraph):
             # Use "_uniq_" beacause the edge can already exist due to add_node
             self.add_uniq_edge(*edge, constraint=graph.edges2constraint[edge])
 
-    def dot(self, label=False, lines=True):
-        """Render dot graph with HTML
-        @label: (optional) if set, add the corresponding label in each block
-        @lines: (optional) if set, includes assembly lines in the output
-        """
+    def node2lines(self, node):
+        yield self.DotCellDescription(text=str(node.label.name),
+                                      attr={'align': 'center',
+                                            'colspan': 2,
+                                            'bgcolor': 'grey'})
 
-        escape_chars = re.compile('[' + re.escape('{}') + ']')
-        label_attr = 'colspan="2" align="center" bgcolor="grey"'
-        edge_attr = 'label = "%s" color="%s" style="bold"'
-        td_attr = 'align="left"'
-        block_attr = 'shape="Mrecord" fontname="Courier New"'
+        if isinstance(node, asm_block_bad):
+            yield [self.DotCellDescription(
+                text=node.ERROR_TYPES.get(node._errno,
+                                          node._errno),
+                                           attr={})]
+            raise StopIteration
+        for line in node.lines:
+            if self._dot_offset:
+                yield [self.DotCellDescription(text="%.8X" % line.offset,
+                                               attr={}),
+                       self.DotCellDescription(text=str(line), attr={})]
+            else:
+                yield self.DotCellDescription(text=str(line), attr={})
 
-        out = ["digraph asm_graph {"]
-        fix_chars = lambda x: '\\' + x.group()
+    def node_attr(self, node):
+        if isinstance(node, asm_block_bad):
+            return {'style': 'filled', 'fillcolor': 'red'}
+        return {}
 
-        # Generate basic blocks
-        out_blocks = []
-        for block in self.nodes():
-            out_block = '%s [\n' % block.label.name
-            out_block += "%s " % block_attr
-            if isinstance(block, asm_block_bad):
-                out_block += 'style=filled fillcolor="red" '
-            out_block += 'label =<<table border="0" cellborder="0" cellpadding="3">'
+    def edge_attr(self, src, dst):
+        cst = self.edges2constraint.get((src, dst), None)
+        edge_color = "blue"
 
-            block_label = '<tr><td %s>%s</td></tr>' % (
-                label_attr, block.label.name)
-            block_html_lines = []
-
-            if lines:
-                if isinstance(block, asm_block_bad):
-                    block_html_lines.append(block.ERROR_TYPES.get(block._errno,
-                                                                  block._errno))
-
-                for line in block.lines:
-                    if label:
-                        out_render = "%.8X</td><td %s> " % (line.offset,
-                                                            td_attr)
-                    else:
-                        out_render = ""
-                    out_render += escape_chars.sub(fix_chars, str(line))
-                    block_html_lines.append(out_render)
-
-            block_html_lines = ('<tr><td %s>' % td_attr +
-                                ('</td></tr><tr><td %s>' % td_attr).join(block_html_lines) +
-                                '</td></tr>')
-            out_block += "%s " % block_label
-            out_block += block_html_lines + "</table>> ];"
-            out_blocks.append(out_block)
-
-        out += out_blocks
-
-        # Generate links
-        for src, dst in self.edges():
-            exp_label = dst.label
-            cst = self.edges2constraint.get((src, dst), None)
-
-            edge_color = "black"
+        if len(self.successors(src)) > 1:
             if cst == asm_constraint.c_next:
                 edge_color = "red"
-            elif cst == asm_constraint.c_to:
+            else:
                 edge_color = "limegreen"
-            # special case
-            if len(src.bto) == 1:
-                edge_color = "blue"
 
-            out.append('%s -> %s' % (src.label.name, dst.label.name) + \
-                       '[' + edge_attr % (cst, edge_color) + '];')
+        return {"color": edge_color}
 
-        out.append("}")
-        return '\n'.join(out)
+    def dot(self, offset=False):
+        """
+        @offset: (optional) if set, add the corresponding offsets in each node
+        """
+        self._dot_offset = offset
+        return super(AsmCFG, self).dot()
 
     # Helpers
     @property
     def pendings(self):
-        """Dictionnary of label -> set(AsmCFGPending instance) indicating
+        """Dictionary of label -> set(AsmCFGPending instance) indicating
         which label are missing in the current instance.
         A label is missing if a block which is already in nodes has constraints
         with him (thanks to its .bto) and the corresponding block is not yet in
@@ -935,7 +909,8 @@ class AsmCFG(DiGraph):
         new block destinations
         @kwargs: (optional) named arguments to pass to dis_block_callback
         """
-        # Get all possible destinations not yet resolved, with a resolved offset
+        # Get all possible destinations not yet resolved, with a resolved
+        # offset
         block_dst = [label.offset
                      for label in self.pendings
                      if label.offset is not None]

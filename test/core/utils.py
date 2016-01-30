@@ -13,7 +13,7 @@ class TestUtils(unittest.TestCase):
         def logger(key):
             print "DELETE", key
 
-        # Create a 5/2 dictionnary
+        # Create a 5/2 dictionary
         bd = BoundedDict(5, 2, initialdata={"element": "value"},
                          delete_cb=logger)
         bd["element2"] = "value2"

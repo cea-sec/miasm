@@ -168,7 +168,7 @@ DD2.cache[DEPNODES_0[4]] = set(DEPNODES_0[5:9])
 assert DD2.cache != DD0.cache
 
 
-print "   [+] Test dictionnary equality"
+print "   [+] Test dictionary equality"
 DNA = DependencyNode(LBL2, A, 0, next(STEP_COUNTER))
 DNB = DependencyNode(LBL1, B, 1, next(STEP_COUNTER))
 DNC = DependencyNode(LBL1, C, 0, next(STEP_COUNTER), True)

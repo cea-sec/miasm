@@ -227,7 +227,7 @@ class Expr(object):
 
     def replace_expr(self, dct=None):
         """Find and replace sub expression using dct
-        @dct: dictionnary of Expr -> *
+        @dct: dictionary of Expr -> *
         """
         if dct is None:
             dct = {}
@@ -1214,7 +1214,7 @@ def test_set(e, v, tks, result):
     @e : Expr
     @v : Expr
     @tks : list of ExprId, available jokers
-    @result : dictionnary of ExprId -> Expr, current context
+    @result : dictionary of ExprId -> Expr, current context
     """
 
     if not v in tks:
@@ -1227,11 +1227,11 @@ def test_set(e, v, tks, result):
 
 def MatchExpr(e, m, tks, result=None):
     """Try to match m expression with e expression with tks jokers.
-    Result is output dictionnary with matching joker values.
+    Result is output dictionary with matching joker values.
     @e : Expr to test
     @m : Targetted Expr
     @tks : list of ExprId, available jokers
-    @result : dictionnary of ExprId -> Expr, output matching context
+    @result : dictionary of ExprId -> Expr, output matching context
     """
 
     if result is None:

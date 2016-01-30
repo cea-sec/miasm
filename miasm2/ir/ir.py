@@ -30,7 +30,7 @@ from miasm2.core.graph import DiGraph
 
 class irbloc(object):
 
-    def __init__(self, label, irs, lines = []):
+    def __init__(self, label, irs, lines=[]):
         assert(isinstance(label, asm_label))
         self.label = label
         self.irs = irs
@@ -38,7 +38,6 @@ class irbloc(object):
         self.except_automod = True
         self._dst = None
         self._dst_linenb = None
-
 
     def _get_dst(self):
         """Find the IRDst affectation and update dst, dst_linenb accordingly"""
@@ -121,6 +120,7 @@ class irbloc(object):
 
 
 class DiGraphIR(DiGraph):
+
     """DiGraph for IR instances"""
 
     def __init__(self, blocks, *args, **kwargs):
@@ -130,35 +130,49 @@ class DiGraphIR(DiGraph):
         self._blocks = blocks
         super(DiGraphIR, self).__init__(*args, **kwargs)
 
-    def dot(self):
-        """Output the graphviz script"""
-        out = """
-    digraph asm_graph {
-    size="80,50";
-    node [
-    fontsize = "16",
-    shape = "box"
-    ];
-        """
-        all_lbls = {}
-        for lbl in self.nodes():
-            if lbl not in self._blocks:
-                continue
-            irb = self._blocks[lbl]
-            ir_txt = [str(lbl)]
-            for irs in irb.irs:
-                for l in irs:
-                    ir_txt.append(str(l))
-                ir_txt.append("")
-            ir_txt.append("")
-            all_lbls[hash(lbl)] = "\l\\\n".join(ir_txt)
-        for l, v in all_lbls.items():
-            out += '%s [label="%s"];\n' % (l, v)
+    def node2lines(self, node):
+        yield self.DotCellDescription(text=str(node.name),
+                                      attr={'align': 'center',
+                                      'colspan': 2,
+                                            'bgcolor': 'grey'})
+        if node not in self._blocks:
+            yield [self.DotCellDescription(text="NOT PRESENT", attr={})]
+            raise StopIteration
+        for i, exprs in enumerate(self._blocks[node].irs):
+            for expr in exprs:
+                if self._dot_offset:
+                    yield [self.DotCellDescription(text="%-4d" % i, attr={}),
+                           self.DotCellDescription(text=str(expr), attr={})]
+                else:
+                    yield self.DotCellDescription(text=str(expr), attr={})
+            yield self.DotCellDescription(text="", attr={})
 
-        for a, b in self.edges():
-            out += '%s -> %s;\n' % (hash(a), hash(b))
-        out += '}'
-        return out
+    def edge_attr(self, src, dst):
+        if src not in self._blocks or dst not in self._blocks:
+            return {}
+        src_irdst = self._blocks[src].dst
+        edge_color = "blue"
+        if isinstance(src_irdst, m2_expr.ExprCond):
+            if (expr_is_label(src_irdst.src1) and
+                    src_irdst.src1.name == dst):
+                edge_color = "limegreen"
+            elif (expr_is_label(src_irdst.src2) and
+                  src_irdst.src2.name == dst):
+                edge_color = "red"
+        return {"color": edge_color}
+
+    def node_attr(self, node):
+        if node not in self._blocks:
+            return {'style': 'filled', 'fillcolor': 'red'}
+        return {}
+
+    def dot(self, offset=False):
+        """
+        @offset: (optional) if set, add the corresponding line number in each
+        node
+        """
+        self._dot_offset = offset
+        return super(DiGraphIR, self).dot()
 
 
 class ir(object):
@@ -184,7 +198,7 @@ class ir(object):
         @ad: an ExprId/ExprInt/label/int"""
 
         if (isinstance(ad, m2_expr.ExprId) and
-            isinstance(ad.name, asm_label)):
+                isinstance(ad.name, asm_label)):
             ad = ad.name
         if isinstance(ad, m2_expr.ExprInt):
             ad = int(ad.arg)
@@ -201,7 +215,7 @@ class ir(object):
         label = self.get_label(ad)
         return self.blocs.get(label, None)
 
-    def add_instr(self, l, ad=0, gen_pc_updt = False):
+    def add_instr(self, l, ad=0, gen_pc_updt=False):
         b = asm_bloc(self.gen_label())
         b.lines = [l]
         self.add_bloc(b, gen_pc_updt)
@@ -262,7 +276,6 @@ class ir(object):
             # Add the merged one
             affect_list.append(m2_expr.ExprAff(dst, final_dst))
 
-
     def getby_offset(self, offset):
         out = set()
         for irb in self.blocs.values():
@@ -276,7 +289,7 @@ class ir(object):
                                                                     l.offset))])
         c.lines.append(l)
 
-    def add_bloc(self, bloc, gen_pc_updt = False):
+    def add_bloc(self, bloc, gen_pc_updt=False):
         c = None
         ir_blocs_all = []
         for l in bloc.lines:
@@ -291,7 +304,6 @@ class ir(object):
 
             c.irs.append(ir_bloc_cur)
             c.lines.append(l)
-
 
             if ir_blocs_extra:
                 for b in ir_blocs_extra:
@@ -372,7 +384,7 @@ class ir(object):
             for i, l in enumerate(irs):
                 irs[i] = l.replace_expr(rep)
 
-    def get_rw(self, regs_ids = []):
+    def get_rw(self, regs_ids=[]):
         """
         Calls get_rw(irb) for each bloc
         @regs_ids : ids of registers used in IR

@@ -1,8 +1,14 @@
 from collections import defaultdict, namedtuple
+import re
 
 
 class DiGraph(object):
+
     """Implementation of directed graph"""
+
+    # Stand for a cell in a dot node rendering
+    DotCellDescription = namedtuple("DotCellDescription",
+                                    ["text", "attr"])
 
     def __init__(self):
         self._nodes = set()
@@ -86,7 +92,7 @@ class DiGraph(object):
     def add_uniq_edge(self, src, dst):
         """Add an edge from @src to @dst if it doesn't already exist"""
         if (src not in self._nodes_succ or
-            dst not in self._nodes_succ[src]):
+                dst not in self._nodes_succ[src]):
             self.add_edge(src, dst)
 
     def del_edge(self, src, dst):
@@ -144,35 +150,100 @@ class DiGraph(object):
                     out.append(path + [dst])
         return out
 
-    @staticmethod
-    def node2str(node):
-        return str(node)
+    def nodeid(self, node):
+        """
+        Returns uniq id for a @node
+        @node: a node of the graph
+        """
+        return hash(node) & 0xFFFFFFFFFFFFFFFF
+
+    def node2lines(self, node):
+        """
+        Returns an iterator on cells of the dot @node.
+        A DotCellDescription or a list of DotCellDescription are accepted
+        @node: a node of the graph
+        """
+        yield self.DotCellDescription(text=str(node), attr={})
+
+    def node_attr(self, node):
+        """
+        Returns a dictionary of the @node's attributes
+        @node: a node of the graph
+        """
+        return {}
+
+    def edge_attr(self, src, dst):
+        """
+        Return a dictionary of attributes for the edge between @src and @dst
+        @src: the source node of the edge
+        @dst: the destination node of the edge
+        """
+        return {}
 
     @staticmethod
-    def edge2str(src, dst):
-        return ""
+    def _fix_chars(token):
+        return "&#%04d;" % ord(token.group())
+
+    @staticmethod
+    def _attr2str(default_attr, attr):
+        return ' '.join('%s="%s"' % (name, value)
+                        for name, value in
+                        dict(default_attr,
+                             **attr).iteritems())
 
     def dot(self):
-        out = """
-digraph asm_graph {
-graph [
-splines=polyline,
-];
-node [
-fontsize = "16",
-shape = "box"
-];
-"""
-        for node in self.nodes():
-            out += '%s [label="%s"];\n' % (
-                hash(node) & 0xFFFFFFFFFFFFFFFF, self.node2str(node))
+        """Render dot graph with HTML"""
 
+        escape_chars = re.compile('[' + re.escape('{}') + '&|<>' + ']')
+        label_attr = 'colspan="2" align="center" bgcolor="grey"'
+        edge_attr = 'label = "%s" color="%s" style="bold"'
+        td_attr = {'align': 'left'}
+        nodes_attr = {'shape': 'Mrecord',
+                      'fontname': 'Courier New'}
+
+        out = ["digraph asm_graph {"]
+
+        # Generate basic nodes
+        out_nodes = []
+        for node in self.nodes():
+            node_id = self.nodeid(node)
+            out_node = '%s [\n' % node_id
+            out_node += self._attr2str(nodes_attr, self.node_attr(node))
+            out_node += 'label =<<table border="0" cellborder="0" cellpadding="3">'
+
+            node_html_lines = []
+
+            for lineDesc in self.node2lines(node):
+                out_render = ""
+                if isinstance(lineDesc, self.DotCellDescription):
+                    lineDesc = [lineDesc]
+                for col in lineDesc:
+                    out_render += "<td %s>%s</td>" % (
+                        self._attr2str(td_attr, col.attr),
+                        escape_chars.sub(self._fix_chars, str(col.text)))
+                node_html_lines.append(out_render)
+
+            node_html_lines = ('<tr>' +
+                               ('</tr><tr>').join(node_html_lines) +
+                               '</tr>')
+
+            out_node += node_html_lines + "</table>> ];"
+            out_nodes.append(out_node)
+
+        out += out_nodes
+
+        # Generate links
         for src, dst in self.edges():
-            out += '%s -> %s [label="%s"]\n' % (hash(src) & 0xFFFFFFFFFFFFFFFF,
-                                                hash(dst) & 0xFFFFFFFFFFFFFFFF,
-                                                self.edge2str(src, dst))
-        out += "}"
-        return out
+            attrs = self.edge_attr(src, dst)
+
+            attrs = ' '.join('%s="%s"' % (name, value)
+                             for name, value in attrs.iteritems())
+
+            out.append('%s -> %s' % (self.nodeid(src), self.nodeid(dst)) +
+                       '[' + attrs + '];')
+
+        out.append("}")
+        return '\n'.join(out)
 
     @staticmethod
     def _reachable_nodes(head, next_cb):
@@ -270,7 +341,7 @@ shape = "box"
 
         The function doesn't return the self reference in dominators.
         @node: The start node
-        @gen_dominators: The dictionnary containing at least node's
+        @gen_dominators: The dictionary containing at least node's
         dominators/post_dominators
         @succ_cb: return predecessors/succesors of a node
 
@@ -316,7 +387,7 @@ shape = "box"
         """Return an iterator of the ordered list of @node's dominators
         The function doesn't return the self reference in dominators.
         @node: The start node
-        @dominators: The dictionnary containing at least node's dominators
+        @dominators: The dictionary containing at least node's dominators
         """
         return self._walk_generic_dominator(node,
                                             dominators,
@@ -326,7 +397,7 @@ shape = "box"
         """Return an iterator of the ordered list of @node's postdominators
         The function doesn't return the self reference in postdominators.
         @node: The start node
-        @postdominators: The dictionnary containing at least node's
+        @postdominators: The dictionary containing at least node's
         postdominators
 
         """
@@ -541,6 +612,7 @@ shape = "box"
 
 
 class DiGraphSimplifier(object):
+
     """Wrapper on graph simplification passes.
 
     Instance handle passes lists.
@@ -575,6 +647,7 @@ class DiGraphSimplifier(object):
 
 
 class MatchGraphJoker(object):
+
     """MatchGraphJoker are joker nodes of MatchGraph, that is to say nodes which
     stand for any node. Restrictions can be added to jokers.
 
@@ -649,6 +722,7 @@ class MatchGraphJoker(object):
 
 
 class MatchGraph(DiGraph):
+
     """MatchGraph intends to be the counterpart of MatchExpr, but for DiGraph
 
     This class provides API to match a given DiGraph pattern, with addidionnal
@@ -701,7 +775,7 @@ class MatchGraph(DiGraph):
         @candidate: @graph's node
         @expected: MatchGraphJoker instance
         @graph: DiGraph instance
-        @partial_sol: (optional) dictionnary of MatchGraphJoker -> @graph's node
+        @partial_sol: (optional) dictionary of MatchGraphJoker -> @graph's node
         standing for a partial solution
         """
         # Avoid having 2 different joker for the same node
@@ -713,8 +787,8 @@ class MatchGraph(DiGraph):
             return False
 
         # Check arity
-        ## If filter_in/out, then arity must be the same
-        ## Otherwise, arity of the candidate must be at least equal
+        # If filter_in/out, then arity must be the same
+        # Otherwise, arity of the candidate must be at least equal
         if ((expected.restrict_in == True and
              len(self.predecessors(expected)) != len(graph.predecessors(candidate))) or
             (expected.restrict_in == False and
@@ -731,12 +805,12 @@ class MatchGraph(DiGraph):
             return True
         for pred in self.predecessors(expected):
             if (pred in partial_sol and
-                partial_sol[pred] not in graph.predecessors(candidate)):
+                    partial_sol[pred] not in graph.predecessors(candidate)):
                 return False
 
         for succ in self.successors(expected):
             if (succ in partial_sol and
-                partial_sol[succ] not in graph.successors(candidate)):
+                    partial_sol[succ] not in graph.successors(candidate)):
                 return False
 
         # All checks OK
@@ -750,11 +824,11 @@ class MatchGraph(DiGraph):
         """
         real_node = partial_sol[node]
         for candidate in propagator(self, node):
-            ## Edge already in the partial solution, skip it
+            # Edge already in the partial solution, skip it
             if candidate in partial_sol:
                 continue
 
-            ## Check candidate
+            # Check candidate
             for candidate_real in propagator(graph, real_node):
                 if self._check_node(candidate_real, candidate, graph,
                                     partial_sol):
@@ -775,15 +849,15 @@ class MatchGraph(DiGraph):
 
     def match(self, graph):
         """Naive subgraph matching between graph and self.
-        Iterator on matching solution, as dictionnary MatchGraphJoker -> @graph
+        Iterator on matching solution, as dictionary MatchGraphJoker -> @graph
         @graph: DiGraph instance
         In order to obtained correct and complete results, @graph must be
         connected.
         """
         # Partial solution: nodes corrects, edges between these nodes corrects
-        # A partial solution is a dictionnary MatchGraphJoker -> @graph's node
-        todo = list() # Dictionnaries containing partial solution
-        done = list() # Aleady computed partial solutions
+        # A partial solution is a dictionary MatchGraphJoker -> @graph's node
+        todo = list()  # Dictionnaries containing partial solution
+        done = list()  # Aleady computed partial solutions
 
         # Elect first candidates
         to_match = next(iter(self._nodes))
@@ -799,7 +873,8 @@ class MatchGraph(DiGraph):
             # -> using last entry of todo first performs a "depth first"
             # approach on solutions
             # -> the algorithm may converge faster to a solution, a desired
-            # behavior while doing graph simplification (stopping after one sol)
+            # behavior while doing graph simplification (stopping after one
+            # sol)
             partial_sol = todo.pop()
 
             # Avoid infinite loop and recurrent work
