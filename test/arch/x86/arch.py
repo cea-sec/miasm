@@ -767,19 +767,40 @@ reg_tests = [
      "e830221100"),
     (m32, "00000000    CALL       DWORD PTR [EAX]",
      "ff10"),
+    (m32, "00000000    CALL       EAX",
+     "ffd0"),
+    (m32, "00000000    CALL       DWORD PTR [EAX+EBX]",
+     "ff1403"),
+    (m32, "00000000    CALL       DWORD PTR [EAX+EBX+0x11223344]",
+     "ff941844332211"),
+
+
+
+
+
     (m64, "00000000    CALL       QWORD PTR [RAX]",
      "ff10"),
-
     (m32, "00000000    CALL       0x6655:0x44332211",
      "9a112233445566"),
     (m32, "00000000    CALL       0x6655:0xFF332211",
      "9a112233FF5566"),
 
-    (m32, "00000000    CALL       DWORD PTR [0xFFFFFFA3]",
-     "FF1DA3FFFFFF"),
-    (m64, "00000000    CALL       QWORD PTR [RIP+0xFFFFFFFFFFFFFFA3]",
-     "FF1DA3FFFFFF"),
+    (m64, "00000000    CALL       QWORD PTR [RAX+RBX]",
+     "ff1403"),
+    (m64, "00000000    CALL       QWORD PTR [RAX+RBX+0x11223344]",
+     "ff941844332211"),
 
+
+    (m32, "00000000    CALL       FAR DWORD PTR [EAX]",
+     "ff18"),
+    (m32, "00000000    CALL       FAR DWORD PTR [EAX+EBX]",
+     "ff1c03"),
+    (m32, "00000000    CALL       FAR DWORD PTR [EAX+EBX+0x11223344]",
+     "ff9c1844332211"),
+    (m32, "00000000    CALL       FAR DWORD PTR [0xFFFFFFA3]",
+     "FF1DA3FFFFFF"),
+    (m64, "00000000    CALL       FAR QWORD PTR [RIP+0xFFFFFFFFFFFFFFA3]",
+     "FF1DA3FFFFFF"),
 
     (m16, "00000000    CBW",
      "98"),
@@ -2418,6 +2439,13 @@ reg_tests = [
      "FFE2"),
     (m64, "00000000    JMP        RDX",
      "FFE2"),
+
+    (m32, "00000000    JMP        FAR DWORD PTR [EAX]",
+     "FF28"),
+    (m64, "00000000    JMP        FAR DWORD PTR [RAX]",
+     "FF28"),
+    (m32, "00000000    JMP        0x6655:0x44332211",
+     "EA112233445566"),
 
     (m32, "00000000    XGETBV",
      "0f01d0"),

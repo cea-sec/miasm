@@ -272,6 +272,13 @@ def mov(ir, instr, a, b):
     return e, []
 
 
+def movq(ir, instr, dst, src):
+    src_final = (src.zeroExtend(dst.size)
+                 if dst.size >= src.size else
+                 src[:dst.size])
+    return [m2_expr.ExprAff(dst, src_final)], []
+
+
 @sbuild.parse
 def xchg(arg1, arg2):
     arg1 = arg2
@@ -421,7 +428,10 @@ def l_test(ir, instr, a, b):
 
 def get_shift(a, b):
     # b.size must match a
-    b = b.zeroExtend(a.size)
+    if isinstance(b, m2_expr.ExprInt):
+        b = m2_expr.ExprInt(int(b.arg), a.size)
+    else:
+        b = b.zeroExtend(a.size)
     if a.size == 64:
         shift = b & m2_expr.ExprInt_from(b, 0x3f)
     else:
@@ -582,24 +592,6 @@ def shr(ir, instr, a, b):
     return _shift_tpl(">>", ir, instr, a, b, custom_of=a.msb())
 
 
-def shrd_cl(ir, instr, a, b):
-    e = []
-    opmode, admode = s, instr.v_admode()
-    shifter = mRCX[instr.mode][:8].zeroExtend(a.size)
-    shifter &= m2_expr.ExprInt_from(a, 0x1f)
-    c = (a >> shifter) | (b << (m2_expr.ExprInt_from(a, a.size) - shifter))
-    new_cf = (a >> (shifter - m2_expr.ExprInt_from(a, 1)))[:1]
-    e.append(m2_expr.ExprAff(cf, m2_expr.ExprCond(shifter,
-                                                  new_cf,
-                                                  cf)
-                             )
-             )
-    e.append(m2_expr.ExprAff(of, a.msb()))
-    e += update_flag_znp(c)
-    e.append(m2_expr.ExprAff(a, c))
-    return e, []
-
-
 def shrd(ir, instr, a, b, c):
     return _shift_tpl(">>>", ir, instr, a, b, c, "<<<")
 
@@ -622,10 +614,6 @@ def sal(ir, instr, a, b):
 
 def shl(ir, instr, a, b):
     return _shift_tpl("<<", ir, instr, a, b, left=True)
-
-
-def shld_cl(ir, instr, a, b):
-    return shld(ir, instr, a, b, ecx)
 
 
 def shld(ir, instr, a, b, c):
@@ -1146,14 +1134,24 @@ def call(ir, instr, dst):
     myesp = mRSP[instr.mode][:opmode]
     n = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
 
-    if (isinstance(dst, m2_expr.ExprOp) and dst.op == "segm"):
-        # call far
-        if instr.mode != 16:
-            raise NotImplementedError('add 32 bit support!')
-        segm = dst.args[0]
-        base = dst.args[1]
-        m1 = segm.zeroExtend(CS.size)
-        m2 = base.zeroExtend(meip.size)
+    if isinstance(dst, m2_expr.ExprOp):
+        if dst.op == "segm":
+            # Far call segm:addr
+            if instr.mode not in [16, 32]:
+                raise RuntimeError('not supported')
+            segm = dst.args[0]
+            base = dst.args[1]
+            m1 = segm.zeroExtend(CS.size)
+            m2 = base.zeroExtend(meip.size)
+        elif dst.op == "far":
+            # Far call far [eax]
+            addr = dst.args[0].arg
+            m1 = m2_expr.ExprMem(addr, CS.size)
+            m2 = m2_expr.ExprMem(addr + m2_expr.ExprInt_from(addr, 2),
+                                 meip.size)
+        else:
+            raise RuntimeError("bad call operator")
+
         e.append(m2_expr.ExprAff(CS, m1))
         e.append(m2_expr.ExprAff(meip, m2))
 
@@ -1195,7 +1193,7 @@ def ret(ir, instr, a=None):
         a = m2_expr.ExprInt(0, s)
         value = (myesp + (m2_expr.ExprInt((s / 8), s)))
     else:
-        a = a.zeroExtend(s)
+        a = m2_expr.ExprInt(int(a.arg), s)
         value = (myesp + (m2_expr.ExprInt((s / 8), s) + a))
 
     e.append(m2_expr.ExprAff(myesp, value))
@@ -1271,33 +1269,34 @@ def enter(ir, instr, a, b):
 def jmp(ir, instr, dst):
     e = []
     meip = mRIP[ir.IRDst.size]
-    e.append(m2_expr.ExprAff(meip, dst))  # dst.zeroExtend(ir.IRDst.size)))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst))  # dst.zeroExtend(ir.IRDst.size)))
 
-    if isinstance(dst, m2_expr.ExprMem):
-        dst = meip
-    return e, []
+    if isinstance(dst, m2_expr.ExprOp):
+        if dst.op == "segm":
+            # Far jmp segm:addr
+            segm = dst.args[0]
+            base = dst.args[1]
+            m1 = segm.zeroExtend(CS.size)
+            m2 = base.zeroExtend(meip.size)
+        elif dst.op == "far":
+            # Far jmp far [eax]
+            addr = dst.args[0].arg
+            m1 = m2_expr.ExprMem(addr, CS.size)
+            m2 = m2_expr.ExprMem(addr + m2_expr.ExprInt_from(addr, 2),
+                                 meip.size)
+        else:
+            raise RuntimeError("bad jmp operator")
 
+        e.append(m2_expr.ExprAff(CS, m1))
+        e.append(m2_expr.ExprAff(meip, m2))
+        e.append(m2_expr.ExprAff(ir.IRDst, m2))
 
-def jmpf(ir, instr, a):
-    e = []
-    meip = mRIP[ir.IRDst.size]
-    s = instr.mode
-    if (isinstance(a, m2_expr.ExprOp) and a.op == "segm"):
-        segm = a.args[0]
-        base = a.args[1]
-        m1 = segm.zeroExtend(
-            CS.size)  # m2_expr.ExprMem(m2_expr.ExprOp('segm', segm, base), 16)
-        m2 = base.zeroExtend(meip.size)
-                             # m2_expr.ExprMem(m2_expr.ExprOp('segm', segm,
-                             # base + m2_expr.ExprInt_from(base, 2)), s)
     else:
-        m1 = m2_expr.ExprMem(a, 16)
-        m2 = m2_expr.ExprMem(a + m2_expr.ExprInt_from(a, 2), meip.size)
+        # Classic jmp
+        e.append(m2_expr.ExprAff(meip, dst))
+        e.append(m2_expr.ExprAff(ir.IRDst, dst))
 
-    e.append(m2_expr.ExprAff(CS, m1))
-    e.append(m2_expr.ExprAff(meip, m2))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2))
+        if isinstance(dst, m2_expr.ExprMem):
+            dst = meip
     return e, []
 
 
@@ -2860,6 +2859,7 @@ def icebp(ir, instr):
     return e, []
 # XXX
 
+
 def l_int(ir, instr, a):
     e = []
     # XXX
@@ -3896,13 +3896,24 @@ def movlps(ir, instr, a, b):
 
 def movhpd(ir, instr, a, b):
     e = []
+    if b.size == 64:
+        e.append(m2_expr.ExprAff(a[64:128], b))
+    elif a.size == 64:
+        e.append(m2_expr.ExprAff(a, b[64:128]))
+    else:
+        raise RuntimeError("bad encoding!")
+    return e, []
+
+
+def movlhps(ir, instr, a, b):
+    e = []
     e.append(m2_expr.ExprAff(a[64:128], b[:64]))
     return e, []
 
 
-def movhps(ir, instr, a, b):
+def movhlps(ir, instr, a, b):
     e = []
-    e.append(m2_expr.ExprAff(a[64:128], b[:64]))
+    e.append(m2_expr.ExprAff(a[:64], b[64:128]))
     return e, []
 
 
@@ -3982,10 +3993,8 @@ mnemo_func = {'mov': mov,
               'rcr': rcr,
               'sar': sar,
               'shr': shr,
-              'shrd_cl': shrd_cl,
               'sal': sal,
               'shl': shl,
-              'shld_cl': shld_cl,
               'shld': shld,
               'cmc': cmc,
               'clc': clc,
@@ -4037,9 +4046,11 @@ mnemo_func = {'mov': mov,
               'cmpsb': lambda ir, instr: cmps(ir, instr, 8),
               'cmpsw': lambda ir, instr: cmps(ir, instr, 16),
               'cmpsd': lambda ir, instr: cmps(ir, instr, 32),
+              'cmpsq': lambda ir, instr: cmps(ir, instr, 64),
               'scasb': lambda ir, instr: scas(ir, instr, 8),
               'scasw': lambda ir, instr: scas(ir, instr, 16),
               'scasd': lambda ir, instr: scas(ir, instr, 32),
+              'scasq': lambda ir, instr: scas(ir, instr, 64),
               'pushfd': pushfd,
               'pushfq': pushfq,
               'pushfw': pushfw,
@@ -4058,7 +4069,6 @@ mnemo_func = {'mov': mov,
               'leave': leave,
               'enter': enter,
               'jmp': jmp,
-              'jmpf': jmpf,
               'jz': jz,
               'je': jz,
               'jcxz': jcxz,
@@ -4275,7 +4285,7 @@ mnemo_func = {'mov': mov,
               "xorps": xorps,
               "xorpd": xorps,
 
-              "movq": mov,
+              "movq": movq,
 
               "pminsw": pminsw,
               "cvtdq2pd": cvtdq2pd,
@@ -4424,9 +4434,9 @@ mnemo_func = {'mov': mov,
               "movlpd": movlpd,
               "movlps": movlps,
               "movhpd": movhpd,
-              "movhps": movhps,
-              "movlhps": movhps,
-              "movhlps": movlps,
+              "movhps": movhpd,
+              "movlhps": movlhps,
+              "movhlps": movhlps,
               "movdq2q": movdq2q,
 
               "sqrtpd": sqrtpd,
