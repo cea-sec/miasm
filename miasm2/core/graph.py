@@ -3,6 +3,7 @@ import re
 
 
 class DiGraph(object):
+
     """Implementation of directed graph"""
 
     # Stand for a cell in a dot node rendering
@@ -91,7 +92,7 @@ class DiGraph(object):
     def add_uniq_edge(self, src, dst):
         """Add an edge from @src to @dst if it doesn't already exist"""
         if (src not in self._nodes_succ or
-            dst not in self._nodes_succ[src]):
+                dst not in self._nodes_succ[src]):
             self.add_edge(src, dst)
 
     def del_edge(self, src, dst):
@@ -611,6 +612,7 @@ class DiGraph(object):
 
 
 class DiGraphSimplifier(object):
+
     """Wrapper on graph simplification passes.
 
     Instance handle passes lists.
@@ -645,6 +647,7 @@ class DiGraphSimplifier(object):
 
 
 class MatchGraphJoker(object):
+
     """MatchGraphJoker are joker nodes of MatchGraph, that is to say nodes which
     stand for any node. Restrictions can be added to jokers.
 
@@ -719,6 +722,7 @@ class MatchGraphJoker(object):
 
 
 class MatchGraph(DiGraph):
+
     """MatchGraph intends to be the counterpart of MatchExpr, but for DiGraph
 
     This class provides API to match a given DiGraph pattern, with addidionnal
@@ -783,8 +787,8 @@ class MatchGraph(DiGraph):
             return False
 
         # Check arity
-        ## If filter_in/out, then arity must be the same
-        ## Otherwise, arity of the candidate must be at least equal
+        # If filter_in/out, then arity must be the same
+        # Otherwise, arity of the candidate must be at least equal
         if ((expected.restrict_in == True and
              len(self.predecessors(expected)) != len(graph.predecessors(candidate))) or
             (expected.restrict_in == False and
@@ -801,12 +805,12 @@ class MatchGraph(DiGraph):
             return True
         for pred in self.predecessors(expected):
             if (pred in partial_sol and
-                partial_sol[pred] not in graph.predecessors(candidate)):
+                    partial_sol[pred] not in graph.predecessors(candidate)):
                 return False
 
         for succ in self.successors(expected):
             if (succ in partial_sol and
-                partial_sol[succ] not in graph.successors(candidate)):
+                    partial_sol[succ] not in graph.successors(candidate)):
                 return False
 
         # All checks OK
@@ -820,11 +824,11 @@ class MatchGraph(DiGraph):
         """
         real_node = partial_sol[node]
         for candidate in propagator(self, node):
-            ## Edge already in the partial solution, skip it
+            # Edge already in the partial solution, skip it
             if candidate in partial_sol:
                 continue
 
-            ## Check candidate
+            # Check candidate
             for candidate_real in propagator(graph, real_node):
                 if self._check_node(candidate_real, candidate, graph,
                                     partial_sol):
@@ -852,8 +856,8 @@ class MatchGraph(DiGraph):
         """
         # Partial solution: nodes corrects, edges between these nodes corrects
         # A partial solution is a dictionary MatchGraphJoker -> @graph's node
-        todo = list() # Dictionnaries containing partial solution
-        done = list() # Aleady computed partial solutions
+        todo = list()  # Dictionnaries containing partial solution
+        done = list()  # Aleady computed partial solutions
 
         # Elect first candidates
         to_match = next(iter(self._nodes))
@@ -869,7 +873,8 @@ class MatchGraph(DiGraph):
             # -> using last entry of todo first performs a "depth first"
             # approach on solutions
             # -> the algorithm may converge faster to a solution, a desired
-            # behavior while doing graph simplification (stopping after one sol)
+            # behavior while doing graph simplification (stopping after one
+            # sol)
             partial_sol = todo.pop()
 
             # Avoid infinite loop and recurrent work

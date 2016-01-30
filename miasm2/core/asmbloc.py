@@ -708,14 +708,14 @@ class AsmCFG(DiGraph):
     def node2lines(self, node):
         yield self.DotCellDescription(text=str(node.label.name),
                                       attr={'align': 'center',
-                                      'colspan': 2,
+                                            'colspan': 2,
                                             'bgcolor': 'grey'})
 
         if isinstance(node, asm_block_bad):
             yield [self.DotCellDescription(
                 text=node.ERROR_TYPES.get(node._errno,
                                           node._errno),
-                attr={})
+                                           attr={})]
             raise StopIteration
         for line in node.lines:
             if self._dot_offset:

@@ -30,7 +30,7 @@ from miasm2.core.graph import DiGraph
 
 class irbloc(object):
 
-    def __init__(self, label, irs, lines = []):
+    def __init__(self, label, irs, lines=[]):
         assert(isinstance(label, asm_label))
         self.label = label
         self.irs = irs
@@ -38,7 +38,6 @@ class irbloc(object):
         self.except_automod = True
         self._dst = None
         self._dst_linenb = None
-
 
     def _get_dst(self):
         """Find the IRDst affectation and update dst, dst_linenb accordingly"""
@@ -121,6 +120,7 @@ class irbloc(object):
 
 
 class DiGraphIR(DiGraph):
+
     """DiGraph for IR instances"""
 
     def __init__(self, blocks, *args, **kwargs):
@@ -174,6 +174,7 @@ class DiGraphIR(DiGraph):
         self._dot_offset = offset
         return super(DiGraphIR, self).dot()
 
+
 class ir(object):
 
     def __init__(self, arch, attrib, symbol_pool=None):
@@ -197,7 +198,7 @@ class ir(object):
         @ad: an ExprId/ExprInt/label/int"""
 
         if (isinstance(ad, m2_expr.ExprId) and
-            isinstance(ad.name, asm_label)):
+                isinstance(ad.name, asm_label)):
             ad = ad.name
         if isinstance(ad, m2_expr.ExprInt):
             ad = int(ad.arg)
@@ -214,7 +215,7 @@ class ir(object):
         label = self.get_label(ad)
         return self.blocs.get(label, None)
 
-    def add_instr(self, l, ad=0, gen_pc_updt = False):
+    def add_instr(self, l, ad=0, gen_pc_updt=False):
         b = asm_bloc(self.gen_label())
         b.lines = [l]
         self.add_bloc(b, gen_pc_updt)
@@ -275,7 +276,6 @@ class ir(object):
             # Add the merged one
             affect_list.append(m2_expr.ExprAff(dst, final_dst))
 
-
     def getby_offset(self, offset):
         out = set()
         for irb in self.blocs.values():
@@ -289,7 +289,7 @@ class ir(object):
                                                                     l.offset))])
         c.lines.append(l)
 
-    def add_bloc(self, bloc, gen_pc_updt = False):
+    def add_bloc(self, bloc, gen_pc_updt=False):
         c = None
         ir_blocs_all = []
         for l in bloc.lines:
@@ -304,7 +304,6 @@ class ir(object):
 
             c.irs.append(ir_bloc_cur)
             c.lines.append(l)
-
 
             if ir_blocs_extra:
                 for b in ir_blocs_extra:
@@ -385,7 +384,7 @@ class ir(object):
             for i, l in enumerate(irs):
                 irs[i] = l.replace_expr(rep)
 
-    def get_rw(self, regs_ids = []):
+    def get_rw(self, regs_ids=[]):
         """
         Calls get_rw(irb) for each bloc
         @regs_ids : ids of registers used in IR
