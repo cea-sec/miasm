@@ -1096,8 +1096,12 @@ class cls_mn(object):
         bs_o.enter_atomic_mode()
 
         offset_o = offset
-        pre_dis_info, bs, mode, offset, prefix_len = cls.pre_dis(
-            bs_o, mode_o, offset)
+        try:
+            pre_dis_info, bs, mode, offset, prefix_len = cls.pre_dis(
+                bs_o, mode_o, offset)
+        except:
+            bs_o.leave_atomic_mode()
+            raise
         candidates = cls.guess_mnemo(bs, mode, pre_dis_info, offset)
         if not candidates:
             bs_o.leave_atomic_mode()
