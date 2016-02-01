@@ -115,7 +115,16 @@ class TranslatorZ3(Translator):
         @endianness: (optional) memory endianness
         """
         super(TranslatorZ3, self).__init__(**kwargs)
+        self.endianness = endianness
         self._mem = Z3Mem(endianness)
+
+    def is_little_endian(self):
+        """True if this memory is little endian."""
+        return self.endianness == "<"
+
+    def is_big_endian(self):
+        """True if this memory is big endian."""
+        return not self.is_little_endian()
 
     def from_ExprInt(self, expr):
         return z3.BitVecVal(expr.arg.arg, expr.size)

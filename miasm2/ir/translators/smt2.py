@@ -125,10 +125,20 @@ class TranslatorSMT2(Translator):
         @endianness: (optional) memory endianness
         """
         super(TranslatorSMT2, self).__init__(**kwargs)
+        # endianness
+        self.endianness = endianness
         # memory abstraction
         self._mem = SMT2Mem(endianness)
         # map of translated bit vectors
         self._bitvectors = dict()
+
+    def is_little_endian(self):
+        """True if this memory is little endian."""
+        return self.endianness == "<"
+
+    def is_big_endian(self):
+        """True if this memory is big endian."""
+        return not self.is_little_endian()
 
     def from_ExprInt(self, expr):
         return bit_vec_val(expr.arg.arg, expr.size)
