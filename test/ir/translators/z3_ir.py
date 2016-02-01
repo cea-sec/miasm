@@ -151,18 +151,21 @@ assert not equiv(ez3, z3_e7)
 
 # --------------------------------------------------------------------------
 # bsr, bsf
-e1 = ExprId("e1", 32)
-e2 = ExprId("e2", 32)
 
 # bsf(0x1138) == 3
-assert(equiv(ExprOp("bsf", ExprInt(0x1138)), ExprInt(0x3, 32)))
+bsf1 = Translator.to_language('z3').from_expr(ExprOp("bsf", ExprInt(0x1138, 32)))
+bsf2 = z3.BitVecVal(3, 32)
+assert(equiv(bsf1, bsf2))
 
 # bsr(0x11300) == 0x10
-assert(equiv(ExprOp("bsr", ExprInt(0x11300)), ExprInt(0x10, 32)))
+bsr1 = Translator.to_language('z3').from_expr(ExprOp("bsr", ExprInt(0x11300, 32)))
+bsr2 = z3.BitVecVal(0x10, 32)
+assert(equiv(bsr1, bsr2))
 
 # bsf(0x80000) == bsr(0x80000)
-assert(equiv(ExprOp("bsf", ExprInt(0x80000)), ExprInt(0x13, 32)))
-
+bsf3 = Translator.to_language('z3').from_expr(ExprOp("bsf", ExprInt(0x80000, 32)))
+bsr3 = Translator.to_language('z3').from_expr(ExprOp("bsr", ExprInt(0x80000, 32)))
+assert(equiv(bsf3, bsr3))
 
 print "TranslatorZ3 tests are OK."
 
