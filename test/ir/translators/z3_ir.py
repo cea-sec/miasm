@@ -149,5 +149,20 @@ e8 = ExprId(asm_label("label_jambe"), 32)
 ez3 = Translator.to_language('z3').from_expr(e8)
 assert not equiv(ez3, z3_e7)
 
+# --------------------------------------------------------------------------
+# bsr, bsf
+e1 = ExprId("e1", 32)
+e2 = ExprId("e2", 32)
+
+# bsf(0x1138) == 3
+assert(equiv(ExprOp("bsf", ExprInt(0x1138)), ExprInt(0x3, 32)))
+
+# bsr(0x11300) == 0x10
+assert(equiv(ExprOp("bsr", ExprInt(0x11300)), ExprInt(0x10, 32)))
+
+# bsf(0x80000) == bsr(0x80000)
+assert(equiv(ExprOp("bsf", ExprInt(0x80000)), ExprInt(0x13, 32)))
+
+
 print "TranslatorZ3 tests are OK."
 
