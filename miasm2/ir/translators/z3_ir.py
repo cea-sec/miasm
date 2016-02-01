@@ -197,6 +197,28 @@ class TranslatorZ3(Translator):
                 res = res ^ z3.Extract(i, i, arg)
         elif expr.op == '-':
             res = -res
+        elif expr.op == "bsf":
+            size = expr.size
+            src = res
+            if self.is_little_endian():
+                res = z3.If((src & 1) != 0, 1, src)
+                for i in xrange(size - 2, -1, -1):
+                    res = z3.If((src & (1 << i)) != 0, i, res)
+            else:
+                res = z3.If((src & (size - 1)) != 0, 1, src)
+                for i in xrange(size - 2):
+                    res = z3.If((src & (1 << i)) != 0, i, res)
+        elif expr.op == "bsr":
+            size = expr.size
+            src = res
+            if self.is_little_endian():
+                res = z3.If((src & (size - 1)) != 0, 1, src)
+                for i in xrange(size - 2):
+                    res = z3.If((src & (1 << i)) != 0, i, res)
+            else:
+                res = z3.If((src & 1) != 0, 1, src)
+                for i in xrange(size - 2, -1, -1):
+                    res = z3.If((src & (1 << i)) != 0, i, res)
         else:
             raise NotImplementedError("Unsupported OP yet: %s" % expr.op)
 
