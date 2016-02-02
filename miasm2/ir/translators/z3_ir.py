@@ -115,16 +115,7 @@ class TranslatorZ3(Translator):
         @endianness: (optional) memory endianness
         """
         super(TranslatorZ3, self).__init__(**kwargs)
-        self.endianness = endianness
         self._mem = Z3Mem(endianness)
-
-    def is_little_endian(self):
-        """True if this memory is little endian."""
-        return self.endianness == "<"
-
-    def is_big_endian(self):
-        """True if this memory is big endian."""
-        return not self.is_little_endian()
 
     def from_ExprInt(self, expr):
         return z3.BitVecVal(expr.arg.arg, expr.size)
@@ -200,25 +191,15 @@ class TranslatorZ3(Translator):
         elif expr.op == "bsf":
             size = expr.size
             src = res
-            if self.is_little_endian():
-                res = z3.If((src & 1) != 0, 1, src)
-                for i in xrange(size - 2, -1, -1):
-                    res = z3.If((src & (1 << i)) != 0, i, res)
-            else:
-                res = z3.If((src & (size - 1)) != 0, 1, src)
-                for i in xrange(size - 2):
-                    res = z3.If((src & (1 << i)) != 0, i, res)
+            res = z3.If((src & 1) != 0, 1, src)
+            for i in xrange(size - 2, -1, -1):
+                res = z3.If((src & (1 << i)) != 0, i, res)
         elif expr.op == "bsr":
             size = expr.size
             src = res
-            if self.is_little_endian():
-                res = z3.If((src & (size - 1)) != 0, 1, src)
-                for i in xrange(size - 2):
-                    res = z3.If((src & (1 << i)) != 0, i, res)
-            else:
-                res = z3.If((src & 1) != 0, 1, src)
-                for i in xrange(size - 2, -1, -1):
-                    res = z3.If((src & (1 << i)) != 0, i, res)
+            res = z3.If((src & (size - 1)) != 0, 1, src)
+            for i in xrange(size - 2):
+                res = z3.If((src & (1 << i)) != 0, i, res)
         else:
             raise NotImplementedError("Unsupported OP yet: %s" % expr.op)
 

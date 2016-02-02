@@ -125,20 +125,10 @@ class TranslatorSMT2(Translator):
         @endianness: (optional) memory endianness
         """
         super(TranslatorSMT2, self).__init__(**kwargs)
-        # endianness
-        self.endianness = endianness
         # memory abstraction
         self._mem = SMT2Mem(endianness)
         # map of translated bit vectors
         self._bitvectors = dict()
-
-    def is_little_endian(self):
-        """True if this memory is little endian."""
-        return self.endianness == "<"
-
-    def is_big_endian(self):
-        """True if this memory is big endian."""
-        return not self.is_little_endian()
 
     def from_ExprInt(self, expr):
         return bit_vec_val(expr.arg.arg, expr.size)
@@ -252,64 +242,36 @@ class TranslatorSMT2(Translator):
             src = res
             one_smt2 = bit_vec_val(1, size)
             zero_smt2 = bit_vec_val(0, size)
-            if self.is_little_endian():
-                # (src & 1) != 0
-                cond = smt2_distinct(bvand(src, one_smt2), zero_smt2)
-                # ite((src & 1) != 0, 1, src)
-                res = smt2_ite(cond, one_smt2, src)
-                for i in xrange(size - 2, -1, -1):
-                    # smt2 expression of i
-                    i_smt2 = bit_vec_val(i, size)
-                    # src & (1 << i)
-                    op = bvand(src, bvshl(one_smt2, i_smt2))
-                    # op != 0
-                    cond = smt2_distinct(op, zero_smt2)
-                    # ite(cond, i, res)
-                    res = smt2_ite(cond, i_smt2, res)
-            else:
-                # (src & (size - 1)) != 0
-                cond = smt2_distinct(bvand(src, bit_vec_val(size - 1, size)), zero_smt2)
-                res = smt2_ite(cond, one_smt2, src)
-                for i in xrange(size - 2):
-                    # smt2 expression of i
-                    i_smt2 = bit_vec_val(i, size)
-                    # src & (1 << i)
-                    op = bvand(src, bvshl(one_smt2, i_smt2))
-                    # op != 0
-                    cond = smt2_distinct(op, zero_smt2)
-                    # ite(cond, i, res)
-                    res = smt2_ite(cond, i_smt2, res)
+            # (src & 1) != 0
+            cond = smt2_distinct(bvand(src, one_smt2), zero_smt2)
+            # ite((src & 1) != 0, 1, src)
+            res = smt2_ite(cond, one_smt2, src)
+            for i in xrange(size - 2, -1, -1):
+                # smt2 expression of i
+                i_smt2 = bit_vec_val(i, size)
+                # src & (1 << i)
+                op = bvand(src, bvshl(one_smt2, i_smt2))
+                # op != 0
+                cond = smt2_distinct(op, zero_smt2)
+                # ite(cond, i, res)
+                res = smt2_ite(cond, i_smt2, res)
         elif expr.op == "bsr":
             size = expr.size
             src = res
             one_smt2 = bit_vec_val(1, size)
             zero_smt2 = bit_vec_val(0, size)
-            if self.is_little_endian():
-                # (src & (size - 1)) != 0
-                cond = smt2_distinct(bvand(src, bit_vec_val(size - 1, size)), zero_smt2)
-                res = smt2_ite(cond, one_smt2, src)
-                for i in xrange(size - 2):
-                    # smt2 expression of i
-                    i_smt2 = bit_vec_val(i, size)
-                    # src & (1 << i)
-                    op = bvand(src, bvshl(one_smt2, i_smt2))
-                    # op != 0
-                    cond = smt2_distinct(op, zero_smt2)
-                    # ite(cond, i, res)
-                    res = smt2_ite(cond, i_smt2, res)
-            else:
-                # (src & 1) != 0
-                cond = smt2_distinct(bvand(src, one_smt2), zero_smt2)
-                # ite((src & 1) != 0, 1, src)
-                res = smt2_ite(cond, one_smt2, src)
-                for i in xrange(size - 2, -1, -1):
-                    i_smt2 = bit_vec_val(i, size)
-                    # src & (1 << i)
-                    op = bvand(src, bvshl(one_smt2, i_smt2))
-                    # op != 0
-                    cond = smt2_distinct(op, zero_smt2)
-                    # ite(cond, i, res)
-                    res = smt2_ite(cond, i_smt2, res)
+            # (src & (size - 1)) != 0
+            cond = smt2_distinct(bvand(src, bit_vec_val(size - 1, size)), zero_smt2)
+            res = smt2_ite(cond, one_smt2, src)
+            for i in xrange(size - 2):
+                # smt2 expression of i
+                i_smt2 = bit_vec_val(i, size)
+                # src & (1 << i)
+                op = bvand(src, bvshl(one_smt2, i_smt2))
+                # op != 0
+                cond = smt2_distinct(op, zero_smt2)
+                # ite(cond, i, res)
+                res = smt2_ite(cond, i_smt2, res)
         else:
             raise NotImplementedError("Unsupported OP yet: %s" % expr.op)
 
