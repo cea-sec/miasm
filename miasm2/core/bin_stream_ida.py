@@ -20,9 +20,9 @@ class bin_stream_ida(bin_stream_str):
     def readbs(self, l=1):
         if self.offset + l > self.l:
             raise IOError("not enough bytes")
-        o = self.getbytes(self.offset)
+        content = self.getbytes(self.offset)
         self.offset += l
-        return p
+        return content
 
     def __str__(self):
         raise NotImplementedError('Not fully functional')
