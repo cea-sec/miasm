@@ -790,15 +790,6 @@ def factor_fields_all(tree):
     return new_keys
 
 
-def factor_tree(tree):
-    new_keys = {}
-    i = 1
-    min_len = min([x[0] for x in tree.keys()])
-    while i < min_len:
-
-        i += 1
-
-
 def graph_tree(tree):
     nodes = []
     branch2nodes(tree, nodes)
