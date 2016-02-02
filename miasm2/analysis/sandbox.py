@@ -412,7 +412,7 @@ class Sandbox_Win_x86_64(Sandbox, Arch_x86_64, OS_Win):
         Sandbox.__init__(self, *args, **kwargs)
 
         # reserve stack for local reg
-        for i in xrange(0x4):
+        for _ in xrange(0x4):
             self.jitter.push_uint64_t(0)
 
         # Pre-stack return address
@@ -459,7 +459,7 @@ class Sandbox_Linux_x86_64(Sandbox, Arch_x86_64, OS_Linux):
         Sandbox.__init__(self, *args, **kwargs)
 
         # reserve stack for local reg
-        for i in xrange(0x4):
+        for _ in xrange(0x4):
             self.jitter.push_uint64_t(0)
 
         # Pre-stack return address

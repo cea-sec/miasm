@@ -234,7 +234,6 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
     i = 0
     blocks = asmbloc.AsmCFG()
     block_to_nlink = None
-    block_may_link = False
     delayslot = 0
     while i < len(lines):
         if delayslot:

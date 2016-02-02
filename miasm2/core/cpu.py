@@ -41,7 +41,6 @@ class bitobj:
     def getbits(self, n):
         if not n:
             return 0
-        o = 0
         if n > len(self.bits) - self.offset:
             raise ValueError('not enought bits %r %r' % (n, len(self.bits)))
         b = self.bits[self.offset:self.offset + n]
@@ -174,7 +173,6 @@ def ast_parse_op(t):
         if t[0] in ['-', '+', '!']:
             return m2_expr.ExprOp(t[0], t[1])
     if len(t) == 3:
-        args = [t[0], t[2]]
         if t[1] == '-':
             # a - b => a + (-b)
             t[1] = '+'
@@ -669,9 +667,7 @@ class reg_noarg(object):
 
 
 class mn_prefix:
-
-    def __init__(self):
-        b = None
+    pass
 
 
 def swap16(v):
@@ -899,7 +895,6 @@ class metamn(type):
             bases[0].all_mn_inst[c].append(i)
             add_candidate(bases, c)
             # gen byte lookup
-            off = 0
             o = ""
             for f in i.fields_order:
                 if not isinstance(f, bsi):
@@ -996,14 +991,8 @@ class cls_mn(object):
         fname_values = pre_dis_info
         todo = [(dict(fname_values), branch, offset * 8)
                 for branch in cls.bintree.items()]
-        cpt = 0
-        if hasattr(bs, 'getlen'):
-            bs_l = bs.getlen()
-        else:
-            bs_l = len(bs)
         for fname_values, branch, offset_b in todo:
             (l, fmask, fbits, fname, flen), vals = branch
-            cpt += 1
 
             if flen is not None:
                 l = flen(attrib, fname_values)
@@ -1127,7 +1116,6 @@ class cls_mn(object):
             if not c.add_pre_dis_info(pre_dis_info):
                 continue
 
-            args = []
             todo = {}
             getok = True
             fname_values = dict(pre_dis_info)
@@ -1257,7 +1245,6 @@ class cls_mn(object):
                         raise NotImplementedError('not fully functional')
                     f.expr = expr_simp(f.expr)
                     args_expr.append(f.expr)
-                    a = args_str[start:stop]
                     args_str = args_str[stop:].strip(' ')
                     if args_str.startswith(','):
                         args_str = args_str[1:]
@@ -1341,7 +1328,7 @@ class cls_mn(object):
     @classmethod
     def filter_asm_candidates(cls, instr, candidates):
         o = []
-        for c, v in candidates:
+        for _, v in candidates:
             o += v
         o.sort(key=len)
         return o
@@ -1351,18 +1338,16 @@ class cls_mn(object):
 
         result = []
         done = []
-        cpt = 0
 
         while todo:
             index, cur_len, to_decode = todo.pop()
             # TEST XXX
-            for i, f in to_decode:
+            for _, f in to_decode:
                 setattr(self, f.fname, f)
             if (index, [x[1].value for x in to_decode]) in done:
                 continue
             done.append((index, [x[1].value for x in to_decode]))
 
-            cpt += 1
             can_encode = True
             for i, f in to_decode[index:]:
                 f.parent.l = cur_len
@@ -1377,9 +1362,7 @@ class cls_mn(object):
                 if ret is True:
                     continue
 
-                gcpt = 0
-                for i in ret:
-                    gcpt += 1
+                for _ in ret:
                     o = []
                     if ((index, cur_len, [xx[1].value for xx in to_decode]) in todo or
                         (index, cur_len, [xx[1].value for xx in to_decode]) in done):
@@ -1400,14 +1383,13 @@ class cls_mn(object):
 
     def encodefields(self, decoded):
         bits = bitobj()
-        for p, f in decoded:
+        for _, f in decoded:
             setattr(self, f.fname, f)
 
             if f.value is None:
                 continue
             bits.putbits(f.value, f.l)
 
-        xx = bits.tostring()
         return bits.tostring()
 
     def decoded2bytes(self, result):

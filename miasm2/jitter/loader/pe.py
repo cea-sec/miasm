@@ -468,7 +468,6 @@ def vm_load_pe_and_dependencies(vm, fname, name2module, runtime_lib,
     """
 
     todo = [(fname, fname, 0)]
-    dependencies = []
     weight2name = {}
     done = set()
 
