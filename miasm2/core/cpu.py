@@ -697,7 +697,7 @@ total_scans = 0
 
 def branch2nodes(branch, nodes=None):
     if nodes is None:
-        node = []
+        nodes = []
     for k, v in branch.items():
         if not isinstance(v, dict):
             continue
