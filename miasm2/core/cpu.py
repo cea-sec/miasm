@@ -522,9 +522,8 @@ class bs_name(bs_divert):
 
     def divert(self, i, candidates):
         out = []
-        for candidate in candidates:
-            cls, name, bases, dct, fields = candidate
-            for new_name, value in self.args['name'].items():
+        for cls, _, bases, dct, fields in candidates:
+            for new_name, value in self.args['name'].iteritems():
                 nfields = fields[:]
                 s = int2bin(value, self.args['l'])
                 args = dict(self.args)
@@ -542,15 +541,14 @@ class bs_mod_name(bs_divert):
 
     def divert(self, i, candidates):
         out = []
-        for candidate in candidates:
-            cls, name, bases, dct, fields = candidate
+        for cls, _, bases, dct, fields in candidates:
             tab = self.args['mn_mod']
             if isinstance(tab, list):
                 tmp = {}
                 for j, v in enumerate(tab):
                     tmp[j] = v
                 tab = tmp
-            for value, new_name in tab.items():
+            for value, new_name in tab.iteritems():
                 nfields = fields[:]
                 s = int2bin(value, self.args['l'])
                 args = dict(self.args)
