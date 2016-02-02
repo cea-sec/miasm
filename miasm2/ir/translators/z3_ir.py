@@ -191,15 +191,16 @@ class TranslatorZ3(Translator):
         elif expr.op == "bsf":
             size = expr.size
             src = res
-            res = z3.If((src & 1) != 0, 1, src)
+            res = z3.If((src & (1 << (size - 1))) != 0, size - 1, src)
             for i in xrange(size - 2, -1, -1):
                 res = z3.If((src & (1 << i)) != 0, i, res)
         elif expr.op == "bsr":
             size = expr.size
             src = res
-            res = z3.If((src & (size - 1)) != 0, 1, src)
-            for i in xrange(size - 2):
-                res = z3.If((src & (1 << i)) != 0, i, res)
+            res = z3.If((src & 1) != 0, 0, src)
+            for i in xrange(size - 1, 0, -1):
+                index = - i % size
+                res = z3.If((src & (1 << index)) != 0, index, res)
         else:
             raise NotImplementedError("Unsupported OP yet: %s" % expr.op)
 
