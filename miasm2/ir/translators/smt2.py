@@ -238,14 +238,17 @@ class TranslatorSMT2(Translator):
         elif expr.op == '-':
             res = bvneg(res)
         elif expr.op == "bsf":
-            size = expr.size
             src = res
+            size = expr.size
+            size_smt2 = bit_vec_val(size, size)
             one_smt2 = bit_vec_val(1, size)
             zero_smt2 = bit_vec_val(0, size)
-            # (src & 1) != 0
-            cond = smt2_distinct(bvand(src, one_smt2), zero_smt2)
-            # ite((src & 1) != 0, 1, src)
-            res = smt2_ite(cond, one_smt2, src)
+            # src & (1 << (size - 1))
+            op = bvand(src, bvshl(one_smt2, bvsub(size_smt2, one_smt2)))
+            # op != 0
+            cond = smt2_distinct(op, zero_smt2)
+            # ite(cond, size - 1, src)
+            res = smt2_ite(cond, bvsub(size_smt2, one_smt2), src)
             for i in xrange(size - 2, -1, -1):
                 # smt2 expression of i
                 i_smt2 = bit_vec_val(i, size)
@@ -256,22 +259,23 @@ class TranslatorSMT2(Translator):
                 # ite(cond, i, res)
                 res = smt2_ite(cond, i_smt2, res)
         elif expr.op == "bsr":
-            size = expr.size
             src = res
+            size = expr.size
             one_smt2 = bit_vec_val(1, size)
             zero_smt2 = bit_vec_val(0, size)
-            # (src & (size - 1)) != 0
-            cond = smt2_distinct(bvand(src, bit_vec_val(size - 1, size)), zero_smt2)
-            res = smt2_ite(cond, one_smt2, src)
-            for i in xrange(size - 2):
-                # smt2 expression of i
-                i_smt2 = bit_vec_val(i, size)
-                # src & (1 << i)
-                op = bvand(src, bvshl(one_smt2, i_smt2))
+            # (src & 1) != 0
+            cond = smt2_distinct(bvand(src, one_smt2), zero_smt2)
+            # ite(cond, 0, src)
+            res= smt2_ite(cond, zero_smt2, src)
+            for i in xrange(size - 1, 0, -1):
+                index = - i % size
+                index_smt2 = bit_vec_val(index, size)
+                # src & (1 << index)
+                op = bvand(src, bvshl(one_smt2, index_smt2))
                 # op != 0
                 cond = smt2_distinct(op, zero_smt2)
-                # ite(cond, i, res)
-                res = smt2_ite(cond, i_smt2, res)
+                # ite(cond, index, res)
+                res = smt2_ite(cond, index_smt2, res)
         else:
             raise NotImplementedError("Unsupported OP yet: %s" % expr.op)
 
