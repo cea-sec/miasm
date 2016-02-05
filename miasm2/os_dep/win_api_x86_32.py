@@ -512,9 +512,9 @@ def advapi32_CryptDestroyHash(jitter):
 
 
 def advapi32_CryptDecrypt(jitter):
-    ret_ad, _ = jitter.func_args_stdcall(["hkey", "hhash", "final",
-                                          "dwflags", "pbdata",
-                                          "pdwdatalen"])
+    # ret_ad, _ = jitter.func_args_stdcall(["hkey", "hhash", "final",
+    #                                       "dwflags", "pbdata",
+    #                                       "pdwdatalen"])
     raise ValueError("Not implemented")
     # jitter.func_ret_stdcall(ret_ad, 1)
 

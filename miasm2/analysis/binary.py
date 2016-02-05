@@ -123,7 +123,7 @@ class ContainerPE(Container):
     "Container abstraction for PE"
 
     def parse(self, data, vm=None):
-        from miasm2.jitter.loader.pe import vm_load_pe, preload_pe, guess_arch
+        from miasm2.jitter.loader.pe import vm_load_pe, guess_arch
         from elfesteem import pe_init
 
         # Parse signature
@@ -160,8 +160,7 @@ class ContainerELF(Container):
     "Container abstraction for ELF"
 
     def parse(self, data, vm=None):
-        from miasm2.jitter.loader.elf import \
-            vm_load_elf, preload_elf, guess_arch
+        from miasm2.jitter.loader.elf import vm_load_elf, guess_arch
         from elfesteem import elf_init
 
         # Parse signature

@@ -414,13 +414,12 @@ def irblocs2C(ir_arch, resolvers, label, irblocs,
         if l.name.startswith('lbl_gen_'):
             l.index = int(l.name[8:], 16)
             lbls_local.append(l)
-    lbl_index_min, lbl_index_max = 0, 0
+    lbl_index_min = 0
     lbls_index = [l.index for l in lbls if hasattr(l, 'index')]
     lbls_local.sort(key=lambda x:x.index)
 
     if lbls_index:
         lbl_index_min = min(lbls_index)
-        lbl_index_max = max(lbls_index)
         for l in lbls_local:
             l.index -= lbl_index_min
 
@@ -442,7 +441,6 @@ def irblocs2C(ir_arch, resolvers, label, irblocs,
         for exprs in b_out:
             for l in exprs:
                 out.append(l)
-        dst = irbloc.dst
         out.append("")
 
     return out

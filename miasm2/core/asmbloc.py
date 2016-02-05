@@ -1319,8 +1319,8 @@ def assemble_block(mnemo, block, symbol_pool, conservative=False):
             instr.fixDstOffset()
 
         old_l = instr.l
-        cached_candidate, candidates = conservative_asm(
-            mnemo, instr, symbol_pool, conservative)
+        cached_candidate, _ = conservative_asm(mnemo, instr, symbol_pool,
+                                               conservative)
 
         # Restore original arguments
         instr.args = saved_args

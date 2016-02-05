@@ -52,7 +52,6 @@ class irbloc(object):
                     if dst is not None:
                         raise ValueError('Multiple destinations!')
                     dst = i.src
-                    dst_linenb = linenb
         self._dst = dst
         self._dst_linenb = linenb
         return dst

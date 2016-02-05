@@ -195,8 +195,6 @@ class DiGraph(object):
         """Render dot graph with HTML"""
 
         escape_chars = re.compile('[' + re.escape('{}') + '&|<>' + ']')
-        label_attr = 'colspan="2" align="center" bgcolor="grey"'
-        edge_attr = 'label = "%s" color="%s" style="bold"'
         td_attr = {'align': 'left'}
         nodes_attr = {'shape': 'Mrecord',
                       'fontname': 'Courier New'}
@@ -287,7 +285,6 @@ class DiGraph(object):
             dominators[node] = set(nodes)
 
         dominators[head] = set([head])
-        modified = True
         todo = set(nodes)
 
         while todo:

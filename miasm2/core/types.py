@@ -1444,7 +1444,7 @@ class MemStruct(MemType):
     @classmethod
     def _gen_attributes(cls):
         # Generate self.<name> getter and setters
-        for name, field, _ in cls._type.all_fields:
+        for name, _, _ in cls._type.all_fields:
             setattr(cls, name, property(
                 lambda self, name=name: self.get_field(name),
                 lambda self, val, name=name: self.set_field(name, val)
