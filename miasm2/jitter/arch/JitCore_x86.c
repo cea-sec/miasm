@@ -54,8 +54,8 @@ reg_dict gpreg_dict[] = { {.name = "RAX", .offset = offsetof(vm_cpu_t, RAX)},
 			  {.name = "MM6", .offset = offsetof(vm_cpu_t, MM6)},
 			  {.name = "MM7", .offset = offsetof(vm_cpu_t, MM7)},
 
-			  {.name = "TSC1", .offset = offsetof(vm_cpu_t, tsc1)},
-			  {.name = "TSC2", .offset = offsetof(vm_cpu_t, tsc2)},
+			  {.name = "tsc1", .offset = offsetof(vm_cpu_t, tsc1)},
+			  {.name = "tsc2", .offset = offsetof(vm_cpu_t, tsc2)},
 
 };
 
@@ -801,8 +801,8 @@ static PyGetSetDef JitCpu_getseters[] = {
     {"MM6", (getter)JitCpu_get_MM6, (setter)JitCpu_set_MM6, "MM6", NULL},
     {"MM7", (getter)JitCpu_get_MM7, (setter)JitCpu_set_MM7, "MM7", NULL},
 
-    {"TSC1", (getter)JitCpu_get_tsc1, (setter)JitCpu_set_tsc1, "TSC1", NULL},
-    {"TSC2", (getter)JitCpu_get_tsc2, (setter)JitCpu_set_tsc2, "TSC2", NULL},
+    {"tsc1", (getter)JitCpu_get_tsc1, (setter)JitCpu_set_tsc1, "tsc1", NULL},
+    {"tsc2", (getter)JitCpu_get_tsc2, (setter)JitCpu_set_tsc2, "tsc2", NULL},
 
 
     {NULL}  /* Sentinel */
