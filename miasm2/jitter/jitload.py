@@ -417,9 +417,14 @@ class jitter:
         else:
             log.debug('%r', fname)
             raise ValueError('unknown api', hex(jitter.pc), repr(fname))
-        func(jitter)
+        ret = func(jitter)
         jitter.pc = getattr(jitter.cpu, jitter.ir_arch.pc.name)
-        return True
+
+        # Don't break on a None return
+        if ret is None:
+            return True
+        else:
+            return ret
 
     def handle_function(self, f_addr):
         """Add a brakpoint which will trigger the function handler"""
