@@ -132,11 +132,11 @@ typedef struct {
 	unsigned int reg_float_ds_new;
 
 
-	unsigned int tsc1;
-	unsigned int tsc2;
+	uint64_t tsc1;
+	uint64_t tsc2;
 
-	unsigned int tsc1_new;
-	unsigned int tsc2_new;
+	uint64_t tsc1_new;
+	uint64_t tsc2_new;
 
 
 	uint64_t ES;
