@@ -2907,22 +2907,11 @@ reg_tests = [
     # print time.time()-t
 # reg_tests = reg_tests[-1:]
 
-fname64 = ('exe64.bin', 'r+')
-if not os.access(fname64[0], os.R_OK):
-    fname64 = ('regression_test64_ia32.bin', 'w')
-
 test_file = {16: open('regression_test16_ia32.bin', 'w'),
              32: open('regression_test32_ia32.bin', 'w'),
-             # 64:open('regression_test64_ia32.bin', 'w+')}
-             # 64:open('testmnemo', 'r+')}
-             64: open(*fname64)}
+             64: open('regression_test64_ia32.bin', 'w')}
+             # 64: open('testmnemo', 'r+')}
 ts = time.time()
-# test_file[16].write("\x90"*0x10000)
-# test_file[32].write("\x90"*0x10000)
-file64off = 0x2524c
-test_file[64].seek(0x400)
-test_file[64].write('\x90' * 0x30000)
-test_file[64].seek(file64off)
 for mode, s, l, in reg_tests:
     print "-" * 80
     s = s[12:]
