@@ -2,43 +2,7 @@ import miasm2.jitter.jitcore as jitcore
 import miasm2.expression.expression as m2_expr
 import miasm2.jitter.csts as csts
 from miasm2.expression.simplifications import expr_simp
-from miasm2.ir.symbexec import symbexec
-
-
-################################################################################
-#                      Util methods for Python jitter                          #
-################################################################################
-
-def update_cpu_from_engine(cpu, exec_engine):
-    """Updates @cpu instance according to new CPU values
-    @cpu: JitCpu instance
-    @exec_engine: symbexec instance"""
-
-    for symbol in exec_engine.symbols:
-        if isinstance(symbol, m2_expr.ExprId):
-            if hasattr(cpu, symbol.name):
-                value = exec_engine.symbols.symbols_id[symbol]
-                if not isinstance(value, m2_expr.ExprInt):
-                    raise ValueError("A simplification is missing: %s" % value)
-
-                setattr(cpu, symbol.name, value.arg.arg)
-        else:
-            raise NotImplementedError("Type not handled: %s" % symbol)
-
-
-def update_engine_from_cpu(cpu, exec_engine):
-    """Updates CPU values according to @cpu instance
-    @cpu: JitCpu instance
-    @exec_engine: symbexec instance"""
-
-    for symbol in exec_engine.symbols:
-        if isinstance(symbol, m2_expr.ExprId):
-            if hasattr(cpu, symbol.name):
-                value = m2_expr.ExprInt(getattr(cpu, symbol.name),
-                                        symbol.size)
-                exec_engine.symbols.symbols_id[symbol] = value
-        else:
-            raise NotImplementedError("Type not handled: %s" % symbol)
+from miasm2.jitter.emulatedsymbexec import EmulatedSymbExec
 
 
 ################################################################################
@@ -51,50 +15,14 @@ class JitCore_Python(jitcore.JitCore):
 
     def __init__(self, ir_arch, bs=None):
         super(JitCore_Python, self).__init__(ir_arch, bs)
-        self.symbexec = None
         self.ir_arch = ir_arch
+
+        # CPU (None for now) will be set by the "jitted" Python function
+        self.symbexec = EmulatedSymbExec(None, self.ir_arch, {})
 
     def load(self):
         "Preload symbols according to current architecture"
-
-        symbols_init = {r:m2_expr.ExprInt(0, size=r.size)
-                        for r in self.ir_arch.arch.regs.all_regs_ids_no_alias}
-        self.symbexec = symbexec(self.ir_arch, symbols_init,
-                                 func_read = self.func_read,
-                                 func_write = self.func_write)
-
-    def func_read(self, expr_mem):
-        """Memory read wrapper for symbolic execution
-        @expr_mem: ExprMem"""
-
-        addr = expr_mem.arg.arg.arg
-        size = expr_mem.size / 8
-        value = self.cpu.get_mem(addr, size)
-
-        return m2_expr.ExprInt(int(value[::-1].encode("hex"), 16),
-                               expr_mem.size)
-
-    def func_write(self, symb_exec, dest, data):
-        """Memory read wrapper for symbolic execution
-        @symb_exec: symbexec instance
-        @dest: ExprMem instance
-        @data: Expr instance"""
-
-        # Get the content to write
-        data = expr_simp(data)
-        if not isinstance(data, m2_expr.ExprInt):
-            raise NotImplementedError("A simplification is missing: %s" % data)
-        to_write = data.arg.arg
-
-        # Format information
-        addr = dest.arg.arg.arg
-        size = data.size / 8
-        content = hex(to_write).replace("0x", "").replace("L", "")
-        content = "0" * (size * 2 - len(content)) + content
-        content = content.decode("hex")[::-1]
-
-        # Write in VmMngr context
-        self.cpu.set_mem(addr, content)
+        self.symbexec.reset_regs()
 
     def jitirblocs(self, label, irblocs):
         """Create a python function corresponding to an irblocs' group.
@@ -117,6 +45,7 @@ class JitCore_Python(jitcore.JitCore):
 
             # Get exec engine
             exec_engine = self.symbexec
+            exec_engine.cpu = cpu
 
             # For each irbloc inside irblocs
             while loop is True:
@@ -132,7 +61,7 @@ class JitCore_Python(jitcore.JitCore):
                 assert(loop is not False)
 
                 # Refresh CPU values according to @cpu instance
-                update_engine_from_cpu(cpu, exec_engine)
+                exec_engine.update_engine_from_cpu()
 
                 # Execute current ir bloc
                 for ir, line in zip(irb.irs, irb.lines):
@@ -143,7 +72,7 @@ class JitCore_Python(jitcore.JitCore):
 
                         # Log registers values
                         if self.log_regs:
-                            update_cpu_from_engine(cpu, exec_engine)
+                            exec_engine.update_cpu_from_engine()
                             cpu.dump_gpregs()
 
                         # Log instruction
@@ -152,7 +81,7 @@ class JitCore_Python(jitcore.JitCore):
 
                         # Check for memory exception
                         if (vmmngr.get_exception() != 0):
-                            update_cpu_from_engine(cpu, exec_engine)
+                            exec_engine.update_cpu_from_engine()
                             return line.offset
 
                     # Eval current instruction (in IR)
@@ -160,14 +89,14 @@ class JitCore_Python(jitcore.JitCore):
 
                     # Check for memory exception which do not update PC
                     if (vmmngr.get_exception() & csts.EXCEPT_DO_NOT_UPDATE_PC != 0):
-                        update_cpu_from_engine(cpu, exec_engine)
+                        exec_engine.update_cpu_from_engine()
                         return line.offset
 
                 # Get next bloc address
                 ad = expr_simp(exec_engine.eval_expr(self.ir_arch.IRDst))
 
                 # Updates @cpu instance according to new CPU values
-                update_cpu_from_engine(cpu, exec_engine)
+                exec_engine.update_cpu_from_engine()
 
                 # Manage resulting address
                 if isinstance(ad, m2_expr.ExprInt):
@@ -189,8 +118,6 @@ class JitCore_Python(jitcore.JitCore):
 
         # Get Python function corresponding to @label
         fc_ptr = self.lbl2jitbloc[label]
-
-        self.cpu = cpu
 
         # Execute the function
         return fc_ptr(cpu, vmmngr)
