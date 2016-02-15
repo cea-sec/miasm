@@ -242,6 +242,12 @@ testset += RegressionTest(["depgraph.py"], base_dir="analysis",
                                                         (14, 1), (15, 1)))
                            for fname in fnames])
 
+## Jitter
+for script in ["jitload.py",
+               ]:
+    testset += RegressionTest([script], base_dir="jitter")
+
+
 # Examples
 class Example(Test):
     """Examples specificities:
