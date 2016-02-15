@@ -38,7 +38,6 @@ class JitCore_Python(jitcore.JitCore):
 
             # Keep current location in irblocs
             cur_label = label
-            loop = True
 
             # Required to detect new instructions
             offsets_jitted = set()
@@ -48,17 +47,15 @@ class JitCore_Python(jitcore.JitCore):
             exec_engine.cpu = cpu
 
             # For each irbloc inside irblocs
-            while loop is True:
+            while True:
 
                 # Get the current bloc
-                loop = False
                 for irb in irblocs:
                     if irb.label == cur_label:
-                        loop = True
                         break
-
-                # Irblocs must end with returning an ExprInt instance
-                assert(loop is not False)
+                else:
+                    raise RuntimeError("Irblocs must end with returning an "
+                                       "ExprInt instance")
 
                 # Refresh CPU values according to @cpu instance
                 exec_engine.update_engine_from_cpu()
