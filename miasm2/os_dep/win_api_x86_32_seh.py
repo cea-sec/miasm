@@ -72,13 +72,8 @@ default_seh = PEB_AD + 0x20000
 process_environment_address = 0x10000
 process_parameters_address = 0x200000
 
-context_address = 0x201000
-exception_record_address = context_address + 0x1000
 return_from_exception = 0x6eadbeef
 
-FAKE_SEH_B_AD = context_address + 0x2000
-
-cur_seh_ad = FAKE_SEH_B_AD
 
 name2module = []
 main_pe = None
@@ -435,8 +430,6 @@ def add_process_parameters(jitter):
                               o, "Process parameters")
 
 
-all_seh_ad = dict([(x, None)
-                  for x in xrange(FAKE_SEH_B_AD, FAKE_SEH_B_AD + 0x1000, 0x20)])
 # http://blog.fireeye.com/research/2010/08/download_exec_notes.html
 seh_count = 0
 
@@ -465,13 +458,6 @@ def init_seh(jitter):
         0xffffffff) + pck32(0x41414141) + pck32(0x42424242),
         "Default seh handler")
 
-    jitter.vm.add_memory_page(
-        context_address, PAGE_READ | PAGE_WRITE, '\x00' * 0x2cc)
-    jitter.vm.add_memory_page(
-        exception_record_address, PAGE_READ | PAGE_WRITE, '\x00' * 200)
-
-    jitter.vm.add_memory_page(
-        FAKE_SEH_B_AD, PAGE_READ | PAGE_WRITE, 0x10000 * "\x00")
 
 # http://www.codeproject.com/KB/system/inject2exe.aspx#RestorethefirstRegistersContext5_1
 
@@ -571,7 +557,7 @@ def fake_seh_handler(jitter, except_code):
     @except_code: x86 exception code
     """
 
-    global seh_count, context_address
+    global seh_count
     regs = jitter.cpu.get_gpreg()
     log.warning('Exception at %x %r', jitter.cpu.EIP, seh_count)
     seh_count += 1
@@ -643,8 +629,6 @@ def fake_seh_handler(jitter, except_code):
     jitter.cpu.EBX = 0
 
     return eh
-
-fake_seh_handler.base = FAKE_SEH_B_AD
 
 
 def dump_seh(jitter):
