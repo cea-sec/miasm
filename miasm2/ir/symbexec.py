@@ -336,7 +336,6 @@ class symbexec(object):
                 val = self.symbols[a][ptr_diff * 8 + b.size:a.size]
                 out.append((m2_expr.ExprMem(ex, val.size), val))
         return out
-
     # give mem stored overlapping requested mem ptr
     def get_mem_overlapping(self, e, eval_cache=None):
         if eval_cache is None:
@@ -452,3 +451,16 @@ class symbexec(object):
             if m.arg == 1:
                 del self.symbols[mem]
 
+    def apply_expr(self, expr):
+        """Evaluate @expr and apply side effect if needed (ie. if expr is an
+        assignment). Return the evaluated value"""
+
+        # Eval expression
+        to_eval = expr.src if isinstance(expr, m2_expr.ExprAff) else expr
+        ret = self.expr_simp(self.eval_expr(to_eval))
+
+        # Update value if needed
+        if isinstance(expr, m2_expr.ExprAff):
+            self.eval_ir([m2_expr.ExprAff(expr.dst, ret)])
+
+        return ret

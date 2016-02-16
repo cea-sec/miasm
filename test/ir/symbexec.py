@@ -7,7 +7,8 @@ import unittest
 class TestSymbExec(unittest.TestCase):
 
     def test_ClassDef(self):
-        from miasm2.expression.expression import ExprInt32, ExprId, ExprMem, ExprCompose
+        from miasm2.expression.expression import ExprInt32, ExprId, ExprMem, \
+            ExprCompose, ExprAff
         from miasm2.arch.x86.sem import ir_x86_32
         from miasm2.ir.symbexec import symbexec
 
@@ -52,6 +53,9 @@ class TestSymbExec(unittest.TestCase):
         self.assertEqual(set(e.modified()), set(e.symbols))
         self.assertRaises(
             KeyError, e.symbols.__getitem__, ExprMem(ExprInt32(100)))
+        self.assertEqual(e.apply_expr(id_eax), addr0)
+        self.assertEqual(e.apply_expr(ExprAff(id_eax, addr9)), addr9)
+        self.assertEqual(e.apply_expr(id_eax), addr9)
 
 if __name__ == '__main__':
     testsuite = unittest.TestLoader().loadTestsFromTestCase(TestSymbExec)
