@@ -20,6 +20,8 @@ log_func = logging.getLogger('jit function call')
 log_func.addHandler(hnd)
 log_func.setLevel(logging.CRITICAL)
 
+
+
 try:
     from miasm2.jitter.jitcore_tcc import JitCore_Tcc
 except ImportError:
@@ -362,7 +364,8 @@ class jitter:
 
     def init_stack(self):
         self.vm.add_memory_page(
-            self.stack_base, PAGE_READ | PAGE_WRITE, "\x00" * self.stack_size)
+            self.stack_base, PAGE_READ | PAGE_WRITE, "\x00" * self.stack_size,
+            "Stack")
         sp = self.arch.getsp(self.attrib)
         setattr(self.cpu, sp.name, self.stack_base + self.stack_size)
         # regs = self.cpu.get_gpreg()

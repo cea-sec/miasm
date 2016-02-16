@@ -112,7 +112,7 @@ def build_teb(jitter, teb_address):
     o += pck32(peb_address)
     o += pck32(0x11223344)
 
-    jitter.vm.add_memory_page(teb_address, PAGE_READ | PAGE_WRITE, o)
+    jitter.vm.add_memory_page(teb_address, PAGE_READ | PAGE_WRITE, o, "TEB")
 
 
 def build_peb(jitter, peb_address):
@@ -140,7 +140,7 @@ def build_peb(jitter, peb_address):
         offset += 4
     o += pck32(peb_ldr_data_address)
     o += pck32(process_parameters_address)
-    jitter.vm.add_memory_page(offset, PAGE_READ | PAGE_WRITE, o)
+    jitter.vm.add_memory_page(offset, PAGE_READ | PAGE_WRITE, o, "PEB")
 
 
 def build_ldr_data(jitter, modules_info):
@@ -180,7 +180,8 @@ def build_ldr_data(jitter, modules_info):
         data += pck32(ntdll_addr_entry + 0x10) + pck32(0)  # XXX TODO fix prev
 
     if data:
-        jitter.vm.add_memory_page(offset, PAGE_READ | PAGE_WRITE, data)
+        jitter.vm.add_memory_page(offset, PAGE_READ | PAGE_WRITE, data,
+                                  "Loader struct")
 
 
 class LoadedModules(object):
@@ -275,19 +276,22 @@ def create_modules_chain(jitter, name2module):
         m_o += pck32(addr + offset_path)
         m_o += struct.pack('HH', len(bname), len(bname) + 2)
         m_o += pck32(addr + offset_name)
-        jitter.vm.add_memory_page(addr, PAGE_READ | PAGE_WRITE, m_o)
+        jitter.vm.add_memory_page(addr, PAGE_READ | PAGE_WRITE, m_o,
+                                  "Module info %r" % bname_str)
 
         m_o = ""
         m_o += bname
         m_o += "\x00" * 3
         jitter.vm.add_memory_page(
-            addr + offset_name, PAGE_READ | PAGE_WRITE, m_o)
+            addr + offset_name, PAGE_READ | PAGE_WRITE, m_o,
+        "Module name %r" % bname_str)
 
         m_o = ""
         m_o += "\x00".join(bpath) + "\x00"
         m_o += "\x00" * 3
         jitter.vm.add_memory_page(
-            addr + offset_path, PAGE_READ | PAGE_WRITE, m_o)
+            addr + offset_path, PAGE_READ | PAGE_WRITE, m_o,
+        "Module path %r" % bname_str)
 
     return modules_info
 
@@ -411,7 +415,8 @@ def add_process_env(jitter):
     env_str += "\x00" * 0x10
     jitter.vm.add_memory_page(process_environment_address,
                               PAGE_READ | PAGE_WRITE,
-                              env_str)
+                              env_str,
+                              "Process environment")
     jitter.vm.set_mem(process_environment_address, env_str)
 
 
@@ -427,7 +432,7 @@ def add_process_parameters(jitter):
     o += pck32(process_environment_address)
     jitter.vm.add_memory_page(process_parameters_address,
                               PAGE_READ | PAGE_WRITE,
-                              o)
+                              o, "Process parameters")
 
 
 all_seh_ad = dict([(x, None)
@@ -457,7 +462,8 @@ def init_seh(jitter):
     add_process_parameters(jitter)
 
     jitter.vm.add_memory_page(default_seh, PAGE_READ | PAGE_WRITE, pck32(
-        0xffffffff) + pck32(0x41414141) + pck32(0x42424242))
+        0xffffffff) + pck32(0x41414141) + pck32(0x42424242),
+        "Default seh handler")
 
     jitter.vm.add_memory_page(
         context_address, PAGE_READ | PAGE_WRITE, '\x00' * 0x2cc)

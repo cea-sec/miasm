@@ -187,7 +187,9 @@ class OS_Win(OS):
         # Load main pe
         with open(self.fname) as fstream:
             self.pe = vm_load_pe(self.jitter.vm, fstream.read(),
-                                 load_hdr=self.options.load_hdr, **kwargs)
+                                 load_hdr=self.options.load_hdr,
+                                 name=self.fname,
+                                 **kwargs)
             self.name2module[fname_basename] = self.pe
 
         # Load library
@@ -258,7 +260,8 @@ class OS_Linux(OS):
         self.libs = libimp_elf()
 
         with open(self.fname) as fstream:
-            self.elf = vm_load_elf(self.jitter.vm, fstream.read(), **kwargs)
+            self.elf = vm_load_elf(self.jitter.vm, fstream.read(),
+                                   name=self.fname, **kwargs)
         preload_elf(self.jitter.vm, self.elf, self.libs)
 
         self.entry_point = self.elf.Ehdr.entry
@@ -284,7 +287,8 @@ class OS_Linux_str(OS):
         data = open(self.fname).read()
         self.options.load_base_addr = int(self.options.load_base_addr, 0)
         self.jitter.vm.add_memory_page(
-            self.options.load_base_addr, PAGE_READ | PAGE_WRITE, data)
+            self.options.load_base_addr, PAGE_READ | PAGE_WRITE, data,
+            "Initial Str")
 
         # Library calls handler
         self.jitter.add_lib_handler(libs, methods)

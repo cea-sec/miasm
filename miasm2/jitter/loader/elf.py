@@ -47,7 +47,7 @@ def preload_elf(vm, e, runtime_lib, patch_vm_imp=True):
     return runtime_lib, dyn_funcs
 
 
-def vm_load_elf(vm, fdata, **kargs):
+def vm_load_elf(vm, fdata, name="", **kargs):
     """
     Very dirty elf loader
     TODO XXX: implement real loader
@@ -56,6 +56,7 @@ def vm_load_elf(vm, fdata, **kargs):
     e = elf_init.ELF(fdata, **kargs)
     i = interval()
     all_data = {}
+
     for p in e.ph.phlist:
         if p.ph.type != elf_csts.PT_LOAD:
             continue
@@ -72,7 +73,8 @@ def vm_load_elf(vm, fdata, **kargs):
         i += [(a_addr, b_addr - 2)]
     for a, b in i.intervals:
         # print hex(a), hex(b)
-        vm.add_memory_page(a, PAGE_READ | PAGE_WRITE, "\x00" * (b + 2 - a))
+        vm.add_memory_page(a, PAGE_READ | PAGE_WRITE, "\x00" * (b + 2 - a),
+                           repr(name))
 
     for r_vaddr, data in all_data.items():
         vm.set_mem(r_vaddr, data)

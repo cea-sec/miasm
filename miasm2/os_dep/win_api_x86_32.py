@@ -738,7 +738,8 @@ def kernel32_VirtualAlloc(jitter):
     if args.lpvoid == 0:
         alloc_addr = winobjs.heap.next_addr(args.dwsize)
         jitter.vm.add_memory_page(
-            alloc_addr, access_dict[args.flprotect], "\x00" * args.dwsize)
+            alloc_addr, access_dict[args.flprotect], "\x00" * args.dwsize,
+            "Alloc in %s ret 0x%X" % (whoami(), ret_ad))
     else:
         all_mem = jitter.vm.get_all_memory()
         if args.lpvoid in all_mem:
@@ -748,7 +749,8 @@ def kernel32_VirtualAlloc(jitter):
             alloc_addr = winobjs.heap.next_addr(args.dwsize)
             # alloc_addr = args.lpvoid
             jitter.vm.add_memory_page(
-                alloc_addr, access_dict[args.flprotect], "\x00" * args.dwsize)
+                alloc_addr, access_dict[args.flprotect], "\x00" * args.dwsize,
+                "Alloc in %s ret 0x%X" % (whoami(), ret_ad))
 
     log.debug('Memory addr: %x', alloc_addr)
     jitter.func_ret_stdcall(ret_ad, alloc_addr)
@@ -1354,7 +1356,8 @@ def ntoskrnl_ExAllocatePoolWithTagPriority(jitter):
                                              "tag", "priority"])
     alloc_addr = winobjs.heap.next_addr(args.nbr_of_bytes)
     jitter.vm.add_memory_page(
-        alloc_addr, PAGE_READ | PAGE_WRITE, "\x00" * args.nbr_of_bytes)
+        alloc_addr, PAGE_READ | PAGE_WRITE, "\x00" * args.nbr_of_bytes,
+        "Alloc in %s ret 0x%X" % (whoami(), ret_ad))
 
     jitter.func_ret_stdcall(ret_ad, alloc_addr)
 
@@ -1707,7 +1710,8 @@ def ntdll_ZwAllocateVirtualMemory(jitter):
 
     alloc_addr = winobjs.heap.next_addr(dwsize)
     jitter.vm.add_memory_page(
-        alloc_addr, access_dict[args.flprotect], "\x00" * dwsize)
+        alloc_addr, access_dict[args.flprotect], "\x00" * dwsize,
+        "Alloc in %s ret 0x%X" % (whoami(), ret_ad))
     jitter.vm.set_mem(args.lppvoid, pck32(alloc_addr))
 
     jitter.func_ret_stdcall(ret_ad, 0)
@@ -1740,7 +1744,8 @@ def ntdll_RtlAnsiStringToUnicodeString(jitter):
     if args.alloc_str:
         alloc_addr = winobjs.heap.next_addr(l)
         jitter.vm.add_memory_page(
-            alloc_addr, PAGE_READ | PAGE_WRITE, "\x00" * l)
+            alloc_addr, PAGE_READ | PAGE_WRITE, "\x00" * l,
+            "Alloc in %s ret 0x%X" % (whoami(), ret_ad))
     else:
         alloc_addr = p_src
     jitter.vm.set_mem(alloc_addr, s)

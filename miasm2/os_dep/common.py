@@ -1,6 +1,7 @@
 import os
 
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
+from miasm2.core.utils import get_caller_name
 
 BASE_SB_PATH = "file_sb"
 
@@ -71,7 +72,8 @@ class heap(object):
             combination of them); default is PAGE_READ|PAGE_WRITE
         """
         addr = self.next_addr(size)
-        vm.add_memory_page(addr, perm, "\x00" * size)
+        vm.add_memory_page(addr, perm, "\x00" * size,
+                           "Heap alloc by %s" % get_caller_name(2))
         return addr
 
 

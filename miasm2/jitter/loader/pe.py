@@ -101,7 +101,7 @@ def get_export_name_addr_list(e):
     return out
 
 
-def vm_load_pe(vm, fdata, align_s=True, load_hdr=True, **kargs):
+def vm_load_pe(vm, fdata, align_s=True, load_hdr=True, name="", **kargs):
     """Load a PE in memory (@vm) from a data buffer @fdata
     @vm: VmMngr instance
     @fdata: data buffer to parse
@@ -136,7 +136,7 @@ def vm_load_pe(vm, fdata, align_s=True, load_hdr=True, **kargs):
             pe_hdr = pe.content[:hdr_len] + max(
                 0, (min_len - hdr_len)) * "\x00"
             vm.add_memory_page(pe.NThdr.ImageBase, PAGE_READ | PAGE_WRITE,
-                               pe_hdr)
+                               pe_hdr, "%r: PE Header" % name)
 
         # Align sections size
         if align_s:
@@ -160,7 +160,8 @@ def vm_load_pe(vm, fdata, align_s=True, load_hdr=True, **kargs):
             attrib = PAGE_READ
             if section.flags & 0x80000000:
                 attrib |= PAGE_WRITE
-            vm.add_memory_page(pe.rva2virt(section.addr), attrib, data)
+            vm.add_memory_page(pe.rva2virt(section.addr), attrib, data,
+                               "%r: %r" % (name, section.name))
 
         return pe
 
@@ -217,7 +218,7 @@ def vm_load_pe_lib(vm, fname_in, libs, lib_path_base, **kargs):
 
     fname = os.path.join(lib_path_base, fname_in)
     with open(fname) as fstream:
-        pe = vm_load_pe(vm, fstream.read(), **kargs)
+        pe = vm_load_pe(vm, fstream.read(), name=fname_in, **kargs)
     libs.add_export_lib(pe, fname_in)
     return pe
 
@@ -484,7 +485,7 @@ def vm_load_pe_and_dependencies(vm, fname, name2module, runtime_lib,
             try:
                 with open(fname) as fstream:
                     log.info('Loading module name %r', fname)
-                    pe_obj = vm_load_pe(vm, fstream.read(), **kwargs)
+                    pe_obj = vm_load_pe(vm, fstream.read(), name=fname, **kwargs)
             except IOError:
                 log.error('Cannot open %s' % fname)
                 name2module[name] = None
