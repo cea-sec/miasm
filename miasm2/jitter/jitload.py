@@ -9,6 +9,7 @@ from miasm2.core.utils import *
 from miasm2.core.bin_stream import bin_stream_vm
 from miasm2.ir.ir2C import init_arch_C
 from miasm2.core.interval import interval
+from miasm2.jitter.emulatedsymbexec import EmulatedSymbExec
 
 hnd = logging.StreamHandler()
 hnd.setFormatter(logging.Formatter("[%(levelname)s]: %(message)s"))
@@ -201,10 +202,12 @@ class jitter:
 
         self.vm = VmMngr.Vm()
         self.cpu = jcore.JitCpu()
-
-        self.bs = bin_stream_vm(self.vm)
         self.ir_arch = ir_arch
+        self.bs = bin_stream_vm(self.vm)
         init_arch_C(self.arch)
+
+        self.symbexec = EmulatedSymbExec(self.cpu, self.ir_arch, {})
+        self.symbexec.reset_regs()
 
         if jit_type == "tcc":
             self.jit = JitCore_Tcc(self.ir_arch, self.bs)
@@ -443,3 +446,12 @@ class jitter:
 
         for f_addr in libs.fad2cname:
             self.handle_function(f_addr)
+
+    def eval_expr(self, expr):
+        """Eval expression @expr in the context of the current instance. Side
+        effects are passed on it"""
+        self.symbexec.update_engine_from_cpu()
+        ret = self.symbexec.apply_expr(expr)
+        self.symbexec.update_cpu_from_engine()
+
+        return ret
