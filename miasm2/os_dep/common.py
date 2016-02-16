@@ -39,6 +39,7 @@ def set_str_unic(s):
 
 
 class heap(object):
+
     "Light heap simulation"
 
     addr = 0x20000000
@@ -56,7 +57,7 @@ class heap(object):
         self.addr &= self.mask ^ (self.align - 1)
         return ret
 
-    def alloc(self, jitter, size, perm=PAGE_READ|PAGE_WRITE):
+    def alloc(self, jitter, size, perm=PAGE_READ | PAGE_WRITE):
         """
         @jitter: a jitter instance
         @size: the size to allocate
@@ -64,7 +65,7 @@ class heap(object):
         """
         return self.vm_alloc(jitter.vm, size, perm)
 
-    def vm_alloc(self, vm, size, perm=PAGE_READ|PAGE_WRITE):
+    def vm_alloc(self, vm, size, perm=PAGE_READ | PAGE_WRITE):
         """
         @vm: a VmMngr instance
         @size: the size to allocate

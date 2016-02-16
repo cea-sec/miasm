@@ -164,7 +164,7 @@ class OS_Win(OS):
     ALL_IMP_DLL = ["ntdll.dll", "kernel32.dll", "user32.dll",
                    "ole32.dll", "urlmon.dll",
                    "ws2_32.dll", 'advapi32.dll', "psapi.dll",
-               ]
+                   ]
     modules_path = "win_dll"
 
     def __init__(self, custom_methods, *args, **kwargs):

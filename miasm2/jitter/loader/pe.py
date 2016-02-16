@@ -485,7 +485,8 @@ def vm_load_pe_and_dependencies(vm, fname, name2module, runtime_lib,
             try:
                 with open(fname) as fstream:
                     log.info('Loading module name %r', fname)
-                    pe_obj = vm_load_pe(vm, fstream.read(), name=fname, **kwargs)
+                    pe_obj = vm_load_pe(
+                        vm, fstream.read(), name=fname, **kwargs)
             except IOError:
                 log.error('Cannot open %s' % fname)
                 name2module[name] = None

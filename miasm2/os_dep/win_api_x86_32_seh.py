@@ -279,14 +279,14 @@ def create_modules_chain(jitter, name2module):
         m_o += "\x00" * 3
         jitter.vm.add_memory_page(
             addr + offset_name, PAGE_READ | PAGE_WRITE, m_o,
-        "Module name %r" % bname_str)
+            "Module name %r" % bname_str)
 
         m_o = ""
         m_o += "\x00".join(bpath) + "\x00"
         m_o += "\x00" * 3
         jitter.vm.add_memory_page(
             addr + offset_path, PAGE_READ | PAGE_WRITE, m_o,
-        "Module path %r" % bname_str)
+            "Module path %r" % bname_str)
 
     return modules_info
 
@@ -306,7 +306,8 @@ def fix_InLoadOrderModuleList(jitter, modules_info):
     dummy_pe = modules_info.name2module.get("", None)
     special_modules = [main_pe, kernel32_pe, ntdll_pe, dummy_pe]
     if not all(special_modules):
-        log.warn('No main pe, ldr data will be unconsistant %r', special_modules)
+        log.warn(
+            'No main pe, ldr data will be unconsistant %r', special_modules)
         loaded_modules = modules_info.modules
     else:
         loaded_modules = [module for module in modules_info.modules
