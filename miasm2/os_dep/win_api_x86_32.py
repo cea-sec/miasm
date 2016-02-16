@@ -16,7 +16,6 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 import struct
-import inspect
 import os
 import stat
 import time
@@ -31,7 +30,7 @@ except ImportError:
     print "cannot find crypto, skipping"
 
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE, PAGE_EXEC
-from miasm2.core.utils import pck16, pck32, upck32, hexdump
+from miasm2.core.utils import pck16, pck32, upck32, hexdump, whoami
 from miasm2.os_dep.common import \
     heap, set_str_ansi, set_str_unic, get_str_ansi, get_str_unic, \
     windows_to_sbpath
@@ -229,10 +228,6 @@ process_list = [
 
 
 ]
-
-
-def whoami():
-    return inspect.stack()[1][3]
 
 
 class hobj:

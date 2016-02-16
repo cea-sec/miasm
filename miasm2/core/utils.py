@@ -17,6 +17,19 @@ pck = {8:pck8,
        16:pck16,
        32:pck32,
        64:pck64}
+def get_caller_name(caller_num=0):
+    """Get the nth caller's name
+    @caller_num: 0 = the caller of get_caller_name, 1 = next parent, ..."""
+    pystk = inspect.stack()
+    if len(pystk) > 1 + caller_num:
+        return pystk[1 + caller_num][3]
+    else:
+        return "Bad caller num"
+
+
+def whoami():
+    """Returns the caller's name"""
+    return get_caller_name(1)
 
 
 class Disasm_Exception(Exception):
@@ -47,9 +60,6 @@ class keydefaultdict(collections.defaultdict):
             raise KeyError(key)
         value = self[key] = self.default_factory(key)
         return value
-
-def whoami():
-    return inspect.stack()[2][3]
 
 
 class BoundedDict(UserDict.DictMixin):

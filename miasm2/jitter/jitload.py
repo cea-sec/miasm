@@ -58,7 +58,7 @@ def named_arguments(func):
             arg_vals = namedtuple("args", args)(*arg_vals)
             # func_name(arguments) return address
             log_func.info('%s(%s) ret addr: %s',
-                whoami(),
+                get_caller_name(1),
                 ', '.join("%s=0x%x" % (field, value)
                           for field, value in arg_vals._asdict().iteritems()),
                 hex(ret_ad))
@@ -67,7 +67,7 @@ def named_arguments(func):
             ret_ad, arg_vals = func(self, args)
             # func_name(arguments) return address
             log_func.info('%s(%s) ret addr: %s',
-                whoami(),
+                get_caller_name(1),
                 ', '.join(hex(arg) for arg in arg_vals),
                 hex(ret_ad))
             return ret_ad, arg_vals
