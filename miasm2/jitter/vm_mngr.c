@@ -1268,26 +1268,35 @@ uint64_t double_to_mem_64(double d)
 	return m;
 }
 
-struct memory_page_node * create_memory_page_node(uint64_t ad, unsigned int size, unsigned int access)
+struct memory_page_node * create_memory_page_node(uint64_t ad, unsigned int size, unsigned int access, char* name)
 {
 	struct memory_page_node * mpn;
-	void* p;
+	void* ad_hp;
 
 	mpn = malloc(sizeof(*mpn));
 	if (!mpn){
 		fprintf(stderr, "Error: cannot alloc mpn\n");
 		return NULL;
 	}
-	p = malloc(size);
-	if (!p){
+	ad_hp = malloc(size);
+	if (!ad_hp){
 		free(mpn);
 		fprintf(stderr, "Error: cannot alloc %d\n", size);
 		return NULL;
 	}
+	mpn->name = malloc(strlen(name) + 1);
+	if (!mpn->name){
+		free(mpn);
+		free(ad_hp);
+		fprintf(stderr, "Error: cannot alloc\n");
+		return NULL;
+	}
+
 	mpn->ad = ad;
 	mpn->size = size;
 	mpn->access = access;
-	mpn->ad_hp = p;
+	mpn->ad_hp = ad_hp;
+	strcpy(mpn->name, name);
 
 	return mpn;
 }
@@ -1440,31 +1449,41 @@ void add_memory_page(vm_mngr_t* vm_mngr, struct memory_page_node* mpn_a)
 /* Return a char* representing the repr of vm_mngr_t object */
 char* dump(vm_mngr_t* vm_mngr)
 {
-	char buf[100];
+	char buf[0x100];
 	int length;
-	int total_len = 0;
 	char *buf_final;
 	int i;
+	char buf_addr[0x20];
+	char buf_size[0x20];
 	struct memory_page_node * mpn;
+	/*             0x1234567812345678 0x1234567812345678        */
+	char* intro = "Addr               Size               Access Comment\n";
+	int total_len = strlen(intro) + 1;
 
-	buf_final = malloc(1);
+	buf_final = malloc(total_len);
 	if (buf_final == NULL) {
 		fprintf(stderr, "Error: cannot alloc\n");
 		exit(0);
 	}
-	buf_final[0] = '\x00';
-
+	strcpy(buf_final, intro);
 	for (i=0; i< vm_mngr->memory_pages_number; i++) {
 		mpn = &vm_mngr->memory_pages_array[i];
-		length = snprintf(buf, sizeof(buf),
-				  "ad 0x%"PRIX64" size 0x%"PRIX64" %c%c%c\n",
-				  (uint64_t)mpn->ad,
-				  (uint64_t)mpn->size,
+		snprintf(buf_addr, sizeof(buf_addr),
+			 "0x%"PRIX64, (uint64_t)mpn->ad);
+		snprintf(buf_size, sizeof(buf_size),
+			 "0x%"PRIX64, (uint64_t)mpn->size);
+
+		length = snprintf(buf, sizeof(buf) - 1,
+				  "%-18s %-18s %c%c%c    %s",
+				  buf_addr,
+				  buf_size,
 				  mpn->access & PAGE_READ? 'R':'_',
 				  mpn->access & PAGE_WRITE? 'W':'_',
-				  mpn->access & PAGE_EXEC? 'X':'_'
+				  mpn->access & PAGE_EXEC? 'X':'_',
+				  mpn->name
 				  );
-		total_len += length+1;
+		strcat(buf, "\n");
+		total_len += length + 1 + 1;
 		buf_final = realloc(buf_final, total_len);
 		if (buf_final == NULL) {
 			fprintf(stderr, "Error: cannot alloc\n");

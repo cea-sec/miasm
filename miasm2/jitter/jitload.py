@@ -20,6 +20,7 @@ log_func = logging.getLogger('jit function call')
 log_func.addHandler(hnd)
 log_func.setLevel(logging.CRITICAL)
 
+
 try:
     from miasm2.jitter.jitcore_tcc import JitCore_Tcc
 except ImportError:
@@ -58,16 +59,17 @@ def named_arguments(func):
             arg_vals = namedtuple("args", args)(*arg_vals)
             # func_name(arguments) return address
             log_func.info('%s(%s) ret addr: %s',
-                whoami(),
-                ', '.join("%s=0x%x" % (field, value)
-                          for field, value in arg_vals._asdict().iteritems()),
-                hex(ret_ad))
+                          get_caller_name(1),
+                          ', '.join("%s=0x%x" % (field, value)
+                                    for field, value in arg_vals._asdict(
+                                    ).iteritems()),
+                         hex(ret_ad))
             return ret_ad, namedtuple("args", args)(*arg_vals)
         else:
             ret_ad, arg_vals = func(self, args)
             # func_name(arguments) return address
             log_func.info('%s(%s) ret addr: %s',
-                whoami(),
+                get_caller_name(1),
                 ', '.join(hex(arg) for arg in arg_vals),
                 hex(ret_ad))
             return ret_ad, arg_vals
@@ -231,7 +233,6 @@ class jitter:
         self.stack_size = 0x10000
         self.stack_base = 0x1230000
 
-
         # Init callback handler
         self.breakpoints_handler = CallbackHandler()
         self.exceptions_handler = CallbackHandlerBitflag()
@@ -267,7 +268,6 @@ class jitter:
         # De-jit previously jitted blocks
         self.jit.addr_mod = interval([(addr, addr)])
         self.jit.updt_automod_code(self.vm)
-
 
     def set_breakpoint(self, addr, *args):
         """Set callbacks associated with addr.
@@ -362,7 +362,8 @@ class jitter:
 
     def init_stack(self):
         self.vm.add_memory_page(
-            self.stack_base, PAGE_READ | PAGE_WRITE, "\x00" * self.stack_size)
+            self.stack_base, PAGE_READ | PAGE_WRITE, "\x00" * self.stack_size,
+            "Stack")
         sp = self.arch.getsp(self.attrib)
         setattr(self.cpu, sp.name, self.stack_base + self.stack_size)
         # regs = self.cpu.get_gpreg()
@@ -380,7 +381,7 @@ class jitter:
         l = 0
         tmp = addr
         while ((max_char is None or l < max_char) and
-            self.vm.get_mem(tmp, 1) != "\x00"):
+               self.vm.get_mem(tmp, 1) != "\x00"):
             tmp += 1
             l += 1
         return self.vm.get_mem(addr, l)
@@ -392,7 +393,7 @@ class jitter:
         l = 0
         tmp = addr
         while ((max_char is None or l < max_char) and
-            self.vm.get_mem(tmp, 2) != "\x00\x00"):
+               self.vm.get_mem(tmp, 2) != "\x00\x00"):
             tmp += 2
             l += 2
         s = self.vm.get_mem(addr, l)

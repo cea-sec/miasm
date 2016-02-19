@@ -13,10 +13,25 @@ pck32 = lambda x: struct.pack('I', x)
 pck64 = lambda x: struct.pack('Q', x)
 
 
-pck = {8:pck8,
-       16:pck16,
-       32:pck32,
-       64:pck64}
+pck = {8: pck8,
+       16: pck16,
+       32: pck32,
+       64: pck64}
+
+
+def get_caller_name(caller_num=0):
+    """Get the nth caller's name
+    @caller_num: 0 = the caller of get_caller_name, 1 = next parent, ..."""
+    pystk = inspect.stack()
+    if len(pystk) > 1 + caller_num:
+        return pystk[1 + caller_num][3]
+    else:
+        return "Bad caller num"
+
+
+def whoami():
+    """Returns the caller's name"""
+    return get_caller_name(1)
 
 
 class Disasm_Exception(Exception):
@@ -48,11 +63,9 @@ class keydefaultdict(collections.defaultdict):
         value = self[key] = self.default_factory(key)
         return value
 
-def whoami():
-    return inspect.stack()[2][3]
-
 
 class BoundedDict(UserDict.DictMixin):
+
     """Limited in size dictionary.
 
     To reduce combinatory cost, once an upper limit @max_size is reached,
@@ -94,7 +107,7 @@ class BoundedDict(UserDict.DictMixin):
                         self._delete_cb(key)
 
                 # Keep only the most @_min_size used
-                self._data = {key:self._data[key]
+                self._data = {key: self._data[key]
                               for key, _ in most_common[:self._min_size - 1]}
                 self._size = self._min_size
 

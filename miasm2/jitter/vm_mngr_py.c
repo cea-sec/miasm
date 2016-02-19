@@ -86,16 +86,18 @@ PyObject* vm_add_memory_page(VmMngr* self, PyObject* args)
 	PyObject *addr;
 	PyObject *access;
 	PyObject *item_str;
+	PyObject *name=NULL;
 	uint64_t buf_size;
 	char* buf_data;
 	Py_ssize_t length;
 	uint64_t ret = 0x1337beef;
 	uint64_t page_addr;
 	uint64_t page_access;
+	char* name_ptr;
 
 	struct memory_page_node * mpn;
 
-	if (!PyArg_ParseTuple(args, "OOO", &addr, &access, &item_str))
+	if (!PyArg_ParseTuple(args, "OOO|O", &addr, &access, &item_str, &name))
 		return NULL;
 
 	PyGetInt(addr, page_addr);
@@ -107,7 +109,14 @@ PyObject* vm_add_memory_page(VmMngr* self, PyObject* args)
 	buf_size = PyString_Size(item_str);
 	PyString_AsStringAndSize(item_str, &buf_data, &length);
 
-	mpn = create_memory_page_node(page_addr, buf_size, page_access);
+	if (name == NULL) {
+		name_ptr = (char*)"";
+	} else {
+		if (!PyString_Check(name))
+			RAISE(PyExc_TypeError,"name must be str");
+		name_ptr = PyString_AsString(name);
+	}
+	mpn = create_memory_page_node(page_addr, buf_size, page_access, name_ptr);
 	if (mpn == NULL)
 		RAISE(PyExc_TypeError,"cannot create page");
 	if (is_mpn_in_tab(&self->vm_mngr, mpn)) {

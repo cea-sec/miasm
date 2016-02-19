@@ -72,13 +72,8 @@ default_seh = PEB_AD + 0x20000
 process_environment_address = 0x10000
 process_parameters_address = 0x200000
 
-context_address = 0x201000
-exception_record_address = context_address + 0x1000
 return_from_exception = 0x6eadbeef
 
-FAKE_SEH_B_AD = context_address + 0x2000
-
-cur_seh_ad = FAKE_SEH_B_AD
 
 name2module = []
 main_pe = None
@@ -112,7 +107,7 @@ def build_teb(jitter, teb_address):
     o += pck32(peb_address)
     o += pck32(0x11223344)
 
-    jitter.vm.add_memory_page(teb_address, PAGE_READ | PAGE_WRITE, o)
+    jitter.vm.add_memory_page(teb_address, PAGE_READ | PAGE_WRITE, o, "TEB")
 
 
 def build_peb(jitter, peb_address):
@@ -140,7 +135,7 @@ def build_peb(jitter, peb_address):
         offset += 4
     o += pck32(peb_ldr_data_address)
     o += pck32(process_parameters_address)
-    jitter.vm.add_memory_page(offset, PAGE_READ | PAGE_WRITE, o)
+    jitter.vm.add_memory_page(offset, PAGE_READ | PAGE_WRITE, o, "PEB")
 
 
 def build_ldr_data(jitter, modules_info):
@@ -180,7 +175,8 @@ def build_ldr_data(jitter, modules_info):
         data += pck32(ntdll_addr_entry + 0x10) + pck32(0)  # XXX TODO fix prev
 
     if data:
-        jitter.vm.add_memory_page(offset, PAGE_READ | PAGE_WRITE, data)
+        jitter.vm.add_memory_page(offset, PAGE_READ | PAGE_WRITE, data,
+                                  "Loader struct")
 
 
 class LoadedModules(object):
@@ -275,19 +271,22 @@ def create_modules_chain(jitter, name2module):
         m_o += pck32(addr + offset_path)
         m_o += struct.pack('HH', len(bname), len(bname) + 2)
         m_o += pck32(addr + offset_name)
-        jitter.vm.add_memory_page(addr, PAGE_READ | PAGE_WRITE, m_o)
+        jitter.vm.add_memory_page(addr, PAGE_READ | PAGE_WRITE, m_o,
+                                  "Module info %r" % bname_str)
 
         m_o = ""
         m_o += bname
         m_o += "\x00" * 3
         jitter.vm.add_memory_page(
-            addr + offset_name, PAGE_READ | PAGE_WRITE, m_o)
+            addr + offset_name, PAGE_READ | PAGE_WRITE, m_o,
+            "Module name %r" % bname_str)
 
         m_o = ""
         m_o += "\x00".join(bpath) + "\x00"
         m_o += "\x00" * 3
         jitter.vm.add_memory_page(
-            addr + offset_path, PAGE_READ | PAGE_WRITE, m_o)
+            addr + offset_path, PAGE_READ | PAGE_WRITE, m_o,
+            "Module path %r" % bname_str)
 
     return modules_info
 
@@ -307,7 +306,8 @@ def fix_InLoadOrderModuleList(jitter, modules_info):
     dummy_pe = modules_info.name2module.get("", None)
     special_modules = [main_pe, kernel32_pe, ntdll_pe, dummy_pe]
     if not all(special_modules):
-        log.warn('No main pe, ldr data will be unconsistant %r', special_modules)
+        log.warn(
+            'No main pe, ldr data will be unconsistant %r', special_modules)
         loaded_modules = modules_info.modules
     else:
         loaded_modules = [module for module in modules_info.modules
@@ -411,7 +411,8 @@ def add_process_env(jitter):
     env_str += "\x00" * 0x10
     jitter.vm.add_memory_page(process_environment_address,
                               PAGE_READ | PAGE_WRITE,
-                              env_str)
+                              env_str,
+                              "Process environment")
     jitter.vm.set_mem(process_environment_address, env_str)
 
 
@@ -427,11 +428,9 @@ def add_process_parameters(jitter):
     o += pck32(process_environment_address)
     jitter.vm.add_memory_page(process_parameters_address,
                               PAGE_READ | PAGE_WRITE,
-                              o)
+                              o, "Process parameters")
 
 
-all_seh_ad = dict([(x, None)
-                  for x in xrange(FAKE_SEH_B_AD, FAKE_SEH_B_AD + 0x1000, 0x20)])
 # http://blog.fireeye.com/research/2010/08/download_exec_notes.html
 seh_count = 0
 
@@ -457,15 +456,9 @@ def init_seh(jitter):
     add_process_parameters(jitter)
 
     jitter.vm.add_memory_page(default_seh, PAGE_READ | PAGE_WRITE, pck32(
-        0xffffffff) + pck32(0x41414141) + pck32(0x42424242))
+        0xffffffff) + pck32(0x41414141) + pck32(0x42424242),
+        "Default seh handler")
 
-    jitter.vm.add_memory_page(
-        context_address, PAGE_READ | PAGE_WRITE, '\x00' * 0x2cc)
-    jitter.vm.add_memory_page(
-        exception_record_address, PAGE_READ | PAGE_WRITE, '\x00' * 200)
-
-    jitter.vm.add_memory_page(
-        FAKE_SEH_B_AD, PAGE_READ | PAGE_WRITE, 0x10000 * "\x00")
 
 # http://www.codeproject.com/KB/system/inject2exe.aspx#RestorethefirstRegistersContext5_1
 
@@ -565,7 +558,7 @@ def fake_seh_handler(jitter, except_code):
     @except_code: x86 exception code
     """
 
-    global seh_count, context_address
+    global seh_count
     regs = jitter.cpu.get_gpreg()
     log.warning('Exception at %x %r', jitter.cpu.EIP, seh_count)
     seh_count += 1
@@ -637,8 +630,6 @@ def fake_seh_handler(jitter, except_code):
     jitter.cpu.EBX = 0
 
     return eh
-
-fake_seh_handler.base = FAKE_SEH_B_AD
 
 
 def dump_seh(jitter):
