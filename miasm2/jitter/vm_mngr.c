@@ -84,6 +84,9 @@ inline int midpoint(int imin, int imax)
 
 int find_page_node(struct memory_page_node * array, uint64_t key, int imin, int imax)
 {
+	if (imax < 1)
+		return -1;
+	imax--;
 	// continue searching while [imin,imax] is not empty
 	while (imin <= imax) {
 		// calculate the midpoint for roughly equal partition
