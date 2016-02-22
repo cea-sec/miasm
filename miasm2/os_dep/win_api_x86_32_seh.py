@@ -48,6 +48,7 @@ log.setLevel(logging.INFO)
 FS_0_AD = 0x7ff70000
 PEB_AD = 0x7ffdf000
 LDR_AD = 0x340000
+DEFAULT_SEH = 0x7ffff000
 
 MAX_MODULES = 0x40
 
@@ -69,7 +70,6 @@ InLoadOrderModuleList_offset = 0x1ee0 + \
 InLoadOrderModuleList_address = LDR_AD + \
     InLoadOrderModuleList_offset
 
-default_seh = PEB_AD + 0x20000
 
 process_environment_address = 0x10000
 process_parameters_address = 0x200000
@@ -106,7 +106,7 @@ def build_teb(jitter, teb_address):
                                         TEB.get_offset("ProcessEnvironmentBlock")),
                               "TEB.ProcessEnvironmentBlock")
     Teb = TEB(jitter.vm, teb_address)
-    Teb.NtTib.ExceptionList = default_seh
+    Teb.NtTib.ExceptionList = DEFAULT_SEH
     Teb.NtTib.Self = teb_address
     Teb.ProcessEnvironmentBlock = peb_address
 
@@ -449,9 +449,6 @@ def init_seh(jitter):
     add_process_env(jitter)
     add_process_parameters(jitter)
 
-    jitter.vm.add_memory_page(default_seh, PAGE_READ | PAGE_WRITE, pck32(
-        0xffffffff) + pck32(0x41414141) + pck32(0x42424242),
-        "Default seh handler")
 
 
 def regs2ctxt(jitter, context_address):
@@ -632,10 +629,12 @@ def dump_seh(jitter):
         if loop > MAX_SEH:
             log.warn("Too many seh, quit")
             return
+        if not jitter.vm.is_mapped(cur_seh_ptr, 8):
+            break
         prev_seh, eh = struct.unpack('II', jitter.vm.get_mem(cur_seh_ptr, 8))
         log.info('\t' * indent + 'seh_ptr: %x { prev_seh: %x eh %x }',
                  cur_seh_ptr, prev_seh, eh)
-        if prev_seh in [0xFFFFFFFF, 0]:
+        if prev_seh == 0:
             break
         cur_seh_ptr = prev_seh
         indent += 1
