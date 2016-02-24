@@ -1664,7 +1664,10 @@ def lods(ir, instr, size):
     e1 = irbloc(lbl_df_1.name, [e1])
 
     e = []
-    e.append(m2_expr.ExprAff(b, m2_expr.ExprMem(addr, size)))
+    if instr.mode == 64 and b.size == 32:
+        e.append(m2_expr.ExprAff(mRAX[instr.mode], m2_expr.ExprMem(addr, size).zeroExtend(64)))
+    else:
+        e.append(m2_expr.ExprAff(b, m2_expr.ExprMem(addr, size)))
 
     e.append(m2_expr.ExprAff(ir.IRDst,
                              m2_expr.ExprCond(df, lbl_df_1, lbl_df_0)))
