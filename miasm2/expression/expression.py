@@ -1368,9 +1368,6 @@ def get_list_rw(exprs, mem_read=False, cst_read=True):
         # each cst is indexed
         o_r_rw = set()
         for r in o_r:
-            # if isinstance(r, ExprInt):
-            #    r = ExprOp('cst_%d'%cst_num, r)
-            #    cst_num += 1
             o_r_rw.add(r)
         o_r = o_r_rw
         list_rw.append((o_r, o_w))

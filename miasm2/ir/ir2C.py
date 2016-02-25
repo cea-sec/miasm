@@ -200,7 +200,7 @@ def gen_irdst(ir_arch, e):
         out.append('%s;'%(gen_resolve_dst_simple(ir_arch, e)))
     return out
 
-def Expr2C(ir_arch, l, exprs, gen_exception_code=False):
+def Expr2C(ir_arch, l, assignblk, gen_exception_code=False):
     id_to_update = []
     out = ["// %s" % (l)]
     out_pc = []
@@ -211,31 +211,24 @@ def Expr2C(ir_arch, l, exprs, gen_exception_code=False):
     prefect_index = {8: 0, 16: 0, 32: 0, 64: 0}
     new_expr = []
 
-    e = set_pc(ir_arch, l.offset & mask_int)
-    #out.append("%s;" % patch_c_id(ir_arch.arch, e)))
-
     pc_is_dst = False
     fetch_mem = False
     set_exception_flags = False
-    for e in exprs:
-        assert isinstance(e, m2_expr.ExprAff)
-        assert not isinstance(e.dst, m2_expr.ExprOp)
-        if isinstance(e.dst, m2_expr.ExprId):
-            if not e.dst in dst_dict:
-                dst_dict[e.dst] = []
-            dst_dict[e.dst].append(e)
-        else:
-            new_expr.append(e)
+    for dst, src in assignblk.iteritems():
+        assert not isinstance(dst, m2_expr.ExprOp)
+        if dst in dst_dict:
+            raise RuntimeError("warning: detected multi dst to same id")
+        new_expr.append((dst, src))
         # test exception flags
-        ops = m2_expr.get_expr_ops(e)
+        ops = m2_expr.get_expr_ops(src)
         if set(['umod', 'udiv']).intersection(ops):
             set_exception_flags = True
-        if e.dst == exception_flags:
+        if dst == exception_flags:
             set_exception_flags = True
             # TODO XXX test function whose set exception_flags
 
         # search mem lookup for generate mem read prefetch
-        rs = e.src.get_r(mem_read=True)
+        rs = src.get_r(mem_read=True)
         for r in rs:
             if (not isinstance(r, m2_expr.ExprMem)) or r in src_mem:
                 continue
@@ -245,14 +238,6 @@ def Expr2C(ir_arch, l, exprs, gen_exception_code=False):
             pfmem = prefetch_id_size[r.size][index]
             src_mem[r] = pfmem
 
-    for dst, exs in dst_dict.items():
-        if len(exs) == 1:
-            new_expr += exs
-            continue
-        exs = [expr_simp(x) for x in exs]
-        log_to_c_h.debug('warning: detected multi dst to same id')
-        log_to_c_h.debug('\t'.join([str(x) for x in exs]))
-        new_expr += exs
     out_mem = []
 
     # first, generate mem prefetch
@@ -265,9 +250,7 @@ def Expr2C(ir_arch, l, exprs, gen_exception_code=False):
     src_w_len = {}
     for k, v in src_mem.items():
         src_w_len[k] = v
-    for e in new_expr:
-
-        src, dst = e.src, e.dst
+    for dst, src in new_expr:
         # reload src using prefetch
         src = src.replace_expr(src_w_len)
         if dst is ir_arch.IRDst:
@@ -294,7 +277,7 @@ def Expr2C(ir_arch, l, exprs, gen_exception_code=False):
             str_dst = str_dst.replace('MEM_LOOKUP', 'MEM_WRITE')
             out_mem.append('%s, %s);' % (str_dst[:-1], str_src))
 
-        if e.dst == ir_arch.arch.pc[ir_arch.attrib]:
+        if dst == ir_arch.arch.pc[ir_arch.attrib]:
             pc_is_dst = True
             out_pc += ["return JIT_RET_NO_EXCEPTION;"]
 
@@ -382,7 +365,7 @@ def ir2C(ir_arch, irbloc, lbl_done,
     out.append(["%s:" % irbloc.label.name])
     #out.append(['printf("%s:\n");' % irbloc.label.name])
     assert len(irbloc.irs) == len(irbloc.lines)
-    for l, exprs in zip(irbloc.lines, irbloc.irs):
+    for l, assignblk in zip(irbloc.lines, irbloc.irs):
         if l.offset not in lbl_done:
             e = set_pc(ir_arch, l.offset & mask_int)
             s1 = "%s" % translator.from_expr(patch_c_id(ir_arch.arch, e))
@@ -398,7 +381,7 @@ def ir2C(ir_arch, irbloc, lbl_done,
         # print l
         # gen pc update
         post_instr = ""
-        c_code, post_instr, _ = Expr2C(ir_arch, l, exprs, gen_exception_code)
+        c_code, post_instr, _ = Expr2C(ir_arch, l, assignblk, gen_exception_code)
         out.append(c_code + post_instr)
     out.append([goto_local_code ] )
     return out

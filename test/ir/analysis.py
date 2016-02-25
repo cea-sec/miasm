@@ -2,7 +2,7 @@
 from miasm2.expression.expression import ExprId, ExprInt32, ExprAff, ExprMem
 from miasm2.core.asmbloc import asm_label
 from miasm2.ir.analysis import ira
-from miasm2.ir.ir import irbloc
+from miasm2.ir.ir import irbloc, AssignBlock
 
 a = ExprId("a")
 b = ExprId("b")
@@ -33,9 +33,16 @@ LBL6 = asm_label("lbl6")
 
 
 
-def gen_irbloc(label, exprs):
-    lines = [None for _ in xrange(len(exprs))]
-    irbl = irbloc(label, exprs, lines)
+def gen_irbloc(label, exprs_list):
+    lines = [None for _ in xrange(len(exprs_list))]
+    irs = []
+    for exprs in exprs_list:
+        if isinstance(exprs, AssignBlock):
+            irs.append(exprs)
+        else:
+            irs.append(AssignBlock(exprs))
+
+    irbl = irbloc(label, irs, lines)
     return irbl
 
 
@@ -671,12 +678,4 @@ for test_nb, test in enumerate([(G1_IRA, G1_EXP_IRA),
     # Check that each expr in the blocs are the same
     for lbl, irb in g_ira.blocs.iteritems():
         exp_irb = g_exp_ira.blocs[lbl]
-        assert len(irb.irs) == len(exp_irb.irs), "(%s)  %d / %d" %(
-            lbl, len(irb.irs), len(exp_irb.irs))
-        for i in xrange(0, len(exp_irb.irs)):
-            assert len(irb.irs[i]) == len(exp_irb.irs[i]), "(%s:%d) %d / %d" %(
-                lbl, i, len(irb.irs[i]), len(exp_irb.irs[i]))
-            for s_instr in xrange(len(irb.irs[i])):
-                assert irb.irs[i][s_instr] == exp_irb.irs[i][s_instr],\
-                    "(%s:%d)  %s / %s" %(
-                        lbl, i, irb.irs[i][s_instr], exp_irb.irs[i][s_instr])
+        assert exp_irb.irs == irb.irs

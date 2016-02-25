@@ -4,9 +4,9 @@
 import logging
 
 from miasm2.ir.symbexec import symbexec
-from miasm2.ir.ir import ir
+from miasm2.ir.ir import ir, AssignBlock
 from miasm2.expression.expression \
-    import ExprAff, ExprCond, ExprId, ExprInt, ExprMem
+    import ExprAff, ExprCond, ExprId, ExprInt, ExprMem, ExprOp
 
 log = logging.getLogger("analysis")
 console_handler = logging.StreamHandler()
@@ -29,6 +29,17 @@ class ira(ir):
         """Returns ids of all registers used in the IR"""
         return self.arch.regs.all_regs_ids + [self.IRDst]
 
+    def call_effects(self, ad):
+        """
+        Default simulation of a function call to @ad
+        @ad: (Expr) address of the called function
+        """
+        return [AssignBlock(
+            [ExprAff(self.ret_reg, ExprOp('call_func_ret', ad, self.sp)),
+             ExprAff(self.sp, ExprOp(
+                 'call_func_stack', ad, self.sp)),
+             ])]
+
     def remove_dead_instr(self, irb, useful):
         """Remove dead affectations using previous reaches analysis
         @irb: irbloc instance
@@ -37,16 +48,12 @@ class ira(ir):
         PRE: compute_reach(self)
         """
         modified = False
-        for k, ir in enumerate(irb.irs):
-            j = 0
-            while j < len(ir):
-                cur_instr = ir[j]
-                if (isinstance(cur_instr.dst, ExprId)
-                    and (irb.label, k, cur_instr) not in useful):
-                    del ir[j]
+        for idx, assignblk in enumerate(irb.irs):
+            for dst in assignblk.keys():
+                if (isinstance(dst, ExprId) and
+                    (irb.label, idx, dst) not in useful):
+                    del assignblk[dst]
                     modified = True
-                else:
-                    j += 1
         return modified
 
     def init_useful_instr(self):
@@ -74,17 +81,17 @@ class ira(ir):
                     # reaching this block
                     for r in self.ira_regs_ids():
                         useful.update(block.cur_reach[-1][r].union(
-                                block.defout[-1][r]))
+                            block.defout[-1][r]))
 
             # Function call, memory write or IRDst affectation
-            for k, ir in enumerate(block.irs):
-                for i_cur in ir:
-                    if i_cur.src.is_function_call():
+            for idx, assignblk in enumerate(block.irs):
+                for dst, src in assignblk.iteritems():
+                    if src.is_function_call():
                         # /!\ never remove ir calls
-                        useful.add((block.label, k, i_cur))
-                    if isinstance(i_cur.dst, ExprMem):
-                        useful.add((block.label, k, i_cur))
-                    useful.update(block.defout[k][self.IRDst])
+                        useful.add((block.label, idx, dst))
+                    if isinstance(dst, ExprMem):
+                        useful.add((block.label, idx, dst))
+                    useful.update(block.defout[idx][self.IRDst])
 
             # Affecting return registers
             if not has_son:
@@ -112,12 +119,13 @@ class ira(ir):
         while worklist:
             elem = worklist.pop()
             useful.add(elem)
-            irb, irs_ind, ins = elem
+            irb, irs_ind, dst = elem
 
-            block = self.blocs[irb]
-            instr_defout = block.defout[irs_ind]
-            cur_kill = block.cur_kill[irs_ind]
-            cur_reach = block.cur_reach[irs_ind]
+            irb = self.blocs[irb]
+            ins = irb.irs[irs_ind].dst2ExprAff(dst)
+            instr_defout = irb.defout[irs_ind]
+            cur_kill = irb.cur_kill[irs_ind]
+            cur_reach = irb.cur_reach[irs_ind]
 
             # Handle dependencies of used variables in ins
             for reg in ins.get_r(True).intersection(self.ira_regs_ids()):
@@ -126,9 +134,9 @@ class ira(ir):
                         cur_kill[reg]
                         if not instr_defout[reg] else
                         set()))
-                for _, _, i in instr_defout[reg]:
-                    # Loop case (i in defout of current block)
-                    if i == ins:
+                for _, _, defout_dst in instr_defout[reg]:
+                    # Loop case (dst in defout of current irb)
+                    if defout_dst == dst:
                         worklist.update(cur_reach[reg].difference(useful))
         return useful
 

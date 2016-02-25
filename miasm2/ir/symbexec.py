@@ -2,6 +2,7 @@ import miasm2.expression.expression as m2_expr
 from miasm2.expression.modint import int32
 from miasm2.expression.simplifications import expr_simp
 from miasm2.core import asmbloc
+from miasm2.ir.ir import AssignBlock
 import logging
 
 
@@ -365,36 +366,38 @@ class symbexec(object):
             ov.append((i, self.symbols.symbols_mem[x][0]))
         return ov
 
-    def eval_ir_expr(self, exprs):
+    def eval_ir_expr(self, assignblk):
+        """
+        Evaluate AssignBlock on the current state
+        @assignblk: AssignBlock instance
+        """
         pool_out = {}
 
         eval_cache = dict(self.symbols.items())
 
-        for e in exprs:
-            if not isinstance(e, m2_expr.ExprAff):
-                raise TypeError('not affect', str(e))
-
-            src = self.eval_expr(e.src, eval_cache)
-            if isinstance(e.dst, m2_expr.ExprMem):
-                a = self.eval_expr(e.dst.arg, eval_cache)
+        for dst, src in assignblk.iteritems():
+            src = self.eval_expr(src, eval_cache)
+            if isinstance(dst, m2_expr.ExprMem):
+                a = self.eval_expr(dst.arg, eval_cache)
                 a = self.expr_simp(a)
-                # search already present mem
-                tmp = None
                 # test if mem lookup is known
-                tmp = m2_expr.ExprMem(a, e.dst.size)
-                dst = tmp
+                tmp = m2_expr.ExprMem(a, dst.size)
+                pool_out[tmp] = src
+
+            elif isinstance(dst, m2_expr.ExprId):
                 pool_out[dst] = src
-
-            elif isinstance(e.dst, m2_expr.ExprId):
-                pool_out[e.dst] = src
             else:
-                raise ValueError("affected zarb", str(e.dst))
+                raise ValueError("affected zarb", str(dst))
 
-        return pool_out.items()
+        return pool_out.iteritems()
 
-    def eval_ir(self, ir):
+    def eval_ir(self, assignblk):
+        """
+        Apply an AssignBlock on the current state
+        @assignblk: AssignBlock instance
+        """
         mem_dst = []
-        src_dst = self.eval_ir_expr(ir)
+        src_dst = self.eval_ir_expr(assignblk)
         eval_cache = dict(self.symbols.items())
         for dst, src in src_dst:
             if isinstance(dst, m2_expr.ExprMem):
@@ -414,9 +417,14 @@ class symbexec(object):
                 mem_dst.append(dst)
         return mem_dst
 
-    def emulbloc(self, bloc_ir, step=False):
-        for ir in bloc_ir.irs:
-            self.eval_ir(ir)
+    def emulbloc(self, irb, step=False):
+        """
+        Symbolic execution of the @irb on the current state
+        @irb: irbloc instance
+        @step: display intermediate steps
+        """
+        for assignblk in irb.irs:
+            self.eval_ir(assignblk)
             if step:
                 print '_' * 80
                 self.dump_id()
@@ -461,6 +469,6 @@ class symbexec(object):
 
         # Update value if needed
         if isinstance(expr, m2_expr.ExprAff):
-            self.eval_ir([m2_expr.ExprAff(expr.dst, ret)])
+            self.eval_ir(AssignBlock([m2_expr.ExprAff(expr.dst, ret)]))
 
         return ret

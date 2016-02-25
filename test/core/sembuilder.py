@@ -57,5 +57,9 @@ for statement in res[0]:
     print statement
 
 print "[+] Blocks:"
-for block in res[1]:
-    print block
+for irb in res[1]:
+    print irb.label
+    for exprs in irb.irs:
+        for expr in exprs:
+            print expr
+        print

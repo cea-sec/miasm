@@ -16,19 +16,22 @@ def intra_bloc_flow_raw(ir_arch, flow_graph, irb):
     in_nodes = {}
     out_nodes = {}
     current_nodes = {}
-    for i, exprs in enumerate(irb.irs):
-        list_rw = get_list_rw(exprs)
+    for i, assignblk in enumerate(irb.irs):
+        dict_rw = assignblk.get_rw(cst_read=True)
+        if irb.label.offset == 0x13:
+            print irb.label
+            print i
+            print dict_rw
         current_nodes.update(out_nodes)
 
         # gen mem arg to mem node links
         all_mems = set()
-        for nodes_r, nodes_w in list_rw:
-            for n in nodes_r.union(nodes_w):
+        for node_w, nodes_r in dict_rw.iteritems():
+            for n in nodes_r.union([node_w]):
                 all_mems.update(get_expr_mem(n))
             if not all_mems:
                 continue
 
-            # print [str(x) for x in all_mems]
             for n in all_mems:
                 node_n_w = get_node_name(irb.label, i, n)
                 if not n in nodes_r:
@@ -44,7 +47,7 @@ def intra_bloc_flow_raw(ir_arch, flow_graph, irb):
                     flow_graph.add_uniq_edge(node_n_r, node_n_w)
 
         # gen data flow links
-        for nodes_r, nodes_w in list_rw:
+        for node_w, nodes_r in dict_rw.iteritems():
             for n_r in nodes_r:
                 if n_r in current_nodes:
                     node_n_r = current_nodes[n_r]
@@ -54,13 +57,12 @@ def intra_bloc_flow_raw(ir_arch, flow_graph, irb):
                     in_nodes[n_r] = node_n_r
 
                 flow_graph.add_node(node_n_r)
-                for n_w in nodes_w:
-                    node_n_w = get_node_name(irb.label, i + 1, n_w)
-                    out_nodes[n_w] = node_n_w
-                    # current_nodes[n_w] = node_n_w
 
-                    flow_graph.add_node(node_n_w)
-                    flow_graph.add_uniq_edge(node_n_r, node_n_w)
+                node_n_w = get_node_name(irb.label, i + 1, node_w)
+                out_nodes[node_w] = node_n_w
+
+                flow_graph.add_node(node_n_w)
+                flow_graph.add_uniq_edge(node_n_r, node_n_w)
     irb.in_nodes = in_nodes
     irb.out_nodes = out_nodes
 
