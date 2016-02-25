@@ -1323,6 +1323,17 @@ def MatchExpr(e, m, tks, result=None):
                 return False
         return result
 
+    elif isinstance(e, ExprAff):
+        if not isinstance(m, ExprAff):
+            return False
+        r = MatchExpr(e.src, m.src, tks, result)
+        if r is False:
+            return False
+        r = MatchExpr(e.dst, m.dst, tks, result)
+        if r is False:
+            return False
+        return result
+
     else:
         raise NotImplementedError("MatchExpr: Unknown type: %s" % type(e))
 
