@@ -319,7 +319,8 @@ def xadd(ir, instr, a, b):
     e += update_flag_arith(c)
     e += update_flag_af(a, b, c)
     e += update_flag_add(b, a, c)
-    e.append(m2_expr.ExprAff(b, a))
+    if a != b:
+        e.append(m2_expr.ExprAff(b, a))
     e.append(m2_expr.ExprAff(a, c))
     return e, []
 
