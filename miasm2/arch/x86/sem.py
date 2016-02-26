@@ -2537,7 +2537,7 @@ def fldcw(ir, instr, a):
 
 
 def fwait(ir, instr):
-    return [], None
+    return [], []
 
 
 def fcmovb(ir, instr, arg1, arg2):
@@ -2988,7 +2988,7 @@ def btr(ir, instr, a, b):
 
 
 def into(ir, instr):
-    return [], None
+    return [], []
 
 
 def l_in(ir, instr, a, b):
@@ -3105,12 +3105,12 @@ def lsl(ir, instr, a, b):
 
 def fclex(ir, instr):
     # XXX TODO
-    return [], None
+    return [], []
 
 
 def fnclex(ir, instr):
     # XXX TODO
-    return [], None
+    return [], []
 
 
 def l_str(ir, instr, a):
