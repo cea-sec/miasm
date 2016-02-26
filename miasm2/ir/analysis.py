@@ -51,7 +51,7 @@ class ira(ir):
         for idx, assignblk in enumerate(irb.irs):
             for dst in assignblk.keys():
                 if (isinstance(dst, ExprId) and
-                    (irb.label, idx, dst) not in useful):
+                        (irb.label, idx, dst) not in useful):
                     del assignblk[dst]
                     modified = True
         return modified
@@ -80,7 +80,7 @@ class ira(ir):
                     # Leaf has lost its son: don't remove anything
                     # reaching this block
                     for r in self.ira_regs_ids():
-                        useful.update(block.irs[-1].cur_reach[r].union(
+                        useful.update(block.irs[-1]._cur_reach[r].union(
                             block.irs[-1].defout[r]))
 
             # Function call, memory write or IRDst affectation
@@ -98,7 +98,7 @@ class ira(ir):
                 for r in self.get_out_regs(block):
                     useful.update(block.irs[-1].defout[r]
                                   if block.irs[-1].defout[r] else
-                                  block.irs[-1].cur_reach[r])
+                                  block.irs[-1]._cur_reach[r])
 
         return useful
 
@@ -127,14 +127,15 @@ class ira(ir):
             # Handle dependencies of used variables in ins
             for reg in ins.get_r(True).intersection(self.ira_regs_ids()):
                 worklist.update(
-                    assignblk.cur_reach[reg].difference(useful).difference(
-                        assignblk.cur_kill[reg]
+                    assignblk._cur_reach[reg].difference(useful).difference(
+                        assignblk._cur_kill[reg]
                         if not assignblk.defout[reg] else
                         set()))
                 for _, _, defout_dst in assignblk.defout[reg]:
                     # Loop case (dst in defout of current irb)
                     if defout_dst == dst:
-                        worklist.update(assignblk.cur_reach[reg].difference(useful))
+                        worklist.update(
+                            assignblk._cur_reach[reg].difference(useful))
         return useful
 
     def remove_dead_code(self):
@@ -147,6 +148,12 @@ class ira(ir):
         modified = False
         for block in self.blocs.values():
             modified |= self.remove_dead_instr(block, useful)
+            # Remove useless structures
+            for assignblk in block.irs:
+                del assignblk._cur_kill
+                del assignblk._prev_kill
+                del assignblk._cur_reach
+                del assignblk._prev_reach
         return modified
 
     def set_dead_regs(self, b):
@@ -171,12 +178,12 @@ class ira(ir):
                 print 'instr', assignblk
                 print 5 * "-"
                 for v in self.ira_regs_ids():
-                    if assignblk.cur_reach[v]:
+                    if assignblk._cur_reach[v]:
                         print 'REACH[%d][%s]' % (k, v)
-                        self.print_set(assignblk.cur_reach[v])
-                    if assignblk.cur_kill[v]:
+                        self.print_set(assignblk._cur_reach[v])
+                    if assignblk._cur_kill[v]:
                         print 'KILL[%d][%s]' % (k, v)
-                        self.print_set(assignblk.cur_kill[v])
+                        self.print_set(assignblk._cur_kill[v])
                     if assignblk.defout[v]:
                         print 'DEFOUT[%d][%s]' % (k, v)
                         self.print_set(assignblk.defout[v])
@@ -188,7 +195,7 @@ class ira(ir):
         """
 
         reach_block = {key: value.copy()
-                      for key, value in irb.irs[0].cur_reach.iteritems()}
+                       for key, value in irb.irs[0]._cur_reach.iteritems()}
 
         # Compute reach from predecessors
         for n_pred in self.graph.predecessors(irb.label):
@@ -198,17 +205,17 @@ class ira(ir):
             for c_reg in self.ira_regs_ids():
                 # REACH(n) = U[p in pred] DEFOUT(p) U REACH(p)\KILL(p)
                 pred_through = p_block.irs[-1].defout[c_reg].union(
-                    p_block.irs[-1].cur_reach[c_reg].difference(
-                        p_block.irs[-1].cur_kill[c_reg]))
+                    p_block.irs[-1]._cur_reach[c_reg].difference(
+                        p_block.irs[-1]._cur_kill[c_reg]))
                 reach_block[c_reg].update(pred_through)
 
         # If a predecessor has changed
-        if reach_block != irb.irs[0].cur_reach:
-            irb.irs[0].cur_reach = reach_block
+        if reach_block != irb.irs[0]._cur_reach:
+            irb.irs[0]._cur_reach = reach_block
             for c_reg in self.ira_regs_ids():
                 if irb.irs[0].defout[c_reg]:
                     # KILL(n) = DEFOUT(n) ? REACH(n)\DEFOUT(n) : EMPTY
-                    irb.irs[0].cur_kill[c_reg].update(
+                    irb.irs[0]._cur_kill[c_reg].update(
                         reach_block[c_reg].difference(irb.irs[0].defout[c_reg]))
 
         # Compute reach and kill for block's instructions
@@ -216,13 +223,13 @@ class ira(ir):
             for c_reg in self.ira_regs_ids():
                 # REACH(n) = U[p in pred] DEFOUT(p) U REACH(p)\KILL(p)
                 pred_through = irb.irs[i - 1].defout[c_reg].union(
-                    irb.irs[i - 1].cur_reach[c_reg].difference(
-                        irb.irs[i - 1].cur_kill[c_reg]))
-                irb.irs[i].cur_reach[c_reg].update(pred_through)
+                    irb.irs[i - 1]._cur_reach[c_reg].difference(
+                        irb.irs[i - 1]._cur_kill[c_reg]))
+                irb.irs[i]._cur_reach[c_reg].update(pred_through)
                 if irb.irs[i].defout[c_reg]:
                     # KILL(n) = DEFOUT(n) ? REACH(n)\DEFOUT(n) : EMPTY
-                    irb.irs[i].cur_kill[c_reg].update(
-                        irb.irs[i].cur_reach[c_reg].difference(
+                    irb.irs[i]._cur_kill[c_reg].update(
+                        irb.irs[i]._cur_reach[c_reg].difference(
                             irb.irs[i].defout[c_reg]))
 
     def _test_kill_reach_fix(self):
@@ -234,13 +241,13 @@ class ira(ir):
             if node in self.blocs:
                 irb = self.blocs[node]
                 for assignblk in irb.irs:
-                    if (assignblk.cur_reach != assignblk.prev_reach or
-                        assignblk.cur_kill != assignblk.prev_kill):
+                    if (assignblk._cur_reach != assignblk._prev_reach or
+                            assignblk._cur_kill != assignblk._prev_kill):
                         fixed = False
                         # This is not a deepcopy, but cur_reach is assigned to a
                         # new dictionnary on change in `compute_reach_block`
-                        assignblk.prev_reach = assignblk.cur_reach.copy()
-                        assignblk.prev_kill = assignblk.cur_kill.copy()
+                        assignblk._prev_reach = assignblk._cur_reach.copy()
+                        assignblk._prev_kill = assignblk._cur_kill.copy()
         return fixed
 
     def compute_reach(self):

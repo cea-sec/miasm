@@ -216,10 +216,10 @@ class irbloc(object):
                                                                   m2_expr.ExprId),
                                           elts)
         for idx, assignblk in enumerate(self.irs):
-            assignblk.cur_reach = {reg: set() for reg in regs_ids}
-            assignblk.prev_reach = {reg: set() for reg in regs_ids}
-            assignblk.cur_kill = {reg: set() for reg in regs_ids}
-            assignblk.prev_kill = {reg: set() for reg in regs_ids}
+            assignblk._cur_reach = {reg: set() for reg in regs_ids}
+            assignblk._prev_reach = {reg: set() for reg in regs_ids}
+            assignblk._cur_kill = {reg: set() for reg in regs_ids}
+            assignblk._prev_kill = {reg: set() for reg in regs_ids}
             # LineNumber -> dict:
             #               Register: set(definition(irb label, index))
             assignblk.defout = {reg: set() for reg in regs_ids}
