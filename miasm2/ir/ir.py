@@ -212,33 +212,20 @@ class irbloc(object):
         Initialize attributes needed for in/out and reach computation.
         @regs_ids : ids of registers used in IR
         """
-        self.r = []
-        self.w = []
-        self.cur_reach = [{reg: set() for reg in regs_ids}
-                          for _ in xrange(len(self.irs))]
-        self.prev_reach = [{reg: set() for reg in regs_ids}
-                           for _ in xrange(len(self.irs))]
-        self.cur_kill = [{reg: set() for reg in regs_ids}
-                         for _ in xrange(len(self.irs))]
-        self.prev_kill = [{reg: set() for reg in regs_ids}
-                          for _ in xrange(len(self.irs))]
-        # LineNumber -> dict:
-        #               Register: set(definition(irb label, index))
-        self.defout = [{reg: set() for reg in regs_ids}
-                       for _ in xrange(len(self.irs))]
         keep_exprid = lambda elts: filter(lambda expr: isinstance(expr,
                                                                   m2_expr.ExprId),
                                           elts)
         for idx, assignblk in enumerate(self.irs):
-            read, write = map(keep_exprid,
-                              (assignblk.get_r(mem_read=True),
-                               assignblk.get_w()))
-
-            self.defout[idx].update({dst: set([(self.label, idx, dst)])
+            assignblk.cur_reach = {reg: set() for reg in regs_ids}
+            assignblk.prev_reach = {reg: set() for reg in regs_ids}
+            assignblk.cur_kill = {reg: set() for reg in regs_ids}
+            assignblk.prev_kill = {reg: set() for reg in regs_ids}
+            # LineNumber -> dict:
+            #               Register: set(definition(irb label, index))
+            assignblk.defout = {reg: set() for reg in regs_ids}
+            assignblk.defout.update({dst: set([(self.label, idx, dst)])
                                      for dst in assignblk
                                      if isinstance(dst, m2_expr.ExprId)})
-            self.r.append(read)
-            self.w.append(write)
 
     def __str__(self):
         out = []
