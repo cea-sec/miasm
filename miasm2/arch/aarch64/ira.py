@@ -2,7 +2,7 @@
 #-*- coding:utf-8 -*-
 
 from miasm2.expression.expression import *
-from miasm2.ir.ir import ir, irbloc
+from miasm2.ir.ir import ir, irbloc, AssignBlock
 from miasm2.ir.analysis import ira
 from miasm2.arch.aarch64.sem import ir_aarch64l, ir_aarch64b
 from miasm2.arch.aarch64.regs import *
@@ -35,23 +35,14 @@ class ir_a_aarch64l(ir_a_aarch64l_base):
         b.rw[-1][1].add(self.arch.regs.of)
         b.rw[-1][1].add(self.arch.regs.cf)
 
-    def call_effects(self, ad):
-        irs = [[ExprAff(self.ret_reg, ExprOp('call_func_ret', ad, self.sp)),
-                ExprAff(self.sp, ExprOp('call_func_stack', ad, self.sp)),
-                ]]
-        return irs
-
     def post_add_bloc(self, bloc, ir_blocs):
         ir.post_add_bloc(self, bloc, ir_blocs)
         for irb in ir_blocs:
             pc_val = None
             lr_val = None
-            for exprs in irb.irs:
-                for e in exprs:
-                    if e.dst == PC:
-                        pc_val = e.src
-                    if e.dst == LR:
-                        lr_val = e.src
+            for assignblk in irb.irs:
+                pc_val = assignblk.get(PC, pc_val)
+                lr_val = assignblk.get(LR, lr_val)
             if pc_val is None or lr_val is None:
                 continue
             if not isinstance(lr_val, ExprInt):
@@ -60,10 +51,13 @@ class ir_a_aarch64l(ir_a_aarch64l_base):
             l = bloc.lines[-1]
             if lr_val.arg != l.offset + l.l:
                 continue
+
+            # CALL
             lbl = bloc.get_next()
             new_lbl = self.gen_label()
             irs = self.call_effects(pc_val)
-            irs.append([ExprAff(self.IRDst, ExprId(lbl, size=self.pc.size))])
+            irs.append(AssignBlock([ExprAff(self.IRDst,
+                                            ExprId(lbl, size=self.pc.size))]))
             nbloc = irbloc(new_lbl, irs)
             nbloc.lines = [l] * len(irs)
             self.blocs[new_lbl] = nbloc

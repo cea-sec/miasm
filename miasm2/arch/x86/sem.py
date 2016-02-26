@@ -319,7 +319,8 @@ def xadd(ir, instr, a, b):
     e += update_flag_arith(c)
     e += update_flag_af(a, b, c)
     e += update_flag_add(b, a, c)
-    e.append(m2_expr.ExprAff(b, a))
+    if a != b:
+        e.append(m2_expr.ExprAff(b, a))
     e.append(m2_expr.ExprAff(a, c))
     return e, []
 
@@ -2536,7 +2537,7 @@ def fldcw(ir, instr, a):
 
 
 def fwait(ir, instr):
-    return [], None
+    return [], []
 
 
 def fcmovb(ir, instr, arg1, arg2):
@@ -2987,7 +2988,7 @@ def btr(ir, instr, a, b):
 
 
 def into(ir, instr):
-    return [], None
+    return [], []
 
 
 def l_in(ir, instr, a, b):
@@ -3104,12 +3105,12 @@ def lsl(ir, instr, a, b):
 
 def fclex(ir, instr):
     # XXX TODO
-    return [], None
+    return [], []
 
 
 def fnclex(ir, instr):
     # XXX TODO
-    return [], None
+    return [], []
 
 
 def l_str(ir, instr, a):
@@ -3620,11 +3621,11 @@ def ps_rl_ll(ir, instr, a, b, op, size):
               m2_expr.ExprAff(ir.IRDst, lbl_next)]
 
     e_do = []
+    slices = []
     for i in xrange(0, a.size, size):
-        e.append(m2_expr.ExprAff(a[i:i + size], m2_expr.ExprOp(op,
-                                                               a[i:i + size],
-                                                               count[:size])))
-
+        slices.append((m2_expr.ExprOp(op,a[i:i + size], count[:size]),
+                       i, i + size))
+    e.append(m2_expr.ExprAff(a[0:a.size], m2_expr.ExprCompose(slices)))
     e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
     return e, [irbloc(lbl_do.name, [e_do]), irbloc(lbl_zero.name, [e_zero])]
 
@@ -3745,12 +3746,13 @@ def pcmpeqd(ir, instr, a, b):
 
 def punpck(ir, instr, a, b, size, off):
     e = []
+    slices = []
     for i in xrange(a.size / (2 * size)):
         src1 = a[size * i + off: size * i + off + size]
         src2 = b[size * i + off: size * i + off + size]
-        e.append(m2_expr.ExprAff(a[size * 2 * i: size * 2 * i + size], src1))
-        e.append(
-            m2_expr.ExprAff(a[size * (2 * i + 1): size * (2 * i + 1) + size], src2))
+        slices.append((src1, size * 2 * i, size * 2 * i + size))
+        slices.append((src2, size * (2 * i + 1), size * (2 * i + 1) + size))
+    e.append(m2_expr.ExprAff(a, m2_expr.ExprCompose(slices)))
     return e, []
 
 
@@ -4553,20 +4555,20 @@ class ir_x86_16(ir):
         return m2_expr.ExprAff(dst, src)
 
     def irbloc_fix_regs_for_mode(self, irbloc, mode=64):
-        for irs in irbloc.irs:
-            for i, e in enumerate(irs):
-                """
-                special case for 64 bits:
-                if destination is a 32 bit reg, zero extend the 64 bit reg
-                """
+        for assignblk in irbloc.irs:
+            for dst, src in assignblk.items():
+                del(assignblk[dst])
+                # Special case for 64 bits:
+                # If destination is a 32 bit reg, zero extend the 64 bit reg
                 if mode == 64:
-                    if (isinstance(e.dst, m2_expr.ExprId) and
-                            e.dst.size == 32 and
-                            e.dst in replace_regs[64]):
-                        src = self.expr_fix_regs_for_mode(e.src, mode)
-                        dst = replace_regs[64][e.dst].arg
-                        e = m2_expr.ExprAff(dst, src.zeroExtend(64))
-                irs[i] = self.expr_fix_regs_for_mode(e, mode)
+                    if (isinstance(dst, m2_expr.ExprId) and
+                            dst.size == 32 and
+                            dst in replace_regs[64]):
+                        src = src.zeroExtend(64)
+                        dst = replace_regs[64][dst].arg
+                dst = self.expr_fix_regs_for_mode(dst, mode)
+                src = self.expr_fix_regs_for_mode(src, mode)
+                assignblk[dst] = src
         irbloc.dst = self.expr_fix_regs_for_mode(irbloc.dst, mode)
 
 

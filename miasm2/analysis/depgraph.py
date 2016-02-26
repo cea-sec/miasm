@@ -832,11 +832,11 @@ class DependencyGraph(object):
             read = set()
             modifier = False
 
-            for affect in self._get_affblock(depnode):
-                if affect.dst == depnode.element:
-                    elements = self._follow_apply_cb(affect.src)
-                    read.update(elements)
-                    modifier = True
+            assignblk = self._get_affblock(depnode)
+            if depnode.element in assignblk:
+                elements = self._follow_apply_cb(assignblk[depnode.element])
+                read.update(elements)
+                modifier = True
 
             # If it's not a modifier affblock, reinject current element
             if not modifier:

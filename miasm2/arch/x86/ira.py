@@ -4,7 +4,7 @@
 from miasm2.expression.expression import ExprAff, ExprOp, ExprId
 from miasm2.core.graph import DiGraph
 from miasm2.core.asmbloc import expr_is_label
-from miasm2.ir.ir import ir, irbloc
+from miasm2.ir.ir import ir, irbloc, AssignBlock
 from miasm2.ir.analysis import ira
 from miasm2.arch.x86.sem import ir_x86_16, ir_x86_32, ir_x86_64
 
@@ -32,12 +32,6 @@ class ir_a_x86_16(ir_x86_16, ira):
         for b in leaves:
             self.set_dead_regs(b)
 
-    def call_effects(self, ad):
-        irs = [[ExprAff(self.ret_reg, ExprOp('call_func_ret', ad, self.sp)),
-                ExprAff(self.sp, ExprOp('call_func_stack', ad, self.sp)),
-                ]]
-        return irs
-
     def post_add_bloc(self, bloc, ir_blocs):
         ir.post_add_bloc(self, bloc, ir_blocs)
         if not bloc.lines:
@@ -49,8 +43,8 @@ class ir_a_x86_16(ir_x86_16, ira):
         sub_call_dst = l.args[0]
         if expr_is_label(sub_call_dst):
             sub_call_dst = sub_call_dst.name
-        for b in ir_blocs:
-            l = b.lines[-1]
+        for irb in ir_blocs:
+            l = irb.lines[-1]
             sub_call_dst = None
             if not l.is_subcall():
                 continue
@@ -60,12 +54,13 @@ class ir_a_x86_16(ir_x86_16, ira):
             lbl = bloc.get_next()
             new_lbl = self.gen_label()
             irs = self.call_effects(l.args[0])
-            irs.append([ExprAff(self.IRDst, ExprId(lbl, size=self.pc.size))])
+            irs.append(AssignBlock([ExprAff(self.IRDst,
+                                            ExprId(lbl, size=self.pc.size))]))
 
             nbloc = irbloc(new_lbl, irs)
-            nbloc.lines = [l]
+            nbloc.lines = [l] * len(irs)
             self.blocs[new_lbl] = nbloc
-            b.dst = ExprId(new_lbl, size=self.pc.size)
+            irb.dst = ExprId(new_lbl, size=self.pc.size)
         return
 
 
@@ -98,15 +93,16 @@ class ir_a_x86_64(ir_x86_64, ir_a_x86_16):
         self.ret_reg = self.arch.regs.RAX
 
     def call_effects(self, ad):
-        irs = [[ExprAff(self.ret_reg, ExprOp('call_func_ret', ad, self.sp,
-                                             self.arch.regs.RCX,
-                                             self.arch.regs.RDX,
-                                             self.arch.regs.R8,
-                                             self.arch.regs.R9,
-                                             )),
-                ExprAff(self.sp, ExprOp('call_func_stack', ad, self.sp)),
-                ]]
-        return irs
+        return [AssignBlock([ExprAff(self.ret_reg, ExprOp('call_func_ret', ad,
+                                                          self.sp,
+                                                          self.arch.regs.RCX,
+                                                          self.arch.regs.RDX,
+                                                          self.arch.regs.R8,
+                                                          self.arch.regs.R9,
+                                                          )),
+                             ExprAff(self.sp, ExprOp('call_func_stack',
+                                                     ad, self.sp)),
+                ])]
 
     def sizeof_char(self):
         return 8

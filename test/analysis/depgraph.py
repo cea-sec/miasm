@@ -2,7 +2,7 @@
 from miasm2.expression.expression import ExprId, ExprInt32, ExprAff, ExprCond
 from miasm2.core.asmbloc import asm_label
 from miasm2.ir.analysis import ira
-from miasm2.ir.ir import ir, irbloc
+from miasm2.ir.ir import ir, irbloc, AssignBlock
 from miasm2.core.graph import DiGraph
 from miasm2.analysis.depgraph import DependencyNode, DependencyGraph,\
     DependencyDict
@@ -48,13 +48,20 @@ LBL4 = asm_label("lbl4")
 LBL5 = asm_label("lbl5")
 LBL6 = asm_label("lbl6")
 
-
-def gen_irbloc(lbl, exprs):
+def gen_irbloc(label, exprs_list):
     """ Returns an IRBlock with empty lines.
     Used only for tests purpose
     """
-    lines = [None for _ in xrange(len(exprs))]
-    return irbloc(lbl, exprs, lines)
+    lines = [None for _ in xrange(len(exprs_list))]
+    irs = []
+    for exprs in exprs_list:
+        if isinstance(exprs, AssignBlock):
+            irs.append(exprs)
+        else:
+            irs.append(AssignBlock(exprs))
+
+    irbl = irbloc(label, irs, lines)
+    return irbl
 
 
 class Regs(object):

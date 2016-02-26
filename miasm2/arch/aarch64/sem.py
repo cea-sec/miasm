@@ -1,5 +1,5 @@
 from miasm2.expression import expression as m2_expr
-from miasm2.ir.ir import ir, irbloc
+from miasm2.ir.ir import ir, irbloc, AssignBlock
 from miasm2.arch.aarch64.arch import mn_aarch64, conds_expr, replace_regs
 from miasm2.arch.aarch64.regs import *
 from miasm2.core.sembuilder import SemBuilder
@@ -778,19 +778,21 @@ class ir_aarch64l(ir):
         return m2_expr.ExprAff(dst, src)
 
     def irbloc_fix_regs_for_mode(self, irbloc, mode=64):
-        for irs in irbloc.irs:
-            for i, e in enumerate(irs):
-                """
-                special case for 64 bits:
-                if destination is a 32 bit reg, zero extend the 64 bit reg
-                """
-                if (isinstance(e.dst, m2_expr.ExprId) and
-                        e.dst.size == 32 and
-                        e.dst in replace_regs):
-                    src = self.expr_fix_regs_for_mode(e.src)
-                    dst = replace_regs[e.dst].arg
-                    e = m2_expr.ExprAff(dst, src.zeroExtend(64))
-                irs[i] = self.expr_fix_regs_for_mode(e)
+        for assignblk in irbloc.irs:
+            for dst, src in assignblk.items():
+                del(assignblk[dst])
+                # Special case for 64 bits:
+                # If destination is a 32 bit reg, zero extend the 64 bit reg
+
+                if (isinstance(dst, m2_expr.ExprId) and
+                    dst.size == 32 and
+                    dst in replace_regs):
+                    src = src.zeroExtend(64)
+                    dst = replace_regs[dst].arg
+
+                dst = self.expr_fix_regs_for_mode(dst)
+                src = self.expr_fix_regs_for_mode(src)
+                assignblk[dst] = src
         irbloc.dst = self.expr_fix_regs_for_mode(irbloc.dst)
 
     def mod_pc(self, instr, instr_ir, extra_ir):

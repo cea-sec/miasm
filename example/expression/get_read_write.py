@@ -1,6 +1,8 @@
 from miasm2.arch.x86.arch import mn_x86
 from miasm2.expression.expression import get_rw
 from miasm2.arch.x86.ira import ir_a_x86_32
+
+
 print """
 Simple expression manipulation demo.
 Get read/written registers for a given instruction
