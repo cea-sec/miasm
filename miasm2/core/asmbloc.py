@@ -935,7 +935,7 @@ class AsmCFG(DiGraph):
             range_start, range_stop = cur_block.get_range()
 
             for off in block_dst:
-                if not (off > range_start and off <= range_stop):
+                if not (off > range_start and off < range_stop):
                     continue
 
                 # `cur_block` must be splitted at offset `off`
