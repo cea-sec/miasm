@@ -978,10 +978,19 @@ _expgraph = _parent >> _son
 def _merge_blocks(dg, graph):
     """Graph simplification merging asm_bloc with one and only one son with this
     son if this son has one and only one parent"""
+
+    # Blocks to ignore, because they have been removed from the graph
+    to_ignore = set()
+
     for match in _expgraph.match(graph):
 
         # Get matching blocks
         block, succ = match[_parent], match[_son]
+
+        # Ignore already deleted blocks
+        if (block in to_ignore or
+            succ in to_ignore):
+            continue
 
         # Remove block last instruction if needed
         last_instr = block.lines[-1]
@@ -1000,7 +1009,7 @@ def _merge_blocks(dg, graph):
             graph.add_edge(block, nextb, graph.edges2constraint[(succ, nextb)])
 
         graph.del_node(succ)
-        break
+        to_ignore.add(succ)
 
 
 bbl_simplifier = DiGraphSimplifier()
