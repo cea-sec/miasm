@@ -302,7 +302,7 @@ class DependencyResultImplicit(DependencyResult):
     unsat_expr = m2_expr.ExprAff(m2_expr.ExprInt(0, 1),
                                  m2_expr.ExprInt(1, 1))
 
-    def gen_path_constraints(self, translator, expr, expected):
+    def _gen_path_constraints(self, translator, expr, expected):
         """Generate path constraint from @expr. Handle special case with
         generated labels
         """
@@ -366,7 +366,7 @@ class DependencyResultImplicit(DependencyResult):
                 expected = symb_exec.eval_expr(m2_expr.ExprId(next_label,
                                                               size))
                 solver.add(
-                    self.gen_path_constraints(translator, dst, expected))
+                    self._gen_path_constraints(translator, dst, expected))
         # Save the solver
         self._solver = solver
 
@@ -543,23 +543,23 @@ class DependencyGraph(object):
         out.update(set(FollowExpr(False, expr) for expr in nofollow))
         return out
 
-    def _track_exprs(self, state, irs, line_nb):
-        """Track pending expression in an affblock"""
+    def _track_exprs(self, state, assignblk, line_nb):
+        """Track pending expression in an assignblock"""
         future_pending = {}
         node_resolved = set()
-        for expr in irs:
+        for dst, src in assignblk.iteritems():
             # Only track pending
-            if expr.dst not in state.pending:
+            if dst not in state.pending:
                 continue
             # Track IRDst in implicit mode only
-            if expr.dst == self._ira.IRDst and not self._implicit:
+            if dst == self._ira.IRDst and not self._implicit:
                 continue
-            assert expr.dst not in node_resolved
-            node_resolved.add(expr.dst)
-            dependencies = self._follow_apply_cb(expr.src)
+            assert dst not in node_resolved
+            node_resolved.add(dst)
+            dependencies = self._follow_apply_cb(src)
 
-            state.link_element(expr.dst, line_nb)
-            state.link_dependencies(expr.dst, line_nb,
+            state.link_element(dst, line_nb)
+            state.link_dependencies(dst, line_nb,
                                     dependencies, future_pending)
 
         # Update pending nodes
@@ -567,15 +567,14 @@ class DependencyGraph(object):
         state.add_pendings(future_pending)
 
     def _compute_intrablock(self, state):
-        """Resolve the dependencies of nodes in @depdict.pending inside
-        @depdict.label until a fixed point is reached.
-        @depdict: DependencyDict to update"""
+        """Follow dependencies tracked in @state in the current irbloc
+        @state: instance of DependencyState"""
 
         irb = self._ira.blocs[state.label]
         line_nb = len(irb.irs) if state.line_nb is None else state.line_nb
 
-        for cur_line_nb, irs in reversed(list(enumerate(irb.irs[:line_nb]))):
-            self._track_exprs(state, irs, cur_line_nb)
+        for cur_line_nb, assignblk in reversed(list(enumerate(irb.irs[:line_nb]))):
+            self._track_exprs(state, assignblk, cur_line_nb)
 
     def get(self, label, elements, line_nb, heads):
         """Compute the dependencies of @elements at line number @line_nb in

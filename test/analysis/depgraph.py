@@ -134,13 +134,13 @@ def bloc2graph(irgraph, label=False, lines=True):
             label_attr, label_name)
         block_html_lines = []
         if lines and irblock is not None:
-            for exprs in irblock.irs:
-                for expr in exprs:
+            for assignblk in irblock.irs:
+                for dst, src in assignblk.iteritems():
                     if False:
                         out_render = "%.8X</td><td %s> " % (0, td_attr)
                     else:
                         out_render = ""
-                    out_render += escape_chars.sub(fix_chars, str(expr))
+                    out_render += escape_chars.sub(fix_chars, "%s = %s" % (dst, src))
                     block_html_lines.append(out_render)
                 block_html_lines.append(" ")
             block_html_lines.pop()

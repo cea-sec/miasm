@@ -132,9 +132,11 @@ for bloc in blocs:
 
 # Simplify affectations
 for irb in ir_arch.blocs.values():
-    for irs in irb.irs:
-        for i, expr in enumerate(irs):
-            irs[i] = m2_expr.ExprAff(expr_simp(expr.dst), expr_simp(expr.src))
+    for assignblk in irb.irs:
+        for dst, src in assignblk.items():
+            del(assignblk[dst])
+            dst, src = expr_simp(dst), expr_simp(src)
+            assignblk[dst] = src
 
 # Get settings
 settings = depGraphSettingsForm(ir_arch)
@@ -183,7 +185,10 @@ def treat_element():
         comments[offset] = comments.get(offset, []) + [node.element]
         SetColor(offset, CIC_ITEM, settings.color)
 
-    print "Possible value: %s" % graph.emul().values()[0]
+    if graph.has_loop:
+        print 'Graph has dependency loop: symbolic execution is inexact'
+    else:
+        print "Possible value: %s" % graph.emul().values()[0]
 
     for offset, elements in comments.iteritems():
         MakeComm(offset, ", ".join(map(str, elements)))
