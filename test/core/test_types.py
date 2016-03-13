@@ -108,7 +108,7 @@ assert other == other2 # But same value
 ## Same stuff for Ptr to MemField
 alloc_addr = my_heap.vm_alloc(jitter.vm,
                               mstruct.get_type().get_field_type("i")
-                                     .dst_type.sizeof())
+                                     .dst_type.size)
 mstruct.i = alloc_addr
 mstruct.i.deref.val = 8
 assert mstruct.i.deref.val == 8

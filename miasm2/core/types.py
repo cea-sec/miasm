@@ -324,7 +324,7 @@ class Type(object):
 
     def _set_self_type(self, self_type):
         """If this field refers to MemSelf/Self, replace it with @self_type
-        (a MemType subclass) when using it. Generally not used outside this
+        (a Type instance) when using it. Generally not used outside this
         module.
         """
         self._self_type = self_type
@@ -406,7 +406,7 @@ class Ptr(Num):
         """
         @fmt: (str) Num compatible format that will be the Ptr representation
             in memory
-        @dst_type: (MemType or Type) the MemType this Ptr points to.
+        @dst_type: (MemType or Type) the Type this Ptr points to.
             If a Type is given, it is transformed into a MemType with
             TheType.lval.
         *type_args, **type_kwargs: arguments to pass to the the pointed
@@ -436,13 +436,12 @@ class Ptr(Num):
         self._type_kwargs = type_kwargs
 
     def _fix_dst_type(self):
-        if self._dst_type == MemSelf:
+        if self._dst_type in [MemSelf, SELF_TYPE_INSTANCE]:
             if self._get_self_type() is not None:
                 self._dst_type = self._get_self_type()
             else:
-                raise ValueError("Unsupported usecase for MemSelf, sorry")
-        if isinstance(self._dst_type, Type):
-            self._dst_type = self._dst_type.lval
+                raise ValueError("Unsupported usecase for (Mem)Self, sorry")
+        self._dst_type = to_type(self._dst_type)
 
     @property
     def dst_type(self):
@@ -473,15 +472,15 @@ class Ptr(Num):
         Equivalent to a pointer dereference rvalue in C.
         """
         dst_addr = self.get_val(vm, addr)
-        return self.dst_type(vm, dst_addr,
-                             *self._type_args, **self._type_kwargs)
+        return self.dst_type.lval(vm, dst_addr,
+                                  *self._type_args, **self._type_kwargs)
 
     def deref_set(self, vm, addr, val):
         """Serializes the @val MemType subclass instance in @vm (VmMngr) at
         @addr. Equivalent to a pointer dereference assignment in C.
         """
         # Sanity check
-        if self.dst_type != val.__class__:
+        if self.dst_type != val.get_type():
             log.warning("Original type was %s, overriden by value of type %s",
                         self._dst_type.__name__, val.__class__.__name__)
 
@@ -493,7 +492,7 @@ class Ptr(Num):
         return MemPtr
 
     def __repr__(self):
-        return "%s(%r)" % (self.__class__.__name__, self.dst_type.get_type())
+        return "%s(%r)" % (self.__class__.__name__, self.dst_type)
 
     def __eq__(self, other):
         return super(Ptr, self).__eq__(other) and \
@@ -1131,6 +1130,10 @@ class Self(Void):
 
     def _build_pinned_type(self):
         return MemSelf
+
+# To avoid reinstanciation when testing equality
+SELF_TYPE_INSTANCE = Self()
+VOID_TYPE_INSTANCE = Void()
 
 
 # MemType classes
