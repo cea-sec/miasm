@@ -3607,7 +3607,7 @@ def ps_rl_ll(ir, instr, a, b, op, size):
     e_do = []
     slices = []
     for i in xrange(0, a.size, size):
-        slices.append((m2_expr.ExprOp(op,a[i:i + size], count[:size]),
+        slices.append((m2_expr.ExprOp(op, a[i:i + size], count[:size]),
                        i, i + size))
     e.append(m2_expr.ExprAff(a[0:a.size], m2_expr.ExprCompose(slices)))
     e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
