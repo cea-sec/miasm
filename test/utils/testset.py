@@ -1,9 +1,10 @@
 import os
 import subprocess
 import sys
+import time
 from multiprocessing import cpu_count, Queue, Process
-from test import Test
 
+from test import Test
 
 class Message(object):
     "Message exchanged in the TestSet message queue"
@@ -136,6 +137,7 @@ class TestSet(object):
             test = todo_queue.get()
             if test is None:
                 break
+            test.start_time = time.time()
             message_queue.put(MessageTaskNew(test))
 
             # Go to the expected directory
