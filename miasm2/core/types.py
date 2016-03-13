@@ -124,6 +124,29 @@ def set_allocator(alloc_func):
 
 # Helpers
 
+def to_type(obj):
+    """If possible, return the Type associated with @obj, otherwise raises
+    a ValueError.
+
+    Works with a Type instance (returns obj) or a MemType subclass or instance
+    (returns obj.get_type()).
+    """
+    # obj is a python type
+    if isinstance(obj, type):
+        if issubclass(obj, MemType):
+            if obj.get_type() is None:
+                raise ValueError("%r has no static type; use a subclasses "
+                                 "with a non null _type or use a "
+                                 "Type instance" % obj)
+            return obj.get_type()
+    # obj is not not a type
+    else:
+        if isinstance(obj, Type):
+            return obj
+        elif isinstance(obj, MemType):
+            return obj.get_type()
+    raise ValueError("%r is not a Type or a MemType" % obj)
+
 def indent(s, size=4):
     """Indent a string with @size spaces"""
     return ' '*size + ('\n' + ' '*size).join(s.split('\n'))
@@ -538,12 +561,7 @@ class Struct(Type):
         real_fields = []
         uniq_count = 0
         for fname, field in fields:
-            if isinstance(field, type) and issubclass(field, MemType):
-                if field._type is None:
-                    raise ValueError("%r has no static type; use a subclasses "
-                                     "with a non null _type or use a "
-                                     "Type instance")
-                field = field.get_type()
+            field = to_type(field)
 
             # For reflexion
             field._set_self_type(self)
@@ -726,7 +744,8 @@ class Array(Type):
     """
 
     def __init__(self, field_type, array_len=None):
-        self.field_type = field_type
+        # Handle both Type instance and MemType subclasses
+        self.field_type = to_type(field_type)
         self.array_len = array_len
 
     def _set_self_type(self, self_type):
