@@ -597,22 +597,6 @@ def shrd(ir, instr, a, b, c):
     return _shift_tpl(">>>", ir, instr, a, b, c, "<<<")
 
 
-def sal(ir, instr, a, b):
-    e = []
-    shifter = get_shift(a, b)
-    c = m2_expr.ExprOp('a<<', a, shifter)
-    new_cf = (a >> (m2_expr.ExprInt_from(a, a.size) - shifter))[:1]
-    e.append(m2_expr.ExprAff(cf, m2_expr.ExprCond(shifter,
-                                                  new_cf,
-                                                  cf)
-                             )
-             )
-    e += update_flag_znp(c)
-    e.append(m2_expr.ExprAff(of, c.msb() ^ new_cf))
-    e.append(m2_expr.ExprAff(a, c))
-    return e, []
-
-
 def shl(ir, instr, a, b):
     return _shift_tpl("<<", ir, instr, a, b, left=True)
 
@@ -3995,7 +3979,7 @@ mnemo_func = {'mov': mov,
               'rcr': rcr,
               'sar': sar,
               'shr': shr,
-              'sal': sal,
+              'sal': shl,
               'shl': shl,
               'shld': shld,
               'cmc': cmc,
