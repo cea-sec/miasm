@@ -946,6 +946,14 @@ class AsmCFG(DiGraph):
                     log_asmbloc.error("Cannot split %x!!", off)
                     continue
 
+                # Remove pending from cur_block
+                # Links from new_b will be generated in rebuild_edges
+                for dst in new_b.bto:
+                    if dst.label not in self.pendings:
+                        continue
+                    self.pendings[dst.label] = set(pending for pending in self.pendings[dst.label]
+                                                   if pending.waiter != cur_block)
+
                 # The new block destinations may need to be disassembled
                 if dis_block_callback:
                     offsets_to_dis = set(constraint.label.offset
