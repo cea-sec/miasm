@@ -220,8 +220,6 @@ class TranslatorSMT2(Translator):
                     res = bvshl(res, arg)
                 elif expr.op == ">>":
                     res = bvlshr(res, arg)
-                elif expr.op == "a<<":
-                    res = bvshl(res, arg)
                 elif expr.op == "a>>":
                     res = bvashr(res, arg)
                 elif expr.op == "<<<":
