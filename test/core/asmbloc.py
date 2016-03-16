@@ -5,9 +5,8 @@ from miasm2.analysis.binary import Container
 from miasm2.core.asmbloc import AsmCFG, asm_constraint, asm_bloc, \
     asm_label, asm_block_bad, asm_constraint_to, asm_constraint_next, \
     bbl_simplifier
-from miasm2.core.graph import DiGraphSimplifier
+from miasm2.core.graph import DiGraphSimplifier, MatchGraphJoker
 from miasm2.expression.expression import ExprId
-
 
 # Initial data: from 'samples/simple_test.bin'
 data = "5589e583ec10837d08007509c745fc01100000eb73837d08017709c745fc02100000eb64837d08057709c745fc03100000eb55837d080774138b450801c083f80e7509c745fc04100000eb3c8b450801c083f80e7509c745fc05100000eb298b450883e03085c07409c745fc06100000eb16837d08427509c745fc07100000eb07c745fc081000008b45fcc9c3".decode("hex")
@@ -280,3 +279,30 @@ assert entry_block in preds
 assert tob in preds
 assert blocks.edges2constraint[(entry_block, newb)] == asm_constraint.c_next
 assert blocks.edges2constraint[(tob, newb)] == asm_constraint.c_to
+
+
+# Check double block split
+data = "74097405b8020000007405b803000000b804000000c3".decode('hex')
+cont = Container.from_string(data)
+mdis = dis_x86_32(cont.bin_stream)
+blocks = mdis.dis_multibloc(0)
+## Check resulting disasm
+assert len(blocks.nodes()) == 6
+blocks.sanity_check()
+## Check graph structure
+bbl0 = MatchGraphJoker(name="0")
+bbl2 = MatchGraphJoker(name="2")
+bbl4 = MatchGraphJoker(name="4")
+bbl9 = MatchGraphJoker(name="9")
+bblB = MatchGraphJoker(name="B")
+bbl10 = MatchGraphJoker(name="10")
+
+matcher = bbl0 >> bbl2 >> bbl4 >> bbl9 >> bblB >> bbl10
+matcher += bbl2 >> bbl9 >> bbl10
+matcher += bbl0 >> bblB
+
+solutions = list(matcher.match(blocks))
+assert len(solutions) == 1
+solution = solutions.pop()
+for jbbl, block in solution.iteritems():
+    assert block.label.offset == int(jbbl._name, 16)
