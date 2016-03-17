@@ -91,6 +91,9 @@ for sol_nb, sol in enumerate(dg.get(current_block.label, elements, line_nb, set(
         if sat:
             constraints = {}
             for element in sol.constraints:
-                constraints[element] = hex(
-                    sol.constraints[element].as_long())
+                try:
+                    result = hex(sol.constraints[element].as_long())
+                except AttributeError:
+                    result = str(sol.constraints[element])
+                constraints[element] = result
         print "\tSatisfiability: %s %s" % (sat, constraints)
