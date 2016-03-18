@@ -5,7 +5,7 @@ from miasm2.core.graph import DiGraph
 from miasm2.core.asmbloc import asm_label, expr_is_int_or_label, expr_is_label
 from miasm2.expression.simplifications import expr_simp
 from miasm2.ir.symbexec import symbexec
-from miasm2.ir.ir import irbloc
+from miasm2.ir.ir import irbloc, AssignBlock
 from miasm2.ir.translators import Translator
 from miasm2.expression.expression_helper import possible_values
 
@@ -258,6 +258,29 @@ class DependencyResult(DependencyState):
                               len(set(self.relevant_labels)))
         return self._has_loop
 
+    def irblock_slice(self, irb):
+        """Slice of the dependency nodes on the irblock @irb
+        @irb: irbloc instance
+        """
+
+        assignblks = []
+        line2elements = {}
+        for depnode in self.relevant_nodes:
+            if depnode.label != irb.label:
+                continue
+            line2elements.setdefault(depnode.line_nb,
+                                     set()).add(depnode.element)
+
+        for line_nb, elements in sorted(line2elements.iteritems()):
+            assignblk = AssignBlock()
+            for element in elements:
+                if element in irb.irs[line_nb]:
+                    # constants, label, ... are not in destination
+                    assignblk[element] = irb.irs[line_nb][element]
+            assignblks.append(assignblk)
+
+        return irbloc(irb.label, assignblks)
+
     def emul(self, ctx=None, step=False):
         """Symbolic execution of relevant nodes according to the history
         Return the values of inputs nodes' elements
@@ -270,21 +293,16 @@ class DependencyResult(DependencyState):
         ctx_init = self._ira.arch.regs.regs_init
         if ctx is not None:
             ctx_init.update(ctx)
-        depnodes = self.relevant_nodes
-        affects = []
+        assignblks = []
 
         # Build a single affectation block according to history
         for label in self.relevant_labels[::-1]:
-            affected_lines = set(depnode.line_nb for depnode in depnodes
-                                 if depnode.label == label)
-            irs = self._ira.blocs[label].irs
-            for line_nb in sorted(affected_lines):
-                affects.append(irs[line_nb])
+            assignblks += self.irblock_slice(self._ira.blocs[label]).irs
 
         # Eval the block
         temp_label = asm_label("Temp")
         symb_exec = symbexec(self._ira, ctx_init)
-        symb_exec.emulbloc(irbloc(temp_label, affects), step=step)
+        symb_exec.emulbloc(irbloc(temp_label, assignblks), step=step)
 
         # Return only inputs values (others could be wrongs)
         return {element: symb_exec.symbols[element]
@@ -338,27 +356,18 @@ class DependencyResultImplicit(DependencyResult):
         ctx_init = self._ira.arch.regs.regs_init
         if ctx is not None:
             ctx_init.update(ctx)
-        depnodes = self.relevant_nodes
         solver = z3.Solver()
         symb_exec = symbexec(self._ira, ctx_init)
-        temp_label = asm_label("Temp")
         history = self.history[::-1]
         history_size = len(history)
         translator = Translator.to_language("z3")
         size = self._ira.IRDst.size
 
         for hist_nb, label in enumerate(history):
-            # Build block with relevant lines only
-            affected_lines = set(depnode.line_nb for depnode in depnodes
-                                 if depnode.label == label)
-            irs = self._ira.blocs[label].irs
-            affects = []
-
-            for line_nb in sorted(affected_lines):
-                affects.append(irs[line_nb])
+            irb = self.irblock_slice(self._ira.blocs[label])
 
             # Emul the block and get back destination
-            dst = symb_exec.emulbloc(irbloc(temp_label, affects), step=step)
+            dst = symb_exec.emulbloc(irb, step=step)
 
             # Add constraint
             if hist_nb + 1 < history_size:
