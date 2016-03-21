@@ -1,0 +1,1 @@
+[{"EAX": "0x1", "EBX": "0x3", "has_loop": false}, {"EAX": "0x1", "EBX": "0x4", "has_loop": false}, {"EAX": "0x2", "EBX": "0x4", "has_loop": false}, {"EAX": "0x2", "EBX": "0x3", "has_loop": false}]

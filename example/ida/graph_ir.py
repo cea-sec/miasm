@@ -19,10 +19,11 @@ def color_irbloc(irbloc):
     lbl = '%s' % irbloc.label
     lbl = idaapi.COLSTR(lbl, idaapi.SCOLOR_INSN)
     o.append(lbl)
-    for i, expr in enumerate(irbloc.irs):
-        for e in expr:
-            s = expr2colorstr(ir_arch.arch.regs.all_regs_ids, e)
-            s = idaapi.COLSTR(s, idaapi.SCOLOR_INSN)
+    for assignblk in irbloc.irs:
+        for dst, src in sorted(assignblk.iteritems()):
+            dst_f = expr2colorstr(ir_arch.arch.regs.all_regs_ids, dst)
+            src_f = expr2colorstr(ir_arch.arch.regs.all_regs_ids, src)
+            s = idaapi.COLSTR("%s = %s" % (dst_f, src_f), idaapi.SCOLOR_INSN)
             o.append('    %s' % s)
         o.append("")
     o.pop()
@@ -119,7 +120,7 @@ print hex(ad)
 ab = mdis.dis_multibloc(ad)
 
 print "generating graph"
-open('asm_flow.dot', 'w').write(ab.graph.dot(label=True))
+open('asm_flow.dot', 'w').write(ab.dot())
 
 
 print "generating IR... %x" % ad
@@ -133,9 +134,11 @@ for b in ab:
 print "IR ok... %x" % ad
 
 for irb in ir_arch.blocs.values():
-    for irs in irb.irs:
-        for i, expr in enumerate(irs):
-            irs[i] = ExprAff(expr_simp(expr.dst), expr_simp(expr.src))
+    for assignblk in irb.irs:
+        for dst, src in assignblk.items():
+            del(assignblk[dst])
+            dst, src = expr_simp(dst), expr_simp(src)
+            assignblk[dst] = src
 
 out = ir_arch.graph.dot()
 open(os.path.join(tempfile.gettempdir(), 'graph.dot'), 'wb').write(out)
