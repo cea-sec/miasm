@@ -22,10 +22,18 @@ class RegressionTest(Test):
     - @base_dir: test/@base_dir
     - @tags: TAGS["regression"]"""
 
+    sample_dir = os.path.join("..", "samples")
+
     def __init__(self, *args, **kwargs):
         super(RegressionTest, self).__init__(*args, **kwargs)
         self.base_dir = os.path.join("test", self.base_dir)
         self.tags.append(TAGS["regression"])
+
+    @classmethod
+    def get_sample(cls, sample_name):
+        "Return the relative path of @sample_name"
+        return os.path.join(cls.sample_dir, sample_name)
+
 
 ## Architecture
 testset += RegressionTest(["x86/arch.py"], base_dir="arch",
@@ -241,6 +249,56 @@ testset += RegressionTest(["depgraph.py"], base_dir="analysis",
                                                         (12, 1), (13, 1),
                                                         (14, 1), (15, 1)))
                            for fname in fnames])
+
+## Degraph
+class TestDepgraph(RegressionTest):
+    """Dependency graph test"""
+    example_depgraph = os.path.join("..", "..", "example", "symbol_exec",
+                                    "depgraph.py")
+    launcher = "dg_check.py"
+
+
+    def __init__(self, test_nb, implicit, base_addr, target_addr, elements,
+                 *args, **kwargs):
+        super(TestDepgraph, self).__init__([self.launcher],
+                                           *args, **kwargs)
+        self.base_dir = os.path.join(self.base_dir, "analysis")
+        if implicit:
+            expected_fname = "dg_test_%.2d_implicit_expected.json"
+            self.tags.append(TAGS["z3"])
+        else:
+            expected_fname = "dg_test_%.2d_expected.json"
+
+        self.command_line += [
+            expected_fname % test_nb,
+            self.example_depgraph,
+            "-m", "x86_32",
+            "--json",
+            self.get_sample(os.path.join("x86_32",
+                                         "dg_test_%.2d.bin" % test_nb)),
+            hex(base_addr),
+            hex(target_addr)] + elements
+        if implicit:
+            self.command_line.append("-i")
+
+# Depgraph emulation regression test
+test_args = [(0x401000, 0x40100d, ["EAX"]),
+             (0x401000, 0x401011, ["EAX"]),
+             (0x401000, 0x401018, ["EAX"]),
+             (0x401000, 0x401011, ["EAX"]),
+             (0x401000, 0x401011, ["EAX"]),
+             (0x401000, 0x401016, ["EAX"]),
+             (0x401000, 0x401017, ["EAX"]),
+             (0x401000, 0x401012, ["EAX", "ECX"]),
+             (0x401000, 0x401012, ["ECX"]),
+             (0x401000, 0x40101f, ["EAX", "EBX"]),
+             (0x401000, 0x401025, ["EAX", "EBX"]),
+]
+for i, test_args in enumerate(test_args):
+    test_dg = SemanticTestAsm("x86_32", "PE", ["dg_test_%.2d" % i])
+    testset += test_dg
+    testset += TestDepgraph(i, False, *test_args, depends=[test_dg])
+    testset += TestDepgraph(i, True, *test_args, depends=[test_dg])
 
 ## Jitter
 for script in ["jitload.py",
