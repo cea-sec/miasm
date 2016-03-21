@@ -1,5 +1,6 @@
 from argparse import ArgumentParser
 from pdb import pm
+import json
 
 from miasm2.analysis.machine import Machine
 from miasm2.analysis.binary import Container
@@ -23,6 +24,9 @@ parser.add_argument("--do-not-simplify", help="Do not simplify expressions",
                     action="store_true")
 parser.add_argument("--rename-args",
                     help="Rename common arguments (@32[ESP_init] -> Arg1)",
+                    action="store_true")
+parser.add_argument("--json",
+                    help="Output solution in JSON",
                     action="store_true")
 args = parser.parse_args()
 
@@ -76,24 +80,43 @@ for line_nb, line in enumerate(current_block.lines):
         break
 
 # Enumerate solutions
+json_solutions = []
 for sol_nb, sol in enumerate(dg.get(current_block.label, elements, line_nb, set())):
     fname = "sol_%d.dot" % sol_nb
     with open(fname, "w") as fdesc:
             fdesc.write(sol.graph.dot())
-    result = ", ".join("%s: %s" % (k, v)
-                       for k, v in sol.emul(ctx=init_ctx).iteritems())
-    print "Solution %d: %s -> %s" % (sol_nb,
-                                     result,
-                                     fname)
+
+    results = sol.emul(ctx=init_ctx)
+    tokens = {str(k): str(v) for k, v in results.iteritems()}
+    if not args.json:
+        result = ", ".join("=".join(x) for x in tokens.iteritems())
+        print "Solution %d: %s -> %s" % (sol_nb,
+                                         result,
+                                         fname)
+        if sol.has_loop:
+            print '\tLoop involved'
+
     if args.implicit:
         sat = sol.is_satisfiable
-        constraints = ""
+        constraints = {}
         if sat:
-            constraints = {}
             for element in sol.constraints:
                 try:
                     result = hex(sol.constraints[element].as_long())
                 except AttributeError:
                     result = str(sol.constraints[element])
                 constraints[element] = result
-        print "\tSatisfiability: %s %s" % (sat, constraints)
+        if args.json:
+            tokens["satisfiability"] = sat
+            tokens["constraints"] = {str(k): str(v)
+                                     for k, v in constraints.iteritems()}
+        else:
+            print "\tSatisfiability: %s %s" % (sat, constraints)
+
+    if args.json:
+        tokens["has_loop"] = sol.has_loop
+        json_solutions.append(tokens)
+
+
+if args.json:
+    print json.dumps(json_solutions)
