@@ -459,6 +459,10 @@ testset += ExampleDisasmFull(["x86_64", Example.get_sample("demo_x86_64.bin"),
                               "0x401000"], depends=[test_x86_64])
 testset += ExampleDisasmFull(["aarch64l", Example.get_sample("md5_aarch64l"),
                               "0x400A00"], depends=[test_aarch64l])
+testset += ExampleDisasmFull(["x86_32", os.path.join("..", "..", "test",
+                                                     "arch", "x86", "qemu",
+                                                     "test-i386"),
+                              "func_iret"])
 
 
 ## Expression

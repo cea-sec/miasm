@@ -78,7 +78,7 @@ mn, dis_engine = machine.mn, machine.dis_engine
 ira, ir = machine.ira, machine.ir
 log.info('ok')
 
-mdis = dis_engine(bs)
+mdis = dis_engine(bs, symbol_pool=cont.symbol_pool)
 # configure disasm engine
 mdis.dontdis_retcall = args.dontdis_retcall
 mdis.blocs_wd = args.blockwatchdog
@@ -86,7 +86,13 @@ mdis.dont_dis_nulstart_bloc = not args.dis_nulstart_block
 mdis.follow_call = args.followcall
 
 todo = []
-addrs = [int(a, 0) for a in args.address]
+addrs = []
+for addr in args.address:
+    try:
+        addrs.append(int(addr, 0))
+    except ValueError:
+        # Second chance, try with symbol
+        addrs.append(mdis.symbol_pool.getby_name(addr).offset)
 
 if len(addrs) == 0 and default_addr is not None:
     addrs.append(default_addr)
