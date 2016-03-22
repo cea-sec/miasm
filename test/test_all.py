@@ -511,7 +511,7 @@ for options, nb_sol, tag in [([], 8, []),
     testset += ExampleSymbolExec(["depgraph.py",
                                   Example.get_sample("simple_test.bin"),
                                   "-m", "x86_32", "0x0", "0x8b",
-                                  "eax"] + options,
+                                  "EAX"] + options,
                                  products=["sol_%d.dot" % nb
                                            for nb in xrange(nb_sol)],
                                  tags=tag)
@@ -521,7 +521,7 @@ for options, nb_sol, tag in [([], 4, []),
     testset += ExampleSymbolExec(["depgraph.py",
                                   Example.get_sample("x86_32_if_reg.bin"),
                                   "-m", "x86_32", "0x0", "0x19",
-                                  "eax"] + options,
+                                  "EAX"] + options,
                                  products=["sol_%d.dot" % nb
                                            for nb in xrange(nb_sol)],
                                  depends=[test_x86_32_if_reg],

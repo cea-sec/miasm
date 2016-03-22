@@ -92,7 +92,10 @@ Method to use:
     @property
     def elements(self):
         value = self.cbReg.value
-        return set([ir_arch.arch.regs.all_regs_ids_byname[value]])
+        reg = ir_arch.arch.regs.all_regs_ids_byname.get(value, None)
+        if reg is None:
+            raise ValueError("Unknown element '%s'!" % value)
+        return set([reg])
 
     @property
     def depgraph(self):
