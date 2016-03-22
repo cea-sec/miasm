@@ -42,7 +42,7 @@ elements = set()
 regs = machine.mn.regs.all_regs_ids_byname
 for element in args.element:
     try:
-        elements.add(regs[element.upper()])
+        elements.add(regs[element])
     except KeyError:
         raise ValueError("Unknown element '%s'" % element)
 
