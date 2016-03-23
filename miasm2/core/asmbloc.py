@@ -1256,11 +1256,50 @@ def asm_resolve_final(mnemo, blocks, symbol_pool, dst_interval=None):
 
 class disasmEngine(object):
 
+    """Disassembly engine, taking care of disassembler options and mutli-block
+    strategy.
+
+    Engine options:
+
+    + Object supporting membership test (offset in ..)
+     - dont_dis: stop the current disassembly branch if reached
+     - split_dis: force a basic block end if reached,
+                  with a next constraint on its successor
+
+    + On/Off
+     - follow_call: recursively disassemble CALL destinations
+     - dontdis_retcall: stop on CALL return addresses
+     - dont_dis_nulstart_bloc: stop if a block begin with a few \x00
+
+    + Number
+     - lines_wd: maximum block's size (in number of instruction)
+     - blocs_wd: maximum number of distinct disassembled block
+
+    + callback(arch, attrib, pool_bin, cur_bloc, offsets_to_dis,
+               symbol_pool)
+     - dis_bloc_callback: callback after each new disassembled block
+
+    The engine also tracks already handled block, for performance and to avoid
+    infinite cycling.
+    Addresses of disassembled block is in the attribute `job_done`.
+    To force a new disassembly, the targeted offset must first be removed from
+    this structure.
+    """
+
     def __init__(self, arch, attrib, bin_stream, **kwargs):
+        """Instanciate a new disassembly engine
+        @arch: targeted architecture
+        @attrib: architecture attribute
+        @bin_stream: bytes source
+        @kwargs: (optional) custom options
+        """
         self.arch = arch
         self.attrib = attrib
         self.bin_stream = bin_stream
         self.symbol_pool = asm_symbol_pool()
+        self.job_done = set()
+
+        # Setup options
         self.dont_dis = []
         self.split_dis = []
         self.follow_call = False
@@ -1269,10 +1308,15 @@ class disasmEngine(object):
         self.blocs_wd = None
         self.dis_bloc_callback = None
         self.dont_dis_nulstart_bloc = False
-        self.job_done = set()
+
+        # Override options if needed
         self.__dict__.update(kwargs)
 
     def _dis_bloc(self, offset):
+        """Disassemble the block at offset @offset
+        Return the created asm_bloc and future offsets to disassemble
+        """
+
         lines_cpt = 0
         in_delayslot = False
         delayslot_count = self.arch.delayslot
@@ -1400,10 +1444,21 @@ class disasmEngine(object):
         return cur_block, offsets_to_dis
 
     def dis_bloc(self, offset):
+        """Disassemble the block at offset @offset and return the created
+        asm_bloc
+        @offset: targeted offset to disassemble
+        """
         current_block, _ = self._dis_bloc(offset)
         return current_block
 
     def dis_multibloc(self, offset, blocs=None):
+        """Disassemble every block reachable from @offset regarding
+        specific disasmEngine conditions
+        Return an AsmCFG instance containing disassembled blocks
+        @offset: starting offset
+        @blocs: (optional) AsmCFG instance of already disassembled blocks to
+                merge with
+        """
         log_asmbloc.info("dis bloc all")
         if blocs is None:
             blocs = AsmCFG()
@@ -1416,12 +1471,11 @@ class disasmEngine(object):
                 log_asmbloc.debug("blocs watchdog reached at %X", int(offset))
                 break
 
-            n = int(todo.pop(0))
-            if n is None:
+            target_offset = int(todo.pop(0))
+            if (target_offset is None or
+                    target_offset in self.job_done):
                 continue
-            if n in self.job_done:
-                continue
-            cur_block, nexts = self._dis_bloc(n)
+            cur_block, nexts = self._dis_bloc(target_offset)
             todo += nexts
             blocs.add_node(cur_block)
 
