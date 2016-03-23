@@ -122,8 +122,11 @@ class JitCore(object):
         b.irblocs = irblocs
         self.jitirblocs(b.label, irblocs)
 
-    def disbloc(self, addr, cpu, vm):
-        "Disassemble a new bloc and JiT it"
+    def disbloc(self, addr, vm):
+        """Disassemble a new bloc and JiT it
+        @addr: address of the block to disassemble (asm_label or int)
+        @vm: VmMngr instance
+        """
 
         # Get the bloc
         if isinstance(addr, asmbloc.asm_label):
@@ -181,7 +184,7 @@ class JitCore(object):
 
         if not lbl in self.lbl2jitbloc:
             # Need to JiT the bloc
-            self.disbloc(lbl, cpu, vm)
+            self.disbloc(lbl, vm)
 
         # Run the bloc and update cpu/vmmngr state
         ret = self.jit_call(lbl, cpu, vm, breakpoints)
