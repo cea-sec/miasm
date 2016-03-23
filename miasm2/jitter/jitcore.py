@@ -76,9 +76,8 @@ class JitCore(object):
         """The disassembly engine will no longer stop on address in args"""
         self.split_dis.difference_update(set(args))
 
-    def load(self, arch, attrib):
-        "Initialise the Jitter according to arch and attrib"
-
+    def load(self):
+        "Initialise the Jitter"
         raise NotImplementedError("Abstract class")
 
     def get_bloc_min_max(self, cur_bloc):
