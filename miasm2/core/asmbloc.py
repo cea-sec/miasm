@@ -1433,10 +1433,10 @@ def asm_resolve_final(mnemo, blocks, symbol_pool, dst_interval=None):
 
 class disasmEngine(object):
 
-    def __init__(self, arch, attrib, bs=None, **kwargs):
+    def __init__(self, arch, attrib, bin_stream, **kwargs):
         self.arch = arch
         self.attrib = attrib
-        self.bs = bs
+        self.bin_stream = bin_stream
         self.symbol_pool = asm_symbol_pool()
         self.dont_dis = []
         self.split_dis = []
@@ -1451,7 +1451,7 @@ class disasmEngine(object):
 
     def dis_bloc(self, offset):
         label = self.symbol_pool.getby_offset_create(offset)
-        current_block, _ = dis_bloc(self.arch, self.bs, label, offset,
+        current_block, _ = dis_bloc(self.arch, self.bin_stream, label, offset,
                                     self.job_done, self.symbol_pool,
                                     dont_dis=self.dont_dis,
                                     split_dis=self.split_dis,
@@ -1464,7 +1464,7 @@ class disasmEngine(object):
         return current_block
 
     def dis_multibloc(self, offset, blocs=None):
-        blocs = dis_bloc_all(self.arch, self.bs, offset, self.job_done,
+        blocs = dis_bloc_all(self.arch, self.bin_stream, offset, self.job_done,
                              self.symbol_pool,
                              dont_dis=self.dont_dis, split_dis=self.split_dis,
                              follow_call=self.follow_call,
