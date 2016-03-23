@@ -478,6 +478,34 @@ class DiGraph(object):
         """Performs a depth first search on the reversed graph from @head"""
         return self._walk_generic_first(head, -1, self.predecessors_iter)
 
+    def has_loop(self):
+        """Return True if the graph contains at least a cycle"""
+        todo = list(self.nodes())
+        # tested nodes
+        done = set()
+        # current DFS nodes
+        current = set()
+        while todo:
+            node = todo.pop()
+            if node in done:
+                continue
+
+            if node in current:
+                # DFS branch end
+                for succ in self.successors_iter(node):
+                    if succ in current:
+                        return True
+                # A node cannot be in current AND in done
+                current.remove(node)
+                done.add(node)
+            else:
+                # Launch DFS from node
+                todo.append(node)
+                current.add(node)
+                todo += self.successors(node)
+
+        return False
+
     def compute_natural_loops(self, head):
         """
         Computes all natural loops in the graph.

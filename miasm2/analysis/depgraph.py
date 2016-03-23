@@ -252,10 +252,10 @@ class DependencyResult(DependencyState):
 
     @property
     def has_loop(self):
-        """True if current dictionary has a loop"""
+        """True iff there is at least one data dependencies cycle (regarding
+        the associated depgraph)"""
         if self._has_loop is None:
-            self._has_loop = (len(self.relevant_labels) !=
-                              len(set(self.relevant_labels)))
+            self._has_loop = self.graph.has_loop()
         return self._has_loop
 
     def irblock_slice(self, irb):
