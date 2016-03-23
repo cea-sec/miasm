@@ -148,13 +148,15 @@ def build_ldr_data(jitter, modules_info):
     +0x00c InLoadOrderModuleList           : _LIST_ENTRY
     +0x014 InMemoryOrderModuleList         : _LIST_ENTRY
     +0x01C InInitializationOrderModuleList         : _LIST_ENTRY
+    # dummy dll base
+    +0x024 DllBase : Ptr32 Void
 
     @jitter: jitter instance
     @modules_info: LoadedModules instance
 
     """
     # ldr offset pad
-    offset = LDR_AD + peb_ldr_data_offset + 0xC
+    offset = peb_ldr_data_address + 0xC
 
     # get main pe info
     main_pe = modules_info.name2module.get(main_pe_name, None)
@@ -177,6 +179,11 @@ def build_ldr_data(jitter, modules_info):
     if data:
         jitter.vm.add_memory_page(offset, PAGE_READ | PAGE_WRITE, data,
                                   "Loader struct")
+
+    # Add dummy dll base
+    jitter.vm.add_memory_page(peb_ldr_data_address + 0x24,
+                              PAGE_READ | PAGE_WRITE, pck32(0),
+                              "Loader struct dummy dllbase")
 
 
 class LoadedModules(object):
@@ -238,13 +245,8 @@ def create_modules_chain(jitter, name2module):
     offset_name = 0x500
     offset_path = 0x600
 
-    dummy_e = pe_init.PE()
-    dummy_e.NThdr.ImageBase = 0
-    dummy_e.Opthdr.AddressOfEntryPoint = 0
-    dummy_e.NThdr.sizeofimage = 0
-
     out = ""
-    for i, (fname, pe_obj) in enumerate([("", dummy_e)] + name2module.items()):
+    for i, (fname, pe_obj) in enumerate(name2module.items(), 1):
         if pe_obj is None:
             log.warning("Unknown module: ommited from link list (%r)",
                         fname)
@@ -291,9 +293,25 @@ def create_modules_chain(jitter, name2module):
     return modules_info
 
 
+def set_link_list_entry(jitter, loaded_modules, modules_info, offset):
+    for i, module in enumerate(loaded_modules):
+        cur_module_entry = modules_info.module2entry[module]
+        prev_module = loaded_modules[(i - 1) % len(loaded_modules)]
+        next_module = loaded_modules[(i + 1) % len(loaded_modules)]
+        prev_module_entry = modules_info.module2entry[prev_module]
+        next_module_entry = modules_info.module2entry[next_module]
+        if i == 0:
+            prev_module_entry = peb_ldr_data_address + 0xC
+        if i == len(loaded_modules) - 1:
+            next_module_entry = peb_ldr_data_address + 0xC
+        jitter.vm.set_mem(cur_module_entry + offset,
+                          (pck32(next_module_entry + offset) +
+                           pck32(prev_module_entry + offset)))
+
+
 def fix_InLoadOrderModuleList(jitter, modules_info):
     """Fix InLoadOrderModuleList double link list. First module is the main pe,
-    then ntdll, kernel32. dummy is last pe.
+    then ntdll, kernel32.
 
     @jitter: the jitter instance
     @modules_info: the LoadedModules instance
@@ -303,8 +321,7 @@ def fix_InLoadOrderModuleList(jitter, modules_info):
     main_pe = modules_info.name2module.get(main_pe_name, None)
     kernel32_pe = modules_info.name2module.get("kernel32.dll", None)
     ntdll_pe = modules_info.name2module.get("ntdll.dll", None)
-    dummy_pe = modules_info.name2module.get("", None)
-    special_modules = [main_pe, kernel32_pe, ntdll_pe, dummy_pe]
+    special_modules = [main_pe, kernel32_pe, ntdll_pe]
     if not all(special_modules):
         log.warn(
             'No main pe, ldr data will be unconsistant %r', special_modules)
@@ -315,22 +332,13 @@ def fix_InLoadOrderModuleList(jitter, modules_info):
         loaded_modules[0:0] = [main_pe]
         loaded_modules[1:1] = [ntdll_pe]
         loaded_modules[2:2] = [kernel32_pe]
-        loaded_modules.append(dummy_pe)
 
-    for i, module in enumerate(loaded_modules):
-        cur_module_entry = modules_info.module2entry[module]
-        prev_module = loaded_modules[(i - 1) % len(loaded_modules)]
-        next_module = loaded_modules[(i + 1) % len(loaded_modules)]
-        prev_module_entry = modules_info.module2entry[prev_module]
-        next_module_entry = modules_info.module2entry[next_module]
-        jitter.vm.set_mem(cur_module_entry,
-                          (pck32(next_module_entry) +
-                           pck32(prev_module_entry)))
+    set_link_list_entry(jitter, loaded_modules, modules_info, 0x0)
 
 
 def fix_InMemoryOrderModuleList(jitter, modules_info):
     """Fix InMemoryOrderLinks double link list. First module is the main pe,
-    then ntdll, kernel32. dummy is last pe.
+    then ntdll, kernel32.
 
     @jitter: the jitter instance
     @modules_info: the LoadedModules instance
@@ -340,8 +348,7 @@ def fix_InMemoryOrderModuleList(jitter, modules_info):
     main_pe = modules_info.name2module.get(main_pe_name, None)
     kernel32_pe = modules_info.name2module.get("kernel32.dll", None)
     ntdll_pe = modules_info.name2module.get("ntdll.dll", None)
-    dummy_pe = modules_info.name2module.get("", None)
-    special_modules = [main_pe, kernel32_pe, ntdll_pe, dummy_pe]
+    special_modules = [main_pe, kernel32_pe, ntdll_pe]
     if not all(special_modules):
         log.warn('No main pe, ldr data will be unconsistant')
         loaded_modules = modules_info.modules
@@ -351,22 +358,13 @@ def fix_InMemoryOrderModuleList(jitter, modules_info):
         loaded_modules[0:0] = [main_pe]
         loaded_modules[1:1] = [ntdll_pe]
         loaded_modules[2:2] = [kernel32_pe]
-        loaded_modules.append(dummy_pe)
 
-    for i, module in enumerate(loaded_modules):
-        cur_module_entry = modules_info.module2entry[module]
-        prev_module = loaded_modules[(i - 1) % len(loaded_modules)]
-        next_module = loaded_modules[(i + 1) % len(loaded_modules)]
-        prev_module_entry = modules_info.module2entry[prev_module]
-        next_module_entry = modules_info.module2entry[next_module]
-        jitter.vm.set_mem(cur_module_entry + 0x8,
-                          (pck32(next_module_entry + 0x8) +
-                           pck32(prev_module_entry + 0x8)))
+    set_link_list_entry(jitter, loaded_modules, modules_info, 0x8)
 
 
 def fix_InInitializationOrderModuleList(jitter, modules_info):
     """Fix InInitializationOrderModuleList double link list. First module is the
-    ntdll, then kernel32. dummy is last pe.
+    ntdll, then kernel32.
 
     @jitter: the jitter instance
     @modules_info: the LoadedModules instance
@@ -377,8 +375,7 @@ def fix_InInitializationOrderModuleList(jitter, modules_info):
     main_pe = modules_info.name2module.get(main_pe_name, None)
     kernel32_pe = modules_info.name2module.get("kernel32.dll", None)
     ntdll_pe = modules_info.name2module.get("ntdll.dll", None)
-    dummy_pe = modules_info.name2module.get("", None)
-    special_modules = [main_pe, kernel32_pe, ntdll_pe, dummy_pe]
+    special_modules = [main_pe, kernel32_pe, ntdll_pe]
     if not all(special_modules):
         log.warn('No main pe, ldr data will be unconsistant')
         loaded_modules = modules_info.modules
@@ -387,17 +384,8 @@ def fix_InInitializationOrderModuleList(jitter, modules_info):
                           if module not in special_modules]
         loaded_modules[0:0] = [ntdll_pe]
         loaded_modules[1:1] = [kernel32_pe]
-        loaded_modules.append(dummy_pe)
 
-    for i, module in enumerate(loaded_modules):
-        cur_module_entry = modules_info.module2entry[module]
-        prev_module = loaded_modules[(i - 1) % len(loaded_modules)]
-        next_module = loaded_modules[(i + 1) % len(loaded_modules)]
-        prev_module_entry = modules_info.module2entry[prev_module]
-        next_module_entry = modules_info.module2entry[next_module]
-        jitter.vm.set_mem(cur_module_entry + 0x10,
-                          (pck32(next_module_entry + 0x10) +
-                           pck32(prev_module_entry + 0x10)))
+    set_link_list_entry(jitter, loaded_modules, modules_info, 0x10)
 
 
 def add_process_env(jitter):
