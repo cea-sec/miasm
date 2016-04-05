@@ -15,7 +15,6 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
-import math
 
 
 class bin_stream(object):
@@ -78,7 +77,9 @@ class bin_stream(object):
         # Get initial bytes
         if n > self.getlen() * 8:
             raise IOError('not enough bits %r %r' % (n, len(self.bin) * 8))
-        temp = self.getbytes(start / 8, int(math.ceil(n / 8.)))
+        byte_start = start / 8
+        byte_stop = (start + n + 7) / 8
+        temp = self.getbytes(byte_start, byte_stop - byte_start)
         if not temp:
             raise IOError('cannot get bytes')
 
