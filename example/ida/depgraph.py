@@ -11,11 +11,15 @@ from miasm2.analysis.depgraph import DependencyGraph
 from utils import guess_machine
 
 
+
 class depGraphSettingsForm(Form):
 
     def __init__(self, ira):
 
         self.ira = ira
+        self.stk_args = {'ARG%d' % i:i for i in xrange(10)}
+        self.stk_unalias_force = False
+
         self.address = ScreenEA()
         cur_bloc = list(ira.getby_offset(self.address))[0]
         for line_nb, l in enumerate(cur_bloc.lines):
@@ -24,6 +28,7 @@ class depGraphSettingsForm(Form):
         cur_label = str(cur_bloc.label)
         labels = sorted(map(str, ira.blocs.keys()))
         regs = sorted(ir_arch.arch.regs.all_regs_ids_byname.keys())
+        regs += self.stk_args.keys()
         reg_default = regs[0]
         for i in xrange(10):
             opnd = GetOpnd(self.address, i).upper()
@@ -45,10 +50,13 @@ Track the element:
 <Register to track:{cbReg}>
 <Line number:{iLineNb}>
 
+INFO: To track stack argument number n, use "ARGn"
+
 Method to use:
 <Follow Memory:{rNoMem}>
 <Follow Call:{rNoCall}>
-<Implicit dependencies:{rImplicit}>{cMethod}>
+<Implicit dependencies:{rImplicit}>
+<Unalias stack:{rUnaliasStack}>{cMethod}>
 
 <Highlight color:{cColor}>
 """, {
@@ -58,7 +66,8 @@ Method to use:
                     selval=reg_default),
             'cMode': Form.RadGroupControl(("rBeforeLine", "rAfterLine",
                                            "rEndBlock")),
-            'cMethod': Form.ChkGroupControl(("rNoMem", "rNoCall", "rImplicit")),
+            'cMethod': Form.ChkGroupControl(("rNoMem", "rNoCall", "rImplicit",
+                                             "rUnaliasStack")),
             'iLineNb': Form.NumericInput(tp=Form.FT_RAWHEX,
                                          value=line_nb),
             'cbBBL': Form.DropdownListControl(
@@ -92,10 +101,21 @@ Method to use:
     @property
     def elements(self):
         value = self.cbReg.value
-        reg = ir_arch.arch.regs.all_regs_ids_byname.get(value, None)
-        if reg is None:
+        if value in self.stk_args:
+            line = self.ira.blocs[self.label].lines[self.line_nb]
+            arg_num = self.stk_args[value]
+            stk_high = m2_expr.ExprInt(GetSpd(line.offset), ir_arch.sp.size)
+            stk_off = m2_expr.ExprInt(self.ira.sp.size/8 * arg_num, ir_arch.sp.size)
+            element =  m2_expr.ExprMem(mn.regs.regs_init[ir_arch.sp] + stk_high + stk_off, self.ira.sp.size)
+            element = expr_simp(element)
+            # Force stack unaliasing
+            self.stk_unalias_force = True
+        elif value:
+            element = ir_arch.arch.regs.all_regs_ids_byname.get(value, None)
+
+        else:
             raise ValueError("Unknown element '%s'!" % value)
-        return set([reg])
+        return set([element])
 
     @property
     def depgraph(self):
@@ -104,6 +124,10 @@ Method to use:
                                implicit=value & 4,
                                follow_mem=value & 1,
                                follow_call=value & 2)
+
+    @property
+    def unalias_stack(self):
+        return self.cMethod.value & 8 or self.stk_unalias_force
 
     @property
     def color(self):
@@ -133,21 +157,31 @@ blocs = mdis.dis_multibloc(func.startEA)
 for bloc in blocs:
     ir_arch.add_bloc(bloc)
 
-# Simplify affectations
-for irb in ir_arch.blocs.values():
-    for assignblk in irb.irs:
-        for dst, src in assignblk.items():
-            del(assignblk[dst])
-            dst, src = expr_simp(dst), expr_simp(src)
-            assignblk[dst] = src
-
 # Get settings
 settings = depGraphSettingsForm(ir_arch)
 settings.Execute()
 
+label, elements, line_nb = settings.label, settings.elements, settings.line_nb
+# Simplify affectations
+for irb in ir_arch.blocs.values():
+    fix_stack = irb.label.offset is not None and settings.unalias_stack
+    for i, assignblk in enumerate(irb.irs):
+        if fix_stack:
+            stk_high = m2_expr.ExprInt_from(ir_arch.sp, GetSpd(irb.lines[i].offset))
+            fix_dct = {ir_arch.sp: mn.regs.regs_init[ir_arch.sp] + stk_high}
+
+        for dst, src in assignblk.items():
+            del(assignblk[dst])
+            if fix_stack:
+                src = src.replace_expr(fix_dct)
+                if dst != ir_arch.sp:
+                    dst = dst.replace_expr(fix_dct)
+            dst, src = expr_simp(dst), expr_simp(src)
+            assignblk[dst] = src
+
 # Get dependency graphs
 dg = settings.depgraph
-graphs = dg.get(settings.label, settings.elements, settings.line_nb,
+graphs = dg.get(label, elements, line_nb,
                 set([ir_arch.symbol_pool.getby_offset(func.startEA)]))
 
 # Display the result
