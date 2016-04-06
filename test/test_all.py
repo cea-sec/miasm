@@ -5,7 +5,8 @@ import tempfile
 
 from utils.test import Test
 from utils.testset import TestSet
-from utils import cosmetics, monothread, screendisplay
+from utils import cosmetics, multithread
+from multiprocessing import Queue
 
 testset = TestSet("../")
 TAGS = {"regression": "REGRESSION", # Regression tests
@@ -667,16 +668,15 @@ By default, no tag is omitted." % ", ".join(TAGS.keys()), default="")
             "Z3 and its python binding are necessary for TranslatorZ3."
         if TAGS["z3"] not in exclude_tags:
             exclude_tags.append(TAGS["z3"])
+    test_ko = []
+    test_ok = []
 
     # Set callbacks
     if multiproc is False:
-        testset.set_callback(task_done=monothread.task_done,
-                             task_new=monothread.task_new)
         testset.set_cpu_numbers(1)
-    else:
-        screendisplay.init(testset.cpu_c)
-        testset.set_callback(task_done=screendisplay.task_done,
-                             task_new=screendisplay.task_new)
+    testset.set_callback(task_done=lambda test, error:multithread.task_done(test, error, test_ok, test_ko),
+                         task_new=multithread.task_new)
+
 
     # Filter testset according to tags
     testset.filter_tags(exclude_tags=exclude_tags)
@@ -686,6 +686,13 @@ By default, no tag is omitted." % ", ".join(TAGS.keys()), default="")
 
     # Finalize
     testset.end(clean=not args.do_not_clean)
-
+    print
+    print (cosmetics.colors["green"] +
+           "Result: %d/%d pass" % (len(test_ok), len(test_ok) + len(test_ko)) +
+           cosmetics.colors["end"])
+    for test, error in test_ko:
+        command_line = " ".join(test.command_line)
+        print cosmetics.colors["red"] + 'ERROR', cosmetics.colors["lightcyan"] + command_line + cosmetics.colors["end"]
+        print error
     # Exit with an error if at least a test failed
     exit(testset.tests_passed())
