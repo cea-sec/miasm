@@ -6,30 +6,38 @@ from multiprocessing import cpu_count, Queue, Process
 
 from test import Test
 
+
 class Message(object):
+
     "Message exchanged in the TestSet message queue"
     pass
 
 
 class MessageTaskNew(Message):
+
     "Stand for a new task"
+
     def __init__(self, task):
         self.task = task
 
 
 class MessageTaskDone(Message):
+
     "Stand for a task done"
+
     def __init__(self, task, error):
         self.task = task
         self.error = error
 
 
 class MessageClose(Message):
+
     "Close the channel"
     pass
 
 
 class TestSet(object):
+
     "Manage a set of test"
 
     def __init__(self, base_dir):
@@ -40,7 +48,7 @@ class TestSet(object):
         self.base_dir = base_dir
 
         # Init internals
-        self.task_done_cb = lambda tst, err: None # On task done callback
+        self.task_done_cb = lambda tst, err: None  # On task done callback
         self.task_new_cb = lambda tst: None       # On new task callback
         self.todo_queue = Queue()                 # Tasks to do
         self.message_queue = Queue()              # Messages with workers
