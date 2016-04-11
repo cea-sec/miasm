@@ -150,7 +150,7 @@ PyObject* vm_set_mem_access(VmMngr* self, PyObject* args)
 	PyGetInt(addr, page_addr);
 	PyGetInt(access, page_access);
 
-	mpn = get_memory_page_from_address(&self->vm_mngr, page_addr);
+	mpn = get_memory_page_from_address(&self->vm_mngr, page_addr, 1);
 	if (!mpn){
 		PyErr_SetString(PyExc_RuntimeError, "cannot find address");
 		return 0;
@@ -443,6 +443,24 @@ PyObject* vm_set_addr2obj(VmMngr* self, PyObject* args)
 }
 
 
+PyObject* vm_is_mapped(VmMngr* self, PyObject* args)
+{
+	PyObject *ad;
+	PyObject *size;
+	uint64_t b_ad;
+	uint64_t b_size;
+	int ret;
+
+	if (!PyArg_ParseTuple(args, "OO", &ad, &size))
+		return NULL;
+
+	PyGetInt(ad, b_ad);
+	PyGetInt(size, b_size);
+	ret = is_mapped(&self->vm_mngr, b_ad, b_size);
+	return PyLong_FromUnsignedLongLong((uint64_t)ret);
+}
+
+
 static PyObject *
 vm_set_big_endian(VmMngr *self, PyObject *value, void *closure)
 {
@@ -508,6 +526,8 @@ static PyMethodDef VmMngr_methods[] = {
 	{"set_mem", (PyCFunction)vm_set_mem, METH_VARARGS,
 	 "X"},
 	{"set_addr2obj", (PyCFunction)vm_set_addr2obj, METH_VARARGS,
+	 "X"},
+	{"is_mapped", (PyCFunction)vm_is_mapped, METH_VARARGS,
 	 "X"},
 	{"add_code_bloc",(PyCFunction)vm_add_code_bloc, METH_VARARGS,
 	 "X"},

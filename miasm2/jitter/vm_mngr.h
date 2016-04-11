@@ -178,6 +178,7 @@ int vm_write_mem(vm_mngr_t* vm_mngr, uint64_t addr, char *buffer, uint64_t size)
 unsigned int parity(unsigned int a);
 unsigned int my_imul08(unsigned int a, unsigned int b);
 
+int is_mapped(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t size);
 void vm_throw(vm_mngr_t* vm_mngr, unsigned long flags);
 int shift_right_arith(unsigned int size, int a, unsigned int b);
 
@@ -312,7 +313,7 @@ void func_alloc(void);
 unsigned int get_memory_page_max_address_py(void);
 unsigned int get_memory_page_max_user_address_py(void);
 unsigned int get_memory_page_from_min_ad_py(unsigned int size);
-struct memory_page_node * get_memory_page_from_address(vm_mngr_t*, uint64_t ad);
+struct memory_page_node * get_memory_page_from_address(vm_mngr_t*, uint64_t ad, int raise_exception);
 void func_malloc_memory_page(void);
 void func_free_memory_page(void);
 void func_virtualalloc_memory_page(void);
