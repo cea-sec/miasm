@@ -339,3 +339,267 @@ class SSAPath(SSABlock):
         """
         for block in path:
             self._rename_expressions(block)
+
+
+class SSADiGraph(SSA):
+    """
+    SSA transformation on DiGraph level
+
+    It handles
+    - transformation of a DiGraph into SSA
+    - generation, insertion and filling of phi nodes
+
+    The implemented SSA form is known as minimal SSA.
+    """
+
+    def __init__(self, ira):
+        """
+        Initialises SSA class for directed acyclic graphs
+        :param ira: instance of IRA
+        """
+        super(SSADiGraph, self).__init__(ira)
+
+        # variable definitions
+        self.defs = {}
+
+        # dict of blocks' phi nodes
+        self._phinodes = dict()
+
+        # IRA control flow graph
+        self.graph = ira.graph
+
+    def transform(self, head):
+        """Transforms into SSA"""
+        self._init_variable_defs(head)
+        self._place_phi(head)
+        self._rename(head)
+        self._insert_phi()
+        self._convert_phi()
+
+    def reset(self):
+        """Resets SSA transformation"""
+        super(SSADiGraph, self).reset()
+        self.defs = {}
+        self._phinodes = dict()
+
+    def _init_variable_defs(self, head):
+        """
+        Initialises all variable definitions and
+        assigns the corresponding IRA blocks.
+
+        All variable definitions in self.defs contain
+        a set of IRA blocks in which the variable gets assigned
+        """
+        # architecture's instruction pointer
+        instruction_pointer = set(self.ira.arch.pc.values() + [self.ira.IRDst])
+
+        for block in self.graph.walk_depth_first_forward(head):
+            ib = self.get_block(block)
+            # blocks IR expressions
+            ir_expressions = (m2_expr.ExprAff(dst, assignblk[dst])
+                              for assignblk in ib.irs for dst in assignblk)
+            for e in ir_expressions:
+                # enforce ExprId
+                if isinstance(e.dst, m2_expr.ExprId):
+                    # exclude architecture's instruction pointer
+                    if e.dst in instruction_pointer:
+                        continue
+                    if e.dst not in self.defs:
+                        self.defs[e.dst] = set()
+                    self.defs[e.dst].add(ib.label)
+
+    def _place_phi(self, head):
+        """
+
+        For all blocks, empty phi functions will be placed for every
+        variable in the block's dominance frontier.
+
+        self.phinodes contains a dict for every block in the
+        dominance frontier. In this dict, each variable
+        definition maps to its corresponding phi function.
+
+        Source: Cytron, Ron, et al.
+        "An efficient method of computing static single assignment form"
+        Proceedings of the 16th ACM SIGPLAN-SIGACT symposium on
+        Principles of programming languages (1989), p. 30
+        """
+        # dominance frontier
+        frontier = self.graph.compute_dominance_frontier(head)
+
+        for variable in self.defs:
+            done = set()
+            todo = set()
+            intodo = set()
+
+            for block in self.defs[variable]:
+                todo.add(block)
+                intodo.add(block)
+
+            while todo:
+                block = todo.pop()
+                if block not in frontier:
+                    continue
+
+                # walk through dominance frontier of bloc
+                for node in frontier[block]:
+                    if node in done:
+                        continue
+
+                    # remember blocks which contain phi nodes
+                    if node not in self._phinodes:
+                        self._phinodes[node] = dict()
+
+                    # place empty phi functions for a variable
+                    e = self._gen_empty_phi(variable)
+                    self._phinodes[node][variable] = e.src
+                    done.add(node)
+
+                    if node not in intodo:
+                        intodo.add(node)
+                        todo.add(node)
+
+    @staticmethod
+    def _gen_empty_phi(v):
+        """
+        Generates an empty phi function for a variable
+        :param v: variable
+        :return: ExprAff, empty phi function for v
+        """
+        phi = m2_expr.ExprId("phi", v.size)
+        return m2_expr.ExprAff(v, phi)
+
+    @staticmethod
+    def _fill_phi(*args):
+        """
+        Fills a phi function with variables.
+
+        phi(x.1, x.5, x.6)
+
+        :param args: list of ExprId
+        :return: ExprOp
+        """
+        return m2_expr.ExprOp("phi", *args)
+
+    def _transform_phi_rhs(self, src):
+        """
+        Transforms an expression of a phi function on the
+        right hand side into SSA
+        :param src: expression of a phi function on RHS
+        :return: expression in SSA form
+        """
+        # transform variable on RHS in non-SSA form
+        e = self.reverse_variable(src)
+
+        # transform into SSA form
+        src_ssa = self._transform_expression_rhs(e)
+
+        return src_ssa
+
+    def _rename(self, head):
+        """
+        Transforms each variable expression in the CFG into SSA
+        by traversing the dominator tree in depth-first search.
+
+        1. Transform variables of phi functions on LHS into SSA
+        2. Transform all non-phi expressions into SSA
+        3. Update the successor's phi functions' RHS with current SSA variables
+        4. Save current SSA variable stack for successors in the dominator tree
+
+        Source: Cytron, Ron, et al.
+        "An efficient method of computing static single assignment form"
+        Proceedings of the 16th ACM SIGPLAN-SIGACT symposium on
+        Principles of programming languages (1989), p. 31
+        """
+        # compute dominator tree
+        dominator_tree = self.graph.compute_dominator_tree(head)
+
+        # init SSA variable stack
+        stack = [self._stack_rhs.copy()]
+
+        # walk in DFS over the dominator tree
+        for block in dominator_tree.walk_depth_first_forward(head):
+            # restore SSA variable stack of the predecessor in the dominator tree
+            self._stack_rhs = stack.pop().copy()
+
+            '''Transform variables of phi functions on LHS into SSA'''
+            self._rename_phi_lhs(block)
+
+            '''Transform all non-phi expressions into SSA'''
+            self._rename_expressions(block)
+
+            '''Update the successor's phi functions' RHS with current SSA variables'''
+            # walk over block's successors in the CFG
+            for successor in self.graph.successors_iter(block):
+                self._rename_phi_rhs(successor)
+
+            '''Save current SSA variable stack for successors in the dominator tree'''
+            for successor in dominator_tree.successors_iter(block):
+                stack.append(self._stack_rhs.copy())
+
+    def _rename_phi_lhs(self, block):
+        """
+        Transforms phi function's expressions of an IRA block
+        on the left hand side into SSA
+        :param block: IRA block label
+        """
+        if block in self._phinodes:
+            # create temporary list of phi function assignments for inplace renaming
+            tmp = list(self._phinodes[block])
+
+            # iterate over all block's phi nodes
+            for dst in tmp:
+                # transform variables on LHS inplace
+                self._phinodes[block][self._transform_expression_lhs(dst)] = self._phinodes[block].pop(dst)
+
+    def _rename_phi_rhs(self, successor):
+        """
+        Transforms the right hand side of each successor's phi function
+        into SSA. Each transformed expression of a phi function's
+        right hand side is of the form
+
+        phi(<var>.<index 1>, <var>.<index 2>, ..., <var>.<index n>)
+
+        :param successor: label of block's direct successor in the CFG
+        """
+        # if successor is in block's dominance frontier
+        if successor in self._phinodes:
+            # walk over all variables on LHS
+            for dst in self._phinodes[successor]:
+                # transform RHS expression into SSA
+                src = self._phinodes[successor][dst]
+                src_ssa = self._transform_phi_rhs(dst)
+
+                # phi function is empty
+                if isinstance(src, m2_expr.ExprId) and src.name == "phi":
+                    e = self._fill_phi(src_ssa)
+                # phi function contains at least one value
+                else:
+                    e = self._fill_phi(src_ssa, *src.args)
+
+                # update phi function
+                self._phinodes[successor][dst] = e
+
+    def _insert_phi(self):
+        """Inserts phi functions into the list of SSA expressions"""
+        for block in self._phinodes:
+            for dst in self._phinodes[block]:
+                self.expressions[dst] = self._phinodes[block][dst]
+
+    def _convert_phi(self):
+        """Inserts corresponding phi functions inplace
+        into IRA block at the beginning"""
+        for block in self._phinodes:
+            ib = self.get_block(block)
+            # list of instructions
+            instructions = []
+            # walk over all variables
+            for dst in self._phinodes[block]:
+                src = self._phinodes[block][dst]
+                # build ssa expression
+                e = m2_expr.ExprAff(dst, src)
+                # insert SSA expression
+                instructions.append(e)
+            # create assignblock
+            assignblk = AssignBlock(instructions)
+            # insert at the beginning
+            ib.irs.insert(0, assignblk)
