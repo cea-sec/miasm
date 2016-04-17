@@ -410,7 +410,6 @@ class SSADiGraph(SSA):
 
     def _place_phi(self, head):
         """
-
         For all blocks, empty phi functions will be placed for every
         variable in the block's dominance frontier.
 
@@ -440,12 +439,12 @@ class SSADiGraph(SSA):
                 if block not in frontier:
                     continue
 
-                # walk through dominance frontier of bloc
+                # walk through block's dominance frontier
                 for node in frontier[block]:
                     if node in done:
                         continue
 
-                    # remember blocks which contain phi nodes
+                    # remember blocks that contain phi nodes
                     if node not in self._phinodes:
                         self._phinodes[node] = dict()
 
