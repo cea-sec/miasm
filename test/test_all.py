@@ -203,6 +203,7 @@ for script in ["modint.py",
                "stp.py",
                "simplifications.py",
                "expression_helper.py",
+               "expression_dissector.py"
                ]:
     testset += RegressionTest([script], base_dir="expression")
 ## IR
