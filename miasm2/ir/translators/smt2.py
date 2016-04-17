@@ -220,8 +220,6 @@ class TranslatorSMT2(Translator):
                     res = bvshl(res, arg)
                 elif expr.op == ">>":
                     res = bvlshr(res, arg)
-                elif expr.op == "a<<":
-                    res = bvshl(res, arg)
                 elif expr.op == "a>>":
                     res = bvashr(res, arg)
                 elif expr.op == "<<<":
@@ -286,13 +284,14 @@ class TranslatorSMT2(Translator):
         dst = self.from_expr(expr.dst)
         return smt2_assert(smt2_eq(src, dst))
 
-    def to_smt2(self, exprs, logic="QF_ABV"):
+    def to_smt2(self, exprs, logic="QF_ABV", model=False):
         """
         Converts a valid SMT2 file for a given list of
         SMT2 expressions.
 
         :param exprs: list of SMT2 expressions
         :param logic: SMT2 logic
+        :param model: model generation flag
         :return: String of the SMT2 file
         """
         ret = ""
@@ -314,6 +313,10 @@ class TranslatorSMT2(Translator):
 
         # define action
         ret += "(check-sat)\n"
+
+        # enable model generation
+        if model:
+            ret += "(get-model)\n"
 
         return ret
 

@@ -1,0 +1,1 @@
+[{"has_loop": false, "EAX": "0x1", "satisfiability": true, "constraints": {"EAX_init": "0xffffffff"}}, {"has_loop": false, "EAX": "0x2", "satisfiability": false, "constraints": {}}]

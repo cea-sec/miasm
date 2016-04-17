@@ -165,8 +165,6 @@ class TranslatorZ3(Translator):
                     res = z3.LShR(res, arg)
                 elif expr.op == "a>>":
                     res = res >> arg
-                elif expr.op == "a<<":
-                    res = res << arg
                 elif expr.op == "<<<":
                     res = z3.RotateLeft(res, arg)
                 elif expr.op == ">>>":

@@ -56,6 +56,15 @@ class JitCore(object):
         self.options = {"jit_maxline": 50  # Maximum number of line jitted
                         }
 
+        self.mdis = asmbloc.disasmEngine(ir_arch.arch, ir_arch.attrib, bs,
+                                         lines_wd=self.options["jit_maxline"],
+                                         symbol_pool=ir_arch.symbol_pool,
+                                         follow_call=False,
+                                         dontdis_retcall=False,
+                                         split_dis=self.split_dis,
+                                         dis_bloc_callback=self.disasm_cb)
+
+
     def set_options(self, **kwargs):
         "Set options relative to the backend"
 
@@ -76,9 +85,8 @@ class JitCore(object):
         """The disassembly engine will no longer stop on address in args"""
         self.split_dis.difference_update(set(args))
 
-    def load(self, arch, attrib):
-        "Initialise the Jitter according to arch and attrib"
-
+    def load(self):
+        "Initialise the Jitter"
         raise NotImplementedError("Abstract class")
 
     def get_bloc_min_max(self, cur_bloc):
@@ -114,26 +122,24 @@ class JitCore(object):
         b.irblocs = irblocs
         self.jitirblocs(b.label, irblocs)
 
-    def disbloc(self, addr, cpu, vm):
-        "Disassemble a new bloc and JiT it"
+    def disbloc(self, addr, vm):
+        """Disassemble a new bloc and JiT it
+        @addr: address of the block to disassemble (asm_label or int)
+        @vm: VmMngr instance
+        """
 
         # Get the bloc
         if isinstance(addr, asmbloc.asm_label):
             addr = addr.offset
 
-        label = self.ir_arch.symbol_pool.getby_offset_create(addr)
+        # Prepare disassembler
+        self.mdis.job_done.clear()
+        self.mdis.lines_wd = self.options["jit_maxline"]
+        self.mdis.dis_bloc_callback = self.disasm_cb
 
         # Disassemble it
         try:
-            cur_bloc, _ = asmbloc.dis_bloc(self.ir_arch.arch, self.bs, label,
-                                           addr, set(),
-                                           self.ir_arch.symbol_pool, [],
-                                           follow_call=False,
-                                           dontdis_retcall=False,
-                                           lines_wd=self.options["jit_maxline"],
-                                           # max 10 asm lines
-                                           attrib=self.ir_arch.attrib,
-                                           split_dis=self.split_dis)
+            cur_bloc = self.mdis.dis_bloc(addr)
         except IOError:
             # vm_exception_flag is set
             cur_bloc = asmbloc.asm_bloc(label)
@@ -141,15 +147,13 @@ class JitCore(object):
         # Logging
         if self.log_newbloc:
             print cur_bloc
-        if self.disasm_cb is not None:
-            self.disasm_cb(cur_bloc)
 
         # Check for empty blocks
         if not cur_bloc.lines:
             raise ValueError("Cannot JIT a block without any assembly line")
 
         # Update label -> bloc
-        self.lbl2bloc[label] = cur_bloc
+        self.lbl2bloc[cur_bloc.label] = cur_bloc
 
         # Store min/max bloc address needed in jit automod code
         self.get_bloc_min_max(cur_bloc)
@@ -180,7 +184,7 @@ class JitCore(object):
 
         if not lbl in self.lbl2jitbloc:
             # Need to JiT the bloc
-            self.disbloc(lbl, cpu, vm)
+            self.disbloc(lbl, vm)
 
         # Run the bloc and update cpu/vmmngr state
         ret = self.jit_call(lbl, cpu, vm, breakpoints)

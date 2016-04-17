@@ -13,7 +13,6 @@ class TranslatorC(Translator):
     dct_shift = {'a>>': "right_arith",
                  '>>': "right_logic",
                  '<<': "left_logic",
-                 'a<<': "left_logic",
                  }
     dct_rot = {'<<<': 'rot_left',
                '>>>': 'rot_right',

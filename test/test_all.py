@@ -5,7 +5,8 @@ import tempfile
 
 from utils.test import Test
 from utils.testset import TestSet
-from utils import cosmetics, monothread, screendisplay
+from utils import cosmetics, multithread
+from multiprocessing import Queue
 
 testset = TestSet("../")
 TAGS = {"regression": "REGRESSION", # Regression tests
@@ -22,10 +23,18 @@ class RegressionTest(Test):
     - @base_dir: test/@base_dir
     - @tags: TAGS["regression"]"""
 
+    sample_dir = os.path.join("..", "samples")
+
     def __init__(self, *args, **kwargs):
         super(RegressionTest, self).__init__(*args, **kwargs)
         self.base_dir = os.path.join("test", self.base_dir)
         self.tags.append(TAGS["regression"])
+
+    @classmethod
+    def get_sample(cls, sample_name):
+        "Return the relative path of @sample_name"
+        return os.path.join(cls.sample_dir, sample_name)
+
 
 ## Architecture
 testset += RegressionTest(["x86/arch.py"], base_dir="arch",
@@ -243,6 +252,56 @@ testset += RegressionTest(["depgraph.py"], base_dir="analysis",
                                                         (14, 1), (15, 1)))
                            for fname in fnames])
 
+## Degraph
+class TestDepgraph(RegressionTest):
+    """Dependency graph test"""
+    example_depgraph = os.path.join("..", "..", "example", "symbol_exec",
+                                    "depgraph.py")
+    launcher = "dg_check.py"
+
+
+    def __init__(self, test_nb, implicit, base_addr, target_addr, elements,
+                 *args, **kwargs):
+        super(TestDepgraph, self).__init__([self.launcher],
+                                           *args, **kwargs)
+        self.base_dir = os.path.join(self.base_dir, "analysis")
+        if implicit:
+            expected_fname = "dg_test_%.2d_implicit_expected.json"
+            self.tags.append(TAGS["z3"])
+        else:
+            expected_fname = "dg_test_%.2d_expected.json"
+
+        self.command_line += [
+            expected_fname % test_nb,
+            self.example_depgraph,
+            "-m", "x86_32",
+            "--json",
+            self.get_sample(os.path.join("x86_32",
+                                         "dg_test_%.2d.bin" % test_nb)),
+            hex(base_addr),
+            hex(target_addr)] + elements
+        if implicit:
+            self.command_line.append("-i")
+
+# Depgraph emulation regression test
+test_args = [(0x401000, 0x40100d, ["EAX"]),
+             (0x401000, 0x401011, ["EAX"]),
+             (0x401000, 0x401018, ["EAX"]),
+             (0x401000, 0x401011, ["EAX"]),
+             (0x401000, 0x401011, ["EAX"]),
+             (0x401000, 0x401016, ["EAX"]),
+             (0x401000, 0x401017, ["EAX"]),
+             (0x401000, 0x401012, ["EAX", "ECX"]),
+             (0x401000, 0x401012, ["ECX"]),
+             (0x401000, 0x40101f, ["EAX", "EBX"]),
+             (0x401000, 0x401025, ["EAX", "EBX"]),
+]
+for i, test_args in enumerate(test_args):
+    test_dg = SemanticTestAsm("x86_32", "PE", ["dg_test_%.2d" % i])
+    testset += test_dg
+    testset += TestDepgraph(i, False, *test_args, depends=[test_dg])
+    testset += TestDepgraph(i, True, *test_args, depends=[test_dg])
+
 ## Jitter
 for script in ["jitload.py",
                ]:
@@ -323,6 +382,7 @@ test_mips32b = ExampleShellcode(["mips32b", "mips32.S", "mips32_sc_b.bin"])
 test_mips32l = ExampleShellcode(["mips32l", "mips32.S", "mips32_sc_l.bin"])
 test_x86_64 = ExampleShellcode(["x86_64", "x86_64.S", "demo_x86_64.bin",
                                 "--PE"])
+test_x86_32_if_reg = ExampleShellcode(['x86_32', 'x86_32_if_reg.S', "x86_32_if_reg.bin"])
 
 testset += test_armb
 testset += test_arml
@@ -336,6 +396,7 @@ testset += test_msp430
 testset += test_mips32b
 testset += test_mips32l
 testset += test_x86_64
+testset += test_x86_32_if_reg
 
 class ExampleDisassembler(Example):
     """Disassembler examples specificities:
@@ -388,6 +449,8 @@ testset += ExampleDisasmFull(["aarch64b", Example.get_sample("demo_aarch64_b.bin
                               "0"], depends=[test_aarch64b])
 testset += ExampleDisasmFull(["x86_32", Example.get_sample("x86_32_simple.bin"),
                               "0x401000"], depends=[test_box["simple"]])
+testset += ExampleDisasmFull(["x86_32", Example.get_sample("x86_32_if_reg.bin"),
+                              "0x0"], depends=[test_x86_32_if_reg])
 testset += ExampleDisasmFull(["msp430", Example.get_sample("msp430_sc.bin"),
                               "0"], depends=[test_msp430])
 testset += ExampleDisasmFull(["mips32l", Example.get_sample("mips32_sc_l.bin"),
@@ -398,6 +461,10 @@ testset += ExampleDisasmFull(["x86_64", Example.get_sample("demo_x86_64.bin"),
                               "0x401000"], depends=[test_x86_64])
 testset += ExampleDisasmFull(["aarch64l", Example.get_sample("md5_aarch64l"),
                               "0x400A00"], depends=[test_aarch64l])
+testset += ExampleDisasmFull(["x86_32", os.path.join("..", "..", "test",
+                                                     "arch", "x86", "qemu",
+                                                     "test-i386"),
+                              "func_iret"])
 
 
 ## Expression
@@ -442,13 +509,24 @@ class ExampleSymbolExec(Example):
 
 testset += ExampleSymbolExec(["single_instr.py"])
 for options, nb_sol, tag in [([], 8, []),
-                             (["-i", "--rename-args"], 10, [TAGS["z3"]])]:
+                             (["-i", "--rename-args"], 12, [TAGS["z3"]])]:
     testset += ExampleSymbolExec(["depgraph.py",
                                   Example.get_sample("simple_test.bin"),
                                   "-m", "x86_32", "0x0", "0x8b",
-                                  "eax"] + options,
+                                  "EAX"] + options,
                                  products=["sol_%d.dot" % nb
                                            for nb in xrange(nb_sol)],
+                                 tags=tag)
+
+for options, nb_sol, tag in [([], 4, []),
+                             (["-i", "--rename-args"], 4, [TAGS["z3"]])]:
+    testset += ExampleSymbolExec(["depgraph.py",
+                                  Example.get_sample("x86_32_if_reg.bin"),
+                                  "-m", "x86_32", "0x0", "0x19",
+                                  "EAX"] + options,
+                                 products=["sol_%d.dot" % nb
+                                           for nb in xrange(nb_sol)],
+                                 depends=[test_x86_32_if_reg],
                                  tags=tag)
 
 ## Jitter
@@ -591,16 +669,15 @@ By default, no tag is omitted." % ", ".join(TAGS.keys()), default="")
             "Z3 and its python binding are necessary for TranslatorZ3."
         if TAGS["z3"] not in exclude_tags:
             exclude_tags.append(TAGS["z3"])
+    test_ko = []
+    test_ok = []
 
     # Set callbacks
     if multiproc is False:
-        testset.set_callback(task_done=monothread.task_done,
-                             task_new=monothread.task_new)
         testset.set_cpu_numbers(1)
-    else:
-        screendisplay.init(testset.cpu_c)
-        testset.set_callback(task_done=screendisplay.task_done,
-                             task_new=screendisplay.task_new)
+    testset.set_callback(task_done=lambda test, error:multithread.task_done(test, error, test_ok, test_ko),
+                         task_new=multithread.task_new)
+
 
     # Filter testset according to tags
     testset.filter_tags(exclude_tags=exclude_tags)
@@ -610,6 +687,13 @@ By default, no tag is omitted." % ", ".join(TAGS.keys()), default="")
 
     # Finalize
     testset.end(clean=not args.do_not_clean)
-
+    print
+    print (cosmetics.colors["green"] +
+           "Result: %d/%d pass" % (len(test_ok), len(test_ok) + len(test_ko)) +
+           cosmetics.colors["end"])
+    for test, error in test_ko:
+        command_line = " ".join(test.command_line)
+        print cosmetics.colors["red"] + 'ERROR', cosmetics.colors["lightcyan"] + command_line + cosmetics.colors["end"]
+        print error
     # Exit with an error if at least a test failed
     exit(testset.tests_passed())

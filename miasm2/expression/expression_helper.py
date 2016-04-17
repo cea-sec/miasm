@@ -550,3 +550,127 @@ def expr_cmps(arg1, arg2):
     * 0 otherwise.
     """
     return _expr_cmp_gen(arg1, arg2).msb()
+
+
+class CondConstraint(object):
+
+    """Stand for a constraint on an Expr"""
+
+    # str of the associated operator
+    operator = ""
+
+    def __init__(self, expr):
+        self.expr = expr
+
+    def __repr__(self):
+        return "<%s %s 0>" % (self.expr, self.operator)
+
+    def to_constraint(self):
+        """Transform itself into a constraint using Expr"""
+        raise NotImplementedError("Abstract method")
+
+
+class CondConstraintZero(CondConstraint):
+
+    """Stand for a constraint like 'A == 0'"""
+    operator = "=="
+
+    def to_constraint(self):
+        return m2_expr.ExprAff(self.expr, m2_expr.ExprInt(0, self.expr.size))
+
+
+class CondConstraintNotZero(CondConstraint):
+
+    """Stand for a constraint like 'A != 0'"""
+    operator = "!="
+
+    def to_constraint(self):
+        cst1, cst2 = m2_expr.ExprInt1(0), m2_expr.ExprInt1(1)
+        return m2_expr.ExprAff(cst1, m2_expr.ExprCond(self.expr, cst1, cst2))
+
+
+ConstrainedValue = collections.namedtuple("ConstrainedValue",
+                                          ["constraints", "value"])
+
+
+class ConstrainedValues(set):
+
+    """Set of ConstrainedValue"""
+
+    def __str__(self):
+        out = []
+        for sol in self:
+            out.append("%s with constraints:" % sol.value)
+            for constraint in sol.constraints:
+                out.append("\t%s" % constraint)
+        return "\n".join(out)
+
+
+def possible_values(expr):
+    """Return possible values for expression @expr, associated with their
+    condition constraint as a ConstrainedValues instance
+    @expr: Expr instance
+    """
+
+    consvals = ConstrainedValues()
+
+    # Terminal expression
+    if (isinstance(expr, m2_expr.ExprInt) or
+            isinstance(expr, m2_expr.ExprId)):
+        consvals.add(ConstrainedValue(frozenset(), expr))
+    # Unary expression
+    elif isinstance(expr, m2_expr.ExprSlice):
+        consvals.update(ConstrainedValue(consval.constraints,
+                                         consval.value[expr.start:expr.stop])
+                        for consval in possible_values(expr.arg))
+    elif isinstance(expr, m2_expr.ExprMem):
+        consvals.update(ConstrainedValue(consval.constraints,
+                                         m2_expr.ExprMem(consval.value,
+                                                         expr.size))
+                        for consval in possible_values(expr.arg))
+    elif isinstance(expr, m2_expr.ExprAff):
+        consvals.update(possible_values(expr.src))
+    # Special case: constraint insertion
+    elif isinstance(expr, m2_expr.ExprCond):
+        to_ret = set()
+        src1cond = CondConstraintNotZero(expr.cond)
+        src2cond = CondConstraintZero(expr.cond)
+        consvals.update(ConstrainedValue(consval.constraints.union([src1cond]),
+                                         consval.value)
+                        for consval in possible_values(expr.src1))
+        consvals.update(ConstrainedValue(consval.constraints.union([src2cond]),
+                                         consval.value)
+                        for consval in possible_values(expr.src2))
+    # N-ary expression
+    elif isinstance(expr, m2_expr.ExprOp):
+        # For details, see ExprCompose
+        consvals_args = [possible_values(arg) for arg in expr.args]
+        for consvals_possibility in itertools.product(*consvals_args):
+            args_value = [consval.value for consval in consvals_possibility]
+            args_constraint = itertools.chain(*[consval.constraints
+                                                for consval in consvals_possibility])
+            consvals.add(ConstrainedValue(frozenset(args_constraint),
+                                          m2_expr.ExprOp(expr.op, *args_value)))
+    elif isinstance(expr, m2_expr.ExprCompose):
+        # Generate each possibility for sub-argument, associated with the start
+        # and stop bit
+        consvals_args = [map(lambda x: (x, arg[1], arg[2]),
+                             possible_values(arg[0]))
+                         for arg in expr.args]
+        for consvals_possibility in itertools.product(*consvals_args):
+            # Merge constraint of each sub-element
+            args_constraint = itertools.chain(*[consval[0].constraints
+                                                for consval in consvals_possibility])
+            # Gen the corresponding constraints / ExprCompose
+            consvals.add(
+                ConstrainedValue(frozenset(args_constraint),
+                                 m2_expr.ExprCompose(
+                                     [(consval[0].value,
+                                       consval[1],
+                                       consval[2])
+                                      for consval in consvals_possibility]
+                )))
+    else:
+        raise RuntimeError("Unsupported type for expr: %s" % type(expr))
+
+    return consvals
