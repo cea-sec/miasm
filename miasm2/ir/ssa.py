@@ -277,3 +277,48 @@ class SSA(object):
 
         # replace blocks IR expressions with corresponding SSA transformations
         self._convert_block(ib, ssa_expressions_block)
+
+
+class SSABlock(SSA):
+    """
+    SSA transformation on block level
+
+    It handles
+    - transformation of a single IRA block into SSA
+    - reassembling an SSA expression into a non-SSA
+      expression through iterative resolving of the RHS
+    """
+
+    def transform(self, block):
+        """
+        Transforms a block into SSA form
+        :param block: IRA block label
+        """
+        self._rename_expressions(block)
+
+    def reassemble_expr(self, e):
+        """
+        Reassembles an expression in SSA form into a solely non-SSA expression
+        :param e: expression
+        :return: non-SSA expression
+        """
+        # worklist
+        todo = {e.copy()}
+
+        while todo:
+            # current expression
+            cur = todo.pop()
+            # RHS of current expression
+            cur_rhs = self.expressions[cur]
+
+            # replace cur with RHS in e
+            e = e.replace_expr({cur: cur_rhs})
+
+            # parse ExprIDs on RHS
+            ids_rhs = self._expr_dissect.id(cur_rhs)
+
+            # add RHS ids to worklist
+            for id_rhs in ids_rhs:
+                if id_rhs in self.expressions:
+                    todo.add(id_rhs)
+        return e
