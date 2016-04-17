@@ -21,22 +21,38 @@ if filename and os.path.isfile(filename):
 reg_and_id = dict(mn_x86.regs.all_regs_ids_byname)
 
 class Asm_Test(object):
+    run_addr = 0x0
+
     def __init__(self):
-        self.myjit = Machine("x86_32").jitter()
+        self.myjit = Machine(self.arch_name).jitter()
         self.myjit.init_stack()
 
         self.myjit.jit.log_regs = False
         self.myjit.jit.log_mn = False
 
+    def test_init(self):
+        pass
+
+    def prepare(self):
+        pass
 
     def __call__(self):
+        self.prepare()
         self.asm()
+        self.init_machine()
+        self.test_init()
         self.run()
         self.check()
 
+    def run(self):
+
+        self.myjit.init_run(self.run_addr)
+        self.myjit.continue_run()
+
+        assert(self.myjit.pc == self.ret_addr)
 
     def asm(self):
-        blocs, symbol_pool = parse_asm.parse_txt(mn_x86, 32, self.TXT,
+        blocs, symbol_pool = parse_asm.parse_txt(mn_x86, self.arch_attrib, self.TXT,
                                                  symbol_pool = self.myjit.ir_arch.symbol_pool)
         # fix shellcode addr
         symbol_pool.set_offset(symbol_pool.getby_name("main"), 0x0)
@@ -48,18 +64,37 @@ class Asm_Test(object):
         s = str(s)
         self.assembly = s
 
-    def run(self):
-        run_addr = 0
-        self.myjit.vm.add_memory_page(run_addr, PAGE_READ | PAGE_WRITE, self.assembly)
-
-        self.myjit.push_uint32_t(0x1337beef)
-
-        self.myjit.add_breakpoint(0x1337beef, lambda x:False)
-
-        self.myjit.init_run(run_addr)
-        self.myjit.continue_run()
-
-        assert(self.myjit.pc == 0x1337beef)
-
     def check(self):
         raise NotImplementedError('abstract method')
+
+
+class Asm_Test_32(Asm_Test):
+    arch_name = "x86_32"
+    arch_attrib = 32
+    ret_addr = 0x1337beef
+
+    def init_machine(self):
+        self.myjit.vm.add_memory_page(self.run_addr, PAGE_READ | PAGE_WRITE, self.assembly)
+        self.myjit.push_uint32_t(self.ret_addr)
+        self.myjit.add_breakpoint(self.ret_addr, lambda x:False)
+
+
+class Asm_Test_16(Asm_Test):
+    arch_name = "x86_16"
+    arch_attrib = 16
+    ret_addr = 0x1337
+
+    def __init__(self):
+        self.myjit = Machine(self.arch_name).jitter()
+        self.myjit.stack_base = 0x1000
+        self.myjit.stack_size = 0x1000
+        self.myjit.init_stack()
+
+        self.myjit.jit.log_regs = False
+        self.myjit.jit.log_mn = False
+
+
+    def init_machine(self):
+        self.myjit.vm.add_memory_page(self.run_addr, PAGE_READ | PAGE_WRITE, self.assembly)
+        self.myjit.push_uint16_t(self.ret_addr)
+        self.myjit.add_breakpoint(self.ret_addr, lambda x:False)
