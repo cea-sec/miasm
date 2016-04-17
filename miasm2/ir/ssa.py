@@ -322,3 +322,20 @@ class SSABlock(SSA):
                 if id_rhs in self.expressions:
                     todo.add(id_rhs)
         return e
+
+
+class SSAPath(SSABlock):
+    """
+    SSA transformation on path level
+
+    It handles
+    - transformation of a path of IRA blocks into SSA
+    """
+
+    def transform(self, path):
+        """
+        Transforms a path into SSA
+        :param path: list of IRA block labels
+        """
+        for block in path:
+            self._rename_expressions(block)
