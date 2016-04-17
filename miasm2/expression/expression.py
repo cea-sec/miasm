@@ -819,7 +819,7 @@ class ExprOp(Expr):
         if (self._op.startswith('call_func_') or
             self._op == 'cpuid' or
             len(self._args) > 2 or
-                self._op in ['parity', 'segm']):
+                self._op in ['parity', 'segm', 'phi']):
             return self._op + '(' + ', '.join([str(arg) for arg in self._args]) + ')'
         if len(self._args) == 2:
             return ('(' + str(self._args[0]) +
