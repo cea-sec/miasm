@@ -439,6 +439,19 @@ class DiGraph(object):
                         runner = idoms[runner]
         return frontier
 
+    def compute_dominator_tree(self, head):
+        """
+        Computes the dominator tree of a graph
+        :param head: head of graph
+        :return: DiGraph
+        """
+        idoms = self.compute_immediate_dominators(head)
+        dominator_tree = DiGraph()
+        for node in idoms:
+            dominator_tree.add_edge(idoms[node], node)
+
+        return dominator_tree
+
     def _walk_generic_first(self, head, flag, succ_cb):
         """
         Generic algorithm to compute breadth or depth first search
@@ -477,6 +490,34 @@ class DiGraph(object):
     def walk_depth_first_backward(self, head):
         """Performs a depth first search on the reversed graph from @head"""
         return self._walk_generic_first(head, -1, self.predecessors_iter)
+
+    def has_loop(self):
+        """Return True if the graph contains at least a cycle"""
+        todo = list(self.nodes())
+        # tested nodes
+        done = set()
+        # current DFS nodes
+        current = set()
+        while todo:
+            node = todo.pop()
+            if node in done:
+                continue
+
+            if node in current:
+                # DFS branch end
+                for succ in self.successors_iter(node):
+                    if succ in current:
+                        return True
+                # A node cannot be in current AND in done
+                current.remove(node)
+                done.add(node)
+            else:
+                # Launch DFS from node
+                todo.append(node)
+                current.add(node)
+                todo += self.successors(node)
+
+        return False
 
     def compute_natural_loops(self, head):
         """
