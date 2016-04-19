@@ -108,7 +108,7 @@ assert other == other2 # But same value
 ## Same stuff for Ptr to MemField
 alloc_addr = my_heap.vm_alloc(jitter.vm,
                               mstruct.get_type().get_field_type("i")
-                                     .dst_type.sizeof())
+                                     .dst_type.size)
 mstruct.i = alloc_addr
 mstruct.i.deref.val = 8
 assert mstruct.i.deref.val == 8
@@ -154,6 +154,9 @@ assert memstr3.val == memstr.val # But the python value is the same
 
 
 # Array tests
+# Construction methods
+assert Array(MyStruct) == Array(MyStruct.get_type())
+assert Array(MyStruct, 10) == Array(MyStruct.get_type(), 10)
 # Allocate buffer manually, since memarray is unsized
 alloc_addr = my_heap.vm_alloc(jitter.vm, 0x100)
 memarray = Array(Num("I")).lval(jitter.vm, alloc_addr)
