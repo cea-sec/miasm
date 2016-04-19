@@ -1,8 +1,8 @@
 #! /usr/bin/env python
-from asm_test import Asm_Test
+from asm_test import Asm_Test_32
 import sys
 
-class Test_PINSRB(Asm_Test):
+class Test_PINSRB(Asm_Test_32):
     TXT = '''
     main:
        CALL      next

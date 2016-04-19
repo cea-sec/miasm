@@ -1,9 +1,9 @@
 #! /usr/bin/env python
 from miasm2.jitter.csts import EXCEPT_INT_XX
-from asm_test import Asm_Test
+from asm_test import Asm_Test_32
 
 
-class Test_INT(Asm_Test):
+class Test_INT(Asm_Test_32):
     TXT = '''
     main:
        INT 0x42

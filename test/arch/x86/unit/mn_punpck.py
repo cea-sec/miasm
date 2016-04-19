@@ -1,8 +1,8 @@
 #! /usr/bin/env python
-from asm_test import Asm_Test
+from asm_test import Asm_Test_32
 import sys
 
-class Test_PUNPCKHBW(Asm_Test):
+class Test_PUNPCKHBW(Asm_Test_32):
     TXT = '''
     main:
        CALL      next
@@ -21,7 +21,7 @@ class Test_PUNPCKHBW(Asm_Test):
         assert self.myjit.cpu.MM1 == 0xAA11BB22CC33DD44
 
 
-class Test_PUNPCKHWD(Asm_Test):
+class Test_PUNPCKHWD(Asm_Test_32):
     TXT = '''
     main:
        CALL      next
@@ -41,7 +41,7 @@ class Test_PUNPCKHWD(Asm_Test):
 
 
 
-class Test_PUNPCKHDQ(Asm_Test):
+class Test_PUNPCKHDQ(Asm_Test_32):
     TXT = '''
     main:
        CALL      next
@@ -62,7 +62,7 @@ class Test_PUNPCKHDQ(Asm_Test):
 
 
 
-class Test_PUNPCKLBW(Asm_Test):
+class Test_PUNPCKLBW(Asm_Test_32):
     TXT = '''
     main:
        CALL      next
@@ -81,7 +81,7 @@ class Test_PUNPCKLBW(Asm_Test):
         assert self.myjit.cpu.MM1 == 0xEE55FF6602770188
 
 
-class Test_PUNPCKLWD(Asm_Test):
+class Test_PUNPCKLWD(Asm_Test_32):
     TXT = '''
     main:
        CALL      next
@@ -101,7 +101,7 @@ class Test_PUNPCKLWD(Asm_Test):
 
 
 
-class Test_PUNPCKLDQ(Asm_Test):
+class Test_PUNPCKLDQ(Asm_Test_32):
     TXT = '''
     main:
        CALL      next

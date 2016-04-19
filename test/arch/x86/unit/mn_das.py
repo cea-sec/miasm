@@ -1,8 +1,8 @@
 #! /usr/bin/env python
-from asm_test import Asm_Test
+from asm_test import Asm_Test_32
 
 
-class Test_DAS(Asm_Test):
+class Test_DAS(Asm_Test_32):
     TXT = '''
     main:
        MOV     EBP, ESP

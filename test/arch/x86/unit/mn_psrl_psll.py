@@ -1,8 +1,8 @@
 #! /usr/bin/env python
-from asm_test import Asm_Test
+from asm_test import Asm_Test_32
 import sys
 
-class Test_PSRL(Asm_Test):
+class Test_PSRL(Asm_Test_32):
     TXT = '''
     main:
        CALL   next
@@ -26,7 +26,7 @@ class Test_PSRL(Asm_Test):
         assert self.myjit.cpu.MM2 == 0x0112233405566778L
         assert self.myjit.cpu.MM3 == 0x0112233445566778L
 
-class Test_PSLL(Asm_Test):
+class Test_PSLL(Asm_Test_32):
     TXT = '''
     main:
        CALL   next

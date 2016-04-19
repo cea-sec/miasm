@@ -1,7 +1,7 @@
 #! /usr/bin/env python
-from asm_test import Asm_Test
+from asm_test import Asm_Test_32
 
-class Test_SCAS(Asm_Test):
+class Test_SCAS(Asm_Test_32):
     MYSTRING = "test string"
     TXT = '''
     main:
@@ -22,7 +22,7 @@ class Test_SCAS(Asm_Test):
         assert(self.myjit.cpu.EDI == self.myjit.ir_arch.symbol_pool.getby_name('mystr').offset + len(self.MYSTRING)+1)
 
 
-class Test_MOVS(Asm_Test):
+class Test_MOVS(Asm_Test_32):
     MYSTRING = "test string"
     TXT = '''
     main:
