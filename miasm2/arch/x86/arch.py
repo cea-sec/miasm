@@ -1738,7 +1738,9 @@ def parse_mem(expr, parent, w8, sx=0, xmm=0, mm=0):
         else:
             return None, None, False
 
-    if (parent.mode == 64 and ptr.size == 32 and
+    if (not isinstance(ptr, ExprInt) and
+        parent.mode == 64 and
+        ptr.size == 32 and
         parent.admode != 1):
         return None, None, False
     dct_expr = {f_isad: True}
@@ -1980,6 +1982,7 @@ class x86_rm_arg(m_arg):
             v = v.items()
             v.sort()
             v = tuple(v)
+            admode = 64 if p.mode == 64 else admode
             if not v in modrm2byte[admode]:
                 continue
             xx = modrm2byte[admode][v]

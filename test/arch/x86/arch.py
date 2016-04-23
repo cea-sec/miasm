@@ -790,6 +790,13 @@ reg_tests = [
     (m64, "00000000    CALL       QWORD PTR [RAX+RBX+0x11223344]",
      "ff941844332211"),
 
+    (m64, "XXXXXXXX    CALL       QWORD PTR [EAX+EBX]",
+    "67ff1418"),
+    (m64, "XXXXXXXX    CALL       QWORD PTR [0x11223344]",
+    "ff142544332211"),
+    (m64, "XXXXXXXX    CALL       QWORD PTR [RIP+0x11223344]",
+    "ff1544332211"),
+
 
     (m32, "00000000    CALL       FAR DWORD PTR [EAX]",
      "ff18"),

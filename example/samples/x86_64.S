@@ -1,10 +1,9 @@
 main:
     MOV R9, 0x0
-    MOV R8, title
-    MOV RDX, msg
+    LEA R8, QWORD PTR [title]
+    LEA RDX, QWORD PTR [msg]
     MOV RCX, 0x0
-    MOV RAX, QWORD PTR [ MessageBoxA ]
-    CALL RAX
+    CALL QWORD PTR [ MessageBoxA ]
     RET
 
 title:
