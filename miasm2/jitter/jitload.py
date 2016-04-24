@@ -37,6 +37,11 @@ except ImportError:
     log.error('cannot import jit python')
 
 try:
+    from miasm2.jitter.jitcore_gcc import JitCore_Gcc
+except ImportError:
+    log.error('cannot import jit gcc')
+
+try:
     from miasm2.jitter import VmMngr
 except ImportError:
     log.error('cannot import VmMngr')
@@ -217,6 +222,8 @@ class jitter:
             self.jit = JitCore_LLVM(self.ir_arch, self.bs)
         elif jit_type == "python":
             self.jit = JitCore_Python(self.ir_arch, self.bs)
+        elif jit_type == "gcc":
+            self.jit = JitCore_Gcc(self.ir_arch, self.bs)
         else:
             raise Exception("Unkown JiT Backend")
 

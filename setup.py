@@ -48,6 +48,8 @@ def buil_all():
                   ["miasm2/jitter/JitCore.c",
                    "miasm2/jitter/vm_mngr.c",
                    "miasm2/jitter/arch/JitCore_mips32.c"]),
+        Extension("miasm2.jitter.Jitgcc",
+                  ["miasm2/jitter/Jitgcc.c"]),
         Extension("miasm2.jitter.Jitllvm",
                   ["miasm2/jitter/Jitllvm.c"]),
         ]
@@ -78,6 +80,8 @@ def buil_all():
                    "miasm2/jitter/arch/JitCore_mips32.c"]),
         Extension("miasm2.jitter.Jitllvm",
                   ["miasm2/jitter/Jitllvm.c"]),
+        Extension("miasm2.jitter.Jitgcc",
+                  ["miasm2/jitter/Jitgcc.c"]),
         Extension("miasm2.jitter.Jittcc",
                   ["miasm2/jitter/Jittcc.c"],
                   libraries=["tcc"])
