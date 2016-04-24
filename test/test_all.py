@@ -97,42 +97,42 @@ class QEMUTest(RegressionTest):
 # Test name -> supported jitter engines
 QEMU_TESTS = {
     # Operations
-    "btr": ("tcc", "python"),
-    "bts": ("tcc", "python"),
-    "bt": ("tcc", "python"),
-    "shrd": ("tcc", "python"),
-    "shld": ("tcc", "python"),
-    "rcl": ("tcc", "python"),
-    "rcr": ("tcc", "python"),
-    "ror": ("tcc", "python"),
-    "rol": ("tcc", "python"),
-    "sar": ("tcc", "python"),
-    "shr": ("tcc", "python"),
-    "shl": ("tcc", "python"),
-    "not": ("tcc", "python"),
-    "neg": ("tcc", "python"),
-    "dec": ("tcc", "python"),
-    "inc": ("tcc", "python"),
-    "sbb": ("tcc", "python"),
-    "adc": ("tcc", "python"),
-    "cmp": ("tcc", "python"),
-    "or": ("tcc", "python"),
-    "and": ("tcc", "python"),
-    "xor": ("tcc", "python"),
-    "sub": ("tcc", "python"),
-    "add": ("tcc", "python"),
+    "btr": ("tcc", "python", "gcc"),
+    "bts": ("tcc", "python", "gcc"),
+    "bt": ("tcc", "python", "gcc"),
+    "shrd": ("tcc", "python", "gcc"),
+    "shld": ("tcc", "python", "gcc"),
+    "rcl": ("tcc", "python", "gcc"),
+    "rcr": ("tcc", "python", "gcc"),
+    "ror": ("tcc", "python", "gcc"),
+    "rol": ("tcc", "python", "gcc"),
+    "sar": ("tcc", "python", "gcc"),
+    "shr": ("tcc", "python", "gcc"),
+    "shl": ("tcc", "python", "gcc"),
+    "not": ("tcc", "python", "gcc"),
+    "neg": ("tcc", "python", "gcc"),
+    "dec": ("tcc", "python", "gcc"),
+    "inc": ("tcc", "python", "gcc"),
+    "sbb": ("tcc", "python", "gcc"),
+    "adc": ("tcc", "python", "gcc"),
+    "cmp": ("tcc", "python", "gcc"),
+    "or": ("tcc", "python", "gcc"),
+    "and": ("tcc", "python", "gcc"),
+    "xor": ("tcc", "python", "gcc"),
+    "sub": ("tcc", "python", "gcc"),
+    "add": ("tcc", "python", "gcc"),
     # Specifics
-    "bsx": ("tcc", "python"),
-    "mul": ("tcc", "python"),
-    "jcc": ("tcc", "python"),
-    "loop": ("tcc", "python"),
-    "lea": ("tcc", "python"),
-    "self_modifying_code": ("tcc", "python"),
-    "conv": ("tcc", "python"),
-    "bcd": ("tcc", "python"),
-    "xchg": ("tcc", "python"),
-    "string": ("tcc", "python"),
-    "misc": ("tcc", "python"),
+    "bsx": ("tcc", "python", "gcc"),
+    "mul": ("tcc", "python", "gcc"),
+    "jcc": ("tcc", "python", "gcc"),
+    "loop": ("tcc", "python", "gcc"),
+    "lea": ("tcc", "python", "gcc"),
+    "self_modifying_code": ("tcc", "python", "gcc"),
+    "conv": ("tcc", "python", "gcc"),
+    "bcd": ("tcc", "python", "gcc"),
+    "xchg": ("tcc", "python", "gcc"),
+    "string": ("tcc", "python", "gcc"),
+    "misc": ("tcc", "python", "gcc"),
     # Unsupported
     # "floats", "segs", "code16", "exceptions", "single_step"
 }
@@ -535,7 +535,7 @@ class ExampleJitter(Example):
     - script path begins with "jitter/"
     """
     example_dir = "jitter"
-    jitter_engines = ["tcc", "llvm", "python"]
+    jitter_engines = ["tcc", "llvm", "python", "gcc"]
 
 
 for jitter in ExampleJitter.jitter_engines:
