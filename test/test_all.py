@@ -13,6 +13,7 @@ TAGS = {"regression": "REGRESSION", # Regression tests
         "example": "EXAMPLE", # Examples
         "long": "LONG", # Very time consumming tests
         "llvm": "LLVM", # LLVM dependency is required
+        "tcc": "TCC", # TCC dependency is required
         "z3": "Z3", # Z3 dependecy is needed
         "qemu": "QEMU", # QEMU tests (several tests)
         }
@@ -34,14 +35,25 @@ class RegressionTest(Test):
     def get_sample(cls, sample_name):
         "Return the relative path of @sample_name"
         return os.path.join(cls.sample_dir, sample_name)
-
-
 ## Architecture
 testset += RegressionTest(["x86/arch.py"], base_dir="arch",
                           products=["x86_speed_reg_test.bin",
                                     "regression_test16_ia32.bin",
                                     "regression_test32_ia32.bin",
                                     "regression_test64_ia32.bin"])
+
+
+
+### ArchUnit regression tests
+class ArchUnitTest(RegressionTest):
+    """Test against arch unit regression tests"""
+
+    jitter_engines = ["tcc", "llvm", "gcc"]
+
+    def __init__(self, script, jitter ,*args, **kwargs):
+        super(ArchUnitTest, self).__init__([script, jitter], *args, **kwargs)
+
+
 for script in ["x86/sem.py",
                "x86/unit/mn_strings.py",
                "x86/unit/mn_float.py",
@@ -69,7 +81,9 @@ for script in ["x86/sem.py",
                "mips32/arch.py",
                "mips32/unit/mn_bcc.py",
                ]:
-    testset += RegressionTest([script], base_dir="arch")
+    for jitter in ArchUnitTest.jitter_engines:
+        tags = [TAGS[jitter]] if jitter in TAGS else []
+        testset += ArchUnitTest(script, jitter, base_dir="arch", tags=tags)
 
 ### QEMU regression tests
 class QEMUTest(RegressionTest):
@@ -79,6 +93,7 @@ class QEMUTest(RegressionTest):
     SCRIPT_NAME = "testqemu.py"
     SAMPLE_NAME = "test-i386"
     EXPECTED_PATH = "expected"
+    jitter_engines = ["tcc", "llvm", "python", "gcc"]
 
     def __init__(self, name, jitter, *args, **kwargs):
         super(QEMUTest, self).__init__([self.SCRIPT_NAME], *args, **kwargs)
@@ -95,52 +110,53 @@ class QEMUTest(RegressionTest):
 
 
 # Test name -> supported jitter engines
-QEMU_TESTS = {
+QEMU_TESTS = [
     # Operations
-    "btr": ("tcc", "python", "gcc"),
-    "bts": ("tcc", "python", "gcc"),
-    "bt": ("tcc", "python", "gcc"),
-    "shrd": ("tcc", "python", "gcc"),
-    "shld": ("tcc", "python", "gcc"),
-    "rcl": ("tcc", "python", "gcc"),
-    "rcr": ("tcc", "python", "gcc"),
-    "ror": ("tcc", "python", "gcc"),
-    "rol": ("tcc", "python", "gcc"),
-    "sar": ("tcc", "python", "gcc"),
-    "shr": ("tcc", "python", "gcc"),
-    "shl": ("tcc", "python", "gcc"),
-    "not": ("tcc", "python", "gcc"),
-    "neg": ("tcc", "python", "gcc"),
-    "dec": ("tcc", "python", "gcc"),
-    "inc": ("tcc", "python", "gcc"),
-    "sbb": ("tcc", "python", "gcc"),
-    "adc": ("tcc", "python", "gcc"),
-    "cmp": ("tcc", "python", "gcc"),
-    "or": ("tcc", "python", "gcc"),
-    "and": ("tcc", "python", "gcc"),
-    "xor": ("tcc", "python", "gcc"),
-    "sub": ("tcc", "python", "gcc"),
-    "add": ("tcc", "python", "gcc"),
+    "btr",
+    "bts",
+    "bt",
+    "shrd",
+    "shld",
+    "rcl",
+    "rcr",
+    "ror",
+    "rol",
+    "sar",
+    "shr",
+    "shl",
+    "not",
+    "neg",
+    "dec",
+    "inc",
+    "sbb",
+    "adc",
+    "cmp",
+    "or",
+    "and",
+    "xor",
+    "sub",
+    "add",
     # Specifics
-    "bsx": ("tcc", "python", "gcc"),
-    "mul": ("tcc", "python", "gcc"),
-    "jcc": ("tcc", "python", "gcc"),
-    "loop": ("tcc", "python", "gcc"),
-    "lea": ("tcc", "python", "gcc"),
-    "self_modifying_code": ("tcc", "python", "gcc"),
-    "conv": ("tcc", "python", "gcc"),
-    "bcd": ("tcc", "python", "gcc"),
-    "xchg": ("tcc", "python", "gcc"),
-    "string": ("tcc", "python", "gcc"),
-    "misc": ("tcc", "python", "gcc"),
+    "bsx",
+    "mul",
+    "jcc",
+    "loop",
+    "lea",
+    "self_modifying_code",
+    "conv",
+    "bcd",
+    "xchg",
+    "string",
+    "misc",
     # Unsupported
     # "floats", "segs", "code16", "exceptions", "single_step"
-}
+]
 
 
-for test_name, jitters in QEMU_TESTS.iteritems():
-    for jitter_engine in jitters:
-        testset += QEMUTest(test_name, jitter_engine)
+for test_name in QEMU_TESTS:
+    for jitter in QEMUTest.jitter_engines:
+        tags = [TAGS[jitter]] if jitter in TAGS else []
+        testset += QEMUTest(test_name, jitter, tags=tags)
 
 
 ## Semantic
@@ -183,7 +199,7 @@ class SemanticTestExec(RegressionTest):
                              input_filename,
                              "-a", hex(address)]
         self.products = []
-
+        self.tags.append(TAGS["tcc"])
 
 
 test_x86_64_mul_div = SemanticTestAsm("x86_64", "PE", ["mul_div"])
@@ -232,7 +248,7 @@ testset += RegressionTest(["smt2.py"], base_dir="ir/translators",
 ## OS_DEP
 for script in ["win_api_x86_32.py",
                ]:
-    testset += RegressionTest([script], base_dir="os_dep")
+    testset += RegressionTest([script], base_dir="os_dep", tags=[TAGS['tcc']])
 
 ## Analysis
 testset += RegressionTest(["depgraph.py"], base_dir="analysis",
@@ -305,7 +321,7 @@ for i, test_args in enumerate(test_args):
 ## Jitter
 for script in ["jitload.py",
                ]:
-    testset += RegressionTest([script], base_dir="jitter")
+    testset += RegressionTest([script], base_dir="jitter", tags=[TAGS["tcc"]])
 
 
 # Examples
@@ -542,6 +558,7 @@ for jitter in ExampleJitter.jitter_engines:
     # Take 5 min on a Core i5
     tags = {"python": [TAGS["long"]],
             "llvm": [TAGS["llvm"]],
+            "tcc": [TAGS["tcc"]],
             }
     testset += ExampleJitter(["unpack_upx.py",
                               Example.get_sample("box_upx.exe")] +
@@ -567,7 +584,7 @@ for script, dep in [(["x86_32.py", Example.get_sample("x86_32_sc.bin")], []),
                           [test_box[name]])
                          for name in test_box_names]:
     for jitter in ExampleJitter.jitter_engines:
-        tags = [TAGS["llvm"]] if jitter == "llvm" else []
+        tags = [TAGS[jitter]] if jitter in TAGS else []
         testset += ExampleJitter(script + ["--jitter", jitter], depends=dep,
                                  tags=tags)
 
@@ -650,6 +667,13 @@ By default, no tag is omitted." % ", ".join(TAGS.keys()), default="")
     except ImportError:
         llvm = False
 
+    # Handle tcc modularity
+    tcc = True
+    try:
+        from miasm2.jitter import Jittcc
+    except ImportError:
+        tcc = False
+
     # TODO XXX: fix llvm jitter (deactivated for the moment)
     llvm = False
 
@@ -660,6 +684,14 @@ By default, no tag is omitted." % ", ".join(TAGS.keys()), default="")
         # Remove llvm tests
         if TAGS["llvm"] not in exclude_tags:
             exclude_tags.append(TAGS["llvm"])
+
+    if tcc is False:
+        print "%(red)s[TCC]%(end)s Python" % cosmetics.colors + \
+            "'libtcc' module is required for tcc tests"
+
+        # Remove tcc tests
+        if TAGS["tcc"] not in exclude_tags:
+            exclude_tags.append(TAGS["tcc"])
 
     # Handle Z3 dependency
     try:

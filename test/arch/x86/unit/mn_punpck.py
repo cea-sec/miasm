@@ -1,6 +1,7 @@
 #! /usr/bin/env python
-from asm_test import Asm_Test_32
 import sys
+
+from asm_test import Asm_Test_32
 
 class Test_PUNPCKHBW(Asm_Test_32):
     TXT = '''
@@ -120,5 +121,5 @@ class Test_PUNPCKLDQ(Asm_Test_32):
         assert self.myjit.cpu.MM1 == 0xEEFF020155667788
 
 if __name__ == "__main__":
-    [test()() for test in [Test_PUNPCKHBW, Test_PUNPCKHWD, Test_PUNPCKHDQ,
-                           Test_PUNPCKLBW, Test_PUNPCKLWD, Test_PUNPCKLDQ,]]
+    [test(*sys.argv[1:])() for test in [Test_PUNPCKHBW, Test_PUNPCKHWD, Test_PUNPCKHDQ,
+                                        Test_PUNPCKLBW, Test_PUNPCKLWD, Test_PUNPCKLDQ,]]

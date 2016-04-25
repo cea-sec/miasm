@@ -21,8 +21,8 @@ if filename and os.path.isfile(filename):
 reg_and_id = dict(mn_aarch64.regs.all_regs_ids_byname)
 
 class Asm_Test(object):
-    def __init__(self):
-        self.myjit = Machine("aarch64l").jitter()
+    def __init__(self, jitter):
+        self.myjit = Machine("aarch64l").jitter(jitter)
         self.myjit.init_stack()
 
         self.myjit.jit.log_regs = False

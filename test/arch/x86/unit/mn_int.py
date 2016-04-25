@@ -1,4 +1,6 @@
 #! /usr/bin/env python
+import sys
+
 from miasm2.jitter.csts import EXCEPT_INT_XX
 from asm_test import Asm_Test_32
 
@@ -15,8 +17,8 @@ class Test_INT(Asm_Test_32):
         jitter.cpu.set_exception(0)
         return True
 
-    def __init__(self):
-        super(Test_INT, self).__init__()
+    def __init__(self, jitter):
+        super(Test_INT, self).__init__(jitter)
         self.int_num = 0
         self.myjit.add_exception_handler(EXCEPT_INT_XX,
                                          self.set_int_num)
@@ -28,4 +30,4 @@ class Test_INT(Asm_Test_32):
 
 
 if __name__ == "__main__":
-    [test()() for test in [Test_INT]]
+    [test(*sys.argv[1:])() for test in [Test_INT]]

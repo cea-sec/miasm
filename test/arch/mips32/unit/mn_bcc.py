@@ -1,4 +1,6 @@
 #! /usr/bin/env python
+import sys
+
 from asm_test import Asm_Test
 
 
@@ -29,4 +31,4 @@ SKIP:
 
 
 if __name__ == "__main__":
-    [test()() for test in [Test_BCC]]
+    [test(*sys.argv[1:])() for test in [Test_BCC]]
