@@ -20,27 +20,6 @@ log_func = logging.getLogger('jit function call')
 log_func.addHandler(hnd)
 log_func.setLevel(logging.CRITICAL)
 
-
-try:
-    from miasm2.jitter.jitcore_tcc import JitCore_Tcc
-except ImportError:
-    log.error('cannot import jit tcc')
-
-try:
-    from miasm2.jitter.jitcore_llvm import JitCore_LLVM
-except ImportError:
-    log.error('cannot import jit llvm')
-
-try:
-    from miasm2.jitter.jitcore_python import JitCore_Python
-except ImportError:
-    log.error('cannot import jit python')
-
-try:
-    from miasm2.jitter.jitcore_gcc import JitCore_Gcc
-except ImportError:
-    log.error('cannot import jit gcc')
-
 try:
     from miasm2.jitter import VmMngr
 except ImportError:
@@ -194,18 +173,22 @@ class jitter:
         self.arch = ir_arch.arch
         self.attrib = ir_arch.attrib
         arch_name = ir_arch.arch.name  # (ir_arch.arch.name, ir_arch.attrib)
-        if arch_name == "x86":
-            from miasm2.jitter.arch import JitCore_x86 as jcore
-        elif arch_name == "arm":
-            from miasm2.jitter.arch import JitCore_arm as jcore
-        elif arch_name == "aarch64":
-            from miasm2.jitter.arch import JitCore_aarch64 as jcore
-        elif arch_name == "msp430":
-            from miasm2.jitter.arch import JitCore_msp430 as jcore
-        elif arch_name == "mips32":
-            from miasm2.jitter.arch import JitCore_mips32 as jcore
-        else:
-            raise ValueError("unsupported jit arch!")
+
+        try:
+            if arch_name == "x86":
+                from miasm2.jitter.arch import JitCore_x86 as jcore
+            elif arch_name == "arm":
+                from miasm2.jitter.arch import JitCore_arm as jcore
+            elif arch_name == "aarch64":
+                from miasm2.jitter.arch import JitCore_aarch64 as jcore
+            elif arch_name == "msp430":
+                from miasm2.jitter.arch import JitCore_msp430 as jcore
+            elif arch_name == "mips32":
+                from miasm2.jitter.arch import JitCore_mips32 as jcore
+            else:
+                raise ValueError("unknown jit arch: %s" % arch_name)
+        except ImportError:
+            raise RuntimeError('Unsupported jit arch: %s' % arch_name)
 
         self.vm = VmMngr.Vm()
         self.cpu = jcore.JitCpu()
@@ -216,16 +199,21 @@ class jitter:
         self.symbexec = EmulatedSymbExec(self.cpu, self.ir_arch, {})
         self.symbexec.reset_regs()
 
-        if jit_type == "tcc":
-            self.jit = JitCore_Tcc(self.ir_arch, self.bs)
-        elif jit_type == "llvm":
-            self.jit = JitCore_LLVM(self.ir_arch, self.bs)
-        elif jit_type == "python":
-            self.jit = JitCore_Python(self.ir_arch, self.bs)
-        elif jit_type == "gcc":
-            self.jit = JitCore_Gcc(self.ir_arch, self.bs)
-        else:
-            raise Exception("Unkown JiT Backend")
+        try:
+            if jit_type == "tcc":
+                from miasm2.jitter.jitcore_tcc import JitCore_Tcc as JitCore
+            elif jit_type == "llvm":
+                from miasm2.jitter.jitcore_llvm import JitCore_LLVM as JitCore
+            elif jit_type == "python":
+                from miasm2.jitter.jitcore_python import JitCore_Python as JitCore
+            elif jit_type == "gcc":
+                from miasm2.jitter.jitcore_gcc import JitCore_Gcc as JitCore
+            else:
+                raise ValueError("Unknown jitter %s" % jit_type)
+        except ImportError:
+            raise RuntimeError('Unsupported jitter: %s' % jit_type)
+
+        self.jit = JitCore(self.ir_arch, self.bs)
 
         self.cpu.init_regs()
         self.vm.init_memory_page_pool()
