@@ -151,6 +151,11 @@ class AssignBlock(dict):
             out.append("%s = %s" % (dst, src))
         return "\n".join(out)
 
+    def copy(self):
+        assignblk_cpy = type(self)()
+        assignblk_cpy.update(super(AssignBlock, self).copy())
+        return assignblk_cpy
+
     def dst2ExprAff(self, dst):
         """Return an ExprAff corresponding to @dst equation
         @dst: Expr instance"""
