@@ -1,5 +1,5 @@
 import miasm2.expression.expression as m2_expr
-from miasm2.expression.expression_dissector import ExprDissector
+from miasm2.expression.expression_helper import ExprDissector
 from miasm2.ir.ir import AssignBlock, irbloc
 
 

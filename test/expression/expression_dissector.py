@@ -1,5 +1,5 @@
 from  miasm2.expression.expression import *
-from miasm2.expression.expression_dissector import ExprDissector
+from miasm2.expression.expression_helper import ExprDissector
 
 # define expressions
 cf = ExprId('cf', size=1)
