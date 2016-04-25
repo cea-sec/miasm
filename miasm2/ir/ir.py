@@ -458,6 +458,25 @@ class ir(object):
         for b in self.blocs.values():
             b.get_rw(regs_ids)
 
+    def copy_block(self, label):
+        """
+        Returns a copy on an IRA block
+        :param label: asm_label
+        :return: IRA block
+        """
+        # retrieve IRA block
+        ib = self.get_bloc(label)
+
+        # copy IRA block
+        irs = [assignblk.copy() for assignblk in ib.irs]
+        ib_new = irbloc(ib.label, irs)
+
+        # set next block
+        ib_new.dst = ib.dst.copy()
+
+        return ib_new
+
+
     def _extract_dst(self, todo, done):
         """
         Naive extraction of @todo destinations
