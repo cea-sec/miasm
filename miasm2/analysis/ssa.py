@@ -56,17 +56,17 @@ class SSA(object):
         """Transforms into SSA"""
         raise NotImplementedError("")
 
-    def get_block(self, block):
+    def get_block(self, block_label):
         """
         Returns an IRA block
-        :param block: asm_label
+        :param block_label: asm_label
         :return: IRA block
         """
         # block has not been copied
-        if block not in self.blocks:
-            ib = self._copy_block(block)
+        if block_label not in self.blocks:
+            ib = self._copy_block(block_label)
         else:
-            ib = self.blocks[block]
+            ib = self.blocks[block_label]
 
         return ib
 
@@ -578,13 +578,13 @@ class SSADiGraph(SSA):
     def _convert_phi(self):
         """Inserts corresponding phi functions inplace
         into IRA block at the beginning"""
-        for block in self._phinodes:
-            ib = self.get_block(block)
+        for block_label in self._phinodes:
+            ib = self.get_block(block_label)
             # list of instructions
             instructions = []
             # walk over all variables
-            for dst in self._phinodes[block]:
-                src = self._phinodes[block][dst]
+            for dst in self._phinodes[block_label]:
+                src = self._phinodes[block_label][dst]
                 # build ssa expression
                 e = m2_expr.ExprAff(dst, src)
                 # insert SSA expression
