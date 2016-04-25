@@ -690,7 +690,7 @@ class ExprDissector(object):
         # set architecture variables
         self.arch_vars = set()
         if registers and irdst:
-            self.arch_vars.add(registers + irdst)
+            self.arch_vars.update(registers + irdst)
 
 
     def _iterator(self, expr):
