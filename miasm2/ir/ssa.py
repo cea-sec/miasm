@@ -48,7 +48,7 @@ class SSA(object):
         regs = self.ira.arch.regs.all_regs_ids
         irdst = self.ira.IRDst
         # class for parsing expressions
-        self._expr_dissect = ExprDissector(regs, irdst)
+        self._expr_dissect = ExprDissector(regs, [irdst])
 
     def transform(self, *args, **kwargs):
         """Transforms into SSA"""
@@ -315,7 +315,7 @@ class SSABlock(SSA):
             e = e.replace_expr({cur: cur_rhs})
 
             # parse ExprIDs on RHS
-            ids_rhs = self._expr_dissect.id(cur_rhs)
+            ids_rhs = self._expr_dissect.id_(cur_rhs)
 
             # add RHS ids to worklist
             for id_rhs in ids_rhs:

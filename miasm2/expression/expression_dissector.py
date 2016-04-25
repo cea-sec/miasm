@@ -1,163 +1,159 @@
 import miasm2.expression.expression as m2_expr
 
 
-class ExprDissector:
+class ExprDissector(object):
     """
     Dissects expressions into subexpressions
     """
 
-    def __init__(self, registers=None, irdst=None):
+    def __init__(self, registers=[], irdst=[]):
         """
         Initialises the architecture variables
         :param registers: registers of an architecture
         :param irdst: IRA instruction pointer of an architecture
         """
         # set architecture variables
+        self.arch_vars = set()
         if registers and irdst:
-            self.arch_vars = set(registers + [irdst])
+            self.arch_vars.add(registers + irdst)
 
-    def _iterator(self, e):
+
+    def _iterator(self, expr):
         """
         Parses the arguments of an expression
-        :param e: expression
+        :param expr: expression
         :return: iterator of a list of expressions
         """
-        if isinstance(e, m2_expr.ExprOp):
-            iterator = iter(e.args)
-        elif isinstance(e, m2_expr.ExprSlice):
-            iterator = iter([e.arg])
-        elif isinstance(e, m2_expr.ExprCond):
-            iterator = iter((e.cond, e.src1, e.src2))
-        elif isinstance(e, m2_expr.ExprCompose):
-            iterator = iter((t[0] for t in e.args))
-        elif isinstance(e, m2_expr.ExprMem):
-            iterator = iter([e.arg])
-        elif isinstance(e, m2_expr.ExprAff):
-            iterator = iter([e.dst, e.src])
-        elif isinstance(e, m2_expr.ExprInt):
+        if isinstance(expr, m2_expr.ExprOp):
+            iterator = iter(expr.args)
+        elif isinstance(expr, m2_expr.ExprSlice):
+            iterator = iter([expr.arg])
+        elif isinstance(expr, m2_expr.ExprCond):
+            iterator = iter((expr.cond, expr.src1, expr.src2))
+        elif isinstance(expr, m2_expr.ExprCompose):
+            iterator = iter((t[0] for t in expr.args))
+        elif isinstance(expr, m2_expr.ExprMem):
+            iterator = iter([expr.arg])
+        elif isinstance(expr, m2_expr.ExprAff):
+            iterator = iter([expr.dst, expr.src])
+        elif isinstance(expr, m2_expr.ExprInt):
             iterator = iter([])
-        elif isinstance(e, m2_expr.ExprId):
+        elif isinstance(expr, m2_expr.ExprId):
             iterator = iter([])
         else:
             raise NotImplementedError()
 
         return iterator
 
-    def _check_itetator(self, iterator, e):
-        """
-        Checks if an iterator is defined
-        :param iterator: iterator
-        :param e: expression
-        """
-        if not iterator:
-            raise NotImplementedError("no handler for {}".format((type(e))))
-
-    def _dissect(self, e, expr_type):
+    def _dissect(self, expr, expr_type):
         """
         Worklist algorithm that dissects an
         expression into subexpressions of
         type @expr_type
-        :param e: expression to dissect
+        :param expr: expression to dissect
         :param expr_type: miasm2 expression type
         :return: set of expressions
         """
         done = set()
         results = set()
-        todo = [e]
+        todo = [expr]
 
         while todo:
-            e = todo.pop()
+            expr = todo.pop()
 
-            if e in done:
+            if expr in done:
                 continue
-            done.add(e)
+            done.add(expr)
 
-            if isinstance(e, expr_type):
-                results.add(e)
+            if isinstance(expr, expr_type):
+                results.add(expr)
                 continue
 
-            iterator = self._iterator(e)
-            self._check_itetator(iterator, e)
+            iterator = self._iterator(expr)
+
+            if not iterator:
+                raise RuntimeError("no handler for {}".format((type(expr))))
 
             for arg in iterator:
                 todo.append(arg)
 
         return results
 
-    def op(self, e):
+    def op(self, expr):
         """
         Dissects an expression into ExprOps
-        :param e: expression
+        :param expr: expression
         :return: set of ExprOp in e
         """
-        return self._dissect(e, m2_expr.ExprOp)
+        return self._dissect(expr, m2_expr.ExprOp)
 
-    def slice(self, e):
+    def slice_(self, expr):
         """
         Dissects an expression into ExprSlices
-        :param e: expression
+        :param expr: expression
         :return: set of ExprSlice in e
         """
-        return self._dissect(e, m2_expr.ExprSlice)
+        return self._dissect(expr, m2_expr.ExprSlice)
 
-    def cond(self, e):
+    def cond(self, expr):
         """
         Dissects an expression into ExprConds
-        :param e: expression
+        :param expr: expression
         :return: set of ExprCond in e
         """
-        return self._dissect(e, m2_expr.ExprCond)
+        return self._dissect(expr, m2_expr.ExprCond)
 
-    def compose(self, e):
+    def compose(self, expr):
         """
         Dissects an expression into ExprComposes
-        :param e: expression
+        :param expr: expression
         :return: set of ExprCompose in e
         """
-        return self._dissect(e, m2_expr.ExprCompose)
+        return self._dissect(expr, m2_expr.ExprCompose)
 
-    def mem(self, e):
+    def mem(self, expr):
         """
         Dissects an expression into ExprMems
-        :param e: expression
+        :param expr: expression
         :return: set of ExprMem in e
         """
-        return self._dissect(e, m2_expr.ExprMem)
+        return self._dissect(expr, m2_expr.ExprMem)
 
-    def aff(self, e):
+    def aff(self, expr):
         """
         Dissects an expression into ExprAffs
-        :param e: expression
+        :param expr: expression
         :return: set of ExprAff in e
         """
-        return self._dissect(e, m2_expr.ExprAff)
+        return self._dissect(expr, m2_expr.ExprAff)
 
-    def int(self, e):
+    def int_(self, expr):
         """
         Dissects an expression into ExprInts
-        :param e: expression
+        :param expr: expression
         :return: set of ExprInt in e
         """
-        return self._dissect(e, m2_expr.ExprInt)
+        return self._dissect(expr, m2_expr.ExprInt)
 
-    def id(self, e):
+    def id_(self, expr):
         """
         Dissects an expression into ExprIds
-        :param e: expression
+        :param expr: expression
         :return: set of ExprIds in e
         """
-        return self._dissect(e, m2_expr.ExprId)
+        return self._dissect(expr, m2_expr.ExprId)
 
-    def variables(self, e):
+    def variables(self, expr):
         """
         Dissects an expression into architecture variables
-        :param e: expression
+        :param expr: expression
         :return: set of variables in e
         """
-        assert self.arch_vars
+        if not self.arch_vars:
+            raise RuntimeError("Architecture variables are not defined.")
 
         # get ExprIDs in e
-        ids = self.id(e)
+        ids = self.id_(expr)
 
         # parse variables
         results = set()
