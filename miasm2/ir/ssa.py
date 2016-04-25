@@ -209,14 +209,14 @@ class SSA(object):
             # replace instructions of assignblock in IRA block
             ib.irs[index] = AssignBlock(instructions)
 
-    def _copy_block(self, block):
+    def _copy_block(self, label):
         """
         Returns a copy on an IRA block
-        :param block: asm_label
+        :param label: asm_label
         :return: IRA block
         """
         # retrieve IRA block
-        ib = self.ira.get_bloc(block)
+        ib = self.ira.get_bloc(label)
 
         # copy IRA block
         irs = [assignblk.copy() for assignblk in ib.irs]
@@ -230,7 +230,7 @@ class SSA(object):
 
         return ib_ssa
 
-    def _rename_expressions(self, block):
+    def _rename_expressions(self, label):
         """
         Transforms variables and expressions
         of an IRA block into SSA.
@@ -238,13 +238,13 @@ class SSA(object):
         IR representations of an assembly instruction are evaluated
         in parallel. Thus, RHS and LHS instructions will be performed
         separately.
-        :param block: IRA block label
+        :param label: IRA block label
         """
         # list of IRA block's SSA expressions
         ssa_expressions_block = []
 
         # retrieve IRA block
-        ib = self.get_block(block)
+        ib = self.get_block(label)
 
         # iterate block's IR expressions
         for assignblk in ib.irs:
@@ -289,21 +289,21 @@ class SSABlock(SSA):
       expression through iterative resolving of the RHS
     """
 
-    def transform(self, block):
+    def transform(self, label):
         """
         Transforms a block into SSA form
-        :param block: IRA block label
+        :param label: IRA block label
         """
-        self._rename_expressions(block)
+        self._rename_expressions(label)
 
-    def reassemble_expr(self, e):
+    def reassemble_expr(self, expr):
         """
         Reassembles an expression in SSA form into a solely non-SSA expression
-        :param e: expression
+        :param expr: expression
         :return: non-SSA expression
         """
         # worklist
-        todo = {e.copy()}
+        todo = {expr.copy()}
 
         while todo:
             # current expression
@@ -312,7 +312,7 @@ class SSABlock(SSA):
             cur_rhs = self.expressions[cur]
 
             # replace cur with RHS in e
-            e = e.replace_expr({cur: cur_rhs})
+            expr = expr.replace_expr({cur: cur_rhs})
 
             # parse ExprIDs on RHS
             ids_rhs = self._expr_dissect.id_(cur_rhs)
@@ -321,7 +321,7 @@ class SSABlock(SSA):
             for id_rhs in ids_rhs:
                 if id_rhs in self.expressions:
                     todo.add(id_rhs)
-        return e
+        return expr
 
 
 class SSAPath(SSABlock):
@@ -393,8 +393,8 @@ class SSADiGraph(SSA):
         # architecture's instruction pointer
         instruction_pointer = set(self.ira.arch.pc.values() + [self.ira.IRDst])
 
-        for block in self.graph.walk_depth_first_forward(head):
-            ib = self.get_block(block)
+        for block_label in self.graph.walk_depth_first_forward(head):
+            ib = self.get_block(block_label)
             # blocks IR expressions
             ir_expressions = (m2_expr.ExprAff(dst, assignblk[dst])
                               for assignblk in ib.irs for dst in assignblk)
@@ -516,39 +516,39 @@ class SSADiGraph(SSA):
         stack = [self._stack_rhs.copy()]
 
         # walk in DFS over the dominator tree
-        for block in dominator_tree.walk_depth_first_forward(head):
+        for block_label in dominator_tree.walk_depth_first_forward(head):
             # restore SSA variable stack of the predecessor in the dominator tree
             self._stack_rhs = stack.pop().copy()
 
             '''Transform variables of phi functions on LHS into SSA'''
-            self._rename_phi_lhs(block)
+            self._rename_phi_lhs(block_label)
 
             '''Transform all non-phi expressions into SSA'''
-            self._rename_expressions(block)
+            self._rename_expressions(block_label)
 
             '''Update the successor's phi functions' RHS with current SSA variables'''
             # walk over block's successors in the CFG
-            for successor in self.graph.successors_iter(block):
+            for successor in self.graph.successors_iter(block_label):
                 self._rename_phi_rhs(successor)
 
             '''Save current SSA variable stack for successors in the dominator tree'''
-            for successor in dominator_tree.successors_iter(block):
+            for successor in dominator_tree.successors_iter(block_label):
                 stack.append(self._stack_rhs.copy())
 
-    def _rename_phi_lhs(self, block):
+    def _rename_phi_lhs(self, label):
         """
         Transforms phi function's expressions of an IRA block
         on the left hand side into SSA
-        :param block: IRA block label
+        :param label: IRA block label
         """
-        if block in self._phinodes:
+        if label in self._phinodes:
             # create temporary list of phi function assignments for inplace renaming
-            tmp = list(self._phinodes[block])
+            tmp = list(self._phinodes[label])
 
             # iterate over all block's phi nodes
             for dst in tmp:
                 # transform variables on LHS inplace
-                self._phinodes[block][self._transform_expression_lhs(dst)] = self._phinodes[block].pop(dst)
+                self._phinodes[label][self._transform_expression_lhs(dst)] = self._phinodes[label].pop(dst)
 
     def _rename_phi_rhs(self, successor):
         """
@@ -580,9 +580,9 @@ class SSADiGraph(SSA):
 
     def _insert_phi(self):
         """Inserts phi functions into the list of SSA expressions"""
-        for block in self._phinodes:
-            for dst in self._phinodes[block]:
-                self.expressions[dst] = self._phinodes[block][dst]
+        for block_label in self._phinodes:
+            for dst in self._phinodes[block_label]:
+                self.expressions[dst] = self._phinodes[block_label][dst]
 
     def _convert_phi(self):
         """Inserts corresponding phi functions inplace
