@@ -1,6 +1,8 @@
 import miasm2.expression.expression as m2_expr
 from miasm2.expression.expression_helper import ExprDissector
-from miasm2.ir.ir import AssignBlock, irbloc
+from miasm2.ir.ir import AssignBlock
+
+from collections import deque
 
 
 class SSA(object):
@@ -181,7 +183,7 @@ class SSA(object):
         instructions = []
         for dst in assignblk:
             # dst = src
-            aff = m2_expr.ExprAff(dst, assignblk[dst])
+            aff = assignblk.dst2ExprAff(dst)
             # insert memory expression into start of list
             if isinstance(dst, m2_expr.ExprMem):
                 instructions.insert(0, aff)
@@ -215,15 +217,8 @@ class SSA(object):
         :param label: asm_label
         :return: IRA block
         """
-        # retrieve IRA block
-        ib = self.ira.get_bloc(label)
-
         # copy IRA block
-        irs = [assignblk.copy() for assignblk in ib.irs]
-        ib_ssa = irbloc(ib.label, irs)
-
-        # set next block
-        ib_ssa.dst = ib.dst.copy()
+        ib_ssa = self.ira.copy_block(label)
 
         # add to SSA blocks dict
         self.blocks.update({ib_ssa.label: ib_ssa})
@@ -251,7 +246,7 @@ class SSA(object):
             # list of parallel instructions
             instructions = self._parallel_instructions(assignblk)
             # list for transformed RHS expressions
-            rhs = []
+            rhs = deque()
 
             # transform RHS
             for e in instructions:
@@ -266,7 +261,7 @@ class SSA(object):
                 dst_ssa = self._transform_expression_lhs(dst)
 
                 # retrieve corresponding RHS expression
-                src_ssa = rhs.pop(0)
+                src_ssa = rhs.popleft()
 
                 # rebuild SSA expression
                 e = m2_expr.ExprAff(dst_ssa, src_ssa)
@@ -395,18 +390,17 @@ class SSADiGraph(SSA):
 
         for block_label in self.graph.walk_depth_first_forward(head):
             ib = self.get_block(block_label)
-            # blocks IR expressions
-            ir_expressions = (m2_expr.ExprAff(dst, assignblk[dst])
-                              for assignblk in ib.irs for dst in assignblk)
-            for e in ir_expressions:
+            # block's IR definitions/destinations
+            ir_dsts = (dst for assignblk in ib.irs for dst in assignblk)
+
+            for dst in ir_dsts:
                 # enforce ExprId
-                if isinstance(e.dst, m2_expr.ExprId):
+                if isinstance(dst, m2_expr.ExprId):
                     # exclude architecture's instruction pointer
-                    if e.dst in instruction_pointer:
+                    if dst in instruction_pointer:
                         continue
-                    if e.dst not in self.defs:
-                        self.defs[e.dst] = set()
-                    self.defs[e.dst].add(ib.label)
+                    # map variable definition to blocks
+                    self.defs.setdefault(dst, set()).add(ib.label)
 
     def _place_phi(self, head):
         """
@@ -430,27 +424,24 @@ class SSADiGraph(SSA):
             todo = set()
             intodo = set()
 
-            for block in self.defs[variable]:
-                todo.add(block)
-                intodo.add(block)
+            for block_label in self.defs[variable]:
+                todo.add(block_label)
+                intodo.add(block_label)
 
             while todo:
-                block = todo.pop()
-                if block not in frontier:
-                    continue
+                block_label = todo.pop()
 
                 # walk through block's dominance frontier
-                for node in frontier[block]:
+                for node in frontier.get(block_label, []):
                     if node in done:
                         continue
 
-                    # remember blocks that contain phi nodes
-                    if node not in self._phinodes:
-                        self._phinodes[node] = dict()
-
                     # place empty phi functions for a variable
-                    e = self._gen_empty_phi(variable)
-                    self._phinodes[node][variable] = e.src
+                    empty_phi = self._gen_empty_phi(variable)
+
+                    # add empty phi node for variable in node
+                    self._phinodes.setdefault(node, dict())[variable] = empty_phi.src
+
                     done.add(node)
 
                     if node not in intodo:
