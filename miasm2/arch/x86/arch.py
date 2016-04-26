@@ -4130,6 +4130,8 @@ addop("psrld", [bs8(0x0f), bs8(0xd2), no_xmm_pref] +
 addop("psrld", [bs8(0x0f), bs8(0xd2), pref_66] +
       rmmod(xmm_reg, rm_arg_xmm), [xmm_reg, rm_arg_xmm])
 
+addop("psrldq", [bs8(0x0f), bs8(0x73), pref_66] +
+      rmmod(d3, rm_arg_xmm) + [u08], [rm_arg_xmm, u08])
 
 addop("psrlw", [bs8(0x0f), bs8(0x71), no_xmm_pref] +
       rmmod(d2, rm_arg_mm) + [u08], [rm_arg_mm, u08])
