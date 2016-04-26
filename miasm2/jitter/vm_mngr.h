@@ -377,6 +377,8 @@ unsigned int load_tr_segment_selector(unsigned int d);
 	((((short)(a)) >> ((int)(b)&0x1f))&0xffff)
 #define shift_right_arith_32(a, b)\
 	((((int)(a)) >> ((int)(b)&0x1f))&0xffffffff)
+#define shift_right_arith_64(a, b)\
+	((((int64_t)(a)) >> ((int64_t)(b)&0x3f))&0xffffffffffffffff)
 
 
 #define shift_right_logic_08(a, b)\
@@ -386,7 +388,7 @@ unsigned int load_tr_segment_selector(unsigned int d);
 #define shift_right_logic_32(a, b)\
 	((((unsigned int)(a)) >> ((unsigned int)(b)&0x1f))&0xffffffff)
 #define shift_right_logic_64(a, b)\
-	((((int64_t)(a)) >> ((int64_t)(b)&0x3f))&0xffffffffffffffff)
+	((((uint64_t)(a)) >> ((uint64_t)(b)&0x3f))&0xffffffffffffffff)
 
 #define shift_left_logic_08(a, b)\
 	(((a)<<((b)&0x1f))&0xff)
