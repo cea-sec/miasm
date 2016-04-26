@@ -19,6 +19,7 @@ class JitCore_Python(jitcore.JitCore):
 
         # CPU (None for now) will be set by the "jitted" Python function
         self.symbexec = EmulatedSymbExec(None, self.ir_arch, {})
+        self.symbexec.enable_emulated_simplifications()
 
     def load(self):
         "Preload symbols according to current architecture"
