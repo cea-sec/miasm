@@ -1,4 +1,6 @@
 #! /usr/bin/env python
+import sys
+
 from asm_test import Asm_Test_32
 
 
@@ -57,4 +59,4 @@ BAD:
 
 
 if __name__ == "__main__":
-    [test()() for test in [Test_PUSHPOP]]
+    [test(*sys.argv[1:])() for test in [Test_PUSHPOP]]

@@ -1,4 +1,6 @@
 #! /usr/bin/env python
+import sys
+
 from asm_test import Asm_Test_32
 
 class Test_SCAS(Asm_Test_32):
@@ -45,4 +47,4 @@ class Test_MOVS(Asm_Test_32):
 
 
 if __name__ == "__main__":
-    [test()() for test in [Test_SCAS, Test_MOVS]]
+    [test(*sys.argv[1:])() for test in [Test_SCAS, Test_MOVS]]

@@ -1,4 +1,6 @@
 #! /usr/bin/env python
+import sys
+
 from asm_test import Asm_Test
 from pdb import pm
 
@@ -27,4 +29,4 @@ main:
 
 
 if __name__ == "__main__":
-    [test()() for test in [Test_UBFM1, Test_UBFM2 ]]
+    [test(*sys.argv[1:])() for test in [Test_UBFM1, Test_UBFM2 ]]

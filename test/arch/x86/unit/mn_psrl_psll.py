@@ -1,6 +1,7 @@
 #! /usr/bin/env python
-from asm_test import Asm_Test_32
 import sys
+
+from asm_test import Asm_Test_32
 
 class Test_PSRL(Asm_Test_32):
     TXT = '''
@@ -52,4 +53,4 @@ class Test_PSLL(Asm_Test_32):
 
 
 if __name__ == "__main__":
-    [test()() for test in [Test_PSRL, Test_PSLL]]
+    [test(*sys.argv[1:])() for test in [Test_PSRL, Test_PSLL]]

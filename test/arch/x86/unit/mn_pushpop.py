@@ -1,4 +1,6 @@
 #! /usr/bin/env python
+import sys
+
 from asm_test import Asm_Test_16, Asm_Test_32
 from miasm2.core.utils import pck16, pck32
 
@@ -119,7 +121,7 @@ class Test_PUSHAD_16(Asm_Test_16):
 
 
 if __name__ == "__main__":
-    [test()() for test in [Test_PUSHA_16, Test_PUSHA_32,
-                           Test_PUSHAD_16, Test_PUSHAD_32
-                           ]
-     ]
+    [test(*sys.argv[1:])() for test in [Test_PUSHA_16, Test_PUSHA_32,
+                                        Test_PUSHAD_16, Test_PUSHAD_32
+                                        ]
+    ]

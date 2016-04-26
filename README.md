@@ -3,7 +3,7 @@
 
 Reverse engineering framework in Python
 
-**Table of Contents** 
+**Table of Contents**
 
 - [What is Miasm?](#user-content-what-is-miasm)
 - [Basic examples](#user-content-basic-examples)
@@ -126,7 +126,7 @@ Working with IR, for instance by getting side effects:
 ...         print 'read:   ', [str(x) for x in o_r]
 ...         print 'written:', [str(x) for x in o_w]
 ...         print
-... 
+...
 read:    ['R8', 'R0']
 written: ['R2']
 
@@ -244,8 +244,8 @@ RAX 0000000000000000 RBX 0000000000000000 RCX 0000000000000004 RDX 0000000000000
 RSI 0000000000000000 RDI 0000000000000000 RSP 000000000123FFF8 RBP 0000000000000000
 zf 0000000000000000 nf 0000000000000000 of 0000000000000000 cf 0000000000000000
 RIP 0000000040000013
-40000015 RET        
->>> 
+40000015 RET
+>>>
 
 ```
 
@@ -270,7 +270,7 @@ Initializing the IR pool:
 >>> ira = machine.ira()
 >>> for b in blocs:
 ...    ira.add_bloc(b)
-... 
+...
 ```
 
 Initializing the engine with default symbolic values:
@@ -424,7 +424,7 @@ How does it work?
 Miasm embeds its own disassembler, intermediate language and
 instruction semantic. It is written in Python.
 
-To emulate code, it uses LibTCC, LLVM or Python to JIT the intermediate
+To emulate code, it uses LibTCC, LLVM, GCC or Python to JIT the intermediate
 representation. It can emulate shellcodes and all or parts of binaries. Python
 callbacks can be executed to interact with the execution, for instance to
 emulate library functions effects.
@@ -447,11 +447,14 @@ Software requirements
 
 Miasm uses:
 
-* LibTCC [tinycc (ONLY version 0.9.26)](http://repo.or.cz/w/tinycc.git), to JIT code for emulation mode
-* or LLVM v3.2 with python-llvm, see below
 * python-pyparsing
 * python-dev
 * elfesteem from [Elfesteem](https://github.com/serpilliere/elfesteem.git)
+
+To enable code JIT, one of the following module is mandatory:
+* GCC
+* LLVM v3.2 with python-llvm, see below
+* LibTCC [tinycc (ONLY version 0.9.26)](http://repo.or.cz/w/tinycc.git)
 
 Configuration
 -------------
@@ -464,7 +467,8 @@ python setup.py build
 sudo python setup.py install
 ```
 
-* To use the jitter, TCC or LLVM is recommended
+To use the jitter, GCC, TCC or LLVM is recommended
+* GCC (any version)
 * LibTCC needs to be configured with the `--disable-static` option
   * remove `libtcc-dev` from the system to avoid conflicts
   * clone [TinyCC](http://repo.or.cz/tinycc.git): `git clone http://repo.or.cz/tinycc.git`
@@ -494,7 +498,7 @@ Windows & IDA
 Most of Miasm's IDA plugins use a subset of Miasm functionnality.
 A quick way to have them working is to add:
 * `elfesteem` directory and `pyparsing.py` to `C:\...\IDA\python\` or `pip install pyparsing elfesteem`
-* `miasm2/miasm2` directory to `C:\...\IDA\python\` 
+* `miasm2/miasm2` directory to `C:\...\IDA\python\`
 
 All features excepting JITter related ones will be available. For a more complete installation, please refer to above paragraphs.
 

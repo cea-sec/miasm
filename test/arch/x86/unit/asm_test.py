@@ -23,8 +23,8 @@ reg_and_id = dict(mn_x86.regs.all_regs_ids_byname)
 class Asm_Test(object):
     run_addr = 0x0
 
-    def __init__(self):
-        self.myjit = Machine(self.arch_name).jitter()
+    def __init__(self, jitter_engine):
+        self.myjit = Machine(self.arch_name).jitter(jitter_engine)
         self.myjit.init_stack()
 
         self.myjit.jit.log_regs = False
@@ -84,8 +84,8 @@ class Asm_Test_16(Asm_Test):
     arch_attrib = 16
     ret_addr = 0x1337
 
-    def __init__(self):
-        self.myjit = Machine(self.arch_name).jitter()
+    def __init__(self, jitter_engine):
+        self.myjit = Machine(self.arch_name).jitter(jitter_engine)
         self.myjit.stack_base = 0x1000
         self.myjit.stack_size = 0x1000
         self.myjit.init_stack()

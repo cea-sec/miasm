@@ -1,4 +1,6 @@
 #! /usr/bin/env python
+import sys
+
 from asm_test import Asm_Test_32
 
 
@@ -73,4 +75,4 @@ array_al_end:
 
 
 if __name__ == "__main__":
-    [test()() for test in [Test_DAA]]
+    [test(*sys.argv[1:])() for test in [Test_DAA]]
