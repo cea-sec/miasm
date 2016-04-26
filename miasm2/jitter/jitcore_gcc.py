@@ -111,7 +111,7 @@ class JitCore_Gcc(jitcore.JitCore):
             check_call(args)
             # Move temporary file to final file
             os.rename(fname_tmp, fname_out)
-
+            os.remove(fname_in)
         lib = ctypes.cdll.LoadLibrary(fname_out)
         func = getattr(lib, f_name)
         addr = ctypes.cast(func, ctypes.c_void_p).value
