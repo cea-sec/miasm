@@ -81,3 +81,22 @@ class EmulatedSymbExec(symbexec):
                     self.symbols.symbols_id[symbol] = value
             else:
                 raise NotImplementedError("Type not handled: %s" % symbol)
+
+    # CPU specific simplifications
+    def _simp_handle_segm(self, e_s, expr):
+        """Handle 'segm' operation"""
+        if expr.op != "segm":
+            return expr
+        segm_nb = int(expr.args[0].arg)
+        segmaddr = self.cpu.get_segm_base(segm_nb)
+        return e_s(m2_expr.ExprOp("+",
+                                  m2_expr.ExprInt(segmaddr, expr.size),
+                                  expr.args[1]))
+
+    def enable_emulated_simplifications(self):
+        """Enable simplifications needing a CPU instance on associated
+        ExpressionSimplifier
+        """
+        self.expr_simp.enable_passes({
+            m2_expr.ExprOp: [self._simp_handle_segm]
+        })
