@@ -6,6 +6,7 @@ from pdb import pm
 
 from miasm2.analysis.sandbox import Sandbox_Linux_x86_32
 from miasm2.jitter.jitload import log_func
+from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm2.os_dep.win_api_x86_32 import get_str_ansi, upck32
 
 # Utils
@@ -125,6 +126,12 @@ except AttributeError:
     raise RuntimeError("The target binary must have a symtab section")
 
 log_func.setLevel(logging.ERROR)
+
+# Segmentation
+sb.jitter.cpu.set_segm_base(8, 0x7fff0000)
+sb.jitter.cpu.GS = 8
+sb.jitter.vm.add_memory_page(0x7fff0000 + 0x14, PAGE_READ | PAGE_WRITE, "AAAA")
+
 
 # Run
 sb.run(addr)
