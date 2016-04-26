@@ -174,8 +174,12 @@ uint64_t MEM_LOOKUP_64_PASSTHROUGH(uint64_t addr);
 int vm_read_mem(vm_mngr_t* vm_mngr, uint64_t addr, char** buffer_ptr, uint64_t size);
 int vm_write_mem(vm_mngr_t* vm_mngr, uint64_t addr, char *buffer, uint64_t size);
 
+#define CC_P 1
 
-unsigned int parity(unsigned int a);
+extern const uint8_t parity_table[256];
+
+#define parity(a) (parity_table[(a) & 0xFF])
+
 unsigned int my_imul08(unsigned int a, unsigned int b);
 
 int is_mapped(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t size);
