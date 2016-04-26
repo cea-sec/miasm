@@ -3652,8 +3652,8 @@ addop("movsq", [bs8(0xa5), bs_opmode64])
 addop("movsx", [bs8(0x0f), bs("1011111"), w8, sx] + rmmod(rmreg, rm_arg_sx))
 addop("movsxd", [bs8(0x63), sxd, bs_mode64] + rmmod(rmreg, rm_arg_sxd))
 
-addop("movups",
-      [bs8(0x0f), bs8(0x10), no_xmm_pref] + rmmod(xmm_reg, rm_arg_xmm))
+addop("movups", [bs8(0x0f), bs("0001000"), swapargs, no_xmm_pref] +
+      rmmod(xmm_reg, rm_arg_xmm), [xmm_reg, rm_arg_xmm])
 addop("movsd", [bs8(0x0f), bs("0001000"), swapargs, pref_f2]
       + rmmod(xmm_reg, rm_arg_xmm_m64), [xmm_reg, rm_arg_xmm_m64])
 addop("movss", [bs8(0x0f), bs("0001000"), swapargs, pref_f3] +

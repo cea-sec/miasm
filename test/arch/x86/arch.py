@@ -2295,6 +2295,8 @@ reg_tests = [
 
     (m32, "00000000    MOVUPS     XMM2, XMMWORD PTR [ECX]",
      "0f1011"),
+    (m64, "00000000    MOVUPS     XMMWORD PTR [RCX+0x50], XMM1",
+     "0f114950"),
     (m32, "00000000    MOVSD      XMM2, QWORD PTR [ECX]",
      "f20f1011"),
     (m32, "00000000    MOVSD      XMM2, XMM1",
