@@ -1,8 +1,8 @@
+from collections import deque
+
 import miasm2.expression.expression as m2_expr
 from miasm2.expression.expression_helper import ExprDissector
 from miasm2.ir.ir import AssignBlock
-
-from collections import deque
 
 
 class SSA(object):
@@ -71,14 +71,19 @@ class SSA(object):
         return ib
 
     @staticmethod
-    def reverse_variable(v):
+    def reverse_variable(variable):
         """
         Transforms a variable in SSA form into non-SSA form
-        :param v: ExprId, variable in SSA form
+        :param variable: ExprId, variable in SSA form
         :return: ExprId, variable in non-SSA form
         """
-        name = v.name.split(".")[0]
-        return m2_expr.ExprId(name, v.size)
+        # SSA form
+        if isinstance(variable.name, tuple):
+            name = variable.name[0]
+        # no SSA form
+        else:
+            name = variable.name
+        return m2_expr.ExprId(name, variable.size)
 
     def reset(self):
         """Resets SSA transformation"""
@@ -95,7 +100,7 @@ class SSA(object):
         :return: variable expression in SSA form
         """
         index = stack[v]
-        name = v.name + "." + str(index)
+        name = (v.name, index)
         e = m2_expr.ExprId(name, v.size)
 
         return e
@@ -192,25 +197,6 @@ class SSA(object):
 
         return instructions
 
-    @staticmethod
-    def _convert_block(ib, l):
-        """
-        Transforms an IRA block inplace into SSA
-        :param ib: IRA block to be transformed
-        :param l: list of SSA expressions
-        """
-        # iterator over SSA expressions
-        ssa_iter = iter(l)
-        # walk over IR blocks' assignblocks
-        for index, assignblk in enumerate(ib.irs):
-            # list of instructions
-            instructions = []
-            # insert SSA instructions
-            for dst in assignblk:
-                instructions.append(ssa_iter.next())
-            # replace instructions of assignblock in IRA block
-            ib.irs[index] = AssignBlock(instructions)
-
     def _copy_block(self, label):
         """
         Returns a copy on an IRA block
@@ -235,14 +221,14 @@ class SSA(object):
         separately.
         :param label: IRA block label
         """
-        # list of IRA block's SSA expressions
-        ssa_expressions_block = []
-
         # retrieve IRA block
         ib = self.get_block(label)
 
         # iterate block's IR expressions
-        for assignblk in ib.irs:
+        for index, assignblk in enumerate(ib.irs):
+            # assign block for ssa instructions
+            assignblk_ssa = AssignBlock()
+
             # list of parallel instructions
             instructions = self._parallel_instructions(assignblk)
             # list for transformed RHS expressions
@@ -263,15 +249,12 @@ class SSA(object):
                 # retrieve corresponding RHS expression
                 src_ssa = rhs.popleft()
 
-                # rebuild SSA expression
-                e = m2_expr.ExprAff(dst_ssa, src_ssa)
+                # store SSA expression
                 self.expressions[dst_ssa] = src_ssa
+                assignblk_ssa[dst_ssa] = src_ssa
 
-                # append ssa expression to list
-                ssa_expressions_block.append(e)
-
-        # replace blocks IR expressions with corresponding SSA transformations
-        self._convert_block(ib, ssa_expressions_block)
+            # replace blocks IR expressions with corresponding SSA transformations
+            ib.irs[index] = assignblk_ssa
 
 
 class SSABlock(SSA):
@@ -346,6 +329,9 @@ class SSADiGraph(SSA):
 
     The implemented SSA form is known as minimal SSA.
     """
+
+    # _gen_empty_phi cache class attribute
+    _phi_cache = {}
 
     def __init__(self, ira):
         """
@@ -448,15 +434,17 @@ class SSADiGraph(SSA):
                         intodo.add(node)
                         todo.add(node)
 
-    @staticmethod
-    def _gen_empty_phi(v):
+    @classmethod
+    def _gen_empty_phi(cls, variable):
         """
         Generates an empty phi function for a variable
-        :param v: variable
+        :param variable: ExprId, architecture variable
         :return: ExprAff, empty phi function for v
         """
-        phi = m2_expr.ExprId("phi", v.size)
-        return m2_expr.ExprAff(v, phi)
+        if variable.size not in cls._phi_cache:
+            cls._phi_cache[variable.size] = m2_expr.ExprId("phi", variable.size)
+        phi = cls._phi_cache[variable.size]
+        return m2_expr.ExprAff(variable, phi)
 
     @staticmethod
     def _fill_phi(*args):
@@ -532,14 +520,13 @@ class SSADiGraph(SSA):
         on the left hand side into SSA
         :param label: IRA block label
         """
-        if label in self._phinodes:
-            # create temporary list of phi function assignments for inplace renaming
-            tmp = list(self._phinodes[label])
+        # create temporary list of phi function assignments for inplace renaming
+        tmp = list(self._phinodes.get(label, []))
 
-            # iterate over all block's phi nodes
-            for dst in tmp:
-                # transform variables on LHS inplace
-                self._phinodes[label][self._transform_expression_lhs(dst)] = self._phinodes[label].pop(dst)
+        # iterate over all block's phi nodes
+        for dst in tmp:
+            # transform variables on LHS inplace
+            self._phinodes[label][self._transform_expression_lhs(dst)] = self._phinodes[label].pop(dst)
 
     def _rename_phi_rhs(self, successor):
         """
@@ -551,23 +538,22 @@ class SSADiGraph(SSA):
 
         :param successor: label of block's direct successor in the CFG
         """
-        # if successor is in block's dominance frontier
-        if successor in self._phinodes:
-            # walk over all variables on LHS
-            for dst in self._phinodes[successor]:
-                # transform RHS expression into SSA
-                src = self._phinodes[successor][dst]
-                src_ssa = self._transform_phi_rhs(dst)
+        # walk over all variables on LHS, if successor
+        # is in block's dominance frontier
+        for dst in self._phinodes.get(successor, []):
+            # transform RHS expression into SSA
+            src = self._phinodes[successor][dst]
+            src_ssa = self._transform_phi_rhs(dst)
 
-                # phi function is empty
-                if isinstance(src, m2_expr.ExprId) and src.name == "phi":
-                    e = self._fill_phi(src_ssa)
-                # phi function contains at least one value
-                else:
-                    e = self._fill_phi(src_ssa, *src.args)
+            # phi function is empty
+            if isinstance(src, m2_expr.ExprId) and src.name == "phi":
+                e = self._fill_phi(src_ssa)
+            # phi function contains at least one value
+            else:
+                e = self._fill_phi(src_ssa, *src.args)
 
-                # update phi function
-                self._phinodes[successor][dst] = e
+            # update phi function
+            self._phinodes[successor][dst] = e
 
     def _insert_phi(self):
         """Inserts phi functions into the list of SSA expressions"""
@@ -580,16 +566,16 @@ class SSADiGraph(SSA):
         into IRA block at the beginning"""
         for block_label in self._phinodes:
             ib = self.get_block(block_label)
-            # list of instructions
-            instructions = []
+
+            # create assignblock
+            assignblk = AssignBlock()
+
             # walk over all variables
             for dst in self._phinodes[block_label]:
+                # get RHS variable
                 src = self._phinodes[block_label][dst]
-                # build ssa expression
-                e = m2_expr.ExprAff(dst, src)
-                # insert SSA expression
-                instructions.append(e)
-            # create assignblock
-            assignblk = AssignBlock(instructions)
+                # assign to dst
+                assignblk[dst] = src
+
             # insert at the beginning
             ib.irs.insert(0, assignblk)
