@@ -2317,6 +2317,9 @@ reg_tests = [
     (m64, "00000000    MOVSS      DWORD PTR [RBP+0xFFFFFFFFFFFFFC00], XMM0",
      "f30f118500fcffff"),
 
+    (m64, "00000000    MOVMSKPS   EAX, XMM2",
+     "0f50c2"),
+
     (m32, "00000000    ADDSS      XMM2, DWORD PTR [ECX]",
      "f30f5811"),
     (m32, "00000000    ADDSS      XMM1, XMM2",
