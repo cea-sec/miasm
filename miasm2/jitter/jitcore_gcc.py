@@ -102,7 +102,8 @@ class JitCore_Gcc(jitcore.JitCore):
             os.close(fdesc)
 
             # Create unique SO file
-            _, fname_tmp = tempfile.mkstemp(suffix=".so")
+            fdesc, fname_tmp = tempfile.mkstemp(suffix=".so")
+            os.close(fdesc)
 
             inc_dir = ["-I%s" % inc for inc in self.include_files]
             libs = ["%s" % lib for lib in self.libs]
