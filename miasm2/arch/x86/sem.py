@@ -1448,7 +1448,7 @@ def idiv(ir, instr, a):
 
     if size == 8:
         b = mRAX[instr.mode][:16]
-    elif size in [16, 32]:
+    elif size in [16, 32, 64]:
         s1, s2 = mRDX[size], mRAX[size]
         b = m2_expr.ExprCompose([(s2, 0, size),
                                  (s1, size, size * 2)])
