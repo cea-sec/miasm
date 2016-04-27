@@ -3620,6 +3620,7 @@ addop("lgs", [bs8(0x0f), bs8(0xb5)] + rmmod(rmreg, rm_arg_x=rm_mem, modrm=mod_me
 addop("lgdt", [bs8(0x0f), bs8(0x01)] + rmmod(d2, modrm=mod_mem))
 addop("lidt", [bs8(0x0f), bs8(0x01)] + rmmod(d3, modrm=mod_mem))
 
+addop("lfence", [bs8(0x0f), bs8(0xae), bs8(0xe8)])
 
 addop("leave", [bs8(0xc9), stk])
 

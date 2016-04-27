@@ -2135,6 +2135,8 @@ reg_tests = [
     (m32, "00000000    LIDT       DWORD PTR [EAX]",
      "0f0118"),
 
+    (m64, "00000000    LFENCE",
+     "0faee8"),
 
 
     (m32, "00000000    SUB        AL, 0x11",
