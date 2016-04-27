@@ -1744,7 +1744,8 @@ reg_tests = [
      "0f1818"),
     (m32, "00000000    PREFETCHNTA BYTE PTR [EAX]",
      "0f1800"),
-
+    (m64, "00000000    PREFETCHW  BYTE PTR [RDI]",
+     "0f0d0f"),
 
     (m16, "00000000    PUSHW      AX",
      "50"),

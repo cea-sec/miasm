@@ -3759,6 +3759,7 @@ addop("prefetch0", [bs8(0x0f), bs8(0x18)] + rmmod(d1, rm_arg_m08))
 addop("prefetch1", [bs8(0x0f), bs8(0x18)] + rmmod(d2, rm_arg_m08))
 addop("prefetch2", [bs8(0x0f), bs8(0x18)] + rmmod(d3, rm_arg_m08))
 addop("prefetchnta", [bs8(0x0f), bs8(0x18)] + rmmod(d0, rm_arg_m08))
+addop("prefetchw", [bs8(0x0f), bs8(0x0d)] + rmmod(d1, rm_arg_m08))
 
 addop("pushw", [bs8(0xff), stk, bs_opmode16] + rmmod(d6))
 addop("pushw", [bs("01010"), stk, reg, bs_opmode16])
