@@ -4320,7 +4320,9 @@ addop("pmovmskb", [bs8(0x0f), bs8(0xd7), no_xmm_pref] +
 addop("pmovmskb", [bs8(0x0f), bs8(0xd7), pref_66] +
       rmmod(reg, rm_arg_xmm_reg))
 
-addop("shufps", [bs8(0x0f), bs8(0xc6)] +
+addop("shufps", [bs8(0x0f), bs8(0xc6), no_xmm_pref] +
+      rmmod(xmm_reg, rm_arg_xmm) + [u08])
+addop("shufpd", [bs8(0x0f), bs8(0xc6), pref_66] +
       rmmod(xmm_reg, rm_arg_xmm) + [u08])
 
 

@@ -2905,6 +2905,8 @@ reg_tests = [
 
     (m64, "00000000    SHUFPS     XMM0, XMM6, 0x44",
      "0fc6c644"),
+    (m64, "00000000    SHUFPD     XMM0, XMM6, 0x44",
+     "660fc6c644"),
 
 
 ]
