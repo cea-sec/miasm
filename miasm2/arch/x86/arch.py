@@ -4320,6 +4320,9 @@ addop("pmovmskb", [bs8(0x0f), bs8(0xd7), no_xmm_pref] +
 addop("pmovmskb", [bs8(0x0f), bs8(0xd7), pref_66] +
       rmmod(reg, rm_arg_xmm_reg))
 
+addop("shufps", [bs8(0x0f), bs8(0xc6)] +
+      rmmod(xmm_reg, rm_arg_xmm) + [u08])
+
 
 mn_x86.bintree = factor_one_bit(mn_x86.bintree)
 # mn_x86.bintree = factor_fields_all(mn_x86.bintree)

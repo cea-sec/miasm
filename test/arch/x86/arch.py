@@ -2903,6 +2903,9 @@ reg_tests = [
     (m32, "00000000    PMOVMSKB   EAX, XMM7",
      "660FD7C7"),
 
+    (m64, "00000000    SHUFPS     XMM0, XMM6, 0x44",
+     "0fc6c644"),
+
 
 ]
 
