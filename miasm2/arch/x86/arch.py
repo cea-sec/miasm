@@ -4221,6 +4221,11 @@ addop("pcmpeqd", [bs8(0x0f), bs8(0x76), no_xmm_pref] +
 addop("pcmpeqd", [bs8(0x0f), bs8(0x76), pref_66] +
       rmmod(xmm_reg, rm_arg_xmm))
 
+addop("pcmpgtd", [bs8(0x0f), bs8(0x66), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm))
+addop("pcmpgtd", [bs8(0x0f), bs8(0x66), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
 
 addop("punpckhbw", [bs8(0x0f), bs8(0x68), no_xmm_pref] +
       rmmod(mm_reg, rm_arg_mm))
