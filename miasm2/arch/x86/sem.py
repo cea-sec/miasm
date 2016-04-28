@@ -2555,7 +2555,10 @@ def fcmovnu(ir, instr, arg1, arg2):
 
 def nop(ir, instr, a=None):
     return [], []
-
+    
+def ud2(ir, instr, a=None):
+    e = [m2_expr.ExprAff(exception_flags, m2_expr.ExprInt(EXCEPT_ILLEGAL_INSN, exception_flags.size))]
+    return e, []
 
 def hlt(ir, instr):
     e = []
@@ -4122,6 +4125,7 @@ mnemo_func = {'mov': mov,
               'fcomi': fcomi,
               'fcomip': fcomip,
               'nop': nop,
+              'ud2': ud2,
               'fnop': nop,  # XXX
               'hlt': hlt,
               'rdtsc': rdtsc,
