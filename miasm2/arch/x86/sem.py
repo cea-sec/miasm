@@ -2556,6 +2556,16 @@ def fcmovnu(ir, instr, arg1, arg2):
 def nop(ir, instr, a=None):
     return [], []
     
+def prefetchw(ir, instr, a=None):
+    # see 4-201 on this documentation 
+    # https://www-ssl.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-instruction-set-reference-manual-325383.pdf
+    return [], []
+    
+def lfence(ir, instr, a=None):
+    # see 3-485 on this documentation 
+    # https://www-ssl.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-instruction-set-reference-manual-325383.pdf
+    return [], []
+    
 def ud2(ir, instr, a=None):
     e = [m2_expr.ExprAff(exception_flags, m2_expr.ExprInt(EXCEPT_ILLEGAL_INSN, exception_flags.size))]
     return e, []
@@ -4126,6 +4136,8 @@ mnemo_func = {'mov': mov,
               'fcomip': fcomip,
               'nop': nop,
               'ud2': ud2,
+              'prefetchw':prefetchw,
+              'lfence':lfence,
               'fnop': nop,  # XXX
               'hlt': hlt,
               'rdtsc': rdtsc,
