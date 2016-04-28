@@ -3620,6 +3620,7 @@ addop("lgs", [bs8(0x0f), bs8(0xb5)] + rmmod(rmreg, rm_arg_x=rm_mem, modrm=mod_me
 addop("lgdt", [bs8(0x0f), bs8(0x01)] + rmmod(d2, modrm=mod_mem))
 addop("lidt", [bs8(0x0f), bs8(0x01)] + rmmod(d3, modrm=mod_mem))
 
+addop("lfence", [bs8(0x0f), bs8(0xae), bs8(0xe8)])
 
 addop("leave", [bs8(0xc9), stk])
 
@@ -3676,6 +3677,8 @@ addop("movq", [bs8(0x0f), bs8(0x7e), pref_f3] +
 addop("movq", [bs8(0x0f), bs8(0xd6), pref_66] +
       rmmod(xmm_reg, rm_arg_xmm_m64), [rm_arg_xmm_m64, xmm_reg])
 
+addop("movmskps", [bs8(0x0f), bs8(0x50), no_xmm_pref] +
+      rmmod(reg, rm_arg_xmm_reg))
 
 
 addop("addss", [bs8(0x0f), bs8(0x58), pref_f3] + rmmod(xmm_reg, rm_arg_xmm_m32))
@@ -3759,6 +3762,7 @@ addop("prefetch0", [bs8(0x0f), bs8(0x18)] + rmmod(d1, rm_arg_m08))
 addop("prefetch1", [bs8(0x0f), bs8(0x18)] + rmmod(d2, rm_arg_m08))
 addop("prefetch2", [bs8(0x0f), bs8(0x18)] + rmmod(d3, rm_arg_m08))
 addop("prefetchnta", [bs8(0x0f), bs8(0x18)] + rmmod(d0, rm_arg_m08))
+addop("prefetchw", [bs8(0x0f), bs8(0x0d)] + rmmod(d1, rm_arg_m08))
 
 addop("pushw", [bs8(0xff), stk, bs_opmode16] + rmmod(d6))
 addop("pushw", [bs("01010"), stk, reg, bs_opmode16])
@@ -4217,6 +4221,11 @@ addop("pcmpeqd", [bs8(0x0f), bs8(0x76), no_xmm_pref] +
 addop("pcmpeqd", [bs8(0x0f), bs8(0x76), pref_66] +
       rmmod(xmm_reg, rm_arg_xmm))
 
+addop("pcmpgtd", [bs8(0x0f), bs8(0x66), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm))
+addop("pcmpgtd", [bs8(0x0f), bs8(0x66), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
 
 addop("punpckhbw", [bs8(0x0f), bs8(0x68), no_xmm_pref] +
       rmmod(mm_reg, rm_arg_mm))
@@ -4315,6 +4324,11 @@ addop("pmovmskb", [bs8(0x0f), bs8(0xd7), no_xmm_pref] +
       rmmod(reg, rm_arg_mm_reg))
 addop("pmovmskb", [bs8(0x0f), bs8(0xd7), pref_66] +
       rmmod(reg, rm_arg_xmm_reg))
+
+addop("shufps", [bs8(0x0f), bs8(0xc6), no_xmm_pref] +
+      rmmod(xmm_reg, rm_arg_xmm) + [u08])
+addop("shufpd", [bs8(0x0f), bs8(0xc6), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm) + [u08])
 
 
 mn_x86.bintree = factor_one_bit(mn_x86.bintree)
