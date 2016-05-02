@@ -92,10 +92,53 @@ class JitCore_Gcc(jitcore.JitCore):
         self.include_files = include_files
         self.libs = libs
 
-    def jit_gcc_compil(self, f_name, func_code):
-        func_hash = md5(func_code).hexdigest()
-        fname_out = os.path.join(self.tempdir, "%s.so" % func_hash)
+    def label2fname(self, label):
+        """
+        Generate function name from @label
+        @label: asm_label instance
+        """
+        return "block_%s" % label.name
+
+    def load_code(self, label, fname_so):
+        f_name = self.label2fname(label)
+        lib = ctypes.cdll.LoadLibrary(fname_so)
+        func = getattr(lib, f_name)
+        addr = ctypes.cast(func, ctypes.c_void_p).value
+        self.lbl2jitbloc[label.offset] = addr
+        self.gcc_states[label.offset] = None
+
+    def gen_c_code(self, label, irblocks):
+        """
+        Return the C code corresponding to the @irblocks
+        @label: asm_label of the block to jit
+        @irblocks: list of irblocks
+        """
+        f_name = self.label2fname(label)
+        f_declaration = 'int %s(block_id * BlockDst, JitCpu* jitcpu)' % f_name
+        out = irblocs2C(self.ir_arch, self.resolver, label, irblocks,
+                        gen_exception_code=True,
+                        log_mn=self.log_mn,
+                        log_regs=self.log_regs)
+        out = [f_declaration + '{'] + out + ['}\n']
+        c_code = out
+
+        return gen_C_source(self.ir_arch, c_code)
+
+    def add_bloc(self, block):
+        """Add a bloc to JiT and JiT it.
+        @block: block to jit
+        """
+        block_raw = "".join(line.b for line in block.lines)
+        block_hash = md5("%X_%s_%s_%s" % (block.label.offset,
+                                          self.log_mn,
+                                          self.log_regs,
+                                          block_raw)).hexdigest()
+        fname_out = os.path.join(self.tempdir, "%s.so" % block_hash)
+
         if not os.access(fname_out, os.R_OK | os.X_OK):
+            irblocks = self.ir_arch.add_bloc(block, gen_pc_updt = True)
+            func_code = self.gen_c_code(block.label, irblocks)
+
             # Create unique C file
             fdesc, fname_in = tempfile.mkstemp(suffix=".c")
             os.write(fdesc, func_code)
@@ -113,25 +156,5 @@ class JitCore_Gcc(jitcore.JitCore):
             # Move temporary file to final file
             os.rename(fname_tmp, fname_out)
             os.remove(fname_in)
-        lib = ctypes.cdll.LoadLibrary(fname_out)
-        func = getattr(lib, f_name)
-        addr = ctypes.cast(func, ctypes.c_void_p).value
-        return None, addr
 
-    def jitirblocs(self, label, irblocs):
-        f_name = "bloc_%s" % label.name
-        f_declaration = 'int %s(block_id * BlockDst, JitCpu* jitcpu)' % f_name
-        out = irblocs2C(self.ir_arch, self.resolver, label, irblocs,
-                        gen_exception_code=True,
-                        log_mn=self.log_mn,
-                        log_regs=self.log_regs)
-        out = [f_declaration + '{'] + out + ['}\n']
-        c_code = out
-
-        func_code = gen_C_source(self.ir_arch, c_code)
-
-        # open('tmp_%.4d.c'%self.jitcount, "w").write(func_code)
-        self.jitcount += 1
-        gcc_state, mcode = self.jit_gcc_compil(f_name, func_code)
-        self.lbl2jitbloc[label.offset] = mcode
-        self.gcc_states[label.offset] = gcc_state
+        self.load_code(block.label, fname_out)
