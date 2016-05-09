@@ -136,7 +136,7 @@ class JitCore_Gcc(jitcore.JitCore):
         fname_out = os.path.join(self.tempdir, "%s.so" % block_hash)
 
         if not os.access(fname_out, os.R_OK | os.X_OK):
-            irblocks = self.ir_arch.add_bloc(block, gen_pc_updt = True)
+            irblocks = self.ir_arch.add_bloc(block, gen_pc_updt=True)
             func_code = self.gen_c_code(block.label, irblocks)
 
             # Create unique C file

@@ -10,6 +10,7 @@ import tempfile
 from miasm2.ir.ir2C import irblocs2C
 from miasm2.jitter import jitcore, Jittcc
 
+
 def jit_tcc_compil(func_name, func_code):
     global Jittcc
     c = Jittcc.tcc_compil(func_name, func_code)
@@ -118,7 +119,8 @@ class JitCore_Tcc(jitcore.JitCore):
         lib_dir = os.path.dirname(os.path.realpath(__file__))
         libs = []
         libs.append(os.path.join(lib_dir, 'VmMngr.so'))
-        libs.append(os.path.join(lib_dir, 'arch/JitCore_%s.so' % (self.ir_arch.arch.name)))
+        libs.append(
+            os.path.join(lib_dir, 'arch/JitCore_%s.so' % (self.ir_arch.arch.name)))
         libs = ';'.join(libs)
         jittcc_path = Jittcc.__file__
         include_dir = os.path.dirname(jittcc_path)
@@ -134,7 +136,7 @@ class JitCore_Tcc(jitcore.JitCore):
         p.stdin.close()
         include_files = p.stderr.read().split('\n')
         include_files = [x[1:]
-            for x in include_files if x.startswith(' /usr/include')]
+                         for x in include_files if x.startswith(' /usr/include')]
         include_files += [include_dir, get_python_inc()]
         include_files = ";".join(include_files)
         Jittcc.tcc_set_emul_lib_path(include_files, libs)
@@ -192,7 +194,7 @@ class JitCore_Tcc(jitcore.JitCore):
         if os.access(fname_out, os.R_OK):
             func_code = open(fname_out).read()
         else:
-            irblocks = self.ir_arch.add_bloc(block, gen_pc_updt = True)
+            irblocks = self.ir_arch.add_bloc(block, gen_pc_updt=True)
             block.irblocs = irblocks
             func_code = self.gen_c_code(block.label, irblocks)
 
