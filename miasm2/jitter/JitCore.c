@@ -54,16 +54,6 @@ PyObject * JitCpu_set_jitter(JitCpu *self, PyObject *value, void *closure)
 	return 0;
 }
 
-
-void Resolve_dst(block_id* b, uint64_t addr, uint64_t is_local)
-{
-	b->address = addr;
-	b->is_local = is_local;
-}
-
-
-
-
 uint8_t __attribute__((weak)) MEM_LOOKUP_08(JitCpu* jitcpu, uint64_t addr)
 {
 	return vm_MEM_LOOKUP_08(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr);
