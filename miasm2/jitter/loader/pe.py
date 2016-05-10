@@ -287,7 +287,7 @@ def vm2pe(myjit, fname, libs=None, e_orig=None,
         if added_funcs is not None:
             # name_inv = dict([(x[1], x[0]) for x in libs.name2off.items()])
 
-            for addr, funcaddr in added_func:
+            for addr, funcaddr in added_funcs:
                 libbase, dllname = libs.fad2info[funcaddr]
                 libs.lib_get_add_func(libbase, dllname, addr)
 
