@@ -416,7 +416,6 @@ class libimp_pe(libimp):
             # Filter available addresses according to @filter_import
             all_ads = [
                 addr for addr in out_ads.keys() if filter_import(target_pe, addr)]
-            log.debug('ads: %s', map(hex, all_ads))
             if not all_ads:
                 continue
 
@@ -426,6 +425,7 @@ class libimp_pe(libimp):
                 if x not in [0,  None]:
                     break
             all_ads = all_ads[i:]
+            log.debug('ads: %s', map(hex, all_ads))
 
             while all_ads:
                 # Find libname's Import Address Table
