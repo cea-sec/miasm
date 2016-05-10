@@ -113,6 +113,8 @@ PyObject * JitCpu_get_jitter(JitCpu *self, void *closure);
 PyObject * JitCpu_set_jitter(JitCpu *self, PyObject *value, void *closure);
 void Resolve_dst(block_id* BlockDst, uint64_t addr, uint64_t is_local);
 
+#define Resolve_dst(b, arg_addr, arg_is_local) do {(b)->address = (arg_addr); (b)->is_local = (arg_is_local);} while(0)
+
 
 
 uint8_t MEM_LOOKUP_08(JitCpu* jitcpu, uint64_t addr);

@@ -28,12 +28,12 @@ for size in [8, 16, 32, 64]:
 def init_arch_C(arch):
     arch.id2Cid = {}
     for x in arch.regs.all_regs_ids + prefetch_id:
-        arch.id2Cid[x] = m2_expr.ExprId('((vm_cpu_t*)jitcpu->cpu)->' + str(x), x.size)
+        arch.id2Cid[x] = m2_expr.ExprId('mycpu->' + str(x), x.size)
 
     arch.id2newCid = {}
 
     for x in arch.regs.all_regs_ids + prefetch_id:
-        arch.id2newCid[x] = m2_expr.ExprId('((vm_cpu_t*)jitcpu->cpu)->%s_new' % x, x.size)
+        arch.id2newCid[x] = m2_expr.ExprId('mycpu->%s_new' % x, x.size)
 
 
 def patch_c_id(arch, e):
@@ -407,6 +407,8 @@ def irblocs2C(ir_arch, resolvers, label, irblocs,
             l.index -= lbl_index_min
 
     out.append("void* local_labels[] = {%s};"%(', '.join(["&&%s"%l.name for l in lbls_local])))
+    out.append("vm_cpu_t* mycpu = (vm_cpu_t*)jitcpu->cpu;")
+
 
     out.append("goto %s;" % label.name)
     bloc_labels = [x.label for x in irblocs]

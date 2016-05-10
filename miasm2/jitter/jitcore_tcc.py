@@ -4,6 +4,8 @@
 import os
 from distutils.sysconfig import get_python_inc
 from subprocess import Popen, PIPE
+from hashlib import md5
+import tempfile
 
 from miasm2.ir.ir2C import irblocs2C
 from miasm2.jitter import jitcore, Jittcc
@@ -100,6 +102,12 @@ class JitCore_Tcc(jitcore.JitCore):
         self.tcc_states = {}
         self.ir_arch = ir_arch
 
+        self.tempdir = os.path.join(tempfile.gettempdir(), "miasm_gcc_cache")
+        try:
+            os.mkdir(self.tempdir, 0755)
+        except OSError:
+            pass
+
     def deleteCB(self, offset):
         "Free the TCCState corresponding to @offset"
         if offset in self.tcc_states:
@@ -111,7 +119,8 @@ class JitCore_Tcc(jitcore.JitCore):
         lib_dir = os.path.dirname(os.path.realpath(__file__))
         libs = []
         libs.append(os.path.join(lib_dir, 'VmMngr.so'))
-        libs.append(os.path.join(lib_dir, 'arch/JitCore_%s.so' % (self.ir_arch.arch.name)))
+        libs.append(
+            os.path.join(lib_dir, 'arch/JitCore_%s.so' % (self.ir_arch.arch.name)))
         libs = ';'.join(libs)
         jittcc_path = Jittcc.__file__
         include_dir = os.path.dirname(jittcc_path)
@@ -127,7 +136,7 @@ class JitCore_Tcc(jitcore.JitCore):
         p.stdin.close()
         include_files = p.stderr.read().split('\n')
         include_files = [x[1:]
-            for x in include_files if x.startswith(' /usr/include')]
+                         for x in include_files if x.startswith(' /usr/include')]
         include_files += [include_dir, get_python_inc()]
         include_files = ";".join(include_files)
         Jittcc.tcc_set_emul_lib_path(include_files, libs)
@@ -136,23 +145,63 @@ class JitCore_Tcc(jitcore.JitCore):
         for tcc_state in self.tcc_states.values():
             Jittcc.tcc_end(tcc_state)
 
-    def jitirblocs(self, label, irblocs):
-        f_name = "bloc_%s" % label.name
+    def label2fname(self, label):
+        """
+        Generate function name from @label
+        @label: asm_label instance
+        """
+        return "block_%s" % label.name
+
+    def compil_code(self, block, func_code):
+        """
+        Compil the C code of @func_code from @block
+        @block: original asm_block
+        @func_code: C code of the block
+        """
+        label = block.label
+        self.jitcount += 1
+        tcc_state, mcode = jit_tcc_compil(self.label2fname(label), func_code)
+        self.lbl2jitbloc[label.offset] = mcode
+        self.tcc_states[label.offset] = tcc_state
+
+    def gen_c_code(self, label, irblocks):
+        """
+        Return the C code corresponding to the @irblocks
+        @label: asm_label of the block to jit
+        @irblocks: list of irblocks
+        """
+        f_name = self.label2fname(label)
         f_declaration = 'int %s(block_id * BlockDst, JitCpu* jitcpu)' % f_name
-        out = irblocs2C(self.ir_arch, self.resolver, label, irblocs,
+        out = irblocs2C(self.ir_arch, self.resolver, label, irblocks,
                         gen_exception_code=True,
                         log_mn=self.log_mn,
                         log_regs=self.log_regs)
         out = [f_declaration + '{'] + out + ['}\n']
         c_code = out
 
-        func_code = gen_C_source(self.ir_arch, c_code)
+        return gen_C_source(self.ir_arch, c_code)
 
-        # open('tmp_%.4d.c'%self.jitcount, "w").write(func_code)
-        self.jitcount += 1
-        tcc_state, mcode = jit_tcc_compil(f_name, func_code)
-        jcode = jit_tcc_code(mcode)
-        self.lbl2jitbloc[label.offset] = mcode
-        self.tcc_states[label.offset] = tcc_state
-        self.addr2obj[label.offset] = jcode
-        self.addr2objref[label.offset] = objref(jcode)
+    def add_bloc(self, block):
+        """Add a bloc to JiT and JiT it.
+        @block: block to jit
+        """
+        block_raw = "".join(line.b for line in block.lines)
+        block_hash = md5("%X_%s_%s_%s" % (block.label.offset,
+                                          self.log_mn,
+                                          self.log_regs,
+                                          block_raw)).hexdigest()
+        fname_out = os.path.join(self.tempdir, "%s.c" % block_hash)
+        if os.access(fname_out, os.R_OK):
+            func_code = open(fname_out).read()
+        else:
+            irblocks = self.ir_arch.add_bloc(block, gen_pc_updt=True)
+            block.irblocs = irblocks
+            func_code = self.gen_c_code(block.label, irblocks)
+
+            # Create unique C file
+            fdesc, fname_tmp = tempfile.mkstemp(suffix=".c")
+            os.write(fdesc, func_code)
+            os.close(fdesc)
+            os.rename(fname_tmp, fname_out)
+
+        self.compil_code(block, func_code)
