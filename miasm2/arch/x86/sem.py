@@ -531,8 +531,8 @@ def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None, left=False,
 
         # An overflow can occured, emulate the 'undefined behavior'
         # Overflow behavior if (shift / size % 2)
-        base_cond_overflow = c if left else (
-            c - m2_expr.ExprInt(1, size=c.size))
+        base_cond_overflow = shifter[:8] if left else (
+            shifter[:8] - m2_expr.ExprInt(1, size=c.size))
         cond_overflow = base_cond_overflow & m2_expr.ExprInt(a.size, c.size)
         if left:
             # Overflow occurs one round before right
@@ -556,31 +556,19 @@ def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None, left=False,
         value_of = a.msb() ^ a[-2:-1] if left else b[:1] ^ a.msb()
     else:
         value_of = custom_of
+    new_of = m2_expr.ExprCond(shifter - i1, m2_expr.ExprInt_from(of, 0), value_of)
 
     # Build basic blocks
     e_do = [
-        m2_expr.ExprAff(cf, new_cf),
-        m2_expr.ExprAff(of, m2_expr.ExprCond(shifter - i1,
-                                             m2_expr.ExprInt_from(of, 0),
-                                             value_of)),
         m2_expr.ExprAff(a, res),
+        m2_expr.ExprAff(cf, m2_expr.ExprCond(shifter, new_cf, cf)),
+        m2_expr.ExprAff(of, m2_expr.ExprCond(shifter, new_of, of)),
+        m2_expr.ExprAff(zf, m2_expr.ExprCond(shifter, update_flag_zf(res)[0].src, zf)),
+        m2_expr.ExprAff(nf, m2_expr.ExprCond(shifter, update_flag_nf(res)[0].src, nf)),
+        m2_expr.ExprAff(pf, m2_expr.ExprCond(shifter, update_flag_pf(res)[0].src, pf)),
     ]
-    e_do += update_flag_znp(res)
 
-    # Don't generate conditional shifter on constant
-    if isinstance(shifter, m2_expr.ExprInt):
-        if int(shifter.arg) != 0:
-            return e_do, []
-        else:
-            return [], []
-
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(shifter, lbl_do,
-                                                        lbl_skip)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+    return e_do, []
 
 
 def sar(ir, instr, a, b):
