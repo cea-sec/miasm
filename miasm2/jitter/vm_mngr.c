@@ -795,7 +795,7 @@ unsigned int x86_bsr(uint64_t src, unsigned int size)
 	int i;
 
 	for (i=size-1; i>=0; i--){
-		if (src & (1<<i))
+		if (src & (1ULL<<i))
 			return i;
 	}
 	fprintf(stderr, "sanity check error bsr\n");
@@ -807,7 +807,7 @@ unsigned int x86_bsf(uint64_t src, unsigned int size)
 	int i;
 
 	for (i=0; i<size; i++){
-		if (src & (1<<i))
+		if (src & (1ULL<<i))
 			return i;
 	}
 	fprintf(stderr, "sanity check error bsf\n");
