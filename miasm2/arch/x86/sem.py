@@ -465,25 +465,12 @@ def _rotate_tpl(ir, instr, a, b, op, left=False, include_cf=False):
                               res.msb() ^ new_cf if left else (a ^ res).msb())
     # Build basic blocks
     e_do = [
-        m2_expr.ExprAff(cf, new_cf),
-        m2_expr.ExprAff(of, new_of),
+        m2_expr.ExprAff(cf, m2_expr.ExprCond(shifter, new_cf, cf)),
+        m2_expr.ExprAff(of, m2_expr.ExprCond(shifter, new_of, of)),
         m2_expr.ExprAff(a, res),
     ]
 
-    # Don't generate conditional shifter on constant
-    if isinstance(shifter, m2_expr.ExprInt):
-        if int(shifter.arg) != 0:
-            return e_do, []
-        else:
-            return [], []
-
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(shifter, lbl_do,
-                                                        lbl_skip)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+    return e_do, []
 
 
 def l_rol(ir, instr, a, b):

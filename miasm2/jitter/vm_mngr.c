@@ -756,15 +756,14 @@ uint64_t rot_right(uint64_t size, uint64_t a, uint64_t b)
 }
 
 
-unsigned int rcl_rez_op(unsigned int size, unsigned int a, unsigned int b, unsigned int cf)
+uint64_t rcl_rez_op(uint64_t size, uint64_t a, uint64_t b, uint64_t cf)
 {
     uint64_t tmp;
     uint64_t tmp_count;
     uint64_t tmp_cf;
 
     tmp = a;
-    // TODO 64bit mode
-    tmp_count = (b & 0x1f) % (size + 1);
+    tmp_count = (b & 0x3f) % (size + 1);
     while (tmp_count != 0) {
 	    tmp_cf = (tmp >> (size - 1)) & 1;
 	    tmp = (tmp << 1) + cf;
@@ -774,15 +773,14 @@ unsigned int rcl_rez_op(unsigned int size, unsigned int a, unsigned int b, unsig
     return tmp;
 }
 
-unsigned int rcr_rez_op(unsigned int size, unsigned int a, unsigned int b, unsigned int cf)
+uint64_t rcr_rez_op(uint64_t size, uint64_t a, uint64_t b, uint64_t cf)
 {
     uint64_t tmp;
     uint64_t tmp_count;
     uint64_t tmp_cf;
 
     tmp = a;
-    // TODO 64bit mode
-    tmp_count = (b & 0x1f) % (size + 1);
+    tmp_count = (b & 0x3f) % (size + 1);
     while (tmp_count != 0) {
 	    tmp_cf = tmp & 1;
 	    tmp = (tmp >> 1) + (cf << (size - 1));
