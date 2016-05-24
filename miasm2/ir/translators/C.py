@@ -28,7 +28,7 @@ class TranslatorC(Translator):
         return str(expr)
 
     def from_ExprInt(self, expr):
-        return "0x%x" % expr.arg.arg
+        return "0x%xULL" % expr.arg.arg
 
     def from_ExprAff(self, expr):
         return "%s = %s" % tuple(map(self.from_expr, (expr.dst, expr.src)))

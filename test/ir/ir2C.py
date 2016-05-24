@@ -21,42 +21,42 @@ class TestIrIr2C(unittest.TestCase):
 
         # Unary operators
         self.translationTest(
-            ExprOp('parity',  *args[:1]), r'parity(0x0&0xffffffff)')
+            ExprOp('parity',  *args[:1]), r'parity(0x0ULL&0xffffffff)')
         self.translationTest(
-            ExprOp('!',       *args[:1]), r'(~ 0x0)&0xffffffff')
+            ExprOp('!',       *args[:1]), r'(~ 0x0ULL)&0xffffffff')
         self.translationTest(
-            ExprOp('hex2bcd', *args[:1]), r'hex2bcd_32(0x0)')
-        self.translationTest(ExprOp('fabs',    *args[:1]), r'fabs(0x0)')
+            ExprOp('hex2bcd', *args[:1]), r'hex2bcd_32(0x0ULL)')
+        self.translationTest(ExprOp('fabs',    *args[:1]), r'fabs(0x0ULL)')
         self.assertRaises(NotImplementedError, translator.from_expr,
                           ExprOp('X', *args[:1]))
 
         # Binary operators
         self.translationTest(
-            ExprOp('==',      *args[:2]), r'(((0x0&0xffffffff) == (0x1&0xffffffff))?1:0)')
+            ExprOp('==',      *args[:2]), r'(((0x0ULL&0xffffffff) == (0x1ULL&0xffffffff))?1:0)')
         self.translationTest(
-            ExprOp('%',       *args[:2]), r'(((0x0&0xffffffff)%(0x1&0xffffffff))&0xffffffff)')
+            ExprOp('%',       *args[:2]), r'(((0x0ULL&0xffffffff)%(0x1ULL&0xffffffff))&0xffffffff)')
         self.translationTest(
-            ExprOp('-',       *args[:2]), r'(((0x0&0xffffffff) - (0x1&0xffffffff))&0xffffffff)')
+            ExprOp('-',       *args[:2]), r'(((0x0ULL&0xffffffff) - (0x1ULL&0xffffffff))&0xffffffff)')
         self.translationTest(
-            ExprOp('bsr',     *args[:1]), r'x86_bsr(0x0, 0x20)')
+            ExprOp('bsr',     *args[:1]), r'x86_bsr(0x0ULL, 0x20)')
         self.translationTest(
-            ExprOp('cpuid0',  *args[:2]), r'cpuid0(0x0, 0x1)')
+            ExprOp('cpuid0',  *args[:2]), r'cpuid0(0x0ULL, 0x1ULL)')
         self.translationTest(
-            ExprOp('fcom0',   *args[:2]), r'fcom0(0x0, 0x1)')
+            ExprOp('fcom0',   *args[:2]), r'fcom0(0x0ULL, 0x1ULL)')
         self.translationTest(
-            ExprOp('fadd',    *args[:2]), r'fadd(0x0, 0x1)')
+            ExprOp('fadd',    *args[:2]), r'fadd(0x0ULL, 0x1ULL)')
         self.translationTest(
-            ExprOp('segm',    *args[:2]), r'segm2addr(jitcpu, 0x0, 0x1)')
+            ExprOp('segm',    *args[:2]), r'segm2addr(jitcpu, 0x0ULL, 0x1ULL)')
         self.translationTest(
-            ExprOp('imod',    *args[:2]), r'imod32((vm_cpu_t*)jitcpu->cpu, 0x0, 0x1)')
+            ExprOp('imod',    *args[:2]), r'imod32((vm_cpu_t*)jitcpu->cpu, 0x0ULL, 0x1ULL)')
         self.translationTest(
-            ExprOp('bcdadd',  *args[:2]), r'bcdadd_32(0x0, 0x1)')
+            ExprOp('bcdadd',  *args[:2]), r'bcdadd_32(0x0ULL, 0x1ULL)')
         self.assertRaises(NotImplementedError, translator.from_expr,
                           ExprOp('X', *args[:2]))
 
         # Other cases
         self.translationTest(
-            ExprOp('+',       *args[:3]), r'(((0x0&0xffffffff)+(0x1&0xffffffff)+(0x2&0xffffffff))&0xffffffff)')
+            ExprOp('+',       *args[:3]), r'(((0x0ULL&0xffffffff)+(0x1ULL&0xffffffff)+(0x2ULL&0xffffffff))&0xffffffff)')
         self.assertRaises(NotImplementedError, translator.from_expr,
                           ExprOp('X', *args[:3]))
 
