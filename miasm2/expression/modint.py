@@ -44,9 +44,9 @@ class moduint(object):
     def __div__(self, y):
         if isinstance(y, moduint):
             cls = self.maxcast(y)
-            return cls(int(float(self.arg) / y.arg))
+            return cls(self.arg / y.arg)
         else:
-            return self.__class__(int(float(self.arg) / y))
+            return self.__class__(self.arg / y)
 
     def __int__(self):
         return int(self.arg)
@@ -67,9 +67,9 @@ class moduint(object):
     def __mod__(self, y):
         if isinstance(y, moduint):
             cls = self.maxcast(y)
-            return cls(self.arg - (y.arg * int(float(self.arg)/y.arg)))
+            return cls(self.arg - (y.arg * (self.arg / y.arg)))
         else:
-            return self.__class__(self.arg - (y * int(float(self.arg)/y)))
+            return self.__class__(self.arg - (y * (self.arg / y)))
 
     def __mul__(self, y):
         if isinstance(y, moduint):
@@ -163,7 +163,7 @@ class moduint(object):
         return hex(self.arg)
 
     def __abs__(self):
-        return abs(self.arg)
+        return self.__class__(abs(self.arg))
 
     def __rpow__(self, v):
         return v ** self.arg
@@ -183,6 +183,13 @@ class modint(moduint):
         self.arg = a
         assert(self.arg >= -self.__class__.limit /
                2 and self.arg < self.__class__.limit)
+
+    def __div__(self, y):
+        isneg = ((self < 0) ^ (y < 0)) and -1 or 1
+        return isneg * moduint.__div__(abs(self), abs(y))
+
+    def __mod__(self, y):
+        return moduint.__mod__(abs(self), abs(y))
 
 
 def is_modint(a):
