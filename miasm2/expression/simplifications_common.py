@@ -41,9 +41,8 @@ def simp_cst_propagation(e_s, e):
             elif op == '<<':
                 o = i1.arg << i2.arg
             elif op == 'a>>':
-                x1 = mod_size2int[i1.arg.size](i1.arg)
-                x2 = mod_size2int[i2.arg.size](i2.arg)
-                o = mod_size2uint[i1.arg.size](x1 >> x2)
+                x = mod_size2int[i1.arg.size](i1.arg)
+                o = mod_size2uint[i1.arg.size](x >> i2.arg)
             elif op == '>>>':
                 o = (i1.arg >> (i2.arg % i2.size) |
                      i1.arg << ((i1.size - i2.arg) % i2.size))

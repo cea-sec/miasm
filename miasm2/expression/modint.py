@@ -60,7 +60,7 @@ class moduint(object):
     def __lshift__(self, y):
         if isinstance(y, moduint):
             cls = self.maxcast(y)
-            return cls(self.arg << y.arg)
+            return cls(self.arg << min(self.size, y.arg))
         else:
             return self.__class__(self.arg << y)
 
@@ -131,7 +131,7 @@ class moduint(object):
     def __rshift__(self, y):
         if isinstance(y, moduint):
             cls = self.maxcast(y)
-            return cls(self.arg >> y.arg)
+            return cls(self.arg >> min(self.size, y.arg))
         else:
             return self.__class__(self.arg >> y)
 
