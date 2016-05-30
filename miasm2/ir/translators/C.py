@@ -78,10 +78,12 @@ class TranslatorC(Translator):
                                                    self.from_expr(expr.args[0]),
                                                    self.from_expr(expr.args[1]))
             elif expr.is_associative() or expr.op in ["%", "/"]:
-                oper = ['(%s&0x%x)' % (self.from_expr(arg), size2mask(arg.size))
+                oper = ['(%s%s)' % (self.from_expr(arg), arg.size <= 64 and
+                        '&0x%x' % size2mask(arg.size) or '')
                         for arg in expr.args]
                 oper = str(expr.op).join(oper)
-                return "((%s)&0x%x)" % (oper, size2mask(expr.args[0].size))
+                return "((%s)%s)" % (oper, expr.args[0].size <= 64 and
+                        '&0x%x' % size2mask(expr.args[0].size) or '')
             elif expr.op in ['-']:
                 return '(((%s&0x%x) %s (%s&0x%x))&0x%x)' % (
                     self.from_expr(expr.args[0]), size2mask(expr.args[0].size),
