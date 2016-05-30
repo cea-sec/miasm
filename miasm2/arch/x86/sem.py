@@ -1324,63 +1324,35 @@ def jno(ir, instr, dst):
     return gen_jcc(ir, instr, of, dst, False)
 
 
-def loop(ir, instr, dst):
+def _loop_tpl(ir, instr, dst, cond=None):
     e = []
     meip = mRIP[ir.IRDst.size]
     admode = instr.v_admode()
-    myecx = mRCX[instr.mode][:admode]
+    newecx = mRCX[instr.mode] - m2_expr.ExprInt_from(mRCX[instr.mode], 1)
 
     n = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
-    c = myecx - m2_expr.ExprInt_from(myecx, 1)
-    dst_o = m2_expr.ExprCond(c,
-                             dst.zeroExtend(ir.IRDst.size),
-                             n.zeroExtend(ir.IRDst.size))
-    e.append(m2_expr.ExprAff(myecx, c))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
-
-
-def loopne(ir, instr, dst):
-    e = []
-    meip = mRIP[ir.IRDst.size]
-    admode = instr.v_admode()
-    myecx = mRCX[instr.mode][:admode]
-
-    n = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
-
-    c = m2_expr.ExprCond(myecx - m2_expr.ExprInt(1, size=myecx.size),
+    c = m2_expr.ExprCond(newecx[:admode],
                          m2_expr.ExprInt1(1),
                          m2_expr.ExprInt1(0))
-    c &= zf ^ m2_expr.ExprInt1(1)
-
-    e.append(m2_expr.ExprAff(myecx, myecx - m2_expr.ExprInt_from(myecx, 1)))
+    if cond is not None:
+        c &= cond
     dst_o = m2_expr.ExprCond(c,
                              dst.zeroExtend(ir.IRDst.size),
                              n.zeroExtend(ir.IRDst.size))
+    e.append(m2_expr.ExprAff(mRCX[instr.mode], newecx[:admode].zeroExtend(instr.mode)))
     e.append(m2_expr.ExprAff(meip, dst_o))
     e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
     return e, []
 
+
+def loop(ir, instr, dst):
+    return _loop_tpl(ir, instr, dst)
 
 def loope(ir, instr, dst):
-    e = []
-    meip = mRIP[ir.IRDst.size]
-    admode = instr.v_admode()
-    myecx = mRCX[instr.mode][:admode]
+    return _loop_tpl(ir, instr, dst, zf)
 
-    n = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
-    c = m2_expr.ExprCond(myecx - m2_expr.ExprInt(1, size=myecx.size),
-                         m2_expr.ExprInt1(1),
-                         m2_expr.ExprInt1(0))
-    c &= zf
-    e.append(m2_expr.ExprAff(myecx, myecx - m2_expr.ExprInt_from(myecx, 1)))
-    dst_o = m2_expr.ExprCond(c,
-                             dst.zeroExtend(ir.IRDst.size),
-                             n.zeroExtend(ir.IRDst.size))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+def loopne(ir, instr, dst):
+    return _loop_tpl(ir, instr, dst, ~zf)
 
 
 # XXX size to do; eflag
