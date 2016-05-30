@@ -250,17 +250,11 @@ def gen_cmov(ir, instr, cond, arg1, arg2, mov_if):
     @cond: condition
     @mov_if: invert condition if False"""
 
-    lbl_do = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
     if mov_if:
-        dstA, dstB = lbl_do, lbl_skip
+        src = m2_expr.ExprCond(cond, arg2, arg1)
     else:
-        dstA, dstB = lbl_skip, lbl_do
-    e = []
-    e_do, extra_irs = mov(ir, instr, arg1, arg2)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(cond, dstA, dstB)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+        src = m2_expr.ExprCond(cond, arg1, arg2)
+    return [m2_expr.ExprAff(arg1, src)], []
 
 
 def mov(ir, instr, a, b):
