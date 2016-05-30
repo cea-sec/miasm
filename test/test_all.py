@@ -90,17 +90,17 @@ class QEMUTest(RegressionTest):
     """Test against QEMU regression tests
     An expected output is provided, computed on a x86 host"""
 
-    SCRIPT_NAME = "testqemu.py"
-    SAMPLE_NAME = "test-i386"
-    EXPECTED_PATH = "expected"
+    SCRIPT_NAME = "qemu-%s.py"
+    SAMPLE_NAME = "test-%s"
+    EXPECTED_PATH = "expected-%s"
     jitter_engines = ["tcc", "llvm", "python", "gcc"]
 
-    def __init__(self, name, jitter, *args, **kwargs):
-        super(QEMUTest, self).__init__([self.SCRIPT_NAME], *args, **kwargs)
+    def __init__(self, name, jitter, arch, *args, **kwargs):
+        super(QEMUTest, self).__init__([self.SCRIPT_NAME % arch], *args, **kwargs)
         self.base_dir = os.path.join(self.base_dir, "arch", "x86", "qemu")
         test_name = "test_%s" % name
-        expected_output = os.path.join(self.EXPECTED_PATH, test_name) + ".exp"
-        self.command_line += [self.SAMPLE_NAME,
+        expected_output = os.path.join(self.EXPECTED_PATH % arch, test_name) + ".exp"
+        self.command_line += [self.SAMPLE_NAME % arch,
                               test_name,
                               expected_output,
                               "--jitter",
@@ -110,53 +110,57 @@ class QEMUTest(RegressionTest):
 
 
 # Test name -> supported jitter engines
-QEMU_TESTS = [
-    # Operations
-    "btr",
-    "bts",
-    "bt",
-    "shrd",
-    "shld",
-    "rcl",
-    "rcr",
-    "ror",
-    "rol",
-    "sar",
-    "shr",
-    "shl",
-    "not",
-    "neg",
-    "dec",
-    "inc",
-    "sbb",
-    "adc",
-    "cmp",
-    "or",
-    "and",
-    "xor",
-    "sub",
-    "add",
-    # Specifics
-    "bsx",
-    "mul",
-    "jcc",
-    "loop",
-    "lea",
-    "self_modifying_code",
-    "conv",
-    "bcd",
-    "xchg",
-    "string",
-    "misc",
-    # Unsupported
-    # "floats", "segs", "code16", "exceptions", "single_step"
-]
+
+QEMU_TESTS = {
+    'i386': {
+        # Operations
+        "btr":    QEMUTest.jitter_engines,
+        "bts":    QEMUTest.jitter_engines,
+        "bt":     QEMUTest.jitter_engines,
+        "shrd":   QEMUTest.jitter_engines,
+        "shld":   QEMUTest.jitter_engines,
+        "rcl":    QEMUTest.jitter_engines,
+        "rcr":    QEMUTest.jitter_engines,
+        "ror":    QEMUTest.jitter_engines,
+        "rol":    QEMUTest.jitter_engines,
+        "sar":    QEMUTest.jitter_engines,
+        "shr":    QEMUTest.jitter_engines,
+        "shl":    QEMUTest.jitter_engines,
+        "not":    QEMUTest.jitter_engines,
+        "neg":    QEMUTest.jitter_engines,
+        "dec":    QEMUTest.jitter_engines,
+        "inc":    QEMUTest.jitter_engines,
+        "sbb":    QEMUTest.jitter_engines,
+        "adc":    QEMUTest.jitter_engines,
+        "cmp":    QEMUTest.jitter_engines,
+        "or":     QEMUTest.jitter_engines,
+        "and":    QEMUTest.jitter_engines,
+        "xor":    QEMUTest.jitter_engines,
+        "sub":    QEMUTest.jitter_engines,
+        "add":    QEMUTest.jitter_engines,
+        # Specifics
+        "bsx":    QEMUTest.jitter_engines,
+        "mul":    QEMUTest.jitter_engines,
+        "jcc":    QEMUTest.jitter_engines,
+        "loop":   QEMUTest.jitter_engines,
+        "lea":    QEMUTest.jitter_engines,
+        "conv":   QEMUTest.jitter_engines,
+        "bcd":    QEMUTest.jitter_engines,
+        "xchg":   QEMUTest.jitter_engines,
+        "string": QEMUTest.jitter_engines,
+        "misc":   QEMUTest.jitter_engines,
+        "self_modifying_code": QEMUTest.jitter_engines,
+        # Unsupported
+        # "floats", "segs", "code16", "exceptions", "single_step"
+    },
+}
 
 
-for test_name in QEMU_TESTS:
-    for jitter in QEMUTest.jitter_engines:
-        tags = [TAGS[jitter]] if jitter in TAGS else []
-        testset += QEMUTest(test_name, jitter, tags=tags)
+for arch in QEMU_TESTS:
+    for test_name, jitters in QEMU_TESTS[arch].iteritems():
+        for jitter in jitters:
+            tags = [TAGS[jitter]] if jitter in TAGS else []
+            testset += QEMUTest(test_name, jitter, arch, tags=tags)
 
 
 ## Semantic
