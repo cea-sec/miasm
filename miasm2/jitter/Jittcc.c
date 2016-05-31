@@ -154,7 +154,7 @@ PyObject* tcc_exec_bloc(PyObject* self, PyObject* args)
 		// Get the expected jitted function address
 		func_py = PyDict_GetItem(lbl2ptr, retaddr);
 		if (func_py)
-			func = (jitted_func) PyInt_AsLong((PyObject*) func_py);
+			func = (jitted_func) PyLong_AsVoidPtr((PyObject*) func_py);
 		else {
 			if (BlockDst.is_local == 1) {
 				fprintf(stderr, "return on local label!\n");
