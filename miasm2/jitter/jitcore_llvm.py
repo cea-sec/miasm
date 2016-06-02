@@ -14,6 +14,7 @@ class JitCore_LLVM(jitcore.JitCore):
     arch_dependent_libs = {"x86": "JitCore_x86.so",
                            "arm": "JitCore_arm.so",
                            "msp430": "JitCore_msp430.so",
+                           "ebc": "JitCore_ebc.so",
                            "mips32": "JitCore_mips32.so"}
 
     def __init__(self, ir_arch, bs=None):

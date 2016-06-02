@@ -183,6 +183,8 @@ class jitter:
                 from miasm2.jitter.arch import JitCore_aarch64 as jcore
             elif arch_name == "msp430":
                 from miasm2.jitter.arch import JitCore_msp430 as jcore
+            elif arch_name == "ebc":
+                from miasm2.jitter.arch import JitCore_ebc as jcore
             elif arch_name == "mips32":
                 from miasm2.jitter.arch import JitCore_mips32 as jcore
             else:

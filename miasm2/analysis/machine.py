@@ -13,7 +13,7 @@ class Machine(object):
 
     __available = ["arml", "armb", "armtl", "armtb", "sh4", "x86_16", "x86_32",
                    "x86_64", "msp430", "mips32b", "mips32l",
-                   "aarch64l", "aarch64b"]
+                   "aarch64l", "aarch64b", "ebc", ]
 
 
     def __init__(self, machine_name):
@@ -103,6 +103,13 @@ class Machine(object):
             from miasm2.arch.msp430.ira import ir_a_msp430 as ira
             from miasm2.arch.msp430.sem import ir_msp430 as ir
             from miasm2.analysis.gdbserver import GdbServer_msp430 as gdbserver
+        elif machine_name == "ebc":
+            from miasm2.arch.ebc.disasm import dis_ebc as dis_engine
+            from miasm2.arch.ebc import arch, jit
+            mn = arch.mn_ebc
+            jitter = jit.jitter_ebc
+            from miasm2.arch.ebc.ira import ir_a_ebc as ira
+            from miasm2.arch.ebc.sem import ir_ebc_32 as ir
         elif machine_name == "mips32b":
             from miasm2.arch.mips32.disasm import dis_mips32b as dis_engine
             from miasm2.arch.mips32 import arch, jit
