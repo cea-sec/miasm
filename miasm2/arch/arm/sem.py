@@ -933,6 +933,9 @@ def rev(ir, instr, a, b):
     e.append(ExprAff(a, c))
     return e
 
+def pld(ir, instr, a):
+    return []
+
 
 
 COND_EQ = 0
@@ -1137,6 +1140,7 @@ mnemo_nocond = {'lsr': lsr,
                 'asrs': asrs,
                 'cbz': cbz,
                 'cbnz': cbnz,
+                'pld': pld,
                 }
 mn_cond_x = [mnemo_condm0,
              mnemo_condm1,

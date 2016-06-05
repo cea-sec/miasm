@@ -245,6 +245,11 @@ reg_tests_arm = [
     ("XXXXXXXX    REV        R0, R2",
      "320FBFE6"),
 
+    ('XXXXXXXX    PLD        [R1]',
+     '00F0D1F5'),
+    ('XXXXXXXX    PLD        [R1, 0x1C]',
+     '1CF0D1F5'),
+
 
 ]
 ts = time.time()
