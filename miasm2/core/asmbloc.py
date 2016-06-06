@@ -601,7 +601,8 @@ class AsmCFG(DiGraph):
     def label2block(self, label):
         """Return the block corresponding to label @label
         @label: asm_label instance or ExprId(asm_label) instance"""
-        return self._label2block[label]
+        if label in self._label2block:
+            return self._label2block[label]
 
     def rebuild_edges(self):
         """Consider blocks '.bto' and rebuild edges according to them, ie:
