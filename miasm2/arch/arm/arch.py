@@ -522,7 +522,10 @@ class mn_arm(cls_mn):
         info.lnk = False
         if hasattr(self, "lnk"):
             info.lnk = self.lnk.value != 0
-        info.cond = self.cond.value
+        if hasattr(self, "cond"):
+            info.cond = self.cond.value
+        else:
+            info.cond = None
         return info
 
     @classmethod
@@ -1291,6 +1294,8 @@ imm4 = bs(l=4, cls=(arm_imm, m_arg))
 imm12 = bs(l=12, cls=(arm_imm, m_arg))
 imm16 = bs(l=16, cls=(arm_imm, m_arg))
 
+imm12_off = bs(l=12, fname="imm")
+
 imm4_noarg = bs(l=4, fname="imm4")
 
 imm_4_12 = bs(l=12, cls=(arm_imm_4_12,))
@@ -1405,6 +1410,50 @@ class armt2_rot_rm(m_arg):
 rot_rm = bs(l=2, cls=(armt2_rot_rm,), fname="rot_rm")
 
 
+class arm_mem_rn_imm(m_arg):
+    parser = deref
+    def decode(self, v):
+        value = self.parent.imm.value
+        if self.parent.rw.value == 0:
+            value = -value
+        imm = ExprInt32(value)
+        reg = gpregs.expr[v]
+        if value:
+            expr = ExprMem(reg + imm)
+        else:
+            expr = ExprMem(reg)
+        self.expr = expr
+        return True
+
+    def encode(self):
+        self.parent.add_imm.value = 1
+        self.parent.imm.value = 0
+        expr = self.expr
+        if not isinstance(expr, ExprMem):
+            return False
+        ptr = expr.arg
+        if ptr in gpregs.expr:
+            self.value = gpregs.expr.index(ptr)
+        elif (isinstance(ptr, ExprOp) and
+              len(ptr.args) == 2 and
+              ptr.op == 'preinc'):
+            reg, imm = ptr.args
+            if not reg in gpregs.expr:
+                return False
+            self.value = gpregs.expr.index(reg)
+            if not isinstance(imm, ExprInt):
+                return False
+            value = int(imm.arg)
+            if value & 0x80000000:
+                value = -value
+                self.parent.add_imm.value = 0
+            self.parent.imm.value = value
+        else:
+            return False
+        return True
+
+mem_rn_imm = bs(l=4, cls=(arm_mem_rn_imm,), order=1)
+
 def armop(name, fields, args=None, alias=False):
     dct = {"fields": fields}
     dct["alias"] = alias
@@ -1456,6 +1505,10 @@ bs_ctransfer_name = bs_name(l=1, name=ctransfer_name)
 
 mr_name = {'MCR': 0, 'MRC': 1}
 bs_mr_name = bs_name(l=1, name=mr_name)
+
+
+bs_addi = bs(l=1, fname="add_imm")
+bs_rw = bs_mod_name(l=1, fname='rw', mn_mod=['W', ''])
 
 armop("mul", [bs('000000'), bs('0'), scc, rd,
       bs('0000'), rs, bs('1001'), rm], [rd, rm, rs])
@@ -1524,6 +1577,10 @@ armop("sxtb", [bs('01101010'), bs('1111'), rd, rot_rm, bs('00'), bs('0111'), rm_
 armop("sxth", [bs('01101011'), bs('1111'), rd, rot_rm, bs('00'), bs('0111'), rm_noarg])
 
 armop("rev", [bs('01101011'), bs('1111'), rd, bs('1111'), bs('0011'), rm])
+
+armop("pld", [bs8(0xF5), bs_addi, bs_rw, bs('01'), mem_rn_imm, bs('1111'), imm12_off])
+
+armop("isb", [bs8(0xF5), bs8(0x7F), bs8(0xF0), bs8(0x6F)])
 
 class arm_widthm1(arm_imm, m_arg):
     def decode(self, v):
