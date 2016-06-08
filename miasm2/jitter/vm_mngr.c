@@ -1403,6 +1403,13 @@ void init_memory_breakpoint(vm_mngr_t* vm_mngr)
 
 void reset_memory_page_pool(vm_mngr_t* vm_mngr)
 {
+	struct memory_page_node * mpn;
+	int i;
+	for (i=0;i<vm_mngr->memory_pages_number; i++) {
+		mpn = &vm_mngr->memory_pages_array[i];
+		free(mpn->ad_hp);
+		free(mpn->name);
+	}
 	free(vm_mngr->memory_pages_array);
 	vm_mngr->memory_pages_array = NULL;
 	vm_mngr->memory_pages_number = 0;
