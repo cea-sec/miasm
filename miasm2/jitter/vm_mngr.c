@@ -756,15 +756,14 @@ uint64_t rot_right(uint64_t size, uint64_t a, uint64_t b)
 }
 
 
-unsigned int rcl_rez_op(unsigned int size, unsigned int a, unsigned int b, unsigned int cf)
+uint64_t rcl_rez_op(uint64_t size, uint64_t a, uint64_t b, uint64_t cf)
 {
     uint64_t tmp;
     uint64_t tmp_count;
     uint64_t tmp_cf;
 
     tmp = a;
-    // TODO 64bit mode
-    tmp_count = (b & 0x1f) % (size + 1);
+    tmp_count = (b & 0x3f) % (size + 1);
     while (tmp_count != 0) {
 	    tmp_cf = (tmp >> (size - 1)) & 1;
 	    tmp = (tmp << 1) + cf;
@@ -774,15 +773,14 @@ unsigned int rcl_rez_op(unsigned int size, unsigned int a, unsigned int b, unsig
     return tmp;
 }
 
-unsigned int rcr_rez_op(unsigned int size, unsigned int a, unsigned int b, unsigned int cf)
+uint64_t rcr_rez_op(uint64_t size, uint64_t a, uint64_t b, uint64_t cf)
 {
     uint64_t tmp;
     uint64_t tmp_count;
     uint64_t tmp_cf;
 
     tmp = a;
-    // TODO 64bit mode
-    tmp_count = (b & 0x1f) % (size + 1);
+    tmp_count = (b & 0x3f) % (size + 1);
     while (tmp_count != 0) {
 	    tmp_cf = tmp & 1;
 	    tmp = (tmp >> 1) + (cf << (size - 1));
@@ -797,7 +795,7 @@ unsigned int x86_bsr(uint64_t src, unsigned int size)
 	int i;
 
 	for (i=size-1; i>=0; i--){
-		if (src & (1<<i))
+		if (src & (1ULL<<i))
 			return i;
 	}
 	fprintf(stderr, "sanity check error bsr\n");
@@ -809,7 +807,7 @@ unsigned int x86_bsf(uint64_t src, unsigned int size)
 	int i;
 
 	for (i=0; i<size; i++){
-		if (src & (1<<i))
+		if (src & (1ULL<<i))
 			return i;
 	}
 	fprintf(stderr, "sanity check error bsf\n");

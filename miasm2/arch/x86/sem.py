@@ -250,17 +250,11 @@ def gen_cmov(ir, instr, cond, arg1, arg2, mov_if):
     @cond: condition
     @mov_if: invert condition if False"""
 
-    lbl_do = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
     if mov_if:
-        dstA, dstB = lbl_do, lbl_skip
+        src = m2_expr.ExprCond(cond, arg2, arg1)
     else:
-        dstA, dstB = lbl_skip, lbl_do
-    e = []
-    e_do, extra_irs = mov(ir, instr, arg1, arg2)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(cond, dstA, dstB)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+        src = m2_expr.ExprCond(cond, arg1, arg2)
+    return [m2_expr.ExprAff(arg1, src)], []
 
 
 def mov(ir, instr, a, b):
@@ -465,25 +459,12 @@ def _rotate_tpl(ir, instr, a, b, op, left=False, include_cf=False):
                               res.msb() ^ new_cf if left else (a ^ res).msb())
     # Build basic blocks
     e_do = [
-        m2_expr.ExprAff(cf, new_cf),
-        m2_expr.ExprAff(of, new_of),
+        m2_expr.ExprAff(cf, m2_expr.ExprCond(shifter, new_cf, cf)),
+        m2_expr.ExprAff(of, m2_expr.ExprCond(shifter, new_of, of)),
         m2_expr.ExprAff(a, res),
     ]
 
-    # Don't generate conditional shifter on constant
-    if isinstance(shifter, m2_expr.ExprInt):
-        if int(shifter.arg) != 0:
-            return e_do, []
-        else:
-            return [], []
-
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(shifter, lbl_do,
-                                                        lbl_skip)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+    return e_do, []
 
 
 def l_rol(ir, instr, a, b):
@@ -531,8 +512,8 @@ def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None, left=False,
 
         # An overflow can occured, emulate the 'undefined behavior'
         # Overflow behavior if (shift / size % 2)
-        base_cond_overflow = c if left else (
-            c - m2_expr.ExprInt(1, size=c.size))
+        base_cond_overflow = shifter[:8] if left else (
+            shifter[:8] - m2_expr.ExprInt(1, size=c.size))
         cond_overflow = base_cond_overflow & m2_expr.ExprInt(a.size, c.size)
         if left:
             # Overflow occurs one round before right
@@ -556,31 +537,19 @@ def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None, left=False,
         value_of = a.msb() ^ a[-2:-1] if left else b[:1] ^ a.msb()
     else:
         value_of = custom_of
+    new_of = m2_expr.ExprCond(shifter - i1, m2_expr.ExprInt_from(of, 0), value_of)
 
     # Build basic blocks
     e_do = [
-        m2_expr.ExprAff(cf, new_cf),
-        m2_expr.ExprAff(of, m2_expr.ExprCond(shifter - i1,
-                                             m2_expr.ExprInt_from(of, 0),
-                                             value_of)),
         m2_expr.ExprAff(a, res),
+        m2_expr.ExprAff(cf, m2_expr.ExprCond(shifter, new_cf, cf)),
+        m2_expr.ExprAff(of, m2_expr.ExprCond(shifter, new_of, of)),
+        m2_expr.ExprAff(zf, m2_expr.ExprCond(shifter, update_flag_zf(res)[0].src, zf)),
+        m2_expr.ExprAff(nf, m2_expr.ExprCond(shifter, update_flag_nf(res)[0].src, nf)),
+        m2_expr.ExprAff(pf, m2_expr.ExprCond(shifter, update_flag_pf(res)[0].src, pf)),
     ]
-    e_do += update_flag_znp(res)
 
-    # Don't generate conditional shifter on constant
-    if isinstance(shifter, m2_expr.ExprInt):
-        if int(shifter.arg) != 0:
-            return e_do, []
-        else:
-            return [], []
-
-    e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(shifter, lbl_do,
-                                                        lbl_skip)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+    return e_do, []
 
 
 def sar(ir, instr, a, b):
@@ -1355,63 +1324,35 @@ def jno(ir, instr, dst):
     return gen_jcc(ir, instr, of, dst, False)
 
 
-def loop(ir, instr, dst):
+def _loop_tpl(ir, instr, dst, cond=None):
     e = []
     meip = mRIP[ir.IRDst.size]
     admode = instr.v_admode()
-    myecx = mRCX[instr.mode][:admode]
+    newecx = mRCX[instr.mode] - m2_expr.ExprInt_from(mRCX[instr.mode], 1)
 
     n = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
-    c = myecx - m2_expr.ExprInt_from(myecx, 1)
-    dst_o = m2_expr.ExprCond(c,
-                             dst.zeroExtend(ir.IRDst.size),
-                             n.zeroExtend(ir.IRDst.size))
-    e.append(m2_expr.ExprAff(myecx, c))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
-
-
-def loopne(ir, instr, dst):
-    e = []
-    meip = mRIP[ir.IRDst.size]
-    admode = instr.v_admode()
-    myecx = mRCX[instr.mode][:admode]
-
-    n = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
-
-    c = m2_expr.ExprCond(myecx - m2_expr.ExprInt(1, size=myecx.size),
+    c = m2_expr.ExprCond(newecx[:admode],
                          m2_expr.ExprInt1(1),
                          m2_expr.ExprInt1(0))
-    c &= zf ^ m2_expr.ExprInt1(1)
-
-    e.append(m2_expr.ExprAff(myecx, myecx - m2_expr.ExprInt_from(myecx, 1)))
+    if cond is not None:
+        c &= cond
     dst_o = m2_expr.ExprCond(c,
                              dst.zeroExtend(ir.IRDst.size),
                              n.zeroExtend(ir.IRDst.size))
+    e.append(m2_expr.ExprAff(mRCX[instr.mode], newecx[:admode].zeroExtend(instr.mode)))
     e.append(m2_expr.ExprAff(meip, dst_o))
     e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
     return e, []
 
+
+def loop(ir, instr, dst):
+    return _loop_tpl(ir, instr, dst)
 
 def loope(ir, instr, dst):
-    e = []
-    meip = mRIP[ir.IRDst.size]
-    admode = instr.v_admode()
-    myecx = mRCX[instr.mode][:admode]
+    return _loop_tpl(ir, instr, dst, zf)
 
-    n = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
-    c = m2_expr.ExprCond(myecx - m2_expr.ExprInt(1, size=myecx.size),
-                         m2_expr.ExprInt1(1),
-                         m2_expr.ExprInt1(0))
-    c &= zf
-    e.append(m2_expr.ExprAff(myecx, myecx - m2_expr.ExprInt_from(myecx, 1)))
-    dst_o = m2_expr.ExprCond(c,
-                             dst.zeroExtend(ir.IRDst.size),
-                             n.zeroExtend(ir.IRDst.size))
-    e.append(m2_expr.ExprAff(meip, dst_o))
-    e.append(m2_expr.ExprAff(ir.IRDst, dst_o))
-    return e, []
+def loopne(ir, instr, dst):
+    return _loop_tpl(ir, instr, dst, ~zf)
 
 
 # XXX size to do; eflag

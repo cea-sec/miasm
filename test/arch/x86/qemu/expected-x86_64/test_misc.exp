@@ -1,0 +1,2 @@
+xlat: EAX=0000000012345688
+popl esp=0000000009abcdef
