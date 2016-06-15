@@ -134,6 +134,7 @@ class Machine(object):
         self.__log_arch = log_arch
         self.__base_expr = arch.base_expr
         self.__ir = ir
+        self.__name = machine_name
 
     @property
     def dis_engine(self):
@@ -170,6 +171,10 @@ class Machine(object):
     @property
     def base_expr(self):
         return self.__base_expr
+
+    @property
+    def name(self):
+        return self.__name
 
     @classmethod
     def available_machine(cls):
