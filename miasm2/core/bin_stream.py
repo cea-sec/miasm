@@ -187,7 +187,10 @@ class bin_stream_container(bin_stream):
         return self.bin.get(self.offset - l, self.offset)
 
     def _getbytes(self, start, l=1):
-        return self.bin.get(start, start + l)
+        try:
+            return self.bin.get(start, start + l)
+        except ValueError:
+            raise IOError("cannot get bytes")
 
     def __str__(self):
         out = self.bin.get(self.offset, self.offset + self.l)
