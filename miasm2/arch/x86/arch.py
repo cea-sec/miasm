@@ -826,6 +826,13 @@ class mn_x86(cls_mn):
         self.rex_b.value = pre_dis_info['rex_b']
         self.rex_x.value = pre_dis_info['rex_x']
         self.rex_p.value = pre_dis_info['rex_p']
+
+        if hasattr(self, 'no_rex') and\
+           (self.rex_r.value or self.rex_b.value or
+            self.rex_x.value or self.rex_p.value):
+            return False
+
+
         self.g1.value = pre_dis_info['g1']
         self.g2.value = pre_dis_info['g2']
         self.prefix = pre_dis_info['prefix']
@@ -853,6 +860,10 @@ class mn_x86(cls_mn):
             rex |= 0x1
         if rex != 0x40 or self.rex_p.value == 1:
             v = chr(rex) + v
+            if hasattr(self, 'no_rex'):
+                return None
+
+
 
         if hasattr(self, 'prefixed'):
             v = self.prefixed.default + v
@@ -3084,6 +3095,8 @@ pref_f3 = bs(l=0, fname="prefixed", default="\xf3")
 pref_66 = bs(l=0, fname="prefixed", default="\x66")
 no_xmm_pref = bs(l=0, fname="no_xmm_pref")
 
+no_rex = bs(l=0, fname="no_rex")
+
 sib_scale = bs(l=2, cls=(bs_cond_scale,), fname = "sib_scale")
 sib_index = bs(l=3, cls=(bs_cond_index,), fname = "sib_index")
 sib_base = bs(l=3, cls=(bs_cond_index,), fname = "sib_base")
@@ -3898,7 +3911,7 @@ addop("wrmsr", [bs8(0x0f), bs8(0x30)])
 addop("xadd", [bs8(0x0f), bs("1100000"), w8]
       + rmmod(rmreg, rm_arg_w8), [rm_arg_w8, rmreg])
 
-addop("nop", [bs8(0x90)], alias=True)
+addop("nop", [bs8(0x90), no_rex], alias=True)
 
 addop("xchg", [bs('10010'), d_eax, reg])
 addop("xchg", [bs('1000011'), w8] +
