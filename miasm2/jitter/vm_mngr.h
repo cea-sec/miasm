@@ -205,6 +205,7 @@ unsigned int umul16_hi(unsigned short a, unsigned short b);
 uint64_t rot_left(uint64_t size, uint64_t a, uint64_t b);
 uint64_t rot_right(uint64_t size, uint64_t a, uint64_t b);
 unsigned int rcl_rez_op(unsigned int size, unsigned int a, unsigned int b, unsigned int cf);
+unsigned int rcr_rez_op(unsigned int size, unsigned int a, unsigned int b, unsigned int cf);
 
 
 #define UDIV(sizeA)						\
