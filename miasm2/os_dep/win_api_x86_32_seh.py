@@ -28,6 +28,8 @@ from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm2.core.utils import pck32, upck32
 import miasm2.arch.x86.regs as x86_regs
 
+from miasm2.os_dep.win_32_structs import LdrDataEntry, ListEntry, \
+    TEB, NT_TIB, PEB, PEB_LDR_DATA, ContextException
 
 # Constants Windows
 EXCEPTION_BREAKPOINT = 0x80000003
@@ -46,6 +48,7 @@ log.setLevel(logging.INFO)
 FS_0_AD = 0x7ff70000
 PEB_AD = 0x7ffdf000
 LDR_AD = 0x340000
+DEFAULT_SEH = 0x7ffff000
 
 MAX_MODULES = 0x40
 
@@ -67,7 +70,6 @@ InLoadOrderModuleList_offset = 0x1ee0 + \
 InLoadOrderModuleList_address = LDR_AD + \
     InLoadOrderModuleList_offset
 
-default_seh = PEB_AD + 0x20000
 
 process_environment_address = 0x10000
 process_parameters_address = 0x200000
@@ -86,56 +88,50 @@ def build_teb(jitter, teb_address):
     """
     Build TEB informations using following structure:
 
-    +0x000 NtTib                     : _NT_TIB
-    +0x01c EnvironmentPointer        : Ptr32 Void
-    +0x020 ClientId                  : _CLIENT_ID
-    +0x028 ActiveRpcHandle           : Ptr32 Void
-    +0x02c ThreadLocalStoragePointer : Ptr32 Void
-    +0x030 ProcessEnvironmentBlock   : Ptr32 _PEB
-    +0x034 LastErrorValue            : Uint4B
-    ...
     @jitter: jitter instance
     @teb_address: the TEB address
     """
 
-    o = ""
-    o += pck32(default_seh)
-    o += (0x18 - len(o)) * "\x00"
-    o += pck32(tib_address)
-
-    o += (0x30 - len(o)) * "\x00"
-    o += pck32(peb_address)
-    o += pck32(0x11223344)
-
-    jitter.vm.add_memory_page(teb_address, PAGE_READ | PAGE_WRITE, o, "TEB")
-
+    # Only allocate space for ExceptionList/ProcessEnvironmentBlock/Self
+    jitter.vm.add_memory_page(teb_address, PAGE_READ | PAGE_WRITE,
+                              "\x00" * NT_TIB.get_offset("StackBase"),
+                              "TEB.NtTib.ExceptionList")
+    jitter.vm.add_memory_page(teb_address + NT_TIB.get_offset("Self"),
+                              PAGE_READ | PAGE_WRITE,
+                              "\x00" * (NT_TIB.sizeof() - NT_TIB.get_offset("Self")),
+                              "TEB.NtTib.Self")
+    jitter.vm.add_memory_page(teb_address + TEB.get_offset("ProcessEnvironmentBlock"),
+                              PAGE_READ | PAGE_WRITE,
+                              "\x00" * (TEB.get_offset("LastErrorValue") -
+                                        TEB.get_offset("ProcessEnvironmentBlock")),
+                              "TEB.ProcessEnvironmentBlock")
+    Teb = TEB(jitter.vm, teb_address)
+    Teb.NtTib.ExceptionList = DEFAULT_SEH
+    Teb.NtTib.Self = teb_address
+    Teb.ProcessEnvironmentBlock = peb_address
 
 def build_peb(jitter, peb_address):
     """
     Build PEB informations using following structure:
 
-    +0x000 InheritedAddressSpace    : UChar
-    +0x001 ReadImageFileExecOptions : UChar
-    +0x002 BeingDebugged            : UChar
-    +0x003 SpareBool                : UChar
-    +0x004 Mutant                   : Ptr32 Void
-    +0x008 ImageBaseAddress         : Ptr32 Void
-    +0x00c Ldr                      : Ptr32 _PEB_LDR_DATA
-    +0x010 processparameter
-
     @jitter: jitter instance
     @peb_address: the PEB address
     """
 
-    offset = peb_address + 8
-    o = ""
     if main_pe:
-        o += pck32(main_pe.NThdr.ImageBase)
+        offset, length = peb_address + 8, 4
     else:
-        offset += 4
-    o += pck32(peb_ldr_data_address)
-    o += pck32(process_parameters_address)
-    jitter.vm.add_memory_page(offset, PAGE_READ | PAGE_WRITE, o, "PEB")
+        offset, length = peb_address + 0xC, 0
+    length += 4
+
+    jitter.vm.add_memory_page(offset, PAGE_READ | PAGE_WRITE,
+                              "\x00" * length,
+                              "PEB")
+
+    Peb = PEB(jitter.vm, peb_address)
+    if main_pe:
+        Peb.ImageBaseAddress = main_pe.NThdr.ImageBase
+    Peb.Ldr = peb_ldr_data_address
 
 
 def build_ldr_data(jitter, modules_info):
@@ -156,8 +152,42 @@ def build_ldr_data(jitter, modules_info):
 
     """
     # ldr offset pad
-    offset = peb_ldr_data_address + 0xC
+    offset = 0xC
+    addr = LDR_AD + peb_ldr_data_offset
+    ldrdata = PEB_LDR_DATA(jitter.vm, addr)
 
+    main_pe = modules_info.name2module.get(main_pe_name, None)
+    ntdll_pe = modules_info.name2module.get("ntdll.dll", None)
+
+
+    size = 0
+    if main_pe:
+        size += ListEntry.sizeof() * 2
+        main_addr_entry = modules_info.module2entry[main_pe]
+    if ntdll_pe:
+        size += ListEntry.sizeof()
+        ntdll_addr_entry = modules_info.module2entry[ntdll_pe]
+
+    jitter.vm.add_memory_page(addr + offset, PAGE_READ | PAGE_WRITE,
+                              "\x00" * size,
+                              "Loader struct")  # (ldrdata.get_size() - offset))
+
+    if main_pe:
+        ldrdata.InLoadOrderModuleList.flink = main_addr_entry
+        ldrdata.InLoadOrderModuleList.blink = 0
+
+        ldrdata.InMemoryOrderModuleList.flink = main_addr_entry + \
+            LdrDataEntry.get_type().get_offset("InMemoryOrderLinks")
+        ldrdata.InMemoryOrderModuleList.blink = 0
+
+    if ntdll_pe:
+        ldrdata.InInitializationOrderModuleList.flink = ntdll_addr_entry + \
+            LdrDataEntry.get_type().get_offset("InInitializationOrderLinks")
+        ldrdata.InInitializationOrderModuleList.blink = 0
+
+    # data += pck32(ntdll_addr_entry + 0x10) + pck32(0)  # XXX TODO fix blink
+
+    """
     # get main pe info
     main_pe = modules_info.name2module.get(main_pe_name, None)
     if not main_pe:
@@ -167,18 +197,20 @@ def build_ldr_data(jitter, modules_info):
         main_addr_entry = modules_info.module2entry[main_pe]
         log.info('Ldr %x', main_addr_entry)
         data = pck32(main_addr_entry) + pck32(0)
-        data += pck32(main_addr_entry + 0x8) + pck32(0)  # XXX TODO fix prev
+        data += pck32(main_addr_entry + 0x8) + pck32(0)  # XXX TODO fix blink
 
     ntdll_pe = modules_info.name2module.get("ntdll.dll", None)
     if not ntdll_pe:
         log.warn('No ntdll, ldr data will be unconsistant')
     else:
         ntdll_addr_entry = modules_info.module2entry[ntdll_pe]
-        data += pck32(ntdll_addr_entry + 0x10) + pck32(0)  # XXX TODO fix prev
+        data += pck32(ntdll_addr_entry + 0x10) + pck32(0)  # XXX TODO fix blink
 
     if data:
-        jitter.vm.add_memory_page(offset, PAGE_READ | PAGE_WRITE, data,
+        jitter.vm.add_memory_page(offset, PAGE_READ | PAGE_WRITE,
+                                  data,
                                   "Loader struct")
+    """
 
     # Add dummy dll base
     jitter.vm.add_memory_page(peb_ldr_data_address + 0x24,
@@ -216,26 +248,6 @@ def create_modules_chain(jitter, name2module):
     """
     Create the modules entries. Those modules are not linked in this function.
 
-    kd> dt nt!_LDR_DATA_TABLE_ENTRY
-    +0x000 InLoadOrderLinks : _LIST_ENTRY
-    +0x008 InMemoryOrderLinks : _LIST_ENTRY
-    +0x010 InInitializationOrderLinks : _LIST_ENTRY
-    +0x018 DllBase : Ptr32 Void
-    +0x01c EntryPoint : Ptr32 Void
-    +0x020 SizeOfImage : Uint4B
-    +0x024 FullDllName : _UNICODE_STRING
-    +0x02c BaseDllName : _UNICODE_STRING
-    +0x034 Flags : Uint4B
-    +0x038 LoadCount : Uint2B
-    +0x03a TlsIndex : Uint2B
-    +0x03c HashLinks : _LIST_ENTRY
-    +0x03c SectionPointer : Ptr32 Void
-    +0x040 CheckSum : Uint4B
-    +0x044 TimeDateStamp : Uint4B
-    +0x044 LoadedImports : Ptr32 Void
-    +0x048 EntryPointActivationContext : Ptr32 Void
-    +0x04c PatchInformation : Ptr32 Void
-
     @jitter: jitter instance
     @name2module: dict containing association between name and its pe instance
     """
@@ -259,36 +271,30 @@ def create_modules_chain(jitter, name2module):
 
         modules_info.add(bname_str, pe_obj, addr)
 
-        m_o = ""
-        m_o += pck32(0)
-        m_o += pck32(0)
-        m_o += pck32(0)
-        m_o += pck32(0)
-        m_o += pck32(0)
-        m_o += pck32(0)
-        m_o += pck32(pe_obj.NThdr.ImageBase)
-        m_o += pck32(pe_obj.rva2virt(pe_obj.Opthdr.AddressOfEntryPoint))
-        m_o += pck32(pe_obj.NThdr.sizeofimage)
-        m_o += struct.pack('HH', len(bname), len(bname) + 2)
-        m_o += pck32(addr + offset_path)
-        m_o += struct.pack('HH', len(bname), len(bname) + 2)
-        m_o += pck32(addr + offset_name)
-        jitter.vm.add_memory_page(addr, PAGE_READ | PAGE_WRITE, m_o,
+        # Allocate a partial LdrDataEntry (0-Flags)
+        jitter.vm.add_memory_page(addr, PAGE_READ | PAGE_WRITE,
+                                  "\x00" * LdrDataEntry.get_offset("Flags"),
                                   "Module info %r" % bname_str)
 
-        m_o = ""
-        m_o += bname
-        m_o += "\x00" * 3
-        jitter.vm.add_memory_page(
-            addr + offset_name, PAGE_READ | PAGE_WRITE, m_o,
-            "Module name %r" % bname_str)
+        LdrEntry = LdrDataEntry(jitter.vm, addr)
 
-        m_o = ""
-        m_o += "\x00".join(bpath) + "\x00"
-        m_o += "\x00" * 3
-        jitter.vm.add_memory_page(
-            addr + offset_path, PAGE_READ | PAGE_WRITE, m_o,
-            "Module path %r" % bname_str)
+        LdrEntry.DllBase = pe_obj.NThdr.ImageBase
+        LdrEntry.EntryPoint = pe_obj.Opthdr.AddressOfEntryPoint
+        LdrEntry.SizeOfImage = pe_obj.NThdr.sizeofimage
+        LdrEntry.FullDllName.length = len(bname)
+        LdrEntry.FullDllName.maxlength = len(bname) + 2
+        LdrEntry.FullDllName.data = addr + offset_path
+        LdrEntry.BaseDllName.length = len(bname)
+        LdrEntry.BaseDllName.maxlength = len(bname) + 2
+        LdrEntry.BaseDllName.data = addr + offset_name
+
+        jitter.vm.add_memory_page(addr + offset_name, PAGE_READ | PAGE_WRITE,
+                                  bname + "\x00" * 3,
+                                  "Module name %r" % bname_str)
+
+        jitter.vm.add_memory_page(addr + offset_path, PAGE_READ | PAGE_WRITE,
+                                  "\x00".join(bpath) + "\x00" + "\x00" * 3,
+                                  "Module path %r" % bname_str)
 
     return modules_info
 
@@ -443,100 +449,94 @@ def init_seh(jitter):
     add_process_env(jitter)
     add_process_parameters(jitter)
 
-    jitter.vm.add_memory_page(default_seh, PAGE_READ | PAGE_WRITE, pck32(
-        0xffffffff) + pck32(0x41414141) + pck32(0x42424242),
-        "Default seh handler")
 
 
-# http://www.codeproject.com/KB/system/inject2exe.aspx#RestorethefirstRegistersContext5_1
-
-
-def regs2ctxt(jitter):
+def regs2ctxt(jitter, context_address):
     """
     Build x86_32 cpu context for exception handling
     @jitter: jitload instance
     """
 
-    ctxt = []
+    ctxt = ContextException(jitter.vm, context_address)
+    ctxt.memset("\x00")
     # ContextFlags
-    ctxt += [pck32(0x0)]
+    # XXX
+
     # DRX
-    ctxt += [pck32(0x0)] * 6
+    ctxt.dr0 = 0
+    ctxt.dr1 = 0
+    ctxt.dr2 = 0
+    ctxt.dr3 = 0
+    ctxt.dr4 = 0
+    ctxt.dr5 = 0
+
     # Float context
-    ctxt += ['\x00' * 112]
+    # XXX
+
     # Segment selectors
-    ctxt += [pck32(reg) for reg in (jitter.cpu.GS, jitter.cpu.FS,
-                                    jitter.cpu.ES, jitter.cpu.DS)]
+    ctxt.gs = jitter.cpu.GS
+    ctxt.fs = jitter.cpu.FS
+    ctxt.es = jitter.cpu.ES
+    ctxt.ds = jitter.cpu.DS
+
     # Gpregs
-    ctxt += [pck32(reg) for reg in (jitter.cpu.EDI, jitter.cpu.ESI,
-                                    jitter.cpu.EBX, jitter.cpu.EDX,
-                                    jitter.cpu.ECX, jitter.cpu.EAX,
-                                    jitter.cpu.EBP, jitter.cpu.EIP)]
+    ctxt.edi = jitter.cpu.EDI
+    ctxt.esi = jitter.cpu.ESI
+    ctxt.ebx = jitter.cpu.EBX
+    ctxt.edx = jitter.cpu.EDX
+    ctxt.ecx = jitter.cpu.ECX
+    ctxt.eax = jitter.cpu.EAX
+    ctxt.ebp = jitter.cpu.EBP
+    ctxt.eip = jitter.cpu.EIP
+
     # CS
-    ctxt += [pck32(jitter.cpu.CS)]
+    ctxt.cs = jitter.cpu.CS
+
     # Eflags
     # XXX TODO real eflag
-    ctxt += [pck32(0x0)]
+
     # ESP
-    ctxt += [pck32(jitter.cpu.ESP)]
+    ctxt.esp = jitter.cpu.ESP
+
     # SS
-    ctxt += [pck32(jitter.cpu.SS)]
-    return "".join(ctxt)
+    ctxt.ss = jitter.cpu.SS
 
 
-def ctxt2regs(ctxt, jitter):
+def ctxt2regs(jitter, ctxt_ptr):
     """
     Restore x86_32 registers from an exception context
     @ctxt: the serialized context
     @jitter: jitload instance
     """
 
-    ctxt = ctxt[:]
-    # ContextFlags
-    ctxt = ctxt[4:]
-    # DRX XXX TODO
-    ctxt = ctxt[4 * 6:]
-    # Float context XXX TODO
-    ctxt = ctxt[112:]
-    # gs
-    jitter.cpu.GS = upck32(ctxt[:4])
-    ctxt = ctxt[4:]
-    # fs
-    jitter.cpu.FS = upck32(ctxt[:4])
-    ctxt = ctxt[4:]
-    # es
-    jitter.cpu.ES = upck32(ctxt[:4])
-    ctxt = ctxt[4:]
-    # ds
-    jitter.cpu.DS = upck32(ctxt[:4])
-    ctxt = ctxt[4:]
+    ctxt = ContextException(jitter.vm, ctxt_ptr)
+
+    # Selectors
+    jitter.cpu.GS = ctxt.gs
+    jitter.cpu.FS = ctxt.fs
+    jitter.cpu.ES = ctxt.es
+    jitter.cpu.DS = ctxt.ds
 
     # Gpregs
-    jitter.cpu.EDI = upck32(ctxt[:4])
-    ctxt = ctxt[4:]
-    jitter.cpu.ESI = upck32(ctxt[:4])
-    ctxt = ctxt[4:]
-    jitter.cpu.EBX = upck32(ctxt[:4])
-    ctxt = ctxt[4:]
-    jitter.cpu.EDX = upck32(ctxt[:4])
-    ctxt = ctxt[4:]
-    jitter.cpu.ECX = upck32(ctxt[:4])
-    ctxt = ctxt[4:]
-    jitter.cpu.EAX = upck32(ctxt[:4])
-    ctxt = ctxt[4:]
-    jitter.cpu.EBP = upck32(ctxt[:4])
-    ctxt = ctxt[4:]
-    jitter.cpu.EIP = upck32(ctxt[:4])
-    ctxt = ctxt[4:]
+    jitter.cpu.EDI = ctxt.edi
+    jitter.cpu.ESI = ctxt.esi
+    jitter.cpu.EBX = ctxt.ebx
+    jitter.cpu.EDX = ctxt.edx
+    jitter.cpu.ECX = ctxt.ecx
+    jitter.cpu.EAX = ctxt.eax
+    jitter.cpu.EBP = ctxt.ebp
+    jitter.cpu.EIP = ctxt.eip
 
     # CS
-    jitter.cpu.CS = upck32(ctxt[:4])
-    ctxt = ctxt[4:]
-    # Eflag XXX TODO
-    ctxt = ctxt[4:]
+    jitter.cpu.CS = ctxt.cs
+
+    # Eflag
+    # XXX TODO
+
     # ESP
-    jitter.cpu.ESP = upck32(ctxt[:4])
-    ctxt = ctxt[4:]
+    jitter.cpu.ESP = ctxt.esp
+    # SS
+    jitter.cpu.SS = ctxt.ss
 
 
 def fake_seh_handler(jitter, except_code):
@@ -551,11 +551,15 @@ def fake_seh_handler(jitter, except_code):
     log.warning('Exception at %x %r', jitter.cpu.EIP, seh_count)
     seh_count += 1
 
-    # Help lambda
-    p = lambda s: struct.pack('I', s)
+    # Get space on stack for exception handling
+    new_ESP = jitter.cpu.ESP - 0x3c8
+    exception_base_address = new_ESP
+    exception_record_address = exception_base_address + 0xe8
+    context_address = exception_base_address + 0xfc
+    fake_seh_address = exception_base_address + 0x14
 
-    # Forge a CONTEXT
-    ctxt = regs2ctxt(jitter)
+    # Save a CONTEXT
+    regs2ctxt(jitter, context_address)
 
     # Get current seh (fs:[0])
     seh_ptr = upck32(jitter.vm.get_mem(tib_address, 4))
@@ -564,19 +568,10 @@ def fake_seh_handler(jitter, except_code):
     old_seh, eh, safe_place = struct.unpack(
         'III', jitter.vm.get_mem(seh_ptr, 0xc))
 
-    # Get space on stack for exception handling
-    jitter.cpu.ESP -= 0x3c8
-    exception_base_address = jitter.cpu.ESP
-    exception_record_address = exception_base_address + 0xe8
-    context_address = exception_base_address + 0xfc
-    fake_seh_address = exception_base_address + 0x14
-
     log.info('seh_ptr %x { old_seh %x eh %x safe_place %x} ctx_addr %x',
              seh_ptr, old_seh, eh, safe_place, context_address)
 
-    # Write context
-    jitter.vm.set_mem(context_address, ctxt)
-
+    jitter.cpu.ESP = new_ESP
     # Write exception_record
 
     """
@@ -634,10 +629,12 @@ def dump_seh(jitter):
         if loop > MAX_SEH:
             log.warn("Too many seh, quit")
             return
+        if not jitter.vm.is_mapped(cur_seh_ptr, 8):
+            break
         prev_seh, eh = struct.unpack('II', jitter.vm.get_mem(cur_seh_ptr, 8))
         log.info('\t' * indent + 'seh_ptr: %x { prev_seh: %x eh %x }',
                  cur_seh_ptr, prev_seh, eh)
-        if prev_seh in [0xFFFFFFFF, 0]:
+        if prev_seh == 0:
             break
         cur_seh_ptr = prev_seh
         indent += 1
@@ -683,8 +680,8 @@ def return_from_seh(jitter):
         log.info('Seh continues Context: %x', ctxt_ptr)
 
         # Get registers changes
-        ctxt_str = jitter.vm.get_mem(ctxt_ptr, 0x2cc)
-        ctxt2regs(ctxt_str, jitter)
+        # ctxt_str = jitter.vm.get_mem(ctxt_ptr, 0x2cc)
+        ctxt2regs(jitter, ctxt_ptr)
         jitter.pc = jitter.cpu.EIP
         log.info('Context::Eip: %x', jitter.pc)
 
