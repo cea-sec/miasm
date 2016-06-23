@@ -676,12 +676,11 @@ def return_from_seh(jitter):
 
     if jitter.cpu.EAX == 0x0:
         # ExceptionContinueExecution
-        ctxt_ptr = context_address
-        log.info('Seh continues Context: %x', ctxt_ptr)
+        log.info('Seh continues Context: %x', context_address)
 
         # Get registers changes
         # ctxt_str = jitter.vm.get_mem(ctxt_ptr, 0x2cc)
-        ctxt2regs(jitter, ctxt_ptr)
+        ctxt2regs(jitter, context_address)
         jitter.pc = jitter.cpu.EIP
         log.info('Context::Eip: %x', jitter.pc)
 
