@@ -684,9 +684,14 @@ def return_from_seh(jitter):
         jitter.pc = jitter.cpu.EIP
         log.info('Context::Eip: %x', jitter.pc)
 
-    elif jitter.cpu.EAX == -1:
-        raise NotImplementedError("-> seh try to go to the next handler")
-
     elif jitter.cpu.EAX == 1:
         # ExceptionContinueSearch
         raise NotImplementedError("-> seh, gameover")
+
+    else:
+        # https://msdn.microsoft.com/en-us/library/aa260344%28v=vs.60%29.aspx
+        # But the type _EXCEPTION_DISPOSITION may take 2 others values:
+        #  - ExceptionNestedException = 2
+        #  - ExceptionCollidedUnwind = 3
+        raise ValueError("Valid values are ExceptionContinueExecution and "
+                         "ExceptionContinueSearch")
