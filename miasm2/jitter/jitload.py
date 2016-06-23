@@ -315,6 +315,11 @@ class jitter:
                         yield tmp
                 else:
                     yield res
+
+        # Check exceptions (raised by breakpoints)
+        exception_flag = self.get_exception()
+        for res in self.exceptions_handler(exception_flag, self):
+            if res is not True:
                 yield res
 
         # If a callback changed pc, re call every callback
@@ -327,7 +332,7 @@ class jitter:
         # Run the bloc at PC
         self.pc = self.runbloc(self.pc)
 
-        # Check exceptions
+        # Check exceptions (raised by the execution of the block)
         exception_flag = self.get_exception()
         for res in self.exceptions_handler(exception_flag, self):
             if res is not True:
