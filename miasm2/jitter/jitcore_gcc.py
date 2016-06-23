@@ -4,6 +4,7 @@
 import os
 import tempfile
 import ctypes
+import _ctypes
 from distutils.sysconfig import get_python_inc
 from subprocess import check_call
 from hashlib import md5
@@ -79,7 +80,11 @@ class JitCore_Gcc(jitcore.JitCore):
         self.include_files = None
 
     def deleteCB(self, offset):
-        pass
+        """Free the state associated to @offset and delete it
+        @offset: gcc state offset
+        """
+        _ctypes.dlclose(self.gcc_states[offset]._handle)
+        del self.gcc_states[offset]
 
     def load(self):
         lib_dir = os.path.dirname(os.path.realpath(__file__))
@@ -105,7 +110,7 @@ class JitCore_Gcc(jitcore.JitCore):
         func = getattr(lib, f_name)
         addr = ctypes.cast(func, ctypes.c_void_p).value
         self.lbl2jitbloc[label.offset] = addr
-        self.gcc_states[label.offset] = None
+        self.gcc_states[label.offset] = lib
 
     def gen_c_code(self, label, irblocks):
         """
