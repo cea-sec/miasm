@@ -81,7 +81,7 @@ class jitter_x86_32(jitter):
         return ret_ad, args
 
     def func_ret_stdcall(self, ret_addr, ret_value1=None, ret_value2=None):
-        self.cpu.EIP = ret_addr
+        self.pc = self.cpu.EIP = ret_addr
         if ret_value1 is not None:
             self.cpu.EAX = ret_value1
         if ret_value2 is not None:
