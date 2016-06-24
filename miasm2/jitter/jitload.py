@@ -2,7 +2,7 @@
 
 import logging
 from functools import wraps
-from collections import Sequence, namedtuple
+from collections import Sequence, namedtuple, Iterator
 
 from miasm2.jitter.csts import *
 from miasm2.core.utils import *
@@ -309,6 +309,17 @@ class jitter:
         old_pc = self.pc
         for res in self.breakpoints_handler.call_callbacks(self.pc, self):
             if res is not True:
+                if isinstance(res, collections.Iterator):
+                    # If the breakpoint is a generator, yield it step by step
+                    for tmp in res:
+                        yield tmp
+                else:
+                    yield res
+
+        # Check exceptions (raised by breakpoints)
+        exception_flag = self.get_exception()
+        for res in self.exceptions_handler(exception_flag, self):
+            if res is not True:
                 yield res
 
         # If a callback changed pc, re call every callback
@@ -321,7 +332,7 @@ class jitter:
         # Run the bloc at PC
         self.pc = self.runbloc(self.pc)
 
-        # Check exceptions
+        # Check exceptions (raised by the execution of the block)
         exception_flag = self.get_exception()
         for res in self.exceptions_handler(exception_flag, self):
             if res is not True:
