@@ -683,3 +683,6 @@ def return_from_seh(jitter):
         #  - ExceptionCollidedUnwind = 3
         raise ValueError("Valid values are ExceptionContinueExecution and "
                          "ExceptionContinueSearch")
+
+    # Jitter's breakpoint compliant
+    return True
