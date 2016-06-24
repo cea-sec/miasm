@@ -29,7 +29,8 @@ from miasm2.core.utils import pck32, upck32
 import miasm2.arch.x86.regs as x86_regs
 
 from miasm2.os_dep.win_32_structs import LdrDataEntry, ListEntry, \
-    TEB, NT_TIB, PEB, PEB_LDR_DATA, ContextException
+    TEB, NT_TIB, PEB, PEB_LDR_DATA, ContextException, \
+    EXCEPTION_REGISTRATION_RECORD, EXCEPTION_RECORD
 
 # Constants Windows
 EXCEPTION_BREAKPOINT = 0x80000003
@@ -545,9 +546,7 @@ def fake_seh_handler(jitter, except_code):
     @jitter: jitter instance
     @except_code: x86 exception code
     """
-
     global seh_count
-    regs = jitter.cpu.get_gpreg()
     log.warning('Exception at %x %r', jitter.cpu.EIP, seh_count)
     seh_count += 1
 
@@ -560,59 +559,43 @@ def fake_seh_handler(jitter, except_code):
 
     # Save a CONTEXT
     regs2ctxt(jitter, context_address)
+    jitter.cpu.ESP = new_ESP
 
     # Get current seh (fs:[0])
-    seh_ptr = upck32(jitter.vm.get_mem(tib_address, 4))
+    tib = NT_TIB(jitter.vm, tib_address)
+    seh = tib.ExceptionList.deref
+    log.info('seh_ptr %x { old_seh %r eh %r} ctx_addr %x',
+             seh.get_addr(), seh.Next, seh.Handler, context_address)
 
-    # Retrieve seh fields
-    old_seh, eh, safe_place = struct.unpack(
-        'III', jitter.vm.get_mem(seh_ptr, 0xc))
-
-    log.info('seh_ptr %x { old_seh %x eh %x safe_place %x} ctx_addr %x',
-             seh_ptr, old_seh, eh, safe_place, context_address)
-
-    jitter.cpu.ESP = new_ESP
     # Write exception_record
-
-    """
-    #http://msdn.microsoft.com/en-us/library/aa363082(v=vs.85).aspx
-
-    typedef struct _EXCEPTION_RECORD {
-      DWORD                    ExceptionCode;
-      DWORD                    ExceptionFlags;
-      struct _EXCEPTION_RECORD *ExceptionRecord;
-      PVOID                    ExceptionAddress;
-      DWORD                    NumberParameters;
-      ULONG_PTR ExceptionInformation[EXCEPTION_MAXIMUM_PARAMETERS];
-    } EXCEPTION_RECORD, *PEXCEPTION_RECORD;
-    """
-
-    jitter.vm.set_mem(exception_record_address,
-                      pck32(except_code) + pck32(0) + pck32(0) +
-                      pck32(jitter.cpu.EIP) + pck32(0))
+    except_record = EXCEPTION_RECORD(jitter.vm, exception_record_address)
+    except_record.memset("\x00")
+    except_record.ExceptionCode = except_code
+    except_record.ExceptionAddress = jitter.cpu.EIP
 
     # Prepare the stack
     jitter.push_uint32_t(context_address)               # Context
-    jitter.push_uint32_t(seh_ptr)                       # SEH
-    jitter.push_uint32_t(exception_record_address)      # ExceptRecords
+    jitter.push_uint32_t(seh.get_addr())                # SEH
+    jitter.push_uint32_t(except_record.get_addr())      # ExceptRecords
     jitter.push_uint32_t(return_from_exception)         # Ret address
 
     # Set fake new current seh for exception
     log.info("Fake seh ad %x", fake_seh_address)
-    jitter.vm.set_mem(fake_seh_address, pck32(seh_ptr) + pck32(
-        0xaaaaaaaa) + pck32(0xaaaaaabb) + pck32(0xaaaaaacc))
-    jitter.vm.set_mem(tib_address, pck32(fake_seh_address))
-
+    fake_seh = EXCEPTION_REGISTRATION_RECORD(jitter.vm, fake_seh_address)
+    fake_seh.Next.val = seh.get_addr()
+    fake_seh.Handler = 0xaaaaaaaa
+    tib.ExceptionList.val = fake_seh.get_addr()
     dump_seh(jitter)
 
-    log.info('Jumping at %x', eh)
+    # Remove exceptions
     jitter.vm.set_exception(0)
     jitter.cpu.set_exception(0)
 
     # XXX set ebx to nul?
     jitter.cpu.EBX = 0
 
-    return eh
+    log.info('Jumping at %r', seh.Handler)
+    return seh.Handler.val
 
 
 def dump_seh(jitter):
@@ -620,24 +603,18 @@ def dump_seh(jitter):
     Walk and dump the SEH entries
     @jitter: jitter instance
     """
-
     log.info('Dump_seh. Tib_address: %x', tib_address)
-    cur_seh_ptr = upck32(jitter.vm.get_mem(tib_address, 4))
-    indent = 1
+    cur_seh_ptr = NT_TIB(jitter.vm, tib_address).ExceptionList
     loop = 0
-    while True:
+    while cur_seh_ptr and jitter.vm.is_mapped(cur_seh_ptr.val,
+                                              len(cur_seh_ptr)):
         if loop > MAX_SEH:
             log.warn("Too many seh, quit")
             return
-        if not jitter.vm.is_mapped(cur_seh_ptr, 8):
-            break
-        prev_seh, eh = struct.unpack('II', jitter.vm.get_mem(cur_seh_ptr, 8))
-        log.info('\t' * indent + 'seh_ptr: %x { prev_seh: %x eh %x }',
-                 cur_seh_ptr, prev_seh, eh)
-        if prev_seh == 0:
-            break
-        cur_seh_ptr = prev_seh
-        indent += 1
+        err = cur_seh_ptr.deref
+        log.info('\t' * (loop + 1) + 'seh_ptr: %x { prev_seh: %r eh %r }',
+                 err.get_addr(), err.Next, err.Handler)
+        cur_seh_ptr = err.Next
         loop += 1
 
 
@@ -662,16 +639,16 @@ def return_from_seh(jitter):
 
     # Get current context
     context_address = upck32(jitter.vm.get_mem(jitter.cpu.ESP + 0x8, 4))
-    log.info('Context address: %x', context_address)
-    jitter.cpu.ESP = upck32(jitter.vm.get_mem(context_address + 0xc4, 4))
+    context = ContextException(jitter.vm, context_address)
+    log.info('Context address: %x', context.get_addr())
+    jitter.cpu.ESP = context.esp
     log.info('New esp: %x', jitter.cpu.ESP)
 
-    # Rebuild SEH
-    old_seh = upck32(jitter.vm.get_mem(tib_address, 4))
-    new_seh = upck32(jitter.vm.get_mem(old_seh, 4))
-    log.info('Old seh: %x New seh: %x', old_seh, new_seh)
-    jitter.vm.set_mem(tib_address, pck32(new_seh))
-
+    # Rebuild SEH (remove fake SEH)
+    tib = NT_TIB(jitter.vm, tib_address)
+    seh = tib.ExceptionList.deref
+    log.info('Old seh: %x New seh: %x', seh.get_addr(), seh.Next.val)
+    tib.ExceptionList.val = seh.Next.val
     dump_seh(jitter)
 
     if jitter.cpu.EAX == 0x0:
