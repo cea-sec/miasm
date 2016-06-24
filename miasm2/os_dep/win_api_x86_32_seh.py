@@ -624,11 +624,8 @@ def set_win_fs_0(jitter, fs=4):
     @jitter: jitter instance
     @fs: segment selector value
     """
-
-    regs = jitter.cpu.get_gpreg()
-    regs['FS'] = 0x4
-    jitter.cpu.set_gpreg(regs)
-    jitter.cpu.set_segm_base(regs['FS'], FS_0_AD)
+    jitter.cpu.FS = fs
+    jitter.cpu.set_segm_base(fs, FS_0_AD)
     segm_to_do = set([x86_regs.FS])
     return segm_to_do
 
