@@ -540,11 +540,12 @@ def ctxt2regs(jitter, ctxt_ptr):
     jitter.cpu.SS = ctxt.ss
 
 
-def fake_seh_handler(jitter, except_code):
+def fake_seh_handler(jitter, except_code, previous_seh=None):
     """
     Create an exception context
     @jitter: jitter instance
     @except_code: x86 exception code
+    @previous_seh: (optional) last SEH address when multiple SEH are used
     """
     global seh_count
     log.warning('Exception at %x %r', jitter.cpu.EIP, seh_count)
@@ -564,6 +565,12 @@ def fake_seh_handler(jitter, except_code):
     # Get current seh (fs:[0])
     tib = NT_TIB(jitter.vm, tib_address)
     seh = tib.ExceptionList.deref
+    if previous_seh:
+        # Recursive SEH
+        while seh.get_addr() != previous_seh:
+            seh = seh.Next.deref
+        seh = seh.Next.deref
+
     log.info('seh_ptr %x { old_seh %r eh %r} ctx_addr %x',
              seh.get_addr(), seh.Next, seh.Handler, context_address)
 
@@ -582,7 +589,7 @@ def fake_seh_handler(jitter, except_code):
     # Set fake new current seh for exception
     log.info("Fake seh ad %x", fake_seh_address)
     fake_seh = EXCEPTION_REGISTRATION_RECORD(jitter.vm, fake_seh_address)
-    fake_seh.Next.val = seh.get_addr()
+    fake_seh.Next.val = tib.ExceptionList.val
     fake_seh.Handler = 0xaaaaaaaa
     tib.ExceptionList.val = fake_seh.get_addr()
     dump_seh(jitter)
@@ -634,12 +641,14 @@ def return_from_seh(jitter):
     """Handle the return from an exception handler
     @jitter: jitter instance"""
 
-    # Get current context
+    # Get object addresses
+    seh_address = upck32(jitter.vm.get_mem(jitter.cpu.ESP + 0x4, 4))
     context_address = upck32(jitter.vm.get_mem(jitter.cpu.ESP + 0x8, 4))
-    context = ContextException(jitter.vm, context_address)
-    log.info('Context address: %x', context.get_addr())
-    jitter.cpu.ESP = context.esp
-    log.info('New esp: %x', jitter.cpu.ESP)
+
+    # Get registers changes
+    log.info('Context address: %x', context_address)
+    status = jitter.cpu.EAX
+    ctxt2regs(jitter, context_address)
 
     # Rebuild SEH (remove fake SEH)
     tib = NT_TIB(jitter.vm, tib_address)
@@ -648,19 +657,24 @@ def return_from_seh(jitter):
     tib.ExceptionList.val = seh.Next.val
     dump_seh(jitter)
 
-    if jitter.cpu.EAX == 0x0:
+    # Handle returned values
+    if status == 0x0:
         # ExceptionContinueExecution
-        log.info('Seh continues Context: %x', context_address)
-
-        # Get registers changes
-        # ctxt_str = jitter.vm.get_mem(ctxt_ptr, 0x2cc)
-        ctxt2regs(jitter, context_address)
+        log.info('SEH continue')
         jitter.pc = jitter.cpu.EIP
         log.info('Context::Eip: %x', jitter.pc)
 
-    elif jitter.cpu.EAX == 1:
+    elif status == 1:
         # ExceptionContinueSearch
-        raise NotImplementedError("-> seh, gameover")
+        log.info("Delegate to the next SEH handler")
+        # exception_base_address: context_address - 0xfc
+        # -> exception_record_address: exception_base_address + 0xe8
+        exception_record = EXCEPTION_RECORD(jitter.vm,
+                                            context_address - 0xfc + 0xe8)
+
+        pc = fake_seh_handler(jitter, exception_record.ExceptionCode,
+                              seh_address)
+        jitter.pc = pc
 
     else:
         # https://msdn.microsoft.com/en-us/library/aa260344%28v=vs.60%29.aspx
