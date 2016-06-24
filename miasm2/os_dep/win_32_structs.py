@@ -114,6 +114,39 @@ class PEB(MemStruct):
     ]
 
 
+class EXCEPTION_REGISTRATION_RECORD(MemStruct):
+    """
+    +0x00 Next    : struct _EXCEPTION_REGISTRATION_RECORD *
+    +0x04 Handler : Ptr32 Void
+    """
+
+    fields = [
+        ("Next", Ptr("<I", Self())),
+        ("Handler", Ptr("<I", Void())),
+    ]
+
+
+class EXCEPTION_RECORD(MemStruct):
+    """
+    DWORD                    ExceptionCode;
+    DWORD                    ExceptionFlags;
+    struct _EXCEPTION_RECORD *ExceptionRecord;
+    PVOID                    ExceptionAddress;
+    DWORD                    NumberParameters;
+    ULONG_PTR ExceptionInformation[EXCEPTION_MAXIMUM_PARAMETERS];
+    """
+    EXCEPTION_MAXIMUM_PARAMETERS = 15
+
+    fields = [
+        ("ExceptionCode", Num("<I")),
+        ("ExceptionFlags", Num("<I")),
+        ("ExceptionRecord", Ptr("<I", Self())),
+        ("ExceptionAddress", Ptr("<I", Void())),
+        ("NumberParameters", Num("<I")),
+        ("ExceptionInformation", Ptr("<I", Void())),
+    ]
+
+
 class NT_TIB(MemStruct):
 
     """
@@ -128,7 +161,7 @@ class NT_TIB(MemStruct):
     """
 
     fields = [
-        ("ExceptionList", Ptr("<I", Void())),
+        ("ExceptionList", Ptr("<I", EXCEPTION_REGISTRATION_RECORD)),
         ("StackBase", Ptr("<I", Void())),
         ("StackLimit", Ptr("<I", Void())),
         ("SubSystemTib", Ptr("<I", Void())),
