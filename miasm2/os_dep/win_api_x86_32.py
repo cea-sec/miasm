@@ -383,10 +383,10 @@ def user32_FindWindowA(jitter):
     ret_ad, args = jitter.func_args_stdcall(["pclassname", "pwindowname"])
     if args.pclassname:
         classname = jitter.get_str_ansi(args.pclassname)
-        log.info("classname %s", classname)
+        log.info("FindWindowA classname %s", classname)
     if args.pwindowname:
         windowname = jitter.get_str_ansi(args.pwindowname)
-        log.info("windowname %s", windowname)
+        log.info("FindWindowA windowname %s", windowname)
     jitter.func_ret_stdcall(ret_ad, 0)
 
 
@@ -526,7 +526,7 @@ def kernel32_CreateFile(jitter, funcname, get_str):
         return
 
     fname = get_str(jitter, args.lpfilename)
-    log.debug('fname %s', fname)
+    log.info('CreateFile fname %s', fname)
     ret = 0xffffffff
 
     log.debug("%r %r", fname.lower(), winobjs.module_path.lower())
@@ -617,7 +617,7 @@ def kernel32_CreateFile(jitter, funcname, get_str):
 
         # h = open(sb_fname, 'rb+')
         # ret = winobjs.handle_pool.add(sb_fname, h)
-    log.debug('ret %x', ret)
+    log.debug('CreateFile ret %x', ret)
     jitter.func_ret_stdcall(ret_ad, ret)
 
 
@@ -752,7 +752,7 @@ def kernel32_VirtualAlloc(jitter):
                 alloc_addr, access_dict[args.flprotect], "\x00" * args.dwsize,
                 "Alloc in %s ret 0x%X" % (whoami(), ret_ad))
 
-    log.debug('Memory addr: %x', alloc_addr)
+    log.info('VirtualAlloc addr: 0x%x', alloc_addr)
     jitter.func_ret_stdcall(ret_ad, alloc_addr)
 
 
@@ -814,7 +814,7 @@ def kernel32_CreateMutex(jitter, funcname, get_str):
 
     if args.lpname:
         name = get_str(jitter, args.lpname)
-        log.debug(name)
+        log.info("CreateMutex %r", name)
     else:
         name = None
     if args.initowner:
@@ -890,10 +890,8 @@ def kernel32_LoadLibraryA(jitter):
     ret_ad, args = jitter.func_args_stdcall(["dllname"])
 
     libname = get_str_ansi(jitter, args.dllname, 0x100)
-    log.info(libname)
-
     ret = winobjs.runtime_dll.lib_get_add_base(libname)
-    log.info("ret %x", ret)
+    log.info("Loading %r ret 0x%x", libname, ret)
     jitter.func_ret_stdcall(ret_ad, ret)
 
 
@@ -903,10 +901,8 @@ def kernel32_LoadLibraryExA(jitter):
     if args.hfile != 0:
         raise NotImplementedError("Untested case")
     libname = get_str_ansi(jitter, args.dllname, 0x100)
-    log.info(libname)
-
     ret = winobjs.runtime_dll.lib_get_add_base(libname)
-    log.info("ret %x", ret)
+    log.info("Loading %r ret 0x%x", libname, ret)
     jitter.func_ret_stdcall(ret_ad, ret)
 
 
@@ -919,12 +915,11 @@ def kernel32_GetProcAddress(jitter):
         fname = get_str_ansi(jitter, fname, 0x100)
         if not fname:
             fname = None
-    log.info(fname)
     if fname is not None:
         ad = winobjs.runtime_dll.lib_get_add_func(args.libbase, fname)
     else:
         ad = 0
-    ad = winobjs.runtime_dll.lib_get_add_func(args.libbase, fname)
+    log.info("GetProcAddress %r %r ret 0x%x", args.libbase, fname, ad)
     jitter.add_breakpoint(ad, jitter.handle_lib)
     jitter.func_ret_stdcall(ret_ad, ad)
 
@@ -933,10 +928,8 @@ def kernel32_LoadLibraryW(jitter):
     ret_ad, args = jitter.func_args_stdcall(["dllname"])
 
     libname = get_str_unic(jitter, args.dllname, 0x100)
-    log.info(libname)
-
     ret = winobjs.runtime_dll.lib_get_add_base(libname)
-    log.info("ret %x", ret)
+    log.info("Loading %r ret 0x%x", libname, ret)
     jitter.func_ret_stdcall(ret_ad, ret)
 
 
@@ -945,15 +938,15 @@ def kernel32_GetModuleHandle(jitter, funcname, get_str):
 
     if args.dllname:
         libname = get_str(jitter, args.dllname)
-        log.info(libname)
         if libname:
             ret = winobjs.runtime_dll.lib_get_add_base(libname)
         else:
             log.warning('unknown module!')
             ret = 0
+        log.info("GetModuleHandle %r ret 0x%x", libname, ret)
     else:
         ret = winobjs.current_pe.NThdr.ImageBase
-        log.debug("default img base %x", ret)
+        log.info("GetModuleHandle default ret 0x%x", ret)
     jitter.func_ret_stdcall(ret_ad, ret)
 
 
@@ -1030,7 +1023,7 @@ def kernel32_GetCommandLineW(jitter):
 def shell32_CommandLineToArgvW(jitter):
     ret_ad, args = jitter.func_args_stdcall(["pcmd", "pnumargs"])
     cmd = get_str_unic(jitter, args.pcmd)
-    log.debug(cmd)
+    log.info("CommandLineToArgv %r", cmd)
     tks = cmd.split(' ')
     addr = winobjs.heap.alloc(jitter, len(cmd) * 2 + 4 * len(tks))
     addr_ret = winobjs.heap.alloc(jitter, 4 * (len(tks) + 1))
@@ -1525,7 +1518,7 @@ def my_GetEnvironmentVariable(jitter, funcname, get_str, set_str, mylen):
     s = get_str(jitter, args.lpname)
     if get_str == get_str_unic:
         s = s
-    log.debug('variable %r', s)
+    log.info('GetEnvironmentVariable %r', s)
     if s in winobjs.env_variables:
         v = set_str(winobjs.env_variables[s])
     else:
@@ -2018,9 +2011,9 @@ def advapi32_RegSetValue(jitter, funcname, get_str):
                                              "valuetype", "pvalue",
                                              "vlen"])
     if args.psubkey:
-        log.debug("Subkey %s", get_str(jitter, args.psubkey))
+        log.info("Subkey %s", get_str(jitter, args.psubkey))
     if args.pvalue:
-        log.debug("Value %s", get_str(jitter, args.pvalue))
+        log.info("Value %s", get_str(jitter, args.pvalue))
     jitter.func_ret_stdcall(ret_ad, 0)
 
 
@@ -2224,7 +2217,7 @@ def kernel32_MapViewOfFile(jitter):
     data = fd.read(args.length) if args.length else fd.read()
     length = len(data)
 
-    log.debug('mapp total: %x', len(data))
+    log.debug('MapViewOfFile len: %x', len(data))
     access_dict = {
         0x0: 0,
         0x1: 0,
@@ -2733,8 +2726,7 @@ def msvcrt_myfopen(jitter, func):
 
     fname = func(jitter, args.pfname)
     rw = func(jitter, args.pmode)
-    log.debug(fname)
-    log.debug(rw)
+    log.info("fopen %r, %r", fname, rw)
 
     if rw in ['r', 'rb', 'wb+']:
         sb_fname = windows_to_sbpath(fname)
