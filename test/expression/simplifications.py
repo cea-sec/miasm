@@ -349,6 +349,12 @@ to_test = [
     (ExprOp_equal(ExprInt32(12), ExprInt32(-12)), ExprInt1(0)),
     (ExprCond(a - b, ExprInt1(0), ExprInt1(1)), ExprOp_equal(a, b)),
     (ExprCond(a + b, ExprInt1(0), ExprInt1(1)), ExprOp_equal(a, -b)),
+    (ExprOp_inf_signed(ExprInt32(-2), ExprInt32(3)), ExprInt1(1)),
+    (ExprOp_inf_signed(ExprInt32(3), ExprInt32(-3)), ExprInt1(0)),
+    (ExprOp_inf_signed(ExprInt32(2), ExprInt32(3)), ExprInt1(1)),
+    (ExprOp_inf_signed(ExprInt32(-3), ExprInt32(-2)), ExprInt1(1)),
+    (ExprOp_inf_signed(ExprInt32(0), ExprInt32(2)), ExprInt1(1)),
+    (ExprOp_inf_signed(ExprInt32(-3), ExprInt32(0)), ExprInt1(1)),
 ]
 
 expr_simp_cond = ExpressionSimplifier()
