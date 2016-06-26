@@ -198,14 +198,25 @@ def __comp_signed(arg1, arg2):
     @arg1, @arg2: ExprInt"""
 
     val1 = arg1.arg
+    s1 = 1
     if val1 >> (arg1.size - 1) == 1:
+        s1=-1
         val1 = - (arg1.mask.arg ^ val1 + 1)
 
+    s2=1
     val2 = arg2.arg
     if val2 >> (arg2.size - 1) == 1:
+        s2=-1
         val2 = - (arg2.mask.arg ^ val2 + 1)
 
-    return m2_expr.ExprInt1(1) if (val1 < val2) else m2_expr.ExprInt1(0)
+    if (s1 == -1 and s2 == -1):
+        return m2_expr.ExprInt1(1) if (val2 < val1) else m2_expr.ExprInt1(0)
+    elif (s1 == 1 and s2 == 1):
+        return m2_expr.ExprInt1(1) if (val1 < val2) else m2_expr.ExprInt1(0)
+    elif(s1 == -1 and s2 == 1):
+        return m2_expr.ExprInt1(1)
+    else:
+        return m2_expr.ExprInt1(0)
 
 def exec_inf_signed(expr_simp, e):
     "Compute x <s y"
