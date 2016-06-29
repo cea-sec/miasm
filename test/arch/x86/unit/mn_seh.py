@@ -62,5 +62,45 @@ class Test_SEH_simple(Test_SEH):
         assert(self.myjit.cpu.EBX == DEFAULT_SEH)
 
 
+class Test_SEH_double(Test_SEH_simple):
+    TXT = '''
+    main:
+       XOR EAX, EAX
+       XOR EDX, EDX
+
+       PUSH handler1
+       PUSH DWORD PTR FS:[EDX]
+       MOV DWORD PTR FS:[EDX], ESP
+
+       PUSH handler2
+       PUSH DWORD PTR FS:[EDX]
+       MOV DWORD PTR FS:[EDX], ESP
+
+       STI
+
+       MOV EBX, DWORD PTR [ESP]
+       MOV DWORD PTR FS:[EDX], EBX
+       ADD ESP, 0x8
+
+       MOV EBX, DWORD PTR [ESP]
+       MOV DWORD PTR FS:[EDX], EBX
+       ADD ESP, 0x8
+
+       RET
+
+    handler1:
+       MOV EAX, 0x1
+       RET
+
+    handler2:
+       MOV ECX, DWORD PTR [ESP+0xC]
+       INC DWORD PTR [ECX+0x%08x]
+       MOV DWORD PTR [ECX+0x%08x], 0xcafebabe
+       XOR EAX, EAX
+       RET
+    ''' % (ContextException.get_offset("eip"),
+           ContextException.get_offset("eax"))
+
+
 if __name__ == "__main__":
-    [test(*sys.argv[1:])() for test in [Test_SEH_simple]]
+    [test(*sys.argv[1:])() for test in [Test_SEH_simple, Test_SEH_double]]
