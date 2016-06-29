@@ -58,6 +58,7 @@ reg_dict gpreg_dict[] = { {.name = "RAX", .offset = offsetof(vm_cpu_t, RAX)},
 			  {.name = "tsc2", .offset = offsetof(vm_cpu_t, tsc2)},
 
 			  {.name = "exception_flags", .offset = offsetof(vm_cpu_t, exception_flags)},
+			  {.name = "interrupt_num", .offset = offsetof(vm_cpu_t, interrupt_num)},
 };
 
 
@@ -523,6 +524,7 @@ getset_reg_u32(tsc1);
 getset_reg_u32(tsc2);
 
 getset_reg_u32(exception_flags);
+getset_reg_u32(interrupt_num);
 
 
 PyObject* get_gpreg_offset_all(void)
@@ -678,6 +680,7 @@ static PyGetSetDef JitCpu_getseters[] = {
     {"tsc2", (getter)JitCpu_get_tsc2, (setter)JitCpu_set_tsc2, "tsc2", NULL},
 
     {"exception_flags", (getter)JitCpu_get_exception_flags, (setter)JitCpu_set_exception_flags, "exception_flags", NULL},
+    {"interrupt_num", (getter)JitCpu_get_interrupt_num, (setter)JitCpu_set_interrupt_num, "interrupt_num", NULL},
 
 
     {NULL}  /* Sentinel */
