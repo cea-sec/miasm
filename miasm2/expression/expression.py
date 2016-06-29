@@ -217,6 +217,9 @@ class Expr(object):
     def __neg__(self):
         return ExprOp('-', self)
 
+    def __pow__(self, a):
+        return ExprOp("**",self, a)
+
     def __invert__(self):
         s = self.size
         return ExprOp('^', self, ExprInt(mod_size2uint[s](size2mask(s))))
