@@ -4,6 +4,7 @@
 
 # VM Mngr Exceptions
 EXCEPT_DO_NOT_UPDATE_PC = 1 << 25
+EXCEPT_NUM_UPDT_EIP = (1<<11)
 
 EXCEPT_CODE_AUTOMOD = (1 << 0)
 EXCEPT_SOFT_BP = (1 << 1)

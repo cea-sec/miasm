@@ -91,17 +91,18 @@ class JitCore_Python(jitcore.JitCore):
                         if self.log_mn:
                             print "%08x %s" % (line.offset, line)
 
-                        # Check for memory exception
-                        if (vmmngr.get_exception() != 0):
+                        # Check for exception
+                        if (vmmngr.get_exception() != 0 or
+                            cpu.get_exception() != 0):
                             exec_engine.update_cpu_from_engine()
                             return line.offset
 
                     # Eval current instruction (in IR)
                     exec_engine.eval_ir(ir)
-
-                    # Check for memory exception which do not update PC
-                    if (vmmngr.get_exception() & csts.EXCEPT_DO_NOT_UPDATE_PC != 0):
-                        exec_engine.update_cpu_from_engine()
+                    # Check for exceptions which do not update PC
+                    exec_engine.update_cpu_from_engine()
+                    if (vmmngr.get_exception() & csts.EXCEPT_DO_NOT_UPDATE_PC != 0 or
+                        cpu.get_exception() > csts.EXCEPT_NUM_UPDT_EIP):
                         return line.offset
 
                 vmmngr.check_invalid_code_blocs()
