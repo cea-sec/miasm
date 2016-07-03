@@ -226,7 +226,7 @@ static uint64_t memory_page_read(vm_mngr_t* vm_mngr, unsigned int my_size, uint6
 			if (!mpn)
 				return 0;
 			addr = &((unsigned char*)mpn->ad_hp)[ad - mpn->ad];
-			ret |= (*((unsigned char*)addr)&0xFF)<<(index);
+			ret |= ((uint64_t)(*((unsigned char*)addr)&0xFF))<<(index);
 			index +=8;
 			new_size -= 8;
 			ad ++;
