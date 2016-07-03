@@ -30,6 +30,8 @@ def simp_cst_propagation(e_s, e):
                 o = i1.arg + i2.arg
             elif op == '*':
                 o = i1.arg * i2.arg
+            elif op == '**':
+                o =i1.arg ** i2.arg
             elif op == '^':
                 o = i1.arg ^ i2.arg
             elif op == '&':
@@ -194,7 +196,7 @@ def simp_cst_propagation(e_s, e):
             j += 1
         i += 1
 
-    if op in ['|', '&', '%', '/'] and len(args) == 1:
+    if op in ['|', '&', '%', '/', '**'] and len(args) == 1:
         return args[0]
 
     # A <<< A.size => A
