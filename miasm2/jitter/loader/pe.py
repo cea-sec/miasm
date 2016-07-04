@@ -98,6 +98,12 @@ def get_export_name_addr_list(e):
         # hex(e.rva2virt(addr.rva))))
         out.append(
             (o.ordinal + e.DirExport.expdesc.base, e.rva2virt(addr.rva)))
+
+    for i, s in enumerate(e.DirExport.f_address):
+        if not s.rva:
+            continue
+        out.append((i + e.DirExport.expdesc.base, e.rva2virt(s.rva)))
+
     return out
 
 
@@ -396,6 +402,7 @@ class libimp_pe(libimp):
                 c_name = canon_libname_libfunc(
                     name_inv[libad], imp_ord_or_name)
                 self.fad2cname[ad] = c_name
+                log.debug("Add func %s %s", hex(ad), c_name)
                 self.fad2info[ad] = libad, imp_ord_or_name
 
     def gen_new_lib(self, target_pe, filter_import=lambda peobj, ad: True, **kwargs):
