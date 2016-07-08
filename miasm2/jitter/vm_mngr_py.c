@@ -469,24 +469,10 @@ PyObject* vm_reset_code_bloc_write(VmMngr* self, PyObject* args)
 
 PyObject* vm_get_code_bloc_write(VmMngr* self, PyObject* args)
 {
-	uint64_t start, stop;
-	PyObject* range;
 	PyObject* result;
-	uint32_t valid;
 
-	valid = get_code_bloc_write(&self->vm_mngr, &start, &stop);
-	if (!valid) {
-		result = PyList_New(0);
-		return result;
-	}
-
-	range = PyTuple_New(2);
-	PyTuple_SetItem(range, 0, PyLong_FromUnsignedLongLong((uint64_t)start));
-	PyTuple_SetItem(range, 1, PyLong_FromUnsignedLongLong((uint64_t)stop));
-
-
-	result = PyList_New(1);
-	PyList_SET_ITEM(result, 0, range);
+	result = get_code_bloc_write(&self->vm_mngr);
+	Py_INCREF(result);
 
 	return result;
 }

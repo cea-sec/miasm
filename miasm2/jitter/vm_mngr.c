@@ -395,20 +395,14 @@ void dump_code_bloc(vm_mngr_t* vm_mngr)
 
 void code_bloc_add_write(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t size)
 {
-	if (vm_mngr->code_bloc_valid == 0) {
-		vm_mngr->code_bloc_valid = 1;
-		vm_mngr->code_bloc_memory_w_start = addr;
-		vm_mngr->code_bloc_memory_w_stop = addr + size;
-	} else {
-		if (vm_mngr->code_bloc_memory_w_stop != addr) {
-			fprintf(stderr,
-				"Error: sparse write %"PRIx64" %"PRIx64"\n",
-				vm_mngr->code_bloc_memory_w_stop,
-				addr);
-			exit(-1);
-		}
-		vm_mngr->code_bloc_memory_w_stop = addr + size;
-	}
+	PyObject* range;
+
+
+	range = PyTuple_New(2);
+	PyTuple_SetItem(range, 0, PyLong_FromUnsignedLongLong((uint64_t)addr));
+	PyTuple_SetItem(range, 1, PyLong_FromUnsignedLongLong((uint64_t)addr+size));
+
+	PyList_Append(vm_mngr->code_bloc_memory_w, range);
 }
 
 void check_write_code_bloc(vm_mngr_t* vm_mngr, uint64_t my_size, uint64_t addr)
@@ -427,6 +421,8 @@ void check_write_code_bloc(vm_mngr_t* vm_mngr, uint64_t my_size, uint64_t addr)
 				fprintf(stderr, "**********************************\n");
 #endif
 				vm_mngr->exception_flags |= EXCEPT_CODE_AUTOMOD;
+				printf("self modifying code %"PRIX64" %"PRIX64"\n",
+				       addr, my_size);
 				code_bloc_add_write(vm_mngr, addr, my_size/8);
 				break;
 			}
@@ -436,16 +432,14 @@ void check_write_code_bloc(vm_mngr_t* vm_mngr, uint64_t my_size, uint64_t addr)
 
 void reset_code_bloc_write(vm_mngr_t* vm_mngr)
 {
-	vm_mngr->code_bloc_valid = 0;
-	vm_mngr->code_bloc_memory_w_start = 0;
-	vm_mngr->code_bloc_memory_w_stop = 0;
+	Py_DECREF(vm_mngr->code_bloc_memory_w);
+	vm_mngr->code_bloc_memory_w = PyList_New(0);
+
 }
 
-int get_code_bloc_write(vm_mngr_t* vm_mngr, uint64_t* start, uint64_t* stop)
+PyObject* get_code_bloc_write(vm_mngr_t* vm_mngr)
 {
-	*start = vm_mngr->code_bloc_memory_w_start;
-	*stop = vm_mngr->code_bloc_memory_w_stop;
-	return vm_mngr->code_bloc_valid;
+	return vm_mngr->code_bloc_memory_w;
 }
 
 PyObject* addr2BlocObj(vm_mngr_t* vm_mngr, uint64_t addr)
@@ -1423,9 +1417,7 @@ void init_code_bloc_pool(vm_mngr_t* vm_mngr)
 	vm_mngr->code_bloc_pool_ad_min = 0xffffffff;
 	vm_mngr->code_bloc_pool_ad_max = 0;
 
-	vm_mngr->code_bloc_valid = 0;
-	vm_mngr->code_bloc_memory_w_start = 0;
-	vm_mngr->code_bloc_memory_w_stop = 0;
+	vm_mngr->code_bloc_memory_w = PyList_New(0);
 
 
 }

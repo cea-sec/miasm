@@ -93,9 +93,7 @@ typedef struct {
 
 
 
-	uint64_t code_bloc_valid;
-	uint64_t code_bloc_memory_w_start;
-	uint64_t code_bloc_memory_w_stop;
+	PyObject* code_bloc_memory_w;
 
 
 }vm_mngr_t;
@@ -292,7 +290,7 @@ void add_memory_page(vm_mngr_t* vm_mngr, struct memory_page_node* mpn);
 void check_write_code_bloc(vm_mngr_t* vm_mngr, uint64_t my_size, uint64_t addr);
 void code_bloc_add_write(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t size);
 void reset_code_bloc_write(vm_mngr_t* vm_mngr);
-int get_code_bloc_write(vm_mngr_t* vm_mngr, uint64_t* start, uint64_t* stop);
+PyObject* get_code_bloc_write(vm_mngr_t* vm_mngr);
 
 
 char* dump(vm_mngr_t* vm_mngr);
