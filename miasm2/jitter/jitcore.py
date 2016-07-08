@@ -264,11 +264,8 @@ class JitCore(object):
         """Remove code jitted in range self.addr_mod
         @vm: VmMngr instance
         """
-        for addr_start, addr_stop in self.addr_mod:
-            self.del_bloc_in_range(addr_start, addr_stop + 1)
+        for addr_start, addr_stop in vm.get_code_bloc_write():
+            self.del_bloc_in_range(addr_start, addr_stop)
         self.__updt_jitcode_mem_range(vm)
         self.addr_mod = interval()
-
-    def automod_cb(self, addr=0, size=0):
-        self.addr_mod += interval([(addr, addr + size / 8 - 1)])
-        return None
+        vm.reset_code_bloc_write()

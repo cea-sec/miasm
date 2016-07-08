@@ -245,6 +245,7 @@ class jitter:
             "Tell the JiT backend to update blocs modified"
 
             self.jit.updt_automod_code(jitter.vm)
+            self.vm.reset_code_bloc_write()
             self.vm.set_exception(0)
 
             return True

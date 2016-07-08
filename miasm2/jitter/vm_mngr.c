@@ -393,6 +393,24 @@ void dump_code_bloc(vm_mngr_t* vm_mngr)
 
 }
 
+void code_bloc_add_write(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t size)
+{
+	if (vm_mngr->code_bloc_valid == 0) {
+		vm_mngr->code_bloc_valid = 1;
+		vm_mngr->code_bloc_memory_w_start = addr;
+		vm_mngr->code_bloc_memory_w_stop = addr + size;
+	} else {
+		if (vm_mngr->code_bloc_memory_w_stop != addr) {
+			fprintf(stderr,
+				"Error: sparse write %"PRIx64" %"PRIx64"\n",
+				vm_mngr->code_bloc_memory_w_stop,
+				addr);
+			exit(-1);
+		}
+		vm_mngr->code_bloc_memory_w_stop = addr + size;
+	}
+}
+
 void check_write_code_bloc(vm_mngr_t* vm_mngr, uint64_t my_size, uint64_t addr)
 {
 	struct code_bloc_node * cbp;
@@ -404,16 +422,30 @@ void check_write_code_bloc(vm_mngr_t* vm_mngr, uint64_t my_size, uint64_t addr)
 			    (addr < cbp->ad_stop)){
 #ifdef DEBUG_MIASM_AUTOMOD_CODE
 				fprintf(stderr, "**********************************\n");
-				fprintf(stderr, "self modifying code %"PRIX64" %.8X\n",
+				fprintf(stderr, "self modifying code %"PRIX64" %"PRIX64"\n",
 				       addr, my_size);
 				fprintf(stderr, "**********************************\n");
 #endif
 				vm_mngr->exception_flags |= EXCEPT_CODE_AUTOMOD;
-
+				code_bloc_add_write(vm_mngr, addr, my_size/8);
 				break;
 			}
 		}
 	}
+}
+
+void reset_code_bloc_write(vm_mngr_t* vm_mngr)
+{
+	vm_mngr->code_bloc_valid = 0;
+	vm_mngr->code_bloc_memory_w_start = 0;
+	vm_mngr->code_bloc_memory_w_stop = 0;
+}
+
+int get_code_bloc_write(vm_mngr_t* vm_mngr, uint64_t* start, uint64_t* stop)
+{
+	*start = vm_mngr->code_bloc_memory_w_start;
+	*stop = vm_mngr->code_bloc_memory_w_stop;
+	return vm_mngr->code_bloc_valid;
 }
 
 PyObject* addr2BlocObj(vm_mngr_t* vm_mngr, uint64_t addr)
@@ -1390,6 +1422,12 @@ void init_code_bloc_pool(vm_mngr_t* vm_mngr)
 	LIST_INIT(&vm_mngr->code_bloc_pool);
 	vm_mngr->code_bloc_pool_ad_min = 0xffffffff;
 	vm_mngr->code_bloc_pool_ad_max = 0;
+
+	vm_mngr->code_bloc_valid = 0;
+	vm_mngr->code_bloc_memory_w_start = 0;
+	vm_mngr->code_bloc_memory_w_stop = 0;
+
+
 }
 
 void init_memory_breakpoint(vm_mngr_t* vm_mngr)
