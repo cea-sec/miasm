@@ -141,7 +141,7 @@ class TranslatorZ3(Translator):
         for subexpr, start, stop in args:
             sube = self.from_expr(subexpr)
             e = z3.Extract(stop-start-1, 0, sube)
-            if res:
+            if res != None:
                 res = z3.Concat(e, res)
             else:
                 res = e
