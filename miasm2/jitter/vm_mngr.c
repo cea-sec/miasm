@@ -409,6 +409,9 @@ void check_write_code_bloc(vm_mngr_t* vm_mngr, uint64_t my_size, uint64_t addr)
 {
 	struct code_bloc_node * cbp;
 
+	if (vm_mngr->exception_flags & EXCEPT_CODE_AUTOMOD)
+		return;
+
 	if (!(addr + my_size/8 <= vm_mngr->code_bloc_pool_ad_min ||
 	      addr >=vm_mngr->code_bloc_pool_ad_max)){
 		LIST_FOREACH(cbp, &vm_mngr->code_bloc_pool, next){
@@ -421,9 +424,6 @@ void check_write_code_bloc(vm_mngr_t* vm_mngr, uint64_t my_size, uint64_t addr)
 				fprintf(stderr, "**********************************\n");
 #endif
 				vm_mngr->exception_flags |= EXCEPT_CODE_AUTOMOD;
-				printf("self modifying code %"PRIX64" %"PRIX64"\n",
-				       addr, my_size);
-				code_bloc_add_write(vm_mngr, addr, my_size/8);
 				break;
 			}
 		}
@@ -462,22 +462,26 @@ PyObject* addr2BlocObj(vm_mngr_t* vm_mngr, uint64_t addr)
 void vm_MEM_WRITE_08(vm_mngr_t* vm_mngr, uint64_t addr, unsigned char src)
 {
 	check_write_code_bloc(vm_mngr, 8, addr);
+	code_bloc_add_write(vm_mngr, addr, 1);
 	memory_page_write(vm_mngr, 8, addr, src);
 }
 
 void vm_MEM_WRITE_16(vm_mngr_t* vm_mngr, uint64_t addr, unsigned short src)
 {
 	check_write_code_bloc(vm_mngr, 16, addr);
+	code_bloc_add_write(vm_mngr, addr, 2);
 	memory_page_write(vm_mngr, 16, addr, src);
 }
 void vm_MEM_WRITE_32(vm_mngr_t* vm_mngr, uint64_t addr, unsigned int src)
 {
 	check_write_code_bloc(vm_mngr, 32, addr);
+	code_bloc_add_write(vm_mngr, addr, 4);
 	memory_page_write(vm_mngr, 32, addr, src);
 }
 void vm_MEM_WRITE_64(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t src)
 {
 	check_write_code_bloc(vm_mngr, 64, addr);
+	code_bloc_add_write(vm_mngr, addr, 8);
 	memory_page_write(vm_mngr, 64, addr, src);
 }
 
