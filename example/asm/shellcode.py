@@ -71,7 +71,7 @@ symbol_pool.set_offset(symbol_pool.getby_name("main"), addr_main)
 
 if args.PE:
     symbol_pool.set_offset(symbol_pool.getby_name_create("MessageBoxA"),
-                           pe.DirImport.get_funcvirt('MessageBoxA'))
+                           pe.DirImport.get_funcvirt('USER32.dll', 'MessageBoxA'))
 
 # Print and graph firsts blocs before patching it
 for bloc in blocs:
