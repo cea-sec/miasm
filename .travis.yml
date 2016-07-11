@@ -25,9 +25,9 @@ before_script:
 - "git clone https://github.com/serpilliere/elfesteem elfesteem && cd elfesteem && python setup.py install && cd ..;"
 # install pyparsing
 - "pip install pyparsing"
-# install z3
-- "mkdir z3 && cd z3 && wget -O z3.zip 'http://download-codeplex.sec.s-msft.com/Download/SourceControlFileDownload.ashx?ProjectName=z3&changeSetId=cee7dd39444c9060186df79c2a2c7f8845de415b'"
-- "unzip -q z3.zip && rm z3.zip && python scripts/mk_make.py  --prefix=$(pwd)/../ && cd build && make -j 32 && make install && cd ../.."
+# install z3 with a known to working version
+- "git clone https://github.com/Z3Prover/z3 && cd z3 && git checkout f96cfea"
+- "python scripts/mk_make.py --python && cd build && make -j 32 && make install && cd ../.."
 # install miasm
 - "cd ..;"
 - "cd miasm;"
