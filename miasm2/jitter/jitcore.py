@@ -269,3 +269,4 @@ class JitCore(object):
             self.del_bloc_in_range(addr_start, addr_stop)
         self.__updt_jitcode_mem_range(vm)
         self.addr_mod = interval()
+        vm.reset_memory_access()

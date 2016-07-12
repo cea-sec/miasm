@@ -321,6 +321,15 @@ PyObject* vm_reset_memory_breakpoint(VmMngr* self, PyObject* args)
 
 }
 
+PyObject* vm_reset_memory_access(VmMngr* self, PyObject* args)
+{
+    reset_memory_access(&self->vm_mngr);
+    Py_INCREF(Py_None);
+    return Py_None;
+
+}
+
+
 PyObject *vm_dump(PyObject* self)
 {
 	char* buf_final;
@@ -582,6 +591,8 @@ static PyMethodDef VmMngr_methods[] = {
 	{"get_memory_read",(PyCFunction)vm_get_memory_read, METH_VARARGS,
 	 "X"},
 	{"get_memory_write",(PyCFunction)vm_get_memory_write, METH_VARARGS,
+	 "X"},
+	{"reset_memory_access",(PyCFunction)vm_reset_memory_access, METH_VARARGS,
 	 "X"},
 
 	{NULL}  /* Sentinel */
