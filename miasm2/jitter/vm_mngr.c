@@ -449,6 +449,7 @@ void add_mem_read(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t size)
 void add_mem_write(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t size)
 {
 	add_range_to_pylist(vm_mngr->memory_w, addr, addr + size);
+	vm_mngr->write_num++;
 }
 
 void check_invalid_code_blocs(vm_mngr_t* vm_mngr)
@@ -458,6 +459,9 @@ void check_invalid_code_blocs(vm_mngr_t* vm_mngr)
 	PyObject* element;
 	struct code_bloc_node * cbp;
 	uint64_t addr_start, addr_stop;
+
+	if (vm_mngr->write_num == 0)
+		return;
 
 	list_size = PyList_Size(vm_mngr->memory_w);
 
@@ -492,6 +496,9 @@ void check_memory_breakpoint(vm_mngr_t* vm_mngr)
 	PyObject* element;
 	uint64_t addr_start, addr_stop;
 	struct memory_breakpoint_info * memory_bp;
+
+	if (vm_mngr->write_num == 0)
+		return;
 
 	/* Check Write memory breakpoint */
 	list_size = PyList_Size(vm_mngr->memory_w);
@@ -1537,6 +1544,7 @@ void init_code_bloc_pool(vm_mngr_t* vm_mngr)
 
 	vm_mngr->memory_r = PyList_New(0);
 	vm_mngr->memory_w = PyList_New(0);
+	vm_mngr->write_num = 0;
 
 
 }
@@ -1583,6 +1591,8 @@ void reset_memory_access(vm_mngr_t* vm_mngr)
 
 	reset_pylist(vm_mngr->memory_w);
 	vm_mngr->memory_w = PyList_New(0);
+	vm_mngr->write_num = 0;
+
 }
 
 void reset_memory_breakpoint(vm_mngr_t* vm_mngr)

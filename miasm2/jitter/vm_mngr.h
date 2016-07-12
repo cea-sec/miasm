@@ -94,6 +94,8 @@ typedef struct {
 	PyObject* memory_r;
 	PyObject* memory_w;
 
+	int write_num;
+
 }vm_mngr_t;
 
 
