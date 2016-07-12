@@ -89,8 +89,8 @@ class CGen(object):
     """
 
     CODE_VM_EXCEPTION_POST_INSTR = r"""
-    check_memory_breakpoint(&((VmMngr*)jitcpu->pyvm)->vm_mngr);
-    check_invalid_code_blocs(&((VmMngr*)jitcpu->pyvm)->vm_mngr);
+    check_memory_breakpoint(&(jitcpu->pyvm->vm_mngr));
+    check_invalid_code_blocs(&(jitcpu->pyvm->vm_mngr));
     if (VM_exception_flag) {
         %s = %s;
         BlockDst->address = DST_value;
@@ -334,7 +334,7 @@ class CGen(object):
             out += (self.CODE_CPU_EXCEPTION_POST_INSTR % (self.C_PC, dst)).split('\n')
 
         if attrib.mem_read | attrib.mem_write:
-            out.append("reset_memory_access(&((VmMngr*)jitcpu->pyvm)->vm_mngr);")
+            out.append("reset_memory_access(&(jitcpu->pyvm->vm_mngr));")
 
         return out
 

@@ -1,11 +1,11 @@
 #include <Python.h>
-#include "../JitCore.h"
 #include "structmember.h"
 #include <stdint.h>
 #include <inttypes.h>
 #include "../queue.h"
 #include "../vm_mngr.h"
 #include "../vm_mngr_py.h"
+#include "../JitCore.h"
 #include "JitCore_x86.h"
 
 
