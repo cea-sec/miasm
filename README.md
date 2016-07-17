@@ -456,9 +456,6 @@ To enable code JIT, one of the following module is mandatory:
 * LLVM v3.2 with python-llvm, see below
 * LibTCC [tinycc (ONLY version 0.9.26)](http://repo.or.cz/w/tinycc.git)
 
-'optional' Miasm can also use:
-* Z3, the [Theorem Prover](https://github.com/Z3Prover/z3)
-
 Configuration
 -------------
 
