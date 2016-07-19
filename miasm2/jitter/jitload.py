@@ -267,8 +267,7 @@ class jitter:
         self.breakpoints_handler.add_callback(addr, callback)
         self.jit.add_disassembly_splits(addr)
         # De-jit previously jitted blocks
-        self.jit.addr_mod = interval([(addr, addr)])
-        self.jit.updt_automod_code(self.vm)
+        self.jit.updt_automod_code_range(self.vm, [(addr, addr)])
 
     def set_breakpoint(self, addr, *args):
         """Set callbacks associated with addr.

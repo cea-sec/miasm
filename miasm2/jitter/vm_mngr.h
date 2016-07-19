@@ -73,7 +73,16 @@ struct memory_page_node {
 	char* name;
 };
 
+struct memory_access {
+	uint64_t start;
+	uint64_t stop;
+};
 
+struct memory_access_list {
+	struct memory_access *array;
+	uint64_t allocated;
+	uint64_t num;
+};
 
 typedef struct {
 	int sex;
@@ -91,8 +100,10 @@ typedef struct {
 	uint64_t exception_flags_new;
 	PyObject *addr2obj;
 
-	PyObject* memory_r;
-	PyObject* memory_w;
+
+	struct memory_access_list memory_r;
+	struct memory_access_list memory_w;
+
 
 	int write_num;
 
@@ -264,6 +275,11 @@ unsigned int rcr_rez_op(unsigned int size, unsigned int a, unsigned int b, unsig
 	    r = a%b;							\
 	    return r;							\
 	    }
+
+
+void memory_access_list_init(struct memory_access_list * access);
+void memory_access_list_reset(struct memory_access_list * access);
+void memory_access_list_add(struct memory_access_list * access, uint64_t start, uint64_t stop);
 
 
 void hexdump(char* m, unsigned int l);
