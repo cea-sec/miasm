@@ -26,11 +26,14 @@ before_script:
 # install pyparsing
 - "pip install pyparsing"
 # install z3 with a known to working version
-- "git clone https://github.com/Z3Prover/z3 && cd z3 && git checkout f96cfea"
-- "python scripts/mk_make.py --python && cd build && make -j 32 && make install && cd ../.."
+- "wget https://github.com/serpilliere/z3-prebuild/raw/master/z3.tgz"
+- "tar xzf z3.tgz"
+- "cd z3/build"
+- "make install"
+- "cd ../.."
 # install miasm
 - "cd ..;"
 - "cd miasm;"
 - "python setup.py build build_ext -I$(pwd)/../virtualenv/include -L$(pwd)/../virtualenv/tinycc"
 - "python setup.py install"
-script: "cd test && python test_all.py"
+script: "python -c 'import z3; x = z3.BitVec(chr(0x41), 32)' && cd test && python test_all.py"
