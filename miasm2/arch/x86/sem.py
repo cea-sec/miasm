@@ -4484,7 +4484,6 @@ class ir_x86_16(ir):
 
         instr_ir, extra_ir = mnemo_func[
             instr.name.lower()](self, instr, *args)
-        self.mod_pc(instr, instr_ir, extra_ir)
 
         self.mod_pc(instr, instr_ir, extra_ir)
         instr.additional_info.except_on_instr = False
