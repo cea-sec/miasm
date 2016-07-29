@@ -3736,6 +3736,7 @@ addop("outsw", [bs8(0x6f), bs_opmode16])
 addop("outsd", [bs8(0x6f), bs_opmode32])
 addop("outsd", [bs8(0x6f), bs_opmode64])
 
+addop("setalc", [bs8(0xD6)])
 
 # addop("pause", [bs8(0xf3), bs8(0x90)])
 
