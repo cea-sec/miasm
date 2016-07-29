@@ -4571,7 +4571,8 @@ class ir_x86_16(ir):
                 dst = self.expr_fix_regs_for_mode(dst, mode)
                 src = self.expr_fix_regs_for_mode(src, mode)
                 assignblk[dst] = src
-        irbloc.dst = self.expr_fix_regs_for_mode(irbloc.dst, mode)
+        if irbloc.dst is not None:
+            irbloc.dst = self.expr_fix_regs_for_mode(irbloc.dst, mode)
 
 
 class ir_x86_32(ir_x86_16):

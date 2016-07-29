@@ -232,8 +232,7 @@ for script in ["modint.py",
                ]:
     testset += RegressionTest([script], base_dir="expression")
 ## IR
-for script in ["ir2C.py",
-               "symbexec.py",
+for script in ["symbexec.py",
                ]:
     testset += RegressionTest([script], base_dir="ir")
 testset += RegressionTest(["analysis.py"], base_dir="ir",

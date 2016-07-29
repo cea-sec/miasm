@@ -9,7 +9,6 @@ from distutils.sysconfig import get_python_inc
 from subprocess import check_call
 from hashlib import md5
 
-from miasm2.ir.ir2C import irblocs2C
 from miasm2.jitter import jitcore, Jitgcc
 from miasm2.core.utils import keydefaultdict
 
@@ -97,6 +96,13 @@ class JitCore_Gcc(jitcore.JitCore):
         self.include_files = include_files
         self.libs = libs
 
+    def init_codegen(self, codegen):
+        """
+        Get the code generator @codegen
+        @codegen: an CGen instance
+        """
+        self.codegen = codegen
+
     def label2fname(self, label):
         """
         Generate function name from @label
@@ -112,7 +118,8 @@ class JitCore_Gcc(jitcore.JitCore):
         self.lbl2jitbloc[label.offset] = addr
         self.gcc_states[label.offset] = lib
 
-    def gen_c_code(self, label, irblocks):
+
+    def gen_c_code(self, label, block):
         """
         Return the C code corresponding to the @irblocks
         @label: asm_label of the block to jit
@@ -120,10 +127,7 @@ class JitCore_Gcc(jitcore.JitCore):
         """
         f_name = self.label2fname(label)
         f_declaration = 'int %s(block_id * BlockDst, JitCpu* jitcpu)' % f_name
-        out = irblocs2C(self.ir_arch, self.resolver, label, irblocks,
-                        gen_exception_code=True,
-                        log_mn=self.log_mn,
-                        log_regs=self.log_regs)
+        out = self.codegen.gen_c(block, log_mn=self.log_mn, log_regs=self.log_regs)
         out = [f_declaration + '{'] + out + ['}\n']
         c_code = out
 
@@ -141,8 +145,7 @@ class JitCore_Gcc(jitcore.JitCore):
         fname_out = os.path.join(self.tempdir, "%s.so" % block_hash)
 
         if not os.access(fname_out, os.R_OK | os.X_OK):
-            irblocks = self.ir_arch.add_bloc(block, gen_pc_updt=True)
-            func_code = self.gen_c_code(block.label, irblocks)
+            func_code = self.gen_c_code(block.label, block)
 
             # Create unique C file
             fdesc, fname_in = tempfile.mkstemp(suffix=".c")

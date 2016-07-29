@@ -1,9 +1,10 @@
+import logging
+
 from miasm2.jitter.jitload import jitter
 from miasm2.core import asmbloc
 from miasm2.core.utils import *
 from miasm2.arch.mips32.sem import ir_mips32l, ir_mips32b
-
-import logging
+from miasm2.jitter.codegen import CGen
 
 log = logging.getLogger('jit_mips32')
 hnd = logging.StreamHandler()
@@ -17,7 +18,6 @@ class jitter_mips32l(jitter):
         sp = asmbloc.asm_symbol_pool()
         jitter.__init__(self, ir_mips32l(sp), *args, **kwargs)
         self.vm.set_little_endian()
-        self.ir_arch.jit_pc = self.ir_arch.arch.regs.PC
 
     def push_uint32_t(self, v):
         self.cpu.SP -= 4
@@ -42,4 +42,3 @@ class jitter_mips32b(jitter_mips32l):
         sp = asmbloc.asm_symbol_pool()
         jitter.__init__(self, ir_mips32b(sp), *args, **kwargs)
         self.vm.set_big_endian()
-        self.ir_arch.jit_pc = self.ir_arch.arch.regs.PC

@@ -7,6 +7,7 @@ from miasm2.core.cpu import reg_info
 regs16_str = ["PC", "SP", "SR"] + ["R%d" % i for i in xrange(3, 16)]
 regs16_expr = [ExprId(x, 16) for x in regs16_str]
 
+exception_flags = ExprId('exception_flags', 32)
 
 gpregs = reg_info(regs16_str, regs16_expr)
 

@@ -11,7 +11,6 @@ hnd.setFormatter(logging.Formatter("[%(levelname)s]: %(message)s"))
 log.addHandler(hnd)
 log.setLevel(logging.CRITICAL)
 
-
 class jitter_aarch64l(jitter):
     max_reg_arg = 8
 
@@ -19,7 +18,6 @@ class jitter_aarch64l(jitter):
         sp = asmbloc.asm_symbol_pool()
         jitter.__init__(self, ir_aarch64l(sp), *args, **kwargs)
         self.vm.set_little_endian()
-        self.ir_arch.jit_pc = self.ir_arch.arch.regs.PC
 
     def push_uint64_t(self, v):
         self.cpu.SP -= 8
@@ -70,4 +68,3 @@ class jitter_aarch64b(jitter_aarch64l):
         sp = asmbloc.asm_symbol_pool()
         jitter.__init__(self, ir_aarch64b(sp), *args, **kwargs)
         self.vm.set_big_endian()
-        self.ir_arch.jit_pc = self.ir_arch.arch.regs.PC
