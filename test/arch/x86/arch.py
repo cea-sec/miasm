@@ -72,6 +72,8 @@ reg_tests = [
     (m64, "XXXXXXXX    CPUID",
     "0fa2"),
 
+    (m32, "XXXXXXXX    SETALC",
+    "D6"),
 
     (m32, "XXXXXXXX    PMINSW     MM0, QWORD PTR [EAX]",
     "0fea00"),
