@@ -119,9 +119,6 @@ inline int midpoint(int imin, int imax)
 
 int find_page_node(struct memory_page_node * array, uint64_t key, int imin, int imax)
 {
-	if (imax < 1)
-		return -1;
-	imax--;
 	// continue searching while [imin,imax] is not empty
 	while (imin <= imax) {
 		// calculate the midpoint for roughly equal partition
@@ -149,7 +146,7 @@ struct memory_page_node * get_memory_page_from_address(vm_mngr_t* vm_mngr, uint6
 	i = find_page_node(vm_mngr->memory_pages_array,
 			   ad,
 			   0,
-			   vm_mngr->memory_pages_number);
+			   vm_mngr->memory_pages_number - 1);
 	if (i >= 0) {
 		mpn = &vm_mngr->memory_pages_array[i];
 		if ((mpn->ad <= ad) && (ad < mpn->ad + mpn->size))
