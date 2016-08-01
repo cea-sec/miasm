@@ -274,7 +274,8 @@ typedef struct {
 
 
 
-void dump_gpregs(vm_cpu_t* vmcpu);
+void dump_gpregs_32(vm_cpu_t* vmcpu);
+void dump_gpregs_64(vm_cpu_t* vmcpu);
 uint64_t segm2addr(JitCpu* jitcpu, uint64_t segm, uint64_t addr);
 
 

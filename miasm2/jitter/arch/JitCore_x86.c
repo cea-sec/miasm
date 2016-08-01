@@ -176,17 +176,46 @@ PyObject * cpu_init_regs(JitCpu* self)
 
 }
 
-void dump_gpregs(vm_cpu_t* vmcpu)
+void dump_gpregs_32(vm_cpu_t* vmcpu)
 {
 
-	printf("RAX %.16"PRIX64" RBX %.16"PRIX64" RCX %.16"PRIX64" RDX %.16"PRIX64"\n",
+	printf("EAX %.8"PRIX32" EBX %.8"PRIX32" ECX %.8"PRIX32" EDX %.8"PRIX32" ",
+	       (uint32_t)(vmcpu->RAX & 0xFFFFFFFF),
+	       (uint32_t)(vmcpu->RBX & 0xFFFFFFFF),
+	       (uint32_t)(vmcpu->RCX & 0xFFFFFFFF),
+	       (uint32_t)(vmcpu->RDX & 0xFFFFFFFF));
+	printf("ESI %.8"PRIX32" EDI %.8"PRIX32" ESP %.8"PRIX32" EBP %.8"PRIX32" ",
+	       (uint32_t)(vmcpu->RSI & 0xFFFFFFFF),
+	       (uint32_t)(vmcpu->RDI & 0xFFFFFFFF),
+	       (uint32_t)(vmcpu->RSP & 0xFFFFFFFF),
+	       (uint32_t)(vmcpu->RBP & 0xFFFFFFFF));
+	printf("EIP %.8"PRIX32" ",
+	       (uint32_t)(vmcpu->RIP & 0xFFFFFFFF));
+	printf("zf %.1"PRIX32" nf %.1"PRIX32" of %.1"PRIX32" cf %.1"PRIX32"\n",
+	       (uint32_t)(vmcpu->zf & 0x1),
+	       (uint32_t)(vmcpu->nf & 0x1),
+	       (uint32_t)(vmcpu->of & 0x1),
+	       (uint32_t)(vmcpu->cf & 0x1));
+
+}
+
+void dump_gpregs_64(vm_cpu_t* vmcpu)
+{
+
+	printf("RAX %.16"PRIX64" RBX %.16"PRIX64" RCX %.16"PRIX64" RDX %.16"PRIX64" ",
 	       vmcpu->RAX, vmcpu->RBX, vmcpu->RCX, vmcpu->RDX);
-	printf("RSI %.16"PRIX64" RDI %.16"PRIX64" RSP %.16"PRIX64" RBP %.16"PRIX64"\n",
+	printf("RSI %.16"PRIX64" RDI %.16"PRIX64" RSP %.16"PRIX64" RBP %.16"PRIX64" ",
 	       vmcpu->RSI, vmcpu->RDI, vmcpu->RSP, vmcpu->RBP);
-	printf("zf %.16"PRIX64" nf %.16"PRIX64" of %.16"PRIX64" cf %.16"PRIX64"\n",
-	       vmcpu->zf, vmcpu->nf, vmcpu->of, vmcpu->cf);
 	printf("RIP %.16"PRIX64"\n",
 	       vmcpu->RIP);
+	printf("R8  %.16"PRIX64" R9  %.16"PRIX64" R10 %.16"PRIX64" R11 %.16"PRIX64" ",
+	       vmcpu->R8, vmcpu->R9, vmcpu->R10, vmcpu->R11);
+	printf("R12 %.16"PRIX64" R13 %.16"PRIX64" R14 %.16"PRIX64" R15 %.16"PRIX64" ",
+	       vmcpu->R12, vmcpu->R13, vmcpu->R14, vmcpu->R15);
+
+
+	printf("zf %.1"PRIX64" nf %.1"PRIX64" of %.1"PRIX64" cf %.1"PRIX64"\n",
+	       vmcpu->zf, vmcpu->nf, vmcpu->of, vmcpu->cf);
 
 }
 
@@ -195,7 +224,7 @@ PyObject * cpu_dump_gpregs(JitCpu* self, PyObject* args)
 	vm_cpu_t* vmcpu;
 
 	vmcpu = self->cpu;
-	dump_gpregs(vmcpu);
+	dump_gpregs_64(vmcpu);
 	Py_INCREF(Py_None);
 	return Py_None;
 }
