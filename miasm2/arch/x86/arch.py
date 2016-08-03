@@ -4315,10 +4315,7 @@ addop("pextrq", [bs8(0x0f), bs8(0x3a), bs8(0x16), pref_66] +
 
 
 addop("pextrw", [bs8(0x0f), bs8(0x3a), bs8(0x15), pref_66] +
-      rmmod(xmm_reg, rm_arg_m16) + [u08], [rm_arg_m16, xmm_reg, u08])
-#addop("pextrw", [bs8(0x0f), bs8(0x3a), bs8(0x15), no_xmm_pref] +
-#      rmmod(mm_reg, rm_arg_m16) + [u08], [rm_arg_m16, mm_reg, u08])
-
+      rmmod(xmm_reg, rm_arg_reg_m16) + [u08], [rm_arg_reg_m16, xmm_reg, u08])
 addop("pextrw", [bs8(0x0f), bs8(0xc5), no_xmm_pref] +
       rmmod(mm_reg, rm_arg_reg_m16) + [u08], [rm_arg_reg_m16, mm_reg, u08])
 addop("pextrw", [bs8(0x0f), bs8(0xc5), pref_66] +

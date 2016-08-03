@@ -3606,19 +3606,25 @@ def ps_rl_ll(ir, instr, a, b, op, size):
     mask = {16: 0xF,
             32: 0x1F,
             64: 0x3F}[size]
-    test = count & m2_expr.ExprInt(((1 << a.size) - 1) ^ mask, a.size)
+    test = expr_simp(count & m2_expr.ExprInt(((1 << a.size) - 1) ^ mask, a.size))
     e = [m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(test,
                                                     lbl_zero,
                                                     lbl_do))]
 
-    e_zero = [m2_expr.ExprAff(a, m2_expr.ExprInt(0, a.size)),
-              m2_expr.ExprAff(ir.IRDst, lbl_next)]
-
-    e_do = []
     slices = []
     for i in xrange(0, a.size, size):
         slices.append((m2_expr.ExprOp(op, a[i:i + size], count[:size]),
                        i, i + size))
+
+    if isinstance(test, m2_expr.ExprInt):
+        if int(test.arg) == 0:
+            return [m2_expr.ExprAff(a[0:a.size], m2_expr.ExprCompose(slices))], []
+        else:
+            return [m2_expr.ExprAff(a, m2_expr.ExprInt(0, a.size))], []
+
+    e_zero = [m2_expr.ExprAff(a, m2_expr.ExprInt(0, a.size)),
+              m2_expr.ExprAff(ir.IRDst, lbl_next)]
+    e_do = []
     e.append(m2_expr.ExprAff(a[0:a.size], m2_expr.ExprCompose(slices)))
     e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
     return e, [irbloc(lbl_do.name, [e_do]), irbloc(lbl_zero.name, [e_zero])]
