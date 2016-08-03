@@ -6,17 +6,6 @@ from miasm2.core.asmbloc import expr_is_label, asm_block_bad, asm_label
 # Miasm to C translator
 translator = Translator.to_language("C")
 
-PREFETCH_ID = []
-PREFETCH_ID_SIZE = {}
-for size in [8, 16, 32, 64]:
-    PREFETCH_ID_SIZE[size] = []
-    for i in xrange(20):
-        name = 'pfmem%.2d_%d' % (size, i)
-        c = m2_expr.ExprId(name, size)
-        # globals()[name] = c
-        PREFETCH_ID.append(c)
-        PREFETCH_ID_SIZE[size].append(c)
-
 SIZE_TO_MASK = {x: 2**x - 1 for x in (1, 2, 3, 7, 8, 16, 32, 64)}
 
 MASK_INT = 0xffffffffffffffff
@@ -127,14 +116,8 @@ class CGen(object):
 
     def init_arch_C(self):
         self.id_to_c_id = {}
-        for reg in self.ir_arch.arch.regs.all_regs_ids + PREFETCH_ID:
+        for reg in self.ir_arch.arch.regs.all_regs_ids:
             self.id_to_c_id[reg] = m2_expr.ExprId('mycpu->%s' % reg, reg.size)
-
-        self.id_to_new_c_id = {}
-
-        for reg in self.ir_arch.arch.regs.all_regs_ids + PREFETCH_ID:
-            self.id_to_new_c_id[reg] = m2_expr.ExprId(
-                'mycpu->%s_new' % reg, reg.size)
 
         self.C_PC = self.id_to_c(self.PC)
 
@@ -146,14 +129,8 @@ class CGen(object):
     def patch_c_id(self, expr):
         return expr.replace_expr(self.id_to_c_id)
 
-    def patch_c_new_id(self, expr):
-        return expr.replace_expr(self.id_to_new_c_id)
-
     def id_to_c(self, expr):
         return translator.from_expr(self.patch_c_id(expr))
-
-    def id_to_cnew(self, expr):
-        return translator.from_expr(self.patch_c_new_id(expr))
 
     def get_post_instr_label(self, offset):
         return self.ir_arch.symbol_pool.getby_name_create("lbl_gen_post_instr_%.8X" % (offset))
@@ -197,25 +174,44 @@ class CGen(object):
         assignblk.C_prefetch = out
         return out
 
+    def add_local_var(self, dst_var, dst_index, expr):
+        size = expr.size
+        if size < 8:
+            size = 8
+        if size not in dst_index:
+            raise RuntimeError("Unsupported operand size %s", size)
+        var_num = dst_index[size]
+        dst = m2_expr.ExprId("var_%.2d_%.2d" % (size, var_num), size)
+        dst_index[size] += 1
+        dst_var[expr] = dst
+        return dst
+
     def gen_assignments(self, assignblk, prefetchers):
+        out_var = []
         out_main = []
         out_mem = []
         out_updt = []
-        id_to_update = set()
+
+        dst_index = {8: 0, 16: 0, 32: 0, 64: 0}
+        dst_var = {}
+
+        for var in prefetchers.itervalues():
+            out_var.append("uint%d_t %s;" % (var.size, var))
 
         for dst, src in sorted(assignblk.iteritems()):
             src = src.replace_expr(prefetchers)
             if dst is self.ir_arch.IRDst:
                 pass
             elif isinstance(dst, m2_expr.ExprId):
-                id_to_update.add(dst)
-                str_dst = self.id_to_cnew(dst)
+                new_dst = self.add_local_var(dst_var, dst_index, dst)
                 if dst in self.ir_arch.arch.regs.regs_flt_expr:
                     # Dont mask float affectation
-                    out_main.append('%s = (%s);' % (str_dst, self.id_to_c(src)))
+                    out_main.append(
+                        '%s = (%s);' % (self.id_to_c(new_dst), self.id_to_c(src)))
                 else:
                     out_main.append(
-                        '%s = (%s)&0x%X;' % (str_dst, self.id_to_c(src),
+                        '%s = (%s)&0x%X;' % (self.id_to_c(new_dst),
+                                             self.id_to_c(src),
                                              SIZE_TO_MASK[src.size]))
             elif isinstance(dst, m2_expr.ExprMem):
                 ptr = dst.arg.replace_expr(prefetchers)
@@ -228,15 +224,19 @@ class CGen(object):
         for dst, new_dst in dst_var.iteritems():
             if dst is self.ir_arch.IRDst:
                 continue
-            out_updt.append('%s = %s;' % (self.id_to_c(expr), self.id_to_cnew(expr)))
+            out_updt.append('%s = %s;' % (self.id_to_c(dst), self.id_to_c(new_dst)))
+            out_var.append("uint%d_t %s;" % (new_dst.size, new_dst))
 
+        assignblk.C_var = out_var
         assignblk.C_main = out_main
         assignblk.C_mem = out_mem
         assignblk.C_updt = out_updt
 
     def gen_c_assignblk(self, assignblk):
         mem_read, mem_write = False, False
-        local_prefetch = {}
+
+        mem_index = {8: 0, 16: 0, 32: 0, 64: 0}
+        mem_var = {}
         prefetch_index = {8: 0, 16: 0, 32: 0, 64: 0}
 
         # Prefetch memory read
@@ -244,9 +244,11 @@ class CGen(object):
             if not isinstance(expr, m2_expr.ExprMem):
                 continue
             mem_read = True
-            index = prefetch_index[expr.size]
-            prefetch_index[expr.size] += 1
-            local_prefetch[expr] = PREFETCH_ID_SIZE[expr.size][index]
+            var_num = mem_index[expr.size]
+            mem_index[expr.size] += 1
+            var = m2_expr.ExprId(
+                "prefetch_%.2d_%.2d" % (expr.size, var_num), expr.size)
+            mem_var[expr] = var
 
         # Check if assignblk can write mem
         mem_write = any(isinstance(expr, m2_expr.ExprMem)
@@ -256,7 +258,7 @@ class CGen(object):
         assignblk.mem_read = mem_read
 
         # Generate memory prefetch
-        return local_prefetch
+        return mem_var
 
     def gen_check_memory_exception(self, address):
         dst = self.dst_to_c(address)
@@ -388,7 +390,9 @@ class CGen(object):
         @c_dst: irdst C code
         """
         out = []
-
+        out.append("{")
+        out.append("// var")
+        out += assignblk.C_var
         out.append("// Prefetch")
         out += assignblk.C_prefetch
         out.append("// Dst")
@@ -422,6 +426,8 @@ class CGen(object):
         # Check post assignblk exception flags
         if assignblk.set_exception:
             out += self.gen_check_cpu_exception(assignblk.instr_addr)
+
+        out.append("}")
 
         return out
 
