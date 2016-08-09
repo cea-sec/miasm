@@ -76,7 +76,7 @@ const uint8_t parity_table[256] = {
     0, CC_P, CC_P, 0, CC_P, 0, 0, CC_P,
 };
 
-//#define DEBUG_MIASM_AUTOMOD_CODE
+// #define DEBUG_MIASM_AUTOMOD_CODE
 
 
 
@@ -441,12 +441,12 @@ void add_range_to_pylist(PyObject* pylist, uint64_t addr1, uint64_t addr2)
 }
 
 
-void vm_mngr_add_mem_read(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t size)
+void add_mem_read(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t size)
 {
 	add_range_to_pylist(vm_mngr->memory_r, addr, addr + size);
 }
 
-void vm_mngr_add_mem_write(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t size)
+void add_mem_write(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t size)
 {
 	add_range_to_pylist(vm_mngr->memory_w, addr, addr + size);
 }
@@ -577,51 +577,51 @@ PyObject* addr2BlocObj(vm_mngr_t* vm_mngr, uint64_t addr)
 
 void vm_MEM_WRITE_08(vm_mngr_t* vm_mngr, uint64_t addr, unsigned char src)
 {
-	vm_mngr_add_mem_write(vm_mngr, addr, 1);
+	add_mem_write(vm_mngr, addr, 1);
 	memory_page_write(vm_mngr, 8, addr, src);
 }
 
 void vm_MEM_WRITE_16(vm_mngr_t* vm_mngr, uint64_t addr, unsigned short src)
 {
-	vm_mngr_add_mem_write(vm_mngr, addr, 2);
+	add_mem_write(vm_mngr, addr, 2);
 	memory_page_write(vm_mngr, 16, addr, src);
 }
 void vm_MEM_WRITE_32(vm_mngr_t* vm_mngr, uint64_t addr, unsigned int src)
 {
-	vm_mngr_add_mem_write(vm_mngr, addr, 4);
+	add_mem_write(vm_mngr, addr, 4);
 	memory_page_write(vm_mngr, 32, addr, src);
 }
 void vm_MEM_WRITE_64(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t src)
 {
-	vm_mngr_add_mem_write(vm_mngr, addr, 8);
+	add_mem_write(vm_mngr, addr, 8);
 	memory_page_write(vm_mngr, 64, addr, src);
 }
 
 unsigned char vm_MEM_LOOKUP_08(vm_mngr_t* vm_mngr, uint64_t addr)
 {
 	unsigned char ret;
-	vm_mngr_add_mem_read(vm_mngr, addr, 1);
+	add_mem_read(vm_mngr, addr, 1);
 	ret = memory_page_read(vm_mngr, 8, addr);
 	return ret;
 }
 unsigned short vm_MEM_LOOKUP_16(vm_mngr_t* vm_mngr, uint64_t addr)
 {
 	unsigned short ret;
-	vm_mngr_add_mem_read(vm_mngr, addr, 2);
+	add_mem_read(vm_mngr, addr, 2);
 	ret = memory_page_read(vm_mngr, 16, addr);
 	return ret;
 }
 unsigned int vm_MEM_LOOKUP_32(vm_mngr_t* vm_mngr, uint64_t addr)
 {
 	unsigned int ret;
-	vm_mngr_add_mem_read(vm_mngr, addr, 4);
+	add_mem_read(vm_mngr, addr, 4);
 	ret = memory_page_read(vm_mngr, 32, addr);
 	return ret;
 }
 uint64_t vm_MEM_LOOKUP_64(vm_mngr_t* vm_mngr, uint64_t addr)
 {
 	uint64_t ret;
-	vm_mngr_add_mem_read(vm_mngr, addr, 8);
+	add_mem_read(vm_mngr, addr, 8);
 	ret = memory_page_read(vm_mngr, 64, addr);
 	return ret;
 }

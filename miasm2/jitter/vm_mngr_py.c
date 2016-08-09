@@ -186,7 +186,7 @@ PyObject* vm_set_mem(VmMngr* self, PyObject* args)
        if (ret < 0)
 	      RAISE(PyExc_TypeError, "Error in set_mem");
 
-       vm_mngr_add_mem_write(&self->vm_mngr, addr, size);
+       add_mem_write(&self->vm_mngr, addr, size);
        check_invalid_code_blocs(&self->vm_mngr);
 
        Py_INCREF(Py_None);
@@ -326,9 +326,57 @@ PyObject* vm_reset_memory_access(VmMngr* self, PyObject* args)
     reset_memory_access(&self->vm_mngr);
     Py_INCREF(Py_None);
     return Py_None;
+}
+
+PyObject* py_add_mem_read(VmMngr* self, PyObject* args)
+{
+	PyObject *py_addr;
+	PyObject *py_size;
+	uint64_t addr;
+	uint64_t size;
+
+	if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_size))
+		return NULL;
+
+	PyGetInt(py_addr, addr);
+	PyGetInt(py_size, size);
+	add_mem_read(&self->vm_mngr, addr, size);
+	Py_INCREF(Py_None);
+	return Py_None;
 
 }
 
+PyObject* py_add_mem_write(VmMngr* self, PyObject* args)
+{
+	PyObject *py_addr;
+	PyObject *py_size;
+	uint64_t addr;
+	uint64_t size;
+
+	if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_size))
+		return NULL;
+
+	PyGetInt(py_addr, addr);
+	PyGetInt(py_size, size);
+	add_mem_write(&self->vm_mngr, addr, size);
+	Py_INCREF(Py_None);
+	return Py_None;
+
+}
+
+PyObject* vm_check_invalid_code_blocs(VmMngr* self, PyObject* args)
+{
+    check_invalid_code_blocs(&self->vm_mngr);
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+PyObject* vm_check_memory_breakpoint(VmMngr* self, PyObject* args)
+{
+    check_memory_breakpoint(&self->vm_mngr);
+    Py_INCREF(Py_None);
+    return Py_None;
+}
 
 PyObject *vm_dump(PyObject* self)
 {
@@ -593,6 +641,14 @@ static PyMethodDef VmMngr_methods[] = {
 	{"get_memory_write",(PyCFunction)vm_get_memory_write, METH_VARARGS,
 	 "X"},
 	{"reset_memory_access",(PyCFunction)vm_reset_memory_access, METH_VARARGS,
+	 "X"},
+	{"add_mem_read",(PyCFunction)py_add_mem_read, METH_VARARGS,
+	 "X"},
+	{"add_mem_write",(PyCFunction)py_add_mem_write, METH_VARARGS,
+	 "X"},
+	{"check_invalid_code_blocs",(PyCFunction)vm_check_invalid_code_blocs, METH_VARARGS,
+	 "X"},
+	{"check_memory_breakpoint",(PyCFunction)vm_check_memory_breakpoint, METH_VARARGS,
 	 "X"},
 
 	{NULL}  /* Sentinel */

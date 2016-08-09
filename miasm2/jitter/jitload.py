@@ -198,7 +198,7 @@ class jitter:
         self.ir_arch = ir_arch
         self.bs = bin_stream_vm(self.vm)
 
-        self.symbexec = EmulatedSymbExec(self.cpu, self.ir_arch, {})
+        self.symbexec = EmulatedSymbExec(self.cpu, self.vm, self.ir_arch, {})
         self.symbexec.reset_regs()
 
         try:
@@ -218,6 +218,8 @@ class jitter:
         self.jit = JitCore(self.ir_arch, self.bs)
         if jit_type in ['tcc', 'gcc']:
             self.jit.init_codegen(self.C_Gen(self.ir_arch))
+        elif jit_type == "python":
+            self.jit.set_cpu_vm(self.cpu, self.vm)
 
         self.cpu.init_regs()
         self.vm.init_memory_page_pool()
