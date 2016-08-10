@@ -2264,6 +2264,8 @@ def kernel32_GetDriveType(jitter, funcname, get_str):
     p = get_str(jitter, args.pathname)
     p = p.upper()
 
+    log.debug('Drive: %r', p)
+
     ret = 0
     if p[0] == "C":
         ret = 3
@@ -2368,10 +2370,10 @@ def kernel32_SetFilePointer(jitter):
 
     # data = None
     if args.hwnd in winobjs.files_hwnd:
-        winobjs.files_hwnd[winobjs.module_cur_hwnd].seek(args.distance)
+        winobjs.files_hwnd[winobjs.module_cur_hwnd].seek(args.distance, args.movemethod)
     elif args.hwnd in winobjs.handle_pool:
         wh = winobjs.handle_pool[args.hwnd]
-        data = wh.info.seek(args.distance)
+        wh.info.seek(args.distance, args.movemethod)
     else:
         raise ValueError('unknown filename')
     jitter.func_ret_stdcall(ret_ad, args.distance)
@@ -2396,10 +2398,10 @@ def kernel32_SetFilePointerEx(jitter):
 
     # data = None
     if args.hwnd in winobjs.files_hwnd:
-        winobjs.files_hwnd[winobjs.module_cur_hwnd].seek(distance)
+        winobjs.files_hwnd[winobjs.module_cur_hwnd].seek(distance, args.movemethod)
     elif args.hwnd in winobjs.handle_pool:
         wh = winobjs.handle_pool[args.hwnd]
-        # data = wh.info.seek(distance)
+        wh.info.seek(distance, args.movemethod)
     else:
         raise ValueError('unknown filename')
     jitter.func_ret_stdcall(ret_ad, 1)
