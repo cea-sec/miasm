@@ -7,9 +7,9 @@ from collections import Sequence, namedtuple, Iterator
 from miasm2.jitter.csts import *
 from miasm2.core.utils import *
 from miasm2.core.bin_stream import bin_stream_vm
-from miasm2.ir.ir2C import init_arch_C
 from miasm2.core.interval import interval
 from miasm2.jitter.emulatedsymbexec import EmulatedSymbExec
+from miasm2.jitter.codegen import CGen
 
 hnd = logging.StreamHandler()
 hnd.setFormatter(logging.Formatter("[%(levelname)s]: %(message)s"))
@@ -161,11 +161,14 @@ class jitter:
 
     "Main class for JIT handling"
 
+    C_Gen = CGen
+
     def __init__(self, ir_arch, jit_type="tcc"):
         """Init an instance of jitter.
         @ir_arch: ir instance for this architecture
         @jit_type: JiT backend to use. Available options are:
             - "tcc"
+            - "gcc"
             - "llvm"
             - "python"
         """
@@ -194,7 +197,6 @@ class jitter:
         self.cpu = jcore.JitCpu()
         self.ir_arch = ir_arch
         self.bs = bin_stream_vm(self.vm)
-        init_arch_C(self.arch)
 
         self.symbexec = EmulatedSymbExec(self.cpu, self.ir_arch, {})
         self.symbexec.reset_regs()
@@ -214,6 +216,8 @@ class jitter:
             raise RuntimeError('Unsupported jitter: %s' % jit_type)
 
         self.jit = JitCore(self.ir_arch, self.bs)
+        if jit_type in ['tcc', 'gcc']:
+            self.jit.init_codegen(self.C_Gen(self.ir_arch))
 
         self.cpu.init_regs()
         self.vm.init_memory_page_pool()

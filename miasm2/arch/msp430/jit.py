@@ -1,6 +1,7 @@
 from miasm2.jitter.jitload import jitter
 from miasm2.core import asmbloc
 from miasm2.core.utils import *
+from miasm2.arch.msp430.sem import ir_msp430
 
 import logging
 
@@ -13,11 +14,9 @@ log.setLevel(logging.CRITICAL)
 class jitter_msp430(jitter):
 
     def __init__(self, *args, **kwargs):
-        from miasm2.arch.msp430.sem import ir_msp430
         sp = asmbloc.asm_symbol_pool()
         jitter.__init__(self, ir_msp430(sp), *args, **kwargs)
         self.vm.set_little_endian()
-        self.ir_arch.jit_pc = self.ir_arch.arch.regs.PC
 
     def push_uint16_t(self, v):
         regs = self.cpu.get_gpreg()

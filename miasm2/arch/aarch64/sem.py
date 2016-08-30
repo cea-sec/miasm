@@ -793,7 +793,8 @@ class ir_aarch64l(ir):
                 dst = self.expr_fix_regs_for_mode(dst)
                 src = self.expr_fix_regs_for_mode(src)
                 assignblk[dst] = src
-        irbloc.dst = self.expr_fix_regs_for_mode(irbloc.dst)
+        if irbloc.dst is not None:
+            irbloc.dst = self.expr_fix_regs_for_mode(irbloc.dst)
 
     def mod_pc(self, instr, instr_ir, extra_ir):
         "Replace PC by the instruction's offset"

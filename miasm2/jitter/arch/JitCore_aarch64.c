@@ -386,7 +386,6 @@ PyObject* get_gpreg_offset_all(void)
     PyObject *o;
 
     get_reg_off(exception_flags);
-    get_reg_off(exception_flags_new);
 
     get_reg_off(X0);
     get_reg_off(X1);
@@ -422,141 +421,11 @@ PyObject* get_gpreg_offset_all(void)
     get_reg_off(SP);
     get_reg_off(PC);
 
-
-    get_reg_off(X0_new);
-    get_reg_off(X1_new);
-    get_reg_off(X2_new);
-    get_reg_off(X3_new);
-    get_reg_off(X4_new);
-    get_reg_off(X5_new);
-    get_reg_off(X6_new);
-    get_reg_off(X7_new);
-    get_reg_off(X8_new);
-    get_reg_off(X9_new);
-    get_reg_off(X10_new);
-    get_reg_off(X11_new);
-    get_reg_off(X12_new);
-    get_reg_off(X13_new);
-    get_reg_off(X14_new);
-    get_reg_off(X15_new);
-    get_reg_off(X16_new);
-    get_reg_off(X17_new);
-    get_reg_off(X18_new);
-    get_reg_off(X19_new);
-    get_reg_off(X20_new);
-    get_reg_off(X21_new);
-    get_reg_off(X22_new);
-    get_reg_off(X23_new);
-    get_reg_off(X24_new);
-    get_reg_off(X25_new);
-    get_reg_off(X26_new);
-    get_reg_off(X27_new);
-    get_reg_off(X28_new);
-    get_reg_off(X29_new);
-    get_reg_off(LR_new);
-    get_reg_off(SP_new);
-    get_reg_off(PC_new);
-
-
-
     /* eflag */
     get_reg_off(zf);
     get_reg_off(nf);
     get_reg_off(of);
     get_reg_off(cf);
-
-    get_reg_off(zf_new);
-    get_reg_off(nf_new);
-    get_reg_off(of_new);
-    get_reg_off(cf_new);
-
-
-    get_reg_off(pfmem08_0);
-    get_reg_off(pfmem08_1);
-    get_reg_off(pfmem08_2);
-    get_reg_off(pfmem08_3);
-    get_reg_off(pfmem08_4);
-    get_reg_off(pfmem08_5);
-    get_reg_off(pfmem08_6);
-    get_reg_off(pfmem08_7);
-    get_reg_off(pfmem08_8);
-    get_reg_off(pfmem08_9);
-    get_reg_off(pfmem08_10);
-    get_reg_off(pfmem08_11);
-    get_reg_off(pfmem08_12);
-    get_reg_off(pfmem08_13);
-    get_reg_off(pfmem08_14);
-    get_reg_off(pfmem08_15);
-    get_reg_off(pfmem08_16);
-    get_reg_off(pfmem08_17);
-    get_reg_off(pfmem08_18);
-    get_reg_off(pfmem08_19);
-
-
-    get_reg_off(pfmem16_0);
-    get_reg_off(pfmem16_1);
-    get_reg_off(pfmem16_2);
-    get_reg_off(pfmem16_3);
-    get_reg_off(pfmem16_4);
-    get_reg_off(pfmem16_5);
-    get_reg_off(pfmem16_6);
-    get_reg_off(pfmem16_7);
-    get_reg_off(pfmem16_8);
-    get_reg_off(pfmem16_9);
-    get_reg_off(pfmem16_10);
-    get_reg_off(pfmem16_11);
-    get_reg_off(pfmem16_12);
-    get_reg_off(pfmem16_13);
-    get_reg_off(pfmem16_14);
-    get_reg_off(pfmem16_15);
-    get_reg_off(pfmem16_16);
-    get_reg_off(pfmem16_17);
-    get_reg_off(pfmem16_18);
-    get_reg_off(pfmem16_19);
-
-
-    get_reg_off(pfmem32_0);
-    get_reg_off(pfmem32_1);
-    get_reg_off(pfmem32_2);
-    get_reg_off(pfmem32_3);
-    get_reg_off(pfmem32_4);
-    get_reg_off(pfmem32_5);
-    get_reg_off(pfmem32_6);
-    get_reg_off(pfmem32_7);
-    get_reg_off(pfmem32_8);
-    get_reg_off(pfmem32_9);
-    get_reg_off(pfmem32_10);
-    get_reg_off(pfmem32_11);
-    get_reg_off(pfmem32_12);
-    get_reg_off(pfmem32_13);
-    get_reg_off(pfmem32_14);
-    get_reg_off(pfmem32_15);
-    get_reg_off(pfmem32_16);
-    get_reg_off(pfmem32_17);
-    get_reg_off(pfmem32_18);
-    get_reg_off(pfmem32_19);
-
-
-    get_reg_off(pfmem64_0);
-    get_reg_off(pfmem64_1);
-    get_reg_off(pfmem64_2);
-    get_reg_off(pfmem64_3);
-    get_reg_off(pfmem64_4);
-    get_reg_off(pfmem64_5);
-    get_reg_off(pfmem64_6);
-    get_reg_off(pfmem64_7);
-    get_reg_off(pfmem64_8);
-    get_reg_off(pfmem64_9);
-    get_reg_off(pfmem64_10);
-    get_reg_off(pfmem64_11);
-    get_reg_off(pfmem64_12);
-    get_reg_off(pfmem64_13);
-    get_reg_off(pfmem64_14);
-    get_reg_off(pfmem64_15);
-    get_reg_off(pfmem64_16);
-    get_reg_off(pfmem64_17);
-    get_reg_off(pfmem64_18);
-    get_reg_off(pfmem64_19);
 
     return dict;
 }

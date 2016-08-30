@@ -7,7 +7,6 @@ from subprocess import Popen, PIPE
 from hashlib import md5
 import tempfile
 
-from miasm2.ir.ir2C import irblocs2C
 from miasm2.jitter import jitcore, Jittcc
 
 
@@ -141,6 +140,13 @@ class JitCore_Tcc(jitcore.JitCore):
         include_files = ";".join(include_files)
         Jittcc.tcc_set_emul_lib_path(include_files, libs)
 
+    def init_codegen(self, codegen):
+        """
+        Get the code generator @codegen
+        @codegen: an CGen instance
+        """
+        self.codegen = codegen
+
     def __del__(self):
         for tcc_state in self.tcc_states.values():
             Jittcc.tcc_end(tcc_state)
@@ -164,7 +170,7 @@ class JitCore_Tcc(jitcore.JitCore):
         self.lbl2jitbloc[label.offset] = mcode
         self.tcc_states[label.offset] = tcc_state
 
-    def gen_c_code(self, label, irblocks):
+    def gen_c_code(self, label, block):
         """
         Return the C code corresponding to the @irblocks
         @label: asm_label of the block to jit
@@ -172,10 +178,7 @@ class JitCore_Tcc(jitcore.JitCore):
         """
         f_name = self.label2fname(label)
         f_declaration = 'int %s(block_id * BlockDst, JitCpu* jitcpu)' % f_name
-        out = irblocs2C(self.ir_arch, self.resolver, label, irblocks,
-                        gen_exception_code=True,
-                        log_mn=self.log_mn,
-                        log_regs=self.log_regs)
+        out = self.codegen.gen_c(block, log_mn=self.log_mn, log_regs=self.log_regs)
         out = [f_declaration + '{'] + out + ['}\n']
         c_code = out
 
@@ -194,9 +197,7 @@ class JitCore_Tcc(jitcore.JitCore):
         if os.access(fname_out, os.R_OK):
             func_code = open(fname_out).read()
         else:
-            irblocks = self.ir_arch.add_bloc(block, gen_pc_updt=True)
-            block.irblocs = irblocks
-            func_code = self.gen_c_code(block.label, irblocks)
+            func_code = self.gen_c_code(block.label, block)
 
             # Create unique C file
             fdesc, fname_tmp = tempfile.mkstemp(suffix=".c")

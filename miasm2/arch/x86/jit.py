@@ -4,6 +4,7 @@ from miasm2.jitter.jitload import jitter, named_arguments
 from miasm2.core import asmbloc
 from miasm2.core.utils import *
 from miasm2.arch.x86.sem import ir_x86_16, ir_x86_32, ir_x86_64
+from miasm2.jitter.codegen import CGen
 
 log = logging.getLogger('jit_x86')
 hnd = logging.StreamHandler()
@@ -11,13 +12,34 @@ hnd.setFormatter(logging.Formatter("[%(levelname)s]: %(message)s"))
 log.addHandler(hnd)
 log.setLevel(logging.CRITICAL)
 
+
+class x86_32_CGen(CGen):
+    def __init__(self, ir_arch):
+        self.ir_arch = ir_arch
+        self.PC = self.ir_arch.arch.regs.RIP
+        self.init_arch_C()
+
+    def gen_post_code(self, attrib):
+        out = []
+        if attrib.log_regs:
+            out.append('dump_gpregs_32(jitcpu->cpu);')
+        return out
+
+class x86_64_CGen(x86_32_CGen):
+    def gen_post_code(self, attrib):
+        out = []
+        if attrib.log_regs:
+            out.append('dump_gpregs_64(jitcpu->cpu);')
+        return out
+
 class jitter_x86_16(jitter):
+
+    C_Gen = x86_32_CGen
 
     def __init__(self, *args, **kwargs):
         sp = asmbloc.asm_symbol_pool()
         jitter.__init__(self, ir_x86_16(sp), *args, **kwargs)
         self.vm.set_little_endian()
-        self.ir_arch.jit_pc = self.ir_arch.arch.regs.RIP
         self.ir_arch.do_stk_segm = False
         self.orig_irbloc_fix_regs_for_mode = self.ir_arch.irbloc_fix_regs_for_mode
         self.ir_arch.irbloc_fix_regs_for_mode = self.ir_archbloc_fix_regs_for_mode
@@ -45,11 +67,12 @@ class jitter_x86_16(jitter):
 
 class jitter_x86_32(jitter):
 
+    C_Gen = x86_32_CGen
+
     def __init__(self, *args, **kwargs):
         sp = asmbloc.asm_symbol_pool()
         jitter.__init__(self, ir_x86_32(sp), *args, **kwargs)
         self.vm.set_little_endian()
-        self.ir_arch.jit_pc = self.ir_arch.arch.regs.RIP
         self.ir_arch.do_stk_segm = False
 
         self.orig_irbloc_fix_regs_for_mode = self.ir_arch.irbloc_fix_regs_for_mode
@@ -105,11 +128,12 @@ class jitter_x86_32(jitter):
 
 class jitter_x86_64(jitter):
 
+    C_Gen = x86_64_CGen
+
     def __init__(self, *args, **kwargs):
         sp = asmbloc.asm_symbol_pool()
         jitter.__init__(self, ir_x86_64(sp), *args, **kwargs)
         self.vm.set_little_endian()
-        self.ir_arch.jit_pc = self.ir_arch.arch.regs.RIP
         self.ir_arch.do_stk_segm = False
 
         self.orig_irbloc_fix_regs_for_mode = self.ir_arch.irbloc_fix_regs_for_mode

@@ -17,7 +17,6 @@ class jitter_arml(jitter):
         sp = asmbloc.asm_symbol_pool()
         jitter.__init__(self, ir_arml(sp), *args, **kwargs)
         self.vm.set_little_endian()
-        self.ir_arch.jit_pc = self.ir_arch.arch.regs.PC
 
     def push_uint32_t(self, v):
         self.cpu.SP -= 4
@@ -67,4 +66,3 @@ class jitter_armb(jitter_arml):
         sp = asmbloc.asm_symbol_pool()
         jitter.__init__(self, ir_armb(sp), *args, **kwargs)
         self.vm.set_big_endian()
-        self.ir_arch.jit_pc = self.ir_arch.arch.regs.PC

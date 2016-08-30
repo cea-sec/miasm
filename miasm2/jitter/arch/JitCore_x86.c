@@ -176,17 +176,46 @@ PyObject * cpu_init_regs(JitCpu* self)
 
 }
 
-void dump_gpregs(vm_cpu_t* vmcpu)
+void dump_gpregs_32(vm_cpu_t* vmcpu)
 {
 
-	printf("RAX %.16"PRIX64" RBX %.16"PRIX64" RCX %.16"PRIX64" RDX %.16"PRIX64"\n",
+	printf("EAX %.8"PRIX32" EBX %.8"PRIX32" ECX %.8"PRIX32" EDX %.8"PRIX32" ",
+	       (uint32_t)(vmcpu->RAX & 0xFFFFFFFF),
+	       (uint32_t)(vmcpu->RBX & 0xFFFFFFFF),
+	       (uint32_t)(vmcpu->RCX & 0xFFFFFFFF),
+	       (uint32_t)(vmcpu->RDX & 0xFFFFFFFF));
+	printf("ESI %.8"PRIX32" EDI %.8"PRIX32" ESP %.8"PRIX32" EBP %.8"PRIX32" ",
+	       (uint32_t)(vmcpu->RSI & 0xFFFFFFFF),
+	       (uint32_t)(vmcpu->RDI & 0xFFFFFFFF),
+	       (uint32_t)(vmcpu->RSP & 0xFFFFFFFF),
+	       (uint32_t)(vmcpu->RBP & 0xFFFFFFFF));
+	printf("EIP %.8"PRIX32" ",
+	       (uint32_t)(vmcpu->RIP & 0xFFFFFFFF));
+	printf("zf %.1"PRIX32" nf %.1"PRIX32" of %.1"PRIX32" cf %.1"PRIX32"\n",
+	       (uint32_t)(vmcpu->zf & 0x1),
+	       (uint32_t)(vmcpu->nf & 0x1),
+	       (uint32_t)(vmcpu->of & 0x1),
+	       (uint32_t)(vmcpu->cf & 0x1));
+
+}
+
+void dump_gpregs_64(vm_cpu_t* vmcpu)
+{
+
+	printf("RAX %.16"PRIX64" RBX %.16"PRIX64" RCX %.16"PRIX64" RDX %.16"PRIX64" ",
 	       vmcpu->RAX, vmcpu->RBX, vmcpu->RCX, vmcpu->RDX);
-	printf("RSI %.16"PRIX64" RDI %.16"PRIX64" RSP %.16"PRIX64" RBP %.16"PRIX64"\n",
+	printf("RSI %.16"PRIX64" RDI %.16"PRIX64" RSP %.16"PRIX64" RBP %.16"PRIX64" ",
 	       vmcpu->RSI, vmcpu->RDI, vmcpu->RSP, vmcpu->RBP);
-	printf("zf %.16"PRIX64" nf %.16"PRIX64" of %.16"PRIX64" cf %.16"PRIX64"\n",
-	       vmcpu->zf, vmcpu->nf, vmcpu->of, vmcpu->cf);
 	printf("RIP %.16"PRIX64"\n",
 	       vmcpu->RIP);
+	printf("R8  %.16"PRIX64" R9  %.16"PRIX64" R10 %.16"PRIX64" R11 %.16"PRIX64" ",
+	       vmcpu->R8, vmcpu->R9, vmcpu->R10, vmcpu->R11);
+	printf("R12 %.16"PRIX64" R13 %.16"PRIX64" R14 %.16"PRIX64" R15 %.16"PRIX64" ",
+	       vmcpu->R12, vmcpu->R13, vmcpu->R14, vmcpu->R15);
+
+
+	printf("zf %.1"PRIX64" nf %.1"PRIX64" of %.1"PRIX64" cf %.1"PRIX64"\n",
+	       vmcpu->zf, vmcpu->nf, vmcpu->of, vmcpu->cf);
 
 }
 
@@ -195,7 +224,7 @@ PyObject * cpu_dump_gpregs(JitCpu* self, PyObject* args)
 	vm_cpu_t* vmcpu;
 
 	vmcpu = self->cpu;
-	dump_gpregs(vmcpu);
+	dump_gpregs_64(vmcpu);
 	Py_INCREF(Py_None);
 	return Py_None;
 }
@@ -518,7 +547,6 @@ PyObject* get_gpreg_offset_all(void)
     PyObject *o;
 
     get_reg_off(exception_flags);
-    get_reg_off(exception_flags_new);
 
     get_reg_off(RAX);
     get_reg_off(RBX);
@@ -537,23 +565,6 @@ PyObject* get_gpreg_offset_all(void)
     get_reg_off(R14);
     get_reg_off(R15);
     get_reg_off(RIP);
-    get_reg_off(RAX_new);
-    get_reg_off(RBX_new);
-    get_reg_off(RCX_new);
-    get_reg_off(RDX_new);
-    get_reg_off(RSI_new);
-    get_reg_off(RDI_new);
-    get_reg_off(RSP_new);
-    get_reg_off(RBP_new);
-    get_reg_off(R8_new);
-    get_reg_off(R9_new);
-    get_reg_off(R10_new);
-    get_reg_off(R11_new);
-    get_reg_off(R12_new);
-    get_reg_off(R13_new);
-    get_reg_off(R14_new);
-    get_reg_off(R15_new);
-    get_reg_off(RIP_new);
     get_reg_off(zf);
     get_reg_off(nf);
     get_reg_off(pf);
@@ -561,13 +572,6 @@ PyObject* get_gpreg_offset_all(void)
     get_reg_off(cf);
     get_reg_off(af);
     get_reg_off(df);
-    get_reg_off(zf_new);
-    get_reg_off(nf_new);
-    get_reg_off(pf_new);
-    get_reg_off(of_new);
-    get_reg_off(cf_new);
-    get_reg_off(af_new);
-    get_reg_off(df_new);
     get_reg_off(tf);
     get_reg_off(i_f);
     get_reg_off(iopl_f);
@@ -578,16 +582,6 @@ PyObject* get_gpreg_offset_all(void)
     get_reg_off(vif);
     get_reg_off(vip);
     get_reg_off(i_d);
-    get_reg_off(tf_new);
-    get_reg_off(i_f_new);
-    get_reg_off(iopl_f_new);
-    get_reg_off(nt_new);
-    get_reg_off(rf_new);
-    get_reg_off(vm_new);
-    get_reg_off(ac_new);
-    get_reg_off(vif_new);
-    get_reg_off(vip_new);
-    get_reg_off(i_d_new);
     get_reg_off(my_tick);
     get_reg_off(cond);
 
@@ -599,14 +593,6 @@ PyObject* get_gpreg_offset_all(void)
     get_reg_off(float_st5);
     get_reg_off(float_st6);
     get_reg_off(float_st7);
-    get_reg_off(float_st0_new);
-    get_reg_off(float_st1_new);
-    get_reg_off(float_st2_new);
-    get_reg_off(float_st3_new);
-    get_reg_off(float_st4_new);
-    get_reg_off(float_st5_new);
-    get_reg_off(float_st6_new);
-    get_reg_off(float_st7_new);
 
     get_reg_off(ES);
     get_reg_off(CS);
@@ -614,93 +600,6 @@ PyObject* get_gpreg_offset_all(void)
     get_reg_off(DS);
     get_reg_off(FS);
     get_reg_off(GS);
-    get_reg_off(ES_new);
-    get_reg_off(CS_new);
-    get_reg_off(SS_new);
-    get_reg_off(DS_new);
-    get_reg_off(FS_new);
-    get_reg_off(GS_new);
-
-    get_reg_off(pfmem08_0);
-    get_reg_off(pfmem08_1);
-    get_reg_off(pfmem08_2);
-    get_reg_off(pfmem08_3);
-    get_reg_off(pfmem08_4);
-    get_reg_off(pfmem08_5);
-    get_reg_off(pfmem08_6);
-    get_reg_off(pfmem08_7);
-    get_reg_off(pfmem08_8);
-    get_reg_off(pfmem08_9);
-    get_reg_off(pfmem08_10);
-    get_reg_off(pfmem08_11);
-    get_reg_off(pfmem08_12);
-    get_reg_off(pfmem08_13);
-    get_reg_off(pfmem08_14);
-    get_reg_off(pfmem08_15);
-    get_reg_off(pfmem08_16);
-    get_reg_off(pfmem08_17);
-    get_reg_off(pfmem08_18);
-    get_reg_off(pfmem08_19);
-    get_reg_off(pfmem16_0);
-    get_reg_off(pfmem16_1);
-    get_reg_off(pfmem16_2);
-    get_reg_off(pfmem16_3);
-    get_reg_off(pfmem16_4);
-    get_reg_off(pfmem16_5);
-    get_reg_off(pfmem16_6);
-    get_reg_off(pfmem16_7);
-    get_reg_off(pfmem16_8);
-    get_reg_off(pfmem16_9);
-    get_reg_off(pfmem16_10);
-    get_reg_off(pfmem16_11);
-    get_reg_off(pfmem16_12);
-    get_reg_off(pfmem16_13);
-    get_reg_off(pfmem16_14);
-    get_reg_off(pfmem16_15);
-    get_reg_off(pfmem16_16);
-    get_reg_off(pfmem16_17);
-    get_reg_off(pfmem16_18);
-    get_reg_off(pfmem16_19);
-    get_reg_off(pfmem32_0);
-    get_reg_off(pfmem32_1);
-    get_reg_off(pfmem32_2);
-    get_reg_off(pfmem32_3);
-    get_reg_off(pfmem32_4);
-    get_reg_off(pfmem32_5);
-    get_reg_off(pfmem32_6);
-    get_reg_off(pfmem32_7);
-    get_reg_off(pfmem32_8);
-    get_reg_off(pfmem32_9);
-    get_reg_off(pfmem32_10);
-    get_reg_off(pfmem32_11);
-    get_reg_off(pfmem32_12);
-    get_reg_off(pfmem32_13);
-    get_reg_off(pfmem32_14);
-    get_reg_off(pfmem32_15);
-    get_reg_off(pfmem32_16);
-    get_reg_off(pfmem32_17);
-    get_reg_off(pfmem32_18);
-    get_reg_off(pfmem32_19);
-    get_reg_off(pfmem64_0);
-    get_reg_off(pfmem64_1);
-    get_reg_off(pfmem64_2);
-    get_reg_off(pfmem64_3);
-    get_reg_off(pfmem64_4);
-    get_reg_off(pfmem64_5);
-    get_reg_off(pfmem64_6);
-    get_reg_off(pfmem64_7);
-    get_reg_off(pfmem64_8);
-    get_reg_off(pfmem64_9);
-    get_reg_off(pfmem64_10);
-    get_reg_off(pfmem64_11);
-    get_reg_off(pfmem64_12);
-    get_reg_off(pfmem64_13);
-    get_reg_off(pfmem64_14);
-    get_reg_off(pfmem64_15);
-    get_reg_off(pfmem64_16);
-    get_reg_off(pfmem64_17);
-    get_reg_off(pfmem64_18);
-    get_reg_off(pfmem64_19);
 
     get_reg_off(MM0);
     get_reg_off(MM1);
@@ -710,19 +609,9 @@ PyObject* get_gpreg_offset_all(void)
     get_reg_off(MM5);
     get_reg_off(MM6);
     get_reg_off(MM7);
-    get_reg_off(MM0_new);
-    get_reg_off(MM1_new);
-    get_reg_off(MM2_new);
-    get_reg_off(MM3_new);
-    get_reg_off(MM4_new);
-    get_reg_off(MM5_new);
-    get_reg_off(MM6_new);
-    get_reg_off(MM7_new);
 
     get_reg_off(tsc1);
     get_reg_off(tsc2);
-    get_reg_off(tsc1_new);
-    get_reg_off(tsc2_new);
 
     return dict;
 }

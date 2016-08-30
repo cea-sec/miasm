@@ -95,6 +95,11 @@ class JitCore(object):
         if cur_bloc.lines:
             cur_bloc.ad_min = cur_bloc.lines[0].offset
             cur_bloc.ad_max = cur_bloc.lines[-1].offset + cur_bloc.lines[-1].l
+        else:
+            # 1 byte block for unknown mnemonic
+            cur_bloc.ad_min = cur_bloc.label.offset
+            cur_bloc.ad_max = cur_bloc.label.offset+1
+
 
     def add_bloc_to_mem_interval(self, vm, bloc):
         "Update vm to include bloc addresses in its memory range"
@@ -147,10 +152,6 @@ class JitCore(object):
         # Logging
         if self.log_newbloc:
             print cur_bloc
-
-        # Check for empty blocks
-        if not cur_bloc.lines:
-            raise ValueError("Cannot JIT a block without any assembly line")
 
         # Update label -> bloc
         self.lbl2bloc[cur_bloc.label] = cur_bloc
