@@ -322,42 +322,31 @@ IMOD(16)
 IMOD(32)
 IMOD(64)
 
-
-
-
 void check_automod(JitCpu* jitcpu, uint64_t addr, uint64_t size)
 {
-	PyObject *result;
-
 	if (!(((VmMngr*)jitcpu->pyvm)->vm_mngr.exception_flags & EXCEPT_CODE_AUTOMOD))
 		return;
-	result = PyObject_CallMethod(jitcpu->jitter, "automod_cb", "LL", addr, size);
-	Py_DECREF(result);
-
+	code_bloc_add_write(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr, size/8);
 }
 
 void MEM_WRITE_08(JitCpu* jitcpu, uint64_t addr, uint8_t src)
 {
 	vm_MEM_WRITE_08(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr, src);
-	check_automod(jitcpu, addr, 8);
 }
 
 void MEM_WRITE_16(JitCpu* jitcpu, uint64_t addr, uint16_t src)
 {
 	vm_MEM_WRITE_16(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr, src);
-	check_automod(jitcpu, addr, 16);
 }
 
 void MEM_WRITE_32(JitCpu* jitcpu, uint64_t addr, uint32_t src)
 {
 	vm_MEM_WRITE_32(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr, src);
-	check_automod(jitcpu, addr, 32);
 }
 
 void MEM_WRITE_64(JitCpu* jitcpu, uint64_t addr, uint64_t src)
 {
 	vm_MEM_WRITE_64(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr, src);
-	check_automod(jitcpu, addr, 64);
 }
 
 

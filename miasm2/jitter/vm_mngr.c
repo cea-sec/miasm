@@ -393,9 +393,57 @@ void dump_code_bloc(vm_mngr_t* vm_mngr)
 
 }
 
+void code_bloc_add_write(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t size)
+{
+	PyObject* range;
+	PyObject* element;
+	int list_size;
+	uint64_t addr_start, addr_stop;
+
+	list_size = PyList_Size(vm_mngr->code_bloc_memory_w);
+
+	if (list_size > 0) {
+		/* check match on upper bound */
+		 element = PyList_GetItem(vm_mngr->code_bloc_memory_w, list_size - 1);
+
+		 addr_start = (uint64_t)PyLong_AsUnsignedLongLong(PyTuple_GetItem(element, 0));
+		 addr_stop = (uint64_t)PyLong_AsUnsignedLongLong(PyTuple_GetItem(element, 1));
+
+		 if (addr_stop == addr) {
+			 range = PyTuple_New(2);
+			 PyTuple_SetItem(range, 0, PyLong_FromUnsignedLongLong((uint64_t)addr_start));
+			 PyTuple_SetItem(range, 1, PyLong_FromUnsignedLongLong((uint64_t)addr+size));
+			 PyList_SetItem(vm_mngr->code_bloc_memory_w, list_size - 1, range);
+			 return;
+
+		 }
+
+		/* check match on lower bound */
+		 element = PyList_GetItem(vm_mngr->code_bloc_memory_w, 0);
+		 addr_start = (uint64_t)PyLong_AsUnsignedLongLong(PyTuple_GetItem(element, 0));
+
+		 if (addr_start == addr + size) {
+			 range = PyTuple_New(2);
+			 PyTuple_SetItem(range, 0, PyLong_FromUnsignedLongLong((uint64_t)addr));
+			 PyTuple_SetItem(range, 1, PyLong_FromUnsignedLongLong((uint64_t)addr_start));
+			 PyList_SetItem(vm_mngr->code_bloc_memory_w, 0, range);
+			 return;
+		 }
+
+	}
+	range = PyTuple_New(2);
+	PyTuple_SetItem(range, 0, PyLong_FromUnsignedLongLong((uint64_t)addr));
+	PyTuple_SetItem(range, 1, PyLong_FromUnsignedLongLong((uint64_t)addr+size));
+
+	PyList_Append(vm_mngr->code_bloc_memory_w, range);
+}
+
 void check_write_code_bloc(vm_mngr_t* vm_mngr, uint64_t my_size, uint64_t addr)
 {
 	struct code_bloc_node * cbp;
+
+	if (vm_mngr->exception_flags & EXCEPT_CODE_AUTOMOD)
+		return;
 
 	if (!(addr + my_size/8 <= vm_mngr->code_bloc_pool_ad_min ||
 	      addr >=vm_mngr->code_bloc_pool_ad_max)){
@@ -404,16 +452,38 @@ void check_write_code_bloc(vm_mngr_t* vm_mngr, uint64_t my_size, uint64_t addr)
 			    (addr < cbp->ad_stop)){
 #ifdef DEBUG_MIASM_AUTOMOD_CODE
 				fprintf(stderr, "**********************************\n");
-				fprintf(stderr, "self modifying code %"PRIX64" %.8X\n",
+				fprintf(stderr, "self modifying code %"PRIX64" %"PRIX64"\n",
 				       addr, my_size);
 				fprintf(stderr, "**********************************\n");
 #endif
 				vm_mngr->exception_flags |= EXCEPT_CODE_AUTOMOD;
-
 				break;
 			}
 		}
 	}
+}
+
+void reset_code_bloc_write(vm_mngr_t* vm_mngr)
+{
+	int i;
+	int list_size;
+	PyObject* element;
+
+	list_size = PyList_Size(vm_mngr->code_bloc_memory_w);
+
+	for (i=0;i<list_size; i++) {
+		element = PyList_GetItem(vm_mngr->code_bloc_memory_w, i);
+		Py_DECREF(element);
+	}
+
+	Py_DECREF(vm_mngr->code_bloc_memory_w);
+	vm_mngr->code_bloc_memory_w = PyList_New(0);
+
+}
+
+PyObject* get_code_bloc_write(vm_mngr_t* vm_mngr)
+{
+	return vm_mngr->code_bloc_memory_w;
 }
 
 PyObject* addr2BlocObj(vm_mngr_t* vm_mngr, uint64_t addr)
@@ -436,22 +506,26 @@ PyObject* addr2BlocObj(vm_mngr_t* vm_mngr, uint64_t addr)
 void vm_MEM_WRITE_08(vm_mngr_t* vm_mngr, uint64_t addr, unsigned char src)
 {
 	check_write_code_bloc(vm_mngr, 8, addr);
+	code_bloc_add_write(vm_mngr, addr, 1);
 	memory_page_write(vm_mngr, 8, addr, src);
 }
 
 void vm_MEM_WRITE_16(vm_mngr_t* vm_mngr, uint64_t addr, unsigned short src)
 {
 	check_write_code_bloc(vm_mngr, 16, addr);
+	code_bloc_add_write(vm_mngr, addr, 2);
 	memory_page_write(vm_mngr, 16, addr, src);
 }
 void vm_MEM_WRITE_32(vm_mngr_t* vm_mngr, uint64_t addr, unsigned int src)
 {
 	check_write_code_bloc(vm_mngr, 32, addr);
+	code_bloc_add_write(vm_mngr, addr, 4);
 	memory_page_write(vm_mngr, 32, addr, src);
 }
 void vm_MEM_WRITE_64(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t src)
 {
 	check_write_code_bloc(vm_mngr, 64, addr);
+	code_bloc_add_write(vm_mngr, addr, 8);
 	memory_page_write(vm_mngr, 64, addr, src);
 }
 
@@ -1390,6 +1464,9 @@ void init_code_bloc_pool(vm_mngr_t* vm_mngr)
 	LIST_INIT(&vm_mngr->code_bloc_pool);
 	vm_mngr->code_bloc_pool_ad_min = 0xffffffff;
 	vm_mngr->code_bloc_pool_ad_max = 0;
+
+	vm_mngr->code_bloc_memory_w = PyList_New(0);
+
 }
 
 void init_memory_breakpoint(vm_mngr_t* vm_mngr)

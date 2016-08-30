@@ -460,6 +460,25 @@ PyObject* vm_is_mapped(VmMngr* self, PyObject* args)
 	return PyLong_FromUnsignedLongLong((uint64_t)ret);
 }
 
+PyObject* vm_reset_code_bloc_write(VmMngr* self, PyObject* args)
+{
+	reset_code_bloc_write(&self->vm_mngr);
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
+PyObject* vm_get_code_bloc_write(VmMngr* self, PyObject* args)
+{
+	PyObject* result;
+
+	result = get_code_bloc_write(&self->vm_mngr);
+	Py_INCREF(result);
+
+	return result;
+}
+
+
+
 
 static PyObject *
 vm_set_big_endian(VmMngr *self, PyObject *value, void *closure)
@@ -529,6 +548,8 @@ static PyMethodDef VmMngr_methods[] = {
 	 "X"},
 	{"is_mapped", (PyCFunction)vm_is_mapped, METH_VARARGS,
 	 "X"},
+	{"reset_code_bloc_write", (PyCFunction)vm_reset_code_bloc_write, METH_VARARGS,
+	 "X"},
 	{"add_code_bloc",(PyCFunction)vm_add_code_bloc, METH_VARARGS,
 	 "X"},
 	{"get_mem", (PyCFunction)vm_get_mem, METH_VARARGS,
@@ -551,13 +572,14 @@ static PyMethodDef VmMngr_methods[] = {
 	 "X"},
 	{"reset_code_bloc_pool", (PyCFunction)vm_reset_code_bloc_pool, METH_VARARGS,
 	 "X"},
+	{"get_code_bloc_write", (PyCFunction)vm_get_code_bloc_write, METH_VARARGS,
+	 "X"},
 	{"set_alarm", (PyCFunction)set_alarm, METH_VARARGS,
 	 "X"},
 	{"get_exception",(PyCFunction)vm_get_exception, METH_VARARGS,
 	 "X"},
 	{"get_exception",(PyCFunction)vm_get_exception, METH_VARARGS,
 	 "X"},
-
 	{"set_big_endian",(PyCFunction)vm_set_big_endian, METH_VARARGS,
 	 "X"},
 	{"set_little_endian",(PyCFunction)vm_set_little_endian, METH_VARARGS,

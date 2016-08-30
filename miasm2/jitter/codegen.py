@@ -331,6 +331,9 @@ class CGen(object):
         if attrib.set_exception or attrib.op_set_exception:
             out += (self.CODE_CPU_EXCEPTION_POST_INSTR % (self.C_PC, dst)).split('\n')
 
+        if attrib.mem_read | attrib.mem_write:
+            out.append("reset_code_bloc_write(&((VmMngr*)jitcpu->pyvm)->vm_mngr);")
+
         return out
 
     def gen_pre_code(self, attrib):
