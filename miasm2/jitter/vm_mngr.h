@@ -73,7 +73,16 @@ struct memory_page_node {
 	char* name;
 };
 
+struct memory_access {
+	uint64_t start;
+	uint64_t stop;
+};
 
+struct memory_access_list {
+	struct memory_access *array;
+	uint64_t allocated;
+	uint64_t num;
+};
 
 typedef struct {
 	int sex;
@@ -92,9 +101,11 @@ typedef struct {
 	PyObject *addr2obj;
 
 
+	struct memory_access_list memory_r;
+	struct memory_access_list memory_w;
 
-	PyObject* code_bloc_memory_w;
 
+	int write_num;
 
 }vm_mngr_t;
 
@@ -266,6 +277,11 @@ unsigned int rcr_rez_op(unsigned int size, unsigned int a, unsigned int b, unsig
 	    }
 
 
+void memory_access_list_init(struct memory_access_list * access);
+void memory_access_list_reset(struct memory_access_list * access);
+void memory_access_list_add(struct memory_access_list * access, uint64_t start, uint64_t stop);
+
+
 void hexdump(char* m, unsigned int l);
 
 struct code_bloc_node * create_code_bloc_node(uint64_t ad_start, uint64_t ad_stop);
@@ -287,10 +303,13 @@ void remove_memory_breakpoint(vm_mngr_t* vm_mngr, uint64_t ad, unsigned int acce
 
 void add_memory_page(vm_mngr_t* vm_mngr, struct memory_page_node* mpn);
 
-void check_write_code_bloc(vm_mngr_t* vm_mngr, uint64_t my_size, uint64_t addr);
-void code_bloc_add_write(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t size);
-void reset_code_bloc_write(vm_mngr_t* vm_mngr);
-PyObject* get_code_bloc_write(vm_mngr_t* vm_mngr);
+void add_mem_read(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t size);
+void add_mem_write(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t size);
+void check_invalid_code_blocs(vm_mngr_t* vm_mngr);
+void check_memory_breakpoint(vm_mngr_t* vm_mngr);
+void reset_memory_access(vm_mngr_t* vm_mngr);
+PyObject* get_memory_read(vm_mngr_t* vm_mngr);
+PyObject* get_memory_write(vm_mngr_t* vm_mngr);
 
 
 char* dump(vm_mngr_t* vm_mngr);

@@ -198,7 +198,7 @@ class jitter:
         self.ir_arch = ir_arch
         self.bs = bin_stream_vm(self.vm)
 
-        self.symbexec = EmulatedSymbExec(self.cpu, self.ir_arch, {})
+        self.symbexec = EmulatedSymbExec(self.cpu, self.vm, self.ir_arch, {})
         self.symbexec.reset_regs()
 
         try:
@@ -218,6 +218,8 @@ class jitter:
         self.jit = JitCore(self.ir_arch, self.bs)
         if jit_type in ['tcc', 'gcc']:
             self.jit.init_codegen(self.C_Gen(self.ir_arch))
+        elif jit_type == "python":
+            self.jit.set_cpu_vm(self.cpu, self.vm)
 
         self.cpu.init_regs()
         self.vm.init_memory_page_pool()
@@ -265,8 +267,7 @@ class jitter:
         self.breakpoints_handler.add_callback(addr, callback)
         self.jit.add_disassembly_splits(addr)
         # De-jit previously jitted blocks
-        self.jit.addr_mod = interval([(addr, addr)])
-        self.jit.updt_automod_code(self.vm)
+        self.jit.updt_automod_code_range(self.vm, [(addr, addr)])
 
     def set_breakpoint(self, addr, *args):
         """Set callbacks associated with addr.

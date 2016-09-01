@@ -398,6 +398,8 @@ test_mips32l = ExampleShellcode(["mips32l", "mips32.S", "mips32_sc_l.bin"])
 test_x86_64 = ExampleShellcode(["x86_64", "x86_64.S", "demo_x86_64.bin",
                                 "--PE"])
 test_x86_32_if_reg = ExampleShellcode(['x86_32', 'x86_32_if_reg.S', "x86_32_if_reg.bin"])
+test_x86_32_seh = ExampleShellcode(["x86_32", "x86_32_seh.S", "x86_32_seh.bin",
+                                    "--PE"])
 
 testset += test_armb
 testset += test_arml
@@ -412,6 +414,7 @@ testset += test_mips32b
 testset += test_mips32l
 testset += test_x86_64
 testset += test_x86_32_if_reg
+testset += test_x86_32_seh
 
 class ExampleDisassembler(Example):
     """Disassembler examples specificities:
@@ -553,6 +556,14 @@ class ExampleJitter(Example):
     jitter_engines = ["tcc", "llvm", "python", "gcc"]
 
 
+class ExampleJitterNoPython(ExampleJitter):
+    """Jitter examples specificities:
+    - script path begins with "jitter/"
+    Run jitting script without python support
+    """
+    jitter_engines = ["tcc", "llvm", "gcc"]
+
+
 for jitter in ExampleJitter.jitter_engines:
     # Take 5 min on a Core i5
     tags = {"python": [TAGS["long"]],
@@ -586,6 +597,13 @@ for script, dep in [(["x86_32.py", Example.get_sample("x86_32_sc.bin")], []),
         tags = [TAGS[jitter]] if jitter in TAGS else []
         testset += ExampleJitter(script + ["--jitter", jitter], depends=dep,
                                  tags=tags)
+
+
+for jitter in ExampleJitterNoPython.jitter_engines:
+    tags = [TAGS[jitter]] if jitter in TAGS else []
+    testset += ExampleJitterNoPython(["test_x86_32_seh.py", Example.get_sample("x86_32_seh.bin")] + ["--jitter", jitter],
+                                     depends=[test_x86_32_seh],
+                                     tags=tags)
 
 testset += ExampleJitter(["example_types.py"])
 

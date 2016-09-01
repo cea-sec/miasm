@@ -26,7 +26,7 @@ PyObject * JitCpu_get_vmmngr(JitCpu *self, void *closure)
 {
 	if (self->pyvm) {
 		Py_INCREF(self->pyvm);
-		return self->pyvm;
+		return (PyObject*)self->pyvm;
 	}
 	Py_INCREF(Py_None);
 	return Py_None;
@@ -34,7 +34,7 @@ PyObject * JitCpu_get_vmmngr(JitCpu *self, void *closure)
 
 PyObject * JitCpu_set_vmmngr(JitCpu *self, PyObject *value, void *closure)
 {
-	self->pyvm = value;
+	self->pyvm = (VmMngr*)value;
 	return 0;
 }
 
@@ -56,22 +56,22 @@ PyObject * JitCpu_set_jitter(JitCpu *self, PyObject *value, void *closure)
 
 uint8_t __attribute__((weak)) MEM_LOOKUP_08(JitCpu* jitcpu, uint64_t addr)
 {
-	return vm_MEM_LOOKUP_08(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr);
+	return vm_MEM_LOOKUP_08(&(jitcpu->pyvm->vm_mngr), addr);
 }
 
 uint16_t __attribute__((weak)) MEM_LOOKUP_16(JitCpu* jitcpu, uint64_t addr)
 {
-	return vm_MEM_LOOKUP_16(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr);
+	return vm_MEM_LOOKUP_16(&(jitcpu->pyvm->vm_mngr), addr);
 }
 
 uint32_t __attribute__((weak)) MEM_LOOKUP_32(JitCpu* jitcpu, uint64_t addr)
 {
-	return vm_MEM_LOOKUP_32(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr);
+	return vm_MEM_LOOKUP_32(&(jitcpu->pyvm->vm_mngr), addr);
 }
 
 uint64_t __attribute__((weak)) MEM_LOOKUP_64(JitCpu* jitcpu, uint64_t addr)
 {
-	return vm_MEM_LOOKUP_64(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr);
+	return vm_MEM_LOOKUP_64(&(jitcpu->pyvm->vm_mngr), addr);
 }
 
 void __attribute__((weak)) MEM_WRITE_08(JitCpu* jitcpu, uint64_t addr, uint8_t src)

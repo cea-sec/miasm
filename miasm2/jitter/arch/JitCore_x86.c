@@ -1,11 +1,11 @@
 #include <Python.h>
-#include "../JitCore.h"
 #include "structmember.h"
 #include <stdint.h>
 #include <inttypes.h>
 #include "../queue.h"
 #include "../vm_mngr.h"
 #include "../vm_mngr_py.h"
+#include "../JitCore.h"
 #include "JitCore_x86.h"
 
 
@@ -322,13 +322,6 @@ IMOD(16)
 IMOD(32)
 IMOD(64)
 
-void check_automod(JitCpu* jitcpu, uint64_t addr, uint64_t size)
-{
-	if (!(((VmMngr*)jitcpu->pyvm)->vm_mngr.exception_flags & EXCEPT_CODE_AUTOMOD))
-		return;
-	code_bloc_add_write(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr, size/8);
-}
-
 void MEM_WRITE_08(JitCpu* jitcpu, uint64_t addr, uint8_t src)
 {
 	vm_MEM_WRITE_08(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr, src);
@@ -376,7 +369,6 @@ PyObject* vm_set_mem(JitCpu *self, PyObject* args)
        ret = vm_write_mem(&(((VmMngr*)self->pyvm)->vm_mngr), addr, buffer, size);
        if (ret < 0)
 	       RAISE(PyExc_TypeError,"arg must be str");
-       check_automod(self, addr, size*8);
 
        Py_INCREF(Py_None);
        return Py_None;

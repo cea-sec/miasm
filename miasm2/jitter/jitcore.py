@@ -51,8 +51,6 @@ class JitCore(object):
         self.blocs_mem_interval = interval()
         self.disasm_cb = None
         self.split_dis = set()
-        self.addr_mod = interval()
-
         self.options = {"jit_maxline": 50  # Maximum number of line jitted
                         }
 
@@ -261,12 +259,21 @@ class JitCore(object):
 
         return modified_blocs
 
-    def updt_automod_code(self, vm):
-        """Remove code jitted in range self.addr_mod
+    def updt_automod_code_range(self, vm, mem_range):
+        """Remove jitted code in range @mem_range
         @vm: VmMngr instance
+        @mem_range: list of start/stop addresses
         """
-        for addr_start, addr_stop in vm.get_code_bloc_write():
+        for addr_start, addr_stop in mem_range:
             self.del_bloc_in_range(addr_start, addr_stop)
         self.__updt_jitcode_mem_range(vm)
-        self.addr_mod = interval()
-        vm.reset_code_bloc_write()
+        vm.reset_memory_access()
+
+    def updt_automod_code(self, vm):
+        """Remove jitted code updated by memory write
+        @vm: VmMngr instance
+        """
+        mem_range = []
+        for addr_start, addr_stop in vm.get_memory_write():
+            mem_range.append((addr_start, addr_stop))
+        self.updt_automod_code_range(vm, mem_range)

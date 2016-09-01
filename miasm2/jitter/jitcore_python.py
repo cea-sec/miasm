@@ -17,9 +17,13 @@ class JitCore_Python(jitcore.JitCore):
         super(JitCore_Python, self).__init__(ir_arch, bs)
         self.ir_arch = ir_arch
 
-        # CPU (None for now) will be set by the "jitted" Python function
-        self.symbexec = EmulatedSymbExec(None, self.ir_arch, {})
+        # CPU & VM (None for now) will be set by the "jitted" Python function
+        self.symbexec = EmulatedSymbExec(None, None, self.ir_arch, {})
         self.symbexec.enable_emulated_simplifications()
+
+    def set_cpu_vm(self, cpu, vm):
+        self.symbexec.cpu = cpu
+        self.symbexec.vm = vm
 
     def load(self):
         "Preload symbols according to current architecture"
@@ -45,7 +49,6 @@ class JitCore_Python(jitcore.JitCore):
 
             # Get exec engine
             exec_engine = self.symbexec
-            exec_engine.cpu = cpu
 
             # For each irbloc inside irblocs
             while True:
@@ -66,12 +69,19 @@ class JitCore_Python(jitcore.JitCore):
 
                     # For each new instruction (in assembly)
                     if line.offset not in offsets_jitted:
+                        # Test exceptions
+                        vmmngr.check_invalid_code_blocs()
+                        vmmngr.check_memory_breakpoint()
+                        if vmmngr.get_exception():
+                            exec_engine.update_cpu_from_engine()
+                            return line.offset
+
                         offsets_jitted.add(line.offset)
 
                         # Log registers values
                         if self.log_regs:
                             exec_engine.update_cpu_from_engine()
-                            cpu.dump_gpregs()
+                            exec_engine.cpu.dump_gpregs()
 
                         # Log instruction
                         if self.log_mn:
@@ -89,6 +99,9 @@ class JitCore_Python(jitcore.JitCore):
                     if (vmmngr.get_exception() & csts.EXCEPT_DO_NOT_UPDATE_PC != 0):
                         exec_engine.update_cpu_from_engine()
                         return line.offset
+
+                vmmngr.check_invalid_code_blocs()
+                vmmngr.check_memory_breakpoint()
 
                 # Get next bloc address
                 ad = expr_simp(exec_engine.eval_expr(self.ir_arch.IRDst))

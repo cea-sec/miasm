@@ -5,13 +5,14 @@ from miasm2.ir.symbexec import symbexec
 class EmulatedSymbExec(symbexec):
     """Symbolic exec instance linked with a jitter"""
 
-    def __init__(self, cpu, *args, **kwargs):
+    def __init__(self, cpu, vm, *args, **kwargs):
         """Instanciate an EmulatedSymbExec, associated to CPU @cpu and bind
         memory accesses.
         @cpu: JitCpu instance
         """
         super(EmulatedSymbExec, self).__init__(*args, **kwargs)
         self.cpu = cpu
+        self.vm = vm
         self.func_read = self._func_read
         self.func_write = self._func_write
 
@@ -28,6 +29,7 @@ class EmulatedSymbExec(symbexec):
         addr = expr_mem.arg.arg.arg
         size = expr_mem.size / 8
         value = self.cpu.get_mem(addr, size)
+        self.vm.add_mem_read(addr, size)
 
         return m2_expr.ExprInt(int(value[::-1].encode("hex"), 16),
                                expr_mem.size)
@@ -53,6 +55,7 @@ class EmulatedSymbExec(symbexec):
 
         # Write in VmMngr context
         self.cpu.set_mem(addr, content)
+        self.vm.add_mem_write(addr, len(content))
 
     # Interaction symbexec <-> jitter
     def update_cpu_from_engine(self):
