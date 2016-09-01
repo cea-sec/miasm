@@ -118,7 +118,6 @@ R12B = regs08_expr[12]
 R13B = regs08_expr[13]
 R14B = regs08_expr[14]
 R15B = regs08_expr[15]
-R15B = regs08_expr[15]
 
 SPL = regs08_64_expr[4]
 BPL = regs08_64_expr[5]
@@ -372,7 +371,7 @@ RBP_init = ExprId('RBP_init', 64)
 
 all_regs_ids = [
     AL, CL, DL, BL, AH, CH, DH, BH,
-    R8B, R9B, R10B, R11B, R12B, R13B, R14B, R15B, R15B,
+    R8B, R9B, R10B, R11B, R12B, R13B, R14B, R15B,
     SPL, BPL, SIL, DIL,
     AX, CX, DX, BX, SP, BP, SI, DI,
     R8W, R9W, R10W, R11W, R12W, R13W, R14W, R15W,
@@ -382,7 +381,7 @@ all_regs_ids = [
     EIP,
 
     RAX, RBX, RCX, RDX, RSP, RBP, RIP, RSI, RDI,
-    R8, R9, R10, R11, R12, R13, R14, R15, R15,
+    R8, R9, R10, R11, R12, R13, R14, R15,
     zf, nf, pf, of, cf, af, df,
     tf, i_f, iopl, nt, rf, vm, ac, vif, vip, i_d,
     float_control, float_eip, float_cs, float_address, float_ds,
@@ -405,7 +404,7 @@ all_regs_ids = [
 
 all_regs_ids_no_alias = [
     RAX, RBX, RCX, RDX, RSP, RBP, RIP, RSI, RDI,
-    R8, R9, R10, R11, R12, R13, R14, R15, R15,
+    R8, R9, R10, R11, R12, R13, R14, R15,
     zf, nf, pf, of, cf, af, df,
     tf, i_f, iopl, nt, rf, vm, ac, vif, vip, i_d,
     float_control, float_eip, float_cs, float_address, float_ds,
