@@ -48,12 +48,15 @@ testset += RegressionTest(["x86/arch.py"], base_dir="arch",
 class ArchUnitTest(RegressionTest):
     """Test against arch unit regression tests"""
 
-    jitter_engines = ["tcc", "llvm", "gcc"]
+    jitter_engines = ["tcc", "llvm", "gcc", "python"]
 
     def __init__(self, script, jitter ,*args, **kwargs):
         super(ArchUnitTest, self).__init__([script, jitter], *args, **kwargs)
 
-
+# script -> blacklisted jitter
+blacklist = {
+    "x86/unit/mn_float.py": ["python"],
+}
 for script in ["x86/sem.py",
                "x86/unit/mn_strings.py",
                "x86/unit/mn_float.py",
@@ -71,6 +74,7 @@ for script in ["x86/sem.py",
                "x86/unit/mn_pextr.py",
                "x86/unit/mn_pmovmskb.py",
                "x86/unit/mn_pushpop.py",
+               "x86/unit/mn_seh.py",
                "arm/arch.py",
                "arm/sem.py",
                "aarch64/unit/mn_ubfm.py",
@@ -82,6 +86,8 @@ for script in ["x86/sem.py",
                "mips32/unit/mn_bcc.py",
                ]:
     for jitter in ArchUnitTest.jitter_engines:
+        if jitter in blacklist.get(script, []):
+            continue
         tags = [TAGS[jitter]] if jitter in TAGS else []
         testset += ArchUnitTest(script, jitter, base_dir="arch", tags=tags)
 

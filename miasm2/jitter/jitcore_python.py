@@ -1,7 +1,7 @@
 import miasm2.jitter.jitcore as jitcore
 import miasm2.expression.expression as m2_expr
 import miasm2.jitter.csts as csts
-from miasm2.expression.simplifications import expr_simp
+from miasm2.expression.simplifications import ExpressionSimplifier
 from miasm2.jitter.emulatedsymbexec import EmulatedSymbExec
 
 
@@ -17,8 +17,11 @@ class JitCore_Python(jitcore.JitCore):
         super(JitCore_Python, self).__init__(ir_arch, bs)
         self.ir_arch = ir_arch
 
-        # CPU & VM (None for now) will be set by the "jitted" Python function
-        self.symbexec = EmulatedSymbExec(None, None, self.ir_arch, {})
+        # CPU & VM (None for now) will be set later
+        expr_simp = ExpressionSimplifier()
+        expr_simp.enable_passes(ExpressionSimplifier.PASS_COMMONS)
+        self.symbexec = EmulatedSymbExec(None, None, self.ir_arch, {},
+                                         sb_expr_simp=expr_simp)
         self.symbexec.enable_emulated_simplifications()
 
     def set_cpu_vm(self, cpu, vm):
@@ -49,6 +52,7 @@ class JitCore_Python(jitcore.JitCore):
 
             # Get exec engine
             exec_engine = self.symbexec
+            expr_simp = exec_engine.expr_simp
 
             # For each irbloc inside irblocs
             while True:
@@ -87,17 +91,18 @@ class JitCore_Python(jitcore.JitCore):
                         if self.log_mn:
                             print "%08x %s" % (line.offset, line)
 
-                        # Check for memory exception
-                        if (vmmngr.get_exception() != 0):
+                        # Check for exception
+                        if (vmmngr.get_exception() != 0 or
+                            cpu.get_exception() != 0):
                             exec_engine.update_cpu_from_engine()
                             return line.offset
 
                     # Eval current instruction (in IR)
                     exec_engine.eval_ir(ir)
-
-                    # Check for memory exception which do not update PC
-                    if (vmmngr.get_exception() & csts.EXCEPT_DO_NOT_UPDATE_PC != 0):
-                        exec_engine.update_cpu_from_engine()
+                    # Check for exceptions which do not update PC
+                    exec_engine.update_cpu_from_engine()
+                    if (vmmngr.get_exception() & csts.EXCEPT_DO_NOT_UPDATE_PC != 0 or
+                        cpu.get_exception() > csts.EXCEPT_NUM_UPDT_EIP):
                         return line.offset
 
                 vmmngr.check_invalid_code_blocs()
