@@ -2850,7 +2850,7 @@ def cmovns(ir, instr, arg1, arg2):
 def icebp(ir, instr):
     e = []
     e.append(m2_expr.ExprAff(exception_flags,
-                             m2_expr.ExprInt32(EXCEPT_PRIV_INSN)))
+                             m2_expr.ExprInt32(EXCEPT_SOFT_BP)))
     return e, []
 # XXX
 
