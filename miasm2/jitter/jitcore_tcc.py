@@ -16,15 +16,6 @@ def jit_tcc_compil(func_name, func_code):
     return c
 
 
-class jit_tcc_code():
-
-    def __init__(self, c):
-        self.c = c
-
-    def __call__(self, cpu, vm):
-        return Jittcc.tcc_exec_bloc(self.c, cpu, vm)
-
-
 def gen_core(arch, attrib):
     lib_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -61,12 +52,6 @@ def gen_C_source(ir_arch, func_code):
  """ + "#include <Python.h>\n" + c_source
 
     return c_source
-
-
-class objref:
-
-    def __init__(self, obj):
-        self.obj = obj
 
 
 class myresolver:
