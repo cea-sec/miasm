@@ -2874,6 +2874,13 @@ def l_sysenter(ir, instr):
                              m2_expr.ExprInt32(EXCEPT_PRIV_INSN)))
     return e, []
 
+
+def l_syscall(ir, instr):
+    e = []
+    e.append(m2_expr.ExprAff(exception_flags,
+                             m2_expr.ExprInt32(EXCEPT_PRIV_INSN)))
+    return e, []
+
 # XXX
 
 
@@ -4260,6 +4267,7 @@ mnemo_func = {'mov': mov,
 
               'out': l_out,
               "sysenter": l_sysenter,
+              "syscall": l_syscall,
               "cmpxchg": cmpxchg,
               "cmpxchg8b": cmpxchg8b,
               "lds": lds,
