@@ -1,90 +1,37 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
-
 import os
-from distutils.sysconfig import get_python_inc
-from subprocess import Popen, PIPE
-from hashlib import md5
 import tempfile
+from subprocess import Popen, PIPE
 
-from miasm2.jitter import jitcore, Jittcc
-from miasm2.core.utils import keydefaultdict
-
-
-def gen_core(arch, attrib):
-    lib_dir = os.path.dirname(os.path.realpath(__file__))
-
-    txt = ""
-    txt += '#include "%s/queue.h"\n' % lib_dir
-    txt += '#include "%s/vm_mngr.h"\n' % lib_dir
-    txt += '#include "%s/vm_mngr_py.h"\n' % lib_dir
-    txt += '#include "%s/JitCore.h"\n' % lib_dir
-    txt += '#include "%s/arch/JitCore_%s.h"\n' % (lib_dir, arch.name)
-
-    txt += r'''
-#define RAISE(errtype, msg) {PyObject* p; p = PyErr_Format( errtype, msg ); return p;}
-'''
-    return txt
+from miasm2.jitter import Jittcc
+from miasm2.jitter.jitcore_cc_base import JitCore_Cc_Base, gen_core
 
 
-class myresolver:
-
-    def __init__(self, offset):
-        self.offset = offset
-
-    def ret(self):
-        return "return PyLong_FromUnsignedLongLong(0x%X);" % self.offset
-
-
-class resolver:
-
-    def __init__(self):
-        self.resolvers = keydefaultdict(myresolver)
-
-    def get_resolver(self, offset):
-        return self.resolvers[offset]
-
-
-class JitCore_Tcc(jitcore.JitCore):
+class JitCore_Tcc(JitCore_Cc_Base):
 
     "JiT management, using LibTCC as backend"
 
     def __init__(self, ir_arch, bs=None):
-        self.jitted_block_delete_cb = self.deleteCB
         super(JitCore_Tcc, self).__init__(ir_arch, bs)
-        self.resolver = resolver()
         self.exec_wrapper = Jittcc.tcc_exec_bloc
-        self.tcc_states = {}
-        self.ir_arch = ir_arch
-
-        self.tempdir = os.path.join(tempfile.gettempdir(), "miasm_gcc_cache")
-        try:
-            os.mkdir(self.tempdir, 0755)
-        except OSError:
-            pass
 
     def deleteCB(self, offset):
         "Free the TCCState corresponding to @offset"
-        if offset in self.tcc_states:
-            Jittcc.tcc_end(self.tcc_states[offset])
-            del self.tcc_states[offset]
+        if offset in self.states:
+            Jittcc.tcc_end(self.states[offset])
+            del self.states[offset]
 
     def load(self):
-        # os.path.join(os.path.dirname(os.path.realpath(__file__)), "jitter")
-        lib_dir = os.path.dirname(os.path.realpath(__file__))
-        libs = []
-        libs.append(os.path.join(lib_dir, 'VmMngr.so'))
-        libs.append(
-            os.path.join(lib_dir, 'arch/JitCore_%s.so' % (self.ir_arch.arch.name)))
-        libs = ';'.join(libs)
+        super(JitCore_Tcc, self).load()
+        libs = ';'.join(self.libs)
         jittcc_path = Jittcc.__file__
         include_dir = os.path.dirname(jittcc_path)
         include_dir += ";" + os.path.join(include_dir, "arch")
-        # print include_dir
 
         # XXX HACK
         # As debian/ubuntu have moved some include files using arch directory,
-        # TCC doesn't know them, so we get the info from GCC
+        # TCC doesn't know them, so we get the info from CC
         # For example /usr/include/x86_64-linux-gnu which contains limits.h
         p = Popen(["cc", "-Wp,-v", "-E", "-"],
                   stdout=PIPE, stderr=PIPE, stdin=PIPE)
@@ -92,27 +39,13 @@ class JitCore_Tcc(jitcore.JitCore):
         include_files = p.stderr.read().split('\n')
         include_files = [x[1:]
                          for x in include_files if x.startswith(' /usr/include')]
-        include_files += [include_dir, get_python_inc()]
+        include_files += self.include_files
         include_files = ";".join(include_files)
         Jittcc.tcc_set_emul_lib_path(include_files, libs)
 
-    def init_codegen(self, codegen):
-        """
-        Get the code generator @codegen
-        @codegen: an CGen instance
-        """
-        self.codegen = codegen
-
     def __del__(self):
-        for tcc_state in self.tcc_states.values():
+        for tcc_state in self.states.values():
             Jittcc.tcc_end(tcc_state)
-
-    def label2fname(self, label):
-        """
-        Generate function name from @label
-        @label: asm_label instance
-        """
-        return "block_%s" % label.name
 
     def jit_tcc_compil(self, func_name, func_code):
         return Jittcc.tcc_compil(func_name, func_code)
@@ -127,32 +60,15 @@ class JitCore_Tcc(jitcore.JitCore):
         self.jitcount += 1
         tcc_state, mcode = self.jit_tcc_compil(self.label2fname(label), func_code)
         self.lbl2jitbloc[label.offset] = mcode
-        self.tcc_states[label.offset] = tcc_state
-
-    def gen_c_code(self, label, block):
-        """
-        Return the C code corresponding to the @irblocks
-        @label: asm_label of the block to jit
-        @irblocks: list of irblocks
-        """
-        f_name = self.label2fname(label)
-        f_declaration = 'int %s(block_id * BlockDst, JitCpu* jitcpu)' % f_name
-        out = self.codegen.gen_c(block, log_mn=self.log_mn, log_regs=self.log_regs)
-        out = [f_declaration + '{'] + out + ['}\n']
-        c_code = out
-
-        return self.gen_C_source(self.ir_arch, c_code)
+        self.states[label.offset] = tcc_state
 
     def add_bloc(self, block):
         """Add a bloc to JiT and JiT it.
         @block: block to jit
         """
-        block_raw = "".join(line.b for line in block.lines)
-        block_hash = md5("%X_%s_%s_%s" % (block.label.offset,
-                                          self.log_mn,
-                                          self.log_regs,
-                                          block_raw)).hexdigest()
+        block_hash = self.hash_block(block)
         fname_out = os.path.join(self.tempdir, "%s.c" % block_hash)
+
         if os.access(fname_out, os.R_OK):
             func_code = open(fname_out).read()
         else:

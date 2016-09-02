@@ -10,6 +10,7 @@ from miasm2.core.bin_stream import bin_stream_vm
 from miasm2.core.interval import interval
 from miasm2.jitter.emulatedsymbexec import EmulatedSymbExec
 from miasm2.jitter.codegen import CGen
+from miasm2.jitter.jitcore_cc_base import JitCore_Cc_Base
 
 hnd = logging.StreamHandler()
 hnd.setFormatter(logging.Formatter("[%(levelname)s]: %(message)s"))
@@ -216,7 +217,7 @@ class jitter:
             raise RuntimeError('Unsupported jitter: %s' % jit_type)
 
         self.jit = JitCore(self.ir_arch, self.bs)
-        if jit_type in ['tcc', 'gcc']:
+        if isinstance(self.jit, JitCore_Cc_Base):
             self.jit.init_codegen(self.C_Gen(self.ir_arch))
         elif jit_type == "python":
             self.jit.set_cpu_vm(self.cpu, self.vm)
