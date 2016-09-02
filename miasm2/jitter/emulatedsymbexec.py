@@ -90,11 +90,22 @@ class EmulatedSymbExec(symbexec):
         """Handle 'segm' operation"""
         if expr.op != "segm":
             return expr
+
         segm_nb = int(expr.args[0].arg)
         segmaddr = self.cpu.get_segm_base(segm_nb)
-        return e_s(m2_expr.ExprOp("+",
-                                  m2_expr.ExprInt(segmaddr, expr.size),
-                                  expr.args[1]))
+
+        arch_size = self.ir_arch.attrib
+
+        base = m2_expr.ExprInt(segmaddr, arch_size)
+
+        if expr.args[1].size < arch_size:
+            offset = expr.args[1].zeroExtend(arch_size)
+        elif expr.args[1].size > arch_size:
+            offset = m2_expr.ExprSlice(expr.args[1], 0, arch_size)
+        else:
+            offset = expr.args[1]
+
+        return e_s(m2_expr.ExprOp("+", base, offset))
 
     def enable_emulated_simplifications(self):
         """Enable simplifications needing a CPU instance on associated
