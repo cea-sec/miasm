@@ -28,16 +28,6 @@ def gen_core(arch, attrib):
     return txt
 
 
-def gen_C_source(ir_arch, func_code):
-    c_source = ""
-    c_source += "\n".join(func_code)
-
-    c_source = gen_core(ir_arch.arch, ir_arch.attrib) + c_source
-    c_source = "#include <Python.h>\n" + c_source
-
-    return c_source
-
-
 class myresolver(object):
 
     def __init__(self, offset):
@@ -131,7 +121,7 @@ class JitCore_Gcc(jitcore.JitCore):
         out = [f_declaration + '{'] + out + ['}\n']
         c_code = out
 
-        return gen_C_source(self.ir_arch, c_code)
+        return self.gen_C_source(self.ir_arch, c_code)
 
     def add_bloc(self, block):
         """Add a bloc to JiT and JiT it.
@@ -166,3 +156,13 @@ class JitCore_Gcc(jitcore.JitCore):
             os.remove(fname_in)
 
         self.load_code(block.label, fname_out)
+
+    @staticmethod
+    def gen_C_source(ir_arch, func_code):
+        c_source = ""
+        c_source += "\n".join(func_code)
+
+        c_source = gen_core(ir_arch.arch, ir_arch.attrib) + c_source
+        c_source = "#include <Python.h>\n" + c_source
+
+        return c_source

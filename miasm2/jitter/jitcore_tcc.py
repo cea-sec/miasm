@@ -8,12 +8,7 @@ from hashlib import md5
 import tempfile
 
 from miasm2.jitter import jitcore, Jittcc
-
-
-def jit_tcc_compil(func_name, func_code):
-    global Jittcc
-    c = Jittcc.tcc_compil(func_name, func_code)
-    return c
+from miasm2.core.utils import keydefaultdict
 
 
 def gen_core(arch, attrib):
@@ -32,28 +27,6 @@ def gen_core(arch, attrib):
     return txt
 
 
-def gen_C_source(ir_arch, func_code):
-    c_source = ""
-    c_source += "\n".join(func_code)
-
-    c_source = gen_core(ir_arch.arch, ir_arch.attrib) + c_source
-
-    c_source = """
- #ifdef __x86_64__
- #ifndef __LP64__
- /*
-  for ubuntu ?!? XXX TODO
-  /!\ force 64 bit system using 64 bits libc
-  change this to __ILP32__ to do so.
- */
- #define __LP64__
- #endif
- #endif
- """ + "#include <Python.h>\n" + c_source
-
-    return c_source
-
-
 class myresolver:
 
     def __init__(self, offset):
@@ -61,8 +34,6 @@ class myresolver:
 
     def ret(self):
         return "return PyLong_FromUnsignedLongLong(0x%X);" % self.offset
-
-from miasm2.core.utils import keydefaultdict
 
 
 class resolver:
@@ -143,6 +114,9 @@ class JitCore_Tcc(jitcore.JitCore):
         """
         return "block_%s" % label.name
 
+    def jit_tcc_compil(self, func_name, func_code):
+        return Jittcc.tcc_compil(func_name, func_code)
+
     def compil_code(self, block, func_code):
         """
         Compil the C code of @func_code from @block
@@ -151,7 +125,7 @@ class JitCore_Tcc(jitcore.JitCore):
         """
         label = block.label
         self.jitcount += 1
-        tcc_state, mcode = jit_tcc_compil(self.label2fname(label), func_code)
+        tcc_state, mcode = self.jit_tcc_compil(self.label2fname(label), func_code)
         self.lbl2jitbloc[label.offset] = mcode
         self.tcc_states[label.offset] = tcc_state
 
@@ -167,7 +141,7 @@ class JitCore_Tcc(jitcore.JitCore):
         out = [f_declaration + '{'] + out + ['}\n']
         c_code = out
 
-        return gen_C_source(self.ir_arch, c_code)
+        return self.gen_C_source(self.ir_arch, c_code)
 
     def add_bloc(self, block):
         """Add a bloc to JiT and JiT it.
@@ -191,3 +165,25 @@ class JitCore_Tcc(jitcore.JitCore):
             os.rename(fname_tmp, fname_out)
 
         self.compil_code(block, func_code)
+
+    @staticmethod
+    def gen_C_source(ir_arch, func_code):
+        c_source = ""
+        c_source += "\n".join(func_code)
+
+        c_source = gen_core(ir_arch.arch, ir_arch.attrib) + c_source
+
+        c_source = """
+     #ifdef __x86_64__
+     #ifndef __LP64__
+     /*
+      for ubuntu ?!? XXX TODO
+      /!\ force 64 bit system using 64 bits libc
+      change this to __ILP32__ to do so.
+     */
+     #define __LP64__
+     #endif
+     #endif
+     """ + "#include <Python.h>\n" + c_source
+
+        return c_source
