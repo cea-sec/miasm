@@ -307,14 +307,10 @@ class CGen(object):
                 return ("%s" % dst2index[label],
                         "0")
 
-        elif (isinstance(expr, m2_expr.ExprId) or
-              isinstance(expr, m2_expr.ExprMem) or
-              isinstance(expr, m2_expr.ExprSlice)):
+        else:
             dst2index[expr] = -1
             return ("-1",
                     self.id_to_c(expr))
-        else:
-            raise RuntimeError("Unsupported IRDst type %s" % expr)
 
     def gen_assignblk_dst(self, dst):
         dst2index = {}
