@@ -34,7 +34,7 @@ from miasm2.core.utils import pck16, pck32, upck32, hexdump, whoami
 from miasm2.os_dep.common import \
     heap, set_str_ansi, set_str_unic, get_str_ansi, get_str_unic, \
     windows_to_sbpath
-from miasm2.os_dep.win_api_x86_32_seh import FS_0_AD
+from miasm2.os_dep.win_api_x86_32_seh import tib_address
 
 log = logging.getLogger("win_api_x86_32")
 console_handler = logging.StreamHandler()
@@ -876,7 +876,7 @@ def kernel32_GetLastError(jitter):
 def kernel32_SetLastError(jitter):
     ret_ad, args = jitter.func_args_stdcall(["errcode"])
     # lasterr addr
-    # ad = FS_0_AD + 0x34
+    # ad = tib_address + 0x34
     # jitter.vm.set_mem(ad, pck32(args.errcode))
     winobjs.lastwin32error = args.errcode
     jitter.func_ret_stdcall(ret_ad, 0)
@@ -1626,7 +1626,7 @@ def kernel32_SetFileAttributesA(jitter):
         ret = 1
     else:
         ret = 0
-        jitter.vm.set_mem(FS_0_AD + 0x34, pck32(3))
+        jitter.vm.set_mem(tib_address + 0x34, pck32(3))
 
     jitter.func_ret_stdcall(ret_ad, ret)
 
