@@ -424,10 +424,10 @@ How does it work?
 Miasm embeds its own disassembler, intermediate language and
 instruction semantic. It is written in Python.
 
-To emulate code, it uses LibTCC, LLVM, GCC or Python to JIT the intermediate
-representation. It can emulate shellcodes and all or parts of binaries. Python
-callbacks can be executed to interact with the execution, for instance to
-emulate library functions effects.
+To emulate code, it uses LibTCC, LLVM, GCC, Clang or Python to JIT the
+intermediate representation. It can emulate shellcodes and all or parts of
+binaries. Python callbacks can be executed to interact with the execution, for
+instance to emulate library functions effects.
 
 Documentation
 =============
@@ -453,6 +453,7 @@ Miasm uses:
 
 To enable code JIT, one of the following module is mandatory:
 * GCC
+* Clang
 * LLVM v3.2 with python-llvm, see below
 * LibTCC [tinycc (ONLY version 0.9.26)](http://repo.or.cz/w/tinycc.git)
 
@@ -472,6 +473,7 @@ sudo python setup.py install
 
 To use the jitter, GCC, TCC or LLVM is recommended
 * GCC (any version)
+* Clang (any version)
 * LibTCC needs to be configured with the `--disable-static` option
   * remove `libtcc-dev` from the system to avoid conflicts
   * clone [TinyCC](http://repo.or.cz/tinycc.git): `git clone http://repo.or.cz/tinycc.git`
