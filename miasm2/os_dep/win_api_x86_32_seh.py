@@ -185,33 +185,6 @@ def build_ldr_data(jitter, modules_info):
             LdrDataEntry.get_type().get_offset("InInitializationOrderLinks")
         ldrdata.InInitializationOrderModuleList.blink = 0
 
-    # data += pck32(ntdll_addr_entry + 0x10) + pck32(0)  # XXX TODO fix blink
-
-    """
-    # get main pe info
-    main_pe = modules_info.name2module.get(main_pe_name, None)
-    if not main_pe:
-        log.warn('No main pe, ldr data will be unconsistant')
-        offset, data = offset + 8, ""
-    else:
-        main_addr_entry = modules_info.module2entry[main_pe]
-        log.info('Ldr %x', main_addr_entry)
-        data = pck32(main_addr_entry) + pck32(0)
-        data += pck32(main_addr_entry + 0x8) + pck32(0)  # XXX TODO fix blink
-
-    ntdll_pe = modules_info.name2module.get("ntdll.dll", None)
-    if not ntdll_pe:
-        log.warn('No ntdll, ldr data will be unconsistant')
-    else:
-        ntdll_addr_entry = modules_info.module2entry[ntdll_pe]
-        data += pck32(ntdll_addr_entry + 0x10) + pck32(0)  # XXX TODO fix blink
-
-    if data:
-        jitter.vm.add_memory_page(offset, PAGE_READ | PAGE_WRITE,
-                                  data,
-                                  "Loader struct")
-    """
-
     # Add dummy dll base
     jitter.vm.add_memory_page(peb_ldr_data_address + 0x24,
                               PAGE_READ | PAGE_WRITE, pck32(0),
