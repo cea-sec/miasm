@@ -2128,8 +2128,12 @@ reg_tests = [
 
     (m32, "00000000    SIDT       DWORD PTR [EAX]",
      "0f0108"),
-    (m32, "00000000    SLDT       DWORD PTR [EAX]",
+    (m32, "00000000    SLDT       WORD PTR [EAX]",
      "0f0000"),
+    (m32, "00000000    SLDT       EAX",
+     "0f00C0"),
+    (m32, "00000000    SLDT       AX",
+     "660f00C0"),
 
 
     (m32, "00000000    LGDT       DWORD PTR [EAX]",

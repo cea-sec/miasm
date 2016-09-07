@@ -2778,8 +2778,8 @@ def sidt(ir, instr, a):
 
 
 def sldt(ir, instr, a):
-    # XXX TOOD
-    e = [m2_expr.ExprAff(exception_flags, m2_expr.ExprInt32(EXCEPT_PRIV_INSN))]
+    print "DEFAULT SLDT ADDRESS %s!!" % str(a)
+    e = [m2_expr.ExprAff(a, m2_expr.ExprInt(0, a.size))]
     return e, []
 
 

@@ -3879,7 +3879,7 @@ addop("shrd", [bs8(0x0f), bs8(0xac)] +
 addop("shrd", [bs8(0x0f), bs8(0xad)] +
       rmmod(rmreg) + [d_cl], [rm_arg, rmreg, d_cl])
 addop("sidt", [bs8(0x0f), bs8(0x01)] + rmmod(d1, modrm=mod_mem))
-addop("sldt", [bs8(0x0f), bs8(0x00)] + rmmod(d0, modrm=mod_mem))
+addop("sldt", [bs8(0x0f), bs8(0x00)] + rmmod(d0, rm_arg_x=rm_arg_reg_m16))
 addop("smsw", [bs8(0x0f), bs8(0x01)] + rmmod(d4))
 addop("stc", [bs8(0xf9)])
 addop("std", [bs8(0xfd)])
