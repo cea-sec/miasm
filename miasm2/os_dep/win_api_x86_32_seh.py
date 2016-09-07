@@ -46,15 +46,14 @@ console_handler.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
 log.addHandler(console_handler)
 log.setLevel(logging.INFO)
 
-FS_0_AD = 0x7ff70000
+# fs:[0] Page (TIB)
+tib_address = 0x7ff70000
 PEB_AD = 0x7ffdf000
 LDR_AD = 0x340000
 DEFAULT_SEH = 0x7ffff000
 
 MAX_MODULES = 0x40
 
-# fs:[0] Page (TIB)
-tib_address = FS_0_AD
 peb_address = PEB_AD
 peb_ldr_data_offset = 0x1ea0
 peb_ldr_data_address = LDR_AD + peb_ldr_data_offset
@@ -185,33 +184,6 @@ def build_ldr_data(jitter, modules_info):
         ldrdata.InInitializationOrderModuleList.flink = ntdll_addr_entry + \
             LdrDataEntry.get_type().get_offset("InInitializationOrderLinks")
         ldrdata.InInitializationOrderModuleList.blink = 0
-
-    # data += pck32(ntdll_addr_entry + 0x10) + pck32(0)  # XXX TODO fix blink
-
-    """
-    # get main pe info
-    main_pe = modules_info.name2module.get(main_pe_name, None)
-    if not main_pe:
-        log.warn('No main pe, ldr data will be unconsistant')
-        offset, data = offset + 8, ""
-    else:
-        main_addr_entry = modules_info.module2entry[main_pe]
-        log.info('Ldr %x', main_addr_entry)
-        data = pck32(main_addr_entry) + pck32(0)
-        data += pck32(main_addr_entry + 0x8) + pck32(0)  # XXX TODO fix blink
-
-    ntdll_pe = modules_info.name2module.get("ntdll.dll", None)
-    if not ntdll_pe:
-        log.warn('No ntdll, ldr data will be unconsistant')
-    else:
-        ntdll_addr_entry = modules_info.module2entry[ntdll_pe]
-        data += pck32(ntdll_addr_entry + 0x10) + pck32(0)  # XXX TODO fix blink
-
-    if data:
-        jitter.vm.add_memory_page(offset, PAGE_READ | PAGE_WRITE,
-                                  data,
-                                  "Loader struct")
-    """
 
     # Add dummy dll base
     jitter.vm.add_memory_page(peb_ldr_data_address + 0x24,
@@ -438,7 +410,8 @@ def init_seh(jitter):
 
     global seh_count
     seh_count = 0
-    build_teb(jitter, FS_0_AD)
+    tib_ad = jitter.cpu.get_segm_base(jitter.cpu.FS)
+    build_teb(jitter, tib_ad)
     build_peb(jitter, peb_address)
 
     modules_info = create_modules_chain(jitter, name2module)
@@ -632,7 +605,7 @@ def set_win_fs_0(jitter, fs=4):
     @fs: segment selector value
     """
     jitter.cpu.FS = fs
-    jitter.cpu.set_segm_base(fs, FS_0_AD)
+    jitter.cpu.set_segm_base(fs, tib_address)
     segm_to_do = set([x86_regs.FS])
     return segm_to_do
 

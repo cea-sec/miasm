@@ -3,7 +3,7 @@ import sys
 
 from miasm2.os_dep.win_api_x86_32_seh import fake_seh_handler, build_teb, \
     set_win_fs_0, return_from_exception, EXCEPTION_PRIV_INSTRUCTION, \
-    return_from_seh, FS_0_AD, DEFAULT_SEH
+    return_from_seh, DEFAULT_SEH
 from miasm2.os_dep.win_32_structs import ContextException
 
 from asm_test import Asm_Test_32
@@ -23,8 +23,9 @@ class Test_SEH(Asm_Test_32):
 
     def init_machine(self):
         super(Test_SEH, self).init_machine()
-        build_teb(self.myjit, FS_0_AD)
         set_win_fs_0(self.myjit)
+        tib_ad = self.myjit.cpu.get_segm_base(self.myjit.cpu.FS)
+        build_teb(self.myjit, tib_ad)
         self.myjit.add_exception_handler((1 << 17),
                                          Test_SEH.deal_exception_priv)
         self.myjit.add_breakpoint(return_from_exception, return_from_seh)

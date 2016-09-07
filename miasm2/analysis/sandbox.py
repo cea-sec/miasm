@@ -228,8 +228,8 @@ class OS_Win(OS):
             win_api_x86_32_seh.main_pe = self.pe
             win_api_x86_32.winobjs.hcurmodule = self.pe.NThdr.ImageBase
             win_api_x86_32_seh.name2module = self.name2module
-            win_api_x86_32_seh.init_seh(self.jitter)
             win_api_x86_32_seh.set_win_fs_0(self.jitter)
+            win_api_x86_32_seh.init_seh(self.jitter)
 
         self.entry_point = self.pe.rva2virt(
             self.pe.Opthdr.AddressOfEntryPoint)
