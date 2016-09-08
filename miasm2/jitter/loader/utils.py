@@ -24,6 +24,7 @@ class libimp(object):
         self.lib_imp2ad = {}
         self.lib_imp2dstad = {}
         self.fad2cname = {}
+        self.cname2addr = {}
         self.fad2info = {}
         self.all_exported_lib = []
         self.fake_libs = set()
@@ -72,6 +73,7 @@ class libimp(object):
         name_inv = dict([(x[1], x[0]) for x in self.name2off.items()])
         c_name = canon_libname_libfunc(name_inv[libad], imp_ord_or_name)
         self.fad2cname[ad] = c_name
+        self.cname2addr[c_name] = ad
         self.fad2info[ad] = libad, imp_ord_or_name
         return ad
 
