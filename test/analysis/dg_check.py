@@ -5,7 +5,7 @@ import json
 
 
 expected_file = sys.argv[1]
-dg = subprocess.Popen(["python"] + sys.argv[2:], stdout=subprocess.PIPE)
+dg = subprocess.Popen([sys.executable] + sys.argv[2:], stdout=subprocess.PIPE)
 
 stdout, _ = dg.communicate()
 expected = json.load(open(expected_file))
