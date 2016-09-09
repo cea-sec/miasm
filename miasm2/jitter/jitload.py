@@ -326,7 +326,11 @@ class jitter:
         exception_flag = self.get_exception()
         for res in self.exceptions_handler(exception_flag, self):
             if res is not True:
-                yield res
+                if isinstance(res, collections.Iterator):
+                    for tmp in res:
+                        yield tmp
+                else:
+                    yield res
 
         # If a callback changed pc, re call every callback
         if old_pc != self.pc:
@@ -342,7 +346,11 @@ class jitter:
         exception_flag = self.get_exception()
         for res in self.exceptions_handler(exception_flag, self):
             if res is not True:
-                yield res
+                if isinstance(res, collections.Iterator):
+                    for tmp in res:
+                        yield tmp
+                else:
+                    yield res
 
     def init_run(self, pc):
         """Create an iterator on pc with runiter.
