@@ -171,7 +171,7 @@ void dump_gpregs(vm_cpu_t* vmcpu)
 
 
 	printf("SP  %.16"PRIX64" PC  %.16"PRIX64" "\
-	       "zf  %.16"PRIX32" nf  %.16"PRIX32" of  %.16"PRIX32" cf  %.16"PRIX32"\n",
+	       "zf  %"PRIX32" nf  %"PRIX32" of  %"PRIX32" cf  %"PRIX32"\n",
 	       vmcpu->SP, vmcpu->PC,
 	       vmcpu->zf, vmcpu->nf, vmcpu->of, vmcpu->cf);
 }

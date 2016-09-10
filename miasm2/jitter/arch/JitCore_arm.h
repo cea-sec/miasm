@@ -29,6 +29,6 @@ typedef struct {
 }vm_cpu_t;
 
 
+void dump_gpregs(vm_cpu_t* vmcpu);
 
-//#define RETURN_PC return PyLong_FromUnsignedLongLong(vmcpu->PC);
 #define RETURN_PC return BlockDst;
