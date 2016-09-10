@@ -117,15 +117,15 @@ PyObject * cpu_init_regs(JitCpu* self)
 
 void dump_gpregs(vm_cpu_t* vmcpu)
 {
-	printf("R0 %.16"PRIX32" R1 %.16"PRIX32" R2 %.16"PRIX32" R3 %.16"PRIX32"\n",
+	printf("R0  %.16"PRIX32" R1  %.16"PRIX32" R2  %.16"PRIX32" R3  %.16"PRIX32" ",
 	       vmcpu->R0, vmcpu->R1, vmcpu->R2, vmcpu->R3);
-	printf("R4 %.16"PRIX32" R5 %.16"PRIX32" R6 %.16"PRIX32" R7 %.16"PRIX32"\n",
+	printf("R4  %.16"PRIX32" R5  %.16"PRIX32" R6  %.16"PRIX32" R7  %.16"PRIX32"\n",
 	       vmcpu->R4, vmcpu->R5, vmcpu->R6, vmcpu->R7);
-	printf("R8 %.16"PRIX32" R9 %.16"PRIX32" R10 %.16"PRIX32" R11 %.16"PRIX32"\n",
+	printf("R8  %.16"PRIX32" R9  %.16"PRIX32" R10 %.16"PRIX32" R11 %.16"PRIX32" ",
 	       vmcpu->R8, vmcpu->R9, vmcpu->R10, vmcpu->R11);
-	printf("R12 %.16"PRIX32" SP %.16"PRIX32" LR %.16"PRIX32" PC %.16"PRIX32"\n",
+	printf("R12 %.16"PRIX32" SP  %.16"PRIX32" LR  %.16"PRIX32" PC  %.16"PRIX32" ",
 	       vmcpu->R12, vmcpu->SP, vmcpu->LR, vmcpu->PC);
-	printf("zf %.16"PRIX32" nf %.16"PRIX32" of %.16"PRIX32" cf %.16"PRIX32"\n",
+	printf("zf %"PRIX32" nf %"PRIX32" of %"PRIX32" cf %"PRIX32"\n",
 	       vmcpu->zf, vmcpu->nf, vmcpu->of, vmcpu->cf);
 }
 

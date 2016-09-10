@@ -142,7 +142,7 @@ void dump_gpregs(vm_cpu_t* vmcpu)
 	       vmcpu->R8, vmcpu->R9, vmcpu->R10, vmcpu->R11);
 	printf("R12 %.4"PRIX32" R13 %.4"PRIX32" R14 %.4"PRIX32" R15 %.4"PRIX32"\n",
 	       vmcpu->R12, vmcpu->R13, vmcpu->R14, vmcpu->R15);
-	printf("zf %.4"PRIX32" nf %.4"PRIX32" of %.4"PRIX32" cf %.4"PRIX32"\n",
+	printf("zf %"PRIX32" nf %"PRIX32" of %"PRIX32" cf %"PRIX32"\n",
 	       vmcpu->zf, vmcpu->nf, vmcpu->of, vmcpu->cf);
 }
 

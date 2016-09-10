@@ -197,22 +197,22 @@ PyObject* vm_set_mem(VmMngr* self, PyObject* args)
 
 PyObject* vm_get_mem_access(VmMngr* self, PyObject* args)
 {
-        PyObject *py_addr;
-        uint64_t page_addr;
-        struct memory_page_node * mpn;
+	PyObject *py_addr;
+	uint64_t page_addr;
+	struct memory_page_node * mpn;
 
-        if (!PyArg_ParseTuple(args, "O", &py_addr))
-                return NULL;
+	if (!PyArg_ParseTuple(args, "O", &py_addr))
+		return NULL;
 
-        PyGetInt(py_addr, page_addr);
+	PyGetInt(py_addr, page_addr);
 
-        mpn = get_memory_page_from_address(&self->vm_mngr, page_addr, 1);
-        if (!mpn){
-                PyErr_SetString(PyExc_RuntimeError, "cannot find address");
-                return 0;
-        }
-      
-        return PyLong_FromUnsignedLongLong((uint64_t)mpn->access);
+	mpn = get_memory_page_from_address(&self->vm_mngr, page_addr, 1);
+	if (!mpn){
+		PyErr_SetString(PyExc_RuntimeError, "cannot find address");
+		return 0;
+	}
+
+	return PyLong_FromUnsignedLongLong((uint64_t)mpn->access);
 }
 
 PyObject* vm_get_mem(VmMngr* self, PyObject* args)

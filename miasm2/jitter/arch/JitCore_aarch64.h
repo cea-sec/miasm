@@ -46,6 +46,7 @@ typedef struct {
 	uint32_t cf;
 }vm_cpu_t;
 
+void dump_gpregs(vm_cpu_t* vmcpu);
 
 uint64_t udiv64(vm_cpu_t* vmcpu, uint64_t a, uint64_t b);
 uint64_t umod64(vm_cpu_t* vmcpu, uint64_t a, uint64_t b);
