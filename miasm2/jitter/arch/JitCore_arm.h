@@ -26,6 +26,7 @@ typedef struct {
 	uint32_t of;
 	uint32_t cf;
 
+	uint32_t bp_num;
 }vm_cpu_t;
 
 

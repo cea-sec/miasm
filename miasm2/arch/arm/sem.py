@@ -5,6 +5,7 @@ from miasm2.arch.arm.regs import *
 
 
 # liris.cnrs.fr/~mmrissa/lib/exe/fetch.php?media=armv7-a-r-manual.pdf
+EXCEPT_SOFT_BP = (1 << 1)
 
 EXCEPT_PRIV_INSN = (1 << 17)
 
@@ -948,6 +949,13 @@ def uxtab(ir, instr, a, b, c):
     return e
 
 
+def bkpt(ir, instr, a):
+    e = []
+    e.append(ExprAff(exception_flags, ExprInt32(EXCEPT_SOFT_BP)))
+    e.append(ExprAff(bp_num, a))
+    return e
+
+
 
 COND_EQ = 0
 COND_NE = 1
@@ -1093,6 +1101,7 @@ mnemo_condm0 = {'add': add,
                 'rev': rev,
                 'clz': clz,
                 'uxtab': uxtab,
+                'bkpt': bkpt,
                 }
 
 mnemo_condm1 = {'adds': add,
