@@ -937,6 +937,17 @@ def pld(ir, instr, a):
     return []
 
 
+def clz(ir, instr, a, b):
+    e = []
+    e.append(ExprAff(a, ExprOp('clz', b)))
+    return e
+
+def uxtab(ir, instr, a, b, c):
+    e = []
+    e.append(ExprAff(a, b + (c & ExprInt32(0xff))))
+    return e
+
+
 
 COND_EQ = 0
 COND_NE = 1
@@ -1080,6 +1091,8 @@ mnemo_condm0 = {'add': add,
                 'ubfx': ubfx,
                 'bfc': bfc,
                 'rev': rev,
+                'clz': clz,
+                'uxtab': uxtab,
                 }
 
 mnemo_condm1 = {'adds': add,

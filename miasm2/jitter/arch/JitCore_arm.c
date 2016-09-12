@@ -201,6 +201,17 @@ void MEM_WRITE_64(JitCpu* jitcpu, uint64_t addr, uint64_t src)
 }
 
 
+uint32_t clz(uint32_t arg)
+{
+
+	int i;
+
+	for (i=0; i<32; i++) {
+		if (arg & (1 << (31-i)))
+			break;
+	}
+	return i;
+}
 
 
 

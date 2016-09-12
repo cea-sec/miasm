@@ -250,6 +250,12 @@ reg_tests_arm = [
     ('XXXXXXXX    PLD        [R1, 0x1C]',
      '1CF0D1F5'),
 
+    ('XXXXXXXX    UXTAB      R5, R2, R8',
+     '7850e2e6'),
+
+    ('XXXXXXXX    UXTAB      R5, R2, R8 ROR 0x8',
+     '7854e2e6'),
+
 
 ]
 ts = time.time()

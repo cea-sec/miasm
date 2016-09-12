@@ -39,6 +39,9 @@ gpregs_sp = reg_info(regs_str[13:14], regs_expr[13:14])
 gpregs_nosppc = reg_info(regs_str[:13] + [str(reg_dum), regs_str[14]],
                          regs_expr[:13] + [reg_dum, regs_expr[14]])
 
+gpregs_nopc = reg_info(regs_str[:14],
+                       regs_expr[:14])
+
 
 # psr
 sr_flags = "cxsf"
@@ -106,8 +109,17 @@ def check_bounds(left_bound, right_bound, value):
     else:
         raise ValueError('shift operator immediate value out of bound')
 
+
+def check_values(values, value):
+    if value in values:
+        return ExprInt32(value)
+    else:
+        raise ValueError('shift operator immediate value out of bound')
+
 int_1_31 = str_int.copy().setParseAction(lambda v: check_bounds(1, 31, v[0]))
 int_1_32 = str_int.copy().setParseAction(lambda v: check_bounds(1, 32, v[0]))
+
+int_8_16_24 = str_int.copy().setParseAction(lambda v: check_values([8, 16, 24], v[0]))
 
 
 def reglistparse(s, l, t):
@@ -144,6 +156,9 @@ all_binaryop_1_31_shifts_t = literal_list(
 all_binaryop_1_32_shifts_t = literal_list(
     ['LSR', 'ASR']).setParseAction(op_shift2expr)
 all_unaryop_shifts_t = literal_list(['RRX']).setParseAction(op_shift2expr)
+
+ror_shifts_t = literal_list(['ROR']).setParseAction(op_shift2expr)
+
 
 allshifts_t_armt = literal_list(
     ['LSL', 'LSR', 'ASR', 'ROR', 'RRX']).setParseAction(op_shift2expr)
@@ -188,6 +203,12 @@ shift_off = (gpregs.parser + Optional(
     (all_binaryop_1_32_shifts_t + (gpregs.parser | int_1_32))
 )).setParseAction(shift2expr)
 shift_off |= base_expr
+
+
+rot2_expr = (gpregs.parser + Optional(
+    (ror_shifts_t + (int_8_16_24))
+)).setParseAction(shift2expr)
+
 
 
 def deref2expr_nooff(s, l, t):
@@ -1595,12 +1616,54 @@ class arm_widthm1(arm_imm, m_arg):
         return True
 
 
+class arm_rm_rot2(m_arg):
+    parser = rot2_expr
+    def decode(self, v):
+        expr = gpregs.expr[v]
+        shift_value = self.parent.rot2.value
+        if shift_value:
+            expr = ExprOp(allshifts[3], expr, ExprInt32(shift_value * 8))
+        self.expr = expr
+        return True
+    def encode(self):
+        if self.expr in gpregs.expr:
+            self.value = gpregs.expr.index(self.expr)
+            self.parent.rot2.value = 0
+        elif (isinstance(self.expr, ExprOp) and
+              self.expr.op == allshifts[3]):
+            reg, value = self.expr.args
+            if reg not in gpregs.expr:
+                return False
+            self.value = gpregs.expr.index(reg)
+            if not isinstance(value, ExprInt):
+                return False
+            value = int(value.arg)
+            if not value in [8, 16, 24]:
+                return False
+            self.parent.rot2.value = value / 8
+        return True
+
+class arm_gpreg_nopc(arm_reg):
+    reg_info = gpregs_nopc
+    parser = reg_info.parser
+
+
+rm_rot2 = bs(l=4, cls=(arm_rm_rot2,), fname="rm")
+rot2 = bs(l=2, fname="rot2")
+
 widthm1 = bs(l=5, cls=(arm_widthm1, m_arg))
 lsb = bs(l=5, cls=(arm_imm, m_arg))
+
+rn_nopc = bs(l=4, cls=(arm_gpreg_nopc,), fname="rn")
 
 armop("ubfx", [bs('0111111'), widthm1, rd, lsb, bs('101'), rn], [rd, rn, lsb, widthm1])
 
 armop("bfc", [bs('0111110'), widthm1, rd, lsb, bs('001'), bs('1111')], [rd, lsb, widthm1])
+
+armop("uxtab", [bs('01101110'), rn_nopc, rd, rot2, bs('000111'), rm_rot2], [rd, rn_nopc, rm_rot2])
+
+
+
 #
 # thumnb #######################
 #
@@ -2078,6 +2141,7 @@ armt_gpreg_shift_off |= gpregs_nosppc.parser
 
 class arm_gpreg_nosppc(arm_reg):
     reg_info = gpregs_nosppc
+
 
 
 class armt_gpreg_rm_shift_off(arm_reg):
