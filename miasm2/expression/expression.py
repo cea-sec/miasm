@@ -411,6 +411,12 @@ class ExprInt(Expr):
     def graph_recursive(self, graph):
         graph.add_node(self)
 
+    def __int__(self):
+        return int(self.arg)
+
+    def __long__(self):
+        return long(self.arg)
+
 
 class ExprId(Expr):
 
