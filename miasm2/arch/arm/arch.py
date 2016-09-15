@@ -920,6 +920,26 @@ class arm_imm_4_12(m_arg):
         return True
 
 
+class arm_imm_12_4(m_arg):
+    parser = base_expr
+
+    def decode(self, v):
+        v = v & self.lmask
+        imm =  (self.parent.imm.value << 4) | v
+        self.expr = ExprInt32(imm)
+        return True
+
+    def encode(self):
+        if not isinstance(self.expr, ExprInt):
+            return False
+        v = int(self.expr.arg)
+        if v > 0xffff:
+            return False
+        self.parent.imm.value = (v >> 4) & 0xfff
+        self.value = v & 0xf
+        return True
+
+
 class arm_op2(m_arg):
     parser = shift_off
 
@@ -1321,6 +1341,9 @@ imm4_noarg = bs(l=4, fname="imm4")
 
 imm_4_12 = bs(l=12, cls=(arm_imm_4_12,))
 
+imm12_noarg = bs(l=12, fname="imm")
+imm_12_4 = bs(l=4, cls=(arm_imm_12_4,))
+
 lowb = bs(l=1, fname='lowb')
 offs_blx = bs(l=24, cls=(arm_offs_blx,), fname="offs")
 
@@ -1580,7 +1603,7 @@ armop("cdata", [bs('110'), ppi, updown, tl, wback_no_t, bs_ctransfer_name,
                 rn_noarg, crd, cpnum, imm8_12], [cpnum, crd, imm8_12])
 armop("mr", [bs('1110'), cpopc, bs_mr_name, crn, rd, cpnum, cp, bs('1'), crm],
       [cpnum, cpopc, rd, crn, crm, cp])
-armop("bkpt", [bs('00010010'), imm12, bs('0111'), imm4])
+armop("bkpt", [bs('00010010'), imm12_noarg, bs('0111'), imm_12_4])
 armop("bx", [bs('000100101111111111110001'), rn])
 armop("mov", [bs('00110000'), imm4_noarg, rd, imm_4_12], [rd, imm_4_12])
 armop("movt", [bs('00110100'), imm4_noarg, rd, imm_4_12], [rd, imm_4_12])
