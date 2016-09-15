@@ -326,7 +326,7 @@ class ir(object):
                 isinstance(ad.name, asm_label)):
             ad = ad.name
         if isinstance(ad, m2_expr.ExprInt):
-            ad = int(ad.arg)
+            ad = int(ad)
         if type(ad) in [int, long]:
             ad = self.symbol_pool.getby_offset_create(ad)
         elif isinstance(ad, asm_label):
@@ -514,7 +514,7 @@ class ir(object):
             for d in dst:
                 if isinstance(d, m2_expr.ExprInt):
                     d = m2_expr.ExprId(
-                        self.symbol_pool.getby_offset_create(int(d.arg)))
+                        self.symbol_pool.getby_offset_create(int(d)))
                 if expr_is_label(d):
                     self._graph.add_edge(lbl, d.name)
 

@@ -43,7 +43,7 @@ def merge_sliceto_slice(args):
             # sources_int[a.start] = a
             # copy ExprInt because we will inplace modify arg just below
             # /!\ TODO XXX never ever modify inplace args...
-            sources_int[a[1]] = (m2_expr.ExprInt(int(a[0].arg),
+            sources_int[a[1]] = (m2_expr.ExprInt(int(a[0]),
                                                  a[2] - a[1]),
                                  a[1],
                                  a[2])
@@ -80,12 +80,12 @@ def merge_sliceto_slice(args):
             s_start, s_stop = sorted_s[-1][1][1], sorted_s[-1][1][2]
             size += s_stop - s_start
             a = m2_expr.mod_size2uint[size](
-                (int(out[0].arg) << (out[1] - s_start)) +
-                 int(sorted_s[-1][1][0].arg))
+                (int(out[0]) << (out[1] - s_start)) +
+                 int(sorted_s[-1][1][0]))
             out[0] = m2_expr.ExprInt(a)
             sorted_s.pop()
             out[1] = s_start
-        out[0] = m2_expr.ExprInt(int(out[0].arg), size)
+        out[0] = m2_expr.ExprInt(int(out[0]), size)
         final_sources.append((start, out))
 
     final_sources_int = final_sources

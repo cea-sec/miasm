@@ -275,11 +275,11 @@ def movk(ir, instr, arg1, arg2):
         assert(arg2.op == 'slice_at' and
                isinstance(arg2.args[0], m2_expr.ExprInt) and
                isinstance(arg2.args[1], m2_expr.ExprInt))
-        value, shift = int(arg2.args[0].arg), int(arg2.args[1].arg)
+        value, shift = int(arg2.args[0].arg), int(arg2.args[1])
         e.append(
             m2_expr.ExprAff(arg1[shift:shift + 16], m2_expr.ExprInt16(value)))
     else:
-        e.append(m2_expr.ExprAff(arg1[:16], m2_expr.ExprInt16(int(arg2.arg))))
+        e.append(m2_expr.ExprAff(arg1[:16], m2_expr.ExprInt16(int(arg2))))
 
     return e, []
 
@@ -368,7 +368,7 @@ def get_mem_access(mem):
                 off = reg.zeroExtend(base.size) << shift.zeroExtend(base.size)
                 addr = base + off
             elif op == 'LSL':
-                if isinstance(shift, m2_expr.ExprInt) and int(shift.arg) == 0:
+                if isinstance(shift, m2_expr.ExprInt) and int(shift) == 0:
                     addr = base + reg.zeroExtend(base.size)
                 else:
                     addr = base + \
@@ -481,7 +481,7 @@ def ldrsw(ir, instr, arg1, arg2):
 
 def sbfm(ir, instr, arg1, arg2, arg3, arg4):
     e = []
-    rim, sim = int(arg3.arg), int(arg4.arg) + 1
+    rim, sim = int(arg3.arg), int(arg4) + 1
     if sim > rim:
         res = arg2[rim:sim].signExtend(arg1.size)
     else:
@@ -493,7 +493,7 @@ def sbfm(ir, instr, arg1, arg2, arg3, arg4):
 
 def ubfm(ir, instr, arg1, arg2, arg3, arg4):
     e = []
-    rim, sim = int(arg3.arg), int(arg4.arg) + 1
+    rim, sim = int(arg3.arg), int(arg4) + 1
     if sim > rim:
         res = arg2[rim:sim].zeroExtend(arg1.size)
     else:
@@ -504,7 +504,7 @@ def ubfm(ir, instr, arg1, arg2, arg3, arg4):
 
 def bfm(ir, instr, arg1, arg2, arg3, arg4):
     e = []
-    rim, sim = int(arg3.arg), int(arg4.arg) + 1
+    rim, sim = int(arg3.arg), int(arg4) + 1
     if sim > rim:
         res = arg2[rim:sim]
         e.append(m2_expr.ExprAff(arg1[:sim-rim], res))
@@ -674,7 +674,7 @@ def nop():
 def extr(arg1, arg2, arg3, arg4):
     compose = m2_expr.ExprCompose([(arg2, 0, arg2.size),
                                    (arg3, arg2.size, arg2.size+arg3.size)])
-    arg1 = compose[int(arg4.arg):int(arg4.arg)+arg1.size]
+    arg1 = compose[int(arg4.arg):int(arg4)+arg1.size]
 
 mnemo_func = sbuild.functions
 mnemo_func.update({

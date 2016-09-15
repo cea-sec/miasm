@@ -295,7 +295,7 @@ class symbexec(object):
         ex = self.expr_simp(self.eval_expr(ex, {}))
         if not isinstance(ex, m2_expr.ExprInt):
             return None
-        ptr_diff = int(int32(ex.arg))
+        ptr_diff = int(int32(ex))
         out = []
         if ptr_diff < 0:
             #    [a     ]

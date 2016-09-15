@@ -807,11 +807,11 @@ def set_imm_to_size(size, expr):
     if size == expr.size:
         return expr
     if size > expr.size:
-        expr = m2_expr.ExprInt(int(expr.arg), size)
+        expr = m2_expr.ExprInt(int(expr), size)
     else:
         if expr.arg > (1 << size) - 1:
             return None
-        expr = m2_expr.ExprInt(int(expr.arg), size)
+        expr = m2_expr.ExprInt(int(expr), size)
     return expr
 
 
@@ -838,7 +838,7 @@ class aarch64_imm_sf(imm_noarg):
             return False
         if not test_set_sf(self.parent, self.expr.size):
             return False
-        value = int(self.expr.arg)
+        value = int(self.expr)
         if value >= 1 << self.l:
             return False
         self.value = value
@@ -857,7 +857,7 @@ class aarch64_imm_sft(aarch64_imm_sf, m_arg):
             return False
         if not test_set_sf(self.parent, self.expr.size):
             return False
-        value = int(self.expr.arg)
+        value = int(self.expr)
         if value < 1 << self.l:
             self.parent.shift.value = 0
         else:
@@ -902,7 +902,7 @@ class aarch64_gpreg_ext(reg_noarg, m_arg):
             if not test_set_sf(self.parent, self.expr.size):
                 return False
         self.parent.option.value = option
-        self.parent.imm.value = int(amount.arg)
+        self.parent.imm.value = int(amount)
         return True
 
     def decode(self, v):
@@ -1037,7 +1037,7 @@ class aarch64_gpreg_sftimm(reg_noarg, m_arg):
         if not isinstance(args[1], m2_expr.ExprInt):
             return False
         self.parent.shift.value = shift_expr.index(self.expr.op)
-        self.parent.imm.value = int(args[1].arg)
+        self.parent.imm.value = int(args[1])
         self.value = self.reg_info[size].expr.index(args[0])
         return True
 
@@ -1120,7 +1120,7 @@ class aarch64_immhip_page(aarch64_imm_32):
         return True
 
     def encode(self):
-        v = int(self.expr.arg)
+        v = int(self.expr)
         if v & (1 << 63):
             v &= (1 << 33) - 1
         if v & 0xfff:
@@ -1142,7 +1142,7 @@ class aarch64_immhi_page(aarch64_imm_32):
         return True
 
     def encode(self):
-        v = int(self.expr.arg)
+        v = int(self.expr)
         if v & (1 << 63):
             v &= (1 << 33) - 1
         self.parent.immlo.value = v & 3
@@ -1168,7 +1168,7 @@ class aarch64_imm_hw(m_arg):
         size = self.parent.args[0].expr.size
         if set_imm_to_size(size, self.expr) is None:
             return False
-        value = int(self.expr.arg)
+        value = int(self.expr)
         mask = (1 << size) - 1
         for i in xrange(size / 16):
             if ((0xffff << (i * 16)) ^ mask) & value:
@@ -1197,7 +1197,7 @@ class aarch64_imm_hw_sc(m_arg):
         if isinstance(self.expr, m2_expr.ExprInt):
             if self.expr.arg > 0xFFFF:
                 return False
-            self.value = int(self.expr.arg)
+            self.value = int(self.expr)
             self.parent.hw.value = 0
             return True
 
@@ -1211,7 +1211,7 @@ class aarch64_imm_hw_sc(m_arg):
             return False
         if set_imm_to_size(self.parent.args[0].expr.size, self.expr.args[1]) is None:
             return False
-        arg, amount = [int(arg.arg) for arg in self.expr.args]
+        arg, amount = [int(arg) for arg in self.expr.args]
         if arg > 0xFFFF:
             return False
         if amount % 16 or amount / 16 > 4:
@@ -1234,7 +1234,7 @@ class aarch64_offs(imm_noarg, m_arg):
     def encode(self):
         if not isinstance(self.expr, m2_expr.ExprInt):
             return False
-        v = int(self.expr.arg)
+        v = int(self.expr)
         if v & (1 << 63):
             v &= (1 << (self.l + 2)) - 1
         self.value = v >> 2
@@ -1310,7 +1310,7 @@ class aarch64_deref(m_arg):
             return False
         if not isinstance(off, m2_expr.ExprInt):
             return False
-        imm = int(off.arg)
+        imm = int(off)
         imm = self.encode_w_size(imm)
         if imm is False:
             return False
@@ -1425,7 +1425,7 @@ class aarch64_b40(m_arg):
         if not isinstance(self.expr, m2_expr.ExprInt):
             return False
         size = self.parent.args[0].expr.size
-        value = int(self.expr.arg)
+        value = int(self.expr)
         self.value = value & self.lmask
         if self.parent.sf.value is None:
             self.parent.sf.value = value >> self.l

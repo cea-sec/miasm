@@ -8,7 +8,7 @@ TODO XXX: finish
 
 
 def ExprInt_strcst(self):
-    b = bin(int(self.arg))[2::][::-1]
+    b = bin(int(self))[2::][::-1]
     b += "0" * self.size
     b = b[:self.size][::-1]
     return "0bin" + b

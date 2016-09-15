@@ -1433,7 +1433,7 @@ class cls_mn(object):
         args = []
         for d in dst:
             if isinstance(d, m2_expr.ExprInt):
-                l = symbol_pool.getby_offset_create(int(d.arg))
+                l = symbol_pool.getby_offset_create(int(d))
 
                 a = m2_expr.ExprId(l.name, d.size)
             else:
@@ -1457,7 +1457,7 @@ class imm_noarg(object):
     def expr2int(self, e):
         if not isinstance(e, m2_expr.ExprInt):
             return None
-        v = int(e.arg)
+        v = int(e)
         if v & ~self.intmask != 0:
             return None
         return v
@@ -1542,7 +1542,7 @@ class int32_noarg(imm_noarg):
     def encode(self):
         if not isinstance(self.expr, m2_expr.ExprInt):
             return False
-        v = int(self.expr.arg)
+        v = int(self.expr)
         if sign_ext(v & self.lmask, self.l, self.intsize) != v:
             return False
         v = self.encodeval(v & self.lmask)
