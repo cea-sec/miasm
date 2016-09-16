@@ -93,27 +93,36 @@ def update_flag_sub(x, y, z):
     e.append(update_flag_sub_of(x, y, z))
     return e
 
-def update_flag(on=None, arith=False, add=False, logic=False):
+def update_flag(on=None, inv=False,
+                arith=False, add=False, logic=False, sub=False, zn=False):
     """Decorator to update the flag of the resulting operation.
     @on: update only if the operation has a given name
+    @inv: if set, inverse arg2 and arg3
     @*: enable flag update passes
     """
     def wrapper(func):
         """Actual decorator"""
 
-        def new_func(ir, instr, arg1, arg2=None, arg3=None):
-            cur_block = func(ir, instr, arg1, arg2, arg3)
+        def new_func(ir, instr, *args):
+            cur_block = func(ir, instr, *args)
 
-            if on is not None and instr.name == on and arg1 != PC:
+            if on is not None and instr.name == on and args[0] != PC:
                 result = (aff.src
                           for aff in cur_block
-                          if aff.dst == arg1).next()
+                          if aff.dst == args[0]).next()
                 if arith:
                     cur_block += update_flag_arith(result)
                 if logic:
                     cur_block += update_flag_logic(result)
+                if zn:
+                    cur_block += update_flag_zn(result)
+                args = list(args)
+                if inv:
+                    args[1:3] = reversed(args[1:3])
                 if add:
-                    cur_block += update_flag_add(arg2, arg3, result)
+                    cur_block += update_flag_add(args[1], args[2], result)
+                if sub:
+                    cur_block += update_flag_sub(args[1], args[2], result)
             return cur_block
 
         return new_func
@@ -192,6 +201,7 @@ def subs(ir, instr, a, b, c=None):
     return e
 
 
+@update_flag(on="EORS", logic=True)
 def eor(ir, instr, a, b, c=None):
     e = []
     if c is None:
@@ -204,19 +214,7 @@ def eor(ir, instr, a, b, c=None):
     return e
 
 
-def eors(ir, instr, a, b, c=None):
-    e = []
-    if c is None:
-        b, c = a, b
-    r = b ^ c
-    e += update_flag_logic(r)
-    e.append(ExprAff(a, r))
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAff(ir.IRDst, r))
-    return e
-
-
+@update_flag(on="RSBS", arith=True, sub=True, inv=True)
 def rsb(ir, instr, a, b, c=None):
     e = []
     if c is None:
@@ -229,20 +227,7 @@ def rsb(ir, instr, a, b, c=None):
     return e
 
 
-def rsbs(ir, instr, a, b, c=None):
-    e = []
-    if c is None:
-        b, c = a, b
-    r = c - b
-    e += update_flag_arith(r)
-    e += update_flag_sub(c, b, r)
-    e.append(ExprAff(a, r))
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAff(ir.IRDst, r))
-    return e
-
-
+@update_flag(on="SBCS", arith=True, sub=True)
 def sbc(ir, instr, a, b, c=None):
     e = []
     if c is None:
@@ -255,40 +240,12 @@ def sbc(ir, instr, a, b, c=None):
     return e
 
 
-def sbcs(ir, instr, a, b, c=None):
-    e = []
-    if c is None:
-        b, c = a, b
-    r = (b + cf.zeroExtend(32)) - (c + ExprInt32(1))
-    e += update_flag_arith(r)
-    e += update_flag_sub(b, c, r)
-    e.append(ExprAff(a, r))
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAff(ir.IRDst, r))
-    return e
-
-
+@update_flag(on="RSCS", arith=True, sub=True, inv=True)
 def rsc(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
     r = (c + cf.zeroExtend(32)) - (b + ExprInt32(1))
-    e.append(ExprAff(a, r))
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAff(ir.IRDst, r))
-    return e
-
-
-def rscs(ir, instr, a, b, c=None):
-    e = []
-    if c is None:
-        b, c = a, b
-    r = (c + cf.zeroExtend(32)) - (b + ExprInt32(1))
-    e.append(ExprAff(a, r))
-    e += update_flag_arith(r)
-    e += update_flag_sub(c, b, r)
     e.append(ExprAff(a, r))
     dst = get_dst(a)
     if dst is not None:
@@ -334,6 +291,7 @@ def cmn(ir, instr, a, b, c=None):
     return e
 
 
+@update_flag(on="ORRS", logic=True)
 def orr(ir, instr, a, b, c=None):
     e = []
     if c is None:
@@ -346,19 +304,7 @@ def orr(ir, instr, a, b, c=None):
     return e
 
 
-def orrs(ir, instr, a, b, c=None):
-    e = []
-    if c is None:
-        b, c = a, b
-    r = b | c
-    e += update_flag_logic(r)
-    e.append(ExprAff(a, r))
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAff(ir.IRDst, r))
-    return e
-
-
+@update_flag(on="MOVS", logic=True) # XXX TODO check
 def mov(ir, instr, a, b):
     e = [ExprAff(a, b)]
     dst = get_dst(a)
@@ -376,32 +322,10 @@ def movt(ir, instr, a, b):
     return e
 
 
-def movs(ir, instr, a, b):
-    e = []
-    e.append(ExprAff(a, b))
-    # XXX TODO check
-    e += update_flag_logic(b)
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAff(ir.IRDst, b))
-    return e
-
-
+@update_flag(on="MVNS", logic=True) # XXX TODO check
 def mvn(ir, instr, a, b):
     r = b ^ ExprInt32(-1)
     e = [ExprAff(a, r)]
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAff(ir.IRDst, r))
-    return e
-
-
-def mvns(ir, instr, a, b):
-    e = []
-    r = b ^ ExprInt32(-1)
-    e.append(ExprAff(a, r))
-    # XXX TODO check
-    e += update_flag_logic(r)
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
@@ -421,24 +345,13 @@ def negs(ir, instr, a, b):
     e = subs(ir, instr, a, ExprInt_from(b, 0), b)
     return e
 
+
+@update_flag(on="BICS", logic=True)
 def bic(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
     r = b & (c ^ ExprInt(uint32(-1)))
-    e.append(ExprAff(a, r))
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAff(ir.IRDst, r))
-    return e
-
-
-def bics(ir, instr, a, b, c=None):
-    e = []
-    if c is None:
-        b, c = a, b
-    r = b & (c ^ ExprInt(uint32(-1)))
-    e += update_flag_logic(r)
     e.append(ExprAff(a, r))
     dst = get_dst(a)
     if dst is not None:
@@ -467,6 +380,7 @@ def mlas(ir, instr, a, b, c, d):
     return e
 
 
+@update_flag(on="MULS", zn=True)
 def mul(ir, instr, a, b, c = None):
     e = []
     if c is None:
@@ -478,18 +392,6 @@ def mul(ir, instr, a, b, c = None):
         e.append(ExprAff(ir.IRDst, r))
     return e
 
-
-def muls(ir, instr, a, b, c = None):
-    e = []
-    if c is None:
-        b, c = a, b
-    r = b * c
-    e += update_flag_zn(r)
-    e.append(ExprAff(a, r))
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAff(ir.IRDst, r))
-    return e
 
 def umull(ir, instr, a, b, c, d):
     e = []
@@ -755,7 +657,8 @@ def und(ir, instr, a, b):
     e = []
     return e
 
-# TODO XXX implement correct CF for shifters
+
+@update_flag(on="LSRS", logic=True) # TODO XXX implement correct CF for shifters
 def lsr(ir, instr, a, b, c = None):
     e = []
     if c is None:
@@ -768,18 +671,7 @@ def lsr(ir, instr, a, b, c = None):
     return e
 
 
-def lsrs(ir, instr, a, b, c = None):
-    e = []
-    if c is None:
-        b, c = a, b
-    r = b >> c
-    e.append(ExprAff(a, r))
-    e += update_flag_logic(r)
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAff(ir.IRDst, r))
-    return e
-
+@update_flag(on="ASRS", logic=True)
 def asr(ir, instr, a, b, c=None):
     e = []
     if c is None:
@@ -791,37 +683,14 @@ def asr(ir, instr, a, b, c=None):
         e.append(ExprAff(ir.IRDst, r))
     return e
 
-def asrs(ir, instr, a, b, c):
-    e = []
-    if c is None:
-        b, c = a, b
-    r = ExprOp("a>>", b, c)
-    e.append(ExprAff(a, r))
-    e += update_flag_logic(r)
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAff(ir.IRDst, r))
-    return e
 
+@update_flag(on="LSLS", logic=True)
 def lsl(ir, instr, a, b, c = None):
     e = []
     if c is None:
         b, c = a, b
     r = b << c
     e.append(ExprAff(a, r))
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAff(ir.IRDst, r))
-    return e
-
-
-def lsls(ir, instr, a, b, c = None):
-    e = []
-    if c is None:
-        b, c = a, b
-    r = b << c
-    e.append(ExprAff(a, r))
-    e += update_flag_logic(r)
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
@@ -1126,20 +995,20 @@ mnemo_condm0 = {'add': add,
 
 mnemo_condm1 = {'adds': add,
                 'subs': subs,
-                'eors': eors,
+                'eors': eor,
                 'ands': l_and,
-                'rsbs': rsbs,
+                'rsbs': rsb,
                 'adcs': adc,
-                'sbcs': sbcs,
-                'rscs': rscs,
+                'sbcs': sbc,
+                'rscs': rsc,
 
-                'orrs': orrs,
-                'movs': movs,
-                'bics': bics,
-                'mvns': mvns,
+                'orrs': orr,
+                'movs': mov,
+                'bics': bic,
+                'mvns': mvn,
                 'negs': negs,
 
-                'muls': muls,
+                'muls': mul,
                 'mlas': mlas,
                 'blx': blx,
 
@@ -1173,13 +1042,13 @@ mnemo_condm2 = {'ldmia': ldmia,
 
 
 mnemo_nocond = {'lsr': lsr,
-                'lsrs': lsrs,
+                'lsrs': lsr,
                 'lsl': lsl,
-                'lsls': lsls,
+                'lsls': lsl,
                 'push': push,
                 'pop': pop,
                 'asr': asr,
-                'asrs': asrs,
+                'asrs': asr,
                 'cbz': cbz,
                 'cbnz': cbnz,
                 'pld': pld,
