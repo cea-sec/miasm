@@ -106,7 +106,7 @@ def update_flag(on=None, inv=False,
         def new_func(ir, instr, *args):
             cur_block = func(ir, instr, *args)
 
-            if on is not None and instr.name == on and args[0] != PC:
+            if (on is None or instr.name == on) and args[0] != PC:
                 result = (aff.src
                           for aff in cur_block
                           if aff.dst == args[0]).next()
@@ -190,12 +190,11 @@ def sub(ir, instr, a, b, c):
     e.append(ExprAff(a, r))
     return e
 
+@update_flag(arith=True, sub=True)
 @extend_sem
 def subs(ir, instr, a, b, c=None):
     e = []
     r = b - c
-    e += update_flag_arith(r)
-    e += update_flag_sub(b, c, r)
     e.append(ExprAff(a, r))
     return e
 
