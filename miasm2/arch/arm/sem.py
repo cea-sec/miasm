@@ -93,6 +93,32 @@ def update_flag_sub(x, y, z):
     e.append(update_flag_sub_of(x, y, z))
     return e
 
+def update_flag(on=None, arith=False, add=False, logic=False):
+    """Decorator to update the flag of the resulting operation.
+    @on: update only if the operation has a given name
+    @*: enable flag update passes
+    """
+    def wrapper(func):
+        """Actual decorator"""
+
+        def new_func(ir, instr, arg1, arg2=None, arg3=None):
+            cur_block = func(ir, instr, arg1, arg2, arg3)
+
+            if on is not None and instr.name == on and arg1 != PC:
+                result = (aff.src
+                          for aff in cur_block
+                          if aff.dst == arg1).next()
+                if arith:
+                    cur_block += update_flag_arith(result)
+                if logic:
+                    cur_block += update_flag_logic(result)
+                if add:
+                    cur_block += update_flag_add(arg2, arg3, result)
+            return cur_block
+
+        return new_func
+    return wrapper
+
 
 def get_dst(a):
     if a == PC:
@@ -101,15 +127,12 @@ def get_dst(a):
 
 # instruction definition ##############
 
-
+@update_flag(on="ADCS", arith=True, add=True)
 def adc(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
     r = b + c + cf.zeroExtend(32)
-    if instr.name == 'ADCS' and a != PC:
-        e += update_flag_arith(r)
-        e += update_flag_add(b, c, r)
     e.append(ExprAff(a, r))
     dst = get_dst(a)
     if dst is not None:
@@ -117,14 +140,12 @@ def adc(ir, instr, a, b, c=None):
     return e
 
 
+@update_flag(on="ADDS", arith=True, add=True)
 def add(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
     r = b + c
-    if instr.name == 'ADDS' and a != PC:
-        e += update_flag_arith(r)
-        e += update_flag_add(b, c, r)
     e.append(ExprAff(a, r))
     dst = get_dst(a)
     if dst is not None:
@@ -132,13 +153,12 @@ def add(ir, instr, a, b, c=None):
     return e
 
 
+@update_flag(on="ANDS", logic=True)
 def l_and(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
     r = b & c
-    if instr.name == 'ANDS' and a != PC:
-        e += update_flag_logic(r)
     e.append(ExprAff(a, r))
     dst = get_dst(a)
     if dst is not None:
