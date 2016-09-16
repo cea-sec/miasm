@@ -132,12 +132,22 @@ def update_flag(on=None, inv=False,
 def extend_sem(func):
     """Decorator to add common patterns of ARM instructions"""
 
-    def new_func(ir, instr, arg1, arg2, arg3=None):
-        # Complete implicit argument
-        if arg3 is None:
-            arg2, arg3 = arg1, arg2
+    def new_func(ir, instr, arg1, arg2, arg3=None, arg4=None):
 
-        cur_block = func(ir, instr, arg1, arg2, arg3)
+        # Get the number of expected argument
+        nb_arg = func.func_code.co_argcount
+
+        if nb_arg == 4:
+            assert arg3 is None
+            assert arg4 is None
+            cur_block = func(ir, instr, arg1, arg2)
+        elif nb_arg == 5:
+            # Complete implicit argument
+            if arg3 is None:
+                arg2, arg3 = arg1, arg2
+            cur_block = func(ir, instr, arg1, arg2, arg3)
+        else:
+            cur_block = func(ir, instr, arg1, arg2, arg3, arg4)
 
         # If the destination is PC, update IRDst too
         if arg1 == PC:
@@ -148,11 +158,6 @@ def extend_sem(func):
         return cur_block
     return new_func
 
-
-def get_dst(a):
-    if a == PC:
-        return PC
-    return None
 
 # instruction definition ##############
 
@@ -283,40 +288,32 @@ def orr(ir, instr, a, b, c):
 
 
 @update_flag(on="MOVS", logic=True) # XXX TODO check
+@extend_sem
 def mov(ir, instr, a, b):
     e = [ExprAff(a, b)]
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAff(ir.IRDst, b))
     return e
 
 
+@extend_sem
 def movt(ir, instr, a, b):
     r = a | b << ExprInt32(16)
     e = [ExprAff(a, r)]
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAff(ir.IRDst, r))
     return e
 
 
 @update_flag(on="MVNS", logic=True) # XXX TODO check
+@extend_sem
 def mvn(ir, instr, a, b):
     r = b ^ ExprInt32(-1)
     e = [ExprAff(a, r)]
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAff(ir.IRDst, r))
     return e
 
 
+@extend_sem
 def neg(ir, instr, a, b):
     e = []
     r = - b
     e.append(ExprAff(a, r))
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAff(ir.IRDst, r))
     return e
 
 def negs(ir, instr, a, b):
@@ -333,24 +330,12 @@ def bic(ir, instr, a, b, c=None):
     return e
 
 
+@update_flag(on="MLAS", zn=True)
+@extend_sem
 def mla(ir, instr, a, b, c, d):
     e = []
     r = (b * c) + d
     e.append(ExprAff(a, r))
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAff(ir.IRDst, r))
-    return e
-
-
-def mlas(ir, instr, a, b, c, d):
-    e = []
-    r = (b * c) + d
-    e += update_flag_zn(r)
-    e.append(ExprAff(a, r))
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAff(ir.IRDst, r))
     return e
 
 
@@ -967,7 +952,7 @@ mnemo_condm1 = {'adds': add,
                 'negs': negs,
 
                 'muls': mul,
-                'mlas': mlas,
+                'mlas': mla,
                 'blx': blx,
 
                 'ldrb': ldrb,
