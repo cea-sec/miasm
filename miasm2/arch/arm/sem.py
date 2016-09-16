@@ -129,6 +129,26 @@ def update_flag(on=None, inv=False,
     return wrapper
 
 
+def extend_sem(func):
+    """Decorator to add common patterns of ARM instructions"""
+
+    def new_func(ir, instr, arg1, arg2, arg3=None):
+        # Complete implicit argument
+        if arg3 is None:
+            arg2, arg3 = arg1, arg2
+
+        cur_block = func(ir, instr, arg1, arg2, arg3)
+
+        # If the destination is PC, update IRDst too
+        if arg1 == PC:
+            result = (aff.src
+                      for aff in cur_block
+                      if aff.dst == arg1).next()
+            cur_block.append(ExprAff(ir.IRDst, result))
+        return cur_block
+    return new_func
+
+
 def get_dst(a):
     if a == PC:
         return PC
@@ -137,119 +157,82 @@ def get_dst(a):
 # instruction definition ##############
 
 @update_flag(on="ADCS", arith=True, add=True)
-def adc(ir, instr, a, b, c=None):
+@extend_sem
+def adc(ir, instr, a, b, c):
     e = []
-    if c is None:
-        b, c = a, b
     r = b + c + cf.zeroExtend(32)
     e.append(ExprAff(a, r))
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAff(ir.IRDst, r))
     return e
 
 
 @update_flag(on="ADDS", arith=True, add=True)
-def add(ir, instr, a, b, c=None):
+@extend_sem
+def add(ir, instr, a, b, c):
     e = []
-    if c is None:
-        b, c = a, b
     r = b + c
     e.append(ExprAff(a, r))
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAff(ir.IRDst, r))
     return e
 
 
 @update_flag(on="ANDS", logic=True)
-def l_and(ir, instr, a, b, c=None):
+@extend_sem
+def l_and(ir, instr, a, b, c):
     e = []
-    if c is None:
-        b, c = a, b
     r = b & c
     e.append(ExprAff(a, r))
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAff(ir.IRDst, r))
     return e
 
 
-def sub(ir, instr, a, b, c=None):
+@extend_sem
+def sub(ir, instr, a, b, c):
     e = []
-    if c is None:
-        b, c = a, b
     r = b - c
     e.append(ExprAff(a, r))
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAff(ir.IRDst, r))
     return e
 
-
+@extend_sem
 def subs(ir, instr, a, b, c=None):
     e = []
-    if c is None:
-        b, c = a, b
     r = b - c
     e += update_flag_arith(r)
     e += update_flag_sub(b, c, r)
     e.append(ExprAff(a, r))
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAff(ir.IRDst, r))
     return e
 
 
 @update_flag(on="EORS", logic=True)
-def eor(ir, instr, a, b, c=None):
+@extend_sem
+def eor(ir, instr, a, b, c):
     e = []
-    if c is None:
-        b, c = a, b
     r = b ^ c
     e.append(ExprAff(a, r))
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAff(ir.IRDst, r))
     return e
 
 
 @update_flag(on="RSBS", arith=True, sub=True, inv=True)
-def rsb(ir, instr, a, b, c=None):
+@extend_sem
+def rsb(ir, instr, a, b, c):
     e = []
-    if c is None:
-        b, c = a, b
     r = c - b
     e.append(ExprAff(a, r))
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAff(ir.IRDst, r))
     return e
 
 
 @update_flag(on="SBCS", arith=True, sub=True)
-def sbc(ir, instr, a, b, c=None):
+@extend_sem
+def sbc(ir, instr, a, b, c):
     e = []
-    if c is None:
-        b, c = a, b
     r = (b + cf.zeroExtend(32)) - (c + ExprInt32(1))
     e.append(ExprAff(a, r))
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAff(ir.IRDst, r))
     return e
 
 
 @update_flag(on="RSCS", arith=True, sub=True, inv=True)
-def rsc(ir, instr, a, b, c=None):
+@extend_sem
+def rsc(ir, instr, a, b, c):
     e = []
-    if c is None:
-        b, c = a, b
     r = (c + cf.zeroExtend(32)) - (b + ExprInt32(1))
     e.append(ExprAff(a, r))
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAff(ir.IRDst, r))
     return e
 
 
@@ -292,15 +275,11 @@ def cmn(ir, instr, a, b, c=None):
 
 
 @update_flag(on="ORRS", logic=True)
-def orr(ir, instr, a, b, c=None):
+@extend_sem
+def orr(ir, instr, a, b, c):
     e = []
-    if c is None:
-        b, c = a, b
     r = b | c
     e.append(ExprAff(a, r))
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAff(ir.IRDst, r))
     return e
 
 
@@ -347,15 +326,11 @@ def negs(ir, instr, a, b):
 
 
 @update_flag(on="BICS", logic=True)
+@extend_sem
 def bic(ir, instr, a, b, c=None):
     e = []
-    if c is None:
-        b, c = a, b
     r = b & (c ^ ExprInt(uint32(-1)))
     e.append(ExprAff(a, r))
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAff(ir.IRDst, r))
     return e
 
 
@@ -381,15 +356,11 @@ def mlas(ir, instr, a, b, c, d):
 
 
 @update_flag(on="MULS", zn=True)
+@extend_sem
 def mul(ir, instr, a, b, c = None):
     e = []
-    if c is None:
-        b, c = a, b
     r = b * c
     e.append(ExprAff(a, r))
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAff(ir.IRDst, r))
     return e
 
 
@@ -659,41 +630,29 @@ def und(ir, instr, a, b):
 
 
 @update_flag(on="LSRS", logic=True) # TODO XXX implement correct CF for shifters
-def lsr(ir, instr, a, b, c = None):
+@extend_sem
+def lsr(ir, instr, a, b, c):
     e = []
-    if c is None:
-        b, c = a, b
     r = b >> c
     e.append(ExprAff(a, r))
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAff(ir.IRDst, r))
     return e
 
 
 @update_flag(on="ASRS", logic=True)
+@extend_sem
 def asr(ir, instr, a, b, c=None):
     e = []
-    if c is None:
-        b, c = a, b
     r = ExprOp("a>>", b, c)
     e.append(ExprAff(a, r))
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAff(ir.IRDst, r))
     return e
 
 
 @update_flag(on="LSLS", logic=True)
+@extend_sem
 def lsl(ir, instr, a, b, c = None):
     e = []
-    if c is None:
-        b, c = a, b
     r = b << c
     e.append(ExprAff(a, r))
-    dst = get_dst(a)
-    if dst is not None:
-        e.append(ExprAff(ir.IRDst, r))
     return e
 
 
