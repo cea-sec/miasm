@@ -63,3 +63,12 @@ for irb in res[1]:
         for expr in exprs:
             print expr
         print
+
+# Test options
+
+sb = SemBuilder({}, no_extra_block=True)
+@sb.parse
+def test(arg1, arg2):
+    arg1 = arg2
+
+assert test(ir, instr, a, b) == [m2_expr.ExprAff(a, b)]
