@@ -329,6 +329,7 @@ for script in ["jitload.py",
                ]:
     testset += RegressionTest([script], base_dir="jitter", tags=[TAGS["tcc"]])
 
+testset += RegressionTest(["jitter/emulatedsymbexec.py"])
 
 # Examples
 class Example(Test):
