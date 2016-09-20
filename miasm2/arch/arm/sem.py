@@ -2,6 +2,7 @@ from miasm2.expression.expression import *
 from miasm2.ir.ir import ir, irbloc
 from miasm2.arch.arm.arch import mn_arm, mn_armt
 from miasm2.arch.arm.regs import *
+from miasm2.core.sembuilder import SemBuilder
 
 
 # liris.cnrs.fr/~mmrissa/lib/exe/fetch.php?media=armv7-a-r-manual.pdf
@@ -159,85 +160,76 @@ def extend_sem(func):
     return new_func
 
 
+# SemBuilder context
+ctx = {"cf": cf,
+       "exception_flags": exception_flags,
+       "bp_num": bp_num,
+       "EXCEPT_SOFT_BP": EXCEPT_SOFT_BP,
+}
+sbuild = SemBuilder(ctx, no_extra_block=True)
+
+
 # instruction definition ##############
 
 @update_flag(on="ADCS", arith=True, add=True)
 @extend_sem
-def adc(ir, instr, a, b, c):
-    e = []
-    r = b + c + cf.zeroExtend(32)
-    e.append(ExprAff(a, r))
-    return e
+@sbuild.parse
+def adc(arg1, arg2, arg3):
+    arg1 = arg2 + arg3 + cf.zeroExtend(32)
 
 
 @update_flag(on="ADDS", arith=True, add=True)
 @extend_sem
-def add(ir, instr, a, b, c):
-    e = []
-    r = b + c
-    e.append(ExprAff(a, r))
-    return e
+@sbuild.parse
+def add(arg1, arg2, arg3):
+    arg1 = arg2 + arg3
 
 
 @update_flag(on="ANDS", logic=True)
 @extend_sem
-def l_and(ir, instr, a, b, c):
-    e = []
-    r = b & c
-    e.append(ExprAff(a, r))
-    return e
+@sbuild.parse
+def l_and(arg1, arg2, arg3):
+    arg1 = arg2 & arg3
 
 
 @extend_sem
-def sub(ir, instr, a, b, c):
-    e = []
-    r = b - c
-    e.append(ExprAff(a, r))
-    return e
+@sbuild.parse
+def sub(arg1, arg2, arg3):
+    arg1 = arg2 - arg3
+
 
 @update_flag(arith=True, sub=True)
 @extend_sem
-def subs(ir, instr, a, b, c=None):
-    e = []
-    r = b - c
-    e.append(ExprAff(a, r))
-    return e
+@sbuild.parse
+def subs(arg1, arg2, arg3):
+    arg1 = arg2 - arg3
 
 
 @update_flag(on="EORS", logic=True)
 @extend_sem
-def eor(ir, instr, a, b, c):
-    e = []
-    r = b ^ c
-    e.append(ExprAff(a, r))
-    return e
+@sbuild.parse
+def eor(arg1, arg2, arg3):
+    arg1 = arg2 ^ arg3
 
 
 @update_flag(on="RSBS", arith=True, sub=True, inv=True)
 @extend_sem
-def rsb(ir, instr, a, b, c):
-    e = []
-    r = c - b
-    e.append(ExprAff(a, r))
-    return e
-
+@sbuild.parse
+def rsb(arg1, arg2, arg3):
+    arg1 = arg3 - arg2
 
 @update_flag(on="SBCS", arith=True, sub=True)
 @extend_sem
-def sbc(ir, instr, a, b, c):
-    e = []
-    r = (b + cf.zeroExtend(32)) - (c + ExprInt32(1))
-    e.append(ExprAff(a, r))
-    return e
+@sbuild.parse
+def sbc(arg1, arg2, arg3):
+    arg1 = (arg2 + cf.zeroExtend(32)) - (arg3 + i32(1))
 
 
 @update_flag(on="RSCS", arith=True, sub=True, inv=True)
 @extend_sem
-def rsc(ir, instr, a, b, c):
-    e = []
-    r = (c + cf.zeroExtend(32)) - (b + ExprInt32(1))
-    e.append(ExprAff(a, r))
-    return e
+@sbuild.parse
+def rsc(arg1, arg2, arg3):
+    arg1 = (arg3 + cf.zeroExtend(32)) - (arg2 + i32(1))
 
 
 def tst(ir, instr, a, b, c=None):
@@ -280,41 +272,35 @@ def cmn(ir, instr, a, b, c=None):
 
 @update_flag(on="ORRS", logic=True)
 @extend_sem
-def orr(ir, instr, a, b, c):
-    e = []
-    r = b | c
-    e.append(ExprAff(a, r))
-    return e
+@sbuild.parse
+def orr(arg1, arg2, arg3):
+    arg1 = arg2 | arg3
 
 
 @update_flag(on="MOVS", logic=True) # XXX TODO check
 @extend_sem
-def mov(ir, instr, a, b):
-    e = [ExprAff(a, b)]
-    return e
-
+@sbuild.parse
+def mov(arg1, arg2):
+    arg1 = arg2
 
 @extend_sem
-def movt(ir, instr, a, b):
-    r = a | b << ExprInt32(16)
-    e = [ExprAff(a, r)]
-    return e
+@sbuild.parse
+def movt(arg1, arg2):
+    arg1 = arg1 | arg2 << i32(16)
 
 
 @update_flag(on="MVNS", logic=True) # XXX TODO check
 @extend_sem
-def mvn(ir, instr, a, b):
-    r = b ^ ExprInt32(-1)
-    e = [ExprAff(a, r)]
-    return e
+@sbuild.parse
+def mvn(arg1, arg2):
+    arg1 = arg2 ^ i32(-1)
 
 
 @extend_sem
-def neg(ir, instr, a, b):
-    e = []
-    r = - b
-    e.append(ExprAff(a, r))
-    return e
+@sbuild.parse
+def neg(arg1, arg2):
+    arg1 = - arg2
+
 
 def negs(ir, instr, a, b):
     e = subs(ir, instr, a, ExprInt_from(b, 0), b)
@@ -323,93 +309,81 @@ def negs(ir, instr, a, b):
 
 @update_flag(on="BICS", logic=True)
 @extend_sem
-def bic(ir, instr, a, b, c=None):
-    e = []
-    r = b & (c ^ ExprInt(uint32(-1)))
-    e.append(ExprAff(a, r))
-    return e
+@sbuild.parse
+def bic(arg1, arg2, arg3):
+    arg1 = arg2 & (arg3 ^ i32(-1))
 
 
 @update_flag(on="MLAS", zn=True)
 @extend_sem
-def mla(ir, instr, a, b, c, d):
-    e = []
-    r = (b * c) + d
-    e.append(ExprAff(a, r))
-    return e
+@sbuild.parse
+def mla(arg1, arg2, arg3, arg4):
+    arg1 = (arg2 * arg3) + arg4
 
 
 @update_flag(on="MULS", zn=True)
 @extend_sem
-def mul(ir, instr, a, b, c = None):
-    e = []
-    r = b * c
-    e.append(ExprAff(a, r))
-    return e
+@sbuild.parse
+def mul(arg1, arg2, arg3):
+    arg1 = arg2 * arg3
 
 
-def umull(ir, instr, a, b, c, d):
-    e = []
-    r = c.zeroExtend(64) * d.zeroExtend(64)
-    e.append(ExprAff(a, r[0:32]))
-    e.append(ExprAff(b, r[32:64]))
+@sbuild.parse
+def umull(arg1, arg2, arg3, arg4):
+    result = arg3.zeroExtend(64) * arg4.zeroExtend(64)
+    arg1 = result[0:32]
+    arg2 = result[32:64]
     # r15/IRDst not allowed as output
-    return e
 
-def umlal(ir, instr, a, b, c, d):
-    e = []
-    r = c.zeroExtend(64) * d.zeroExtend(64) + ExprCompose([(a, 0, 32), (b, 32, 64)])
-    e.append(ExprAff(a, r[0:32]))
-    e.append(ExprAff(b, r[32:64]))
+
+@sbuild.parse
+def umlal(arg1, arg2, arg3, arg4):
+    result = arg3.zeroExtend(64) * arg4.zeroExtend(64) + {arg1, arg2}
+    arg1 = result[0:32]
+    arg2 = result[32:64]
     # r15/IRDst not allowed as output
-    return e
 
-def smull(ir, instr, a, b, c, d):
-    e = []
-    r = c.signExtend(64) * d.signExtend(64)
-    e.append(ExprAff(a, r[0:32]))
-    e.append(ExprAff(b, r[32:64]))
+
+@sbuild.parse
+def smull(arg1, arg2, arg3, arg4):
+    result = arg3.signExtend(64) * arg4.signExtend(64)
+    arg1 = result[0:32]
+    arg2 = result[32:64]
     # r15/IRDst not allowed as output
-    return e
 
-def smlal(ir, instr, a, b, c, d):
-    e = []
-    r = c.signExtend(64) * d.signExtend(64) + ExprCompose([(a, 0, 32), (b, 32, 64)])
-    e.append(ExprAff(a, r[0:32]))
-    e.append(ExprAff(b, r[32:64]))
+
+@sbuild.parse
+def smlal(arg1, arg2, arg3, arg4):
+    result = arg3.signExtend(64) * arg4.signExtend(64) + {arg1, arg2}
+    arg1 = result[0:32]
+    arg2 = result[32:64]
     # r15/IRDst not allowed as output
-    return e
-
-def b(ir, instr, a):
-    e = []
-    e.append(ExprAff(PC, a))
-    e.append(ExprAff(ir.IRDst, a))
-    return e
 
 
-def bl(ir, instr, a):
-    e = []
-    l = ExprInt32(instr.offset + instr.l)
-    e.append(ExprAff(PC, a))
-    e.append(ExprAff(ir.IRDst, a))
-    e.append(ExprAff(LR, l))
-    return e
+@sbuild.parse
+def b(arg1):
+    PC = arg1
+    ir.IRDst = arg1
 
 
-def bx(ir, instr, a):
-    e = []
-    e.append(ExprAff(PC, a))
-    e.append(ExprAff(ir.IRDst, a))
-    return e
+@sbuild.parse
+def bl(arg1):
+    LR = i32(instr.offset + instr.l)
+    PC = arg1
+    ir.IRDst = arg1
 
 
-def blx(ir, instr, a):
-    e = []
-    l = ExprInt32(instr.offset + instr.l)
-    e.append(ExprAff(PC, a))
-    e.append(ExprAff(ir.IRDst, a))
-    e.append(ExprAff(LR, l))
-    return e
+@sbuild.parse
+def bx(arg1):
+    PC = arg1
+    ir.IRDst = arg1
+
+
+@sbuild.parse
+def blx(arg1):
+    LR = i32(instr.offset + instr.l)
+    PC = arg1
+    ir.IRDst = arg1
 
 
 def st_ld_r(ir, instr, a, b, store=False, size=32, s_ext=False, z_ext=False):
@@ -615,29 +589,23 @@ def und(ir, instr, a, b):
 
 @update_flag(on="LSRS", logic=True) # TODO XXX implement correct CF for shifters
 @extend_sem
-def lsr(ir, instr, a, b, c):
-    e = []
-    r = b >> c
-    e.append(ExprAff(a, r))
-    return e
+@sbuild.parse
+def lsr(arg1, arg2, arg3):
+    arg1 = arg2 >> arg3
 
 
 @update_flag(on="ASRS", logic=True)
 @extend_sem
-def asr(ir, instr, a, b, c=None):
-    e = []
-    r = ExprOp("a>>", b, c)
-    e.append(ExprAff(a, r))
-    return e
+@sbuild.parse
+def asr(arg1, arg2, arg3):
+    arg1 = 'a>>'(arg2, arg3)
 
 
 @update_flag(on="LSLS", logic=True)
 @extend_sem
-def lsl(ir, instr, a, b, c = None):
-    e = []
-    r = b << c
-    e.append(ExprAff(a, r))
-    return e
+@sbuild.parse
+def lsl(arg1, arg2, arg3):
+    arg1 = arg2 << arg3
 
 
 def push(ir, instr, a):
@@ -667,19 +635,16 @@ def pop(ir, instr, a):
     return e
 
 
-def cbz(ir, instr, a, b):
-    e = []
+@sbuild.parse
+def cbz(arg1, arg2):
     lbl_next = ExprId(ir.get_next_label(instr), 32)
-    e.append(ExprAff(ir.IRDst, ExprCond(a, lbl_next, b)))
-    return e
+    ir.IRDst = lbl_next if arg1 else arg2
 
 
-def cbnz(ir, instr, a, b):
-    e = []
+@sbuild.parse
+def cbnz(arg1, arg2):
     lbl_next = ExprId(ir.get_next_label(instr), 32)
-    e.append(ir.IRDst, ExprCond(a, b, lbl_next))
-    return e
-
+    ir.IRDst = arg2 if arg1 else lbl_next
 
 
 def uxtb(ir, instr, a, b):
@@ -757,35 +722,29 @@ def bfc(ir, instr, a, b, c):
         e.append(ExprAff(ir.IRDst, r))
     return e
 
-def rev(ir, instr, a, b):
-    e = []
-    c = ExprCompose([(b[:8],      24, 32),
-                     (b[8:16],    16, 24),
-                     (b[16:24],   8, 16),
-                     (b[24:32],   0, 8)])
-    e.append(ExprAff(a, c))
-    return e
+@sbuild.parse
+def rev(arg1, arg2):
+    arg1 = {arg2[24:32], arg2[16:24], arg2[8:16], arg2[:8]}
+
 
 def pld(ir, instr, a):
     return []
 
 
-def clz(ir, instr, a, b):
-    e = []
-    e.append(ExprAff(a, ExprOp('clz', b)))
-    return e
-
-def uxtab(ir, instr, a, b, c):
-    e = []
-    e.append(ExprAff(a, b + (c & ExprInt32(0xff))))
-    return e
+@sbuild.parse
+def clz(arg1, arg2):
+    arg1 = 'clz'(arg2)
 
 
-def bkpt(ir, instr, a):
-    e = []
-    e.append(ExprAff(exception_flags, ExprInt32(EXCEPT_SOFT_BP)))
-    e.append(ExprAff(bp_num, a))
-    return e
+@sbuild.parse
+def uxtab(arg1, arg2, arg3):
+    arg1 = arg2 + (arg3 & i32(0xff))
+
+
+@sbuild.parse
+def bkpt(arg1):
+    exception_flags = i32(EXCEPT_SOFT_BP)
+    bp_num = arg1
 
 
 
