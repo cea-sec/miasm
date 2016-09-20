@@ -259,19 +259,16 @@ for script in ["win_api_x86_32.py",
 testset += RegressionTest(["depgraph.py"], base_dir="analysis",
                           products=[fname for fnames in (
                               ["graph_test_%02d_00.dot" % test_nb,
-                               "exp_graph_test_%02d_00.dot" % test_nb,
                                "graph_%02d.dot" % test_nb]
                               for test_nb in xrange(1, 18))
                                     for fname in fnames] +
-                          [fname for fnames in (
-                              ["graph_test_%02d_%02d.dot" % (test_nb, res_nb),
-                               "exp_graph_test_%02d_%02d.dot" % (test_nb,
-                                                                 res_nb)]
-                              for (test_nb, res_nb) in ((3, 1), (5, 1), (8, 1),
-                                                        (9, 1), (10, 1),
-                                                        (12, 1), (13, 1),
-                                                        (14, 1), (15, 1)))
-                           for fname in fnames])
+                          ["graph_test_%02d_%02d.dot" % (test_nb, res_nb)
+                           for (test_nb, res_nb) in ((3, 1), (5, 1), (8, 1),
+                                                     (9, 1), (10, 1),
+                                                     (12, 1), (13, 1),
+                                                     (14, 1), (15, 1))
+                           ])
+
 
 ## Degraph
 class TestDepgraph(RegressionTest):
