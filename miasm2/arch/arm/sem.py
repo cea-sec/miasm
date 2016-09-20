@@ -293,7 +293,7 @@ def movt(arg1, arg2):
 @extend_sem
 @sbuild.parse
 def mvn(arg1, arg2):
-    arg1 = arg2 ^ i32(-1)
+    arg1 = ~arg2
 
 
 @extend_sem
@@ -311,7 +311,7 @@ def negs(ir, instr, a, b):
 @extend_sem
 @sbuild.parse
 def bic(arg1, arg2, arg3):
-    arg1 = arg2 & (arg3 ^ i32(-1))
+    arg1 = arg2 & ~arg3
 
 
 @update_flag(on="MLAS", zn=True)
