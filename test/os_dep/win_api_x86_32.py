@@ -5,6 +5,7 @@ import unittest
 import logging
 from miasm2.analysis.machine import Machine
 import miasm2.os_dep.win_api_x86_32 as winapi
+from miasm2.core.utils import pck32
 
 machine = Machine("x86_32")
 
@@ -95,9 +96,10 @@ class TestWinAPI(unittest.TestCase):
         self.assertTrue(dwVer)
 
         # BOOL WINAPI GetVersionEx(_Inout_ LPOSVERSIONINFO lpVersionInfo);
+        jit.vm.set_mem(jit.stack_base, pck32(0x9c))
         jit.push_uint32_t(jit.stack_base)      # lpVersionInfo
         jit.push_uint32_t(0)                   # @return
-        winapi.kernel32_GetVersionEx(jit)
+        winapi.kernel32_GetVersionExA(jit)
         vBool = jit.cpu.EAX
         self.assertTrue(vBool)
 
