@@ -188,6 +188,7 @@ typedef struct {
 	VmMngr *pyvm;
 	PyObject *jitter;
 	struct vm_cpu *cpu;
+	struct taint_colors_t *taint_analysis;
 } JitCpu;
 
 

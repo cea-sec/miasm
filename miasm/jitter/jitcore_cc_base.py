@@ -22,6 +22,7 @@ def gen_core(arch, attrib):
     txt += '#include "%s/bn.h"\n' % lib_dir
     txt += '#include "%s/vm_mngr_py.h"\n' % lib_dir
     txt += '#include "%s/JitCore.h"\n' % lib_dir
+    txt += '#include "%s/analysis/taint_analysis.h"\n' % os.path.dirname(lib_dir)
     txt += '#include "%s/arch/JitCore_%s.h"\n' % (lib_dir, arch.name)
 
     txt += r'''

@@ -479,6 +479,10 @@ class CGen(object):
         c_prefetch, c_var, c_main, c_mem, c_updt = c_assignmnts
         out = []
         out.append("{")
+        if self.do_taint:
+            out.append("// Taint analysis")
+            out += self.gen_clean_callback_info()
+            out += assignblk.C_taint
         out.append("// var")
         out += c_var
         out.append("// Prefetch")
@@ -506,6 +510,9 @@ class CGen(object):
         out += c_updt
 
         out.append("// Checks exception")
+
+        if self.do_taint:
+            out += self.gen_check_taint_exception(assignblk.instr_addr)
 
         # Check post assignblk exception flags
         if attrib.set_exception:

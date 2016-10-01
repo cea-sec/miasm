@@ -20,6 +20,7 @@ class x86_32_CGen(CGen):
         self.PC = self.ir_arch.arch.regs.RIP
         self.translator = TranslatorC(self.ir_arch.loc_db)
         self.init_arch_C()
+        self.do_taint = False
 
     def gen_post_code(self, attrib, pc_value):
         out = []

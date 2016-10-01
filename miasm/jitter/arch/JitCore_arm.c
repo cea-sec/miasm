@@ -9,6 +9,7 @@
 #include "../vm_mngr_py.h"
 #include "../JitCore.h"
 #include "../op_semantics.h"
+#include "../../analysis/taint_analysis.h"
 #include "JitCore_arm.h"
 
 
@@ -247,6 +248,37 @@ static PyMethodDef JitCpu_methods[] = {
 	 "X"},
 	{"set_interrupt_num", (PyCFunction)cpu_set_interrupt_num, METH_VARARGS,
 	 "X"},
+	{"set_mem", (PyCFunction)vm_set_mem, METH_VARARGS,
+	 "X"},
+	{"get_mem", (PyCFunction)vm_get_mem, METH_VARARGS,
+	 "X"},
+	{"taint_register", (PyCFunction)cpu_taint_register, METH_VARARGS,
+	 "X"},
+	{"untaint_register", (PyCFunction)cpu_untaint_register, METH_VARARGS,
+	 "X"},
+	{"untaint_all_registers", (PyCFunction)cpu_untaint_all_registers, METH_VARARGS,
+	 "X"},
+	{"taint_memory", (PyCFunction)cpu_taint_memory, METH_VARARGS,
+	 "X"},
+	{"untaint_memory", (PyCFunction)cpu_untaint_memory, METH_VARARGS,
+	 "X"},
+	{"untaint_all_memory", (PyCFunction)cpu_untaint_all_memory, METH_VARARGS,
+	 "X"},
+	{"untaint_all", (PyCFunction)cpu_untaint_all, METH_VARARGS,
+	 "X"},
+	{"init_taint_analysis", (PyCFunction)cpu_init_taint, METH_VARARGS,
+	 "X"},
+	{"last_tainted_registers", (PyCFunction)cpu_get_last_tainted_registers, METH_VARARGS,
+	 "X"},
+	{"last_tainted_memory", (PyCFunction)cpu_get_last_tainted_memory, METH_VARARGS,
+	 "X"},
+	{"get_all_taint", (PyCFunction)cpu_get_all_taint, METH_VARARGS,
+	 "X"},
+	{"do_taint_reg_cb", (PyCFunction)cpu_do_taint_reg_cb, METH_VARARGS,
+	 "X"},
+	{"do_untaint_reg_cb", (PyCFunction)cpu_do_untaint_reg_cb, METH_VARARGS,
+	 "X"},
+
 	{NULL}  /* Sentinel */
 };
 
