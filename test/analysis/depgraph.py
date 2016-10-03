@@ -637,7 +637,7 @@ def flatNode(node):
         if isinstance(node.element, ExprId):
             element = node.element.name
         elif isinstance(node.element, ExprInt):
-            element = int(node.element.arg.arg)
+            element = int(node.element.arg)
         else:
             RuntimeError("Unsupported type '%s'" % type(enode.element))
         return (node.label.name,

@@ -267,7 +267,7 @@ def simp_cst_propagation(e_s, e):
     # A << int with A ExprCompose => move index
     if op == "<<" and isinstance(args[0], ExprCompose) and isinstance(args[1], ExprInt):
         final_size = args[0].size
-        shift = int(args[1].arg)
+        shift = int(args[1])
         new_args = []
         # shift indexes
         for expr, start, stop in args[0].args:
@@ -291,7 +291,7 @@ def simp_cst_propagation(e_s, e):
     # A >> int with A ExprCompose => move index
     if op == ">>" and isinstance(args[0], ExprCompose) and isinstance(args[1], ExprInt):
         final_size = args[0].size
-        shift = int(args[1].arg)
+        shift = int(args[1])
         new_args = []
         # shift indexes
         for expr, start, stop in args[0].args:
@@ -335,14 +335,14 @@ def simp_cst_propagation(e_s, e):
         dest, rounds, cf = args
         # Skipped if rounds is 0
         if (isinstance(rounds, ExprInt) and
-            int(rounds.arg) == 0):
+            int(rounds) == 0):
             return dest
         elif all(map(lambda x: isinstance(x, ExprInt), args)):
             # The expression can be resolved
-            tmp = int(dest.arg)
-            cf = int(cf.arg)
+            tmp = int(dest)
+            cf = int(cf)
             size = dest.size
-            tmp_count = (int(rounds.arg) &
+            tmp_count = (int(rounds) &
                          (0x3f if size == 64 else 0x1f)) % (size + 1)
             if op == ">>>c_rez":
                 while (tmp_count != 0):
@@ -350,14 +350,14 @@ def simp_cst_propagation(e_s, e):
                     tmp = (tmp >> 1) + (cf << (size - 1))
                     cf = tmp_cf
                     tmp_count -= 1
-                    tmp &= int(dest.mask.arg)
+                    tmp &= int(dest.mask)
             elif op == "<<<c_rez":
                 while (tmp_count != 0):
                     tmp_cf = (tmp >> (size - 1)) & 1
                     tmp = (tmp << 1) + cf
                     cf = tmp_cf
                     tmp_count -= 1
-                    tmp &= int(dest.mask.arg)
+                    tmp &= int(dest.mask)
             else:
                 raise RuntimeError("Unknown operation: %s" % op)
             return ExprInt(tmp, size=dest.size)
@@ -518,7 +518,7 @@ def simp_slice(e_s, e):
     elif (isinstance(e.arg, ExprOp) and e.arg.op in [">>", "<<"] and
           isinstance(e.arg.args[1], ExprInt)):
         arg, shift = e.arg.args
-        shift = int(shift.arg)
+        shift = int(shift)
         if e.arg.op == ">>":
             if shift + e.stop <= arg.size:
                 return arg[e.start + shift:e.stop + shift]

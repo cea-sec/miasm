@@ -291,7 +291,7 @@ class CGen(object):
             return ("((%s)?(%s):(%s))" % (cond, src1, src2),
                     "((%s)?(%s):(%s))" % (cond, src1b, src2b))
         elif isinstance(expr, m2_expr.ExprInt):
-            offset = int(expr.arg)
+            offset = int(expr)
             self.add_label_index(dst2index, offset)
             return ("%s" % dst2index[offset],
                     hex(offset))

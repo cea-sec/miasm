@@ -193,7 +193,7 @@ class instruction_msp430(instruction):
         # Call argument is an absolute offset
         # Other offsets are relative to instruction offset
         if self.name != "call":
-            self.args[0] =  ExprInt(int(e.arg) - self.offset, 16)
+            self.args[0] =  ExprInt(int(e) - self.offset, 16)
 
     def get_info(self, c):
         pass
@@ -371,7 +371,7 @@ class msp430_sreg_arg(reg_noarg, m_arg):
             self.parent.a_s.value = 0
             self.value = self.reg_info.expr.index(e)
         elif isinstance(e, ExprInt):
-            v = int(e.arg)
+            v = int(e)
             if v == 0xffff and self.parent.size.value == 0:
                 self.parent.a_s.value = 0b11
                 self.value = 3
@@ -404,11 +404,11 @@ class msp430_sreg_arg(reg_noarg, m_arg):
             elif isinstance(e.arg, ExprInt):
                 self.parent.a_s.value = 0b01
                 self.value = self.reg_info.expr.index(SR)
-                self.parent.off_s.value = int(e.arg.arg)
+                self.parent.off_s.value = int(e.arg)
             elif isinstance(e.arg, ExprOp):
                 self.parent.a_s.value = 0b01
                 self.value = self.reg_info.expr.index(e.arg.args[0])
-                self.parent.off_s.value = int(e.arg.args[1].arg)
+                self.parent.off_s.value = int(e.arg.args[1])
             else:
                 raise NotImplementedError(
                     'unknown instance e.arg = %s' % type(e.arg))
@@ -464,7 +464,7 @@ class msp430_dreg_arg(msp430_sreg_arg):
                     'unknown instance e.arg = %s' % type(e.arg))
             self.parent.a_d.value = 1
             self.value = self.reg_info.expr.index(r)
-            self.parent.off_d.value = int(i.arg)
+            self.parent.off_d.value = int(i)
         else:
             raise NotImplementedError('unknown instance e = %s' % type(e))
         return True
@@ -550,7 +550,7 @@ class msp430_offs(imm_noarg, m_arg):
     def encode(self):
         if not isinstance(self.expr, ExprInt):
             return False
-        v = int(self.expr.arg)
+        v = int(self.expr)
         if (1 << (self.l - 1)) & v:
             v = -((0xffff ^ v) + 1)
         v = self.encodeval(v)

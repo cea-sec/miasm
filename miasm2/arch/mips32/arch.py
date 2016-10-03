@@ -430,13 +430,13 @@ class mips32_esize(mips32_imm, cpu.m_arg):
 
 class mips32_eposh(mips32_imm, cpu.m_arg):
     def decode(self, v):
-        self.expr = ExprInt32(v-int(self.parent.epos.expr.arg)+1)
+        self.expr = ExprInt32(v-int(self.parent.epos.expr)+1)
         return True
 
     def encode(self):
         if not isinstance(self.expr, ExprInt):
             return False
-        v = int(self.expr.arg) + int(self.parent.epos.expr.arg) -1
+        v = int(self.expr.arg) + int(self.parent.epos.expr) -1
         self.value = v
         return True
 
@@ -446,7 +446,7 @@ class mips32_eposh(mips32_imm, cpu.m_arg):
 class mips32_cpr(cpu.m_arg):
     parser = regs.regs_cpr0_info.parser
     def decode(self, v):
-        index = int(self.parent.cpr0.expr.arg) << 3
+        index = int(self.parent.cpr0.expr) << 3
         index += v
         self.expr = regs.regs_cpr0_expr[index]
         return True

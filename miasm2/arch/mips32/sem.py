@@ -131,8 +131,8 @@ def l_and(arg1, arg2, arg3):
 
 @sbuild.parse
 def ext(arg1, arg2, arg3, arg4):
-    pos = int(arg3.arg)
-    size = int(arg4.arg)
+    pos = int(arg3)
+    size = int(arg4)
     arg1 = arg2[pos:pos + size].zeroExtend(32)
 
 @sbuild.parse
@@ -311,8 +311,8 @@ def tlbp():
 
 def ins(ir, instr, a, b, c, d):
     e = []
-    pos = int(c.arg)
-    l = int(d.arg)
+    pos = int(c)
+    l = int(d)
 
     my_slices = []
     if pos != 0:

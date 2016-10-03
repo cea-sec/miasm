@@ -90,7 +90,7 @@ class EmulatedSymbExec(symbexec):
         """Handle 'segm' operation"""
         if expr.op != "segm":
             return expr
-        segm_nb = int(expr.args[0].arg)
+        segm_nb = int(expr.args[0])
         segmaddr = self.cpu.get_segm_base(segm_nb)
         return e_s(m2_expr.ExprOp("+",
                                   m2_expr.ExprInt(segmaddr, expr.size),

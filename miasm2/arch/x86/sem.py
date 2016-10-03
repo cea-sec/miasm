@@ -430,7 +430,7 @@ def l_test(ir, instr, a, b):
 def get_shift(a, b):
     # b.size must match a
     if isinstance(b, m2_expr.ExprInt):
-        b = m2_expr.ExprInt(int(b.arg), a.size)
+        b = m2_expr.ExprInt(int(b), a.size)
     else:
         b = b.zeroExtend(a.size)
     if a.size == 64:
@@ -472,7 +472,7 @@ def _rotate_tpl(ir, instr, a, b, op, left=False, include_cf=False):
 
     # Don't generate conditional shifter on constant
     if isinstance(shifter, m2_expr.ExprInt):
-        if int(shifter.arg) != 0:
+        if int(shifter) != 0:
             return e_do, []
         else:
             return [], []
@@ -569,7 +569,7 @@ def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None, left=False,
 
     # Don't generate conditional shifter on constant
     if isinstance(shifter, m2_expr.ExprInt):
-        if int(shifter.arg) != 0:
+        if int(shifter) != 0:
             return e_do, []
         else:
             return [], []
@@ -1172,7 +1172,7 @@ def ret(ir, instr, a=None):
         a = m2_expr.ExprInt(0, s)
         value = (myesp + (m2_expr.ExprInt((s / 8), s)))
     else:
-        a = m2_expr.ExprInt(int(a.arg), s)
+        a = m2_expr.ExprInt(int(a), s)
         value = (myesp + (m2_expr.ExprInt((s / 8), s) + a))
 
     e.append(m2_expr.ExprAff(myesp, value))
@@ -3624,7 +3624,7 @@ def ps_rl_ll(ir, instr, a, b, op, size):
                        i, i + size))
 
     if isinstance(test, m2_expr.ExprInt):
-        if int(test.arg) == 0:
+        if int(test) == 0:
             return [m2_expr.ExprAff(a[0:a.size], m2_expr.ExprCompose(slices))], []
         else:
             return [m2_expr.ExprAff(a, m2_expr.ExprInt(0, a.size))], []
@@ -3803,7 +3803,7 @@ def pinsr(ir, instr, a, b, c, size):
             32: 0x3,
             64: 0x1}[size]
 
-    sel = (int(c.arg) & mask) * size
+    sel = (int(c) & mask) * size
     e.append(m2_expr.ExprAff(a[sel:sel + size], b[:size]))
 
     return e, []
@@ -3833,7 +3833,7 @@ def pextr(ir, instr, a, b, c, size):
             32: 0x3,
             64: 0x1}[size]
 
-    sel = (int(c.arg) & mask) * size
+    sel = (int(c) & mask) * size
     e.append(m2_expr.ExprAff(a, b[sel:sel + size].zeroExtend(a.size)))
 
     return e, []

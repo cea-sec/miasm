@@ -43,7 +43,7 @@ class LLVMType(llvm_c.Type):
     def generic(cls, e):
         "Generic value for execution"
         if isinstance(e, m2_expr.ExprInt):
-            return llvm_e.GenericValue.int(LLVMType.int(e.size), int(e.arg))
+            return llvm_e.GenericValue.int(LLVMType.int(e.size), int(e))
         elif isinstance(e, llvm_e.GenericValue):
             return e
         else:
@@ -365,7 +365,7 @@ class LLVMFunction():
         builder = self.builder
 
         if isinstance(expr, m2_expr.ExprInt):
-            ret = llvm_c.Constant.int(LLVMType.int(expr.size), int(expr.arg))
+            ret = llvm_c.Constant.int(LLVMType.int(expr.size), int(expr))
             self.update_cache(expr, ret)
             return ret
 

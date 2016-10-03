@@ -893,8 +893,8 @@ def sxth(ir, instr, a, b):
 
 def ubfx(ir, instr, a, b, c, d):
     e = []
-    c = int(c.arg)
-    d = int(d.arg)
+    c = int(c)
+    d = int(d)
     r = b[c:c+d].zeroExtend(32)
     e.append(ExprAff(a, r))
     dst = None
@@ -905,8 +905,8 @@ def ubfx(ir, instr, a, b, c, d):
 
 def bfc(ir, instr, a, b, c):
     e = []
-    start = int(b.arg)
-    stop = start + int(c.arg)
+    start = int(b)
+    stop = start + int(c)
     out = []
     last = 0
     if start:

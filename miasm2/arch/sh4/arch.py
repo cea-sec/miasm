@@ -247,7 +247,7 @@ class sh4_dgpreg_imm(sh4_dgpreg):
                 return False
             if not isinstance(res[jrb], ExprInt):
                 return False
-            d = int(res[jrb].arg)
+            d = int(res[jrb])
             p.disp.value = d / (s / 8)
             if not res[jra] in gpregs.expr:
                 return False
@@ -275,7 +275,7 @@ class sh4_simm(sh4_imm):
     def encode(self):
         if not isinstance(self.expr, ExprInt):
             return False
-        v = int(self.expr.arg)
+        v = int(self.expr)
         if (1 << (self.l - 1)) & v:
             v = -((0xffffffff ^ v) + 1)
         v = self.encodeval(v)
@@ -291,7 +291,7 @@ class sh4_dpc16imm(sh4_dgpreg):
         return True
 
     def calcdisp(self, v):
-        v = (int(v.arg) - 4) / 2
+        v = (int(v) - 4) / 2
         if not 0 < v <= 0xff:
             return None
         return v
@@ -328,7 +328,7 @@ class sh4_dgbrimm8(sh4_dgpreg):
             return False
         if not isinstance(res[jra], ExprInt):
             return False
-        self.value = int(res[jra].arg) / (s / 8)
+        self.value = int(res[jra]) / (s / 8)
         return True
 
 
@@ -341,7 +341,7 @@ class sh4_dpc32imm(sh4_dpc16imm):
         return True
 
     def calcdisp(self, v):
-        v = (int(v.arg) - 4) / 4
+        v = (int(v) - 4) / 4
         if not 0 < v <= 0xff:
             return None
         return v
@@ -373,7 +373,7 @@ class sh4_pc32imm(m_arg):
             return False
         if not isinstance(res[jra], ExprInt):
             return False
-        v = (int(res[jra].arg) - 4) / 4
+        v = (int(res[jra]) - 4) / 4
         if v is None:
             return False
         self.value = v
