@@ -7,7 +7,7 @@ from pdb import pm
 from miasm2.analysis.sandbox import Sandbox_Linux_x86_32
 from miasm2.jitter.jitload import log_func
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
-from miasm2.os_dep.win_api_x86_32 import get_str_ansi, upck32
+from miasm2.core.utils import upck32
 
 # Utils
 def parse_fmt(s):
@@ -43,7 +43,7 @@ def xxx___printf_chk(jitter):
     ret_ad, args = jitter.func_args_cdecl(["out", "format"])
     if args.out != 1:
         raise RuntimeError("Not implemented")
-    fmt = get_str_ansi(jitter, args.format)
+    fmt = jitter.get_str_ansi(args.format)
     # Manage llx
     fmt = fmt.replace("llx", "lx")
     fmt = fmt.replace("%016lx", "%016z")
@@ -56,7 +56,7 @@ def xxx___printf_chk(jitter):
     for x in fmt_a:
         a = upck32(jitter.vm.get_mem(esp + 8 + 4*i, 4))
         if x == "s":
-            a = get_str_ansi(jitter, a)
+            a = jitter.get_str_ansi(a)
         elif x.lower() in ("x", 'd'):
             pass
         elif x.lower() in ("f", "l"):

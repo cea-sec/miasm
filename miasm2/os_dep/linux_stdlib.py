@@ -4,8 +4,7 @@
 from sys import stdout
 from string import printable
 
-from miasm2.os_dep.common import \
-    heap, set_str_ansi, set_str_unic, get_str_ansi, get_str_unic
+from miasm2.os_dep.common import heap
 
 
 class c_linobjs(object):
@@ -155,13 +154,13 @@ def xxx_free(jitter):
 
 def xxx_strcmp(jitter):
     ret_ad, args = jitter.func_args_stdcall(["ptr_str1", "ptr_str2"])
-    s1 = get_str_ansi(jitter, args.ptr_str1)
-    s2 = get_str_ansi(jitter, args.ptr_str2)
+    s1 = jitter.get_str_ansi(args.ptr_str1)
+    s2 = jitter.get_str_ansi(args.ptr_str2)
     jitter.func_ret_stdcall(ret_ad, cmp(s1, s2))
 
 
 def xxx_strncmp(jitter):
     ret_ad, args = jitter.func_args_stdcall(["ptr_str1", "ptr_str2", "size"])
-    s1 = get_str_ansi(jitter, args.ptr_str1, args.size)
-    s2 = get_str_ansi(jitter, args.ptr_str2, args.size)
+    s1 = jitter.get_str_ansi(args.ptr_str1, args.size)
+    s2 = jitter.get_str_ansi(args.ptr_str2, args.size)
     jitter.func_ret_stdcall(ret_ad, cmp(s1, s2))
