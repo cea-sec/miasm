@@ -370,14 +370,23 @@ class CGen(object):
 
         @attrib: an Attributs instance
         @instr_offsets: list of instructions offsets
-        @dst2index: link from dstination to index
+        @dst2index: link from destination to index
         """
 
         if not dst2index:
             return []
         out = []
         out.append('switch(DST_case) {')
+
+        stopcase = False
         for dst, index in sorted(dst2index.iteritems(), key=lambda lblindex: lblindex[1]):
+            if index == -1:
+                # Handle '-1' case only once
+                if not stopcase:
+                    stopcase = True
+                else:
+                    continue
+
             out.append('\tcase %d:' % index)
             out += self.gen_goto_code(attrib, instr_offsets, dst)
             out.append('\t\tbreak;')
