@@ -129,7 +129,7 @@ class AssignBlock(dict):
         out = {}
         for dst, src in self.iteritems():
             src_read = src.get_r(mem_read=mem_read, cst_read=cst_read)
-            if isinstance(dst, m2_expr.ExprMem):
+            if isinstance(dst, m2_expr.ExprMem) and mem_read:
                 # Read on destination happens only with ExprMem
                 src_read.update(dst.arg.get_r(mem_read=mem_read,
                                               cst_read=cst_read))

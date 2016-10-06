@@ -526,7 +526,7 @@ class ExprAff(Expr):
 
     def get_r(self, mem_read=False, cst_read=False):
         elements = self._src.get_r(mem_read, cst_read)
-        if isinstance(self._dst, ExprMem):
+        if isinstance(self._dst, ExprMem) and mem_read:
             elements.update(self._dst.arg.get_r(mem_read, cst_read))
         return elements
 
