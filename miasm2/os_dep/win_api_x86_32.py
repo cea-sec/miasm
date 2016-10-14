@@ -908,15 +908,23 @@ def kernel32_LoadLibraryW(jitter):
     kernel32_LoadLibrary(jitter, jitter.get_str_unic)
 
 
-def kernel32_LoadLibraryExA(jitter):
+def kernel32_LoadLibraryEx(jitter, get_str):
     ret_ad, args = jitter.func_args_stdcall(["dllname", "hfile", "flags"])
 
     if args.hfile != 0:
         raise NotImplementedError("Untested case")
-    libname = jitter.get_str_ansi(args.dllname, 0x100)
+    libname = get_str(args.dllname, 0x100)
     ret = winobjs.runtime_dll.lib_get_add_base(libname)
     log.info("Loading %r ret 0x%x", libname, ret)
     jitter.func_ret_stdcall(ret_ad, ret)
+
+
+def kernel32_LoadLibraryExA(jitter):
+    kernel32_LoadLibraryEx(jitter, jitter.get_str_ansi)
+
+
+def kernel32_LoadLibraryExW(jitter):
+    kernel32_LoadLibraryEx(jitter, jitter.get_str_unic)
 
 
 def kernel32_GetProcAddress(jitter):
