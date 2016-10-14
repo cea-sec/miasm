@@ -297,6 +297,10 @@ def movsx(ir, instr, a, b):
 
 def lea(ir, instr, a, b):
     src = b.arg
+    if b.is_op_segm():
+        # Do not use segmentation here
+        src = src.args[1]
+
     if src.size > a.size:
         src = src[:a.size]
     e = [m2_expr.ExprAff(a, src.zeroExtend(a.size))]
