@@ -114,6 +114,8 @@ class Expr(object):
 
     "Parent class for Miasm Expressions"
 
+    __slots__ = ["__hash", "__repr", "__size"]
+
     all_exprs = set()
     args2expr = {}
     simp_exprs = set()
@@ -373,6 +375,8 @@ class ExprInt(Expr):
      - Constant 0x12345678 on 32bits
      """
 
+    __slots__ = Expr.__slots__ + ["__arg"]
+
 
     def __init__(self, num, size=None):
         """Create an ExprInt from a modint or num/size
@@ -458,6 +462,7 @@ class ExprId(Expr):
      - variable v1
      """
 
+    __slots__ = Expr.__slots__ + ["__name"]
 
     def __init__(self, name, size=32):
         """Create an identifier
@@ -515,6 +520,7 @@ class ExprAff(Expr):
      - var1 <- 2
     """
 
+    __slots__ = Expr.__slots__ + ["__dst", "__src"]
 
     def __init__(self, dst, src):
         """Create an ExprAff for dst <- src
@@ -625,6 +631,7 @@ class ExprCond(Expr):
      - if (cond) then ... else ...
     """
 
+    __slots__ = Expr.__slots__ + ["__cond", "__src1", "__src2"]
 
     def __init__(self, cond, src1, src2):
         """Create an ExprCond
@@ -710,6 +717,7 @@ class ExprMem(Expr):
      - Memory write
     """
 
+    __slots__ = Expr.__slots__ + ["__arg"]
 
     def __init__(self, arg, size=32):
         """Create an ExprMem
@@ -786,6 +794,7 @@ class ExprOp(Expr):
      - parity bit(var1)
     """
 
+    __slots__ = Expr.__slots__ + ["__op", "__args"]
 
     def __init__(self, op, *args):
         """Create an ExprOp
@@ -936,6 +945,7 @@ class ExprOp(Expr):
 
 class ExprSlice(Expr):
 
+    __slots__ = Expr.__slots__ + ["__arg", "__start", "__stop"]
 
     def __init__(self, arg, start, stop):
         super(ExprSlice, self).__init__()
@@ -1022,6 +1032,7 @@ class ExprCompose(Expr):
     In the example, salad.size == 3.
     """
 
+    __slots__ = Expr.__slots__ + ["__args"]
 
     def __init__(self, args):
         """Create an ExprCompose
