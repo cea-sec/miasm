@@ -4,6 +4,8 @@ from miasm2.expression.simplifications import expr_simp
 from miasm2.core import asmbloc
 from miasm2.ir.ir import AssignBlock
 from miasm2.core.interval import interval
+from miasm2.core.utils import get_caller_name
+import warnings
 
 import logging
 
@@ -434,14 +436,22 @@ class symbexec(object):
         return self.eval_expr(self.ir_arch.IRDst)
 
     def emul_ir_bloc(self, myir, addr, step=False):
-        irblock = myir.get_bloc(addr)
+        warnings.warn('DEPRECATION WARNING: use "emul_ir_block(self, addr, step=False)" instead of emul_ir_bloc')
+        return self.emul_ir_block(addr, step)
+
+    def emul_ir_block(self, addr, step=False):
+        irblock = self.ir_arch.get_bloc(addr)
         if irblock is not None:
             addr = self.emulbloc(irblock, step=step)
         return addr
 
     def emul_ir_blocs(self, myir, addr, lbl_stop=None, step=False):
+        warnings.warn('DEPRECATION WARNING: use "emul_ir_blocks(self, addr, lbl_stop=None, step=False):" instead of emul_ir_blocs')
+        return self.emul_ir_blocks(addr, lbl_stop, step)
+
+    def emul_ir_blocks(self, addr, lbl_stop=None, step=False):
         while True:
-            irblock = myir.get_bloc(addr)
+            irblock = self.ir_arch.get_bloc(addr)
             if irblock is None:
                 break
             if irblock.label == lbl_stop:

@@ -94,7 +94,7 @@ def symbolic_exec():
 
     print "Run symbolic execution..."
     sb = symbexec(ira, machine.mn.regs.regs_init)
-    sb.emul_ir_blocs(ira, start)
+    sb.emul_ir_blocks(start)
 
     modified = {}
     for ident in sb.symbols.symbols_id:

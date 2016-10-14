@@ -26,7 +26,7 @@ def symb_exec(interm, inputstate, debug):
     sympool = dict(regs_init)
     sympool.update(inputstate)
     symexec = symbexec(interm, sympool)
-    symexec.emul_ir_blocs(interm, 0)
+    symexec.emul_ir_blocks(0)
     if debug:
         for k, v in symexec.symbols.items():
             if regs_init.get(k, None) != v:
