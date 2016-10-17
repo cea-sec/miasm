@@ -118,7 +118,6 @@ class Expr(object):
 
     all_exprs = set()
     args2expr = {}
-    simp_exprs = set()
     canon_exprs = set()
     use_singleton = True
 
@@ -146,15 +145,6 @@ class Expr(object):
     def __new__(cls, *args, **kwargs):
         expr = object.__new__(cls, *args, **kwargs)
         return expr
-
-    def get_is_simp(self):
-        return self in Expr.simp_exprs
-
-    def set_is_simp(self, value):
-        assert(value is True)
-        Expr.simp_exprs.add(self)
-
-    is_simp = property(get_is_simp, set_is_simp)
 
     def get_is_canon(self):
         return self in Expr.canon_exprs
