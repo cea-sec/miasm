@@ -389,6 +389,12 @@ class ExprInt(Expr):
     size = property(lambda self: self.__size)
     arg = property(lambda self: self.__arg)
 
+    def __getstate__(self):
+        return int(self.__arg), self.__size
+
+    def __setstate__(self, state):
+        self.__init__(*state)
+
     def __new__(cls, arg, size=None):
         if size is None:
             size = arg.size
@@ -466,6 +472,12 @@ class ExprId(Expr):
     size = property(lambda self: self.__size)
     name = property(lambda self: self.__name)
 
+    def __getstate__(self):
+        return self.__name, self.__size
+
+    def __setstate__(self, state):
+        self.__init__(*state)
+
     def __new__(cls, name, size=32):
         return Expr.get_object(cls, (name, size))
 
@@ -542,6 +554,12 @@ class ExprAff(Expr):
     size = property(lambda self: self.__size)
     dst = property(lambda self: self.__dst)
     src = property(lambda self: self.__src)
+
+    def __getstate__(self):
+        return self.__dst, self.__src
+
+    def __setstate__(self, state):
+        self.__init__(*state)
 
     def __new__(cls, dst, src):
         return Expr.get_object(cls, (dst, src))
@@ -641,6 +659,12 @@ class ExprCond(Expr):
     src1 = property(lambda self: self.__src1)
     src2 = property(lambda self: self.__src2)
 
+    def __getstate__(self):
+        return self.__cond, self.__src1, self.__src2
+
+    def __setstate__(self, state):
+        self.__init__(*state)
+
     def __new__(cls, cond, src1, src2):
         return Expr.get_object(cls, (cond, src1, src2))
 
@@ -725,6 +749,12 @@ class ExprMem(Expr):
 
     size = property(lambda self: self.__size)
     arg = property(lambda self: self.__arg)
+
+    def __getstate__(self):
+        return self.__arg, self.__size
+
+    def __setstate__(self, state):
+        self.__init__(*state)
 
     def __new__(cls, arg, size=32):
         return Expr.get_object(cls, (arg, size))
@@ -857,6 +887,13 @@ class ExprOp(Expr):
     op = property(lambda self: self.__op)
     args = property(lambda self: self.__args)
 
+    def __getstate__(self):
+        return self.__op, self.__args
+
+    def __setstate__(self, state):
+        op, args = state
+        self.__init__(op, *args)
+
     def __new__(cls, op, *args):
         return Expr.get_object(cls, (op, args))
 
@@ -948,6 +985,12 @@ class ExprSlice(Expr):
     arg = property(lambda self: self.__arg)
     start = property(lambda self: self.__start)
     stop = property(lambda self: self.__stop)
+
+    def __getstate__(self):
+        return self.__arg, self.__start, self.__stop
+
+    def __setstate__(self, state):
+        self.__init__(*state)
 
     def __new__(cls, arg, start, stop):
         return Expr.get_object(cls, (arg, start, stop))
@@ -1056,6 +1099,12 @@ class ExprCompose(Expr):
 
     size = property(lambda self: self.__size)
     args = property(lambda self: self.__args)
+
+    def __getstate__(self):
+        return self.__args
+
+    def __setstate__(self, state):
+        self.__init__(state)
 
     def __new__(cls, args):
         return Expr.get_object(cls, tuple(args))
