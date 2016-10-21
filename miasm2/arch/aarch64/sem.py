@@ -672,8 +672,7 @@ def nop():
 
 @sbuild.parse
 def extr(arg1, arg2, arg3, arg4):
-    compose = m2_expr.ExprCompose([(arg2, 0, arg2.size),
-                                   (arg3, arg2.size, arg2.size+arg3.size)])
+    compose = m2_expr.ExprCompose(arg2, arg3)
     arg1 = compose[int(arg4.arg):int(arg4)+arg1.size]
 
 mnemo_func = sbuild.functions

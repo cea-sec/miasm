@@ -114,7 +114,7 @@ check_interp(model[memb.get_mem_array(32)],
              [(0xdeadbeef, 0), (0xdeadbeef + 3, 2)])
 
 # --------------------------------------------------------------------------
-e5 = ExprSlice(ExprCompose(((e, 0, 32), (four, 32, 64))), 0, 32) * five
+e5 = ExprSlice(ExprCompose(e, four), 0, 32) * five
 ez3 = Translator.to_language('z3').from_expr(e5)
 
 z3_e5 = z3.Extract(31, 0, z3.Concat(z3_four, z3_e)) * z3_five

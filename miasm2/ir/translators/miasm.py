@@ -27,9 +27,9 @@ class TranslatorMiasm(Translator):
                                    ", ".join(map(self.from_expr, expr.args)))
 
     def from_ExprCompose(self, expr):
-        args = ["(%s, %d, %d)" % (self.from_expr(arg), start, stop)
-                for arg, start, stop in expr.args]
-        return "ExprCompose([%s])" % ", ".join(args)
+        args = ["%s" % self.from_expr(arg)
+                for arg, _, _ in expr.args]
+        return "ExprCompose(%s)" % ", ".join(args)
 
     def from_ExprAff(self, expr):
         return "ExprAff(%s, %s)" % (self.from_expr(expr.dst),

@@ -322,12 +322,10 @@ class Expr(object):
         if self.size == size:
             return self
         ad_size = size - self.size
-        c = ExprCompose([(self, 0, self.size),
-                         (ExprCond(self.msb(),
-                                   ExprInt(size2mask(ad_size), ad_size),
-                                   ExprInt(0, ad_size)),
-                          self.size, size)
-                         ])
+        c = ExprCompose(self,
+                        ExprCond(self.msb(),
+                                 ExprInt(size2mask(ad_size), ad_size),
+                                 ExprInt(0, ad_size)))
         return c
 
     def graph_recursive(self, graph):
@@ -1056,24 +1054,32 @@ class ExprSlice(Expr):
 class ExprCompose(Expr):
 
     """
-    Compose is like a hambuger.
-    It's arguments are tuple of:  (Expression, start, stop)
-    start and stop are intergers, determining Expression position in the compose.
-
-    Burger Example:
-    ExprCompose([(salad, 0, 3), (cheese, 3, 10), (beacon, 10, 16)])
-    In the example, salad.size == 3.
+    Compose is like a hambuger. It concatenate Expressions
     """
 
     __slots__ = Expr.__slots__ + ["__args"]
 
-    def __init__(self, args):
+    def __init__(self, *args):
         """Create an ExprCompose
         The ExprCompose is contiguous and starts at 0
-        @args: tuple(Expr, int, int)
+        @args: [Expr, Expr, ...]
+        DEPRECATED:
+        @args: [(Expr, int, int), (Expr, int, int), ...]
         """
 
         super(ExprCompose, self).__init__()
+
+        is_new_style = args and isinstance(args[0], Expr)
+        if is_new_style:
+            new_args = []
+            index = 0
+            for arg in args:
+                new_args.append((arg, index, index + arg.size))
+                index += arg.size
+            args = new_args
+        else:
+            assert len(args) == 1
+            args = args[0]
 
         last_stop = 0
         args = sorted(args, key=itemgetter(1))
@@ -1106,12 +1112,15 @@ class ExprCompose(Expr):
     def __setstate__(self, state):
         self.__init__(state)
 
-    def __new__(cls, args):
+    def __new__(cls, *args):
+        is_new_style = args and isinstance(args[0], Expr)
+        if not is_new_style:
+            assert len(args) == 1
+            args = args[0]
         return Expr.get_object(cls, tuple(args))
 
     def __str__(self):
-        return '{' + ', '.join(['%s,%d,%d' %
-                                (str(arg[0]), arg[1], arg[2]) for arg in self.__args]) + '}'
+        return '{' + ', '.join([str(arg[0]) for arg in self.__args]) + '}'
 
     def get_r(self, mem_read=False, cst_read=False):
         return reduce(lambda elements, arg:
@@ -1127,7 +1136,7 @@ class ExprCompose(Expr):
         return hash(tuple(h_args))
 
     def _exprrepr(self):
-        return "%s(%r)" % (self.__class__.__name__, self.__args)
+        return "%s([%r])" % (self.__class__.__name__, self.__args)
 
     def __contains__(self, e):
         if self == e:

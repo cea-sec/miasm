@@ -43,12 +43,12 @@ class TestSymbExec(unittest.TestCase):
         self.assertEqual(e.eval_expr(ExprMem(addr1 - addr1)), id_x)
         self.assertEqual(e.eval_expr(ExprMem(addr1, 8)), id_y)
         self.assertEqual(e.eval_expr(ExprMem(addr1 + addr1)), ExprCompose(
-            [(id_x[16:32], 0, 16), (ExprMem(ExprInt32(4), 16), 16, 32)]))
+            id_x[16:32], ExprMem(ExprInt32(4), 16)))
         self.assertEqual(e.eval_expr(mem8), ExprCompose(
-            [(id_x[0:24], 0, 24), (ExprMem(ExprInt32(11), 8), 24, 32)]))
+            id_x[0:24], ExprMem(ExprInt32(11), 8)))
         self.assertEqual(e.eval_expr(mem40v), id_x[:8])
         self.assertEqual(e.eval_expr(mem50w), ExprCompose(
-            [(id_y, 0, 8), (ExprMem(ExprInt32(51), 8), 8, 16)]))
+            id_y, ExprMem(ExprInt32(51), 8)))
         self.assertEqual(e.eval_expr(mem20), mem20)
         e.func_read = lambda x: x
         self.assertEqual(e.eval_expr(mem20), mem20)
