@@ -449,21 +449,19 @@ class ExprRandom(object):
         """
         # First layer
         upper_bound = random.randint(1, size)
-        args = [(cls._gen(size=upper_bound, depth=depth - 1), 0, upper_bound)]
+        args = [cls._gen(size=upper_bound, depth=depth - 1)]
 
         # Next layers
         while (upper_bound < size):
             if len(args) == (cls.compose_max_layer - 1):
                 # We reach the maximum size
-                upper_bound = size
+                new_upper_bound = size
             else:
-                upper_bound = random.randint(args[-1][-1] + 1, size)
+                new_upper_bound = random.randint(upper_bound + 1, size)
 
-            args.append((cls._gen(size=upper_bound - args[-1][-1]),
-                         args[-1][-1],
-                         upper_bound))
-
-        return m2_expr.ExprCompose(args)
+            args.append(cls._gen(size=new_upper_bound - upper_bound))
+            upper_bound = new_upper_bound
+        return m2_expr.ExprCompose(*args)
 
     @classmethod
     def memory(cls, size=32, depth=1):
@@ -656,14 +654,10 @@ def possible_values(expr):
             args_constraint = itertools.chain(*[consval[0].constraints
                                                 for consval in consvals_possibility])
             # Gen the corresponding constraints / ExprCompose
+            args = [consval[0].value for consval in consvals_possibility]
             consvals.add(
                 ConstrainedValue(frozenset(args_constraint),
-                                 m2_expr.ExprCompose(
-                                     [(consval[0].value,
-                                       consval[1],
-                                       consval[2])
-                                      for consval in consvals_possibility]
-                )))
+                                 m2_expr.ExprCompose(*args)))
     else:
         raise RuntimeError("Unsupported type for expr: %s" % type(expr))
 

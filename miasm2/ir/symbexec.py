@@ -148,7 +148,8 @@ class symbexec(object):
                     mem = m2_expr.ExprMem(ptr, slice_stop - slice_start)
                     out.append((mem, slice_start, slice_stop))
                 out.sort(key=lambda x: x[1])
-                tmp = m2_expr.ExprSlice(m2_expr.ExprCompose(out), 0, size)
+                args = [expr for (expr, _, _) in out]
+                tmp = m2_expr.ExprSlice(m2_expr.ExprCompose(*args), 0, size)
                 tmp = self.expr_simp(tmp)
                 return tmp
 
@@ -179,7 +180,9 @@ class symbexec(object):
                 ptr_index += diff_size
                 rest -= diff_size
                 ptr = self.expr_simp(ptr + m2_expr.ExprInt(mem.size / 8, ptr.size))
-            ret = self.expr_simp(m2_expr.ExprCompose(out))
+            out.sort(key=lambda x: x[1])
+            args = [expr for (expr, _, _) in out]
+            ret = self.expr_simp(m2_expr.ExprCompose(*args))
             return ret
         # part lookup
         ret = self.expr_simp(self.symbols[ret][:size])
@@ -228,8 +231,8 @@ class symbexec(object):
             args = []
             for (arg, start, stop) in expr.args:
                 arg = self.apply_expr_on_state_visit_cache(arg, state, cache, level+1)
-                args.append((arg, start, stop))
-            ret = m2_expr.ExprCompose(args)
+                args.append(arg)
+            ret = m2_expr.ExprCompose(*args)
         else:
             raise TypeError("Unknown expr type")
         #print '\t'*level, "Result", ret

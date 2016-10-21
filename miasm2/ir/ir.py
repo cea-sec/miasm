@@ -59,7 +59,8 @@ class AssignBlock(dict):
                     for r in dst.slice_rest()]
             all_a = [(src, dst.start, dst.stop)] + rest
             all_a.sort(key=lambda x: x[1])
-            new_src = m2_expr.ExprCompose(all_a)
+            args = [expr for (expr, _, _) in all_a]
+            new_src = m2_expr.ExprCompose(*args)
         else:
             new_dst, new_src = dst, src
 
@@ -95,7 +96,12 @@ class AssignBlock(dict):
                          for interval in missing_i)
 
             # Build the merging expression
-            new_src = m2_expr.ExprCompose(e_colision.union(remaining))
+            args = list(e_colision.union(remaining))
+            args.sort(key=lambda x:x[1])
+            starts = [start for (_, start, _) in args]
+            assert len(set(starts)) == len(starts)
+            args = [expr for (expr, _, _) in args]
+            new_src = m2_expr.ExprCompose(*args)
 
         super(AssignBlock, self).__setitem__(new_dst, new_src)
 

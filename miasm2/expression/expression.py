@@ -289,7 +289,10 @@ class Expr(object):
                 else:
                     new_e = e
             elif isinstance(e, ExprCompose):
-                new_e = ExprCompose(canonize_expr_list_compose(e.args))
+                starts = [start for (_, start, _) in e.args]
+                assert sorted(starts) == starts
+                assert len(set(starts)) == len(starts)
+                new_e = e
             else:
                 new_e = e
             new_e.is_canon = True
@@ -311,8 +314,7 @@ class Expr(object):
             return self
         ad_size = size - self.size
         n = ExprInt(0, ad_size)
-        return ExprCompose([(self, 0, self.size),
-                            (n, self.size, size)])
+        return ExprCompose(self, n)
 
     def signExtend(self, size):
         """Sign extend to size
@@ -542,7 +544,8 @@ class ExprAff(Expr):
                     for r in dst.slice_rest()]
             all_a = [(src, dst.start, dst.stop)] + rest
             all_a.sort(key=lambda x: x[1])
-            self.__src = ExprCompose(all_a)
+            args = [expr for (expr, _, _) in all_a]
+            self.__src = ExprCompose(*args)
 
         else:
             self.__dst, self.__src = dst, src
@@ -1078,6 +1081,8 @@ class ExprCompose(Expr):
                 index += arg.size
             args = new_args
         else:
+            warnings.warn('DEPRECATION WARNING: use "ExprCompose(a, b) instead of'+
+                          'ExprCemul_ir_block(self, addr, step=False)" instead of emul_ir_bloc')
             assert len(args) == 1
             args = args[0]
 
@@ -1153,12 +1158,13 @@ class ExprCompose(Expr):
         args = [(arg[0].visit(cb, tv), arg[1], arg[2]) for arg in self.__args]
         modified = any([arg[0] != arg[1] for arg in zip(self.__args, args)])
         if modified:
-            return ExprCompose(args)
+            args = [expr for (expr, _, _) in args]
+            return ExprCompose(*args)
         return self
 
     def copy(self):
-        args = [(arg[0].copy(), arg[1], arg[2]) for arg in self.__args]
-        return ExprCompose(args)
+        args = [arg[0].copy() for arg in self.__args]
+        return ExprCompose(*args)
 
     def depth(self):
         depth = [arg[0].depth() for arg in self.__args]

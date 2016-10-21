@@ -286,7 +286,11 @@ def simp_cst_propagation(e_s, e):
         # create entry 0
         expr = ExprInt(0, min_index)
         filter_args = [(expr, 0, min_index)] + filter_args
-        return ExprCompose(filter_args)
+        filter_args.sort(key=lambda x:x[1])
+        starts = [start for (_, start, _) in filter_args]
+        assert len(set(starts)) == len(starts)
+        args = [expr for (expr, _, _) in filter_args]
+        return ExprCompose(*args)
 
     # A >> int with A ExprCompose => move index
     if op == ">>" and isinstance(args[0], ExprCompose) and isinstance(args[1], ExprInt):
@@ -310,7 +314,11 @@ def simp_cst_propagation(e_s, e):
         # create entry 0
         expr = ExprInt(0, final_size - max_index)
         filter_args += [(expr, max_index, final_size)]
-        return ExprCompose(filter_args)
+        filter_args.sort(key=lambda x:x[1])
+        starts = [start for (_, start, _) in filter_args]
+        assert len(set(starts)) == len(starts)
+        args = [expr for (expr, _, _) in filter_args]
+        return ExprCompose(*args)
 
 
     # Compose(a) OP Compose(b) with a/b same bounds => Compose(a OP b)
@@ -327,7 +335,13 @@ def simp_cst_propagation(e_s, e):
                     new_args[i].append(expr)
             for i, arg in enumerate(new_args):
                 new_args[i] = ExprOp(op, *arg), bound[i][0], bound[i][1]
-            return ExprCompose(new_args)
+
+            new_args.sort(key=lambda x:x[1])
+            starts = [start for (_, start, _) in new_args]
+            assert len(set(starts)) == len(starts)
+            args = [expr for (expr, _, _) in new_args]
+
+            return ExprCompose(*args)
 
     # <<<c_rez, >>>c_rez
     if op in [">>>c_rez", "<<<c_rez"]:
@@ -481,7 +495,13 @@ def simp_slice(e_s, e):
                 slice_stop = arg.size
                 a_stop = s_stop - e.start
             out.append((arg[slice_start:slice_stop], a_start, a_stop))
-        return ExprCompose(out)
+
+        out.sort(key=lambda x:x[1])
+        starts = [start for (_, start, _) in out]
+        assert len(set(starts)) == len(starts)
+        args = [expr for (expr, _, _) in out]
+
+        return ExprCompose(*args)
 
     # ExprMem(x, size)[:A] => ExprMem(x, a)
     # XXXX todo hum, is it safe?
@@ -590,11 +610,15 @@ def simp_compose(e_s, e):
             else:
                 src1.append(a)
                 src2.append(a)
-        src1 = e_s.apply_simp(ExprCompose(src1))
-        src2 = e_s.apply_simp(ExprCompose(src2))
+        src1 = [expr for (expr, _, _) in src1]
+        src2 = [expr for (expr, _, _) in src2]
+        src1 = e_s.apply_simp(ExprCompose(*src1))
+        src2 = e_s.apply_simp(ExprCompose(*src2))
         if isinstance(src1, ExprInt) and isinstance(src2, ExprInt):
             return ExprCond(cond.cond, src1, src2)
-    return ExprCompose(args)
+    args.sort(key=lambda x:x[1])
+    args = [expr for (expr, _, _) in args]
+    return ExprCompose(*args)
 
 
 def simp_cond(e_s, e):
