@@ -31,10 +31,10 @@ class TranslatorPython(Translator):
 
     def from_ExprCompose(self, expr):
         out = []
-        for subexpr, start, stop in expr.args:
-            out.append("((%s & 0x%x) << %d)" % (self.from_expr(subexpr),
-                                                 (1 << (stop - start)) - 1,
-                                                 start))
+        for index, arg in expr.iter_args():
+            out.append("((%s & 0x%x) << %d)" % (self.from_expr(arg),
+                                                 (1 << arg.size) - 1,
+                                                 index))
         return "(%s)" % ' | '.join(out)
 
     def from_ExprCond(self, expr):

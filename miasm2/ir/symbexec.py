@@ -229,9 +229,8 @@ class symbexec(object):
             ret = m2_expr.ExprOp(expr.op, *args)
         elif isinstance(expr, m2_expr.ExprCompose):
             args = []
-            for (arg, start, stop) in expr.args:
-                arg = self.apply_expr_on_state_visit_cache(arg, state, cache, level+1)
-                args.append(arg)
+            for arg in expr.args:
+                args.append(self.apply_expr_on_state_visit_cache(arg, state, cache, level+1))
             ret = m2_expr.ExprCompose(*args)
         else:
             raise TypeError("Unknown expr type")
@@ -378,7 +377,6 @@ class symbexec(object):
         """
         pool_out = {}
         eval_cache = {}
-
         for dst, src in assignblk.iteritems():
             src = self.eval_expr(src, eval_cache)
             if isinstance(dst, m2_expr.ExprMem):

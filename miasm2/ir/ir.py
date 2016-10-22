@@ -46,7 +46,6 @@ class AssignBlock(dict):
         * if dst is an ExprSlice, expand it to affect the full Expression
         * if dst already known, sources are merged
         """
-
         if dst.size != src.size:
             raise RuntimeError(
                 "sanitycheck: args must have same size! %s" %
@@ -75,6 +74,7 @@ class AssignBlock(dict):
             expr_list = [(new_dst, new_src),
                          (new_dst, self[new_dst])]
             # Find collision
+            print 'FIND COLISION'
             e_colision = reduce(lambda x, y: x.union(y),
                                 (self.get_modified_slice(dst, src)
                                  for (dst, src) in expr_list),
@@ -109,17 +109,16 @@ class AssignBlock(dict):
     def get_modified_slice(dst, src):
         """Return an Expr list of extra expressions needed during the
         object instanciation"""
-
         if not isinstance(src, m2_expr.ExprCompose):
             raise ValueError("Get mod slice not on expraff slice", str(self))
         modified_s = []
-        for arg in src.args:
-            if (not isinstance(arg[0], m2_expr.ExprSlice) or
-                    arg[0].arg != dst or
-                    arg[1] != arg[0].start or
-                    arg[2] != arg[0].stop):
+        for index, arg in src.iter_args():
+            if not (isinstance(arg, m2_expr.ExprSlice) and
+                    arg.arg == dst and
+                    index == arg.start and
+                    index+arg.size == arg.stop):
                 # If x is not the initial expression
-                modified_s.append(arg)
+                modified_s.append((arg, index, index+arg.size))
         return modified_s
 
     def get_w(self):

@@ -265,13 +265,14 @@ def simp_cst_propagation(e_s, e):
         args = new_args
 
     # A << int with A ExprCompose => move index
-    if op == "<<" and isinstance(args[0], ExprCompose) and isinstance(args[1], ExprInt):
+    if (op == "<<" and isinstance(args[0], ExprCompose) and
+        isinstance(args[1], ExprInt) and int(args[1]) != 0):
         final_size = args[0].size
         shift = int(args[1])
         new_args = []
         # shift indexes
-        for expr, start, stop in args[0].args:
-            new_args.append((expr, start+shift, stop+shift))
+        for index, arg in args[0].iter_args():
+            new_args.append((arg, index+shift, index+shift+arg.size))
         # filter out expression
         filter_args = []
         min_index = final_size
@@ -281,15 +282,12 @@ def simp_cst_propagation(e_s, e):
             if stop > final_size:
                 expr = expr[:expr.size  - (stop - final_size)]
                 stop = final_size
-            filter_args.append((expr, start, stop))
+            filter_args.append(expr)
             min_index = min(start, min_index)
         # create entry 0
+        assert min_index != 0
         expr = ExprInt(0, min_index)
-        filter_args = [(expr, 0, min_index)] + filter_args
-        filter_args.sort(key=lambda x:x[1])
-        starts = [start for (_, start, _) in filter_args]
-        assert len(set(starts)) == len(starts)
-        args = [expr for (expr, _, _) in filter_args]
+        args = [expr] + filter_args
         return ExprCompose(*args)
 
     # A >> int with A ExprCompose => move index
@@ -298,8 +296,8 @@ def simp_cst_propagation(e_s, e):
         shift = int(args[1])
         new_args = []
         # shift indexes
-        for expr, start, stop in args[0].args:
-            new_args.append((expr, start-shift, stop-shift))
+        for index, arg in args[0].iter_args():
+            new_args.append((arg, index-shift, index+arg.size-shift))
         # filter out expression
         filter_args = []
         max_index = 0
@@ -309,15 +307,11 @@ def simp_cst_propagation(e_s, e):
             if start < 0:
                 expr = expr[-start:]
                 start = 0
-            filter_args.append((expr, start, stop))
+            filter_args.append(expr)
             max_index = max(stop, max_index)
         # create entry 0
         expr = ExprInt(0, final_size - max_index)
-        filter_args += [(expr, max_index, final_size)]
-        filter_args.sort(key=lambda x:x[1])
-        starts = [start for (_, start, _) in filter_args]
-        assert len(set(starts)) == len(starts)
-        args = [expr for (expr, _, _) in filter_args]
+        args = filter_args + [expr]
         return ExprCompose(*args)
 
 
@@ -325,22 +319,17 @@ def simp_cst_propagation(e_s, e):
     if op in ['|', '&', '^'] and all([isinstance(arg, ExprCompose) for arg in args]):
         bounds = set()
         for arg in args:
-            bound = tuple([(start, stop) for (expr, start, stop) in arg.args])
+            bound = tuple([expr.size for expr in arg.args])
             bounds.add(bound)
         if len(bounds) == 1:
             bound = list(bounds)[0]
-            new_args = [[expr] for (expr, start, stop) in args[0].args]
+            new_args = [[expr] for expr in args[0].args]
             for sub_arg in args[1:]:
-                for i, (expr, start, stop) in enumerate(sub_arg.args):
+                for i, expr in enumerate(sub_arg.args):
                     new_args[i].append(expr)
+            args = []
             for i, arg in enumerate(new_args):
-                new_args[i] = ExprOp(op, *arg), bound[i][0], bound[i][1]
-
-            new_args.sort(key=lambda x:x[1])
-            starts = [start for (_, start, _) in new_args]
-            assert len(set(starts)) == len(starts)
-            args = [expr for (expr, _, _) in new_args]
-
+                args.append(ExprOp(op, *arg))
             return ExprCompose(*args)
 
     # <<<c_rez, >>>c_rez
@@ -462,46 +451,41 @@ def simp_slice(e_s, e):
         return new_e
     elif isinstance(e.arg, ExprCompose):
         # Slice(Compose(A), x) => Slice(A, y)
-        for a in e.arg.args:
-            if a[1] <= e.start and a[2] >= e.stop:
-                new_e = a[0][e.start - a[1]:e.stop - a[1]]
+        for index, arg in e.arg.iter_args():
+            if index <= e.start and index+arg.size >= e.stop:
+                new_e = arg[e.start - index:e.stop - index]
                 return new_e
         # Slice(Compose(A, B, C), x) => Compose(A, B, C) with truncated A/B/C
         out = []
-        for arg, s_start, s_stop in e.arg.args:
+        for index, arg in e.arg.iter_args():
             # arg is before slice start
-            if e.start >= s_stop:
+            if e.start >= index + arg.size:
                 continue
             # arg is after slice stop
-            elif e.stop <= s_start:
+            elif e.stop <= index:
                 continue
             # arg is fully included in slice
-            elif e.start <= s_start and s_stop <= e.stop:
-                out.append((arg, s_start - e.start, s_stop - e.start))
+            elif e.start <= index and index + arg.size <= e.stop:
+                out.append(arg)
                 continue
             # arg is truncated at start
-            if e.start > s_start:
-                slice_start = e.start - s_start
+            if e.start > index:
+                slice_start = e.start - index
                 a_start = 0
             else:
                 # arg is not truncated at start
                 slice_start = 0
-                a_start = s_start - e.start
+                a_start = index - e.start
             # a is truncated at stop
-            if e.stop < s_stop:
-                slice_stop = arg.size + e.stop - s_stop - slice_start
+            if e.stop < index + arg.size:
+                slice_stop = arg.size + e.stop - (index + arg.size) - slice_start
                 a_stop = e.stop - e.start
             else:
                 slice_stop = arg.size
-                a_stop = s_stop - e.start
-            out.append((arg[slice_start:slice_stop], a_start, a_stop))
+                a_stop = index + arg.size - e.start
+            out.append(arg[slice_start:slice_stop])
 
-        out.sort(key=lambda x:x[1])
-        starts = [start for (_, start, _) in out]
-        assert len(set(starts)) == len(starts)
-        args = [expr for (expr, _, _) in out]
-
-        return ExprCompose(*args)
+        return ExprCompose(*out)
 
     # ExprMem(x, size)[:A] => ExprMem(x, a)
     # XXXX todo hum, is it safe?
@@ -553,71 +537,60 @@ def simp_slice(e_s, e):
 
 def simp_compose(e_s, e):
     "Commons simplification on ExprCompose"
-    args = merge_sliceto_slice(e.args)
+    args = merge_sliceto_slice(e)
     out = []
     # compose of compose
-    for a in args:
-        if isinstance(a[0], ExprCompose):
-            for x, start, stop in a[0].args:
-                out.append((x, start + a[1], stop + a[1]))
+    for arg in args:
+        if isinstance(arg, ExprCompose):
+            out += arg.args
         else:
-            out.append(a)
+            out.append(arg)
     args = out
     # Compose(a) with a.size = compose.size => a
-    if len(args) == 1 and args[0][1] == 0 and args[0][2] == e.size:
-        return args[0][0]
+    if len(args) == 1 and args[0].size == e.size:
+        return args[0]
 
     # {(X[z:], 0, X.size-z), (0, X.size-z, X.size)} => (X >> z)
     if (len(args) == 2 and
-        isinstance(args[1][0], ExprInt) and
-        args[1][0].arg == 0):
-        a1 = args[0]
-        a2 = args[1]
-        if (isinstance(a1[0], ExprSlice) and
-            a1[1] == 0 and
-            a1[0].stop == a1[0].arg.size and
-            a2[1] == a1[0].size and
-                a2[2] == a1[0].arg.size):
-            new_e = a1[0].arg >> ExprInt(
-                a1[0].start, a1[0].arg.size)
+        isinstance(args[1], ExprInt) and
+        int(args[1]) == 0):
+        if (isinstance(args[0], ExprSlice) and
+            args[0].stop == args[0].arg.size and
+            args[0].size + args[1].size == args[0].arg.size):
+            new_e = args[0].arg >> ExprInt(args[0].start, args[0].arg.size)
             return new_e
 
     # Compose with ExprCond with integers for src1/src2 and intergers =>
     # propagage integers
     # {XXX?(0x0,0x1)?(0x0,0x1),0,8, 0x0,8,32} => XXX?(int1, int2)
-
     ok = True
-    expr_cond = None
-    expr_ints = []
-    for i, a in enumerate(args):
-        if not is_int_or_cond_src_int(a[0]):
+    expr_cond_index = None
+    expr_ints_or_conds = []
+    for i, arg in enumerate(args):
+        if not is_int_or_cond_src_int(arg):
             ok = False
             break
-        expr_ints.append(a)
-        if isinstance(a[0], ExprCond):
-            if expr_cond is not None:
+        expr_ints_or_conds.append(arg)
+        if isinstance(arg, ExprCond):
+            if expr_cond_index is not None:
                 ok = False
-            expr_cond = i
-            cond = a[0]
+            expr_cond_index = i
+            cond = arg
 
-    if ok and expr_cond is not None:
+    if ok and expr_cond_index is not None:
         src1 = []
         src2 = []
-        for i, a in enumerate(expr_ints):
-            if i == expr_cond:
-                src1.append((a[0].src1, a[1], a[2]))
-                src2.append((a[0].src2, a[1], a[2]))
+        for i, arg in enumerate(expr_ints_or_conds):
+            if i == expr_cond_index:
+                src1.append(arg.src1)
+                src2.append(arg.src2)
             else:
-                src1.append(a)
-                src2.append(a)
-        src1 = [expr for (expr, _, _) in src1]
-        src2 = [expr for (expr, _, _) in src2]
+                src1.append(arg)
+                src2.append(arg)
         src1 = e_s.apply_simp(ExprCompose(*src1))
         src2 = e_s.apply_simp(ExprCompose(*src2))
         if isinstance(src1, ExprInt) and isinstance(src2, ExprInt):
             return ExprCond(cond.cond, src1, src2)
-    args.sort(key=lambda x:x[1])
-    args = [expr for (expr, _, _) in args]
     return ExprCompose(*args)
 
 

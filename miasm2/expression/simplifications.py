@@ -96,6 +96,7 @@ class ExpressionSimplifier(object):
             self.simplified_exprs.add(expression)
         # Mark expression as simplified
         self.simplified_exprs.add(e_new)
+
         return e_new
 
     def expr_simp_wrapper(self, expression, callback=None):

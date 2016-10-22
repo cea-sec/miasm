@@ -288,11 +288,6 @@ class Expr(object):
                     new_e = ExprOp(e.op, *args)
                 else:
                     new_e = e
-            elif isinstance(e, ExprCompose):
-                starts = [start for (_, start, _) in e.args]
-                assert sorted(starts) == starts
-                assert len(set(starts)) == len(starts)
-                new_e = e
             else:
                 new_e = e
             new_e.is_canon = True
@@ -590,24 +585,6 @@ class ExprAff(Expr):
         return (self == expr or
                 self.__src.__contains__(expr) or
                 self.__dst.__contains__(expr))
-
-    # XXX /!\ for hackish expraff to slice
-    def get_modified_slice(self):
-        """Return an Expr list of extra expressions needed during the
-        object instanciation"""
-
-        dst = self.__dst
-        if not isinstance(self.__src, ExprCompose):
-            raise ValueError("Get mod slice not on expraff slice", str(self))
-        modified_s = []
-        for arg in self.__src.args:
-            if (not isinstance(arg[0], ExprSlice) or
-                    arg[0].arg != dst or
-                    arg[1] != arg[0].start or
-                    arg[2] != arg[0].stop):
-                # If x is not the initial expression
-                modified_s.append(arg)
-        return modified_s
 
     @visit_chk
     def visit(self, cb, tv=None):
@@ -1073,40 +1050,12 @@ class ExprCompose(Expr):
         super(ExprCompose, self).__init__()
 
         is_new_style = args and isinstance(args[0], Expr)
-        if is_new_style:
-            new_args = []
-            index = 0
-            for arg in args:
-                new_args.append((arg, index, index + arg.size))
-                index += arg.size
-            args = new_args
-        else:
+        if not is_new_style:
             warnings.warn('DEPRECATION WARNING: use "ExprCompose(a, b) instead of'+
                           'ExprCemul_ir_block(self, addr, step=False)" instead of emul_ir_bloc')
-            assert len(args) == 1
-            args = args[0]
 
-        last_stop = 0
-        args = sorted(args, key=itemgetter(1))
-        for e, start, stop in args:
-            if e.size != stop - start:
-                raise ValueError(
-                    "sanitycheck: ExprCompose args must have correct size!" +
-                    " %r %r %r" % (e, e.size, stop - start))
-            if last_stop != start:
-                raise ValueError(
-                    "sanitycheck: ExprCompose args must be contiguous!" +
-                    " %r" % (args))
-            last_stop = stop
-
-        # Transform args to lists
-        o = []
-        for e, a, b in args:
-            assert(a >= 0 and b >= 0)
-            o.append(tuple([e, a, b]))
-        self.__args = tuple(o)
-
-        self.__size = self.__args[-1][2]
+        self.__args = tuple(args)
+        self.__size = sum([arg.size for arg in args])
 
     size = property(lambda self: self.__size)
     args = property(lambda self: self.__args)
@@ -1125,19 +1074,18 @@ class ExprCompose(Expr):
         return Expr.get_object(cls, tuple(args))
 
     def __str__(self):
-        return '{' + ', '.join([str(arg[0]) for arg in self.__args]) + '}'
+        return '{' + ', '.join([str(arg) for arg in self.__args]) + '}'
 
     def get_r(self, mem_read=False, cst_read=False):
         return reduce(lambda elements, arg:
-                      elements.union(arg[0].get_r(mem_read, cst_read)), self.__args, set())
+                      elements.union(arg.get_r(mem_read, cst_read)), self.__args, set())
 
     def get_w(self):
         return reduce(lambda elements, arg:
-                      elements.union(arg[0].get_w()), self.__args, set())
+                      elements.union(arg.get_w()), self.__args, set())
 
     def _exprhash(self):
-        h_args = [EXPRCOMPOSE] + [(hash(arg[0]), arg[1], arg[2])
-                                  for arg in self.__args]
+        h_args = [EXPRCOMPOSE] + [hash(arg) for arg in self.__args]
         return hash(tuple(h_args))
 
     def _exprrepr(self):
@@ -1149,33 +1097,37 @@ class ExprCompose(Expr):
         for arg in self.__args:
             if arg == e:
                 return True
-            if arg[0].__contains__(e):
+            if arg.__contains__(e):
                 return True
         return False
 
     @visit_chk
     def visit(self, cb, tv=None):
-        args = [(arg[0].visit(cb, tv), arg[1], arg[2]) for arg in self.__args]
-        modified = any([arg[0] != arg[1] for arg in zip(self.__args, args)])
+        args = [arg.visit(cb, tv) for arg in self.__args]
+        modified = any([arg != arg_new for arg, arg_new in zip(self.__args, args)])
         if modified:
-            args = [expr for (expr, _, _) in args]
             return ExprCompose(*args)
         return self
 
     def copy(self):
-        args = [arg[0].copy() for arg in self.__args]
+        args = [arg.copy() for arg in self.__args]
         return ExprCompose(*args)
 
     def depth(self):
-        depth = [arg[0].depth() for arg in self.__args]
+        depth = [arg.depth() for arg in self.__args]
         return max(depth) + 1
 
     def graph_recursive(self, graph):
         graph.add_node(self)
         for arg in self.args:
-            arg[0].graph_recursive(graph)
-            graph.add_uniq_edge(self, arg[0])
+            arg.graph_recursive(graph)
+            graph.add_uniq_edge(self, arg)
 
+    def iter_args(self):
+        index = 0
+        for arg in self.__args:
+            yield index, arg
+            index += arg.size
 
 # Expression order for comparaison
 expr_order_dict = {ExprId: 1,
@@ -1203,7 +1155,7 @@ def compare_exprs_compose(e1, e2):
 def compare_expr_list_compose(l1_e, l2_e):
     # Sort by list elements in incremental order, then by list size
     for i in xrange(min(len(l1_e), len(l2_e))):
-        x = compare_exprs_compose(l1_e[i], l2_e[i])
+        x = compare_exprs(l1_e[i], l2_e[i])
         if x:
             return x
     return cmp(len(l1_e), len(l2_e))
@@ -1434,9 +1386,7 @@ def MatchExpr(e, m, tks, result=None):
         if not isinstance(m, ExprCompose):
             return False
         for a1, a2 in zip(e.args, m.args):
-            if a1[1] != a2[1] or a1[2] != a2[2]:
-                return False
-            r = MatchExpr(a1[0], a2[0], tks, result)
+            r = MatchExpr(a1, a2, tks, result)
             if r is False:
                 return False
         return result
