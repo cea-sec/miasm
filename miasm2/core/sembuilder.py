@@ -129,15 +129,21 @@ class SemBuilder(object):
     instanciation
     """
 
-    def __init__(self, ctx):
+    def __init__(self, ctx, no_extra_block=False):
         """Create a SemBuilder
         @ctx: context dictionary used during parsing
+        @no_extra_block: (optional) if set, build functions will not return extra
+        blocks
+
         """
         # Init
         self.transformer = MiasmTransformer()
         self._ctx = dict(m2_expr.__dict__)
         self._ctx["irbloc"] = irbloc
         self._functions = {}
+
+        # Option
+        self._no_extra_block = no_extra_block
 
         # Update context
         self._ctx.update(ctx)
@@ -308,11 +314,17 @@ class SemBuilder(object):
             ## Last block can be empty
             blocks.pop()
         other_blocks = blocks[1:]
-        body.append(ast.Return(value=ast.Tuple(elts=[ast.List(elts=cur_instr,
-                                                              ctx=ast.Load()),
-                                                     ast.List(elts=other_blocks,
-                                                              ctx=ast.Load())],
-                                               ctx=ast.Load())))
+
+        if self._no_extra_block:
+            to_ret = ast.List(elts=cur_instr,
+                              ctx=ast.Load())
+        else:
+            to_ret = ast.Tuple(elts=[ast.List(elts=cur_instr,
+                                              ctx=ast.Load()),
+                                     ast.List(elts=other_blocks,
+                                              ctx=ast.Load())],
+                               ctx=ast.Load())
+        body.append(ast.Return(value=to_ret))
 
         ret = ast.Module([ast.FunctionDef(name=fc_ast.name,
                                           args=fc_ast.args,
