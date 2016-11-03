@@ -32,30 +32,46 @@ class Machine(object):
         # Import on runtime for performance issue
         if machine_name == "arml":
             from miasm2.arch.arm.disasm import dis_arml as dis_engine
-            from miasm2.arch.arm import arch, jit
+            from miasm2.arch.arm import arch
+            try:
+                from miasm2.arch.arm import jit
+                jitter = jit.jitter_arml
+            except ImportError:
+                pass
             mn = arch.mn_arm
-            jitter = jit.jitter_arml
             from miasm2.arch.arm.ira import ir_a_arml as ira
             from miasm2.arch.arm.sem import ir_arml as ir
         elif machine_name == "armb":
             from miasm2.arch.arm.disasm import dis_armb as dis_engine
-            from miasm2.arch.arm import arch, jit
+            from miasm2.arch.arm import arch
+            try:
+                from miasm2.arch.arm import jit
+                jitter = jit.jitter_armb
+            except ImportError:
+                pass
             mn = arch.mn_arm
-            jitter = jit.jitter_armb
             from miasm2.arch.arm.ira import ir_a_armb as ira
             from miasm2.arch.arm.sem import ir_armb as ir
         elif machine_name == "aarch64l":
             from miasm2.arch.aarch64.disasm import dis_aarch64l as dis_engine
-            from miasm2.arch.aarch64 import arch, jit
+            from miasm2.arch.aarch64 import arch
+            try:
+                from miasm2.arch.aarch64 import jit
+                jitter = jit.jitter_aarch64l
+            except ImportError:
+                pass
             mn = arch.mn_aarch64
-            jitter = jit.jitter_aarch64l
             from miasm2.arch.aarch64.ira import ir_a_aarch64l as ira
             from miasm2.arch.aarch64.sem import ir_aarch64l as ir
         elif machine_name == "aarch64b":
             from miasm2.arch.aarch64.disasm import dis_aarch64b as dis_engine
-            from miasm2.arch.aarch64 import arch, jit
+            from miasm2.arch.aarch64 import arch
+            try:
+                from miasm2.arch.aarch64 import jit
+                jitter = jit.jitter_aarch64b
+            except ImportError:
+                pass
             mn = arch.mn_aarch64
-            jitter = jit.jitter_aarch64b
             from miasm2.arch.aarch64.ira import ir_a_aarch64b as ira
             from miasm2.arch.aarch64.sem import ir_aarch64b as ir
         elif machine_name == "armtl":
@@ -75,46 +91,76 @@ class Machine(object):
             mn = arch.mn_sh4
         elif machine_name == "x86_16":
             from miasm2.arch.x86.disasm import dis_x86_16 as dis_engine
-            from miasm2.arch.x86 import arch, jit
+            from miasm2.arch.x86 import arch
+            try:
+                from miasm2.arch.x86 import jit
+                jitter = jit.jitter_x86_16
+            except ImportError:
+                pass
             mn = arch.mn_x86
-            jitter = jit.jitter_x86_16
             from miasm2.arch.x86.ira import ir_a_x86_16 as ira
             from miasm2.arch.x86.sem import ir_x86_16 as ir
         elif machine_name == "x86_32":
             from miasm2.arch.x86.disasm import dis_x86_32 as dis_engine
-            from miasm2.arch.x86 import arch, jit
+            from miasm2.arch.x86 import arch
+            try:
+                from miasm2.arch.x86 import jit
+                jitter = jit.jitter_x86_32
+            except ImportError:
+                pass
             mn = arch.mn_x86
-            jitter = jit.jitter_x86_32
             from miasm2.arch.x86.ira import ir_a_x86_32 as ira
             from miasm2.arch.x86.sem import ir_x86_32 as ir
-            from miasm2.analysis.gdbserver import GdbServer_x86_32 as gdbserver
+            try:
+                from miasm2.analysis.gdbserver import GdbServer_x86_32 as gdbserver
+            except ImportError:
+                pass
         elif machine_name == "x86_64":
             from miasm2.arch.x86.disasm import dis_x86_64 as dis_engine
-            from miasm2.arch.x86 import arch, jit
+            from miasm2.arch.x86 import arch
+            try:
+                from miasm2.arch.x86 import jit
+                jitter = jit.jitter_x86_64
+            except ImportError:
+                pass
             mn = arch.mn_x86
-            jitter = jit.jitter_x86_64
             from miasm2.arch.x86.ira import ir_a_x86_64 as ira
             from miasm2.arch.x86.sem import ir_x86_64 as ir
         elif machine_name == "msp430":
             from miasm2.arch.msp430.disasm import dis_msp430 as dis_engine
-            from miasm2.arch.msp430 import arch, jit
+            from miasm2.arch.msp430 import arch
+            try:
+                from miasm2.arch.msp430 import jit
+                jitter = jit.jitter_msp430
+            except ImportError:
+                pass
             mn = arch.mn_msp430
-            jitter = jit.jitter_msp430
             from miasm2.arch.msp430.ira import ir_a_msp430 as ira
             from miasm2.arch.msp430.sem import ir_msp430 as ir
-            from miasm2.analysis.gdbserver import GdbServer_msp430 as gdbserver
+            try:
+                from miasm2.analysis.gdbserver import GdbServer_msp430 as gdbserver
+            except ImportError:
+                pass
         elif machine_name == "mips32b":
             from miasm2.arch.mips32.disasm import dis_mips32b as dis_engine
-            from miasm2.arch.mips32 import arch, jit
+            from miasm2.arch.mips32 import arch
+            try:
+                from miasm2.arch.mips32 import jit
+                jitter = jit.jitter_mips32b
+            except ImportError:
+                pass
             mn = arch.mn_mips32
-            jitter = jit.jitter_mips32b
             from miasm2.arch.mips32.ira import ir_a_mips32b as ira
             from miasm2.arch.mips32.sem import ir_mips32b as ir
         elif machine_name == "mips32l":
             from miasm2.arch.mips32.disasm import dis_mips32l as dis_engine
-            from miasm2.arch.mips32 import arch, jit
+            from miasm2.arch.mips32 import arch
+            try:
+                from miasm2.arch.mips32 import jit
+                jitter = jit.jitter_mips32l
+            except ImportError:
+                pass
             mn = arch.mn_mips32
-            jitter = jit.jitter_mips32l
             from miasm2.arch.mips32.ira import ir_a_mips32l as ira
             from miasm2.arch.mips32.sem import ir_mips32l as ir
         else:
