@@ -952,7 +952,18 @@ def bkpt(ir, instr, a):
     e.append(ExprAff(bp_num, a))
     return e
 
+def _extract_s16(arg, part):
+    if part == 'B': # bottom 16 bits
+        return arg[0:16]
+    elif part == 'T': # top 16 bits
+        return arg[16:32]
 
+def smul(ir, instr, a, b, c):
+    return [ExprAff(a, _extract_s16(b, instr.name[4]).signExtend(32) * _extract_s16(c, instr.name[5]).signExtend(32))]
+
+def smulw(ir, instr, a, b, c):
+    prod = b.signExtend(48) * _extract_s16(c, instr.name[5]).signExtend(48)
+    return [ExprAff(a, prod[16:48])] # signed most significant 32 bits of the 48-bit result
 
 COND_EQ = 0
 COND_NE = 1
@@ -1099,6 +1110,12 @@ mnemo_condm0 = {'add': add,
                 'clz': clz,
                 'uxtab': uxtab,
                 'bkpt': bkpt,
+                'smulbb': smul,
+                'smulbt': smul,
+                'smultb': smul,
+                'smultt': smul,
+                'smulwt': smulw,
+                'smulwb': smulw,
                 }
 
 mnemo_condm1 = {'adds': add,
