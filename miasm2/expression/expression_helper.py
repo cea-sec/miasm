@@ -36,74 +36,45 @@ def parity(a):
 
 def merge_sliceto_slice(expr):
     """
-    Apply basic factorisation on ExprCompose sub compoenents
+    Apply basic factorisation on ExprCompose sub components
     @expr: ExprCompose
     """
 
-    slices_raw = []
-    other_raw = []
-    integers_raw = []
+    out_args = []
+    last_index = 0
     for index, arg in expr.iter_args():
-        if isinstance(arg, m2_expr.ExprInt):
-            integers_raw.append((index, arg))
-        elif isinstance(arg, m2_expr.ExprSlice):
-            slices_raw.append((index, arg))
-        else:
-            other_raw.append((index, arg))
+        # Init
+        if len(out_args) == 0:
+            out_args.append(arg)
+            continue
 
-    # Find max stop to determine size
-    max_size = sum([arg.size for arg in expr.args])
+        last_value = out_args[-1]
+        # Consecutive
 
-    integers_merged = []
-    # Merge consecutive integers
-    while integers_raw:
-        index, arg = integers_raw.pop()
-        new_size = arg.size
-        value = int(arg)
-        while integers_raw:
-            prev_index, prev_value = integers_raw[-1]
-            # Check if intergers are consecutive
-            if prev_index + prev_value.size != index:
-                break
-            # Merge integers
-            index = prev_index
-            new_size += prev_value.size
-            value = value << prev_value.size
-            value |= int(prev_value)
-            integers_raw.pop()
-        integers_merged.append((index, m2_expr.ExprInt(value, new_size)))
+        if last_index + last_value.size == index:
+            # Merge consecutive integers
+            if (isinstance(arg, m2_expr.ExprInt) and
+                isinstance(last_value, m2_expr.ExprInt)):
+                new_size = last_value.size + arg.size
+                value = int(arg) << last_value.size
+                value |= int(last_value)
+                out_args[-1] = m2_expr.ExprInt(value, size=new_size)
+                continue
 
+            # Merge consecuvite slice
+            elif (isinstance(arg, m2_expr.ExprSlice) and
+                  isinstance(last_value, m2_expr.ExprSlice)):
+                value = arg.arg
+                if (last_value.arg == value and
+                    last_value.stop == arg.start):
+                    out_args[-1] = value[last_value.start:arg.stop]
+                    continue
 
-    slices_merged = []
-    # Merge consecutive slices
-    while slices_raw:
-        index, arg = slices_raw.pop()
-        value, slice_start, slice_stop = arg.arg, arg.start, arg.stop
-        while slices_raw:
-            prev_index, prev_value = slices_raw[-1]
-            # Check if slices are consecutive
-            if prev_index + prev_value.size != index:
-                break
-            # Check if slices can ben merged
-            if prev_value.arg != value:
-                break
-            if prev_value.stop != slice_start:
-                break
-            # Merge slices
-            index = prev_index
-            slice_start = prev_value.start
-            slices_raw.pop()
-        slices_merged.append((index, value[slice_start:slice_stop]))
+        # Unmergeable
+        last_index = index
+        out_args.append(arg)
 
-
-    new_args = slices_merged + integers_merged + other_raw
-    new_args.sort()
-    for i, (index, arg) in enumerate(new_args[:-1]):
-        assert index + arg.size == new_args[i+1][0]
-    ret = [arg[1] for arg in new_args]
-
-    return ret
-
+    return out_args
 
 
 op_propag_cst = ['+', '*', '^', '&', '|', '>>',
