@@ -137,10 +137,8 @@ class TranslatorZ3(Translator):
 
     def from_ExprCompose(self, expr):
         res = None
-        args = sorted(expr.args, key=operator.itemgetter(2)) # sort by start off
-        for subexpr, start, stop in args:
-            sube = self.from_expr(subexpr)
-            e = z3.Extract(stop-start-1, 0, sube)
+        for arg in expr.args:
+            e = z3.Extract(arg.size-1, 0, self.from_expr(arg))
             if res != None:
                 res = z3.Concat(e, res)
             else:

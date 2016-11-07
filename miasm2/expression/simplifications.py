@@ -48,6 +48,7 @@ class ExpressionSimplifier(object):
 
     def __init__(self):
         self.expr_simp_cb = {}
+        self.simplified_exprs = set()
 
     def enable_passes(self, passes):
         """Add passes from @passes
@@ -80,7 +81,7 @@ class ExpressionSimplifier(object):
         @expression: Expr instance
         Return an Expr instance"""
 
-        if expression.is_simp:
+        if expression in self.simplified_exprs:
             return expression
 
         # Find a stable state
@@ -92,10 +93,10 @@ class ExpressionSimplifier(object):
 
             # Launch recursivity
             expression = self.expr_simp_wrapper(e_new)
-            expression.is_simp = True
-
+            self.simplified_exprs.add(expression)
         # Mark expression as simplified
-        e_new.is_simp = True
+        self.simplified_exprs.add(e_new)
+
         return e_new
 
     def expr_simp_wrapper(self, expression, callback=None):
@@ -104,13 +105,13 @@ class ExpressionSimplifier(object):
         @manual_callback: If set, call this function instead of normal one
         Return an Expr instance"""
 
-        if expression.is_simp:
+        if expression in self.simplified_exprs:
             return expression
 
         if callback is None:
             callback = self.expr_simp
 
-        return expression.visit(callback, lambda e: not(e.is_simp))
+        return expression.visit(callback, lambda e: e not in self.simplified_exprs)
 
     def __call__(self, expression, callback=None):
         "Wrapper on expr_simp_wrapper"

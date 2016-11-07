@@ -16,11 +16,10 @@ class TestExpressionExpressionHelper(unittest.TestCase):
         ebx = m2_expr.ExprId("EBX")
         ax = eax[0:16]
         expr = eax + ebx
-        expr = m2_expr.ExprCompose([(ax, 0, 16), (expr[16:32], 16, 32)])
+        expr = m2_expr.ExprCompose(ax, expr[16:32])
         expr2 = m2_expr.ExprMem((eax + ebx) ^ (eax), size=16)
         expr2 = expr2 | ax | expr2 | cst
-        exprf = expr - expr + m2_expr.ExprCompose([(expr2, 0, 16),
-                                                   (cst, 16, 32)])
+        exprf = expr - expr + m2_expr.ExprCompose(expr2, cst)
 
         # Identify variables
         vi = Variables_Identifier(exprf)

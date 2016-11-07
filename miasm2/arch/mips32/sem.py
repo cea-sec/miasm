@@ -99,7 +99,7 @@ def bne(arg1, arg2, arg3):
 def lui(arg1, arg2):
     """The immediate value @arg2 is shifted left 16 bits and stored in the
     register @arg1. The lower 16 bits are zeroes."""
-    arg1 = ExprCompose([(i16(0), 0, 16), (arg2[:16], 16, 32)])
+    arg1 = ExprCompose(i16(0), arg2[:16])
 
 @sbuild.parse
 def nop():
@@ -251,10 +251,7 @@ def bgtz(arg1, arg2):
 
 @sbuild.parse
 def wsbh(arg1, arg2):
-    arg1 = ExprCompose([(arg2[8:16],  0, 8),
-                        (arg2[0:8]  , 8, 16),
-                        (arg2[24:32], 16, 24),
-                        (arg2[16:24], 24, 32)])
+    arg1 = ExprCompose(arg2[8:16], arg2[0:8], arg2[24:32], arg2[16:24])
 
 @sbuild.parse
 def rotr(arg1, arg2, arg3):

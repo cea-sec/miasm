@@ -163,10 +163,8 @@ class TranslatorSMT2(Translator):
 
     def from_ExprCompose(self, expr):
         res = None
-        args = sorted(expr.args, key=operator.itemgetter(2))  # sort by start off
-        for subexpr, start, stop in args:
-            sube = self.from_expr(subexpr)
-            e = bv_extract(stop-start-1, 0, sube)
+        for arg in expr.args:
+            e = bv_extract(arg.size-1, 0, self.from_expr(arg))
             if res:
                 res = bv_concat(e, res)
             else:

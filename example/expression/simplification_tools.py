@@ -25,11 +25,9 @@ i1 = ExprInt(uint32(0x1))
 i2 = ExprInt(uint32(0x2))
 cc = ExprCond(a, b, c)
 
-o = ExprCompose([(a[:8], 8, 16),
-                 (a[8:16], 0, 8)])
+o = ExprCompose(a[8:16], a[:8])
 
-o2 = ExprCompose([(a[8:16], 0, 8),
-                 (a[:8], 8, 16)])
+o2 = ExprCompose(a[8:16], a[:8])
 
 l = [a[:8], b[:8], c[:8], m[:8], s, i1[:8], i2[:8], o[:8]]
 l2 = l[::-1]
@@ -56,7 +54,7 @@ print y == y.copy()
 print repr(y), repr(y.copy())
 
 
-z = ExprCompose([(a[5:5 + 8], 0, 8), (b[:16], 8, 24), (x[:8], 24, 32)])
+z = ExprCompose(a[5:5 + 8], b[:16], x[:8])
 print z
 print z.copy()
 print z[:31].copy().visit(replace_expr)

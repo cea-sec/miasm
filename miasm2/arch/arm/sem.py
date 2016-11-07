@@ -481,7 +481,7 @@ def umull(ir, instr, a, b, c, d):
 
 def umlal(ir, instr, a, b, c, d):
     e = []
-    r = c.zeroExtend(64) * d.zeroExtend(64) + ExprCompose([(a, 0, 32), (b, 32, 64)])
+    r = c.zeroExtend(64) * d.zeroExtend(64) + ExprCompose(a, b)
     e.append(ExprAff(a, r[0:32]))
     e.append(ExprAff(b, r[32:64]))
     # r15/IRDst not allowed as output
@@ -497,7 +497,7 @@ def smull(ir, instr, a, b, c, d):
 
 def smlal(ir, instr, a, b, c, d):
     e = []
-    r = c.signExtend(64) * d.signExtend(64) + ExprCompose([(a, 0, 32), (b, 32, 64)])
+    r = c.signExtend(64) * d.signExtend(64) + ExprCompose(a, b)
     e.append(ExprAff(a, r[0:32]))
     e.append(ExprAff(b, r[32:64]))
     # r15/IRDst not allowed as output
@@ -910,14 +910,14 @@ def bfc(ir, instr, a, b, c):
     out = []
     last = 0
     if start:
-        out.append((a[:start], 0, start))
+        out.append(a[:start])
         last = start
     if stop - start:
-        out.append((ExprInt32(0)[last:stop], last, stop))
+        out.append(ExprInt32(0)[last:stop])
         last = stop
     if last < 32:
-        out.append((a[last:], last, 32))
-    r = ExprCompose(out)
+        out.append(a[last:])
+    r = ExprCompose(*out)
     e.append(ExprAff(a, r))
     dst = None
     if PC in a.get_r():
@@ -927,10 +927,7 @@ def bfc(ir, instr, a, b, c):
 
 def rev(ir, instr, a, b):
     e = []
-    c = ExprCompose([(b[:8],      24, 32),
-                     (b[8:16],    16, 24),
-                     (b[16:24],   8, 16),
-                     (b[24:32],   0, 8)])
+    c = ExprCompose(b[24:32], b[16:24], b[8:16], b[:8])
     e.append(ExprAff(a, c))
     return e
 
@@ -1225,8 +1222,7 @@ class ir_arml(ir):
         # ir = get_mnemo_expr(self, self.name.lower(), *args)
         if len(args) and isinstance(args[-1], ExprOp):
             if args[-1].op == 'rrx':
-                args[-1] = ExprCompose(
-                    [(args[-1].args[0][1:], 0, 31), (cf, 31, 32)])
+                args[-1] = ExprCompose(args[-1].args[0][1:], cf)
             elif (args[-1].op in ['<<', '>>', '<<a', 'a>>', '<<<', '>>>'] and
                   isinstance(args[-1].args[-1], ExprId)):
                 args[-1] = ExprOp(args[-1].op,

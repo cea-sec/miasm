@@ -26,8 +26,8 @@ symbols_init = ira.arch.regs.regs_init
 symb = symbexec(ira, symbols_init)
 
 # Emulate one IR basic block
-## Emulation of several basic blocks can be done through .emul_ir_blocs
-cur_addr = symb.emul_ir_bloc(ira, START_ADDR)
+## Emulation of several basic blocks can be done through .emul_ir_blocks
+cur_addr = symb.emul_ir_block(START_ADDR)
 
 # Modified elements
 print 'Modified registers:'

@@ -30,10 +30,10 @@ for expr in [
         A + cst1,
         A + ExprCond(cond1, cst1, cst2),
         ExprCond(cond1, cst1, cst2) + ExprCond(cond2, cst3, cst4),
-        ExprCompose([(A, 0, 32), (cst1, 32, 64)]),
-        ExprCompose([(ExprCond(cond1, cst1, cst2), 0, 32), (A, 32, 64)]),
-        ExprCompose([(ExprCond(cond1, cst1, cst2), 0, 32),
-                     (ExprCond(cond2, cst3, cst4), 32, 64)]),
+        ExprCompose(A, cst1),
+        ExprCompose(ExprCond(cond1, cst1, cst2), A),
+        ExprCompose(ExprCond(cond1, cst1, cst2),
+                    ExprCond(cond2, cst3, cst4)),
         ExprCond(ExprCond(cond1, cst1, cst2), cst3, cst4),
 ]:
     print "*" * 80

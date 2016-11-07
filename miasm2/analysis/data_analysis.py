@@ -75,12 +75,7 @@ def intra_bloc_flow_symbexec(ir_arch, flow_graph, irb):
     out_nodes = {}
     current_nodes = {}
 
-    symbols_init = {}
-    for r in ir_arch.arch.regs.all_regs_ids:
-        # symbols_init[r] = ir_arch.arch.regs.all_regs_ids_init[i]
-        x = ExprId(r.name, r.size)
-        x.is_term = True
-        symbols_init[r] = x
+    symbols_init = dict(ir_arch.arch.regs.all_regs_ids_init)
 
     sb = symbexec(ir_arch, dict(symbols_init))
     sb.emulbloc(irb)
