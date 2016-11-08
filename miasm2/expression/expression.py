@@ -252,6 +252,9 @@ class Expr(object):
         "Deep copy of the expression"
         return self.visit(lambda x: x)
 
+    def __deepcopy__(self, _):
+        return self.copy()
+
     def replace_expr(self, dct=None):
         """Find and replace sub expression using dct
         @dct: dictionary of Expr -> *
