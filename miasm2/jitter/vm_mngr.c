@@ -1515,7 +1515,7 @@ void init_memory_page_pool(vm_mngr_t* vm_mngr)
 void init_code_bloc_pool(vm_mngr_t* vm_mngr)
 {
 	LIST_INIT(&vm_mngr->code_bloc_pool);
-	vm_mngr->code_bloc_pool_ad_min = 0xffffffff;
+	vm_mngr->code_bloc_pool_ad_min = 0xffffffffffffffffULL;
 	vm_mngr->code_bloc_pool_ad_max = 0;
 
 	memory_access_list_init(&(vm_mngr->memory_r));
@@ -1555,7 +1555,7 @@ void reset_code_bloc_pool(vm_mngr_t* vm_mngr)
 		LIST_REMOVE(cbp, next);
 		free(cbp);
 	}
-	vm_mngr->code_bloc_pool_ad_min = 0xffffffff;
+	vm_mngr->code_bloc_pool_ad_min = 0xffffffffffffffffULL;
 	vm_mngr->code_bloc_pool_ad_max = 0;
 }
 
