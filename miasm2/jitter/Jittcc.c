@@ -139,14 +139,32 @@ PyObject* tcc_exec_bloc(PyObject* self, PyObject* args)
 	PyObject* retaddr = NULL;
 	int status;
 	block_id BlockDst;
+	uint64_t max_exec_per_call = 0;
+	uint64_t cpt;
+	int do_cpt;
 
-	if (!PyArg_ParseTuple(args, "OOOO", &retaddr, &jitcpu, &lbl2ptr, &breakpoints))
+	if (!PyArg_ParseTuple(args, "OOOO|K",
+			      &retaddr, &jitcpu, &lbl2ptr, &breakpoints,
+			      &max_exec_per_call))
 		return NULL;
 
 	/* The loop will decref retaddr always once */
 	Py_INCREF(retaddr);
 
+	if (max_exec_per_call == 0) {
+		do_cpt = 0;
+		cpt = 1;
+	} else {
+		do_cpt = 1;
+		cpt = max_exec_per_call;
+	}
+
+
 	for (;;) {
+		if (cpt == 0)
+			return retaddr;
+		if (do_cpt)
+			cpt --;
 		// Init
 		BlockDst.is_local = 0;
 		BlockDst.address = 0;
