@@ -92,7 +92,6 @@ typedef struct {
 	int memory_pages_number;
 	struct memory_page_node* memory_pages_array;
 
-	unsigned int *code_addr_tab;
 	uint64_t code_bloc_pool_ad_min;
 	uint64_t code_bloc_pool_ad_max;
 
