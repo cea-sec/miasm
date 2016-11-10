@@ -51,7 +51,8 @@ class JitCore(object):
         self.blocs_mem_interval = interval()
         self.disasm_cb = None
         self.split_dis = set()
-        self.options = {"jit_maxline": 50  # Maximum number of line jitted
+        self.options = {"jit_maxline": 50,  # Maximum number of line jitted
+                        "max_exec_per_call": 0 # 0 means no limit
                         }
 
         self.mdis = asmbloc.disasmEngine(ir_arch.arch, ir_arch.attrib, bs,
@@ -170,7 +171,8 @@ class JitCore(object):
         @cpu: JitCpu instance
         @breakpoints: Dict instance of used breakpoints
         """
-        return self.exec_wrapper(label, cpu, self.lbl2jitbloc.data, breakpoints)
+        return self.exec_wrapper(label, cpu, self.lbl2jitbloc.data, breakpoints,
+                                 self.options["max_exec_per_call"])
 
     def runbloc(self, cpu, vm, lbl, breakpoints):
         """Run the bloc starting at lbl.
