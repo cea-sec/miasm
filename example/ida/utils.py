@@ -111,11 +111,11 @@ def expr2colorstr(regs_ids, expr):
     elif isinstance(expr, m2_expr.ExprCompose):
         s = "{"
         s += ", ".join(["%s, %s, %s" % (expr2colorstr(regs_ids, subexpr),
-                                        idaapi.COLSTR(str(start),
+                                        idaapi.COLSTR(str(idx),
                                                       idaapi.SCOLOR_RPTCMT),
-                                        idaapi.COLSTR(str(stop),
+                                        idaapi.COLSTR(str(idx + expr.size),
                                                       idaapi.SCOLOR_RPTCMT))
-                        for subexpr, start, stop in expr.args])
+                        for idx, subexpr in expr.iter_args()])
         s += "}"
     else:
         s = str(expr)
