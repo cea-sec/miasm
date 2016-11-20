@@ -32,6 +32,7 @@ import itertools
 from operator import itemgetter
 from miasm2.expression.modint import *
 from miasm2.core.graph import DiGraph
+import warnings
 
 # Define tokens
 TOK_INF = "<"
