@@ -32,6 +32,7 @@ import itertools
 from operator import itemgetter
 from miasm2.expression.modint import *
 from miasm2.core.graph import DiGraph
+import warnings
 
 # Define tokens
 TOK_INF = "<"
@@ -1067,7 +1068,7 @@ class ExprCompose(Expr):
         return self.__args
 
     def __setstate__(self, state):
-        self.__init__(state)
+        self.__init__(*state)
 
     def __new__(cls, *args):
         is_new_style = args and isinstance(args[0], Expr)
@@ -1077,7 +1078,7 @@ class ExprCompose(Expr):
         return Expr.get_object(cls, tuple(args))
 
     def __str__(self):
-        return '{' + ', '.join([str(arg) for arg in self.__args]) + '}'
+        return '{' + ', '.join(["%s %s %s" % (arg, idx, idx + arg.size) for idx, arg in self.iter_args()]) + '}'
 
     def get_r(self, mem_read=False, cst_read=False):
         return reduce(lambda elements, arg:
@@ -1092,7 +1093,7 @@ class ExprCompose(Expr):
         return hash(tuple(h_args))
 
     def _exprrepr(self):
-        return "%s([%r])" % (self.__class__.__name__, self.__args)
+        return "%s%r" % (self.__class__.__name__, self.__args)
 
     def __contains__(self, e):
         if self == e:
@@ -1188,6 +1189,9 @@ def compare_exprs(e1, e2):
     if e1 == e2:
         return 0
     if c1 == ExprInt:
+        ret = cmp(e1.size, e2.size)
+        if ret != 0:
+            return ret
         return cmp(e1.arg, e2.arg)
     elif c1 == ExprId:
         x = cmp(e1.name, e2.name)

@@ -74,7 +74,6 @@ class AssignBlock(dict):
             expr_list = [(new_dst, new_src),
                          (new_dst, self[new_dst])]
             # Find collision
-            print 'FIND COLISION'
             e_colision = reduce(lambda x, y: x.union(y),
                                 (self.get_modified_slice(dst, src)
                                  for (dst, src) in expr_list),
