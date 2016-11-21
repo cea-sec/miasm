@@ -1265,6 +1265,8 @@ class disasmEngine(object):
      - dont_dis: stop the current disassembly branch if reached
      - split_dis: force a basic block end if reached,
                   with a next constraint on its successor
+     - dont_dis_retcall_funcs: stop disassembly after a call to one
+                               of the given functions
 
     + On/Off
      - follow_call: recursively disassemble CALL destinations
@@ -1308,6 +1310,7 @@ class disasmEngine(object):
         self.blocs_wd = None
         self.dis_bloc_callback = None
         self.dont_dis_nulstart_bloc = False
+        self.dont_dis_retcall_funcs = set()
 
         # Override options if needed
         self.__dict__.update(kwargs)
@@ -1417,6 +1420,8 @@ class disasmEngine(object):
                     if isinstance(d, m2_expr.ExprId) and \
                             isinstance(d.name, asm_label):
                         dstn.append(d.name)
+                        if d.name.offset in self.dont_dis_retcall_funcs:
+                            add_next_offset = False
                 dst = dstn
                 if (not instr.is_subcall()) or self.follow_call:
                     cur_block.bto.update(
