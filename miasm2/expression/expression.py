@@ -380,6 +380,8 @@ class ExprInt(Expr):
             if size is not None and num.size != size:
                 raise RuntimeError("size must match modint size")
         elif size is not None:
+            if size not in mod_size2uint:
+                define_uint(size)
             self.__arg = mod_size2uint[size](num)
             self.__size = self.arg.size
         else:
