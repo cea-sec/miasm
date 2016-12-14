@@ -5,7 +5,9 @@ from pdb import pm
 from miasm2.expression.expression import *
 from miasm2.expression.expression_helper import *
 
+# Expression comparison
 assert(ExprInt64(-1) != ExprInt64(-2))
+assert(ExprInt64(1) != ExprInt32(1))
 
 # Possible values
 #- Common constants
