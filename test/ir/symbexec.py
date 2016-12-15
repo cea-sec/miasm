@@ -11,6 +11,7 @@ class TestSymbExec(unittest.TestCase):
             ExprCompose, ExprAff
         from miasm2.arch.x86.sem import ir_x86_32
         from miasm2.ir.symbexec import symbexec
+        from miasm2.ir.ir import AssignBlock
 
         addrX = ExprInt32(-1)
         addr0 = ExprInt32(0)
@@ -58,6 +59,22 @@ class TestSymbExec(unittest.TestCase):
         self.assertEqual(e.apply_expr(id_eax), addr0)
         self.assertEqual(e.apply_expr(ExprAff(id_eax, addr9)), addr9)
         self.assertEqual(e.apply_expr(id_eax), addr9)
+
+        # apply_change / eval_ir / apply_expr
+
+        ## x = a (with a = 0x0)
+        assignblk = AssignBlock()
+        assignblk[id_x] = id_a
+        e.eval_ir(assignblk)
+        self.assertEqual(e.apply_expr(id_x), addr0)
+
+        ## x = a (without replacing 'a' with 0x0)
+        e.apply_change(id_x, id_a)
+        self.assertEqual(e.apply_expr(id_x), id_a)
+
+        ## x = a (with a = 0x0)
+        self.assertEqual(e.apply_expr(assignblk.dst2ExprAff(id_x)), addr0)
+        self.assertEqual(e.apply_expr(id_x), addr0)
 
 if __name__ == '__main__':
     testsuite = unittest.TestLoader().loadTestsFromTestCase(TestSymbExec)
