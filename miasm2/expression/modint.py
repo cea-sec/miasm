@@ -198,25 +198,36 @@ mod_size2int = {}
 mod_uint2size = {}
 mod_int2size = {}
 
+def define_int(size):
+    """Build the 'modint' instance corresponding to size @size"""
+    global mod_size2int, mod_int2size
+
+    name = 'int%d' % size
+    cls = type(name, (modint,), {"size": size, "limit": 1 << size})
+    globals()[name] = cls
+    mod_size2int[size] = cls
+    mod_int2size[cls] = size
+    return cls
+
+def define_uint(size):
+    """Build the 'moduint' instance corresponding to size @size"""
+    global mod_size2uint, mod_uint2size
+
+    name = 'uint%d' % size
+    cls = type(name, (moduint,), {"size": size, "limit": 1 << size})
+    globals()[name] = cls
+    mod_size2uint[size] = cls
+    mod_uint2size[cls] = size
+    return cls
 
 def define_common_int():
     "Define common int: ExprInt1, ExprInt2, .."
-    global mod_size2int, mod_int2size, mod_size2uint, mod_uint2size
-
     common_int = xrange(1, 257)
 
     for i in common_int:
-        name = 'uint%d' % i
-        c = type(name, (moduint,), {"size": i, "limit": 1 << i})
-        globals()[name] = c
-        mod_size2uint[i] = c
-        mod_uint2size[c] = i
+        define_int(i)
 
     for i in common_int:
-        name = 'int%d' % i
-        c = type(name, (modint,), {"size": i, "limit": 1 << i})
-        globals()[name] = c
-        mod_size2int[i] = c
-        mod_int2size[c] = i
+        define_uint(i)
 
 define_common_int()

@@ -5,7 +5,13 @@ from pdb import pm
 from miasm2.expression.expression import *
 from miasm2.expression.expression_helper import *
 
+# Expression comparison
 assert(ExprInt64(-1) != ExprInt64(-2))
+assert(ExprInt64(1) != ExprInt32(1))
+
+# Expression size
+big_cst = ExprInt(1, size=0x1000)
+assert big_cst.size == 0x1000
 
 # Possible values
 #- Common constants
