@@ -5,7 +5,7 @@
 # - JiT                                                                        #
 #
 # Requires:                                                                    #
-# - llvmpy (tested on v0.11.2)                                                 #
+# - llvmlite (tested on v0.15)                                                 #
 #
 # Authors : Fabrice DESCLAUX (CEA/DAM), Camille MOUGEY (CEA/DAM)               #
 #

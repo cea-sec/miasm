@@ -697,7 +697,7 @@ By default, no tag is omitted." % ", ".join(TAGS.keys()), default="")
 
     if llvm is False:
         print "%(red)s[LLVM]%(end)s Python" % cosmetics.colors + \
-            "'py-llvm 3.2' module is required for llvm tests"
+            "'llvmlite' module is required for llvm tests"
 
         # Remove llvm tests
         if TAGS["llvm"] not in exclude_tags:
