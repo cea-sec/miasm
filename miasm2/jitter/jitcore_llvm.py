@@ -23,7 +23,6 @@ class JitCore_LLVM(jitcore.JitCore):
                              "optimise": False,     # Optimise functions
                              "log_func": False,    # Print LLVM functions
                              "log_assembly": False,  # Print assembly executed
-                             "cache_ir": None      # SaveDir for cached .ll
                              })
 
         self.exec_wrapper = Jitllvm.llvm_exec_bloc
@@ -64,66 +63,6 @@ class JitCore_LLVM(jitcore.JitCore):
 
         # Set IRs transformation to apply
         self.context.set_IR_transformation(self.ir_arch.expr_fix_regs_for_mode)
-
-    def add_bloc(self, bloc):
-
-        # Search in IR cache
-        if False and self.options["cache_ir"] is not None:
-
-            # /!\ This part is under development
-            # Use it at your own risk
-
-            # Compute Hash : label + bloc binary
-            func_name = bloc.label.name
-            to_hash = func_name
-
-            # Get binary from bloc
-            for line in bloc.lines:
-                b = line.b
-                to_hash += b
-
-            # Compute Hash
-            md5 = hashlib.md5(to_hash).hexdigest()
-
-            # Try to load the function from cache
-            filename = self.options["cache_ir"] + md5 + ".ll"
-
-            try:
-                fcontent = open(filename)
-                content = fcontent.read()
-                fcontent.close()
-
-            except IOError:
-                content = None
-
-            if content is None:
-                # Compute the IR
-                super(JitCore_LLVM, self).add_bloc(bloc)
-
-                # Save it
-                fdest = open(filename, "w")
-                dump = str(self.context.mod.get_function_named(func_name))
-                my = "declare i16 @llvm.bswap.i16(i16) nounwind readnone\n"
-
-                fdest.write(self.mod_base_str + my + dump)
-                fdest.close()
-
-            else:
-                import llvm.core as llvm_c
-                import llvm.ee as llvm_e
-                my_mod = llvm_c.Module.from_assembly(content)
-                func = my_mod.get_function_named(func_name)
-                exec_en = llvm_e.ExecutionEngine.new(my_mod)
-                self.exec_engines.append(exec_en)
-
-                # We can use the same exec_engine
-                ptr = self.exec_engines[0].get_pointer_to_function(func)
-
-                # Store a pointer on the function jitted code
-                self.lbl2jitbloc[bloc.label.offset] = ptr
-
-        else:
-            super(JitCore_LLVM, self).add_bloc(bloc)
 
     def jitirblocs(self, label, irblocs):
 
