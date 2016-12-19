@@ -661,20 +661,16 @@ class LLVMFunction():
 
         self.set_ret(ret)
 
-    def affect(self, src, dst, add_new=True):
-        "Affect from M2 src to M2 dst. If add_new, add a suffix '_new' to dest"
-
-        # Source
-        src = self.add_ir(src)
+    def affect(self, src, dst):
+        "Affect from LLVM src to M2 dst"
 
         # Destination
         builder = self.builder
         self.add_ir(m2_expr.ExprId("vmcpu"))
 
         if isinstance(dst, m2_expr.ExprId):
-            dst_name = dst.name + "_new" if add_new else dst.name
-
-            if add_new or dst_name == "IRDst":
+            dst_name = dst.name
+            if dst_name == "IRDst":
                 self.local_vars[dst_name] = src
             else:
                 ptr_casted = self.get_ptr_by_expr(
@@ -763,7 +759,7 @@ class LLVMFunction():
         "Add a bloc of instruction in the current function"
 
         for assignblk, line in zip(bloc, lines):
-            new_reg = set()
+            new_reg = {}
 
             # Check general errors only at the beggining of instruction
             if line.offset not in self.offsets_jitted:
@@ -785,24 +781,23 @@ class LLVMFunction():
                     src = func(src)
 
                 # Treat current expression
-                self.affect(src, dst)
-
-                # Save registers updated
-                new_reg.update(dst.get_w())
+                if isinstance(dst, m2_expr.ExprId):
+                    new_reg[dst] = self.add_ir(src)
+                else:
+                    assert isinstance(dst, m2_expr.ExprMem)
+                    # Source
+                    src = self.add_ir(src)
+                    self.affect(src, dst)
 
             # Check for errors (without updating PC)
             self.check_error(line, except_do_not_update_pc=True)
 
             # new -> normal
-            reg_written = []
-            for r in new_reg:
-                if isinstance(r, m2_expr.ExprId):
-                    r_new = m2_expr.ExprId(r.name + "_new", r.size)
-                    reg_written += [r, r_new]
-                    self.affect(r_new, r, add_new=False)
+            for dst, src in new_reg.iteritems():
+                self.affect(src, dst)
 
             # Clear cache
-            self.clear_cache(reg_written)
+            self.clear_cache(new_reg)
             self.main_stream = True
 
     def from_bloc(self, bloc, final_expr):
