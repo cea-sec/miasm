@@ -124,6 +124,14 @@ class LLVMContext():
             fnty = llvm_ir.FunctionType(detail["ret"], detail["args"])
             llvm_ir.Function(self.mod, fnty, name=name)
 
+    def memory_lookup(self, func, addr, size):
+        """Perform a memory lookup at @addr of size @size (in bit)"""
+        raise NotImplementedError("Abstract method")
+
+    def memory_write(self, func, addr, size, value):
+        """Perform a memory write at @addr of size @size (in bit) with LLVM IR @value"""
+        raise NotImplementedError("Abstract method")
+
 
 class LLVMContext_JIT(LLVMContext):
 
@@ -225,6 +233,50 @@ class LLVMContext_JIT(LLVMContext):
         args: function Expr(Expr)"""
         self.IR_transformation_functions = args
 
+    def memory_lookup(self, func, addr, size):
+        """Perform a memory lookup at @addr of size @size (in bit)"""
+        builder = func.builder
+        fc_name = "vm_MEM_LOOKUP_%02d" % size
+        fc_ptr = self.mod.get_global(fc_name)
+        addr_casted = builder.zext(addr,
+                                   LLVMType.IntType(64))
+
+        ret = builder.call(fc_ptr, [func.local_vars["vmmngr"],
+                                    addr_casted])
+        return ret
+
+    def memory_write(self, func, addr, size, value):
+        """Perform a memory write at @addr of size @size (in bit) with LLVM IR @value"""
+        # Function call
+        builder = func.builder
+        fc_name = "vm_MEM_WRITE_%02d" % size
+        fc_ptr = self.mod.get_global(fc_name)
+        dst_casted = builder.zext(addr, LLVMType.IntType(64))
+        builder.call(fc_ptr, [func.local_vars["vmmngr"],
+                              dst_casted,
+                              value])
+
+
+class LLVMContext_IRCompilation(LLVMContext):
+
+    """Extend LLVMContext in order to handle memory management and custom
+    operations for Miasm IR compilation"""
+
+    def memory_lookup(self, func, addr, size):
+        """Perform a memory lookup at @addr of size @size (in bit)"""
+        builder = func.builder
+        int_size = LLVMType.IntType(size)
+        ptr_casted = builder.inttoptr(addr,
+                                      llvm_ir.PointerType(int_size))
+        return builder.load(ptr_casted)
+
+    def memory_write(self, func, addr, size, value):
+        """Perform a memory write at @addr of size @size (in bit) with LLVM IR @value"""
+        builder = func.builder
+        int_size = LLVMType.IntType(size)
+        ptr_casted = builder.inttoptr(addr,
+                                      llvm_ir.PointerType(int_size))
+        return builder.store(value, ptr_casted)
 
 class LLVMFunction():
 
@@ -516,16 +568,8 @@ class LLVMFunction():
 
         if isinstance(expr, m2_expr.ExprMem):
 
-            fc_name = "vm_MEM_LOOKUP_%02d" % expr.size
-            fc_ptr = self.mod.get_global(fc_name)
-            addr_casted = builder.zext(self.add_ir(expr.arg),
-                                       LLVMType.IntType(64))
-
-            ret = builder.call(fc_ptr, [self.local_vars["vmmngr"],
-                                        addr_casted])
-
-            # Do not update memory cache to avoid pointer collision
-            return ret
+            addr = self.add_ir(expr.arg)
+            return self.llvm_context.memory_lookup(self, addr, expr.size)
 
         if isinstance(expr, m2_expr.ExprCond):
             # Compute cond
@@ -666,7 +710,6 @@ class LLVMFunction():
 
         # Destination
         builder = self.builder
-        self.add_ir(m2_expr.ExprId("vmcpu"))
 
         if isinstance(dst, m2_expr.ExprId):
             dst_name = dst.name
@@ -678,17 +721,8 @@ class LLVMFunction():
                 builder.store(src, ptr_casted)
 
         elif isinstance(dst, m2_expr.ExprMem):
-            self.add_ir(dst.arg)
-
-            # Function call
-            fc_name = "vm_MEM_WRITE_%02d" % dst.size
-            fc_ptr = self.mod.get_global(fc_name)
-            dst = self.add_ir(dst.arg)
-            dst_casted = builder.zext(dst, LLVMType.IntType(64))
-            builder.call(fc_ptr, [self.local_vars["vmmngr"],
-                                  dst_casted,
-                                  src])
-
+            addr = self.add_ir(dst.arg)
+            self.llvm_context.memory_write(self, addr, dst.size, src)
         else:
             raise Exception("UnknownAffectationType")
 
