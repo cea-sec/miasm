@@ -312,7 +312,7 @@ class LLVMFunction():
         "Create an alloca instruction at the beginning of the current fc"
         builder = self.builder
         current_bbl = builder.basic_block
-        builder.position_at_end(self.entry_bbl)
+        builder.position_at_start(self.entry_bbl)
 
         ret = builder.alloca(var_type)
         builder.position_at_end(current_bbl)
