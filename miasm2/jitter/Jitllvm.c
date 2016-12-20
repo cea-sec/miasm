@@ -13,7 +13,7 @@
 PyObject* llvm_exec_bloc(PyObject* self, PyObject* args)
 {
 	uint64_t func_addr;
-	uint64_t (*func)(void*, void*);
+	uint64_t (*func)(void*, void*, void*);
 	uint64_t vm;
 	uint64_t ret;
 	JitCpu* jitcpu;
@@ -22,7 +22,7 @@ PyObject* llvm_exec_bloc(PyObject* self, PyObject* args)
 		return NULL;
 	vm_cpu_t* cpu = jitcpu->cpu;
 	func = (void *) (intptr_t) func_addr;
-	ret = func((void*)(intptr_t) cpu, (void*)(intptr_t) vm);
+	ret = func((void*) jitcpu, (void*)(intptr_t) cpu, (void*)(intptr_t) vm);
 	return PyLong_FromUnsignedLongLong(ret);
 }
 

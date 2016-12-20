@@ -160,11 +160,11 @@ class LLVMContext_JIT(LLVMContext):
         fc = {}
         p8 = llvm_ir.PointerType(LLVMType.IntType(8))
         for i in [8, 16, 32, 64]:
-            fc["vm_MEM_LOOKUP_%02d" % i] = {"ret": LLVMType.IntType(i),
+            fc["MEM_LOOKUP_%02d" % i] = {"ret": LLVMType.IntType(i),
                                          "args": [p8,
                                                   LLVMType.IntType(64)]}
 
-            fc["vm_MEM_WRITE_%02d" % i] = {"ret": llvm_ir.VoidType(),
+            fc["MEM_WRITE_%02d" % i] = {"ret": llvm_ir.VoidType(),
                                         "args": [p8,
                                                  LLVMType.IntType(64),
                                                  LLVMType.IntType(i)]}
@@ -236,12 +236,12 @@ class LLVMContext_JIT(LLVMContext):
     def memory_lookup(self, func, addr, size):
         """Perform a memory lookup at @addr of size @size (in bit)"""
         builder = func.builder
-        fc_name = "vm_MEM_LOOKUP_%02d" % size
+        fc_name = "MEM_LOOKUP_%02d" % size
         fc_ptr = self.mod.get_global(fc_name)
         addr_casted = builder.zext(addr,
                                    LLVMType.IntType(64))
 
-        ret = builder.call(fc_ptr, [func.local_vars["vmmngr"],
+        ret = builder.call(fc_ptr, [func.local_vars["jitcpu"],
                                     addr_casted])
         return ret
 
@@ -249,10 +249,10 @@ class LLVMContext_JIT(LLVMContext):
         """Perform a memory write at @addr of size @size (in bit) with LLVM IR @value"""
         # Function call
         builder = func.builder
-        fc_name = "vm_MEM_WRITE_%02d" % size
+        fc_name = "MEM_WRITE_%02d" % size
         fc_ptr = self.mod.get_global(fc_name)
         dst_casted = builder.zext(addr, LLVMType.IntType(64))
-        builder.call(fc_ptr, [func.local_vars["vmmngr"],
+        builder.call(fc_ptr, [func.local_vars["jitcpu"],
                               dst_casted,
                               value])
 
@@ -836,14 +836,17 @@ class LLVMFunction():
 
     def from_bloc(self, bloc, final_expr):
         """Build the function from a bloc, with the dst equation.
-        Prototype : f(i8* vmcpu, i8* vmmngr)"""
+        Prototype : f(i8* jitcpu, i8* vmcpu, i8* vmmngr)"""
 
         # Build function signature
+        self.my_args.append((m2_expr.ExprId("jitcpu"),
+                             llvm_ir.PointerType(LLVMType.IntType(8)),
+                             "jitcpu"))
         self.my_args.append((m2_expr.ExprId("vmcpu"),
-                             llvm_ir.PointerType.pointer(LLVMType.IntType(8)),
+                             llvm_ir.PointerType(LLVMType.IntType(8)),
                              "vmcpu"))
         self.my_args.append((m2_expr.ExprId("vmmngr"),
-                             llvm_ir.PointerType.pointer(LLVMType.IntType(8)),
+                             llvm_ir.PointerType(LLVMType.IntType(8)),
                              "vmmngr"))
         self.ret_type = LLVMType.IntType(final_expr.size)
 
@@ -960,9 +963,12 @@ class LLVMFunction():
 
     def from_blocs(self, blocs):
         """Build the function from a list of bloc (irbloc instances).
-        Prototype : f(i8* vmcpu, i8* vmmngr)"""
+        Prototype : f(i8* jitcpu, i8* vmcpu, i8* vmmngr)"""
 
         # Build function signature
+        self.my_args.append((m2_expr.ExprId("jitcpu"),
+                             llvm_ir.PointerType(LLVMType.IntType(8)),
+                             "jitcpu"))
         self.my_args.append((m2_expr.ExprId("vmcpu"),
                              llvm_ir.PointerType(LLVMType.IntType(8)),
                              "vmcpu"))
