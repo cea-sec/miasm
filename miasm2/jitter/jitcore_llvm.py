@@ -45,7 +45,7 @@ class JitCore_LLVM(jitcore.JitCore):
             pass
 
         # Create a context
-        self.context = LLVMContext_JIT(libs_to_load)
+        self.context = LLVMContext_JIT(libs_to_load, self.ir_arch)
 
         # Set the optimisation level
         self.context.optimise_level()
@@ -64,17 +64,21 @@ class JitCore_LLVM(jitcore.JitCore):
         # Set IRs transformation to apply
         self.context.set_IR_transformation(self.ir_arch.expr_fix_regs_for_mode)
 
-    def jitirblocs(self, label, irblocs):
+    def add_bloc(self, block):
+        """Add a block to JiT and JiT it.
+        @block: the block to add
+        """
+        # TODO: caching using hash
 
         # Build a function in the context
-        func = LLVMFunction(self.context, label.name)
+        func = LLVMFunction(self.context, block.label.name)
 
         # Set log level
         func.log_regs = self.log_regs
         func.log_mn = self.log_mn
 
-        # Import irblocs
-        func.from_blocs(irblocs)
+        # Import asm block
+        func.from_asmblock(block)
 
         # Verify
         if self.options["safe_mode"] is True:
@@ -91,7 +95,7 @@ class JitCore_LLVM(jitcore.JitCore):
             print func.get_assembly()
 
         # Store a pointer on the function jitted code
-        self.lbl2jitbloc[label.offset] = func.get_function_pointer()
+        self.lbl2jitbloc[block.label.offset] = func.get_function_pointer()
 
     def jit_call(self, label, cpu, _vmmngr, breakpoints):
         """Call the function label with cpu and vmmngr states
