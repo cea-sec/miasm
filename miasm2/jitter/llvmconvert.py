@@ -1312,6 +1312,19 @@ class LLVMFunction():
                     continue
                 switch.add_case(i, bbl)
 
+    def gen_bad_block(self, asmblock):
+        """
+        Translate an asm_bad_block into a CPU exception
+        """
+        builder = self.builder
+        m2_exception_flag = self.llvm_context.ir_arch.arch.regs.exception_flags
+        t_size = LLVMType.IntType(m2_exception_flag.size)
+        self.affect(self.add_ir(m2_expr.ExprInt8(1)),
+                    m2_expr.ExprId("status"))
+        self.affect(t_size(m2_csts.EXCEPT_UNK_MNEMO),
+                    m2_exception_flag)
+        self.set_ret(LLVMType.IntType(64)(asmblock.label.offset))
+
     def gen_finalize(self, asmblock, codegen):
         """
         In case of delayslot, generate a dummy BBL which return on the computed IRDst
@@ -1363,9 +1376,6 @@ class LLVMFunction():
         """Build the function from an asmblock (asm_block instance).
         Prototype : f(i8* jitcpu, i8* vmcpu, i8* vmmngr, i8* status)"""
 
-        if isinstance(asmblock, m2_asmbloc.asm_block_bad):
-            raise NotImplementedError("TODO")
-
         # Build function signature
         self.my_args.append((m2_expr.ExprId("jitcpu"),
                              llvm_ir.PointerType(LLVMType.IntType(8)),
@@ -1387,9 +1397,12 @@ class LLVMFunction():
         self.init_fc()
         self.local_vars_pointers["status"] = self.local_vars["status"]
 
+        if isinstance(asmblock, m2_asmbloc.asm_block_bad):
+            self.gen_bad_block(asmblock)
+            return
+
         # Create basic blocks (for label branchs)
         entry_bbl, builder = self.entry_bbl, self.builder
-
         for instr in asmblock.lines:
             lbl = self.llvm_context.ir_arch.symbol_pool.getby_offset_create(instr.offset)
             self.append_basic_block(lbl)
