@@ -572,11 +572,23 @@ class LLVMFunction():
 
             if op == "segm":
                 fc_ptr = self.mod.get_global("segm2addr")
-                args_casted = [builder.zext(self.add_ir(arg), LLVMType.IntType(64))
-                               for arg in expr.args]
-                args = [self.local_vars["jitcpu"]] + args_casted
-                ret = builder.call(fc_ptr, args)
-                ret = builder.trunc(ret, LLVMType.IntType(expr.size))
+
+                # Cast args if needed
+                args = [self.add_ir(arg) for arg in expr.args]
+                casted_args = []
+                for i, arg in enumerate(args, 1):
+                    if arg.type.width < fc_ptr.args[i].type.width:
+                        casted_args.append(builder.zext(arg, fc_ptr.args[i].type))
+                    else:
+                        casted_args.append(arg)
+
+                ret = builder.call(fc_ptr,
+                                   [self.local_vars["jitcpu"]] + casted_args)
+                # Ret size is not expr.size on segm2addr (which is the size of
+                # the segment, for instance 16 bits), but the size of an addr
+                ret_size = self.llvm_context.PC.size
+                if ret.type.width > ret_size:
+                    ret = builder.trunc(ret, LLVMType.IntType(ret_size))
                 self.update_cache(expr, ret)
                 return ret
 
