@@ -258,6 +258,14 @@ class LLVMContext_JIT(LLVMContext):
                                         "args": [p8,
                                                  LLVMType.IntType(k),
                                                  LLVMType.IntType(k)]}})
+            self.add_fc({"umod%s" % k: {"ret": LLVMType.IntType(k),
+                                        "args": [p8,
+                                                 LLVMType.IntType(k),
+                                                 LLVMType.IntType(k)]}})
+            self.add_fc({"udiv%s" % k: {"ret": LLVMType.IntType(k),
+                                        "args": [p8,
+                                                 LLVMType.IntType(k),
+                                                 LLVMType.IntType(k)]}})
 
     def add_log_functions(self):
         "Add functions for state logging"
@@ -592,7 +600,7 @@ class LLVMFunction():
                 self.update_cache(expr, ret)
                 return ret
 
-            if op in ["imod", "idiv"]:
+            if op in ["imod", "idiv", "umod", "udiv"]:
                 fc_ptr = self.mod.get_global(
                     "%s%s" % (op, expr.args[0].size))
                 args_casted = [self.add_ir(arg) for arg in expr.args]
@@ -619,10 +627,10 @@ class LLVMFunction():
                     callback = builder.shl
                 elif op == "a>>":
                     callback = builder.ashr
-                elif op == "udiv":
-                    callback = builder.udiv
-                elif op == "umod":
+                elif op == "%":
                     callback = builder.urem
+                elif op == "/":
+                    callback = builder.udiv
                 else:
                     raise NotImplementedError('Unknown op: %s' % op)
 
