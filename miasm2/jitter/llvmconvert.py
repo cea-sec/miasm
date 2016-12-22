@@ -230,6 +230,12 @@ class LLVMContext_JIT(LLVMContext):
                                              itype,
                                              itype,
                                              itype]}})
+        self.add_fc({"x86_bsr": {"ret": itype,
+                                 "args": [itype,
+                                          itype]}})
+        self.add_fc({"x86_bsf": {"ret": itype,
+                                 "args": [itype,
+                                          itype]}})
         self.add_fc({"segm2addr": {"ret": itype,
                                    "args": [p8,
                                             itype,
@@ -333,6 +339,8 @@ class LLVMFunction():
                               '>>>': 'rot_right',
                               '<<<c_rez': 'rcl_rez_op',
                               '>>>c_rez': 'rcr_rez_op',
+                              'bsr': 'x86_bsr',
+                              'bsf': 'x86_bsf',
     }
     ## Add the size as suffix
     op_translate_with_suffix_size = {'bcdadd': 'bcdadd',
