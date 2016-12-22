@@ -599,6 +599,11 @@ PyObject* get_gpreg_offset_all(void)
     get_reg_off(tsc1);
     get_reg_off(tsc2);
 
+    get_reg_off(interrupt_num);
+    get_reg_off(exception_flags);
+
+    get_reg_off(float_stack_ptr);
+
     return dict;
 }
 
