@@ -921,7 +921,7 @@ unsigned int rcr_rez_op(unsigned int size, unsigned int a, unsigned int b, unsig
     return tmp;
 }
 
-unsigned int x86_bsr(uint64_t src, unsigned int size)
+unsigned int x86_bsr(unsigned int size, uint64_t src)
 {
 	int i;
 
@@ -933,7 +933,7 @@ unsigned int x86_bsr(uint64_t src, unsigned int size)
 	exit(0);
 }
 
-unsigned int x86_bsf(uint64_t src, unsigned int size)
+unsigned int x86_bsf(unsigned int size, uint64_t src)
 {
 	int i;
 
