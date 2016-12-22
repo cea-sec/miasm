@@ -392,6 +392,28 @@ class symbexec(object):
 
         return pool_out.iteritems()
 
+    def apply_change(self, dst, src):
+        """
+        Apply @dst = @src on the current state WITHOUT evaluating both side
+        @dst: Expr, destination
+        @src: Expr, source
+        """
+        if isinstance(dst, m2_expr.ExprMem):
+            mem_overlap = self.get_mem_overlapping(dst)
+            for _, base in mem_overlap:
+                diff_mem = self.substract_mems(base, dst)
+                del self.symbols[base]
+                for new_mem, new_val in diff_mem:
+                    self.symbols[new_mem] = new_val
+        src_o = self.expr_simp(src)
+        self.symbols[dst] = src_o
+        if dst == src_o:
+            del self.symbols[dst]
+        if isinstance(dst, m2_expr.ExprMem):
+            if self.func_write and isinstance(dst.arg, m2_expr.ExprInt):
+                self.func_write(self, dst, src_o)
+                del self.symbols[dst]
+
     def eval_ir(self, assignblk):
         """
         Apply an AssignBlock on the current state
@@ -400,21 +422,8 @@ class symbexec(object):
         mem_dst = []
         src_dst = self.eval_ir_expr(assignblk)
         for dst, src in src_dst:
+            self.apply_change(dst, src)
             if isinstance(dst, m2_expr.ExprMem):
-                mem_overlap = self.get_mem_overlapping(dst)
-                for _, base in mem_overlap:
-                    diff_mem = self.substract_mems(base, dst)
-                    del self.symbols[base]
-                    for new_mem, new_val in diff_mem:
-                        self.symbols[new_mem] = new_val
-            src_o = self.expr_simp(src)
-            self.symbols[dst] = src_o
-            if dst == src_o:
-                del self.symbols[dst]
-            if isinstance(dst, m2_expr.ExprMem):
-                if self.func_write and isinstance(dst.arg, m2_expr.ExprInt):
-                    self.func_write(self, dst, src_o)
-                    del self.symbols[dst]
                 mem_dst.append(dst)
         return mem_dst
 
