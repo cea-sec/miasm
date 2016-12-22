@@ -166,6 +166,13 @@ class LLVMContext_JIT(LLVMContext):
         else:
             self.PC = self.ir_arch.pc
             self.logging_func = "dump_gpregs"
+        if arch.name == "mips32":
+            from miasm2.arch.mips32.jit import mipsCGen
+            self.cgen_class = mipsCGen
+            self.has_delayslot = True
+        else:
+            self.cgen_class = CGen
+            self.has_delayslot = False
 
     def add_memlookups(self):
         "Add MEM_LOOKUP functions"
@@ -410,13 +417,17 @@ class LLVMFunction():
         # Instruction builder
         self.builder = llvm_ir.IRBuilder(self.entry_bbl)
 
-    def CreateEntryBlockAlloca(self, var_type):
-        "Create an alloca instruction at the beginning of the current fc"
+    def CreateEntryBlockAlloca(self, var_type, default_value=None):
+        """Create an alloca instruction at the beginning of the current fc
+        @default_value: if set, store the default_value just after the allocation
+        """
         builder = self.builder
         current_bbl = builder.basic_block
         builder.position_at_start(self.entry_bbl)
 
         ret = builder.alloca(var_type)
+        if default_value is not None:
+            builder.store(default_value, ret)
         builder.position_at_end(current_bbl)
         return ret
 
@@ -555,7 +566,7 @@ class LLVMFunction():
                 fc_ptr = self.mod.get_global("segm2addr")
                 args_casted = [builder.zext(self.add_ir(arg), LLVMType.IntType(64))
                                for arg in expr.args]
-                args = [self.local_vars["vmcpu"]] + args_casted
+                args = [self.local_vars["jitcpu"]] + args_casted
                 ret = builder.call(fc_ptr, args)
                 ret = builder.trunc(ret, LLVMType.IntType(expr.size))
                 self.update_cache(expr, ret)
@@ -1273,6 +1284,53 @@ class LLVMFunction():
                     continue
                 switch.add_case(i, bbl)
 
+    def gen_finalize(self, asmblock, codegen):
+        """
+        In case of delayslot, generate a dummy BBL which return on the computed IRDst
+        or on next_label
+        """
+        if self.llvm_context.has_delayslot:
+            next_label = codegen.get_block_post_label(asmblock)
+            builder = self.builder
+
+            builder.position_at_end(self.get_basic_bloc_by_label(next_label))
+
+            # Common code
+            self.affect(self.add_ir(m2_expr.ExprInt8(0)),
+                        m2_expr.ExprId("status"))
+
+            # Check if IRDst has been set
+            zero_casted = LLVMType.IntType(codegen.delay_slot_set.size)(0)
+            condition_bool = builder.icmp_unsigned("!=",
+                                                   self.add_ir(codegen.delay_slot_set),
+                                                   zero_casted)
+
+            # Create bbls
+            branch_id = self.new_branch_name()
+            then_block = self.append_basic_block('then%s' % branch_id)
+            else_block = self.append_basic_block('else%s' % branch_id)
+
+            builder.cbranch(condition_bool, then_block, else_block)
+
+            # Deactivate object caching
+            self.main_stream = False
+
+            # Then Block
+            builder.position_at_end(then_block)
+            PC = self.llvm_context.PC
+            to_ret = self.add_ir(codegen.delay_slot_dst)
+            self.affect(to_ret, PC)
+            self.affect(self.add_ir(m2_expr.ExprInt8(0)),
+                        m2_expr.ExprId("status"))
+            self.set_ret(to_ret)
+
+            # Else Block
+            builder.position_at_end(else_block)
+            PC = self.llvm_context.PC
+            to_ret = LLVMType.IntType(PC.size)(next_label.offset)
+            self.affect(to_ret, PC)
+            self.set_ret(to_ret)
+
     def from_asmblock(self, asmblock):
         """Build the function from an asmblock (asm_block instance).
         Prototype : f(i8* jitcpu, i8* vmcpu, i8* vmmngr, i8* status)"""
@@ -1306,15 +1364,24 @@ class LLVMFunction():
 
         for instr in asmblock.lines:
             lbl = self.llvm_context.ir_arch.symbol_pool.getby_offset_create(instr.offset)
-            name = self.canonize_label_name(lbl)
-            self.append_basic_block(name)
+            self.append_basic_block(lbl)
+
+        # TODO: merge duplicate code with CGen
+        codegen = self.llvm_context.cgen_class(self.llvm_context.ir_arch)
+        irblocks_list = codegen.block2assignblks(asmblock)
+
+        # Prepare for delayslot
+        if self.llvm_context.has_delayslot:
+            for element in (codegen.delay_slot_dst, codegen.delay_slot_set):
+                eltype = LLVMType.IntType(element.size)
+                ptr = self.CreateEntryBlockAlloca(eltype,
+                                                  default_value=eltype(0))
+                self.local_vars_pointers[element.name] = ptr
+            lbl = codegen.get_block_post_label(asmblock)
+            self.append_basic_block(lbl)
 
         # Add content
         builder.position_at_end(entry_bbl)
-
-        # TODO: merge duplicate code with CGen
-        codegen = CGen(self.llvm_context.ir_arch)
-        irblocks_list = codegen.block2assignblks(asmblock)
 
         for instr, irblocks in zip(asmblock.lines, irblocks_list):
             attrib = codegen.get_attributes(instr, irblocks, self.log_mn,
@@ -1322,8 +1389,7 @@ class LLVMFunction():
 
             # Pre-create basic blocks
             for irblock in irblocks:
-                name = self.canonize_label_name(irblock.label)
-                self.append_basic_block(name, overwrite=False)
+                self.append_basic_block(irblock.label, overwrite=False)
 
             # Generate the corresponding code
             for index, irblock in enumerate(irblocks):
@@ -1338,8 +1404,8 @@ class LLVMFunction():
                     self.gen_pre_code(attrib)
                 self.gen_irblock(attrib, instr, irblock)
 
-        # Gen finalize (see codegen::CGen) is unrecheable
-        # self.gen_finalize(codegen.get_block_post_label(asmblock).offset)
+        # Gen finalize (see codegen::CGen) is unrecheable, except with delayslot
+        self.gen_finalize(asmblock, codegen)
 
         # Branch entry_bbl on first label
         builder.position_at_end(entry_bbl)
