@@ -30,7 +30,7 @@ def simp_add_mul(expr_simp, expr):
 
         # Effective simplification
         return m2_expr.ExprOp("*", expr.args[0],
-                              m2_expr.ExprInt_from(expr.args[0], 3))
+                              m2_expr.ExprInt(3, expr.args[0].size))
     else:
         # Do not simplify
         return expr
@@ -48,4 +48,4 @@ print "\t%s = %s" % (base_expr, expr_simp(base_expr))
 
 # Automatic fail
 assert(expr_simp(base_expr) == m2_expr.ExprOp("*", a,
-                                              m2_expr.ExprInt_from(a, 3)))
+                                              m2_expr.ExprInt(3, a.size)))

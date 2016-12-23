@@ -204,7 +204,7 @@ class symbexec(object):
             return expr
         elif isinstance(expr, m2_expr.ExprId):
             if isinstance(expr.name, asmbloc.asm_label) and expr.name.offset is not None:
-                ret = m2_expr.ExprInt_from(expr, expr.name.offset)
+                ret = m2_expr.ExprInt(expr.name.offset, expr.size)
             else:
                 ret = state.get(expr, expr)
         elif isinstance(expr, m2_expr.ExprMem):

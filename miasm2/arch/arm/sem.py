@@ -398,7 +398,7 @@ def neg(ir, instr, a, b):
     return e
 
 def negs(ir, instr, a, b):
-    e = subs(ir, instr, a, ExprInt_from(b, 0), b)
+    e = subs(ir, instr, a, ExprInt(0, b.size), b)
     return e
 
 def bic(ir, instr, a, b, c=None):

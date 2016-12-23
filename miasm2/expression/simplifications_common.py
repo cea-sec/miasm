@@ -87,14 +87,14 @@ def simp_cst_propagation(e_s, e):
         i = 0
         while args[0].arg & (1 << i) == 0:
             i += 1
-        return ExprInt_from(args[0], i)
+        return ExprInt(i, args[0].size)
 
     # bsr(int) => int
     if op == "bsr" and args[0].is_int() and args[0].arg != 0:
         i = args[0].size - 1
         while args[0].arg & (1 << i) == 0:
             i -= 1
-        return ExprInt_from(args[0], i)
+        return ExprInt(i, args[0].size)
 
     # -(-(A)) => A
     if (op == '-' and len(args) == 1 and args[0].is_op('-') and
@@ -138,7 +138,7 @@ def simp_cst_propagation(e_s, e):
 
     # A op 0 => 0
     if op in ['&', "*"] and args[1].is_int(0):
-        return ExprInt_from(e, 0)
+        return ExprInt(0, e.size)
 
     # - (A + B +...) => -A + -B + -C
     if op == '-' and len(args) == 1 and args[0].is_op('+'):
@@ -152,8 +152,8 @@ def simp_cst_propagation(e_s, e):
         args[0].src1.is_int() and args[0].src2.is_int()):
         i1 = args[0].src1
         i2 = args[0].src2
-        i1 = ExprInt_from(i1, -i1.arg)
-        i2 = ExprInt_from(i2, -i2.arg)
+        i1 = ExprInt(-i1.arg, i1.size)
+        i2 = ExprInt(-i2.arg, i2.size)
         return ExprCond(args[0].cond, i1, i2)
 
     i = 0
@@ -162,19 +162,19 @@ def simp_cst_propagation(e_s, e):
         while j < len(args):
             # A ^ A => 0
             if op == '^' and args[i] == args[j]:
-                args[i] = ExprInt_from(args[i], 0)
+                args[i] = ExprInt(0, args[i].size)
                 del(args[j])
                 continue
             # A + (- A) => 0
             if op == '+' and args[j].is_op("-"):
                 if len(args[j].args) == 1 and args[i] == args[j].args[0]:
-                    args[i] = ExprInt_from(args[i], 0)
+                    args[i] = ExprInt(0, args[i].size)
                     del(args[j])
                     continue
             # (- A) + A => 0
             if op == '+' and args[i].is_op("-"):
                 if len(args[i].args) == 1 and args[j] == args[i].args[0]:
-                    args[i] = ExprInt_from(args[i], 0)
+                    args[i] = ExprInt(0, args[i].size)
                     del(args[j])
                     continue
             # A | A => A
@@ -233,7 +233,7 @@ def simp_cst_propagation(e_s, e):
     if op == ">>" and args[1].is_int() and args[0].is_op("&"):
         if (args[0].args[1].is_int() and
             2 ** args[1].arg > args[0].args[1].arg):
-            return ExprInt_from(args[0], 0)
+            return ExprInt(0, args[0].size)
 
     # parity(int) => int
     if op == 'parity' and args[0].is_int():

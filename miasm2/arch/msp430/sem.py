@@ -29,7 +29,7 @@ def reset_sr_res():
 
 
 def update_flag_zf(a):
-    return [ExprAff(zf, ExprCond(a, ExprInt_from(zf, 0), ExprInt_from(zf, 1)))]
+    return [ExprAff(zf, ExprCond(a, ExprInt(0, zf.size), ExprInt(1, zf.size)))]
 
 
 def update_flag_nf(a):
@@ -37,11 +37,11 @@ def update_flag_nf(a):
 
 
 def update_flag_pf(a):
-    return [ExprAff(pf, ExprOp('parity', a & ExprInt_from(a, 0xFF)))]
+    return [ExprAff(pf, ExprOp('parity', a & ExprInt(0xFF, a.size)))]
 
 
 def update_flag_cf_inv_zf(a):
-    return [ExprAff(cf, ExprCond(a, ExprInt_from(cf, 1), ExprInt_from(cf, 0)))]
+    return [ExprAff(cf, ExprCond(a, ExprInt(1, cf.size), ExprInt(0, cf.size)))]
 
 
 def update_flag_zn_r(a):
@@ -75,7 +75,7 @@ def mng_autoinc(a, b, size):
         return e, a, b
 
     a_r = a.args[0]
-    e.append(ExprAff(a_r, a_r + ExprInt_from(a_r, size / 8)))
+    e.append(ExprAff(a_r, a_r + ExprInt(size / 8, a_r.size)))
     a = ExprMem(a_r, size)
     if isinstance(b, ExprMem) and a_r in b.arg:
         b = ExprMem(b.arg + ExprInt16(size / 8), b.size)
