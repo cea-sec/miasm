@@ -2663,8 +2663,13 @@ def _tpl_aaa(ir, instr, op):
     cond |= af & i1
 
     to_add = m2_expr.ExprInt(0x106, size=r_ax.size)
-    new_ax = m2_expr.ExprOp(op, r_ax, to_add) & m2_expr.ExprInt(0xff0f,
-                                                                size=r_ax.size)
+    if op == "-":
+        # Avoid ExprOp("-", A, B), should be ExprOp("+", A, ExprOp("-", B))
+        first_part = r_ax - to_add
+    else:
+        first_part = m2_expr.ExprOp(op, r_ax, to_add)
+    new_ax = first_part & m2_expr.ExprInt(0xff0f,
+                                          size=r_ax.size)
     # set AL
     e.append(m2_expr.ExprAff(r_ax, m2_expr.ExprCond(cond, new_ax, r_ax)))
     e.append(m2_expr.ExprAff(af, cond))
