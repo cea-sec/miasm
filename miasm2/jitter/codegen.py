@@ -44,25 +44,8 @@ class CGen(object):
     }
     """
 
-    CODE_EXCEPTION_MEM_POST_INSTR = r"""
-    // except fetch mem post instr
-    if (VM_exception_flag) {
-        %s = %s;
-        BlockDst->address = %s;
-        return JIT_RET_EXCEPTION;
-    }
-    """
-
     CODE_EXCEPTION_AT_INSTR = r"""
     if (CPU_exception_flag_at_instr) {
-        %s = %s;
-        BlockDst->address = %s;
-        return JIT_RET_EXCEPTION;
-    }
-    """
-
-    CODE_EXCEPTION_POST_INSTR = r"""
-    if (CPU_exception_flag) {
         %s = %s;
         BlockDst->address = %s;
         return JIT_RET_EXCEPTION;
@@ -266,17 +249,9 @@ class CGen(object):
         dst = self.dst_to_c(address)
         return (self.CODE_EXCEPTION_MEM_AT_INSTR % (self.C_PC, dst, dst)).split('\n')
 
-    def gen_check_memory_exception_post(self, address):
-        dst = self.dst_to_c(address)
-        return (self.CODE_EXCEPTION_MEM_POST_INSTR % (self.C_PC, dst, dst)).split('\n')
-
     def gen_check_cpu_exception(self, address):
         dst = self.dst_to_c(address)
         return (self.CODE_EXCEPTION_AT_INSTR % (self.C_PC, dst, dst)).split('\n')
-
-    def gen_check_cpu_exception_post(self, address):
-        dst = self.dst_to_c(address)
-        return (self.CODE_EXCEPTION_POST_INSTR % (self.C_PC, dst, dst)).split('\n')
 
     def traverse_expr_dst(self, expr, dst2index):
         """
