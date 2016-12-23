@@ -157,7 +157,7 @@ def parse_deref_int(s, l, t):
 def parse_deref_regint(s, l, t):
     t = t[0]
     r1 = reg2exprid(t[0][0])
-    i1 = ExprInt_from(r1, t[1].arg)
+    i1 = ExprInt(t[1].arg, r1.size)
     return r1 + i1
 
 
@@ -170,7 +170,7 @@ def parse_deref_regregint(s, l, t):
     t = t[0]
     r1 = reg2exprid(t[0][0])
     r2 = reg2exprid(t[1][0])
-    i1 = ExprInt_from(r1, t[2].arg)
+    i1 = ExprInt(t[2].arg, r1.size)
     return r1 + r2 + i1
 
 
@@ -178,7 +178,7 @@ def parse_deref_reg_intmreg(s, l, t):
     t = t[0]
     r1 = reg2exprid(t[0][0])
     r2 = reg2exprid(t[1][0])
-    i1 = ExprInt_from(r1, t[2].arg)
+    i1 = ExprInt(t[2].arg, r1.size)
     return r1 + (r2 * i1)
 
 
@@ -186,23 +186,23 @@ def parse_deref_reg_intmreg_int(s, l, t):
     t = t[0]
     r1 = reg2exprid(t[0][0])
     r2 = reg2exprid(t[1][0])
-    i1 = ExprInt_from(r1, t[2].arg)
-    i2 = ExprInt_from(r1, t[3].arg)
+    i1 = ExprInt(t[2].arg, r1.size)
+    i2 = ExprInt(t[3].arg, r1.size)
     return r1 + (r2 * i1) + i2
 
 
 def parse_deref_intmreg(s, l, t):
     t = t[0]
     r1 = reg2exprid(t[0][0])
-    i1 = ExprInt_from(r1, t[1].arg)
+    i1 = ExprInt(t[1].arg, r1.size)
     return r1 * i1
 
 
 def parse_deref_intmregint(s, l, t):
     t = t[0]
     r1 = reg2exprid(t[0][0])
-    i1 = ExprInt_from(r1, t[1].arg)
-    i2 = ExprInt_from(r1, t[1].arg)
+    i1 = ExprInt(t[1].arg, r1.size)
+    i2 = ExprInt(t[1].arg, r1.size)
     return (r1 * i1) + i2
 
 
@@ -903,7 +903,7 @@ class mn_x86(cls_mn):
 
     def ir_pre_instruction(self):
         return [ExprAff(mRIP[self.mode],
-            ExprInt_from(mRIP[self.mode], self.offset + self.l))]
+            ExprInt(self.offset + self.l, mRIP[self.mode].size))]
 
     @classmethod
     def filter_asm_candidates(cls, instr, candidates):

@@ -913,7 +913,7 @@ class aarch64_gpreg_ext(reg_noarg, m_arg):
         reg = gpregsz_info[size].expr[v]
 
         self.expr = m2_expr.ExprOp(extend_lst[self.parent.option.value],
-                           reg, m2_expr.ExprInt_from(reg, self.parent.imm.value))
+                           reg, m2_expr.ExprInt(self.parent.imm.value, reg.size))
         return True
 
 EXT2_OP = {0b010: 'UXTW',
@@ -983,10 +983,10 @@ class aarch64_gpreg_ext2(reg_noarg, m_arg):
         if opt in EXT2_OP:
             if self.parent.shift.value == 1:
                 arg = m2_expr.ExprOp(EXT2_OP[opt], arg,
-                             m2_expr.ExprInt_from(arg, self.get_size()))
+                             m2_expr.ExprInt(self.get_size(), arg.size))
             else:
                 arg = m2_expr.ExprOp(EXT2_OP[opt], arg,
-                             m2_expr.ExprInt_from(arg, 0))
+                             m2_expr.ExprInt(0, arg.size))
 
         reg = self.parent.rn.reg_info.expr[self.parent.rn.value]
         self.expr = m2_expr.ExprOp('segm', reg, arg)
@@ -1047,7 +1047,7 @@ class aarch64_gpreg_sftimm(reg_noarg, m_arg):
         amount = self.parent.imm.value
         if amount != 0:
             e = m2_expr.ExprOp(
-                shift_expr[self.parent.shift.value], e, m2_expr.ExprInt_from(e, amount))
+                shift_expr[self.parent.shift.value], e, m2_expr.ExprInt(amount, e.size))
         self.expr = e
         return True
 
@@ -1417,8 +1417,8 @@ class aarch64_b40(m_arg):
     parser = base_expr
 
     def decode(self, v):
-        self.expr = m2_expr.ExprInt_from(
-            self.parent.rt.expr, (self.parent.sf.value << self.l) | v)
+        self.expr = m2_expr.ExprInt(
+            (self.parent.sf.value << self.l) | v, self.parent.rt.expr.size)
         return True
 
     def encode(self):

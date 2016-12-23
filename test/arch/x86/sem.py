@@ -88,12 +88,12 @@ SSE_B = ExprId('B', 128)
 class TestX86Semantic(unittest.TestCase):
 
     def int_sse_op(self, name, op, elt_size, reg_size, arg1, arg2):
-        arg1 = ExprInt_from(XMM0, arg1)
-        arg2 = ExprInt_from(XMM0, arg2)
+        arg1 = ExprInt(arg1, XMM0.size)
+        arg2 = ExprInt(arg2, XMM0.size)
         sem = compute(ir_32, m32, '%s XMM0, XMM1' % name,
                                   {XMM0: arg1, XMM1: arg2},
                                   False)
-        ref = ExprInt_from(XMM0, int_vec_op(op, elt_size, reg_size, arg1.arg, arg2.arg))
+        ref = ExprInt(int_vec_op(op, elt_size, reg_size, arg1.arg, arg2.arg), XMM0.size)
         self.assertEqual(sem, {XMM0: ref, XMM1: arg2})
 
     def symb_sse_ops(self, names, a, b, ref):
@@ -105,21 +105,21 @@ class TestX86Semantic(unittest.TestCase):
         self.assertEqual(sem, {XMM0: ref, XMM1: b})
 
     def mmx_logical_op(self, name, op, arg1, arg2):
-        arg1 = ExprInt_from(mm0, arg1)
-        arg2 = ExprInt_from(mm0, arg2)
+        arg1 = ExprInt(arg1, mm0.size)
+        arg2 = ExprInt(arg2, mm0.size)
         sem = compute(ir_32, m32, '%s MM0, MM1' % name,
                                   {mm0: arg1, mm1: arg2},
                                   False)
-        ref = ExprInt_from(mm0, op(arg1.arg, arg2.arg))
+        ref = ExprInt(op(arg1.arg, arg2.arg), mm0.size)
         self.assertEqual(sem, {mm0: ref, mm1: arg2})
 
     def sse_logical_op(self, name, op, arg1, arg2):
-        arg1 = ExprInt_from(XMM0, arg1)
-        arg2 = ExprInt_from(XMM1, arg2)
+        arg1 = ExprInt(arg1, XMM0.size)
+        arg2 = ExprInt(arg2, XMM1.size)
         sem = compute(ir_32, m32, '%s XMM0, XMM1' % name,
                                   {XMM0: arg1, XMM1: arg2},
                                   False)
-        ref = ExprInt_from(XMM0, op(arg1.arg, arg2.arg))
+        ref = ExprInt(op(arg1.arg, arg2.arg), XMM0.size)
         self.assertEqual(sem, {XMM0: ref, XMM1: arg2})
 
     def test_SSE_ADD(self):
@@ -137,9 +137,9 @@ class TestX86Semantic(unittest.TestCase):
             self.int_sse_op(op[0], op_sub, op[1], 128, SSE_V1, SSE_V1)
 
     def test_SSE_simp(self):
-        self.symb_sse_ops(["PADDB", "PADDB", "PSUBB"], ExprInt_from(XMM0, 0), SSE_A, SSE_A)
-        self.symb_sse_ops(["PADDB", "PADDQ", "PSUBQ"], ExprInt_from(XMM0, 0), SSE_A, SSE_A)
-        self.symb_sse_ops(["PADDB", "PSUBQ", "PADDQ"], ExprInt_from(XMM0, 0), SSE_A, SSE_A)
+        self.symb_sse_ops(["PADDB", "PADDB", "PSUBB"], ExprInt(0, XMM0.size), SSE_A, SSE_A)
+        self.symb_sse_ops(["PADDB", "PADDQ", "PSUBQ"], ExprInt(0, XMM0.size), SSE_A, SSE_A)
+        self.symb_sse_ops(["PADDB", "PSUBQ", "PADDQ"], ExprInt(0, XMM0.size), SSE_A, SSE_A)
 
     def test_AND(self):
         self.mmx_logical_op("PAND", op_and, MMX_V0, MMX_V1)

@@ -80,11 +80,11 @@ def emul_symb(ir_arch, mdis, states_todo, states_done):
             # Create 2 states, each including complementary conditions
             p1 = sb.symbols.copy()
             p2 = sb.symbols.copy()
-            c1 = {ad.cond: ExprInt_from(ad.cond, 0)}
-            c2 = {ad.cond: ExprInt_from(ad.cond, 1)}
+            c1 = {ad.cond: ExprInt(0, ad.cond.size)}
+            c2 = {ad.cond: ExprInt(1, ad.cond.size)}
             print ad.cond
-            p1[ad.cond] = ExprInt_from(ad.cond, 0)
-            p2[ad.cond] = ExprInt_from(ad.cond, 1)
+            p1[ad.cond] = ExprInt(0, ad.cond.size)
+            p2[ad.cond] = ExprInt(1, ad.cond.size)
             ad1 = expr_simp(sb.eval_expr(ad.replace_expr(c1), {}))
             ad2 = expr_simp(sb.eval_expr(ad.replace_expr(c2), {}))
             if not (isinstance(ad1, ExprInt) or (isinstance(ad1, ExprId) and isinstance(ad1.name, asmbloc.asm_label)) and

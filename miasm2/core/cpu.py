@@ -921,7 +921,7 @@ class instruction(object):
         return o
 
     def get_asm_offset(self, expr):
-        return m2_expr.ExprInt_from(expr, self.offset)
+        return m2_expr.ExprInt(self.offset, expr.size)
 
     def resolve_args_with_symbols(self, symbols=None):
         if symbols is None:

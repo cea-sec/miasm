@@ -123,7 +123,7 @@ def extend_arg(dst, arg):
         base = reg.zeroExtend(dst.size)
 
     out = base << (shift.zeroExtend(dst.size)
-                   & m2_expr.ExprInt_from(dst, dst.size - 1))
+                   & m2_expr.ExprInt(dst.size - 1, dst.size))
     return out
 
 
@@ -250,18 +250,18 @@ def tst(ir, instr, arg1, arg2):
 
 @sbuild.parse
 def lsl(arg1, arg2, arg3):
-    arg1 = arg2 << (arg3 & m2_expr.ExprInt_from(arg3, arg3.size - 1))
+    arg1 = arg2 << (arg3 & m2_expr.ExprInt(arg3.size - 1, arg3.size))
 
 
 @sbuild.parse
 def lsr(arg1, arg2, arg3):
-    arg1 = arg2 >> (arg3 & m2_expr.ExprInt_from(arg3, arg3.size - 1))
+    arg1 = arg2 >> (arg3 & m2_expr.ExprInt(arg3.size - 1, arg3.size))
 
 
 @sbuild.parse
 def asr(arg1, arg2, arg3):
     arg1 = m2_expr.ExprOp(
-        'a>>', arg2, (arg3 & m2_expr.ExprInt_from(arg3, arg3.size - 1)))
+        'a>>', arg2, (arg3 & m2_expr.ExprInt(arg3.size - 1, arg3.size)))
 
 
 @sbuild.parse
@@ -311,7 +311,7 @@ def csinc(ir, instr, arg1, arg2, arg3, arg4):
     cond_expr = cond2expr[arg4.name]
     e.append(m2_expr.ExprAff(arg1, m2_expr.ExprCond(cond_expr,
                                                     arg2,
-                                                    arg3 + m2_expr.ExprInt_from(arg3, 1))))
+                                                    arg3 + m2_expr.ExprInt(1, arg3.size))))
     return e, []
 
 
@@ -337,9 +337,9 @@ def cset(ir, instr, arg1, arg2):
     e = []
     cond_expr = cond2expr[arg2.name]
     e.append(m2_expr.ExprAff(arg1, m2_expr.ExprCond(cond_expr,
-                                                    m2_expr.ExprInt_from(
-                                                        arg1, 1),
-                                                    m2_expr.ExprInt_from(arg1, 0))))
+                                                    m2_expr.ExprInt(
+                                                        1, arg1.size),
+                                                    m2_expr.ExprInt(0, arg1.size))))
     return e, []
 
 
@@ -347,9 +347,9 @@ def csetm(ir, instr, arg1, arg2):
     e = []
     cond_expr = cond2expr[arg2.name]
     e.append(m2_expr.ExprAff(arg1, m2_expr.ExprCond(cond_expr,
-                                                    m2_expr.ExprInt_from(
-                                                        arg1, -1),
-                                                    m2_expr.ExprInt_from(arg1, 0))))
+                                                    m2_expr.ExprInt(
+                                                        -1, arg1.size),
+                                                    m2_expr.ExprInt(0, arg1.size))))
     return e, []
 
 
@@ -452,7 +452,7 @@ def stp(ir, instr, arg1, arg2, arg3):
     addr, updt = get_mem_access(arg3)
     e.append(m2_expr.ExprAff(m2_expr.ExprMem(addr, arg1.size), arg1))
     e.append(
-        m2_expr.ExprAff(m2_expr.ExprMem(addr + m2_expr.ExprInt_from(addr, arg1.size / 8), arg2.size), arg2))
+        m2_expr.ExprAff(m2_expr.ExprMem(addr + m2_expr.ExprInt(arg1.size / 8, addr.size), arg2.size), arg2))
     if updt:
         e.append(updt)
     return e, []
@@ -463,7 +463,7 @@ def ldp(ir, instr, arg1, arg2, arg3):
     addr, updt = get_mem_access(arg3)
     e.append(m2_expr.ExprAff(arg1, m2_expr.ExprMem(addr, arg1.size)))
     e.append(
-        m2_expr.ExprAff(arg2, m2_expr.ExprMem(addr + m2_expr.ExprInt_from(addr, arg1.size / 8), arg2.size)))
+        m2_expr.ExprAff(arg2, m2_expr.ExprMem(addr + m2_expr.ExprInt(arg1.size / 8, addr.size), arg2.size)))
     if updt:
         e.append(updt)
     return e, []
@@ -485,7 +485,7 @@ def sbfm(ir, instr, arg1, arg2, arg3, arg4):
     if sim > rim:
         res = arg2[rim:sim].signExtend(arg1.size)
     else:
-        shift = m2_expr.ExprInt_from(arg2, arg2.size - rim)
+        shift = m2_expr.ExprInt(arg2.size - rim, arg2.size)
         res = (arg2[:sim].signExtend(arg1.size) << shift)
     e.append(m2_expr.ExprAff(arg1, res))
     return e, []
@@ -497,7 +497,7 @@ def ubfm(ir, instr, arg1, arg2, arg3, arg4):
     if sim > rim:
         res = arg2[rim:sim].zeroExtend(arg1.size)
     else:
-        shift = m2_expr.ExprInt_from(arg2, arg2.size - rim)
+        shift = m2_expr.ExprInt(arg2.size - rim, arg2.size)
         res = (arg2[:sim].zeroExtend(arg1.size) << shift)
     e.append(m2_expr.ExprAff(arg1, res))
     return e, []
@@ -510,7 +510,7 @@ def bfm(ir, instr, arg1, arg2, arg3, arg4):
         e.append(m2_expr.ExprAff(arg1[:sim-rim], res))
     else:
         shift_i = arg2.size - rim
-        shift = m2_expr.ExprInt_from(arg2, shift_i)
+        shift = m2_expr.ExprInt(shift_i, arg2.size)
         res = arg2[:sim]
         e.append(m2_expr.ExprAff(arg1[shift_i:shift_i+sim], res))
     return e, []
@@ -547,7 +547,7 @@ def cbnz(arg1, arg2):
 
 @sbuild.parse
 def tbz(arg1, arg2, arg3):
-    bitmask = m2_expr.ExprInt_from(arg1, 1) << arg2
+    bitmask = m2_expr.ExprInt(1, arg1.size) << arg2
     dst = m2_expr.ExprId(
         ir.get_next_label(instr), 64) if arg1 & bitmask else arg3
     PC = dst
@@ -556,7 +556,7 @@ def tbz(arg1, arg2, arg3):
 
 @sbuild.parse
 def tbnz(arg1, arg2, arg3):
-    bitmask = m2_expr.ExprInt_from(arg1, 1) << arg2
+    bitmask = m2_expr.ExprInt(1, arg1.size) << arg2
     dst = arg3 if arg1 & bitmask else m2_expr.ExprId(
         ir.get_next_label(instr), 64)
     PC = dst

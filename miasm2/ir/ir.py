@@ -359,8 +359,9 @@ class ir(object):
 
     def gen_pc_update(self, c, l):
         c.irs.append(AssignBlock([m2_expr.ExprAff(self.pc,
-                                                  m2_expr.ExprInt_from(self.pc,
-                                                                       l.offset))]))
+                                                  m2_expr.ExprInt(l.offset,
+                                                                  self.pc.size)
+                                                  )]))
         c.lines.append(l)
 
     def add_bloc(self, bloc, gen_pc_updt=False):

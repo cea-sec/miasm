@@ -353,6 +353,30 @@ class Expr(object):
 
     mask = property(lambda self: ExprInt(-1, self.size))
 
+    def is_int(self, value=None):
+        return False
+
+    def is_id(self, name=None):
+        return False
+
+    def is_aff(self):
+        return False
+
+    def is_cond(self):
+        return False
+
+    def is_mem(self):
+        return False
+
+    def is_op(self, op=None):
+        return False
+
+    def is_slice(self, start=None, stop=None):
+        return False
+
+    def is_compose(self):
+        return False
+
 
 class ExprInt(Expr):
 
@@ -448,6 +472,11 @@ class ExprInt(Expr):
     def __long__(self):
         return long(self.arg)
 
+    def is_int(self, value=None):
+        if value is not None and self.__arg != value:
+            return False
+        return True
+
 
 class ExprId(Expr):
 
@@ -513,6 +542,11 @@ class ExprId(Expr):
 
     def graph_recursive(self, graph):
         graph.add_node(self)
+
+    def is_id(self, name=None):
+        if name is not None and self.__name != name:
+            return False
+        return True
 
 
 class ExprAff(Expr):
@@ -612,6 +646,9 @@ class ExprAff(Expr):
             arg.graph_recursive(graph)
             graph.add_uniq_edge(self, arg)
 
+    def is_aff(self):
+        return True
+
 
 class ExprCond(Expr):
 
@@ -705,6 +742,9 @@ class ExprCond(Expr):
             arg.graph_recursive(graph)
             graph.add_uniq_edge(self, arg)
 
+    def is_cond(self):
+        return True
+
 
 class ExprMem(Expr):
 
@@ -786,6 +826,9 @@ class ExprMem(Expr):
         graph.add_node(self)
         self.__arg.graph_recursive(graph)
         graph.add_uniq_edge(self, self.__arg)
+
+    def is_mem(self):
+        return True
 
 
 class ExprOp(Expr):
@@ -953,6 +996,10 @@ class ExprOp(Expr):
             arg.graph_recursive(graph)
             graph.add_uniq_edge(self, arg)
 
+    def is_op(self, op=None):
+        if op is None:
+            return True
+        return self.op == op
 
 class ExprSlice(Expr):
 
@@ -1035,6 +1082,13 @@ class ExprSlice(Expr):
         graph.add_node(self)
         self.__arg.graph_recursive(graph)
         graph.add_uniq_edge(self, self.__arg)
+
+    def is_slice(self, start=None, stop=None):
+        if start is not None and self.__start != start:
+            return False
+        if stop is not None and self.__stop != stop:
+            return False
+        return True
 
 
 class ExprCompose(Expr):
@@ -1134,6 +1188,9 @@ class ExprCompose(Expr):
         for arg in self.__args:
             yield index, arg
             index += arg.size
+
+    def is_compose(self):
+        return True
 
 # Expression order for comparaison
 expr_order_dict = {ExprId: 1,

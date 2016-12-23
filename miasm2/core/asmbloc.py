@@ -871,7 +871,7 @@ def fix_expr_val(expr, symbols):
     def expr_calc(e):
         if isinstance(e, m2_expr.ExprId):
             s = symbols._name2label[e.name]
-            e = m2_expr.ExprInt_from(e, s.offset)
+            e = m2_expr.ExprInt(s.offset, e.size)
         return e
     result = expr.visit(expr_calc)
     result = expr_simp(result)
