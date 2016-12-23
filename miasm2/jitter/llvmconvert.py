@@ -572,8 +572,9 @@ class LLVMFunction():
                 return ret
 
             if op == "-":
-                zero = llvm_ir.Constant(LLVMType.IntType(expr.size),
-                                        0)
+                # Unsupported op '-' with more than 1 arg
+                assert len(expr.args) == 1
+                zero = LLVMType.IntType(expr.size)(0)
                 ret = builder.sub(zero, self.add_ir(expr.args[0]))
                 self.update_cache(expr, ret)
                 return ret
