@@ -24,8 +24,7 @@ class DependencyNode(object):
     line.
     """
 
-    __slots__ = ["_label", "_element", "_line_nb",
-                 "_step", "_nostep_repr", "_hash"]
+    __slots__ = ["_label", "_element", "_line_nb", "_hash"]
 
     def __init__(self, label, element, line_nb):
         """Create a dependency node with:
@@ -36,7 +35,6 @@ class DependencyNode(object):
         self._label = label
         self._element = element
         self._line_nb = line_nb
-        self._nostep_repr = (self._label, self._line_nb, self._element)
         self._hash = hash(
             (self._label, self._element, self._line_nb))
 
@@ -45,9 +43,7 @@ class DependencyNode(object):
         return self._hash
 
     def __eq__(self, depnode):
-        """Returns True if @self and @depnode are equals.
-        The attribute 'step' is not considered in the comparison.
-        """
+        """Returns True if @self and @depnode are equals."""
         if not isinstance(depnode, self.__class__):
             return False
         return (self.label == depnode.label and
@@ -55,9 +51,7 @@ class DependencyNode(object):
                 self.line_nb == depnode.line_nb)
 
     def __cmp__(self, node):
-        """Compares @self with @node. The step attribute is not taken into
-        account in the comparison.
-        """
+        """Compares @self with @node."""
         if not isinstance(node, self.__class__):
             raise ValueError("Compare error between %s, %s" % (self.__class__,
                                                                node.__class__))
@@ -73,11 +67,6 @@ class DependencyNode(object):
     def __repr__(self):
         """Returns a string representation of DependencyNode"""
         return self.__str__()
-
-    @property
-    def nostep_repr(self):
-        """Returns a representation of @self ignoring the step attribute"""
-        return self._nostep_repr
 
     @property
     def label(self):
