@@ -1176,11 +1176,11 @@ class cls_mn(object):
             if not alias:
                 log.warning('dis multiple args ret default')
 
-            assert(len(out) == 2)
             for i, o in enumerate(out_c):
                 if o.alias:
                     return out[i]
-            raise NotImplementedError('not fully functional')
+            raise NotImplementedError('Multiple disas: \n' +
+                                      "\n".join([str(x) for x in out]))
         return out[0]
 
     @classmethod
