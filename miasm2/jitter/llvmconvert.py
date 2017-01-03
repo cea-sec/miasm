@@ -267,12 +267,6 @@ class LLVMContext_JIT(LLVMContext):
 
         self.vmcpu = lookup_table
 
-    def set_IR_transformation(self, *args):
-        """Set a list of transformation to apply on expression before their
-        treatments.
-        args: function Expr(Expr)"""
-        self.IR_transformation_functions = args
-
     def memory_lookup(self, func, addr, size):
         """Perform a memory lookup at @addr of size @size (in bit)"""
         builder = func.builder
@@ -318,6 +312,7 @@ class LLVMContext_IRCompilation(LLVMContext):
                                       llvm_ir.PointerType(int_size))
         return builder.store(value, ptr_casted)
 
+
 class LLVMFunction():
     """Represent a LLVM function
 
@@ -362,14 +357,12 @@ class LLVMFunction():
         self.name = name
         self._llvm_mod = None
 
+    # Constructor utils
+
     def new_branch_name(self):
         "Return a new branch name"
         self.branch_counter += 1
         return str(self.branch_counter)
-
-    def viewCFG(self):
-        "Show the CFG of the current function"
-        self.fc.viewCFG()
 
     def append_basic_block(self, label, overwrite=True):
         """Add a new basic block to the current function.
@@ -384,6 +377,160 @@ class LLVMFunction():
         self.name2bbl[name] = bbl
 
         return bbl
+
+    def CreateEntryBlockAlloca(self, var_type, default_value=None):
+        """Create an alloca instruction at the beginning of the current fc
+        @default_value: if set, store the default_value just after the allocation
+        """
+        builder = self.builder
+        current_bbl = builder.basic_block
+        builder.position_at_start(self.entry_bbl)
+
+        ret = builder.alloca(var_type)
+        if default_value is not None:
+            builder.store(default_value, ret)
+        builder.position_at_end(current_bbl)
+        return ret
+
+    def get_ptr_by_expr(self, expr):
+        """"Return a pointer casted corresponding to ExprId expr. If it is not
+        already computed, compute it at the end of entry_bloc"""
+
+        name = expr.name
+
+        ptr_casted = self.local_vars_pointers.get(name, None)
+        if ptr_casted is not None:
+            # If the pointer has already been computed
+            return ptr_casted
+
+        # Get current objects
+        builder = self.builder
+        current_bbl = builder.basic_block
+
+        # Go at the right position
+        entry_bloc_bbl = self.entry_bbl
+        builder.position_at_end(entry_bloc_bbl)
+
+        # Compute the pointer address
+        offset = self.llvm_context.vmcpu[name]
+
+        # Pointer cast
+        ptr = builder.gep(self.local_vars["vmcpu"],
+                          [llvm_ir.Constant(LLVMType.IntType(),
+                                            offset)])
+        int_size = LLVMType.IntType(expr.size)
+        ptr_casted = builder.bitcast(ptr,
+                                     llvm_ir.PointerType(int_size))
+        # Store in cache
+        self.local_vars_pointers[name] = ptr_casted
+
+        # Reset builder
+        builder.position_at_end(current_bbl)
+
+        return ptr_casted
+
+    def update_cache(self, name, value):
+        "Add 'name' = 'value' to the cache iff main_stream = True"
+
+        if self.main_stream is True:
+            self.expr_cache[name] = value
+
+    def set_ret(self, var):
+        "Cast @var and return it at the end of current bbl"
+        if var.type.width < 64:
+            var_casted = self.builder.zext(var, LLVMType.IntType(64))
+        else:
+            var_casted = var
+        self.builder.ret(var_casted)
+
+    def canonize_label_name(self, label):
+        """Canonize @label names to a common form.
+        @label: str or asmlabel instance"""
+        if isinstance(label, str):
+            return label
+        elif isinstance(label, m2_asmbloc.asm_label):
+            return "label_%s" % label.name
+        elif m2_asmbloc.expr_is_label(label):
+            return "label_%s" % label.name.name
+        else:
+            raise ValueError("label must either be str or asmlabel")
+
+    def get_basic_bloc_by_label(self, label):
+        "Return the bbl corresponding to label, None otherwise"
+        return self.name2bbl.get(self.canonize_label_name(label), None)
+
+    def global_constant(self, name, value):
+        """
+        Inspired from numba/cgutils.py
+
+        Get or create a (LLVM module-)global constant with *name* or *value*.
+        """
+        module = self.mod
+        data = llvm_ir.GlobalVariable(self.mod, value.type, name=name)
+        data.global_constant = True
+        data.initializer = value
+        return data
+
+    def make_bytearray(self, buf):
+        """
+        Inspired from numba/cgutils.py
+
+        Make a byte array constant from *buf*.
+        """
+        b = bytearray(buf)
+        n = len(b)
+        return llvm_ir.Constant(llvm_ir.ArrayType(llvm_ir.IntType(8), n), b)
+
+    def printf(self, format, *args):
+        """
+        Inspired from numba/cgutils.py
+
+        Calls printf().
+        Argument `format` is expected to be a Python string.
+        Values to be printed are listed in `args`.
+
+        Note: There is no checking to ensure there is correct number of values
+        in `args` and there type matches the declaration in the format string.
+        """
+        assert isinstance(format, str)
+        mod = self.mod
+        # Make global constant for format string
+        cstring = llvm_ir.IntType(8).as_pointer()
+        fmt_bytes = self.make_bytearray((format + '\00').encode('ascii'))
+
+        base_name = "printf_format"
+        count = 0
+        while self.mod.get_global("%s_%d" % (base_name, count)):
+            count += 1
+        global_fmt = self.global_constant("%s_%d" % (base_name, count),
+                                          fmt_bytes)
+        fnty = llvm_ir.FunctionType(llvm_ir.IntType(32), [cstring],
+                                    var_arg=True)
+        # Insert printf()
+        fn = mod.get_global('printf')
+        if fn is None:
+            fn = llvm_ir.Function(mod, fnty, name="printf")
+        # Call
+        ptr_fmt = self.builder.bitcast(global_fmt, cstring)
+        return self.builder.call(fn, [ptr_fmt] + list(args))
+
+    # Effective constructors
+
+    def affect(self, src, dst):
+        "Affect from LLVM src to M2 dst"
+
+        # Destination
+        builder = self.builder
+
+        if isinstance(dst, m2_expr.ExprId):
+            ptr_casted = self.get_ptr_by_expr(dst)
+            builder.store(src, ptr_casted)
+
+        elif isinstance(dst, m2_expr.ExprMem):
+            addr = self.add_ir(dst.arg)
+            self.llvm_context.memory_write(self, addr, dst.size, src)
+        else:
+            raise Exception("UnknownAffectationType")
 
     def init_fc(self):
         "Init the function"
@@ -414,7 +561,6 @@ class LLVMFunction():
         self.expr_cache = {}
         self.main_stream = True
         self.name2bbl = {}
-        self.offsets_jitted = set()
 
         # Function link
         self.fc = fc
@@ -424,72 +570,6 @@ class LLVMFunction():
 
         # Instruction builder
         self.builder = llvm_ir.IRBuilder(self.entry_bbl)
-
-    def CreateEntryBlockAlloca(self, var_type, default_value=None):
-        """Create an alloca instruction at the beginning of the current fc
-        @default_value: if set, store the default_value just after the allocation
-        """
-        builder = self.builder
-        current_bbl = builder.basic_block
-        builder.position_at_start(self.entry_bbl)
-
-        ret = builder.alloca(var_type)
-        if default_value is not None:
-            builder.store(default_value, ret)
-        builder.position_at_end(current_bbl)
-        return ret
-
-    def get_ptr_by_expr(self, expr):
-        """"Return a pointer casted corresponding to ExprId expr. If it is not
-        already computed, compute it at the end of entry_bloc"""
-
-        name = expr.name
-
-        try:
-            # If the pointer has already been computed
-            ptr_casted = self.local_vars_pointers[name]
-
-        except KeyError:
-            # Get current objects
-            builder = self.builder
-            current_bbl = builder.basic_block
-
-            # Go at the right position
-            entry_bloc_bbl = self.entry_bbl
-            builder.position_at_end(entry_bloc_bbl)
-
-            # Compute the pointer address
-            offset = self.llvm_context.vmcpu[name]
-
-            # Pointer cast
-            ptr = builder.gep(self.local_vars["vmcpu"],
-                              [llvm_ir.Constant(LLVMType.IntType(),
-                                                offset)])
-            int_size = LLVMType.IntType(expr.size)
-            ptr_casted = builder.bitcast(ptr,
-                                         llvm_ir.PointerType(int_size))
-            # Store in cache
-            self.local_vars_pointers[name] = ptr_casted
-
-            # Reset builder
-            builder.position_at_end(current_bbl)
-
-        return ptr_casted
-
-    def clear_cache(self, regs_updated):
-        "Remove from the cache values which depends on regs_updated"
-
-        regs_updated_set = set(regs_updated)
-
-        for expr in self.expr_cache.keys():
-            if expr.get_r(True).isdisjoint(regs_updated_set) is not True:
-                self.expr_cache.pop(expr)
-
-    def update_cache(self, name, value):
-        "Add 'name' = 'value' to the cache iff main_stream = True"
-
-        if self.main_stream is True:
-            self.expr_cache[name] = value
 
     def add_ir(self, expr):
         "Add a Miasm2 IR to the last bbl. Return the var created"
@@ -752,47 +832,7 @@ class LLVMFunction():
 
         raise Exception("UnkownExpression", expr.__class__.__name__)
 
-    def set_ret(self, var):
-        "Cast @var and return it at the end of current bbl"
-        if var.type.width < 64:
-            var_casted = self.builder.zext(var, LLVMType.IntType(64))
-        else:
-            var_casted = var
-        self.builder.ret(var_casted)
-
-    def from_expr(self, expr):
-        "Build the function from an expression"
-
-        # Build function signature
-        args = expr.get_r(True)
-        for a in args:
-            if not isinstance(a, m2_expr.ExprMem):
-                self.my_args.append((a, LLVMType.IntType(a.size), a.name))
-
-        self.ret_type = LLVMType.IntType(expr.size)
-
-        # Initialise the function
-        self.init_fc()
-
-        ret = self.add_ir(expr)
-
-        self.set_ret(ret)
-
-    def affect(self, src, dst):
-        "Affect from LLVM src to M2 dst"
-
-        # Destination
-        builder = self.builder
-
-        if isinstance(dst, m2_expr.ExprId):
-            ptr_casted = self.get_ptr_by_expr(dst)
-            builder.store(src, ptr_casted)
-
-        elif isinstance(dst, m2_expr.ExprMem):
-            addr = self.add_ir(dst.arg)
-            self.llvm_context.memory_write(self, addr, dst.size, src)
-        else:
-            raise Exception("UnknownAffectationType")
+    # JiT specifics
 
     def check_memory_exception(self, offset, restricted_exception=False):
         """Add a check for memory errors.
@@ -891,240 +931,6 @@ class LLVMFunction():
         builder.position_at_end(merge_block)
         # Reactivate object caching
         self.main_stream = current_main_stream
-
-    def add_bloc(self, bloc, lines):
-        "Add a bloc of instruction in the current function"
-
-        for assignblk, line in zip(bloc, lines):
-            new_reg = {}
-
-            # Check general errors only at the beggining of instruction
-            if line.offset not in self.offsets_jitted:
-                self.offsets_jitted.add(line.offset)
-                self.check_error(line)
-
-                # Log mn and registers if options is set
-                self.log_instruction(assignblk, line)
-
-
-            # Pass on empty instruction
-            if not assignblk:
-                continue
-
-            for dst, src in assignblk.iteritems():
-                # Apply preinit transformation
-                for func in self.llvm_context.IR_transformation_functions:
-                    dst = func(dst)
-                    src = func(src)
-
-                # Treat current expression
-                if isinstance(dst, m2_expr.ExprId):
-                    new_reg[dst] = self.add_ir(src)
-                else:
-                    assert isinstance(dst, m2_expr.ExprMem)
-                    # Source
-                    src = self.add_ir(src)
-                    self.affect(src, dst)
-
-            # Check for errors (without updating PC)
-            self.check_error(line, except_do_not_update_pc=True)
-
-            # new -> normal
-            for dst, src in new_reg.iteritems():
-                self.affect(src, dst)
-
-            # Clear cache
-            self.clear_cache(new_reg)
-            self.main_stream = True
-
-    def from_bloc(self, bloc, final_expr):
-        """Build the function from a bloc, with the dst equation.
-        Prototype : f(i8* jitcpu, i8* vmcpu, i8* vmmngr)"""
-
-        # Build function signature
-        self.my_args.append((m2_expr.ExprId("jitcpu"),
-                             llvm_ir.PointerType(LLVMType.IntType(8)),
-                             "jitcpu"))
-        self.my_args.append((m2_expr.ExprId("vmcpu"),
-                             llvm_ir.PointerType(LLVMType.IntType(8)),
-                             "vmcpu"))
-        self.my_args.append((m2_expr.ExprId("vmmngr"),
-                             llvm_ir.PointerType(LLVMType.IntType(8)),
-                             "vmmngr"))
-        self.ret_type = LLVMType.IntType(final_expr.size)
-
-        # Initialise the function
-        self.init_fc()
-
-        # Add content
-        self.add_bloc(bloc, [])
-
-        # Finalise the function
-        self.set_ret(self.add_ir(final_expr))
-
-        raise NotImplementedError("Not tested")
-
-    def canonize_label_name(self, label):
-        """Canonize @label names to a common form.
-        @label: str or asmlabel instance"""
-        if isinstance(label, str):
-            return label
-        elif isinstance(label, m2_asmbloc.asm_label):
-            return "label_%s" % label.name
-        elif m2_asmbloc.expr_is_label(label):
-            return "label_%s" % label.name.name
-        else:
-            raise ValueError("label must either be str or asmlabel")
-
-    def get_basic_bloc_by_label(self, label):
-        "Return the bbl corresponding to label, None otherwise"
-        return self.name2bbl.get(self.canonize_label_name(label), None)
-
-    def gen_ret_or_branch(self, dest):
-        """Manage the dest ExprId. If label, branch on it if it is known.
-        Otherwise, return the ExprId or the offset value"""
-
-        builder = self.builder
-
-        if isinstance(dest, m2_expr.ExprId):
-            dest_name = dest.name
-        elif isinstance(dest, m2_expr.ExprSlice) and \
-                isinstance(dest.arg, m2_expr.ExprId):
-            # Manage ExprId mask case
-            dest_name = dest.arg.name
-        else:
-            raise ValueError()
-
-        if not isinstance(dest_name, str):
-            label = dest_name
-            target_bbl = self.get_basic_bloc_by_label(label)
-            if target_bbl is None:
-                self.set_ret(self.add_ir(dest))
-            else:
-                builder.branch(target_bbl)
-        else:
-            self.set_ret(self.add_ir(dest))
-
-    def add_irbloc(self, irbloc):
-        "Add the content of irbloc at the corresponding labeled block"
-        builder = self.builder
-
-        bloc = irbloc.irs
-        dest = irbloc.dst
-        label = irbloc.label
-        lines = irbloc.lines
-
-        # Get labeled basic bloc
-        label_block = self.get_basic_bloc_by_label(label)
-        builder.position_at_end(label_block)
-
-        # Erase cache
-        self.expr_cache = {}
-
-        # Add the content of the bloc with corresponding lines
-        self.add_bloc(bloc, lines)
-
-        # Erase cache
-        self.expr_cache = {}
-
-        # Manage ret
-        for func in self.llvm_context.IR_transformation_functions:
-            dest = func(dest)
-
-        if isinstance(dest, m2_expr.ExprCond):
-            # Compute cond
-            cond = self.add_ir(dest.cond)
-            zero_casted = llvm_ir.Constant(LLVMType.IntType(dest.cond.size),
-                                           0)
-            condition_bool = builder.icmp_unsigned("!=", cond,
-                                                   zero_casted)
-
-            # Create bbls
-            branch_id = self.new_branch_name()
-            then_block = self.append_basic_block('then%s' % branch_id)
-            else_block = self.append_basic_block('else%s' % branch_id)
-
-            builder.cbranch(condition_bool, then_block, else_block)
-
-            # Then Bloc
-            builder.position_at_end(then_block)
-            self.gen_ret_or_branch(dest.src1)
-
-            # Else Bloc
-            builder.position_at_end(else_block)
-            self.gen_ret_or_branch(dest.src2)
-
-        elif isinstance(dest, m2_expr.ExprId):
-            self.gen_ret_or_branch(dest)
-
-        elif isinstance(dest, m2_expr.ExprSlice):
-            self.gen_ret_or_branch(dest)
-
-        elif isinstance(dest, m2_expr.ExprMem):
-            self.set_ret(self.add_ir(self.ir_arch.IRDst))
-
-        else:
-            raise Exception("Bloc dst has to be an ExprId or an ExprCond")
-
-    def canonize_instr_bbl(self, instr):
-        if isinstance(instr, (int, long)):
-            return "instr_%s" % hex(instr)
-        return "instr_%s" % hex(instr.offset)
-
-    def global_constant(self, name, value):
-        """
-        Inspired from numba/cgutils.py
-
-        Get or create a (LLVM module-)global constant with *name* or *value*.
-        """
-        module = self.mod
-        data = llvm_ir.GlobalVariable(self.mod, value.type, name=name)
-        data.global_constant = True
-        data.initializer = value
-        return data
-
-    def make_bytearray(self, buf):
-        """
-        Inspired from numba/cgutils.py
-
-        Make a byte array constant from *buf*.
-        """
-        b = bytearray(buf)
-        n = len(b)
-        return llvm_ir.Constant(llvm_ir.ArrayType(llvm_ir.IntType(8), n), b)
-
-    def printf(self, format, *args):
-        """
-        Inspired from numba/cgutils.py
-
-        Calls printf().
-        Argument `format` is expected to be a Python string.
-        Values to be printed are listed in `args`.
-
-        Note: There is no checking to ensure there is correct number of values
-        in `args` and there type matches the declaration in the format string.
-        """
-        assert isinstance(format, str)
-        mod = self.mod
-        # Make global constant for format string
-        cstring = llvm_ir.IntType(8).as_pointer()
-        fmt_bytes = self.make_bytearray((format + '\00').encode('ascii'))
-
-        base_name = "printf_format"
-        count = 0
-        while self.mod.get_global("%s_%d" % (base_name, count)):
-            count += 1
-        global_fmt = self.global_constant("%s_%d" % (base_name, count),
-                                          fmt_bytes)
-        fnty = llvm_ir.FunctionType(llvm_ir.IntType(32), [cstring],
-                                    var_arg=True)
-        # Insert printf()
-        fn = mod.get_global('printf')
-        if fn is None:
-            fn = llvm_ir.Function(mod, fnty, name="printf")
-        # Call
-        ptr_fmt = self.builder.bitcast(global_fmt, cstring)
-        return self.builder.call(fn, [ptr_fmt] + list(args))
 
     def gen_pre_code(self, attributes):
         if attributes.log_mn:
@@ -1446,48 +1252,22 @@ class LLVMFunction():
         first_label_bbl = self.get_basic_bloc_by_label(asmblock.label)
         builder.branch(first_label_bbl)
 
-    def from_blocs(self, blocs):
-        """Build the function from a list of bloc (irbloc instances).
-        Prototype : f(i8* jitcpu, i8* vmcpu, i8* vmmngr)"""
 
-        # Build function signature
-        self.my_args.append((m2_expr.ExprId("jitcpu"),
-                             llvm_ir.PointerType(LLVMType.IntType(8)),
-                             "jitcpu"))
-        self.my_args.append((m2_expr.ExprId("vmcpu"),
-                             llvm_ir.PointerType(LLVMType.IntType(8)),
-                             "vmcpu"))
-        self.my_args.append((m2_expr.ExprId("vmmngr"),
-                             llvm_ir.PointerType(LLVMType.IntType(8)),
-                             "vmmngr"))
-        ret_size = 64
-
-        self.ret_type = LLVMType.IntType(ret_size)
-
-        # Initialise the function
-        self.init_fc()
-
-        # Create basic blocks (for label branchs)
-        entry_bbl, builder = self.entry_bbl, self.builder
-
-        for irbloc in blocs:
-            name = self.canonize_label_name(irbloc.label)
-            self.append_basic_block(name)
-
-        # Add content
-        builder.position_at_end(entry_bbl)
-
-        for irbloc in blocs:
-            self.add_irbloc(irbloc)
-
-        # Branch entry_bbl on first label
-        builder.position_at_end(entry_bbl)
-        first_label_bbl = self.get_basic_bloc_by_label(blocs[0].label)
-        builder.branch(first_label_bbl)
+    # LLVMFunction manipulation
 
     def __str__(self):
         "Print the llvm IR corresponding to the current module"
         return str(self.mod)
+
+    def dot(self):
+        "Return the CFG of the current function"
+        return llvm.get_function_cfg(self.fc)
+
+    def as_llvm_mod(self):
+        """Return a ModuleRef standing for the current function"""
+        if self._llvm_mod is None:
+            self._llvm_mod = llvm.parse_assembly(str(self.mod))
+        return self._llvm_mod
 
     def verify(self):
         "Verify the module syntax"
@@ -1515,12 +1295,6 @@ class LLVMFunction():
 
         return ret.as_int()
 
-    def as_llvm_mod(self):
-        """Return a ModuleRef standing for the current function"""
-        if self._llvm_mod is None:
-            self._llvm_mod = llvm.parse_assembly(str(self.mod))
-        return self._llvm_mod
-
     def get_function_pointer(self):
         "Return a pointer on the Jitted function"
         engine = self.llvm_context.get_execengine()
@@ -1530,6 +1304,3 @@ class LLVMFunction():
         engine.finalize_object()
 
         return engine.get_function_address(self.fc.name)
-
-# TODO:
-# - Add more expressions
