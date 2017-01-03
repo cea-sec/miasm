@@ -60,39 +60,21 @@ class LLVMContext():
         "Initialize a context with a module named 'name'"
         self.new_module(name)
 
-    def optimise_level(self, classic_passes=True, dead_passes=True):
-        """Set the optimisation level :
-        classic_passes :
-         - combine instruction
-         - reassociate
-         - global value numbering
-         - simplify cfg
-
-        dead_passes :
-         - dead code
-         - dead store
-         - dead instructions
+    def optimise_level(self, level=2):
+        """Set the optimisation level to @level from 0 to 2
+        0: non-optimized
+        2: optimized
         """
 
         # Set up the optimiser pipeline
-        """
-        if classic_passes is True:
-            # self.pass_manager.add(llvm_p.PASS_INSTCOMBINE)
-            self.pass_manager.add(llvm_p.PASS_REASSOCIATE)
-            self.pass_manager.add(llvm_p.PASS_GVN)
-            self.pass_manager.add(llvm_p.PASS_SIMPLIFYCFG)
-
-        if dead_passes is True:
-            self.pass_manager.add(llvm_p.PASS_DCE)
-            self.pass_manager.add(llvm_p.PASS_DSE)
-            self.pass_manager.add(llvm_p.PASS_DIE)
-
-        self.pass_manager.initialize()
-        """
+        pmb = llvm.create_pass_manager_builder()
+        pmb.opt_level = level
+        pm = llvm.create_module_pass_manager()
+        pmb.populate(pm)
+        self.pass_manager = pm
 
     def new_module(self, name="mod"):
         self.mod = llvm_ir.Module(name=name)
-        # self.pass_manager = llvm.FunctionPassManager(self.mod)
         llvm.initialize()
         llvm.initialize_native_target()
         llvm.initialize_native_asmprinter()
@@ -109,7 +91,7 @@ class LLVMContext():
 
     def get_passmanager(self):
         "Return the Pass Manager associated with this context"
-        return self.exec_engine
+        return self.pass_manager
 
     def get_module(self):
         "Return the module associated with this context"
@@ -1528,6 +1510,10 @@ class LLVMFunction():
         # Parse our generated module
         mod = llvm.parse_assembly( str( self.mod ) )
         mod.verify()
+
+        # Apply optimisation
+        self.llvm_context.get_passmanager().run(mod)
+
         # Now add the module and make sure it is ready for execution
         target = llvm.Target.from_default_triple()
         target_machine = target.create_target_machine()
