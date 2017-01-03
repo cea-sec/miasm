@@ -21,8 +21,8 @@ class JitCore_LLVM(jitcore.JitCore):
     def __init__(self, ir_arch, bs=None):
         super(JitCore_LLVM, self).__init__(ir_arch, bs)
 
-        self.options.update({"safe_mode": False,   # Verify each function
-                             "optimise": False,     # Optimise functions
+        self.options.update({"safe_mode": True,   # Verify each function
+                             "optimise": True,     # Optimise functions
                              "log_func": False,    # Print LLVM functions
                              "log_assembly": False,  # Print assembly executed
                              })
@@ -59,12 +59,6 @@ class JitCore_LLVM(jitcore.JitCore):
         mod_name = "miasm2.jitter.arch.JitCore_%s" % (self.ir_arch.arch.name)
         mod = importlib.import_module(mod_name)
         self.context.set_vmcpu(mod.get_gpreg_offset_all())
-
-        # Save module base
-        self.mod_base_str = str(self.context.mod)
-
-        # Set IRs transformation to apply
-        self.context.set_IR_transformation(self.ir_arch.expr_fix_regs_for_mode)
 
     def add_bloc(self, block):
         """Add a block to JiT and JiT it.
