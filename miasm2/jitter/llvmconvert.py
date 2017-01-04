@@ -418,9 +418,13 @@ class LLVMFunction():
         ptr = builder.gep(self.local_vars["vmcpu"],
                           [llvm_ir.Constant(LLVMType.IntType(),
                                             offset)])
-        int_size = LLVMType.IntType(expr.size)
+        regs = self.llvm_context.ir_arch.arch.regs
+        if hasattr(regs, "float_list") and expr in regs.float_list:
+            pointee_type = llvm_ir.DoubleType()
+        else:
+            pointee_type = LLVMType.IntType(expr.size)
         ptr_casted = builder.bitcast(ptr,
-                                     llvm_ir.PointerType(int_size))
+                                     llvm_ir.PointerType(pointee_type))
         # Store in cache
         self.local_vars_pointers[name] = ptr_casted
 
