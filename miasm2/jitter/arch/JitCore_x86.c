@@ -603,6 +603,9 @@ PyObject* get_gpreg_offset_all(void)
     get_reg_off(exception_flags);
 
     get_reg_off(float_stack_ptr);
+    get_reg_off(reg_float_cs);
+    get_reg_off(reg_float_eip);
+    get_reg_off(reg_float_control);
 
     return dict;
 }
