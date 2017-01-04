@@ -682,6 +682,26 @@ class LLVMFunction():
                 self.update_cache(expr, ret)
                 return ret
 
+            if op in [">>", "<<", "a>>"]:
+                assert len(expr.args) == 2
+                # Undefined behavior must be enforced to 0
+                count = self.add_ir(expr.args[1])
+                value = self.add_ir(expr.args[0])
+                itype = LLVMType.IntType(expr.size)
+                cond_ok = self.builder.icmp_unsigned("<", count,
+                                                     itype(expr.size))
+                if op == ">>":
+                    callback = builder.lshr
+                elif op == "<<":
+                    callback = builder.shl
+                elif op == "a>>":
+                    callback = builder.ashr
+
+                ret = self.builder.select(cond_ok, callback(value, count),
+                                          itype(0))
+                self.update_cache(expr, ret)
+                return ret
+
             if len(expr.args) > 1:
 
                 if op == "*":
@@ -694,12 +714,6 @@ class LLVMFunction():
                     callback = builder.xor
                 elif op == "|":
                     callback = builder.or_
-                elif op == ">>":
-                    callback = builder.lshr
-                elif op == "<<":
-                    callback = builder.shl
-                elif op == "a>>":
-                    callback = builder.ashr
                 elif op == "%":
                     callback = builder.urem
                 elif op == "/":
