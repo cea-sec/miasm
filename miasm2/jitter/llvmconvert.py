@@ -702,6 +702,20 @@ class LLVMFunction():
                 self.update_cache(expr, ret)
                 return ret
 
+            if op in ["int_16_to_double", "int_32_to_double", "int_64_to_double",
+                      "mem_16_to_double", "mem_32_to_double", "mem_64_to_double"]:
+                arg = self.add_ir(expr.args[0])
+                ret = builder.uitofp(arg, llvm_ir.DoubleType())
+                self.update_cache(expr, ret)
+                return ret
+
+            if op in ["double_to_int_16", "double_to_int_32", "double_to_int_64",
+                      "double_to_mem_16", "double_to_mem_32", "double_to_mem_64"]:
+                arg = self.add_ir(expr.args[0])
+                ret = builder.fptoui(arg, llvm_ir.IntType(expr.size))
+                self.update_cache(expr, ret)
+                return ret
+
             if len(expr.args) > 1:
 
                 if op == "*":
@@ -718,6 +732,10 @@ class LLVMFunction():
                     callback = builder.urem
                 elif op == "/":
                     callback = builder.udiv
+                elif op == "fadd":
+                    callback = builder.fadd
+                elif op == "fdiv":
+                    callback = builder.fdiv
                 else:
                     raise NotImplementedError('Unknown op: %s' % op)
 
