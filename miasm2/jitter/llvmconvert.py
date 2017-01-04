@@ -741,44 +741,12 @@ class LLVMFunction():
         if isinstance(expr, m2_expr.ExprCond):
             # Compute cond
             cond = self.add_ir(expr.cond)
-            zero_casted = llvm_ir.Constant(LLVMType.IntType(expr.cond.size),
-                                              0)
+            zero_casted = LLVMType.IntType(expr.cond.size)(0)
             condition_bool = builder.icmp_unsigned("!=", cond,
                                                    zero_casted)
-
-            # Alloc return var
-            alloca = self.CreateEntryBlockAlloca(LLVMType.IntType(expr.size))
-
-            # Create bbls
-            branch_id = self.new_branch_name()
-            then_block = self.append_basic_block('then%s' % branch_id)
-            else_block = self.append_basic_block('else%s' % branch_id)
-            merge_block = self.append_basic_block('ifcond%s' % branch_id)
-
-            builder.cbranch(condition_bool, then_block, else_block)
-
-            # Deactivate object caching
-            current_main_stream = self.main_stream
-            self.main_stream = False
-
-            # Then Bloc
-            builder.position_at_end(then_block)
             then_value = self.add_ir(expr.src1)
-            builder.store(then_value, alloca)
-            builder.branch(merge_block)
-
-            # Else Bloc
-            builder.position_at_end(else_block)
             else_value = self.add_ir(expr.src2)
-            builder.store(else_value, alloca)
-            builder.branch(merge_block)
-
-            # Merge bloc
-            builder.position_at_end(merge_block)
-            ret = builder.load(alloca)
-
-            # Reactivate object caching
-            self.main_stream = current_main_stream
+            ret = builder.select(condition_bool, then_value, else_value)
 
             self.update_cache(expr, ret)
             return ret
