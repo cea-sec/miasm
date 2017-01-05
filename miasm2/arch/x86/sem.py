@@ -1732,9 +1732,11 @@ def float_pop(avoid_flt=None, popcount=1):
         if avoid_flt != float_list[i]:
             e.append(m2_expr.ExprAff(float_list[i],
                                      float_list[i + popcount]))
+    fill_value = m2_expr.ExprOp("int_64_to_double",
+                                m2_expr.ExprInt(0, float_list[i].size))
     for i in xrange(8 - popcount, 8):
         e.append(m2_expr.ExprAff(float_list[i],
-                                 m2_expr.ExprInt(0, float_list[i].size)))
+                                 fill_value))
     e.append(
         m2_expr.ExprAff(float_stack_ptr,
                         float_stack_ptr - m2_expr.ExprInt(popcount, 3)))
