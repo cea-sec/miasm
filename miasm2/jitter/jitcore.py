@@ -165,15 +165,6 @@ class JitCore(object):
         # Update jitcode mem range
         self.add_bloc_to_mem_interval(vm, cur_bloc)
 
-    def jit_call(self, label, cpu, breakpoints):
-        """Call the function label with cpu and vmmngr states
-        @label: function's label
-        @cpu: JitCpu instance
-        @breakpoints: Dict instance of used breakpoints
-        """
-        return self.exec_wrapper(label, cpu, self.lbl2jitbloc.data, breakpoints,
-                                 self.options["max_exec_per_call"])
-
     def runbloc(self, cpu, lbl, breakpoints):
         """Run the bloc starting at lbl.
         @cpu: JitCpu instance
@@ -188,9 +179,8 @@ class JitCore(object):
             self.disbloc(lbl, cpu.vmmngr)
 
         # Run the bloc and update cpu/vmmngr state
-        ret = self.jit_call(lbl, cpu, breakpoints)
-
-        return ret
+        return self.exec_wrapper(lbl, cpu, self.lbl2jitbloc.data, breakpoints,
+                                 self.options["max_exec_per_call"])
 
     def blocs2memrange(self, blocs):
         """Return an interval instance standing for blocs addresses
