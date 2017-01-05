@@ -55,7 +55,7 @@ class ArchUnitTest(RegressionTest):
 
 # script -> blacklisted jitter
 blacklist = {
-    "x86/unit/mn_float.py": ["python"],
+    "x86/unit/mn_float.py": ["python", "llvm"],
 }
 for script in ["x86/sem.py",
                "x86/unit/mn_strings.py",
@@ -684,7 +684,7 @@ By default, no tag is omitted." % ", ".join(TAGS.keys()), default="")
     # Handle llvm modularity
     llvm = True
     try:
-        import llvm
+        import llvmlite
     except ImportError:
         llvm = False
 
@@ -695,12 +695,9 @@ By default, no tag is omitted." % ", ".join(TAGS.keys()), default="")
     except ImportError:
         tcc = False
 
-    # TODO XXX: fix llvm jitter (deactivated for the moment)
-    llvm = False
-
     if llvm is False:
         print "%(red)s[LLVM]%(end)s Python" % cosmetics.colors + \
-            "'py-llvm 3.2' module is required for llvm tests"
+            "'llvmlite' module is required for llvm tests"
 
         # Remove llvm tests
         if TAGS["llvm"] not in exclude_tags:

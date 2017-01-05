@@ -47,9 +47,9 @@ class TranslatorC(Translator):
                 return "parity(%s&0x%x)" % (self.from_expr(expr.args[0]),
                                             size2mask(expr.args[0].size))
             elif expr.op in ['bsr', 'bsf']:
-                return "x86_%s(%s, 0x%x)" % (expr.op,
-                                             self.from_expr(expr.args[0]),
-                                             expr.args[0].size)
+                return "x86_%s(0x%x, %s)" % (expr.op,
+                                             expr.args[0].size,
+                                             self.from_expr(expr.args[0]))
             elif expr.op in ['clz']:
                 return "%s(%s)" % (expr.op,
                                    self.from_expr(expr.args[0]))

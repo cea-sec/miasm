@@ -3,19 +3,27 @@
 #include <inttypes.h>
 
 #include <stdint.h>
+#include "queue.h"
+#include "vm_mngr.h"
+#include "vm_mngr_py.h"
+#include "JitCore.h"
+// Needed to get the JitCpu.cpu offset, arch independent
+#include "arch/JitCore_x86.h"
 
 PyObject* llvm_exec_bloc(PyObject* self, PyObject* args)
 {
 	uint64_t func_addr;
-	uint64_t (*func)(void*, void*);
+	uint64_t (*func)(void*, void*, void*, uint8_t*);
 	uint64_t vm;
-	uint64_t cpu;
 	uint64_t ret;
-
-	if (!PyArg_ParseTuple(args, "KKK", &func_addr, &cpu, &vm))
+	JitCpu* jitcpu;
+	uint8_t status;
+	
+	if (!PyArg_ParseTuple(args, "KOK", &func_addr, &jitcpu, &vm))
 		return NULL;
+	vm_cpu_t* cpu = jitcpu->cpu;
 	func = (void *) (intptr_t) func_addr;
-	ret = func((void*)(intptr_t) cpu, (void*)(intptr_t) vm);
+	ret = func((void*) jitcpu, (void*)(intptr_t) cpu, (void*)(intptr_t) vm, &status);
 	return PyLong_FromUnsignedLongLong(ret);
 }
 

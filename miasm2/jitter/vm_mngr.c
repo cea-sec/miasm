@@ -76,6 +76,11 @@ const uint8_t parity_table[256] = {
     0, CC_P, CC_P, 0, CC_P, 0, 0, CC_P,
 };
 
+uint8_t parity(uint64_t a) {
+	return parity_table[(a) & 0xFF];
+}
+
+
 // #define DEBUG_MIASM_AUTOMOD_CODE
 
 void memory_access_list_init(struct memory_access_list * access)
@@ -916,7 +921,7 @@ unsigned int rcr_rez_op(unsigned int size, unsigned int a, unsigned int b, unsig
     return tmp;
 }
 
-unsigned int x86_bsr(uint64_t src, unsigned int size)
+unsigned int x86_bsr(unsigned int size, uint64_t src)
 {
 	int i;
 
@@ -928,7 +933,7 @@ unsigned int x86_bsr(uint64_t src, unsigned int size)
 	exit(0);
 }
 
-unsigned int x86_bsf(uint64_t src, unsigned int size)
+unsigned int x86_bsf(unsigned int size, uint64_t src)
 {
 	int i;
 

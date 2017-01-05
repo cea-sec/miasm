@@ -454,7 +454,7 @@ Miasm uses:
 To enable code JIT, one of the following module is mandatory:
 * GCC
 * Clang
-* LLVM v3.2 with python-llvm, see below
+* LLVM with Numba llvmlite, see below
 * LibTCC [tinycc (ONLY version 0.9.26)](http://repo.or.cz/w/tinycc.git)
 
 'optional' Miasm can also use:
@@ -483,9 +483,9 @@ To use the jitter, GCC, TCC or LLVM is recommended
   * `sudo make install`
   * There may be an error on documentation generation
 * LLVM
-  * Debian (testing/unstable): install python-llvm
-  * Debian stable/Ubuntu/Kali/whatever: install from [llvmpy](http://www.llvmpy.org/)
-  * Windows: python-llvm is not supported :/
+  * Debian (testing/unstable): Not tested
+  * Debian stable/Ubuntu/Kali/whatever: `pip install llvmlite` or install from [llvmlite](https://github.com/numba/llvmlite)
+  * Windows: Not tested
 * Build and install Miasm:
 ```
 $ cd miasm_directory

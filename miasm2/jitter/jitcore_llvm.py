@@ -14,16 +14,17 @@ class JitCore_LLVM(jitcore.JitCore):
     arch_dependent_libs = {"x86": "JitCore_x86.so",
                            "arm": "JitCore_arm.so",
                            "msp430": "JitCore_msp430.so",
-                           "mips32": "JitCore_mips32.so"}
+                           "mips32": "JitCore_mips32.so",
+                           "aarch64": "JitCore_aarch64.so",
+    }
 
     def __init__(self, ir_arch, bs=None):
         super(JitCore_LLVM, self).__init__(ir_arch, bs)
 
-        self.options.update({"safe_mode": False,   # Verify each function
-                             "optimise": False,     # Optimise functions
+        self.options.update({"safe_mode": True,   # Verify each function
+                             "optimise": True,     # Optimise functions
                              "log_func": False,    # Print LLVM functions
                              "log_assembly": False,  # Print assembly executed
-                             "cache_ir": None      # SaveDir for cached .ll
                              })
 
         self.exec_wrapper = Jitllvm.llvm_exec_bloc
@@ -46,7 +47,7 @@ class JitCore_LLVM(jitcore.JitCore):
             pass
 
         # Create a context
-        self.context = LLVMContext_JIT(libs_to_load)
+        self.context = LLVMContext_JIT(libs_to_load, self.ir_arch)
 
         # Set the optimisation level
         self.context.optimise_level()
@@ -59,83 +60,21 @@ class JitCore_LLVM(jitcore.JitCore):
         mod = importlib.import_module(mod_name)
         self.context.set_vmcpu(mod.get_gpreg_offset_all())
 
-        # Save module base
-        self.mod_base_str = str(self.context.mod)
-
-        # Set IRs transformation to apply
-        self.context.set_IR_transformation(self.ir_arch.expr_fix_regs_for_mode)
-
-    def add_bloc(self, bloc):
-
-        # Search in IR cache
-        if self.options["cache_ir"] is not None:
-
-            # /!\ This part is under development
-            # Use it at your own risk
-
-            # Compute Hash : label + bloc binary
-            func_name = bloc.label.name
-            to_hash = func_name
-
-            # Get binary from bloc
-            for line in bloc.lines:
-                b = line.b
-                to_hash += b
-
-            # Compute Hash
-            md5 = hashlib.md5(to_hash).hexdigest()
-
-            # Try to load the function from cache
-            filename = self.options["cache_ir"] + md5 + ".ll"
-
-            try:
-                fcontent = open(filename)
-                content = fcontent.read()
-                fcontent.close()
-
-            except IOError:
-                content = None
-
-            if content is None:
-                # Compute the IR
-                super(JitCore_LLVM, self).add_bloc(bloc)
-
-                # Save it
-                fdest = open(filename, "w")
-                dump = str(self.context.mod.get_function_named(func_name))
-                my = "declare i16 @llvm.bswap.i16(i16) nounwind readnone\n"
-
-                fdest.write(self.mod_base_str + my + dump)
-                fdest.close()
-
-            else:
-                import llvm.core as llvm_c
-                import llvm.ee as llvm_e
-                my_mod = llvm_c.Module.from_assembly(content)
-                func = my_mod.get_function_named(func_name)
-                exec_en = llvm_e.ExecutionEngine.new(my_mod)
-                self.exec_engines.append(exec_en)
-
-                # We can use the same exec_engine
-                ptr = self.exec_engines[0].get_pointer_to_function(func)
-
-                # Store a pointer on the function jitted code
-                self.lbl2jitbloc[bloc.label.offset] = ptr
-
-        else:
-            super(JitCore_LLVM, self).add_bloc(bloc)
-
-    def jitirblocs(self, label, irblocs):
+    def add_bloc(self, block):
+        """Add a block to JiT and JiT it.
+        @block: the block to add
+        """
+        # TODO: caching using hash
 
         # Build a function in the context
-        func = LLVMFunction(self.context, label.name)
+        func = LLVMFunction(self.context, block.label.name)
 
         # Set log level
         func.log_regs = self.log_regs
         func.log_mn = self.log_mn
 
-        # Import irblocs
-        func.from_blocs(irblocs)
+        # Import asm block
+        func.from_asmblock(block)
 
         # Verify
         if self.options["safe_mode"] is True:
@@ -152,4 +91,12 @@ class JitCore_LLVM(jitcore.JitCore):
             print func.get_assembly()
 
         # Store a pointer on the function jitted code
-        self.lbl2jitbloc[label.offset] = func.get_function_pointer()
+        self.lbl2jitbloc[block.label.offset] = func.get_function_pointer()
+
+    def jit_call(self, label, cpu, _vmmngr, breakpoints):
+        """Call the function label with cpu and vmmngr states
+        @label: function's label
+        @cpu: JitCpu instance
+        @breakpoints: Dict instance of used breakpoints
+        """
+        return self.exec_wrapper(self.lbl2jitbloc[label], cpu, cpu.vmmngr.vmmngr)

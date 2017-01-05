@@ -194,7 +194,7 @@ int vm_write_mem(vm_mngr_t* vm_mngr, uint64_t addr, char *buffer, uint64_t size)
 
 extern const uint8_t parity_table[256];
 
-#define parity(a) (parity_table[(a) & 0xFF])
+uint8_t parity(uint64_t a);
 
 unsigned int my_imul08(unsigned int a, unsigned int b);
 
