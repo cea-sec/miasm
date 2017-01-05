@@ -1,4 +1,3 @@
-#! /usr/bin/env python
 import sys
 import os
 
@@ -10,13 +9,6 @@ from miasm2.core import asmbloc
 from elfesteem.strpatchwork import StrPatchwork
 from miasm2.analysis.machine import Machine
 from miasm2.jitter.csts import *
-from pdb import pm
-
-
-filename = os.environ.get('PYTHONSTARTUP')
-if filename and os.path.isfile(filename):
-    execfile(filename)
-
 
 reg_and_id = dict(mn_aarch64.regs.all_regs_ids_byname)
 
