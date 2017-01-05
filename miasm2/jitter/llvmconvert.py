@@ -11,6 +11,7 @@
 #
 #
 
+import os
 from llvmlite import binding as llvm
 from llvmlite import ir as llvm_ir
 import miasm2.expression.expression as m2_expr
@@ -292,6 +293,57 @@ class LLVMContext_JIT(LLVMContext):
         builder.call(fc_ptr, [func.local_vars["jitcpu"],
                               dst_casted,
                               value])
+
+
+    @staticmethod
+    def cache_notify(module, buffer):
+        """Called when @module has been compiled to @buffer"""
+        if not hasattr(module, "fname_out"):
+            return
+        fname_out = module.fname_out
+
+        if os.access(fname_out, os.R_OK):
+            # No need to overwrite
+            return
+
+        open(fname_out, "w").write(buffer)
+
+    @staticmethod
+    def cache_getbuffer(module):
+        """Return a compiled buffer for @module if available"""
+        if not hasattr(module, "fname_out"):
+            return None
+
+        fname_out = module.fname_out
+        if os.access(fname_out, os.R_OK):
+            return open(fname_out).read()
+        return None
+
+    def enable_cache(self):
+        "Enable cache of compiled object"
+        # Load shared libraries
+        for lib_fname in self.library_filenames:
+            self.add_shared_library(lib_fname)
+
+        # Activate cache
+        self.exec_engine.set_object_cache(self.cache_notify,
+                                          self.cache_getbuffer)
+
+    def set_cache_filename(self, func, fname_out):
+        "Set the filename @fname_out to use for cache for @func"
+        # Use a custom attribute to propagate the cache filename
+        func.as_llvm_mod().fname_out = fname_out
+
+    def get_ptr_from_cache(self, file_name, func_name):
+        "Load @file_name and return a pointer on the jitter @func_name"
+        # We use an empty module to avoid loosing time on function building
+        empty_module = llvm.parse_assembly("")
+        empty_module.fname_out = file_name
+
+        engine = self.exec_engine
+        engine.add_module(empty_module)
+        engine.finalize_object()
+        return engine.get_function_address(func_name)
 
 
 class LLVMContext_IRCompilation(LLVMContext):

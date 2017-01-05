@@ -1,6 +1,7 @@
 import os
 import importlib
-import hashlib
+import tempfile
+from hashlib import md5
 from miasm2.jitter.llvmconvert import *
 import miasm2.jitter.jitcore as jitcore
 import Jitllvm
@@ -28,8 +29,17 @@ class JitCore_LLVM(jitcore.JitCore):
                              })
 
         self.exec_wrapper = Jitllvm.llvm_exec_bloc
-        self.exec_engines = []
         self.ir_arch = ir_arch
+
+        # Cache temporary dir
+        self.tempdir = os.path.join(tempfile.gettempdir(), "miasm_cache")
+        try:
+            os.mkdir(self.tempdir, 0755)
+        except OSError:
+            pass
+        if not os.access(self.tempdir, os.R_OK | os.W_OK):
+            raise RuntimeError(
+                'Cannot access cache directory %s ' % self.tempdir)
 
     def load(self):
 
@@ -60,38 +70,65 @@ class JitCore_LLVM(jitcore.JitCore):
         mod = importlib.import_module(mod_name)
         self.context.set_vmcpu(mod.get_gpreg_offset_all())
 
+        # Enable caching
+        self.context.enable_cache()
+
     def add_bloc(self, block):
         """Add a block to JiT and JiT it.
         @block: the block to add
         """
-        # TODO: caching using hash
+        block_hash = self.hash_block(block)
+        fname_out = os.path.join(self.tempdir, "%s.bc" % block_hash)
 
-        # Build a function in the context
-        func = LLVMFunction(self.context, block.label.name)
+        if not os.access(fname_out, os.R_OK):
+            # Build a function in the context
+            func = LLVMFunction(self.context, block.label.name)
 
-        # Set log level
-        func.log_regs = self.log_regs
-        func.log_mn = self.log_mn
+            # Set log level
+            func.log_regs = self.log_regs
+            func.log_mn = self.log_mn
 
-        # Import asm block
-        func.from_asmblock(block)
+            # Import asm block
+            func.from_asmblock(block)
 
-        # Verify
-        if self.options["safe_mode"] is True:
-            func.verify()
+            # Verify
+            if self.options["safe_mode"] is True:
+                func.verify()
 
-        # Optimise
-        if self.options["optimise"] is True:
-            func.optimise()
+            # Optimise
+            if self.options["optimise"] is True:
+                func.optimise()
 
-        # Log
-        if self.options["log_func"] is True:
-            print func
-        if self.options["log_assembly"] is True:
-            print func.get_assembly()
+            # Log
+            if self.options["log_func"] is True:
+                print func
+            if self.options["log_assembly"] is True:
+                print func.get_assembly()
+
+            # Use propagate the cache filename
+            self.context.set_cache_filename(func, fname_out)
+
+            # Get a pointer on the function for JiT
+            ptr = func.get_function_pointer()
+
+        else:
+            # The cache file exists: function can be loaded from cache
+            ptr = self.context.get_ptr_from_cache(fname_out, block.label.name)
 
         # Store a pointer on the function jitted code
-        self.lbl2jitbloc[block.label.offset] = func.get_function_pointer()
+        self.lbl2jitbloc[block.label.offset] = ptr
+
+    def hash_block(self, block):
+        """
+        Build a hash of the block @block
+        @block: asmbloc
+        """
+        block_raw = "".join(line.b for line in block.lines)
+        block_hash = md5("%X_%s_%s_%s" % (block.label.offset,
+                                          self.log_mn,
+                                          self.log_regs,
+                                          block_raw)).hexdigest()
+        return block_hash
 
     def jit_call(self, label, cpu, _vmmngr, breakpoints):
         """Call the function label with cpu and vmmngr states
