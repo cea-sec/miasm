@@ -181,7 +181,7 @@ class JitCore(object):
         """
 
         if lbl is None:
-            lbl = cpu.get_gpreg()[self.ir_arch.pc.name]
+            lbl = getattr(cpu, self.ir_arch.pc.name)
 
         if not lbl in self.lbl2jitbloc:
             # Need to JiT the bloc
