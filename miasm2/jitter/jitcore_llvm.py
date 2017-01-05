@@ -129,12 +129,3 @@ class JitCore_LLVM(jitcore.JitCore):
                                           self.log_regs,
                                           block_raw)).hexdigest()
         return block_hash
-
-    def jit_call(self, label, cpu, _vmmngr, breakpoints):
-        """Call the function label with cpu and vmmngr states
-        @label: function's label
-        @cpu: JitCpu instance
-        @breakpoints: Dict instance of used breakpoints
-        """
-        return self.exec_wrapper(label, cpu,
-                                 self.lbl2jitbloc.data, breakpoints)
