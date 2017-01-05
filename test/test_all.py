@@ -315,6 +315,7 @@ test_args = [(0x401000, 0x40100d, ["EAX"]),
              (0x401000, 0x401012, ["ECX"]),
              (0x401000, 0x40101f, ["EAX", "EBX"]),
              (0x401000, 0x401025, ["EAX", "EBX"]),
+             (0x401000, 0x401007, ["EBX"]),
 ]
 for i, test_args in enumerate(test_args):
     test_dg = SemanticTestAsm("x86_32", "PE", ["dg_test_%.2d" % i])
