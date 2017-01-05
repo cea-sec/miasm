@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python2
 from argparse import ArgumentParser
 from pdb import pm
 

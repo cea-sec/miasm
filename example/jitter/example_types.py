@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#! /usr/bin/env python2
 """This script is just a short example of common usages for miasm2.core.types.
 For a more complete view of what is possible, tests/core/types.py covers
 most of the module possibilities, and the module doc gives useful information

@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python2
 import sys
 
 from miasm2.os_dep.win_api_x86_32_seh import fake_seh_handler, build_teb, \

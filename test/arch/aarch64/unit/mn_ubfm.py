@@ -1,4 +1,5 @@
-#! /usr/bin/env python
+#! /usr/bin/env python2
+
 import sys
 
 from asm_test import Asm_Test

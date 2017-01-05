@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#! /usr/bin/env python2
 #-*- coding:utf-8 -*-
 from miasm2.analysis.sandbox import Sandbox_Linux_armb_str
 from miasm2.analysis.sandbox import Sandbox_Linux_arml_str
