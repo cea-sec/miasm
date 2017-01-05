@@ -13,7 +13,8 @@
 PyObject* llvm_exec_bloc(PyObject* self, PyObject* args)
 {
 	uint64_t (*func)(void*, void*, void*, uint8_t*);
-	uint64_t vm;
+	vm_cpu_t* cpu;
+	vm_mngr_t* vm;
 	uint64_t ret;
 	JitCpu* jitcpu;
 	uint8_t status;
@@ -23,9 +24,10 @@ PyObject* llvm_exec_bloc(PyObject* self, PyObject* args)
 	PyObject* retaddr = NULL;
 
 
-	if (!PyArg_ParseTuple(args, "OOKOO", &retaddr, &jitcpu, &vm, &lbl2ptr, &breakpoints))
+	if (!PyArg_ParseTuple(args, "OOOO", &retaddr, &jitcpu, &lbl2ptr, &breakpoints))
 		return NULL;
-	vm_cpu_t* cpu = jitcpu->cpu;
+	cpu = jitcpu->cpu;
+	vm = &(jitcpu->pyvm->vm_mngr);
 	/* The loop will decref retaddr always once */
 	Py_INCREF(retaddr);
 
