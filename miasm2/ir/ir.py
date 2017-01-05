@@ -409,8 +409,13 @@ class ir(object):
         for b in ir_blocs:
             if b.dst is not None:
                 continue
-            dst = m2_expr.ExprId(self.get_next_label(bloc.lines[-1]),
-                                 self.pc.size)
+            next_lbl = bloc.get_next()
+            if next_lbl is None:
+                dst = m2_expr.ExprId(self.get_next_label(bloc.lines[-1]),
+                                     self.pc.size)
+            else:
+                dst = m2_expr.ExprId(next_lbl,
+                                     self.pc.size)
             b.irs.append(AssignBlock([m2_expr.ExprAff(self.IRDst, dst)]))
             b.lines.append(b.lines[-1])
 
