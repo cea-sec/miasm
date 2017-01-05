@@ -55,7 +55,7 @@ class ArchUnitTest(RegressionTest):
 
 # script -> blacklisted jitter
 blacklist = {
-    "x86/unit/mn_float.py": ["python", "llvm"],
+    "x86/unit/mn_float.py": ["python"],
 }
 for script in ["x86/sem.py",
                "x86/unit/mn_strings.py",

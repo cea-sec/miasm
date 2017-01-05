@@ -228,6 +228,9 @@ class LLVMContext_JIT(LLVMContext):
                                    "args": [p8,
                                             itype,
                                             itype]}})
+        self.add_fc({"cpuid": {"ret": itype,
+                               "args": [itype,
+                                        itype]}})
 
         for k in [8, 16]:
             self.add_fc({"bcdadd_%s" % k: {"ret": LLVMType.IntType(k),
@@ -327,6 +330,7 @@ class LLVMFunction():
     # Operation translation
     ## Basics
     op_translate = {'parity': 'parity',
+                    'cpuid': 'cpuid',
     }
     ## Add the size as first argument
     op_translate_with_size = {'<<<': 'rot_left',
@@ -418,9 +422,13 @@ class LLVMFunction():
         ptr = builder.gep(self.local_vars["vmcpu"],
                           [llvm_ir.Constant(LLVMType.IntType(),
                                             offset)])
-        int_size = LLVMType.IntType(expr.size)
+        regs = self.llvm_context.ir_arch.arch.regs
+        if hasattr(regs, "float_list") and expr in regs.float_list:
+            pointee_type = llvm_ir.DoubleType()
+        else:
+            pointee_type = LLVMType.IntType(expr.size)
         ptr_casted = builder.bitcast(ptr,
-                                     llvm_ir.PointerType(int_size))
+                                     llvm_ir.PointerType(pointee_type))
         # Store in cache
         self.local_vars_pointers[name] = ptr_casted
 
@@ -702,6 +710,20 @@ class LLVMFunction():
                 self.update_cache(expr, ret)
                 return ret
 
+            if op in ["int_16_to_double", "int_32_to_double", "int_64_to_double",
+                      "mem_16_to_double", "mem_32_to_double", "mem_64_to_double"]:
+                arg = self.add_ir(expr.args[0])
+                ret = builder.uitofp(arg, llvm_ir.DoubleType())
+                self.update_cache(expr, ret)
+                return ret
+
+            if op in ["double_to_int_16", "double_to_int_32", "double_to_int_64",
+                      "double_to_mem_16", "double_to_mem_32", "double_to_mem_64"]:
+                arg = self.add_ir(expr.args[0])
+                ret = builder.fptoui(arg, llvm_ir.IntType(expr.size))
+                self.update_cache(expr, ret)
+                return ret
+
             if len(expr.args) > 1:
 
                 if op == "*":
@@ -718,6 +740,10 @@ class LLVMFunction():
                     callback = builder.urem
                 elif op == "/":
                     callback = builder.udiv
+                elif op == "fadd":
+                    callback = builder.fadd
+                elif op == "fdiv":
+                    callback = builder.fdiv
                 else:
                     raise NotImplementedError('Unknown op: %s' % op)
 
