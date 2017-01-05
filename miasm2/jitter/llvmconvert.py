@@ -228,6 +228,9 @@ class LLVMContext_JIT(LLVMContext):
                                    "args": [p8,
                                             itype,
                                             itype]}})
+        self.add_fc({"cpuid": {"ret": itype,
+                               "args": [itype,
+                                        itype]}})
 
         for k in [8, 16]:
             self.add_fc({"bcdadd_%s" % k: {"ret": LLVMType.IntType(k),
@@ -327,6 +330,7 @@ class LLVMFunction():
     # Operation translation
     ## Basics
     op_translate = {'parity': 'parity',
+                    'cpuid': 'cpuid',
     }
     ## Add the size as first argument
     op_translate_with_size = {'<<<': 'rot_left',
