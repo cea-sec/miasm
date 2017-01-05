@@ -12,19 +12,45 @@
 
 PyObject* llvm_exec_bloc(PyObject* self, PyObject* args)
 {
-	uint64_t func_addr;
 	uint64_t (*func)(void*, void*, void*, uint8_t*);
 	uint64_t vm;
 	uint64_t ret;
 	JitCpu* jitcpu;
 	uint8_t status;
-	
-	if (!PyArg_ParseTuple(args, "KOK", &func_addr, &jitcpu, &vm))
+	PyObject* func_py;
+	PyObject* lbl2ptr;
+	PyObject* breakpoints;
+	PyObject* retaddr = NULL;
+
+
+	if (!PyArg_ParseTuple(args, "OOKOO", &retaddr, &jitcpu, &vm, &lbl2ptr, &breakpoints))
 		return NULL;
 	vm_cpu_t* cpu = jitcpu->cpu;
-	func = (void *) (intptr_t) func_addr;
-	ret = func((void*) jitcpu, (void*)(intptr_t) cpu, (void*)(intptr_t) vm, &status);
-	return PyLong_FromUnsignedLongLong(ret);
+	/* The loop will decref retaddr always once */
+	Py_INCREF(retaddr);
+
+	for (;;) {
+		// Get the expected jitted function address
+		func_py = PyDict_GetItem(lbl2ptr, retaddr);
+		if (func_py)
+			func = PyLong_AsVoidPtr((PyObject*) func_py);
+		else
+			// retaddr is not jitted yet
+			return retaddr;
+
+		// Execute it
+		ret = func((void*) jitcpu, (void*)(intptr_t) cpu, (void*)(intptr_t) vm, &status);
+		Py_DECREF(retaddr);
+		retaddr = PyLong_FromUnsignedLongLong(ret);
+
+		// Check exception
+		if (status)
+			return retaddr;
+
+		// Check breakpoint
+		if (PyDict_Contains(breakpoints, retaddr))
+			return retaddr;
+	}
 }
 
 

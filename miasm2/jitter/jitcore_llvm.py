@@ -99,4 +99,5 @@ class JitCore_LLVM(jitcore.JitCore):
         @cpu: JitCpu instance
         @breakpoints: Dict instance of used breakpoints
         """
-        return self.exec_wrapper(self.lbl2jitbloc[label], cpu, cpu.vmmngr.vmmngr)
+        return self.exec_wrapper(label, cpu, cpu.vmmngr.vmmngr,
+                                 self.lbl2jitbloc.data, breakpoints)
