@@ -2908,13 +2908,20 @@ def bittest_get(a, b):
         b_mask = {16: 4, 32: 5, 64: 6}
         b_decal = {16: 1, 32: 3, 64: 7}
         ptr = a.arg
+        segm = a.is_op_segm()
+        if segm:
+            ptr = ptr.args[1]
+
         off_bit = b.zeroExtend(
             a.size) & m2_expr.ExprInt((1 << b_mask[a.size]) - 1,
                                       a.size)
         off_byte = ((b.zeroExtend(ptr.size) >> m2_expr.ExprInt(3, ptr.size)) &
                     m2_expr.ExprInt(((1 << a.size) - 1) ^ b_decal[a.size], ptr.size))
 
-        d = m2_expr.ExprMem(ptr + off_byte, a.size)
+        addr = ptr + off_byte
+        if segm:
+            addr = m2_expr.ExprOp("segm", a.arg.args[0], addr)
+        d = m2_expr.ExprMem(addr, a.size)
     else:
         off_bit = m2_expr.ExprOp('&', b, m2_expr.ExprInt(a.size - 1, a.size))
         d = a
