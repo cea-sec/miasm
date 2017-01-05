@@ -53,7 +53,7 @@ class ir_a_x86_16(ir_x86_16, ira):
                 sub_call_dst = sub_call_dst.name
             lbl = bloc.get_next()
             new_lbl = self.gen_label()
-            irs = self.call_effects(l.args[0])
+            irs = self.call_effects(l.args[0], l)
             irs.append(AssignBlock([ExprAff(self.IRDst,
                                             ExprId(lbl, size=self.pc.size))]))
 
@@ -92,7 +92,7 @@ class ir_a_x86_64(ir_x86_64, ir_a_x86_16):
         ir_x86_64.__init__(self, symbol_pool)
         self.ret_reg = self.arch.regs.RAX
 
-    def call_effects(self, ad):
+    def call_effects(self, ad, instr):
         return [AssignBlock([ExprAff(self.ret_reg, ExprOp('call_func_ret', ad,
                                                           self.sp,
                                                           self.arch.regs.RCX,

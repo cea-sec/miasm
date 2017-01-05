@@ -55,7 +55,7 @@ class ir_a_aarch64l(ir_a_aarch64l_base):
             # CALL
             lbl = bloc.get_next()
             new_lbl = self.gen_label()
-            irs = self.call_effects(pc_val)
+            irs = self.call_effects(pc_val, l)
             irs.append(AssignBlock([ExprAff(self.IRDst,
                                             ExprId(lbl, size=self.pc.size))]))
             nbloc = irbloc(new_lbl, irs)

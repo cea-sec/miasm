@@ -51,7 +51,7 @@ class ir_a_msp430(ir_a_msp430_base):
             l = bloc.lines[-1]
             lbl = bloc.get_next()
             new_lbl = self.gen_label()
-            irs = self.call_effects(pc_val)
+            irs = self.call_effects(pc_val, l)
             irs.append(AssignBlock([ExprAff(self.IRDst,
                                             ExprId(lbl, size=self.pc.size))]))
             nbloc = irbloc(new_lbl, irs)
