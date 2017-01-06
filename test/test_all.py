@@ -325,8 +325,11 @@ for i, test_args in enumerate(test_args):
 ## Jitter
 for script in ["jitload.py",
                "vm_mngr.py",
+               "jit_options.py",
                ]:
-    testset += RegressionTest([script], base_dir="jitter", tags=[TAGS["tcc"]])
+    for engine in ArchUnitTest.jitter_engines:
+        testset += RegressionTest([script, engine], base_dir="jitter",
+                                  tags=[TAGS.get(engine,None)])
 
 
 # Examples

@@ -38,11 +38,12 @@ class JitCore_Python(jitcore.JitCore):
         @irblocs: a gorup of irblocs
         """
 
-        def myfunc(cpu, vmmngr):
+        def myfunc(cpu):
             """Execute the function according to cpu and vmmngr states
             @cpu: JitCpu instance
-            @vm: VmMngr instance
             """
+            # Get virtual memory handler
+            vmmngr = cpu.vmmngr
 
             # Keep current location in irblocs
             cur_label = label
@@ -125,15 +126,15 @@ class JitCore_Python(jitcore.JitCore):
         # Associate myfunc with current label
         self.lbl2jitbloc[label.offset] = myfunc
 
-    def jit_call(self, label, cpu, vmmngr, _breakpoints):
-        """Call the function label with cpu and vmmngr states
+    def exec_wrapper(self, label, cpu, _lbl2jitbloc, _breakpoints,
+                     _max_exec_per_call):
+        """Call the function @label with @cpu
         @label: function's label
         @cpu: JitCpu instance
-        @vm: VmMngr instance
         """
 
         # Get Python function corresponding to @label
         fc_ptr = self.lbl2jitbloc[label]
 
         # Execute the function
-        return fc_ptr(cpu, vmmngr)
+        return fc_ptr(cpu)

@@ -296,7 +296,7 @@ class jitter:
         """Wrapper on JiT backend. Run the code at PC and return the next PC.
         @pc: address of code to run"""
 
-        return self.jit.runbloc(self.cpu, self.vm, pc, self.breakpoints_handler.callbacks)
+        return self.jit.runbloc(self.cpu, pc, self.breakpoints_handler.callbacks)
 
     def runiter_once(self, pc):
         """Iterator on callbacks results on code running from PC.
