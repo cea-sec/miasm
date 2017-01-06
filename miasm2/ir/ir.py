@@ -363,29 +363,74 @@ class ir(object):
                                                   )]))
         c.lines.append(l)
 
-    def add_bloc(self, bloc, gen_pc_updt=False):
-        c = None
-        ir_blocs_all = []
-        for l in bloc.lines:
-            if c is None:
-                label = self.get_instr_label(l)
-                c = irbloc(label, [], [])
-                ir_blocs_all.append(c)
-            assignblk, ir_blocs_extra = self.instr2ir(l)
+    def pre_add_instr(self, block, instr, irb_cur, ir_blocks_all, gen_pc_updt):
+        """Function called before adding an instruction from the the native @block to
+        the current irbloc.
 
-            if gen_pc_updt is not False:
-                self.gen_pc_update(c, l)
+        Returns None if the addition needs an irblock split, @irb_cur in other
+        cases.
 
-            c.irs.append(assignblk)
-            c.lines.append(l)
+        @block: native block source
+        @instr: native instruction
+        @irb_cur: current irbloc
+        @ir_blocks_all: list of additional effects
+        @gen_pc_updt: insert PC update effects between instructions
 
-            if ir_blocs_extra:
-                for b in ir_blocs_extra:
-                    b.lines = [l] * len(b.irs)
-                ir_blocs_all += ir_blocs_extra
-                c = None
-        self.post_add_bloc(bloc, ir_blocs_all)
-        return ir_blocs_all
+        """
+
+        return irb_cur
+
+    def add_instr_to_irblock(self, block, instr, irb_cur, ir_blocks_all, gen_pc_updt):
+        """
+        Add the IR effects of an instruction to the current irblock.
+
+        Returns None if the addition needs an irblock split, @irb_cur in other
+        cases.
+
+        @block: native block source
+        @instr: native instruction
+        @irb_cur: current irbloc
+        @ir_blocks_all: list of additional effects
+        @gen_pc_updt: insert PC update effects between instructions
+        """
+
+        irb_cur = self.pre_add_instr(block, instr, irb_cur, ir_blocks_all, gen_pc_updt)
+        if irb_cur is None:
+            return None
+
+        assignblk, ir_blocs_extra = self.instr2ir(instr)
+
+        if gen_pc_updt is not False:
+            self.gen_pc_update(irb_cur, instr)
+
+        irb_cur.irs.append(assignblk)
+        irb_cur.lines.append(instr)
+
+        if ir_blocs_extra:
+            for b in ir_blocs_extra:
+                b.lines = [instr] * len(b.irs)
+            ir_blocks_all += ir_blocs_extra
+            irb_cur = None
+        return irb_cur
+
+    def add_bloc(self, block, gen_pc_updt = False):
+        """
+        Add a native block to the current IR
+        @block: native assembly block
+        @gen_pc_updt: insert PC update effects between instructions
+        """
+
+        irb_cur = None
+        ir_blocks_all = []
+        for instr in block.lines:
+            if irb_cur is None:
+                label = self.get_instr_label(instr)
+                irb_cur = irbloc(label, [], [])
+                ir_blocks_all.append(irb_cur)
+            irb_cur = self.add_instr_to_irblock(block, instr, irb_cur,
+                                                ir_blocks_all, gen_pc_updt)
+        self.post_add_bloc(block, ir_blocks_all)
+        return ir_blocks_all
 
     def expr_fix_regs_for_mode(self, e, *args, **kwargs):
         return e

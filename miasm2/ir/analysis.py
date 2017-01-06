@@ -28,11 +28,16 @@ class ira(ir):
         """Returns ids of all registers used in the IR"""
         return self.arch.regs.all_regs_ids + [self.IRDst]
 
-    def call_effects(self, ad):
-        """
-        Default simulation of a function call to @ad
+    def call_effects(self, ad, instr):
+        """Default modelisation of a function call to @ad. This may be used to:
+
+        * insert dependencies to arguments (stack base, registers, ...)
+        * add some side effects (stack clean, return value, ...)
+
         @ad: (Expr) address of the called function
+        @instr: native instruction which is responsible of the call
         """
+
         return [AssignBlock(
             [ExprAff(self.ret_reg, ExprOp('call_func_ret', ad, self.sp)),
              ExprAff(self.sp, ExprOp(
