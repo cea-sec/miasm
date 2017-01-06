@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python2
 import sys
 
 from miasm2.jitter.csts import EXCEPT_INT_XX
