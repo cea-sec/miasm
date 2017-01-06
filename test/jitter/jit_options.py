@@ -79,3 +79,25 @@ myjit.continue_run()
 assert myjit.run is True
 # Use a '<=' because it's a 'max_...'
 assert myjit.cpu.EAX <= 3
+
+# Test 'jit_maxline'
+print "[+] Run instr one by one"
+myjit = init_jitter()
+myjit.jit.options["jit_maxline"] = 1
+myjit.jit.options["max_exec_per_call"] = 1
+
+counter = 0
+def cb(jitter):
+    global counter
+    counter += 1
+    return True
+
+myjit.init_run(run_addr)
+myjit.exec_cb = cb
+myjit.continue_run()
+
+assert myjit.run is False
+assert myjit.cpu.EAX  == 0x10
+## dry(1) + main(1) + (loop_main(2) + loop_inc(2))*(0x10 - 1) + loop_main(2) +
+## loop_end(1) = 65
+assert counter == 65
