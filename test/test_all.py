@@ -323,6 +323,7 @@ for i, test_args in enumerate(test_args):
 ## Jitter
 for script in ["jitload.py",
                "vm_mngr.py",
+               "jit_options.py",
                ]:
     testset += RegressionTest([script], base_dir="jitter", tags=[TAGS["tcc"]])
 
