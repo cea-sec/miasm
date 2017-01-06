@@ -1,14 +1,8 @@
 import os
-from argparse import ArgumentParser
+import sys
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm2.analysis.machine import Machine
 from pdb import pm
-
-parser = ArgumentParser(description="x86 32 basic Jitter")
-parser.add_argument("-j", "--jitter",
-                    help="Jitter engine. Possible values are : tcc (default), llvm",
-                    default="tcc")
-args = parser.parse_args()
 
 # Shellcode
 
@@ -33,7 +27,7 @@ def code_sentinelle(jitter):
 def init_jitter():
     global data, run_addr
     # Create jitter
-    myjit = Machine("x86_32").jitter(args.jitter)
+    myjit = Machine("x86_32").jitter(sys.argv[1])
 
     myjit.vm.add_memory_page(run_addr, PAGE_READ | PAGE_WRITE, data)
 

@@ -1,3 +1,4 @@
+import sys
 from pdb import pm
 
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
@@ -9,7 +10,7 @@ from miasm2.expression.expression import ExprId, ExprInt32, ExprInt64, ExprAff, 
 data = "8d49048d5b0180f90174058d5bffeb038d5b0189d8c3".decode("hex")
 
 # Init jitter
-myjit = Machine("x86_32").jitter()
+myjit = Machine("x86_32").jitter(sys.argv[1])
 myjit.init_stack()
 
 run_addr = 0x40000000

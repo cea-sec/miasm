@@ -1,7 +1,8 @@
+import sys
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm2.analysis.machine import Machine
 
-myjit = Machine("x86_32").jitter()
+myjit = Machine("x86_32").jitter(sys.argv[1])
 
 base_addr = 0x13371337
 page_size = 0x1000
