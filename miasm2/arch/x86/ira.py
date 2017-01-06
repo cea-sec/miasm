@@ -32,37 +32,14 @@ class ir_a_x86_16(ir_x86_16, ira):
         for b in leaves:
             self.set_dead_regs(b)
 
-    def post_add_bloc(self, bloc, ir_blocs):
-        ir.post_add_bloc(self, bloc, ir_blocs)
-        if not bloc.lines:
-            return
-        l = bloc.lines[-1]
-        sub_call_dst = None
-        if not l.is_subcall():
-            return
-        sub_call_dst = l.args[0]
-        if expr_is_label(sub_call_dst):
-            sub_call_dst = sub_call_dst.name
-        for irb in ir_blocs:
-            l = irb.lines[-1]
-            sub_call_dst = None
-            if not l.is_subcall():
-                continue
-            sub_call_dst = l.args[0]
-            if expr_is_label(sub_call_dst):
-                sub_call_dst = sub_call_dst.name
-            lbl = bloc.get_next()
-            new_lbl = self.gen_label()
-            irs = self.call_effects(l.args[0], l)
-            irs.append(AssignBlock([ExprAff(self.IRDst,
-                                            ExprId(lbl, size=self.pc.size))]))
-
-            nbloc = irbloc(new_lbl, irs)
-            nbloc.lines = [l] * len(irs)
-            self.blocs[new_lbl] = nbloc
-            irb.dst = ExprId(new_lbl, size=self.pc.size)
-        return
-
+    def pre_add_instr(self, block, instr, irb_cur, ir_blocks_all, gen_pc_update):
+        if not instr.is_subcall():
+            return irb_cur
+        call_effects = self.call_effects(instr.args[0], instr)
+        for assignblk in call_effects:
+            irb_cur.irs.append(assignblk)
+            irb_cur.lines.append(instr)
+        return None
 
 class ir_a_x86_32(ir_x86_32, ir_a_x86_16):
 
