@@ -1040,15 +1040,18 @@ class LLVMFunction():
         evaluated = self.add_ir(to_eval)
         return case2dst, evaluated
 
-    def gen_jump2dst(self, attrib, dst):
+    def gen_jump2dst(self, attrib, instr_offsets, dst):
         """Generate the code for a jump to @dst with final check for error
 
         Several cases have to be considered:
          - jump to an offset out of the current ASM BBL (JMP 0x11223344)
          - jump to an offset inside the current ASM BBL (Go to next instruction)
+         - jump to an offset back in the current ASM BBL (For max_exec jit
+           option on self loops)
          - jump to a generated IR label, which must be jitted in this same
-        function (REP MOVSB)
-        - jump to a computed offset (CALL @32[0x11223344])
+           function (REP MOVSB)
+         - jump to a computed offset (CALL @32[0x11223344])
+
         """
         PC = self.llvm_context.PC
         # We are no longer in the main stream, deactivate cache
@@ -1060,18 +1063,27 @@ class LLVMFunction():
 
         if m2_asmbloc.expr_is_label(dst):
             bbl = self.get_basic_bloc_by_label(dst)
+            offset = dst.name.offset
             if bbl is not None:
                 # "local" jump, inside this function
-                if dst.name.offset is not None:
+                if offset is None:
                     # Avoid checks on generated label
+                    self.builder.branch(bbl)
+                    return
+
+                if (offset in instr_offsets and
+                    offset > attrib.instr.offset):
+                    # forward local jump (ie. next instruction)
                     self.gen_post_code(attrib)
-                    self.gen_post_instr_checks(attrib, dst.name.offset)
-                self.builder.branch(bbl)
-                return
-            else:
-                # "extern" jump on a defined offset, return to the caller
-                offset = dst.name.offset
-                dst = self.add_ir(m2_expr.ExprInt(offset, PC.size))
+                    self.gen_post_instr_checks(attrib, offset)
+                    self.builder.branch(bbl)
+                    return
+
+                # reaching this point means a backward local jump, promote it to
+                # extern
+
+            # "extern" jump on a defined offset, return to the caller
+            dst = self.add_ir(m2_expr.ExprInt(offset, PC.size))
 
         # "extern" jump with a computed value, return to the caller
         assert isinstance(dst, (llvm_ir.Instruction, llvm_ir.Value))
@@ -1087,12 +1099,13 @@ class LLVMFunction():
         self.set_ret(dst)
 
 
-    def gen_irblock(self, attrib, instr, irblock):
+    def gen_irblock(self, attrib, instr, instr_offsets, irblock):
         """
         Generate the code for an @irblock
         @instr: the current instruction to translate
         @irblock: an irbloc instance
         @attrib: an Attributs instance
+        @instr_offsets: offset of all asmblock's instructions
         """
 
         case2dst = None
@@ -1148,7 +1161,7 @@ class LLVMFunction():
         assert case2dst is not None
         if len(case2dst) == 1:
             # Avoid switch in this common case
-            self.gen_jump2dst(attrib, case2dst.values()[0])
+            self.gen_jump2dst(attrib, instr_offsets, case2dst.values()[0])
         else:
             current_bbl = self.builder.basic_block
 
@@ -1160,7 +1173,7 @@ class LLVMFunction():
                 bbl = self.append_basic_block(name)
                 case2bbl[case] = bbl
                 self.builder.position_at_start(bbl)
-                self.gen_jump2dst(attrib, dst)
+                self.gen_jump2dst(attrib, instr_offsets, dst)
 
             # Jump on the correct output
             self.builder.position_at_end(current_bbl)
@@ -1269,6 +1282,7 @@ class LLVMFunction():
         # TODO: merge duplicate code with CGen
         codegen = self.llvm_context.cgen_class(self.llvm_context.ir_arch)
         irblocks_list = codegen.block2assignblks(asmblock)
+        instr_offsets = [line.offset for line in asmblock.lines]
 
         # Prepare for delayslot
         if self.llvm_context.has_delayslot:
@@ -1278,10 +1292,12 @@ class LLVMFunction():
                                                   default_value=eltype(0))
                 self.local_vars_pointers[element.name] = ptr
             lbl = codegen.get_block_post_label(asmblock)
+            instr_offsets.append(lbl.offset)
             self.append_basic_block(lbl)
 
         # Add content
         builder.position_at_end(entry_bbl)
+
 
         for instr, irblocks in zip(asmblock.lines, irblocks_list):
             attrib = codegen.get_attributes(instr, irblocks, self.log_mn,
@@ -1302,7 +1318,7 @@ class LLVMFunction():
 
                 if index == 0:
                     self.gen_pre_code(attrib)
-                self.gen_irblock(attrib, instr, irblock)
+                self.gen_irblock(attrib, instr, instr_offsets, irblock)
 
         # Gen finalize (see codegen::CGen) is unrecheable, except with delayslot
         self.gen_finalize(asmblock, codegen)
