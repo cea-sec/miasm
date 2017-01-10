@@ -5,18 +5,18 @@ from miasm2.analysis.machine import Machine
 from pdb import pm
 
 # Shellcode
-
 # main:
-#       MOV EAX, 0x1
+#       MOV    EAX, 0x10
+#       MOV    EBX, 0x1
 # loop_main:
-#       CMP EAX, 0x10
-#       JZ loop_end
-# loop_inc:
-#       INC EAX
-#       JMP loop_main
+#       SUB    EAX, 0x1
+#       CMOVZ  ECX, EBX
+#       JNZ    loop_main
 # loop_end:
 #       RET
-data = "b80100000083f810740340ebf8c3".decode("hex")
+
+
+data = "b810000000bb0100000083e8010f44cb75f8c3".decode("hex")
 run_addr = 0x40000000
 
 def code_sentinelle(jitter):
@@ -47,10 +47,10 @@ myjit.init_run(run_addr)
 myjit.continue_run()
 
 assert myjit.run is False
-assert myjit.cpu.EAX  == 0x10
+assert myjit.cpu.EAX  == 0x0
 
 ## Let's specify a max_exec_per_call
-## 5: main, loop_main, loop_inc, loop_main, loop_inc
+## 5: main/loop_main, loop_main
 myjit.jit.options["max_exec_per_call"] = 5
 
 first_call = True
@@ -71,8 +71,8 @@ myjit.exec_cb = cb
 myjit.continue_run()
 
 assert myjit.run is True
-# Use a '<=' because it's a 'max_...'
-assert myjit.cpu.EAX <= 3
+# Use a '>=' because it's a 'max_...'
+assert myjit.cpu.EAX >= 0xA
 
 # Test 'jit_maxline'
 print "[+] Run instr one by one"
@@ -91,7 +91,6 @@ myjit.exec_cb = cb
 myjit.continue_run()
 
 assert myjit.run is False
-assert myjit.cpu.EAX  == 0x10
-## dry(1) + main(1) + (loop_main(2) + loop_inc(2))*(0x10 - 1) + loop_main(2) +
-## loop_end(1) = 65
-assert counter == 65
+assert myjit.cpu.EAX  == 0x00
+## main(2) + (loop_main(3))*(0x10) + loop_end(1) + 0x1337beef (1)
+assert counter == 52
