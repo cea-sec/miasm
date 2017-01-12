@@ -324,10 +324,20 @@ class CGen(object):
         return out
 
     def gen_goto_code(self, attrib, instr_offsets, dst):
+        if isinstance(dst, asm_label) and dst.offset is None:
+            # Generate goto for local labels
+            return ['goto %s;' % dst.name]
+        offset = None
+        if isinstance(dst, asm_label) and dst.offset is not None:
+            offset = dst.offset
+        elif isinstance(dst, (int, long)):
+            offset = dst
         out = []
-        if isinstance(dst, asm_label):
-            out.append('goto %s;' % dst.name)
-        elif dst in instr_offsets:
+        if (offset is not None and
+            offset > attrib.instr.offset and
+            offset in instr_offsets):
+            # Only generate goto for next instructions.
+            # (consecutive instructions)
             lbl = self.ir_arch.symbol_pool.getby_offset_create(dst)
             out += self.gen_post_code(attrib)
             out += self.gen_post_instr_checks(attrib, dst)
