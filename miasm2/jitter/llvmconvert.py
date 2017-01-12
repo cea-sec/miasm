@@ -197,10 +197,11 @@ class LLVMContext_JIT(LLVMContext):
     def add_op(self):
         "Add operations functions"
 
-        p8 = llvm_ir.PointerType(LLVMType.IntType(8))
+        i8 = LLVMType.IntType(8)
+        p8 = llvm_ir.PointerType(i8)
         itype = LLVMType.IntType(64)
-        self.add_fc({"parity": {"ret": LLVMType.IntType(1),
-                                "args": [itype]}})
+        self.add_fc({"llvm.ctpop.i8": {"ret": i8,
+                                       "args": [i8]}})
         self.add_fc({"rot_left": {"ret": itype,
                                   "args": [itype,
                                            itype,
@@ -381,8 +382,7 @@ class LLVMFunction():
 
     # Operation translation
     ## Basics
-    op_translate = {'parity': 'parity',
-                    'cpuid': 'cpuid',
+    op_translate = {'cpuid': 'cpuid',
     }
     ## Add the size as first argument
     op_translate_with_size = {'<<<': 'rot_left',
@@ -708,6 +708,16 @@ class LLVMFunction():
                 assert len(expr.args) == 1
                 zero = LLVMType.IntType(expr.size)(0)
                 ret = builder.sub(zero, self.add_ir(expr.args[0]))
+                self.update_cache(expr, ret)
+                return ret
+
+            if op == "parity":
+                assert len(expr.args) == 1
+                arg = self.add_ir(expr.args[0])
+                truncated = builder.trunc(arg, LLVMType.IntType(8))
+                bitcount = builder.call(self.mod.get_global("llvm.ctpop.i8"),
+                                        [truncated])
+                ret = builder.not_(builder.trunc(bitcount, LLVMType.IntType(1)))
                 self.update_cache(expr, ret)
                 return ret
 
