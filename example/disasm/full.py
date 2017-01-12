@@ -50,6 +50,8 @@ parser.add_argument('-a', "--try-disasm-all", action="store_true",
                     help="Try to disassemble the whole binary")
 parser.add_argument('-i', "--image", action="store_true",
                     help="Display image representation of disasm")
+parser.add_argument('-c', "--rawbinary", default=False, action="store_true",
+                    help="Don't interpret input as ELF/PE/...")
 
 args = parser.parse_args()
 
@@ -57,8 +59,13 @@ if args.verbose:
     log_asmbloc.setLevel(logging.DEBUG)
 
 log.info('Load binary')
-with open(args.filename) as fdesc:
-    cont = Container.from_stream(fdesc, addr=args.shiftoffset)
+if args.rawbinary:
+    shift = args.shiftoffset if args.shiftoffset is not None else 0
+    cont = Container.fallback_container(open(args.filename).read(),
+                                        None, addr=shift)
+else:
+    with open(args.filename) as fdesc:
+        cont = Container.from_stream(fdesc, addr=args.shiftoffset)
 
 default_addr = cont.entry_point
 bs = cont.bin_stream
