@@ -8,7 +8,7 @@ d = uint1(0)
 e = uint1(1)
 
 f = uint8(0x1)
-
+g = int8(-3)
 
 print a, b, c
 print a + b, a + c, b + c
@@ -53,6 +53,10 @@ assert(f ^ f == 0)
 assert(f ^ 0 == f)
 assert(0 ^ f == f)
 assert(1 ^ f == 0)
+assert(c / g == -1)
+assert(c / -3 == -1)
+assert(c % g == 1)
+assert(c % -3 == 1)
 
 print e + c, c + e, c - e, e - c
 print 1000 * a
