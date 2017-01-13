@@ -502,23 +502,6 @@ PyObject* vm_dump_code_bloc_pool(VmMngr* self)
 }
 
 
-PyObject* vm_set_addr2obj(VmMngr* self, PyObject* args)
-{
-	PyObject* addr2obj;
-
-	if (!PyArg_ParseTuple(args, "O", &addr2obj))
-		return NULL;
-
-	if (self->vm_mngr.addr2obj != NULL){
-		Py_DECREF(self->vm_mngr.addr2obj);
-	}
-
-	Py_INCREF(addr2obj);
-	self->vm_mngr.addr2obj = addr2obj;
-	Py_INCREF(Py_None);
-	return Py_None;
-}
-
 
 PyObject* vm_is_mapped(VmMngr* self, PyObject* args)
 {
@@ -618,8 +601,6 @@ static PyMethodDef VmMngr_methods[] = {
 	{"set_mem_access", (PyCFunction)vm_set_mem_access, METH_VARARGS,
 	 "X"},
 	{"set_mem", (PyCFunction)vm_set_mem, METH_VARARGS,
-	 "X"},
-	{"set_addr2obj", (PyCFunction)vm_set_addr2obj, METH_VARARGS,
 	 "X"},
 	{"is_mapped", (PyCFunction)vm_is_mapped, METH_VARARGS,
 	 "X"},

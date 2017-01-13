@@ -541,23 +541,6 @@ PyObject* get_memory_write(vm_mngr_t* vm_mngr)
 	return get_memory_pylist(vm_mngr, &vm_mngr->memory_w);
 }
 
-PyObject* addr2BlocObj(vm_mngr_t* vm_mngr, uint64_t addr)
-{
-	PyObject* pyaddr;
-	PyObject* b;
-
-	pyaddr = PyLong_FromUnsignedLongLong(addr);
-	b = PyDict_GetItem(vm_mngr->addr2obj, pyaddr);
-	if (b == NULL) {
-		Py_INCREF(Py_None);
-		return Py_None;
-	}
-
-	Py_INCREF(b);
-	return b;
-}
-
-
 void vm_MEM_WRITE_08(vm_mngr_t* vm_mngr, uint64_t addr, unsigned char src)
 {
 	add_mem_write(vm_mngr, addr, 1);
