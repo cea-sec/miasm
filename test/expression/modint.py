@@ -61,3 +61,12 @@ assert(c % -3 == 1)
 print e + c, c + e, c - e, e - c
 print 1000 * a
 print hex(a)
+
+define_int(128)
+define_uint(128)
+h = uint128(0x11223344556677889900AABBCCDDEEFF)
+i = int128(-0x9900AABBCCDDEEFF1122334455667788)
+
+assert(i / h == 6)
+assert(i % h == 0x3221aa32bb43cd58d9cc54dd65ee7e)
+
