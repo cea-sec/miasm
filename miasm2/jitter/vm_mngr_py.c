@@ -502,23 +502,6 @@ PyObject* vm_dump_code_bloc_pool(VmMngr* self)
 }
 
 
-PyObject* vm_set_addr2obj(VmMngr* self, PyObject* args)
-{
-	PyObject* addr2obj;
-
-	if (!PyArg_ParseTuple(args, "O", &addr2obj))
-		return NULL;
-
-	if (self->vm_mngr.addr2obj != NULL){
-		Py_DECREF(self->vm_mngr.addr2obj);
-	}
-
-	Py_INCREF(addr2obj);
-	self->vm_mngr.addr2obj = addr2obj;
-	Py_INCREF(Py_None);
-	return Py_None;
-}
-
 
 PyObject* vm_is_mapped(VmMngr* self, PyObject* args)
 {
@@ -610,67 +593,71 @@ static PyMemberDef VmMngr_members[] = {
 
 static PyMethodDef VmMngr_methods[] = {
 	{"init_memory_page_pool", (PyCFunction)vm_init_memory_page_pool, METH_VARARGS,
-	 "X"},
+	 "init_memory_page_pool() -> Initialize the VmMngr memory"},
 	{"init_memory_breakpoint", (PyCFunction)vm_init_memory_breakpoint, METH_VARARGS,
-	 "X"},
+	 "init_memory_breakpoint() -> Initialize the VmMngr memory breakpoints"},
 	{"init_code_bloc_pool",(PyCFunction)vm_init_code_bloc_pool, METH_VARARGS,
-	 "X"},
+	 "init_code_bloc_pool() -> Initialize the VmMngr jitted code blocks"},
 	{"set_mem_access", (PyCFunction)vm_set_mem_access, METH_VARARGS,
-	 "X"},
+	 "set_mem_access(address, access) -> Change the protection of the page at @address with @access"},
 	{"set_mem", (PyCFunction)vm_set_mem, METH_VARARGS,
-	 "X"},
-	{"set_addr2obj", (PyCFunction)vm_set_addr2obj, METH_VARARGS,
-	 "X"},
+	 "set_mem(address, data) -> Set a @data in memory at @address"},
 	{"is_mapped", (PyCFunction)vm_is_mapped, METH_VARARGS,
-	 "X"},
+	 "is_mapped(address, size) -> Check if the memory region at @address of @size bytes is fully mapped"},
 	{"add_code_bloc",(PyCFunction)vm_add_code_bloc, METH_VARARGS,
-	 "X"},
+	 "add_code_bloc(address_start, address_stop) -> Add a jitted code block between [@address_start, @address_stop["},
 	{"get_mem_access", (PyCFunction)vm_get_mem_access, METH_VARARGS,
-	 "X"},
+	 "get_mem_access(address) -> Retrieve the memory protection of the page at @address"},
 	{"get_mem", (PyCFunction)vm_get_mem, METH_VARARGS,
-	 "X"},
+	 "get_mem(addr, size) -> Get the memory content at @address of @size bytes"},
 	{"add_memory_page",(PyCFunction)vm_add_memory_page, METH_VARARGS,
-	 "X"},
+	 "add_memory_page(address, access, size [, cmt]) -> Maps a memory page at @address of @size bytes with protection @access\n"
+	"@cmt is a comment linked to the memory page"},
 	{"add_memory_breakpoint",(PyCFunction)vm_add_memory_breakpoint, METH_VARARGS,
-	 "X"},
+	 "add_memory_breakpoint(address, size, access) -> Add a memory breakpoint at @address of @size bytes with @access type"},
 	{"remove_memory_breakpoint",(PyCFunction)vm_remove_memory_breakpoint, METH_VARARGS,
-	 "X"},
+	 "remove_memory_breakpoint(address, access) -> Remove a memory breakpoint at @address with @access type"},
 	{"set_exception", (PyCFunction)vm_set_exception, METH_VARARGS,
-	 "X"},
+	 "set_exception(exception) -> Set the VmMngr exception flags to @exception"},
 	{"dump_memory_breakpoint", (PyCFunction)vm_dump_memory_breakpoint, METH_VARARGS,
-	 "X"},
+	 "dump_memory_breakpoint() -> Lists each memory breakpoint"},
 	{"get_all_memory",(PyCFunction)vm_get_all_memory, METH_VARARGS,
-	 "X"},
+	 "get_all_memory() -> Returns a dictionary representing the VmMngr memory.\n"
+	 "Keys are the addresses of each memory page.\n"
+	 "Values are another dictionary containing page properties ('data', 'size', 'access')"
+	},
 	{"reset_memory_page_pool", (PyCFunction)vm_reset_memory_page_pool, METH_VARARGS,
-	 "X"},
+	 "reset_memory_page_pool() -> Remove all memory pages"},
 	{"reset_memory_breakpoint", (PyCFunction)vm_reset_memory_breakpoint, METH_VARARGS,
-	 "X"},
+	 "reset_memory_breakpoint() -> Remove all memory breakpoints"},
 	{"reset_code_bloc_pool", (PyCFunction)vm_reset_code_bloc_pool, METH_VARARGS,
-	 "X"},
+	 "reset_code_bloc_pool() -> Remove all jitted blocks"},
 	{"set_alarm", (PyCFunction)set_alarm, METH_VARARGS,
-	 "X"},
+	 "set_alarm() -> Force a timer based alarm during a code emulation"},
 	{"get_exception",(PyCFunction)vm_get_exception, METH_VARARGS,
-	 "X"},
-	{"get_exception",(PyCFunction)vm_get_exception, METH_VARARGS,
-	 "X"},
+	 "get_exception() -> Returns the VmMngr exception flags"},
 	{"set_big_endian",(PyCFunction)vm_set_big_endian, METH_VARARGS,
-	 "X"},
+	 "set_big_endian() -> Set the VmMngr to Big Endian"},
 	{"set_little_endian",(PyCFunction)vm_set_little_endian, METH_VARARGS,
-	 "X"},
+	 "set_little_endian() -> Set the VmMngr to Little Endian"},
 	{"get_memory_read",(PyCFunction)vm_get_memory_read, METH_VARARGS,
-	 "X"},
+	 "get_memory_read() -> Retrieve last instruction READ access\n"
+	 "This function is only valid in a memory breakpoint callback."
+	},
 	{"get_memory_write",(PyCFunction)vm_get_memory_write, METH_VARARGS,
-	 "X"},
+	 "get_memory_write() -> Retrieve last instruction WRITE access\n"
+	 "This function is only valid in a memory breakpoint callback."
+	},
 	{"reset_memory_access",(PyCFunction)vm_reset_memory_access, METH_VARARGS,
-	 "X"},
+	 "reset_memory_access() -> Reset last memory READ/WRITE"},
 	{"add_mem_read",(PyCFunction)py_add_mem_read, METH_VARARGS,
-	 "X"},
+	 "add_mem_read(address, size) -> Add a READ access at @address of @size bytes"},
 	{"add_mem_write",(PyCFunction)py_add_mem_write, METH_VARARGS,
-	 "X"},
+	 "add_mem_write(address, size) -> Add a WRITE access at @address of @size bytes"},
 	{"check_invalid_code_blocs",(PyCFunction)vm_check_invalid_code_blocs, METH_VARARGS,
-	 "X"},
+	 "check_invalid_code_blocs() -> Set the AUTOMOD flag in exception in case of automodified code"},
 	{"check_memory_breakpoint",(PyCFunction)vm_check_memory_breakpoint, METH_VARARGS,
-	 "X"},
+	 "check_memory_breakpoint() -> Set the BREAKPOINT_INTERN flag in exception in case of memory breakpoint occurred"},
 
 	{NULL}  /* Sentinel */
 };
@@ -685,7 +672,7 @@ VmMngr_init(VmMngr *self, PyObject *args, PyObject *kwds)
 static PyGetSetDef VmMngr_getseters[] = {
     {"vmmngr",
      (getter)VmMngr_get_vmmngr, (setter)VmMngr_set_vmmngr,
-     "first name",
+     "vmmngr object",
      NULL},
     {NULL}  /* Sentinel */
 };
@@ -712,7 +699,7 @@ static PyTypeObject VmMngrType = {
     0,                         /*tp_setattro*/
     0,                         /*tp_as_buffer*/
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /*tp_flags*/
-    "VmMngr objects",          /* tp_doc */
+    "VmMngr object",           /* tp_doc */
     0,			       /* tp_traverse */
     0,			       /* tp_clear */
     0,			       /* tp_richcompare */

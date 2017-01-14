@@ -226,8 +226,6 @@ class jitter:
         self.vm.init_code_bloc_pool()
         self.vm.init_memory_breakpoint()
 
-        self.vm.set_addr2obj(self.jit.addr2obj)
-
         self.jit.load()
         self.cpu.vmmngr = self.vm
         self.cpu.jitter = self.jit
