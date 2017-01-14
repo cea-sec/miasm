@@ -448,7 +448,8 @@ class ExprInt(Expr):
         return hash((EXPRINT, self.__arg, self.__size))
 
     def _exprrepr(self):
-        return "%s(0x%X)" % (self.__class__.__name__, self.__get_int())
+        return "%s(0x%X, %d)" % (self.__class__.__name__, self.__get_int(),
+                                 self.__size)
 
     def __contains__(self, e):
         return self == e

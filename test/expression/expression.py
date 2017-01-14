@@ -51,3 +51,17 @@ for expr in [
         print "For value %s" % consval.value
         for constraint in consval.constraints:
             print "\t%s" % constraint.to_constraint()
+
+# Repr
+for expr in [
+        cst1,
+        A,
+        ExprMem(cst1, 32),
+        ExprCond(cond1, cst1, cst2),
+        A + cst1,
+        ExprCompose(A, cst1),
+        A.msb(),
+        ExprAff(A, cst1),
+]:
+    print repr(expr)
+    assert expr == eval(repr(expr))
