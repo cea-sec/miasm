@@ -57,7 +57,7 @@ class ArchUnitTest(RegressionTest):
 
 # script -> blacklisted jitter
 blacklist = {
-    "x86/unit/mn_float.py": ["python"],
+    "x86/unit/mn_float.py": ["python", "llvm"],
 }
 for script in ["x86/sem.py",
                "x86/unit/mn_strings.py",
@@ -628,6 +628,9 @@ if __name__ == "__main__":
     parser.add_argument("-t", "--omit-tags", help="Omit tests based on tags \
 (tag1,tag2). Available tags are %s. \
 By default, no tag is omitted." % ", ".join(TAGS.keys()), default="")
+    parser.add_argument("-o", "--only-tags", help="Restrict to tests based on tags \
+(tag1,tag2). Available tags are %s. \
+By default, all tag are considered." % ", ".join(TAGS.keys()), default="")
     parser.add_argument("-n", "--do-not-clean",
                         help="Do not clean tests products", action="store_true")
     args = parser.parse_args()
@@ -637,16 +640,23 @@ By default, no tag is omitted." % ", ".join(TAGS.keys()), default="")
     if args.mono is True or args.coverage is True:
         multiproc = False
 
-    ## Parse omit-tags argument
+    ## Parse omit-tags and only-tags argument
     exclude_tags = []
-    for tag in args.omit_tags.split(","):
-        if not tag:
-            continue
-        if tag not in TAGS:
-            print "%(red)s[TAG]%(end)s" % cosmetics.colors, \
-                "Unkown tag '%s'" % tag
-            exit(-1)
-        exclude_tags.append(TAGS[tag])
+    include_tags = []
+    for dest, src in ((exclude_tags, args.omit_tags),
+                      (include_tags, args.only_tags)):
+        for tag in src.split(","):
+            if not tag:
+                continue
+            if tag not in TAGS:
+                print "%(red)s[TAG]%(end)s" % cosmetics.colors, \
+                    "Unkown tag '%s'" % tag
+                exit(-1)
+            dest.append(TAGS[tag])
+
+    if exclude_tags and include_tags:
+        print "%(red)s[TAG]%(end)s" % cosmetics.colors, \
+                "Omit and Only used together: whitelist mode"
 
     # Handle coverage
     coveragerc = None
@@ -736,7 +746,7 @@ By default, no tag is omitted." % ", ".join(TAGS.keys()), default="")
 
 
     # Filter testset according to tags
-    testset.filter_tags(exclude_tags=exclude_tags)
+    testset.filter_tags(exclude_tags=exclude_tags, include_tags=include_tags)
 
     # Run tests
     testset.run()

@@ -267,26 +267,36 @@ class TestSet(object):
         """Filter tests by tags
         @include_tags: list of tags' name (whitelist)
         @exclude_tags: list of tags' name (blacklist)
-        @include_tags and @exclude_tags cannot be used together"""
+        If @include_tags and @exclude_tags are used together, @exclude_tags will
+        act as a blacklist on @include_tags generated tests
+        """
 
-        if include_tags and exclude_tags:
-            raise ValueError("Include and Exclude cannot be used together")
+        new_testset = []
 
-        new_testset_include = []
-        new_testset_exclude = list(self.tests)
+        include_tags = set(include_tags)
+        exclude_tags = set(exclude_tags)
+        if include_tags.intersection(exclude_tags):
+            raise ValueError("Tags are mutually included and excluded: %s" % include_tags.intersection(exclude_tags))
 
-        # Update include and exclude lists
-        for index, test in enumerate(self.tests):
-            for tag in test.tags:
-                if exclude_tags and tag in exclude_tags:
-                    new_testset_exclude.remove(test)
-                    break
-                if include_tags and tag in include_tags:
-                    new_testset_include.append(test)
-                    break
+        for test in self.tests:
+            tags = set(test.tags)
+            if exclude_tags.intersection(tags):
+                # Ignore the current test because it is excluded
+                continue
+            if not include_tags:
+                new_testset.append(test)
+            else:
+                if include_tags.intersection(tags):
+                    new_testset.append(test)
 
-        # Update testset list
-        if include_tags:
-            self.tests = new_testset_include
-        elif exclude_tags:
-            self.tests = new_testset_exclude
+                    # Add tests dependencies
+                    dependency = list(test.depends)
+                    while dependency:
+                        subtest = dependency.pop()
+                        if subtest not in new_testset:
+                            new_testset.append(subtest)
+                        for subdepends in subtest.depends:
+                            if subdepends not in new_testset:
+                                dependency.append(subdepends)
+
+        self.tests = new_testset
