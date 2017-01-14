@@ -41,11 +41,15 @@ class moduint(object):
             return self.__class__(self.arg & y)
 
     def __div__(self, y):
+        # Python: 8 / -7 == -2 (C-like: -1)
+        # int(float) trick cannot be used, due to information loss
+        den = int(y)
+        num = int(self)
+        result_sign = 1 if (den * num) >= 0 else -1
+        cls = self.__class__
         if isinstance(y, moduint):
             cls = self.maxcast(y)
-            return cls(int(float(self.arg) / y.arg))
-        else:
-            return self.__class__(int(float(self.arg) / y))
+        return ((abs(num) / abs(den)) * result_sign)
 
     def __int__(self):
         return int(self.arg)
@@ -64,11 +68,11 @@ class moduint(object):
             return self.__class__(self.arg << y)
 
     def __mod__(self, y):
+        # See __div__ for implementation choice
+        cls = self.__class__
         if isinstance(y, moduint):
             cls = self.maxcast(y)
-            return cls(self.arg - (y.arg * int(float(self.arg)/y.arg)))
-        else:
-            return self.__class__(self.arg - (y * int(float(self.arg)/y)))
+        return cls(self.arg - (y * (self / y)))
 
     def __mul__(self, y):
         if isinstance(y, moduint):

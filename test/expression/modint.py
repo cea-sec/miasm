@@ -8,7 +8,7 @@ d = uint1(0)
 e = uint1(1)
 
 f = uint8(0x1)
-
+g = int8(-3)
 
 print a, b, c
 print a + b, a + c, b + c
@@ -53,7 +53,20 @@ assert(f ^ f == 0)
 assert(f ^ 0 == f)
 assert(0 ^ f == f)
 assert(1 ^ f == 0)
+assert(c / g == -1)
+assert(c / -3 == -1)
+assert(c % g == 1)
+assert(c % -3 == 1)
 
 print e + c, c + e, c - e, e - c
 print 1000 * a
 print hex(a)
+
+define_int(128)
+define_uint(128)
+h = uint128(0x11223344556677889900AABBCCDDEEFF)
+i = int128(-0x9900AABBCCDDEEFF1122334455667788)
+
+assert(i / h == 6)
+assert(i % h == 0x3221aa32bb43cd58d9cc54dd65ee7e)
+
