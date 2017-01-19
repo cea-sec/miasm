@@ -17,6 +17,10 @@ class ir_a_mips32l(ir_mips32l, ira):
     def set_dead_regs(self, b):
         pass
 
+    def pre_add_instr(self, block, instr, irb_cur, ir_blocks_all, gen_pc_updt):
+        # Avoid adding side effects, already done in post_add_bloc
+        return irb_cur
+
     def post_add_bloc(self, bloc, ir_blocs):
         ir.post_add_bloc(self, bloc, ir_blocs)
         for irb in ir_blocs:

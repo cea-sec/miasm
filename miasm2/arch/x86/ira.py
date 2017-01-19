@@ -31,15 +31,6 @@ class ir_a_x86_16(ir_x86_16, ira):
         for b in leaves:
             self.set_dead_regs(b)
 
-    def pre_add_instr(self, block, instr, irb_cur, ir_blocks_all, gen_pc_update):
-        if not instr.is_subcall():
-            return irb_cur
-        call_effects = self.call_effects(instr.args[0], instr)
-        for assignblk in call_effects:
-            irb_cur.irs.append(assignblk)
-            irb_cur.lines.append(instr)
-        return None
-
 class ir_a_x86_32(ir_x86_32, ir_a_x86_16):
 
     def __init__(self, symbol_pool=None):

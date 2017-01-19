@@ -44,6 +44,17 @@ class ira(ir):
                  'call_func_stack', ad, self.sp)),
              ])]
 
+    def pre_add_instr(self, block, instr, irb_cur, ir_blocks_all, gen_pc_update):
+        """Replace function call with corresponding call effects,
+        inside the IR block"""
+        if not instr.is_subcall():
+            return irb_cur
+        call_effects = self.call_effects(instr.args[0], instr)
+        for assignblk in call_effects:
+            irb_cur.irs.append(assignblk)
+            irb_cur.lines.append(instr)
+        return None
+
     def remove_dead_instr(self, irb, useful):
         """Remove dead affectations using previous reaches analysis
         @irb: irbloc instance

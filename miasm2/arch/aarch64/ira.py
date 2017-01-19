@@ -34,34 +34,6 @@ class ir_a_aarch64l(ir_a_aarch64l_base):
         b.rw[-1][1].add(self.arch.regs.of)
         b.rw[-1][1].add(self.arch.regs.cf)
 
-    def post_add_bloc(self, bloc, ir_blocs):
-        ir.post_add_bloc(self, bloc, ir_blocs)
-        for irb in ir_blocs:
-            pc_val = None
-            lr_val = None
-            for assignblk in irb.irs:
-                pc_val = assignblk.get(PC, pc_val)
-                lr_val = assignblk.get(LR, lr_val)
-            if pc_val is None or lr_val is None:
-                continue
-            if not isinstance(lr_val, ExprInt):
-                continue
-
-            l = bloc.lines[-1]
-            if lr_val.arg != l.offset + l.l:
-                continue
-
-            # CALL
-            lbl = bloc.get_next()
-            new_lbl = self.gen_label()
-            irs = self.call_effects(pc_val, l)
-            irs.append(AssignBlock([ExprAff(self.IRDst,
-                                            ExprId(lbl, size=self.pc.size))]))
-            nbloc = irbloc(new_lbl, irs)
-            nbloc.lines = [l] * len(irs)
-            self.blocs[new_lbl] = nbloc
-            irb.dst = ExprId(new_lbl, size=self.pc.size)
-
     def get_out_regs(self, b):
         return set([self.ret_reg, self.sp])
 
