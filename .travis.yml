@@ -29,7 +29,7 @@ before_script:
 - "cp tinycc/libtcc.so.1.0 tinycc/libtcc.so"
 # install llvmlite, using the system libdtc++ instead of statically linking it
 - "pip install enum34"
-- "git clone https://github.com/numba/llvmlite llvmlite && cd llvmlite"
+- "git clone https://github.com/numba/llvmlite llvmlite && cd llvmlite && git checkout 95d8c7c"
 - "sed -i 's/-static-libstdc++ //' ffi/Makefile.linux"
 - "python setup.py install && cd .."
 # install elfesteem
