@@ -88,9 +88,9 @@ all_regs_ids = [
 
     exception_flags,
     PC,
-    WZR, WZR,
+    WZR,
     zf, nf, of, cf,
-    XZR, WZR,
+    XZR
 
 ]
 
