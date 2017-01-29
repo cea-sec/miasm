@@ -34,30 +34,6 @@ class ir_a_msp430(ir_a_msp430_base):
         b.rw[-1][1].add(self.arch.regs.cpuoff)
         b.rw[-1][1].add(self.arch.regs.gie)
 
-    def post_add_bloc(self, bloc, ir_blocs):
-        ir.post_add_bloc(self, bloc, ir_blocs)
-        l = bloc.lines[-1]
-        if not l.is_subcall():
-            return
-
-        for irb in ir_blocs:
-            pc_val = None
-            for assignblk in irb.irs:
-                pc_val = assignblk.get(PC, pc_val)
-            if pc_val is None:
-                continue
-
-            l = bloc.lines[-1]
-            lbl = bloc.get_next()
-            new_lbl = self.gen_label()
-            irs = self.call_effects(pc_val, l)
-            irs.append(AssignBlock([ExprAff(self.IRDst,
-                                            ExprId(lbl, size=self.pc.size))]))
-            nbloc = irbloc(new_lbl, irs)
-            nbloc.lines = [l] * len(irs)
-            self.blocs[new_lbl] = nbloc
-            irb.dst = ExprId(new_lbl, size=self.pc.size)
-
     def get_out_regs(self, b):
         return set([self.ret_reg, self.sp])
 
