@@ -525,7 +525,8 @@ Some options can be specified:
 
 They already use Miasm
 ======================
-* [Sibyl](https://github.com/cea-sec/Sibyl): A function divination tool
+* [Sibyl](https://github.com/cea-sec/Sibyl): A function divination too
+* [R2M2](https://github.com/guedou/r2m2): Use miasm2 as a radare2 plugin
 
 
 Misc
