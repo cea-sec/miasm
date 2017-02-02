@@ -126,8 +126,13 @@ class symbexec(object):
         ptr, size = expr.arg, expr.size
         ret = self.find_mem_by_addr(ptr)
         if not ret:
-            out = []
             overlaps = self.get_mem_overlapping(expr)
+            if not overlaps:
+                if self.func_read and ptr.is_int():
+                    expr = self.func_read(expr)
+                return expr
+
+            out = []
             off_base = 0
             for off, mem in overlaps:
                 if off >= 0:
@@ -141,31 +146,23 @@ class symbexec(object):
                     new_off_base = off_base + new_size + off * 8
                     out.append((tmp, off_base, new_off_base))
                     off_base = new_off_base
-            if out:
-                missing_slice = self.rest_slice(out, 0, size)
-                for slice_start, slice_stop in missing_slice:
-                    ptr = self.expr_simp(ptr + m2_expr.ExprInt(slice_start / 8, ptr.size))
-                    mem = m2_expr.ExprMem(ptr, slice_stop - slice_start)
-                    if self.func_read and ptr.is_int():
-                        mem = self.func_read(mem)
-                    out.append((mem, slice_start, slice_stop))
-                out.sort(key=lambda x: x[1])
-                args = [expr for (expr, _, _) in out]
-                tmp = m2_expr.ExprSlice(m2_expr.ExprCompose(*args), 0, size)
-                tmp = self.expr_simp(tmp)
-                return tmp
 
+            missing_slice = self.rest_slice(out, 0, size)
+            for slice_start, slice_stop in missing_slice:
+                ptr = self.expr_simp(ptr + m2_expr.ExprInt(slice_start / 8, ptr.size))
+                mem = m2_expr.ExprMem(ptr, slice_stop - slice_start)
+                if self.func_read and ptr.is_int():
+                    mem = self.func_read(mem)
+                out.append((mem, slice_start, slice_stop))
+            out.sort(key=lambda x: x[1])
+            args = [expr for (expr, _, _) in out]
+            ret = self.expr_simp(m2_expr.ExprCompose(*args)[:size])
+            return ret
 
-            if self.func_read and ptr.is_int():
-                return self.func_read(expr)
-            else:
-                return expr
         # bigger lookup
         if size > ret.size:
             rest = size
-            ptr = ptr
             out = []
-            ptr_index = 0
             while rest:
                 mem = self.find_mem_by_addr(ptr)
                 if mem is None:
@@ -174,20 +171,14 @@ class symbexec(object):
                         value = self.func_read(mem)
                     else:
                         value = mem
-                    diff_size = 8
                 elif rest >= mem.size:
                     value = self.symbols[mem]
-                    diff_size = mem.size
                 else:
-                    diff_size = rest
-                    value = self.symbols[mem][0:diff_size]
-                out.append((value, ptr_index, ptr_index + diff_size))
-                ptr_index += diff_size
-                rest -= diff_size
+                    value = self.symbols[mem][:rest]
+                out.append(value)
+                rest -= value.size
                 ptr = self.expr_simp(ptr + m2_expr.ExprInt(mem.size / 8, ptr.size))
-            out.sort(key=lambda x: x[1])
-            args = [expr for (expr, _, _) in out]
-            ret = self.expr_simp(m2_expr.ExprCompose(*args))
+            ret = self.expr_simp(m2_expr.ExprCompose(*out))
             return ret
         # part lookup
         ret = self.expr_simp(self.symbols[ret][:size])
@@ -411,9 +402,9 @@ class symbexec(object):
                 for new_mem, new_val in diff_mem:
                     self.symbols[new_mem] = new_val
         src_o = self.expr_simp(src)
-        self.symbols[dst] = src_o
-        if dst == src_o:
-            del self.symbols[dst]
+        if dst != src_o:
+            # Avoid X = X
+            self.symbols[dst] = src_o
         if isinstance(dst, m2_expr.ExprMem):
             if self.func_write and isinstance(dst.arg, m2_expr.ExprInt):
                 self.func_write(self, dst, src_o)
