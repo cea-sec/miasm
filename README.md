@@ -541,6 +541,9 @@ Blog posts / papers / conferences
 * [Taming a Wild Nanomite-protected MIPS Binary With Symbolic Execution: No Such Crackme](https://doar-e.github.io/blog/2014/10/11/taiming-a-wild-nanomite-protected-mips-binary-with-symbolic-execution-no-such-crackme/)
 * [Génération rapide de DGA avec Miasm](https://www.lexsi.com/securityhub/generation-rapide-de-dga-avec-miasm/): Quick computation of DGA (French article)
 * [Enabling Client-Side Crash-Resistance to Overcome Diversification and Information Hiding](https://www.internetsociety.org/sites/default/files/blogs-media/enabling-client-side-crash-resistance-overcome-diversification-information-hiding.pdf): Detect undirected call potential arguments
+* [Miasm: Framework de reverse engineering](https://www.sstic.org/2012/presentation/miasm_framework_de_reverse_engineering/) (French)
+* [Tutorial miasm](https://www.sstic.org/2014/presentation/Tutorial_miasm/) (French video)
+* [Graphes de dépendances : Petit Poucet style](https://www.sstic.org/2016/presentation/graphes_de_dpendances__petit_poucet_style/): DepGraph (French)
 
 Books
 -----
