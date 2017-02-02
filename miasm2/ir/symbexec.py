@@ -146,6 +146,8 @@ class symbexec(object):
                 for slice_start, slice_stop in missing_slice:
                     ptr = self.expr_simp(ptr + m2_expr.ExprInt(slice_start / 8, ptr.size))
                     mem = m2_expr.ExprMem(ptr, slice_stop - slice_start)
+                    if self.func_read and ptr.is_int():
+                        mem = self.func_read(mem)
                     out.append((mem, slice_start, slice_stop))
                 out.sort(key=lambda x: x[1])
                 args = [expr for (expr, _, _) in out]
@@ -154,7 +156,7 @@ class symbexec(object):
                 return tmp
 
 
-            if self.func_read and isinstance(ptr, m2_expr.ExprInt):
+            if self.func_read and ptr.is_int():
                 return self.func_read(expr)
             else:
                 return expr
@@ -167,8 +169,11 @@ class symbexec(object):
             while rest:
                 mem = self.find_mem_by_addr(ptr)
                 if mem is None:
-                    value = m2_expr.ExprMem(ptr, 8)
-                    mem = value
+                    mem = m2_expr.ExprMem(ptr, 8)
+                    if self.func_read and ptr.is_int():
+                        value = self.func_read(mem)
+                    else:
+                        value = mem
                     diff_size = 8
                 elif rest >= mem.size:
                     value = self.symbols[mem]
