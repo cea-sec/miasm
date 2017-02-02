@@ -525,8 +525,28 @@ Some options can be specified:
 
 They already use Miasm
 ======================
+
+Tools
+-----
+
 * [Sibyl](https://github.com/cea-sec/Sibyl): A function divination too
 * [R2M2](https://github.com/guedou/r2m2): Use miasm2 as a radare2 plugin
+* [CGrex](https://github.com/mechaphish/cgrex) : Targeted patcher for CGC binaries
+* [ethRE](https://github.com/jbcayrou/ethRE) Reversing tool for Ethereum EVM (with corresponding Miasm2 architecture)
+
+Blog posts / papers / conferences
+---------------------------------
+
+* [Deobfuscation: recovering an OLLVM-protected program](http://blog.quarkslab.com/deobfuscation-recovering-an-ollvm-protected-program.html)
+* [Taming a Wild Nanomite-protected MIPS Binary With Symbolic Execution: No Such Crackme](https://doar-e.github.io/blog/2014/10/11/taiming-a-wild-nanomite-protected-mips-binary-with-symbolic-execution-no-such-crackme/)
+* [Génération rapide de DGA avec Miasm](https://www.lexsi.com/securityhub/generation-rapide-de-dga-avec-miasm/): Quick computation of DGA (French article)
+* [Enabling Client-Side Crash-Resistance to Overcome Diversification and Information Hiding](https://www.internetsociety.org/sites/default/files/blogs-media/enabling-client-side-crash-resistance-overcome-diversification-information-hiding.pdf): Detect undirected call potential arguments
+
+Books
+-----
+
+* [Practical Reverse Engineering: X86, X64, Arm, Windows Kernel, Reversing Tools, and Obfuscation](http://eu.wiley.com/WileyCDA/WileyTitle/productCd-1118787315,subjectCd-CSJ0.html): Introduction to Miasm (Chapter 5 "Obfuscation")
+* [BlackHat Python - Appendix](https://github.com/oreilly-japan/black-hat-python-jp-support/tree/master/appendix-A): Japan security book's samples
 
 
 Misc
