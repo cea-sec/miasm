@@ -5,6 +5,21 @@ from miasm2.ir.symbexec import symbexec
 class EmulatedSymbExec(symbexec):
     """Symbolic exec instance linked with a jitter"""
 
+    cpuid = {
+        0: {
+            0: 0xa,
+            1: 0x756E6547,
+            2: 0x6C65746E,
+            3: 0x49656E69,
+        },
+        1: {
+            0: 0x00020652,
+            1: 0x00000800,
+            2: 0x00000209,
+            3: 0x078bf9ff
+        },
+    }
+
     def __init__(self, cpu, vm, *args, **kwargs):
         """Instanciate an EmulatedSymbExec, associated to CPU @cpu and bind
         memory accesses.
@@ -96,10 +111,20 @@ class EmulatedSymbExec(symbexec):
                                   m2_expr.ExprInt(segmaddr, expr.size),
                                   expr.args[1]))
 
+    def _simp_handle_cpuid(self, e_s, expr):
+        """From miasm2/jitter/vm_mngr.h: cpuid"""
+        if expr.op != "cpuid":
+            return expr
+
+        a, reg_num = (int(x) for x in expr.args)
+
+        # Not found error is keeped on purpose
+        return m2_expr.ExprInt(self.cpuid[a][reg_num], expr.size)
+
     def enable_emulated_simplifications(self):
         """Enable simplifications needing a CPU instance on associated
         ExpressionSimplifier
         """
         self.expr_simp.enable_passes({
-            m2_expr.ExprOp: [self._simp_handle_segm]
+            m2_expr.ExprOp: [self._simp_handle_segm, self._simp_handle_cpuid],
         })
