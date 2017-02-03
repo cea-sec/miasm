@@ -2328,6 +2328,8 @@ reg_tests = [
 
     (m64, "00000000    MOVMSKPS   EAX, XMM2",
      "0f50c2"),
+    (m64, "00000000    MOVMSKPS   R8D, XMM2",
+     "440f50c2"),
 
     (m32, "00000000    ADDSS      XMM2, DWORD PTR [ECX]",
      "f30f5811"),
@@ -2918,6 +2920,12 @@ reg_tests = [
      "0FD7C7"),
     (m32, "00000000    PMOVMSKB   EAX, XMM7",
      "660FD7C7"),
+
+    (m64, "XXXXXXXX    PMOVMSKB   R8D, XMM2",
+    "66440fd7c2"),
+    (m64, "XXXXXXXX    PMOVMSKB   EAX, XMM2",
+    "660fd7c2"),
+
 
     (m64, "00000000    SHUFPS     XMM0, XMM6, 0x44",
      "0fc6c644"),
