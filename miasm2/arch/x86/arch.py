@@ -2445,6 +2445,8 @@ class x86_rm_reg_noarg(object):
         if p.v_opmode() == 64 or p.rex_p.value == 1:
             if not hasattr(p, 'sx') and (hasattr(p, 'w8') and p.w8.value == 0):
                 r = gpregs08_64
+            elif p.rex_r.value == 1:
+                v |= 8
         self.expr = r.expr[v]
         return True
 
@@ -2524,6 +2526,16 @@ class x86_reg(x86_rm_reg):
 
     def setrexsize(self, v):
         self.parent.rex_b.value = v
+
+
+class x86_reg_modrm(x86_rm_reg):
+
+    def getrexsize(self):
+        return self.parent.rex_r.value
+
+    def setrexsize(self, v):
+        self.parent.rex_r.value = v
+
 
 
 class x86_reg_noarg(x86_rm_reg_noarg):
@@ -3176,6 +3188,10 @@ mod_mem = bs(l=2, cls=(bs_mem,), fname="mod")
 
 rmreg = bs(l=3, cls=(x86_rm_reg, ), order =1, fname = "reg")
 reg = bs(l=3, cls=(x86_reg, ), order =1, fname = "reg")
+
+reg_modrm = bs(l=3, cls=(x86_reg_modrm, ), order =1, fname = "reg")
+
+
 regnoarg = bs(l=3, default_val="000", order=1, fname="reg")
 segm = bs(l=3, cls=(x86_rm_segm, ), order =1, fname = "reg")
 crreg = bs(l=3, cls=(x86_rm_cr, ), order =1, fname = "reg")
@@ -3690,7 +3706,7 @@ addop("movq", [bs8(0x0f), bs8(0xd6), pref_66] +
       rmmod(xmm_reg, rm_arg_xmm_m64), [rm_arg_xmm_m64, xmm_reg])
 
 addop("movmskps", [bs8(0x0f), bs8(0x50), no_xmm_pref] +
-      rmmod(reg, rm_arg_xmm_reg))
+      rmmod(reg_modrm, rm_arg_xmm_reg))
 
 
 addop("addss", [bs8(0x0f), bs8(0x58), pref_f3] + rmmod(xmm_reg, rm_arg_xmm_m32))
@@ -4194,6 +4210,9 @@ addop("psllw", [bs8(0x0f), bs8(0xf1), no_xmm_pref] +
 addop("psllw", [bs8(0x0f), bs8(0xf1), pref_66] +
       rmmod(xmm_reg, rm_arg_xmm), [xmm_reg, rm_arg_xmm])
 
+addop("pslldq", [bs8(0x0f), bs8(0x73), pref_66] +
+      rmmod(d7, rm_arg_xmm) + [u08], [rm_arg_xmm, u08])
+
 
 addop("pmaxub", [bs8(0x0f), bs8(0xde), no_xmm_pref] +
       rmmod(mm_reg, rm_arg_mm))
@@ -4331,9 +4350,9 @@ addop("sqrtss", [bs8(0x0f), bs8(0x51), pref_f3] +
       rmmod(xmm_reg, rm_arg_xmm_m32))
 
 addop("pmovmskb", [bs8(0x0f), bs8(0xd7), no_xmm_pref] +
-      rmmod(reg, rm_arg_mm_reg))
+      rmmod(reg_modrm, rm_arg_mm_reg))
 addop("pmovmskb", [bs8(0x0f), bs8(0xd7), pref_66] +
-      rmmod(reg, rm_arg_xmm_reg))
+      rmmod(reg_modrm, rm_arg_xmm_reg))
 
 addop("shufps", [bs8(0x0f), bs8(0xc6), no_xmm_pref] +
       rmmod(xmm_reg, rm_arg_xmm) + [u08])

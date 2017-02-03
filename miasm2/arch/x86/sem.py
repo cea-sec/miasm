@@ -3627,6 +3627,15 @@ def pslld(ir, instr, a, b):
 def psllq(ir, instr, a, b):
     return ps_rl_ll(ir, instr, a, b, "<<",  64)
 
+def pslldq(ir, instr, a, b):
+    assert b.is_int()
+    e = []
+    count = int(b)
+    if count > 15:
+        return [m2_expr.ExprAff(a, m2_expr.ExprInt(0, a.size))], []
+    else:
+        return [m2_expr.ExprAff(a, a << m2_expr.ExprInt(8*count, a.size))], []
+
 
 def iret(ir, instr):
     """IRET implementation
@@ -4361,6 +4370,7 @@ mnemo_func = {'mov': mov,
               "psllw": psllw,
               "pslld": pslld,
               "psllq": psllq,
+              "pslldq": pslldq,
 
               "pmaxub": pmaxub,
               "pmaxuw": pmaxuw,
