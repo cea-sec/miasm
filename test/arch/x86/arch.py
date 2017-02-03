@@ -2727,6 +2727,9 @@ reg_tests = [
     (m32, "00000000    PSLLW      XMM6, 0x5",
     "660F71F605"),
 
+    (m64, "00000000    PSLLDQ     XMM2, 0x1",
+    "660F73Fa01"),
+
 
     (m32, "00000000    PSLLQ      MM2, QWORD PTR [EDX]",
     "0FF312"),
