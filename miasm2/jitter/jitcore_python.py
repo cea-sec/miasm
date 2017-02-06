@@ -13,6 +13,8 @@ from miasm2.jitter.emulatedsymbexec import EmulatedSymbExec
 class JitCore_Python(jitcore.JitCore):
     "JiT management, using Miasm2 Symbol Execution engine as backend"
 
+    SymbExecClass = EmulatedSymbExec
+
     def __init__(self, ir_arch, bs=None):
         super(JitCore_Python, self).__init__(ir_arch, bs)
         self.ir_arch = ir_arch
@@ -20,8 +22,8 @@ class JitCore_Python(jitcore.JitCore):
         # CPU & VM (None for now) will be set later
         expr_simp = ExpressionSimplifier()
         expr_simp.enable_passes(ExpressionSimplifier.PASS_COMMONS)
-        self.symbexec = EmulatedSymbExec(None, None, self.ir_arch, {},
-                                         sb_expr_simp=expr_simp)
+        self.symbexec = self.SymbExecClass(None, None, self.ir_arch, {},
+                                           sb_expr_simp=expr_simp)
         self.symbexec.enable_emulated_simplifications()
 
     def set_cpu_vm(self, cpu, vm):
