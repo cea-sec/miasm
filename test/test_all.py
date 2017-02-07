@@ -617,6 +617,8 @@ for jitter in ExampleJitterNoPython.jitter_engines:
                                      tags=tags)
 
 testset += ExampleJitter(["example_types.py"])
+testset += ExampleJitter(["trace.py", Example.get_sample("md5_arm"), "-a",
+                          "0xA684"])
 
 
 if __name__ == "__main__":
