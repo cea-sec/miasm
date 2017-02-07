@@ -766,7 +766,8 @@ void reset_memory_page_pool(vm_mngr_t* vm_mngr)
 		mpn = &vm_mngr->memory_pages_array[i];
 		free(mpn->ad_hp);
 		free(mpn->name);
-		free(mpn->taint);
+		if (vm_mngr->do_taint)
+			free(mpn->taint);
 	}
 	free(vm_mngr->memory_pages_array);
 	vm_mngr->memory_pages_array = NULL;
