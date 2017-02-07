@@ -796,6 +796,16 @@ class AsmCFG(DiGraph):
         if rebuild_needed:
             self.rebuild_edges()
 
+    def __str__(self):
+        out = []
+        for node in self.nodes():
+            out.append(str(node))
+        for nodeA, nodeB in self.edges():
+            out.append("%s -> %s" % (nodeA.label, nodeB.label))
+        return '\n'.join(out)
+
+    def __repr__(self):
+        return "<%s %s>" % (self.__class__.__name__, hex(id(self)))
 
 # Out of _merge_blocks to be computed only once
 _acceptable_block = lambda block: (not isinstance(block, asm_block_bad) and
