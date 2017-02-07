@@ -402,7 +402,7 @@ for i in range(1, 21):
                               depends=[test_x86_32_cst],
                               products=["%s.propag.dot" % bin_name])
 
-
+testset += RegressionTest(["taint_analysis.py"], base_dir="analysis")
 
 ## Degraph
 class TestDepgraph(RegressionTest):

@@ -182,10 +182,11 @@ sb.jitter.add_breakpoint(end_label, update_binary)
 import miasm2.analysis.taint_analysis as taint
 
 taint.enable_taint_analysis(sb.jitter)
+color_index = 0
 
 import miasm2.jitter.csts as csts
 sb.jitter.add_exception_handler(csts.EXCEPT_TAINT_ADD_MEM, on_memory_taint)
-sb.jitter.cpu.do_taint_mem_cb(0)
+sb.jitter.cpu.do_taint_mem_cb(color_index)
 ####################################################
 
 # Run
