@@ -596,7 +596,7 @@ class instruction_x86(instruction):
                 prefix = ""
             sz = SIZE2MEMPREFIX[expr.size]
             segm = ""
-            if expr.is_op_segm():
+            if expr.is_mem_segm():
                 segm = "%s:" % expr.arg.args[0]
                 expr = expr.arg.args[1]
             else:
@@ -1720,10 +1720,10 @@ SIZE2XMMREG = {64:gpregs_mm,
 def parse_mem(expr, parent, w8, sx=0, xmm=0, mm=0):
     dct_expr = {}
     opmode = parent.v_opmode()
-    if expr.is_op_segm() and isinstance(expr.arg.args[0], ExprInt):
+    if expr.is_mem_segm() and expr.arg.args[0].is_int():
         return None, None, False
 
-    if expr.is_op_segm():
+    if expr.is_mem_segm():
         segm = expr.arg.args[0]
         ptr = expr.arg.args[1]
     else:

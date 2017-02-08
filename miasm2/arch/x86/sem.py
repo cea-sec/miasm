@@ -329,7 +329,7 @@ def movsx(ir, instr, dst, src):
 
 def lea(ir, instr, dst, src):
     ptr = src.arg
-    if src.is_op_segm():
+    if src.is_mem_segm():
         # Do not use segmentation here
         ptr = ptr.args[1]
 
@@ -2901,7 +2901,7 @@ def bittest_get(ir, instr, src, index):
         b_mask = {16: 4, 32: 5, 64: 6}
         b_decal = {16: 1, 32: 3, 64: 7}
         ptr = src.arg
-        segm = src.is_op_segm()
+        segm = src.is_mem_segm()
         if segm:
             ptr = ptr.args[1]
 
@@ -4457,7 +4457,7 @@ class ir_x86_16(ir):
                 instr.additional_info.g2.value]
         if my_ss is not None:
             for i, a in enumerate(args):
-                if isinstance(a, m2_expr.ExprMem) and not a.is_op_segm():
+                if a.is_mem() and not a.is_mem_segm():
                     args[i] = m2_expr.ExprMem(expraddr(instr.mode, m2_expr.ExprOp('segm', my_ss,
                                                                                   a.arg)), a.size)
 
