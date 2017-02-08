@@ -455,7 +455,7 @@ def get_shift(dst, src):
         src = m2_expr.ExprInt(int(src), dst.size)
     else:
         src = src.zeroExtend(dst.size)
-    if (dst.size == 64):
+    if dst.size == 64:
         shift = src & m2_expr.ExprInt(63, src.size)
     else:
         shift = src & m2_expr.ExprInt(31, src.size)
@@ -490,7 +490,7 @@ def _rotate_tpl(ir, instr, dst, src, op, left=False, include_cf=False):
     ]
     # Don't generate conditional shifter on constant
     if isinstance(shifter, m2_expr.ExprInt):
-        if (int(shifter) != 0):
+        if int(shifter) != 0:
             return (e_do, [])
         else:
             return ([], [])
@@ -3162,7 +3162,7 @@ def vec_op_clip(op, size):
 
 
 def vec_vertical_sem(op, elt_size, reg_size, dst, src):
-    assert(reg_size % elt_size == 0)
+    assert reg_size % elt_size == 0
     n = reg_size / elt_size
     if op == '-':
         ops = [
@@ -3176,7 +3176,7 @@ def vec_vertical_sem(op, elt_size, reg_size, dst, src):
 
 
 def float_vec_vertical_sem(op, elt_size, reg_size, dst, src):
-    assert(reg_size % elt_size == 0)
+    assert reg_size % elt_size == 0
     n = reg_size / elt_size
 
     x_to_int, int_to_x = {32: ('float_to_int_%d', 'int_%d_to_float'),
@@ -4537,7 +4537,7 @@ class ir_x86_16(ir):
     def irbloc_fix_regs_for_mode(self, irbloc, mode=64):
         for assignblk in irbloc.irs:
             for dst, src in assignblk.items():
-                del(assignblk[dst])
+                del assignblk[dst]
                 # Special case for 64 bits:
                 # If destination is a 32 bit reg, zero extend the 64 bit reg
                 if mode == 64:
