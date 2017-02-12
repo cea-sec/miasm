@@ -735,11 +735,8 @@ class LLVMFunction():
 
                 ret = builder.call(fc_ptr,
                                    [self.local_vars["jitcpu"]] + casted_args)
-                # Ret size is not expr.size on segm2addr (which is the size of
-                # the segment, for instance 16 bits), but the size of an addr
-                ret_size = self.llvm_context.PC.size
-                if ret.type.width > ret_size:
-                    ret = builder.trunc(ret, LLVMType.IntType(ret_size))
+                if ret.type.width > expr.size:
+                    ret = builder.trunc(ret, LLVMType.IntType(expr.size))
                 self.update_cache(expr, ret)
                 return ret
 
