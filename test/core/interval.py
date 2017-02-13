@@ -90,6 +90,10 @@ assert(i14 & i15 == i14)
 assert(i15 & i14 == i14)
 assert(i14 & i16 == interval([(3, 5), (7, 8)]))
 
+assert(i5.length == 5)
+assert(i6.length == 7)
+assert((i1 - i1).length == 0)
+
 x1 = [(7, 87), (76, 143), (94, 129), (79, 89), (46, 100)]
 assert(interval(x1) == interval([(7, 143)]))
 x2 = [(11, 16), (35, 74), (18, 114), (91, 188), (3, 75)]
