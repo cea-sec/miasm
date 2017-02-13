@@ -74,34 +74,29 @@ _, _, base_expr64 = gen_base_expr()
 
 
 def ast_id2expr32(t):
-    if not t in mn_aarch64.regs.all_regs_ids_byname:
-        r = m2_expr.ExprId(asm_label(t))
-    else:
-        r = mn_aarch64.regs.all_regs_ids_byname[t]
-    if not r.size == 32:
-        raise StopIteration
-    return r
-
+    if t in mn_aarch64.regs.all_regs_ids_byname:
+        t = mn_aarch64.regs.all_regs_ids_byname[t]
+        if not t.size == 32:
+            raise StopIteration
+    return t
 
 def ast_int2expr32(a):
     return m2_expr.ExprInt32(a)
 
 
 def ast_id2expr64(t):
-    if not t in mn_aarch64.regs.all_regs_ids_byname:
-        r = m2_expr.ExprId(asm_label(t))
-    else:
-        r = mn_aarch64.regs.all_regs_ids_byname[t]
-    if not r.size == 64:
-        raise StopIteration
-    return r
+    if t in mn_aarch64.regs.all_regs_ids_byname:
+        t = mn_aarch64.regs.all_regs_ids_byname[t]
+        if not t.size == 64:
+            raise StopIteration
+    return t
 
 
 def ast_int2expr64(a):
     return m2_expr.ExprInt64(a)
 
-my_var_parser32 = parse_ast(ast_id2expr32, ast_int2expr32)
-my_var_parser64 = parse_ast(ast_id2expr64, ast_int2expr64)
+my_var_parser32 = parse_ast(ast_id2expr32, ast_int2expr32, default_size=32)
+my_var_parser64 = parse_ast(ast_id2expr64, ast_int2expr64, default_size=64)
 
 base_expr32.setParseAction(my_var_parser32)
 base_expr64.setParseAction(my_var_parser64)

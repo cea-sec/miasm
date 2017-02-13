@@ -72,11 +72,7 @@ PINC = Suppress("+")
 
 
 def ast_id2expr(t):
-    if not t in mn_msp430.regs.all_regs_ids_byname:
-        r = ExprId(asm_label(t), 16)
-    else:
-        r = mn_msp430.regs.all_regs_ids_byname[t]
-    return r
+    return mn_msp430.regs.all_regs_ids_byname.get(t, t)
 
 
 def ast_int2expr(a):

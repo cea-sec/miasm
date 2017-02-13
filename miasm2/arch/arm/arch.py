@@ -181,11 +181,7 @@ int_or_expr = base_expr
 
 
 def ast_id2expr(t):
-    if not t in mn_arm.regs.all_regs_ids_byname:
-        r = ExprId(asm_label(t))
-    else:
-        r = mn_arm.regs.all_regs_ids_byname[t]
-    return r
+    return mn_arm.regs.all_regs_ids_byname.get(t, t)
 
 
 def ast_int2expr(a):
