@@ -200,7 +200,7 @@ def ast_int2expr(a):
 
 
 
-class parse_ast(object):
+class ParseAst(object):
 
     def __init__(self, id2expr, int2expr, default_size=32):
         self.id2expr = id2expr
@@ -364,7 +364,7 @@ def gen_base_expr():
 
 variable, operand, base_expr = gen_base_expr()
 
-my_var_parser = parse_ast(ast_id2expr, ast_int2expr)
+my_var_parser = ParseAst(ast_id2expr, ast_int2expr)
 base_expr.setParseAction(my_var_parser)
 
 default_prio = 0x1337

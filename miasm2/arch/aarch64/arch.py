@@ -95,8 +95,8 @@ def ast_id2expr64(t):
 def ast_int2expr64(a):
     return m2_expr.ExprInt64(a)
 
-my_var_parser32 = parse_ast(ast_id2expr32, ast_int2expr32, default_size=32)
-my_var_parser64 = parse_ast(ast_id2expr64, ast_int2expr64, default_size=64)
+my_var_parser32 = ParseAst(ast_id2expr32, ast_int2expr32, default_size=32)
+my_var_parser64 = ParseAst(ast_id2expr64, ast_int2expr64, default_size=64)
 
 base_expr32.setParseAction(my_var_parser32)
 base_expr64.setParseAction(my_var_parser64)
@@ -229,7 +229,7 @@ simds_info = {8: simd08_info,
               128: simd128_info}
 
 
-my_var_parser = parse_ast(ast_id2expr, ast_int2expr)
+my_var_parser = ParseAst(ast_id2expr, ast_int2expr)
 base_expr.setParseAction(my_var_parser)
 
 

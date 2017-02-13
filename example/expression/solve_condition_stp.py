@@ -143,7 +143,7 @@ if __name__ == '__main__':
         else:
             return ExprId(string_parsed, size=32)
 
-    my_var_parser = parse_ast(my_ast_id2expr, my_ast_int2expr)
+    my_var_parser = ParseAst(my_ast_id2expr, my_ast_int2expr)
     base_expr.setParseAction(my_var_parser)
 
     argc = ExprId('argc', 32)

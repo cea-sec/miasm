@@ -60,7 +60,7 @@ def ast_int2expr(a):
     return ExprInt32(a)
 
 
-my_var_parser = cpu.parse_ast(ast_id2expr, ast_int2expr)
+my_var_parser = cpu.ParseAst(ast_id2expr, ast_int2expr)
 base_expr.setParseAction(my_var_parser)
 
 class additional_info:
