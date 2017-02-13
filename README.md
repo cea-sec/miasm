@@ -450,6 +450,7 @@ Miasm uses:
 * python-pyparsing
 * python-dev
 * elfesteem from [Elfesteem](https://github.com/serpilliere/elfesteem.git)
+* optionally python-pycparser
 
 To enable code JIT, one of the following module is mandatory:
 * GCC
