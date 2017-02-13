@@ -72,11 +72,7 @@ PINC = Suppress("+")
 
 
 def ast_id2expr(t):
-    if not t in mn_msp430.regs.all_regs_ids_byname:
-        r = ExprId(asm_label(t), 16)
-    else:
-        r = mn_msp430.regs.all_regs_ids_byname[t]
-    return r
+    return mn_msp430.regs.all_regs_ids_byname.get(t, t)
 
 
 def ast_int2expr(a):
@@ -85,7 +81,7 @@ def ast_int2expr(a):
 
 variable, operand, base_expr = gen_base_expr()
 
-my_var_parser = parse_ast(ast_id2expr, ast_int2expr)
+my_var_parser = ParseAst(ast_id2expr, ast_int2expr)
 base_expr.setParseAction(my_var_parser)
 
 

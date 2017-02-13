@@ -1,7 +1,7 @@
 import os
 import time
 import miasm2.expression.expression as m2_expr
-from miasm2.arch.x86.arch import mn_x86, deref_mem_ad, parse_ast, ast_int2expr, \
+from miasm2.arch.x86.arch import mn_x86, deref_mem_ad, ParseAst, ast_int2expr, \
     base_expr, rmarg, print_size
 from miasm2.arch.x86.sem import ir_x86_16, ir_x86_32, ir_x86_64
 from miasm2.core.bin_stream import bin_stream_str
@@ -34,7 +34,7 @@ def my_ast_id2expr(t):
     r = reg_and_id.get(t, m2_expr.ExprId(t, size=32))
     return r
 
-my_var_parser = parse_ast(my_ast_id2expr, ast_int2expr)
+my_var_parser = ParseAst(my_ast_id2expr, ast_int2expr)
 base_expr.setParseAction(my_var_parser)
 
 for s in ['EAX',

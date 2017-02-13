@@ -199,84 +199,123 @@ def ast_int2expr(a):
     return m2_expr.ExprInt32(a)
 
 
-def ast_raw2expr(a, my_id2expr, my_int2expr):
-    assert(isinstance(a, tuple))
-    if a[0] is m2_expr.ExprId:
-        e = my_id2expr(a[1])
-    elif a[0] is m2_expr.ExprInt:
-        e = my_int2expr(a[1])
-    elif a[0] is m2_expr.ExprOp:
-        out = []
-        for x in a[1]:
-            if isinstance(x, tuple):
-                x = ast_raw2expr(x, my_id2expr, my_int2expr)
-            out.append(x)
-        e = ast_parse_op(out)
-    else:
-        raise TypeError('unknown type')
-    return e
 
+class ParseAst(object):
 
-def ast_get_ids(a):
-    assert(isinstance(a, tuple))
-    if a[0] is m2_expr.ExprId:
-        return set([a[1]])
-    elif a[0] is m2_expr.ExprInt:
-        return set()
-    elif a[0] is m2_expr.ExprOp:
-        out = set()
-        for x in a[1]:
-            if isinstance(x, tuple):
-                out.update(ast_get_ids(x))
-        return out
-    raise TypeError('unknown type')
-
-
-def _extract_ast_core(a):
-    assert(isinstance(a, tuple))
-    if a[0] in [m2_expr.ExprInt, m2_expr.ExprId]:
-        return a
-    elif a[0] is m2_expr.ExprOp:
-        out = []
-        for x in a[1]:
-            if isinstance(x, tuple):
-                x = _extract_ast_core(x)
-            out.append(x)
-        return tuple([a[0]] + [out])
-    else:
-        raise TypeError('unknown type')
-
-
-def extract_ast_core(v, my_id2expr, my_int2expr):
-    ast_tokens = _extract_ast_core(v)
-    ids = ast_get_ids(ast_tokens)
-    ids_expr = [my_id2expr(x) for x in ids]
-    sizes = set([i.size for i in ids_expr])
-
-    if len(sizes) == 0:
-        pass
-    elif len(sizes) == 1:
-        size = sizes.pop()
-        my_int2expr = lambda x: m2_expr.ExprInt(x, size)
-    else:
-        # Multiple sizes in ids
-        raise StopIteration
-    e = ast_raw2expr(ast_tokens, my_id2expr, my_int2expr)
-    return e
-
-
-class parse_ast:
-
-    def __init__(self, id2expr, int2expr, extract_ast=extract_ast_core):
+    def __init__(self, id2expr, int2expr, default_size=32):
         self.id2expr = id2expr
         self.int2expr = int2expr
-        self.extract_ast_core = extract_ast
+        self.default_size = default_size
 
-    def __call__(self, v):
-        v = v[0]
-        if isinstance(v, m2_expr.Expr):
-            return v
-        return self.extract_ast_core(v, self.id2expr, self.int2expr)
+    def int_from_size(self, size, value):
+        """Transform a string into ExprInt.
+        * if @size is None, use provided int2expr
+        * else, use @size to generate integer
+        @size: size of int; None if not forced.
+        @value: string representing an integer
+        """
+        if size is None:
+            return self.int2expr(value)
+        else:
+            return m2_expr.ExprInt(value, size)
+
+    def id_from_size(self, size, value):
+        """Transform a string into ExprId.
+        * if @size is None, use provided id2expr
+        * else, use @size to generate id
+        @size: size of id; None if not forced.
+        @value: string representing the id
+        """
+        value = self.id2expr(value)
+        if isinstance(value, m2_expr.Expr):
+            return value
+        if size is None:
+            size = self.default_size
+        assert value is not None
+        return m2_expr.ExprId(asmbloc.asm_label(value), size)
+
+    def ast_to_expr(self, size, ast):
+        """Transform a typed ast into a Miasm expression
+        @size: default size
+        @ast: typed ast
+        """
+        assert(isinstance(ast, tuple))
+        if ast[0] is m2_expr.ExprId:
+            expr = self.id_from_size(size, ast[1])
+            if isinstance(expr, str):
+                expr = self.id_from_size(size, expr)
+        elif ast[0] is m2_expr.ExprInt:
+            expr = self.int_from_size(size, ast[1])
+        elif ast[0] is m2_expr.ExprOp:
+            out = []
+            for arg in ast[1]:
+                if isinstance(arg, tuple):
+                    arg = self.ast_to_expr(size, arg)
+                out.append(arg)
+            expr = ast_parse_op(out)
+        else:
+            raise TypeError('unknown type')
+        return expr
+
+    def ast_get_ids(self, ast):
+        """Retrieve every node of type ExprId in @ast
+        @ast: typed ast
+        """
+        assert(isinstance(ast, tuple))
+        if ast[0] is m2_expr.ExprId:
+            return set([ast[1]])
+        elif ast[0] is m2_expr.ExprInt:
+            return set()
+        elif ast[0] is m2_expr.ExprOp:
+            out = set()
+            for x in ast[1]:
+                if isinstance(x, tuple):
+                    out.update(self.ast_get_ids(x))
+            return out
+        raise TypeError('unknown type')
+
+    def _extract_ast_core(self, ast):
+        assert(isinstance(ast, tuple))
+        if ast[0] in [m2_expr.ExprInt, m2_expr.ExprId]:
+            return ast
+        elif ast[0] is m2_expr.ExprOp:
+            out = []
+            for arg in ast[1]:
+                if isinstance(arg, tuple):
+                    arg = self._extract_ast_core(arg)
+                out.append(arg)
+            return tuple([ast[0]] + [out])
+        else:
+            raise TypeError('unknown type')
+
+    def extract_ast_core(self, ast):
+        """
+        Trasform an @ast into a Miasm expression.
+        Use registers size to deduce label and integers sizes.
+        """
+        ast = self._extract_ast_core(ast)
+        ids = self.ast_get_ids(ast)
+        ids_expr = [self.id2expr(x) for x in ids]
+        sizes = set([expr.size for expr in ids_expr
+                     if isinstance(expr, m2_expr.Expr)])
+        if not sizes:
+            size = None
+        elif len(sizes) == 1:
+            size = sizes.pop()
+        else:
+            # Multiple sizes in ids
+            raise StopIteration
+        return self.ast_to_expr(size, ast)
+
+    def __call__(self, ast):
+        """
+        Trasform an @ast into a Miasm expression.
+        Use registers size to deduce label and integers sizes.
+        """
+        ast = ast[0]
+        if isinstance(ast, m2_expr.Expr):
+            return ast
+        return self.extract_ast_core(ast)
 
 
 def neg_int(t):
@@ -325,7 +364,7 @@ def gen_base_expr():
 
 variable, operand, base_expr = gen_base_expr()
 
-my_var_parser = parse_ast(ast_id2expr, ast_int2expr)
+my_var_parser = ParseAst(ast_id2expr, ast_int2expr)
 base_expr.setParseAction(my_var_parser)
 
 default_prio = 0x1337
@@ -922,6 +961,9 @@ class instruction(object):
     def get_asm_offset(self, expr):
         return m2_expr.ExprInt(self.offset, expr.size)
 
+    def get_asm_next_offset(self, expr):
+        return m2_expr.ExprInt(self.offset+self.l, expr.size)
+
     def resolve_args_with_symbols(self, symbols=None):
         if symbols is None:
             symbols = {}
@@ -937,6 +979,9 @@ class instruction(object):
                     # special symbol $
                     if name == '$':
                         fixed_ids[x] = self.get_asm_offset(x)
+                        continue
+                    if name == '_':
+                        fixed_ids[x] = self.get_asm_next_offset(x)
                         continue
                     if not name in symbols:
                         raise ValueError('unresolved symbol! %r' % x)

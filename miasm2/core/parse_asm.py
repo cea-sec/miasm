@@ -3,7 +3,7 @@ import re
 
 import miasm2.expression.expression as m2_expr
 import miasm2.core.asmbloc as asmbloc
-from miasm2.core.cpu import gen_base_expr, parse_ast
+from miasm2.core.cpu import gen_base_expr, ParseAst
 from miasm2.core.cpu import instruction
 
 declarator = {'byte': 8,
@@ -169,9 +169,9 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
 
                 # parser
                 base_expr = gen_base_expr()[2]
-                my_var_parser = parse_ast(lambda x: m2_expr.ExprId(x, size),
-                                          lambda x:
-                                              m2_expr.ExprInt(x, size))
+                my_var_parser = ParseAst(lambda x: m2_expr.ExprId(x, size),
+                                         lambda x:
+                                         m2_expr.ExprInt(x, size))
                 base_expr.setParseAction(my_var_parser)
 
                 for element in data_raw:

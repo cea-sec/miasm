@@ -223,18 +223,14 @@ variable, operand, base_expr = gen_base_expr()
 
 
 def ast_id2expr(t):
-    if not t in mn_x86.regs.all_regs_ids_byname:
-        r = ExprId(asm_label(t))
-    else:
-        r = mn_x86.regs.all_regs_ids_byname[t]
-    return r
+    return mn_x86.regs.all_regs_ids_byname.get(t, t)
 
 
 def ast_int2expr(a):
     return ExprInt64(a)
 
 
-my_var_parser = parse_ast(ast_id2expr, ast_int2expr)
+my_var_parser = ParseAst(ast_id2expr, ast_int2expr)
 base_expr.setParseAction(my_var_parser)
 
 int_or_expr = base_expr
