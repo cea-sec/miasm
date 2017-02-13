@@ -377,6 +377,13 @@ class Expr(object):
     def is_compose(self):
         return False
 
+    def is_op_segm(self):
+        """Returns True if is ExprOp and op == 'segm'"""
+        return False
+
+    def is_mem_segm(self):
+        """Returns True if is ExprMem and ptr is_op_segm"""
+        return False
 
 class ExprInt(Expr):
 
@@ -817,8 +824,9 @@ class ExprMem(Expr):
         arg = self.arg.copy()
         return ExprMem(arg, size=self.size)
 
-    def is_op_segm(self):
-        return isinstance(self.__arg, ExprOp) and self.__arg.op == 'segm'
+    def is_mem_segm(self):
+        """Returns True if is ExprMem and ptr is_op_segm"""
+        return self.__arg.is_op_segm()
 
     def depth(self):
         return self.__arg.depth() + 1
@@ -1001,6 +1009,10 @@ class ExprOp(Expr):
         if op is None:
             return True
         return self.op == op
+
+    def is_op_segm(self):
+        """Returns True if is ExprOp and op == 'segm'"""
+        return self.is_op('segm')
 
 class ExprSlice(Expr):
 
