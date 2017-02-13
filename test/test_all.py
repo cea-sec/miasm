@@ -524,6 +524,7 @@ for script in [["basic_op.py"],
                ["simplification_add.py"],
                ["expr_random.py"],
                ["expr_translate.py"],
+               ["expr_reduce.py"],
                ]:
     testset += ExampleExpression(script)
 
