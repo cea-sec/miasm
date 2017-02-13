@@ -412,6 +412,8 @@ test_x86_32_if_reg = ExampleShellcode(['x86_32', 'x86_32_if_reg.S', "x86_32_if_r
 test_x86_32_seh = ExampleShellcode(["x86_32", "x86_32_seh.S", "x86_32_seh.bin",
                                     "--PE"])
 
+test_human = ExampleShellcode(["x86_64", "human.S", "human.bin"])
+
 testset += test_armb
 testset += test_arml
 testset += test_aarch64b
@@ -426,6 +428,8 @@ testset += test_mips32l
 testset += test_x86_64
 testset += test_x86_32_if_reg
 testset += test_x86_32_seh
+
+testset += test_human
 
 class ExampleDisassembler(Example):
     """Disassembler examples specificities:
