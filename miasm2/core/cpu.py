@@ -961,6 +961,9 @@ class instruction(object):
     def get_asm_offset(self, expr):
         return m2_expr.ExprInt(self.offset, expr.size)
 
+    def get_asm_next_offset(self, expr):
+        return m2_expr.ExprInt(self.offset+self.l, expr.size)
+
     def resolve_args_with_symbols(self, symbols=None):
         if symbols is None:
             symbols = {}
@@ -976,6 +979,9 @@ class instruction(object):
                     # special symbol $
                     if name == '$':
                         fixed_ids[x] = self.get_asm_offset(x)
+                        continue
+                    if name == '_':
+                        fixed_ids[x] = self.get_asm_next_offset(x)
                         continue
                     if not name in symbols:
                         raise ValueError('unresolved symbol! %r' % x)
