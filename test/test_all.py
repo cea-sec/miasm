@@ -18,6 +18,7 @@ TAGS = {"regression": "REGRESSION", # Regression tests
         "tcc": "TCC", # TCC dependency is required
         "z3": "Z3", # Z3 dependecy is needed
         "qemu": "QEMU", # QEMU tests (several tests)
+        "cparser": "CPARSER", # pycparser is needed
         }
 
 # Regression tests
@@ -521,6 +522,14 @@ testset += ExampleExpression(["solve_condition_stp.py",
                               Example.get_sample("simple_test.bin")],
                              products=["graph_instr.dot", "out.dot"])
 
+testset += ExampleExpression(["access_c.py", Example.get_sample("human.bin")],
+                             depends=[test_human],
+                             products=["graph_irflow.dot"],
+                             tags=[TAGS["cparser"]])
+
+testset += ExampleExpression(["expr_c.py"],
+                             tags=[TAGS["cparser"]])
+
 for script in [["basic_op.py"],
                ["basic_simplification.py"],
                ["simplification_tools.py"],
@@ -743,6 +752,16 @@ By default, all tag are considered." % ", ".join(TAGS.keys()), default="")
             "Z3 and its python binding are necessary for TranslatorZ3."
         if TAGS["z3"] not in exclude_tags:
             exclude_tags.append(TAGS["z3"])
+
+    # Handle pycparser dependency
+    try:
+        import pycparser
+    except ImportError:
+        print "%(red)s[PYCPARSER]%(end)s " % cosmetics.colors + \
+            "pycparser are necessary for Objc."
+        if TAGS["cparser"] not in exclude_tags:
+            exclude_tags.append(TAGS["cparser"])
+
     test_ko = []
     test_ok = []
 
