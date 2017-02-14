@@ -11,7 +11,7 @@ from miasm2.arch.x86.sem import *
 from miasm2.core.bin_stream import bin_stream_str
 from miasm2.core import asmbloc
 from miasm2.expression.expression import get_rw
-from miasm2.ir.symbexec import symbexec
+from miasm2.ir.symbexec import SymbolicExecutionEngine
 from miasm2.expression.simplifications import expr_simp
 from miasm2.expression import stp
 from miasm2.core import parse_asm
@@ -58,7 +58,7 @@ def emul_symb(ir_arch, mdis, states_todo, states_done):
             print 'skip', ad
             continue
         states_done.add((ad, symbols, conds))
-        sb = symbexec(ir_arch, {})
+        sb = SymbolicExecutionEngine(ir_arch, {})
         sb.symbols = symbols.copy()
         if ir_arch.pc in sb.symbols:
             del(sb.symbols[ir_arch.pc])
@@ -159,7 +159,7 @@ if __name__ == '__main__':
 
     ir_arch = ir_x86_32(mdis.symbol_pool)
 
-    sb = symbexec(ir_arch, symbols_init)
+    sb = SymbolicExecutionEngine(ir_arch, symbols_init)
 
     blocs, symbol_pool = parse_asm.parse_txt(mn_x86, 32, '''
     PUSH argv
@@ -201,7 +201,7 @@ if __name__ == '__main__':
 
     all_cases = set()
 
-    sb = symbexec(ir_arch, symbols_init)
+    sb = SymbolicExecutionEngine(ir_arch, symbols_init)
     for ad, reqs_cond in all_info:
         all_ids = set()
         for k, v in reqs_cond:

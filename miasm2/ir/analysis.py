@@ -2,7 +2,7 @@
 
 import logging
 
-from miasm2.ir.symbexec import symbexec
+from miasm2.ir.symbexec import SymbolicExecutionEngine
 from miasm2.ir.ir import ir, AssignBlock
 from miasm2.expression.expression \
     import ExprAff, ExprCond, ExprId, ExprInt, ExprMem, ExprOp
@@ -300,7 +300,7 @@ class ira(ir):
         for irb in self.blocs.values():
             symbols_init = dict(self.arch.regs.all_regs_ids_init)
 
-            sb = symbexec(self, dict(symbols_init))
+            sb = SymbolicExecutionEngine(self, dict(symbols_init))
             sb.emulbloc(irb)
             eqs = []
             for n_w in sb.symbols:

@@ -7,7 +7,7 @@ from miasm2.arch.x86.ira import ir_a_x86_32
 from miasm2.arch.x86.disasm import dis_x86_32
 from miasm2.analysis.data_analysis import intra_bloc_flow_raw, inter_bloc_flow
 from miasm2.core.graph import DiGraph
-from miasm2.ir.symbexec import symbexec
+from miasm2.ir.symbexec import SymbolicExecutionEngine
 
 
 parser = ArgumentParser("Simple expression use for generating dataflow graph")
@@ -51,7 +51,7 @@ def get_modified_symbols(sb):
 
 def intra_bloc_flow_symb(ir_arch, flow_graph, irbloc):
     symbols_init = ir_arch.arch.regs.regs_init.copy()
-    sb = symbexec(ir_arch, symbols_init)
+    sb = SymbolicExecutionEngine(ir_arch, symbols_init)
     sb.emulbloc(irbloc)
     print '*' * 40
     print irbloc

@@ -7,7 +7,7 @@ import unittest
 import logging
 import copy
 
-from miasm2.ir.symbexec import symbexec
+from miasm2.ir.symbexec import SymbolicExecutionEngine
 from miasm2.arch.x86.arch import mn_x86 as mn
 from miasm2.arch.x86.sem import ir_x86_32 as ir_32, ir_x86_64 as ir_64
 from miasm2.arch.x86.regs import *
@@ -25,7 +25,7 @@ m64 = 64
 def symb_exec(interm, inputstate, debug):
     sympool = dict(regs_init)
     sympool.update(inputstate)
-    symexec = symbexec(interm, sympool)
+    symexec = SymbolicExecutionEngine(interm, sympool)
     symexec.emul_ir_blocks(0)
     if debug:
         for k, v in symexec.symbols.items():

@@ -1,6 +1,6 @@
 from miasm2.expression.expression \
     import get_expr_mem, get_list_rw, ExprId, ExprInt
-from miasm2.ir.symbexec import symbexec
+from miasm2.ir.symbexec import SymbolicExecutionEngine
 
 
 def get_node_name(label, i, n):
@@ -77,7 +77,7 @@ def intra_bloc_flow_symbexec(ir_arch, flow_graph, irb):
 
     symbols_init = dict(ir_arch.arch.regs.all_regs_ids_init)
 
-    sb = symbexec(ir_arch, dict(symbols_init))
+    sb = SymbolicExecutionEngine(ir_arch, dict(symbols_init))
     sb.emulbloc(irb)
     # print "*"*40
     # print irb
@@ -297,7 +297,7 @@ class symb_exec_func:
             #    print "state done"
             #    continue
 
-            sb = symbexec(self.ir_arch, dict(s))
+            sb = SymbolicExecutionEngine(self.ir_arch, dict(s))
 
             return parent, ad, sb
         return None

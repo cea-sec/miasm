@@ -75,7 +75,7 @@ class symbolicexec_t(idaapi.simplecustviewer_t):
 
 
 def symbolic_exec():
-    from miasm2.ir.symbexec import symbexec
+    from miasm2.ir.symbexec import SymbolicExecutionEngine
     from miasm2.core.bin_stream_ida import bin_stream_ida
 
     from utils import guess_machine
@@ -93,7 +93,7 @@ def symbolic_exec():
         ira.add_bloc(bloc)
 
     print "Run symbolic execution..."
-    sb = symbexec(ira, machine.mn.regs.regs_init)
+    sb = SymbolicExecutionEngine(ira, machine.mn.regs.regs_init)
     sb.emul_ir_blocks(start)
 
     modified = {}

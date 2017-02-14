@@ -1,13 +1,12 @@
+import warnings
+import logging
+
 import miasm2.expression.expression as m2_expr
 from miasm2.expression.modint import int32
 from miasm2.expression.simplifications import expr_simp
 from miasm2.core import asmbloc
 from miasm2.ir.ir import AssignBlock
 from miasm2.core.interval import interval
-from miasm2.core.utils import get_caller_name
-import warnings
-
-import logging
 
 
 log = logging.getLogger("symbexec")
@@ -17,7 +16,10 @@ log.addHandler(console_handler)
 log.setLevel(logging.INFO)
 
 
-class symbols(object):
+class SymbolsMngr(object):
+    """
+    Store registers and memory symbolic values
+    """
 
     def __init__(self, init=None):
         if init is None:
@@ -81,13 +83,13 @@ class symbols(object):
                 [x[0] for x in self.symbols_mem.values()])
 
     def copy(self):
-        new_symbols = symbols()
+        new_symbols = SymbolsMngr()
         new_symbols.symbols_id = dict(self.symbols_id)
         new_symbols.symbols_mem = dict(self.symbols_mem)
         return new_symbols
 
     def inject_info(self, info):
-        new_symbols = symbols()
+        new_symbols = SymbolsMngr()
         for expr, value in self.items():
             expr = expr_simp(expr.replace_expr(info))
             value = expr_simp(value.replace_expr(info))
@@ -95,13 +97,17 @@ class symbols(object):
         return new_symbols
 
 
-class symbexec(object):
+class SymbolicExecutionEngine(object):
+    """
+    Symbolic execution engine
+    Allow IR code emulation in symbolic domain
+    """
 
     def __init__(self, ir_arch, known_symbols,
                  func_read=None,
                  func_write=None,
                  sb_expr_simp=expr_simp):
-        self.symbols = symbols()
+        self.symbols = SymbolsMngr()
         for expr, value in known_symbols.items():
             self.symbols[expr] = value
         self.func_read = func_read
@@ -441,7 +447,7 @@ class symbexec(object):
                 print '_' * 80
         return self.eval_expr(self.ir_arch.IRDst)
 
-    def emul_ir_bloc(self, myir, addr, step=False):
+    def emul_ir_bloc(self, _, addr, step=False):
         warnings.warn('DEPRECATION WARNING: use "emul_ir_block(self, addr, step=False)" instead of emul_ir_bloc')
         return self.emul_ir_block(addr, step)
 
@@ -451,7 +457,7 @@ class symbexec(object):
             addr = self.emulbloc(irblock, step=step)
         return addr
 
-    def emul_ir_blocs(self, myir, addr, lbl_stop=None, step=False):
+    def emul_ir_blocs(self, _, addr, lbl_stop=None, step=False):
         warnings.warn('DEPRECATION WARNING: use "emul_ir_blocks(self, addr, lbl_stop=None, step=False):" instead of emul_ir_blocs')
         return self.emul_ir_blocks(addr, lbl_stop, step)
 
@@ -466,6 +472,11 @@ class symbexec(object):
         return addr
 
     def del_mem_above_stack(self, stack_ptr):
+        """
+        Remove all stored memory values with following properties:
+        * pointer based on initial stack value
+        * pointer below current stack pointer
+        """
         stack_ptr = self.eval_expr(stack_ptr)
         for mem_addr, (mem, _) in self.symbols.symbols_mem.items():
             diff = self.expr_simp(mem_addr - stack_ptr)
@@ -487,3 +498,19 @@ class symbexec(object):
             ret = self.eval_expr(expr)
 
         return ret
+
+class symbexec(SymbolicExecutionEngine):
+    """
+    DEPRECATED object
+    Use SymbolicExecutionEngine instead of symbexec
+    """
+
+    def __init__(self, ir_arch, known_symbols,
+                 func_read=None,
+                 func_write=None,
+                 sb_expr_simp=expr_simp):
+        warnings.warn("Deprecated API: use SymbolicExecutionEngine")
+        super(symbexec, self).__init__(ir_arch, known_symbols,
+                                       func_read,
+                                       func_write,
+                                       sb_expr_simp=expr_simp)

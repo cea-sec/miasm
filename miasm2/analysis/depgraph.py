@@ -4,7 +4,7 @@ import miasm2.expression.expression as m2_expr
 from miasm2.core.graph import DiGraph
 from miasm2.core.asmbloc import asm_label, expr_is_int_or_label, expr_is_label
 from miasm2.expression.simplifications import expr_simp
-from miasm2.ir.symbexec import symbexec
+from miasm2.ir.symbexec import SymbolicExecutionEngine
 from miasm2.ir.ir import irbloc, AssignBlock
 from miasm2.ir.translators import Translator
 from miasm2.expression.expression_helper import possible_values
@@ -298,7 +298,7 @@ class DependencyResult(DependencyState):
 
         # Eval the block
         temp_label = asm_label("Temp")
-        symb_exec = symbexec(self._ira, ctx_init)
+        symb_exec = SymbolicExecutionEngine(self._ira, ctx_init)
         symb_exec.emulbloc(irbloc(temp_label, assignblks), step=step)
 
         # Return only inputs values (others could be wrongs)
@@ -354,7 +354,7 @@ class DependencyResultImplicit(DependencyResult):
         if ctx is not None:
             ctx_init.update(ctx)
         solver = z3.Solver()
-        symb_exec = symbexec(self._ira, ctx_init)
+        symb_exec = SymbolicExecutionEngine(self._ira, ctx_init)
         history = self.history[::-1]
         history_size = len(history)
         translator = Translator.to_language("z3")

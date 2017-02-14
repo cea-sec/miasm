@@ -10,7 +10,7 @@ class TestSymbExec(unittest.TestCase):
         from miasm2.expression.expression import ExprInt32, ExprId, ExprMem, \
             ExprCompose, ExprAff
         from miasm2.arch.x86.sem import ir_x86_32
-        from miasm2.ir.symbexec import symbexec
+        from miasm2.ir.symbexec import SymbolicExecutionEngine
         from miasm2.ir.ir import AssignBlock
 
         addrX = ExprInt32(-1)
@@ -35,10 +35,10 @@ class TestSymbExec(unittest.TestCase):
         id_a = ExprId('a')
         id_eax = ExprId('eax_init')
 
-        e = symbexec(ir_x86_32(),
-                     {mem0: id_x, mem1: id_y, mem9: id_x,
-                      mem40w: id_x[:16], mem50v: id_y,
-                      id_a: addr0, id_eax: addr0})
+        e = SymbolicExecutionEngine(ir_x86_32(),
+                                    {mem0: id_x, mem1: id_y, mem9: id_x,
+                                     mem40w: id_x[:16], mem50v: id_y,
+                                     id_a: addr0, id_eax: addr0})
         self.assertEqual(e.find_mem_by_addr(addr0), mem0)
         self.assertEqual(e.find_mem_by_addr(addrX), None)
         self.assertEqual(e.eval_expr(ExprMem(addr1 - addr1)), id_x)
