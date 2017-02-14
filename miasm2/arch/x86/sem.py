@@ -21,7 +21,7 @@ from miasm2.expression.simplifications import expr_simp
 from miasm2.arch.x86.regs import *
 from miasm2.arch.x86.arch import mn_x86, repeat_mn, replace_regs
 from miasm2.expression.expression_helper import expr_cmps, expr_cmpu
-from miasm2.ir.ir import ir, irbloc
+from miasm2.ir.ir import ir, IRBlock
 from miasm2.core.sembuilder import SemBuilder
 import math
 import struct
@@ -277,7 +277,7 @@ def gen_fcmov(ir, instr, cond, arg1, arg2, mov_if):
     e_do, extra_irs = [m2_expr.ExprAff(arg1, arg2)], []
     e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
     e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(cond, dstA, dstB)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+    return e, [IRBlock(lbl_do.name, [e_do])]
 
 
 def gen_cmov(ir, instr, cond, dst, src, mov_if):
@@ -297,7 +297,7 @@ def gen_cmov(ir, instr, cond, dst, src, mov_if):
     e_do, extra_irs = mov(ir, instr, dst, src)
     e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
     e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(cond, dstA, dstB)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+    return e, [IRBlock(lbl_do.name, [e_do])]
 
 
 def mov(_, instr, dst, src):
@@ -518,7 +518,7 @@ def _rotate_tpl(ir, instr, dst, src, op, left=False, include_cf=False):
     e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
     e.append(m2_expr.ExprAff(
         ir.IRDst, m2_expr.ExprCond(shifter, lbl_do, lbl_skip)))
-    return (e, [irbloc(lbl_do.name, [e_do])])
+    return (e, [IRBlock(lbl_do.name, [e_do])])
 
 
 def l_rol(ir, instr, dst, src):
@@ -615,7 +615,7 @@ def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None, left=False,
     e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
     e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(shifter, lbl_do,
                                                         lbl_skip)))
-    return e, [irbloc(lbl_do.name, [e_do])]
+    return e, [IRBlock(lbl_do.name, [e_do])]
 
 
 def sar(ir, instr, dst, src):
@@ -963,7 +963,7 @@ def cmps(ir, instr, size):
     e0.append(m2_expr.ExprAff(b.arg,
                               b.arg + m2_expr.ExprInt(size / 8, b.arg.size)))
     e0.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
-    e0 = irbloc(lbl_df_0.name, [e0])
+    e0 = IRBlock(lbl_df_0.name, [e0])
 
     e1 = []
     e1.append(m2_expr.ExprAff(a.arg,
@@ -971,7 +971,7 @@ def cmps(ir, instr, size):
     e1.append(m2_expr.ExprAff(b.arg,
                               b.arg - m2_expr.ExprInt(size / 8, b.arg.size)))
     e1.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
-    e1 = irbloc(lbl_df_1.name, [e1])
+    e1 = IRBlock(lbl_df_1.name, [e1])
 
     e.append(m2_expr.ExprAff(ir.IRDst,
                              m2_expr.ExprCond(df, lbl_df_1, lbl_df_0)))
@@ -992,13 +992,13 @@ def scas(ir, instr, size):
     e0.append(m2_expr.ExprAff(a.arg,
                               a.arg + m2_expr.ExprInt(size / 8, a.arg.size)))
     e0.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
-    e0 = irbloc(lbl_df_0.name, [e0])
+    e0 = IRBlock(lbl_df_0.name, [e0])
 
     e1 = []
     e1.append(m2_expr.ExprAff(a.arg,
                               a.arg - m2_expr.ExprInt(size / 8, a.arg.size)))
     e1.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
-    e1 = irbloc(lbl_df_1.name, [e1])
+    e1 = IRBlock(lbl_df_1.name, [e1])
 
     e.append(m2_expr.ExprAff(ir.IRDst,
                              m2_expr.ExprCond(df, lbl_df_1, lbl_df_0)))
@@ -1641,12 +1641,12 @@ def stos(ir, instr, size):
     e0 = []
     e0.append(m2_expr.ExprAff(addr_o, addr_p))
     e0.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
-    e0 = irbloc(lbl_df_0.name, [e0])
+    e0 = IRBlock(lbl_df_0.name, [e0])
 
     e1 = []
     e1.append(m2_expr.ExprAff(addr_o, addr_m))
     e1.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
-    e1 = irbloc(lbl_df_1.name, [e1])
+    e1 = IRBlock(lbl_df_1.name, [e1])
 
     e = []
     e.append(m2_expr.ExprAff(ir.ExprMem(addr, size), b))
@@ -1676,12 +1676,12 @@ def lods(ir, instr, size):
     e0 = []
     e0.append(m2_expr.ExprAff(addr_o, addr_p))
     e0.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
-    e0 = irbloc(lbl_df_0.name, [e0])
+    e0 = IRBlock(lbl_df_0.name, [e0])
 
     e1 = []
     e1.append(m2_expr.ExprAff(addr_o, addr_m))
     e1.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
-    e1 = irbloc(lbl_df_1.name, [e1])
+    e1 = IRBlock(lbl_df_1.name, [e1])
 
     e = []
     if instr.mode == 64 and b.size == 32:
@@ -1718,13 +1718,13 @@ def movs(ir, instr, size):
     e0.append(m2_expr.ExprAff(a, a + m2_expr.ExprInt(size / 8, a.size)))
     e0.append(m2_expr.ExprAff(b, b + m2_expr.ExprInt(size / 8, b.size)))
     e0.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
-    e0 = irbloc(lbl_df_0.name, [e0])
+    e0 = IRBlock(lbl_df_0.name, [e0])
 
     e1 = []
     e1.append(m2_expr.ExprAff(a, a - m2_expr.ExprInt(size / 8, a.size)))
     e1.append(m2_expr.ExprAff(b, b - m2_expr.ExprInt(size / 8, b.size)))
     e1.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
-    e1 = irbloc(lbl_df_1.name, [e1])
+    e1 = IRBlock(lbl_df_1.name, [e1])
 
     e.append(m2_expr.ExprAff(ir.IRDst,
                              m2_expr.ExprCond(df, lbl_df_1, lbl_df_0)))
@@ -2758,8 +2758,8 @@ def bsr_bsf(ir, instr, dst, src, op_name):
     e_src_not_null.append(m2_expr.ExprAff(dst, m2_expr.ExprOp(op_name, src)))
     e_src_not_null.append(aff_dst)
 
-    return e, [irbloc(lbl_src_null.name, [e_src_null]),
-               irbloc(lbl_src_not_null.name, [e_src_not_null])]
+    return e, [IRBlock(lbl_src_null.name, [e_src_null]),
+               IRBlock(lbl_src_not_null.name, [e_src_not_null])]
 
 
 def bsf(ir, instr, dst, src):
@@ -3655,7 +3655,7 @@ def ps_rl_ll(ir, instr, dst, src, op, size):
     e_do = []
     e.append(m2_expr.ExprAff(dst[0:dst.size], m2_expr.ExprCompose(*slices)))
     e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
-    return e, [irbloc(lbl_do.name, [e_do]), irbloc(lbl_zero.name, [e_zero])]
+    return e, [IRBlock(lbl_do.name, [e_do]), IRBlock(lbl_zero.name, [e_zero])]
 
 
 def psrlw(ir, instr, dst, src):
@@ -4583,10 +4583,10 @@ class ir_x86_16(ir):
         cond_bloc.append(m2_expr.ExprAff(self.IRDst, m2_expr.ExprCond(c_cond,
                                                                       lbl_skip,
                                                                       lbl_do)))
-        cond_bloc = irbloc(lbl_end.name, [cond_bloc])
+        cond_bloc = IRBlock(lbl_end.name, [cond_bloc])
         e_do = instr_ir
 
-        c = irbloc(lbl_do.name, [e_do])
+        c = IRBlock(lbl_do.name, [e_do])
         c.except_automod = False
         e_n = [m2_expr.ExprAff(self.IRDst, m2_expr.ExprCond(c_reg, lbl_do,
                                                             lbl_skip))]

@@ -5,7 +5,7 @@ import ast
 import re
 
 import miasm2.expression.expression as m2_expr
-from miasm2.ir.ir import irbloc
+from miasm2.ir.ir import IRBlock
 
 
 class MiasmTransformer(ast.NodeTransformer):
@@ -125,7 +125,7 @@ class SemBuilder(object):
         # Init
         self.transformer = MiasmTransformer()
         self._ctx = dict(m2_expr.__dict__)
-        self._ctx["irbloc"] = irbloc
+        self._ctx["IRBlock"] = IRBlock
         self._functions = {}
 
         # Update context
@@ -250,12 +250,12 @@ class SemBuilder(object):
                     sub_blocks[-1] = ast.List(elts=sub_blocks[-1],
                                               ctx=ast.Load())
 
-                    ## Replace the block with a call to 'irbloc'
+                    ## Replace the block with a call to 'IRBlock'
                     lbl_if_name = ast.Attribute(value=ast.Name(id=lbl_name,
                                                                ctx=ast.Load()),
                                                 attr='name', ctx=ast.Load())
 
-                    sub_blocks[-1] = ast.Call(func=ast.Name(id='irbloc',
+                    sub_blocks[-1] = ast.Call(func=ast.Name(id='IRBlock',
                                                             ctx=ast.Load()),
                                               args=[lbl_if_name,
                                                     sub_blocks[-1]],

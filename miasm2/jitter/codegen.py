@@ -1,5 +1,5 @@
 import miasm2.expression.expression as m2_expr
-from miasm2.ir.ir import irbloc
+from miasm2.ir.ir import IRBlock
 from miasm2.ir.translators import Translator
 from miasm2.core.asmbloc import expr_is_label, asm_block_bad, asm_label
 
@@ -134,7 +134,7 @@ class CGen(object):
                 instr.offset + instr.l,
                 self.ir_arch.IRDst.size)
 
-        return irbloc(self.ir_arch.get_instr_label(instr), [assignblk])
+        return IRBlock(self.ir_arch.get_instr_label(instr), [assignblk])
 
     def block2assignblks(self, block):
         irblocks_list = []

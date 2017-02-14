@@ -17,6 +17,8 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
+import warnings
+
 from itertools import chain
 
 import miasm2.expression.expression as m2_expr
@@ -95,7 +97,7 @@ class AssignBlock(dict):
 
             # Build the merging expression
             args = list(e_colision.union(remaining))
-            args.sort(key=lambda x:x[1])
+            args.sort(key=lambda x: x[1])
             starts = [start for (_, start, _) in args]
             assert len(set(starts)) == len(starts)
             args = [expr for (expr, _, _) in args]
@@ -108,7 +110,7 @@ class AssignBlock(dict):
         """Return an Expr list of extra expressions needed during the
         object instanciation"""
         if not isinstance(src, m2_expr.ExprCompose):
-            raise ValueError("Get mod slice not on expraff slice", str(self))
+            raise ValueError("Get mod slice not on expraff slice", str(src))
         modified_s = []
         for index, arg in src.iter_args():
             if not (isinstance(arg, m2_expr.ExprSlice) and
@@ -160,10 +162,20 @@ class AssignBlock(dict):
         return m2_expr.ExprAff(dst, self[dst])
 
 
-class irbloc(object):
+class IRBlock(object):
+    """Intermediate representation block object.
+
+    Stand for an intermediate representation  basic block.
+    """
 
     def __init__(self, label, irs, lines=None):
-        assert(isinstance(label, asm_label))
+        """
+        @label: asm_label of the IR basic block
+        @irs: list of AssignBlock
+        @lines: list of native instructions
+        """
+
+        assert isinstance(label, asm_label)
         if lines is None:
             lines = []
         self.label = label
@@ -196,7 +208,7 @@ class irbloc(object):
         assignblk = self.irs[self._dst_linenb]
         for dst in assignblk:
             if isinstance(dst, m2_expr.ExprId) and dst.name == "IRDst":
-                del(assignblk[dst])
+                del assignblk[dst]
                 assignblk[dst] = value
                 # Sanity check is already done in _get_dst
                 break
@@ -238,6 +250,17 @@ class irbloc(object):
                 out.append('\t%s = %s' % (dst, src))
             out.append("")
         return "\n".join(out)
+
+
+class irbloc(IRBlock):
+    """
+    DEPRECATED object
+    Use IRBlock instead of irbloc
+    """
+
+    def __init__(self, label, irs, lines=None):
+        warnings.warn('DEPRECATION WARNING: use "IRBlock" instead of "irblock"')
+        super(irbloc, self).__init__(label, irs, lines)
 
 
 class DiGraphIR(DiGraph):
@@ -330,7 +353,7 @@ class ir(object):
             ad = ad.name
         if isinstance(ad, m2_expr.ExprInt):
             ad = int(ad)
-        if type(ad) in [int, long]:
+        if isinstance(ad, (int, long)):
             ad = self.symbol_pool.getby_offset_create(ad)
         elif isinstance(ad, asm_label):
             ad = self.symbol_pool.getby_name_create(ad.name)
@@ -360,7 +383,7 @@ class ir(object):
         c.irs.append(AssignBlock([m2_expr.ExprAff(self.pc,
                                                   m2_expr.ExprInt(l.offset,
                                                                   self.pc.size)
-                                                  )]))
+                                                 )]))
         c.lines.append(l)
 
     def pre_add_instr(self, block, instr, irb_cur, ir_blocks_all, gen_pc_updt):
@@ -413,7 +436,7 @@ class ir(object):
             irb_cur = None
         return irb_cur
 
-    def add_bloc(self, block, gen_pc_updt = False):
+    def add_bloc(self, block, gen_pc_updt=False):
         """
         Add a native block to the current IR
         @block: native assembly block
@@ -425,7 +448,7 @@ class ir(object):
         for instr in block.lines:
             if irb_cur is None:
                 label = self.get_instr_label(instr)
-                irb_cur = irbloc(label, [], [])
+                irb_cur = IRBlock(label, [], [])
                 ir_blocks_all.append(irb_cur)
             irb_cur = self.add_instr_to_irblock(block, instr, irb_cur,
                                                 ir_blocks_all, gen_pc_updt)
@@ -522,7 +545,7 @@ class ir(object):
             dst = todo.pop()
             if expr_is_label(dst):
                 done.add(dst)
-            elif isinstance(dst, m2_expr.ExprMem) or isinstance(dst, m2_expr.ExprInt):
+            elif isinstance(dst, (m2_expr.ExprMem, m2_expr.ExprInt)):
                 done.add(dst)
             elif isinstance(dst, m2_expr.ExprCond):
                 todo.add(dst.src1)

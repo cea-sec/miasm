@@ -1,5 +1,5 @@
 import miasm2.expression.expression as m2_expr
-from miasm2.ir.ir import ir, irbloc
+from miasm2.ir.ir import ir, IRBlock
 from miasm2.arch.mips32.arch import mn_mips32
 from miasm2.arch.mips32.regs import R_LO, R_HI, PC, RA
 from miasm2.core.sembuilder import SemBuilder
@@ -468,7 +468,7 @@ class ir_mips32l(ir):
             if c is None:
                 # print 'new c'
                 label = self.get_label(l)
-                c = irbloc(label, [], [])
+                c = IRBlock(label, [], [])
                 ir_blocs_all.append(c)
                 bloc_dst = None
             # print 'Translate', l

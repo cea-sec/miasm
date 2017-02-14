@@ -1,5 +1,5 @@
 from miasm2.expression.expression import *
-from miasm2.ir.ir import ir, irbloc
+from miasm2.ir.ir import ir, IRBlock
 from miasm2.arch.arm.arch import mn_arm, mn_armt
 from miasm2.arch.arm.regs import *
 
@@ -1055,7 +1055,7 @@ def add_condition_expr(ir, instr, cond, instr_ir):
             break
     if not has_irdst:
         instr_ir.append(ExprAff(ir.IRDst, lbl_next))
-    e_do = irbloc(lbl_do.name, [instr_ir])
+    e_do = IRBlock(lbl_do.name, [instr_ir])
     e = [ExprAff(ir.IRDst, dst_cond)]
     return e, [e_do]
 

@@ -5,7 +5,7 @@ from miasm2.core.graph import DiGraph
 from miasm2.core.asmbloc import asm_label, expr_is_int_or_label, expr_is_label
 from miasm2.expression.simplifications import expr_simp
 from miasm2.ir.symbexec import SymbolicExecutionEngine
-from miasm2.ir.ir import irbloc, AssignBlock
+from miasm2.ir.ir import IRBlock, AssignBlock
 from miasm2.ir.translators import Translator
 from miasm2.expression.expression_helper import possible_values
 
@@ -270,7 +270,7 @@ class DependencyResult(DependencyState):
                     assignblk[element] = irb.irs[line_nb][element]
             assignblks.append(assignblk)
 
-        return irbloc(irb.label, assignblks)
+        return IRBlock(irb.label, assignblks)
 
     def emul(self, ctx=None, step=False):
         """Symbolic execution of relevant nodes according to the history
@@ -299,7 +299,7 @@ class DependencyResult(DependencyState):
         # Eval the block
         temp_label = asm_label("Temp")
         symb_exec = SymbolicExecutionEngine(self._ira, ctx_init)
-        symb_exec.emulbloc(irbloc(temp_label, assignblks), step=step)
+        symb_exec.emulbloc(IRBlock(temp_label, assignblks), step=step)
 
         # Return only inputs values (others could be wrongs)
         return {element: symb_exec.symbols[element]

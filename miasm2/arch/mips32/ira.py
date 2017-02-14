@@ -1,7 +1,7 @@
 #-*- coding:utf-8 -*-
 
 from miasm2.expression.expression import *
-from miasm2.ir.ir import ir, irbloc, AssignBlock
+from miasm2.ir.ir import ir, IRBlock, AssignBlock
 from miasm2.ir.analysis import ira
 from miasm2.arch.mips32.sem import ir_mips32l, ir_mips32b
 from miasm2.arch.mips32.regs import *
@@ -47,7 +47,7 @@ class ir_a_mips32l(ir_mips32l, ira):
             irs = self.call_effects(pc_val, l)
             irs.append(AssignBlock([ExprAff(self.IRDst,
                                             ExprId(lbl, size=self.pc.size))]))
-            nbloc = irbloc(new_lbl, irs)
+            nbloc = IRBlock(new_lbl, irs)
             nbloc.lines = [l] * len(irs)
             self.blocs[new_lbl] = nbloc
             irb.dst = ExprId(new_lbl, size=self.pc.size)
