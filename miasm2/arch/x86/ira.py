@@ -3,7 +3,7 @@
 from miasm2.expression.expression import ExprAff, ExprOp, ExprId
 from miasm2.core.graph import DiGraph
 from miasm2.core.asmbloc import expr_is_label
-from miasm2.ir.ir import ir, irbloc, AssignBlock
+from miasm2.ir.ir import AssignBlock
 from miasm2.ir.analysis import ira
 from miasm2.arch.x86.sem import ir_x86_16, ir_x86_32, ir_x86_64
 

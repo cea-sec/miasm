@@ -1,7 +1,7 @@
 #-*- coding:utf-8 -*-
 
 from miasm2.expression.expression import *
-from miasm2.ir.ir import ir, IRBlock, AssignBlock
+from miasm2.ir.ir import IntermediateRepresentation, IRBlock, AssignBlock
 from miasm2.ir.analysis import ira
 from miasm2.arch.mips32.sem import ir_mips32l, ir_mips32b
 from miasm2.arch.mips32.regs import *
@@ -22,7 +22,7 @@ class ir_a_mips32l(ir_mips32l, ira):
         return irb_cur
 
     def post_add_bloc(self, bloc, ir_blocs):
-        ir.post_add_bloc(self, bloc, ir_blocs)
+        IntermediateRepresentation.post_add_bloc(self, bloc, ir_blocs)
         for irb in ir_blocs:
             pc_val = None
             lr_val = None

@@ -1,5 +1,5 @@
 from miasm2.expression import expression as m2_expr
-from miasm2.ir.ir import ir, irbloc, AssignBlock
+from miasm2.ir.ir import IntermediateRepresentation, IRBlock, AssignBlock
 from miasm2.arch.aarch64.arch import mn_aarch64, conds_expr, replace_regs
 from miasm2.arch.aarch64.regs import *
 from miasm2.core.sembuilder import SemBuilder
@@ -746,10 +746,10 @@ class aarch64info:
     # offset
 
 
-class ir_aarch64l(ir):
+class ir_aarch64l(IntermediateRepresentation):
 
     def __init__(self, symbol_pool=None):
-        ir.__init__(self, mn_aarch64, "l", symbol_pool)
+        IntermediateRepresentation.__init__(self, mn_aarch64, "l", symbol_pool)
         self.pc = PC
         self.sp = SP
         self.IRDst = m2_expr.ExprId('IRDst', 64)
@@ -829,7 +829,7 @@ class ir_aarch64l(ir):
 class ir_aarch64b(ir_aarch64l):
 
     def __init__(self, symbol_pool=None):
-        ir.__init__(self, mn_aarch64, "b", symbol_pool)
+        IntermediateRepresentation.__init__(self, mn_aarch64, "b", symbol_pool)
         self.pc = PC
         self.sp = SP
         self.IRDst = m2_expr.ExprId('IRDst', 64)

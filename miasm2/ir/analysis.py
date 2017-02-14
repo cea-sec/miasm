@@ -3,7 +3,7 @@
 import logging
 
 from miasm2.ir.symbexec import SymbolicExecutionEngine
-from miasm2.ir.ir import ir, AssignBlock
+from miasm2.ir.ir import IntermediateRepresentation, AssignBlock
 from miasm2.expression.expression \
     import ExprAff, ExprCond, ExprId, ExprInt, ExprMem, ExprOp
 
@@ -14,14 +14,17 @@ log.addHandler(console_handler)
 log.setLevel(logging.WARNING)
 
 
-class ira(ir):
+class ira(IntermediateRepresentation):
     """IR Analysis
     This class provides higher level manipulations on IR, such as dead
     instruction removals.
 
-    This class can be used as a common parent with `miasm2.ir.ir::ir` class.
+    This class can be used as a common parent with
+    `miasm2.ir.ir::IntermediateRepresentation` class.
+
     For instance:
         class ira_x86_16(ir_x86_16, ira)
+
     """
 
     def ira_regs_ids(self):

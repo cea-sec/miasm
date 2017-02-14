@@ -1,7 +1,7 @@
 #-*- coding:utf-8 -*-
 
 from miasm2.expression.expression import *
-from miasm2.ir.ir import ir, irbloc, AssignBlock
+from miasm2.ir.ir import IRBlock, AssignBlock
 from miasm2.ir.analysis import ira
 from miasm2.arch.msp430.sem import ir_msp430
 from miasm2.arch.msp430.regs import *

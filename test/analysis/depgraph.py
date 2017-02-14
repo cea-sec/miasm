@@ -3,7 +3,7 @@ from miasm2.expression.expression import ExprId, ExprInt32, ExprAff, ExprCond, \
     ExprInt
 from miasm2.core.asmbloc import asm_label
 from miasm2.ir.analysis import ira
-from miasm2.ir.ir import ir, IRBlock, AssignBlock
+from miasm2.ir.ir import IRBlock, AssignBlock
 from miasm2.core.graph import DiGraph
 from miasm2.analysis.depgraph import DependencyNode, DependencyGraph
 from itertools import count

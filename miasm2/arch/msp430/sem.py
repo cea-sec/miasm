@@ -3,7 +3,7 @@
 from miasm2.expression.expression import *
 from miasm2.arch.msp430.regs import *
 from miasm2.arch.msp430.arch import mn_msp430
-from miasm2.ir.ir import ir
+from miasm2.ir.ir import IntermediateRepresentation
 
 
 # Utils
@@ -412,10 +412,10 @@ def ComposeExprAff(dst, src):
     return e
 
 
-class ir_msp430(ir):
+class ir_msp430(IntermediateRepresentation):
 
     def __init__(self, symbol_pool=None):
-        ir.__init__(self, mn_msp430, None, symbol_pool)
+        IntermediateRepresentation.__init__(self, mn_msp430, None, symbol_pool)
         self.pc = PC
         self.sp = SP
         self.IRDst = ExprId('IRDst', 16)

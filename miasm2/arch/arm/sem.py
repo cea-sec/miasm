@@ -1,5 +1,5 @@
 from miasm2.expression.expression import *
-from miasm2.ir.ir import ir, IRBlock
+from miasm2.ir.ir import IntermediateRepresentation, IRBlock
 from miasm2.arch.arm.arch import mn_arm, mn_armt
 from miasm2.arch.arm.regs import *
 
@@ -1227,9 +1227,9 @@ class arminfo:
     # offset
 
 
-class ir_arml(ir):
+class ir_arml(IntermediateRepresentation):
     def __init__(self, symbol_pool=None):
-        ir.__init__(self, mn_arm, "l", symbol_pool)
+        IntermediateRepresentation.__init__(self, mn_arm, "l", symbol_pool)
         self.pc = PC
         self.sp = SP
         self.IRDst = ExprId('IRDst', 32)
@@ -1264,14 +1264,14 @@ class ir_arml(ir):
 
 class ir_armb(ir_arml):
     def __init__(self, symbol_pool=None):
-        ir.__init__(self, mn_arm, "b", symbol_pool)
+        IntermediateRepresentation.__init__(self, mn_arm, "b", symbol_pool)
         self.pc = PC
         self.sp = SP
         self.IRDst = ExprId('IRDst', 32)
 
-class ir_armtl(ir):
+class ir_armtl(IntermediateRepresentation):
     def __init__(self, symbol_pool=None):
-        ir.__init__(self, mn_armt, "l", symbol_pool)
+        IntermediateRepresentation.__init__(self, mn_armt, "l", symbol_pool)
         self.pc = PC
         self.sp = SP
         self.IRDst = ExprId('IRDst', 32)
@@ -1281,7 +1281,7 @@ class ir_armtl(ir):
 
 class ir_armtb(ir_armtl):
     def __init__(self, symbol_pool=None):
-        ir.__init__(self, mn_armt, "b", symbol_pool)
+        IntermediateRepresentation.__init__(self, mn_armt, "b", symbol_pool)
         self.pc = PC
         self.sp = SP
         self.IRDst = ExprId('IRDst', 32)

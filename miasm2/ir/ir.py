@@ -320,7 +320,12 @@ class DiGraphIR(DiGraph):
         return super(DiGraphIR, self).dot()
 
 
-class ir(object):
+class IntermediateRepresentation(object):
+    """
+    Intermediate representation object
+
+    Allow native assembly to intermediate representation traduction
+    """
 
     def __init__(self, arch, attrib, symbol_pool=None):
         if symbol_pool is None:
@@ -602,3 +607,15 @@ class ir(object):
         if self._graph is None:
             self._gen_graph()
         return self._graph
+
+
+
+class ir(IntermediateRepresentation):
+    """
+    DEPRECATED object
+    Use IntermediateRepresentation instead of ir
+    """
+
+    def __init__(self, label, irs, lines=None):
+        warnings.warn('DEPRECATION WARNING: use "IntermediateRepresentation" instead of "ir"')
+        super(ir, self).__init__(label, irs, lines)

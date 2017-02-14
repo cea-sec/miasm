@@ -21,7 +21,7 @@ from miasm2.expression.simplifications import expr_simp
 from miasm2.arch.x86.regs import *
 from miasm2.arch.x86.arch import mn_x86, repeat_mn, replace_regs
 from miasm2.expression.expression_helper import expr_cmps, expr_cmpu
-from miasm2.ir.ir import ir, IRBlock
+from miasm2.ir.ir import IntermediateRepresentation, IRBlock
 from miasm2.core.sembuilder import SemBuilder
 import math
 import struct
@@ -4484,10 +4484,10 @@ mnemo_func = {'mov': mov,
               }
 
 
-class ir_x86_16(ir):
+class ir_x86_16(IntermediateRepresentation):
 
     def __init__(self, symbol_pool=None):
-        ir.__init__(self, mn_x86, 16, symbol_pool)
+        IntermediateRepresentation.__init__(self, mn_x86, 16, symbol_pool)
         self.do_stk_segm = False
         self.do_ds_segm = False
         self.do_str_segm = False
@@ -4622,7 +4622,7 @@ class ir_x86_16(ir):
 class ir_x86_32(ir_x86_16):
 
     def __init__(self, symbol_pool=None):
-        ir.__init__(self, mn_x86, 32, symbol_pool)
+        IntermediateRepresentation.__init__(self, mn_x86, 32, symbol_pool)
         self.do_stk_segm = False
         self.do_ds_segm = False
         self.do_str_segm = False
@@ -4636,7 +4636,7 @@ class ir_x86_32(ir_x86_16):
 class ir_x86_64(ir_x86_16):
 
     def __init__(self, symbol_pool=None):
-        ir.__init__(self, mn_x86, 64, symbol_pool)
+        IntermediateRepresentation.__init__(self, mn_x86, 64, symbol_pool)
         self.do_stk_segm = False
         self.do_ds_segm = False
         self.do_str_segm = False

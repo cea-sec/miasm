@@ -1,5 +1,5 @@
 import miasm2.expression.expression as m2_expr
-from miasm2.ir.ir import ir, IRBlock
+from miasm2.ir.ir import IntermediateRepresentation, IRBlock
 from miasm2.arch.mips32.arch import mn_mips32
 from miasm2.arch.mips32.regs import R_LO, R_HI, PC, RA
 from miasm2.core.sembuilder import SemBuilder
@@ -429,10 +429,10 @@ def get_mnemo_expr(ir, instr, *args):
     instr, extra_ir = mnemo_func[instr.name.lower()](ir, instr, *args)
     return instr, extra_ir
 
-class ir_mips32l(ir):
+class ir_mips32l(IntermediateRepresentation):
 
     def __init__(self, symbol_pool=None):
-        ir.__init__(self, mn_mips32, 'l', symbol_pool)
+        IntermediateRepresentation.__init__(self, mn_mips32, 'l', symbol_pool)
         self.pc = mn_mips32.getpc()
         self.sp = mn_mips32.getsp()
         self.IRDst = m2_expr.ExprId('IRDst', 32)
@@ -500,7 +500,7 @@ class ir_mips32l(ir):
 
 class ir_mips32b(ir_mips32l):
     def __init__(self, symbol_pool=None):
-        ir.__init__(self, mn_mips32, 'b', symbol_pool)
+        IntermediateRepresentation.__init__(self, mn_mips32, 'b', symbol_pool)
         self.pc = mn_mips32.getpc()
         self.sp = mn_mips32.getsp()
         self.IRDst = m2_expr.ExprId('IRDst', 32)
