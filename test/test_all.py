@@ -271,6 +271,7 @@ testset += RegressionTest(["depgraph.py"], base_dir="analysis",
                                                      (12, 1), (13, 1),
                                                      (14, 1), (15, 1))
                            ])
+testset += RegressionTest(["modularintervals.py"], base_dir="analysis")
 
 
 ## Degraph
