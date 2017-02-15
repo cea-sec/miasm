@@ -1,6 +1,6 @@
 """ Test cases for dead code elimination"""
 from miasm2.expression.expression import ExprId, ExprInt32, ExprAff, ExprMem
-from miasm2.core.asmbloc import asm_label
+from miasm2.core.asmbloc import AsmLabel
 from miasm2.ir.analysis import ira
 from miasm2.ir.ir import IRBlock, AssignBlock
 
@@ -23,13 +23,13 @@ CST1 = ExprInt32(0x11)
 CST2 = ExprInt32(0x12)
 CST3 = ExprInt32(0x13)
 
-LBL0 = asm_label("lbl0")
-LBL1 = asm_label("lbl1")
-LBL2 = asm_label("lbl2")
-LBL3 = asm_label("lbl3")
-LBL4 = asm_label("lbl4")
-LBL5 = asm_label("lbl5")
-LBL6 = asm_label("lbl6")
+LBL0 = AsmLabel("lbl0")
+LBL1 = AsmLabel("lbl1")
+LBL2 = AsmLabel("lbl2")
+LBL3 = AsmLabel("lbl3")
+LBL4 = AsmLabel("lbl4")
+LBL5 = AsmLabel("lbl5")
+LBL6 = AsmLabel("lbl6")
 
 
 

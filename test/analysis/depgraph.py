@@ -1,7 +1,7 @@
 """Regression test module for DependencyGraph"""
 from miasm2.expression.expression import ExprId, ExprInt32, ExprAff, ExprCond, \
     ExprInt
-from miasm2.core.asmbloc import asm_label
+from miasm2.core.asmbloc import AsmLabel
 from miasm2.ir.analysis import ira
 from miasm2.ir.ir import IRBlock, AssignBlock
 from miasm2.core.graph import DiGraph
@@ -42,13 +42,13 @@ CST33 = ExprInt32(0x33)
 CST35 = ExprInt32(0x35)
 CST37 = ExprInt32(0x37)
 
-LBL0 = asm_label("lbl0")
-LBL1 = asm_label("lbl1")
-LBL2 = asm_label("lbl2")
-LBL3 = asm_label("lbl3")
-LBL4 = asm_label("lbl4")
-LBL5 = asm_label("lbl5")
-LBL6 = asm_label("lbl6")
+LBL0 = AsmLabel("lbl0")
+LBL1 = AsmLabel("lbl1")
+LBL2 = AsmLabel("lbl2")
+LBL3 = AsmLabel("lbl3")
+LBL4 = AsmLabel("lbl4")
+LBL5 = AsmLabel("lbl5")
+LBL6 = AsmLabel("lbl6")
 
 def gen_irblock(label, exprs_list):
     """ Returns an IRBlock with empty lines.
@@ -114,7 +114,7 @@ def bloc2graph(irgraph, label=False, lines=True):
     # Generate basic blocks
     out_blocks = []
     for label in irgraph.graph.nodes():
-        if isinstance(label, asm_label):
+        if isinstance(label, AsmLabel):
             label_name = label.name
         else:
             label_name = str(label)
@@ -123,7 +123,7 @@ def bloc2graph(irgraph, label=False, lines=True):
             irblock = irgraph.blocks[label]
         else:
             irblock = None
-        if isinstance(label, asm_label):
+        if isinstance(label, AsmLabel):
             out_block = '%s [\n' % label.name
         else:
             out_block = '%s [\n' % label
@@ -154,11 +154,11 @@ def bloc2graph(irgraph, label=False, lines=True):
     out += out_blocks
     # Generate links
     for src, dst in irgraph.graph.edges():
-            if isinstance(src, asm_label):
+            if isinstance(src, AsmLabel):
                 src_name = src.name
             else:
                 src_name = str(src)
-            if isinstance(dst, asm_label):
+            if isinstance(dst, AsmLabel):
                 dst_name = dst.name
             else:
                 dst_name = str(dst)

@@ -4,7 +4,7 @@ from argparse import ArgumentParser
 from pdb import pm
 
 from miasm2.analysis.binary import Container
-from miasm2.core.asmbloc import log_asmbloc, asm_label, AsmCFG
+from miasm2.core.asmbloc import log_asmbloc, AsmLabel, AsmCFG
 from miasm2.expression.expression import ExprId
 from miasm2.core.interval import interval
 from miasm2.analysis.machine import Machine
@@ -139,7 +139,7 @@ while not finish and todo:
                 if not isntr:
                     continue
                 for dest in instr.getdstflow(mdis.symbol_pool):
-                    if not (isinstance(dest, ExprId) and isinstance(dest.name, asm_label)):
+                    if not (isinstance(dest, ExprId) and isinstance(dest.name, AsmLabel)):
                         continue
                     todo.append((mdis, instr, dest.name.offset))
 

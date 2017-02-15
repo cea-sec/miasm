@@ -3,7 +3,7 @@ from pdb import pm
 from miasm2.arch.x86.disasm import dis_x86_32
 from miasm2.analysis.binary import Container
 from miasm2.core.asmbloc import AsmCFG, asm_constraint, AsmBlock, \
-    asm_label, AsmBlockBad, asm_constraint_to, asm_constraint_next, \
+    AsmLabel, AsmBlockBad, asm_constraint_to, asm_constraint_next, \
     bbl_simplifier
 from miasm2.core.graph import DiGraphSimplifier, MatchGraphJoker
 from miasm2.expression.expression import ExprId
@@ -98,7 +98,7 @@ open("graph2.dot", "w").write(blocks.dot())
 # Test helper methods
 ## Label2block should always be updated
 assert blocks.label2block(first_block.label) == first_block
-my_block = AsmBlock(asm_label("testlabel"))
+my_block = AsmBlock(AsmLabel("testlabel"))
 blocks.add_node(my_block)
 assert len(blocks) == 3
 assert blocks.label2block(first_block.label) == first_block
@@ -108,7 +108,7 @@ assert blocks.label2block(my_block.label) == my_block
 assert len(list(blocks.get_bad_blocks())) == 0
 assert len(list(blocks.get_bad_blocks_predecessors())) == 0
 ### Add a bad block, not linked
-my_bad_block = AsmBlockBad(asm_label("testlabel_bad"))
+my_bad_block = AsmBlockBad(AsmLabel("testlabel_bad"))
 blocks.add_node(my_bad_block)
 assert list(blocks.get_bad_blocks()) == [my_bad_block]
 assert len(list(blocks.get_bad_blocks_predecessors())) == 0
@@ -126,7 +126,7 @@ assert len(list(blocks.get_bad_blocks_predecessors(strict=True))) == 0
 ## Sanity check
 blocks.sanity_check()
 ### Next on itself
-my_block_ni = AsmBlock(asm_label("testlabel_nextitself"))
+my_block_ni = AsmBlock(AsmLabel("testlabel_nextitself"))
 my_block_ni.bto.add(asm_constraint_next(my_block_ni.label))
 blocks.add_node(my_block_ni)
 error_raised = False
@@ -139,10 +139,10 @@ assert error_raised
 blocks.del_node(my_block_ni)
 blocks.sanity_check()
 ### Multiple next on the same node
-my_block_target = AsmBlock(asm_label("testlabel_target"))
+my_block_target = AsmBlock(AsmLabel("testlabel_target"))
 blocks.add_node(my_block_target)
-my_block_src1 = AsmBlock(asm_label("testlabel_src1"))
-my_block_src2 = AsmBlock(asm_label("testlabel_src2"))
+my_block_src1 = AsmBlock(AsmLabel("testlabel_src1"))
+my_block_src2 = AsmBlock(AsmLabel("testlabel_src2"))
 my_block_src1.bto.add(asm_constraint_next(my_block_target.label))
 blocks.add_node(my_block_src1)
 ### OK for now
@@ -171,8 +171,8 @@ assert blocks.label2block(my_block_src1.label).max_size == 0
 
 ## Check pendings
 ### Create a pending element
-my_block_src = AsmBlock(asm_label("testlabel_pend_src"))
-my_block_dst = AsmBlock(asm_label("testlabel_pend_dst"))
+my_block_src = AsmBlock(AsmLabel("testlabel_pend_src"))
+my_block_dst = AsmBlock(AsmLabel("testlabel_pend_dst"))
 my_block_src.bto.add(asm_constraint_to(my_block_dst.label))
 blocks.add_node(my_block_src)
 ### Check resulting state

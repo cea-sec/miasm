@@ -73,11 +73,11 @@ def guess_next_new_label(symbol_pool):
 
 
 def replace_expr_labels(expr, symbol_pool, replace_id):
-    """Create asm_label of the expression @expr in the @symbol_pool
+    """Create AsmLabel of the expression @expr in the @symbol_pool
     Update @replace_id"""
 
     if not (isinstance(expr, m2_expr.ExprId) and
-            isinstance(expr.name, asmbloc.asm_label)):
+            isinstance(expr.name, asmbloc.AsmLabel)):
         return expr
 
     old_lbl = expr.name
@@ -218,7 +218,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
         line = line.strip(' ').strip('\t')
         instr = mnemo.fromstring(line, attrib)
 
-        # replace orphan asm_label with labels from symbol_pool
+        # replace orphan AsmLabel with labels from symbol_pool
         replace_orphan_labels(instr, symbol_pool)
 
         if instr.dstflow():
@@ -250,7 +250,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
                 block_to_nlink = None
                 i += 1
                 continue
-            elif not isinstance(line, asmbloc.asm_label):
+            elif not isinstance(line, asmbloc.AsmLabel):
                 # First line must be a label. If it's not the case, generate
                 # it.
                 label = guess_next_new_label(symbol_pool)
@@ -281,7 +281,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
             elif isinstance(line, asmbloc.asm_raw):
                 cur_block.addline(line)
                 block_to_nlink = cur_block
-            elif isinstance(line, asmbloc.asm_label):
+            elif isinstance(line, asmbloc.AsmLabel):
                 if block_to_nlink:
                     cur_block.addto(
                         asmbloc.asm_constraint(line, C_NEXT))

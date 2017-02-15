@@ -128,12 +128,12 @@ class JitCore(object):
 
     def disbloc(self, addr, vm):
         """Disassemble a new block and JiT it
-        @addr: address of the block to disassemble (asm_label or int)
+        @addr: address of the block to disassemble (AsmLabel or int)
         @vm: VmMngr instance
         """
 
         # Get the block
-        if isinstance(addr, asmbloc.asm_label):
+        if isinstance(addr, asmbloc.AsmLabel):
             addr = addr.offset
 
         # Prepare disassembler

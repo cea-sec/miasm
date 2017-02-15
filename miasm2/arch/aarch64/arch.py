@@ -8,7 +8,7 @@ from collections import defaultdict
 from miasm2.core.bin_stream import bin_stream
 import regs as regs_module
 from regs import *
-from miasm2.core.asmbloc import asm_label
+from miasm2.core.asmbloc import AsmLabel
 from miasm2.core.cpu import log as log_cpu
 from miasm2.expression.modint import uint32, uint64
 import math
@@ -207,7 +207,7 @@ simdregs_h_zero = (simd32_info.parser |
 
 def ast_id2expr(t):
     if not t in mn_aarch64.regs.all_regs_ids_byname:
-        r = m2_expr.ExprId(asm_label(t))
+        r = m2_expr.ExprId(AsmLabel(t))
     else:
         r = mn_aarch64.regs.all_regs_ids_byname[t]
     return r

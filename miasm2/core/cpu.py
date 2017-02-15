@@ -232,7 +232,7 @@ class ParseAst(object):
         if size is None:
             size = self.default_size
         assert value is not None
-        return m2_expr.ExprId(asmbloc.asm_label(value), size)
+        return m2_expr.ExprId(asmbloc.AsmLabel(value), size)
 
     def ast_to_expr(self, size, ast):
         """Transform a typed ast into a Miasm expression
@@ -974,7 +974,7 @@ class instruction(object):
             ids = m2_expr.get_expr_ids(e)
             fixed_ids = {}
             for x in ids:
-                if isinstance(x.name, asmbloc.asm_label):
+                if isinstance(x.name, asmbloc.AsmLabel):
                     name = x.name.name
                     # special symbol $
                     if name == '$':

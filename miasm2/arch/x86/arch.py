@@ -7,7 +7,7 @@ from miasm2.core.cpu import *
 from collections import defaultdict
 import miasm2.arch.x86.regs as regs_module
 from miasm2.arch.x86.regs import *
-from miasm2.core.asmbloc import asm_label
+from miasm2.core.asmbloc import AsmLabel
 
 log = logging.getLogger("x86_arch")
 console_handler = logging.StreamHandler()
@@ -489,7 +489,7 @@ class instruction_x86(instruction):
             return
         expr = self.args[0]
         if isinstance(expr, ExprId):
-            if not isinstance(expr.name, asm_label) and expr not in all_regs_ids:
+            if not isinstance(expr.name, AsmLabel) and expr not in all_regs_ids:
                 raise ValueError("ExprId must be a label or a register")
         elif isinstance(expr, ExprInt):
             ad = expr.arg + int(self.offset)

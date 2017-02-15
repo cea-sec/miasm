@@ -205,7 +205,7 @@ class SymbolicExecutionEngine(object):
         elif isinstance(expr, m2_expr.ExprInt):
             return expr
         elif isinstance(expr, m2_expr.ExprId):
-            if isinstance(expr.name, asmbloc.asm_label) and expr.name.offset is not None:
+            if isinstance(expr.name, asmbloc.AsmLabel) and expr.name.offset is not None:
                 ret = m2_expr.ExprInt(expr.name.offset, expr.size)
             else:
                 ret = state.get(expr, expr)

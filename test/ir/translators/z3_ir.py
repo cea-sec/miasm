@@ -1,6 +1,6 @@
 import z3
 
-from miasm2.core.asmbloc import asm_label
+from miasm2.core.asmbloc import AsmLabel
 from miasm2.expression.expression import *
 from miasm2.ir.translators.translator import Translator
 from miasm2.ir.translators.z3_ir import Z3Mem
@@ -139,13 +139,13 @@ for miasm_int, res in [(five, -5), (four, -4)]:
     assert equiv(ez3, z3_e6)
 
 # --------------------------------------------------------------------------
-e7 = ExprId(asm_label("label_histoire", 0xdeadbeef), 32)
+e7 = ExprId(AsmLabel("label_histoire", 0xdeadbeef), 32)
 ez3 = Translator.to_language('z3').from_expr(e7)
 z3_e7 = z3.BitVecVal(0xdeadbeef, 32)
 assert equiv(ez3, z3_e7)
 
 # Should just not throw anything to pass
-e8 = ExprId(asm_label("label_jambe"), 32)
+e8 = ExprId(AsmLabel("label_jambe"), 32)
 ez3 = Translator.to_language('z3').from_expr(e8)
 assert not equiv(ez3, z3_e7)
 

@@ -26,15 +26,15 @@ def is_int(a):
 
 
 def expr_is_label(e):
-    return isinstance(e, m2_expr.ExprId) and isinstance(e.name, asm_label)
+    return isinstance(e, m2_expr.ExprId) and isinstance(e.name, AsmLabel)
 
 
 def expr_is_int_or_label(e):
     return isinstance(e, m2_expr.ExprInt) or \
-        (isinstance(e, m2_expr.ExprId) and isinstance(e.name, asm_label))
+        (isinstance(e, m2_expr.ExprId) and isinstance(e.name, AsmLabel))
 
 
-class asm_label:
+class AsmLabel(object):
 
     "Stand for an assembly label"
 
@@ -56,12 +56,18 @@ class asm_label:
             return "%s:%s" % (self.name, str(self.offset))
 
     def __repr__(self):
-        rep = '<asmlabel '
+        rep = '<%s ' % self.__class__.__name__
         if self.name:
             rep += repr(self.name) + ' '
         rep += '>'
         return rep
 
+
+class asm_label(AsmLabel):
+
+    def __init__(self, name="", offset=None):
+        warnings.warn('DEPRECATION WARNING: use "AsmLabel" instead of "asm_label"')
+        super(asm_label, self).__init__(name, offset)
 
 class asm_raw:
 
@@ -78,7 +84,7 @@ class asm_constraint(object):
 
     def __init__(self, label, c_t=c_to):
         # Sanity check
-        assert isinstance(label, asm_label)
+        assert isinstance(label, AsmLabel)
 
         self.label = label
         self.c_t = c_t
@@ -104,7 +110,7 @@ class asm_constraint_to(asm_constraint):
 class AsmBlock(object):
 
     def __init__(self, label, alignment=1):
-        assert isinstance(label, asm_label)
+        assert isinstance(label, AsmLabel)
         self.bto = set()
         self.lines = []
         self.label = label
@@ -181,7 +187,7 @@ class AsmBlock(object):
             l = symbol_pool.getby_offset_create(offset)
         elif isinstance(offset, str):
             l = symbol_pool.getby_name_create(offset)
-        elif isinstance(offset, asm_label):
+        elif isinstance(offset, AsmLabel):
             l = offset
         else:
             raise ValueError('unknown offset type %r' % offset)
@@ -314,7 +320,7 @@ class asm_symbol_pool:
         @name: label's name
         @offset: (optional) label's offset
         """
-        label = asm_label(name, offset)
+        label = AsmLabel(name, offset)
 
         # Test for collisions
         if (label.offset in self._offset2label and
@@ -445,7 +451,7 @@ class AsmCFG(DiGraph):
         super(AsmCFG, self).__init__(*args, **kwargs)
         # Edges -> constraint
         self.edges2constraint = {}
-        # Expected asm_label -> set( (src, dst), constraint )
+        # Expected AsmLabel -> set( (src, dst), constraint )
         self._pendings = {}
         # Label2block built on the fly
         self._label2block = {}
@@ -614,7 +620,7 @@ class AsmCFG(DiGraph):
 
     def label2block(self, label):
         """Return the block corresponding to label @label
-        @label: asm_label instance or ExprId(asm_label) instance"""
+        @label: AsmLabel instance or ExprId(AsmLabel) instance"""
         return self._label2block[label]
 
     def rebuild_edges(self):
@@ -1134,7 +1140,7 @@ def resolve_symbol(blockChains, symbol_pool, dst_interval=None):
 
 def filter_exprid_label(exprs):
     """Extract labels from list of ExprId @exprs"""
-    return set(expr.name for expr in exprs if isinstance(expr.name, asm_label))
+    return set(expr.name for expr in exprs if isinstance(expr.name, AsmLabel))
 
 
 def get_block_labels(block):
@@ -1442,7 +1448,7 @@ class disasmEngine(object):
                 dstn = []
                 for d in dst:
                     if isinstance(d, m2_expr.ExprId) and \
-                            isinstance(d.name, asm_label):
+                            isinstance(d.name, AsmLabel):
                         dstn.append(d.name)
                         if d.name.offset in self.dont_dis_retcall_funcs:
                             add_next_offset = False

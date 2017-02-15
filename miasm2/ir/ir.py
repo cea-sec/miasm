@@ -24,7 +24,7 @@ from itertools import chain
 import miasm2.expression.expression as m2_expr
 from miasm2.expression.expression_helper import get_missing_interval
 from miasm2.expression.simplifications import expr_simp
-from miasm2.core.asmbloc import asm_symbol_pool, expr_is_label, asm_label, \
+from miasm2.core.asmbloc import asm_symbol_pool, expr_is_label, AsmLabel, \
     AsmBlock
 from miasm2.core.graph import DiGraph
 
@@ -170,12 +170,12 @@ class IRBlock(object):
 
     def __init__(self, label, irs, lines=None):
         """
-        @label: asm_label of the IR basic block
+        @label: AsmLabel of the IR basic block
         @irs: list of AssignBlock
         @lines: list of native instructions
         """
 
-        assert isinstance(label, asm_label)
+        assert isinstance(label, AsmLabel)
         if lines is None:
             lines = []
         self.label = label
@@ -359,13 +359,13 @@ class IntermediateRepresentation(object):
         @ad: an ExprId/ExprInt/label/int"""
 
         if (isinstance(ad, m2_expr.ExprId) and
-                isinstance(ad.name, asm_label)):
+                isinstance(ad.name, AsmLabel)):
             ad = ad.name
         if isinstance(ad, m2_expr.ExprInt):
             ad = int(ad)
         if isinstance(ad, (int, long)):
             ad = self.symbol_pool.getby_offset_create(ad)
-        elif isinstance(ad, asm_label):
+        elif isinstance(ad, AsmLabel):
             ad = self.symbol_pool.getby_name_create(ad.name)
         return ad
 

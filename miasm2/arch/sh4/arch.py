@@ -6,7 +6,6 @@ from miasm2.expression.expression import *
 from collections import defaultdict
 import miasm2.arch.sh4.regs as regs_module
 from miasm2.arch.sh4.regs import *
-from miasm2.core.asmbloc import asm_label
 
 jra = ExprId('jra')
 jrb = ExprId('jrb')

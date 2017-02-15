@@ -23,7 +23,7 @@ class TranslatorC(Translator):
 
 
     def from_ExprId(self, expr):
-        if isinstance(expr.name, asmbloc.asm_label):
+        if isinstance(expr.name, asmbloc.AsmLabel):
             return "0x%x" % expr.name.offset
         return str(expr)
 

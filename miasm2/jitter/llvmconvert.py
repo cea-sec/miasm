@@ -508,7 +508,7 @@ class LLVMFunction():
         @label: str or asmlabel instance"""
         if isinstance(label, str):
             return label
-        elif isinstance(label, m2_asmbloc.asm_label):
+        elif isinstance(label, m2_asmbloc.AsmLabel):
             return "label_%s" % label.name
         elif m2_asmbloc.expr_is_label(label):
             return "label_%s" % label.name.name
