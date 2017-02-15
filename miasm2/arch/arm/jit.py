@@ -14,7 +14,7 @@ log.setLevel(logging.CRITICAL)
 class jitter_arml(jitter):
 
     def __init__(self, *args, **kwargs):
-        sp = asmbloc.asm_symbol_pool()
+        sp = asmbloc.AsmSymbolPool()
         jitter.__init__(self, ir_arml(sp), *args, **kwargs)
         self.vm.set_little_endian()
 
@@ -62,6 +62,6 @@ class jitter_arml(jitter):
 class jitter_armb(jitter_arml):
 
     def __init__(self, *args, **kwargs):
-        sp = asmbloc.asm_symbol_pool()
+        sp = asmbloc.AsmSymbolPool()
         jitter.__init__(self, ir_armb(sp), *args, **kwargs)
         self.vm.set_big_endian()

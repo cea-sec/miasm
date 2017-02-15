@@ -37,7 +37,7 @@ class jitter_x86_16(jitter):
     C_Gen = x86_32_CGen
 
     def __init__(self, *args, **kwargs):
-        sp = asmbloc.asm_symbol_pool()
+        sp = asmbloc.AsmSymbolPool()
         jitter.__init__(self, ir_x86_16(sp), *args, **kwargs)
         self.vm.set_little_endian()
         self.ir_arch.do_stk_segm = False
@@ -69,7 +69,7 @@ class jitter_x86_32(jitter):
     C_Gen = x86_32_CGen
 
     def __init__(self, *args, **kwargs):
-        sp = asmbloc.asm_symbol_pool()
+        sp = asmbloc.AsmSymbolPool()
         jitter.__init__(self, ir_x86_32(sp), *args, **kwargs)
         self.vm.set_little_endian()
         self.ir_arch.do_stk_segm = False
@@ -129,7 +129,7 @@ class jitter_x86_64(jitter):
     C_Gen = x86_64_CGen
 
     def __init__(self, *args, **kwargs):
-        sp = asmbloc.asm_symbol_pool()
+        sp = asmbloc.AsmSymbolPool()
         jitter.__init__(self, ir_x86_64(sp), *args, **kwargs)
         self.vm.set_little_endian()
         self.ir_arch.do_stk_segm = False

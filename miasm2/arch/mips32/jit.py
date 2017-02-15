@@ -77,7 +77,7 @@ class jitter_mips32l(jitter):
     C_Gen = mipsCGen
 
     def __init__(self, *args, **kwargs):
-        sp = asmbloc.asm_symbol_pool()
+        sp = asmbloc.AsmSymbolPool()
         jitter.__init__(self, ir_mips32l(sp), *args, **kwargs)
         self.vm.set_little_endian()
 
@@ -101,6 +101,6 @@ class jitter_mips32l(jitter):
 class jitter_mips32b(jitter_mips32l):
 
     def __init__(self, *args, **kwargs):
-        sp = asmbloc.asm_symbol_pool()
+        sp = asmbloc.AsmSymbolPool()
         jitter.__init__(self, ir_mips32b(sp), *args, **kwargs)
         self.vm.set_big_endian()

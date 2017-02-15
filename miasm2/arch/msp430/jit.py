@@ -14,7 +14,7 @@ log.setLevel(logging.CRITICAL)
 class jitter_msp430(jitter):
 
     def __init__(self, *args, **kwargs):
-        sp = asmbloc.asm_symbol_pool()
+        sp = asmbloc.AsmSymbolPool()
         jitter.__init__(self, ir_msp430(sp), *args, **kwargs)
         self.vm.set_little_endian()
 

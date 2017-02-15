@@ -24,7 +24,7 @@ from itertools import chain
 import miasm2.expression.expression as m2_expr
 from miasm2.expression.expression_helper import get_missing_interval
 from miasm2.expression.simplifications import expr_simp
-from miasm2.core.asmbloc import asm_symbol_pool, expr_is_label, AsmLabel, \
+from miasm2.core.asmbloc import AsmSymbolPool, expr_is_label, AsmLabel, \
     AsmBlock
 from miasm2.core.graph import DiGraph
 
@@ -329,7 +329,7 @@ class IntermediateRepresentation(object):
 
     def __init__(self, arch, attrib, symbol_pool=None):
         if symbol_pool is None:
-            symbol_pool = asm_symbol_pool()
+            symbol_pool = AsmSymbolPool()
         self.symbol_pool = symbol_pool
         self.blocks = {}
         self.pc = arch.getpc(attrib)

@@ -3,7 +3,7 @@
 from miasm2.expression.expression import ExprInt, ExprId, ExprMem, MatchExpr
 from miasm2.expression.simplifications import expr_simp
 from miasm2.core.asmbloc \
-    import asm_symbol_pool, asm_constraint_next, asm_constraint_to
+    import AsmSymbolPool, asm_constraint_next, asm_constraint_to
 from miasm2.core.utils import upck32
 # from miasm2.core.graph import DiGraph
 
@@ -25,7 +25,7 @@ def arm_guess_subcall(
     mnemo, attrib, pool_bin, cur_bloc, offsets_to_dis, symbol_pool):
     ira = get_ira(mnemo, attrib)
 
-    sp = asm_symbol_pool()
+    sp = AsmSymbolPool()
     ir_arch = ira(sp)
     print '###'
     print cur_bloc
@@ -74,7 +74,7 @@ def arm_guess_jump_table(
     jra = ExprId('jra')
     jrb = ExprId('jrb')
 
-    sp = asm_symbol_pool()
+    sp = AsmSymbolPool()
     ir_arch = ira(sp)
     ir_arch.add_bloc(cur_bloc)
 

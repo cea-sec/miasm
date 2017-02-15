@@ -306,7 +306,7 @@ class asm_block_bad(AsmBlockBad):
         super(asm_block_bad, self).__init__(label, alignment, *args, **kwargs)
 
 
-class asm_symbol_pool:
+class AsmSymbolPool(object):
 
     def __init__(self):
         self._labels = []
@@ -428,6 +428,13 @@ class asm_symbol_pool:
         label = self.add_label("lbl_gen_%.8X" % (self._label_num))
         self._label_num += 1
         return label
+
+
+class asm_symbol_pool(AsmSymbolPool):
+
+    def __init__(self):
+        warnings.warn('DEPRECATION WARNING: use "AsmSymbolPool" instead of "asm_symbol_pool"')
+        super(asm_symbol_pool, self).__init__()
 
 
 class AsmCFG(DiGraph):
@@ -758,7 +765,7 @@ class AsmCFG(DiGraph):
         In order to work, they must be only one block in @self per label in
         @symbol_pool (which is true if @self come from the same disasmEngine).
 
-        @symbol_pool: asm_symbol_pool instance associated with @self'labels
+        @symbol_pool: AsmSymbolPool instance associated with @self'labels
         @dis_block_callback: (optional) if set, this callback will be called on
         new block destinations
         @kwargs: (optional) named arguments to pass to dis_block_callback
@@ -1328,7 +1335,7 @@ class disasmEngine(object):
         self.arch = arch
         self.attrib = attrib
         self.bin_stream = bin_stream
-        self.symbol_pool = asm_symbol_pool()
+        self.symbol_pool = AsmSymbolPool()
         self.job_done = set()
 
         # Setup options

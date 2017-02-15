@@ -61,7 +61,7 @@ class DirectiveDontSplit(Directive):
 
 def guess_next_new_label(symbol_pool):
     """Generate a new label
-    @symbol_pool: the asm_symbol_pool instance"""
+    @symbol_pool: the AsmSymbolPool instance"""
     i = 0
     gen_name = "loc_%.8X"
     while True:
@@ -103,18 +103,18 @@ STATE_IN_BLOC = 1
 
 def parse_txt(mnemo, attrib, txt, symbol_pool=None):
     """Parse an assembly listing. Returns a couple (blocks, symbol_pool), where
-    blocks is a list of asm_bloc and symbol_pool the associated asm_symbol_pool
+    blocks is a list of asm_bloc and symbol_pool the associated AsmSymbolPool
 
     @mnemo: architecture used
     @attrib: architecture attribute
     @txt: assembly listing
-    @symbol_pool: (optional) the asm_symbol_pool instance used to handle labels
+    @symbol_pool: (optional) the AsmSymbolPool instance used to handle labels
     of the listing
 
     """
 
     if symbol_pool is None:
-        symbol_pool = asmbloc.asm_symbol_pool()
+        symbol_pool = asmbloc.AsmSymbolPool()
 
     C_NEXT = asmbloc.asm_constraint.c_next
     C_TO = asmbloc.asm_constraint.c_to

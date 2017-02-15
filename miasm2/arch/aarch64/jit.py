@@ -15,7 +15,7 @@ class jitter_aarch64l(jitter):
     max_reg_arg = 8
 
     def __init__(self, *args, **kwargs):
-        sp = asmbloc.asm_symbol_pool()
+        sp = asmbloc.AsmSymbolPool()
         jitter.__init__(self, ir_aarch64l(sp), *args, **kwargs)
         self.vm.set_little_endian()
 
@@ -64,6 +64,6 @@ class jitter_aarch64l(jitter):
 class jitter_aarch64b(jitter_aarch64l):
 
     def __init__(self, *args, **kwargs):
-        sp = asmbloc.asm_symbol_pool()
+        sp = asmbloc.AsmSymbolPool()
         jitter.__init__(self, ir_aarch64b(sp), *args, **kwargs)
         self.vm.set_big_endian()
