@@ -2,7 +2,7 @@ from pdb import pm
 
 from miasm2.arch.x86.disasm import dis_x86_32
 from miasm2.analysis.binary import Container
-from miasm2.core.asmbloc import AsmCFG, asm_constraint, AsmBlock, \
+from miasm2.core.asmbloc import AsmCFG, AsmConstraint, AsmBlock, \
     AsmLabel, AsmBlockBad, asm_constraint_to, asm_constraint_next, \
     bbl_simplifier
 from miasm2.core.graph import DiGraphSimplifier, MatchGraphJoker
@@ -60,10 +60,10 @@ assert last_block in blocks
 for pred in blocks.predecessors(last_block):
     blocks.del_edge(pred, last_block)
 ### Link first and last block
-blocks.add_edge(first_block, last_block, asm_constraint.c_next)
+blocks.add_edge(first_block, last_block, AsmConstraint.c_next)
 ### Only one link between two blocks
 try:
-    blocks.add_edge(first_block, last_block, asm_constraint.c_to)
+    blocks.add_edge(first_block, last_block, AsmConstraint.c_to)
     good = False
 except AssertionError:
     good = True
@@ -71,7 +71,7 @@ assert good
 
 ### Check final state
 assert len(first_block.bto) == 1
-assert list(first_block.bto)[0].c_t == asm_constraint.c_next
+assert list(first_block.bto)[0].c_t == AsmConstraint.c_next
 
 ## Simplify the obtained graph to keep only blocks which reach a block
 ## finnishing with RET
@@ -183,7 +183,7 @@ assert len(blocks.pendings[my_block_dst.label]) == 1
 pending = list(blocks.pendings[my_block_dst.label])[0]
 assert isinstance(pending, blocks.AsmCFGPending)
 assert pending.waiter == my_block_src
-assert pending.constraint == asm_constraint.c_to
+assert pending.constraint == AsmConstraint.c_to
 ### Sanity check must fail
 error_raised = False
 try:
@@ -236,9 +236,9 @@ assert map(str, entry_block.lines) == ['XOR        EAX, EAX',
 assert len(blocks.successors(entry_block)) == 2
 assert len(entry_block.bto) == 2
 nextb = blocks.label2block((cons.label for cons in entry_block.bto
-                            if cons.c_t == asm_constraint.c_next).next())
+                            if cons.c_t == AsmConstraint.c_next).next())
 tob = blocks.label2block((cons.label for cons in entry_block.bto
-                          if cons.c_t == asm_constraint.c_to).next())
+                          if cons.c_t == AsmConstraint.c_to).next())
 assert len(nextb.lines) == 4
 assert map(str, nextb.lines) == ['XOR        EDX, EDX',
                                  'XOR        ESI, ESI',
@@ -277,8 +277,8 @@ preds = blocks.predecessors(newb)
 assert len(preds) == 2
 assert entry_block in preds
 assert tob in preds
-assert blocks.edges2constraint[(entry_block, newb)] == asm_constraint.c_next
-assert blocks.edges2constraint[(tob, newb)] == asm_constraint.c_to
+assert blocks.edges2constraint[(entry_block, newb)] == AsmConstraint.c_next
+assert blocks.edges2constraint[(tob, newb)] == AsmConstraint.c_to
 
 
 # Check double block split

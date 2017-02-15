@@ -116,8 +116,8 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
     if symbol_pool is None:
         symbol_pool = asmbloc.AsmSymbolPool()
 
-    C_NEXT = asmbloc.asm_constraint.c_next
-    C_TO = asmbloc.asm_constraint.c_to
+    C_NEXT = asmbloc.AsmConstraint.c_next
+    C_TO = asmbloc.AsmConstraint.c_to
 
     lines = []
     # parse each line
@@ -263,8 +263,8 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
             state = STATE_IN_BLOC
             if block_to_nlink:
                 block_to_nlink.addto(
-                    asmbloc.asm_constraint(cur_block.label,
-                                           C_NEXT))
+                    asmbloc.AsmConstraint(cur_block.label,
+                                          C_NEXT))
             block_to_nlink = None
             continue
 
@@ -284,7 +284,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
             elif isinstance(line, asmbloc.AsmLabel):
                 if block_to_nlink:
                     cur_block.addto(
-                        asmbloc.asm_constraint(line, C_NEXT))
+                        asmbloc.AsmConstraint(line, C_NEXT))
                     block_to_nlink = None
                 state = STATE_NO_BLOC
                 continue
@@ -303,7 +303,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
                             continue
                         if dst in mnemo.regs.all_regs_ids:
                             continue
-                        cur_block.addto(asmbloc.asm_constraint(dst.name, C_TO))
+                        cur_block.addto(asmbloc.AsmConstraint(dst.name, C_TO))
 
                 if not line.splitflow():
                     block_to_nlink = None

@@ -85,7 +85,7 @@ class asm_raw(AsmRaw):
         super(asm_label, self).__init__(raw)
 
 
-class asm_constraint(object):
+class AsmConstraint(object):
     c_to = "c_to"
     c_next = "c_next"
 
@@ -100,18 +100,25 @@ class asm_constraint(object):
         return "%s:%s" % (str(self.c_t), str(self.label))
 
 
-class asm_constraint_next(asm_constraint):
+class asm_constraint(AsmConstraint):
+
+    def __init__(self, label, c_t=c_to):
+        warnings.warn('DEPRECATION WARNING: use "AsmConstraint" instead of "asm_constraint"')
+        super(asm_constraint, self).__init__(label, c_t)
+
+
+class asm_constraint_next(AsmConstraint):
 
     def __init__(self, label):
         super(asm_constraint_next, self).__init__(
-            label, c_t=asm_constraint.c_next)
+            label, c_t=AsmConstraint.c_next)
 
 
-class asm_constraint_to(asm_constraint):
+class asm_constraint_to(AsmConstraint):
 
     def __init__(self, label):
         super(asm_constraint_to, self).__init__(
-            label, c_t=asm_constraint.c_to)
+            label, c_t=AsmConstraint.c_to)
 
 
 class AsmBlock(object):
@@ -162,15 +169,15 @@ class AsmBlock(object):
         self.lines, new_bloc.lines = self.lines[:i], self.lines[i:]
         flow_mod_instr = self.get_flow_instr()
         log_asmbloc.debug('flow mod %r', flow_mod_instr)
-        c = asm_constraint(l, asm_constraint.c_next)
+        c = AsmConstraint(l, AsmConstraint.c_next)
         # move dst if flowgraph modifier was in original bloc
         # (usecase: split delayslot bloc)
         if flow_mod_instr:
             for xx in self.bto:
                 log_asmbloc.debug('lbl %s', xx)
             c_next = set(
-                [x for x in self.bto if x.c_t == asm_constraint.c_next])
-            c_to = [x for x in self.bto if x.c_t != asm_constraint.c_next]
+                [x for x in self.bto if x.c_t == AsmConstraint.c_next])
+            c_to = [x for x in self.bto if x.c_t != AsmConstraint.c_next]
             self.bto = set([c] + c_to)
             new_bloc.bto = c_next
         else:
@@ -198,7 +205,7 @@ class AsmBlock(object):
             l = offset
         else:
             raise ValueError('unknown offset type %r' % offset)
-        c = asm_constraint(l, c_t)
+        c = AsmConstraint(l, c_t)
         self.bto.add(c)
 
     def get_flow_instr(self):
@@ -225,14 +232,14 @@ class AsmBlock(object):
 
     def get_next(self):
         for x in self.bto:
-            if x.c_t == asm_constraint.c_next:
+            if x.c_t == AsmConstraint.c_next:
                 return x.label
         return None
 
     @staticmethod
     def _filter_constraint(constraints):
         """Sort and filter @constraints for AsmBlock.bto
-        @constraints: non-empty set of asm_constraint instance
+        @constraints: non-empty set of AsmConstraint instance
 
         Always the same type -> one of the constraint
         c_next and c_to -> c_next
@@ -252,7 +259,7 @@ class AsmBlock(object):
 
         # At least 2 types -> types = {c_next, c_to}
         # c_to is included in c_next
-        return next(iter(cbytype[asm_constraint.c_next]))
+        return next(iter(cbytype[AsmConstraint.c_next]))
 
     def fix_constraints(self):
         """Fix next block constraints"""
@@ -500,7 +507,7 @@ class AsmCFG(DiGraph):
 
         # Add the edge to src.bto if needed
         if dst.label not in [cons.label for cons in src.bto]:
-            src.bto.add(asm_constraint(dst.label, constraint))
+            src.bto.add(AsmConstraint(dst.label, constraint))
 
         # Add edge
         self.edges2constraint[(src, dst)] = constraint
@@ -603,7 +610,7 @@ class AsmCFG(DiGraph):
         edge_color = "blue"
 
         if len(self.successors(src)) > 1:
-            if cst == asm_constraint.c_next:
+            if cst == AsmConstraint.c_next:
                 edge_color = "red"
             else:
                 edge_color = "limegreen"
@@ -711,7 +718,7 @@ class AsmCFG(DiGraph):
 
         next_edges = {edge: constraint
                       for edge, constraint in self.edges2constraint.iteritems()
-                      if constraint == asm_constraint.c_next}
+                      if constraint == AsmConstraint.c_next}
 
         for block in self._nodes:
             # No next constraint to self
@@ -1384,12 +1391,12 @@ class disasmEngine(object):
                 else:
                     # Block is not empty, stop the desassembly pass and add a
                     # constraint to the next block
-                    cur_block.add_cst(offset, asm_constraint.c_next,
+                    cur_block.add_cst(offset, AsmConstraint.c_next,
                                       self.symbol_pool)
                 break
 
             if lines_cpt > 0 and offset in self.split_dis:
-                cur_block.add_cst(offset, asm_constraint.c_next,
+                cur_block.add_cst(offset, AsmConstraint.c_next,
                                   self.symbol_pool)
                 offsets_to_dis.add(offset)
                 break
@@ -1400,7 +1407,7 @@ class disasmEngine(object):
                 break
 
             if offset in self.job_done:
-                cur_block.add_cst(offset, asm_constraint.c_next,
+                cur_block.add_cst(offset, AsmConstraint.c_next,
                                   self.symbol_pool)
                 break
 
@@ -1420,7 +1427,7 @@ class disasmEngine(object):
                 else:
                     # Block is not empty, stop the desassembly pass and add a
                     # constraint to the next block
-                    cur_block.add_cst(off_i, asm_constraint.c_next,
+                    cur_block.add_cst(off_i, AsmConstraint.c_next,
                                       self.symbol_pool)
                 break
 
@@ -1433,7 +1440,7 @@ class disasmEngine(object):
                 else:
                     # Block is not empty, stop the desassembly pass and add a
                     # constraint to the next block
-                    cur_block.add_cst(off_i, asm_constraint.c_next,
+                    cur_block.add_cst(off_i, AsmConstraint.c_next,
                                       self.symbol_pool)
                 break
 
@@ -1469,7 +1476,7 @@ class disasmEngine(object):
                 dst = dstn
                 if (not instr.is_subcall()) or self.follow_call:
                     cur_block.bto.update(
-                        [asm_constraint(x, asm_constraint.c_to) for x in dst])
+                        [AsmConstraint(x, AsmConstraint.c_to) for x in dst])
 
             # get in delayslot mode
             in_delayslot = True
@@ -1479,7 +1486,7 @@ class disasmEngine(object):
             offsets_to_dis.add(c.label.offset)
 
         if add_next_offset:
-            cur_block.add_cst(offset, asm_constraint.c_next, self.symbol_pool)
+            cur_block.add_cst(offset, AsmConstraint.c_next, self.symbol_pool)
             offsets_to_dis.add(offset)
 
         # Fix multiple constraints
