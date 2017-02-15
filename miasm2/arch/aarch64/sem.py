@@ -804,8 +804,8 @@ class ir_aarch64l(IntermediateRepresentation):
                 dst = dst.replace_expr({self.pc: cur_offset})
             src = src.replace_expr({self.pc: cur_offset})
             instr_ir[i] = m2_expr.ExprAff(dst, src)
-        for b in extra_ir:
-            for irs in b.irs:
+        for irblock in extra_ir:
+            for irs in irblock.irs:
                 for i, expr in enumerate(irs):
                     dst, src = expr.dst, expr.src
                     if dst != self.pc:
@@ -819,9 +819,9 @@ class ir_aarch64l(IntermediateRepresentation):
         regs_to_fix = [WZR, XZR]
         instr_ir = [expr for expr in instr_ir if expr.dst not in regs_to_fix]
 
-        for b in extra_ir:
-            for i, irs in enumerate(b.irs):
-                b.irs[i] = [expr for expr in irs if expr.dst not in regs_to_fix]
+        for irblock in extra_ir:
+            for i, irs in enumerate(irblock.irs):
+                irblock.irs[i] = [expr for expr in irs if expr.dst not in regs_to_fix]
 
         return instr_ir, extra_ir
 

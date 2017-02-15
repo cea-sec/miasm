@@ -1252,8 +1252,8 @@ class ir_arml(IntermediateRepresentation):
             x = ExprAff(x.dst, x.src.replace_expr(
                 {self.pc: ExprInt32(instr.offset + 8)}))
             instr_ir[i] = x
-        for b in extra_ir:
-            for irs in b.irs:
+        for irblock in extra_ir:
+            for irs in irblock.irs:
                 for i, x in enumerate(irs):
                     x = ExprAff(x.dst, x.src.replace_expr(
                         {self.pc: ExprInt32(instr.offset + 8)}))

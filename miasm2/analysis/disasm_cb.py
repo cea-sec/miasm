@@ -34,12 +34,12 @@ def arm_guess_subcall(
     ir_blocks = ir_arch.blocks.values()
     # flow_graph = DiGraph()
     to_add = set()
-    for irb in ir_blocs:
+    for irblock in ir_blocks:
         # print 'X'*40
-        # print irb
+        # print irblock
         pc_val = None
         lr_val = None
-        for exprs in irb.irs:
+        for exprs in irblock.irs:
             for e in exprs:
                 if e.dst == ir_arch.pc:
                     pc_val = e.src
@@ -81,10 +81,10 @@ def arm_guess_jump_table(
     ir_blocks = ir_arch.blocks.values()
     for irblock in ir_blocks:
         # print 'X'*40
-        # print irb
+        # print irblock
         pc_val = None
         # lr_val = None
-        for exprs in irb.irs:
+        for exprs in irblock.irs:
             for e in exprs:
                 if e.dst == ir_arch.pc:
                     pc_val = e.src

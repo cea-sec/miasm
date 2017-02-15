@@ -87,10 +87,10 @@ def symbolic_exec():
     start, end = SelStart(), SelEnd()
 
     mdis.dont_dis = [end]
-    blocs = mdis.dis_multibloc(start)
+    blocks = mdis.dis_multibloc(start)
     ira = machine.ira()
-    for bloc in blocs:
-        ira.add_bloc(bloc)
+    for block in blocks:
+        ira.add_bloc(block)
 
     print "Run symbolic execution..."
     sb = SymbolicExecutionEngine(ira, machine.mn.regs.regs_init)

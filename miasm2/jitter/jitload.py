@@ -242,7 +242,7 @@ class jitter:
         "Add common exceptions handlers"
 
         def exception_automod(jitter):
-            "Tell the JiT backend to update blocs modified"
+            "Tell the JiT backend to update blocks modified"
 
             self.jit.updt_automod_code(jitter.vm)
             self.vm.set_exception(0)

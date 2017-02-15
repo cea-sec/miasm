@@ -28,12 +28,12 @@ class Asm_Test(object):
 
 
     def asm(self):
-        blocs, symbol_pool = parse_asm.parse_txt(mn_aarch64, 'l', self.TXT,
-                                                 symbol_pool = self.myjit.ir_arch.symbol_pool)
+        blocks, symbol_pool = parse_asm.parse_txt(mn_aarch64, 'l', self.TXT,
+                                                  symbol_pool = self.myjit.ir_arch.symbol_pool)
         # fix shellcode addr
         symbol_pool.set_offset(symbol_pool.getby_name("main"), 0x0)
         s = StrPatchwork()
-        patches = asmbloc.asm_resolve_final(mn_aarch64, blocs, symbol_pool)
+        patches = asmbloc.asm_resolve_final(mn_aarch64, blocks, symbol_pool)
         for offset, raw in patches.items():
             s[offset] = raw
 

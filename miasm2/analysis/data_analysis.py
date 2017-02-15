@@ -211,8 +211,8 @@ class symb_exec_func:
 
     """
     This algorithm will do symbolic execution on a function, trying to propagate
-    states between basic blocs in order to extract inter-blocs dataflow. The
-    algorithm tries to merge states from blocs with multiple parents.
+    states between basic blocks in order to extract inter-blocs dataflow. The
+    algorithm tries to merge states from blocks with multiple parents.
 
     There is no real magic here, loops and complex merging will certainly fail.
     """

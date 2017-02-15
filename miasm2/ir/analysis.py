@@ -167,7 +167,7 @@ class ira(IntermediateRepresentation):
         for irblock in self.blocks.values():
             modified |= self.remove_dead_instr(irblock, useful)
             # Remove useless structures
-            for assignblk in block.irs:
+            for assignblk in irblock.irs:
                 del assignblk._cur_kill
                 del assignblk._prev_kill
                 del assignblk._cur_reach
@@ -291,7 +291,7 @@ class ira(IntermediateRepresentation):
         Source : Kennedy, K. (1979). A survey of data flow analysis techniques.
         IBM Thomas J. Watson Research Division, page 43
         """
-        # Update r/w variables for all irblocs
+        # Update r/w variables for all irblocks
         self.get_rw(self.ira_regs_ids())
         # Liveness step
         self.compute_reach()

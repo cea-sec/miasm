@@ -431,7 +431,7 @@ class IntermediateRepresentation(object):
         if irb_cur is None:
             return None
 
-        assignblk, ir_blocs_extra = self.instr2ir(instr)
+        assignblk, ir_blocks_extra = self.instr2ir(instr)
 
         if gen_pc_updt is not False:
             self.gen_pc_update(irb_cur, instr)
@@ -439,10 +439,10 @@ class IntermediateRepresentation(object):
         irb_cur.irs.append(assignblk)
         irb_cur.lines.append(instr)
 
-        if ir_blocs_extra:
-            for b in ir_blocs_extra:
-                b.lines = [instr] * len(b.irs)
-            ir_blocks_all += ir_blocs_extra
+        if ir_blocks_extra:
+            for irblock in ir_blocks_extra:
+                irblock.lines = [instr] * len(irblock.irs)
+            ir_blocks_all += ir_blocks_extra
             irb_cur = None
         return irb_cur
 
@@ -482,22 +482,22 @@ class IntermediateRepresentation(object):
                     return ir
         return None
 
-    def set_empty_dst_to_next(self, bloc, ir_blocs):
-        for b in ir_blocs:
-            if b.dst is not None:
+    def set_empty_dst_to_next(self, block, ir_blocks):
+        for irblock in ir_blocks:
+            if irblock.dst is not None:
                 continue
-            next_lbl = bloc.get_next()
+            next_lbl = block.get_next()
             if next_lbl is None:
-                dst = m2_expr.ExprId(self.get_next_label(bloc.lines[-1]),
+                dst = m2_expr.ExprId(self.get_next_label(block.lines[-1]),
                                      self.pc.size)
             else:
                 dst = m2_expr.ExprId(next_lbl,
                                      self.pc.size)
-            b.irs.append(AssignBlock([m2_expr.ExprAff(self.IRDst, dst)]))
-            b.lines.append(b.lines[-1])
+            irblock.irs.append(AssignBlock([m2_expr.ExprAff(self.IRDst, dst)]))
+            irblock.lines.append(irblock.lines[-1])
 
-    def post_add_bloc(self, bloc, ir_blocs):
-        self.set_empty_dst_to_next(bloc, ir_blocs)
+    def post_add_bloc(self, block, ir_blocks):
+        self.set_empty_dst_to_next(block, ir_blocks)
 
         for irblock in ir_blocks:
             self.irbloc_fix_regs_for_mode(irblock, self.attrib)

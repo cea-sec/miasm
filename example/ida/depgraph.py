@@ -21,8 +21,8 @@ class depGraphSettingsForm(Form):
         self.stk_unalias_force = False
 
         self.address = ScreenEA()
-        cur_bloc = list(ira.getby_offset(self.address))[0]
-        for line_nb, l in enumerate(cur_bloc.lines):
+        cur_block = list(ira.getby_offset(self.address))[0]
+        for line_nb, l in enumerate(cur_block.lines):
             if l.offset == self.address:
                 break
         cur_label = str(cur_block.label)
@@ -151,11 +151,11 @@ for ad, name in Names():
 # Get the current function
 addr = ScreenEA()
 func = idaapi.get_func(addr)
-blocs = mdis.dis_multibloc(func.startEA)
+blocks = mdis.dis_multibloc(func.startEA)
 
 # Generate IR
-for bloc in blocs:
-    ir_arch.add_bloc(bloc)
+for block in blocks:
+    ir_arch.add_bloc(block)
 
 # Get settings
 settings = depGraphSettingsForm(ir_arch)

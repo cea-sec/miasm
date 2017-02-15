@@ -108,7 +108,7 @@ for ad in addrs:
 
 done = set()
 all_funcs = set()
-all_funcs_blocs = {}
+all_funcs_blocks = {}
 
 
 done_interval = interval()
@@ -121,27 +121,27 @@ while not finish and todo:
         if ad in done:
             continue
         done.add(ad)
-        ab = mdis.dis_multibloc(ad)
+        allblocks = mdis.dis_multibloc(ad)
 
         log.info('func ok %.16x (%d)' % (ad, len(all_funcs)))
 
         all_funcs.add(ad)
-        all_funcs_blocs[ad] = ab
-        for b in ab:
-            for l in b.lines:
+        all_funcs_blocks[ad] = allblocks
+        for block in allblocks:
+            for l in block.lines:
                 done_interval += interval([(l.offset, l.offset + l.l)])
 
         if args.funcswatchdog is not None:
             args.funcswatchdog -= 1
         if args.recurfunctions:
-            for b in ab:
-                i = b.get_subcall_instr()
-                if not i:
+            for block in allblocks:
+                instr = block.get_subcall_instr()
+                if not isntr:
                     continue
-                for d in i.getdstflow(mdis.symbol_pool):
-                    if not (isinstance(d, ExprId) and isinstance(d.name, asm_label)):
+                for dest in instr.getdstflow(mdis.symbol_pool):
+                    if not (isinstance(dest, ExprId) and isinstance(dest.name, asm_label)):
                         continue
-                    todo.append((mdis, i, d.name.offset))
+                    todo.append((mdis, instr, dest.name.offset))
 
         if args.funcswatchdog is not None and args.funcswatchdog <= 0:
             finish = True
@@ -155,13 +155,13 @@ while not finish and todo:
 
 
 # Generate dotty graph
-all_blocs = AsmCFG()
-for blocs in all_funcs_blocs.values():
-    all_blocs += blocs
+all_blocks = AsmCFG()
+for blocks in all_funcs_blocks.values():
+    all_blocks += blocks
 
 
 log.info('generate graph file')
-open('graph_execflow.dot', 'w').write(all_blocs.dot(offset=True))
+open('graph_execflow.dot', 'w').write(all_blocks.dot(offset=True))
 
 log.info('generate intervals')
 
@@ -192,9 +192,9 @@ if args.gen_ir:
     ir_arch_a.blocks = {}
     for ad, all_block in all_funcs_blocks.items():
         log.info("generating IR... %x" % ad)
-        for b in all_bloc:
-            ir_arch_a.add_bloc(b)
-            ir_arch.add_bloc(b)
+        for block in all_block:
+            ir_arch_a.add_bloc(block)
+            ir_arch.add_bloc(block)
 
     log.info("Print blocks (without analyse)")
     for label, block in ir_arch.blocks.iteritems():

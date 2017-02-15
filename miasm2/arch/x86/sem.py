@@ -4571,8 +4571,8 @@ class ir_x86_16(IntermediateRepresentation):
         lbl_skip = m2_expr.ExprId(self.get_next_label(instr), self.IRDst.size)
         lbl_next = m2_expr.ExprId(self.get_next_label(instr), self.IRDst.size)
 
-        for b in extra_ir:
-            for ir in b.irs:
+        for irblock in extra_ir:
+            for ir in irblock.irs:
                 for i, e in enumerate(ir):
                     src = e.src.replace_expr({lbl_next: lbl_end})
                     ir[i] = m2_expr.ExprAff(e.dst, src)
@@ -4656,8 +4656,8 @@ class ir_x86_64(ir_x86_16):
             src = src.replace_expr(
                 {self.pc: m2_expr.ExprInt64(instr.offset + instr.l)})
             instr_ir[i] = m2_expr.ExprAff(dst, src)
-        for b in extra_ir:
-            for irs in b.irs:
+        for irblock in extra_ir:
+            for irs in irblock.irs:
                 for i, expr in enumerate(irs):
                     dst, src = expr.dst, expr.src
                     if dst != self.pc:

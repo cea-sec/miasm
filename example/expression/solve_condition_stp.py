@@ -35,7 +35,7 @@ if not args:
     sys.exit(0)
 
 
-def get_bloc(ir_arch, mdis, ad):
+def get_block(ir_arch, mdis, ad):
     if isinstance(ad, asmbloc.asm_label):
         l = ad
     else:
@@ -46,7 +46,7 @@ def get_bloc(ir_arch, mdis, ad):
         ir_arch.add_bloc(b)
     b = ir_arch.get_bloc(l)
     if b is None:
-        raise LookupError('no bloc found at that address: %s' % l)
+        raise LookupError('no block found at that address: %s' % l)
     return b
 
 
@@ -62,11 +62,11 @@ def emul_symb(ir_arch, mdis, states_todo, states_done):
         sb.symbols = symbols.copy()
         if ir_arch.pc in sb.symbols:
             del(sb.symbols[ir_arch.pc])
-        b = get_bloc(ir_arch, mdis, ad)
+        b = get_block(ir_arch, mdis, ad)
 
-        print 'run bloc'
+        print 'run block'
         print b
-        # print blocs[ad]
+        # print blocks[ad]
         ad = sb.emulbloc(b)
         print 'final state'
         sb.dump_id()
@@ -161,20 +161,20 @@ if __name__ == '__main__':
 
     sb = SymbolicExecutionEngine(ir_arch, symbols_init)
 
-    blocs, symbol_pool = parse_asm.parse_txt(mn_x86, 32, '''
+    blocks, symbol_pool = parse_asm.parse_txt(mn_x86, 32, '''
     PUSH argv
     PUSH argc
     PUSH ret_addr
     ''')
 
 
-    b = list(blocs)[0]
+    b = list(blocks)[0]
     print b
     # add fake address and len to parsed instructions
-    for i, l in enumerate(b.lines):
-        l.offset, l.l = i, 1
+    for i, line in enumerate(b.lines):
+        line.offset, line.l = i, 1
     ir_arch.add_bloc(b)
-    irb = get_bloc(ir_arch, mdis, 0)
+    irb = get_block(ir_arch, mdis, 0)
     sb.emulbloc(irb)
     sb.dump_mem()
 
@@ -185,7 +185,7 @@ if __name__ == '__main__':
     states_done = set()
     states_todo.add((uint32(ad), sb.symbols, ()))
 
-    # emul blocs, propagate states
+    # emul blocks, propagate states
     emul_symb(ir_arch, mdis, states_todo, states_done)
 
     all_info = []

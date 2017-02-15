@@ -49,12 +49,12 @@ def get_modified_symbols(sb):
     return out
 
 
-def intra_bloc_flow_symb(ir_arch, flow_graph, irbloc):
+def intra_bloc_flow_symb(ir_arch, flow_graph, irblock):
     symbols_init = ir_arch.arch.regs.regs_init.copy()
     sb = SymbolicExecutionEngine(ir_arch, symbols_init)
-    sb.emulbloc(irbloc)
+    sb.emulbloc(irblock)
     print '*' * 40
-    print irbloc
+    print irblock
     in_nodes = {}
     out_nodes = {}
 
@@ -68,7 +68,7 @@ def intra_bloc_flow_symb(ir_arch, flow_graph, irbloc):
             all_mems.update(get_expr_mem(n))
 
         for n in all_mems:
-            node_n_w = get_node_name(irbloc.label, 0, n)
+            node_n_w = get_node_name(irblock.label, 0, n)
             if not n == src:
                 continue
             o_r = n.arg.get_r(mem_read=False, cst_read=True)
@@ -76,7 +76,7 @@ def intra_bloc_flow_symb(ir_arch, flow_graph, irbloc):
                 if n_r in current_nodes:
                     node_n_r = current_nodes[n_r]
                 else:
-                    node_n_r = get_node_name(irbloc.label, i, n_r)
+                    node_n_r = get_node_name(irblock.label, i, n_r)
                 if not n_r in in_nodes:
                     in_nodes[n_r] = node_n_r
                 flow_graph.add_uniq_edge(node_n_r, node_n_w)
@@ -89,20 +89,20 @@ def intra_bloc_flow_symb(ir_arch, flow_graph, irbloc):
             if n_r in current_nodes:
                 node_n_r = current_nodes[n_r]
             else:
-                node_n_r = get_node_name(irbloc.label, 0, n_r)
+                node_n_r = get_node_name(irblock.label, 0, n_r)
             if not n_r in in_nodes:
                 in_nodes[n_r] = node_n_r
 
             flow_graph.add_node(node_n_r)
             for n_w in nodes_w:
-                node_n_w = get_node_name(irbloc.label, 1, n_w)
+                node_n_w = get_node_name(irblock.label, 1, n_w)
                 out_nodes[n_w] = node_n_w
 
                 flow_graph.add_node(node_n_w)
                 flow_graph.add_uniq_edge(node_n_r, node_n_w)
 
-    irbloc.in_nodes = in_nodes
-    irbloc.out_nodes = out_nodes
+    irblock.in_nodes = in_nodes
+    irblock.out_nodes = out_nodes
 
 
 def node2str(self, node):
@@ -121,7 +121,7 @@ def gen_block_data_flow_graph(ir_arch, ad, block_flow_cb):
         if irblock.label.offset == ad:
             irblock_0 = irblock
             break
-    assert(irbloc_0 is not None)
+    assert(irblock_0 is not None)
     flow_graph = DiGraph()
     flow_graph.node2str = lambda n: node2str(flow_graph, n)
 
@@ -133,8 +133,8 @@ def gen_block_data_flow_graph(ir_arch, ad, block_flow_cb):
         print 'IN', [str(x) for x in irblock.in_nodes]
         print 'OUT', [str(x) for x in irblock.out_nodes]
 
-    print '*' * 20, 'interbloc', '*' * 20
-    inter_bloc_flow(ir_arch, flow_graph, irbloc_0.label)
+    print '*' * 20, 'interblock', '*' * 20
+    inter_bloc_flow(ir_arch, flow_graph, irblock_0.label)
 
     # from graph_qt import graph_qt
     # graph_qt(flow_graph)
@@ -169,7 +169,7 @@ if args.symb:
 else:
     block_flow_cb = intra_bloc_flow_raw
 
-gen_bloc_data_flow_graph(ir_arch, ad, block_flow_cb)
+gen_block_data_flow_graph(ir_arch, ad, block_flow_cb)
 
 print '*' * 40
 print """

@@ -6,7 +6,7 @@ from miasm2.core import parse_asm, asmbloc
 
 
 # Assemble code
-blocs, symbol_pool = parse_asm.parse_txt(mn_x86, 32, '''
+blocks, symbol_pool = parse_asm.parse_txt(mn_x86, 32, '''
 main:
    MOV    EAX, 1
    MOV    EBX, 2
@@ -25,11 +25,11 @@ loop:
 symbol_pool.set_offset(symbol_pool.getby_name("main"), 0x0)
 
 # Spread information and resolve instructions offset
-patches = asmbloc.asm_resolve_final(mn_x86, blocs, symbol_pool)
+patches = asmbloc.asm_resolve_final(mn_x86, blocks, symbol_pool)
 
-# Show resolved blocs
-for bloc in blocs:
-    print bloc
+# Show resolved blocks
+for block in blocks:
+    print block
 
 # Print offset -> bytes
 pprint(patches)

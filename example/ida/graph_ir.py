@@ -125,10 +125,10 @@ open('asm_flow.dot', 'w').write(ab.dot())
 
 print "generating IR... %x" % ad
 
-for b in ab:
+for block in ab:
     print 'ADD'
-    print b
-    ir_arch.add_bloc(b)
+    print block
+    ir_arch.add_bloc(block)
 
 
 print "IR ok... %x" % ad
