@@ -293,7 +293,7 @@ class DependencyResult(DependencyState):
                 line_nb = self.initial_state.line_nb
             else:
                 line_nb = None
-            assignblks += self.irblock_slice(self._ira.blocs[label],
+            assignblks += self.irblock_slice(self._ira.blocks[label],
                                              line_nb).irs
 
         # Eval the block
@@ -365,7 +365,7 @@ class DependencyResultImplicit(DependencyResult):
                 line_nb = self.initial_state.line_nb
             else:
                 line_nb = None
-            irb = self.irblock_slice(self._ira.blocs[label], line_nb)
+            irb = self.irblock_slice(self._ira.blocks[label], line_nb)
 
             # Emul the block and get back destination
             dst = symb_exec.emulbloc(irb, step=step)
@@ -580,7 +580,7 @@ class DependencyGraph(object):
         """Follow dependencies tracked in @state in the current irbloc
         @state: instance of DependencyState"""
 
-        irb = self._ira.blocs[state.label]
+        irb = self._ira.blocks[state.label]
         line_nb = len(irb.irs) if state.line_nb is None else state.line_nb
 
         for cur_line_nb, assignblk in reversed(list(enumerate(irb.irs[:line_nb]))):

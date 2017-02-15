@@ -16,7 +16,7 @@ l.offset, l.l = 0, 15
 ir_arch.add_instr(l)
 
 print '*' * 80
-for lbl, b in ir_arch.blocs.items():
+for lbl, b in ir_arch.blocks.items():
     print b
     for irs in b.irs:
         o_r, o_w = get_rw(irs)

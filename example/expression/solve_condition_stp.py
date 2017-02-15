@@ -40,7 +40,7 @@ def get_bloc(ir_arch, mdis, ad):
         l = ad
     else:
         l = mdis.symbol_pool.getby_offset_create(ad)
-    if not l in ir_arch.blocs:
+    if not l in ir_arch.blocks:
         ad = l.offset
         b = mdis.dis_bloc(ad)
         ir_arch.add_bloc(b)
@@ -178,8 +178,8 @@ if __name__ == '__main__':
     sb.emulbloc(irb)
     sb.dump_mem()
 
-    # reset ir_arch blocs
-    ir_arch.blocs = {}
+    # reset ir_arch blocks
+    ir_arch.blocks = {}
 
     states_todo = set()
     states_done = set()

@@ -188,23 +188,23 @@ if args.gen_ir:
 
     ir_arch = ir(mdis.symbol_pool)
     ir_arch_a = ira(mdis.symbol_pool)
-    ir_arch.blocs = {}
-    ir_arch_a.blocs = {}
-    for ad, all_bloc in all_funcs_blocs.items():
+    ir_arch.blocks = {}
+    ir_arch_a.blocks = {}
+    for ad, all_block in all_funcs_blocks.items():
         log.info("generating IR... %x" % ad)
         for b in all_bloc:
             ir_arch_a.add_bloc(b)
             ir_arch.add_bloc(b)
 
-    log.info("Print blocs (without analyse)")
-    for label, bloc in ir_arch.blocs.iteritems():
-        print bloc
+    log.info("Print blocks (without analyse)")
+    for label, block in ir_arch.blocks.iteritems():
+        print block
 
     log.info("Gen Graph... %x" % ad)
 
-    log.info("Print blocs (with analyse)")
-    for label, bloc in ir_arch_a.blocs.iteritems():
-        print bloc
+    log.info("Print blocks (with analyse)")
+    for label, block in ir_arch_a.blocks.iteritems():
+        print block
 
     if args.simplify:
         ir_arch_a.dead_simp()

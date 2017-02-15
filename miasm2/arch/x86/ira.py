@@ -25,7 +25,7 @@ class ir_a_x86_16(ir_x86_16, ira):
         return set([self.ret_reg, self.sp])
 
     def add_unused_regs(self):
-        leaves = [self.blocs[label] for label in self.g.leafs()]
+        leaves = [self.blocks[label] for label in self.g.leafs()]
         for irblock in leaves:
             self.set_dead_regs(irblock)
 

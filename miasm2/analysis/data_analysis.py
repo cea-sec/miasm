@@ -116,10 +116,10 @@ def inter_bloc_flow_link(ir_arch, flow_graph, todo, link_exec_to_data):
     current_nodes = dict(current_nodes)
 
     # link current nodes to bloc in_nodes
-    if not lbl in ir_arch.blocs:
+    if not lbl in ir_arch.blocks:
         print "cannot find bloc!!", lbl
         return set()
-    irb = ir_arch.blocs[lbl]
+    irb = ir_arch.blocks[lbl]
     # pp(('IN', lbl, [(str(x[0]), str(x[1])) for x in current_nodes.items()]))
     to_del = set()
     for n_r, node_n_r in irb.in_nodes.items():
@@ -159,15 +159,15 @@ def create_implicit_flow(ir_arch, flow_graph):
 
     # first fix IN/OUT
     # If a son read a node which in not in OUT, add it
-    todo = set(ir_arch.blocs.keys())
+    todo = set(ir_arch.blocks.keys())
     while todo:
         lbl = todo.pop()
-        irb = ir_arch.blocs[lbl]
+        irb = ir_arch.blocks[lbl]
         for lbl_son in ir_arch.graph.successors(irb.label):
-            if not lbl_son in ir_arch.blocs:
+            if not lbl_son in ir_arch.blocks:
                 print "cannot find bloc!!", lbl
                 continue
-            irb_son = ir_arch.blocs[lbl_son]
+            irb_son = ir_arch.blocks[lbl_son]
             for n_r in irb_son.in_nodes:
                 if n_r in irb.out_nodes:
                     continue

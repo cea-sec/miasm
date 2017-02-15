@@ -48,11 +48,11 @@ class GraphMiasmIR(GraphViewer):
         print 'refresh'
         self.Clear()
         addr_id = {}
-        for irbloc in self.ir_arch.blocs.values():
+        for irbloc in self.ir_arch.blocks.values():
             id_irbloc = self.AddNode(color_irbloc(irbloc))
             addr_id[irbloc] = id_irbloc
 
-        for irbloc in self.ir_arch.blocs.values():
+        for irbloc in self.ir_arch.blocks.values():
             if not irbloc:
                 continue
             dst = ir_arch.dst_trackback(irbloc)
@@ -61,9 +61,9 @@ class GraphMiasmIR(GraphViewer):
                     continue
 
                 d = d.name
-                if not d in self.ir_arch.blocs:
+                if not d in self.ir_arch.blocks:
                     continue
-                b = self.ir_arch.blocs[d]
+                b = self.ir_arch.blocks[d]
                 node1 = addr_id[irbloc]
                 node2 = addr_id[b]
                 self.AddEdge(node1, node2)
@@ -133,7 +133,7 @@ for b in ab:
 
 print "IR ok... %x" % ad
 
-for irb in ir_arch.blocs.values():
+for irb in ir_arch.blocks.values():
     for assignblk in irb.irs:
         for dst, src in assignblk.items():
             del(assignblk[dst])
@@ -201,7 +201,7 @@ def gen_bloc_data_flow_graph(ir_arch, in_str, ad):  # arch, attrib, pool_bin, bl
     # ir_arch.dead_simp()
 
     irbloc_0 = None
-    for irbloc in ir_arch.blocs.values():
+    for irbloc in ir_arch.blocks.values():
         if irbloc.label.offset == ad:
             irbloc_0 = irbloc
             break
@@ -212,11 +212,11 @@ def gen_bloc_data_flow_graph(ir_arch, in_str, ad):  # arch, attrib, pool_bin, bl
 
     bloc2w = {}
 
-    for irbloc in ir_arch.blocs.values():
+    for irbloc in ir_arch.blocks.values():
         intra_bloc_flow_symbexec(ir_arch, flow_graph, irbloc)
         # intra_bloc_flow_symb(ir_arch, flow_graph, irbloc)
 
-    for irbloc in ir_arch.blocs.values():
+    for irbloc in ir_arch.blocks.values():
         print irbloc
         print 'IN', [str(x) for x in irbloc.in_nodes]
         print 'OUT', [str(x) for x in irbloc.out_nodes]

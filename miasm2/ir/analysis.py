@@ -87,14 +87,14 @@ class ira(IntermediateRepresentation):
         useful = set()
 
         for node in self.graph.nodes():
-            if node not in self.blocs:
+            if node not in self.blocks:
                 continue
 
-            block = self.blocs[node]
+            block = self.blocks[node]
             successors = self.graph.successors(node)
             has_son = bool(successors)
             for p_son in successors:
-                if p_son not in self.blocs:
+                if p_son not in self.blocks:
                     # Leaf has lost its son: don't remove anything
                     # reaching this block
                     for r in self.ira_regs_ids():
@@ -139,7 +139,7 @@ class ira(IntermediateRepresentation):
             useful.add(elem)
             irb_label, irs_ind, dst = elem
 
-            assignblk = self.blocs[irb_label].irs[irs_ind]
+            assignblk = self.blocks[irb_label].irs[irs_ind]
             ins = assignblk.dst2ExprAff(dst)
 
             # Handle dependencies of used variables in ins
@@ -164,8 +164,8 @@ class ira(IntermediateRepresentation):
         """
         useful = self._mark_useful_code()
         modified = False
-        for block in self.blocs.values():
-            modified |= self.remove_dead_instr(block, useful)
+        for irblock in self.blocks.values():
+            modified |= self.remove_dead_instr(irblock, useful)
             # Remove useless structures
             for assignblk in block.irs:
                 del assignblk._cur_kill
@@ -217,7 +217,7 @@ class ira(IntermediateRepresentation):
 
         # Compute reach from predecessors
         for n_pred in self.graph.predecessors(irb.label):
-            p_block = self.blocs[n_pred]
+            p_block = self.blocks[n_pred]
 
             # Handle each register definition
             for c_reg in self.ira_regs_ids():
@@ -256,8 +256,8 @@ class ira(IntermediateRepresentation):
 
         fixed = True
         for node in self.graph.nodes():
-            if node in self.blocs:
-                irb = self.blocs[node]
+            if node in self.blocks:
+                irb = self.blocks[node]
                 for assignblk in irb.irs:
                     if (assignblk._cur_reach != assignblk._prev_reach or
                             assignblk._cur_kill != assignblk._prev_kill):
@@ -279,8 +279,8 @@ class ira(IntermediateRepresentation):
         log.debug('iteration...')
         while not fixed_point:
             for node in self.graph.nodes():
-                if node in self.blocs:
-                    self.compute_reach_block(self.blocs[node])
+                if node in self.blocks:
+                    self.compute_reach_block(self.blocks[node])
             fixed_point = self._test_kill_reach_fix()
 
     def dead_simp(self):
@@ -300,7 +300,7 @@ class ira(IntermediateRepresentation):
         self.simplify_blocs()
 
     def gen_equations(self):
-        for irb in self.blocs.values():
+        for irb in self.blocks.values():
             symbols_init = dict(self.arch.regs.all_regs_ids_init)
 
             sb = SymbolicExecutionEngine(self, dict(symbols_init))

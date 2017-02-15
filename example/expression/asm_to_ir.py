@@ -41,8 +41,8 @@ for b in blocs:
     ir_arch.add_bloc(b)
 
 # Display IR
-for lbl, b in ir_arch.blocs.items():
-    print b
+for lbl, irblock in ir_arch.blocks.items():
+    print irblock
 
 # Dead propagation
 open('graph.dot', 'w').write(ir_arch.graph.dot())
@@ -51,6 +51,6 @@ ir_arch.dead_simp()
 open('graph2.dot', 'w').write(ir_arch.graph.dot())
 
 # Display new IR
-print 'new ir blocs'
-for lbl, b in ir_arch.blocs.items():
-    print b
+print 'new ir blocks'
+for lbl, irblock in ir_arch.blocks.items():
+    print irblock

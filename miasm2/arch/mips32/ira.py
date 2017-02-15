@@ -43,7 +43,7 @@ class ir_a_mips32l(ir_mips32l, ira):
                                             ExprId(lbl, size=self.pc.size))]))
             nblock = IRBlock(new_lbl, irs)
             nblock.lines = [line] * len(irs)
-            self.blocs[new_lbl] = nblock
+            self.blocks[new_lbl] = nblock
             irb.dst = ExprId(new_lbl, size=self.pc.size)
 
     def get_out_regs(self, _):

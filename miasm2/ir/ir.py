@@ -331,13 +331,18 @@ class IntermediateRepresentation(object):
         if symbol_pool is None:
             symbol_pool = asm_symbol_pool()
         self.symbol_pool = symbol_pool
-        self.blocs = {}
+        self.blocks = {}
         self.pc = arch.getpc(attrib)
         self.sp = arch.getsp(attrib)
         self.arch = arch
         self.attrib = attrib
         # Lazy structure
         self._graph = None
+
+    @property
+    def get_blocs(self):
+        warnings.warn('DEPRECATION WARNING: use ".blocks" instead of ".blocs"')
+        return self.blocks
 
     def get_ir(self, instr):
         raise NotImplementedError("Abstract Method")
@@ -369,7 +374,7 @@ class IntermediateRepresentation(object):
         @ad: an ExprId/ExprInt/label/int"""
 
         label = self.get_label(ad)
-        return self.blocs.get(label, None)
+        return self.blocks.get(label, None)
 
     def add_instr(self, l, ad=0, gen_pc_updt=False):
         b = asm_bloc(self.gen_label())
@@ -378,7 +383,7 @@ class IntermediateRepresentation(object):
 
     def getby_offset(self, offset):
         out = set()
-        for irb in self.blocs.values():
+        for irb in self.blocks.values():
             for l in irb.lines:
                 if l.offset <= offset < l.offset + l.l:
                     out.add(irb)
@@ -494,10 +499,9 @@ class IntermediateRepresentation(object):
     def post_add_bloc(self, bloc, ir_blocs):
         self.set_empty_dst_to_next(bloc, ir_blocs)
 
-        for irb in ir_blocs:
-            self.irbloc_fix_regs_for_mode(irb, self.attrib)
-
-            self.blocs[irb.label] = irb
+        for irblock in ir_blocks:
+            self.irbloc_fix_regs_for_mode(irblock, self.attrib)
+            self.blocks[irblock.label] = irblock
 
         # Forget graph if any
         self._graph = None
@@ -518,8 +522,8 @@ class IntermediateRepresentation(object):
         return l
 
     def simplify_blocs(self):
-        for irb in self.blocs.values():
-            for assignblk in irb.irs:
+        for irblock in self.blocks.values():
+            for assignblk in irblock.irs:
                 for dst, src in assignblk.items():
                     del assignblk[dst]
                     assignblk[expr_simp(dst)] = expr_simp(src)
@@ -537,8 +541,8 @@ class IntermediateRepresentation(object):
         """
         if regs_ids is None:
             regs_ids = []
-        for b in self.blocs.values():
-            b.get_rw(regs_ids)
+        for irblock in self.blocks.values():
+            irblock.get_rw(regs_ids)
 
     def _extract_dst(self, todo, done):
         """
@@ -589,8 +593,8 @@ class IntermediateRepresentation(object):
         """
         Gen irbloc digraph
         """
-        self._graph = DiGraphIR(self.blocs)
-        for lbl, b in self.blocs.iteritems():
+        self._graph = DiGraphIR(self.blocks)
+        for lbl, b in self.blocks.iteritems():
             self._graph.add_node(lbl)
             dst = self.dst_trackback(b)
             for d in dst:

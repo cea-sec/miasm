@@ -110,28 +110,28 @@ def node2str(self, node):
     return out
 
 
-def gen_bloc_data_flow_graph(ir_arch, ad, block_flow_cb):
-    for irbloc in ir_arch.blocs.values():
-        print irbloc
+def gen_block_data_flow_graph(ir_arch, ad, block_flow_cb):
+    for irblock in ir_arch.blocks.values():
+        print irblock
 
     ir_arch.dead_simp()
 
-    irbloc_0 = None
-    for irbloc in ir_arch.blocs.values():
-        if irbloc.label.offset == ad:
-            irbloc_0 = irbloc
+    irblock_0 = None
+    for irblock in ir_arch.blocks.values():
+        if irblock.label.offset == ad:
+            irblock_0 = irblock
             break
     assert(irbloc_0 is not None)
     flow_graph = DiGraph()
     flow_graph.node2str = lambda n: node2str(flow_graph, n)
 
-    for irbloc in ir_arch.blocs.values():
-        block_flow_cb(ir_arch, flow_graph, irbloc)
+    for irblock in ir_arch.blocks.values():
+        block_flow_cb(ir_arch, flow_graph, irblock)
 
-    for irbloc in ir_arch.blocs.values():
-        print irbloc
-        print 'IN', [str(x) for x in irbloc.in_nodes]
-        print 'OUT', [str(x) for x in irbloc.out_nodes]
+    for irblock in ir_arch.blocks.values():
+        print irblock
+        print 'IN', [str(x) for x in irblock.in_nodes]
+        print 'OUT', [str(x) for x in irblock.out_nodes]
 
     print '*' * 20, 'interbloc', '*' * 20
     inter_bloc_flow(ir_arch, flow_graph, irbloc_0.label)
@@ -154,13 +154,13 @@ print 'ok'
 print 'generating dataflow graph for:'
 ir_arch = ir_a_x86_32(mdis.symbol_pool)
 
-blocs = ab
-for bloc in blocs:
-    print bloc
-    ir_arch.add_bloc(bloc)
-for irbloc in ir_arch.blocs.values():
-    print irbloc
-    if irbloc.label.offset != 0:
+blocks = ab
+for block in blocks:
+    print block
+    ir_arch.add_bloc(block)
+for irblock in ir_arch.blocks.values():
+    print irblock
+    if irblock.label.offset != 0:
         continue
 
 

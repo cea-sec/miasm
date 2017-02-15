@@ -117,14 +117,14 @@ class JitCore(object):
 
         raise NotImplementedError("Abstract class")
 
-    def add_bloc(self, b):
-        """Add a bloc to JiT and JiT it.
-        @b: the bloc to add
+    def add_bloc(self, block):
+        """Add a block to JiT and JiT it.
+        @block: asm_bloc to add
         """
 
-        irblocs = self.ir_arch.add_bloc(b, gen_pc_updt = True)
-        b.irblocs = irblocs
-        self.jitirblocs(b.label, irblocs)
+        irblocks = self.ir_arch.add_bloc(block, gen_pc_updt = True)
+        b.blocks = irblocks
+        self.jitirblocs(block.label, irblocks)
 
     def disbloc(self, addr, vm):
         """Disassemble a new bloc and JiT it
@@ -234,7 +234,7 @@ class JitCore(object):
         # Remove modified blocs
         for b in modified_blocs:
             try:
-                for irbloc in b.irblocs:
+                for irblock in block.blocks:
 
                     # Remove offset -> jitted bloc link
                     if irbloc.label.offset in self.lbl2jitbloc:
