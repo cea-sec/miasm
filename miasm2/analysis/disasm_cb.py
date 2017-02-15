@@ -3,7 +3,7 @@
 from miasm2.expression.expression import ExprInt, ExprId, ExprMem, MatchExpr
 from miasm2.expression.simplifications import expr_simp
 from miasm2.core.asmbloc \
-    import AsmSymbolPool, asm_constraint_next, asm_constraint_to
+    import AsmSymbolPool, AsmConstraintNext, AsmConstraintTo
 from miasm2.core.utils import upck32
 # from miasm2.core.graph import DiGraph
 
@@ -55,7 +55,7 @@ def arm_guess_subcall(
             continue
         # print 'IS CALL!'
         l = symbol_pool.getby_offset_create(int(lr_val))
-        c = asm_constraint_next(l)
+        c = AsmConstraintNext(l)
 
         to_add.add(c)
         offsets_to_dis.add(int(lr_val))
@@ -125,7 +125,7 @@ def arm_guess_jump_table(
         for ad in addrs:
             offsets_to_dis.add(ad)
             l = symbol_pool.getby_offset_create(ad)
-            c = asm_constraint_to(l)
+            c = AsmConstraintTo(l)
             cur_bloc.addto(c)
 
 guess_funcs = []

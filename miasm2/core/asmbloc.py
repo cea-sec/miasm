@@ -102,23 +102,36 @@ class AsmConstraint(object):
 
 class asm_constraint(AsmConstraint):
 
-    def __init__(self, label, c_t=c_to):
+    def __init__(self, label, c_t=AsmConstraint.c_to):
         warnings.warn('DEPRECATION WARNING: use "AsmConstraint" instead of "asm_constraint"')
         super(asm_constraint, self).__init__(label, c_t)
+
+
+class AsmConstraintNext(AsmConstraint):
+
+    def __init__(self, label):
+        super(AsmConstraintNext, self).__init__(
+            label, c_t=AsmConstraint.c_next)
 
 
 class asm_constraint_next(AsmConstraint):
 
     def __init__(self, label):
-        super(asm_constraint_next, self).__init__(
-            label, c_t=AsmConstraint.c_next)
+        warnings.warn('DEPRECATION WARNING: use "AsmConstraintNext" instead of "asm_constraint_next"')
+        super(asm_constraint_next, self).__init__(label)
 
+
+class AsmConstraintTo(AsmConstraint):
+
+    def __init__(self, label):
+        super(AsmConstraintTo, self).__init__(
+            label, c_t=AsmConstraint.c_to)
 
 class asm_constraint_to(AsmConstraint):
 
     def __init__(self, label):
-        super(asm_constraint_to, self).__init__(
-            label, c_t=AsmConstraint.c_to)
+        warnings.warn('DEPRECATION WARNING: use "AsmConstraintTo" instead of "asm_constraint_to"')
+        super(asm_constraint_to, self).__init__(label)
 
 
 class AsmBlock(object):

@@ -3,7 +3,7 @@ from pdb import pm
 from miasm2.arch.x86.disasm import dis_x86_32
 from miasm2.analysis.binary import Container
 from miasm2.core.asmbloc import AsmCFG, AsmConstraint, AsmBlock, \
-    AsmLabel, AsmBlockBad, asm_constraint_to, asm_constraint_next, \
+    AsmLabel, AsmBlockBad, AsmConstraintTo, AsmConstraintNext, \
     bbl_simplifier
 from miasm2.core.graph import DiGraphSimplifier, MatchGraphJoker
 from miasm2.expression.expression import ExprId
@@ -114,11 +114,11 @@ assert list(blocks.get_bad_blocks()) == [my_bad_block]
 assert len(list(blocks.get_bad_blocks_predecessors())) == 0
 ### Link the bad block and update edges
 ### Indeed, a sub-element has been modified (bto from a block from blocks)
-my_block.bto.add(asm_constraint_to(my_bad_block.label))
+my_block.bto.add(AsmConstraintTo(my_bad_block.label))
 blocks.rebuild_edges()
 assert list(blocks.get_bad_blocks_predecessors()) == [my_block]
 ### Test strict option
-my_block.bto.add(asm_constraint_to(my_block.label))
+my_block.bto.add(AsmConstraintTo(my_block.label))
 blocks.rebuild_edges()
 assert list(blocks.get_bad_blocks_predecessors(strict=False)) == [my_block]
 assert len(list(blocks.get_bad_blocks_predecessors(strict=True))) == 0
@@ -127,7 +127,7 @@ assert len(list(blocks.get_bad_blocks_predecessors(strict=True))) == 0
 blocks.sanity_check()
 ### Next on itself
 my_block_ni = AsmBlock(AsmLabel("testlabel_nextitself"))
-my_block_ni.bto.add(asm_constraint_next(my_block_ni.label))
+my_block_ni.bto.add(AsmConstraintNext(my_block_ni.label))
 blocks.add_node(my_block_ni)
 error_raised = False
 try:
@@ -143,12 +143,12 @@ my_block_target = AsmBlock(AsmLabel("testlabel_target"))
 blocks.add_node(my_block_target)
 my_block_src1 = AsmBlock(AsmLabel("testlabel_src1"))
 my_block_src2 = AsmBlock(AsmLabel("testlabel_src2"))
-my_block_src1.bto.add(asm_constraint_next(my_block_target.label))
+my_block_src1.bto.add(AsmConstraintNext(my_block_target.label))
 blocks.add_node(my_block_src1)
 ### OK for now
 blocks.sanity_check()
 ### Add a second next from src2 to target (already src1 -> target)
-my_block_src2.bto.add(asm_constraint_next(my_block_target.label))
+my_block_src2.bto.add(AsmConstraintNext(my_block_target.label))
 blocks.add_node(my_block_src2)
 error_raised = False
 try:
@@ -173,7 +173,7 @@ assert blocks.label2block(my_block_src1.label).max_size == 0
 ### Create a pending element
 my_block_src = AsmBlock(AsmLabel("testlabel_pend_src"))
 my_block_dst = AsmBlock(AsmLabel("testlabel_pend_dst"))
-my_block_src.bto.add(asm_constraint_to(my_block_dst.label))
+my_block_src.bto.add(AsmConstraintTo(my_block_dst.label))
 blocks.add_node(my_block_src)
 ### Check resulting state
 assert len(blocks) == 7
@@ -257,7 +257,7 @@ blocks.apply_splitting(mdis.symbol_pool)
 assert blocks_bef == blocks
 ## Create conditions for a block split
 inside_firstbbl = mdis.symbol_pool.getby_offset(4)
-tob.bto.add(asm_constraint_to(inside_firstbbl))
+tob.bto.add(AsmConstraintTo(inside_firstbbl))
 blocks.rebuild_edges()
 assert len(blocks.pendings) == 1
 assert inside_firstbbl in blocks.pendings
