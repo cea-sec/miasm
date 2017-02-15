@@ -3,7 +3,7 @@ from pdb import pm
 from miasm2.arch.x86.disasm import dis_x86_32
 from miasm2.analysis.binary import Container
 from miasm2.core.asmbloc import AsmCFG, asm_constraint, AsmBlock, \
-    asm_label, asm_block_bad, asm_constraint_to, asm_constraint_next, \
+    asm_label, AsmBlockBad, asm_constraint_to, asm_constraint_next, \
     bbl_simplifier
 from miasm2.core.graph import DiGraphSimplifier, MatchGraphJoker
 from miasm2.expression.expression import ExprId
@@ -108,7 +108,7 @@ assert blocks.label2block(my_block.label) == my_block
 assert len(list(blocks.get_bad_blocks())) == 0
 assert len(list(blocks.get_bad_blocks_predecessors())) == 0
 ### Add a bad block, not linked
-my_bad_block = asm_block_bad(asm_label("testlabel_bad"))
+my_bad_block = AsmBlockBad(asm_label("testlabel_bad"))
 blocks.add_node(my_bad_block)
 assert list(blocks.get_bad_blocks()) == [my_bad_block]
 assert len(list(blocks.get_bad_blocks_predecessors())) == 0
@@ -219,7 +219,7 @@ assert len(list(blocks.get_bad_blocks())) == 1
 ### Check "special" blocks
 entry_blocks = blocks.heads()
 bad_block = (block for block in entry_blocks
-             if isinstance(block, asm_block_bad)).next()
+             if isinstance(block, AsmBlockBad)).next()
 entry_blocks.remove(bad_block)
 alone_block = (block for block in entry_blocks
                if len(blocks.successors(block)) == 0).next()

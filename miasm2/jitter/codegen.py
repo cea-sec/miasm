@@ -1,7 +1,7 @@
 import miasm2.expression.expression as m2_expr
 from miasm2.ir.ir import IRBlock
 from miasm2.ir.translators import Translator
-from miasm2.core.asmbloc import expr_is_label, asm_block_bad, asm_label
+from miasm2.core.asmbloc import expr_is_label, AsmBlockBad, asm_label
 
 # Miasm to C translator
 translator = Translator.to_language("C")
@@ -545,7 +545,7 @@ class CGen(object):
         @log_regs: log registers
         """
 
-        if isinstance(block, asm_block_bad):
+        if isinstance(block, AsmBlockBad):
             return self.gen_bad_block()
         irblocks_list = self.block2assignblks(block)
 

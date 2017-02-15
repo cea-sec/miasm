@@ -1276,7 +1276,7 @@ class LLVMFunction():
         self.init_fc()
         self.local_vars_pointers["status"] = self.local_vars["status"]
 
-        if isinstance(asmblock, m2_asmbloc.asm_block_bad):
+        if isinstance(asmblock, m2_asmbloc.AsmBlockBad):
             self.gen_bad_block(asmblock)
             return
 

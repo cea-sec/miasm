@@ -259,7 +259,7 @@ class asm_bloc(object):
         super(asm_bloc, self).__init__(label, alignment)
 
 
-class asm_block_bad(AsmBlock):
+class AsmBlockBad(AsmBlock):
 
     """Stand for a *bad* ASM block (malformed, unreachable,
     not disassembled, ...)"""
@@ -275,7 +275,7 @@ class asm_block_bad(AsmBlock):
         @label, @alignement: same as AsmBlock.__init__
         @errno: (optional) specify a error type associated with the block
         """
-        super(asm_block_bad, self).__init__(label, alignment, *args, **kwargs)
+        super(AsmBlockBad, self).__init__(label, alignment, *args, **kwargs)
         self._errno = errno
 
     def __str__(self):
@@ -284,13 +284,20 @@ class asm_block_bad(AsmBlock):
                           "\tBad block: %s" % error_txt])
 
     def addline(self, *args, **kwargs):
-        raise RuntimeError("An asm_block_bad cannot have line")
+        raise RuntimeError("An AsmBlockBad cannot have line")
 
     def addto(self, *args, **kwargs):
-        raise RuntimeError("An asm_block_bad cannot have bto")
+        raise RuntimeError("An AsmBlockBad cannot have bto")
 
     def split(self, *args, **kwargs):
-        raise RuntimeError("An asm_block_bad cannot be splitted")
+        raise RuntimeError("An AsmBlockBad cannot be splitted")
+
+
+class asm_block_bad(AsmBlockBad):
+
+    def __init__(self, label=None, alignment=1, errno=-1, *args, **kwargs):
+        warnings.warn('DEPRECATION WARNING: use "AsmBlockBad" instead of "asm_block_bad"')
+        super(asm_block_bad, self).__init__(label, alignment, *args, **kwargs)
 
 
 class asm_symbol_pool:
@@ -552,7 +559,7 @@ class AsmCFG(DiGraph):
                                             'colspan': 2,
                                             'bgcolor': 'grey'})
 
-        if isinstance(node, asm_block_bad):
+        if isinstance(node, AsmBlockBad):
             yield [self.DotCellDescription(
                 text=node.ERROR_TYPES.get(node._errno,
                                           node._errno),
@@ -567,7 +574,7 @@ class AsmCFG(DiGraph):
                 yield self.DotCellDescription(text=str(line), attr={})
 
     def node_attr(self, node):
-        if isinstance(node, asm_block_bad):
+        if isinstance(node, AsmBlockBad):
             return {'style': 'filled', 'fillcolor': 'red'}
         return {}
 
@@ -648,14 +655,14 @@ class AsmCFG(DiGraph):
                     self.del_edge(*edge)
 
     def get_bad_blocks(self):
-        """Iterator on asm_block_bad elements"""
+        """Iterator on AsmBlockBad elements"""
         # A bad asm block is always a leaf
         for block in self.leaves():
-            if isinstance(block, asm_block_bad):
+            if isinstance(block, AsmBlockBad):
                 yield block
 
     def get_bad_blocks_predecessors(self, strict=False):
-        """Iterator on block with an asm_block_bad destination
+        """Iterator on block with an AsmBlockBad destination
         @strict: (optional) if set, return block with only bad
         successors
         """
@@ -665,7 +672,7 @@ class AsmCFG(DiGraph):
             for predecessor in self.predecessors_iter(badblock):
                 if predecessor not in done:
                     if (strict and
-                        not all(isinstance(block, asm_block_bad)
+                        not all(isinstance(block, AsmBlockBad)
                                 for block in self.successors_iter(predecessor))):
                         continue
                     yield predecessor
@@ -816,7 +823,7 @@ class AsmCFG(DiGraph):
         return "<%s %s>" % (self.__class__.__name__, hex(id(self)))
 
 # Out of _merge_blocks to be computed only once
-_acceptable_block = lambda block: (not isinstance(block, asm_block_bad) and
+_acceptable_block = lambda block: (not isinstance(block, AsmBlockBad) and
                                    len(block.lines) > 0)
 _parent = MatchGraphJoker(restrict_in=False, filt=_acceptable_block)
 _son = MatchGraphJoker(restrict_out=False, filt=_acceptable_block)
@@ -1353,7 +1360,7 @@ class disasmEngine(object):
                 if not cur_block.lines:
                     self.job_done.add(offset)
                     # Block is empty -> bad block
-                    cur_block = asm_block_bad(label, errno=2)
+                    cur_block = AsmBlockBad(label, errno=2)
                 else:
                     # Block is not empty, stop the desassembly pass and add a
                     # constraint to the next block
@@ -1389,7 +1396,7 @@ class disasmEngine(object):
                 if not cur_block.lines:
                     self.job_done.add(offset)
                     # Block is empty -> bad block
-                    cur_block = asm_block_bad(label, errno=0)
+                    cur_block = AsmBlockBad(label, errno=0)
                 else:
                     # Block is not empty, stop the desassembly pass and add a
                     # constraint to the next block
@@ -1402,7 +1409,7 @@ class disasmEngine(object):
                 log_asmbloc.warning("reach nul instr at %X", int(off_i))
                 if not cur_block.lines:
                     # Block is empty -> bad block
-                    cur_block = asm_block_bad(label, errno=1)
+                    cur_block = AsmBlockBad(label, errno=1)
                 else:
                     # Block is not empty, stop the desassembly pass and add a
                     # constraint to the next block

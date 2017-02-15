@@ -147,7 +147,7 @@ class JitCore(object):
         except IOError:
             # vm_exception_flag is set
             label = self.ir_arch.symbol_pool.getby_offset_create(addr)
-            cur_block = asmbloc.asm_block_bad(label)
+            cur_block = asmbloc.AsmBlockBad(label)
 
         # Logging
         if self.log_newbloc:
