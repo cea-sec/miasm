@@ -69,13 +69,20 @@ class asm_label(AsmLabel):
         warnings.warn('DEPRECATION WARNING: use "AsmLabel" instead of "asm_label"')
         super(asm_label, self).__init__(name, offset)
 
-class asm_raw:
+class AsmRaw(object):
 
     def __init__(self, raw=""):
         self.raw = raw
 
     def __str__(self):
         return repr(self.raw)
+
+
+class asm_raw(AsmRaw):
+
+    def __init__(self, raw=""):
+        warnings.warn('DEPRECATION WARNING: use "AsmRaw" instead of "asm_raw"')
+        super(asm_label, self).__init__(raw)
 
 
 class asm_constraint(object):
@@ -728,8 +735,8 @@ class AsmCFG(DiGraph):
         for block in self._nodes:
             size = 0
             for instr in block.lines:
-                if isinstance(instr, asm_raw):
-                    # for special asm_raw, only extract len
+                if isinstance(instr, AsmRaw):
+                    # for special AsmRaw, only extract len
                     if isinstance(instr.raw, list):
                         data = None
                         if len(instr.raw) == 0:
@@ -1154,7 +1161,7 @@ def get_block_labels(block):
     """Extract labels used by @block"""
     symbols = set()
     for instr in block.lines:
-        if isinstance(instr, asm_raw):
+        if isinstance(instr, AsmRaw):
             if isinstance(instr.raw, list):
                 for expr in instr.raw:
                     symbols.update(m2_expr.get_expr_ids(expr))
@@ -1172,9 +1179,9 @@ def assemble_block(mnemo, block, symbol_pool, conservative=False):
     offset_i = 0
 
     for instr in block.lines:
-        if isinstance(instr, asm_raw):
+        if isinstance(instr, AsmRaw):
             if isinstance(instr.raw, list):
-                # Fix special asm_raw
+                # Fix special AsmRaw
                 data = ""
                 for expr in instr.raw:
                     expr_int = fix_expr_val(expr, symbol_pool)

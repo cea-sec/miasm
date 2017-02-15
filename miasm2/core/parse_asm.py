@@ -151,7 +151,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
                 raw = raw.decode('string_escape')
                 if directive == 'string':
                     raw += "\x00"
-                lines.append(asmbloc.asm_raw(raw))
+                lines.append(asmbloc.AsmRaw(raw))
                 continue
             if directive == 'ustring':
                 # XXX HACK
@@ -159,7 +159,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
                 raw = line[line.find(r'"') + 1:line.rfind(r'"')] + "\x00"
                 raw = raw.decode('string_escape')
                 raw = "".join([string + '\x00' for string in raw])
-                lines.append(asmbloc.asm_raw(raw))
+                lines.append(asmbloc.AsmRaw(raw))
                 continue
             if directive in declarator:
                 data_raw = line[match_re.end():].split(' ', 1)[1]
@@ -179,7 +179,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
                     element_expr = base_expr.parseString(element)[0]
                     expr_list.append(element_expr.canonize())
 
-                raw_data = asmbloc.asm_raw(expr_list)
+                raw_data = asmbloc.AsmRaw(expr_list)
                 raw_data.element_size = size
                 lines.append(raw_data)
                 continue
@@ -278,7 +278,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
                 block_to_nlink = cur_block
             elif isinstance(line, DirectiveAlign):
                 cur_block.alignment = line.alignment
-            elif isinstance(line, asmbloc.asm_raw):
+            elif isinstance(line, asmbloc.AsmRaw):
                 cur_block.addline(line)
                 block_to_nlink = cur_block
             elif isinstance(line, asmbloc.AsmLabel):
