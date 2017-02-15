@@ -254,9 +254,9 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
                 # First line must be a label. If it's not the case, generate
                 # it.
                 label = guess_next_new_label(symbol_pool)
-                cur_block = asmbloc.asm_bloc(label, alignment=mnemo.alignment)
+                cur_block = asmbloc.AsmBlock(label, alignment=mnemo.alignment)
             else:
-                cur_block = asmbloc.asm_bloc(line, alignment=mnemo.alignment)
+                cur_block = asmbloc.AsmBlock(line, alignment=mnemo.alignment)
                 i += 1
             # Generate the current bloc
             blocks.add_node(cur_block)

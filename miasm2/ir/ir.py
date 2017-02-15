@@ -25,7 +25,7 @@ import miasm2.expression.expression as m2_expr
 from miasm2.expression.expression_helper import get_missing_interval
 from miasm2.expression.simplifications import expr_simp
 from miasm2.core.asmbloc import asm_symbol_pool, expr_is_label, asm_label, \
-    asm_bloc
+    AsmBlock
 from miasm2.core.graph import DiGraph
 
 
@@ -377,7 +377,7 @@ class IntermediateRepresentation(object):
         return self.blocks.get(label, None)
 
     def add_instr(self, l, ad=0, gen_pc_updt=False):
-        b = asm_bloc(self.gen_label())
+        b = AsmBlock(self.gen_label())
         b.lines = [l]
         self.add_bloc(b, gen_pc_updt)
 

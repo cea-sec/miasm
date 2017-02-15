@@ -2,6 +2,7 @@
 
 import logging
 import inspect
+import warnings
 from collections import namedtuple
 
 import miasm2.expression.expression as m2_expr
@@ -100,7 +101,7 @@ class asm_constraint_to(asm_constraint):
             label, c_t=asm_constraint.c_to)
 
 
-class asm_bloc(object):
+class AsmBlock(object):
 
     def __init__(self, label, alignment=1):
         assert isinstance(label, asm_label)
@@ -142,7 +143,7 @@ class asm_bloc(object):
                 'middle instruction? default middle')
             offsets.sort()
             return None
-        new_bloc = asm_bloc(l)
+        new_bloc = AsmBlock(l)
         i = offsets.index(offset)
 
         self.lines, new_bloc.lines = self.lines[:i], self.lines[i:]
@@ -165,7 +166,7 @@ class asm_bloc(object):
         return new_bloc
 
     def get_range(self):
-        """Returns the offset hull of an asm_bloc"""
+        """Returns the offset hull of an AsmBlock"""
         if len(self.lines):
             return (self.lines[0].offset,
                     self.lines[-1].offset + self.lines[-1].l)
@@ -217,7 +218,7 @@ class asm_bloc(object):
 
     @staticmethod
     def _filter_constraint(constraints):
-        """Sort and filter @constraints for asm_bloc.bto
+        """Sort and filter @constraints for AsmBlock.bto
         @constraints: non-empty set of asm_constraint instance
 
         Always the same type -> one of the constraint
@@ -251,7 +252,14 @@ class asm_bloc(object):
                        for constraints in dests.itervalues())
 
 
-class asm_block_bad(asm_bloc):
+class asm_bloc(object):
+
+    def __init__(self, label, alignment=1):
+        warnings.warn('DEPRECATION WARNING: use "AsmBlock" instead of "asm_bloc"')
+        super(asm_bloc, self).__init__(label, alignment)
+
+
+class asm_block_bad(AsmBlock):
 
     """Stand for a *bad* ASM block (malformed, unreachable,
     not disassembled, ...)"""
@@ -263,8 +271,8 @@ class asm_block_bad(asm_bloc):
                    }
 
     def __init__(self, label=None, alignment=1, errno=-1, *args, **kwargs):
-        """Instanciate an asm_block_bad.
-        @label, @alignement: same as asm_bloc.__init__
+        """Instanciate an AsmBlock_bad.
+        @label, @alignement: same as AsmBlock.__init__
         @errno: (optional) specify a error type associated with the block
         """
         super(asm_block_bad, self).__init__(label, alignment, *args, **kwargs)
@@ -412,8 +420,8 @@ class asm_symbol_pool:
 class AsmCFG(DiGraph):
 
     """Directed graph standing for a ASM Control Flow Graph with:
-     - nodes: asm_bloc
-     - edges: constraints between blocks, synchronized with asm_bloc's "bto"
+     - nodes: AsmBlock
+     - edges: constraints between blocks, synchronized with AsmBlock's "bto"
 
     Specialized the .dot export and force the relation between block to be uniq,
     and associated with a constraint.
@@ -446,7 +454,7 @@ class AsmCFG(DiGraph):
         raise DeprecationWarning("Order of AsmCFG elements is not reliable")
 
     def __iter__(self):
-        """Iterator on asm_bloc composing the current graph"""
+        """Iterator on AsmBlock composing the current graph"""
         return iter(self._nodes)
 
     def __len__(self):
@@ -456,8 +464,8 @@ class AsmCFG(DiGraph):
     # Manage graph with associated constraints
     def add_edge(self, src, dst, constraint):
         """Add an edge to the graph
-        @src: asm_bloc instance, source
-        @dst: asm_block instance, destination
+        @src: AsmBlock instance, source
+        @dst: AsmBlock instance, destination
         @constraint: constraint associated to this edge
         """
         # Sanity check
@@ -491,7 +499,7 @@ class AsmCFG(DiGraph):
 
     def add_node(self, block):
         """Add the block @block to the current instance, if it is not already in
-        @block: asm_bloc instance
+        @block: AsmBlock instance
 
         Edges will be created for @block.bto, if destinations are already in
         this instance. If not, they will be resolved when adding these
@@ -816,7 +824,7 @@ _expgraph = _parent >> _son
 
 
 def _merge_blocks(dg, graph):
-    """Graph simplification merging asm_bloc with one and only one son with this
+    """Graph simplification merging AsmBlock with one and only one son with this
     son if this son has one and only one parent"""
 
     # Blocks to ignore, because they have been removed from the graph
@@ -1326,7 +1334,7 @@ class disasmEngine(object):
 
     def _dis_bloc(self, offset):
         """Disassemble the block at offset @offset
-        Return the created asm_bloc and future offsets to disassemble
+        Return the created AsmBlock and future offsets to disassemble
         """
 
         lines_cpt = 0
@@ -1335,7 +1343,7 @@ class disasmEngine(object):
         offsets_to_dis = set()
         add_next_offset = False
         label = self.symbol_pool.getby_offset_create(offset)
-        cur_block = asm_bloc(label)
+        cur_block = AsmBlock(label)
         log_asmbloc.debug("dis at %X", int(offset))
         while not in_delayslot or delayslot_count > 0:
             if in_delayslot:
@@ -1459,7 +1467,7 @@ class disasmEngine(object):
 
     def dis_bloc(self, offset):
         """Disassemble the block at offset @offset and return the created
-        asm_bloc
+        AsmBlock
         @offset: targeted offset to disassemble
         """
         current_block, _ = self._dis_bloc(offset)
