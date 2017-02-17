@@ -1,0 +1,2 @@
+pyparsing
+git+https://github.com/serpilliere/elfesteem@master#egg=elfesteem-0.1
