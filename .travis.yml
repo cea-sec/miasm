@@ -36,6 +36,8 @@ before_script:
 - "git clone https://github.com/serpilliere/elfesteem elfesteem && cd elfesteem && python setup.py install && cd ..;"
 # install pyparsing
 - "pip install pyparsing"
+# install pycparser
+- "pip install pycparser"
 # install z3 with a known to working version
 - "wget https://github.com/serpilliere/z3-prebuild/raw/master/z3.tgz"
 - "tar xzf z3.tgz"

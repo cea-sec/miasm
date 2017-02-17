@@ -18,6 +18,7 @@ TAGS = {"regression": "REGRESSION", # Regression tests
         "tcc": "TCC", # TCC dependency is required
         "z3": "Z3", # Z3 dependecy is needed
         "qemu": "QEMU", # QEMU tests (several tests)
+        "cparser": "CPARSER", # pycparser is needed
         }
 
 # Regression tests
@@ -412,6 +413,8 @@ test_x86_32_if_reg = ExampleShellcode(['x86_32', 'x86_32_if_reg.S', "x86_32_if_r
 test_x86_32_seh = ExampleShellcode(["x86_32", "x86_32_seh.S", "x86_32_seh.bin",
                                     "--PE"])
 
+test_human = ExampleShellcode(["x86_64", "human.S", "human.bin"])
+
 testset += test_armb
 testset += test_arml
 testset += test_aarch64b
@@ -426,6 +429,8 @@ testset += test_mips32l
 testset += test_x86_64
 testset += test_x86_32_if_reg
 testset += test_x86_32_seh
+
+testset += test_human
 
 class ExampleDisassembler(Example):
     """Disassembler examples specificities:
@@ -516,6 +521,14 @@ testset += ExampleExpression(["get_read_write.py"],
 testset += ExampleExpression(["solve_condition_stp.py",
                               Example.get_sample("simple_test.bin")],
                              products=["graph_instr.dot", "out.dot"])
+
+testset += ExampleExpression(["access_c.py", Example.get_sample("human.bin")],
+                             depends=[test_human],
+                             products=["graph_irflow.dot"],
+                             tags=[TAGS["cparser"]])
+
+testset += ExampleExpression(["expr_c.py"],
+                             tags=[TAGS["cparser"]])
 
 for script in [["basic_op.py"],
                ["basic_simplification.py"],
@@ -739,6 +752,16 @@ By default, all tag are considered." % ", ".join(TAGS.keys()), default="")
             "Z3 and its python binding are necessary for TranslatorZ3."
         if TAGS["z3"] not in exclude_tags:
             exclude_tags.append(TAGS["z3"])
+
+    # Handle pycparser dependency
+    try:
+        import pycparser
+    except ImportError:
+        print "%(red)s[PYCPARSER]%(end)s " % cosmetics.colors + \
+            "pycparser are necessary for Objc."
+        if TAGS["cparser"] not in exclude_tags:
+            exclude_tags.append(TAGS["cparser"])
+
     test_ko = []
     test_ok = []
 
