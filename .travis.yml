@@ -6,38 +6,19 @@ addons:
     apt:
         sources: ['llvm-toolchain-precise-3.8', 'ubuntu-toolchain-r-test']
         packages:
-            - make
-            - gcc
-            - python-virtualenv
-            - unzip
             - llvm-3.8
             - llvm-3.8-dev
             - g++-5
 before_script:
-- "cd .."
 - "export LLVM_CONFIG=$(which llvm-config-3.8)"
 - "export CXX=$(which g++-5)"
-# make virtual env
-- "python /usr/lib/python2.7/dist-packages/virtualenv.py virtualenv;"
-- "cd virtualenv;"
-- "source bin/activate;"
 # install tcc
+- "cd .."
 - "git clone http://repo.or.cz/tinycc.git tinycc && cd tinycc && git checkout d5e22108a0dc48899e44a158f91d5b3215eb7fe6"
 - "./configure --disable-static --tccdir=./ --libdir=$(pwd) --includedir=$(pwd)"
-- "make && export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(pwd);cd ..;"
+- "make && export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(pwd) && cd .."
 - "cp tinycc/libtcc.h include"
 - "cp tinycc/libtcc.so.1.0 tinycc/libtcc.so"
-# install llvmlite, using the system libdtc++ instead of statically linking it
-- "pip install enum34"
-- "git clone https://github.com/numba/llvmlite llvmlite && cd llvmlite && git checkout 95d8c7c"
-- "sed -i 's/-static-libstdc++ //' ffi/Makefile.linux"
-- "python setup.py install && cd .."
-# install elfesteem
-- "git clone https://github.com/serpilliere/elfesteem elfesteem && cd elfesteem && python setup.py install && cd ..;"
-# install pyparsing
-- "pip install pyparsing"
-# install pycparser
-- "pip install pycparser"
 # install z3 with a known to working version
 - "wget https://github.com/serpilliere/z3-prebuild/raw/master/z3.tgz"
 - "tar xzf z3.tgz"
@@ -45,8 +26,11 @@ before_script:
 - "make install"
 - "cd ../.."
 # install miasm
-- "cd ..;"
-- "cd miasm;"
-- "python setup.py build build_ext -I$(pwd)/../virtualenv/include -L$(pwd)/../virtualenv/tinycc"
+- "cd miasm"
+- "python setup.py build build_ext -I$(pwd)/../include -L$(pwd)/../tinycc"
 - "python setup.py install"
+# use the system libdtc++ instead of statically linking it for llvmvite
+- "git clone https://github.com/numba/llvmlite llvmlite && cd llvmlite && git checkout 95d8c7c"
+- "sed -i 's/-static-libstdc++ //' ffi/Makefile.linux"
+- "python setup.py install && cd .."
 script: "python -c 'import z3; x = z3.BitVec(chr(0x41), 32)' && cd test && python test_all.py"
