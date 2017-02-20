@@ -4,10 +4,9 @@ Parse C expression to access variables and retrieve information:
 * variable type
 """
 
-from miasm2.core.ctypesmngr import CTypesManagerNotPacked
+from miasm2.core.ctypesmngr import CTypeStruct, CAstTypes, CTypePtr
 from miasm2.arch.x86.ctype import CTypeAMD64_unk
-from miasm2.core.objc import CHandler
-from miasm2.core.objc import ObjCPtr
+from miasm2.core.objc import CTypesManagerNotPacked, CHandler
 from miasm2.expression.expression import ExprId
 
 
@@ -31,24 +30,21 @@ def test():
     """
 
     # Type manager for x86 64: structures not packed
-    my_types = CTypeAMD64_unk()
-    types_mngr = CTypesManagerNotPacked(my_types.types)
+    base_types = CTypeAMD64_unk()
+    types_ast = CAstTypes()
 
     # Add C types definition
-    types_mngr.add_c_decl(text)
+    types_ast.add_c_decl(text)
+
+    types_mngr = CTypesManagerNotPacked(types_ast, base_types)
 
     # Create the ptr variable with type "struct rectangle*"
-    void_ptr = types_mngr.void_ptr
-    rectangle = types_mngr.get_type(('rectangle',))
-    ptr_rectangle = ObjCPtr('noname', rectangle,
-                            void_ptr.align, void_ptr.size)
-
+    ptr_rectangle = types_mngr.get_objc(CTypePtr(CTypeStruct('rectangle')))
 
     ptr = ExprId('ptr', 64)
     expr_types = {ptr.name: ptr_rectangle}
 
     mychandler = CHandler(types_mngr, expr_types)
-
 
     # Parse some C accesses
     c_acceses = ["ptr->width",

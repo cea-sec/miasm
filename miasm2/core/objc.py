@@ -5,14 +5,14 @@ C helper for Miasm:
 * Miasm expression to C type
 """
 
-import re
 
 from pycparser import c_parser, c_ast
 
 from miasm2.expression.expression_reduce import ExprReducer
 from miasm2.expression.expression import ExprInt, ExprId, ExprOp, ExprMem
 
-RE_HASH_CMT = re.compile(r'^#\s*\d+.*$', flags=re.MULTILINE)
+from miasm2.core.ctypesmngr import CTypeUnion, CTypeStruct, CTypeId, CTypePtr,\
+    CTypeArray, CTypeOp, CTypeSizeof, CTypeEnum, CTypeFunc, CTypeEllipsis
 
 
 class ObjC(object):
@@ -23,6 +23,11 @@ class ObjC(object):
 
         self.align = align
         self.size = size
+
+    def eq_base(self, other):
+        return (self.__class__ == other.__class__ and
+                self.align == other.align and
+                self.size == other.size)
 
 
 class ObjCDecl(ObjC):
@@ -35,6 +40,14 @@ class ObjCDecl(ObjC):
     def __repr__(self):
         return '<%s %s>' % (self.__class__.__name__, self.name)
 
+    def __str__(self):
+        return '%s' % (self.name)
+
+    def __eq__(self, other):
+        if not self.eq_base(other):
+            return False
+        return self.name == other.name
+
 
 class ObjCInt(ObjC):
     """C integer"""
@@ -44,29 +57,55 @@ class ObjCInt(ObjC):
         self.size = None
         self.align = None
 
+    def __str__(self):
+        return 'int'
+
+    def __eq__(self, other):
+        return self.eq_base(other)
+
 
 class ObjCPtr(ObjC):
     """C Pointer"""
 
-    def __init__(self, name, objtype, void_p_align, void_p_size):
+    def __init__(self, objtype, void_p_align, void_p_size):
         """Init ObjCPtr
 
-        @name: object name
         @objtype: pointer target ObjC
         @void_p_align: pointer alignment (in bytes)
         @void_p_size: pointer size (in bytes)
         """
 
         super(ObjCPtr, self).__init__()
-        self.name, self.objtype = name, objtype
+        self.objtype = objtype
         self.align = void_p_align
         self.size = void_p_size
 
     def __repr__(self):
-        return '<PTR %r>' % (self.objtype)
+        return '<%s %r>' % (self.__class__.__name__,
+                            self.objtype.__class__)
 
     def __str__(self):
-        return '<PTR %r>' % (self.objtype)
+        target = self.objtype
+        if isinstance(target, ObjCDecl):
+            return "%s *" % target.name
+        elif isinstance(target, ObjCPtr):
+            return "%s *" % target
+        elif isinstance(target, ObjCStruct):
+            return "struct %s *" % target.name
+        elif isinstance(target, ObjCUnion):
+            return "union %s *" % target.name
+        elif isinstance(target, ObjCArray):
+            return "%s (*)[%s]" % (target.objtype, target.elems)
+        elif isinstance(target, ObjCFunc):
+            args = ", ".join([str(arg) for arg in target.args])
+            return "%s (*%s)(%s)" % (target.type_ret, target.name, args)
+        else:
+            return '*%s' % (target)
+
+    def __eq__(self, other):
+        if not self.eq_base(other):
+            return False
+        return self.objtype == other.objtype
 
 
 class ObjCArray(ObjC):
@@ -88,18 +127,14 @@ class ObjCArray(ObjC):
     def __repr__(self):
         return '<%r[%d]>' % (self.objtype, self.elems)
 
+    def __str__(self):
+        return '%s[%d]' % (self.objtype, self.elems)
 
-class _ObjCRecurse(ObjC):
-    """Special C object array, used in recursive declarations. Used in parser
-    *only*: this object is not intend to be in final objects
-    """
-
-    def __init__(self, name):
-        super(_ObjCRecurse, self).__init__()
-        self.name = name
-
-    def __repr__(self):
-        return '<%r>' % (self.name)
+    def __eq__(self, other):
+        if not self.eq_base(other):
+            return False
+        return (self.elems == other.elems and
+                self.objtype == other.objtype)
 
 
 class ObjCStruct(ObjC):
@@ -121,15 +156,26 @@ class ObjCStruct(ObjC):
         self.fields.append((name, objtype, offset, size))
 
     def __repr__(self):
-        return '<%s %s>' % (self.__class__.__name__, self.name)
-
-    def __str__(self):
         out = []
         out.append("Struct %s: (align: %d)" % (self.name, self.align))
         out.append("  off sz  name")
         for name, objtype, offset, size in self.fields:
-            out.append("  %-3d %-3d %-10s %r" % (offset, size, name, objtype))
+            out.append("  0x%-3x %-3d %-10s %r" %
+                       (offset, size, name, objtype.__class__.__name__))
         return '\n'.join(out)
+
+    def __str__(self):
+        return 'struct %s' % (self.name)
+
+    def __eq__(self, other):
+        if not (self.eq_base(other) and self.name == other.name):
+            return False
+        if len(self.fields) != len(other.fields):
+            return False
+        for field_a, field_b in zip(self.fields, other.fields):
+            if field_a != field_b:
+                return False
+        return True
 
 
 class ObjCUnion(ObjC):
@@ -151,15 +197,75 @@ class ObjCUnion(ObjC):
         self.fields.append((name, objtype, offset, size))
 
     def __repr__(self):
-        return '<%s %s>' % (self.__class__.__name__, self.name)
-
-    def __str__(self):
         out = []
         out.append("Union %s: (align: %d)" % (self.name, self.align))
         out.append("  off sz  name")
         for name, objtype, offset, size in self.fields:
-            out.append("  %-3d %-3d %-10s %r" % (offset, size, name, objtype))
+            out.append("  0x%-3x %-3d %-10s %r" %
+                       (offset, size, name, objtype))
         return '\n'.join(out)
+
+    def __str__(self):
+        return 'union %s' % (self.name)
+
+    def __eq__(self, other):
+        if not (self.eq_base(other) and self.name == other.name):
+            return False
+        if len(self.fields) != len(other.fields):
+            return False
+        for field_a, field_b in zip(self.fields, other.fields):
+            if field_a != field_b:
+                return False
+        return True
+
+
+class ObjCEllipsis(ObjC):
+    """C integer"""
+
+    def __init__(self):
+        super(ObjCEllipsis, self).__init__()
+        self.size = None
+        self.align = None
+
+    def __eq__(self, other):
+        return self.eq_base(other)
+
+
+class ObjCFunc(ObjC):
+    """C object for Functions"""
+
+    def __init__(self, name, abi, type_ret, args, void_p_align, void_p_size):
+        super(ObjCFunc, self).__init__()
+        self.name = name
+        self.abi = abi
+        self.type_ret = type_ret
+        self.args = args
+        self.align = void_p_align
+        self.size = void_p_size
+
+    def __repr__(self):
+        return "<%s %s>" % (self.__class__.__name__,
+                            self.name)
+
+    def __str__(self):
+        out = []
+        out.append("Function (%s)  %s: (align: %d)" % (self.abi, self.name, self.align))
+        out.append("  ret: %s" % (str(self.type_ret)))
+        out.append("  Args:")
+        for arg in self.args:
+            out.append("  %s" % arg)
+        return '\n'.join(out)
+
+    def __eq__(self, other):
+        if not (self.eq_base(other) and self.name == other.name and
+                self.type_ret == other.type_ret):
+            return False
+        if len(self.args) != len(other.args):
+            return False
+        for arg_a, arg_b in zip(self.args, other.args):
+            if arg_a != arg_b:
+                return False
+        return True
 
 
 def access_simplifier(expr):
@@ -311,7 +417,7 @@ class CGenField(CGen):
         if isinstance(fieldtype, ObjCArray):
             ctype = fieldtype
         else:
-            ctype = ObjCPtr(field, fieldtype, void_p_align, void_p_size)
+            ctype = ObjCPtr(fieldtype, void_p_align, void_p_size)
         self.ctype = ctype
 
     def to_c(self):
@@ -333,9 +439,14 @@ class CGenField(CGen):
         """Generate Miasm expression representing the C access"""
 
         if isinstance(self.ctype, ObjCArray):
-            return ExprOp("field", self.struct.to_expr(), ExprId(self.field, self.default_size))
+            return ExprOp("field",
+                          self.struct.to_expr(),
+                          ExprId(self.field, self.default_size))
         elif isinstance(self.ctype, ObjCPtr):
-            return ExprOp("addr", ExprOp("field", self.struct.to_expr(), ExprId(self.field, self.default_size)))
+            return ExprOp("addr",
+                          ExprOp("field",
+                                 self.struct.to_expr(),
+                                 ExprId(self.field, self.default_size)))
         else:
             raise RuntimeError("Strange case")
 
@@ -361,7 +472,7 @@ class CGenArray(CGen):
         elif isinstance(ctype, ObjCArray) and isinstance(ctype.objtype, ObjCArray):
             ctype = ctype.objtype
         elif isinstance(ctype, ObjCArray):
-            ctype = ObjCPtr('noname', ctype.objtype, void_p_align, void_p_size)
+            ctype = ObjCPtr(ctype.objtype, void_p_align, void_p_size)
         else:
             raise TypeError("Strange case")
         self.ctype = ctype
@@ -387,9 +498,14 @@ class CGenArray(CGen):
         """Generate Miasm expression representing the C access"""
 
         if isinstance(self.ctype, ObjCPtr):
-            return ExprOp("addr", ExprOp("[]", self.name.to_expr(), ExprInt(self.element, self.default_size)))
+            return ExprOp("addr",
+                          ExprOp("[]",
+                                 self.name.to_expr(),
+                                 ExprInt(self.element, self.default_size)))
         elif isinstance(self.ctype, ObjCArray):
-            return ExprOp("[]", self.name.to_expr(), ExprInt(self.element, self.default_size))
+            return ExprOp("[]",
+                          self.name.to_expr(),
+                          ExprInt(self.element, self.default_size))
         else:
             raise RuntimeError("Strange case")
 
@@ -479,18 +595,6 @@ def ast_get_c_access_expr(ast, expr_types, lvl=0):
     return obj
 
 
-def c_to_ast(c_str):
-    """Transform a @c_str into a C ast
-    Note: will ignore lines containing code refs ie:
-    # 23 "miasm.h"
-    """
-
-    new_str = re.sub(RE_HASH_CMT, "", c_str)
-    parser = c_parser.CParser()
-    return parser.parse(new_str, filename='<stdin>')
-
-
-
 def parse_access(c_access):
     """Parse C access
 
@@ -550,8 +654,7 @@ class CTypeAnalyzer(ExprReducer):
         if isinstance(base_type, ObjCStruct):
             if offset == 0 and not deref:
                 # In this case, return the struct*
-                obj = ObjCPtr('noname', base_type,
-                              void_type.align, void_type.size)
+                obj = ObjCPtr(base_type, void_type.align, void_type.size)
                 new_type = [obj]
                 return new_type
             for _, subtype, f_offset, size in base_type.fields:
@@ -576,15 +679,14 @@ class CTypeAnalyzer(ExprReducer):
         elif isinstance(base_type, ObjCDecl):
             if offset != 0:
                 return []
-            obj = ObjCPtr('noname', base_type, void_type.align, void_type.size)
+            obj = ObjCPtr(base_type, void_type.align, void_type.size)
 
             new_type = [obj]
         elif isinstance(base_type, ObjCUnion):
             out = []
             if offset == 0 and not deref:
                 # In this case, return the struct*
-                obj = ObjCPtr('noname', base_type,
-                              void_type.align, void_type.size)
+                obj = ObjCPtr(base_type, void_type.align, void_type.size)
                 new_type = [obj]
                 return new_type
             for _, objtype, f_offset, size in base_type.fields:
@@ -595,7 +697,7 @@ class CTypeAnalyzer(ExprReducer):
                 out += new_type
             new_type = out
         elif isinstance(base_type, ObjCPtr):
-            obj = ObjCPtr('noname', base_type, void_type.align, void_type.size)
+            obj = ObjCPtr(base_type, void_type.align, void_type.size)
             new_type = [obj]
         else:
             raise NotImplementedError("deref type %r" % base_type)
@@ -603,7 +705,6 @@ class CTypeAnalyzer(ExprReducer):
 
     def reduce_id(self, node, _):
         """Get type of ExprId"""
-
         if not(isinstance(node.expr, ExprId) and node.expr.name in self.expr_types):
             return None
         return [self.expr_types[node.expr.name]]
@@ -615,13 +716,22 @@ class CTypeAnalyzer(ExprReducer):
             return None
         return [self.CST]
 
+    def get_solo_type(self, node):
+        """Return the type of the @node if it has only one possible type,
+        different from not None. In othe cases, return None.
+        """
+        if node.info is None or len(node.info) != 1:
+            return None
+        return type(node.info[0])
+
     def reduce_ptr_plus_cst(self, node, lvl):
         """Get type of ptr + CST"""
 
-        if not (isinstance(node.expr, ExprOp) and
-                node.expr.op == "+" and
-                len(node.args) == 2 and
-                set(type(x) for x in node.args[0].info + node.args[1].info) == set([ObjCInt, ObjCPtr])):
+        if not node.expr.is_op("+") or len(node.args) != 2:
+            return None
+        args_types = set([self.get_solo_type(node.args[0]),
+                          self.get_solo_type(node.args[1])])
+        if args_types != set([ObjCInt, ObjCPtr]):
             return None
         arg0, arg1 = node.args
         out = []
@@ -639,9 +749,13 @@ class CTypeAnalyzer(ExprReducer):
     def reduce_cst_op_cst(self, node, _):
         """Get type of CST + CST"""
 
-        if not (isinstance(node.expr, ExprOp) and
-                node.expr.op == "+" and
-                set(type(x) for x in node.args[0].info + node.args[1].info) == set([ObjCInt])):
+        if not node.expr.is_op("+") or len(node.args) != 2:
+            return None
+        if node.args[0] is None or node.args[1] is None:
+            return None
+        args_types = set([self.get_solo_type(node.args[0]),
+                          self.get_solo_type(node.args[1])])
+        if args_types != set([ObjCInt]):
             return None
         return [self.CST]
 
@@ -873,7 +987,8 @@ class ExprToAccessC(ExprReducer):
                 node.expr.name in self.expr_types):
             return None
 
-        out = CGenId(self.expr_types[node.expr.name], node.expr.name)
+        objc = self.expr_types[node.expr.name]
+        out = CGenId(objc, node.expr.name)
         return [out]
 
     def reduce_int(self, node, _):
@@ -883,13 +998,22 @@ class ExprToAccessC(ExprReducer):
             return None
         return [CGenInt(int(node.expr))]
 
+    def get_solo_type(self, node):
+        """Return the type of the @node if it has only one possible type,
+        different from not None. In othe cases, return None.
+        """
+        if node.info is None or len(node.info) != 1:
+            return None
+        return type(node.info[0].ctype)
+
     def reduce_op(self, node, lvl):
         """Generate access for ExprOp"""
 
-        if not (isinstance(node.expr, ExprOp) and
-                node.expr.op == "+" and
-                len(node.args) == 2 and
-                set(type(x.ctype) for x in node.args[0].info + node.args[1].info) == set([ObjCInt, ObjCPtr])):
+        if not node.expr.is_op("+") or len(node.args) != 2:
+            return None
+        args_types = set([self.get_solo_type(node.args[0]),
+                          self.get_solo_type(node.args[1])])
+        if args_types != set([ObjCInt, ObjCPtr]):
             return None
 
         arg0, arg1 = node.args
@@ -915,11 +1039,13 @@ class ExprToAccessC(ExprReducer):
 
         if not isinstance(node.expr, ExprMem):
             return None
-
+        if node.arg.info is None:
+            return None
         assert isinstance(node.arg.info, list)
         found = []
         for subcgenobj in node.arg.info:
-            assert isinstance(subcgenobj.ctype, ObjCPtr)
+            if not isinstance(subcgenobj.ctype, ObjCPtr):
+                return None
             target = subcgenobj.ctype.objtype
             # target : type(elem)
             if isinstance(target, (ObjCStruct, ObjCUnion)):
@@ -1017,11 +1143,11 @@ class ExprCToExpr(ExprReducer):
 
     def reduce_id(self, node, _):
         """Reduce ExprId"""
-
         if not isinstance(node.expr, ExprId):
             return None
         if node.expr.name in self.expr_types:
-            out = (node.expr, self.expr_types[node.expr.name])
+            objc = self.expr_types[node.expr.name]
+            out = (node.expr, objc)
         else:
             out = (node.expr, None)
         return out
@@ -1164,16 +1290,16 @@ class ExprCToExpr(ExprReducer):
         void_type = self.types_mngr.void_ptr
 
         if isinstance(src_type, ObjCArray):
-            out = (src.arg, ObjCPtr('noname', src_type.objtype,
+            out = (src.arg, ObjCPtr(src_type.objtype,
                                     void_type.align, void_type.size))
         elif isinstance(src, ExprMem):
-            out = (src.arg, ObjCPtr('noname', src_type,
+            out = (src.arg, ObjCPtr(src_type,
                                     void_type.align, void_type.size))
         elif isinstance(src_type, ObjCStruct):
-            out = (src, ObjCPtr('noname', src_type,
+            out = (src, ObjCPtr(src_type,
                                 void_type.align, void_type.size))
         elif isinstance(src_type, ObjCUnion):
-            out = (src, ObjCPtr('noname', src_type,
+            out = (src, ObjCPtr(src_type,
                                 void_type.align, void_type.size))
         else:
             raise NotImplementedError("unk type")
@@ -1208,6 +1334,229 @@ class ExprCToExpr(ExprReducer):
         """
 
         return self.reduce(expr)
+
+
+class CTypesManager(object):
+    """Represent a C object, without any layout information"""
+
+    def __init__(self, types_ast, leaf_types):
+        self.types_ast = types_ast
+        self.leaf_types = leaf_types
+
+    @property
+    def void_ptr(self):
+        """Retrieve a void* objc"""
+        return self.leaf_types.types.get(CTypePtr(CTypeId('void')))
+
+    def _get_objc(self, type_id, resolved=None, to_fix=None, lvl=0):
+        if resolved is None:
+            resolved = {}
+        if to_fix is None:
+            to_fix = []
+        if type_id in resolved:
+            return resolved[type_id]
+        type_id = self.types_ast.get_type(type_id)
+        fixed = True
+        if isinstance(type_id, CTypeId):
+            out = self.leaf_types.types.get(type_id, None)
+            assert out is not None
+        elif isinstance(type_id, CTypeUnion):
+            out = ObjCUnion(type_id.name)
+            align_max, size_max = 0, 0
+            for name, field in type_id.fields:
+                objc = self._get_objc(field, resolved, to_fix, lvl + 1)
+                resolved[field] = objc
+                align_max = max(align_max, objc.align)
+                size_max = max(size_max, objc.size)
+                out.add_field(name, objc, 0, objc.size)
+
+            align, size = self.union_compute_align_size(align_max, size_max)
+            out.set_align_size(align, size)
+
+        elif isinstance(type_id, CTypeStruct):
+            out = ObjCStruct(type_id.name)
+            align_max, size_max = 0, 0
+
+            offset, align_max = 0, 1
+            for name, field in type_id.fields:
+                objc = self._get_objc(field, resolved, to_fix, lvl + 1)
+                resolved[field] = objc
+                align_max = max(align_max, objc.align)
+                offset = self.struct_compute_field_offset(objc, offset)
+                out.add_field(name, objc, offset, objc.size)
+                offset += objc.size
+
+            align, size = self.struct_compute_align_size(align_max, offset)
+            out.set_align_size(align, size)
+
+        elif isinstance(type_id, CTypePtr):
+            target = type_id.target
+            out = ObjCPtr(None, self.void_ptr.align, self.void_ptr.size)
+            fixed = False
+
+        elif isinstance(type_id, CTypeArray):
+            target = type_id.target
+            objc = self._get_objc(target, resolved, to_fix, lvl + 1)
+            resolved[target] = objc
+            if type_id.size is None:
+                # case: toto[]
+                # return ObjCPtr
+                out = ObjCPtr(objc, self.void_ptr.align, self.void_ptr.size)
+            else:
+                size = self.size_to_int(type_id.size)
+                if size is None:
+                    raise RuntimeError('Enable to compute objc size')
+                else:
+                    out = ObjCArray(objc, size)
+            assert out.size is not None and out.align is not None
+        elif isinstance(type_id, CTypeEnum):
+            # Enum are integer
+            return self.leaf_types.types.get(CTypeId('int'))
+        elif isinstance(type_id, CTypeFunc):
+            type_ret = self._get_objc(
+                type_id.type_ret, resolved, to_fix, lvl + 1)
+            resolved[type_id.type_ret] = type_ret
+            args = []
+            for arg in type_id.args:
+                objc = self._get_objc(arg, resolved, to_fix, lvl + 1)
+                resolved[arg] = objc
+                args.append(objc)
+            out = ObjCFunc(type_id.name, type_id.abi, type_ret, args,
+                           self.void_ptr.align, self.void_ptr.size)
+        elif isinstance(type_id, CTypeEllipsis):
+            out = ObjCEllipsis()
+        else:
+            raise TypeError("Unknown type %r" % type_id.__class__)
+        if not isinstance(out, ObjCEllipsis):
+            assert out.align is not None and out.size is not None
+
+        if fixed:
+            resolved[type_id] = out
+        else:
+            to_fix.append((type_id, out))
+        return out
+
+    def get_objc(self, type_id):
+        """Get the ObjC corresponding to the CType @type_id
+        @type_id: CTypeBase instance"""
+        resolved = {}
+        to_fix = []
+        out = self._get_objc(type_id, resolved, to_fix)
+        # Fix sub objects
+        while to_fix:
+            type_id, objc_to_fix = to_fix.pop()
+            objc = self._get_objc(type_id.target, resolved, to_fix)
+            objc_to_fix.objtype = objc
+        self.check_objc(out)
+        return out
+
+    def check_objc(self, objc, done=None):
+        """Ensure each sub ObjC is resolved
+        @objc: ObjC instance"""
+        if done is None:
+            done = set()
+        if objc in done:
+            return True
+        done.add(objc)
+        if isinstance(objc, (ObjCDecl, ObjCInt, ObjCEllipsis)):
+            return True
+        elif isinstance(objc, (ObjCPtr, ObjCArray)):
+            assert self.check_objc(objc.objtype, done)
+            return True
+        elif isinstance(objc, (ObjCStruct, ObjCUnion)):
+            for _, field, _, _ in objc.fields:
+                assert self.check_objc(field, done)
+            return True
+        elif isinstance(objc, ObjCFunc):
+            assert self.check_objc(objc.type_ret, done)
+            for arg in objc.args:
+                assert self.check_objc(arg, done)
+            return True
+        else:
+            assert False
+
+    def size_to_int(self, size):
+        """Resolve an array size
+        @size: CTypeOp or integer"""
+        if isinstance(size, CTypeOp):
+            assert len(size.args) == 2
+            arg0, arg1 = [self.size_to_int(arg) for arg in size.args]
+            if size.operator == "+":
+                return arg0 + arg1
+            elif size.operator == "-":
+                return arg0 - arg1
+            elif size.operator == "*":
+                return arg0 * arg1
+            elif size.operator == "/":
+                return arg0 / arg1
+            elif size.operator == "<<":
+                return arg0 << arg1
+            elif size.operator == ">>":
+                return arg0 >> arg1
+            else:
+                raise ValueError("Unknown operator %s" % size.operator)
+        elif isinstance(size, (int, long)):
+            return size
+        elif isinstance(size, CTypeSizeof):
+            obj = self._get_objc(size.target)
+            return obj.size
+        else:
+            raise TypeError("Unknown size type")
+
+    def struct_compute_field_offset(self, obj, offset):
+        """Compute the offset of the field @obj in the current structure"""
+        raise NotImplementedError("Abstract method")
+
+    def struct_compute_align_size(self, align_max, size):
+        """Compute the alignment and size of the current structure"""
+        raise NotImplementedError("Abstract method")
+
+    def union_compute_align_size(self, align_max, size):
+        """Compute the alignment and size of the current union"""
+        raise NotImplementedError("Abstract method")
+
+
+class CTypesManagerNotPacked(CTypesManager):
+    """Store defined C types (not packed)"""
+
+    def struct_compute_field_offset(self, obj, offset):
+        """Compute the offset of the field @obj in the current structure
+        (not packed)"""
+
+        if obj.align > 1:
+            offset = (offset + obj.align - 1) & ~(obj.align - 1)
+        return offset
+
+    def struct_compute_align_size(self, align_max, size):
+        """Compute the alignment and size of the current structure
+        (not packed)"""
+        if align_max > 1:
+            size = (size + align_max - 1) & ~(align_max - 1)
+        return align_max, size
+
+    def union_compute_align_size(self, align_max, size):
+        """Compute the alignment and size of the current union
+        (not packed)"""
+        return align_max, size
+
+
+class CTypesManagerPacked(CTypesManager):
+    """Store defined C types (packed form)"""
+
+    def struct_compute_field_offset(self, _, offset):
+        """Compute the offset of the field @obj in the current structure
+        (packed form)"""
+        return offset
+
+    def struct_compute_align_size(self, _, size):
+        """Compute the alignment and size of the current structure
+        (packed form)"""
+        return 1, size
+
+    def union_compute_align_size(self, align_max, size):
+        """Compute the alignment and size of the current union
+        (packed form)"""
+        return 1, size
 
 
 class CHandler(object):
@@ -1275,6 +1624,6 @@ class CHandler(object):
         return ret_type
 
 
-class CTypeTemplate(object):
+class CLeafTypes(object):
     """Define C types sizes/alignement for a given architecture"""
     pass
