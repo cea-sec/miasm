@@ -8,6 +8,7 @@ addons:
         packages:
             - llvm-3.9
             - llvm-3.9-dev
+            - texinfo
             - g++-5
 before_script:
 - "export LLVM_CONFIG=$(which llvm-config-3.9)"
