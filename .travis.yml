@@ -30,7 +30,7 @@ before_script:
 - "python setup.py build build_ext -I$(pwd)/../include -L$(pwd)/../tinycc"
 - "python setup.py install"
 # use the system libdtc++ instead of statically linking it for llvmvite
-- "git clone https://github.com/numba/llvmlite llvmlite && cd llvmlite && git checkout 95d8c7c"
+- "git clone https://github.com/numba/llvmlite -b v0.16.0 && cd llvmlite"
 - "sed -i 's/-static-libstdc++ //' ffi/Makefile.linux"
 - "python setup.py install && cd .."
 script: "python -c 'import z3; x = z3.BitVec(chr(0x41), 32)' && cd test && python test_all.py"
