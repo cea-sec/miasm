@@ -18,7 +18,6 @@ before_script:
 - "sed -i 's/-static-libstdc++ //' ffi/Makefile.linux"
 - "python setup.py install && cd .."
 # install miasm
-- "cd miasm"
 - "python setup.py build build_ext"
 - "python setup.py install"
 script: "python test/test_all.py"
