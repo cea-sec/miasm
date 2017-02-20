@@ -9,22 +9,16 @@ addons:
             - llvm-3.9
             - llvm-3.9-dev
             - g++-5
-#           - libtcc-dev
+            - libtcc-dev
 before_script:
 - "export LLVM_CONFIG=$(which llvm-config-3.9)"
 - "export CXX=$(which g++-5)"
-# install tcc
-- "cd .."
-- "git clone http://repo.or.cz/tinycc.git && cd tinycc && git checkout d5e22108a0dc48899e44a158f91d5b3215eb7fe6"
-- "./configure --disable-static --tccdir=./ --libdir=$(pwd) --includedir=$(pwd)"
-- "make && export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(pwd) && cd .."
-- "ln -s tinycc/libtcc.so.1.0 tinycc/libtcc.so"
 # use the system libdtc++ instead of statically linking it for llvmvite
 - "git clone https://github.com/numba/llvmlite -b v0.16.0 && cd llvmlite"
 - "sed -i 's/-static-libstdc++ //' ffi/Makefile.linux"
 - "python setup.py install && cd .."
 # install miasm
 - "cd miasm"
-- "python setup.py build build_ext -I$(pwd)/../tinycc -L$(pwd)/../tinycc"
+- "python setup.py build build_ext"
 - "python setup.py install"
 script: "python test/test_all.py"
