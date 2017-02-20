@@ -4,7 +4,7 @@ python:
 - "2.7"
 addons:
     apt:
-        sources: ['llvm-toolchain-precise-3.8', 'ubuntu-toolchain-r-test']
+        sources: ['llvm-toolchain-precise-3.9', 'ubuntu-toolchain-r-test']
         packages:
             - llvm-3.9
             - llvm-3.9-dev
