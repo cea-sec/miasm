@@ -241,6 +241,7 @@ for script in ["modint.py",
                "expression_helper.py",
                ]:
     testset += RegressionTest([script], base_dir="expression")
+
 ## IR
 for script in ["symbexec.py",
                ]:
@@ -272,6 +273,9 @@ testset += RegressionTest(["depgraph.py"], base_dir="analysis",
                                                      (12, 1), (13, 1),
                                                      (14, 1), (15, 1))
                            ])
+testset += RegressionTest(["modularintervals.py"], base_dir="analysis")
+testset += RegressionTest(["range.py"], base_dir="analysis",
+                          tags=[TAGS["z3"]])
 
 
 ## Degraph
