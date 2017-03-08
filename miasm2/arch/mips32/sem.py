@@ -402,6 +402,7 @@ mnemo_func = sbuild.functions
 mnemo_func.update({
         'add.d': add_d,
         'addu': addiu,
+        'addi': addiu,
         'and': l_and,
         'andi': l_and,
         'b': l_b,
