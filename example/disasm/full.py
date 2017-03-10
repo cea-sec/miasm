@@ -8,6 +8,7 @@ from miasm2.core.asmblock import log_asmblock, AsmLabel, AsmCFG
 from miasm2.expression.expression import ExprId
 from miasm2.core.interval import interval
 from miasm2.analysis.machine import Machine
+from miasm2.analysis.data_flow import dead_simp, DiGraphDefUse, ReachingDefinitions
 
 log = logging.getLogger("dis")
 console_handler = logging.StreamHandler()
@@ -52,6 +53,9 @@ parser.add_argument('-i', "--image", action="store_true",
                     help="Display image representation of disasm")
 parser.add_argument('-c', "--rawbinary", default=False, action="store_true",
                     help="Don't interpret input as ELF/PE/...")
+parser.add_argument('-d', "--defuse", action="store_true",
+                    help="Dump the def-use graph in file 'defuse.dot'."
+                    "The defuse is dumped after simplifications if -s option is specified")
 
 args = parser.parse_args()
 
@@ -207,7 +211,11 @@ if args.gen_ir:
         print block
 
     if args.simplify:
-        ir_arch_a.dead_simp()
+        dead_simp(ir_arch_a)
+
+    if args.defuse:
+        reachings = ReachingDefinitions(ir_arch_a)
+        open('graph_defuse.dot', 'w').write(DiGraphDefUse(reachings).dot())
 
     out = ir_arch_a.graph.dot()
     open('graph_irflow.dot', 'w').write(out)

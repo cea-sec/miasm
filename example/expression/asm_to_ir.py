@@ -5,7 +5,7 @@ from miasm2.core import parse_asm
 from miasm2.expression.expression import *
 from miasm2.core import asmblock
 from miasm2.arch.x86.ira import ir_a_x86_32
-
+from miasm2.analysis.data_flow import dead_simp
 
 # First, asm code
 blocks, symbol_pool = parse_asm.parse_txt(mn_x86, 32, '''
@@ -47,7 +47,7 @@ for lbl, irblock in ir_arch.blocks.items():
 # Dead propagation
 open('graph.dot', 'w').write(ir_arch.graph.dot())
 print '*' * 80
-ir_arch.dead_simp()
+dead_simp(ir_arch)
 open('graph2.dot', 'w').write(ir_arch.graph.dot())
 
 # Display new IR
