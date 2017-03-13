@@ -1237,7 +1237,7 @@ def assemble_block(mnemo, block, symbol_pool, conservative=False):
         offset_i += instr.l
 
 
-def asmbloc_final(mnemo, blocks, blockChains, symbol_pool, conservative=False):
+def asmblock_final(mnemo, blocks, blockChains, symbol_pool, conservative=False):
     """Resolve and assemble @blockChains using @symbol_pool until fixed point is
     reached"""
 
@@ -1287,6 +1287,13 @@ def asmbloc_final(mnemo, blocks, blockChains, symbol_pool, conservative=False):
             assemble_block(mnemo, block, symbol_pool, conservative)
 
 
+def asmbloc_final(mnemo, blocks, blockChains, symbol_pool, conservative=False):
+    """Resolve and assemble @blockChains using @symbol_pool until fixed point is
+    reached"""
+
+    warnings.warn('DEPRECATION WARNING: use "asmblock_final" instead of "asmbloc_final"')
+    asmblock_final(mnemo, blocks, blockChains, symbol_pool, conservative)
+
 def asm_resolve_final(mnemo, blocks, symbol_pool, dst_interval=None):
     """Resolve and assemble @blocks using @symbol_pool into interval
     @dst_interval"""
@@ -1298,7 +1305,7 @@ def asm_resolve_final(mnemo, blocks, symbol_pool, dst_interval=None):
     resolved_blockChains = resolve_symbol(
         blockChains, symbol_pool, dst_interval)
 
-    asmbloc_final(mnemo, blocks, resolved_blockChains, symbol_pool)
+    asmblock_final(mnemo, blocks, resolved_blockChains, symbol_pool)
     patches = {}
     output_interval = interval()
 
