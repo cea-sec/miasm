@@ -1,6 +1,6 @@
 """ Test cases for dead code elimination"""
 from miasm2.expression.expression import ExprId, ExprInt32, ExprAff, ExprMem
-from miasm2.core.asmbloc import AsmLabel
+from miasm2.core.asmblock import AsmLabel
 from miasm2.ir.analysis import ira
 from miasm2.ir.ir import IRBlock, AssignBlock
 

@@ -2,7 +2,7 @@ from pdb import pm
 
 from miasm2.arch.x86.disasm import dis_x86_32
 from miasm2.analysis.binary import Container
-from miasm2.core.asmbloc import AsmCFG, AsmConstraint, AsmBlock, \
+from miasm2.core.asmblock import AsmCFG, AsmConstraint, AsmBlock, \
     AsmLabel, AsmBlockBad, AsmConstraintTo, AsmConstraintNext, \
     bbl_simplifier
 from miasm2.core.graph import DiGraphSimplifier, MatchGraphJoker

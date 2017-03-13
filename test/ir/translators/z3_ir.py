@@ -1,6 +1,6 @@
 import z3
 
-from miasm2.core.asmbloc import AsmLabel
+from miasm2.core.asmblock import AsmLabel
 from miasm2.expression.expression import *
 from miasm2.ir.translators.translator import Translator
 from miasm2.ir.translators.z3_ir import Z3Mem

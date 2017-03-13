@@ -1,7 +1,7 @@
 import logging
 import operator
 
-from miasm2.core.asmbloc import AsmLabel
+from miasm2.core.asmblock import AsmLabel
 from miasm2.ir.translators.translator import Translator
 from miasm2.expression.smt2_helper import *
 

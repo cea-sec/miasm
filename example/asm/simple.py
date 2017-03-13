@@ -2,7 +2,7 @@ from pdb import pm
 from pprint import pprint
 
 from miasm2.arch.x86.arch import mn_x86
-from miasm2.core import parse_asm, asmbloc
+from miasm2.core import parse_asm, asmblock
 
 
 # Assemble code
@@ -25,7 +25,7 @@ loop:
 symbol_pool.set_offset(symbol_pool.getby_name("main"), 0x0)
 
 # Spread information and resolve instructions offset
-patches = asmbloc.asm_resolve_final(mn_x86, blocks, symbol_pool)
+patches = asmblock.asm_resolve_final(mn_x86, blocks, symbol_pool)
 
 # Show resolved blocks
 for block in blocks:

@@ -3,7 +3,7 @@ from pdb import pm
 from miasm2.arch.x86.arch import mn_x86
 from miasm2.core import parse_asm
 from miasm2.expression.expression import *
-from miasm2.core import asmbloc
+from miasm2.core import asmblock
 from miasm2.arch.x86.ira import ir_a_x86_32
 
 
@@ -31,7 +31,7 @@ for block in blocks:
 
 print "symbols:"
 print symbol_pool
-patches = asmbloc.asm_resolve_final(mn_x86, blocks, symbol_pool)
+patches = asmblock.asm_resolve_final(mn_x86, blocks, symbol_pool)
 
 # Translate to IR
 ir_arch = ir_a_x86_32(symbol_pool)

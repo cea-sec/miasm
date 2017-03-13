@@ -7,7 +7,7 @@ from miasm2.core.cpu import *
 from collections import defaultdict
 import miasm2.arch.x86.regs as regs_module
 from miasm2.arch.x86.regs import *
-from miasm2.core.asmbloc import AsmLabel
+from miasm2.core.asmblock import AsmLabel
 
 log = logging.getLogger("x86_arch")
 console_handler = logging.StreamHandler()

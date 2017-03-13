@@ -8,7 +8,7 @@ from collections import defaultdict
 from miasm2.core.bin_stream import bin_stream
 import regs as regs_module
 from regs import *
-from miasm2.core.asmbloc import AsmLabel
+from miasm2.core.asmblock import AsmLabel
 from miasm2.core.cpu import log as log_cpu
 from miasm2.expression.modint import uint32, uint64
 import math

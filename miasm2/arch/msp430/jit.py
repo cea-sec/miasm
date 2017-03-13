@@ -1,5 +1,5 @@
 from miasm2.jitter.jitload import jitter
-from miasm2.core import asmbloc
+from miasm2.core import asmblock
 from miasm2.core.utils import pck16, upck16
 from miasm2.arch.msp430.sem import ir_msp430
 
@@ -14,7 +14,7 @@ log.setLevel(logging.CRITICAL)
 class jitter_msp430(jitter):
 
     def __init__(self, *args, **kwargs):
-        sp = asmbloc.AsmSymbolPool()
+        sp = asmblock.AsmSymbolPool()
         jitter.__init__(self, ir_msp430(sp), *args, **kwargs)
         self.vm.set_little_endian()
 

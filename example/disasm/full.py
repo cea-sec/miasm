@@ -4,7 +4,7 @@ from argparse import ArgumentParser
 from pdb import pm
 
 from miasm2.analysis.binary import Container
-from miasm2.core.asmbloc import log_asmbloc, AsmLabel, AsmCFG
+from miasm2.core.asmblock import log_asmblock, AsmLabel, AsmCFG
 from miasm2.expression.expression import ExprId
 from miasm2.core.interval import interval
 from miasm2.analysis.machine import Machine
@@ -56,7 +56,7 @@ parser.add_argument('-c', "--rawbinary", default=False, action="store_true",
 args = parser.parse_args()
 
 if args.verbose:
-    log_asmbloc.setLevel(logging.DEBUG)
+    log_asmblock.setLevel(logging.DEBUG)
 
 log.info('Load binary')
 if args.rawbinary:

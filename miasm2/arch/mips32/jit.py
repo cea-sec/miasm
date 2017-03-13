@@ -1,7 +1,7 @@
 import logging
 
 from miasm2.jitter.jitload import jitter
-from miasm2.core import asmbloc
+from miasm2.core import asmblock
 from miasm2.core.utils import pck32, upck32
 from miasm2.arch.mips32.sem import ir_mips32l, ir_mips32b
 from miasm2.jitter.codegen import CGen
@@ -77,7 +77,7 @@ class jitter_mips32l(jitter):
     C_Gen = mipsCGen
 
     def __init__(self, *args, **kwargs):
-        sp = asmbloc.AsmSymbolPool()
+        sp = asmblock.AsmSymbolPool()
         jitter.__init__(self, ir_mips32l(sp), *args, **kwargs)
         self.vm.set_little_endian()
 
@@ -101,6 +101,6 @@ class jitter_mips32l(jitter):
 class jitter_mips32b(jitter_mips32l):
 
     def __init__(self, *args, **kwargs):
-        sp = asmbloc.AsmSymbolPool()
+        sp = asmblock.AsmSymbolPool()
         jitter.__init__(self, ir_mips32b(sp), *args, **kwargs)
         self.vm.set_big_endian()

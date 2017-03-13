@@ -16,7 +16,7 @@ from llvmlite import binding as llvm
 from llvmlite import ir as llvm_ir
 import miasm2.expression.expression as m2_expr
 import miasm2.jitter.csts as m2_csts
-import miasm2.core.asmbloc as m2_asmbloc
+import miasm2.core.asmblock as m2_asmblock
 from miasm2.jitter.codegen import CGen
 from miasm2.expression.expression_helper import possible_values
 
@@ -508,9 +508,9 @@ class LLVMFunction():
         @label: str or asmlabel instance"""
         if isinstance(label, str):
             return label
-        elif isinstance(label, m2_asmbloc.AsmLabel):
+        elif isinstance(label, m2_asmblock.AsmLabel):
             return "label_%s" % label.name
-        elif m2_asmbloc.expr_is_label(label):
+        elif m2_asmblock.expr_is_label(label):
             return "label_%s" % label.name.name
         else:
             raise ValueError("label must either be str or asmlabel")
@@ -1038,7 +1038,7 @@ class LLVMFunction():
             index = dst2case.get(value, i)
             to_eval = to_eval.replace_expr({value: m2_expr.ExprInt(index, value.size)})
             dst2case[value] = index
-            if m2_asmbloc.expr_is_int_or_label(value):
+            if m2_asmblock.expr_is_int_or_label(value):
                 case2dst[i] = value
             else:
                 case2dst[i] = self.add_ir(value)
@@ -1068,7 +1068,7 @@ class LLVMFunction():
             dst = m2_expr.ExprId(self.llvm_context.ir_arch.symbol_pool.getby_offset_create(int(dst)),
                                  dst.size)
 
-        if m2_asmbloc.expr_is_label(dst):
+        if m2_asmblock.expr_is_label(dst):
             bbl = self.get_basic_bloc_by_label(dst)
             offset = dst.name.offset
             if bbl is not None:
@@ -1276,7 +1276,7 @@ class LLVMFunction():
         self.init_fc()
         self.local_vars_pointers["status"] = self.local_vars["status"]
 
-        if isinstance(asmblock, m2_asmbloc.AsmBlockBad):
+        if isinstance(asmblock, m2_asmblock.AsmBlockBad):
             self.gen_bad_block(asmblock)
             return
 

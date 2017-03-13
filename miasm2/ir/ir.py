@@ -24,7 +24,7 @@ from itertools import chain
 import miasm2.expression.expression as m2_expr
 from miasm2.expression.expression_helper import get_missing_interval
 from miasm2.expression.simplifications import expr_simp
-from miasm2.core.asmbloc import AsmSymbolPool, expr_is_label, AsmLabel, \
+from miasm2.core.asmblock import AsmSymbolPool, expr_is_label, AsmLabel, \
     AsmBlock
 from miasm2.core.graph import DiGraph
 

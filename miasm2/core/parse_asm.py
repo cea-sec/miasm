@@ -2,7 +2,7 @@
 import re
 
 import miasm2.expression.expression as m2_expr
-import miasm2.core.asmbloc as asmbloc
+import miasm2.core.asmblock as asmblock
 from miasm2.core.cpu import gen_base_expr, ParseAst
 from miasm2.core.cpu import instruction
 
@@ -77,7 +77,7 @@ def replace_expr_labels(expr, symbol_pool, replace_id):
     Update @replace_id"""
 
     if not (isinstance(expr, m2_expr.ExprId) and
-            isinstance(expr.name, asmbloc.AsmLabel)):
+            isinstance(expr.name, asmblock.AsmLabel)):
         return expr
 
     old_lbl = expr.name
@@ -114,10 +114,10 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
     """
 
     if symbol_pool is None:
-        symbol_pool = asmbloc.AsmSymbolPool()
+        symbol_pool = asmblock.AsmSymbolPool()
 
-    C_NEXT = asmbloc.AsmConstraint.c_next
-    C_TO = asmbloc.AsmConstraint.c_to
+    C_NEXT = asmblock.AsmConstraint.c_next
+    C_TO = asmblock.AsmConstraint.c_to
 
     lines = []
     # parse each line
@@ -151,7 +151,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
                 raw = raw.decode('string_escape')
                 if directive == 'string':
                     raw += "\x00"
-                lines.append(asmbloc.AsmRaw(raw))
+                lines.append(asmblock.AsmRaw(raw))
                 continue
             if directive == 'ustring':
                 # XXX HACK
@@ -159,7 +159,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
                 raw = line[line.find(r'"') + 1:line.rfind(r'"')] + "\x00"
                 raw = raw.decode('string_escape')
                 raw = "".join([string + '\x00' for string in raw])
-                lines.append(asmbloc.AsmRaw(raw))
+                lines.append(asmblock.AsmRaw(raw))
                 continue
             if directive in declarator:
                 data_raw = line[match_re.end():].split(' ', 1)[1]
@@ -179,7 +179,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
                     element_expr = base_expr.parseString(element)[0]
                     expr_list.append(element_expr.canonize())
 
-                raw_data = asmbloc.AsmRaw(expr_list)
+                raw_data = asmblock.AsmRaw(expr_list)
                 raw_data.element_size = size
                 lines.append(raw_data)
                 continue
@@ -225,13 +225,13 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
             instr.dstflow2label(symbol_pool)
         lines.append(instr)
 
-    asmbloc.log_asmbloc.info("___pre asm oki___")
+    asmblock.log_asmblock.info("___pre asm oki___")
     # make blocks
 
     cur_block = None
     state = STATE_NO_BLOC
     i = 0
-    blocks = asmbloc.AsmCFG()
+    blocks = asmblock.AsmCFG()
     block_to_nlink = None
     delayslot = 0
     while i < len(lines):
@@ -250,21 +250,21 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
                 block_to_nlink = None
                 i += 1
                 continue
-            elif not isinstance(line, asmbloc.AsmLabel):
+            elif not isinstance(line, asmblock.AsmLabel):
                 # First line must be a label. If it's not the case, generate
                 # it.
                 label = guess_next_new_label(symbol_pool)
-                cur_block = asmbloc.AsmBlock(label, alignment=mnemo.alignment)
+                cur_block = asmblock.AsmBlock(label, alignment=mnemo.alignment)
             else:
-                cur_block = asmbloc.AsmBlock(line, alignment=mnemo.alignment)
+                cur_block = asmblock.AsmBlock(line, alignment=mnemo.alignment)
                 i += 1
             # Generate the current bloc
             blocks.add_node(cur_block)
             state = STATE_IN_BLOC
             if block_to_nlink:
                 block_to_nlink.addto(
-                    asmbloc.AsmConstraint(cur_block.label,
-                                          C_NEXT))
+                    asmblock.AsmConstraint(cur_block.label,
+                                           C_NEXT))
             block_to_nlink = None
             continue
 
@@ -278,13 +278,13 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
                 block_to_nlink = cur_block
             elif isinstance(line, DirectiveAlign):
                 cur_block.alignment = line.alignment
-            elif isinstance(line, asmbloc.AsmRaw):
+            elif isinstance(line, asmblock.AsmRaw):
                 cur_block.addline(line)
                 block_to_nlink = cur_block
-            elif isinstance(line, asmbloc.AsmLabel):
+            elif isinstance(line, asmblock.AsmLabel):
                 if block_to_nlink:
                     cur_block.addto(
-                        asmbloc.AsmConstraint(line, C_NEXT))
+                        asmblock.AsmConstraint(line, C_NEXT))
                     block_to_nlink = None
                 state = STATE_NO_BLOC
                 continue
@@ -303,7 +303,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
                             continue
                         if dst in mnemo.regs.all_regs_ids:
                             continue
-                        cur_block.addto(asmbloc.AsmConstraint(dst.name, C_TO))
+                        cur_block.addto(asmblock.AsmConstraint(dst.name, C_TO))
 
                 if not line.splitflow():
                     block_to_nlink = None
@@ -318,5 +318,5 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
         block.fix_constraints()
 
         # Log block
-        asmbloc.log_asmbloc.info(block)
+        asmblock.log_asmblock.info(block)
     return blocks, symbol_pool

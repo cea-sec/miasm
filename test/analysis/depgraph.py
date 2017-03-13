@@ -1,7 +1,7 @@
 """Regression test module for DependencyGraph"""
 from miasm2.expression.expression import ExprId, ExprInt32, ExprAff, ExprCond, \
     ExprInt
-from miasm2.core.asmbloc import AsmLabel
+from miasm2.core.asmblock import AsmLabel
 from miasm2.ir.analysis import ira
 from miasm2.ir.ir import IRBlock, AssignBlock
 from miasm2.core.graph import DiGraph

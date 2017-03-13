@@ -3,7 +3,7 @@ from pdb import pm
 
 from miasm2.core.sembuilder import SemBuilder
 import miasm2.expression.expression as m2_expr
-from miasm2.core.asmbloc import AsmLabel
+from miasm2.core.asmblock import AsmLabel
 
 # Test classes
 class IR(object):

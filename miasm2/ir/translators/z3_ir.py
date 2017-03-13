@@ -3,7 +3,7 @@ import operator
 
 import z3
 
-from miasm2.core.asmbloc import AsmLabel
+from miasm2.core.asmblock import AsmLabel
 from miasm2.ir.translators.translator import Translator
 
 log = logging.getLogger("translator_z3")

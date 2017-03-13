@@ -1,7 +1,7 @@
 import miasm2.expression.expression as m2_expr
 from miasm2.ir.ir import IRBlock
 from miasm2.ir.translators import Translator
-from miasm2.core.asmbloc import expr_is_label, AsmBlockBad, AsmLabel
+from miasm2.core.asmblock import expr_is_label, AsmBlockBad, AsmLabel
 
 # Miasm to C translator
 translator = Translator.to_language("C")

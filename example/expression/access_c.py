@@ -58,7 +58,7 @@ ExprCompose(var1, 0) => var1
 def find_call(ira):
     """Returns (irb, index) which call"""
 
-    for irb in ira.blocs.values():
+    for irb in ira.blocks.values():
         out = set()
         if len(irb.irs) < 2:
             continue

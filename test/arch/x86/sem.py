@@ -13,7 +13,7 @@ from miasm2.arch.x86.sem import ir_x86_32 as ir_32, ir_x86_64 as ir_64
 from miasm2.arch.x86.regs import *
 from miasm2.expression.expression import *
 from miasm2.expression.simplifications      import expr_simp
-from miasm2.core import parse_asm, asmbloc
+from miasm2.core import parse_asm, asmblock
 
 
 logging.getLogger('cpuhelper').setLevel(logging.ERROR)
@@ -47,7 +47,7 @@ def compute(ir, mode, asm, inputstate={}, debug=False):
 def compute_txt(ir, mode, txt, inputstate={}, debug=False):
     blocks, symbol_pool = parse_asm.parse_txt(mn, mode, txt)
     symbol_pool.set_offset(symbol_pool.getby_name("main"), 0x0)
-    patches = asmbloc.asm_resolve_final(mn, blocks, symbol_pool)
+    patches = asmblock.asm_resolve_final(mn, blocks, symbol_pool)
     interm = ir(symbol_pool)
     for bbl in blocks:
         interm.add_bloc(bbl)

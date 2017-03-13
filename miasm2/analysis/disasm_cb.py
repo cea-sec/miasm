@@ -2,7 +2,7 @@
 
 from miasm2.expression.expression import ExprInt, ExprId, ExprMem, MatchExpr
 from miasm2.expression.simplifications import expr_simp
-from miasm2.core.asmbloc \
+from miasm2.core.asmblock \
     import AsmSymbolPool, AsmConstraintNext, AsmConstraintTo
 from miasm2.core.utils import upck32
 # from miasm2.core.graph import DiGraph

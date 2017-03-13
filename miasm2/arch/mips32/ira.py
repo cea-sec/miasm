@@ -4,7 +4,7 @@ from miasm2.expression.expression import ExprAff, ExprInt32, ExprId
 from miasm2.ir.ir import IntermediateRepresentation, IRBlock, AssignBlock
 from miasm2.ir.analysis import ira
 from miasm2.arch.mips32.sem import ir_mips32l, ir_mips32b
-from miasm2.core.asmbloc import expr_is_int_or_label, expr_is_label
+from miasm2.core.asmblock import expr_is_int_or_label, expr_is_label
 
 class ir_a_mips32l(ir_mips32l, ira):
     def __init__(self, symbol_pool=None):

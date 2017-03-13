@@ -1,5 +1,5 @@
 from miasm2.core.bin_stream import bin_stream_str
-from miasm2.core.asmbloc import AsmLabel, AsmConstraint, expr_is_label
+from miasm2.core.asmblock import AsmLabel, AsmConstraint, expr_is_label
 from miasm2.arch.x86.disasm import dis_x86_32, cb_x86_funcs
 
 

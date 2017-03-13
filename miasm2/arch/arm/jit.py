@@ -1,7 +1,7 @@
 import logging
 
 from miasm2.jitter.jitload import jitter, named_arguments
-from miasm2.core import asmbloc
+from miasm2.core import asmblock
 from miasm2.core.utils import pck32, upck32
 from miasm2.arch.arm.sem import ir_armb, ir_arml
 
@@ -14,7 +14,7 @@ log.setLevel(logging.CRITICAL)
 class jitter_arml(jitter):
 
     def __init__(self, *args, **kwargs):
-        sp = asmbloc.AsmSymbolPool()
+        sp = asmblock.AsmSymbolPool()
         jitter.__init__(self, ir_arml(sp), *args, **kwargs)
         self.vm.set_little_endian()
 
@@ -62,6 +62,6 @@ class jitter_arml(jitter):
 class jitter_armb(jitter_arml):
 
     def __init__(self, *args, **kwargs):
-        sp = asmbloc.AsmSymbolPool()
+        sp = asmblock.AsmSymbolPool()
         jitter.__init__(self, ir_armb(sp), *args, **kwargs)
         self.vm.set_big_endian()

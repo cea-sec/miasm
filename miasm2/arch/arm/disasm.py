@@ -1,4 +1,4 @@
-from miasm2.core.asmbloc import AsmConstraint, disasmEngine
+from miasm2.core.asmblock import AsmConstraint, disasmEngine
 from miasm2.arch.arm.arch import mn_arm, mn_armt
 
 

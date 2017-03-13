@@ -15,7 +15,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
-from miasm2.core import asmbloc
+from miasm2.core import asmblock
 from miasm2.core.interval import interval
 from miasm2.core.utils import BoundedDict
 from miasm2.jitter.csts import *
@@ -55,13 +55,13 @@ class JitCore(object):
                         "max_exec_per_call": 0 # 0 means no limit
                         }
 
-        self.mdis = asmbloc.disasmEngine(ir_arch.arch, ir_arch.attrib, bs,
-                                         lines_wd=self.options["jit_maxline"],
-                                         symbol_pool=ir_arch.symbol_pool,
-                                         follow_call=False,
-                                         dontdis_retcall=False,
-                                         split_dis=self.split_dis,
-                                         dis_bloc_callback=self.disasm_cb)
+        self.mdis = asmblock.disasmEngine(ir_arch.arch, ir_arch.attrib, bs,
+                                          lines_wd=self.options["jit_maxline"],
+                                          symbol_pool=ir_arch.symbol_pool,
+                                          follow_call=False,
+                                          dontdis_retcall=False,
+                                          split_dis=self.split_dis,
+                                          dis_bloc_callback=self.disasm_cb)
 
 
     def set_options(self, **kwargs):
@@ -133,7 +133,7 @@ class JitCore(object):
         """
 
         # Get the block
-        if isinstance(addr, asmbloc.AsmLabel):
+        if isinstance(addr, asmblock.AsmLabel):
             addr = addr.offset
 
         # Prepare disassembler
@@ -147,7 +147,7 @@ class JitCore(object):
         except IOError:
             # vm_exception_flag is set
             label = self.ir_arch.symbol_pool.getby_offset_create(addr)
-            cur_block = asmbloc.AsmBlockBad(label)
+            cur_block = asmblock.AsmBlockBad(label)
 
         # Logging
         if self.log_newbloc:

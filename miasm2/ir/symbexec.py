@@ -4,7 +4,7 @@ import logging
 import miasm2.expression.expression as m2_expr
 from miasm2.expression.modint import int32
 from miasm2.expression.simplifications import expr_simp
-from miasm2.core import asmbloc
+from miasm2.core import asmblock
 from miasm2.ir.ir import AssignBlock
 from miasm2.core.interval import interval
 
@@ -205,7 +205,7 @@ class SymbolicExecutionEngine(object):
         elif isinstance(expr, m2_expr.ExprInt):
             return expr
         elif isinstance(expr, m2_expr.ExprId):
-            if isinstance(expr.name, asmbloc.AsmLabel) and expr.name.offset is not None:
+            if isinstance(expr.name, asmblock.AsmLabel) and expr.name.offset is not None:
                 ret = m2_expr.ExprInt(expr.name.offset, expr.size)
             else:
                 ret = state.get(expr, expr)

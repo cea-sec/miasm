@@ -5,7 +5,7 @@ from pdb import pm
 from elfesteem import pe_init
 from elfesteem.strpatchwork import StrPatchwork
 
-from miasm2.core import parse_asm, asmbloc
+from miasm2.core import parse_asm, asmblock
 from miasm2.analysis.machine import Machine
 from miasm2.core.interval import interval
 
@@ -79,7 +79,7 @@ for block in blocks:
 open("graph.dot", "w").write(blocks.dot())
 
 # Apply patches
-patches = asmbloc.asm_resolve_final(machine.mn,
+patches = asmblock.asm_resolve_final(machine.mn,
                                     blocks,
                                     symbol_pool,
                                     dst_interval)

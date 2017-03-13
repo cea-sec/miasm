@@ -5,7 +5,7 @@ import tempfile
 from idaapi import GraphViewer
 
 from miasm2.core.bin_stream_ida import bin_stream_ida
-from miasm2.core.asmbloc import *
+from miasm2.core.asmblock import *
 from miasm2.expression.simplifications import expr_simp
 from miasm2.expression.expression import *
 from miasm2.analysis.data_analysis import inter_bloc_flow, \

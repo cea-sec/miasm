@@ -2,7 +2,7 @@
 
 import miasm2.expression.expression as m2_expr
 from miasm2.core.graph import DiGraph
-from miasm2.core.asmbloc import AsmLabel, expr_is_int_or_label, expr_is_label
+from miasm2.core.asmblock import AsmLabel, expr_is_int_or_label, expr_is_label
 from miasm2.expression.simplifications import expr_simp
 from miasm2.ir.symbexec import SymbolicExecutionEngine
 from miasm2.ir.ir import IRBlock, AssignBlock

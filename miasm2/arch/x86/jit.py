@@ -1,7 +1,7 @@
 import logging
 
 from miasm2.jitter.jitload import jitter, named_arguments
-from miasm2.core import asmbloc
+from miasm2.core import asmblock
 from miasm2.core.utils import pck16, pck32, pck64, upck16, upck32, upck64
 from miasm2.arch.x86.sem import ir_x86_16, ir_x86_32, ir_x86_64
 from miasm2.jitter.codegen import CGen
@@ -37,7 +37,7 @@ class jitter_x86_16(jitter):
     C_Gen = x86_32_CGen
 
     def __init__(self, *args, **kwargs):
-        sp = asmbloc.AsmSymbolPool()
+        sp = asmblock.AsmSymbolPool()
         jitter.__init__(self, ir_x86_16(sp), *args, **kwargs)
         self.vm.set_little_endian()
         self.ir_arch.do_stk_segm = False
@@ -69,7 +69,7 @@ class jitter_x86_32(jitter):
     C_Gen = x86_32_CGen
 
     def __init__(self, *args, **kwargs):
-        sp = asmbloc.AsmSymbolPool()
+        sp = asmblock.AsmSymbolPool()
         jitter.__init__(self, ir_x86_32(sp), *args, **kwargs)
         self.vm.set_little_endian()
         self.ir_arch.do_stk_segm = False
@@ -129,7 +129,7 @@ class jitter_x86_64(jitter):
     C_Gen = x86_64_CGen
 
     def __init__(self, *args, **kwargs):
-        sp = asmbloc.AsmSymbolPool()
+        sp = asmblock.AsmSymbolPool()
         jitter.__init__(self, ir_x86_64(sp), *args, **kwargs)
         self.vm.set_little_endian()
         self.ir_arch.do_stk_segm = False

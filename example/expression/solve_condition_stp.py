@@ -9,7 +9,7 @@ from miasm2.arch.x86.arch import *
 from miasm2.arch.x86.regs import *
 from miasm2.arch.x86.sem import *
 from miasm2.core.bin_stream import bin_stream_str
-from miasm2.core import asmbloc
+from miasm2.core import asmblock
 from miasm2.expression.expression import get_rw
 from miasm2.ir.symbexec import SymbolicExecutionEngine
 from miasm2.expression.simplifications import expr_simp
@@ -36,7 +36,7 @@ if not args:
 
 
 def get_block(ir_arch, mdis, ad):
-    if isinstance(ad, asmbloc.AsmLabel):
+    if isinstance(ad, asmblock.AsmLabel):
         l = ad
     else:
         l = mdis.symbol_pool.getby_offset_create(ad)
@@ -87,8 +87,8 @@ def emul_symb(ir_arch, mdis, states_todo, states_done):
             p2[ad.cond] = ExprInt(1, ad.cond.size)
             ad1 = expr_simp(sb.eval_expr(ad.replace_expr(c1), {}))
             ad2 = expr_simp(sb.eval_expr(ad.replace_expr(c2), {}))
-            if not (isinstance(ad1, ExprInt) or (isinstance(ad1, ExprId) and isinstance(ad1.name, asmbloc.AsmLabel)) and
-                    isinstance(ad2, ExprInt) or (isinstance(ad2, ExprId) and isinstance(ad2.name, asmbloc.AsmLabel))):
+            if not (isinstance(ad1, ExprInt) or (isinstance(ad1, ExprId) and isinstance(ad1.name, asmblock.AsmLabel)) and
+                    isinstance(ad2, ExprInt) or (isinstance(ad2, ExprId) and isinstance(ad2.name, asmblock.AsmLabel))):
                 print str(ad1), str(ad2)
                 raise ValueError("zarb condition")
             conds1 = list(conds) + c1.items()
@@ -106,7 +106,7 @@ def emul_symb(ir_arch, mdis, states_todo, states_done):
         elif isinstance(ad, ExprInt):
             ad = int(ad.arg)
             states_todo.add((ad, sb.symbols.copy(), tuple(conds)))
-        elif isinstance(ad, ExprId) and isinstance(ad.name, asmbloc.AsmLabel):
+        elif isinstance(ad, ExprId) and isinstance(ad.name, asmblock.AsmLabel):
             if isinstance(ad, ExprId):
                 ad = ad.name
             states_todo.add((ad, sb.symbols.copy(), tuple(conds)))

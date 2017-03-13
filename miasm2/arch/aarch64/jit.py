@@ -1,7 +1,7 @@
 import logging
 
 from miasm2.jitter.jitload import jitter, named_arguments
-from miasm2.core import asmbloc
+from miasm2.core import asmblock
 from miasm2.core.utils import pck64, upck64
 from miasm2.arch.aarch64.sem import ir_aarch64b, ir_aarch64l
 
@@ -15,7 +15,7 @@ class jitter_aarch64l(jitter):
     max_reg_arg = 8
 
     def __init__(self, *args, **kwargs):
-        sp = asmbloc.AsmSymbolPool()
+        sp = asmblock.AsmSymbolPool()
         jitter.__init__(self, ir_aarch64l(sp), *args, **kwargs)
         self.vm.set_little_endian()
 
@@ -64,6 +64,6 @@ class jitter_aarch64l(jitter):
 class jitter_aarch64b(jitter_aarch64l):
 
     def __init__(self, *args, **kwargs):
-        sp = asmbloc.AsmSymbolPool()
+        sp = asmblock.AsmSymbolPool()
         jitter.__init__(self, ir_aarch64b(sp), *args, **kwargs)
         self.vm.set_big_endian()
