@@ -9,7 +9,6 @@ from miasm2.expression.expression import ExprMem, ExprInt, ExprInt32, ExprId
 from miasm2.core.bin_stream import bin_stream
 import miasm2.arch.mips32.regs as regs
 import miasm2.core.cpu as cpu
-from miasm2.core.asmbloc import asm_label
 
 log = logging.getLogger("mips32dis")
 console_handler = logging.StreamHandler()

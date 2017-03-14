@@ -2,7 +2,7 @@ import os
 import tempfile
 
 from miasm2.core.bin_stream_ida import bin_stream_ida
-from miasm2.core.asmbloc import *
+from miasm2.core.asmblock import *
 from miasm2.expression import expression as m2_expr
 
 from miasm2.expression.simplifications import expr_simp
@@ -21,12 +21,12 @@ class depGraphSettingsForm(Form):
         self.stk_unalias_force = False
 
         self.address = ScreenEA()
-        cur_bloc = list(ira.getby_offset(self.address))[0]
-        for line_nb, l in enumerate(cur_bloc.lines):
+        cur_block = list(ira.getby_offset(self.address))[0]
+        for line_nb, l in enumerate(cur_block.lines):
             if l.offset == self.address:
                 break
-        cur_label = str(cur_bloc.label)
-        labels = sorted(map(str, ira.blocs.keys()))
+        cur_label = str(cur_block.label)
+        labels = sorted(map(str, ira.blocks.keys()))
         regs = sorted(ir_arch.arch.regs.all_regs_ids_byname.keys())
         regs += self.stk_args.keys()
         reg_default = regs[0]
@@ -82,7 +82,7 @@ Method to use:
     @property
     def label(self):
         value = self.cbBBL.value
-        for real_label in self.ira.blocs:
+        for real_label in self.ira.blocks:
             if str(real_label) == value:
                 return real_label
         raise ValueError("Bad label")
@@ -96,13 +96,13 @@ Method to use:
         elif mode == 1:
             return value + 1
         else:
-            return len(self.ira.blocs[self.label].irs)
+            return len(self.ira.blocks[self.label].irs)
 
     @property
     def elements(self):
         value = self.cbReg.value
         if value in self.stk_args:
-            line = self.ira.blocs[self.label].lines[self.line_nb]
+            line = self.ira.blocks[self.label].lines[self.line_nb]
             arg_num = self.stk_args[value]
             stk_high = m2_expr.ExprInt(GetSpd(line.offset), ir_arch.sp.size)
             stk_off = m2_expr.ExprInt(self.ira.sp.size/8 * arg_num, ir_arch.sp.size)
@@ -151,11 +151,11 @@ for ad, name in Names():
 # Get the current function
 addr = ScreenEA()
 func = idaapi.get_func(addr)
-blocs = mdis.dis_multibloc(func.startEA)
+blocks = mdis.dis_multibloc(func.startEA)
 
 # Generate IR
-for bloc in blocs:
-    ir_arch.add_bloc(bloc)
+for block in blocks:
+    ir_arch.add_bloc(block)
 
 # Get settings
 settings = depGraphSettingsForm(ir_arch)
@@ -163,7 +163,7 @@ settings.Execute()
 
 label, elements, line_nb = settings.label, settings.elements, settings.line_nb
 # Simplify affectations
-for irb in ir_arch.blocs.values():
+for irb in ir_arch.blocks.values():
     fix_stack = irb.label.offset is not None and settings.unalias_stack
     for i, assignblk in enumerate(irb.irs):
         if fix_stack:
@@ -215,7 +215,7 @@ def treat_element():
 
     for node in graph.relevant_nodes:
         try:
-            offset = ir_arch.blocs[node.label].lines[node.line_nb].offset
+            offset = ir_arch.blocks[node.label].lines[node.line_nb].offset
         except IndexError:
             print "Unable to highlight %s" % node
             continue

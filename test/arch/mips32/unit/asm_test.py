@@ -5,7 +5,7 @@ from miasm2.core.cpu import ParseAst
 from miasm2.arch.mips32.arch import mn_mips32, base_expr, variable
 from miasm2.core import parse_asm
 from miasm2.expression.expression import *
-from miasm2.core import asmbloc
+from miasm2.core import asmblock
 from elfesteem.strpatchwork import StrPatchwork
 from miasm2.analysis.machine import Machine
 from miasm2.jitter.csts import *
@@ -28,12 +28,12 @@ class Asm_Test(object):
         self.check()
 
     def asm(self):
-        blocs, symbol_pool = parse_asm.parse_txt(mn_mips32, 'l', self.TXT,
-                                                 symbol_pool=self.myjit.ir_arch.symbol_pool)
+        blocks, symbol_pool = parse_asm.parse_txt(mn_mips32, 'l', self.TXT,
+                                                  symbol_pool=self.myjit.ir_arch.symbol_pool)
         # fix shellcode addr
         symbol_pool.set_offset(symbol_pool.getby_name("main"), 0x0)
         s = StrPatchwork()
-        patches = asmbloc.asm_resolve_final(mn_mips32, blocs, symbol_pool)
+        patches = asmblock.asm_resolve_final(mn_mips32, blocks, symbol_pool)
         for offset, raw in patches.items():
             s[offset] = raw
 

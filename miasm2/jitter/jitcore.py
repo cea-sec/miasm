@@ -15,7 +15,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
-from miasm2.core import asmbloc
+from miasm2.core import asmblock
 from miasm2.core.interval import interval
 from miasm2.core.utils import BoundedDict
 from miasm2.jitter.csts import *
@@ -55,13 +55,13 @@ class JitCore(object):
                         "max_exec_per_call": 0 # 0 means no limit
                         }
 
-        self.mdis = asmbloc.disasmEngine(ir_arch.arch, ir_arch.attrib, bs,
-                                         lines_wd=self.options["jit_maxline"],
-                                         symbol_pool=ir_arch.symbol_pool,
-                                         follow_call=False,
-                                         dontdis_retcall=False,
-                                         split_dis=self.split_dis,
-                                         dis_bloc_callback=self.disasm_cb)
+        self.mdis = asmblock.disasmEngine(ir_arch.arch, ir_arch.attrib, bs,
+                                          lines_wd=self.options["jit_maxline"],
+                                          symbol_pool=ir_arch.symbol_pool,
+                                          follow_call=False,
+                                          dontdis_retcall=False,
+                                          split_dis=self.split_dis,
+                                          dis_bloc_callback=self.disasm_cb)
 
 
     def set_options(self, **kwargs):
@@ -88,52 +88,52 @@ class JitCore(object):
         "Initialise the Jitter"
         raise NotImplementedError("Abstract class")
 
-    def get_bloc_min_max(self, cur_bloc):
-        "Update cur_bloc to set min/max address"
+    def get_bloc_min_max(self, cur_block):
+        "Update cur_block to set min/max address"
 
-        if cur_bloc.lines:
-            cur_bloc.ad_min = cur_bloc.lines[0].offset
-            cur_bloc.ad_max = cur_bloc.lines[-1].offset + cur_bloc.lines[-1].l
+        if cur_block.lines:
+            cur_block.ad_min = cur_block.lines[0].offset
+            cur_block.ad_max = cur_block.lines[-1].offset + cur_block.lines[-1].l
         else:
             # 1 byte block for unknown mnemonic
-            cur_bloc.ad_min = cur_bloc.label.offset
-            cur_bloc.ad_max = cur_bloc.label.offset+1
+            cur_block.ad_min = cur_block.label.offset
+            cur_block.ad_max = cur_block.label.offset+1
 
 
-    def add_bloc_to_mem_interval(self, vm, bloc):
-        "Update vm to include bloc addresses in its memory range"
+    def add_bloc_to_mem_interval(self, vm, block):
+        "Update vm to include block addresses in its memory range"
 
-        self.blocs_mem_interval += interval([(bloc.ad_min, bloc.ad_max - 1)])
+        self.blocs_mem_interval += interval([(block.ad_min, block.ad_max - 1)])
 
         vm.reset_code_bloc_pool()
         for a, b in self.blocs_mem_interval:
             vm.add_code_bloc(a, b + 1)
 
-    def jitirblocs(self, label, irblocs):
-        """JiT a group of irblocs.
-        @label: the label of the irblocs
-        @irblocs: a gorup of irblocs
+    def jitirblocs(self, label, irblocks):
+        """JiT a group of irblocks.
+        @label: the label of the irblocks
+        @irblocks: a gorup of irblocks
         """
 
         raise NotImplementedError("Abstract class")
 
-    def add_bloc(self, b):
-        """Add a bloc to JiT and JiT it.
-        @b: the bloc to add
+    def add_bloc(self, block):
+        """Add a block to JiT and JiT it.
+        @block: asm_bloc to add
         """
 
-        irblocs = self.ir_arch.add_bloc(b, gen_pc_updt = True)
-        b.irblocs = irblocs
-        self.jitirblocs(b.label, irblocs)
+        irblocks = self.ir_arch.add_bloc(block, gen_pc_updt = True)
+        block.blocks = irblocks
+        self.jitirblocs(block.label, irblocks)
 
     def disbloc(self, addr, vm):
-        """Disassemble a new bloc and JiT it
-        @addr: address of the block to disassemble (asm_label or int)
+        """Disassemble a new block and JiT it
+        @addr: address of the block to disassemble (AsmLabel or int)
         @vm: VmMngr instance
         """
 
-        # Get the bloc
-        if isinstance(addr, asmbloc.asm_label):
+        # Get the block
+        if isinstance(addr, asmblock.AsmLabel):
             addr = addr.offset
 
         # Prepare disassembler
@@ -143,30 +143,30 @@ class JitCore(object):
 
         # Disassemble it
         try:
-            cur_bloc = self.mdis.dis_bloc(addr)
+            cur_block = self.mdis.dis_bloc(addr)
         except IOError:
             # vm_exception_flag is set
             label = self.ir_arch.symbol_pool.getby_offset_create(addr)
-            cur_bloc = asmbloc.asm_block_bad(label)
+            cur_block = asmblock.AsmBlockBad(label)
 
         # Logging
         if self.log_newbloc:
-            print cur_bloc
+            print cur_block
 
-        # Update label -> bloc
-        self.lbl2bloc[cur_bloc.label] = cur_bloc
+        # Update label -> block
+        self.lbl2bloc[cur_block.label] = cur_block
 
-        # Store min/max bloc address needed in jit automod code
-        self.get_bloc_min_max(cur_bloc)
+        # Store min/max block address needed in jit automod code
+        self.get_bloc_min_max(cur_block)
 
         # JiT it
-        self.add_bloc(cur_bloc)
+        self.add_bloc(cur_block)
 
         # Update jitcode mem range
-        self.add_bloc_to_mem_interval(vm, cur_bloc)
+        self.add_bloc_to_mem_interval(vm, cur_block)
 
     def runbloc(self, cpu, lbl, breakpoints):
-        """Run the bloc starting at lbl.
+        """Run the block starting at lbl.
         @cpu: JitCpu instance
         @lbl: target label
         """
@@ -175,80 +175,79 @@ class JitCore(object):
             lbl = getattr(cpu, self.ir_arch.pc.name)
 
         if not lbl in self.lbl2jitbloc:
-            # Need to JiT the bloc
+            # Need to JiT the block
             self.disbloc(lbl, cpu.vmmngr)
 
-        # Run the bloc and update cpu/vmmngr state
+        # Run the block and update cpu/vmmngr state
         return self.exec_wrapper(lbl, cpu, self.lbl2jitbloc.data, breakpoints,
                                  self.options["max_exec_per_call"])
 
-    def blocs2memrange(self, blocs):
-        """Return an interval instance standing for blocs addresses
-        @blocs: list of asm_bloc instances
+    def blocs2memrange(self, blocks):
+        """Return an interval instance standing for blocks addresses
+        @blocks: list of asm_bloc instances
         """
 
         mem_range = interval()
 
-        for b in blocs:
-            mem_range += interval([(b.ad_min, b.ad_max - 1)])
+        for block in blocks:
+            mem_range += interval([(block.ad_min, block.ad_max - 1)])
 
         return mem_range
 
     def __updt_jitcode_mem_range(self, vm):
-        """Rebuild the VM blocs address memory range
+        """Rebuild the VM blocks address memory range
         @vm: VmMngr instance
         """
 
         # Reset the current pool
         vm.reset_code_bloc_pool()
 
-        # Add blocs in the pool
-        for a, b in self.blocs_mem_interval:
-            vm.add_code_bloc(a, b + 1)
+        # Add blocks in the pool
+        for start, stop in self.blocs_mem_interval:
+            vm.add_code_bloc(start, stop + 1)
 
     def del_bloc_in_range(self, ad1, ad2):
-        """Find and remove jitted bloc in range [ad1, ad2].
-        Return the list of bloc removed.
+        """Find and remove jitted block in range [ad1, ad2].
+        Return the list of block removed.
         @ad1: First address
         @ad2: Last address
         """
 
-        # Find concerned blocs
-        modified_blocs = set()
-        for b in self.lbl2bloc.values():
-            if not b.lines:
+        # Find concerned blocks
+        modified_blocks = set()
+        for block in self.lbl2bloc.values():
+            if not block.lines:
                 continue
-            if b.ad_max <= ad1 or b.ad_min >= ad2:
-                # Bloc not modified
+            if block.ad_max <= ad1 or block.ad_min >= ad2:
+                # Block not modified
                 pass
             else:
-                # Modified blocs
-                modified_blocs.add(b)
+                # Modified blocks
+                modified_blocks.add(block)
 
         # Generate interval to delete
-        del_interval = self.blocs2memrange(modified_blocs)
+        del_interval = self.blocs2memrange(modified_blocks)
 
         # Remove interval from monitored interval list
         self.blocs_mem_interval -= del_interval
 
-        # Remove modified blocs
-        for b in modified_blocs:
+        # Remove modified blocks
+        for block in modified_blocks:
             try:
-                for irbloc in b.irblocs:
-
-                    # Remove offset -> jitted bloc link
-                    if irbloc.label.offset in self.lbl2jitbloc:
-                        del(self.lbl2jitbloc[irbloc.label.offset])
+                for irblock in block.blocks:
+                    # Remove offset -> jitted block link
+                    if irblock.label.offset in self.lbl2jitbloc:
+                        del(self.lbl2jitbloc[irblock.label.offset])
 
             except AttributeError:
-                # The bloc has never been translated in IR
-                if b.label.offset in self.lbl2jitbloc:
-                    del(self.lbl2jitbloc[b.label.offset])
+                # The block has never been translated in IR
+                if block.label.offset in self.lbl2jitbloc:
+                    del(self.lbl2jitbloc[block.label.offset])
 
-            # Remove label -> bloc link
-            del(self.lbl2bloc[b.label])
+            # Remove label -> block link
+            del(self.lbl2bloc[block.label])
 
-        return modified_blocs
+        return modified_blocks
 
     def updt_automod_code_range(self, vm, mem_range):
         """Remove jitted code in range @mem_range

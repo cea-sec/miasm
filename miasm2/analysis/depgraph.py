@@ -2,10 +2,10 @@
 
 import miasm2.expression.expression as m2_expr
 from miasm2.core.graph import DiGraph
-from miasm2.core.asmbloc import asm_label, expr_is_int_or_label, expr_is_label
+from miasm2.core.asmblock import AsmLabel, expr_is_int_or_label, expr_is_label
 from miasm2.expression.simplifications import expr_simp
-from miasm2.ir.symbexec import symbexec
-from miasm2.ir.ir import irbloc, AssignBlock
+from miasm2.ir.symbexec import SymbolicExecutionEngine
+from miasm2.ir.ir import IRBlock, AssignBlock
 from miasm2.ir.translators import Translator
 from miasm2.expression.expression_helper import possible_values
 
@@ -28,7 +28,7 @@ class DependencyNode(object):
 
     def __init__(self, label, element, line_nb):
         """Create a dependency node with:
-        @label: asm_label instance
+        @label: AsmLabel instance
         @element: Expr instance
         @line_nb: int
         """
@@ -107,7 +107,7 @@ class DependencyState(object):
 
     def extend(self, label):
         """Return a copy of itself, with itself in history
-        @label: asm_label instance for the new DependencyState's label
+        @label: AsmLabel instance for the new DependencyState's label
         """
         new_state = self.__class__(label, self.pending)
         new_state.links = set(self.links)
@@ -270,7 +270,7 @@ class DependencyResult(DependencyState):
                     assignblk[element] = irb.irs[line_nb][element]
             assignblks.append(assignblk)
 
-        return irbloc(irb.label, assignblks)
+        return IRBlock(irb.label, assignblks)
 
     def emul(self, ctx=None, step=False):
         """Symbolic execution of relevant nodes according to the history
@@ -293,13 +293,13 @@ class DependencyResult(DependencyState):
                 line_nb = self.initial_state.line_nb
             else:
                 line_nb = None
-            assignblks += self.irblock_slice(self._ira.blocs[label],
+            assignblks += self.irblock_slice(self._ira.blocks[label],
                                              line_nb).irs
 
         # Eval the block
-        temp_label = asm_label("Temp")
-        symb_exec = symbexec(self._ira, ctx_init)
-        symb_exec.emulbloc(irbloc(temp_label, assignblks), step=step)
+        temp_label = AsmLabel("Temp")
+        symb_exec = SymbolicExecutionEngine(self._ira, ctx_init)
+        symb_exec.emulbloc(IRBlock(temp_label, assignblks), step=step)
 
         # Return only inputs values (others could be wrongs)
         return {element: symb_exec.symbols[element]
@@ -354,7 +354,7 @@ class DependencyResultImplicit(DependencyResult):
         if ctx is not None:
             ctx_init.update(ctx)
         solver = z3.Solver()
-        symb_exec = symbexec(self._ira, ctx_init)
+        symb_exec = SymbolicExecutionEngine(self._ira, ctx_init)
         history = self.history[::-1]
         history_size = len(history)
         translator = Translator.to_language("z3")
@@ -365,7 +365,7 @@ class DependencyResultImplicit(DependencyResult):
                 line_nb = self.initial_state.line_nb
             else:
                 line_nb = None
-            irb = self.irblock_slice(self._ira.blocs[label], line_nb)
+            irb = self.irblock_slice(self._ira.blocks[label], line_nb)
 
             # Emul the block and get back destination
             dst = symb_exec.emulbloc(irb, step=step)
@@ -416,7 +416,7 @@ class FollowExpr(object):
         """Build a set of FollowExpr(DependencyNode) from the @follow_exprs set
         of FollowExpr
         @follow_exprs: set of FollowExpr
-        @label: asm_label instance
+        @label: AsmLabel instance
         @line: integer
         """
         dependencies = set()
@@ -580,7 +580,7 @@ class DependencyGraph(object):
         """Follow dependencies tracked in @state in the current irbloc
         @state: instance of DependencyState"""
 
-        irb = self._ira.blocs[state.label]
+        irb = self._ira.blocks[state.label]
         line_nb = len(irb.irs) if state.line_nb is None else state.line_nb
 
         for cur_line_nb, assignblk in reversed(list(enumerate(irb.irs[:line_nb]))):
@@ -590,10 +590,10 @@ class DependencyGraph(object):
         """Compute the dependencies of @elements at line number @line_nb in
         the block named @label in the current IRA, before the execution of
         this line. Dependency check stop if one of @heads is reached
-        @label: asm_label instance
+        @label: AsmLabel instance
         @element: set of Expr instances
         @line_nb: int
-        @heads: set of asm_label instances
+        @heads: set of AsmLabel instances
         Return an iterator on DiGraph(DependencyNode)
         """
         # Init the algorithm
@@ -630,7 +630,7 @@ class DependencyGraph(object):
         argument.
         PRE: Labels and lines of depnodes have to be equals
         @depnodes: set of DependencyNode instances
-        @heads: set of asm_label instances
+        @heads: set of AsmLabel instances
         """
         lead = list(depnodes)[0]
         elements = set(depnode.element for depnode in depnodes)

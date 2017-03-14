@@ -3,7 +3,7 @@ from pdb import pm
 
 from miasm2.core.sembuilder import SemBuilder
 import miasm2.expression.expression as m2_expr
-from miasm2.core.asmbloc import asm_label
+from miasm2.core.asmblock import AsmLabel
 
 # Test classes
 class IR(object):
@@ -11,13 +11,13 @@ class IR(object):
     IRDst = m2_expr.ExprId("IRDst")
 
     def get_next_instr(self, _):
-        return asm_label("NEXT")
+        return AsmLabel("NEXT")
 
     def get_next_label(self, _):
-        return asm_label("NEXT")
+        return AsmLabel("NEXT")
 
     def gen_label(self):
-        return asm_label("GEN")
+        return AsmLabel("GEN")
 
 class Instr(object):
     mode = 32

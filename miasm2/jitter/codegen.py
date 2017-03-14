@@ -1,7 +1,7 @@
 import miasm2.expression.expression as m2_expr
-from miasm2.ir.ir import irbloc
+from miasm2.ir.ir import IRBlock
 from miasm2.ir.translators import Translator
-from miasm2.core.asmbloc import expr_is_label, asm_block_bad, asm_label
+from miasm2.core.asmblock import expr_is_label, AsmBlockBad, AsmLabel
 
 # Miasm to C translator
 translator = Translator.to_language("C")
@@ -134,7 +134,7 @@ class CGen(object):
                 instr.offset + instr.l,
                 self.ir_arch.IRDst.size)
 
-        return irbloc(self.ir_arch.get_instr_label(instr), [assignblk])
+        return IRBlock(self.ir_arch.get_instr_label(instr), [assignblk])
 
     def block2assignblks(self, block):
         irblocks_list = []
@@ -324,11 +324,11 @@ class CGen(object):
         return out
 
     def gen_goto_code(self, attrib, instr_offsets, dst):
-        if isinstance(dst, asm_label) and dst.offset is None:
+        if isinstance(dst, AsmLabel) and dst.offset is None:
             # Generate goto for local labels
             return ['goto %s;' % dst.name]
         offset = None
-        if isinstance(dst, asm_label) and dst.offset is not None:
+        if isinstance(dst, AsmLabel) and dst.offset is not None:
             offset = dst.offset
         elif isinstance(dst, (int, long)):
             offset = dst
@@ -545,7 +545,7 @@ class CGen(object):
         @log_regs: log registers
         """
 
-        if isinstance(block, asm_block_bad):
+        if isinstance(block, AsmBlockBad):
             return self.gen_bad_block()
         irblocks_list = self.block2assignblks(block)
 

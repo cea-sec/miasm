@@ -4,7 +4,7 @@
 import unittest
 import logging
 
-from miasm2.ir.symbexec import symbexec
+from miasm2.ir.symbexec import SymbolicExecutionEngine
 from miasm2.arch.arm.arch import mn_arm as mn
 from miasm2.arch.arm.sem import ir_arml as ir_arch
 from miasm2.arch.arm.regs import *
@@ -23,7 +23,7 @@ def compute(asm, inputstate={}, debug=False):
     sympool = dict(regs_init)
     sympool.update({k: ExprInt(v, k.size) for k, v in inputstate.iteritems()})
     interm = ir_arch()
-    symexec = symbexec(interm, sympool)
+    symexec = SymbolicExecutionEngine(interm, sympool)
     instr = mn.fromstring(asm, "l")
     code = mn.asm(instr)[0]
     instr = mn.dis(code, "l")

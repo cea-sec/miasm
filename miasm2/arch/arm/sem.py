@@ -1,5 +1,5 @@
 from miasm2.expression.expression import *
-from miasm2.ir.ir import ir, irbloc
+from miasm2.ir.ir import IntermediateRepresentation, IRBlock
 from miasm2.arch.arm.arch import mn_arm, mn_armt
 from miasm2.arch.arm.regs import *
 
@@ -1055,7 +1055,7 @@ def add_condition_expr(ir, instr, cond, instr_ir):
             break
     if not has_irdst:
         instr_ir.append(ExprAff(ir.IRDst, lbl_next))
-    e_do = irbloc(lbl_do.name, [instr_ir])
+    e_do = IRBlock(lbl_do.name, [instr_ir])
     e = [ExprAff(ir.IRDst, dst_cond)]
     return e, [e_do]
 
@@ -1227,9 +1227,9 @@ class arminfo:
     # offset
 
 
-class ir_arml(ir):
+class ir_arml(IntermediateRepresentation):
     def __init__(self, symbol_pool=None):
-        ir.__init__(self, mn_arm, "l", symbol_pool)
+        IntermediateRepresentation.__init__(self, mn_arm, "l", symbol_pool)
         self.pc = PC
         self.sp = SP
         self.IRDst = ExprId('IRDst', 32)
@@ -1252,8 +1252,8 @@ class ir_arml(ir):
             x = ExprAff(x.dst, x.src.replace_expr(
                 {self.pc: ExprInt32(instr.offset + 8)}))
             instr_ir[i] = x
-        for b in extra_ir:
-            for irs in b.irs:
+        for irblock in extra_ir:
+            for irs in irblock.irs:
                 for i, x in enumerate(irs):
                     x = ExprAff(x.dst, x.src.replace_expr(
                         {self.pc: ExprInt32(instr.offset + 8)}))
@@ -1264,14 +1264,14 @@ class ir_arml(ir):
 
 class ir_armb(ir_arml):
     def __init__(self, symbol_pool=None):
-        ir.__init__(self, mn_arm, "b", symbol_pool)
+        IntermediateRepresentation.__init__(self, mn_arm, "b", symbol_pool)
         self.pc = PC
         self.sp = SP
         self.IRDst = ExprId('IRDst', 32)
 
-class ir_armtl(ir):
+class ir_armtl(IntermediateRepresentation):
     def __init__(self, symbol_pool=None):
-        ir.__init__(self, mn_armt, "l", symbol_pool)
+        IntermediateRepresentation.__init__(self, mn_armt, "l", symbol_pool)
         self.pc = PC
         self.sp = SP
         self.IRDst = ExprId('IRDst', 32)
@@ -1281,7 +1281,7 @@ class ir_armtl(ir):
 
 class ir_armtb(ir_armtl):
     def __init__(self, symbol_pool=None):
-        ir.__init__(self, mn_armt, "b", symbol_pool)
+        IntermediateRepresentation.__init__(self, mn_armt, "b", symbol_pool)
         self.pc = PC
         self.sp = SP
         self.IRDst = ExprId('IRDst', 32)

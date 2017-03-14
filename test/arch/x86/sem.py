@@ -7,13 +7,13 @@ import unittest
 import logging
 import copy
 
-from miasm2.ir.symbexec import symbexec
+from miasm2.ir.symbexec import SymbolicExecutionEngine
 from miasm2.arch.x86.arch import mn_x86 as mn
 from miasm2.arch.x86.sem import ir_x86_32 as ir_32, ir_x86_64 as ir_64
 from miasm2.arch.x86.regs import *
 from miasm2.expression.expression import *
 from miasm2.expression.simplifications      import expr_simp
-from miasm2.core import parse_asm, asmbloc
+from miasm2.core import parse_asm, asmblock
 
 
 logging.getLogger('cpuhelper').setLevel(logging.ERROR)
@@ -25,7 +25,7 @@ m64 = 64
 def symb_exec(interm, inputstate, debug):
     sympool = dict(regs_init)
     sympool.update(inputstate)
-    symexec = symbexec(interm, sympool)
+    symexec = SymbolicExecutionEngine(interm, sympool)
     symexec.emul_ir_blocks(0)
     if debug:
         for k, v in symexec.symbols.items():
@@ -45,11 +45,11 @@ def compute(ir, mode, asm, inputstate={}, debug=False):
 
 
 def compute_txt(ir, mode, txt, inputstate={}, debug=False):
-    blocs, symbol_pool = parse_asm.parse_txt(mn, mode, txt)
+    blocks, symbol_pool = parse_asm.parse_txt(mn, mode, txt)
     symbol_pool.set_offset(symbol_pool.getby_name("main"), 0x0)
-    patches = asmbloc.asm_resolve_final(mn, blocs, symbol_pool)
+    patches = asmblock.asm_resolve_final(mn, blocks, symbol_pool)
     interm = ir(symbol_pool)
-    for bbl in blocs:
+    for bbl in blocks:
         interm.add_bloc(bbl)
     return symb_exec(interm, inputstate, debug)
 

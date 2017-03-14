@@ -1,4 +1,4 @@
-from miasm2.core.asmbloc import disasmEngine
+from miasm2.core.asmblock import disasmEngine
 from miasm2.arch.x86.arch import mn_x86
 
 

@@ -34,10 +34,10 @@ class JitCore_Python(jitcore.JitCore):
         "Preload symbols according to current architecture"
         self.symbexec.reset_regs()
 
-    def jitirblocs(self, label, irblocs):
-        """Create a python function corresponding to an irblocs' group.
-        @label: the label of the irblocs
-        @irblocs: a gorup of irblocs
+    def jitirblocs(self, label, irblocks):
+        """Create a python function corresponding to an irblocks' group.
+        @label: the label of the irblocks
+        @irblocks: a gorup of irblocks
         """
 
         def myfunc(cpu):
@@ -47,7 +47,7 @@ class JitCore_Python(jitcore.JitCore):
             # Get virtual memory handler
             vmmngr = cpu.vmmngr
 
-            # Keep current location in irblocs
+            # Keep current location in irblocks
             cur_label = label
 
             # Required to detect new instructions
@@ -57,15 +57,15 @@ class JitCore_Python(jitcore.JitCore):
             exec_engine = self.symbexec
             expr_simp = exec_engine.expr_simp
 
-            # For each irbloc inside irblocs
+            # For each irbloc inside irblocks
             while True:
 
                 # Get the current bloc
-                for irb in irblocs:
+                for irb in irblocks:
                     if irb.label == cur_label:
                         break
                 else:
-                    raise RuntimeError("Irblocs must end with returning an "
+                    raise RuntimeError("Irblocks must end with returning an "
                                        "ExprInt instance")
 
                 # Refresh CPU values according to @cpu instance

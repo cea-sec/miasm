@@ -1,4 +1,4 @@
-from miasm2.core.asmbloc import disasmEngine
+from miasm2.core.asmblock import disasmEngine
 from miasm2.arch.msp430.arch import mn_msp430
 
 

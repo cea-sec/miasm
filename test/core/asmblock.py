@@ -2,8 +2,8 @@ from pdb import pm
 
 from miasm2.arch.x86.disasm import dis_x86_32
 from miasm2.analysis.binary import Container
-from miasm2.core.asmbloc import AsmCFG, asm_constraint, asm_bloc, \
-    asm_label, asm_block_bad, asm_constraint_to, asm_constraint_next, \
+from miasm2.core.asmblock import AsmCFG, AsmConstraint, AsmBlock, \
+    AsmLabel, AsmBlockBad, AsmConstraintTo, AsmConstraintNext, \
     bbl_simplifier
 from miasm2.core.graph import DiGraphSimplifier, MatchGraphJoker
 from miasm2.expression.expression import ExprId
@@ -60,10 +60,10 @@ assert last_block in blocks
 for pred in blocks.predecessors(last_block):
     blocks.del_edge(pred, last_block)
 ### Link first and last block
-blocks.add_edge(first_block, last_block, asm_constraint.c_next)
+blocks.add_edge(first_block, last_block, AsmConstraint.c_next)
 ### Only one link between two blocks
 try:
-    blocks.add_edge(first_block, last_block, asm_constraint.c_to)
+    blocks.add_edge(first_block, last_block, AsmConstraint.c_to)
     good = False
 except AssertionError:
     good = True
@@ -71,7 +71,7 @@ assert good
 
 ### Check final state
 assert len(first_block.bto) == 1
-assert list(first_block.bto)[0].c_t == asm_constraint.c_next
+assert list(first_block.bto)[0].c_t == AsmConstraint.c_next
 
 ## Simplify the obtained graph to keep only blocks which reach a block
 ## finnishing with RET
@@ -98,7 +98,7 @@ open("graph2.dot", "w").write(blocks.dot())
 # Test helper methods
 ## Label2block should always be updated
 assert blocks.label2block(first_block.label) == first_block
-my_block = asm_bloc(asm_label("testlabel"))
+my_block = AsmBlock(AsmLabel("testlabel"))
 blocks.add_node(my_block)
 assert len(blocks) == 3
 assert blocks.label2block(first_block.label) == first_block
@@ -108,17 +108,17 @@ assert blocks.label2block(my_block.label) == my_block
 assert len(list(blocks.get_bad_blocks())) == 0
 assert len(list(blocks.get_bad_blocks_predecessors())) == 0
 ### Add a bad block, not linked
-my_bad_block = asm_block_bad(asm_label("testlabel_bad"))
+my_bad_block = AsmBlockBad(AsmLabel("testlabel_bad"))
 blocks.add_node(my_bad_block)
 assert list(blocks.get_bad_blocks()) == [my_bad_block]
 assert len(list(blocks.get_bad_blocks_predecessors())) == 0
 ### Link the bad block and update edges
 ### Indeed, a sub-element has been modified (bto from a block from blocks)
-my_block.bto.add(asm_constraint_to(my_bad_block.label))
+my_block.bto.add(AsmConstraintTo(my_bad_block.label))
 blocks.rebuild_edges()
 assert list(blocks.get_bad_blocks_predecessors()) == [my_block]
 ### Test strict option
-my_block.bto.add(asm_constraint_to(my_block.label))
+my_block.bto.add(AsmConstraintTo(my_block.label))
 blocks.rebuild_edges()
 assert list(blocks.get_bad_blocks_predecessors(strict=False)) == [my_block]
 assert len(list(blocks.get_bad_blocks_predecessors(strict=True))) == 0
@@ -126,8 +126,8 @@ assert len(list(blocks.get_bad_blocks_predecessors(strict=True))) == 0
 ## Sanity check
 blocks.sanity_check()
 ### Next on itself
-my_block_ni = asm_bloc(asm_label("testlabel_nextitself"))
-my_block_ni.bto.add(asm_constraint_next(my_block_ni.label))
+my_block_ni = AsmBlock(AsmLabel("testlabel_nextitself"))
+my_block_ni.bto.add(AsmConstraintNext(my_block_ni.label))
 blocks.add_node(my_block_ni)
 error_raised = False
 try:
@@ -139,16 +139,16 @@ assert error_raised
 blocks.del_node(my_block_ni)
 blocks.sanity_check()
 ### Multiple next on the same node
-my_block_target = asm_bloc(asm_label("testlabel_target"))
+my_block_target = AsmBlock(AsmLabel("testlabel_target"))
 blocks.add_node(my_block_target)
-my_block_src1 = asm_bloc(asm_label("testlabel_src1"))
-my_block_src2 = asm_bloc(asm_label("testlabel_src2"))
-my_block_src1.bto.add(asm_constraint_next(my_block_target.label))
+my_block_src1 = AsmBlock(AsmLabel("testlabel_src1"))
+my_block_src2 = AsmBlock(AsmLabel("testlabel_src2"))
+my_block_src1.bto.add(AsmConstraintNext(my_block_target.label))
 blocks.add_node(my_block_src1)
 ### OK for now
 blocks.sanity_check()
 ### Add a second next from src2 to target (already src1 -> target)
-my_block_src2.bto.add(asm_constraint_next(my_block_target.label))
+my_block_src2.bto.add(AsmConstraintNext(my_block_target.label))
 blocks.add_node(my_block_src2)
 error_raised = False
 try:
@@ -171,9 +171,9 @@ assert blocks.label2block(my_block_src1.label).max_size == 0
 
 ## Check pendings
 ### Create a pending element
-my_block_src = asm_bloc(asm_label("testlabel_pend_src"))
-my_block_dst = asm_bloc(asm_label("testlabel_pend_dst"))
-my_block_src.bto.add(asm_constraint_to(my_block_dst.label))
+my_block_src = AsmBlock(AsmLabel("testlabel_pend_src"))
+my_block_dst = AsmBlock(AsmLabel("testlabel_pend_dst"))
+my_block_src.bto.add(AsmConstraintTo(my_block_dst.label))
 blocks.add_node(my_block_src)
 ### Check resulting state
 assert len(blocks) == 7
@@ -183,7 +183,7 @@ assert len(blocks.pendings[my_block_dst.label]) == 1
 pending = list(blocks.pendings[my_block_dst.label])[0]
 assert isinstance(pending, blocks.AsmCFGPending)
 assert pending.waiter == my_block_src
-assert pending.constraint == asm_constraint.c_to
+assert pending.constraint == AsmConstraint.c_to
 ### Sanity check must fail
 error_raised = False
 try:
@@ -219,7 +219,7 @@ assert len(list(blocks.get_bad_blocks())) == 1
 ### Check "special" blocks
 entry_blocks = blocks.heads()
 bad_block = (block for block in entry_blocks
-             if isinstance(block, asm_block_bad)).next()
+             if isinstance(block, AsmBlockBad)).next()
 entry_blocks.remove(bad_block)
 alone_block = (block for block in entry_blocks
                if len(blocks.successors(block)) == 0).next()
@@ -236,9 +236,9 @@ assert map(str, entry_block.lines) == ['XOR        EAX, EAX',
 assert len(blocks.successors(entry_block)) == 2
 assert len(entry_block.bto) == 2
 nextb = blocks.label2block((cons.label for cons in entry_block.bto
-                            if cons.c_t == asm_constraint.c_next).next())
+                            if cons.c_t == AsmConstraint.c_next).next())
 tob = blocks.label2block((cons.label for cons in entry_block.bto
-                          if cons.c_t == asm_constraint.c_to).next())
+                          if cons.c_t == AsmConstraint.c_to).next())
 assert len(nextb.lines) == 4
 assert map(str, nextb.lines) == ['XOR        EDX, EDX',
                                  'XOR        ESI, ESI',
@@ -257,7 +257,7 @@ blocks.apply_splitting(mdis.symbol_pool)
 assert blocks_bef == blocks
 ## Create conditions for a block split
 inside_firstbbl = mdis.symbol_pool.getby_offset(4)
-tob.bto.add(asm_constraint_to(inside_firstbbl))
+tob.bto.add(AsmConstraintTo(inside_firstbbl))
 blocks.rebuild_edges()
 assert len(blocks.pendings) == 1
 assert inside_firstbbl in blocks.pendings
@@ -277,8 +277,8 @@ preds = blocks.predecessors(newb)
 assert len(preds) == 2
 assert entry_block in preds
 assert tob in preds
-assert blocks.edges2constraint[(entry_block, newb)] == asm_constraint.c_next
-assert blocks.edges2constraint[(tob, newb)] == asm_constraint.c_to
+assert blocks.edges2constraint[(entry_block, newb)] == AsmConstraint.c_next
+assert blocks.edges2constraint[(tob, newb)] == AsmConstraint.c_to
 
 
 # Check double block split

@@ -1,8 +1,8 @@
 import logging
 
 from miasm2.jitter.jitload import jitter
-from miasm2.core import asmbloc
-from miasm2.core.utils import *
+from miasm2.core import asmblock
+from miasm2.core.utils import pck32, upck32
 from miasm2.arch.mips32.sem import ir_mips32l, ir_mips32b
 from miasm2.jitter.codegen import CGen
 import miasm2.expression.expression as m2_expr
@@ -43,7 +43,7 @@ class mipsCGen(CGen):
             if not instr.breakflow():
                 continue
             for irblock in irblocks:
-                for i, assignblock in enumerate(irblock.irs):
+                for assignblock in irblock.irs:
                     if self.ir_arch.pc not in assignblock:
                         continue
                     # Add internal branch destination
@@ -68,7 +68,7 @@ class mipsCGen(CGen):
                                                 m2_expr.ExprId('branch_dst_irdst'),
                                                 m2_expr.ExprId('branch_dst_irdst'),
                                                 self.id_to_c(m2_expr.ExprInt(lbl.offset, 32)))
-               ).split('\n')
+              ).split('\n')
         return out
 
 
@@ -77,22 +77,21 @@ class jitter_mips32l(jitter):
     C_Gen = mipsCGen
 
     def __init__(self, *args, **kwargs):
-        sp = asmbloc.asm_symbol_pool()
+        sp = asmblock.AsmSymbolPool()
         jitter.__init__(self, ir_mips32l(sp), *args, **kwargs)
         self.vm.set_little_endian()
 
-    def push_uint32_t(self, v):
+    def push_uint32_t(self, value):
         self.cpu.SP -= 4
-        self.vm.set_mem(self.cpu.SP, pck32(v))
+        self.vm.set_mem(self.cpu.SP, pck32(value))
 
     def pop_uint32_t(self):
-        x = upck32(self.vm.get_mem(self.cpu.SP, 4))
+        value = upck32(self.vm.get_mem(self.cpu.SP, 4))
         self.cpu.SP += 4
-        return x
+        return value
 
-    def get_stack_arg(self, n):
-        x = upck32(self.vm.get_mem(self.cpu.SP + 4 * n, 4))
-        return x
+    def get_stack_arg(self, index):
+        return upck32(self.vm.get_mem(self.cpu.SP + 4 * index, 4))
 
     def init_run(self, *args, **kwargs):
         jitter.init_run(self, *args, **kwargs)
@@ -102,6 +101,6 @@ class jitter_mips32l(jitter):
 class jitter_mips32b(jitter_mips32l):
 
     def __init__(self, *args, **kwargs):
-        sp = asmbloc.asm_symbol_pool()
+        sp = asmblock.AsmSymbolPool()
         jitter.__init__(self, ir_mips32b(sp), *args, **kwargs)
         self.vm.set_big_endian()

@@ -121,7 +121,7 @@ class JitCore_LLVM(jitcore.JitCore):
     def hash_block(self, block):
         """
         Build a hash of the block @block
-        @block: asmbloc
+        @block: asmblock
         """
         block_raw = "".join(line.b for line in block.lines)
         block_hash = md5("%X_%s_%s_%s" % (block.label.offset,

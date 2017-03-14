@@ -88,14 +88,14 @@ class JitCore_Cc_Base(JitCore):
     def label2fname(self, label):
         """
         Generate function name from @label
-        @label: asm_label instance
+        @label: AsmLabel instance
         """
         return "block_%s" % label.name
 
     def gen_c_code(self, label, block):
         """
         Return the C code corresponding to the @irblocks
-        @label: asm_label of the block to jit
+        @label: AsmLabel of the block to jit
         @irblocks: list of irblocks
         """
         f_name = self.label2fname(label)
@@ -113,7 +113,7 @@ class JitCore_Cc_Base(JitCore):
     def hash_block(self, block):
         """
         Build a hash of the block @block
-        @block: asmbloc
+        @block: asmblock
         """
         block_raw = "".join(line.b for line in block.lines)
         block_hash = md5("%X_%s_%s_%s" % (block.label.offset,

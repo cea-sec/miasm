@@ -8,7 +8,6 @@ from collections import defaultdict
 from miasm2.core.bin_stream import bin_stream
 import miasm2.arch.msp430.regs as regs_module
 from miasm2.arch.msp430.regs import *
-from miasm2.core.asmbloc import asm_label
 
 log = logging.getLogger("msp430dis")
 console_handler = logging.StreamHandler()
