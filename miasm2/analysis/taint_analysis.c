@@ -263,8 +263,7 @@ taint_generic_access(vm_mngr_t* vm_mngr,
 	mpn = get_memory_page_from_address(vm_mngr, addr, DO_RAISE_EXCEPTION);
 
 	if(!mpn)
-		exit(EXIT_FAILURE);
-		//return 0; // Error: Memory not mapped
+		return 0; // Error: Memory not mapped
 
 	/* Fits in one page */
 	if (addr - mpn->ad + size <= mpn->size)
@@ -292,7 +291,7 @@ taint_generic_access(vm_mngr_t* vm_mngr,
 							   DO_RAISE_EXCEPTION
 							   );
 			if (!mpn)
-				exit(EXIT_FAILURE);
+				return 0; // Error: Memory not mapped
 			if (taint_action_on_access(mpn->taint[color_index],
 						   (addr + i) - mpn->ad,
 						   access_type
