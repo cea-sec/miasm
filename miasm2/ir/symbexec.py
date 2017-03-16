@@ -408,9 +408,14 @@ class SymbolicExecutionEngine(object):
                 for new_mem, new_val in diff_mem:
                     self.symbols[new_mem] = new_val
         src_o = self.expr_simp(src)
-        if dst != src_o:
-            # Avoid X = X
-            self.symbols[dst] = src_o
+
+        # Force update. Ex:
+        # EBX += 1 (state: EBX = EBX+1)
+        # EBX -= 1 (state: EBX = EBX, must be updated)
+        self.symbols[dst] = src_o
+        if dst == src_o:
+            # Avoid useless X = X information
+            del self.symbols[dst]
         if isinstance(dst, m2_expr.ExprMem):
             if self.func_write and isinstance(dst.arg, m2_expr.ExprInt):
                 self.func_write(self, dst, src_o)
