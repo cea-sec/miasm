@@ -17,12 +17,15 @@
 #define REMOVE_MEMORY 2
 #define TEST_MEMORY 3
 
+#define TAINT_EVENT 1
+#define UNTAINT_EVENT 2
+
 struct taint_memory_cb_t {
 	uint64_t addr;
 	uint64_t size;
 };
 
-struct taint_callback_info_t {
+struct taint_last_modify_t {
 	// Register info
 	uint32_t *registers;
 
@@ -30,6 +33,12 @@ struct taint_callback_info_t {
 	uint64_t nb_mem;
 	uint64_t allocated;
 	struct taint_memory_cb_t *memory;
+};
+
+struct taint_callback_info_t {
+
+	struct taint_last_modify_t last_tainted;
+	struct taint_last_modify_t last_untainted;
 
 	// Callback flags
 	// Added in order to do callbacks
@@ -63,10 +72,7 @@ struct taint_colors_t {
 /* Colors */
 struct taint_color_t taint_init_color(uint64_t nb_regs);
 void taint_check_color(uint64_t color_index, uint64_t nb_colors);
-void taint_add_callback_register(struct taint_colors_t *colors,
-			uint64_t color_index,
-			uint64_t register_index
-			);
+void taint_check_register(uint64_t register_index, uint64_t nb_registers);
 
 /* Regsiters */
 void taint_add_register(struct taint_colors_t *colors,
@@ -116,16 +122,19 @@ void taint_init_memory(vm_mngr_t* vm_mngr, uint64_t color_index);
 /* Callback information */
 struct taint_callback_info_t *taint_init_callback_info(uint64_t nb_registers);
 void taint_clean_all_callback_info(struct taint_colors_t *colors);
-void taint_clean_callback_info_unsafe(struct taint_colors_t *colors,
-				      uint64_t color_index
-				      );
-void taint_clean_callback_info_safe(struct taint_colors_t *colors,
-				    uint64_t color_index
-				    );
+void taint_clean_callback_info(struct taint_colors_t *colors,
+			       uint64_t color_index
+			       );
+void taint_update_register_callback_info(struct taint_colors_t *colors,
+					 uint64_t color_index,
+					 uint64_t register_index,
+					 int event_type
+					 );
 void taint_update_memory_callback_info(struct taint_colors_t *colors,
 				       uint64_t color_index,
 				       uint64_t addr,
-				       uint64_t size
+				       uint64_t size,
+				       int event_type
 				       );
 
 /* Utils */
@@ -146,7 +155,9 @@ PyObject *cpu_untaint_all(JitCpu* self); // args: -
 PyObject *cpu_color_untaint_all(JitCpu* self, PyObject* args); // args: color_index
 PyObject *cpu_init_taint(JitCpu* self, PyObject* args); // args: nb_registers, nb_colors
 PyObject *cpu_get_last_tainted_registers(JitCpu* self, PyObject* args); // args: color_index
+PyObject *cpu_get_last_untainted_registers(JitCpu* self, PyObject* args); // args: color_index
 PyObject *cpu_get_last_tainted_memory(JitCpu* self, PyObject* args); // args: color_index
+PyObject *cpu_get_last_untainted_memory(JitCpu* self, PyObject* args); // args: color_index
 PyObject *cpu_get_all_taint(JitCpu* self, PyObject* args); // args: color_index
 PyObject *cpu_do_taint_reg_cb(JitCpu* self, PyObject* args); // args: color_index
 PyObject *cpu_do_untaint_reg_cb(JitCpu* self, PyObject* args); // args: color_index

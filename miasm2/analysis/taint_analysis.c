@@ -23,14 +23,14 @@ taint_init_colors(uint64_t nb_colors, uint64_t nb_registers)
 	taint_colors = malloc(sizeof(*taint_colors));
 	if (taint_colors == NULL)
 	{
-		fprintf(stderr, "cannot alloc taint_colors\n");
+		fprintf(stderr, "TAINT: cannot alloc taint_colors\n");
 		exit(EXIT_FAILURE);
 	}
 
 	taint_colors->colors = malloc(nb_colors*sizeof(*taint_colors->colors));
 	if (taint_colors->colors == NULL)
 	{
-		fprintf(stderr, "cannot alloc taint_colors->colors\n");
+		fprintf(stderr, "TAINT: cannot alloc taint_colors->colors\n");
 		exit(EXIT_FAILURE);
 	}
 
@@ -60,7 +60,7 @@ taint_init_color(uint64_t nb_registers)
 
 	if (taint_analysis.registers == NULL)
 	{
-		fprintf(stderr, "cannot alloc taint_analysis->registers\n");
+		fprintf(stderr, "TAINT: cannot alloc taint_analysis->registers\n");
 		exit(EXIT_FAILURE);
 	}
 
@@ -78,31 +78,55 @@ taint_init_callback_info(uint64_t nb_registers)
 	callback_info = malloc(sizeof(*callback_info));
         if (callback_info == NULL)
 	{
-		fprintf(stderr, "cannot alloc taint_analysis->callback_info\n");
+		fprintf(stderr, "TAINT: cannot alloc taint_analysis->callback_info\n");
 		exit(EXIT_FAILURE);
 	}
 
+	/* last tainted */
 	/* Registers */
-	callback_info->registers
+	callback_info->last_tainted.registers
 		= calloc((nb_registers/NB_BITS_IN_UINT32_T+1),
-			 sizeof(*callback_info->registers)
+			 sizeof(*callback_info->last_tainted.registers)
 			 );
-        if (callback_info->registers == NULL)
+        if (callback_info->last_tainted.registers == NULL)
 	{
-		fprintf(stderr, "cannot alloc callback_info->registers\n");
+		fprintf(stderr, "TAINT: cannot alloc callback_info->last_tainted.registers\n");
 		exit(EXIT_FAILURE);
 	}
 
 	/* Memory */
-	callback_info->memory = malloc(sizeof(*callback_info->memory)*NB_MEM_ALLOC_CB);
-        if (callback_info->memory == NULL)
+	callback_info->last_tainted.memory = malloc(sizeof(*callback_info->last_tainted.memory)*NB_MEM_ALLOC_CB);
+        if (callback_info->last_tainted.memory == NULL)
 	{
-		fprintf(stderr, "cannot alloc taint_analysis->callback_info->memory\n");
+		fprintf(stderr, "TAINT: cannot alloc taint_analysis->callback_info->last_tainted.memory\n");
 		exit(EXIT_FAILURE);
 	}
 
-	callback_info->allocated = NB_MEM_ALLOC_CB;
-	callback_info->nb_mem = 0;
+	callback_info->last_tainted.allocated = NB_MEM_ALLOC_CB;
+	callback_info->last_tainted.nb_mem = 0;
+
+	/* last untainted */
+	/* Registers */
+	callback_info->last_untainted.registers
+		= calloc((nb_registers/NB_BITS_IN_UINT32_T+1),
+			 sizeof(*callback_info->last_untainted.registers)
+			 );
+        if (callback_info->last_untainted.registers == NULL)
+	{
+		fprintf(stderr, "TAINT: cannot alloc callback_info->last_untainted.registers\n");
+		exit(EXIT_FAILURE);
+	}
+
+	/* Memory */
+	callback_info->last_untainted.memory = malloc(sizeof(*callback_info->last_untainted.memory)*NB_MEM_ALLOC_CB);
+        if (callback_info->last_untainted.memory == NULL)
+	{
+		fprintf(stderr, "TAINT: cannot alloc taint_analysis->callback_info->last_untainted.memory\n");
+		exit(EXIT_FAILURE);
+	}
+
+	callback_info->last_untainted.allocated = NB_MEM_ALLOC_CB;
+	callback_info->last_untainted.nb_mem = 0;
 
 	/* Exceptions for calbacks */
 	callback_info->exception_flag = 0;
@@ -115,10 +139,21 @@ taint_check_color(uint64_t color_index, uint64_t nb_colors)
 {
 	if (color_index >= nb_colors)
 	{
-		fprintf(stderr, "color %" PRIu64 " does not exist\n", color_index);
+		fprintf(stderr, "TAINT: color %" PRIu64 " does not exist\n", color_index);
 		exit(EXIT_FAILURE);
 	}
 }
+
+void
+taint_check_register(uint64_t register_index, uint64_t nb_registers)
+{
+	if (register_index >= nb_registers)
+	{
+		fprintf(stderr, "TAINT: register %" PRIu64 " does not exist\n", register_index);
+		exit(EXIT_FAILURE);
+	}
+}
+
 /* Regsiters */
 void
 taint_add_register(struct taint_colors_t *colors,
@@ -126,8 +161,6 @@ taint_add_register(struct taint_colors_t *colors,
 		   uint64_t register_index
 		   )
 {
-	taint_check_color(color_index, colors->nb_colors);
-	// TODO: check if register_index < nb_register
 	bitfield_set_bit(colors->colors[color_index].registers, register_index);
 }
 
@@ -137,7 +170,6 @@ taint_remove_register(struct taint_colors_t *colors,
 		      uint64_t register_index
 		      )
 {
-	taint_check_color(color_index, colors->nb_colors);
 	bitfield_unset_bit(colors->colors[color_index].registers, register_index);
 }
 
@@ -147,14 +179,12 @@ taint_get_register(struct taint_colors_t *colors,
 		   uint64_t register_index
 		   )
 {
-	taint_check_color(color_index, colors->nb_colors);
 	return bitfield_test_bit(colors->colors[color_index].registers, register_index);
 }
 
 void
 taint_color_remove_all_registers(struct taint_colors_t *colors, uint64_t color_index)
 {
-	taint_check_color(color_index, colors->nb_colors);
 	uint64_t i;
 	for(i = 0; i < (colors->nb_registers/NB_BITS_IN_UINT32_T + 1); i++)
 	{
@@ -179,75 +209,82 @@ taint_clean_all_callback_info(struct taint_colors_t *colors)
 
 	for(color_index = 0; color_index < colors->nb_colors ; color_index++)
 	{
-		taint_clean_callback_info_unsafe(colors, color_index);
+		taint_clean_callback_info(colors, color_index);
 	}
 }
 
 void
-taint_clean_callback_info_unsafe(struct taint_colors_t *colors,
-				 uint64_t color_index
-				 )
+taint_clean_callback_info(struct taint_colors_t *colors,
+			  uint64_t color_index
+			  )
 {
-	// TODO: Maybe use taint_remove_all_registers
 	int i;
 
 	for(i = 0; i < (colors->nb_registers/NB_BITS_IN_UINT32_T + 1); i++)
 	{
-		colors->colors[color_index].callback_info->registers[i] = 0;
+		colors->colors[color_index].callback_info->last_tainted.registers[i] = 0;
+		colors->colors[color_index].callback_info->last_untainted.registers[i] = 0;
 	}
 
-	colors->colors[color_index].callback_info->nb_mem = 0;
-}
-
-void
-taint_clean_callback_info_safe(struct taint_colors_t *colors,
-			       uint64_t color_index
-			       )
-{
-	taint_check_color(color_index, colors->nb_colors);
-
-	int i;
-
-	for(i = 0; i < (colors->nb_registers/NB_BITS_IN_UINT32_T + 1); i++)
-	{
-		colors->colors[color_index].callback_info->registers[i] = 0;
-	}
-
-	colors->colors[color_index].callback_info->nb_mem = 0;
+	colors->colors[color_index].callback_info->last_tainted.nb_mem = 0;
+	colors->colors[color_index].callback_info->last_untainted.nb_mem = 0;
 }
 
 void
 taint_update_memory_callback_info(struct taint_colors_t *colors,
 				  uint64_t color_index,
 				  uint64_t addr,
-				  uint64_t size
+				  uint64_t size,
+				  int event_type
 				  )
 {
-	struct taint_callback_info_t *callback_info;
-	callback_info = colors->colors[color_index].callback_info;
-
-	if ( callback_info->nb_mem >= callback_info->allocated )
+	struct taint_last_modify_t* last_modify;
+	if (event_type == TAINT_EVENT)
 	{
-		callback_info->allocated *= 2;
-		callback_info->memory = realloc(callback_info->memory,
-						callback_info->allocated
-						* sizeof(*callback_info->memory)
+		last_modify = &(colors->colors[color_index].callback_info->last_tainted);
+	}
+	else if (event_type == UNTAINT_EVENT)
+	{
+		last_modify = &(colors->colors[color_index].callback_info->last_untainted);
+	}
+	else
+	{
+		// Unknown event TODO
+	}
+
+	if ( last_modify->nb_mem >= last_modify->allocated )
+	{
+		last_modify->allocated *= 2;
+		last_modify->memory = realloc(last_modify->memory,
+						last_modify->allocated
+						* sizeof(*last_modify->memory)
 						);
 	}
 
-	callback_info->memory[callback_info->nb_mem].addr = addr;
-	callback_info->memory[callback_info->nb_mem].size = size;
-	callback_info->nb_mem += 1;
+	last_modify->memory[last_modify->nb_mem].addr = addr;
+	last_modify->memory[last_modify->nb_mem].size = size;
+	last_modify->nb_mem += 1;
 }
 
 void
-taint_add_callback_register(struct taint_colors_t *colors,
-			    uint64_t color_index,
-			    uint64_t register_index
-			    )
+taint_update_register_callback_info(struct taint_colors_t *colors,
+				    uint64_t color_index,
+				    uint64_t register_index,
+				    int event_type
+				    )
 {
-	taint_check_color(color_index, colors->nb_colors);
-	bitfield_set_bit(colors->colors[color_index].callback_info->registers, register_index);
+	if (event_type == TAINT_EVENT)
+	{
+		bitfield_set_bit(colors->colors[color_index].callback_info->last_tainted.registers, register_index);
+	}
+	else if (event_type == UNTAINT_EVENT)
+	{
+		bitfield_set_bit(colors->colors[color_index].callback_info->last_untainted.registers, register_index);
+	}
+	else
+	{
+		// Unknown event TODO
+	}
 }
 
 /* Memory */
@@ -263,7 +300,10 @@ taint_generic_access(vm_mngr_t* vm_mngr,
 	mpn = get_memory_page_from_address(vm_mngr, addr, DO_RAISE_EXCEPTION);
 
 	if(!mpn)
-		return 0; // Error: Memory not mapped
+	{
+		fprintf(stderr, "TAINT: address %" PRIu64 " is not mapped\n", addr);
+		return 0;
+	}
 
 	/* Fits in one page */
 	if (addr - mpn->ad + size <= mpn->size)
@@ -291,7 +331,10 @@ taint_generic_access(vm_mngr_t* vm_mngr,
 							   DO_RAISE_EXCEPTION
 							   );
 			if (!mpn)
-				return 0; // Error: Memory not mapped
+			{
+				fprintf(stderr, "TAINT: address %" PRIu64 " is not mapped\n", addr + i);
+				return 0;
+			}
 			if (taint_action_on_access(mpn->taint[color_index],
 						   (addr + i) - mpn->ad,
 						   access_type
@@ -383,7 +426,7 @@ taint_init_memory(vm_mngr_t* vm_mngr, uint64_t nb_colors)
 		if (!vm_mngr->memory_pages_array[i].taint)
 		{
 			fprintf(stderr,
-				"cannot alloc vm_mngr->memory_pages_array[%d].taint\n",
+				"TAINT: cannot alloc vm_mngr->memory_pages_array[%d].taint\n",
 				i);
 			exit(EXIT_FAILURE);
 		}
@@ -399,7 +442,7 @@ taint_init_memory(vm_mngr_t* vm_mngr, uint64_t nb_colors)
 			if (!vm_mngr->memory_pages_array[i].taint[color_index])
 			{
 				fprintf(stderr,
-					"cannot alloc vm_mngr->memory_pages_array[%d].taint[%" PRIu64  "]\n",
+					"TAINT: cannot alloc vm_mngr->memory_pages_array[%d].taint[%" PRIu64  "]\n",
 					i,
 					color_index
 					);
@@ -445,6 +488,8 @@ cpu_taint_register(JitCpu* self, PyObject* args)
 	PyGetInt(color_index_py, color_index);
 	PyGetInt(register_index_py, register_index);
 
+	taint_check_color(color_index, self->taint_analysis->nb_colors);
+	taint_check_register(register_index,  self->taint_analysis->nb_registers);
 	taint_add_register(self->taint_analysis, color_index, register_index);
 
 	Py_INCREF(Py_None);
@@ -465,6 +510,8 @@ cpu_untaint_register(JitCpu* self, PyObject* args)
 	PyGetInt(color_index_py, color_index);
 	PyGetInt(register_index_py, register_index);
 
+	taint_check_color(color_index, self->taint_analysis->nb_colors);
+	taint_check_register(register_index,  self->taint_analysis->nb_registers);
 	taint_remove_register(self->taint_analysis, color_index, register_index);
 
 	Py_INCREF(Py_None);
@@ -491,6 +538,7 @@ cpu_color_untaint_all_registers(JitCpu* self, PyObject* args)
 
 	PyGetInt(color_index_py, color_index);
 
+	taint_check_color(color_index, self->taint_analysis->nb_colors);
 	taint_color_remove_all_registers(self->taint_analysis, color_index);
 
 	Py_INCREF(Py_None);
@@ -514,6 +562,7 @@ cpu_taint_memory(JitCpu* self, PyObject* args)
 	PyGetInt(size_py, size);
 	PyGetInt(color_index_py, color_index);
 
+	taint_check_color(color_index, self->taint_analysis->nb_colors);
 	taint_add_memory(&self->pyvm->vm_mngr, addr, size, color_index);
 
 	Py_INCREF(Py_None);
@@ -537,6 +586,7 @@ cpu_untaint_memory(JitCpu* self, PyObject* args)
 	PyGetInt(size_py, size);
 	PyGetInt(color_index_py, color_index);
 
+	taint_check_color(color_index, self->taint_analysis->nb_colors);
 	taint_remove_memory(&self->pyvm->vm_mngr, addr, size, color_index);
 
 	Py_INCREF(Py_None);
@@ -563,6 +613,7 @@ cpu_color_untaint_all_memory(JitCpu* self, PyObject* args)
 
 	PyGetInt(color_index_py, color_index);
 
+	taint_check_color(color_index, self->taint_analysis->nb_colors);
 	taint_color_remove_all_memory(&self->pyvm->vm_mngr, color_index);
 
 	Py_INCREF(Py_None);
@@ -590,6 +641,7 @@ cpu_color_untaint_all(JitCpu* self, PyObject* args)
 
 	PyGetInt(color_index_py, color_index);
 
+	taint_check_color(color_index, self->taint_analysis->nb_colors);
 	taint_color_remove_all_registers(self->taint_analysis, color_index);
 	taint_color_remove_all_memory(&self->pyvm->vm_mngr, color_index);
 
@@ -635,7 +687,39 @@ cpu_get_last_tainted_registers(JitCpu* self, PyObject* args)
 	taint_check_color(color_index, self->taint_analysis->nb_colors);
 
 	uint32_t* last_registers;
-	last_registers = self->taint_analysis->colors[color_index].callback_info->registers;
+	last_registers = self->taint_analysis->colors[color_index].callback_info->last_tainted.registers;
+
+	PyObject *all_regs = PyList_New(0);
+
+	int i;
+	for( i = 0; i < self->taint_analysis->nb_registers; i++)
+	{
+		if ( bitfield_test_bit(last_registers, i) )
+		{
+			PyList_Append(all_regs,
+				       PyInt_FromLong(i)
+				       );
+		}
+	}
+
+	return all_regs;
+}
+
+PyObject *
+cpu_get_last_untainted_registers(JitCpu* self, PyObject* args)
+{
+	PyObject *color_index_py;
+	uint64_t color_index;
+
+	if (!PyArg_ParseTuple(args, "O", &color_index_py))
+		return NULL;
+
+	PyGetInt(color_index_py, color_index);
+
+	taint_check_color(color_index, self->taint_analysis->nb_colors);
+
+	uint32_t* last_registers;
+	last_registers = self->taint_analysis->colors[color_index].callback_info->last_untainted.registers;
 
 	PyObject *all_regs = PyList_New(0);
 
@@ -673,13 +757,13 @@ cpu_get_last_tainted_memory(JitCpu* self, PyObject* args)
 
 	int i;
 
-	for( i = 0; i < taint_callback_info->nb_mem; i++)
+	for( i = 0; i < taint_callback_info->last_tainted.nb_mem; i++)
 	{
 		PyObject *addr;
 		PyObject *size;
 
-		addr = PyInt_FromLong(taint_callback_info->memory[i].addr);
-		size = PyInt_FromLong(taint_callback_info->memory[i].size);
+		addr = PyInt_FromLong(taint_callback_info->last_tainted.memory[i].addr);
+		size = PyInt_FromLong(taint_callback_info->last_tainted.memory[i].size);
 
 		PyObject *tuple = PyTuple_New(2);
 
@@ -689,6 +773,44 @@ cpu_get_last_tainted_memory(JitCpu* self, PyObject* args)
 	}
 
 	return tainted_memory;
+}
+
+PyObject *
+cpu_get_last_untainted_memory(JitCpu* self, PyObject* args)
+{
+	PyObject *color_index_py;
+	int color_index;
+
+	if (!PyArg_ParseTuple(args, "O", &color_index_py))
+		return NULL;
+
+	PyGetInt(color_index_py, color_index);
+
+	taint_check_color(color_index, self->taint_analysis->nb_colors);
+
+	struct taint_callback_info_t* taint_callback_info;
+	taint_callback_info = self->taint_analysis->colors[color_index].callback_info;
+
+	PyObject *untainted_memory = PyList_New(0);
+
+	int i;
+
+	for( i = 0; i < taint_callback_info->last_untainted.nb_mem; i++)
+	{
+		PyObject *addr;
+		PyObject *size;
+
+		addr = PyInt_FromLong(taint_callback_info->last_untainted.memory[i].addr);
+		size = PyInt_FromLong(taint_callback_info->last_untainted.memory[i].size);
+
+		PyObject *tuple = PyTuple_New(2);
+
+		PyTuple_SetItem(tuple, 0, addr);
+		PyTuple_SetItem(tuple, 1, size);
+		PyList_Append(untainted_memory, tuple);
+	}
+
+	return untainted_memory;
 }
 
 PyObject *
@@ -785,6 +907,8 @@ cpu_do_taint_reg_cb(JitCpu* self, PyObject* args)
 
 	PyGetInt(color_index_py, color_index);
 
+	taint_check_color(color_index, self->taint_analysis->nb_colors);
+
 	self->taint_analysis->colors[color_index].callback_info->exception_flag
 		^= DO_TAINT_REG_CB;
 
@@ -802,6 +926,8 @@ cpu_do_untaint_reg_cb(JitCpu* self, PyObject* args)
 		return NULL;
 
 	PyGetInt(color_index_py, color_index);
+
+	taint_check_color(color_index, self->taint_analysis->nb_colors);
 
 	self->taint_analysis->colors[color_index].callback_info->exception_flag
 		^= DO_UNTAINT_REG_CB;
@@ -821,6 +947,8 @@ cpu_do_taint_mem_cb(JitCpu* self, PyObject* args)
 
 	PyGetInt(color_index_py, color_index);
 
+	taint_check_color(color_index, self->taint_analysis->nb_colors);
+
 	self->taint_analysis->colors[color_index].callback_info->exception_flag
 		^= DO_TAINT_MEM_CB;
 
@@ -838,6 +966,8 @@ cpu_do_untaint_mem_cb(JitCpu* self, PyObject* args)
 		return NULL;
 
 	PyGetInt(color_index_py, color_index);
+
+	taint_check_color(color_index, self->taint_analysis->nb_colors);
 
 	self->taint_analysis->colors[color_index].callback_info->exception_flag
 		^= DO_UNTAINT_MEM_CB;

@@ -124,7 +124,7 @@ class TaintGen(object):
         c_code.append("if ( taint_analysis->colors[current_color].callback_info->exception_flag & DO_TAINT_MEM_CB )")
         c_code.append("{")
         c_code.append("vm_mngr->exception_flags |= EXCEPT_TAINT_ADD_MEM;")
-        c_code.append("taint_update_memory_callback_info(taint_analysis, current_color, addr, size);")
+        c_code.append("taint_update_memory_callback_info(taint_analysis, current_color, addr, size, TAINT_EVENT);")
         c_code.append("}")
 
         return c_code
@@ -136,7 +136,7 @@ class TaintGen(object):
         c_code.append("if ( taint_analysis->colors[current_color].callback_info->exception_flag & DO_UNTAINT_MEM_CB )")
         c_code.append("{")
         c_code.append("vm_mngr->exception_flags |= EXCEPT_TAINT_REMOVE_MEM;")
-        c_code.append("taint_update_memory_callback_info(taint_analysis, current_color, addr, size);")
+        c_code.append("taint_update_memory_callback_info(taint_analysis, current_color, addr, size, UNTAINT_EVENT);")
         c_code.append("}")
 
         return c_code
@@ -165,7 +165,7 @@ class TaintGen(object):
         c_code.append("if ( taint_analysis->colors[current_color].callback_info->exception_flag & DO_TAINT_REG_CB )")
         c_code.append("{")
         c_code.append("vm_mngr->exception_flags |= EXCEPT_TAINT_ADD_REG;")
-        c_code.append(self.gen_callback_info_reg(str(dst)))
+        c_code.append(self.gen_callback_info_reg(str(dst), "TAINT_EVENT"))
         c_code.append("}")
 
         return c_code
@@ -177,16 +177,16 @@ class TaintGen(object):
         c_code.append("if ( taint_analysis->colors[current_color].callback_info->exception_flag & DO_UNTAINT_REG_CB )")
         c_code.append("{")
         c_code.append("vm_mngr->exception_flags |= EXCEPT_TAINT_REMOVE_REG;")
-        c_code.append(self.gen_callback_info_reg(str(dst)))
+        c_code.append(self.gen_callback_info_reg(str(dst), "UNTAINT_EVENT"))
         c_code.append("}")
 
         return c_code
 
-    def gen_callback_info_reg(self, reg_name):
-        c_code = "taint_add_callback_register("
+    def gen_callback_info_reg(self, reg_name, event_type):
+        c_code = "taint_update_register_callback_info("
         c_code += "taint_analysis, "
         c_code += "current_color, "
-        c_code += "%s);" % (self.regs_index[reg_name])
+        c_code += "%s,%s);" % (self.regs_index[reg_name], event_type)
 
         return c_code
 
@@ -219,13 +219,16 @@ class TaintGen(object):
 def init_registers_index(jitter):
     """ Associate register names with an index (needed during JiT) """
 
-    gpregs = jitter.cpu.get_gpreg()
+    # TODO trouver une meilleure facon de faire
     regs_index = dict()
+    regs_name = dict()
     index = 0
     for reg in jitter.arch.regs.all_regs_ids_byname.keys():
         regs_index[reg] = index
+        regs_name[index] = reg
         index += 1
     jitter.jit.codegen.regs_index = regs_index
+    jitter.jit.codegen.regs_name = regs_name
     return len(regs_index)
 
 def enable_taint_analysis(jitter, nb_colors=1):
@@ -236,7 +239,7 @@ def enable_taint_analysis(jitter, nb_colors=1):
     nb_regs = init_registers_index(jitter)
     # Allocate taint holder
     jitter.cpu.init_taint_analysis(nb_colors, nb_regs)
-    jitter.nb_colors = nb_colors # NOTE: dirty..
+    jitter.nb_colors = nb_colors # TODO: trouver un meilleur emplacement pour cette info
     empty_cache(jitter)
 
 def disable_taint_analysis(jitter):
@@ -251,20 +254,20 @@ def on_taint_register(jitter):
         last_regs = jitter.cpu.last_tainted_registers(color)
         if last_regs:
             print "[Color:%s] Taint registers" % (color)
-            sorted_regs = sorted(jitter.jit.codegen.regs_index, key=jitter.jit.codegen.regs_index.__getitem__)
+
             for reg_id in last_regs:
-                print "\t+ %s" % (sorted_regs[reg_id])
+                print "\t+ %s" % (jitter.jit.codegen.regs_name[reg_id])
             jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_ADD_REG))
     return True
 
 def on_untaint_register(jitter):
     for color in range(jitter.nb_colors):
-        last_regs = jitter.cpu.last_tainted_registers(color)
+        last_regs = jitter.cpu.last_untainted_registers(color)
         if last_regs:
             print "[Color:%s] Untaint registers" % (color)
-            sorted_regs = sorted(jitter.jit.codegen.regs_index, key=jitter.jit.codegen.regs_index.__getitem__)
+
             for reg_id in last_regs:
-                print "\t- %s" % (sorted_regs[reg_id])
+                print "\t- %s" % (jitter.jit.codegen.regs_name[reg_id])
             jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_REMOVE_REG))
     is_taint_vanished(jitter)
     return True
@@ -281,7 +284,7 @@ def on_taint_memory(jitter):
 
 def on_untaint_memory(jitter):
     for color in range(jitter.nb_colors):
-        last_mem = jitter.cpu.last_tainted_memory(color)
+        last_mem = jitter.cpu.last_untainted_memory(color)
         if last_mem:
             print "[Color%s] Untaint memory" % (color)
             for addr, size in last_mem:
@@ -297,9 +300,8 @@ def display_all_taint(jitter):
         print "Color: %s" % (color)
         print "_"*20
         print "Registers:"
-        sorted_regs = sorted(jitter.jit.codegen.regs_index, key=jitter.jit.codegen.regs_index.__getitem__)
         for reg_id in regs:
-            print "\t* %s" % (sorted_regs[reg_id])
+            print "\t* %s" % (jitter.jit.codegen.regs_name[reg_id])
         print "-"*20
         print "Memory:"
         for addr, size in mems:
