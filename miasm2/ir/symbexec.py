@@ -16,7 +16,7 @@ log.addHandler(console_handler)
 log.setLevel(logging.INFO)
 
 
-class SymbolsMngr(object):
+class SymbolMngr(object):
     """
     Store registers and memory symbolic values
     """
@@ -83,13 +83,13 @@ class SymbolsMngr(object):
                 [x[0] for x in self.symbols_mem.values()])
 
     def copy(self):
-        new_symbols = SymbolsMngr()
+        new_symbols = SymbolMngr()
         new_symbols.symbols_id = dict(self.symbols_id)
         new_symbols.symbols_mem = dict(self.symbols_mem)
         return new_symbols
 
     def inject_info(self, info):
-        new_symbols = SymbolsMngr()
+        new_symbols = SymbolMngr()
         for expr, value in self.items():
             expr = expr_simp(expr.replace_expr(info))
             value = expr_simp(value.replace_expr(info))
@@ -107,7 +107,7 @@ class SymbolicExecutionEngine(object):
                  func_read=None,
                  func_write=None,
                  sb_expr_simp=expr_simp):
-        self.symbols = SymbolsMngr()
+        self.symbols = SymbolMngr()
         for expr, value in known_symbols.items():
             self.symbols[expr] = value
         self.func_read = func_read
