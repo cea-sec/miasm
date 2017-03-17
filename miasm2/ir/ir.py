@@ -340,7 +340,7 @@ class IntermediateRepresentation(object):
         self._graph = None
 
     @property
-    def get_blocs(self):
+    def blocs(self):
         warnings.warn('DEPRECATION WARNING: use ".blocks" instead of ".blocs"')
         return self.blocks
 
