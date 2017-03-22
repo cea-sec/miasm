@@ -112,7 +112,7 @@ def on_memory_taint(jitter):
     addr, size = last_mem[0]
     print "\t[>] FOUND : %x->%s" % (addr, fname_global)
     lib_add_dst_ad(libs_global, libbase_global, fname_global, addr) # Add the import (use during PE rebuild)
-    jitter.cpu.untaint_all(len(jitter.jit.codegen.regs_index))
+    jitter.cpu.untaint_all()
     jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_ADD_MEM))
     jitter.jit.log_mn = False
     return True
@@ -186,7 +186,7 @@ color_index = 0
 
 import miasm2.jitter.csts as csts
 sb.jitter.add_exception_handler(csts.EXCEPT_TAINT_ADD_MEM, on_memory_taint)
-sb.jitter.cpu.do_taint_mem_cb(color_index)
+sb.jitter.cpu.enable_taint_mem_cb(color_index)
 ####################################################
 
 # Run
