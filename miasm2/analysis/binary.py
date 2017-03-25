@@ -194,19 +194,23 @@ class ContainerELF(Container):
             raise ContainerParsingException('Cannot read ELF: %s' % error)
 
         # Add known symbols
-        symtab = self._executable.getsectionbyname(".symtab")
-        if symtab is not None:
-            for name, symb in symtab.symbols.iteritems():
+        for symb_source_name in [".symtab", ".dynsym"]:
+            symb_source = self._executable.getsectionbyname(symb_source_name)
+            if symb_source is None:
+                continue
+            for name, symb in symb_source.symbols.iteritems():
                 offset = symb.value
-                if offset != 0:
-                    try:
-                        self._symbol_pool.add_label(name, offset)
-                    except ValueError:
-                        # Two symbols points on the same offset
-                        log.warning("Same offset (%s) for %s and %s", (hex(offset),
-                                                                       name,
-                                                                       self._symbol_pool.getby_offset(offset)))
-                        continue
+                if offset == 0:
+                    continue
+                try:
+                    self._symbol_pool.add_label(name, offset)
+                except ValueError:
+                    # Two symbols points on the same offset
+                    log.warning("Same offset (%s) for %s and %s",
+                                (hex(offset),
+                                 name,
+                                 self._symbol_pool.getby_offset(offset)))
+                    continue
 
 
 
