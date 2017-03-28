@@ -136,7 +136,7 @@ while not finish and todo:
         if args.recurfunctions:
             for block in allblocks:
                 instr = block.get_subcall_instr()
-                if not isntr:
+                if not instr:
                     continue
                 for dest in instr.getdstflow(mdis.symbol_pool):
                     if not (isinstance(dest, ExprId) and isinstance(dest.name, AsmLabel)):
