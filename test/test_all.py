@@ -246,11 +246,7 @@ for script in ["modint.py",
 for script in ["symbexec.py",
                ]:
     testset += RegressionTest([script], base_dir="ir")
-testset += RegressionTest(["analysis.py"], base_dir="ir",
-                          products=[fname for fnames in (
-            ["simp_graph_%02d.dot" % test_nb, "graph_%02d.dot" % test_nb]
-            for test_nb in xrange(1, 18))
-                                    for fname in fnames])
+
 testset += RegressionTest(["z3_ir.py"], base_dir="ir/translators",
                           tags=[TAGS["z3"]])
 testset += RegressionTest(["smt2.py"], base_dir="ir/translators",
@@ -277,6 +273,11 @@ testset += RegressionTest(["modularintervals.py"], base_dir="analysis")
 testset += RegressionTest(["range.py"], base_dir="analysis",
                           tags=[TAGS["z3"]])
 
+testset += RegressionTest(["data_flow.py"], base_dir="analysis",
+                          products=[fname for fnames in (
+            ["simp_graph_%02d.dot" % test_nb, "graph_%02d.dot" % test_nb]
+            for test_nb in xrange(1, 18))
+                                    for fname in fnames])
 
 ## Degraph
 class TestDepgraph(RegressionTest):
@@ -464,9 +465,9 @@ class ExampleDisasmFull(ExampleDisassembler):
 
     def __init__(self, *args, **kwargs):
         super(ExampleDisasmFull, self).__init__(*args, **kwargs)
-        self.command_line = ["full.py", "-g", "-s", "-m"] + self.command_line
-        self.products += ["graph_execflow.dot", "graph_irflow.dot",
-                          "graph_irflow_raw.dot", "lines.dot"]
+        self.command_line = ["full.py", "-g", "-s", "-d", "-m"] + self.command_line
+        self.products += ["graph_defuse.dot", "graph_execflow.dot",
+                          "graph_irflow.dot", "graph_irflow_raw.dot", "lines.dot"]
 
 
 testset += ExampleDisasmFull(["arml", Example.get_sample("demo_arm_l.bin"),

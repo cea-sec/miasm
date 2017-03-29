@@ -10,7 +10,7 @@ from miasm2.expression.simplifications import expr_simp
 from miasm2.expression.expression import *
 from miasm2.analysis.data_analysis import inter_bloc_flow, \
     intra_bloc_flow_symbexec
-
+from miasm2.analysis.data_flow import dead_simp
 from utils import guess_machine, expr2colorstr
 
 
@@ -144,7 +144,7 @@ out = ir_arch.graph.dot()
 open(os.path.join(tempfile.gettempdir(), 'graph.dot'), 'wb').write(out)
 
 
-# ir_arch.dead_simp()
+# dead_simp(ir_arch)
 
 g = GraphMiasmIR(ir_arch, "Miasm IR graph", None)
 
@@ -198,7 +198,7 @@ def get_modified_symbols(sb):
 def gen_bloc_data_flow_graph(ir_arch, in_str, ad):  # arch, attrib, pool_bin, bloc, symbol_pool):
     out_str = ""
 
-    # ir_arch.dead_simp()
+    # dead_simp(ir_arch)
 
     irbloc_0 = None
     for irbloc in ir_arch.blocks.values():
