@@ -238,7 +238,7 @@ def simp_cst_propagation(e_s, e):
 
     # parity(int) => int
     if op == 'parity' and args[0].is_int():
-        return ExprInt1(parity(int(args[0])))
+        return ExprInt(parity(int(args[0])), 1)
 
     # (-a) * b * (-c) * (-d) => (-a) * b * c * d
     if op == "*" and len(args) > 1:
@@ -581,8 +581,8 @@ def simp_cond(e_s, e):
     # eval exprcond src1/src2 with satifiable/unsatisfiable condition
     # propagation
     if (not e.cond.is_int()) and e.cond.size == 1:
-        src1 = e.src1.replace_expr({e.cond: ExprInt1(1)})
-        src2 = e.src2.replace_expr({e.cond: ExprInt1(0)})
+        src1 = e.src1.replace_expr({e.cond: ExprInt(1, 1)})
+        src2 = e.src2.replace_expr({e.cond: ExprInt(0, 1)})
         if src1 != e.src1 or src2 != e.src2:
             return ExprCond(e.cond, src1, src2)
 

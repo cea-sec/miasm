@@ -11,6 +11,7 @@ from miasm2.arch.x86.sem import *
 from miasm2.core.bin_stream import bin_stream_str
 from miasm2.core import asmblock
 from miasm2.expression.expression import get_rw
+from miasm2.expression.modint import uint32
 from miasm2.ir.symbexec import SymbolicExecutionEngine
 from miasm2.expression.simplifications import expr_simp
 from miasm2.expression import stp
@@ -134,7 +135,7 @@ if __name__ == '__main__':
     reg_and_id = dict(mn_x86.regs.all_regs_ids_byname)
 
     def my_ast_int2expr(a):
-        return ExprInt32(a)
+        return ExprInt(a, 32)
 
     # Modifify parser to avoid label creation in PUSH argc
     def my_ast_id2expr(string_parsed):

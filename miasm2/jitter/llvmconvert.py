@@ -945,7 +945,7 @@ class LLVMFunction():
         if isinstance(offset, (int, long)):
             offset = self.add_ir(m2_expr.ExprInt(offset, PC.size))
         self.affect(offset, PC)
-        self.affect(self.add_ir(m2_expr.ExprInt8(1)), m2_expr.ExprId("status"))
+        self.affect(self.add_ir(m2_expr.ExprInt(1, 8)), m2_expr.ExprId("status"))
         self.set_ret(offset)
 
         builder.position_at_end(merge_block)
@@ -992,7 +992,7 @@ class LLVMFunction():
         if isinstance(offset, (int, long)):
             offset = self.add_ir(m2_expr.ExprInt(offset, PC.size))
         self.affect(offset, PC)
-        self.affect(self.add_ir(m2_expr.ExprInt8(1)), m2_expr.ExprId("status"))
+        self.affect(self.add_ir(m2_expr.ExprInt(1, 8)), m2_expr.ExprId("status"))
         self.set_ret(offset)
 
         builder.position_at_end(merge_block)
@@ -1102,7 +1102,7 @@ class LLVMFunction():
         self.gen_post_code(attrib)
         self.affect(dst, PC)
         self.gen_post_instr_checks(attrib, dst)
-        self.affect(self.add_ir(m2_expr.ExprInt8(0)), m2_expr.ExprId("status"))
+        self.affect(self.add_ir(m2_expr.ExprInt(0, 8)), m2_expr.ExprId("status"))
         self.set_ret(dst)
 
 
@@ -1198,7 +1198,7 @@ class LLVMFunction():
         builder = self.builder
         m2_exception_flag = self.llvm_context.ir_arch.arch.regs.exception_flags
         t_size = LLVMType.IntType(m2_exception_flag.size)
-        self.affect(self.add_ir(m2_expr.ExprInt8(1)),
+        self.affect(self.add_ir(m2_expr.ExprInt(1, 8)),
                     m2_expr.ExprId("status"))
         self.affect(t_size(m2_csts.EXCEPT_UNK_MNEMO),
                     m2_exception_flag)
@@ -1216,7 +1216,7 @@ class LLVMFunction():
             builder.position_at_end(self.get_basic_bloc_by_label(next_label))
 
             # Common code
-            self.affect(self.add_ir(m2_expr.ExprInt8(0)),
+            self.affect(self.add_ir(m2_expr.ExprInt(0, 8)),
                         m2_expr.ExprId("status"))
 
             # Check if IRDst has been set
@@ -1240,7 +1240,7 @@ class LLVMFunction():
             PC = self.llvm_context.PC
             to_ret = self.add_ir(codegen.delay_slot_dst)
             self.affect(to_ret, PC)
-            self.affect(self.add_ir(m2_expr.ExprInt8(0)),
+            self.affect(self.add_ir(m2_expr.ExprInt(0, 8)),
                         m2_expr.ExprId("status"))
             self.set_ret(to_ret)
 

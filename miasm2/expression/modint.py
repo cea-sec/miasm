@@ -224,7 +224,7 @@ def define_uint(size):
     return cls
 
 def define_common_int():
-    "Define common int: ExprInt1, ExprInt2, .."
+    "Define common int"
     common_int = xrange(1, 257)
 
     for i in common_int:

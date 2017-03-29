@@ -1,6 +1,6 @@
 #-*- coding:utf-8 -*-
 
-from miasm2.expression.expression import ExprAff, ExprInt32, ExprId
+from miasm2.expression.expression import ExprAff, ExprInt, ExprId
 from miasm2.ir.ir import IntermediateRepresentation, IRBlock, AssignBlock
 from miasm2.ir.analysis import ira
 from miasm2.arch.mips32.sem import ir_mips32l, ir_mips32b
@@ -29,7 +29,7 @@ class ir_a_mips32l(ir_mips32l, ira):
             if not expr_is_int_or_label(lr_val):
                 continue
             if expr_is_label(lr_val):
-                lr_val = ExprInt32(lr_val.name.offset)
+                lr_val = ExprInt(lr_val.name.offset, 32)
 
             line = block.lines[-2]
             if lr_val.arg != line.offset + 8:

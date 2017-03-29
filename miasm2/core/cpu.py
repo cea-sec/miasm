@@ -196,7 +196,7 @@ def ast_id2expr(a):
 
 
 def ast_int2expr(a):
-    return m2_expr.ExprInt32(a)
+    return m2_expr.ExprInt(a, 32)
 
 
 
@@ -1558,19 +1558,19 @@ class imm_noarg(object):
 
 
 class imm08_noarg(object):
-    int2expr = lambda self, x: m2_expr.ExprInt08(x)
+    int2expr = lambda self, x: m2_expr.ExprInt(x, 8)
 
 
 class imm16_noarg(object):
-    int2expr = lambda self, x: m2_expr.ExprInt16(x)
+    int2expr = lambda self, x: m2_expr.ExprInt(x, 16)
 
 
 class imm32_noarg(object):
-    int2expr = lambda self, x: m2_expr.ExprInt32(x)
+    int2expr = lambda self, x: m2_expr.ExprInt(x, 32)
 
 
 class imm64_noarg(object):
-    int2expr = lambda self, x: m2_expr.ExprInt64(x)
+    int2expr = lambda self, x: m2_expr.ExprInt(x, 64)
 
 
 class int32_noarg(imm_noarg):

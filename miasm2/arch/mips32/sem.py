@@ -443,13 +443,13 @@ class ir_mips32l(IntermediateRepresentation):
 
         for i, x in enumerate(instr_ir):
             x = m2_expr.ExprAff(x.dst, x.src.replace_expr(
-                {self.pc: m2_expr.ExprInt32(instr.offset + 4)}))
+                {self.pc: m2_expr.ExprInt(instr.offset + 4, 32)}))
             instr_ir[i] = x
         for irblock in extra_ir:
             for irs in irblock.irs:
                 for i, x in enumerate(irs):
                     x = m2_expr.ExprAff(x.dst, x.src.replace_expr(
-                        {self.pc: m2_expr.ExprInt32(instr.offset + 4)}))
+                        {self.pc: m2_expr.ExprInt(instr.offset + 4, 32)}))
                     irs[i] = x
         return instr_ir, extra_ir
 

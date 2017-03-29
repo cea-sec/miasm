@@ -169,7 +169,7 @@ def expr_simp_inverse(expr_simp, e):
 def expr_simp_equal(expr_simp, e):
     """(x - y)?(0:1) == (x == y)"""
 
-    to_match = m2_expr.ExprCond(jok1 + jok2, m2_expr.ExprInt1(0), m2_expr.ExprInt1(1))
+    to_match = m2_expr.ExprCond(jok1 + jok2, m2_expr.ExprInt(0, 1), m2_expr.ExprInt(1, 1))
     r = __MatchExprWrap(e,
                         to_match,
                         [jok1, jok2])
@@ -188,13 +188,13 @@ def exec_inf_unsigned(expr_simp, e):
     arg1, arg2 = e.args
 
     if isinstance(arg1, m2_expr.ExprInt) and isinstance(arg2, m2_expr.ExprInt):
-        return m2_expr.ExprInt1(1) if (arg1.arg < arg2.arg) else m2_expr.ExprInt1(0)
+        return m2_expr.ExprInt(1, 1) if (arg1.arg < arg2.arg) else m2_expr.ExprInt(0, 1)
     else:
         return e
 
 
 def __comp_signed(arg1, arg2):
-    """Return ExprInt1(1) if arg1 <s arg2 else ExprInt1(0)
+    """Return ExprInt(1, 1) if arg1 <s arg2 else ExprInt(0, 1)
     @arg1, @arg2: ExprInt"""
 
     val1 = int(arg1)
@@ -205,7 +205,7 @@ def __comp_signed(arg1, arg2):
     if val2 >> (arg2.size - 1) == 1:
         val2 = - ((int(arg2.mask) ^ val2) + 1)
 
-    return m2_expr.ExprInt1(1) if (val1 < val2) else m2_expr.ExprInt1(0)
+    return m2_expr.ExprInt(1, 1) if (val1 < val2) else m2_expr.ExprInt(0, 1)
 
 def exec_inf_signed(expr_simp, e):
     "Compute x <s y"
@@ -228,6 +228,6 @@ def exec_equal(expr_simp, e):
 
     arg1, arg2 = e.args
     if isinstance(arg1, m2_expr.ExprInt) and isinstance(arg2, m2_expr.ExprInt):
-        return m2_expr.ExprInt1(1) if (arg1.arg == arg2.arg) else m2_expr.ExprInt1(0)
+        return m2_expr.ExprInt(1, 1) if (arg1.arg == arg2.arg) else m2_expr.ExprInt(0, 1)
     else:
         return e

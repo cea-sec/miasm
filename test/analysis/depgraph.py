@@ -1,6 +1,5 @@
 """Regression test module for DependencyGraph"""
-from miasm2.expression.expression import ExprId, ExprInt32, ExprAff, ExprCond, \
-    ExprInt
+from miasm2.expression.expression import ExprId, ExprInt, ExprAff, ExprCond
 from miasm2.core.asmblock import AsmLabel
 from miasm2.ir.analysis import ira
 from miasm2.ir.ir import IRBlock, AssignBlock
@@ -31,16 +30,16 @@ D_INIT = ExprId("d_init")
 PC = ExprId("pc")
 SP = ExprId("sp")
 
-CST0 = ExprInt32(0x0)
-CST1 = ExprInt32(0x1)
-CST2 = ExprInt32(0x2)
-CST3 = ExprInt32(0x3)
-CST22 = ExprInt32(0x22)
-CST23 = ExprInt32(0x23)
-CST24 = ExprInt32(0x24)
-CST33 = ExprInt32(0x33)
-CST35 = ExprInt32(0x35)
-CST37 = ExprInt32(0x37)
+CST0 = ExprInt(0x0, 32)
+CST1 = ExprInt(0x1, 32)
+CST2 = ExprInt(0x2, 32)
+CST3 = ExprInt(0x3, 32)
+CST22 = ExprInt(0x22, 32)
+CST23 = ExprInt(0x23, 32)
+CST24 = ExprInt(0x24, 32)
+CST33 = ExprInt(0x33, 32)
+CST35 = ExprInt(0x35, 32)
+CST37 = ExprInt(0x37, 32)
 
 LBL0 = AsmLabel("lbl0")
 LBL1 = AsmLabel("lbl1")

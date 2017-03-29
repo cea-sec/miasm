@@ -30,7 +30,8 @@
 
 import itertools
 from operator import itemgetter
-from miasm2.expression.modint import mod_size2uint, is_modint, size2mask
+from miasm2.expression.modint import mod_size2uint, is_modint, size2mask, \
+    define_uint
 from miasm2.core.graph import DiGraph
 import warnings
 
@@ -462,7 +463,7 @@ class ExprInt(Expr):
         return self
 
     def copy(self):
-        return ExprInt(self.__arg)
+        return ExprInt(self.__arg, self.__size)
 
     def depth(self):
         return 1
