@@ -1317,27 +1317,39 @@ def canonize_expr_list_compose(l):
 
 
 def ExprInt1(i):
+    warnings.warn('DEPRECATION WARNING: use ExprInt(i, 1) instead of '\
+                  'ExprInt1(i))')
     return ExprInt(i, 1)
 
 
 def ExprInt8(i):
+    warnings.warn('DEPRECATION WARNING: use ExprInt(i, 8) instead of '\
+                  'ExprInt8(i))')
     return ExprInt(i, 8)
 
 
 def ExprInt16(i):
+    warnings.warn('DEPRECATION WARNING: use ExprInt(i, 16) instead of '\
+                  'ExprInt16(i))')
     return ExprInt(i, 16)
 
 
 def ExprInt32(i):
+    warnings.warn('DEPRECATION WARNING: use ExprInt(i, 32) instead of '\
+                  'ExprInt32(i))')
     return ExprInt(i, 32)
 
 
 def ExprInt64(i):
+    warnings.warn('DEPRECATION WARNING: use ExprInt(i, 64) instead of '\
+                  'ExprInt64(i))')
     return ExprInt(i, 64)
 
 
 def ExprInt_from(e, i):
     "Generate ExprInt with size equal to expression"
+    warnings.warn('DEPRECATION WARNING: use ExprInt(i, expr.size) instead of'\
+                  'ExprInt_from(expr, i))')
     return ExprInt(i, e.size)
 
 
