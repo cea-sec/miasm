@@ -32,7 +32,7 @@ class MiasmTransformer(ast.NodeTransformer):
         node = self.generic_visit(node)
 
         if isinstance(node.func, ast.Name):
-            # iX(Y) -> ExprIntX(Y)
+            # iX(Y) -> ExprInt(Y, X)
             fc_name = node.func.id
 
             # Match the function name
@@ -41,10 +41,11 @@ class MiasmTransformer(ast.NodeTransformer):
 
             # Do replacement
             if integer is not None:
-                new_name = "ExprInt%s" % integer.groups()[0]
-
-            # Replace in the node
-            node.func.id = new_name
+                size = int(integer.groups()[0])
+                new_name = "ExprInt"
+                # Replace in the node
+                node.func.id = new_name
+                node.args.append(ast.Num(n=size))
 
         elif (isinstance(node.func, ast.Str) or
               (isinstance(node.func, ast.BinOp) and
