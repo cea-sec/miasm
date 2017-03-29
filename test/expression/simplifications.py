@@ -18,10 +18,10 @@ f = ExprId('f', size=64)
 m = ExprMem(a)
 s = a[:8]
 
-i0 = ExprInt(uint32(0x0))
-i1 = ExprInt(uint32(0x1))
-i2 = ExprInt(uint32(0x2))
-icustom = ExprInt(uint32(0x12345678))
+i0 = ExprInt(0, 32)
+i1 = ExprInt(1, 32)
+i2 = ExprInt(2, 32)
+icustom = ExprInt(0x12345678, 32)
 cc = ExprCond(a, b, c)
 
 o = ExprCompose(a[8:16], a[:8])
@@ -133,7 +133,7 @@ to_test = [(ExprInt32(1) - ExprInt32(1), ExprInt32(0)),
      ExprCond(a, ExprInt32(-0x1), ExprInt32(-0x2))),
     (ExprOp('*', a, b, c, ExprInt32(0x12))[0:17],
      ExprOp(
-     '*', a[0:17], b[0:17], c[0:17], ExprInt(mod_size2uint[17](0x12)))),
+     '*', a[0:17], b[0:17], c[0:17], ExprInt(0x12, 17))),
     (ExprOp('*', a, ExprInt32(0xffffffff)),
      -a),
     (ExprOp('*', -a, -b, c, ExprInt32(0x12)),
@@ -227,32 +227,32 @@ to_test = [(ExprInt32(1) - ExprInt32(1), ExprInt32(0)),
     (ExprCompose(a, b, c)[48:80],
      ExprCompose(b[16:], c[:16])),
 
-    (ExprCompose(a[0:8], b[8:16], ExprInt(uint48(0x0L)))[12:32],
-     ExprCompose(b[12:16], ExprInt(uint16(0)))
+    (ExprCompose(a[0:8], b[8:16], ExprInt(0x0L, 48))[12:32],
+     ExprCompose(b[12:16], ExprInt(0, 16))
        ),
 
-    (ExprCompose(ExprCompose(a[:8], ExprInt(uint56(0x0L)))[8:32]
+    (ExprCompose(ExprCompose(a[:8], ExprInt(0x0L, 56))[8:32]
                   &
-                  ExprInt(uint24(0x1L)),
-                  ExprInt(uint40(0x0L))),
+                  ExprInt(0x1L, 24),
+                  ExprInt(0x0L, 40)),
      ExprInt64(0)),
 
-    (ExprCompose(ExprCompose(a[:8], ExprInt(uint56(0x0L)))[:8]
+    (ExprCompose(ExprCompose(a[:8], ExprInt(0x0L, 56))[:8]
                  &
-                 ExprInt(uint8(0x1L)),
-                 (ExprInt(uint56(0x0L)))),
-     ExprCompose(a[:8]&ExprInt8(1), ExprInt(uint56(0)))),
+                 ExprInt(0x1L, 8),
+                 (ExprInt(0x0L, 56))),
+     ExprCompose(a[:8]&ExprInt8(1), ExprInt(0, 56))),
 
     (ExprCompose(ExprCompose(a[:8],
-                             ExprInt(uint56(0x0L)))[:32]
+                             ExprInt(0x0L, 56))[:32]
                  &
-                 ExprInt(uint32(0x1L)),
-                 ExprInt(uint32(0x0L))),
+                 ExprInt(0x1L, 32),
+                 ExprInt(0x0L, 32)),
      ExprCompose(ExprCompose(ExprSlice(a, 0, 8),
-                             ExprInt(uint24(0x0L)))
+                             ExprInt(0x0L, 24))
                  &
-                 ExprInt(uint32(0x1L)),
-                 ExprInt(uint32(0x0L)))
+                 ExprInt(0x1L, 32),
+                 ExprInt(0x0L, 32))
        ),
     (ExprCompose(a[:16], b[:16])[8:32],
      ExprCompose(a[8:16], b[:16])),

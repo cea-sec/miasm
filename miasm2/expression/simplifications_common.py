@@ -3,6 +3,7 @@
 # ----------------------------- #
 
 
+from miasm2.expression.modint import mod_size2int, mod_size2uint
 from miasm2.expression.expression import *
 from miasm2.expression.expression_helper import *
 
@@ -103,7 +104,7 @@ def simp_cst_propagation(e_s, e):
 
     # -(int) => -int
     if op == '-' and len(args) == 1 and args[0].is_int():
-        return ExprInt(-args[0].arg)
+        return ExprInt(-int(args[0]), e.size)
     # A op 0 =>A
     if op in ['+', '|', "^", "<<", ">>", "<<<", ">>>"] and len(args) > 1:
         if args[-1].is_int(0):
@@ -237,7 +238,7 @@ def simp_cst_propagation(e_s, e):
 
     # parity(int) => int
     if op == 'parity' and args[0].is_int():
-        return ExprInt1(parity(args[0].arg))
+        return ExprInt1(parity(int(args[0])))
 
     # (-a) * b * (-c) * (-d) => (-a) * b * c * d
     if op == "*" and len(args) > 1:
