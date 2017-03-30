@@ -452,6 +452,10 @@ class ModularIntervals(object):
     def __iter__(self):
         return iter(self.intervals)
 
+    @property
+    def length(self):
+        return self.intervals.length
+
     def __contains__(self, other):
         if isinstance(other, ModularIntervals):
             other = other.intervals
