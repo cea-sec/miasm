@@ -89,6 +89,13 @@ def test(left, right):
                     rez = (x ^ y) & mask
                     assert rez in result
 
+            # Check MUL
+            result = left_i * right_i
+            for x in left_values:
+                for y in right_values:
+                    rez = (x * y) & mask
+                    assert rez in result
+
             # Check >>
             result = left_i >> right_i
             for x in left_values:
