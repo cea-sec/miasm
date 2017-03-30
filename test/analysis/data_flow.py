@@ -1,5 +1,5 @@
 """ Test cases for dead code elimination"""
-from miasm2.expression.expression import ExprId, ExprInt32, ExprAff, ExprMem
+from miasm2.expression.expression import ExprId, ExprInt, ExprAff, ExprMem
 from miasm2.core.asmblock import AsmLabel
 from miasm2.analysis.data_flow import *
 from miasm2.ir.analysis import ira
@@ -20,9 +20,9 @@ r_init = ExprId("r_init") # Return register
 pc = ExprId("pc")
 sp = ExprId("sp")
 
-CST1 = ExprInt32(0x11)
-CST2 = ExprInt32(0x12)
-CST3 = ExprInt32(0x13)
+CST1 = ExprInt(0x11, 32)
+CST2 = ExprInt(0x12, 32)
+CST3 = ExprInt(0x13, 32)
 
 LBL0 = AsmLabel("lbl0")
 LBL1 = AsmLabel("lbl1")

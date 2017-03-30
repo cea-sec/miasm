@@ -78,7 +78,7 @@ all_regs_ids_init = [R0_init, R1_init, R2_init, R3_init,
                      R8_init, R9_init, R10_init, R11_init,
                      R12_init, SP_init, LR_init, PC_init,
                      zf_init, nf_init, of_init, cf_init,
-                     ExprInt32(0), ExprInt32(0)
+                     ExprInt(0, 32), ExprInt(0, 32)
                      ]
 
 regs_init = {}

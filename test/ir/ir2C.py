@@ -13,10 +13,10 @@ class TestIrIr2C(unittest.TestCase):
         self.assertEqual(translator.from_expr(expr), expected)
 
     def test_ExprOp_toC(self):
-        from miasm2.expression.expression import ExprInt32, ExprOp
+        from miasm2.expression.expression import ExprInt, ExprOp
         from miasm2.ir.translators.C import Translator
 
-        args = [ExprInt32(i) for i in xrange(9)]
+        args = [ExprInt(i, 32) for i in xrange(9)]
         translator = Translator.to_language("C")
 
         # Unary operators

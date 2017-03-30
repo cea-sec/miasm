@@ -5,7 +5,7 @@ from collections import defaultdict
 
 from pyparsing import Literal, Group, Optional
 
-from miasm2.expression.expression import ExprMem, ExprInt, ExprInt32, ExprId
+from miasm2.expression.expression import ExprMem, ExprInt, ExprId
 from miasm2.core.bin_stream import bin_stream
 import miasm2.arch.mips32.regs as regs
 import miasm2.core.cpu as cpu
@@ -56,7 +56,7 @@ def ast_id2expr(t):
 
 
 def ast_int2expr(a):
-    return ExprInt32(a)
+    return ExprInt(a, 32)
 
 
 my_var_parser = cpu.ParseAst(ast_id2expr, ast_int2expr)
@@ -176,7 +176,7 @@ class instruction_mips32(cpu.instruction):
         off = e.arg - self.offset
         if int(off % 4):
             raise ValueError('strange offset! %r' % off)
-        self.args[ndx] = ExprInt32(off)
+        self.args[ndx] = ExprInt(off, 32)
 
     def get_args_expr(self):
         args = [a for a in self.args]
@@ -299,7 +299,7 @@ class mips32_s16imm_noarg(mips32_imm):
     def decode(self, v):
         v = v & self.lmask
         v = cpu.sign_ext(v, 16, 32)
-        self.expr = ExprInt32(v)
+        self.expr = ExprInt(v, 32)
         return True
 
     def encode(self):
@@ -319,7 +319,7 @@ class mips32_soff_noarg(mips32_imm):
         v <<= 2
         v = cpu.sign_ext(v, 16+2, 32)
         # Add pipeline offset
-        self.expr = ExprInt32(v + 4)
+        self.expr = ExprInt(v + 4, 32)
         return True
 
     def encode(self):
@@ -345,7 +345,7 @@ class mips32_soff(mips32_soff_noarg, cpu.m_arg):
 class mips32_instr_index(mips32_imm, cpu.m_arg):
     def decode(self, v):
         v = v & self.lmask
-        self.expr = ExprInt32(v<<2)
+        self.expr = ExprInt(v<<2, 32)
         return True
 
     def encode(self):
@@ -364,7 +364,7 @@ class mips32_instr_index(mips32_imm, cpu.m_arg):
 class mips32_u16imm(mips32_imm, cpu.m_arg):
     def decode(self, v):
         v = v & self.lmask
-        self.expr = ExprInt32(v)
+        self.expr = ExprInt(v, 32)
         return True
 
     def encode(self):
@@ -389,7 +389,7 @@ class mips32_dreg_imm(cpu.m_arg):
             return False
         arg = e.arg
         if isinstance(arg, ExprId):
-            self.parent.imm.expr = ExprInt32(0)
+            self.parent.imm.expr = ExprInt(0, 32)
             r = arg
         elif len(arg.args) == 2 and arg.op == "+":
             self.parent.imm.expr = arg.args[1]
@@ -411,7 +411,7 @@ class mips32_dreg_imm(cpu.m_arg):
 class mips32_esize(mips32_imm, cpu.m_arg):
     def decode(self, v):
         v = v & self.lmask
-        self.expr = ExprInt32(v+1)
+        self.expr = ExprInt(v+1, 32)
         return True
 
     def encode(self):
@@ -424,7 +424,7 @@ class mips32_esize(mips32_imm, cpu.m_arg):
 
 class mips32_eposh(mips32_imm, cpu.m_arg):
     def decode(self, v):
-        self.expr = ExprInt32(v-int(self.parent.epos.expr)+1)
+        self.expr = ExprInt(v-int(self.parent.epos.expr)+1, 32)
         return True
 
     def encode(self):

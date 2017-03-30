@@ -107,12 +107,12 @@ all_regs_ids_init = (simd08_init +
                      gpregs32_init +
                      gpregs64_init +
                      [
-                         ExprInt32(0),
+                         ExprInt(0, 32),
                          PC_init,
                          WZR_init,
                          XZR_init,
                          zf_init, nf_init, of_init, cf_init,
-                         ExprInt64(0), ExprInt32(0),
+                         ExprInt(0, 64), ExprInt(0, 32),
                      ]
                      )
 

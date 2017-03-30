@@ -7,9 +7,9 @@ import unittest
 class TestIrIr2STP(unittest.TestCase):
 
     def test_ExprOp_strcst(self):
-        from miasm2.expression.expression import ExprInt32, ExprOp
+        from miasm2.expression.expression import ExprInt, ExprOp
         import miasm2.expression.stp   # /!\ REALLY DIRTY HACK
-        args = [ExprInt32(i) for i in xrange(9)]
+        args = [ExprInt(i, 32) for i in xrange(9)]
 
         self.assertEqual(
             ExprOp('|',  *args[:2]).strcst(), r'(0bin00000000000000000000000000000000 | 0bin00000000000000000000000000000001)')
@@ -20,9 +20,9 @@ class TestIrIr2STP(unittest.TestCase):
         self.assertRaises(ValueError, ExprOp('X', *args[:1]).strcst)
 
     def test_ExprSlice_strcst(self):
-        from miasm2.expression.expression import ExprInt32, ExprSlice
+        from miasm2.expression.expression import ExprInt, ExprSlice
         import miasm2.expression.stp   # /!\ REALLY DIRTY HACK
-        args = [ExprInt32(i) for i in xrange(9)]
+        args = [ExprInt(i, 32) for i in xrange(9)]
 
         self.assertEqual(
             args[0][1:2].strcst(), r'(0bin00000000000000000000000000000000)[1:1]')

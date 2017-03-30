@@ -14,10 +14,10 @@ left = ExprCond(e + ExprOp('parity', a),
                 ExprMem(a * a, 64),
                 ExprMem(a, 64))
 
-cond = ExprSlice(ExprSlice(ExprSlice(a, 0, 32) + b, 0, 16) * c, 0, 8) << ExprOp('>>>', d, ExprInt(uint8(0x5L)))
+cond = ExprSlice(ExprSlice(ExprSlice(a, 0, 32) + b, 0, 16) * c, 0, 8) << ExprOp('>>>', d, ExprInt(0x5L, 8))
 right = ExprCond(cond,
-                 a + ExprInt(uint64(0x64L)),
-                 ExprInt(uint64(0x16L)))
+                 a + ExprInt(0x64L, 64),
+                 ExprInt(0x16L, 64))
 
 e = ExprAff(left, right)
 

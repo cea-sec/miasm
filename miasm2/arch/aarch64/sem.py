@@ -10,7 +10,7 @@ EXCEPT_PRIV_INSN = (1 << 17)
 
 
 def update_flag_zf(a):
-    return [m2_expr.ExprAff(zf, m2_expr.ExprCond(a, m2_expr.ExprInt1(0), m2_expr.ExprInt1(1)))]
+    return [m2_expr.ExprAff(zf, m2_expr.ExprCond(a, m2_expr.ExprInt(0, 1), m2_expr.ExprInt(1, 1)))]
 
 
 def update_flag_nf(a):
@@ -28,7 +28,7 @@ def update_flag_logic(a):
     e = []
     e += update_flag_zn(a)
     # XXX TODO: set cf if ROT imm in argument
-    # e.append(m2_expr.ExprAff(cf, m2_expr.ExprInt1(0)))
+    # e.append(m2_expr.ExprAff(cf, m2_expr.ExprInt(0, 1)))
     return e
 
 
@@ -66,7 +66,7 @@ def update_flag_add_of(op1, op2, res):
 def update_flag_sub_cf(op1, op2, res):
     "Compote CF in @res = @op1 - @op2"
     return m2_expr.ExprAff(cf,
-                           ((((op1 ^ op2) ^ res) ^ ((op1 ^ res) & (op1 ^ op2))).msb()) ^ m2_expr.ExprInt1(1))
+                           ((((op1 ^ op2) ^ res) ^ ((op1 ^ res) & (op1 ^ op2))).msb()) ^ m2_expr.ExprInt(1, 1))
 
 
 def update_flag_sub_of(op1, op2, res):
@@ -93,22 +93,22 @@ def update_flag_sub(x, y, z):
 
 
 cond2expr = {'EQ': zf,
-             'NE': zf ^ m2_expr.ExprInt1(1),
+             'NE': zf ^ m2_expr.ExprInt(1, 1),
              'CS': cf,
-             'CC': cf ^ m2_expr.ExprInt1(1),
+             'CC': cf ^ m2_expr.ExprInt(1, 1),
              'MI': nf,
-             'PL': nf ^ m2_expr.ExprInt1(1),
+             'PL': nf ^ m2_expr.ExprInt(1, 1),
              'VS': of,
-             'VC': of ^ m2_expr.ExprInt1(1),
-             'HI': cf & (zf ^ m2_expr.ExprInt1(1)),
-             'LS': (cf ^ m2_expr.ExprInt1(1)) | zf,
-             'GE': nf ^ of ^ m2_expr.ExprInt1(1),
+             'VC': of ^ m2_expr.ExprInt(1, 1),
+             'HI': cf & (zf ^ m2_expr.ExprInt(1, 1)),
+             'LS': (cf ^ m2_expr.ExprInt(1, 1)) | zf,
+             'GE': nf ^ of ^ m2_expr.ExprInt(1, 1),
              'LT': nf ^ of,
-             'GT': ((zf ^ m2_expr.ExprInt1(1)) &
-                    (nf ^ of ^ m2_expr.ExprInt1(1))),
+             'GT': ((zf ^ m2_expr.ExprInt(1, 1)) &
+                    (nf ^ of ^ m2_expr.ExprInt(1, 1))),
              'LE': zf | (nf ^ of),
-             'AL': m2_expr.ExprInt1(1),
-             'NV': m2_expr.ExprInt1(0)
+             'AL': m2_expr.ExprInt(1, 1),
+             'NV': m2_expr.ExprInt(0, 1)
              }
 
 
@@ -277,9 +277,9 @@ def movk(ir, instr, arg1, arg2):
                isinstance(arg2.args[1], m2_expr.ExprInt))
         value, shift = int(arg2.args[0].arg), int(arg2.args[1])
         e.append(
-            m2_expr.ExprAff(arg1[shift:shift + 16], m2_expr.ExprInt16(value)))
+            m2_expr.ExprAff(arg1[shift:shift + 16], m2_expr.ExprInt(value, 16)))
     else:
-        e.append(m2_expr.ExprAff(arg1[:16], m2_expr.ExprInt16(int(arg2))))
+        e.append(m2_expr.ExprAff(arg1[:16], m2_expr.ExprInt(int(arg2), 16)))
 
     return e, []
 
@@ -298,7 +298,7 @@ def movn(arg1, arg2):
 def bl(arg1):
     PC = arg1
     ir.IRDst = arg1
-    LR = m2_expr.ExprInt64(instr.offset + instr.l)
+    LR = m2_expr.ExprInt(instr.offset + instr.l, 64)
 
 @sbuild.parse
 def csel(arg1, arg2, arg3, arg4):
@@ -649,7 +649,7 @@ def ret(arg1):
 
 @sbuild.parse
 def adrp(arg1, arg2):
-    arg1 = (PC & m2_expr.ExprInt64(0xfffffffffffff000)) + arg2
+    arg1 = (PC & m2_expr.ExprInt(0xfffffffffffff000, 64)) + arg2
 
 
 @sbuild.parse
@@ -797,7 +797,7 @@ class ir_aarch64l(IntermediateRepresentation):
 
     def mod_pc(self, instr, instr_ir, extra_ir):
         "Replace PC by the instruction's offset"
-        cur_offset = m2_expr.ExprInt64(instr.offset)
+        cur_offset = m2_expr.ExprInt(instr.offset, 64)
         for i, expr in enumerate(instr_ir):
             dst, src = expr.dst, expr.src
             if dst != self.pc:
