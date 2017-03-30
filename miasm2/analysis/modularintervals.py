@@ -22,8 +22,10 @@ class ModularIntervals(object):
 
         # Sanity check
         start, end = intervals.hull()
-        assert end <= self.mask
-        assert start >= 0
+        if start is not None:
+            assert start >= 0
+        if end is not None:
+            assert end <= self.mask
 
     # Helpers
 
@@ -259,6 +261,21 @@ class ModularIntervals(object):
 
     _interval_xor = _range2interval(_range_xor)
 
+    def _range_mul(self, x_min, x_max, y_min, y_max):
+        """Interval bounds for x * y, with
+         - x, y of size self.size
+         - @x_min <= x <= @x_max
+         - @y_min <= y <= @y_max
+         - operations are considered unsigned
+        This is a naive version, going to TOP on overflow"""
+        max_bound = self.mask
+        if y_max * x_max > max_bound:
+            return interval([(0, max_bound)])
+        else:
+            return interval([(x_min * y_min, x_max * y_max)])
+
+    _interval_mul = _range2interval(_range_mul)
+
     def _range_mod_uniq(self, x_min, x_max, mod):
         """Interval bounds for x % @mod, with
          - x, @mod of size self.size
@@ -388,9 +405,16 @@ class ModularIntervals(object):
     @_promote
     def __xor__(self, to_xor):
         """Bitwise XOR @to_xor to the current intervals
-        @to_or: ModularInstances or integer
+        @to_xor: ModularInstances or integer
         """
         return self._interval_xor(to_xor)
+
+    @_promote
+    def __mul__(self, to_mul):
+        """Multiply @to_mul to the current intervals
+        @to_mul: ModularInstances or integer
+        """
+        return self._interval_mul(to_mul)
 
     @_promote
     def __rshift__(self, to_shift):
@@ -449,6 +473,10 @@ class ModularIntervals(object):
 
     def __iter__(self):
         return iter(self.intervals)
+
+    @property
+    def length(self):
+        return self.intervals.length
 
     def __contains__(self, other):
         if isinstance(other, ModularIntervals):
