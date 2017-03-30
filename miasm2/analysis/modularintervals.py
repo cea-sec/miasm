@@ -22,8 +22,10 @@ class ModularIntervals(object):
 
         # Sanity check
         start, end = intervals.hull()
-        assert end <= self.mask
-        assert start >= 0
+        if start is not None:
+            assert start >= 0
+        if end is not None:
+            assert end <= self.mask
 
     # Helpers
 
