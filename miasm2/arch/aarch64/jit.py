@@ -56,6 +56,10 @@ class jitter_aarch64l(jitter):
             arg = self.get_stack_arg(index - self.max_reg_arg)
         return arg
 
+    func_args_systemv = func_args_stdcall
+    func_ret_systemv = func_ret_stdcall
+    get_arg_n_systemv = get_arg_n_stdcall
+
     def init_run(self, *args, **kwargs):
         jitter.init_run(self, *args, **kwargs)
         self.cpu.PC = self.pc
