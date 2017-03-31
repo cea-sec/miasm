@@ -399,11 +399,9 @@ class ExprInt(Expr):
     size = property(lambda self: self.__size)
     arg = property(lambda self: self.__arg)
 
-    def __getstate__(self):
-        return int(self.__arg), self.__size
-
-    def __setstate__(self, state):
-        self.__init__(*state)
+    def __reduce__(self):
+        state = int(self.__arg), self.__size
+        return self.__class__, state
 
     def __new__(cls, arg, size):
         """Create an ExprInt from a modint or num/size
@@ -507,11 +505,9 @@ class ExprId(Expr):
     size = property(lambda self: self.__size)
     name = property(lambda self: self.__name)
 
-    def __getstate__(self):
-        return self.__name, self.__size
-
-    def __setstate__(self, state):
-        self.__init__(*state)
+    def __reduce__(self):
+        state = self.__name, self.__size
+        return self.__class__, state
 
     def __new__(cls, name, size=32):
         return Expr.get_object(cls, (name, size))
@@ -577,33 +573,32 @@ class ExprAff(Expr):
                 "sanitycheck: ExprAff args must have same size! %s" %
                              ([(str(arg), arg.size) for arg in [dst, src]]))
 
-        if isinstance(dst, ExprSlice):
-            # Complete the source with missing slice parts
-            self.__dst = dst.arg
-            rest = [(ExprSlice(dst.arg, r[0], r[1]), r[0], r[1])
-                    for r in dst.slice_rest()]
-            all_a = [(src, dst.start, dst.stop)] + rest
-            all_a.sort(key=lambda x: x[1])
-            args = [expr for (expr, _, _) in all_a]
-            self.__src = ExprCompose(*args)
-
-        else:
-            self.__dst, self.__src = dst, src
-
         self.__size = self.dst.size
 
     size = property(lambda self: self.__size)
     dst = property(lambda self: self.__dst)
     src = property(lambda self: self.__src)
 
-    def __getstate__(self):
-        return self.__dst, self.__src
 
-    def __setstate__(self, state):
-        self.__init__(*state)
+    def __reduce__(self):
+        state = self.__dst, self.__src
+        return self.__class__, state
 
     def __new__(cls, dst, src):
-        return Expr.get_object(cls, (dst, src))
+        if isinstance(dst, ExprSlice):
+            # Complete the source with missing slice parts
+            new_dst = dst.arg
+            rest = [(ExprSlice(dst.arg, r[0], r[1]), r[0], r[1])
+                    for r in dst.slice_rest()]
+            all_a = [(src, dst.start, dst.stop)] + rest
+            all_a.sort(key=lambda x: x[1])
+            args = [expr for (expr, _, _) in all_a]
+            new_src = ExprCompose(*args)
+        else:
+            new_dst, new_src = dst, src
+        expr = Expr.get_object(cls, (new_dst, new_src))
+        expr.__dst, expr.__src = new_dst, new_src
+        return expr
 
     def __str__(self):
         return "%s = %s" % (str(self.__dst), str(self.__src))
@@ -685,11 +680,9 @@ class ExprCond(Expr):
     src1 = property(lambda self: self.__src1)
     src2 = property(lambda self: self.__src2)
 
-    def __getstate__(self):
-        return self.__cond, self.__src1, self.__src2
-
-    def __setstate__(self, state):
-        self.__init__(*state)
+    def __reduce__(self):
+        state = self.__cond, self.__src1, self.__src2
+        return self.__class__, state
 
     def __new__(cls, cond, src1, src2):
         return Expr.get_object(cls, (cond, src1, src2))
@@ -779,11 +772,9 @@ class ExprMem(Expr):
     size = property(lambda self: self.__size)
     arg = property(lambda self: self.__arg)
 
-    def __getstate__(self):
-        return self.__arg, self.__size
-
-    def __setstate__(self, state):
-        self.__init__(*state)
+    def __reduce__(self):
+        state = self.__arg, self.__size
+        return self.__class__, state
 
     def __new__(cls, arg, size=32):
         return Expr.get_object(cls, (arg, size))
@@ -869,7 +860,8 @@ class ExprOp(Expr):
         if not isinstance(op, str):
             raise ValueError("ExprOp: 'op' argument must be a string")
 
-        self.__op, self.__args = op, tuple(args)
+        assert isinstance(args, tuple)
+        self.__op, self.__args = op, args
 
         # Set size for special cases
         if self.__op in [
@@ -920,12 +912,9 @@ class ExprOp(Expr):
     op = property(lambda self: self.__op)
     args = property(lambda self: self.__args)
 
-    def __getstate__(self):
-        return self.__op, self.__args
-
-    def __setstate__(self, state):
-        op, args = state
-        self.__init__(op, *args)
+    def __reduce__(self):
+        state = tuple([self.__op] + list(self.__args))
+        return self.__class__, state
 
     def __new__(cls, op, *args):
         return Expr.get_object(cls, (op, args))
@@ -1027,11 +1016,9 @@ class ExprSlice(Expr):
     start = property(lambda self: self.__start)
     stop = property(lambda self: self.__stop)
 
-    def __getstate__(self):
-        return self.__arg, self.__start, self.__stop
-
-    def __setstate__(self, state):
-        self.__init__(*state)
+    def __reduce__(self):
+        state = self.__arg, self.__start, self.__stop
+        return self.__class__, state
 
     def __new__(cls, arg, start, stop):
         return Expr.get_object(cls, (arg, start, stop))
@@ -1118,30 +1105,19 @@ class ExprCompose(Expr):
         """
 
         super(ExprCompose, self).__init__()
-
-        is_new_style = args and isinstance(args[0], Expr)
-        if not is_new_style:
-            warnings.warn('DEPRECATION WARNING: use "ExprCompose(a, b) instead of'+
-                          'ExprCemul_ir_block(self, addr, step=False)" instead of emul_ir_bloc')
-
-        self.__args = tuple(args)
+        assert isinstance(args, tuple)
+        self.__args = args
         self.__size = sum([arg.size for arg in args])
 
     size = property(lambda self: self.__size)
     args = property(lambda self: self.__args)
 
-    def __getstate__(self):
-        return self.__args
-
-    def __setstate__(self, state):
-        self.__init__(*state)
+    def __reduce__(self):
+        state = self.__args
+        return self.__class__, state
 
     def __new__(cls, *args):
-        is_new_style = args and isinstance(args[0], Expr)
-        if not is_new_style:
-            assert len(args) == 1
-            args = args[0]
-        return Expr.get_object(cls, tuple(args))
+        return Expr.get_object(cls, args)
 
     def __str__(self):
         return '{' + ', '.join(["%s %s %s" % (arg, idx, idx + arg.size) for idx, arg in self.iter_args()]) + '}'
