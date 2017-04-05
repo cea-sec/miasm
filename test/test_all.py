@@ -614,7 +614,7 @@ for jitter in ExampleJitter.jitter_engines:
                              tags=tags.get(jitter, []))
 
 for script, dep in [(["x86_32.py", Example.get_sample("x86_32_sc.bin")], []),
-                    (["arm.py", Example.get_sample("md5_arm"), "-a", "A684"],
+                    (["arm.py", Example.get_sample("md5_arm"), "--mimic-env"],
                      []),
                     (["sandbox_elf_aarch64l.py", Example.get_sample("md5_aarch64l"), "-a", "0x400A00"],
                      []),
