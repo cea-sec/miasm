@@ -17,6 +17,36 @@ class c_linobjs(object):
 
 linobjs = c_linobjs()
 
+ABORT_ADDR = 0x1337beef
+
+def xxx___libc_start_main(jitter):
+    """Basic implementation of __libc_start_main
+
+    int __libc_start_main(int *(main) (int, char * *, char * *), int argc,
+                          char * * ubp_av, void (*init) (void),
+                          void (*fini) (void), void (*rtld_fini) (void),
+                          void (* stack_end));
+
+    Note:
+     - init, fini, rtld_fini are ignored
+     - return address is forced to ABORT_ADDR, to avoid calling abort/hlt/...
+
+    """
+    global ABORT_ADDR
+    ret_ad, args = jitter.func_args_systemv(["main", "argc", "ubp_av", "init",
+                                             "fini", "rtld_fini", "stack_end"])
+
+    # done by __libc_init_first
+    size = jitter.ir_arch.pc.size / 8
+    argv = args.ubp_av
+    envp = argv + (args.argc + 1) * size
+
+    # Call int main(int argc, char** argv, char** envp)
+    jitter.func_ret_systemv(args.main)
+    ret_ad = ABORT_ADDR
+    jitter.func_prepare_systemv(ret_ad, args.argc, argv, envp)
+    return True
+
 
 def xxx_isprint(jitter):
     '''
