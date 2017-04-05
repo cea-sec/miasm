@@ -14,6 +14,8 @@ class Sandbox(object):
     Parent class for Sandbox abstraction
     """
 
+    CALL_FINNISH_ADDR = 0x1337babe
+
     @staticmethod
     def code_sentinelle(jitter):
         jitter.run = False
@@ -125,6 +127,20 @@ class Sandbox(object):
         else:
             self.jitter.init_run(addr)
             self.jitter.continue_run()
+
+    def call(self, prepare_cb, addr, *args):
+        """
+        Direct call of the function at @addr, with arguments @args prepare in
+        calling convention implemented by @prepare_cb
+        @prepare_cb: func(ret_addr, *args)
+        @addr: address of the target function
+        @args: arguments
+        """
+        self.jitter.init_run(addr)
+        self.jitter.add_breakpoint(self.CALL_FINNISH_ADDR, self.code_sentinelle)
+        prepare_cb(self.CALL_FINNISH_ADDR, *args)
+        self.jitter.continue_run()
+
 
 
 class OS(object):
@@ -449,6 +465,15 @@ class Sandbox_Win_x86_32(Sandbox, Arch_x86_32, OS_Win):
             addr = self.entry_point
         super(Sandbox_Win_x86_32, self).run(addr)
 
+    def call(self, addr, *args, **kwargs):
+        """
+        Direct call of the function at @addr, with arguments @args
+        @addr: address of the target function
+        @args: arguments
+        """
+        prepare_cb = kwargs.pop('prepare_cb', self.jitter.func_prepare_stdcall)
+        super(self.__class__, self).call(prepare_cb, addr, *args)
+
 
 class Sandbox_Win_x86_64(Sandbox, Arch_x86_64, OS_Win):
 
@@ -472,6 +497,15 @@ class Sandbox_Win_x86_64(Sandbox, Arch_x86_64, OS_Win):
         if addr is None and self.options.address is None:
             addr = self.entry_point
         super(Sandbox_Win_x86_64, self).run(addr)
+
+    def call(self, addr, *args, **kwargs):
+        """
+        Direct call of the function at @addr, with arguments @args
+        @addr: address of the target function
+        @args: arguments
+        """
+        prepare_cb = kwargs.pop('prepare_cb', self.jitter.func_prepare_stdcall)
+        super(self.__class__, self).call(prepare_cb, addr, *args)
 
 
 class Sandbox_Linux_x86_32(Sandbox, Arch_x86_32, OS_Linux):
@@ -518,6 +552,16 @@ class Sandbox_Linux_x86_32(Sandbox, Arch_x86_32, OS_Linux):
             addr = self.entry_point
         super(Sandbox_Linux_x86_32, self).run(addr)
 
+    def call(self, addr, *args, **kwargs):
+        """
+        Direct call of the function at @addr, with arguments @args
+        @addr: address of the target function
+        @args: arguments
+        """
+        prepare_cb = kwargs.pop('prepare_cb', self.jitter.func_prepare_systemv)
+        super(self.__class__, self).call(prepare_cb, addr, *args)
+
+
 
 class Sandbox_Linux_x86_64(Sandbox, Arch_x86_64, OS_Linux):
 
@@ -563,6 +607,15 @@ class Sandbox_Linux_x86_64(Sandbox, Arch_x86_64, OS_Linux):
             addr = self.entry_point
         super(Sandbox_Linux_x86_64, self).run(addr)
 
+    def call(self, addr, *args, **kwargs):
+        """
+        Direct call of the function at @addr, with arguments @args
+        @addr: address of the target function
+        @args: arguments
+        """
+        prepare_cb = kwargs.pop('prepare_cb', self.jitter.func_prepare_systemv)
+        super(self.__class__, self).call(prepare_cb, addr, *args)
+
 
 class Sandbox_Linux_arml(Sandbox, Arch_arml, OS_Linux):
 
@@ -603,6 +656,15 @@ class Sandbox_Linux_arml(Sandbox, Arch_arml, OS_Linux):
         if addr is None and self.options.address is None:
             addr = self.entry_point
         super(Sandbox_Linux_arml, self).run(addr)
+
+    def call(self, addr, *args, **kwargs):
+        """
+        Direct call of the function at @addr, with arguments @args
+        @addr: address of the target function
+        @args: arguments
+        """
+        prepare_cb = kwargs.pop('prepare_cb', self.jitter.func_prepare_systemv)
+        super(self.__class__, self).call(prepare_cb, addr, *args)
 
 
 class Sandbox_Linux_armb_str(Sandbox, Arch_armb, OS_Linux_str):
@@ -676,3 +738,12 @@ class Sandbox_Linux_aarch64l(Sandbox, Arch_aarch64l, OS_Linux):
         if addr is None and self.options.address is None:
             addr = self.entry_point
         super(Sandbox_Linux_aarch64l, self).run(addr)
+
+    def call(self, addr, *args, **kwargs):
+        """
+        Direct call of the function at @addr, with arguments @args
+        @addr: address of the target function
+        @args: arguments
+        """
+        prepare_cb = kwargs.pop('prepare_cb', self.jitter.func_prepare_systemv)
+        super(self.__class__, self).call(prepare_cb, addr, *args)

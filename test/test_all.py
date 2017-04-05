@@ -626,6 +626,7 @@ for script, dep in [(["x86_32.py", Example.get_sample("x86_32_sc.bin")], []),
                       "b", "-a", "0"], [test_armb]),
                     (["arm_sc.py", "0", Example.get_sample("demo_arm_l.bin"),
                       "l", "-a", "0"], [test_arml]),
+                    (["sandbox_call.py", Example.get_sample("md5_arm")], []),
                     ] + [(["sandbox_pe_x86_32.py",
                            Example.get_sample("x86_32_" + name + ".bin")],
                           [test_box[name]])
