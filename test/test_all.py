@@ -257,6 +257,12 @@ for script in ["win_api_x86_32.py",
                ]:
     testset += RegressionTest([script], base_dir="os_dep", tags=[TAGS['tcc']])
 
+for arch in ["x86_32", "x86_64", "arml", "aarch64l"]:
+    testset += RegressionTest(["test_env.py", arch, "test_env.%s" % arch, "-c",
+                               "arg1", "-c", "arg2", "--environment-vars",
+                               "TEST=TOTO", "--mimic-env"],
+                              base_dir="os_dep/linux", tags=[TAGS['tcc']])
+
 ## Analysis
 testset += RegressionTest(["depgraph.py"], base_dir="analysis",
                           products=[fname for fnames in (
