@@ -190,14 +190,16 @@ class IRBlock(object):
         if self._dst is not None:
             return self._dst
         final_dst = None
+        final_linenb = None
         for linenb, assignblk in enumerate(self.irs):
             for dst, src in assignblk.iteritems():
                 if isinstance(dst, m2_expr.ExprId) and dst.name == "IRDst":
                     if final_dst is not None:
                         raise ValueError('Multiple destinations!')
                     final_dst = src
+                    final_linenb = linenb
         self._dst = final_dst
-        self._dst_linenb = linenb
+        self._dst_linenb = final_linenb
         return final_dst
 
     def _set_dst(self, value):
