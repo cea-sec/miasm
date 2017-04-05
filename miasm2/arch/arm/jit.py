@@ -44,6 +44,12 @@ class jitter_arml(jitter):
             self.cpu.R0 = ret_value
         return True
 
+    def func_prepare_stdcall(self, ret_addr, *args):
+        for index in xrange(min(len(args), 4)):
+            setattr(self.cpu, 'R%d' % index, args[index])
+        for index in xrange(4, len(args)):
+            self.vm.set_mem(self.cpu.SP + 4 * (index - 4), pck32(args[index]))
+        self.cpu.LR = ret_addr
 
     def get_arg_n_stdcall(self, index):
         if index < 4:
@@ -54,6 +60,7 @@ class jitter_arml(jitter):
 
     func_args_systemv = func_args_stdcall
     func_ret_systemv = func_ret_stdcall
+    func_prepare_systemv = func_prepare_stdcall
     get_arg_n_systemv = get_arg_n_stdcall
 
     def init_run(self, *args, **kwargs):

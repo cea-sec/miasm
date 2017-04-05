@@ -112,6 +112,11 @@ class jitter_x86_32(jitter):
         if ret_value2 is not None:
             self.cpu.EDX = ret_value2
 
+    def func_prepare_stdcall(self, ret_addr, *args):
+        for arg in reversed(args):
+            self.push_uint32_t(arg)
+        self.push_uint32_t(ret_addr)
+
     get_arg_n_stdcall = get_stack_arg
 
     # cdecl
@@ -131,6 +136,7 @@ class jitter_x86_32(jitter):
     # System V
     func_args_systemv = func_args_cdecl
     func_ret_systemv = func_ret_cdecl
+    func_prepare_systemv = func_prepare_stdcall
     get_arg_n_systemv = get_stack_arg
 
 
@@ -206,3 +212,12 @@ class jitter_x86_64(jitter):
         return ret_ad, args
 
     func_ret_systemv = func_ret_cdecl
+
+    def func_prepare_systemv(self, ret_addr, *args):
+        args_regs = self.args_regs_systemv
+        self.push_uint64_t(ret_addr)
+        for i in xrange(min(len(args), len(args_regs))):
+            setattr(self.cpu, args_regs[i], args[i])
+        remaining_args = args[len(args_regs):]
+        for arg in reversed(remaining_args):
+            self.push_uint64_t(arg)
