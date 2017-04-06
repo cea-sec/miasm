@@ -424,6 +424,12 @@ all_regs_ids_no_alias = [
     exception_flags, interrupt_num,
 ] + fltregs32_expr
 
+attrib_to_regs = {
+    16: regs16_expr + all_regs_ids_no_alias[all_regs_ids_no_alias.index(zf):],
+    32: regs32_expr + all_regs_ids_no_alias[all_regs_ids_no_alias.index(zf):],
+    64: all_regs_ids_no_alias,
+}
+
 all_regs_ids_byname = dict([(x.name, x) for x in all_regs_ids])
 
 all_regs_ids_init = [ExprId("%s_init" % x.name, x.size) for x in all_regs_ids]
