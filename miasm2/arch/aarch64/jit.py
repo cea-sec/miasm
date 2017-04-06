@@ -37,7 +37,7 @@ class jitter_aarch64l(jitter):
     def func_args_stdcall(self, n_args):
         args = []
         for i in xrange(min(n_args, self.max_reg_arg)):
-            args.append(self.cpu.get_gpreg()['X%d' % i])
+            args.append(getattr(self.cpu, 'X%d' % i))
         for i in xrange(max(0, n_args - self.max_reg_arg)):
             args.append(self.get_stack_arg(i))
         ret_ad = self.cpu.LR
@@ -55,6 +55,18 @@ class jitter_aarch64l(jitter):
         else:
             arg = self.get_stack_arg(index - self.max_reg_arg)
         return arg
+
+    def func_prepare_stdcall(self, ret_addr, *args):
+        for index in xrange(min(len(args), 4)):
+            setattr(self.cpu, 'X%d' % index, args[index])
+        for index in xrange(4, len(args)):
+            self.vm.set_mem(self.cpu.SP + 8 * (index - 4), pck64(args[index]))
+        self.cpu.LR = ret_addr
+
+    func_args_systemv = func_args_stdcall
+    func_ret_systemv = func_ret_stdcall
+    get_arg_n_systemv = get_arg_n_stdcall
+    func_prepare_systemv = func_prepare_stdcall
 
     def init_run(self, *args, **kwargs):
         jitter.init_run(self, *args, **kwargs)

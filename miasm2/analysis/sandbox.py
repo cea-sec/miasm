@@ -14,6 +14,8 @@ class Sandbox(object):
     Parent class for Sandbox abstraction
     """
 
+    CALL_FINNISH_ADDR = 0x1337babe
+
     @staticmethod
     def code_sentinelle(jitter):
         jitter.run = False
@@ -125,6 +127,20 @@ class Sandbox(object):
         else:
             self.jitter.init_run(addr)
             self.jitter.continue_run()
+
+    def call(self, prepare_cb, addr, *args):
+        """
+        Direct call of the function at @addr, with arguments @args prepare in
+        calling convention implemented by @prepare_cb
+        @prepare_cb: func(ret_addr, *args)
+        @addr: address of the target function
+        @args: arguments
+        """
+        self.jitter.init_run(addr)
+        self.jitter.add_breakpoint(self.CALL_FINNISH_ADDR, self.code_sentinelle)
+        prepare_cb(self.CALL_FINNISH_ADDR, *args)
+        self.jitter.continue_run()
+
 
 
 class OS(object):
@@ -248,6 +264,8 @@ class OS_Win(OS):
 
 class OS_Linux(OS):
 
+    PROGRAM_PATH = "./program"
+
     def __init__(self, custom_methods, *args, **kwargs):
         from miasm2.jitter.loader.elf import vm_load_elf, preload_elf, libimp_elf
         from miasm2.os_dep import linux_stdlib
@@ -269,8 +287,29 @@ class OS_Linux(OS):
         # Library calls handler
         self.jitter.add_lib_handler(self.libs, methods)
 
+        # Arguments
+        self.argv = [self.PROGRAM_PATH]
+        if self.options.command_line:
+             self.argv += self.options.command_line
+        self.envp = self.options.environment_vars
+
+    @classmethod
+    def update_parser(cls, parser):
+        parser.add_argument('-c', '--command-line',
+                            action="append",
+                            default=[],
+                            help="Command line arguments")
+        parser.add_argument('--environment-vars',
+                            action="append",
+                            default=[],
+                            help="Environment variables arguments")
+        parser.add_argument('--mimic-env',
+                            action="store_true",
+                            help="Mimic the environment of a starting executable")
 
 class OS_Linux_str(OS):
+
+    PROGRAM_PATH = "./program"
 
     def __init__(self, custom_methods, *args, **kwargs):
         from miasm2.jitter.loader.elf import libimp_elf
@@ -293,8 +332,25 @@ class OS_Linux_str(OS):
         # Library calls handler
         self.jitter.add_lib_handler(libs, methods)
 
+        # Arguments
+        self.argv = [self.PROGRAM_PATH]
+        if self.options.command_line:
+             self.argv += self.options.command_line
+        self.envp = self.options.environment_vars
+
     @classmethod
     def update_parser(cls, parser):
+        parser.add_argument('-c', '--command-line',
+                            action="append",
+                            default=[],
+                            help="Command line arguments")
+        parser.add_argument('--environment-vars',
+                            action="append",
+                            default=[],
+                            help="Environment variables arguments")
+        parser.add_argument('--mimic-env',
+                            action="store_true",
+                            help="Mimic the environment of a starting executable")
         parser.add_argument("load_base_addr", help="load base address")
 
 
@@ -409,6 +465,15 @@ class Sandbox_Win_x86_32(Sandbox, Arch_x86_32, OS_Win):
             addr = self.entry_point
         super(Sandbox_Win_x86_32, self).run(addr)
 
+    def call(self, addr, *args, **kwargs):
+        """
+        Direct call of the function at @addr, with arguments @args
+        @addr: address of the target function
+        @args: arguments
+        """
+        prepare_cb = kwargs.pop('prepare_cb', self.jitter.func_prepare_stdcall)
+        super(self.__class__, self).call(prepare_cb, addr, *args)
+
 
 class Sandbox_Win_x86_64(Sandbox, Arch_x86_64, OS_Win):
 
@@ -433,6 +498,15 @@ class Sandbox_Win_x86_64(Sandbox, Arch_x86_64, OS_Win):
             addr = self.entry_point
         super(Sandbox_Win_x86_64, self).run(addr)
 
+    def call(self, addr, *args, **kwargs):
+        """
+        Direct call of the function at @addr, with arguments @args
+        @addr: address of the target function
+        @args: arguments
+        """
+        prepare_cb = kwargs.pop('prepare_cb', self.jitter.func_prepare_stdcall)
+        super(self.__class__, self).call(prepare_cb, addr, *args)
+
 
 class Sandbox_Linux_x86_32(Sandbox, Arch_x86_32, OS_Linux):
 
@@ -440,10 +514,32 @@ class Sandbox_Linux_x86_32(Sandbox, Arch_x86_32, OS_Linux):
         Sandbox.__init__(self, *args, **kwargs)
 
         # Pre-stack some arguments
-        self.jitter.push_uint32_t(2)
-        self.jitter.push_uint32_t(1)
-        self.jitter.push_uint32_t(0)
-        self.jitter.push_uint32_t(0x1337beef)
+        if self.options.mimic_env:
+            env_ptrs = []
+            for env in self.envp:
+                env += "\x00"
+                self.jitter.cpu.ESP -= len(env)
+                ptr = self.jitter.cpu.ESP
+                self.jitter.vm.set_mem(ptr, env)
+                env_ptrs.append(ptr)
+            argv_ptrs = []
+            for arg in self.argv:
+                arg += "\x00"
+                self.jitter.cpu.ESP -= len(arg)
+                ptr = self.jitter.cpu.ESP
+                self.jitter.vm.set_mem(ptr, arg)
+                argv_ptrs.append(ptr)
+
+            self.jitter.push_uint32_t(0x1337beef)
+            self.jitter.push_uint32_t(0)
+            for ptr in reversed(env_ptrs):
+                self.jitter.push_uint32_t(ptr)
+            self.jitter.push_uint32_t(0)
+            for ptr in reversed(argv_ptrs):
+                self.jitter.push_uint32_t(ptr)
+            self.jitter.push_uint32_t(len(self.argv))
+        else:
+            self.jitter.push_uint32_t(0x1337beef)
 
         # Set the runtime guard
         self.jitter.add_breakpoint(0x1337beef, self.__class__.code_sentinelle)
@@ -456,18 +552,49 @@ class Sandbox_Linux_x86_32(Sandbox, Arch_x86_32, OS_Linux):
             addr = self.entry_point
         super(Sandbox_Linux_x86_32, self).run(addr)
 
+    def call(self, addr, *args, **kwargs):
+        """
+        Direct call of the function at @addr, with arguments @args
+        @addr: address of the target function
+        @args: arguments
+        """
+        prepare_cb = kwargs.pop('prepare_cb', self.jitter.func_prepare_systemv)
+        super(self.__class__, self).call(prepare_cb, addr, *args)
+
+
 
 class Sandbox_Linux_x86_64(Sandbox, Arch_x86_64, OS_Linux):
 
     def __init__(self, *args, **kwargs):
         Sandbox.__init__(self, *args, **kwargs)
 
-        # reserve stack for local reg
-        for _ in xrange(0x4):
-            self.jitter.push_uint64_t(0)
+        # Pre-stack some arguments
+        if self.options.mimic_env:
+            env_ptrs = []
+            for env in self.envp:
+                env += "\x00"
+                self.jitter.cpu.RSP -= len(env)
+                ptr = self.jitter.cpu.RSP
+                self.jitter.vm.set_mem(ptr, env)
+                env_ptrs.append(ptr)
+            argv_ptrs = []
+            for arg in self.argv:
+                arg += "\x00"
+                self.jitter.cpu.RSP -= len(arg)
+                ptr = self.jitter.cpu.RSP
+                self.jitter.vm.set_mem(ptr, arg)
+                argv_ptrs.append(ptr)
 
-        # Pre-stack return address
-        self.jitter.push_uint64_t(0x1337beef)
+            self.jitter.push_uint64_t(0x1337beef)
+            self.jitter.push_uint64_t(0)
+            for ptr in reversed(env_ptrs):
+                self.jitter.push_uint64_t(ptr)
+            self.jitter.push_uint64_t(0)
+            for ptr in reversed(argv_ptrs):
+                self.jitter.push_uint64_t(ptr)
+            self.jitter.push_uint64_t(len(self.argv))
+        else:
+            self.jitter.push_uint64_t(0x1337beef)
 
         # Set the runtime guard
         self.jitter.add_breakpoint(0x1337beef, self.__class__.code_sentinelle)
@@ -480,11 +607,45 @@ class Sandbox_Linux_x86_64(Sandbox, Arch_x86_64, OS_Linux):
             addr = self.entry_point
         super(Sandbox_Linux_x86_64, self).run(addr)
 
+    def call(self, addr, *args, **kwargs):
+        """
+        Direct call of the function at @addr, with arguments @args
+        @addr: address of the target function
+        @args: arguments
+        """
+        prepare_cb = kwargs.pop('prepare_cb', self.jitter.func_prepare_systemv)
+        super(self.__class__, self).call(prepare_cb, addr, *args)
+
 
 class Sandbox_Linux_arml(Sandbox, Arch_arml, OS_Linux):
 
     def __init__(self, *args, **kwargs):
         Sandbox.__init__(self, *args, **kwargs)
+
+        # Pre-stack some arguments
+        if self.options.mimic_env:
+            env_ptrs = []
+            for env in self.envp:
+                env += "\x00"
+                self.jitter.cpu.SP -= len(env)
+                ptr = self.jitter.cpu.SP
+                self.jitter.vm.set_mem(ptr, env)
+                env_ptrs.append(ptr)
+            argv_ptrs = []
+            for arg in self.argv:
+                arg += "\x00"
+                self.jitter.cpu.SP -= len(arg)
+                ptr = self.jitter.cpu.SP
+                self.jitter.vm.set_mem(ptr, arg)
+                argv_ptrs.append(ptr)
+
+            self.jitter.push_uint32_t(0)
+            for ptr in reversed(env_ptrs):
+                self.jitter.push_uint32_t(ptr)
+            self.jitter.push_uint32_t(0)
+            for ptr in reversed(argv_ptrs):
+                self.jitter.push_uint32_t(ptr)
+            self.jitter.push_uint32_t(len(self.argv))
 
         self.jitter.cpu.LR = 0x1337beef
 
@@ -492,9 +653,18 @@ class Sandbox_Linux_arml(Sandbox, Arch_arml, OS_Linux):
         self.jitter.add_breakpoint(0x1337beef, self.__class__.code_sentinelle)
 
     def run(self, addr=None):
-        if addr is None and self.options.address is not None:
-            addr = int(self.options.address, 16)
+        if addr is None and self.options.address is None:
+            addr = self.entry_point
         super(Sandbox_Linux_arml, self).run(addr)
+
+    def call(self, addr, *args, **kwargs):
+        """
+        Direct call of the function at @addr, with arguments @args
+        @addr: address of the target function
+        @args: arguments
+        """
+        prepare_cb = kwargs.pop('prepare_cb', self.jitter.func_prepare_systemv)
+        super(self.__class__, self).call(prepare_cb, addr, *args)
 
 
 class Sandbox_Linux_armb_str(Sandbox, Arch_armb, OS_Linux_str):
@@ -534,12 +704,46 @@ class Sandbox_Linux_aarch64l(Sandbox, Arch_aarch64l, OS_Linux):
     def __init__(self, *args, **kwargs):
         Sandbox.__init__(self, *args, **kwargs)
 
+        # Pre-stack some arguments
+        if self.options.mimic_env:
+            env_ptrs = []
+            for env in self.envp:
+                env += "\x00"
+                self.jitter.cpu.SP -= len(env)
+                ptr = self.jitter.cpu.SP
+                self.jitter.vm.set_mem(ptr, env)
+                env_ptrs.append(ptr)
+            argv_ptrs = []
+            for arg in self.argv:
+                arg += "\x00"
+                self.jitter.cpu.SP -= len(arg)
+                ptr = self.jitter.cpu.SP
+                self.jitter.vm.set_mem(ptr, arg)
+                argv_ptrs.append(ptr)
+
+            self.jitter.push_uint64_t(0)
+            for ptr in reversed(env_ptrs):
+                self.jitter.push_uint64_t(ptr)
+            self.jitter.push_uint64_t(0)
+            for ptr in reversed(argv_ptrs):
+                self.jitter.push_uint64_t(ptr)
+            self.jitter.push_uint64_t(len(self.argv))
+
         self.jitter.cpu.LR = 0x1337beef
 
         # Set the runtime guard
         self.jitter.add_breakpoint(0x1337beef, self.__class__.code_sentinelle)
 
     def run(self, addr=None):
-        if addr is None and self.options.address is not None:
-            addr = int(self.options.address, 0)
+        if addr is None and self.options.address is None:
+            addr = self.entry_point
         super(Sandbox_Linux_aarch64l, self).run(addr)
+
+    def call(self, addr, *args, **kwargs):
+        """
+        Direct call of the function at @addr, with arguments @args
+        @addr: address of the target function
+        @args: arguments
+        """
+        prepare_cb = kwargs.pop('prepare_cb', self.jitter.func_prepare_systemv)
+        super(self.__class__, self).call(prepare_cb, addr, *args)

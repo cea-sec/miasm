@@ -92,6 +92,10 @@ class jitter_x86_32(jitter):
     def get_stack_arg(self, index):
         return upck32(self.vm.get_mem(self.cpu.ESP + 4 * index, 4))
 
+    def init_run(self, *args, **kwargs):
+        jitter.init_run(self, *args, **kwargs)
+        self.cpu.EIP = self.pc
+
     # calling conventions
 
     # stdcall
@@ -108,6 +112,13 @@ class jitter_x86_32(jitter):
         if ret_value2 is not None:
             self.cpu.EDX = ret_value2
 
+    def func_prepare_stdcall(self, ret_addr, *args):
+        for arg in reversed(args):
+            self.push_uint32_t(arg)
+        self.push_uint32_t(ret_addr)
+
+    get_arg_n_stdcall = get_stack_arg
+
     # cdecl
     @named_arguments
     def func_args_cdecl(self, n_args):
@@ -115,18 +126,24 @@ class jitter_x86_32(jitter):
         args = [self.get_stack_arg(i) for i in xrange(n_args)]
         return ret_ad, args
 
-    def func_ret_cdecl(self, ret_addr, ret_value):
+    def func_ret_cdecl(self, ret_addr, ret_value=None):
         self.cpu.EIP = ret_addr
-        self.cpu.EAX = ret_value
+        if ret_value is not None:
+            self.cpu.EAX = ret_value
 
-    def init_run(self, *args, **kwargs):
-        jitter.init_run(self, *args, **kwargs)
-        self.cpu.EIP = self.pc
+    get_arg_n_cdecl = get_stack_arg
+
+    # System V
+    func_args_systemv = func_args_cdecl
+    func_ret_systemv = func_ret_cdecl
+    func_prepare_systemv = func_prepare_stdcall
+    get_arg_n_systemv = get_stack_arg
 
 
 class jitter_x86_64(jitter):
 
     C_Gen = x86_64_CGen
+    args_regs_systemv = ['RDI', 'RSI', 'RDX', 'RCX', 'R8', 'R9']
 
     def __init__(self, *args, **kwargs):
         sp = asmblock.AsmSymbolPool()
@@ -152,6 +169,13 @@ class jitter_x86_64(jitter):
     def get_stack_arg(self, index):
         return upck64(self.vm.get_mem(self.cpu.RSP + 8 * index, 8))
 
+    def init_run(self, *args, **kwargs):
+        jitter.init_run(self, *args, **kwargs)
+        self.cpu.RIP = self.pc
+
+    # calling conventions
+
+    # stdcall
     @named_arguments
     def func_args_stdcall(self, n_args):
         args_regs = ['RCX', 'RDX', 'R8', 'R9']
@@ -169,23 +193,31 @@ class jitter_x86_64(jitter):
             self.cpu.RAX = ret_value
         return True
 
+    # cdecl
+    func_args_cdecl = func_args_stdcall
+    func_ret_cdecl = func_ret_stdcall
+
+    # System V
+
+    def get_arg_n_systemv(self, index):
+        args_regs = self.args_regs_systemv
+        if index < len(args_regs):
+            return getattr(self.cpu, args_regs[index])
+        return self.get_stack_arg(index - len(args_regs))
+
     @named_arguments
-    def func_args_cdecl(self, n_args):
-        args_regs = ['RCX', 'RDX', 'R8', 'R9']
+    def func_args_systemv(self, n_args):
         ret_ad = self.pop_uint64_t()
-        args = []
-        for i in xrange(min(n_args, 4)):
-            args.append(self.cpu.get_gpreg()[args_regs[i]])
-        for i in xrange(max(0, n_args - 4)):
-            args.append(self.get_stack_arg(i))
+        args = [self.get_arg_n_systemv(index) for index in xrange(n_args)]
         return ret_ad, args
 
-    def func_ret_cdecl(self, ret_addr, ret_value=None):
-        self.pc = self.cpu.RIP = ret_addr
-        if ret_value is not None:
-            self.cpu.RAX = ret_value
-        return True
+    func_ret_systemv = func_ret_cdecl
 
-    def init_run(self, *args, **kwargs):
-        jitter.init_run(self, *args, **kwargs)
-        self.cpu.RIP = self.pc
+    def func_prepare_systemv(self, ret_addr, *args):
+        args_regs = self.args_regs_systemv
+        self.push_uint64_t(ret_addr)
+        for i in xrange(min(len(args), len(args_regs))):
+            setattr(self.cpu, args_regs[i], args[i])
+        remaining_args = args[len(args_regs):]
+        for arg in reversed(remaining_args):
+            self.push_uint64_t(arg)

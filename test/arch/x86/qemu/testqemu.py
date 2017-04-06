@@ -40,7 +40,7 @@ nb_tests = 1
 def xxx___printf_chk(jitter):
     """Tiny implementation of printf_chk"""
     global nb_tests
-    ret_ad, args = jitter.func_args_cdecl(["out", "format"])
+    ret_ad, args = jitter.func_args_systemv(["out", "format"])
     if args.out != 1:
         raise RuntimeError("Not implemented")
     fmt = jitter.get_str_ansi(args.format)
@@ -89,7 +89,7 @@ def xxx___printf_chk(jitter):
 
     sys.stdout.write("[%d] %s" % (nb_tests, output))
     nb_tests += 1
-    jitter.func_ret_cdecl(ret_ad, 0)
+    jitter.func_ret_systemv(ret_ad, 0)
 
 def xxx_puts(jitter):
     '''
@@ -98,7 +98,7 @@ def xxx_puts(jitter):
 
     writes the string s and a trailing newline to stdout.
     '''
-    ret_addr, args = jitter.func_args_cdecl(['target'])
+    ret_addr, args = jitter.func_args_systemv(['target'])
     output = jitter.get_str_ansi(args.target)
     # Check with expected result
     line = expected.next()
@@ -106,7 +106,7 @@ def xxx_puts(jitter):
         print "Expected:", line
         print "Obtained:", output
         raise RuntimeError("Bad semantic")
-    return jitter.func_ret_cdecl(ret_addr, 1)
+    return jitter.func_ret_systemv(ret_addr, 1)
 
 # Parse arguments
 parser = Sandbox_Linux_x86_32.parser(description="ELF sandboxer")

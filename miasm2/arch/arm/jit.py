@@ -34,11 +34,7 @@ class jitter_arml(jitter):
 
     @named_arguments
     def func_args_stdcall(self, n_args):
-        args = []
-        for i in xrange(min(n_args, 4)):
-            args.append(self.cpu.get_gpreg()['R%d' % i])
-        for i in xrange(max(0, n_args - 4)):
-            args.append(self.get_stack_arg(i))
+        args = [self.get_arg_n_stdcall(i) for i in xrange(n_args)]
         ret_ad = self.cpu.LR
         return ret_ad, args
 
@@ -48,12 +44,24 @@ class jitter_arml(jitter):
             self.cpu.R0 = ret_value
         return True
 
+    def func_prepare_stdcall(self, ret_addr, *args):
+        for index in xrange(min(len(args), 4)):
+            setattr(self.cpu, 'R%d' % index, args[index])
+        for index in xrange(4, len(args)):
+            self.vm.set_mem(self.cpu.SP + 4 * (index - 4), pck32(args[index]))
+        self.cpu.LR = ret_addr
+
     def get_arg_n_stdcall(self, index):
         if index < 4:
-            arg = self.cpu.get_gpreg()['R%d' % index]
+            arg = getattr(self.cpu, 'R%d' % index)
         else:
             arg = self.get_stack_arg(index-4)
         return arg
+
+    func_args_systemv = func_args_stdcall
+    func_ret_systemv = func_ret_stdcall
+    func_prepare_systemv = func_prepare_stdcall
+    get_arg_n_systemv = get_arg_n_stdcall
 
     def init_run(self, *args, **kwargs):
         jitter.init_run(self, *args, **kwargs)

@@ -257,6 +257,12 @@ for script in ["win_api_x86_32.py",
                ]:
     testset += RegressionTest([script], base_dir="os_dep", tags=[TAGS['tcc']])
 
+for arch in ["x86_32", "x86_64", "arml", "aarch64l"]:
+    testset += RegressionTest(["test_env.py", arch, "test_env.%s" % arch, "-c",
+                               "arg1", "-c", "arg2", "--environment-vars",
+                               "TEST=TOTO", "--mimic-env"],
+                              base_dir="os_dep/linux", tags=[TAGS['tcc']])
+
 ## Analysis
 testset += RegressionTest(["depgraph.py"], base_dir="analysis",
                           products=[fname for fnames in (
@@ -608,7 +614,7 @@ for jitter in ExampleJitter.jitter_engines:
                              tags=tags.get(jitter, []))
 
 for script, dep in [(["x86_32.py", Example.get_sample("x86_32_sc.bin")], []),
-                    (["arm.py", Example.get_sample("md5_arm"), "-a", "A684"],
+                    (["arm.py", Example.get_sample("md5_arm"), "--mimic-env"],
                      []),
                     (["sandbox_elf_aarch64l.py", Example.get_sample("md5_aarch64l"), "-a", "0x400A00"],
                      []),
@@ -620,6 +626,7 @@ for script, dep in [(["x86_32.py", Example.get_sample("x86_32_sc.bin")], []),
                       "b", "-a", "0"], [test_armb]),
                     (["arm_sc.py", "0", Example.get_sample("demo_arm_l.bin"),
                       "l", "-a", "0"], [test_arml]),
+                    (["sandbox_call.py", Example.get_sample("md5_arm")], []),
                     ] + [(["sandbox_pe_x86_32.py",
                            Example.get_sample("x86_32_" + name + ".bin")],
                           [test_box[name]])
