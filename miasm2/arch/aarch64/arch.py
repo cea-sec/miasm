@@ -160,6 +160,18 @@ def shiftext2expr(t):
     else:
         return m2_expr.ExprOp(t[1], t[0], t[2])
 
+def expr_deref_pc_off(t):
+    t = t[0]
+    if len(t) == 2 and t[0] == "PC":
+        return ExprOp('preinc', PC, t[1])
+    raise ValueError('bad string')
+
+def expr_deref_pc_nooff(t):
+    t = t[0]
+    if len(t) == 1 and t[0] == "PC":
+        return ExprOp('preinc', PC)
+    raise ValueError('bad string')
+
 all_binaryop_lsl_t = literal_list(
     shift_str).setParseAction(op_shift2expr)
 
@@ -275,6 +287,11 @@ deref_off_pre_wb = Group(LBRACK + gpregs64_info.parser + COMMA +
 
 deref = (deref_off_post | deref_off_pre_wb | deref_off_pre | deref_nooff)
 
+
+deref_pc_off = Group(LBRACK + Literal("PC") + COMMA + int_or_expr64 + RBRACK).setParseAction(expr_deref_pc_off)
+deref_pc_nooff = Group(LBRACK + Literal("PC") + RBRACK).setParseAction(expr_deref_pc_nooff)
+
+deref_pc = (deref_pc_off | deref_pc_nooff)
 
 def deref_ext2op(t):
     t = t[0]
@@ -926,6 +943,8 @@ class aarch64_gpreg_ext2(reg_noarg, m_arg):
     def encode(self):
         if not isinstance(self.expr, m2_expr.ExprOp):
             return False
+        if len(self.expr.args) != 2:
+            return False
         arg0, arg1 = self.expr.args
         if not (isinstance(self.expr, m2_expr.ExprOp) and self.expr.op == 'segm'):
             return False
@@ -1235,6 +1254,35 @@ class aarch64_offs(imm_noarg, m_arg):
         return True
 
 
+
+class aarch64_offs_pc(imm_noarg, m_arg):
+    parser = deref_pc
+
+    def decode(self, v):
+        v = v & self.lmask
+        v = (v << 2)
+        v = sign_ext(v, (self.l + 2), 64)
+        self.expr = ExprOp("preinc", PC, m2_expr.ExprInt(v, 64))
+        return True
+
+    def encode(self):
+        if not self.expr.is_op('preinc'):
+            return False
+        if self.expr.args == (PC,):
+            v = 0
+        elif (len(self.expr.args) == 2 and
+              self.expr.args[0] == PC and
+              self.expr.args[1].is_int()):
+            v = int(self.expr.args[1])
+        else:
+            return None
+        if v & (1 << 63):
+            v &= (1 << (self.l + 2)) - 1
+        self.value = v >> 2
+        return True
+
+
+
 def set_mem_off(parent, imm):
     if hasattr(parent, 'simm'):
         mask = (1 << parent.simm.l) - 1
@@ -1299,6 +1347,8 @@ class aarch64_deref(m_arg):
                 self.parent.postpre.value = 0
             else:
                 self.parent.postpre.value = 1
+        if len(expr.args) != 2:
+            return False
         reg, off = expr.args
         if not reg in gpregs64_info.expr:
             return False
@@ -1566,6 +1616,8 @@ bs_adsu_name = bs_name(l=1, name=adsu_name)
 
 
 offs19 = bs(l=19, cls=(aarch64_offs,), fname='off')
+offs19pc = bs(l=19, cls=(aarch64_offs_pc,), fname='off')
+
 offs26 = bs(l=26, cls=(aarch64_offs,), fname='off')
 offs14 = bs(l=14, cls=(aarch64_offs,), fname='off')
 
@@ -1754,11 +1806,11 @@ aarch64op("ldrsw", [bs('10', fname="size"), bs('111'), bs('0'), bs('00'), bs('10
 aarch64op("ldst",  [bs('11', fname="size"), bs('111'), bs('0'), bs('00'), bs('0'), bs_ldst_name, bs('1'), rm_ext2, option, shiftb, bs('10'), rn64_v, rt64], [rt64, rm_ext2])
 
 # load/store literal p.137
-aarch64op("ldr",  [bs('0'), sf, bs('011'), bs('0'), bs('00'), offs19, rt], [rt, offs19])
-aarch64op("ldr",  [bs('10'), bs('011'), bs('0'), bs('00'), offs19, rt64], [rt64, offs19])
+aarch64op("ldr",  [bs('0'), sf, bs('011'), bs('0'), bs('00'), offs19pc, rt], [rt, offs19pc])
+aarch64op("ldrsw",  [bs('10'), bs('011'), bs('0'), bs('00'), offs19pc, rt64], [rt64, offs19pc])
 
 # load/store simd literal p.142
-aarch64op("ldr",  [sdsize, bs('011'), bs('1'), bs('00'), offs19, sd1], [sd1, offs19])
+aarch64op("ldr",  [sdsize, bs('011'), bs('1'), bs('00'), offs19pc, sd1], [sd1, offs19pc])
 
 
 # move wide p.203
