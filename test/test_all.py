@@ -585,6 +585,17 @@ for options, nb_sol, tag in [([], 4, []),
                                  depends=[test_x86_32_if_reg],
                                  tags=tag)
 
+dse_crackme_out = Example.get_sample("dse_crackme.c")[:-2]
+dse_crackme = ExampleSymbolExec([Example.get_sample("dse_crackme.c"),
+                                 "-o", dse_crackme_out],
+                                products=[dse_crackme_out],
+                                executable="cc")
+testset += dse_crackme
+testset += ExampleSymbolExec(["dse_crackme.py", dse_crackme_out],
+                             depends=[dse_crackme],
+                             products=["test.txt"],
+                             tags=[TAGS["z3"]])
+
 ## Jitter
 class ExampleJitter(Example):
     """Jitter examples specificities:
