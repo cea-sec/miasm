@@ -72,18 +72,18 @@ class JitCore_Python(jitcore.JitCore):
                 exec_engine.update_engine_from_cpu()
 
                 # Execute current ir bloc
-                for ir, line in zip(irb.irs, irb.lines):
-
+                for assignblk in irb.irs:
+                    instr = assignblk.instr
                     # For each new instruction (in assembly)
-                    if line.offset not in offsets_jitted:
+                    if instr.offset not in offsets_jitted:
                         # Test exceptions
                         vmmngr.check_invalid_code_blocs()
                         vmmngr.check_memory_breakpoint()
                         if vmmngr.get_exception():
                             exec_engine.update_cpu_from_engine()
-                            return line.offset
+                            return instr.offset
 
-                        offsets_jitted.add(line.offset)
+                        offsets_jitted.add(instr.offset)
 
                         # Log registers values
                         if self.log_regs:
@@ -92,21 +92,21 @@ class JitCore_Python(jitcore.JitCore):
 
                         # Log instruction
                         if self.log_mn:
-                            print "%08x %s" % (line.offset, line)
+                            print "%08x %s" % (instr.offset, instr)
 
                         # Check for exception
                         if (vmmngr.get_exception() != 0 or
                             cpu.get_exception() != 0):
                             exec_engine.update_cpu_from_engine()
-                            return line.offset
+                            return instr.offset
 
                     # Eval current instruction (in IR)
-                    exec_engine.eval_ir(ir)
+                    exec_engine.eval_ir(assignblk)
                     # Check for exceptions which do not update PC
                     exec_engine.update_cpu_from_engine()
                     if (vmmngr.get_exception() & csts.EXCEPT_DO_NOT_UPDATE_PC != 0 or
                         cpu.get_exception() > csts.EXCEPT_NUM_UPDT_EIP):
-                        return line.offset
+                        return instr.offset
 
                 vmmngr.check_invalid_code_blocs()
                 vmmngr.check_memory_breakpoint()

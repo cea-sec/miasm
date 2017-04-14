@@ -793,7 +793,7 @@ class ir_aarch64l(IntermediateRepresentation):
                 dst = self.expr_fix_regs_for_mode(dst)
                 src = self.expr_fix_regs_for_mode(src)
                 new_assignblk[dst] = src
-            irbloc.irs[idx] = AssignBlock(new_assignblk)
+            irbloc.irs[idx] = AssignBlock(new_assignblk, assignblk.instr)
         if irbloc.dst is not None:
             irbloc.dst = self.expr_fix_regs_for_mode(irbloc.dst)
 

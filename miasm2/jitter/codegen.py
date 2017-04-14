@@ -143,7 +143,7 @@ class CGen(object):
             offset = instr.offset + instr.l
             dst = m2_expr.ExprInt(offset, self.ir_arch.IRDst.size)
             new_assignblk[self.ir_arch.IRDst] = dst
-        irs = [AssignBlock(new_assignblk)]
+        irs = [AssignBlock(new_assignblk, instr)]
         return IRBlock(self.ir_arch.get_instr_label(instr), irs)
 
     def block2assignblks(self, block):

@@ -37,7 +37,6 @@ dummy = ExprId('dummy', 32)
 
 
 def gen_irblock(label, exprs_list):
-    lines = [None for _ in xrange(len(exprs_list))]
     irs = []
     for exprs in exprs_list:
         if isinstance(exprs, AssignBlock):
@@ -46,7 +45,7 @@ def gen_irblock(label, exprs_list):
             irs.append(AssignBlock(exprs))
 
     irs.append(AssignBlock({IRDst:dummy}))
-    irbl = IRBlock(label, irs, lines)
+    irbl = IRBlock(label, irs)
     return irbl
 
 

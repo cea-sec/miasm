@@ -30,12 +30,13 @@ from miasm2.core.graph import DiGraph
 
 
 class AssignBlock(object):
-    __slots__ = ["_assigns"]
+    __slots__ = ["_assigns", "_instr"]
 
-    def __init__(self, irs=None):
+    def __init__(self, irs=None, instr=None):
         """@irs seq"""
         if irs is None:
             irs = []
+        self._instr = instr
         self._assigns = {} # ExprAff.dst -> ExprAff.src
 
         # Concurrent assignments are handled in _set
@@ -45,6 +46,10 @@ class AssignBlock(object):
         else:
             for expraff in irs:
                 self._set(expraff.dst, expraff.src)
+
+    @property
+    def instr(self):
+        return self._instr
 
     def _set(self, dst, src):
         """
@@ -201,7 +206,7 @@ class AssignBlock(object):
 
     def __str__(self):
         out = []
-        for dst, src in sorted(self.iteritems()):
+        for dst, src in sorted(self._assigns.iteritems()):
             out.append("%s = %s" % (dst, src))
         return "\n".join(out)
 
@@ -217,19 +222,15 @@ class IRBlock(object):
     Stand for an intermediate representation  basic block.
     """
 
-    def __init__(self, label, irs, lines=None):
+    def __init__(self, label, irs):
         """
         @label: AsmLabel of the IR basic block
         @irs: list of AssignBlock
-        @lines: list of native instructions
         """
 
         assert isinstance(label, AsmLabel)
-        if lines is None:
-            lines = []
         self.label = label
         self.irs = irs
-        self.lines = lines
         self.except_automod = True
         self._dst = None
         self._dst_linenb = None
@@ -263,7 +264,8 @@ class IRBlock(object):
                 # Sanity check is already done in _get_dst
                 break
         self._dst = value
-        self.irs[self._dst_linenb] = AssignBlock(new_assignblk)
+        instr = self.irs[self._dst_linenb].instr
+        self.irs[self._dst_linenb] = AssignBlock(new_assignblk, instr)
     dst = property(_get_dst, _set_dst)
 
     @property
@@ -310,7 +312,7 @@ class irbloc(IRBlock):
 
     def __init__(self, label, irs, lines=None):
         warnings.warn('DEPRECATION WARNING: use "IRBlock" instead of "irblock"')
-        super(irbloc, self).__init__(label, irs, lines)
+        super(irbloc, self).__init__(label, irs)
 
 
 class DiGraphIR(DiGraph):
@@ -399,9 +401,12 @@ class IntermediateRepresentation(object):
 
     def instr2ir(self, instr):
         ir_bloc_cur, extra_assignblk = self.get_ir(instr)
-        assignblk = AssignBlock(ir_bloc_cur)
         for irb in extra_assignblk:
-            irb.irs = map(AssignBlock, irb.irs)
+            irs = []
+            for assignblk in irb.irs:
+                irs.append(AssignBlock(assignblk, instr))
+            irb.irs = irs
+        assignblk = AssignBlock(ir_bloc_cur, instr)
         return assignblk, extra_assignblk
 
     def get_label(self, addr):
@@ -434,17 +439,15 @@ class IntermediateRepresentation(object):
     def getby_offset(self, offset):
         out = set()
         for irb in self.blocks.values():
-            for line in irb.lines:
-                if line.offset <= offset < line.offset + line.l:
+            for assignblk in irb.irs:
+                instr = assignblk.instr
+                if instr.offset <= offset < instr.offset + instr.l:
                     out.add(irb)
         return out
 
-    def gen_pc_update(self, irblock, line):
-        irblock.irs.append(AssignBlock([m2_expr.ExprAff(self.pc,
-                                                        m2_expr.ExprInt(line.offset,
-                                                                        self.pc.size)
-                                                       )]))
-        irblock.lines.append(line)
+    def gen_pc_update(self, irblock, instr):
+        irblock.irs.append(AssignBlock({self.pc: m2_expr.ExprInt(instr.offset, self.pc.size)},
+                                       instr))
 
     def pre_add_instr(self, block, instr, irb_cur, ir_blocks_all, gen_pc_updt):
         """Function called before adding an instruction from the the native @block to
@@ -487,11 +490,8 @@ class IntermediateRepresentation(object):
             self.gen_pc_update(irb_cur, instr)
 
         irb_cur.irs.append(assignblk)
-        irb_cur.lines.append(instr)
 
         if ir_blocks_extra:
-            for irblock in ir_blocks_extra:
-                irblock.lines = [instr] * len(irblock.irs)
             ir_blocks_all += ir_blocks_extra
             irb_cur = None
         return irb_cur
@@ -508,7 +508,7 @@ class IntermediateRepresentation(object):
         for instr in block.lines:
             if irb_cur is None:
                 label = self.get_instr_label(instr)
-                irb_cur = IRBlock(label, [], [])
+                irb_cur = IRBlock(label, [])
                 ir_blocks_all.append(irb_cur)
             irb_cur = self.add_instr_to_irblock(block, instr, irb_cur,
                                                 ir_blocks_all, gen_pc_updt)
@@ -543,8 +543,8 @@ class IntermediateRepresentation(object):
             else:
                 dst = m2_expr.ExprId(next_lbl,
                                      self.pc.size)
-            irblock.irs.append(AssignBlock([m2_expr.ExprAff(self.IRDst, dst)]))
-            irblock.lines.append(irblock.lines[-1])
+            irblock.irs.append(AssignBlock({self.IRDst: dst},
+                                           irblock.irs[-1].instr))
 
     def post_add_bloc(self, block, ir_blocks):
         self.set_empty_dst_to_next(block, ir_blocks)

@@ -75,8 +75,8 @@ dg = DependencyGraph(ir_arch, implicit=args.implicit,
 target_addr = int(args.target_addr, 0)
 current_block = list(ir_arch.getby_offset(target_addr))[0]
 line_nb = 0
-for line_nb, line in enumerate(current_block.lines):
-    if line.offset == target_addr:
+for line_nb, assignblk in enumerate(current_block.irs):
+    if assignblk.instr.offset == target_addr:
         break
 
 # Enumerate solutions

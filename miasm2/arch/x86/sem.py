@@ -4617,7 +4617,7 @@ class ir_x86_16(IntermediateRepresentation):
                 dst = self.expr_fix_regs_for_mode(dst, mode)
                 src = self.expr_fix_regs_for_mode(src, mode)
                 new_assignblk[dst] = src
-            irbloc.irs[idx] = AssignBlock(new_assignblk)
+            irbloc.irs[idx] = AssignBlock(new_assignblk, assignblk.instr)
         if irbloc.dst is not None:
             irbloc.dst = self.expr_fix_regs_for_mode(irbloc.dst, mode)
 

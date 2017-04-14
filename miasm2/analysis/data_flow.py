@@ -252,4 +252,4 @@ def dead_simp(ir_a):
             for lval in assignblk:
                 if InstrNode(block.label, idx, lval) not in useful:
                     del new_assignblk[lval]
-            block.irs[idx] = AssignBlock(new_assignblk)
+            block.irs[idx] = AssignBlock(new_assignblk, assignblk.instr)

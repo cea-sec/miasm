@@ -31,18 +31,18 @@ class ir_a_mips32l(ir_mips32l, ira):
             if expr_is_label(lr_val):
                 lr_val = ExprInt(lr_val.name.offset, 32)
 
-            line = block.lines[-2]
-            if lr_val.arg != line.offset + 8:
+            instr = block.irs[-2].instr
+            if lr_val.arg != instr.offset + 8:
                 raise ValueError("Wrong arg")
 
             # CALL
             lbl = block.get_next()
             new_lbl = self.gen_label()
-            irs = self.call_effects(pc_val, line)
+            irs = self.call_effects(pc_val, instr)
             irs.append(AssignBlock([ExprAff(self.IRDst,
-                                            ExprId(lbl, size=self.pc.size))]))
+                                            ExprId(lbl, size=self.pc.size))],
+                                   instr))
             nblock = IRBlock(new_lbl, irs)
-            nblock.lines = [line] * len(irs)
             self.blocks[new_lbl] = nblock
             irb.dst = ExprId(new_lbl, size=self.pc.size)
 

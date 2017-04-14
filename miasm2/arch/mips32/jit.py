@@ -57,7 +57,7 @@ class mipsCGen(CGen):
                         self.ir_arch.get_next_instr(instr))
                     irblock.dst = m2_expr.ExprId(
                         self.ir_arch.get_next_instr(instr))
-                    irblock.irs[idx] = AssignBlock(new_assignblock)
+                    irblock.irs[idx] = AssignBlock(new_assignblock, assignblock.instr)
 
         return irblocks_list
 
