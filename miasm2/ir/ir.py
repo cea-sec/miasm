@@ -29,19 +29,24 @@ from miasm2.core.asmblock import AsmSymbolPool, expr_is_label, AsmLabel, \
 from miasm2.core.graph import DiGraph
 
 
-class AssignBlock(dict):
+class AssignBlock(object):
+    __slots__ = ["_assigns"]
 
     def __init__(self, irs=None):
         """@irs seq"""
         if irs is None:
             irs = []
-        super(AssignBlock, self).__init__()
+        self._assigns = {} # ExprAff.dst -> ExprAff.src
 
-        for expraff in irs:
-            # Concurrent assignments are handled in __setitem__
-            self[expraff.dst] = expraff.src
+        # Concurrent assignments are handled in _set
+        if hasattr(irs, "iteritems"):
+            for dst, src in irs.iteritems():
+                self._set(dst, src)
+        else:
+            for expraff in irs:
+                self._set(expraff.dst, expraff.src)
 
-    def __setitem__(self, dst, src):
+    def _set(self, dst, src):
         """
         Special cases:
         * if dst is an ExprSlice, expand it to affect the full Expression
@@ -64,7 +69,7 @@ class AssignBlock(dict):
         else:
             new_dst, new_src = dst, src
 
-        if new_dst in self and isinstance(new_src, m2_expr.ExprCompose):
+        if new_dst in self._assigns and isinstance(new_src, m2_expr.ExprCompose):
             if not isinstance(self[new_dst], m2_expr.ExprCompose):
                 # prev_RAX = 0x1122334455667788
                 # input_RAX[0:8] = 0x89
@@ -103,7 +108,51 @@ class AssignBlock(dict):
             args = [expr for (expr, _, _) in args]
             new_src = m2_expr.ExprCompose(*args)
 
-        super(AssignBlock, self).__setitem__(new_dst, new_src)
+        self._assigns[new_dst] = new_src
+
+    def __setitem__(self, dst, src):
+        raise RuntimeError('AssignBlock is immutable')
+
+    def __getitem__(self, key):
+        return self._assigns[key]
+
+    def __contains__(self, key):
+        return key in self._assigns
+
+    def iteritems(self):
+        for dst, src in self._assigns.iteritems():
+            yield dst, src
+
+    def itervalues(self):
+        for src in self._assigns.itervalues():
+            yield src
+
+    def keys(self):
+        return self._assigns.keys()
+
+    def values(self):
+        return self._assigns.values()
+
+    def __iter__(self):
+        for dst in self._assigns:
+            yield dst
+
+    def __delitem__(self, _):
+        raise RuntimeError('AssignBlock is immutable')
+
+    def update(self, _):
+        raise RuntimeError('AssignBlock is immutable')
+
+    def __eq__(self, other):
+        if self.keys() != other.keys():
+            return False
+        return all(other[dst] == src for dst, src in self.iteritems())
+
+    def __len__(self):
+        return len(self._assigns)
+
+    def get(self, key, default):
+        return self._assigns.get(key, default)
 
     @staticmethod
     def get_modified_slice(dst, src):
@@ -207,15 +256,14 @@ class IRBlock(object):
         if self._dst_linenb is None:
             self._get_dst()
 
-        assignblk = self.irs[self._dst_linenb]
-        for dst in assignblk:
+        new_assignblk = dict(self.irs[self._dst_linenb])
+        for dst in new_assignblk:
             if isinstance(dst, m2_expr.ExprId) and dst.name == "IRDst":
-                del assignblk[dst]
-                assignblk[dst] = value
+                new_assignblk[dst] = value
                 # Sanity check is already done in _get_dst
                 break
         self._dst = value
-
+        self.irs[self._dst_linenb] = AssignBlock(new_assignblk)
     dst = property(_get_dst, _set_dst)
 
     @property

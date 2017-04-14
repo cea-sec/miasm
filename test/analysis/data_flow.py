@@ -32,6 +32,8 @@ LBL4 = AsmLabel("lbl4")
 LBL5 = AsmLabel("lbl5")
 LBL6 = AsmLabel("lbl6")
 
+IRDst = ExprId('IRDst', 32)
+dummy = ExprId('dummy', 32)
 
 
 def gen_irblock(label, exprs_list):
@@ -43,6 +45,7 @@ def gen_irblock(label, exprs_list):
         else:
             irs.append(AssignBlock(exprs))
 
+    irs.append(AssignBlock({IRDst:dummy}))
     irbl = IRBlock(label, irs, lines)
     return irbl
 
@@ -67,7 +70,7 @@ class IRATest(ira):
     def __init__(self, symbol_pool=None):
         arch = Arch()
         super(IRATest, self).__init__(arch, 32, symbol_pool)
-        self.IRDst = pc
+        self.IRDst = IRDst
         self.ret_reg = r
 
     def get_out_regs(self, _):

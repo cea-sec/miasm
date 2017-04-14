@@ -263,12 +263,12 @@ class DependencyResult(DependencyState):
         for line_nb, elements in sorted(line2elements.iteritems()):
             if max_line is not None and line_nb >= max_line:
                 break
-            assignblk = AssignBlock()
+            assignmnts = {}
             for element in elements:
                 if element in irb.irs[line_nb]:
                     # constants, label, ... are not in destination
-                    assignblk[element] = irb.irs[line_nb][element]
-            assignblks.append(assignblk)
+                    assignmnts[element] = irb.irs[line_nb][element]
+            assignblks.append(AssignBlock(assignmnts))
 
         return IRBlock(irb.label, assignblks)
 

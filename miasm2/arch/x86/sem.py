@@ -21,7 +21,7 @@ from miasm2.expression.simplifications import expr_simp
 from miasm2.arch.x86.regs import *
 from miasm2.arch.x86.arch import mn_x86, repeat_mn, replace_regs
 from miasm2.expression.expression_helper import expr_cmps, expr_cmpu
-from miasm2.ir.ir import IntermediateRepresentation, IRBlock
+from miasm2.ir.ir import IntermediateRepresentation, IRBlock, AssignBlock
 from miasm2.core.sembuilder import SemBuilder
 import math
 import struct
@@ -4602,9 +4602,10 @@ class ir_x86_16(IntermediateRepresentation):
         return m2_expr.ExprAff(dst, src)
 
     def irbloc_fix_regs_for_mode(self, irbloc, mode=64):
-        for assignblk in irbloc.irs:
-            for dst, src in assignblk.items():
-                del assignblk[dst]
+        for idx, assignblk in enumerate(irbloc.irs):
+            new_assignblk = dict(assignblk)
+            for dst, src in assignblk.iteritems():
+                del new_assignblk[dst]
                 # Special case for 64 bits:
                 # If destination is a 32 bit reg, zero extend the 64 bit reg
                 if mode == 64:
@@ -4615,7 +4616,8 @@ class ir_x86_16(IntermediateRepresentation):
                         dst = replace_regs[64][dst].arg
                 dst = self.expr_fix_regs_for_mode(dst, mode)
                 src = self.expr_fix_regs_for_mode(src, mode)
-                assignblk[dst] = src
+                new_assignblk[dst] = src
+            irbloc.irs[idx] = AssignBlock(new_assignblk)
         if irbloc.dst is not None:
             irbloc.dst = self.expr_fix_regs_for_mode(irbloc.dst, mode)
 
