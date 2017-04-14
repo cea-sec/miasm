@@ -432,6 +432,7 @@ test_x86_64 = ExampleShellcode(["x86_64", "x86_64.S", "demo_x86_64.bin",
 test_x86_32_if_reg = ExampleShellcode(['x86_32', 'x86_32_if_reg.S', "x86_32_if_reg.bin"])
 test_x86_32_seh = ExampleShellcode(["x86_32", "x86_32_seh.S", "x86_32_seh.bin",
                                     "--PE"])
+test_x86_32_dead = ExampleShellcode(['x86_32', 'x86_32_dead.S', "x86_32_dead.bin"])
 
 test_human = ExampleShellcode(["x86_64", "human.S", "human.bin"])
 
@@ -449,7 +450,7 @@ testset += test_mips32l
 testset += test_x86_64
 testset += test_x86_32_if_reg
 testset += test_x86_32_seh
-
+testset += test_x86_32_dead
 testset += test_human
 
 class ExampleDisassembler(Example):
@@ -480,9 +481,9 @@ class ExampleDisasmFull(ExampleDisassembler):
 
     def __init__(self, *args, **kwargs):
         super(ExampleDisasmFull, self).__init__(*args, **kwargs)
-        self.command_line = ["full.py", "-g", "-s", "-d", "-m"] + self.command_line
+        self.command_line = ["full.py", "-g", "-ss", "-d", "-m"] + self.command_line
         self.products += ["graph_defuse.dot", "graph_execflow.dot",
-                          "graph_irflow.dot", "graph_irflow_raw.dot", "lines.dot"]
+                          "graph_irflow.dot", "graph_irflow_raw.dot", "lines.dot", "graph_irflow_reduced.dot"]
 
 
 testset += ExampleDisasmFull(["arml", Example.get_sample("demo_arm_l.bin"),
@@ -519,6 +520,8 @@ testset += ExampleDisasmFull(["x86_32", os.path.join("..", "..", "test",
                                                      "arch", "x86", "qemu",
                                                      "test-i386"),
                               "func_iret"])
+testset += ExampleDisasmFull(["x86_32", Example.get_sample("x86_32_dead.bin"),
+                              "0"], depends=[test_x86_32_dead])
 
 
 ## Expression
