@@ -23,7 +23,6 @@ from itertools import chain
 
 import miasm2.expression.expression as m2_expr
 from miasm2.expression.expression_helper import get_missing_interval
-from miasm2.expression.simplifications import expr_simp
 from miasm2.core.asmblock import AsmSymbolPool, expr_is_label, AsmLabel, \
     AsmBlock
 from miasm2.core.graph import DiGraph
@@ -267,7 +266,7 @@ class IRBlock(object):
         final_linenb = None
         for linenb, assignblk in enumerate(self.irs):
             for dst, src in assignblk.iteritems():
-                if isinstance(dst, m2_expr.ExprId) and dst.name == "IRDst":
+                if dst.is_id("IRDst"):
                     if final_dst is not None:
                         raise ValueError('Multiple destinations!')
                     final_dst = src
@@ -283,7 +282,7 @@ class IRBlock(object):
 
         new_assignblk = dict(self.irs[self._dst_linenb])
         for dst in new_assignblk:
-            if isinstance(dst, m2_expr.ExprId) and dst.name == "IRDst":
+            if dst.is_id("IRDst"):
                 new_assignblk[dst] = value
                 # Sanity check is already done in _get_dst
                 break
@@ -296,27 +295,6 @@ class IRBlock(object):
     def dst_linenb(self):
         """Line number of the IRDst setting statement in the current irs"""
         return self._dst_linenb
-
-    def get_rw(self, regs_ids):
-        """
-        Computes the variables read and written by each instructions
-        Initialize attributes needed for in/out and reach computation.
-        @regs_ids : ids of registers used in IR
-        """
-        keep_exprid = lambda elts: filter(lambda expr: isinstance(expr,
-                                                                  m2_expr.ExprId),
-                                          elts)
-        for idx, assignblk in enumerate(self.irs):
-            assignblk._cur_reach = {reg: set() for reg in regs_ids}
-            assignblk._prev_reach = {reg: set() for reg in regs_ids}
-            assignblk._cur_kill = {reg: set() for reg in regs_ids}
-            assignblk._prev_kill = {reg: set() for reg in regs_ids}
-            # LineNumber -> dict:
-            #               Register: set(definition(irb label, index))
-            assignblk.defout = {reg: set() for reg in regs_ids}
-            assignblk.defout.update({dst: set([(self.label, idx, dst)])
-                                     for dst in assignblk
-                                     if isinstance(dst, m2_expr.ExprId)})
 
     def __str__(self):
         out = []
@@ -595,12 +573,17 @@ class IntermediateRepresentation(object):
         label = self.symbol_pool.getby_offset_create(instr.offset + instr.l)
         return label
 
-    def simplify_blocs(self):
-        for irblock in self.blocks.values():
-            for assignblk in irblock.irs:
-                for dst, src in assignblk.items():
-                    del assignblk[dst]
-                    assignblk[expr_simp(dst)] = expr_simp(src)
+    def simplify(self, simplifier):
+        """
+        Simplify expressions in each irblocks
+        @simplifier: ExpressionSimplifier instance
+        """
+        for label, block in self.blocks.iteritems():
+            assignblks = []
+            for assignblk in block.irs:
+                new_assignblk = assignblk.simplify(simplifier)
+                assignblks.append(new_assignblk)
+            self.blocks[label] = IRBlock(label, assignblks)
 
     def replace_expr_in_ir(self, bloc, rep):
         for assignblk in bloc.irs:
@@ -685,6 +668,132 @@ class IntermediateRepresentation(object):
             self._gen_graph()
         return self._graph
 
+    def remove_empty_assignblks(self):
+        modified = False
+        for block in self.blocks.itervalues():
+            to_del = []
+            for idx, assignblk in enumerate(block.irs):
+                if len(assignblk) == 0:
+                    to_del.append(idx)
+            for idx in reversed(to_del):
+                del block.irs[idx]
+                block._dst_linenb = None
+                block._dst = None
+                modified = True
+        return modified
+
+    def remove_jmp_blocks(self):
+        """
+        Remove irblock with only IRDst set, by linking it's parent destination to
+        the block destination.
+        """
+
+        # Find candidates
+        jmp_blocks = set()
+        for block in self.blocks.itervalues():
+            if len(block.irs) != 1:
+                continue
+            assignblk = block.irs[0]
+            if len(assignblk) > 1:
+                continue
+            assert set(assignblk.keys()) == set([self.IRDst])
+            if len(self.graph.successors(block.label)) != 1:
+                continue
+            if not expr_is_label(assignblk[self.IRDst]):
+                continue
+            jmp_blocks.add(block)
+
+        # Remove them, relink graph
+        modified = False
+        for block in jmp_blocks:
+            dst_label = block.dst.name
+            parents = self.graph.predecessors(block.label)
+            for lbl in parents:
+                parent = self.blocks.get(lbl, None)
+                if parent is None:
+                    continue
+                dst = parent.dst
+                if dst.is_id(block.label):
+                    dst = m2_expr.ExprId(dst_label, dst.size)
+
+                    self.graph.discard_edge(lbl, block.label)
+                    self.graph.discard_edge(block.label, dst_label)
+
+                    self.graph.add_uniq_edge(lbl, dst_label)
+                    modified = True
+                elif dst.is_cond():
+                    src1, src2 = dst.src1, dst.src2
+                    if src1.is_id(block.label):
+                        dst = m2_expr.ExprCond(dst.cond, m2_expr.ExprId(dst_label, dst.size), dst.src2)
+                        self.graph.discard_edge(lbl, block.label)
+                        self.graph.discard_edge(block.label, dst_label)
+                        self.graph.add_uniq_edge(lbl, dst_label)
+                        modified = True
+                    if src2.is_id(block.label):
+                        dst = m2_expr.ExprCond(dst.cond, dst.src1, m2_expr.ExprId(dst_label, dst.size))
+                        self.graph.discard_edge(lbl, block.label)
+                        self.graph.discard_edge(block.label, dst_label)
+                        self.graph.add_uniq_edge(lbl, dst_label)
+                        modified = True
+                    if dst.src1 == dst.src2:
+                        dst = src1
+                else:
+                    continue
+                parent.dst = dst
+
+        # Remove unlinked useless nodes
+        for block in jmp_blocks:
+            if (len(self.graph.predecessors(block.label)) == 0 and
+                len(self.graph.successors(block.label)) == 0):
+                self.graph.del_node(block.label)
+        return modified
+
+    def merge_blocks(self):
+        """
+        Group irblock with one and only one son if this son has one and only one
+        parent
+        """
+        modified = False
+        todo = set(self.graph.nodes())
+        while todo:
+            block = todo.pop()
+            sons = self.graph.successors(block)
+            if len(sons) != 1:
+                continue
+            son = list(sons)[0]
+            if self.graph.predecessors(son) != [block]:
+                continue
+            if block not in self.blocks:
+                continue
+            if son not in self.blocks:
+                continue
+            # Block has one son, son has one parent => merge
+            assignblks =[]
+            for linenb, assignblk in enumerate(self.blocks[block].irs):
+                if self.IRDst not in assignblk:
+                    assignblks.append(assignblk)
+                    continue
+                affs = {}
+                for dst, src in assignblk.iteritems():
+                    if dst != self.IRDst:
+                        affs[dst] = src
+                assignblks.append(AssignBlock(affs, assignblk.instr))
+
+            assignblks += self.blocks[son].irs
+            new_block = IRBlock(block, assignblks)
+
+            self.graph.discard_edge(block, son)
+
+            for lson in self.graph.successors(son):
+                self.graph.add_uniq_edge(block, lson)
+                self.graph.discard_edge(son, lson)
+            del self.blocks[son]
+            self.graph.del_node(son)
+
+            self.blocks[block] = new_block
+            todo.add(block)
+            modified = True
+        return modified
 
 
 class ir(IntermediateRepresentation):
