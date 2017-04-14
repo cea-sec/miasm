@@ -397,54 +397,54 @@ class IntermediateRepresentation(object):
     def get_ir(self, instr):
         raise NotImplementedError("Abstract Method")
 
-    def instr2ir(self, l):
-        ir_bloc_cur, extra_assignblk = self.get_ir(l)
+    def instr2ir(self, instr):
+        ir_bloc_cur, extra_assignblk = self.get_ir(instr)
         assignblk = AssignBlock(ir_bloc_cur)
         for irb in extra_assignblk:
             irb.irs = map(AssignBlock, irb.irs)
         return assignblk, extra_assignblk
 
-    def get_label(self, ad):
+    def get_label(self, addr):
         """Transforms an ExprId/ExprInt/label/int into a label
-        @ad: an ExprId/ExprInt/label/int"""
+        @addr: an ExprId/ExprInt/label/int"""
 
-        if (isinstance(ad, m2_expr.ExprId) and
-                isinstance(ad.name, AsmLabel)):
-            ad = ad.name
-        if isinstance(ad, m2_expr.ExprInt):
-            ad = int(ad)
-        if isinstance(ad, (int, long)):
-            ad = self.symbol_pool.getby_offset_create(ad)
-        elif isinstance(ad, AsmLabel):
-            ad = self.symbol_pool.getby_name_create(ad.name)
-        return ad
+        if (isinstance(addr, m2_expr.ExprId) and
+                isinstance(addr.name, AsmLabel)):
+            addr = addr.name
+        if isinstance(addr, m2_expr.ExprInt):
+            addr = int(addr)
+        if isinstance(addr, (int, long)):
+            addr = self.symbol_pool.getby_offset_create(addr)
+        elif isinstance(addr, AsmLabel):
+            addr = self.symbol_pool.getby_name_create(addr.name)
+        return addr
 
-    def get_bloc(self, ad):
+    def get_bloc(self, addr):
         """Returns the irbloc associated to an ExprId/ExprInt/label/int
-        @ad: an ExprId/ExprInt/label/int"""
+        @addr: an ExprId/ExprInt/label/int"""
 
-        label = self.get_label(ad)
+        label = self.get_label(addr)
         return self.blocks.get(label, None)
 
-    def add_instr(self, l, ad=0, gen_pc_updt=False):
-        b = AsmBlock(self.gen_label())
-        b.lines = [l]
-        self.add_bloc(b, gen_pc_updt)
+    def add_instr(self, line, addr=0, gen_pc_updt=False):
+        block = AsmBlock(self.gen_label())
+        block.lines = [line]
+        self.add_bloc(block, gen_pc_updt)
 
     def getby_offset(self, offset):
         out = set()
         for irb in self.blocks.values():
-            for l in irb.lines:
-                if l.offset <= offset < l.offset + l.l:
+            for line in irb.lines:
+                if line.offset <= offset < line.offset + line.l:
                     out.add(irb)
         return out
 
-    def gen_pc_update(self, c, l):
-        c.irs.append(AssignBlock([m2_expr.ExprAff(self.pc,
-                                                  m2_expr.ExprInt(l.offset,
-                                                                  self.pc.size)
-                                                 )]))
-        c.lines.append(l)
+    def gen_pc_update(self, irblock, line):
+        irblock.irs.append(AssignBlock([m2_expr.ExprAff(self.pc,
+                                                        m2_expr.ExprInt(line.offset,
+                                                                        self.pc.size)
+                                                       )]))
+        irblock.lines.append(line)
 
     def pre_add_instr(self, block, instr, irb_cur, ir_blocks_all, gen_pc_updt):
         """Function called before adding an instruction from the the native @block to
@@ -515,21 +515,21 @@ class IntermediateRepresentation(object):
         self.post_add_bloc(block, ir_blocks_all)
         return ir_blocks_all
 
-    def expr_fix_regs_for_mode(self, e, *args, **kwargs):
-        return e
+    def expr_fix_regs_for_mode(self, expr, *args, **kwargs):
+        return expr
 
-    def expraff_fix_regs_for_mode(self, e, *args, **kwargs):
-        return e
+    def expraff_fix_regs_for_mode(self, expr, *args, **kwargs):
+        return expr
 
     def irbloc_fix_regs_for_mode(self, irbloc, *args, **kwargs):
         return
 
-    def is_pc_written(self, b):
+    def is_pc_written(self, block):
         all_pc = self.arch.pc.values()
-        for irs in b.irs:
-            for ir in irs:
-                if ir.dst in all_pc:
-                    return ir
+        for irs in block.irs:
+            for assignblk in irs:
+                if assignblk.dst in all_pc:
+                    return assignblk
         return None
 
     def set_empty_dst_to_next(self, block, ir_blocks):
@@ -564,12 +564,12 @@ class IntermediateRepresentation(object):
 
     def gen_label(self):
         # TODO: fix hardcoded offset
-        l = self.symbol_pool.gen_label()
-        return l
+        label = self.symbol_pool.gen_label()
+        return label
 
     def get_next_label(self, instr):
-        l = self.symbol_pool.getby_offset_create(instr.offset + instr.l)
-        return l
+        label = self.symbol_pool.getby_offset_create(instr.offset + instr.l)
+        return label
 
     def simplify_blocs(self):
         for irblock in self.blocks.values():
@@ -644,15 +644,14 @@ class IntermediateRepresentation(object):
         Gen irbloc digraph
         """
         self._graph = DiGraphIR(self.blocks)
-        for lbl, b in self.blocks.iteritems():
+        for lbl, block in self.blocks.iteritems():
             self._graph.add_node(lbl)
-            dst = self.dst_trackback(b)
-            for d in dst:
-                if isinstance(d, m2_expr.ExprInt):
-                    d = m2_expr.ExprId(
-                        self.symbol_pool.getby_offset_create(int(d)))
-                if expr_is_label(d):
-                    self._graph.add_edge(lbl, d.name)
+            for dst in self.dst_trackback(block):
+                if dst.is_int():
+                    dst_lbl = self.symbol_pool.getby_offset_create(int(dst))
+                    dst = m2_expr.ExprId(dst_lbl)
+                if expr_is_label(dst):
+                    self._graph.add_edge(lbl, dst.name)
 
     @property
     def graph(self):
