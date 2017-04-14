@@ -100,6 +100,11 @@ class DiGraph(object):
         self._nodes_succ[src].remove(dst)
         self._nodes_pred[dst].remove(src)
 
+    def discard_edge(self, src, dst):
+        """Remove edge between @src and @dst if it exits"""
+        if (src, dst) in self._edges:
+            self.del_edge(src, dst)
+
     def predecessors_iter(self, node):
         if not node in self._nodes_pred:
             raise StopIteration
