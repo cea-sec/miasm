@@ -48,14 +48,14 @@ typedef struct {
 
 	uint64_t cond;
 
-	double float_st0;
-	double float_st1;
-	double float_st2;
-	double float_st3;
-	double float_st4;
-	double float_st5;
-	double float_st6;
-	double float_st7;
+	double ST0;
+	double ST1;
+	double ST2;
+	double ST3;
+	double ST4;
+	double ST5;
+	double ST6;
+	double ST7;
 
 	unsigned int float_c0;
 	unsigned int float_c1;
@@ -65,12 +65,12 @@ typedef struct {
 
 	unsigned int float_stack_ptr;
 
-	unsigned int reg_float_control;
+	uint64_t float_control;
 
-	unsigned int reg_float_eip;
-	unsigned int reg_float_cs;
-	unsigned int reg_float_address;
-	unsigned int reg_float_ds;
+	uint64_t float_eip;
+	uint64_t float_cs;
+	uint64_t float_address;
+	uint64_t float_ds;
 
 
 	uint64_t tsc1;
