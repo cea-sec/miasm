@@ -47,7 +47,7 @@ TCCState * tcc_init_state(void)
 
 	//tcc_add_file(tcc_state, libcodenat_path);
 	for (i=0;i<lib_array_count; i++){
-		tcc_add_file(tcc_state, lib_array[i]);
+		tcc_add_file(tcc_state, lib_array[i], TCC_FILETYPE_C);
 	}
 
 	for (i=0;i<include_array_count; i++){
