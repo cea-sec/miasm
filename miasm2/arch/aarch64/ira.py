@@ -24,13 +24,6 @@ class ir_a_aarch64l(ir_a_aarch64l_base):
         ir_a_aarch64l_base.__init__(self, symbol_pool)
         self.ret_reg = self.arch.regs.X0
 
-    # for test XXX TODO
-    def set_dead_regs(self, irblock):
-        irblock.rw[-1][1].add(self.arch.regs.zf)
-        irblock.rw[-1][1].add(self.arch.regs.nf)
-        irblock.rw[-1][1].add(self.arch.regs.of)
-        irblock.rw[-1][1].add(self.arch.regs.cf)
-
     def get_out_regs(self, _):
         return set([self.ret_reg, self.sp])
 
