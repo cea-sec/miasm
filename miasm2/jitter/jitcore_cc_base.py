@@ -90,7 +90,7 @@ class JitCore_Cc_Base(JitCore):
         Generate function name from @label
         @label: AsmLabel instance
         """
-        return "block_%s" % label.name
+        return "block_%s" % self.codegen.label_to_jitlabel(label)
 
     def gen_c_code(self, label, block):
         """

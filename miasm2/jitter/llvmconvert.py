@@ -503,15 +503,19 @@ class LLVMFunction():
             var_casted = var
         self.builder.ret(var_casted)
 
-    def canonize_label_name(self, label):
+    @staticmethod
+    def canonize_label_name(label):
         """Canonize @label names to a common form.
         @label: str or asmlabel instance"""
         if isinstance(label, str):
             return label
-        elif isinstance(label, m2_asmblock.AsmLabel):
-            return "label_%s" % label.name
-        elif m2_asmblock.expr_is_label(label):
-            return "label_%s" % label.name.name
+        if m2_asmblock.expr_is_label(label):
+            label = label.name
+        if isinstance(label, m2_asmblock.AsmLabel):
+            if label.offset is None:
+                return "label_%s" % label.name
+            else:
+                return "label_%X" % label.offset
         else:
             raise ValueError("label must either be str or asmlabel")
 
