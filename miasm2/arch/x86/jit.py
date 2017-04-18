@@ -178,12 +178,13 @@ class jitter_x86_64(jitter):
     # stdcall
     @named_arguments
     def func_args_stdcall(self, n_args):
-        args_regs = ['RCX', 'RDX', 'R8', 'R9']
+        args_regs = ['RDI', 'RSI', 'RDX', 'RCX', 'R8', 'R9']
+        nargs_regs = len(args_regs)
         ret_ad = self.pop_uint64_t()
         args = []
-        for i in xrange(min(n_args, 4)):
+        for i in xrange(min(n_args, nargs_regs)):
             args.append(self.cpu.get_gpreg()[args_regs[i]])
-        for i in xrange(max(0, n_args - 4)):
+        for i in xrange(max(0, n_args - nargs_regs)):
             args.append(self.get_stack_arg(i))
         return ret_ad, args
 
