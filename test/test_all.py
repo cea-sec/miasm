@@ -277,6 +277,12 @@ testset += RegressionTest(["depgraph.py"], base_dir="analysis",
                                                      (14, 1), (15, 1))
                            ])
 testset += RegressionTest(["modularintervals.py"], base_dir="analysis")
+for jitter in ArchUnitTest.jitter_engines:
+    if jitter in blacklist.get(script, []):
+        continue
+    tags = [TAGS[jitter]] if jitter in TAGS else []
+    testset += RegressionTest(["dse.py", jitter], base_dir="analysis", tags=tags)
+
 testset += RegressionTest(["range.py"], base_dir="analysis",
                           tags=[TAGS["z3"]])
 
