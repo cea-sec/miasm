@@ -65,7 +65,7 @@ class CGen(object):
 
     CODE_CPU_EXCEPTION_POST_INSTR = r"""
     if (CPU_exception_flag) {
-        %s = %s;
+        %s = DST_value;
         BlockDst->address = DST_value;
         return JIT_RET_EXCEPTION;
     }
@@ -75,7 +75,7 @@ class CGen(object):
     check_memory_breakpoint(&(jitcpu->pyvm->vm_mngr));
     check_invalid_code_blocs(&(jitcpu->pyvm->vm_mngr));
     if (VM_exception_flag) {
-        %s = %s;
+        %s = DST_value;
         BlockDst->address = DST_value;
         return JIT_RET_EXCEPTION;
     }
@@ -301,13 +301,12 @@ class CGen(object):
                 '%s' % ret,
                 '%s' % retb], dst2index
 
-    def gen_post_instr_checks(self, attrib, dst):
+    def gen_post_instr_checks(self, attrib):
         out = []
-        dst = self.dst_to_c(dst)
         if attrib.mem_read | attrib.mem_write:
-            out += (self.CODE_VM_EXCEPTION_POST_INSTR % (self.C_PC, dst)).split('\n')
+            out += (self.CODE_VM_EXCEPTION_POST_INSTR % (self.C_PC)).split('\n')
         if attrib.set_exception or attrib.op_set_exception:
-            out += (self.CODE_CPU_EXCEPTION_POST_INSTR % (self.C_PC, dst)).split('\n')
+            out += (self.CODE_CPU_EXCEPTION_POST_INSTR % (self.C_PC)).split('\n')
 
         if attrib.mem_read | attrib.mem_write:
             out.append("reset_memory_access(&(jitcpu->pyvm->vm_mngr));")
@@ -345,12 +344,12 @@ class CGen(object):
             # (consecutive instructions)
             lbl = self.ir_arch.symbol_pool.getby_offset_create(dst)
             out += self.gen_post_code(attrib)
-            out += self.gen_post_instr_checks(attrib, dst)
+            out += self.gen_post_instr_checks(attrib)
             out.append('goto %s;' % self.label_to_jitlabel(lbl))
         else:
             out += self.gen_post_code(attrib)
             out.append('BlockDst->address = DST_value;')
-            out += self.gen_post_instr_checks(attrib, dst)
+            out += self.gen_post_instr_checks(attrib)
             out.append('\t\treturn JIT_RET_NO_EXCEPTION;')
         return out
 
