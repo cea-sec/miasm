@@ -262,6 +262,14 @@ PyObject* vm_add_memory_breakpoint(VmMngr* self, PyObject* args)
 	PyGetInt(access, b_access);
 
 	add_memory_breakpoint(&self->vm_mngr, b_ad, b_size, b_access);
+
+	/* Raise exception in the following pattern:
+	   - set_mem(XXX)
+	   - add_memory_breakpoint(XXX)
+	   -> Here, there is a pending breakpoint not raise
+	 */
+	check_memory_breakpoint(&self->vm_mngr);
+
 	Py_INCREF(Py_None);
 	return Py_None;
 }
