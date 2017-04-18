@@ -341,6 +341,7 @@ for i, test_args in enumerate(test_args):
 for script in ["jitload.py",
                "vm_mngr.py",
                "jit_options.py",
+               "test_post_instr.py",
                ]:
     for engine in ArchUnitTest.jitter_engines:
         testset += RegressionTest([script, engine], base_dir="jitter",
