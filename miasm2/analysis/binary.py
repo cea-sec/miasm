@@ -212,6 +212,19 @@ class ContainerELF(Container):
                                  self._symbol_pool.getby_offset(offset)))
                     continue
 
+    """Given a address, compute a label under the form:
+    my_proc + 0xX if any pair symbol, size matches this address.
+    @addr: The given address, as an integer
+    """
+    def compute_relative_label(self, addr):
+        symtab = self._executable.getsectionbyname(".symtab")
+        if symtab is not None:
+            for name, symb in symtab.symbols.iteritems():
+                offset = symb.value
+                offset_end = offset + symb.size
+                if offset != 0 and (offset <= addr <= offset_end):
+                    return name + "+0x%x" % (addr - offset)
+        return None
 
 
 class ContainerUnknown(Container):
