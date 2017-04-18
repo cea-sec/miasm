@@ -106,6 +106,11 @@ class CGen(object):
 
         self.C_PC = self.id_to_c(self.PC)
 
+    @staticmethod
+    def label_to_jitlabel(lbl):
+        assert lbl.offset is not None
+        return "jitblock_%X" % lbl.offset
+
     def dst_to_c(self, src):
         if not isinstance(src, m2_expr.Expr):
             src = m2_expr.ExprInt(src, self.PC.size)
@@ -341,7 +346,7 @@ class CGen(object):
             lbl = self.ir_arch.symbol_pool.getby_offset_create(dst)
             out += self.gen_post_code(attrib)
             out += self.gen_post_instr_checks(attrib, dst)
-            out.append('goto %s;' % lbl.name)
+            out.append('goto %s;' % self.label_to_jitlabel(lbl))
         else:
             out += self.gen_post_code(attrib)
             out.append('BlockDst->address = DST_value;')
@@ -497,7 +502,7 @@ class CGen(object):
         instr_offsets = [line.offset for line in block.lines]
         instr_offsets.append(self.get_block_post_label(block).offset)
         lbl_start = self.ir_arch.symbol_pool.getby_offset_create(instr_offsets[0])
-        return (self.CODE_INIT % lbl_start.name).split("\n"), instr_offsets
+        return (self.CODE_INIT % self.label_to_jitlabel(lbl_start)).split("\n"), instr_offsets
 
     def gen_irblock(self, attrib, instr_offsets, instr, irblock):
         """
@@ -535,7 +540,7 @@ class CGen(object):
 
         lbl = self.get_block_post_label(block)
         dst = self.dst_to_c(lbl.offset)
-        code = self.CODE_RETURN_NO_EXCEPTION % (lbl.name, self.C_PC, dst, dst)
+        code = self.CODE_RETURN_NO_EXCEPTION % (self.label_to_jitlabel(lbl), self.C_PC, dst, dst)
         return code.split('\n')
 
     def gen_c(self, block, log_mn=False, log_regs=False):
@@ -558,8 +563,12 @@ class CGen(object):
                 self.ir_arch.irbloc_fix_regs_for_mode(
                     irblock, self.ir_arch.attrib)
 
-                out.append("%-40s // %.16X %s" %
-                           (str(irblock.label.name) + ":", instr.offset, instr))
+                if irblock.label.offset is None:
+                    out.append("%-40s // %.16X %s" %
+                               (str(irblock.label.name) + ":", instr.offset, instr))
+                else:
+                    out.append("%-40s // %.16X %s" %
+                               (self.label_to_jitlabel(irblock.label) + ":", instr.offset, instr))
                 if index == 0:
                     out += self.gen_pre_code(attrib)
                 out += self.gen_irblock(attrib, instr_offsets, instr, irblock)

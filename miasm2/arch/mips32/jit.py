@@ -63,7 +63,7 @@ class mipsCGen(CGen):
         """
 
         lbl = self.get_block_post_label(block)
-        out = (self.CODE_RETURN_NO_EXCEPTION % (lbl.name,
+        out = (self.CODE_RETURN_NO_EXCEPTION % (self.label_to_jitlabel(lbl),
                                                 self.C_PC,
                                                 m2_expr.ExprId('branch_dst_irdst'),
                                                 m2_expr.ExprId('branch_dst_irdst'),
