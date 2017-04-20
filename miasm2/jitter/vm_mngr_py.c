@@ -619,7 +619,7 @@ static PyMethodDef VmMngr_methods[] = {
 	{"get_mem", (PyCFunction)vm_get_mem, METH_VARARGS,
 	 "get_mem(addr, size) -> Get the memory content at @address of @size bytes"},
 	{"add_memory_page",(PyCFunction)vm_add_memory_page, METH_VARARGS,
-	 "add_memory_page(address, access, size [, cmt]) -> Maps a memory page at @address of @size bytes with protection @access\n"
+	 "add_memory_page(address, access, content [, cmt]) -> Maps a memory page at @address of len(@content) bytes containing @content with protection @access\n"
 	"@cmt is a comment linked to the memory page"},
 	{"add_memory_breakpoint",(PyCFunction)vm_add_memory_breakpoint, METH_VARARGS,
 	 "add_memory_breakpoint(address, size, access) -> Add a memory breakpoint at @address of @size bytes with @access type"},
