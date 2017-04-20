@@ -30,10 +30,21 @@ from miasm2.core.graph import DiGraph
 
 
 class AssignBlock(object):
+    """Represent parallel IR assignment, such as:
+    EAX = EBX
+    EBX = EAX
+
+    Also provides common manipulation on this assignments
+    """
     __slots__ = ["_assigns", "_instr"]
 
     def __init__(self, irs=None, instr=None):
-        """@irs seq"""
+        """Create a new AssignBlock
+        @irs: (optional) sequence of ExprAff, or dictionnary dst (Expr) -> src
+              (Expr)
+        @instr: (optional) associate an instruction with this AssignBlock
+
+        """
         if irs is None:
             irs = []
         self._instr = instr
@@ -49,6 +60,7 @@ class AssignBlock(object):
 
     @property
     def instr(self):
+        """Return the associated instruction, if any"""
         return self._instr
 
     def _set(self, dst, src):
@@ -214,6 +226,18 @@ class AssignBlock(object):
         """Return an ExprAff corresponding to @dst equation
         @dst: Expr instance"""
         return m2_expr.ExprAff(dst, self[dst])
+
+    def simplify(self, simplifier):
+        """Return a new AssignBlock with expression simplified
+        @simplifier: ExpressionSimplifier instance"""
+        new_assignblk = {}
+        for dst, src in self.iteritems():
+            if dst == src:
+                continue
+            src = simplifier(src)
+            dst = simplifier(dst)
+            new_assignblk[dst] = src
+        return AssignBlock(irs=new_assignblk, instr=self.instr)
 
 
 class IRBlock(object):
