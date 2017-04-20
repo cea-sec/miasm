@@ -63,8 +63,7 @@ class TestSymbExec(unittest.TestCase):
         # apply_change / eval_ir / apply_expr
 
         ## x = a (with a = 0x0)
-        assignblk = AssignBlock()
-        assignblk[id_x] = id_a
+        assignblk = AssignBlock({id_x:id_a})
         e.eval_ir(assignblk)
         self.assertEqual(e.apply_expr(id_x), addr0)
 

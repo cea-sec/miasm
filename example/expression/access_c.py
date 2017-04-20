@@ -109,8 +109,8 @@ def get_funcs_arg0(ctx, ira, lbl_head):
     element = ira.arch.regs.RSI
 
     for irb, index in find_call(ira):
-        line = irb.lines[index]
-        print 'Analysing references from:', hex(line.offset), line
+        instr = irb.irs[index].instr
+        print 'Analysing references from:', hex(instr.offset), instr
         g_list = g_dep.get(irb.label, set([element]), index, set([lbl_head]))
         for dep in g_list:
             emul_result = dep.emul(ctx)

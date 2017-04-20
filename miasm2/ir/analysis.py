@@ -39,11 +39,11 @@ class ira(IntermediateRepresentation):
         @instr: native instruction which is responsible of the call
         """
 
-        return [AssignBlock(
-            [ExprAff(self.ret_reg, ExprOp('call_func_ret', ad, self.sp)),
-             ExprAff(self.sp, ExprOp(
-                 'call_func_stack', ad, self.sp)),
-             ])]
+        assignblk = AssignBlock({
+            self.ret_reg: ExprOp('call_func_ret', ad, self.sp),
+            self.sp: ExprOp('call_func_stack', ad, self.sp)},
+            instr)
+        return [assignblk]
 
     def pre_add_instr(self, block, instr, irb_cur, ir_blocks_all, gen_pc_update):
         """Replace function call with corresponding call effects,
@@ -53,7 +53,6 @@ class ira(IntermediateRepresentation):
         call_effects = self.call_effects(instr.args[0], instr)
         for assignblk in call_effects:
             irb_cur.irs.append(assignblk)
-            irb_cur.lines.append(instr)
         return None
 
     def gen_equations(self):
@@ -70,8 +69,7 @@ class ira(IntermediateRepresentation):
                 eqs.append(ExprAff(n_w, v))
             print '*' * 40
             print irb
-            irb.irs = [eqs]
-            irb.lines = [None]
+            irb.irs = [AssignBlock(eqs)]
 
     def sizeof_char(self):
         "Return the size of a char in bits"

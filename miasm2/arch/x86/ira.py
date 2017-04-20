@@ -53,7 +53,9 @@ class ir_a_x86_64(ir_x86_64, ir_a_x86_16):
                                                           )),
                              ExprAff(self.sp, ExprOp('call_func_stack',
                                                      ad, self.sp)),
-                ])]
+                            ],
+                             instr
+                           )]
 
     def sizeof_char(self):
         return 8

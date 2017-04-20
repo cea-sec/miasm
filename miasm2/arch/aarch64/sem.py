@@ -777,9 +777,10 @@ class ir_aarch64l(IntermediateRepresentation):
         return m2_expr.ExprAff(dst, src)
 
     def irbloc_fix_regs_for_mode(self, irbloc, mode=64):
-        for assignblk in irbloc.irs:
-            for dst, src in assignblk.items():
-                del(assignblk[dst])
+        for idx, assignblk in enumerate(irbloc.irs):
+            new_assignblk = dict(assignblk)
+            for dst, src in assignblk.iteritems():
+                del(new_assignblk[dst])
                 # Special case for 64 bits:
                 # If destination is a 32 bit reg, zero extend the 64 bit reg
 
@@ -791,7 +792,8 @@ class ir_aarch64l(IntermediateRepresentation):
 
                 dst = self.expr_fix_regs_for_mode(dst)
                 src = self.expr_fix_regs_for_mode(src)
-                assignblk[dst] = src
+                new_assignblk[dst] = src
+            irbloc.irs[idx] = AssignBlock(new_assignblk, assignblk.instr)
         if irbloc.dst is not None:
             irbloc.dst = self.expr_fix_regs_for_mode(irbloc.dst)
 

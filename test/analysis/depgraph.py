@@ -50,10 +50,9 @@ LBL5 = AsmLabel("lbl5")
 LBL6 = AsmLabel("lbl6")
 
 def gen_irblock(label, exprs_list):
-    """ Returns an IRBlock with empty lines.
+    """ Returns an IRBlock.
     Used only for tests purpose
     """
-    lines = [None for _ in xrange(len(exprs_list))]
     irs = []
     for exprs in exprs_list:
         if isinstance(exprs, AssignBlock):
@@ -61,7 +60,7 @@ def gen_irblock(label, exprs_list):
         else:
             irs.append(AssignBlock(exprs))
 
-    irbl = IRBlock(label, irs, lines)
+    irbl = IRBlock(label, irs)
     return irbl
 
 
