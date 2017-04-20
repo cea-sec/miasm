@@ -140,6 +140,33 @@ class jitter_x86_32(jitter):
     get_arg_n_systemv = get_stack_arg
 
 
+    # fastcall
+    @named_arguments
+    def func_args_fastcall(self, n_args):
+        args_regs = ['ECX', 'EDX']
+        ret_ad = self.pop_uint32_t()
+        args = []
+        for i in xrange(n_args):
+            args.append(self.get_arg_n_fastcall(i))
+        return ret_ad, args
+
+    def func_prepare_fastcall(self, ret_addr, *args):
+        args_regs = ['ECX', 'EDX']
+        self.push_uint32_t(ret_addr)
+        for i in xrange(min(len(args), len(args_regs))):
+            setattr(self.cpu, args_regs[i], args[i])
+        remaining_args = args[len(args_regs):]
+        for arg in reversed(remaining_args):
+            self.push_uint32_t(arg)
+
+    def get_arg_n_fastcall(self, index):
+        args_regs = ['ECX', 'EDX']
+        if index < len(args_regs):
+            return getattr(self.cpu, args_regs[index])
+        return self.get_stack_arg(index - len(args_regs))
+
+
+
 class jitter_x86_64(jitter):
 
     C_Gen = x86_64_CGen
