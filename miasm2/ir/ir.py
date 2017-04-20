@@ -227,6 +227,18 @@ class AssignBlock(object):
         @dst: Expr instance"""
         return m2_expr.ExprAff(dst, self[dst])
 
+    def simplify(self, simplifier):
+        """Return a new AssignBlock with expression simplified
+        @simplifier: ExpressionSimplifier instance"""
+        new_assignblk = {}
+        for dst, src in self.iteritems():
+            if dst == src:
+                continue
+            src = simplifier(src)
+            dst = simplifier(dst)
+            new_assignblk[dst] = src
+        return AssignBlock(irs=new_assignblk, instr=self.instr)
+
 
 class IRBlock(object):
     """Intermediate representation block object.
