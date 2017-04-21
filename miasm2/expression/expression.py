@@ -1359,11 +1359,11 @@ def test_set(e, v, tks, result):
     return result
 
 
-def MatchExpr(e, m, tks, result=None):
-    """Try to match m expression with e expression with tks jokers.
+def MatchExpr(pattern, expr, tks, result=None):
+    """Try to match the @expr expression with the pattern @pattern with @tks jokers.
     Result is output dictionary with matching joker values.
-    @e : Expr to test
-    @m : Targetted Expr
+    @pattern : Expr pattern
+    @expr : Targetted Expr to match
     @tks : list of ExprId, available jokers
     @result : dictionary of ExprId -> Expr, output matching context
     """
@@ -1371,117 +1371,97 @@ def MatchExpr(e, m, tks, result=None):
     if result is None:
         result = {}
 
-    if m in tks:
-        # m is a Joker
-        return test_set(e, m, tks, result)
+    if expr in tks:
+        # expr is a Joker
+        return test_set(pattern, expr, tks, result)
 
-    if isinstance(e, ExprInt):
-        return test_set(e, m, tks, result)
+    if pattern.is_int():
+        return test_set(pattern, expr, tks, result)
 
-    elif isinstance(e, ExprId):
-        return test_set(e, m, tks, result)
+    elif pattern.is_id():
+        return test_set(pattern, expr, tks, result)
 
-    elif isinstance(e, ExprOp):
+    elif pattern.is_op():
 
-        # e need to be the same operation than m
-        if not isinstance(m, ExprOp):
+        # e need to be the same operation than expr
+        if not expr.is_op():
             return False
-        if e.op != m.op:
+        if pattern.op != expr.op:
             return False
-        if len(e.args) != len(m.args):
+        if len(pattern.args) != len(expr.args):
             return False
 
         # Perform permutation only if the current operation is commutative
-        if e.is_commutative():
-            permutations = itertools.permutations(e.args)
+        if pattern.is_commutative():
+            permutations = itertools.permutations(pattern.args)
         else:
-            permutations = [e.args]
+            permutations = [pattern.args]
 
         # For each permutations of arguments
         for permut in permutations:
             good = True
             # We need to use a copy of result to not override it
             myresult = dict(result)
-            for a1, a2 in zip(permut, m.args):
-                r = MatchExpr(a1, a2, tks, myresult)
+            for sub_pattern, sub_expr in zip(permut, expr.args):
+                r = MatchExpr(sub_pattern, sub_expr, tks, myresult)
                 # If the current permutation do not match EVERY terms
                 if r is False:
                     good = False
                     break
             if good is True:
                 # We found a possibility
-                for k, v in myresult.items():
+                for joker, value in myresult.items():
                     # Updating result in place (to keep pointer in recursion)
-                    result[k] = v
+                    result[joker] = value
                 return result
         return False
 
     # Recursive tests
 
-    elif isinstance(e, ExprMem):
-        if not isinstance(m, ExprMem):
+    elif pattern.is_mem():
+        if not expr.is_mem():
             return False
-        if e.size != m.size:
+        if pattern.size != expr.size:
             return False
-        return MatchExpr(e.arg, m.arg, tks, result)
+        return MatchExpr(pattern.arg, expr.arg, tks, result)
 
-    elif isinstance(e, ExprSlice):
-        if not isinstance(m, ExprSlice):
+    elif pattern.is_slice():
+        if not expr.is_slice():
             return False
-        if e.start != m.start or e.stop != m.stop:
+        if pattern.start != expr.start or pattern.stop != expr.stop:
             return False
-        return MatchExpr(e.arg, m.arg, tks, result)
+        return MatchExpr(pattern.arg, expr.arg, tks, result)
 
-    elif isinstance(e, ExprCond):
-        if not isinstance(m, ExprCond):
+    elif pattern.is_cond():
+        if not expr.is_cond():
             return False
-        r = MatchExpr(e.cond, m.cond, tks, result)
-        if r is False:
+        if MatchExpr(pattern.cond, expr.cond, tks, result) is False:
             return False
-        r = MatchExpr(e.src1, m.src1, tks, result)
-        if r is False:
+        if MatchExpr(pattern.src1, expr.src1, tks, result) is False:
             return False
-        r = MatchExpr(e.src2, m.src2, tks, result)
-        if r is False:
+        if MatchExpr(pattern.src2, expr.src2, tks, result) is False:
             return False
         return result
 
-    elif isinstance(e, ExprCompose):
-        if not isinstance(m, ExprCompose):
+    elif pattern.is_compose():
+        if not expr.is_compose():
             return False
-        for a1, a2 in zip(e.args, m.args):
-            r = MatchExpr(a1, a2, tks, result)
-            if r is False:
+        for sub_pattern, sub_expr in zip(pattern.args, expr.args):
+            if  MatchExpr(sub_pattern, sub_expr, tks, result) is False:
                 return False
         return result
 
-    elif isinstance(e, ExprAff):
-        if not isinstance(m, ExprAff):
+    elif pattern.is_aff():
+        if not expr.is_aff():
             return False
-        r = MatchExpr(e.src, m.src, tks, result)
-        if r is False:
+        if MatchExpr(pattern.src, expr.src, tks, result) is False:
             return False
-        r = MatchExpr(e.dst, m.dst, tks, result)
-        if r is False:
+        if MatchExpr(pattern.dst, expr.dst, tks, result) is False:
             return False
         return result
 
     else:
-        raise NotImplementedError("MatchExpr: Unknown type: %s" % type(e))
-
-
-def SearchExpr(e, m, tks, result=None):
-    # TODO XXX: to test
-    if result is None:
-        result = set()
-
-    def visit_search(e, m, tks, result):
-        r = {}
-        MatchExpr(e, m, tks, r)
-        if r:
-            result.add(tuple(r.items()))
-        return e
-    e.visit(lambda x: visit_search(x, m, tks, result))
+        raise NotImplementedError("MatchExpr: Unknown type: %s" % type(pattern))
 
 
 def get_rw(exprs):
