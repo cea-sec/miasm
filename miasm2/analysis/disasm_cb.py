@@ -1,6 +1,6 @@
 #-*- coding:utf-8 -*-
 
-from miasm2.expression.expression import ExprInt, ExprId, ExprMem, MatchExpr
+from miasm2.expression.expression import ExprInt, ExprId, ExprMem, match_expr
 from miasm2.expression.simplifications import expr_simp
 from miasm2.core.asmblock \
     import AsmSymbolPool, AsmConstraintNext, AsmConstraintTo
@@ -99,7 +99,7 @@ def arm_guess_jump_table(
         ad = pc_val.arg
         ad = expr_simp(ad)
         print ad
-        res = MatchExpr(ad, jra + jrb, set([jra, jrb]))
+        res = match_expr(ad, jra + jrb, set([jra, jrb]))
         if res is False:
             raise NotImplementedError('not fully functional')
         print res

@@ -753,7 +753,7 @@ class MatchGraphJoker(object):
 
 class MatchGraph(DiGraph):
 
-    """MatchGraph intends to be the counterpart of MatchExpr, but for DiGraph
+    """MatchGraph intends to be the counterpart of match_expr, but for DiGraph
 
     This class provides API to match a given DiGraph pattern, with addidionnal
     restrictions.

@@ -1400,7 +1400,7 @@ def match_expr(expr, pattern, tks, result=None):
             # We need to use a copy of result to not override it
             myresult = dict(result)
             for sub_expr, sub_pattern in zip(permut, pattern.args):
-                ret = MatchExpr(sub_expr, sub_pattern, tks, myresult)
+                ret = match_expr(sub_expr, sub_pattern, tks, myresult)
                 # If the current permutation do not match EVERY terms
                 if ret is False:
                     good = False
@@ -1420,23 +1420,23 @@ def match_expr(expr, pattern, tks, result=None):
             return False
         if expr.size != pattern.size:
             return False
-        return MatchExpr(expr.arg, pattern.arg, tks, result)
+        return match_expr(expr.arg, pattern.arg, tks, result)
 
     elif expr.is_slice():
         if not pattern.is_slice():
             return False
         if expr.start != pattern.start or expr.stop != pattern.stop:
             return False
-        return MatchExpr(expr.arg, pattern.arg, tks, result)
+        return match_expr(expr.arg, pattern.arg, tks, result)
 
     elif expr.is_cond():
         if not pattern.is_cond():
             return False
-        if MatchExpr(expr.cond, pattern.cond, tks, result) is False:
+        if match_expr(expr.cond, pattern.cond, tks, result) is False:
             return False
-        if MatchExpr(expr.src1, pattern.src1, tks, result) is False:
+        if match_expr(expr.src1, pattern.src1, tks, result) is False:
             return False
-        if MatchExpr(expr.src2, pattern.src2, tks, result) is False:
+        if match_expr(expr.src2, pattern.src2, tks, result) is False:
             return False
         return result
 
@@ -1444,21 +1444,21 @@ def match_expr(expr, pattern, tks, result=None):
         if not pattern.is_compose():
             return False
         for sub_expr, sub_pattern in zip(expr.args, pattern.args):
-            if  MatchExpr(sub_expr, sub_pattern, tks, result) is False:
+            if  match_expr(sub_expr, sub_pattern, tks, result) is False:
                 return False
         return result
 
     elif expr.is_aff():
         if not pattern.is_aff():
             return False
-        if MatchExpr(expr.src, pattern.src, tks, result) is False:
+        if match_expr(expr.src, pattern.src, tks, result) is False:
             return False
-        if MatchExpr(expr.dst, pattern.dst, tks, result) is False:
+        if match_expr(expr.dst, pattern.dst, tks, result) is False:
             return False
         return result
 
     else:
-        raise NotImplementedError("MatchExpr: Unknown type: %s" % type(expr))
+        raise NotImplementedError("match_expr: Unknown type: %s" % type(expr))
 
 
 def MatchExpr(expr, pattern, tks, result=None):
