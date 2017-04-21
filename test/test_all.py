@@ -278,6 +278,12 @@ testset += RegressionTest(["depgraph.py"], base_dir="analysis",
                                                      (14, 1), (15, 1))
                            ])
 testset += RegressionTest(["modularintervals.py"], base_dir="analysis")
+for jitter in ArchUnitTest.jitter_engines:
+    if jitter in blacklist.get(script, []):
+        continue
+    tags = [TAGS[jitter]] if jitter in TAGS else []
+    testset += RegressionTest(["dse.py", jitter], base_dir="analysis", tags=tags)
+
 testset += RegressionTest(["range.py"], base_dir="analysis",
                           tags=[TAGS["z3"]])
 
@@ -585,6 +591,17 @@ for options, nb_sol, tag in [([], 4, []),
                                            for nb in xrange(nb_sol)],
                                  depends=[test_x86_32_if_reg],
                                  tags=tag)
+
+dse_crackme_out = Example.get_sample("dse_crackme.c")[:-2]
+dse_crackme = ExampleSymbolExec([Example.get_sample("dse_crackme.c"),
+                                 "-o", dse_crackme_out],
+                                products=[dse_crackme_out],
+                                executable="cc")
+testset += dse_crackme
+testset += ExampleSymbolExec(["dse_crackme.py", dse_crackme_out],
+                             depends=[dse_crackme],
+                             products=["test.txt"],
+                             tags=[TAGS["z3"]])
 
 ## Jitter
 class ExampleJitter(Example):

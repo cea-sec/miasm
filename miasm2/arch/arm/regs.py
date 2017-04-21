@@ -71,6 +71,11 @@ all_regs_ids = [
 
 all_regs_ids_no_alias = all_regs_ids
 
+attrib_to_regs = {
+    'l': all_regs_ids_no_alias,
+    'b': all_regs_ids_no_alias,
+}
+
 all_regs_ids_byname = dict([(x.name, x) for x in all_regs_ids])
 
 all_regs_ids_init = [R0_init, R1_init, R2_init, R3_init,

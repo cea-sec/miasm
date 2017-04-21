@@ -153,7 +153,8 @@ class TestSet(object):
             os.chdir(test.base_dir)
 
             # Launch test
-            testpy = subprocess.Popen(([sys.executable] +
+            executable = test.executable if test.executable else sys.executable
+            testpy = subprocess.Popen(([executable] +
                                        init_args + test.command_line),
                                       stdout=subprocess.PIPE,
                                       stderr=subprocess.PIPE)
