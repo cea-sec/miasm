@@ -1464,20 +1464,6 @@ def MatchExpr(pattern, expr, tks, result=None):
         raise NotImplementedError("MatchExpr: Unknown type: %s" % type(pattern))
 
 
-def SearchExpr(e, m, tks, result=None):
-    # TODO XXX: to test
-    if result is None:
-        result = set()
-
-    def visit_search(e, m, tks, result):
-        r = {}
-        MatchExpr(e, m, tks, r)
-        if r:
-            result.add(tuple(r.items()))
-        return e
-    e.visit(lambda x: visit_search(x, m, tks, result))
-
-
 def get_rw(exprs):
     o_r = set()
     o_w = set()
