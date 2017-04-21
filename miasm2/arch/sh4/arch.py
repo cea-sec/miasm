@@ -196,7 +196,7 @@ class sh4_dgpregpinc(m_arg):
         if not isinstance(e, ExprMem):
             return False
         e = e.arg
-        res = MatchExpr(e, ExprOp(self.op, jra), [jra])
+        res = match_expr(e, ExprOp(self.op, jra), [jra])
         if not res:
             return False
         r = res[jra]
@@ -234,7 +234,7 @@ class sh4_dgpreg_imm(sh4_dgpreg):
             v = gpregs.expr.index(e.arg)
             p.disp.value = 0
         elif isinstance(e.arg, ExprOp):
-            res = MatchExpr(e, ExprMem(jra + jrb, self.sz), [jra, jrb])
+            res = match_expr(e, ExprMem(jra + jrb, self.sz), [jra, jrb])
             if not res:
                 return False
             if not isinstance(res[jra], ExprId):
@@ -291,7 +291,7 @@ class sh4_dpc16imm(sh4_dgpreg):
         return v
 
     def encode(self):
-        res = MatchExpr(self.expr, ExprMem(PC + jra, 16), [jra])
+        res = match_expr(self.expr, ExprMem(PC + jra, 16), [jra])
         if not res:
             return False
         if not isinstance(res[jra], ExprInt):
@@ -317,7 +317,7 @@ class sh4_dgbrimm8(sh4_dgpreg):
         if e == ExprMem(GBR):
             self.value = 0
             return True
-        res = MatchExpr(self.expr, ExprMem(GBR + jra, s), [jra])
+        res = match_expr(self.expr, ExprMem(GBR + jra, s), [jra])
         if not res:
             return False
         if not isinstance(res[jra], ExprInt):
@@ -341,7 +341,7 @@ class sh4_dpc32imm(sh4_dpc16imm):
         return v
 
     def encode(self):
-        res = MatchExpr(
+        res = match_expr(
             self.expr, ExprMem((PC & ExprInt(0xFFFFFFFC, 32)) + jra, 32), [jra])
         if not res:
             return False
@@ -362,7 +362,7 @@ class sh4_pc32imm(m_arg):
         return True
 
     def encode(self):
-        res = MatchExpr(self.expr, (PC & ExprInt(0xfffffffc, 32)) + jra, [jra])
+        res = match_expr(self.expr, (PC & ExprInt(0xfffffffc, 32)) + jra, [jra])
         if not res:
             return False
         if not isinstance(res[jra], ExprInt):
@@ -551,7 +551,7 @@ class bs_dr0gp(sh4_dgpreg):
         return True
 
     def encode(self):
-        res = MatchExpr(self.expr, ExprMem(R0 + jra, self.sz), [jra])
+        res = match_expr(self.expr, ExprMem(R0 + jra, self.sz), [jra])
         if not res:
             return False
         r = res[jra]

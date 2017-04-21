@@ -62,12 +62,12 @@ def __check_msb(e):
 
     return arg
 
-def __MatchExprWrap(e, to_match, jok_list):
-    "Wrapper around MatchExpr to canonize pattern"
+def __match_expr_wrap(e, to_match, jok_list):
+    "Wrapper around match_expr to canonize pattern"
 
     to_match = to_match.canonize()
 
-    r = m2_expr.MatchExpr(e, to_match, jok_list)
+    r = m2_expr.match_expr(e, to_match, jok_list)
     if r is False:
         return False
 
@@ -82,10 +82,9 @@ def expr_simp_inf_signed(expr_simp, e):
     arg = __check_msb(e)
     if arg is False:
         return e
-
     # We want jok3 = jok1 - jok2
     to_match = jok3 ^ ((jok1 ^ jok2) & (jok3 ^ jok1))
-    r = __MatchExprWrap(arg,
+    r = __match_expr_wrap(arg,
                         to_match,
                         [jok1, jok2, jok3])
 
@@ -109,7 +108,7 @@ def expr_simp_inf_unsigned_inversed(expr_simp, e):
 
     # We want jok3 = jok1 - jok2
     to_match = jok3 ^ ((jok1 ^ jok2) & (jok3 ^ jok1)) ^ jok1 ^ jok2
-    r = __MatchExprWrap(arg,
+    r = __match_expr_wrap(arg,
                         to_match,
                         [jok1, jok2, jok3])
 
@@ -129,14 +128,14 @@ def expr_simp_inverse(expr_simp, e):
     (x <s y) ^ ((x ^ y) [31:32]) == x <u y"""
 
     to_match = (ExprOp_inf_unsigned(jok1, jok2) ^ jok_small)
-    r = __MatchExprWrap(e,
+    r = __match_expr_wrap(e,
                         to_match,
                         [jok1, jok2, jok_small])
 
     # Check for 2 symetric cases
     if r is False:
         to_match = (ExprOp_inf_signed(jok1, jok2) ^ jok_small)
-        r = __MatchExprWrap(e,
+        r = __match_expr_wrap(e,
                             to_match,
                             [jok1, jok2, jok_small])
 
@@ -170,9 +169,9 @@ def expr_simp_equal(expr_simp, e):
     """(x - y)?(0:1) == (x == y)"""
 
     to_match = m2_expr.ExprCond(jok1 + jok2, m2_expr.ExprInt(0, 1), m2_expr.ExprInt(1, 1))
-    r = __MatchExprWrap(e,
-                        to_match,
-                        [jok1, jok2])
+    r = __match_expr_wrap(e,
+                          to_match,
+                          [jok1, jok2])
     if r is False:
         return e
 
