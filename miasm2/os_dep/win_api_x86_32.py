@@ -1786,6 +1786,7 @@ def ntdll_LdrGetProcedureAddress(jitter):
     fname = jitter.get_str_ansi(p_src)
 
     ad = winobjs.runtime_dll.lib_get_add_func(args.libbase, fname)
+    jitter.add_breakpoint(ad, jitter.handle_lib)
 
     jitter.vm.set_mem(args.p_ad, pck32(ad))
 
