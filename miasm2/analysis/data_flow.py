@@ -243,6 +243,7 @@ def dead_simp(ir_a):
     Source : Kennedy, K. (1979). A survey of data flow analysis techniques.
     IBM Thomas J. Watson Research Division, page 43
     """
+    modified = False
     reaching_defs = ReachingDefinitions(ir_a)
     defuse = DiGraphDefUse(reaching_defs, deref_mem=True)
     useful = set(dead_simp_useful_instrs(defuse, reaching_defs))
@@ -252,4 +253,6 @@ def dead_simp(ir_a):
             for lval in assignblk:
                 if InstrNode(block.label, idx, lval) not in useful:
                     del new_assignblk[lval]
+                    modified = True
             block.irs[idx] = AssignBlock(new_assignblk, assignblk.instr)
+    return modified
