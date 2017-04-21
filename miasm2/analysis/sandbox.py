@@ -88,8 +88,8 @@ class Sandbox(object):
         parser.add_argument('-g', "--gdbserver", type=int,
                             help="Listen on port @port")
         parser.add_argument("-j", "--jitter",
-                            help="Jitter engine. Possible values are: tcc (default), llvm, python",
-                            default="tcc")
+                            help="Jitter engine. Possible values are: gcc (default), tcc, llvm, python",
+                            default="gcc")
         parser.add_argument(
             '-q', "--quiet-function-calls", action="store_true",
                             help="Don't log function calls")
