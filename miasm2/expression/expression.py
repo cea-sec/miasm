@@ -1342,28 +1342,28 @@ def get_expr_ids(e):
     return ids
 
 
-def test_set(e, v, tks, result):
+def test_set(expr, pattern, tks, result):
     """Test if v can correspond to e. If so, update the context in result.
     Otherwise, return False
-    @e : Expr
-    @v : Expr
+    @expr : Expr to match
+    @pattern : pattern Expr
     @tks : list of ExprId, available jokers
     @result : dictionary of ExprId -> Expr, current context
     """
 
-    if not v in tks:
-        return e == v
-    if v in result and result[v] != e:
+    if not pattern in tks:
+        return expr == pattern
+    if pattern in result and result[pattern] != expr:
         return False
-    result[v] = e
+    result[pattern] = expr
     return result
 
 
-def MatchExpr(pattern, expr, tks, result=None):
-    """Try to match the @expr expression with the pattern @pattern with @tks jokers.
+def MatchExpr(expr, pattern, tks, result=None):
+    """Try to match the @pattern expression with the pattern @expr with @tks jokers.
     Result is output dictionary with matching joker values.
-    @pattern : Expr pattern
-    @expr : Targetted Expr to match
+    @expr : Expr pattern
+    @pattern : Targetted Expr to match
     @tks : list of ExprId, available jokers
     @result : dictionary of ExprId -> Expr, output matching context
     """
@@ -1371,39 +1371,39 @@ def MatchExpr(pattern, expr, tks, result=None):
     if result is None:
         result = {}
 
-    if expr in tks:
-        # expr is a Joker
-        return test_set(pattern, expr, tks, result)
+    if pattern in tks:
+        # pattern is a Joker
+        return test_set(expr, pattern, tks, result)
 
-    if pattern.is_int():
-        return test_set(pattern, expr, tks, result)
+    if expr.is_int():
+        return test_set(expr, pattern, tks, result)
 
-    elif pattern.is_id():
-        return test_set(pattern, expr, tks, result)
+    elif expr.is_id():
+        return test_set(expr, pattern, tks, result)
 
-    elif pattern.is_op():
+    elif expr.is_op():
 
-        # e need to be the same operation than expr
-        if not expr.is_op():
+        # expr need to be the same operation than pattern
+        if not pattern.is_op():
             return False
-        if pattern.op != expr.op:
+        if expr.op != pattern.op:
             return False
-        if len(pattern.args) != len(expr.args):
+        if len(expr.args) != len(pattern.args):
             return False
 
         # Perform permutation only if the current operation is commutative
-        if pattern.is_commutative():
-            permutations = itertools.permutations(pattern.args)
+        if expr.is_commutative():
+            permutations = itertools.permutations(expr.args)
         else:
-            permutations = [pattern.args]
+            permutations = [expr.args]
 
         # For each permutations of arguments
         for permut in permutations:
             good = True
             # We need to use a copy of result to not override it
             myresult = dict(result)
-            for sub_pattern, sub_expr in zip(permut, expr.args):
-                r = MatchExpr(sub_pattern, sub_expr, tks, myresult)
+            for sub_expr, sub_expr in zip(permut, pattern.args):
+                r = MatchExpr(sub_expr, sub_pattern, tks, myresult)
                 # If the current permutation do not match EVERY terms
                 if r is False:
                     good = False
@@ -1418,50 +1418,50 @@ def MatchExpr(pattern, expr, tks, result=None):
 
     # Recursive tests
 
-    elif pattern.is_mem():
-        if not expr.is_mem():
+    elif expr.is_mem():
+        if not pattern.is_mem():
             return False
-        if pattern.size != expr.size:
+        if expr.size != pattern.size:
             return False
-        return MatchExpr(pattern.arg, expr.arg, tks, result)
+        return MatchExpr(expr.arg, pattern.arg, tks, result)
 
-    elif pattern.is_slice():
-        if not expr.is_slice():
+    elif expr.is_slice():
+        if not pattern.is_slice():
             return False
-        if pattern.start != expr.start or pattern.stop != expr.stop:
+        if expr.start != pattern.start or expr.stop != pattern.stop:
             return False
-        return MatchExpr(pattern.arg, expr.arg, tks, result)
+        return MatchExpr(expr.arg, pattern.arg, tks, result)
 
-    elif pattern.is_cond():
-        if not expr.is_cond():
+    elif expr.is_cond():
+        if not pattern.is_cond():
             return False
-        if MatchExpr(pattern.cond, expr.cond, tks, result) is False:
+        if MatchExpr(expr.cond, pattern.cond, tks, result) is False:
             return False
-        if MatchExpr(pattern.src1, expr.src1, tks, result) is False:
+        if MatchExpr(expr.src1, pattern.src1, tks, result) is False:
             return False
-        if MatchExpr(pattern.src2, expr.src2, tks, result) is False:
+        if MatchExpr(expr.src2, pattern.src2, tks, result) is False:
             return False
         return result
 
-    elif pattern.is_compose():
-        if not expr.is_compose():
+    elif expr.is_compose():
+        if not pattern.is_compose():
             return False
-        for sub_pattern, sub_expr in zip(pattern.args, expr.args):
-            if  MatchExpr(sub_pattern, sub_expr, tks, result) is False:
+        for sub_expr, sub_pattern in zip(expr.args, pattern.args):
+            if  MatchExpr(sub_expr, sub_pattern, tks, result) is False:
                 return False
         return result
 
-    elif pattern.is_aff():
-        if not expr.is_aff():
+    elif expr.is_aff():
+        if not pattern.is_aff():
             return False
-        if MatchExpr(pattern.src, expr.src, tks, result) is False:
+        if MatchExpr(expr.src, pattern.src, tks, result) is False:
             return False
-        if MatchExpr(pattern.dst, expr.dst, tks, result) is False:
+        if MatchExpr(expr.dst, pattern.dst, tks, result) is False:
             return False
         return result
 
     else:
-        raise NotImplementedError("MatchExpr: Unknown type: %s" % type(pattern))
+        raise NotImplementedError("MatchExpr: Unknown type: %s" % type(expr))
 
 
 def get_rw(exprs):
