@@ -49,7 +49,10 @@ Here are a few remainings TODO:
 
 from collections import namedtuple
 
-import z3
+try:
+    import z3
+except ImportError:
+    z3 = None
 
 from miasm2.expression.expression import ExprMem, ExprInt, ExprCompose, \
     ExprAff, ExprId
@@ -447,7 +450,11 @@ class DSEPathConstraint(DSEEngine):
         @machine: Machine of the targeted architecture instance
         @produce_solution: (optional) if set, new solutions will be computed"""
         super(DSEPathConstraint, self).__init__(machine, **kwargs)
-        self.path_constraint = set()
+
+        # Dependency check
+        assert z3 is not None
+
+        # Init PathConstraint specifics structures
         self.produce_solution = produce_solution
         self.cur_solver = z3.Solver()
         self.new_solutions = {} # destination -> set of model
