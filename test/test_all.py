@@ -16,6 +16,7 @@ TAGS = {"regression": "REGRESSION", # Regression tests
         "long": "LONG", # Very time consumming tests
         "llvm": "LLVM", # LLVM dependency is required
         "tcc": "TCC", # TCC dependency is required
+        "gcc": "GCC", # GCC based tests
         "z3": "Z3", # Z3 dependecy is needed
         "qemu": "QEMU", # QEMU tests (several tests)
         "cparser": "CPARSER", # pycparser is needed
@@ -209,7 +210,7 @@ class SemanticTestExec(RegressionTest):
                              input_filename,
                              "-a", hex(address)]
         self.products = []
-        self.tags.append(TAGS["tcc"])
+        self.tags.append(TAGS["gcc"])
 
 
 test_x86_64_mul_div = SemanticTestAsm("x86_64", "PE", ["mul_div"])
@@ -256,13 +257,13 @@ testset += RegressionTest(["smt2.py"], base_dir="ir/translators",
 ## OS_DEP
 for script in ["win_api_x86_32.py",
                ]:
-    testset += RegressionTest([script], base_dir="os_dep", tags=[TAGS['tcc']])
+    testset += RegressionTest([script], base_dir="os_dep", tags=[TAGS['gcc']])
 
 for arch in ["x86_32", "x86_64", "arml", "aarch64l"]:
     testset += RegressionTest(["test_env.py", arch, "test_env.%s" % arch, "-c",
                                "arg1", "-c", "arg2", "--environment-vars",
                                "TEST=TOTO", "--mimic-env"],
-                              base_dir="os_dep/linux", tags=[TAGS['tcc']])
+                              base_dir="os_dep/linux", tags=[TAGS['gcc']])
 
 ## Analysis
 testset += RegressionTest(["depgraph.py"], base_dir="analysis",
@@ -628,6 +629,7 @@ for jitter in ExampleJitter.jitter_engines:
     tags = {"python": [TAGS["long"]],
             "llvm": [TAGS["llvm"]],
             "tcc": [TAGS["tcc"]],
+            "gcc": [TAGS["gcc"]],
             }
     testset += ExampleJitter(["unpack_upx.py",
                               Example.get_sample("box_upx.exe")] +
