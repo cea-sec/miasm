@@ -13,8 +13,8 @@ if filename and os.path.isfile(filename):
 parser = ArgumentParser(description="x86 32 basic Jitter")
 parser.add_argument("filename", help="x86 32 shellcode filename")
 parser.add_argument("-j", "--jitter",
-                    help="Jitter engine. Possible values are : tcc (default), llvm",
-                    default="tcc")
+                    help="Jitter engine (default is 'gcc')",
+                    default="gcc")
 args = parser.parse_args()
 
 def code_sentinelle(jitter):
