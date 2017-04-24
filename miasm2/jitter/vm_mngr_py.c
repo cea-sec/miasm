@@ -76,7 +76,9 @@ PyObject* set_alarm(VmMngr* self)
 {
 	global_vmmngr = self;
 	signal(SIGALRM, sig_alarm);
-	return PyLong_FromUnsignedLongLong((uint64_t)0);
+
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 
@@ -90,7 +92,6 @@ PyObject* vm_add_memory_page(VmMngr* self, PyObject* args)
 	uint64_t buf_size;
 	char* buf_data;
 	Py_ssize_t length;
-	uint64_t ret = 0x1337beef;
 	uint64_t page_addr;
 	uint64_t page_access;
 	char* name_ptr;
@@ -98,7 +99,7 @@ PyObject* vm_add_memory_page(VmMngr* self, PyObject* args)
 	struct memory_page_node * mpn;
 
 	if (!PyArg_ParseTuple(args, "OOO|O", &addr, &access, &item_str, &name))
-		return NULL;
+		RAISE(PyExc_TypeError,"Cannot parse arguments");
 
 	PyGetInt(addr, page_addr);
 	PyGetInt(access, page_access);
@@ -128,8 +129,8 @@ PyObject* vm_add_memory_page(VmMngr* self, PyObject* args)
 	memcpy(mpn->ad_hp, buf_data, buf_size);
 	add_memory_page(&self->vm_mngr, mpn);
 
-	return PyLong_FromUnsignedLongLong((uint64_t)ret);
-
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 
@@ -138,14 +139,12 @@ PyObject* vm_set_mem_access(VmMngr* self, PyObject* args)
 {
 	PyObject *addr;
 	PyObject *access;
-
-	uint64_t ret = 0x1337beef;
 	uint64_t page_addr;
 	uint64_t page_access;
 	struct memory_page_node * mpn;
 
 	if (!PyArg_ParseTuple(args, "OO", &addr, &access))
-		return NULL;
+		RAISE(PyExc_TypeError,"Cannot parse arguments");
 
 	PyGetInt(addr, page_addr);
 	PyGetInt(access, page_access);
@@ -157,7 +156,9 @@ PyObject* vm_set_mem_access(VmMngr* self, PyObject* args)
 	}
 
 	mpn->access = page_access;
-	return PyLong_FromUnsignedLongLong((uint64_t)ret);
+
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 PyObject* vm_set_mem(VmMngr* self, PyObject* args)
@@ -169,15 +170,15 @@ PyObject* vm_set_mem(VmMngr* self, PyObject* args)
        char * buffer;
        uint64_t size;
        uint64_t addr;
-       int ret = 0x1337;
+       int ret;
 
        if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_buffer))
-	      return NULL;
+	       RAISE(PyExc_TypeError,"Cannot parse arguments");
 
        PyGetInt(py_addr, addr);
 
-       if(!PyString_Check(py_buffer))
-	      RAISE(PyExc_TypeError,"arg must be str");
+       if (!PyString_Check(py_buffer))
+	       RAISE(PyExc_TypeError,"arg must be str");
 
        size = PyString_Size(py_buffer);
        PyString_AsStringAndSize(py_buffer, &buffer, &py_length);
@@ -202,7 +203,7 @@ PyObject* vm_get_mem_access(VmMngr* self, PyObject* args)
 	struct memory_page_node * mpn;
 
 	if (!PyArg_ParseTuple(args, "O", &py_addr))
-		return NULL;
+		RAISE(PyExc_TypeError,"Cannot parse arguments");
 
 	PyGetInt(py_addr, page_addr);
 
@@ -227,15 +228,14 @@ PyObject* vm_get_mem(VmMngr* self, PyObject* args)
        int ret;
 
        if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_len))
-	      return NULL;
+	       RAISE(PyExc_TypeError,"Cannot parse arguments");
 
        PyGetInt(py_addr, addr);
        PyGetInt(py_len, size);
 
        ret = vm_read_mem(&self->vm_mngr, addr, &buf_out, size);
        if (ret < 0) {
-	      PyErr_SetString(PyExc_RuntimeError, "cannot find address");
-	      return NULL;
+	       RAISE(PyExc_TypeError,"Cannot find address");
        }
 
        obj_out = PyString_FromStringAndSize(buf_out, size);
@@ -255,7 +255,7 @@ PyObject* vm_add_memory_breakpoint(VmMngr* self, PyObject* args)
 	uint64_t b_access;
 
 	if (!PyArg_ParseTuple(args, "OOO", &ad, &size, &access))
-		return NULL;
+		RAISE(PyExc_TypeError,"Cannot parse arguments");
 
 	PyGetInt(ad, b_ad);
 	PyGetInt(size, b_size);
@@ -283,7 +283,7 @@ PyObject* vm_remove_memory_breakpoint(VmMngr* self, PyObject* args)
 	uint64_t b_access;
 
 	if (!PyArg_ParseTuple(args, "OO", &ad, &access))
-		return NULL;
+		RAISE(PyExc_TypeError,"Cannot parse arguments");
 
 	PyGetInt(ad, b_ad);
 	PyGetInt(access, b_access);
@@ -300,7 +300,7 @@ PyObject* vm_set_exception(VmMngr* self, PyObject* args)
 	uint64_t i;
 
 	if (!PyArg_ParseTuple(args, "O", &item1))
-		return NULL;
+		RAISE(PyExc_TypeError,"Cannot parse arguments");
 
 	PyGetInt(item1, i);
 
@@ -363,7 +363,7 @@ PyObject* py_add_mem_read(VmMngr* self, PyObject* args)
 	uint64_t size;
 
 	if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_size))
-		return NULL;
+		RAISE(PyExc_TypeError,"Cannot parse arguments");
 
 	PyGetInt(py_addr, addr);
 	PyGetInt(py_size, size);
@@ -381,7 +381,7 @@ PyObject* py_add_mem_write(VmMngr* self, PyObject* args)
 	uint64_t size;
 
 	if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_size))
-		return NULL;
+		RAISE(PyExc_TypeError,"Cannot parse arguments");
 
 	PyGetInt(py_addr, addr);
 	PyGetInt(py_size, size);
@@ -482,13 +482,12 @@ PyObject* vm_add_code_bloc(VmMngr *self, PyObject *args)
 {
 	PyObject *item1;
 	PyObject *item2;
-	uint64_t ret = 0x1337beef;
 	uint64_t ad_start, ad_stop, ad_code = 0;
 
 	struct code_bloc_node * cbp;
 
 	if (!PyArg_ParseTuple(args, "OO", &item1, &item2))
-		return NULL;
+		RAISE(PyExc_TypeError,"Cannot parse arguments");
 
 	PyGetInt(item1, ad_start);
 	PyGetInt(item2, ad_stop);
@@ -498,7 +497,9 @@ PyObject* vm_add_code_bloc(VmMngr *self, PyObject *args)
 	cbp->ad_stop = ad_stop;
 	cbp->ad_code = ad_code;
 	add_code_bloc(&self->vm_mngr, cbp);
-	return PyLong_FromUnsignedLongLong((uint64_t)ret);
+
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 PyObject* vm_dump_code_bloc_pool(VmMngr* self)
@@ -520,7 +521,7 @@ PyObject* vm_is_mapped(VmMngr* self, PyObject* args)
 	int ret;
 
 	if (!PyArg_ParseTuple(args, "OO", &ad, &size))
-		return NULL;
+		RAISE(PyExc_TypeError,"Cannot parse arguments");
 
 	PyGetInt(ad, b_ad);
 	PyGetInt(size, b_size);
