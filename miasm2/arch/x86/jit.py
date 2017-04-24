@@ -152,12 +152,12 @@ class jitter_x86_32(jitter):
 
     def func_prepare_fastcall(self, ret_addr, *args):
         args_regs = ['ECX', 'EDX']
-        self.push_uint32_t(ret_addr)
         for i in xrange(min(len(args), len(args_regs))):
             setattr(self.cpu, args_regs[i], args[i])
         remaining_args = args[len(args_regs):]
         for arg in reversed(remaining_args):
             self.push_uint32_t(arg)
+        self.push_uint32_t(ret_addr)
 
     def get_arg_n_fastcall(self, index):
         args_regs = ['ECX', 'EDX']
@@ -171,6 +171,7 @@ class jitter_x86_64(jitter):
 
     C_Gen = x86_64_CGen
     args_regs_systemv = ['RDI', 'RSI', 'RDX', 'RCX', 'R8', 'R9']
+    args_regs_stdcall = ['RCX', 'RDX', 'R8', 'R9']
 
     def __init__(self, *args, **kwargs):
         sp = asmblock.AsmSymbolPool()
@@ -205,7 +206,7 @@ class jitter_x86_64(jitter):
     # stdcall
     @named_arguments
     def func_args_stdcall(self, n_args):
-        args_regs = ['RCX', 'RDX', 'R8', 'R9']
+        args_regs = self.args_regs_stdcall
         ret_ad = self.pop_uint64_t()
         args = []
         for i in xrange(min(n_args, 4)):
@@ -213,6 +214,15 @@ class jitter_x86_64(jitter):
         for i in xrange(max(0, n_args - 4)):
             args.append(self.get_stack_arg(i))
         return ret_ad, args
+
+    def func_prepare_stdcall(self, ret_addr, *args):
+        args_regs = self.args_regs_stdcall
+        for i in xrange(min(len(args), len(args_regs))):
+            setattr(self.cpu, args_regs[i], args[i])
+        remaining_args = args[len(args_regs):]
+        for arg in reversed(remaining_args):
+            self.push_uint64_t(arg)
+        self.push_uint64_t(ret_addr)
 
     def func_ret_stdcall(self, ret_addr, ret_value=None):
         self.pc = self.cpu.RIP = ret_addr
@@ -223,6 +233,7 @@ class jitter_x86_64(jitter):
     # cdecl
     func_args_cdecl = func_args_stdcall
     func_ret_cdecl = func_ret_stdcall
+    func_prepare_cdecl = func_prepare_stdcall
 
     # System V
 
