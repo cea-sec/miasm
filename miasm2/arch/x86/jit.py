@@ -152,12 +152,12 @@ class jitter_x86_32(jitter):
 
     def func_prepare_fastcall(self, ret_addr, *args):
         args_regs = ['ECX', 'EDX']
-        self.push_uint32_t(ret_addr)
         for i in xrange(min(len(args), len(args_regs))):
             setattr(self.cpu, args_regs[i], args[i])
         remaining_args = args[len(args_regs):]
         for arg in reversed(remaining_args):
             self.push_uint32_t(arg)
+        self.push_uint32_t(ret_addr)
 
     def get_arg_n_fastcall(self, index):
         args_regs = ['ECX', 'EDX']
