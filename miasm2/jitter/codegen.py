@@ -8,7 +8,7 @@ from miasm2.ir.translators import Translator
 from miasm2.core.asmblock import expr_is_label, AsmBlockBad, AsmLabel
 
 # Miasm to C translator
-translator = Translator.to_language("C")
+TRANSLATOR = Translator.to_language("C")
 
 SIZE_TO_MASK = {x: 2**x - 1 for x in (1, 2, 3, 7, 8, 16, 32, 64)}
 
@@ -32,6 +32,9 @@ class Attributes(object):
 
 
 class CGen(object):
+    """
+    Helper to generate C code for a given AsmBlock
+    """
 
     IMPLICIT_EXCEPTION_OP = set(['umod', 'udiv'])
 
@@ -104,6 +107,7 @@ class CGen(object):
         self.init_arch_C()
 
     def init_arch_C(self):
+        """Iinitialize jitter internals"""
         self.id_to_c_id = {}
         for reg in self.ir_arch.arch.regs.all_regs_ids:
             self.id_to_c_id[reg] = m2_expr.ExprId('mycpu->%s' % reg, reg.size)
@@ -112,24 +116,29 @@ class CGen(object):
 
     @staticmethod
     def label_to_jitlabel(lbl):
+        """Convert AsmLabel to a jitter label name"""
         assert lbl.offset is not None
         return "jitblock_%X" % lbl.offset
 
     def dst_to_c(self, src):
+        """Translate Expr @src into C code"""
         if not isinstance(src, m2_expr.Expr):
             src = m2_expr.ExprInt(src, self.PC.size)
         return self.id_to_c(src)
 
     def patch_c_id(self, expr):
+        """Replace ExprId in @expr with corresponding C variables"""
         return expr.replace_expr(self.id_to_c_id)
 
     def id_to_c(self, expr):
-        return translator.from_expr(self.patch_c_id(expr))
-
-    def get_post_instr_label(self, offset):
-        return self.ir_arch.symbol_pool.getby_name_create("lbl_gen_post_instr_%.8X" % (offset))
+        """Translate Expr @expr into corresponding C code"""
+        return TRANSLATOR.from_expr(self.patch_c_id(expr))
 
     def add_label_index(self, dst2index, lbl):
+        """Insert @lbl to the dictionnary @dst2index with a uniq value
+        @dst2index: AsmLabel -> uniq value
+        @lbl: AsmLabel istance"""
+
         dst2index[lbl] = len(dst2index)
 
     def assignblk_to_irbloc(self, instr, assignblk):
@@ -260,10 +269,14 @@ class CGen(object):
         return c_prefetch, c_var, c_main, c_mem, c_updt
 
     def gen_check_memory_exception(self, address):
+        """Generate C code to check memory exceptions
+        @address: address of the faulty instruction"""
         dst = self.dst_to_c(address)
         return (self.CODE_EXCEPTION_MEM_AT_INSTR % (self.C_PC, dst, dst)).split('\n')
 
     def gen_check_cpu_exception(self, address):
+        """Generate C code to check cpu exceptions
+        @address: address of the faulty instruction"""
         dst = self.dst_to_c(address)
         return (self.CODE_EXCEPTION_AT_INSTR % (self.C_PC, dst, dst)).split('\n')
 
@@ -279,29 +292,25 @@ class CGen(object):
             src2, src2b = self.traverse_expr_dst(expr.src2, dst2index)
             return ("((%s)?(%s):(%s))" % (cond, src1, src2),
                     "((%s)?(%s):(%s))" % (cond, src1b, src2b))
-        elif isinstance(expr, m2_expr.ExprInt):
+        if isinstance(expr, m2_expr.ExprInt):
             offset = int(expr)
             self.add_label_index(dst2index, offset)
-            return ("%s" % dst2index[offset],
-                    hex(offset))
-        elif expr_is_label(expr):
+            return ("%s" % dst2index[offset], hex(offset))
+        if expr_is_label(expr):
             label = expr.name
             if label.offset != None:
                 offset = label.offset
                 self.add_label_index(dst2index, offset)
-                return ("%s" % dst2index[offset],
-                        hex(offset))
-            else:
-                self.add_label_index(dst2index, label)
-                return ("%s" % dst2index[label],
-                        "0")
+                return ("%s" % dst2index[offset], hex(offset))
+            self.add_label_index(dst2index, label)
+            return ("%s" % dst2index[label], "0")
 
-        else:
-            dst2index[expr] = -1
-            return ("-1",
-                    self.id_to_c(expr))
+        dst2index[expr] = -1
+        return ("-1", self.id_to_c(expr))
 
     def gen_assignblk_dst(self, dst):
+        """Generate C code to handle instruction destination
+        @dst: instruction destination Expr"""
         dst2index = {}
         (ret, retb) = self.traverse_expr_dst(dst, dst2index)
         ret = "DST_case = %s;" % ret
@@ -311,6 +320,8 @@ class CGen(object):
                 '%s' % retb], dst2index
 
     def gen_post_instr_checks(self, attrib):
+        """Generate C code for handling potential exceptions
+        @attrib: Attributes instance"""
         out = []
         if attrib.mem_read | attrib.mem_write:
             out += (self.CODE_VM_EXCEPTION_POST_INSTR % (self.C_PC)).split('\n')
@@ -323,6 +334,9 @@ class CGen(object):
         return out
 
     def gen_pre_code(self, instr_attrib):
+        """Callback to generate code BEFORE the instruction execution
+        @instr_attrib: Attributes instance"""
+
         out = []
 
         if instr_attrib.log_mn:
@@ -331,12 +345,18 @@ class CGen(object):
         return out
 
     def gen_post_code(self, attrib):
+        """Callback to generate code AFTER the instruction execution
+        @attrib: Attributes instance"""
         out = []
         if attrib.log_regs:
             out.append('dump_gpregs(jitcpu->cpu);')
         return out
 
     def gen_goto_code(self, attrib, instr_offsets, dst):
+        """Generate C code for a potential destination @dst
+        @attrib: instruction Attributes
+        @instr_offsets: instructions offsets list
+        @dst: potential instruction destination"""
         if isinstance(dst, AsmLabel) and dst.offset is None:
             # Generate goto for local labels
             return ['goto %s;' % dst.name]
@@ -505,6 +525,9 @@ class CGen(object):
         return self.CODE_BAD_BLOCK.split("\n")
 
     def get_block_post_label(self, block):
+        """Get label next to the @block
+        @block: AsmBlock instance"""
+
         last_instr = block.lines[-1]
         offset = last_instr.offset + last_instr.l
         return self.ir_arch.symbol_pool.getby_offset_create(offset)
