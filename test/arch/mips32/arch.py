@@ -1,10 +1,7 @@
-import sys
 import time
 from pdb import pm
 
-sys.path.append('/home/serpilliere/projet/m2_devel')
 from miasm2.arch.mips32.arch import *
-
 
 reg_tests_mips32 = [
     ("004496D8    ADDU       GP, GP, T9",
