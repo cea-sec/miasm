@@ -1,14 +1,8 @@
-import os
 from argparse import ArgumentParser
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm2.analysis.machine import Machine
 
 from pdb import pm
-
-
-filename = os.environ.get('PYTHONSTARTUP')
-if filename and os.path.isfile(filename):
-    execfile(filename)
 
 parser = ArgumentParser(description="x86 32 basic Jitter")
 parser.add_argument("filename", help="x86 32 shellcode filename")

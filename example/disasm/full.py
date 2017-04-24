@@ -1,4 +1,3 @@
-import os
 import logging
 from argparse import ArgumentParser
 from pdb import pm
@@ -16,10 +15,6 @@ console_handler = logging.StreamHandler()
 console_handler.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
 log.addHandler(console_handler)
 log.setLevel(logging.INFO)
-
-filename = os.environ.get('PYTHONSTARTUP')
-if filename and os.path.isfile(filename):
-    execfile(filename)
 
 
 parser = ArgumentParser("Disassemble a binary")

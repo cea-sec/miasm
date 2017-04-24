@@ -1,4 +1,3 @@
-import os
 import time
 import miasm2.expression.expression as m2_expr
 from miasm2.arch.x86.arch import mn_x86, deref_mem_ad, ParseAst, ast_int2expr, \
@@ -6,9 +5,6 @@ from miasm2.arch.x86.arch import mn_x86, deref_mem_ad, ParseAst, ast_int2expr, \
 from miasm2.arch.x86.sem import ir_x86_16, ir_x86_32, ir_x86_64
 from miasm2.core.bin_stream import bin_stream_str
 
-filename = os.environ.get('PYTHONSTARTUP')
-if filename and os.path.isfile(filename):
-    execfile(filename)
 for s in ["[EAX]",
           "[0x10]",
           "[EBX + 0x10]",

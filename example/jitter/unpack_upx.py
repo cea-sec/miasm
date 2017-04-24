@@ -4,12 +4,6 @@ from pdb import pm
 from elfesteem import pe
 from miasm2.analysis.sandbox import Sandbox_Win_x86_32
 
-
-filename = os.environ.get('PYTHONSTARTUP')
-if filename and os.path.isfile(filename):
-    execfile(filename)
-
-
 # User defined methods
 
 def kernel32_GetProcAddress(jitter):

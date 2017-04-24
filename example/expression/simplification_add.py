@@ -1,11 +1,6 @@
 import miasm2.expression.expression as m2_expr
 from miasm2.expression.simplifications import expr_simp
 from pdb import pm
-import os
-
-filename = os.environ.get('PYTHONSTARTUP')
-if filename and os.path.isfile(filename):
-    execfile(filename)
 
 print """
 Expression simplification demo: Adding a simplification:
