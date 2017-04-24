@@ -1,10 +1,5 @@
-import os
 import time
 from miasm2.arch.arm.arch import *
-
-filename = os.environ.get('PYTHONSTARTUP')
-if filename and os.path.isfile(filename):
-    execfile(filename)
 
 if 0:
     a = bs('00')

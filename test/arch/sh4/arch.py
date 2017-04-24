@@ -1,12 +1,6 @@
-import os
 import time
 from sys import stderr
 from miasm2.arch.sh4.arch import *
-
-filename = os.environ.get('PYTHONSTARTUP')
-if filename and os.path.isfile(filename):
-    execfile(filename)
-
 
 def h2i(s):
     return s.replace(' ', '').decode('hex')

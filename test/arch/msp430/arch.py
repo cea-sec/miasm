@@ -1,11 +1,5 @@
-
-import os
 import time
 from miasm2.arch.msp430.arch import *
-
-filename = os.environ.get('PYTHONSTARTUP')
-if filename and os.path.isfile(filename):
-    execfile(filename)
 
 
 def h2i(s):

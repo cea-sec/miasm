@@ -1,4 +1,3 @@
-import os
 import sys
 import subprocess
 from collections import defaultdict
@@ -17,11 +16,6 @@ from miasm2.expression.simplifications import expr_simp
 from miasm2.expression import stp
 from miasm2.core import parse_asm
 from miasm2.arch.x86.disasm import dis_x86_32 as dis_engine
-
-
-filename = os.environ.get('PYTHONSTARTUP')
-if filename and os.path.isfile(filename):
-    execfile(filename)
 
 
 mn = mn_x86
