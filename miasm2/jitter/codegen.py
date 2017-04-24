@@ -479,7 +479,7 @@ class CGen(object):
         @log_regs: generate code to log registers states
         """
 
-        instr_attrib = Attributes()
+        instr_attrib = Attributes(log_mn, log_regs)
         instr_attrib.instr = instr
         irblocks_attributes = []
 
