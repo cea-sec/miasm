@@ -186,7 +186,7 @@ class OS_Win(OS):
     def __init__(self, custom_methods, *args, **kwargs):
         from miasm2.jitter.loader.pe import vm_load_pe, vm_load_pe_libs,\
             preload_pe, libimp_pe, vm_load_pe_and_dependencies
-        from miasm2.os_dep import win_api_x86_32, win_api_x86_32_seh
+        from miasm2.os_dep import win_api_x86_32, win_api_x86_32_structs
         methods = win_api_x86_32.__dict__
         methods.update(custom_methods)
 
@@ -240,12 +240,12 @@ class OS_Win(OS):
 
         # Manage Windows structures
         if self.options.mimic_windows_structures:
-            win_api_x86_32_seh.main_pe_name = fname_basename
-            win_api_x86_32_seh.main_pe = self.pe
+            win_api_x86_32_structs.main_pe_name = fname_basename
+            win_api_x86_32_structs.main_pe = self.pe
             win_api_x86_32.winobjs.hcurmodule = self.pe.NThdr.ImageBase
-            win_api_x86_32_seh.name2module = self.name2module
-            win_api_x86_32_seh.set_win_fs_0(self.jitter)
-            win_api_x86_32_seh.init_seh(self.jitter)
+            win_api_x86_32_structs.name2module = self.name2module
+            win_api_x86_32_structs.set_win_fs_0(self.jitter)
+            win_api_x86_32_structs.init_win_structs(self.jitter)
 
         self.entry_point = self.pe.rva2virt(
             self.pe.Opthdr.AddressOfEntryPoint)

@@ -401,7 +401,7 @@ def add_process_parameters(jitter):
 seh_count = 0
 
 
-def init_seh(jitter):
+def init_win_structs(jitter):
     """
     Build the modules entries and create double links
     @jitter: jitter instance
