@@ -22,7 +22,13 @@ class depGraphSettingsForm(Form):
         self.stk_unalias_force = False
 
         self.address = ScreenEA()
-        cur_block = list(ira.getby_offset(self.address))[0]
+        cur_block = None
+        for block in ira.getby_offset(self.address):
+            if block.label.offset is not None:
+                # Only one block non-generated
+                assert cur_block is None
+                cur_block = block
+        assert cur_block is not None
         line_nb = None
         for line_nb, assignblk in enumerate(cur_block.irs):
             if assignblk.instr.offset == self.address:
