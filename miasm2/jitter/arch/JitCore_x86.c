@@ -428,7 +428,7 @@ JitCpu_init(JitCpu *self, PyObject *args, PyObject *kwds)
 	static int JitCpu_set_E ## regname  (JitCpu *self, PyObject *value, void *closure) \
 	{								\
 		uint64_t val;						\
-		PyGetInt_ret0(value, val);				\
+		PyGetInt_retneg(value, val);				\
 		val &= 0xFFFFFFFF;					\
 		val |= ((vm_cpu_t*)(self->cpu))->R ##regname & 0xFFFFFFFF00000000ULL; \
 		((vm_cpu_t*)(self->cpu))->R ## regname   = val;			\
@@ -445,7 +445,7 @@ JitCpu_init(JitCpu *self, PyObject *args, PyObject *kwds)
 	static int JitCpu_set_ ## regname  (JitCpu *self, PyObject *value, void *closure) \
 	{								\
 		uint64_t val;						\
-		PyGetInt_ret0(value, val);				\
+		PyGetInt_retneg(value, val);				\
 		val &= 0xFFFF;						\
 		val |= ((vm_cpu_t*)(self->cpu))->R ##regname & 0xFFFFFFFFFFFF0000ULL; \
 		((vm_cpu_t*)(self->cpu))->R ## regname   = val;			\
