@@ -241,11 +241,11 @@ reg_float_c1 = 'float_c1'
 reg_float_c2 = 'float_c2'
 reg_float_c3 = 'float_c3'
 reg_float_stack_ptr = "float_stack_ptr"
-reg_float_control = 'reg_float_control'
-reg_float_eip = 'reg_float_eip'
-reg_float_cs = 'reg_float_cs'
-reg_float_address = 'reg_float_address'
-reg_float_ds = 'reg_float_ds'
+reg_float_control = 'float_control'
+reg_float_eip = 'float_eip'
+reg_float_cs = 'float_cs'
+reg_float_address = 'float_address'
+reg_float_ds = 'float_ds'
 
 
 dr0 = ExprId(reg_dr0)
@@ -332,14 +332,14 @@ float_cs = ExprId(reg_float_cs, size=16)
 float_address = ExprId(reg_float_address)
 float_ds = ExprId(reg_float_ds, size=16)
 
-float_st0 = ExprId("float_st0", 64)
-float_st1 = ExprId("float_st1", 64)
-float_st2 = ExprId("float_st2", 64)
-float_st3 = ExprId("float_st3", 64)
-float_st4 = ExprId("float_st4", 64)
-float_st5 = ExprId("float_st5", 64)
-float_st6 = ExprId("float_st6", 64)
-float_st7 = ExprId("float_st7", 64)
+float_st0 = ExprId("ST0", 64)
+float_st1 = ExprId("ST1", 64)
+float_st2 = ExprId("ST2", 64)
+float_st3 = ExprId("ST3", 64)
+float_st4 = ExprId("ST4", 64)
+float_st5 = ExprId("ST5", 64)
+float_st6 = ExprId("ST6", 64)
+float_st7 = ExprId("ST7", 64)
 
 
 float_list = [float_st0, float_st1, float_st2, float_st3,

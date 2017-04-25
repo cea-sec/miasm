@@ -54,6 +54,27 @@ reg_dict gpreg_dict[] = { {.name = "RAX", .offset = offsetof(vm_cpu_t, RAX)},
 			  {.name = "MM6", .offset = offsetof(vm_cpu_t, MM6)},
 			  {.name = "MM7", .offset = offsetof(vm_cpu_t, MM7)},
 
+			  {.name = "ST0", .offset = offsetof(vm_cpu_t, ST0)},
+			  {.name = "ST1", .offset = offsetof(vm_cpu_t, ST1)},
+			  {.name = "ST2", .offset = offsetof(vm_cpu_t, ST2)},
+			  {.name = "ST3", .offset = offsetof(vm_cpu_t, ST3)},
+			  {.name = "ST4", .offset = offsetof(vm_cpu_t, ST4)},
+			  {.name = "ST5", .offset = offsetof(vm_cpu_t, ST5)},
+			  {.name = "ST6", .offset = offsetof(vm_cpu_t, ST6)},
+			  {.name = "ST7", .offset = offsetof(vm_cpu_t, ST7)},
+
+			  {.name = "float_c0", .offset = offsetof(vm_cpu_t, float_c0)},
+			  {.name = "float_c1", .offset = offsetof(vm_cpu_t, float_c1)},
+			  {.name = "float_c2", .offset = offsetof(vm_cpu_t, float_c2)},
+			  {.name = "float_c3", .offset = offsetof(vm_cpu_t, float_c3)},
+
+			  {.name = "float_stack_ptr", .offset = offsetof(vm_cpu_t, float_stack_ptr)},
+			  {.name = "float_control", .offset = offsetof(vm_cpu_t, float_control)},
+			  {.name = "float_eip", .offset = offsetof(vm_cpu_t, float_eip)},
+			  {.name = "float_cs", .offset = offsetof(vm_cpu_t, float_cs)},
+			  {.name = "float_ds", .offset = offsetof(vm_cpu_t, float_ds)},
+			  {.name = "float_address", .offset = offsetof(vm_cpu_t, float_address)},
+
 			  {.name = "tsc1", .offset = offsetof(vm_cpu_t, tsc1)},
 			  {.name = "tsc2", .offset = offsetof(vm_cpu_t, tsc2)},
 
@@ -119,6 +140,28 @@ PyObject* cpu_get_gpreg(JitCpu* self)
     get_reg(MM6);
     get_reg(MM7);
 
+    get_reg_double(ST0);
+    get_reg_double(ST1);
+    get_reg_double(ST2);
+    get_reg_double(ST3);
+    get_reg_double(ST4);
+    get_reg_double(ST5);
+    get_reg_double(ST6);
+    get_reg_double(ST7);
+
+    get_reg(float_c0);
+    get_reg(float_c1);
+    get_reg(float_c2);
+    get_reg(float_c3);
+
+
+    get_reg(float_control);
+    get_reg(float_eip);
+    get_reg(float_cs);
+    get_reg(float_address);
+    get_reg(float_ds);
+
+
     get_reg(tsc1);
     get_reg(tsc2);
 
@@ -136,6 +179,7 @@ PyObject* cpu_set_gpreg(JitCpu* self, PyObject *args)
     Py_ssize_t pos = 0;
     uint64_t val;
     unsigned int i, found;
+    double double_val;
 
     if (!PyArg_ParseTuple(args, "O", &dict))
 	    RAISE(PyExc_TypeError,"Cannot parse arguments");
@@ -145,21 +189,43 @@ PyObject* cpu_set_gpreg(JitCpu* self, PyObject *args)
 	    if(!PyString_Check(d_key))
 		    RAISE(PyExc_TypeError, "key must be str");
 
-	    PyGetInt(d_value, val);
-
-	    found = 0;
-	    for (i=0; i < sizeof(gpreg_dict)/sizeof(reg_dict); i++){
-		    if (strcmp(PyString_AsString(d_key), gpreg_dict[i].name))
+	    if (!strncmp(PyString_AsString(d_key), "ST", 2) &&
+		    strlen(PyString_AsString(d_key)) == 3) {
+		    if (!PyFloat_Check(d_value)) {
+			    RAISE(PyExc_ValueError, "STx must be float");
+		    }
+		    double_val = PyFloat_AsDouble(d_value);
+		    // float
+		    found = 0;
+		    for (i=0; i < sizeof(gpreg_dict)/sizeof(reg_dict); i++){
+			    if (strcmp(PyString_AsString(d_key), gpreg_dict[i].name))
+				    continue;
+			    *((double*)(((char*)(self->cpu)) + gpreg_dict[i].offset)) = double_val;
+			    found = 1;
+			    break;
+		    }
+		    if (found)
 			    continue;
-		    *((uint64_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset)) = val;
-		    found = 1;
-		    break;
-	    }
+		    fprintf(stderr, "unkown key: %s\n", PyString_AsString(d_key));
+		    RAISE(PyExc_ValueError, "unkown reg");
+	    } else {
 
-	    if (found)
-		    continue;
-	    fprintf(stderr, "unkown key: %s\n", PyString_AsString(d_key));
-	    RAISE(PyExc_ValueError, "unkown reg");
+		    PyGetInt(d_value, val);
+
+		    found = 0;
+		    for (i=0; i < sizeof(gpreg_dict)/sizeof(reg_dict); i++){
+			    if (strcmp(PyString_AsString(d_key), gpreg_dict[i].name))
+				    continue;
+			    *((uint64_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset)) = val;
+			    found = 1;
+			    break;
+		    }
+
+		    if (found)
+			    continue;
+		    fprintf(stderr, "unkown key: %s\n", PyString_AsString(d_key));
+		    RAISE(PyExc_ValueError, "unkown reg");
+	    }
     }
     Py_INCREF(Py_None);
     return Py_None;
@@ -520,6 +586,29 @@ getset_reg_u64(MM5);
 getset_reg_u64(MM6);
 getset_reg_u64(MM7);
 
+getset_reg_double(ST0);
+getset_reg_double(ST1);
+getset_reg_double(ST2);
+getset_reg_double(ST3);
+getset_reg_double(ST4);
+getset_reg_double(ST5);
+getset_reg_double(ST6);
+getset_reg_double(ST7);
+
+getset_reg_u32(float_c0);
+getset_reg_u32(float_c1);
+getset_reg_u32(float_c2);
+getset_reg_u32(float_c3);
+
+
+getset_reg_u64(float_stack_ptr);
+getset_reg_u64(float_control);
+getset_reg_u64(float_eip);
+getset_reg_u64(float_cs);
+getset_reg_u64(float_address);
+getset_reg_u64(float_ds);
+
+
 getset_reg_u32(tsc1);
 getset_reg_u32(tsc2);
 
@@ -571,14 +660,14 @@ PyObject* get_gpreg_offset_all(void)
     get_reg_off(my_tick);
     get_reg_off(cond);
 
-    get_reg_off(float_st0);
-    get_reg_off(float_st1);
-    get_reg_off(float_st2);
-    get_reg_off(float_st3);
-    get_reg_off(float_st4);
-    get_reg_off(float_st5);
-    get_reg_off(float_st6);
-    get_reg_off(float_st7);
+    get_reg_off(ST0);
+    get_reg_off(ST1);
+    get_reg_off(ST2);
+    get_reg_off(ST3);
+    get_reg_off(ST4);
+    get_reg_off(ST5);
+    get_reg_off(ST6);
+    get_reg_off(ST7);
 
     get_reg_off(ES);
     get_reg_off(CS);
@@ -596,6 +685,11 @@ PyObject* get_gpreg_offset_all(void)
     get_reg_off(MM6);
     get_reg_off(MM7);
 
+    get_reg_off(float_c0);
+    get_reg_off(float_c1);
+    get_reg_off(float_c2);
+    get_reg_off(float_c3);
+
     get_reg_off(tsc1);
     get_reg_off(tsc2);
 
@@ -603,9 +697,11 @@ PyObject* get_gpreg_offset_all(void)
     get_reg_off(exception_flags);
 
     get_reg_off(float_stack_ptr);
-    get_reg_off(reg_float_cs);
-    get_reg_off(reg_float_eip);
-    get_reg_off(reg_float_control);
+    get_reg_off(float_cs);
+    get_reg_off(float_ds);
+    get_reg_off(float_eip);
+    get_reg_off(float_control);
+    get_reg_off(float_address);
 
     return dict;
 }
@@ -683,6 +779,27 @@ static PyGetSetDef JitCpu_getseters[] = {
     {"MM5", (getter)JitCpu_get_MM5, (setter)JitCpu_set_MM5, "MM5", NULL},
     {"MM6", (getter)JitCpu_get_MM6, (setter)JitCpu_set_MM6, "MM6", NULL},
     {"MM7", (getter)JitCpu_get_MM7, (setter)JitCpu_set_MM7, "MM7", NULL},
+
+    {"ST0", (getter)JitCpu_get_ST0, (setter)JitCpu_set_ST0, "ST0", NULL},
+    {"ST1", (getter)JitCpu_get_ST1, (setter)JitCpu_set_ST1, "ST1", NULL},
+    {"ST2", (getter)JitCpu_get_ST2, (setter)JitCpu_set_ST2, "ST2", NULL},
+    {"ST3", (getter)JitCpu_get_ST3, (setter)JitCpu_set_ST3, "ST3", NULL},
+    {"ST4", (getter)JitCpu_get_ST4, (setter)JitCpu_set_ST4, "ST4", NULL},
+    {"ST5", (getter)JitCpu_get_ST5, (setter)JitCpu_set_ST5, "ST5", NULL},
+    {"ST6", (getter)JitCpu_get_ST6, (setter)JitCpu_set_ST6, "ST6", NULL},
+    {"ST7", (getter)JitCpu_get_ST7, (setter)JitCpu_set_ST7, "ST7", NULL},
+
+    {"float_c0", (getter)JitCpu_get_float_c0, (setter)JitCpu_set_float_c0, "float_c0", NULL},
+    {"float_c1", (getter)JitCpu_get_float_c0, (setter)JitCpu_set_float_c0, "float_c1", NULL},
+    {"float_c2", (getter)JitCpu_get_float_c0, (setter)JitCpu_set_float_c0, "float_c2", NULL},
+    {"float_c3", (getter)JitCpu_get_float_c0, (setter)JitCpu_set_float_c0, "float_c3", NULL},
+
+    {"float_stack_ptr", (getter)JitCpu_get_float_stack_ptr, (setter)JitCpu_set_float_stack_ptr, "float_stack_ptr", NULL},
+    {"float_control", (getter)JitCpu_get_float_control, (setter)JitCpu_set_float_control, "float_control", NULL},
+    {"float_eip", (getter)JitCpu_get_float_eip, (setter)JitCpu_set_float_eip, "float_eip", NULL},
+    {"float_cs", (getter)JitCpu_get_float_cs, (setter)JitCpu_set_float_cs, "float_cs", NULL},
+    {"float_ds", (getter)JitCpu_get_float_ds, (setter)JitCpu_set_float_ds, "float_ds", NULL},
+    {"float_address", (getter)JitCpu_get_float_address, (setter)JitCpu_set_float_address, "float_address", NULL},
 
     {"tsc1", (getter)JitCpu_get_tsc1, (setter)JitCpu_set_tsc1, "tsc1", NULL},
     {"tsc2", (getter)JitCpu_get_tsc2, (setter)JitCpu_set_tsc2, "tsc2", NULL},

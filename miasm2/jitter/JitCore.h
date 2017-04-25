@@ -14,7 +14,7 @@
 	}								\
 	else{								\
 		RAISE(PyExc_TypeError,"arg must be int");		\
-	}								\
+	}
 
 
 #define PyGetInt_ret0(item, value)					\
@@ -26,8 +26,7 @@
 	}								\
 	else{								\
 		printf("error\n"); return 0;				\
-	}								\
-
+	}
 
 
 #define getset_reg_u64(regname)						\
@@ -78,11 +77,31 @@
 	} while(0);
 
 
+#define get_reg_double(reg)  do {						\
+		o = PyFloat_FromDouble((double)((vm_cpu_t*)(self->cpu))->reg); \
+		PyDict_SetItemString(dict, #reg, o);			\
+		Py_DECREF(o);						\
+	} while(0);
+
+
 #define get_reg_off(reg)  do {						\
 		o = PyLong_FromUnsignedLongLong((uint64_t)offsetof(vm_cpu_t, reg)); \
 		PyDict_SetItemString(dict, #reg, o);			\
 		Py_DECREF(o);						\
 	} while(0);
+
+#define getset_reg_double(regname)					\
+	static PyObject *JitCpu_get_ ## regname  (JitCpu *self, void *closure) \
+	{								\
+		return  PyFloat_FromDouble((double)(((vm_cpu_t*)(self->cpu))->  regname  )); \
+	}								\
+	static int JitCpu_set_ ## regname  (JitCpu *self, PyObject *value, void *closure) \
+	{								\
+		double val;						\
+		val = PyFloat_AsDouble(value);				\
+		((vm_cpu_t*)(self->cpu))->  regname   = val;		\
+		return 0;						\
+	}
 
 
 typedef struct {
