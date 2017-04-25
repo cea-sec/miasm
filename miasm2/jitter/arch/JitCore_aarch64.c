@@ -115,7 +115,7 @@ PyObject* cpu_set_gpreg(JitCpu* self, PyObject *args)
     unsigned int i, found;
 
     if (!PyArg_ParseTuple(args, "O", &dict))
-	    return NULL;
+	    RAISE(PyExc_TypeError,"Cannot parse arguments");
     if(!PyDict_Check(dict))
 	    RAISE(PyExc_TypeError, "arg must be dict");
     while(PyDict_Next(dict, &pos, &d_key, &d_value)){
@@ -194,7 +194,7 @@ PyObject* cpu_set_exception(JitCpu* self, PyObject* args)
 	uint64_t i;
 
 	if (!PyArg_ParseTuple(args, "O", &item1))
-		return NULL;
+		RAISE(PyExc_TypeError,"Cannot parse arguments");
 
 	PyGetInt(item1, i);
 
@@ -248,10 +248,6 @@ void MEM_WRITE_64(JitCpu* jitcpu, uint64_t addr, uint64_t src)
 }
 
 
-
-
-
-
 PyObject* vm_set_mem(JitCpu *self, PyObject* args)
 {
        PyObject *py_addr;
@@ -261,10 +257,10 @@ PyObject* vm_set_mem(JitCpu *self, PyObject* args)
        char * buffer;
        uint64_t size;
        uint64_t addr;
-       int ret = 0x1337;
+       int ret;
 
        if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_buffer))
-	       return NULL;
+	       RAISE(PyExc_TypeError,"Cannot parse arguments");
 
        PyGetInt(py_addr, addr);
 
