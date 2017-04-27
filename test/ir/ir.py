@@ -37,6 +37,7 @@ assert assignblk1.get_rw() == {id_a: set([id_b])}
 assert assignblk1.keys() == [id_a]
 assert dict(assignblk1) == {id_a: id_b}
 assert assignblk1[id_a] == id_b
+assert list(assignblk1.iteritems()) == assignblk1.items()
 
 ## Simplify
 assignblk3 = AssignBlock({id_a: id_b - id_b})

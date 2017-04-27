@@ -139,6 +139,9 @@ class AssignBlock(object):
         for dst, src in self._assigns.iteritems():
             yield dst, src
 
+    def items(self):
+        return [(dst, src) for dst, src in self.iteritems()]
+
     def itervalues(self):
         for src in self._assigns.itervalues():
             yield src
