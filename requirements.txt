@@ -1,0 +1,5 @@
+enum34
+pyparsing
+pycparser
+git+https://github.com/serpilliere/elfesteem@master#egg=elfesteem-0.1
+z3-solver
