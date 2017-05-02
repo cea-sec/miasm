@@ -6,6 +6,7 @@ matrix:
     - os: osx
       language: generic
       install:
+        - brew upgrade
         - brew install gcc tcc llvm
         - echo /usr/local/opt/llvm/lib/python2.7/site-packages >> /usr/local/lib/python2.7/site-packages/llvm.pth
         - pip install -vvv -r optional_requirements.txt
