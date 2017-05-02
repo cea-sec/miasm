@@ -560,7 +560,9 @@ class ExprAff(Expr):
         @dst: Expr, affectation destination
         @src: Expr, affectation source
         """
-
+        # dst & src must be Expr
+        assert isinstance(dst, Expr)
+        assert isinstance(src, Expr)
         super(ExprAff, self).__init__()
 
         if dst.size != src.size:
@@ -664,6 +666,11 @@ class ExprCond(Expr):
         @src2: Expr, value if condition is evaled zero
         """
 
+        # cond, src1, src2 must be Expr
+        assert isinstance(cond, Expr)
+        assert isinstance(src1, Expr)
+        assert isinstance(src2, Expr)
+
         super(ExprCond, self).__init__()
 
         self.__cond, self.__src1, self.__src2 = cond, src1, src2
@@ -754,6 +761,10 @@ class ExprMem(Expr):
         @size: int, memory access size
         """
 
+        # arg must be Expr
+        assert isinstance(arg, Expr)
+        assert isinstance(size, (int, long))
+
         super(ExprMem, self).__init__()
 
         if not isinstance(arg, Expr):
@@ -838,6 +849,9 @@ class ExprOp(Expr):
         @op: str, operation
         @*args: Expr, operand list
         """
+
+        # args must be Expr
+        assert all(isinstance(arg, Expr) for arg in args)
 
         super(ExprOp, self).__init__()
 
@@ -998,6 +1012,12 @@ class ExprSlice(Expr):
     __slots__ = Expr.__slots__ + ["__arg", "__start", "__stop"]
 
     def __init__(self, arg, start, stop):
+
+        # arg must be Expr
+        assert isinstance(arg, Expr)
+        assert isinstance(start, (int, long))
+        assert isinstance(stop, (int, long))
+
         super(ExprSlice, self).__init__()
 
         assert start < stop
@@ -1096,6 +1116,9 @@ class ExprCompose(Expr):
         DEPRECATED:
         @args: [(Expr, int, int), (Expr, int, int), ...]
         """
+
+        # args must be Expr
+        assert all(isinstance(arg, Expr) for arg in args)
 
         super(ExprCompose, self).__init__()
         assert isinstance(args, tuple)
