@@ -258,6 +258,8 @@ class IRBlock(object):
     Stand for an intermediate representation  basic block.
     """
 
+    __slots__ = ["label", "_assignments", "_dst", "_dst_linenb"]
+
     def __init__(self, label, irs):
         """
         @label: AsmLabel of the IR basic block
@@ -269,7 +271,6 @@ class IRBlock(object):
         for assignblk in irs:
             assert isinstance(assignblk, AssignBlock)
         self._assignments = tuple(irs)
-        self.except_automod = True
         self._dst = None
         self._dst_linenb = None
 

@@ -4614,7 +4614,6 @@ class ir_x86_16(IntermediateRepresentation):
         e_do = instr_ir
 
         c = IRBlock(lbl_do.name, [AssignBlock(e_do, instr)])
-        c.except_automod = False
         e_n = [m2_expr.ExprAff(self.IRDst, m2_expr.ExprCond(c_reg, lbl_do,
                                                             lbl_skip))]
         return e_n, [cond_bloc, c] + new_extra_ir
