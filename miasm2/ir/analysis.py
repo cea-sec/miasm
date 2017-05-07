@@ -1,13 +1,12 @@
 #-*- coding:utf-8 -*-
 
+import warnings
 import logging
 
 from miasm2.ir.symbexec import SymbolicExecutionEngine
 from miasm2.ir.ir import IntermediateRepresentation, AssignBlock
-from miasm2.expression.expression \
-    import ExprAff, ExprCond, ExprId, ExprInt, ExprMem, ExprOp
+from miasm2.expression.expression import ExprAff, ExprOp
 from miasm2.analysis.data_flow import dead_simp as new_dead_simp_imp
-import warnings
 
 log = logging.getLogger("analysis")
 console_handler = logging.StreamHandler()
@@ -29,47 +28,30 @@ class ira(IntermediateRepresentation):
 
     """
 
-    def call_effects(self, ad, instr):
-        """Default modelisation of a function call to @ad. This may be used to:
+    def call_effects(self, addr, instr):
+        """Default modelisation of a function call to @addr. This may be used to:
 
         * insert dependencies to arguments (stack base, registers, ...)
         * add some side effects (stack clean, return value, ...)
 
-        @ad: (Expr) address of the called function
+        @addr: (Expr) address of the called function
         @instr: native instruction which is responsible of the call
         """
 
         assignblk = AssignBlock({
-            self.ret_reg: ExprOp('call_func_ret', ad, self.sp),
-            self.sp: ExprOp('call_func_stack', ad, self.sp)},
+            self.ret_reg: ExprOp('call_func_ret', addr, self.sp),
+            self.sp: ExprOp('call_func_stack', addr, self.sp)},
             instr)
         return [assignblk]
 
-    def pre_add_instr(self, block, instr, irb_cur, ir_blocks_all, gen_pc_update):
+    def pre_add_instr(self, block, instr, assignments, ir_blocks_all, gen_pc_update):
         """Replace function call with corresponding call effects,
         inside the IR block"""
         if not instr.is_subcall():
-            return irb_cur
+            return False
         call_effects = self.call_effects(instr.args[0], instr)
-        for assignblk in call_effects:
-            irb_cur.irs.append(assignblk)
-        return None
-
-    def gen_equations(self):
-        for irb in self.blocks.values():
-            symbols_init = dict(self.arch.regs.all_regs_ids_init)
-
-            sb = SymbolicExecutionEngine(self, dict(symbols_init))
-            sb.emulbloc(irb)
-            eqs = []
-            for n_w in sb.symbols:
-                v = sb.symbols[n_w]
-                if n_w in symbols_init and symbols_init[n_w] == v:
-                    continue
-                eqs.append(ExprAff(n_w, v))
-            print '*' * 40
-            print irb
-            irb.irs = [AssignBlock(eqs)]
+        assignments+= call_effects
+        return True
 
     def sizeof_char(self):
         "Return the size of a char in bits"

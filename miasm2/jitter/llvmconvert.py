@@ -1299,7 +1299,8 @@ class LLVMFunction():
 
 
         for instr, irblocks in zip(asmblock.lines, irblocks_list):
-            instr_attrib, irblocks_attributes = codegen.get_attributes(instr, irblocks, self.log_mn,
+            instr_attrib, irblocks_attributes = codegen.get_attributes(instr, irblocks,
+                                                                       self.log_mn,
                                                                        self.log_regs)
 
             # Pre-create basic blocks
@@ -1308,16 +1309,16 @@ class LLVMFunction():
 
             # Generate the corresponding code
             for index, irblock in enumerate(irblocks):
-                self.llvm_context.ir_arch.irbloc_fix_regs_for_mode(
+                new_irblock = self.llvm_context.ir_arch.irbloc_fix_regs_for_mode(
                     irblock, self.llvm_context.ir_arch.attrib)
 
                 # Set the builder at the begining of the correct bbl
-                name = self.canonize_label_name(irblock.label)
+                name = self.canonize_label_name(new_irblock.label)
                 self.builder.position_at_end(self.get_basic_bloc_by_label(name))
 
                 if index == 0:
                     self.gen_pre_code(instr_attrib)
-                self.gen_irblock(instr_attrib, irblocks_attributes[index], instr_offsets, irblock)
+                self.gen_irblock(instr_attrib, irblocks_attributes[index], instr_offsets, new_irblock)
 
         # Gen finalize (see codegen::CGen) is unrecheable, except with delayslot
         self.gen_finalize(asmblock, codegen)

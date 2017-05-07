@@ -5,7 +5,7 @@ from miasm2.core import asmblock
 from miasm2.core.utils import pck32, upck32
 from miasm2.arch.mips32.sem import ir_mips32l, ir_mips32b
 from miasm2.jitter.codegen import CGen
-from miasm2.ir.ir import AssignBlock
+from miasm2.ir.ir import AssignBlock, IRBlock
 import miasm2.expression.expression as m2_expr
 
 log = logging.getLogger('jit_mips32')
@@ -40,24 +40,27 @@ class mipsCGen(CGen):
 
     def block2assignblks(self, block):
         irblocks_list = super(mipsCGen, self).block2assignblks(block)
-        for instr, irblocks in zip(block.lines, irblocks_list):
-            if not instr.breakflow():
-                continue
-            for irblock in irblocks:
-                for idx, assignblock in enumerate(irblock.irs):
+        for irblocks in irblocks_list:
+            for blk_idx, irblock in enumerate(irblocks):
+                has_breakflow = any(assignblock.instr.breakflow() for assignblock in irblock.irs)
+                if not has_breakflow:
+                    continue
+
+                irs = []
+                for assignblock in irblock.irs:
                     if self.ir_arch.pc not in assignblock:
+                        irs.append(AssignBlock(assignments, assignblock.instr))
                         continue
-                    new_assignblock = dict(assignblock)
+                    assignments = dict(assignblock)
                     # Add internal branch destination
-                    new_assignblock[self.delay_slot_dst] = assignblock[
+                    assignments[self.delay_slot_dst] = assignblock[
                         self.ir_arch.pc]
-                    new_assignblock[self.delay_slot_set] = m2_expr.ExprInt(1, 32)
+                    assignments[self.delay_slot_set] = m2_expr.ExprInt(1, 32)
                     # Replace IRDst with next instruction
-                    new_assignblock[self.ir_arch.IRDst] = m2_expr.ExprId(
-                        self.ir_arch.get_next_instr(instr))
-                    irblock.dst = m2_expr.ExprId(
-                        self.ir_arch.get_next_instr(instr))
-                    irblock.irs[idx] = AssignBlock(new_assignblock, assignblock.instr)
+                    assignments[self.ir_arch.IRDst] = m2_expr.ExprId(
+                        self.ir_arch.get_next_instr(assignblock.instr))
+                    irs.append(AssignBlock(assignments, assignblock.instr))
+                irblocks[blk_idx] = IRBlock(irblock.label, irs)
 
         return irblocks_list
 

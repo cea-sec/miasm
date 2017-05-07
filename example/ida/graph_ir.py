@@ -11,7 +11,7 @@ from miasm2.expression.expression import *
 from miasm2.analysis.data_analysis import inter_bloc_flow, \
     intra_bloc_flow_symbexec
 from miasm2.analysis.data_flow import dead_simp
-from miasm2.ir.ir import AssignBlock
+from miasm2.ir.ir import AssignBlock, IRBlock
 
 from utils import guess_machine, expr2colorstr
 
@@ -136,12 +136,14 @@ for block in ab:
 print "IR ok... %x" % ad
 
 for irb in ir_arch.blocks.itervalues():
-    for i, assignblk in enumerate(irb.irs):
+    irs = []
+    for assignblk in irb.irs:
         new_assignblk = {
             expr_simp(dst): expr_simp(src)
             for dst, src in assignblk.iteritems()
         }
-        irb.irs[i] = AssignBlock(new_assignblk, instr=assignblk.instr)
+        irs.append(AssignBlock(new_assignblk, instr=assignblk.instr))
+    ir_arch.blocks[irb.label] = IRBlock(irb.label, irs)
 
 out = ir_arch.graph.dot()
 open(os.path.join(tempfile.gettempdir(), 'graph.dot'), 'wb').write(out)

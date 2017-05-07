@@ -266,15 +266,21 @@ class IRBlock(object):
 
         assert isinstance(label, AsmLabel)
         self.label = label
-        self.irs = irs
+        for assignblk in irs:
+            assert isinstance(assignblk, AssignBlock)
+        self._assignments = tuple(irs)
         self.except_automod = True
         self._dst = None
         self._dst_linenb = None
 
-    def _get_dst(self):
-        """Find the IRDst affectation and update dst, dst_linenb accordingly"""
-        if self._dst is not None:
-            return self._dst
+    @property
+    def irs(self):
+        return self._assignments
+
+    def is_dst_set(self):
+        return self._dst is not None
+
+    def cache_dst(self):
         final_dst = None
         final_linenb = None
         for linenb, assignblk in enumerate(self.irs):
@@ -288,25 +294,34 @@ class IRBlock(object):
         self._dst_linenb = final_linenb
         return final_dst
 
-    def _set_dst(self, value):
-        """Find and replace the IRDst affectation's source by @value"""
-        if self._dst_linenb is None:
-            self._get_dst()
+    @property
+    def dst(self):
+        """Find the IRDst affectation and update dst, dst_linenb accordingly"""
+        if self.is_dst_set():
+            return self._dst
+        return self.cache_dst()
 
-        new_assignblk = dict(self.irs[self._dst_linenb])
-        for dst in new_assignblk:
-            if dst.is_id("IRDst"):
-                new_assignblk[dst] = value
-                # Sanity check is already done in _get_dst
-                break
-        self._dst = value
-        instr = self.irs[self._dst_linenb].instr
-        self.irs[self._dst_linenb] = AssignBlock(new_assignblk, instr)
-    dst = property(_get_dst, _set_dst)
+    def set_dst(self, value):
+        """Generate a new IRBlock with a dst fixed to @value"""
+        irs = []
+        dst_found = False
+        for assignblk in self.irs:
+            new_assignblk = {}
+            for dst, src in assignblk.iteritems():
+                if dst.is_id("IRDst"):
+                    assert dst_found is False
+                    dst_found = True
+                    new_assignblk[dst] = value
+                else:
+                    new_assignblk[dst] = src
+            irs.append(AssignBlock(new_assignblk, assignblk.instr))
+        return IRBlock(self.label, irs)
 
     @property
     def dst_linenb(self):
         """Line number of the IRDst setting statement in the current irs"""
+        if not self.is_dst_set():
+            self.cache_dst()
         return self._dst_linenb
 
     def __str__(self):
@@ -317,6 +332,28 @@ class IRBlock(object):
                 out.append('\t%s = %s' % (dst, src))
             out.append("")
         return "\n".join(out)
+
+
+    def modify_exprs(self, mod_dst=None, mod_src=None):
+        """
+        Generate a new IRBlock with its AssignBlock expressions modified
+        according to @mod_dst and @mod_src
+        @mod_dst: function called to modify Expression destination
+        @mod_src: function called to modify Expression source
+        """
+
+        if mod_dst is None:
+            mod_dst = lambda expr:expr
+        if mod_src is None:
+            mod_src = lambda expr:expr
+
+        assignblks = []
+        for assignblk in self.irs:
+            new_assignblk = {}
+            for dst, src in assignblk.iteritems():
+                new_assignblk[mod_dst(dst)] = mod_src(src)
+            assignblks.append(AssignBlock(new_assignblk, assignblk.instr))
+        return IRBlock(self.label, assignblks)
 
 
 class irbloc(IRBlock):
@@ -415,14 +452,14 @@ class IntermediateRepresentation(object):
         raise NotImplementedError("Abstract Method")
 
     def instr2ir(self, instr):
-        ir_bloc_cur, extra_assignblk = self.get_ir(instr)
-        for irb in extra_assignblk:
+        ir_bloc_cur, extra_irblocks = self.get_ir(instr)
+        for index, irb in enumerate(extra_irblocks):
             irs = []
             for assignblk in irb.irs:
                 irs.append(AssignBlock(assignblk, instr))
-            irb.irs = irs
+            extra_irblocks[index] = IRBlock(irb.label, irs)
         assignblk = AssignBlock(ir_bloc_cur, instr)
-        return assignblk, extra_assignblk
+        return assignblk, extra_irblocks
 
     def get_label(self, addr):
         """Transforms an ExprId/ExprInt/label/int into a label
@@ -460,16 +497,18 @@ class IntermediateRepresentation(object):
                     out.add(irb)
         return out
 
-    def gen_pc_update(self, irblock, instr):
-        irblock.irs.append(AssignBlock({self.pc: m2_expr.ExprInt(instr.offset, self.pc.size)},
-                                       instr))
+    def gen_pc_update(self, assignments, instr):
+        offset = m2_expr.ExprInt(instr.offset, self.pc.size)
+        assignments.append(AssignBlock({self.pc:offset}, instr))
 
-    def pre_add_instr(self, block, instr, irb_cur, ir_blocks_all, gen_pc_updt):
+    def pre_add_instr(self, block, instr, assignments, ir_blocks_all, gen_pc_updt):
         """Function called before adding an instruction from the the native @block to
         the current irbloc.
 
-        Returns None if the addition needs an irblock split, @irb_cur in other
-        cases.
+        Returns a couple. The first element is the new irblock. The second the a
+        bool:
+        * True if the current irblock must be split
+        * False in other cases.
 
         @block: native block source
         @instr: native instruction
@@ -479,14 +518,16 @@ class IntermediateRepresentation(object):
 
         """
 
-        return irb_cur
+        return False
 
-    def add_instr_to_irblock(self, block, instr, irb_cur, ir_blocks_all, gen_pc_updt):
+    def add_instr_to_irblock(self, block, instr, assignments, ir_blocks_all, gen_pc_updt):
         """
         Add the IR effects of an instruction to the current irblock.
 
-        Returns None if the addition needs an irblock split, @irb_cur in other
-        cases.
+        Returns a couple. The first element is the new irblock. The second the a
+        bool:
+        * True if the current irblock must be split
+        * False in other cases.
 
         @block: native block source
         @instr: native instruction
@@ -495,21 +536,20 @@ class IntermediateRepresentation(object):
         @gen_pc_updt: insert PC update effects between instructions
         """
 
-        irb_cur = self.pre_add_instr(block, instr, irb_cur, ir_blocks_all, gen_pc_updt)
-        if irb_cur is None:
-            return None
+        split = self.pre_add_instr(block, instr, assignments, ir_blocks_all, gen_pc_updt)
+        if split:
+            return True
 
         assignblk, ir_blocks_extra = self.instr2ir(instr)
 
         if gen_pc_updt is not False:
-            self.gen_pc_update(irb_cur, instr)
+            self.gen_pc_update(assignments, instr)
 
-        irb_cur.irs.append(assignblk)
-
+        assignments.append(assignblk)
+        ir_blocks_all += ir_blocks_extra
         if ir_blocks_extra:
-            ir_blocks_all += ir_blocks_extra
-            irb_cur = None
-        return irb_cur
+            return True
+        return False
 
     def add_bloc(self, block, gen_pc_updt=False):
         """
@@ -518,17 +558,25 @@ class IntermediateRepresentation(object):
         @gen_pc_updt: insert PC update effects between instructions
         """
 
-        irb_cur = None
+        label = None
         ir_blocks_all = []
         for instr in block.lines:
-            if irb_cur is None:
+            if label is None:
+                assignments = []
                 label = self.get_instr_label(instr)
-                irb_cur = IRBlock(label, [])
-                ir_blocks_all.append(irb_cur)
-            irb_cur = self.add_instr_to_irblock(block, instr, irb_cur,
-                                                ir_blocks_all, gen_pc_updt)
-        self.post_add_bloc(block, ir_blocks_all)
-        return ir_blocks_all
+            split = self.add_instr_to_irblock(block, instr, assignments,
+                                              ir_blocks_all, gen_pc_updt)
+            if split:
+                ir_blocks_all.append(IRBlock(label, assignments))
+                label = None
+                assignments = []
+        if label is not None:
+            ir_blocks_all.append(IRBlock(label, assignments))
+
+        new_ir_blocks_all = self.post_add_bloc(block, ir_blocks_all)
+        for irblock in new_ir_blocks_all:
+            self.blocks[irblock.label] = irblock
+        return new_ir_blocks_all
 
     def expr_fix_regs_for_mode(self, expr, *args, **kwargs):
         return expr
@@ -536,8 +584,8 @@ class IntermediateRepresentation(object):
     def expraff_fix_regs_for_mode(self, expr, *args, **kwargs):
         return expr
 
-    def irbloc_fix_regs_for_mode(self, irbloc, *args, **kwargs):
-        return
+    def irbloc_fix_regs_for_mode(self, irblock, *args, **kwargs):
+        return irblock
 
     def is_pc_written(self, block):
         all_pc = self.arch.pc.values()
@@ -548,7 +596,7 @@ class IntermediateRepresentation(object):
         return None
 
     def set_empty_dst_to_next(self, block, ir_blocks):
-        for irblock in ir_blocks:
+        for index, irblock in enumerate(ir_blocks):
             if irblock.dst is not None:
                 continue
             next_lbl = block.get_next()
@@ -558,18 +606,20 @@ class IntermediateRepresentation(object):
             else:
                 dst = m2_expr.ExprId(next_lbl,
                                      self.pc.size)
-            irblock.irs.append(AssignBlock({self.IRDst: dst},
-                                           irblock.irs[-1].instr))
+            assignblk = AssignBlock({self.IRDst: dst}, irblock.irs[-1].instr)
+            ir_blocks[index] = IRBlock(irblock.label, list(irblock.irs) + [assignblk])
 
     def post_add_bloc(self, block, ir_blocks):
         self.set_empty_dst_to_next(block, ir_blocks)
 
+        new_irblocks = []
         for irblock in ir_blocks:
-            self.irbloc_fix_regs_for_mode(irblock, self.attrib)
-            self.blocks[irblock.label] = irblock
-
+            new_irblock = self.irbloc_fix_regs_for_mode(irblock, self.attrib)
+            self.blocks[irblock.label] = new_irblock
+            new_irblocks.append(new_irblock)
         # Forget graph if any
         self._graph = None
+        return new_irblocks
 
     def get_instr_label(self, instr):
         """Returns the label associated to an instruction
@@ -683,16 +733,14 @@ class IntermediateRepresentation(object):
 
     def remove_empty_assignblks(self):
         modified = False
-        for block in self.blocks.itervalues():
-            to_del = []
-            for idx, assignblk in enumerate(block.irs):
-                if len(assignblk) == 0:
-                    to_del.append(idx)
-            for idx in reversed(to_del):
-                del block.irs[idx]
-                block._dst_linenb = None
-                block._dst = None
-                modified = True
+        for label, block in self.blocks.iteritems():
+            irs = []
+            for assignblk in block.irs:
+                if len(assignblk):
+                    irs.append(assignblk)
+                else:
+                    modified = True
+            self.blocks[label] = IRBlock(label, irs)
         return modified
 
     def remove_jmp_blocks(self):
@@ -714,11 +762,12 @@ class IntermediateRepresentation(object):
                 continue
             if not expr_is_label(assignblk[self.IRDst]):
                 continue
-            jmp_blocks.add(block)
+            jmp_blocks.add(block.label)
 
         # Remove them, relink graph
         modified = False
-        for block in jmp_blocks:
+        for label in jmp_blocks:
+            block = self.blocks[label]
             dst_label = block.dst.name
             parents = self.graph.predecessors(block.label)
             for lbl in parents:
@@ -752,13 +801,14 @@ class IntermediateRepresentation(object):
                         dst = src1
                 else:
                     continue
-                parent.dst = dst
+                new_parent = parent.set_dst(dst)
+                self.blocks[parent.label] = new_parent
 
         # Remove unlinked useless nodes
-        for block in jmp_blocks:
-            if (len(self.graph.predecessors(block.label)) == 0 and
-                len(self.graph.successors(block.label)) == 0):
-                self.graph.del_node(block.label)
+        for label in jmp_blocks:
+            if (len(self.graph.predecessors(label)) == 0 and
+                len(self.graph.successors(label)) == 0):
+                self.graph.del_node(label)
         return modified
 
     def merge_blocks(self):
@@ -782,7 +832,7 @@ class IntermediateRepresentation(object):
                 continue
             # Block has one son, son has one parent => merge
             assignblks =[]
-            for linenb, assignblk in enumerate(self.blocks[block].irs):
+            for assignblk in self.blocks[block].irs:
                 if self.IRDst not in assignblk:
                     assignblks.append(assignblk)
                     continue

@@ -1,5 +1,5 @@
 from miasm2.expression.expression import *
-from miasm2.ir.ir import IntermediateRepresentation, IRBlock
+from miasm2.ir.ir import IntermediateRepresentation, IRBlock, AssignBlock
 from miasm2.arch.arm.arch import mn_arm, mn_armt
 from miasm2.arch.arm.regs import *
 
@@ -1055,7 +1055,7 @@ def add_condition_expr(ir, instr, cond, instr_ir):
             break
     if not has_irdst:
         instr_ir.append(ExprAff(ir.IRDst, lbl_next))
-    e_do = IRBlock(lbl_do.name, [instr_ir])
+    e_do = IRBlock(lbl_do.name, [AssignBlock(instr_ir, instr)])
     e = [ExprAff(ir.IRDst, dst_cond)]
     return e, [e_do]
 
@@ -1246,20 +1246,15 @@ class ir_arml(IntermediateRepresentation):
                                   args[-1].args[0],
                                   args[-1].args[-1][:8].zeroExtend(32))
         instr_ir, extra_ir = get_mnemo_expr(self, instr, *args)
-        # if self.name.startswith('B'):
-        #    return instr_ir, extra_ir
-        for i, x in enumerate(instr_ir):
-            x = ExprAff(x.dst, x.src.replace_expr(
-                {self.pc: ExprInt(instr.offset + 8, 32)}))
-            instr_ir[i] = x
-        for irblock in extra_ir:
-            for irs in irblock.irs:
-                for i, x in enumerate(irs):
-                    x = ExprAff(x.dst, x.src.replace_expr(
-                        {self.pc: ExprInt(instr.offset + 8, 32)}))
-                    irs[i] = x
-        # return out_ir, extra_ir
-        return instr_ir, extra_ir
+
+        pc_fixed = {self.pc: ExprInt(instr.offset + 8, 32)}
+        for i, expr in enumerate(instr_ir):
+            instr_ir[i] = ExprAff(expr.dst, expr.src.replace_expr(pc_fixed))
+
+        new_extra_ir = [irblock.modify_exprs(mod_src=lambda expr: expr.replace_expr(pc_fixed))
+                        for irblock in extra_ir]
+
+        return instr_ir, new_extra_ir
 
 
 class ir_armb(ir_arml):
