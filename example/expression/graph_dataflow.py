@@ -5,7 +5,7 @@ from pprint import pprint
 from miasm2.expression.expression import get_expr_mem
 from miasm2.arch.x86.ira import ir_a_x86_32
 from miasm2.arch.x86.disasm import dis_x86_32
-from miasm2.analysis.data_analysis import intra_bloc_flow_raw, inter_bloc_flow
+from miasm2.analysis.data_analysis import intra_block_flow_raw, inter_block_flow
 from miasm2.core.graph import DiGraph
 from miasm2.ir.symbexec import SymbolicExecutionEngine
 from miasm2.analysis.data_flow import dead_simp
@@ -50,14 +50,13 @@ def get_modified_symbols(sb):
     return out
 
 
-def intra_bloc_flow_symb(ir_arch, flow_graph, irblock):
+def intra_block_flow_symb(ir_arch, flow_graph, irblock, in_nodes, out_nodes):
     symbols_init = ir_arch.arch.regs.regs_init.copy()
     sb = SymbolicExecutionEngine(ir_arch, symbols_init)
     sb.emulbloc(irblock)
     print '*' * 40
     print irblock
-    in_nodes = {}
-    out_nodes = {}
+
 
     out = get_modified_symbols(sb)
     current_nodes = {}
@@ -102,9 +101,6 @@ def intra_bloc_flow_symb(ir_arch, flow_graph, irblock):
                 flow_graph.add_node(node_n_w)
                 flow_graph.add_uniq_edge(node_n_r, node_n_w)
 
-    irblock.in_nodes = in_nodes
-    irblock.out_nodes = out_nodes
-
 
 def node2str(self, node):
     out = "%s,%s\\l\\\n%s" % node
@@ -126,16 +122,23 @@ def gen_block_data_flow_graph(ir_arch, ad, block_flow_cb):
     flow_graph = DiGraph()
     flow_graph.node2str = lambda n: node2str(flow_graph, n)
 
-    for irblock in ir_arch.blocks.values():
-        block_flow_cb(ir_arch, flow_graph, irblock)
 
-    for irblock in ir_arch.blocks.values():
-        print irblock
-        print 'IN', [str(x) for x in irblock.in_nodes]
-        print 'OUT', [str(x) for x in irblock.out_nodes]
+    irb_in_nodes = {}
+    irb_out_nodes = {}
+    for label in ir_arch.blocks:
+        irb_in_nodes[label] = {}
+        irb_out_nodes[label] = {}
+
+    for label, irblock in ir_arch.blocks.iteritems():
+        block_flow_cb(ir_arch, flow_graph, irblock, irb_in_nodes[label], irb_out_nodes[label])
+
+    for label in ir_arch.blocks:
+        print label
+        print 'IN', [str(x) for x in irb_in_nodes[label]]
+        print 'OUT', [str(x) for x in irb_out_nodes[label]]
 
     print '*' * 20, 'interblock', '*' * 20
-    inter_bloc_flow(ir_arch, flow_graph, irblock_0.label)
+    inter_block_flow(ir_arch, flow_graph, irblock_0.label, irb_in_nodes, irb_out_nodes)
 
     # from graph_qt import graph_qt
     # graph_qt(flow_graph)
@@ -166,9 +169,9 @@ for irblock in ir_arch.blocks.values():
 
 
 if args.symb:
-    block_flow_cb = intra_bloc_flow_symb
+    block_flow_cb = intra_block_flow_symb
 else:
-    block_flow_cb = intra_bloc_flow_raw
+    block_flow_cb = intra_block_flow_raw
 
 gen_block_data_flow_graph(ir_arch, ad, block_flow_cb)
 
