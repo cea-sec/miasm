@@ -23,6 +23,8 @@ from miasm2.arch.x86.arch import mn_x86, repeat_mn, replace_regs
 from miasm2.expression.expression_helper import expr_cmps, expr_cmpu
 from miasm2.ir.ir import IntermediateRepresentation, IRBlock, AssignBlock
 from miasm2.core.sembuilder import SemBuilder
+from miasm2.jitter.csts import EXCEPT_DIV_BY_ZERO, EXCEPT_ILLEGAL_INSN, \
+    EXCEPT_PRIV_INSN, EXCEPT_SOFT_BP, EXCEPT_INT_XX
 import math
 import struct
 
@@ -36,22 +38,6 @@ ctx = {'mRAX': mRAX,
        }
 sbuild = SemBuilder(ctx)
 
-# interrupt with eip update after instr
-EXCEPT_SOFT_BP = (1 << 1)
-EXCEPT_INT_XX = (1 << 2)
-
-EXCEPT_BREAKPOINT_INTERN = (1 << 10)
-
-EXCEPT_NUM_UPDT_EIP = (1 << 11)
-# interrupt with eip at instr
-EXCEPT_UNK_MEM_AD = (1 << 12)
-EXCEPT_THROW_SEH = (1 << 13)
-EXCEPT_UNK_EIP = (1 << 14)
-EXCEPT_ACCESS_VIOL = (1 << 14)
-EXCEPT_INT_DIV_BY_ZERO = (1 << 16)
-EXCEPT_PRIV_INSN = (1 << 17)
-EXCEPT_ILLEGAL_INSN = (1 << 18)
-EXCEPT_UNK_MNEMO = (1 << 19)
 
 
 """
@@ -1441,7 +1427,7 @@ def loope(ir, instr, dst):
 # XXX size to do; eflag
 
 
-def div(_, instr, src1):
+def div(ir, instr, src1):
     e = []
     size = src1.size
     if size == 8:
@@ -1461,12 +1447,32 @@ def div(_, instr, src1):
     else:
         e.append(m2_expr.ExprAff(s1, c_r[:size]))
         e.append(m2_expr.ExprAff(s2, c_d[:size]))
-    return e, []
+
+    lbl_div = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
+    lbl_except = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
+    lbl_next = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
+
+    do_div = []
+    do_div += e
+    do_div.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
+    blk_div = IRBlock(lbl_div.name, [do_div])
+
+    do_except = []
+    do_except.append(m2_expr.ExprAff(exception_flags, m2_expr.ExprInt(
+        EXCEPT_DIV_BY_ZERO, exception_flags.size)))
+    do_except.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
+    blk_except = IRBlock(lbl_except.name, [do_except])
+
+    e = []
+    e.append(m2_expr.ExprAff(ir.IRDst,
+                             m2_expr.ExprCond(src1, lbl_div, lbl_except)))
+
+    return e, [blk_div, blk_except]
 
 
 # XXX size to do; eflag
 
-def idiv(_, instr, src1):
+def idiv(ir, instr, src1):
     e = []
     size = src1.size
 
@@ -1487,7 +1493,27 @@ def idiv(_, instr, src1):
     else:
         e.append(m2_expr.ExprAff(s1, c_r[:size]))
         e.append(m2_expr.ExprAff(s2, c_d[:size]))
-    return e, []
+
+    lbl_div = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
+    lbl_except = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
+    lbl_next = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
+
+    do_div = []
+    do_div += e
+    do_div.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
+    blk_div = IRBlock(lbl_div.name, [do_div])
+
+    do_except = []
+    do_except.append(m2_expr.ExprAff(exception_flags, m2_expr.ExprInt(
+        EXCEPT_DIV_BY_ZERO, exception_flags.size)))
+    do_except.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
+    blk_except = IRBlock(lbl_except.name, [do_except])
+
+    e = []
+    e.append(m2_expr.ExprAff(ir.IRDst,
+                             m2_expr.ExprCond(src1, lbl_div, lbl_except)))
+
+    return e, [blk_div, blk_except]
 
 
 # XXX size to do; eflag

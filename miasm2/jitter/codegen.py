@@ -25,7 +25,6 @@ class Attributes(object):
         self.mem_read = False
         self.mem_write = False
         self.set_exception = False
-        self.op_set_exception = False
         self.log_mn = log_mn
         self.log_regs = log_regs
         self.instr = None
@@ -35,8 +34,6 @@ class CGen(object):
     """
     Helper to generate C code for a given AsmBlock
     """
-
-    IMPLICIT_EXCEPTION_OP = set(['umod', 'udiv'])
 
     """
     Translate native assembly block to C
@@ -325,7 +322,7 @@ class CGen(object):
         out = []
         if attrib.mem_read | attrib.mem_write:
             out += (self.CODE_VM_EXCEPTION_POST_INSTR % (self.C_PC)).split('\n')
-        if attrib.set_exception or attrib.op_set_exception:
+        if attrib.set_exception:
             out += (self.CODE_CPU_EXCEPTION_POST_INSTR % (self.C_PC)).split('\n')
 
         if attrib.mem_read | attrib.mem_write:
@@ -437,10 +434,6 @@ class CGen(object):
         if c_prefetch:
             out += self.gen_check_memory_exception(attrib.instr.offset)
 
-        # Check if operator raised exception flags
-        if attrib.op_set_exception:
-            out += self.gen_check_cpu_exception(attrib.instr.offset)
-
         out.append("// Mem updt")
         out += c_mem
 
@@ -462,12 +455,6 @@ class CGen(object):
 
         return out
 
-    def is_exception_operator(self, operator):
-        """Return True if the @op operator can raise a runtime exception"""
-
-        return any(operator.startswith(except_op)
-                   for except_op in self.IMPLICIT_EXCEPTION_OP)
-
     def get_caracteristics(self, assignblk, attrib):
         """
         Set the carateristics in @attrib according to the @assignblk
@@ -479,10 +466,6 @@ class CGen(object):
         attrib.set_exception = self.ir_arch.arch.regs.exception_flags in assignblk
 
         element_read = assignblk.get_r(mem_read=True)
-        # Check implicit exception raising
-        attrib.op_set_exception = any(self.is_exception_operator(operator)
-                                      for elem in assignblk.values()
-                                      for operator in m2_expr.get_expr_ops(elem))
         # Check mem read
         attrib.mem_read = any(isinstance(expr, m2_expr.ExprMem)
                               for expr in element_read)
@@ -513,7 +496,6 @@ class CGen(object):
                 attrib.instr = instr
                 instr_attrib.mem_read |= attrib.mem_read
                 instr_attrib.mem_write |= attrib.mem_write
-                instr_attrib.op_set_exception |= attrib.op_set_exception
                 instr_attrib.set_exception |= attrib.set_exception
 
         return instr_attrib, irblocks_attributes

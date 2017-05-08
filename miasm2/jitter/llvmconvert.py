@@ -242,23 +242,6 @@ class LLVMContext_JIT(LLVMContext):
                                               "args": [LLVMType.IntType(k),
                                                        LLVMType.IntType(k)]}})
 
-        for k in [16, 32, 64]:
-            self.add_fc({"imod%s" % k: {"ret": LLVMType.IntType(k),
-                                        "args": [p8,
-                                                 LLVMType.IntType(k),
-                                                 LLVMType.IntType(k)]}})
-            self.add_fc({"idiv%s" % k: {"ret": LLVMType.IntType(k),
-                                        "args": [p8,
-                                                 LLVMType.IntType(k),
-                                                 LLVMType.IntType(k)]}})
-            self.add_fc({"umod%s" % k: {"ret": LLVMType.IntType(k),
-                                        "args": [p8,
-                                                 LLVMType.IntType(k),
-                                                 LLVMType.IntType(k)]}})
-            self.add_fc({"udiv%s" % k: {"ret": LLVMType.IntType(k),
-                                        "args": [p8,
-                                                 LLVMType.IntType(k),
-                                                 LLVMType.IntType(k)]}})
 
     def add_log_functions(self):
         "Add functions for state logging"
@@ -745,11 +728,21 @@ class LLVMFunction():
                 return ret
 
             if op in ["imod", "idiv", "umod", "udiv"]:
-                fc_ptr = self.mod.get_global(
-                    "%s%s" % (op, expr.args[0].size))
-                args_casted = [self.add_ir(arg) for arg in expr.args]
-                args = [self.local_vars["vmcpu"]] + args_casted
-                ret = builder.call(fc_ptr, args)
+                assert len(expr.args) == 2
+
+                arg_b = self.add_ir(expr.args[1])
+                arg_a = self.add_ir(expr.args[0])
+
+                if op == "imod":
+                    callback = builder.srem
+                elif op == "idiv":
+                    callback = builder.sdiv
+                elif op == "umod":
+                    callback = builder.urem
+                elif op == "udiv":
+                    callback = builder.udiv
+
+                ret = callback(arg_a, arg_b)
                 self.update_cache(expr, ret)
                 return ret
 
@@ -1020,8 +1013,6 @@ class LLVMFunction():
             fc_ptr = self.mod.get_global("check_invalid_code_blocs")
             self.builder.call(fc_ptr, [self.local_vars["vmmngr"]])
             self.check_memory_exception(next_instr, restricted_exception=False)
-        if attrib.set_exception or attrib.op_set_exception:
-            self.check_cpu_exception(next_instr, restricted_exception=False)
 
         if attrib.mem_read | attrib.mem_write:
             fc_ptr = self.mod.get_global("reset_memory_access")
@@ -1145,10 +1136,6 @@ class LLVMFunction():
             if attributes[index].mem_read:
                 self.check_memory_exception(instr.offset,
                                             restricted_exception=True)
-
-            # Check operation exception
-            if attributes[index].op_set_exception:
-                self.check_cpu_exception(instr.offset, restricted_exception=True)
 
             # Update the memory
             for dst, src in values.iteritems():

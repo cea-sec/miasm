@@ -224,55 +224,55 @@ unsigned int rcr_rez_op(unsigned int size, unsigned int a, unsigned int b, unsig
 
 
 #define UDIV(sizeA)						\
-    uint ## sizeA ## _t udiv ## sizeA (vm_cpu_t* vmcpu, uint ## sizeA ## _t a, uint ## sizeA ## _t b) \
-	    {								\
-	    uint ## sizeA ## _t r;						\
-	    if (b == 0) {						\
-		    vmcpu->exception_flags |= EXCEPT_INT_DIV_BY_ZERO;	\
-		    return 0;						\
-	    }								\
-	    r = a/b;							\
-	    return r;							\
-	    }
+	uint ## sizeA ## _t udiv ## sizeA (vm_cpu_t* vmcpu, uint ## sizeA ## _t a, uint ## sizeA ## _t b) \
+	{								\
+		uint ## sizeA ## _t r;					\
+		if (b == 0) {						\
+			fprintf(stderr, "Should not happen\n");		\
+			exit(0);					\
+		}							\
+		r = a/b;						\
+		return r;						\
+	}
 
 
 #define UMOD(sizeA)						\
-    uint ## sizeA ## _t umod ## sizeA (vm_cpu_t* vmcpu, uint ## sizeA ## _t a, uint ## sizeA ## _t b) \
-	    {								\
-	    uint ## sizeA ## _t r;						\
-	    if (b == 0) {						\
-		    vmcpu->exception_flags |= EXCEPT_INT_DIV_BY_ZERO;	\
-		    return 0;						\
-	    }								\
-	    r = a%b;							\
-	    return r;							\
-	    }
+	uint ## sizeA ## _t umod ## sizeA (vm_cpu_t* vmcpu, uint ## sizeA ## _t a, uint ## sizeA ## _t b) \
+	{								\
+		uint ## sizeA ## _t r;					\
+		if (b == 0) {						\
+			fprintf(stderr, "Should not happen\n");		\
+			exit(0);					\
+		}							\
+		r = a%b;						\
+		return r;						\
+	}
 
 
 #define IDIV(sizeA)						\
-    int ## sizeA ## _t idiv ## sizeA (vm_cpu_t* vmcpu, int ## sizeA ## _t a, int ## sizeA ## _t b) \
-	    {								\
-	    int ## sizeA ## _t r;						\
-	    if (b == 0) {						\
-		    vmcpu->exception_flags |= EXCEPT_INT_DIV_BY_ZERO;	\
-		    return 0;						\
-	    }								\
-	    r = a/b;							\
-	    return r;							\
-	    }
+	int ## sizeA ## _t idiv ## sizeA (vm_cpu_t* vmcpu, int ## sizeA ## _t a, int ## sizeA ## _t b) \
+	{								\
+		int ## sizeA ## _t r;					\
+		if (b == 0) {						\
+			fprintf(stderr, "Should not happen\n");		\
+			exit(0);					\
+		}							\
+		r = a/b;						\
+		return r;						\
+	}
 
 
 #define IMOD(sizeA)						\
-    int ## sizeA ## _t imod ## sizeA (vm_cpu_t* vmcpu, int ## sizeA ## _t a, int ## sizeA ## _t b) \
-	    {								\
-	    int ## sizeA ## _t r;						\
-	    if (b == 0) {						\
-		    vmcpu->exception_flags |= EXCEPT_INT_DIV_BY_ZERO;	\
-		    return 0;						\
-	    }								\
-	    r = a%b;							\
-	    return r;							\
-	    }
+	int ## sizeA ## _t imod ## sizeA (vm_cpu_t* vmcpu, int ## sizeA ## _t a, int ## sizeA ## _t b) \
+	{								\
+		int ## sizeA ## _t r;					\
+		if (b == 0) {						\
+			fprintf(stderr, "Should not happen\n");		\
+			exit(0);					\
+		}							\
+		r = a%b;						\
+		return r;						\
+	}
 
 
 void memory_access_list_init(struct memory_access_list * access);
