@@ -45,7 +45,7 @@ class AsmLabel(object):
         self.name = name
         self.attrib = None
         if offset is None:
-            self.offset = offset
+            self.offset = None
         else:
             self.offset = int(offset)
 

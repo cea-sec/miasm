@@ -297,13 +297,13 @@ class IRBlock(object):
 
     @property
     def dst(self):
-        """Find the IRDst affectation and update dst, dst_linenb accordingly"""
+        """Return the value of IRDst for the IRBlock"""
         if self.is_dst_set():
             return self._dst
         return self.cache_dst()
 
     def set_dst(self, value):
-        """Generate a new IRBlock with a dst fixed to @value"""
+        """Generate a new IRBlock with a dst (IRBlock) fixed to @value"""
         irs = []
         dst_found = False
         for assignblk in self.irs:
