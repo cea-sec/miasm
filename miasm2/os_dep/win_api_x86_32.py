@@ -1418,8 +1418,10 @@ def kernel32_lstrcpyn(jitter):
     ret_ad, args = jitter.func_args_stdcall(["ptr_str1", "ptr_str2",
                                              "mlen"])
     s2 = jitter.get_str_ansi(args.ptr_str2)
-    s2 = s2[:args.mlen]
-    jitter.vm.set_mem(args.ptr_str1, s2)
+    if len(s2) >= args.mlen:
+        s2 = s2[:args.mlen - 1]
+    log.info("Copy '%r'", s2)
+    jitter.set_str_ansi(args.ptr_str1, s2)
     jitter.func_ret_stdcall(ret_ad, args.ptr_str1)
 
 
