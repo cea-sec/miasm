@@ -275,8 +275,10 @@ testset += RegressionTest(["depgraph.py"], base_dir="analysis",
                           ["graph_test_%02d_%02d.dot" % (test_nb, res_nb)
                            for (test_nb, res_nb) in ((3, 1), (5, 1), (8, 1),
                                                      (9, 1), (10, 1),
-                                                     (12, 1), (13, 1),
-                                                     (14, 1), (15, 1))
+                                                     (12, 1), (12, 2),
+                                                     (13, 1), (13, 2),
+                                                     (14, 1), (14, 2),
+                                                     (15, 1))
                            ])
 testset += RegressionTest(["modularintervals.py"], base_dir="analysis")
 for jitter in ArchUnitTest.jitter_engines:
@@ -303,10 +305,11 @@ class TestDepgraph(RegressionTest):
 
 
     def __init__(self, test_nb, implicit, base_addr, target_addr, elements,
-                 *args, **kwargs):
+                 nb_sol, *args, **kwargs):
         super(TestDepgraph, self).__init__([self.launcher],
                                            *args, **kwargs)
         self.base_dir = os.path.join(self.base_dir, "analysis")
+        self.products = ["sol_%d.dot" % i for i in xrange(nb_sol)]
         if implicit:
             expected_fname = "dg_test_%.2d_implicit_expected.json"
             self.tags.append(TAGS["z3"])
@@ -326,18 +329,18 @@ class TestDepgraph(RegressionTest):
             self.command_line.append("-i")
 
 # Depgraph emulation regression test
-test_args = [(0x401000, 0x40100d, ["EAX"]),
-             (0x401000, 0x401011, ["EAX"]),
-             (0x401000, 0x401018, ["EAX"]),
-             (0x401000, 0x401011, ["EAX"]),
-             (0x401000, 0x401011, ["EAX"]),
-             (0x401000, 0x401016, ["EAX"]),
-             (0x401000, 0x401017, ["EAX"]),
-             (0x401000, 0x401012, ["EAX", "ECX"]),
-             (0x401000, 0x401012, ["ECX"]),
-             (0x401000, 0x40101f, ["EAX", "EBX"]),
-             (0x401000, 0x401025, ["EAX", "EBX"]),
-             (0x401000, 0x401007, ["EBX"]),
+test_args = [(0x401000, 0x40100d, ["EAX"], 1),
+             (0x401000, 0x401011, ["EAX"], 1),
+             (0x401000, 0x401018, ["EAX"], 2),
+             (0x401000, 0x401011, ["EAX"], 2),
+             (0x401000, 0x401011, ["EAX"], 1),
+             (0x401000, 0x401016, ["EAX"], 1),
+             (0x401000, 0x401017, ["EAX"], 2),
+             (0x401000, 0x401012, ["EAX", "ECX"], 1),
+             (0x401000, 0x401012, ["ECX"], 1),
+             (0x401000, 0x40101f, ["EAX", "EBX"], 2),
+             (0x401000, 0x401025, ["EAX", "EBX"], 4),
+             (0x401000, 0x401007, ["EBX"], 3),
 ]
 for i, test_args in enumerate(test_args):
     test_dg = SemanticTestAsm("x86_32", "PE", ["dg_test_%.2d" % i])
