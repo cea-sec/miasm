@@ -292,7 +292,7 @@ class TranslatorC(Translator):
                     )
                 return out
 
-            elif expr.op in ['-']:
+            elif expr.op in ['-', '<', '<=']:
                 return '(((%s&%s) %s (%s&%s))&%s)' % (
                     self.from_expr(expr.args[0]),
                     self._size2mask(expr.args[0].size),
