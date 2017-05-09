@@ -1371,6 +1371,7 @@ def my_lstrcmp(jitter, funcname, get_str):
     ret_ad, args = jitter.func_args_stdcall(["ptr_str1", "ptr_str2"])
     s1 = get_str(args.ptr_str1)
     s2 = get_str(args.ptr_str2)
+    log.info("Compare %r with %r", s1, s2)
     jitter.func_ret_stdcall(ret_ad, cmp(s1, s2))
 
 
@@ -1398,6 +1399,7 @@ def my_strcpy(jitter, funcname, get_str, set_str):
     ret_ad, args = jitter.func_args_stdcall(["ptr_str1", "ptr_str2"])
     s2 = get_str(args.ptr_str2)
     set_str(args.ptr_str1, s2)
+    log.info("Copy '%r'", s2)
     jitter.func_ret_stdcall(ret_ad, args.ptr_str1)
 
 
@@ -1428,7 +1430,9 @@ def kernel32_lstrcpyn(jitter):
 def my_strlen(jitter, funcname, get_str, mylen):
     ret_ad, args = jitter.func_args_stdcall(["src"])
     src = get_str(args.src)
-    jitter.func_ret_stdcall(ret_ad, mylen(src))
+    length = mylen(src)
+    log.info("Len of '%r' -> 0x%x", src, length)
+    jitter.func_ret_stdcall(ret_ad, length)
 
 
 def kernel32_lstrlenA(jitter):
