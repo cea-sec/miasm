@@ -33,7 +33,13 @@ class AssignBlock(object):
     EAX = EBX
     EBX = EAX
 
-    Also provides common manipulation on this assignments
+    -> Exchange between EBX and EAX
+
+    AssignBlock can be seen as a dictionnary where keys are the destinations
+    (ExprId or ExprMem), and values their corresponding sources.
+
+    Also provides common manipulation on this assignments.
+
     """
     __slots__ = ["_assigns", "_instr"]
 
