@@ -504,6 +504,13 @@ class SymbolicExecutionEngine(object):
 
         return ret
 
+    def as_assignblock(self):
+        """Return the current state as an AssignBlock"""
+        return AssignBlock({
+            dst: self.symbols[dst] for dst in self.modified()
+        })
+
+
 class symbexec(SymbolicExecutionEngine):
     """
     DEPRECATED object
