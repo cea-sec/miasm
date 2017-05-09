@@ -124,6 +124,10 @@ class AssignBlock(object):
             args = [expr for (expr, _, _) in args]
             new_src = m2_expr.ExprCompose(*args)
 
+        # Sanity check
+        if not isinstance(new_dst, (m2_expr.ExprId, m2_expr.ExprMem)):
+            raise TypeError("Destination cannot be a %s" % type(new_dst))
+
         self._assigns[new_dst] = new_src
 
     def __setitem__(self, dst, src):
