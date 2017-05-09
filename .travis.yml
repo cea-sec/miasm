@@ -49,4 +49,4 @@ before_script:
 - "cd miasm;"
 - "python setup.py build build_ext -I$(pwd)/../virtualenv/include -L$(pwd)/../virtualenv/tinycc"
 - "python setup.py install"
-script: "python -c 'import z3; x = z3.BitVec(chr(0x41), 32)' && cd test && python test_all.py"
+script: "python -c 'import z3; x = z3.BitVec(chr(0x41), 32)' && cd test && python test_all.py && git ls-files -o --exclude-standard"
