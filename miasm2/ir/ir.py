@@ -33,7 +33,13 @@ class AssignBlock(object):
     EAX = EBX
     EBX = EAX
 
-    Also provides common manipulation on this assignments
+    -> Exchange between EBX and EAX
+
+    AssignBlock can be seen as a dictionnary where keys are the destinations
+    (ExprId or ExprMem), and values their corresponding sources.
+
+    Also provides common manipulation on this assignments.
+
     """
     __slots__ = ["_assigns", "_instr"]
 
@@ -123,6 +129,10 @@ class AssignBlock(object):
             assert len(set(starts)) == len(starts)
             args = [expr for (expr, _, _) in args]
             new_src = m2_expr.ExprCompose(*args)
+
+        # Sanity check
+        if not isinstance(new_dst, (m2_expr.ExprId, m2_expr.ExprMem)):
+            raise TypeError("Destination cannot be a %s" % type(new_dst))
 
         self._assigns[new_dst] = new_src
 
