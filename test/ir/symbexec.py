@@ -75,6 +75,10 @@ class TestSymbExec(unittest.TestCase):
         self.assertEqual(e.apply_expr(assignblk.dst2ExprAff(id_x)), addr0)
         self.assertEqual(e.apply_expr(id_x), addr0)
 
+        # state
+        self.assertEqual(e.as_assignblock().get_r(), set([id_x, id_y]))
+
+
 if __name__ == '__main__':
     testsuite = unittest.TestLoader().loadTestsFromTestCase(TestSymbExec)
     report = unittest.TextTestRunner(verbosity=2).run(testsuite)

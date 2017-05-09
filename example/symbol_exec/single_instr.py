@@ -37,5 +37,6 @@ symb.dump_mem()
 
 # Check final status
 eax, ebx = ira.arch.regs.EAX, ira.arch.regs.EBX
-assert symb.symbols[eax] == symbols_init[ebx]
-assert eax in symb.modified()
+final_state = symb.as_assignblock()
+assert final_state[eax] == symbols_init[ebx]
+assert eax in final_state
