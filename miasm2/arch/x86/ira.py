@@ -1,9 +1,7 @@
 #-*- coding:utf-8 -*-
 
-from miasm2.expression.expression import ExprAff, ExprOp, ExprId
-from miasm2.core.graph import DiGraph
-from miasm2.core.asmbloc import expr_is_label
-from miasm2.ir.ir import ir, irbloc, AssignBlock
+from miasm2.expression.expression import ExprAff, ExprOp
+from miasm2.ir.ir import AssignBlock
 from miasm2.ir.analysis import ira
 from miasm2.arch.x86.sem import ir_x86_16, ir_x86_32, ir_x86_64
 
@@ -14,22 +12,8 @@ class ir_a_x86_16(ir_x86_16, ira):
         ir_x86_16.__init__(self, symbol_pool)
         self.ret_reg = self.arch.regs.AX
 
-    # for test XXX TODO
-    def set_dead_regs(self, b):
-        b.rw[-1][1].add(self.arch.regs.zf)
-        b.rw[-1][1].add(self.arch.regs.of)
-        b.rw[-1][1].add(self.arch.regs.pf)
-        b.rw[-1][1].add(self.arch.regs.cf)
-        b.rw[-1][1].add(self.arch.regs.nf)
-        b.rw[-1][1].add(self.arch.regs.af)
-
-    def get_out_regs(self, b):
+    def get_out_regs(self, _):
         return set([self.ret_reg, self.sp])
-
-    def add_unused_regs(self):
-        leaves = [self.blocs[n] for n in self.g.leafs()]
-        for b in leaves:
-            self.set_dead_regs(b)
 
 class ir_a_x86_32(ir_x86_32, ir_a_x86_16):
 
@@ -69,7 +53,9 @@ class ir_a_x86_64(ir_x86_64, ir_a_x86_16):
                                                           )),
                              ExprAff(self.sp, ExprOp('call_func_stack',
                                                      ad, self.sp)),
-                ])]
+                            ],
+                             instr
+                           )]
 
     def sizeof_char(self):
         return 8

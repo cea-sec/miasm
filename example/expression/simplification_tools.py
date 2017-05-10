@@ -1,10 +1,5 @@
 from miasm2.expression.expression import *
 from pdb import pm
-import os
-
-filename = os.environ.get('PYTHONSTARTUP')
-if filename and os.path.isfile(filename):
-    execfile(filename)
 
 print """
 Expression simplification demo.
@@ -21,8 +16,8 @@ e = ExprId('e')
 m = ExprMem(a)
 s = a[:8]
 
-i1 = ExprInt(uint32(0x1))
-i2 = ExprInt(uint32(0x2))
+i1 = ExprInt(0x1, 32)
+i2 = ExprInt(0x2, 32)
 cc = ExprCond(a, b, c)
 
 o = ExprCompose(a[8:16], a[:8])
@@ -33,12 +28,12 @@ l = [a[:8], b[:8], c[:8], m[:8], s, i1[:8], i2[:8], o[:8]]
 l2 = l[::-1]
 
 
-x = ExprMem(a + b + ExprInt32(0x42))
+x = ExprMem(a + b + ExprInt(0x42, 32))
 
 
 def replace_expr(e):
     # print 'visit', e
-    dct = {c + ExprInt32(0x42): d,
+    dct = {c + ExprInt(0x42, 32): d,
            a + b: c, }
     if e in dct:
         return dct[e]
@@ -60,9 +55,9 @@ print z.copy()
 print z[:31].copy().visit(replace_expr)
 
 print 'replace'
-print x.replace_expr({c + ExprInt32(0x42): d,
+print x.replace_expr({c + ExprInt(0x42, 32): d,
                       a + b: c, })
-print z.replace_expr({c + ExprInt32(0x42): d,
+print z.replace_expr({c + ExprInt(0x42, 32): d,
                       a + b: c, })
 
 

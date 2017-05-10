@@ -6,7 +6,6 @@ from miasm2.expression.expression import *
 from collections import defaultdict
 import miasm2.arch.sh4.regs as regs_module
 from miasm2.arch.sh4.regs import *
-from miasm2.core.asmbloc import asm_label
 
 jra = ExprId('jra')
 jrb = ExprId('jrb')
@@ -39,7 +38,7 @@ def ast_id2expr(t):
     return mn_sh4.regs.all_regs_ids_byname.get(t, t)
 
 def ast_int2expr(a):
-    return ExprInt32(a)
+    return ExprInt(a, 32)
 
 
 my_var_parser = ParseAst(ast_id2expr, ast_int2expr)
@@ -197,7 +196,7 @@ class sh4_dgpregpinc(m_arg):
         if not isinstance(e, ExprMem):
             return False
         e = e.arg
-        res = MatchExpr(e, ExprOp(self.op, jra), [jra])
+        res = match_expr(e, ExprOp(self.op, jra), [jra])
         if not res:
             return False
         r = res[jra]
@@ -220,7 +219,7 @@ class sh4_dgpreg_imm(sh4_dgpreg):
         p = self.parent
         r = gpregs.expr[v]
         s = self.sz
-        d = ExprInt32(p.disp.value * s / 8)
+        d = ExprInt(p.disp.value * s / 8, 32)
         e = ExprMem(r + d, s)
         self.expr = e
         return True
@@ -235,7 +234,7 @@ class sh4_dgpreg_imm(sh4_dgpreg):
             v = gpregs.expr.index(e.arg)
             p.disp.value = 0
         elif isinstance(e.arg, ExprOp):
-            res = MatchExpr(e, ExprMem(jra + jrb, self.sz), [jra, jrb])
+            res = match_expr(e, ExprMem(jra + jrb, self.sz), [jra, jrb])
             if not res:
                 return False
             if not isinstance(res[jra], ExprId):
@@ -264,7 +263,7 @@ class sh4_simm(sh4_imm):
     def decode(self, v):
         v = sign_ext(v, self.l, 32)
         v = self.decodeval(v)
-        self.expr = ExprInt32(v)
+        self.expr = ExprInt(v, 32)
         return True
 
     def encode(self):
@@ -282,7 +281,7 @@ class sh4_dpc16imm(sh4_dgpreg):
     parser = deref_pc
 
     def decode(self, v):
-        self.expr = ExprMem(PC + ExprInt32(v * 2 + 4), 16)
+        self.expr = ExprMem(PC + ExprInt(v * 2 + 4, 32), 16)
         return True
 
     def calcdisp(self, v):
@@ -292,7 +291,7 @@ class sh4_dpc16imm(sh4_dgpreg):
         return v
 
     def encode(self):
-        res = MatchExpr(self.expr, ExprMem(PC + jra, 16), [jra])
+        res = match_expr(self.expr, ExprMem(PC + jra, 16), [jra])
         if not res:
             return False
         if not isinstance(res[jra], ExprInt):
@@ -309,7 +308,7 @@ class sh4_dgbrimm8(sh4_dgpreg):
 
     def decode(self, v):
         s = self.sz
-        self.expr = ExprMem(GBR + ExprInt32(v * s / 8), s)
+        self.expr = ExprMem(GBR + ExprInt(v * s / 8, 32), s)
         return True
 
     def encode(self):
@@ -318,7 +317,7 @@ class sh4_dgbrimm8(sh4_dgpreg):
         if e == ExprMem(GBR):
             self.value = 0
             return True
-        res = MatchExpr(self.expr, ExprMem(GBR + jra, s), [jra])
+        res = match_expr(self.expr, ExprMem(GBR + jra, s), [jra])
         if not res:
             return False
         if not isinstance(res[jra], ExprInt):
@@ -332,7 +331,7 @@ class sh4_dpc32imm(sh4_dpc16imm):
 
     def decode(self, v):
         self.expr = ExprMem(
-            (PC & ExprInt32(0xfffffffc)) + ExprInt32(v * 4 + 4))
+            (PC & ExprInt(0xfffffffc, 32)) + ExprInt(v * 4 + 4, 32))
         return True
 
     def calcdisp(self, v):
@@ -342,8 +341,8 @@ class sh4_dpc32imm(sh4_dpc16imm):
         return v
 
     def encode(self):
-        res = MatchExpr(
-            self.expr, ExprMem((PC & ExprInt32(0xFFFFFFFC)) + jra, 32), [jra])
+        res = match_expr(
+            self.expr, ExprMem((PC & ExprInt(0xFFFFFFFC, 32)) + jra, 32), [jra])
         if not res:
             return False
         if not isinstance(res[jra], ExprInt):
@@ -359,11 +358,11 @@ class sh4_pc32imm(m_arg):
     parser = pcdisp
 
     def decode(self, v):
-        self.expr = (PC & ExprInt32(0xfffffffc)) + ExprInt32(v * 4 + 4)
+        self.expr = (PC & ExprInt(0xfffffffc, 32)) + ExprInt(v * 4 + 4, 32)
         return True
 
     def encode(self):
-        res = MatchExpr(self.expr, (PC & ExprInt32(0xfffffffc)) + jra, [jra])
+        res = match_expr(self.expr, (PC & ExprInt(0xfffffffc, 32)) + jra, [jra])
         if not res:
             return False
         if not isinstance(res[jra], ExprInt):
@@ -456,7 +455,7 @@ class instruction_sh4(instruction):
         print hex(off)
         if int(off % 4):
             raise ValueError('strange offset! %r' % off)
-        self.args[0] = ExprInt32(off)
+        self.args[0] = ExprInt(off, 32)
         print 'final', self.args[0]
 
     def get_args_expr(self):
@@ -552,7 +551,7 @@ class bs_dr0gp(sh4_dgpreg):
         return True
 
     def encode(self):
-        res = MatchExpr(self.expr, ExprMem(R0 + jra, self.sz), [jra])
+        res = match_expr(self.expr, ExprMem(R0 + jra, self.sz), [jra])
         if not res:
             return False
         r = res[jra]

@@ -24,8 +24,5 @@ else:
 if options.verbose is True:
     print sb.jitter.vm
 
-if options.address is None:
-    raise ValueError('Invalid address')
-
 # Run the code
 sb.run()

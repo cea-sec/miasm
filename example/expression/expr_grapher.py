@@ -9,7 +9,7 @@ d = ExprId("D")
 m = ExprMem(a + b + c + a)
 
 e1 = ExprCompose(a + b - (c * a) / m | b, a + m)
-e2 = ExprInt64(15)
+e2 = ExprInt(15, 64)
 e = ExprCond(d, e1, e2)[0:32]
 
 print "[+] Expression:"

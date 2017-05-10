@@ -1,5 +1,5 @@
 from miasm2.core.bin_stream import bin_stream_str
-from miasm2.core.asmbloc import asm_label, asm_constraint, expr_is_label
+from miasm2.core.asmblock import AsmLabel, AsmConstraint, expr_is_label
 from miasm2.arch.x86.disasm import dis_x86_32, cb_x86_funcs
 
 
@@ -34,7 +34,7 @@ def cb_x86_callpop(cur_bloc, symbol_pool, *args, **kwargs):
 
     # Update next blocks to process in the disassembly engine
     cur_bloc.bto.clear()
-    cur_bloc.add_cst(dst.name.offset, asm_constraint.c_next, symbol_pool)
+    cur_bloc.add_cst(dst.name.offset, AsmConstraint.c_next, symbol_pool)
 
 
 # Prepare a tiny shellcode

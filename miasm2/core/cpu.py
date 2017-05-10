@@ -8,7 +8,7 @@ from collections import defaultdict
 import pyparsing
 
 import miasm2.expression.expression as m2_expr
-from miasm2.core import asmbloc
+from miasm2.core import asmblock
 from miasm2.core.bin_stream import bin_stream, bin_stream_str
 from miasm2.core.utils import Disasm_Exception
 from miasm2.expression.simplifications import expr_simp
@@ -196,7 +196,7 @@ def ast_id2expr(a):
 
 
 def ast_int2expr(a):
-    return m2_expr.ExprInt32(a)
+    return m2_expr.ExprInt(a, 32)
 
 
 
@@ -232,7 +232,7 @@ class ParseAst(object):
         if size is None:
             size = self.default_size
         assert value is not None
-        return m2_expr.ExprId(asmbloc.asm_label(value), size)
+        return m2_expr.ExprId(asmblock.AsmLabel(value), size)
 
     def ast_to_expr(self, size, ast):
         """Transform a typed ast into a Miasm expression
@@ -974,7 +974,7 @@ class instruction(object):
             ids = m2_expr.get_expr_ids(e)
             fixed_ids = {}
             for x in ids:
-                if isinstance(x.name, asmbloc.asm_label):
+                if isinstance(x.name, asmblock.AsmLabel):
                     name = x.name.name
                     # special symbol $
                     if name == '$':
@@ -1558,19 +1558,19 @@ class imm_noarg(object):
 
 
 class imm08_noarg(object):
-    int2expr = lambda self, x: m2_expr.ExprInt08(x)
+    int2expr = lambda self, x: m2_expr.ExprInt(x, 8)
 
 
 class imm16_noarg(object):
-    int2expr = lambda self, x: m2_expr.ExprInt16(x)
+    int2expr = lambda self, x: m2_expr.ExprInt(x, 16)
 
 
 class imm32_noarg(object):
-    int2expr = lambda self, x: m2_expr.ExprInt32(x)
+    int2expr = lambda self, x: m2_expr.ExprInt(x, 32)
 
 
 class imm64_noarg(object):
-    int2expr = lambda self, x: m2_expr.ExprInt64(x)
+    int2expr = lambda self, x: m2_expr.ExprInt(x, 64)
 
 
 class int32_noarg(imm_noarg):

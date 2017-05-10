@@ -3,6 +3,7 @@
 # ----------------------------- #
 
 
+from miasm2.expression.modint import mod_size2int, mod_size2uint
 from miasm2.expression.expression import *
 from miasm2.expression.expression_helper import *
 
@@ -44,7 +45,7 @@ def simp_cst_propagation(e_s, e):
                 o = i1.arg << i2.arg
             elif op == 'a>>':
                 x1 = mod_size2int[i1.arg.size](i1.arg)
-                x2 = mod_size2int[i2.arg.size](i2.arg)
+                x2 = mod_size2uint[i2.arg.size](i2.arg)
                 o = mod_size2uint[i1.arg.size](x1 >> x2)
             elif op == '>>>':
                 o = (i1.arg >> (i2.arg % i2.size) |
@@ -103,7 +104,7 @@ def simp_cst_propagation(e_s, e):
 
     # -(int) => -int
     if op == '-' and len(args) == 1 and args[0].is_int():
-        return ExprInt(-args[0].arg)
+        return ExprInt(-int(args[0]), e.size)
     # A op 0 =>A
     if op in ['+', '|', "^", "<<", ">>", "<<<", ">>>"] and len(args) > 1:
         if args[-1].is_int(0):
@@ -237,7 +238,7 @@ def simp_cst_propagation(e_s, e):
 
     # parity(int) => int
     if op == 'parity' and args[0].is_int():
-        return ExprInt1(parity(args[0].arg))
+        return ExprInt(parity(int(args[0])), 1)
 
     # (-a) * b * (-c) * (-d) => (-a) * b * c * d
     if op == "*" and len(args) > 1:
@@ -580,8 +581,8 @@ def simp_cond(e_s, e):
     # eval exprcond src1/src2 with satifiable/unsatisfiable condition
     # propagation
     if (not e.cond.is_int()) and e.cond.size == 1:
-        src1 = e.src1.replace_expr({e.cond: ExprInt1(1)})
-        src2 = e.src2.replace_expr({e.cond: ExprInt1(0)})
+        src1 = e.src1.replace_expr({e.cond: ExprInt(1, 1)})
+        src2 = e.src2.replace_expr({e.cond: ExprInt(0, 1)})
         if src1 != e.src1 or src2 != e.src2:
             return ExprCond(e.cond, src1, src2)
 

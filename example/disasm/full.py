@@ -1,23 +1,20 @@
-import os
 import logging
 from argparse import ArgumentParser
 from pdb import pm
 
 from miasm2.analysis.binary import Container
-from miasm2.core.asmbloc import log_asmbloc, asm_label, AsmCFG
+from miasm2.core.asmblock import log_asmblock, AsmLabel, AsmCFG
 from miasm2.expression.expression import ExprId
 from miasm2.core.interval import interval
 from miasm2.analysis.machine import Machine
+from miasm2.analysis.data_flow import dead_simp, DiGraphDefUse, ReachingDefinitions
+from miasm2.expression.simplifications import expr_simp
 
 log = logging.getLogger("dis")
 console_handler = logging.StreamHandler()
 console_handler.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
 log.addHandler(console_handler)
 log.setLevel(logging.INFO)
-
-filename = os.environ.get('PYTHONSTARTUP')
-if filename and os.path.isfile(filename):
-    execfile(filename)
 
 
 parser = ArgumentParser("Disassemble a binary")
@@ -41,8 +38,8 @@ parser.add_argument('-z', "--dis-nulstart-block", action="store_true",
                     help="Do not disassemble NULL starting block")
 parser.add_argument('-l', "--dontdis-retcall", action="store_true",
                     help="If set, disassemble only call destinations")
-parser.add_argument('-s', "--simplify", action="store_true",
-                    help="Use the liveness analysis pass")
+parser.add_argument('-s', "--simplify", action="count",
+                    help="Apply simplifications rules (liveness, graph simplification, ...)")
 parser.add_argument('-o', "--shiftoffset", default=None,
                     type=lambda x: int(x, 0),
                     help="Shift input binary by an offset")
@@ -52,11 +49,14 @@ parser.add_argument('-i', "--image", action="store_true",
                     help="Display image representation of disasm")
 parser.add_argument('-c', "--rawbinary", default=False, action="store_true",
                     help="Don't interpret input as ELF/PE/...")
+parser.add_argument('-d', "--defuse", action="store_true",
+                    help="Dump the def-use graph in file 'defuse.dot'."
+                    "The defuse is dumped after simplifications if -s option is specified")
 
 args = parser.parse_args()
 
 if args.verbose:
-    log_asmbloc.setLevel(logging.DEBUG)
+    log_asmblock.setLevel(logging.DEBUG)
 
 log.info('Load binary')
 if args.rawbinary:
@@ -108,7 +108,7 @@ for ad in addrs:
 
 done = set()
 all_funcs = set()
-all_funcs_blocs = {}
+all_funcs_blocks = {}
 
 
 done_interval = interval()
@@ -121,27 +121,27 @@ while not finish and todo:
         if ad in done:
             continue
         done.add(ad)
-        ab = mdis.dis_multibloc(ad)
+        allblocks = mdis.dis_multibloc(ad)
 
         log.info('func ok %.16x (%d)' % (ad, len(all_funcs)))
 
         all_funcs.add(ad)
-        all_funcs_blocs[ad] = ab
-        for b in ab:
-            for l in b.lines:
+        all_funcs_blocks[ad] = allblocks
+        for block in allblocks:
+            for l in block.lines:
                 done_interval += interval([(l.offset, l.offset + l.l)])
 
         if args.funcswatchdog is not None:
             args.funcswatchdog -= 1
         if args.recurfunctions:
-            for b in ab:
-                i = b.get_subcall_instr()
-                if not i:
+            for block in allblocks:
+                instr = block.get_subcall_instr()
+                if not instr:
                     continue
-                for d in i.getdstflow(mdis.symbol_pool):
-                    if not (isinstance(d, ExprId) and isinstance(d.name, asm_label)):
+                for dest in instr.getdstflow(mdis.symbol_pool):
+                    if not (isinstance(dest, ExprId) and isinstance(dest.name, AsmLabel)):
                         continue
-                    todo.append((mdis, i, d.name.offset))
+                    todo.append((mdis, instr, dest.name.offset))
 
         if args.funcswatchdog is not None and args.funcswatchdog <= 0:
             finish = True
@@ -155,13 +155,13 @@ while not finish and todo:
 
 
 # Generate dotty graph
-all_blocs = AsmCFG()
-for blocs in all_funcs_blocs.values():
-    all_blocs += blocs
+all_blocks = AsmCFG()
+for blocks in all_funcs_blocks.values():
+    all_blocks += blocks
 
 
 log.info('generate graph file')
-open('graph_execflow.dot', 'w').write(all_blocs.dot(offset=True))
+open('graph_execflow.dot', 'w').write(all_blocks.dot(offset=True))
 
 log.info('generate intervals')
 
@@ -188,28 +188,44 @@ if args.gen_ir:
 
     ir_arch = ir(mdis.symbol_pool)
     ir_arch_a = ira(mdis.symbol_pool)
-    ir_arch.blocs = {}
-    ir_arch_a.blocs = {}
-    for ad, all_bloc in all_funcs_blocs.items():
+    ir_arch.blocks = {}
+    ir_arch_a.blocks = {}
+    for ad, all_block in all_funcs_blocks.items():
         log.info("generating IR... %x" % ad)
-        for b in all_bloc:
-            ir_arch_a.add_bloc(b)
-            ir_arch.add_bloc(b)
+        for block in all_block:
+            ir_arch_a.add_bloc(block)
+            ir_arch.add_bloc(block)
 
-    log.info("Print blocs (without analyse)")
-    for label, bloc in ir_arch.blocs.iteritems():
-        print bloc
+    log.info("Print blocks (without analyse)")
+    for label, block in ir_arch.blocks.iteritems():
+        print block
 
     log.info("Gen Graph... %x" % ad)
 
-    log.info("Print blocs (with analyse)")
-    for label, bloc in ir_arch_a.blocs.iteritems():
-        print bloc
+    log.info("Print blocks (with analyse)")
+    for label, block in ir_arch_a.blocks.iteritems():
+        print block
 
-    if args.simplify:
-        ir_arch_a.dead_simp()
+    if args.simplify > 0:
+        dead_simp(ir_arch_a)
+
+    if args.defuse:
+        reachings = ReachingDefinitions(ir_arch_a)
+        open('graph_defuse.dot', 'w').write(DiGraphDefUse(reachings).dot())
 
     out = ir_arch_a.graph.dot()
     open('graph_irflow.dot', 'w').write(out)
     out = ir_arch.graph.dot()
     open('graph_irflow_raw.dot', 'w').write(out)
+
+    if args.simplify > 1:
+        ir_arch_a.simplify(expr_simp)
+        modified = True
+        while modified:
+            modified = False
+            modified |= dead_simp(ir_arch_a)
+            modified |= ir_arch_a.remove_empty_assignblks()
+            modified |= ir_arch_a.remove_jmp_blocks()
+            modified |= ir_arch_a.merge_blocks()
+
+        open('graph_irflow_reduced.dot', 'w').write(ir_arch_a.graph.dot())

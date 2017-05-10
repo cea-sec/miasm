@@ -16,7 +16,7 @@ from llvmlite import binding as llvm
 from llvmlite import ir as llvm_ir
 import miasm2.expression.expression as m2_expr
 import miasm2.jitter.csts as m2_csts
-import miasm2.core.asmbloc as m2_asmbloc
+import miasm2.core.asmblock as m2_asmblock
 from miasm2.jitter.codegen import CGen
 from miasm2.expression.expression_helper import possible_values
 
@@ -503,15 +503,19 @@ class LLVMFunction():
             var_casted = var
         self.builder.ret(var_casted)
 
-    def canonize_label_name(self, label):
+    @staticmethod
+    def canonize_label_name(label):
         """Canonize @label names to a common form.
         @label: str or asmlabel instance"""
         if isinstance(label, str):
             return label
-        elif isinstance(label, m2_asmbloc.asm_label):
-            return "label_%s" % label.name
-        elif m2_asmbloc.expr_is_label(label):
-            return "label_%s" % label.name.name
+        if m2_asmblock.expr_is_label(label):
+            label = label.name
+        if isinstance(label, m2_asmblock.AsmLabel):
+            if label.offset is None:
+                return "label_%s" % label.name
+            else:
+                return "label_%X" % label.offset
         else:
             raise ValueError("label must either be str or asmlabel")
 
@@ -945,7 +949,7 @@ class LLVMFunction():
         if isinstance(offset, (int, long)):
             offset = self.add_ir(m2_expr.ExprInt(offset, PC.size))
         self.affect(offset, PC)
-        self.affect(self.add_ir(m2_expr.ExprInt8(1)), m2_expr.ExprId("status"))
+        self.affect(self.add_ir(m2_expr.ExprInt(1, 8)), m2_expr.ExprId("status"))
         self.set_ret(offset)
 
         builder.position_at_end(merge_block)
@@ -992,17 +996,17 @@ class LLVMFunction():
         if isinstance(offset, (int, long)):
             offset = self.add_ir(m2_expr.ExprInt(offset, PC.size))
         self.affect(offset, PC)
-        self.affect(self.add_ir(m2_expr.ExprInt8(1)), m2_expr.ExprId("status"))
+        self.affect(self.add_ir(m2_expr.ExprInt(1, 8)), m2_expr.ExprId("status"))
         self.set_ret(offset)
 
         builder.position_at_end(merge_block)
         # Reactivate object caching
         self.main_stream = current_main_stream
 
-    def gen_pre_code(self, attributes):
-        if attributes.log_mn:
-            self.printf("%.8X %s\n" % (attributes.instr.offset,
-                                       attributes.instr))
+    def gen_pre_code(self, instr_attrib):
+        if instr_attrib.log_mn:
+            self.printf("%.8X %s\n" % (instr_attrib.instr.offset,
+                                       instr_attrib.instr))
 
     def gen_post_code(self, attributes):
         if attributes.log_regs:
@@ -1038,7 +1042,7 @@ class LLVMFunction():
             index = dst2case.get(value, i)
             to_eval = to_eval.replace_expr({value: m2_expr.ExprInt(index, value.size)})
             dst2case[value] = index
-            if m2_asmbloc.expr_is_int_or_label(value):
+            if m2_asmblock.expr_is_int_or_label(value):
                 case2dst[i] = value
             else:
                 case2dst[i] = self.add_ir(value)
@@ -1068,7 +1072,7 @@ class LLVMFunction():
             dst = m2_expr.ExprId(self.llvm_context.ir_arch.symbol_pool.getby_offset_create(int(dst)),
                                  dst.size)
 
-        if m2_asmbloc.expr_is_label(dst):
+        if m2_asmblock.expr_is_label(dst):
             bbl = self.get_basic_bloc_by_label(dst)
             offset = dst.name.offset
             if bbl is not None:
@@ -1102,23 +1106,24 @@ class LLVMFunction():
         self.gen_post_code(attrib)
         self.affect(dst, PC)
         self.gen_post_instr_checks(attrib, dst)
-        self.affect(self.add_ir(m2_expr.ExprInt8(0)), m2_expr.ExprId("status"))
+        self.affect(self.add_ir(m2_expr.ExprInt(0, 8)), m2_expr.ExprId("status"))
         self.set_ret(dst)
 
 
-    def gen_irblock(self, attrib, instr, instr_offsets, irblock):
+    def gen_irblock(self, instr_attrib, attributes, instr_offsets, irblock):
         """
         Generate the code for an @irblock
-        @instr: the current instruction to translate
-        @irblock: an irbloc instance
-        @attrib: an Attributs instance
+        @instr_attrib: an Attributs instance or the instruction to translate
+        @attributes: list of Attributs corresponding to irblock assignments
         @instr_offsets: offset of all asmblock's instructions
+        @irblock: an irblock instance
         """
 
         case2dst = None
         case_value = None
+        instr = instr_attrib.instr
 
-        for assignblk in irblock.irs:
+        for index, assignblk in enumerate(irblock.irs):
             # Enable cache
             self.main_stream = True
             self.expr_cache = {}
@@ -1137,12 +1142,12 @@ class LLVMFunction():
                     values[dst] = self.add_ir(src)
 
             # Check memory access exception
-            if assignblk.mem_read:
+            if attributes[index].mem_read:
                 self.check_memory_exception(instr.offset,
                                             restricted_exception=True)
 
             # Check operation exception
-            if assignblk.op_set_exception:
+            if attributes[index].op_set_exception:
                 self.check_cpu_exception(instr.offset, restricted_exception=True)
 
             # Update the memory
@@ -1151,7 +1156,7 @@ class LLVMFunction():
                     self.affect(src, dst)
 
             # Check memory write exception
-            if assignblk.mem_write:
+            if attributes[index].mem_write:
                 self.check_memory_exception(instr.offset,
                                             restricted_exception=True)
 
@@ -1161,14 +1166,14 @@ class LLVMFunction():
                     self.affect(src, dst)
 
             # Check post assignblk exception flags
-            if assignblk.set_exception:
+            if attributes[index].set_exception:
                 self.check_cpu_exception(instr.offset, restricted_exception=True)
 
         # Destination
         assert case2dst is not None
         if len(case2dst) == 1:
             # Avoid switch in this common case
-            self.gen_jump2dst(attrib, instr_offsets, case2dst.values()[0])
+            self.gen_jump2dst(instr_attrib, instr_offsets, case2dst.values()[0])
         else:
             current_bbl = self.builder.basic_block
 
@@ -1180,7 +1185,7 @@ class LLVMFunction():
                 bbl = self.append_basic_block(name)
                 case2bbl[case] = bbl
                 self.builder.position_at_start(bbl)
-                self.gen_jump2dst(attrib, instr_offsets, dst)
+                self.gen_jump2dst(instr_attrib, instr_offsets, dst)
 
             # Jump on the correct output
             self.builder.position_at_end(current_bbl)
@@ -1198,7 +1203,7 @@ class LLVMFunction():
         builder = self.builder
         m2_exception_flag = self.llvm_context.ir_arch.arch.regs.exception_flags
         t_size = LLVMType.IntType(m2_exception_flag.size)
-        self.affect(self.add_ir(m2_expr.ExprInt8(1)),
+        self.affect(self.add_ir(m2_expr.ExprInt(1, 8)),
                     m2_expr.ExprId("status"))
         self.affect(t_size(m2_csts.EXCEPT_UNK_MNEMO),
                     m2_exception_flag)
@@ -1216,7 +1221,7 @@ class LLVMFunction():
             builder.position_at_end(self.get_basic_bloc_by_label(next_label))
 
             # Common code
-            self.affect(self.add_ir(m2_expr.ExprInt8(0)),
+            self.affect(self.add_ir(m2_expr.ExprInt(0, 8)),
                         m2_expr.ExprId("status"))
 
             # Check if IRDst has been set
@@ -1240,7 +1245,7 @@ class LLVMFunction():
             PC = self.llvm_context.PC
             to_ret = self.add_ir(codegen.delay_slot_dst)
             self.affect(to_ret, PC)
-            self.affect(self.add_ir(m2_expr.ExprInt8(0)),
+            self.affect(self.add_ir(m2_expr.ExprInt(0, 8)),
                         m2_expr.ExprId("status"))
             self.set_ret(to_ret)
 
@@ -1276,7 +1281,7 @@ class LLVMFunction():
         self.init_fc()
         self.local_vars_pointers["status"] = self.local_vars["status"]
 
-        if isinstance(asmblock, m2_asmbloc.asm_block_bad):
+        if isinstance(asmblock, m2_asmblock.AsmBlockBad):
             self.gen_bad_block(asmblock)
             return
 
@@ -1307,8 +1312,8 @@ class LLVMFunction():
 
 
         for instr, irblocks in zip(asmblock.lines, irblocks_list):
-            attrib = codegen.get_attributes(instr, irblocks, self.log_mn,
-                                            self.log_regs)
+            instr_attrib, irblocks_attributes = codegen.get_attributes(instr, irblocks, self.log_mn,
+                                                                       self.log_regs)
 
             # Pre-create basic blocks
             for irblock in irblocks:
@@ -1324,8 +1329,8 @@ class LLVMFunction():
                 self.builder.position_at_end(self.get_basic_bloc_by_label(name))
 
                 if index == 0:
-                    self.gen_pre_code(attrib)
-                self.gen_irblock(attrib, instr, instr_offsets, irblock)
+                    self.gen_pre_code(instr_attrib)
+                self.gen_irblock(instr_attrib, irblocks_attributes[index], instr_offsets, irblock)
 
         # Gen finalize (see codegen::CGen) is unrecheable, except with delayslot
         self.gen_finalize(asmblock, codegen)

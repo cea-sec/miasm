@@ -3,8 +3,7 @@ from pdb import pm
 
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm2.analysis.machine import Machine
-from miasm2.expression.expression import ExprId, ExprInt32, ExprInt64, ExprAff, \
-    ExprMem
+from miasm2.expression.expression import ExprId, ExprAff, ExprInt, ExprMem
 
 # Initial data: from 'example/samples/x86_32_sc.bin'
 data = "8d49048d5b0180f90174058d5bffeb038d5b0189d8c3".decode("hex")
@@ -38,8 +37,8 @@ assert myjit.cpu.ECX == 4
 
 # Check eval_expr
 eax = ExprId("RAX", 64)[:32]
-imm0, imm4, imm4_64 = ExprInt32(0), ExprInt32(4), ExprInt64(4)
-memdata = ExprMem(ExprInt32(run_addr), len(data) * 8)
+imm0, imm4, imm4_64 = ExprInt(0, 32), ExprInt(4, 32), ExprInt(4, 64)
+memdata = ExprMem(ExprInt(run_addr, 32), len(data) * 8)
 assert myjit.eval_expr(eax) == imm0
 ## Due to ExprAff construction, imm4 is "promoted" to imm4_64
 assert myjit.eval_expr(ExprAff(eax, imm4)) == imm4_64

@@ -4,7 +4,7 @@
 import unittest
 import logging
 
-from miasm2.ir.symbexec import symbexec
+from miasm2.ir.symbexec import SymbolicExecutionEngine
 from miasm2.arch.msp430.arch import mn_msp430 as mn, mode_msp430 as mode
 from miasm2.arch.msp430.sem import ir_msp430 as ir_arch
 from miasm2.arch.msp430.regs import *
@@ -21,7 +21,7 @@ def compute(asm, inputstate={}, debug=False):
     sympool = dict(regs_init)
     sympool.update({k: ExprInt(v, k.size) for k, v in inputstate.iteritems()})
     interm = ir_arch()
-    symexec = symbexec(interm, sympool)
+    symexec = SymbolicExecutionEngine(interm, sympool)
     instr = mn.fromstring(asm, mode)
     code = mn.asm(instr)[0]
     instr = mn.dis(code, mode)

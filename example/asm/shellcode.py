@@ -5,7 +5,7 @@ from pdb import pm
 from elfesteem import pe_init
 from elfesteem.strpatchwork import StrPatchwork
 
-from miasm2.core import parse_asm, asmbloc
+from miasm2.core import parse_asm, asmblock
 from miasm2.analysis.machine import Machine
 from miasm2.core.interval import interval
 
@@ -64,7 +64,7 @@ else:
 with open(args.source) as fstream:
     source = fstream.read()
 
-blocs, symbol_pool = parse_asm.parse_txt(machine.mn, attrib, source)
+blocks, symbol_pool = parse_asm.parse_txt(machine.mn, attrib, source)
 
 # Fix shellcode addrs
 symbol_pool.set_offset(symbol_pool.getby_name("main"), addr_main)
@@ -73,14 +73,14 @@ if args.PE:
     symbol_pool.set_offset(symbol_pool.getby_name_create("MessageBoxA"),
                            pe.DirImport.get_funcvirt('USER32.dll', 'MessageBoxA'))
 
-# Print and graph firsts blocs before patching it
-for bloc in blocs:
-    print bloc
-open("graph.dot", "w").write(blocs.dot())
+# Print and graph firsts blocks before patching it
+for block in blocks:
+    print block
+open("graph.dot", "w").write(blocks.dot())
 
 # Apply patches
-patches = asmbloc.asm_resolve_final(machine.mn,
-                                    blocs,
+patches = asmblock.asm_resolve_final(machine.mn,
+                                    blocks,
                                     symbol_pool,
                                     dst_interval)
 if args.encrypt:

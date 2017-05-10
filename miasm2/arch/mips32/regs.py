@@ -62,6 +62,11 @@ all_regs_ids_init = [PC_init, PC_FETCH_init, R_LO_init, R_HI_init] + \
     gpregs_init + regs_flt_init + regs_fcc_init + regs_cpr0_init
 all_regs_ids_no_alias = all_regs_ids[:]
 
+attrib_to_regs = {
+    'l': all_regs_ids_no_alias,
+    'b': all_regs_ids_no_alias,
+}
+
 regs_init = {}
 for i, r in enumerate(all_regs_ids):
     regs_init[r] = all_regs_ids_init[i]

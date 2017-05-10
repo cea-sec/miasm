@@ -58,7 +58,7 @@ ExprCompose(var1, 0) => var1
 def find_call(ira):
     """Returns (irb, index) which call"""
 
-    for irb in ira.blocs.values():
+    for irb in ira.blocks.values():
         out = set()
         if len(irb.irs) < 2:
             continue
@@ -109,8 +109,8 @@ def get_funcs_arg0(ctx, ira, lbl_head):
     element = ira.arch.regs.RSI
 
     for irb, index in find_call(ira):
-        line = irb.lines[index]
-        print 'Analysing references from:', hex(line.offset), line
+        instr = irb.irs[index].instr
+        print 'Analysing references from:', hex(instr.offset), instr
         g_list = g_dep.get(irb.label, set([element]), index, set([lbl_head]))
         for dep in g_list:
             emul_result = dep.emul(ctx)

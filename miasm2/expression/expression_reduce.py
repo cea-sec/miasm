@@ -29,21 +29,21 @@ class ExprNode(object):
         expr = self.expr
         if self.info is not None:
             out = repr(self.info)
-        elif isinstance(expr, (ExprInt, ExprId)):
-            out = str(None)
-        elif isinstance(expr, ExprMem):
+        elif expr.is_int() or expr.is_id():
+            out = str(expr)
+        elif expr.is_mem():
             out = "@%d[%r]" % (self.expr.size, self.arg)
-        elif isinstance(expr, ExprSlice):
+        elif expr.is_slice():
             out = "%r[%d:%d]" % (self.arg, expr.start, expr.stop)
-        elif isinstance(expr, ExprOp):
+        elif expr.is_op():
             if len(self.args) == 1:
-                out = "%s(%s)" % (expr.op, self.args[0])
+                out = "(%s(%r))" % (expr.op, self.args[0])
             else:
-                out = expr.op.join([repr(arg) for arg in self.args])
-        elif isinstance(expr, ExprCompose):
-            out = "{%s}" % ', '.join([repr(arg) for arg in self.args])
-        elif isinstance(expr, ExprCond):
-            out = "%r?%r:%r" % (self.cond, self.src1, self.src2)
+                out = "(%s)" % expr.op.join(repr(arg) for arg in self.args)
+        elif expr.is_compose():
+            out = "{%s}" % ', '.join(repr(arg) for arg in self.args)
+        elif expr.is_cond():
+            out = "(%r?%r:%r)" % (self.cond, self.src1, self.src2)
         else:
             raise TypeError("Unknown node Type %r", type(expr))
         return out

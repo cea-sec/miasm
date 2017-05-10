@@ -28,11 +28,11 @@
 #
 
 
-import itertools
-from operator import itemgetter
-from miasm2.expression.modint import *
-from miasm2.core.graph import DiGraph
 import warnings
+import itertools
+from miasm2.expression.modint import mod_size2uint, is_modint, size2mask, \
+    define_uint
+from miasm2.core.graph import DiGraph
 
 # Define tokens
 TOK_INF = "<"
@@ -58,14 +58,14 @@ EXPRCOMPOSE = 5
 
 def visit_chk(visitor):
     "Function decorator launching callback on Expression visit"
-    def wrapped(e, cb, test_visit=lambda x: True):
-        if (test_visit is not None) and (not test_visit(e)):
-            return e
-        e_new = visitor(e, cb, test_visit)
-        if e_new is None:
+    def wrapped(expr, callback, test_visit=lambda x: True):
+        if (test_visit is not None) and (not test_visit(expr)):
+            return expr
+        expr_new = visitor(expr, callback, test_visit)
+        if expr_new is None:
             return None
-        e_new2 = cb(e_new)
-        return e_new2
+        expr_new2 = callback(expr_new)
+        return expr_new2
     return wrapped
 
 
@@ -122,7 +122,7 @@ class Expr(object):
     canon_exprs = set()
     use_singleton = True
 
-    def set_size(self, value):
+    def set_size(self, _):
         raise ValueError('size is not mutable')
 
     def __init__(self):
@@ -133,25 +133,21 @@ class Expr(object):
     size = property(lambda self: self.__size)
 
     @staticmethod
-    def get_object(cls, args):
-        if not cls.use_singleton:
-            return object.__new__(cls, args)
+    def get_object(expr_cls, args):
+        if not expr_cls.use_singleton:
+            return object.__new__(expr_cls, args)
 
-        expr = Expr.args2expr.get((cls, args))
+        expr = Expr.args2expr.get((expr_cls, args))
         if expr is None:
-            expr = object.__new__(cls, args)
-            Expr.args2expr[(cls, args)] = expr
-        return expr
-
-    def __new__(cls, *args, **kwargs):
-        expr = object.__new__(cls, *args, **kwargs)
+            expr = object.__new__(expr_cls, args)
+            Expr.args2expr[(expr_cls, args)] = expr
         return expr
 
     def get_is_canon(self):
         return self in Expr.canon_exprs
 
     def set_is_canon(self, value):
-        assert(value is True)
+        assert value is True
         Expr.canon_exprs.add(self)
 
     is_canon = property(get_is_canon, set_is_canon)
@@ -187,67 +183,61 @@ class Expr(object):
             self.__hash = self._exprhash()
         return self.__hash
 
-    def pre_eq(self, other):
-        """Return True if ids are equal;
-        False if instances are obviously not equal
-        None if we cannot simply decide"""
-
-        if id(self) == id(other):
+    def __eq__(self, other):
+        if self is other:
             return True
+        elif self.use_singleton:
+            # In case of Singleton, pointer comparison is sufficient
+            # Avoid computation of hash and repr
+            return False
+
         if self.__class__ is not other.__class__:
             return False
         if hash(self) != hash(other):
             return False
-        return None
-
-    def __eq__(self, other):
-        res = self.pre_eq(other)
-        if res is not None:
-            return res
         return repr(self) == repr(other)
 
-    def __ne__(self, a):
-        return not self.__eq__(a)
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
-    def __add__(self, a):
-        return ExprOp('+', self, a)
+    def __add__(self, other):
+        return ExprOp('+', self, other)
 
-    def __sub__(self, a):
-        return ExprOp('+', self, ExprOp('-', a))
+    def __sub__(self, other):
+        return ExprOp('+', self, ExprOp('-', other))
 
-    def __div__(self, a):
-        return ExprOp('/', self, a)
+    def __div__(self, other):
+        return ExprOp('/', self, other)
 
-    def __mod__(self, a):
-        return ExprOp('%', self, a)
+    def __mod__(self, other):
+        return ExprOp('%', self, other)
 
-    def __mul__(self, a):
-        return ExprOp('*', self, a)
+    def __mul__(self, other):
+        return ExprOp('*', self, other)
 
-    def __lshift__(self, a):
-        return ExprOp('<<', self, a)
+    def __lshift__(self, other):
+        return ExprOp('<<', self, other)
 
-    def __rshift__(self, a):
-        return ExprOp('>>', self, a)
+    def __rshift__(self, other):
+        return ExprOp('>>', self, other)
 
-    def __xor__(self, a):
-        return ExprOp('^', self, a)
+    def __xor__(self, other):
+        return ExprOp('^', self, other)
 
-    def __or__(self, a):
-        return ExprOp('|', self, a)
+    def __or__(self, other):
+        return ExprOp('|', self, other)
 
-    def __and__(self, a):
-        return ExprOp('&', self, a)
+    def __and__(self, other):
+        return ExprOp('&', self, other)
 
     def __neg__(self):
         return ExprOp('-', self)
 
-    def __pow__(self, a):
-        return ExprOp("**",self, a)
+    def __pow__(self, other):
+        return ExprOp("**", self, other)
 
     def __invert__(self):
-        s = self.size
-        return ExprOp('^', self, ExprInt(mod_size2uint[s](size2mask(s))))
+        return ExprOp('^', self, self.mask)
 
     def copy(self):
         "Deep copy of the expression"
@@ -263,37 +253,37 @@ class Expr(object):
         if dct is None:
             dct = {}
 
-        def my_replace(e, dct):
-            if e in dct:
-                return dct[e]
-            return e
+        def my_replace(expr, dct):
+            if expr in dct:
+                return dct[expr]
+            return expr
 
-        return self.visit(lambda e: my_replace(e, dct))
+        return self.visit(lambda expr: my_replace(expr, dct))
 
     def canonize(self):
         "Canonize the Expression"
 
-        def must_canon(e):
-            return not e.is_canon
+        def must_canon(expr):
+            return not expr.is_canon
 
-        def canonize_visitor(e):
-            if e.is_canon:
-                return e
-            if isinstance(e, ExprOp):
-                if e.is_associative():
+        def canonize_visitor(expr):
+            if expr.is_canon:
+                return expr
+            if isinstance(expr, ExprOp):
+                if expr.is_associative():
                     # ((a+b) + c) => (a + b + c)
                     args = []
-                    for arg in e.args:
-                        if isinstance(arg, ExprOp) and e.op == arg.op:
+                    for arg in expr.args:
+                        if isinstance(arg, ExprOp) and expr.op == arg.op:
                             args += arg.args
                         else:
                             args.append(arg)
                     args = canonize_expr_list(args)
-                    new_e = ExprOp(e.op, *args)
+                    new_e = ExprOp(expr.op, *args)
                 else:
-                    new_e = e
+                    new_e = expr
             else:
-                new_e = e
+                new_e = expr
             new_e.is_canon = True
             return new_e
 
@@ -301,33 +291,30 @@ class Expr(object):
 
     def msb(self):
         "Return the Most Significant Bit"
-        s = self.size
-        return self[s - 1:s]
+        return self[self.size - 1:self.size]
 
     def zeroExtend(self, size):
         """Zero extend to size
         @size: int
         """
-        assert(self.size <= size)
+        assert self.size <= size
         if self.size == size:
             return self
         ad_size = size - self.size
-        n = ExprInt(0, ad_size)
-        return ExprCompose(self, n)
+        return ExprCompose(self, ExprInt(0, ad_size))
 
     def signExtend(self, size):
         """Sign extend to size
         @size: int
         """
-        assert(self.size <= size)
+        assert self.size <= size
         if self.size == size:
             return self
         ad_size = size - self.size
-        c = ExprCompose(self,
-                        ExprCond(self.msb(),
-                                 ExprInt(size2mask(ad_size), ad_size),
-                                 ExprInt(0, ad_size)))
-        return c
+        return ExprCompose(self,
+                           ExprCond(self.msb(),
+                                    ExprInt(size2mask(ad_size), ad_size),
+                                    ExprInt(0, ad_size)))
 
     def graph_recursive(self, graph):
         """Recursive method used by graph
@@ -398,39 +385,43 @@ class ExprInt(Expr):
     __slots__ = Expr.__slots__ + ["__arg"]
 
 
-    def __init__(self, num, size=None):
+    def __init__(self, arg, size):
         """Create an ExprInt from a modint or num/size
-        @arg: modint or num
-        @size: (optionnal) int size"""
-
+        @arg: 'intable' number
+        @size: int size"""
         super(ExprInt, self).__init__()
-
-        if is_modint(num):
-            self.__arg = num
-            self.__size = self.arg.size
-            if size is not None and num.size != size:
-                raise RuntimeError("size must match modint size")
-        elif size is not None:
-            if size not in mod_size2uint:
-                define_uint(size)
-            self.__arg = mod_size2uint[size](num)
-            self.__size = self.arg.size
-        else:
-            raise ValueError('arg must by modint or (int,size)! %s' % num)
+        # Work is done in __new__
 
     size = property(lambda self: self.__size)
     arg = property(lambda self: self.__arg)
 
-    def __getstate__(self):
-        return int(self.__arg), self.__size
+    def __reduce__(self):
+        state = int(self.__arg), self.__size
+        return self.__class__, state
 
-    def __setstate__(self, state):
-        self.__init__(*state)
+    def __new__(cls, arg, size):
+        """Create an ExprInt from a modint or num/size
+        @arg: 'intable' number
+        @size: int size"""
 
-    def __new__(cls, arg, size=None):
-        if size is None:
-            size = arg.size
-        return Expr.get_object(cls, (arg, size))
+        if is_modint(arg):
+            assert size == arg.size
+        # Avoid a common blunder
+        assert not isinstance(arg, ExprInt)
+
+        # Ensure arg is always a moduint
+        arg = int(arg)
+        if size not in mod_size2uint:
+            define_uint(size)
+        arg = mod_size2uint[size](arg)
+
+        # Get the Singleton instance
+        expr = Expr.get_object(cls, (arg, size))
+
+        # Save parameters (__init__ is called with parameters unchanged)
+        expr.__arg = arg
+        expr.__size = expr.__arg.size
+        return expr
 
     def __get_int(self):
         "Return self integer representation"
@@ -458,15 +449,15 @@ class ExprInt(Expr):
         return "%s(0x%X, %d)" % (self.__class__.__name__, self.__get_int(),
                                  self.__size)
 
-    def __contains__(self, e):
-        return self == e
+    def __contains__(self, expr):
+        return self == expr
 
     @visit_chk
-    def visit(self, cb, tv=None):
+    def visit(self, callback, test_visit=None):
         return self
 
     def copy(self):
-        return ExprInt(self.__arg)
+        return ExprInt(self.__arg, self.__size)
 
     def depth(self):
         return 1
@@ -510,11 +501,9 @@ class ExprId(Expr):
     size = property(lambda self: self.__size)
     name = property(lambda self: self.__name)
 
-    def __getstate__(self):
-        return self.__name, self.__size
-
-    def __setstate__(self, state):
-        self.__init__(*state)
+    def __reduce__(self):
+        state = self.__name, self.__size
+        return self.__class__, state
 
     def __new__(cls, name, size=32):
         return Expr.get_object(cls, (name, size))
@@ -529,17 +518,16 @@ class ExprId(Expr):
         return set([self])
 
     def _exprhash(self):
-        # TODO XXX: hash size ??
         return hash((EXPRID, self.__name, self.__size))
 
     def _exprrepr(self):
         return "%s(%r, %d)" % (self.__class__.__name__, self.__name, self.__size)
 
-    def __contains__(self, e):
-        return self == e
+    def __contains__(self, expr):
+        return self == expr
 
     @visit_chk
-    def visit(self, cb, tv=None):
+    def visit(self, callback, test_visit=None):
         return self
 
     def copy(self):
@@ -572,26 +560,15 @@ class ExprAff(Expr):
         @dst: Expr, affectation destination
         @src: Expr, affectation source
         """
-
+        # dst & src must be Expr
+        assert isinstance(dst, Expr)
+        assert isinstance(src, Expr)
         super(ExprAff, self).__init__()
 
         if dst.size != src.size:
             raise ValueError(
                 "sanitycheck: ExprAff args must have same size! %s" %
-                             ([(str(arg), arg.size) for arg in [dst, src]]))
-
-        if isinstance(dst, ExprSlice):
-            # Complete the source with missing slice parts
-            self.__dst = dst.arg
-            rest = [(ExprSlice(dst.arg, r[0], r[1]), r[0], r[1])
-                    for r in dst.slice_rest()]
-            all_a = [(src, dst.start, dst.stop)] + rest
-            all_a.sort(key=lambda x: x[1])
-            args = [expr for (expr, _, _) in all_a]
-            self.__src = ExprCompose(*args)
-
-        else:
-            self.__dst, self.__src = dst, src
+                ([(str(arg), arg.size) for arg in [dst, src]]))
 
         self.__size = self.dst.size
 
@@ -599,14 +576,26 @@ class ExprAff(Expr):
     dst = property(lambda self: self.__dst)
     src = property(lambda self: self.__src)
 
-    def __getstate__(self):
-        return self.__dst, self.__src
 
-    def __setstate__(self, state):
-        self.__init__(*state)
+    def __reduce__(self):
+        state = self.__dst, self.__src
+        return self.__class__, state
 
     def __new__(cls, dst, src):
-        return Expr.get_object(cls, (dst, src))
+        if isinstance(dst, ExprSlice):
+            # Complete the source with missing slice parts
+            new_dst = dst.arg
+            rest = [(ExprSlice(dst.arg, r[0], r[1]), r[0], r[1])
+                    for r in dst.slice_rest()]
+            all_a = [(src, dst.start, dst.stop)] + rest
+            all_a.sort(key=lambda x: x[1])
+            args = [expr for (expr, _, _) in all_a]
+            new_src = ExprCompose(*args)
+        else:
+            new_dst, new_src = dst, src
+        expr = Expr.get_object(cls, (new_dst, new_src))
+        expr.__dst, expr.__src = new_dst, new_src
+        return expr
 
     def __str__(self):
         return "%s = %s" % (str(self.__dst), str(self.__src))
@@ -635,8 +624,8 @@ class ExprAff(Expr):
                 self.__dst.__contains__(expr))
 
     @visit_chk
-    def visit(self, cb, tv=None):
-        dst, src = self.__dst.visit(cb, tv), self.__src.visit(cb, tv)
+    def visit(self, callback, test_visit=None):
+        dst, src = self.__dst.visit(callback, test_visit), self.__src.visit(callback, test_visit)
         if dst == self.__dst and src == self.__src:
             return self
         else:
@@ -677,10 +666,15 @@ class ExprCond(Expr):
         @src2: Expr, value if condition is evaled zero
         """
 
+        # cond, src1, src2 must be Expr
+        assert isinstance(cond, Expr)
+        assert isinstance(src1, Expr)
+        assert isinstance(src2, Expr)
+
         super(ExprCond, self).__init__()
 
         self.__cond, self.__src1, self.__src2 = cond, src1, src2
-        assert(src1.size == src2.size)
+        assert src1.size == src2.size
         self.__size = self.src1.size
 
     size = property(lambda self: self.__size)
@@ -688,11 +682,9 @@ class ExprCond(Expr):
     src1 = property(lambda self: self.__src1)
     src2 = property(lambda self: self.__src2)
 
-    def __getstate__(self):
-        return self.__cond, self.__src1, self.__src2
-
-    def __setstate__(self, state):
-        self.__init__(*state)
+    def __reduce__(self):
+        state = self.__cond, self.__src1, self.__src2
+        return self.__class__, state
 
     def __new__(cls, cond, src1, src2):
         return Expr.get_object(cls, (cond, src1, src2))
@@ -717,20 +709,18 @@ class ExprCond(Expr):
         return "%s(%r, %r, %r)" % (self.__class__.__name__,
                                    self.__cond, self.__src1, self.__src2)
 
-    def __contains__(self, e):
-        return (self == e or
-                self.cond.__contains__(e) or
-                self.src1.__contains__(e) or
-                self.src2.__contains__(e))
+    def __contains__(self, expr):
+        return (self == expr or
+                self.cond.__contains__(expr) or
+                self.src1.__contains__(expr) or
+                self.src2.__contains__(expr))
 
     @visit_chk
-    def visit(self, cb, tv=None):
-        cond = self.__cond.visit(cb, tv)
-        src1 = self.__src1.visit(cb, tv)
-        src2 = self.__src2.visit(cb, tv)
-        if (cond == self.__cond and
-            src1 == self.__src1 and
-                src2 == self.__src2):
+    def visit(self, callback, test_visit=None):
+        cond = self.__cond.visit(callback, test_visit)
+        src1 = self.__src1.visit(callback, test_visit)
+        src2 = self.__src2.visit(callback, test_visit)
+        if cond == self.__cond and src1 == self.__src1 and src2 == self.__src2:
             return self
         return ExprCond(cond, src1, src2)
 
@@ -771,6 +761,10 @@ class ExprMem(Expr):
         @size: int, memory access size
         """
 
+        # arg must be Expr
+        assert isinstance(arg, Expr)
+        assert isinstance(size, (int, long))
+
         super(ExprMem, self).__init__()
 
         if not isinstance(arg, Expr):
@@ -782,11 +776,9 @@ class ExprMem(Expr):
     size = property(lambda self: self.__size)
     arg = property(lambda self: self.__arg)
 
-    def __getstate__(self):
-        return self.__arg, self.__size
-
-    def __setstate__(self, state):
-        self.__init__(*state)
+    def __reduce__(self):
+        state = self.__arg, self.__size
+        return self.__class__, state
 
     def __new__(cls, arg, size=32):
         return Expr.get_object(cls, (arg, size))
@@ -814,8 +806,8 @@ class ExprMem(Expr):
         return self == expr or self.__arg.__contains__(expr)
 
     @visit_chk
-    def visit(self, cb, tv=None):
-        arg = self.__arg.visit(cb, tv)
+    def visit(self, callback, test_visit=None):
+        arg = self.__arg.visit(callback, test_visit)
         if arg == self.__arg:
             return self
         return ExprMem(arg, self.size)
@@ -858,6 +850,9 @@ class ExprOp(Expr):
         @*args: Expr, operand list
         """
 
+        # args must be Expr
+        assert all(isinstance(arg, Expr) for arg in args)
+
         super(ExprOp, self).__init__()
 
         sizes = set([arg.size for arg in args])
@@ -867,12 +862,13 @@ class ExprOp(Expr):
             if op not in ["segm"]:
                 raise ValueError(
                     "sanitycheck: ExprOp args must have same size! %s" %
-                                 ([(str(arg), arg.size) for arg in args]))
+                    ([(str(arg), arg.size) for arg in args]))
 
         if not isinstance(op, str):
             raise ValueError("ExprOp: 'op' argument must be a string")
 
-        self.__op, self.__args = op, tuple(args)
+        assert isinstance(args, tuple)
+        self.__op, self.__args = op, args
 
         # Set size for special cases
         if self.__op in [
@@ -880,55 +876,52 @@ class ExprOp(Expr):
                 'fxam_c0', 'fxam_c1', 'fxam_c2', 'fxam_c3',
                 "access_segment_ok", "load_segment_limit_ok", "bcdadd_cf",
                 "ucomiss_zf", "ucomiss_pf", "ucomiss_cf"]:
-            sz = 1
+            size = 1
         elif self.__op in [TOK_INF, TOK_INF_SIGNED,
                            TOK_INF_UNSIGNED, TOK_INF_EQUAL,
                            TOK_INF_EQUAL_SIGNED, TOK_INF_EQUAL_UNSIGNED,
                            TOK_EQUAL, TOK_POS,
                            TOK_POS_STRICT,
-                           ]:
-            sz = 1
+                          ]:
+            size = 1
         elif self.__op in ['mem_16_to_double', 'mem_32_to_double',
                            'mem_64_to_double', 'mem_80_to_double',
                            'int_16_to_double', 'int_32_to_double',
                            'int_64_to_double', 'int_80_to_double']:
-            sz = 64
+            size = 64
         elif self.__op in ['double_to_mem_16', 'double_to_int_16',
                            'float_trunc_to_int_16', 'double_trunc_to_int_16']:
-            sz = 16
+            size = 16
         elif self.__op in ['double_to_mem_32', 'double_to_int_32',
                            'float_trunc_to_int_32', 'double_trunc_to_int_32',
                            'double_to_float']:
-            sz = 32
+            size = 32
         elif self.__op in ['double_to_mem_64', 'double_to_int_64',
                            'float_trunc_to_int_64', 'double_trunc_to_int_64',
                            'float_to_double']:
-            sz = 64
+            size = 64
         elif self.__op in ['double_to_mem_80', 'double_to_int_80',
                            'float_trunc_to_int_80',
                            'double_trunc_to_int_80']:
-            sz = 80
+            size = 80
         elif self.__op in ['segm']:
-            sz = self.__args[1].size
+            size = self.__args[1].size
         else:
             if None in sizes:
-                sz = None
+                size = None
             else:
                 # All arguments have the same size
-                sz = list(sizes)[0]
+                size = list(sizes)[0]
 
-        self.__size = sz
+        self.__size = size
 
     size = property(lambda self: self.__size)
     op = property(lambda self: self.__op)
     args = property(lambda self: self.__args)
 
-    def __getstate__(self):
-        return self.__op, self.__args
-
-    def __setstate__(self, state):
-        op, args = state
-        self.__init__(op, *args)
+    def __reduce__(self):
+        state = tuple([self.__op] + list(self.__args))
+        return self.__class__, state
 
     def __new__(cls, op, *args):
         return Expr.get_object(cls, (op, args))
@@ -964,11 +957,11 @@ class ExprOp(Expr):
         return "%s(%r, %s)" % (self.__class__.__name__, self.__op,
                                ', '.join(repr(arg) for arg in self.__args))
 
-    def __contains__(self, e):
-        if self == e:
+    def __contains__(self, expr):
+        if self == expr:
             return True
         for arg in self.__args:
-            if arg.__contains__(e):
+            if arg.__contains__(expr):
                 return True
         return False
 
@@ -984,8 +977,8 @@ class ExprOp(Expr):
         return (self.__op in ['+', '*', '^', '&', '|'])
 
     @visit_chk
-    def visit(self, cb, tv=None):
-        args = [arg.visit(cb, tv) for arg in self.__args]
+    def visit(self, callback, test_visit=None):
+        args = [arg.visit(callback, test_visit) for arg in self.__args]
         modified = any([arg[0] != arg[1] for arg in zip(self.__args, args)])
         if modified:
             return ExprOp(self.__op, *args)
@@ -1019,9 +1012,15 @@ class ExprSlice(Expr):
     __slots__ = Expr.__slots__ + ["__arg", "__start", "__stop"]
 
     def __init__(self, arg, start, stop):
+
+        # arg must be Expr
+        assert isinstance(arg, Expr)
+        assert isinstance(start, (int, long))
+        assert isinstance(stop, (int, long))
+
         super(ExprSlice, self).__init__()
 
-        assert(start < stop)
+        assert start < stop
         self.__arg, self.__start, self.__stop = arg, start, stop
         self.__size = self.__stop - self.__start
 
@@ -1030,11 +1029,9 @@ class ExprSlice(Expr):
     start = property(lambda self: self.__start)
     stop = property(lambda self: self.__stop)
 
-    def __getstate__(self):
-        return self.__arg, self.__start, self.__stop
-
-    def __setstate__(self, state):
-        self.__init__(*state)
+    def __reduce__(self):
+        state = self.__arg, self.__start, self.__stop
+        return self.__class__, state
 
     def __new__(cls, arg, start, stop):
         return Expr.get_object(cls, (arg, start, stop))
@@ -1061,8 +1058,8 @@ class ExprSlice(Expr):
         return self.__arg.__contains__(expr)
 
     @visit_chk
-    def visit(self, cb, tv=None):
-        arg = self.__arg.visit(cb, tv)
+    def visit(self, callback, test_visit=None):
+        arg = self.__arg.visit(callback, test_visit)
         if arg == self.__arg:
             return self
         return ExprSlice(arg, self.__start, self.__stop)
@@ -1120,31 +1117,23 @@ class ExprCompose(Expr):
         @args: [(Expr, int, int), (Expr, int, int), ...]
         """
 
+        # args must be Expr
+        assert all(isinstance(arg, Expr) for arg in args)
+
         super(ExprCompose, self).__init__()
-
-        is_new_style = args and isinstance(args[0], Expr)
-        if not is_new_style:
-            warnings.warn('DEPRECATION WARNING: use "ExprCompose(a, b) instead of'+
-                          'ExprCemul_ir_block(self, addr, step=False)" instead of emul_ir_bloc')
-
-        self.__args = tuple(args)
+        assert isinstance(args, tuple)
+        self.__args = args
         self.__size = sum([arg.size for arg in args])
 
     size = property(lambda self: self.__size)
     args = property(lambda self: self.__args)
 
-    def __getstate__(self):
-        return self.__args
-
-    def __setstate__(self, state):
-        self.__init__(*state)
+    def __reduce__(self):
+        state = self.__args
+        return self.__class__, state
 
     def __new__(cls, *args):
-        is_new_style = args and isinstance(args[0], Expr)
-        if not is_new_style:
-            assert len(args) == 1
-            args = args[0]
-        return Expr.get_object(cls, tuple(args))
+        return Expr.get_object(cls, args)
 
     def __str__(self):
         return '{' + ', '.join(["%s %s %s" % (arg, idx, idx + arg.size) for idx, arg in self.iter_args()]) + '}'
@@ -1164,19 +1153,19 @@ class ExprCompose(Expr):
     def _exprrepr(self):
         return "%s%r" % (self.__class__.__name__, self.__args)
 
-    def __contains__(self, e):
-        if self == e:
+    def __contains__(self, expr):
+        if self == expr:
             return True
         for arg in self.__args:
-            if arg == e:
+            if arg == expr:
                 return True
-            if arg.__contains__(e):
+            if arg.__contains__(expr):
                 return True
         return False
 
     @visit_chk
-    def visit(self, cb, tv=None):
-        args = [arg.visit(cb, tv) for arg in self.__args]
+    def visit(self, callback, test_visit=None):
+        args = [arg.visit(callback, test_visit) for arg in self.__args]
         modified = any([arg != arg_new for arg, arg_new in zip(self.__args, args)])
         if modified:
             return ExprCompose(*args)
@@ -1206,179 +1195,195 @@ class ExprCompose(Expr):
         return True
 
 # Expression order for comparaison
-expr_order_dict = {ExprId: 1,
+EXPR_ORDER_DICT = {ExprId: 1,
                    ExprCond: 2,
                    ExprMem: 3,
                    ExprOp: 4,
                    ExprSlice: 5,
                    ExprCompose: 7,
                    ExprInt: 8,
-                   }
+                  }
 
 
-def compare_exprs_compose(e1, e2):
+def compare_exprs_compose(expr1, expr2):
     # Sort by start bit address, then expr, then stop but address
-    x = cmp(e1[1], e2[1])
-    if x:
-        return x
-    x = compare_exprs(e1[0], e2[0])
-    if x:
-        return x
-    x = cmp(e1[2], e2[2])
-    return x
+    ret = cmp(expr1[1], expr2[1])
+    if ret:
+        return ret
+    ret = compare_exprs(expr1[0], expr2[0])
+    if ret:
+        return ret
+    ret = cmp(expr1[2], expr2[2])
+    return ret
 
 
 def compare_expr_list_compose(l1_e, l2_e):
     # Sort by list elements in incremental order, then by list size
     for i in xrange(min(len(l1_e), len(l2_e))):
-        x = compare_exprs(l1_e[i], l2_e[i])
-        if x:
-            return x
+        ret = compare_exprs(l1_e[i], l2_e[i])
+        if ret:
+            return ret
     return cmp(len(l1_e), len(l2_e))
 
 
 def compare_expr_list(l1_e, l2_e):
     # Sort by list elements in incremental order, then by list size
     for i in xrange(min(len(l1_e), len(l2_e))):
-        x = compare_exprs(l1_e[i], l2_e[i])
-        if x:
-            return x
+        ret = compare_exprs(l1_e[i], l2_e[i])
+        if ret:
+            return ret
     return cmp(len(l1_e), len(l2_e))
 
 
-def compare_exprs(e1, e2):
+def compare_exprs(expr1, expr2):
     """Compare 2 expressions for canonization
-    @e1: Expr
-    @e2: Expr
+    @expr1: Expr
+    @expr2: Expr
     0  => ==
-    1  => e1 > e2
-    -1 => e1 < e2
+    1  => expr1 > expr2
+    -1 => expr1 < expr2
     """
-    c1 = e1.__class__
-    c2 = e2.__class__
-    if c1 != c2:
-        return cmp(expr_order_dict[c1], expr_order_dict[c2])
-    if e1 == e2:
+    cls1 = expr1.__class__
+    cls2 = expr2.__class__
+    if cls1 != cls2:
+        return cmp(EXPR_ORDER_DICT[cls1], EXPR_ORDER_DICT[cls2])
+    if expr1 == expr2:
         return 0
-    if c1 == ExprInt:
-        ret = cmp(e1.size, e2.size)
+    if cls1 == ExprInt:
+        ret = cmp(expr1.size, expr2.size)
         if ret != 0:
             return ret
-        return cmp(e1.arg, e2.arg)
-    elif c1 == ExprId:
-        x = cmp(e1.name, e2.name)
-        if x:
-            return x
-        return cmp(e1.size, e2.size)
-    elif c1 == ExprAff:
+        return cmp(expr1.arg, expr2.arg)
+    elif cls1 == ExprId:
+        ret = cmp(expr1.name, expr2.name)
+        if ret:
+            return ret
+        return cmp(expr1.size, expr2.size)
+    elif cls1 == ExprAff:
         raise NotImplementedError(
             "Comparaison from an ExprAff not yet implemented")
-    elif c2 == ExprCond:
-        x = compare_exprs(e1.cond, e2.cond)
-        if x:
-            return x
-        x = compare_exprs(e1.src1, e2.src1)
-        if x:
-            return x
-        x = compare_exprs(e1.src2, e2.src2)
-        return x
-    elif c1 == ExprMem:
-        x = compare_exprs(e1.arg, e2.arg)
-        if x:
-            return x
-        return cmp(e1.size, e2.size)
-    elif c1 == ExprOp:
-        if e1.op != e2.op:
-            return cmp(e1.op, e2.op)
-        return compare_expr_list(e1.args, e2.args)
-    elif c1 == ExprSlice:
-        x = compare_exprs(e1.arg, e2.arg)
-        if x:
-            return x
-        x = cmp(e1.start, e2.start)
-        if x:
-            return x
-        x = cmp(e1.stop, e2.stop)
-        return x
-    elif c1 == ExprCompose:
-        return compare_expr_list_compose(e1.args, e2.args)
+    elif cls2 == ExprCond:
+        ret = compare_exprs(expr1.cond, expr2.cond)
+        if ret:
+            return ret
+        ret = compare_exprs(expr1.src1, expr2.src1)
+        if ret:
+            return ret
+        ret = compare_exprs(expr1.src2, expr2.src2)
+        return ret
+    elif cls1 == ExprMem:
+        ret = compare_exprs(expr1.arg, expr2.arg)
+        if ret:
+            return ret
+        return cmp(expr1.size, expr2.size)
+    elif cls1 == ExprOp:
+        if expr1.op != expr2.op:
+            return cmp(expr1.op, expr2.op)
+        return compare_expr_list(expr1.args, expr2.args)
+    elif cls1 == ExprSlice:
+        ret = compare_exprs(expr1.arg, expr2.arg)
+        if ret:
+            return ret
+        ret = cmp(expr1.start, expr2.start)
+        if ret:
+            return ret
+        ret = cmp(expr1.stop, expr2.stop)
+        return ret
+    elif cls1 == ExprCompose:
+        return compare_expr_list_compose(expr1.args, expr2.args)
     raise NotImplementedError(
-        "Comparaison between %r %r not implemented" % (e1, e2))
+        "Comparaison between %r %r not implemented" % (expr1, expr2))
 
 
-def canonize_expr_list(l):
-    l = list(l)
-    l.sort(cmp=compare_exprs)
-    return l
+def canonize_expr_list(expr_list):
+    expr_list = list(expr_list)
+    expr_list.sort(cmp=compare_exprs)
+    return expr_list
 
 
-def canonize_expr_list_compose(l):
-    l = list(l)
-    l.sort(cmp=compare_exprs_compose)
-    return l
+def canonize_expr_list_compose(expr_list):
+    expr_list = list(expr_list)
+    expr_list.sort(cmp=compare_exprs_compose)
+    return expr_list
 
 # Generate ExprInt with common size
 
 
 def ExprInt1(i):
-    return ExprInt(uint1(i))
+    warnings.warn('DEPRECATION WARNING: use ExprInt(i, 1) instead of '\
+                  'ExprInt1(i))')
+    return ExprInt(i, 1)
 
 
 def ExprInt8(i):
-    return ExprInt(uint8(i))
+    warnings.warn('DEPRECATION WARNING: use ExprInt(i, 8) instead of '\
+                  'ExprInt8(i))')
+    return ExprInt(i, 8)
 
 
 def ExprInt16(i):
-    return ExprInt(uint16(i))
+    warnings.warn('DEPRECATION WARNING: use ExprInt(i, 16) instead of '\
+                  'ExprInt16(i))')
+    return ExprInt(i, 16)
 
 
 def ExprInt32(i):
-    return ExprInt(uint32(i))
+    warnings.warn('DEPRECATION WARNING: use ExprInt(i, 32) instead of '\
+                  'ExprInt32(i))')
+    return ExprInt(i, 32)
 
 
 def ExprInt64(i):
-    return ExprInt(uint64(i))
+    warnings.warn('DEPRECATION WARNING: use ExprInt(i, 64) instead of '\
+                  'ExprInt64(i))')
+    return ExprInt(i, 64)
 
 
-def ExprInt_from(e, i):
+def ExprInt_from(expr, i):
     "Generate ExprInt with size equal to expression"
-    return ExprInt(mod_size2uint[e.size](i))
+    warnings.warn('DEPRECATION WARNING: use ExprInt(i, expr.size) instead of'\
+                  'ExprInt_from(expr, i))')
+    return ExprInt(i, expr.size)
 
 
-def get_expr_ids_visit(e, ids):
-    if isinstance(e, ExprId):
-        ids.add(e)
-    return e
+def get_expr_ids_visit(expr, ids):
+    """Visitor to retrieve ExprId in @expr
+    @expr: Expr"""
+    if isinstance(expr, ExprId):
+        ids.add(expr)
+    return expr
 
 
-def get_expr_ids(e):
+def get_expr_ids(expr):
+    """Retrieve ExprId in @expr
+    @expr: Expr"""
     ids = set()
-    e.visit(lambda x: get_expr_ids_visit(x, ids))
+    expr.visit(lambda x: get_expr_ids_visit(x, ids))
     return ids
 
 
-def test_set(e, v, tks, result):
+def test_set(expr, pattern, tks, result):
     """Test if v can correspond to e. If so, update the context in result.
     Otherwise, return False
-    @e : Expr
-    @v : Expr
+    @expr : Expr to match
+    @pattern : pattern Expr
     @tks : list of ExprId, available jokers
     @result : dictionary of ExprId -> Expr, current context
     """
 
-    if not v in tks:
-        return e == v
-    if v in result and result[v] != e:
+    if not pattern in tks:
+        return expr == pattern
+    if pattern in result and result[pattern] != expr:
         return False
-    result[v] = e
+    result[pattern] = expr
     return result
 
 
-def MatchExpr(e, m, tks, result=None):
-    """Try to match m expression with e expression with tks jokers.
+def match_expr(expr, pattern, tks, result=None):
+    """Try to match the @pattern expression with the pattern @expr with @tks jokers.
     Result is output dictionary with matching joker values.
-    @e : Expr to test
-    @m : Targetted Expr
+    @expr : Expr pattern
+    @pattern : Targetted Expr to match
     @tks : list of ExprId, available jokers
     @result : dictionary of ExprId -> Expr, output matching context
     """
@@ -1386,172 +1391,163 @@ def MatchExpr(e, m, tks, result=None):
     if result is None:
         result = {}
 
-    if m in tks:
-        # m is a Joker
-        return test_set(e, m, tks, result)
+    if pattern in tks:
+        # pattern is a Joker
+        return test_set(expr, pattern, tks, result)
 
-    if isinstance(e, ExprInt):
-        return test_set(e, m, tks, result)
+    if expr.is_int():
+        return test_set(expr, pattern, tks, result)
 
-    elif isinstance(e, ExprId):
-        return test_set(e, m, tks, result)
+    elif expr.is_id():
+        return test_set(expr, pattern, tks, result)
 
-    elif isinstance(e, ExprOp):
+    elif expr.is_op():
 
-        # e need to be the same operation than m
-        if not isinstance(m, ExprOp):
+        # expr need to be the same operation than pattern
+        if not pattern.is_op():
             return False
-        if e.op != m.op:
+        if expr.op != pattern.op:
             return False
-        if len(e.args) != len(m.args):
+        if len(expr.args) != len(pattern.args):
             return False
 
         # Perform permutation only if the current operation is commutative
-        if e.is_commutative():
-            permutations = itertools.permutations(e.args)
+        if expr.is_commutative():
+            permutations = itertools.permutations(expr.args)
         else:
-            permutations = [e.args]
+            permutations = [expr.args]
 
         # For each permutations of arguments
         for permut in permutations:
             good = True
             # We need to use a copy of result to not override it
             myresult = dict(result)
-            for a1, a2 in zip(permut, m.args):
-                r = MatchExpr(a1, a2, tks, myresult)
+            for sub_expr, sub_pattern in zip(permut, pattern.args):
+                ret = match_expr(sub_expr, sub_pattern, tks, myresult)
                 # If the current permutation do not match EVERY terms
-                if r is False:
+                if ret is False:
                     good = False
                     break
             if good is True:
                 # We found a possibility
-                for k, v in myresult.items():
+                for joker, value in myresult.items():
                     # Updating result in place (to keep pointer in recursion)
-                    result[k] = v
+                    result[joker] = value
                 return result
         return False
 
     # Recursive tests
 
-    elif isinstance(e, ExprMem):
-        if not isinstance(m, ExprMem):
+    elif expr.is_mem():
+        if not pattern.is_mem():
             return False
-        if e.size != m.size:
+        if expr.size != pattern.size:
             return False
-        return MatchExpr(e.arg, m.arg, tks, result)
+        return match_expr(expr.arg, pattern.arg, tks, result)
 
-    elif isinstance(e, ExprSlice):
-        if not isinstance(m, ExprSlice):
+    elif expr.is_slice():
+        if not pattern.is_slice():
             return False
-        if e.start != m.start or e.stop != m.stop:
+        if expr.start != pattern.start or expr.stop != pattern.stop:
             return False
-        return MatchExpr(e.arg, m.arg, tks, result)
+        return match_expr(expr.arg, pattern.arg, tks, result)
 
-    elif isinstance(e, ExprCond):
-        if not isinstance(m, ExprCond):
+    elif expr.is_cond():
+        if not pattern.is_cond():
             return False
-        r = MatchExpr(e.cond, m.cond, tks, result)
-        if r is False:
+        if match_expr(expr.cond, pattern.cond, tks, result) is False:
             return False
-        r = MatchExpr(e.src1, m.src1, tks, result)
-        if r is False:
+        if match_expr(expr.src1, pattern.src1, tks, result) is False:
             return False
-        r = MatchExpr(e.src2, m.src2, tks, result)
-        if r is False:
+        if match_expr(expr.src2, pattern.src2, tks, result) is False:
             return False
         return result
 
-    elif isinstance(e, ExprCompose):
-        if not isinstance(m, ExprCompose):
+    elif expr.is_compose():
+        if not pattern.is_compose():
             return False
-        for a1, a2 in zip(e.args, m.args):
-            r = MatchExpr(a1, a2, tks, result)
-            if r is False:
+        for sub_expr, sub_pattern in zip(expr.args, pattern.args):
+            if  match_expr(sub_expr, sub_pattern, tks, result) is False:
                 return False
         return result
 
-    elif isinstance(e, ExprAff):
-        if not isinstance(m, ExprAff):
+    elif expr.is_aff():
+        if not pattern.is_aff():
             return False
-        r = MatchExpr(e.src, m.src, tks, result)
-        if r is False:
+        if match_expr(expr.src, pattern.src, tks, result) is False:
             return False
-        r = MatchExpr(e.dst, m.dst, tks, result)
-        if r is False:
+        if match_expr(expr.dst, pattern.dst, tks, result) is False:
             return False
         return result
 
     else:
-        raise NotImplementedError("MatchExpr: Unknown type: %s" % type(e))
+        raise NotImplementedError("match_expr: Unknown type: %s" % type(expr))
 
 
-def SearchExpr(e, m, tks, result=None):
-    # TODO XXX: to test
-    if result is None:
-        result = set()
-
-    def visit_search(e, m, tks, result):
-        r = {}
-        MatchExpr(e, m, tks, r)
-        if r:
-            result.add(tuple(r.items()))
-        return e
-    e.visit(lambda x: visit_search(x, m, tks, result))
+def MatchExpr(expr, pattern, tks, result=None):
+    warnings.warn('DEPRECATION WARNING: use match_expr instead of MatchExpr')
+    return match_expr(expr, pattern, tks, result)
 
 
 def get_rw(exprs):
     o_r = set()
     o_w = set()
-    for e in exprs:
-        o_r.update(e.get_r(mem_read=True))
-    for e in exprs:
-        o_w.update(e.get_w())
+    for expr in exprs:
+        o_r.update(expr.get_r(mem_read=True))
+    for expr in exprs:
+        o_w.update(expr.get_w())
     return o_r, o_w
 
 
 def get_list_rw(exprs, mem_read=False, cst_read=True):
-    """
-    return list of read/write reg/cst/mem for each expressions
+    """Return list of read/write reg/cst/mem for each @exprs
+    @exprs: list of expressions
+    @mem_read: walk though memory accesses
+    @cst_read: retrieve constants
     """
     list_rw = []
     # cst_num = 0
-    for e in exprs:
+    for expr in exprs:
         o_r = set()
         o_w = set()
         # get r/w
-        o_r.update(e.get_r(mem_read=mem_read, cst_read=cst_read))
-        if isinstance(e.dst, ExprMem):
-            o_r.update(e.dst.arg.get_r(mem_read=mem_read, cst_read=cst_read))
-        o_w.update(e.get_w())
+        o_r.update(expr.get_r(mem_read=mem_read, cst_read=cst_read))
+        if isinstance(expr.dst, ExprMem):
+            o_r.update(expr.dst.arg.get_r(mem_read=mem_read, cst_read=cst_read))
+        o_w.update(expr.get_w())
         # each cst is indexed
         o_r_rw = set()
-        for r in o_r:
-            o_r_rw.add(r)
+        for read in o_r:
+            o_r_rw.add(read)
         o_r = o_r_rw
         list_rw.append((o_r, o_w))
 
     return list_rw
 
 
-def get_expr_ops(e):
-    def visit_getops(e, out=None):
+def get_expr_ops(expr):
+    """Retrieve operators of an @expr
+    @expr: Expr"""
+    def visit_getops(expr, out=None):
         if out is None:
             out = set()
-        if isinstance(e, ExprOp):
-            out.add(e.op)
-        return e
+        if isinstance(expr, ExprOp):
+            out.add(expr.op)
+        return expr
     ops = set()
-    e.visit(lambda x: visit_getops(x, ops))
+    expr.visit(lambda x: visit_getops(x, ops))
     return ops
 
 
-def get_expr_mem(e):
-    def visit_getmem(e, out=None):
+def get_expr_mem(expr):
+    """Retrieve memory accesses of an @expr
+    @expr: Expr"""
+    def visit_getmem(expr, out=None):
         if out is None:
             out = set()
-        if isinstance(e, ExprMem):
-            out.add(e)
-        return e
+        if isinstance(expr, ExprMem):
+            out.add(expr)
+        return expr
     ops = set()
-    e.visit(lambda x: visit_getmem(x, ops))
+    expr.visit(lambda x: visit_getmem(x, ops))
     return ops

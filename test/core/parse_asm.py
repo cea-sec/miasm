@@ -38,7 +38,7 @@ class TestParseAsm(unittest.TestCase):
     def test_DirectiveDontSplit(self):
         from miasm2.arch.x86.arch import mn_x86
         from miasm2.core.parse_asm import parse_txt
-        from miasm2.core.asmbloc import asm_resolve_final
+        from miasm2.core.asmblock import asm_resolve_final
 
         ASM0 = '''
         lbl0:

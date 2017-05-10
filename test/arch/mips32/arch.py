@@ -1,17 +1,7 @@
-import os, sys
 import time
 from pdb import pm
 
-sys.path.append('/home/serpilliere/projet/m2_devel')
 from miasm2.arch.mips32.arch import *
-
-import sys
-
-
-filename = os.environ.get('PYTHONSTARTUP')
-if filename and os.path.isfile(filename):
-    execfile(filename)
-
 
 reg_tests_mips32 = [
     ("004496D8    ADDU       GP, GP, T9",

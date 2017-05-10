@@ -113,7 +113,7 @@ def expr2colorstr(regs_ids, expr):
         s += ", ".join(["%s, %s, %s" % (expr2colorstr(regs_ids, subexpr),
                                         idaapi.COLSTR(str(idx),
                                                       idaapi.SCOLOR_RPTCMT),
-                                        idaapi.COLSTR(str(idx + expr.size),
+                                        idaapi.COLSTR(str(idx + subexpr.size),
                                                       idaapi.SCOLOR_RPTCMT))
                         for idx, subexpr in expr.iter_args()])
         s += "}"

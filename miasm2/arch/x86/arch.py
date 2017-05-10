@@ -7,7 +7,7 @@ from miasm2.core.cpu import *
 from collections import defaultdict
 import miasm2.arch.x86.regs as regs_module
 from miasm2.arch.x86.regs import *
-from miasm2.core.asmbloc import asm_label
+from miasm2.core.asmblock import AsmLabel
 
 log = logging.getLogger("x86_arch")
 console_handler = logging.StreamHandler()
@@ -227,7 +227,7 @@ def ast_id2expr(t):
 
 
 def ast_int2expr(a):
-    return ExprInt64(a)
+    return ExprInt(a, 64)
 
 
 my_var_parser = ParseAst(ast_id2expr, ast_int2expr)
@@ -489,7 +489,7 @@ class instruction_x86(instruction):
             return
         expr = self.args[0]
         if isinstance(expr, ExprId):
-            if not isinstance(expr.name, asm_label) and expr not in all_regs_ids:
+            if not isinstance(expr.name, AsmLabel) and expr not in all_regs_ids:
                 raise ValueError("ExprId must be a label or a register")
         elif isinstance(expr, ExprInt):
             ad = expr.arg + int(self.offset)
@@ -1126,7 +1126,7 @@ class x86_s08to16(x86_imm):
     out_size = 16
 
     def myexpr(self, x):
-        return ExprInt16(x)
+        return ExprInt(x, 16)
 
     def int2expr(self, v):
         return self.myexpr(v)
@@ -1143,7 +1143,7 @@ class x86_s08to16(x86_imm):
         v = v & self.lmask
         v = self.decodeval(v)
         if self.parent.v_opmode() == 64:
-            self.expr = ExprInt64(sign_ext(v, self.in_size, 64))
+            self.expr = ExprInt(sign_ext(v, self.in_size, 64), 64)
         else:
             if (1 << (self.l - 1)) & v:
                 v = sign_ext(v, self.l, self.out_size)
@@ -1191,15 +1191,15 @@ class x86_s08to32(x86_s08to16):
     out_size = 32
 
     def myexpr(self, x):
-        return ExprInt32(x)
+        return ExprInt(x, 32)
 
     def decode(self, v):
         v = v & self.lmask
         v = self.decodeval(v)
         if self.parent.rex_w.value == 1:
-            v = ExprInt64(sign_ext(v, self.in_size, 64))
+            v = ExprInt(sign_ext(v, self.in_size, 64), 64)
         else:
-            v = ExprInt32(sign_ext(v, self.in_size, 32))
+            v = ExprInt(sign_ext(v, self.in_size, 32), 32)
 
         self.expr = v
         return True
@@ -1210,7 +1210,7 @@ class x86_s08to64(x86_s08to32):
     out_size = 64
 
     def myexpr(self, x):
-        return ExprInt64(x)
+        return ExprInt(x, 64)
 
 
 class x86_s32to64(x86_s08to32):
@@ -1218,7 +1218,7 @@ class x86_s32to64(x86_s08to32):
     out_size = 64
 
     def myexpr(self, x):
-        return ExprInt64(x)
+        return ExprInt(x, 64)
 
 
 class bs_eax(m_arg):
@@ -1754,15 +1754,15 @@ def parse_mem(expr, parent, w8, sx=0, xmm=0, mm=0):
     out = []
     if disp is None:
         # add 0 disp
-        disp = ExprInt32(0)
+        disp = ExprInt(0, 32)
     if disp is not None:
-        for signed, encoding, cast_int in [(True, f_s08, ExprInt8),
-                                           (True, f_s16, ExprInt16),
-                                           (True, f_s32, ExprInt32),
-                                           (False, f_u08, ExprInt8),
-                                           (False, f_u16, ExprInt16),
-                                           (False, f_u32, ExprInt32)]:
-            value = cast_int(int(disp))
+        for signed, encoding, cast_size in [(True, f_s08, 8),
+                                           (True, f_s16, 16),
+                                           (True, f_s32, 32),
+                                           (False, f_u08, 8),
+                                           (False, f_u16, 16),
+                                           (False, f_u32, 32)]:
+            value = ExprInt(int(disp), cast_size)
             if admode < value.size:
                 if signed:
                     if int(disp.arg) != sign_ext(int(value), admode, disp.size):
@@ -2581,7 +2581,7 @@ class bs_cl1(bsi, m_arg):
         if v == 1:
             self.expr = regs08_expr[1]
         else:
-            self.expr = ExprInt8(1)
+            self.expr = ExprInt(1, 8)
         return True
 
     def encode(self):
@@ -3069,7 +3069,7 @@ class bs_msegoff(m_arg):
         opmode = self.parent.v_opmode()
         v = swap_uint(self.l, v)
         self.value = v
-        v = ExprInt16(v)
+        v = ExprInt(v, 16)
         self.expr = ExprOp('segm', v, self.parent.off.expr)
         return True
 

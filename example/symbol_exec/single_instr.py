@@ -1,6 +1,6 @@
 # Minimalist Symbol Exec example
 from miasm2.core.bin_stream import bin_stream_str
-from miasm2.ir.symbexec import symbexec
+from miasm2.ir.symbexec import SymbolicExecutionEngine
 from miasm2.analysis.machine import Machine
 
 START_ADDR = 0
@@ -23,7 +23,7 @@ ira.add_bloc(asm_block)
 # Instanciate a Symbolic Execution engine with default value for registers
 ## EAX = EAX_init, ...
 symbols_init = ira.arch.regs.regs_init
-symb = symbexec(ira, symbols_init)
+symb = SymbolicExecutionEngine(ira, symbols_init)
 
 # Emulate one IR basic block
 ## Emulation of several basic blocks can be done through .emul_ir_blocks
@@ -37,5 +37,6 @@ symb.dump_mem()
 
 # Check final status
 eax, ebx = ira.arch.regs.EAX, ira.arch.regs.EBX
-assert symb.symbols[eax] == symbols_init[ebx]
-assert eax in symb.modified()
+final_state = symb.as_assignblock()
+assert final_state[eax] == symbols_init[ebx]
+assert eax in final_state

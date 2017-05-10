@@ -1,8 +1,8 @@
 import miasm2.expression.expression as m2_expr
-from miasm2.ir.symbexec import symbexec
+from miasm2.ir.symbexec import SymbolicExecutionEngine
 
 
-class EmulatedSymbExec(symbexec):
+class EmulatedSymbExec(SymbolicExecutionEngine):
     """Symbolic exec instance linked with a jitter"""
 
     cpuid = {

@@ -1,4 +1,4 @@
-from miasm2.core.asmbloc import asm_constraint, disasmEngine
+from miasm2.core.asmblock import AsmConstraint, disasmEngine
 from miasm2.arch.arm.arch import mn_arm, mn_armt
 
 
@@ -24,7 +24,7 @@ def cb_arm_fix_call(mn, cur_bloc, symbol_pool, offsets_to_dis, *args, **kwargs):
         return
     if not l2.args[1] in values:
         return
-    cur_bloc.add_cst(l1.offset + 4, asm_constraint.c_next, symbol_pool)
+    cur_bloc.add_cst(l1.offset + 4, AsmConstraint.c_next, symbol_pool)
     offsets_to_dis.add(l1.offset + 4)
 
 cb_arm_funcs = [cb_arm_fix_call]

@@ -1,5 +1,5 @@
 import miasm2.expression.expression as m2_expr
-from miasm2.ir.ir import ir, irbloc
+from miasm2.ir.ir import IntermediateRepresentation, IRBlock
 from miasm2.arch.mips32.arch import mn_mips32
 from miasm2.arch.mips32.regs import R_LO, R_HI, PC, RA
 from miasm2.core.sembuilder import SemBuilder
@@ -402,6 +402,7 @@ mnemo_func = sbuild.functions
 mnemo_func.update({
         'add.d': add_d,
         'addu': addiu,
+        'addi': addiu,
         'and': l_and,
         'andi': l_and,
         'b': l_b,
@@ -428,10 +429,10 @@ def get_mnemo_expr(ir, instr, *args):
     instr, extra_ir = mnemo_func[instr.name.lower()](ir, instr, *args)
     return instr, extra_ir
 
-class ir_mips32l(ir):
+class ir_mips32l(IntermediateRepresentation):
 
     def __init__(self, symbol_pool=None):
-        ir.__init__(self, mn_mips32, 'l', symbol_pool)
+        IntermediateRepresentation.__init__(self, mn_mips32, 'l', symbol_pool)
         self.pc = mn_mips32.getpc()
         self.sp = mn_mips32.getsp()
         self.IRDst = m2_expr.ExprId('IRDst', 32)
@@ -442,64 +443,25 @@ class ir_mips32l(ir):
 
         for i, x in enumerate(instr_ir):
             x = m2_expr.ExprAff(x.dst, x.src.replace_expr(
-                {self.pc: m2_expr.ExprInt32(instr.offset + 4)}))
+                {self.pc: m2_expr.ExprInt(instr.offset + 4, 32)}))
             instr_ir[i] = x
-        for b in extra_ir:
-            for irs in b.irs:
+        for irblock in extra_ir:
+            for irs in irblock.irs:
                 for i, x in enumerate(irs):
                     x = m2_expr.ExprAff(x.dst, x.src.replace_expr(
-                        {self.pc: m2_expr.ExprInt32(instr.offset + 4)}))
+                        {self.pc: m2_expr.ExprInt(instr.offset + 4, 32)}))
                     irs[i] = x
         return instr_ir, extra_ir
 
     def get_next_instr(self, instr):
-        l = self.symbol_pool.getby_offset_create(instr.offset  + 4)
-        return l
+        return self.symbol_pool.getby_offset_create(instr.offset  + 4)
 
     def get_next_break_label(self, instr):
-        l = self.symbol_pool.getby_offset_create(instr.offset  + 8)
-        return l
-    """
-    def add_bloc(self, bloc, gen_pc_updt = False):
-        c = None
-        ir_blocs_all = []
-        for l in bloc.lines:
-            if c is None:
-                # print 'new c'
-                label = self.get_label(l)
-                c = irbloc(label, [], [])
-                ir_blocs_all.append(c)
-                bloc_dst = None
-            # print 'Translate', l
-            dst, ir_bloc_cur, ir_blocs_extra = self.instr2ir(l)
-            # print ir_bloc_cur
-            # for xxx in ir_bloc_cur:
-            #    print "\t", xxx
-            assert((dst is None) or (bloc_dst is None))
-            bloc_dst = dst
-            #if bloc_dst is not None:
-            #    c.dst = bloc_dst
-            if dst is not None:
-                ir_bloc_cur.append(m2_expr.ExprAff(PC_FETCH, dst))
-                c.dst = PC_FETCH
-            if gen_pc_updt is not False:
-                self.gen_pc_update(c, l)
-
-            c.irs.append(ir_bloc_cur)
-            c.lines.append(l)
-            if ir_blocs_extra:
-                # print 'split'
-                for b in ir_blocs_extra:
-                    b.lines = [l] * len(b.irs)
-                ir_blocs_all += ir_blocs_extra
-                c = None
-        self.post_add_bloc(bloc, ir_blocs_all)
-        return ir_blocs_all
-    """
+        return self.symbol_pool.getby_offset_create(instr.offset  + 8)
 
 class ir_mips32b(ir_mips32l):
     def __init__(self, symbol_pool=None):
-        ir.__init__(self, mn_mips32, 'b', symbol_pool)
+        IntermediateRepresentation.__init__(self, mn_mips32, 'b', symbol_pool)
         self.pc = mn_mips32.getpc()
         self.sp = mn_mips32.getsp()
         self.IRDst = m2_expr.ExprId('IRDst', 32)

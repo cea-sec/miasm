@@ -521,7 +521,7 @@ class CondConstraintNotZero(CondConstraint):
     operator = "!="
 
     def to_constraint(self):
-        cst1, cst2 = m2_expr.ExprInt1(0), m2_expr.ExprInt1(1)
+        cst1, cst2 = m2_expr.ExprInt(0, 1), m2_expr.ExprInt(1, 1)
         return m2_expr.ExprAff(cst1, m2_expr.ExprCond(self.expr, cst1, cst2))
 
 

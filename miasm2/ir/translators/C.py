@@ -1,5 +1,5 @@
 from miasm2.ir.translators.translator import Translator
-from miasm2.core import asmbloc
+from miasm2.core import asmblock
 from miasm2.expression.modint import size2mask
 
 
@@ -23,7 +23,7 @@ class TranslatorC(Translator):
 
 
     def from_ExprId(self, expr):
-        if isinstance(expr.name, asmbloc.asm_label):
+        if isinstance(expr.name, asmblock.AsmLabel):
             return "0x%x" % expr.name.offset
         return str(expr)
 

@@ -1371,6 +1371,7 @@ def my_lstrcmp(jitter, funcname, get_str):
     ret_ad, args = jitter.func_args_stdcall(["ptr_str1", "ptr_str2"])
     s1 = get_str(args.ptr_str1)
     s2 = get_str(args.ptr_str2)
+    log.info("Compare %r with %r", s1, s2)
     jitter.func_ret_stdcall(ret_ad, cmp(s1, s2))
 
 
@@ -1398,6 +1399,7 @@ def my_strcpy(jitter, funcname, get_str, set_str):
     ret_ad, args = jitter.func_args_stdcall(["ptr_str1", "ptr_str2"])
     s2 = get_str(args.ptr_str2)
     set_str(args.ptr_str1, s2)
+    log.info("Copy '%r'", s2)
     jitter.func_ret_stdcall(ret_ad, args.ptr_str1)
 
 
@@ -1418,15 +1420,19 @@ def kernel32_lstrcpyn(jitter):
     ret_ad, args = jitter.func_args_stdcall(["ptr_str1", "ptr_str2",
                                              "mlen"])
     s2 = jitter.get_str_ansi(args.ptr_str2)
-    s2 = s2[:args.mlen]
-    jitter.vm.set_mem(args.ptr_str1, s2)
+    if len(s2) >= args.mlen:
+        s2 = s2[:args.mlen - 1]
+    log.info("Copy '%r'", s2)
+    jitter.set_str_ansi(args.ptr_str1, s2)
     jitter.func_ret_stdcall(ret_ad, args.ptr_str1)
 
 
 def my_strlen(jitter, funcname, get_str, mylen):
     ret_ad, args = jitter.func_args_stdcall(["src"])
     src = get_str(args.src)
-    jitter.func_ret_stdcall(ret_ad, mylen(src))
+    length = mylen(src)
+    log.info("Len of '%r' -> 0x%x", src, length)
+    jitter.func_ret_stdcall(ret_ad, length)
 
 
 def kernel32_lstrlenA(jitter):
@@ -1786,6 +1792,7 @@ def ntdll_LdrGetProcedureAddress(jitter):
     fname = jitter.get_str_ansi(p_src)
 
     ad = winobjs.runtime_dll.lib_get_add_func(args.libbase, fname)
+    jitter.add_breakpoint(ad, jitter.handle_lib)
 
     jitter.vm.set_mem(args.p_ad, pck32(ad))
 

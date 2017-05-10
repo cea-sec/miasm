@@ -1,11 +1,6 @@
-import os, sys
+import sys
 import time
 from miasm2.arch.aarch64.arch import *
-
-filename = os.environ.get('PYTHONSTARTUP')
-if filename and os.path.isfile(filename):
-    execfile(filename)
-
 
 reg_tests_aarch64 = [
     ("XXXXXXXX    MOV        W1, WZR",
@@ -1700,8 +1695,14 @@ reg_tests_aarch64 = [
     ("0000D26C    SDIV       X1, X0, X1",
      "010CC19A"),
 
-    ("0000CC50    LDR        D4, 0xD0",
+    ("0000CC50    LDR        D4, [PC, 0xD0]",
      "8406005C"),
+    ("0000CC50    LDR        D4, [PC]",
+     "0400005C"),
+
+    ("0000CC50    LDRSW      X4, [PC, 0xD0]",
+     "84060098"),
+
 
     ("0000CC90    LSL        W5, W7, W3",
      "E520C31A"),

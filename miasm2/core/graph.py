@@ -100,6 +100,11 @@ class DiGraph(object):
         self._nodes_succ[src].remove(dst)
         self._nodes_pred[dst].remove(src)
 
+    def discard_edge(self, src, dst):
+        """Remove edge between @src and @dst if it exits"""
+        if (src, dst) in self._edges:
+            self.del_edge(src, dst)
+
     def predecessors_iter(self, node):
         if not node in self._nodes_pred:
             raise StopIteration
@@ -748,7 +753,7 @@ class MatchGraphJoker(object):
 
 class MatchGraph(DiGraph):
 
-    """MatchGraph intends to be the counterpart of MatchExpr, but for DiGraph
+    """MatchGraph intends to be the counterpart of match_expr, but for DiGraph
 
     This class provides API to match a given DiGraph pattern, with addidionnal
     restrictions.

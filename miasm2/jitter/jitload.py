@@ -163,12 +163,12 @@ class jitter:
 
     C_Gen = CGen
 
-    def __init__(self, ir_arch, jit_type="tcc"):
+    def __init__(self, ir_arch, jit_type="gcc"):
         """Init an instance of jitter.
         @ir_arch: ir instance for this architecture
         @jit_type: JiT backend to use. Available options are:
-            - "tcc"
             - "gcc"
+            - "tcc"
             - "llvm"
             - "python"
         """
@@ -242,7 +242,7 @@ class jitter:
         "Add common exceptions handlers"
 
         def exception_automod(jitter):
-            "Tell the JiT backend to update blocs modified"
+            "Tell the JiT backend to update blocks modified"
 
             self.jit.updt_automod_code(jitter.vm)
             self.vm.set_exception(0)

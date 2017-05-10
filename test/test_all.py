@@ -16,6 +16,7 @@ TAGS = {"regression": "REGRESSION", # Regression tests
         "long": "LONG", # Very time consumming tests
         "llvm": "LLVM", # LLVM dependency is required
         "tcc": "TCC", # TCC dependency is required
+        "gcc": "GCC", # GCC based tests
         "z3": "Z3", # Z3 dependecy is needed
         "qemu": "QEMU", # QEMU tests (several tests)
         "cparser": "CPARSER", # pycparser is needed
@@ -209,7 +210,7 @@ class SemanticTestExec(RegressionTest):
                              input_filename,
                              "-a", hex(address)]
         self.products = []
-        self.tags.append(TAGS["tcc"])
+        self.tags.append(TAGS["gcc"])
 
 
 test_x86_64_mul_div = SemanticTestAsm("x86_64", "PE", ["mul_div"])
@@ -230,7 +231,7 @@ for script in ["interval.py",
                "test_types.py",
                ]:
     testset += RegressionTest([script], base_dir="core")
-testset += RegressionTest(["asmbloc.py"], base_dir="core",
+testset += RegressionTest(["asmblock.py"], base_dir="core",
                           products=["graph.dot", "graph2.dot",
                                     "graph3.dot", "graph4.dot"])
 ## Expression
@@ -239,17 +240,16 @@ for script in ["modint.py",
                "stp.py",
                "simplifications.py",
                "expression_helper.py",
+               "expr_pickle.py",
                ]:
     testset += RegressionTest([script], base_dir="expression")
+
 ## IR
 for script in ["symbexec.py",
+               "ir.py",
                ]:
     testset += RegressionTest([script], base_dir="ir")
-testset += RegressionTest(["analysis.py"], base_dir="ir",
-                          products=[fname for fnames in (
-            ["simp_graph_%02d.dot" % test_nb, "graph_%02d.dot" % test_nb]
-            for test_nb in xrange(1, 18))
-                                    for fname in fnames])
+
 testset += RegressionTest(["z3_ir.py"], base_dir="ir/translators",
                           tags=[TAGS["z3"]])
 testset += RegressionTest(["smt2.py"], base_dir="ir/translators",
@@ -257,7 +257,13 @@ testset += RegressionTest(["smt2.py"], base_dir="ir/translators",
 ## OS_DEP
 for script in ["win_api_x86_32.py",
                ]:
-    testset += RegressionTest([script], base_dir="os_dep", tags=[TAGS['tcc']])
+    testset += RegressionTest([script], base_dir="os_dep", tags=[TAGS['gcc']])
+
+for arch in ["x86_32", "x86_64", "arml", "aarch64l"]:
+    testset += RegressionTest(["test_env.py", arch, "test_env.%s" % arch, "-c",
+                               "arg1", "-c", "arg2", "--environment-vars",
+                               "TEST=TOTO", "--mimic-env"],
+                              base_dir="os_dep/linux", tags=[TAGS['gcc']])
 
 ## Analysis
 testset += RegressionTest(["depgraph.py"], base_dir="analysis",
@@ -269,10 +275,26 @@ testset += RegressionTest(["depgraph.py"], base_dir="analysis",
                           ["graph_test_%02d_%02d.dot" % (test_nb, res_nb)
                            for (test_nb, res_nb) in ((3, 1), (5, 1), (8, 1),
                                                      (9, 1), (10, 1),
-                                                     (12, 1), (13, 1),
-                                                     (14, 1), (15, 1))
+                                                     (12, 1), (12, 2),
+                                                     (13, 1), (13, 2),
+                                                     (14, 1), (14, 2),
+                                                     (15, 1))
                            ])
+testset += RegressionTest(["modularintervals.py"], base_dir="analysis")
+for jitter in ArchUnitTest.jitter_engines:
+    if jitter in blacklist.get(script, []):
+        continue
+    tags = [TAGS[jitter]] if jitter in TAGS else []
+    testset += RegressionTest(["dse.py", jitter], base_dir="analysis", tags=tags)
 
+testset += RegressionTest(["range.py"], base_dir="analysis",
+                          tags=[TAGS["z3"]])
+
+testset += RegressionTest(["data_flow.py"], base_dir="analysis",
+                          products=[fname for fnames in (
+            ["simp_graph_%02d.dot" % test_nb, "graph_%02d.dot" % test_nb]
+            for test_nb in xrange(1, 18))
+                                    for fname in fnames])
 
 ## Degraph
 class TestDepgraph(RegressionTest):
@@ -283,10 +305,11 @@ class TestDepgraph(RegressionTest):
 
 
     def __init__(self, test_nb, implicit, base_addr, target_addr, elements,
-                 *args, **kwargs):
+                 nb_sol, *args, **kwargs):
         super(TestDepgraph, self).__init__([self.launcher],
                                            *args, **kwargs)
         self.base_dir = os.path.join(self.base_dir, "analysis")
+        self.products = ["sol_%d.dot" % i for i in xrange(nb_sol)]
         if implicit:
             expected_fname = "dg_test_%.2d_implicit_expected.json"
             self.tags.append(TAGS["z3"])
@@ -306,18 +329,18 @@ class TestDepgraph(RegressionTest):
             self.command_line.append("-i")
 
 # Depgraph emulation regression test
-test_args = [(0x401000, 0x40100d, ["EAX"]),
-             (0x401000, 0x401011, ["EAX"]),
-             (0x401000, 0x401018, ["EAX"]),
-             (0x401000, 0x401011, ["EAX"]),
-             (0x401000, 0x401011, ["EAX"]),
-             (0x401000, 0x401016, ["EAX"]),
-             (0x401000, 0x401017, ["EAX"]),
-             (0x401000, 0x401012, ["EAX", "ECX"]),
-             (0x401000, 0x401012, ["ECX"]),
-             (0x401000, 0x40101f, ["EAX", "EBX"]),
-             (0x401000, 0x401025, ["EAX", "EBX"]),
-             (0x401000, 0x401007, ["EBX"]),
+test_args = [(0x401000, 0x40100d, ["EAX"], 1),
+             (0x401000, 0x401011, ["EAX"], 1),
+             (0x401000, 0x401018, ["EAX"], 2),
+             (0x401000, 0x401011, ["EAX"], 2),
+             (0x401000, 0x401011, ["EAX"], 1),
+             (0x401000, 0x401016, ["EAX"], 1),
+             (0x401000, 0x401017, ["EAX"], 2),
+             (0x401000, 0x401012, ["EAX", "ECX"], 1),
+             (0x401000, 0x401012, ["ECX"], 1),
+             (0x401000, 0x40101f, ["EAX", "EBX"], 2),
+             (0x401000, 0x401025, ["EAX", "EBX"], 4),
+             (0x401000, 0x401007, ["EBX"], 3),
 ]
 for i, test_args in enumerate(test_args):
     test_dg = SemanticTestAsm("x86_32", "PE", ["dg_test_%.2d" % i])
@@ -329,6 +352,7 @@ for i, test_args in enumerate(test_args):
 for script in ["jitload.py",
                "vm_mngr.py",
                "jit_options.py",
+               "test_post_instr.py",
                ]:
     for engine in ArchUnitTest.jitter_engines:
         testset += RegressionTest([script, engine], base_dir="jitter",
@@ -412,6 +436,7 @@ test_x86_64 = ExampleShellcode(["x86_64", "x86_64.S", "demo_x86_64.bin",
 test_x86_32_if_reg = ExampleShellcode(['x86_32', 'x86_32_if_reg.S', "x86_32_if_reg.bin"])
 test_x86_32_seh = ExampleShellcode(["x86_32", "x86_32_seh.S", "x86_32_seh.bin",
                                     "--PE"])
+test_x86_32_dead = ExampleShellcode(['x86_32', 'x86_32_dead.S', "x86_32_dead.bin"])
 
 test_human = ExampleShellcode(["x86_64", "human.S", "human.bin"])
 
@@ -429,7 +454,7 @@ testset += test_mips32l
 testset += test_x86_64
 testset += test_x86_32_if_reg
 testset += test_x86_32_seh
-
+testset += test_x86_32_dead
 testset += test_human
 
 class ExampleDisassembler(Example):
@@ -460,9 +485,9 @@ class ExampleDisasmFull(ExampleDisassembler):
 
     def __init__(self, *args, **kwargs):
         super(ExampleDisasmFull, self).__init__(*args, **kwargs)
-        self.command_line = ["full.py", "-g", "-s", "-m"] + self.command_line
-        self.products += ["graph_execflow.dot", "graph_irflow.dot",
-                          "graph_irflow_raw.dot", "lines.dot"]
+        self.command_line = ["full.py", "-g", "-ss", "-d", "-m"] + self.command_line
+        self.products += ["graph_defuse.dot", "graph_execflow.dot",
+                          "graph_irflow.dot", "graph_irflow_raw.dot", "lines.dot", "graph_irflow_reduced.dot"]
 
 
 testset += ExampleDisasmFull(["arml", Example.get_sample("demo_arm_l.bin"),
@@ -499,6 +524,8 @@ testset += ExampleDisasmFull(["x86_32", os.path.join("..", "..", "test",
                                                      "arch", "x86", "qemu",
                                                      "test-i386"),
                               "func_iret"])
+testset += ExampleDisasmFull(["x86_32", Example.get_sample("x86_32_dead.bin"),
+                              "0"], depends=[test_x86_32_dead])
 
 
 ## Expression
@@ -572,6 +599,17 @@ for options, nb_sol, tag in [([], 4, []),
                                  depends=[test_x86_32_if_reg],
                                  tags=tag)
 
+dse_crackme_out = Example.get_sample("dse_crackme.c")[:-2]
+dse_crackme = ExampleSymbolExec([Example.get_sample("dse_crackme.c"),
+                                 "-o", dse_crackme_out],
+                                products=[dse_crackme_out],
+                                executable="cc")
+testset += dse_crackme
+testset += ExampleSymbolExec(["dse_crackme.py", dse_crackme_out],
+                             depends=[dse_crackme],
+                             products=["test.txt"],
+                             tags=[TAGS["z3"]])
+
 ## Jitter
 class ExampleJitter(Example):
     """Jitter examples specificities:
@@ -594,6 +632,7 @@ for jitter in ExampleJitter.jitter_engines:
     tags = {"python": [TAGS["long"]],
             "llvm": [TAGS["llvm"]],
             "tcc": [TAGS["tcc"]],
+            "gcc": [TAGS["gcc"]],
             }
     testset += ExampleJitter(["unpack_upx.py",
                               Example.get_sample("box_upx.exe")] +
@@ -602,9 +641,10 @@ for jitter in ExampleJitter.jitter_engines:
                              tags=tags.get(jitter, []))
 
 for script, dep in [(["x86_32.py", Example.get_sample("x86_32_sc.bin")], []),
-                    (["arm.py", Example.get_sample("md5_arm"), "-a", "A684"],
+                    (["arm.py", Example.get_sample("md5_arm"), "--mimic-env"],
                      []),
-                    (["sandbox_elf_aarch64l.py", Example.get_sample("md5_aarch64l"), "-a", "0x400A00"],
+                    (["sandbox_elf_aarch64l.py",
+                      Example.get_sample("md5_aarch64l"), "--mimic-env"],
                      []),
                     (["msp430.py", Example.get_sample("msp430_sc.bin"), "0"],
                      [test_msp430]),
@@ -614,6 +654,7 @@ for script, dep in [(["x86_32.py", Example.get_sample("x86_32_sc.bin")], []),
                       "b", "-a", "0"], [test_armb]),
                     (["arm_sc.py", "0", Example.get_sample("demo_arm_l.bin"),
                       "l", "-a", "0"], [test_arml]),
+                    (["sandbox_call.py", Example.get_sample("md5_arm")], []),
                     ] + [(["sandbox_pe_x86_32.py",
                            Example.get_sample("x86_32_" + name + ".bin")],
                           [test_box[name]])

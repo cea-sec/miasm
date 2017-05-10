@@ -1,4 +1,3 @@
-import os
 import sys
 import subprocess
 from collections import defaultdict
@@ -9,18 +8,14 @@ from miasm2.arch.x86.arch import *
 from miasm2.arch.x86.regs import *
 from miasm2.arch.x86.sem import *
 from miasm2.core.bin_stream import bin_stream_str
-from miasm2.core import asmbloc
+from miasm2.core import asmblock
 from miasm2.expression.expression import get_rw
-from miasm2.ir.symbexec import symbexec
+from miasm2.expression.modint import uint32
+from miasm2.ir.symbexec import SymbolicExecutionEngine
 from miasm2.expression.simplifications import expr_simp
 from miasm2.expression import stp
 from miasm2.core import parse_asm
 from miasm2.arch.x86.disasm import dis_x86_32 as dis_engine
-
-
-filename = os.environ.get('PYTHONSTARTUP')
-if filename and os.path.isfile(filename):
-    execfile(filename)
 
 
 mn = mn_x86
@@ -35,18 +30,18 @@ if not args:
     sys.exit(0)
 
 
-def get_bloc(ir_arch, mdis, ad):
-    if isinstance(ad, asmbloc.asm_label):
+def get_block(ir_arch, mdis, ad):
+    if isinstance(ad, asmblock.AsmLabel):
         l = ad
     else:
         l = mdis.symbol_pool.getby_offset_create(ad)
-    if not l in ir_arch.blocs:
+    if not l in ir_arch.blocks:
         ad = l.offset
         b = mdis.dis_bloc(ad)
         ir_arch.add_bloc(b)
     b = ir_arch.get_bloc(l)
     if b is None:
-        raise LookupError('no bloc found at that address: %s' % l)
+        raise LookupError('no block found at that address: %s' % l)
     return b
 
 
@@ -58,15 +53,15 @@ def emul_symb(ir_arch, mdis, states_todo, states_done):
             print 'skip', ad
             continue
         states_done.add((ad, symbols, conds))
-        sb = symbexec(ir_arch, {})
+        sb = SymbolicExecutionEngine(ir_arch, {})
         sb.symbols = symbols.copy()
         if ir_arch.pc in sb.symbols:
             del(sb.symbols[ir_arch.pc])
-        b = get_bloc(ir_arch, mdis, ad)
+        b = get_block(ir_arch, mdis, ad)
 
-        print 'run bloc'
+        print 'run block'
         print b
-        # print blocs[ad]
+        # print blocks[ad]
         ad = sb.emulbloc(b)
         print 'final state'
         sb.dump_id()
@@ -87,8 +82,8 @@ def emul_symb(ir_arch, mdis, states_todo, states_done):
             p2[ad.cond] = ExprInt(1, ad.cond.size)
             ad1 = expr_simp(sb.eval_expr(ad.replace_expr(c1), {}))
             ad2 = expr_simp(sb.eval_expr(ad.replace_expr(c2), {}))
-            if not (isinstance(ad1, ExprInt) or (isinstance(ad1, ExprId) and isinstance(ad1.name, asmbloc.asm_label)) and
-                    isinstance(ad2, ExprInt) or (isinstance(ad2, ExprId) and isinstance(ad2.name, asmbloc.asm_label))):
+            if not (isinstance(ad1, ExprInt) or (isinstance(ad1, ExprId) and isinstance(ad1.name, asmblock.AsmLabel)) and
+                    isinstance(ad2, ExprInt) or (isinstance(ad2, ExprId) and isinstance(ad2.name, asmblock.AsmLabel))):
                 print str(ad1), str(ad2)
                 raise ValueError("zarb condition")
             conds1 = list(conds) + c1.items()
@@ -106,7 +101,7 @@ def emul_symb(ir_arch, mdis, states_todo, states_done):
         elif isinstance(ad, ExprInt):
             ad = int(ad.arg)
             states_todo.add((ad, sb.symbols.copy(), tuple(conds)))
-        elif isinstance(ad, ExprId) and isinstance(ad.name, asmbloc.asm_label):
+        elif isinstance(ad, ExprId) and isinstance(ad.name, asmblock.AsmLabel):
             if isinstance(ad, ExprId):
                 ad = ad.name
             states_todo.add((ad, sb.symbols.copy(), tuple(conds)))
@@ -134,7 +129,7 @@ if __name__ == '__main__':
     reg_and_id = dict(mn_x86.regs.all_regs_ids_byname)
 
     def my_ast_int2expr(a):
-        return ExprInt32(a)
+        return ExprInt(a, 32)
 
     # Modifify parser to avoid label creation in PUSH argc
     def my_ast_id2expr(string_parsed):
@@ -159,33 +154,33 @@ if __name__ == '__main__':
 
     ir_arch = ir_x86_32(mdis.symbol_pool)
 
-    sb = symbexec(ir_arch, symbols_init)
+    sb = SymbolicExecutionEngine(ir_arch, symbols_init)
 
-    blocs, symbol_pool = parse_asm.parse_txt(mn_x86, 32, '''
+    blocks, symbol_pool = parse_asm.parse_txt(mn_x86, 32, '''
     PUSH argv
     PUSH argc
     PUSH ret_addr
     ''')
 
 
-    b = list(blocs)[0]
+    b = list(blocks)[0]
     print b
     # add fake address and len to parsed instructions
-    for i, l in enumerate(b.lines):
-        l.offset, l.l = i, 1
+    for i, line in enumerate(b.lines):
+        line.offset, line.l = i, 1
     ir_arch.add_bloc(b)
-    irb = get_bloc(ir_arch, mdis, 0)
+    irb = get_block(ir_arch, mdis, 0)
     sb.emulbloc(irb)
     sb.dump_mem()
 
-    # reset ir_arch blocs
-    ir_arch.blocs = {}
+    # reset ir_arch blocks
+    ir_arch.blocks = {}
 
     states_todo = set()
     states_done = set()
     states_todo.add((uint32(ad), sb.symbols, ()))
 
-    # emul blocs, propagate states
+    # emul blocks, propagate states
     emul_symb(ir_arch, mdis, states_todo, states_done)
 
     all_info = []
@@ -201,7 +196,7 @@ if __name__ == '__main__':
 
     all_cases = set()
 
-    sb = symbexec(ir_arch, symbols_init)
+    sb = SymbolicExecutionEngine(ir_arch, symbols_init)
     for ad, reqs_cond in all_info:
         all_ids = set()
         for k, v in reqs_cond:

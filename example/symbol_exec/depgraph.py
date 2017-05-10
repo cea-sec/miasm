@@ -5,7 +5,7 @@ import json
 from miasm2.analysis.machine import Machine
 from miasm2.analysis.binary import Container
 from miasm2.analysis.depgraph import DependencyGraph
-from miasm2.expression.expression import ExprMem, ExprId, ExprInt32
+from miasm2.expression.expression import ExprMem, ExprId, ExprInt
 
 parser = ArgumentParser("Dependency grapher")
 parser.add_argument("filename", help="Binary to analyse")
@@ -55,7 +55,7 @@ if args.rename_args:
     if arch == "x86_32":
         # StdCall example
         for i in xrange(4):
-            e_mem = ExprMem(ExprId("ESP_init") + ExprInt32(4 * (i + 1)), 32)
+            e_mem = ExprMem(ExprId("ESP_init") + ExprInt(4 * (i + 1), 32), 32)
             init_ctx[e_mem] = ExprId("arg%d" % i)
 
 # Disassemble the targeted function
@@ -75,8 +75,8 @@ dg = DependencyGraph(ir_arch, implicit=args.implicit,
 target_addr = int(args.target_addr, 0)
 current_block = list(ir_arch.getby_offset(target_addr))[0]
 line_nb = 0
-for line_nb, line in enumerate(current_block.lines):
-    if line.offset == target_addr:
+for line_nb, assignblk in enumerate(current_block.irs):
+    if assignblk.instr.offset == target_addr:
         break
 
 # Enumerate solutions

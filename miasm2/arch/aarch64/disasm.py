@@ -1,4 +1,4 @@
-from miasm2.core.asmbloc import asm_constraint, disasmEngine
+from miasm2.core.asmblock import disasmEngine
 from miasm2.arch.aarch64.arch import mn_aarch64
 
 cb_aarch64_funcs = []

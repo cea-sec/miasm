@@ -1,6 +1,6 @@
 import z3
 
-from miasm2.core.asmbloc import asm_label
+from miasm2.core.asmblock import AsmLabel
 from miasm2.expression.expression import *
 from miasm2.ir.translators.translator import Translator
 from miasm2.ir.translators.z3_ir import Z3Mem
@@ -60,8 +60,8 @@ z3_e = z3.BitVec('x', 32)
 assert equiv(ez3, z3_e)
 
 # --------------------------------------------------------------------------
-four = ExprInt32(4)
-five = ExprInt32(5)
+four = ExprInt(4, 32)
+five = ExprInt(5, 32)
 e2 = (e + five + four) * five
 ez3 = Translator.to_language('z3').from_expr(e2)
 
@@ -71,9 +71,9 @@ z3_e2 = (z3_e + z3_five + z3_four) * z3_five
 assert equiv(ez3, z3_e2)
 
 # --------------------------------------------------------------------------
-emem = ExprMem(ExprInt32(0xdeadbeef), size=32)
-emem2 = ExprMem(ExprInt32(0xfee1dead), size=32)
-e3 = (emem + e) * ExprInt32(2) * emem2
+emem = ExprMem(ExprInt(0xdeadbeef, 32), size=32)
+emem2 = ExprMem(ExprInt(0xfee1dead, 32), size=32)
+e3 = (emem + e) * ExprInt(2, 32) * emem2
 ez3 = Translator.to_language('z3').from_expr(e3)
 
 mem = Z3Mem()
@@ -122,8 +122,8 @@ assert equiv(ez3, z3_e5)
 
 # --------------------------------------------------------------------------
 # Parity
-seven = ExprInt32(7)
-one0seven = ExprInt32(0x107)
+seven = ExprInt(7, 32)
+one0seven = ExprInt(0x107, 32)
 for miasm_int, res in [(five, 1), (four, 0), (seven, 0), (one0seven, 0)]:
     e6 = ExprOp('parity', miasm_int)
     ez3 = Translator.to_language('z3').from_expr(e6)
@@ -139,13 +139,13 @@ for miasm_int, res in [(five, -5), (four, -4)]:
     assert equiv(ez3, z3_e6)
 
 # --------------------------------------------------------------------------
-e7 = ExprId(asm_label("label_histoire", 0xdeadbeef), 32)
+e7 = ExprId(AsmLabel("label_histoire", 0xdeadbeef), 32)
 ez3 = Translator.to_language('z3').from_expr(e7)
 z3_e7 = z3.BitVecVal(0xdeadbeef, 32)
 assert equiv(ez3, z3_e7)
 
 # Should just not throw anything to pass
-e8 = ExprId(asm_label("label_jambe"), 32)
+e8 = ExprId(AsmLabel("label_jambe"), 32)
 ez3 = Translator.to_language('z3').from_expr(e8)
 assert not equiv(ez3, z3_e7)
 

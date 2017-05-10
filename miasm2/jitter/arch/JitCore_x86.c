@@ -138,7 +138,7 @@ PyObject* cpu_set_gpreg(JitCpu* self, PyObject *args)
     unsigned int i, found;
 
     if (!PyArg_ParseTuple(args, "O", &dict))
-	    return NULL;
+	    RAISE(PyExc_TypeError,"Cannot parse arguments");
     if(!PyDict_Check(dict))
 	    RAISE(PyExc_TypeError, "arg must be dict");
     while(PyDict_Next(dict, &pos, &d_key, &d_value)){
@@ -238,7 +238,7 @@ PyObject* cpu_set_exception(JitCpu* self, PyObject* args)
 	uint64_t i;
 
 	if (!PyArg_ParseTuple(args, "O", &item1))
-		return NULL;
+		RAISE(PyExc_TypeError,"Cannot parse arguments");
 
 	PyGetInt(item1, i);
 
@@ -258,7 +258,7 @@ PyObject* cpu_set_interrupt_num(JitCpu* self, PyObject* args)
 	uint64_t i;
 
 	if (!PyArg_ParseTuple(args, "O", &item1))
-		return NULL;
+		RAISE(PyExc_TypeError,"Cannot parse arguments");
 
 	PyGetInt(item1, i);
 
@@ -278,7 +278,7 @@ PyObject* cpu_set_segm_base(JitCpu* self, PyObject* args)
 	uint64_t segm_num, segm_base;
 
 	if (!PyArg_ParseTuple(args, "OO", &item1, &item2))
-		return NULL;
+		RAISE(PyExc_TypeError,"Cannot parse arguments");
 
 	PyGetInt(item1, segm_num);
 	PyGetInt(item2, segm_base);
@@ -295,7 +295,7 @@ PyObject* cpu_get_segm_base(JitCpu* self, PyObject* args)
 	PyObject* v;
 
 	if (!PyArg_ParseTuple(args, "O", &item1))
-		return NULL;
+		RAISE(PyExc_TypeError,"Cannot parse arguments");
 	PyGetInt(item1, segm_num);
 	v = PyInt_FromLong((long)(((vm_cpu_t*)self->cpu)->segm_base[segm_num]));
 	return v;
@@ -355,10 +355,10 @@ PyObject* vm_set_mem(JitCpu *self, PyObject* args)
        char * buffer;
        uint64_t size;
        uint64_t addr;
-       int ret = 0x1337;
+       int ret;
 
        if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_buffer))
-	       return NULL;
+	       RAISE(PyExc_TypeError,"Cannot parse arguments");
 
        PyGetInt(py_addr, addr);
 
@@ -428,7 +428,7 @@ JitCpu_init(JitCpu *self, PyObject *args, PyObject *kwds)
 	static int JitCpu_set_E ## regname  (JitCpu *self, PyObject *value, void *closure) \
 	{								\
 		uint64_t val;						\
-		PyGetInt_ret0(value, val);				\
+		PyGetInt_retneg(value, val);				\
 		val &= 0xFFFFFFFF;					\
 		val |= ((vm_cpu_t*)(self->cpu))->R ##regname & 0xFFFFFFFF00000000ULL; \
 		((vm_cpu_t*)(self->cpu))->R ## regname   = val;			\
@@ -445,7 +445,7 @@ JitCpu_init(JitCpu *self, PyObject *args, PyObject *kwds)
 	static int JitCpu_set_ ## regname  (JitCpu *self, PyObject *value, void *closure) \
 	{								\
 		uint64_t val;						\
-		PyGetInt_ret0(value, val);				\
+		PyGetInt_retneg(value, val);				\
 		val &= 0xFFFF;						\
 		val |= ((vm_cpu_t*)(self->cpu))->R ##regname & 0xFFFFFFFFFFFF0000ULL; \
 		((vm_cpu_t*)(self->cpu))->R ## regname   = val;			\

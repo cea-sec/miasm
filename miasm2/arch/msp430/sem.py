@@ -3,7 +3,7 @@
 from miasm2.expression.expression import *
 from miasm2.arch.msp430.regs import *
 from miasm2.arch.msp430.arch import mn_msp430
-from miasm2.ir.ir import ir
+from miasm2.ir.ir import IntermediateRepresentation
 
 
 # Utils
@@ -53,7 +53,7 @@ def update_flag_zn_r(a):
 
 def update_flag_sub_cf(a, b, c):
     return [ExprAff(cf,
-        ((((a ^ b) ^ c) ^ ((a ^ c) & (a ^ b))).msb()) ^ ExprInt1(1))]
+        ((((a ^ b) ^ c) ^ ((a ^ c) & (a ^ b))).msb()) ^ ExprInt(1, 1))]
 
 
 def update_flag_add_cf(a, b, c):
@@ -77,7 +77,7 @@ def mng_autoinc(a, b, size):
     e.append(ExprAff(a_r, a_r + ExprInt(size / 8, a_r.size)))
     a = ExprMem(a_r, size)
     if isinstance(b, ExprMem) and a_r in b.arg:
-        b = ExprMem(b.arg + ExprInt16(size / 8), b.size)
+        b = ExprMem(b.arg + ExprInt(size / 8, 16), b.size)
     return e, a, b
 
 # Mnemonics
@@ -108,7 +108,7 @@ def and_b(ir, instr, a, b):
     e.append(ExprAff(b, c.zeroExtend(16)))
     e += update_flag_zn_r(c)
     e += update_flag_cf_inv_zf(c)
-    e += [ExprAff(of, ExprInt1(0))]
+    e += [ExprAff(of, ExprInt(0, 1))]
     return e, []
 
 
@@ -118,13 +118,13 @@ def and_w(ir, instr, a, b):
     e.append(ExprAff(b, c))
     e += update_flag_zn_r(c)
     e += update_flag_cf_inv_zf(c)
-    e += [ExprAff(of, ExprInt1(0))]
+    e += [ExprAff(of, ExprInt(0, 1))]
     return e, []
 
 
 def bic_b(ir, instr, a, b):
     e, a, b = mng_autoinc(a, b, 8)
-    c = (a[:8] ^ ExprInt8(0xff)) & b[:8]
+    c = (a[:8] ^ ExprInt(0xff, 8)) & b[:8]
     c = c.zeroExtend(b.size)
     e.append(ExprAff(b, c))
     return e, []
@@ -132,7 +132,7 @@ def bic_b(ir, instr, a, b):
 
 def bic_w(ir, instr, a, b):
     e, a, b = mng_autoinc(a, b, 16)
-    c = (a ^ ExprInt16(0xffff)) & b
+    c = (a ^ ExprInt(0xffff, 16)) & b
     e.append(ExprAff(b, c))
     return e, []
 
@@ -149,7 +149,7 @@ def bit_w(ir, instr, a, b):
     c = a & b
     e += update_flag_zn_r(c)
     e += update_flag_cf_inv_zf(c)
-    e.append(ExprAff(of, ExprInt1(0)))
+    e.append(ExprAff(of, ExprInt(0, 1)))
     return e, []
 
 """
@@ -231,16 +231,16 @@ def xor_w(ir, instr, a, b):
 
 def push_w(ir, instr, a):
     e = []
-    e.append(ExprAff(ExprMem(SP - ExprInt16(2), 16), a))
-    e.append(ExprAff(SP, SP - ExprInt16(2)))
+    e.append(ExprAff(ExprMem(SP - ExprInt(2, 16), 16), a))
+    e.append(ExprAff(SP, SP - ExprInt(2, 16)))
     return e, []
 
 
 def call(ir, instr, a):
     e, a, dummy = mng_autoinc(a, None, 16)
     n = ExprId(ir.get_next_label(instr), 16)
-    e.append(ExprAff(ExprMem(SP - ExprInt16(2), 16), n))
-    e.append(ExprAff(SP, SP - ExprInt16(2)))
+    e.append(ExprAff(ExprMem(SP - ExprInt(2, 16), 16), n))
+    e.append(ExprAff(SP, SP - ExprInt(2, 16)))
     e.append(ExprAff(PC, a))
     e.append(ExprAff(ir.IRDst, a))
     return e, []
@@ -338,7 +338,7 @@ def rrc_w(ir, instr, a):
     # e += update_flag_nf(a)
     e += reset_sr_res()
 
-    e.append(ExprAff(of, ExprInt1(0)))
+    e.append(ExprAff(of, ExprInt(0, 1)))
     return e, []
 
 
@@ -355,7 +355,7 @@ def rra_w(ir, instr, a):
     # e += update_flag_nf(a)
     e += reset_sr_res()
 
-    e.append(ExprAff(of, ExprInt1(0)))
+    e.append(ExprAff(of, ExprInt(0, 1)))
     return e, []
 
 
@@ -366,7 +366,7 @@ def sxt(ir, instr, a):
 
     e += update_flag_zn_r(c)
     e += update_flag_cf_inv_zf(c)
-    e.append(ExprAff(of, ExprInt1(0)))
+    e.append(ExprAff(of, ExprInt(0, 1)))
 
     return e, []
 
@@ -412,10 +412,10 @@ def ComposeExprAff(dst, src):
     return e
 
 
-class ir_msp430(ir):
+class ir_msp430(IntermediateRepresentation):
 
     def __init__(self, symbol_pool=None):
-        ir.__init__(self, mn_msp430, None, symbol_pool)
+        IntermediateRepresentation.__init__(self, mn_msp430, None, symbol_pool)
         self.pc = PC
         self.sp = SP
         self.IRDst = ExprId('IRDst', 16)
@@ -441,7 +441,7 @@ class ir_msp430(ir):
             instr_ir[i:i+1] = xx
         for i, x in enumerate(instr_ir):
             x = ExprAff(x.dst, x.src.replace_expr(
-                {self.pc: ExprInt16(instr.offset + instr.l)}))
+                {self.pc: ExprInt(instr.offset + instr.l, 16)}))
             instr_ir[i] = x
 
         if extra_ir:

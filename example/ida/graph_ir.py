@@ -5,11 +5,13 @@ import tempfile
 from idaapi import GraphViewer
 
 from miasm2.core.bin_stream_ida import bin_stream_ida
-from miasm2.core.asmbloc import *
+from miasm2.core.asmblock import *
 from miasm2.expression.simplifications import expr_simp
 from miasm2.expression.expression import *
 from miasm2.analysis.data_analysis import inter_bloc_flow, \
     intra_bloc_flow_symbexec
+from miasm2.analysis.data_flow import dead_simp
+from miasm2.ir.ir import AssignBlock
 
 from utils import guess_machine, expr2colorstr
 
@@ -48,11 +50,11 @@ class GraphMiasmIR(GraphViewer):
         print 'refresh'
         self.Clear()
         addr_id = {}
-        for irbloc in self.ir_arch.blocs.values():
+        for irbloc in self.ir_arch.blocks.values():
             id_irbloc = self.AddNode(color_irbloc(irbloc))
             addr_id[irbloc] = id_irbloc
 
-        for irbloc in self.ir_arch.blocs.values():
+        for irbloc in self.ir_arch.blocks.values():
             if not irbloc:
                 continue
             dst = ir_arch.dst_trackback(irbloc)
@@ -61,9 +63,9 @@ class GraphMiasmIR(GraphViewer):
                     continue
 
                 d = d.name
-                if not d in self.ir_arch.blocs:
+                if not d in self.ir_arch.blocks:
                     continue
-                b = self.ir_arch.blocs[d]
+                b = self.ir_arch.blocks[d]
                 node1 = addr_id[irbloc]
                 node2 = addr_id[b]
                 self.AddEdge(node1, node2)
@@ -125,26 +127,27 @@ open('asm_flow.dot', 'w').write(ab.dot())
 
 print "generating IR... %x" % ad
 
-for b in ab:
+for block in ab:
     print 'ADD'
-    print b
-    ir_arch.add_bloc(b)
+    print block
+    ir_arch.add_bloc(block)
 
 
 print "IR ok... %x" % ad
 
-for irb in ir_arch.blocs.values():
-    for assignblk in irb.irs:
-        for dst, src in assignblk.items():
-            del(assignblk[dst])
-            dst, src = expr_simp(dst), expr_simp(src)
-            assignblk[dst] = src
+for irb in ir_arch.blocks.itervalues():
+    for i, assignblk in enumerate(irb.irs):
+        new_assignblk = {
+            expr_simp(dst): expr_simp(src)
+            for dst, src in assignblk.iteritems()
+        }
+        irb.irs[i] = AssignBlock(new_assignblk, instr=assignblk.instr)
 
 out = ir_arch.graph.dot()
 open(os.path.join(tempfile.gettempdir(), 'graph.dot'), 'wb').write(out)
 
 
-# ir_arch.dead_simp()
+# dead_simp(ir_arch)
 
 g = GraphMiasmIR(ir_arch, "Miasm IR graph", None)
 
@@ -198,10 +201,10 @@ def get_modified_symbols(sb):
 def gen_bloc_data_flow_graph(ir_arch, in_str, ad):  # arch, attrib, pool_bin, bloc, symbol_pool):
     out_str = ""
 
-    # ir_arch.dead_simp()
+    # dead_simp(ir_arch)
 
     irbloc_0 = None
-    for irbloc in ir_arch.blocs.values():
+    for irbloc in ir_arch.blocks.values():
         if irbloc.label.offset == ad:
             irbloc_0 = irbloc
             break
@@ -212,11 +215,11 @@ def gen_bloc_data_flow_graph(ir_arch, in_str, ad):  # arch, attrib, pool_bin, bl
 
     bloc2w = {}
 
-    for irbloc in ir_arch.blocs.values():
+    for irbloc in ir_arch.blocks.values():
         intra_bloc_flow_symbexec(ir_arch, flow_graph, irbloc)
         # intra_bloc_flow_symb(ir_arch, flow_graph, irbloc)
 
-    for irbloc in ir_arch.blocs.values():
+    for irbloc in ir_arch.blocks.values():
         print irbloc
         print 'IN', [str(x) for x in irbloc.in_nodes]
         print 'OUT', [str(x) for x in irbloc.out_nodes]

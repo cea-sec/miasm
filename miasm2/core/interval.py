@@ -244,3 +244,11 @@ class interval(object):
 
         if dry_run is False:
             img.show()
+
+    @property
+    def length(self):
+        """
+        Return the cumulated length of intervals
+        """
+        # Do not use __len__ because we may return a value > 32 bits
+        return sum((stop - start + 1) for start, stop in self.intervals)

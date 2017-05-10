@@ -1,8 +1,8 @@
 import logging
 
 from miasm2.jitter.jitload import jitter, named_arguments
-from miasm2.core import asmbloc
-from miasm2.core.utils import *
+from miasm2.core import asmblock
+from miasm2.core.utils import pck32, upck32
 from miasm2.arch.arm.sem import ir_armb, ir_arml
 
 log = logging.getLogger('jit_arm')
@@ -14,32 +14,27 @@ log.setLevel(logging.CRITICAL)
 class jitter_arml(jitter):
 
     def __init__(self, *args, **kwargs):
-        sp = asmbloc.asm_symbol_pool()
+        sp = asmblock.AsmSymbolPool()
         jitter.__init__(self, ir_arml(sp), *args, **kwargs)
         self.vm.set_little_endian()
 
-    def push_uint32_t(self, v):
+    def push_uint32_t(self, value):
         self.cpu.SP -= 4
-        self.vm.set_mem(self.cpu.SP, pck32(v))
+        self.vm.set_mem(self.cpu.SP, pck32(value))
 
     def pop_uint32_t(self):
-        x = upck32(self.vm.get_mem(self.cpu.SP, 4))
+        value = upck32(self.vm.get_mem(self.cpu.SP, 4))
         self.cpu.SP += 4
-        return x
+        return value
 
-    def get_stack_arg(self, n):
-        x = upck32(self.vm.get_mem(self.cpu.SP + 4 * n, 4))
-        return x
+    def get_stack_arg(self, index):
+        return upck32(self.vm.get_mem(self.cpu.SP + 4 * index, 4))
 
     # calling conventions
 
     @named_arguments
     def func_args_stdcall(self, n_args):
-        args = []
-        for i in xrange(min(n_args, 4)):
-            args.append(self.cpu.get_gpreg()['R%d' % i])
-        for i in xrange(max(0, n_args - 4)):
-            args.append(self.get_stack_arg(i))
+        args = [self.get_arg_n_stdcall(i) for i in xrange(n_args)]
         ret_ad = self.cpu.LR
         return ret_ad, args
 
@@ -49,12 +44,24 @@ class jitter_arml(jitter):
             self.cpu.R0 = ret_value
         return True
 
-    def get_arg_n_stdcall(self, n):
-        if n < 4:
-            arg = self.cpu.get_gpreg()['R%d' % n]
+    def func_prepare_stdcall(self, ret_addr, *args):
+        for index in xrange(min(len(args), 4)):
+            setattr(self.cpu, 'R%d' % index, args[index])
+        for index in xrange(4, len(args)):
+            self.vm.set_mem(self.cpu.SP + 4 * (index - 4), pck32(args[index]))
+        self.cpu.LR = ret_addr
+
+    def get_arg_n_stdcall(self, index):
+        if index < 4:
+            arg = getattr(self.cpu, 'R%d' % index)
         else:
-            arg = self.get_stack_arg(n-4)
+            arg = self.get_stack_arg(index-4)
         return arg
+
+    func_args_systemv = func_args_stdcall
+    func_ret_systemv = func_ret_stdcall
+    func_prepare_systemv = func_prepare_stdcall
+    get_arg_n_systemv = get_arg_n_stdcall
 
     def init_run(self, *args, **kwargs):
         jitter.init_run(self, *args, **kwargs)
@@ -63,6 +70,6 @@ class jitter_arml(jitter):
 class jitter_armb(jitter_arml):
 
     def __init__(self, *args, **kwargs):
-        sp = asmbloc.asm_symbol_pool()
+        sp = asmblock.AsmSymbolPool()
         jitter.__init__(self, ir_armb(sp), *args, **kwargs)
         self.vm.set_big_endian()

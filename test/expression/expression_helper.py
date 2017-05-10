@@ -11,7 +11,7 @@ class TestExpressionExpressionHelper(unittest.TestCase):
         from miasm2.expression.expression_helper import Variables_Identifier
 
         # Build a complex expression
-        cst = m2_expr.ExprInt16(0x100)
+        cst = m2_expr.ExprInt(0x100, 16)
         eax = m2_expr.ExprId("EAX")
         ebx = m2_expr.ExprId("EBX")
         ax = eax[0:16]
@@ -62,7 +62,7 @@ class TestExpressionExpressionHelper(unittest.TestCase):
         ## Corner case: each sub var depends on itself
         mem1 = m2_expr.ExprMem(ebx, size=32)
         mem2 = m2_expr.ExprMem(mem1, size=32)
-        cst2 = m2_expr.ExprInt32(-1)
+        cst2 = m2_expr.ExprInt(-1, 32)
         expr_mini = ((eax ^ mem2 ^ cst2) & (mem2 ^ (eax + mem2)))[31:32]
 
         ## Build

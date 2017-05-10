@@ -17,29 +17,58 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
+import warnings
+
 from itertools import chain
 
 import miasm2.expression.expression as m2_expr
 from miasm2.expression.expression_helper import get_missing_interval
-from miasm2.expression.simplifications import expr_simp
-from miasm2.core.asmbloc import asm_symbol_pool, expr_is_label, asm_label, \
-    asm_bloc
+from miasm2.core.asmblock import AsmSymbolPool, expr_is_label, AsmLabel, \
+    AsmBlock
 from miasm2.core.graph import DiGraph
 
 
-class AssignBlock(dict):
+class AssignBlock(object):
+    """Represent parallel IR assignment, such as:
+    EAX = EBX
+    EBX = EAX
 
-    def __init__(self, irs=None):
-        """@irs seq"""
+    -> Exchange between EBX and EAX
+
+    AssignBlock can be seen as a dictionnary where keys are the destinations
+    (ExprId or ExprMem), and values their corresponding sources.
+
+    Also provides common manipulation on this assignments.
+
+    """
+    __slots__ = ["_assigns", "_instr"]
+
+    def __init__(self, irs=None, instr=None):
+        """Create a new AssignBlock
+        @irs: (optional) sequence of ExprAff, or dictionnary dst (Expr) -> src
+              (Expr)
+        @instr: (optional) associate an instruction with this AssignBlock
+
+        """
         if irs is None:
             irs = []
-        super(AssignBlock, self).__init__()
+        self._instr = instr
+        self._assigns = {} # ExprAff.dst -> ExprAff.src
 
-        for expraff in irs:
-            # Concurrent assignments are handled in __setitem__
-            self[expraff.dst] = expraff.src
+        # Concurrent assignments are handled in _set
+        if hasattr(irs, "iteritems"):
+            for dst, src in irs.iteritems():
+                self._set(dst, src)
+        else:
+            for expraff in irs:
+                self._set(expraff.dst, expraff.src)
 
-    def __setitem__(self, dst, src):
+    @property
+    def instr(self):
+        """Return the associated instruction, if any"""
+        return self._instr
+
+    def _set(self, dst, src):
         """
         Special cases:
         * if dst is an ExprSlice, expand it to affect the full Expression
@@ -62,7 +91,7 @@ class AssignBlock(dict):
         else:
             new_dst, new_src = dst, src
 
-        if new_dst in self and isinstance(new_src, m2_expr.ExprCompose):
+        if new_dst in self._assigns and isinstance(new_src, m2_expr.ExprCompose):
             if not isinstance(self[new_dst], m2_expr.ExprCompose):
                 # prev_RAX = 0x1122334455667788
                 # input_RAX[0:8] = 0x89
@@ -95,20 +124,71 @@ class AssignBlock(dict):
 
             # Build the merging expression
             args = list(e_colision.union(remaining))
-            args.sort(key=lambda x:x[1])
+            args.sort(key=lambda x: x[1])
             starts = [start for (_, start, _) in args]
             assert len(set(starts)) == len(starts)
             args = [expr for (expr, _, _) in args]
             new_src = m2_expr.ExprCompose(*args)
 
-        super(AssignBlock, self).__setitem__(new_dst, new_src)
+        # Sanity check
+        if not isinstance(new_dst, (m2_expr.ExprId, m2_expr.ExprMem)):
+            raise TypeError("Destination cannot be a %s" % type(new_dst))
+
+        self._assigns[new_dst] = new_src
+
+    def __setitem__(self, dst, src):
+        raise RuntimeError('AssignBlock is immutable')
+
+    def __getitem__(self, key):
+        return self._assigns[key]
+
+    def __contains__(self, key):
+        return key in self._assigns
+
+    def iteritems(self):
+        for dst, src in self._assigns.iteritems():
+            yield dst, src
+
+    def items(self):
+        return [(dst, src) for dst, src in self.iteritems()]
+
+    def itervalues(self):
+        for src in self._assigns.itervalues():
+            yield src
+
+    def keys(self):
+        return self._assigns.keys()
+
+    def values(self):
+        return self._assigns.values()
+
+    def __iter__(self):
+        for dst in self._assigns:
+            yield dst
+
+    def __delitem__(self, _):
+        raise RuntimeError('AssignBlock is immutable')
+
+    def update(self, _):
+        raise RuntimeError('AssignBlock is immutable')
+
+    def __eq__(self, other):
+        if self.keys() != other.keys():
+            return False
+        return all(other[dst] == src for dst, src in self.iteritems())
+
+    def __len__(self):
+        return len(self._assigns)
+
+    def get(self, key, default):
+        return self._assigns.get(key, default)
 
     @staticmethod
     def get_modified_slice(dst, src):
         """Return an Expr list of extra expressions needed during the
         object instanciation"""
         if not isinstance(src, m2_expr.ExprCompose):
-            raise ValueError("Get mod slice not on expraff slice", str(self))
+            raise ValueError("Get mod slice not on expraff slice", str(src))
         modified_s = []
         for index, arg in src.iter_args():
             if not (isinstance(arg, m2_expr.ExprSlice) and
@@ -150,7 +230,7 @@ class AssignBlock(dict):
 
     def __str__(self):
         out = []
-        for dst, src in sorted(self.iteritems()):
+        for dst, src in sorted(self._assigns.iteritems()):
             out.append("%s = %s" % (dst, src))
         return "\n".join(out)
 
@@ -159,16 +239,34 @@ class AssignBlock(dict):
         @dst: Expr instance"""
         return m2_expr.ExprAff(dst, self[dst])
 
+    def simplify(self, simplifier):
+        """Return a new AssignBlock with expression simplified
+        @simplifier: ExpressionSimplifier instance"""
+        new_assignblk = {}
+        for dst, src in self.iteritems():
+            if dst == src:
+                continue
+            src = simplifier(src)
+            dst = simplifier(dst)
+            new_assignblk[dst] = src
+        return AssignBlock(irs=new_assignblk, instr=self.instr)
 
-class irbloc(object):
 
-    def __init__(self, label, irs, lines=None):
-        assert(isinstance(label, asm_label))
-        if lines is None:
-            lines = []
+class IRBlock(object):
+    """Intermediate representation block object.
+
+    Stand for an intermediate representation  basic block.
+    """
+
+    def __init__(self, label, irs):
+        """
+        @label: AsmLabel of the IR basic block
+        @irs: list of AssignBlock
+        """
+
+        assert isinstance(label, AsmLabel)
         self.label = label
         self.irs = irs
-        self.lines = lines
         self.except_automod = True
         self._dst = None
         self._dst_linenb = None
@@ -178,14 +276,16 @@ class irbloc(object):
         if self._dst is not None:
             return self._dst
         final_dst = None
+        final_linenb = None
         for linenb, assignblk in enumerate(self.irs):
             for dst, src in assignblk.iteritems():
-                if isinstance(dst, m2_expr.ExprId) and dst.name == "IRDst":
+                if dst.is_id("IRDst"):
                     if final_dst is not None:
                         raise ValueError('Multiple destinations!')
                     final_dst = src
+                    final_linenb = linenb
         self._dst = final_dst
-        self._dst_linenb = linenb
+        self._dst_linenb = final_linenb
         return final_dst
 
     def _set_dst(self, value):
@@ -193,42 +293,21 @@ class irbloc(object):
         if self._dst_linenb is None:
             self._get_dst()
 
-        assignblk = self.irs[self._dst_linenb]
-        for dst in assignblk:
-            if isinstance(dst, m2_expr.ExprId) and dst.name == "IRDst":
-                del(assignblk[dst])
-                assignblk[dst] = value
+        new_assignblk = dict(self.irs[self._dst_linenb])
+        for dst in new_assignblk:
+            if dst.is_id("IRDst"):
+                new_assignblk[dst] = value
                 # Sanity check is already done in _get_dst
                 break
         self._dst = value
-
+        instr = self.irs[self._dst_linenb].instr
+        self.irs[self._dst_linenb] = AssignBlock(new_assignblk, instr)
     dst = property(_get_dst, _set_dst)
 
     @property
     def dst_linenb(self):
         """Line number of the IRDst setting statement in the current irs"""
         return self._dst_linenb
-
-    def get_rw(self, regs_ids):
-        """
-        Computes the variables read and written by each instructions
-        Initialize attributes needed for in/out and reach computation.
-        @regs_ids : ids of registers used in IR
-        """
-        keep_exprid = lambda elts: filter(lambda expr: isinstance(expr,
-                                                                  m2_expr.ExprId),
-                                          elts)
-        for idx, assignblk in enumerate(self.irs):
-            assignblk._cur_reach = {reg: set() for reg in regs_ids}
-            assignblk._prev_reach = {reg: set() for reg in regs_ids}
-            assignblk._cur_kill = {reg: set() for reg in regs_ids}
-            assignblk._prev_kill = {reg: set() for reg in regs_ids}
-            # LineNumber -> dict:
-            #               Register: set(definition(irb label, index))
-            assignblk.defout = {reg: set() for reg in regs_ids}
-            assignblk.defout.update({dst: set([(self.label, idx, dst)])
-                                     for dst in assignblk
-                                     if isinstance(dst, m2_expr.ExprId)})
 
     def __str__(self):
         out = []
@@ -238,6 +317,17 @@ class irbloc(object):
                 out.append('\t%s = %s' % (dst, src))
             out.append("")
         return "\n".join(out)
+
+
+class irbloc(IRBlock):
+    """
+    DEPRECATED object
+    Use IRBlock instead of irbloc
+    """
+
+    def __init__(self, label, irs, lines=None):
+        warnings.warn('DEPRECATION WARNING: use "IRBlock" instead of "irblock"')
+        super(irbloc, self).__init__(label, irs)
 
 
 class DiGraphIR(DiGraph):
@@ -297,13 +387,18 @@ class DiGraphIR(DiGraph):
         return super(DiGraphIR, self).dot()
 
 
-class ir(object):
+class IntermediateRepresentation(object):
+    """
+    Intermediate representation object
+
+    Allow native assembly to intermediate representation traduction
+    """
 
     def __init__(self, arch, attrib, symbol_pool=None):
         if symbol_pool is None:
-            symbol_pool = asm_symbol_pool()
+            symbol_pool = AsmSymbolPool()
         self.symbol_pool = symbol_pool
-        self.blocs = {}
+        self.blocks = {}
         self.pc = arch.getpc(attrib)
         self.sp = arch.getsp(attrib)
         self.arch = arch
@@ -311,57 +406,63 @@ class ir(object):
         # Lazy structure
         self._graph = None
 
+    @property
+    def blocs(self):
+        warnings.warn('DEPRECATION WARNING: use ".blocks" instead of ".blocs"')
+        return self.blocks
+
     def get_ir(self, instr):
         raise NotImplementedError("Abstract Method")
 
-    def instr2ir(self, l):
-        ir_bloc_cur, extra_assignblk = self.get_ir(l)
-        assignblk = AssignBlock(ir_bloc_cur)
+    def instr2ir(self, instr):
+        ir_bloc_cur, extra_assignblk = self.get_ir(instr)
         for irb in extra_assignblk:
-            irb.irs = map(AssignBlock, irb.irs)
+            irs = []
+            for assignblk in irb.irs:
+                irs.append(AssignBlock(assignblk, instr))
+            irb.irs = irs
+        assignblk = AssignBlock(ir_bloc_cur, instr)
         return assignblk, extra_assignblk
 
-    def get_label(self, ad):
+    def get_label(self, addr):
         """Transforms an ExprId/ExprInt/label/int into a label
-        @ad: an ExprId/ExprInt/label/int"""
+        @addr: an ExprId/ExprInt/label/int"""
 
-        if (isinstance(ad, m2_expr.ExprId) and
-                isinstance(ad.name, asm_label)):
-            ad = ad.name
-        if isinstance(ad, m2_expr.ExprInt):
-            ad = int(ad)
-        if type(ad) in [int, long]:
-            ad = self.symbol_pool.getby_offset_create(ad)
-        elif isinstance(ad, asm_label):
-            ad = self.symbol_pool.getby_name_create(ad.name)
-        return ad
+        if (isinstance(addr, m2_expr.ExprId) and
+                isinstance(addr.name, AsmLabel)):
+            addr = addr.name
+        if isinstance(addr, m2_expr.ExprInt):
+            addr = int(addr)
+        if isinstance(addr, (int, long)):
+            addr = self.symbol_pool.getby_offset_create(addr)
+        elif isinstance(addr, AsmLabel):
+            addr = self.symbol_pool.getby_name_create(addr.name)
+        return addr
 
-    def get_bloc(self, ad):
+    def get_bloc(self, addr):
         """Returns the irbloc associated to an ExprId/ExprInt/label/int
-        @ad: an ExprId/ExprInt/label/int"""
+        @addr: an ExprId/ExprInt/label/int"""
 
-        label = self.get_label(ad)
-        return self.blocs.get(label, None)
+        label = self.get_label(addr)
+        return self.blocks.get(label, None)
 
-    def add_instr(self, l, ad=0, gen_pc_updt=False):
-        b = asm_bloc(self.gen_label())
-        b.lines = [l]
-        self.add_bloc(b, gen_pc_updt)
+    def add_instr(self, line, addr=0, gen_pc_updt=False):
+        block = AsmBlock(self.gen_label())
+        block.lines = [line]
+        self.add_bloc(block, gen_pc_updt)
 
     def getby_offset(self, offset):
         out = set()
-        for irb in self.blocs.values():
-            for l in irb.lines:
-                if l.offset <= offset < l.offset + l.l:
+        for irb in self.blocks.values():
+            for assignblk in irb.irs:
+                instr = assignblk.instr
+                if instr.offset <= offset < instr.offset + instr.l:
                     out.add(irb)
         return out
 
-    def gen_pc_update(self, c, l):
-        c.irs.append(AssignBlock([m2_expr.ExprAff(self.pc,
-                                                  m2_expr.ExprInt(l.offset,
-                                                                  self.pc.size)
-                                                  )]))
-        c.lines.append(l)
+    def gen_pc_update(self, irblock, instr):
+        irblock.irs.append(AssignBlock({self.pc: m2_expr.ExprInt(instr.offset, self.pc.size)},
+                                       instr))
 
     def pre_add_instr(self, block, instr, irb_cur, ir_blocks_all, gen_pc_updt):
         """Function called before adding an instruction from the the native @block to
@@ -398,22 +499,19 @@ class ir(object):
         if irb_cur is None:
             return None
 
-        assignblk, ir_blocs_extra = self.instr2ir(instr)
+        assignblk, ir_blocks_extra = self.instr2ir(instr)
 
         if gen_pc_updt is not False:
             self.gen_pc_update(irb_cur, instr)
 
         irb_cur.irs.append(assignblk)
-        irb_cur.lines.append(instr)
 
-        if ir_blocs_extra:
-            for b in ir_blocs_extra:
-                b.lines = [instr] * len(b.irs)
-            ir_blocks_all += ir_blocs_extra
+        if ir_blocks_extra:
+            ir_blocks_all += ir_blocks_extra
             irb_cur = None
         return irb_cur
 
-    def add_bloc(self, block, gen_pc_updt = False):
+    def add_bloc(self, block, gen_pc_updt=False):
         """
         Add a native block to the current IR
         @block: native assembly block
@@ -425,51 +523,50 @@ class ir(object):
         for instr in block.lines:
             if irb_cur is None:
                 label = self.get_instr_label(instr)
-                irb_cur = irbloc(label, [], [])
+                irb_cur = IRBlock(label, [])
                 ir_blocks_all.append(irb_cur)
             irb_cur = self.add_instr_to_irblock(block, instr, irb_cur,
                                                 ir_blocks_all, gen_pc_updt)
         self.post_add_bloc(block, ir_blocks_all)
         return ir_blocks_all
 
-    def expr_fix_regs_for_mode(self, e, *args, **kwargs):
-        return e
+    def expr_fix_regs_for_mode(self, expr, *args, **kwargs):
+        return expr
 
-    def expraff_fix_regs_for_mode(self, e, *args, **kwargs):
-        return e
+    def expraff_fix_regs_for_mode(self, expr, *args, **kwargs):
+        return expr
 
     def irbloc_fix_regs_for_mode(self, irbloc, *args, **kwargs):
         return
 
-    def is_pc_written(self, b):
+    def is_pc_written(self, block):
         all_pc = self.arch.pc.values()
-        for irs in b.irs:
-            for ir in irs:
-                if ir.dst in all_pc:
-                    return ir
+        for irs in block.irs:
+            for assignblk in irs:
+                if assignblk.dst in all_pc:
+                    return assignblk
         return None
 
-    def set_empty_dst_to_next(self, bloc, ir_blocs):
-        for b in ir_blocs:
-            if b.dst is not None:
+    def set_empty_dst_to_next(self, block, ir_blocks):
+        for irblock in ir_blocks:
+            if irblock.dst is not None:
                 continue
-            next_lbl = bloc.get_next()
+            next_lbl = block.get_next()
             if next_lbl is None:
-                dst = m2_expr.ExprId(self.get_next_label(bloc.lines[-1]),
+                dst = m2_expr.ExprId(self.get_next_label(block.lines[-1]),
                                      self.pc.size)
             else:
                 dst = m2_expr.ExprId(next_lbl,
                                      self.pc.size)
-            b.irs.append(AssignBlock([m2_expr.ExprAff(self.IRDst, dst)]))
-            b.lines.append(b.lines[-1])
+            irblock.irs.append(AssignBlock({self.IRDst: dst},
+                                           irblock.irs[-1].instr))
 
-    def post_add_bloc(self, bloc, ir_blocs):
-        self.set_empty_dst_to_next(bloc, ir_blocs)
+    def post_add_bloc(self, block, ir_blocks):
+        self.set_empty_dst_to_next(block, ir_blocks)
 
-        for irb in ir_blocs:
-            self.irbloc_fix_regs_for_mode(irb, self.attrib)
-
-            self.blocs[irb.label] = irb
+        for irblock in ir_blocks:
+            self.irbloc_fix_regs_for_mode(irblock, self.attrib)
+            self.blocks[irblock.label] = irblock
 
         # Forget graph if any
         self._graph = None
@@ -482,19 +579,24 @@ class ir(object):
 
     def gen_label(self):
         # TODO: fix hardcoded offset
-        l = self.symbol_pool.gen_label()
-        return l
+        label = self.symbol_pool.gen_label()
+        return label
 
     def get_next_label(self, instr):
-        l = self.symbol_pool.getby_offset_create(instr.offset + instr.l)
-        return l
+        label = self.symbol_pool.getby_offset_create(instr.offset + instr.l)
+        return label
 
-    def simplify_blocs(self):
-        for irb in self.blocs.values():
-            for assignblk in irb.irs:
-                for dst, src in assignblk.items():
-                    del assignblk[dst]
-                    assignblk[expr_simp(dst)] = expr_simp(src)
+    def simplify(self, simplifier):
+        """
+        Simplify expressions in each irblocks
+        @simplifier: ExpressionSimplifier instance
+        """
+        for label, block in self.blocks.iteritems():
+            assignblks = []
+            for assignblk in block.irs:
+                new_assignblk = assignblk.simplify(simplifier)
+                assignblks.append(new_assignblk)
+            self.blocks[label] = IRBlock(label, assignblks)
 
     def replace_expr_in_ir(self, bloc, rep):
         for assignblk in bloc.irs:
@@ -509,8 +611,8 @@ class ir(object):
         """
         if regs_ids is None:
             regs_ids = []
-        for b in self.blocs.values():
-            b.get_rw(regs_ids)
+        for irblock in self.blocks.values():
+            irblock.get_rw(regs_ids)
 
     def _extract_dst(self, todo, done):
         """
@@ -522,7 +624,7 @@ class ir(object):
             dst = todo.pop()
             if expr_is_label(dst):
                 done.add(dst)
-            elif isinstance(dst, m2_expr.ExprMem) or isinstance(dst, m2_expr.ExprInt):
+            elif isinstance(dst, (m2_expr.ExprMem, m2_expr.ExprInt)):
                 done.add(dst)
             elif isinstance(dst, m2_expr.ExprCond):
                 todo.add(dst.src1)
@@ -561,16 +663,15 @@ class ir(object):
         """
         Gen irbloc digraph
         """
-        self._graph = DiGraphIR(self.blocs)
-        for lbl, b in self.blocs.iteritems():
+        self._graph = DiGraphIR(self.blocks)
+        for lbl, block in self.blocks.iteritems():
             self._graph.add_node(lbl)
-            dst = self.dst_trackback(b)
-            for d in dst:
-                if isinstance(d, m2_expr.ExprInt):
-                    d = m2_expr.ExprId(
-                        self.symbol_pool.getby_offset_create(int(d)))
-                if expr_is_label(d):
-                    self._graph.add_edge(lbl, d.name)
+            for dst in self.dst_trackback(block):
+                if dst.is_int():
+                    dst_lbl = self.symbol_pool.getby_offset_create(int(dst))
+                    dst = m2_expr.ExprId(dst_lbl)
+                if expr_is_label(dst):
+                    self._graph.add_edge(lbl, dst.name)
 
     @property
     def graph(self):
@@ -579,3 +680,141 @@ class ir(object):
         if self._graph is None:
             self._gen_graph()
         return self._graph
+
+    def remove_empty_assignblks(self):
+        modified = False
+        for block in self.blocks.itervalues():
+            to_del = []
+            for idx, assignblk in enumerate(block.irs):
+                if len(assignblk) == 0:
+                    to_del.append(idx)
+            for idx in reversed(to_del):
+                del block.irs[idx]
+                block._dst_linenb = None
+                block._dst = None
+                modified = True
+        return modified
+
+    def remove_jmp_blocks(self):
+        """
+        Remove irblock with only IRDst set, by linking it's parent destination to
+        the block destination.
+        """
+
+        # Find candidates
+        jmp_blocks = set()
+        for block in self.blocks.itervalues():
+            if len(block.irs) != 1:
+                continue
+            assignblk = block.irs[0]
+            if len(assignblk) > 1:
+                continue
+            assert set(assignblk.keys()) == set([self.IRDst])
+            if len(self.graph.successors(block.label)) != 1:
+                continue
+            if not expr_is_label(assignblk[self.IRDst]):
+                continue
+            jmp_blocks.add(block)
+
+        # Remove them, relink graph
+        modified = False
+        for block in jmp_blocks:
+            dst_label = block.dst.name
+            parents = self.graph.predecessors(block.label)
+            for lbl in parents:
+                parent = self.blocks.get(lbl, None)
+                if parent is None:
+                    continue
+                dst = parent.dst
+                if dst.is_id(block.label):
+                    dst = m2_expr.ExprId(dst_label, dst.size)
+
+                    self.graph.discard_edge(lbl, block.label)
+                    self.graph.discard_edge(block.label, dst_label)
+
+                    self.graph.add_uniq_edge(lbl, dst_label)
+                    modified = True
+                elif dst.is_cond():
+                    src1, src2 = dst.src1, dst.src2
+                    if src1.is_id(block.label):
+                        dst = m2_expr.ExprCond(dst.cond, m2_expr.ExprId(dst_label, dst.size), dst.src2)
+                        self.graph.discard_edge(lbl, block.label)
+                        self.graph.discard_edge(block.label, dst_label)
+                        self.graph.add_uniq_edge(lbl, dst_label)
+                        modified = True
+                    if src2.is_id(block.label):
+                        dst = m2_expr.ExprCond(dst.cond, dst.src1, m2_expr.ExprId(dst_label, dst.size))
+                        self.graph.discard_edge(lbl, block.label)
+                        self.graph.discard_edge(block.label, dst_label)
+                        self.graph.add_uniq_edge(lbl, dst_label)
+                        modified = True
+                    if dst.src1 == dst.src2:
+                        dst = src1
+                else:
+                    continue
+                parent.dst = dst
+
+        # Remove unlinked useless nodes
+        for block in jmp_blocks:
+            if (len(self.graph.predecessors(block.label)) == 0 and
+                len(self.graph.successors(block.label)) == 0):
+                self.graph.del_node(block.label)
+        return modified
+
+    def merge_blocks(self):
+        """
+        Group irblock with one and only one son if this son has one and only one
+        parent
+        """
+        modified = False
+        todo = set(self.graph.nodes())
+        while todo:
+            block = todo.pop()
+            sons = self.graph.successors(block)
+            if len(sons) != 1:
+                continue
+            son = list(sons)[0]
+            if self.graph.predecessors(son) != [block]:
+                continue
+            if block not in self.blocks:
+                continue
+            if son not in self.blocks:
+                continue
+            # Block has one son, son has one parent => merge
+            assignblks =[]
+            for linenb, assignblk in enumerate(self.blocks[block].irs):
+                if self.IRDst not in assignblk:
+                    assignblks.append(assignblk)
+                    continue
+                affs = {}
+                for dst, src in assignblk.iteritems():
+                    if dst != self.IRDst:
+                        affs[dst] = src
+                assignblks.append(AssignBlock(affs, assignblk.instr))
+
+            assignblks += self.blocks[son].irs
+            new_block = IRBlock(block, assignblks)
+
+            self.graph.discard_edge(block, son)
+
+            for lson in self.graph.successors(son):
+                self.graph.add_uniq_edge(block, lson)
+                self.graph.discard_edge(son, lson)
+            del self.blocks[son]
+            self.graph.del_node(son)
+
+            self.blocks[block] = new_block
+            todo.add(block)
+            modified = True
+        return modified
+
+
+class ir(IntermediateRepresentation):
+    """
+    DEPRECATED object
+    Use IntermediateRepresentation instead of ir
+    """
+
+    def __init__(self, label, irs, lines=None):
+        warnings.warn('DEPRECATION WARNING: use "IntermediateRepresentation" instead of "ir"')
+        super(ir, self).__init__(label, irs, lines)

@@ -6,8 +6,8 @@ from miasm2.expression.expression import *
 from miasm2.expression.expression_helper import *
 
 # Expression comparison
-assert(ExprInt64(-1) != ExprInt64(-2))
-assert(ExprInt64(1) != ExprInt32(1))
+assert(ExprInt(-1, 64) != ExprInt(-2, 64))
+assert(ExprInt(1, 64) != ExprInt(1, 32))
 
 # Expression size
 big_cst = ExprInt(1, size=0x1000)
@@ -18,10 +18,10 @@ assert big_cst.size == 0x1000
 A = ExprId("A")
 cond1 = ExprId("cond1", 1)
 cond2 = ExprId("cond2", 16)
-cst1 = ExprInt32(1)
-cst2 = ExprInt32(2)
-cst3 = ExprInt32(3)
-cst4 = ExprInt32(4)
+cst1 = ExprInt(1, 32)
+cst2 = ExprInt(2, 32)
+cst3 = ExprInt(3, 32)
+cst4 = ExprInt(4, 32)
 
 #- Launch tests
 for expr in [
