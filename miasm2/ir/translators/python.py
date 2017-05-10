@@ -1,3 +1,4 @@
+from miasm2.expression.expression import ExprInt
 from miasm2.ir.translators.translator import Translator
 
 
@@ -54,6 +55,19 @@ class TranslatorPython(Translator):
                                         (1 << expr.size) - 1)
         elif expr.op == "parity":
             return "(%s & 0x1)" % self.from_expr(expr.args[0])
+
+        elif expr.op in ["<<<", ">>>"]:
+            amount_raw = expr.args[1]
+            amount = expr.args[1] % ExprInt(amount_raw.size, expr.size)
+            amount_inv = ExprInt(expr.size, expr.size) - amount
+            if expr.op == "<<<":
+                amount, amount_inv = amount_inv, amount
+            part1 = "(%s >> %s)"% (self.from_expr(expr.args[0]),
+                                   self.from_expr(amount))
+            part2 = "(%s << %s)"% (self.from_expr(expr.args[0]),
+                                         self.from_expr(amount_inv))
+
+            return "((%s | %s) &0x%x)" % (part1, part2, int(expr.mask))
 
         raise NotImplementedError("Unknown operator: %s" % expr.op)
 
