@@ -34,4 +34,4 @@ before_script:
 # install miasm
 - python setup.py build build_ext -I$(pwd)/tinycc -L$(pwd)/tinycc
 - python setup.py install
-script: py.test
+script: py.test test/test_all.py
