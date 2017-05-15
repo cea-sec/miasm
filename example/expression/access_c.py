@@ -127,62 +127,60 @@ class MyCHandler(CHandler):
     exprToAccessC_cls = MyExprToAccessC
 
 
-def test(data):
-    # Digest C informations
-    text = """
-    struct human {
-            unsigned short age;
-            unsigned int height;
-            char name[50];
-    };
 
-    struct ll_human {
-            struct ll_human* next;
-            struct human human;
-    };
-    """
+data = open(sys.argv[1]).read()
+# Digest C informations
+text = """
+struct human {
+        unsigned short age;
+        unsigned int height;
+        char name[50];
+};
 
-    base_types = CTypeAMD64_unk()
-    types_ast = CAstTypes()
-    types_ast.add_c_decl(text)
+struct ll_human {
+        struct ll_human* next;
+        struct human human;
+};
+"""
 
-    types_mngr = CTypesManagerNotPacked(types_ast, base_types)
+base_types = CTypeAMD64_unk()
+types_ast = CAstTypes()
+types_ast.add_c_decl(text)
 
-    # Analyze binary
-    cont = Container.fallback_container(data, None, addr=0)
+types_mngr = CTypesManagerNotPacked(types_ast, base_types)
 
-    machine = Machine("x86_64")
-    dis_engine, ira = machine.dis_engine, machine.ira
+# Analyze binary
+cont = Container.fallback_container(data, None, addr=0)
 
-    mdis = dis_engine(cont.bin_stream, symbol_pool=cont.symbol_pool)
-    addr_head = 0
-    blocks = mdis.dis_multibloc(addr_head)
-    lbl_head = mdis.symbol_pool.getby_offset(addr_head)
+machine = Machine("x86_64")
+dis_engine, ira = machine.dis_engine, machine.ira
 
-    ir_arch_a = ira(mdis.symbol_pool)
-    for block in blocks:
-        ir_arch_a.add_bloc(block)
+mdis = dis_engine(cont.bin_stream, symbol_pool=cont.symbol_pool)
+addr_head = 0
+blocks = mdis.dis_multibloc(addr_head)
+lbl_head = mdis.symbol_pool.getby_offset(addr_head)
 
-    open('graph_irflow.dot', 'w').write(ir_arch_a.graph.dot())
+ir_arch_a = ira(mdis.symbol_pool)
+for block in blocks:
+    ir_arch_a.add_bloc(block)
 
-    # Main function's first argument's type is "struct ll_human*"
-    ptr_llhuman = types_mngr.get_objc(CTypePtr(CTypeStruct('ll_human')))
-    arg0 = ExprId('ptr', 64)
-    ctx = {ir_arch_a.arch.regs.RDI: arg0}
-    expr_types = {arg0.name: ptr_llhuman}
+open('graph_irflow.dot', 'w').write(ir_arch_a.graph.dot())
 
-    mychandler = MyCHandler(types_mngr, expr_types)
+# Main function's first argument's type is "struct ll_human*"
+ptr_llhuman = types_mngr.get_objc(CTypePtr(CTypeStruct('ll_human')))
+arg0 = ExprId('ptr', 64)
+ctx = {ir_arch_a.arch.regs.RDI: arg0}
+expr_types = {arg0.name: ptr_llhuman}
 
-    for expr in get_funcs_arg0(ctx, ir_arch_a, lbl_head):
-        print "Access:", expr
-        target_types = mychandler.expr_to_types(expr)
-        for target_type in target_types:
-            print '\tType:', target_type
-        c_strs = mychandler.expr_to_c(expr)
-        for c_str in c_strs:
-            print "\tC access:", c_str
-        print
+mychandler = MyCHandler(types_mngr, expr_types)
 
+for expr in get_funcs_arg0(ctx, ir_arch_a, lbl_head):
+    print "Access:", expr
+    target_types = mychandler.expr_to_types(expr)
+    for target_type in target_types:
+        print '\tType:', target_type
+    c_strs = mychandler.expr_to_c(expr)
+    for c_str in c_strs:
+        print "\tC access:", c_str
+    print
 
-if __name__ == '__main__':
-    test(open(sys.argv[1]).read())
