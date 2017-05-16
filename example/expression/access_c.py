@@ -8,9 +8,8 @@ from miasm2.analysis.depgraph import DependencyGraph
 from miasm2.arch.x86.ctype import CTypeAMD64_unk
 
 from miasm2.core.objc import CTypeAnalyzer, ExprToAccessC, CHandler
-from miasm2.core.objc import ObjCPtr
-from miasm2.core.ctypesmngr import CTypesManagerNotPacked
-
+from miasm2.core.objc import CTypesManagerNotPacked
+from miasm2.core.ctypesmngr import CAstTypes, CTypePtr, CTypeStruct
 
 """
 
@@ -52,8 +51,8 @@ ExprCompose(int, 0) => int
 Then, in the C generator:
 ExprCompose(var1, 0) => var1
 
-
 """
+
 
 def find_call(ira):
     """Returns (irb, index) which call"""
@@ -76,6 +75,7 @@ def find_call(ira):
 
 
 class MyCTypeAnalyzer(CTypeAnalyzer):
+    """Custom CTypeAnalyzer to complete type analysis"""
 
     def reduce_compose(self, node, _):
         """Custom reduction rule: {XXX, 0} -> typeof(XXX)"""
@@ -89,6 +89,7 @@ class MyCTypeAnalyzer(CTypeAnalyzer):
 
 
 class MyExprToAccessC(ExprToAccessC):
+    """Custom ExprToAccessC to complete expression traduction to C"""
 
     def reduce_compose(self, node, _):
         """Custom reduction rule: {XXX, 0} -> XXX"""
@@ -105,6 +106,7 @@ class MyExprToAccessC(ExprToAccessC):
 
 
 def get_funcs_arg0(ctx, ira, lbl_head):
+    """Compute DependencyGraph on the func @lbl_head"""
     g_dep = DependencyGraph(ira, follow_call=False)
     element = ira.arch.regs.RSI
 
@@ -119,70 +121,66 @@ def get_funcs_arg0(ctx, ira, lbl_head):
 
 
 class MyCHandler(CHandler):
+    """Custom CHandler to add complementary C handling rules"""
+
     cTypeAnalyzer_cls = MyCTypeAnalyzer
     exprToAccessC_cls = MyExprToAccessC
 
 
-def test(data):
-    # Digest C informations
-    text = """
-    struct human {
-            unsigned short age;
-            unsigned int height;
-            char name[50];
-    };
 
-    struct ll_human {
-            struct ll_human* next;
-            struct human human;
-    };
-    """
+data = open(sys.argv[1]).read()
+# Digest C informations
+text = """
+struct human {
+        unsigned short age;
+        unsigned int height;
+        char name[50];
+};
 
-    my_types = CTypeAMD64_unk()
-    types_mngr = CTypesManagerNotPacked(my_types.types)
+struct ll_human {
+        struct ll_human* next;
+        struct human human;
+};
+"""
 
-    types_mngr.add_c_decl(text)
+base_types = CTypeAMD64_unk()
+types_ast = CAstTypes()
+types_ast.add_c_decl(text)
 
-    # Analyze binary
-    cont = Container.fallback_container(data, None, addr=0)
+types_mngr = CTypesManagerNotPacked(types_ast, base_types)
 
-    machine = Machine("x86_64")
-    dis_engine, ira = machine.dis_engine, machine.ira
+# Analyze binary
+cont = Container.fallback_container(data, None, addr=0)
 
-    mdis = dis_engine(cont.bin_stream, symbol_pool=cont.symbol_pool)
-    addr_head = 0
-    blocks = mdis.dis_multibloc(addr_head)
-    lbl_head = mdis.symbol_pool.getby_offset(addr_head)
+machine = Machine("x86_64")
+dis_engine, ira = machine.dis_engine, machine.ira
 
-    ir_arch_a = ira(mdis.symbol_pool)
-    for block in blocks:
-        ir_arch_a.add_bloc(block)
+mdis = dis_engine(cont.bin_stream, symbol_pool=cont.symbol_pool)
+addr_head = 0
+blocks = mdis.dis_multibloc(addr_head)
+lbl_head = mdis.symbol_pool.getby_offset(addr_head)
 
-    open('graph_irflow.dot', 'w').write(ir_arch_a.graph.dot())
+ir_arch_a = ira(mdis.symbol_pool)
+for block in blocks:
+    ir_arch_a.add_bloc(block)
 
-    # Main function's first argument's type is "struct ll_human*"
-    void_ptr = types_mngr.void_ptr
-    ll_human = types_mngr.get_type(('ll_human',))
-    ptr_llhuman = ObjCPtr('noname', ll_human,
-                          void_ptr.align, void_ptr.size)
+open('graph_irflow.dot', 'w').write(ir_arch_a.graph.dot())
 
-    arg0 = ExprId('ptr', 64)
-    ctx = {ir_arch_a.arch.regs.RDI: arg0}
-    expr_types = {arg0.name: ptr_llhuman}
+# Main function's first argument's type is "struct ll_human*"
+ptr_llhuman = types_mngr.get_objc(CTypePtr(CTypeStruct('ll_human')))
+arg0 = ExprId('ptr', 64)
+ctx = {ir_arch_a.arch.regs.RDI: arg0}
+expr_types = {arg0.name: ptr_llhuman}
 
-    mychandler = MyCHandler(types_mngr, expr_types)
+mychandler = MyCHandler(types_mngr, expr_types)
 
-    for expr in get_funcs_arg0(ctx, ir_arch_a, lbl_head):
-        print "Access:", expr
-        target_types = mychandler.expr_to_types(expr)
-        for target_type in target_types:
-            print '\tType:', target_type
-        c_strs = mychandler.expr_to_c(expr)
-        for c_str in c_strs:
-            print "\tC access:", c_str
-        print
+for expr in get_funcs_arg0(ctx, ir_arch_a, lbl_head):
+    print "Access:", expr
+    target_types = mychandler.expr_to_types(expr)
+    for target_type in target_types:
+        print '\tType:', target_type
+    c_strs = mychandler.expr_to_c(expr)
+    for c_str in c_strs:
+        print "\tC access:", c_str
+    print
 
-
-if __name__ == '__main__':
-    data = open(sys.argv[1]).read()
-    test(data)
