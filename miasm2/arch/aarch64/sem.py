@@ -3,8 +3,8 @@ from miasm2.ir.ir import IntermediateRepresentation, IRBlock, AssignBlock
 from miasm2.arch.aarch64.arch import mn_aarch64, conds_expr, replace_regs
 from miasm2.arch.aarch64.regs import *
 from miasm2.core.sembuilder import SemBuilder
+from miasm2.jitter.csts import EXCEPT_DIV_BY_ZERO
 
-EXCEPT_PRIV_INSN = (1 << 17)
 
 # CPSR: N Z C V
 
@@ -136,7 +136,9 @@ ctx = {"PC": PC,
        "of": of,
        "cond2expr": cond2expr,
        "extend_arg": extend_arg,
-       "m2_expr":m2_expr
+       "m2_expr":m2_expr,
+       "exception_flags": exception_flags,
+       "EXCEPT_DIV_BY_ZERO": EXCEPT_DIV_BY_ZERO,
        }
 
 sbuild = SemBuilder(ctx)
@@ -528,7 +530,11 @@ def msub(arg1, arg2, arg3, arg4):
 
 @sbuild.parse
 def udiv(arg1, arg2, arg3):
-    arg1 = m2_expr.ExprOp('udiv', arg2, arg3)
+    if arg3:
+        arg1 = m2_expr.ExprOp('udiv', arg2, arg3)
+    else:
+        exception_flags = m2_expr.ExprInt(EXCEPT_DIV_BY_ZERO,
+                                          exception_flags.size)
 
 
 @sbuild.parse
