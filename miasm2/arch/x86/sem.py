@@ -693,17 +693,14 @@ def push_gen(ir, instr, src, size):
         raise ValueError('bad size stacker!')
     if src.size < size:
         src = src.zeroExtend(size)
-    elif src.size == size:
-        pass
-    else:
-        raise ValueError('strange arg size')
+    off_size = src.size
 
     sp = mRSP[instr.mode]
-    new_sp = sp - m2_expr.ExprInt(size / 8, sp.size)
+    new_sp = sp - m2_expr.ExprInt(off_size / 8, sp.size)
     e.append(m2_expr.ExprAff(sp, new_sp))
     if ir.do_stk_segm:
         new_sp = m2_expr.ExprOp('segm', SS, new_sp)
-    e.append(m2_expr.ExprAff(ir.ExprMem(new_sp, size),
+    e.append(m2_expr.ExprAff(ir.ExprMem(new_sp, off_size),
                              src))
     return e, []
 
@@ -722,7 +719,7 @@ def pop_gen(ir, instr, src, size):
         raise ValueError('bad size stacker!')
 
     sp = mRSP[instr.mode]
-    new_sp = sp + m2_expr.ExprInt(size / 8, sp.size)
+    new_sp = sp + m2_expr.ExprInt(src.size / 8, sp.size)
     # don't generate ESP incrementation on POP ESP
     if src != ir.sp:
         e.append(m2_expr.ExprAff(sp, new_sp))
@@ -1081,12 +1078,11 @@ pa_regs = [
 
 def pusha_gen(ir, instr, size):
     e = []
+    cur_sp = mRSP[instr.mode]
     for i, reg in enumerate(pa_regs):
-        stk_ptr = mRSP[instr.mode] + \
-            m2_expr.ExprInt(-(reg[size].size / 8) * (i + 1), instr.mode)
-        e.append(m2_expr.ExprAff(ir.ExprMem(
-            stk_ptr, reg[size].size), reg[size]))
-    e.append(m2_expr.ExprAff(mRSP[instr.mode], stk_ptr))
+        stk_ptr = cur_sp + m2_expr.ExprInt(-(size / 8) * (i + 1), instr.mode)
+        e.append(m2_expr.ExprAff(ir.ExprMem(stk_ptr, size), reg[size]))
+    e.append(m2_expr.ExprAff(cur_sp, stk_ptr))
     return e, []
 
 
@@ -1100,16 +1096,15 @@ def pushad(ir, instr):
 
 def popa_gen(ir, instr, size):
     e = []
+    cur_sp = mRSP[instr.mode]
     for i, reg in enumerate(reversed(pa_regs)):
         if reg == mRSP:
             continue
-        stk_ptr = mRSP[instr.mode] + \
-            m2_expr.ExprInt((reg[size].size / 8) * i, instr.mode)
-        e.append(m2_expr.ExprAff(reg[size], ir.ExprMem(stk_ptr, instr.mode)))
+        stk_ptr = cur_sp + m2_expr.ExprInt((size / 8) * i, instr.mode)
+        e.append(m2_expr.ExprAff(reg[size], ir.ExprMem(stk_ptr, size)))
 
-    stk_ptr = mRSP[instr.mode] + \
-        m2_expr.ExprInt((instr.mode / 8) * (i + 1), instr.mode)
-    e.append(m2_expr.ExprAff(mRSP[instr.mode], stk_ptr))
+    stk_ptr = cur_sp + m2_expr.ExprInt((size / 8) * (i + 1), instr.mode)
+    e.append(m2_expr.ExprAff(cur_sp, stk_ptr))
 
     return e, []
 
