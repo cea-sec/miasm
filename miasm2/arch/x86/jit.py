@@ -80,6 +80,15 @@ class jitter_x86_32(jitter):
     def ir_archbloc_fix_regs_for_mode(self, irblock, attrib=64):
         self.orig_irbloc_fix_regs_for_mode(irblock, 64)
 
+    def push_uint16_t(self, value):
+        self.cpu.ESP -= self.ir_arch.sp.size / 8
+        self.vm.set_mem(self.cpu.ESP, pck16(value))
+
+    def pop_uint16_t(self):
+        value = upck16(self.vm.get_mem(self.cpu.ESP, self.ir_arch.sp.size / 8))
+        self.cpu.ESP += self.ir_arch.sp.size / 8
+        return value
+
     def push_uint32_t(self, value):
         self.cpu.ESP -= self.ir_arch.sp.size / 8
         self.vm.set_mem(self.cpu.ESP, pck32(value))
