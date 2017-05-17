@@ -934,25 +934,34 @@ def cmps(ir, instr, size):
     lbl_df_1 = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
     lbl_next = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
 
-    s = instr.v_admode()
-    a = ir.ExprMem(mRDI[instr.mode][:s], size)
-    b = ir.ExprMem(mRSI[instr.mode][:s], size)
+    src1 = mRSI[instr.mode][:instr.v_admode()]
+    src2 = mRDI[instr.mode][:instr.v_admode()]
 
-    e, _ = l_cmp(ir, instr, b, a)
+    if ir.do_str_segm:
+        if instr.additional_info.g2.value:
+            raise NotImplementedError("add segm support")
+        src1_sgm = m2_expr.ExprOp('segm', DS, src1)
+        src2_sgm = m2_expr.ExprOp('segm', ES, src2)
+    else:
+        src1_sgm = src1
+        src2_sgm = src2
+
+    offset = m2_expr.ExprInt(size / 8, src1.size)
+
+    e, _ = l_cmp(ir, instr,
+                 ir.ExprMem(src1_sgm, size),
+                 ir.ExprMem(src2_sgm, size))
+
 
     e0 = []
-    e0.append(m2_expr.ExprAff(a.arg,
-                              a.arg + m2_expr.ExprInt(size / 8, a.arg.size)))
-    e0.append(m2_expr.ExprAff(b.arg,
-                              b.arg + m2_expr.ExprInt(size / 8, b.arg.size)))
+    e0.append(m2_expr.ExprAff(src1, src1 + offset))
+    e0.append(m2_expr.ExprAff(src2, src2 + offset))
     e0.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
     e0 = IRBlock(lbl_df_0.name, [e0])
 
     e1 = []
-    e1.append(m2_expr.ExprAff(a.arg,
-                              a.arg - m2_expr.ExprInt(size / 8, a.arg.size)))
-    e1.append(m2_expr.ExprAff(b.arg,
-                              b.arg - m2_expr.ExprInt(size / 8, b.arg.size)))
+    e1.append(m2_expr.ExprAff(src1, src1 - offset))
+    e1.append(m2_expr.ExprAff(src2, src2 - offset))
     e1.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
     e1 = IRBlock(lbl_df_1.name, [e1])
 
@@ -966,20 +975,28 @@ def scas(ir, instr, size):
     lbl_df_1 = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
     lbl_next = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
 
-    s = instr.v_admode()
-    a = ir.ExprMem(mRDI[instr.mode][:s], size)
+    src = mRDI[instr.mode][:instr.v_admode()]
 
-    e, extra = l_cmp(ir, instr, mRAX[instr.mode][:size], a)
+    if ir.do_str_segm:
+        if instr.additional_info.g2.value:
+            raise NotImplementedError("add segm support")
+        src_sgm = m2_expr.ExprOp('segm', ES, src)
+    else:
+        src_sgm = src
+
+    offset = m2_expr.ExprInt(size / 8, src.size)
+    e, extra = l_cmp(ir, instr,
+                     mRAX[instr.mode][:size],
+                     ir.ExprMem(src_sgm, size))
 
     e0 = []
-    e0.append(m2_expr.ExprAff(a.arg,
-                              a.arg + m2_expr.ExprInt(size / 8, a.arg.size)))
+    e0.append(m2_expr.ExprAff(src, src + offset))
+
     e0.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
     e0 = IRBlock(lbl_df_0.name, [e0])
 
     e1 = []
-    e1.append(m2_expr.ExprAff(a.arg,
-                              a.arg - m2_expr.ExprInt(size / 8, a.arg.size)))
+    e1.append(m2_expr.ExprAff(src, src - offset))
     e1.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
     e1 = IRBlock(lbl_df_1.name, [e1])
 
@@ -1721,29 +1738,34 @@ def movs(ir, instr, size):
     lbl_df_1 = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
     lbl_next = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
 
-    a = mRDI[instr.mode][:instr.v_admode()]
-    b = mRSI[instr.mode][:instr.v_admode()]
+    dst = mRDI[instr.mode][:instr.v_admode()]
+    src = mRSI[instr.mode][:instr.v_admode()]
 
     e = []
-    src = b
-    dst = a
     if ir.do_str_segm:
         if instr.additional_info.g2.value:
             raise NotImplementedError("add segm support")
-        src = m2_expr.ExprOp('segm', DS, src)
-        dst = m2_expr.ExprOp('segm', ES, dst)
-    e.append(m2_expr.ExprAff(ir.ExprMem(dst, size),
-                             ir.ExprMem(src, size)))
+        src_sgm = m2_expr.ExprOp('segm', DS, src)
+        dst_sgm = m2_expr.ExprOp('segm', ES, dst)
+
+    else:
+        src_sgm = src
+        dst_sgm = dst
+
+    offset = m2_expr.ExprInt(size / 8, src.size)
+
+    e.append(m2_expr.ExprAff(ir.ExprMem(dst_sgm, size),
+                             ir.ExprMem(src_sgm, size)))
 
     e0 = []
-    e0.append(m2_expr.ExprAff(a, a + m2_expr.ExprInt(size / 8, a.size)))
-    e0.append(m2_expr.ExprAff(b, b + m2_expr.ExprInt(size / 8, b.size)))
+    e0.append(m2_expr.ExprAff(src, src + offset))
+    e0.append(m2_expr.ExprAff(dst, dst + offset))
     e0.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
     e0 = IRBlock(lbl_df_0.name, [e0])
 
     e1 = []
-    e1.append(m2_expr.ExprAff(a, a - m2_expr.ExprInt(size / 8, a.size)))
-    e1.append(m2_expr.ExprAff(b, b - m2_expr.ExprInt(size / 8, b.size)))
+    e1.append(m2_expr.ExprAff(src, src - offset))
+    e1.append(m2_expr.ExprAff(dst, dst - offset))
     e1.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
     e1 = IRBlock(lbl_df_1.name, [e1])
 
