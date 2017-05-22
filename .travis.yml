@@ -17,12 +17,14 @@ matrix:
     - os: osx
       language: generic
       install:
-        - brew upgrade
         - brew install gcc tcc llvm
         - echo /usr/local/opt/llvm/lib/python2.7/site-packages >> /usr/local/lib/python2.7/site-packages/llvm.pth
-        - pip install -vvv -r optional_requirements.txt
-        - pip install -vvv -r requirements.txt
+        - pip install -r optional_requirements.txt
+        - pip install -r requirements.txt
       env: PATH=/usr/local/opt/llvm/bin:$PATH LLVM_CONFIG=llvm-config LDFLAGS=-L/usr/local/opt/llvm/lib CPPFLAGS=-I/usr/local/opt/llvm/include
+      cache:
+        directories:
+            - Library/Caches/Homebrew
     - before_install: pip install -r optional_requirements.txt
     allow_failures:
     - os: osx
