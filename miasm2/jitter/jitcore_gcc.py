@@ -26,7 +26,7 @@ class JitCore_Gcc(JitCore_Cc_Base):
 
     def load_code(self, label, fname_so):
         f_name = self.label2fname(label)
-        print "debug sgroat fname_so: ", fname_so
+        raise Exception("debug sgroat fname_so: ", fname_so)
         lib = ctypes.cdll.LoadLibrary(fname_so)
         func = getattr(lib, f_name)
         addr = ctypes.cast(func, ctypes.c_void_p).value
