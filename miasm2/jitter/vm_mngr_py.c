@@ -235,7 +235,7 @@ PyObject* vm_get_mem(VmMngr* self, PyObject* args)
 
        ret = vm_read_mem(&self->vm_mngr, addr, &buf_out, size);
        if (ret < 0) {
-	       RAISE(PyExc_TypeError,"Cannot find address");
+	       RAISE(PyExc_RuntimeError,"Cannot find address");
        }
 
        obj_out = PyString_FromStringAndSize(buf_out, size);
