@@ -4,7 +4,7 @@ python: 2.7
 addons:
     apt:
         sources:
-            - llvm-toolchain-precise-4.0
+            - llvm-toolchain-trusty-4.0
             - ubuntu-toolchain-r-test
         packages:
             - llvm-4.0
@@ -28,9 +28,6 @@ matrix:
     - os: osx
 env: LLVM_CONFIG=llvm-config-4.0 CXX=g++-6
 before_script:
-# install llvmlite
-- git clone https://github.com/numba/llvmlite -b v0.17.1 && pushd llvmlite
-- pip install -r requirements.txt && python setup.py build && pip install . && popd
 # install tcc
 - git clone http://repo.or.cz/tinycc.git -b release_0_9_26 && pushd tinycc
 - ./configure --disable-static --tccdir=./ --libdir=$(pwd) --includedir=$(pwd)
