@@ -1,6 +1,17 @@
 sudo: required
 language: python
 python: 2.7
+addons:
+    apt:
+        sources:
+            - llvm-toolchain-precise-4.0
+            - ubuntu-toolchain-r-test
+        packages:
+            - llvm-4.0
+            - llvm-4.0-dev
+            - g++-6
+            - texinfo
+            - texi2html
 matrix:
     include:
     - os: osx
@@ -16,13 +27,6 @@ matrix:
     allow_failures:
     - os: osx
 env: LLVM_CONFIG=llvm-config-4.0 CXX=g++-6
-install:
-    - curl -sSL "http://apt.llvm.org/llvm-snapshot.gpg.key" | sudo -E apt-key add -
-    - echo "deb http://apt.llvm.org/precise/ llvm-toolchain-precise-4.0 main" | sudo tee -a /etc/apt/sources.list > /dev/null
-    - sudo -E apt-add-repository -y "ppa:ubuntu-toolchain-r/test"
-    - sudo apt-get update
-    - sudo -E apt-get -yq --no-install-suggests --no-install-recommends --force-yes install llvm-4.0 llvm-4.0-dev g++-6 texinfo texi2html
-    - pip install -r requirements.txt
 before_script:
 # install llvmlite
 - git clone https://github.com/numba/llvmlite -b v0.17.1 && pushd llvmlite
