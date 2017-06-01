@@ -15,6 +15,8 @@ from miasm2.core.ctypesmngr import CTypeUnion, CTypeStruct, CTypeId, CTypePtr,\
     CTypeArray, CTypeOp, CTypeSizeof, CTypeEnum, CTypeFunc, CTypeEllipsis
 
 
+PADDING_TYPE_NAME = "___padding___"
+
 class ObjC(object):
     """Generic ObjC"""
 
@@ -1348,6 +1350,11 @@ class CTypesManager(object):
         """Retrieve a void* objc"""
         return self.leaf_types.types.get(CTypePtr(CTypeId('void')))
 
+    @property
+    def padding(self):
+        """Retrieve a padding ctype"""
+        return CTypeId(PADDING_TYPE_NAME)
+
     def _get_objc(self, type_id, resolved=None, to_fix=None, lvl=0):
         if resolved is None:
             resolved = {}
@@ -1378,11 +1385,19 @@ class CTypesManager(object):
             align_max, size_max = 0, 0
 
             offset, align_max = 0, 1
+            pad_index = 0
             for name, field in type_id.fields:
                 objc = self._get_objc(field, resolved, to_fix, lvl + 1)
                 resolved[field] = objc
                 align_max = max(align_max, objc.align)
-                offset = self.struct_compute_field_offset(objc, offset)
+                new_offset = self.struct_compute_field_offset(objc, offset)
+                if new_offset - offset:
+                    pad_name = "__PAD__%d__" % pad_index
+                    pad_index += 1
+                    size = new_offset - offset
+                    pad_objc = self._get_objc(CTypeArray(self.padding, size), resolved, to_fix, lvl + 1)
+                    out.add_field(pad_name, pad_objc, offset, pad_objc.size)
+                offset = new_offset
                 out.add_field(name, objc, offset, objc.size)
                 offset += objc.size
 
