@@ -68,7 +68,7 @@ class CTypeAMD64_unk(CLeafTypes):
 
 
 class CTypeX86_unk(CLeafTypes):
-    """Define C types sizes/alignement for x86_64 architecture"""
+    """Define C types sizes/alignement for x86_32 architecture"""
 
     obj_char = ObjCDecl("char", 1, 1)
     obj_short = ObjCDecl("short", 2, 2)
