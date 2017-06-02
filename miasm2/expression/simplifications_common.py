@@ -542,6 +542,17 @@ def simp_compose(e_s, e):
             new_e = args[0].arg >> ExprInt(args[0].start, args[0].arg.size)
             return new_e
 
+    # {@X[base + i] 0 X, @Y[base + i + X] X (X + Y)} => @(X+Y)[base + i]
+    for i, arg in enumerate(args[:-1]):
+        nxt = args[i + 1]
+        if arg.is_mem() and nxt.is_mem():
+            gap = e_s(nxt.arg - arg.arg)
+            if gap.is_int() and int(gap) == arg.size / 8:
+                args = args[:i] + [ExprMem(arg.arg,
+                                          arg.size + nxt.size)] + args[i + 2:]
+                return ExprCompose(*args)
+
+
     # Compose with ExprCond with integers for src1/src2 and intergers =>
     # propagage integers
     # {XXX?(0x0,0x1)?(0x0,0x1),0,8, 0x0,8,32} => XXX?(int1, int2)

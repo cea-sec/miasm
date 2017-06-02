@@ -314,6 +314,11 @@ to_test = [(ExprInt(1, 32) - ExprInt(1, 32), ExprInt(0, 32)),
     (ExprOp("imod", ExprInt(0x0123, 16), ExprInt(0xfffb, 16))[:8],
      ExprInt(0x01, 8)),
 
+    (ExprCompose(ExprInt(0x0123, 16), ExprMem(a + ExprInt(0x40, a.size), 16),
+                 ExprMem(a + ExprInt(0x42, a.size), 16), ExprInt(0x0321, 16)),
+     ExprCompose(ExprInt(0x0123, 16), ExprMem(a + ExprInt(0x40, a.size), 32),
+                 ExprInt(0x0321, 16))),
+
 ]
 
 for e, e_check in to_test[:]:
