@@ -964,19 +964,12 @@ class ExprToAccessC(ExprReducer):
             new_type = out
         elif isinstance(base_type, ObjCPtr):
             elem_num = offset / base_type.size
+            if self.enforce_strict_access:
+                assert offset % base_type.size == 0
 
-            if elem_num == 0:
-                if self.enforce_strict_access:
-                    assert offset % base_type.size == 0
-                nobj = CGenArray(cgenobj, elem_num,
-                                 void_type.align, void_type.size)
-                new_type = [(nobj)]
-            else:
-                if self.enforce_strict_access:
-                    assert offset % base_type.size == 0
-                nobj = CGenArray(cgenobj, elem_num,
-                                 void_type.align, void_type.size)
-                new_type = [(nobj)]
+            nobj = CGenArray(cgenobj, elem_num,
+                             void_type.align, void_type.size)
+            new_type = [(nobj)]
 
         else:
             raise NotImplementedError("deref type %r" % base_type)
