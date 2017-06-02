@@ -620,14 +620,18 @@ class CTypeAnalyzer(ExprReducer):
     Return the C type(s) of a native Miasm expression
     """
 
-    def __init__(self, expr_types, types_mngr):
+    def __init__(self, expr_types, types_mngr, enforce_strict_access=True):
         """Init TypeAnalyzer
         @expr_types: a dictionnary linking ID names to their types
         @types_mngr: types manager
+        @enforce_strict_access: If false, get type even on expression
+        pointing to a middle of an object. If true, raise exception if such a
+        pointer is encountered
         """
 
         self.expr_types = expr_types
         self.types_mngr = types_mngr
+        self.enforce_strict_access = enforce_strict_access
 
     def updt_expr_types(self, expr_types):
         """Update expr_types
@@ -678,12 +682,13 @@ class CTypeAnalyzer(ExprReducer):
             obj = self.get_typeof(
                 base_type.objtype, sub_offset, deref, lvl + 1)
             new_type = obj
+
         elif isinstance(base_type, ObjCDecl):
-            if offset != 0:
+            if self.enforce_strict_access and offset != 0:
                 return []
             obj = ObjCPtr(base_type, void_type.align, void_type.size)
-
             new_type = [obj]
+
         elif isinstance(base_type, ObjCUnion):
             out = []
             if offset == 0 and not deref:
@@ -699,6 +704,8 @@ class CTypeAnalyzer(ExprReducer):
                 out += new_type
             new_type = out
         elif isinstance(base_type, ObjCPtr):
+            if self.enforce_strict_access:
+                assert offset % base_type.size == 0
             obj = ObjCPtr(base_type, void_type.align, void_type.size)
             new_type = [obj]
         else:
@@ -783,7 +790,8 @@ class CTypeAnalyzer(ExprReducer):
                 r_target = ptr_target.objtype
                 # ptr_target: ptr<elem>
                 # r_target: elem
-                if r_target.size != node.expr.size / 8:
+                if (not(self.enforce_strict_access) or
+                    r_target.size != node.expr.size / 8):
                     continue
                 found.append(r_target)
         if not found:
@@ -962,6 +970,7 @@ class ExprToAccessC(ExprReducer):
                     finalobj = sname
                     out.append(finalobj)
             new_type = out
+
         elif isinstance(base_type, ObjCPtr):
             elem_num = offset / base_type.size
             if self.enforce_strict_access:
@@ -1581,7 +1590,8 @@ class CHandler(object):
                  simplify_c=access_simplifier,
                  enforce_strict_access=True):
         self.exprc2expr = self.exprCToExpr_cls(expr_types, types_mngr)
-        self.type_analyzer = self.cTypeAnalyzer_cls(expr_types, types_mngr)
+        self.type_analyzer = self.cTypeAnalyzer_cls(expr_types, types_mngr,
+                                                   enforce_strict_access)
         self.access_c_gen = self.exprToAccessC_cls(expr_types,
                                                    types_mngr,
                                                    enforce_strict_access)
