@@ -1,9 +1,11 @@
-from miasm2.core.objc import CLeafTypes, ObjCDecl
+from miasm2.core.objc import CLeafTypes, ObjCDecl, PADDING_TYPE_NAME
 from miasm2.core.ctypesmngr import CTypeId, CTypePtr
 
 
 class CTypeAMD64_unk(CLeafTypes):
     """Define C types sizes/alignement for x86_64 architecture"""
+
+    obj_pad = ObjCDecl(PADDING_TYPE_NAME, 1, 1) # __padding__ is size 1/align 1
 
     obj_char = ObjCDecl("char", 1, 1)
     obj_short = ObjCDecl("short", 2, 2)
@@ -25,6 +27,8 @@ class CTypeAMD64_unk(CLeafTypes):
 
     def __init__(self):
         self.types = {
+            CTypeId(PADDING_TYPE_NAME): self.obj_pad,
+
             CTypeId('char'): self.obj_char,
             CTypeId('short'): self.obj_short,
             CTypeId('int'): self.obj_int,
@@ -68,7 +72,9 @@ class CTypeAMD64_unk(CLeafTypes):
 
 
 class CTypeX86_unk(CLeafTypes):
-    """Define C types sizes/alignement for x86_64 architecture"""
+    """Define C types sizes/alignement for x86_32 architecture"""
+
+    obj_pad = ObjCDecl(PADDING_TYPE_NAME, 1, 1) # __padding__ is size 1/align 1
 
     obj_char = ObjCDecl("char", 1, 1)
     obj_short = ObjCDecl("short", 2, 2)
@@ -90,6 +96,8 @@ class CTypeX86_unk(CLeafTypes):
 
     def __init__(self):
         self.types = {
+            CTypeId(PADDING_TYPE_NAME): self.obj_pad,
+
             CTypeId('char'): self.obj_char,
             CTypeId('short'): self.obj_short,
             CTypeId('int'): self.obj_int,

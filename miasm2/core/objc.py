@@ -15,6 +15,8 @@ from miasm2.core.ctypesmngr import CTypeUnion, CTypeStruct, CTypeId, CTypePtr,\
     CTypeArray, CTypeOp, CTypeSizeof, CTypeEnum, CTypeFunc, CTypeEllipsis
 
 
+PADDING_TYPE_NAME = "___padding___"
+
 class ObjC(object):
     """Generic ObjC"""
 
@@ -618,14 +620,18 @@ class CTypeAnalyzer(ExprReducer):
     Return the C type(s) of a native Miasm expression
     """
 
-    def __init__(self, expr_types, types_mngr):
+    def __init__(self, expr_types, types_mngr, enforce_strict_access=True):
         """Init TypeAnalyzer
         @expr_types: a dictionnary linking ID names to their types
         @types_mngr: types manager
+        @enforce_strict_access: If false, get type even on expression
+        pointing to a middle of an object. If true, raise exception if such a
+        pointer is encountered
         """
 
         self.expr_types = expr_types
         self.types_mngr = types_mngr
+        self.enforce_strict_access = enforce_strict_access
 
     def updt_expr_types(self, expr_types):
         """Update expr_types
@@ -676,12 +682,13 @@ class CTypeAnalyzer(ExprReducer):
             obj = self.get_typeof(
                 base_type.objtype, sub_offset, deref, lvl + 1)
             new_type = obj
+
         elif isinstance(base_type, ObjCDecl):
-            if offset != 0:
+            if self.enforce_strict_access and offset != 0:
                 return []
             obj = ObjCPtr(base_type, void_type.align, void_type.size)
-
             new_type = [obj]
+
         elif isinstance(base_type, ObjCUnion):
             out = []
             if offset == 0 and not deref:
@@ -697,6 +704,8 @@ class CTypeAnalyzer(ExprReducer):
                 out += new_type
             new_type = out
         elif isinstance(base_type, ObjCPtr):
+            if self.enforce_strict_access:
+                assert offset % base_type.size == 0
             obj = ObjCPtr(base_type, void_type.align, void_type.size)
             new_type = [obj]
         else:
@@ -781,7 +790,8 @@ class CTypeAnalyzer(ExprReducer):
                 r_target = ptr_target.objtype
                 # ptr_target: ptr<elem>
                 # r_target: elem
-                if r_target.size != node.expr.size / 8:
+                if (not(self.enforce_strict_access) or
+                    r_target.size != node.expr.size / 8):
                     continue
                 found.append(r_target)
         if not found:
@@ -960,21 +970,15 @@ class ExprToAccessC(ExprReducer):
                     finalobj = sname
                     out.append(finalobj)
             new_type = out
+
         elif isinstance(base_type, ObjCPtr):
             elem_num = offset / base_type.size
+            if self.enforce_strict_access:
+                assert offset % base_type.size == 0
 
-            if elem_num == 0:
-                if self.enforce_strict_access:
-                    assert offset % base_type.size == 0
-                nobj = CGenArray(cgenobj, elem_num,
-                                 void_type.align, void_type.size)
-                new_type = [(nobj)]
-            else:
-                if self.enforce_strict_access:
-                    assert offset % base_type.size == 0
-                nobj = CGenArray(cgenobj, elem_num,
-                                 void_type.align, void_type.size)
-                new_type = [(nobj)]
+            nobj = CGenArray(cgenobj, elem_num,
+                             void_type.align, void_type.size)
+            new_type = [(nobj)]
 
         else:
             raise NotImplementedError("deref type %r" % base_type)
@@ -1348,6 +1352,11 @@ class CTypesManager(object):
         """Retrieve a void* objc"""
         return self.leaf_types.types.get(CTypePtr(CTypeId('void')))
 
+    @property
+    def padding(self):
+        """Retrieve a padding ctype"""
+        return CTypeId(PADDING_TYPE_NAME)
+
     def _get_objc(self, type_id, resolved=None, to_fix=None, lvl=0):
         if resolved is None:
             resolved = {}
@@ -1378,11 +1387,19 @@ class CTypesManager(object):
             align_max, size_max = 0, 0
 
             offset, align_max = 0, 1
+            pad_index = 0
             for name, field in type_id.fields:
                 objc = self._get_objc(field, resolved, to_fix, lvl + 1)
                 resolved[field] = objc
                 align_max = max(align_max, objc.align)
-                offset = self.struct_compute_field_offset(objc, offset)
+                new_offset = self.struct_compute_field_offset(objc, offset)
+                if new_offset - offset:
+                    pad_name = "__PAD__%d__" % pad_index
+                    pad_index += 1
+                    size = new_offset - offset
+                    pad_objc = self._get_objc(CTypeArray(self.padding, size), resolved, to_fix, lvl + 1)
+                    out.add_field(pad_name, pad_objc, offset, pad_objc.size)
+                offset = new_offset
                 out.add_field(name, objc, offset, objc.size)
                 offset += objc.size
 
@@ -1573,7 +1590,8 @@ class CHandler(object):
                  simplify_c=access_simplifier,
                  enforce_strict_access=True):
         self.exprc2expr = self.exprCToExpr_cls(expr_types, types_mngr)
-        self.type_analyzer = self.cTypeAnalyzer_cls(expr_types, types_mngr)
+        self.type_analyzer = self.cTypeAnalyzer_cls(expr_types, types_mngr,
+                                                   enforce_strict_access)
         self.access_c_gen = self.exprToAccessC_cls(expr_types,
                                                    types_mngr,
                                                    enforce_strict_access)
