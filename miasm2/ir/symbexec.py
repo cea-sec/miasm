@@ -202,34 +202,34 @@ class SymbolicExecutionEngine(object):
         if expr in cache:
             ret = cache[expr]
             #print "In cache!", ret
-        elif isinstance(expr, m2_expr.ExprInt):
+        elif expr.is_int():
             return expr
-        elif isinstance(expr, m2_expr.ExprId):
+        elif expr.is_id():
             if isinstance(expr.name, asmblock.AsmLabel) and expr.name.offset is not None:
                 ret = m2_expr.ExprInt(expr.name.offset, expr.size)
             else:
                 ret = state.get(expr, expr)
-        elif isinstance(expr, m2_expr.ExprMem):
+        elif expr.is_mem():
             ptr = self.apply_expr_on_state_visit_cache(expr.arg, state, cache, level+1)
             ret = m2_expr.ExprMem(ptr, expr.size)
             ret = self.get_mem_state(ret)
             assert expr.size == ret.size
-        elif isinstance(expr, m2_expr.ExprCond):
+        elif expr.is_cond():
             cond = self.apply_expr_on_state_visit_cache(expr.cond, state, cache, level+1)
             src1 = self.apply_expr_on_state_visit_cache(expr.src1, state, cache, level+1)
             src2 = self.apply_expr_on_state_visit_cache(expr.src2, state, cache, level+1)
             ret = m2_expr.ExprCond(cond, src1, src2)
-        elif isinstance(expr, m2_expr.ExprSlice):
+        elif expr.is_slice():
             arg = self.apply_expr_on_state_visit_cache(expr.arg, state, cache, level+1)
             ret = m2_expr.ExprSlice(arg, expr.start, expr.stop)
-        elif isinstance(expr, m2_expr.ExprOp):
+        elif expr.is_op():
             args = []
             for oarg in expr.args:
                 arg = self.apply_expr_on_state_visit_cache(oarg, state, cache, level+1)
                 assert oarg.size == arg.size
                 args.append(arg)
             ret = m2_expr.ExprOp(expr.op, *args)
-        elif isinstance(expr, m2_expr.ExprCompose):
+        elif expr.is_compose():
             args = []
             for arg in expr.args:
                 args.append(self.apply_expr_on_state_visit_cache(arg, state, cache, level+1))
@@ -390,7 +390,7 @@ class SymbolicExecutionEngine(object):
             elif isinstance(dst, m2_expr.ExprId):
                 pool_out[dst] = src
             else:
-                raise ValueError("affected zarb", str(dst))
+                raise ValueError("Unknown destination type", str(dst))
 
         return pool_out.iteritems()
 
@@ -442,6 +442,7 @@ class SymbolicExecutionEngine(object):
         """
         for assignblk in irb.irs:
             if step:
+                print 'Instr', assignblk.instr
                 print 'Assignblk:'
                 print assignblk
                 print '_' * 80
