@@ -2,7 +2,7 @@
 
 from collections import namedtuple
 from miasm2.core.graph import DiGraph
-from miasm2.ir.ir import AssignBlock
+from miasm2.ir.ir import AssignBlock, IRBlock
 
 class ReachingDefinitions(dict):
     """
@@ -248,11 +248,13 @@ def dead_simp(ir_a):
     defuse = DiGraphDefUse(reaching_defs, deref_mem=True)
     useful = set(dead_simp_useful_instrs(defuse, reaching_defs))
     for block in ir_a.blocks.itervalues():
+        irs = []
         for idx, assignblk in enumerate(block.irs):
             new_assignblk = dict(assignblk)
             for lval in assignblk:
                 if InstrNode(block.label, idx, lval) not in useful:
                     del new_assignblk[lval]
                     modified = True
-            block.irs[idx] = AssignBlock(new_assignblk, assignblk.instr)
+            irs.append(AssignBlock(new_assignblk, assignblk.instr))
+        ir_a.blocks[block.label] = IRBlock(block.label, irs)
     return modified

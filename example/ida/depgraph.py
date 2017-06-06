@@ -7,7 +7,7 @@ from miasm2.expression import expression as m2_expr
 
 from miasm2.expression.simplifications import expr_simp
 from miasm2.analysis.depgraph import DependencyGraph
-from miasm2.ir.ir import AssignBlock
+from miasm2.ir.ir import AssignBlock, IRBlock
 
 from utils import guess_machine
 
@@ -173,10 +173,11 @@ settings.Execute()
 label, elements, line_nb = settings.label, settings.elements, settings.line_nb
 # Simplify affectations
 for irb in ir_arch.blocks.values():
+    irs = []
     fix_stack = irb.label.offset is not None and settings.unalias_stack
-    for i, assignblk in enumerate(irb.irs):
+    for assignblk in irb.irs:
         if fix_stack:
-            stk_high = m2_expr.ExprInt(GetSpd(irb.irs[i].instr.offset), ir_arch.sp.size)
+            stk_high = m2_expr.ExprInt(GetSpd(assignblk.instr.offset), ir_arch.sp.size)
             fix_dct = {ir_arch.sp: mn.regs.regs_init[ir_arch.sp] + stk_high}
 
         new_assignblk = {}
@@ -187,7 +188,8 @@ for irb in ir_arch.blocks.values():
                     dst = dst.replace_expr(fix_dct)
             dst, src = expr_simp(dst), expr_simp(src)
             new_assignblk[dst] = src
-        irb.irs[i] = AssignBlock(new_assignblk, instr=assignblk.instr)
+        irs.append(AssignBlock(new_assignblk, instr=assignblk.instr))
+    ir_arch.blocks[irb.label] = IRBlock(irb.label, irs)
 
 # Get dependency graphs
 dg = settings.depgraph

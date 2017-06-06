@@ -9,12 +9,10 @@ def get_node_name(label, i, n):
     return n_name
 
 
-def intra_bloc_flow_raw(ir_arch, flow_graph, irb):
+def intra_block_flow_raw(ir_arch, flow_graph, irb, in_nodes, out_nodes):
     """
     Create data flow for an irbloc using raw IR expressions
     """
-    in_nodes = {}
-    out_nodes = {}
     current_nodes = {}
     for i, assignblk in enumerate(irb.irs):
         dict_rw = assignblk.get_rw(cst_read=True)
@@ -63,19 +61,15 @@ def intra_bloc_flow_raw(ir_arch, flow_graph, irb):
 
                 flow_graph.add_node(node_n_w)
                 flow_graph.add_uniq_edge(node_n_r, node_n_w)
-    irb.in_nodes = in_nodes
-    irb.out_nodes = out_nodes
 
 
-def intra_bloc_flow_symbexec(ir_arch, flow_graph, irb):
+def intra_block_flow_symbexec(ir_arch, flow_graph, irb, in_nodes, out_nodes):
     """
     Create data flow for an irbloc using symbolic execution
     """
-    in_nodes = {}
-    out_nodes = {}
     current_nodes = {}
 
-    symbols_init = dict(ir_arch.arch.regs.all_regs_ids_init)
+    symbols_init = dict(ir_arch.arch.regs.regs_init)
 
     sb = SymbolicExecutionEngine(ir_arch, dict(symbols_init))
     sb.emulbloc(irb)
@@ -91,7 +85,7 @@ def intra_bloc_flow_symbexec(ir_arch, flow_graph, irb):
             continue
         read_values = v.get_r(cst_read=True)
         # print n_w, v, [str(x) for x in read_values]
-        node_n_w = get_node_name(irb.label, len(irb.lines), n_w)
+        node_n_w = get_node_name(irb.label, len(irb.irs), n_w)
 
         for n_r in read_values:
             if n_r in current_nodes:
@@ -104,11 +98,8 @@ def intra_bloc_flow_symbexec(ir_arch, flow_graph, irb):
             out_nodes[n_w] = node_n_w
             flow_graph.add_uniq_edge(node_n_r, node_n_w)
 
-    irb.in_nodes = in_nodes
-    irb.out_nodes = out_nodes
 
-
-def inter_bloc_flow_link(ir_arch, flow_graph, todo, link_exec_to_data):
+def inter_block_flow_link(ir_arch, flow_graph, irb_in_nodes, irb_out_nodes, todo, link_exec_to_data):
     lbl, current_nodes, exec_nodes = todo
     # print 'TODO'
     # print lbl
@@ -122,7 +113,7 @@ def inter_bloc_flow_link(ir_arch, flow_graph, todo, link_exec_to_data):
     irb = ir_arch.blocks[lbl]
     # pp(('IN', lbl, [(str(x[0]), str(x[1])) for x in current_nodes.items()]))
     to_del = set()
-    for n_r, node_n_r in irb.in_nodes.items():
+    for n_r, node_n_r in irb_in_nodes[irb.label].items():
         if not n_r in current_nodes:
             continue
         # print 'add link', current_nodes[n_r], node_n_r
@@ -132,7 +123,7 @@ def inter_bloc_flow_link(ir_arch, flow_graph, todo, link_exec_to_data):
     # if link exec to data, all nodes depends on exec nodes
     if link_exec_to_data:
         for n_x_r in exec_nodes:
-            for n_r, node_n_r in irb.in_nodes.items():
+            for n_r, node_n_r in irb_in_nodes[irb.label].items():
                 if not n_x_r in current_nodes:
                     continue
                 if isinstance(n_r, ExprInt):
@@ -140,7 +131,7 @@ def inter_bloc_flow_link(ir_arch, flow_graph, todo, link_exec_to_data):
                 flow_graph.add_uniq_edge(current_nodes[n_x_r], node_n_r)
 
     # update current nodes using bloc out_nodes
-    for n_w, node_n_w in irb.out_nodes.items():
+    for n_w, node_n_w in irb_out_nodes[irb.label].items():
         current_nodes[n_w] = node_n_w
 
     # get nodes involved in exec flow
@@ -155,7 +146,7 @@ def inter_bloc_flow_link(ir_arch, flow_graph, todo, link_exec_to_data):
     return todo
 
 
-def create_implicit_flow(ir_arch, flow_graph):
+def create_implicit_flow(ir_arch, flow_graph, irb_in_nodes, irb_out_ndes):
 
     # first fix IN/OUT
     # If a son read a node which in not in OUT, add it
@@ -168,8 +159,8 @@ def create_implicit_flow(ir_arch, flow_graph):
                 print "cannot find bloc!!", lbl
                 continue
             irb_son = ir_arch.blocks[lbl_son]
-            for n_r in irb_son.in_nodes:
-                if n_r in irb.out_nodes:
+            for n_r in irb_in_nodes[irb_son.label]:
+                if n_r in irb_out_nodes[irb.label]:
                     continue
                 if not isinstance(n_r, ExprId):
                     continue
@@ -180,11 +171,11 @@ def create_implicit_flow(ir_arch, flow_graph):
                 # print "###", irb_son
                 # print "###", 'IN', [str(x) for x in irb_son.in_nodes]
 
-                node_n_w = irb.label, len(irb.lines), n_r
-                irb.out_nodes[n_r] = node_n_w
-                if not n_r in irb.in_nodes:
-                    irb.in_nodes[n_r] = irb.label, 0, n_r
-                node_n_r = irb.in_nodes[n_r]
+                node_n_w = irb.label, len(irb.irs), n_r
+                irb_out_nodes[irb.label][n_r] = node_n_w
+                if not n_r in irb_in_nodes[irb.label]:
+                    irb_in_nodes[irb.label][n_r] = irb.label, 0, n_r
+                node_n_r = irb_in_nodes[irb.label][n_r]
                 # print "###", node_n_r
                 for lbl_p in ir_arch.graph.predecessors(irb.label):
                     todo.add(lbl_p)
@@ -192,7 +183,7 @@ def create_implicit_flow(ir_arch, flow_graph):
                 flow_graph.add_uniq_edge(node_n_r, node_n_w)
 
 
-def inter_bloc_flow(ir_arch, flow_graph, irb_0, link_exec_to_data=True):
+def inter_block_flow(ir_arch, flow_graph, irb_0, irb_in_nodes, irb_out_nodes, link_exec_to_data=True):
 
     todo = set()
     done = set()
@@ -203,7 +194,7 @@ def inter_bloc_flow(ir_arch, flow_graph, irb_0, link_exec_to_data=True):
         if state in done:
             continue
         done.add(state)
-        out = inter_bloc_flow_link(ir_arch, flow_graph, state, link_exec_to_data)
+        out = inter_block_flow_link(ir_arch, flow_graph, irb_in_nodes, irb_out_nodes, state, link_exec_to_data)
         todo.update(out)
 
 

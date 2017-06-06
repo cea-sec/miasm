@@ -577,18 +577,16 @@ class CGen(object):
             instr_attrib, irblocks_attributes = self.get_attributes(instr, irblocks, log_mn, log_regs)
 
             for index, irblock in enumerate(irblocks):
-                self.ir_arch.irbloc_fix_regs_for_mode(
-                    irblock, self.ir_arch.attrib)
-
-                if irblock.label.offset is None:
+                new_irblock = self.ir_arch.irbloc_fix_regs_for_mode(irblock, self.ir_arch.attrib)
+                if new_irblock.label.offset is None:
                     out.append("%-40s // %.16X %s" %
-                               (str(irblock.label.name) + ":", instr.offset, instr))
+                               (str(new_irblock.label.name) + ":", instr.offset, instr))
                 else:
                     out.append("%-40s // %.16X %s" %
-                               (self.label_to_jitlabel(irblock.label) + ":", instr.offset, instr))
+                               (self.label_to_jitlabel(new_irblock.label) + ":", instr.offset, instr))
                 if index == 0:
                     out += self.gen_pre_code(instr_attrib)
-                out += self.gen_irblock(instr_attrib, irblocks_attributes[index], instr_offsets, irblock)
+                out += self.gen_irblock(instr_attrib, irblocks_attributes[index], instr_offsets, new_irblock)
 
         out += self.gen_finalize(block)
         return ['\t' + line for line in out]

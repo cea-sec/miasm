@@ -441,17 +441,14 @@ class ir_mips32l(IntermediateRepresentation):
         args = instr.args
         instr_ir, extra_ir = get_mnemo_expr(self, instr, *args)
 
-        for i, x in enumerate(instr_ir):
-            x = m2_expr.ExprAff(x.dst, x.src.replace_expr(
-                {self.pc: m2_expr.ExprInt(instr.offset + 4, 32)}))
-            instr_ir[i] = x
-        for irblock in extra_ir:
-            for irs in irblock.irs:
-                for i, x in enumerate(irs):
-                    x = m2_expr.ExprAff(x.dst, x.src.replace_expr(
-                        {self.pc: m2_expr.ExprInt(instr.offset + 4, 32)}))
-                    irs[i] = x
-        return instr_ir, extra_ir
+        pc_fixed = {self.pc: m2_expr.ExprInt(instr.offset + 4, 32)}
+
+        instr_ir = [m2_expr.ExprAff(expr.dst, expr.src.replace_expr(pc_fixed))
+                    for expr in instr_ir]
+
+        new_extra_ir = [irblock.modify_exprs(mod_src=lambda expr: expr.replace_expr(pc_fixed))
+                        for irblock in extra_ir]
+        return instr_ir, new_extra_ir
 
     def get_next_instr(self, instr):
         return self.symbol_pool.getby_offset_create(instr.offset  + 4)

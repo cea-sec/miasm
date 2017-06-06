@@ -45,7 +45,7 @@ class jitter_x86_16(jitter):
         self.ir_arch.irbloc_fix_regs_for_mode = self.ir_archbloc_fix_regs_for_mode
 
     def ir_archbloc_fix_regs_for_mode(self, irblock, attrib=64):
-        self.orig_irbloc_fix_regs_for_mode(irblock, 64)
+        return self.orig_irbloc_fix_regs_for_mode(irblock, 64)
 
     def push_uint16_t(self, value):
         self.cpu.SP -= self.ir_arch.sp.size / 8
@@ -78,7 +78,7 @@ class jitter_x86_32(jitter):
         self.ir_arch.irbloc_fix_regs_for_mode = self.ir_archbloc_fix_regs_for_mode
 
     def ir_archbloc_fix_regs_for_mode(self, irblock, attrib=64):
-        self.orig_irbloc_fix_regs_for_mode(irblock, 64)
+        return self.orig_irbloc_fix_regs_for_mode(irblock, 64)
 
     def push_uint16_t(self, value):
         self.cpu.ESP -= self.ir_arch.sp.size / 8
@@ -192,7 +192,7 @@ class jitter_x86_64(jitter):
         self.ir_arch.irbloc_fix_regs_for_mode = self.ir_archbloc_fix_regs_for_mode
 
     def ir_archbloc_fix_regs_for_mode(self, irblock, attrib=64):
-        self.orig_irbloc_fix_regs_for_mode(irblock, 64)
+        return self.orig_irbloc_fix_regs_for_mode(irblock, 64)
 
     def push_uint64_t(self, value):
         self.cpu.RSP -= self.ir_arch.sp.size / 8

@@ -11,12 +11,13 @@ class ir_a_mips32l(ir_mips32l, ira):
         ir_mips32l.__init__(self, symbol_pool)
         self.ret_reg = self.arch.regs.V0
 
-    def pre_add_instr(self, block, instr, irb_cur, ir_blocks_all, gen_pc_updt):
+    def pre_add_instr(self, block, instr, assignments, ir_blocks_all, gen_pc_updt):
         # Avoid adding side effects, already done in post_add_bloc
-        return irb_cur
+        return False
 
     def post_add_bloc(self, block, ir_blocks):
         IntermediateRepresentation.post_add_bloc(self, block, ir_blocks)
+        new_irblocks = []
         for irb in ir_blocks:
             pc_val = None
             lr_val = None
@@ -25,13 +26,15 @@ class ir_a_mips32l(ir_mips32l, ira):
                 lr_val = assignblk.get(self.arch.regs.RA, lr_val)
 
             if pc_val is None or lr_val is None:
+                new_irblocks.append(irb)
                 continue
             if not expr_is_int_or_label(lr_val):
+                new_irblocks.append(irb)
                 continue
             if expr_is_label(lr_val):
                 lr_val = ExprInt(lr_val.name.offset, 32)
 
-            instr = block.irs[-2].instr
+            instr = block.lines[-2]
             if lr_val.arg != instr.offset + 8:
                 raise ValueError("Wrong arg")
 
@@ -42,9 +45,9 @@ class ir_a_mips32l(ir_mips32l, ira):
             irs.append(AssignBlock([ExprAff(self.IRDst,
                                             ExprId(lbl, size=self.pc.size))],
                                    instr))
-            nblock = IRBlock(new_lbl, irs)
-            self.blocks[new_lbl] = nblock
-            irb.dst = ExprId(new_lbl, size=self.pc.size)
+            new_irblocks.append(IRBlock(new_lbl, irs))
+            new_irblocks.append(irb.set_dst(ExprId(new_lbl, size=self.pc.size)))
+        return new_irblocks
 
     def get_out_regs(self, _):
         return set([self.ret_reg, self.sp])

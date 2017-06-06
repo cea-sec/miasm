@@ -782,14 +782,14 @@ class ir_aarch64l(IntermediateRepresentation):
         src = self.expr_fix_regs_for_mode(e.src)
         return m2_expr.ExprAff(dst, src)
 
-    def irbloc_fix_regs_for_mode(self, irbloc, mode=64):
-        for idx, assignblk in enumerate(irbloc.irs):
+    def irbloc_fix_regs_for_mode(self, irblock, mode=64):
+        irs = []
+        for assignblk in irblock.irs:
             new_assignblk = dict(assignblk)
             for dst, src in assignblk.iteritems():
                 del(new_assignblk[dst])
                 # Special case for 64 bits:
                 # If destination is a 32 bit reg, zero extend the 64 bit reg
-
                 if (isinstance(dst, m2_expr.ExprId) and
                     dst.size == 32 and
                     dst in replace_regs):
@@ -799,27 +799,24 @@ class ir_aarch64l(IntermediateRepresentation):
                 dst = self.expr_fix_regs_for_mode(dst)
                 src = self.expr_fix_regs_for_mode(src)
                 new_assignblk[dst] = src
-            irbloc.irs[idx] = AssignBlock(new_assignblk, assignblk.instr)
-        if irbloc.dst is not None:
-            irbloc.dst = self.expr_fix_regs_for_mode(irbloc.dst)
+            irs.append(AssignBlock(new_assignblk, assignblk.instr))
+        return IRBlock(irblock.label, irs)
 
     def mod_pc(self, instr, instr_ir, extra_ir):
         "Replace PC by the instruction's offset"
         cur_offset = m2_expr.ExprInt(instr.offset, 64)
+        pc_fixed = {self.pc: cur_offset}
         for i, expr in enumerate(instr_ir):
             dst, src = expr.dst, expr.src
             if dst != self.pc:
-                dst = dst.replace_expr({self.pc: cur_offset})
-            src = src.replace_expr({self.pc: cur_offset})
+                dst = dst.replace_expr(pc_fixed)
+            src = src.replace_expr(pc_fixed)
             instr_ir[i] = m2_expr.ExprAff(dst, src)
-        for irblock in extra_ir:
-            for irs in irblock.irs:
-                for i, expr in enumerate(irs):
-                    dst, src = expr.dst, expr.src
-                    if dst != self.pc:
-                        dst = dst.replace_expr({self.pc: cur_offset})
-                    src = src.replace_expr({self.pc: cur_offset})
-                    irs[i] = m2_expr.ExprAff(dst, src)
+
+        for idx, irblock in enumerate(extra_ir):
+            extra_ir[idx] = irblock.modify_exprs(lambda expr: expr.replace_expr(pc_fixed) \
+                                                 if expr != self.pc else expr,
+                                                 lambda expr: expr.replace_expr(pc_fixed))
 
 
     def del_dst_zr(self, instr, instr_ir, extra_ir):
@@ -827,11 +824,16 @@ class ir_aarch64l(IntermediateRepresentation):
         regs_to_fix = [WZR, XZR]
         instr_ir = [expr for expr in instr_ir if expr.dst not in regs_to_fix]
 
+        new_irblocks = []
         for irblock in extra_ir:
-            for i, irs in enumerate(irblock.irs):
-                irblock.irs[i] = [expr for expr in irs if expr.dst not in regs_to_fix]
+            irs = []
+            for assignblk in irblock.irs:
+                new_dsts = {dst:src for dst, src in assignblk.iteritems()
+                                if dst not in regs_to_fix}
+                irs.append(AssignBlock(new_dsts, assignblk.instr))
+            new_irblocks.append(IRBlock(irblock.label, irs))
 
-        return instr_ir, extra_ir
+        return instr_ir, new_irblocks
 
 
 class ir_aarch64b(ir_aarch64l):

@@ -5,7 +5,7 @@ import ast
 import re
 
 import miasm2.expression.expression as m2_expr
-from miasm2.ir.ir import IRBlock
+from miasm2.ir.ir import IRBlock, AssignBlock
 
 
 class MiasmTransformer(ast.NodeTransformer):
@@ -127,6 +127,7 @@ class SemBuilder(object):
         self.transformer = MiasmTransformer()
         self._ctx = dict(m2_expr.__dict__)
         self._ctx["IRBlock"] = IRBlock
+        self._ctx["AssignBlock"] = AssignBlock
         self._functions = {}
 
         # Update context
@@ -246,20 +247,31 @@ class SemBuilder(object):
                                        starargs=None,
                                        kwargs=None)
                     sub_blocks[-1][-1].append(jmp_end)
-                    sub_blocks[-1][-1] = ast.List(elts=sub_blocks[-1][-1],
-                                                  ctx=ast.Load())
-                    sub_blocks[-1] = ast.List(elts=sub_blocks[-1],
-                                              ctx=ast.Load())
+
+
+                    instr = ast.Name(id='instr', ctx=ast.Load())
+                    effects = ast.List(elts=sub_blocks[-1][-1],
+                                       ctx=ast.Load())
+                    assignblk = ast.Call(func=ast.Name(id='AssignBlock',
+                                                       ctx=ast.Load()),
+                                         args=[effects, instr],
+                                         keywords=[],
+                                         starargs=None,
+                                         kwargs=None)
+
 
                     ## Replace the block with a call to 'IRBlock'
                     lbl_if_name = ast.Attribute(value=ast.Name(id=lbl_name,
                                                                ctx=ast.Load()),
                                                 attr='name', ctx=ast.Load())
 
+                    assignblks = ast.List(elts=[assignblk],
+                                          ctx=ast.Load())
+
                     sub_blocks[-1] = ast.Call(func=ast.Name(id='IRBlock',
                                                             ctx=ast.Load()),
                                               args=[lbl_if_name,
-                                                    sub_blocks[-1]],
+                                                    assignblks],
                                               keywords=[],
                                               starargs=None,
                                               kwargs=None)
