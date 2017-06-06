@@ -8,14 +8,16 @@ RE_HASH_CMT = re.compile(r'^#\s*\d+.*$', flags=re.MULTILINE)
 # http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1124.pdf
 
 
-def c_to_ast(c_str):
+def c_to_ast(parser, c_str):
     """Transform a @c_str into a C ast
     Note: will ignore lines containing code refs ie:
     # 23 "miasm.h"
+
+    @parser: pycparser instance
+    @c_str: c string
     """
 
     new_str = re.sub(RE_HASH_CMT, "", c_str)
-    parser = c_parser.CParser()
     return parser.parse(new_str, filename='<stdin>')
 
 
@@ -301,6 +303,9 @@ class CAstTypes(object):
         self._typedefs = dict(knowntypedefs)
         self.cpt = 0
         self.loc_to_decl_info = {}
+        self.parser = c_parser.CParser()
+        self._cpt_decl = 0
+
 
         self.ast_to_typeid_rules = {
             c_ast.Struct: self.ast_to_typeid_struct,
@@ -458,7 +463,7 @@ class CAstTypes(object):
         """
         c_str = self.digest_decl(c_str)
 
-        ast = c_to_ast(c_str)
+        ast = c_to_ast(self.parser, c_str)
         self.add_c_decl_from_ast(ast)
 
         return ast
@@ -693,3 +698,14 @@ class CAstTypes(object):
         """
         for ext in ast.ext:
             ret = self.ast_parse_declaration(ext)
+
+    def parse_c_type(self, c_str):
+        """Parse a C string representing a C type and return the associated
+        Miasm C object.
+        @c_str: C string of a C type
+        """
+
+        new_str = "%s __MIASM_INTERNAL_%s;" % (c_str, self._cpt_decl)
+        ret = self.parser.cparser.parse(input=new_str, lexer=self.parser.clex)
+        self._cpt_decl += 1
+        return ret
