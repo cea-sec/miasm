@@ -97,19 +97,77 @@ class SymbolMngr(object):
         return new_symbols
 
 
+class StateEngine(object):
+    """Stores an Engine state"""
+
+    def merge(self, other):
+        """Generate a new state, representing the merge of self and @other
+        @other: a StateEngine instance"""
+
+        raise NotImplementedError("Abstract method")
+
+
+class SymbolicState(StateEngine):
+    """Stores a SymbolicExecutionEngine state"""
+
+    def __init__(self, dct):
+        self._symbols = frozenset(dct.items())
+
+    def __hash__(self):
+        return hash((self.__class__, self._symbols))
+
+    def __eq__(self, other):
+        if self is other:
+            return True
+        if self.__class__ != other.__class__:
+            return False
+        return self.symbols == other.symbols
+
+    def __iter__(self):
+        for dst, src in self._symbols:
+            yield dst, src
+
+    def iteritems(self):
+        return self.__iter__()
+
+    def merge(self, other):
+        """Merge two symbolic states
+        Only equal expressions are kept in both states
+        @other: second symbolic state
+        """
+
+        symb_a = self.symbols
+        symb_b = other.symbols
+        intersection = set(symb_a.keys()).intersection(symb_b.keys())
+        out = {}
+        for dst in intersection:
+            if symb_a[dst] == symb_b[dst]:
+                out[dst] = symb_a[dst]
+        return self.__class__(out)
+
+    @property
+    def symbols(self):
+        """Return the dictionnary of known symbols"""
+        return dict(self._symbols)
+
+
 class SymbolicExecutionEngine(object):
     """
     Symbolic execution engine
     Allow IR code emulation in symbolic domain
     """
 
-    def __init__(self, ir_arch, known_symbols,
+    StateEngine = SymbolicState
+
+    def __init__(self, ir_arch, state,
                  func_read=None,
                  func_write=None,
                  sb_expr_simp=expr_simp):
+
         self.symbols = SymbolMngr()
-        for expr, value in known_symbols.items():
-            self.symbols[expr] = value
+        for dst, src in state.iteritems():
+            self.symbols[dst] = src
+
         self.func_read = func_read
         self.func_write = func_write
         self.ir_arch = ir_arch
@@ -190,6 +248,18 @@ class SymbolicExecutionEngine(object):
         ret = self.expr_simp(self.symbols[ret][:size])
         return ret
 
+    def get_state(self):
+        """Return the current state of the SymbolicEngine"""
+        state = self.StateEngine(dict(self.symbols))
+        return state
+
+    def set_state(self, state):
+        """Restaure the @state of the engine
+        @state: StateEngine instance
+        """
+        self.symbols = SymbolMngr()
+        for dst, src in dict(state).iteritems():
+            self.symbols[dst] = src
 
     def apply_expr_on_state_visit_cache(self, expr, state, cache, level=0):
         """
