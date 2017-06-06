@@ -268,6 +268,8 @@ class SymbolicExecutionEngine(object):
             2. simplify
         """
 
+        expr = self.expr_simp(expr)
+
         #print '\t'*level, "Eval:", expr
         if expr in cache:
             ret = cache[expr]
