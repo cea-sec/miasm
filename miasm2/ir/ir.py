@@ -810,6 +810,7 @@ class IntermediateRepresentation(object):
             if (len(self.graph.predecessors(label)) == 0 and
                 len(self.graph.successors(label)) == 0):
                 self.graph.del_node(label)
+                del self.blocks[label]
         return modified
 
     def merge_blocks(self):
