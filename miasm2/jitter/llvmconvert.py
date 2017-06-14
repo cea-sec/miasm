@@ -512,7 +512,8 @@ class LLVMFunction():
 
         Get or create a (LLVM module-)global constant with *name* or *value*.
         """
-        module = self.mod
+        if name in self.mod.globals:
+            return self.mod.globals[name]
         data = llvm_ir.GlobalVariable(self.mod, value.type, name=name)
         data.global_constant = True
         data.initializer = value
