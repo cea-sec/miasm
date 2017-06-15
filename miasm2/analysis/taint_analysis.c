@@ -209,6 +209,7 @@ taint_get_register(uint32_t* registers,
 	if (tainted_intervalle->start == -1)
 	{
 		// No taint
+		free(tainted_intervalle);
 		return NULL;
 	}
 	return tainted_intervalle;
@@ -300,17 +301,6 @@ taint_get_memory(vm_mngr_t* vm_mngr,
 		 uint64_t color_index
 		 )
 {
-	struct taint_intervalle_t* tainted_intervalle;
-	tainted_intervalle = malloc(sizeof(*tainted_intervalle));
-        if (tainted_intervalle == NULL)
-	{
-		fprintf(stderr,
-			"TAINT: cannot alloc tainted_intervalle in "
-			"taint_get_memory()\n");
-		exit(EXIT_FAILURE);
-	}
-	tainted_intervalle->start = -1;
-
 	struct memory_page_node *mpn;
 	mpn = get_memory_page_from_address(vm_mngr, addr, DO_RAISE_EXCEPTION);
 
@@ -321,6 +311,18 @@ taint_get_memory(vm_mngr_t* vm_mngr,
 			addr);
 		return NULL;
 	}
+
+	struct taint_intervalle_t* tainted_intervalle;
+	tainted_intervalle = malloc(sizeof(*tainted_intervalle));
+        if (tainted_intervalle == NULL)
+	{
+		fprintf(stderr,
+			"TAINT: cannot alloc tainted_intervalle in "
+			"taint_get_memory()\n");
+		exit(EXIT_FAILURE);
+	}
+
+	tainted_intervalle->start = -1;
 
 	/* Fits in one page */
 	if (addr - mpn->ad + size <= mpn->size)
@@ -370,6 +372,7 @@ taint_get_memory(vm_mngr_t* vm_mngr,
 					"TAINT: address %" PRIu64 " is not"
 					"mapped\n",
 					addr + i);
+				free(tainted_intervalle);
 				return NULL;
 			}
 			if (bitfield_test_bit(mpn->taint[color_index],
@@ -397,6 +400,7 @@ taint_get_memory(vm_mngr_t* vm_mngr,
 	if (tainted_intervalle->start == -1)
 	{
 		// No taint
+		free(tainted_intervalle);
 		return NULL;
 	}
 	return tainted_intervalle;
@@ -609,6 +613,14 @@ taint_update_memory_callback_info(struct taint_colors_t *colors,
 		last_modify = &(colors->colors[color_index].callback_info->
 				last_untainted);
 	}
+	else
+	{
+		fprintf(stderr,
+			"TAINT: unknown event type %d\n"
+			"\t-> Callback information are not updated !\n",
+			event_type);
+		return;
+	}
 
 	if ( last_modify->nb_mem >= last_modify->allocated )
 	{
@@ -734,6 +746,7 @@ cpu_access_register(JitCpu* cpu, PyObject* args, uint32_t access_type)
 				      intervalle,
 				      access_type);
 
+	free(intervalle);
 	Py_INCREF(Py_None);
 	return Py_None;
 
@@ -949,6 +962,7 @@ cpu_get_registers(uint32_t* registers,
 		}
 	}
 
+	free(intervalle_arg);
 	return tainted_registers;
 }
 
