@@ -97,19 +97,77 @@ class SymbolMngr(object):
         return new_symbols
 
 
+class StateEngine(object):
+    """Stores an Engine state"""
+
+    def merge(self, other):
+        """Generate a new state, representing the merge of self and @other
+        @other: a StateEngine instance"""
+
+        raise NotImplementedError("Abstract method")
+
+
+class SymbolicState(StateEngine):
+    """Stores a SymbolicExecutionEngine state"""
+
+    def __init__(self, dct):
+        self._symbols = frozenset(dct.items())
+
+    def __hash__(self):
+        return hash((self.__class__, self._symbols))
+
+    def __eq__(self, other):
+        if self is other:
+            return True
+        if self.__class__ != other.__class__:
+            return False
+        return self.symbols == other.symbols
+
+    def __iter__(self):
+        for dst, src in self._symbols:
+            yield dst, src
+
+    def iteritems(self):
+        return self.__iter__()
+
+    def merge(self, other):
+        """Merge two symbolic states
+        Only equal expressions are kept in both states
+        @other: second symbolic state
+        """
+
+        symb_a = self.symbols
+        symb_b = other.symbols
+        intersection = set(symb_a.keys()).intersection(symb_b.keys())
+        out = {}
+        for dst in intersection:
+            if symb_a[dst] == symb_b[dst]:
+                out[dst] = symb_a[dst]
+        return self.__class__(out)
+
+    @property
+    def symbols(self):
+        """Return the dictionnary of known symbols"""
+        return dict(self._symbols)
+
+
 class SymbolicExecutionEngine(object):
     """
     Symbolic execution engine
     Allow IR code emulation in symbolic domain
     """
 
-    def __init__(self, ir_arch, known_symbols,
+    StateEngine = SymbolicState
+
+    def __init__(self, ir_arch, state,
                  func_read=None,
                  func_write=None,
                  sb_expr_simp=expr_simp):
+
         self.symbols = SymbolMngr()
-        for expr, value in known_symbols.items():
-            self.symbols[expr] = value
+        for dst, src in state.iteritems():
+            self.symbols[dst] = src
+
         self.func_read = func_read
         self.func_write = func_write
         self.ir_arch = ir_arch
@@ -190,6 +248,18 @@ class SymbolicExecutionEngine(object):
         ret = self.expr_simp(self.symbols[ret][:size])
         return ret
 
+    def get_state(self):
+        """Return the current state of the SymbolicEngine"""
+        state = self.StateEngine(dict(self.symbols))
+        return state
+
+    def set_state(self, state):
+        """Restaure the @state of the engine
+        @state: StateEngine instance
+        """
+        self.symbols = SymbolMngr()
+        for dst, src in dict(state).iteritems():
+            self.symbols[dst] = src
 
     def apply_expr_on_state_visit_cache(self, expr, state, cache, level=0):
         """
@@ -198,38 +268,40 @@ class SymbolicExecutionEngine(object):
             2. simplify
         """
 
+        expr = self.expr_simp(expr)
+
         #print '\t'*level, "Eval:", expr
         if expr in cache:
             ret = cache[expr]
             #print "In cache!", ret
-        elif isinstance(expr, m2_expr.ExprInt):
+        elif expr.is_int():
             return expr
-        elif isinstance(expr, m2_expr.ExprId):
+        elif expr.is_id():
             if isinstance(expr.name, asmblock.AsmLabel) and expr.name.offset is not None:
                 ret = m2_expr.ExprInt(expr.name.offset, expr.size)
             else:
                 ret = state.get(expr, expr)
-        elif isinstance(expr, m2_expr.ExprMem):
+        elif expr.is_mem():
             ptr = self.apply_expr_on_state_visit_cache(expr.arg, state, cache, level+1)
             ret = m2_expr.ExprMem(ptr, expr.size)
             ret = self.get_mem_state(ret)
             assert expr.size == ret.size
-        elif isinstance(expr, m2_expr.ExprCond):
+        elif expr.is_cond():
             cond = self.apply_expr_on_state_visit_cache(expr.cond, state, cache, level+1)
             src1 = self.apply_expr_on_state_visit_cache(expr.src1, state, cache, level+1)
             src2 = self.apply_expr_on_state_visit_cache(expr.src2, state, cache, level+1)
             ret = m2_expr.ExprCond(cond, src1, src2)
-        elif isinstance(expr, m2_expr.ExprSlice):
+        elif expr.is_slice():
             arg = self.apply_expr_on_state_visit_cache(expr.arg, state, cache, level+1)
             ret = m2_expr.ExprSlice(arg, expr.start, expr.stop)
-        elif isinstance(expr, m2_expr.ExprOp):
+        elif expr.is_op():
             args = []
             for oarg in expr.args:
                 arg = self.apply_expr_on_state_visit_cache(oarg, state, cache, level+1)
                 assert oarg.size == arg.size
                 args.append(arg)
             ret = m2_expr.ExprOp(expr.op, *args)
-        elif isinstance(expr, m2_expr.ExprCompose):
+        elif expr.is_compose():
             args = []
             for arg in expr.args:
                 args.append(self.apply_expr_on_state_visit_cache(arg, state, cache, level+1))
@@ -390,7 +462,7 @@ class SymbolicExecutionEngine(object):
             elif isinstance(dst, m2_expr.ExprId):
                 pool_out[dst] = src
             else:
-                raise ValueError("affected zarb", str(dst))
+                raise ValueError("Unknown destination type", str(dst))
 
         return pool_out.iteritems()
 
@@ -442,6 +514,7 @@ class SymbolicExecutionEngine(object):
         """
         for assignblk in irb.irs:
             if step:
+                print 'Instr', assignblk.instr
                 print 'Assignblk:'
                 print assignblk
                 print '_' * 80

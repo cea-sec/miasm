@@ -105,6 +105,8 @@ class EmulatedSymbExec(SymbolicExecutionEngine):
         """Handle 'segm' operation"""
         if not expr.is_op_segm():
             return expr
+        if not expr.args[0].is_int():
+            return expr
         segm_nb = int(expr.args[0])
         segmaddr = self.cpu.get_segm_base(segm_nb)
         return e_s(m2_expr.ExprInt(segmaddr, expr.size) + expr.args[1])
@@ -114,7 +116,9 @@ class EmulatedSymbExec(SymbolicExecutionEngine):
         if expr.op != "cpuid":
             return expr
 
-        a, reg_num = (int(x) for x in expr.args)
+        if any(not arg.is_int() for arg in expr.args):
+            return expr
+        a, reg_num = (int(arg) for arg in expr.args)
 
         # Not found error is keeped on purpose
         return m2_expr.ExprInt(self.cpuid[a][reg_num], expr.size)
