@@ -31,7 +31,7 @@ def xxx_fopen(jitter):
     global my_FILE_ptr
     ret_addr, args = jitter.func_args_systemv(['path', 'mode'])
     fname = jitter.get_str_ansi(args.path)
-    FILE_to_info[my_FILE_ptr] = FInfo(fname, open(fname))
+    FILE_to_info[my_FILE_ptr] = FInfo(fname, open(fname, "rb"))
     my_FILE_ptr += 1
     return jitter.func_ret_stdcall(ret_addr, my_FILE_ptr - 1)
 

@@ -234,7 +234,7 @@ def vm_load_pe_lib(vm, fname_in, libs, lib_path_base, **kargs):
     log.info('Loading module %r', fname_in)
 
     fname = os.path.join(lib_path_base, fname_in)
-    with open(fname) as fstream:
+    with open(fname, "rb") as fstream:
         pe = vm_load_pe(vm, fstream.read(), name=fname_in, **kargs)
     libs.add_export_lib(pe, fname_in)
     return pe
@@ -335,7 +335,7 @@ def vm2pe(myjit, fname, libs=None, e_orig=None,
             mye.DirRes.set_rva(s_res.addr)
             log.debug('%r', mye.DirRes)
     # generation
-    open(fname, 'w').write(str(mye))
+    open(fname, 'wb').write(str(mye))
     return mye
 
 
@@ -501,7 +501,7 @@ def vm_load_pe_and_dependencies(vm, fname, name2module, runtime_lib,
             pe_obj = name2module[name]
         else:
             try:
-                with open(fname) as fstream:
+                with open(fname, "rb") as fstream:
                     log.info('Loading module name %r', fname)
                     pe_obj = vm_load_pe(
                         vm, fstream.read(), name=fname, **kwargs)

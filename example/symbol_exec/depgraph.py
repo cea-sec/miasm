@@ -31,7 +31,7 @@ parser.add_argument("--json",
 args = parser.parse_args()
 
 # Get architecture
-with open(args.filename) as fstream:
+with open(args.filename, "rb") as fstream:
     cont = Container.from_stream(fstream)
 
 arch = args.architecture if args.architecture else cont.arch

@@ -199,7 +199,7 @@ class OS_Win(OS):
         fname_basename = os.path.basename(self.fname).lower()
 
         # Load main pe
-        with open(self.fname) as fstream:
+        with open(self.fname, "rb") as fstream:
             self.pe = vm_load_pe(self.jitter.vm, fstream.read(),
                                  load_hdr=self.options.load_hdr,
                                  name=self.fname,
@@ -275,7 +275,7 @@ class OS_Linux(OS):
         # Import manager
         self.libs = libimp_elf()
 
-        with open(self.fname) as fstream:
+        with open(self.fname, "rb") as fstream:
             self.elf = vm_load_elf(self.jitter.vm, fstream.read(),
                                    name=self.fname, **kwargs)
         preload_elf(self.jitter.vm, self.elf, self.libs)
@@ -321,7 +321,7 @@ class OS_Linux_str(OS):
         libs = libimp_elf()
         self.libs = libs
 
-        data = open(self.fname).read()
+        data = open(self.fname, "rb").read()
         self.options.load_base_addr = int(self.options.load_base_addr, 0)
         self.jitter.vm.add_memory_page(
             self.options.load_base_addr, PAGE_READ | PAGE_WRITE, data,

@@ -61,10 +61,10 @@ if args.verbose:
 log.info('Load binary')
 if args.rawbinary:
     shift = args.shiftoffset if args.shiftoffset is not None else 0
-    cont = Container.fallback_container(open(args.filename).read(),
+    cont = Container.fallback_container(open(args.filename, "rb").read(),
                                         None, addr=shift)
 else:
-    with open(args.filename) as fdesc:
+    with open(args.filename, "rb") as fdesc:
         cont = Container.from_stream(fdesc, addr=args.shiftoffset)
 
 default_addr = cont.entry_point
