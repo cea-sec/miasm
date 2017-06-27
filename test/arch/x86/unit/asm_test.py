@@ -90,3 +90,13 @@ class Asm_Test_16(Asm_Test):
         self.myjit.vm.add_memory_page(self.run_addr, PAGE_READ | PAGE_WRITE, self.assembly)
         self.myjit.push_uint16_t(self.ret_addr)
         self.myjit.add_breakpoint(self.ret_addr, lambda x:False)
+
+class Asm_Test_64(Asm_Test):
+    arch_name = "x86_64"
+    arch_attrib = 64
+    ret_addr = 0x1337beef
+
+    def init_machine(self):
+        self.myjit.vm.add_memory_page(self.run_addr, PAGE_READ | PAGE_WRITE, self.assembly)
+        self.myjit.push_uint64_t(self.ret_addr)
+        self.myjit.add_breakpoint(self.ret_addr, lambda x:False)
