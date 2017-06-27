@@ -135,13 +135,17 @@ class LLVMContext_JIT(LLVMContext):
         self.library_filenames = library_filenames
         self.ir_arch = ir_arch
         self.arch_specific()
+        self.load_libraries()
         LLVMContext.__init__(self, name)
         self.vmcpu = {}
 
-    def new_module(self, name="mod"):
-        LLVMContext.new_module(self, name)
+    def load_libraries(self):
+        # Load additional libraries
         for lib_fname in self.library_filenames:
             self.add_shared_library(lib_fname)
+
+    def new_module(self, name="mod"):
+        LLVMContext.new_module(self, name)
         self.add_memlookups()
         self.add_get_exceptionflag()
         self.add_op()
