@@ -135,13 +135,31 @@ class LLVMContext_JIT(LLVMContext):
         self.library_filenames = library_filenames
         self.ir_arch = ir_arch
         self.arch_specific()
+        self.load_libraries()
         LLVMContext.__init__(self, name)
         self.vmcpu = {}
 
-    def new_module(self, name="mod"):
-        LLVMContext.new_module(self, name)
+    def load_libraries(self):
+        # Get LLVM specific functions
+        name = "libLLVM-%d.%d" % (llvm.llvm_version_info[0],
+                                  llvm.llvm_version_info[1],
+        )
+        try:
+            # On Windows, no need to add ".dll"
+            self.add_shared_library(name)
+        except RuntimeError:
+            try:
+                # On Linux, ".so" is needed
+                self.add_shared_library("%s.so" % name)
+            except RuntimeError:
+                pass
+
+        # Load additional libraries
         for lib_fname in self.library_filenames:
             self.add_shared_library(lib_fname)
+
+    def new_module(self, name="mod"):
+        LLVMContext.new_module(self, name)
         self.add_memlookups()
         self.add_get_exceptionflag()
         self.add_op()
