@@ -407,8 +407,8 @@ composed_sr = ExprCompose(cf, zf, nf, gie, cpuoff, osc, scg0, scg1, of, res)
 
 def ComposeExprAff(dst, src):
     e = []
-    for x, start, stop in dst.args:
-        e.append(ExprAff(x, src[start:stop]))
+    for start, arg in dst.iter_args():
+        e.append(ExprAff(arg, src[start:start+arg.size]))
     return e
 
 
