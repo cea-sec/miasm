@@ -9,12 +9,11 @@ from miasm2.core.ctypesmngr import CTypeId
 class SymbolicStateCTypes(StateEngine):
     """Store C types of symbols"""
 
-    def __init__(self, dct, infos_types):
-        self._symbols = frozenset(dct.items())
-        self._infos_types = frozenset(infos_types.items())
+    def __init__(self, symbols):
+        self._symbols = frozenset(symbols.items())
 
     def __hash__(self):
-        return hash((self.__class__, self._symbols, self._infos_types))
+        return hash((self.__class__, self._symbols))
 
     def __str__(self):
         out = []
@@ -27,8 +26,7 @@ class SymbolicStateCTypes(StateEngine):
             return True
         if self.__class__ != other.__class__:
             return False
-        return (self.symbols == other.symbols and
-                self.infos_types == other.infos_types)
+        return self.symbols == other.symbols
 
     def __iter__(self):
         for dst, src in self._symbols:
@@ -39,27 +37,15 @@ class SymbolicStateCTypes(StateEngine):
         Only expressions with equal C types in both states are kept.
         @other: second symbolic state
         """
-        symb_a = self.symbols
-        symb_b = other.symbols
-        types_a = set(self.infos_types.items())
-        types_b = set(other.infos_types.items())
-        intersection = set(symb_a.keys()).intersection(symb_b.keys())
-        symbols = {}
-        infos_types = dict(types_a.intersection(types_b))
-        for dst in intersection:
-            if symb_a[dst] == symb_b[dst]:
-                symbols[dst] = symb_a[dst]
-        return self.__class__(symbols, infos_types)
+        symb_a = self.symbols.items()
+        symb_b = other.symbols.items()
+        symbols = dict(set(symb_a).intersection(symb_b))
+        return self.__class__(symbols)
 
     @property
     def symbols(self):
         """Return the dictionnary of known symbols'types"""
         return dict(self._symbols)
-
-    @property
-    def infos_types(self):
-        """Return known types of the state"""
-        return dict(self._infos_types)
 
 
 class SymbExecCType(SymbolicExecutionEngine):
@@ -71,13 +57,12 @@ class SymbExecCType(SymbolicExecutionEngine):
     OBJC_INTERNAL = "___OBJC___"
 
     def __init__(self, ir_arch,
-                 symbols, infos_types,
+                 symbols,
                  chandler,
                  func_read=None,
                  func_write=None,
                  sb_expr_simp=expr_simp):
         self.chandler = chandler
-        self.infos_types = dict(infos_types)
         super(SymbExecCType, self).__init__(ir_arch,
                                             {},
                                             func_read,
@@ -212,7 +197,7 @@ class SymbExecCType(SymbolicExecutionEngine):
 
     def get_state(self):
         """Return the current state of the SymbolicEngine"""
-        return self.StateEngine(self.symbols, self.infos_types)
+        return self.StateEngine(self.symbols)
 
     def eval_ir_expr(self, assignblk):
         """
