@@ -1,7 +1,9 @@
 import os
 import tempfile
 
-from idaapi import GraphViewer
+import idaapi
+import idc
+import idautils
 
 from miasm2.core.bin_stream_ida import bin_stream_ida
 from miasm2.core.asmblock import expr_is_label, AsmLabel, is_int
@@ -34,7 +36,7 @@ def label_str(self):
 AsmLabel.__init__ = label_init
 AsmLabel.__str__ = label_str
 
-def color_irblock(irblock):
+def color_irblock(irblock, ir_arch):
     out = []
     lbl = idaapi.COLSTR(str(irblock.label), idaapi.SCOLOR_INSN)
     out.append(lbl)
@@ -52,27 +54,25 @@ def color_irblock(irblock):
     return "\n".join(out)
 
 
-class GraphMiasmIR(GraphViewer):
+class GraphMiasmIR(idaapi.GraphViewer):
 
     def __init__(self, ir_arch, title, result):
-        GraphViewer.__init__(self, title)
-        print 'init'
+        idaapi.GraphViewer.__init__(self, title)
         self.ir_arch = ir_arch
         self.result = result
         self.names = {}
 
     def OnRefresh(self):
-        print 'refresh'
         self.Clear()
         addr_id = {}
         for irblock in self.ir_arch.blocks.values():
-            id_irblock = self.AddNode(color_irblock(irblock))
+            id_irblock = self.AddNode(color_irblock(irblock, self.ir_arch))
             addr_id[irblock] = id_irblock
 
         for irblock in self.ir_arch.blocks.values():
             if not irblock:
                 continue
-            all_dst = ir_arch.dst_trackback(irblock)
+            all_dst = self.ir_arch.dst_trackback(irblock)
             for dst in all_dst:
                 if not expr_is_label(dst):
                     continue
@@ -102,7 +102,7 @@ class GraphMiasmIR(GraphViewer):
         print "command:", cmd_id
 
     def Show(self):
-        if not GraphViewer.Show(self):
+        if not idaapi.GraphViewer.Show(self):
             return False
         self.cmd_test = self.AddCommand("Test", "F2")
         if self.cmd_test == 0:
@@ -110,64 +110,85 @@ class GraphMiasmIR(GraphViewer):
         return True
 
 
-machine = guess_machine()
-mn, dis_engine, ira = machine.mn, machine.dis_engine, machine.ira
+def build_graph(verbose=False, simplify=False):
+    machine = guess_machine()
+    mn, dis_engine, ira = machine.mn, machine.dis_engine, machine.ira
 
-print "Arch", dis_engine
+    if verbose:
+        print "Arch", dis_engine
 
-fname = GetInputFile()
-print fname
+    fname = idc.GetInputFile()
+    if verbose:
+        print fname
 
-bs = bin_stream_ida()
-mdis = dis_engine(bs)
-ir_arch = ira(mdis.symbol_pool)
+    bs = bin_stream_ida()
+    mdis = dis_engine(bs)
+    ir_arch = ira(mdis.symbol_pool)
 
-# populate symbols with ida names
-for addr, name in Names():
-    # print hex(ad), repr(name)
-    if name is None:
-        continue
-    mdis.symbol_pool.add_label(name, addr)
+    # populate symbols with ida names
+    for addr, name in idautils.Names():
+        # print hex(ad), repr(name)
+        if name is None:
+            continue
+        mdis.symbol_pool.add_label(name, addr)
 
-print "start disasm"
-addr = ScreenEA()
-print hex(addr)
+    if verbose:
+        print "start disasm"
+    addr = idc.ScreenEA()
+    if verbose:
+        print hex(addr)
 
-blocks = mdis.dis_multibloc(addr)
+    blocks = mdis.dis_multibloc(addr)
 
-print "generating graph"
-open('asm_flow.dot', 'w').write(blocks.dot())
+    if verbose:
+        print "generating graph"
+        open('asm_flow.dot', 'w').write(blocks.dot())
 
-print "generating IR... %x" % addr
+        print "generating IR... %x" % addr
 
-for block in blocks:
-    print 'ADD'
-    print block
-    ir_arch.add_bloc(block)
+    for block in blocks:
+        if verbose:
+            print 'ADD'
+            print block
+        ir_arch.add_bloc(block)
 
+    if verbose:
+        print "IR ok... %x" % addr
 
-print "IR ok... %x" % addr
+    for irb in ir_arch.blocks.itervalues():
+        irs = []
+        for assignblk in irb.irs:
+            new_assignblk = {
+                expr_simp(dst): expr_simp(src)
+                for dst, src in assignblk.iteritems()
+            }
+            irs.append(AssignBlock(new_assignblk, instr=assignblk.instr))
+        ir_arch.blocks[irb.label] = IRBlock(irb.label, irs)
 
-for irb in ir_arch.blocks.itervalues():
-    irs = []
-    for assignblk in irb.irs:
-        new_assignblk = {
-            expr_simp(dst): expr_simp(src)
-            for dst, src in assignblk.iteritems()
-        }
-        irs.append(AssignBlock(new_assignblk, instr=assignblk.instr))
-    ir_arch.blocks[irb.label] = IRBlock(irb.label, irs)
+    if verbose:
+        out = ir_arch.graph.dot()
+        open(os.path.join(tempfile.gettempdir(), 'graph.dot'), 'wb').write(out)
+    title = "Miasm IR graph"
 
-out = ir_arch.graph.dot()
-open(os.path.join(tempfile.gettempdir(), 'graph.dot'), 'wb').write(out)
+    if simplify:
+        dead_simp(ir_arch)
 
+        ir_arch.simplify(expr_simp)
+        modified = True
+        while modified:
+            modified = False
+            modified |= dead_simp(ir_arch)
+            modified |= ir_arch.remove_empty_assignblks()
+            modified |= ir_arch.remove_jmp_blocks()
+            modified |= ir_arch.merge_blocks()
+        title += " (simplified)"
 
-# dead_simp(ir_arch)
+    g = GraphMiasmIR(ir_arch, title, None)
 
-g = GraphMiasmIR(ir_arch, "Miasm IR graph", None)
+    g.cmd_a = g.AddCommand("cmd a", "x")
+    g.cmd_b = g.AddCommand("cmd b", "y")
 
-g.cmd_a = g.AddCommand("cmd a", "x")
-g.cmd_b = g.AddCommand("cmd b", "y")
+    g.Show()
 
-g.Show()
-
+if __name__ == "__main__":
+    build_graph(verbose=True, simplify=False)

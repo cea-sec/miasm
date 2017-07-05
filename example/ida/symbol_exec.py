@@ -84,7 +84,7 @@ def symbolic_exec():
     machine = guess_machine()
 
     mdis = machine.dis_engine(bs)
-    start, end = SelStart(), SelEnd()
+    start, end = idc.SelStart(), idc.SelEnd()
 
     mdis.dont_dis = [end]
     blocks = mdis.dis_multibloc(start)
@@ -115,10 +115,11 @@ def symbolic_exec():
 
     view.Show()
 
-idaapi.CompileLine('static key_F3() { RunPythonStatement("symbolic_exec()"); }')
-idc.AddHotkey("F3", "key_F3")
+if __name__ == "__main__":
+    idaapi.CompileLine('static key_F3() { RunPythonStatement("symbolic_exec()"); }')
+    idc.AddHotkey("F3", "key_F3")
 
-print "=" * 50
-print """Available commands:
-    symbolic_exec() - F3: Symbolic execution of current selection
-"""
+    print "=" * 50
+    print """Available commands:
+        symbolic_exec() - F3: Symbolic execution of current selection
+    """

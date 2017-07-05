@@ -1,27 +1,26 @@
 import os
 import tempfile
 
+import ida_kernwin
+import idc
+import ida_funcs
+
 from miasm2.core.bin_stream_ida import bin_stream_ida
 from miasm2.expression import expression as m2_expr
-
 from miasm2.expression.simplifications import expr_simp
 from miasm2.analysis.depgraph import DependencyGraph
 from miasm2.ir.ir import IRBlock, AssignBlock
-
-from utils import guess_machine
-
 from miasm2.arch.x86.ctype import CTypeAMD64_unk
 from miasm2.expression.expression import ExprId
-
 from miasm2.core.objc import CTypesManagerNotPacked, CTypeAnalyzer, ExprToAccessC, CHandler
 from miasm2.core.ctypesmngr import CAstTypes
 from miasm2.expression.expression import ExprMem, ExprId, ExprInt, ExprOp, ExprAff
 from miasm2.ir.symbexec_types import SymbExecCType
-
 from miasm2.expression.parser import str_to_expr
 
+from utils import guess_machine
 
-class TypePropagationForm(Form):
+class TypePropagationForm(ida_kernwin.Form):
 
     def __init__(self, ira):
 
@@ -31,7 +30,7 @@ class TypePropagationForm(Form):
         default_types_info = r"""ExprId("RDX", 64): char *"""
         archs = ["AMD64_unk", "X86_32_unk"]
 
-        Form.__init__(self,
+        ida_kernwin.Form.__init__(self,
                       r"""BUTTON YES* Launch
 BUTTON CANCEL NONE
 Dependency Graph Settings
@@ -40,14 +39,14 @@ Dependency Graph Settings
 <Types informations:{strTypesInfo}>
 <Unalias stack:{rUnaliasStack}>{cMethod}>
 """, {
-                          'headerFile': Form.FileInput(swidth=20, open=True),
-                          'cbReg': Form.DropdownListControl(
+                          'headerFile': ida_kernwin.Form.FileInput(swidth=20, open=True),
+                          'cbReg': ida_kernwin.Form.DropdownListControl(
                               items=archs,
                               readonly=False,
                               selval=archs[0]),
-                          'strTypesInfo': Form.MultiLineTextControl(text=default_types_info,
-                                                                    flags=Form.MultiLineTextControl.TXTF_FIXEDFONT),
-                          'cMethod': Form.ChkGroupControl(("rUnaliasStack",)),
+                          'strTypesInfo': ida_kernwin.Form.MultiLineTextControl(text=default_types_info,
+                                                                    flags=ida_kernwin.Form.MultiLineTextControl.TXTF_FIXEDFONT),
+                          'cMethod': ida_kernwin.Form.ChkGroupControl(("rUnaliasStack",)),
                       })
         self.Compile()
 
@@ -164,7 +163,7 @@ def analyse_function():
     ir_arch = ira(mdis.symbol_pool)
 
     # Get the current function
-    func = idaapi.get_func(ScreenEA())
+    func = ida_funcs.get_func(idc.ScreenEA())
     addr = func.startEA
     blocks = mdis.dis_multibloc(addr)
     # Generate IR
