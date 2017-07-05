@@ -96,11 +96,10 @@ class MyCHandler(CHandler):
 
 class TypePropagationEngine(SymbExecCType):
 
-    def __init__(self, ir_arch, state):
-        mychandler = MyCHandler(types_mngr, state.infos_types)
+    def __init__(self, ir_arch, types_mngr, state):
+        mychandler = MyCHandler(types_mngr, state.symbols)
         super(TypePropagationEngine, self).__init__(ir_arch,
                                                     state.symbols,
-                                                    state.infos_types,
                                                     mychandler)
 
 
@@ -137,11 +136,10 @@ class SymbExecCTypeFix(SymbExecCType):
 
 class CTypeEngineFixer(SymbExecCTypeFix):
 
-    def __init__(self, ir_arch, state):
-        mychandler = MyCHandler(types_mngr, state.infos_types)
+    def __init__(self, ir_arch, types_mngr, state):
+        mychandler = MyCHandler(types_mngr, state.symbols)
         super(CTypeEngineFixer, self).__init__(ir_arch,
                                                state.symbols,
-                                               state.infos_types,
                                                mychandler)
 
 
@@ -211,7 +209,7 @@ def analyse_function():
     ir_arch.blocks[lbl_head] = irb_head
     ir_arch.graph.add_uniq_edge(lbl_head, lbl_real_start)
 
-    state = TypePropagationEngine.StateEngine(infos_types, infos_types)
+    state = TypePropagationEngine.StateEngine(infos_types)
     states = {lbl_head: state}
     todo = set([lbl_head])
     done = set()
@@ -222,7 +220,7 @@ def analyse_function():
         if (lbl, state) in done:
             continue
         done.add((lbl, state))
-        symbexec_engine = TypePropagationEngine(ir_arch, state)
+        symbexec_engine = TypePropagationEngine(ir_arch, types_mngr, state)
 
         get_block(ir_arch, mdis, lbl)
 
@@ -238,7 +236,7 @@ def analyse_function():
                       symbexec_engine.get_state())
 
     for lbl, state in states.iteritems():
-        symbexec_engine = CTypeEngineFixer(ir_arch, state)
+        symbexec_engine = CTypeEngineFixer(ir_arch, types_mngr, state)
         addr = symbexec_engine.emul_ir_block(lbl)
         symbexec_engine.del_mem_above_stack(ir_arch.sp)
 
