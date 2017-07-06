@@ -33,6 +33,7 @@ import itertools
 from miasm2.expression.modint import mod_size2uint, is_modint, size2mask, \
     define_uint
 from miasm2.core.graph import DiGraph
+import string
 
 # Define tokens
 TOK_INF = "<"
@@ -68,6 +69,15 @@ def visit_chk(visitor):
         return expr_new2
     return wrapped
 
+
+DISPLAYED_CHARS = set(string.ascii_letters + string.digits + '_')
+
+
+def is_call_style_operator(name):
+    if set(name).difference(DISPLAYED_CHARS):
+        return False
+    else:
+        return True
 
 # Expression display
 
@@ -156,6 +166,9 @@ class Expr(object):
 
     def __str__(self):
         raise NotImplementedError("Abstract Method")
+
+    def _str_sub_expr(self, parent=None):
+        return str(self)
 
     def __getitem__(self, i):
         if not isinstance(i, slice):
@@ -598,7 +611,7 @@ class ExprAff(Expr):
         return expr
 
     def __str__(self):
-        return "%s = %s" % (str(self.__dst), str(self.__src))
+        return "%s = %s" % (self.__dst, self.__src)
 
     def get_r(self, mem_read=False, cst_read=False):
         elements = self.__src.get_r(mem_read, cst_read)
@@ -690,7 +703,14 @@ class ExprCond(Expr):
         return Expr.get_object(cls, (cond, src1, src2))
 
     def __str__(self):
-        return "(%s?(%s,%s))" % (str(self.__cond), str(self.__src1), str(self.__src2))
+        return "%s?(%s:%s)" % (self.__cond._str_sub_expr(self),
+                               self.__src1,
+                               self.__src2)
+
+    def _str_sub_expr(self, parent=None):
+        if parent is None:
+            return str(self)
+        return "(%s)" % self
 
     def get_r(self, mem_read=False, cst_read=False):
         out_src1 = self.src1.get_r(mem_read, cst_read)
@@ -784,7 +804,7 @@ class ExprMem(Expr):
         return Expr.get_object(cls, (arg, size))
 
     def __str__(self):
-        return "@%d[%s]" % (self.size, str(self.arg))
+        return "@%d[%s]" % (self.size, self.arg)
 
     def get_r(self, mem_read=False, cst_read=False):
         if mem_read:
@@ -927,20 +947,19 @@ class ExprOp(Expr):
         return Expr.get_object(cls, (op, args))
 
     def __str__(self):
-        if self.is_associative():
-            return '(' + self.__op.join([str(arg) for arg in self.__args]) + ')'
-        if (self.__op.startswith('call_func_') or
-            self.__op == 'cpuid' or
-            len(self.__args) > 2 or
-                self.__op in ['parity', 'segm']):
-            return self.__op + '(' + ', '.join([str(arg) for arg in self.__args]) + ')'
-        if len(self.__args) == 2:
-            return ('(' + str(self.__args[0]) +
-                    ' ' + self.op + ' ' + str(self.__args[1]) + ')')
+        if is_call_style_operator(self.__op):
+            return self.__op + '(' + ', '.join(str(arg) for arg in self.__args) + ')'
+        elif len(self.__args) == 1:
+            return self.__op + self.__args[0]._str_sub_expr(self)
         else:
-            return reduce(lambda x, y: x + ' ' + str(y),
-                          self.__args,
-                          '(' + str(self.__op)) + ')'
+            return self.__op.join(arg._str_sub_expr(self) for arg in self.__args)
+
+    def _str_sub_expr(self, parent=None):
+        if parent is None:
+            return str(self)
+        if is_call_style_operator(self.__op):
+            return str(self)
+        return "(%s)" % self
 
     def get_r(self, mem_read=False, cst_read=False):
         return reduce(lambda elements, arg:
@@ -1037,7 +1056,10 @@ class ExprSlice(Expr):
         return Expr.get_object(cls, (arg, start, stop))
 
     def __str__(self):
-        return "%s[%d:%d]" % (str(self.__arg), self.__start, self.__stop)
+        return "%s[%d:%d]" % (self.__arg._str_sub_expr(self), self.__start, self.__stop)
+
+    def _str_sub_expr(self, parent=None):
+        return str(self)
 
     def get_r(self, mem_read=False, cst_read=False):
         return self.__arg.get_r(mem_read, cst_read)
@@ -1136,7 +1158,8 @@ class ExprCompose(Expr):
         return Expr.get_object(cls, args)
 
     def __str__(self):
-        return '{' + ', '.join(["%s %s %s" % (arg, idx, idx + arg.size) for idx, arg in self.iter_args()]) + '}'
+        return '{' + ', '.join("%s %s %s" % (arg, idx, idx + arg.size) for
+                               idx, arg in self.iter_args()) + '}'
 
     def get_r(self, mem_read=False, cst_read=False):
         return reduce(lambda elements, arg:
