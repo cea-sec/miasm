@@ -221,7 +221,7 @@ class symb_exec_func:
         variables = dict(state.symbols.items())
 
         # get bloc dead, and remove from state
-        b = self.ir_arch.get_bloc(ad)
+        b = self.ir_arch.get_block(ad)
         if b is None:
             raise ValueError("unknown bloc! %s" % ad)
         """

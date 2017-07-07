@@ -530,7 +530,7 @@ class SymbolicExecutionEngine(object):
         return self.emul_ir_block(addr, step)
 
     def emul_ir_block(self, addr, step=False):
-        irblock = self.ir_arch.get_bloc(addr)
+        irblock = self.ir_arch.get_block(addr)
         if irblock is not None:
             addr = self.emulbloc(irblock, step=step)
         return addr
@@ -541,7 +541,7 @@ class SymbolicExecutionEngine(object):
 
     def emul_ir_blocks(self, addr, lbl_stop=None, step=False):
         while True:
-            irblock = self.ir_arch.get_bloc(addr)
+            irblock = self.ir_arch.get_block(addr)
             if irblock is None:
                 break
             if irblock.label == lbl_stop:

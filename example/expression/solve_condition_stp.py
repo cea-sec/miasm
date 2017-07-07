@@ -39,7 +39,7 @@ def get_block(ir_arch, mdis, ad):
         ad = l.offset
         b = mdis.dis_bloc(ad)
         ir_arch.add_bloc(b)
-    b = ir_arch.get_bloc(l)
+    b = ir_arch.get_block(l)
     if b is None:
         raise LookupError('no block found at that address: %s' % l)
     return b

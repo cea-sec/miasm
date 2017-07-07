@@ -477,12 +477,20 @@ class IntermediateRepresentation(object):
             addr = self.symbol_pool.getby_name_create(addr.name)
         return addr
 
-    def get_bloc(self, addr):
+    def get_block(self, addr):
         """Returns the irbloc associated to an ExprId/ExprInt/label/int
         @addr: an ExprId/ExprInt/label/int"""
 
         label = self.get_label(addr)
         return self.blocks.get(label, None)
+
+    def get_bloc(self, addr):
+        """
+        DEPRECATED function
+        Use get_block instead of get_block
+        """
+        warnings.warn('DEPRECATION WARNING: use "get_block" instead of "get_bloc"')
+        return self.get_block(addr)
 
     def add_instr(self, line, addr=0, gen_pc_updt=False):
         block = AsmBlock(self.gen_label())

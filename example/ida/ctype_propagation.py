@@ -62,7 +62,7 @@ def get_block(ir_arch, mdis, addr):
     if not lbl in ir_arch.blocks:
         block = mdis.dis_bloc(lbl.offset)
         ir_arch.add_bloc(block)
-    irblock = ir_arch.get_bloc(lbl)
+    irblock = ir_arch.get_block(lbl)
     if irblock is None:
         raise LookupError('No block found at that address: %s' % lbl)
     return irblock
