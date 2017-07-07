@@ -109,12 +109,15 @@ class LLVMContext():
         "Load the shared library 'filename'"
         return llvm.load_library_permanently(filename)
 
-    def add_fc(self, fc):
+    def add_fc(self, fc, readonly=False):
         "Add function into known_fc"
 
         for name, detail in fc.iteritems():
             fnty = llvm_ir.FunctionType(detail["ret"], detail["args"])
-            llvm_ir.Function(self.mod, fnty, name=name)
+            fn = llvm_ir.Function(self.mod, fnty, name=name)
+            if readonly:
+                fn.attributes.add("readonly")
+
 
     def memory_lookup(self, func, addr, size):
         """Perform a memory lookup at @addr of size @size (in bit)"""
@@ -210,7 +213,7 @@ class LLVMContext_JIT(LLVMContext):
         "Add 'get_exception_flag' function"
         p8 = llvm_ir.PointerType(LLVMType.IntType(8))
         self.add_fc({"get_exception_flag": {"ret": LLVMType.IntType(64),
-                                            "args": [p8]}})
+                                            "args": [p8]}}, readonly=True)
 
     def add_op(self):
         "Add operations functions"
@@ -218,55 +221,57 @@ class LLVMContext_JIT(LLVMContext):
         i8 = LLVMType.IntType(8)
         p8 = llvm_ir.PointerType(i8)
         itype = LLVMType.IntType(64)
-        self.add_fc({"llvm.ctpop.i8": {"ret": i8,
-                                       "args": [i8]}})
-        self.add_fc({"rot_left": {"ret": itype,
-                                  "args": [itype,
-                                           itype,
-                                           itype]}})
-        self.add_fc({"rot_right": {"ret": itype,
-                                   "args": [itype,
-                                            itype,
-                                            itype]}})
-        self.add_fc({"rcr_rez_op": {"ret": itype,
-                                    "args": [itype,
-                                             itype,
-                                             itype,
-                                             itype]}})
-        self.add_fc({"rcl_rez_op": {"ret": itype,
-                                    "args": [itype,
-                                             itype,
-                                             itype,
-                                             itype]}})
-        self.add_fc({"x86_bsr": {"ret": itype,
-                                 "args": [itype,
-                                          itype]}})
-        self.add_fc({"x86_bsf": {"ret": itype,
-                                 "args": [itype,
-                                          itype]}})
-        self.add_fc({"segm2addr": {"ret": itype,
-                                   "args": [p8,
-                                            itype,
-                                            itype]}})
-        self.add_fc({"cpuid": {"ret": itype,
-                               "args": [itype,
-                                        itype]}})
+        fc = {"llvm.ctpop.i8": {"ret": i8,
+                                "args": [i8]},
+              "rot_left": {"ret": itype,
+                           "args": [itype,
+                                    itype,
+                                    itype]},
+              "rot_right": {"ret": itype,
+                            "args": [itype,
+                                     itype,
+                                     itype]},
+              "rcr_rez_op": {"ret": itype,
+                             "args": [itype,
+                                      itype,
+                                      itype,
+                                      itype]},
+              "rcl_rez_op": {"ret": itype,
+                             "args": [itype,
+                                      itype,
+                                      itype,
+                                      itype]},
+              "x86_bsr": {"ret": itype,
+                          "args": [itype,
+                                   itype]},
+              "x86_bsf": {"ret": itype,
+                          "args": [itype,
+                                   itype]},
+              "segm2addr": {"ret": itype,
+                            "args": [p8,
+                                     itype,
+                                     itype]},
+              "cpuid": {"ret": itype,
+                        "args": [itype,
+                                 itype]},
+        }
 
         for k in [8, 16]:
-            self.add_fc({"bcdadd_%s" % k: {"ret": LLVMType.IntType(k),
-                                           "args": [LLVMType.IntType(k),
-                                                    LLVMType.IntType(k)]}})
-            self.add_fc({"bcdadd_cf_%s" % k: {"ret": LLVMType.IntType(k),
-                                              "args": [LLVMType.IntType(k),
-                                                       LLVMType.IntType(k)]}})
-
+            fc["bcdadd_%s" % k] = {"ret": LLVMType.IntType(k),
+                                   "args": [LLVMType.IntType(k),
+                                            LLVMType.IntType(k)]}
+            fc["bcdadd_cf_%s" % k] = {"ret": LLVMType.IntType(k),
+                                      "args": [LLVMType.IntType(k),
+                                               LLVMType.IntType(k)]}
+        self.add_fc(fc, readonly=True)
 
     def add_log_functions(self):
         "Add functions for state logging"
 
         p8 = llvm_ir.PointerType(LLVMType.IntType(8))
         self.add_fc({self.logging_func: {"ret": llvm_ir.VoidType(),
-                                         "args": [p8]}})
+                                         "args": [p8]}},
+                    readonly=True)
 
     def set_vmcpu(self, lookup_table):
         "Set the correspondance between register name and vmcpu offset"
