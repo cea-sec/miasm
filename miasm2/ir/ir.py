@@ -582,7 +582,7 @@ class IntermediateRepresentation(object):
         if label is not None:
             ir_blocks_all.append(IRBlock(label, assignments))
 
-        new_ir_blocks_all = self.post_add_bloc(block, ir_blocks_all)
+        new_ir_blocks_all = self.post_add_block(block, ir_blocks_all)
         for irblock in new_ir_blocks_all:
             self.blocks[irblock.label] = irblock
         return new_ir_blocks_all
@@ -626,7 +626,7 @@ class IntermediateRepresentation(object):
             assignblk = AssignBlock({self.IRDst: dst}, irblock.irs[-1].instr)
             ir_blocks[index] = IRBlock(irblock.label, list(irblock.irs) + [assignblk])
 
-    def post_add_bloc(self, block, ir_blocks):
+    def post_add_block(self, block, ir_blocks):
         self.set_empty_dst_to_next(block, ir_blocks)
 
         new_irblocks = []
@@ -637,6 +637,14 @@ class IntermediateRepresentation(object):
         # Forget graph if any
         self._graph = None
         return new_irblocks
+
+    def post_add_bloc(self, block, ir_blocks):
+        """
+        DEPRECATED function
+        Use post_add_block instead of post_add_bloc
+        """
+        warnings.warn('DEPRECATION WARNING: use "post_add_block" instead of "post_add_bloc"')
+        return self.post_add_block(block, ir_blocks)
 
     def get_instr_label(self, instr):
         """Returns the label associated to an instruction
