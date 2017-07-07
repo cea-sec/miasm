@@ -60,7 +60,7 @@ def get_block(ir_arch, mdis, addr):
     mdis.job_done.clear()
     lbl = ir_arch.get_label(addr)
     if not lbl in ir_arch.blocks:
-        block = mdis.dis_bloc(lbl.offset)
+        block = mdis.dis_block(lbl.offset)
         ir_arch.add_block(block)
     irblock = ir_arch.get_block(lbl)
     if irblock is None:
@@ -165,7 +165,7 @@ def analyse_function():
     # Get the current function
     func = ida_funcs.get_func(idc.ScreenEA())
     addr = func.startEA
-    blocks = mdis.dis_multibloc(addr)
+    blocks = mdis.dis_multiblock(addr)
     # Generate IR
     for block in blocks:
         ir_arch.add_block(block)

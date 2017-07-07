@@ -157,7 +157,7 @@ dis_engine, ira = machine.dis_engine, machine.ira
 
 mdis = dis_engine(cont.bin_stream, symbol_pool=cont.symbol_pool)
 addr_head = 0
-blocks = mdis.dis_multibloc(addr_head)
+blocks = mdis.dis_multiblock(addr_head)
 lbl_head = mdis.symbol_pool.getby_offset(addr_head)
 
 ir_arch_a = ira(mdis.symbol_pool)

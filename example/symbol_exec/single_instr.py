@@ -14,7 +14,7 @@ asm = machine.mn.asm(line)[0]
 # Get back block
 bin_stream = bin_stream_str(asm)
 mdis = machine.dis_engine(bin_stream)
-asm_block = mdis.dis_bloc(START_ADDR)
+asm_block = mdis.dis_block(START_ADDR)
 
 # Translate ASM -> IR
 ira = machine.ira(mdis.symbol_pool)

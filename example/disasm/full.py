@@ -121,7 +121,7 @@ while not finish and todo:
         if ad in done:
             continue
         done.add(ad)
-        allblocks = mdis.dis_multibloc(ad)
+        allblocks = mdis.dis_multiblock(ad)
 
         log.info('func ok %.16x (%d)' % (ad, len(all_funcs)))
 

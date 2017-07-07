@@ -138,7 +138,7 @@ def build_graph(verbose=False, simplify=False):
     if verbose:
         print hex(addr)
 
-    blocks = mdis.dis_multibloc(addr)
+    blocks = mdis.dis_multiblock(addr)
 
     if verbose:
         print "generating graph"

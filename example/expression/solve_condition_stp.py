@@ -37,7 +37,7 @@ def get_block(ir_arch, mdis, ad):
         l = mdis.symbol_pool.getby_offset_create(ad)
     if not l in ir_arch.blocks:
         ad = l.offset
-        b = mdis.dis_bloc(ad)
+        b = mdis.dis_block(ad)
         ir_arch.add_block(b)
     b = ir_arch.get_block(l)
     if b is None:

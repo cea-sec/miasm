@@ -301,7 +301,7 @@ class DSEEngine(object):
             self.ir_arch.blocks.clear()# = {}
 
             ## Update current state
-            asm_block = self.mdis.dis_bloc(cur_addr)
+            asm_block = self.mdis.dis_block(cur_addr)
             self.ir_arch.add_block(asm_block)
             self.addr_to_cacheblocks[cur_addr] = dict(self.ir_arch.blocks)
 

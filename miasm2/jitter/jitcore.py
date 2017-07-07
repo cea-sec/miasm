@@ -143,7 +143,7 @@ class JitCore(object):
 
         # Disassemble it
         try:
-            cur_block = self.mdis.dis_bloc(addr)
+            cur_block = self.mdis.dis_block(addr)
         except IOError:
             # vm_exception_flag is set
             label = self.ir_arch.symbol_pool.getby_offset_create(addr)

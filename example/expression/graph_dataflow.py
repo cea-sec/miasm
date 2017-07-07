@@ -151,7 +151,7 @@ ad = int(args.addr, 16)
 print 'disasm...'
 mdis = dis_x86_32(data)
 mdis.follow_call = True
-ab = mdis.dis_multibloc(ad)
+ab = mdis.dis_multiblock(ad)
 print 'ok'
 
 

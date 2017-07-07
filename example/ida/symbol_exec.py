@@ -87,7 +87,7 @@ def symbolic_exec():
     start, end = idc.SelStart(), idc.SelEnd()
 
     mdis.dont_dis = [end]
-    blocks = mdis.dis_multibloc(start)
+    blocks = mdis.dis_multiblock(start)
     ira = machine.ira()
     for block in blocks:
         ira.add_block(block)
