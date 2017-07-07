@@ -63,7 +63,7 @@ blocks = mdis.dis_multibloc(int(args.func_addr, 0))
 
 # Generate IR
 for block in blocks:
-    ir_arch.add_bloc(block)
+    ir_arch.add_block(block)
 
 # Get the instance
 dg = DependencyGraph(ir_arch, implicit=args.implicit,

@@ -495,7 +495,7 @@ class IntermediateRepresentation(object):
     def add_instr(self, line, addr=0, gen_pc_updt=False):
         block = AsmBlock(self.gen_label())
         block.lines = [line]
-        self.add_bloc(block, gen_pc_updt)
+        self.add_block(block, gen_pc_updt)
 
     def getby_offset(self, offset):
         out = set()
@@ -560,7 +560,7 @@ class IntermediateRepresentation(object):
             return True
         return False
 
-    def add_bloc(self, block, gen_pc_updt=False):
+    def add_block(self, block, gen_pc_updt=False):
         """
         Add a native block to the current IR
         @block: native assembly block
@@ -586,6 +586,14 @@ class IntermediateRepresentation(object):
         for irblock in new_ir_blocks_all:
             self.blocks[irblock.label] = irblock
         return new_ir_blocks_all
+
+    def add_bloc(self, block, gen_pc_updt=False):
+        """
+        DEPRECATED function
+        Use add_block instead of add_block
+        """
+        warnings.warn('DEPRECATION WARNING: use "add_block" instead of "add_bloc"')
+        return self.add_block(block, gen_pc_updt)
 
     def expr_fix_regs_for_mode(self, expr, *args, **kwargs):
         return expr

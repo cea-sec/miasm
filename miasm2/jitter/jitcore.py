@@ -122,7 +122,7 @@ class JitCore(object):
         @block: asm_bloc to add
         """
 
-        irblocks = self.ir_arch.add_bloc(block, gen_pc_updt = True)
+        irblocks = self.ir_arch.add_block(block, gen_pc_updt = True)
         block.blocks = irblocks
         self.jitirblocs(block.label, irblocks)
 

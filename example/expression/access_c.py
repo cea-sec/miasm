@@ -162,7 +162,7 @@ lbl_head = mdis.symbol_pool.getby_offset(addr_head)
 
 ir_arch_a = ira(mdis.symbol_pool)
 for block in blocks:
-    ir_arch_a.add_bloc(block)
+    ir_arch_a.add_block(block)
 
 open('graph_irflow.dot', 'w').write(ir_arch_a.graph.dot())
 

@@ -61,7 +61,7 @@ def get_block(ir_arch, mdis, addr):
     lbl = ir_arch.get_label(addr)
     if not lbl in ir_arch.blocks:
         block = mdis.dis_bloc(lbl.offset)
-        ir_arch.add_bloc(block)
+        ir_arch.add_block(block)
     irblock = ir_arch.get_block(lbl)
     if irblock is None:
         raise LookupError('No block found at that address: %s' % lbl)
@@ -168,7 +168,7 @@ def analyse_function():
     blocks = mdis.dis_multibloc(addr)
     # Generate IR
     for block in blocks:
-        ir_arch.add_bloc(block)
+        ir_arch.add_block(block)
 
     # Get settings
     settings = TypePropagationForm(ir_arch)

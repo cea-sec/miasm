@@ -302,7 +302,7 @@ class DSEEngine(object):
 
             ## Update current state
             asm_block = self.mdis.dis_bloc(cur_addr)
-            self.ir_arch.add_bloc(asm_block)
+            self.ir_arch.add_block(asm_block)
             self.addr_to_cacheblocks[cur_addr] = dict(self.ir_arch.blocks)
 
         # Emulate the current instruction

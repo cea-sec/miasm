@@ -218,7 +218,7 @@ def launch_depgraph():
 
     # Generate IR
     for block in blocks:
-        ir_arch.add_bloc(block)
+        ir_arch.add_block(block)
 
     # Get settings
     settings = depGraphSettingsForm(ir_arch)

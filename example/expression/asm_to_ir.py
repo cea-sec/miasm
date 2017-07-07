@@ -38,7 +38,7 @@ ir_arch = ir_a_x86_32(symbol_pool)
 for block in blocks:
     print 'add block'
     print block
-    ir_arch.add_bloc(block)
+    ir_arch.add_block(block)
 
 # Display IR
 for lbl, irblock in ir_arch.blocks.items():
