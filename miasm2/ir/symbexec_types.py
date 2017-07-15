@@ -85,7 +85,7 @@ class SymbExecCType(SymbolicExecutionEngine):
         """Return True if @objc is char/short/int/long"""
         return objc in self.offset_types
 
-    def get_tpye_int_by_size(self, size):
+    def get_type_int_by_size(self, size):
         """Return a char/short/int/long type with the size equal to @size
         @size: size in bit"""
 
@@ -103,7 +103,7 @@ class SymbExecCType(SymbolicExecutionEngine):
         for arg_type in types:
             if not self.is_type_offset(arg_type):
                 return None
-        objc = self.get_tpye_int_by_size(size)
+        objc = self.get_type_int_by_size(size)
         if objc:
             return objc
         # default size
@@ -124,7 +124,7 @@ class SymbExecCType(SymbolicExecutionEngine):
         elif expr in state:
             return state[expr]
         elif isinstance(expr, ExprInt):
-            objc = self.get_tpye_int_by_size(expr.size)
+            objc = self.get_type_int_by_size(expr.size)
             if objc is None:
                 objc = self.chandler.type_analyzer.types_mngr.get_objc(CTypeId('int'))
             return objc
@@ -152,7 +152,7 @@ class SymbExecCType(SymbolicExecutionEngine):
                 return objc
             return None
         elif isinstance(expr, ExprSlice):
-            objc = self.get_tpye_int_by_size(expr.size)
+            objc = self.get_type_int_by_size(expr.size)
             if objc is None:
                 # default size
                 objc = self.offset_types[0]
