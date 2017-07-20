@@ -74,7 +74,7 @@ assert len(first_block.bto) == 1
 assert list(first_block.bto)[0].c_t == AsmConstraint.c_next
 
 ## Simplify the obtained graph to keep only blocks which reach a block
-## finnishing with RET
+## finishing with RET
 
 def remove_useless_blocks(d_g, graph):
     """Remove leaves without a RET"""
