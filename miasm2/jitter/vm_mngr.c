@@ -103,6 +103,10 @@ void memory_access_list_add(struct memory_access_list * access, uint64_t start, 
 		else
 			access->allocated *= 2;
 		access->array = realloc(access->array, access->allocated * sizeof(struct memory_access));
+		if (access->array == NULL) {
+			fprintf(stderr, "cannot realloc struct memory_access access->array\n");
+			exit(EXIT_FAILURE);
+		}
 	}
 	access->array[access->num].start = start;
 	access->array[access->num].stop = stop;
@@ -1602,6 +1606,11 @@ void add_memory_page(vm_mngr_t* vm_mngr, struct memory_page_node* mpn_a)
 	vm_mngr->memory_pages_array = realloc(vm_mngr->memory_pages_array,
 					      sizeof(struct memory_page_node) *
 					      (vm_mngr->memory_pages_number+1));
+	if (vm_mngr->memory_pages_array == NULL) {
+		fprintf(stderr, "cannot realloc struct memory_page_node vm_mngr->memory_pages_array\n");
+		exit(EXIT_FAILURE);
+	}
+
 
 	memmove(&vm_mngr->memory_pages_array[i+1],
 		&vm_mngr->memory_pages_array[i],
@@ -1629,8 +1638,8 @@ char* dump(vm_mngr_t* vm_mngr)
 
 	buf_final = malloc(total_len);
 	if (buf_final == NULL) {
-		fprintf(stderr, "Error: cannot alloc\n");
-		exit(0);
+		fprintf(stderr, "Error: cannot alloc char* buf_final\n");
+		exit(EXIT_FAILURE);
 	}
 	strcpy(buf_final, intro);
 	for (i=0; i< vm_mngr->memory_pages_number; i++) {
@@ -1653,8 +1662,8 @@ char* dump(vm_mngr_t* vm_mngr)
 		total_len += length + 1 + 1;
 		buf_final = realloc(buf_final, total_len);
 		if (buf_final == NULL) {
-			fprintf(stderr, "Error: cannot alloc\n");
-			exit(0);
+			fprintf(stderr, "cannot realloc char* buf_final\n");
+			exit(EXIT_FAILURE);
 		}
 		strcat(buf_final, buf);
 	}
