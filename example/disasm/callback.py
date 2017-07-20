@@ -46,7 +46,7 @@ bin_stream = bin_stream_str(shellcode)
 mdis = dis_x86_32(bin_stream)
 
 print "Without callback:\n"
-blocks = mdis.dis_multibloc(0)
+blocks = mdis.dis_multiblock(0)
 print "\n".join(str(block) for block in blocks)
 
 # Enable callback
@@ -59,7 +59,7 @@ mdis.job_done.clear()
 
 print "=" * 40
 print "With callback:\n"
-blocks_after = mdis.dis_multibloc(0)
+blocks_after = mdis.dis_multiblock(0)
 print "\n".join(str(block) for block in blocks_after)
 
 # Ensure the callback has been called

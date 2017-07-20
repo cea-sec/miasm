@@ -1386,7 +1386,7 @@ class disasmEngine(object):
         # Override options if needed
         self.__dict__.update(kwargs)
 
-    def _dis_bloc(self, offset):
+    def _dis_block(self, offset):
         """Disassemble the block at offset @offset
         Return the created AsmBlock and future offsets to disassemble
         """
@@ -1519,44 +1519,61 @@ class disasmEngine(object):
                                    symbol_pool=self.symbol_pool)
         return cur_block, offsets_to_dis
 
-    def dis_bloc(self, offset):
+    def dis_block(self, offset):
         """Disassemble the block at offset @offset and return the created
         AsmBlock
         @offset: targeted offset to disassemble
         """
-        current_block, _ = self._dis_bloc(offset)
+        current_block, _ = self._dis_block(offset)
         return current_block
 
-    def dis_multibloc(self, offset, blocs=None):
+    def dis_bloc(self, offset):
+        """
+        DEPRECATED function
+        Use dis_block instead of dis_bloc
+        """
+        warnings.warn('DEPRECATION WARNING: use "dis_block" instead of "dis_bloc"')
+        return self.dis_block(offset)
+
+    def dis_multiblock(self, offset, blocks=None):
         """Disassemble every block reachable from @offset regarding
         specific disasmEngine conditions
         Return an AsmCFG instance containing disassembled blocks
         @offset: starting offset
-        @blocs: (optional) AsmCFG instance of already disassembled blocks to
+        @blocks: (optional) AsmCFG instance of already disassembled blocks to
                 merge with
         """
         log_asmblock.info("dis bloc all")
-        if blocs is None:
-            blocs = AsmCFG()
+        if blocks is None:
+            blocks = AsmCFG()
         todo = [offset]
 
         bloc_cpt = 0
         while len(todo):
             bloc_cpt += 1
             if self.blocs_wd is not None and bloc_cpt > self.blocs_wd:
-                log_asmblock.debug("blocs watchdog reached at %X", int(offset))
+                log_asmblock.debug("blocks watchdog reached at %X", int(offset))
                 break
 
             target_offset = int(todo.pop(0))
             if (target_offset is None or
                     target_offset in self.job_done):
                 continue
-            cur_block, nexts = self._dis_bloc(target_offset)
+            cur_block, nexts = self._dis_block(target_offset)
             todo += nexts
-            blocs.add_node(cur_block)
+            blocks.add_node(cur_block)
 
-        blocs.apply_splitting(self.symbol_pool,
-                              dis_block_callback=self.dis_bloc_callback,
-                              mn=self.arch, attrib=self.attrib,
-                              pool_bin=self.bin_stream)
-        return blocs
+        blocks.apply_splitting(self.symbol_pool,
+                               dis_block_callback=self.dis_bloc_callback,
+                               mn=self.arch, attrib=self.attrib,
+                               pool_bin=self.bin_stream)
+        return blocks
+
+    def dis_multibloc(self, offset, blocs=None):
+        """
+        DEPRECATED function
+        Use dis_multiblock instead of dis_multibloc
+        """
+        warnings.warn('DEPRECATION WARNING: use "dis_multiblock" instead of "dis_multibloc"')
+        return self.dis_multiblock(offset, blocs)
+

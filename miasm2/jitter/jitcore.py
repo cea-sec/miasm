@@ -122,7 +122,7 @@ class JitCore(object):
         @block: asm_bloc to add
         """
 
-        irblocks = self.ir_arch.add_bloc(block, gen_pc_updt = True)
+        irblocks = self.ir_arch.add_block(block, gen_pc_updt = True)
         block.blocks = irblocks
         self.jitirblocs(block.label, irblocks)
 
@@ -143,7 +143,7 @@ class JitCore(object):
 
         # Disassemble it
         try:
-            cur_block = self.mdis.dis_bloc(addr)
+            cur_block = self.mdis.dis_block(addr)
         except IOError:
             # vm_exception_flag is set
             label = self.ir_arch.symbol_pool.getby_offset_create(addr)

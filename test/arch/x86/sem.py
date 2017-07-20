@@ -50,7 +50,7 @@ def compute_txt(ir, mode, txt, inputstate={}, debug=False):
     patches = asmblock.asm_resolve_final(mn, blocks, symbol_pool)
     interm = ir(symbol_pool)
     for bbl in blocks:
-        interm.add_bloc(bbl)
+        interm.add_block(bbl)
     return symb_exec(interm, inputstate, debug)
 
 op_add = lambda a, b: a+b

@@ -15,17 +15,17 @@ cont = Container.from_string(data)
 # Test Disasm engine
 mdis = dis_x86_32(cont.bin_stream)
 ## Disassembly of one block
-first_block = mdis.dis_bloc(0)
+first_block = mdis.dis_block(0)
 assert len(first_block.lines) == 5
 print first_block
 
 ## Disassembly of several block, with cache
-blocks = mdis.dis_multibloc(0)
+blocks = mdis.dis_multiblock(0)
 assert len(blocks) == 0
 
 ## Test cache
 mdis.job_done.clear()
-blocks = mdis.dis_multibloc(0)
+blocks = mdis.dis_multiblock(0)
 assert len(blocks) == 17
 ## Equality between assembly lines is not yet implemented
 assert len(blocks.heads()) == 1
@@ -202,11 +202,11 @@ data2 = "31c0eb0c31c9750c31d2eb0c31ffebf831dbebf031edebfc31f6ebf031e4c3".decode(
 cont2 = Container.from_string(data2)
 mdis = dis_x86_32(cont2.bin_stream)
 ## Elements to merge
-blocks = mdis.dis_multibloc(0)
+blocks = mdis.dis_multiblock(0)
 ## Block alone
-blocks.add_node(mdis.dis_bloc(0x1c))
+blocks.add_node(mdis.dis_block(0x1c))
 ## Bad block
-blocks.add_node(mdis.dis_bloc(len(data2)))
+blocks.add_node(mdis.dis_block(len(data2)))
 ## Dump the graph before merging
 open("graph3.dot", "w").write(blocks.dot())
 ## Apply merging
@@ -285,7 +285,7 @@ assert blocks.edges2constraint[(tob, newb)] == AsmConstraint.c_to
 data = "74097405b8020000007405b803000000b804000000c3".decode('hex')
 cont = Container.from_string(data)
 mdis = dis_x86_32(cont.bin_stream)
-blocks = mdis.dis_multibloc(0)
+blocks = mdis.dis_multiblock(0)
 ## Check resulting disasm
 assert len(blocks.nodes()) == 6
 blocks.sanity_check()

@@ -121,7 +121,7 @@ while not finish and todo:
         if ad in done:
             continue
         done.add(ad)
-        allblocks = mdis.dis_multibloc(ad)
+        allblocks = mdis.dis_multiblock(ad)
 
         log.info('func ok %.16x (%d)' % (ad, len(all_funcs)))
 
@@ -193,8 +193,8 @@ if args.gen_ir:
     for ad, all_block in all_funcs_blocks.items():
         log.info("generating IR... %x" % ad)
         for block in all_block:
-            ir_arch_a.add_bloc(block)
-            ir_arch.add_bloc(block)
+            ir_arch_a.add_block(block)
+            ir_arch.add_block(block)
 
     log.info("Print blocks (without analyse)")
     for label, block in ir_arch.blocks.iteritems():

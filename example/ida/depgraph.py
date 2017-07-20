@@ -214,11 +214,11 @@ def launch_depgraph():
     # Get the current function
     addr = idc.ScreenEA()
     func = ida_funcs.get_func(addr)
-    blocks = mdis.dis_multibloc(func.startEA)
+    blocks = mdis.dis_multiblock(func.startEA)
 
     # Generate IR
     for block in blocks:
-        ir_arch.add_bloc(block)
+        ir_arch.add_block(block)
 
     # Get settings
     settings = depGraphSettingsForm(ir_arch)

@@ -15,8 +15,8 @@ class ir_a_mips32l(ir_mips32l, ira):
         # Avoid adding side effects, already done in post_add_bloc
         return False
 
-    def post_add_bloc(self, block, ir_blocks):
-        IntermediateRepresentation.post_add_bloc(self, block, ir_blocks)
+    def post_add_block(self, block, ir_blocks):
+        IntermediateRepresentation.post_add_block(self, block, ir_blocks)
         new_irblocks = []
         for irb in ir_blocks:
             pc_val = None

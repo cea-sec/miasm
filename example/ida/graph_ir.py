@@ -138,7 +138,7 @@ def build_graph(verbose=False, simplify=False):
     if verbose:
         print hex(addr)
 
-    blocks = mdis.dis_multibloc(addr)
+    blocks = mdis.dis_multiblock(addr)
 
     if verbose:
         print "generating graph"
@@ -150,7 +150,7 @@ def build_graph(verbose=False, simplify=False):
         if verbose:
             print 'ADD'
             print block
-        ir_arch.add_bloc(block)
+        ir_arch.add_block(block)
 
     if verbose:
         print "IR ok... %x" % addr

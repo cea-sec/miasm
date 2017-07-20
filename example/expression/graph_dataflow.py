@@ -151,7 +151,7 @@ ad = int(args.addr, 16)
 print 'disasm...'
 mdis = dis_x86_32(data)
 mdis.follow_call = True
-ab = mdis.dis_multibloc(ad)
+ab = mdis.dis_multiblock(ad)
 print 'ok'
 
 
@@ -161,7 +161,7 @@ ir_arch = ir_a_x86_32(mdis.symbol_pool)
 blocks = ab
 for block in blocks:
     print block
-    ir_arch.add_bloc(block)
+    ir_arch.add_block(block)
 for irblock in ir_arch.blocks.values():
     print irblock
     if irblock.label.offset != 0:

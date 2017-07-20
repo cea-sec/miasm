@@ -37,9 +37,9 @@ def get_block(ir_arch, mdis, ad):
         l = mdis.symbol_pool.getby_offset_create(ad)
     if not l in ir_arch.blocks:
         ad = l.offset
-        b = mdis.dis_bloc(ad)
-        ir_arch.add_bloc(b)
-    b = ir_arch.get_bloc(l)
+        b = mdis.dis_block(ad)
+        ir_arch.add_block(b)
+    b = ir_arch.get_block(l)
     if b is None:
         raise LookupError('no block found at that address: %s' % l)
     return b
@@ -168,7 +168,7 @@ if __name__ == '__main__':
     # add fake address and len to parsed instructions
     for i, line in enumerate(b.lines):
         line.offset, line.l = i, 1
-    ir_arch.add_bloc(b)
+    ir_arch.add_block(b)
     irb = get_block(ir_arch, mdis, 0)
     sb.emulbloc(irb)
     sb.dump_mem()

@@ -29,7 +29,7 @@ def arm_guess_subcall(
     ir_arch = ira(sp)
     print '###'
     print cur_bloc
-    ir_arch.add_bloc(cur_bloc)
+    ir_arch.add_block(cur_bloc)
 
     ir_blocks = ir_arch.blocks.values()
     # flow_graph = DiGraph()
@@ -76,7 +76,7 @@ def arm_guess_jump_table(
 
     sp = AsmSymbolPool()
     ir_arch = ira(sp)
-    ir_arch.add_bloc(cur_bloc)
+    ir_arch.add_block(cur_bloc)
 
     ir_blocks = ir_arch.blocks.values()
     for irblock in ir_blocks:

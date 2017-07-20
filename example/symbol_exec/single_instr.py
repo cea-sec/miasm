@@ -14,11 +14,11 @@ asm = machine.mn.asm(line)[0]
 # Get back block
 bin_stream = bin_stream_str(asm)
 mdis = machine.dis_engine(bin_stream)
-asm_block = mdis.dis_bloc(START_ADDR)
+asm_block = mdis.dis_block(START_ADDR)
 
 # Translate ASM -> IR
 ira = machine.ira(mdis.symbol_pool)
-ira.add_bloc(asm_block)
+ira.add_block(asm_block)
 
 # Instanciate a Symbolic Execution engine with default value for registers
 ## EAX = EAX_init, ...

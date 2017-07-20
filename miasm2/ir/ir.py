@@ -477,17 +477,25 @@ class IntermediateRepresentation(object):
             addr = self.symbol_pool.getby_name_create(addr.name)
         return addr
 
-    def get_bloc(self, addr):
+    def get_block(self, addr):
         """Returns the irbloc associated to an ExprId/ExprInt/label/int
         @addr: an ExprId/ExprInt/label/int"""
 
         label = self.get_label(addr)
         return self.blocks.get(label, None)
 
+    def get_bloc(self, addr):
+        """
+        DEPRECATED function
+        Use get_block instead of get_block
+        """
+        warnings.warn('DEPRECATION WARNING: use "get_block" instead of "get_bloc"')
+        return self.get_block(addr)
+
     def add_instr(self, line, addr=0, gen_pc_updt=False):
         block = AsmBlock(self.gen_label())
         block.lines = [line]
-        self.add_bloc(block, gen_pc_updt)
+        self.add_block(block, gen_pc_updt)
 
     def getby_offset(self, offset):
         out = set()
@@ -552,7 +560,7 @@ class IntermediateRepresentation(object):
             return True
         return False
 
-    def add_bloc(self, block, gen_pc_updt=False):
+    def add_block(self, block, gen_pc_updt=False):
         """
         Add a native block to the current IR
         @block: native assembly block
@@ -574,10 +582,18 @@ class IntermediateRepresentation(object):
         if label is not None:
             ir_blocks_all.append(IRBlock(label, assignments))
 
-        new_ir_blocks_all = self.post_add_bloc(block, ir_blocks_all)
+        new_ir_blocks_all = self.post_add_block(block, ir_blocks_all)
         for irblock in new_ir_blocks_all:
             self.blocks[irblock.label] = irblock
         return new_ir_blocks_all
+
+    def add_bloc(self, block, gen_pc_updt=False):
+        """
+        DEPRECATED function
+        Use add_block instead of add_block
+        """
+        warnings.warn('DEPRECATION WARNING: use "add_block" instead of "add_bloc"')
+        return self.add_block(block, gen_pc_updt)
 
     def expr_fix_regs_for_mode(self, expr, *args, **kwargs):
         return expr
@@ -610,7 +626,7 @@ class IntermediateRepresentation(object):
             assignblk = AssignBlock({self.IRDst: dst}, irblock.irs[-1].instr)
             ir_blocks[index] = IRBlock(irblock.label, list(irblock.irs) + [assignblk])
 
-    def post_add_bloc(self, block, ir_blocks):
+    def post_add_block(self, block, ir_blocks):
         self.set_empty_dst_to_next(block, ir_blocks)
 
         new_irblocks = []
@@ -621,6 +637,14 @@ class IntermediateRepresentation(object):
         # Forget graph if any
         self._graph = None
         return new_irblocks
+
+    def post_add_bloc(self, block, ir_blocks):
+        """
+        DEPRECATED function
+        Use post_add_block instead of post_add_bloc
+        """
+        warnings.warn('DEPRECATION WARNING: use "post_add_block" instead of "post_add_bloc"')
+        return self.post_add_block(block, ir_blocks)
 
     def get_instr_label(self, instr):
         """Returns the label associated to an instruction
