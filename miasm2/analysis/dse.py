@@ -194,6 +194,42 @@ class DSEEngine(object):
         self.jitter = emulator
         self.prepare()
 
+    def detach(self):
+        """Detach DSE from its jitter
+        Can be used to skip a part of the emulation that does not need to be
+        analysed by DSE in order to speed up the analysis.
+        """
+        # Disable callback on each instr
+        self.jitter.jit.set_options(max_exec_per_call=0, jit_maxline=50)
+        self.jitter.exec_cb = None
+
+    def reattach(self):
+        """Reattach DSE to its jitter
+        Use it only after the use of detach().
+        attach() could be used to do the same job but reattach() only does
+        the tasks needed to reattach DSE after a detach() and nothing more.
+        Must be called by the jitter since the DSE is detached.
+        Use example of detach()/reattach():
+
+            def detach_dse(dse):
+                dse.detach()
+
+            def reattach_dse(jitter):
+                dse.reattach()
+                return True
+            ...
+            dse.add_handler(detach_addr, detach_dse)
+            sb.jitter.add_breakpoint(reattach_addr, reattach_dse)
+        """
+        self.symb.symbols[self.ir_arch.IRDst] = ExprInt(getattr(self.jitter.cpu,
+                                                                self.ir_arch.pc.name),
+                                                        self.ir_arch.IRDst.size)
+        # Enable callback on each instr
+        self.jitter.jit.set_options(max_exec_per_call=1, jit_maxline=1)
+        self.jitter.exec_cb = self.callback
+        # Clean jit cache to avoid multi-line basic blocks already jitted
+        self.jitter.jit.lbl2jitbloc.clear()
+
     def handle(self, cur_addr):
         """Handle destination
         @cur_addr: Expr of the next address in concrete execution
