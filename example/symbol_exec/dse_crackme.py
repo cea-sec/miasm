@@ -222,7 +222,6 @@ class DSEGenFile(DSEPathConstraint):
 
     def handle_solution(self, model, destination):
         global todo, done
-        assert destination.is_int()
 
         if destination in done:
             # Skip this path, already treated
