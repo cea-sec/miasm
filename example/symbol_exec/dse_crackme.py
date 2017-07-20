@@ -198,15 +198,15 @@ def xxx___libc_start_main_symb(dse):
     })
 
 # Stop the execution on puts and get back the corresponding string
-class FinnishOn(Exception):
+class FinishOn(Exception):
 
     def __init__(self, string):
         self.string = string
-        super(FinnishOn, self).__init__()
+        super(FinishOn, self).__init__()
 
 def xxx_puts_symb(dse):
     string = dse.jitter.get_str_ansi(dse.jitter.cpu.RDI)
-    raise FinnishOn(string)
+    raise FinishOn(string)
 
 
 done = set([]) # Set of jump address already handled
@@ -222,7 +222,6 @@ class DSEGenFile(DSEPathConstraint):
 
     def handle_solution(self, model, destination):
         global todo, done
-        assert destination.is_int()
 
         if destination in done:
             # Skip this path, already treated
@@ -288,9 +287,9 @@ while todo:
     # Play the current file
     try:
         sb.run()
-    except FinnishOn as finnish_info:
-        print finnish_info.string
-        if finnish_info.string == "OK":
+    except FinishOn as finish_info:
+        print finish_info.string
+        if finish_info.string == "OK":
             # Stop if the expected result is found
             found = True
             break
