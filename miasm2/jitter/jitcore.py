@@ -37,6 +37,7 @@ class JitCore(object):
         """
 
         self.ir_arch = ir_arch
+        self.arch_name = "%s%s" % (self.ir_arch.arch.name, self.ir_arch.attrib)
         self.bs = bs
         self.known_blocs = {}
         self.lbl2jitbloc = BoundedDict(self.jitted_block_max_size,
@@ -276,8 +277,9 @@ class JitCore(object):
         @block: asmblock
         """
         block_raw = "".join(line.b for line in block.lines)
-        block_hash = md5("%X_%s_%s_%s" % (block.label.offset,
-                                          self.log_mn,
-                                          self.log_regs,
-                                          block_raw)).hexdigest()
+        block_hash = md5("%X_%s_%s_%s_%s" % (block.label.offset,
+                                             self.arch_name,
+                                             self.log_mn,
+                                             self.log_regs,
+                                             block_raw)).hexdigest()
         return block_hash
