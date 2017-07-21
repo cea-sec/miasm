@@ -3,7 +3,6 @@
 import os
 import tempfile
 from distutils.sysconfig import get_python_inc
-from hashlib import md5
 
 from miasm2.jitter.jitcore import JitCore
 from miasm2.core.utils import keydefaultdict
@@ -109,15 +108,3 @@ class JitCore_Cc_Base(JitCore):
     @staticmethod
     def gen_C_source(ir_arch, func_code):
         raise NotImplementedError()
-
-    def hash_block(self, block):
-        """
-        Build a hash of the block @block
-        @block: asmblock
-        """
-        block_raw = "".join(line.b for line in block.lines)
-        block_hash = md5("%X_%s_%s_%s" % (block.label.offset,
-                                          self.log_mn,
-                                          self.log_regs,
-                                          block_raw)).hexdigest()
-        return block_hash

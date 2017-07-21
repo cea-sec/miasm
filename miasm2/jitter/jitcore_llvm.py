@@ -1,7 +1,7 @@
 import os
 import importlib
 import tempfile
-from hashlib import md5
+
 from miasm2.jitter.llvmconvert import *
 import miasm2.jitter.jitcore as jitcore
 import Jitllvm
@@ -117,15 +117,3 @@ class JitCore_LLVM(jitcore.JitCore):
 
         # Store a pointer on the function jitted code
         self.lbl2jitbloc[block.label.offset] = ptr
-
-    def hash_block(self, block):
-        """
-        Build a hash of the block @block
-        @block: asmblock
-        """
-        block_raw = "".join(line.b for line in block.lines)
-        block_hash = md5("%X_%s_%s_%s" % (block.label.offset,
-                                          self.log_mn,
-                                          self.log_regs,
-                                          block_raw)).hexdigest()
-        return block_hash
