@@ -1074,17 +1074,6 @@ def rol(value, amount, size):
     mask = (1 << size) - 1
     return ((value << amount) | (value >> (size - amount)) & mask)
 
-UINTS = {32: uint32, 64: uint64}
-
-
-def imm_to_imm_rot_form(value, size):
-    for i in xrange(0, size):
-        mod_value = int(rol(value, i, size))
-        if (mod_value + 1) & mod_value == 0:
-            return i
-    return None
-
-
 # This implementation is inspired from ARM ISA v8.2
 # Exact Reference name:
 # "ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile"
