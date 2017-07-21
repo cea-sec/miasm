@@ -425,8 +425,8 @@ all_regs_ids_no_alias = [
 ] + fltregs32_expr
 
 attrib_to_regs = {
-    16: regs16_expr + all_regs_ids_no_alias[all_regs_ids_no_alias.index(zf):],
-    32: regs32_expr + all_regs_ids_no_alias[all_regs_ids_no_alias.index(zf):],
+    16: regs16_expr + all_regs_ids_no_alias[all_regs_ids_no_alias.index(zf):] + [IP],
+    32: regs32_expr + all_regs_ids_no_alias[all_regs_ids_no_alias.index(zf):] + [EIP],
     64: all_regs_ids_no_alias,
 }
 
