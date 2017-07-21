@@ -1775,14 +1775,18 @@ def movs(ir, instr, size):
 
 
 def movsd(_, instr, dst, src):
-    e = []
-    if isinstance(dst, m2_expr.ExprId) and isinstance(src, m2_expr.ExprMem):
-        src = m2_expr.ExprMem(src.arg, dst.size)
-    elif isinstance(dst, m2_expr.ExprMem) and isinstance(src, m2_expr.ExprId):
-        dst = m2_expr.ExprMem(dst.arg, src.size)
-
-    e.append(m2_expr.ExprAff(dst, src))
-    return e, []
+    # 64 bits access
+    if dst.is_id() and src.is_id():
+        src = src[:64]
+        dst = dst[:64]
+    elif dst.is_mem() and src.is_id():
+        dst = m2_expr.ExprMem(dst.arg, 64)
+        src = src[:64]
+    else:
+        src = m2_expr.ExprMem(src.arg, 64)
+        # Erase dst high bits
+        src = src.zeroExtend(dst.size)
+    return [m2_expr.ExprAff(dst, src)], []
 
 
 def movsd_dispatch(ir, instr, dst=None, src=None):
