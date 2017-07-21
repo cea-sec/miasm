@@ -1085,14 +1085,211 @@ def imm_to_imm_rot_form(value, size):
     return None
 
 
+# This implementation is inspired from ARM ISA v8.2
+# Exact Reference name:
+# "ARM Architecture Reference Manual ARMv8, for ARMv8-A architecture profile"
+
+class ReservedValue(Exception):
+    """Reserved Value, should not happen"""
+    pass
+
+class NotEncodable(Exception):
+    """Instruction is not encodable"""
+    pass
+
+class bits(object):
+    """Stand for ARM ASL 'bits' type, ie. a bit vector"""
+
+    __slots__ = ["size", "value"]
+
+    def __init__(self, size, value):
+        """Instanciate a bitvector of size @size with value @value"""
+        self.size = size
+        if value & self.mask != value:
+            raise ValueError("Value %s is too large for %d bits",
+                             hex(value), size)
+        self.value = value
+
+    def concat_left(self, other_bits):
+        """Return a new bits instance for @other_bits . self"""
+        return bits(self.size + other_bits.size,
+                    self.value | (other_bits.value << self.size))
+
+    @property
+    def mask(self):
+        return (1 << self.size) - 1
+
+    def __invert__(self):
+        return bits(self.size, self.value ^ self.mask)
+
+    def __int__(self):
+        return self.value
+
+    def __and__(self, other_bits):
+        assert other_bits.size == self.size
+        return bits(self.size, self.value & other_bits.value)
+
+    def __eq__(self, other_bits):
+        return all((self.size == other_bits.size,
+                    self.value == other_bits.value))
+
+    def __getitem__(self, info):
+        if isinstance(info, slice):
+            start = info.start if info.start else 0
+            stop = info.stop if info.stop else self.value
+            if info.step is not None:
+                raise RuntimeError("Not implemented")
+            mask = (1 << stop) - 1
+            return bits(stop - start,
+                        (self.value >> start) & mask)
+        else:
+            raise RuntimeError("Not implemented")
+
+    @property
+    def pop_count(self):
+        "Population count: number of bit set"
+        count = 0
+        value = self.value
+        while (value > 0):
+            if value & 1 == 1:
+                count += 1
+            value >>= 1
+        return count
+
+    def __str__(self):
+        return "'%s'" % "".join('1' if self.value & (1 << i) else '0'
+                                for i in reversed(xrange(self.size)))
+
+# From J1-6035
+def HighestSetBit(x):
+    for i in reversed(xrange(x.size)):
+        if x.value & (1 << i):
+            return i
+    return - 1
+
+# From J1-6037
+def Ones(N):
+    return bits(N, (1 << N) - 1)
+
+# From J1-6038
+def ROR(x, shift):
+    if shift == 0:
+        return x
+    return bits(x.size, ror(UInt(x), shift, x.size))
+
+# From J1-6038
+def Replicate(x, N):
+    assert N % x.size == 0
+    new = x
+    while new.size < N:
+        new = new.concat_left(x)
+    return new
+
+# From J1-6039
+def UInt(x):
+    return int(x)
+
+# From J1-6039
+def ZeroExtend(x, N):
+    assert N >= x.size
+    return bits(N, x.value)
+
+# From J1-5906
+def DecodeBitMasks(M, immN, imms, immr, immediate):
+    """
+    @M: 32 or 64
+    @immN: 1-bit
+    @imms: 6-bit
+    @immr: 6-bit
+    @immediate: boolean
+    """
+    len_ = HighestSetBit((~imms).concat_left(immN))
+    if len_ < 1:
+        raise ReservedValue()
+    assert M >= (1 << len_)
+
+    levels = ZeroExtend(Ones(len_), 6)
+
+    if immediate and (imms & levels) == levels:
+        raise ReservedValue()
+    S = UInt(imms & levels);
+    R = UInt(immr & levels);
+
+    esize = 1 << len_
+    welem = ZeroExtend(Ones(S + 1), esize)
+    wmask = Replicate(ROR(welem, R), M)
+
+    # For now, 'tmask' is unused:
+    #
+    # diff = S - R;
+    # d = UInt(bits(len_, diff))
+    # telem = ZeroExtend(Ones(d + 1), esize)
+    # tmask = Replicate(telem, M)
+
+    return wmask, None
+
+# EncodeBitMasks doesn't have any equivalent in ARM ASL shared functions
+# This implementation "reverses" DecodeBitMasks flow
+def EncodeBitMasks(wmask):
+    # Find replicate
+    M = wmask.size
+    for i in xrange(1, M + 1):
+        if M % i != 0:
+            continue
+        if wmask == Replicate(wmask[:i], M):
+            break
+    else:
+        raise NotEncodable
+
+    # Find ROR value: welem is only '1's
+    welem_after_ror = wmask[:i]
+    esize = welem_after_ror.size
+    S = welem_after_ror.pop_count - 1
+    welem = ZeroExtend(Ones(S + 1), esize)
+    for i in xrange(welem_after_ror.size):
+        if ROR(welem, i) == welem_after_ror:
+            break
+    else:
+        raise NotEncodable
+    R = i
+
+    # Find len value
+    for i in xrange(M):
+        if (1 << i) == esize:
+            break
+    else:
+        raise NotEncodable
+    len_ = i
+    levels = ZeroExtend(Ones(len_), 6)
+    levels = UInt(levels)
+
+    if len_ == 6:
+        # N = 1
+        immn = 1
+        imms = S
+    else:
+        # N = 0, NOT(imms) have to be considered
+        immn = 0
+        mask = (1 << ((6 - len_ - 1))) - 1
+        mask <<= (len_ + 1)
+        imms = S | mask
+    immr = R
+    return immr, imms, immn
+
+
 class aarch64_imm_nsr(aarch64_imm_sf, m_arg):
     parser = base_expr
 
     def decode(self, v):
         size = 64 if self.parent.sf.value else 32
-        mask = UINTS[size]((1 << (v + 1)) - 1)
-        mask = ror(mask, self.parent.immr.value, size)
-        self.expr = m2_expr.ExprInt(mask, size)
+        bitmask, _ = DecodeBitMasks(size,
+                                    bits(1, self.parent.immn.value),
+                                    bits(6, v),
+                                    bits(6, self.parent.immr.value),
+                                    True
+        )
+        self.expr = m2_expr.ExprInt(UInt(bitmask),
+                                    size)
         return True
 
     def encode(self):
@@ -1104,20 +1301,13 @@ class aarch64_imm_nsr(aarch64_imm_sf, m_arg):
         if value == 0:
             return False
 
-        index = imm_to_imm_rot_form(value, self.expr.size)
-        if index == None:
+        try:
+            immr, imms, immn = EncodeBitMasks(bits(self.expr.size, value))
+        except NotEncodable:
             return False
-        power = int(rol(value, index, self.expr.size)) + 1
-        length = None
-        for i in xrange(self.expr.size):
-            if 1 << i == power:
-                length = i
-                break
-        if length is None:
-            return False
-        self.parent.immr.value = index
-        self.value = length - 1
-        self.parent.immn.value = 1 if self.expr.size == 64 else 0
+        self.parent.immr.value = immr
+        self.parent.immn.value = immn
+        self.value = imms
         return True
 
 
