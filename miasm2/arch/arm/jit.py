@@ -38,10 +38,12 @@ class jitter_arml(jitter):
         ret_ad = self.cpu.LR
         return ret_ad, args
 
-    def func_ret_stdcall(self, ret_addr, ret_value=None):
+    def func_ret_stdcall(self, ret_addr, ret_value1=None, ret_value2=None):
         self.pc = self.cpu.PC = ret_addr
-        if ret_value is not None:
-            self.cpu.R0 = ret_value
+        if ret_value1 is not None:
+            self.cpu.R0 = ret_value1
+        if ret_value2 is not None:
+            self.cpu.R1 = ret_value2
         return True
 
     def func_prepare_stdcall(self, ret_addr, *args):
