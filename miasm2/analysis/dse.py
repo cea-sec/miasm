@@ -337,12 +337,23 @@ class DSEEngine(object):
 
         return True
 
+    def _get_gpregs(self):
+        """Return a dict of regs: value from the jitter
+        This version use the regs associated to the attrib (!= cpu.get_gpreg())
+        """
+        out = {}
+        regs = self.ir_arch.arch.regs.attrib_to_regs[self.ir_arch.attrib]
+        for reg in regs:
+            if hasattr(self.jitter.cpu, reg.name):
+                out[reg.name] = getattr(self.jitter.cpu, reg.name)
+        return out
+
     def take_snapshot(self):
         """Return a snapshot of the current state (including jitter state)"""
         snapshot = {
             "mem": self.jitter.vm.get_all_memory(),
-            "regs": self.jitter.cpu.get_gpreg(),
-            "symb": self.symb.symbols.copy()
+            "regs": self._get_gpregs(),
+            "symb": self.symb.symbols.copy(),
         }
         return snapshot
 
@@ -362,7 +373,8 @@ class DSEEngine(object):
 
         # Restore registers
         self.jitter.pc = snapshot["regs"][self.ir_arch.pc.name]
-        self.jitter.cpu.set_gpreg(snapshot["regs"])
+        for reg, value in snapshot["regs"].iteritems():
+            setattr(self.jitter.cpu, reg, value)
 
         # Reset intern elements
         self.jitter.vm.set_exception(0)
