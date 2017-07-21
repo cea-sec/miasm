@@ -1066,11 +1066,13 @@ class aarch64_gpreg_sftimm(reg_noarg, m_arg):
 
 
 def ror(value, amount, size):
-    return (value >> amount) | (value << (size - amount))
+    mask = (1 << size) - 1
+    return ((value >> amount) | (value << (size - amount))) & mask
 
 
 def rol(value, amount, size):
-    return (value << amount) | (value >> (size - amount))
+    mask = (1 << size) - 1
+    return ((value << amount) | (value >> (size - amount)) & mask)
 
 UINTS = {32: uint32, 64: uint64}
 
