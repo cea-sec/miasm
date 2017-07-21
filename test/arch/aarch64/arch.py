@@ -1786,6 +1786,10 @@ reg_tests_aarch64 = [
      "E003809A"),
     ("XXXXXXXX    ADD        X0, SP, XZR UXTX 0x0",
      "E0633F8B"),
+
+    ("XXXXXXXX    ORR        X8, 0x0, 0x1000100010001",
+     "E88300B2"),
+
 ]
 
 
