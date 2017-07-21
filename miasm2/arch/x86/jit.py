@@ -135,10 +135,12 @@ class jitter_x86_32(jitter):
         args = [self.get_stack_arg(i) for i in xrange(n_args)]
         return ret_ad, args
 
-    def func_ret_cdecl(self, ret_addr, ret_value=None):
+    def func_ret_cdecl(self, ret_addr, ret_value1=None, ret_value2=None):
         self.pc = self.cpu.EIP = ret_addr
-        if ret_value is not None:
-            self.cpu.EAX = ret_value
+        if ret_value1 is not None:
+            self.cpu.EAX = ret_value1
+        if ret_value2 is not None:
+            self.cpu.EDX = ret_value2
 
     get_arg_n_cdecl = get_stack_arg
 
