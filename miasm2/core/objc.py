@@ -744,17 +744,20 @@ class CTypeAnalyzer(ExprReducer):
 
     def reduce_ptr_plus_cst(self, node, lvl):
         """Get type of ptr + CST"""
-
         if not node.expr.is_op("+") or len(node.args) != 2:
             return None
-        args_types = set([self.get_solo_type(node.args[0]),
-                          self.get_solo_type(node.args[1])])
-        if args_types != set([ObjCInt, ObjCPtr]):
+        type_arg1 = self.get_solo_type(node.args[1])
+        if type_arg1 != ObjCInt:
             return None
+
         arg0, arg1 = node.args
+        if arg0.info is None:
+            return None
         out = []
         ptr_offset = int(arg1.expr)
         for info in arg0.info:
+            if not isinstance(info, ObjCPtr):
+                continue
             ptr_basetype = info.objtype
             if ptr_basetype.size == 0:
                 missing_definition(ptr_basetype)
@@ -764,12 +767,10 @@ class CTypeAnalyzer(ExprReducer):
                                    ptr_offset % ptr_basetype.size,
                                    False,
                                    lvl)
-
         return out
 
     def reduce_cst_op_cst(self, node, _):
         """Get type of CST + CST"""
-
         if not node.expr.is_op("+") or len(node.args) != 2:
             return None
         if node.args[0] is None or node.args[1] is None:
@@ -777,7 +778,7 @@ class CTypeAnalyzer(ExprReducer):
         args_types = set([self.get_solo_type(node.args[0]),
                           self.get_solo_type(node.args[1])])
         if args_types != set([ObjCInt]):
-            return None
+            return []
         return [self.CST]
 
     def reduce_deref(self, node, lvl):
@@ -786,7 +787,6 @@ class CTypeAnalyzer(ExprReducer):
         * @64[ptr<ptr<elem>>] -> ptr<elem>
         * @32[ptr<struct>] -> struct.00
         """
-
         if not isinstance(node.expr, ExprMem):
             return None
         if node.arg.info is None:
@@ -795,7 +795,7 @@ class CTypeAnalyzer(ExprReducer):
         for subtype in node.arg.info:
             # subtype : ptr<elem>
             if not isinstance(subtype, (ObjCPtr, ObjCArray)):
-                return None
+                continue
             target = subtype.objtype
             # target : type(elem)
             for ptr_target in self.get_typeof(target, 0, True, lvl):
@@ -806,8 +806,6 @@ class CTypeAnalyzer(ExprReducer):
                     r_target.size != node.expr.size / 8):
                     continue
                 found.append(r_target)
-        if not found:
-            return None
         return found
 
     reduction_rules = [reduce_id, reduce_int,
@@ -818,7 +816,6 @@ class CTypeAnalyzer(ExprReducer):
     def get_type(self, expr):
         """Return the C type(s) of the native Miasm expression @expr
         @expr: Miasm expression"""
-
         return self.reduce(expr)
 
 
@@ -1011,9 +1008,9 @@ class ExprToAccessC(ExprReducer):
                 node.expr.name in self.expr_types):
             return None
 
-        objc = self.expr_types[node.expr.name]
-        out = CGenId(objc, node.expr.name)
-        return [out]
+        objcs = self.expr_types[node.expr.name]
+        out = [CGenId(objc, node.expr.name) for objc in objcs]
+        return out
 
     def reduce_int(self, node, _):
         """Generate access for ExprInt"""
@@ -1032,26 +1029,25 @@ class ExprToAccessC(ExprReducer):
 
     def reduce_op(self, node, lvl):
         """Generate access for ExprOp"""
-
         if not node.expr.is_op("+") or len(node.args) != 2:
             return None
-        args_types = set([self.get_solo_type(node.args[0]),
-                          self.get_solo_type(node.args[1])])
-        if args_types != set([ObjCInt, ObjCPtr]):
+        type_arg1 = self.get_solo_type(node.args[1])
+        if type_arg1 != ObjCInt:
             return None
-
         arg0, arg1 = node.args
+        if arg0.info is None:
+            return None
         out = []
         ptr_offset = int(arg1.expr)
-        for name in arg0.info:
-            assert isinstance(name.ctype, ObjCPtr)
-            ptr_basetype = name.ctype.objtype
+        for info in arg0.info:
+            if not isinstance(info.ctype, ObjCPtr):
+                continue
+            ptr_basetype = info.ctype.objtype
             # Array-like: int* ptr; ptr[1] = X
-            ret = self.cgen_access(name,
+            ret = self.cgen_access(info,
                                    ptr_basetype,
                                    ptr_offset, False, lvl)
-            for subcgenobj in ret:
-                out.append(subcgenobj)
+            out += ret
         return out
 
     def reduce_mem(self, node, lvl):
@@ -1063,6 +1059,11 @@ class ExprToAccessC(ExprReducer):
 
         if not isinstance(node.expr, ExprMem):
             return None
+        if node.expr in self.expr_types:
+            objcs = self.expr_types[node.expr]
+            out = [CGenId(objc, str(node.expr)) for objc in objcs]
+            return out
+
         if node.arg.info is None:
             return None
         assert isinstance(node.arg.info, list)

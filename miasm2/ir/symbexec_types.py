@@ -111,6 +111,12 @@ class SymbExecCType(SymbolicExecutionEngine):
         return objc
 
     def apply_expr_on_state_visit_cache(self, expr, state, cache, level=0):
+        ret = self._apply_expr_on_state_visit_cache(expr, state, cache, level)
+        if not ret:
+            return None
+        return tuple(ret)
+
+    def _apply_expr_on_state_visit_cache(self, expr, state, cache, level=0):
         """
         Deep First evaluate nodes:
             1. evaluate node's sons
@@ -118,56 +124,58 @@ class SymbExecCType(SymbolicExecutionEngine):
         """
 
         expr = self.expr_simp(expr)
-
         if expr in cache:
             return cache[expr]
+        elif expr in self.symbols:
+            ret =  self.symbols[expr]
+            return ret
         elif expr in state:
             return state[expr]
         elif isinstance(expr, ExprInt):
             objc = self.get_type_int_by_size(expr.size)
             if objc is None:
                 objc = self.chandler.type_analyzer.types_mngr.get_objc(CTypeId('int'))
-            return objc
+            return [objc]
         elif isinstance(expr, ExprId):
             if expr in state:
                 return state[expr]
             return None
         elif isinstance(expr, ExprMem):
-            ptr = self.apply_expr_on_state_visit_cache(expr.arg, state, cache, level + 1)
-            if ptr is None:
-                return None
-            self.chandler.type_analyzer.expr_types[self.OBJC_INTERNAL] = ptr
+            ptr_type = self.apply_expr_on_state_visit_cache(expr.arg, state, cache, level + 1)
+            if not ptr_type:
+                return ptr_type
+            self.chandler.type_analyzer.expr_types[self.OBJC_INTERNAL] = ptr_type
             ptr_expr = ExprId(self.OBJC_INTERNAL, expr.arg.size)
             objcs = self.chandler.expr_to_types(ExprMem(ptr_expr, expr.size))
-            if objcs is None:
-                return None
-            objc = objcs[0]
-            return objc
+            return objcs
         elif isinstance(expr, ExprCond):
             src1 = self.apply_expr_on_state_visit_cache(expr.src1, state, cache, level + 1)
             src2 = self.apply_expr_on_state_visit_cache(expr.src2, state, cache, level + 1)
-            types = [src1, src2]
-            objc = self.is_offset_list(types, expr.size)
-            if objc:
-                return objc
-            return None
+            if src1 is None or src2 is None:
+                return None
+            # Return common types
+            types = list(set(src1).intersection(src2))
+            return types
         elif isinstance(expr, ExprSlice):
             objc = self.get_type_int_by_size(expr.size)
             if objc is None:
-                # default size
-                objc = self.offset_types[0]
-            return objc
+                return None
+            return [objc]
         elif isinstance(expr, ExprOp):
+            if expr.op.startswith("call"):
+                return None
             args = []
             types = []
             for oarg in expr.args:
-                arg = self.apply_expr_on_state_visit_cache(oarg, state, cache, level + 1)
-                types.append(arg)
+                arg_types = self.apply_expr_on_state_visit_cache(oarg, state, cache, level + 1)
+                if arg_types is None:
+                    return None
+                types += list(arg_types)
             if None in types:
                 return None
             objc = self.is_offset_list(types, expr.size)
             if objc:
-                return objc
+                return [objc]
             # Find Base + int
             if expr.op != '+':
                 return None
@@ -176,21 +184,23 @@ class SymbExecCType(SymbolicExecutionEngine):
                 offset = args.pop()
                 types.pop()
             if len(args) == 1:
-                arg, arg_type = args.pop(), types.pop()
-                self.chandler.type_analyzer.expr_types[self.OBJC_INTERNAL] = arg_type
+                arg, arg_types = args.pop(), types
+                self.chandler.type_analyzer.expr_types[self.OBJC_INTERNAL] = arg_types
                 ptr_expr = ExprId(self.OBJC_INTERNAL, arg.size)
-                objc = self.chandler.expr_to_types(ptr_expr + offset)
-                objc = objc[0]
-                return objc
+                objcs = self.chandler.expr_to_types(ptr_expr + offset)
+                return objcs
             return None
         elif isinstance(expr, ExprCompose):
             types = set()
             for oarg in expr.args:
-                arg = self.apply_expr_on_state_visit_cache(oarg, state, cache, level + 1)
-                types.add(arg)
+                arg_types = self.apply_expr_on_state_visit_cache(oarg, state, cache, level + 1)
+                if arg_types is None:
+                    return None
+                types.update(arg_types)
             objc = self.is_offset_list(types, expr.size)
             if objc:
-                return objc
+                return [objc]
+
             return None
         else:
             raise TypeError("Unknown expr type")
