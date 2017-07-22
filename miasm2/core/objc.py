@@ -713,8 +713,8 @@ class CTypeAnalyzer(ExprReducer):
                 out += new_type
             new_type = out
         elif isinstance(base_type, ObjCPtr):
-            if self.enforce_strict_access:
-                assert offset % base_type.size == 0
+            if self.enforce_strict_access and offset % base_type.size != 0:
+                return []
             obj = ObjCPtr(base_type, void_type.align, void_type.size)
             new_type = [obj]
         else:
@@ -917,7 +917,9 @@ class ExprToAccessC(ExprReducer):
 
         void_type = self.types_mngr.void_ptr
         if isinstance(base_type, ObjCStruct):
-            assert 0 <= offset < base_type.size
+            if not 0 <= offset < base_type.size:
+                return []
+
             if offset == 0 and not deref:
                 # In this case, return the struct*
                 return [cgenobj]
@@ -942,7 +944,8 @@ class ExprToAccessC(ExprReducer):
                 missing_definition(base_type.objtype)
                 return []
             element_num = offset / (base_type.objtype.size)
-            assert element_num < base_type.elems
+            if element_num >= base_type.elems:
+                return []
             f_offset = offset % base_type.objtype.size
             cur_objtype = base_type
             curobj = cgenobj
@@ -961,9 +964,8 @@ class ExprToAccessC(ExprReducer):
                     ret = [curobj]
                 new_type = ret
         elif isinstance(base_type, ObjCDecl):
-            if self.enforce_strict_access:
-                if offset % base_type.size != 0:
-                    return []
+            if self.enforce_strict_access and offset % base_type.size != 0:
+                return []
             elem_num = offset / base_type.size
 
             nobj = CGenArray(cgenobj, elem_num,
@@ -992,9 +994,8 @@ class ExprToAccessC(ExprReducer):
 
         elif isinstance(base_type, ObjCPtr):
             elem_num = offset / base_type.size
-            if self.enforce_strict_access:
-                assert offset % base_type.size == 0
-
+            if self.enforce_strict_access and offset % base_type.size != 0:
+                return []
             nobj = CGenArray(cgenobj, elem_num,
                              void_type.align, void_type.size)
             new_type = [(nobj)]
@@ -1087,7 +1088,8 @@ class ExprToAccessC(ExprReducer):
                 if not(self.enforce_strict_access) or target.size == node.expr.size / 8:
                     nobj = CGenDeref(subcgenobj)
                     found.append(nobj)
-        assert found
+        if not found:
+            return None
         return found
 
     reduction_rules = [reduce_id,
