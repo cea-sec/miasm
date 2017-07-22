@@ -669,6 +669,11 @@ def br(arg1):
     PC = arg1
     ir.IRDst = arg1
 
+@sbuild.parse
+def blr(arg1):
+    PC = arg1
+    ir.IRDst = arg1
+    LR = m2_expr.ExprId(ir.get_next_label(instr), 64)
 
 @sbuild.parse
 def nop():
