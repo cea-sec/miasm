@@ -6,6 +6,7 @@ C helper for Miasm:
 """
 
 
+import warnings
 from pycparser import c_parser, c_ast
 
 from miasm2.expression.expression_reduce import ExprReducer
@@ -16,6 +17,10 @@ from miasm2.core.ctypesmngr import CTypeUnion, CTypeStruct, CTypeId, CTypePtr,\
 
 
 PADDING_TYPE_NAME = "___padding___"
+
+def missing_definition(objtype):
+    warnings.warn("Null size type: Missing definition? %r" % objtype)
+
 
 class ObjC(object):
     """Generic ObjC"""
@@ -672,6 +677,10 @@ class CTypeAnalyzer(ExprReducer):
             else:
                 raise RuntimeError('cannot find struct field')
         elif isinstance(base_type, ObjCArray):
+            if base_type.objtype.size == 0:
+                missing_definition(base_type.objtype)
+                return []
+
             sub_offset = offset % (base_type.objtype.size)
             element_num = offset / (base_type.objtype.size)
             if element_num >= base_type.elems:
@@ -747,6 +756,9 @@ class CTypeAnalyzer(ExprReducer):
         ptr_offset = int(arg1.expr)
         for info in arg0.info:
             ptr_basetype = info.objtype
+            if ptr_basetype.size == 0:
+                missing_definition(ptr_basetype)
+                continue
             # Array-like: int* ptr; ptr[1] = X
             out += self.get_typeof(ptr_basetype,
                                    ptr_offset % ptr_basetype.size,
@@ -898,6 +910,10 @@ class ExprToAccessC(ExprReducer):
         OUT:
         - CGenArray(CGenField(toto, b), 1)
         """
+        if base_type.size == 0:
+            missing_definition(base_type)
+            return []
+
 
         void_type = self.types_mngr.void_ptr
         if isinstance(base_type, ObjCStruct):
@@ -922,6 +938,9 @@ class ExprToAccessC(ExprReducer):
             else:
                 raise RuntimeError('Cannot find struct field')
         elif isinstance(base_type, ObjCArray):
+            if base_type.objtype.size == 0:
+                missing_definition(base_type.objtype)
+                return []
             element_num = offset / (base_type.objtype.size)
             assert element_num < base_type.elems
             f_offset = offset % base_type.objtype.size
