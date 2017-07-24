@@ -88,8 +88,7 @@ PyObject* tcc_set_emul_lib_path(PyObject* self, PyObject* args)
 			include_array_count ++;
 			include_array = realloc(include_array,
 						     include_array_count * sizeof(char*));
-			if (include_array == NULL)
-			{
+			if (include_array == NULL) {
 				fprintf(stderr, "cannot realloc char* include_array\n");
 				exit(EXIT_FAILURE);
 			}
@@ -107,8 +106,7 @@ PyObject* tcc_set_emul_lib_path(PyObject* self, PyObject* args)
 			lib_array_count ++;
 			lib_array = realloc(lib_array,
 						 lib_array_count * sizeof(char*));
-			if (lib_array == NULL)
-			{
+			if (lib_array == NULL) {
 				fprintf(stderr, "cannot realloc char* lib_array\n");
 				exit(EXIT_FAILURE);
 			}
