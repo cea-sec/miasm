@@ -673,66 +673,6 @@ int is_mapped(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t size)
        return 1;
 }
 
-int shift_right_arith(unsigned int size, int a, unsigned int b)
-{
-    int i32_a;
-    short i16_a;
-    char i8_a;
-    switch(size){
-	    case 8:
-		    i8_a = a;
-		    return (i8_a >> b)&0xff;
-	    case 16:
-		    i16_a = a;
-		    return (i16_a >> b)&0xffff;
-	    case 32:
-		    i32_a = a;
-		    return (i32_a >> b)&0xffffffff;
-	    default:
-		    fprintf(stderr, "inv size in shift %d\n", size);
-		    exit(0);
-    }
-}
-
-uint64_t shift_right_logic(uint64_t size,
-			   uint64_t a, uint64_t b)
-{
-    uint64_t u32_a;
-    unsigned short u16_a;
-    unsigned char u8_a;
-    switch(size){
-	    case 8:
-		    u8_a = a;
-		    return (u8_a >> b)&0xff;
-	    case 16:
-		    u16_a = a;
-		    return (u16_a >> b)&0xffff;
-	    case 32:
-		    u32_a = a;
-		    return (u32_a >> b)&0xffffffff;
-	    default:
-		    fprintf(stderr, "inv size in shift %"PRIx64"\n", size);
-		    exit(0);
-    }
-}
-
-uint64_t shift_left_logic(uint64_t size, uint64_t a, uint64_t b)
-{
-    switch(size){
-	    case 8:
-		    return (a<<b)&0xff;
-	    case 16:
-		    return (a<<b)&0xffff;
-	    case 32:
-		    return (a<<b)&0xffffffff;
-	    case 64:
-		    return (a<<b)&0xffffffffffffffff;
-	    default:
-		    fprintf(stderr, "inv size in shift %"PRIx64"\n", size);
-		    exit(0);
-    }
-}
-
 unsigned int mul_lo_op(unsigned int size, unsigned int a, unsigned int b)
 {
 	unsigned int mask;

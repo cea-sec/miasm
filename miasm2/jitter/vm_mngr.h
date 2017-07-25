@@ -199,10 +199,7 @@ unsigned int my_imul08(unsigned int a, unsigned int b);
 
 int is_mapped(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t size);
 void vm_throw(vm_mngr_t* vm_mngr, unsigned long flags);
-int shift_right_arith(unsigned int size, int a, unsigned int b);
 
-uint64_t shift_right_logic(uint64_t size, uint64_t a, uint64_t b);
-uint64_t shift_left_logic(uint64_t size, uint64_t a, uint64_t b);
 unsigned int mul_lo_op(unsigned int size, unsigned int a, unsigned int b);
 unsigned int mul_hi_op(unsigned int size, unsigned int a, unsigned int b);
 unsigned int imul_lo_op_08(char a, char b);
@@ -402,32 +399,23 @@ unsigned int load_segment_limit(unsigned int d);
 unsigned int load_segment_limit_ok(unsigned int d);
 
 unsigned int load_tr_segment_selector(unsigned int d);
-#define shift_right_arith_08(a, b)\
-	((((char)(a)) >> ((int)(b)&0x1f))&0xff)
-#define shift_right_arith_16(a, b)\
-	((((short)(a)) >> ((int)(b)&0x1f))&0xffff)
-#define shift_right_arith_32(a, b)\
-	((((int)(a)) >> ((int)(b)&0x1f))&0xffffffff)
-#define shift_right_arith_64(a, b)\
-	((((int64_t)(a)) >> ((int64_t)(b)&0x3f))&0xffffffffffffffff)
 
 
-#define shift_right_logic_08(a, b)\
-	((((unsigned char)(a)) >> ((unsigned int)(b)&0x1f))&0xff)
-#define shift_right_logic_16(a, b)\
-	((((unsigned short)(a)) >> ((unsigned int)(b)&0x1f))&0xffff)
-#define shift_right_logic_32(a, b)\
-	((((unsigned int)(a)) >> ((unsigned int)(b)&0x1f))&0xffffffff)
-#define shift_right_logic_64(a, b)\
-	((((uint64_t)(a)) >> ((uint64_t)(b)&0x3f))&0xffffffffffffffff)
+#define SHIFT_RIGHT_ARITH(size, value, shift)				\
+	((uint ## size ## _t)((((uint64_t) (shift)) > ((size) - 1))?	\
+			      (((int ## size ## _t) (value)) < 0 ? -1 : 0) : \
+			      (((int ## size ## _t) (value)) >> (shift))))
 
-#define shift_left_logic_08(a, b)\
-	(((a)<<((b)&0x1f))&0xff)
-#define shift_left_logic_16(a, b)\
-	(((a)<<((b)&0x1f))&0xffff)
-#define shift_left_logic_32(a, b)\
-	(((a)<<((b)&0x1f))&0xffffffff)
-#define shift_left_logic_64(a, b)\
-	(((a)<<((b)&0x3f))&0xffffffffffffffff)
+#define SHIFT_RIGHT_LOGIC(size, value, shift)				\
+	((uint ## size ## _t)((((uint64_t) (shift)) > ((size) - 1))?	\
+			      0 :					\
+			      (((uint ## size ## _t) (value)) >> (shift))))
+
+#define SHIFT_LEFT_LOGIC(size, value, shift)		\
+	((uint ## size ## _t)((((uint64_t) (shift)) > ((size) - 1))?	\
+			      0 :					\
+			      (((uint ## size ## _t) (value)) << (shift))))
+
+
 
 #endif

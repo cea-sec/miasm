@@ -76,10 +76,10 @@ class TranslatorC(Translator):
                     self.from_expr(expr.args[0]), size2mask(expr.args[0].size),
                     self.from_expr(expr.args[1]), size2mask(expr.args[1].size))
             elif expr.op in self.dct_shift:
-                return 'shift_%s_%.2d(%s , %s)' % (self.dct_shift[expr.op],
-                                                   expr.args[0].size,
-                                                   self.from_expr(expr.args[0]),
-                                                   self.from_expr(expr.args[1]))
+                return 'SHIFT_%s(%d, %s, %s)' % (self.dct_shift[expr.op].upper(),
+                                                 expr.args[0].size,
+                                                 self.from_expr(expr.args[0]),
+                                                 self.from_expr(expr.args[1]))
             elif expr.is_associative() or expr.op in ["%", "/"]:
                 oper = ['(%s&0x%x)' % (self.from_expr(arg), size2mask(arg.size))
                         for arg in expr.args]
