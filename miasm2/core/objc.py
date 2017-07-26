@@ -721,11 +721,11 @@ class CTypeAnalyzer(ExprReducer):
             raise NotImplementedError("deref type %r" % base_type)
         return new_type
 
-    def reduce_id(self, node, _):
-        """Get type of ExprId"""
-        if not(isinstance(node.expr, ExprId) and node.expr.name in self.expr_types):
-            return None
-        return [self.expr_types[node.expr.name]]
+    def reduce_known_expr(self, node, _):
+        """Get type of a known expr"""
+        if node.expr in self.expr_types:
+            return [self.expr_types[node.expr]]
+        return None
 
     def reduce_int(self, node, _):
         """Get type of ExprInt"""
@@ -808,7 +808,7 @@ class CTypeAnalyzer(ExprReducer):
                 found.append(r_target)
         return found
 
-    reduction_rules = [reduce_id, reduce_int,
+    reduction_rules = [reduce_known_expr, reduce_int,
                        reduce_ptr_plus_cst, reduce_cst_op_cst,
                        reduce_deref,
                       ]
@@ -1001,16 +1001,12 @@ class ExprToAccessC(ExprReducer):
             raise NotImplementedError("deref type %r" % base_type)
         return new_type
 
-    def reduce_id(self, node, _):
-        """Generate access for ExprId"""
-
-        if not (isinstance(node.expr, ExprId) and
-                node.expr.name in self.expr_types):
-            return None
-
-        objcs = self.expr_types[node.expr.name]
-        out = [CGenId(objc, node.expr.name) for objc in objcs]
-        return out
+    def reduce_known_expr(self, node, _):
+        """Generate access for known expr"""
+        if node.expr in self.expr_types:
+            objcs = self.expr_types[node.expr]
+            return [CGenId(objc, str(node.expr)) for objc in objcs]
+        return None
 
     def reduce_int(self, node, _):
         """Generate access for ExprInt"""
@@ -1059,11 +1055,6 @@ class ExprToAccessC(ExprReducer):
 
         if not isinstance(node.expr, ExprMem):
             return None
-        if node.expr in self.expr_types:
-            objcs = self.expr_types[node.expr]
-            out = [CGenId(objc, str(node.expr)) for objc in objcs]
-            return out
-
         if node.arg.info is None:
             return None
         assert isinstance(node.arg.info, list)
@@ -1093,7 +1084,7 @@ class ExprToAccessC(ExprReducer):
             return None
         return found
 
-    reduction_rules = [reduce_id,
+    reduction_rules = [reduce_known_expr,
                        reduce_int,
                        reduce_op,
                        reduce_mem,
@@ -1167,12 +1158,10 @@ class ExprCToExpr(ExprReducer):
 
     CST = "CST"
 
-    def reduce_id(self, node, _):
-        """Reduce ExprId"""
-        if not isinstance(node.expr, ExprId):
-            return None
-        if node.expr.name in self.expr_types:
-            objc = self.expr_types[node.expr.name]
+    def reduce_known_expr(self, node, _):
+        """Reduce known expressions"""
+        if str(node.expr) in self.expr_types:
+            objc = self.expr_types[str(node.expr)]
             out = (node.expr, objc)
         else:
             out = (node.expr, None)
@@ -1343,7 +1332,7 @@ class ExprCToExpr(ExprReducer):
         out = (ExprMem(src, size), (src_type.objtype))
         return out
 
-    reduction_rules = [reduce_id,
+    reduction_rules = [reduce_known_expr,
                        reduce_int,
                        reduce_op_memberof,
                        reduce_op_field,
