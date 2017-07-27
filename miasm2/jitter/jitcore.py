@@ -47,7 +47,6 @@ class JitCore(object):
         self.log_regs = False
         self.log_newbloc = False
         self.segm_to_do = set()
-        self.job_done = set()
         self.jitcount = 0
         self.addr2obj = {}
         self.addr2objref = {}
@@ -140,7 +139,6 @@ class JitCore(object):
             addr = addr.offset
 
         # Prepare disassembler
-        self.mdis.job_done.clear()
         self.mdis.lines_wd = self.options["jit_maxline"]
         self.mdis.dis_bloc_callback = self.disasm_cb
 

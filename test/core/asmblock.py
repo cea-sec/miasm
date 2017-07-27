@@ -19,12 +19,16 @@ first_block = mdis.dis_block(0)
 assert len(first_block.lines) == 5
 print first_block
 
+## Test redisassemble blocks
+first_block_bis = mdis.dis_block(0)
+assert len(first_block.lines) == len(first_block_bis.lines)
+print first_block_bis
+
 ## Disassembly of several block, with cache
 blocks = mdis.dis_multiblock(0)
-assert len(blocks) == 0
+assert len(blocks) == 17
 
-## Test cache
-mdis.job_done.clear()
+## Test redisassemble blocks
 blocks = mdis.dis_multiblock(0)
 assert len(blocks) == 17
 ## Equality between assembly lines is not yet implemented

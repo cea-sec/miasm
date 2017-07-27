@@ -54,9 +54,6 @@ cb_x86_funcs.append(cb_x86_callpop)
 ## Other method:
 ## mdis.dis_bloc_callback = cb_x86_callpop
 
-# Clean disassembly cache
-mdis.job_done.clear()
-
 print "=" * 40
 print "With callback:\n"
 blocks_after = mdis.dis_multiblock(0)

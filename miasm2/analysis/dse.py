@@ -297,7 +297,6 @@ class DSEEngine(object):
         else:
 
             ## Reset cache structures
-            self.mdis.job_done.clear()
             self.ir_arch.blocks.clear()# = {}
 
             ## Update current state
