@@ -57,7 +57,6 @@ Dependency Graph Settings
 
 def get_block(ir_arch, mdis, addr):
     """Get IRBlock at address @addr"""
-    mdis.job_done.clear()
     lbl = ir_arch.get_label(addr)
     if not lbl in ir_arch.blocks:
         block = mdis.dis_block(lbl.offset)

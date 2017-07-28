@@ -1351,12 +1351,6 @@ class disasmEngine(object):
     + callback(arch, attrib, pool_bin, cur_bloc, offsets_to_dis,
                symbol_pool)
      - dis_bloc_callback: callback after each new disassembled block
-
-    The engine also tracks already handled block, for performance and to avoid
-    infinite cycling.
-    Addresses of disassembled block is in the attribute `job_done`.
-    To force a new disassembly, the targeted offset must first be removed from
-    this structure.
     """
 
     def __init__(self, arch, attrib, bin_stream, **kwargs):
@@ -1370,7 +1364,6 @@ class disasmEngine(object):
         self.attrib = attrib
         self.bin_stream = bin_stream
         self.symbol_pool = AsmSymbolPool()
-        self.job_done = set()
 
         # Setup options
         self.dont_dis = []
@@ -1386,11 +1379,26 @@ class disasmEngine(object):
         # Override options if needed
         self.__dict__.update(kwargs)
 
-    def _dis_block(self, offset):
+    def get_job_done(self):
+        warnings.warn("""DEPRECATION WARNING: "job_done" is not needed anymore, support is dropped.""")
+        return set()
+
+    def set_job_done(self, _):
+        warnings.warn("""DEPRECATION WARNING: "job_done" is not needed anymore, support is dropped.""")
+        return
+
+
+    # Deprecated
+    job_done = property(get_job_done, set_job_done)
+
+    def _dis_block(self, offset, job_done=None):
         """Disassemble the block at offset @offset
+        @job_done: a set of already disassembled addresses
         Return the created AsmBlock and future offsets to disassemble
         """
 
+        if job_done is None:
+            job_done = set()
         lines_cpt = 0
         in_delayslot = False
         delayslot_count = self.arch.delayslot
@@ -1405,7 +1413,7 @@ class disasmEngine(object):
 
             if offset in self.dont_dis:
                 if not cur_block.lines:
-                    self.job_done.add(offset)
+                    job_done.add(offset)
                     # Block is empty -> bad block
                     cur_block = AsmBlockBad(label, errno=2)
                 else:
@@ -1426,7 +1434,7 @@ class disasmEngine(object):
                 log_asmblock.debug("lines watchdog reached at %X", int(offset))
                 break
 
-            if offset in self.job_done:
+            if offset in job_done:
                 cur_block.add_cst(offset, AsmConstraint.c_next,
                                   self.symbol_pool)
                 break
@@ -1441,7 +1449,7 @@ class disasmEngine(object):
             if instr is None:
                 log_asmblock.warning("cannot disasm at %X", int(off_i))
                 if not cur_block.lines:
-                    self.job_done.add(offset)
+                    job_done.add(offset)
                     # Block is empty -> bad block
                     cur_block = AsmBlockBad(label, errno=0)
                 else:
@@ -1469,7 +1477,7 @@ class disasmEngine(object):
                 add_next_offset = True
                 break
 
-            self.job_done.add(offset)
+            job_done.add(offset)
             log_asmblock.debug("dis at %X", int(offset))
 
             offset += instr.l
@@ -1544,6 +1552,7 @@ class disasmEngine(object):
                 merge with
         """
         log_asmblock.info("dis bloc all")
+        job_done = set()
         if blocks is None:
             blocks = AsmCFG()
         todo = [offset]
@@ -1557,9 +1566,9 @@ class disasmEngine(object):
 
             target_offset = int(todo.pop(0))
             if (target_offset is None or
-                    target_offset in self.job_done):
+                    target_offset in job_done):
                 continue
-            cur_block, nexts = self._dis_block(target_offset)
+            cur_block, nexts = self._dis_block(target_offset, job_done)
             todo += nexts
             blocks.add_node(cur_block)
 
