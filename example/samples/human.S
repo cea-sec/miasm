@@ -1,11 +1,11 @@
 	;;  Walk a human link list and print its information
 main:
 	TEST       RDI, RDI
-	JZ         end
+	JZ         next
 
 	PUSH       RBX
 	MOV        RBX, RDI
-loop:
+loop_arg:
 	LEA        RSI, QWORD PTR [RBX+0x10]
 	LEA        RDI, QWORD PTR [name-_+RIP]
 	XOR        EAX, EAX
@@ -23,9 +23,23 @@ loop:
 
 	MOV        RBX, QWORD PTR [RBX]
 	TEST       RBX, RBX
-	JNZ        loop
+	JNZ        loop_arg
 
 	POP        RBX
+next:
+
+
+	LEA        RBX, QWORD PTR [struct_human_ptr-_+RIP]
+loop_global:
+	CMP        RBX, 0
+	JZ         end
+
+	LEA        RSI, QWORD PTR [RBX+0x10]
+	LEA        RDI, QWORD PTR [name-_+RIP]
+	XOR        EAX, EAX
+	CALL       printf
+	MOV        RBX, QWORD PTR [RBX]
+	JMP        loop_global
 end:
 	RET
 
@@ -39,3 +53,5 @@ height:
 .string "Height: %d\n"
 name:
 .string "Name: %s\n"
+struct_human_ptr:
+.dword 0xdead, 0xcafe

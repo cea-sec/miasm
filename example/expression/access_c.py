@@ -2,7 +2,7 @@ import sys
 
 from miasm2.analysis.machine import Machine
 from miasm2.analysis.binary import Container
-from miasm2.expression.expression import ExprOp, ExprCompose, ExprId
+from miasm2.expression.expression import ExprOp, ExprCompose, ExprId, ExprInt
 from miasm2.analysis.depgraph import DependencyGraph
 
 from miasm2.arch.x86.ctype import CTypeAMD64_unk
@@ -170,7 +170,8 @@ open('graph_irflow.dot', 'w').write(ir_arch_a.graph.dot())
 ptr_llhuman = types_mngr.get_objc(CTypePtr(CTypeStruct('ll_human')))
 arg0 = ExprId('ptr', 64)
 ctx = {ir_arch_a.arch.regs.RDI: arg0}
-expr_types = {arg0.name: ptr_llhuman}
+expr_types = {arg0: (ptr_llhuman,),
+              ExprInt(0x8A, 64): (ptr_llhuman,)}
 
 mychandler = MyCHandler(types_mngr, expr_types)
 
