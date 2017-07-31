@@ -721,13 +721,13 @@ class CTypeAnalyzer(ExprReducer):
             raise NotImplementedError("deref type %r" % base_type)
         return new_type
 
-    def reduce_known_expr(self, node, _):
+    def reduce_known_expr(self, node, ctxt, **kwargs):
         """Get type of a known expr"""
-        if node.expr in self.expr_types:
-            return [self.expr_types[node.expr]]
+        if node.expr in ctxt:
+            return [ctxt[node.expr]]
         return None
 
-    def reduce_int(self, node, _):
+    def reduce_int(self, node, **kwargs):
         """Get type of ExprInt"""
 
         if not isinstance(node.expr, ExprInt):
@@ -742,7 +742,7 @@ class CTypeAnalyzer(ExprReducer):
             return None
         return type(node.info[0])
 
-    def reduce_ptr_plus_cst(self, node, lvl):
+    def reduce_ptr_plus_cst(self, node, lvl=0, **kwargs):
         """Get type of ptr + CST"""
         if not node.expr.is_op("+") or len(node.args) != 2:
             return None
@@ -769,11 +769,11 @@ class CTypeAnalyzer(ExprReducer):
                                    lvl)
         return out
 
-    def reduce_cst_op_cst(self, node, _):
+    def reduce_cst_op_cst(self, node, **kwargs):
         """Get type of CST + CST"""
         if not node.expr.is_op("+") or len(node.args) != 2:
             return None
-        if node.args[0] is None or node.args[1] is None:
+        if node.args[0].info is None or node.args[1].info is None:
             return None
         args_types = set([self.get_solo_type(node.args[0]),
                           self.get_solo_type(node.args[1])])
@@ -781,7 +781,7 @@ class CTypeAnalyzer(ExprReducer):
             return []
         return [self.CST]
 
-    def reduce_deref(self, node, lvl):
+    def reduce_deref(self, node, lvl=0, **kwargs):
         """Get type of a dereferenced expression:
         * @NN[ptr<elem>] -> elem  (type)
         * @64[ptr<ptr<elem>>] -> ptr<elem>
@@ -813,10 +813,14 @@ class CTypeAnalyzer(ExprReducer):
                        reduce_deref,
                       ]
 
-    def get_type(self, expr):
+    def get_type(self, expr, ctxt):
         """Return the C type(s) of the native Miasm expression @expr
         @expr: Miasm expression"""
-        return self.reduce(expr)
+        ret = self.reduce(expr, ctxt=ctxt)
+        if not ret:
+            # None and [] will give None
+            return None
+        return ret
 
 
 class ExprToAccessC(ExprReducer):
@@ -1001,14 +1005,14 @@ class ExprToAccessC(ExprReducer):
             raise NotImplementedError("deref type %r" % base_type)
         return new_type
 
-    def reduce_known_expr(self, node, _):
+    def reduce_known_expr(self, node, ctxt, **kwargs):
         """Generate access for known expr"""
-        if node.expr in self.expr_types:
-            objcs = self.expr_types[node.expr]
+        if node.expr in ctxt:
+            objcs = ctxt[node.expr]
             return [CGenId(objc, str(node.expr)) for objc in objcs]
         return None
 
-    def reduce_int(self, node, _):
+    def reduce_int(self, node, **kwargs):
         """Generate access for ExprInt"""
 
         if not isinstance(node.expr, ExprInt):
@@ -1023,7 +1027,7 @@ class ExprToAccessC(ExprReducer):
             return None
         return type(node.info[0].ctype)
 
-    def reduce_op(self, node, lvl):
+    def reduce_op(self, node, lvl=0, **kwargs):
         """Generate access for ExprOp"""
         if not node.expr.is_op("+") or len(node.args) != 2:
             return None
@@ -1046,7 +1050,7 @@ class ExprToAccessC(ExprReducer):
             out += ret
         return out
 
-    def reduce_mem(self, node, lvl):
+    def reduce_mem(self, node, lvl=0, **kwargs):
         """Generate access for ExprMem:
         * @NN[ptr<elem>] -> elem  (type)
         * @64[ptr<ptr<elem>>] -> ptr<elem>
@@ -1090,13 +1094,16 @@ class ExprToAccessC(ExprReducer):
                        reduce_mem,
                       ]
 
-    def get_access(self, expr):
+    def get_access(self, expr, ctxt):
         """Generate C access(es) for the native Miasm expression @expr
         @expr: native Miasm expression
         """
 
-        return self.reduce(expr)
-
+        ret = self.reduce(expr, ctxt=ctxt)
+        if not ret:
+            # None and [] will give None
+            return None
+        return ret
 
 class ExprCToExpr(ExprReducer):
     """Translate a Miasm expression (representing a C access) into a native
@@ -1158,23 +1165,23 @@ class ExprCToExpr(ExprReducer):
 
     CST = "CST"
 
-    def reduce_known_expr(self, node, _):
+    def reduce_known_expr(self, node, ctxt, **kwargs):
         """Reduce known expressions"""
-        if str(node.expr) in self.expr_types:
-            objc = self.expr_types[str(node.expr)]
+        if str(node.expr) in ctxt:
+            objc = ctxt[str(node.expr)]
             out = (node.expr, objc)
         else:
             out = (node.expr, None)
         return out
 
-    def reduce_int(self, node, _):
+    def reduce_int(self, node, **kwargs):
         """Reduce ExprInt"""
 
         if not isinstance(node.expr, ExprInt):
             return None
         return self.CST
 
-    def reduce_op_memberof(self, node, _):
+    def reduce_op_memberof(self, node, **kwargs):
         """Reduce -> operator"""
 
         if not node.expr.is_op('->'):
@@ -1203,7 +1210,7 @@ class ExprCToExpr(ExprReducer):
         assert found
         return out
 
-    def reduce_op_field(self, node, _):
+    def reduce_op_field(self, node, **kwargs):
         """Reduce field operator (Struct or Union)"""
 
         if not node.expr.is_op('field'):
@@ -1256,7 +1263,7 @@ class ExprCToExpr(ExprReducer):
         assert found
         return out
 
-    def reduce_op_array(self, node, _):
+    def reduce_op_array(self, node, **kwargs):
         """Reduce array operator"""
 
         if not node.expr.is_op('[]'):
@@ -1293,7 +1300,7 @@ class ExprCToExpr(ExprReducer):
         out = (expr, objtype)
         return out
 
-    def reduce_op_addr(self, node, _):
+    def reduce_op_addr(self, node, **kwargs):
         """Reduce addr operator"""
 
         if not node.expr.is_op('addr'):
@@ -1320,7 +1327,7 @@ class ExprCToExpr(ExprReducer):
             raise NotImplementedError("unk type")
         return out
 
-    def reduce_op_deref(self, node, _):
+    def reduce_op_deref(self, node, **kwargs):
         """Reduce deref operator"""
 
         if not node.expr.is_op('deref'):
@@ -1348,7 +1355,12 @@ class ExprCToExpr(ExprReducer):
         @expr: Miasm expression (representing a C access)
         """
 
-        return self.reduce(expr)
+        ret = self.reduce(expr)
+        if not ret:
+            # None and [] will give None
+            return None
+        return ret
+
 
 
 class CTypesManager(object):
@@ -1629,11 +1641,11 @@ class CHandler(object):
                          for access in accesses]
         return accesses_simp
 
-    def expr_to_types(self, expr):
+    def expr_to_types(self, expr, ctxt):
         """Get the possible types of the Miasm @expr
         @expr: Miasm expression"""
 
-        return self.type_analyzer.get_type(expr).info
+        return self.type_analyzer.get_type(expr, ctxt).info
 
     def c_to_expr(self, c_str):
         """Convert a C string expression to a Miasm expression
