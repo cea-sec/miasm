@@ -21,6 +21,43 @@ PADDING_TYPE_NAME = "___padding___"
 def missing_definition(objtype):
     warnings.warn("Null size type: Missing definition? %r" % objtype)
 
+"""
+Display C type
+source: "The C Programming Language - 2nd Edition - Ritchie Kernighan.pdf"
+p. 124
+"""
+
+def objc_to_str(objc, result=None):
+    if result is None:
+        result = ""
+    while True:
+        if isinstance(objc, ObjCArray):
+            result += "[%d]" % objc.elems
+            objc = objc.objtype
+        elif isinstance(objc, ObjCPtr):
+            result = "(*%s)" % result
+            objc = objc.objtype
+        elif isinstance(objc, (ObjCDecl, ObjCStruct, ObjCUnion)):
+            if result:
+                result = "%s %s" % (objc, result)
+            else:
+                result = str(objc)
+            break
+        elif isinstance(objc, ObjCFunc):
+            args_str = []
+            for arg in objc.args:
+                args_str.append(objc_to_str(arg))
+            args = ", ".join(args_str)
+            result += "(%s)" % args
+            objc = objc.type_ret
+        elif isinstance(objc, ObjCInt):
+            return "int"
+        elif isinstance(objc, ObjCEllipsis):
+            return "..."
+        else:
+            raise TypeError("Unknown c type")
+    return result
+
 
 class ObjC(object):
     """Generic ObjC"""
@@ -61,7 +98,7 @@ class ObjCDecl(ObjC):
         return '<%s %s>' % (self.__class__.__name__, self.name)
 
     def __str__(self):
-        return '%s' % (self.name)
+        return str(self.name)
 
     def __cmp__(self, other):
         ret = self.cmp_base(other)
@@ -104,25 +141,6 @@ class ObjCPtr(ObjC):
     def __repr__(self):
         return '<%s %r>' % (self.__class__.__name__,
                             self.objtype.__class__)
-
-    def __str__(self):
-        target = self.objtype
-        if isinstance(target, ObjCDecl):
-            return "%s *" % target.name
-        elif isinstance(target, ObjCPtr):
-            return "%s *" % target
-        elif isinstance(target, ObjCStruct):
-            return "struct %s *" % target.name
-        elif isinstance(target, ObjCUnion):
-            return "union %s *" % target.name
-        elif isinstance(target, ObjCArray):
-            return "%s (*)[%s]" % (target.objtype, target.elems)
-        elif isinstance(target, ObjCFunc):
-            args = ", ".join([str(arg) for arg in target.args])
-            return "%s (*%s)(%s)" % (target.type_ret, target.name, args)
-        else:
-            return '*%s' % (target)
-
     def __cmp__(self, other):
         ret = self.cmp_base(other)
         if ret:
@@ -148,9 +166,6 @@ class ObjCArray(ObjC):
 
     def __repr__(self):
         return '<%r[%d]>' % (self.objtype, self.elems)
-
-    def __str__(self):
-        return '%s[%d]' % (self.objtype, self.elems)
 
     def __cmp__(self, other):
         ret = self.cmp_base(other)
