@@ -62,11 +62,25 @@ def objc_to_str(objc, result=None):
 class ObjC(object):
     """Generic ObjC"""
 
+    def __init__(self, align, size):
+        self._align = align
+        self._size = size
+
     def set_align_size(self, align, size):
         """Set C object alignment and size"""
 
-        self.align = align
-        self.size = size
+        self._align = align
+        self._size = size
+
+    @property
+    def align(self):
+        """Alignment (in bytes) of the C object"""
+        return self._align
+
+    @property
+    def size(self):
+        """Size (in bytes) of the C object"""
+        return self._size
 
     def eq_base(self, other):
         return (self.__class__ == other.__class__ and
@@ -83,6 +97,9 @@ class ObjC(object):
             return cmp(self.align, other.align)
         return cmp(self.size, other.size)
 
+    def __hash__(self):
+        return hash((self.__class__, self._align, self._size))
+
     def __str__(self):
         return objc_to_str(self)
 
@@ -91,8 +108,13 @@ class ObjCDecl(ObjC):
     """C Declaration identified"""
 
     def __init__(self, name, align, size):
-        super(ObjCDecl, self).__init__()
-        self.name, self.align, self.size = name, align, size
+        super(ObjCDecl, self).__init__(align, size)
+        self._name = name
+
+    name = property(lambda self: self._name)
+
+    def __hash__(self):
+        return hash((super(ObjCDecl, self).__hash__(), self._name))
 
     def __repr__(self):
         return '<%s %s>' % (self.__class__.__name__, self.name)
@@ -111,9 +133,7 @@ class ObjCInt(ObjC):
     """C integer"""
 
     def __init__(self):
-        super(ObjCInt, self).__init__()
-        self.size = None
-        self.align = None
+        super(ObjCInt, self).__init__(None, None)
 
     def __str__(self):
         return 'int'
@@ -133,14 +153,33 @@ class ObjCPtr(ObjC):
         @void_p_size: pointer size (in bytes)
         """
 
-        super(ObjCPtr, self).__init__()
+        super(ObjCPtr, self).__init__(void_p_align, void_p_size)
+        self._lock = False
+
         self.objtype = objtype
-        self.align = void_p_align
-        self.size = void_p_size
+        if objtype is None:
+            self._lock = False
+
+    def get_objtype(self):
+        assert self._lock is True
+        return self._objtype
+
+    def set_objtype(self, objtype):
+        assert self._lock is False
+        self._lock = True
+        self._objtype = objtype
+
+    objtype = property(get_objtype, set_objtype)
+
+    def __hash__(self):
+        # Don't try to hash on an unlocked Ptr (still mutable)
+        assert self._lock
+        return hash((super(ObjCPtr, self).__hash__(), hash(self._objtype)))
 
     def __repr__(self):
         return '<%s %r>' % (self.__class__.__name__,
                             self.objtype.__class__)
+
     def __cmp__(self, other):
         ret = self.cmp_base(other)
         if ret:
@@ -158,11 +197,15 @@ class ObjCArray(ObjC):
         @elems: number of elements in the array
         """
 
-        super(ObjCArray, self).__init__()
-        self.elems = elems
-        self.objtype = objtype
-        self.align = objtype.align
-        self.size = elems * objtype.size
+        super(ObjCArray, self).__init__(objtype.align, elems * objtype.size)
+        self._elems = elems
+        self._objtype = objtype
+
+    objtype = property(lambda self: self._objtype)
+    elems = property(lambda self: self._elems)
+
+    def __hash__(self):
+        return hash((super(ObjCArray, self).__hash__(), self._elems, hash(self._objtype)))
 
     def __repr__(self):
         return '<%r[%d]>' % (self.objtype, self.elems)
@@ -180,20 +223,17 @@ class ObjCArray(ObjC):
 class ObjCStruct(ObjC):
     """C object for structures"""
 
-    def __init__(self, name):
-        super(ObjCStruct, self).__init__()
-        self.name = name
-        self.fields = []
+    def __init__(self, name, align, size, fields):
+        super(ObjCStruct, self).__init__(align, size)
+        self._name = name
+        self._fields = tuple(fields)
 
-    def add_field(self, name, objtype, offset, size):
-        """Add a field into the structure
-        @name: field name
-        @objtype: field type
-        @offset: field offset in the structure
-        @size: field size
-        """
+    name = property(lambda self: self._name)
+    fields = property(lambda self: self._fields)
 
-        self.fields.append((name, objtype, offset, size))
+    def __hash__(self):
+        args = tuple((name, offset, size) for (name, _, offset, size)  in self._fields)
+        return hash((super(ObjCStruct, self).__hash__(), self._name, hash(args)))
 
     def __repr__(self):
         out = []
@@ -211,32 +251,21 @@ class ObjCStruct(ObjC):
         ret = self.cmp_base(other)
         if ret:
             return ret
-        ret = cmp(len(self.fields), len(other.fields))
-        if ret:
-            return ret
-        for field_a, field_b in zip(self.fields, other.fields):
-            ret = cmp(field_a, field_b)
-            if ret:
-                return ret
-        return 0
+        return cmp(self.name, other.name)
 
 class ObjCUnion(ObjC):
     """C object for unions"""
 
-    def __init__(self, name):
-        super(ObjCUnion, self).__init__()
-        self.name = name
-        self.fields = []
+    def __init__(self, name, align, size, fields):
+        super(ObjCUnion, self).__init__(align, size)
+        self._name = name
+        self._fields = tuple(fields)
 
-    def add_field(self, name, objtype, offset, size):
-        """Add a field into the structure
-        @name: field name
-        @objtype: field type
-        @offset: field offset in the structure
-        @size: field size
-        """
+    name = property(lambda self: self._name)
+    fields = property(lambda self: self._fields)
 
-        self.fields.append((name, objtype, offset, size))
+    def __hash__(self):
+        return hash((super(ObjCUnion, self).__hash__(), self._name, hash(self._fields)))
 
     def __repr__(self):
         out = []
@@ -254,22 +283,16 @@ class ObjCUnion(ObjC):
         ret = self.cmp_base(other)
         if ret:
             return ret
-        ret = cmp(len(self.fields), len(other.fields))
-        if ret:
-            return ret
-        for field_a, field_b in zip(self.fields, other.fields):
-            ret = cmp(field_a, field_b)
-            if ret:
-                return ret
-        return 0
+        return cmp(self.name, other.name)
 
 class ObjCEllipsis(ObjC):
     """C integer"""
 
     def __init__(self):
-        super(ObjCEllipsis, self).__init__()
-        self.size = None
-        self.align = None
+        super(ObjCEllipsis, self).__init__(None, None)
+
+    align = property(lambda self: self._align)
+    size = property(lambda self: self._size)
 
     def __cmp__(self, other):
         return self.cmp_base(other)
@@ -279,13 +302,19 @@ class ObjCFunc(ObjC):
     """C object for Functions"""
 
     def __init__(self, name, abi, type_ret, args, void_p_align, void_p_size):
-        super(ObjCFunc, self).__init__()
-        self.name = name
-        self.abi = abi
-        self.type_ret = type_ret
-        self.args = args
-        self.align = void_p_align
-        self.size = void_p_size
+        super(ObjCFunc, self).__init__(void_p_align, void_p_size)
+        self._name = name
+        self._abi = abi
+        self._type_ret = type_ret
+        self._args = tuple(args)
+
+    args = property(lambda self: self._args)
+    type_ret = property(lambda self: self._type_ret)
+    abi = property(lambda self: self._abi)
+    name = property(lambda self: self._name)
+
+    def __hash__(self):
+        return hash((super(ObjCFunc, self).__hash__(), hash(self._args), self._type_ret, self._abi, self._name))
 
     def __repr__(self):
         return "<%s %s>" % (self.__class__.__name__,
@@ -304,17 +333,7 @@ class ObjCFunc(ObjC):
         ret = self.cmp_base(other)
         if ret:
             return ret
-        ret = cmp(self.name, other.name)
-        if ret:
-            return ret
-        ret = cmp(len(self.args), len(other.args))
-        if ret:
-            return ret
-        for arg_a, arg_b in zip(self.args, other.args):
-            ret = cmp(arg_a, arg_b)
-            if ret:
-                return ret
-        return 0
+        return cmp(self.name, other.name)
 
 OBJC_PRIO = {
     ObjC: 0,
@@ -1447,22 +1466,22 @@ class CTypesManager(object):
             out = self.leaf_types.types.get(type_id, None)
             assert out is not None
         elif isinstance(type_id, CTypeUnion):
-            out = ObjCUnion(type_id.name)
+            args = []
             align_max, size_max = 0, 0
             for name, field in type_id.fields:
                 objc = self._get_objc(field, resolved, to_fix, lvl + 1)
                 resolved[field] = objc
                 align_max = max(align_max, objc.align)
                 size_max = max(size_max, objc.size)
-                out.add_field(name, objc, 0, objc.size)
+                args.append((name, objc, 0, objc.size))
 
             align, size = self.union_compute_align_size(align_max, size_max)
-            out.set_align_size(align, size)
+            out = ObjCUnion(type_id.name, align, size, args)
 
         elif isinstance(type_id, CTypeStruct):
-            out = ObjCStruct(type_id.name)
             align_max, size_max = 0, 0
 
+            args = []
             offset, align_max = 0, 1
             pad_index = 0
             for name, field in type_id.fields:
@@ -1475,13 +1494,13 @@ class CTypesManager(object):
                     pad_index += 1
                     size = new_offset - offset
                     pad_objc = self._get_objc(CTypeArray(self.padding, size), resolved, to_fix, lvl + 1)
-                    out.add_field(pad_name, pad_objc, offset, pad_objc.size)
+                    args.append((pad_name, pad_objc, offset, pad_objc.size))
                 offset = new_offset
-                out.add_field(name, objc, offset, objc.size)
+                args.append((name, objc, offset, objc.size))
                 offset += objc.size
 
             align, size = self.struct_compute_align_size(align_max, offset)
-            out.set_align_size(align, size)
+            out = ObjCStruct(type_id.name, align, size, args)
 
         elif isinstance(type_id, CTypePtr):
             target = type_id.target
