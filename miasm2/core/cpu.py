@@ -1169,7 +1169,11 @@ class cls_mn(object):
                     if bs_l * 8 - offset_b < l:
                         getok = False
                         break
-                    bv = cls.getbits(bs, mode, offset_b, l)
+                    try:
+                        bv = cls.getbits(bs, mode, offset_b, l)
+                    except:
+                        bs_o.leave_atomic_mode()
+                        raise
                     offset_b += l
                     if not f.fname in fname_values:
                         fname_values[f.fname] = bv
