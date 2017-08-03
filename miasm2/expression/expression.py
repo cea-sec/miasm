@@ -126,9 +126,12 @@ class Expr(object):
         raise ValueError('size is not mutable')
 
     def __init__(self):
+        # Common attribute
+        self._size = None
+
+        # Lazy cache needs
         self._hash = None
         self._repr = None
-        self._size = None
 
     size = property(lambda self: self._size)
 
@@ -390,7 +393,8 @@ class ExprInt(Expr):
         @arg: 'intable' number
         @size: int size"""
         super(ExprInt, self).__init__()
-        # Work is done in __new__
+        # Work for ._arg is done in __new__
+        self._size = size
 
     arg = property(lambda self: self._arg)
 
@@ -419,7 +423,6 @@ class ExprInt(Expr):
 
         # Save parameters (__init__ is called with parameters unchanged)
         expr._arg = arg
-        expr._size = expr._arg.size
         return expr
 
     def __get_int(self):
