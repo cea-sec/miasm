@@ -425,7 +425,7 @@ class ExprInt(Expr):
         expr._arg = arg
         return expr
 
-    def __get_int(self):
+    def _get_int(self):
         "Return self integer representation"
         return int(self._arg & size2mask(self._size))
 
