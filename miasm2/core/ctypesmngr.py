@@ -199,7 +199,7 @@ class CTypeFunc(CTypeBase):
         if type_ret:
             assert isinstance(type_ret, CTypeBase)
         if args:
-            for arg in args:
+            for arg_name, arg in args:
                 assert isinstance(arg, CTypeBase)
             args = tuple(args)
         else:
@@ -225,7 +225,7 @@ class CTypeFunc(CTypeBase):
         return "<Func:%s (%s) %s(%s)>" % (self.type_ret,
                                           self.abi,
                                           self.name,
-                                          ", ".join([str(arg) for arg in self.args]))
+                                          ", ".join(["%s %s" % (name, arg) for (name, arg) in self.args]))
 
 
 class CTypeEllipsis(CTypeBase):
@@ -591,7 +591,14 @@ class CAstTypes(object):
         type_ret = self.ast_to_typeid(ast.type)
         name, decl_info = self.get_funcname(ast.type)
         if ast.args:
-            args = [self.ast_to_typeid(arg) for arg in ast.args.params]
+            args = []
+            for arg in ast.args.params:
+                typeid = self.ast_to_typeid(arg)
+                if isinstance(typeid, CTypeEllipsis):
+                    arg_name = None
+                else:
+                    arg_name = arg.name
+                args.append((arg_name, typeid))
         else:
             args = []
 

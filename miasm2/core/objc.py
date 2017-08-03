@@ -45,8 +45,8 @@ def objc_to_str(objc, result=None):
             break
         elif isinstance(objc, ObjCFunc):
             args_str = []
-            for arg in objc.args:
-                args_str.append(objc_to_str(arg))
+            for name, arg in objc.args:
+                args_str.append(objc_to_str(arg, name))
             args = ", ".join(args_str)
             result += "(%s)" % args
             objc = objc.type_ret
@@ -313,8 +313,8 @@ class ObjCFunc(ObjC):
         out.append("Function (%s)  %s: (align: %d)" % (self.abi, self.name, self.align))
         out.append("  ret: %s" % (str(self.type_ret)))
         out.append("  Args:")
-        for arg in self.args:
-            out.append("  %s" % arg)
+        for name, arg in self.args:
+            out.append("  %s %s" % (name, arg))
         return '\n'.join(out)
 
     def __cmp__(self, other):
@@ -1328,10 +1328,10 @@ class CTypesManager(object):
                 type_id.type_ret, resolved, to_fix, lvl + 1)
             resolved[type_id.type_ret] = type_ret
             args = []
-            for arg in type_id.args:
+            for name, arg in type_id.args:
                 objc = self._get_objc(arg, resolved, to_fix, lvl + 1)
                 resolved[arg] = objc
-                args.append(objc)
+                args.append((name, objc))
             out = ObjCFunc(type_id.name, type_id.abi, type_ret, args,
                            self.void_ptr.align, self.void_ptr.size)
         elif isinstance(type_id, CTypeEllipsis):
@@ -1380,7 +1380,7 @@ class CTypesManager(object):
             return True
         elif isinstance(objc, ObjCFunc):
             assert self.check_objc(objc.type_ret, done)
-            for arg in objc.args:
+            for name, arg in objc.args:
                 assert self.check_objc(arg, done)
             return True
         else:
