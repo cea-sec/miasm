@@ -125,9 +125,12 @@ class Expr(object):
     def set_size(self, _):
         raise ValueError('size is not mutable')
 
-    def __init__(self):
+    def __init__(self, size):
+        """Instanciate an Expr with size @size
+        @size: int
+        """
         # Common attribute
-        self._size = None
+        self._size = size
 
         # Lazy cache needs
         self._hash = None
@@ -392,9 +395,8 @@ class ExprInt(Expr):
         """Create an ExprInt from a modint or num/size
         @arg: 'intable' number
         @size: int size"""
-        super(ExprInt, self).__init__()
+        super(ExprInt, self).__init__(size)
         # Work for ._arg is done in __new__
-        self._size = size
 
     arg = property(lambda self: self._arg)
 
@@ -496,9 +498,8 @@ class ExprId(Expr):
         @name: str, identifier's name
         @size: int, identifier's size
         """
-        super(ExprId, self).__init__()
-
-        self._name, self._size = name, size
+        super(ExprId, self).__init__(size)
+        self._name = name
 
     name = property(lambda self: self._name)
 
@@ -564,14 +565,13 @@ class ExprAff(Expr):
         # dst & src must be Expr
         assert isinstance(dst, Expr)
         assert isinstance(src, Expr)
-        super(ExprAff, self).__init__()
 
         if dst.size != src.size:
             raise ValueError(
                 "sanitycheck: ExprAff args must have same size! %s" %
                 ([(str(arg), arg.size) for arg in [dst, src]]))
 
-        self._size = self.dst.size
+        super(ExprAff, self).__init__(self.dst.size)
 
     dst = property(lambda self: self._dst)
     src = property(lambda self: self._src)
@@ -671,11 +671,9 @@ class ExprCond(Expr):
         assert isinstance(src1, Expr)
         assert isinstance(src2, Expr)
 
-        super(ExprCond, self).__init__()
-
         self._cond, self._src1, self._src2 = cond, src1, src2
         assert src1.size == src2.size
-        self._size = self.src1.size
+        super(ExprCond, self).__init__(self.src1.size)
 
     cond = property(lambda self: self._cond)
     src1 = property(lambda self: self._src1)
@@ -764,13 +762,12 @@ class ExprMem(Expr):
         assert isinstance(arg, Expr)
         assert isinstance(size, (int, long))
 
-        super(ExprMem, self).__init__()
-
         if not isinstance(arg, Expr):
             raise ValueError(
                 'ExprMem: arg must be an Expr (not %s)' % type(arg))
 
-        self._arg, self._size = arg, size
+        super(ExprMem, self).__init__(size)
+        self._arg = arg
 
     arg = property(lambda self: self._arg)
 
@@ -851,8 +848,6 @@ class ExprOp(Expr):
         # args must be Expr
         assert all(isinstance(arg, Expr) for arg in args)
 
-        super(ExprOp, self).__init__()
-
         sizes = set([arg.size for arg in args])
 
         if len(sizes) != 1:
@@ -911,7 +906,7 @@ class ExprOp(Expr):
                 # All arguments have the same size
                 size = list(sizes)[0]
 
-        self._size = size
+        super(ExprOp, self).__init__(size)
 
     op = property(lambda self: self._op)
     args = property(lambda self: self._args)
@@ -1014,12 +1009,10 @@ class ExprSlice(Expr):
         assert isinstance(arg, Expr)
         assert isinstance(start, (int, long))
         assert isinstance(stop, (int, long))
-
-        super(ExprSlice, self).__init__()
-
         assert start < stop
+
         self._arg, self._start, self._stop = arg, start, stop
-        self._size = self._stop - self._start
+        super(ExprSlice, self).__init__(self._stop - self._start)
 
     arg = property(lambda self: self._arg)
     start = property(lambda self: self._start)
@@ -1116,10 +1109,9 @@ class ExprCompose(Expr):
         # args must be Expr
         assert all(isinstance(arg, Expr) for arg in args)
 
-        super(ExprCompose, self).__init__()
         assert isinstance(args, tuple)
         self._args = args
-        self._size = sum([arg.size for arg in args])
+        super(ExprCompose, self).__init__(sum(arg.size for arg in args))
 
     args = property(lambda self: self._args)
 
