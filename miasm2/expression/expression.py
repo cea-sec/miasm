@@ -392,7 +392,6 @@ class ExprInt(Expr):
         super(ExprInt, self).__init__()
         # Work is done in __new__
 
-    size = property(lambda self: self._size)
     arg = property(lambda self: self._arg)
 
     def __reduce__(self):
@@ -498,7 +497,6 @@ class ExprId(Expr):
 
         self._name, self._size = name, size
 
-    size = property(lambda self: self._size)
     name = property(lambda self: self._name)
 
     def __reduce__(self):
@@ -572,7 +570,6 @@ class ExprAff(Expr):
 
         self._size = self.dst.size
 
-    size = property(lambda self: self._size)
     dst = property(lambda self: self._dst)
     src = property(lambda self: self._src)
 
@@ -677,7 +674,6 @@ class ExprCond(Expr):
         assert src1.size == src2.size
         self._size = self.src1.size
 
-    size = property(lambda self: self._size)
     cond = property(lambda self: self._cond)
     src1 = property(lambda self: self._src1)
     src2 = property(lambda self: self._src2)
@@ -773,7 +769,6 @@ class ExprMem(Expr):
 
         self._arg, self._size = arg, size
 
-    size = property(lambda self: self._size)
     arg = property(lambda self: self._arg)
 
     def __reduce__(self):
@@ -915,7 +910,6 @@ class ExprOp(Expr):
 
         self._size = size
 
-    size = property(lambda self: self._size)
     op = property(lambda self: self._op)
     args = property(lambda self: self._args)
 
@@ -1024,7 +1018,6 @@ class ExprSlice(Expr):
         self._arg, self._start, self._stop = arg, start, stop
         self._size = self._stop - self._start
 
-    size = property(lambda self: self._size)
     arg = property(lambda self: self._arg)
     start = property(lambda self: self._start)
     stop = property(lambda self: self._stop)
@@ -1125,7 +1118,6 @@ class ExprCompose(Expr):
         self._args = args
         self._size = sum([arg.size for arg in args])
 
-    size = property(lambda self: self._size)
     args = property(lambda self: self._args)
 
     def __reduce__(self):
