@@ -965,14 +965,18 @@ class ExprToAccessC(ExprReducer):
                        reduce_mem,
                       ]
 
-    def get_access(self, expr, ctxt=None):
+    def get_accesses(self, expr, expr_context=None):
         """Generate C access(es) for the native Miasm expression @expr
         @expr: native Miasm expression
-        @ctxt: a dictionnary linking known expression to their types
+        @expr_context: a dictionnary linking known expressions to their
+        types. An expression is linked to a tuple of types.
         """
-        if ctxt is None:
-            ctxt = self.expr_types
-        return self.reduce(expr, ctxt=ctxt)
+        if expr_context is None:
+            expr_context = self.expr_types
+        ret = self.reduce(expr, ctxt=expr_context)
+        if ret.info is None:
+            return []
+        return ret.info
 
 
 class ExprCToExpr(ExprReducer):
@@ -1230,14 +1234,17 @@ class ExprCToExpr(ExprReducer):
                        reduce_op_deref,
                       ]
 
-    def get_expr(self, expr, ctxt):
+    def get_expr(self, expr, c_context):
         """Translate a Miasm expression @expr (representing a C access) into a
-        native Miasm expression and its C type
-
+        tuple composed of a native Miasm expression and its C type.
         @expr: Miasm expression (representing a C access)
-        @ctxt: a dictionnary linking known tokens (strings) to their types
+        @c_context: a dictionnary linking known tokens (strings) to their
+        types. A token is linked to only one type.
         """
-        return self.reduce(expr, ctxt=ctxt)
+        ret = self.reduce(expr, ctxt=c_context)
+        if ret.info is None:
+            return (None, None)
+        return ret.info
 
 
 class CTypesManager(object):
@@ -1505,47 +1512,78 @@ class CHandler(object):
         self.exprc2expr.updt_expr_types(expr_types)
         self.access_c_gen.updt_expr_types(expr_types)
 
-    def expr_to_c(self, expr, ctxt=None):
-        """Convert a Miasm @expr into it's C equivatlent string
-        @expr: Miasm expression"""
+    def expr_to_c_access(self, expr, expr_context=None):
+        """Generate the C access object(s) for a given native Miasm expression.
+        @expr: Miasm expression
+        @expr_context: a dictionnary linking known expressions to their
+        types. An expression is linked to a tuple of types.
+        """
 
-        if ctxt is None:
-            ctxt = self.expr_types
-        expr_access = self.access_c_gen.get_access(expr, ctxt)
-        accesses = [access for access in expr_access.info]
-        accesses_simp = [access_str(access.to_expr().visit(self.simplify_c))
-                         for access in accesses]
-        return accesses_simp
+        if expr_context is None:
+            expr_context = self.expr_types
+        return self.access_c_gen.get_accesses(expr, expr_context)
 
-    def expr_to_types(self, expr, ctxt=None):
+
+    def expr_to_c_and_types(self, expr, expr_context=None):
+        """Generate the C access string and corresponding type for a given
+        native Miasm expression.
+        @expr_context: a dictionnary linking known expressions to their
+        types. An expression is linked to a tuple of types.
+        """
+
+        accesses = []
+        for access in self.expr_to_c_access(expr, expr_context):
+            c_str = access_str(access.to_expr().visit(self.simplify_c))
+            accesses.append((c_str, access.ctype))
+        return accesses
+
+    def expr_to_c(self, expr, expr_context=None):
+        """Convert a Miasm @expr into it's C equivalent string
+        @expr_context: a dictionnary linking known expressions to their
+        types. An expression is linked to a tuple of types.
+        """
+
+        return [access[0] for access in self.expr_to_c_and_types(expr, expr_context)]
+
+    def expr_to_types(self, expr, expr_context=None):
         """Get the possible types of the Miasm @expr
-        @expr: Miasm expression"""
+        @expr_context: a dictionnary linking known expressions to their
+        types. An expression is linked to a tuple of types.
+        """
 
-        if ctxt is None:
-            ctxt = self.expr_types
-        expr_access = self.access_c_gen.get_access(expr, ctxt)
-        if expr_access.info is not None:
-            out = [access.ctype for access in expr_access.info]
-        else:
-            out = []
-        return out
+        return [access.ctype for access in self.expr_to_c_access(expr, expr_context)]
 
-    def c_to_expr(self, c_str, ctxt):
+    def c_to_expr_and_type(self, c_str, c_context):
+        """Convert a C string expression to a Miasm expression and it's
+        corresponding c type
+        @c_str: C string
+        @c_context: a dictionnary linking known tokens (strings) to their
+        types. A token is linked to only one type.
+        """
+
+        ast = parse_access(c_str)
+        access_c = ast_get_c_access_expr(ast, c_context)
+        return self.exprc2expr.get_expr(access_c, c_context)
+
+    def c_to_expr(self, c_str, c_context):
         """Convert a C string expression to a Miasm expression
-        @c_str: C string"""
+        @c_str: C string
+        @c_context: a dictionnary linking known tokens (strings) to their
+        types. A token is linked to only one type.
+        """
 
-        ast = parse_access(c_str)
-        access_c = ast_get_c_access_expr(ast, ctxt)
-        return self.exprc2expr.get_expr(access_c, ctxt).info[0]
+        expr, _ = self.c_to_expr_and_type(c_str, c_context)
+        return expr
 
-    def c_to_type(self, c_str, ctxt):
+    def c_to_type(self, c_str, c_context):
         """Get the type of a C string expression
-        @expr: Miasm expression"""
+        @expr: Miasm expression
+        @c_context: a dictionnary linking known tokens (strings) to their
+        types. A token is linked to only one type.
+        """
 
-        ast = parse_access(c_str)
-        access_c = ast_get_c_access_expr(ast, ctxt)
-        ret_type = self.exprc2expr.get_expr(access_c, ctxt).info[1]
-        return ret_type
+        _, ctype = self.c_to_expr_and_type(c_str, c_context)
+        return ctype
 
 
 class CLeafTypes(object):
