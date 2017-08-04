@@ -18,6 +18,7 @@ from miasm2.expression.expression import ExprMem, ExprId, ExprInt, ExprOp, ExprA
 from miasm2.ir.symbexec_types import SymbExecCType
 from miasm2.expression.parser import str_to_expr
 from miasm2.ir.symbexec import SymbolicExecutionEngine, SymbolicState
+from miasm2.analysis.cst_propag import add_state, propagate_cst_expr
 
 from utils import guess_machine
 
@@ -37,7 +38,7 @@ Dependency Graph Settings
 <##Header file :{headerFile}>
 <Architecture/complator:{arch}>
 <Types informations:{strTypesInfo}>
-<Unalias stack:{rUnaliasStack}>{cMethod}>
+<Unalias stack:{rUnaliasStack}>{cUnalias}>
 """, {
                           'headerFile': ida_kernwin.Form.FileInput(swidth=20, open=True),
                           'arch': ida_kernwin.Form.DropdownListControl(
@@ -46,9 +47,10 @@ Dependency Graph Settings
                               selval=archs[0]),
                           'strTypesInfo': ida_kernwin.Form.MultiLineTextControl(text=default_types_info,
                                                                     flags=ida_kernwin.Form.MultiLineTextControl.TXTF_FIXEDFONT),
-                          'cMethod': ida_kernwin.Form.ChkGroupControl(("rUnaliasStack",)),
+                          'cUnalias': ida_kernwin.Form.ChkGroupControl(("rUnaliasStack",)),
                       })
         form, args = self.Compile()
+        form.rUnaliasStack.checked = True
 
 
 def get_block(ir_arch, mdis, addr):
@@ -99,6 +101,20 @@ class TypePropagationEngine(SymbExecCType):
 
 class SymbExecCTypeFix(SymbExecCType):
 
+    def __init__(self, ir_arch,
+                 symbols, chandler,
+                 cst_propag_link,
+                 func_read=None, func_write=None,
+                 sb_expr_simp=expr_simp):
+        super(SymbExecCTypeFix, self).__init__(ir_arch,
+                                               symbols,
+                                               chandler,
+                                               func_read=func_read,
+                                               func_write=func_write,
+                                               sb_expr_simp=expr_simp)
+
+        self.cst_propag_link = cst_propag_link
+
     def emulbloc(self, irb, step=False):
         """
         Symbolic execution of the @irb on the current state
@@ -108,6 +124,9 @@ class SymbExecCTypeFix(SymbExecCType):
 
         offset2cmt = {}
         for index, assignblk in enumerate(irb.irs):
+            if set(assignblk) == set([self.ir_arch.IRDst, self.ir_arch.pc]):
+                # Don't display on jxx
+                continue
             instr = assignblk.instr
             tmp_r = assignblk.get_r()
             tmp_w = assignblk.get_w()
@@ -116,10 +135,8 @@ class SymbExecCTypeFix(SymbExecCType):
 
             # Replace PC with value to match IR args
             pc_fixed = {self.ir_arch.pc: m2_expr.ExprInt(instr.offset + instr.l, self.ir_arch.pc.size)}
-            args = instr.args
-            for arg in args:
+            for arg in tmp_r:
                 arg = expr_simp(arg.replace_expr(pc_fixed))
-
                 if arg in tmp_w and not arg.is_mem():
                     continue
                 todo.add(arg)
@@ -127,10 +144,10 @@ class SymbExecCTypeFix(SymbExecCType):
             for expr in todo:
                 if expr.is_int():
                     continue
-
                 for c_str, c_type in self.chandler.expr_to_c_and_types(expr, self.symbols):
+                    expr = self.cst_propag_link.get((irb.label, index), {}).get(expr, expr)
                     offset2cmt.setdefault(instr.offset, set()).add(
-                        "\n%s\n%s" % (c_str, c_type))
+                        "\n%s: %s\n%s" % (expr, c_str, c_type))
 
             self.eval_ir(assignblk)
         for offset, value in offset2cmt.iteritems():
@@ -142,11 +159,12 @@ class SymbExecCTypeFix(SymbExecCType):
 
 class CTypeEngineFixer(SymbExecCTypeFix):
 
-    def __init__(self, ir_arch, types_mngr, state):
+    def __init__(self, ir_arch, types_mngr, state, cst_propag_link):
         mychandler = MyCHandler(types_mngr, state.symbols)
         super(CTypeEngineFixer, self).__init__(ir_arch,
                                                state.symbols,
-                                               mychandler)
+                                               mychandler,
+                                               cst_propag_link)
 
 
 def get_ira_call_fixer(ira):
@@ -166,16 +184,6 @@ def get_ira_call_fixer(ira):
                                 )]
 
     return iraCallStackFixer
-
-
-def add_state(ir_arch, todo, states, addr, state):
-    addr = ir_arch.get_label(addr)
-    if addr not in states:
-        states[addr] = state
-        todo.add(addr)
-    else:
-        todo.add(addr)
-        states[addr] = states[addr].merge(state)
 
 
 def analyse_function():
@@ -206,6 +214,11 @@ def analyse_function():
     ret = settings.Execute()
     if not ret:
         return
+
+    cst_propag_link = {}
+    if settings.cUnalias.value:
+        init_infos = {ir_arch.sp: ir_arch.arch.regs.regs_init[ir_arch.sp] }
+        cst_propag_link = propagate_cst_expr(ir_arch, addr, init_infos)
 
 
     types_mngr = get_types_mngr(settings.headerFile.value, settings.arch.value)
@@ -264,7 +277,7 @@ def analyse_function():
                       symbexec_engine.get_state())
 
     for lbl, state in states.iteritems():
-        symbexec_engine = CTypeEngineFixer(ir_arch, types_mngr, state)
+        symbexec_engine = CTypeEngineFixer(ir_arch, types_mngr, state, cst_propag_link)
         addr = symbexec_engine.emul_ir_block(lbl)
         symbexec_engine.del_mem_above_stack(ir_arch.sp)
 
