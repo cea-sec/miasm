@@ -10,7 +10,10 @@ class SymbolicStateCTypes(StateEngine):
     """Store C types of symbols"""
 
     def __init__(self, symbols):
-        self._symbols = frozenset(symbols.items())
+        tmp = {}
+        for expr, types in symbols.iteritems():
+            tmp[expr] = frozenset(types)
+        self._symbols = frozenset(tmp.iteritems())
 
     def __hash__(self):
         return hash((self.__class__, self._symbols))
@@ -37,9 +40,14 @@ class SymbolicStateCTypes(StateEngine):
         Only expressions with equal C types in both states are kept.
         @other: second symbolic state
         """
-        symb_a = self.symbols.items()
-        symb_b = other.symbols.items()
-        symbols = dict(set(symb_a).intersection(symb_b))
+        symb_a = self.symbols
+        symb_b = other.symbols
+        common_expr = set(symb_a).intersection(symb_b)
+        symbols = {}
+        for expr in common_expr:
+            ctypes = symb_a[expr].intersection(symb_b[expr])
+            if ctypes:
+                symbols[expr] = ctypes
         return self.__class__(symbols)
 
     @property
@@ -87,13 +95,13 @@ class SymbExecCType(SymbolicExecutionEngine):
             if isinstance(dst, ExprMem):
                 continue
             elif isinstance(dst, ExprId):
-                pool_out[dst] = tuple(objcs)
+                pool_out[dst] = frozenset(objcs)
             else:
-                raise ValueError("affected zarb", str(dst))
+                raise ValueError("Unsupported affectation", str(dst))
         return pool_out.iteritems()
 
     def eval_expr(self, expr, eval_cache=None):
-        return self.chandler.expr_to_types(expr, self.symbols)
+        return frozenset(self.chandler.expr_to_types(expr, self.symbols))
 
     def apply_change(self, dst, src):
         if src is None:
