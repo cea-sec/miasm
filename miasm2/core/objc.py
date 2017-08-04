@@ -35,7 +35,13 @@ def objc_to_str(objc, result=None):
             result += "[%d]" % objc.elems
             objc = objc.objtype
         elif isinstance(objc, ObjCPtr):
-            result = "(*%s)" % result
+            if not result and isinstance(objc.objtype, ObjCFunc):
+                result = objc.objtype.name
+            if isinstance(objc.objtype, (ObjCPtr, ObjCDecl, ObjCStruct, ObjCUnion)):
+                result = "*%s" % result
+            else:
+                result = "(*%s)" % result
+
             objc = objc.objtype
         elif isinstance(objc, (ObjCDecl, ObjCStruct, ObjCUnion)):
             if result:
