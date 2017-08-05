@@ -247,6 +247,11 @@ for script in ["modint.py",
                ]:
     testset += RegressionTest([script], base_dir="expression")
 
+## ObjC/CHandler
+testset += RegressionTest(["test_chandler.py"], base_dir="expr_type",
+                          tags=[TAGS["cparser"]])
+
+
 ## IR
 for script in ["symbexec.py",
                "ir.py",
