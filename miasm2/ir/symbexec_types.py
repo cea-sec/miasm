@@ -37,15 +37,14 @@ class SymbolicStateCTypes(StateEngine):
 
     def merge(self, other):
         """Merge two symbolic states
-        Only expressions with equal C types in both states are kept.
+        The resulting types are the union of types of both states.
         @other: second symbolic state
         """
         symb_a = self.symbols
         symb_b = other.symbols
-        common_expr = set(symb_a).intersection(symb_b)
         symbols = {}
-        for expr in common_expr:
-            ctypes = symb_a[expr].intersection(symb_b[expr])
+        for expr in set(symb_a).union(set(symb_b)):
+            ctypes = symb_a.get(expr, set()).union(symb_b.get(expr, set()))
             if ctypes:
                 symbols[expr] = ctypes
         return self.__class__(symbols)
