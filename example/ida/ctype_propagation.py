@@ -53,18 +53,6 @@ Dependency Graph Settings
         form.rUnaliasStack.checked = True
 
 
-def get_block(ir_arch, mdis, addr):
-    """Get IRBlock at address @addr"""
-    lbl = ir_arch.get_label(addr)
-    if not lbl in ir_arch.blocks:
-        block = mdis.dis_block(lbl.offset)
-        ir_arch.add_block(block)
-    irblock = ir_arch.get_block(lbl)
-    if irblock is None:
-        raise LookupError('No block found at that address: %s' % lbl)
-    return irblock
-
-
 def get_types_mngr(headerFile, arch):
     text = open(headerFile).read()
     if arch == "AMD64_unk":
@@ -265,8 +253,7 @@ def analyse_function():
         done.add((lbl, state))
         symbexec_engine = TypePropagationEngine(ir_arch, types_mngr, state)
 
-        get_block(ir_arch, mdis, lbl)
-
+        assert lbl in ir_arch.blocks
         addr = symbexec_engine.emul_ir_block(lbl)
         symbexec_engine.del_mem_above_stack(ir_arch.sp)
 

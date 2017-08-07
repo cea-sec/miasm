@@ -11,7 +11,7 @@ from miasm2.core.bin_stream import bin_stream_str
 from miasm2.core import asmblock
 from miasm2.expression.expression import get_rw
 from miasm2.expression.modint import uint32
-from miasm2.ir.symbexec import SymbolicExecutionEngine
+from miasm2.ir.symbexec import SymbolicExecutionEngine, get_block
 from miasm2.expression.simplifications import expr_simp
 from miasm2.expression import stp
 from miasm2.core import parse_asm
@@ -28,21 +28,6 @@ parser.add_option('-a', "--address", dest="address", metavar="ADDRESS",
 if not args:
     parser.print_help()
     sys.exit(0)
-
-
-def get_block(ir_arch, mdis, ad):
-    if isinstance(ad, asmblock.AsmLabel):
-        l = ad
-    else:
-        l = mdis.symbol_pool.getby_offset_create(ad)
-    if not l in ir_arch.blocks:
-        ad = l.offset
-        b = mdis.dis_block(ad)
-        ir_arch.add_block(b)
-    b = ir_arch.get_block(l)
-    if b is None:
-        raise LookupError('no block found at that address: %s' % l)
-    return b
 
 
 def emul_symb(ir_arch, mdis, states_todo, states_done):
