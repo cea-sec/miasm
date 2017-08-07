@@ -414,6 +414,22 @@ class CGen(object):
 
     default_size = 64
 
+
+    def __init__(self, ctype):
+        self._ctype = ctype
+
+    @property
+    def ctype(self):
+        """Type (ObjC instance) of the current object"""
+        return self._ctype
+
+    def __hash__(self):
+        return hash(self.__class__)
+
+    def __eq__(self, other):
+        return (self.__class__ == other.__class__ and
+                self._ctype == other.ctype)
+
     def to_c(self):
         """Generate corresponding C"""
 
@@ -430,8 +446,20 @@ class CGenInt(CGen):
 
     def __init__(self, integer):
         assert isinstance(integer, (int, long))
-        self.integer = integer
-        self.ctype = ObjCInt()
+        self._integer = integer
+        super(CGenInt, self).__init__(ObjCInt())
+
+    @property
+    def integer(self):
+        """Value of the object"""
+        return self._integer
+
+    def __hash__(self):
+        return hash((super(CGenInt, self).__hash__(), self._integer))
+
+    def __eq__(self, other):
+        return (super(CGenInt, self).__eq__(other) and
+                self._integer == other.integer)
 
     def to_c(self):
         """Generate corresponding C"""
@@ -452,9 +480,21 @@ class CGenId(CGen):
     """ID of a C object"""
 
     def __init__(self, ctype, name):
-        self.ctype = ctype
-        self.name = name
+        self._name = name
         assert isinstance(name, str)
+        super(CGenId, self).__init__(ctype)
+
+    @property
+    def name(self):
+        """Name of the Id"""
+        return self._name
+
+    def __hash__(self):
+        return hash((super(CGenId, self).__hash__(), self._name))
+
+    def __eq__(self, other):
+        return (super(CGenId, self).__eq__(other) and
+                self._name == other.name)
 
     def __repr__(self):
         return "<%s %s>" % (self.__class__.__name__,
@@ -485,14 +525,32 @@ class CGenField(CGen):
     """
 
     def __init__(self, struct, field, fieldtype, void_p_align, void_p_size):
-        self.struct = struct
-        self.field = field
+        self._struct = struct
+        self._field = field
         assert isinstance(field, str)
         if isinstance(fieldtype, ObjCArray):
             ctype = fieldtype
         else:
             ctype = ObjCPtr(fieldtype, void_p_align, void_p_size)
-        self.ctype = ctype
+        super(CGenField, self).__init__(ctype)
+
+    @property
+    def struct(self):
+        """Structure containing the field"""
+        return self._struct
+
+    @property
+    def field(self):
+        """Field name"""
+        return self._field
+
+    def __hash__(self):
+        return hash((super(CGenField, self).__hash__(), self._struct, self._field))
+
+    def __eq__(self, other):
+        return (super(CGenField, self).__eq__(other) and
+                self._struct == other.struct and
+                self._field == other.field)
 
     def to_c(self):
         """Generate corresponding C"""
@@ -539,8 +597,8 @@ class CGenArray(CGen):
     - X[] => X*
     """
 
-    def __init__(self, name, element, void_p_align, void_p_size):
-        ctype = name.ctype
+    def __init__(self, base, elems, void_p_align, void_p_size):
+        ctype = base.ctype
         if isinstance(ctype, ObjCPtr):
             pass
         elif isinstance(ctype, ObjCArray) and isinstance(ctype.objtype, ObjCArray):
@@ -549,21 +607,39 @@ class CGenArray(CGen):
             ctype = ObjCPtr(ctype.objtype, void_p_align, void_p_size)
         else:
             raise TypeError("Strange case")
-        self.ctype = ctype
-        self.name = name
-        self.element = element
+        self._base = base
+        self._elems = elems
+        super(CGenArray, self).__init__(ctype)
+
+    @property
+    def base(self):
+        """Base object supporting the array"""
+        return self._base
+
+    @property
+    def elems(self):
+        """Number of elements in the array"""
+        return self._elems
+
+    def __hash__(self):
+        return hash((super(CGenArray, self).__hash__(), self._base, self._elems))
+
+    def __eq__(self, other):
+        return (super(CGenField, self).__eq__(other) and
+                self._base == other.base and
+                self._elems == other.elems)
 
     def __repr__(self):
         return "<%s %s>" % (self.__class__.__name__,
-                            self.name)
+                            self.base)
 
     def to_c(self):
         """Generate corresponding C"""
 
         if isinstance(self.ctype, ObjCPtr):
-            out_str = "&((%s)[%d])" % (self.name.to_c(), self.element)
+            out_str = "&((%s)[%d])" % (self.base.to_c(), self.elems)
         elif isinstance(self.ctype, ObjCArray):
-            out_str = "(%s)[%d]" % (self.name.to_c(), self.element)
+            out_str = "(%s)[%d]" % (self.base.to_c(), self.elems)
         else:
             raise RuntimeError("Strange case")
         return out_str
@@ -574,12 +650,12 @@ class CGenArray(CGen):
         if isinstance(self.ctype, ObjCPtr):
             return ExprOp("addr",
                           ExprOp("[]",
-                                 self.name.to_expr(),
-                                 ExprInt(self.element, self.default_size)))
+                                 self.base.to_expr(),
+                                 ExprInt(self.elems, self.default_size)))
         elif isinstance(self.ctype, ObjCArray):
             return ExprOp("[]",
-                          self.name.to_expr(),
-                          ExprInt(self.element, self.default_size))
+                          self.base.to_expr(),
+                          ExprInt(self.elems, self.default_size))
         else:
             raise RuntimeError("Strange case")
 
@@ -594,28 +670,40 @@ class CGenDeref(CGen):
     - X* => X
     """
 
-    def __init__(self, mem):
-        assert isinstance(mem.ctype, ObjCPtr)
-        self.ctype = mem.ctype.objtype
-        self.mem = mem
+    def __init__(self, ptr):
+        assert isinstance(ptr.ctype, ObjCPtr)
+        self._ptr = ptr
+        super(CGenDeref, self).__init__(ptr.ctype.objtype)
+
+    @property
+    def ptr(self):
+        """Pointer object"""
+        return self._ptr
+
+    def __hash__(self):
+        return hash((super(CGenDeref, self).__hash__(), self._ptr))
+
+    def __eq__(self, other):
+        return (super(CGenField, self).__eq__(other) and
+                self._ptr == other.ptr)
 
     def __repr__(self):
         return "<%s %s>" % (self.__class__.__name__,
-                            self.mem)
+                            self.ptr)
 
     def to_c(self):
         """Generate corresponding C"""
 
-        if not isinstance(self.mem.ctype, ObjCPtr):
+        if not isinstance(self.ptr.ctype, ObjCPtr):
             raise RuntimeError()
-        return "*(%s)" % (self.mem.to_c())
+        return "*(%s)" % (self.ptr.to_c())
 
     def to_expr(self):
         """Generate Miasm expression representing the C access"""
 
-        if not isinstance(self.mem.ctype, ObjCPtr):
+        if not isinstance(self.ptr.ctype, ObjCPtr):
             raise RuntimeError()
-        return ExprOp("deref", self.mem.to_expr())
+        return ExprOp("deref", self.ptr.to_expr())
 
 
 def ast_get_c_access_expr(ast, expr_types, lvl=0):
