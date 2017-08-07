@@ -659,6 +659,11 @@ def adrp(arg1, arg2):
 
 
 @sbuild.parse
+def adr(arg1, arg2):
+    arg1 = PC + arg2
+
+
+@sbuild.parse
 def b(arg1):
     PC = arg1
     ir.IRDst = arg1
