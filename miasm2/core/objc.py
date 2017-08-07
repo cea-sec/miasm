@@ -66,12 +66,6 @@ class ObjC(object):
         self._align = align
         self._size = size
 
-    def set_align_size(self, align, size):
-        """Set C object alignment and size"""
-
-        self._align = align
-        self._size = size
-
     @property
     def align(self):
         """Alignment (in bytes) of the C object"""
@@ -81,11 +75,6 @@ class ObjC(object):
     def size(self):
         """Size (in bytes) of the C object"""
         return self._size
-
-    def eq_base(self, other):
-        return (self.__class__ == other.__class__ and
-                self.align == other.align and
-                self.size == other.size)
 
     def cmp_base(self, other):
         assert self.__class__ in OBJC_PRIO
@@ -232,8 +221,7 @@ class ObjCStruct(ObjC):
     fields = property(lambda self: self._fields)
 
     def __hash__(self):
-        args = tuple((name, offset, size) for (name, _, offset, size)  in self._fields)
-        return hash((super(ObjCStruct, self).__hash__(), self._name, hash(args)))
+        return hash((super(ObjCStruct, self).__hash__(), self._name))
 
     def __repr__(self):
         out = []
@@ -265,7 +253,7 @@ class ObjCUnion(ObjC):
     fields = property(lambda self: self._fields)
 
     def __hash__(self):
-        return hash((super(ObjCUnion, self).__hash__(), self._name, hash(self._fields)))
+        return hash((super(ObjCUnion, self).__hash__(), self._name))
 
     def __repr__(self):
         out = []
@@ -314,7 +302,7 @@ class ObjCFunc(ObjC):
     name = property(lambda self: self._name)
 
     def __hash__(self):
-        return hash((super(ObjCFunc, self).__hash__(), hash(self._args), self._type_ret, self._abi, self._name))
+        return hash((super(ObjCFunc, self).__hash__(), hash(self._args), self._name))
 
     def __repr__(self):
         return "<%s %s>" % (self.__class__.__name__,
@@ -693,209 +681,6 @@ def parse_access(c_access):
     return access
 
 
-class CTypeAnalyzer(ExprReducer):
-    """
-    Return the C type(s) of a native Miasm expression
-    """
-
-    def __init__(self, expr_types, types_mngr, enforce_strict_access=True):
-        """Init TypeAnalyzer
-        @expr_types: a dictionnary linking ID names to their types
-        @types_mngr: types manager
-        @enforce_strict_access: If false, get type even on expression
-        pointing to a middle of an object. If true, raise exception if such a
-        pointer is encountered
-        """
-
-        self.expr_types = expr_types
-        self.types_mngr = types_mngr
-        self.enforce_strict_access = enforce_strict_access
-
-    def updt_expr_types(self, expr_types):
-        """Update expr_types
-        @expr_types: Dictionnary associating name to type
-        """
-
-        self.expr_types = expr_types
-
-    CST = ObjCInt()
-
-    def get_typeof(self, base_type, offset, deref, lvl=0):
-        """Return a list of pointers (or None) on the element at @offset of an
-        object of type @base_type
-
-        In case of no @deref, stops recursion as soon as we reached the base of
-        an object.
-        In other cases, we need to go down to the final dereferenced object
-
-        @base_type: type of main object
-        @offset: offset (in bytes) of the target sub object
-        @deref: get type for a pointer or a deref
-        @lvl: actual recursion level
-        """
-        void_type = self.types_mngr.void_ptr
-
-        if isinstance(base_type, ObjCStruct):
-            if offset == 0 and not deref:
-                # In this case, return the struct*
-                obj = ObjCPtr(base_type, void_type.align, void_type.size)
-                new_type = [obj]
-                return new_type
-            for _, subtype, f_offset, size in base_type.fields:
-                if not f_offset <= offset < f_offset + size:
-                    continue
-                new_type = self.get_typeof(
-                    subtype, offset - f_offset, deref, lvl + 1)
-                break
-            else:
-                raise RuntimeError('cannot find struct field')
-        elif isinstance(base_type, ObjCArray):
-            if base_type.objtype.size == 0:
-                missing_definition(base_type.objtype)
-                return []
-
-            sub_offset = offset % (base_type.objtype.size)
-            element_num = offset / (base_type.objtype.size)
-            if element_num >= base_type.elems:
-                return None
-            if offset == 0 and not deref:
-                # In this case, return the array
-                return [base_type]
-            obj = self.get_typeof(
-                base_type.objtype, sub_offset, deref, lvl + 1)
-            new_type = obj
-
-        elif isinstance(base_type, ObjCDecl):
-            if self.enforce_strict_access and offset != 0:
-                return []
-            obj = ObjCPtr(base_type, void_type.align, void_type.size)
-            new_type = [obj]
-
-        elif isinstance(base_type, ObjCUnion):
-            out = []
-            if offset == 0 and not deref:
-                # In this case, return the struct*
-                obj = ObjCPtr(base_type, void_type.align, void_type.size)
-                new_type = [obj]
-                return new_type
-            for _, objtype, f_offset, size in base_type.fields:
-                if not f_offset <= offset < f_offset + size:
-                    continue
-                new_type = self.get_typeof(
-                    objtype, offset - f_offset, deref, lvl + 1)
-                out += new_type
-            new_type = out
-        elif isinstance(base_type, ObjCPtr):
-            if self.enforce_strict_access and offset % base_type.size != 0:
-                return []
-            obj = ObjCPtr(base_type, void_type.align, void_type.size)
-            new_type = [obj]
-        else:
-            raise NotImplementedError("deref type %r" % base_type)
-        return new_type
-
-    def reduce_known_expr(self, node, ctxt, **kwargs):
-        """Get type of a known expr"""
-        if node.expr in ctxt:
-            return [ctxt[node.expr]]
-        return None
-
-    def reduce_int(self, node, **kwargs):
-        """Get type of ExprInt"""
-
-        if not isinstance(node.expr, ExprInt):
-            return None
-        return [self.CST]
-
-    def get_solo_type(self, node):
-        """Return the type of the @node if it has only one possible type,
-        different from not None. In othe cases, return None.
-        """
-        if node.info is None or len(node.info) != 1:
-            return None
-        return type(node.info[0])
-
-    def reduce_ptr_plus_cst(self, node, lvl=0, **kwargs):
-        """Get type of ptr + CST"""
-        if not node.expr.is_op("+") or len(node.args) != 2:
-            return None
-        type_arg1 = self.get_solo_type(node.args[1])
-        if type_arg1 != ObjCInt:
-            return None
-
-        arg0, arg1 = node.args
-        if arg0.info is None:
-            return None
-        out = []
-        ptr_offset = int(arg1.expr)
-        for info in arg0.info:
-            if not isinstance(info, ObjCPtr):
-                continue
-            ptr_basetype = info.objtype
-            if ptr_basetype.size == 0:
-                missing_definition(ptr_basetype)
-                continue
-            # Array-like: int* ptr; ptr[1] = X
-            out += self.get_typeof(ptr_basetype,
-                                   ptr_offset % ptr_basetype.size,
-                                   False,
-                                   lvl)
-        return out
-
-    def reduce_cst_op_cst(self, node, **kwargs):
-        """Get type of CST + CST"""
-        if not node.expr.is_op("+") or len(node.args) != 2:
-            return None
-        if node.args[0].info is None or node.args[1].info is None:
-            return None
-        args_types = set([self.get_solo_type(node.args[0]),
-                          self.get_solo_type(node.args[1])])
-        if args_types != set([ObjCInt]):
-            return []
-        return [self.CST]
-
-    def reduce_deref(self, node, lvl=0, **kwargs):
-        """Get type of a dereferenced expression:
-        * @NN[ptr<elem>] -> elem  (type)
-        * @64[ptr<ptr<elem>>] -> ptr<elem>
-        * @32[ptr<struct>] -> struct.00
-        """
-        if not isinstance(node.expr, ExprMem):
-            return None
-        if node.arg.info is None:
-            return None
-        found = []
-        for subtype in node.arg.info:
-            # subtype : ptr<elem>
-            if not isinstance(subtype, (ObjCPtr, ObjCArray)):
-                continue
-            target = subtype.objtype
-            # target : type(elem)
-            for ptr_target in self.get_typeof(target, 0, True, lvl):
-                r_target = ptr_target.objtype
-                # ptr_target: ptr<elem>
-                # r_target: elem
-                if (not(self.enforce_strict_access) or
-                    r_target.size != node.expr.size / 8):
-                    continue
-                found.append(r_target)
-        return found
-
-    reduction_rules = [reduce_known_expr, reduce_int,
-                       reduce_ptr_plus_cst, reduce_cst_op_cst,
-                       reduce_deref,
-                      ]
-
-    def get_type(self, expr, ctxt):
-        """Return the C type(s) of the native Miasm expression @expr
-        @expr: Miasm expression"""
-        ret = self.reduce(expr, ctxt=ctxt)
-        if not ret:
-            # None and [] will give None
-            return None
-        return ret
-
-
 class ExprToAccessC(ExprReducer):
     """
     Generate the C access object(s) for a given native Miasm expression
@@ -999,44 +784,43 @@ class ExprToAccessC(ExprReducer):
                 return [cgenobj]
 
             out = []
-            for fieldname, subtype, f_offset, size in base_type.fields:
-                if not f_offset <= offset < f_offset + size:
+            for fieldname, subtype, field_offset, size in base_type.fields:
+                if not field_offset <= offset < field_offset + size:
                     continue
                 fieldptr = CGenField(CGenDeref(cgenobj), fieldname, subtype,
                                      void_type.align, void_type.size)
                 ret = self.cgen_access(
-                    fieldptr, subtype, offset - f_offset, deref, lvl + 1)
+                    fieldptr, subtype, offset - field_offset, deref, lvl + 1)
                 for sname in ret:
                     finalobj = sname
                     out.append(finalobj)
                 new_type = out
                 break
             else:
-                raise RuntimeError('Cannot find struct field')
+                return []
         elif isinstance(base_type, ObjCArray):
             if base_type.objtype.size == 0:
                 missing_definition(base_type.objtype)
                 return []
             element_num = offset / (base_type.objtype.size)
+            field_offset = offset % base_type.objtype.size
             if element_num >= base_type.elems:
                 return []
-            f_offset = offset % base_type.objtype.size
-            cur_objtype = base_type
-            curobj = cgenobj
-            subtype = cur_objtype.objtype
-            if subtype == ObjCArray:
-                raise NotImplementedError("TODO")
-            else:
-                if f_offset != 0:
-                    curobj = CGenArray(curobj, element_num,
-                                       void_type.align, void_type.size)
-                    ret = self.cgen_access(
-                        curobj, curobj.ctype.objtype, f_offset, deref, lvl + 1)
-                else:
-                    curobj = CGenArray(curobj, element_num,
-                                       void_type.align, void_type.size)
-                    ret = [curobj]
-                new_type = ret
+            if offset == 0 and not deref:
+                # In this case, return the array
+                return [cgenobj]
+
+            curobj = CGenArray(cgenobj, element_num,
+                               void_type.align,
+                               void_type.size)
+            if field_offset == 0:
+                # We point to the start of the sub object,
+                # return it directly
+                ret = [curobj]
+            ret = self.cgen_access(curobj, base_type.objtype,
+                                   field_offset, deref, lvl + 1)
+            return ret
+
         elif isinstance(base_type, ObjCDecl):
             if self.enforce_strict_access and offset % base_type.size != 0:
                 return []
@@ -1052,18 +836,14 @@ class ExprToAccessC(ExprReducer):
                 # In this case, return the struct*
                 return [cgenobj]
 
-            for fieldname, objtype, f_offset, size in base_type.fields:
-                if not f_offset <= offset < f_offset + size:
+            for fieldname, objtype, field_offset, size in base_type.fields:
+                if not field_offset <= offset < field_offset + size:
                     continue
                 field = CGenField(CGenDeref(cgenobj), fieldname, objtype,
                                   void_type.align, void_type.size)
                 new_type = self.cgen_access(
-                    field, objtype, offset - f_offset, deref, lvl + 1)
-                if new_type is None:
-                    continue
-                for sname in new_type:
-                    finalobj = sname
-                    out.append(finalobj)
+                    field, objtype, offset - field_offset, deref, lvl + 1)
+                out += new_type
             new_type = out
 
         elif isinstance(base_type, ObjCPtr):
@@ -1110,17 +890,20 @@ class ExprToAccessC(ExprReducer):
         arg0, arg1 = node.args
         if arg0.info is None:
             return None
+        void_type = self.types_mngr.void_ptr
         out = []
         ptr_offset = int(arg1.expr)
         for info in arg0.info:
-            if not isinstance(info.ctype, ObjCPtr):
+            if isinstance(info.ctype, ObjCArray):
+                field_type = info.ctype
+            elif isinstance(info.ctype, ObjCPtr):
+                field_type = info.ctype.objtype
+            else:
                 continue
-            ptr_basetype = info.ctype.objtype
+            target_type = info.ctype.objtype
+
             # Array-like: int* ptr; ptr[1] = X
-            ret = self.cgen_access(info,
-                                   ptr_basetype,
-                                   ptr_offset, False, lvl)
-            out += ret
+            out += self.cgen_access(info, field_type, ptr_offset, False, lvl)
         return out
 
     def reduce_mem(self, node, lvl=0, **kwargs):
@@ -1135,28 +918,37 @@ class ExprToAccessC(ExprReducer):
         if node.arg.info is None:
             return None
         assert isinstance(node.arg.info, list)
+        void_type = self.types_mngr.void_ptr
         found = []
         for subcgenobj in node.arg.info:
-            if not isinstance(subcgenobj.ctype, ObjCPtr):
-                return None
-            target = subcgenobj.ctype.objtype
-            # target : type(elem)
-            if isinstance(target, (ObjCStruct, ObjCUnion)):
-                for finalcgenobj in self.cgen_access(subcgenobj, target, 0, True, lvl):
-                    target = finalcgenobj.ctype.objtype
-                    if not(self.enforce_strict_access) or target.size == node.expr.size / 8:
-                        nobj = CGenDeref(finalcgenobj)
-                        found.append(nobj)
-            elif isinstance(target, ObjCArray):
-                final = target.objtype
-                if not(self.enforce_strict_access) or final.size == node.expr.size / 8:
-                    nobj = CGenDeref(subcgenobj)
-                    found.append(nobj)
+            if isinstance(subcgenobj.ctype, ObjCArray):
+                nobj = CGenArray(subcgenobj, 0,
+                                 void_type.align,
+                                 void_type.size)
+                target = nobj.ctype.objtype
+                for finalcgenobj in self.cgen_access(nobj, target, 0, True, lvl):
+                    assert isinstance(finalcgenobj.ctype, ObjCPtr)
+                    if self.enforce_strict_access and finalcgenobj.ctype.objtype.size != node.expr.size / 8:
+                        continue
+                    found.append(CGenDeref(finalcgenobj))
 
-            else:
-                if not(self.enforce_strict_access) or target.size == node.expr.size / 8:
-                    nobj = CGenDeref(subcgenobj)
-                    found.append(nobj)
+            elif isinstance(subcgenobj.ctype, ObjCPtr):
+                target = subcgenobj.ctype.objtype
+                # target : type(elem)
+                if isinstance(target, (ObjCStruct, ObjCUnion)):
+                    for finalcgenobj in self.cgen_access(subcgenobj, target, 0, True, lvl):
+                        target = finalcgenobj.ctype.objtype
+                        if self.enforce_strict_access and target.size != node.expr.size / 8:
+                            continue
+                        found.append(CGenDeref(finalcgenobj))
+                elif isinstance(target, ObjCArray):
+                    if self.enforce_strict_access and subcgenobj.ctype.size != node.expr.size / 8:
+                        continue
+                    found += self.cgen_access(CGenDeref(subcgenobj), target, 0, False, lvl)
+                else:
+                    if self.enforce_strict_access and target.size != node.expr.size / 8:
+                        continue
+                    found.append(CGenDeref(subcgenobj))
         if not found:
             return None
         return found
@@ -1167,16 +959,15 @@ class ExprToAccessC(ExprReducer):
                        reduce_mem,
                       ]
 
-    def get_access(self, expr, ctxt):
+    def get_access(self, expr, ctxt=None):
         """Generate C access(es) for the native Miasm expression @expr
         @expr: native Miasm expression
+        @ctxt: a dictionnary linking known expression to their types
         """
+        if ctxt is None:
+            ctxt = self.expr_types
+        return self.reduce(expr, ctxt=ctxt)
 
-        ret = self.reduce(expr, ctxt=ctxt)
-        if not ret:
-            # None and [] will give None
-            return None
-        return ret
 
 class ExprCToExpr(ExprReducer):
     """Translate a Miasm expression (representing a C access) into a native
@@ -1243,8 +1034,10 @@ class ExprCToExpr(ExprReducer):
         if str(node.expr) in ctxt:
             objc = ctxt[str(node.expr)]
             out = (node.expr, objc)
-        else:
+        elif node.expr.is_id():
             out = (node.expr, None)
+        else:
+            out = None
         return out
 
     def reduce_int(self, node, **kwargs):
@@ -1264,6 +1057,8 @@ class ExprCToExpr(ExprReducer):
         assert isinstance(node.args[1].expr, ExprId)
         field = node.args[1].expr.name
         src, src_type = node.args[0].info
+        if src_type is None:
+            return None
         assert isinstance(src_type, (ObjCPtr, ObjCArray))
         struct_dst = src_type.objtype
         assert isinstance(struct_dst, ObjCStruct)
@@ -1408,8 +1203,16 @@ class ExprCToExpr(ExprReducer):
         out = []
         src, src_type = node.args[0].info
         assert isinstance(src_type, (ObjCPtr, ObjCArray))
-        size = src_type.objtype.size * 8
-        out = (ExprMem(src, size), (src_type.objtype))
+        void_type = self.types_mngr.void_ptr
+        if isinstance(src_type, ObjCPtr):
+            if isinstance(src_type.objtype, ObjCArray):
+                size = void_type.size*8
+            else:
+                size = src_type.objtype.size * 8
+            out = (ExprMem(src, size), (src_type.objtype))
+        else:
+            size = src_type.objtype.size * 8
+            out = (ExprMem(src, size), (src_type.objtype))
         return out
 
     reduction_rules = [reduce_known_expr,
@@ -1421,19 +1224,14 @@ class ExprCToExpr(ExprReducer):
                        reduce_op_deref,
                       ]
 
-    def get_expr(self, expr):
+    def get_expr(self, expr, ctxt):
         """Translate a Miasm expression @expr (representing a C access) into a
         native Miasm expression and its C type
 
         @expr: Miasm expression (representing a C access)
+        @ctxt: a dictionnary linking known tokens (strings) to their types
         """
-
-        ret = self.reduce(expr)
-        if not ret:
-            # None and [] will give None
-            return None
-        return ret
-
+        return self.reduce(expr, ctxt=ctxt)
 
 
 class CTypesManager(object):
@@ -1679,18 +1477,16 @@ class CHandler(object):
     """
 
     exprCToExpr_cls = ExprCToExpr
-    cTypeAnalyzer_cls = CTypeAnalyzer
     exprToAccessC_cls = ExprToAccessC
 
     def __init__(self, types_mngr, expr_types,
                  simplify_c=access_simplifier,
                  enforce_strict_access=True):
         self.exprc2expr = self.exprCToExpr_cls(expr_types, types_mngr)
-        self.type_analyzer = self.cTypeAnalyzer_cls(expr_types, types_mngr,
-                                                   enforce_strict_access)
         self.access_c_gen = self.exprToAccessC_cls(expr_types,
                                                    types_mngr,
                                                    enforce_strict_access)
+        self.types_mngr = types_mngr
         self.simplify_c = simplify_c
         self.expr_types = expr_types
 
@@ -1701,40 +1497,48 @@ class CHandler(object):
 
         self.expr_types = expr_types
         self.exprc2expr.updt_expr_types(expr_types)
-        self.type_analyzer.updt_expr_types(expr_types)
         self.access_c_gen.updt_expr_types(expr_types)
 
-    def expr_to_c(self, expr):
+    def expr_to_c(self, expr, ctxt=None):
         """Convert a Miasm @expr into it's C equivatlent string
         @expr: Miasm expression"""
 
-        expr_access = self.access_c_gen.get_access(expr)
+        if ctxt is None:
+            ctxt = self.expr_types
+        expr_access = self.access_c_gen.get_access(expr, ctxt)
         accesses = [access for access in expr_access.info]
         accesses_simp = [access_str(access.to_expr().visit(self.simplify_c))
                          for access in accesses]
         return accesses_simp
 
-    def expr_to_types(self, expr, ctxt):
+    def expr_to_types(self, expr, ctxt=None):
         """Get the possible types of the Miasm @expr
         @expr: Miasm expression"""
 
-        return self.type_analyzer.get_type(expr, ctxt).info
+        if ctxt is None:
+            ctxt = self.expr_types
+        expr_access = self.access_c_gen.get_access(expr, ctxt)
+        if expr_access.info is not None:
+            out = [access.ctype for access in expr_access.info]
+        else:
+            out = []
+        return out
 
-    def c_to_expr(self, c_str):
+    def c_to_expr(self, c_str, ctxt):
         """Convert a C string expression to a Miasm expression
         @c_str: C string"""
 
         ast = parse_access(c_str)
-        access_c = ast_get_c_access_expr(ast, self.expr_types)
-        return self.exprc2expr.get_expr(access_c).info[0]
+        access_c = ast_get_c_access_expr(ast, ctxt)
+        return self.exprc2expr.get_expr(access_c, ctxt).info[0]
 
-    def c_to_type(self, c_str):
+    def c_to_type(self, c_str, ctxt):
         """Get the type of a C string expression
         @expr: Miasm expression"""
 
         ast = parse_access(c_str)
-        access_c = ast_get_c_access_expr(ast, self.expr_types)
-        ret_type = self.exprc2expr.get_expr(access_c).info[1]
+        access_c = ast_get_c_access_expr(ast, ctxt)
+        ret_type = self.exprc2expr.get_expr(access_c, ctxt).info[1]
         return ret_type
 
 
