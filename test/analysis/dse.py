@@ -17,10 +17,6 @@ reg_and_id = dict(mn_x86.regs.all_regs_ids_byname)
 def detach_dse(dse):
     dse.detach()
 
-def reattach_dse(jitter):
-    dse_test.dse.reattach()
-    return True
-
 class DSE_test(object):
     """Inspired from TEST/ARCH/X86
 
@@ -29,8 +25,8 @@ class DSE_test(object):
     TXT = '''
     main:
         SHL         EDX, CL
-        ADD         EDX, 1      ; will be skipped thanks to detach/reattach
-        XOR         EDX, EAX
+        ADD         EDX, 1
+        XOR         EDX, EAX    ; will be skipped thanks to detach()
         RET
     '''
 
@@ -60,8 +56,7 @@ class DSE_test(object):
         self.dse = DSEEngine(self.machine)
         self.dse.attach(self.myjit)
 
-        self.dse.add_handler(0x2, detach_dse) # detach before ADD EDX, 1
-        self.myjit.add_breakpoint(0x2, reattach_dse) # reattach after ADD EDX, 1
+        self.dse.add_handler(0x5, detach_dse) # detach before XOR ADX, EAX
 
     def __call__(self):
         self.asm()
@@ -99,11 +94,9 @@ class DSE_test(object):
         SHL_result = ExprOp('<<', regs.EDX,
                           ExprCompose(regs.ECX[0:8],
                                       ExprInt(0x0, 24)) & ExprInt(0x1F, 32))
-        expected = ExprOp('^', regs.EAX, SHL_result)
+        expected = ExprOp('+', SHL_result, ExprInt(0x1, 32))
 
         assert value == expected
 
 if __name__ == "__main__":
-    for test in [DSE_test]:
-        dse_test = test(*sys.argv[1:])
-        dse_test()
+    [test(*sys.argv[1:])() for test in [DSE_test]]
