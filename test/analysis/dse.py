@@ -36,8 +36,8 @@ class DSE_test(object):
         self.myjit = self.machine.jitter(jitter_engine)
         self.myjit.init_stack()
 
-        self.myjit.jit.log_regs = False
-        self.myjit.jit.log_mn = False
+        self.myjit.jit.log_regs = True
+        self.myjit.jit.log_mn = True
 
     def init_machine(self):
         self.myjit.vm.add_memory_page(self.run_addr, PAGE_READ | PAGE_WRITE, self.assembly)
@@ -90,5 +90,58 @@ class DSE_test(object):
                                       ExprInt(0x0, 24)) & ExprInt(0x1F, 32))
         assert value == expected
 
+
+class DSEAttachInBreakpoint(DSE_test):
+    """
+    Test that DSE is "attachable" in a jitter breakpoint
+    """
+    TXT = '''
+    main:
+        MOV    EAX, 5
+        ADD    EBX, 6
+        INC    EBX
+        RET
+    '''
+
+    def __init__(self, *args, **kwargs):
+        super(DSEAttachInBreakpoint, self).__init__(*args, **kwargs)
+        self._dse = None
+        self._regs = self.machine.ir().arch.regs
+        self._testid = ExprId("TEST", self._regs.EBX.size)
+
+    def bp_attach(self, jitter):
+        """Attach a DSE in the current jitter"""
+        self.dse = DSEEngine(self.machine)
+        self.dse.attach(self.myjit)
+        self.dse.update_state_from_concrete()
+        self.dse.update_state({
+            self._regs.EBX: self._testid,
+        })
+
+        # Additionnal call to the exec callback is necessary, as breakpoints are
+        # honored AFTER exec callback
+        jitter.exec_cb(jitter)
+
+        return True
+
+    def prepare(self):
+        pass
+
+    def init_machine(self):
+        super(DSEAttachInBreakpoint, self).init_machine()
+        self.myjit.add_breakpoint(5, self.bp_attach) # On ADD EBX, 6
+
+    def check(self):
+        value = self.dse.eval_expr(self._regs.EBX)
+        # EBX = TEST
+        # ADD EBX, 6
+        # INC EBX
+        # -> EBX_final = TEST + 7
+        assert value == self._testid + ExprInt(7, self._regs.EBX.size)
+
+
 if __name__ == "__main__":
-    [test(*sys.argv[1:])() for test in [DSE_test]]
+    [test(*sys.argv[1:])() for test in [
+        DSE_test,
+        DSEAttachInBreakpoint,
+    ]]
