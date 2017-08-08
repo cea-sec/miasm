@@ -188,8 +188,9 @@ class SemanticTestAsm(RegressionTest):
         self.command_line = [self.shellcode_script,
                              arch,
                              input_filename,
-                             output_filename,
-                             self.container_dct.get(container, '')]
+                             output_filename]
+        if container in self.container_dct:
+            self.command_line.append(self.container_dct[container])
         self.products = [output_filename, "graph.dot"]
 
 
@@ -303,6 +304,17 @@ testset += RegressionTest(["data_flow.py"], base_dir="analysis",
             ["simp_graph_%02d.dot" % test_nb, "graph_%02d.dot" % test_nb]
             for test_nb in xrange(1, 18))
                                     for fname in fnames])
+
+for i in xrange(1, 21):
+    input_name = "cst_propag/x86_32_sc_%d" % i
+    bin_name = "samples/x86_32/%s.bin" % input_name
+    test_x86_32_cst = SemanticTestAsm("x86_32", None, [input_name])
+    testset+= test_x86_32_cst
+    testset += RegressionTest(["../example/expression/constant_propagation.py", "-s", bin_name, "0"],
+                              depends=[test_x86_32_cst],
+                              products=["%s.propag.dot" % bin_name])
+
+
 
 ## Degraph
 class TestDepgraph(RegressionTest):
@@ -564,6 +576,11 @@ testset += ExampleExpression(["access_c.py", Example.get_sample("human.bin")],
 
 testset += ExampleExpression(["expr_c.py"],
                              tags=[TAGS["cparser"]])
+
+
+testset += ExampleExpression(["constant_propagation.py",
+                              Example.get_sample("simple_test.bin"), "-s", "0"],
+                             products=["%s.propag.dot" % Example.get_sample("simple_test.bin")])
 
 for script in [["basic_op.py"],
                ["basic_simplification.py"],
