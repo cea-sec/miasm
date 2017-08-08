@@ -1,20 +1,17 @@
 import sys
-import os
 from pdb import pm
 
-from miasm2.core.cpu import ParseAst
-from miasm2.arch.x86.arch import mn_x86, base_expr, variable
-from miasm2.core import parse_asm
-from miasm2.expression.expression import *
-from miasm2.core import asmblock
 from elfesteem.strpatchwork import StrPatchwork
+from miasm2.core import parse_asm
+from miasm2.expression.expression import ExprCompose, ExprOp, ExprInt, ExprId
+from miasm2.core.asmblock import asm_resolve_final
 from miasm2.analysis.machine import Machine
-from miasm2.jitter.csts import *
+from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm2.analysis.dse import DSEEngine
 
-reg_and_id = dict(mn_x86.regs.all_regs_ids_byname)
 
-class DSE_test(object):
+class DSETest(object):
+
     """Inspired from TEST/ARCH/X86
 
     Test the symbolic execution correctly follow generated labels
@@ -33,16 +30,22 @@ class DSE_test(object):
 
     def __init__(self, jitter_engine):
         self.machine = Machine(self.arch_name)
-        self.myjit = self.machine.jitter(jitter_engine)
+        jitter = self.machine.jitter
+        self.myjit = jitter(jitter_engine)
         self.myjit.init_stack()
 
         self.myjit.jit.log_regs = True
         self.myjit.jit.log_mn = True
 
+        self.dse = None
+        self.assembly = None
+
     def init_machine(self):
-        self.myjit.vm.add_memory_page(self.run_addr, PAGE_READ | PAGE_WRITE, self.assembly)
+        self.myjit.vm.add_memory_page(self.run_addr,
+                                      PAGE_READ | PAGE_WRITE,
+                                      self.assembly)
         self.myjit.push_uint32_t(self.ret_addr)
-        self.myjit.add_breakpoint(self.ret_addr, lambda x:False)
+        self.myjit.add_breakpoint(self.ret_addr, lambda x: False)
 
     def prepare(self):
         self.myjit.cpu.ECX = 4
@@ -63,22 +66,25 @@ class DSE_test(object):
         self.myjit.init_run(self.run_addr)
         self.myjit.continue_run()
 
-        assert(self.myjit.pc == self.ret_addr)
+        assert self.myjit.pc == self.ret_addr
 
     def asm(self):
-        blocks, symbol_pool = parse_asm.parse_txt(mn_x86, self.arch_attrib, self.TXT,
-                                                  symbol_pool=self.myjit.ir_arch.symbol_pool)
-
+        mn_x86 = self.machine.mn
+        blocks, symbol_pool = parse_asm.parse_txt(
+            mn_x86,
+            self.arch_attrib,
+            self.TXT,
+            symbol_pool=self.myjit.ir_arch.symbol_pool
+        )
 
         # fix shellcode addr
         symbol_pool.set_offset(symbol_pool.getby_name("main"), 0x0)
-        s = StrPatchwork()
-        patches = asmblock.asm_resolve_final(mn_x86, blocks, symbol_pool)
+        output = StrPatchwork()
+        patches = asm_resolve_final(mn_x86, blocks, symbol_pool)
         for offset, raw in patches.items():
-            s[offset] = raw
+            output[offset] = raw
 
-        s = str(s)
-        self.assembly = s
+        self.assembly = str(output)
 
     def check(self):
         regs = self.dse.ir_arch.arch.regs
@@ -91,7 +97,8 @@ class DSE_test(object):
         assert value == expected
 
 
-class DSEAttachInBreakpoint(DSE_test):
+class DSEAttachInBreakpoint(DSETest):
+
     """
     Test that DSE is "attachable" in a jitter breakpoint
     """
@@ -106,7 +113,8 @@ class DSEAttachInBreakpoint(DSE_test):
     def __init__(self, *args, **kwargs):
         super(DSEAttachInBreakpoint, self).__init__(*args, **kwargs)
         self._dse = None
-        self._regs = self.machine.ir().arch.regs
+        ircls = self.machine.ir
+        self._regs = ircls().arch.regs
         self._testid = ExprId("TEST", self._regs.EBX.size)
 
     def bp_attach(self, jitter):
@@ -129,7 +137,7 @@ class DSEAttachInBreakpoint(DSE_test):
 
     def init_machine(self):
         super(DSEAttachInBreakpoint, self).init_machine()
-        self.myjit.add_breakpoint(5, self.bp_attach) # On ADD EBX, 6
+        self.myjit.add_breakpoint(5, self.bp_attach)  # On ADD EBX, 6
 
     def check(self):
         value = self.dse.eval_expr(self._regs.EBX)
@@ -141,7 +149,9 @@ class DSEAttachInBreakpoint(DSE_test):
 
 
 if __name__ == "__main__":
-    [test(*sys.argv[1:])() for test in [
-        DSE_test,
-        DSEAttachInBreakpoint,
-    ]]
+    jit_engine = sys.argv[1]
+    for test in [
+            DSETest,
+            DSEAttachInBreakpoint,
+    ]:
+        test(jit_engine)()
