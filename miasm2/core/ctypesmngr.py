@@ -118,10 +118,12 @@ class CTypeStruct(CTypeBase):
     """C type for structure"""
 
     def __init__(self, name, fields=None):
+        assert name is not None
         self.name = name
         if fields is None:
             fields = ()
-        for _, field in fields:
+        for field_name, field in fields:
+            assert field_name is not None
             assert isinstance(field, CTypeBase)
         self.fields = tuple(fields)
         super(CTypeStruct, self).__init__()
@@ -146,10 +148,12 @@ class CTypeUnion(CTypeBase):
     """C type for union"""
 
     def __init__(self, name, fields=None):
+        assert name is not None
         self.name = name
         if fields is None:
             fields = []
-        for _, field in fields:
+        for field_name, field in fields:
+            assert field_name is not None
             assert isinstance(field, CTypeBase)
         self.fields = tuple(fields)
         super(CTypeUnion, self).__init__()
@@ -195,7 +199,7 @@ class CTypeFunc(CTypeBase):
         if type_ret:
             assert isinstance(type_ret, CTypeBase)
         if args:
-            for arg in args:
+            for arg_name, arg in args:
                 assert isinstance(arg, CTypeBase)
             args = tuple(args)
         else:
@@ -221,7 +225,7 @@ class CTypeFunc(CTypeBase):
         return "<Func:%s (%s) %s(%s)>" % (self.type_ret,
                                           self.abi,
                                           self.name,
-                                          ", ".join([str(arg) for arg in self.args]))
+                                          ", ".join(["%s %s" % (name, arg) for (name, arg) in self.args]))
 
 
 class CTypeEllipsis(CTypeBase):
@@ -292,6 +296,7 @@ class FuncNameIdentifier(c_ast.NodeVisitor):
 class CAstTypes(object):
     """Store all defined C types and typedefs"""
     INTERNAL_PREFIX = "__GENTYPE__"
+    ANONYMOUS_PREFIX = "__ANONYMOUS__"
 
     def __init__(self, knowntypes=None, knowntypedefs=None):
         if knowntypes is None:
@@ -342,9 +347,19 @@ class CAstTypes(object):
         self.cpt += 1
         return self.INTERNAL_PREFIX + "%d" % cpt
 
+    def gen_anon_name(self):
+        """Generate name for anonymous strucs/union"""
+        cpt = self.cpt
+        self.cpt += 1
+        return self.ANONYMOUS_PREFIX + "%d" % cpt
+
     def is_generated_name(self, name):
         """Return True if the name is internal"""
         return name.startswith(self.INTERNAL_PREFIX)
+
+    def is_anonymous_name(self, name):
+        """Return True if the name is anonymous"""
+        return name.startswith(self.ANONYMOUS_PREFIX)
 
     def add_type(self, type_id, type_obj):
         """Add new C type
@@ -521,7 +536,11 @@ class CAstTypes(object):
         args = []
         if ast.decls:
             for arg in ast.decls:
-                args.append((arg.name, self.ast_to_typeid(arg)))
+                if arg.name is None:
+                    arg_name = self.gen_anon_name()
+                else:
+                    arg_name = arg.name
+                args.append((arg_name, self.ast_to_typeid(arg)))
         decl = CTypeStruct(name, args)
         return decl
 
@@ -531,7 +550,11 @@ class CAstTypes(object):
         args = []
         if ast.decls:
             for arg in ast.decls:
-                args.append((arg.name, self.ast_to_typeid(arg)))
+                if arg.name is None:
+                    arg_name = self.gen_anon_name()
+                else:
+                    arg_name = arg.name
+                args.append((arg_name, self.ast_to_typeid(arg)))
         decl = CTypeUnion(name, args)
         return decl
 
@@ -568,7 +591,14 @@ class CAstTypes(object):
         type_ret = self.ast_to_typeid(ast.type)
         name, decl_info = self.get_funcname(ast.type)
         if ast.args:
-            args = [self.ast_to_typeid(arg) for arg in ast.args.params]
+            args = []
+            for arg in ast.args.params:
+                typeid = self.ast_to_typeid(arg)
+                if isinstance(typeid, CTypeEllipsis):
+                    arg_name = None
+                else:
+                    arg_name = arg.name
+                args.append((arg_name, typeid))
         else:
             args = []
 

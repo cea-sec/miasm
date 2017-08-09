@@ -10,7 +10,10 @@ class SymbolicStateCTypes(StateEngine):
     """Store C types of symbols"""
 
     def __init__(self, symbols):
-        self._symbols = frozenset(symbols.items())
+        tmp = {}
+        for expr, types in symbols.iteritems():
+            tmp[expr] = frozenset(types)
+        self._symbols = frozenset(tmp.iteritems())
 
     def __hash__(self):
         return hash((self.__class__, self._symbols))
@@ -34,12 +37,16 @@ class SymbolicStateCTypes(StateEngine):
 
     def merge(self, other):
         """Merge two symbolic states
-        Only expressions with equal C types in both states are kept.
+        The resulting types are the union of types of both states.
         @other: second symbolic state
         """
-        symb_a = self.symbols.items()
-        symb_b = other.symbols.items()
-        symbols = dict(set(symb_a).intersection(symb_b))
+        symb_a = self.symbols
+        symb_b = other.symbols
+        symbols = {}
+        for expr in set(symb_a).union(set(symb_b)):
+            ctypes = symb_a.get(expr, set()).union(symb_b.get(expr, set()))
+            if ctypes:
+                symbols[expr] = ctypes
         return self.__class__(symbols)
 
     @property
@@ -63,137 +70,13 @@ class SymbExecCType(SymbolicExecutionEngine):
                  func_write=None,
                  sb_expr_simp=expr_simp):
         self.chandler = chandler
+
         super(SymbExecCType, self).__init__(ir_arch,
                                             {},
                                             func_read,
                                             func_write,
                                             sb_expr_simp)
         self.symbols = dict(symbols)
-        offset_types = []
-        for name in [('int',), ('long',),
-                     ('long', 'long'),
-                     ('char',), ('short',),
-
-                     ('unsigned', 'char',), ('unsigned', 'short',),
-                     ('unsigned', 'int',), ('unsigned', 'long',),
-                     ('unsigned', 'long', 'long')]:
-            objc = self.chandler.type_analyzer.types_mngr.get_objc(CTypeId(*name))
-            offset_types.append(objc)
-        self.offset_types = offset_types
-
-    def is_type_offset(self, objc):
-        """Return True if @objc is char/short/int/long"""
-        return objc in self.offset_types
-
-    def get_tpye_int_by_size(self, size):
-        """Return a char/short/int/long type with the size equal to @size
-        @size: size in bit"""
-
-        for objc in self.offset_types:
-            if objc.size == size / 8:
-                return objc
-        return None
-
-    def is_offset_list(self, types, size):
-        """Return the corresponding char/short/int/long type of @size, if every
-        types in the list @types are type offset
-        @types: a list of c types
-        @size: size in bit"""
-
-        for arg_type in types:
-            if not self.is_type_offset(arg_type):
-                return None
-        objc = self.get_tpye_int_by_size(size)
-        if objc:
-            return objc
-        # default size
-        objc = self.offset_types[0]
-        return objc
-
-    def apply_expr_on_state_visit_cache(self, expr, state, cache, level=0):
-        """
-        Deep First evaluate nodes:
-            1. evaluate node's sons
-            2. simplify
-        """
-
-        expr = self.expr_simp(expr)
-
-        if expr in cache:
-            return cache[expr]
-        elif expr in state:
-            return state[expr]
-        elif isinstance(expr, ExprInt):
-            objc = self.get_tpye_int_by_size(expr.size)
-            if objc is None:
-                objc = self.chandler.type_analyzer.types_mngr.get_objc(CTypeId('int'))
-            return objc
-        elif isinstance(expr, ExprId):
-            if expr in state:
-                return state[expr]
-            return None
-        elif isinstance(expr, ExprMem):
-            ptr = self.apply_expr_on_state_visit_cache(expr.arg, state, cache, level + 1)
-            if ptr is None:
-                return None
-            self.chandler.type_analyzer.expr_types[self.OBJC_INTERNAL] = ptr
-            ptr_expr = ExprId(self.OBJC_INTERNAL, expr.arg.size)
-            objcs = self.chandler.expr_to_types(ExprMem(ptr_expr, expr.size))
-            if objcs is None:
-                return None
-            objc = objcs[0]
-            return objc
-        elif isinstance(expr, ExprCond):
-            src1 = self.apply_expr_on_state_visit_cache(expr.src1, state, cache, level + 1)
-            src2 = self.apply_expr_on_state_visit_cache(expr.src2, state, cache, level + 1)
-            types = [src1, src2]
-            objc = self.is_offset_list(types, expr.size)
-            if objc:
-                return objc
-            return None
-        elif isinstance(expr, ExprSlice):
-            objc = self.get_tpye_int_by_size(expr.size)
-            if objc is None:
-                # default size
-                objc = self.offset_types[0]
-            return objc
-        elif isinstance(expr, ExprOp):
-            args = []
-            types = []
-            for oarg in expr.args:
-                arg = self.apply_expr_on_state_visit_cache(oarg, state, cache, level + 1)
-                types.append(arg)
-            if None in types:
-                return None
-            objc = self.is_offset_list(types, expr.size)
-            if objc:
-                return objc
-            # Find Base + int
-            if expr.op != '+':
-                return None
-            args = list(expr.args)
-            if args[-1].is_int():
-                offset = args.pop()
-                types.pop()
-            if len(args) == 1:
-                arg, arg_type = args.pop(), types.pop()
-                self.chandler.type_analyzer.expr_types[self.OBJC_INTERNAL] = arg_type
-                ptr_expr = ExprId(self.OBJC_INTERNAL, arg.size)
-                objc = self.chandler.expr_to_types(ptr_expr + offset)
-                objc = objc[0]
-                return objc
-            return None
-        elif isinstance(expr, ExprCompose):
-            types = set()
-            for oarg in expr.args:
-                arg = self.apply_expr_on_state_visit_cache(oarg, state, cache, level + 1)
-                types.add(arg)
-            objc = self.is_offset_list(types, expr.size)
-            if objc:
-                return objc
-            return None
-        else:
-            raise TypeError("Unknown expr type")
 
     def get_state(self):
         """Return the current state of the SymbolicEngine"""
@@ -207,22 +90,43 @@ class SymbExecCType(SymbolicExecutionEngine):
         pool_out = {}
         eval_cache = {}
         for dst, src in assignblk.iteritems():
-            src = self.eval_expr(src, eval_cache)
+            objcs = self.chandler.expr_to_types(src, self.symbols)
             if isinstance(dst, ExprMem):
                 continue
             elif isinstance(dst, ExprId):
-                pool_out[dst] = src
+                pool_out[dst] = frozenset(objcs)
             else:
-                raise ValueError("affected zarb", str(dst))
+                raise ValueError("Unsupported affectation", str(dst))
         return pool_out.iteritems()
 
+    def eval_expr(self, expr, eval_cache=None):
+        return frozenset(self.chandler.expr_to_types(expr, self.symbols))
+
     def apply_change(self, dst, src):
-        objc = src
-        if objc is None and dst in self.symbols:
-            del self.symbols[dst]
+        if src is None:
+            if dst in self.symbols:
+                del self.symbols[dst]
         else:
-            self.symbols[dst] = objc
+            self.symbols[dst] = src
 
     def del_mem_above_stack(self, stack_ptr):
         """No stack deletion"""
         return
+
+    def dump_id(self):
+        """
+        Dump modififed registers symbols only
+        """
+        for expr, expr_types in sorted(self.symbols.iteritems()):
+            if not expr.is_mem():
+                print expr
+                for expr_type in expr_types:
+                    print '\t', expr_type
+
+    def dump_mem(self):
+        """
+        Dump modififed memory symbols
+        """
+        for expr, value in sorted(self.symbols.iteritems()):
+            if expr.is_mem():
+                print expr, value

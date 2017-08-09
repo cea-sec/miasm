@@ -469,13 +469,15 @@ class IntermediateRepresentation(object):
         if (isinstance(addr, m2_expr.ExprId) and
                 isinstance(addr.name, AsmLabel)):
             addr = addr.name
-        if isinstance(addr, m2_expr.ExprInt):
+        if isinstance(addr, AsmLabel):
+            return addr
+
+        try:
             addr = int(addr)
-        if isinstance(addr, (int, long)):
-            addr = self.symbol_pool.getby_offset_create(addr)
-        elif isinstance(addr, AsmLabel):
-            addr = self.symbol_pool.getby_name_create(addr.name)
-        return addr
+        except (ValueError, TypeError):
+            return None
+
+        return self.symbol_pool.getby_offset_create(addr)
 
     def get_block(self, addr):
         """Returns the irbloc associated to an ExprId/ExprInt/label/int

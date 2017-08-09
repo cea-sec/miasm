@@ -10,13 +10,15 @@ from miasm2.expression import expression as m2_expr
 from miasm2.expression.simplifications import expr_simp
 from miasm2.analysis.depgraph import DependencyGraph
 from miasm2.ir.ir import IRBlock, AssignBlock
-from miasm2.arch.x86.ctype import CTypeAMD64_unk
+from miasm2.arch.x86.ctype import CTypeAMD64_unk, CTypeX86_unk
 from miasm2.expression.expression import ExprId
-from miasm2.core.objc import CTypesManagerNotPacked, CTypeAnalyzer, ExprToAccessC, CHandler
+from miasm2.core.objc import CTypesManagerNotPacked, ExprToAccessC, CHandler
 from miasm2.core.ctypesmngr import CAstTypes
 from miasm2.expression.expression import ExprMem, ExprId, ExprInt, ExprOp, ExprAff
 from miasm2.ir.symbexec_types import SymbExecCType
 from miasm2.expression.parser import str_to_expr
+from miasm2.ir.symbexec import SymbolicExecutionEngine, SymbolicState
+from miasm2.analysis.cst_propag import add_state, propagate_cst_expr
 
 from utils import guess_machine
 
@@ -25,7 +27,6 @@ class TypePropagationForm(ida_kernwin.Form):
     def __init__(self, ira):
 
         self.ira = ira
-        self.stk_unalias_force = False
 
         default_types_info = r"""ExprId("RDX", 64): char *"""
         archs = ["AMD64_unk", "X86_32_unk"]
@@ -35,41 +36,31 @@ class TypePropagationForm(ida_kernwin.Form):
 BUTTON CANCEL NONE
 Dependency Graph Settings
 <##Header file :{headerFile}>
-<Architecture/complator:{cbReg}>
+<Architecture/complator:{arch}>
 <Types informations:{strTypesInfo}>
-<Unalias stack:{rUnaliasStack}>{cMethod}>
+<Unalias stack:{rUnaliasStack}>{cUnalias}>
 """, {
                           'headerFile': ida_kernwin.Form.FileInput(swidth=20, open=True),
-                          'cbReg': ida_kernwin.Form.DropdownListControl(
+                          'arch': ida_kernwin.Form.DropdownListControl(
                               items=archs,
                               readonly=False,
                               selval=archs[0]),
                           'strTypesInfo': ida_kernwin.Form.MultiLineTextControl(text=default_types_info,
                                                                     flags=ida_kernwin.Form.MultiLineTextControl.TXTF_FIXEDFONT),
-                          'cMethod': ida_kernwin.Form.ChkGroupControl(("rUnaliasStack",)),
+                          'cUnalias': ida_kernwin.Form.ChkGroupControl(("rUnaliasStack",)),
                       })
-        self.Compile()
-
-    @property
-    def unalias_stack(self):
-        return self.cMethod.value & 1 or self.stk_unalias_force
+        form, args = self.Compile()
+        form.rUnaliasStack.checked = True
 
 
-def get_block(ir_arch, mdis, addr):
-    """Get IRBlock at address @addr"""
-    lbl = ir_arch.get_label(addr)
-    if not lbl in ir_arch.blocks:
-        block = mdis.dis_block(lbl.offset)
-        ir_arch.add_block(block)
-    irblock = ir_arch.get_block(lbl)
-    if irblock is None:
-        raise LookupError('No block found at that address: %s' % lbl)
-    return irblock
-
-
-def get_types_mngr(headerFile):
+def get_types_mngr(headerFile, arch):
     text = open(headerFile).read()
-    base_types = CTypeAMD64_unk()
+    if arch == "AMD64_unk":
+        base_types = CTypeAMD64_unk()
+    elif arch =="X86_32_unk":
+        base_types = CTypeX86_unk()
+    else:
+        raise NotImplementedError("Unsupported arch")
     types_ast = CAstTypes()
 
     # Add C types definition
@@ -79,16 +70,11 @@ def get_types_mngr(headerFile):
     return types_mngr
 
 
-class MyCTypeAnalyzer(CTypeAnalyzer):
-    allow_none_result = True
-
-
 class MyExprToAccessC(ExprToAccessC):
     allow_none_result = True
 
 
 class MyCHandler(CHandler):
-    cTypeAnalyzer_cls = MyCTypeAnalyzer
     exprToAccessC_cls = MyExprToAccessC
 
 
@@ -103,52 +89,89 @@ class TypePropagationEngine(SymbExecCType):
 
 class SymbExecCTypeFix(SymbExecCType):
 
+    def __init__(self, ir_arch,
+                 symbols, chandler,
+                 cst_propag_link,
+                 func_read=None, func_write=None,
+                 sb_expr_simp=expr_simp):
+        super(SymbExecCTypeFix, self).__init__(ir_arch,
+                                               symbols,
+                                               chandler,
+                                               func_read=func_read,
+                                               func_write=func_write,
+                                               sb_expr_simp=expr_simp)
+
+        self.cst_propag_link = cst_propag_link
+
     def emulbloc(self, irb, step=False):
         """
         Symbolic execution of the @irb on the current state
         @irb: irblock instance
         @step: display intermediate steps
         """
-        offset2cmt = {}
-        for assignblk in irb.irs:
-            instr = assignblk.instr
-            tmp_rw = assignblk.get_rw()
-            for dst, src in assignblk.iteritems():
-                for arg in set(instr.args).union(set([src])):
-                    if arg in tmp_rw and arg not in tmp_rw.values():
-                        continue
-                    objc = self.eval_expr(arg)
-                    if objc is None:
-                        continue
-                    if self.is_type_offset(objc):
-                        continue
-                    offset2cmt.setdefault(instr.offset, set()).add(
-                        "%s: %s" % (arg, str(objc)))
-            self.eval_ir(assignblk)
 
+        offset2cmt = {}
+        for index, assignblk in enumerate(irb.irs):
+            if set(assignblk) == set([self.ir_arch.IRDst, self.ir_arch.pc]):
+                # Don't display on jxx
+                continue
+            instr = assignblk.instr
+            tmp_r = assignblk.get_r()
+            tmp_w = assignblk.get_w()
+
+            todo = set()
+
+            # Replace PC with value to match IR args
+            pc_fixed = {self.ir_arch.pc: m2_expr.ExprInt(instr.offset + instr.l, self.ir_arch.pc.size)}
+            for arg in tmp_r:
+                arg = expr_simp(arg.replace_expr(pc_fixed))
+                if arg in tmp_w and not arg.is_mem():
+                    continue
+                todo.add(arg)
+
+            for expr in todo:
+                if expr.is_int():
+                    continue
+                for c_str, c_type in self.chandler.expr_to_c_and_types(expr, self.symbols):
+                    expr = self.cst_propag_link.get((irb.label, index), {}).get(expr, expr)
+                    offset2cmt.setdefault(instr.offset, set()).add(
+                        "\n%s: %s\n%s" % (expr, c_str, c_type))
+
+            self.eval_ir(assignblk)
         for offset, value in offset2cmt.iteritems():
             idc.MakeComm(offset, '\n'.join(value))
+            print "%x\n" % offset, '\n'.join(value)
 
         return self.eval_expr(self.ir_arch.IRDst)
 
 
 class CTypeEngineFixer(SymbExecCTypeFix):
 
-    def __init__(self, ir_arch, types_mngr, state):
+    def __init__(self, ir_arch, types_mngr, state, cst_propag_link):
         mychandler = MyCHandler(types_mngr, state.symbols)
         super(CTypeEngineFixer, self).__init__(ir_arch,
                                                state.symbols,
-                                               mychandler)
+                                               mychandler,
+                                               cst_propag_link)
 
 
-def add_state(ir_arch, todo, states, addr, state):
-    addr = ir_arch.get_label(addr)
-    if addr not in states:
-        states[addr] = state
-        todo.add(addr)
-    else:
-        todo.add(addr)
-        states[addr] = states[addr].merge(state)
+def get_ira_call_fixer(ira):
+
+    class iraCallStackFixer(ira):
+
+        def call_effects(self, ad, instr):
+            print hex(instr.offset), instr
+            stk_before = idc.GetSpd(instr.offset)
+            stk_after = idc.GetSpd(instr.offset + instr.l)
+            stk_diff = stk_after - stk_before
+            print hex(stk_diff)
+            return [AssignBlock([ExprAff(self.ret_reg, ExprOp('call_func_ret', ad)),
+                                 ExprAff(self.sp, self.sp + ExprInt(stk_diff, self.sp.size))
+                                 ],
+                                instr
+                                )]
+
+    return iraCallStackFixer
 
 
 def analyse_function():
@@ -159,7 +182,11 @@ def analyse_function():
 
     bs = bin_stream_ida()
     mdis = dis_engine(bs, dont_dis_nulstart_bloc=True)
-    ir_arch = ira(mdis.symbol_pool)
+
+
+    iraCallStackFixer = get_ira_call_fixer(ira)
+    ir_arch = iraCallStackFixer(mdis.symbol_pool)
+
 
     # Get the current function
     func = ida_funcs.get_func(idc.ScreenEA())
@@ -169,13 +196,20 @@ def analyse_function():
     for block in blocks:
         ir_arch.add_block(block)
 
+
     # Get settings
     settings = TypePropagationForm(ir_arch)
     ret = settings.Execute()
     if not ret:
         return
 
-    types_mngr = get_types_mngr(settings.headerFile.value)
+    cst_propag_link = {}
+    if settings.cUnalias.value:
+        init_infos = {ir_arch.sp: ir_arch.arch.regs.regs_init[ir_arch.sp] }
+        cst_propag_link = propagate_cst_expr(ir_arch, addr, init_infos)
+
+
+    types_mngr = get_types_mngr(settings.headerFile.value, settings.arch.value)
     mychandler = MyCHandler(types_mngr, {})
     infos_types = {}
     for line in settings.strTypesInfo.value.split('\n'):
@@ -184,14 +218,13 @@ def analyse_function():
         expr_str, ctype_str = line.split(':')
         expr_str, ctype_str = expr_str.strip(), ctype_str.strip()
         expr = str_to_expr(expr_str)
-        ast = mychandler.type_analyzer.types_mngr.types_ast.parse_c_type(
+        ast = mychandler.types_mngr.types_ast.parse_c_type(
             ctype_str)
-        ctype = mychandler.type_analyzer.types_mngr.types_ast.ast_parse_declaration(ast.ext[
-                                                                                    0])
+        ctype = mychandler.types_mngr.types_ast.ast_parse_declaration(ast.ext[0])
         objc = types_mngr.get_objc(ctype)
         print '=' * 20
         print expr, objc
-        infos_types[expr] = objc
+        infos_types[expr] = set([objc])
 
     # Add fake head
     lbl_real_start = ir_arch.symbol_pool.getby_offset(addr)
@@ -220,21 +253,18 @@ def analyse_function():
         done.add((lbl, state))
         symbexec_engine = TypePropagationEngine(ir_arch, types_mngr, state)
 
-        get_block(ir_arch, mdis, lbl)
-
+        assert lbl in ir_arch.blocks
         addr = symbexec_engine.emul_ir_block(lbl)
         symbexec_engine.del_mem_above_stack(ir_arch.sp)
 
         ir_arch._graph = None
         sons = ir_arch.graph.successors(lbl)
         for son in sons:
-            if son.offset is None:
-                continue
-            add_state(ir_arch, todo, states, son.offset,
+            add_state(ir_arch, todo, states, son,
                       symbexec_engine.get_state())
 
     for lbl, state in states.iteritems():
-        symbexec_engine = CTypeEngineFixer(ir_arch, types_mngr, state)
+        symbexec_engine = CTypeEngineFixer(ir_arch, types_mngr, state, cst_propag_link)
         addr = symbexec_engine.emul_ir_block(lbl)
         symbexec_engine.del_mem_above_stack(ir_arch.sp)
 

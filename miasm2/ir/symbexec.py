@@ -16,6 +16,18 @@ log.addHandler(console_handler)
 log.setLevel(logging.INFO)
 
 
+def get_block(ir_arch, mdis, addr):
+    """Get IRBlock at address @addr"""
+    lbl = ir_arch.get_label(addr)
+    if not lbl in ir_arch.blocks:
+        block = mdis.dis_block(lbl.offset)
+        ir_arch.add_block(block)
+    irblock = ir_arch.get_block(lbl)
+    if irblock is None:
+        raise LookupError('No block found at that address: %s' % lbl)
+    return irblock
+
+
 class SymbolMngr(object):
     """
     Store registers and memory symbolic values

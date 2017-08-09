@@ -20,7 +20,7 @@ class StructLookup(ExprReducer):
     FIELD_A_PTR = "FIELD_A_PTR"
     FIELD_A = "FIELD_A"
 
-    def reduce_int(self, node, _):
+    def reduce_int(self, node, **kwargs):
         """
         Reduction: int -> CST
         """
@@ -28,7 +28,7 @@ class StructLookup(ExprReducer):
             return self.CST
         return None
 
-    def reduce_ptr_struct(self, node, _):
+    def reduce_ptr_struct(self, node, **kwargs):
         """
         Reduction: ECX -> FIELD_A_PTR
         """
@@ -36,7 +36,7 @@ class StructLookup(ExprReducer):
             return self.FIELD_A_PTR
         return None
 
-    def reduce_ptr_plus_int(self, node, _):
+    def reduce_ptr_plus_int(self, node, **kwargs):
         """
         Reduction: ECX + CST -> FIELD_A_PTR
         """
@@ -46,7 +46,7 @@ class StructLookup(ExprReducer):
             return self.FIELD_A_PTR
         return None
 
-    def reduce_cst_op(self, node, _):
+    def reduce_cst_op(self, node, **kwargs):
         """
         Reduction: CST + CST -> CST
         """
@@ -56,7 +56,7 @@ class StructLookup(ExprReducer):
             return self.CST
         return None
 
-    def reduce_at_struct_ptr(self, node, _):
+    def reduce_at_struct_ptr(self, node, **kwargs):
         """
         Reduction: @FIELD_A_PTR -> FIELD_A
         """

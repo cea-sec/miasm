@@ -99,7 +99,7 @@ class ExprReducer(object):
             raise TypeError("Unknown Expr Type %r", type(expr))
         return node
 
-    def reduce(self, expr):
+    def reduce(self, expr, **kwargs):
         """Returns an ExprNode tree mirroring @expr tree. The ExprNode is
         computed by applying reduction rules to the expression @expr
 
@@ -107,9 +107,9 @@ class ExprReducer(object):
         """
 
         node = self.expr2node(expr)
-        return self.categorize(node, 0)
+        return self.categorize(node, lvl=0, **kwargs)
 
-    def categorize(self, node, lvl=0):
+    def categorize(self, node, lvl=0, **kwargs):
         """Recursively apply rules to @node
 
         @node: ExprNode to analyze
@@ -121,17 +121,17 @@ class ExprReducer(object):
         if isinstance(expr, (ExprId, ExprInt)):
             pass
         elif isinstance(expr, ExprMem):
-            arg = self.categorize(node.arg, lvl + 1)
+            arg = self.categorize(node.arg, lvl=lvl + 1, **kwargs)
             node = ExprNode(ExprMem(arg.expr, expr.size))
             node.arg = arg
         elif isinstance(expr, ExprSlice):
-            arg = self.categorize(node.arg, lvl + 1)
+            arg = self.categorize(node.arg, lvl=lvl + 1, **kwargs)
             node = ExprNode(ExprSlice(arg.expr, expr.start, expr.stop))
             node.arg = arg
         elif isinstance(expr, ExprOp):
             new_args = []
             for arg in node.args:
-                new_a = self.categorize(arg, lvl + 1)
+                new_a = self.categorize(arg, lvl=lvl + 1, **kwargs)
                 assert new_a.expr.size == arg.expr.size
                 new_args.append(new_a)
             node = ExprNode(ExprOp(expr.op, *[x.expr for x in new_args]))
@@ -141,27 +141,27 @@ class ExprReducer(object):
             new_args = []
             new_expr_args = []
             for arg in node.args:
-                arg = self.categorize(arg, lvl + 1)
+                arg = self.categorize(arg, lvl=lvl + 1, **kwargs)
                 new_args.append(arg)
                 new_expr_args.append(arg.expr)
             new_expr = ExprCompose(*new_expr_args)
             node = ExprNode(new_expr)
             node.args = new_args
         elif isinstance(expr, ExprCond):
-            cond = self.categorize(node.cond, lvl + 1)
-            src1 = self.categorize(node.src1, lvl + 1)
-            src2 = self.categorize(node.src2, lvl + 1)
+            cond = self.categorize(node.cond, lvl=lvl + 1, **kwargs)
+            src1 = self.categorize(node.src1, lvl=lvl + 1, **kwargs)
+            src2 = self.categorize(node.src2, lvl=lvl + 1, **kwargs)
             node = ExprNode(ExprCond(cond.expr, src1.expr, src2.expr))
             node.cond, node.src1, node.src2 = cond, src1, src2
         else:
             raise TypeError("Unknown Expr Type %r", type(expr))
 
-        node.info = self.apply_rules(node, lvl)
+        node.info = self.apply_rules(node, lvl=lvl, **kwargs)
         log_reduce.debug("\t" * lvl + "Reduce result: %s %r",
                          node.expr, node.info)
         return node
 
-    def apply_rules(self, node, lvl=0):
+    def apply_rules(self, node, lvl=0, **kwargs):
         """Find and apply reduction rules to @node
 
         @node: ExprNode to analyse
@@ -169,7 +169,8 @@ class ExprReducer(object):
         """
 
         for rule in self.reduction_rules:
-            ret = rule(self, node, lvl)
+            ret = rule(self, node, lvl=lvl, **kwargs)
+
             if ret is not None:
                 log_reduce.debug("\t" * lvl + "Rule found: %r", rule)
                 return ret
