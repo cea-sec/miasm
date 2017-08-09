@@ -358,26 +358,32 @@ def simp_cst_propagation(e_s, expr):
 def simp_cond_op_int(e_s, expr):
     "Extract conditions from operations"
 
+
+    # x?a:b + x?c:d + e => x?(a+b+e:c+d+e)
     if not expr.op in ["+", "|", "^", "&", "*", '<<', '>>', 'a>>']:
         return expr
     if len(expr.args) < 2:
         return expr
-    if not expr.args[-1].is_int():
+    conds = set()
+    for arg in expr.args:
+        if arg.is_cond():
+            conds.add(arg)
+    if len(conds) != 1:
         return expr
-    a_int = expr.args[-1]
-    conds = []
-    for arg in expr.args[:-1]:
-        if not arg.is_cond():
-            return expr
-        conds.append(arg)
-    if not conds:
-        return expr
-    cond = conds.pop()
-    cond = ExprCond(cond.cond,
-                 ExprOp(expr.op, cond.src1, a_int),
-                 ExprOp(expr.op, cond.src2, a_int))
-    conds.append(cond)
-    return ExprOp(expr.op, *conds)
+    cond = list(conds).pop()
+
+    args1, args2 = [], []
+    for arg in expr.args:
+        if arg.is_cond():
+            args1.append(arg.src1)
+            args2.append(arg.src2)
+        else:
+            args1.append(arg)
+            args2.append(arg)
+
+    return ExprCond(cond.cond,
+                    ExprOp(expr.op, *args1),
+                    ExprOp(expr.op, *args2))
 
 
 def simp_cond_factor(e_s, expr):
