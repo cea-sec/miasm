@@ -30,6 +30,7 @@ class ExpressionSimplifier(object):
         m2_expr.ExprSlice: [simplifications_common.simp_slice],
         m2_expr.ExprCompose: [simplifications_common.simp_compose],
         m2_expr.ExprCond: [simplifications_common.simp_cond],
+        m2_expr.ExprMem: [simplifications_common.simp_mem],
     }
 
     # Heavy passes

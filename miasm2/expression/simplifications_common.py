@@ -552,38 +552,21 @@ def simp_compose(e_s, e):
                                           arg.size + nxt.size)] + args[i + 2:]
                 return ExprCompose(*args)
 
-
-    # Compose with ExprCond with integers for src1/src2 and intergers =>
-    # propagage integers
-    # {XXX?(0x0,0x1)?(0x0,0x1),0,8, 0x0,8,32} => XXX?(int1, int2)
-    ok = True
-    expr_cond_index = None
-    expr_ints_or_conds = []
-    for i, arg in enumerate(args):
-        if not is_int_or_cond_src_int(arg):
-            ok = False
-            break
-        expr_ints_or_conds.append(arg)
-        if arg.is_cond():
-            if expr_cond_index is not None:
-                ok = False
-            expr_cond_index = i
-            cond = arg
-
-    if ok and expr_cond_index is not None:
-        src1 = []
-        src2 = []
-        for i, arg in enumerate(expr_ints_or_conds):
-            if i == expr_cond_index:
-                src1.append(arg.src1)
-                src2.append(arg.src2)
+    # {a, x?b:d, x?c:e, f} => x?{a, b, c, f}:{a, d, e, f}
+    conds = set(arg.cond for arg in e.args if arg.is_cond())
+    if len(conds) == 1:
+        cond = list(conds)[0]
+        args1, args2 = [], []
+        for arg in e.args:
+            if arg.is_cond():
+                args1.append(arg.src1)
+                args2.append(arg.src2)
             else:
-                src1.append(arg)
-                src2.append(arg)
-        src1 = e_s.apply_simp(ExprCompose(*src1))
-        src2 = e_s.apply_simp(ExprCompose(*src2))
-        if src1.is_int() and src2.is_int():
-            return ExprCond(cond.cond, src1, src2)
+                args1.append(arg)
+                args2.append(arg)
+        arg1 = e_s(ExprCompose(*args1))
+        arg2 = e_s(ExprCompose(*args2))
+        return ExprCond(cond, arg1, arg2)
     return ExprCompose(*args)
 
 
@@ -636,3 +619,16 @@ def simp_cond(e_s, e):
         elif int1 and int2 == 0:
             e = ExprCond(e.cond.cond, e.src1, e.src2)
     return e
+
+
+def simp_mem(e_s, expr):
+    "Common simplifications on ExprMem"
+
+    # @32[x?a:b] => x?@32[a]:@32[b]
+    if expr.arg.is_cond():
+        cond = expr.arg
+        ret = ExprCond(cond.cond,
+                       ExprMem(cond.src1, expr.size),
+                       ExprMem(cond.src2, expr.size))
+        return ret
+    return expr
