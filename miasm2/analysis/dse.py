@@ -26,8 +26,9 @@ On branch, if the decision is symbolic, one can also collect "path constraints"
 and inverse them to produce new inputs potentially reaching new paths.
 
 Basically, this is done through DSEPathConstraint. In order to produce a new
-solution, one can extend this class, and override 'handle_solution' to
-produce a solution which fit its needs.
+solution, one can extend this class, and override 'handle_solution' to produce a
+solution which fit its needs. It could avoid computing new solution by
+overriding 'produce_solution'.
 
 If one is only interested in constraints associated to its path, the option
 "produce_solution" should be set to False, to speed up emulation.
@@ -448,7 +449,8 @@ class DSEPathConstraint(DSEEngine):
     to a new path.
 
     In order to produce a new solution, one can extend this class, and override
-    'handle_solution' to produce a solution which fit its needs.
+    'handle_solution' to produce a solution which fit its needs. It could avoid
+    computing new solution by overriding 'produce_solution'.
 
     If one is only interested in constraints associated to its path, the option
     "produce_solution" should be set to False, to speed up emulation.
@@ -469,7 +471,7 @@ class DSEPathConstraint(DSEEngine):
         assert z3 is not None
 
         # Init PathConstraint specifics structures
-        self.produce_solution = produce_solution
+        self._produce_solution = produce_solution
         self.cur_solver = z3.Solver()
         self.new_solutions = {} # destination -> set of model
         self.z3_trans = Translator.to_language("z3")
@@ -495,6 +497,13 @@ class DSEPathConstraint(DSEEngine):
         @destination: Expr instance for an addr which is not on the DSE path
         """
         self.new_solutions.setdefault(destination, set()).add(model)
+
+    def produce_solution(self, destination):
+        """Called to determine if a solution for @destination should be test for
+        satisfiability and computed
+        @destination: Expr instance of the target @destination
+        """
+        return self._produce_solution
 
     def handle(self, cur_addr):
         symb_pc = self.eval_expr(self.ir_arch.IRDst)
@@ -547,7 +556,7 @@ class DSEPathConstraint(DSEEngine):
                     # Add path constraint
                     cur_path_constraint = path_constraint
 
-                elif self.produce_solution:
+                elif self.produce_solution(possibility.value):
                     # Looking for a new solution
                     self.cur_solver.push()
                     for cons in path_constraint:
