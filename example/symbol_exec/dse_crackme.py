@@ -216,16 +216,16 @@ class DSEGenFile(DSEPathConstraint):
     """DSE with a specific solution creation:
     The solution is the content of the FILE to be read
 
-    The politics of exploration is the branch coverage: create a solution only
+    The politics of exploration is the code coverage: create a solution only
     if the target address has never been seen
     """
 
+    def compute_solution(self, destination):
+        # Skip this destination, already treated
+        return destination not in done
+
     def handle_solution(self, model, destination):
         global todo, done
-
-        if destination in done:
-            # Skip this path, already treated
-            return
 
         finfo = FILE_to_info_symb[FILE_stream]
 
