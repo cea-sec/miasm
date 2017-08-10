@@ -57,6 +57,10 @@ def xxx_fclose(jitter):
 # Create sandbox
 parser = Sandbox_Linux_x86_64.parser(description="ELF sandboxer")
 parser.add_argument("filename", help="ELF Filename")
+parser.add_argument("--strategy",
+                    choices=["code-cov", "branch-cov", "path-cov"],
+                    help="Strategy to use for solution creation",
+                    default="code-cov")
 options = parser.parse_args()
 options.mimic_env = True
 sb = Sandbox_Linux_x86_64(options.filename, options, globals())
@@ -209,44 +213,17 @@ def xxx_puts_symb(dse):
     raise FinishOn(string)
 
 
-done = set([]) # Set of jump address already handled
 todo = set([""]) # Set of file content to test
-
-class DSEGenFile(DSEPathConstraint):
-    """DSE with a specific solution creation:
-    The solution is the content of the FILE to be read
-
-    The politics of exploration is the code coverage: create a solution only
-    if the target address has never been seen
-    """
-
-    def compute_solution(self, destination):
-        # Skip this destination, already treated
-        return destination not in done
-
-    def handle_solution(self, model, destination):
-        global todo, done
-
-        finfo = FILE_to_info_symb[FILE_stream]
-
-        # Build corresponding file
-        out = ""
-        fsize = max(model.eval(self.z3_trans.from_expr(FILE_size)).as_long(),
-                    len(finfo.gen_bytes))
-        for index in xrange(fsize):
-            try:
-                byteid = finfo.gen_bytes[index]
-                out += chr(model.eval(self.z3_trans.from_expr(byteid)).as_long())
-            except (KeyError, AttributeError) as _:
-                # Default value if there is no constraint on current byte
-                out += "\x00"
-
-        todo.add(out)
-        done.add(destination)
 
 # Instanciate the DSE engine
 machine = Machine("x86_64")
-dse = DSEGenFile(machine)
+# Convert strategy to the correct value
+strategy = {
+    "code-cov": DSEPathConstraint.PRODUCE_SOLUTION_CODE_COV,
+    "branch-cov": DSEPathConstraint.PRODUCE_SOLUTION_BRANCH_COV,
+    "path-cov": DSEPathConstraint.PRODUCE_SOLUTION_PATH_COV,
+}[options.strategy]
+dse = DSEPathConstraint(machine, produce_solution=strategy)
 
 # Attach to the jitter
 dse.attach(sb.jitter)
@@ -280,7 +257,7 @@ while todo:
     file_content = todo.pop()
     print "CUR: %r" % file_content
     open("test.txt", "w").write(file_content)
-    dse.restore_snapshot(snapshot)
+    dse.restore_snapshot(snapshot, keep_known_solutions=True)
     FILE_to_info.clear()
     FILE_to_info_symb.clear()
 
@@ -293,6 +270,23 @@ while todo:
             # Stop if the expected result is found
             found = True
             break
+
+    finfo = FILE_to_info_symb[FILE_stream]
+    for sol_ident, model in dse.new_solutions.iteritems():
+        # Build the file corresponding to solution in 'model'
+
+        out = ""
+        fsize = max(model.eval(dse.z3_trans.from_expr(FILE_size)).as_long(),
+                    len(finfo.gen_bytes))
+        for index in xrange(fsize):
+            try:
+                byteid = finfo.gen_bytes[index]
+                out += chr(model.eval(dse.z3_trans.from_expr(byteid)).as_long())
+            except (KeyError, AttributeError) as _:
+                # Default value if there is no constraint on current byte
+                out += "\x00"
+
+        todo.add(out)
 
 # Assert that the result has been found
 assert found == True
