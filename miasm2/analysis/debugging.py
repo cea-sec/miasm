@@ -78,13 +78,13 @@ class Debugguer(object):
     def init_run(self, addr):
         self.myjit.init_run(addr)
 
-    def add_breakpoint(self, addr):
+    def set_breakpoint(self, addr):
         "Add bp @addr"
         bp = DebugBreakpointSoft(addr)
         func = lambda x: bp
         bp.func = func
         self.bp_list.append(bp)
-        self.myjit.add_breakpoint(addr, func)
+        self.myjit.set_breakpoint(addr, func)
 
     def init_memory_breakpoint(self):
         "Set exception handler on EXCEPT_BREAKPOINT_INTERN"
@@ -271,7 +271,7 @@ class DebugCmd(cmd.Cmd, object):
                                        " " * (max_name_len - len(name)),
                                        hex(value).replace("L", ""))
 
-    def add_breakpoints(self, bp_addr):
+    def set_breakpoints(self, bp_addr):
         for addr in bp_addr:
 	    addr = int(addr, 0)
 
@@ -284,7 +284,7 @@ class DebugCmd(cmd.Cmd, object):
                 print "Breakpoint 0x%08x already set (%d)" % (addr, i)
             else:
                 l = len(self.dbg.bp_list)
-                self.dbg.add_breakpoint(addr)
+                self.dbg.set_breakpoint(addr)
                 print "Breakpoint 0x%08x successfully added ! (%d)" % (addr, l)
 
     display_mode = {"mn": None,
@@ -409,7 +409,7 @@ class DebugCmd(cmd.Cmd, object):
             self.help_breakpoint()
         else:
             addrs = arg.split(" ")
-            self.add_breakpoints(addrs)
+            self.set_breakpoints(addrs)
 
     def help_breakpoint(self):
         print "Add breakpoints to argument addresses."

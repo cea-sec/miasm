@@ -47,7 +47,7 @@ class Asm_Test(object):
 
         self.myjit.cpu.RA = 0x1337beef
 
-        self.myjit.add_breakpoint(0x1337beef, lambda x: False)
+        self.myjit.set_breakpoint(0x1337beef, lambda x: False)
 
         self.myjit.init_run(run_addr)
         self.myjit.continue_run()

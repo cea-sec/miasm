@@ -28,7 +28,7 @@ class Test_SEH(Asm_Test_32):
         build_teb(self.myjit, tib_ad)
         self.myjit.add_exception_handler((1 << 17),
                                          Test_SEH.deal_exception_priv)
-        self.myjit.add_breakpoint(return_from_exception, return_from_seh)
+        self.myjit.set_breakpoint(return_from_exception, return_from_seh)
 
 
 class Test_SEH_simple(Test_SEH):

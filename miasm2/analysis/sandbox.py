@@ -137,7 +137,7 @@ class Sandbox(object):
         @args: arguments
         """
         self.jitter.init_run(addr)
-        self.jitter.add_breakpoint(self.CALL_FINNISH_ADDR, self.code_sentinelle)
+        self.jitter.set_breakpoint(self.CALL_FINNISH_ADDR, self.code_sentinelle)
         prepare_cb(self.CALL_FINNISH_ADDR, *args)
         self.jitter.continue_run()
 
@@ -455,7 +455,7 @@ class Sandbox_Win_x86_32(Sandbox, Arch_x86_32, OS_Win):
         self.jitter.push_uint32_t(0x1337beef)
 
         # Set the runtime guard
-        self.jitter.add_breakpoint(0x1337beef, self.__class__.code_sentinelle)
+        self.jitter.set_breakpoint(0x1337beef, self.__class__.code_sentinelle)
 
     def run(self, addr=None):
         """
@@ -488,7 +488,7 @@ class Sandbox_Win_x86_64(Sandbox, Arch_x86_64, OS_Win):
         self.jitter.push_uint64_t(0x1337beef)
 
         # Set the runtime guard
-        self.jitter.add_breakpoint(0x1337beef, self.__class__.code_sentinelle)
+        self.jitter.set_breakpoint(0x1337beef, self.__class__.code_sentinelle)
 
     def run(self, addr=None):
         """
@@ -542,7 +542,7 @@ class Sandbox_Linux_x86_32(Sandbox, Arch_x86_32, OS_Linux):
             self.jitter.push_uint32_t(0x1337beef)
 
         # Set the runtime guard
-        self.jitter.add_breakpoint(0x1337beef, self.__class__.code_sentinelle)
+        self.jitter.set_breakpoint(0x1337beef, self.__class__.code_sentinelle)
 
     def run(self, addr=None):
         """
@@ -597,7 +597,7 @@ class Sandbox_Linux_x86_64(Sandbox, Arch_x86_64, OS_Linux):
             self.jitter.push_uint64_t(0x1337beef)
 
         # Set the runtime guard
-        self.jitter.add_breakpoint(0x1337beef, self.__class__.code_sentinelle)
+        self.jitter.set_breakpoint(0x1337beef, self.__class__.code_sentinelle)
 
     def run(self, addr=None):
         """
@@ -650,7 +650,7 @@ class Sandbox_Linux_arml(Sandbox, Arch_arml, OS_Linux):
         self.jitter.cpu.LR = 0x1337beef
 
         # Set the runtime guard
-        self.jitter.add_breakpoint(0x1337beef, self.__class__.code_sentinelle)
+        self.jitter.set_breakpoint(0x1337beef, self.__class__.code_sentinelle)
 
     def run(self, addr=None):
         if addr is None and self.options.address is None:
@@ -675,7 +675,7 @@ class Sandbox_Linux_armb_str(Sandbox, Arch_armb, OS_Linux_str):
         self.jitter.cpu.LR = 0x1337beef
 
         # Set the runtime guard
-        self.jitter.add_breakpoint(0x1337beef, self.__class__.code_sentinelle)
+        self.jitter.set_breakpoint(0x1337beef, self.__class__.code_sentinelle)
 
     def run(self, addr=None):
         if addr is None and self.options.address is not None:
@@ -691,7 +691,7 @@ class Sandbox_Linux_arml_str(Sandbox, Arch_arml, OS_Linux_str):
         self.jitter.cpu.LR = 0x1337beef
 
         # Set the runtime guard
-        self.jitter.add_breakpoint(0x1337beef, self.__class__.code_sentinelle)
+        self.jitter.set_breakpoint(0x1337beef, self.__class__.code_sentinelle)
 
     def run(self, addr=None):
         if addr is None and self.options.address is not None:
@@ -732,7 +732,7 @@ class Sandbox_Linux_aarch64l(Sandbox, Arch_aarch64l, OS_Linux):
         self.jitter.cpu.LR = 0x1337beef
 
         # Set the runtime guard
-        self.jitter.add_breakpoint(0x1337beef, self.__class__.code_sentinelle)
+        self.jitter.set_breakpoint(0x1337beef, self.__class__.code_sentinelle)
 
     def run(self, addr=None):
         if addr is None and self.options.address is None:

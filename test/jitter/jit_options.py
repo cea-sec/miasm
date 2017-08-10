@@ -37,7 +37,7 @@ def init_jitter():
     myjit.jit.log_mn = True
     myjit.push_uint32_t(0x1337beef)
 
-    myjit.add_breakpoint(0x1337beef, code_sentinelle)
+    myjit.set_breakpoint(0x1337beef, code_sentinelle)
     return myjit
 
 # Test 'max_exec_per_call'

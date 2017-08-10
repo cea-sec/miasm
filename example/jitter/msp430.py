@@ -41,7 +41,7 @@ def jit_msp430_binary(args):
     myjit.jit.log_newbloc = args.log_newbloc
 
     myjit.vm.add_memory_page(0, PAGE_READ | PAGE_WRITE, open(filepath).read())
-    myjit.add_breakpoint(0x1337, lambda _: exit(0))
+    myjit.set_breakpoint(0x1337, lambda _: exit(0))
 
 
     # for stack

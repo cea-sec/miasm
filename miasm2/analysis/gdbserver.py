@@ -161,7 +161,7 @@ class GdbServer(object):
 
                     if size != 1:
                         raise NotImplementedError("Bigger size")
-                    self.dbg.add_breakpoint(addr)
+                    self.dbg.set_breakpoint(addr)
                     self.send_queue.append("OK")
 
                 elif bp_type == "1":

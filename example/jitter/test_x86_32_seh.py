@@ -48,7 +48,7 @@ sb.jitter.add_exception_handler(EXCEPT_DIV_BY_ZERO, deal_exception_div)
 sb.jitter.add_exception_handler(1<<17, deal_exception_privileged_instruction)
 sb.jitter.add_exception_handler(EXCEPT_UNK_MNEMO, deal_exception_illegal_instruction)
 
-sb.jitter.add_breakpoint(win_api_x86_32_seh.return_from_exception, return_from_seh)
+sb.jitter.set_breakpoint(win_api_x86_32_seh.return_from_exception, return_from_seh)
 
 # Run
 sb.run()

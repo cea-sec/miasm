@@ -22,7 +22,7 @@ def code_sentinelle(jitter):
     return True
 
 myjit.push_uint32_t(0x1337beef)
-myjit.add_breakpoint(0x1337beef, code_sentinelle)
+myjit.set_breakpoint(0x1337beef, code_sentinelle)
 
 # Run
 myjit.init_run(run_addr)
