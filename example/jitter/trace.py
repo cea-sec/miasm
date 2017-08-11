@@ -47,11 +47,12 @@ sb = Sandbox_Linux_arml(options.filename, options, globals())
 
 # Force jit one instr per call, and register our callback
 sb.jitter.jit.set_options(jit_maxline=1, max_exec_per_call=1)
-sb.jitter.exec_cb = instr_hook
 
 # Run
 start_time = time.time()
-sb.run()
+
+sb.init_run()
+sb.jitter.continue_run(callback=instr_hook)
 stop_time = time.time()
 
 assert sb.jitter.run is False

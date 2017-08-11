@@ -937,7 +937,7 @@ def kernel32_GetProcAddress(jitter):
     else:
         ad = 0
     log.info("GetProcAddress %r %r ret 0x%x", args.libbase, fname, ad)
-    jitter.set_breakpoint(ad, jitter.handle_lib)
+    jitter.handle_function(ad)
     jitter.func_ret_stdcall(ret_ad, ad)
 
 

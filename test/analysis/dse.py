@@ -61,7 +61,7 @@ class DSE_test(object):
     def run(self):
 
         self.myjit.init_run(self.run_addr)
-        self.myjit.continue_run()
+        self.myjit.continue_run(callback=self.dse.callback)
 
         assert(self.myjit.pc == self.ret_addr)
 

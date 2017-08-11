@@ -67,8 +67,7 @@ print "[+] Second run"
 myjit.push_uint32_t(0x1337beef)
 myjit.cpu.EAX = 0
 myjit.init_run(run_addr)
-myjit.exec_cb = cb
-myjit.continue_run()
+myjit.continue_run(callback=cb)
 
 assert myjit.run is True
 # Use a '>=' because it's a 'max_...'
@@ -87,8 +86,7 @@ def cb(jitter):
     return True
 
 myjit.init_run(run_addr)
-myjit.exec_cb = cb
-myjit.continue_run()
+myjit.continue_run(callback=cb)
 
 assert myjit.run is False
 assert myjit.cpu.EAX  == 0x00
