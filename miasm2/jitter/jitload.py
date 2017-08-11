@@ -167,7 +167,7 @@ class ExceptionHandle():
         return (self.except_flag == to_cmp.except_flag)
 
 
-class jitter:
+class jitter(object):
 
     "Main class for JIT handling"
 
@@ -246,7 +246,17 @@ class jitter:
         self.breakpoints_handlers = {}
         self.exceptions_handler = CallbackHandlerBitflag()
         self.init_exceptions_handler()
-        self.exec_cb = None
+
+
+    def get_exec_cb(self):
+        warnings.warn("""DEPRECATION WARNING: exec_cb is not supported anymore""")
+        raise NotImplementedError("Unsupported exec_cb")
+
+    def set_exec_cb(self, _):
+        warnings.warn("""DEPRECATION WARNING: exec_cb is not supported anymore""")
+        raise NotImplementedError("Unsupported exec_cb")
+
+    exec_cb = property(get_exec_cb, set_exec_cb)
 
     def init_exceptions_handler(self):
         "Add common exceptions handlers"
@@ -330,60 +340,41 @@ class jitter:
 
         self.pc = pc
 
-        # Callback called before exec
-        if self.exec_cb is not None:
-            res = self.exec_cb(self)
-            if res is not True:
-                yield res
-
         # Check breakpoints
         old_pc = self.pc
         callback = self.breakpoints_handlers.get(self.pc, None)
+        return_value = True
         if callback is not None:
-            return_value = callback(self)
-            if return_value is not True:
-                if isinstance(return_value, collections.Iterator):
-                    # If the breakpoint is a generator, yield it step by step
-                    for tmp in return_value:
-                        yield tmp
-                else:
-                    yield return_value
+            return_value &= callback(self)
 
         # Check exceptions (raised by breakpoints)
         exception_flag = self.get_exception()
-        for res in self.exceptions_handler(exception_flag, self):
-            if res is not True:
-                if isinstance(res, collections.Iterator):
-                    for tmp in res:
-                        yield tmp
-                else:
-                    yield res
+        for result in self.exceptions_handler(exception_flag, self):
+            return_value &= result
+
+        # Return if an exception handler stopped
+        if not return_value:
+            return return_value
 
         # If a callback changed pc, re call every callback
         if old_pc != self.pc:
-            return
+            return return_value
 
         # Exceptions should never be activated before run
         assert(self.get_exception() == 0)
 
         # Run the bloc at PC
         self.pc = self.runbloc(self.pc)
-
         # Check exceptions (raised by the execution of the block)
         exception_flag = self.get_exception()
-        for res in self.exceptions_handler(exception_flag, self):
-            if res is not True:
-                if isinstance(res, collections.Iterator):
-                    for tmp in res:
-                        yield tmp
-                else:
-                    yield res
+        for result in self.exceptions_handler(exception_flag, self):
+            return_value &= result
+        return return_value
 
     def init_run(self, pc):
         """Create an iterator on pc with runiter.
         @pc: address of code to run
         """
-        self.run_iterator = self.runiter_once(pc)
         self.pc = pc
         self.run = True
 
@@ -395,13 +386,9 @@ class jitter:
         Return the iterator value"""
 
         while self.run:
-            try:
-                return self.run_iterator.next()
-            except StopIteration:
-                pass
-
-            self.run_iterator = self.runiter_once(self.pc)
-
+            result = self.runiter_once(self.pc)#self.run_iterator.next()
+            if not result:
+                return result
             if step is True:
                 return None
 
