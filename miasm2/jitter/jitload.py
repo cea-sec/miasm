@@ -354,11 +354,11 @@ class jitter(object):
 
         # Return if an exception handler stopped
         if not return_value:
-            return return_value
+            return False
 
         # If a callback changed pc, re call every callback
         if old_pc != self.pc:
-            return return_value
+            return True
 
         # Exceptions should never be activated before run
         assert(self.get_exception() == 0)
@@ -378,7 +378,7 @@ class jitter(object):
         self.pc = pc
         self.run = True
 
-    def continue_run(self, step=False):
+    def continue_run(self, step=False, callback=None):
         """PRE: init_run.
         Continue the run of the current session until iterator returns or run is
         set to False.
@@ -386,7 +386,14 @@ class jitter(object):
         Return the iterator value"""
 
         while self.run:
-            result = self.runiter_once(self.pc)#self.run_iterator.next()
+            if callback:
+                old_pc = self.pc
+                result = callback(self)
+                if not result:
+                    return None
+                if old_pc != self.pc:
+                    continue
+            result = self.runiter_once(self.pc)
             if not result:
                 return result
             if step is True:
