@@ -100,13 +100,17 @@ class Sandbox(object):
             base_cls.update_parser(parser)
         return parser
 
-    def run(self, addr=None):
-        """
-        Launch emulation (gdbserver, debugging, basic JIT).
-        @addr: (int) start address
-        """
+    def get_start_addr(self, addr=None):
+        """If addr is not set, use arguments addr"""
         if addr is None and self.options.address is not None:
             addr = int(self.options.address, 0)
+        return addr
+
+    def prepare_exec(self, addr):
+        """
+        Prepare emulation (gdbserver, debugging, basic JIT).
+        @addr: (int) start address
+        """
 
         if any([self.options.debugging, self.options.gdbserver]):
             dbg = debugging.Debugguer(self.jitter)
@@ -118,15 +122,33 @@ class Sandbox(object):
                 print "Listen on port %d" % port
                 gdb = self.machine.gdbserver(dbg, port)
                 self.gdb = gdb
-                gdb.run()
             else:
                 cmd = debugging.DebugCmd(dbg)
                 self.cmd = cmd
-                cmd.cmdloop()
 
         else:
             self.jitter.init_run(addr)
+
+    def run_loop(self):
+        if self.options.gdbserver:
+            self.gdb.run()
+        elif self.options.debugging:
+            self.cmd.cmdloop()
+        else:
             self.jitter.continue_run()
+
+    def init_run(self, addr=None):
+        """Prepare Sandbox to execution"""
+        addr = self.get_start_addr(addr)
+        self.prepare_exec(addr)
+
+    def run(self, addr=None):
+        """
+        Launch emulation (gdbserver, debugging, basic JIT).
+        @addr: (int) start address
+        """
+        self.init_run(addr)
+        self.run_loop()
 
     def call(self, prepare_cb, addr, *args):
         """
@@ -457,13 +479,12 @@ class Sandbox_Win_x86_32(Sandbox, Arch_x86_32, OS_Win):
         # Set the runtime guard
         self.jitter.set_breakpoint(0x1337beef, self.__class__.code_sentinelle)
 
-    def run(self, addr=None):
-        """
-        If addr is not set, use entrypoint
-        """
-        if addr is None and self.options.address is None:
+    def get_start_addr(self, addr=None):
+        """If addr is not set, use entrypoint"""
+        addr = super(Sandbox_Win_x86_32, self).get_start_addr(addr)
+        if addr is None:
             addr = self.entry_point
-        super(Sandbox_Win_x86_32, self).run(addr)
+        return addr
 
     def call(self, addr, *args, **kwargs):
         """
@@ -490,13 +511,12 @@ class Sandbox_Win_x86_64(Sandbox, Arch_x86_64, OS_Win):
         # Set the runtime guard
         self.jitter.set_breakpoint(0x1337beef, self.__class__.code_sentinelle)
 
-    def run(self, addr=None):
-        """
-        If addr is not set, use entrypoint
-        """
-        if addr is None and self.options.address is None:
+    def get_start_addr(self, addr=None):
+        """If addr is not set, use entrypoint"""
+        addr = super(Sandbox_Win_x86_64, self).get_start_addr(addr)
+        if addr is None:
             addr = self.entry_point
-        super(Sandbox_Win_x86_64, self).run(addr)
+        return addr
 
     def call(self, addr, *args, **kwargs):
         """
@@ -544,13 +564,12 @@ class Sandbox_Linux_x86_32(Sandbox, Arch_x86_32, OS_Linux):
         # Set the runtime guard
         self.jitter.set_breakpoint(0x1337beef, self.__class__.code_sentinelle)
 
-    def run(self, addr=None):
-        """
-        If addr is not set, use entrypoint
-        """
-        if addr is None and self.options.address is None:
+    def get_start_addr(self, addr=None):
+        """If addr is not set, use entrypoint"""
+        addr = super(Sandbox_Linux_x86_32, self).get_start_addr(addr)
+        if addr is None:
             addr = self.entry_point
-        super(Sandbox_Linux_x86_32, self).run(addr)
+        return addr
 
     def call(self, addr, *args, **kwargs):
         """
@@ -599,13 +618,12 @@ class Sandbox_Linux_x86_64(Sandbox, Arch_x86_64, OS_Linux):
         # Set the runtime guard
         self.jitter.set_breakpoint(0x1337beef, self.__class__.code_sentinelle)
 
-    def run(self, addr=None):
-        """
-        If addr is not set, use entrypoint
-        """
-        if addr is None and self.options.address is None:
+    def get_start_addr(self, addr=None):
+        """If addr is not set, use entrypoint"""
+        addr = super(Sandbox_Linux_x86_64, self).get_start_addr(addr)
+        if addr is None:
             addr = self.entry_point
-        super(Sandbox_Linux_x86_64, self).run(addr)
+        return addr
 
     def call(self, addr, *args, **kwargs):
         """
@@ -652,10 +670,12 @@ class Sandbox_Linux_arml(Sandbox, Arch_arml, OS_Linux):
         # Set the runtime guard
         self.jitter.set_breakpoint(0x1337beef, self.__class__.code_sentinelle)
 
-    def run(self, addr=None):
-        if addr is None and self.options.address is None:
+    def get_start_addr(self, addr=None):
+        """If addr is not set, use entrypoint"""
+        addr = super(Sandbox_Linux_arml, self).get_start_addr(addr)
+        if addr is None:
             addr = self.entry_point
-        super(Sandbox_Linux_arml, self).run(addr)
+        return addr
 
     def call(self, addr, *args, **kwargs):
         """
@@ -677,11 +697,6 @@ class Sandbox_Linux_armb_str(Sandbox, Arch_armb, OS_Linux_str):
         # Set the runtime guard
         self.jitter.set_breakpoint(0x1337beef, self.__class__.code_sentinelle)
 
-    def run(self, addr=None):
-        if addr is None and self.options.address is not None:
-            addr = int(self.options.address, 0)
-        super(Sandbox_Linux_armb_str, self).run(addr)
-
 
 class Sandbox_Linux_arml_str(Sandbox, Arch_arml, OS_Linux_str):
 
@@ -692,11 +707,6 @@ class Sandbox_Linux_arml_str(Sandbox, Arch_arml, OS_Linux_str):
 
         # Set the runtime guard
         self.jitter.set_breakpoint(0x1337beef, self.__class__.code_sentinelle)
-
-    def run(self, addr=None):
-        if addr is None and self.options.address is not None:
-            addr = int(self.options.address, 0)
-        super(Sandbox_Linux_arml_str, self).run(addr)
 
 
 class Sandbox_Linux_aarch64l(Sandbox, Arch_aarch64l, OS_Linux):
@@ -734,10 +744,12 @@ class Sandbox_Linux_aarch64l(Sandbox, Arch_aarch64l, OS_Linux):
         # Set the runtime guard
         self.jitter.set_breakpoint(0x1337beef, self.__class__.code_sentinelle)
 
-    def run(self, addr=None):
-        if addr is None and self.options.address is None:
+    def get_start_addr(self, addr=None):
+        """If addr is not set, use entrypoint"""
+        addr = super(Sandbox_Linux_aarch64l, self).get_start_addr(addr)
+        if addr is None:
             addr = self.entry_point
-        super(Sandbox_Linux_aarch64l, self).run(addr)
+        return addr
 
     def call(self, addr, *args, **kwargs):
         """
