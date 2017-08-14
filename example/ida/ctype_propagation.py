@@ -123,7 +123,9 @@ class SymbExecCTypeFix(SymbExecCType):
 
             # Replace PC with value to match IR args
             pc_fixed = {self.ir_arch.pc: m2_expr.ExprInt(instr.offset + instr.l, self.ir_arch.pc.size)}
-            for arg in tmp_r:
+            inputs = tmp_r
+            inputs.update(arg for arg in tmp_w if arg.is_mem())
+            for arg in inputs:
                 arg = expr_simp(arg.replace_expr(pc_fixed))
                 if arg in tmp_w and not arg.is_mem():
                     continue
