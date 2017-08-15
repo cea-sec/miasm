@@ -23,6 +23,8 @@ import string
 import logging
 from zlib import crc32
 from StringIO import StringIO
+import time
+import datetime
 
 try:
     from Crypto.Hash import MD5, SHA
@@ -41,6 +43,7 @@ console_handler.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
 log.addHandler(console_handler)
 log.setLevel(logging.WARN)
 
+DATE_1601_TO_1970 = 116444736000000000
 
 MAX_PATH = 260
 
@@ -170,6 +173,11 @@ class c_winobjs:
         self.env_variables = {}
         self.events_pool = {}
         self.find_data = None
+
+        self.current_datetime = datetime.datetime(year=2017, month=8, day=21,
+                                                  hour=13, minute=37,
+                                                  second=11, microsecond=123456)
+
 winobjs = c_winobjs()
 
 
@@ -2125,37 +2133,72 @@ def wsock32_WSAStartup(jitter):
     jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def kernel32_GetLocalTime(jitter):
-    ret_ad, args = jitter.func_args_stdcall(["lpsystemtime"])
+def get_current_filetime():
+    """
+    Get current filetime
+    https://msdn.microsoft.com/en-us/library/ms724228
+    """
+    curtime = winobjs.current_datetime
+    unixtime = int(time.mktime(curtime.timetuple()))
+    filetime = (int(unixtime * 1000000 + curtime.microsecond) * 10 +
+                DATE_1601_TO_1970)
+    return filetime
+
+
+def unixtime_to_filetime(unixtime):
+    """
+    Convert unixtime to filetime
+    https://msdn.microsoft.com/en-us/library/ms724228
+    """
+    return (unixtime * 10000000) + DATE_1601_TO_1970
+
+
+def filetime_to_unixtime(filetime):
+    """
+    Convert filetime to unixtime
+    # https://msdn.microsoft.com/en-us/library/ms724228
+    """
+    return int((filetime - DATE_1601_TO_1970) / 10000000)
+
+
+def datetime_to_systemtime(curtime):
 
     s = struct.pack('HHHHHHHH',
-                    2011,  # year
-                    10,   # month
-                    5,    # dayofweek
-                    7,    # day
-                    13,   # hour
-                    37,   # minutes
-                    00,   # seconds
-                    999,  # millisec
+                    curtime.year,      # year
+                    curtime.month,     # month
+                    curtime.weekday(), # dayofweek
+                    curtime.day,       # day
+                    curtime.hour,      # hour
+                    curtime.minute ,   # minutes
+                    curtime.second,    # seconds
+                    int(curtime.microsecond / 1000),  # millisec
                     )
-    jitter.vm.set_mem(args.lpsystemtime, s)
+    return s
+
+
+def kernel32_GetSystemTimeAsFileTime(jitter):
+    ret_ad, args = jitter.func_args_stdcall(["lpSystemTimeAsFileTime"])
+
+    current_filetime = get_current_filetime()
+    filetime = struct.pack('II',
+                           current_filetime & 0xffffffff,
+                           (current_filetime>>32) & 0xffffffff)
+
+    jitter.vm.set_mem(args.lpSystemTimeAsFileTime, filetime)
+    jitter.func_ret_stdcall(ret_ad, 0)
+
+
+def kernel32_GetLocalTime(jitter):
+    ret_ad, args = jitter.func_args_stdcall(["lpsystemtime"])
+    systemtime = datetime_to_systemtime(winobjs.current_datetime)
+    jitter.vm.set_mem(args.lpsystemtime, systemtime)
     jitter.func_ret_stdcall(ret_ad, args.lpsystemtime)
 
 
 def kernel32_GetSystemTime(jitter):
     ret_ad, args = jitter.func_args_stdcall(["lpsystemtime"])
-
-    s = struct.pack('HHHHHHHH',
-                    2011,  # year
-                    10,   # month
-                    5,    # dayofweek
-                    7,    # day
-                    13,   # hour
-                    37,   # minutes
-                    00,   # seconds
-                    999,  # millisec
-                    )
-    jitter.vm.set_mem(args.lpsystemtime, s)
+    systemtime = datetime_to_systemtime(winobjs.current_datetime)
+    jitter.vm.set_mem(args.lpsystemtime, systemtime)
     jitter.func_ret_stdcall(ret_ad, args.lpsystemtime)
 
 
