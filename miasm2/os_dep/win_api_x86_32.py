@@ -61,7 +61,7 @@ typedef struct tagPROCESSENTRY32 {
 """
 
 
-access_dict = {0x0: 0,
+ACCESS_DICT = {0x0: 0,
                0x1: 0,
                0x2: PAGE_READ,
                0x4: PAGE_READ | PAGE_WRITE,
@@ -73,7 +73,7 @@ access_dict = {0x0: 0,
                0x100: 0
                }
 
-access_dict_inv = dict([(x[1], x[0]) for x in access_dict.items()])
+ACCESS_DICT_INV = dict((x[1], x[0]) for x in ACCESS_DICT.iteritems())
 
 
 class whandle():
@@ -710,9 +710,9 @@ def kernel32_VirtualProtect(jitter):
                                              'lpfloldprotect'])
     # XXX mask hpart
     flnewprotect = args.flnewprotect & 0xFFF
-    if not flnewprotect in access_dict:
+    if not flnewprotect in ACCESS_DICT:
         raise ValueError('unknown access dw!')
-    jitter.vm.set_mem_access(args.lpvoid, access_dict[flnewprotect])
+    jitter.vm.set_mem_access(args.lpvoid, ACCESS_DICT[flnewprotect])
 
     # XXX todo real old protect
     if args.lpfloldprotect:
@@ -725,37 +725,25 @@ def kernel32_VirtualAlloc(jitter):
     ret_ad, args = jitter.func_args_stdcall(['lpvoid', 'dwsize',
                                              'alloc_type', 'flprotect'])
 
-    access_dict = {
-        0x0: 0,
-        0x1: 0,
-        0x2: PAGE_READ,
-        0x4: PAGE_READ | PAGE_WRITE,
-        0x10: PAGE_EXEC,
-        0x20: PAGE_EXEC | PAGE_READ,
-        0x40: PAGE_EXEC | PAGE_READ | PAGE_WRITE,
-        0x100: 0,
-    }
 
-    # access_dict_inv = dict([(x[1], x[0]) for x in access_dict.items()])
-
-    if not args.flprotect in access_dict:
+    if not args.flprotect in ACCESS_DICT:
         raise ValueError('unknown access dw!')
 
     if args.lpvoid == 0:
         alloc_addr = winobjs.heap.next_addr(args.dwsize)
         jitter.vm.add_memory_page(
-            alloc_addr, access_dict[args.flprotect], "\x00" * args.dwsize,
+            alloc_addr, ACCESS_DICT[args.flprotect], "\x00" * args.dwsize,
             "Alloc in %s ret 0x%X" % (whoami(), ret_ad))
     else:
         all_mem = jitter.vm.get_all_memory()
         if args.lpvoid in all_mem:
             alloc_addr = args.lpvoid
-            jitter.vm.set_mem_access(args.lpvoid, access_dict[args.flprotect])
+            jitter.vm.set_mem_access(args.lpvoid, ACCESS_DICT[args.flprotect])
         else:
             alloc_addr = winobjs.heap.next_addr(args.dwsize)
             # alloc_addr = args.lpvoid
             jitter.vm.add_memory_page(
-                alloc_addr, access_dict[args.flprotect], "\x00" * args.dwsize,
+                alloc_addr, ACCESS_DICT[args.flprotect], "\x00" * args.dwsize,
                 "Alloc in %s ret 0x%X" % (whoami(), ret_ad))
 
     log.info('VirtualAlloc addr: 0x%x', alloc_addr)
@@ -1681,9 +1669,9 @@ def ntdll_ZwProtectVirtualMemory(jitter):
     # XXX mask hpart
     flnewprotect = args.flnewprotect & 0xFFF
 
-    if not flnewprotect in access_dict:
+    if not flnewprotect in ACCESS_DICT:
         raise ValueError('unknown access dw!')
-    jitter.vm.set_mem_access(ad, access_dict[flnewprotect])
+    jitter.vm.set_mem_access(ad, ACCESS_DICT[flnewprotect])
 
     # XXX todo real old protect
     jitter.vm.set_mem(args.lpfloldprotect, pck32(0x40))
@@ -1700,25 +1688,12 @@ def ntdll_ZwAllocateVirtualMemory(jitter):
     # ad = upck32(jitter.vm.get_mem(args.lppvoid, 4))
     dwsize = upck32(jitter.vm.get_mem(args.pdwsize, 4))
 
-    access_dict = {
-        0x0: 0,
-        0x1: 0,
-        0x2: PAGE_READ,
-        0x4: PAGE_READ | PAGE_WRITE,
-        0x10: PAGE_EXEC,
-        0x20: PAGE_EXEC | PAGE_READ,
-        0x40: PAGE_EXEC | PAGE_READ | PAGE_WRITE,
-        0x100: 0,
-    }
-
-    # access_dict_inv = dict([(x[1], x[0]) for x in access_dict.items()])
-
-    if not args.flprotect in access_dict:
+    if not args.flprotect in ACCESS_DICT:
         raise ValueError('unknown access dw!')
 
     alloc_addr = winobjs.heap.next_addr(dwsize)
     jitter.vm.add_memory_page(
-        alloc_addr, access_dict[args.flprotect], "\x00" * dwsize,
+        alloc_addr, ACCESS_DICT[args.flprotect], "\x00" * dwsize,
         "Alloc in %s ret 0x%X" % (whoami(), ret_ad))
     jitter.vm.set_mem(args.lppvoid, pck32(alloc_addr))
 
@@ -2231,19 +2206,8 @@ def kernel32_MapViewOfFile(jitter):
     length = len(data)
 
     log.debug('MapViewOfFile len: %x', len(data))
-    access_dict = {
-        0x0: 0,
-        0x1: 0,
-        0x2: PAGE_READ,
-        0x4: PAGE_READ | PAGE_WRITE,
-        0x10: PAGE_EXEC,
-        0x20: PAGE_EXEC | PAGE_READ,
-        0x40: PAGE_EXEC | PAGE_READ | PAGE_WRITE,
-        0x100: 0,
-    }
-    # access_dict_inv = dict([(x[1], x[0]) for x in access_dict.items()])
 
-    if not args.flprotect in access_dict:
+    if not args.flprotect in ACCESS_DICT:
         raise ValueError('unknown access dw!')
 
     alloc_addr = winobjs.heap.alloc(jitter, len(data))
@@ -2318,18 +2282,6 @@ def kernel32_GetDiskFreeSpaceW(jitter):
 def kernel32_VirtualQuery(jitter):
     ret_ad, args = jitter.func_args_stdcall(["ad", "lpbuffer", "dwl"])
 
-    access_dict = {
-        0x0: 0,
-        0x1: 0,
-        0x2: PAGE_READ,
-        0x4: PAGE_READ | PAGE_WRITE,
-        0x10: PAGE_EXEC,
-        0x20: PAGE_EXEC | PAGE_READ,
-        0x40: PAGE_EXEC | PAGE_READ | PAGE_WRITE,
-        0x100: 0,
-    }
-    access_dict_inv = dict([(x[1], x[0]) for x in access_dict.iteritems()])
-
     all_mem = jitter.vm.get_all_memory()
     found = None
     for basead, m in all_mem.iteritems():
@@ -2344,10 +2296,10 @@ def kernel32_VirtualQuery(jitter):
     s = struct.pack('IIIIIII',
                     args.ad,
                     basead,
-                    access_dict_inv[m['access']],
+                    ACCESS_DICT_INV[m['access']],
                     m['size'],
                     0x1000,
-                    access_dict_inv[m['access']],
+                    ACCESS_DICT_INV[m['access']],
                     0x01000000)
     jitter.vm.set_mem(args.lpbuffer, s)
     jitter.func_ret_stdcall(ret_ad, args.dwl)
