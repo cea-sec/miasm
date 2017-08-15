@@ -546,7 +546,7 @@ def kernel32_CreateFile(jitter, funcname, get_str):
     log.debug("%r %r", fname.lower(), winobjs.module_path.lower())
     is_original_file = fname.lower() == winobjs.module_path.lower()
 
-    if fname.upper() in [r"\\.\SICE", r"\\.\NTICE", r"\\.\SIWVID"]:
+    if fname.upper() in [r"\\.\SICE", r"\\.\NTICE", r"\\.\SIWVID", r'\\.\SIWDEBUG']:
         pass
     elif fname.upper() in ['NUL']:
         ret = winobjs.module_cur_hwnd
