@@ -516,6 +516,20 @@ def simp_slice(e_s, e):
         else:
             raise ValueError('Bad case')
 
+    # (Compose(...) OP int1)[x:y] with Compose(...)[x:y] reducted => distribute slice
+    elif (isinstance(e.arg, ExprOp) and
+          e.arg.op in ("+", "*", "^", "&", "|") and
+          len(e.arg.args) == 2 and isinstance(e.arg.args[0], ExprCompose) and
+          isinstance(e.arg.args[1], ExprInt)):
+        el_slice = e.arg.args[0]
+        nb_element = len(el_slice.args)
+        simplified = e_s(el_slice[e.start:e.stop])
+        if (not isinstance(simplified, ExprCompose) or
+            len(simplified.args) < nb_element):
+            return e_s(ExprCompose(*[e_s(ExprOp(e.arg.op,
+                                                x,
+                                                e.arg.args[1][idx:idx + x.size]))
+                                     for idx, x in el_slice.iter_args()]))[e.start:e.stop]
     return e
 
 
