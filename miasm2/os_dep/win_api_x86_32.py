@@ -23,6 +23,8 @@ import string
 import logging
 from zlib import crc32
 from StringIO import StringIO
+import time
+import datetime
 
 try:
     from Crypto.Hash import MD5, SHA
@@ -41,6 +43,7 @@ console_handler.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
 log.addHandler(console_handler)
 log.setLevel(logging.WARN)
 
+DATE_1601_TO_1970 = 116444736000000000
 
 MAX_PATH = 260
 
@@ -61,7 +64,7 @@ typedef struct tagPROCESSENTRY32 {
 """
 
 
-access_dict = {0x0: 0,
+ACCESS_DICT = {0x0: 0,
                0x1: 0,
                0x2: PAGE_READ,
                0x4: PAGE_READ | PAGE_WRITE,
@@ -73,7 +76,7 @@ access_dict = {0x0: 0,
                0x100: 0
                }
 
-access_dict_inv = dict([(x[1], x[0]) for x in access_dict.items()])
+ACCESS_DICT_INV = dict((x[1], x[0]) for x in ACCESS_DICT.iteritems())
 
 
 class whandle():
@@ -170,6 +173,11 @@ class c_winobjs:
         self.env_variables = {}
         self.events_pool = {}
         self.find_data = None
+
+        self.current_datetime = datetime.datetime(year=2017, month=8, day=21,
+                                                  hour=13, minute=37,
+                                                  second=11, microsecond=123456)
+
 winobjs = c_winobjs()
 
 
@@ -538,7 +546,7 @@ def kernel32_CreateFile(jitter, funcname, get_str):
     log.debug("%r %r", fname.lower(), winobjs.module_path.lower())
     is_original_file = fname.lower() == winobjs.module_path.lower()
 
-    if fname.upper() in [r"\\.\SICE", r"\\.\NTICE", r"\\.\SIWVID"]:
+    if fname.upper() in [r"\\.\SICE", r"\\.\NTICE", r"\\.\SIWVID", r'\\.\SIWDEBUG']:
         pass
     elif fname.upper() in ['NUL']:
         ret = winobjs.module_cur_hwnd
@@ -710,9 +718,9 @@ def kernel32_VirtualProtect(jitter):
                                              'lpfloldprotect'])
     # XXX mask hpart
     flnewprotect = args.flnewprotect & 0xFFF
-    if not flnewprotect in access_dict:
+    if not flnewprotect in ACCESS_DICT:
         raise ValueError('unknown access dw!')
-    jitter.vm.set_mem_access(args.lpvoid, access_dict[flnewprotect])
+    jitter.vm.set_mem_access(args.lpvoid, ACCESS_DICT[flnewprotect])
 
     # XXX todo real old protect
     if args.lpfloldprotect:
@@ -725,37 +733,25 @@ def kernel32_VirtualAlloc(jitter):
     ret_ad, args = jitter.func_args_stdcall(['lpvoid', 'dwsize',
                                              'alloc_type', 'flprotect'])
 
-    access_dict = {
-        0x0: 0,
-        0x1: 0,
-        0x2: PAGE_READ,
-        0x4: PAGE_READ | PAGE_WRITE,
-        0x10: PAGE_EXEC,
-        0x20: PAGE_EXEC | PAGE_READ,
-        0x40: PAGE_EXEC | PAGE_READ | PAGE_WRITE,
-        0x100: 0,
-    }
 
-    # access_dict_inv = dict([(x[1], x[0]) for x in access_dict.items()])
-
-    if not args.flprotect in access_dict:
+    if not args.flprotect in ACCESS_DICT:
         raise ValueError('unknown access dw!')
 
     if args.lpvoid == 0:
         alloc_addr = winobjs.heap.next_addr(args.dwsize)
         jitter.vm.add_memory_page(
-            alloc_addr, access_dict[args.flprotect], "\x00" * args.dwsize,
+            alloc_addr, ACCESS_DICT[args.flprotect], "\x00" * args.dwsize,
             "Alloc in %s ret 0x%X" % (whoami(), ret_ad))
     else:
         all_mem = jitter.vm.get_all_memory()
         if args.lpvoid in all_mem:
             alloc_addr = args.lpvoid
-            jitter.vm.set_mem_access(args.lpvoid, access_dict[args.flprotect])
+            jitter.vm.set_mem_access(args.lpvoid, ACCESS_DICT[args.flprotect])
         else:
             alloc_addr = winobjs.heap.next_addr(args.dwsize)
             # alloc_addr = args.lpvoid
             jitter.vm.add_memory_page(
-                alloc_addr, access_dict[args.flprotect], "\x00" * args.dwsize,
+                alloc_addr, ACCESS_DICT[args.flprotect], "\x00" * args.dwsize,
                 "Alloc in %s ret 0x%X" % (whoami(), ret_ad))
 
     log.info('VirtualAlloc addr: 0x%x', alloc_addr)
@@ -1681,9 +1677,9 @@ def ntdll_ZwProtectVirtualMemory(jitter):
     # XXX mask hpart
     flnewprotect = args.flnewprotect & 0xFFF
 
-    if not flnewprotect in access_dict:
+    if not flnewprotect in ACCESS_DICT:
         raise ValueError('unknown access dw!')
-    jitter.vm.set_mem_access(ad, access_dict[flnewprotect])
+    jitter.vm.set_mem_access(ad, ACCESS_DICT[flnewprotect])
 
     # XXX todo real old protect
     jitter.vm.set_mem(args.lpfloldprotect, pck32(0x40))
@@ -1700,25 +1696,12 @@ def ntdll_ZwAllocateVirtualMemory(jitter):
     # ad = upck32(jitter.vm.get_mem(args.lppvoid, 4))
     dwsize = upck32(jitter.vm.get_mem(args.pdwsize, 4))
 
-    access_dict = {
-        0x0: 0,
-        0x1: 0,
-        0x2: PAGE_READ,
-        0x4: PAGE_READ | PAGE_WRITE,
-        0x10: PAGE_EXEC,
-        0x20: PAGE_EXEC | PAGE_READ,
-        0x40: PAGE_EXEC | PAGE_READ | PAGE_WRITE,
-        0x100: 0,
-    }
-
-    # access_dict_inv = dict([(x[1], x[0]) for x in access_dict.items()])
-
-    if not args.flprotect in access_dict:
+    if not args.flprotect in ACCESS_DICT:
         raise ValueError('unknown access dw!')
 
     alloc_addr = winobjs.heap.next_addr(dwsize)
     jitter.vm.add_memory_page(
-        alloc_addr, access_dict[args.flprotect], "\x00" * dwsize,
+        alloc_addr, ACCESS_DICT[args.flprotect], "\x00" * dwsize,
         "Alloc in %s ret 0x%X" % (whoami(), ret_ad))
     jitter.vm.set_mem(args.lppvoid, pck32(alloc_addr))
 
@@ -2150,37 +2133,72 @@ def wsock32_WSAStartup(jitter):
     jitter.func_ret_stdcall(ret_ad, 0)
 
 
-def kernel32_GetLocalTime(jitter):
-    ret_ad, args = jitter.func_args_stdcall(["lpsystemtime"])
+def get_current_filetime():
+    """
+    Get current filetime
+    https://msdn.microsoft.com/en-us/library/ms724228
+    """
+    curtime = winobjs.current_datetime
+    unixtime = int(time.mktime(curtime.timetuple()))
+    filetime = (int(unixtime * 1000000 + curtime.microsecond) * 10 +
+                DATE_1601_TO_1970)
+    return filetime
+
+
+def unixtime_to_filetime(unixtime):
+    """
+    Convert unixtime to filetime
+    https://msdn.microsoft.com/en-us/library/ms724228
+    """
+    return (unixtime * 10000000) + DATE_1601_TO_1970
+
+
+def filetime_to_unixtime(filetime):
+    """
+    Convert filetime to unixtime
+    # https://msdn.microsoft.com/en-us/library/ms724228
+    """
+    return int((filetime - DATE_1601_TO_1970) / 10000000)
+
+
+def datetime_to_systemtime(curtime):
 
     s = struct.pack('HHHHHHHH',
-                    2011,  # year
-                    10,   # month
-                    5,    # dayofweek
-                    7,    # day
-                    13,   # hour
-                    37,   # minutes
-                    00,   # seconds
-                    999,  # millisec
+                    curtime.year,      # year
+                    curtime.month,     # month
+                    curtime.weekday(), # dayofweek
+                    curtime.day,       # day
+                    curtime.hour,      # hour
+                    curtime.minute ,   # minutes
+                    curtime.second,    # seconds
+                    int(curtime.microsecond / 1000),  # millisec
                     )
-    jitter.vm.set_mem(args.lpsystemtime, s)
+    return s
+
+
+def kernel32_GetSystemTimeAsFileTime(jitter):
+    ret_ad, args = jitter.func_args_stdcall(["lpSystemTimeAsFileTime"])
+
+    current_filetime = get_current_filetime()
+    filetime = struct.pack('II',
+                           current_filetime & 0xffffffff,
+                           (current_filetime>>32) & 0xffffffff)
+
+    jitter.vm.set_mem(args.lpSystemTimeAsFileTime, filetime)
+    jitter.func_ret_stdcall(ret_ad, 0)
+
+
+def kernel32_GetLocalTime(jitter):
+    ret_ad, args = jitter.func_args_stdcall(["lpsystemtime"])
+    systemtime = datetime_to_systemtime(winobjs.current_datetime)
+    jitter.vm.set_mem(args.lpsystemtime, systemtime)
     jitter.func_ret_stdcall(ret_ad, args.lpsystemtime)
 
 
 def kernel32_GetSystemTime(jitter):
     ret_ad, args = jitter.func_args_stdcall(["lpsystemtime"])
-
-    s = struct.pack('HHHHHHHH',
-                    2011,  # year
-                    10,   # month
-                    5,    # dayofweek
-                    7,    # day
-                    13,   # hour
-                    37,   # minutes
-                    00,   # seconds
-                    999,  # millisec
-                    )
-    jitter.vm.set_mem(args.lpsystemtime, s)
+    systemtime = datetime_to_systemtime(winobjs.current_datetime)
+    jitter.vm.set_mem(args.lpsystemtime, systemtime)
     jitter.func_ret_stdcall(ret_ad, args.lpsystemtime)
 
 
@@ -2231,19 +2249,8 @@ def kernel32_MapViewOfFile(jitter):
     length = len(data)
 
     log.debug('MapViewOfFile len: %x', len(data))
-    access_dict = {
-        0x0: 0,
-        0x1: 0,
-        0x2: PAGE_READ,
-        0x4: PAGE_READ | PAGE_WRITE,
-        0x10: PAGE_EXEC,
-        0x20: PAGE_EXEC | PAGE_READ,
-        0x40: PAGE_EXEC | PAGE_READ | PAGE_WRITE,
-        0x100: 0,
-    }
-    # access_dict_inv = dict([(x[1], x[0]) for x in access_dict.items()])
 
-    if not args.flprotect in access_dict:
+    if not args.flprotect in ACCESS_DICT:
         raise ValueError('unknown access dw!')
 
     alloc_addr = winobjs.heap.alloc(jitter, len(data))
@@ -2318,18 +2325,6 @@ def kernel32_GetDiskFreeSpaceW(jitter):
 def kernel32_VirtualQuery(jitter):
     ret_ad, args = jitter.func_args_stdcall(["ad", "lpbuffer", "dwl"])
 
-    access_dict = {
-        0x0: 0,
-        0x1: 0,
-        0x2: PAGE_READ,
-        0x4: PAGE_READ | PAGE_WRITE,
-        0x10: PAGE_EXEC,
-        0x20: PAGE_EXEC | PAGE_READ,
-        0x40: PAGE_EXEC | PAGE_READ | PAGE_WRITE,
-        0x100: 0,
-    }
-    access_dict_inv = dict([(x[1], x[0]) for x in access_dict.iteritems()])
-
     all_mem = jitter.vm.get_all_memory()
     found = None
     for basead, m in all_mem.iteritems():
@@ -2344,10 +2339,10 @@ def kernel32_VirtualQuery(jitter):
     s = struct.pack('IIIIIII',
                     args.ad,
                     basead,
-                    access_dict_inv[m['access']],
+                    ACCESS_DICT_INV[m['access']],
                     m['size'],
                     0x1000,
-                    access_dict_inv[m['access']],
+                    ACCESS_DICT_INV[m['access']],
                     0x01000000)
     jitter.vm.set_mem(args.lpbuffer, s)
     jitter.func_ret_stdcall(ret_ad, args.dwl)
