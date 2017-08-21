@@ -16,6 +16,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
+import logging
 import miasm2.expression.expression as m2_expr
 from miasm2.expression.simplifications import expr_simp
 from miasm2.arch.x86.regs import *
@@ -27,6 +28,13 @@ from miasm2.jitter.csts import EXCEPT_DIV_BY_ZERO, EXCEPT_ILLEGAL_INSN, \
     EXCEPT_PRIV_INSN, EXCEPT_SOFT_BP, EXCEPT_INT_XX
 import math
 import struct
+
+
+LOG_X86_SEM = logging.getLogger("x86_sem")
+CONSOLE_HANDLER = logging.StreamHandler()
+CONSOLE_HANDLER.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
+LOG_X86_SEM.addHandler(CONSOLE_HANDLER)
+LOG_X86_SEM.setLevel(logging.WARNING)
 
 
 # SemBuilder context
@@ -2833,7 +2841,7 @@ def sidt(ir, instr, dst):
     if not isinstance(dst, m2_expr.ExprMem) or dst.size != 32:
         raise ValueError('not exprmem 32bit instance!!')
     ptr = dst.arg
-    print "DEFAULT SIDT ADDRESS %s!!" % str(dst)
+    LOG_X86_SEM.warning("DEFAULT SIDT ADDRESS %s!!", str(dst))
     e.append(m2_expr.ExprAff(ir.ExprMem(ptr, 32),
                              m2_expr.ExprInt(0xe40007ff, 32)))
     e.append(
@@ -2843,7 +2851,7 @@ def sidt(ir, instr, dst):
 
 
 def sldt(_, instr, dst):
-    print "DEFAULT SLDT ADDRESS %s!!" % str(dst)
+    LOG_X86_SEM.warning("DEFAULT SLDT ADDRESS %s!!", str(dst))
     e = [m2_expr.ExprAff(dst, m2_expr.ExprInt(0, dst.size))]
     return e, []
 
@@ -4047,6 +4055,14 @@ def pmovmskb(_, instr, dst, src):
     return e, []
 
 
+def smsw(ir, instr, dst):
+    e = []
+    LOG_X86_SEM.warning("DEFAULT SMSW %s!!", str(dst))
+    e.append(m2_expr.ExprAff(dst, m2_expr.ExprInt(0x80050033, 32)[:dst.size]))
+    return e, []
+
+
+
 mnemo_func = {'mov': mov,
               'xchg': xchg,
               'movzx': movzx,
@@ -4529,6 +4545,8 @@ mnemo_func = {'mov': mov,
               "sqrtss": sqrtss,
 
               "pmovmskb": pmovmskb,
+
+              "smsw": smsw,
 
               }
 
