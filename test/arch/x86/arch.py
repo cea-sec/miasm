@@ -2793,6 +2793,12 @@ reg_tests = [
     (m64, "00000000    PCMPGTD    XMM3, XMM0",
      "660f66d8"),
 
+    (m32, "00000000    PCMPEQQ    XMM0, XMM5",
+    "660f3829C5"),
+    (m32, "00000000    PCMPGTQ    XMM0, XMM5",
+    "660f3837C5"),
+
+
     (m32, "00000000    PUNPCKHBW  MM2, QWORD PTR [EDX]",
     "0F6812"),
     (m32, "00000000    PUNPCKHBW  XMM2, XMMWORD PTR [EDX]",
