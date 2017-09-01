@@ -318,6 +318,10 @@ to_test = [(ExprInt(1, 32) - ExprInt(1, 32), ExprInt(0, 32)),
                  ExprMem(a + ExprInt(0x42, a.size), 16), ExprInt(0x0321, 16)),
      ExprCompose(ExprInt(0x0123, 16), ExprMem(a + ExprInt(0x40, a.size), 32),
                  ExprInt(0x0321, 16))),
+    (ExprCompose(ExprCond(a, i1, i0), ExprCond(a, i1, i2)),
+     ExprCond(a, ExprInt(0x100000001, 64), ExprInt(0x200000000, 64))),
+    ((ExprMem(ExprCond(a, b, c)),ExprCond(a, ExprMem(b), ExprMem(c)))),
+    (ExprCond(a, i0, i1) + ExprCond(a, i0, i1), ExprCond(a, i0, i2)),
 
 ]
 
