@@ -245,6 +245,7 @@ for script in ["modint.py",
                "expression_helper.py",
                "expr_pickle.py",
                "parser.py",
+               "expr_cmp.py",
                ]:
     testset += RegressionTest([script], base_dir="expression")
 

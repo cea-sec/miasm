@@ -1538,3 +1538,185 @@ def get_expr_mem(expr):
     ops = set()
     expr.visit(lambda x: visit_getmem(x, ops))
     return ops
+
+
+def _expr_compute_cf(op1, op2):
+    """
+    Get carry flag of @op1 - @op2
+    Ref: x86 cf flag
+    @op1: Expression
+    @op2: Expression
+    """
+    res = op1 - op2
+    cf = (((op1 ^ op2) ^ res) ^ ((op1 ^ res) & (op1 ^ op2))).msb()
+    return cf
+
+def _expr_compute_of(op1, op2):
+    """
+    Get overflow flag of @op1 - @op2
+    Ref: x86 of flag
+    @op1: Expression
+    @op2: Expression
+    """
+    res = op1 - op2
+    of = (((op1 ^ res) & (op1 ^ op2))).msb()
+    return of
+
+def _expr_compute_zf(op1, op2):
+    """
+    Get zero flag of @op1 - @op2
+    @op1: Expression
+    @op2: Expression
+    """
+    res = op1 - op2
+    zf = ExprCond(res,
+                  ExprInt(0, 1),
+                  ExprInt(1, 1))
+    return zf
+
+
+def _expr_compute_nf(op1, op2):
+    """
+    Get negative (or sign) flag of @op1 - @op2
+    @op1: Expression
+    @op2: Expression
+    """
+    res = op1 - op2
+    nf = res.msb()
+    return nf
+
+
+def expr_is_equal(op1, op2):
+    """
+    if op1 == op2:
+       Return ExprInt(1, 1)
+    else:
+       Return ExprInt(0, 1)
+    """
+
+    zf = _expr_compute_zf(op1, op2)
+    return zf
+
+
+def expr_is_not_equal(op1, op2):
+    """
+    if op1 != op2:
+       Return ExprInt(1, 1)
+    else:
+       Return ExprInt(0, 1)
+    """
+
+    zf = _expr_compute_zf(op1, op2)
+    return ~zf
+
+
+def expr_is_unsigned_greater(op1, op2):
+    """
+    UNSIGNED cmp
+    if op1 > op2:
+       Return ExprInt(1, 1)
+    else:
+       Return ExprInt(0, 1)
+    """
+
+    cf = _expr_compute_cf(op1, op2)
+    zf = _expr_compute_zf(op1, op2)
+    return ~(cf | zf)
+
+
+def expr_is_unsigned_greater_or_equal(op1, op2):
+    """
+    Unsigned cmp
+    if op1 >= op2:
+       Return ExprInt(1, 1)
+    else:
+       Return ExprInt(0, 1)
+    """
+
+    cf = _expr_compute_cf(op1, op2)
+    return ~cf
+
+
+def expr_is_unsigned_lower(op1, op2):
+    """
+    Unsigned cmp
+    if op1 < op2:
+       Return ExprInt(1, 1)
+    else:
+       Return ExprInt(0, 1)
+    """
+
+    cf = _expr_compute_cf(op1, op2)
+    return cf
+
+
+def expr_is_unsigned_lower_or_equal(op1, op2):
+    """
+    Unsigned cmp
+    if op1 <= op2:
+       Return ExprInt(1, 1)
+    else:
+       Return ExprInt(0, 1)
+    """
+
+    cf = _expr_compute_cf(op1, op2)
+    zf = _expr_compute_zf(op1, op2)
+    return cf | zf
+
+
+def expr_is_signed_greater(op1, op2):
+    """
+    Signed cmp
+    if op1 > op2:
+       Return ExprInt(1, 1)
+    else:
+       Return ExprInt(0, 1)
+    """
+
+    nf = _expr_compute_nf(op1, op2)
+    of = _expr_compute_of(op1, op2)
+    zf = _expr_compute_zf(op1, op2)
+    return ~(zf | (nf ^ of))
+
+
+def expr_is_signed_greater_or_equal(op1, op2):
+    """
+    Signed cmp
+    if op1 > op2:
+       Return ExprInt(1, 1)
+    else:
+       Return ExprInt(0, 1)
+    """
+
+    nf = _expr_compute_nf(op1, op2)
+    of = _expr_compute_of(op1, op2)
+    return ~(nf ^ of)
+
+
+def expr_is_signed_lower(op1, op2):
+    """
+    Signed cmp
+    if op1 < op2:
+       Return ExprInt(1, 1)
+    else:
+       Return ExprInt(0, 1)
+    """
+
+    nf = _expr_compute_nf(op1, op2)
+    of = _expr_compute_of(op1, op2)
+    return nf ^ of
+
+
+def expr_is_signed_lower_or_equal(op1, op2):
+    """
+    Signed cmp
+    if op1 <= op2:
+       Return ExprInt(1, 1)
+    else:
+       Return ExprInt(0, 1)
+    """
+
+    nf = _expr_compute_nf(op1, op2)
+    of = _expr_compute_of(op1, op2)
+    zf = _expr_compute_zf(op1, op2)
+    return zf | (nf ^ of)
