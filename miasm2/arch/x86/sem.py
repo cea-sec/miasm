@@ -3819,24 +3819,52 @@ def pminud(ir, instr, dst, src):
 def pcmpeq(_, instr, dst, src, size):
     e = []
     for i in xrange(0, dst.size, size):
-        test = dst[i:i + size] - src[i:i + size]
+        test = m2_expr.expr_is_equal(dst[i:i + size], src[i:i + size])
         e.append(m2_expr.ExprAff(dst[i:i + size],
                                  m2_expr.ExprCond(test,
-                                                  m2_expr.ExprInt(0, size),
-                                                  m2_expr.ExprInt(-1, size))))
+                                                  m2_expr.ExprInt(-1, size),
+                                                  m2_expr.ExprInt(0, size))))
+    return e, []
+
+
+def pcmpgt(_, instr, dst, src, size):
+    e = []
+    for i in xrange(0, dst.size, size):
+        test = m2_expr.expr_is_signed_greater(dst[i:i + size], src[i:i + size])
+        e.append(m2_expr.ExprAff(dst[i:i + size],
+                                 m2_expr.ExprCond(test,
+                                                  m2_expr.ExprInt(-1, size),
+                                                  m2_expr.ExprInt(0, size))))
     return e, []
 
 
 def pcmpeqb(ir, instr, dst, src):
     return pcmpeq(ir, instr, dst, src, 8)
 
-
 def pcmpeqw(ir, instr, dst, src):
     return pcmpeq(ir, instr, dst, src, 16)
 
-
 def pcmpeqd(ir, instr, dst, src):
     return pcmpeq(ir, instr, dst, src, 32)
+
+def pcmpeqq(ir, instr, dst, src):
+    return pcmpeq(ir, instr, dst, src, 64)
+
+
+
+
+def pcmpgtb(ir, instr, dst, src):
+    return pcmpgt(ir, instr, dst, src, 8)
+
+def pcmpgtw(ir, instr, dst, src):
+    return pcmpgt(ir, instr, dst, src, 16)
+
+def pcmpgtd(ir, instr, dst, src):
+    return pcmpgt(ir, instr, dst, src, 32)
+
+def pcmpgtq(ir, instr, dst, src):
+    return pcmpgt(ir, instr, dst, src, 64)
+
 
 
 def punpck(_, instr, dst, src, size, off):
@@ -4504,6 +4532,12 @@ mnemo_func = {'mov': mov,
               "pcmpeqb": pcmpeqb,
               "pcmpeqw": pcmpeqw,
               "pcmpeqd": pcmpeqd,
+              "pcmpeqq": pcmpeqq,
+
+              "pcmpgtb": pcmpgtb,
+              "pcmpgtw": pcmpgtw,
+              "pcmpgtd": pcmpgtd,
+              "pcmpgtq": pcmpgtq,
 
               "punpckhbw": punpckhbw,
               "punpckhwd": punpckhwd,
