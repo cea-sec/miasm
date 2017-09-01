@@ -1595,6 +1595,14 @@ reg_tests = [
     (m64, "00000000    LODSQ",
      "48ad"),
 
+    (m32, "XXXXXXXX    LEA        EAX, DWORD PTR [EAX+EBX]",
+    "8d0418"),
+    (m32, "XXXXXXXX    LEA        EAX, DWORD PTR [EAX+EBX+0x11223344]",
+    "8d841844332211"),
+    (m32, "XXXXXXXX    LEA        EAX, DWORD PTR [EDX+0x18]",
+    "8d4218"),
+    (m32, "XXXXXXXX    LEA        ECX, DWORD PTR [EAX*0x2]",
+    "8d0c00"),
 
 
     (m32, "00000000    NEG        BYTE PTR [EAX]",

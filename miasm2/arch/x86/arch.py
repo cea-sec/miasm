@@ -2002,7 +2002,7 @@ class x86_rm_arg(m_arg):
                     sib = None
 
                 # 16 bit cannot have sib
-                if (not sib is None) and admode == 16:
+                if sib is not None and admode == 16:
                     continue
                 rex = modrm >> 8  # 0# XXX HACK REM temporary REX modrm>>8
                 if rex and admode != 64:
@@ -2021,7 +2021,7 @@ class x86_rm_arg(m_arg):
                 if re != p.reg.value:
                     continue
 
-                if sib:
+                if sib is not None:
                     s_scale, s_index, s_base = getmodrm(sib)
                 else:
                     s_scale, s_index, s_base = None, None, None
