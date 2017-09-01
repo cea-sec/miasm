@@ -2939,6 +2939,15 @@ reg_tests = [
     (m64, "00000000    SHUFPD     XMM0, XMM6, 0x44",
      "660fc6c644"),
 
+    (m32, "00000000    AESENC     XMM1, XMM2",
+     "660f38dcca"),
+    (m32, "00000000    AESDEC     XMM1, XMM2",
+     "660f38deca"),
+
+    (m32, "00000000    AESENCLAST XMM1, XMM2",
+     "660f38ddca"),
+    (m32, "00000000    AESDECLAST XMM1, XMM2",
+     "660f38dfca"),
 
 ]
 

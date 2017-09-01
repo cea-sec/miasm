@@ -4355,6 +4355,11 @@ addop("shufps", [bs8(0x0f), bs8(0xc6), no_xmm_pref] +
 addop("shufpd", [bs8(0x0f), bs8(0xc6), pref_66] +
       rmmod(xmm_reg, rm_arg_xmm) + [u08])
 
+addop("aesenc", [bs8(0x0f), bs8(0x38), bs8(0xdc), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
+addop("aesdec", [bs8(0x0f), bs8(0x38), bs8(0xde), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
+
+addop("aesenclast", [bs8(0x0f), bs8(0x38), bs8(0xdd), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
+addop("aesdeclast", [bs8(0x0f), bs8(0x38), bs8(0xdf), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
 
 mn_x86.bintree = factor_one_bit(mn_x86.bintree)
 # mn_x86.bintree = factor_fields_all(mn_x86.bintree)
