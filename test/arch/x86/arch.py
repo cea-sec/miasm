@@ -2793,6 +2793,12 @@ reg_tests = [
     (m64, "00000000    PCMPGTD    XMM3, XMM0",
      "660f66d8"),
 
+    (m32, "00000000    PCMPEQQ    XMM0, XMM5",
+    "660f3829C5"),
+    (m32, "00000000    PCMPGTQ    XMM0, XMM5",
+    "660f3837C5"),
+
+
     (m32, "00000000    PUNPCKHBW  MM2, QWORD PTR [EDX]",
     "0F6812"),
     (m32, "00000000    PUNPCKHBW  XMM2, XMMWORD PTR [EDX]",
@@ -2939,6 +2945,15 @@ reg_tests = [
     (m64, "00000000    SHUFPD     XMM0, XMM6, 0x44",
      "660fc6c644"),
 
+    (m32, "00000000    AESENC     XMM1, XMM2",
+     "660f38dcca"),
+    (m32, "00000000    AESDEC     XMM1, XMM2",
+     "660f38deca"),
+
+    (m32, "00000000    AESENCLAST XMM1, XMM2",
+     "660f38ddca"),
+    (m32, "00000000    AESDECLAST XMM1, XMM2",
+     "660f38dfca"),
 
 ]
 

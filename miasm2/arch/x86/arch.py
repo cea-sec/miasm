@@ -4254,6 +4254,8 @@ addop("pcmpgtd", [bs8(0x0f), bs8(0x66), no_xmm_pref] +
 addop("pcmpgtd", [bs8(0x0f), bs8(0x66), pref_66] +
       rmmod(xmm_reg, rm_arg_xmm))
 
+addop("pcmpeqq", [bs8(0x0f), bs8(0x38), bs8(0x29), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
+addop("pcmpgtq", [bs8(0x0f), bs8(0x38), bs8(0x37), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
 
 addop("punpckhbw", [bs8(0x0f), bs8(0x68), no_xmm_pref] +
       rmmod(mm_reg, rm_arg_mm))
@@ -4355,6 +4357,11 @@ addop("shufps", [bs8(0x0f), bs8(0xc6), no_xmm_pref] +
 addop("shufpd", [bs8(0x0f), bs8(0xc6), pref_66] +
       rmmod(xmm_reg, rm_arg_xmm) + [u08])
 
+addop("aesenc", [bs8(0x0f), bs8(0x38), bs8(0xdc), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
+addop("aesdec", [bs8(0x0f), bs8(0x38), bs8(0xde), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
+
+addop("aesenclast", [bs8(0x0f), bs8(0x38), bs8(0xdd), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
+addop("aesdeclast", [bs8(0x0f), bs8(0x38), bs8(0xdf), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
 
 mn_x86.bintree = factor_one_bit(mn_x86.bintree)
 # mn_x86.bintree = factor_fields_all(mn_x86.bintree)
