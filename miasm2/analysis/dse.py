@@ -26,8 +26,9 @@ On branch, if the decision is symbolic, one can also collect "path constraints"
 and inverse them to produce new inputs potentially reaching new paths.
 
 Basically, this is done through DSEPathConstraint. In order to produce a new
-solution, one can extend this class, and override 'handle_solution' to
-produce a solution which fit its needs.
+solution, one can extend this class, and override 'handle_solution' to produce a
+solution which fit its needs. It could avoid computing new solution by
+overriding 'produce_solution'.
 
 If one is only interested in constraints associated to its path, the option
 "produce_solution" should be set to False, to speed up emulation.
@@ -448,7 +449,8 @@ class DSEPathConstraint(DSEEngine):
     to a new path.
 
     In order to produce a new solution, one can extend this class, and override
-    'handle_solution' to produce a solution which fit its needs.
+    'handle_solution' to produce a solution which fit its needs. It could avoid
+    computing new solution by overriding 'produce_solution'.
 
     If one is only interested in constraints associated to its path, the option
     "produce_solution" should be set to False, to speed up emulation.
@@ -459,7 +461,15 @@ class DSEPathConstraint(DSEEngine):
     # Maximum memory size to inject in constraints solving
     MAX_MEMORY_INJECT = 0x10000
 
-    def __init__(self, machine, produce_solution=True, **kwargs):
+    # Produce solution strategies
+    PRODUCE_NO_SOLUTION = 0
+    PRODUCE_SOLUTION_CODE_COV = 1
+    PRODUCE_SOLUTION_BRANCH_COV = 2
+    PRODUCE_SOLUTION_PATH_COV = 3
+
+    def __init__(self, machine, produce_solution=PRODUCE_SOLUTION_CODE_COV,
+                 known_solutions=None,
+                 **kwargs):
         """Init a DSEPathConstraint
         @machine: Machine of the targeted architecture instance
         @produce_solution: (optional) if set, new solutions will be computed"""
@@ -469,10 +479,14 @@ class DSEPathConstraint(DSEEngine):
         assert z3 is not None
 
         # Init PathConstraint specifics structures
-        self.produce_solution = produce_solution
         self.cur_solver = z3.Solver()
-        self.new_solutions = {} # destination -> set of model
+        self.new_solutions = {} # solution identifier -> solution's model
+        self._known_solutions = set() # set of solution identifiers
         self.z3_trans = Translator.to_language("z3")
+        self._produce_solution_strategy = produce_solution
+        self._history = None
+        if produce_solution == self.PRODUCE_SOLUTION_PATH_COV:
+            self._history = [] # List of addresses in the current path
 
     def take_snapshot(self, *args, **kwargs):
         snap = super(DSEPathConstraint, self).take_snapshot(*args, **kwargs)
@@ -481,22 +495,69 @@ class DSEPathConstraint(DSEEngine):
         snap["cur_constraints"] = self.cur_solver.assertions()
         return snap
 
-    def restore_snapshot(self, snapshot, *args, **kwargs):
-        super(DSEPathConstraint, self).restore_snapshot(snapshot, *args,
-                                                        **kwargs)
+    def restore_snapshot(self, snapshot, keep_known_solutions=True, **kwargs):
+        """Restore a DSEPathConstraint snapshot
+        @keep_known_solutions: if set, do not forget solutions already found.
+        -> They will not appear in 'new_solutions'
+        """
+        super(DSEPathConstraint, self).restore_snapshot(snapshot, **kwargs)
         self.new_solutions.clear()
         self.new_solutions.update(snapshot["new_solutions"])
         self.cur_solver = z3.Solver()
         self.cur_solver.add(snapshot["cur_constraints"])
+        if not keep_known_solutions:
+            self._known_solutions.clear()
+
+    def _key_for_solution_strategy(self, destination):
+        """Return the associated identifier for the current solution strategy"""
+        if self._produce_solution_strategy == self.PRODUCE_NO_SOLUTION:
+            # Never produce a solution
+            return None
+        elif self._produce_solution_strategy == self.PRODUCE_SOLUTION_CODE_COV:
+            # Decision based on code coverage
+            # -> produce a solution if the destination has never been seen
+            key = destination
+
+        elif self._produce_solution_strategy == self.PRODUCE_SOLUTION_BRANCH_COV:
+            # Decision based on branch coverage
+            # -> produce a solution if the current branch has never been take
+            cur_addr = ExprInt(self.jitter.pc, self.ir_arch.IRDst.size)
+            key = (cur_addr, destination)
+
+        elif self._produce_solution_strategy == self.PRODUCE_SOLUTION_PATH_COV:
+            # Decision based on path coverage
+            # -> produce a solution if the current path has never been take
+            key = tuple(self._history + [destination])
+        else:
+            raise ValueError("Unknown produce solution strategy")
+
+        return key
+
+    def produce_solution(self, destination):
+        """Called to determine if a solution for @destination should be test for
+        satisfiability and computed
+        @destination: Expr instance of the target @destination
+        """
+        key = self._key_for_solution_strategy(destination)
+        if key is None:
+            return False
+        return key not in self._known_solutions
 
     def handle_solution(self, model, destination):
         """Called when a new solution for destination @destination is founded
         @model: z3 model instance
         @destination: Expr instance for an addr which is not on the DSE path
         """
-        self.new_solutions.setdefault(destination, set()).add(model)
+        key = self._key_for_solution_strategy(destination)
+        assert key is not None
+        self.new_solutions[key] = model
+        self._known_solutions.add(key)
 
     def handle(self, cur_addr):
+        # Update history if needed
+        if self._produce_solution_strategy == self.PRODUCE_SOLUTION_PATH_COV:
+            self._history.append(cur_addr)
+
         symb_pc = self.eval_expr(self.ir_arch.IRDst)
         possibilities = possible_values(symb_pc)
         if len(possibilities) == 1:
@@ -547,7 +608,7 @@ class DSEPathConstraint(DSEEngine):
                     # Add path constraint
                     cur_path_constraint = path_constraint
 
-                elif self.produce_solution:
+                elif self.produce_solution(possibility.value):
                     # Looking for a new solution
                     self.cur_solver.push()
                     for cons in path_constraint:
