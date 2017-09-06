@@ -5,6 +5,10 @@ This example should run on the compiled ELF x86 64bits version of
 
 """
 
+### Fix the seed of z3 for result reproductibility
+import z3
+z3.set_param('smt.random_seed', 0)
+
 #### This part is only related to the run of the sample, without DSE ####
 import os
 import subprocess
