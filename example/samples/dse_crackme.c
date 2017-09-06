@@ -58,13 +58,13 @@ uint16_t crc16(uint16_t seed, unsigned char *buf, size_t len)
     return tmp;
 }
 
-uint16_t test() {
+uint16_t test(char* fname) {
 	FILE *file;
 	unsigned char buf[0x100] = {0};
 	size_t read;
 	uint32_t temp;
 
-	file = fopen("test.txt", "r");
+	file = fopen(fname, "r");
 	if (file) {
 		read = fread(buf, sizeof(char), 0x100, file);
 		fclose(file);
@@ -94,7 +94,11 @@ uint16_t test() {
 }
 
 int main(int argc, char** argv) {
-	uint16_t result = test();
+	if (argc < 2) {
+		printf("%s <filename>\n", argv[0]);
+		return -1;
+	}
+	uint16_t result = test(argv[1]);
 	if (result == 0x1337) {
 		printf("OK\n");
 	} else {

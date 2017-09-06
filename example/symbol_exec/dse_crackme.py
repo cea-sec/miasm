@@ -10,6 +10,7 @@ import os
 import subprocess
 from collections import namedtuple
 from pdb import pm
+from tempfile import NamedTemporaryFile
 
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm2.analysis.sandbox import Sandbox_Linux_x86_64
@@ -19,6 +20,8 @@ from miasm2.expression.expression import *
 my_FILE_ptr = 0x11223344
 FInfo = namedtuple("FInfo", ["path", "fdesc"])
 FILE_to_info = {}
+TEMP_FILE = NamedTemporaryFile()
+
 def xxx_fopen(jitter):
     '''
     #include <stdio.h>
@@ -63,6 +66,7 @@ parser.add_argument("--strategy",
                     default="code-cov")
 options = parser.parse_args()
 options.mimic_env = True
+options.command_line = ["%s" % TEMP_FILE.name]
 sb = Sandbox_Linux_x86_64(options.filename, options, globals())
 
 # Init segment
@@ -256,7 +260,7 @@ while todo:
     # Prepare a solution to try, based on the clean state
     file_content = todo.pop()
     print "CUR: %r" % file_content
-    open("test.txt", "w").write(file_content)
+    open(TEMP_FILE.name, "w").write(file_content)
     dse.restore_snapshot(snapshot, keep_known_solutions=True)
     FILE_to_info.clear()
     FILE_to_info_symb.clear()
@@ -294,7 +298,8 @@ print "FOUND !"
 
 # Replay for real
 print "Trying to launch the binary without Miasm"
-crackme = subprocess.Popen([options.filename], stdout=subprocess.PIPE,
+crackme = subprocess.Popen([options.filename, TEMP_FILE.name],
+                           stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE)
 stdout, stderr = crackme.communicate()
 assert not stderr
