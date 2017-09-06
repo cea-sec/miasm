@@ -267,7 +267,7 @@ while todo:
 
     # Play the current file
     try:
-        sb.run()
+        sb.jitter.continue_run(callback=dse.callback)
     except FinishOn as finish_info:
         print finish_info.string
         if finish_info.string == "OK":

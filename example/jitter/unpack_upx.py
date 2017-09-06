@@ -85,7 +85,7 @@ def update_binary(jitter):
     return False
 
 # Set callbacks
-sb.jitter.add_breakpoint(end_label, update_binary)
+sb.jitter.set_breakpoint(end_label, update_binary)
 
 # Run
 sb.run()

@@ -1,5 +1,6 @@
 
 import logging
+import warnings
 from functools import wraps
 from collections import Sequence, namedtuple, Iterator
 
@@ -24,6 +25,15 @@ try:
     from miasm2.jitter import VmMngr
 except ImportError:
     log.error('cannot import VmMngr')
+
+
+class BreakpointAlreadyExist(Exception):
+    """Exception raised when a breakpoint is set on an address already managed
+    by a breakpoint.
+    """
+
+    def __init__(self, message):
+        self.message = message
 
 
 def named_arguments(func):
@@ -157,7 +167,7 @@ class ExceptionHandle():
         return (self.except_flag == to_cmp.except_flag)
 
 
-class jitter:
+class jitter(object):
 
     "Main class for JIT handling"
 
@@ -233,10 +243,20 @@ class jitter:
         self.stack_base = 0x1230000
 
         # Init callback handler
-        self.breakpoints_handler = CallbackHandler()
+        self.breakpoints_handlers = {}
         self.exceptions_handler = CallbackHandlerBitflag()
         self.init_exceptions_handler()
-        self.exec_cb = None
+
+
+    def get_exec_cb(self):
+        warnings.warn("""DEPRECATION WARNING: exec_cb is not supported anymore""")
+        raise NotImplementedError("Unsupported exec_cb")
+
+    def set_exec_cb(self, _):
+        warnings.warn("""DEPRECATION WARNING: exec_cb is not supported anymore""")
+        raise NotImplementedError("Unsupported exec_cb")
+
+    exec_cb = property(get_exec_cb, set_exec_cb)
 
     def init_exceptions_handler(self):
         "Add common exceptions handlers"
@@ -257,30 +277,48 @@ class jitter:
         self.add_exception_handler(EXCEPT_BREAKPOINT_INTERN,
                                    exception_memory_breakpoint)
 
-    def add_breakpoint(self, addr, callback):
-        """Add a callback associated with addr.
+    def set_breakpoint(self, addr, callback, force=False):
+        """Add a breakpont at addr to @callback.
+        WARNING: an address can have only one callback
         @addr: breakpoint address
         @callback: function with definition (jitter instance)
+        @force: replace existing breakpoint if exists
         """
-        self.breakpoints_handler.add_callback(addr, callback)
+
+        if addr in self.breakpoints_handlers and not force:
+            raise BreakpointAlreadyExist("Address: %x" % addr)
+
+        self.breakpoints_handlers[addr] = callback
         self.jit.add_disassembly_splits(addr)
         # De-jit previously jitted blocks
         self.jit.updt_automod_code_range(self.vm, [(addr, addr)])
 
-    def set_breakpoint(self, addr, *args):
-        """Set callbacks associated with addr.
+    def add_breakpoint(self, addr, callback):
+        warnings.warn('DEPRECATION WARNING: use "set_breakpoint(addr, callback)" instead of "add_breakpoint')
+        self.set_breakpoint(addr, callback)
+
+    def get_breakpoint(self, addr):
+        """Returns breakpoint handler at @addr. None if no breakpoint are
+        associated to @addr
         @addr: breakpoint address
-        @args: functions with definition (jitter instance)
         """
-        self.breakpoints_handler.set_callback(addr, *args)
-        self.jit.add_disassembly_splits(addr)
+        return self.breakpoints_handlers.get(addr, None)
+
+    def remove_breakpoint(self, addr):
+        """Remove breakpoint at @addr
+        @addr: address breakpoint
+        """
+        del self.breakpoints_handlers[addr]
 
     def remove_breakpoints_by_callback(self, callback):
-        """Remove callbacks associated with breakpoint.
+        """Remove breakpoint associated to the @callback.
         @callback: callback to remove
         """
-        empty_keys = self.breakpoints_handler.remove_callback(callback)
-        for key in empty_keys:
+        found = set()
+        for addr, bp_callback in empty_keys.iteritems():
+            if bp_callback == callback:
+                found.add(addr)
+        for addr in found:
             self.jit.remove_disassembly_splits(key)
 
     def add_exception_handler(self, flag, callback):
@@ -294,7 +332,7 @@ class jitter:
         """Wrapper on JiT backend. Run the code at PC and return the next PC.
         @pc: address of code to run"""
 
-        return self.jit.runbloc(self.cpu, pc, self.breakpoints_handler.callbacks)
+        return self.jit.runbloc(self.cpu, pc, self.breakpoints_handlers)
 
     def runiter_once(self, pc):
         """Iterator on callbacks results on code running from PC.
@@ -302,62 +340,45 @@ class jitter:
 
         self.pc = pc
 
-        # Callback called before exec
-        if self.exec_cb is not None:
-            res = self.exec_cb(self)
-            if res is not True:
-                yield res
-
         # Check breakpoints
         old_pc = self.pc
-        for res in self.breakpoints_handler.call_callbacks(self.pc, self):
-            if res is not True:
-                if isinstance(res, collections.Iterator):
-                    # If the breakpoint is a generator, yield it step by step
-                    for tmp in res:
-                        yield tmp
-                else:
-                    yield res
+        callback = self.breakpoints_handlers.get(self.pc, None)
+        return_value = True
+        if callback is not None:
+            return_value &= callback(self)
 
         # Check exceptions (raised by breakpoints)
         exception_flag = self.get_exception()
-        for res in self.exceptions_handler(exception_flag, self):
-            if res is not True:
-                if isinstance(res, collections.Iterator):
-                    for tmp in res:
-                        yield tmp
-                else:
-                    yield res
+        for result in self.exceptions_handler(exception_flag, self):
+            return_value &= result
+
+        # Return if an exception handler stopped
+        if not return_value:
+            return False
 
         # If a callback changed pc, re call every callback
         if old_pc != self.pc:
-            return
+            return True
 
         # Exceptions should never be activated before run
         assert(self.get_exception() == 0)
 
         # Run the bloc at PC
         self.pc = self.runbloc(self.pc)
-
         # Check exceptions (raised by the execution of the block)
         exception_flag = self.get_exception()
-        for res in self.exceptions_handler(exception_flag, self):
-            if res is not True:
-                if isinstance(res, collections.Iterator):
-                    for tmp in res:
-                        yield tmp
-                else:
-                    yield res
+        for result in self.exceptions_handler(exception_flag, self):
+            return_value &= result
+        return return_value
 
     def init_run(self, pc):
         """Create an iterator on pc with runiter.
         @pc: address of code to run
         """
-        self.run_iterator = self.runiter_once(pc)
         self.pc = pc
         self.run = True
 
-    def continue_run(self, step=False):
+    def continue_run(self, step=False, callback=None):
         """PRE: init_run.
         Continue the run of the current session until iterator returns or run is
         set to False.
@@ -365,13 +386,16 @@ class jitter:
         Return the iterator value"""
 
         while self.run:
-            try:
-                return self.run_iterator.next()
-            except StopIteration:
-                pass
-
-            self.run_iterator = self.runiter_once(self.pc)
-
+            if callback:
+                old_pc = self.pc
+                result = callback(self)
+                if not result:
+                    return None
+                if old_pc != self.pc:
+                    continue
+            result = self.runiter_once(self.pc)
+            if not result:
+                return result
             if step is True:
                 return None
 
@@ -447,9 +471,15 @@ class jitter:
         else:
             return ret
 
-    def handle_function(self, f_addr):
-        """Add a brakpoint which will trigger the function handler"""
-        self.add_breakpoint(f_addr, self.handle_lib)
+    def handle_function(self, addr, force=False):
+        """Add a breakpoint which will trigger the function handler
+        @addr: address of the function to handle
+        @force: replace existing handler if exists
+        """
+        if (addr in self.breakpoints_handlers and
+            self.breakpoints_handlers[addr] == self.handle_lib):
+            return
+        self.set_breakpoint(addr, self.handle_lib, force)
 
     def add_lib_handler(self, libs, user_globals=None):
         """Add a function to handle libs call with breakpoints

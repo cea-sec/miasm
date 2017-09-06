@@ -48,7 +48,7 @@ def jit_mips32_binary(args):
     myjit.jit.log_newbloc = args.log_newbloc
 
     myjit.vm.add_memory_page(0, PAGE_READ | PAGE_WRITE, open(filepath).read())
-    myjit.add_breakpoint(0x1337BEEF, code_sentinelle)
+    myjit.set_breakpoint(0x1337BEEF, code_sentinelle)
 
 
     # for stack

@@ -184,7 +184,7 @@ class DSEEngine(object):
 
         # Activate callback on each instr
         self.jitter.jit.set_options(max_exec_per_call=1, jit_maxline=1)
-        self.jitter.exec_cb = self.callback
+        #self.jitter.exec_cb = self.callback
 
         # Clean jit cache to avoid multi-line basic blocks already jitted
         self.jitter.jit.lbl2jitbloc.clear()

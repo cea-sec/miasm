@@ -28,7 +28,7 @@ myjit.jit.log_regs = True
 myjit.jit.log_mn = True
 myjit.push_uint32_t(0x1337beef)
 
-myjit.add_breakpoint(0x1337beef, code_sentinelle)
+myjit.set_breakpoint(0x1337beef, code_sentinelle)
 
 myjit.init_run(run_addr)
 myjit.continue_run()
