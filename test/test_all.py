@@ -635,7 +635,6 @@ for strategy in ["code-cov", "branch-cov", "path-cov"]:
     testset += ExampleSymbolExec(["dse_crackme.py", dse_crackme_out,
                                   "--strategy", strategy],
                                  depends=[dse_crackme],
-                                 products=["test.txt"],
                                  tags=[TAGS["z3"]])
     testset += ExampleSymbolExec(["dse_strategies.py",
                                   Example.get_sample("simple_test.bin"),
