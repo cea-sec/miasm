@@ -195,6 +195,17 @@ class DSEEngine(object):
         self.jitter = emulator
         self.prepare()
 
+    def detach(self):
+        """Detach DSE from its jitter
+        /!\ Do not try to reattach to the jitter using attach() unless you know
+        what you are doing. Some manipuations of symbolic values may occured
+        between your detach() and your attach() and those manipulations would
+        be missed. Thus your DSE engine state could be wrong.
+        """
+        # Disable callback on each instr
+        self.jitter.jit.set_options(max_exec_per_call=0, jit_maxline=50)
+        self.jitter.exec_cb = None
+
     def handle(self, cur_addr):
         """Handle destination
         @cur_addr: Expr of the next address in concrete execution

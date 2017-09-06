@@ -14,6 +14,9 @@ from miasm2.analysis.dse import DSEEngine
 
 reg_and_id = dict(mn_x86.regs.all_regs_ids_byname)
 
+def detach_dse(dse):
+    dse.detach()
+
 class DSE_test(object):
     """Inspired from TEST/ARCH/X86
 
@@ -22,6 +25,8 @@ class DSE_test(object):
     TXT = '''
     main:
         SHL         EDX, CL
+        ADD         EDX, 1
+        XOR         EDX, EAX    ; will be skipped thanks to detach()
         RET
     '''
 
@@ -51,6 +56,8 @@ class DSE_test(object):
         self.dse = DSEEngine(self.machine)
         self.dse.attach(self.myjit)
 
+        self.dse.add_handler(0x5, detach_dse) # detach before XOR ADX, EAX
+
     def __call__(self):
         self.asm()
         self.init_machine()
@@ -69,7 +76,6 @@ class DSE_test(object):
         blocks, symbol_pool = parse_asm.parse_txt(mn_x86, self.arch_attrib, self.TXT,
                                                   symbol_pool=self.myjit.ir_arch.symbol_pool)
 
-
         # fix shellcode addr
         symbol_pool.set_offset(symbol_pool.getby_name("main"), 0x0)
         s = StrPatchwork()
@@ -85,9 +91,11 @@ class DSE_test(object):
         value = self.dse.eval_expr(regs.EDX)
         # The expected value should contains '<<', showing it has been in the
         # corresponding generated label
-        expected = ExprOp('<<', regs.EDX,
+        SHL_result = ExprOp('<<', regs.EDX,
                           ExprCompose(regs.ECX[0:8],
                                       ExprInt(0x0, 24)) & ExprInt(0x1F, 32))
+        expected = ExprOp('+', SHL_result, ExprInt(0x1, 32))
+
         assert value == expected
 
 if __name__ == "__main__":
