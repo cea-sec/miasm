@@ -5,30 +5,28 @@ from miasm2.analysis.machine import Machine
 from miasm2.ir.translators import Translator
 import miasm2.expression.expression as m2_expr
 
-def max_size_to_size(max_size):
-    for size in [16, 32, 64]:
-        if (1 << size) - 1 == max_size:
-            return size
-    return None
-
 def guess_machine():
     "Return an instance of Machine corresponding to the IDA guessed processor"
 
     processor_name = GetLongPrm(INF_PROCNAME)
-    max_size = GetLongPrm(INF_START_SP)
-    size = max_size_to_size(max_size)
+    info = idaapi.get_inf_structure()
+
+    if info.is_64bit():
+        size = 64
+    elif info.is_32bit():
+        size = 32
+    else:
+        size = None
 
     if processor_name == "metapc":
+        size2machine = {
+            64: "x86_64",
+            32: "x86_32",
+            None: "x86_16",
+        }
 
-        # HACK: check 32/64 using INF_START_SP
-        if max_size == 0x80:  # TODO XXX check
-            machine = Machine("x86_16")
-        elif size == 32:
-            machine = Machine("x86_32")
-        elif size == 64:
-            machine = Machine("x86_64")
-        else:
-            raise ValueError('cannot guess 32/64 bit! (%x)' % max_size)
+        machine = Machine(size2machine[size])
+
     elif processor_name == "ARM":
         # TODO ARM/thumb
         # hack for thumb: set armt = True in globals :/
