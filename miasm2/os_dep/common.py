@@ -2,6 +2,7 @@ import os
 
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm2.core.utils import get_caller_name
+from miasm2.core.utils import pck64, upck64
 
 BASE_SB_PATH = "file_sb"
 
@@ -73,9 +74,12 @@ class heap(object):
             combination of them); default is PAGE_READ|PAGE_WRITE
         """
         addr = self.next_addr(size)
-        vm.add_memory_page(addr, perm, "\x00" * size,
+        vm.add_memory_page(addr, perm, "\x00" * (size),
                            "Heap alloc by %s" % get_caller_name(2))
         return addr
+
+    def get_size(self, vm, ptr):
+        return vm.get_all_memory()[ptr]["size"]
 
 
 def windows_to_sbpath(path):
@@ -94,3 +98,33 @@ def unix_to_sbpath(path):
     """
     path = [elt for elt in path.split('/') if elt]
     return os.path.join(BASE_SB_PATH, *path)
+
+def get_fmt_args(fmt, cur_arg, get_str, get_arg_n):
+    output = ""
+    idx = 0
+    fmt = get_str(fmt)
+    while True:
+        if idx == len(fmt):
+            break
+        char = fmt[idx]
+        idx += 1
+        if char == '%':
+            token = '%'
+            while True:
+                char = fmt[idx]
+                idx += 1
+                token += char
+                if char.lower() in '%cdfsux':
+                    break
+            if char == '%':
+                output += char
+                continue
+            if token.endswith('s'):
+                addr = get_arg_n(cur_arg)
+                arg = get_str(addr)
+            else:
+                arg = get_arg_n(cur_arg)
+            char = token % arg
+            cur_arg += 1
+        output += char
+    return output
