@@ -2384,6 +2384,35 @@ class armt_imm5_1(arm_imm):
         self.value = (v >> 1) & 0x1f
         return True
 
+aif_str = ["X", "F", "I", "IF", "A", "AF", "AI", "AIF"]
+aif_expr = [ExprId(x, 32) if x != None else None for x in aif_str]
+
+aif_reg = reg_info(aif_str, aif_expr)
+
+class armt_aif(reg_noarg, m_arg):
+    reg_info = aif_reg
+    parser = reg_info.parser
+
+    def decode(self, v):
+        if v == 0:
+            return False
+        return super(armt_aif, self).decode(v)
+
+    def encode(self):
+        ret = super(armt_aif, self).encode()
+        if not ret:
+            return ret
+        return self.value != 0
+
+    def fromstring(self, s, parser_result=None):
+        start, stop = super(armt_aif, self).fromstring(s, parser_result)
+        if self.expr.name == "X":
+            return None, None
+        return start, stop
+
+aif = bs(l=3, cls=(armt_aif,))
+
+
 imm5_off = bs(l=5, cls=(armt_imm5_1,), fname="imm5_off")
 
 tsign = bs(l=1, fname="sign")
@@ -2407,3 +2436,8 @@ armtop("cbz", [bs('101100'), imm1, bs('1'), imm5_off, rnl], [rnl, imm5_off])
 armtop("cbnz", [bs('101110'), imm1, bs('1'), imm5_off, rnl], [rnl, imm5_off])
 
 armtop("bkpt", [bs('1011'), bs('1110'), imm8])
+
+armtop("nop", [bs8(0xBF),bs8(0x0)])
+armtop("wfi", [bs8(0xBF),bs8(0x30)])
+armtop("cpsid", [bs8(0xB6),bs('0111'), bs('0'), aif], [aif])
+armtop("cpsie", [bs8(0xB6),bs('0110'), bs('0'), aif], [aif])
