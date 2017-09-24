@@ -139,9 +139,10 @@ def compute_cst_propagation_states(ir_arch, init_addr, init_infos):
         if (lbl, state) in done:
             continue
         done.add((lbl, state))
-        symbexec_engine = SymbExecState(ir_arch, state)
+        if lbl not in ir_arch.blocks:
+            continue
 
-        assert lbl in ir_arch.blocks
+        symbexec_engine = SymbExecState(ir_arch, state)
         addr = symbexec_engine.emul_ir_block(lbl)
         symbexec_engine.del_mem_above_stack(ir_arch.sp)
 
@@ -173,6 +174,8 @@ def propagate_cst_expr(ir_arch, addr, init_infos):
     states = compute_cst_propagation_states(ir_arch, addr, init_infos)
     cst_propag_link = {}
     for lbl, state in states.iteritems():
+        if lbl not in ir_arch.blocks:
+            continue
         symbexec = SymbExecStateFix(ir_arch, state, cst_propag_link)
         symbexec.emulbloc(ir_arch.blocks[lbl])
     return cst_propag_link
