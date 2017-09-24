@@ -456,6 +456,8 @@ class instruction_armt(instruction_arm):
             return
         if self.name == 'BLX':
             ad = e.arg + (self.offset & 0xfffffffc)
+        elif self.name == 'BL':
+            ad = e.arg + self.offset + self.l
         else:
             ad = e.arg + self.offset
         l = symbol_pool.getby_offset_create(ad)
