@@ -11,6 +11,7 @@ from miasm2.expression.simplifications import expr_simp
 from miasm2.analysis.depgraph import DependencyGraph
 from miasm2.ir.ir import IRBlock, AssignBlock
 from miasm2.arch.x86.ctype import CTypeAMD64_unk, CTypeX86_unk
+from miasm2.arch.msp430.ctype import CTypeMSP430_unk
 from miasm2.expression.expression import ExprId
 from miasm2.core.objc import CTypesManagerNotPacked, ExprToAccessC, CHandler
 from miasm2.core.ctypesmngr import CAstTypes
@@ -29,7 +30,7 @@ class TypePropagationForm(ida_kernwin.Form):
         self.ira = ira
 
         default_types_info = r"""ExprId("RDX", 64): char *"""
-        archs = ["AMD64_unk", "X86_32_unk"]
+        archs = ["AMD64_unk", "X86_32_unk", "msp430_unk"]
 
         ida_kernwin.Form.__init__(self,
                       r"""BUTTON YES* Launch
@@ -59,6 +60,8 @@ def get_types_mngr(headerFile, arch):
         base_types = CTypeAMD64_unk()
     elif arch =="X86_32_unk":
         base_types = CTypeX86_unk()
+    elif arch =="msp430_unk":
+        base_types = CTypeMSP430_unk()
     else:
         raise NotImplementedError("Unsupported arch")
     types_ast = CAstTypes()
