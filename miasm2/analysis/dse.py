@@ -106,7 +106,8 @@ class ESETrackModif(EmulatedSymbExec):
                                        # symbolize
 
     def _func_read(self, expr_mem):
-        assert expr_mem.arg.is_int()
+        if not expr_mem.arg.is_int():
+            return expr_mem
         dst_addr = int(expr_mem.arg)
 
         if not self.dse_memory_range:
@@ -310,7 +311,7 @@ class DSEEngine(object):
 
         # Is the symbolic execution going (potentially) to jump on a lbl_gen?
         if len(self.ir_arch.blocks) == 1:
-            next_addr = self.symb.emul_ir_blocks(cur_addr)
+            next_addr = self.symb.run_at(cur_addr)
         else:
             # Emulation could stuck in generated IR blocks
             # But concrete execution callback is not enough precise to obtain
@@ -320,8 +321,8 @@ class DSEEngine(object):
             # Update the concrete execution
             self._update_state_from_concrete_symb(self.symb_concrete)
             while True:
-                next_addr_concrete = self.symb_concrete.emul_ir_block(cur_addr)
-                self.symb.emul_ir_block(cur_addr)
+                next_addr_concrete = self.symb_concrete.run_block_at(cur_addr)
+                self.symb.run_block_at(cur_addr)
 
                 if not(expr_is_label(next_addr_concrete) and
                        next_addr_concrete.name.offset is None):

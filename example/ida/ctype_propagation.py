@@ -106,7 +106,7 @@ class SymbExecCTypeFix(SymbExecCType):
 
         self.cst_propag_link = cst_propag_link
 
-    def emulbloc(self, irb, step=False):
+    def eval_updt_irblock(self, irb, step=False):
         """
         Symbolic execution of the @irb on the current state
         @irb: irblock instance
@@ -142,7 +142,7 @@ class SymbExecCTypeFix(SymbExecCType):
                     offset2cmt.setdefault(instr.offset, set()).add(
                         "\n%s: %s\n%s" % (expr, c_str, c_type))
 
-            self.eval_ir(assignblk)
+            self.eval_updt_assignblk(assignblk)
         for offset, value in offset2cmt.iteritems():
             idc.MakeComm(offset, '\n'.join(value))
             print "%x\n" % offset, '\n'.join(value)
@@ -260,7 +260,7 @@ def analyse_function():
             continue
 
         symbexec_engine = TypePropagationEngine(ir_arch, types_mngr, state)
-        addr = symbexec_engine.emul_ir_block(lbl)
+        addr = symbexec_engine.run_block_at(lbl)
         symbexec_engine.del_mem_above_stack(ir_arch.sp)
 
         ir_arch._graph = None
@@ -273,7 +273,7 @@ def analyse_function():
         if lbl not in ir_arch.blocks:
             continue
         symbexec_engine = CTypeEngineFixer(ir_arch, types_mngr, state, cst_propag_link)
-        addr = symbexec_engine.emul_ir_block(lbl)
+        addr = symbexec_engine.run_block_at(lbl)
         symbexec_engine.del_mem_above_stack(ir_arch.sp)
 
 

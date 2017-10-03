@@ -82,7 +82,7 @@ class SymbExecCType(SymbolicExecutionEngine):
         """Return the current state of the SymbolicEngine"""
         return self.StateEngine(self.symbols)
 
-    def eval_ir_expr(self, assignblk):
+    def eval_assignblk(self, assignblk):
         """
         Evaluate AssignBlock on the current state
         @assignblk: AssignBlock instance
@@ -97,7 +97,7 @@ class SymbExecCType(SymbolicExecutionEngine):
                 pool_out[dst] = frozenset(objcs)
             else:
                 raise ValueError("Unsupported affectation", str(dst))
-        return pool_out.iteritems()
+        return pool_out
 
     def eval_expr(self, expr, eval_cache=None):
         return frozenset(self.chandler.expr_to_types(expr, self.symbols))

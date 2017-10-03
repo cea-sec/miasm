@@ -28,40 +28,19 @@ def get_node_name(label, i, n):
     return n_name
 
 
-def get_modified_symbols(sb):
-    # Get modified IDS
-    ids = sb.symbols.symbols_id.keys()
-    ids.sort()
-    out = {}
-    regs_init = sb.ir_arch.arch.regs.regs_init
-    for i in ids:
-        if i in regs_init and \
-                i in sb.symbols.symbols_id and \
-                sb.symbols.symbols_id[i] == regs_init[i]:
-            continue
-        out[i] = sb.symbols.symbols_id[i]
-
-    # Get mem IDS
-    mems = sb.symbols.symbols_mem.values()
-    for m, v in mems:
-        print m, v
-        out[m] = v
-    pprint([(str(x[0]), str(x[1])) for x in out.items()])
-    return out
-
-
 def intra_block_flow_symb(ir_arch, flow_graph, irblock, in_nodes, out_nodes):
     symbols_init = ir_arch.arch.regs.regs_init.copy()
     sb = SymbolicExecutionEngine(ir_arch, symbols_init)
-    sb.emulbloc(irblock)
+    sb.eval_updt_irblock(irblock)
     print '*' * 40
     print irblock
 
 
-    out = get_modified_symbols(sb)
+    out = sb.modified(mems=False)
     current_nodes = {}
     # Gen mem arg to mem node links
-    for dst, src in out.items():
+    for dst, src in out:
+        src = sb.eval_expr(dst)
         for n in [dst, src]:
 
             all_mems = set()
@@ -82,7 +61,8 @@ def intra_block_flow_symb(ir_arch, flow_graph, irblock, in_nodes, out_nodes):
                 flow_graph.add_uniq_edge(node_n_r, node_n_w)
 
     # Gen data flow links
-    for dst, src in out.items():
+    for dst in out:
+        src = sb.eval_expr(dst)
         nodes_r = src.get_r(mem_read=False, cst_read=True)
         nodes_w = set([dst])
         for n_r in nodes_r:

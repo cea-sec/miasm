@@ -101,7 +101,9 @@ class SymbExecTopNoMem(SymbolicExecutionEngine):
     def eval_expr(self, expr, eval_cache=None):
         if expr in self.regstop:
             return exprid_top(expr)
-        ret = self.apply_expr_on_state(expr, eval_cache)
+        if eval_cache is None:
+            eval_cache = {}
+        ret = self.apply_expr_on_state_visit_cache(expr, self.symbols, eval_cache)
         return ret
 
     def manage_mem(self, expr, state, cache, level):
@@ -113,65 +115,57 @@ class SymbExecTopNoMem(SymbolicExecutionEngine):
         assert expr.size == ret.size
         return ret
 
-    def apply_expr_on_state_visit_cache(self, expr, state, cache, level=0):
-        """
-        Deep First evaluate nodes:
-            1. evaluate node's sons
-            2. simplify
-        """
 
-        if expr in cache:
-            ret = cache[expr]
-        elif expr in state:
-            return state[expr]
-        elif expr.is_int():
-            ret = expr
-        elif expr.is_id():
-            if isinstance(expr.name, asmblock.asm_label) and expr.name.offset is not None:
-                ret = ExprInt(expr.name.offset, expr.size)
-            elif expr in self.regstop:
-                ret = exprid_top(expr)
-            else:
-                ret = state.get(expr, expr)
-        elif expr.is_mem():
-            ret = self.manage_mem(expr, state, cache, level)
-        elif expr.is_cond():
-            cond = self.apply_expr_on_state_visit_cache(expr.cond, state, cache, level+1)
-            src1 = self.apply_expr_on_state_visit_cache(expr.src1, state, cache, level+1)
-            src2 = self.apply_expr_on_state_visit_cache(expr.src2, state, cache, level+1)
-            if cond.is_id(TOPSTR) or src1.is_id(TOPSTR) or src2.is_id(TOPSTR):
-                ret = exprid_top(expr)
-            else:
-                ret = ExprCond(cond, src1, src2)
-        elif expr.is_slice():
-            arg = self.apply_expr_on_state_visit_cache(expr.arg, state, cache, level+1)
-            if arg.is_id(TOPSTR):
-                ret = exprid_top(expr)
-            else:
-                ret = ExprSlice(arg, expr.start, expr.stop)
-        elif expr.is_op():
-            args = []
-            for oarg in expr.args:
-                arg = self.apply_expr_on_state_visit_cache(oarg, state, cache, level+1)
-                assert oarg.size == arg.size
-                if arg.is_id(TOPSTR):
-                    return exprid_top(expr)
-                args.append(arg)
-            ret = ExprOp(expr.op, *args)
-        elif expr.is_compose():
-            args = []
-            for arg in expr.args:
-                arg = self.apply_expr_on_state_visit_cache(arg, state, cache, level+1)
-                if arg.is_id(TOPSTR):
-                    return exprid_top(expr)
-
-                args.append(arg)
-            ret = ExprCompose(*args)
+    def eval_exprid(self, expr, **kwargs):
+        """[DEV]: Evaluate an ExprId using the current state"""
+        if isinstance(expr.name, asmblock.AsmLabel) and expr.name.offset is not None:
+            ret = ExprInt(expr.name.offset, expr.size)
+        elif expr in self.regstop:
+            ret = exprid_top(expr)
         else:
-            raise TypeError("Unknown expr type")
-        ret = self.expr_simp(ret)
-        assert expr.size == ret.size
-        cache[expr] = ret
+            ret = self.symbols.read(expr)
+        return ret
+
+    def eval_exprcond(self, expr, **kwargs):
+        """[DEV]: Evaluate an ExprCond using the current state"""
+        cond = self.eval_expr_visitor(expr.cond, **kwargs)
+        src1 = self.eval_expr_visitor(expr.src1, **kwargs)
+        src2 = self.eval_expr_visitor(expr.src2, **kwargs)
+        if cond.is_id(TOPSTR) or src1.is_id(TOPSTR) or src2.is_id(TOPSTR):
+            ret = exprid_top(expr)
+        else:
+            ret = ExprCond(cond, src1, src2)
+        return ret
+
+    def eval_exprslice(self, expr, **kwargs):
+        """[DEV]: Evaluate an ExprSlice using the current state"""
+        arg = self.eval_expr_visitor(expr.arg, **kwargs)
+        if arg.is_id(TOPSTR):
+            ret = exprid_top(expr)
+        else:
+            ret = ExprSlice(arg, expr.start, expr.stop)
+        return ret
+
+    def eval_exprop(self, expr, **kwargs):
+        """[DEV]: Evaluate an ExprOp using the current state"""
+        args = []
+        for oarg in expr.args:
+            arg = self.eval_expr_visitor(oarg, **kwargs)
+            if arg.is_id(TOPSTR):
+                return exprid_top(expr)
+            args.append(arg)
+        ret = ExprOp(expr.op, *args)
+        return ret
+
+    def eval_exprcompose(self, expr, **kwargs):
+        """[DEV]: Evaluate an ExprCompose using the current state"""
+        args = []
+        for arg in expr.args:
+            arg = self.eval_expr_visitor(arg, **kwargs)
+            if arg.is_id(TOPSTR):
+                return exprid_top(expr)
+            args.append(arg)
+        ret = ExprCompose(*args)
         return ret
 
     def apply_change(self, dst, src):

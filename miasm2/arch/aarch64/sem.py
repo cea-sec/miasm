@@ -813,6 +813,7 @@ class ir_aarch64l(IntermediateRepresentation):
         self.pc = PC
         self.sp = SP
         self.IRDst = m2_expr.ExprId('IRDst', 64)
+        self.addrsize = 64
 
     def get_ir(self, instr):
         args = instr.args

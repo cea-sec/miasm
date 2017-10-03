@@ -101,7 +101,7 @@ class JitCore_Python(jitcore.JitCore):
                             return instr.offset
 
                     # Eval current instruction (in IR)
-                    exec_engine.eval_ir(assignblk)
+                    exec_engine.eval_updt_assignblk(assignblk)
                     # Check for exceptions which do not update PC
                     exec_engine.update_cpu_from_engine()
                     if (vmmngr.get_exception() & csts.EXCEPT_DO_NOT_UPDATE_PC != 0 or

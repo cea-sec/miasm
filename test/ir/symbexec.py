@@ -13,70 +13,271 @@ class TestSymbExec(unittest.TestCase):
         from miasm2.ir.symbexec import SymbolicExecutionEngine
         from miasm2.ir.ir import AssignBlock
 
-        addrX = ExprInt(-1, 32)
-        addr0 = ExprInt(0, 32)
-        addr1 = ExprInt(1, 32)
-        addr8 = ExprInt(8, 32)
-        addr9 = ExprInt(9, 32)
-        addr20 = ExprInt(20, 32)
-        addr40 = ExprInt(40, 32)
-        addr50 = ExprInt(50, 32)
-        mem0 = ExprMem(addr0, 32)
-        mem1 = ExprMem(addr1, 8)
-        mem8 = ExprMem(addr8, 32)
-        mem9 = ExprMem(addr9, 32)
-        mem20 = ExprMem(addr20, 32)
-        mem40v = ExprMem(addr40,  8)
-        mem40w = ExprMem(addr40, 16)
-        mem50v = ExprMem(addr50,  8)
-        mem50w = ExprMem(addr50, 16)
+
         id_x = ExprId('x', 32)
-        id_y = ExprId('y', 8)
         id_a = ExprId('a', 32)
-        id_eax = ExprId('eax_init', 32)
+        id_b = ExprId('b', 32)
+        id_c = ExprId('c', 32)
+        id_d = ExprId('d', 32)
+        id_e = ExprId('e', 64)
 
-        e = SymbolicExecutionEngine(ir_x86_32(),
-                                    {mem0: id_x, mem1: id_y, mem9: id_x,
-                                     mem40w: id_x[:16], mem50v: id_y,
-                                     id_a: addr0, id_eax: addr0})
-        self.assertEqual(e.find_mem_by_addr(addr0), mem0)
-        self.assertEqual(e.find_mem_by_addr(addrX), None)
-        self.assertEqual(e.eval_expr(ExprMem(addr1 - addr1, 32)), id_x)
-        self.assertEqual(e.eval_expr(ExprMem(addr1, 8)), id_y)
-        self.assertEqual(e.eval_expr(ExprMem(addr1 + addr1, 32)), ExprCompose(
-            id_x[16:32], ExprMem(ExprInt(4, 32), 16)))
-        self.assertEqual(e.eval_expr(mem8), ExprCompose(
-            id_x[0:24], ExprMem(ExprInt(11, 32), 8)))
-        self.assertEqual(e.eval_expr(mem40v), id_x[:8])
-        self.assertEqual(e.eval_expr(mem50w), ExprCompose(
-            id_y, ExprMem(ExprInt(51, 32), 8)))
-        self.assertEqual(e.eval_expr(mem20), mem20)
-        e.func_read = lambda x: x
-        self.assertEqual(e.eval_expr(mem20), mem20)
-        self.assertEqual(set(e.modified()), set(e.symbols))
-        self.assertRaises(
-            KeyError, e.symbols.__getitem__, ExprMem(ExprInt(100, 32), 32))
-        self.assertEqual(e.apply_expr(id_eax), addr0)
-        self.assertEqual(e.apply_expr(ExprAff(id_eax, addr9)), addr9)
-        self.assertEqual(e.apply_expr(id_eax), addr9)
+        sb = SymbolicExecutionEngine(ir_x86_32(),
+                                    {
+                                        ExprMem(ExprInt(0x4, 32), 8): ExprInt(0x44, 8),
+                                        ExprMem(ExprInt(0x5, 32), 8): ExprInt(0x33, 8),
+                                        ExprMem(ExprInt(0x6, 32), 8): ExprInt(0x22, 8),
+                                        ExprMem(ExprInt(0x7, 32), 8): ExprInt(0x11, 8),
 
-        # apply_change / eval_ir / apply_expr
+                                        ExprMem(ExprInt(0x20, 32), 32): id_x,
+
+                                        ExprMem(ExprInt(0x40, 32), 32): id_x,
+                                        ExprMem(ExprInt(0x44, 32), 32): id_a,
+
+                                        ExprMem(ExprInt(0x54, 32), 32): ExprInt(0x11223344, 32),
+
+                                        ExprMem(id_a, 32): ExprInt(0x11223344, 32),
+                                        id_a: ExprInt(0, 32),
+                                        id_b: ExprInt(0, 32),
+
+                                        ExprMem(id_c, 32): ExprMem(id_d + ExprInt(0x4, 32), 32),
+                                        ExprMem(id_c + ExprInt(0x4, 32), 32): ExprMem(id_d + ExprInt(0x8, 32), 32),
+
+                                    })
+
+
+        self.assertEqual(sb.eval_expr(ExprInt(1, 32)-ExprInt(1, 32)), ExprInt(0, 32))
+
+        ## Test with unknown mem + integer
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(0, 32), 32)), ExprMem(ExprInt(0, 32), 32))
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(1, 32), 32)), ExprCompose(ExprMem(ExprInt(1, 32), 24), ExprInt(0x44, 8)))
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(2, 32), 32)), ExprCompose(ExprMem(ExprInt(2, 32), 16), ExprInt(0x3344, 16)))
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(3, 32), 32)), ExprCompose(ExprMem(ExprInt(3, 32), 8), ExprInt(0x223344, 24)))
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(4, 32), 32)), ExprInt(0x11223344, 32))
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(5, 32), 32)), ExprCompose(ExprInt(0x112233, 24), ExprMem(ExprInt(8, 32), 8)))
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(6, 32), 32)), ExprCompose(ExprInt(0x1122, 16), ExprMem(ExprInt(8, 32), 16)))
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(7, 32), 32)), ExprCompose(ExprInt(0x11, 8), ExprMem(ExprInt(8, 32), 24)))
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(8, 32), 32)), ExprMem(ExprInt(8, 32), 32))
+
+        ## Test with unknown mem + integer
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(0x50, 32), 32)), ExprMem(ExprInt(0x50, 32), 32))
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(0x51, 32), 32)), ExprCompose(ExprMem(ExprInt(0x51, 32), 24), ExprInt(0x44, 8)))
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(0x52, 32), 32)), ExprCompose(ExprMem(ExprInt(0x52, 32), 16), ExprInt(0x3344, 16)))
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(0x53, 32), 32)), ExprCompose(ExprMem(ExprInt(0x53, 32), 8), ExprInt(0x223344, 24)))
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(0x54, 32), 32)), ExprInt(0x11223344, 32))
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(0x55, 32), 32)), ExprCompose(ExprInt(0x112233, 24), ExprMem(ExprInt(0x58, 32), 8)))
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(0x56, 32), 32)), ExprCompose(ExprInt(0x1122, 16), ExprMem(ExprInt(0x58, 32), 16)))
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(0x57, 32), 32)), ExprCompose(ExprInt(0x11, 8), ExprMem(ExprInt(0x58, 32), 24)))
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(0x58, 32), 32)), ExprMem(ExprInt(0x58, 32), 32))
+
+
+
+        ## Test with unknown mem + id
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(0x1D, 32), 32)), ExprCompose(ExprMem(ExprInt(0x1D, 32), 24), id_x[:8]))
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(0x1E, 32), 32)), ExprCompose(ExprMem(ExprInt(0x1E, 32), 16), id_x[:16]))
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(0x1F, 32), 32)), ExprCompose(ExprMem(ExprInt(0x1F, 32), 8), id_x[:24]))
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(0x20, 32), 32)), id_x)
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(0x21, 32), 32)), ExprCompose(id_x[8:], ExprMem(ExprInt(0x24, 32), 8)))
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(0x22, 32), 32)), ExprCompose(id_x[16:], ExprMem(ExprInt(0x24, 32), 16)))
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(0x23, 32), 32)), ExprCompose(id_x[24:], ExprMem(ExprInt(0x24, 32), 24)))
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(0x24, 32), 32)), ExprMem(ExprInt(0x24, 32), 32))
+
+
+        ## Partial read
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(4, 32), 8)), ExprInt(0x44, 8))
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(0x20, 32), 8)), id_x[:8])
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(0x23, 32), 8)), id_x[24:])
+
+
+        ## Merge
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(0x40, 32), 64)), ExprCompose(id_x, id_a))
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(0x42, 32), 32)), ExprCompose(id_x[16:], id_a[:16]))
+
+        # Merge memory
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(0x100, 32), 32)), ExprMem(ExprInt(0x100, 32), 32))
+        self.assertEqual(sb.eval_expr(ExprMem(id_c + ExprInt(0x2, 32), 32)), ExprMem(id_d  + ExprInt(0x6, 32), 32))
+
+        ## Func read
+        def custom_func_read(mem):
+            if mem == ExprMem(ExprInt(0x1000, 32), 32):
+                return id_x
+            return mem
+
+        sb.func_read = custom_func_read
+
+        ## Unmodified read
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(4, 32), 8)), ExprInt(0x44, 8))
+
+        ## Modified read
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(0x1000, 32), 32)), id_x)
+
+
+        ## Apply_change / eval_ir / apply_expr
 
         ## x = a (with a = 0x0)
         assignblk = AssignBlock({id_x:id_a})
-        e.eval_ir(assignblk)
-        self.assertEqual(e.apply_expr(id_x), addr0)
+        sb.eval_updt_assignblk(assignblk)
+        self.assertEqual(sb.eval_expr(id_x), ExprInt(0, 32))
 
         ## x = a (without replacing 'a' with 0x0)
-        e.apply_change(id_x, id_a)
-        self.assertEqual(e.apply_expr(id_x), id_a)
+        sb.apply_change(id_x, id_a)
+        self.assertEqual(sb.eval_expr(id_x), id_a)
 
         ## x = a (with a = 0x0)
-        self.assertEqual(e.apply_expr(assignblk.dst2ExprAff(id_x)), addr0)
-        self.assertEqual(e.apply_expr(id_x), addr0)
+        self.assertEqual(sb.eval_updt_expr(assignblk.dst2ExprAff(id_x)), ExprInt(0, 32))
+        self.assertEqual(sb.eval_expr(id_x), ExprInt(0, 32))
+        self.assertEqual(sb.eval_updt_expr(id_x), ExprInt(0, 32))
 
-        # state
-        self.assertEqual(e.as_assignblock().get_r(), set([id_x, id_y]))
+        sb.dump()
+
+        ## state
+        reads = set()
+        for dst, src in sb.modified():
+            reads.update(ExprAff(dst, src).get_r())
+
+        self.assertEqual(reads, set([
+            id_x, id_a,
+            ExprMem(id_d + ExprInt(0x4, 32), 32),
+            ExprMem(id_d + ExprInt(0x8, 32), 32),
+        ]))
+
+        # Erase low id_x byte with 0xFF
+        sb.apply_change(ExprMem(ExprInt(0x20, 32), 8), ExprInt(0xFF, 8))
+        state = dict(sb.modified(ids=False))
+        self.assertEqual(state[ExprMem(ExprInt(0x20, 32), 8)], ExprInt(0xFF, 8))
+        self.assertEqual(state[ExprMem(ExprInt(0x21, 32), 24)], id_x[8:32])
+
+        # Erase high id_x byte with 0xEE
+        sb.apply_change(ExprMem(ExprInt(0x23, 32), 8), ExprInt(0xEE, 8))
+
+        state = dict(sb.modified(ids=False))
+        self.assertEqual(state[ExprMem(ExprInt(0x20, 32), 8)], ExprInt(0xFF, 8))
+        self.assertEqual(state[ExprMem(ExprInt(0x21, 32), 16)], id_x[8:24])
+        self.assertEqual(state[ExprMem(ExprInt(0x23, 32), 8)], ExprInt(0xEE, 8))
+
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(0x22, 32), 32)), ExprCompose(id_x[16:24], ExprInt(0xEE, 8), ExprMem(ExprInt(0x24, 32), 16)))
+
+        # Erase low byte of 0x11223344 with 0xFF at 0x54
+        sb.apply_change(ExprMem(ExprInt(0x54, 32), 8), ExprInt(0xFF, 8))
+
+        # Erase low byte of 0x11223344 with 0xFF at id_a
+        sb.apply_change(ExprMem(id_a + ExprInt(0x1, 32), 8), ExprInt(0xFF, 8))
+        state = dict(sb.modified(ids=False))
+        self.assertEqual(state[ExprMem(id_a + ExprInt(0x1, 32), 8)], ExprInt(0xFF, 8))
+        self.assertEqual(state[ExprMem(id_a + ExprInt(0x2, 32), 16)], ExprInt(0x1122, 16))
+
+        # Write uint32_t at 0xFFFFFFFE
+        sb.apply_change(ExprMem(ExprInt(0xFFFFFFFE, 32), 32), ExprInt(0x11223344, 32))
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(0, 32), 16)), ExprInt(0x1122, 16))
+
+        # Revert memory to original value at 0x42
+        sb.apply_change(ExprMem(ExprInt(0x42, 32), 32), ExprMem(ExprInt(0x42, 32), 32))
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(0x42, 32), 32)), ExprMem(ExprInt(0x42, 32), 32))
+
+        # Revert memory to original value at c + 0x2
+        sb.apply_change(ExprMem(id_c + ExprInt(0x2, 32), 32), ExprMem(id_c + ExprInt(0x2, 32), 32))
+        self.assertEqual(sb.eval_expr(ExprMem(id_c + ExprInt(0x2, 32), 32)), ExprMem(id_c + ExprInt(0x2, 32), 32))
+
+        # Test del symbol
+        del sb.symbols[id_a]
+        sb.dump()
+        del sb.symbols[ExprMem(id_a, 8)]
+        print "*"*40, 'Orig:'
+        sb.dump()
+
+        sb_cp = sb.symbols.copy()
+        print "*"*40, 'Copy:'
+        sb_cp.dump()
+
+        # Add symbol at address limit
+        sb.apply_change(ExprMem(ExprInt(0xFFFFFFFE, 32), 32), id_c)
+        sb.dump()
+        found = False
+        for dst, src in sb.symbols.iteritems():
+            if dst == ExprMem(ExprInt(0xFFFFFFFE, 32), 32) and src == id_c:
+                found = True
+        assert found
+
+
+        # Add symbol at address limit
+        sb.apply_change(ExprMem(ExprInt(0x7FFFFFFE, 32), 32), id_c)
+        sb.dump()
+        found = False
+        for dst, src in sb.symbols.iteritems():
+            if dst == ExprMem(ExprInt(0x7FFFFFFE, 32), 32) and src == id_c:
+                found = True
+        assert found
+
+
+
+        # Add truncated symbol at address limit
+        sb.apply_change(ExprMem(ExprInt(0xFFFFFFFC, 32), 64), id_e)
+        # Revert parts of memory
+        sb.apply_change(ExprMem(ExprInt(0xFFFFFFFC, 32), 16), ExprMem(ExprInt(0xFFFFFFFC, 32), 16))
+        sb.apply_change(ExprMem(ExprInt(0x2, 32), 16), ExprMem(ExprInt(0x2, 32), 16))
+        sb.dump()
+        found = False
+        for dst, src in sb.symbols.iteritems():
+            if dst == ExprMem(ExprInt(0xFFFFFFFE, 32), 32) and src == id_e[16:48]:
+                found = True
+        assert found
+
+
+        sb_empty = SymbolicExecutionEngine(ir_x86_32(), {})
+        sb_empty.dump()
+
+
+        # Test memory full
+        print 'full'
+        arch_addr8 = ir_x86_32()
+        # Hack to obtain tiny address space
+        arch_addr8.addrsize = 5
+        sb_addr8 = SymbolicExecutionEngine(arch_addr8, {})
+        sb_addr8.dump()
+        # Fulfill memory
+        sb_addr8.apply_change(ExprMem(ExprInt(0, 5), 256), ExprInt(0, 256))
+        sb_addr8.dump()
+        variables = sb_addr8.symbols.items()
+        assert variables == [(ExprMem(ExprInt(0, 5), 256), ExprInt(0, 256))]
+
+        print sb_addr8.symbols.symbols_mem
+
+        sb_addr8.apply_change(ExprMem(ExprInt(0x5, 5), 256), ExprInt(0x123, 256))
+        sb_addr8.dump()
+        variables = sb_addr8.symbols.items()
+        assert variables == [(ExprMem(ExprInt(0x5, 5), 256), ExprInt(0x123, 256))]
+        print sb_addr8.symbols.symbols_mem
+
+        print 'dump'
+        sb_addr8.symbols.symbols_mem.dump()
+
+
+        sb.dump()
+        try:
+            del sb.symbols.symbols_mem[ExprMem(ExprInt(0xFFFFFFFF, 32), 32)]
+        except KeyError:
+            # ok
+            pass
+        else:
+            raise RuntimeError("Should raise error!")
+
+
+        del sb.symbols.symbols_mem[ExprMem(ExprInt(0xFFFFFFFF, 32), 16)]
+        sb.dump()
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(0xFFFFFFFE, 32), 32)),
+                         ExprCompose(id_e[16:24], ExprMem(ExprInt(0xFFFFFFFF, 32), 16), id_e[40:48]))
+        sb.symbols.symbols_mem.delete_partial(ExprMem(ExprInt(0xFFFFFFFF, 32), 32))
+
+        self.assertEqual(sb.eval_expr(ExprMem(ExprInt(0xFFFFFFFE, 32), 32)),
+                         ExprCompose(id_e[16:24], ExprMem(ExprInt(0xFFFFFFFF, 32), 24)))
+
+        sb.dump()
+
+        assert ExprMem(ExprInt(0xFFFFFFFE, 32), 8) in sb.symbols
+        assert ExprMem(ExprInt(0xFFFFFFFE, 32), 32) not in sb.symbols
+        assert sb.symbols.symbols_mem.contains_partial(ExprMem(ExprInt(0xFFFFFFFE, 32), 32))
+        assert not sb.symbols.symbols_mem.contains_partial(ExprMem(ExprInt(0xFFFFFFFF, 32), 8))
+
+        assert sb_addr8.symbols.keys() == [ExprMem(ExprInt(0x5, 5), 256)]
 
 
 if __name__ == '__main__':

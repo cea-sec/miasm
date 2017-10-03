@@ -133,19 +133,11 @@ def symbolic_exec():
 
     print "Run symbolic execution..."
     sb = SymbolicExecutionEngine(ira, machine.mn.regs.regs_init)
-    sb.emul_ir_blocks(start)
-
+    sb.run_at(start)
     modified = {}
-    for ident in sb.symbols.symbols_id:
-        if ident in sb.ir_arch.arch.regs.regs_init and \
-                ident in sb.symbols.symbols_id and \
-                sb.symbols.symbols_id[ident] == sb.ir_arch.arch.regs.regs_init[ident]:
-            continue
-        modified[ident] = sb.symbols.symbols_id[ident]
 
-    for ident in sb.symbols.symbols_mem:
-        modified[sb.symbols.symbols_mem[ident][0]] = sb.symbols.symbols_mem[ident][1]
-
+    for dst, src in sb.modified(init_state=machine.mn.regs.regs_init):
+        modified[dst] = src
 
     view = symbolicexec_t()
     all_views.append(view)
