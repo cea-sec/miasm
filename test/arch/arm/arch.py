@@ -478,6 +478,17 @@ reg_tests_armt = [
     ("xxxxxxxx    SVC        0x13",
      "13df"),
 
+    ("xxxxxxxx    NOP        ",
+     "00bf"),
+
+    ("xxxxxxxx    CPSID      AIF",
+     "77B6"),
+    ("xxxxxxxx    CPSIE      I",
+     "62B6"),
+
+    ("xxxxxxxx    WFI        ",
+     "30bf"),
+
 ]
 print "#" * 40, 'armthumb', '#' * 40
 
