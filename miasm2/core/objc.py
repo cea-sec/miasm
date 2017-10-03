@@ -981,6 +981,8 @@ class ExprToAccessC(ExprReducer):
             return None
         void_type = self.types_mngr.void_ptr
         out = set()
+        if not arg1.expr.is_int():
+            return None
         ptr_offset = int(arg1.expr)
         for info in arg0.info:
             if isinstance(info.ctype, ObjCArray):

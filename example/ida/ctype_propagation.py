@@ -253,9 +253,10 @@ def analyse_function():
         if (lbl, state) in done:
             continue
         done.add((lbl, state))
-        symbexec_engine = TypePropagationEngine(ir_arch, types_mngr, state)
+        if lbl not in ir_arch.blocks:
+            continue
 
-        assert lbl in ir_arch.blocks
+        symbexec_engine = TypePropagationEngine(ir_arch, types_mngr, state)
         addr = symbexec_engine.emul_ir_block(lbl)
         symbexec_engine.del_mem_above_stack(ir_arch.sp)
 
@@ -266,6 +267,8 @@ def analyse_function():
                       symbexec_engine.get_state())
 
     for lbl, state in states.iteritems():
+        if lbl not in ir_arch.blocks:
+            continue
         symbexec_engine = CTypeEngineFixer(ir_arch, types_mngr, state, cst_propag_link)
         addr = symbexec_engine.emul_ir_block(lbl)
         symbexec_engine.del_mem_above_stack(ir_arch.sp)
