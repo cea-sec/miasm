@@ -165,7 +165,7 @@ Disassembling the shellcode at address `0`:
 >>> from miasm2.analysis.machine import Machine
 >>> machine = Machine('x86_32')
 >>> mdis = machine.dis_engine(c.bin_stream)
->>> blocs = mdis.dis_multibloc(0)
+>>> blocs = mdis.dis_multiblock(0)
 >>> for b in blocs:
 ...  print b
 ...
