@@ -99,7 +99,7 @@ while todo:
     dse.restore_snapshot(snapshot, keep_known_solutions=True)
 
     # Reinit jitter (reset jitter.run, etc.)
-    jitter.init_run(run_addr) # TODO degage avec new PR?
+    jitter.init_run(run_addr)
 
     # Set the argument value in the jitter context
     jitter.eval_expr(ExprAff(arg_addr, arg_value))
