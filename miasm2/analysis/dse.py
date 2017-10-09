@@ -484,6 +484,7 @@ class DSEPathConstraint(DSEEngine):
         self._known_solutions = set() # set of solution identifiers
         self.z3_trans = Translator.to_language("z3")
         self._produce_solution_strategy = produce_solution
+        self._previous_addr = None
         self._history = None
         if produce_solution == self.PRODUCE_SOLUTION_PATH_COV:
             self._history = [] # List of addresses in the current path
@@ -495,6 +496,8 @@ class DSEPathConstraint(DSEEngine):
         snap["cur_constraints"] = self.cur_solver.assertions()
         if self._produce_solution_strategy == self.PRODUCE_SOLUTION_PATH_COV:
             snap["_history"] = list(self._history)
+        if self._produce_solution_strategy == self.PRODUCE_SOLUTION_BRANCH_COV:
+            snap["_previous_addr"] = self._previous_addr
         return snap
 
     def restore_snapshot(self, snapshot, keep_known_solutions=True, **kwargs):
@@ -511,6 +514,8 @@ class DSEPathConstraint(DSEEngine):
             self._known_solutions.clear()
         if self._produce_solution_strategy == self.PRODUCE_SOLUTION_PATH_COV:
             self._history = list(snapshot["_history"])
+        if self._produce_solution_strategy == self.PRODUCE_SOLUTION_BRANCH_COV:
+            self._previous_addr = snapshot["_previous_addr"]
 
     def _key_for_solution_strategy(self, destination):
         """Return the associated identifier for the current solution strategy"""
@@ -525,8 +530,7 @@ class DSEPathConstraint(DSEEngine):
         elif self._produce_solution_strategy == self.PRODUCE_SOLUTION_BRANCH_COV:
             # Decision based on branch coverage
             # -> produce a solution if the current branch has never been take
-            cur_addr = ExprInt(self.jitter.pc, self.ir_arch.IRDst.size)
-            key = (cur_addr, destination)
+            key = (self._previous_addr, destination)
 
         elif self._produce_solution_strategy == self.PRODUCE_SOLUTION_PATH_COV:
             # Decision based on path coverage
@@ -632,3 +636,6 @@ class DSEPathConstraint(DSEEngine):
             # Update current solver
             for cons in cur_path_constraint:
                 self.cur_solver.add(self.z3_trans.from_expr(cons))
+
+        if self._produce_solution_strategy == self.PRODUCE_SOLUTION_BRANCH_COV:
+            self._previous_addr = cur_addr
