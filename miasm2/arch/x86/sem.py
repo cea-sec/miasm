@@ -261,17 +261,12 @@ def gen_fcmov(ir, instr, cond, arg1, arg2, mov_if):
     @cond: condition
     @mov_if: invert condition if False"""
 
-    lbl_do = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
     if mov_if:
-        dstA, dstB = lbl_do, lbl_skip
+        dstA, dstB = arg2, arg1
     else:
-        dstA, dstB = lbl_skip, lbl_do
-    e = []
-    e_do, extra_irs = [m2_expr.ExprAff(arg1, arg2)], []
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(cond, dstA, dstB)))
-    return e, [IRBlock(lbl_do.name, [AssignBlock(e_do, instr)])]
+        dstA, dstB = arg1, arg2
+    e = [m2_expr.ExprAff(arg1, m2_expr.ExprCond(cond, dstA, dstB))]
+    return e, []
 
 
 def gen_cmov(ir, instr, cond, dst, src, mov_if):
@@ -281,17 +276,16 @@ def gen_cmov(ir, instr, cond, dst, src, mov_if):
     @cond: condition
     @mov_if: invert condition if False"""
 
-    lbl_do = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
+    if dst in [ES, CS, SS, DS, FS, GS]:
+        src = src[:dst.size]
+    if src in [ES, CS, SS, DS, FS, GS]:
+        src = src.zeroExtend(dst.size)
     if mov_if:
-        dstA, dstB = lbl_do, lbl_skip
+        dstA, dstB = src,dst 
     else:
-        dstA, dstB = lbl_skip, lbl_do
-    e = []
-    e_do, extra_irs = mov(ir, instr, dst, src)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(cond, dstA, dstB)))
-    return e, [IRBlock(lbl_do.name, [AssignBlock(e_do, instr)])]
+        dstA, dstB = dst,src 
+    e = [m2_expr.ExprAff(dst, m2_expr.ExprCond(cond, dstA, dstB))]
+    return e, []
 
 
 def mov(_, instr, dst, src):
