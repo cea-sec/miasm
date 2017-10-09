@@ -90,7 +90,8 @@ def buil_all():
     print 'building'
     build_ok = False
     for name, ext_modules in [('all', ext_modules_all),
-                              ('notcc', ext_modules_no_tcc)]:
+                              ('notcc', ext_modules_no_tcc),
+                              ('novm', [])]:
         print 'build with', repr(name)
         try:
             s = setup(
