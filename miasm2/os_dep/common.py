@@ -79,7 +79,25 @@ class heap(object):
         return addr
 
     def get_size(self, vm, ptr):
-        return vm.get_all_memory()[ptr]["size"]
+        """
+        @vm: a VmMngr instance
+        @size: ptr to get the size of the associated allocation.
+        
+        `ptr` can be the base address of a previous allocation, or an address
+        within the allocated range. The size of the whole allocation is always
+        returned, regardless ptr is the base address or not.
+        """
+	assert vm.is_mapped(ptr, 1)
+	data = vm.get_all_memory()
+	ptr_page = data.get(ptr, None)
+	if ptr_page is None:
+	    for address, page_info in data.iteritems():
+		if address <= ptr < address + page_info["size"]:
+		    ptr_page = page_info
+		    break
+	    else:
+		raise RuntimeError("Must never happen (unmapped but mark as mapped by API)")
+	return ptr_page["size"]
 
 
 def windows_to_sbpath(path):
