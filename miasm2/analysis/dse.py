@@ -531,7 +531,10 @@ class DSEPathConstraint(DSEEngine):
         elif self._produce_solution_strategy == self.PRODUCE_SOLUTION_PATH_COV:
             # Decision based on path coverage
             # -> produce a solution if the current path has never been take
-            key = tuple(self._history + [destination])
+            # Note: we are taking all steps of the current history but the last
+            # one ([:-1]) because destination is a step that will replace the
+            # one we just made.
+            key = tuple(self._history[:-1] + [destination])
         else:
             raise ValueError("Unknown produce solution strategy")
 
