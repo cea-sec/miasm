@@ -493,6 +493,8 @@ class DSEPathConstraint(DSEEngine):
         snap["new_solutions"] = {dst: src.copy
                                  for dst, src in self.new_solutions.iteritems()}
         snap["cur_constraints"] = self.cur_solver.assertions()
+        if self._produce_solution_strategy == self.PRODUCE_SOLUTION_PATH_COV:
+            snap["_history"] = list(self._history)
         return snap
 
     def restore_snapshot(self, snapshot, keep_known_solutions=True, **kwargs):
@@ -507,6 +509,8 @@ class DSEPathConstraint(DSEEngine):
         self.cur_solver.add(snapshot["cur_constraints"])
         if not keep_known_solutions:
             self._known_solutions.clear()
+        if self._produce_solution_strategy == self.PRODUCE_SOLUTION_PATH_COV:
+            self._history = list(snapshot["_history"])
 
     def _key_for_solution_strategy(self, destination):
         """Return the associated identifier for the current solution strategy"""
