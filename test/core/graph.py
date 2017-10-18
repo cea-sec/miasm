@@ -184,8 +184,8 @@ g3.add_edge(7, 8)
 g3.add_edge(8, 7)
 
 loops = set([(backedge, frozenset(body)) for backedge, body in g3.compute_natural_loops(1)])
-assert(loops == {((1, 9), frozenset({1, 2, 4, 5, 9})),
-                 ((2, 9), frozenset({2, 4, 5, 9}))})
+assert(loops == {((9, 1), frozenset({1, 2, 4, 5, 9})),
+                 ((9, 2), frozenset({2, 4, 5, 9}))})
 
 sccs = set([frozenset(scc) for scc in g3.compute_strongly_connected_components()])
 assert(sccs == {frozenset({6}),
