@@ -35,7 +35,7 @@ from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE, PAGE_EXEC
 from miasm2.core.utils import pck16, pck32, upck32, hexdump, whoami
 from miasm2.os_dep.common import heap, windows_to_sbpath
 from miasm2.os_dep.common import set_str_unic, set_str_ansi
-from miasm2.os_dep.win_api_x86_32_seh import tib_address
+from miasm2.os_dep.win_api_x86_32_structs import tib_address
 
 log = logging.getLogger("win_api_x86_32")
 console_handler = logging.StreamHandler()

@@ -1,7 +1,7 @@
 #! /usr/bin/env python2
 import sys
 
-from miasm2.os_dep.win_api_x86_32_seh import fake_seh_handler, build_teb, \
+from miasm2.os_dep.win_api_x86_32_structs import fake_seh_handler, build_teb, \
     set_win_fs_0, return_from_exception, EXCEPTION_PRIV_INSTRUCTION, \
     return_from_seh, DEFAULT_SEH
 from miasm2.os_dep.win_32_structs import ContextException
