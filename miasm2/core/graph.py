@@ -523,7 +523,7 @@ class DiGraph(object):
         """
         for a, b in self.compute_back_edges(head):
             body = self._compute_natural_loop_body(b, a)
-            yield ((b, a), body)
+            yield ((a, b), body)
 
     def compute_back_edges(self, head):
         """
