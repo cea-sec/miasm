@@ -32,9 +32,10 @@ except ImportError:
     print "cannot find crypto, skipping"
 
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE, PAGE_EXEC
-from miasm2.core.utils import pck16, pck32, upck32, hexdump, whoami
+from miasm2.core.utils import pck16, pck32, upck16, upck32, hexdump, whoami
 from miasm2.os_dep.common import heap, windows_to_sbpath
 from miasm2.os_dep.common import set_str_unic, set_str_ansi
+from miasm2.os_dep.common import get_fmt_args as _get_fmt_args
 from miasm2.os_dep.win_api_x86_32_seh import tib_address
 
 log = logging.getLogger("win_api_x86_32")
@@ -160,7 +161,8 @@ class c_winobjs:
         self.tls_values = {}
         self.handle_pool = handle_generator()
         self.handle_mapped = {}
-        self.hkey_handles = {0x80000001: "hkey_current_user"}
+        self.hkey_handles = {0x80000001: "hkey_current_user", 0x80000002: "hkey_local_machine"}
+        self.cur_dir = "c:\\tmp"
 
         self.nt_mdl = {}
         self.nt_mdl_ad = None
@@ -278,6 +280,18 @@ def kernel32_LocalAlloc(jitter):
     alloc_addr = winobjs.heap.alloc(jitter, args.msize)
     jitter.func_ret_stdcall(ret_ad, alloc_addr)
 
+def msvcrt_new(jitter):
+    ret_ad, args = jitter.func_args_cdecl(["size"])
+    alloc_addr = winobjs.heap.alloc(jitter, args.size)
+    jitter.func_ret_cdecl(ret_ad, alloc_addr)
+
+globals()['msvcrt_??2@YAPAXI@Z'] = msvcrt_new
+
+def msvcrt_delete(jitter):
+    ret_ad, args = jitter.func_args_cdecl(["ptr"])
+    jitter.func_ret_cdecl(ret_ad, 0)
+
+globals()['msvcrt_??3@YAXPAX@Z'] = msvcrt_delete
 
 def kernel32_GlobalFree(jitter):
     ret_ad, _ = jitter.func_args_stdcall(["addr"])
@@ -722,9 +736,9 @@ def kernel32_VirtualProtect(jitter):
         raise ValueError('unknown access dw!')
     jitter.vm.set_mem_access(args.lpvoid, ACCESS_DICT[flnewprotect])
 
-    # XXX todo real old protect
     if args.lpfloldprotect:
-        jitter.vm.set_mem(args.lpfloldprotect, pck32(0x40))
+        old = jitter.vm.get_mem_access(args.lpvoid)
+        jitter.vm.set_mem(args.lpfloldprotect, pck32(ACCESS_DICT_INV[old]))
 
     jitter.func_ret_stdcall(ret_ad, 1)
 
@@ -1370,6 +1384,34 @@ def my_lstrcmp(jitter, funcname, get_str):
     log.info("Compare %r with %r", s1, s2)
     jitter.func_ret_stdcall(ret_ad, cmp(s1, s2))
 
+def msvcrt_wcscmp(jitter):
+    ret_ad, args = jitter.func_args_cdecl(["ptr_str1", "ptr_str2"])
+    s1 = jitter.get_str_unic(args.ptr_str1)
+    s2 = jitter.get_str_unic(args.ptr_str2)
+    log.debug("%s('%s','%s')" % (whoami(), s1, s2))
+    jitter.func_ret_cdecl(ret_ad, cmp(s1, s2))
+
+def msvcrt__wcsicmp(jitter):
+    ret_ad, args = jitter.func_args_cdecl(["ptr_str1", "ptr_str2"])
+    s1 = jitter.get_str_unic(args.ptr_str1)
+    s2 = jitter.get_str_unic(args.ptr_str2)
+    log.debug("%s('%s','%s')" % (whoami(), s1, s2))
+    jitter.func_ret_cdecl(ret_ad, cmp(s1.lower(), s2.lower()))
+
+def msvcrt__wcsnicmp(jitter):
+    ret_ad, args = jitter.func_args_cdecl(["ptr_str1", "ptr_str2", "count"])
+    s1 = jitter.get_str_unic(args.ptr_str1)
+    s2 = jitter.get_str_unic(args.ptr_str2)
+    log.debug("%s('%s','%s',%d)" % (whoami(), s1, s2, args.count))
+    jitter.func_ret_cdecl(ret_ad, cmp(s1.lower()[:args.count], s2.lower()[:args.count]))
+
+def msvcrt_wcsncpy(jitter):
+    ret_ad, args = jitter.func_args_cdecl(["dst", "src", "n"])
+    src = jitter.get_str_unic(args.src)
+    dst = src[:args.n]
+    dst += "\x00\x00" * (args.n-len(dst)+1)
+    jitter.vm.set_mem(args.dst, dst)
+    jitter.func_ret_cdecl(ret_ad, args.dst)
 
 def kernel32_lstrcmpA(jitter):
     my_lstrcmp(jitter, whoami(), jitter.get_str_ansi)
@@ -1410,6 +1452,15 @@ def kernel32_lstrcpyA(jitter):
 
 def kernel32_lstrcpy(jitter):
     my_strcpy(jitter, whoami(), jitter.get_str_ansi, jitter.set_str_ansi)
+
+def msvcrt__mbscpy(jitter):
+    ret_ad, args = jitter.func_args_cdecl(["ptr_str1", "ptr_str2"])
+    s2 = jitter.get_str_unic(args.ptr_str2)
+    jitter.set_str_unic(args.ptr_str1, s2)
+    jitter.func_ret_cdecl(ret_ad, args.ptr_str1)
+
+def msvcrt_wcscpy(jitter):
+    return msvcrt__mbscpy(jitter)
 
 
 def kernel32_lstrcpyn(jitter):
@@ -1793,13 +1844,39 @@ def msvcrt_memset(jitter):
     jitter.vm.set_mem(args.addr, chr(args.c) * args.size)
     jitter.func_ret_cdecl(ret_ad, args.addr)
 
+def msvcrt_strrchr(jitter):
+    ret_ad, args = jitter.func_args_cdecl(['pstr','c'])
+    s = jitter.get_str_ansi(args.pstr)
+    c = chr(args.c)
+    ret = args.pstr + s.rfind(c)
+    log.info("strrchr(%x '%s','%s') = %x" % (args.pstr,s,c,ret))
+    jitter.func_ret_cdecl(ret_ad, ret)
+
+def msvcrt_wcsrchr(jitter):
+    ret_ad, args = jitter.func_args_cdecl(['pstr','c'])
+    s = jitter.get_str_unic(args.pstr)
+    c = chr(args.c)
+    ret = args.pstr + (s.rfind(c)*2)
+    log.info("wcsrchr(%x '%s',%s) = %x" % (args.pstr,s,c,ret))
+    jitter.func_ret_cdecl(ret_ad, ret)
 
 def msvcrt_memcpy(jitter):
     ret_ad, args = jitter.func_args_cdecl(['dst', 'src', 'size'])
     s = jitter.vm.get_mem(args.src, args.size)
+    #log.info("memcpy buf %s" % s.encode("hex"))
     jitter.vm.set_mem(args.dst, s)
     jitter.func_ret_cdecl(ret_ad, args.dst)
 
+def msvcrt_realloc(jitter):
+    ret_ad,args = jitter.func_args_cdecl(['ptr','new_size'])
+    if args.ptr == 0:
+        addr = winobjs.heap.alloc(jitter, args.new_size)
+    else:
+        addr = winobjs.heap.alloc(jitter, args.new_size)
+        size = winobjs.heap.get_size(jitter.vm, args.ptr)
+        data = jitter.vm.get_mem(args.ptr, size)
+        jitter.vm.set_mem(addr, data)
+    jitter.func_ret_cdecl(ret_ad, addr)
 
 def msvcrt_memcmp(jitter):
     ret_ad, args = jitter.func_args_cdecl(['ps1', 'ps2', 'size'])
@@ -1962,6 +2039,43 @@ def user32_IsCharAlphaNumericA(jitter):
         ret = 0
     jitter.func_ret_stdcall(ret_ad, ret)
 
+def get_fmt_args(jitter, fmt, cur_arg, get_str):
+    return _get_fmt_args(fmt, cur_arg, get_str, jitter.get_arg_n_cdecl)
+
+def msvcrt_sprintf_str(jitter, get_str):
+    ret_ad, args = jitter.func_args_cdecl(['string', 'fmt'])
+    cur_arg, fmt = 2, args.fmt
+    return ret_ad, args, get_fmt_args(jitter, fmt, cur_arg, get_str)
+
+def msvcrt_sprintf(jitter):
+    ret_ad, args, output = msvcrt_sprintf_str(jitter, jitter.get_str_ansi)
+    ret = len(output)
+    log.info("sprintf() = '%s'" % (output))
+    jitter.vm.set_mem(args.string, output + '\x00')
+    return jitter.func_ret_cdecl(ret_ad, ret)
+
+def msvcrt_swprintf(jitter):
+    ret_ad, args = jitter.func_args_cdecl(['string', 'fmt'])
+    cur_arg, fmt = 2, args.fmt
+    output = get_fmt_args(jitter, fmt, cur_arg, jitter.get_str_unic)
+    ret = len(output)
+    log.info("swprintf('%s') = '%s'" % (jitter.get_str_unic(args.fmt), output))
+    jitter.vm.set_mem(args.string, output.encode("utf-16le") + '\x00\x00')
+    return jitter.func_ret_cdecl(ret_ad, ret)
+
+def msvcrt_fprintf(jitter):
+    ret_addr, args = jitter.func_args_cdecl(['file', 'fmt'])
+    cur_arg, fmt = 2, args.fmt
+    output = get_fmt_args(jitter, fmt, cur_arg)
+    ret = len(output)
+    log.info("fprintf(%x, '%s') = '%s'" % (args.file, jitter.get_str_ansi(args.fmt), output))
+
+    fd = upck32(jitter.vm.get_mem(args.file + 0x10, 4))
+    if not fd in winobjs.handle_pool:
+        raise NotImplementedError("Untested case")
+    winobjs.handle_pool[fd].info.write(output)
+
+    return jitter.func_ret_cdecl(ret_addr, ret)
 
 def shlwapi_StrCmpNIA(jitter):
     ret_ad, args = jitter.func_args_stdcall(["ptr_str1", "ptr_str2",
@@ -1972,6 +2086,36 @@ def shlwapi_StrCmpNIA(jitter):
     s2 = s2[:args.nchar]
     jitter.func_ret_stdcall(ret_ad, cmp(s1, s2))
 
+
+def advapi32_RegCreateKeyW(jitter):
+    ret_ad, args = jitter.func_args_stdcall(["hkey", "subkey",
+                                             "phandle"])
+    s_subkey = jitter.get_str_unic(args.subkey).lower() if args.subkey else ""
+
+    ret_hkey = 0
+    ret = 2
+    if args.hkey in winobjs.hkey_handles:
+        ret = 0
+        if s_subkey:
+            ret_hkey = hash(s_subkey) & 0xffffffff
+            winobjs.hkey_handles[ret_hkey] = s_subkey
+        else:
+            ret_hkey = args.hkey
+
+    log.info("RegCreateKeyW(%x, '%s') = (%x,%d)" % (args.hkey, s_subkey, ret_hkey, ret))
+    jitter.vm.set_mem(args.phandle, pck32(ret_hkey))
+
+    jitter.func_ret_stdcall(ret_ad, ret)
+
+def kernel32_GetCurrentDirectoryA(jitter):
+    ret_ad, args = jitter.func_args_stdcall(["size","buf"])
+    dir_ = winobjs.cur_dir
+    log.debug("GetCurrentDirectory() = '%s'" % dir_)
+    jitter.vm.set_mem(args.buf, dir_[:args.size-1] + "\x00")
+    ret = len(dir_)
+    if args.size <= len(dir_):
+        ret += 1
+    jitter.func_ret_stdcall(ret_ad, ret)
 
 def advapi32_RegOpenKeyEx(jitter, funcname, get_str):
     ret_ad, args = jitter.func_args_stdcall(["hkey", "subkey",
@@ -2013,6 +2157,29 @@ def advapi32_RegSetValue(jitter, funcname, get_str):
         log.info("Value %s", get_str(args.pvalue))
     jitter.func_ret_stdcall(ret_ad, 0)
 
+def advapi32_RegSetValueEx(jitter, funcname, get_str):
+    ret_ad, args = jitter.func_args_stdcall(["hkey", "lpvaluename",
+                                             "reserved", "dwtype",
+                                             "lpdata", "cbData"])
+    hkey = winobjs.hkey_handles.get(args.hkey, "unknown HKEY")
+    value_name = get_str(args.lpvaluename) if args.lpvaluename else ""
+    data = get_str(args.lpdata) if args.lpdata else ""
+    log.info("%s('%s','%s'='%s',%x)" % (funcname, hkey, value_name, data, args.dwtype))
+    jitter.func_ret_stdcall(ret_ad, 0)
+
+def advapi32_RegCloseKey(jitter):
+    ret_ad, args = jitter.func_args_stdcall(["hkey"])
+    del winobjs.hkey_handles[args.hkey]
+    log.info("RegCloseKey(%x)" % args.hkey)
+    jitter.func_ret_stdcall(ret_ad, 0)
+
+def advapi32_RegSetValueExA(jitter):
+    advapi32_RegSetValueEx(jitter, whoami(), jitter.get_str_ansi)
+
+
+def advapi32_RegSetValueExW(jitter):
+    advapi32_RegOpenKeyEx(jitter, whoami(), jitter.get_str_unic)
+
 
 def advapi32_RegSetValueA(jitter):
     advapi32_RegSetValue(jitter, whoami(), jitter.get_str_ansi)
@@ -2025,6 +2192,27 @@ def advapi32_RegSetValueW(jitter):
 def kernel32_GetThreadLocale(jitter):
     ret_ad, _ = jitter.func_args_stdcall(0)
     jitter.func_ret_stdcall(ret_ad, 0x40c)
+
+def kernel32_SetCurrentDirectory(jitter, get_str):
+    ret_ad, args = jitter.func_args_stdcall(['dir'])
+    dir_ = get_str(args.dir)
+    log.debug("SetCurrentDirectory('%s') = 1" % dir_)
+    winobjs.cur_dir = dir_
+    jitter.func_ret_stdcall(ret_ad, 1)
+
+def kernel32_SetCurrentDirectoryW(jitter):
+    return kernel32_SetCurrentDirectory(jitter, jitter.get_str_unic)
+
+def kernel32_SetCurrentDirectoryA(jitter):
+    return kernel32_SetCurrentDirectory(jitter, jitter.get_str_ansi)
+
+def msvcrt_wcscat(jitter):
+    ret_ad, args = jitter.func_args_cdecl(['ptr_str1', 'ptr_str2'])
+    s1 = jitter.get_str_unic(args.ptr_str1)
+    s2 = jitter.get_str_unic(args.ptr_str2)
+    log.info("strcat('%s','%s')" % (s1,s2))
+    jitter.vm.set_mem(args.ptr_str1, (s1 + s2).encode("utf-16le") + "\x00\x00")
+    jitter.func_ret_cdecl(ret_ad, args.ptr_str1)
 
 
 def kernel32_GetLocaleInfo(jitter, funcname, set_str):
@@ -2361,6 +2549,14 @@ def msvcrt_rand(jitter):
     ret_ad, _ = jitter.func_args_cdecl(0)
     jitter.func_ret_stdcall(ret_ad, 0x666)
 
+def msvcrt_srand(jitter):
+    ret_ad, _ = jitter.func_args_cdecl(['seed'])
+    jitter.func_ret_stdcall(ret_ad, 0)
+
+def msvcrt_wcslen(jitter):
+    ret_ad, args = jitter.func_args_cdecl(["pwstr"])
+    s = jitter.get_str_unic(args.pwstr)
+    jitter.func_ret_cdecl(ret_ad, len(s))
 
 def kernel32_SetFilePointer(jitter):
     ret_ad, args = jitter.func_args_stdcall(["hwnd", "distance",
@@ -2528,6 +2724,17 @@ def msvcrt_fread(jitter):
 
     data = winobjs.handle_pool[fd].info.read(args.size * args.nmemb)
     jitter.vm.set_mem(args.buf, data)
+    jitter.func_ret_cdecl(ret_ad, args.nmemb)
+
+
+def msvcrt_fwrite(jitter):
+    ret_ad, args = jitter.func_args_cdecl(["buf", "size", "nmemb", "stream"])
+    fd = upck32(jitter.vm.get_mem(args.stream + 0x10, 4))
+    if not fd in winobjs.handle_pool:
+        raise NotImplementedError("Unknown file handle!")
+
+    data = jitter.vm.get_mem(args.buf, args.size*args.nmemb)
+    winobjs.handle_pool[fd].info.write(data)
     jitter.func_ret_cdecl(ret_ad, args.nmemb)
 
 
@@ -2736,7 +2943,7 @@ def msvcrt_myfopen(jitter, get_str):
     rw = get_str(args.pmode)
     log.info("fopen %r, %r", fname, rw)
 
-    if rw in ['r', 'rb', 'wb+']:
+    if rw in ['r', 'rb', 'wb+','wb','wt']:
         sb_fname = windows_to_sbpath(fname)
         h = open(sb_fname, rw)
         eax = winobjs.handle_pool.add(sb_fname, h)

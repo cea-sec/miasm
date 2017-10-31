@@ -4,6 +4,7 @@ from sys import stdout
 from string import printable
 
 from miasm2.os_dep.common import heap
+from miasm2.os_dep.common import get_fmt_args as _get_fmt_args
 
 
 class c_linobjs(object):
@@ -104,28 +105,7 @@ def xxx_puts(jitter):
 
 
 def get_fmt_args(jitter, fmt, cur_arg):
-    output = ""
-    while True:
-        char = jitter.vm.get_mem(fmt, 1)
-        fmt += 1
-        if char == '\x00':
-            break
-        if char == '%':
-            token = '%'
-            while True:
-                char = jitter.vm.get_mem(fmt, 1)
-                fmt += 1
-                token += char
-                if char.lower() in '%cdfsux':
-                    break
-            if token.endswith('s'):
-                arg = jitter.get_str_ansi(jitter.get_arg_n_systemv(cur_arg))
-            else:
-                arg = jitter.get_arg_n_systemv(cur_arg)
-            char = token % arg
-            cur_arg += 1
-        output += char
-    return output
+    return _get_fmt_args(fmt, cur_arg, jitter.get_str_ansi, jitter.get_arg_n_systemv)
 
 
 def xxx_snprintf(jitter):

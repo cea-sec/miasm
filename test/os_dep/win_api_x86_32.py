@@ -6,12 +6,14 @@ import logging
 from miasm2.analysis.machine import Machine
 import miasm2.os_dep.win_api_x86_32 as winapi
 from miasm2.core.utils import pck32
+from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
 
 machine = Machine("x86_32")
 
 jit = machine.jitter()
 jit.init_stack()
 
+heap = winapi.winobjs.heap
 
 class TestWinAPI(unittest.TestCase):
 
@@ -22,6 +24,89 @@ class TestWinAPI(unittest.TestCase):
         winapi.kernel32_IsDebuggerPresent(jit)
         vBool = jit.cpu.EAX
         self.assertFalse(vBool)
+
+    def test_msvcrt_sprintf(self):
+        def alloc_str(s):
+            s += "\x00"
+            ptr = heap.alloc(jit, len(s))
+            jit.vm.set_mem(ptr, s)
+            return ptr
+        fmt  = alloc_str("'%s' %d")
+        str_ = alloc_str("coucou")
+        buf = heap.alloc(jit,1024)
+
+        jit.push_uint32_t(1111)
+        jit.push_uint32_t(str_)
+        jit.push_uint32_t(fmt)
+        jit.push_uint32_t(buf)
+        jit.push_uint32_t(0) # ret_ad
+        winapi.msvcrt_sprintf(jit)
+        ret = jit.get_str_ansi(buf)
+        self.assertEqual(ret, "'coucou' 1111")
+
+
+    def test_msvcrt_swprintf(self):
+        def alloc_str(s):
+            s = s.encode("utf-16le")
+            s += "\x00\x00"
+            ptr = heap.alloc(jit, len(s))
+            jit.vm.set_mem(ptr, s)
+            return ptr
+        fmt  = alloc_str("'%s' %d")
+        str_ = alloc_str("coucou")
+        buf = heap.alloc(jit,1024)
+
+        jit.push_uint32_t(1111)
+        jit.push_uint32_t(str_)
+        jit.push_uint32_t(fmt)
+        jit.push_uint32_t(buf)
+        jit.push_uint32_t(0) # ret_ad
+        winapi.msvcrt_swprintf(jit)
+        ret = jit.get_str_unic(buf)
+        self.assertEqual(ret, "'coucou' 1111")
+
+
+    def test_msvcrt_realloc(self):
+        jit.push_uint32_t(10)
+        jit.push_uint32_t(0) # ret_ad
+        winapi.msvcrt_malloc(jit)
+        ptr = jit.cpu.EAX
+
+        jit.push_uint32_t(20)
+        jit.push_uint32_t(ptr)
+        jit.push_uint32_t(0) # ret_ad
+        winapi.msvcrt_realloc(jit)
+        ptr2 = jit.cpu.EAX
+
+        self.assertNotEqual(ptr, ptr2)
+        self.assertEqual(heap.get_size(jit.vm,ptr2), 20)
+
+    def test_GetCurrentDirectory(self):
+
+        # DWORD WINAPI GetCurrentDirectory(size, buf)
+
+        # Test with a buffer long enough
+        addr = 0x80000
+        size = len(winapi.winobjs.cur_dir)+1
+        jit.vm.add_memory_page(addr, PAGE_READ | PAGE_WRITE, "\x00" * (size), "")
+        jit.push_uint32_t(addr)   # buf
+        jit.push_uint32_t(size)   # size
+        jit.push_uint32_t(0)      # @return
+        winapi.kernel32_GetCurrentDirectoryA(jit)
+        dir_ = jit.get_str_ansi(addr)
+        size_ret = jit.cpu.EAX
+        self.assertEqual(len(dir_), size_ret)
+
+        # Test with a buffer too small
+        jit.vm.set_mem(addr, "\xFF"*size)
+        jit.push_uint32_t(addr)   # buf
+        jit.push_uint32_t(5)      # size
+        jit.push_uint32_t(0)      # @return
+        winapi.kernel32_GetCurrentDirectoryA(jit)
+        size_ret = jit.cpu.EAX
+        self.assertEqual(len(dir_)+1, size_ret)
+        dir_short = jit.get_str_ansi(addr)
+        self.assertEqual(dir_short, dir_[:4])
 
     def test_MemoryManagementFunctions(self):
 
