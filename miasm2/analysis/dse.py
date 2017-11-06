@@ -496,7 +496,7 @@ class DSEPathConstraint(DSEEngine):
         snap["cur_constraints"] = self.cur_solver.assertions()
         if self._produce_solution_strategy == self.PRODUCE_SOLUTION_PATH_COV:
             snap["_history"] = list(self._history)
-        if self._produce_solution_strategy == self.PRODUCE_SOLUTION_BRANCH_COV:
+        elif self._produce_solution_strategy == self.PRODUCE_SOLUTION_BRANCH_COV:
             snap["_previous_addr"] = self._previous_addr
         return snap
 
@@ -514,7 +514,7 @@ class DSEPathConstraint(DSEEngine):
             self._known_solutions.clear()
         if self._produce_solution_strategy == self.PRODUCE_SOLUTION_PATH_COV:
             self._history = list(snapshot["_history"])
-        if self._produce_solution_strategy == self.PRODUCE_SOLUTION_BRANCH_COV:
+        elif self._produce_solution_strategy == self.PRODUCE_SOLUTION_BRANCH_COV:
             self._previous_addr = snapshot["_previous_addr"]
 
     def _key_for_solution_strategy(self, destination):
