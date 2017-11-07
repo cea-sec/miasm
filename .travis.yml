@@ -1,4 +1,3 @@
-dist: trusty
 language: python
 python: 2.7
 addons:
@@ -17,7 +16,7 @@ matrix:
     - os: osx
       language: generic
       install:
-        - brew install gcc tcc llvm
+        - brew update && brew bundle
         - echo /usr/local/opt/llvm/lib/python2.7/site-packages >> /usr/local/lib/python2.7/site-packages/llvm.pth
         - pip install -r optional_requirements.txt
         - pip install -r requirements.txt
