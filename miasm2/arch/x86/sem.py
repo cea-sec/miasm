@@ -4648,7 +4648,9 @@ class ir_x86_16(IntermediateRepresentation):
         # get instruction size
         s = {"B": 8, "W": 16, "D": 32, 'Q': 64}[instr.name[-1]]
         size = instr.v_opmode()
-        c_reg = mRCX[instr.mode][:size]
+        admode = instr.v_admode()
+        c_reg = mRCX[instr.mode][:admode]
+
         out_ir = []
         zf_val = None
         # set if zf is tested (cmps, scas)
