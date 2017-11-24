@@ -571,14 +571,14 @@ class LLVMFunction():
 
         base_name = "printf_format"
         count = 0
-        while self.mod.get_global("%s_%d" % (base_name, count)):
+        while "%s_%d" % (base_name, count) in self.mod.globals:
             count += 1
         global_fmt = self.global_constant("%s_%d" % (base_name, count),
                                           fmt_bytes)
         fnty = llvm_ir.FunctionType(llvm_ir.IntType(32), [cstring],
                                     var_arg=True)
         # Insert printf()
-        fn = mod.get_global('printf')
+        fn = mod.globals.get('printf', None)
         if fn is None:
             fn = llvm_ir.Function(mod, fnty, name="printf")
         # Call
