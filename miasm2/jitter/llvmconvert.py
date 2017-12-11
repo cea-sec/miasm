@@ -69,6 +69,26 @@ class LLVMContext():
         self.target_machine = target.create_target_machine()
         self.init_exec_engine()
 
+
+    def canonize_label_name(self, label):
+        """Canonize @label names to a common form.
+        @label: str or asmlabel instance"""
+        if isinstance(label, str):
+            return label
+        if isinstance(label, m2_expr.Expr) and expr.is_label():
+            label = self.llvm_context.ir_arch.symbol_pool.loc_key_to_label(label.index)
+        if isinstance(label, (int, long)):
+            fds
+            label = self.llvm_context.ir_arch.symbol_pool.loc_key_to_label(label)
+
+        if isinstance(label, m2_asmblock.AsmLabel):
+            if label.offset is None:
+                return "label_%s" % label.name
+            else:
+                return "label_%X" % label.offset
+        else:
+            raise ValueError("label must either be str or asmlabel")
+
     def optimise_level(self, level=2):
         """Set the optimisation level to @level from 0 to 2
         0: non-optimized
@@ -324,6 +344,7 @@ class LLVMContext_JIT(LLVMContext):
     def get_ptr_from_cache(self, file_name, func_name):
         "Load @file_name and return a pointer on the jitter @func_name"
         # We use an empty module to avoid loosing time on function building
+        func_name = self.canonize_label_name(func_name)
         empty_module = llvm.parse_assembly("")
         empty_module.fname_out = file_name
 
@@ -379,6 +400,7 @@ class LLVMFunction():
 
     def __init__(self, llvm_context, name="fc", new_module=True):
         "Create a new function with name @name"
+        name = self.canonize_label_name(name)
         self.llvm_context = llvm_context
         if new_module:
             self.llvm_context.new_module()
@@ -483,14 +505,16 @@ class LLVMFunction():
             var_casted = var
         self.builder.ret(var_casted)
 
-    @staticmethod
-    def canonize_label_name(label):
+    def canonize_label_name(self, label):
         """Canonize @label names to a common form.
         @label: str or asmlabel instance"""
         if isinstance(label, str):
             return label
-        if m2_asmblock.expr_is_label(label):
-            label = label.name
+        if isinstance(label, m2_expr.Expr) and expr.is_label():
+            label = self.llvm_context.ir_arch.symbol_pool.loc_key_to_label(label.index)
+        if isinstance(label, m2_expr.LocKey):
+            label = self.llvm_context.ir_arch.symbol_pool.loc_key_to_label(label)
+
         if isinstance(label, m2_asmblock.AsmLabel):
             if label.offset is None:
                 return "label_%s" % label.name
@@ -629,15 +653,15 @@ class LLVMFunction():
             self.update_cache(expr, ret)
             return ret
 
+        if expr.is_label():
+            label = self.llvm_context.ir_arch.symbol_pool.loc_key_to_label(expr.loc_key)
+            offset = label.offset
+            ret = llvm_ir.Constant(LLVMType.IntType(expr.size), offset)
+            self.update_cache(expr, ret)
+            return ret
+
         if isinstance(expr, m2_expr.ExprId):
             name = expr.name
-            if not isinstance(name, str):
-                # Resolve label
-                offset = name.offset
-                ret = llvm_ir.Constant(LLVMType.IntType(expr.size), offset)
-                self.update_cache(expr, ret)
-                return ret
-
             try:
                 # If expr.name is already known (args)
                 return self.local_vars[name]
@@ -1078,7 +1102,7 @@ class LLVMFunction():
             index = dst2case.get(value, i)
             to_eval = to_eval.replace_expr({value: m2_expr.ExprInt(index, value.size)})
             dst2case[value] = index
-            if m2_asmblock.expr_is_int_or_label(value):
+            if value.is_int() or value.is_label():
                 case2dst[i] = value
             else:
                 case2dst[i] = self.add_ir(value)
@@ -1105,12 +1129,13 @@ class LLVMFunction():
         self.main_stream = False
 
         if isinstance(dst, m2_expr.ExprInt):
-            dst = m2_expr.ExprId(self.llvm_context.ir_arch.symbol_pool.getby_offset_create(int(dst)),
-                                 dst.size)
+            label = self.llvm_context.ir_arch.symbol_pool.getby_offset_create(int(dst))
+            dst = m2_expr.ExprLoc(label.loc_key, dst.size)
 
-        if m2_asmblock.expr_is_label(dst):
-            bbl = self.get_basic_bloc_by_label(dst)
-            offset = dst.name.offset
+        if isinstance(dst, m2_expr.ExprLoc):
+            label = self.llvm_context.ir_arch.symbol_pool.loc_key_to_label(dst.loc_key)
+            bbl = self.get_basic_bloc_by_label(label)
+            offset = label.offset
             if bbl is not None:
                 # "local" jump, inside this function
                 if offset is None:

@@ -1,11 +1,13 @@
 #-*- coding:utf-8 -*-
 
 import logging
-import inspect
 import warnings
 from collections import namedtuple
 
-import miasm2.expression.expression as m2_expr
+from miasm2.expression.expression import ExprId, ExprInt, ExprLoc, \
+    get_expr_labels
+from miasm2.core.asmblock import AsmSymbolPool
+from miasm2.expression.expression import LocKey
 from miasm2.expression.simplifications import expr_simp
 from miasm2.expression.modint import moduint, modint
 from miasm2.core.utils import Disasm_Exception, pck
@@ -25,20 +27,13 @@ def is_int(a):
         isinstance(a, moduint) or isinstance(a, modint)
 
 
-def expr_is_label(e):
-    return isinstance(e, m2_expr.ExprId) and isinstance(e.name, AsmLabel)
-
-
-def expr_is_int_or_label(e):
-    return isinstance(e, m2_expr.ExprInt) or \
-        (isinstance(e, m2_expr.ExprId) and isinstance(e.name, AsmLabel))
-
-
 class AsmLabel(object):
 
     "Stand for an assembly label"
 
-    def __init__(self, name="", offset=None):
+    def __init__(self, loc_key, name="", offset=None):
+        assert isinstance(loc_key, LocKey)
+        self.loc_key = loc_key
         self.fixedblocs = False
         if is_int(name):
             name = "loc_%.16X" % (int(name) & 0xFFFFFFFFFFFFFFFF)
@@ -76,6 +71,9 @@ class AsmRaw(object):
 
     def __str__(self):
         return repr(self.raw)
+
+    def to_string(self, symbol_pool):
+        return str(self)
 
 
 class asm_raw(AsmRaw):
@@ -363,6 +361,11 @@ class AsmSymbolPool(object):
         self._name2label = {}
         self._offset2label = {}
         self._label_num = 0
+        self._loc_key_to_label = {}
+
+    def loc_key_to_label(self, label_index):
+        assert isinstance(label_index, LocKey)
+        return self._loc_key_to_label.get(label_index.key, None)
 
     def add_label(self, name, offset=None):
         """
@@ -370,7 +373,7 @@ class AsmSymbolPool(object):
         @name: label's name
         @offset: (optional) label's offset
         """
-        label = AsmLabel(name, offset)
+        label = AsmLabel(LocKey(self._label_num), name, offset)
 
         # Test for collisions
         if (label.offset in self._offset2label and
@@ -383,6 +386,9 @@ class AsmSymbolPool(object):
                              (label, self._name2label[label.name]))
 
         self._labels.add(label)
+        self._label_num += 1
+        self._loc_key_to_label[label.loc_key.key] = label
+
         if label.offset is not None:
             self._offset2label[label.offset] = label
         if label.name != "":
@@ -480,6 +486,19 @@ class AsmSymbolPool(object):
         self._name2label.update(symbol_pool._name2label)
         self._offset2label.update(symbol_pool._offset2label)
 
+    def canonize_to_exprloc(self, expr):
+        """
+        If expr is ExprInt, return ExprLoc with corresponding loc_key
+        Else, return expr
+
+        @expr: Expr instance
+        """
+        if expr.is_int():
+            label = self.getby_offset_create(int(expr))
+            ret = ExprLoc(label.loc_key, expr.size)
+            return ret
+        return expr
+
     def gen_label(self):
         """Generate a new unpinned label"""
         label = self.add_label("lbl_gen_%.8X" % (self._label_num))
@@ -511,7 +530,9 @@ class AsmCFG(DiGraph):
     AsmCFGPending = namedtuple("AsmCFGPending",
                                ["waiter", "constraint"])
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, symbol_pool=None, *args, **kwargs):
+        if symbol_pool is None:
+            raise DeprecationWarning("AsmCFG needs a non empty symbol_pool")
         super(AsmCFG, self).__init__(*args, **kwargs)
         # Edges -> constraint
         self.edges2constraint = {}
@@ -519,6 +540,15 @@ class AsmCFG(DiGraph):
         self._pendings = {}
         # Label2block built on the fly
         self._label2block = {}
+        # symbol_pool
+        self.symbol_pool = symbol_pool
+
+
+    def copy(self):
+        """Copy the current graph instance"""
+        graph = self.__class__(self.symbol_pool)
+        return graph + self
+
 
     # Compatibility with old list API
     def append(self, *args, **kwargs):
@@ -639,9 +669,9 @@ class AsmCFG(DiGraph):
             if self._dot_offset:
                 yield [self.DotCellDescription(text="%.8X" % line.offset,
                                                attr={}),
-                       self.DotCellDescription(text=str(line), attr={})]
+                       self.DotCellDescription(text=line.to_string(self.symbol_pool), attr={})]
             else:
-                yield self.DotCellDescription(text=str(line), attr={})
+                yield self.DotCellDescription(text=line.to_string(self.symbol_pool), attr={})
 
     def node_attr(self, node):
         if isinstance(node, AsmBlockBad):
@@ -784,7 +814,7 @@ class AsmCFG(DiGraph):
             if len(pred_next) > 1:
                 raise RuntimeError("Too many next constraints for bloc %r"
                                    "(%s)" % (block.label,
-                                             map(lambda x: x.label, pred_next)))
+                                             [x.label for x in pred_next]))
 
     def guess_blocks_size(self, mnemo):
         """Asm and compute max block size
@@ -971,13 +1001,13 @@ def conservative_asm(mnemo, instr, symbols, conservative):
 def fix_expr_val(expr, symbols):
     """Resolve an expression @expr using @symbols"""
     def expr_calc(e):
-        if isinstance(e, m2_expr.ExprId):
+        if isinstance(e, ExprId):
             s = symbols._name2label[e.name]
-            e = m2_expr.ExprInt(s.offset, e.size)
+            e = ExprInt(s.offset, e.size)
         return e
     result = expr.visit(expr_calc)
     result = expr_simp(result)
-    if not isinstance(result, m2_expr.ExprInt):
+    if not isinstance(result, ExprInt):
         raise RuntimeError('Cannot resolve symbol %s' % expr)
     return result
 
@@ -1222,12 +1252,11 @@ def get_block_labels(block):
         if isinstance(instr, AsmRaw):
             if isinstance(instr.raw, list):
                 for expr in instr.raw:
-                    symbols.update(m2_expr.get_expr_ids(expr))
+                    symbols.update(get_expr_labels(expr))
         else:
             for arg in instr.args:
-                symbols.update(m2_expr.get_expr_ids(arg))
-    labels = filter_exprid_label(symbols)
-    return labels
+                symbols.update(get_expr_labels(arg))
+    return symbols
 
 
 def assemble_block(mnemo, block, symbol_pool, conservative=False):
@@ -1285,7 +1314,8 @@ def asmblock_final(mnemo, blocks, blockChains, symbol_pool, conservative=False):
     lbl2block = {block.label: block for block in blocks}
     blocks_using_label = {}
     for block in blocks:
-        labels = get_block_labels(block)
+        exprlocs = get_block_labels(block)
+        labels = set(symbol_pool.loc_key_to_label(expr.loc_key) for expr in exprlocs)
         for label in labels:
             blocks_using_label.setdefault(label, set()).add(block)
 
@@ -1544,21 +1574,19 @@ class disasmEngine(object):
             # test split
             if instr.splitflow() and not (instr.is_subcall() and self.dontdis_retcall):
                 add_next_offset = True
-                pass
             if instr.dstflow():
                 instr.dstflow2label(self.symbol_pool)
-                dst = instr.getdstflow(self.symbol_pool)
-                dstn = []
-                for d in dst:
-                    if isinstance(d, m2_expr.ExprId) and \
-                            isinstance(d.name, AsmLabel):
-                        dstn.append(d.name)
-                        if d.name.offset in self.dont_dis_retcall_funcs:
-                            add_next_offset = False
-                dst = dstn
+                destinations = instr.getdstflow(self.symbol_pool)
+                known_dsts = []
+                for dst in destinations:
+                    if not dst.is_label():
+                        continue
+                    label = self.symbol_pool.loc_key_to_label(dst.loc_key)
+                    known_dsts.append(label)
+                    if label.offset in self.dont_dis_retcall_funcs:
+                        add_next_offset = False
                 if (not instr.is_subcall()) or self.follow_call:
-                    cur_block.bto.update(
-                        [AsmConstraint(x, AsmConstraint.c_to) for x in dst])
+                    cur_block.bto.update([AsmConstraint(label, AsmConstraint.c_to) for label in known_dsts])
 
             # get in delayslot mode
             in_delayslot = True
@@ -1608,7 +1636,7 @@ class disasmEngine(object):
         log_asmblock.info("dis bloc all")
         job_done = set()
         if blocks is None:
-            blocks = AsmCFG()
+            blocks = AsmCFG(self.symbol_pool)
         todo = [offset]
 
         bloc_cpt = 0

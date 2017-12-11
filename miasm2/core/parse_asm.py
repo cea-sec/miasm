@@ -4,7 +4,7 @@ import re
 import miasm2.expression.expression as m2_expr
 import miasm2.core.asmblock as asmblock
 from miasm2.core.cpu import instruction, base_expr
-from miasm2.core.asm_ast import AstInt, AstId, AstMem, AstOp
+from miasm2.core.asm_ast import AstInt, AstId, AstOp
 
 declarator = {'byte': 8,
               'word': 16,
@@ -237,7 +237,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
     cur_block = None
     state = STATE_NO_BLOC
     i = 0
-    blocks = asmblock.AsmCFG()
+    blocks = asmblock.AsmCFG(symbol_pool)
     block_to_nlink = None
     delayslot = 0
     while i < len(lines):

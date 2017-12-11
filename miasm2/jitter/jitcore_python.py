@@ -48,7 +48,7 @@ class JitCore_Python(jitcore.JitCore):
             vmmngr = cpu.vmmngr
 
             # Keep current location in irblocks
-            cur_label = label
+            cur_label = label.loc_key
 
             # Required to detect new instructions
             offsets_jitted = set()
@@ -57,6 +57,7 @@ class JitCore_Python(jitcore.JitCore):
             exec_engine = self.symbexec
             expr_simp = exec_engine.expr_simp
 
+            known_loc_keys = set(irb.label for irb in irblocks)
             # For each irbloc inside irblocks
             while True:
 
@@ -64,6 +65,7 @@ class JitCore_Python(jitcore.JitCore):
                 for irb in irblocks:
                     if irb.label == cur_label:
                         break
+
                 else:
                     raise RuntimeError("Irblocks must end with returning an "
                                        "ExprInt instance")
@@ -75,7 +77,7 @@ class JitCore_Python(jitcore.JitCore):
                 for assignblk in irb:
                     instr = assignblk.instr
                     # For each new instruction (in assembly)
-                    if instr.offset not in offsets_jitted:
+                    if instr is not None and instr.offset not in offsets_jitted:
                         # Test exceptions
                         vmmngr.check_invalid_code_blocs()
                         vmmngr.check_memory_breakpoint()
@@ -120,8 +122,10 @@ class JitCore_Python(jitcore.JitCore):
                 # Manage resulting address
                 if isinstance(ad, m2_expr.ExprInt):
                     return ad.arg.arg
-                elif isinstance(ad, m2_expr.ExprId):
-                    cur_label = ad.name
+                elif isinstance(ad, m2_expr.ExprLoc):
+                    cur_label = ad.loc_key
+                    if cur_label not in known_loc_keys:
+                        return cur_label
                 else:
                     raise NotImplementedError("Type not handled: %s" % ad)
 

@@ -593,14 +593,14 @@ def udiv(arg1, arg2, arg3):
 
 @sbuild.parse
 def cbz(arg1, arg2):
-    dst = m2_expr.ExprId(ir.get_next_label(instr), 64) if arg1 else arg2
+    dst = m2_expr.ExprLoc(ir.get_next_label(instr).loc_key, 64) if arg1 else arg2
     PC = dst
     ir.IRDst = dst
 
 
 @sbuild.parse
 def cbnz(arg1, arg2):
-    dst = arg2 if arg1 else m2_expr.ExprId(ir.get_next_label(instr), 64)
+    dst = arg2 if arg1 else m2_expr.ExprLoc(ir.get_next_label(instr).loc_key, 64)
     PC = dst
     ir.IRDst = dst
 
@@ -625,14 +625,14 @@ def tbnz(arg1, arg2, arg3):
 
 @sbuild.parse
 def b_ne(arg1):
-    dst = m2_expr.ExprId(ir.get_next_label(instr), 64) if zf else arg1
+    dst = m2_expr.ExprLoc(ir.get_next_label(instr).loc_key, 64) if zf else arg1
     PC = dst
     ir.IRDst = dst
 
 
 @sbuild.parse
 def b_eq(arg1):
-    dst = arg1 if zf else m2_expr.ExprId(ir.get_next_label(instr), 64)
+    dst = arg1 if zf else m2_expr.ExprLoc(ir.get_next_label(instr).loc_key, 64)
     PC = dst
     ir.IRDst = dst
 
@@ -640,7 +640,7 @@ def b_eq(arg1):
 @sbuild.parse
 def b_ge(arg1):
     cond = cond2expr['GE']
-    dst = arg1 if cond else m2_expr.ExprId(ir.get_next_label(instr), 64)
+    dst = arg1 if cond else m2_expr.ExprLoc(ir.get_next_label(instr).loc_key, 64)
     PC = dst
     ir.IRDst = dst
 
@@ -648,7 +648,7 @@ def b_ge(arg1):
 @sbuild.parse
 def b_gt(arg1):
     cond = cond2expr['GT']
-    dst = arg1 if cond else m2_expr.ExprId(ir.get_next_label(instr), 64)
+    dst = arg1 if cond else m2_expr.ExprLoc(ir.get_next_label(instr).loc_key, 64)
     PC = dst
     ir.IRDst = dst
 
@@ -656,7 +656,7 @@ def b_gt(arg1):
 @sbuild.parse
 def b_cc(arg1):
     cond = cond2expr['CC']
-    dst = arg1 if cond else m2_expr.ExprId(ir.get_next_label(instr), 64)
+    dst = arg1 if cond else m2_expr.ExprLoc(ir.get_next_label(instr).loc_key, 64)
     PC = dst
     ir.IRDst = dst
 
@@ -664,7 +664,7 @@ def b_cc(arg1):
 @sbuild.parse
 def b_cs(arg1):
     cond = cond2expr['CS']
-    dst = arg1 if cond else m2_expr.ExprId(ir.get_next_label(instr), 64)
+    dst = arg1 if cond else m2_expr.ExprLoc(ir.get_next_label(instr).loc_key, 64)
     PC = dst
     ir.IRDst = dst
 
@@ -672,7 +672,7 @@ def b_cs(arg1):
 @sbuild.parse
 def b_hi(arg1):
     cond = cond2expr['HI']
-    dst = arg1 if cond else m2_expr.ExprId(ir.get_next_label(instr), 64)
+    dst = arg1 if cond else m2_expr.ExprLoc(ir.get_next_label(instr).loc_key, 64)
     PC = dst
     ir.IRDst = dst
 
@@ -680,7 +680,7 @@ def b_hi(arg1):
 @sbuild.parse
 def b_le(arg1):
     cond = cond2expr['LE']
-    dst = arg1 if cond else m2_expr.ExprId(ir.get_next_label(instr), 64)
+    dst = arg1 if cond else m2_expr.ExprLoc(ir.get_next_label(instr).loc_key, 64)
     PC = dst
     ir.IRDst = dst
 
@@ -688,7 +688,7 @@ def b_le(arg1):
 @sbuild.parse
 def b_ls(arg1):
     cond = cond2expr['LS']
-    dst = arg1 if cond else m2_expr.ExprId(ir.get_next_label(instr), 64)
+    dst = arg1 if cond else m2_expr.ExprLoc(ir.get_next_label(instr).loc_key, 64)
     PC = dst
     ir.IRDst = dst
 
@@ -696,7 +696,7 @@ def b_ls(arg1):
 @sbuild.parse
 def b_lt(arg1):
     cond = cond2expr['LT']
-    dst = arg1 if cond else m2_expr.ExprId(ir.get_next_label(instr), 64)
+    dst = arg1 if cond else m2_expr.ExprLoc(ir.get_next_label(instr).loc_key, 64)
     PC = dst
     ir.IRDst = dst
 
@@ -732,7 +732,7 @@ def br(arg1):
 def blr(arg1):
     PC = arg1
     ir.IRDst = arg1
-    LR = m2_expr.ExprId(ir.get_next_label(instr), 64)
+    LR = m2_expr.ExprLoc(ir.get_next_label(instr).loc_key, 64)
 
 @sbuild.parse
 def nop():

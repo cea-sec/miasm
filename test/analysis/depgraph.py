@@ -1,6 +1,6 @@
 """Regression test module for DependencyGraph"""
-from miasm2.expression.expression import ExprId, ExprInt, ExprAff, ExprCond
-from miasm2.core.asmblock import AsmLabel
+from miasm2.expression.expression import ExprId, ExprInt, ExprAff, ExprCond, ExprLoc
+from miasm2.core.asmblock import AsmLabel, AsmSymbolPool
 from miasm2.ir.analysis import ira
 from miasm2.ir.ir import IRBlock, AssignBlock
 from miasm2.core.graph import DiGraph
@@ -8,6 +8,8 @@ from miasm2.analysis.depgraph import DependencyNode, DependencyGraph
 from itertools import count
 from pdb import pm
 import re
+
+symbol_pool = AsmSymbolPool()
 
 EMULATION = True
 try:
@@ -41,13 +43,13 @@ CST33 = ExprInt(0x33, 32)
 CST35 = ExprInt(0x35, 32)
 CST37 = ExprInt(0x37, 32)
 
-LBL0 = AsmLabel("lbl0")
-LBL1 = AsmLabel("lbl1")
-LBL2 = AsmLabel("lbl2")
-LBL3 = AsmLabel("lbl3")
-LBL4 = AsmLabel("lbl4")
-LBL5 = AsmLabel("lbl5")
-LBL6 = AsmLabel("lbl6")
+LBL0 = symbol_pool.add_label("lbl0", 0)
+LBL1 = symbol_pool.add_label("lbl1", 1)
+LBL2 = symbol_pool.add_label("lbl2", 2)
+LBL3 = symbol_pool.add_label("lbl3", 3)
+LBL4 = symbol_pool.add_label("lbl4", 4)
+LBL5 = symbol_pool.add_label("lbl5", 5)
+LBL6 = symbol_pool.add_label("lbl6", 6)
 
 def gen_irblock(label, exprs_list):
     """ Returns an IRBlock.
@@ -60,7 +62,7 @@ def gen_irblock(label, exprs_list):
         else:
             irs.append(AssignBlock(exprs))
 
-    irbl = IRBlock(label, irs)
+    irbl = IRBlock(label.loc_key, irs)
     return irbl
 
 
@@ -186,7 +188,8 @@ def dg2graph(graph, label=False, lines=True):
     out_blocks = []
     for label in graph.nodes():
         if isinstance(label, DependencyNode):
-            label_name = "%s %s %s" % (label.label.name,
+            lbl = symbol_pool.loc_key_to_label(label.label)
+            label_name = "%s %s %s" % (lbl.name,
                                        label.element,
                                        label.line_nb)
         else:
@@ -228,7 +231,7 @@ DNC3 = DependencyNode(LBL1, C, 0)
 
 # graph 1
 
-G1_IRA = IRATest()
+G1_IRA = IRATest(symbol_pool)
 
 G1_IRB0 = gen_irblock(LBL0, [[ExprAff(C, CST1)]])
 G1_IRB1 = gen_irblock(LBL1, [[ExprAff(B, C)]])
@@ -241,7 +244,7 @@ G1_IRA.blocks = dict([(irb.label, irb) for irb in [G1_IRB0, G1_IRB1, G1_IRB2]])
 
 # graph 2
 
-G2_IRA = IRATest()
+G2_IRA = IRATest(symbol_pool)
 
 G2_IRB0 = gen_irblock(LBL0, [[ExprAff(C, CST1)]])
 G2_IRB1 = gen_irblock(LBL1, [[ExprAff(B, CST2)]])
@@ -255,7 +258,7 @@ G2_IRA.blocks = dict([(irb.label, irb) for irb in [G2_IRB0, G2_IRB1, G2_IRB2]])
 
 # graph 3
 
-G3_IRA = IRATest()
+G3_IRA = IRATest(symbol_pool)
 
 G3_IRB0 = gen_irblock(LBL0, [[ExprAff(C, CST1)]])
 G3_IRB1 = gen_irblock(LBL1, [[ExprAff(B, CST2)]])
@@ -272,13 +275,13 @@ G3_IRA.blocks = dict([(irb.label, irb) for irb in [G3_IRB0, G3_IRB1,
 
 # graph 4
 
-G4_IRA = IRATest()
+G4_IRA = IRATest(symbol_pool)
 
 G4_IRB0 = gen_irblock(LBL0, [[ExprAff(C, CST1)]])
 G4_IRB1 = gen_irblock(LBL1, [[ExprAff(C, C + CST2)],
                              [ExprAff(G4_IRA.IRDst,
-                                      ExprCond(C, ExprId(LBL2, 32),
-                                               ExprId(LBL1, 32)))]])
+                                      ExprCond(C, ExprLoc(LBL2.loc_key, 32),
+                                               ExprLoc(LBL1.loc_key, 32)))]])
 
 G4_IRB2 = gen_irblock(LBL2, [[ExprAff(A, B)]])
 
@@ -291,13 +294,13 @@ G4_IRA.blocks = dict([(irb.label, irb) for irb in [G4_IRB0, G4_IRB1, G4_IRB2]])
 
 # graph 5
 
-G5_IRA = IRATest()
+G5_IRA = IRATest(symbol_pool)
 
 G5_IRB0 = gen_irblock(LBL0, [[ExprAff(B, CST1)]])
 G5_IRB1 = gen_irblock(LBL1, [[ExprAff(B, B + CST2)],
                              [ExprAff(G5_IRA.IRDst,
-                                      ExprCond(B, ExprId(LBL2, 32),
-                                               ExprId(LBL1, 32)))]])
+                                      ExprCond(B, ExprLoc(LBL2.loc_key, 32),
+                                               ExprLoc(LBL1.loc_key, 32)))]])
 
 G5_IRB2 = gen_irblock(LBL2, [[ExprAff(A, B)]])
 
@@ -309,7 +312,7 @@ G5_IRA.blocks = dict([(irb.label, irb) for irb in [G5_IRB0, G5_IRB1, G5_IRB2]])
 
 # graph 6
 
-G6_IRA = IRATest()
+G6_IRA = IRATest(symbol_pool)
 
 G6_IRB0 = gen_irblock(LBL0, [[ExprAff(B, CST1)]])
 G6_IRB1 = gen_irblock(LBL1, [[ExprAff(A, B)]])
@@ -321,7 +324,7 @@ G6_IRA.blocks = dict([(irb.label, irb) for irb in [G6_IRB0, G6_IRB1]])
 
 # graph 7
 
-G7_IRA = IRATest()
+G7_IRA = IRATest(symbol_pool)
 
 G7_IRB0 = gen_irblock(LBL0, [[ExprAff(C, CST1)]])
 G7_IRB1 = gen_irblock(LBL1, [[ExprAff(B, C)], [ExprAff(A, B)]])
@@ -335,7 +338,7 @@ G7_IRA.blocks = dict([(irb.label, irb) for irb in [G7_IRB0, G7_IRB1, G7_IRB2]])
 
 # graph 8
 
-G8_IRA = IRATest()
+G8_IRA = IRATest(symbol_pool)
 
 G8_IRB0 = gen_irblock(LBL0, [[ExprAff(C, CST1)]])
 G8_IRB1 = gen_irblock(LBL1, [[ExprAff(B, C)], [ExprAff(C, D)]])
@@ -351,7 +354,7 @@ G8_IRA.blocks = dict([(irb.label, irb) for irb in [G8_IRB0, G8_IRB1, G8_IRB2]])
 
 # graph 10
 
-G10_IRA = IRATest()
+G10_IRA = IRATest(symbol_pool)
 
 G10_IRB1 = gen_irblock(LBL1, [[ExprAff(B, B + CST2)]])
 G10_IRB2 = gen_irblock(LBL2, [[ExprAff(A, B)]])
@@ -363,7 +366,7 @@ G10_IRA.blocks = dict([(irb.label, irb) for irb in [G10_IRB1, G10_IRB2]])
 
 # graph 11
 
-G11_IRA = IRATest()
+G11_IRA = IRATest(symbol_pool)
 
 G11_IRB0 = gen_irblock(LBL0, [[ExprAff(A, CST1),
                                ExprAff(B, CST2)]])
@@ -379,7 +382,7 @@ G11_IRA.blocks = dict([(irb.label, irb)
 
 # graph 12
 
-G12_IRA = IRATest()
+G12_IRA = IRATest(symbol_pool)
 
 G12_IRB0 = gen_irblock(LBL0, [[ExprAff(B, CST1)]])
 G12_IRB1 = gen_irblock(LBL1, [[ExprAff(A, B)], [ExprAff(B, B + CST2)]])
@@ -395,21 +398,21 @@ G12_IRA.blocks = dict([(irb.label, irb) for irb in [G12_IRB0, G12_IRB1,
 
 # graph 13
 
-G13_IRA = IRATest()
+G13_IRA = IRATest(symbol_pool)
 
 G13_IRB0 = gen_irblock(LBL0, [[ExprAff(A, CST1)],
                               #[ExprAff(B, A)],
                               [ExprAff(G13_IRA.IRDst,
-                                       ExprId(LBL1, 32))]])
+                                       ExprLoc(LBL1.loc_key, 32))]])
 G13_IRB1 = gen_irblock(LBL1, [[ExprAff(C, A)],
                               #[ExprAff(A, A + CST1)],
                               [ExprAff(G13_IRA.IRDst,
-                                       ExprCond(R, ExprId(LBL2, 32),
-                                                ExprId(LBL1, 32)))]])
+                                       ExprCond(R, ExprLoc(LBL2.loc_key, 32),
+                                                ExprLoc(LBL1.loc_key, 32)))]])
 
 G13_IRB2 = gen_irblock(LBL2, [[ExprAff(B, A + CST3)], [ExprAff(A, B + CST3)],
                               [ExprAff(G13_IRA.IRDst,
-                                       ExprId(LBL1, 32))]])
+                                       ExprLoc(LBL1.loc_key, 32))]])
 
 G13_IRB3 = gen_irblock(LBL3, [[ExprAff(R, C)]])
 
@@ -423,22 +426,22 @@ G13_IRA.blocks = dict([(irb.label, irb) for irb in [G13_IRB0, G13_IRB1,
 
 # graph 14
 
-G14_IRA = IRATest()
+G14_IRA = IRATest(symbol_pool)
 
 G14_IRB0 = gen_irblock(LBL0, [[ExprAff(A, CST1)],
                               [ExprAff(G14_IRA.IRDst,
-                                       ExprId(LBL1, 32))]
+                                       ExprLoc(LBL1.loc_key, 32))]
                              ])
 G14_IRB1 = gen_irblock(LBL1, [[ExprAff(B, A)],
                               [ExprAff(G14_IRA.IRDst,
-                                       ExprCond(C, ExprId(LBL2, 32),
-                                                ExprId(LBL3, 32)))]
+                                       ExprCond(C, ExprLoc(LBL2.loc_key, 32),
+                                                ExprLoc(LBL3.loc_key, 32)))]
                              ])
 
 G14_IRB2 = gen_irblock(LBL2, [[ExprAff(D, A)],
                               [ExprAff(A, D + CST1)],
                               [ExprAff(G14_IRA.IRDst,
-                                       ExprId(LBL1, 32))]
+                                       ExprLoc(LBL1.loc_key, 32))]
                              ])
 
 G14_IRB3 = gen_irblock(LBL3, [[ExprAff(R, D + B)]])
@@ -453,7 +456,7 @@ G14_IRA.blocks = dict([(irb.label, irb) for irb in [G14_IRB0, G14_IRB1,
 
 # graph 16
 
-G15_IRA = IRATest()
+G15_IRA = IRATest(symbol_pool)
 
 G15_IRB0 = gen_irblock(LBL0, [[ExprAff(A, CST1)]])
 G15_IRB1 = gen_irblock(LBL1, [[ExprAff(D, A + B)],
@@ -470,7 +473,7 @@ G15_IRA.blocks = dict([(irb.label, irb) for irb in [G15_IRB0, G15_IRB1,
 
 # graph 16
 
-G16_IRA = IRATest()
+G16_IRA = IRATest(symbol_pool)
 
 G16_IRB0 = gen_irblock(LBL0, [[ExprAff(A, CST1)]])
 G16_IRB1 = gen_irblock(LBL1, [[ExprAff(R, D)]])
@@ -494,7 +497,7 @@ G16_IRA.blocks = dict([(irb.label, irb) for irb in [G16_IRB0, G16_IRB1,
 
 # graph 17
 
-G17_IRA = IRATest()
+G17_IRA = IRATest(symbol_pool)
 
 G17_IRB0 = gen_irblock(LBL0, [[ExprAff(A, CST1),
                                ExprAff(D, CST2)]])
@@ -638,7 +641,8 @@ def flatNode(node):
             element = int(node.element.arg)
         else:
             RuntimeError("Unsupported type '%s'" % type(enode.element))
-        return (node.label.name,
+        label = symbol_pool.loc_key_to_label(node.label)
+        return (label.name,
                 element,
                 node.line_nb)
     else:
@@ -736,7 +740,8 @@ def match_results(resultsA, resultsB, nodes):
 def get_flat_init_depnodes(depnodes):
     out = []
     for node in depnodes:
-        out.append((node.label.name,
+        label = symbol_pool.loc_key_to_label(node.label)
+        out.append((label.name,
                     node.element.name,
                     node.line_nb,
                     0))

@@ -4,7 +4,6 @@ from miasm2.expression.expression import ExprAff, ExprInt, ExprId
 from miasm2.ir.ir import IntermediateRepresentation, IRBlock, AssignBlock
 from miasm2.ir.analysis import ira
 from miasm2.arch.mips32.sem import ir_mips32l, ir_mips32b
-from miasm2.core.asmblock import expr_is_int_or_label, expr_is_label
 
 class ir_a_mips32l(ir_mips32l, ira):
     def __init__(self, symbol_pool=None):
@@ -28,14 +27,15 @@ class ir_a_mips32l(ir_mips32l, ira):
             if pc_val is None or lr_val is None:
                 new_irblocks.append(irb)
                 continue
-            if not expr_is_int_or_label(lr_val):
-                new_irblocks.append(irb)
+            if lr_val.is_label():
+                label = self.symbol_pool.loc_key_to_label(lr_valloc_key)
+                if label.offset is not None:
+                    lr_val = ExprInt(label.offset, 32)
+            if not lr_val.is_int():
                 continue
-            if expr_is_label(lr_val):
-                lr_val = ExprInt(lr_val.name.offset, 32)
 
             instr = block.lines[-2]
-            if lr_val.arg != instr.offset + 8:
+            if int(lr_val) != instr.offset + 8:
                 raise ValueError("Wrong arg")
 
             # CALL

@@ -19,6 +19,7 @@
 # IR components are :
 #  - ExprInt
 #  - ExprId
+#  - ExprLoc
 #  - ExprAff
 #  - ExprCond
 #  - ExprMem
@@ -48,12 +49,13 @@ TOK_POS_STRICT = "Spos"
 # Hashing constants
 EXPRINT = 1
 EXPRID = 2
-EXPRAFF = 3
-EXPRCOND = 4
-EXPRMEM = 5
-EXPROP = 6
-EXPRSLICE = 7
-EXPRCOMPOSE = 8
+EXPRLOC = 3
+EXPRAFF = 4
+EXPRCOND = 5
+EXPRMEM = 6
+EXPROP = 7
+EXPRSLICE = 8
+EXPRCOMPOSE = 9
 
 
 priorities_list = [
@@ -115,6 +117,8 @@ class DiGraphExpr(DiGraph):
             return node.op
         elif isinstance(node, ExprId):
             return node.name
+        elif isinstance(node, ExprLoc):
+            return "label_%r" % node.label
         elif isinstance(node, ExprMem):
             return "@%d" % node.size
         elif isinstance(node, ExprCompose):
@@ -140,6 +144,29 @@ class DiGraphExpr(DiGraph):
 
         return ""
 
+
+
+class LocKey(object):
+    def __init__(self, key):
+        self._key = key
+
+    key = property(lambda self: self._key)
+
+    def __hash__(self):
+        return hash(self._key)
+
+    def __eq__(self, other):
+        if self is other:
+            return True
+        if self.__class__ is not other.__class__:
+            return False
+        return self.key == other.key
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __repr__(self):
+        return "<%s %d>" % (self.__class__.__name__, self._key)
 
 # IR definitions
 
@@ -383,6 +410,9 @@ class Expr(object):
     def is_id(self, name=None):
         return False
 
+    def is_label(self, label=None):
+        return False
+
     def is_aff(self):
         return False
 
@@ -532,6 +562,7 @@ class ExprId(Expr):
         if size is None:
             warnings.warn('DEPRECATION WARNING: size is a mandatory argument: use ExprId(name, SIZE)')
             size = 32
+        assert isinstance(name, str)
         super(ExprId, self).__init__(size)
         self._name = name
 
@@ -580,6 +611,68 @@ class ExprId(Expr):
 
     def is_id(self, name=None):
         if name is not None and self._name != name:
+            return False
+        return True
+
+
+class ExprLoc(Expr):
+
+    """An ExprLoc represent a Label in Miasm IR.
+    """
+
+    __slots__ = Expr.__slots__ + ["_loc_key"]
+
+    def __init__(self, loc_key, size):
+        """Create an identifier
+        @loc_key: int, label loc_key
+        @size: int, identifier's size
+        """
+        assert isinstance(loc_key, LocKey)
+        super(ExprLoc, self).__init__(size)
+        self._loc_key = loc_key
+
+    loc_key= property(lambda self: self._loc_key)
+
+    def __reduce__(self):
+        state = self._loc_key, self._size
+        return self.__class__, state
+
+    def __new__(cls, loc_key, size):
+        return Expr.get_object(cls, (loc_key, size))
+
+    def __str__(self):
+        return "label_%d" % self._loc_key.key
+
+    def get_r(self, mem_read=False, cst_read=False):
+        return set()
+
+    def get_w(self):
+        return set()
+
+    def _exprhash(self):
+        return hash((EXPRLOC, self._loc_key, self._size))
+
+    def _exprrepr(self):
+        return "%s(%r, %d)" % (self.__class__.__name__, self._loc_key, self._size)
+
+    def __contains__(self, expr):
+        return self == expr
+
+    @visit_chk
+    def visit(self, callback, test_visit=None):
+        return self
+
+    def copy(self):
+        return ExprLoc(self._loc_key, self._size)
+
+    def depth(self):
+        return 1
+
+    def graph_recursive(self, graph):
+        graph.add_node(self)
+
+    def is_label(self, loc_key=None):
+        if loc_key is not None and self._loc_key != loc_key:
             return False
         return True
 
@@ -1226,10 +1319,11 @@ class ExprCompose(Expr):
 
 # Expression order for comparaison
 EXPR_ORDER_DICT = {ExprId: 1,
-                   ExprCond: 2,
-                   ExprMem: 3,
-                   ExprOp: 4,
-                   ExprSlice: 5,
+                   ExprLoc: 2,
+                   ExprCond: 3,
+                   ExprMem: 4,
+                   ExprOp: 5,
+                   ExprSlice: 6,
                    ExprCompose: 7,
                    ExprInt: 8,
                   }
@@ -1286,6 +1380,11 @@ def compare_exprs(expr1, expr2):
         return cmp(expr1.arg, expr2.arg)
     elif cls1 == ExprId:
         ret = cmp(expr1.name, expr2.name)
+        if ret:
+            return ret
+        return cmp(expr1.size, expr2.size)
+    elif cls1 == ExprLoc:
+        ret = cmp(expr1.loc_key, expr2.loc_key)
         if ret:
             return ret
         return cmp(expr1.size, expr2.size)
@@ -1379,8 +1478,16 @@ def ExprInt_from(expr, i):
 def get_expr_ids_visit(expr, ids):
     """Visitor to retrieve ExprId in @expr
     @expr: Expr"""
-    if isinstance(expr, ExprId):
+    if expr.is_id():
         ids.add(expr)
+    return expr
+
+
+def get_expr_labels_visit(expr, labels):
+    """Visitor to retrieve ExprLoc in @expr
+    @expr: Expr"""
+    if expr.is_label():
+        labels.add(expr)
     return expr
 
 
@@ -1389,6 +1496,14 @@ def get_expr_ids(expr):
     @expr: Expr"""
     ids = set()
     expr.visit(lambda x: get_expr_ids_visit(x, ids))
+    return ids
+
+
+def get_expr_labels(expr):
+    """Retrieve ExprLoc in @expr
+    @expr: Expr"""
+    ids = set()
+    expr.visit(lambda x: get_expr_labels_visit(x, ids))
     return ids
 
 
@@ -1429,6 +1544,9 @@ def match_expr(expr, pattern, tks, result=None):
         return test_set(expr, pattern, tks, result)
 
     elif expr.is_id():
+        return test_set(expr, pattern, tks, result)
+
+    elif expr.is_label():
         return test_set(expr, pattern, tks, result)
 
     elif expr.is_op():

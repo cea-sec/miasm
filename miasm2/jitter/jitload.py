@@ -313,7 +313,6 @@ class jitter(object):
         Check exceptions before breakpoints."""
 
         self.pc = pc
-
         # Callback called before exec
         if self.exec_cb is not None:
             res = self.exec_cb(self)

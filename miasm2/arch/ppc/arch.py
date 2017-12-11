@@ -42,7 +42,7 @@ class ppc_arg(m_arg):
             if arg.name in gpregs.str:
                 return None
             label = symbol_pool.getby_name_create(arg.name)
-            return ExprId(label, 32)
+            return ExprLoc(label.loc_key, 32)
         if isinstance(arg, AstOp):
             args = [self.asm_ast_to_expr(tmp, symbol_pool) for tmp in arg.args]
             if None in args:
@@ -74,7 +74,7 @@ class instruction_ppc(instruction):
         super(instruction_ppc, self).__init__(*args, **kargs)
 
     @staticmethod
-    def arg2str(e, pos = None):
+    def arg2str(e, pos = None, symbol_pool=None):
         if isinstance(e, ExprId) or isinstance(e, ExprInt):
             return str(e)
         elif isinstance(e, ExprMem):
@@ -132,8 +132,8 @@ class instruction_ppc(instruction):
                 ad = e.arg + self.offset
             else:
                 ad = e.arg
-            l = symbol_pool.getby_offset_create(ad)
-            s = ExprId(l, e.size)
+            label = symbol_pool.getby_offset_create(ad)
+            s = ExprLoc(label.loc_key, e.size)
             self.args[address_index] = s
 
     def breakflow(self):

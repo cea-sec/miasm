@@ -4,14 +4,15 @@ Module to generate C code for a given native @block
 
 import miasm2.expression.expression as m2_expr
 from miasm2.ir.ir import IRBlock, AssignBlock
-from miasm2.ir.translators import Translator
-from miasm2.core.asmblock import expr_is_label, AsmBlockBad, AsmLabel
 
-# Miasm to C translator
-TRANSLATOR = Translator.to_language("C")
+from miasm2.ir.translators.C import TranslatorC
+from miasm2.core.asmblock import AsmBlockBad
 
-SIZE_TO_MASK = {size: TRANSLATOR.from_expr(m2_expr.ExprInt(0, size).mask)
+TRANSLATOR_NO_SYMBOL = TranslatorC(symbol_pool=None)
+
+SIZE_TO_MASK = {size: TRANSLATOR_NO_SYMBOL.from_expr(ExprInt(0, size).mask)
                 for size in (1, 2, 3, 7, 8, 16, 32, 64, 128)}
+
 
 
 class Attributes(object):
@@ -100,6 +101,7 @@ class CGen(object):
     def __init__(self, ir_arch):
         self.ir_arch = ir_arch
         self.PC = self.ir_arch.pc
+        self.translator = TranslatorC(self.ir_arch.symbol_pool)
         self.init_arch_C()
 
     def init_arch_C(self):
@@ -128,7 +130,7 @@ class CGen(object):
 
     def id_to_c(self, expr):
         """Translate Expr @expr into corresponding C code"""
-        return TRANSLATOR.from_expr(self.patch_c_id(expr))
+        return self.translator.from_expr(self.patch_c_id(expr))
 
     def add_label_index(self, dst2index, lbl):
         """Insert @lbl to the dictionnary @dst2index with a uniq value
@@ -149,7 +151,7 @@ class CGen(object):
             dst = m2_expr.ExprInt(offset, self.ir_arch.IRDst.size)
             new_assignblk[self.ir_arch.IRDst] = dst
         irs = [AssignBlock(new_assignblk, instr)]
-        return IRBlock(self.ir_arch.get_instr_label(instr), irs)
+        return IRBlock(self.ir_arch.get_instr_label(instr).loc_key, irs)
 
     def block2assignblks(self, block):
         """
@@ -292,8 +294,8 @@ class CGen(object):
             offset = int(expr)
             self.add_label_index(dst2index, offset)
             return ("%s" % dst2index[offset], hex(offset))
-        if expr_is_label(expr):
-            label = expr.name
+        if expr.is_label():
+            label = self.ir_arch.symbol_pool.loc_key_to_label(expr.loc_key)
             if label.offset != None:
                 offset = label.offset
                 self.add_label_index(dst2index, offset)
@@ -577,12 +579,13 @@ class CGen(object):
 
             for index, irblock in enumerate(irblocks):
                 new_irblock = self.ir_arch.irbloc_fix_regs_for_mode(irblock, self.ir_arch.attrib)
-                if new_irblock.label.offset is None:
+                label = self.ir_arch.symbol_pool.loc_key_to_label(new_irblock.label)
+                if label.offset is None:
                     out.append("%-40s // %.16X %s" %
-                               (str(new_irblock.label.name) + ":", instr.offset, instr))
+                               (str(label.name) + ":", instr.offset, instr))
                 else:
                     out.append("%-40s // %.16X %s" %
-                               (self.label_to_jitlabel(new_irblock.label) + ":", instr.offset, instr))
+                               (self.label_to_jitlabel(label) + ":", instr.offset, instr))
                 if index == 0:
                     out += self.gen_pre_code(instr_attrib)
                 out += self.gen_irblock(instr_attrib, irblocks_attributes[index], instr_offsets, new_irblock)

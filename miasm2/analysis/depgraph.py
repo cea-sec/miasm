@@ -1,8 +1,7 @@
 """Provide dependency graph"""
 
-import miasm2.expression.expression as m2_expr
+from miasm2.expression.expression import ExprInt, ExprLoc, ExprAff
 from miasm2.core.graph import DiGraph
-from miasm2.core.asmblock import AsmLabel, expr_is_int_or_label, expr_is_label
 from miasm2.expression.simplifications import expr_simp
 from miasm2.ir.symbexec import SymbolicExecutionEngine
 from miasm2.ir.ir import IRBlock, AssignBlock
@@ -61,7 +60,7 @@ class DependencyNode(object):
     def __str__(self):
         """Returns a string representation of DependencyNode"""
         return "<%s %s %s %s>" % (self.__class__.__name__,
-                                  self.label.name, self.element,
+                                  self.label, self.element,
                                   self.line_nb)
 
     def __repr__(self):
@@ -297,9 +296,10 @@ class DependencyResult(DependencyState):
                                              line_nb).assignblks
 
         # Eval the block
-        temp_label = AsmLabel("Temp")
+        symbol_pool = AsmSymbolPool()
+        temp_label = symbol_pool.getby_name_create("Temp")
         symb_exec = SymbolicExecutionEngine(self._ira, ctx_init)
-        symb_exec.eval_updt_irblock(IRBlock(temp_label, assignblks), step=step)
+        symb_exec.eval_updt_irblock(IRBlock(temp_label.loc_key, assignblks), step=step)
 
         # Return only inputs values (others could be wrongs)
         return {element: symb_exec.symbols[element]
@@ -314,30 +314,31 @@ class DependencyResultImplicit(DependencyResult):
     # Z3 Solver instance
     _solver = None
 
-    unsat_expr = m2_expr.ExprAff(m2_expr.ExprInt(0, 1),
-                                 m2_expr.ExprInt(1, 1))
+    unsat_expr = ExprAff(ExprInt(0, 1), ExprInt(1, 1))
 
     def _gen_path_constraints(self, translator, expr, expected):
         """Generate path constraint from @expr. Handle special case with
         generated labels
         """
         out = []
-        expected_is_label = expr_is_label(expected)
+        expected = self._ira.symbol_pool.canonize_to_exprloc(expected)
+        expected_is_label = expected.is_label()
         for consval in possible_values(expr):
-            if (expected_is_label and
-                    consval.value != expected):
+            value = self._ira.symbol_pool.canonize_to_exprloc(consval.value)
+            if expected_is_label and value != expected:
                 continue
-            if (not expected_is_label and
-                    expr_is_label(consval.value)):
+            if not expected_is_label and value.is_label():
                 continue
 
             conds = z3.And(*[translator.from_expr(cond.to_constraint())
                              for cond in consval.constraints])
-            if expected != consval.value:
-                conds = z3.And(conds,
-                               translator.from_expr(
-                                   m2_expr.ExprAff(consval.value,
-                                                   expected)))
+            if expected != value:
+                conds = z3.And(
+                    conds,
+                    translator.from_expr(
+                        ExprAff(value,
+                                expected))
+                )
             out.append(conds)
 
         if out:
@@ -373,10 +374,8 @@ class DependencyResultImplicit(DependencyResult):
             # Add constraint
             if hist_nb < history_size:
                 next_label = history[hist_nb]
-                expected = symb_exec.eval_expr(m2_expr.ExprId(next_label,
-                                                              size))
-                solver.add(
-                    self._gen_path_constraints(translator, dst, expected))
+                expected = symb_exec.eval_expr(ExprLoc(next_label, size))
+                solver.add(self._gen_path_constraints(translator, dst, expected))
         # Save the solver
         self._solver = solver
 
@@ -491,11 +490,11 @@ class DependencyGraph(object):
         @follow: set of nodes to follow
         @nofollow: set of nodes not to follow
         """
-        if isinstance(expr, m2_expr.ExprId):
+        if expr.is_id():
             follow.add(expr)
-        elif isinstance(expr, m2_expr.ExprInt):
+        elif expr.is_int():
             nofollow.add(expr)
-        elif isinstance(expr, m2_expr.ExprMem):
+        elif expr.is_mem():
             follow.add(expr)
         return expr
 
@@ -508,7 +507,7 @@ class DependencyGraph(object):
         @follow_mem: force the visit of memory sub expressions
         @follow_call: force the visit of call sub expressions
         """
-        if not follow_mem and isinstance(expr, m2_expr.ExprMem):
+        if not follow_mem and expr.is_mem():
             nofollow.add(expr)
             return False
         if not follow_call and expr.is_function_call():
@@ -534,8 +533,9 @@ class DependencyGraph(object):
         """Do not follow labels"""
         follow = set()
         for expr in exprs:
-            if not expr_is_int_or_label(expr):
-                follow.add(expr)
+            if expr.is_int() or expr.is_label():
+                continue
+            follow.add(expr)
 
         return follow, set()
 

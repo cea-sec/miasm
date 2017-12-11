@@ -24,7 +24,7 @@ def node_x_2_id(n, x):
 
 
 def get_node_name(label, i, n):
-    n_name = (label.name, i, n)
+    n_name = (label, i, n)
     return n_name
 
 
@@ -93,9 +93,11 @@ def gen_block_data_flow_graph(ir_arch, ad, block_flow_cb):
 
     dead_simp(ir_arch)
 
+
     irblock_0 = None
     for irblock in ir_arch.blocks.values():
-        if irblock.label.offset == ad:
+        label = ir_arch.symbol_pool.loc_key_to_label(irblock.label)
+        if label.offset == ad:
             irblock_0 = irblock
             break
     assert(irblock_0 is not None)
@@ -144,8 +146,6 @@ for block in blocks:
     ir_arch.add_block(block)
 for irblock in ir_arch.blocks.values():
     print irblock
-    if irblock.label.offset != 0:
-        continue
 
 
 if args.symb:

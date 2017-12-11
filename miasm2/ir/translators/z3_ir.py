@@ -116,7 +116,7 @@ class TranslatorZ3(Translator):
     # Operations translation
     trivial_ops = ["+", "-", "/", "%", "&", "^", "|", "*", "<<"]
 
-    def __init__(self, endianness="<", **kwargs):
+    def __init__(self, endianness="<", symbol_pool=None, **kwargs):
         """Instance a Z3 translator
         @endianness: (optional) memory endianness
         """
@@ -126,6 +126,8 @@ class TranslatorZ3(Translator):
 
         super(TranslatorZ3, self).__init__(**kwargs)
         self._mem = Z3Mem(endianness)
+        # symbol pool
+        self.symbol_pool = symbol_pool
 
     def from_ExprInt(self, expr):
         return z3.BitVecVal(expr.arg.arg, expr.size)
@@ -135,6 +137,18 @@ class TranslatorZ3(Translator):
             return z3.BitVecVal(expr.name.offset, expr.size)
         else:
             return z3.BitVec(str(expr), expr.size)
+
+    def from_ExprLoc(self, expr):
+        if self.symbol_pool is None:
+            # No symbol_pool, fallback to default name
+            return z3.BitVec(str(expr), expr.size)
+        label = self.symbol_pool.loc_key_to_label(expr.loc_key)
+        if label is None:
+            # No symbol_pool, fallback to default name
+            return z3.BitVec(str(expr), expr.size)
+        elif label.offset is None:
+            return z3.BitVec(label.name, expr.size)
+        return z3.BitVecVal(label.offset, expr.size)
 
     def from_ExprMem(self, expr):
         addr = self.from_expr(expr.arg)

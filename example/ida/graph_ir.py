@@ -6,7 +6,7 @@ import idc
 import idautils
 
 from miasm2.core.bin_stream_ida import bin_stream_ida
-from miasm2.core.asmblock import expr_is_label, AsmLabel, is_int
+from miasm2.core.asmblock import AsmLabel, is_int
 from miasm2.expression.simplifications import expr_simp
 from miasm2.analysis.data_flow import dead_simp
 from miasm2.ir.ir import AssignBlock, IRBlock
@@ -74,13 +74,11 @@ class GraphMiasmIR(idaapi.GraphViewer):
                 continue
             all_dst = self.ir_arch.dst_trackback(irblock)
             for dst in all_dst:
-                if not expr_is_label(dst):
+                if not dst.is_label():
                     continue
-
-                dst = dst.name
-                if not dst in self.ir_arch.blocks:
+                if not dst.loc_key in self.ir_arch.blocks:
                     continue
-                dst_block = self.ir_arch.blocks[dst]
+                dst_block = self.ir_arch.blocks[dst.loc_key]
                 node1 = addr_id[irblock]
                 node2 = addr_id[dst_block]
                 self.AddEdge(node1, node2)

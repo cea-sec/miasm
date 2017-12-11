@@ -690,7 +690,8 @@ def mn_b(ir, instr, arg1, arg2 = None):
 def mn_bl(ir, instr, arg1, arg2 = None):
     if arg2 is not None:
         arg1 = arg2
-    return [ ExprAff(LR, ExprId(ir.get_next_instr(instr), 32)),
+    dst = ir.get_next_instr(instr)
+    return [ ExprAff(LR, ExprLoc(dst.loc_key, 32)),
              ExprAff(PC, arg1),
              ExprAff(ir.IRDst, arg1) ], []
 
@@ -726,13 +727,15 @@ def mn_do_cond_branch(ir, instr, dest):
                 condition = condition & cond_cond
         else:
             condition = cond_cond
+        dst = ir.get_next_instr(instr)
         dest_expr = ExprCond(condition, dest,
-                             ExprId(ir.get_next_instr(instr), 32))
+                             ExprLoc(dst.loc_key, 32))
     else:
         dest_expr = dest
 
     if instr.name[-1] == 'L' or instr.name[-2:-1] == 'LA':
-        ret.append(ExprAff(LR, ExprId(ir.get_next_instr(instr), 32)))
+        dst = ir.get_next_instr(instr)
+        ret.append(ExprAff(LR, ExprLoc(dst.loc_key, 32)))
 
     ret.append(ExprAff(PC, dest_expr))
     ret.append(ExprAff(ir.IRDst, dest_expr))

@@ -57,8 +57,8 @@ class mipsCGen(CGen):
                         self.ir_arch.pc]
                     assignments[self.delay_slot_set] = m2_expr.ExprInt(1, 32)
                     # Replace IRDst with next instruction
-                    assignments[self.ir_arch.IRDst] = m2_expr.ExprId(
-                        self.ir_arch.get_next_instr(assignblock.instr), 32)
+                    dst = self.ir_arch.get_next_instr(assignblock.instr)
+                    assignments[self.ir_arch.IRDst] = m2_expr.ExprLoc(dst.loc_key, 32)
                     irs.append(AssignBlock(assignments, assignblock.instr))
                 irblocks[blk_idx] = IRBlock(irblock.label, irs)
 

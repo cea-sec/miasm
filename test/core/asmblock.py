@@ -104,7 +104,8 @@ open("graph2.dot", "w").write(blocks.dot())
 # Test helper methods
 ## Label2block should always be updated
 assert blocks.label2block(first_block.label) == first_block
-my_block = AsmBlock(AsmLabel("testlabel"))
+testlabel = mdis.symbol_pool.getby_name_create("testlabel")
+my_block = AsmBlock(testlabel)
 blocks.add_node(my_block)
 assert len(blocks) == 3
 assert blocks.label2block(first_block.label) == first_block
@@ -114,7 +115,8 @@ assert blocks.label2block(my_block.label) == my_block
 assert len(list(blocks.get_bad_blocks())) == 0
 assert len(list(blocks.get_bad_blocks_predecessors())) == 0
 ### Add a bad block, not linked
-my_bad_block = AsmBlockBad(AsmLabel("testlabel_bad"))
+testlabel_bad = mdis.symbol_pool.getby_name_create("testlabel_bad")
+my_bad_block = AsmBlockBad(testlabel_bad)
 blocks.add_node(my_bad_block)
 assert list(blocks.get_bad_blocks()) == [my_bad_block]
 assert len(list(blocks.get_bad_blocks_predecessors())) == 0
@@ -132,7 +134,8 @@ assert len(list(blocks.get_bad_blocks_predecessors(strict=True))) == 0
 ## Sanity check
 blocks.sanity_check()
 ### Next on itself
-my_block_ni = AsmBlock(AsmLabel("testlabel_nextitself"))
+testlabel_nextitself = mdis.symbol_pool.getby_name_create("testlabel_nextitself")
+my_block_ni = AsmBlock(testlabel_nextitself)
 my_block_ni.bto.add(AsmConstraintNext(my_block_ni.label))
 blocks.add_node(my_block_ni)
 error_raised = False
@@ -145,10 +148,13 @@ assert error_raised
 blocks.del_node(my_block_ni)
 blocks.sanity_check()
 ### Multiple next on the same node
-my_block_target = AsmBlock(AsmLabel("testlabel_target"))
+testlabel_target = mdis.symbol_pool.getby_name_create("testlabel_target")
+my_block_target = AsmBlock(testlabel_target)
 blocks.add_node(my_block_target)
-my_block_src1 = AsmBlock(AsmLabel("testlabel_src1"))
-my_block_src2 = AsmBlock(AsmLabel("testlabel_src2"))
+testlabel_src1 = mdis.symbol_pool.getby_name_create("testlabel_src1")
+testlabel_src2 = mdis.symbol_pool.getby_name_create("testlabel_src2")
+my_block_src1 = AsmBlock(testlabel_src1)
+my_block_src2 = AsmBlock(testlabel_src2)
 my_block_src1.bto.add(AsmConstraintNext(my_block_target.label))
 blocks.add_node(my_block_src1)
 ### OK for now
@@ -177,8 +183,10 @@ assert blocks.label2block(my_block_src1.label).max_size == 0
 
 ## Check pendings
 ### Create a pending element
-my_block_src = AsmBlock(AsmLabel("testlabel_pend_src"))
-my_block_dst = AsmBlock(AsmLabel("testlabel_pend_dst"))
+testlabel_pend_src = mdis.symbol_pool.getby_name_create("testlabel_pend_src")
+testlabel_pend_dst = mdis.symbol_pool.getby_name_create("testlabel_pend_dst")
+my_block_src = AsmBlock(testlabel_pend_src)
+my_block_dst = AsmBlock(testlabel_pend_dst)
 my_block_src.bto.add(AsmConstraintTo(my_block_dst.label))
 blocks.add_node(my_block_src)
 ### Check resulting state
@@ -238,7 +246,7 @@ assert len(entry_block.lines) == 4
 assert map(str, entry_block.lines) == ['XOR        EAX, EAX',
                                        'XOR        EBX, EBX',
                                        'XOR        ECX, ECX',
-                                       'JNZ        loc_0000000000000014:0x00000014']
+                                       'JNZ        label_3']
 assert len(blocks.successors(entry_block)) == 2
 assert len(entry_block.bto) == 2
 nextb = blocks.label2block((cons.label for cons in entry_block.bto
@@ -249,11 +257,11 @@ assert len(nextb.lines) == 4
 assert map(str, nextb.lines) == ['XOR        EDX, EDX',
                                  'XOR        ESI, ESI',
                                  'XOR        EDI, EDI',
-                                 'JMP        loc_0000000000000008:0x00000008']
+                                 'JMP        label_4']
 assert blocks.successors(nextb) == [nextb]
 assert len(tob.lines) == 2
 assert map(str, tob.lines) == ['XOR        EBP, EBP',
-                               'JMP        loc_0000000000000014:0x00000014']
+                               'JMP        label_3']
 assert blocks.successors(tob) == [tob]
 
 # Check split_block
@@ -278,7 +286,7 @@ assert len(blocks.successors(entry_block)) == 1
 newb = blocks.successors(entry_block)[0]
 assert len(newb.lines) == 2
 assert map(str, newb.lines) == ['XOR        ECX, ECX',
-                                'JNZ        loc_0000000000000014:0x00000014']
+                                'JNZ        label_3']
 preds = blocks.predecessors(newb)
 assert len(preds) == 2
 assert entry_block in preds

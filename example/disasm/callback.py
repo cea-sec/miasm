@@ -1,5 +1,5 @@
 from miasm2.core.bin_stream import bin_stream_str
-from miasm2.core.asmblock import AsmLabel, AsmConstraint, expr_is_label
+from miasm2.core.asmblock import AsmLabel, AsmConstraint
 from miasm2.arch.x86.disasm import dis_x86_32, cb_x86_funcs
 
 
@@ -23,10 +23,12 @@ def cb_x86_callpop(cur_bloc, symbol_pool, *args, **kwargs):
         return
     ## The destination must be a label
     dst = last_instr.args[0]
-    if not expr_is_label(dst):
+    if not dst.is_label():
         return
+
+    label = symbol_pool.loc_key_to_label(dst.loc_key)
     ## The destination must be the next instruction
-    if dst.name.offset != last_instr.offset + last_instr.l:
+    if label.offset != last_instr.offset + last_instr.l:
         return
 
     # Update instruction instance
@@ -34,7 +36,7 @@ def cb_x86_callpop(cur_bloc, symbol_pool, *args, **kwargs):
 
     # Update next blocks to process in the disassembly engine
     cur_bloc.bto.clear()
-    cur_bloc.add_cst(dst.name.offset, AsmConstraint.c_next, symbol_pool)
+    cur_bloc.add_cst(label.offset, AsmConstraint.c_next, symbol_pool)
 
 
 # Prepare a tiny shellcode

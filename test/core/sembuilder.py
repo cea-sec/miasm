@@ -11,13 +11,13 @@ class IR(object):
     IRDst = m2_expr.ExprId("IRDst", 32)
 
     def get_next_instr(self, _):
-        return AsmLabel("NEXT")
+        return AsmLabel(m2_expr.LocKey(0), "NEXT")
 
     def get_next_label(self, _):
-        return AsmLabel("NEXT")
+        return AsmLabel(m2_expr.LocKey(0), "NEXT")
 
     def gen_label(self):
-        return AsmLabel("GEN")
+        return AsmLabel(m2_expr.LocKey(1), "GEN")
 
 class Instr(object):
     mode = 32

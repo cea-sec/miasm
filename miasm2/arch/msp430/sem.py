@@ -238,8 +238,11 @@ def push_w(ir, instr, a):
 
 def call(ir, instr, a):
     e, a, dummy = mng_autoinc(a, None, 16)
-    n = ExprId(ir.get_next_label(instr), 16)
-    e.append(ExprAff(ExprMem(SP - ExprInt(2, 16), 16), n))
+
+    lbl_next = ir.get_next_label(instr)
+    lbl_next_expr = ExprLoc(lbl_next.loc_key, 16)
+
+    e.append(ExprAff(ExprMem(SP - ExprInt(2, 16), 16), lbl_next_expr))
     e.append(ExprAff(SP, SP - ExprInt(2, 16)))
     e.append(ExprAff(PC, a))
     e.append(ExprAff(ir.IRDst, a))
@@ -272,50 +275,56 @@ def cmp_b(ir, instr, a, b):
 
 
 def jz(ir, instr, a):
-    n = ExprId(ir.get_next_label(instr), 16)
+    lbl_next = ir.get_next_label(instr)
+    lbl_next_expr = ExprLoc(lbl_next.loc_key, 16)
     e = []
-    e.append(ExprAff(PC, ExprCond(zf, a, n)))
-    e.append(ExprAff(ir.IRDst, ExprCond(zf, a, n)))
+    e.append(ExprAff(PC, ExprCond(zf, a, lbl_next_expr)))
+    e.append(ExprAff(ir.IRDst, ExprCond(zf, a, lbl_next_expr)))
     return e, []
 
 
 def jnz(ir, instr, a):
-    n = ExprId(ir.get_next_label(instr), 16)
+    lbl_next = ir.get_next_label(instr)
+    lbl_next_expr = ExprLoc(lbl_next.loc_key, 16)
     e = []
-    e.append(ExprAff(PC, ExprCond(zf, n, a)))
-    e.append(ExprAff(ir.IRDst, ExprCond(zf, n, a)))
+    e.append(ExprAff(PC, ExprCond(zf, lbl_next_expr, a)))
+    e.append(ExprAff(ir.IRDst, ExprCond(zf, lbl_next_expr, a)))
     return e, []
 
 
 def jl(ir, instr, a):
-    n = ExprId(ir.get_next_label(instr), 16)
+    lbl_next = ir.get_next_label(instr)
+    lbl_next_expr = ExprLoc(lbl_next.loc_key, 16)
     e = []
-    e.append(ExprAff(PC, ExprCond(nf ^ of, a, n)))
-    e.append(ExprAff(ir.IRDst, ExprCond(nf ^ of, a, n)))
+    e.append(ExprAff(PC, ExprCond(nf ^ of, a, lbl_next_expr)))
+    e.append(ExprAff(ir.IRDst, ExprCond(nf ^ of, a, lbl_next_expr)))
     return e, []
 
 
 def jc(ir, instr, a):
-    n = ExprId(ir.get_next_label(instr), 16)
+    lbl_next = ir.get_next_label(instr)
+    lbl_next_expr = ExprLoc(lbl_next.loc_key, 16)
     e = []
-    e.append(ExprAff(PC, ExprCond(cf, a, n)))
-    e.append(ExprAff(ir.IRDst, ExprCond(cf, a, n)))
+    e.append(ExprAff(PC, ExprCond(cf, a, lbl_next_expr)))
+    e.append(ExprAff(ir.IRDst, ExprCond(cf, a, lbl_next_expr)))
     return e, []
 
 
 def jnc(ir, instr, a):
-    n = ExprId(ir.get_next_label(instr), 16)
+    lbl_next = ir.get_next_label(instr)
+    lbl_next_expr = ExprLoc(lbl_next.loc_key, 16)
     e = []
-    e.append(ExprAff(PC, ExprCond(cf, n, a)))
-    e.append(ExprAff(ir.IRDst, ExprCond(cf, n, a)))
+    e.append(ExprAff(PC, ExprCond(cf, lbl_next_expr, a)))
+    e.append(ExprAff(ir.IRDst, ExprCond(cf, lbl_next_expr, a)))
     return e, []
 
 
 def jge(ir, instr, a):
-    n = ExprId(ir.get_next_label(instr), 16)
+    lbl_next = ir.get_next_label(instr)
+    lbl_next_expr = ExprLoc(lbl_next.loc_key, 16)
     e = []
-    e.append(ExprAff(PC, ExprCond(nf ^ of, n, a)))
-    e.append(ExprAff(ir.IRDst, ExprCond(nf ^ of, n, a)))
+    e.append(ExprAff(PC, ExprCond(nf ^ of, lbl_next_expr, a)))
+    e.append(ExprAff(ir.IRDst, ExprCond(nf ^ of, lbl_next_expr, a)))
     return e, []
 
 

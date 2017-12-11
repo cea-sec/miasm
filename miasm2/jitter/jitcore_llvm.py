@@ -78,12 +78,13 @@ class JitCore_LLVM(jitcore.JitCore):
         """Add a block to JiT and JiT it.
         @block: the block to add
         """
+
         block_hash = self.hash_block(block)
         fname_out = os.path.join(self.tempdir, "%s.bc" % block_hash)
 
         if not os.access(fname_out, os.R_OK):
             # Build a function in the context
-            func = LLVMFunction(self.context, LLVMFunction.canonize_label_name(block.label))
+            func = LLVMFunction(self.context, block.label)
 
             # Set log level
             func.log_regs = self.log_regs
@@ -114,7 +115,7 @@ class JitCore_LLVM(jitcore.JitCore):
 
         else:
             # The cache file exists: function can be loaded from cache
-            ptr = self.context.get_ptr_from_cache(fname_out, LLVMFunction.canonize_label_name(block.label))
+            ptr = self.context.get_ptr_from_cache(fname_out, block.label)
 
         # Store a pointer on the function jitted code
         self.lbl2jitbloc[block.label.offset] = ptr

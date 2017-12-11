@@ -268,6 +268,9 @@ class Variables_Identifier(object):
         elif isinstance(expr, m2_expr.ExprId):
             pass
 
+        elif isinstance(expr, m2_expr.ExprLoc):
+            pass
+
         elif isinstance(expr, m2_expr.ExprMem):
             self.find_variables_rec(expr.arg)
 
@@ -552,7 +555,8 @@ def possible_values(expr):
 
     # Terminal expression
     if (isinstance(expr, m2_expr.ExprInt) or
-            isinstance(expr, m2_expr.ExprId)):
+        isinstance(expr, m2_expr.ExprId) or
+        isinstance(expr, m2_expr.ExprLoc)):
         consvals.add(ConstrainedValue(frozenset(), expr))
     # Unary expression
     elif isinstance(expr, m2_expr.ExprSlice):

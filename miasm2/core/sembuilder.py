@@ -142,11 +142,19 @@ class SemBuilder(object):
     def _create_labels(lbl_else=False):
         """Return the AST standing for label creations
         @lbl_else (optional): if set, create a label 'lbl_else'"""
-        lbl_end = "lbl_end = ExprId(ir.get_next_label(instr), ir.IRDst.size)"
+        lbl_end = "lbl_end = ir.get_next_label(instr)"
+        lbl_end_expr = "lbl_end_expr = ExprLoc(lbl_end.loc_key, ir.IRDst.size)"
         out = ast.parse(lbl_end).body
-        out += ast.parse("lbl_if = ExprId(ir.gen_label(), ir.IRDst.size)").body
+        out += ast.parse(lbl_end_expr).body
+        lbl_if = "lbl_if = ir.gen_label()"
+        lbl_if_expr = "lbl_if_expr = ExprLoc(lbl_if.loc_key, ir.IRDst.size)"
+        out += ast.parse(lbl_if).body
+        out += ast.parse(lbl_if_expr).body
         if lbl_else:
-            out += ast.parse("lbl_else = ExprId(ir.gen_label(), ir.IRDst.size)").body
+            lbl_else = "lbl_else = ir.gen_label()"
+            lbl_else_expr = "lbl_else_expr = ExprLoc(lbl_else.loc_key, ir.IRDst.size)"
+            out += ast.parse(lbl_else).body
+            out += ast.parse(lbl_else_expr).body
         return out
 
     def _parse_body(self, body, argument_names):
@@ -200,9 +208,9 @@ class SemBuilder(object):
                 cond = statement.test
                 real_body += self._create_labels(lbl_else=True)
 
-                lbl_end = ast.Name(id='lbl_end', ctx=ast.Load())
-                lbl_if = ast.Name(id='lbl_if', ctx=ast.Load())
-                lbl_else = ast.Name(id='lbl_else', ctx=ast.Load()) \
+                lbl_end = ast.Name(id='lbl_end_expr', ctx=ast.Load())
+                lbl_if = ast.Name(id='lbl_if_expr', ctx=ast.Load())
+                lbl_else = ast.Name(id='lbl_else_expr', ctx=ast.Load()) \
                            if statement.orelse else lbl_end
                 dst = ast.Call(func=ast.Name(id='ExprCond',
                                              ctx=ast.Load()),
@@ -261,9 +269,11 @@ class SemBuilder(object):
 
 
                     ## Replace the block with a call to 'IRBlock'
-                    lbl_if_name = ast.Attribute(value=ast.Name(id=lbl_name,
-                                                               ctx=ast.Load()),
-                                                attr='name', ctx=ast.Load())
+                    lbl_if_name = value= ast.Attribute(
+                        value=ast.Name(id=lbl_name, ctx=ast.Load()),
+                        attr="loc_key",
+                        ctx=ast.Load()
+                    )
 
                     assignblks = ast.List(elts=[assignblk],
                                           ctx=ast.Load())

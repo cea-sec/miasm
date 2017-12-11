@@ -2,8 +2,8 @@ import warnings
 import logging
 from collections import MutableMapping
 
-from miasm2.expression.expression import ExprOp, ExprId, ExprInt, ExprMem, \
-    ExprCompose, ExprSlice, ExprCond, ExprAff
+from miasm2.expression.expression import ExprOp, ExprId, ExprLoc, ExprInt, \
+    ExprMem, ExprCompose, ExprSlice, ExprCond, ExprAff
 from miasm2.expression.simplifications import expr_simp
 from miasm2.core import asmblock
 from miasm2.ir.ir import AssignBlock
@@ -812,6 +812,7 @@ class SymbolicExecutionEngine(object):
         self.expr_to_visitor = {
             ExprInt: self.eval_exprint,
             ExprId: self.eval_exprid,
+            ExprLoc: self.eval_exprloc,
             ExprMem: self.eval_exprmem,
             ExprSlice: self.eval_exprslice,
             ExprCond: self.eval_exprcond,
@@ -885,10 +886,16 @@ class SymbolicExecutionEngine(object):
 
     def eval_exprid(self, expr, **kwargs):
         """[DEV]: Evaluate an ExprId using the current state"""
-        if isinstance(expr.name, asmblock.AsmLabel) and expr.name.offset is not None:
-            ret = ExprInt(expr.name.offset, expr.size)
+        ret = self.symbols.read(expr)
+        return ret
+
+    def eval_exprloc(self, expr, **kwargs):
+        """[DEV]: Evaluate an ExprLoc using the current state"""
+        label = self.ir_arch.symbol_pool.loc_key_to_label(expr.loc_key)
+        if label.offset is not None:
+            ret = ExprInt(label.offset, expr.size)
         else:
-            ret = self.symbols.read(expr)
+            ret = expr
         return ret
 
     def eval_exprmem(self, expr, **kwargs):
@@ -1040,7 +1047,17 @@ class SymbolicExecutionEngine(object):
                 self.dump(mems=False)
                 self.dump(ids=False)
                 print '_' * 80
-        return self.eval_expr(self.ir_arch.IRDst)
+        dst = self.eval_expr(self.ir_arch.IRDst)
+
+        # Best effort to resolve destination as ExprLoc
+        if dst.is_label():
+            ret = dst
+        elif dst.is_int():
+            label = self.ir_arch.symbol_pool.getby_offset_create(int(dst))
+            ret = ExprLoc(label.loc_key, dst.size)
+        else:
+            ret = dst
+        return ret
 
     def run_block_at(self, addr, step=False):
         """

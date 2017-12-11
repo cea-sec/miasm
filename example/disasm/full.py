@@ -155,7 +155,7 @@ while not finish and todo:
 
 
 # Generate dotty graph
-all_blocks = AsmCFG()
+all_blocks = AsmCFG(mdis.symbol_pool)
 for blocks in all_funcs_blocks.values():
     all_blocks += blocks
 

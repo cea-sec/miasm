@@ -23,10 +23,9 @@ from itertools import chain
 
 import miasm2.expression.expression as m2_expr
 from miasm2.expression.expression_helper import get_missing_interval
-from miasm2.core.asmblock import AsmSymbolPool, expr_is_label, AsmLabel, \
-    AsmBlock
+from miasm2.core.asmblock import AsmSymbolPool, AsmLabel, AsmBlock, \
+    AsmConstraint, AsmBlockBad
 from miasm2.core.graph import DiGraph
-
 
 class AssignBlock(object):
     """Represent parallel IR assignment, such as:
@@ -272,7 +271,8 @@ class IRBlock(object):
         @assignblks: list of AssignBlock
         """
 
-        assert isinstance(label, AsmLabel)
+        #assert isinstance(label, AsmLabel)
+        assert isinstance(label, m2_expr.LocKey)
         self.label = label
         for assignblk in assignblks:
             assert isinstance(assignblk, AssignBlock)
@@ -351,7 +351,7 @@ class IRBlock(object):
 
     def __str__(self):
         out = []
-        out.append('%s' % self.label)
+        out.append('label_%s' % self.label.key)
         for assignblk in self:
             for dst, src in assignblk.iteritems():
                 out.append('\t%s = %s' % (dst, src))
@@ -396,24 +396,44 @@ class DiGraphIR(DiGraph):
 
     """DiGraph for IR instances"""
 
-    def __init__(self, blocks, *args, **kwargs):
+    def __init__(self, blocks, symbol_pool=None, *args, **kwargs):
         """Instanciate a DiGraphIR
         @blocks: IR blocks
         """
+        self.symbol_pool = symbol_pool
         self._blocks = blocks
         super(DiGraphIR, self).__init__(*args, **kwargs)
 
+    def expr_loc_to_symb(self, expr):
+        if not expr.is_label():
+            return expr
+        if self.symbol_pool is None:
+            name = str(expr)
+        else:
+            name = self.symbol_pool.loc_key_to_label(expr.loc_key).name
+        return m2_expr.ExprId(name, expr.size)
+
     def node2lines(self, node):
-        yield self.DotCellDescription(text=str(node.name),
-                                      attr={'align': 'center',
-                                            'colspan': 2,
-                                            'bgcolor': 'grey'})
+        if self.symbol_pool is None:
+            node_name = str(node)
+        else:
+            node_name = self.symbol_pool.loc_key_to_label(node)
+        yield self.DotCellDescription(
+            text="%s" % node_name,
+            attr={
+                'align': 'center',
+                'colspan': 2,
+                'bgcolor': 'grey',
+            }
+        )
         if node not in self._blocks:
             yield [self.DotCellDescription(text="NOT PRESENT", attr={})]
             raise StopIteration
         for i, assignblk in enumerate(self._blocks[node]):
             for dst, src in assignblk.iteritems():
-                line = "%s = %s" % (dst, src)
+                new_src = src.visit(self.expr_loc_to_symb)
+                new_dst = dst.visit(self.expr_loc_to_symb)
+                line = "%s = %s" % (new_dst, new_src)
                 if self._dot_offset:
                     yield [self.DotCellDescription(text="%-4d" % i, attr={}),
                            self.DotCellDescription(text=line, attr={})]
@@ -427,11 +447,10 @@ class DiGraphIR(DiGraph):
         src_irdst = self._blocks[src].dst
         edge_color = "blue"
         if isinstance(src_irdst, m2_expr.ExprCond):
-            if (expr_is_label(src_irdst.src1) and
-                    src_irdst.src1.name == dst):
+            src1, src2 = src_irdst.src1, src_irdst.src2
+            if src1.is_label(dst):
                 edge_color = "limegreen"
-            elif (expr_is_label(src_irdst.src2) and
-                  src_irdst.src2.name == dst):
+            elif src2.is_label(dst):
                 edge_color = "red"
         return {"color": edge_color}
 
@@ -490,11 +509,16 @@ class IntermediateRepresentation(object):
         """Transforms an ExprId/ExprInt/label/int into a label
         @addr: an ExprId/ExprInt/label/int"""
 
-        if (isinstance(addr, m2_expr.ExprId) and
-                isinstance(addr.name, AsmLabel)):
-            addr = addr.name
         if isinstance(addr, AsmLabel):
             return addr
+        if isinstance(addr, m2_expr.LocKey):
+            return self.symbol_pool.loc_key_to_label(addr)
+        elif isinstance(addr, m2_expr.ExprLoc):
+            label = self.symbol_pool.loc_key_to_label(addr.loc_key)
+            if label is None:
+                return None
+            else:
+                return label
 
         try:
             addr = int(addr)
@@ -508,7 +532,9 @@ class IntermediateRepresentation(object):
         @addr: an ExprId/ExprInt/label/int"""
 
         label = self.get_label(addr)
-        return self.blocks.get(label, None)
+        if label is None:
+            return None
+        return self.blocks.get(label.loc_key, None)
 
     def get_bloc(self, addr):
         """
@@ -519,9 +545,11 @@ class IntermediateRepresentation(object):
         return self.get_block(addr)
 
     def add_instr(self, line, addr=0, gen_pc_updt=False):
-        block = AsmBlock(self.gen_label())
+        lbl = self.gen_label()
+        block = AsmBlock(lbl)
         block.lines = [line]
         self.add_block(block, gen_pc_updt)
+        return lbl
 
     def getby_offset(self, offset):
         out = set()
@@ -593,8 +621,12 @@ class IntermediateRepresentation(object):
         @gen_pc_updt: insert PC update effects between instructions
         """
 
-        label = None
+        label = block.label
         ir_blocks_all = []
+
+        assert not isinstance(block, AsmBlockBad)
+
+        assignments = []
         for instr in block.lines:
             if label is None:
                 assignments = []
@@ -602,11 +634,11 @@ class IntermediateRepresentation(object):
             split = self.add_instr_to_irblock(block, instr, assignments,
                                               ir_blocks_all, gen_pc_updt)
             if split:
-                ir_blocks_all.append(IRBlock(label, assignments))
+                ir_blocks_all.append(IRBlock(label.loc_key, assignments))
                 label = None
                 assignments = []
         if label is not None:
-            ir_blocks_all.append(IRBlock(label, assignments))
+            ir_blocks_all.append(IRBlock(label.loc_key, assignments))
 
         new_ir_blocks_all = self.post_add_block(block, ir_blocks_all)
         for irblock in new_ir_blocks_all:
@@ -645,12 +677,22 @@ class IntermediateRepresentation(object):
                 continue
             next_lbl = block.get_next()
             if next_lbl is None:
-                dst = m2_expr.ExprId(self.get_next_label(block.lines[-1]),
-                                     self.pc.size)
+                lbl = None
+                if block.lines:
+                    line = block.lines[-1]
+                    if line.offset is not None:
+                        lbl = self.symbol_pool.getby_offset_create(line.offset + line.l)
+                if lbl is None:
+                    lbl = self.symbol_pool.gen_label()
+                block.add_cst(lbl, AsmConstraint.c_next, self.symbol_pool)
             else:
-                dst = m2_expr.ExprId(next_lbl,
-                                     self.pc.size)
-            assignblk = AssignBlock({self.IRDst: dst}, irblock[-1].instr)
+                lbl = next_lbl
+            dst = m2_expr.ExprLoc(lbl.loc_key, self.pc.size)
+            if irblock.assignblks:
+                instr = irblock.assignblks[-1].instr
+            else:
+                instr = None
+            assignblk = AssignBlock({self.IRDst: dst}, instr)
             ir_blocks[index] = IRBlock(irblock.label, list(irblock.assignblks) + [assignblk])
 
     def post_add_block(self, block, ir_blocks):
@@ -676,13 +718,20 @@ class IntermediateRepresentation(object):
     def get_instr_label(self, instr):
         """Returns the label associated to an instruction
         @instr: current instruction"""
-
         return self.symbol_pool.getby_offset_create(instr.offset)
 
     def gen_label(self):
         # TODO: fix hardcoded offset
         label = self.symbol_pool.gen_label()
         return label
+
+    def gen_label_and_expr(self, size):
+        """
+        Return a label and it's corresponding ExprLoc
+        @size: size of expression
+        """
+        label = self.gen_label()
+        return label, m2_expr.ExprLoc(label.loc_key, size)
 
     def get_next_label(self, instr):
         label = self.symbol_pool.getby_offset_create(instr.offset + instr.l)
@@ -728,14 +777,14 @@ class IntermediateRepresentation(object):
         out = set()
         while todo:
             dst = todo.pop()
-            if expr_is_label(dst):
+            if dst.is_label():
                 done.add(dst)
-            elif isinstance(dst, (m2_expr.ExprMem, m2_expr.ExprInt)):
+            elif dst.is_mem() or dst.is_int():
                 done.add(dst)
-            elif isinstance(dst, m2_expr.ExprCond):
+            elif dst.is_cond():
                 todo.add(dst.src1)
                 todo.add(dst.src2)
-            elif isinstance(dst, m2_expr.ExprId):
+            elif dst.is_id():
                 out.add(dst)
             else:
                 done.add(dst)
@@ -769,15 +818,16 @@ class IntermediateRepresentation(object):
         """
         Gen irbloc digraph
         """
-        self._graph = DiGraphIR(self.blocks)
+        self._graph = DiGraphIR(self.blocks, self.symbol_pool)
         for lbl, block in self.blocks.iteritems():
+            assert isinstance(lbl, m2_expr.LocKey)
             self._graph.add_node(lbl)
             for dst in self.dst_trackback(block):
                 if dst.is_int():
                     dst_lbl = self.symbol_pool.getby_offset_create(int(dst))
-                    dst = m2_expr.ExprId(dst_lbl, self.pc.size)
-                if expr_is_label(dst):
-                    self._graph.add_edge(lbl, dst.name)
+                    dst = m2_expr.ExprLoc(dst_lbl.loc_key, self.pc.size)
+                if dst.is_label():
+                    self._graph.add_edge(lbl, dst.loc_key)
 
     @property
     def graph(self):
@@ -816,9 +866,9 @@ class IntermediateRepresentation(object):
             assert set(assignblk.keys()) == set([self.IRDst])
             if len(self.graph.successors(block.label)) != 1:
                 continue
-            if not expr_is_label(assignblk[self.IRDst]):
+            if not assignblk[self.IRDst].is_label():
                 continue
-            dst = assignblk[self.IRDst].name
+            dst = assignblk[self.IRDst].loc_key
             if dst == block.label:
                 # Infinite loop block
                 continue
@@ -828,7 +878,7 @@ class IntermediateRepresentation(object):
         modified = False
         for label in jmp_blocks:
             block = self.blocks[label]
-            dst_label = block.dst.name
+            dst_loc_key = block.dst
             parents = self.graph.predecessors(block.label)
             for lbl in parents:
                 parent = self.blocks.get(lbl, None)
@@ -836,7 +886,7 @@ class IntermediateRepresentation(object):
                     continue
                 dst = parent.dst
                 if dst.is_id(block.label):
-                    dst = m2_expr.ExprId(dst_label, dst.size)
+                    dst = m2_expr.ExprLoc(dst_loc_key, dst.size)
 
                     self.graph.discard_edge(lbl, block.label)
                     self.graph.discard_edge(block.label, dst_label)
@@ -846,13 +896,13 @@ class IntermediateRepresentation(object):
                 elif dst.is_cond():
                     src1, src2 = dst.src1, dst.src2
                     if src1.is_id(block.label):
-                        dst = m2_expr.ExprCond(dst.cond, m2_expr.ExprId(dst_label, dst.size), dst.src2)
+                        dst = m2_expr.ExprCond(dst.cond, m2_expr.ExprLoc(dst_label, dst.size), dst.src2)
                         self.graph.discard_edge(lbl, block.label)
                         self.graph.discard_edge(block.label, dst_label)
                         self.graph.add_uniq_edge(lbl, dst_label)
                         modified = True
                     if src2.is_id(block.label):
-                        dst = m2_expr.ExprCond(dst.cond, dst.src1, m2_expr.ExprId(dst_label, dst.size))
+                        dst = m2_expr.ExprCond(dst.cond, dst.src1, m2_expr.ExprLoc(dst_label, dst.size))
                         self.graph.discard_edge(lbl, block.label)
                         self.graph.discard_edge(block.label, dst_label)
                         self.graph.add_uniq_edge(lbl, dst_label)

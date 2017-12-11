@@ -343,62 +343,67 @@ class instruction_arm(instruction):
         super(instruction_arm, self).__init__(*args, **kargs)
 
     @staticmethod
-    def arg2str(e, pos = None):
+    def arg2str(expr, index=None, symbol_pool=None):
         wb = False
-        if isinstance(e, ExprId) or isinstance(e, ExprInt):
-            return str(e)
-        if isinstance(e, ExprOp) and e.op in expr2shift_dct:
-            if len(e.args) == 1:
-                return '%s %s' % (e.args[0], expr2shift_dct[e.op])
-            elif len(e.args) == 2:
-                return '%s %s %s' % (e.args[0], expr2shift_dct[e.op], e.args[1])
+        if expr.is_id() or expr.is_int():
+            return str(expr)
+        elif expr.is_label():
+            if symbol_pool is not None:
+                return str(symbol_pool.loc_key_to_label(expr.loc_key))
+            else:
+                return str(expr)
+        if isinstance(expr, ExprOp) and expr.op in expr2shift_dct:
+            if len(expr.args) == 1:
+                return '%s %s' % (expr.args[0], expr2shift_dct[expr.op])
+            elif len(expr.args) == 2:
+                return '%s %s %s' % (expr.args[0], expr2shift_dct[expr.op], expr.args[1])
             else:
                 raise NotImplementedError('zarb arg2str')
 
 
         sb = False
-        if isinstance(e, ExprOp) and e.op == "sbit":
+        if isinstance(expr, ExprOp) and expr.op == "sbit":
             sb = True
-            e = e.args[0]
-        if isinstance(e, ExprOp) and e.op == "reglist":
-            o = [gpregs.expr.index(x) for x in e.args]
+            expr = expr.args[0]
+        if isinstance(expr, ExprOp) and expr.op == "reglist":
+            o = [gpregs.expr.index(x) for x in expr.args]
             out = reglist2str(o)
             if sb:
                 out += "^"
             return out
 
 
-        if isinstance(e, ExprOp) and e.op == 'wback':
+        if isinstance(expr, ExprOp) and expr.op == 'wback':
             wb = True
-            e = e.args[0]
-        if isinstance(e, ExprId):
-            out = str(e)
+            expr = expr.args[0]
+        if isinstance(expr, ExprId):
+            out = str(expr)
             if wb:
                 out += "!"
             return out
 
-        if not isinstance(e, ExprMem):
-            return str(e)
+        if not isinstance(expr, ExprMem):
+            return str(expr)
 
-        e = e.arg
-        if isinstance(e, ExprOp) and e.op == 'wback':
+        expr = expr.arg
+        if isinstance(expr, ExprOp) and expr.op == 'wback':
             wb = True
-            e = e.args[0]
+            expr = expr.args[0]
 
 
-        if isinstance(e, ExprId):
-            r, s = e, None
-        elif len(e.args) == 1 and isinstance(e.args[0], ExprId):
-            r, s = e.args[0], None
-        elif isinstance(e.args[0], ExprId):
-            r, s = e.args[0], e.args[1]
+        if isinstance(expr, ExprId):
+            r, s = expr, None
+        elif len(expr.args) == 1 and isinstance(expr.args[0], ExprId):
+            r, s = expr.args[0], None
+        elif isinstance(expr.args[0], ExprId):
+            r, s = expr.args[0], expr.args[1]
         else:
-            r, s = e.args[0].args
+            r, s = expr.args[0].args
         if isinstance(s, ExprOp) and s.op in expr2shift_dct:
             s = ' '.join([str(x)
                 for x in s.args[0], expr2shift_dct[s.op], s.args[1]])
 
-        if isinstance(e, ExprOp) and e.op == 'postinc':
+        if isinstance(expr, ExprOp) and expr.op == 'postinc':
             o = '[%s]' % r
             if s and not (isinstance(s, ExprInt) and s.arg == 0):
                 o += ', %s' % s
@@ -418,16 +423,15 @@ class instruction_arm(instruction):
         return self.name in conditional_branch + unconditional_branch
 
     def dstflow2label(self, symbol_pool):
-        e = self.args[0]
-        if not isinstance(e, ExprInt):
+        expr = self.args[0]
+        if not isinstance(expr, ExprInt):
             return
         if self.name == 'BLX':
-            ad = e.arg + self.offset
+            addr = expr.arg + self.offset
         else:
-            ad = e.arg + self.offset
-        l = symbol_pool.getby_offset_create(ad)
-        s = ExprId(l, e.size)
-        self.args[0] = s
+            addr = expr.arg + self.offset
+        label = symbol_pool.getby_offset_create(addr)
+        self.args[0] = ExprLoc(label.loc_key, expr.size)
 
     def breakflow(self):
         if self.name in conditional_branch + unconditional_branch:
@@ -492,27 +496,29 @@ class instruction_armt(instruction_arm):
 
     def dstflow2label(self, symbol_pool):
         if self.name in ["CBZ", "CBNZ"]:
-            e = self.args[1]
+            expr = self.args[1]
         else:
-            e = self.args[0]
-        if not isinstance(e, ExprInt):
+            expr = self.args[0]
+        if not isinstance(expr, ExprInt):
             return
         if self.name == 'BLX':
-            ad = e.arg + (self.offset & 0xfffffffc)
+            addr = expr.arg + (self.offset & 0xfffffffc)
         elif self.name == 'BL':
-            ad = e.arg + self.offset
+            addr = expr.arg + self.offset
         elif self.name.startswith('BP'):
-            ad = e.arg + self.offset
+            addr = expr.arg + self.offset
         elif self.name.startswith('CB'):
-            ad = e.arg + self.offset + self.l + 2
+            addr = expr.arg + self.offset + self.l + 2
         else:
-            ad = e.arg + self.offset
-        l = symbol_pool.getby_offset_create(ad)
-        s = ExprId(l, e.size)
+            addr = expr.arg + self.offset
+
+        label = symbol_pool.getby_offset_create(addr)
+        dst = ExprLoc(label.loc_key, expr.size)
+
         if self.name in ["CBZ", "CBNZ"]:
-            self.args[1] = s
+            self.args[1] = dst
         else:
-            self.args[0] = s
+            self.args[0] = dst
 
     def breakflow(self):
         if self.name in conditional_branch + unconditional_branch +["CBZ", "CBNZ", 'TBB', 'TBH']:
@@ -775,7 +781,7 @@ class arm_arg(m_arg):
             if arg.name in gpregs.str:
                 return None
             label = symbol_pool.getby_name_create(arg.name)
-            return ExprId(label, 32)
+            return ExprLoc(label.loc_key, 32)
         if isinstance(arg, AstOp):
             args = [self.asm_ast_to_expr(tmp, symbol_pool) for tmp in arg.args]
             if None in args:

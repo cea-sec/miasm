@@ -53,6 +53,12 @@ class Translator(object):
         """
         raise NotImplementedError("Abstract method")
 
+    def from_ExprLoc(self, expr):
+        """Translate an ExprLoc
+        @expr: ExprLoc to translate
+        """
+        raise NotImplementedError("Abstract method")
+
     def from_ExprCompose(self, expr):
         """Translate an ExprCompose
         @expr: ExprCompose to translate
@@ -100,6 +106,7 @@ class Translator(object):
         # Handle Expr type
         handlers = {m2_expr.ExprInt: self.from_ExprInt,
                     m2_expr.ExprId: self.from_ExprId,
+                    m2_expr.ExprLoc: self.from_ExprLoc,
                     m2_expr.ExprCompose: self.from_ExprCompose,
                     m2_expr.ExprSlice: self.from_ExprSlice,
                     m2_expr.ExprOp: self.from_ExprOp,

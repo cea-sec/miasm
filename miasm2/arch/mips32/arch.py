@@ -5,7 +5,7 @@ from collections import defaultdict
 
 from pyparsing import Literal, Group, Optional
 
-from miasm2.expression.expression import ExprMem, ExprInt, ExprId, ExprOp
+from miasm2.expression.expression import ExprMem, ExprInt, ExprId, ExprOp, ExprLoc
 from miasm2.core.bin_stream import bin_stream
 import miasm2.arch.mips32.regs as regs
 import miasm2.core.cpu as cpu
@@ -60,11 +60,16 @@ class instruction_mips32(cpu.instruction):
 
 
     @staticmethod
-    def arg2str(e, pos = None):
-        if isinstance(e, ExprId) or isinstance(e, ExprInt):
-            return str(e)
-        assert(isinstance(e, ExprMem))
-        arg = e.arg
+    def arg2str(expr, index=None, symbol_pool=None):
+        if expr.is_id() or expr.is_int():
+            return str(expr)
+        elif expr.is_label():
+            if symbol_pool is not None:
+                return str(symbol_pool.loc_key_to_label(expr.loc_key))
+            else:
+                return str(expr)
+        assert(isinstance(expr, ExprMem))
+        arg = expr.arg
         if isinstance(arg, ExprId):
             return "(%s)"%arg
         assert(len(arg.args) == 2 and arg.op == '+')
@@ -90,21 +95,20 @@ class instruction_mips32(cpu.instruction):
 
     def dstflow2label(self, symbol_pool):
         if self.name in ["J", 'JAL']:
-            e = self.args[0].arg
-            ad = (self.offset & (0xFFFFFFFF ^ ((1<< 28)-1))) + e
-            l = symbol_pool.getby_offset_create(ad)
-            self.args[0] = ExprId(l, e.size)
+            expr = self.args[0].arg
+            addr = (self.offset & (0xFFFFFFFF ^ ((1<< 28)-1))) + expr
+            label = symbol_pool.getby_offset_create(addr)
+            self.args[0] = ExprLoc(label.loc_key, expr.size)
             return
 
         ndx = self.get_dst_num()
-        e = self.args[ndx]
+        expr = self.args[ndx]
 
-        if not isinstance(e, ExprInt):
+        if not isinstance(expr, ExprInt):
             return
-        ad = e.arg + self.offset
-        l = symbol_pool.getby_offset_create(ad)
-        s = ExprId(l, e.size)
-        self.args[ndx] = s
+        addr = expr.arg + self.offset
+        label = symbol_pool.getby_offset_create(addr)
+        self.args[ndx] = ExprLoc(label.loc_key, expr.size)
 
     def breakflow(self):
         if self.name == 'BREAK':
@@ -262,7 +266,7 @@ class mips32_arg(cpu.m_arg):
             if arg.name in gpregs.str:
                 return None
             label = symbol_pool.getby_name_create(arg.name)
-            return ExprId(label, 32)
+            return ExprLoc(label.loc_key, 32)
         if isinstance(arg, AstOp):
             args = [self.asm_ast_to_expr(tmp, symbol_pool) for tmp in arg.args]
             if None in args:
@@ -403,9 +407,9 @@ class mips32_dreg_imm(mips32_arg):
         return True
 
     @staticmethod
-    def arg2str(e):
-        assert(isinstance(e, ExprMem))
-        arg = e.arg
+    def arg2str(expr, index=None):
+        assert(isinstance(expr, ExprMem))
+        arg = expr.arg
         if isinstance(arg, ExprId):
             return "(%s)"%arg
         assert(len(arg.args) == 2 and arg.op == '+')

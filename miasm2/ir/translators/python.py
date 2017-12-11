@@ -20,6 +20,9 @@ class TranslatorPython(Translator):
     def from_ExprId(self, expr):
         return str(expr)
 
+    def from_ExprLoc(self, expr):
+        return str(expr)
+
     def from_ExprMem(self, expr):
         return "memory(%s, 0x%x)" % (self.from_expr(expr.arg),
                                      expr.size / 8)
