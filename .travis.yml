@@ -5,18 +5,18 @@ python:
 - "2.7"
 addons:
     apt:
-        sources: ['llvm-toolchain-trusty-4.0', 'ubuntu-toolchain-r-test']
+        sources: ['llvm-toolchain-trusty-5.0', 'ubuntu-toolchain-r-test']
         packages:
             - make
             - gcc
             - python-virtualenv
             - unzip
-            - llvm-4.0
-            - llvm-4.0-dev
+            - llvm-5.0
+            - llvm-5.0-dev
             - g++-5
 before_script:
 - "cd .."
-- "export LLVM_CONFIG=$(which llvm-config-4.0)"
+- "export LLVM_CONFIG=$(which llvm-config-5.0)"
 - "export CXX=$(which g++-5)"
 # make virtual env
 - "python /usr/lib/python2.7/dist-packages/virtualenv.py virtualenv;"
