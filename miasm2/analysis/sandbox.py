@@ -77,8 +77,6 @@ class Sandbox(object):
         parser = ArgumentParser(*args, **kwargs)
         parser.add_argument('-a', "--address",
                             help="Force entry point address", default=None)
-        parser.add_argument('-x', "--dumpall", action="store_true",
-                            help="Load base dll")
         parser.add_argument('-b', "--dumpblocs", action="store_true",
                             help="Log disasm blocks")
         parser.add_argument('-z', "--singlestep", action="store_true",
