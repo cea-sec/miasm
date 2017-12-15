@@ -605,6 +605,8 @@ bs_bcc = cpu.bs_name(l=5, name = {"BGEZ":    0b00001,
                                   })
 
 
+bs_code = cpu.bs(l=10)
+
 
 mips32op("addi",    [cpu.bs('001000'), rs, rt, s16imm], [rt, rs, s16imm])
 mips32op("addiu",   [cpu.bs('001001'), rs, rt, s16imm], [rt, rs, s16imm])
@@ -740,3 +742,7 @@ mips32op("tlbp",    [cpu.bs('010000'), cpu.bs('1'), cpu.bs('0'*19),
                      cpu.bs('001000')])
 mips32op("tlbwi",   [cpu.bs('010000'), cpu.bs('1'), cpu.bs('0'*19),
                      cpu.bs('000010')])
+
+
+mips32op("teq",     [cpu.bs('000000'), rs, rt, bs_code, cpu.bs('110100')],
+         [rs, rt])

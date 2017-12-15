@@ -1,8 +1,9 @@
 import miasm2.expression.expression as m2_expr
-from miasm2.ir.ir import IntermediateRepresentation, IRBlock
+from miasm2.ir.ir import IntermediateRepresentation, IRBlock, AssignBlock
 from miasm2.arch.mips32.arch import mn_mips32
-from miasm2.arch.mips32.regs import R_LO, R_HI, PC, RA
+from miasm2.arch.mips32.regs import R_LO, R_HI, PC, RA, exception_flags
 from miasm2.core.sembuilder import SemBuilder
+from miasm2.jitter.csts import EXCEPT_DIV_BY_ZERO
 
 
 # SemBuilder context
@@ -377,6 +378,18 @@ def multu(arg1, arg2):
     R_HI = result[32:]
 
 @sbuild.parse
+def div(arg1, arg2):
+    """Divide (signed) @arg1 by @arg2 and stores the remaining/result in $R_HI/$R_LO"""
+    R_LO = ExprOp('idiv' ,arg1, arg2)
+    R_HI = ExprOp('imod', arg1, arg2)
+
+@sbuild.parse
+def divu(arg1, arg2):
+    """Divide (unsigned) @arg1 by @arg2 and stores the remaining/result in $R_HI/$R_LO"""
+    R_LO = ExprOp('udiv', arg1, arg2)
+    R_HI = ExprOp('umod', arg1, arg2)
+
+@sbuild.parse
 def mfhi(arg1):
     "The contents of register $R_HI are moved to the specified register @arg1."
     arg1 = R_HI
@@ -397,6 +410,30 @@ def ei(arg1):
 @sbuild.parse
 def ehb(arg1):
     "NOP"
+
+
+def teq(ir, instr, arg1, arg2):
+    e = []
+
+    lbl_except, lbl_except_expr = ir.gen_label_and_expr(ir.IRDst.size)
+    lbl_next = ir.get_next_label(instr)
+    lbl_next_expr = m2_expr.ExprId(lbl_next, ir.IRDst.size)
+
+    do_except = []
+    do_except.append(m2_expr.ExprAff(exception_flags, m2_expr.ExprInt(
+        EXCEPT_DIV_BY_ZERO, exception_flags.size)))
+    do_except.append(m2_expr.ExprAff(ir.IRDst, lbl_next_expr))
+    blk_except = IRBlock(lbl_except, [AssignBlock(do_except, instr)])
+
+    cond = arg1 - arg2
+
+
+    e = []
+    e.append(m2_expr.ExprAff(ir.IRDst,
+                             m2_expr.ExprCond(cond, lbl_next_expr, lbl_except_expr)))
+
+    return e, [blk_except]
+
 
 mnemo_func = sbuild.functions
 mnemo_func.update({
@@ -423,6 +460,7 @@ mnemo_func.update({
         'subu': l_sub,
         'xor': l_xor,
         'xori': l_xor,
+        'teq': teq,
 })
 
 def get_mnemo_expr(ir, instr, *args):
