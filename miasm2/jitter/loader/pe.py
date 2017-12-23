@@ -66,20 +66,31 @@ def preload_pe(vm, e, runtime_lib, patch_vm_imp=True):
     return dyn_funcs
 
 
-def is_redirected_export(e, ad):
-    # test is ad points to code or dll name
-    out = ''
-    for i in xrange(0x200):
-        c = e.virt.get(ad + i)
-        if c == "\x00":
-            break
-        out += c
-        if not (c.isalnum() or c in "_.-+*$@&#()[]={}"):
-            return False
-    if not "." in out:
+def is_redirected_export(pe_obj, addr):
+    """Test if the @addr is a forwarded export address. If so, return
+    dllname/function name couple. If not, return False.
+
+    An export address is a forwarded export if the rva is in the export
+    directory of the pe.
+
+    @pe_obj: PE instance
+    @addr: virtual address of the function to test
+    """
+
+    export_dir = pe_obj.NThdr.optentries[pe.DIRECTORY_ENTRY_EXPORT]
+    addr_rva = pe_obj.virt2rva(addr)
+    if not (export_dir.rva <= addr_rva < export_dir.rva + export_dir.size):
         return False
-    i = out.find('.')
-    return out[:i], out[i + 1:]
+    addr_end = pe_obj.virt.find('\x00', addr)
+    data = pe_obj.virt.get(addr, addr_end)
+
+    dllname, func_info = data.split('.', 1)
+    dllname = dllname.lower()
+
+    # Test if function is forwarded using ordinal
+    if func_info.startswith('#'):
+        func_info = int(func_info[1:])
+    return dllname, func_info
 
 
 def get_export_name_addr_list(e):
