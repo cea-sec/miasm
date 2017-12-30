@@ -3275,23 +3275,17 @@ def xorps(_, instr, dst, src):
 
 
 def rdmsr(ir, instr):
-    msr_addr = m2_expr.ExprId('MSR') + m2_expr.ExprInt(
-        0,
-        8) * mRCX[instr.mode][:32]
+    msr_addr = m2_expr.ExprId('MSR', 64) + m2_expr.ExprInt(8, 64) * mRCX[32].zeroExtend(64)
     e = []
-    e.append(
-        m2_expr.ExprAff(mRAX[instr.mode][:32], ir.ExprMem(msr_addr, 32)))
-    e.append(m2_expr.ExprAff(mRDX[instr.mode][:32], m2_expr.ExprMem(
-        msr_addr + m2_expr.ExprInt(4, msr_addr.size), 32)))
+    e.append(m2_expr.ExprAff(mRAX[32], ir.ExprMem(msr_addr, 32)))
+    e.append(m2_expr.ExprAff(mRDX[32], ir.ExprMem(msr_addr + m2_expr.ExprInt(4, 64), 32)))
     return e, []
 
 
 def wrmsr(ir, instr):
-    msr_addr = m2_expr.ExprId('MSR') + m2_expr.ExprInt(
-        8,
-        32) * mRCX[instr.mode][:32]
+    msr_addr = m2_expr.ExprId('MSR', 64) + m2_expr.ExprInt(8, 64) * mRCX[32].zeroExtend(64)
     e = []
-    src = m2_expr.ExprCompose(mRAX[instr.mode][:32], mRDX[instr.mode][:32])
+    src = m2_expr.ExprCompose(mRAX[32], mRDX[32])
     e.append(m2_expr.ExprAff(ir.ExprMem(msr_addr, 64), src))
     return e, []
 
