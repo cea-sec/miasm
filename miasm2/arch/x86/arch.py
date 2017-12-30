@@ -3645,6 +3645,8 @@ addop("lgdt", [bs8(0x0f), bs8(0x01)] + rmmod(d2, modrm=mod_mem))
 addop("lidt", [bs8(0x0f), bs8(0x01)] + rmmod(d3, modrm=mod_mem))
 
 addop("lfence", [bs8(0x0f), bs8(0xae), bs8(0xe8)])
+addop("mfence", [bs8(0x0f), bs8(0xae), bs8(0xf0)])
+addop("sfence", [bs8(0x0f), bs8(0xae), bs8(0xf8)])
 
 addop("leave", [bs8(0xc9), stk])
 

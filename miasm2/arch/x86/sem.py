@@ -2626,6 +2626,24 @@ def nop(_, instr, a=None):
     return [], []
 
 
+def prefetch0(_, instr, src=None):
+    # see 4-198 on this documentation
+    # https://www-ssl.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-instruction-set-reference-manual-325383.pdf
+    return [], []
+
+
+def prefetch1(_, instr, src=None):
+    # see 4-198 on this documentation
+    # https://www-ssl.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-instruction-set-reference-manual-325383.pdf
+    return [], []
+
+
+def prefetch2(_, instr, src=None):
+    # see 4-198 on this documentation
+    # https://www-ssl.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-instruction-set-reference-manual-325383.pdf
+    return [], []
+
+
 def prefetchw(_, instr, src=None):
     # see 4-201 on this documentation
     # https://www-ssl.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-instruction-set-reference-manual-325383.pdf
@@ -2634,6 +2652,18 @@ def prefetchw(_, instr, src=None):
 
 def lfence(_, instr, src=None):
     # see 3-485 on this documentation
+    # https://www-ssl.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-instruction-set-reference-manual-325383.pdf
+    return [], []
+
+
+def mfence(_, instr, src=None):
+    # see 3-516 on this documentation
+    # https://www-ssl.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-instruction-set-reference-manual-325383.pdf
+    return [], []
+
+
+def sfence(_, instr, src=None):
+    # see 3-356 on this documentation
     # https://www-ssl.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-instruction-set-reference-manual-325383.pdf
     return [], []
 
@@ -4263,8 +4293,13 @@ mnemo_func = {'mov': mov,
               'fcomip': fcomip,
               'nop': nop,
               'ud2': ud2,
+              'prefetch0': prefetch0,
+              'prefetch1': prefetch1,
+              'prefetch2': prefetch2,
               'prefetchw': prefetchw,
               'lfence': lfence,
+              'mfence': mfence,
+              'sfence': sfence,
               'fnop': nop,  # XXX
               'hlt': hlt,
               'rdtsc': rdtsc,
