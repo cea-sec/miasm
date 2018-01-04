@@ -2147,6 +2147,10 @@ reg_tests = [
 
     (m64, "00000000    LFENCE",
      "0faee8"),
+    (m64, "00000000    MFENCE",
+     "0FAEF0"),
+    (m64, "00000000    SFENCE",
+     "0FAEF8"),
 
 
     (m32, "00000000    SUB        AL, 0x11",

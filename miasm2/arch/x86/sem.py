@@ -2626,6 +2626,24 @@ def nop(_, instr, a=None):
     return [], []
 
 
+def prefetch0(_, instr, src=None):
+    # see 4-198 on this documentation
+    # https://www-ssl.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-instruction-set-reference-manual-325383.pdf
+    return [], []
+
+
+def prefetch1(_, instr, src=None):
+    # see 4-198 on this documentation
+    # https://www-ssl.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-instruction-set-reference-manual-325383.pdf
+    return [], []
+
+
+def prefetch2(_, instr, src=None):
+    # see 4-198 on this documentation
+    # https://www-ssl.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-instruction-set-reference-manual-325383.pdf
+    return [], []
+
+
 def prefetchw(_, instr, src=None):
     # see 4-201 on this documentation
     # https://www-ssl.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-instruction-set-reference-manual-325383.pdf
@@ -2634,6 +2652,18 @@ def prefetchw(_, instr, src=None):
 
 def lfence(_, instr, src=None):
     # see 3-485 on this documentation
+    # https://www-ssl.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-instruction-set-reference-manual-325383.pdf
+    return [], []
+
+
+def mfence(_, instr, src=None):
+    # see 3-516 on this documentation
+    # https://www-ssl.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-instruction-set-reference-manual-325383.pdf
+    return [], []
+
+
+def sfence(_, instr, src=None):
+    # see 3-356 on this documentation
     # https://www-ssl.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-instruction-set-reference-manual-325383.pdf
     return [], []
 
@@ -3245,23 +3275,17 @@ def xorps(_, instr, dst, src):
 
 
 def rdmsr(ir, instr):
-    msr_addr = m2_expr.ExprId('MSR') + m2_expr.ExprInt(
-        0,
-        8) * mRCX[instr.mode][:32]
+    msr_addr = m2_expr.ExprId('MSR', 64) + m2_expr.ExprInt(8, 64) * mRCX[32].zeroExtend(64)
     e = []
-    e.append(
-        m2_expr.ExprAff(mRAX[instr.mode][:32], ir.ExprMem(msr_addr, 32)))
-    e.append(m2_expr.ExprAff(mRDX[instr.mode][:32], m2_expr.ExprMem(
-        msr_addr + m2_expr.ExprInt(4, msr_addr.size), 32)))
+    e.append(m2_expr.ExprAff(mRAX[32], ir.ExprMem(msr_addr, 32)))
+    e.append(m2_expr.ExprAff(mRDX[32], ir.ExprMem(msr_addr + m2_expr.ExprInt(4, 64), 32)))
     return e, []
 
 
 def wrmsr(ir, instr):
-    msr_addr = m2_expr.ExprId('MSR') + m2_expr.ExprInt(
-        8,
-        32) * mRCX[instr.mode][:32]
+    msr_addr = m2_expr.ExprId('MSR', 64) + m2_expr.ExprInt(8, 64) * mRCX[32].zeroExtend(64)
     e = []
-    src = m2_expr.ExprCompose(mRAX[instr.mode][:32], mRDX[instr.mode][:32])
+    src = m2_expr.ExprCompose(mRAX[32], mRDX[32])
     e.append(m2_expr.ExprAff(ir.ExprMem(msr_addr, 64), src))
     return e, []
 
@@ -4263,8 +4287,13 @@ mnemo_func = {'mov': mov,
               'fcomip': fcomip,
               'nop': nop,
               'ud2': ud2,
+              'prefetch0': prefetch0,
+              'prefetch1': prefetch1,
+              'prefetch2': prefetch2,
               'prefetchw': prefetchw,
               'lfence': lfence,
+              'mfence': mfence,
+              'sfence': sfence,
               'fnop': nop,  # XXX
               'hlt': hlt,
               'rdtsc': rdtsc,
