@@ -8,6 +8,29 @@ from miasm2.expression.expression import ExprAff
 from utils import expr2colorstr, translatorForm
 
 
+
+class ActionHandler(idaapi.action_handler_t):
+    def activate(self, ctx):
+        view_index = get_focused_view()
+        if view_index is None:
+            return 1
+        self.custom_action(all_views[view_index])
+        return 1
+
+    def update(self, ctx):
+        return idaapi.AST_ENABLE_ALWAYS
+
+
+class ActionHandlerExpand(ActionHandler):
+    def custom_action(self, view):
+        view.expand_expr()
+
+
+class ActionHandlerTranslate(ActionHandler):
+    def custom_action(self, view):
+        view.translate_expr(view.GetLineNo())
+
+
 class symbolicexec_t(idaapi.simplecustviewer_t):
 
     def add(self, key, value):
@@ -48,9 +71,11 @@ class symbolicexec_t(idaapi.simplecustviewer_t):
 
         self.print_lines()
 
-        self.menu_expand = self.AddPopupMenu("Expand [E]")
-        self.menu_translate = self.AddPopupMenu("Translate [T]")
         return True
+
+    def expand_expr(self):
+        self.expand(self.GetLineNo())
+        self.print_lines()
 
     def OnPopupMenu(self, menu_id):
         if menu_id == self.menu_expand:
@@ -65,13 +90,27 @@ class symbolicexec_t(idaapi.simplecustviewer_t):
         if vkey == 27:
             self.Close()
             return True
-        # E (expand)
-        if vkey == 69:
-            self.OnPopupMenu(self.menu_expand)
-        # T (translate)
-        if vkey == 84:
-            self.OnPopupMenu(self.menu_translate)
+
+        if vkey == ord('E'):
+            self.expand_expr()
+
+        if vkey == ord('T'):
+            self.translate_expr(self.GetLineNo())
+
         return False
+
+
+def get_focused_view():
+    for i, view in enumerate(all_views):
+        if view.IsFocused():
+            return i
+    return None
+
+
+class Hooks(idaapi.UI_Hooks):
+    def finish_populating_tform_popup(self, form, popup):
+        idaapi.attach_action_to_popup(form, popup, 'my:expand', None)
+        idaapi.attach_action_to_popup(form, popup, 'my:translate', None)
 
 
 def symbolic_exec():
@@ -109,17 +148,45 @@ def symbolic_exec():
 
 
     view = symbolicexec_t()
+    all_views.append(view)
     if not view.Create(modified, machine,
                        "Symbolic Execution - 0x%x to 0x%x" % (start, end)):
         return
 
     view.Show()
 
-if __name__ == "__main__":
+
+# Support ida 6.9 and ida 7
+all_views = []
+
+hooks = Hooks()
+hooks.hook()
+
+action_expand = idaapi.action_desc_t(
+    'my:expand',
+    'Expand',
+    ActionHandlerExpand(),
+    'E',
+    'Expand expression',
+    50)
+
+action_translate = idaapi.action_desc_t(
+    'my:translate',
+    'Translate',
+    ActionHandlerTranslate(),
+    'T',
+    'Translate expression in C/python/z3...',
+    103)
+
+idaapi.register_action(action_expand)
+idaapi.register_action(action_translate)
+
+
+if __name__ == '__main__':
     idaapi.CompileLine('static key_F3() { RunPythonStatement("symbolic_exec()"); }')
     idc.AddHotkey("F3", "key_F3")
 
     print "=" * 50
     print """Available commands:
-        symbolic_exec() - F3: Symbolic execution of current selection
+    symbolic_exec() - F3: Symbolic execution of current selection
     """
