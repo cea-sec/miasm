@@ -64,61 +64,81 @@ def guess_machine():
     return machine
 
 
+class TranslatorIDA(Translator):
+    """Translate a Miasm expression to a IDA colored string"""
+
+    # Implemented language
+    __LANG__ = "ida_w_color"
+
+    def __init__(self, regs_ids=None, **kwargs):
+        super(TranslatorIDA, self).__init__(**kwargs)
+        if regs_ids is None:
+            regs_ids = {}
+        self.regs_ids = regs_ids
+
+    def str_protected_child(self, child, parent):
+        return ("(%s)" % self.from_expr(child)) if m2_expr.should_parenthesize_child(child, parent) else self.from_expr(child)
+
+    def from_ExprInt(self, expr):
+        return idaapi.COLSTR(str(expr), idaapi.SCOLOR_NUMBER)
+
+    def from_ExprId(self, expr):
+        out = str(expr)
+        if expr in self.regs_ids:
+            out = idaapi.COLSTR(out, idaapi.SCOLOR_REG)
+        return out
+
+    def from_ExprMem(self, expr):
+        ptr = self.from_expr(expr.arg)
+        size = idaapi.COLSTR('@' + str(expr.size), idaapi.SCOLOR_RPTCMT)
+        out = '%s[%s]' % (size, ptr)
+        return out
+
+    def from_ExprSlice(self, expr):
+        base = self.from_expr(expr.arg)
+        start = idaapi.COLSTR(str(expr.start), idaapi.SCOLOR_RPTCMT)
+        stop = idaapi.COLSTR(str(expr.stop), idaapi.SCOLOR_RPTCMT)
+        out = "(%s)[%s:%s]" % (base, start, stop)
+        return out
+
+    def from_ExprCompose(self, expr):
+        out = "{"
+        out += ", ".join(["%s, %s, %s" % (self.from_expr(subexpr),
+                                          idaapi.COLSTR(str(idx), idaapi.SCOLOR_RPTCMT),
+                                          idaapi.COLSTR(str(idx + subexpr.size), idaapi.SCOLOR_RPTCMT))
+                          for idx, subexpr in expr.iter_args()])
+        out += "}"
+        return out
+
+    def from_ExprCond(self, expr):
+        cond = self.str_protected_child(expr.cond, expr)
+        src1 = self.from_expr(expr.src1)
+        src2 = self.from_expr(expr.src2)
+        out = "%s?(%s,%s)" % (cond, src1, src2)
+        return out
+
+    def from_ExprOp(self, expr):
+        if expr._op == '-':		# Unary minus
+            return '-' + self.str_protected_child(expr._args[0], expr)
+        if expr.is_associative() or expr.is_infix():
+            return (' ' + expr._op + ' ').join([self.str_protected_child(arg, expr)
+                                                for arg in expr._args])
+        return (expr._op + '(' +
+                ', '.join([self.from_expr(arg) for arg in expr._args]) + ')')
+
+    def from_ExprAff(self, expr):
+        return "%s = %s" % tuple(map(expr.from_expr, (expr.dst, expr.src)))
+
+
+
 def expr2colorstr(regs_ids, expr):
     """Colorize an Expr instance for IDA
     @regs_ids: list of ExprId corresponding to available registers
     @expr: Expr instance to colorize
     """
 
-    if isinstance(expr, m2_expr.ExprId):
-        s = str(expr)
-        if expr in regs_ids:
-            s = idaapi.COLSTR(s, idaapi.SCOLOR_REG)
-    elif isinstance(expr, m2_expr.ExprInt):
-        s = str(expr)
-        s = idaapi.COLSTR(s, idaapi.SCOLOR_NUMBER)
-    elif isinstance(expr, m2_expr.ExprMem):
-        s = '%s[%s]' % (idaapi.COLSTR('@' + str(expr.size),
-                                      idaapi.SCOLOR_RPTCMT),
-                         expr2colorstr(regs_ids, expr.arg))
-    elif isinstance(expr, m2_expr.ExprOp):
-        out = []
-        for a in expr.args:
-            s = expr2colorstr(regs_ids, a)
-            if isinstance(a, m2_expr.ExprOp):
-                s = "(%s)" % s
-            out.append(s)
-        if len(out) == 1:
-            s = "%s %s" % (expr.op, str(out[0]))
-        else:
-            s = (" " + expr.op + " ").join(out)
-    elif isinstance(expr, m2_expr.ExprAff):
-        s = "%s = %s" % (
-            expr2colorstr(regs_ids, expr.dst), expr2colorstr(regs_ids, expr.src))
-    elif isinstance(expr, m2_expr.ExprCond):
-        cond = expr2colorstr(regs_ids, expr.cond)
-        src1 = expr2colorstr(regs_ids, expr.src1)
-        src2 = expr2colorstr(regs_ids, expr.src2)
-        s = "(%s?%s:%s)" % (cond, src1, src2)
-    elif isinstance(expr, m2_expr.ExprSlice):
-        s = "(%s)[%s:%s]" % (expr2colorstr(regs_ids, expr.arg),
-                             idaapi.COLSTR(str(expr.start),
-                                           idaapi.SCOLOR_RPTCMT),
-                             idaapi.COLSTR(str(expr.stop),
-                                           idaapi.SCOLOR_RPTCMT))
-    elif isinstance(expr, m2_expr.ExprCompose):
-        s = "{"
-        s += ", ".join(["%s, %s, %s" % (expr2colorstr(regs_ids, subexpr),
-                                        idaapi.COLSTR(str(idx),
-                                                      idaapi.SCOLOR_RPTCMT),
-                                        idaapi.COLSTR(str(idx + subexpr.size),
-                                                      idaapi.SCOLOR_RPTCMT))
-                        for idx, subexpr in expr.iter_args()])
-        s += "}"
-    else:
-        s = str(expr)
-
-    return s
+    translator = TranslatorIDA(regs_ids)
+    return translator.from_expr(expr)
 
 
 class translatorForm(idaapi.Form):
