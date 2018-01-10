@@ -95,18 +95,9 @@ class GraphMiasmIR(idaapi.GraphViewer):
     def OnClick(self, node_id):
         return True
 
-    def OnCommand(self, cmd_id):
-        if self.cmd_test == cmd_id:
-            print 'TEST!'
-            return
-        print "command:", cmd_id
-
     def Show(self):
         if not idaapi.GraphViewer.Show(self):
             return False
-        self.cmd_test = self.AddCommand("Test", "F2")
-        if self.cmd_test == 0:
-            print "Failed to add popup menu item!"
         return True
 
 
@@ -184,9 +175,6 @@ def build_graph(verbose=False, simplify=False):
         title += " (simplified)"
 
     g = GraphMiasmIR(ir_arch, title, None)
-
-    g.cmd_a = g.AddCommand("cmd a", "x")
-    g.cmd_b = g.AddCommand("cmd b", "y")
 
     g.Show()
 
