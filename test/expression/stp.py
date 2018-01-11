@@ -8,24 +8,28 @@ class TestIrIr2STP(unittest.TestCase):
 
     def test_ExprOp_strcst(self):
         from miasm2.expression.expression import ExprInt, ExprOp
-        import miasm2.expression.stp   # /!\ REALLY DIRTY HACK
+        from miasm2.ir.translators.translator  import Translator
+        translator_smt2 = Translator.to_language("smt2")
+
         args = [ExprInt(i, 32) for i in xrange(9)]
 
         self.assertEqual(
-            ExprOp('|',  *args[:2]).strcst(), r'(0bin00000000000000000000000000000000 | 0bin00000000000000000000000000000001)')
+            translator_smt2.from_expr(ExprOp('|',  *args[:2])), r'(bvor (_ bv0 32) (_ bv1 32))')
         self.assertEqual(
-            ExprOp('-',  *args[:2]).strcst(), r'BVUMINUS(0bin00000000000000000000000000000000)')
+            translator_smt2.from_expr(ExprOp('-',  *args[:2])), r'(bvsub (_ bv0 32) (_ bv1 32))')
         self.assertEqual(
-            ExprOp('+',  *args[:3]).strcst(), r'BVPLUS(32,BVPLUS(32,0bin00000000000000000000000000000000, 0bin00000000000000000000000000000001), 0bin00000000000000000000000000000010)')
-        self.assertRaises(ValueError, ExprOp('X', *args[:1]).strcst)
+            translator_smt2.from_expr(ExprOp('+',  *args[:3])), r'(bvadd (bvadd (_ bv0 32) (_ bv1 32)) (_ bv2 32))')
+        self.assertRaises(NotImplementedError, translator_smt2.from_expr, ExprOp('X', *args[:1]))
 
     def test_ExprSlice_strcst(self):
-        from miasm2.expression.expression import ExprInt, ExprSlice
-        import miasm2.expression.stp   # /!\ REALLY DIRTY HACK
+        from miasm2.expression.expression import ExprInt, ExprOp
+        from miasm2.ir.translators.translator  import Translator
+        translator_smt2 = Translator.to_language("smt2")
+
         args = [ExprInt(i, 32) for i in xrange(9)]
 
         self.assertEqual(
-            args[0][1:2].strcst(), r'(0bin00000000000000000000000000000000)[1:1]')
+            translator_smt2.from_expr(args[0][1:2]), r'((_ extract 1 1) (_ bv0 32))')
         self.assertRaises(ValueError, args[0].__getitem__, slice(1,7,2))
 
 if __name__ == '__main__':
