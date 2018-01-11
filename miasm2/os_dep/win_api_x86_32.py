@@ -1834,9 +1834,9 @@ def ntdll_LdrGetProcedureAddress(jitter):
 
 
 def ntdll_memset(jitter):
-    ret_ad, args = jitter.func_args_stdcall(['addr', 'c', 'size'])
+    ret_ad, args = jitter.func_args_cdecl(['addr', 'c', 'size'])
     jitter.vm.set_mem(args.addr, chr(args.c) * args.size)
-    jitter.func_ret_stdcall(ret_ad, args.addr)
+    jitter.func_ret_cdecl(ret_ad, args.addr)
 
 
 def msvcrt_memset(jitter):
