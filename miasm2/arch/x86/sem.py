@@ -3671,6 +3671,21 @@ def ucomiss(_, instr, src1, src2):
 
     return e, []
 
+def ucomisd(_, instr, src1, src2):
+    e = []
+    e.append(m2_expr.ExprAff(zf, m2_expr.ExprOp(
+        'ucomisd_zf', src1[:64], src2[:64])))
+    e.append(m2_expr.ExprAff(pf, m2_expr.ExprOp(
+        'ucomisd_pf', src1[:64], src2[:64])))
+    e.append(m2_expr.ExprAff(cf, m2_expr.ExprOp(
+        'ucomisd_cf', src1[:64], src2[:64])))
+
+    e.append(m2_expr.ExprAff(of, m2_expr.ExprInt(0, 1)))
+    e.append(m2_expr.ExprAff(af, m2_expr.ExprInt(0, 1)))
+    e.append(m2_expr.ExprAff(nf, m2_expr.ExprInt(0, 1)))
+
+    return e, []
+
 
 def pshufb(_, instr, dst, src):
     e = []
@@ -4478,6 +4493,7 @@ mnemo_func = {'mov': mov,
               "movss": movss,
 
               "ucomiss": ucomiss,
+              "ucomisd": ucomisd,
 
               #
               # MMX/AVX/SSE operations
