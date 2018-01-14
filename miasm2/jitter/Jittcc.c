@@ -219,25 +219,25 @@ PyObject* tcc_compil(PyObject* self, PyObject* args)
 		return NULL;
 
 	if (tcc_compile_string(tcc_state, func_code) != 0) {
-		fprintf(stderr, "Erreur de compilation !\n");
+		fprintf(stderr, "Error compiling !\n");
 		fprintf(stderr, "%s\n", func_code);
 		exit(1);
 	}
 	/* XXX configure tinycc install with --disable-static */
 	if (tcc_relocate(tcc_state, TCC_RELOCATE_AUTO) < 0) {
-		fprintf(stderr, "tcc relocate error\n");
+		fprintf(stderr, "TCC relocate error\n");
 		exit(1);
 	}
 	entry = tcc_get_symbol(tcc_state, func_name);
 	if (!entry){
-		fprintf(stderr, "Erreur de symbole %s!\n", func_name);
+		fprintf(stderr, "Error getting symbol %s!\n", func_name);
 		fprintf(stderr, "%s\n", func_name);
 		exit(1);
 	}
 
 	ret = PyTuple_New(2);
 	if (ret == NULL) {
-		fprintf(stderr, "Erreur alloc %s!\n", func_name);
+		fprintf(stderr, "Error alloc %s!\n", func_name);
 		fprintf(stderr, "%s\n", func_name);
 		exit(1);
 	}
