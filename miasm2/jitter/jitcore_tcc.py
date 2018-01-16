@@ -69,7 +69,7 @@ class JitCore_Tcc(JitCore_Cc_Base):
         fname_out = os.path.join(self.tempdir, "%s.c" % block_hash)
 
         if os.access(fname_out, os.R_OK):
-            func_code = open(fname_out).read()
+            func_code = open(fname_out, "rb").read()
         else:
             func_code = self.gen_c_code(block.label, block)
 

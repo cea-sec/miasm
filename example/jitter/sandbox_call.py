@@ -13,7 +13,7 @@ options = parser.parse_args()
 
 sb = Sandbox_Linux_arml(options.filename, options, globals())
 
-with open(options.filename) as fdesc:
+with open(options.filename, "rb") as fdesc:
     cont = Container.from_stream(fdesc)
     addr_to_call = cont.symbol_pool.getby_name("md5_starts").offset
 
