@@ -3788,6 +3788,16 @@ def pslldq(_, instr, dst, src):
         return [m2_expr.ExprAff(dst, dst << m2_expr.ExprInt(8 * count, dst.size))], []
 
 
+def psrldq(_, instr, dst, src):
+    assert src.is_int()
+    e = []
+    count = int(src)
+    if count > 15:
+        return [m2_expr.ExprAff(dst, m2_expr.ExprInt(0, dst.size))], []
+    else:
+        return [m2_expr.ExprAff(dst, dst >> m2_expr.ExprInt(8 * count, dst.size))], []
+
+
 def iret(ir, instr):
     """IRET implementation
     XXX: only support "no-privilege change"
@@ -4589,6 +4599,8 @@ mnemo_func = {'mov': mov,
               "pslld": pslld,
               "psllq": psllq,
               "pslldq": pslldq,
+              "psrldq": psrldq,
+
               "palignr": palignr,
 
               "pmaxub": pmaxub,
