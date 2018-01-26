@@ -2404,6 +2404,11 @@ class x86_rm_xmm_m64(x86_rm_mm):
     is_mm = False
     is_xmm = True
 
+class x86_rm_xmm_m128(x86_rm_mm):
+    msize = 128
+    is_mm = False
+    is_xmm = True
+
 
 class x86_rm_xmm_reg(x86_rm_mm):
     msize = None
@@ -3281,6 +3286,7 @@ rm_arg_mm_reg = bs(l=0, cls=(x86_rm_mm_reg,), fname='rmarg')
 rm_arg_xmm = bs(l=0, cls=(x86_rm_xmm,), fname='rmarg')
 rm_arg_xmm_m32 = bs(l=0, cls=(x86_rm_xmm_m32,), fname='rmarg')
 rm_arg_xmm_m64 = bs(l=0, cls=(x86_rm_xmm_m64,), fname='rmarg')
+rm_arg_xmm_m128 = bs(l=0, cls=(x86_rm_xmm_m128,), fname='rmarg')
 rm_arg_xmm_reg = bs(l=0, cls=(x86_rm_xmm_reg,), fname='rmarg')
 
 rm_arg_bnd = bs(l=0, cls=(x86_rm_bnd,), fname='rmarg')
@@ -4211,6 +4217,11 @@ addop("cvttsd2si",[bs8(0x0f), bs8(0x2c), pref_f2]
       + rmmod(reg, rm_arg_xmm_m64))
 addop("cvttss2si",[bs8(0x0f), bs8(0x2c), pref_f3]
       + rmmod(reg, rm_arg_xmm_m32))
+
+addop("palignr", [bs8(0x0f), bs8(0x73), bs8(0x0f), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm_m64) + [u08], [mm_reg, rm_arg_mm_m64, u08])
+addop("palignr", [bs8(0x0f), bs8(0x3a), bs8(0x0f), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m128) + [u08], [xmm_reg, rm_arg_xmm_m128, u08])
 
 addop("psrlq", [bs8(0x0f), bs8(0x73), no_xmm_pref] +
       rmmod(d2, rm_arg_mm) + [u08], [rm_arg_mm, u08])

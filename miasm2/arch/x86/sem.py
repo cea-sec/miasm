@@ -4133,6 +4133,26 @@ def bndmov(ir, instr, dst, src):
     # Implemented as a NOP, because BND side effects are not yet supported
     return [], []
 
+def palignr(ir, instr, dst, src, imm):
+    # dst.src >> imm * 8 [:dst.size]
+
+    shift = int(imm) * 8
+    if shift == 0:
+        result = src
+    elif shift == src.size:
+        result = dst
+    elif shift > src.size:
+        result = dst >> m2_expr.ExprInt(shift - src.size, dst.size)
+    else:
+        # shift < src.size
+        result = m2_expr.ExprCompose(
+            src[shift:],
+            dst[:shift],
+        )
+
+    return [m2_expr.ExprAff(dst, result)], []
+
+
 mnemo_func = {'mov': mov,
               'xchg': xchg,
               'movzx': movzx,
@@ -4569,6 +4589,7 @@ mnemo_func = {'mov': mov,
               "pslld": pslld,
               "psllq": psllq,
               "pslldq": pslldq,
+              "palignr": palignr,
 
               "pmaxub": pmaxub,
               "pmaxuw": pmaxuw,
