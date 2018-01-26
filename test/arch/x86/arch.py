@@ -2802,6 +2802,9 @@ reg_tests = [
     (m32, "00000000    PCMPGTQ    XMM0, XMM5",
     "660f3837C5"),
 
+    (m64, "00000000    PCMPGTB    XMM8, XMM5",
+     "66440f64c5"),
+
     (m64, "00000000    PALIGNR    XMM1, XMM2, 0xC",
      "660f3a0fca0c"),
 
