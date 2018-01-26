@@ -207,7 +207,7 @@ uint32_t clz(uint32_t arg)
 	int i;
 
 	for (i=0; i<32; i++) {
-		if (arg & (1 << (31-i)))
+		if (arg & (1ull << (31-i)))
 			break;
 	}
 	return i;
