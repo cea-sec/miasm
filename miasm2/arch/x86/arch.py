@@ -3414,6 +3414,17 @@ addop("and", [bs("100000"), se, w8] + rmmod(d4, rm_arg_w8) + [d_imm])
 addop("and", [bs("001000"), swapargs, w8] +
       rmmod(rmreg, rm_arg_w8), [rm_arg_w8, rmreg])
 
+addop("bndmov", [bs8(0x0f), bs8(0x1a), pref_66, bs_modeno64] +
+      rmmod(bnd_reg, rm_arg_bnd_m64), [bnd_reg, rm_arg_bnd_m64])
+addop("bndmov", [bs8(0x0f), bs8(0x1a), pref_66, bs_mode64] +
+      rmmod(bnd_reg, rm_arg_bnd_m128), [bnd_reg, rm_arg_bnd_m128])
+addop("bndmov", [bs8(0x0f), bs8(0x1b), pref_66, bs_modeno64] +
+      rmmod(bnd_reg, rm_arg_bnd_m64), [rm_arg_bnd_m64, bnd_reg])
+addop("bndmov", [bs8(0x0f), bs8(0x1b), pref_66, bs_mode64] +
+      rmmod(bnd_reg, rm_arg_bnd_m128), [rm_arg_bnd_m128, bnd_reg])
+
+
+
 addop("bsf", [bs8(0x0f), bs8(0xbc)] + rmmod(rmreg))
 addop("bsr", [bs8(0x0f), bs8(0xbd), mod,
     rmreg, rm, sib_scale, sib_index, sib_base, disp, rm_arg])

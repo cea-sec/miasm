@@ -2959,6 +2959,11 @@ reg_tests = [
     (m32, "00000000    AESDECLAST XMM1, XMM2",
      "660f38dfca"),
 
+    (m64, "00000000    BNDMOV     XMMWORD PTR [RSP + 0x80], BND0",
+     "660f1b842480000000"),
+    (m64, "00000000    BNDMOV     BND3, XMMWORD PTR [RSP + 0xB0]",
+     "660f1a9c24b0000000"),
+
 ]
 
 

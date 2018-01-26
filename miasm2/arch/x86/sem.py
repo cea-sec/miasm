@@ -4129,6 +4129,9 @@ def smsw(ir, instr, dst):
     return e, []
 
 
+def bndmov(ir, instr, dst, src):
+    # Implemented as a NOP, because BND side effects are not yet supported
+    return [], []
 
 mnemo_func = {'mov': mov,
               'xchg': xchg,
@@ -4486,6 +4489,7 @@ mnemo_func = {'mov': mov,
 
 
 
+              "bndmov": bndmov,
 
 
 
