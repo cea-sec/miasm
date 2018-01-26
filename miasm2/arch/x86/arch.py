@@ -134,7 +134,7 @@ RBRACK = Suppress("]")
 dbreg = Group(gpregs16.parser | gpregs32.parser | gpregs64.parser)
 gpreg = (gpregs08.parser | gpregs08_64.parser | gpregs16.parser   |
          gpregs32.parser | gpregs64.parser    | gpregs_xmm.parser |
-         gpregs_mm.parser)
+         gpregs_mm.parser | gpregs_bnd.parser)
 
 
 def reg2exprid(r):
@@ -304,7 +304,8 @@ rmarg = Group(gpregs08.parser |
               gpregs32.parser |
               gpregs64.parser |
               gpregs_mm.parser |
-              gpregs_xmm.parser
+              gpregs_xmm.parser |
+              gpregs_bnd.parser
               ).setParseAction(getreg)
 
 rmarg |= deref_mem
@@ -1712,8 +1713,10 @@ def test_addr_size(ptr, size):
 
 SIZE2XMMREG = {64:gpregs_mm,
                128:gpregs_xmm}
+SIZE2BNDREG = {64:gpregs_mm,
+               128:gpregs_bnd}
 
-def parse_mem(expr, parent, w8, sx=0, xmm=0, mm=0):
+def parse_mem(expr, parent, w8, sx=0, xmm=0, mm=0, bnd=0):
     dct_expr = {}
     opmode = parent.v_opmode()
     if expr.is_mem_segm() and expr.arg.args[0].is_int():
@@ -1780,17 +1783,23 @@ def parse_mem(expr, parent, w8, sx=0, xmm=0, mm=0):
         out = [dct_expr]
     return out, segm, True
 
-def expr2modrm(expr, parent, w8, sx=0, xmm=0, mm=0):
+def expr2modrm(expr, parent, w8, sx=0, xmm=0, mm=0, bnd=0):
     dct_expr = {f_isad : False}
 
-    if mm or xmm:
+    if mm or xmm or bnd:
         if mm and expr.size != 64:
             return None, None, False
         elif xmm and expr.size != 128:
             return None, None, False
+        elif bnd and expr.size != 128:
+            return None, None, False
 
         if isinstance(expr, ExprId):
-            selreg = SIZE2XMMREG[expr.size]
+            if bnd:
+                size2reg = SIZE2BNDREG
+            else:
+                size2reg = SIZE2XMMREG
+            selreg = size2reg[expr.size]
             if not expr in selreg.expr:
                 return None, None, False
             i = selreg.expr.index(expr)
@@ -1828,6 +1837,13 @@ def expr2modrm(expr, parent, w8, sx=0, xmm=0, mm=0):
                 return [dct_expr], None, True
             else:
                 return None, None, False
+        if bnd:
+            if expr in gpregs_bnd.expr:
+                i = gpregs_bnd.expr.index(expr)
+                dct_expr[i] = 1
+                return [dct_expr], None, True
+            else:
+                return None, None, False
         if mm:
             if expr in gpregs_mm.expr:
                 i = gpregs_mm.expr.index(expr)
@@ -1858,9 +1874,9 @@ def expr2modrm(expr, parent, w8, sx=0, xmm=0, mm=0):
                 return None, None, False
         dct_expr[i] = 1
         return [dct_expr], None, True
-    return parse_mem(expr, parent, w8, sx, xmm, mm)
+    return parse_mem(expr, parent, w8, sx, xmm, mm, bnd)
 
-def modrm2expr(modrm, parent, w8, sx=0, xmm=0, mm=0):
+def modrm2expr(modrm, parent, w8, sx=0, xmm=0, mm=0, bnd=0):
     o = []
     if not modrm[f_isad]:
         modrm_k = [x[0] for x in modrm.iteritems() if x[1] == 1]
@@ -1879,6 +1895,8 @@ def modrm2expr(modrm, parent, w8, sx=0, xmm=0, mm=0):
             expr = gpregs_xmm.expr[modrm_k]
         elif mm:
             expr = gpregs_mm.expr[modrm_k]
+        elif bnd:
+            expr = gpregs_bnd.expr[modrm_k]
         elif opmode == 8 and (parent.v_opmode() == 64 or parent.rex_p.value == 1):
             expr = gpregs08_64.expr[modrm_k]
         else:
@@ -1907,6 +1925,8 @@ def modrm2expr(modrm, parent, w8, sx=0, xmm=0, mm=0):
         opmode = 128
     elif mm:
         opmode = 64
+    elif bnd:
+        opmode = 128
 
     expr = ExprMem(expr, size=opmode)
     return expr
@@ -2326,11 +2346,12 @@ class x86_rm_mm(x86_rm_m80):
     msize = 64
     is_mm = True
     is_xmm = False
+    is_bnd = False
 
     def decode(self, v):
         p = self.parent
         xx = self.get_modrm()
-        expr = modrm2expr(xx, p, 0, 0, self.is_xmm, self.is_mm)
+        expr = modrm2expr(xx, p, 0, 0, self.is_xmm, self.is_mm, self.is_bnd)
         if isinstance(expr, ExprMem):
             if self.msize is None:
                 return False
@@ -2356,7 +2377,8 @@ class x86_rm_mm(x86_rm_m80):
             elif self.is_mm:
                 expr = ExprMem(expr.arg, 64)
 
-        v_cand, segm, ok = expr2modrm(expr, p, 0, 0, self.is_xmm, self.is_mm)
+        v_cand, segm, ok = expr2modrm(expr, p, 0, 0, self.is_xmm, self.is_mm,
+                                      self.is_bnd)
         for x in self.gen_cand(v_cand, p.v_admode()):
             yield x
 
@@ -2392,6 +2414,35 @@ class x86_rm_mm_reg(x86_rm_mm):
     msize = None
     is_mm = True
     is_xmm = False
+
+
+class x86_rm_bnd(x86_rm_mm):
+    msize = 128
+    is_mm = False
+    is_xmm = False
+    is_bnd = True
+
+
+class x86_rm_bnd_reg(x86_rm_mm):
+    msize = None
+    is_mm = False
+    is_xmm = False
+    is_bnd = True
+
+
+class x86_rm_bnd_m64(x86_rm_mm):
+    msize = 64
+    is_mm = False
+    is_xmm = False
+    is_bnd = True
+
+
+class x86_rm_bnd_m128(x86_rm_mm):
+    msize = 128
+    is_mm = False
+    is_xmm = False
+    is_bnd = True
+
 
 class x86_rm_reg_noarg(object):
     prio = default_prio + 1
@@ -2510,6 +2561,9 @@ class x86_rm_reg_mm(x86_rm_reg_noarg, m_arg):
 
 class x86_rm_reg_xmm(x86_rm_reg_mm):
     selreg = gpregs_xmm
+
+class x86_rm_reg_bnd(x86_rm_reg_mm):
+    selreg = gpregs_bnd
 
 class x86_rm_reg(x86_rm_reg_noarg, m_arg):
     pass
@@ -3196,6 +3250,7 @@ drreg = bs(l=3, cls=(x86_rm_dr, ), order =1, fname = "reg")
 
 mm_reg = bs(l=3, cls=(x86_rm_reg_mm, ), order =1, fname = "reg")
 xmm_reg = bs(l=3, cls=(x86_rm_reg_xmm, ), order =1, fname = "reg")
+bnd_reg = bs(l=3, cls=(x86_rm_reg_bnd, ), order =1, fname = "reg")
 
 
 fltreg = bs(l=3, cls=(x86_rm_flt, ), order =1, fname = "reg")
@@ -3227,6 +3282,12 @@ rm_arg_xmm = bs(l=0, cls=(x86_rm_xmm,), fname='rmarg')
 rm_arg_xmm_m32 = bs(l=0, cls=(x86_rm_xmm_m32,), fname='rmarg')
 rm_arg_xmm_m64 = bs(l=0, cls=(x86_rm_xmm_m64,), fname='rmarg')
 rm_arg_xmm_reg = bs(l=0, cls=(x86_rm_xmm_reg,), fname='rmarg')
+
+rm_arg_bnd = bs(l=0, cls=(x86_rm_bnd,), fname='rmarg')
+rm_arg_bnd_m64 = bs(l=0, cls=(x86_rm_bnd_m64,), fname='rmarg')
+rm_arg_bnd_m128 = bs(l=0, cls=(x86_rm_bnd_m128,), fname='rmarg')
+rm_arg_bnd_reg = bs(l=0, cls=(x86_rm_bnd_reg,), fname='rmarg')
+
 
 swapargs = bs_swapargs(l=1, fname="swap", mn_mod=range(1 << 1))
 
