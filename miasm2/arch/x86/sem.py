@@ -2649,6 +2649,11 @@ def prefetchw(_, instr, src=None):
     # https://www-ssl.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-instruction-set-reference-manual-325383.pdf
     return [], []
 
+def prefetchnta(_, instr, src=None):
+    # see 4-201 on this documentation
+    # https://www-ssl.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-instruction-set-reference-manual-325383.pdf
+    return [], []
+
 
 def lfence(_, instr, src=None):
     # see 3-485 on this documentation
@@ -4339,6 +4344,7 @@ mnemo_func = {'mov': mov,
               'prefetch1': prefetch1,
               'prefetch2': prefetch2,
               'prefetchw': prefetchw,
+              'prefetchnta': prefetchnta,
               'lfence': lfence,
               'mfence': mfence,
               'sfence': sfence,
@@ -4514,9 +4520,6 @@ mnemo_func = {'mov': mov,
               "cvttps2pi": cvttps2pi,
               "cvttsd2si": cvttsd2si,
               "cvttss2si": cvttss2si,
-
-
-
 
 
               "bndmov": bndmov,
