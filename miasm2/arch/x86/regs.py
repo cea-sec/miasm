@@ -40,6 +40,8 @@ regs_xmm_expr = [ExprId(x, 128) for x in regs_xmm_str]
 regs_mm_str = ["MM%d" % i for i in xrange(16)]
 regs_mm_expr = [ExprId(x, 64) for x in regs_mm_str]
 
+regs_bnd_str = ["BND%d" % i for i in xrange(4)]
+regs_bnd_expr = [ExprId(x, 128) for x in regs_bnd_str]
 
 gpregs08 = reg_info(regs08_str, regs08_expr)
 gpregs08_64 = reg_info(regs08_64_str, regs08_64_expr)
@@ -49,6 +51,7 @@ gpregs64 = reg_info(regs64_str, regs64_expr)
 
 gpregs_xmm = reg_info(regs_xmm_str, regs_xmm_expr)
 gpregs_mm = reg_info(regs_mm_str, regs_mm_expr)
+gpregs_bnd = reg_info(regs_bnd_str, regs_bnd_expr)
 
 r08_eax = reg_info([regs08_str[0]], [regs08_expr[0]])
 r16_eax = reg_info([regs16_str[0]], [regs16_expr[0]])

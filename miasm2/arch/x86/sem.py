@@ -2649,6 +2649,11 @@ def prefetchw(_, instr, src=None):
     # https://www-ssl.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-instruction-set-reference-manual-325383.pdf
     return [], []
 
+def prefetchnta(_, instr, src=None):
+    # see 4-201 on this documentation
+    # https://www-ssl.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-instruction-set-reference-manual-325383.pdf
+    return [], []
+
 
 def lfence(_, instr, src=None):
     # see 3-485 on this documentation
@@ -3788,6 +3793,16 @@ def pslldq(_, instr, dst, src):
         return [m2_expr.ExprAff(dst, dst << m2_expr.ExprInt(8 * count, dst.size))], []
 
 
+def psrldq(_, instr, dst, src):
+    assert src.is_int()
+    e = []
+    count = int(src)
+    if count > 15:
+        return [m2_expr.ExprAff(dst, m2_expr.ExprInt(0, dst.size))], []
+    else:
+        return [m2_expr.ExprAff(dst, dst >> m2_expr.ExprInt(8 * count, dst.size))], []
+
+
 def iret(ir, instr):
     """IRET implementation
     XXX: only support "no-privilege change"
@@ -4129,6 +4144,29 @@ def smsw(ir, instr, dst):
     return e, []
 
 
+def bndmov(ir, instr, dst, src):
+    # Implemented as a NOP, because BND side effects are not yet supported
+    return [], []
+
+def palignr(ir, instr, dst, src, imm):
+    # dst.src >> imm * 8 [:dst.size]
+
+    shift = int(imm) * 8
+    if shift == 0:
+        result = src
+    elif shift == src.size:
+        result = dst
+    elif shift > src.size:
+        result = dst >> m2_expr.ExprInt(shift - src.size, dst.size)
+    else:
+        # shift < src.size
+        result = m2_expr.ExprCompose(
+            src[shift:],
+            dst[:shift],
+        )
+
+    return [m2_expr.ExprAff(dst, result)], []
+
 
 mnemo_func = {'mov': mov,
               'xchg': xchg,
@@ -4306,6 +4344,7 @@ mnemo_func = {'mov': mov,
               'prefetch1': prefetch1,
               'prefetch2': prefetch2,
               'prefetchw': prefetchw,
+              'prefetchnta': prefetchnta,
               'lfence': lfence,
               'mfence': mfence,
               'sfence': sfence,
@@ -4483,9 +4522,7 @@ mnemo_func = {'mov': mov,
               "cvttss2si": cvttss2si,
 
 
-
-
-
+              "bndmov": bndmov,
 
 
 
@@ -4565,6 +4602,9 @@ mnemo_func = {'mov': mov,
               "pslld": pslld,
               "psllq": psllq,
               "pslldq": pslldq,
+              "psrldq": psrldq,
+
+              "palignr": palignr,
 
               "pmaxub": pmaxub,
               "pmaxuw": pmaxuw,
