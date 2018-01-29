@@ -73,6 +73,13 @@ def update_flag_sub_of(op1, op2, res):
     "Compote OF in @res = @op1 - @op2"
     return m2_expr.ExprAff(of, (((op1 ^ res) & (op1 ^ op2))).msb())
 
+
+# clearing cv flags for bics (see C5.6.25)
+
+def update_flag_bics ():
+    "Clear CF and OF"
+    return [ExprAff(cf, ExprInt (0,1)), ExprAff(of, ExprInt (0,1))]
+
 # z = x+y (+cf?)
 
 
@@ -189,6 +196,14 @@ def orn(arg1, arg2, arg3):
 @sbuild.parse
 def bic(arg1, arg2, arg3):
     arg1 = arg2 & (~extend_arg(arg2, arg3))
+    
+
+def bics(ir, instr, arg1, arg2, arg3):
+    e = []
+    arg1 = arg2 & (~extend_arg(arg2, arg3))
+    e += update_flag_logic (arg1)
+    e += update_flag_bics ()
+    return e, []
 
 
 @sbuild.parse
@@ -717,7 +732,9 @@ mnemo_func.update({
     'b.le': b_le,
     'b.ls': b_ls,
     'b.lt': b_lt,
-
+    
+    'bics': bics,
+    
     'ret': ret,
     'stp': stp,
     'ldp': ldp,
