@@ -383,7 +383,9 @@ class DiGraphIR(DiGraph):
         yield self.DotCellDescription(text=str(node.name),
                                       attr={'align': 'center',
                                             'colspan': 2,
-                                            'bgcolor': 'grey'})
+                                            'id' : str(node.name),
+                                            'bgcolor': 'grey',
+                                            'href': "#a_" + str(node.name)})
         if node not in self._blocks:
             yield [self.DotCellDescription(text="NOT PRESENT", attr={})]
             raise StopIteration
@@ -400,8 +402,12 @@ class DiGraphIR(DiGraph):
     def edge_attr(self, src, dst):
         if src not in self._blocks or dst not in self._blocks:
             return {}
+        dominators = self.compute_dominators(self.heads()[0])
         src_irdst = self._blocks[src].dst
         edge_color = "blue"
+        constraint = "true"
+        if dst in dominators[src]:
+                constraint="false"
         if isinstance(src_irdst, m2_expr.ExprCond):
             if (expr_is_label(src_irdst.src1) and
                     src_irdst.src1.name == dst):
@@ -409,7 +415,7 @@ class DiGraphIR(DiGraph):
             elif (expr_is_label(src_irdst.src2) and
                   src_irdst.src2.name == dst):
                 edge_color = "red"
-        return {"color": edge_color}
+        return {"color": edge_color, "constraint": constraint}
 
     def node_attr(self, node):
         if node not in self._blocks:
