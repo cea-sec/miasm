@@ -448,7 +448,7 @@ class jitter:
             return ret
 
     def handle_function(self, f_addr):
-        """Add a brakpoint which will trigger the function handler"""
+        """Add a breakpoint which will trigger the function handler"""
         self.add_breakpoint(f_addr, self.handle_lib)
 
     def add_lib_handler(self, libs, user_globals=None):
