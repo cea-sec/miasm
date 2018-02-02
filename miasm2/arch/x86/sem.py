@@ -1641,19 +1641,19 @@ def cwd(_, instr):
     e = []
     tempAX = mRAX[instr.mode][:16]
     tempDX = mRDX[instr.mode][:16]
-    c = tempAX.signExtend(32)
-    e.append(m2_expr.ExprAff(tempAX, c[:16]))
-    e.append(m2_expr.ExprAff(tempDX, c[16:32]))
+    result = tempAX.signExtend(32)
+    # The high part of EDX is left unmodified (tested on x86_32 bits)
+    e.append(m2_expr.ExprAff(tempDX, result[16:32]))
     return e, []
 
 
 def cdq(_, instr):
     e = []
     tempEAX = mRAX[instr.mode][:32]
-    tempEDX = mRDX[instr.mode][:32]
-    c = tempEAX.signExtend(64)
-    e.append(m2_expr.ExprAff(tempEAX, c[:32]))
-    e.append(m2_expr.ExprAff(tempEDX, c[32:64]))
+    RDX = mRDX[instr.mode][:32]
+    result = tempEAX.signExtend(64)
+    # On x86_64, the high part of RDX is cleaned
+    e.append(m2_expr.ExprAff(RDX, result[32:64].zeroExtend(RDX.size)))
     return e, []
 
 
