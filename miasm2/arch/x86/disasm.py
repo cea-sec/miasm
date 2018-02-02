@@ -15,7 +15,7 @@ class dis_x86(disasmEngine):
 
     def __init__(self, bs=None, **kwargs):
         super(dis_x86, self).__init__(mn_x86, self.attrib, bs, **kwargs)
-        self.dis_bloc_callback = cb_x86_disasm
+        self.dis_block_callback = cb_x86_disasm
 
 
 class dis_x86_16(dis_x86):

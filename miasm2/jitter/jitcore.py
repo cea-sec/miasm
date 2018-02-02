@@ -63,7 +63,7 @@ class JitCore(object):
                                           follow_call=False,
                                           dontdis_retcall=False,
                                           split_dis=self.split_dis,
-                                          dis_bloc_callback=self.disasm_cb)
+                                          dis_block_callback=self.disasm_cb)
 
 
     def set_options(self, **kwargs):
@@ -140,7 +140,7 @@ class JitCore(object):
 
         # Prepare disassembler
         self.mdis.lines_wd = self.options["jit_maxline"]
-        self.mdis.dis_bloc_callback = self.disasm_cb
+        self.mdis.dis_block_callback = self.disasm_cb
 
         # Disassemble it
         try:

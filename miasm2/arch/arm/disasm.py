@@ -39,13 +39,13 @@ class dis_armb(disasmEngine):
     attrib = 'b'
     def __init__(self, bs=None, **kwargs):
         super(dis_armb, self).__init__(mn_arm, self.attrib, bs, **kwargs)
-        self.dis_bloc_callback = cb_arm_disasm
+        self.dis_block_callback = cb_arm_disasm
 
 class dis_arml(disasmEngine):
     attrib = 'l'
     def __init__(self, bs=None, **kwargs):
         super(dis_arml, self).__init__(mn_arm, self.attrib, bs, **kwargs)
-        self.dis_bloc_callback = cb_arm_disasm
+        self.dis_block_callback = cb_arm_disasm
 
 class dis_armtb(disasmEngine):
     attrib = 'b'
