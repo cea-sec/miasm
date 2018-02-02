@@ -178,6 +178,29 @@ PyObject * cpu_init_regs(JitCpu* self)
 
 }
 
+void dump_gpregs_16(vm_cpu_t* vmcpu)
+{
+
+	printf("EAX %.8"PRIX32" EBX %.8"PRIX32" ECX %.8"PRIX32" EDX %.8"PRIX32" ",
+	       (uint32_t)(vmcpu->RAX & 0xFFFFFFFF),
+	       (uint32_t)(vmcpu->RBX & 0xFFFFFFFF),
+	       (uint32_t)(vmcpu->RCX & 0xFFFFFFFF),
+	       (uint32_t)(vmcpu->RDX & 0xFFFFFFFF));
+	printf("ESI %.8"PRIX32" EDI %.8"PRIX32" ESP %.8"PRIX32" EBP %.8"PRIX32" ",
+	       (uint32_t)(vmcpu->RSI & 0xFFFFFFFF),
+	       (uint32_t)(vmcpu->RDI & 0xFFFFFFFF),
+	       (uint32_t)(vmcpu->RSP & 0xFFFFFFFF),
+	       (uint32_t)(vmcpu->RBP & 0xFFFFFFFF));
+	printf("EIP %.8"PRIX32" ",
+	       (uint32_t)(vmcpu->RIP & 0xFFFFFFFF));
+	printf("zf %.1"PRIX32" nf %.1"PRIX32" of %.1"PRIX32" cf %.1"PRIX32"\n",
+	       (uint32_t)(vmcpu->zf & 0x1),
+	       (uint32_t)(vmcpu->nf & 0x1),
+	       (uint32_t)(vmcpu->of & 0x1),
+	       (uint32_t)(vmcpu->cf & 0x1));
+
+}
+
 void dump_gpregs_32(vm_cpu_t* vmcpu)
 {
 

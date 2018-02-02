@@ -1614,22 +1614,25 @@ def imul(_, instr, src1, src2=None, src3=None):
 
 
 def cbw(_, instr):
+    # Only in 16 bit
     e = []
-    tempAL = mRAX[instr.mode][:8]
-    tempAX = mRAX[instr.mode][:16]
+    tempAL = mRAX[instr.v_opmode()][:8]
+    tempAX = mRAX[instr.v_opmode()][:16]
     e.append(m2_expr.ExprAff(tempAX, tempAL.signExtend(16)))
     return e, []
 
 
 def cwde(_, instr):
+    # Only in 32/64 bit
     e = []
-    tempAX = mRAX[instr.mode][:16]
-    tempEAX = mRAX[instr.mode][:32]
+    tempAX = mRAX[instr.v_opmode()][:16]
+    tempEAX = mRAX[instr.v_opmode()][:32]
     e.append(m2_expr.ExprAff(tempEAX, tempAX.signExtend(32)))
     return e, []
 
 
 def cdqe(_, instr):
+    # Only in 64 bit
     e = []
     tempEAX = mRAX[instr.mode][:32]
     tempRAX = mRAX[instr.mode][:64]
@@ -1638,32 +1641,34 @@ def cdqe(_, instr):
 
 
 def cwd(_, instr):
+    # Only in 16 bit
     e = []
     tempAX = mRAX[instr.mode][:16]
     tempDX = mRDX[instr.mode][:16]
-    c = tempAX.signExtend(32)
-    e.append(m2_expr.ExprAff(tempAX, c[:16]))
-    e.append(m2_expr.ExprAff(tempDX, c[16:32]))
+    result = tempAX.signExtend(32)
+    e.append(m2_expr.ExprAff(tempAX, result[:16]))
+    e.append(m2_expr.ExprAff(tempDX, result[16:32]))
     return e, []
 
 
 def cdq(_, instr):
+    # Only in 32/64 bit
     e = []
-    tempEAX = mRAX[instr.mode][:32]
-    tempEDX = mRDX[instr.mode][:32]
-    c = tempEAX.signExtend(64)
-    e.append(m2_expr.ExprAff(tempEAX, c[:32]))
-    e.append(m2_expr.ExprAff(tempEDX, c[32:64]))
+    tempEAX = mRAX[instr.v_opmode()]
+    tempEDX = mRDX[instr.v_opmode()]
+    result = tempEAX.signExtend(64)
+    e.append(m2_expr.ExprAff(tempEDX, result[32:64]))
     return e, []
 
 
 def cqo(_, instr):
+    # Only in 64 bit
     e = []
     tempRAX = mRAX[instr.mode][:64]
     tempRDX = mRDX[instr.mode][:64]
-    c = tempRAX.signExtend(128)
-    e.append(m2_expr.ExprAff(tempRAX, c[:64]))
-    e.append(m2_expr.ExprAff(tempRDX, c[64:128]))
+    result = tempRAX.signExtend(128)
+    e.append(m2_expr.ExprAff(tempRAX, result[:64]))
+    e.append(m2_expr.ExprAff(tempRDX, result[64:128]))
     return e, []
 
 
