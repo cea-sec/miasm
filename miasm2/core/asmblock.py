@@ -1350,7 +1350,7 @@ class disasmEngine(object):
 
     + callback(arch, attrib, pool_bin, cur_bloc, offsets_to_dis,
                symbol_pool)
-     - dis_bloc_callback: callback after each new disassembled block
+     - dis_block_callback: callback after each new disassembled block
     """
 
     def __init__(self, arch, attrib, bin_stream, **kwargs):
@@ -1372,7 +1372,7 @@ class disasmEngine(object):
         self.dontdis_retcall = False
         self.lines_wd = None
         self.blocs_wd = None
-        self.dis_bloc_callback = None
+        self.dis_block_callback = None
         self.dont_dis_nulstart_bloc = False
         self.dont_dis_retcall_funcs = set()
 
@@ -1387,9 +1387,18 @@ class disasmEngine(object):
         warnings.warn("""DEPRECATION WARNING: "job_done" is not needed anymore, support is dropped.""")
         return
 
+    def get_dis_bloc_callback(self):
+        warnings.warn("""DEPRECATION WARNING: "dis_bloc_callback" use dis_block_callback.""")
+        return self.dis_block_callback
+
+    def set_dis_bloc_callback(self, function):
+        warnings.warn("""DEPRECATION WARNING: "dis_bloc_callback" use dis_block_callback.""")
+        self.dis_block_callback = function
+
 
     # Deprecated
     job_done = property(get_job_done, set_job_done)
+    dis_bloc_callback = property(get_dis_bloc_callback, set_dis_bloc_callback)
 
     def _dis_block(self, offset, job_done=None):
         """Disassemble the block at offset @offset
@@ -1520,11 +1529,11 @@ class disasmEngine(object):
         # Fix multiple constraints
         cur_block.fix_constraints()
 
-        if self.dis_bloc_callback is not None:
-            self.dis_bloc_callback(mn=self.arch, attrib=self.attrib,
-                                   pool_bin=self.bin_stream, cur_bloc=cur_block,
-                                   offsets_to_dis=offsets_to_dis,
-                                   symbol_pool=self.symbol_pool)
+        if self.dis_block_callback is not None:
+            self.dis_block_callback(mn=self.arch, attrib=self.attrib,
+                                    pool_bin=self.bin_stream, cur_bloc=cur_block,
+                                    offsets_to_dis=offsets_to_dis,
+                                    symbol_pool=self.symbol_pool)
         return cur_block, offsets_to_dis
 
     def dis_block(self, offset):
@@ -1573,7 +1582,7 @@ class disasmEngine(object):
             blocks.add_node(cur_block)
 
         blocks.apply_splitting(self.symbol_pool,
-                               dis_block_callback=self.dis_bloc_callback,
+                               dis_block_callback=self.dis_block_callback,
                                mn=self.arch, attrib=self.attrib,
                                pool_bin=self.bin_stream)
         return blocks

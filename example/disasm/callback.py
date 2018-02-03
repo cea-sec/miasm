@@ -52,7 +52,7 @@ print "\n".join(str(block) for block in blocks)
 # Enable callback
 cb_x86_funcs.append(cb_x86_callpop)
 ## Other method:
-## mdis.dis_bloc_callback = cb_x86_callpop
+## mdis.dis_block_callback = cb_x86_callpop
 
 print "=" * 40
 print "With callback:\n"
