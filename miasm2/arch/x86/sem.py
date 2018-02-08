@@ -3398,6 +3398,15 @@ psubw = vec_vertical_instr('-', 16)
 psubd = vec_vertical_instr('-', 32)
 psubq = vec_vertical_instr('-', 64)
 
+# Multiplications
+#
+
+# SSE
+pmullb = vec_vertical_instr('*', 8)
+pmullw = vec_vertical_instr('*', 16)
+pmulld = vec_vertical_instr('*', 32)
+pmullq = vec_vertical_instr('*', 64)
+
 # Floating-point arithmetic
 #
 
@@ -4644,6 +4653,12 @@ mnemo_func = {'mov': mov,
               "psubw": psubw,
               "psubd": psubd,
               "psubq": psubq,
+
+              # SSE
+              "pmullb": pmullb,
+              "pmullw": pmullw,
+              "pmulld": pmulld,
+              "pmullq": pmullq,
 
               # Arithmetic (floating-point)
               #
