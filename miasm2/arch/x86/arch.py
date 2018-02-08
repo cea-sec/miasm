@@ -4462,6 +4462,10 @@ addop("packsswb", [bs8(0x0f), bs8(0x63), no_xmm_pref] +
       rmmod(mm_reg, rm_arg_mm_m64))
 addop("packsswb", [bs8(0x0f), bs8(0x63), pref_66] +
       rmmod(xmm_reg, rm_arg_xmm_m128))
+addop("packssdw", [bs8(0x0f), bs8(0x6b), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm_m64))
+addop("packssdw", [bs8(0x0f), bs8(0x6b), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m128))
 
 addop("packuswb", [bs8(0x0f), bs8(0x67), no_xmm_pref] +
       rmmod(mm_reg, rm_arg_mm_m64))

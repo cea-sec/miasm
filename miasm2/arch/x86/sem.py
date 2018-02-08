@@ -4245,6 +4245,14 @@ def packsswb(ir, instr, dst, src):
     return [m2_expr.ExprAff(dst, m2_expr.ExprCompose(*out))], []
 
 
+def packssdw(ir, instr, dst, src):
+    out = []
+    for source in [dst, src]:
+        for start in xrange(0, dst.size, 32):
+            out.append(_signed_saturation(source[start:start + 32], 16))
+    return [m2_expr.ExprAff(dst, m2_expr.ExprCompose(*out))], []
+
+
 def packuswb(ir, instr, dst, src):
     out = []
     for source in [dst, src]:
@@ -4751,6 +4759,7 @@ mnemo_func = {'mov': mov,
               "pmovmskb": pmovmskb,
 
               "packsswb": packsswb,
+              "packssdw": packssdw,
               "packuswb": packuswb,
 
               "smsw": smsw,
