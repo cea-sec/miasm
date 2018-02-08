@@ -2989,6 +2989,17 @@ reg_tests = [
      "0fd5e2"),
     (m32, "00000000    PMULLW     XMM0, XMM3",
      "660fd5c3"),
+
+    (m32, "00000000    PSUBUSB    MM5, MM3",
+     "0fd8eb"),
+    (m32, "00000000    PSUBUSB    XMM0, XMM5",
+     "660fd8c5"),
+
+    (m32, "00000000    PSUBUSW    MM5, MM3",
+     "0fd9eb"),
+    (m32, "00000000    PSUBUSW    XMM0, XMM5",
+     "660fd9c5"),
+
 ]
 
 

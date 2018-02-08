@@ -3319,62 +3319,77 @@ def vec_op_clip(op, size):
 # Generic vertical operation
 
 
-def vec_vertical_sem(op, elt_size, reg_size, dst, src):
+def vec_vertical_sem(op, elt_size, reg_size, dst, src, apply_on_output):
     assert reg_size % elt_size == 0
     n = reg_size / elt_size
     if op == '-':
         ops = [
-            (dst[i * elt_size:(i + 1) * elt_size]
-             - src[i * elt_size:(i + 1) * elt_size]) for i in xrange(0, n)]
+            apply_on_output((dst[i * elt_size:(i + 1) * elt_size]
+                             - src[i * elt_size:(i + 1) * elt_size]))
+            for i in xrange(0, n)
+        ]
     else:
-        ops = [m2_expr.ExprOp(op, dst[i * elt_size:(i + 1) * elt_size],
-                              src[i * elt_size:(i + 1) * elt_size]) for i in xrange(0, n)]
+        ops = [
+            apply_on_output(m2_expr.ExprOp(op, dst[i * elt_size:(i + 1) * elt_size],
+                                           src[i * elt_size:(i + 1) * elt_size]))
+            for i in xrange(0, n)
+        ]
 
     return m2_expr.ExprCompose(*ops)
 
 
-def float_vec_vertical_sem(op, elt_size, reg_size, dst, src):
+def float_vec_vertical_sem(op, elt_size, reg_size, dst, src, apply_on_output):
     assert reg_size % elt_size == 0
     n = reg_size / elt_size
 
     x_to_int, int_to_x = {32: ('float_to_int_%d', 'int_%d_to_float'),
                           64: ('double_to_int_%d', 'int_%d_to_double')}[elt_size]
     if op == '-':
-        ops = [m2_expr.ExprOp(x_to_int % elt_size,
-                              m2_expr.ExprOp(int_to_x % elt_size, dst[i * elt_size:(i + 1) * elt_size]) -
-                              m2_expr.ExprOp(
-                                  int_to_x % elt_size, src[i * elt_size:(
-                                      i + 1) * elt_size])) for i in xrange(0, n)]
+        ops = [
+            apply_on_output(m2_expr.ExprOp(
+                x_to_int % elt_size,
+                m2_expr.ExprOp(int_to_x % elt_size, dst[i * elt_size:(i + 1) * elt_size]) -
+                m2_expr.ExprOp(
+                    int_to_x % elt_size, src[i * elt_size:(
+                        i + 1) * elt_size])))
+            for i in xrange(0, n)
+        ]
     else:
-        ops = [m2_expr.ExprOp(x_to_int % elt_size,
-                              m2_expr.ExprOp(op,
-                                             m2_expr.ExprOp(
-                                                 int_to_x % elt_size, dst[i * elt_size:(
-                                                     i + 1) * elt_size]),
-                                             m2_expr.ExprOp(
-                                                 int_to_x % elt_size, src[i * elt_size:(
-                                                     i + 1) * elt_size]))) for i in xrange(0, n)]
+        ops = [
+            apply_on_output(m2_expr.ExprOp(
+                x_to_int % elt_size,
+                m2_expr.ExprOp(op,
+                               m2_expr.ExprOp(
+                                   int_to_x % elt_size, dst[i * elt_size:(
+                                       i + 1) * elt_size]),
+                               m2_expr.ExprOp(
+                                   int_to_x % elt_size, src[i * elt_size:(
+                                       i + 1) * elt_size]))))
+            for i in xrange(0, n)]
 
     return m2_expr.ExprCompose(*ops)
 
 
-def __vec_vertical_instr_gen(op, elt_size, sem):
+def __vec_vertical_instr_gen(op, elt_size, sem, apply_on_output):
     def vec_instr(ir, instr, dst, src):
         e = []
         if isinstance(src, m2_expr.ExprMem):
             src = ir.ExprMem(src.arg, dst.size)
         reg_size = dst.size
-        e.append(m2_expr.ExprAff(dst, sem(op, elt_size, reg_size, dst, src)))
+        e.append(m2_expr.ExprAff(dst, sem(op, elt_size, reg_size, dst, src,
+                                          apply_on_output)))
         return e, []
     return vec_instr
 
 
-def vec_vertical_instr(op, elt_size):
-    return __vec_vertical_instr_gen(op, elt_size, vec_vertical_sem)
+def vec_vertical_instr(op, elt_size, apply_on_output=lambda x: x):
+    return __vec_vertical_instr_gen(op, elt_size, vec_vertical_sem,
+                                    apply_on_output)
 
 
-def float_vec_vertical_instr(op, elt_size):
-    return __vec_vertical_instr_gen(op, elt_size, float_vec_vertical_sem)
+def float_vec_vertical_instr(op, elt_size, apply_on_output=lambda x: x):
+    return __vec_vertical_instr_gen(op, elt_size, float_vec_vertical_sem,
+                                    apply_on_output)
 
 
 # Integer arithmetic
@@ -4270,6 +4285,22 @@ def packuswb(ir, instr, dst, src):
     return [m2_expr.ExprAff(dst, m2_expr.ExprCompose(*out))], []
 
 
+def _saturation_sub(expr):
+    assert expr.is_op("+") and len(expr.args) == 2 and expr.args[-1].is_op("-")
+
+    # Compute the soustraction on one more bit to be able to distinguish cases:
+    # 0x48 - 0xd7 in 8 bit, should saturate
+    arg1 = expr.args[0].zeroExtend(expr.size + 1)
+    arg2 = expr.args[1].args[0].zeroExtend(expr.size + 1)
+    return _unsigned_saturation(arg1 - arg2, expr.size)
+
+
+# Saturate SSE operations
+
+psubusb = vec_vertical_instr('-', 8, _saturation_sub)
+psubusw = vec_vertical_instr('-', 16, _saturation_sub)
+
+
 mnemo_func = {'mov': mov,
               'xchg': xchg,
               'movzx': movzx,
@@ -4776,6 +4807,9 @@ mnemo_func = {'mov': mov,
               "packsswb": packsswb,
               "packssdw": packssdw,
               "packuswb": packuswb,
+
+              "psubusb": psubusb,
+              "psubusw": psubusw,
 
               "smsw": smsw,
 
