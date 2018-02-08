@@ -60,15 +60,15 @@ def find_call(ira):
 
     for irb in ira.blocks.values():
         out = set()
-        if len(irb.irs) < 2:
+        if len(irb.assignblks) < 2:
             continue
-        assignblk = irb.irs[-2]
+        assignblk = irb.assignblks[-2]
         for src in assignblk.itervalues():
             if not isinstance(src, ExprOp):
                 continue
             if not src.op.startswith('call_func'):
                 continue
-            out.add((irb, len(irb.irs) - 2))
+            out.add((irb, len(irb.assignblks) - 2))
         if len(out) != 1:
             continue
         irb, index = out.pop()
@@ -98,7 +98,7 @@ def get_funcs_arg0(ctx, ira, lbl_head):
     element = ira.arch.regs.RSI
 
     for irb, index in find_call(ira):
-        instr = irb.irs[index].instr
+        instr = irb.assignblks[index].instr
         print 'Analysing references from:', hex(instr.offset), instr
         g_list = g_dep.get(irb.label, set([element]), index, set([lbl_head]))
         for dep in g_list:

@@ -34,7 +34,7 @@ class depGraphSettingsForm(ida_kernwin.Form):
                 cur_block = block
         assert cur_block is not None
         line_nb = None
-        for line_nb, assignblk in enumerate(cur_block.irs):
+        for line_nb, assignblk in enumerate(cur_block.assignblks):
             if assignblk.instr.offset == self.address:
                 break
         assert line_nb is not None
@@ -110,13 +110,13 @@ Method to use:
         elif mode == 1:
             return value + 1
         else:
-            return len(self.ira.blocks[self.label].irs)
+            return len(self.ira.blocks[self.label].assignblks)
 
     @property
     def elements(self):
         value = self.cbReg.value
         if value in self.stk_args:
-            line = self.ira.blocks[self.label].irs[self.line_nb].instr
+            line = self.ira.blocks[self.label].assignblks[self.line_nb].instr
             arg_num = self.stk_args[value]
             stk_high = m2_expr.ExprInt(idc.GetSpd(line.offset), ir_arch.sp.size)
             stk_off = m2_expr.ExprInt(self.ira.sp.size/8 * arg_num, ir_arch.sp.size)
@@ -174,7 +174,7 @@ def treat_element():
 
     for node in graph.relevant_nodes:
         try:
-            offset = ir_arch.blocks[node.label].irs[node.line_nb].instr.offset
+            offset = ir_arch.blocks[node.label].assignblks[node.line_nb].instr.offset
         except IndexError:
             print "Unable to highlight %s" % node
             continue
@@ -229,7 +229,7 @@ def launch_depgraph():
     for irb in ir_arch.blocks.values():
         irs = []
         fix_stack = irb.label.offset is not None and settings.unalias_stack
-        for assignblk in irb.irs:
+        for assignblk in irb.assignblks:
             if fix_stack:
                 stk_high = m2_expr.ExprInt(idc.GetSpd(assignblk.instr.offset), ir_arch.sp.size)
                 fix_dct = {ir_arch.sp: mn.regs.regs_init[ir_arch.sp] + stk_high}

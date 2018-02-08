@@ -93,7 +93,7 @@ class SymbExecStateFix(SymbolicExecutionEngine):
         @step: display intermediate steps
         """
         assignblks = []
-        for index, assignblk in enumerate(irb.irs):
+        for index, assignblk in enumerate(irb.assignblks):
             new_assignblk = {}
             links = {}
             for dst, src in assignblk.iteritems():

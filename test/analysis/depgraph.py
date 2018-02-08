@@ -132,7 +132,7 @@ def bloc2graph(irgraph, label=False, lines=True):
             label_attr, label_name)
         block_html_lines = []
         if lines and irblock is not None:
-            for assignblk in irblock.irs:
+            for assignblk in irblock.assignblks:
                 for dst, src in assignblk.iteritems():
                     if False:
                         out_render = "%.8X</td><td %s> " % (0, td_attr)
@@ -510,72 +510,72 @@ G17_IRA.blocks = dict([(irb.label, irb) for irb in [G17_IRB0, G17_IRB1,
 
 # Test graph 1
 G1_TEST1_DN1 = DependencyNode(
-    G1_IRB2.label, A, len(G1_IRB2.irs))
+    G1_IRB2.label, A, len(G1_IRB2.assignblks))
 
 G1_INPUT = (set([G1_TEST1_DN1]), set([G1_IRB0.label]))
 
 # Test graph 2
 
 G2_TEST1_DN1 = DependencyNode(
-    G2_IRB2.label, A, len(G2_IRB2.irs))
+    G2_IRB2.label, A, len(G2_IRB2.assignblks))
 
 G2_INPUT = (set([G2_TEST1_DN1]), set([G2_IRB0.label]))
 
 # Test graph 3
 
 G3_TEST1_0_DN1 = DependencyNode(
-    G3_IRB3.label, A, len(G3_IRB3.irs))
+    G3_IRB3.label, A, len(G3_IRB3.assignblks))
 
 G3_INPUT = (set([G3_TEST1_0_DN1]), set([G3_IRB0.label]))
 
 # Test graph 4
 
 G4_TEST1_DN1 = DependencyNode(
-    G4_IRB2.label, A, len(G2_IRB0.irs))
+    G4_IRB2.label, A, len(G2_IRB0.assignblks))
 
 G4_INPUT = (set([G4_TEST1_DN1]), set([G4_IRB0.label]))
 
 # Test graph 5
 
 G5_TEST1_0_DN1 = DependencyNode(
-    G5_IRB2.label, A, len(G5_IRB2.irs))
+    G5_IRB2.label, A, len(G5_IRB2.assignblks))
 
 G5_INPUT = (set([G5_TEST1_0_DN1]), set([G5_IRB0.label]))
 
 # Test graph 6
 
 G6_TEST1_0_DN1 = DependencyNode(
-    G6_IRB1.label, A, len(G6_IRB1.irs))
+    G6_IRB1.label, A, len(G6_IRB1.assignblks))
 
 G6_INPUT = (set([G6_TEST1_0_DN1]), set([G6_IRB0.label]))
 
 # Test graph 7
 
 G7_TEST1_0_DN1 = DependencyNode(
-    G7_IRB2.label, D, len(G7_IRB2.irs))
+    G7_IRB2.label, D, len(G7_IRB2.assignblks))
 
 G7_INPUT = (set([G7_TEST1_0_DN1]), set([G7_IRB0.label]))
 
 # Test graph 8
 
 G8_TEST1_0_DN1 = DependencyNode(
-    G8_IRB2.label, A, len(G8_IRB2.irs))
+    G8_IRB2.label, A, len(G8_IRB2.assignblks))
 
 G8_INPUT = (set([G8_TEST1_0_DN1]), set([G3_IRB0.label]))
 
 # Test 9: Multi elements
 
 G9_TEST1_0_DN1 = DependencyNode(
-    G8_IRB2.label, A, len(G8_IRB2.irs))
+    G8_IRB2.label, A, len(G8_IRB2.assignblks))
 G9_TEST1_0_DN5 = DependencyNode(
-    G8_IRB2.label, C, len(G8_IRB2.irs))
+    G8_IRB2.label, C, len(G8_IRB2.assignblks))
 
 G9_INPUT = (set([G9_TEST1_0_DN1, G9_TEST1_0_DN5]), set([G8_IRB0.label]))
 
 # Test 10: loop at beginning
 
 G10_TEST1_0_DN1 = DependencyNode(
-    G10_IRB2.label, A, len(G10_IRB2.irs))
+    G10_IRB2.label, A, len(G10_IRB2.assignblks))
 
 G10_INPUT = (set([G10_TEST1_0_DN1]), set([G10_IRB1.label]))
 
@@ -583,7 +583,7 @@ G10_INPUT = (set([G10_TEST1_0_DN1]), set([G10_IRB1.label]))
 # Test 11: no dual bloc emulation
 
 G11_TEST1_DN1 = DependencyNode(
-    G11_IRB2.label, A, len(G11_IRB2.irs))
+    G11_IRB2.label, A, len(G11_IRB2.assignblks))
 
 G11_INPUT = (set([G11_TEST1_DN1]), set([G11_IRB0.label]))
 

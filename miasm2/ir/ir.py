@@ -258,25 +258,31 @@ class IRBlock(object):
     Stand for an intermediate representation  basic block.
     """
 
-    __slots__ = ["label", "_assignments", "_dst", "_dst_linenb"]
+    __slots__ = ["label", "_assignblks", "_dst", "_dst_linenb"]
 
-    def __init__(self, label, irs):
+    def __init__(self, label, assignblks):
         """
         @label: AsmLabel of the IR basic block
-        @irs: list of AssignBlock
+        @assignblks: list of AssignBlock
         """
 
         assert isinstance(label, AsmLabel)
         self.label = label
-        for assignblk in irs:
+        for assignblk in assignblks:
             assert isinstance(assignblk, AssignBlock)
-        self._assignments = tuple(irs)
+        self._assignblks = tuple(assignblks)
         self._dst = None
         self._dst_linenb = None
 
+
+    @property
+    def assignblks(self):
+        return self._assignblks
+
     @property
     def irs(self):
-        return self._assignments
+        warnings.warn('DEPRECATION WARNING: use "irblock.assignblks" instead of "irblock.irs"')
+        return self._assignblks
 
     def is_dst_set(self):
         return self._dst is not None
@@ -284,7 +290,7 @@ class IRBlock(object):
     def cache_dst(self):
         final_dst = None
         final_linenb = None
-        for linenb, assignblk in enumerate(self.irs):
+        for linenb, assignblk in enumerate(self.assignblks):
             for dst, src in assignblk.iteritems():
                 if dst.is_id("IRDst"):
                     if final_dst is not None:
@@ -306,7 +312,7 @@ class IRBlock(object):
         """Generate a new IRBlock with a dst (IRBlock) fixed to @value"""
         irs = []
         dst_found = False
-        for assignblk in self.irs:
+        for assignblk in self.assignblks:
             new_assignblk = {}
             for dst, src in assignblk.iteritems():
                 if dst.is_id("IRDst"):
@@ -328,7 +334,7 @@ class IRBlock(object):
     def __str__(self):
         out = []
         out.append('%s' % self.label)
-        for assignblk in self.irs:
+        for assignblk in self.assignblks:
             for dst, src in assignblk.iteritems():
                 out.append('\t%s = %s' % (dst, src))
             out.append("")
@@ -349,7 +355,7 @@ class IRBlock(object):
             mod_src = lambda expr:expr
 
         assignblks = []
-        for assignblk in self.irs:
+        for assignblk in self.assignblks:
             new_assignblk = {}
             for dst, src in assignblk.iteritems():
                 new_assignblk[mod_dst(dst)] = mod_src(src)
@@ -387,7 +393,7 @@ class DiGraphIR(DiGraph):
         if node not in self._blocks:
             yield [self.DotCellDescription(text="NOT PRESENT", attr={})]
             raise StopIteration
-        for i, assignblk in enumerate(self._blocks[node].irs):
+        for i, assignblk in enumerate(self._blocks[node].assignblks):
             for dst, src in assignblk.iteritems():
                 line = "%s = %s" % (dst, src)
                 if self._dot_offset:
@@ -456,7 +462,7 @@ class IntermediateRepresentation(object):
         ir_bloc_cur, extra_irblocks = self.get_ir(instr)
         for index, irb in enumerate(extra_irblocks):
             irs = []
-            for assignblk in irb.irs:
+            for assignblk in irb.assignblks:
                 irs.append(AssignBlock(assignblk, instr))
             extra_irblocks[index] = IRBlock(irb.label, irs)
         assignblk = AssignBlock(ir_bloc_cur, instr)
@@ -502,7 +508,7 @@ class IntermediateRepresentation(object):
     def getby_offset(self, offset):
         out = set()
         for irb in self.blocks.values():
-            for assignblk in irb.irs:
+            for assignblk in irb.assignblks:
                 instr = assignblk.instr
                 if instr.offset <= offset < instr.offset + instr.l:
                     out.add(irb)
@@ -608,7 +614,7 @@ class IntermediateRepresentation(object):
 
     def is_pc_written(self, block):
         all_pc = self.arch.pc.values()
-        for irs in block.irs:
+        for irs in block.assignblks:
             for assignblk in irs:
                 if assignblk.dst in all_pc:
                     return assignblk
@@ -625,8 +631,8 @@ class IntermediateRepresentation(object):
             else:
                 dst = m2_expr.ExprId(next_lbl,
                                      self.pc.size)
-            assignblk = AssignBlock({self.IRDst: dst}, irblock.irs[-1].instr)
-            ir_blocks[index] = IRBlock(irblock.label, list(irblock.irs) + [assignblk])
+            assignblk = AssignBlock({self.IRDst: dst}, irblock.assignblks[-1].instr)
+            ir_blocks[index] = IRBlock(irblock.label, list(irblock.assignblks) + [assignblk])
 
     def post_add_block(self, block, ir_blocks):
         self.set_empty_dst_to_next(block, ir_blocks)
@@ -670,13 +676,13 @@ class IntermediateRepresentation(object):
         """
         for label, block in self.blocks.iteritems():
             assignblks = []
-            for assignblk in block.irs:
+            for assignblk in block.assignblks:
                 new_assignblk = assignblk.simplify(simplifier)
                 assignblks.append(new_assignblk)
             self.blocks[label] = IRBlock(label, assignblks)
 
     def replace_expr_in_ir(self, bloc, rep):
-        for assignblk in bloc.irs:
+        for assignblk in bloc.assignblks:
             for dst, src in assignblk.items():
                 del assignblk[dst]
                 assignblk[dst.replace_expr(rep)] = src.replace_expr(rep)
@@ -720,7 +726,7 @@ class IntermediateRepresentation(object):
         todo = set([irb.dst])
         done = set()
 
-        for assignblk in reversed(irb.irs):
+        for assignblk in reversed(irb.assignblks):
             if not todo:
                 break
             out = self._extract_dst(todo, done)
@@ -762,7 +768,7 @@ class IntermediateRepresentation(object):
         modified = False
         for label, block in self.blocks.iteritems():
             irs = []
-            for assignblk in block.irs:
+            for assignblk in block.assignblks:
                 if len(assignblk):
                     irs.append(assignblk)
                 else:
@@ -779,9 +785,9 @@ class IntermediateRepresentation(object):
         # Find candidates
         jmp_blocks = set()
         for block in self.blocks.itervalues():
-            if len(block.irs) != 1:
+            if len(block.assignblks) != 1:
                 continue
-            assignblk = block.irs[0]
+            assignblk = block.assignblks[0]
             if len(assignblk) > 1:
                 continue
             assert set(assignblk.keys()) == set([self.IRDst])
@@ -860,7 +866,7 @@ class IntermediateRepresentation(object):
                 continue
             # Block has one son, son has one parent => merge
             assignblks =[]
-            for assignblk in self.blocks[block].irs:
+            for assignblk in self.blocks[block].assignblks:
                 if self.IRDst not in assignblk:
                     assignblks.append(assignblk)
                     continue
@@ -870,7 +876,7 @@ class IntermediateRepresentation(object):
                         affs[dst] = src
                 assignblks.append(AssignBlock(affs, assignblk.instr))
 
-            assignblks += self.blocks[son].irs
+            assignblks += self.blocks[son].assignblks
             new_block = IRBlock(block, assignblks)
 
             self.graph.discard_edge(block, son)

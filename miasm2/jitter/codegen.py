@@ -489,7 +489,7 @@ class CGen(object):
         for irblock in irblocks:
             attributes = []
             irblocks_attributes.append(attributes)
-            for assignblk in irblock.irs:
+            for assignblk in irblock.assignblks:
                 attrib = Attributes(log_mn, log_regs)
                 attributes.append(attrib)
                 self.get_caracteristics(assignblk, attrib)
@@ -534,7 +534,7 @@ class CGen(object):
 
         out = []
         dst2index = None
-        for index, assignblk in enumerate(irblock.irs):
+        for index, assignblk in enumerate(irblock.assignblks):
             if index == irblock.dst_linenb:
                 c_dst, dst2index = self.gen_assignblk_dst(irblock.dst)
             else:

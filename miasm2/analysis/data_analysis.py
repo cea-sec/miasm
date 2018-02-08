@@ -14,7 +14,7 @@ def intra_block_flow_raw(ir_arch, flow_graph, irb, in_nodes, out_nodes):
     Create data flow for an irbloc using raw IR expressions
     """
     current_nodes = {}
-    for i, assignblk in enumerate(irb.irs):
+    for i, assignblk in enumerate(irb.assignblks):
         dict_rw = assignblk.get_rw(cst_read=True)
         if irb.label.offset == 0x13:
             print irb.label
@@ -85,7 +85,7 @@ def intra_block_flow_symbexec(ir_arch, flow_graph, irb, in_nodes, out_nodes):
             continue
         read_values = v.get_r(cst_read=True)
         # print n_w, v, [str(x) for x in read_values]
-        node_n_w = get_node_name(irb.label, len(irb.irs), n_w)
+        node_n_w = get_node_name(irb.label, len(irb.assignblks), n_w)
 
         for n_r in read_values:
             if n_r in current_nodes:
@@ -171,7 +171,7 @@ def create_implicit_flow(ir_arch, flow_graph, irb_in_nodes, irb_out_ndes):
                 # print "###", irb_son
                 # print "###", 'IN', [str(x) for x in irb_son.in_nodes]
 
-                node_n_w = irb.label, len(irb.irs), n_r
+                node_n_w = irb.label, len(irb.assignblks), n_r
                 irb_out_nodes[irb.label][n_r] = node_n_w
                 if not n_r in irb_in_nodes[irb.label]:
                     irb_in_nodes[irb.label][n_r] = irb.label, 0, n_r

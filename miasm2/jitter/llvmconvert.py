@@ -1138,7 +1138,7 @@ class LLVMFunction():
         case_value = None
         instr = instr_attrib.instr
 
-        for index, assignblk in enumerate(irblock.irs):
+        for index, assignblk in enumerate(irblock.assignblks):
             # Enable cache
             self.main_stream = True
             self.expr_cache = {}

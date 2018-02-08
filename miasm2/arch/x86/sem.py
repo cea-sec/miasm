@@ -4793,7 +4793,7 @@ class ir_x86_16(IntermediateRepresentation):
 
     def irbloc_fix_regs_for_mode(self, irblock, mode=64):
         irs = []
-        for assignblk in irblock.irs:
+        for assignblk in irblock.assignblks:
             new_assignblk = dict(assignblk)
             for dst, src in assignblk.iteritems():
                 del new_assignblk[dst]

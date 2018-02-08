@@ -38,7 +38,7 @@ class ReachingDefinitions(dict):
 
     def get_definitions(self, block_lbl, instruction):
         """Returns the dict { lvalue: set((def_block_lbl, def_instr_index)) }
-        associated with self.ir_a.@block.irs[@instruction]
+        associated with self.ir_a.@block.assignblks[@instruction]
         or {} if it is not yet computed
         """
         return self.get((block_lbl, instruction), {})
@@ -59,7 +59,7 @@ class ReachingDefinitions(dict):
         predecessor_state = {}
         for pred_lbl in self.ir_a.graph.predecessors(block.label):
             pred = self.ir_a.blocks[pred_lbl]
-            for lval, definitions in self.get_definitions(pred_lbl, len(pred.irs)).iteritems():
+            for lval, definitions in self.get_definitions(pred_lbl, len(pred.assignblks)).iteritems():
                 predecessor_state.setdefault(lval, set()).update(definitions)
 
         modified = self.get((block.label, 0)) != predecessor_state
@@ -67,7 +67,7 @@ class ReachingDefinitions(dict):
             return False
         self[(block.label, 0)] = predecessor_state
 
-        for instr_index in xrange(len(block.irs)):
+        for instr_index in xrange(len(block.assignblks)):
             modified |= self.process_instruction(block, instr_index)
         return modified
 
@@ -79,7 +79,7 @@ class ReachingDefinitions(dict):
         (@block, @instr_index + 1).
         """
 
-        instr = block.irs[instr_index]
+        instr = block.assignblks[instr_index]
         defs = self.get_definitions(block.label, instr_index).copy()
         for lval in instr:
             defs.update({lval: set([(block.label, instr_index)])})
@@ -148,7 +148,7 @@ class DiGraphDefUse(DiGraph):
                                         deref_mem=deref_mem)
 
     def _compute_def_use_block(self, block, reaching_defs, deref_mem=False):
-        for ind, instr in enumerate(block.irs):
+        for ind, instr in enumerate(block.assignblks):
             instruction_reaching_defs = reaching_defs.get_definitions(block.label, ind)
             for lval, expr in instr.iteritems():
                 self.add_node(InstrNode(block.label, ind, lval))
@@ -183,7 +183,7 @@ class DiGraphDefUse(DiGraph):
                                       attr={'align': 'center',
                                             'colspan': 2,
                                             'bgcolor': 'grey'})
-        src = self._blocks[lbl].irs[ind][reg]
+        src = self._blocks[lbl].assignblks[ind][reg]
         line = "%s = %s" % (reg, src)
         yield self.DotCellDescription(text=line, attr={})
         yield self.DotCellDescription(text="", attr={})
@@ -215,7 +215,7 @@ def dead_simp_useful_instrs(defuse, reaching_defs):
         # Block has a nonexistant successor or is a leaf
         if keep_all_definitions or (len(successors) == 0):
             valid_definitions = reaching_defs.get_definitions(block_lbl,
-                                                              len(block.irs))
+                                                              len(block.assignblks))
             for lval, definitions in valid_definitions.iteritems():
                 if (lval in ir_a.get_out_regs(block)
                     or keep_all_definitions):
@@ -223,7 +223,7 @@ def dead_simp_useful_instrs(defuse, reaching_defs):
                         useful.add(InstrNode(definition[0], definition[1], lval))
 
         # Force keeping of specific cases
-        for instr_index, instr in enumerate(block.irs):
+        for instr_index, instr in enumerate(block.assignblks):
             for lval, rval in instr.iteritems():
                 if (lval.is_mem()
                     or ir_a.IRDst == lval
@@ -249,7 +249,7 @@ def dead_simp(ir_a):
     useful = set(dead_simp_useful_instrs(defuse, reaching_defs))
     for block in ir_a.blocks.itervalues():
         irs = []
-        for idx, assignblk in enumerate(block.irs):
+        for idx, assignblk in enumerate(block.assignblks):
             new_assignblk = dict(assignblk)
             for lval in assignblk:
                 if InstrNode(block.label, idx, lval) not in useful:
