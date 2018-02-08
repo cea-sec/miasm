@@ -4212,6 +4212,31 @@ def _signed_saturation(expr, dst_size):
     )
 
 
+def _unsigned_saturation(expr, dst_size):
+    """Saturate the expr @expr for @dst_size bit
+    Unsigned saturation return MAX_INT or value depending on the value
+    """
+    assert expr.size > dst_size
+
+    zero = m2_expr.ExprInt(0, dst_size)
+    max_int = m2_expr.ExprInt(-1, dst_size)
+    value = expr[:dst_size]
+    signed = expr.msb()
+
+
+    # Bit hack: to avoid a double signed comparison, use mask
+    # ie., in unsigned, 0xXY > 0x0f iff X is not null
+
+    return m2_expr.ExprCond(
+        signed,
+        zero,
+        m2_expr.ExprCond(expr[dst_size:],
+                         max_int,
+                         value),
+    )
+
+
+
 def packsswb(ir, instr, dst, src):
     out = []
     for source in [dst, src]:
@@ -4219,6 +4244,13 @@ def packsswb(ir, instr, dst, src):
             out.append(_signed_saturation(source[start:start + 16], 8))
     return [m2_expr.ExprAff(dst, m2_expr.ExprCompose(*out))], []
 
+
+def packuswb(ir, instr, dst, src):
+    out = []
+    for source in [dst, src]:
+        for start in xrange(0, dst.size, 16):
+            out.append(_unsigned_saturation(source[start:start + 16], 8))
+    return [m2_expr.ExprAff(dst, m2_expr.ExprCompose(*out))], []
 
 
 mnemo_func = {'mov': mov,
@@ -4719,6 +4751,7 @@ mnemo_func = {'mov': mov,
               "pmovmskb": pmovmskb,
 
               "packsswb": packsswb,
+              "packuswb": packuswb,
 
               "smsw": smsw,
 
