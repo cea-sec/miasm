@@ -3392,6 +3392,17 @@ def float_vec_vertical_instr(op, elt_size, apply_on_output=lambda x: x):
                                     apply_on_output)
 
 
+def _keep_mul_high(expr, signed=False):
+    assert expr.is_op("*") and len(expr.args) == 2
+
+    if signed:
+        arg1 = expr.args[0].signExtend(expr.size * 2)
+        arg2 = expr.args[1].signExtend(expr.size * 2)
+    else:
+        arg1 = expr.args[0].zeroExtend(expr.size * 2)
+        arg2 = expr.args[1].zeroExtend(expr.size * 2)
+    return m2_expr.ExprOp("*", arg1, arg2)[expr.size:]
+
 # Integer arithmetic
 #
 
@@ -3421,6 +3432,14 @@ pmullb = vec_vertical_instr('*', 8)
 pmullw = vec_vertical_instr('*', 16)
 pmulld = vec_vertical_instr('*', 32)
 pmullq = vec_vertical_instr('*', 64)
+pmulhub = vec_vertical_instr('*', 8, _keep_mul_high)
+pmulhuw = vec_vertical_instr('*', 16, _keep_mul_high)
+pmulhud = vec_vertical_instr('*', 32, _keep_mul_high)
+pmulhuq = vec_vertical_instr('*', 64, _keep_mul_high)
+pmulhb = vec_vertical_instr('*', 8, lambda x: _keep_mul_high(x, signed=True))
+pmulhw = vec_vertical_instr('*', 16, lambda x: _keep_mul_high(x, signed=True))
+pmulhd = vec_vertical_instr('*', 32, lambda x: _keep_mul_high(x, signed=True))
+pmulhq = vec_vertical_instr('*', 64, lambda x: _keep_mul_high(x, signed=True))
 
 # Floating-point arithmetic
 #
@@ -4704,11 +4723,21 @@ mnemo_func = {'mov': mov,
               "psubd": psubd,
               "psubq": psubq,
 
+              # Multiplications
               # SSE
               "pmullb": pmullb,
               "pmullw": pmullw,
               "pmulld": pmulld,
               "pmullq": pmullq,
+              "pmulhub": pmulhub,
+              "pmulhuw": pmulhuw,
+              "pmulhud": pmulhud,
+              "pmulhuq": pmulhuq,
+              "pmulhb": pmulhb,
+              "pmulhw": pmulhw,
+              "pmulhd": pmulhd,
+              "pmulhq": pmulhq,
+
 
               # Arithmetic (floating-point)
               #

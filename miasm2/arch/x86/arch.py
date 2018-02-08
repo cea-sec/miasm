@@ -4476,6 +4476,15 @@ addop("pmullw", [bs8(0x0f), bs8(0xd5), no_xmm_pref] +
       rmmod(mm_reg, rm_arg_mm_m64))
 addop("pmullw", [bs8(0x0f), bs8(0xd5), pref_66] +
       rmmod(xmm_reg, rm_arg_xmm_m128))
+addop("pmulhuw", [bs8(0x0f), bs8(0xe4), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm_m64))
+addop("pmulhuw", [bs8(0x0f), bs8(0xe4), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m128))
+addop("pmulhw", [bs8(0x0f), bs8(0xe5), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm_m64))
+addop("pmulhw", [bs8(0x0f), bs8(0xe5), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m128))
+
 
 addop("psubusb", [bs8(0x0f), bs8(0xd8), no_xmm_pref] +
       rmmod(mm_reg, rm_arg_mm_m64))

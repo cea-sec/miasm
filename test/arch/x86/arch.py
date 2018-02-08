@@ -3009,6 +3009,16 @@ reg_tests = [
      "0fddfd"),
     (m32, "00000000    PADDUSW    XMM0, XMM1",
      "660fddc1"),
+
+    (m32, "00000000    PMULHUW    MM6, MM4",
+     "0fe4f4"),
+    (m32, "00000000    PMULHUW    XMM0, XMM7",
+     "660fe4c7"),
+
+    (m32, "00000000    PMULHW     MM6, MM4",
+     "0fe5f4"),
+    (m32, "00000000    PMULHW     XMM0, XMM7",
+     "660fe5c7"),
 ]
 
 
