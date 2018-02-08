@@ -4486,6 +4486,15 @@ addop("psubusw", [bs8(0x0f), bs8(0xd9), no_xmm_pref] +
 addop("psubusw", [bs8(0x0f), bs8(0xd9), pref_66] +
       rmmod(xmm_reg, rm_arg_xmm_m128))
 
+addop("paddusb", [bs8(0x0f), bs8(0xdc), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm_m64))
+addop("paddusb", [bs8(0x0f), bs8(0xdc), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m128))
+addop("paddusw", [bs8(0x0f), bs8(0xdd), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm_m64))
+addop("paddusw", [bs8(0x0f), bs8(0xdd), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m128))
+
 
 mn_x86.bintree = factor_one_bit(mn_x86.bintree)
 # mn_x86.bintree = factor_fields_all(mn_x86.bintree)

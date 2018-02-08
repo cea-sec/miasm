@@ -4294,11 +4294,30 @@ def _saturation_sub(expr):
     arg2 = expr.args[1].args[0].zeroExtend(expr.size + 1)
     return _unsigned_saturation(arg1 - arg2, expr.size)
 
+def _saturation_add(expr):
+    assert expr.is_op("+") and len(expr.args) == 2
+
+    # Compute the addition on one more bit to be able to distinguish cases:
+    # 0x48 + 0xd7 in 8 bit, should saturate
+
+    arg1 = expr.args[0].zeroExtend(expr.size + 1)
+    arg2 = expr.args[1].zeroExtend(expr.size + 1)
+
+    # We can also use _unsigned_saturation with two additionnal bits (to
+    # distinguish minus and overflow case)
+    # The resulting expression being more complicated with an impossible case
+    # (signed=True), we rewrite the rule here
+
+    return m2_expr.ExprCond((arg1 + arg2).msb(), m2_expr.ExprInt(-1, expr.size),
+                            expr)
+
 
 # Saturate SSE operations
 
 psubusb = vec_vertical_instr('-', 8, _saturation_sub)
 psubusw = vec_vertical_instr('-', 16, _saturation_sub)
+paddusb = vec_vertical_instr('+', 8, _saturation_add)
+paddusw = vec_vertical_instr('+', 16, _saturation_add)
 
 
 mnemo_func = {'mov': mov,
@@ -4810,6 +4829,8 @@ mnemo_func = {'mov': mov,
 
               "psubusb": psubusb,
               "psubusw": psubusw,
+              "paddusb": paddusb,
+              "paddusw": paddusw,
 
               "smsw": smsw,
 

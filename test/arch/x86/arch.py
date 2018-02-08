@@ -3000,6 +3000,15 @@ reg_tests = [
     (m32, "00000000    PSUBUSW    XMM0, XMM5",
      "660fd9c5"),
 
+    (m32, "00000000    PADDUSB    MM5, MM3",
+     "0fdceb"),
+    (m32, "00000000    PADDUSB    XMM0, XMM6",
+     "660fdcc6"),
+
+    (m32, "00000000    PADDUSW    MM7, MM5",
+     "0fddfd"),
+    (m32, "00000000    PADDUSW    XMM0, XMM1",
+     "660fddc1"),
 ]
 
 
