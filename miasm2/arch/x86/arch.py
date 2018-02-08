@@ -4339,6 +4339,11 @@ addop("pcmpgtb", [bs8(0x0f), bs8(0x64), no_xmm_pref] +
 addop("pcmpgtb", [bs8(0x0f), bs8(0x64), pref_66] +
       rmmod(xmm_reg, rm_arg_xmm))
 
+addop("pcmpgtw", [bs8(0x0f), bs8(0x65), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm))
+addop("pcmpgtw", [bs8(0x0f), bs8(0x65), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
 addop("pcmpgtd", [bs8(0x0f), bs8(0x66), no_xmm_pref] +
       rmmod(mm_reg, rm_arg_mm))
 addop("pcmpgtd", [bs8(0x0f), bs8(0x66), pref_66] +
