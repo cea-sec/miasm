@@ -4453,6 +4453,11 @@ addop("aesdec", [bs8(0x0f), bs8(0x38), bs8(0xde), pref_66] + rmmod(xmm_reg, rm_a
 addop("aesenclast", [bs8(0x0f), bs8(0x38), bs8(0xdd), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
 addop("aesdeclast", [bs8(0x0f), bs8(0x38), bs8(0xdf), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
 
+addop("packsswb", [bs8(0x0f), bs8(0x63), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm_m64))
+addop("packsswb", [bs8(0x0f), bs8(0x63), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m128))
+
 mn_x86.bintree = factor_one_bit(mn_x86.bintree)
 # mn_x86.bintree = factor_fields_all(mn_x86.bintree)
 """

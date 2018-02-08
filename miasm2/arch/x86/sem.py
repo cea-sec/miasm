@@ -4173,6 +4173,54 @@ def palignr(ir, instr, dst, src, imm):
     return [m2_expr.ExprAff(dst, result)], []
 
 
+def _signed_saturation(expr, dst_size):
+    """Saturate the expr @expr for @dst_size bit
+    Signed saturation return MAX_INT / MIN_INT or value depending on the value
+    """
+    assert expr.size > dst_size
+
+    median = 1 << (dst_size - 1)
+    min_int = m2_expr.ExprInt(- median, dst_size)
+    max_int = m2_expr.ExprInt(median - 1, dst_size)
+    signed = expr.msb()
+    value_unsigned = expr ^ expr.mask + m2_expr.ExprInt(1, expr.size)
+    # Re-use the sign bit
+    value = m2_expr.ExprCompose(expr[:dst_size - 1], signed)
+
+    # Bit hack: to avoid a double signed comparison, use mask
+    # ie., in unsigned, 0xXY > 0x0f iff X is not null
+
+    # if expr >s 0
+    #    if expr[dst_size:] > 0: # bigger than max_int
+    #        -> max_int
+    #    else
+    #        -> value
+    # else # negative
+    #    if expr[dst_size:-1] > 0: # smaller than min_int
+    #        -> value
+    #    else
+    #        -> min_int
+
+    return m2_expr.ExprCond(
+        signed,
+        m2_expr.ExprCond(value_unsigned[dst_size:],
+                         min_int,
+                         value),
+        m2_expr.ExprCond(expr[dst_size:],
+                         max_int,
+                         value),
+    )
+
+
+def packsswb(ir, instr, dst, src):
+    out = []
+    for source in [dst, src]:
+        for start in xrange(0, dst.size, 16):
+            out.append(_signed_saturation(source[start:start + 16], 8))
+    return [m2_expr.ExprAff(dst, m2_expr.ExprCompose(*out))], []
+
+
+
 mnemo_func = {'mov': mov,
               'xchg': xchg,
               'movzx': movzx,
@@ -4669,6 +4717,8 @@ mnemo_func = {'mov': mov,
               "sqrtss": sqrtss,
 
               "pmovmskb": pmovmskb,
+
+              "packsswb": packsswb,
 
               "smsw": smsw,
 
