@@ -417,24 +417,45 @@ def ldr(ir, instr, arg1, arg2):
     return e, []
 
 
-def ldrb(ir, instr, arg1, arg2):
+def ldr_size(ir, instr, arg1, arg2, size):
     e = []
     addr, updt = get_mem_access(arg2)
     e.append(
-        m2_expr.ExprAff(arg1, m2_expr.ExprMem(addr, 8).zeroExtend(arg1.size)))
+        m2_expr.ExprAff(arg1, m2_expr.ExprMem(addr, size).zeroExtend(arg1.size)))
     if updt:
         e.append(updt)
     return e, []
+
+
+def ldrb(ir, instr, arg1, arg2):
+    return ldr_size(ir, instr, arg1, arg2, 8)
 
 
 def ldrh(ir, instr, arg1, arg2):
+    return ldr_size(ir, instr, arg1, arg2, 16)
+
+
+def ldrs_size(ir, instr, arg1, arg2, size):
     e = []
     addr, updt = get_mem_access(arg2)
     e.append(
-        m2_expr.ExprAff(arg1, m2_expr.ExprMem(addr, 16).zeroExtend(arg1.size)))
+        m2_expr.ExprAff(arg1, m2_expr.ExprMem(addr, size).signExtend(arg1.size)))
     if updt:
         e.append(updt)
     return e, []
+
+
+def ldrsb(ir, instr, arg1, arg2):
+    return ldrs_size(ir, instr, arg1, arg2, 8)
+
+
+def ldrsh(ir, instr, arg1, arg2):
+    return ldrs_size(ir, instr, arg1, arg2, 16)
+
+
+def ldrsw(ir, instr, arg1, arg2):
+    return ldrs_size(ir, instr, arg1, arg2, 32)
+
 
 
 def l_str(ir, instr, arg1, arg2):
@@ -481,16 +502,6 @@ def ldp(ir, instr, arg1, arg2, arg3):
     e.append(m2_expr.ExprAff(arg1, m2_expr.ExprMem(addr, arg1.size)))
     e.append(
         m2_expr.ExprAff(arg2, m2_expr.ExprMem(addr + m2_expr.ExprInt(arg1.size / 8, addr.size), arg2.size)))
-    if updt:
-        e.append(updt)
-    return e, []
-
-
-def ldrsw(ir, instr, arg1, arg2):
-    e = []
-    addr, updt = get_mem_access(arg2)
-    e.append(
-        m2_expr.ExprAff(arg1, m2_expr.ExprMem(addr, 32).signExtend(arg1.size)))
     if updt:
         e.append(updt)
     return e, []
@@ -745,7 +756,14 @@ mnemo_func.update({
 
     'ldur': ldr,
     'ldurb': ldrb,
+    'ldursb': ldrsb,
     'ldurh': ldrh,
+    'ldursh': ldrsh,
+    'ldursw': ldrsw,
+
+    'ldrsb': ldrsb,
+    'ldrsh': ldrsh,
+    'ldrsw': ldrsw,
 
     'str': l_str,
     'strb': strb,
@@ -754,8 +772,6 @@ mnemo_func.update({
     'stur': l_str,
     'sturb': strb,
     'sturh': strh,
-
-    'ldrsw': ldrsw,
 
 
     'bfm': bfm,
