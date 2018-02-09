@@ -55,8 +55,8 @@ if args.rename_args:
     if arch == "x86_32":
         # StdCall example
         for i in xrange(4):
-            e_mem = ExprMem(ExprId("ESP_init") + ExprInt(4 * (i + 1), 32), 32)
-            init_ctx[e_mem] = ExprId("arg%d" % i)
+            e_mem = ExprMem(ExprId("ESP_init", 32) + ExprInt(4 * (i + 1), 32), 32)
+            init_ctx[e_mem] = ExprId("arg%d" % i, 32)
 
 # Disassemble the targeted function
 blocks = mdis.dis_multiblock(int(args.func_addr, 0))

@@ -12,8 +12,8 @@ class TestExpressionExpressionHelper(unittest.TestCase):
 
         # Build a complex expression
         cst = m2_expr.ExprInt(0x100, 16)
-        eax = m2_expr.ExprId("EAX")
-        ebx = m2_expr.ExprId("EBX")
+        eax = m2_expr.ExprId("EAX", 32)
+        ebx = m2_expr.ExprId("EBX", 32)
         ax = eax[0:16]
         expr = eax + ebx
         expr = m2_expr.ExprCompose(ax, expr[16:32])

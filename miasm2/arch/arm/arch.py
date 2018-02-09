@@ -18,7 +18,7 @@ log.addHandler(console_handler)
 log.setLevel(logging.DEBUG)
 
 # arm regs ##############
-reg_dum = ExprId('DumReg')
+reg_dum = ExprId('DumReg', 32)
 
 gen_reg('PC', globals())
 
@@ -66,13 +66,13 @@ spsr_regs = reg_info(spsr_regs_str, spsr_regs_expr)
 
 # CP
 cpregs_str = ['c%d' % r for r in xrange(0x10)]
-cpregs_expr = [ExprId(x) for x in cpregs_str]
+cpregs_expr = [ExprId(x, 32) for x in cpregs_str]
 
 cp_regs = reg_info(cpregs_str, cpregs_expr)
 
 # P
 pregs_str = ['p%d' % r for r in xrange(0x10)]
-pregs_expr = [ExprId(x) for x in pregs_str]
+pregs_expr = [ExprId(x, 32) for x in pregs_str]
 
 p_regs = reg_info(pregs_str, pregs_expr)
 

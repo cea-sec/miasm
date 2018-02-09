@@ -109,7 +109,7 @@ if __name__ == '__main__':
 
     argc = ExprId('argc', 32)
     argv = ExprId('argv', 32)
-    ret_addr = ExprId('ret_addr')
+    ret_addr = ExprId('ret_addr', 32)
     reg_and_id[argc.name] = argc
     reg_and_id[argv.name] = argv
     reg_and_id[ret_addr.name] = ret_addr

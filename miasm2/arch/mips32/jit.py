@@ -35,8 +35,8 @@ class mipsCGen(CGen):
 
     def __init__(self, ir_arch):
         super(mipsCGen, self).__init__(ir_arch)
-        self.delay_slot_dst = m2_expr.ExprId("branch_dst_irdst")
-        self.delay_slot_set = m2_expr.ExprId("branch_dst_set")
+        self.delay_slot_dst = m2_expr.ExprId("branch_dst_irdst", 32)
+        self.delay_slot_set = m2_expr.ExprId("branch_dst_set", 32)
 
     def block2assignblks(self, block):
         irblocks_list = super(mipsCGen, self).block2assignblks(block)
@@ -58,7 +58,7 @@ class mipsCGen(CGen):
                     assignments[self.delay_slot_set] = m2_expr.ExprInt(1, 32)
                     # Replace IRDst with next instruction
                     assignments[self.ir_arch.IRDst] = m2_expr.ExprId(
-                        self.ir_arch.get_next_instr(assignblock.instr))
+                        self.ir_arch.get_next_instr(assignblock.instr), 32)
                     irs.append(AssignBlock(assignments, assignblock.instr))
                 irblocks[blk_idx] = IRBlock(irblock.label, irs)
 
@@ -72,8 +72,8 @@ class mipsCGen(CGen):
         lbl = self.get_block_post_label(block)
         out = (self.CODE_RETURN_NO_EXCEPTION % (self.label_to_jitlabel(lbl),
                                                 self.C_PC,
-                                                m2_expr.ExprId('branch_dst_irdst'),
-                                                m2_expr.ExprId('branch_dst_irdst'),
+                                                m2_expr.ExprId('branch_dst_irdst', 32),
+                                                m2_expr.ExprId('branch_dst_irdst', 32),
                                                 self.id_to_c(m2_expr.ExprInt(lbl.offset, 32)))
               ).split('\n')
         return out

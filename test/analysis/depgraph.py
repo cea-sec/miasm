@@ -16,19 +16,19 @@ except ImportError:
     EMULATION = False
 
 STEP_COUNTER = count()
-A = ExprId("a")
-B = ExprId("b")
-C = ExprId("c")
-D = ExprId("d")
-R = ExprId("r")
+A = ExprId("a", 32)
+B = ExprId("b", 32)
+C = ExprId("c", 32)
+D = ExprId("d", 32)
+R = ExprId("r", 32)
 
-A_INIT = ExprId("a_init")
-B_INIT = ExprId("b_init")
-C_INIT = ExprId("c_init")
-D_INIT = ExprId("d_init")
+A_INIT = ExprId("a_init", 32)
+B_INIT = ExprId("b_init", 32)
+C_INIT = ExprId("c_init", 32)
+D_INIT = ExprId("d_init", 32)
 
-PC = ExprId("pc")
-SP = ExprId("sp")
+PC = ExprId("pc", 32)
+SP = ExprId("sp", 32)
 
 CST0 = ExprInt(0x0, 32)
 CST1 = ExprInt(0x1, 32)
@@ -277,8 +277,8 @@ G4_IRA = IRATest()
 G4_IRB0 = gen_irblock(LBL0, [[ExprAff(C, CST1)]])
 G4_IRB1 = gen_irblock(LBL1, [[ExprAff(C, C + CST2)],
                              [ExprAff(G4_IRA.IRDst,
-                                      ExprCond(C, ExprId(LBL2),
-                                               ExprId(LBL1)))]])
+                                      ExprCond(C, ExprId(LBL2, 32),
+                                               ExprId(LBL1, 32)))]])
 
 G4_IRB2 = gen_irblock(LBL2, [[ExprAff(A, B)]])
 
@@ -296,8 +296,8 @@ G5_IRA = IRATest()
 G5_IRB0 = gen_irblock(LBL0, [[ExprAff(B, CST1)]])
 G5_IRB1 = gen_irblock(LBL1, [[ExprAff(B, B + CST2)],
                              [ExprAff(G5_IRA.IRDst,
-                                      ExprCond(B, ExprId(LBL2),
-                                               ExprId(LBL1)))]])
+                                      ExprCond(B, ExprId(LBL2, 32),
+                                               ExprId(LBL1, 32)))]])
 
 G5_IRB2 = gen_irblock(LBL2, [[ExprAff(A, B)]])
 
@@ -400,16 +400,16 @@ G13_IRA = IRATest()
 G13_IRB0 = gen_irblock(LBL0, [[ExprAff(A, CST1)],
                               #[ExprAff(B, A)],
                               [ExprAff(G13_IRA.IRDst,
-                                       ExprId(LBL1))]])
+                                       ExprId(LBL1, 32))]])
 G13_IRB1 = gen_irblock(LBL1, [[ExprAff(C, A)],
                               #[ExprAff(A, A + CST1)],
                               [ExprAff(G13_IRA.IRDst,
-                                       ExprCond(R, ExprId(LBL2),
-                                                ExprId(LBL1)))]])
+                                       ExprCond(R, ExprId(LBL2, 32),
+                                                ExprId(LBL1, 32)))]])
 
 G13_IRB2 = gen_irblock(LBL2, [[ExprAff(B, A + CST3)], [ExprAff(A, B + CST3)],
                               [ExprAff(G13_IRA.IRDst,
-                                       ExprId(LBL1))]])
+                                       ExprId(LBL1, 32))]])
 
 G13_IRB3 = gen_irblock(LBL3, [[ExprAff(R, C)]])
 
@@ -427,18 +427,18 @@ G14_IRA = IRATest()
 
 G14_IRB0 = gen_irblock(LBL0, [[ExprAff(A, CST1)],
                               [ExprAff(G14_IRA.IRDst,
-                                       ExprId(LBL1))]
+                                       ExprId(LBL1, 32))]
                              ])
 G14_IRB1 = gen_irblock(LBL1, [[ExprAff(B, A)],
                               [ExprAff(G14_IRA.IRDst,
-                                       ExprCond(C, ExprId(LBL2),
-                                                ExprId(LBL3)))]
+                                       ExprCond(C, ExprId(LBL2, 32),
+                                                ExprId(LBL3, 32)))]
                              ])
 
 G14_IRB2 = gen_irblock(LBL2, [[ExprAff(D, A)],
                               [ExprAff(A, D + CST1)],
                               [ExprAff(G14_IRA.IRDst,
-                                       ExprId(LBL1))]
+                                       ExprId(LBL1, 32))]
                              ])
 
 G14_IRB3 = gen_irblock(LBL3, [[ExprAff(R, D + B)]])

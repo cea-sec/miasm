@@ -75,7 +75,7 @@ class StructLookup(ExprReducer):
 def test():
     struct_lookup = StructLookup()
 
-    ptr = ExprId('ECX')
+    ptr = ExprId('ECX', 32)
     int4 = ExprInt(4, 32)
     tests = [
         (ptr, StructLookup.FIELD_A_PTR),

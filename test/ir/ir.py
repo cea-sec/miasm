@@ -2,8 +2,8 @@ from miasm2.expression.expression import *
 from miasm2.ir.ir import AssignBlock
 from miasm2.expression.simplifications import expr_simp
 
-id_a = ExprId("a")
-id_b = ExprId("b")
+id_a = ExprId("a", 32)
+id_b = ExprId("b", 32)
 int0 = ExprInt(0, id_a.size)
 
 # Test AssignBlock

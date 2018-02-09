@@ -525,11 +525,14 @@ class ExprId(Expr):
 
     __slots__ = Expr.__slots__ + ["_name"]
 
-    def __init__(self, name, size=32):
+    def __init__(self, name, size=None):
         """Create an identifier
         @name: str, identifier's name
         @size: int, identifier's size
         """
+        if size is None:
+            warnings.warn('DEPRECATION WARNING: size is a mandatory argument: use ExprId(name, SIZE)')
+            size = 32
         super(ExprId, self).__init__(size)
         self._name = name
 

@@ -7,11 +7,11 @@ Expression simplification demo.
 """
 
 
-a = ExprId('a')
-b = ExprId('b')
-c = ExprId('c')
-d = ExprId('d')
-e = ExprId('e')
+a = ExprId('a', 32)
+b = ExprId('b', 32)
+c = ExprId('c', 32)
+d = ExprId('d', 32)
+e = ExprId('e', 32)
 
 m = ExprMem(a)
 s = a[:8]

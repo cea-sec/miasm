@@ -5,20 +5,20 @@ from miasm2.analysis.data_flow import *
 from miasm2.ir.analysis import ira
 from miasm2.ir.ir import IRBlock, AssignBlock
 
-a = ExprId("a")
-b = ExprId("b")
-c = ExprId("c")
-d = ExprId("d")
-r = ExprId("r")
+a = ExprId("a", 32)
+b = ExprId("b", 32)
+c = ExprId("c", 32)
+d = ExprId("d", 32)
+r = ExprId("r", 32)
 
-a_init = ExprId("a_init")
-b_init = ExprId("b_init")
-c_init = ExprId("c_init")
-d_init = ExprId("d_init")
-r_init = ExprId("r_init") # Return register
+a_init = ExprId("a_init", 32)
+b_init = ExprId("b_init", 32)
+c_init = ExprId("c_init", 32)
+d_init = ExprId("d_init", 32)
+r_init = ExprId("r_init", 32) # Return register
 
-pc = ExprId("pc")
-sp = ExprId("sp")
+pc = ExprId("pc", 32)
+sp = ExprId("sp", 32)
 
 CST1 = ExprInt(0x11, 32)
 CST2 = ExprInt(0x12, 32)

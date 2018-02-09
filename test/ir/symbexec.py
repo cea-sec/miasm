@@ -30,10 +30,10 @@ class TestSymbExec(unittest.TestCase):
         mem40w = ExprMem(addr40, 16)
         mem50v = ExprMem(addr50,  8)
         mem50w = ExprMem(addr50, 16)
-        id_x = ExprId('x')
+        id_x = ExprId('x', 32)
         id_y = ExprId('y', 8)
-        id_a = ExprId('a')
-        id_eax = ExprId('eax_init')
+        id_a = ExprId('a', 32)
+        id_eax = ExprId('eax_init', 32)
 
         e = SymbolicExecutionEngine(ir_x86_32(),
                                     {mem0: id_x, mem1: id_y, mem9: id_x,

@@ -966,7 +966,7 @@ class LLVMFunction():
         if isinstance(offset, (int, long)):
             offset = self.add_ir(m2_expr.ExprInt(offset, PC.size))
         self.affect(offset, PC)
-        self.affect(self.add_ir(m2_expr.ExprInt(1, 8)), m2_expr.ExprId("status"))
+        self.affect(self.add_ir(m2_expr.ExprInt(1, 8)), m2_expr.ExprId("status", 32))
         self.set_ret(offset)
 
         builder.position_at_end(merge_block)
@@ -1013,7 +1013,7 @@ class LLVMFunction():
         if isinstance(offset, (int, long)):
             offset = self.add_ir(m2_expr.ExprInt(offset, PC.size))
         self.affect(offset, PC)
-        self.affect(self.add_ir(m2_expr.ExprInt(1, 8)), m2_expr.ExprId("status"))
+        self.affect(self.add_ir(m2_expr.ExprInt(1, 8)), m2_expr.ExprId("status", 32))
         self.set_ret(offset)
 
         builder.position_at_end(merge_block)
@@ -1121,7 +1121,7 @@ class LLVMFunction():
         self.gen_post_code(attrib)
         self.affect(dst, PC)
         self.gen_post_instr_checks(attrib, dst)
-        self.affect(self.add_ir(m2_expr.ExprInt(0, 8)), m2_expr.ExprId("status"))
+        self.affect(self.add_ir(m2_expr.ExprInt(0, 8)), m2_expr.ExprId("status", 32))
         self.set_ret(dst)
 
 
@@ -1215,7 +1215,7 @@ class LLVMFunction():
         m2_exception_flag = self.llvm_context.ir_arch.arch.regs.exception_flags
         t_size = LLVMType.IntType(m2_exception_flag.size)
         self.affect(self.add_ir(m2_expr.ExprInt(1, 8)),
-                    m2_expr.ExprId("status"))
+                    m2_expr.ExprId("status", 32))
         self.affect(t_size(m2_csts.EXCEPT_UNK_MNEMO),
                     m2_exception_flag)
         self.set_ret(LLVMType.IntType(64)(asmblock.label.offset))
@@ -1233,7 +1233,7 @@ class LLVMFunction():
 
             # Common code
             self.affect(self.add_ir(m2_expr.ExprInt(0, 8)),
-                        m2_expr.ExprId("status"))
+                        m2_expr.ExprId("status", 32))
 
             # Check if IRDst has been set
             zero_casted = LLVMType.IntType(codegen.delay_slot_set.size)(0)
@@ -1257,7 +1257,7 @@ class LLVMFunction():
             to_ret = self.add_ir(codegen.delay_slot_dst)
             self.affect(to_ret, PC)
             self.affect(self.add_ir(m2_expr.ExprInt(0, 8)),
-                        m2_expr.ExprId("status"))
+                        m2_expr.ExprId("status", 32))
             self.set_ret(to_ret)
 
             # Else Block
@@ -1272,16 +1272,16 @@ class LLVMFunction():
         Prototype : f(i8* jitcpu, i8* vmcpu, i8* vmmngr, i8* status)"""
 
         # Build function signature
-        self.my_args.append((m2_expr.ExprId("jitcpu"),
+        self.my_args.append((m2_expr.ExprId("jitcpu", 32),
                              llvm_ir.PointerType(LLVMType.IntType(8)),
                              "jitcpu"))
-        self.my_args.append((m2_expr.ExprId("vmcpu"),
+        self.my_args.append((m2_expr.ExprId("vmcpu", 32),
                              llvm_ir.PointerType(LLVMType.IntType(8)),
                              "vmcpu"))
-        self.my_args.append((m2_expr.ExprId("vmmngr"),
+        self.my_args.append((m2_expr.ExprId("vmmngr", 32),
                              llvm_ir.PointerType(LLVMType.IntType(8)),
                              "vmmngr"))
-        self.my_args.append((m2_expr.ExprId("status"),
+        self.my_args.append((m2_expr.ExprId("status", 32),
                              llvm_ir.PointerType(LLVMType.IntType(8)),
                              "status"))
         ret_size = 64
