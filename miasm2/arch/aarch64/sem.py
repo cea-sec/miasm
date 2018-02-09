@@ -148,6 +148,7 @@ ctx = {"PC": PC,
        "extend_arg": extend_arg,
        "m2_expr":m2_expr,
        "exception_flags": exception_flags,
+       "interrupt_num": interrupt_num,
        "EXCEPT_DIV_BY_ZERO": EXCEPT_DIV_BY_ZERO,
        }
 

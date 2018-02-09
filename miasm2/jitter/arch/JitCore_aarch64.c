@@ -50,6 +50,10 @@ reg_dict gpreg_dict[] = {
 	{.name = "nf", .offset = offsetof(vm_cpu_t, nf)},
 	{.name = "of", .offset = offsetof(vm_cpu_t, of)},
 	{.name = "cf", .offset = offsetof(vm_cpu_t, cf)},
+
+	{.name = "exception_flags", .offset = offsetof(vm_cpu_t, exception_flags)},
+	{.name = "interrupt_num", .offset = offsetof(vm_cpu_t, interrupt_num)},
+
 };
 
 /************************** JitCpu object **************************/
@@ -375,6 +379,9 @@ getset_reg_u32(of);
 getset_reg_u32(cf);
 
 
+getset_reg_u32(exception_flags);
+getset_reg_u32(interrupt_num);
+
 
 PyObject* get_gpreg_offset_all(void)
 {
@@ -484,6 +491,9 @@ static PyGetSetDef JitCpu_getseters[] = {
     {"nf", (getter)JitCpu_get_nf, (setter)JitCpu_set_nf, "nf", NULL},
     {"of", (getter)JitCpu_get_of, (setter)JitCpu_set_of, "of", NULL},
     {"cf", (getter)JitCpu_get_cf, (setter)JitCpu_set_cf, "cf", NULL},
+
+    {"exception_flags", (getter)JitCpu_get_exception_flags, (setter)JitCpu_set_exception_flags, "exception_flags", NULL},
+    {"interrupt_num", (getter)JitCpu_get_interrupt_num, (setter)JitCpu_set_interrupt_num, "interrupt_num", NULL},
 
     {NULL}  /* Sentinel */
 };
