@@ -15,7 +15,7 @@ assert big_cst.size == 0x1000
 
 # Possible values
 #- Common constants
-A = ExprId("A")
+A = ExprId("A", 32)
 cond1 = ExprId("cond1", 1)
 cond2 = ExprId("cond2", 16)
 cst1 = ExprInt(1, 32)

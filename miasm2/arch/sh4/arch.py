@@ -7,9 +7,9 @@ from collections import defaultdict
 import miasm2.arch.sh4.regs as regs_module
 from miasm2.arch.sh4.regs import *
 
-jra = ExprId('jra')
-jrb = ExprId('jrb')
-jrc = ExprId('jrc')
+jra = ExprId('jra', 32)
+jrb = ExprId('jrb', 32)
+jrc = ExprId('jrc', 32)
 
 
 # parser helper ###########

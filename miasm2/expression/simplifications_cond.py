@@ -19,9 +19,9 @@ import miasm2.expression.expression as m2_expr
 
 # Jokers for expression matching
 
-jok1 = m2_expr.ExprId("jok1")
-jok2 = m2_expr.ExprId("jok2")
-jok3 = m2_expr.ExprId("jok3")
+jok1 = m2_expr.ExprId("jok1", 32)
+jok2 = m2_expr.ExprId("jok2", 32)
+jok3 = m2_expr.ExprId("jok3", 32)
 jok_small = m2_expr.ExprId("jok_small", 1)
 
 

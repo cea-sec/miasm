@@ -8,11 +8,11 @@ from miasm2.expression.simplifications import expr_simp, ExpressionSimplifier
 from miasm2.expression.simplifications_cond import ExprOp_inf_signed, ExprOp_inf_unsigned, ExprOp_equal
 
 # Define example objects
-a = ExprId('a')
-b = ExprId('b')
-c = ExprId('c')
-d = ExprId('d')
-e = ExprId('e')
+a = ExprId('a', 32)
+b = ExprId('b', 32)
+c = ExprId('c', 32)
+d = ExprId('d', 32)
+e = ExprId('e', 32)
 f = ExprId('f', size=64)
 
 m = ExprMem(a)
@@ -378,17 +378,17 @@ for e, e_check in to_test[:]:
 
 
 
-x = ExprId('x')
-y = ExprId('y')
-z = ExprId('z')
-a = ExprId('a')
-b = ExprId('b')
-c = ExprId('c')
+x = ExprId('x', 32)
+y = ExprId('y', 32)
+z = ExprId('z', 32)
+a = ExprId('a', 32)
+b = ExprId('b', 32)
+c = ExprId('c', 32)
 
 
-jra = ExprId('jra')
-jrb = ExprId('jrb')
-jrint1 = ExprId('jrint1')
+jra = ExprId('jra', 32)
+jrb = ExprId('jrb', 32)
+jrint1 = ExprId('jrint1', 32)
 
 
 e1 = ExprMem((a & ExprInt(0xFFFFFFFC, 32)) + ExprInt(0x10, 32), 32)

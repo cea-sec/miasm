@@ -219,7 +219,7 @@ simdregs_h_zero = (simd32_info.parser |
 
 def ast_id2expr(t):
     if not t in mn_aarch64.regs.all_regs_ids_byname:
-        r = m2_expr.ExprId(AsmLabel(t))
+        r = m2_expr.ExprId(AsmLabel(t), 32)
     else:
         r = mn_aarch64.regs.all_regs_ids_byname[t]
     return r

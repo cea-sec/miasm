@@ -2,10 +2,10 @@ from miasm2.expression.expression import *
 
 print "Simple Expression grapher demo"
 
-a = ExprId("A")
-b = ExprId("B")
-c = ExprId("C")
-d = ExprId("D")
+a = ExprId("A", 32)
+b = ExprId("B", 32)
+c = ExprId("C", 32)
+d = ExprId("D", 32)
 m = ExprMem(a + b + c + a)
 
 e1 = ExprCompose(a + b - (c * a) / m | b, a + m)

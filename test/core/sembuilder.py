@@ -8,7 +8,7 @@ from miasm2.core.asmblock import AsmLabel
 # Test classes
 class IR(object):
 
-    IRDst = m2_expr.ExprId("IRDst")
+    IRDst = m2_expr.ExprId("IRDst", 32)
 
     def get_next_instr(self, _):
         return AsmLabel("NEXT")
@@ -41,9 +41,9 @@ def test(Arg1, Arg2, Arg3):
     else:
         alias = {i16(4), i8(5)}
 
-a = m2_expr.ExprId('A')
-b = m2_expr.ExprId('B')
-c = m2_expr.ExprId('C')
+a = m2_expr.ExprId('A', 32)
+b = m2_expr.ExprId('B', 32)
+c = m2_expr.ExprId('C', 32)
 ir = IR()
 instr = Instr()
 res = test(ir, instr, a, b, c)

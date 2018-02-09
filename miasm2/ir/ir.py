@@ -765,7 +765,7 @@ class IntermediateRepresentation(object):
             for dst in self.dst_trackback(block):
                 if dst.is_int():
                     dst_lbl = self.symbol_pool.getby_offset_create(int(dst))
-                    dst = m2_expr.ExprId(dst_lbl)
+                    dst = m2_expr.ExprId(dst_lbl, self.pc.size)
                 if expr_is_label(dst):
                     self._graph.add_edge(lbl, dst.name)
 

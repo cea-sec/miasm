@@ -30,7 +30,7 @@ def simp_add_mul(expr_simp, expr):
         # Do not simplify
         return expr
 
-a = m2_expr.ExprId('a')
+a = m2_expr.ExprId('a', 32)
 base_expr = a + a + a
 print "Without adding the simplification:"
 print "\t%s = %s" % (base_expr, expr_simp(base_expr))
