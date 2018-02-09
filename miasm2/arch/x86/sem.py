@@ -4226,7 +4226,7 @@ def _signed_saturation(expr, dst_size):
     min_int = m2_expr.ExprInt(- median, dst_size)
     max_int = m2_expr.ExprInt(median - 1, dst_size)
     signed = expr.msb()
-    value_unsigned = expr ^ expr.mask + m2_expr.ExprInt(1, expr.size)
+    value_unsigned = (expr ^ expr.mask) + m2_expr.ExprInt(1, expr.size)
     # Re-use the sign bit
     value = m2_expr.ExprCompose(expr[:dst_size - 1], signed)
 
@@ -4234,7 +4234,7 @@ def _signed_saturation(expr, dst_size):
     # ie., in unsigned, 0xXY > 0x0f iff X is not null
 
     # if expr >s 0
-    #    if expr[dst_size:] > 0: # bigger than max_int
+    #    if expr[dst_size - 1:] > 0: # bigger than max_int
     #        -> max_int
     #    else
     #        -> value
@@ -4246,10 +4246,10 @@ def _signed_saturation(expr, dst_size):
 
     return m2_expr.ExprCond(
         signed,
-        m2_expr.ExprCond(value_unsigned[dst_size:],
+        m2_expr.ExprCond(value_unsigned[dst_size - 1:],
                          min_int,
                          value),
-        m2_expr.ExprCond(expr[dst_size:],
+        m2_expr.ExprCond(expr[dst_size - 1:],
                          max_int,
                          value),
     )
@@ -4304,7 +4304,7 @@ def packuswb(ir, instr, dst, src):
     return [m2_expr.ExprAff(dst, m2_expr.ExprCompose(*out))], []
 
 
-def _saturation_sub(expr):
+def _saturation_sub_unsigned(expr):
     assert expr.is_op("+") and len(expr.args) == 2 and expr.args[-1].is_op("-")
 
     # Compute the soustraction on one more bit to be able to distinguish cases:
@@ -4312,6 +4312,14 @@ def _saturation_sub(expr):
     arg1 = expr.args[0].zeroExtend(expr.size + 1)
     arg2 = expr.args[1].args[0].zeroExtend(expr.size + 1)
     return _unsigned_saturation(arg1 - arg2, expr.size)
+
+def _saturation_sub_signed(expr):
+    assert expr.is_op("+") and len(expr.args) == 2 and expr.args[-1].is_op("-")
+
+    # Compute the substraction on two more bits, see _saturation_sub_unsigned
+    arg1 = expr.args[0].signExtend(expr.size + 2)
+    arg2 = expr.args[1].args[0].signExtend(expr.size + 2)
+    return _signed_saturation(arg1 - arg2, expr.size)
 
 def _saturation_add(expr):
     assert expr.is_op("+") and len(expr.args) == 2
@@ -4333,10 +4341,12 @@ def _saturation_add(expr):
 
 # Saturate SSE operations
 
-psubusb = vec_vertical_instr('-', 8, _saturation_sub)
-psubusw = vec_vertical_instr('-', 16, _saturation_sub)
+psubusb = vec_vertical_instr('-', 8, _saturation_sub_unsigned)
+psubusw = vec_vertical_instr('-', 16, _saturation_sub_unsigned)
 paddusb = vec_vertical_instr('+', 8, _saturation_add)
 paddusw = vec_vertical_instr('+', 16, _saturation_add)
+psubsb = vec_vertical_instr('-', 8, _saturation_sub_signed)
+psubsw = vec_vertical_instr('-', 16, _saturation_sub_signed)
 
 
 mnemo_func = {'mov': mov,
@@ -4860,6 +4870,8 @@ mnemo_func = {'mov': mov,
               "psubusw": psubusw,
               "paddusb": paddusb,
               "paddusw": paddusw,
+              "psubsb": psubsb,
+              "psubsw": psubsw,
 
               "smsw": smsw,
 

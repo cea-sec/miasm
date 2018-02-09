@@ -4494,6 +4494,15 @@ addop("psubusw", [bs8(0x0f), bs8(0xd9), no_xmm_pref] +
       rmmod(mm_reg, rm_arg_mm_m64))
 addop("psubusw", [bs8(0x0f), bs8(0xd9), pref_66] +
       rmmod(xmm_reg, rm_arg_xmm_m128))
+addop("psubsb", [bs8(0x0f), bs8(0xe8), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm_m64))
+addop("psubsb", [bs8(0x0f), bs8(0xe8), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m128))
+addop("psubsw", [bs8(0x0f), bs8(0xe9), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm_m64))
+addop("psubsw", [bs8(0x0f), bs8(0xe9), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m128))
+
 
 addop("paddusb", [bs8(0x0f), bs8(0xdc), no_xmm_pref] +
       rmmod(mm_reg, rm_arg_mm_m64))
