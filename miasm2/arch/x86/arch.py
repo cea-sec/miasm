@@ -4539,6 +4539,15 @@ addop("psadbw", [bs8(0x0f), bs8(0xf6), no_xmm_pref] +
 addop("psadbw", [bs8(0x0f), bs8(0xf6), pref_66] +
       rmmod(xmm_reg, rm_arg_xmm_m128))
 
+addop("pavgb", [bs8(0x0f), bs8(0xe0), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm_m64))
+addop("pavgb", [bs8(0x0f), bs8(0xe0), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m128))
+addop("pavgw", [bs8(0x0f), bs8(0xe3), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm_m64))
+addop("pavgw", [bs8(0x0f), bs8(0xe3), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m128))
+
 mn_x86.bintree = factor_one_bit(mn_x86.bintree)
 # mn_x86.bintree = factor_fields_all(mn_x86.bintree)
 """

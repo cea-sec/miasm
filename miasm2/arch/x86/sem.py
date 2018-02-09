@@ -3518,6 +3518,17 @@ def psadbw(ir, instr, dst, src):
 
     return [m2_expr.ExprAff(dst, m2_expr.ExprCompose(*out_dst))], []
 
+def _average(expr):
+    assert expr.is_op("avg") and len(expr.args) == 2
+
+    arg1 = expr.args[0].zeroExtend(expr.size * 2)
+    arg2 = expr.args[1].zeroExtend(expr.size * 2)
+    one = m2_expr.ExprInt(1, arg1.size)
+    # avg(unsigned) = (a + b + 1) >> 1, addition beeing at least on one more bit
+    return ((arg1 + arg2 + one) >> one)[:expr.size]
+
+pavgb = vec_vertical_instr('avg', 8, _average)
+pavgw = vec_vertical_instr('avg', 16, _average)
 
 # Comparisons
 #
@@ -4794,6 +4805,8 @@ mnemo_func = {'mov': mov,
               # SSE
               "pmaddwd": pmaddwd,
               "psadbw": psadbw,
+              "pavgb": pavgb,
+              "pavgw": pavgw,
 
               # Arithmetic (floating-point)
               #
