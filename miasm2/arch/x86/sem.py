@@ -4347,6 +4347,16 @@ def _saturation_add(expr):
     return m2_expr.ExprCond((arg1 + arg2).msb(), m2_expr.ExprInt(-1, expr.size),
                             expr)
 
+def _saturation_add_signed(expr):
+    assert expr.is_op("+") and len(expr.args) == 2
+
+    # Compute the substraction on two more bits, see _saturation_add_unsigned
+
+    arg1 = expr.args[0].signExtend(expr.size + 2)
+    arg2 = expr.args[1].signExtend(expr.size + 2)
+
+    return _signed_saturation(arg1 + arg2, expr.size)
+
 
 # Saturate SSE operations
 
@@ -4356,6 +4366,8 @@ paddusb = vec_vertical_instr('+', 8, _saturation_add)
 paddusw = vec_vertical_instr('+', 16, _saturation_add)
 psubsb = vec_vertical_instr('-', 8, _saturation_sub_signed)
 psubsw = vec_vertical_instr('-', 16, _saturation_sub_signed)
+paddsb = vec_vertical_instr('+', 8, _saturation_add_signed)
+paddsw = vec_vertical_instr('+', 16, _saturation_add_signed)
 
 
 mnemo_func = {'mov': mov,
@@ -4881,6 +4893,8 @@ mnemo_func = {'mov': mov,
               "paddusw": paddusw,
               "psubsb": psubsb,
               "psubsw": psubsw,
+              "paddsb": paddsb,
+              "paddsw": paddsw,
 
               "smsw": smsw,
 
