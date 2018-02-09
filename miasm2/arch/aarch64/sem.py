@@ -3,7 +3,7 @@ from miasm2.ir.ir import IntermediateRepresentation, IRBlock, AssignBlock
 from miasm2.arch.aarch64.arch import mn_aarch64, conds_expr, replace_regs
 from miasm2.arch.aarch64.regs import *
 from miasm2.core.sembuilder import SemBuilder
-from miasm2.jitter.csts import EXCEPT_DIV_BY_ZERO
+from miasm2.jitter.csts import EXCEPT_DIV_BY_ZERO, EXCEPT_INT_XX
 
 
 # CPSR: N Z C V
@@ -150,6 +150,7 @@ ctx = {"PC": PC,
        "exception_flags": exception_flags,
        "interrupt_num": interrupt_num,
        "EXCEPT_DIV_BY_ZERO": EXCEPT_DIV_BY_ZERO,
+       "EXCEPT_INT_XX": EXCEPT_INT_XX,
        }
 
 sbuild = SemBuilder(ctx)
@@ -720,6 +721,12 @@ def nop():
 def extr(arg1, arg2, arg3, arg4):
     compose = m2_expr.ExprCompose(arg2, arg3)
     arg1 = compose[int(arg4.arg):int(arg4)+arg1.size]
+
+
+@sbuild.parse
+def svc(arg1):
+    exception_flags = m2_expr.ExprInt(EXCEPT_INT_XX, exception_flags.size)
+    interrupt_num = m2_expr.ExprInt(int(arg1), interrupt_num.size)
 
 mnemo_func = sbuild.functions
 mnemo_func.update({
