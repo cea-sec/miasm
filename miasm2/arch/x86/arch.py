@@ -4553,6 +4553,8 @@ addop("maskmovq", [bs8(0x0f), bs8(0xf7), no_xmm_pref] +
 addop("maskmovdqu", [bs8(0x0f), bs8(0xf7), pref_66] +
       rmmod(xmm_reg, rm_arg_xmm_reg))
 
+addop("emms", [bs8(0x0f), bs8(0x77)])
+
 
 mn_x86.bintree = factor_one_bit(mn_x86.bintree)
 # mn_x86.bintree = factor_fields_all(mn_x86.bintree)

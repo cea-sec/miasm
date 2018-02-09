@@ -4447,6 +4447,11 @@ def maskmovq(ir, instr, src, mask):
     return e, blks
 
 
+def emms(ir, instr):
+    # Implemented as a NOP
+    return [], []
+
+
 mnemo_func = {'mov': mov,
               'xchg': xchg,
               'movzx': movzx,
@@ -4984,6 +4989,7 @@ mnemo_func = {'mov': mov,
               "smsw": smsw,
               "maskmovq": maskmovq,
               "maskmovdqu": maskmovq,
+              "emms": emms,
               }
 
 

@@ -3074,6 +3074,9 @@ reg_tests = [
      "0ff7d3"),
     (m32, "00000000    MASKMOVDQU XMM4, XMM5",
      "660ff7e5"),
+
+    (m32, "00000000    EMMS",
+     "0f77"),
 ]
 
 
