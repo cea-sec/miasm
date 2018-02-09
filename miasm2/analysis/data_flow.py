@@ -6,7 +6,7 @@ from miasm2.ir.ir import AssignBlock, IRBlock
 
 class ReachingDefinitions(dict):
     """
-    Computes for each instruction the set of reaching definitions.
+    Computes for each assignblock the set of reaching definitions.
     Example:
     IR block:
     lbl0:
@@ -26,7 +26,7 @@ class ReachingDefinitions(dict):
     IBM Thomas J. Watson Research Division,  Algorithm MK
 
     This class is usable as a dictionnary whose struture is
-    { (block, instr_index): { lvalue: set((block, instr_index)) } }
+    { (block, index): { lvalue: set((block, index)) } }
     """
 
     ir_a = None
@@ -36,12 +36,12 @@ class ReachingDefinitions(dict):
         self.ir_a = ir_a
         self.compute()
 
-    def get_definitions(self, block_lbl, instruction):
-        """Returns the dict { lvalue: set((def_block_lbl, def_instr_index)) }
-        associated with self.ir_a.@block.irs[@instruction]
+    def get_definitions(self, block_lbl, assignblk_index):
+        """Returns the dict { lvalue: set((def_block_lbl, def_index)) }
+        associated with self.ir_a.@block.assignblks[@assignblk_index]
         or {} if it is not yet computed
         """
-        return self.get((block_lbl, instruction), {})
+        return self.get((block_lbl, assignblk_index), {})
 
     def compute(self):
         """This is the main fixpoint"""
@@ -54,12 +54,12 @@ class ReachingDefinitions(dict):
     def process_block(self, block):
         """
         Fetch reach definitions from predecessors and propagate it to
-        the instruction in block @block.
+        the assignblk in block @block.
         """
         predecessor_state = {}
         for pred_lbl in self.ir_a.graph.predecessors(block.label):
             pred = self.ir_a.blocks[pred_lbl]
-            for lval, definitions in self.get_definitions(pred_lbl, len(pred.irs)).iteritems():
+            for lval, definitions in self.get_definitions(pred_lbl, len(pred)).iteritems():
                 predecessor_state.setdefault(lval, set()).update(definitions)
 
         modified = self.get((block.label, 0)) != predecessor_state
@@ -67,33 +67,33 @@ class ReachingDefinitions(dict):
             return False
         self[(block.label, 0)] = predecessor_state
 
-        for instr_index in xrange(len(block.irs)):
-            modified |= self.process_instruction(block, instr_index)
+        for index in xrange(len(block)):
+            modified |= self.process_assignblock(block, index)
         return modified
 
-    def process_instruction(self, block, instr_index):
+    def process_assignblock(self, block, assignblk_index):
         """
         Updates the reach definitions with values defined at
-        instruction @instr_index in block @block.
-        NB: the effect of instruction @instr_index in stored at index
-        (@block, @instr_index + 1).
+        assignblock @assignblk_index in block @block.
+        NB: the effect of assignblock @assignblk_index in stored at index
+        (@block, @assignblk_index + 1).
         """
 
-        instr = block.irs[instr_index]
-        defs = self.get_definitions(block.label, instr_index).copy()
-        for lval in instr:
-            defs.update({lval: set([(block.label, instr_index)])})
+        assignblk = block[assignblk_index]
+        defs = self.get_definitions(block.label, assignblk_index).copy()
+        for lval in assignblk:
+            defs.update({lval: set([(block.label, assignblk_index)])})
 
-        modified = self.get((block.label, instr_index + 1)) != defs
+        modified = self.get((block.label, assignblk_index + 1)) != defs
         if modified:
-            self[(block.label, instr_index + 1)] = defs
+            self[(block.label, assignblk_index + 1)] = defs
 
         return modified
 
 ATTR_DEP = {"color" : "black",
             "_type" : "data"}
 
-InstrNode = namedtuple('InstructionNode', ['label', 'index', 'var'])
+AssignblkNode = namedtuple('AssignblkNode', ['label', 'index', 'var'])
 
 class DiGraphDefUse(DiGraph):
     """Representation of a Use-Definition graph as defined by
@@ -148,18 +148,18 @@ class DiGraphDefUse(DiGraph):
                                         deref_mem=deref_mem)
 
     def _compute_def_use_block(self, block, reaching_defs, deref_mem=False):
-        for ind, instr in enumerate(block.irs):
-            instruction_reaching_defs = reaching_defs.get_definitions(block.label, ind)
-            for lval, expr in instr.iteritems():
-                self.add_node(InstrNode(block.label, ind, lval))
+        for index, assignblk in enumerate(block):
+            assignblk_reaching_defs = reaching_defs.get_definitions(block.label, index)
+            for lval, expr in assignblk.iteritems():
+                self.add_node(AssignblkNode(block.label, index, lval))
 
                 read_vars = expr.get_r(mem_read=deref_mem)
                 if deref_mem and lval.is_mem():
                     read_vars.update(lval.arg.get_r(mem_read=deref_mem))
                 for read_var in read_vars:
-                    for reach in instruction_reaching_defs.get(read_var, set()):
-                        self.add_data_edge(InstrNode(reach[0], reach[1], read_var),
-                                           InstrNode(block.label, ind, lval))
+                    for reach in assignblk_reaching_defs.get(read_var, set()):
+                        self.add_data_edge(AssignblkNode(reach[0], reach[1], read_var),
+                                           AssignblkNode(block.label, index, lval))
 
     def del_edge(self, src, dst):
         super(DiGraphDefUse, self).del_edge(src, dst)
@@ -178,25 +178,25 @@ class DiGraphDefUse(DiGraph):
         self.add_uniq_labeled_edge(src, dst, ATTR_DEP)
 
     def node2lines(self, node):
-        lbl, ind, reg = node
-        yield self.DotCellDescription(text="%s (%s)" % (lbl, ind),
+        lbl, index, reg = node
+        yield self.DotCellDescription(text="%s (%s)" % (lbl, index),
                                       attr={'align': 'center',
                                             'colspan': 2,
                                             'bgcolor': 'grey'})
-        src = self._blocks[lbl].irs[ind][reg]
+        src = self._blocks[lbl][index][reg]
         line = "%s = %s" % (reg, src)
         yield self.DotCellDescription(text=line, attr={})
         yield self.DotCellDescription(text="", attr={})
 
 
-def dead_simp_useful_instrs(defuse, reaching_defs):
+def dead_simp_useful_assignblks(defuse, reaching_defs):
     """Mark useful statements using previous reach analysis and defuse
 
     Source : Kennedy, K. (1979). A survey of data flow analysis techniques.
     IBM Thomas J. Watson Research Division,  Algorithm MK
 
-    Return a set of triplets (block, instruction number, instruction) of
-    useful instructions
+    Return a set of triplets (block, assignblk number, lvalue) of
+    useful definitions
     PRE: compute_reach(self)
 
     """
@@ -215,20 +215,20 @@ def dead_simp_useful_instrs(defuse, reaching_defs):
         # Block has a nonexistant successor or is a leaf
         if keep_all_definitions or (len(successors) == 0):
             valid_definitions = reaching_defs.get_definitions(block_lbl,
-                                                              len(block.irs))
+                                                              len(block))
             for lval, definitions in valid_definitions.iteritems():
                 if (lval in ir_a.get_out_regs(block)
                     or keep_all_definitions):
                     for definition in definitions:
-                        useful.add(InstrNode(definition[0], definition[1], lval))
+                        useful.add(AssignblkNode(definition[0], definition[1], lval))
 
         # Force keeping of specific cases
-        for instr_index, instr in enumerate(block.irs):
-            for lval, rval in instr.iteritems():
+        for index, assignblk in enumerate(block):
+            for lval, rval in assignblk.iteritems():
                 if (lval.is_mem()
                     or ir_a.IRDst == lval
                     or rval.is_function_call()):
-                    useful.add(InstrNode(block_lbl, instr_index, lval))
+                    useful.add(AssignblkNode(block_lbl, index, lval))
 
     # Useful nodes dependencies
     for node in useful:
@@ -237,22 +237,27 @@ def dead_simp_useful_instrs(defuse, reaching_defs):
 
 def dead_simp(ir_a):
     """
+    Remove useless affectations.
+
     This function is used to analyse relation of a * complete function *
     This means the blocks under study represent a solid full function graph.
 
     Source : Kennedy, K. (1979). A survey of data flow analysis techniques.
     IBM Thomas J. Watson Research Division, page 43
+
+    @ir_a: IntermediateRepresentation instance
     """
+
     modified = False
     reaching_defs = ReachingDefinitions(ir_a)
     defuse = DiGraphDefUse(reaching_defs, deref_mem=True)
-    useful = set(dead_simp_useful_instrs(defuse, reaching_defs))
+    useful = set(dead_simp_useful_assignblks(defuse, reaching_defs))
     for block in ir_a.blocks.itervalues():
         irs = []
-        for idx, assignblk in enumerate(block.irs):
+        for idx, assignblk in enumerate(block):
             new_assignblk = dict(assignblk)
             for lval in assignblk:
-                if InstrNode(block.label, idx, lval) not in useful:
+                if AssignblkNode(block.label, idx, lval) not in useful:
                     del new_assignblk[lval]
                     modified = True
             irs.append(AssignBlock(new_assignblk, assignblk.instr))

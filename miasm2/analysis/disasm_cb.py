@@ -39,7 +39,7 @@ def arm_guess_subcall(
         # print irblock
         pc_val = None
         lr_val = None
-        for exprs in irblock.irs:
+        for exprs in irblock:
             for e in exprs:
                 if e.dst == ir_arch.pc:
                     pc_val = e.src
@@ -84,7 +84,7 @@ def arm_guess_jump_table(
         # print irblock
         pc_val = None
         # lr_val = None
-        for exprs in irblock.irs:
+        for exprs in irblock:
             for e in exprs:
                 if e.dst == ir_arch.pc:
                     pc_val = e.src

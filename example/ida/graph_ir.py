@@ -40,7 +40,7 @@ def color_irblock(irblock, ir_arch):
     out = []
     lbl = idaapi.COLSTR(str(irblock.label), idaapi.SCOLOR_INSN)
     out.append(lbl)
-    for assignblk in irblock.irs:
+    for assignblk in irblock:
         for dst, src in sorted(assignblk.iteritems()):
             dst_f = expr2colorstr(ir_arch.arch.regs.all_regs_ids, dst)
             src_f = expr2colorstr(ir_arch.arch.regs.all_regs_ids, src)
@@ -148,7 +148,7 @@ def build_graph(verbose=False, simplify=False):
 
     for irb in ir_arch.blocks.itervalues():
         irs = []
-        for assignblk in irb.irs:
+        for assignblk in irb:
             new_assignblk = {
                 expr_simp(dst): expr_simp(src)
                 for dst, src in assignblk.iteritems()

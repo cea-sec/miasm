@@ -42,12 +42,12 @@ class mipsCGen(CGen):
         irblocks_list = super(mipsCGen, self).block2assignblks(block)
         for irblocks in irblocks_list:
             for blk_idx, irblock in enumerate(irblocks):
-                has_breakflow = any(assignblock.instr.breakflow() for assignblock in irblock.irs)
+                has_breakflow = any(assignblock.instr.breakflow() for assignblock in irblock)
                 if not has_breakflow:
                     continue
 
                 irs = []
-                for assignblock in irblock.irs:
+                for assignblock in irblock:
                     if self.ir_arch.pc not in assignblock:
                         irs.append(AssignBlock(assignments, assignblock.instr))
                         continue

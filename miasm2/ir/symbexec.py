@@ -524,7 +524,7 @@ class SymbolicExecutionEngine(object):
         @irb: irbloc instance
         @step: display intermediate steps
         """
-        for assignblk in irb.irs:
+        for assignblk in irb:
             if step:
                 print 'Instr', assignblk.instr
                 print 'Assignblk:'

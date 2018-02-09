@@ -73,7 +73,7 @@ class SymbExecStateFix(SymbolicExecutionEngine):
         self.cst_propag_link = cst_propag_link
 
     def propag_expr_cst(self, expr):
-        """Propagate consttant expressions in @expr
+        """Propagate constant expressions in @expr
         @expr: Expression to update"""
         elements = expr.get_r(mem_read=True)
         to_propag = {}
@@ -93,7 +93,7 @@ class SymbExecStateFix(SymbolicExecutionEngine):
         @step: display intermediate steps
         """
         assignblks = []
-        for index, assignblk in enumerate(irb.irs):
+        for index, assignblk in enumerate(irb):
             new_assignblk = {}
             links = {}
             for dst, src in assignblk.iteritems():

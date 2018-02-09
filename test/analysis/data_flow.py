@@ -635,7 +635,7 @@ G17_EXP_IRB0 = gen_irblock(LBL0, [[],
                                    ExprAff(b, a),
                                    ExprAff(c, b)],
 
-                                  G17_IRB0.irs[14]
+                                  G17_IRB0[14]
                                   # Trick because a+b+c != ((a+b)+c)
                                  ])
 
@@ -684,4 +684,4 @@ for test_nb, test in enumerate([(G1_IRA, G1_EXP_IRA),
     # Check that each expr in the blocks are the same
     for lbl, irb in g_ira.blocks.iteritems():
         exp_irb = g_exp_ira.blocks[lbl]
-        assert exp_irb.irs == irb.irs
+        assert exp_irb.assignblks == irb.assignblks

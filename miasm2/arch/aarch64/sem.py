@@ -827,7 +827,7 @@ class ir_aarch64l(IntermediateRepresentation):
 
     def irbloc_fix_regs_for_mode(self, irblock, mode=64):
         irs = []
-        for assignblk in irblock.irs:
+        for assignblk in irblock:
             new_assignblk = dict(assignblk)
             for dst, src in assignblk.iteritems():
                 del(new_assignblk[dst])
@@ -870,7 +870,7 @@ class ir_aarch64l(IntermediateRepresentation):
         new_irblocks = []
         for irblock in extra_ir:
             irs = []
-            for assignblk in irblock.irs:
+            for assignblk in irblock:
                 new_dsts = {dst:src for dst, src in assignblk.iteritems()
                                 if dst not in regs_to_fix}
                 irs.append(AssignBlock(new_dsts, assignblk.instr))

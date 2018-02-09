@@ -74,14 +74,14 @@ dg = DependencyGraph(ir_arch, implicit=args.implicit,
 # Build information
 target_addr = int(args.target_addr, 0)
 current_block = list(ir_arch.getby_offset(target_addr))[0]
-line_nb = 0
-for line_nb, assignblk in enumerate(current_block.irs):
+assignblk_index = 0
+for assignblk_index, assignblk in enumerate(current_block):
     if assignblk.instr.offset == target_addr:
         break
 
 # Enumerate solutions
 json_solutions = []
-for sol_nb, sol in enumerate(dg.get(current_block.label, elements, line_nb, set())):
+for sol_nb, sol in enumerate(dg.get(current_block.label, elements, assignblk_index, set())):
     fname = "sol_%d.dot" % sol_nb
     with open(fname, "w") as fdesc:
             fdesc.write(sol.graph.dot())

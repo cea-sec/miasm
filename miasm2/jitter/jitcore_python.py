@@ -72,7 +72,7 @@ class JitCore_Python(jitcore.JitCore):
                 exec_engine.update_engine_from_cpu()
 
                 # Execute current ir bloc
-                for assignblk in irb.irs:
+                for assignblk in irb:
                     instr = assignblk.instr
                     # For each new instruction (in assembly)
                     if instr.offset not in offsets_jitted:
