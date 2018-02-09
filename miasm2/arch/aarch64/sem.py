@@ -199,7 +199,7 @@ def orn(arg1, arg2, arg3):
 @sbuild.parse
 def bic(arg1, arg2, arg3):
     arg1 = arg2 & (~extend_arg(arg2, arg3))
-    
+
 
 def bics(ir, instr, arg1, arg2, arg3):
     e = []
@@ -746,9 +746,9 @@ mnemo_func.update({
     'b.le': b_le,
     'b.ls': b_ls,
     'b.lt': b_lt,
-    
+
     'bics': bics,
-    
+
     'ret': ret,
     'stp': stp,
     'ldp': ldp,
@@ -817,7 +817,6 @@ class ir_aarch64l(IntermediateRepresentation):
         instr_ir, extra_ir = get_mnemo_expr(self, instr, *args)
         self.mod_pc(instr, instr_ir, extra_ir)
         instr_ir, extra_ir = self.del_dst_zr(instr, instr_ir, extra_ir)
-
         return instr_ir, extra_ir
 
     def expr_fix_regs_for_mode(self, e):
