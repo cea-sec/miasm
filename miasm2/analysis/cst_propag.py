@@ -73,7 +73,7 @@ class SymbExecStateFix(SymbolicExecutionEngine):
         self.cst_propag_link = cst_propag_link
 
     def propag_expr_cst(self, expr):
-        """Propagate consttant expressions in @expr
+        """Propagate constant expressions in @expr
         @expr: Expression to update"""
         elements = expr.get_r(mem_read=True)
         to_propag = {}
