@@ -3403,6 +3403,14 @@ def _keep_mul_high(expr, signed=False):
         arg2 = expr.args[1].zeroExtend(expr.size * 2)
     return m2_expr.ExprOp("*", arg1, arg2)[expr.size:]
 
+def _signed_min(expr):
+    assert expr.is_op("min") and len(expr.args) == 2
+    return m2_expr.ExprCond(
+        m2_expr.expr_is_signed_lower(expr.args[1], expr.args[0]),
+        expr.args[1],
+        expr.args[0],
+    )
+
 # Integer arithmetic
 #
 
@@ -3440,6 +3448,13 @@ pmulhb = vec_vertical_instr('*', 8, lambda x: _keep_mul_high(x, signed=True))
 pmulhw = vec_vertical_instr('*', 16, lambda x: _keep_mul_high(x, signed=True))
 pmulhd = vec_vertical_instr('*', 32, lambda x: _keep_mul_high(x, signed=True))
 pmulhq = vec_vertical_instr('*', 64, lambda x: _keep_mul_high(x, signed=True))
+
+# Comparisons
+#
+
+# SSE
+pminsw = vec_vertical_instr('min', 16, _signed_min)
+
 
 # Floating-point arithmetic
 #
@@ -3488,12 +3503,6 @@ def por(_, instr, dst, src):
     e = []
     result = dst | src
     e.append(m2_expr.ExprAff(dst, result))
-    return e, []
-
-
-def pminsw(_, instr, dst, src):
-    e = []
-    e.append(m2_expr.ExprAff(dst, m2_expr.ExprCond((dst - src).msb(), dst, src)))
     return e, []
 
 
