@@ -126,11 +126,14 @@ def extend_arg(dst, arg):
     op, (reg, shift) = arg.op, arg.args
     if op == 'SXTW':
         base = reg.signExtend(dst.size)
-    else:
+        op = "<<"
+    elif op in ['<<', '>>', '<<a', 'a>>', '<<<', '>>>']:
         base = reg.zeroExtend(dst.size)
+    else:
+        raise NotImplementedError('Unknown shifter operator')
 
-    out = base << (shift.zeroExtend(dst.size)
-                   & m2_expr.ExprInt(dst.size - 1, dst.size))
+    out = ExprOp(op, base, (shift.zeroExtend(dst.size)
+                            & m2_expr.ExprInt(dst.size - 1, dst.size)))
     return out
 
 
