@@ -3494,6 +3494,31 @@ def pmaddwd(ir, instr, dst, src):
     return [m2_expr.ExprAff(dst, m2_expr.ExprCompose(*out))], []
 
 
+def _absolute(expr):
+    """Return abs(@expr)"""
+    signed = expr.msb()
+    value_unsigned = (expr ^ expr.mask) + m2_expr.ExprInt(1, expr.size)
+    return m2_expr.ExprCond(signed, value_unsigned, expr)
+
+
+def psadbw(ir, instr, dst, src):
+    sizedst = 16
+    sizesrc = 8
+    out_dst = []
+    for start in xrange(0, dst.size, 64):
+        out = []
+        for src_start in xrange(0, 64, sizesrc):
+            beg = start + src_start
+            end = beg + sizesrc
+            # Not clear in the doc equations, but in the text, src and dst are:
+            # "8 unsigned byte integers"
+            out.append(_absolute(dst[beg: end].zeroExtend(sizedst) - src[beg: end].zeroExtend(sizedst)))
+        out_dst.append(m2_expr.ExprOp("+", *out))
+        out_dst.append(m2_expr.ExprInt(0, 64 - sizedst))
+
+    return [m2_expr.ExprAff(dst, m2_expr.ExprCompose(*out_dst))], []
+
+
 # Comparisons
 #
 
@@ -4768,6 +4793,7 @@ mnemo_func = {'mov': mov,
               # Mix
               # SSE
               "pmaddwd": pmaddwd,
+              "psadbw": psadbw,
 
               # Arithmetic (floating-point)
               #

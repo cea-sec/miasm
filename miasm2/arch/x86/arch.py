@@ -4534,6 +4534,11 @@ addop("pmaddwd", [bs8(0x0f), bs8(0xf5), no_xmm_pref] +
 addop("pmaddwd", [bs8(0x0f), bs8(0xf5), pref_66] +
       rmmod(xmm_reg, rm_arg_xmm_m128))
 
+addop("psadbw", [bs8(0x0f), bs8(0xf6), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm_m64))
+addop("psadbw", [bs8(0x0f), bs8(0xf6), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m128))
+
 mn_x86.bintree = factor_one_bit(mn_x86.bintree)
 # mn_x86.bintree = factor_fields_all(mn_x86.bintree)
 """
