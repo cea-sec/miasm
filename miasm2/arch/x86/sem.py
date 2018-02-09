@@ -3467,6 +3467,7 @@ pminud = vec_vertical_instr('min', 32, lambda x: _min_max(x, signed=False))
 pmaxub = vec_vertical_instr('max', 8, lambda x: _min_max(x, signed=False))
 pmaxuw = vec_vertical_instr('max', 16, lambda x: _min_max(x, signed=False))
 pmaxud = vec_vertical_instr('max', 32, lambda x: _min_max(x, signed=False))
+pmaxsw = vec_vertical_instr('max', 16, lambda x: _min_max(x, signed=True))
 
 # Floating-point arithmetic
 #
@@ -4783,6 +4784,7 @@ mnemo_func = {'mov': mov,
               "pmaxub": pmaxub,
               "pmaxuw": pmaxuw,
               "pmaxud": pmaxud,
+              "pmaxsw": pmaxsw,
 
               "pminub": pminub,
               "pminuw": pminuw,
