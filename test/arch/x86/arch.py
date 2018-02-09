@@ -2902,11 +2902,11 @@ reg_tests = [
     (m32, "00000000    PEXTRW     WORD PTR [EDX], XMM2, 0x5",
     "660F3A151205"),
 
+    (m32, "00000000    PEXTRW     EAX, MM2, 0x5",
+    "0fc5c205"),
+    (m32, "00000000    PEXTRW     EAX, XMM2, 0x5",
+    "660fc5c205"),
 
-    (m32, "00000000    PEXTRW     WORD PTR [EDX], MM2, 0x5",
-    "0FC51205"),
-    (m32, "00000000    PEXTRW     WORD PTR [EDX], XMM2, 0x5",
-    "660FC51205"),
 
     (m32, "00000000    PEXTRD     DWORD PTR [EDX], XMM2, 0x5",
     "660F3A161205"),
