@@ -21,7 +21,7 @@ class ir_a_mips32l(ir_mips32l, ira):
         for irb in ir_blocks:
             pc_val = None
             lr_val = None
-            for assignblk in irb.assignblks:
+            for assignblk in irb:
                 pc_val = assignblk.get(self.arch.regs.PC, pc_val)
                 lr_val = assignblk.get(self.arch.regs.RA, lr_val)
 

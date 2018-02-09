@@ -34,7 +34,7 @@ class depGraphSettingsForm(ida_kernwin.Form):
                 cur_block = block
         assert cur_block is not None
         line_nb = None
-        for line_nb, assignblk in enumerate(cur_block.assignblks):
+        for line_nb, assignblk in enumerate(cur_block):
             if assignblk.instr.offset == self.address:
                 break
         assert line_nb is not None
@@ -229,7 +229,7 @@ def launch_depgraph():
     for irb in ir_arch.blocks.values():
         irs = []
         fix_stack = irb.label.offset is not None and settings.unalias_stack
-        for assignblk in irb.assignblks:
+        for assignblk in irb:
             if fix_stack:
                 stk_high = m2_expr.ExprInt(idc.GetSpd(assignblk.instr.offset), ir_arch.sp.size)
                 fix_dct = {ir_arch.sp: mn.regs.regs_init[ir_arch.sp] + stk_high}

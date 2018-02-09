@@ -14,7 +14,7 @@ def intra_block_flow_raw(ir_arch, flow_graph, irb, in_nodes, out_nodes):
     Create data flow for an irbloc using raw IR expressions
     """
     current_nodes = {}
-    for i, assignblk in enumerate(irb.assignblks):
+    for i, assignblk in enumerate(irb):
         dict_rw = assignblk.get_rw(cst_read=True)
         if irb.label.offset == 0x13:
             print irb.label

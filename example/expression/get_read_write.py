@@ -16,10 +16,10 @@ l.offset, l.l = 0, 15
 ir_arch.add_instr(l)
 
 print '*' * 80
-for lbl, b in ir_arch.blocks.items():
-    print b
-    for irs in b.assignblks:
-        o_r, o_w = get_rw(irs)
+for lbl, irblock in ir_arch.blocks.items():
+    print irblock
+    for assignblk in irblock:
+        o_r, o_w = get_rw(assignblk)
         print 'read:   ', [str(x) for x in o_r]
         print 'written:', [str(x) for x in o_w]
         print

@@ -114,7 +114,7 @@ class SymbExecCTypeFix(SymbExecCType):
         """
 
         offset2cmt = {}
-        for index, assignblk in enumerate(irb.assignblks):
+        for index, assignblk in enumerate(irb):
             if set(assignblk) == set([self.ir_arch.IRDst, self.ir_arch.pc]):
                 # Don't display on jxx
                 continue

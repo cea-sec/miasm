@@ -132,7 +132,7 @@ def bloc2graph(irgraph, label=False, lines=True):
             label_attr, label_name)
         block_html_lines = []
         if lines and irblock is not None:
-            for assignblk in irblock.assignblks:
+            for assignblk in irblock:
                 for dst, src in assignblk.iteritems():
                     if False:
                         out_render = "%.8X</td><td %s> " % (0, td_attr)
