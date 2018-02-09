@@ -3477,6 +3477,22 @@ def pmuludq(ir, instr, dst, src):
         raise RuntimeError("Unsupported size %d" % dst.size)
     return e, []
 
+# Mix
+#
+
+# SSE
+def pmaddwd(ir, instr, dst, src):
+    sizedst = 32
+    sizesrc = 16
+    out = []
+    for start in xrange(0, dst.size, sizedst):
+        base = start
+        mul1 = src[base: base + sizesrc].signExtend(sizedst) * dst[base: base + sizesrc].signExtend(sizedst)
+        base += sizesrc
+        mul2 = src[base: base + sizesrc].signExtend(sizedst) * dst[base: base + sizesrc].signExtend(sizedst)
+        out.append(mul1 + mul2)
+    return [m2_expr.ExprAff(dst, m2_expr.ExprCompose(*out))], []
+
 
 # Comparisons
 #
@@ -4749,6 +4765,9 @@ mnemo_func = {'mov': mov,
               "pmulhq": pmulhq,
               "pmuludq": pmuludq,
 
+              # Mix
+              # SSE
+              "pmaddwd": pmaddwd,
 
               # Arithmetic (floating-point)
               #
