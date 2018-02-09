@@ -3403,10 +3403,17 @@ def _keep_mul_high(expr, signed=False):
         arg2 = expr.args[1].zeroExtend(expr.size * 2)
     return m2_expr.ExprOp("*", arg1, arg2)[expr.size:]
 
-def _signed_min(expr):
-    assert expr.is_op("min") and len(expr.args) == 2
+# Op, signed => associated comparison
+_min_max_func = {
+    ("min", False): m2_expr.expr_is_unsigned_lower,
+    ("min", True): m2_expr.expr_is_signed_lower,
+    ("max", False): m2_expr.expr_is_unsigned_greater,
+    ("max", True): m2_expr.expr_is_signed_greater,
+}
+def _min_max(expr, signed):
+    assert (expr.is_op("min") or expr.is_op("max")) and len(expr.args) == 2
     return m2_expr.ExprCond(
-        m2_expr.expr_is_signed_lower(expr.args[1], expr.args[0]),
+        _min_max_func[(expr.op, signed)](expr.args[1], expr.args[0]),
         expr.args[1],
         expr.args[0],
     )
@@ -3453,8 +3460,13 @@ pmulhq = vec_vertical_instr('*', 64, lambda x: _keep_mul_high(x, signed=True))
 #
 
 # SSE
-pminsw = vec_vertical_instr('min', 16, _signed_min)
-
+pminsw = vec_vertical_instr('min', 16, lambda x: _min_max(x, signed=True))
+pminub = vec_vertical_instr('min', 8, lambda x: _min_max(x, signed=False))
+pminuw = vec_vertical_instr('min', 16, lambda x: _min_max(x, signed=False))
+pminud = vec_vertical_instr('min', 32, lambda x: _min_max(x, signed=False))
+pmaxub = vec_vertical_instr('max', 8, lambda x: _min_max(x, signed=False))
+pmaxuw = vec_vertical_instr('max', 16, lambda x: _min_max(x, signed=False))
+pmaxud = vec_vertical_instr('max', 32, lambda x: _min_max(x, signed=False))
 
 # Floating-point arithmetic
 #
@@ -3869,62 +3881,6 @@ def iret(ir, instr):
     tmp = mRSP[instr.mode][:size] + m2_expr.ExprInt((2 * size) / 8, size=size)
     exprs += _tpl_eflags(tmp)
     return exprs, []
-
-
-def pmaxu(_, instr, dst, src, size):
-    e = []
-    for i in xrange(0, dst.size, size):
-        op1 = dst[i:i + size]
-        op2 = src[i:i + size]
-        res = op1 - op2
-        # Compote CF in @res = @op1 - @op2
-        ret = (((op1 ^ op2) ^ res) ^ ((op1 ^ res) & (op1 ^ op2))).msb()
-
-        e.append(m2_expr.ExprAff(dst[i:i + size],
-                                 m2_expr.ExprCond(ret,
-                                                  src[i:i + size],
-                                                  dst[i:i + size])))
-    return e, []
-
-
-def pmaxub(ir, instr, dst, src):
-    return pmaxu(ir, instr, dst, src, 8)
-
-
-def pmaxuw(ir, instr, dst, src):
-    return pmaxu(ir, instr, dst, src, 16)
-
-
-def pmaxud(ir, instr, dst, src):
-    return pmaxu(ir, instr, dst, src, 32)
-
-
-def pminu(_, instr, dst, src, size):
-    e = []
-    for i in xrange(0, dst.size, size):
-        op1 = dst[i:i + size]
-        op2 = src[i:i + size]
-        res = op1 - op2
-        # Compote CF in @res = @op1 - @op2
-        ret = (((op1 ^ op2) ^ res) ^ ((op1 ^ res) & (op1 ^ op2))).msb()
-
-        e.append(m2_expr.ExprAff(dst[i:i + size],
-                                 m2_expr.ExprCond(ret,
-                                                  dst[i:i + size],
-                                                  src[i:i + size])))
-    return e, []
-
-
-def pminub(ir, instr, dst, src):
-    return pminu(ir, instr, dst, src, 8)
-
-
-def pminuw(ir, instr, dst, src):
-    return pminu(ir, instr, dst, src, 16)
-
-
-def pminud(ir, instr, dst, src):
-    return pminu(ir, instr, dst, src, 32)
 
 
 def pcmpeq(_, instr, dst, src, size):
