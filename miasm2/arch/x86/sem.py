@@ -4401,6 +4401,52 @@ paddsb = vec_vertical_instr('+', 8, _saturation_add_signed)
 paddsw = vec_vertical_instr('+', 16, _saturation_add_signed)
 
 
+# Others SSE operations
+
+def maskmovq(ir, instr, src, mask):
+    lbl_next = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
+    blks = []
+
+    # For each possibility, check if a write is necessary
+    check_labels = [m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
+                    for _ in xrange(0, mask.size, 8)]
+    # If the write has to be done, do it (otherwise, nothing happen)
+    write_labels = [m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
+                    for _ in xrange(0, mask.size, 8)]
+
+    # Build check blocks
+    for i, start in enumerate(xrange(0, mask.size, 8)):
+        bit = mask[start + 7: start + 8]
+        cur_label = check_labels[i]
+        next_check_label = check_labels[i + 1] if (i + 1) < len(check_labels) else lbl_next
+        write_label = write_labels[i]
+        check = m2_expr.ExprAff(ir.IRDst,
+                                m2_expr.ExprCond(bit,
+                                                 write_label,
+                                                 next_check_label))
+        blks.append(IRBlock(cur_label.name, [AssignBlock([check], instr)]))
+
+    # Build write blocks
+    dst_addr = mRDI[instr.mode]
+    for i, start in enumerate(xrange(0, mask.size, 8)):
+        bit = mask[start + 7: start + 8]
+        cur_label = write_labels[i]
+        next_check_label = check_labels[i + 1] if (i + 1) < len(check_labels) else lbl_next
+        write_addr = dst_addr + m2_expr.ExprInt(i, dst_addr.size)
+
+        # @8[DI/EDI/RDI + i] = src[byte i]
+        write_mem = m2_expr.ExprAff(m2_expr.ExprMem(write_addr, 8),
+                                    src[start: start + 8])
+        jump = m2_expr.ExprAff(ir.IRDst, next_check_label)
+        blks.append(IRBlock(cur_label.name, [AssignBlock([write_mem, jump], instr)]))
+
+    # If mask is null, bypass all
+    e = [m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(mask,
+                                                    check_labels[0],
+                                                    lbl_next))]
+    return e, blks
+
+
 mnemo_func = {'mov': mov,
               'xchg': xchg,
               'movzx': movzx,
@@ -4936,7 +4982,8 @@ mnemo_func = {'mov': mov,
               "paddsw": paddsw,
 
               "smsw": smsw,
-
+              "maskmovq": maskmovq,
+              "maskmovdqu": maskmovq,
               }
 
 
