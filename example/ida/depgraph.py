@@ -110,13 +110,13 @@ Method to use:
         elif mode == 1:
             return value + 1
         else:
-            return len(self.ira.blocks[self.label].assignblks)
+            return len(self.ira.blocks[self.label])
 
     @property
     def elements(self):
         value = self.cbReg.value
         if value in self.stk_args:
-            line = self.ira.blocks[self.label].assignblks[self.line_nb].instr
+            line = self.ira.blocks[self.label][self.line_nb].instr
             arg_num = self.stk_args[value]
             stk_high = m2_expr.ExprInt(idc.GetSpd(line.offset), ir_arch.sp.size)
             stk_off = m2_expr.ExprInt(self.ira.sp.size/8 * arg_num, ir_arch.sp.size)
@@ -174,7 +174,7 @@ def treat_element():
 
     for node in graph.relevant_nodes:
         try:
-            offset = ir_arch.blocks[node.label].assignblks[node.line_nb].instr.offset
+            offset = ir_arch.blocks[node.label][node.line_nb].instr.offset
         except IndexError:
             print "Unable to highlight %s" % node
             continue

@@ -288,6 +288,14 @@ class IRBlock(object):
         """Iterate on assignblks"""
         return self._assignblks.__iter__()
 
+    def __getitem__(self, index):
+        """Getitem on assignblks"""
+        return self._assignblks.__getitem__(index)
+
+    def __len__(self):
+        """Length of assignblks"""
+        return self._assignblks.__len__()
+
     def is_dst_set(self):
         return self._dst is not None
 
@@ -636,7 +644,7 @@ class IntermediateRepresentation(object):
             else:
                 dst = m2_expr.ExprId(next_lbl,
                                      self.pc.size)
-            assignblk = AssignBlock({self.IRDst: dst}, irblock.assignblks[-1].instr)
+            assignblk = AssignBlock({self.IRDst: dst}, irblock[-1].instr)
             ir_blocks[index] = IRBlock(irblock.label, list(irblock.assignblks) + [assignblk])
 
     def post_add_block(self, block, ir_blocks):
@@ -790,9 +798,9 @@ class IntermediateRepresentation(object):
         # Find candidates
         jmp_blocks = set()
         for block in self.blocks.itervalues():
-            if len(block.assignblks) != 1:
+            if len(block) != 1:
                 continue
-            assignblk = block.assignblks[0]
+            assignblk = block[0]
             if len(assignblk) > 1:
                 continue
             assert set(assignblk.keys()) == set([self.IRDst])

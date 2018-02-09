@@ -635,7 +635,7 @@ G17_EXP_IRB0 = gen_irblock(LBL0, [[],
                                    ExprAff(b, a),
                                    ExprAff(c, b)],
 
-                                  G17_IRB0.assignblks[14]
+                                  G17_IRB0[14]
                                   # Trick because a+b+c != ((a+b)+c)
                                  ])
 

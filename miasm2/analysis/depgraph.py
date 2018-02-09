@@ -265,9 +265,9 @@ class DependencyResult(DependencyState):
                 break
             assignmnts = {}
             for element in elements:
-                if element in irb.assignblks[line_nb]:
+                if element in irb[line_nb]:
                     # constants, label, ... are not in destination
-                    assignmnts[element] = irb.assignblks[line_nb][element]
+                    assignmnts[element] = irb[line_nb][element]
             assignblks.append(AssignBlock(assignmnts))
 
         return IRBlock(irb.label, assignblks)
@@ -581,9 +581,9 @@ class DependencyGraph(object):
         @state: instance of DependencyState"""
 
         irb = self._ira.blocks[state.label]
-        line_nb = len(irb.assignblks) if state.line_nb is None else state.line_nb
+        line_nb = len(irb) if state.line_nb is None else state.line_nb
 
-        for cur_line_nb, assignblk in reversed(list(enumerate(irb.assignblks[:line_nb]))):
+        for cur_line_nb, assignblk in reversed(list(enumerate(irb[:line_nb]))):
             self._track_exprs(state, assignblk, cur_line_nb)
 
     def get(self, label, elements, line_nb, heads):

@@ -59,7 +59,7 @@ class ReachingDefinitions(dict):
         predecessor_state = {}
         for pred_lbl in self.ir_a.graph.predecessors(block.label):
             pred = self.ir_a.blocks[pred_lbl]
-            for lval, definitions in self.get_definitions(pred_lbl, len(pred.assignblks)).iteritems():
+            for lval, definitions in self.get_definitions(pred_lbl, len(pred)).iteritems():
                 predecessor_state.setdefault(lval, set()).update(definitions)
 
         modified = self.get((block.label, 0)) != predecessor_state
@@ -67,7 +67,7 @@ class ReachingDefinitions(dict):
             return False
         self[(block.label, 0)] = predecessor_state
 
-        for index in xrange(len(block.assignblks)):
+        for index in xrange(len(block)):
             modified |= self.process_instruction(block, index)
         return modified
 
@@ -79,7 +79,7 @@ class ReachingDefinitions(dict):
         (@block, @assignblk_index + 1).
         """
 
-        instr = block.assignblks[assignblk_index]
+        instr = block[assignblk_index]
         defs = self.get_definitions(block.label, assignblk_index).copy()
         for lval in instr:
             defs.update({lval: set([(block.label, assignblk_index)])})
@@ -183,7 +183,7 @@ class DiGraphDefUse(DiGraph):
                                       attr={'align': 'center',
                                             'colspan': 2,
                                             'bgcolor': 'grey'})
-        src = self._blocks[lbl].assignblks[index][reg]
+        src = self._blocks[lbl][index][reg]
         line = "%s = %s" % (reg, src)
         yield self.DotCellDescription(text=line, attr={})
         yield self.DotCellDescription(text="", attr={})
@@ -215,7 +215,7 @@ def dead_simp_useful_instrs(defuse, reaching_defs):
         # Block has a nonexistant successor or is a leaf
         if keep_all_definitions or (len(successors) == 0):
             valid_definitions = reaching_defs.get_definitions(block_lbl,
-                                                              len(block.assignblks))
+                                                              len(block))
             for lval, definitions in valid_definitions.iteritems():
                 if (lval in ir_a.get_out_regs(block)
                     or keep_all_definitions):
