@@ -3418,6 +3418,7 @@ def _min_max(expr, signed):
         expr.args[0],
     )
 
+
 # Integer arithmetic
 #
 
@@ -3455,6 +3456,27 @@ pmulhb = vec_vertical_instr('*', 8, lambda x: _keep_mul_high(x, signed=True))
 pmulhw = vec_vertical_instr('*', 16, lambda x: _keep_mul_high(x, signed=True))
 pmulhd = vec_vertical_instr('*', 32, lambda x: _keep_mul_high(x, signed=True))
 pmulhq = vec_vertical_instr('*', 64, lambda x: _keep_mul_high(x, signed=True))
+
+def pmuludq(ir, instr, dst, src):
+    e = []
+    if dst.size == 64:
+        e.append(m2_expr.ExprAff(
+            dst,
+            src[:32].zeroExtend(64) * dst[:32].zeroExtend(64)
+        ))
+    elif dst.size == 128:
+        e.append(m2_expr.ExprAff(
+            dst[:64],
+            src[:32].zeroExtend(64) * dst[:32].zeroExtend(64)
+        ))
+        e.append(m2_expr.ExprAff(
+            dst[64:],
+            src[64:96].zeroExtend(64) * dst[64:96].zeroExtend(64)
+        ))
+    else:
+        raise RuntimeError("Unsupported size %d" % dst.size)
+    return e, []
+
 
 # Comparisons
 #
@@ -4725,6 +4747,7 @@ mnemo_func = {'mov': mov,
               "pmulhw": pmulhw,
               "pmulhd": pmulhd,
               "pmulhq": pmulhq,
+              "pmuludq": pmuludq,
 
 
               # Arithmetic (floating-point)

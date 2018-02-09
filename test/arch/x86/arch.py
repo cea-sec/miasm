@@ -3044,6 +3044,11 @@ reg_tests = [
      "0feed9"),
     (m32, "00000000    PMAXSW     XMM0, XMM6",
      "660feec6"),
+
+    (m32, "00000000    PMULUDQ    MM3, MM1",
+     "0ff4d9"),
+    (m32, "00000000    PMULUDQ    XMM0, XMM6",
+     "660ff4c6"),
 ]
 
 
