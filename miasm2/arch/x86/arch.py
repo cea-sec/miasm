@@ -4306,6 +4306,10 @@ addop("pmaxuw", [bs8(0x0f), bs8(0x38), bs8(0x3e), pref_66] +
 addop("pmaxud", [bs8(0x0f), bs8(0x38), bs8(0x3f), pref_66] +
       rmmod(xmm_reg, rm_arg_xmm))
 
+addop("pmaxsw", [bs8(0x0f), bs8(0xee), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm_m64))
+addop("pmaxsw", [bs8(0x0f), bs8(0xee), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m128))
 
 addop("pminub", [bs8(0x0f), bs8(0xda), no_xmm_pref] +
       rmmod(mm_reg, rm_arg_mm))
@@ -4337,6 +4341,11 @@ addop("pcmpeqd", [bs8(0x0f), bs8(0x76), pref_66] +
 addop("pcmpgtb", [bs8(0x0f), bs8(0x64), no_xmm_pref] +
       rmmod(mm_reg, rm_arg_mm))
 addop("pcmpgtb", [bs8(0x0f), bs8(0x64), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm))
+
+addop("pcmpgtw", [bs8(0x0f), bs8(0x65), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm))
+addop("pcmpgtw", [bs8(0x0f), bs8(0x65), pref_66] +
       rmmod(xmm_reg, rm_arg_xmm))
 
 addop("pcmpgtd", [bs8(0x0f), bs8(0x66), no_xmm_pref] +
@@ -4423,9 +4432,9 @@ addop("pextrq", [bs8(0x0f), bs8(0x3a), bs8(0x16), pref_66] +
 addop("pextrw", [bs8(0x0f), bs8(0x3a), bs8(0x15), pref_66] +
       rmmod(xmm_reg, rm_arg_reg_m16) + [u08], [rm_arg_reg_m16, xmm_reg, u08])
 addop("pextrw", [bs8(0x0f), bs8(0xc5), no_xmm_pref] +
-      rmmod(mm_reg, rm_arg_reg_m16) + [u08], [rm_arg_reg_m16, mm_reg, u08])
+      rmmod(rmreg, rm_arg_mm) + [u08], [rmreg, rm_arg_mm, u08])
 addop("pextrw", [bs8(0x0f), bs8(0xc5), pref_66] +
-      rmmod(xmm_reg, rm_arg_reg_m16) + [u08], [rm_arg_reg_m16, xmm_reg, u08])
+      rmmod(rmreg, rm_arg_xmm) + [u08], [rmreg, rm_arg_xmm, u08])
 
 
 addop("sqrtpd", [bs8(0x0f), bs8(0x51), pref_66] +
@@ -4452,6 +4461,100 @@ addop("aesdec", [bs8(0x0f), bs8(0x38), bs8(0xde), pref_66] + rmmod(xmm_reg, rm_a
 
 addop("aesenclast", [bs8(0x0f), bs8(0x38), bs8(0xdd), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
 addop("aesdeclast", [bs8(0x0f), bs8(0x38), bs8(0xdf), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
+
+addop("packsswb", [bs8(0x0f), bs8(0x63), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm_m64))
+addop("packsswb", [bs8(0x0f), bs8(0x63), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m128))
+addop("packssdw", [bs8(0x0f), bs8(0x6b), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm_m64))
+addop("packssdw", [bs8(0x0f), bs8(0x6b), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m128))
+
+addop("packuswb", [bs8(0x0f), bs8(0x67), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm_m64))
+addop("packuswb", [bs8(0x0f), bs8(0x67), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m128))
+
+addop("pmullw", [bs8(0x0f), bs8(0xd5), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm_m64))
+addop("pmullw", [bs8(0x0f), bs8(0xd5), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m128))
+addop("pmulhuw", [bs8(0x0f), bs8(0xe4), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm_m64))
+addop("pmulhuw", [bs8(0x0f), bs8(0xe4), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m128))
+addop("pmulhw", [bs8(0x0f), bs8(0xe5), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm_m64))
+addop("pmulhw", [bs8(0x0f), bs8(0xe5), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m128))
+addop("pmuludq", [bs8(0x0f), bs8(0xf4), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm_m64))
+addop("pmuludq", [bs8(0x0f), bs8(0xf4), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m128))
+
+
+addop("psubusb", [bs8(0x0f), bs8(0xd8), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm_m64))
+addop("psubusb", [bs8(0x0f), bs8(0xd8), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m128))
+addop("psubusw", [bs8(0x0f), bs8(0xd9), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm_m64))
+addop("psubusw", [bs8(0x0f), bs8(0xd9), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m128))
+addop("psubsb", [bs8(0x0f), bs8(0xe8), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm_m64))
+addop("psubsb", [bs8(0x0f), bs8(0xe8), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m128))
+addop("psubsw", [bs8(0x0f), bs8(0xe9), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm_m64))
+addop("psubsw", [bs8(0x0f), bs8(0xe9), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m128))
+
+
+addop("paddusb", [bs8(0x0f), bs8(0xdc), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm_m64))
+addop("paddusb", [bs8(0x0f), bs8(0xdc), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m128))
+addop("paddusw", [bs8(0x0f), bs8(0xdd), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm_m64))
+addop("paddusw", [bs8(0x0f), bs8(0xdd), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m128))
+addop("paddsb", [bs8(0x0f), bs8(0xec), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm_m64))
+addop("paddsb", [bs8(0x0f), bs8(0xec), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m128))
+addop("paddsw", [bs8(0x0f), bs8(0xed), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm_m64))
+addop("paddsw", [bs8(0x0f), bs8(0xed), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m128))
+
+addop("pmaddwd", [bs8(0x0f), bs8(0xf5), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm_m64))
+addop("pmaddwd", [bs8(0x0f), bs8(0xf5), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m128))
+
+addop("psadbw", [bs8(0x0f), bs8(0xf6), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm_m64))
+addop("psadbw", [bs8(0x0f), bs8(0xf6), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m128))
+
+addop("pavgb", [bs8(0x0f), bs8(0xe0), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm_m64))
+addop("pavgb", [bs8(0x0f), bs8(0xe0), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m128))
+addop("pavgw", [bs8(0x0f), bs8(0xe3), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm_m64))
+addop("pavgw", [bs8(0x0f), bs8(0xe3), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m128))
+
+addop("maskmovq", [bs8(0x0f), bs8(0xf7), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm_reg))
+addop("maskmovdqu", [bs8(0x0f), bs8(0xf7), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_reg))
+
+addop("emms", [bs8(0x0f), bs8(0x77)])
+
 
 mn_x86.bintree = factor_one_bit(mn_x86.bintree)
 # mn_x86.bintree = factor_fields_all(mn_x86.bintree)

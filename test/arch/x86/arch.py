@@ -2902,11 +2902,11 @@ reg_tests = [
     (m32, "00000000    PEXTRW     WORD PTR [EDX], XMM2, 0x5",
     "660F3A151205"),
 
+    (m32, "00000000    PEXTRW     EAX, MM2, 0x5",
+    "0fc5c205"),
+    (m32, "00000000    PEXTRW     EAX, XMM2, 0x5",
+    "660fc5c205"),
 
-    (m32, "00000000    PEXTRW     WORD PTR [EDX], MM2, 0x5",
-    "0FC51205"),
-    (m32, "00000000    PEXTRW     WORD PTR [EDX], XMM2, 0x5",
-    "660FC51205"),
 
     (m32, "00000000    PEXTRD     DWORD PTR [EDX], XMM2, 0x5",
     "660F3A161205"),
@@ -2970,6 +2970,113 @@ reg_tests = [
     (m64, "00000000    BNDMOV     BND3, XMMWORD PTR [RSP + 0xB0]",
      "660f1a9c24b0000000"),
 
+    (m32, "00000000    PACKSSWB   MM7, MM0",
+     "0f63f8"),
+    (m32, "00000000    PACKSSWB   XMM0, XMM5",
+     "660f63c5"),
+
+    (m32, "00000000    PACKSSDW   MM2, MM0",
+     "0f6bd0"),
+    (m32, "00000000    PACKSSDW   XMM0, XMM7",
+     "660f6bc7"),
+
+    (m32, "00000000    PACKUSWB   MM1, MM7",
+     "0f67cf"),
+    (m32, "00000000    PACKUSWB   XMM0, XMM6",
+     "660f67c6"),
+
+    (m32, "00000000    PMULLW     MM4, MM2",
+     "0fd5e2"),
+    (m32, "00000000    PMULLW     XMM0, XMM3",
+     "660fd5c3"),
+
+    (m32, "00000000    PSUBUSB    MM5, MM3",
+     "0fd8eb"),
+    (m32, "00000000    PSUBUSB    XMM0, XMM5",
+     "660fd8c5"),
+
+    (m32, "00000000    PSUBUSW    MM5, MM3",
+     "0fd9eb"),
+    (m32, "00000000    PSUBUSW    XMM0, XMM5",
+     "660fd9c5"),
+
+    (m32, "00000000    PADDUSB    MM5, MM3",
+     "0fdceb"),
+    (m32, "00000000    PADDUSB    XMM0, XMM6",
+     "660fdcc6"),
+
+    (m32, "00000000    PADDUSW    MM7, MM5",
+     "0fddfd"),
+    (m32, "00000000    PADDUSW    XMM0, XMM1",
+     "660fddc1"),
+
+    (m32, "00000000    PMULHUW    MM6, MM4",
+     "0fe4f4"),
+    (m32, "00000000    PMULHUW    XMM0, XMM7",
+     "660fe4c7"),
+
+    (m32, "00000000    PMULHW     MM6, MM4",
+     "0fe5f4"),
+    (m32, "00000000    PMULHW     XMM0, XMM7",
+     "660fe5c7"),
+
+    (m32, "00000000    PSUBSB     MM2, MM0",
+     "0fe8d0"),
+    (m32, "00000000    PSUBSB     XMM0, XMM4",
+     "660fe8c4"),
+
+    (m32, "00000000    PSUBSW     MM3, MM1",
+     "0fe9d9"),
+    (m32, "00000000    PSUBSW     XMM0, XMM6",
+     "660fe9c6"),
+
+    (m32, "00000000    PADDSB     MM2, MM0",
+     "0fecd0"),
+    (m32, "00000000    PADDSB     XMM0, XMM4",
+     "660fecc4"),
+
+    (m32, "00000000    PADDSW     MM3, MM1",
+     "0fedd9"),
+    (m32, "00000000    PADDSW     XMM0, XMM6",
+     "660fedc6"),
+
+    (m32, "00000000    PMAXSW     MM3, MM1",
+     "0feed9"),
+    (m32, "00000000    PMAXSW     XMM0, XMM6",
+     "660feec6"),
+
+    (m32, "00000000    PMULUDQ    MM3, MM1",
+     "0ff4d9"),
+    (m32, "00000000    PMULUDQ    XMM0, XMM6",
+     "660ff4c6"),
+
+    (m32, "00000000    PMADDWD    MM3, MM1",
+     "0ff5d9"),
+    (m32, "00000000    PMADDWD    XMM0, XMM6",
+     "660ff5c6"),
+
+    (m32, "00000000    PSADBW     MM3, MM1",
+     "0ff6d9"),
+    (m32, "00000000    PSADBW     XMM0, XMM6",
+     "660ff6c6"),
+
+    (m32, "00000000    PAVGB      MM3, MM1",
+     "0fe0d9"),
+    (m32, "00000000    PAVGB      XMM0, XMM6",
+     "660fe0c6"),
+
+    (m32, "00000000    PAVGW      MM3, MM1",
+     "0fe3d9"),
+    (m32, "00000000    PAVGW      XMM0, XMM6",
+     "660fe3c6"),
+
+    (m32, "00000000    MASKMOVQ   MM2, MM3",
+     "0ff7d3"),
+    (m32, "00000000    MASKMOVDQU XMM4, XMM5",
+     "660ff7e5"),
+
+    (m32, "00000000    EMMS",
+     "0f77"),
 ]
 
 
