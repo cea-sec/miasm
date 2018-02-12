@@ -137,7 +137,7 @@ def simp_cst_propagation(e_s, expr):
         return ExprOp('+', args[0], -args[1])
 
     # A op 0 => 0
-    if op_name in ['&', "*"] and args[1].is_int(0):
+    if op_name in ['&', "*"] and args[-1].is_int(0):
         return ExprInt(0, expr.size)
 
     # - (A + B +...) => -A + -B + -C
