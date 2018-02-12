@@ -3,7 +3,7 @@ from miasm2.ir.ir import IntermediateRepresentation, IRBlock, AssignBlock
 from miasm2.arch.aarch64.arch import mn_aarch64, conds_expr, replace_regs
 from miasm2.arch.aarch64.regs import *
 from miasm2.core.sembuilder import SemBuilder
-from miasm2.jitter.csts import EXCEPT_DIV_BY_ZERO
+from miasm2.jitter.csts import EXCEPT_DIV_BY_ZERO, EXCEPT_INT_XX
 
 
 # CPSR: N Z C V
@@ -126,11 +126,14 @@ def extend_arg(dst, arg):
     op, (reg, shift) = arg.op, arg.args
     if op == 'SXTW':
         base = reg.signExtend(dst.size)
-    else:
+        op = "<<"
+    elif op in ['<<', '>>', '<<a', 'a>>', '<<<', '>>>']:
         base = reg.zeroExtend(dst.size)
+    else:
+        raise NotImplementedError('Unknown shifter operator')
 
-    out = base << (shift.zeroExtend(dst.size)
-                   & m2_expr.ExprInt(dst.size - 1, dst.size))
+    out = ExprOp(op, base, (shift.zeroExtend(dst.size)
+                            & m2_expr.ExprInt(dst.size - 1, dst.size)))
     return out
 
 
@@ -145,7 +148,9 @@ ctx = {"PC": PC,
        "extend_arg": extend_arg,
        "m2_expr":m2_expr,
        "exception_flags": exception_flags,
+       "interrupt_num": interrupt_num,
        "EXCEPT_DIV_BY_ZERO": EXCEPT_DIV_BY_ZERO,
+       "EXCEPT_INT_XX": EXCEPT_INT_XX,
        }
 
 sbuild = SemBuilder(ctx)
@@ -196,7 +201,7 @@ def orn(arg1, arg2, arg3):
 @sbuild.parse
 def bic(arg1, arg2, arg3):
     arg1 = arg2 & (~extend_arg(arg2, arg3))
-    
+
 
 def bics(ir, instr, arg1, arg2, arg3):
     e = []
@@ -717,6 +722,12 @@ def extr(arg1, arg2, arg3, arg4):
     compose = m2_expr.ExprCompose(arg2, arg3)
     arg1 = compose[int(arg4.arg):int(arg4)+arg1.size]
 
+
+@sbuild.parse
+def svc(arg1):
+    exception_flags = m2_expr.ExprInt(EXCEPT_INT_XX, exception_flags.size)
+    interrupt_num = m2_expr.ExprInt(int(arg1), interrupt_num.size)
+
 mnemo_func = sbuild.functions
 mnemo_func.update({
     'and': and_l,
@@ -743,9 +754,9 @@ mnemo_func.update({
     'b.le': b_le,
     'b.ls': b_ls,
     'b.lt': b_lt,
-    
+
     'bics': bics,
-    
+
     'ret': ret,
     'stp': stp,
     'ldp': ldp,
@@ -814,7 +825,6 @@ class ir_aarch64l(IntermediateRepresentation):
         instr_ir, extra_ir = get_mnemo_expr(self, instr, *args)
         self.mod_pc(instr, instr_ir, extra_ir)
         instr_ir, extra_ir = self.del_dst_zr(instr, instr_ir, extra_ir)
-
         return instr_ir, extra_ir
 
     def expr_fix_regs_for_mode(self, e):

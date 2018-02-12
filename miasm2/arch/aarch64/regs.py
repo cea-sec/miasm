@@ -4,6 +4,7 @@ from miasm2.expression.expression import *
 from miasm2.core.cpu import gen_reg, gen_regs
 
 exception_flags = ExprId('exception_flags', 32)
+interrupt_num = ExprId('interrupt_num', 32)
 
 
 gpregs32_str = ["W%d" % i for i in xrange(0x1f)] + ["WSP"]
@@ -86,7 +87,7 @@ all_regs_ids = [
     X0, X1, X2, X3, X4, X5, X6, X7, X8, X9, X10, X11, X12, X13, X14, X15, X16,
     X17, X18, X19, X20, X21, X22, X23, X24, X25, X26, X27, X28, X29, LR, SP,
 
-    exception_flags,
+    exception_flags, interrupt_num,
     PC,
     WZR,
     zf, nf, of, cf,
