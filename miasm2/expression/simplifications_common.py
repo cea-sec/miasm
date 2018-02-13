@@ -48,11 +48,11 @@ def simp_cst_propagation(e_s, expr):
                 tmp2 = mod_size2uint[int2.arg.size](int2.arg)
                 out = mod_size2uint[int1.arg.size](tmp1 >> tmp2)
             elif op_name == '>>>':
-                out = (int1.arg >> (int2.arg % int2.size) |
-                     int1.arg << ((int1.size - int2.arg) % int2.size))
+                shifter = int2.arg % int2.size
+                out = (int1.arg >> shifter) | (int1.arg << (int2.size - shifter))
             elif op_name == '<<<':
-                out = (int1.arg << (int2.arg % int2.size) |
-                     int1.arg >> ((int1.size - int2.arg) % int2.size))
+                shifter = int2.arg % int2.size
+                out = (int1.arg << shifter) | (int1.arg >> (int2.size - shifter))
             elif op_name == '/':
                 out = int1.arg / int2.arg
             elif op_name == '%':
@@ -319,38 +319,6 @@ def simp_cst_propagation(e_s, expr):
             for i, arg in enumerate(new_args):
                 args.append(ExprOp(op_name, *arg))
             return ExprCompose(*args)
-
-    # <<<c_rez, >>>c_rez
-    if op_name in [">>>c_rez", "<<<c_rez"]:
-        assert len(args) == 3
-        dest, rounds, carry_flag = args
-        # Skipped if rounds is 0
-        if rounds.is_int(0):
-            return dest
-        elif all(arg.is_int() for arg in args):
-            # The expression can be resolved
-            tmp = int(dest)
-            carry_flag = int(carry_flag)
-            size = dest.size
-            tmp_count = (int(rounds) &
-                         (0x3f if size == 64 else 0x1f)) % (size + 1)
-            if op_name == ">>>c_rez":
-                while tmp_count != 0:
-                    tmp_cf = tmp & 1;
-                    tmp = (tmp >> 1) + (carry_flag << (size - 1))
-                    carry_flag = tmp_cf
-                    tmp_count -= 1
-                    tmp &= int(dest.mask)
-            elif op_name == "<<<c_rez":
-                while tmp_count != 0:
-                    tmp_cf = (tmp >> (size - 1)) & 1
-                    tmp = (tmp << 1) + carry_flag
-                    carry_flag = tmp_cf
-                    tmp_count -= 1
-                    tmp &= int(dest.mask)
-            else:
-                raise RuntimeError("Unknown operation: %s" % op_name)
-            return ExprInt(tmp, size=dest.size)
 
     return ExprOp(op_name, *args)
 

@@ -760,21 +760,34 @@ uint64_t rot_left(uint64_t size, uint64_t a, uint64_t b)
 {
     uint64_t tmp;
 
-    b = b&0x3F;
+    b = b & 0x3F;
     b %= size;
     switch(size){
 	    case 8:
-		    tmp = (a << b) | ((a&0xFF) >> (size-b));
-		    return tmp&0xff;
+		    tmp = (a << b) | ((a & 0xFF) >> (size - b));
+		    return tmp & 0xFF;
 	    case 16:
-		    tmp = (a << b) | ((a&0xFFFF) >> (size-b));
-		    return tmp&0xffff;
+		    tmp = (a << b) | ((a & 0xFFFF) >> (size - b));
+		    return tmp & 0xFFFF;
 	    case 32:
-		    tmp = (a << b) | ((a&0xFFFFFFFF) >> (size-b));
-		    return tmp&0xffffffff;
+		    tmp = (a << b) | ((a & 0xFFFFFFFF) >> (size - b));
+		    return tmp & 0xFFFFFFFF;
 	    case 64:
-		    tmp = (a << b) | ((a&0xFFFFFFFFFFFFFFFF) >> (size-b));
-		    return tmp&0xFFFFFFFFFFFFFFFF;
+		    tmp = (a << b) | ((a&0xFFFFFFFFFFFFFFFF) >> (size - b));
+		    return tmp & 0xFFFFFFFFFFFFFFFF;
+
+	    /* Support cases for rcl */
+	    case 9:
+		    tmp = (a << b) | ((a & 0x1FF) >> (size - b));
+		    return tmp & 0x1FF;
+	    case 17:
+		    tmp = (a << b) | ((a & 0x1FFFF) >> (size - b));
+		    return tmp & 0x1FFFF;
+	    case 33:
+		    tmp = (a << b) | ((a & 0x1FFFFFFFF) >> (size - b));
+		    return tmp & 0x1FFFFFFFF;
+	    /* TODO XXX: support rcl in 64 bit mode */
+
 	    default:
 		    fprintf(stderr, "inv size in rotleft %"PRIX64"\n", size);
 		    exit(EXIT_FAILURE);
@@ -785,62 +798,38 @@ uint64_t rot_right(uint64_t size, uint64_t a, uint64_t b)
 {
     uint64_t tmp;
 
-    b = b&0x3F;
+    b = b & 0x3F;
     b %= size;
     switch(size){
 	    case 8:
-		    tmp = ((a&0xFF) >> b) | (a << (size-b));
-		    return tmp&0xff;
+		    tmp = ((a & 0xFF) >> b) | (a << (size - b));
+		    return tmp & 0xff;
 	    case 16:
-		    tmp = ((a&0xFFFF) >> b) | (a << (size-b));
-		    return tmp&0xffff;
+		    tmp = ((a & 0xFFFF) >> b) | (a << (size - b));
+		    return tmp & 0xFFFF;
 	    case 32:
-		    tmp = ((a&0xFFFFFFFF) >> b) | (a << (size-b));
-		    return tmp&0xffffffff;
+		    tmp = ((a & 0xFFFFFFFF) >> b) | (a << (size - b));
+		    return tmp & 0xFFFFFFFF;
 	    case 64:
-		    tmp = ((a&0xFFFFFFFFFFFFFFFF) >> b) | (a << (size-b));
-		    return tmp&0xFFFFFFFFFFFFFFFF;
+		    tmp = ((a & 0xFFFFFFFFFFFFFFFF) >> b) | (a << (size - b));
+		    return tmp & 0xFFFFFFFFFFFFFFFF;
+
+	    /* Support cases for rcr */
+	    case 9:
+		    tmp = ((a & 0x1FF) >> b) | (a << (size - b));
+		    return tmp & 0x1FF;
+	    case 17:
+		    tmp = ((a & 0x1FFFF) >> b) | (a << (size - b));
+		    return tmp & 0x1FFFF;
+	    case 33:
+		    tmp = ((a & 0x1FFFFFFFF) >> b) | (a << (size - b));
+		    return tmp & 0x1FFFFFFFF;
+	    /* TODO XXX: support rcr in 64 bit mode */
+
 	    default:
 		    fprintf(stderr, "inv size in rotright %"PRIX64"\n", size);
 		    exit(EXIT_FAILURE);
     }
-}
-
-
-unsigned int rcl_rez_op(unsigned int size, unsigned int a, unsigned int b, unsigned int cf)
-{
-    uint64_t tmp;
-    uint64_t tmp_count;
-    uint64_t tmp_cf;
-
-    tmp = a;
-    // TODO 64bit mode
-    tmp_count = (b & 0x1f) % (size + 1);
-    while (tmp_count != 0) {
-	    tmp_cf = (tmp >> (size - 1)) & 1;
-	    tmp = (tmp << 1) + cf;
-	    cf = tmp_cf;
-	    tmp_count -= 1;
-    }
-    return tmp;
-}
-
-unsigned int rcr_rez_op(unsigned int size, unsigned int a, unsigned int b, unsigned int cf)
-{
-    uint64_t tmp;
-    uint64_t tmp_count;
-    uint64_t tmp_cf;
-
-    tmp = a;
-    // TODO 64bit mode
-    tmp_count = (b & 0x1f) % (size + 1);
-    while (tmp_count != 0) {
-	    tmp_cf = tmp & 1;
-	    tmp = (tmp >> 1) + (cf << (size - 1));
-	    cf = tmp_cf;
-	    tmp_count -= 1;
-    }
-    return tmp;
 }
 
 unsigned int x86_bsr(uint64_t size, uint64_t src)

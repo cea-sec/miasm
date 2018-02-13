@@ -473,21 +473,19 @@ def get_shift(dst, src):
     return shift
 
 
-def _rotate_tpl(ir, instr, dst, src, op, left=False, include_cf=False):
+def _rotate_tpl(ir, instr, dst, src, op, left=False):
     '''Template to generate a rotater with operation @op
     A temporary basic block is generated to handle 0-rotate
     @op: operation to execute
     @left (optional): indicates a left rotate if set, default is False
-    @include_cf (optional): if set, add cf to @op inputs, default is False
     '''
     # Compute results
     shifter = get_shift(dst, src)
-    extended_args = (cf.zeroExtend(dst.size),) if include_cf else ()
-    res = m2_expr.ExprOp(op, dst, shifter, *extended_args)
+    res = m2_expr.ExprOp(op, dst, shifter)
 
     # CF is computed with 1-less round than `res`
     new_cf = m2_expr.ExprOp(
-        op, dst, shifter - m2_expr.ExprInt(1, size=shifter.size), *extended_args)
+        op, dst, shifter - m2_expr.ExprInt(1, size=shifter.size))
     new_cf = new_cf.msb() if left else new_cf[:1]
 
     # OF is defined only for @b == 1
@@ -523,12 +521,49 @@ def l_ror(ir, instr, dst, src):
     return _rotate_tpl(ir, instr, dst, src, '>>>')
 
 
-def rcl(ir, instr, dst, src):
-    return _rotate_tpl(ir, instr, dst, src, '<<<c_rez', left=True, include_cf=True)
+def rotate_with_carry_tpl(ir, instr, op, dst, src):
+    # Compute results
+    shifter = get_shift(dst, src).zeroExtend(dst.size + 1)
+    result = m2_expr.ExprOp(op, m2_expr.ExprCompose(dst, cf), shifter)
 
+    new_cf = result[dst.size:dst.size +1]
+    new_dst = result[:dst.size]
+
+    result_trunc = result[:dst.size]
+    if op == '<<<':
+        of_value = result_trunc.msb() ^ new_cf
+    else:
+        of_value = (dst ^ result_trunc).msb()
+    # OF is defined only for @b == 1
+    new_of = m2_expr.ExprCond(src - m2_expr.ExprInt(1, size=src.size),
+                              m2_expr.ExprInt(0, size=of.size),
+                              of_value)
+
+
+    # Build basic blocks
+    e_do = [m2_expr.ExprAff(cf, new_cf),
+            m2_expr.ExprAff(of, new_of),
+            m2_expr.ExprAff(dst, new_dst)
+            ]
+    # Don't generate conditional shifter on constant
+    if isinstance(shifter, m2_expr.ExprInt):
+        if int(shifter) != 0:
+            return (e_do, [])
+        else:
+            return ([], [])
+    e = []
+    lbl_do = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
+    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
+    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
+    e.append(m2_expr.ExprAff(
+        ir.IRDst, m2_expr.ExprCond(shifter, lbl_do, lbl_skip)))
+    return (e, [IRBlock(lbl_do.name, [AssignBlock(e_do, instr)])])
+
+def rcl(ir, instr, dst, src):
+    return rotate_with_carry_tpl(ir, instr, '<<<', dst, src)
 
 def rcr(ir, instr, dst, src):
-    return _rotate_tpl(ir, instr, dst, src, '>>>c_rez', include_cf=True)
+    return rotate_with_carry_tpl(ir, instr, '>>>', dst, src)
 
 
 def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None, left=False,
