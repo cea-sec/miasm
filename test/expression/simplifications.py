@@ -427,6 +427,36 @@ for e_input, e_check in to_test:
         raise ValueError(
             'bug in expr_simp simp(%s) is %s and should be %s' % (e_input, e_new, e_check))
 
+if args.z3:
+    # This check is done on 32 bits, but the size is not use by Miasm formulas, so
+    # it should be OK for any size > 0
+    x1 = ExprId("x1", 32)
+    x2 = ExprId("x2", 32)
+    i1_tmp = ExprInt(1, 1)
+
+    x1_z3 = trans.from_expr(x1)
+    x2_z3 = trans.from_expr(x2)
+    i1_z3 = trans.from_expr(i1_tmp)
+
+    # (Assumptions, function(arg1, arg2) -> True/False (= i1/i0) to check)
+    tests = [
+        (x1_z3 == x2_z3, expr_is_equal),
+        (x1_z3 != x2_z3, expr_is_not_equal),
+        (z3.UGT(x1_z3, x2_z3), expr_is_unsigned_greater),
+        (z3.UGE(x1_z3, x2_z3), expr_is_unsigned_greater_or_equal),
+        (z3.ULT(x1_z3, x2_z3), expr_is_unsigned_lower),
+        (z3.ULE(x1_z3, x2_z3), expr_is_unsigned_lower_or_equal),
+        (x1_z3 > x2_z3, expr_is_signed_greater),
+        (x1_z3 >= x2_z3, expr_is_signed_greater_or_equal),
+        (x1_z3 < x2_z3, expr_is_signed_lower),
+        (x1_z3 <= x2_z3, expr_is_signed_lower_or_equal),
+    ]
+
+    for assumption, func in tests:
+        solver = z3.Solver()
+        solver.add(assumption)
+        solver.add(trans.from_expr(func(x1, x2)) != i1_z3)
+        assert solver.check() == z3.unsat
 
 
 x = ExprId('x', 32)
