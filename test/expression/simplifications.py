@@ -3,16 +3,22 @@
 #
 from pdb import pm
 from argparse import ArgumentParser
+import logging
 
 from miasm2.expression.expression import *
-from miasm2.expression.simplifications import expr_simp, ExpressionSimplifier
+from miasm2.expression.simplifications import expr_simp, ExpressionSimplifier, log_exprsimp
 from miasm2.expression.simplifications_cond import ExprOp_inf_signed, ExprOp_inf_unsigned, ExprOp_equal
 
 parser = ArgumentParser("Expression simplification regression tests")
 parser.add_argument("--z3", action="store_true", help="Enable check against z3")
+parser.add_argument("-v", "--verbose", action="store_true",
+                    help="Verbose simplify")
 parser.add_argument("--z3-timeout", type=int, help="z3 timeout (in seconds)",
                     default=20)
 args = parser.parse_args()
+
+if args.verbose:
+    log_exprsimp.setLevel(logging.DEBUG)
 
 # Additionnal imports and definitions
 if args.z3:
