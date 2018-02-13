@@ -365,6 +365,14 @@ def simp_cond_factor(e_s, expr):
         return expr
     if len(expr.args) < 2:
         return expr
+
+    if expr.op in ['>>', '<<', 'a>>']:
+        assert len(expr.args) == 2
+
+    # Note: the following code is correct for non-commutative operation only if
+    # there is 2 arguments. Otherwise, the order is not conserved
+
+    # Regroup sub-expression by similar conditions
     conds = {}
     not_conds = []
     multi_cond = False
@@ -380,7 +388,9 @@ def simp_cond_factor(e_s, expr):
         conds[cond].append(arg)
     if not multi_cond:
         return expr
-    c_out = not_conds[:]
+
+    # Rebuild the new expression
+    c_out = not_conds
     for cond, vals in conds.items():
         new_src1 = [x.src1 for x in vals]
         new_src2 = [x.src2 for x in vals]
