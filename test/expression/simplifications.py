@@ -77,6 +77,9 @@ d = ExprId('d', 32)
 e = ExprId('e', 32)
 f = ExprId('f', size=64)
 
+b_msb_null = b[:31].zeroExtend(32)
+c_msb_null = c[:31].zeroExtend(32)
+
 m = ExprMem(a)
 s = a[:8]
 
@@ -377,6 +380,12 @@ to_test = [(ExprInt(1, 32) - ExprInt(1, 32), ExprInt(0, 32)),
     ((ExprMem(ExprCond(a, b, c)),ExprCond(a, ExprMem(b), ExprMem(c)))),
     (ExprCond(a, i0, i1) + ExprCond(a, i0, i1), ExprCond(a, i0, i2)),
 
+    (a << b << c, a << b << c), # Left unmodified
+    (a << b_msb_null << c_msb_null,
+     a << (b_msb_null + c_msb_null)),
+    (a >> b >> c, a >> b >> c), # Left unmodified
+    (a >> b_msb_null >> c_msb_null,
+     a >> (b_msb_null + c_msb_null)),
 ]
 
 for e_input, e_check in to_test:

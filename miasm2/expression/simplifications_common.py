@@ -212,10 +212,15 @@ def simp_cst_propagation(e_s, expr):
         args0 = args[0].args[0]
         args = [args0, args1]
 
-    # A >> X >> Y  =>  A >> (X+Y)
+    # A >> X >> Y  =>  A >> (X+Y) if X + Y does not overflow
+    # To be sure, only consider the simplification when X.msb and Y.msb are 0
     if (op_name in ['<<', '>>'] and
         args[0].is_op(op_name)):
-        args = [args[0].args[0], args[0].args[1] + args[1]]
+        X = args[0].args[1]
+        Y = args[1]
+        if (e_s(X.msb()) == ExprInt(0, 1) and
+            e_s(Y.msb()) == ExprInt(0, 1)):
+            args = [args[0].args[0], X + Y]
 
     # ((A & A.mask)
     if op_name == "&" and args[-1] == expr.mask:
