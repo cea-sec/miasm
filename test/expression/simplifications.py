@@ -86,6 +86,13 @@ f = ExprId('f', size=64)
 b_msb_null = b[:31].zeroExtend(32)
 c_msb_null = c[:31].zeroExtend(32)
 
+a31 = ExprId('a31', 31)
+b31 = ExprId('b31', 31)
+c31 = ExprId('c31', 31)
+b31_msb_null = ExprId('b31', 31)[:30].zeroExtend(31)
+c31_msb_null = ExprId('c31', 31)[:30].zeroExtend(31)
+
+
 m = ExprMem(a)
 s = a[:8]
 
@@ -120,17 +127,35 @@ to_test = [(ExprInt(1, 32) - ExprInt(1, 32), ExprInt(0, 32)),
            (ExprOp('>>>', a, ExprInt(32, 32)), a),
            (ExprOp('>>>', a, ExprInt(0, 32)), a),
            (ExprOp('<<', a, ExprInt(0, 32)), a),
+           (ExprOp('<<<', a31, ExprInt(31, 31)), a31),
+           (ExprOp('>>>', a31, ExprInt(31, 31)), a31),
+           (ExprOp('>>>', a31, ExprInt(0, 31)), a31),
+           (ExprOp('<<', a31, ExprInt(0, 31)), a31),
 
-           (ExprOp('<<<', a, ExprOp('<<<', b, c)),
-            ExprOp('<<<', a, ExprOp('<<<', b, c))),
-           (ExprOp('<<<', ExprOp('<<<', a, b), c),
-            ExprOp('<<<', a, (b+c))),
-           (ExprOp('<<<', ExprOp('>>>', a, b), c),
-            ExprOp('>>>', a, (b-c))),
-           (ExprOp('>>>', ExprOp('<<<', a, b), c),
-            ExprOp('<<<', a, (b-c))),
-           (ExprOp('>>>', ExprOp('<<<', a, b), b),
-            a),
+           (ExprOp('<<<', a31, ExprOp('<<<', b31, c31)),
+            ExprOp('<<<', a31, ExprOp('<<<', b31, c31))),
+           (ExprOp('<<<', ExprOp('>>>', a31, b31), c31),
+            ExprOp('<<<', ExprOp('>>>', a31, b31), c31)),
+           (ExprOp('>>>', ExprOp('<<<', a31, b31), c31),
+            ExprOp('>>>', ExprOp('<<<', a31, b31), c31)),
+           (ExprOp('>>>', ExprOp('<<<', a31, b31), b31),
+            a31),
+           (ExprOp('<<<', ExprOp('>>>', a31, b31), b31),
+            a31),
+           (ExprOp('>>>', ExprOp('>>>', a31, b31), b31),
+            ExprOp('>>>', ExprOp('>>>', a31, b31), b31)),
+           (ExprOp('<<<', ExprOp('<<<', a31, b31), b31),
+            ExprOp('<<<', ExprOp('<<<', a31, b31), b31)),
+
+           (ExprOp('>>>', ExprOp('<<<', a31, ExprInt(0x1234, 31)), ExprInt(0x1111, 31)),
+            ExprOp('>>>', a31, ExprInt(0x13, 31))),
+           (ExprOp('<<<', ExprOp('>>>', a31, ExprInt(0x1234, 31)), ExprInt(0x1111, 31)),
+            ExprOp('<<<', a31, ExprInt(0x13, 31))),
+           (ExprOp('>>>', ExprOp('<<<', a31, ExprInt(-1, 31)), ExprInt(0x1111, 31)),
+            ExprOp('>>>', a31, ExprInt(0x1c, 31))),
+           (ExprOp('<<<', ExprOp('>>>', a31, ExprInt(-1, 31)), ExprInt(0x1111, 31)),
+            ExprOp('<<<', a31, ExprInt(0x1c, 31))),
+
            (ExprOp(">>>", ExprInt(0x1000, 16), ExprInt(0x11, 16)),
             ExprInt(0x800, 16)),
            (ExprOp("<<<", ExprInt(0x1000, 16), ExprInt(0x11, 16)),

@@ -196,21 +196,34 @@ def simp_cst_propagation(e_s, expr):
         args[1].arg == args[0].size):
         return args[0]
 
-    # A <<< X <<< Y => A <<< (X+Y) (ou <<< >>>)
+    # (A <<< X) <<< Y => A <<< (X+Y) (or <<< >>>) if X + Y does not overflow
     if (op_name in ['<<<', '>>>'] and
         args[0].is_op() and
         args[0].op in ['<<<', '>>>']):
-        op1 = op_name
-        op2 = args[0].op
-        if op1 == op2:
-            op_name = op1
-            args1 = args[0].args[1] + args[1]
-        else:
-            op_name = op2
-            args1 = args[0].args[1] - args[1]
+        A = args[0].args[0]
+        X = args[0].args[1]
+        Y = args[1]
+        if op_name != args[0].op and e_s(X - Y) == ExprInt(0, X.size):
+            return args[0].args[0]
+        elif X.is_int() and Y.is_int():
+            new_X = int(X) % expr.size
+            new_Y = int(Y) % expr.size
+            if op_name == args[0].op:
+                rot = (new_X + new_Y) % expr.size
+                op = op_name
+            else:
+                rot = new_Y - new_X
+                op = op_name
+                if rot < 0:
+                    rot = - rot
+                    op = {">>>": "<<<", "<<<": ">>>"}[op_name]
+            args = [A, ExprInt(rot, expr.size)]
+            op_name = op
 
-        args0 = args[0].args[0]
-        args = [args0, args1]
+        else:
+            # Do not consider this case, too tricky (overflow on addition /
+            # substraction)
+            pass
 
     # A >> X >> Y  =>  A >> (X+Y) if X + Y does not overflow
     # To be sure, only consider the simplification when X.msb and Y.msb are 0
