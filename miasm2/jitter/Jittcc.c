@@ -41,7 +41,7 @@ TCCState * tcc_init_state(void)
 	tcc_state = tcc_new();
 	if (!tcc_state) {
 		fprintf(stderr, "Impossible de creer un contexte TCC\n");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 	tcc_set_output_type(tcc_state, TCC_OUTPUT_MEMORY);
 
@@ -184,7 +184,7 @@ PyObject* tcc_exec_bloc(PyObject* self, PyObject* args)
 		else {
 			if (BlockDst.is_local == 1) {
 				fprintf(stderr, "return on local label!\n");
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 			// retaddr is not jitted yet
 			return retaddr;
@@ -221,25 +221,25 @@ PyObject* tcc_compil(PyObject* self, PyObject* args)
 	if (tcc_compile_string(tcc_state, func_code) != 0) {
 		fprintf(stderr, "Error compiling !\n");
 		fprintf(stderr, "%s\n", func_code);
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 	/* XXX configure tinycc install with --disable-static */
 	if (tcc_relocate(tcc_state, TCC_RELOCATE_AUTO) < 0) {
 		fprintf(stderr, "TCC relocate error\n");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 	entry = tcc_get_symbol(tcc_state, func_name);
 	if (!entry){
 		fprintf(stderr, "Error getting symbol %s!\n", func_name);
 		fprintf(stderr, "%s\n", func_name);
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	ret = PyTuple_New(2);
 	if (ret == NULL) {
 		fprintf(stderr, "Error alloc %s!\n", func_name);
 		fprintf(stderr, "%s\n", func_name);
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
 	PyTuple_SetItem(ret, 0, PyLong_FromUnsignedLongLong((intptr_t) tcc_state));
@@ -267,7 +267,7 @@ PyObject* tcc_loop_exec(PyObject* self, PyObject* args)
 	while (1) {
 		if (!PyCallable_Check (func)) {
 			fprintf(stderr, "function not callable!\n");
-			exit(0);
+			exit(EXIT_FAILURE);
 		}
 
 		pArgs = PyTuple_New(2);

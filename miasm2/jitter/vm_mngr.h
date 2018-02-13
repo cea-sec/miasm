@@ -226,7 +226,7 @@ unsigned int rcr_rez_op(unsigned int size, unsigned int a, unsigned int b, unsig
 		uint ## sizeA ## _t r;					\
 		if (b == 0) {						\
 			fprintf(stderr, "Should not happen\n");		\
-			exit(0);					\
+			exit(EXIT_FAILURE);				\
 		}							\
 		r = a/b;						\
 		return r;						\
@@ -239,7 +239,7 @@ unsigned int rcr_rez_op(unsigned int size, unsigned int a, unsigned int b, unsig
 		uint ## sizeA ## _t r;					\
 		if (b == 0) {						\
 			fprintf(stderr, "Should not happen\n");		\
-			exit(0);					\
+			exit(EXIT_FAILURE);				\
 		}							\
 		r = a%b;						\
 		return r;						\
@@ -252,7 +252,7 @@ unsigned int rcr_rez_op(unsigned int size, unsigned int a, unsigned int b, unsig
 		int ## sizeA ## _t r;					\
 		if (b == 0) {						\
 			fprintf(stderr, "Should not happen\n");		\
-			exit(0);					\
+			exit(EXIT_FAILURE);				\
 		}							\
 		r = a/b;						\
 		return r;						\
@@ -265,7 +265,7 @@ unsigned int rcr_rez_op(unsigned int size, unsigned int a, unsigned int b, unsig
 		int ## sizeA ## _t r;					\
 		if (b == 0) {						\
 			fprintf(stderr, "Should not happen\n");		\
-			exit(0);					\
+			exit(EXIT_FAILURE);				\
 		}							\
 		r = a%b;						\
 		return r;						\

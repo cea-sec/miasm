@@ -245,7 +245,7 @@ static uint64_t memory_page_read(vm_mngr_t* vm_mngr, unsigned int my_size, uint6
 			ret = set_endian64(vm_mngr, ret);
 			break;
 		default:
-			exit(0);
+			exit(EXIT_FAILURE);
 			break;
 		}
 	}
@@ -277,7 +277,7 @@ static uint64_t memory_page_read(vm_mngr_t* vm_mngr, unsigned int my_size, uint6
 			ret = set_endian64(vm_mngr, ret);
 			break;
 		default:
-			exit(0);
+			exit(EXIT_FAILURE);
 			break;
 		}
 	}
@@ -330,7 +330,7 @@ static void memory_page_write(vm_mngr_t* vm_mngr, unsigned int my_size,
 			*((uint64_t*)addr) = src&0xFFFFFFFFFFFFFFFFULL;
 			break;
 		default:
-			exit(0);
+			exit(EXIT_FAILURE);
 			break;
 		}
 	}
@@ -351,7 +351,7 @@ static void memory_page_write(vm_mngr_t* vm_mngr, unsigned int my_size,
 			src = set_endian64(vm_mngr, src);
 			break;
 		default:
-			exit(0);
+			exit(EXIT_FAILURE);
 			break;
 		}
 		while (my_size){
@@ -607,7 +607,7 @@ int vm_read_mem(vm_mngr_t* vm_mngr, uint64_t addr, char** buffer_ptr, uint64_t s
        *buffer_ptr = buffer;
        if (!buffer){
 	      fprintf(stderr, "Error: cannot alloc read\n");
-	      exit(-1);
+	      exit(EXIT_FAILURE);
        }
 
        /* read is multiple page wide */
@@ -681,7 +681,7 @@ unsigned int mul_lo_op(unsigned int size, unsigned int a, unsigned int b)
 		case 8: mask = 0xff; break;
 		case 16: mask = 0xffff; break;
 		case 32: mask = 0xffffffff; break;
-		default: fprintf(stderr, "inv size in mul %d\n", size); exit(0);
+		default: fprintf(stderr, "inv size in mul %d\n", size); exit(EXIT_FAILURE);
 	}
 
 	a &= mask;
@@ -698,7 +698,7 @@ unsigned int mul_hi_op(unsigned int size, unsigned int a, unsigned int b)
 		case 8: mask = 0xff; break;
 		case 16: mask = 0xffff; break;
 		case 32: mask = 0xffffffff; break;
-		default: fprintf(stderr, "inv size in mul %d\n", size); exit(0);
+		default: fprintf(stderr, "inv size in mul %d\n", size); exit(EXIT_FAILURE);
 	}
 
 	a &= mask;
@@ -777,7 +777,7 @@ uint64_t rot_left(uint64_t size, uint64_t a, uint64_t b)
 		    return tmp&0xFFFFFFFFFFFFFFFF;
 	    default:
 		    fprintf(stderr, "inv size in rotleft %"PRIX64"\n", size);
-		    exit(0);
+		    exit(EXIT_FAILURE);
     }
 }
 
@@ -802,7 +802,7 @@ uint64_t rot_right(uint64_t size, uint64_t a, uint64_t b)
 		    return tmp&0xFFFFFFFFFFFFFFFF;
 	    default:
 		    fprintf(stderr, "inv size in rotright %"PRIX64"\n", size);
-		    exit(0);
+		    exit(EXIT_FAILURE);
     }
 }
 
@@ -852,7 +852,7 @@ unsigned int x86_bsr(uint64_t size, uint64_t src)
 			return i;
 	}
 	fprintf(stderr, "sanity check error bsr\n");
-	exit(0);
+	exit(EXIT_FAILURE);
 }
 
 unsigned int x86_bsf(uint64_t size, uint64_t src)
@@ -863,7 +863,7 @@ unsigned int x86_bsf(uint64_t size, uint64_t src)
 			return i;
 	}
 	fprintf(stderr, "sanity check error bsf\n");
-	exit(0);
+	exit(EXIT_FAILURE);
 }
 
 
@@ -884,7 +884,7 @@ unsigned int cpuid(unsigned int a, unsigned int reg_num)
 {
 	if (reg_num >3){
 		fprintf(stderr, "not implemented cpuid reg %x\n", reg_num);
-		exit(-1);
+		exit(EXIT_FAILURE);
 	}
 
 	if (a == 0){
@@ -918,7 +918,7 @@ unsigned int cpuid(unsigned int a, unsigned int reg_num)
 	}
 	else{
 		fprintf(stderr, "WARNING not implemented cpuid index %X!\n", a);
-		//exit(-1);
+		//exit(EXIT_FAILURE);
 	}
 	return 0;
 }
@@ -1400,7 +1400,7 @@ struct code_bloc_node * create_code_bloc_node(uint64_t ad_start, uint64_t ad_sto
 	cbp = malloc(sizeof(*cbp));
 	if (!cbp){
 		fprintf(stderr, "Error: cannot alloc cbp\n");
-		exit(-1);
+		exit(EXIT_FAILURE);
 	}
 
 	cbp->ad_start = ad_start;
@@ -1630,7 +1630,7 @@ void add_memory_breakpoint(vm_mngr_t* vm_mngr, uint64_t ad, uint64_t size, unsig
 	mpn_a = malloc(sizeof(*mpn_a));
 	if (!mpn_a) {
 		fprintf(stderr, "Error: cannot alloc\n");
-		exit(0);
+		exit(EXIT_FAILURE);
 	}
 	mpn_a->ad = ad;
 	mpn_a->size = size;

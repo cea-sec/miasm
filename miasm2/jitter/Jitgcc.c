@@ -59,7 +59,7 @@ PyObject* gcc_exec_bloc(PyObject* self, PyObject* args)
 		else {
 			if (BlockDst.is_local == 1) {
 				fprintf(stderr, "return on local label!\n");
-				exit(1);
+				exit(EXIT_FAILURE);
 			}
 			// retaddr is not jitted yet
 			return retaddr;
