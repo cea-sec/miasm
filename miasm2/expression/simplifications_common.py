@@ -327,7 +327,7 @@ def simp_cond_op_int(e_s, expr):
     "Extract conditions from operations"
 
 
-    # x?a:b + x?c:d + e => x?(a+b+e:c+d+e)
+    # x?a:b + x?c:d + e => x?(a+c+e:b+d+e)
     if not expr.op in ["+", "|", "^", "&", "*", '<<', '>>', 'a>>']:
         return expr
     if len(expr.args) < 2:
