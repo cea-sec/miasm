@@ -30,12 +30,7 @@ if args.z3:
         """Check that expr_in is always equals to expr_out"""
         print "Ensure %s = %s" % (expr_in, expr_out)
         solver = z3.Solver()
-        solver.set("timeout", args.z3_timeout * 1000)
-        try:
-            solver.add(trans.from_expr(expr_in) != trans.from_expr(expr_out))
-        except NotImplementedError as error:
-            print "Unable to translate in z3", error
-            return
+        solver.add(trans.from_expr(expr_in) != trans.from_expr(expr_out))
 
         result = solver.check()
         if result == z3.unknown:
@@ -240,8 +235,6 @@ to_test = [(ExprInt(1, 32) - ExprInt(1, 32), ExprInt(0, 32)),
      ExprOp('*', a, b, c, ExprInt(0x12, 32))),
     (ExprOp('*', -a, -b, -c, ExprInt(0x12, 32)),
      - ExprOp('*', a, b, c, ExprInt(0x12, 32))),
-     (ExprOp('**', ExprInt(2, 32), ExprInt(8, 32)), ExprInt(0x100, 32)),
-     (ExprInt(2, 32)**ExprInt(8, 32), ExprInt(256, 32)),
     (a | ExprInt(0xffffffff, 32),
      ExprInt(0xffffffff, 32)),
     (ExprCond(a, ExprInt(1, 32), ExprInt(2, 32)) * ExprInt(4, 32),
