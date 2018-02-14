@@ -13,8 +13,6 @@ parser = ArgumentParser("Expression simplification regression tests")
 parser.add_argument("--z3", action="store_true", help="Enable check against z3")
 parser.add_argument("-v", "--verbose", action="store_true",
                     help="Verbose simplify")
-parser.add_argument("--z3-timeout", type=int, help="z3 timeout (in seconds)",
-                    default=20)
 args = parser.parse_args()
 
 if args.verbose:
@@ -33,9 +31,6 @@ if args.z3:
         solver.add(trans.from_expr(expr_in) != trans.from_expr(expr_out))
 
         result = solver.check()
-        if result == z3.unknown:
-            print "-> Timeout!"
-            return
 
         if result != z3.unsat:
             print "ERROR: a counter-example has been founded:"
@@ -86,6 +81,12 @@ b31 = ExprId('b31', 31)
 c31 = ExprId('c31', 31)
 b31_msb_null = ExprId('b31', 31)[:30].zeroExtend(31)
 c31_msb_null = ExprId('c31', 31)[:30].zeroExtend(31)
+
+a8 = ExprId('a8', 8)
+b8 = ExprId('b8', 8)
+c8 = ExprId('c8', 8)
+d8 = ExprId('d8', 8)
+e8 = ExprId('e8', 8)
 
 
 m = ExprMem(a)
@@ -241,8 +242,8 @@ to_test = [(ExprInt(1, 32) - ExprInt(1, 32), ExprInt(0, 32)),
      ExprCond(a, ExprInt(4, 32), ExprInt(8, 32))),
     (ExprCond(a, b, c) + ExprCond(a, d, e),
      ExprCond(a, b + d, c + e)),
-    (ExprCond(a, b, c) * ExprCond(a, d, e),
-     ExprCond(a, b * d, c * e)),
+    (ExprCond(a8, b8, c8) * ExprCond(a8, d8, e8),
+     ExprCond(a8, b8 * d8, c8 * e8)),
 
     (ExprCond(a, ExprInt(8, 32), ExprInt(4, 32)) >> ExprInt(1, 32),
      ExprCond(a, ExprInt(4, 32), ExprInt(2, 32))),
@@ -401,7 +402,7 @@ to_test = [(ExprInt(1, 32) - ExprInt(1, 32), ExprInt(0, 32)),
                  ExprInt(0x0321, 16))),
     (ExprCompose(ExprCond(a, i1, i0), ExprCond(a, i1, i2)),
      ExprCond(a, ExprInt(0x100000001, 64), ExprInt(0x200000000, 64))),
-    ((ExprMem(ExprCond(a, b, c)),ExprCond(a, ExprMem(b), ExprMem(c)))),
+    ((ExprMem(ExprCond(a, b, c), 4),ExprCond(a, ExprMem(b, 4), ExprMem(c, 4)))),
     (ExprCond(a, i0, i1) + ExprCond(a, i0, i1), ExprCond(a, i0, i2)),
 
     (a << b << c, a << b << c), # Left unmodified
