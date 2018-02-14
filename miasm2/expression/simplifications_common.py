@@ -196,26 +196,44 @@ def simp_cst_propagation(e_s, expr):
         args[1].arg == args[0].size):
         return args[0]
 
-    # A <<< X <<< Y => A <<< (X+Y) (ou <<< >>>)
+    # (A <<< X) <<< Y => A <<< (X+Y) (or <<< >>>) if X + Y does not overflow
     if (op_name in ['<<<', '>>>'] and
         args[0].is_op() and
         args[0].op in ['<<<', '>>>']):
-        op1 = op_name
-        op2 = args[0].op
-        if op1 == op2:
-            op_name = op1
-            args1 = args[0].args[1] + args[1]
+        A = args[0].args[0]
+        X = args[0].args[1]
+        Y = args[1]
+        if op_name != args[0].op and e_s(X - Y) == ExprInt(0, X.size):
+            return args[0].args[0]
+        elif X.is_int() and Y.is_int():
+            new_X = int(X) % expr.size
+            new_Y = int(Y) % expr.size
+            if op_name == args[0].op:
+                rot = (new_X + new_Y) % expr.size
+                op = op_name
+            else:
+                rot = new_Y - new_X
+                op = op_name
+                if rot < 0:
+                    rot = - rot
+                    op = {">>>": "<<<", "<<<": ">>>"}[op_name]
+            args = [A, ExprInt(rot, expr.size)]
+            op_name = op
+
         else:
-            op_name = op2
-            args1 = args[0].args[1] - args[1]
+            # Do not consider this case, too tricky (overflow on addition /
+            # substraction)
+            pass
 
-        args0 = args[0].args[0]
-        args = [args0, args1]
-
-    # A >> X >> Y  =>  A >> (X+Y)
+    # A >> X >> Y  =>  A >> (X+Y) if X + Y does not overflow
+    # To be sure, only consider the simplification when X.msb and Y.msb are 0
     if (op_name in ['<<', '>>'] and
         args[0].is_op(op_name)):
-        args = [args[0].args[0], args[0].args[1] + args[1]]
+        X = args[0].args[1]
+        Y = args[1]
+        if (e_s(X.msb()) == ExprInt(0, 1) and
+            e_s(Y.msb()) == ExprInt(0, 1)):
+            args = [args[0].args[0], X + Y]
 
     # ((A & A.mask)
     if op_name == "&" and args[-1] == expr.mask:
@@ -327,7 +345,7 @@ def simp_cond_op_int(e_s, expr):
     "Extract conditions from operations"
 
 
-    # x?a:b + x?c:d + e => x?(a+b+e:c+d+e)
+    # x?a:b + x?c:d + e => x?(a+c+e:b+d+e)
     if not expr.op in ["+", "|", "^", "&", "*", '<<', '>>', 'a>>']:
         return expr
     if len(expr.args) < 2:
@@ -360,6 +378,14 @@ def simp_cond_factor(e_s, expr):
         return expr
     if len(expr.args) < 2:
         return expr
+
+    if expr.op in ['>>', '<<', 'a>>']:
+        assert len(expr.args) == 2
+
+    # Note: the following code is correct for non-commutative operation only if
+    # there is 2 arguments. Otherwise, the order is not conserved
+
+    # Regroup sub-expression by similar conditions
     conds = {}
     not_conds = []
     multi_cond = False
@@ -375,7 +401,9 @@ def simp_cond_factor(e_s, expr):
         conds[cond].append(arg)
     if not multi_cond:
         return expr
-    c_out = not_conds[:]
+
+    # Rebuild the new expression
+    c_out = not_conds
     for cond, vals in conds.items():
         new_src1 = [x.src1 for x in vals]
         new_src2 = [x.src2 for x in vals]

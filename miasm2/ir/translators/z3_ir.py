@@ -151,6 +151,19 @@ class TranslatorZ3(Translator):
         src2 = self.from_expr(expr.src2)
         return z3.If(cond != 0, src1, src2)
 
+    def _abs(self, z3_value):
+        return z3.If(z3_value >= 0,z3_value,-z3_value)
+
+    def _idivC(self, num, den):
+        """Divide (signed) @num by @den (z3 values) as C would
+        See modint.__div__ for implementation choice
+        """
+        result_sign = z3.If(num * den >= 0,
+                            z3.BitVecVal(1, num.size()),
+                            z3.BitVecVal(-1, num.size()),
+        )
+        return z3.UDiv(self._abs(num), self._abs(den)) * result_sign
+
     def from_ExprOp(self, expr):
         args = map(self.from_expr, expr.args)
         res = args[0]
@@ -168,11 +181,11 @@ class TranslatorZ3(Translator):
                 elif expr.op == ">>>":
                     res = z3.RotateRight(res, arg)
                 elif expr.op == "idiv":
-                    res = res / arg
+                    res = self._idivC(res, arg)
                 elif expr.op == "udiv":
                     res = z3.UDiv(res, arg)
                 elif expr.op == "imod":
-                    res = res % arg
+                    res = res - (arg * (self._idivC(res, arg)))
                 elif expr.op == "umod":
                     res = z3.URem(res, arg)
                 else:

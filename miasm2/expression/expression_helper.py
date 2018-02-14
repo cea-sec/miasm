@@ -21,6 +21,7 @@ import itertools
 import collections
 import random
 import string
+import warnings
 
 import miasm2.expression.expression as m2_expr
 
@@ -468,16 +469,14 @@ class ExprRandom(object):
 
         return got
 
-def _expr_cmp_gen(arg1, arg2):
-    return (arg2 - arg1) ^ ((arg2 ^ arg1) & ((arg2 - arg1) ^ arg2))
-
 def expr_cmpu(arg1, arg2):
     """
     Returns a one bit long Expression:
     * 1 if @arg1 is strictly greater than @arg2 (unsigned)
     * 0 otherwise.
     """
-    return (_expr_cmp_gen(arg1, arg2) ^ arg2 ^ arg1).msb()
+    warnings.warn('DEPRECATION WARNING: use "expr_is_unsigned_greater" instead"')
+    return m2_expr.expr_is_unsigned_greater(arg1, arg2)
 
 def expr_cmps(arg1, arg2):
     """
@@ -485,7 +484,8 @@ def expr_cmps(arg1, arg2):
     * 1 if @arg1 is strictly greater than @arg2 (signed)
     * 0 otherwise.
     """
-    return _expr_cmp_gen(arg1, arg2).msb()
+    warnings.warn('DEPRECATION WARNING: use "expr_is_signed_greater" instead"')
+    return m2_expr.expr_is_signed_greater(arg1, arg2)
 
 
 class CondConstraint(object):

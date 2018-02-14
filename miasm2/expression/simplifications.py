@@ -2,6 +2,8 @@
 #                     Simplification methods library                           #
 #                                                                              #
 
+import logging
+
 from miasm2.expression import simplifications_common
 from miasm2.expression import simplifications_cond
 from miasm2.expression.expression_helper import fast_unify
@@ -9,6 +11,12 @@ import miasm2.expression.expression as m2_expr
 
 # Expression Simplifier
 # ---------------------
+
+log_exprsimp = logging.getLogger("exprsimp")
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(logging.Formatter("%(levelname)-5s: %(message)s"))
+log_exprsimp.addHandler(console_handler)
+log_exprsimp.setLevel(logging.WARNING)
 
 
 class ExpressionSimplifier(object):
@@ -67,9 +75,15 @@ class ExpressionSimplifier(object):
         Return an Expr instance"""
 
         cls = expression.__class__
+        debug_level = log_exprsimp.level >= logging.DEBUG
         for simp_func in self.expr_simp_cb.get(cls, []):
             # Apply simplifications
+            before = expression
             expression = simp_func(self, expression)
+            after = expression
+
+            if debug_level and before != after:
+                log_exprsimp.debug("[%s] %s => %s", simp_func, before, after)
 
             # If class changes, stop to prevent wrong simplifications
             if expression.__class__ is not cls:

@@ -21,7 +21,6 @@ import miasm2.expression.expression as m2_expr
 from miasm2.expression.simplifications import expr_simp
 from miasm2.arch.x86.regs import *
 from miasm2.arch.x86.arch import mn_x86, repeat_mn, replace_regs
-from miasm2.expression.expression_helper import expr_cmps, expr_cmpu
 from miasm2.ir.ir import IntermediateRepresentation, IRBlock, AssignBlock
 from miasm2.core.sembuilder import SemBuilder
 from miasm2.jitter.csts import EXCEPT_DIV_BY_ZERO, EXCEPT_ILLEGAL_INSN, \
@@ -2741,11 +2740,11 @@ def daa(_, instr):
     e = []
     r_al = mRAX[instr.mode][:8]
 
-    cond1 = expr_cmpu(r_al[:4], m2_expr.ExprInt(0x9, 4)) | af
+    cond1 = m2_expr.expr_is_unsigned_greater(r_al[:4], m2_expr.ExprInt(0x9, 4)) | af
     e.append(m2_expr.ExprAff(af, cond1))
 
-    cond2 = expr_cmpu(m2_expr.ExprInt(6, 8), r_al)
-    cond3 = expr_cmpu(r_al, m2_expr.ExprInt(0x99, 8)) | cf
+    cond2 = m2_expr.expr_is_unsigned_greater(m2_expr.ExprInt(6, 8), r_al)
+    cond3 = m2_expr.expr_is_unsigned_greater(r_al, m2_expr.ExprInt(0x99, 8)) | cf
 
     cf_c1 = m2_expr.ExprCond(cond1,
                              cf | (cond2),
@@ -2771,11 +2770,11 @@ def das(_, instr):
     e = []
     r_al = mRAX[instr.mode][:8]
 
-    cond1 = expr_cmpu(r_al[:4], m2_expr.ExprInt(0x9, 4)) | af
+    cond1 = m2_expr.expr_is_unsigned_greater(r_al[:4], m2_expr.ExprInt(0x9, 4)) | af
     e.append(m2_expr.ExprAff(af, cond1))
 
-    cond2 = expr_cmpu(m2_expr.ExprInt(6, 8), r_al)
-    cond3 = expr_cmpu(r_al, m2_expr.ExprInt(0x99, 8)) | cf
+    cond2 = m2_expr.expr_is_unsigned_greater(m2_expr.ExprInt(6, 8), r_al)
+    cond3 = m2_expr.expr_is_unsigned_greater(r_al, m2_expr.ExprInt(0x99, 8)) | cf
 
     cf_c1 = m2_expr.ExprCond(cond1,
                              cf | (cond2),

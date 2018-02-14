@@ -249,6 +249,9 @@ for script in ["modint.py",
                "expr_cmp.py",
                ]:
     testset += RegressionTest([script], base_dir="expression")
+testset += RegressionTest(["simplifications.py", "--z3"],
+                          base_dir="expression",
+                          tags=[TAGS["z3"]])
 
 ## ObjC/CHandler
 testset += RegressionTest(["test_chandler.py"], base_dir="expr_type",
