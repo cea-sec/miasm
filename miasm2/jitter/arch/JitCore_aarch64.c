@@ -332,7 +332,7 @@ JitCpu_init(JitCpu *self, PyObject *args, PyObject *kwds)
 	self->cpu = malloc(sizeof(vm_cpu_t));
 	if (self->cpu == NULL) {
 		fprintf(stderr, "cannot alloc vm_cpu_t\n");
-		exit(0);
+		exit(EXIT_FAILURE);
 	}
 	return 0;
 }

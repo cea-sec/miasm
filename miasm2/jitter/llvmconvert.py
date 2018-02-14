@@ -223,24 +223,6 @@ class LLVMContext_JIT(LLVMContext):
         itype = LLVMType.IntType(64)
         fc = {"llvm.ctpop.i8": {"ret": i8,
                                 "args": [i8]},
-              "rot_left": {"ret": itype,
-                           "args": [itype,
-                                    itype,
-                                    itype]},
-              "rot_right": {"ret": itype,
-                            "args": [itype,
-                                     itype,
-                                     itype]},
-              "rcr_rez_op": {"ret": itype,
-                             "args": [itype,
-                                      itype,
-                                      itype,
-                                      itype]},
-              "rcl_rez_op": {"ret": itype,
-                             "args": [itype,
-                                      itype,
-                                      itype,
-                                      itype]},
               "x86_bsr": {"ret": itype,
                           "args": [itype,
                                    itype]},
@@ -391,11 +373,7 @@ class LLVMFunction():
     op_translate = {'cpuid': 'cpuid',
     }
     ## Add the size as first argument
-    op_translate_with_size = {'<<<': 'rot_left',
-                              '>>>': 'rot_right',
-                              '<<<c_rez': 'rcl_rez_op',
-                              '>>>c_rez': 'rcr_rez_op',
-                              'bsr': 'x86_bsr',
+    op_translate_with_size = {'bsr': 'x86_bsr',
                               'bsf': 'x86_bsf',
     }
     ## Add the size as suffix
@@ -789,6 +767,30 @@ class LLVMFunction():
                                           itype(0))
                 self.update_cache(expr, ret)
                 return ret
+
+
+            if op in ['<<<', '>>>']:
+                assert len(expr.args) == 2
+                # First compute rotation modulus size
+                count = self.add_ir(expr.args[1])
+                value = self.add_ir(expr.args[0])
+                itype = LLVMType.IntType(expr.size)
+                expr_size = itype(expr.size)
+
+                shift = builder.urem(count, expr_size)
+                shift_inv = builder.sub(expr_size, shift)
+
+                if op == '<<<':
+                    part_a = builder.shl(value, shift)
+                    part_b = builder.lshr(value, shift_inv)
+                else:
+                    part_a = builder.lshr(value, shift)
+                    part_b = builder.shl(value, shift_inv)
+                ret = builder.or_(part_a, part_b)
+                self.update_cache(expr, ret)
+                return ret
+
+
 
             if op in ["int_16_to_double", "int_32_to_double", "int_64_to_double",
                       "mem_16_to_double", "mem_32_to_double", "mem_64_to_double"]:

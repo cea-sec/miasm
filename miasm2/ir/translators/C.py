@@ -17,9 +17,6 @@ class TranslatorC(Translator):
     dct_rot = {'<<<': 'rot_left',
                '>>>': 'rot_right',
                }
-    dct_rotc = {'<<<c_rez': 'rcl_rez_op',
-                '>>>c_rez': 'rcr_rez_op',
-                }
 
 
     def from_ExprId(self, expr):
@@ -118,14 +115,6 @@ class TranslatorC(Translator):
             else:
                 raise NotImplementedError('Unknown op: %r' % expr.op)
 
-        elif len(expr.args) == 3 and expr.op in self.dct_rotc:
-            return '(%s(%s, %s, %s, %s) &0x%x)' % (self.dct_rotc[expr.op],
-                                                   expr.args[0].size,
-                                                   self.from_expr(expr.args[0]),
-                                                   self.from_expr(expr.args[1]),
-                                                   self.from_expr(expr.args[2]),
-                                                   size2mask(expr.args[0].size))
-
         elif len(expr.args) >= 3 and expr.is_associative():  # ?????
             oper = ['(%s&0x%x)' % (self.from_expr(arg), size2mask(arg.size))
                     for arg in expr.args]
@@ -144,7 +133,17 @@ class TranslatorC(Translator):
     def from_ExprCompose(self, expr):
         out = []
         # XXX check mask for 64 bit & 32 bit compat
-        dst_cast = "uint%d_t" % expr.size
+        if expr.size in [8, 16, 32, 64, 128]:
+            size = expr.size
+        else:
+            # Uncommon expression size
+            size = expr.size
+            next_power = 1
+            while next_power <= size:
+                next_power <<= 1
+            size = next_power
+
+        dst_cast = "uint%d_t" % size
         for index, arg in expr.iter_args():
             out.append("(((%s)(%s & 0x%X)) << %d)" % (dst_cast,
                                                       self.from_expr(arg),
