@@ -217,6 +217,8 @@ unsigned int umul16_hi(unsigned short a, unsigned short b);
 uint64_t rot_left(uint64_t size, uint64_t a, uint64_t b);
 uint64_t rot_right(uint64_t size, uint64_t a, uint64_t b);
 
+unsigned int x86_bsr(uint64_t size, uint64_t src);
+unsigned int x86_bsf(uint64_t size, uint64_t src);
 
 #define UDIV(sizeA)						\
 	uint ## sizeA ## _t udiv ## sizeA (vm_cpu_t* vmcpu, uint ## sizeA ## _t a, uint ## sizeA ## _t b) \
