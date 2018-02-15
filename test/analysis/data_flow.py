@@ -553,7 +553,7 @@ G17_IRB0 = gen_irblock(LBL0, [[ExprAff(a, a*b),
                                ExprAff(b, a),
                                ExprAff(c, b)],
 
-                              [ExprAff(ExprMem(d+CST1), a),
+                              [ExprAff(ExprMem(d+CST1, 32), a),
                                ExprAff(a, b),
                                ExprAff(b, c),
                                ExprAff(c, CST1)],
@@ -562,7 +562,7 @@ G17_IRB0 = gen_irblock(LBL0, [[ExprAff(a, a*b),
                                ExprAff(b, a),
                                ExprAff(c, b)],
 
-                              [ExprAff(ExprMem(d+CST2), a),
+                              [ExprAff(ExprMem(d+CST2, 32), a),
                                ExprAff(a, b),
                                ExprAff(b, c),
                                ExprAff(c, CST1)],
@@ -593,7 +593,7 @@ G17_IRB0 = gen_irblock(LBL0, [[ExprAff(a, a*b),
                                ExprAff(b, a),
                                ExprAff(c, b)],
 
-                              [ExprAff(ExprMem(d), a+b+c)],
+                              [ExprAff(ExprMem(d, 32), a+b+c)],
 
                          ])
 
@@ -610,11 +610,11 @@ G17_EXP_IRB0 = gen_irblock(LBL0, [[],
 
                                   [ExprAff(a, CST1)],
 
-                                  [ExprAff(ExprMem(d+CST1), a)],
+                                  [ExprAff(ExprMem(d+CST1, 32), a)],
 
                                   [ExprAff(a, CST1)],
 
-                                  [ExprAff(ExprMem(d+CST2), a)],
+                                  [ExprAff(ExprMem(d+CST2, 32), a)],
 
                                   [ExprAff(a, CST2)],
 

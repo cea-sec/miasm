@@ -21,11 +21,11 @@ class TestSymbExec(unittest.TestCase):
         addr20 = ExprInt(20, 32)
         addr40 = ExprInt(40, 32)
         addr50 = ExprInt(50, 32)
-        mem0 = ExprMem(addr0)
+        mem0 = ExprMem(addr0, 32)
         mem1 = ExprMem(addr1, 8)
-        mem8 = ExprMem(addr8)
-        mem9 = ExprMem(addr9)
-        mem20 = ExprMem(addr20)
+        mem8 = ExprMem(addr8, 32)
+        mem9 = ExprMem(addr9, 32)
+        mem20 = ExprMem(addr20, 32)
         mem40v = ExprMem(addr40,  8)
         mem40w = ExprMem(addr40, 16)
         mem50v = ExprMem(addr50,  8)
@@ -41,9 +41,9 @@ class TestSymbExec(unittest.TestCase):
                                      id_a: addr0, id_eax: addr0})
         self.assertEqual(e.find_mem_by_addr(addr0), mem0)
         self.assertEqual(e.find_mem_by_addr(addrX), None)
-        self.assertEqual(e.eval_expr(ExprMem(addr1 - addr1)), id_x)
+        self.assertEqual(e.eval_expr(ExprMem(addr1 - addr1, 32)), id_x)
         self.assertEqual(e.eval_expr(ExprMem(addr1, 8)), id_y)
-        self.assertEqual(e.eval_expr(ExprMem(addr1 + addr1)), ExprCompose(
+        self.assertEqual(e.eval_expr(ExprMem(addr1 + addr1, 32)), ExprCompose(
             id_x[16:32], ExprMem(ExprInt(4, 32), 16)))
         self.assertEqual(e.eval_expr(mem8), ExprCompose(
             id_x[0:24], ExprMem(ExprInt(11, 32), 8)))
@@ -55,7 +55,7 @@ class TestSymbExec(unittest.TestCase):
         self.assertEqual(e.eval_expr(mem20), mem20)
         self.assertEqual(set(e.modified()), set(e.symbols))
         self.assertRaises(
-            KeyError, e.symbols.__getitem__, ExprMem(ExprInt(100, 32)))
+            KeyError, e.symbols.__getitem__, ExprMem(ExprInt(100, 32), 32))
         self.assertEqual(e.apply_expr(id_eax), addr0)
         self.assertEqual(e.apply_expr(ExprAff(id_eax, addr9)), addr9)
         self.assertEqual(e.apply_expr(id_eax), addr9)

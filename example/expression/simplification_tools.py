@@ -13,7 +13,7 @@ c = ExprId('c', 32)
 d = ExprId('d', 32)
 e = ExprId('e', 32)
 
-m = ExprMem(a)
+m = ExprMem(a, 32)
 s = a[:8]
 
 i1 = ExprInt(0x1, 32)
@@ -28,7 +28,7 @@ l = [a[:8], b[:8], c[:8], m[:8], s, i1[:8], i2[:8], o[:8]]
 l2 = l[::-1]
 
 
-x = ExprMem(a + b + ExprInt(0x42, 32))
+x = ExprMem(a + b + ExprInt(0x42, 32), 32)
 
 
 def replace_expr(e):

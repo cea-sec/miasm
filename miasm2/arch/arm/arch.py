@@ -224,9 +224,9 @@ def deref2expr_pre(s, l, t):
 def deref2expr_pre_mem(s, l, t):
     t = t[0]
     if len(t) == 1:
-        return ExprMem(ExprOp("preinc", t[0], ExprInt(0, 32)))
+        return ExprMem(ExprOp("preinc", t[0], ExprInt(0, 32)), 32)
     elif len(t) == 2:
-        return ExprMem(ExprOp("preinc", t[0], t[1]))
+        return ExprMem(ExprOp("preinc", t[0], t[1]), 32)
     else:
         raise NotImplementedError('len(t) > 2')
 
@@ -239,8 +239,8 @@ def deref2expr_post(s, l, t):
 def deref_wb(s, l, t):
     t = t[0]
     if t[-1] == '!':
-        return ExprMem(ExprOp('wback', *t[:-1]))
-    return ExprMem(t[0])
+        return ExprMem(ExprOp('wback', *t[:-1]), 32)
+    return ExprMem(t[0], 32)
 
 # shift_off.setParseAction(deref_off)
 deref_nooff = Group(
@@ -855,7 +855,7 @@ class arm_imm8_12(m_arg):
             e = ExprOp('postinc', self.parent.rn.expr, e)
         if self.parent.wback.value == 1:
             e = ExprOp('wback', e)
-        self.expr = ExprMem(e)
+        self.expr = ExprMem(e, 32)
         return True
 
     def encode(self):
@@ -1056,7 +1056,7 @@ class arm_op2imm(arm_imm8_12):
                 e = ExprOp('postinc', self.parent.rn.expr, ExprInt(imm, 32))
             if self.parent.wback.value == 1:
                 e = ExprOp('wback', e)
-            self.expr = ExprMem(e)
+            self.expr = ExprMem(e, 32)
             return True
         rm = val & 0xf
         shift = val >> 4
@@ -1083,7 +1083,7 @@ class arm_op2imm(arm_imm8_12):
             e = ExprOp('postinc', self.parent.rn.expr, a)
         if self.parent.wback.value == 1:
             e = ExprOp('wback', e)
-        self.expr = ExprMem(e)
+        self.expr = ExprMem(e, 32)
         return True
 
     def encode(self):
@@ -1372,7 +1372,7 @@ class arm_immed(m_arg):
             e = ExprOp('postinc', self.parent.rn.expr, imm)
         if self.parent.wback.value == 1:
             e = ExprOp('wback', e)
-        self.expr = ExprMem(e)
+        self.expr = ExprMem(e, 32)
 
         return True
 
@@ -1459,9 +1459,9 @@ class arm_mem_rn_imm(m_arg):
         imm = ExprInt(value, 32)
         reg = gpregs.expr[v]
         if value:
-            expr = ExprMem(reg + imm)
+            expr = ExprMem(reg + imm, 32)
         else:
-            expr = ExprMem(reg)
+            expr = ExprMem(reg, 32)
         self.expr = expr
         return True
 
@@ -1748,9 +1748,9 @@ class arm_offpc(arm_offreg):
         v = v & self.lmask
         v <<= 2
         if v:
-            self.expr = ExprMem(self.off_reg + ExprInt(v, 32))
+            self.expr = ExprMem(self.off_reg + ExprInt(v, 32), 32)
         else:
-            self.expr = ExprMem(self.off_reg)
+            self.expr = ExprMem(self.off_reg, 32)
 
         e = self.expr.arg
         if isinstance(e, ExprOp) and e.op == 'wback':
@@ -1823,7 +1823,7 @@ class arm_deref(m_arg):
         v = v & self.lmask
         rbase = regs_expr[v]
         e = ExprOp('preinc', rbase, self.parent.off.expr)
-        self.expr = ExprMem(e)
+        self.expr = ExprMem(e, 32)
         return True
 
     def encode(self):

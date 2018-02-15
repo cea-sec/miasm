@@ -1078,7 +1078,7 @@ def pushfw(ir, instr):
 
 
 def popfd(ir, instr):
-    tmp = ir.ExprMem(mRSP[instr.mode])
+    tmp = ir.ExprMem(mRSP[instr.mode], 32)
     e = []
     e.append(m2_expr.ExprAff(cf, m2_expr.ExprSlice(tmp, 0, 1)))
     e.append(m2_expr.ExprAff(pf, m2_expr.ExprSlice(tmp, 2, 3)))
@@ -1121,7 +1121,7 @@ def _tpl_eflags(tmp):
 
 
 def popfw(ir, instr):
-    tmp = ir.ExprMem(mRSP[instr.mode])
+    tmp = ir.ExprMem(mRSP[instr.mode], 32)
     e = _tpl_eflags(tmp)
     e.append(
         m2_expr.ExprAff(mRSP[instr.mode], mRSP[instr.mode] + m2_expr.ExprInt(2, mRSP[instr.mode].size)))
@@ -5046,7 +5046,7 @@ class ir_x86_16(IntermediateRepresentation):
     def mod_pc(self, instr, instr_ir, extra_ir):
         pass
 
-    def ExprMem(self, ptr, size=32):
+    def ExprMem(self, ptr, size):
         """Generate a memory access to @ptr
         The ptr is resized to a fixed size self.addrsize
 

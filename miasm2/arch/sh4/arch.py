@@ -67,25 +67,25 @@ def parse_deref_mem(s, l, t):
 
 def parse_predec(s, l, t):
     t = t[0]
-    e = ExprMem(ExprOp('predec', t[0]))
+    e = ExprMem(ExprOp('predec', t[0]), 32)
     return e
 
 
 def parse_postinc(s, l, t):
     t = t[0]
-    e = ExprMem(ExprOp('postinc', t[0]))
+    e = ExprMem(ExprOp('postinc', t[0]), 32)
     return e
 
 
 def parse_regdisp(t):
     t = t[0]
-    e = ExprMem(t[0] + t[1])
+    e = ExprMem(t[0] + t[1], 32)
     return e
 
 
 def parse_regreg(t):
     t = t[0]
-    e = ExprMem(t[0] + t[1])
+    e = ExprMem(t[0] + t[1], 32)
     return e
 
 
@@ -314,7 +314,7 @@ class sh4_dgbrimm8(sh4_dgpreg):
     def encode(self):
         e = self.expr
         s = self.sz
-        if e == ExprMem(GBR):
+        if e == ExprMem(GBR, 32):
             self.value = 0
             return True
         res = match_expr(self.expr, ExprMem(GBR + jra, s), [jra])
@@ -331,7 +331,7 @@ class sh4_dpc32imm(sh4_dpc16imm):
 
     def decode(self, v):
         self.expr = ExprMem(
-            (PC & ExprInt(0xfffffffc, 32)) + ExprInt(v * 4 + 4, 32))
+            (PC & ExprInt(0xfffffffc, 32)) + ExprInt(v * 4 + 4, 32), 32)
         return True
 
     def calcdisp(self, v):

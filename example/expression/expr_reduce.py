@@ -81,8 +81,8 @@ def test():
         (ptr, StructLookup.FIELD_A_PTR),
         (ptr + int4, StructLookup.FIELD_A_PTR),
         (ptr + int4 * int4, StructLookup.FIELD_A_PTR),
-        (ExprMem(ptr), StructLookup.FIELD_A),
-        (ExprMem(ptr + int4 * int4), StructLookup.FIELD_A),
+        (ExprMem(ptr, 32), StructLookup.FIELD_A),
+        (ExprMem(ptr + int4 * int4, 32), StructLookup.FIELD_A),
     ]
 
     for expr_in, result in tests:
