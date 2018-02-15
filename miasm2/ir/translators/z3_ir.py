@@ -1,7 +1,9 @@
+import imp
 import logging
 import operator
 
-import z3
+# Raise an ImportError if z3 is not available WITHOUT actually importing it
+imp.find_module("z3")
 
 from miasm2.core.asmblock import AsmLabel
 from miasm2.ir.translators.translator import Translator
@@ -31,6 +33,10 @@ class Z3Mem(object):
         @name: name of memory Arrays generated. They will be named
             name+str(address size) (for example mem32, mem16...).
         """
+        # Import z3 only on demand
+        global z3
+        import z3
+
         if endianness not in ['<', '>']:
             raise ValueError("Endianness should be '>' (big) or '<' (little)")
         self.endianness = endianness
@@ -114,6 +120,10 @@ class TranslatorZ3(Translator):
         """Instance a Z3 translator
         @endianness: (optional) memory endianness
         """
+        # Import z3 only on demand
+        global z3
+        import z3
+
         super(TranslatorZ3, self).__init__(**kwargs)
         self._mem = Z3Mem(endianness)
 
