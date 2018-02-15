@@ -539,7 +539,7 @@ def simp_compose(e_s, expr):
         nxt = args[i + 1]
         if arg.is_mem() and nxt.is_mem():
             gap = e_s(nxt.arg - arg.arg)
-            if gap.is_int() and int(gap) == arg.size / 8:
+            if gap.is_int() and arg.size % 8 == 0 and int(gap) == arg.size / 8:
                 args = args[:i] + [ExprMem(arg.arg,
                                           arg.size + nxt.size)] + args[i + 2:]
                 return ExprCompose(*args)

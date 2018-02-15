@@ -411,6 +411,10 @@ to_test = [(ExprInt(1, 32) - ExprInt(1, 32), ExprInt(0, 32)),
     (a >> b >> c, a >> b >> c), # Left unmodified
     (a >> b_msb_null >> c_msb_null,
      a >> (b_msb_null + c_msb_null)),
+
+    # Degenerated case from fuzzing, which had previously raised bugs
+    (ExprCompose(ExprInt(0x7, 3), ExprMem(ExprInt(0x39E21, 19), 1), ExprMem(ExprInt(0x39E21, 19), 1)),
+     ExprCompose(ExprInt(0x7, 3), ExprMem(ExprInt(0x39E21, 19), 1), ExprMem(ExprInt(0x39E21, 19), 1))),
 ]
 
 for e_input, e_check in to_test:
