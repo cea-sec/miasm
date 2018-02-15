@@ -542,7 +542,7 @@ class ExprId(Expr):
         state = self._name, self._size
         return self.__class__, state
 
-    def __new__(cls, name, size=32):
+    def __new__(cls, name, size=None):
         return Expr.get_object(cls, (name, size))
 
     def __str__(self):
