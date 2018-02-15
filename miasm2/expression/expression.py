@@ -787,11 +787,14 @@ class ExprMem(Expr):
 
     __slots__ = Expr.__slots__ + ["_arg"]
 
-    def __init__(self, arg, size=32):
+    def __init__(self, arg, size=None):
         """Create an ExprMem
         @arg: Expr, memory access address
         @size: int, memory access size
         """
+        if size is None:
+            warnings.warn('DEPRECATION WARNING: size is a mandatory argument: use ExprMem(arg, SIZE)')
+            size = 32
 
         # arg must be Expr
         assert isinstance(arg, Expr)
@@ -810,7 +813,7 @@ class ExprMem(Expr):
         state = self._arg, self._size
         return self.__class__, state
 
-    def __new__(cls, arg, size=32):
+    def __new__(cls, arg, size=None):
         return Expr.get_object(cls, (arg, size))
 
     def __str__(self):

@@ -672,11 +672,11 @@ def st_ld_m(ir, instr, a, b, store=False, postinc=False, updown=False):
     for i, r in enumerate(regs):
         ad = base + ExprInt(i * step, 32)
         if store:
-            e.append(ExprAff(ExprMem(ad), r))
+            e.append(ExprAff(ExprMem(ad, 32), r))
         else:
-            e.append(ExprAff(r, ExprMem(ad)))
+            e.append(ExprAff(r, ExprMem(ad, 32)))
             if r == PC:
-                e.append(ExprAff(ir.IRDst, ExprMem(ad)))
+                e.append(ExprAff(ir.IRDst, ExprMem(ad, 32)))
     # XXX TODO check multiple write cause by wb
     if wb:
         if postinc:
@@ -813,7 +813,7 @@ def push(ir, instr, a):
     regs = list(a.args)
     for i in xrange(len(regs)):
         r = SP + ExprInt(-4 * (i + 1), 32)
-        e.append(ExprAff(ExprMem(r), regs[i]))
+        e.append(ExprAff(ExprMem(r, 32), regs[i]))
     r = SP + ExprInt(-4 * len(regs), 32)
     e.append(ExprAff(SP, r))
     return e
@@ -825,9 +825,9 @@ def pop(ir, instr, a):
     dst = None
     for i in xrange(len(regs)):
         r = SP + ExprInt(4 * i, 32)
-        e.append(ExprAff(regs[i], ExprMem(r)))
+        e.append(ExprAff(regs[i], ExprMem(r, 32)))
         if regs[i] == ir.pc:
-            dst = ExprMem(r)
+            dst = ExprMem(r, 32)
     r = SP + ExprInt(4 * len(regs), 32)
     e.append(ExprAff(SP, r))
     if dst is not None:

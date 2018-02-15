@@ -29,13 +29,13 @@ def deref2expr(s, l, t):
     if len(t) != 4:
         raise NotImplementedError("TODO")
 
-    return ExprMem(t[2] + t[0])
+    return ExprMem(t[2] + t[0], 32)
 
 def deref2expr_nooff(s, l, t):
     t = t[0]
     if len(t) != 3:
         raise NotImplementedError("TODO")
-    return ExprMem(t[1])
+    return ExprMem(t[1], 32)
 
 base_expr = cpu.base_expr
 
@@ -380,7 +380,7 @@ class mips32_dreg_imm(cpu.m_arg):
     def decode(self, v):
         imm = self.parent.imm.expr
         r = gpregs.expr[v]
-        self.expr = ExprMem(r+imm)
+        self.expr = ExprMem(r+imm, 32)
         return True
 
     def encode(self):

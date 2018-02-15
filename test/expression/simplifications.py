@@ -89,7 +89,7 @@ d8 = ExprId('d8', 8)
 e8 = ExprId('e8', 8)
 
 
-m = ExprMem(a)
+m = ExprMem(a, 32)
 s = a[:8]
 
 i0 = ExprInt(0, 32)
@@ -106,7 +106,7 @@ l = [a[:8], b[:8], c[:8], m[:8], s, i1[:8], i2[:8], o[:8]]
 l2 = l[::-1]
 
 
-x = ExprMem(a + b + ExprInt(0x42, 32))
+x = ExprMem(a + b + ExprInt(0x42, 32), 32)
 
 # Define tests: (expression to simplify, expected value)
 to_test = [(ExprInt(1, 32) - ExprInt(1, 32), ExprInt(0, 32)),
@@ -189,8 +189,8 @@ to_test = [(ExprInt(1, 32) - ExprInt(1, 32), ExprInt(0, 32)),
             ExprCompose(a[:16], a[:16]),),
            (ExprCompose(a[:16], a[16:32]), a),
 
-           (ExprMem(a)[:32], ExprMem(a)),
-           (ExprMem(a)[:16], ExprMem(a, size=16)),
+           (ExprMem(a, 32)[:32], ExprMem(a, 32)),
+           (ExprMem(a, 32)[:16], ExprMem(a, size=16)),
 
            (ExprCond(ExprInt(1, 32), a, b), a),
            (ExprCond(ExprInt(0, 32), b, a), a),
@@ -518,8 +518,8 @@ match_tests = [
     (match_expr(x + y, x + a, [a]), {a: y}),
     (match_expr(x + y, a + b, [a, b]), {a: x, b: y}),
     (match_expr(x + ExprInt(12, 32), a + b, [a, b]), {a: x, b: ExprInt(12, 32)}),
-    (match_expr(ExprMem(x), a, [a]), {a: ExprMem(x)}),
-    (match_expr(ExprMem(x), ExprMem(a), [a]), {a: x}),
+    (match_expr(ExprMem(x, 32), a, [a]), {a: ExprMem(x, 32)}),
+    (match_expr(ExprMem(x, 32), ExprMem(a, 32), [a]), {a: x}),
     (match_expr(x[0:8], a, [a]), {a: x[0:8]}),
     (match_expr(x[0:8], a[0:8], [a]), {a: x}),
     (match_expr(ExprCond(x, y, z), a, [a]), {a: ExprCond(x, y, z)}),
@@ -544,10 +544,10 @@ for test, res in match_tests:
 
 
 get_tests = [
-    (ExprAff(ExprMem(a), ExprMem(b)).get_r(True), set([a, b, ExprMem(b)])),
-    (ExprAff(ExprMem(a), ExprMem(b)).get_w(), set([ExprMem(a)])),
-    (ExprAff(ExprMem(ExprMem(a)), ExprMem(b))
-     .get_r(True), set([a, b, ExprMem(b), ExprMem(a)])),
+    (ExprAff(ExprMem(a, 32), ExprMem(b, 32)).get_r(True), set([a, b, ExprMem(b, 32)])),
+    (ExprAff(ExprMem(a, 32), ExprMem(b, 32)).get_w(), set([ExprMem(a, 32)])),
+    (ExprAff(ExprMem(ExprMem(a, 32), 32), ExprMem(b, 32))
+     .get_r(True), set([a, b, ExprMem(b, 32), ExprMem(a, 32)])),
 ]
 
 
