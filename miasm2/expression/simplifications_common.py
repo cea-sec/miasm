@@ -40,13 +40,26 @@ def simp_cst_propagation(e_s, expr):
             elif op_name == '|':
                 out = int1.arg | int2.arg
             elif op_name == '>>':
-                out = int1.arg >> int2.arg
+                if int(int2) > int1.size:
+                    out = 0
+                else:
+                    out = int1.arg >> int2.arg
             elif op_name == '<<':
-                out = int1.arg << int2.arg
+                if int(int2) > int1.size:
+                    out = 0
+                else:
+                    out = int1.arg << int2.arg
             elif op_name == 'a>>':
                 tmp1 = mod_size2int[int1.arg.size](int1.arg)
                 tmp2 = mod_size2uint[int2.arg.size](int2.arg)
-                out = mod_size2uint[int1.arg.size](tmp1 >> tmp2)
+                if tmp2 > int1.size:
+                    is_signed = int(int1) & (1 << (int1.size - 1))
+                    if is_signed:
+                        out = -1
+                    else:
+                        out = 0
+                else:
+                    out = mod_size2uint[int1.arg.size](tmp1 >> tmp2)
             elif op_name == '>>>':
                 shifter = int2.arg % int2.size
                 out = (int1.arg >> shifter) | (int1.arg << (int2.size - shifter))
