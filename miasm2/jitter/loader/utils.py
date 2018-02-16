@@ -43,7 +43,7 @@ class libimp(object):
             log.warning("Create dummy entry for %r", name)
             self.fake_libs.add(name)
             self.name2off[name] = ad
-            self.libbase2lastad[ad] = ad + 0x1
+            self.libbase2lastad[ad] = ad + 0x4
             self.lib_imp2ad[ad] = {}
             self.lib_imp2dstad[ad] = {}
             self.libbase_ad += 0x1000
@@ -67,7 +67,7 @@ class libimp(object):
             return self.lib_imp2ad[libad][imp_ord_or_name]
         # log.debug('new imp %s %s' % (imp_ord_or_name, dst_ad))
         ad = self.libbase2lastad[libad]
-        self.libbase2lastad[libad] += 0x11  # arbitrary
+        self.libbase2lastad[libad] += 0x10  # arbitrary
         self.lib_imp2ad[libad][imp_ord_or_name] = ad
 
         name_inv = dict([(x[1], x[0]) for x in self.name2off.items()])
