@@ -42,8 +42,13 @@ def preload_elf(vm, e, runtime_lib, patch_vm_imp=True):
             dyn_funcs[libname_s] = ad_libfunc
             if patch_vm_imp:
                 log.debug('patch 0x%x 0x%x %s', ad, ad_libfunc, libfunc)
-                vm.set_mem(
-                    ad, struct.pack(cstruct.size2type[e.size], ad_libfunc))
+                set_endianness = { elf_csts.ELFDATA2MSB: ">",
+                                   elf_csts.ELFDATA2LSB: "<",
+                                   elf_csts.ELFDATANONE: "" }[e.sex]
+                vm.set_mem(ad,
+                           struct.pack(set_endianness +
+                                       cstruct.size2type[e.size],
+                                       ad_libfunc))
     return runtime_lib, dyn_funcs
 
 
