@@ -14,7 +14,7 @@ class Sandbox(object):
     Parent class for Sandbox abstraction
     """
 
-    CALL_FINNISH_ADDR = 0x1337babe
+    CALL_FINISH_ADDR = 0x13371acc
 
     @staticmethod
     def code_sentinelle(jitter):
@@ -135,8 +135,8 @@ class Sandbox(object):
         @args: arguments
         """
         self.jitter.init_run(addr)
-        self.jitter.add_breakpoint(self.CALL_FINNISH_ADDR, self.code_sentinelle)
-        prepare_cb(self.CALL_FINNISH_ADDR, *args)
+        self.jitter.add_breakpoint(self.CALL_FINISH_ADDR, self.code_sentinelle)
+        prepare_cb(self.CALL_FINISH_ADDR, *args)
         self.jitter.continue_run()
 
 
