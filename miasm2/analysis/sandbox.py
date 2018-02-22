@@ -440,6 +440,14 @@ class Arch_aarch64b(Arch):
         self.jitter.stack_base = self.STACK_BASE
         self.jitter.init_stack()
 
+class Arch_ppc(Arch):
+    _ARCH_ = None
+
+class Arch_ppc32(Arch):
+    _ARCH_ = None
+
+class Arch_ppc32b(Arch_ppc32):
+    _ARCH_ = "ppc32b"
 
 class Sandbox_Win_x86_32(Sandbox, Arch_x86_32, OS_Win):
 
@@ -736,6 +744,83 @@ class Sandbox_Linux_aarch64l(Sandbox, Arch_aarch64l, OS_Linux):
         if addr is None and self.options.address is None:
             addr = self.entry_point
         super(Sandbox_Linux_aarch64l, self).run(addr)
+
+    def call(self, addr, *args, **kwargs):
+        """
+        Direct call of the function at @addr, with arguments @args
+        @addr: address of the target function
+        @args: arguments
+        """
+        prepare_cb = kwargs.pop('prepare_cb', self.jitter.func_prepare_systemv)
+        super(self.__class__, self).call(prepare_cb, addr, *args)
+
+class Sandbox_Linux_ppc32b(Sandbox, Arch_ppc32b, OS_Linux):
+
+    STACK_SIZE = 0x10000
+    STACK_BASE = 0xbfce0000
+
+    # The glue between the kernel and the ELF ABI on Linux/PowerPC is
+    # implemented in glibc/sysdeps/powerpc/powerpc32/dl-start.S, so we
+    # have to play the role of ld.so here.
+    def __init__(self, *args, **kwargs):
+        super(Sandbox_Linux_ppc32b, self).__init__(*args, **kwargs)
+
+        # Init stack
+        self.jitter.stack_size = self.STACK_SIZE
+        self.jitter.stack_base = self.STACK_BASE
+        self.jitter.init_stack()
+        self.jitter.cpu.R1 -= 8
+
+        # Pre-stack some arguments
+        if self.options.mimic_env:
+            env_ptrs = []
+            for env in self.envp:
+                env += "\x00"
+                self.jitter.cpu.R1 -= len(env)
+                ptr = self.jitter.cpu.R1
+                self.jitter.vm.set_mem(ptr, env)
+                env_ptrs.append(ptr)
+            argv_ptrs = []
+            for arg in self.argv:
+                arg += "\x00"
+                self.jitter.cpu.R1 -= len(arg)
+                ptr = self.jitter.cpu.R1
+                self.jitter.vm.set_mem(ptr, arg)
+                argv_ptrs.append(ptr)
+
+            self.jitter.push_uint32_t(0)
+            for ptr in reversed(env_ptrs):
+                self.jitter.push_uint32_t(ptr)
+            self.jitter.cpu.R5 = self.jitter.cpu.R1	# envp
+            self.jitter.push_uint32_t(0)
+            for ptr in reversed(argv_ptrs):
+                self.jitter.push_uint32_t(ptr)
+            self.jitter.cpu.R4 = self.jitter.cpu.R1	# argv
+            self.jitter.cpu.R3 = len(self.argv)		# argc
+            self.jitter.push_uint32_t(self.jitter.cpu.R3)
+
+            self.jitter.cpu.R6 = 0			# auxp
+            self.jitter.cpu.R7 = 0			# termination function
+
+            # From the glibc, we should push a 0 here to distinguish a
+            # dynamically linked executable from a statically linked one.
+            # We actually do not do it and attempt to be somehow compatible
+            # with both types of executables.
+            #self.jitter.push_uint32_t(0)
+
+        self.jitter.cpu.LR = self.CALL_FINISH_ADDR
+
+        # Set the runtime guard
+        self.jitter.add_breakpoint(self.CALL_FINISH_ADDR,
+                                   self.__class__.code_sentinelle)
+
+    def run(self, addr=None):
+        """
+        If addr is not set, use entrypoint
+        """
+        if addr is None and self.options.address is None:
+            addr = self.entry_point
+        super(Sandbox_Linux_ppc32b, self).run(addr)
 
     def call(self, addr, *args, **kwargs):
         """
