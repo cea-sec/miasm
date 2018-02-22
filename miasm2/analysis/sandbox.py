@@ -14,7 +14,7 @@ class Sandbox(object):
     Parent class for Sandbox abstraction
     """
 
-    CALL_FINISH_ADDR = 0x1337babe
+    CALL_FINISH_ADDR = 0x13371acc
 
     @staticmethod
     def code_sentinelle(jitter):
