@@ -704,11 +704,11 @@ def mn_do_cond_branch(ir, instr, dest):
     bo = instr.additional_info.bo
     bi = instr.additional_info.bi
     ret = []
-    if not (bo & 0b00100):
-        ret.append(ExprAff(CTR, CTR - ExprInt(1, 32)))
-    if (bo & 0b10100) == 0b10100:
+
+    if bo & 0b00100:
         ctr_cond = True
     else:
+        ret.append(ExprAff(CTR, CTR - ExprInt(1, 32)))
         ctr_cond = ExprCond(CTR ^ ExprInt(1, 32), ExprInt(1, 1), ExprInt(0, 1))
         if bo & 0b00010:
             ctr_cond = ~ctr_cond
