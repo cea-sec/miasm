@@ -17,6 +17,7 @@ class JitCore_LLVM(jitcore.JitCore):
                            "msp430": "JitCore_msp430.so",
                            "mips32": "JitCore_mips32.so",
                            "aarch64": "JitCore_aarch64.so",
+                           "ppc32": "JitCore_ppc32.so",
     }
 
     def __init__(self, ir_arch, bs=None):

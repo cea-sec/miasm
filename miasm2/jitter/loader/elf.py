@@ -100,6 +100,7 @@ ELF_machine = {(elf_csts.EM_ARM, 32, elf_csts.ELFDATA2LSB): "arml",
                (elf_csts.EM_386, 32, elf_csts.ELFDATA2LSB): "x86_32",
                (elf_csts.EM_X86_64, 64, elf_csts.ELFDATA2LSB): "x86_64",
                (elf_csts.EM_SH, 32, elf_csts.ELFDATA2LSB): "sh4",
+               (elf_csts.EM_PPC, 32, elf_csts.ELFDATA2MSB): "ppc32b",
                }
 
 
