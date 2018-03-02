@@ -157,7 +157,7 @@ class ExceptionHandle():
         return (self.except_flag == to_cmp.except_flag)
 
 
-class jitter:
+class jitter(object):
 
     "Main class for JIT handling"
 
@@ -188,6 +188,8 @@ class jitter:
                 from miasm2.jitter.arch import JitCore_msp430 as jcore
             elif arch_name == "mips32":
                 from miasm2.jitter.arch import JitCore_mips32 as jcore
+            elif arch_name == "ppc32":
+                from miasm2.jitter.arch import JitCore_ppc32 as jcore
             else:
                 raise ValueError("unknown jit arch: %s" % arch_name)
         except ImportError:

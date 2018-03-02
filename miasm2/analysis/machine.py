@@ -12,7 +12,7 @@ class Machine(object):
 
     __available = ["arml", "armb", "armtl", "armtb", "sh4", "x86_16", "x86_32",
                    "x86_64", "msp430", "mips32b", "mips32l",
-                   "aarch64l", "aarch64b"]
+                   "aarch64l", "aarch64b", "ppc32b"]
 
 
     def __init__(self, machine_name):
@@ -162,6 +162,17 @@ class Machine(object):
             mn = arch.mn_mips32
             from miasm2.arch.mips32.ira import ir_a_mips32l as ira
             from miasm2.arch.mips32.sem import ir_mips32l as ir
+        elif machine_name == "ppc32b":
+            from miasm2.arch.ppc.disasm import dis_ppc32b as dis_engine
+            from miasm2.arch.ppc import arch
+            try:
+                from miasm2.arch.ppc import jit
+                jitter = jit.jitter_ppc32b
+            except ImportError:
+                pass
+            mn = arch.mn_ppc
+            from miasm2.arch.ppc.ira import ir_a_ppc32b as ira
+            from miasm2.arch.ppc.sem import ir_ppc32b as ir
         else:
             raise ValueError('Unknown machine: %s' % machine_name)
 
