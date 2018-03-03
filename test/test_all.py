@@ -547,6 +547,8 @@ testset += ExampleDisasmFull(["x86_64", Example.get_sample("demo_x86_64.bin"),
                               "0x401000"], depends=[test_x86_64])
 testset += ExampleDisasmFull(["aarch64l", Example.get_sample("md5_aarch64l"),
                               "0x400A00"], depends=[test_aarch64l])
+testset += ExampleDisasmFull(["ppc32b", Example.get_sample("md5_ppc32b"),
+                              "0x1000087C"])
 testset += ExampleDisasmFull(["x86_32", os.path.join("..", "..", "test",
                                                      "arch", "x86", "qemu",
                                                      "test-i386"),
@@ -682,6 +684,9 @@ for script, dep in [(["x86_32.py", Example.get_sample("x86_32_sc.bin")], []),
                      []),
                     (["sandbox_elf_aarch64l.py",
                       Example.get_sample("md5_aarch64l"), "--mimic-env"],
+                     []),
+                    (["sandbox_elf_ppc32.py",
+                      Example.get_sample("md5_ppc32b"), "-a", "0x1000087C"],
                      []),
                     (["msp430.py", Example.get_sample("msp430_sc.bin"), "0"],
                      [test_msp430]),
