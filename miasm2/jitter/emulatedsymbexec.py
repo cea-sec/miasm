@@ -44,9 +44,11 @@ class EmulatedSymbExec(SymbolicExecutionEngine):
         addr = expr_mem.arg.arg.arg
         size = expr_mem.size / 8
         value = self.cpu.get_mem(addr, size)
+        if self.vm.is_little_endian():
+            value = value[::-1]
         self.vm.add_mem_read(addr, size)
 
-        return m2_expr.ExprInt(int(value[::-1].encode("hex"), 16),
+        return m2_expr.ExprInt(int(value.encode("hex"), 16),
                                expr_mem.size)
 
     def _func_write(self, symb_exec, dest, data):
@@ -66,7 +68,10 @@ class EmulatedSymbExec(SymbolicExecutionEngine):
         size = data.size / 8
         content = hex(to_write).replace("0x", "").replace("L", "")
         content = "0" * (size * 2 - len(content)) + content
-        content = content.decode("hex")[::-1]
+        content = content.decode("hex")
+
+        if self.vm.is_little_endian():
+            content = content[::-1]
 
         # Write in VmMngr context
         self.cpu.set_mem(addr, content)

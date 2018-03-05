@@ -22,6 +22,19 @@ class ir_a_ppc32b(ir_ppc32b, ira):
         for irblock in leaves:
             self.set_dead_regs(irblock)
 
+    def call_effects(self, ad, instr):
+        return [AssignBlock([ExprAff(self.ret_reg, ExprOp('call_func_ret', ad,
+                                                          self.sp,
+                                                          self.arch.regs.R3,
+                                                          self.arch.regs.R4,
+                                                          self.arch.regs.R5,
+                                                          )),
+                             ExprAff(self.sp, ExprOp('call_func_stack',
+                                                     ad, self.sp)),
+                            ],
+                             instr
+                           )]
+
     def pre_add_instr(self, block, instr, assignments, ir_blocks_all, gen_pc_update):
         """Replace function call with corresponding call effects,
         inside the IR block"""

@@ -564,6 +564,17 @@ vm_set_little_endian(VmMngr *self, PyObject *value, void *closure)
 }
 
 
+static PyObject *
+vm_is_little_endian(VmMngr *self, PyObject *value, void *closure)
+{
+	if (self->vm_mngr.sex == __BIG_ENDIAN) {
+		return PyLong_FromUnsignedLongLong(0);
+	} else {
+		return PyLong_FromUnsignedLongLong(1);
+	}
+}
+
+
 static void
 VmMngr_dealloc(VmMngr* self)
 {
@@ -649,6 +660,8 @@ static PyMethodDef VmMngr_methods[] = {
 	 "set_big_endian() -> Set the VmMngr to Big Endian"},
 	{"set_little_endian",(PyCFunction)vm_set_little_endian, METH_VARARGS,
 	 "set_little_endian() -> Set the VmMngr to Little Endian"},
+	{"is_little_endian",(PyCFunction)vm_is_little_endian, METH_VARARGS,
+	 "is_little_endian() -> Return True if the VmMngr is Little Endian"},
 	{"get_memory_read",(PyCFunction)vm_get_memory_read, METH_VARARGS,
 	 "get_memory_read() -> Retrieve last instruction READ access\n"
 	 "This function is only valid in a memory breakpoint callback."

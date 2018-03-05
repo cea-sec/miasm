@@ -777,8 +777,10 @@ class LLVMFunction():
                 itype = LLVMType.IntType(expr.size)
                 expr_size = itype(expr.size)
 
+                # As shift of expr_size is undefined, we urem the shifters
                 shift = builder.urem(count, expr_size)
-                shift_inv = builder.sub(expr_size, shift)
+                shift_inv = builder.urem(builder.sub(expr_size, shift),
+                                         expr_size)
 
                 if op == '<<<':
                     part_a = builder.shl(value, shift)
