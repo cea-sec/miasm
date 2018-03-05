@@ -1,5 +1,6 @@
 #-*- coding:utf-8 -*-
 
+import struct
 from sys import stdout
 from string import printable
 
@@ -31,21 +32,51 @@ def xxx___libc_start_main(jitter):
     Note:
      - init, fini, rtld_fini are ignored
      - return address is forced to ABORT_ADDR, to avoid calling abort/hlt/...
+     - in powerpc, signature is:
+
+    int __libc_start_main (int argc, char **argv, char **ev, ElfW (auxv_t) *
+                       auxvec, void (*rtld_fini) (void), struct startup_info
+                       *stinfo, char **stack_on_entry)
 
     """
     global ABORT_ADDR
-    ret_ad, args = jitter.func_args_systemv(["main", "argc", "ubp_av", "init",
-                                             "fini", "rtld_fini", "stack_end"])
+    if jitter.arch.name == "ppc32":
+        ret_ad, args = jitter.func_args_systemv(
+            ["argc", "argv", "ev", "aux_vec", "rtld_fini", "st_info",
+             "stack_on_entry"]
+        )
 
-    # done by __libc_init_first
-    size = jitter.ir_arch.pc.size / 8
-    argv = args.ubp_av
-    envp = argv + (args.argc + 1) * size
+        # Mimic glibc implementation
+        if args.stack_on_entry != 0:
+            argc = struct.unpack(">I",
+                                 jitter.vm.get_mem(args.stack_on_entry, 4))[0]
+            argv = args.stack_on_entry + 4
+            envp = argv + ((argc + 1) * 4)
+        else:
+            argc = args.argc
+            argv = args.argv
+            envp = args.ev
+        # sda_base, main, init, fini
+        _, main, _, _ = struct.unpack(">IIII",
+                                      jitter.vm.get_mem(args.st_info, 4 * 4))
+
+    else:
+        ret_ad, args = jitter.func_args_systemv(
+            ["main", "argc", "ubp_av", "init", "fini", "rtld_fini", "stack_end"]
+        )
+
+        main = args.main
+        # done by __libc_init_first
+        size = jitter.ir_arch.pc.size / 8
+        argc = args.argc
+        argv = args.ubp_av
+        envp = argv + (args.argc + 1) * size
+
 
     # Call int main(int argc, char** argv, char** envp)
-    jitter.func_ret_systemv(args.main)
+    jitter.func_ret_systemv(main)
     ret_ad = ABORT_ADDR
-    jitter.func_prepare_systemv(ret_ad, args.argc, argv, envp)
+    jitter.func_prepare_systemv(ret_ad, argc, argv, envp)
     return True
 
 
