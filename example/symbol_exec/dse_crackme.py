@@ -195,7 +195,7 @@ def xxx___libc_start_main_symb(dse):
     main_addr = dse.eval_expr(regs.RDI)
     argc = dse.eval_expr(regs.RSI)
     argv = dse.eval_expr(regs.RDX)
-    hlt_addr = ExprInt(0x1337beef, 64)
+    hlt_addr = ExprInt(sb.CALL_FINISH_ADDR, 64)
 
     dse.update_state({
         ExprMem(top_stack, 64): hlt_addr,
