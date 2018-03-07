@@ -26,6 +26,12 @@ typedef struct {
 	uint32_t of;
 	uint32_t cf;
 
+	/* ge */
+	uint32_t ge0;
+	uint32_t ge1;
+	uint32_t ge2;
+	uint32_t ge3;
+
 	uint32_t bp_num;
 }vm_cpu_t;
 

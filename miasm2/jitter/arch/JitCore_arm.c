@@ -31,6 +31,11 @@ reg_dict gpreg_dict[] = { {.name = "R0", .offset = offsetof(vm_cpu_t, R0)},
 			  {.name = "nf", .offset = offsetof(vm_cpu_t, nf)},
 			  {.name = "of", .offset = offsetof(vm_cpu_t, of)},
 			  {.name = "cf", .offset = offsetof(vm_cpu_t, cf)},
+
+			  {.name = "ge0", .offset = offsetof(vm_cpu_t, ge0)},
+			  {.name = "ge1", .offset = offsetof(vm_cpu_t, ge1)},
+			  {.name = "ge2", .offset = offsetof(vm_cpu_t, ge2)},
+			  {.name = "ge3", .offset = offsetof(vm_cpu_t, ge3)},
 };
 
 /************************** JitCpu object **************************/
@@ -64,6 +69,11 @@ PyObject* cpu_get_gpreg(JitCpu* self)
     get_reg(nf);
     get_reg(of);
     get_reg(cf);
+
+    get_reg(ge0);
+    get_reg(ge1);
+    get_reg(ge2);
+    get_reg(ge3);
 
     return dict;
 }
@@ -304,6 +314,11 @@ getset_reg_u32(nf);
 getset_reg_u32(of);
 getset_reg_u32(cf);
 
+getset_reg_u32(ge0);
+getset_reg_u32(ge1);
+getset_reg_u32(ge2);
+getset_reg_u32(ge3);
+
 
 PyObject* get_gpreg_offset_all(void)
 {
@@ -334,6 +349,11 @@ PyObject* get_gpreg_offset_all(void)
     get_reg_off(nf);
     get_reg_off(of);
     get_reg_off(cf);
+
+    get_reg_off(ge0);
+    get_reg_off(ge1);
+    get_reg_off(ge2);
+    get_reg_off(ge3);
 
     return dict;
 }
@@ -373,6 +393,11 @@ static PyGetSetDef JitCpu_getseters[] = {
     {"nf", (getter)JitCpu_get_nf, (setter)JitCpu_set_nf, "nf", NULL},
     {"of", (getter)JitCpu_get_of, (setter)JitCpu_set_of, "of", NULL},
     {"cf", (getter)JitCpu_get_cf, (setter)JitCpu_set_cf, "cf", NULL},
+
+    {"ge0", (getter)JitCpu_get_ge0, (setter)JitCpu_set_ge0, "ge0", NULL},
+    {"ge1", (getter)JitCpu_get_ge1, (setter)JitCpu_set_ge0, "ge1", NULL},
+    {"ge2", (getter)JitCpu_get_ge2, (setter)JitCpu_set_ge0, "ge2", NULL},
+    {"ge3", (getter)JitCpu_get_ge3, (setter)JitCpu_set_ge0, "ge3", NULL},
 
     {NULL}  /* Sentinel */
 };

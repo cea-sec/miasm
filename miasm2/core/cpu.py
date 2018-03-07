@@ -1393,7 +1393,9 @@ class cls_mn(object):
                     log.debug('cannot encode %r', f)
                     can_encode = False
                     break
+
                 if f.value is not None and f.l:
+                    assert f.value <= f.lmask
                     cur_len += f.l
                 index += 1
                 if ret is True:
@@ -1556,6 +1558,8 @@ class imm_noarg(object):
             return False
         v = self.encodeval(v)
         if v is False:
+            return False
+        if v > self.lmask:
             return False
         self.value = v
         return True

@@ -3,6 +3,7 @@ from miasm2.ir.ir import IntermediateRepresentation, IRBlock, AssignBlock
 from miasm2.arch.arm.arch import mn_arm, mn_armt
 from miasm2.arch.arm.regs import *
 
+from miasm2.jitter.csts import EXCEPT_DIV_BY_ZERO
 
 # liris.cnrs.fr/~mmrissa/lib/exe/fetch.php?media=armv7-a-r-manual.pdf
 EXCEPT_SOFT_BP = (1 << 1)
@@ -114,7 +115,7 @@ def adc(ir, instr, a, b, c=None):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
 
 
 def add(ir, instr, a, b, c=None):
@@ -129,7 +130,7 @@ def add(ir, instr, a, b, c=None):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
 
 
 def l_and(ir, instr, a, b, c=None):
@@ -143,7 +144,7 @@ def l_and(ir, instr, a, b, c=None):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
 
 
 def sub(ir, instr, a, b, c=None):
@@ -155,7 +156,7 @@ def sub(ir, instr, a, b, c=None):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
 
 
 def subs(ir, instr, a, b, c=None):
@@ -169,7 +170,7 @@ def subs(ir, instr, a, b, c=None):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
 
 
 def eor(ir, instr, a, b, c=None):
@@ -181,7 +182,7 @@ def eor(ir, instr, a, b, c=None):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
 
 
 def eors(ir, instr, a, b, c=None):
@@ -194,7 +195,7 @@ def eors(ir, instr, a, b, c=None):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
 
 
 def rsb(ir, instr, a, b, c=None):
@@ -206,7 +207,7 @@ def rsb(ir, instr, a, b, c=None):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
 
 
 def rsbs(ir, instr, a, b, c=None):
@@ -220,7 +221,7 @@ def rsbs(ir, instr, a, b, c=None):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
 
 
 def sbc(ir, instr, a, b, c=None):
@@ -232,7 +233,7 @@ def sbc(ir, instr, a, b, c=None):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
 
 
 def sbcs(ir, instr, a, b, c=None):
@@ -246,7 +247,7 @@ def sbcs(ir, instr, a, b, c=None):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
 
 
 def rsc(ir, instr, a, b, c=None):
@@ -258,7 +259,7 @@ def rsc(ir, instr, a, b, c=None):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
 
 
 def rscs(ir, instr, a, b, c=None):
@@ -273,16 +274,14 @@ def rscs(ir, instr, a, b, c=None):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
 
 
-def tst(ir, instr, a, b, c=None):
+def tst(ir, instr, a, b):
     e = []
-    if c is None:
-        b, c = a, b
-    r = b & c
+    r = a & b
     e += update_flag_logic(r)
-    return e
+    return e, []
 
 
 def teq(ir, instr, a, b, c=None):
@@ -291,7 +290,7 @@ def teq(ir, instr, a, b, c=None):
         b, c = a, b
     r = b ^ c
     e += update_flag_logic(r)
-    return e
+    return e, []
 
 
 def l_cmp(ir, instr, a, b, c=None):
@@ -301,7 +300,7 @@ def l_cmp(ir, instr, a, b, c=None):
     r = b - c
     e += update_flag_arith(r)
     e += update_flag_sub(b, c, r)
-    return e
+    return e, []
 
 
 def cmn(ir, instr, a, b, c=None):
@@ -311,7 +310,7 @@ def cmn(ir, instr, a, b, c=None):
     r = b + c
     e += update_flag_arith(r)
     e += update_flag_add(b, c, r)
-    return e
+    return e, []
 
 
 def orr(ir, instr, a, b, c=None):
@@ -323,7 +322,19 @@ def orr(ir, instr, a, b, c=None):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
+
+
+def orn(ir, instr, a, b, c=None):
+    e = []
+    if c is None:
+        b, c = a, b
+    r = ~(b | c)
+    e.append(ExprAff(a, r))
+    dst = get_dst(a)
+    if dst is not None:
+        e.append(ExprAff(ir.IRDst, r))
+    return e, []
 
 
 def orrs(ir, instr, a, b, c=None):
@@ -336,7 +347,7 @@ def orrs(ir, instr, a, b, c=None):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
 
 
 def mov(ir, instr, a, b):
@@ -344,7 +355,7 @@ def mov(ir, instr, a, b):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, b))
-    return e
+    return e, []
 
 
 def movt(ir, instr, a, b):
@@ -353,7 +364,7 @@ def movt(ir, instr, a, b):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
 
 
 def movs(ir, instr, a, b):
@@ -364,7 +375,7 @@ def movs(ir, instr, a, b):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, b))
-    return e
+    return e, []
 
 
 def mvn(ir, instr, a, b):
@@ -373,7 +384,7 @@ def mvn(ir, instr, a, b):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
 
 
 def mvns(ir, instr, a, b):
@@ -385,7 +396,7 @@ def mvns(ir, instr, a, b):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
 
 
 def neg(ir, instr, a, b):
@@ -395,11 +406,10 @@ def neg(ir, instr, a, b):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
 
 def negs(ir, instr, a, b):
-    e = subs(ir, instr, a, ExprInt(0, b.size), b)
-    return e
+    return subs(ir, instr, a, ExprInt(0, b.size), b)
 
 def bic(ir, instr, a, b, c=None):
     e = []
@@ -410,7 +420,7 @@ def bic(ir, instr, a, b, c=None):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
 
 
 def bics(ir, instr, a, b, c=None):
@@ -423,7 +433,70 @@ def bics(ir, instr, a, b, c=None):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
+
+
+def sdiv(ir, instr, a, b, c=None):
+    e = []
+    if c is None:
+        b, c = a, b
+
+    lbl_div = ExprId(ir.gen_label(), ir.IRDst.size)
+    lbl_except = ExprId(ir.gen_label(), ir.IRDst.size)
+    lbl_next = ExprId(ir.get_next_label(instr), ir.IRDst.size)
+
+    e.append(ExprAff(ir.IRDst, ExprCond(c, lbl_div, lbl_except)))
+
+    do_except = []
+    do_except.append(ExprAff(exception_flags, ExprInt(EXCEPT_DIV_BY_ZERO, exception_flags.size)))
+    do_except.append(ExprAff(ir.IRDst, lbl_next))
+    blk_except = IRBlock(lbl_except.name, [AssignBlock(do_except, instr)])
+
+
+
+    r = ExprOp("idiv", b, c)
+    do_div = []
+    do_div.append(ExprAff(a, r))
+    dst = get_dst(a)
+    if dst is not None:
+        do_div.append(ExprAff(ir.IRDst, r))
+
+    do_div.append(ExprAff(ir.IRDst, lbl_next))
+    blk_div = IRBlock(lbl_div.name, [AssignBlock(do_div, instr)])
+
+    return e, [blk_div, blk_except]
+
+
+def udiv(ir, instr, a, b, c=None):
+    e = []
+    if c is None:
+        b, c = a, b
+
+
+
+    lbl_div = ExprId(ir.gen_label(), ir.IRDst.size)
+    lbl_except = ExprId(ir.gen_label(), ir.IRDst.size)
+    lbl_next = ExprId(ir.get_next_label(instr), ir.IRDst.size)
+
+    e.append(ExprAff(ir.IRDst, ExprCond(c, lbl_div, lbl_except)))
+
+    do_except = []
+    do_except.append(ExprAff(exception_flags, ExprInt(EXCEPT_DIV_BY_ZERO, exception_flags.size)))
+    do_except.append(ExprAff(ir.IRDst, lbl_next))
+    blk_except = IRBlock(lbl_except.name, [AssignBlock(do_except, instr)])
+
+
+    r = ExprOp("udiv", b, c)
+    do_div = []
+    do_div.append(ExprAff(a, r))
+    dst = get_dst(a)
+    if dst is not None:
+        do_div.append(ExprAff(ir.IRDst, r))
+
+    do_div.append(ExprAff(ir.IRDst, lbl_next))
+    blk_div = IRBlock(lbl_div.name, [AssignBlock(do_div, instr)])
+
+    return e, [blk_div, blk_except]
 
 
 def mla(ir, instr, a, b, c, d):
@@ -433,7 +506,7 @@ def mla(ir, instr, a, b, c, d):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
 
 
 def mlas(ir, instr, a, b, c, d):
@@ -444,10 +517,20 @@ def mlas(ir, instr, a, b, c, d):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
 
 
-def mul(ir, instr, a, b, c = None):
+def mls(ir, instr, a, b, c, d):
+    e = []
+    r = d - (b * c)
+    e.append(ExprAff(a, r))
+    dst = get_dst(a)
+    if dst is not None:
+        e.append(ExprAff(ir.IRDst, r))
+    return e, []
+
+
+def mul(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
@@ -456,10 +539,10 @@ def mul(ir, instr, a, b, c = None):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
 
 
-def muls(ir, instr, a, b, c = None):
+def muls(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
@@ -469,7 +552,7 @@ def muls(ir, instr, a, b, c = None):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
 
 def umull(ir, instr, a, b, c, d):
     e = []
@@ -477,7 +560,7 @@ def umull(ir, instr, a, b, c, d):
     e.append(ExprAff(a, r[0:32]))
     e.append(ExprAff(b, r[32:64]))
     # r15/IRDst not allowed as output
-    return e
+    return e, []
 
 def umlal(ir, instr, a, b, c, d):
     e = []
@@ -485,7 +568,7 @@ def umlal(ir, instr, a, b, c, d):
     e.append(ExprAff(a, r[0:32]))
     e.append(ExprAff(b, r[32:64]))
     # r15/IRDst not allowed as output
-    return e
+    return e, []
 
 def smull(ir, instr, a, b, c, d):
     e = []
@@ -493,7 +576,7 @@ def smull(ir, instr, a, b, c, d):
     e.append(ExprAff(a, r[0:32]))
     e.append(ExprAff(b, r[32:64]))
     # r15/IRDst not allowed as output
-    return e
+    return e, []
 
 def smlal(ir, instr, a, b, c, d):
     e = []
@@ -501,13 +584,13 @@ def smlal(ir, instr, a, b, c, d):
     e.append(ExprAff(a, r[0:32]))
     e.append(ExprAff(b, r[32:64]))
     # r15/IRDst not allowed as output
-    return e
+    return e, []
 
 def b(ir, instr, a):
     e = []
     e.append(ExprAff(PC, a))
     e.append(ExprAff(ir.IRDst, a))
-    return e
+    return e, []
 
 
 def bl(ir, instr, a):
@@ -516,14 +599,14 @@ def bl(ir, instr, a):
     e.append(ExprAff(PC, a))
     e.append(ExprAff(ir.IRDst, a))
     e.append(ExprAff(LR, l))
-    return e
+    return e, []
 
 
 def bx(ir, instr, a):
     e = []
     e.append(ExprAff(PC, a))
     e.append(ExprAff(ir.IRDst, a))
-    return e
+    return e, []
 
 
 def blx(ir, instr, a):
@@ -532,10 +615,10 @@ def blx(ir, instr, a):
     e.append(ExprAff(PC, a))
     e.append(ExprAff(ir.IRDst, a))
     e.append(ExprAff(LR, l))
-    return e
+    return e, []
 
 
-def st_ld_r(ir, instr, a, b, store=False, size=32, s_ext=False, z_ext=False):
+def st_ld_r(ir, instr, a, a2, b, store=False, size=32, s_ext=False, z_ext=False):
     e = []
     wb = False
     b = b.copy()
@@ -573,9 +656,9 @@ def st_ld_r(ir, instr, a, b, store=False, size=32, s_ext=False, z_ext=False):
         m = ExprMem(ad, size=size)
         pass
     elif size == 64:
+        assert a2 is not None
         m = ExprMem(ad, size=32)
         dmem = True
-        a2 = ir.arch.regs.all_regs_ids[ir.arch.regs.all_regs_ids.index(a) + 1]
         size = 32
     else:
         raise ValueError('the size DOES matter')
@@ -596,55 +679,53 @@ def st_ld_r(ir, instr, a, b, store=False, size=32, s_ext=False, z_ext=False):
     # XXX TODO check multiple write cause by wb
     if wb or postinc:
         e.append(ExprAff(base, base + off))
-    return e
+    return e, []
 
 
 def ldr(ir, instr, a, b):
-    return st_ld_r(ir, instr, a, b, store=False)
+    return st_ld_r(ir, instr, a, None, b, store=False)
 
 
-def ldrd(ir, instr, a, b):
-    e = st_ld_r(ir, instr, a, b, store=False, size=64)
-    return e
+def ldrd(ir, instr, a, b, c=None):
+    if c is None:
+        a2 = ir.arch.regs.all_regs_ids[ir.arch.regs.all_regs_ids.index(a) + 1]
+    else:
+        a2 = b
+        b = c
+    return st_ld_r(ir, instr, a, a2, b, store=False, size=64)
 
 
 def l_str(ir, instr, a, b):
-    return st_ld_r(ir, instr, a, b, store=True)
+    return st_ld_r(ir, instr, a, None, b, store=True)
 
 
-def l_strd(ir, instr, a, b):
-    e = st_ld_r(ir, instr, a, b, store=True, size=64)
-    return e
-
+def l_strd(ir, instr, a, b, c=None):
+    if c is None:
+        a2 = ir.arch.regs.all_regs_ids[ir.arch.regs.all_regs_ids.index(a) + 1]
+    else:
+        a2 = b
+        b = c
+    return st_ld_r(ir, instr, a, a2, b, store=True, size=64)
 
 def ldrb(ir, instr, a, b):
-    e = st_ld_r(ir, instr, a, b, store=False, size=8, z_ext=True)
-    return e
+    return st_ld_r(ir, instr, a, None, b, store=False, size=8, z_ext=True)
 
 def ldrsb(ir, instr, a, b):
-    e = st_ld_r(
-        ir, instr, a, b, store=False, size=8, s_ext=True, z_ext=False)
-    return e
+    return st_ld_r(ir, instr, a, None, b, store=False, size=8, s_ext=True, z_ext=False)
 
 def strb(ir, instr, a, b):
-    e = st_ld_r(ir, instr, a, b, store=True, size=8)
-    return e
-
+    return st_ld_r(ir, instr, a, None, b, store=True, size=8)
 
 def ldrh(ir, instr, a, b):
-    e = st_ld_r(ir, instr, a, b, store=False, size=16, z_ext=True)
-    return e
+    return st_ld_r(ir, instr, a, None, b, store=False, size=16, z_ext=True)
 
 
 def strh(ir, instr, a, b):
-    e = st_ld_r(ir, instr, a, b, store=True, size=16, z_ext=True)
-    return e
+    return st_ld_r(ir, instr, a, None, b, store=True, size=16, z_ext=True)
 
 
 def ldrsh(ir, instr, a, b):
-    e = st_ld_r(
-        ir, instr, a, b, store=False, size=16, s_ext=True, z_ext=False)
-    return e
+    return st_ld_r(ir, instr, a, None, b, store=False, size=16, s_ext=True, z_ext=False)
 
 
 def st_ld_m(ir, instr, a, b, store=False, postinc=False, updown=False):
@@ -688,7 +769,7 @@ def st_ld_m(ir, instr, a, b, store=False, postinc=False, updown=False):
     else:
         assert(isinstance(b, ExprOp) and b.op == "reglist")
 
-    return e
+    return e, []
 
 
 def ldmia(ir, instr, a, b):
@@ -727,16 +808,16 @@ def svc(ir, instr, a):
     # XXX TODO implement
     e = [
         ExprAff(exception_flags, ExprInt(EXCEPT_PRIV_INSN, 32))]
-    return e
+    return e, []
 
 
 def und(ir, instr, a, b):
     # XXX TODO implement
     e = []
-    return e
+    return e, []
 
 # TODO XXX implement correct CF for shifters
-def lsr(ir, instr, a, b, c = None):
+def lsr(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
@@ -745,10 +826,10 @@ def lsr(ir, instr, a, b, c = None):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
 
 
-def lsrs(ir, instr, a, b, c = None):
+def lsrs(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
@@ -758,7 +839,7 @@ def lsrs(ir, instr, a, b, c = None):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
 
 def asr(ir, instr, a, b, c=None):
     e = []
@@ -769,9 +850,9 @@ def asr(ir, instr, a, b, c=None):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
 
-def asrs(ir, instr, a, b, c):
+def asrs(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
@@ -781,9 +862,9 @@ def asrs(ir, instr, a, b, c):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
 
-def lsl(ir, instr, a, b, c = None):
+def lsl(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
@@ -792,10 +873,10 @@ def lsl(ir, instr, a, b, c = None):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
 
 
-def lsls(ir, instr, a, b, c = None):
+def lsls(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
@@ -805,18 +886,29 @@ def lsls(ir, instr, a, b, c = None):
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
+
+
+def rors(ir, instr, a, b):
+    e = []
+    r = ExprOp(">>>", a, b)
+    e.append(ExprAff(a, r))
+    e += update_flag_logic(r)
+    dst = get_dst(a)
+    if dst is not None:
+        e.append(ExprAff(ir.IRDst, r))
+    return e, []
 
 
 def push(ir, instr, a):
     e = []
     regs = list(a.args)
     for i in xrange(len(regs)):
-        r = SP + ExprInt(-4 * (i + 1), 32)
+        r = SP + ExprInt(-4 * len(regs) + 4 * i, 32)
         e.append(ExprAff(ExprMem(r, 32), regs[i]))
     r = SP + ExprInt(-4 * len(regs), 32)
     e.append(ExprAff(SP, r))
-    return e
+    return e, []
 
 
 def pop(ir, instr, a):
@@ -832,21 +924,21 @@ def pop(ir, instr, a):
     e.append(ExprAff(SP, r))
     if dst is not None:
         e.append(ExprAff(ir.IRDst, dst))
-    return e
+    return e, []
 
 
 def cbz(ir, instr, a, b):
     e = []
     lbl_next = ExprId(ir.get_next_label(instr), 32)
     e.append(ExprAff(ir.IRDst, ExprCond(a, lbl_next, b)))
-    return e
+    return e, []
 
 
 def cbnz(ir, instr, a, b):
     e = []
     lbl_next = ExprId(ir.get_next_label(instr), 32)
-    e.append(ir.IRDst, ExprCond(a, b, lbl_next))
-    return e
+    e.append(ExprAff(ir.IRDst, ExprCond(a, b, lbl_next)))
+    return e, []
 
 
 
@@ -858,7 +950,7 @@ def uxtb(ir, instr, a, b):
     if PC in a.get_r():
         dst = PC
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
 
 def uxth(ir, instr, a, b):
     e = []
@@ -868,7 +960,7 @@ def uxth(ir, instr, a, b):
     if PC in a.get_r():
         dst = PC
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
 
 def sxtb(ir, instr, a, b):
     e = []
@@ -878,7 +970,7 @@ def sxtb(ir, instr, a, b):
     if PC in a.get_r():
         dst = PC
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
 
 def sxth(ir, instr, a, b):
     e = []
@@ -888,7 +980,7 @@ def sxth(ir, instr, a, b):
     if PC in a.get_r():
         dst = PC
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
 
 
 def ubfx(ir, instr, a, b, c, d):
@@ -901,7 +993,7 @@ def ubfx(ir, instr, a, b, c, d):
     if PC in a.get_r():
         dst = PC
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
 
 def bfc(ir, instr, a, b, c):
     e = []
@@ -923,34 +1015,41 @@ def bfc(ir, instr, a, b, c):
     if PC in a.get_r():
         dst = PC
         e.append(ExprAff(ir.IRDst, r))
-    return e
+    return e, []
 
 def rev(ir, instr, a, b):
     e = []
     c = ExprCompose(b[24:32], b[16:24], b[8:16], b[:8])
     e.append(ExprAff(a, c))
-    return e
+    return e, []
 
 def pld(ir, instr, a):
-    return []
+    e = []
+    return e, []
+
+
+def pldw(ir, instr, a):
+    e = []
+    return e, []
 
 
 def clz(ir, instr, a, b):
     e = []
     e.append(ExprAff(a, ExprOp('clz', b)))
-    return e
+    return e, []
 
 def uxtab(ir, instr, a, b, c):
     e = []
     e.append(ExprAff(a, b + (c & ExprInt(0xff, 32))))
-    return e
+    return e, []
 
 
 def bkpt(ir, instr, a):
     e = []
     e.append(ExprAff(exception_flags, ExprInt(EXCEPT_SOFT_BP, 32)))
     e.append(ExprAff(bp_num, a))
-    return e
+    return e, []
+
 
 def _extract_s16(arg, part):
     if part == 'B': # bottom 16 bits
@@ -958,12 +1057,131 @@ def _extract_s16(arg, part):
     elif part == 'T': # top 16 bits
         return arg[16:32]
 
+
 def smul(ir, instr, a, b, c):
-    return [ExprAff(a, _extract_s16(b, instr.name[4]).signExtend(32) * _extract_s16(c, instr.name[5]).signExtend(32))]
+    e = []
+    e.append(ExprAff(a, _extract_s16(b, instr.name[4]).signExtend(32) * _extract_s16(c, instr.name[5]).signExtend(32)))
+    return e, []
+
 
 def smulw(ir, instr, a, b, c):
+    e = []
     prod = b.signExtend(48) * _extract_s16(c, instr.name[5]).signExtend(48)
-    return [ExprAff(a, prod[16:48])] # signed most significant 32 bits of the 48-bit result
+    e.append(ExprAff(a, prod[16:48]))
+    return e, [] # signed most significant 32 bits of the 48-bit result
+
+
+def tbb(ir, instr, a):
+    e = []
+    dst = PC + ExprInt(2, 32) * a.zeroExtend(32)
+    e.append(ExprAff(PC, dst))
+    e.append(ExprAff(ir.IRDst, dst))
+    return e, []
+
+
+def tbh(ir, instr, a):
+    e = []
+    dst = PC + ExprInt(2, 32) * a.zeroExtend(32)
+    e.append(ExprAff(PC, dst))
+    e.append(ExprAff(ir.IRDst, dst))
+    return e, []
+
+
+def smlabb(ir, instr, a, b, c, d):
+    e = []
+    result = (b[:16].signExtend(32) * c[:16].signExtend(32)) + d
+    e.append(ExprAff(a, result))
+    return e, []
+
+
+def smlabt(ir, instr, a, b, c, d):
+    e = []
+    result = (b[:16].signExtend(32) * c[16:32].signExtend(32)) + d
+    e.append(ExprAff(a, result))
+    return e, []
+
+
+def smlatb(ir, instr, a, b, c, d):
+    e = []
+    result = (b[16:32].signExtend(32) * c[:16].signExtend(32)) + d
+    e.append(ExprAff(a, result))
+    return e, []
+
+
+def smlatt(ir, instr, a, b, c, d):
+    e = []
+    result = (b[16:32].signExtend(32) * c[16:32].signExtend(32)) + d
+    e.append(ExprAff(a, result))
+    return e, []
+
+
+def uadd8(ir, instr, a, b, c):
+    e = []
+    sums = []
+    ges = []
+    for i in xrange(0, 32, 8):
+        sums.append(b[i:i+8] + c[i:i+8])
+        ges.append((b[i:i+8].zeroExtend(9) + c[i:i+8].zeroExtend(9))[8:9])
+
+    e.append(ExprAff(a, ExprCompose(*sums)))
+
+    for i, value in enumerate(ges):
+        e.append(ExprAff(ge_regs[i], value))
+    return e, []
+
+
+def sel(ir, instr, a, b, c):
+    e = []
+    cond = nf ^ of ^ ExprInt(1, 1)
+    parts = []
+    for i in xrange(4):
+        parts.append(ExprCond(ge_regs[i], b[i*8:(i+1)*8], c[i*8:(i+1)*8]))
+    result = ExprCompose(*parts)
+    e.append(ExprAff(a, result))
+    return e, []
+
+
+def rev(ir, instr, a, b):
+    e = []
+    result = ExprCompose(b[24:32], b[16:24], b[8:16], b[:8])
+    e.append(ExprAff(a, result))
+    return e, []
+
+
+def nop(ir, instr):
+    e = []
+    return e, []
+
+
+def dsb(ir, instr, a):
+    # XXX TODO
+    e = []
+    return e, []
+
+
+def cpsie(ir, instr, a):
+    # XXX TODO
+    e = []
+    return e, []
+
+
+def cpsid(ir, instr, a):
+    # XXX TODO
+    e = []
+    return e, []
+
+
+def wfe(ir, instr):
+    # XXX TODO
+    e = []
+    return e, []
+
+
+def wfi(ir, instr):
+    # XXX TODO
+    e = []
+    return e, []
+
 
 COND_EQ = 0
 COND_NE = 1
@@ -1035,9 +1253,9 @@ def is_pc_written(ir, instr_ir):
     return False, None
 
 
-def add_condition_expr(ir, instr, cond, instr_ir):
+def add_condition_expr(ir, instr, cond, instr_ir, extra_ir):
     if cond == COND_AL:
-        return instr_ir, []
+        return instr_ir, extra_ir
     if not cond in tab_cond:
         raise ValueError('unknown condition %r' % cond)
     cond = tab_cond[cond]
@@ -1057,7 +1275,7 @@ def add_condition_expr(ir, instr, cond, instr_ir):
         instr_ir.append(ExprAff(ir.IRDst, lbl_next))
     e_do = IRBlock(lbl_do.name, [AssignBlock(instr_ir, instr)])
     e = [ExprAff(ir.IRDst, dst_cond)]
-    return e, [e_do]
+    return e, [e_do] + extra_ir
 
 mnemo_func = {}
 mnemo_func_cond = {}
@@ -1080,6 +1298,9 @@ mnemo_condm0 = {'add': add,
                 'bic': bic,
                 'mvn': mvn,
                 'neg': neg,
+
+                'sdiv': sdiv,
+                'udiv': udiv,
 
                 'mul': mul,
                 'umull': umull,
@@ -1134,6 +1355,7 @@ mnemo_condm1 = {'adds': add,
                 'negs': negs,
 
                 'muls': muls,
+                'mls': mls,
                 'mlas': mlas,
                 'blx': blx,
 
@@ -1170,6 +1392,7 @@ mnemo_nocond = {'lsr': lsr,
                 'lsrs': lsrs,
                 'lsl': lsl,
                 'lsls': lsls,
+                'rors': rors,
                 'push': push,
                 'pop': pop,
                 'asr': asr,
@@ -1177,7 +1400,24 @@ mnemo_nocond = {'lsr': lsr,
                 'cbz': cbz,
                 'cbnz': cbnz,
                 'pld': pld,
+                'pldw': pldw,
+                'tbb': tbb,
+                'tbh': tbh,
+                'nop': nop,
+                'dsb': dsb,
+                'cpsie': cpsie,
+                'cpsid': cpsid,
+                'wfe': wfe,
+                'wfi': wfi,
+                'orn': orn,
+                'smlabb': smlabb,
+                'smlabt': smlabt,
+                'smlatb': smlatb,
+                'smlatt': smlatt,
+                'uadd8': uadd8,
+                'sel': sel,
                 }
+
 mn_cond_x = [mnemo_condm0,
              mnemo_condm1,
              mnemo_condm2]
@@ -1215,8 +1455,8 @@ def get_mnemo_expr(ir, instr, *args):
     if not instr.name.lower() in mnemo_func_cond:
         raise ValueError('unknown mnemo %s' % instr)
     cond, mf = mnemo_func_cond[instr.name.lower()]
-    instr_ir = mf(ir, instr, *args)
-    instr, extra_ir = add_condition_expr(ir, instr, cond, instr_ir)
+    instr_ir, extra_ir = mf(ir, instr, *args)
+    instr, extra_ir = add_condition_expr(ir, instr, cond, instr_ir, extra_ir)
     return instr, extra_ir
 
 get_arm_instr_expr = get_mnemo_expr
@@ -1235,6 +1475,24 @@ class ir_arml(IntermediateRepresentation):
         self.IRDst = ExprId('IRDst', 32)
         self.addrsize = 32
 
+
+
+    def mod_pc(self, instr, instr_ir, extra_ir):
+        # fix PC (+8 for arm)
+        pc_fixed = {self.pc: ExprInt(instr.offset + 8, 32)}
+
+        for i, expr in enumerate(instr_ir):
+            dst, src = expr.dst, expr.src
+            if dst != self.pc:
+                dst = dst.replace_expr(pc_fixed)
+            src = src.replace_expr(pc_fixed)
+            instr_ir[i] = ExprAff(dst, src)
+
+        for idx, irblock in enumerate(extra_ir):
+            extra_ir[idx] = irblock.modify_exprs(lambda expr: expr.replace_expr(pc_fixed) \
+                                                 if expr != self.pc else expr,
+                                                 lambda expr: expr.replace_expr(pc_fixed))
+
     def get_ir(self, instr):
         args = instr.args
         # ir = get_mnemo_expr(self, self.name.lower(), *args)
@@ -1248,14 +1506,8 @@ class ir_arml(IntermediateRepresentation):
                                   args[-1].args[-1][:8].zeroExtend(32))
         instr_ir, extra_ir = get_mnemo_expr(self, instr, *args)
 
-        pc_fixed = {self.pc: ExprInt(instr.offset + 8, 32)}
-        for i, expr in enumerate(instr_ir):
-            instr_ir[i] = ExprAff(expr.dst, expr.src.replace_expr(pc_fixed))
-
-        new_extra_ir = [irblock.modify_exprs(mod_src=lambda expr: expr.replace_expr(pc_fixed))
-                        for irblock in extra_ir]
-
-        return instr_ir, new_extra_ir
+        self.mod_pc(instr, instr_ir, extra_ir)
+        return instr_ir, extra_ir
 
 
 class ir_armb(ir_arml):
@@ -1266,7 +1518,8 @@ class ir_armb(ir_arml):
         self.IRDst = ExprId('IRDst', 32)
         self.addrsize = 32
 
-class ir_armtl(IntermediateRepresentation):
+
+class ir_armtl(ir_arml):
     def __init__(self, symbol_pool=None):
         IntermediateRepresentation.__init__(self, mn_armt, "l", symbol_pool)
         self.pc = PC
@@ -1274,8 +1527,23 @@ class ir_armtl(IntermediateRepresentation):
         self.IRDst = ExprId('IRDst', 32)
         self.addrsize = 32
 
-    def get_ir(self, instr):
-        return get_mnemo_expr(self, instr, *instr.args)
+
+    def mod_pc(self, instr, instr_ir, extra_ir):
+        # fix PC (+4 for thumb)
+        pc_fixed = {self.pc: ExprInt(instr.offset + 4, 32)}
+
+        for i, expr in enumerate(instr_ir):
+            dst, src = expr.dst, expr.src
+            if dst != self.pc:
+                dst = dst.replace_expr(pc_fixed)
+            src = src.replace_expr(pc_fixed)
+            instr_ir[i] = ExprAff(dst, src)
+
+        for idx, irblock in enumerate(extra_ir):
+            extra_ir[idx] = irblock.modify_exprs(lambda expr: expr.replace_expr(pc_fixed) \
+                                                 if expr != self.pc else expr,
+                                                 lambda expr: expr.replace_expr(pc_fixed))
+
 
 class ir_armtb(ir_armtl):
     def __init__(self, symbol_pool=None):
