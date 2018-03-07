@@ -462,9 +462,7 @@ def ppc_bo_bi_to_mnemo(bo, bi, prefer_taken=True, default_taken=True):
     return mnem
 
 def ppc_all_bo_bi():
-    yield 20, 0
-
-    for bo in [0, 2, 4, 8, 10, 12, 16, 18]:
+    for bo in [0, 2, 4, 8, 10, 12, 16, 18, 20]:
         for bi in xrange(4):
             yield bo, bi
 
