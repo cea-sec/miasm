@@ -684,16 +684,17 @@ def mn_do_xor(ir, instr, ra, rs, rb):
 
     return ret, []
 
-@sbuild.parse
-def mn_b(arg1):
-    PC = arg1
-    ir.IRDst = arg1
+def mn_b(ir, instr, arg1, arg2 = None):
+    if arg2 is not None:
+        arg1 = arg2
+    return [ ExprAff(PC, arg1), ExprAff(ir.IRDst, arg1) ], []
 
-@sbuild.parse
-def mn_bl(arg1):
-    LR = ExprId(ir.get_next_instr(instr), 32)
-    PC = arg1
-    ir.IRDst = arg1
+def mn_bl(ir, instr, arg1, arg2 = None):
+    if arg2 is not None:
+        arg1 = arg2
+    return [ ExprAff(LR, ExprId(ir.get_next_instr(instr), 32)),
+             ExprAff(PC, arg1),
+             ExprAff(ir.IRDst, arg1) ], []
 
 def mn_get_condition(instr):
     bit = instr.additional_info.bi & 0b11
