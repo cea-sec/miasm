@@ -115,7 +115,7 @@ class instruction_ppc(instruction):
             name = name[:-2] + 'A'
 
         if name[-2:] != 'LR' and name[-3:] != 'CTR':
-            if self.is_conditional_jump(name):
+            if len(self.args) == 2:
                 address_index = 1
             else:
                 address_index = 0
@@ -144,7 +144,7 @@ class instruction_ppc(instruction):
             return [ LR ]
         elif 'CTR' in self.name:
             return [ CTR ]
-        elif self.is_conditional_jump(self.name):
+        elif len(self.args) == 2:
             address_index = 1
         else:
             address_index = 0
