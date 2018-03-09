@@ -10,6 +10,8 @@ log.setLevel(logging.INFO)
 def canon_libname_libfunc(libname, libfunc):
     dn = libname.split('.')[0]
     if type(libfunc) == str:
+        # Avoid 'api-ms-win-*' bug, because '-' are not legitimate Python name
+        dn = dn.replace("-", "_")
         return "%s_%s" % (dn, libfunc)
     else:
         return str(dn), libfunc
