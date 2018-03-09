@@ -428,7 +428,7 @@ def mn_do_nand(ir, instr, ra, rs, rb):
 
 def mn_do_neg(ir, instr, rd, ra):
     rvalue = -ra
-    ret = [ ExprAff(ra, rvalue) ]
+    ret = [ ExprAff(rd, rvalue) ]
     has_o = False
 
     over_expr = None
