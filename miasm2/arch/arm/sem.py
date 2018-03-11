@@ -641,6 +641,9 @@ def st_ld_r(ir, instr, a, a2, b, store=False, size=32, s_ext=False, z_ext=False)
     else:
         ad = base + off
 
+    # PC base lookup uses PC 4 byte alignemnt
+    ad = ad.replace_expr({PC: PC & ExprInt(0xFFFFFFFC, 32)})
+
     dmem = False
     if size in [8, 16]:
         if store:
