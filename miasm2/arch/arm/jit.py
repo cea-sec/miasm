@@ -3,7 +3,10 @@ import logging
 from miasm2.jitter.jitload import jitter, named_arguments
 from miasm2.core import asmblock
 from miasm2.core.utils import pck32, upck32
-from miasm2.arch.arm.sem import ir_armb, ir_arml
+from miasm2.arch.arm.sem import ir_armb, ir_arml, ir_armtl, ir_armtb, cond_dct_inv, tab_cond
+from miasm2.jitter.codegen import CGen
+from miasm2.expression.expression import ExprId, ExprAff, ExprCond
+from miasm2.ir.ir import IRBlock, AssignBlock
 
 log = logging.getLogger('jit_arm')
 hnd = logging.StreamHandler()
@@ -11,7 +14,49 @@ hnd.setFormatter(logging.Formatter("[%(levelname)s]: %(message)s"))
 log.addHandler(hnd)
 log.setLevel(logging.CRITICAL)
 
+
+
+class arm_CGen(CGen):
+    def __init__(self, ir_arch):
+        self.ir_arch = ir_arch
+        self.PC = self.ir_arch.arch.regs.PC
+        self.init_arch_C()
+
+
+    def block2assignblks(self, block):
+        """
+        Return the list of irblocks for a native @block
+        @block: AsmBlock
+        """
+        irblocks_list = []
+        index = -1
+        while index + 1 < len(block.lines):
+            index += 1
+            instr = block.lines[index]
+
+            if instr.name.startswith("IT"):
+                assignments = []
+                label = self.ir_arch.get_instr_label(instr)
+                irblocks = []
+                index, irblocks = self.ir_arch.do_it_block(label, index, block, assignments, True)
+                irblocks_list += irblocks
+                continue
+
+
+            assignblk_head, assignblks_extra = self.ir_arch.instr2ir(instr)
+            # Keep result in ordered list as first element is the assignblk head
+            # The remainings order is not really important
+            irblock_head = self.assignblk_to_irbloc(instr, assignblk_head)
+            irblocks = [irblock_head] + assignblks_extra
+
+            for irblock in irblocks:
+                assert irblock.dst is not None
+            irblocks_list.append(irblocks)
+        return irblocks_list
+
+
 class jitter_arml(jitter):
+    C_Gen = arm_CGen
 
     def __init__(self, *args, **kwargs):
         sp = asmblock.AsmSymbolPool()
@@ -69,9 +114,20 @@ class jitter_arml(jitter):
         jitter.init_run(self, *args, **kwargs)
         self.cpu.PC = self.pc
 
+
 class jitter_armb(jitter_arml):
+    C_Gen = arm_CGen
 
     def __init__(self, *args, **kwargs):
         sp = asmblock.AsmSymbolPool()
         jitter.__init__(self, ir_armb(sp), *args, **kwargs)
         self.vm.set_big_endian()
+
+
+class jitter_armtl(jitter_arml):
+    C_Gen = arm_CGen
+
+    def __init__(self, *args, **kwargs):
+        sp = asmblock.AsmSymbolPool()
+        jitter.__init__(self, ir_armtl(sp), *args, **kwargs)
+        self.vm.set_little_endian()

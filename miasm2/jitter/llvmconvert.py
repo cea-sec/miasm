@@ -180,6 +180,10 @@ class LLVMContext_JIT(LLVMContext):
             from miasm2.arch.mips32.jit import mipsCGen
             self.cgen_class = mipsCGen
             self.has_delayslot = True
+        elif arch.name == "arm":
+            from miasm2.arch.arm.jit import arm_CGen
+            self.cgen_class = arm_CGen
+            self.has_delayslot = False
         else:
             self.cgen_class = CGen
             self.has_delayslot = False

@@ -1222,6 +1222,7 @@ cond_dct = {
     # COND_NV: "NV",
 }
 
+cond_dct_inv = dict((name, num) for num, name in cond_dct.iteritems())
 
 tab_cond = {COND_EQ: zf,
             COND_NE: ExprCond(zf, ExprInt(0, 1), ExprInt(1, 1)),
@@ -1511,6 +1512,118 @@ class ir_arml(IntermediateRepresentation):
 
         self.mod_pc(instr, instr_ir, extra_ir)
         return instr_ir, extra_ir
+
+    def parse_itt(self, instr):
+        name = instr.name
+        assert name.startswith('IT')
+        name = name[1:]
+        out = []
+        for hint in name:
+            if hint == 'T':
+                out.append(0)
+            elif hint == "E":
+                out.append(1)
+            else:
+                raise ValueError("IT name invalid %s" % instr)
+        return out, instr.args[0]
+
+    def do_it_block(self, label, index, block, assignments, gen_pc_updt):
+        instr = block.lines[index]
+        it_hints, it_cond = self.parse_itt(instr)
+        cond_num = cond_dct_inv[it_cond.name]
+        cond_eq = tab_cond[cond_num]
+
+        if not index + len(it_hints) <= len(block.lines):
+            raise NotImplementedError("Splitted IT block non supported yet")
+
+        ir_blocks_all = []
+
+        # Gen dummy irblock for IT instr
+        label_next = self.get_next_label(instr)
+        dst = ExprAff(self.IRDst, ExprId(label_next, 32))
+        dst_blk = AssignBlock([dst], instr)
+        assignments.append(dst_blk)
+        irblock = IRBlock(label, assignments)
+        ir_blocks_all.append([irblock])
+
+        label = label_next
+        assignments = []
+        for hint in it_hints:
+            irblocks = []
+            index += 1
+            instr = block.lines[index]
+
+            # Add conditionnal jump to current irblock
+            label_do = self.symbol_pool.gen_label()
+            label_next = self.get_next_label(instr)
+
+            if hint:
+                local_cond = ~cond_eq
+            else:
+                local_cond = cond_eq
+            dst = ExprAff(self.IRDst, ExprCond(local_cond, ExprId(label_do, 32), ExprId(label_next, 32)))
+            dst_blk = AssignBlock([dst], instr)
+            assignments.append(dst_blk)
+            irblock = IRBlock(label, assignments)
+
+            irblocks.append(irblock)
+
+            assignments = []
+            label = label_do
+            split = self.add_instr_to_irblock(block, instr, assignments,
+                                              irblocks, gen_pc_updt)
+            if split:
+                raise NotImplementedError("Unsupported instr in IT block (%s)" % instr)
+
+            dst = ExprAff(self.IRDst, ExprId(label_next, 32))
+            dst_blk = AssignBlock([dst], instr)
+            assignments.append(dst_blk)
+            irblock = IRBlock(label, assignments)
+            irblocks.append(irblock)
+            label = label_next
+            assignments = []
+            ir_blocks_all.append(irblocks)
+        return index, ir_blocks_all
+
+    def add_block(self, block, gen_pc_updt=False):
+        """
+        Add a native block to the current IR
+        @block: native assembly block
+        @gen_pc_updt: insert PC update effects between instructions
+        """
+
+        it_hints = None
+        it_cond = None
+        label = None
+        ir_blocks_all = []
+        index = -1
+        while index + 1 < len(block.lines):
+            index += 1
+            instr = block.lines[index]
+            if label is None:
+                assignments = []
+                label = self.get_instr_label(instr)
+            if instr.name.startswith("IT"):
+                index, irblocks_it = self.do_it_block(label, index, block, assignments, gen_pc_updt)
+                for irblocks in irblocks_it:
+                    ir_blocks_all += irblocks
+                label = None
+                continue
+
+            split = self.add_instr_to_irblock(block, instr, assignments,
+                                              ir_blocks_all, gen_pc_updt)
+            if split:
+                ir_blocks_all.append(IRBlock(label, assignments))
+                label = None
+                assignments = []
+        if label is not None:
+            ir_blocks_all.append(IRBlock(label, assignments))
+
+        new_ir_blocks_all = self.post_add_block(block, ir_blocks_all)
+        for irblock in new_ir_blocks_all:
+            self.blocks[irblock.label] = irblock
+        return new_ir_blocks_all
+
 
 
 class ir_armb(ir_arml):

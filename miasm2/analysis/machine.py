@@ -79,6 +79,11 @@ class Machine(object):
             mn = arch.mn_armt
             from miasm2.arch.arm.ira import ir_a_armtl as ira
             from miasm2.arch.arm.sem import ir_armtl as ir
+            try:
+                from miasm2.arch.arm import jit
+                jitter = jit.jitter_armtl
+            except ImportError:
+                pass
         elif machine_name == "armtb":
             from miasm2.arch.arm.disasm import dis_armtb as dis_engine
             from miasm2.arch.arm import arch

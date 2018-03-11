@@ -572,7 +572,7 @@ class CGen(object):
         irblocks_list = self.block2assignblks(block)
 
         out, instr_offsets = self.gen_init(block)
-
+        assert len(block.lines) == len(irblocks_list)
         for instr, irblocks in zip(block.lines, irblocks_list):
             instr_attrib, irblocks_attributes = self.get_attributes(instr, irblocks, log_mn, log_regs)
 
