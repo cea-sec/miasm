@@ -484,6 +484,7 @@ class DSEPathConstraint(DSEEngine):
         self._known_solutions = set() # set of solution identifiers
         self.z3_trans = Translator.to_language("z3")
         self._produce_solution_strategy = produce_solution
+        self._previous_addr = None
         self._history = None
         if produce_solution == self.PRODUCE_SOLUTION_PATH_COV:
             self._history = [] # List of addresses in the current path
@@ -493,6 +494,10 @@ class DSEPathConstraint(DSEEngine):
         snap["new_solutions"] = {dst: src.copy
                                  for dst, src in self.new_solutions.iteritems()}
         snap["cur_constraints"] = self.cur_solver.assertions()
+        if self._produce_solution_strategy == self.PRODUCE_SOLUTION_PATH_COV:
+            snap["_history"] = list(self._history)
+        elif self._produce_solution_strategy == self.PRODUCE_SOLUTION_BRANCH_COV:
+            snap["_previous_addr"] = self._previous_addr
         return snap
 
     def restore_snapshot(self, snapshot, keep_known_solutions=True, **kwargs):
@@ -507,6 +512,10 @@ class DSEPathConstraint(DSEEngine):
         self.cur_solver.add(snapshot["cur_constraints"])
         if not keep_known_solutions:
             self._known_solutions.clear()
+        if self._produce_solution_strategy == self.PRODUCE_SOLUTION_PATH_COV:
+            self._history = list(snapshot["_history"])
+        elif self._produce_solution_strategy == self.PRODUCE_SOLUTION_BRANCH_COV:
+            self._previous_addr = snapshot["_previous_addr"]
 
     def _key_for_solution_strategy(self, destination):
         """Return the associated identifier for the current solution strategy"""
@@ -521,8 +530,7 @@ class DSEPathConstraint(DSEEngine):
         elif self._produce_solution_strategy == self.PRODUCE_SOLUTION_BRANCH_COV:
             # Decision based on branch coverage
             # -> produce a solution if the current branch has never been take
-            cur_addr = ExprInt(self.jitter.pc, self.ir_arch.IRDst.size)
-            key = (cur_addr, destination)
+            key = (self._previous_addr, destination)
 
         elif self._produce_solution_strategy == self.PRODUCE_SOLUTION_PATH_COV:
             # Decision based on path coverage
@@ -553,17 +561,28 @@ class DSEPathConstraint(DSEEngine):
         self.new_solutions[key] = model
         self._known_solutions.add(key)
 
-    def handle(self, cur_addr):
-        # Update history if needed
-        if self._produce_solution_strategy == self.PRODUCE_SOLUTION_PATH_COV:
-            self._history.append(cur_addr)
+    def handle_correct_destination(self, destination, path_constraints):
+        """[DEV] Called by handle() to update internal structures giving the
+        correct destination (the concrete execution one).
+        """
 
+        # Update structure used by produce_solution()
+        if self._produce_solution_strategy == self.PRODUCE_SOLUTION_PATH_COV:
+            self._history.append(destination)
+        elif self._produce_solution_strategy == self.PRODUCE_SOLUTION_BRANCH_COV:
+            self._previous_addr = destination
+
+        # Update current solver
+        for cons in path_constraints:
+            self.cur_solver.add(self.z3_trans.from_expr(cons))
+
+    def handle(self, cur_addr):
         symb_pc = self.eval_expr(self.ir_arch.IRDst)
         possibilities = possible_values(symb_pc)
+        cur_path_constraint = set() # path_constraint for the concrete path
         if len(possibilities) == 1:
             assert next(iter(possibilities)).value == cur_addr
         else:
-            cur_path_constraint = set() # path_constraint for the concrete path
             for possibility in possibilities:
                 path_constraint = set() # Set of ExprAff for the possible path
 
@@ -622,6 +641,5 @@ class DSEPathConstraint(DSEEngine):
                         self.handle_solution(model, possibility.value)
                     self.cur_solver.pop()
 
-            # Update current solver
-            for cons in cur_path_constraint:
-                self.cur_solver.add(self.z3_trans.from_expr(cons))
+        self.handle_correct_destination(cur_addr, cur_path_constraint)
+
