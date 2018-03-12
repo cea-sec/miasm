@@ -535,10 +535,7 @@ class DSEPathConstraint(DSEEngine):
         elif self._produce_solution_strategy == self.PRODUCE_SOLUTION_PATH_COV:
             # Decision based on path coverage
             # -> produce a solution if the current path has never been take
-            # Note: we are taking all steps of the current history but the last
-            # one ([:-1]) because destination is a step that will replace the
-            # one we just made.
-            key = tuple(self._history[:-1] + [destination])
+            key = tuple(self._history + [destination])
         else:
             raise ValueError("Unknown produce solution strategy")
 
@@ -564,17 +561,28 @@ class DSEPathConstraint(DSEEngine):
         self.new_solutions[key] = model
         self._known_solutions.add(key)
 
-    def handle(self, cur_addr):
-        # Update history if needed
-        if self._produce_solution_strategy == self.PRODUCE_SOLUTION_PATH_COV:
-            self._history.append(cur_addr)
+    def handle_correct_destination(self, destination, path_constraints):
+        """[DEV] Called by handle() to update internal structures giving the
+        correct destination (the concrete execution one).
+        """
 
+        # Update structure used by produce_solution()
+        if self._produce_solution_strategy == self.PRODUCE_SOLUTION_PATH_COV:
+            self._history.append(destination)
+        elif self._produce_solution_strategy == self.PRODUCE_SOLUTION_BRANCH_COV:
+            self._previous_addr = destination
+
+        # Update current solver
+        for cons in path_constraints:
+            self.cur_solver.add(self.z3_trans.from_expr(cons))
+
+    def handle(self, cur_addr):
         symb_pc = self.eval_expr(self.ir_arch.IRDst)
         possibilities = possible_values(symb_pc)
+        cur_path_constraint = set() # path_constraint for the concrete path
         if len(possibilities) == 1:
             assert next(iter(possibilities)).value == cur_addr
         else:
-            cur_path_constraint = set() # path_constraint for the concrete path
             for possibility in possibilities:
                 path_constraint = set() # Set of ExprAff for the possible path
 
@@ -633,9 +641,5 @@ class DSEPathConstraint(DSEEngine):
                         self.handle_solution(model, possibility.value)
                     self.cur_solver.pop()
 
-            # Update current solver
-            for cons in cur_path_constraint:
-                self.cur_solver.add(self.z3_trans.from_expr(cons))
+        self.handle_correct_destination(cur_addr, cur_path_constraint)
 
-        if self._produce_solution_strategy == self.PRODUCE_SOLUTION_BRANCH_COV:
-            self._previous_addr = cur_addr
