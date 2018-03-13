@@ -834,9 +834,9 @@ uint64_t rot_right(uint64_t size, uint64_t a, uint64_t b)
 
 unsigned int x86_bsr(uint64_t size, uint64_t src)
 {
-	uint64_t i;
+	int64_t i;
 
-	for (i=size-1; i>=0; i--){
+	for (i=(int64_t)size-1; i>=0; i--){
 		if (src & (1ull << i))
 			return i;
 	}
