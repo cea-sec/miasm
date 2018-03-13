@@ -2449,7 +2449,7 @@ class armt2_imm12(arm_imm):
             self.expr = ExprInt((v << 24) | (v << 16) | (v << 8) | v, 32)
             return True
         r = v >> 7
-        v = v & 0xFF
+        v = 0x80 | (v & 0x7F)
         self.expr = ExprInt(myror32(v, r), 32)
         return True
 
@@ -2477,8 +2477,8 @@ class armt2_imm12(arm_imm):
             # rol encoding
             for i in xrange(32):
                 o = myrol32(v, i)
-                if 0 <= o < 0x100 and o & 0x80:
-                    value = (i << 7) | o
+                if 0x80 <= o <= 0xFF:
+                    value = (i << 7) | (o & 0x7F)
                     break
         if value is None:
             log.debug('cannot encode imm12')

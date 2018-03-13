@@ -561,7 +561,8 @@ reg_tests_armt = [
     ("xxxxxxxx    ADD        R3, R3, 0x908",
      "03F60813"),
 
-
+    ("xxxxxxxx    ADD        R3, R3, 0x23800",
+     "03F50E33"),
 
 
 
