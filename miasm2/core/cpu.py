@@ -431,12 +431,13 @@ class bs(object):
         self.cls = cls
         self.fname = fname
         self.order = order
-        self.lmask = lmask
         self.fbits = fbits
         self.fmask = fmask
         self.flen = flen
         self.value = value
         self.kargs = kargs
+
+    lmask = property(lambda self:(1 << self.l) - 1)
 
     def __getitem__(self, item):
         return getattr(self, item)
@@ -502,13 +503,14 @@ class bsi(object):
         self.cls = cls
         self.fname = fname
         self.order = order
-        self.lmask = lmask
         self.fbits = fbits
         self.fmask = fmask
         self.flen = flen
         self.value = value
         self.kargs = kargs
         self.__dict__.update(self.kargs)
+
+    lmask = property(lambda self:(1 << self.l) - 1)
 
     def decode(self, v):
         self.value = v & self.lmask
