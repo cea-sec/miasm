@@ -415,6 +415,20 @@ class Arch_armb(Arch):
         self.jitter.init_stack()
 
 
+class Arch_armtl(Arch):
+    _ARCH_ = "armtl"
+    STACK_SIZE = 0x100000
+    STACK_BASE = 0x100000
+
+    def __init__(self, **kwargs):
+        super(Arch_armtl, self).__init__(**kwargs)
+
+        # Init stack
+        self.jitter.stack_size = self.STACK_SIZE
+        self.jitter.stack_base = self.STACK_BASE
+        self.jitter.init_stack()
+
+
 class Arch_aarch64l(Arch):
     _ARCH_ = "aarch64l"
     STACK_SIZE = 0x100000
@@ -647,6 +661,9 @@ class Sandbox_Linux_arml(Sandbox, Arch_arml, OS_Linux):
                 self.jitter.vm.set_mem(ptr, arg)
                 argv_ptrs.append(ptr)
 
+            # Round SP to 4
+            self.jitter.cpu.SP = self.jitter.cpu.SP & ~ 3
+
             self.jitter.push_uint32_t(0)
             for ptr in reversed(env_ptrs):
                 self.jitter.push_uint32_t(ptr)
@@ -664,6 +681,59 @@ class Sandbox_Linux_arml(Sandbox, Arch_arml, OS_Linux):
         if addr is None and self.options.address is None:
             addr = self.entry_point
         super(Sandbox_Linux_arml, self).run(addr)
+
+    def call(self, addr, *args, **kwargs):
+        """
+        Direct call of the function at @addr, with arguments @args
+        @addr: address of the target function
+        @args: arguments
+        """
+        prepare_cb = kwargs.pop('prepare_cb', self.jitter.func_prepare_systemv)
+        super(self.__class__, self).call(prepare_cb, addr, *args)
+
+
+class Sandbox_Linux_armtl(Sandbox, Arch_armtl, OS_Linux):
+
+    def __init__(self, *args, **kwargs):
+        Sandbox.__init__(self, *args, **kwargs)
+
+        # Pre-stack some arguments
+        if self.options.mimic_env:
+            env_ptrs = []
+            for env in self.envp:
+                env += "\x00"
+                self.jitter.cpu.SP -= len(env)
+                ptr = self.jitter.cpu.SP
+                self.jitter.vm.set_mem(ptr, env)
+                env_ptrs.append(ptr)
+            argv_ptrs = []
+            for arg in self.argv:
+                arg += "\x00"
+                self.jitter.cpu.SP -= len(arg)
+                ptr = self.jitter.cpu.SP
+                self.jitter.vm.set_mem(ptr, arg)
+                argv_ptrs.append(ptr)
+
+            # Round SP to 4
+            self.jitter.cpu.SP = self.jitter.cpu.SP & ~ 3
+
+            self.jitter.push_uint32_t(0)
+            for ptr in reversed(env_ptrs):
+                self.jitter.push_uint32_t(ptr)
+            self.jitter.push_uint32_t(0)
+            for ptr in reversed(argv_ptrs):
+                self.jitter.push_uint32_t(ptr)
+            self.jitter.push_uint32_t(len(self.argv))
+
+        self.jitter.cpu.LR = self.CALL_FINISH_ADDR
+
+        # Set the runtime guard
+        self.jitter.add_breakpoint(self.CALL_FINISH_ADDR, self.__class__.code_sentinelle)
+
+    def run(self, addr=None):
+        if addr is None and self.options.address is None:
+            addr = self.entry_point
+        super(Sandbox_Linux_armtl, self).run(addr)
 
     def call(self, addr, *args, **kwargs):
         """
