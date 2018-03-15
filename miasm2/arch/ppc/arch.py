@@ -653,8 +653,9 @@ ppcop("slogic2", [bs_name(l=6, name=slogic2_name), rs, ra, u16imm],
       [ra, rs, u16imm])
 
 ppcop("store1", [bs('011111'), rs, ra_or_0, rb,
-                 bs_name(l=11, name=store1_name_u)])
-ppcop("store1u", [bs('011111'), rs, ra, rb, bs_name(l=11, name=store1_name)])
+                 bs_name(l=11, name=store1_name)])
+ppcop("store1u", [bs('011111'), rs, ra, rb,
+                  bs_name(l=11, name=store1_name_u)])
 
 ppcop("store2", [bs('10'), bs_name(l=4, name=store2_name), rs,
                     ra_noarg, dregimm])
