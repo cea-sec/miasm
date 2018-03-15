@@ -299,7 +299,7 @@ class DependencyResult(DependencyState):
         # Eval the block
         temp_label = AsmLabel("Temp")
         symb_exec = SymbolicExecutionEngine(self._ira, ctx_init)
-        symb_exec.emulbloc(IRBlock(temp_label, assignblks), step=step)
+        symb_exec.eval_updt_irblock(IRBlock(temp_label, assignblks), step=step)
 
         # Return only inputs values (others could be wrongs)
         return {element: symb_exec.symbols[element]
@@ -368,7 +368,7 @@ class DependencyResultImplicit(DependencyResult):
             irb = self.irblock_slice(self._ira.blocks[label], line_nb)
 
             # Emul the block and get back destination
-            dst = symb_exec.emulbloc(irb, step=step)
+            dst = symb_exec.eval_updt_irblock(irb, step=step)
 
             # Add constraint
             if hist_nb < history_size:

@@ -419,6 +419,7 @@ class ir_msp430(IntermediateRepresentation):
         self.pc = PC
         self.sp = SP
         self.IRDst = ExprId('IRDst', 16)
+        self.addrsize = 16
 
     def mod_pc(self, instr, instr_ir, extra_ir):
         pass

@@ -45,9 +45,9 @@ def emul_symb(ir_arch, mdis, states_todo, states_done):
 
         print 'Run block:'
         print irblock
-        addr = symbexec.emulbloc(irblock)
+        addr = symbexec.eval_updt_irblock(irblock)
         print 'Final state:'
-        symbexec.dump_id()
+        symbexec.dump(mems=False)
 
         assert addr is not None
 
@@ -136,8 +136,8 @@ if __name__ == '__main__':
         line.offset, line.l = i, 1
     ir_arch.add_block(b)
     irb = get_block(ir_arch, mdis, 0)
-    symbexec.emulbloc(irb)
-    symbexec.dump_mem()
+    symbexec.eval_updt_irblock(irb)
+    symbexec.dump(ids=False)
 
     # reset ir_arch blocks
     ir_arch.blocks = {}

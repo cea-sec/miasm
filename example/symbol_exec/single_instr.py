@@ -22,22 +22,19 @@ ira = machine.ira(mdis.symbol_pool)
 ira.add_block(asm_block)
 
 # Instanciate a Symbolic Execution engine with default value for registers
-## EAX = EAX_init, ...
-symbols_init = ira.arch.regs.regs_init
-symb = SymbolicExecutionEngine(ira, symbols_init)
+symb = SymbolicExecutionEngine(ira, {})
 
 # Emulate one IR basic block
 ## Emulation of several basic blocks can be done through .emul_ir_blocks
-cur_addr = symb.emul_ir_block(START_ADDR)
+cur_addr = symb.run_at(START_ADDR)
 
 # Modified elements
 print 'Modified registers:'
-symb.dump_id()
+symb.dump(mems=False)
 print 'Modified memory (should be empty):'
-symb.dump_mem()
+symb.dump(ids=False)
 
 # Check final status
 eax, ebx = ira.arch.regs.EAX, ira.arch.regs.EBX
-final_state = symb.as_assignblock()
-assert final_state[eax] == symbols_init[ebx]
-assert eax in final_state
+assert symb.symbols[eax] == ebx
+assert eax in symb.symbols

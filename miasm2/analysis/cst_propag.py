@@ -86,7 +86,7 @@ class SymbExecStateFix(SymbolicExecutionEngine):
                 to_propag[element] = value
         return expr_simp(expr.replace_expr(to_propag))
 
-    def emulbloc(self, irb, step=False):
+    def eval_updt_irblock(self, irb, step=False):
         """
         Symbolic execution of the @irb on the current state
         @irb: IRBlock instance
@@ -104,12 +104,13 @@ class SymbExecStateFix(SymbolicExecutionEngine):
                     dst = ExprMem(ptr, dst.size)
                 new_assignblk[dst] = src
 
-            for arg in assignblk.instr.args:
-                new_arg = self.propag_expr_cst(arg)
-                links[new_arg] = arg
-            self.cst_propag_link[(irb.label, index)] = links
+            if assignblk.instr is not None:
+                for arg in assignblk.instr.args:
+                    new_arg = self.propag_expr_cst(arg)
+                    links[new_arg] = arg
+                self.cst_propag_link[(irb.label, index)] = links
 
-            self.eval_ir(assignblk)
+            self.eval_updt_assignblk(assignblk)
             assignblks.append(AssignBlock(new_assignblk, assignblk.instr))
         self.ir_arch.blocks[irb.label] = IRBlock(irb.label, assignblks)
 
@@ -143,7 +144,7 @@ def compute_cst_propagation_states(ir_arch, init_addr, init_infos):
             continue
 
         symbexec_engine = SymbExecState(ir_arch, state)
-        addr = symbexec_engine.emul_ir_block(lbl)
+        addr = symbexec_engine.run_block_at(lbl)
         symbexec_engine.del_mem_above_stack(ir_arch.sp)
 
         for dst in possible_values(addr):
@@ -177,5 +178,5 @@ def propagate_cst_expr(ir_arch, addr, init_infos):
         if lbl not in ir_arch.blocks:
             continue
         symbexec = SymbExecStateFix(ir_arch, state, cst_propag_link)
-        symbexec.emulbloc(ir_arch.blocks[lbl])
+        symbexec.eval_updt_irblock(ir_arch.blocks[lbl])
     return cst_propag_link

@@ -471,7 +471,7 @@ class jitter(object):
         """Eval expression @expr in the context of the current instance. Side
         effects are passed on it"""
         self.symbexec.update_engine_from_cpu()
-        ret = self.symbexec.apply_expr(expr)
+        ret = self.symbexec.eval_updt_expr(expr)
         self.symbexec.update_cpu_from_engine()
 
         return ret

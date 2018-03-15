@@ -436,6 +436,7 @@ class ir_mips32l(IntermediateRepresentation):
         self.pc = mn_mips32.getpc()
         self.sp = mn_mips32.getsp()
         self.IRDst = m2_expr.ExprId('IRDst', 32)
+        self.addrsize = 32
 
     def get_ir(self, instr):
         args = instr.args

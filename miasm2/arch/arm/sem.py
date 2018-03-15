@@ -1233,6 +1233,7 @@ class ir_arml(IntermediateRepresentation):
         self.pc = PC
         self.sp = SP
         self.IRDst = ExprId('IRDst', 32)
+        self.addrsize = 32
 
     def get_ir(self, instr):
         args = instr.args
@@ -1263,6 +1264,7 @@ class ir_armb(ir_arml):
         self.pc = PC
         self.sp = SP
         self.IRDst = ExprId('IRDst', 32)
+        self.addrsize = 32
 
 class ir_armtl(IntermediateRepresentation):
     def __init__(self, symbol_pool=None):
@@ -1270,6 +1272,7 @@ class ir_armtl(IntermediateRepresentation):
         self.pc = PC
         self.sp = SP
         self.IRDst = ExprId('IRDst', 32)
+        self.addrsize = 32
 
     def get_ir(self, instr):
         return get_mnemo_expr(self, instr, *instr.args)
@@ -1280,4 +1283,5 @@ class ir_armtb(ir_armtl):
         self.pc = PC
         self.sp = SP
         self.IRDst = ExprId('IRDst', 32)
+        self.addrsize = 32
 
