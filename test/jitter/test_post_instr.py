@@ -32,7 +32,7 @@ def do_not_raise_me(jitter):
 jitter.exceptions_handler.callbacks[EXCEPT_BREAKPOINT_INTERN] = []
 jitter.add_exception_handler(EXCEPT_BREAKPOINT_INTERN,
                              do_not_raise_me)
-jitter.vm.add_memory_breakpoint(0x11000-4, 4, 7)
+jitter.vm.add_memory_breakpoint(0x11000-4, 4, PAGE_READ | PAGE_WRITE)
 
 # The memory write pending will raise automod execption
 # The RET should not re evalueate PC @ [ESP+4]
