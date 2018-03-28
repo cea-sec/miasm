@@ -1,5 +1,5 @@
 from miasm2.analysis.machine import Machine
-from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE, EXCEPT_BREAKPOINT_INTERN, EXCEPT_ACCESS_VIOL
+from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE, EXCEPT_BREAKPOINT_MEMORY, EXCEPT_ACCESS_VIOL
 import sys
 
 machine = Machine("x86_32")
@@ -29,8 +29,8 @@ jitter.jit.log_regs = True
 def do_not_raise_me(jitter):
     raise ValueError("Should not be here")
 
-jitter.exceptions_handler.callbacks[EXCEPT_BREAKPOINT_INTERN] = []
-jitter.add_exception_handler(EXCEPT_BREAKPOINT_INTERN,
+jitter.exceptions_handler.callbacks[EXCEPT_BREAKPOINT_MEMORY] = []
+jitter.add_exception_handler(EXCEPT_BREAKPOINT_MEMORY,
                              do_not_raise_me)
 jitter.vm.add_memory_breakpoint(0x11000-4, 4, PAGE_READ | PAGE_WRITE)
 

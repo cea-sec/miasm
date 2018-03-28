@@ -147,7 +147,9 @@ struct memory_breakpoint_info {
 #define EXCEPT_SOFT_BP (1<<1)
 #define EXCEPT_INT_XX (1<<2)
 
-#define EXCEPT_BREAKPOINT_INTERN (1<<10)
+#define EXCEPT_BREAKPOINT_MEMORY (1<<10)
+// Deprecated
+#define EXCEPT_BREAKPOINT_INTERN (EXCEPT_BREAKPOINT_MEMORY)
 
 #define EXCEPT_NUM_UPDT_EIP (1<<11)
 // interrupt with eip at instr
