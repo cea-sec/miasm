@@ -220,7 +220,7 @@ static uint64_t memory_page_read(vm_mngr_t* vm_mngr, unsigned int my_size, uint6
 		if ((b->access & BREAKPOINT_READ) == 0)
 			continue;
 		if ((b->ad <= ad) && (ad < b->ad + b->size))
-			vm_mngr->exception_flags |= EXCEPT_BREAKPOINT_INTERN;
+			vm_mngr->exception_flags |= EXCEPT_BREAKPOINT_MEMORY;
 	}
 
 
@@ -306,7 +306,7 @@ static void memory_page_write(vm_mngr_t* vm_mngr, unsigned int my_size,
 		if ((b->access & BREAKPOINT_WRITE) == 0)
 			continue;
 		if ((b->ad <= ad) && (ad < b->ad + b->size))
-			vm_mngr->exception_flags |= EXCEPT_BREAKPOINT_INTERN;
+			vm_mngr->exception_flags |= EXCEPT_BREAKPOINT_MEMORY;
 	}
 
 	addr = &((unsigned char*)mpn->ad_hp)[ad - mpn->ad];
@@ -495,13 +495,13 @@ void check_memory_breakpoint(vm_mngr_t* vm_mngr)
 
 	/* Check memory breakpoints */
 	LIST_FOREACH(memory_bp, &vm_mngr->memory_breakpoint_pool, next) {
-		if (vm_mngr->exception_flags & EXCEPT_BREAKPOINT_INTERN)
+		if (vm_mngr->exception_flags & EXCEPT_BREAKPOINT_MEMORY)
 			break;
 		if (memory_bp->access & BREAKPOINT_READ) {
 			for (i=0;i<vm_mngr->memory_r.num; i++) {
 				if ((memory_bp->ad < vm_mngr->memory_r.array[i].stop) &&
 				    (vm_mngr->memory_r.array[i].start < memory_bp->ad + memory_bp->size)) {
-					vm_mngr->exception_flags |= EXCEPT_BREAKPOINT_INTERN;
+					vm_mngr->exception_flags |= EXCEPT_BREAKPOINT_MEMORY;
 					break;
 				}
 			}
@@ -510,7 +510,7 @@ void check_memory_breakpoint(vm_mngr_t* vm_mngr)
 			for (i=0;i<vm_mngr->memory_w.num; i++) {
 				if ((memory_bp->ad < vm_mngr->memory_w.array[i].stop) &&
 				    (vm_mngr->memory_w.array[i].start < memory_bp->ad + memory_bp->size)) {
-					vm_mngr->exception_flags |= EXCEPT_BREAKPOINT_INTERN;
+					vm_mngr->exception_flags |= EXCEPT_BREAKPOINT_MEMORY;
 					break;
 				}
 			}

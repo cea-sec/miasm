@@ -679,7 +679,7 @@ static PyMethodDef VmMngr_methods[] = {
 	{"check_invalid_code_blocs",(PyCFunction)vm_check_invalid_code_blocs, METH_VARARGS,
 	 "check_invalid_code_blocs() -> Set the AUTOMOD flag in exception in case of automodified code"},
 	{"check_memory_breakpoint",(PyCFunction)vm_check_memory_breakpoint, METH_VARARGS,
-	 "check_memory_breakpoint() -> Set the BREAKPOINT_INTERN flag in exception in case of memory breakpoint occurred"},
+	 "check_memory_breakpoint() -> Set the BREAKPOINT_MEMORY flag in exception in case of memory breakpoint occurred"},
 
 	{NULL}  /* Sentinel */
 };

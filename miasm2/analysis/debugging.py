@@ -87,7 +87,7 @@ class Debugguer(object):
         self.myjit.add_breakpoint(addr, func)
 
     def init_memory_breakpoint(self):
-        "Set exception handler on EXCEPT_BREAKPOINT_INTERN"
+        "Set exception handler on EXCEPT_BREAKPOINT_MEMORY"
         raise NotImplementedError("Not implemented")
 
     def add_memory_breakpoint(self, addr, size, read=False, write=False):

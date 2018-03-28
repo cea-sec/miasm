@@ -149,7 +149,7 @@ class ExceptionHandle():
 
     @classmethod
     def memoryBreakpoint(cls):
-        return cls(EXCEPT_BREAKPOINT_INTERN)
+        return cls(EXCEPT_BREAKPOINT_MEMORY)
 
     def __eq__(self, to_cmp):
         if not isinstance(to_cmp, ExceptionHandle):
@@ -256,7 +256,7 @@ class jitter(object):
             return ExceptionHandle.memoryBreakpoint()
 
         self.add_exception_handler(EXCEPT_CODE_AUTOMOD, exception_automod)
-        self.add_exception_handler(EXCEPT_BREAKPOINT_INTERN,
+        self.add_exception_handler(EXCEPT_BREAKPOINT_MEMORY,
                                    exception_memory_breakpoint)
 
     def add_breakpoint(self, addr, callback):
