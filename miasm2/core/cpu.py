@@ -100,6 +100,24 @@ class reg_info:
         return self.expr.index(e)
 
 
+
+class reg_info_dct:
+
+    def __init__(self, reg_expr):
+        self.dct_str_inv = dict((v.name, k) for k, v in reg_expr.iteritems())
+        self.dct_expr = reg_expr
+        self.dct_expr_inv = dict((v, k) for k, v in reg_expr.iteritems())
+        reg_str = [v.name for v in reg_expr.itervalues()]
+        self.parser = literal_list(reg_str).setParseAction(self.reg2expr)
+
+    def reg2expr(self, s):
+        i = self.dct_str_inv[s[0]]
+        return self.dct_expr[i]
+
+    def expr2regi(self, e):
+        return self.dct_expr_inv[e]
+
+
 def gen_reg(rname, env, sz=32):
     """
     Gen reg expr and parser
