@@ -84,6 +84,24 @@ conditional_branch = ["BEQ", "BNE", "BCS", "BCC", "BMI", "BPL", "BVS",
 
 unconditional_branch = ["B", "BX", "BL", "BLX"]
 
+barrier_expr = {
+    0b1111: ExprId("SY", 32),
+    0b1110: ExprId("ST", 32),
+    0b1101: ExprId("LD", 32),
+    0b1011: ExprId("ISH", 32),
+    0b1010: ExprId("ISHST", 32),
+    0b1001: ExprId("ISHLD", 32),
+    0b0111: ExprId("NSH", 32),
+    0b0110: ExprId("NSHST", 32),
+    0b0011: ExprId("OSH", 32),
+    0b0010: ExprId("OSHST", 32),
+    0b0001: ExprId("OSHLD", 32),
+}
+
+barrier_info = reg_info_dct(barrier_expr)
+
+
+
 # parser helper ###########
 
 def tok_reg_duo(s, l, t):
@@ -3097,6 +3115,34 @@ rm_deref_reg = bs(l=4, cls=(armt_deref_reg,))
 bs_deref_reg_reg = bs(l=4, cls=(armt_deref_reg_reg,))
 bs_deref_reg_reg_lsl_1 = bs(l=4, cls=(armt_deref_reg_reg_lsl_1,))
 
+
+class armt_barrier_option(reg_noarg, m_arg):
+    reg_info = barrier_info
+    parser = reg_info.parser
+
+    def decode(self, v):
+        v = v & self.lmask
+        if v not in self.reg_info.dct_expr:
+            return False
+        self.expr = self.reg_info.dct_expr[v]
+        return True
+
+    def encode(self):
+        if not self.expr in self.reg_info.dct_expr_inv:
+            log.debug("cannot encode reg %r", self.expr)
+            return False
+        self.value = self.reg_info.dct_expr_inv[self.expr]
+        if self.value > self.lmask:
+            log.debug("cannot encode field value %x %x",
+                      self.value, self.lmask)
+            return False
+        return True
+
+    def check_fbits(self, v):
+        return v & self.fmask == self.fbits
+
+barrier_option = bs(l=4, cls=(armt_barrier_option,))
+
 armtop("adc", [bs('11110'),  imm12_1, bs('0'), bs('1010'), scc, rn_nosppc, bs('0'), imm12_3, rd_nosppc, imm12_8])
 armtop("adc", [bs('11101'),  bs('01'), bs('1010'), scc, rn_nosppc, bs('0'), imm5_3, rd_nosppc, imm5_2, imm_stype, rm_sh])
 armtop("bl", [bs('11110'), tsign, timm10H, bs('11'), tj1, bs('1'), tj2, timm11L])
@@ -3203,4 +3249,3 @@ armtop("clz",  [bs('111110101011'), rm, bs('1111'), rd, bs('1000'), rm_cp], [rd,
 armtop("tbb",  [bs('111010001101'), rn_noarg, bs('11110000000'), bs('0'), bs_deref_reg_reg], [bs_deref_reg_reg])
 armtop("tbh",  [bs('111010001101'), rn_noarg, bs('11110000000'), bs('1'), bs_deref_reg_reg_lsl_1], [bs_deref_reg_reg_lsl_1])
 armtop("dsb",  [bs('111100111011'), bs('1111'), bs('1000'), bs('1111'), bs('0100'), barrier_option])
-
