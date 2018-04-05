@@ -844,7 +844,7 @@ class IntermediateRepresentation(object):
                         self.graph.add_uniq_edge(lbl, dst_label)
                         modified = True
                     if dst.src1 == dst.src2:
-                        dst = src1
+                        dst = dst.src1
                 else:
                     continue
                 new_parent = parent.set_dst(dst)
