@@ -815,6 +815,10 @@ class IntermediateRepresentation(object):
                 continue
             if not expr_is_label(assignblk[self.IRDst]):
                 continue
+            dst = assignblk[self.IRDst].name
+            if dst == block.label:
+                # Infinite loop block
+                continue
             jmp_blocks.add(block.label)
 
         # Remove them, relink graph
