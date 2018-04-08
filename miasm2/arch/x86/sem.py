@@ -3154,7 +3154,7 @@ def l_in(_, instr, src1, src2):
 
 @sbuild.parse
 def cmpxchg(arg1, arg2):
-    accumulator = mRAX[instr.mode][:arg1.size]
+    accumulator = mRAX[instr.v_opmode()][:arg1.size]
     if (accumulator - arg1):
         zf = i1(0)
         accumulator = arg1
@@ -3165,14 +3165,26 @@ def cmpxchg(arg1, arg2):
 
 @sbuild.parse
 def cmpxchg8b(arg1):
-    accumulator = {mRAX[instr.mode], mRDX[instr.mode]}
+    accumulator = {mRAX[32], mRDX[32]}
     if accumulator - arg1:
         zf = i1(0)
-        mRAX[instr.mode] = arg1[:instr.mode]
-        mRDX[instr.mode] = arg1[instr.mode:]
+        mRAX[32] = arg1[:32]
+        mRDX[32] = arg1[32:]
     else:
         zf = i1(1)
-        arg1 = {mRBX[instr.mode], mRCX[instr.mode]}
+        arg1 = {mRBX[32], mRCX[32]}
+
+
+@sbuild.parse
+def cmpxchg16b(arg1):
+    accumulator = {mRAX[64], mRDX[64]}
+    if accumulator - arg1:
+        zf = i1(0)
+        mRAX[64] = arg1[:64]
+        mRDX[64] = arg1[64:]
+    else:
+        zf = i1(1)
+        arg1 = {mRBX[64], mRCX[64]}
 
 
 def lds(ir, instr, dst, src):

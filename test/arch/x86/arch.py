@@ -864,7 +864,7 @@ reg_tests = [
      "0fc74c2408"),
     (m64, "00000000    CMPXCHG8B  QWORD PTR [RSP + 0x8]",
      "0fc74c2408"),
-    (m64, "00000000    CMPXCHG16B QWORD PTR [RSP + 0x8]",
+    (m64, "00000000    CMPXCHG16B XMMWORD PTR [RSP + 0x8]",
      "480fc74c2408"),
 
     (m32, "00000000    CDQ",
