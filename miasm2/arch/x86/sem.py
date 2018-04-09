@@ -741,7 +741,7 @@ def push_gen(ir, instr, src, size):
     new_sp = sp - m2_expr.ExprInt(off_size / 8, sp.size)
     e.append(m2_expr.ExprAff(sp, new_sp))
     if ir.do_stk_segm:
-        new_sp = m2_expr.ExprOp('segm', SS, new_sp)
+        new_sp = ir.gen_segm_expr(SS, new_sp)
     e.append(m2_expr.ExprAff(ir.ExprMem(new_sp, off_size),
                              src))
     return e, []
@@ -770,7 +770,8 @@ def pop_gen(ir, instr, src, size):
         src = src.replace_expr({sp: new_sp})
     result = sp
     if ir.do_stk_segm:
-        result = m2_expr.ExprOp('segm', SS, result)
+        result = ir.gen_segm_expr(SS, result)
+
     e.append(m2_expr.ExprAff(src, ir.ExprMem(result, src.size)))
     return e, []
 
@@ -982,8 +983,8 @@ def cmps(ir, instr, size):
     if ir.do_str_segm:
         if instr.additional_info.g2.value:
             raise NotImplementedError("add segm support")
-        src1_sgm = m2_expr.ExprOp('segm', DS, src1)
-        src2_sgm = m2_expr.ExprOp('segm', ES, src2)
+        src1_sgm = ir.gen_segm_expr(DS, src1)
+        src2_sgm = ir.gen_segm_expr(ES, src2)
     else:
         src1_sgm = src1
         src2_sgm = src2
@@ -1022,7 +1023,8 @@ def scas(ir, instr, size):
     if ir.do_str_segm:
         if instr.additional_info.g2.value:
             raise NotImplementedError("add segm support")
-        src_sgm = m2_expr.ExprOp('segm', ES, src)
+        src_sgm = ir.gen_segm_expr(ES, src)
+
     else:
         src_sgm = src
 
@@ -1222,7 +1224,8 @@ def call(ir, instr, dst):
     c = myesp + m2_expr.ExprInt((-s / 8), s)
     e.append(m2_expr.ExprAff(myesp, c))
     if ir.do_stk_segm:
-        c = m2_expr.ExprOp('segm', SS, c)
+        c = ir.gen_segm_expr(SS, c)
+
     e.append(m2_expr.ExprAff(ir.ExprMem(c, size=s), n))
     e.append(m2_expr.ExprAff(meip, dst.zeroExtend(ir.IRDst.size)))
     e.append(m2_expr.ExprAff(ir.IRDst, dst.zeroExtend(ir.IRDst.size)))
@@ -1247,7 +1250,8 @@ def ret(ir, instr, src=None):
     e.append(m2_expr.ExprAff(myesp, value))
     result = myesp
     if ir.do_stk_segm:
-        result = m2_expr.ExprOp('segm', SS, result)
+        result = ir.gen_segm_expr(SS, result)
+
     e.append(m2_expr.ExprAff(meip, ir.ExprMem(
         result, size=size).zeroExtend(size)))
     e.append(m2_expr.ExprAff(ir.IRDst,
@@ -1267,7 +1271,8 @@ def retf(ir, instr, src=None):
 
     result = myesp
     if ir.do_stk_segm:
-        result = m2_expr.ExprOp('segm', SS, result)
+        result = ir.gen_segm_expr(SS, result)
+
     e.append(m2_expr.ExprAff(meip, ir.ExprMem(
         result, size=size).zeroExtend(size)))
     e.append(m2_expr.ExprAff(ir.IRDst,
@@ -1275,7 +1280,8 @@ def retf(ir, instr, src=None):
     # e.append(m2_expr.ExprAff(meip, ir.ExprMem(c, size = s)))
     result = myesp + m2_expr.ExprInt(size / 8, size)
     if ir.do_stk_segm:
-        result = m2_expr.ExprOp('segm', SS, result)
+        result = ir.gen_segm_expr(SS, result)
+
     e.append(m2_expr.ExprAff(CS, ir.ExprMem(result, size=16)))
 
     value = myesp + (m2_expr.ExprInt((2 * size) / 8, size) + src)
@@ -1719,7 +1725,8 @@ def stos(ir, instr, size):
         mss = ES
         if instr.additional_info.g2.value:
             raise NotImplementedError("add segm support")
-        addr = m2_expr.ExprOp('segm', mss, addr)
+        addr = ir.gen_segm_expr(mss, addr)
+
 
     b = mRAX[instr.mode][:size]
 
@@ -1754,7 +1761,8 @@ def lods(ir, instr, size):
         mss = DS
         if instr.additional_info.g2.value:
             raise NotImplementedError("add segm support")
-        addr = m2_expr.ExprOp('segm', mss, addr)
+        addr = ir.gen_segm_expr(mss, addr)
+
 
     b = mRAX[instr.mode][:size]
 
@@ -1792,8 +1800,8 @@ def movs(ir, instr, size):
     if ir.do_str_segm:
         if instr.additional_info.g2.value:
             raise NotImplementedError("add segm support")
-        src_sgm = m2_expr.ExprOp('segm', DS, src)
-        dst_sgm = m2_expr.ExprOp('segm', ES, dst)
+        src_sgm = ir.gen_segm_expr(DS, src)
+        dst_sgm = ir.gen_segm_expr(ES, dst)
 
     else:
         src_sgm = src
@@ -3092,7 +3100,8 @@ def bittest_get(ir, instr, src, index):
 
         addr = ptr + off_byte
         if segm:
-            addr = m2_expr.ExprOp("segm", src.arg.args[0], addr)
+            addr = ir.gen_segm_expr(src.arg.args[0], addr)
+
         d = ir.ExprMem(addr, src.size)
     else:
         off_bit = m2_expr.ExprOp(
@@ -5066,6 +5075,15 @@ class ir_x86_16(IntermediateRepresentation):
         @size: size of the memory"""
 
         return m2_expr.ExprMem(expraddr(self.addrsize, ptr), size)
+
+    def gen_segm_expr(self, selector, addr):
+        ptr = m2_expr.ExprOp(
+            'segm',
+            selector,
+            addr.zeroExtend(self.addrsize)
+        )
+
+        return ptr
 
     def get_ir(self, instr):
         args = instr.args[:]
