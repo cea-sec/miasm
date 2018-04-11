@@ -339,6 +339,22 @@ class DiGraph(object):
                                                 self.successors_iter,
                                                 self.predecessors_iter)
 
+
+
+
+    def compute_dominator_tree(self, head):
+        """
+        Computes the dominator tree of a graph
+        :param head: head of graph
+        :return: DiGraph
+        """
+        idoms = self.compute_immediate_dominators(head)
+        dominator_tree = DiGraph()
+        for node in idoms:
+            dominator_tree.add_edge(idoms[node], node)
+
+        return dominator_tree
+
     @staticmethod
     def _walk_generic_dominator(node, gen_dominators, succ_cb):
         """Generic algorithm to return an iterator of the ordered list of
