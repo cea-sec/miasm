@@ -40,7 +40,7 @@ def guess_machine():
                         (False, 64, False): "aarch64l",
                         }
         is_armt = globals().get('armt', False)
-        is_bigendian = globals().get('bigendian', False)
+        is_bigendian = info.is_be()
         infos = (is_armt, size, is_bigendian)
         if not infos in info2machine:
             raise NotImplementedError('not fully functional')
