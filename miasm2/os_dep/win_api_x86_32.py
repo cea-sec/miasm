@@ -1024,22 +1024,20 @@ def kernel32_IsWow64Process(jitter):
     jitter.func_ret_stdcall(ret_ad, 1)
 
 
-def kernel32_GetCommandLineA(jitter):
+def kernel32_GetCommandLine(jitter, set_str):
     ret_ad, _ = jitter.func_args_stdcall(0)
-    s = winobjs.module_path + '\x00'
-    s = '"%s"' % s
     alloc_addr = winobjs.heap.alloc(jitter, 0x1000)
+    s = set_str('"%s"' % winobjs.module_path)
     jitter.vm.set_mem(alloc_addr, s)
     jitter.func_ret_stdcall(ret_ad, alloc_addr)
+
+
+def kernel32_GetCommandLineA(jitter):
+    kernel32_GetCommandLine(jitter, set_str_ansi)
 
 
 def kernel32_GetCommandLineW(jitter):
-    ret_ad, _ = jitter.func_args_stdcall(0)
-    s = winobjs.module_path + '\x00'
-    s = jitter.set_str_unic('"%s"' % s)
-    alloc_addr = winobjs.heap.alloc(jitter, 0x1000)
-    jitter.vm.set_mem(alloc_addr, s)
-    jitter.func_ret_stdcall(ret_ad, alloc_addr)
+    kernel32_GetCommandLine(jitter, set_str_unic)
 
 
 def shell32_CommandLineToArgvW(jitter):
@@ -1051,10 +1049,9 @@ def shell32_CommandLineToArgvW(jitter):
     addr_ret = winobjs.heap.alloc(jitter, 4 * (len(tks) + 1))
     o = 0
     for i, t in enumerate(tks):
-        x = jitter.set_str_unic(t) + "\x00\x00"
+        jitter.set_str_unic(addr + o, t)
         jitter.vm.set_mem(addr_ret + 4 * i, pck32(addr + o))
-        jitter.vm.set_mem(addr + o, x)
-        o += len(x) + 2
+        o += len(t)*2 + 2
 
     jitter.vm.set_mem(addr_ret + 4 * i, pck32(0))
     jitter.vm.set_mem(args.pnumargs, pck32(len(tks)))
@@ -1442,8 +1439,7 @@ def my_strcpy(jitter, funcname, get_str, set_str):
 
 
 def kernel32_lstrcpyW(jitter):
-    my_strcpy(jitter, whoami(), jitter.get_str_unic,
-              jitter.set_str_unic)
+    my_strcpy(jitter, whoami(), jitter.get_str_unic, jitter.set_str_unic)
 
 
 def kernel32_lstrcpyA(jitter):
@@ -1591,12 +1587,27 @@ def my_GetEnvironmentVariable(jitter, funcname, get_str, set_str, mylen):
     jitter.func_ret_stdcall(ret_ad, mylen(v))
 
 
+def kernel32_GetEnvironmentVariableA(jitter):
+    my_GetEnvironmentVariable(jitter, whoami(),
+                              jitter.get_str_ansi,
+                              jitter.set_str_ansi,
+                              len)
+
+
+def kernel32_GetEnvironmentVariableW(jitter):
+    my_GetEnvironmentVariable(jitter, whoami(),
+                              jitter.get_str_unic,
+                              jitter.set_str_ansi,
+                              len)
+
+
 def my_GetSystemDirectory(jitter, funcname, set_str):
     ret_ad, args = jitter.func_args_stdcall(["lpbuffer", "usize"])
     s = "c:\\windows\\system32"
     l = len(s)
     set_str(args.lpbuffer, s)
     jitter.func_ret_stdcall(ret_ad, l)
+
 
 
 def kernel32_GetSystemDirectoryA(jitter):
@@ -1620,19 +1631,6 @@ def kernel32_CreateDirectoryW(jitter):
 def kernel32_CreateDirectoryA(jitter):
     my_CreateDirectory(jitter, whoami(), jitter.get_str_ansi)
 
-
-def kernel32_GetEnvironmentVariableA(jitter):
-    my_GetEnvironmentVariable(jitter, whoami(),
-                              jitter.get_str_ansi,
-                              jitter.set_str_ansi,
-                              len)
-
-
-def kernel32_GetEnvironmentVariableW(jitter):
-    my_GetEnvironmentVariable(jitter, whoami(),
-                              jitter.get_str_unic,
-                              jitter.set_str_ansi,
-                              len)
 
 
 def my_CreateEvent(jitter, funcname, get_str):
