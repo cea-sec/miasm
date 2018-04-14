@@ -121,6 +121,10 @@ def build_graph(verbose=False, simplify=False):
         # print hex(ad), repr(name)
         if name is None:
             continue
+        if (mdis.symbol_pool.getby_offset(addr) or
+            mdis.symbol_pool.getby_name(name)):
+            # Symbol alias
+            continue
         mdis.symbol_pool.add_label(name, addr)
 
     if verbose:
