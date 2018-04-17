@@ -325,15 +325,15 @@ def vm2pe(myjit, fname, libs=None, e_orig=None,
         xx = str(mye)
         mye.content = xx
         ad = e_orig.NThdr.optentries[pe.DIRECTORY_ENTRY_RESOURCE].rva
+        size = e_orig.NThdr.optentries[pe.DIRECTORY_ENTRY_RESOURCE].size
         log.debug('dirres 0x%x', ad)
         if ad != 0:
             mye.NThdr.optentries[pe.DIRECTORY_ENTRY_RESOURCE].rva = ad
-            mye.DirRes = pe.DirRes.unpack(xx, ad, mye)
-            # log.debug('%s' % repr(mye.DirRes))
-            s_res = mye.SHList.add_section(
-                name="myres", rawsize=len(mye.DirRes))
-            mye.DirRes.set_rva(s_res.addr)
+            mye.NThdr.optentries[pe.DIRECTORY_ENTRY_RESOURCE].size = size
+            mye.DirRes = pe.DirRes.unpack(mye.img_rva, ad, mye)
             log.debug('%r', mye.DirRes)
+            s_res = mye.SHList.add_section(name="myres", rawsize=len(mye.DirRes))
+            mye.DirRes.set_rva(s_res.addr)
     # generation
     open(fname, 'wb').write(str(mye))
     return mye
