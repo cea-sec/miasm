@@ -240,15 +240,18 @@ class AssignBlock(object):
         return m2_expr.ExprAff(dst, self[dst])
 
     def simplify(self, simplifier):
-        """Return a new AssignBlock with expression simplified
-        @simplifier: ExpressionSimplifier instance"""
+        """
+        Return a new AssignBlock with expression simplified
+
+        @simplifier: ExpressionSimplifier instance
+        """
         new_assignblk = {}
         for dst, src in self.iteritems():
             if dst == src:
                 continue
-            src = simplifier(src)
-            dst = simplifier(dst)
-            new_assignblk[dst] = src
+            new_src = simplifier(src)
+            new_dst = simplifier(dst)
+            new_assignblk[new_dst] = new_src
         return AssignBlock(irs=new_assignblk, instr=self.instr)
 
 
@@ -687,12 +690,16 @@ class IntermediateRepresentation(object):
         Simplify expressions in each irblocks
         @simplifier: ExpressionSimplifier instance
         """
+        modified = False
         for label, block in self.blocks.iteritems():
             assignblks = []
             for assignblk in block:
                 new_assignblk = assignblk.simplify(simplifier)
+                if assignblk != new_assignblk:
+                    modified = True
                 assignblks.append(new_assignblk)
             self.blocks[label] = IRBlock(label, assignblks)
+        return modified
 
     def replace_expr_in_ir(self, bloc, rep):
         for assignblk in bloc:
@@ -808,6 +815,10 @@ class IntermediateRepresentation(object):
                 continue
             if not expr_is_label(assignblk[self.IRDst]):
                 continue
+            dst = assignblk[self.IRDst].name
+            if dst == block.label:
+                # Infinite loop block
+                continue
             jmp_blocks.add(block.label)
 
         # Remove them, relink graph
@@ -844,7 +855,7 @@ class IntermediateRepresentation(object):
                         self.graph.add_uniq_edge(lbl, dst_label)
                         modified = True
                     if dst.src1 == dst.src2:
-                        dst = src1
+                        dst = dst.src1
                 else:
                     continue
                 new_parent = parent.set_dst(dst)
