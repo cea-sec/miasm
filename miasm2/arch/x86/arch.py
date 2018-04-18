@@ -1065,10 +1065,12 @@ class x86_imm_fix_08(imm_noarg):
     def decodeval(self, v):
         return self.ival
 
-    def encodeval(self, v):
+    def encode(self):
+        v = self.expr2int(self.expr)
         if v != self.ival:
             return False
-        return self.ival
+        self.value = 0
+        return True
 
 
 class x86_08(x86_imm):

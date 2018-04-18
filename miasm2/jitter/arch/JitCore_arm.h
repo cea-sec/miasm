@@ -26,11 +26,24 @@ typedef struct {
 	uint32_t of;
 	uint32_t cf;
 
+	/* ge */
+	uint32_t ge0;
+	uint32_t ge1;
+	uint32_t ge2;
+	uint32_t ge3;
+
 	uint32_t bp_num;
 }vm_cpu_t;
 
 
 void dump_gpregs(vm_cpu_t* vmcpu);
+
+
+uint32_t udiv32(vm_cpu_t* vmcpu, uint32_t a, uint32_t b);
+uint32_t umod32(vm_cpu_t* vmcpu, uint32_t a, uint32_t b);
+int32_t idiv32(vm_cpu_t* vmcpu, int32_t a, int32_t b);
+int32_t imod32(vm_cpu_t* vmcpu, int32_t a, int32_t b);
+
 
 #define RETURN_PC return BlockDst;
 

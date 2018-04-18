@@ -47,11 +47,11 @@ class ir_a_armb(ir_a_armb_base, ir_a_arml):
 
 
 class ir_a_armtl(ir_armtl, ir_a_arml):
-    def __init__(self, symbol_pool):
+    def __init__(self, symbol_pool=None):
         ir_armtl.__init__(self, symbol_pool)
         self.ret_reg = self.arch.regs.R0
 
 class ir_a_armtb(ir_a_armtl, ir_armtb, ir_a_armb):
-    def __init__(self, symbol_pool):
+    def __init__(self, symbol_pool=None):
         ir_armtb.__init__(self, symbol_pool)
         self.ret_reg = self.arch.regs.R0

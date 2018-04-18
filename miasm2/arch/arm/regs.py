@@ -63,9 +63,27 @@ of_init = ExprId("of_init", size=1)
 cf_init = ExprId("cf_init", size=1)
 
 
+reg_ge0 = 'ge0'
+reg_ge1 = 'ge1'
+reg_ge2 = 'ge2'
+reg_ge3 = 'ge3'
+
+ge0 = ExprId(reg_ge0, size=1)
+ge1 = ExprId(reg_ge1, size=1)
+ge2 = ExprId(reg_ge2, size=1)
+ge3 = ExprId(reg_ge3, size=1)
+
+ge0_init = ExprId("ge0_init", size=1)
+ge1_init = ExprId("ge1_init", size=1)
+ge2_init = ExprId("ge2_init", size=1)
+ge3_init = ExprId("ge3_init", size=1)
+
+ge_regs = [ge0, ge1, ge2, ge3]
+
 all_regs_ids = [
     R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, SP, LR, PC,
     zf, nf, of, cf,
+    ge0, ge1, ge2, ge3,
     exception_flags, bp_num
 ]
 
@@ -83,6 +101,7 @@ all_regs_ids_init = [R0_init, R1_init, R2_init, R3_init,
                      R8_init, R9_init, R10_init, R11_init,
                      R12_init, SP_init, LR_init, PC_init,
                      zf_init, nf_init, of_init, cf_init,
+                     ge0_init, ge1_init, ge2_init, ge3_init,
                      ExprInt(0, 32), ExprInt(0, 32)
                      ]
 

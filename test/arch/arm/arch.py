@@ -1,5 +1,6 @@
 import time
 from miasm2.arch.arm.arch import *
+from pdb import pm
 
 if 0:
     a = bs('00')
@@ -314,6 +315,9 @@ reg_tests_armt = [
     # adcs
     # sbcs
     # rors
+    ("003258b6    RORS       R3, R2",
+     "D341"),
+
     ("0017b754    TST        R0, R2",
      "1042"),
     ("0006e3fc    NEGS       R5, R5",
@@ -401,6 +405,8 @@ reg_tests_armt = [
      "0cb0"),
     ("0006c1b0    SUB        SP, 0x18",
      "86b0"),
+    ("0006ff5c    SUB        SP, SP, 0x670",
+     "ADF5CE6D"),
 
 
     ("0006aeee    POP        {R4, PC}",
@@ -435,7 +441,7 @@ reg_tests_armt = [
      "f2e7"),
     ("C010163C    BLX        0x1F916C",
      "F9F1B6E8"),
-    ("C01015E8    BL         0x1F8D5C",
+    ("C01015E8    BL         0x1F8D60",
      "F8F1AEFE"),
 
 
@@ -489,6 +495,215 @@ reg_tests_armt = [
     ("xxxxxxxx    WFI        ",
      "30bf"),
 
+
+    ("xxxxxxxx    PUSH       {R4-R8, LR}",
+     "2DE9F041"),
+    ("xxxxxxxx    POP        {R4-R8, PC}",
+     "BDE8F081"),
+    ("xxxxxxxx    MOV        R12, 0x3",
+     "4FF0030C"),
+    ("xxxxxxxx    MOVS       R12, 0x3",
+     "5FF0030C"),
+    ("xxxxxxxx    ASR        R7, R3, R6",
+     "43FA06F7"),
+    ("xxxxxxxx    LSL        LR, R12, R7",
+     "0CFA07FE"),
+    ("xxxxxxxx    MVN        LR, LR",
+     "6FEA0E0E"),
+    ("xxxxxxxx    AND        R5, LR, R5",
+     "0EEA0505"),
+    ("xxxxxxxx    ORR        R5, R8, R5",
+     "48EA0505"),
+    ("xxxxxxxx    ORR        R5, R8, R5",
+     "48EA0505"),
+    ("xxxxxxxx    MOV        R0, 0x600",
+     "4FF4C060"),
+    ("xxxxxxxx    MOV        R0, 0x811",
+     "40F61100"),
+    ("xxxxxxxx    MOV        R1, R1 LSL 0x10",
+     "4FEA0141"),
+
+
+    ("xxxxxxxx    ADD        R1, R4, 0x30",
+     "04F13001"),
+
+    ("xxxxxxxx    SDIV       R3, R5, R2",
+     "95FBF2F3"),
+
+    ("xxxxxxxx    MLS        R5, R2, R3, R5",
+     "02FB1355"),
+
+    ("xxxxxxxx    SMLABB     R2, R2, R3, R1",
+     "12FB0312"),
+    ("xxxxxxxx    SMLABT     R2, R2, R3, R1",
+     "12FB1312"),
+    ("xxxxxxxx    SMLATB     R2, R2, R3, R1",
+     "12FB2312"),
+    ("xxxxxxxx    SMLATT     R2, R2, R3, R1",
+     "12FB3312"),
+
+    ("xxxxxxxx    BIC        R1, R1, R3",
+     "21EA0301"),
+    ("xxxxxxxx    BIC        R4, R0, 0x400",
+     "20F48064"),
+    ("xxxxxxxx    ADD        R3, R1, R3 LSL 0x1",
+     "01EB4303"),
+    ("xxxxxxxx    SUB        R3, R0, 0x22",
+     "A0F12203"),
+    ("xxxxxxxx    UDIV       R3, R3, R1",
+     "B3FBF1F3"),
+    ("xxxxxxxx    MLA        R2, R6, R3, R2",
+     "06FB0322"),
+
+    ("xxxxxxxx    SUB        LR, R3, R2",
+     "A3EB020E"),
+
+    ("xxxxxxxx    ADD        R3, R3, 0x908",
+     "03F60813"),
+
+    ("xxxxxxxx    ADD        R3, R3, 0x23800",
+     "03F50E33"),
+
+
+
+
+    ("xxxxxxxx    B          0x4",
+     "00F000B8"),
+    #("xxxxxxxx    BEQ        0x4",
+    # "00F000A8"),
+    ("xxxxxxxx    BEQ        0x1D4",
+     "00F0E880"),
+
+
+    ("xxxxxxxx    UBFX       R1, R1, 0x0, 0x9",
+     "C1F30801"),
+    ("xxxxxxxx    UXTH       R9, R8",
+     "1FFA88F9"),
+
+    ("xxxxxxxx    AND        R2, R0, 0x1F",
+     "00F01F02"),
+    ("xxxxxxxx    RSB        R3, R3, 0x4",
+     "C3F10403"),
+    ("xxxxxxxx    RSB        R9, R9, R9 LSL 0x4",
+     "C9EB0919"),
+
+
+    ("xxxxxxxx    ITT        EQ",
+     "04BF"),
+    ("xxxxxxxx    ITE        EQ",
+     "0CBF"),
+    ("xxxxxxxx    ITT        HI",
+     "84BF"),
+    ("xxxxxxxx    ITTT       LT",
+     "BEBF"),
+    ("xxxxxxxx    ITE        NE",
+     "14BF"),
+
+    ("xxxxxxxx    STR        R5, [R0, 0xDC]",
+     "C0F8DC50"),
+    ("xxxxxxxx    STRB       R1, [R5, 0x4C]",
+     "85F84C10"),
+    ("xxxxxxxx    STRB       R2, [R3], 0x1",
+     "03F8012B"),
+    ("xxxxxxxx    STRH       R3, [R0, 0xE0]",
+     "A0F8E030"),
+    ("xxxxxxxx    STRH       R3, [R0], 0x2",
+     "20F8023B"),
+
+
+    ("xxxxxxxx    LDR        R3, [R0, 0xDC]",
+     "D0F8DC30"),
+    ("xxxxxxxx    LDR        R4, [SP], 0x4",
+     "5DF8044B"),
+    ("xxxxxxxx    LDRH       R3, [SP, 0x20]",
+     "BDF82030"),
+
+    ("xxxxxxxx    LDRB       R3, [R3, 0xFFFFFFF8]",
+     "13F8083C"),
+    ("xxxxxxxx    LDRB       R2, [R3, 0x30]",
+     "93F83020"),
+    ("xxxxxxxx    LDRB       R5, [R8, R6]",
+     "18F80650"),
+    ("xxxxxxxx    LDR        R3, [R4, R3 LSL 0x2]",
+     "54F82330"),
+    ("xxxxxxxx    LDRSB      R2, [R4, 0x30]",
+     "94F93020"),
+    ("xxxxxxxx    LDRH       R3, [R1], 0x2",
+     "31F8023B"),
+    ("xxxxxxxx    LDRH       R9, [SP, 0x14]",
+     "BDF81490"),
+
+    ("xxxxxxxx    STR        R3, [R2, 0xFFFFFFE4]",
+     "42F81C3C"),
+
+
+
+    ("xxxxxxxx    STR        R1, [R0, R3 LSL 0x2]",
+     "40F82310"),
+
+    ("xxxxxxxx    CLZ        R3, R3",
+     "B3FA83F3"),
+
+    ("xxxxxxxx    MOV        R0, 0x603",
+     "40F20360"),
+    ("xxxxxxxx    TBB        [PC, R0]",
+     "DFE800F0"),
+    ("xxxxxxxx    TBH        [PC, R0 LSL 0x1]",
+     "DFE810F0"),
+
+
+    ("xxxxxxxx    STRD       R5, R5, [R2, 0xFFFFFFF0]",
+     "42E90455"),
+
+    ("xxxxxxxx    MOV        R3, R3 ROR 0x19",
+     "4FEA7363"),
+    ("xxxxxxxx    MOV        R5, R5 LSL 0x3",
+     "4FEAC505"),
+
+
+    ("xxxxxxxx    SUB        R3, R3, 0x6BE",
+     "A3F2BE63"),
+
+    ("xxxxxxxx    PLD        [R0]",
+     "90F800F0"),
+
+    ("xxxxxxxx    LDRD       R2, R3, [R1]",
+     "D1E90023"),
+
+    ("xxxxxxxx    TST        R4, 0x4",
+     "14F0040F"),
+
+    ("xxxxxxxx    ORN        R2, R2, R5",
+     "62EA0502"),
+
+    ("xxxxxxxx    UADD8      R2, R2, R12",
+     "82FA4CF2"),
+
+    ("xxxxxxxx    SEL        R2, R4, R12",
+     "A4FA8CF2"),
+
+    ("xxxxxxxx    REV        R2, R2",
+     "12BA"),
+
+    ("xxxxxxxx    ADD        R8, SP, 0xC8",
+     "0DF1C808"),
+
+    ("xxxxxxxx    CMP        R9, 0x80",
+     "B9F1800F"),
+
+    ("xxxxxxxx    MUL        R2, R1, R2",
+     "01FB02F2"),
+
+    ("xxxxxxxx    LDRSH      R3, [R4, 0xC]",
+     "B4F90C30"),
+
+    ("xxxxxxxx    EOR        R3, R3, R1",
+     "83EA0103"),
+
+    ("xxxxxxxx    DSB        SY",
+     "bff34f8f"),
+
+
 ]
 print "#" * 40, 'armthumb', '#' * 40
 
@@ -507,6 +722,7 @@ for s, l in reg_tests_armt:
     l = mn_armt.fromstring(s, 'l')
     # print l
     assert(str(l) == s)
+    print 'Asm..', l
     a = mn_armt.asm(l)
     print [x for x in a]
     print repr(b)

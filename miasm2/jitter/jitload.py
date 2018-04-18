@@ -182,6 +182,9 @@ class jitter(object):
                 from miasm2.jitter.arch import JitCore_x86 as jcore
             elif arch_name == "arm":
                 from miasm2.jitter.arch import JitCore_arm as jcore
+            elif arch_name == "armt":
+                from miasm2.jitter.arch import JitCore_arm as jcore
+                ir_arch.arch.name = 'arm'
             elif arch_name == "aarch64":
                 from miasm2.jitter.arch import JitCore_aarch64 as jcore
             elif arch_name == "msp430":
