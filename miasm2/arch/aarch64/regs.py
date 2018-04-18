@@ -45,9 +45,13 @@ simd128_expr, simd128_init, simd128_info = gen_regs(
     simd128_str, globals(), 128)
 
 
-PC, PC_init = gen_reg("PC", globals(), 64)
-WZR, WZR_init = gen_reg("WZR", globals(), 32)
-XZR, XZR_init = gen_reg("XZR", globals(), 64)
+gen_reg("PC", globals(), 64)
+gen_reg("WZR", globals(), 32)
+gen_reg("XZR", globals(), 64)
+
+PC_init = ExprId("PC_init", 64)
+WZR_init = ExprId("WZR_init", 32)
+XZR_init = ExprId("XZR_init", 64)
 
 reg_zf = 'zf'
 reg_nf = 'nf'
@@ -87,11 +91,12 @@ all_regs_ids = [
     X0, X1, X2, X3, X4, X5, X6, X7, X8, X9, X10, X11, X12, X13, X14, X15, X16,
     X17, X18, X19, X20, X21, X22, X23, X24, X25, X26, X27, X28, X29, LR, SP,
 
-    exception_flags, interrupt_num,
+    exception_flags,
+    interrupt_num,
     PC,
     WZR,
+    XZR,
     zf, nf, of, cf,
-    XZR
 
 ]
 
@@ -105,22 +110,7 @@ attrib_to_regs = {
 
 all_regs_ids_byname = dict([(x.name, x) for x in all_regs_ids])
 
-all_regs_ids_init = (simd08_init +
-                     simd16_init +
-                     simd32_init +
-                     simd64_init +
-                     simd128_init +
-                     gpregs32_init +
-                     gpregs64_init +
-                     [
-                         ExprInt(0, 32),
-                         PC_init,
-                         WZR_init,
-                         XZR_init,
-                         zf_init, nf_init, of_init, cf_init,
-                         ExprInt(0, 64), ExprInt(0, 32),
-                     ]
-                     )
+all_regs_ids_init = [ExprId("%s_init" % x.name, x.size) for x in all_regs_ids]
 
 regs_init = {}
 for i, r in enumerate(all_regs_ids):
