@@ -108,8 +108,8 @@ Add instruction to the pool:
 
 Print current pool:
 ```
->>> for lbl, b in ira.blocs.items():
-...     print b
+>>> for lbl, irblock in ira.blocks.items():
+...     print irblock
 ...
 loc_0000000000000000:0x00000000
 
@@ -119,19 +119,19 @@ loc_0000000000000000:0x00000000
 ```
 Working with IR, for instance by getting side effects:
 ```
->>> from miasm2.expression.expression import get_rw
->>> for lbl, b in ira.blocs.items():
-...     for irs in b.irs:
-...         o_r, o_w = get_rw(irs)
-...         print 'read:   ', [str(x) for x in o_r]
-...         print 'written:', [str(x) for x in o_w]
-...         print
+>>> for lbl, irblock in ira.blocks.iteritems():
+...     for assignblk in irblock:
+...         rw = assignblk.get_rw()
+...         for dst, reads in rw.iteritems():
+...             print 'read:   ', [str(x) for x in reads]
+...             print 'written:', dst
+...             print
 ...
 read:    ['R8', 'R0']
-written: ['R2']
+written: R2
 
 read:    ['loc_0000000000000004:0x00000004']
-written: ['IRDst']
+written: IRDst
 ```
 
 Emulation
@@ -165,9 +165,9 @@ Disassembling the shellcode at address `0`:
 >>> from miasm2.analysis.machine import Machine
 >>> machine = Machine('x86_32')
 >>> mdis = machine.dis_engine(c.bin_stream)
->>> blocs = mdis.dis_multiblock(0)
->>> for b in blocs:
-...  print b
+>>> blocks = mdis.dis_multiblock(0)
+>>> for block in blocks:
+...  print block
 ...
 loc_0000000000000000:0x00000000
 LEA        ECX, DWORD PTR [ECX+0x4]
@@ -198,7 +198,8 @@ Initializing the Jit engine with a stack:
 Add the shellcode in an arbitrary memory location:
 ```
 >>> run_addr = 0x40000000
->>> myjit.vm.add_memory_page(run_addr, PAGE_READ | PAGE_WRITE, s)
+>>> from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
+>>> jitter.vm.add_memory_page(run_addr, PAGE_READ | PAGE_WRITE, s)
 ```
 
 Create a sentinelle to catch the return of the shellcode:
@@ -268,22 +269,22 @@ Initializing the IR pool:
 
 ```
 >>> ira = machine.ira()
->>> for b in blocs:
-...    ira.add_bloc(b)
+>>> for block in blocks:
+...    ira.add_block(block)
 ...
 ```
 
 Initializing the engine with default symbolic values:
 
 ```
->>> from miasm2.ir.symbexec import symbexec
->>> sb = symbexec(ira, machine.mn.regs.regs_init)
+>>> from miasm2.ir.symbexec import SymbolicExecutionEngine
+>>> sb = SymbolicExecutionEngine(ira, machine.mn.regs.regs_init)
 ```
 
 Launching the execution:
 
 ```
->>> symbolic_pc = sb.emul_ir_blocs(ira, 0)
+>>> symbolic_pc = sb.run_at(0)
 >>> print symbolic_pc
 ((ECX_init+0x4)[0:8]+0xFF)?(0xB,0x10)
 ```
@@ -291,8 +292,8 @@ Launching the execution:
 Same, with step logs (only changes are displayed):
 
 ```
->>> sb = symbexec(ira, machine.mn.regs.regs_init)
->>> symbolic_pc = sb.emul_ir_blocs(ira, 0, step=True)
+>>> sb = SymbolicExecutionEngine(ira, machine.mn.regs.regs_init)
+>>> symbolic_pc = sb.run_at(0, step=True)
 ________________________________________________________________________________
 ECX (ECX_init+0x4)
 ________________________________________________________________________________
@@ -326,7 +327,7 @@ Retry execution with a concrete ECX. Here, the symbolic / concolic execution rea
 ```
 >>> from miasm2.expression.expression import ExprInt32
 >>> sb.symbols[machine.mn.regs.ECX] = ExprInt32(-3)
->>> symbolic_pc = sb.emul_ir_blocs(ira, 0, step=True)
+>>> symbolic_pc = sb.run_at(0, step=True)
 ________________________________________________________________________________
 ECX 0x1
 ________________________________________________________________________________
