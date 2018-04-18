@@ -16,12 +16,13 @@ l.offset, l.l = 0, 15
 ir_arch.add_instr(l)
 
 print '*' * 80
-for lbl, irblock in ir_arch.blocks.items():
+for lbl, irblock in ir_arch.blocks.iteritems():
     print irblock
     for assignblk in irblock:
-        o_r, o_w = get_rw(assignblk)
-        print 'read:   ', [str(x) for x in o_r]
-        print 'written:', [str(x) for x in o_w]
-        print
+        rw = assignblk.get_rw()
+        for dst, reads in rw.iteritems():
+            print 'read:   ', [str(x) for x in reads]
+            print 'written:', dst
+            print
 
 open('graph_instr.dot', 'w').write(ir_arch.graph.dot())
