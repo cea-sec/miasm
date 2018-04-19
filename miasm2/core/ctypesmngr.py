@@ -36,6 +36,9 @@ class CTypeBase(object):
     def _typerepr(self):
         return self.__repr
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def eq_base(self, other):
         """Trivial common equality test"""
         return self.__class__ == other.__class__

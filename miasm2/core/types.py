@@ -340,6 +340,9 @@ class Type(object):
     def __neq__(self, other):
         return not self == other
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
 
 class RawStruct(Type):
     """Dumb struct.pack/unpack field. Mainly used to factorize code.

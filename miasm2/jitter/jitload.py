@@ -156,6 +156,9 @@ class ExceptionHandle():
             return False
         return (self.except_flag == to_cmp.except_flag)
 
+    def __ne__(self, to_cmp):
+        return not self.__eq__(to_cmp)
+
 
 class jitter(object):
 

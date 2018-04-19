@@ -57,6 +57,9 @@ class DiGraph(object):
         return all((self._nodes == graph.nodes(),
                     sorted(self._edges) == sorted(graph.edges())))
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def add_node(self, node):
         """Add the node @node to the graph.
         If the node was already present, return False.

@@ -120,6 +120,9 @@ class interval(object):
     def __eq__(self, i):
         return self.intervals == i.intervals
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def __add__(self, i):
         if isinstance(i, interval):
             i = i.intervals
