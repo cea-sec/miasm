@@ -53,6 +53,9 @@ class SymbolicState(StateEngine):
             return False
         return self.symbols == other.symbols
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def __iter__(self):
         for dst, src in self._symbols:
             yield dst, src

@@ -39,6 +39,9 @@ class SymbolicStateTop(StateEngine):
         return (self.symbols == other.symbols and
                 self.regstop == other.regstop)
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def __iter__(self):
         for dst, src in self._symbols:
             yield dst, src

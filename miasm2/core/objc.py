@@ -430,6 +430,9 @@ class CGen(object):
         return (self.__class__ == other.__class__ and
                 self._ctype == other.ctype)
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def to_c(self):
         """Generate corresponding C"""
 

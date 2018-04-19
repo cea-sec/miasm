@@ -465,7 +465,7 @@ assert Union([("f2", Num("B")), ("f2", Num("H"))]) != \
 assert Union([("f1", Num("B")), ("f2", Num("H"))]) != \
         Union([("f1", Num("I")), ("f2", Num("H"))])
 assert Bits(Num("I"), 3, 8) == Bits(Num("I"), 3, 8)
-assert Bits(Num("I"), 3, 8) != Bits(Num("I"), 3, 8)
+assert (Bits(Num("I"), 3, 8) != Bits(Num("I"), 3, 8)) is False
 assert Bits(Num("H"), 2, 8) != Bits(Num("I"), 3, 8)
 assert Bits(Num("I"), 3, 7) != Bits(Num("I"), 3, 8)
 assert BitField(Num("B"), [("f1", 2), ("f2", 4), ("f3", 1)]) == \

@@ -177,6 +177,9 @@ class AssignBlock(object):
             return False
         return all(other[dst] == src for dst, src in self.iteritems())
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def __len__(self):
         return len(self._assigns)
 
