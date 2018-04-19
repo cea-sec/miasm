@@ -124,9 +124,32 @@ def extend_arg(dst, arg):
         return arg
 
     op, (reg, shift) = arg.op, arg.args
-    if op == 'SXTW':
+    if op == "SXTB":
+        base = reg[:8].signExtend(dst.size)
+        op = "<<"
+    elif op == "SXTH":
+        base = reg[:16].signExtend(dst.size)
+        op = "<<"
+    elif op == 'SXTW':
+        base = reg[:32].signExtend(dst.size)
+        op = "<<"
+    elif op == "SXTX":
         base = reg.signExtend(dst.size)
         op = "<<"
+
+    elif op == "UXTB":
+        base = reg[:8].zeroExtend(dst.size)
+        op = "<<"
+    elif op == "UXTH":
+        base = reg[:16].zeroExtend(dst.size)
+        op = "<<"
+    elif op == 'UXTW':
+        base = reg[:32].zeroExtend(dst.size)
+        op = "<<"
+    elif op == "UXTX":
+        base = reg.zeroExtend(dst.size)
+        op = "<<"
+
     elif op in ['<<', '>>', '<<a', 'a>>', '<<<', '>>>']:
         base = reg.zeroExtend(dst.size)
     else:
