@@ -20,7 +20,7 @@
 
 #ifdef __APPLE__
 #define __BYTE_ORDER __BYTE_ORDER__
-#elif defined(__NetBSD__)
+#elif defined(__NetBSD__) || defined(__OpenBSD__)
 #define __BYTE_ORDER _BYTE_ORDER
 #define __BIG_ENDIAN _BIG_ENDIAN
 #define __LITTLE_ENDIAN _LITTLE_ENDIAN
