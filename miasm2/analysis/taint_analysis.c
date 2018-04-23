@@ -710,30 +710,30 @@ cpu_access_register(JitCpu* cpu, PyObject* args, uint32_t access_type)
 	PyObject *register_index_py;
 	PyObject *start_py;
 	start_py = PyInt_FromLong(DEFAULT_REG_START);
-	PyObject *size_py;
-	size_py = PyInt_FromLong(cpu->taint_analysis->max_register_size);
+	PyObject *end_py;
+	end_py = PyInt_FromLong(cpu->taint_analysis->max_register_size-1);
 	uint64_t color_index;
 	uint64_t register_index;
 	uint32_t start;
-	uint32_t size;
+	uint32_t end;
 
 	if (!PyArg_ParseTuple(args,
 			      "OO|OO",
 			      &color_index_py,
 			      &register_index_py,
 			      &start_py,
-			      &size_py))
+			      &end_py))
 		return NULL;
 
 	PyGetInt(color_index_py, color_index);
 	PyGetInt(register_index_py, register_index);
 	PyGetInt(start_py, start);
-	PyGetInt(size_py, size);
+	PyGetInt(end_py, end);
 
 	struct taint_interval_t* interval;
 	interval = malloc(sizeof(*interval));
 	interval->start = start;
-	interval->end = start + (size-1);
+	interval->end = end;
 
 	taint_check_color(color_index, cpu->taint_analysis->nb_colors);
 	taint_check_register(register_index,

@@ -156,8 +156,8 @@ PyObject* cpu_get_registers(uint32_t* registers,
 			     uint64_t nb_registers,
 			     uint32_t max_register_size
 			     );
-PyObject* cpu_taint_register(JitCpu* self, PyObject* args); // args: color_index(, register_index, start, size)
-PyObject* cpu_untaint_register(JitCpu* self, PyObject* args); // args: color_index(, register_index, start, size)
+PyObject* cpu_taint_register(JitCpu* self, PyObject* args); // args: color_index(, register_index, start, end)
+PyObject* cpu_untaint_register(JitCpu* self, PyObject* args); // args: color_index(, register_index, start, end)
 PyObject* cpu_untaint_all_registers(JitCpu* self); // args: -
 PyObject* cpu_color_untaint_all_registers(JitCpu* self, PyObject* args); // args: color_index
 PyObject* cpu_access_memory(JitCpu* cpu, PyObject* args, uint32_t access_type);
