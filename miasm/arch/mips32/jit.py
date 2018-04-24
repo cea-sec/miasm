@@ -23,12 +23,6 @@ class mipsCGen(CGen):
     unsigned int branch_dst_set=0;
     """
 
-    CODE_INIT_TAINT = CGen.CODE_INIT_TAINT + r"""
-    unsigned int branch_dst_pc;
-    unsigned int branch_dst_irdst;
-    unsigned int branch_dst_set=0;
-    """
-
     CODE_RETURN_NO_EXCEPTION = r"""
     %s:
     if (branch_dst_set) {

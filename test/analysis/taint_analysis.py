@@ -1,9 +1,10 @@
 # -*- coding: utf8 -*-
 
 from miasm2.arch.x86.arch import mn_x86
-from miasm2.core import parse_asm, asmbloc
+from miasm2.core import parse_asm, asmblock
 
 # TODO: tester d'autres jitter
+# TODO: tester d'autres arch
 
 # Assemble code to test
 blocs, symbol_pool = parse_asm.parse_txt(mn_x86, 32, '''
@@ -27,7 +28,7 @@ main:
 symbol_pool.set_offset(symbol_pool.getby_name("main"), 0x0)
 
 # Spread information and resolve instructions offset
-asm = asmbloc.asm_resolve_final(mn_x86, blocs, symbol_pool)
+asm = asmblock.asm_resolve_final(mn_x86, blocs, symbol_pool)
 
 compiled = ''
 for key in sorted(asm):
@@ -324,20 +325,40 @@ def test_api(jitter):
         assert not regs
         assert not mems
 
-    def test_api_untaint_all_register(jitter):
+    def test_api_untaint_all_registers_of_color(jitter):
+        """ Test jitter.cpu.untaint_all_registers_of_color """
+
+        print "\t[+] Test jitter.cpu.untaint_all_registers_of_color"
+
+        jitter.cpu.taint_register(blue, jitter.jit.codegen.regs_index["RAX"])
+        jitter.cpu.taint_register(blue, jitter.jit.codegen.regs_index["RBX"])
+        jitter.cpu.taint_register(red, jitter.jit.codegen.regs_index["RAX"])
+        jitter.cpu.untaint_all_registers_of_color(blue)
+        regs, mems = jitter.cpu.get_all_taint(blue)
+        assert not regs
+        assert not mems
+        regs, mems = jitter.cpu.get_all_taint(red)
+        assert len(regs) == 1
+        assert regs[0] == 17 # RAX
+        assert not mems
+        jitter.cpu.untaint_all_registers_of_color(red)
+        regs, mems = jitter.cpu.get_all_taint(red)
+        assert not regs
+        assert not mems
+        regs, mems = jitter.cpu.get_all_taint(blue)
+        assert not regs
+        assert not mems
+
+
+    def test_api_untaint_all_registers(jitter):
         """ Test jitter.cpu.untaint_all_registers """
 
         print "\t[+] Test jitter.cpu.untaint_all_registers"
 
-        jitter.cpu.untaint_all_registers(red)
-        regs, mems = jitter.cpu.get_all_taint(blue)
-        assert len(regs) == 1
-        assert regs[0] == 17 # RAX
-        assert not mems
-        regs, mems = jitter.cpu.get_all_taint(red)
-        assert not regs
-        assert not mems
-        jitter.cpu.untaint_all_registers(blue)
+        jitter.cpu.taint_register(blue, jitter.jit.codegen.regs_index["RAX"])
+        jitter.cpu.taint_register(blue, jitter.jit.codegen.regs_index["RBX"])
+        jitter.cpu.taint_register(red, jitter.jit.codegen.regs_index["RAX"])
+        jitter.cpu.untaint_all_registers()
         regs, mems = jitter.cpu.get_all_taint(blue)
         assert not regs
         assert not mems
@@ -380,12 +401,62 @@ def test_api(jitter):
         assert mems[1] == (0x80000006,1)
         assert mems[2] == (0x8000000a,3)
 
+    def test_api_untaint_all_memory_of_color(jitter):
+        """ Test jitter.cpu.untaint_all_memory_of_color """
+
+        print "\t[+] Test jitter.cpu.untaint_all_memory_of_color"
+
+        jitter.cpu.untaint_all_memory_of_color(red)
+        regs, mems = jitter.cpu.get_all_taint(red)
+        assert not regs
+        assert not mems
+        regs, mems = jitter.cpu.get_all_taint(blue)
+        assert not regs
+        assert len(mems) == 1
+        assert mems[0] == (0x80000006,7)
+        jitter.cpu.untaint_all_memory_of_color(blue)
+        regs, mems = jitter.cpu.get_all_taint(red)
+        assert not regs
+        assert not mems
+        regs, mems = jitter.cpu.get_all_taint(blue)
+        assert not regs
+        assert not mems
+
     def test_api_untaint_all_memory(jitter):
         """ Test jitter.cpu.untaint_all_memory """
 
         print "\t[+] Test jitter.cpu.untaint_all_memory"
 
+        jitter.cpu.taint_memory(0x80000000,4,red)
+        jitter.cpu.taint_memory(0x80000006,7,red)
+        jitter.cpu.taint_memory(0x80000006,7,blue)
         jitter.cpu.untaint_all_memory()
+        regs, mems = jitter.cpu.get_all_taint(red)
+        assert not regs
+        assert not mems
+        regs, mems = jitter.cpu.get_all_taint(blue)
+        assert not regs
+        assert not mems
+
+    def test_api_untaint_all_of_color(jitter):
+        """ Test jitter.cpu.untaint_all_of_color """
+
+        print "\t[+] Test jitter.cpu.untaint_all_of_color"
+
+        jitter.cpu.taint_memory(0x80000000,4,red)
+        jitter.cpu.taint_memory(0x80000006,7,blue)
+        jitter.cpu.taint_register(red, jitter.jit.codegen.regs_index["RAX"])
+        jitter.cpu.taint_register(blue, jitter.jit.codegen.regs_index["RBX"])
+        jitter.cpu.untaint_all_of_color(red)
+        regs, mems = jitter.cpu.get_all_taint(red)
+        assert not regs
+        assert not mems
+        regs, mems = jitter.cpu.get_all_taint(blue)
+        assert len(regs) == 1
+        assert regs[0] == 62 # RBX
+        assert len(mems) == 1
+        assert mems[0] == (0x80000006,7)
+        jitter.cpu.untaint_all_of_color(blue)
         regs, mems = jitter.cpu.get_all_taint(red)
         assert not regs
         assert not mems
@@ -410,10 +481,13 @@ def test_api(jitter):
 
     test_api_taint_register(jitter)
     test_api_untaint_register(jitter)
-    test_api_untaint_all_register(jitter)
+    test_api_untaint_all_registers_of_color(jitter)
+    test_api_untaint_all_registers(jitter)
     test_api_taint_memory(jitter)
     test_api_untaint_memory(jitter)
+    test_api_untaint_all_memory_of_color(jitter)
     test_api_untaint_all_memory(jitter)
+    test_api_untaint_all_of_color(jitter)
     test_api_untaint_all(jitter)
 
 test_api(jitter)

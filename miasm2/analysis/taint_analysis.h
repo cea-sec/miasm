@@ -81,7 +81,8 @@ int taint_get_register(struct taint_colors_t *colors,
 		       uint64_t color_index,
 		       uint64_t register_index
 		       );
-void taint_remove_all_registers(struct taint_colors_t *colors,
+void taint_remove_all_registers(struct taint_colors_t *colors);
+void taint_color_remove_all_registers(struct taint_colors_t *colors,
 				uint64_t color_index
 				);
 
@@ -109,6 +110,7 @@ int taint_get_memory(vm_mngr_t* vm_mngr,
 		     uint64_t color_index
 		     );
 void taint_remove_all_memory(vm_mngr_t* vm_mngr);
+void taint_color_remove_all_memory(vm_mngr_t* vm_mngr, uint64_t color_index);
 void taint_init_memory(vm_mngr_t* vm_mngr, uint64_t color_index);
 
 /* Callback information */
@@ -134,16 +136,19 @@ int bitfield_test_bit(uint32_t bfield[],  uint64_t index);
 /* Python API */
 PyObject *cpu_taint_register(JitCpu* self, PyObject* args); // args: color_index, register_index
 PyObject *cpu_untaint_register(JitCpu* self, PyObject* args); // args: color_index, register_index
-PyObject *cpu_untaint_all_registers(JitCpu* self, PyObject* args); // args: color_index
+PyObject *cpu_untaint_all_registers(JitCpu* self); // args: -
+PyObject *cpu_color_untaint_all_registers(JitCpu* self, PyObject* args); // args: color_index
 PyObject *cpu_taint_memory(JitCpu* self, PyObject* args); // args: addr, size, color_index
 PyObject *cpu_untaint_memory(JitCpu* self, PyObject* args); // args: addr, size, color_index
 PyObject *cpu_untaint_all_memory(JitCpu* self); // args: -
+PyObject *cpu_color_untaint_all_memory(JitCpu* self, PyObject* args); // args: color_index
 PyObject *cpu_untaint_all(JitCpu* self); // args: -
+PyObject *cpu_color_untaint_all(JitCpu* self, PyObject* args); // args: color_index
 PyObject *cpu_init_taint(JitCpu* self, PyObject* args); // args: nb_registers, nb_colors
 PyObject *cpu_get_last_tainted_registers(JitCpu* self, PyObject* args); // args: color_index
 PyObject *cpu_get_last_tainted_memory(JitCpu* self, PyObject* args); // args: color_index
 PyObject *cpu_get_all_taint(JitCpu* self, PyObject* args); // args: color_index
-PyObject *cpu_do_taint_reg_cb(JitCpu* self, PyObject* args); // args: color_inde
+PyObject *cpu_do_taint_reg_cb(JitCpu* self, PyObject* args); // args: color_index
 PyObject *cpu_do_untaint_reg_cb(JitCpu* self, PyObject* args); // args: color_index
 PyObject *cpu_do_taint_mem_cb(JitCpu* self, PyObject* args); // args: color_index
 PyObject *cpu_do_untaint_mem_cb(JitCpu* self, PyObject* args); // args: color_index

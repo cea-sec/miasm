@@ -6,16 +6,11 @@ class TaintGen(object):
     ## Taint Analysis
 
     CODE_INIT_TAINT = r"""
-    int DST_case;
-    unsigned long long DST_value;
-    vm_cpu_t* mycpu = (vm_cpu_t*)jitcpu->cpu;
     struct taint_colors_t* taint_analysis = jitcpu->taint_analysis;
     vm_mngr_t* vm_mngr = &jitcpu->pyvm->vm_mngr;
     uint64_t current_color;
     uint64_t addr;
     uint64_t size;
-
-    goto %s;
     """
 
     CODE_EXCEPTION_TAINT = r"""

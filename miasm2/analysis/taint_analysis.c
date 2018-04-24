@@ -1,14 +1,14 @@
+#include <Python.h>
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <Python.h>
-#include "structmember.h"
 #include <stdint.h>
-#include <inttypes.h>
+
 #include "../jitter/queue.h"
 #include "../jitter/vm_mngr.h"
 #include "../jitter/vm_mngr_py.h"
 #include "../jitter/JitCore.h"
+
 #include "taint_analysis.h"
 
 
@@ -152,13 +152,23 @@ taint_get_register(struct taint_colors_t *colors,
 }
 
 void
-taint_remove_all_registers(struct taint_colors_t *colors, uint64_t color_index)
+taint_color_remove_all_registers(struct taint_colors_t *colors, uint64_t color_index)
 {
 	taint_check_color(color_index, colors->nb_colors);
 	uint64_t i;
 	for(i = 0; i < (colors->nb_registers/NB_BITS_IN_UINT32_T + 1); i++)
 	{
 		colors->colors[color_index].registers[i] = 0;
+	}
+}
+
+void
+taint_remove_all_registers(struct taint_colors_t *colors)
+{
+	int color_index;
+	for (color_index = 0 ; color_index < colors->nb_colors ; color_index++)
+	{
+		taint_color_remove_all_registers(colors, color_index);
 	}
 }
 
@@ -178,7 +188,7 @@ taint_clean_callback_info_unsafe(struct taint_colors_t *colors,
 				 uint64_t color_index
 				 )
 {
-	// NOTE: Maybe use taint_remove_all_registers
+	// TODO: Maybe use taint_remove_all_registers
 	int i;
 
 	for(i = 0; i < (colors->nb_registers/NB_BITS_IN_UINT32_T + 1); i++)
@@ -344,6 +354,22 @@ taint_remove_all_memory(vm_mngr_t* vm_mngr)
 }
 
 void
+taint_color_remove_all_memory(vm_mngr_t* vm_mngr, uint64_t color_index)
+{
+	int page_number;
+	int index;
+	for (page_number = 0; page_number < vm_mngr->memory_pages_number ; page_number++)
+	{
+		for(index = 0;
+		    index < (vm_mngr->memory_pages_array[page_number].size/NB_BITS_IN_UINT32_T+1);
+		    index++)
+		{
+			vm_mngr->memory_pages_array[page_number].taint[color_index][index] = 0;
+		}
+	}
+}
+
+void
 taint_init_memory(vm_mngr_t* vm_mngr, uint64_t nb_colors)
 {
 	vm_mngr->do_taint = 1;
@@ -447,7 +473,16 @@ cpu_untaint_register(JitCpu* self, PyObject* args)
 }
 
 PyObject*
-cpu_untaint_all_registers(JitCpu* self, PyObject* args)
+cpu_untaint_all_registers(JitCpu* self)
+{
+	taint_remove_all_registers(self->taint_analysis);
+
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
+PyObject*
+cpu_color_untaint_all_registers(JitCpu* self, PyObject* args)
 {
 	PyObject *color_index_py;
 	uint64_t color_index;
@@ -457,7 +492,7 @@ cpu_untaint_all_registers(JitCpu* self, PyObject* args)
 
 	PyGetInt(color_index_py, color_index);
 
-	taint_remove_all_registers(self->taint_analysis, color_index);
+	taint_color_remove_all_registers(self->taint_analysis, color_index);
 
 	Py_INCREF(Py_None);
 	return Py_None;
@@ -519,14 +554,45 @@ cpu_untaint_all_memory(JitCpu* self)
 }
 
 PyObject *
+cpu_color_untaint_all_memory(JitCpu* self, PyObject* args)
+{
+	PyObject *color_index_py;
+	uint64_t color_index;
+
+	if (!PyArg_ParseTuple(args, "O", &color_index_py))
+		return NULL;
+
+	PyGetInt(color_index_py, color_index);
+
+	taint_color_remove_all_memory(&self->pyvm->vm_mngr, color_index);
+
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
+PyObject *
 cpu_untaint_all(JitCpu* self)
 {
-	int color_index;
-	for (color_index = 0 ; color_index < self->taint_analysis->nb_colors ; color_index++)
-	{
-		taint_remove_all_registers(self->taint_analysis, color_index);
-	}
+	taint_remove_all_registers(self->taint_analysis);
 	taint_remove_all_memory(&self->pyvm->vm_mngr);
+
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
+PyObject *
+cpu_color_untaint_all(JitCpu* self, PyObject* args)
+{
+	PyObject *color_index_py;
+	uint64_t color_index;
+
+	if (!PyArg_ParseTuple(args, "O", &color_index_py))
+		return NULL;
+
+	PyGetInt(color_index_py, color_index);
+
+	taint_color_remove_all_registers(self->taint_analysis, color_index);
+	taint_color_remove_all_memory(&self->pyvm->vm_mngr, color_index);
 
 	Py_INCREF(Py_None);
 	return Py_None;
