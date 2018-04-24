@@ -121,7 +121,6 @@ def test_taint_propagation():
         - Red: RAX, RBX, RCX
         - Blue:  RDX, RCX
         - PUSHAD
-        -
         """
         print "\t[+] Test color conflicts (PUSHAD)"
         regs, mems = jitter.cpu.get_all_taint(red)
@@ -198,5 +197,3 @@ def test_taint_propagation():
 
     jitter.init_run(code_addr)
     jitter.continue_run()
-
-

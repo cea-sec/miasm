@@ -1,10 +1,10 @@
+from elfesteem.strpatchwork import StrPatchwork
 from miasm2.arch.x86.arch import mn_x86
-from miasm2.core import parse_asm, asmblock
+from miasm2.core import parse_asm
+from miasm2.core.asmblock import asm_resolve_final
 from miasm2.analysis.machine import Machine
 import miasm2.jitter.csts as csts
 import miasm2.analysis.taint_analysis as taint
-
-"""TODO """
 
 ## CSTS
 # Color csts
@@ -45,13 +45,12 @@ def assemble_code(code_str):
     symbol_pool.set_offset(symbol_pool.getby_name("main"), 0x0)
 
     # Spread information and resolve instructions offset
-    asm = asmblock.asm_resolve_final(mn_x86, blocs, symbol_pool)
+    patches = asm_resolve_final(mn_x86, blocs, symbol_pool)
 
-    # TODO cleaner way to do this
-    compiled = ''
-    for key in sorted(asm):
-        compiled += asm[key]
-    return compiled
+    output = StrPatchwork()
+    for offset, raw in patches.items():
+        output[offset] = raw
+    return str(output)
 
 def nothing_tainted(jitter, color):
     no_reg_tainted(jitter, color)
