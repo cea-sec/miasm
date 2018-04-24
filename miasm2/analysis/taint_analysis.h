@@ -27,7 +27,7 @@
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 
-struct taint_intervalle_t {
+struct taint_interval_t {
 	uint32_t start;
 	uint32_t end;
 };
@@ -77,7 +77,7 @@ struct taint_colors_t* taint_init_colors(uint64_t nb_regs,
 struct taint_color_t taint_init_color(uint64_t nb_regs, uint32_t max_register_size);
 void taint_check_color(uint64_t color_index, uint64_t nb_colors);
 void taint_check_register(uint64_t register_index,
-			  struct taint_intervalle_t* intervalle,
+			  struct taint_interval_t* interval,
 			  uint64_t nb_registers,
 			  uint32_t max_register_size
 			  );
@@ -86,17 +86,17 @@ void taint_check_register(uint64_t register_index,
 void taint_register_generic_access(struct taint_colors_t *colors,
 				   uint64_t color_index,
 				   uint64_t register_index,
-				   struct taint_intervalle_t* intervalle,
+				   struct taint_interval_t* interval,
 				   uint32_t access_type
 				   );
-struct taint_intervalle_t* taint_get_register_color(struct taint_colors_t *colors,
+struct taint_interval_t* taint_get_register_color(struct taint_colors_t *colors,
 						    uint64_t color_index,
 						    uint64_t register_index,
-						    struct taint_intervalle_t* intervalle
+						    struct taint_interval_t* interval
 						    );
-struct taint_intervalle_t* taint_get_register(uint32_t* registers,
+struct taint_interval_t* taint_get_register(uint32_t* registers,
 					      uint64_t register_index,
-					      struct taint_intervalle_t* intervalle,
+					      struct taint_interval_t* interval,
 					      uint32_t max_register_size
 					      );
 void taint_remove_all_registers(struct taint_colors_t *colors);
@@ -111,7 +111,7 @@ void taint_memory_generic_access(vm_mngr_t* vm_mngr,
 				 uint32_t access_type,
 				 uint64_t color_index
 				 );
-struct taint_intervalle_t* taint_get_memory(vm_mngr_t* vm_mngr,
+struct taint_interval_t* taint_get_memory(vm_mngr_t* vm_mngr,
 					    uint64_t addr,
 					    uint64_t size,
 					    uint64_t color_index
@@ -131,7 +131,7 @@ void taint_clean_callback_info(struct taint_colors_t *colors,
 void taint_update_register_callback_info(struct taint_colors_t *colors,
 					 uint64_t color_index,
 					 uint64_t register_index,
-					 struct taint_intervalle_t* intervalle,
+					 struct taint_interval_t* interval,
 					 int event_type
 					 );
 void taint_update_memory_callback_info(struct taint_colors_t *colors,

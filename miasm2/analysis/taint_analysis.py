@@ -11,49 +11,49 @@ class TaintGen(object):
     uint64_t current_color;
     uint64_t taint_addr;
     uint64_t taint_size;
-    struct taint_intervalle_t* taint_intervalle;
-    struct taint_intervalle_t* taint_intervalle_ret;
-    struct taint_intervalle_t* taint_intervalle_arg;
-    taint_intervalle = malloc(sizeof(*taint_intervalle));
-    taint_intervalle_arg = malloc(sizeof(*taint_intervalle_arg));
+    struct taint_interval_t* taint_interval;
+    struct taint_interval_t* taint_interval_ret;
+    struct taint_interval_t* taint_interval_arg;
+    taint_interval = malloc(sizeof(*taint_interval));
+    taint_interval_arg = malloc(sizeof(*taint_interval_arg));
     int is_tainted;
     """
 
     CODE_PREPARE_ANALYSE_REG = r"""
         is_tainted = 0;
-        taint_intervalle->start = -1;
-        taint_intervalle->end = 0;
+        taint_interval->start = -1;
+        taint_interval->end = 0;
     """
 
     CODE_REG_ACCESS = r"""
         taint_register_generic_access(taint_analysis,
                                   current_color,
                                   %s,
-                                  taint_intervalle,
+                                  taint_interval,
                                   %s);
     """
 
     CODE_GET_REG_TAINT_1 = r"""
-    taint_intervalle_arg->start = DEFAULT_REG_START;
-    taint_intervalle_arg->end = DEFAULT_MAX_REG_SIZE - 1;
+    taint_interval_arg->start = DEFAULT_REG_START;
+    taint_interval_arg->end = DEFAULT_MAX_REG_SIZE - 1;
     """
 
     CODE_GET_REG_TAINT_2 = r"""
-    taint_intervalle_arg->start = %d;
-    taint_intervalle_arg->end = %d;
+    taint_interval_arg->start = %d;
+    taint_interval_arg->end = %d;
     """
 
     CODE_PREPARE_ANALYSE_MEM = r"""
     taint_addr = %s;
     taint_size = %s;
     is_tainted = 0;
-    taint_intervalle->start = -1;
-    taint_intervalle->end = 0;
+    taint_interval->start = -1;
+    taint_interval->end = 0;
     """
 
     CODE_TAINT_MEM = r"""
-        taint_addr = taint_addr + taint_intervalle->start;
-        taint_size = taint_intervalle->end-taint_intervalle->start+1;
+        taint_addr = taint_addr + taint_interval->start;
+        taint_size = taint_interval->end-taint_interval->start+1;
         taint_memory_generic_access(vm_mngr, taint_addr, taint_size, ADD, current_color);
         if ( taint_analysis->colors[current_color].callback_info->exception_flag
              & DO_TAINT_MEM_CB )
@@ -68,8 +68,8 @@ class TaintGen(object):
     """
 
     CODE_UNTAINT_MEM = r"""
-        taint_addr = taint_addr - taint_intervalle_ret->start;
-        taint_size = taint_intervalle_ret->end-taint_intervalle_ret->start+1;
+        taint_addr = taint_addr - taint_interval_ret->start;
+        taint_size = taint_interval_ret->end-taint_interval_ret->start+1;
         taint_memory_generic_access(vm_mngr, taint_addr, taint_size, REMOVE, current_color);
 
         if ( taint_analysis->colors[current_color].callback_info->exception_flag
@@ -84,17 +84,17 @@ class TaintGen(object):
     """
 
     CODE_UPDATE_INTERVALLE = r"""
-    if (taint_intervalle_ret != NULL)
+    if (taint_interval_ret != NULL)
     {
-        taint_intervalle->end = MAX(taint_intervalle_ret->end,
-                                    taint_intervalle->end);
-        taint_intervalle->start = MIN(taint_intervalle_ret->start,
-                                      taint_intervalle->start);
+        taint_interval->end = MAX(taint_interval_ret->end,
+                                    taint_interval->end);
+        taint_interval->start = MIN(taint_interval_ret->start,
+                                      taint_interval->start);
     }
     """
 
     CODE_CHECK_IF_FOUND_TAINT = r"""
-    if (taint_intervalle->start != -1)
+    if (taint_interval->start != -1)
     {
         // Some taint was found
         is_tainted = 1;
@@ -152,10 +152,10 @@ class TaintGen(object):
             c_code += (self.CODE_GET_REG_TAINT_2 % ((start/8), (end/8-1))).split('\n')
             # NOTE: end/8-1 -> from size in bits to end in bytes
         c_code.append("""
-        taint_intervalle_ret = taint_get_register_color(taint_analysis,
+        taint_interval_ret = taint_get_register_color(taint_analysis,
                                                         current_color,
                                                         %s,
-                                                        taint_intervalle_arg
+                                                        taint_interval_arg
                                                         );
         """ % (self.regs_index[reg_name]))
         return c_code
@@ -182,7 +182,7 @@ class TaintGen(object):
 
     def gen_get_memory_taint(self, start_addr=None, size=None):
         c_code = ""
-        c_code += "taint_intervalle_ret = taint_get_memory("
+        c_code += "taint_interval_ret = taint_get_memory("
         c_code += "vm_mngr, "
         if start_addr is not None and size is not None:
             c_code += "%s, %s, " % (start_addr, size)
@@ -237,7 +237,7 @@ class TaintGen(object):
         c_code.append("else")
         c_code.append("{")
         c_code.append(self.gen_get_memory_taint())
-        c_code.append("\tif (taint_intervalle_ret != NULL)")
+        c_code.append("\tif (taint_interval_ret != NULL)")
         c_code.append("\t{")
         c_code += ['\t\t' + line for line in (self.CODE_UNTAINT_MEM).split('\n')]
         c_code.append("\t}")
@@ -260,7 +260,7 @@ class TaintGen(object):
         # NOTE: If destination is an ExprSlice, we may untaint a part of the
         # ExprId that was no affected at all by the current instruction
         c_code += self.gen_get_register_taint(str(dst))
-        c_code.append("\tif (taint_intervalle_ret != NULL)")
+        c_code.append("\tif (taint_interval_ret != NULL)")
         c_code.append("\t{")
         c_code += ['\t\t' + line for line in self.gen_untaint_register(dst)]
         c_code.append("\t}")
@@ -283,8 +283,8 @@ class TaintGen(object):
     def gen_untaint_register(self, dst):
         c_code = []
 
-        c_code.append("\ttaint_intervalle->start = taint_intervalle_ret->start;")
-        c_code.append("\ttaint_intervalle->end = taint_intervalle_ret->end;")
+        c_code.append("\ttaint_interval->start = taint_interval_ret->start;")
+        c_code.append("\ttaint_interval->end = taint_interval_ret->end;")
         c_code += self.gen_remove_register(str(dst))
         c_code.append("if ( taint_analysis->colors[current_color].callback_info->exception_flag & DO_UNTAINT_REG_CB )")
         c_code.append("{")
@@ -299,7 +299,7 @@ class TaintGen(object):
         taint_update_register_callback_info(taint_analysis,
                                             current_color,
                                             %s,
-                                            taint_intervalle,
+                                            taint_interval,
                                             %s
                                             );
         """ % (self.regs_index[reg_name], event_type)

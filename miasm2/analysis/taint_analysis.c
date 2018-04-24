@@ -89,7 +89,7 @@ taint_check_color(uint64_t color_index, uint64_t nb_colors)
 
 void
 taint_check_register(uint64_t register_index,
-		     struct taint_intervalle_t* intervalle,
+		     struct taint_interval_t* interval,
 		     uint64_t nb_registers,
 		     uint32_t max_register_size
 		     )
@@ -101,7 +101,7 @@ taint_check_register(uint64_t register_index,
 			register_index);
 		exit(EXIT_FAILURE);
 	}
-	if (intervalle->start >= max_register_size)
+	if (interval->start >= max_register_size)
 	{
 		fprintf(stderr,
 			"TAINT: register %" PRIu64 " does not have more than "
@@ -109,10 +109,10 @@ taint_check_register(uint64_t register_index,
 			"byte %" PRIu32 "(+1).\n",
 			register_index,
 			max_register_size,
-			intervalle->start);
+			interval->start);
 		exit(EXIT_FAILURE);
 	}
-	if (intervalle->end >= max_register_size)
+	if (interval->end >= max_register_size)
 	{
 		fprintf(stderr,
 			"TAINT: register %" PRIu64 " does not have more than "
@@ -120,17 +120,17 @@ taint_check_register(uint64_t register_index,
 			"%" PRIu32 " (+1).\n",
 			register_index,
 			max_register_size,
-			intervalle->end);
+			interval->end);
 		exit(EXIT_FAILURE);
 	}
-	if (intervalle->end < intervalle->start)
+	if (interval->end < interval->start)
 	{
 		fprintf(stderr,
 			"TAINT: register %" PRIu64 " -> You tried to reading "
 			"from byte %" PRIu32 " to byte %" PRIu32 "\n",
 			register_index,
-			intervalle->start,
-			intervalle->end);
+			interval->start,
+			interval->end);
 		exit(EXIT_FAILURE);
 	}
 }
@@ -140,79 +140,79 @@ void
 taint_register_generic_access(struct taint_colors_t *colors,
 			      uint64_t color_index,
 			      uint64_t register_index,
-			      struct taint_intervalle_t* intervalle,
+			      struct taint_interval_t* interval,
 			      uint32_t access_type
 			      )
 {
 	int index;
-	for (index = intervalle->start; index <= intervalle->end ; index++)
+	for (index = interval->start; index <= interval->end ; index++)
 		bitfield_generic_access(colors->colors[color_index].registers,
 					register_index*colors->max_register_size+index,
 					access_type);
 }
 
-struct taint_intervalle_t*
+struct taint_interval_t*
 taint_get_register_color(struct taint_colors_t *colors,
 			 uint64_t color_index,
 			 uint64_t register_index,
-			 struct taint_intervalle_t* intervalle
+			 struct taint_interval_t* interval
 			 )
 {
 	return taint_get_register(colors->colors[color_index].registers,
 				  register_index,
-				  intervalle,
+				  interval,
 				  colors->max_register_size);
 }
 
-struct taint_intervalle_t*
+struct taint_interval_t*
 taint_get_register(uint32_t* registers,
 		   uint64_t register_index,
-		   struct taint_intervalle_t* intervalle,
+		   struct taint_interval_t* interval,
 		   uint32_t max_register_size
 		   )
 {
-	struct taint_intervalle_t* tainted_intervalle;
-	tainted_intervalle = malloc(sizeof(*tainted_intervalle));
-        if (tainted_intervalle == NULL)
+	struct taint_interval_t* tainted_interval;
+	tainted_interval = malloc(sizeof(*tainted_interval));
+        if (tainted_interval == NULL)
 	{
 		fprintf(stderr,
-			"TAINT: cannot alloc tainted_intervalle in "
+			"TAINT: cannot alloc tainted_interval in "
 			"taint_get_register()\n");
 		exit(EXIT_FAILURE);
 	}
-	tainted_intervalle->start = -1;
+	tainted_interval->start = -1;
 
 	int index;
-	for (index = intervalle->start; index <= intervalle->end ; index++)
+	for (index = interval->start; index <= interval->end ; index++)
 	{
 		if (bitfield_test_bit(registers, register_index*max_register_size+index))
 		{
-			if (tainted_intervalle->start == -1)
+			if (tainted_interval->start == -1)
 			{
-				tainted_intervalle->start = index;
-				tainted_intervalle->end = index;
+				tainted_interval->start = index;
+				tainted_interval->end = index;
 			}
 			else
 			{
-				if (tainted_intervalle->end+1 != index)
+				if (tainted_interval->end+1 != index)
 				{
 					fprintf(stderr,
 						"TAINT:DEBUG espace dans "
 						"registre non contigue\n");
 					exit(EXIT_FAILURE);
 				}
-				tainted_intervalle->end = index;
+				tainted_interval->end = index;
 			}
 		}
 	}
 
-	if (tainted_intervalle->start == -1)
+	if (tainted_interval->start == -1)
 	{
 		// No taint
-		free(tainted_intervalle);
+		free(tainted_interval);
 		return NULL;
 	}
-	return tainted_intervalle;
+	return tainted_interval;
 }
 void
 taint_color_remove_all_registers(struct taint_colors_t *colors, uint64_t color_index)
@@ -294,7 +294,7 @@ taint_memory_generic_access(vm_mngr_t* vm_mngr,
 	}
 }
 
-struct taint_intervalle_t*
+struct taint_interval_t*
 taint_get_memory(vm_mngr_t* vm_mngr,
 		 uint64_t addr,
 		 uint64_t size,
@@ -312,17 +312,17 @@ taint_get_memory(vm_mngr_t* vm_mngr,
 		return NULL;
 	}
 
-	struct taint_intervalle_t* tainted_intervalle;
-	tainted_intervalle = malloc(sizeof(*tainted_intervalle));
-        if (tainted_intervalle == NULL)
+	struct taint_interval_t* tainted_interval;
+	tainted_interval = malloc(sizeof(*tainted_interval));
+        if (tainted_interval == NULL)
 	{
 		fprintf(stderr,
-			"TAINT: cannot alloc tainted_intervalle in "
+			"TAINT: cannot alloc tainted_interval in "
 			"taint_get_memory()\n");
 		exit(EXIT_FAILURE);
 	}
 
-	tainted_intervalle->start = -1;
+	tainted_interval->start = -1;
 
 	/* Fits in one page */
 	if (addr - mpn->ad + size <= mpn->size)
@@ -334,14 +334,14 @@ taint_get_memory(vm_mngr_t* vm_mngr,
 					      (addr + i) - mpn->ad))
 			{
 
-				if (tainted_intervalle->start == -1)
+				if (tainted_interval->start == -1)
 				{
-					tainted_intervalle->start = i;
-					tainted_intervalle->end = i;
+					tainted_interval->start = i;
+					tainted_interval->end = i;
 				}
 				else
 				{
-					if (tainted_intervalle->end+1 != i)
+					if (tainted_interval->end+1 != i)
 					{
 						fprintf(stderr,
 							"TAINT:DEBUG espace "
@@ -349,7 +349,7 @@ taint_get_memory(vm_mngr_t* vm_mngr,
 							"non contigue\n");
 						exit(EXIT_FAILURE);
 					}
-					tainted_intervalle->end = i;
+					tainted_interval->end = i;
 				}
 			}
 		}
@@ -372,19 +372,19 @@ taint_get_memory(vm_mngr_t* vm_mngr,
 					"TAINT: address %" PRIu64 " is not"
 					"mapped\n",
 					addr + i);
-				free(tainted_intervalle);
+				free(tainted_interval);
 				return NULL;
 			}
 			if (bitfield_test_bit(mpn->taint[color_index],
 					      (addr + i) - mpn->ad))
-				if (tainted_intervalle->start == -1)
+				if (tainted_interval->start == -1)
 				{
-					tainted_intervalle->start = i;
-					tainted_intervalle->end = i;
+					tainted_interval->start = i;
+					tainted_interval->end = i;
 				}
 				else
 				{
-					if (tainted_intervalle->end+1 != i)
+					if (tainted_interval->end+1 != i)
 					{
 						fprintf(stderr,
 							"TAINT:DEBUG espace "
@@ -392,18 +392,18 @@ taint_get_memory(vm_mngr_t* vm_mngr,
 							"non contigue\n");
 						exit(EXIT_FAILURE);
 					}
-					tainted_intervalle->end = i;
+					tainted_interval->end = i;
 				}
 
 		}
 	}
-	if (tainted_intervalle->start == -1)
+	if (tainted_interval->start == -1)
 	{
 		// No taint
-		free(tainted_intervalle);
+		free(tainted_interval);
 		return NULL;
 	}
-	return tainted_intervalle;
+	return tainted_interval;
 }
 
 void
@@ -640,7 +640,7 @@ void
 taint_update_register_callback_info(struct taint_colors_t *colors,
 				    uint64_t color_index,
 				    uint64_t register_index,
-				    struct taint_intervalle_t* intervalle,
+				    struct taint_interval_t* interval,
 				    int event_type
 				    )
 {
@@ -648,8 +648,8 @@ taint_update_register_callback_info(struct taint_colors_t *colors,
 	{
 
 		int index;
-		for (index = intervalle->start;
-		     index <= intervalle->end;
+		for (index = interval->start;
+		     index <= interval->end;
 		     index++)
 			bitfield_set_bit(colors->colors[color_index].
 						callback_info->
@@ -660,8 +660,8 @@ taint_update_register_callback_info(struct taint_colors_t *colors,
 	else if (event_type == UNTAINT_EVENT)
 	{
 		int index;
-		for (index = intervalle->start;
-		     index <= intervalle->end;
+		for (index = interval->start;
+		     index <= interval->end;
 		     index++)
 			bitfield_set_bit(colors->colors[color_index].
 						callback_info->
@@ -730,23 +730,23 @@ cpu_access_register(JitCpu* cpu, PyObject* args, uint32_t access_type)
 	PyGetInt(start_py, start);
 	PyGetInt(size_py, size);
 
-	struct taint_intervalle_t* intervalle;
-	intervalle = malloc(sizeof(*intervalle));
-	intervalle->start = start;
-	intervalle->end = start + (size-1);
+	struct taint_interval_t* interval;
+	interval = malloc(sizeof(*interval));
+	interval->start = start;
+	interval->end = start + (size-1);
 
 	taint_check_color(color_index, cpu->taint_analysis->nb_colors);
 	taint_check_register(register_index,
-			     intervalle,
+			     interval,
 			     cpu->taint_analysis->nb_registers,
 			     cpu->taint_analysis->max_register_size);
 	taint_register_generic_access(cpu->taint_analysis,
 				      color_index,
 				      register_index,
-				      intervalle,
+				      interval,
 				      access_type);
 
-	free(intervalle);
+	free(interval);
 	Py_INCREF(Py_None);
 	return Py_None;
 
@@ -930,28 +930,28 @@ cpu_get_registers(uint32_t* registers,
 		  )
 {
 	PyObject *tainted_registers = PyList_New(0);
-	struct taint_intervalle_t* intervalle;
-	struct taint_intervalle_t* intervalle_arg;
-	intervalle_arg = malloc(sizeof(*intervalle_arg));
-	intervalle_arg->start = DEFAULT_REG_START;
-	intervalle_arg->end = DEFAULT_MAX_REG_SIZE-1;
+	struct taint_interval_t* interval;
+	struct taint_interval_t* interval_arg;
+	interval_arg = malloc(sizeof(*interval_arg));
+	interval_arg->start = DEFAULT_REG_START;
+	interval_arg->end = DEFAULT_MAX_REG_SIZE-1;
 
 	int register_index;
 	for( register_index = 0; register_index < nb_registers; register_index++)
 	{
-		intervalle = taint_get_register(registers,
+		interval = taint_get_register(registers,
 						register_index,
-						intervalle_arg,
+						interval_arg,
 						max_register_size);
-		if (intervalle != NULL)
+		if (interval != NULL)
 		{
 			PyObject *register_index_py;
 			PyObject *start;
 			PyObject *end;
 
 			register_index_py = PyInt_FromLong(register_index);
-			start = PyInt_FromLong(intervalle->start);
-			end = PyInt_FromLong(intervalle->end);
+			start = PyInt_FromLong(interval->start);
+			end = PyInt_FromLong(interval->end);
 
 			PyObject *tuple = PyTuple_New(3);
 
@@ -962,7 +962,7 @@ cpu_get_registers(uint32_t* registers,
 		}
 	}
 
-	free(intervalle_arg);
+	free(interval_arg);
 	return tainted_registers;
 }
 
