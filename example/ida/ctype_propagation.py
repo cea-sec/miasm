@@ -1,6 +1,3 @@
-import os
-import tempfile
-
 import ida_kernwin
 import idc
 import ida_funcs
@@ -8,17 +5,14 @@ import ida_funcs
 from miasm2.core.bin_stream_ida import bin_stream_ida
 from miasm2.expression import expression as m2_expr
 from miasm2.expression.simplifications import expr_simp
-from miasm2.analysis.depgraph import DependencyGraph
 from miasm2.ir.ir import IRBlock, AssignBlock
 from miasm2.arch.x86.ctype import CTypeAMD64_unk, CTypeX86_unk
 from miasm2.arch.msp430.ctype import CTypeMSP430_unk
-from miasm2.expression.expression import ExprId
 from miasm2.core.objc import CTypesManagerNotPacked, ExprToAccessC, CHandler
 from miasm2.core.ctypesmngr import CAstTypes
-from miasm2.expression.expression import ExprMem, ExprId, ExprInt, ExprOp, ExprAff
+from miasm2.expression.expression import ExprId, ExprInt, ExprOp, ExprAff
 from miasm2.ir.symbexec_types import SymbExecCType
 from miasm2.expression.parser import str_to_expr
-from miasm2.ir.symbexec import SymbolicExecutionEngine, SymbolicState
 from miasm2.analysis.cst_propag import add_state, propagate_cst_expr
 
 from utils import guess_machine
@@ -35,9 +29,9 @@ class TypePropagationForm(ida_kernwin.Form):
         ida_kernwin.Form.__init__(self,
                       r"""BUTTON YES* Launch
 BUTTON CANCEL NONE
-Dependency Graph Settings
+Type Propagation Settings
 <##Header file :{headerFile}>
-<Architecture/complator:{arch}>
+<Architecture/compilator:{arch}>
 <Types informations:{strTypesInfo}>
 <Unalias stack:{rUnaliasStack}>{cUnalias}>
 """, {
