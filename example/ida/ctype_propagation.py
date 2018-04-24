@@ -26,27 +26,96 @@ class TypePropagationForm(ida_kernwin.Form):
         default_types_info = r"""ExprId("RDX", 64): char *"""
         archs = ["AMD64_unk", "X86_32_unk", "msp430_unk"]
 
+        func = ida_funcs.get_func(idc.ScreenEA())
+        func_addr = func.startEA
+
+        start_addr = idc.SelStart()
+        if start_addr == idc.BADADDR:
+            start_addr = idc.ScreenEA()
+        end_addr = idc.SelEnd()
+
         ida_kernwin.Form.__init__(self,
                       r"""BUTTON YES* Launch
 BUTTON CANCEL NONE
 Type Propagation Settings
-<##Header file :{headerFile}>
-<Architecture/compilator:{arch}>
-<Types informations:{strTypesInfo}>
+
+{FormChangeCb}
+Analysis scope:
+<Whole function:{rFunction}>
+<From an address to the end of function:{rAddr}>
+<Between two addresses:{r2Addr}>{cScope}>
+
+<Target function:{functionAddr}>
+<Start address  :{startAddr}>
+<End address    :{endAddr}>
+
+<Architecture/compilator :{arch}>
+
+<##Header file          :{headerFile}>
+<Use a file for type informations:{rTypeFile}>{cTypeFile}>
+<##Types informations   :{typeFile}>
+<Types informations     :{strTypesInfo}>
+
 <Unalias stack:{rUnaliasStack}>{cUnalias}>
 """, {
-                          'headerFile': ida_kernwin.Form.FileInput(swidth=20, open=True),
+                          'FormChangeCb': ida_kernwin.Form.FormChangeCb(self.OnFormChange),
+                          'cScope': ida_kernwin.Form.RadGroupControl(
+                              ("rFunction", "rAddr", "r2Addr")),
+                          'functionAddr': ida_kernwin.Form.NumericInput(
+                              tp=ida_kernwin.Form.FT_RAWHEX,
+                              value=func_addr),
+                          'startAddr': ida_kernwin.Form.NumericInput(
+                              tp=ida_kernwin.Form.FT_RAWHEX,
+                              value=start_addr),
+                          'endAddr': ida_kernwin.Form.NumericInput(
+                              tp=ida_kernwin.Form.FT_RAWHEX,
+                              value=end_addr),
                           'arch': ida_kernwin.Form.DropdownListControl(
                               items=archs,
                               readonly=False,
                               selval=archs[0]),
+                          'headerFile': ida_kernwin.Form.FileInput(swidth=20, open=True),
+                          'cTypeFile': ida_kernwin.Form.ChkGroupControl(("rTypeFile",)),
+                          'typeFile': ida_kernwin.Form.FileInput(swidth=20, open=True),
                           'strTypesInfo': ida_kernwin.Form.MultiLineTextControl(text=default_types_info,
                                                                     flags=ida_kernwin.Form.MultiLineTextControl.TXTF_FIXEDFONT),
                           'cUnalias': ida_kernwin.Form.ChkGroupControl(("rUnaliasStack",)),
                       })
         form, args = self.Compile()
         form.rUnaliasStack.checked = True
+        form.rTypeFile.checked = True
 
+    def OnFormChange(self, fid):
+        if fid == -1: # INIT
+            self.EnableField(self.functionAddr, True)
+            self.EnableField(self.startAddr, False)
+            self.EnableField(self.endAddr, False)
+            self.EnableField(self.strTypesInfo, False)
+            self.EnableField(self.typeFile, True)
+        elif fid == self.cTypeFile.id:
+            if self.GetControlValue(self.cTypeFile) == 0:
+                self.EnableField(self.strTypesInfo, True)
+                self.EnableField(self.typeFile, False)
+            elif self.GetControlValue(self.cTypeFile) == 1:
+                self.EnableField(self.strTypesInfo, False)
+                self.EnableField(self.typeFile, True)
+        elif fid == self.cScope.id:
+            # "Whole function" scope
+            if self.GetControlValue(self.cScope) == 0:
+                self.EnableField(self.functionAddr, True)
+                self.EnableField(self.startAddr, False)
+                self.EnableField(self.endAddr, False)
+            # "From an address" scope
+            elif self.GetControlValue(self.cScope) == 1:
+                self.EnableField(self.functionAddr, False)
+                self.EnableField(self.startAddr, True)
+                self.EnableField(self.endAddr, False)
+            # "Between two addresses" scope
+            elif self.GetControlValue(self.cScope) == 2:
+                self.EnableField(self.functionAddr, False)
+                self.EnableField(self.startAddr, True)
+                self.EnableField(self.endAddr, True)
+        return 1
 
 def get_types_mngr(headerFile, arch):
     text = open(headerFile).read()
@@ -187,20 +256,24 @@ def analyse_function():
     ir_arch = iraCallStackFixer(mdis.symbol_pool)
 
 
-    # Get the current function
-    func = ida_funcs.get_func(idc.ScreenEA())
-    addr = func.startEA
-    blocks = mdis.dis_multiblock(addr)
-    # Generate IR
-    for block in blocks:
-        ir_arch.add_block(block)
-
-
     # Get settings
     settings = TypePropagationForm(ir_arch)
     ret = settings.Execute()
     if not ret:
         return
+
+    if settings.cScope.value == 0:
+        addr = settings.functionAddr.value
+    else:
+        addr = settings.startAddr.value
+        if settings.cScope.value == 2:
+            end = settings.endAddr
+            mdis.dont_dis = [end]
+
+    blocks = mdis.dis_multiblock(addr)
+    # Generate IR
+    for block in blocks:
+        ir_arch.add_block(block)
 
     cst_propag_link = {}
     if settings.cUnalias.value:
@@ -211,7 +284,14 @@ def analyse_function():
     types_mngr = get_types_mngr(settings.headerFile.value, settings.arch.value)
     mychandler = MyCHandler(types_mngr, {})
     infos_types = {}
-    for line in settings.strTypesInfo.value.split('\n'):
+    infos_types_raw = []
+
+    if settings.cTypeFile.value:
+        infos_types_raw = open(settings.typeFile.value).read().split('\n')
+    else:
+        infos_types_raw = settings.strTypesInfo.value.split('\n')
+
+    for line in infos_types_raw:
         if not line:
             continue
         expr_str, ctype_str = line.split(':')
