@@ -27,6 +27,55 @@
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 
+#define TAINT_METHODS {"taint_register", (PyCFunction)cpu_taint_register, METH_VARARGS, \
+	 "X"}, \
+	{"untaint_register", (PyCFunction)cpu_untaint_register, METH_VARARGS, \
+	 "X"}, \
+	{"untaint_all_registers_of_color", (PyCFunction)cpu_color_untaint_all_registers, METH_VARARGS, \
+	 "X"}, \
+	{"untaint_all_registers", (PyCFunction)cpu_untaint_all_registers, METH_NOARGS, \
+	 "X"}, \
+	{"taint_memory", (PyCFunction)cpu_taint_memory, METH_VARARGS, \
+	 "X"}, \
+	{"untaint_memory", (PyCFunction)cpu_untaint_memory, METH_VARARGS, \
+	 "X"}, \
+	{"untaint_all_memory_of_color", (PyCFunction)cpu_color_untaint_all_memory, METH_VARARGS, \
+	 "X"}, \
+	{"untaint_all_memory", (PyCFunction)cpu_untaint_all_memory, METH_NOARGS, \
+	 "X"}, \
+	{"untaint_all_of_color", (PyCFunction)cpu_color_untaint_all, METH_VARARGS, \
+	 "X"}, \
+	{"untaint_all", (PyCFunction)cpu_untaint_all, METH_NOARGS, \
+	 "X"}, \
+	{"init_taint_analysis", (PyCFunction)cpu_init_taint, METH_VARARGS, \
+	 "X"}, \
+	{"last_tainted_registers", (PyCFunction)cpu_get_last_tainted_registers, METH_VARARGS, \
+	 "X"}, \
+	{"last_untainted_registers", (PyCFunction)cpu_get_last_untainted_registers, METH_VARARGS, \
+	 "X"}, \
+	{"last_tainted_memory", (PyCFunction)cpu_get_last_tainted_memory, METH_VARARGS, \
+	 "X"}, \
+	{"last_untainted_memory", (PyCFunction)cpu_get_last_untainted_memory, METH_VARARGS, \
+	 "X"}, \
+	{"get_all_taint", (PyCFunction)cpu_get_all_taint, METH_VARARGS, \
+	 "X"}, \
+	{"enable_taint_reg_cb", (PyCFunction)cpu_enable_taint_reg_cb, METH_VARARGS, \
+	 "X"}, \
+	{"enable_untaint_reg_cb", (PyCFunction)cpu_enable_untaint_reg_cb, METH_VARARGS, \
+	 "X"}, \
+	{"enable_taint_mem_cb", (PyCFunction)cpu_enable_taint_mem_cb, METH_VARARGS, \
+	 "X"}, \
+	{"enable_untaint_mem_cb", (PyCFunction)cpu_enable_untaint_mem_cb, METH_VARARGS, \
+	 "X"}, \
+	{"disable_taint_reg_cb", (PyCFunction)cpu_disable_taint_reg_cb, METH_VARARGS, \
+	 "X"}, \
+	{"disable_untaint_reg_cb", (PyCFunction)cpu_disable_untaint_reg_cb, METH_VARARGS, \
+	 "X"}, \
+	{"disable_taint_mem_cb", (PyCFunction)cpu_disable_taint_mem_cb, METH_VARARGS, \
+	 "X"}, \
+	{"disable_untaint_mem_cb", (PyCFunction)cpu_disable_untaint_mem_cb, METH_VARARGS, \
+	 "X"}, \
+
 struct taint_interval_t {
 	uint32_t start;
 	uint32_t end;

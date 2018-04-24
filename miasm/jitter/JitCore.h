@@ -173,6 +173,22 @@
 		Py_DECREF(o);						\
 	} while(0);
 
+#define DEFAULT_METHODS {"init_regs", (PyCFunction)cpu_init_regs, METH_NOARGS, \
+	 "X"}, \
+	{"dump_gpregs", (PyCFunction)cpu_dump_gpregs, METH_NOARGS, \
+	 "X"}, \
+	{"get_gpreg", (PyCFunction)cpu_get_gpreg, METH_NOARGS, \
+	 "X"}, \
+	{"set_gpreg", (PyCFunction)cpu_set_gpreg, METH_VARARGS, \
+	 "X"}, \
+	{"get_exception", (PyCFunction)cpu_get_exception, METH_VARARGS, \
+	 "X"}, \
+	{"set_exception", (PyCFunction)cpu_set_exception, METH_VARARGS, \
+	 "X"}, \
+	{"set_mem", (PyCFunction)vm_set_mem, METH_VARARGS, \
+	 "X"}, \
+	{"get_mem", (PyCFunction)vm_get_mem, METH_VARARGS, \
+	 "X"}, \
 
 
 

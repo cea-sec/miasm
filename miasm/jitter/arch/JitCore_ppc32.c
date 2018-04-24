@@ -8,6 +8,7 @@
 #include "../bn.h"
 #include "../vm_mngr_py.h"
 #include "../JitCore.h"
+#include "../../analysis/taint_analysis.h"
 #include "JitCore_ppc32.h"
 
 reg_dict gpreg_dict[] = {
@@ -166,14 +167,9 @@ static PyMemberDef JitCpu_members[] = {
 };
 
 static PyMethodDef JitCpu_methods[] = {
-    {"init_regs", (PyCFunction)cpu_init_regs, METH_NOARGS, "X"},
-    {"dump_gpregs", (PyCFunction)cpu_dump_gpregs, METH_NOARGS, "X"},
-    {"dump_gpregs_with_attrib", (PyCFunction)cpu_dump_gpregs_with_attrib, METH_VARARGS, "X"},
-    {"get_gpreg", (PyCFunction)cpu_get_gpreg, METH_NOARGS, "X"},
-    {"set_gpreg", (PyCFunction)cpu_set_gpreg, METH_VARARGS, "X"},
-    {"get_exception", (PyCFunction)cpu_get_exception, METH_VARARGS, "X"},
-    {"set_exception", (PyCFunction)cpu_set_exception, METH_VARARGS, "X"},
+    DEFAULT_METHODS
     {"get_spr_access", (PyCFunction)cpu_get_spr_access, METH_VARARGS, "X"},
+    TAINT_METHODS
     {NULL}  /* Sentinel */
 };
 
