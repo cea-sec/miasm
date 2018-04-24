@@ -145,7 +145,7 @@ if options.verbose is True:
 # Ensure there is one and only one leave (for OEP discovering)
 mdis = sb.machine.dis_engine(sb.jitter.bs)
 mdis.dont_dis_nulstart_bloc = True
-ab = mdis.dis_multibloc(sb.entry_point)
+ab = mdis.dis_multiblock(sb.entry_point)
 
 leaves = list(ab.get_bad_blocks_predecessors())
 assert(len(leaves) == 1)
