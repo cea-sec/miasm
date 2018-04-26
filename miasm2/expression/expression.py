@@ -149,7 +149,6 @@ class Expr(object):
 
     __slots__ = ["_hash", "_repr", "_size"]
 
-    all_exprs = set()
     args2expr = {}
     canon_exprs = set()
     use_singleton = True
@@ -543,6 +542,9 @@ class ExprId(Expr):
         return self.__class__, state
 
     def __new__(cls, name, size=None):
+        if size is None:
+            warnings.warn('DEPRECATION WARNING: size is a mandatory argument: use ExprId(name, SIZE)')
+            size = 32
         return Expr.get_object(cls, (name, size))
 
     def __str__(self):
@@ -814,6 +816,10 @@ class ExprMem(Expr):
         return self.__class__, state
 
     def __new__(cls, arg, size=None):
+        if size is None:
+            warnings.warn('DEPRECATION WARNING: size is a mandatory argument: use ExprMem(arg, SIZE)')
+            size = 32
+
         return Expr.get_object(cls, (arg, size))
 
     def __str__(self):
