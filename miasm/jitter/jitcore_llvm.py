@@ -53,8 +53,10 @@ class JitCore_LLVM(jitcore.JitCore):
             raise RuntimeError(
                 'Cannot access cache directory %s ' % self.tempdir)
 
-    def load(self):
+    def load(self, taint):
 
+        if taint:
+            raise NotImplementedError("JitCore_LLVM does not support taint analysis yet !")
         # Library to load within Jit context
         libs_to_load = []
 

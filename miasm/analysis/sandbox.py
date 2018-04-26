@@ -90,6 +90,8 @@ class Sandbox(object):
                             help="Log single step")
         parser.add_argument('-d', "--debugging", action="store_true",
                             help="Debug shell")
+        parser.add_argument('-t', "--taint", action="store_true",
+                            help="Enable taint analysis")
         parser.add_argument('-g', "--gdbserver", type=int,
                             help="Listen on port @port")
         parser.add_argument("-j", "--jitter",
@@ -173,7 +175,7 @@ class Arch(object):
 
     def __init__(self, **kwargs):
         self.machine = Machine(self._ARCH_)
-        self.jitter = self.machine.jitter(self.options.jitter)
+        self.jitter = self.machine.jitter(self.options.jitter, self.options.taint)
 
     @classmethod
     def update_parser(cls, parser):

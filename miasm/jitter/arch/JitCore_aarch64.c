@@ -9,10 +9,17 @@
 #include "../vm_mngr_py.h"
 #include "../JitCore.h"
 #include "../op_semantics.h"
+#ifdef TAINT
 #include "../../analysis/taint_analysis.h"
+#endif
 #include "JitCore_aarch64.h"
 
 
+#ifdef TAINT
+#define PYTHON_CLASS_NAME "JitCore_aarch64_taint"
+#else
+#define PYTHON_CLASS_NAME "JitCore_aarch64"
+#endif
 
 reg_dict gpreg_dict[] = {
 	{.name = "X0", .offset = offsetof(struct vm_cpu, X0), .size = 64},
@@ -259,7 +266,9 @@ static PyMemberDef JitCpu_members[] = {
 
 static PyMethodDef JitCpu_methods[] = {
 	DEFAULT_METHODS
+#ifdef TAINT
 	TAINT_METHODS
+#endif
 
 	{NULL}  /* Sentinel */
 };
@@ -487,8 +496,11 @@ static PyMethodDef JitCore_aarch64_Methods[] = {
 };
 
 
-
+#ifdef TAINT
+MOD_INIT(JitCore_aarch64_taint)
+#else
 MOD_INIT(JitCore_aarch64)
+#endif
 {
 	PyObject *module = NULL;
 
@@ -506,4 +518,3 @@ MOD_INIT(JitCore_aarch64)
 
 	RET_MODULE;
 }
-

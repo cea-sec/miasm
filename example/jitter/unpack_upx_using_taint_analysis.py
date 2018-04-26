@@ -129,6 +129,7 @@ parser.add_argument("--graph",
                     action="store_true")
 options = parser.parse_args()
 options.load_hdr = True
+options.taint = True
 sb = Sandbox_Win_x86_32(options.filename, options, globals(),
                         parse_reloc=False)
 

@@ -107,7 +107,7 @@ class JitCore_Gcc(JitCore_Cc_Base):
                     fname_in,
                     "-o",
                     fname_tmp
-                ] + inc_dir + libs
+                ] + (["-DTAINT"] if self.taint else []) + inc_dir + libs
                 check_call(args)
 
             # Move temporary file to final file

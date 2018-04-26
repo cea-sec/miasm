@@ -11,7 +11,6 @@
 
 #include "taint_analysis.h"
 
-
 /* Taint setters/getters */
 /* Colors */
 struct taint_colors_t*

@@ -29,7 +29,7 @@ def code_sentinelle(jitter):
     return True
 
 def create_jitter():
-    jitter = machine.jitter(jit_type='gcc')
+    jitter = machine.jitter(jit_type='gcc', taint=True)
     jitter.init_stack()
     jitter.vm.add_memory_page(data_addr, csts.PAGE_READ | csts.PAGE_WRITE, '0'*200)
     jitter.add_breakpoint(0x1337beef, code_sentinelle)

@@ -94,7 +94,9 @@ struct memory_page_node {
 	uint64_t access;
 	void *ad_hp;
 	char *name;
+#ifdef TAINT
 	uint32_t **taint; // Bitfields containing taint information
+#endif
 };
 
 struct memory_access {
@@ -131,8 +133,10 @@ typedef struct {
 	int write_num;
 
 
+#ifdef TAINT
 	int do_taint; // Flag indicating to alloc or not taint information holder
 	uint64_t nb_colors;
+#endif
 }vm_mngr_t;
 
 

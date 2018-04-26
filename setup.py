@@ -108,7 +108,6 @@ def buil_all():
         "miasm/jitter/loader",
     ]
     ext_modules_all = [
-<<<<<<< HEAD
         Extension(
             "miasm.jitter.VmMngr",
             [
@@ -125,7 +124,6 @@ def buil_all():
                 "miasm/jitter/vm_mngr_py.c",
                 "miasm/jitter/op_semantics.c",
                 "miasm/jitter/bn.c",
-                "miasm/analysis/taint_analysis.c",
                 "miasm/jitter/arch/JitCore_x86.c"
             ]
         ),
@@ -137,7 +135,6 @@ def buil_all():
                 "miasm/jitter/vm_mngr_py.c",
                 "miasm/jitter/op_semantics.c",
                 "miasm/jitter/bn.c",
-                "miasm/analysis/taint_analysis.c",
                 "miasm/jitter/arch/JitCore_arm.c"
             ]
         ),
@@ -149,7 +146,6 @@ def buil_all():
                 "miasm/jitter/vm_mngr_py.c",
                 "miasm/jitter/op_semantics.c",
                 "miasm/jitter/bn.c",
-                "miasm/analysis/taint_analysis.c",
                 "miasm/jitter/arch/JitCore_aarch64.c"
             ]
         ),
@@ -161,7 +157,6 @@ def buil_all():
                 "miasm/jitter/vm_mngr_py.c",
                 "miasm/jitter/op_semantics.c",
                 "miasm/jitter/bn.c",
-                "miasm/analysis/taint_analysis.c",
                 "miasm/jitter/arch/JitCore_msp430.c"
             ]
         ),
@@ -183,7 +178,6 @@ def buil_all():
                 "miasm/jitter/vm_mngr_py.c",
                 "miasm/jitter/op_semantics.c",
                 "miasm/jitter/bn.c",
-                "miasm/analysis/taint_analysis.c",
                 "miasm/jitter/arch/JitCore_mips32.c"
             ]
         ),
@@ -194,6 +188,103 @@ def buil_all():
                 "miasm/jitter/vm_mngr.c",
                 "miasm/jitter/vm_mngr_py.c",
                 "miasm/jitter/op_semantics.c",
+                "miasm/jitter/bn.c",
+                "miasm/jitter/arch/JitCore_ppc32.c"
+            ],
+            depends=[
+                "miasm/jitter/arch/JitCore_ppc32.h",
+                "miasm/jitter/arch/JitCore_ppc32_regs.h",
+                "miasm/jitter/bn.h",
+            ]
+        ),
+        Extension(
+            "miasm2.jitter.VmMngr_taint",
+            sources = ["miasm2/jitter/vm_mngr.c",
+                   "miasm2/jitter/vm_mngr_py.c"]),
+        Extension(
+            "miasm.jitter.VmMngr_taint",
+            define_macros = [('TAINT', None)],
+            [
+                "miasm/jitter/vm_mngr.c",
+                "miasm/jitter/vm_mngr_py.c",
+                "miasm/jitter/bn.c",
+            ]
+        ),
+        Extension(
+            "miasm.jitter.arch.JitCore_x86_taint",
+            define_macros = [('TAINT', None)],
+            [
+                "miasm/jitter/JitCore.c",
+                "miasm/jitter/vm_mngr.c",
+                "miasm/jitter/vm_mngr_py.c",
+                "miasm/jitter/op_semantics.c",
+                "miasm2/analysis/taint_analysis.c",
+                "miasm/jitter/bn.c",
+                "miasm/jitter/arch/JitCore_x86.c"
+            ]
+        ),
+        Extension(
+            "miasm.jitter.arch.JitCore_arm_taint",
+            define_macros = [('TAINT', None)],
+            [
+                "miasm/jitter/JitCore.c",
+                "miasm/jitter/vm_mngr.c",
+                "miasm/jitter/vm_mngr_py.c",
+                "miasm/jitter/op_semantics.c",
+                "miasm2/analysis/taint_analysis.c",
+                "miasm/jitter/bn.c",
+                "miasm/jitter/arch/JitCore_arm.c"
+            ]
+        ),
+        Extension(
+            "miasm.jitter.arch.JitCore_aarch64_taint",
+            define_macros = [('TAINT', None)],
+            [
+                "miasm/jitter/JitCore.c",
+                "miasm/jitter/vm_mngr.c",
+                "miasm/jitter/vm_mngr_py.c",
+                "miasm/jitter/op_semantics.c",
+                "miasm2/analysis/taint_analysis.c",
+                "miasm/jitter/bn.c",
+                "miasm/jitter/arch/JitCore_aarch64.c"
+            ]
+        ),
+        Extension(
+            "miasm.jitter.arch.JitCore_msp430_taint",
+            define_macros = [('TAINT', None)],
+            [
+                "miasm/jitter/JitCore.c",
+                "miasm/jitter/vm_mngr.c",
+                "miasm/jitter/vm_mngr_py.c",
+                "miasm/jitter/op_semantics.c",
+                "miasm2/analysis/taint_analysis.c",
+                "miasm/jitter/bn.c",
+                "miasm/jitter/arch/JitCore_msp430.c"
+            ]
+        ),
+        # TODO: taint mep
+        Extension(
+            "miasm.jitter.arch.JitCore_mips32_taint",
+            define_macros = [('TAINT', None)],
+            [
+                "miasm/jitter/JitCore.c",
+                "miasm/jitter/vm_mngr.c",
+                "miasm/jitter/vm_mngr_py.c",
+                "miasm/jitter/op_semantics.c",
+                "miasm2/analysis/taint_analysis.c",
+                "miasm/jitter/bn.c",
+                "miasm/jitter/arch/JitCore_mips32.c"
+            ]
+        ),
+        Extension(
+            "miasm.jitter.arch.JitCore_ppc32",
+            define_macros = [('TAINT', None)],
+            [
+                "miasm/jitter/JitCore.c",
+                "miasm/jitter/vm_mngr.c",
+                "miasm/jitter/vm_mngr_py.c",
+                "miasm/jitter/op_semantics.c",
+                "miasm2/analysis/taint_analysis.c",
                 "miasm/jitter/bn.c",
                 "miasm/jitter/arch/JitCore_ppc32.c"
             ],

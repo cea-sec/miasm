@@ -34,8 +34,11 @@ class JitCore_Python(jitcore.JitCore):
         self.symbexec.cpu = cpu
         self.symbexec.vm = vm
 
-    def load(self):
+    def load(self, taint):
         "Preload symbols according to current architecture"
+        if taint:
+            raise NotImplementedError("JitCore_Python does not support taint analysis yet !")
+
         self.symbexec.reset_regs()
 
     def arch_specific(self):

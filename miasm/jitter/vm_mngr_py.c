@@ -964,7 +964,11 @@ static PyGetSetDef VmMngr_getseters[] = {
 
 static PyTypeObject VmMngrType = {
     PyVarObject_HEAD_INIT(NULL, 0)
+#ifdef TAINTA
+    "VmMngr_taint",            /*tp_name*/
+#else
     "VmMngr",                  /*tp_name*/
+#endif
     sizeof(VmMngr),            /*tp_basicsize*/
     0,                         /*tp_itemsize*/
     (destructor)VmMngr_dealloc,/*tp_dealloc*/
@@ -1013,10 +1017,19 @@ char vm_mngr_mod_name[] = "VmMngr";
 
 
 MOD_INIT(VmMngr)
+#ifdef TAINT
+MOD_INIT(VmMngr_taint)
+#else
+MOD_INIT(VmMngr)
+#endif
 {
 	PyObject *module = NULL;
 
+#ifdef TAINT
+	MOD_DEF(module, "VmMngr_taint", "vm_mngr module", VmMngr_Methods);
+#else
 	MOD_DEF(module, "VmMngr", "vm_mngr module", VmMngr_Methods);
+#endif
 
 	if (module == NULL)
 		RET_MODULE;

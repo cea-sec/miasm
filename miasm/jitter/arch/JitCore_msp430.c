@@ -8,9 +8,16 @@
 #include "../bn.h"
 #include "../vm_mngr_py.h"
 #include "../JitCore.h"
+#ifdef TAINT
 #include "../../analysis/taint_analysis.h"
+#endif
 #include "JitCore_msp430.h"
 
+#ifdef TAINT
+#define PYTHON_CLASS_NAME "JitCore_msp430_taint"
+#else
+#define PYTHON_CLASS_NAME "JitCore_msp430"
+#endif
 
 reg_dict gpreg_dict[] = { {.name = "PC", .offset = offsetof(struct vm_cpu, PC)},
 			  {.name = "SP", .offset = offsetof(struct vm_cpu, SP)},
@@ -211,7 +218,9 @@ static PyMemberDef JitCpu_members[] = {
 
 static PyMethodDef JitCpu_methods[] = {
 	DEFAULT_METHODS
+#ifdef TAINT
 	TAINT_METHODS
+#endif
 
 	{NULL}  /* Sentinel */
 };
@@ -339,7 +348,7 @@ static PyGetSetDef JitCpu_getseters[] = {
 
 static PyTypeObject JitCpuType = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "JitCore_msp430.JitCpu",   /*tp_name*/
+    PYTHON_CLASS_NAME".JitCpu",/*tp_name*/
     sizeof(JitCpu),            /*tp_basicsize*/
     0,                         /*tp_itemsize*/
     (destructor)JitCpu_dealloc,/*tp_dealloc*/
@@ -391,9 +400,11 @@ static PyMethodDef JitCore_msp430_Methods[] = {
 };
 
 
-
-
+#ifdef TAINT
+MOD_INIT(JitCore_msp430_taint)
+#else
 MOD_INIT(JitCore_msp430)
+#endif
 {
 	PyObject *module = NULL;
 

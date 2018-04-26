@@ -204,7 +204,9 @@ typedef struct {
 	VmMngr *pyvm;
 	PyObject *jitter;
 	struct vm_cpu *cpu;
+#ifdef TAINT
 	struct taint_colors_t *taint_analysis;
+#endif
 } JitCpu;
 
 

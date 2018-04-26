@@ -9,11 +9,19 @@
 #include "../vm_mngr_py.h"
 #include "../JitCore.h"
 #include "../op_semantics.h"
+#ifdef TAINT
 #include "../../analysis/taint_analysis.h"
+#endif
 #include "JitCore_x86.h"
 
+#ifdef TAINT
+#define PYTHON_CLASS_NAME "JitCore_x86_taint"
+#else
+#define PYTHON_CLASS_NAME "JitCore_x86"
+#endif
 
 struct vm_cpu ref_arch_regs;
+
 
 reg_dict gpreg_dict[] = {
 			 {.name = "RAX", .offset = offsetof(struct vm_cpu, RAX), .size = 64},
@@ -475,7 +483,9 @@ static PyMethodDef JitCpu_methods[] = {
 	 "X"},
 	{"set_interrupt_num", (PyCFunction)cpu_set_interrupt_num, METH_VARARGS,
 	 "X"},
+#ifdef TAINT
 	TAINT_METHODS
+#endif
 
 	{NULL}  /* Sentinel */
 };
@@ -822,7 +832,7 @@ static PyGetSetDef JitCpu_getseters[] = {
 
 static PyTypeObject JitCpuType = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "JitCore_x86.JitCpu",      /*tp_name*/
+    PYTHON_CLASS_NAME".JitCpu",/*tp_name*/
     sizeof(JitCpu),            /*tp_basicsize*/
     0,                         /*tp_itemsize*/
     (destructor)JitCpu_dealloc,/*tp_dealloc*/
@@ -874,7 +884,11 @@ static PyMethodDef JitCore_x86_Methods[] = {
 };
 
 
+#ifdef TAINT
+MOD_INIT(JitCore_x86_taint)
+#else
 MOD_INIT(JitCore_x86)
+#endif
 {
 	PyObject *module = NULL;
 
