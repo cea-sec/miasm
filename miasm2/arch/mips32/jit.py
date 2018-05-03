@@ -1,6 +1,6 @@
 import logging
 
-from miasm2.jitter.jitload import jitter
+from miasm2.jitter.jitload import jitter, named_arguments
 from miasm2.core import asmblock
 from miasm2.core.utils import pck32, upck32
 from miasm2.arch.mips32.sem import ir_mips32l, ir_mips32b
@@ -103,6 +103,42 @@ class jitter_mips32l(jitter):
     def init_run(self, *args, **kwargs):
         jitter.init_run(self, *args, **kwargs)
         self.cpu.PC = self.pc
+
+    # calling conventions
+
+    @named_arguments
+    def func_args_stdcall(self, n_args):
+        args = [self.get_arg_n_stdcall(i) for i in xrange(n_args)]
+        ret_ad = self.cpu.RA
+        return ret_ad, args
+
+    def func_ret_stdcall(self, ret_addr, ret_value1=None, ret_value2=None):
+        self.pc = self.cpu.PC = ret_addr
+        if ret_value1 is not None:
+            self.cpu.V0 = ret_value1
+        if ret_value2 is not None:
+            self.cpu.V1 = ret_value2
+        return True
+
+    def func_prepare_stdcall(self, ret_addr, *args):
+        for index in xrange(min(len(args), 4)):
+            setattr(self.cpu, 'A%d' % index, args[index])
+        for index in xrange(4, len(args)):
+            self.vm.set_mem(self.cpu.SP + 4 * (index - 4), pck32(args[index]))
+        self.cpu.RA = ret_addr
+
+    def get_arg_n_stdcall(self, index):
+        if index < 4:
+            arg = getattr(self.cpu, 'A%d' % index)
+        else:
+            arg = self.get_stack_arg(index-4)
+        return arg
+
+
+    func_args_systemv = func_args_stdcall
+    func_ret_systemv = func_ret_stdcall
+    func_prepare_systemv = func_prepare_stdcall
+    get_arg_n_systemv = get_arg_n_stdcall
 
 
 class jitter_mips32b(jitter_mips32l):
