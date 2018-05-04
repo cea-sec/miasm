@@ -283,6 +283,13 @@ class jitter(object):
         self.breakpoints_handler.set_callback(addr, *args)
         self.jit.add_disassembly_splits(addr)
 
+    def get_breakpoint(self, addr):
+        """
+        Return breakpoints handlers for address @addr
+        @addr: integer
+        """
+        return self.breakpoints_handler.get_callbacks(addr)
+
     def remove_breakpoints_by_callback(self, callback):
         """Remove callbacks associated with breakpoint.
         @callback: callback to remove
