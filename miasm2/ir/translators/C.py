@@ -94,12 +94,16 @@ class TranslatorC(Translator):
                                                    self.from_expr(expr.args[0]),
                                                    self.from_expr(expr.args[1]),
                                                    size2mask(expr.args[0].size))
-            elif (expr.op.startswith('cpuid') or
-                  expr.op.startswith("fcom")  or
+            elif expr.op == 'cpuid':
+                return "%s(%s, %s)" % (expr.op,
+                                       self.from_expr(expr.args[0]),
+                                       self.from_expr(expr.args[1]))
+            elif (expr.op.startswith("fcom")  or
                   expr.op in ["fadd", "fsub", "fdiv", 'fmul', "fscale",
                               "fprem", "fprem_lsb", "fyl2x", "fpatan"]):
-                return "%s(%s, %s)" % (expr.op, self.from_expr(expr.args[0]),
-                                       self.from_expr(expr.args[1]))
+                return "fpu_%s(%s, %s)" % (expr.op,
+                                           self.from_expr(expr.args[0]),
+                                           self.from_expr(expr.args[1]))
             elif expr.op == "segm":
                 return "segm2addr(jitcpu, %s, %s)" % (
                     self.from_expr(expr.args[0]), self.from_expr(expr.args[1]))
