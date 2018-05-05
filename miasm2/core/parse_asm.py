@@ -3,8 +3,8 @@ import re
 
 import miasm2.expression.expression as m2_expr
 import miasm2.core.asmblock as asmblock
-from miasm2.core.cpu import gen_base_expr, ParseAst
-from miasm2.core.cpu import instruction
+from miasm2.core.cpu import instruction, base_expr
+from miasm2.core.asm_ast import AstInt, AstId, AstMem, AstOp
 
 declarator = {'byte': 8,
               'word': 16,
@@ -101,6 +101,16 @@ STATE_NO_BLOC = 0
 STATE_IN_BLOC = 1
 
 
+def asm_ast_to_expr_with_size(arg, symbol_pool, size):
+    if isinstance(arg, AstId):
+        return m2_expr.ExprId(arg.name, size)
+    if isinstance(arg, AstOp):
+        args = [asm_ast_to_expr_with_size(tmp, symbol_pool, size) for tmp in arg.args]
+        return m2_expr.ExprOp(arg.op, *args)
+    if isinstance(arg, AstInt):
+        return m2_expr.ExprInt(arg.value, size)
+    return None
+
 def parse_txt(mnemo, attrib, txt, symbol_pool=None):
     """Parse an assembly listing. Returns a couple (blocks, symbol_pool), where
     blocks is a list of asm_bloc and symbol_pool the associated AsmSymbolPool
@@ -168,16 +178,12 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
                 expr_list = []
 
                 # parser
-                base_expr = gen_base_expr()[2]
-                my_var_parser = ParseAst(lambda x: m2_expr.ExprId(x, size),
-                                         lambda x:
-                                         m2_expr.ExprInt(x, size))
-                base_expr.setParseAction(my_var_parser)
 
                 for element in data_raw:
                     element = element.strip()
-                    element_expr = base_expr.parseString(element)[0]
-                    expr_list.append(element_expr.canonize())
+                    element_parsed = base_expr.parseString(element)[0]
+                    element_expr = asm_ast_to_expr_with_size(element_parsed, symbol_pool, size)
+                    expr_list.append(element_expr)
 
                 raw_data = asmblock.AsmRaw(expr_list)
                 raw_data.element_size = size
@@ -216,7 +222,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
         if ';' in line:
             line = line[:line.find(';')]
         line = line.strip(' ').strip('\t')
-        instr = mnemo.fromstring(line, attrib)
+        instr = mnemo.fromstring(line, symbol_pool, attrib)
 
         # replace orphan AsmLabel with labels from symbol_pool
         replace_orphan_labels(instr, symbol_pool)

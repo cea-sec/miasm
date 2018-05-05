@@ -8,7 +8,7 @@ from miasm2.core.bin_stream import bin_stream
 from miasm2.core.asmblock import asm_label
 import miasm2.arch.ppc.regs as regs_module
 from miasm2.arch.ppc.regs import *
-from pdb import pm
+from miasm2.core.asm_ast import AstInt, AstId, AstMem, AstOp
 
 log = logging.getLogger("ppcdis")
 console_handler = logging.StreamHandler()
@@ -19,37 +19,43 @@ log.setLevel(logging.DEBUG)
 LPARENTHESIS = Suppress(Literal("("))
 RPARENTHESIS = Suppress(Literal(")"))
 
-def deref2expr_imm_reg(s, l, t):
-    t = t[0]
+def cb_deref_imm_reg(t):
     if len(t) == 1:
-        return ExprMem(t[0])
+        return AstMem(t[0], 32)
     elif len(t) == 2:
-        return ExprMem(t[1] + t[0])
+        return AstMem(t[1] + t[0], 32)
     else:
         raise NotImplementedError('len(t) > 2')
 
-variable, operand, base_expr = gen_base_expr()
 
-int_or_expr = base_expr
-
-
-def ast_id2expr(t):
-    if not t in mn_ppc.regs.all_regs_ids_byname:
-        r = ExprId(asm_label(t))
-    else:
-        r = mn_ppc.regs.all_regs_ids_byname[t]
-    return r
-
-def ast_int2expr(a):
-    return ExprInt(a, 32)
-
-deref_reg_disp = Group(Optional(int_or_expr) + LPARENTHESIS + gpregs.parser +  RPARENTHESIS).setParseAction(deref2expr_imm_reg)
-deref_reg = Group(LPARENTHESIS + gpregs.parser +  RPARENTHESIS).setParseAction(deref2expr_imm_reg)
+deref_reg_disp = (Optional(base_expr) + LPARENTHESIS + gpregs.parser +  RPARENTHESIS).setParseAction(cb_deref_imm_reg)
+deref_reg = (LPARENTHESIS + gpregs.parser +  RPARENTHESIS).setParseAction(cb_deref_imm_reg)
 
 deref = deref_reg | deref_reg_disp
 
-my_var_parser = ParseAst(ast_id2expr, ast_int2expr)
-base_expr.setParseAction(my_var_parser)
+
+class ppc_arg(m_arg):
+    def asm_ast_to_expr(self, arg, symbol_pool):
+        if isinstance(arg, AstId):
+            if isinstance(arg.name, ExprId):
+                return arg.name
+            if arg.name in gpregs.str:
+                return None
+            label = symbol_pool.getby_name_create(arg.name)
+            return ExprId(label, 32)
+        if isinstance(arg, AstOp):
+            args = [self.asm_ast_to_expr(tmp, symbol_pool) for tmp in arg.args]
+            if None in args:
+                return None
+            return ExprOp(arg.op, *args)
+        if isinstance(arg, AstInt):
+            return ExprInt(arg.value, 32)
+        if isinstance(arg, AstMem):
+            ptr = self.asm_ast_to_expr(arg.ptr, symbol_pool)
+            if ptr is None:
+                return None
+            return ExprMem(ptr, arg.size)
+        return None
 
 
 class additional_info:
@@ -278,7 +284,7 @@ class mn_ppc(cls_mn):
         return 32
 
 
-class ppc_reg(reg_noarg, m_arg):
+class ppc_reg(reg_noarg, ppc_arg):
     pass
 
 
@@ -324,7 +330,7 @@ class ppc_crfreg(ppc_reg):
     reg_info = crfregs
     parser = reg_info.parser
 
-class ppc_imm(imm_noarg, m_arg):
+class ppc_imm(imm_noarg, ppc_arg):
     parser = base_expr
 
 class ppc_s14imm_branch(ppc_imm):
@@ -491,7 +497,7 @@ class ppc_divert_conditional_branch(bs_divert):
 
         return out
 
-class ppc_deref32(m_arg):
+class ppc_deref32(ppc_arg):
     parser = deref
 
     def decode(self, v):

@@ -64,7 +64,10 @@ else:
 with open(args.source) as fstream:
     source = fstream.read()
 
-blocks, symbol_pool = parse_asm.parse_txt(machine.mn, attrib, source)
+
+symbol_pool = asmblock.AsmSymbolPool()
+
+blocks, symbol_pool = parse_asm.parse_txt(machine.mn, attrib, source, symbol_pool)
 
 # Fix shellcode addrs
 symbol_pool.set_offset(symbol_pool.getby_name("main"), addr_main)

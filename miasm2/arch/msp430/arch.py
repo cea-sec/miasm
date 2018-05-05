@@ -8,6 +8,7 @@ from collections import defaultdict
 from miasm2.core.bin_stream import bin_stream
 import miasm2.arch.msp430.regs as regs_module
 from miasm2.arch.msp430.regs import *
+from miasm2.core.asm_ast import AstInt, AstId, AstMem, AstOp
 
 log = logging.getLogger("msp430dis")
 console_handler = logging.StreamHandler()
@@ -19,49 +20,30 @@ conditional_branch = ['jnz', 'jz', 'jnc', 'jc',
                       'jn', 'jge', 'jl']
 unconditional_branch = ['jmp']
 
-def deref2expr_nooff(s, l, t):
-    t = t[0]
-    if len(t) == 1 and isinstance(t[0], ExprId):
-        return ExprMem(t[0], 16)
-    elif len(t) == 1 and isinstance(t[0], ExprInt):
-        return ExprMem(t[0], 16)
-    raise NotImplementedError('not fully functional')
+def cb_deref_nooff(t):
+    assert len(t) == 1
+    result = AstMem(t[0], 16)
+    return result
 
 
-def deref2expr_pinc(s, l, t):
-    t = t[0]
-    if len(t) == 1 and isinstance(t[0], ExprId):
-        return ExprOp('autoinc', t[0])
-    raise NotImplementedError('not fully functional')
+def cb_deref_pinc(t):
+    assert len(t) == 1
+
+    result = AstOp('autoinc', *t)
+    return result
 
 
-def deref2expr_off(s, l, t):
-    t = t[0]
-    if len(t) == 2 and isinstance(t[1], ExprId):
-        return ExprMem(t[1] + t[0], 16)
-    raise NotImplementedError('not fully functional')
+def cb_deref_off(t):
+    assert len(t) == 2
+    result = AstMem(t[1] + t[0], 16)
+    return result
 
 
-def deref_expr(s, l, t):
-    t = t[0]
+def cb_expr(t):
     assert(len(t) == 1)
-    t = t[0]
-    if isinstance(t, ExprId) or \
-            isinstance(t, ExprInt) or \
-            isinstance(t, ExprMem) or \
-            (isinstance(t, ExprOp) and t.op == "autoinc"):
-        return t
+    result = t[0]
+    return result
 
-    raise NotImplementedError('not fully functional')
-
-
-def f_reg2expr(t):
-    t = t[0]
-    i = regs16_str.index(t)
-    r = regs16_expr[i]
-    return r
-
-# gpregs.parser.setParseAction(f_reg2expr)
 
 ARO = Suppress("@")
 LPARENT = Suppress("(")
@@ -69,29 +51,39 @@ RPARENT = Suppress(")")
 
 PINC = Suppress("+")
 
-
-def ast_id2expr(t):
-    return mn_msp430.regs.all_regs_ids_byname.get(t, t)
-
-
-def ast_int2expr(a):
-    return ExprInt(a, 16)
+deref_nooff = (ARO + base_expr).setParseAction(cb_deref_nooff)
+deref_pinc = (ARO + base_expr + PINC).setParseAction(cb_deref_pinc)
+deref_off = (base_expr + LPARENT + gpregs.parser + RPARENT).setParseAction(cb_deref_off)
+sreg_p = (deref_pinc | deref_nooff | deref_off | base_expr).setParseAction(cb_expr)
 
 
-variable, operand, base_expr = gen_base_expr()
 
-my_var_parser = ParseAst(ast_id2expr, ast_int2expr)
-base_expr.setParseAction(my_var_parser)
-
-
-deref_nooff = Group(ARO + base_expr).setParseAction(deref2expr_nooff)
-deref_pinc = Group(ARO + base_expr + PINC).setParseAction(deref2expr_pinc)
-deref_off = Group(base_expr + LPARENT +
-                  gpregs.parser + RPARENT).setParseAction(deref2expr_off)
-
-
-sreg_p = Group(deref_pinc | deref_nooff |
-               deref_off | base_expr).setParseAction(deref_expr)
+class msp430_arg(m_arg):
+    def asm_ast_to_expr(self, value, symbol_pool):
+        if isinstance(value, AstId):
+            name = value.name
+            if isinstance(name, Expr):
+                return name
+            assert isinstance(name, str)
+            if name in gpregs.str:
+                index = gpregs.str.index(name)
+                reg = gpregs.expr[index]
+                return reg
+            label = symbol_pool.getby_name_create(value.name)
+            return ExprId(label, 16)
+        if isinstance(value, AstOp):
+            args = [self.asm_ast_to_expr(tmp, symbol_pool) for tmp in value.args]
+            if None in args:
+                return None
+            return ExprOp(value.op, *args)
+        if isinstance(value, AstInt):
+            return ExprInt(value.value, 16)
+        if isinstance(value, AstMem):
+            ptr = self.asm_ast_to_expr(value.ptr, symbol_pool)
+            if ptr is None:
+                return None
+            return ExprMem(ptr, value.size)
+        return None
 
 
 class additional_info:
@@ -310,7 +302,7 @@ class bw_mn(bs_mod_name):
     mn_mod = ['.w', '.b']
 
 
-class msp430_sreg_arg(reg_noarg, m_arg):
+class msp430_sreg_arg(reg_noarg, msp430_arg):
     prio = default_prio + 1
     reg_info = gpregs
     parser = sreg_p
@@ -512,7 +504,7 @@ class bs_cond_off_d(bs_cond_off_s):
             raise NotImplementedError("unknown value v[a_d] = %d" % v['a_d'])
 
 
-class msp430_offs(imm_noarg, m_arg):
+class msp430_offs(imm_noarg, msp430_arg):
     parser = base_expr
 
     def int2expr(self, v):

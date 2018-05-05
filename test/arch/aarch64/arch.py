@@ -1,6 +1,10 @@
 import sys
 import time
+from pdb import pm
 from miasm2.arch.aarch64.arch import *
+from miasm2.core.asmblock import AsmSymbolPool
+
+symbol_pool = AsmSymbolPool()
 
 reg_tests_aarch64 = [
     ("XXXXXXXX    MOV        W1, WZR",
@@ -1810,7 +1814,7 @@ for s, l in reg_tests_aarch64[:]:
     print s
     print mn
     assert(str(mn) == s)
-    l = mn_aarch64.fromstring(s, 'l')
+    l = mn_aarch64.fromstring(s, symbol_pool, 'l')
     assert(str(l) == s)
     a = mn_aarch64.asm(l)
     print [x for x in a]

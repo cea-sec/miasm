@@ -1,7 +1,10 @@
 import time
 from pdb import pm
 
+from miasm2.core.asmblock import AsmSymbolPool
 from miasm2.arch.mips32.arch import *
+
+symbol_pool = AsmSymbolPool()
 
 reg_tests_mips32 = [
     ("004496D8    ADDU       GP, GP, T9",
@@ -227,7 +230,7 @@ for s, l in reg_tests_mips32:
     assert(str(mn) == s)
     # print hex(b)
     # print [str(x.get()) for x in mn.args]
-    l = mn_mips32.fromstring(s, 'b')
+    l = mn_mips32.fromstring(s, symbol_pool, 'b')
     # print l
     assert(str(l) == s)
     a = mn_mips32.asm(l, 'b')

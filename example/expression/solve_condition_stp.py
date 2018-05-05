@@ -6,7 +6,6 @@ from pdb import pm
 from miasm2.analysis.machine import Machine
 from miasm2.expression.expression import ExprInt, ExprCond, ExprId, \
     get_expr_ids, ExprAff
-from miasm2.arch.x86.arch import ParseAst
 from miasm2.core.bin_stream import bin_stream_str
 from miasm2.core import asmblock
 from miasm2.ir.symbexec import SymbolicExecutionEngine, get_block
@@ -50,7 +49,6 @@ def emul_symb(ir_arch, mdis, states_todo, states_done):
         symbexec.dump(mems=False)
 
         assert addr is not None
-
         if isinstance(addr, ExprCond):
             # Create 2 states, each including complementary conditions
             cond_group_a = {addr.cond: ExprInt(0, addr.cond.size)}
@@ -67,15 +65,15 @@ def emul_symb(ir_arch, mdis, states_todo, states_done):
                 addr_b = int(addr_b.arg)
             states_todo.add((addr_a, symbexec.symbols.copy(), tuple(list(conds) + cond_group_a.items())))
             states_todo.add((addr_b, symbexec.symbols.copy(), tuple(list(conds) + cond_group_b.items())))
+        elif addr == ret_addr:
+            print 'Return address reached'
+            continue
         elif isinstance(addr, ExprInt):
             addr = int(addr.arg)
             states_todo.add((addr, symbexec.symbols.copy(), tuple(conds)))
         elif asmblock.expr_is_label(addr):
             addr = addr.name
             states_todo.add((addr, symbexec.symbols.copy(), tuple(conds)))
-        elif addr == ret_addr:
-            print 'Return address reached'
-            continue
         else:
             raise ValueError("Unsupported destination")
 
@@ -92,32 +90,6 @@ if __name__ == '__main__':
 
     symbols_init = dict(machine.mn.regs.regs_init)
 
-    # config parser for 32 bit
-    reg_and_id = dict(machine.mn.regs.all_regs_ids_byname)
-
-    def my_ast_int2expr(name):
-        return ExprInt(name, 32)
-
-    # Modifify parser to avoid label creation in PUSH argc
-    def my_ast_id2expr(string_parsed):
-        if string_parsed in reg_and_id:
-            return reg_and_id[string_parsed]
-        return ExprId(string_parsed, size=32)
-
-    my_var_parser = ParseAst(my_ast_id2expr, my_ast_int2expr)
-    machine.base_expr.setParseAction(my_var_parser)
-
-    argc = ExprId('argc', 32)
-    argv = ExprId('argv', 32)
-    ret_addr = ExprId('ret_addr', 32)
-    reg_and_id[argc.name] = argc
-    reg_and_id[argv.name] = argv
-    reg_and_id[ret_addr.name] = ret_addr
-
-    my_symbols = [argc, argv, ret_addr]
-    my_symbols = dict([(x.name, x) for x in my_symbols])
-    my_symbols.update(machine.mn.regs.all_regs_ids_byname)
-
     ir_arch = machine.ir(mdis.symbol_pool)
 
     symbexec = SymbolicExecutionEngine(ir_arch, symbols_init)
@@ -126,7 +98,17 @@ if __name__ == '__main__':
     PUSH argv
     PUSH argc
     PUSH ret_addr
-    ''')
+    ''',
+    symbol_pool=mdis.symbol_pool)
+
+
+    argc_lbl = symbol_pool.getby_name('argc')
+    argv_lbl = symbol_pool.getby_name('argv')
+    ret_addr_lbl = symbol_pool.getby_name('ret_addr')
+
+    argc = ExprId(argc_lbl, 32)
+    argv = ExprId(argv_lbl, 32)
+    ret_addr = ExprId(ret_addr_lbl, 32)
 
 
     b = list(blocks)[0]

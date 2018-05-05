@@ -1,6 +1,9 @@
 import time
+from pdb import pm
 from miasm2.arch.msp430.arch import *
+from miasm2.core.asmblock import AsmSymbolPool
 
+symbol_pool = AsmSymbolPool()
 
 def h2i(s):
     return s.replace(' ', '').decode('hex')
@@ -94,7 +97,7 @@ for s, l in reg_tests_msp:
     assert(str(mn) == s)
     # print hex(b)
     # print [str(x.get()) for x in mn.args]
-    l = mn_msp430.fromstring(s, None)
+    l = mn_msp430.fromstring(s, symbol_pool, None)
     # print l
     assert(str(l) == s)
     a = mn_msp430.asm(l)
