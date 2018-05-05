@@ -149,8 +149,8 @@ class sh4_freg(sh4_reg):
 class sh4_dgpreg(m_arg):
     parser = dgpregs_base
 
-    def fromstring(self, s, parser_result=None):
-        start, stop = super(sh4_dgpreg, self).fromstring(s, parser_result)
+    def fromstring(self, text, parser_result=None):
+        start, stop = super(sh4_dgpreg, self).fromstring(text, parser_result)
         if start is None:
             return start, stop
         self.expr = ExprMem(self.expr.arg, self.sz)
@@ -175,8 +175,8 @@ class sh4_dgpreg(m_arg):
 class sh4_dgpregpinc(m_arg):
     parser = dgpregs_p
 
-    def fromstring(self, s, parser_result=None):
-        start, stop = super(sh4_dgpregpinc, self).fromstring(s, parser_result)
+    def fromstring(self, text, parser_result=None):
+        start, stop = super(sh4_dgpregpinc, self).fromstring(text, parser_result)
         if self.expr is None:
             return None, None
         if not isinstance(self.expr.arg, ExprOp):

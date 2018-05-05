@@ -685,19 +685,19 @@ class mn_x86(cls_mn):
         return [(subcls, name, bases, dct, fields)]
 
     @classmethod
-    def fromstring(cls, s, mode):
+    def fromstring(cls, text, mode):
         pref = 0
-        prefix, new_s = get_prefix(s)
+        prefix, new_s = get_prefix(text)
         if prefix == "LOCK":
             pref |= 1
-            s = new_s
+            text = new_s
         elif prefix == "REPNE":
             pref |= 2
-            s = new_s
+            text = new_s
         elif prefix == "REPE":
             pref |= 4
-            s = new_s
-        c = super(mn_x86, cls).fromstring(s, mode)
+            text = new_s
+        c = super(mn_x86, cls).fromstring(text, mode)
         c.additional_info.g1.value = pref
         return c
 
@@ -1937,12 +1937,11 @@ def modrm2expr(modrm, parent, w8, sx=0, xmm=0, mm=0, bnd=0):
 class x86_rm_arg(m_arg):
     parser = rmarg
 
-    def fromstring(self, s, parser_result=None):
-        start, stop = super(x86_rm_arg, self).fromstring(s, parser_result)
+    def fromstring(self, text, parser_result=None):
+        start, stop = super(x86_rm_arg, self).fromstring(text, parser_result)
         p = self.parent
         if start is None:
             return None, None
-        s = self.expr.size
         return start, stop
 
     def get_modrm(self):
@@ -2074,9 +2073,9 @@ class x86_rm_arg(m_arg):
             yield x
 
 class x86_rm_mem(x86_rm_arg):
-    def fromstring(self, s, parser_result=None):
+    def fromstring(self, text, parser_result=None):
         self.expr = None
-        start, stop = super(x86_rm_mem, self).fromstring(s, parser_result)
+        start, stop = super(x86_rm_mem, self).fromstring(text, parser_result)
         if not isinstance(self.expr, ExprMem):
             return None, None
         return start, stop
@@ -2084,9 +2083,9 @@ class x86_rm_mem(x86_rm_arg):
 
 class x86_rm_mem_far(x86_rm_arg):
     parser = mem_far
-    def fromstring(self, s, parser_result=None):
+    def fromstring(self, text, parser_result=None):
         self.expr = None
-        start, stop = super(x86_rm_mem_far, self).fromstring(s, parser_result)
+        start, stop = super(x86_rm_mem_far, self).fromstring(text, parser_result)
         if not isinstance(self.expr, ExprMem):
             return None, None
         self.expr = ExprOp('far', self.expr)
@@ -2456,7 +2455,7 @@ class x86_rm_reg_noarg(object):
 
     parser = gpreg
 
-    def fromstring(self, s, parser_result=None):
+    def fromstring(self, text, parser_result=None):
         if not hasattr(self.parent, 'sx') and hasattr(self.parent, "w8"):
             self.parent.w8.value = 1
         if parser_result:
@@ -2470,7 +2469,7 @@ class x86_rm_reg_noarg(object):
                 self.parent.w8.value = 0
             return start, stop
         try:
-            v, start, stop = self.parser.scanString(s).next()
+            v, start, stop = self.parser.scanString(text).next()
         except StopIteration:
             return None, None
         self.expr = v[0]
@@ -2756,12 +2755,12 @@ class bs_cond_imm(bs_cond_scale, m_arg):
     parser = int_or_expr
     max_size = 32
 
-    def fromstring(self, s, parser_result=None):
+    def fromstring(self, text, parser_result=None):
         if parser_result:
             expr, start, stop = parser_result[self.parser]
         else:
             try:
-                expr, start, stop = self.parser.scanString(s).next()
+                expr, start, stop = self.parser.scanString(text).next()
             except StopIteration:
                 expr = None
         self.expr = expr
@@ -2776,7 +2775,7 @@ class bs_cond_imm(bs_cond_scale, m_arg):
             self.expr = ExprInt(v & mask, l)
 
         if self.expr is None:
-            log.debug('cannot fromstring int %r', s)
+            log.debug('cannot fromstring int %r', text)
             return None, None
         return start, stop
 
@@ -2883,12 +2882,12 @@ class bs_cond_imm64(bs_cond_imm):
 class bs_rel_off(bs_cond_imm):
     parser = int_or_expr
 
-    def fromstring(self, s, parser_result=None):
+    def fromstring(self, text, parser_result=None):
         if parser_result:
             expr, start, stop = parser_result[self.parser]
         else:
             try:
-                expr, start, stop = self.parser.scanString(s).next()
+                expr, start, stop = self.parser.scanString(text).next()
             except StopIteration:
                 expr = None
         self.expr = expr
@@ -3037,14 +3036,14 @@ class bs_movoff(m_arg):
                 return None, None
             return start, stop
         try:
-            v, start, stop = self.parser.scanString(s).next()
+            v, start, stop = self.parser.scanString(text).next()
         except StopIteration:
             return None, None
         if not isinstance(e, ExprMem):
             return None, None
         self.expr = v[0]
         if self.expr is None:
-            log.debug('cannot fromstring int %r', s)
+            log.debug('cannot fromstring int %r', text)
             return None, None
         return start, stop
 
@@ -3102,12 +3101,12 @@ class bs_msegoff(m_arg):
                 return None, None
             return start, stop
         try:
-            v, start, stop = self.parser.scanString(s).next()
+            v, start, stop = self.parser.scanString(text).next()
         except StopIteration:
             return None, None
         self.expr = v[0]
         if self.expr is None:
-            log.debug('cannot fromstring int %r', s)
+            log.debug('cannot fromstring int %r', text)
             return None, None
         return start, stop
 

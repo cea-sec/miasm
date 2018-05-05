@@ -2798,8 +2798,8 @@ class armt_aif(reg_noarg, m_arg):
             return ret
         return self.value != 0
 
-    def fromstring(self, s, parser_result=None):
-        start, stop = super(armt_aif, self).fromstring(s, parser_result)
+    def fromstring(self, text, parser_result=None):
+        start, stop = super(armt_aif, self).fromstring(text, parser_result)
         if self.expr.name == "X":
             return None, None
         return start, stop

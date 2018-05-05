@@ -656,13 +656,13 @@ class bs_swapargs(bs_divert):
 
 class m_arg(object):
 
-    def fromstring(self, s, parser_result=None):
+    def fromstring(self, text, parser_result=None):
         if parser_result:
             e, start, stop = parser_result[self.parser]
             self.expr = e
             return start, stop
         try:
-            v, start, stop = self.parser.scanString(s).next()
+            v, start, stop = self.parser.scanString(text).next()
         except StopIteration:
             return None, None
         self.expr = v[0]
@@ -688,13 +688,13 @@ class reg_noarg(object):
     reg_info = None
     parser = None
 
-    def fromstring(self, s, parser_result=None):
+    def fromstring(self, text, parser_result=None):
         if parser_result:
             e, start, stop = parser_result[self.parser]
             self.expr = e
             return start, stop
         try:
-            v, start, stop = self.parser.scanString(s).next()
+            v, start, stop = self.parser.scanString(text).next()
         except StopIteration:
             return None, None
         self.expr = v[0]
@@ -1252,11 +1252,11 @@ class cls_mn(object):
         return out[0]
 
     @classmethod
-    def fromstring(cls, s, mode = None):
+    def fromstring(cls, text, mode = None):
         global total_scans
-        name = re.search('(\S+)', s).groups()
+        name = re.search('(\S+)', text).groups()
         if not name:
-            raise ValueError('cannot find name', s)
+            raise ValueError('cannot find name', text)
         name = name[0]
 
         if not name in cls.all_mn_name:
@@ -1269,7 +1269,7 @@ class cls_mn(object):
         for cc in clist:
             for c in cls.get_cls_instance(cc, mode):
                 args_expr = []
-                args_str = s[len(name):].strip(' ')
+                args_str = text[len(name):].strip(' ')
 
                 start = 0
                 cannot_parse = False
@@ -1316,7 +1316,7 @@ class cls_mn(object):
                 break
 
         if len(out) == 0:
-            raise ValueError('cannot fromstring %r' % s)
+            raise ValueError('cannot fromstring %r' % text)
         if len(out) != 1:
             log.debug('fromstring multiple args ret default')
         c = out[0]
@@ -1532,12 +1532,12 @@ class imm_noarg(object):
             return None
         return v
 
-    def fromstring(self, s, parser_result=None):
+    def fromstring(self, text, parser_result=None):
         if parser_result:
             e, start, stop = parser_result[self.parser]
         else:
             try:
-                e, start, stop = self.parser.scanString(s).next()
+                e, start, stop = self.parser.scanString(text).next()
             except StopIteration:
                 return None, None
         if e is None:
@@ -1551,7 +1551,7 @@ class imm_noarg(object):
         else:
             raise TypeError('zarb expr')
         if self.expr is None:
-            log.debug('cannot fromstring int %r', s)
+            log.debug('cannot fromstring int %r', text)
             return None, None
         return start, stop
 

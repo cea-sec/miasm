@@ -829,8 +829,8 @@ def set_imm_to_size(size, expr):
 class aarch64_imm_sf(imm_noarg):
     parser = base_expr
 
-    def fromstring(self, s, parser_result=None):
-        start, stop = super(aarch64_imm_sf, self).fromstring(s, parser_result)
+    def fromstring(self, text, parser_result=None):
+        start, stop = super(aarch64_imm_sf, self).fromstring(text, parser_result)
         if start is None:
             return start, stop
         size = self.parent.args[0].expr.size
