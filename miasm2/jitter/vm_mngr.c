@@ -1027,7 +1027,7 @@ int64_t double_to_int_64(double d)
 }
 
 
-double fadd(double a, double b)
+double fpu_fadd(double a, double b)
 {
 	double c;
 	c = a + b;
@@ -1038,7 +1038,7 @@ double fadd(double a, double b)
 	return c;
 }
 
-double fsub(double a, double b)
+double fpu_fsub(double a, double b)
 {
 	double c;
 	c = a - b;
@@ -1049,7 +1049,7 @@ double fsub(double a, double b)
 	return c;
 }
 
-double fmul(double a, double b)
+double fpu_fmul(double a, double b)
 {
 	double c;
 	c = a * b;
@@ -1060,7 +1060,7 @@ double fmul(double a, double b)
 	return c;
 }
 
-double fdiv(double a, double b)
+double fpu_fdiv(double a, double b)
 {
 	double c;
 	c = a / b;
@@ -1071,7 +1071,7 @@ double fdiv(double a, double b)
 	return c;
 }
 
-double ftan(double a)
+double fpu_ftan(double a)
 {
 	double b;
 	b = tan(a);
@@ -1082,7 +1082,7 @@ double ftan(double a)
 	return b;
 }
 
-double frndint(double a)
+double fpu_frndint(double a)
 {
 	int64_t b;
 	double c;
@@ -1095,7 +1095,7 @@ double frndint(double a)
 	return c;
 }
 
-double fsin(double a)
+double fpu_fsin(double a)
 {
 	double b;
 	b = sin(a);
@@ -1106,7 +1106,7 @@ double fsin(double a)
 	return b;
 }
 
-double fcos(double a)
+double fpu_fcos(double a)
 {
 	double b;
 	b = cos(a);
@@ -1118,7 +1118,7 @@ double fcos(double a)
 }
 
 
-double fscale(double a, double b)
+double fpu_fscale(double a, double b)
 {
 	double c;
 	c = a * exp2(trunc(b));
@@ -1129,7 +1129,7 @@ double fscale(double a, double b)
 	return c;
 }
 
-double f2xm1(double a)
+double fpu_f2xm1(double a)
 {
 	double b;
 	b = exp2(a)-1;
@@ -1140,7 +1140,7 @@ double f2xm1(double a)
 	return b;
 }
 
-double fsqrt(double a)
+double fpu_fsqrt(double a)
 {
 	double b;
 	b = sqrt(a);
@@ -1151,7 +1151,7 @@ double fsqrt(double a)
 	return b;
 }
 
-double fabs(double a)
+double fpu_fabs(double a)
 {
 	double b;
 	b = abs(a);
@@ -1162,7 +1162,7 @@ double fabs(double a)
 	return b;
 }
 
-double fprem(double a, double b)
+double fpu_fprem(double a, double b)
 {
 	double c;
 	c = fmod(a, b);
@@ -1173,7 +1173,7 @@ double fprem(double a, double b)
 	return c;
 }
 
-unsigned int fprem_lsb(double a, double b)
+unsigned int fpu_fprem_lsb(double a, double b)
 {
 	// Inspired from qemu/fpu_helper.c
 	double c;
@@ -1196,7 +1196,7 @@ unsigned int fprem_lsb(double a, double b)
 	return q;
 }
 
-double fchs(double a)
+double fpu_fchs(double a)
 {
 	double b;
 	b = -a;
@@ -1207,7 +1207,7 @@ double fchs(double a)
 	return b;
 }
 
-double fyl2x(double a, double b)
+double fpu_fyl2x(double a, double b)
 {
 	double c;
 	c = b * (log(a) / log(2));
@@ -1218,7 +1218,7 @@ double fyl2x(double a, double b)
 	return c;
 }
 
-double fpatan(double a, double b)
+double fpu_fpatan(double a, double b)
 {
 	double c;
 	c = atan2(b, a);
@@ -1229,7 +1229,7 @@ double fpatan(double a, double b)
 	return c;
 }
 
-unsigned int fcom_c0(double a, double b)
+unsigned int fpu_fcom_c0(double a, double b)
 {
 	if (isnan(a) || isnan(b))
 		return 1;
@@ -1237,18 +1237,18 @@ unsigned int fcom_c0(double a, double b)
 		return 0;
 	return 1;
 }
-unsigned int fcom_c1(double a, double b)
+unsigned int fpu_fcom_c1(double a, double b)
 {
 	//XXX
 	return 0;
 }
-unsigned int fcom_c2(double a, double b)
+unsigned int fpu_fcom_c2(double a, double b)
 {
 	if (isnan(a) || isnan(b))
 		return 1;
 	return 0;
 }
-unsigned int fcom_c3(double a, double b)
+unsigned int fpu_fcom_c3(double a, double b)
 {
 	if (isnan(a) || isnan(b))
 		return 1;
@@ -1257,7 +1257,7 @@ unsigned int fcom_c3(double a, double b)
 	return 0;
 }
 
-unsigned int fxam_c0(double a)
+unsigned int fpu_fxam_c0(double a)
 {
 	switch(fpclassify(a)) {
 		case FP_NAN:
@@ -1277,14 +1277,14 @@ unsigned int fxam_c0(double a)
 	}
 }
 
-unsigned int fxam_c1(double a)
+unsigned int fpu_fxam_c1(double a)
 {
 	if ((a < 0) || isnan(a))
 		return 1;
 	return 0;
 }
 
-unsigned int fxam_c2(double a)
+unsigned int fpu_fxam_c2(double a)
 {
 	switch(fpclassify(a)) {
 		case FP_NAN:
@@ -1304,7 +1304,7 @@ unsigned int fxam_c2(double a)
 	}
 }
 
-unsigned int fxam_c3(double a)
+unsigned int fpu_fxam_c3(double a)
 {
 	switch(fpclassify(a)) {
 		case FP_NAN:
