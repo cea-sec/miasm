@@ -41,6 +41,8 @@ assert len(blocks.pendings) == 0
 assert len(blocks.nodes()) == 17
 assert len(blocks.edges2constraint) == len(blocks.edges())
 assert len(blocks.edges()) == 24
+assert blocks.getby_offset(0x63).lines[0].offset == 0x5f
+assert blocks.getby_offset(0x69).lines[0].offset == 0x69
 
 ## Convert to dot
 open("graph.dot", "w").write(blocks.dot())
