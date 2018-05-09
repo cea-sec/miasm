@@ -16,10 +16,6 @@ def intra_block_flow_raw(ir_arch, flow_graph, irb, in_nodes, out_nodes):
     current_nodes = {}
     for i, assignblk in enumerate(irb):
         dict_rw = assignblk.get_rw(cst_read=True)
-        if irb.label.offset == 0x13:
-            print irb.label
-            print i
-            print dict_rw
         current_nodes.update(out_nodes)
 
         # gen mem arg to mem node links
