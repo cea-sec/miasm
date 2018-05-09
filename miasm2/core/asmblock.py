@@ -736,6 +736,14 @@ class AsmCFG(DiGraph):
                     yield predecessor
                     done.add(predecessor)
 
+    def getby_offset(self, offset):
+        """Return block containing @offset"""
+        for block in self:
+            if block.lines[0].offset <= offset < \
+                    (block.lines[-1].offset + block.lines[-1].l):
+                return block
+        return None
+
     def sanity_check(self):
         """Do sanity checks on blocks' constraints:
         * no pendings
