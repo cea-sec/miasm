@@ -907,6 +907,8 @@ class arm_offs(arm_imm):
         if (1 << (self.l - 1)) & v:
             v = -((0xffffffff ^ v) + 1)
         v = self.encodeval(v)
+        if v is False:
+            return False
         self.value = (v & 0xffffffff) & self.lmask
         return True
 
@@ -1875,7 +1877,11 @@ class arm_offpc(arm_offreg):
             log.debug('cannot encode reg %r', e.args[0])
             return False
         v = int(e.args[1])
+        if v & 3:
+            return False
         v >>= 2
+        if v > self.lmask:
+            return False
         self.value = v
         return True
 
@@ -1898,8 +1904,11 @@ class arm_offspc(arm_offs):
     def encodeval(self, v):
         # Remove pipeline offset
         v -= 2 + 2
-        if v % 2 == 0:
-            return v >> 1
+        if v % 2 != 0:
+            return False
+        if v > (1 << (self.l - 1)) - 1:
+            return False
+        return v >> 1
         return False
 
 
@@ -2533,11 +2542,12 @@ class armt4_imm12(arm_imm):
         if not self.expr.is_int():
             return False
         value = int(self.expr)
+        if value >= (1 << 16):
+            return False
         self.value = value & self.lmask
         self.parent.imm12_3.value = (value >> 8) & self.parent.imm12_3.lmask
         self.parent.imm12_1.value = (value >> 11) & self.parent.imm12_1.lmask
         return True
-
 
 
 
@@ -2555,6 +2565,8 @@ class armt2_imm16(arm_imm):
         if not self.expr.is_int():
             return False
         value = int(self.expr)
+        if value >= (1 << 16):
+            return False
         self.value = value & self.lmask
         self.parent.imm16_3.value = (value >> 8) & self.parent.imm16_3.lmask
         self.parent.imm16_1.value = (value >> 11) & self.parent.imm16_1.lmask
@@ -2644,8 +2656,8 @@ class armt2_imm10l(arm_imm):
         s = 0
         if v & 0x80000000:
             s = 1
-            v = (-v) & 0xffffffff
-        if v > (1 << 26):
+            v &= (1<<26) - 1
+        if v >= (1 << 26):
             return False
         i1, i2, imm10h, imm10l = (v >> 23) & 1, (v >> 22) & 1, (v >> 12) & 0x3ff, (v >> 2) & 0x3ff
         j1, j2 = i1 ^ s ^ 1, i2 ^ s ^ 1
@@ -2681,7 +2693,7 @@ class armt2_imm11l(arm_imm):
         s = 0
         if v & 0x80000000:
             s = 1
-            v = (-v) & 0xffffffff
+            v &= (1<<26) - 1
         if v >= (1 << 26):
             return False
         if v & 1:
@@ -2717,11 +2729,11 @@ class armt2_imm6_11l(arm_imm):
             return False
         v = self.expr.arg.arg - 4
         s = 0
+        if v != sign_ext(v & ((1 << 22) - 1), 21, 32):
+            return False 
         if v & 0x80000000:
             s = 1
-            v = (-v) & 0xffffffff
-        if v >= (1 << 22):
-            return False
+        v &= (1<<22) - 1
         if v & 1:
             return False
         i2, i1, imm6h, imm11l = (v >> 19) & 1, (v >> 18) & 1, (v >> 12) & 0x3f, (v >> 1) & 0x7ff
