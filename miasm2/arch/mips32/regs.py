@@ -4,11 +4,11 @@ from miasm2.expression.expression import ExprId
 from miasm2.core.cpu import gen_reg, gen_regs
 
 
-gen_reg('PC', globals())
-gen_reg('PC_FETCH', globals())
+PC, _ = gen_reg('PC')
+PC_FETCH, _ = gen_reg('PC_FETCH')
 
-gen_reg('R_LO', globals())
-gen_reg('R_HI', globals())
+R_LO, _ = gen_reg('R_LO')
+R_HI, _ = gen_reg('R_HI')
 
 exception_flags = ExprId('exception_flags', 32)
 

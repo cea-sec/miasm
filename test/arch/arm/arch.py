@@ -1,7 +1,10 @@
 import time
 from miasm2.arch.arm.arch import *
+from miasm2.core.asmblock import AsmSymbolPool
 from pdb import pm
 
+
+symbol_pool = AsmSymbolPool()
 if 0:
     a = bs('00')
     b = bs('01')
@@ -267,7 +270,7 @@ for s, l in reg_tests_arm:
     assert(str(mn) == s)
     # print hex(b)
     # print [str(x.get()) for x in mn.args]
-    l = mn_arm.fromstring(s, 'l')
+    l = mn_arm.fromstring(s, symbol_pool, 'l')
     # print l
     assert(str(l) == s)
     a = mn_arm.asm(l)
@@ -719,7 +722,7 @@ for s, l in reg_tests_armt:
     assert(str(mn) == s)
     # print hex(b)
     # print [str(x.get()) for x in mn.args]
-    l = mn_armt.fromstring(s, 'l')
+    l = mn_armt.fromstring(s, symbol_pool, 'l')
     # print l
     assert(str(l) == s)
     print 'Asm..', l

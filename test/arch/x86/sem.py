@@ -14,10 +14,13 @@ from miasm2.arch.x86.regs import *
 from miasm2.expression.expression import *
 from miasm2.expression.simplifications      import expr_simp
 from miasm2.core import parse_asm, asmblock
+from miasm2.core.asmblock import AsmSymbolPool
 
 
 logging.getLogger('cpuhelper').setLevel(logging.ERROR)
 EXCLUDE_REGS = set([ir_32().IRDst, ir_64().IRDst])
+
+symbol_pool = AsmSymbolPool()
 
 m32 = 32
 m64 = 64
@@ -35,7 +38,7 @@ def symb_exec(interm, inputstate, debug):
             if k not in EXCLUDE_REGS and regs_init.get(k, None) != v}
 
 def compute(ir, mode, asm, inputstate={}, debug=False):
-    instr = mn.fromstring(asm, mode)
+    instr = mn.fromstring(asm, symbol_pool, mode)
     code = mn.asm(instr)[0]
     instr = mn.dis(code, mode)
     instr.offset = inputstate.get(EIP, 0)

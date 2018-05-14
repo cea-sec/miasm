@@ -1,8 +1,7 @@
 import sys
 import os
 
-from miasm2.core.cpu import ParseAst
-from miasm2.arch.mips32.arch import mn_mips32, base_expr, variable
+from miasm2.arch.mips32.arch import mn_mips32
 from miasm2.core import parse_asm
 from miasm2.expression.expression import *
 from miasm2.core import asmblock

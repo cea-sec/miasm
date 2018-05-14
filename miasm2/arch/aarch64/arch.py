@@ -1,6 +1,7 @@
 #-*- coding:utf-8 -*-
 
 import logging
+import math
 from pyparsing import *
 from miasm2.expression import expression as m2_expr
 from miasm2.core.cpu import *
@@ -11,7 +12,7 @@ from regs import *
 from miasm2.core.asmblock import AsmLabel
 from miasm2.core.cpu import log as log_cpu
 from miasm2.expression.modint import uint32, uint64, mod_size2int
-import math
+from miasm2.core.asm_ast import AstInt, AstId, AstMem, AstOp
 
 log = logging.getLogger("aarch64dis")
 console_handler = logging.StreamHandler()
@@ -68,43 +69,6 @@ replace_regs = {
 }
 
 
-variable, operand, base_expr = gen_base_expr()
-_, _, base_expr32 = gen_base_expr()
-_, _, base_expr64 = gen_base_expr()
-
-
-def ast_id2expr32(t):
-    if t in mn_aarch64.regs.all_regs_ids_byname:
-        t = mn_aarch64.regs.all_regs_ids_byname[t]
-        if not t.size == 32:
-            raise StopIteration
-    return t
-
-def ast_int2expr32(a):
-    return m2_expr.ExprInt(a, 32)
-
-
-def ast_id2expr64(t):
-    if t in mn_aarch64.regs.all_regs_ids_byname:
-        t = mn_aarch64.regs.all_regs_ids_byname[t]
-        if not t.size == 64:
-            raise StopIteration
-    return t
-
-
-def ast_int2expr64(a):
-    return m2_expr.ExprInt(a, 64)
-
-my_var_parser32 = ParseAst(ast_id2expr32, ast_int2expr32, default_size=32)
-my_var_parser64 = ParseAst(ast_id2expr64, ast_int2expr64, default_size=64)
-
-base_expr32.setParseAction(my_var_parser32)
-base_expr64.setParseAction(my_var_parser64)
-
-
-int_or_expr = base_expr
-int_or_expr32 = base_expr32
-int_or_expr64 = base_expr64
 
 
 shift2expr_dct = {'LSL': '<<', 'LSR': '>>', 'ASR': 'a>>', 'ROR': '>>>'}
@@ -112,121 +76,90 @@ shift_str = ["LSL", "LSR", "ASR", "ROR"]
 shift_expr = ["<<", ">>", "a>>", '>>>']
 
 
-def op_shift2expr(s, l, t):
-    return shift2expr_dct[t[0]]
+def cb_shift(tokens):
+    return shift2expr_dct[tokens[0]]
 
 
-def op_shift2expr_slice_at(s, l, t):
-    return "slice_at"
+def cb_extreg(tokens):
+    return tokens[0]
 
 
-def op_ext_reg(s, l, t):
-    return t[0]
-
-
-def shift2expr(t):
-    if len(t) == 1:
-        return t[0]
-    elif len(t) == 3:
-        if t[0].size == 32 and isinstance(t[2], m2_expr.ExprInt):
-            t[2] = m2_expr.ExprInt(int(t[2]), 32)
-        return m2_expr.ExprOp(t[1], t[0], t[2])
+def cb_shiftreg(tokens):
+    if len(tokens) == 1:
+        return tokens[0]
+    elif len(tokens) == 3:
+        result = AstOp(tokens[1], tokens[0], tokens[2])
+        return result
     else:
         raise ValueError('bad string')
 
 
-def shift2expr_sc(t):
-    if len(t) == 1:
-        return t[0]
-    elif len(t) == 3:
-        if t[0].size == 32 and isinstance(t[2], m2_expr.ExprInt):
-            t[2] = m2_expr.ExprInt(t[2].arg, 32)
-        if t[1] != '<<':
+def cb_shift_sc(tokens):
+    if len(tokens) == 1:
+        return tokens[0]
+    elif len(tokens) == 3:
+        if tokens[1] != '<<':
             raise ValueError('bad op')
-        return m2_expr.ExprOp("slice_at", t[0], t[2])
+        result = AstOp("slice_at", tokens[0], tokens[2])
+        return result
     else:
         raise ValueError('bad string')
 
 
-def extend2expr(t):
-    if len(t) == 1:
-        return t[0]
-    return m2_expr.ExprOp(t[1], t[0], t[2])
+def cb_extend(tokens):
+    if len(tokens) == 1:
+        return tokens[0]
+    result = AstOp(tokens[1], tokens[0], tokens[2])
+    return result
 
 
-def shiftext2expr(t):
-    if len(t) == 1:
-        return t[0]
-    else:
-        return m2_expr.ExprOp(t[1], t[0], t[2])
-
-def expr_deref_pc_off(t):
-    t = t[0]
-    if len(t) == 2 and t[0] == "PC":
-        return ExprOp('preinc', PC, t[1])
+def cb_deref_pc_off(tokens):
+    if len(tokens) == 2 and tokens[0] == "PC":
+        result = AstOp('preinc', AstId(ExprId('PC', 64)), tokens[1])
+        return result
     raise ValueError('bad string')
 
-def expr_deref_pc_nooff(t):
-    t = t[0]
-    if len(t) == 1 and t[0] == "PC":
-        return ExprOp('preinc', PC)
+def cb_deref_pc_nooff(tokens):
+    if len(tokens) == 1 and tokens[0] == "PC":
+        result = AstOp('preinc', AstId(PC))
+        return result
     raise ValueError('bad string')
 
-all_binaryop_lsl_t = literal_list(
-    shift_str).setParseAction(op_shift2expr)
+all_binaryop_lsl_t = literal_list(shift_str).setParseAction(cb_shift)
 
-all_binaryop_shiftleft_t = literal_list(
-    ["LSL"]).setParseAction(op_shift2expr)
+all_binaryop_shiftleft_t = literal_list(["LSL"]).setParseAction(cb_shift)
 
 extend_lst = ['UXTB', 'UXTH', 'UXTW', 'UXTX', 'SXTB', 'SXTH', 'SXTW', 'SXTX']
 extend2_lst = ['UXTW', 'LSL', 'SXTW', 'SXTX']
 
-all_extend_t = literal_list(extend_lst).setParseAction(op_ext_reg)
-all_extend2_t = literal_list(extend2_lst).setParseAction(op_ext_reg)
+all_extend_t = literal_list(extend_lst).setParseAction(cb_extreg)
+all_extend2_t = literal_list(extend2_lst).setParseAction(cb_extreg)
 
 
-gpregz32_extend = (gpregsz32_info.parser + Optional(
-    all_extend_t + int_or_expr32)).setParseAction(extend2expr)
-gpregz64_extend = (gpregsz64_info.parser + Optional(
-    all_extend_t + int_or_expr64)).setParseAction(extend2expr)
+gpregz32_extend = (gpregsz32_info.parser + Optional(all_extend_t + base_expr)).setParseAction(cb_extend)
+gpregz64_extend = (gpregsz64_info.parser + Optional(all_extend_t + base_expr)).setParseAction(cb_extend)
 
 
-shift32_off = (gpregsz32_info.parser + Optional(all_binaryop_lsl_t +
-               (gpregs32_info.parser | int_or_expr))).setParseAction(shift2expr)
-shift64_off = (gpregsz64_info.parser + Optional(all_binaryop_lsl_t +
-               (gpregs64_info.parser | int_or_expr))).setParseAction(shift2expr)
+shift32_off = (gpregsz32_info.parser + Optional(all_binaryop_lsl_t + base_expr)).setParseAction(cb_shiftreg)
+shift64_off = (gpregsz64_info.parser + Optional(all_binaryop_lsl_t + base_expr)).setParseAction(cb_shiftreg)
 
 
-shiftimm_imm_sc = (int_or_expr + all_binaryop_shiftleft_t +
-                   int_or_expr).setParseAction(shift2expr_sc)
+shiftimm_imm_sc = (base_expr + all_binaryop_shiftleft_t + base_expr).setParseAction(cb_shift_sc)
 
-shiftimm_off_sc = shiftimm_imm_sc | int_or_expr
+shiftimm_off_sc = shiftimm_imm_sc | base_expr
 
 
 shift_off = (shift32_off | shift64_off)
 reg_ext_off = (gpregz32_extend | gpregz64_extend)
 
 gpregs_32_64 = (gpregs32_info.parser | gpregs64_info.parser)
-gpregsz_32_64 = (gpregsz32_info.parser | gpregsz64_info.parser | int_or_expr)
+gpregsz_32_64 = (gpregsz32_info.parser | gpregsz64_info.parser | base_expr)
 
-simdregs = (simd08_info.parser | simd16_info.parser |
-            simd32_info.parser | simd64_info.parser)
+simdregs = (simd08_info.parser | simd16_info.parser | simd32_info.parser | simd64_info.parser)
 simdregs_h = (simd32_info.parser | simd64_info.parser | simd128_info.parser)
 
-simdregs_h_zero = (simd32_info.parser |
-                   simd64_info.parser | simd128_info.parser | int_or_expr)
+simdregs_h_zero = (simd32_info.parser | simd64_info.parser | simd128_info.parser | base_expr)
 
-
-def ast_id2expr(t):
-    if not t in mn_aarch64.regs.all_regs_ids_byname:
-        r = m2_expr.ExprId(AsmLabel(t), 32)
-    else:
-        r = mn_aarch64.regs.all_regs_ids_byname[t]
-    return r
-
-
-def ast_int2expr(a):
-    return m2_expr.ExprInt(a, 64)
 
 gpregs_info = {32: gpregs32_info,
                64: gpregs64_info}
@@ -241,72 +174,66 @@ simds_info = {8: simd08_info,
               128: simd128_info}
 
 
-my_var_parser = ParseAst(ast_id2expr, ast_int2expr)
-base_expr.setParseAction(my_var_parser)
 
-
-def deref2expr_nooff(t):
-    t = t[0]
+def cb_deref_nooff(t):
     # XXX default
-    return m2_expr.ExprOp("preinc", t[0], m2_expr.ExprInt(0, 64))
+    result = AstOp("preinc", t[0], AstInt(0))
+    return result
 
 
-def deref2expr_post(t):
-    t = t[0]
-    if t[1] in regs_module.all_regs_ids:
+def cb_deref_post(t):
+    assert len(t) == 2
+    if isinstance(t[1], AstId) and isinstance(t[1].name, ExprId):
         raise StopIteration
-    return m2_expr.ExprOp("postinc", t[0], t[1])
+    result = AstOp("postinc", *t)
+    return result
 
 
-def deref2expr_pre(t):
-    t = t[0]
-    if t[1] in regs_module.all_regs_ids:
+def cb_deref_pre(t):
+    assert len(t) == 2
+    if isinstance(t[1], AstId) and isinstance(t[1].name, ExprId):
         raise StopIteration
-    return m2_expr.ExprOp("preinc", t[0], t[1])
+    result = AstOp("preinc", *t)
+    return result
 
 
-def deref2expr_pre_wb(t):
-    t = t[0]
-    if t[1] in regs_module.all_regs_ids:
+def cb_deref_pre_wb(t):
+    assert len(t) == 2
+    if isinstance(t[1], AstId) and isinstance(t[1].name, ExprId):
         raise StopIteration
-    return m2_expr.ExprOp("preinc_wb", t[0], t[1])
+    result = AstOp("preinc_wb", *t)
+    return result
+
 
 LBRACK = Suppress("[")
 RBRACK = Suppress("]")
 COMMA = Suppress(",")
 POSTINC = Suppress("!")
 
-deref_nooff = Group(
-    LBRACK + gpregs64_info.parser + RBRACK).setParseAction(deref2expr_nooff)
-deref_off_post = Group(LBRACK + gpregs64_info.parser +
-                       RBRACK + COMMA + int_or_expr64).setParseAction(deref2expr_post)
-deref_off_pre = Group(LBRACK + gpregs64_info.parser +
-                      COMMA + int_or_expr64 + RBRACK).setParseAction(deref2expr_pre)
-deref_off_pre_wb = Group(LBRACK + gpregs64_info.parser + COMMA +
-                         int_or_expr64 + RBRACK + POSTINC).setParseAction(deref2expr_pre_wb)
+deref_nooff = (LBRACK + gpregs64_info.parser + RBRACK).setParseAction(cb_deref_nooff)
+deref_off_post = (LBRACK + gpregs64_info.parser + RBRACK + COMMA + base_expr).setParseAction(cb_deref_post)
+deref_off_pre = (LBRACK + gpregs64_info.parser + COMMA + base_expr + RBRACK).setParseAction(cb_deref_pre)
+deref_off_pre_wb = (LBRACK + gpregs64_info.parser + COMMA + base_expr + RBRACK + POSTINC).setParseAction(cb_deref_pre_wb)
 
 deref = (deref_off_post | deref_off_pre_wb | deref_off_pre | deref_nooff)
 
 
-deref_pc_off = Group(LBRACK + Literal("PC") + COMMA + int_or_expr64 + RBRACK).setParseAction(expr_deref_pc_off)
-deref_pc_nooff = Group(LBRACK + Literal("PC") + RBRACK).setParseAction(expr_deref_pc_nooff)
+deref_pc_off = (LBRACK + Literal("PC") + COMMA + base_expr + RBRACK).setParseAction(cb_deref_pc_off)
+deref_pc_nooff = (LBRACK + Literal("PC") + RBRACK).setParseAction(cb_deref_pc_nooff)
 
 deref_pc = (deref_pc_off | deref_pc_nooff)
 
-def deref_ext2op(t):
-    t = t[0]
+def cb_deref_ext2op(t):
     if len(t) == 4:
-        expr = set_imm_to_size(t[1].size, t[3])
-        if expr is None:
-            raise StopIteration
-        return m2_expr.ExprOp('segm', t[0], m2_expr.ExprOp(t[2], t[1], expr))
+        result = AstOp('segm', t[0], AstOp(t[2], t[1], t[3]))
+        return result
     elif len(t) == 2:
-        return m2_expr.ExprOp('segm', t[0], t[1])
+        result = AstOp('segm', *t)
+        return result
 
     raise ValueError("cad deref")
 
-deref_ext2 = Group(LBRACK + gpregs_32_64 + COMMA + gpregs_32_64 +
-                   Optional(all_extend2_t + int_or_expr) + RBRACK).setParseAction(deref_ext2op)
+deref_ext2 = (LBRACK + gpregs_32_64 + COMMA + gpregs_32_64 + Optional(all_extend2_t + base_expr) + RBRACK).setParseAction(cb_deref_ext2op)
 
 
 class additional_info:
@@ -333,6 +260,47 @@ BRCOND = ['B.' + cond for cond in CONDS] + ['CBZ', 'CBNZ', 'TBZ', 'TBNZ']
 # for conditional selec
 conds_expr, _, conds_info = gen_regs(CONDS, {})
 conds_inv_expr, _, conds_inv_info = gen_regs(CONDS_INV, {})
+
+
+
+class aarch64_arg(m_arg):
+    def asm_ast_to_expr(self, value, symbol_pool, size_hint=None, fixed_size=None):
+        if size_hint is None:
+            size_hint = 64
+        if fixed_size is None:
+            fixed_size = set()
+        if isinstance(value, AstId):
+            if value.name in all_regs_ids_byname:
+                reg = all_regs_ids_byname[value.name]
+                fixed_size.add(reg.size)
+                return reg
+            if isinstance(value.name, ExprId):
+                fixed_size.add(value.name.size)
+                return value.name
+            label = symbol_pool.getby_name_create(value.name)
+            return ExprId(label, size_hint)
+        if isinstance(value, AstInt):
+            assert size_hint is not None
+            return ExprInt(value.value, size_hint)
+        if isinstance(value, AstOp):
+            if value.op == "segm":
+                segm = self.asm_ast_to_expr(value.args[0], symbol_pool)
+                ptr = self.asm_ast_to_expr(value.args[1], symbol_pool, None, fixed_size)
+                return ExprOp('segm', segm, ptr)
+
+            args = [self.asm_ast_to_expr(arg, symbol_pool, None, fixed_size) for arg in value.args]
+            if len(fixed_size) == 0:
+                # No fixed size
+                pass
+            elif len(fixed_size) == 1:
+                # One fixed size, regen all
+                size = list(fixed_size)[0]
+                args = [self.asm_ast_to_expr(arg, symbol_pool, size, fixed_size) for arg in value.args]
+            else:
+                raise ValueError("Size conflict")
+
+            return ExprOp(value.op, *args)
+        return None
 
 
 class instruction_aarch64(instruction):
@@ -567,7 +535,7 @@ class aarch64_gpreg_noarg(reg_noarg):
         return True
 
 
-class aarch64_simdreg(reg_noarg, m_arg):
+class aarch64_simdreg(reg_noarg, aarch64_arg):
     parser = simdregs
     simd_size = [8, 16, 32, 64]
 
@@ -619,7 +587,7 @@ class aarch64_simdreg_32_64_zero(aarch64_simdreg_32_64):
             return super(aarch64_simdreg_32_64_zero, self).encode()
 
 
-class aarch64_gpreg_isf(reg_noarg, m_arg):
+class aarch64_gpreg_isf(reg_noarg, aarch64_arg):
     parser = gpregs_32_64
 
     def decode(self, v):
@@ -635,7 +603,7 @@ class aarch64_gpreg_isf(reg_noarg, m_arg):
         return True
 
 
-class aarch64_gpreg(aarch64_gpreg_noarg, m_arg):
+class aarch64_gpreg(aarch64_gpreg_noarg, aarch64_arg):
     pass
 
 
@@ -651,12 +619,12 @@ class aarch64_gpreg_n1(aarch64_gpreg):
         return self.value != 0b11111
 
 
-class aarch64_gpregz(aarch64_gpreg_noarg, m_arg):
+class aarch64_gpregz(aarch64_gpreg_noarg, aarch64_arg):
     parser = gpregsz_32_64
     gpregs_info = gpregsz_info
 
 
-class aarch64_gpreg0(bsi, m_arg):
+class aarch64_gpreg0(bsi, aarch64_arg):
     parser = gpregsz_32_64
     gpregs_info = gpregsz_info
 
@@ -684,7 +652,7 @@ class aarch64_gpreg0(bsi, m_arg):
         return True
 
 
-class aarch64_crreg(reg_noarg, m_arg):
+class aarch64_crreg(reg_noarg, aarch64_arg):
     reg_info = cr_info
     parser = reg_info.parser
 
@@ -702,7 +670,7 @@ class aarch64_gpreg32_noarg(reg_noarg):
     parser = reg_info.parser
 
 
-class aarch64_gpreg32(aarch64_gpreg32_noarg, m_arg):
+class aarch64_gpreg32(aarch64_gpreg32_noarg, aarch64_arg):
     reg_info = gpregs32_info
     parser = reg_info.parser
 
@@ -712,7 +680,7 @@ class aarch64_gpreg64_noarg(reg_noarg):
     parser = reg_info.parser
 
 
-class aarch64_gpreg64(reg_noarg, m_arg):
+class aarch64_gpreg64(reg_noarg, aarch64_arg):
     reg_info = gpregs64_info
     parser = reg_info.parser
 
@@ -722,7 +690,7 @@ class aarch64_gpregz32_noarg(reg_noarg):
     parser = reg_info.parser
 
 
-class aarch64_gpregz32(aarch64_gpreg32_noarg, m_arg):
+class aarch64_gpregz32(aarch64_gpreg32_noarg, aarch64_arg):
     reg_info = gpregsz32_info
     parser = reg_info.parser
 
@@ -732,7 +700,7 @@ class aarch64_gpregz64_noarg(reg_noarg):
     parser = reg_info.parser
 
 
-class aarch64_gpregz64(reg_noarg, m_arg):
+class aarch64_gpregz64(reg_noarg, aarch64_arg):
     reg_info = gpregsz64_info
     parser = reg_info.parser
 
@@ -742,7 +710,7 @@ class aarch64_simd08_noarg(reg_noarg):
     parser = reg_info.parser
 
 
-class aarch64_simd08(aarch64_simd08_noarg, m_arg):
+class aarch64_simd08(aarch64_simd08_noarg, aarch64_arg):
     reg_info = simd08_info
     parser = reg_info.parser
 
@@ -752,7 +720,7 @@ class aarch64_simd16_noarg(reg_noarg):
     parser = reg_info.parser
 
 
-class aarch64_simd16(aarch64_simd16_noarg, m_arg):
+class aarch64_simd16(aarch64_simd16_noarg, aarch64_arg):
     reg_info = simd16_info
     parser = reg_info.parser
 
@@ -762,7 +730,7 @@ class aarch64_simd32_noarg(reg_noarg):
     parser = reg_info.parser
 
 
-class aarch64_simd32(aarch64_simd32_noarg, m_arg):
+class aarch64_simd32(aarch64_simd32_noarg, aarch64_arg):
     reg_info = simd32_info
     parser = reg_info.parser
 
@@ -772,7 +740,7 @@ class aarch64_simd64_noarg(reg_noarg):
     parser = reg_info.parser
 
 
-class aarch64_simd64(aarch64_simd64_noarg, m_arg):
+class aarch64_simd64(aarch64_simd64_noarg, aarch64_arg):
     reg_info = simd64_info
     parser = reg_info.parser
 
@@ -782,12 +750,12 @@ class aarch64_simd128_noarg(reg_noarg):
     parser = reg_info.parser
 
 
-class aarch64_simd128(aarch64_simd128_noarg, m_arg):
+class aarch64_simd128(aarch64_simd128_noarg, aarch64_arg):
     reg_info = simd128_info
     parser = reg_info.parser
 
 
-class aarch64_imm_32(imm_noarg, m_arg):
+class aarch64_imm_32(imm_noarg, aarch64_arg):
     parser = base_expr
 
 
@@ -810,7 +778,7 @@ class aarch64_uint64_noarg(imm_noarg):
     int2expr = lambda self, x: m2_expr.ExprInt(x, 64)
 
 
-class aarch64_uint64(aarch64_uint64_noarg, m_arg):
+class aarch64_uint64(aarch64_uint64_noarg, aarch64_arg):
     parser = base_expr
 
 
@@ -829,8 +797,8 @@ def set_imm_to_size(size, expr):
 class aarch64_imm_sf(imm_noarg):
     parser = base_expr
 
-    def fromstring(self, s, parser_result=None):
-        start, stop = super(aarch64_imm_sf, self).fromstring(s, parser_result)
+    def fromstring(self, text, symbol_pool, parser_result=None):
+        start, stop = super(aarch64_imm_sf, self).fromstring(text, symbol_pool, parser_result)
         if start is None:
             return start, stop
         size = self.parent.args[0].expr.size
@@ -861,7 +829,7 @@ class aarch64_imm_sf(imm_noarg):
         return True
 
 
-class aarch64_imm_sft(aarch64_imm_sf, m_arg):
+class aarch64_imm_sft(aarch64_imm_sf, aarch64_arg):
 
     def encode(self):
         if not isinstance(self.expr, m2_expr.ExprInt):
@@ -895,7 +863,7 @@ OPTION2SIZE = [32, 32, 32, 64,
                32, 32, 32, 64]
 
 
-class aarch64_gpreg_ext(reg_noarg, m_arg):
+class aarch64_gpreg_ext(reg_noarg, aarch64_arg):
     parser = reg_ext_off
 
     def encode(self):
@@ -934,7 +902,7 @@ EXT2_OP = {0b010: 'UXTW',
 EXT2_OP_INV = dict([(items[1], items[0]) for items in EXT2_OP.items()])
 
 
-class aarch64_gpreg_ext2(reg_noarg, m_arg):
+class aarch64_gpreg_ext2(reg_noarg, aarch64_arg):
     parser = deref_ext2
 
     def get_size(self):
@@ -946,6 +914,12 @@ class aarch64_gpreg_ext2(reg_noarg, m_arg):
         if len(self.expr.args) != 2:
             return False
         arg0, arg1 = self.expr.args
+        if (self.expr.is_op("preinc") and arg0.is_id() and arg1.is_id()):
+            self.parent.shift.value = 0
+            self.parent.rn.value = self.parent.rn.reg_info.expr.index(arg0)
+            self.value = gpregs_info[arg1.size].expr.index(arg1)
+            self.parent.option.value = 0b011
+            return True
         if not (isinstance(self.expr, m2_expr.ExprOp) and self.expr.op == 'segm'):
             return False
         if not arg0 in self.parent.rn.reg_info.expr:
@@ -1022,7 +996,7 @@ def test_set_sf(parent, size):
     return psize == size
 
 
-class aarch64_gpreg_sftimm(reg_noarg, m_arg):
+class aarch64_gpreg_sftimm(reg_noarg, aarch64_arg):
     reg_info = gpregsz_info
     parser = shift_off
 
@@ -1266,7 +1240,7 @@ def EncodeBitMasks(wmask):
     return immr, imms, immn
 
 
-class aarch64_imm_nsr(aarch64_imm_sf, m_arg):
+class aarch64_imm_nsr(aarch64_imm_sf, aarch64_arg):
     parser = base_expr
 
     def decode(self, v):
@@ -1347,7 +1321,7 @@ class aarch64_immhi_page(aarch64_imm_32):
         return True
 
 
-class aarch64_imm_hw(m_arg):
+class aarch64_imm_hw(aarch64_arg):
     parser = base_expr
     shift_op = '<<'
 
@@ -1373,7 +1347,7 @@ class aarch64_imm_hw(m_arg):
         return False
 
 
-class aarch64_imm_hw_sc(m_arg):
+class aarch64_imm_hw_sc(aarch64_arg):
     parser = shiftimm_off_sc
     shift_op = 'slice_at'
 
@@ -1415,7 +1389,7 @@ class aarch64_imm_hw_sc(m_arg):
         return True
 
 
-class aarch64_offs(imm_noarg, m_arg):
+class aarch64_offs(imm_noarg, aarch64_arg):
     parser = base_expr
 
     def decode(self, v):
@@ -1436,7 +1410,7 @@ class aarch64_offs(imm_noarg, m_arg):
 
 
 
-class aarch64_offs_pc(imm_noarg, m_arg):
+class aarch64_offs_pc(imm_noarg, aarch64_arg):
     parser = deref_pc
 
     def decode(self, v):
@@ -1490,7 +1464,7 @@ def get_size(parent):
     return size
 
 
-class aarch64_deref(m_arg):
+class aarch64_deref(aarch64_arg):
     parser = deref
 
     def decode_w_size(self, off):
@@ -1628,17 +1602,17 @@ modf = bs_mod_name(l=1, fname='modf', mn_mod=['', 'S'])
 sf = bs(l=1, fname='sf', order=-1)
 
 
-class aarch64_cond_arg(reg_noarg, m_arg):
+class aarch64_cond_arg(reg_noarg, aarch64_arg):
     reg_info = conds_info
     parser = reg_info.parser
 
 
-class aarch64_cond_inv_arg(reg_noarg, m_arg):
+class aarch64_cond_inv_arg(reg_noarg, aarch64_arg):
     reg_info = conds_inv_info
     parser = reg_info.parser
 
 
-class aarch64_b40(m_arg):
+class aarch64_b40(aarch64_arg):
     parser = base_expr
 
     def decode(self, v):
@@ -1745,19 +1719,19 @@ imm_sft_12 = bs(l=12, cls=(aarch64_imm_sft,))
 imm32_3 = bs(l=3, fname="imm")
 imm6 = bs(l=6, fname="imm", order=-1)
 imm3 = bs(l=3, fname="imm", order=-1)
-simm6 = bs(l=6, cls=(aarch64_int64_noarg, m_arg), fname="imm", order=-1)
+simm6 = bs(l=6, cls=(aarch64_int64_noarg, aarch64_arg), fname="imm", order=-1)
 simm9 = bs(l=9, cls=(aarch64_int64_noarg,), fname="imm", order=-1)
 simm7 = bs(l=7, cls=(aarch64_int64_noarg,), fname="imm", order=-1)
-nzcv = bs(l=4, cls=(aarch64_uint64_noarg, m_arg), fname="nzcv", order=-1)
-uimm5 = bs(l=5, cls=(aarch64_uint64_noarg, m_arg), fname="imm", order=-1)
+nzcv = bs(l=4, cls=(aarch64_uint64_noarg, aarch64_arg), fname="nzcv", order=-1)
+uimm5 = bs(l=5, cls=(aarch64_uint64_noarg, aarch64_arg), fname="imm", order=-1)
 uimm12 = bs(l=12, cls=(aarch64_uint64_noarg,), fname="imm", order=-1)
-uimm16 = bs(l=16, cls=(aarch64_uint64_noarg, m_arg), fname="imm", order=-1)
+uimm16 = bs(l=16, cls=(aarch64_uint64_noarg, aarch64_arg), fname="imm", order=-1)
 uimm7 = bs(l=7, cls=(aarch64_uint64_noarg,), fname="imm", order=-1)
 
 uimm8 = bs(l=8, cls=(aarch64_uint64,), fname="imm", order=-1)
 
-op1 = bs(l=3, cls=(aarch64_uint64, m_arg), fname="op1")
-op2 = bs(l=3, cls=(aarch64_uint64, m_arg), fname="op2")
+op1 = bs(l=3, cls=(aarch64_uint64, aarch64_arg), fname="op1")
+op2 = bs(l=3, cls=(aarch64_uint64, aarch64_arg), fname="op2")
 
 
 imm16 = bs(l=16, fname="imm", order=-1)
@@ -1787,8 +1761,8 @@ imm16_hw_sc = bs(l=16, cls=(aarch64_imm_hw_sc,), fname='imm')
 hw = bs(l=2, fname='hw')
 
 
-a_imms = bs(l=6, cls=(aarch64_imm_sf, m_arg), fname="imm1", order=-1)
-a_immr = bs(l=6, cls=(aarch64_imm_sf, m_arg), fname="imm1", order=-1)
+a_imms = bs(l=6, cls=(aarch64_imm_sf, aarch64_arg), fname="imm1", order=-1)
+a_immr = bs(l=6, cls=(aarch64_imm_sf, aarch64_arg), fname="imm1", order=-1)
 
 
 

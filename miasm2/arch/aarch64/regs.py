@@ -45,9 +45,9 @@ simd128_expr, simd128_init, simd128_info = gen_regs(
     simd128_str, globals(), 128)
 
 
-gen_reg("PC", globals(), 64)
-gen_reg("WZR", globals(), 32)
-gen_reg("XZR", globals(), 64)
+PC, _ = gen_reg("PC", 64)
+WZR, _ = gen_reg("WZR", 32)
+XZR, _ = gen_reg("XZR", 64)
 
 PC_init = ExprId("PC_init", 64)
 WZR_init = ExprId("WZR_init", 32)

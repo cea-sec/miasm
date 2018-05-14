@@ -5,10 +5,12 @@ from collections import defaultdict
 
 from pyparsing import Literal, Group, Optional
 
-from miasm2.expression.expression import ExprMem, ExprInt, ExprId
+from miasm2.expression.expression import ExprMem, ExprInt, ExprId, ExprOp
 from miasm2.core.bin_stream import bin_stream
 import miasm2.arch.mips32.regs as regs
 import miasm2.core.cpu as cpu
+
+from miasm2.core.asm_ast import AstInt, AstId, AstMem, AstOp
 
 log = logging.getLogger("mips32dis")
 console_handler = logging.StreamHandler()
@@ -20,47 +22,25 @@ log.setLevel(logging.DEBUG)
 gpregs = cpu.reg_info(regs.regs32_str, regs.regs32_expr)
 
 
-
 LPARENTHESIS = Literal("(")
 RPARENTHESIS = Literal(")")
 
-def deref2expr(s, l, t):
-    t = t[0]
-    if len(t) != 4:
+def cb_deref(tokens):
+    if len(tokens) != 4:
         raise NotImplementedError("TODO")
+    return AstMem(tokens[2] + tokens[0], 32)
 
-    return ExprMem(t[2] + t[0], 32)
-
-def deref2expr_nooff(s, l, t):
-    t = t[0]
-    if len(t) != 3:
+def cb_deref_nooff(tokens):
+    if len(tokens) != 3:
         raise NotImplementedError("TODO")
-    return ExprMem(t[1], 32)
+    return AstMem(tokens[1], 32)
 
 base_expr = cpu.base_expr
 
-deref_off = Group(Optional(cpu.base_expr) + LPARENTHESIS + gpregs.parser + \
-                      RPARENTHESIS).setParseAction(deref2expr)
-deref_nooff = Group(LPARENTHESIS + gpregs.parser + \
-                        RPARENTHESIS).setParseAction(deref2expr_nooff)
+deref_off = (Optional(base_expr) + LPARENTHESIS + gpregs.parser + RPARENTHESIS).setParseAction(cb_deref)
+deref_nooff = (LPARENTHESIS + gpregs.parser + RPARENTHESIS).setParseAction(cb_deref_nooff)
 deref = deref_off | deref_nooff
 
-
-variable, operand, base_expr = cpu.gen_base_expr()
-
-int_or_expr = base_expr
-
-
-def ast_id2expr(t):
-    return mn_mips32.regs.all_regs_ids_byname.get(t, t)
-
-
-def ast_int2expr(a):
-    return ExprInt(a, 32)
-
-
-my_var_parser = cpu.ParseAst(ast_id2expr, ast_int2expr)
-base_expr.setParseAction(my_var_parser)
 
 class additional_info:
     def __init__(self):
@@ -274,8 +254,31 @@ def mips32op(name, fields, args=None, alias=False):
     type(name, (mn_mips32,), dct)
     #type(name, (mn_mips32b,), dct)
 
+class mips32_arg(cpu.m_arg):
+    def asm_ast_to_expr(self, arg, symbol_pool):
+        if isinstance(arg, AstId):
+            if isinstance(arg.name, ExprId):
+                return arg.name
+            if arg.name in gpregs.str:
+                return None
+            label = symbol_pool.getby_name_create(arg.name)
+            return ExprId(label, 32)
+        if isinstance(arg, AstOp):
+            args = [self.asm_ast_to_expr(tmp, symbol_pool) for tmp in arg.args]
+            if None in args:
+                return None
+            return ExprOp(arg.op, *args)
+        if isinstance(arg, AstInt):
+            return ExprInt(arg.value, 32)
+        if isinstance(arg, AstMem):
+            ptr = self.asm_ast_to_expr(arg.ptr, symbol_pool)
+            if ptr is None:
+                return None
+            return ExprMem(ptr, arg.size)
+        return None
 
-class mips32_reg(cpu.reg_noarg, cpu.m_arg):
+
+class mips32_reg(cpu.reg_noarg, mips32_arg):
     pass
 
 class mips32_gpreg(mips32_reg):
@@ -335,14 +338,14 @@ class mips32_soff_noarg(mips32_imm):
         return True
 
 
-class mips32_s16imm(mips32_s16imm_noarg, cpu.m_arg):
+class mips32_s16imm(mips32_s16imm_noarg, mips32_arg):
     pass
 
-class mips32_soff(mips32_soff_noarg, cpu.m_arg):
+class mips32_soff(mips32_soff_noarg, mips32_arg):
     pass
 
 
-class mips32_instr_index(mips32_imm, cpu.m_arg):
+class mips32_instr_index(mips32_imm, mips32_arg):
     def decode(self, v):
         v = v & self.lmask
         self.expr = ExprInt(v<<2, 32)
@@ -361,7 +364,7 @@ class mips32_instr_index(mips32_imm, cpu.m_arg):
         return True
 
 
-class mips32_u16imm(mips32_imm, cpu.m_arg):
+class mips32_u16imm(mips32_imm, mips32_arg):
     def decode(self, v):
         v = v & self.lmask
         self.expr = ExprInt(v, 32)
@@ -375,7 +378,7 @@ class mips32_u16imm(mips32_imm, cpu.m_arg):
         self.value = v
         return True
 
-class mips32_dreg_imm(cpu.m_arg):
+class mips32_dreg_imm(mips32_arg):
     parser = deref
     def decode(self, v):
         imm = self.parent.imm.expr
@@ -408,7 +411,7 @@ class mips32_dreg_imm(cpu.m_arg):
         assert(len(arg.args) == 2 and arg.op == '+')
         return "%s(%s)"%(arg.args[1], arg.args[0])
 
-class mips32_esize(mips32_imm, cpu.m_arg):
+class mips32_esize(mips32_imm, mips32_arg):
     def decode(self, v):
         v = v & self.lmask
         self.expr = ExprInt(v+1, 32)
@@ -422,7 +425,7 @@ class mips32_esize(mips32_imm, cpu.m_arg):
         self.value = v
         return True
 
-class mips32_eposh(mips32_imm, cpu.m_arg):
+class mips32_eposh(mips32_imm, mips32_arg):
     def decode(self, v):
         self.expr = ExprInt(v-int(self.parent.epos.expr)+1, 32)
         return True
@@ -437,7 +440,7 @@ class mips32_eposh(mips32_imm, cpu.m_arg):
 
 
 
-class mips32_cpr(cpu.m_arg):
+class mips32_cpr(mips32_arg):
     parser = regs.regs_cpr0_info.parser
     def decode(self, v):
         index = int(self.parent.cpr0.expr) << 3

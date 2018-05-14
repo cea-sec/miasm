@@ -7,6 +7,9 @@ from collections import defaultdict
 import miasm2.arch.sh4.regs as regs_module
 from miasm2.arch.sh4.regs import *
 
+
+from miasm2.core.asm_ast import AstInt, AstId, AstMem, AstOp
+
 jra = ExprId('jra', 32)
 jrb = ExprId('jrb', 32)
 jrc = ExprId('jrc', 32)
@@ -25,99 +28,112 @@ LPARENT = Suppress("(")
 RPARENT = Suppress(")")
 
 
-def parse_deref_pcimm(t):
-    t = t[0]
-    return t[0] + t[1]
+def cb_deref_pcimm(tokens):
+    return tokens[0] + tokens[1]
 
 
-def parse_pcandimmimm(t):
-    t = t[0]
-    return (t[0] & t[1]) + t[2]
-
-def ast_id2expr(t):
-    return mn_sh4.regs.all_regs_ids_byname.get(t, t)
-
-def ast_int2expr(a):
-    return ExprInt(a, 32)
+def cb_pcandimmimm(tokens):
+    return (tokens[0] & tokens[1]) + tokens[2]
 
 
-my_var_parser = ParseAst(ast_id2expr, ast_int2expr)
-base_expr.setParseAction(my_var_parser)
 
-int_or_expr = base_expr
-
-ref_pc = Group(LPARENT + regi_pc.parser + COMMA +
-               int_or_expr + RPARENT).setParseAction(parse_deref_pcimm)
-ref_pcandimm = Group(
-    LPARENT + regi_pc.parser + AND + int_or_expr +
-    COMMA + int_or_expr + RPARENT).setParseAction(parse_pcandimmimm)
-
-
-pcdisp = Group(regi_pc.parser + AND + int_or_expr +
-               PLUS + int_or_expr).setParseAction(parse_pcandimmimm)
+ref_pc = (LPARENT + reg_info_pc.parser + COMMA + base_expr + RPARENT).setParseAction(cb_deref_pcimm)
+ref_pcandimm = (LPARENT + reg_info_pc.parser + AND + base_expr + COMMA + base_expr + RPARENT).setParseAction(cb_pcandimmimm)
+pcdisp = (reg_info_pc.parser + AND + base_expr + PLUS + base_expr).setParseAction(cb_pcandimmimm)
 
 PTR = Suppress('PTR')
 
 
-def parse_deref_mem(s, l, t):
-    t = t[0]
-    e = ExprMem(t[0], 32)
-    return e
+def cb_deref_mem(tokens):
+    assert len(tokens) == 1
+    result = AstMem(tokens[0], 32)
+    return result
 
 
-def parse_predec(s, l, t):
-    t = t[0]
-    e = ExprMem(ExprOp('predec', t[0]), 32)
-    return e
+def cb_predec(tokens):
+    assert len(tokens) == 1
+    result = AstMem(AstOp('predec', tokens[0]), 32)
+    return result
 
 
-def parse_postinc(s, l, t):
-    t = t[0]
-    e = ExprMem(ExprOp('postinc', t[0]), 32)
-    return e
+def cb_postinc(tokens):
+    assert len(tokens) == 1
+    result = AstMem(AstOp('postinc', tokens[0]), 32)
+    return result
 
 
-def parse_regdisp(t):
-    t = t[0]
-    e = ExprMem(t[0] + t[1], 32)
-    return e
+def cb_regdisp(tokens):
+    assert len(tokens) == 2
+    result = AstMem(tokens[0] + tokens[1], 32)
+    return result
 
 
-def parse_regreg(t):
-    t = t[0]
-    e = ExprMem(t[0] + t[1], 32)
-    return e
+def cb_regreg(tokens):
+    assert len(tokens) == 2
+    result = AstMem(tokens[0] + tokens[1], 32)
+    return result
 
 
-deref_pc = Group(DEREF + ref_pc).setParseAction(parse_deref_mem)
-deref_pcimm = Group(DEREF + ref_pcandimm).setParseAction(parse_deref_mem)
+deref_pc = (DEREF + ref_pc).setParseAction(cb_deref_mem)
+deref_pcimm = (DEREF + ref_pcandimm).setParseAction(cb_deref_mem)
 
-dgpregs_base = Group(DEREF + gpregs.parser).setParseAction(parse_deref_mem)
-dgpregs_predec = Group(
-    DEREF + MINUS + gpregs.parser).setParseAction(parse_predec)
-dgpregs_postinc = Group(
-    DEREF + gpregs.parser + PLUS).setParseAction(parse_postinc)
+dgpregs_base = (DEREF + gpregs.parser).setParseAction(cb_deref_mem)
+dgpregs_predec = (DEREF + MINUS + gpregs.parser).setParseAction(cb_predec)
+dgpregs_postinc = (DEREF + gpregs.parser + PLUS).setParseAction(cb_postinc)
 
 dgpregs = dgpregs_base | dgpregs_predec | dgpregs_postinc
 
-d_gpreg_gpreg = Group(DEREF +
-    LPARENT + gpregs.parser + COMMA + gpregs.parser + RPARENT
-    ).setParseAction(parse_regdisp)
+d_gpreg_gpreg = (DEREF + LPARENT + gpregs.parser + COMMA + gpregs.parser + RPARENT).setParseAction(cb_regdisp)
 dgpregs_p = dgpregs_predec | dgpregs_postinc
 
 
-dgpregs_ir = Group(DEREF + LPARENT + gpregs.parser +
-                   COMMA + int_or_expr + RPARENT).setParseAction(parse_regdisp)
+dgpregs_ir = (DEREF + LPARENT + gpregs.parser + COMMA + base_expr + RPARENT).setParseAction(cb_regdisp)
 dgpregs_ir |= d_gpreg_gpreg
 
-dgbr_imm = Group(DEREF + LPARENT + regi_gbr.parser +
-                 COMMA + int_or_expr + RPARENT).setParseAction(parse_regdisp)
+dgbr_imm = (DEREF + LPARENT + reg_info_gbr.parser + COMMA + base_expr + RPARENT).setParseAction(cb_regdisp)
 
-dgbr_reg = Group(DEREF + LPARENT + regi_gbr.parser +
-                 COMMA + gpregs.parser + RPARENT).setParseAction(parse_regreg)
+dgbr_reg = (DEREF + LPARENT + reg_info_gbr.parser + COMMA + gpregs.parser + RPARENT).setParseAction(cb_regreg)
 
 
-class sh4_reg(reg_noarg, m_arg):
+class sh4_arg(m_arg):
+    def asm_ast_to_expr(self, arg, symbol_pool):
+        if isinstance(arg, AstId):
+            if isinstance(arg.name, ExprId):
+                return arg.name
+            if arg.name in gpregs.str:
+                return None
+            label = symbol_pool.getby_name_create(arg.name)
+            return ExprId(label, 32)
+        if isinstance(arg, AstOp):
+            args = [self.asm_ast_to_expr(tmp, symbol_pool) for tmp in arg.args]
+            if None in args:
+                return None
+            return ExprOp(arg.op, *args)
+        if isinstance(arg, AstInt):
+            return ExprInt(arg.value, 32)
+        if isinstance(arg, AstMem):
+            ptr = self.asm_ast_to_expr(arg.ptr, symbol_pool)
+            if ptr is None:
+                return None
+            return ExprMem(ptr, arg.size)
+        return None
+
+
+_, bs_pr = gen_reg_bs('PR', reg_info_pr, (m_reg, sh4_arg,))
+_, bs_r0 = gen_reg_bs('R0', reg_info_r0, (m_reg, sh4_arg,))
+_, bs_sr = gen_reg_bs('SR', reg_info_sr, (m_reg, sh4_arg,))
+_, bs_gbr = gen_reg_bs('GBR', reg_info_gbr, (m_reg, sh4_arg,))
+_, bs_vbr = gen_reg_bs('VBR', reg_info_vbr, (m_reg, sh4_arg,))
+_, bs_ssr = gen_reg_bs('SSR', reg_info_ssr, (m_reg, sh4_arg,))
+_, bs_spc = gen_reg_bs('SPC', reg_info_spc, (m_reg, sh4_arg,))
+_, bs_sgr = gen_reg_bs('SGR', reg_info_sgr, (m_reg, sh4_arg,))
+_, bs_dbr = gen_reg_bs('dbr', reg_info_dbr, (m_reg, sh4_arg,))
+_, bs_mach = gen_reg_bs('mach', reg_info_mach, (m_reg, sh4_arg,))
+_, bs_macl = gen_reg_bs('macl', reg_info_macl, (m_reg, sh4_arg,))
+_, bs_fpul = gen_reg_bs('fpul', reg_info_fpul, (m_reg, sh4_arg,))
+_, bs_fr0 = gen_reg_bs('fr0', reg_info_fr0, (m_reg, sh4_arg,))
+
+class sh4_reg(reg_noarg, sh4_arg):
     pass
 
 
@@ -146,12 +162,12 @@ class sh4_freg(sh4_reg):
     parser = reg_info.parser
 
 
-class sh4_dgpreg(m_arg):
+class sh4_dgpreg(sh4_arg):
     parser = dgpregs_base
 
-    def fromstring(self, s, parser_result=None):
-        start, stop = super(sh4_dgpreg, self).fromstring(s, parser_result)
-        if start is None:
+    def fromstring(self, text, symbol_pool, parser_result=None):
+        start, stop = super(sh4_dgpreg, self).fromstring(text, symbol_pool, parser_result)
+        if start is None or self.expr == [None]:
             return start, stop
         self.expr = ExprMem(self.expr.arg, self.sz)
         return start, stop
@@ -172,12 +188,12 @@ class sh4_dgpreg(m_arg):
         return True
 
 
-class sh4_dgpregpinc(m_arg):
+class sh4_dgpregpinc(sh4_arg):
     parser = dgpregs_p
 
-    def fromstring(self, s, parser_result=None):
-        start, stop = super(sh4_dgpregpinc, self).fromstring(s, parser_result)
-        if self.expr is None:
+    def fromstring(self, text, symbol_pool, parser_result=None):
+        start, stop = super(sh4_dgpregpinc, self).fromstring(text, symbol_pool, parser_result)
+        if self.expr == [None]:
             return None, None
         if not isinstance(self.expr.arg, ExprOp):
             return None, None
@@ -207,7 +223,7 @@ class sh4_dgpregpinc(m_arg):
         return True
 
 
-class sh4_dgpregpdec(m_arg):
+class sh4_dgpregpdec(sh4_arg):
     parser = dgpregs_postinc
     op = "preinc"
 
@@ -252,7 +268,7 @@ class sh4_dgpreg_imm(sh4_dgpreg):
         return True
 
 
-class sh4_imm(imm_noarg, m_arg):
+class sh4_imm(imm_noarg, sh4_arg):
     parser = base_expr
     pass
 
@@ -354,7 +370,7 @@ class sh4_dpc32imm(sh4_dpc16imm):
         return True
 
 
-class sh4_pc32imm(m_arg):
+class sh4_pc32imm(sh4_arg):
     parser = pcdisp
 
     def decode(self, v):
@@ -666,11 +682,11 @@ addop("mov_w",
       [bs('0110', fname="opc"), rn, d16rmpinc, bs('0101')], [d16rmpinc, rn])
 addop("mov_l",
       [bs('0110', fname="opc"), rn, d32rmpinc, bs('0110')], [d32rmpinc, rn])
-addop("mov_b", [bs('10000000', fname='opc'), bsr0, d08rnimm, dimm4])
-addop("mov_w", [bs('10000001', fname='opc'), bsr0, d16rnimm, dimm4])
+addop("mov_b", [bs('10000000', fname='opc'), bs_r0, d08rnimm, dimm4])
+addop("mov_w", [bs('10000001', fname='opc'), bs_r0, d16rnimm, dimm4])
 addop("mov_l", [bs('0001', fname='opc'), d32rnimm, rm, dimm4], [rm, d32rnimm])
-addop("mov_b", [bs('10000100', fname='opc'), d08rmimm, dimm4, bsr0])
-addop("mov_w", [bs('10000101', fname='opc'), d16rmimm, dimm4, bsr0])
+addop("mov_b", [bs('10000100', fname='opc'), d08rmimm, dimm4, bs_r0])
+addop("mov_w", [bs('10000101', fname='opc'), d16rmimm, dimm4, bs_r0])
 addop("mov_l", [bs('0101', fname='opc'), rn, d32rmimm, dimm4], [d32rmimm, rn])
 addop("mov_b",
       [bs('0000', fname='opc'), bd08r0gp, rm, bs('0100')], [rm, bd08r0gp])
@@ -685,15 +701,15 @@ addop("mov_w",
 addop("mov_l",
       [bs('0000', fname='opc'), rn, bd32r0gp, bs('1110')], [bd32r0gp, rn])
 
-addop("mov_b", [bs('11000000'), bsr0, d08gbrimm8])
-addop("mov_w", [bs('11000001'), bsr0, d16gbrimm8])
-addop("mov_l", [bs('11000010'), bsr0, d32gbrimm8])
+addop("mov_b", [bs('11000000'), bs_r0, d08gbrimm8])
+addop("mov_w", [bs('11000001'), bs_r0, d16gbrimm8])
+addop("mov_l", [bs('11000010'), bs_r0, d32gbrimm8])
 
-addop("mov_b", [bs('11000100'), d08gbrimm8, bsr0])
-addop("mov_w", [bs('11000101'), d16gbrimm8, bsr0])
-addop("mov_l", [bs('11000110'), d32gbrimm8, bsr0])
+addop("mov_b", [bs('11000100'), d08gbrimm8, bs_r0])
+addop("mov_w", [bs('11000101'), d16gbrimm8, bs_r0])
+addop("mov_l", [bs('11000110'), d32gbrimm8, bs_r0])
 
-addop("mov", [bs('11000111'), pc32imm, bsr0])
+addop("mov", [bs('11000111'), pc32imm, bs_r0])
 
 addop("swapb", [bs('0110'), rn, rm, bs('1000')], [rm, rn])
 addop("swapw", [bs('0110'), rn, rm, bs('1001')], [rm, rn])
@@ -706,7 +722,7 @@ addop("addc", [bs('0011'), rn, rm, bs('1110')], [rm, rn])
 addop("addv", [bs('0011'), rn, rm, bs('1111')], [rm, rn])
 
 
-addop("cmpeq", [bs('10001000'), s08imm, bsr0])
+addop("cmpeq", [bs('10001000'), s08imm, bs_r0])
 
 
 addop("cmpeq", [bs('0011'), rn, rm, bs('0000')], [rm, rn])
@@ -754,24 +770,24 @@ addop("subc", [bs('0011'), rn, rm, bs('1010')], [rm, rn])
 addop("subv", [bs('0011'), rn, rm, bs('1011')], [rm, rn])
 
 addop("and", [bs('0010'), rn, rm, bs('1001')], [rm, rn])
-addop("and", [bs('11001001'), u08imm, bsr0])
+addop("and", [bs('11001001'), u08imm, bs_r0])
 addop("and_b", [bs('11001101'), u08imm, dr0gbr])
 
 addop("not", [bs('0110'), rn, rm, bs('0111')], [rm, rn])
 
 addop("or", [bs('0010'), rn, rm, bs('1011')], [rm, rn])
 
-addop("or", [bs('11001011'), u08imm, bsr0])
+addop("or", [bs('11001011'), u08imm, bs_r0])
 addop("or_b", [bs('11001111'), u08imm, dr0gbr])
 
 addop("tas_b", [bs('0100'), d08gpreg, bs('00011011')])
 addop("tst", [bs('0010'), rn, rm, bs('1000')], [rm, rn])
-addop("tst", [bs('11001000'), u08imm, bsr0])
+addop("tst", [bs('11001000'), u08imm, bs_r0])
 addop("tst_b", [bs('11001100'), u08imm, dr0gbr])
 
 
 addop("xor", [bs('0010'), rn, rm, bs('1010')], [rm, rn])
-addop("xor", [bs('11001010'), u08imm, bsr0])
+addop("xor", [bs('11001010'), u08imm, bs_r0])
 addop("xor_b", [bs('11001110'), u08imm, dr0gbr])
 
 addop("rotl", [bs('0100'), rn, bs('00000100')])
@@ -883,29 +899,29 @@ addop("clrs", [bs('0000000001001000')])
 addop("clrt", [bs('0000000000001000')])
 
 
-addop("ldc", [bs('0100'), rm, bssr, bs('00001110')])
-addop("ldc", [bs('0100'), rm, bsgbr, bs('00011110')])
-addop("ldc", [bs('0100'), rm, bsvbr, bs('00101110')])
-addop("ldc", [bs('0100'), rm, bsssr, bs('00111110')])
-addop("ldc", [bs('0100'), rm, bsspc, bs('01001110')])
-addop("ldc", [bs('0100'), rm, bsdbr, bs('11111010')])
+addop("ldc", [bs('0100'), rm, bs_sr, bs('00001110')])
+addop("ldc", [bs('0100'), rm, bs_gbr, bs('00011110')])
+addop("ldc", [bs('0100'), rm, bs_vbr, bs('00101110')])
+addop("ldc", [bs('0100'), rm, bs_ssr, bs('00111110')])
+addop("ldc", [bs('0100'), rm, bs_spc, bs('01001110')])
+addop("ldc", [bs('0100'), rm, bs_dbr, bs('11111010')])
 addop("ldc", [bs('0100'), rm, bs('1'), brn, bs('1110')], [rm, brn])
-addop("ldc_l", [bs('0100'), d32rmpinc, bssr,  bs('00000111')])
-addop("ldc_l", [bs('0100'), d32rmpinc, bsgbr, bs('00010111')])
-addop("ldc_l", [bs('0100'), d32rmpinc, bsvbr, bs('00100111')])
-addop("ldc_l", [bs('0100'), d32rmpinc, bsssr, bs('00110111')])
-addop("ldc_l", [bs('0100'), d32rmpinc, bsspc, bs('01000111')])
-addop("ldc_l", [bs('0100'), d32rmpinc, bsdbr, bs('11110110')])
+addop("ldc_l", [bs('0100'), d32rmpinc, bs_sr,  bs('00000111')])
+addop("ldc_l", [bs('0100'), d32rmpinc, bs_gbr, bs('00010111')])
+addop("ldc_l", [bs('0100'), d32rmpinc, bs_vbr, bs('00100111')])
+addop("ldc_l", [bs('0100'), d32rmpinc, bs_ssr, bs('00110111')])
+addop("ldc_l", [bs('0100'), d32rmpinc, bs_spc, bs('01000111')])
+addop("ldc_l", [bs('0100'), d32rmpinc, bs_dbr, bs('11110110')])
 addop("ldc_l", [bs('0100'), d32rmpinc, bs('1'), brn, bs('0111')])
-addop("lds", [bs('0100'), rm, bsmach, bs('00001010')])
-addop("lds", [bs('0100'), rm, bsmacl, bs('00011010')])
-addop("lds", [bs('0100'), rm, bspr, bs('00101010')])
-addop("lds_l", [bs('0100'), d32rmpinc, bsmach, bs('00000110')])
-addop("lds_l", [bs('0100'), d32rmpinc, bsmacl, bs('00010110')])
-addop("lds_l", [bs('0100'), d32rmpinc, bspr, bs('00100110')])
+addop("lds", [bs('0100'), rm, bs_mach, bs('00001010')])
+addop("lds", [bs('0100'), rm, bs_macl, bs('00011010')])
+addop("lds", [bs('0100'), rm, bs_pr, bs('00101010')])
+addop("lds_l", [bs('0100'), d32rmpinc, bs_mach, bs('00000110')])
+addop("lds_l", [bs('0100'), d32rmpinc, bs_macl, bs('00010110')])
+addop("lds_l", [bs('0100'), d32rmpinc, bs_pr, bs('00100110')])
 addop("ldtlb", [bs('0000000000111000')])
 
-addop("movca_l", [bs('0000'), bsr0, d32gpreg, bs('11000011')])
+addop("movca_l", [bs('0000'), bs_r0, d32gpreg, bs('11000011')])
 addop("nop", [bs('0000000000001001')])
 addop("ocbi_l", [bs('0000'), d32gpreg, bs('10010011')])
 addop("ocbp_l", [bs('0000'), d32gpreg, bs('10100011')])
@@ -917,33 +933,33 @@ addop("rte", [bs('0000000000101011')])
 addop("sets", [bs('0000000001011000')])
 addop("sett", [bs('0000000000011000')])
 addop("sleep", [bs('0000000000011011')])
-addop("stc", [bs('0000'), bssr,  rn, bs('00000010')])
-addop("stc", [bs('0000'), bsgbr, rn, bs('00010010')])
-addop("stc", [bs('0000'), bsvbr, rn, bs('00100010')])
-addop("stc", [bs('0000'), bsssr, rn, bs('00110010')])
-addop("stc", [bs('0000'), bsspc, rn, bs('01000010')])
-addop("stc", [bs('0000'), bssgr, rn, bs('00111010')])
-addop("stc", [bs('0000'), bsdbr, rn, bs('11111010')])
+addop("stc", [bs('0000'), bs_sr,  rn, bs('00000010')])
+addop("stc", [bs('0000'), bs_gbr, rn, bs('00010010')])
+addop("stc", [bs('0000'), bs_vbr, rn, bs('00100010')])
+addop("stc", [bs('0000'), bs_ssr, rn, bs('00110010')])
+addop("stc", [bs('0000'), bs_spc, rn, bs('01000010')])
+addop("stc", [bs('0000'), bs_sgr, rn, bs('00111010')])
+addop("stc", [bs('0000'), bs_dbr, rn, bs('11111010')])
 addop("stc", [bs('0000'), rn, bs('1'), brm, bs('0010')], [brm, rn])
 
-addop("stc_l", [bs('0100'), bssr, d32rmpdec,  bs('00000011')])
-addop("stc_l", [bs('0100'), bsgbr, d32rmpdec, bs('00010011')])
-addop("stc_l", [bs('0100'), bsvbr, d32rmpdec, bs('00100011')])
-addop("stc_l", [bs('0100'), bsssr, d32rmpdec, bs('00110011')])
-addop("stc_l", [bs('0100'), bsspc, d32rmpdec, bs('01000011')])
-addop("stc_l", [bs('0100'), bssgr, d32rmpdec, bs('00110010')])
-addop("stc_l", [bs('0100'), bsdbr, d32rmpdec, bs('11110010')])
+addop("stc_l", [bs('0100'), bs_sr, d32rmpdec,  bs('00000011')])
+addop("stc_l", [bs('0100'), bs_gbr, d32rmpdec, bs('00010011')])
+addop("stc_l", [bs('0100'), bs_vbr, d32rmpdec, bs('00100011')])
+addop("stc_l", [bs('0100'), bs_ssr, d32rmpdec, bs('00110011')])
+addop("stc_l", [bs('0100'), bs_spc, d32rmpdec, bs('01000011')])
+addop("stc_l", [bs('0100'), bs_sgr, d32rmpdec, bs('00110010')])
+addop("stc_l", [bs('0100'), bs_dbr, d32rmpdec, bs('11110010')])
 addop("stc_l",
       [bs('0100'), d32rnpdec, bs('1'), brm, bs('0011')], [brm, d32rnpdec])
 
 # float
-addop("sts", [bs('0000'), bsmach, rm, bs('00001010')])
-addop("sts", [bs('0000'), bsmacl, rm, bs('00011010')])
-addop("sts", [bs('0000'), bspr, rm, bs('00101010')])
-addop("sts_l", [bs('0100'), bsmach, d32rmpdec, bs('00000010')])
-addop("sts_l", [bs('0100'), bsmacl, d32rmpdec, bs('00010010')])
+addop("sts", [bs('0000'), bs_mach, rm, bs('00001010')])
+addop("sts", [bs('0000'), bs_macl, rm, bs('00011010')])
+addop("sts", [bs('0000'), bs_pr, rm, bs('00101010')])
+addop("sts_l", [bs('0100'), bs_mach, d32rmpdec, bs('00000010')])
+addop("sts_l", [bs('0100'), bs_macl, d32rmpdec, bs('00010010')])
 addop("sts_l",
-      [bs('0100'), d32rnpdec, bspr, bs('00100010')], [bspr, d32rnpdec])
+      [bs('0100'), d32rnpdec, bs_pr, bs('00100010')], [bs_pr, d32rnpdec])
 addop("trapa", [bs('11000011'), u08imm])
 
 addop("fldi0", [bs('1111'), frn, bs('10001101')])
@@ -956,18 +972,18 @@ addop("fmov_s", [bs('1111'), d32gpreg, frm, bs('1010')], [frm, d32gpreg])
 addop("fmov_s", [bs('1111'), d32rnpdec, frm, bs('1011')], [frm, d32rnpdec])
 addop("fmov_s", [bs('1111'), bd32r0gp, frm, bs('0111')], [frm, bd32r0gp])
 
-addop("flds", [bs('1111'), frm, bsfpul, bs('00011101')])
-addop("fsts", [bs('1111'), bsfpul, frm, bs('00001101')])
+addop("flds", [bs('1111'), frm, bs_fpul, bs('00011101')])
+addop("fsts", [bs('1111'), bs_fpul, frm, bs('00001101')])
 addop("fabs", [bs('1111'), frn, bs('01011101')])
 addop("fadd", [bs('1111'), frn, frm, bs('0000')], [frm, frn])
 addop("fcmpeq", [bs('1111'), frn, frm, bs('0100')], [frm, frn])
 addop("fcmpgt", [bs('1111'), frn, frm, bs('0101')], [frm, frn])
 addop("fdiv", [bs('1111'), frn, frm, bs('0011')], [frm, frn])
 
-addop("float", [bs('1111'), bsfpul, frn, bs('00101101')])
-addop("fmac", [bs('1111'), bsfr0, frn, frm, bs('1110')], [bsfr0, frm, frn])
+addop("float", [bs('1111'), bs_fpul, frn, bs('00101101')])
+addop("fmac", [bs('1111'), bs_fr0, frn, frm, bs('1110')], [bs_fr0, frm, frn])
 addop("fmul", [bs('1111'), frn, frm, bs('0010')], [frm, frn])
 addop("fneg", [bs('1111'), frn, bs('01001101')])
 addop("fsqrt", [bs('1111'), frn, bs('01101101')])
 addop("fsub", [bs('1111'), frn, frm, bs('0001')], [frm, frn])
-addop("ftrc", [bs('1111'), frm, bsfpul, bs('00111101')])
+addop("ftrc", [bs('1111'), frm, bs_fpul, bs('00111101')])

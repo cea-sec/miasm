@@ -1,19 +1,13 @@
 import time
+from pdb import pm
 import miasm2.expression.expression as m2_expr
-from miasm2.arch.x86.arch import mn_x86, deref_mem_ad, ParseAst, ast_int2expr, \
+from miasm2.arch.x86.arch import mn_x86, deref_mem_ad, \
     base_expr, rmarg, print_size
 from miasm2.arch.x86.sem import ir_x86_16, ir_x86_32, ir_x86_64
 from miasm2.core.bin_stream import bin_stream_str
+from miasm2.core.asmblock import AsmSymbolPool
 
-for s in ["[EAX]",
-          "[0x10]",
-          "[EBX + 0x10]",
-          "[EBX + ECX*0x10]",
-          "[EBX + ECX*0x10 + 0x1337]"]:
-    (e, a, b) = deref_mem_ad.scanString(s).next()
-    print 'expr', e[0]
-
-print '---'
+symbol_pool = AsmSymbolPool()
 
 mylabel16 = m2_expr.ExprId('mylabel16', 16)
 mylabel32 = m2_expr.ExprId('mylabel32', 32)
@@ -25,32 +19,6 @@ reg_and_id.update({'mylabel16': mylabel16,
                    'mylabel64': mylabel64,
                    })
 
-
-def my_ast_id2expr(t):
-    r = reg_and_id.get(t, m2_expr.ExprId(t, size=32))
-    return r
-
-my_var_parser = ParseAst(my_ast_id2expr, ast_int2expr)
-base_expr.setParseAction(my_var_parser)
-
-for s in ['EAX',
-          "BYTE PTR [EAX]",
-          "WORD PTR [EAX]",
-          "DWORD PTR [ECX+0x1337]",
-          "QWORD PTR [RAX+4*RCX + 0x1337]",
-          "DWORD PTR [EAX+EBX]",
-          "QWORD PTR [RAX+RBX+0x55667788]",
-          "BYTE PTR CS:[EAX]",
-          "QWORD PTR [RAX+RBX+mylabel64]",
-          "BYTE PTR [RAX+RBX+mylabel64]",
-          "BYTE PTR [AX+BX+mylabel16]",
-          "BYTE PTR [mylabel32]",
-          ]:
-    print '*' * 80
-    print s
-    (e, a, b) = rmarg.scanString(s).next()
-    print 'expr', e[0]
-    e[0].visit(print_size)
 
 
 def h2i(s):
@@ -3080,27 +3048,9 @@ reg_tests = [
 ]
 
 
-    # mode = 64
-    # l = mn_x86.dis('\x4D\x11\x7c\x18\x00', mode)
-    # print l
-    #"""
-    # mode = 64
-    # l = mn_x86.fromstring("ADC      DWORD PTR [RAX], 0x11223344", mode)
-    # print 'xx'
-    # t= time.time()
-    # import cProfile
-    # def f():
-    #    x = l.asm(mode)
-    #    print x
-    # cProfile.run('f()')
-    # l.asm(mode)
-    # print time.time()-t
-# reg_tests = reg_tests[-1:]
-
 test_file = {16: open('regression_test16_ia32.bin', 'w'),
              32: open('regression_test32_ia32.bin', 'w'),
              64: open('regression_test64_ia32.bin', 'w')}
-             # 64: open('testmnemo', 'r+')}
 ts = time.time()
 for mode, s, l, in reg_tests:
     print "-" * 80
@@ -3115,7 +3065,7 @@ for mode, s, l, in reg_tests:
     # print hex(b)
     # print [str(x.get()) for x in mn.args]
     print 'fromstring', repr(s)
-    l = mn_x86.fromstring(s, mode)
+    l = mn_x86.fromstring(s, symbol_pool, mode)
     # print l
     print 'str args', [(str(x), x.size) for x in l.args]
     assert(str(l).strip(' ') == s)
