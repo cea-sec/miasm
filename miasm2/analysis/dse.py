@@ -192,7 +192,25 @@ class DSEEngine(object):
 
     def attach(self, emulator):
         """Attach the DSE to @emulator
-        @emulator: jitload (or API equivalent) instance"""
+        @emulator: jitload (or API equivalent) instance
+
+        To attach *DURING A BREAKPOINT*, one may consider using the following snippet:
+
+        def breakpoint(self, jitter):
+            ...
+            dse.attach(jitter)
+            dse.update...
+            ...
+            # Additionnal call to the exec callback is necessary, as breakpoints are
+            # honored AFTER exec callback
+            jitter.exec_cb(jitter)
+
+            return True
+
+        Without it, one may encounteer a DriftException error due to a
+        "desynchronization" between jitter and dse states. Indeed, on 'handle'
+        call, the jitter must be one instruction AFTER the dse.
+        """
         self.jitter = emulator
         self.prepare()
 
