@@ -840,8 +840,7 @@ unsigned int x86_bsr(uint64_t size, uint64_t src)
 		if (src & (1ull << i))
 			return i;
 	}
-	fprintf(stderr, "sanity check error bsr\n");
-	exit(EXIT_FAILURE);
+	return 0;
 }
 
 unsigned int x86_bsf(uint64_t size, uint64_t src)
@@ -851,8 +850,7 @@ unsigned int x86_bsf(uint64_t size, uint64_t src)
 		if (src & (1ull << i))
 			return i;
 	}
-	fprintf(stderr, "sanity check error bsf\n");
-	exit(EXIT_FAILURE);
+	return size;
 }
 
 
