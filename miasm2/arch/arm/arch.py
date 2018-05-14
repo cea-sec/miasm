@@ -105,10 +105,10 @@ barrier_info = reg_info_dct(barrier_expr)
 
 # parser helper ###########
 
-def cb_tok_reg_duo(t):
-    t = t[0]
-    i1 = gpregs.expr.index(t[0].name)
-    i2 = gpregs.expr.index(t[1].name)
+def cb_tok_reg_duo(tokens):
+    tokens = tokens[0]
+    i1 = gpregs.expr.index(tokens[0].name)
+    i2 = gpregs.expr.index(tokens[1].name)
     o = []
     for i in xrange(i1, i2 + 1):
         o.append(AstId(gpregs.expr[i]))
@@ -142,11 +142,11 @@ int_1_32 = str_int.copy().setParseAction(lambda v: check_bounds(1, 32, v[0]))
 int_8_16_24 = str_int.copy().setParseAction(lambda v: check_values([8, 16, 24], v[0]))
 
 
-def cb_reglistparse(s, l, t):
-    t = t[0]
-    if t[-1] == "^":
-        return AstOp('sbit', AstOp('reglist', *t[:-1]))
-    return AstOp('reglist', *t)
+def cb_reglistparse(tokens):
+    tokens = tokens[0]
+    if tokens[-1] == "^":
+        return AstOp('sbit', AstOp('reglist', *tokens[:-1]))
+    return AstOp('reglist', *tokens)
 
 
 allshifts = ['<<', '>>', 'a>>', '>>>', 'rrx']
@@ -158,8 +158,8 @@ shift2expr_dct = {'LSL': '<<', 'LSR': '>>', 'ASR': 'a>>',
 expr2shift_dct = dict([(x[1], x[0]) for x in shift2expr_dct.items()])
 
 
-def op_shift2expr(s, l, t):
-    return shift2expr_dct[t[0]]
+def op_shift2expr(tokens):
+    return shift2expr_dct[tokens[0]]
 
 reg_duo = Group(gpregs.parser + MINUS +
                 gpregs.parser).setParseAction(cb_tok_reg_duo)
@@ -188,13 +188,13 @@ gpreg_p = gpregs.parser
 psr_p = cpsr_regs.parser | spsr_regs.parser
 
 
-def cb_shift(t):
-    if len(t) == 1:
-        ret = t[0]
-    elif len(t) == 2:
-        ret = AstOp(t[1], t[0])
-    elif len(t) == 3:
-        ret = AstOp(t[1], t[0], t[2])
+def cb_shift(tokens):
+    if len(tokens) == 1:
+        ret = tokens[0]
+    elif len(tokens) == 2:
+        ret = AstOp(tokens[1], tokens[0])
+    elif len(tokens) == 3:
+        ret = AstOp(tokens[1], tokens[0], tokens[2])
     else:
         raise ValueError("Bad arg")
     return ret
@@ -214,15 +214,15 @@ rot2_expr = (gpregs.parser + Optional(
 
 OP_LSL = Suppress("LSL")
 
-def cb_deref_reg_reg(t):
-    if len(t) != 2:
+def cb_deref_reg_reg(tokens):
+    if len(tokens) != 2:
         raise ValueError("Bad mem format")
-    return AstMem(AstOp('+', t[0], t[1]), 8)
+    return AstMem(AstOp('+', tokens[0], tokens[1]), 8)
 
-def cb_deref_reg_reg_lsl_1(t):
-    if len(t) != 3:
+def cb_deref_reg_reg_lsl_1(tokens):
+    if len(tokens) != 3:
         raise ValueError("Bad mem format")
-    reg1, reg2, index = t
+    reg1, reg2, index = tokens
     if not isinstance(index, AstInt) or index.value != 1:
         raise ValueError("Bad index")
     ret = AstMem(AstOp('+', reg1, AstOp('<<', reg2, index)), 16)
@@ -242,42 +242,42 @@ deref_reg_reg_lsl_1 = (LBRACK + gpregs.parser + COMMA + gpregs.parser + OP_LSL +
 
 reg_or_base = gpregs.parser | base_expr
 
-def deref2expr_nooff(s, l, t):
-    t = t[0]
+def deref2expr_nooff(tokens):
+    tokens = tokens[0]
     # XXX default
-    return ExprOp("preinc", t[0], ExprInt(0, 32))
+    return ExprOp("preinc", tokens[0], ExprInt(0, 32))
 
 
-def cb_deref_preinc(t):
-    t = t[0]
-    if len(t) == 1:
-        return AstOp("preinc", t[0], AstInt(0))
-    elif len(t) == 2:
-        return AstOp("preinc", t[0], t[1])
+def cb_deref_preinc(tokens):
+    tokens = tokens[0]
+    if len(tokens) == 1:
+        return AstOp("preinc", tokens[0], AstInt(0))
+    elif len(tokens) == 2:
+        return AstOp("preinc", tokens[0], tokens[1])
     else:
-        raise NotImplementedError('len(t) > 2')
+        raise NotImplementedError('len(tokens) > 2')
 
 
-def cb_deref_pre_mem(t):
-    t = t[0]
-    if len(t) == 1:
-        return AstMem(AstOp("preinc", t[0], AstInt(0)), 32)
-    elif len(t) == 2:
-        return AstMem(AstOp("preinc", t[0], t[1]), 32)
+def cb_deref_pre_mem(tokens):
+    tokens = tokens[0]
+    if len(tokens) == 1:
+        return AstMem(AstOp("preinc", tokens[0], AstInt(0)), 32)
+    elif len(tokens) == 2:
+        return AstMem(AstOp("preinc", tokens[0], tokens[1]), 32)
     else:
-        raise NotImplementedError('len(t) > 2')
+        raise NotImplementedError('len(tokens) > 2')
 
 
-def cb_deref_post(t):
-    t = t[0]
-    return AstOp("postinc", t[0], t[1])
+def cb_deref_post(tokens):
+    tokens = tokens[0]
+    return AstOp("postinc", tokens[0], tokens[1])
 
 
-def cb_deref_wb(t):
-    t = t[0]
-    if t[-1] == '!':
-        return AstMem(AstOp('wback', *t[:-1]), 32)
-    return AstMem(t[0], 32)
+def cb_deref_wb(tokens):
+    tokens = tokens[0]
+    if tokens[-1] == '!':
+        return AstMem(AstOp('wback', *tokens[:-1]), 32)
+    return AstMem(tokens[0], 32)
 
 # shift_off.setParseAction(deref_off)
 deref_nooff = Group(
@@ -290,12 +290,12 @@ deref = Group((deref_post | deref_pre | deref_nooff)
               + Optional('!')).setParseAction(cb_deref_wb)
 
 
-def cb_gpreb_wb(t):
-    assert len(t) == 1
-    t = t[0]
-    if t[-1] == '!':
-        return AstOp('wback', *t[:-1])
-    return t[0]
+def cb_gpreb_wb(tokens):
+    assert len(tokens) == 1
+    tokens = tokens[0]
+    if tokens[-1] == '!':
+        return AstOp('wback', *tokens[:-1])
+    return tokens[0]
 
 gpregs_wb = Group(gpregs.parser + Optional('!')).setParseAction(cb_gpreb_wb)
 

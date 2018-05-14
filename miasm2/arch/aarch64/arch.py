@@ -76,51 +76,51 @@ shift_str = ["LSL", "LSR", "ASR", "ROR"]
 shift_expr = ["<<", ">>", "a>>", '>>>']
 
 
-def cb_shift(t):
-    return shift2expr_dct[t[0]]
+def cb_shift(tokens):
+    return shift2expr_dct[tokens[0]]
 
 
-def cb_extreg(t):
-    return t[0]
+def cb_extreg(tokens):
+    return tokens[0]
 
 
-def cb_shiftreg(t):
-    if len(t) == 1:
-        return t[0]
-    elif len(t) == 3:
-        result = AstOp(t[1], t[0], t[2])
+def cb_shiftreg(tokens):
+    if len(tokens) == 1:
+        return tokens[0]
+    elif len(tokens) == 3:
+        result = AstOp(tokens[1], tokens[0], tokens[2])
         return result
     else:
         raise ValueError('bad string')
 
 
-def cb_shift_sc(t):
-    if len(t) == 1:
-        return t[0]
-    elif len(t) == 3:
-        if t[1] != '<<':
+def cb_shift_sc(tokens):
+    if len(tokens) == 1:
+        return tokens[0]
+    elif len(tokens) == 3:
+        if tokens[1] != '<<':
             raise ValueError('bad op')
-        result = AstOp("slice_at", t[0], t[2])
+        result = AstOp("slice_at", tokens[0], tokens[2])
         return result
     else:
         raise ValueError('bad string')
 
 
-def cb_extend(t):
-    if len(t) == 1:
-        return t[0]
-    result = AstOp(t[1], t[0], t[2])
+def cb_extend(tokens):
+    if len(tokens) == 1:
+        return tokens[0]
+    result = AstOp(tokens[1], tokens[0], tokens[2])
     return result
 
 
-def cb_deref_pc_off(t):
-    if len(t) == 2 and t[0] == "PC":
-        result = AstOp('preinc', AstId(ExprId('PC', 64)), t[1])
+def cb_deref_pc_off(tokens):
+    if len(tokens) == 2 and tokens[0] == "PC":
+        result = AstOp('preinc', AstId(ExprId('PC', 64)), tokens[1])
         return result
     raise ValueError('bad string')
 
-def cb_deref_pc_nooff(t):
-    if len(t) == 1 and t[0] == "PC":
+def cb_deref_pc_nooff(tokens):
+    if len(tokens) == 1 and tokens[0] == "PC":
         result = AstOp('preinc', AstId(PC))
         return result
     raise ValueError('bad string')

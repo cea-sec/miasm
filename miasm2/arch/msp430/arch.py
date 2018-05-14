@@ -20,28 +20,28 @@ conditional_branch = ['jnz', 'jz', 'jnc', 'jc',
                       'jn', 'jge', 'jl']
 unconditional_branch = ['jmp']
 
-def cb_deref_nooff(t):
-    assert len(t) == 1
-    result = AstMem(t[0], 16)
+def cb_deref_nooff(tokens):
+    assert len(tokens) == 1
+    result = AstMem(tokens[0], 16)
     return result
 
 
-def cb_deref_pinc(t):
-    assert len(t) == 1
+def cb_deref_pinc(tokens):
+    assert len(tokens) == 1
 
-    result = AstOp('autoinc', *t)
+    result = AstOp('autoinc', *tokens)
     return result
 
 
-def cb_deref_off(t):
-    assert len(t) == 2
-    result = AstMem(t[1] + t[0], 16)
+def cb_deref_off(tokens):
+    assert len(tokens) == 2
+    result = AstMem(tokens[1] + tokens[0], 16)
     return result
 
 
-def cb_expr(t):
-    assert(len(t) == 1)
-    result = t[0]
+def cb_expr(tokens):
+    assert(len(tokens) == 1)
+    result = tokens[0]
     return result
 
 

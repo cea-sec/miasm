@@ -25,15 +25,15 @@ gpregs = cpu.reg_info(regs.regs32_str, regs.regs32_expr)
 LPARENTHESIS = Literal("(")
 RPARENTHESIS = Literal(")")
 
-def cb_deref(t):
-    if len(t) != 4:
+def cb_deref(tokens):
+    if len(tokens) != 4:
         raise NotImplementedError("TODO")
-    return AstMem(t[2] + t[0], 32)
+    return AstMem(tokens[2] + tokens[0], 32)
 
-def cb_deref_nooff(t):
-    if len(t) != 3:
+def cb_deref_nooff(tokens):
+    if len(tokens) != 3:
         raise NotImplementedError("TODO")
-    return AstMem(t[1], 32)
+    return AstMem(tokens[1], 32)
 
 base_expr = cpu.base_expr
 

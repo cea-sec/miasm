@@ -28,12 +28,12 @@ LPARENT = Suppress("(")
 RPARENT = Suppress(")")
 
 
-def cb_deref_pcimm(t):
-    return t[0] + t[1]
+def cb_deref_pcimm(tokens):
+    return tokens[0] + tokens[1]
 
 
-def cb_pcandimmimm(t):
-    return (t[0] & t[1]) + t[2]
+def cb_pcandimmimm(tokens):
+    return (tokens[0] & tokens[1]) + tokens[2]
 
 
 
@@ -44,33 +44,33 @@ pcdisp = (reg_info_pc.parser + AND + base_expr + PLUS + base_expr).setParseActio
 PTR = Suppress('PTR')
 
 
-def cb_deref_mem(t):
-    assert len(t) == 1
-    result = AstMem(t[0], 32)
+def cb_deref_mem(tokens):
+    assert len(tokens) == 1
+    result = AstMem(tokens[0], 32)
     return result
 
 
-def cb_predec(t):
-    assert len(t) == 1
-    result = AstMem(AstOp('predec', t[0]), 32)
+def cb_predec(tokens):
+    assert len(tokens) == 1
+    result = AstMem(AstOp('predec', tokens[0]), 32)
     return result
 
 
-def cb_postinc(t):
-    assert len(t) == 1
-    result = AstMem(AstOp('postinc', t[0]), 32)
+def cb_postinc(tokens):
+    assert len(tokens) == 1
+    result = AstMem(AstOp('postinc', tokens[0]), 32)
     return result
 
 
-def cb_regdisp(t):
-    assert len(t) == 2
-    result = AstMem(t[0] + t[1], 32)
+def cb_regdisp(tokens):
+    assert len(tokens) == 2
+    result = AstMem(tokens[0] + tokens[1], 32)
     return result
 
 
-def cb_regreg(t):
-    assert len(t) == 2
-    result = AstMem(t[0] + t[1], 32)
+def cb_regreg(tokens):
+    assert len(tokens) == 2
+    result = AstMem(tokens[0] + tokens[1], 32)
     return result
 
 

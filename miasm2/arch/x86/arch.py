@@ -184,13 +184,13 @@ gpreg = (
 
 
 
-def cb_deref_segmoff(t):
-    assert len(t) == 2
-    return AstOp('segm', t[0], t[1])
+def cb_deref_segmoff(tokens):
+    assert len(tokens) == 2
+    return AstOp('segm', tokens[0], tokens[1])
 
 
-def cb_deref_base_expr(t):
-    tokens = t[0]
+def cb_deref_base_expr(tokens):
+    tokens = tokens[0]
     assert isinstance(tokens, AstNode)
     addr = tokens
     return addr
@@ -218,15 +218,15 @@ MEMPREFIX2SIZE = {'BYTE': 8, 'WORD': 16, 'DWORD': 32,
 
 SIZE2MEMPREFIX = dict((x[1], x[0]) for x in MEMPREFIX2SIZE.items())
 
-def cb_deref_mem(t):
-    if len(t) == 2:
-        s, ptr = t
+def cb_deref_mem(tokens):
+    if len(tokens) == 2:
+        s, ptr = tokens
         assert isinstance(ptr, AstNode)
         return AstMem(ptr, MEMPREFIX2SIZE[s])
-    elif len(t) == 3:
-        s, segm, ptr = t
+    elif len(tokens) == 3:
+        s, segm, ptr = tokens
         return AstMem(AstOp('segm', segm, ptr), MEMPREFIX2SIZE[s])
-    raise ValueError('len(t) > 3')
+    raise ValueError('len(tokens) > 3')
 
 mem_size = (BYTE | DWORD | QWORD | WORD | TBYTE | XMMWORD)
 deref_mem = (mem_size + PTR + Optional((base_expr + COLON))+ deref_mem_ad).setParseAction(cb_deref_mem)

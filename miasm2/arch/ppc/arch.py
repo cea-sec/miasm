@@ -19,13 +19,13 @@ log.setLevel(logging.DEBUG)
 LPARENTHESIS = Suppress(Literal("("))
 RPARENTHESIS = Suppress(Literal(")"))
 
-def cb_deref_imm_reg(t):
-    if len(t) == 1:
-        return AstMem(t[0], 32)
-    elif len(t) == 2:
-        return AstMem(t[1] + t[0], 32)
+def cb_deref_imm_reg(tokens):
+    if len(tokens) == 1:
+        return AstMem(tokens[0], 32)
+    elif len(tokens) == 2:
+        return AstMem(tokens[1] + tokens[0], 32)
     else:
-        raise NotImplementedError('len(t) > 2')
+        raise NotImplementedError('len(tokens) > 2')
 
 
 deref_reg_disp = (Optional(base_expr) + LPARENTHESIS + gpregs.parser +  RPARENTHESIS).setParseAction(cb_deref_imm_reg)

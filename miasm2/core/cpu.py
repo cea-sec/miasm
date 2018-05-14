@@ -95,9 +95,9 @@ class reg_info(object):
         self.expr = reg_expr
         self.parser = literal_list(reg_str).setParseAction(self.cb_parse)
 
-    def cb_parse(self, t):
-        assert len(t) == 1
-        i = self.str.index(t[0])
+    def cb_parse(self, tokens):
+        assert len(tokens) == 1
+        i = self.str.index(tokens[0])
         reg = self.expr[i]
         result = AstId(reg)
         return result
@@ -119,9 +119,9 @@ class reg_info_dct(object):
         reg_str = [v.name for v in reg_expr.itervalues()]
         self.parser = literal_list(reg_str).setParseAction(self.cb_parse)
 
-    def cb_parse(self, t):
-        assert len(t) == 1
-        i = self.dct_str_inv[t[0]]
+    def cb_parse(self, tokens):
+        assert len(tokens) == 1
+        i = self.dct_str_inv[tokens[0]]
         reg = self.dct_expr[i]
         result = AstId(reg)
         return result
@@ -180,45 +180,45 @@ LPARENTHESIS = pyparsing.Literal("(")
 RPARENTHESIS = pyparsing.Literal(")")
 
 
-def int2expr(t):
-    v = t[0]
+def int2expr(tokens):
+    v = tokens[0]
     return (m2_expr.ExprInt, v)
 
 
-def parse_op(t):
-    v = t[0]
+def parse_op(tokens):
+    v = tokens[0]
     return (m2_expr.ExprOp, v)
 
 
-def parse_id(t):
-    v = t[0]
+def parse_id(tokens):
+    v = tokens[0]
     return (m2_expr.ExprId, v)
 
 
-def ast_parse_op(t):
-    if len(t) == 1:
-        return t[0]
-    if len(t) == 2:
-        if t[0] in ['-', '+', '!']:
-            return m2_expr.ExprOp(t[0], t[1])
-    if len(t) == 3:
-        if t[1] == '-':
+def ast_parse_op(tokens):
+    if len(tokens) == 1:
+        return tokens[0]
+    if len(tokens) == 2:
+        if tokens[0] in ['-', '+', '!']:
+            return m2_expr.ExprOp(tokens[0], tokens[1])
+    if len(tokens) == 3:
+        if tokens[1] == '-':
             # a - b => a + (-b)
-            t[1] = '+'
-            t[2] = - t[2]
-        return m2_expr.ExprOp(t[1], t[0], t[2])
-    t = t[::-1]
-    while len(t) >= 3:
-        o1, op, o2 = t.pop(), t.pop(), t.pop()
+            tokens[1] = '+'
+            tokens[2] = - tokens[2]
+        return m2_expr.ExprOp(tokens[1], tokens[0], tokens[2])
+    tokens = tokens[::-1]
+    while len(tokens) >= 3:
+        o1, op, o2 = tokens.pop(), tokens.pop(), tokens.pop()
         if op == '-':
             # a - b => a + (-b)
             op = '+'
             o2 = - o2
         e = m2_expr.ExprOp(op, o1, o2)
-        t.append(e)
-    if len(t) != 1:
+        tokens.append(e)
+    if len(tokens) != 1:
         raise NotImplementedError('strange op')
-    return t[0]
+    return tokens[0]
 
 
 def ast_id2expr(a):
@@ -229,16 +229,14 @@ def ast_int2expr(a):
     return m2_expr.ExprInt(a, 32)
 
 
-def neg_int(t):
-    x = -t[0]
+def neg_int(tokens):
+    x = -tokens[0]
     return x
 
 
-integer = pyparsing.Word(pyparsing.nums).setParseAction(lambda _a, _b, t:
-                                                            int(t[0]))
+integer = pyparsing.Word(pyparsing.nums).setParseAction(lambda tokens: int(tokens[0]))
 hex_word = pyparsing.Literal('0x') + pyparsing.Word(pyparsing.hexnums)
-hex_int = pyparsing.Combine(hex_word).setParseAction(lambda _a, _b, t:
-                                                         int(t[0], 16))
+hex_int = pyparsing.Combine(hex_word).setParseAction(lambda tokens: int(tokens[0], 16))
 
 # str_int = (Optional('-') + (hex_int | integer))
 str_int_pos = (hex_int | integer)
@@ -266,20 +264,20 @@ def literal_list(l):
     return o
 
 
-def cb_int(t):
-    assert len(t) == 1
-    integer = AstInt(t[0])
+def cb_int(tokens):
+    assert len(tokens) == 1
+    integer = AstInt(tokens[0])
     return integer
 
 
-def cb_parse_id(t):
-    assert len(t) == 1
-    reg = t[0]
+def cb_parse_id(tokens):
+    assert len(tokens) == 1
+    reg = tokens[0]
     return AstId(reg)
 
 
-def cb_op_not(t):
-    tokens = t[0]
+def cb_op_not(tokens):
+    tokens = tokens[0]
     assert len(tokens) == 2
     assert tokens[0] == "!"
     result = AstOp("!", tokens[1])
@@ -302,32 +300,32 @@ def merge_ops(tokens, op):
     return result
 
 
-def cb_op_and(t):
-    result = merge_ops(t[0], "&")
+def cb_op_and(tokens):
+    result = merge_ops(tokens[0], "&")
     return result
 
 
-def cb_op_xor(t):
-    result = merge_ops(t[0], "^")
+def cb_op_xor(tokens):
+    result = merge_ops(tokens[0], "^")
     return result
 
 
-def cb_op_sign(t):
-    assert len(t) == 1
-    op, value = t[0]
+def cb_op_sign(tokens):
+    assert len(tokens) == 1
+    op, value = tokens[0]
     return -value
 
 
-def cb_op_div(t):
-    tokens = t[0]
+def cb_op_div(tokens):
+    tokens = tokens[0]
     assert len(tokens) == 3
     assert tokens[1] == "/"
     result = AstOp("/", tokens[0], tokens[2])
     return result
 
 
-def cb_op_plusminus(t):
-    tokens = t[0]
+def cb_op_plusminus(tokens):
+    tokens = tokens[0]
     if len(tokens) == 3:
         # binary op
         assert isinstance(tokens[0], AstNode)
@@ -355,8 +353,8 @@ def cb_op_plusminus(t):
     return result
 
 
-def cb_op_mul(t):
-    tokens = t[0]
+def cb_op_mul(tokens):
+    tokens = tokens[0]
     assert len(tokens) == 3
     assert isinstance(tokens[0], AstNode)
     assert isinstance(tokens[2], AstNode)
@@ -367,9 +365,9 @@ def cb_op_mul(t):
     return result
 
 
-integer = pyparsing.Word(pyparsing.nums).setParseAction(lambda t: int(t[0]))
+integer = pyparsing.Word(pyparsing.nums).setParseAction(lambda tokens: int(tokens[0]))
 hex_word = pyparsing.Literal('0x') + pyparsing.Word(pyparsing.hexnums)
-hex_int = pyparsing.Combine(hex_word).setParseAction(lambda t: int(t[0], 16))
+hex_int = pyparsing.Combine(hex_word).setParseAction(lambda tokens: int(tokens[0], 16))
 
 str_int_pos = (hex_int | integer)
 
