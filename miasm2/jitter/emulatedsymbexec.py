@@ -117,7 +117,7 @@ class EmulatedSymbExec(SymbolicExecutionEngine):
         return e_s(m2_expr.ExprInt(segmaddr, expr.size) + expr.args[1])
 
     def _simp_handle_cpuid(self, e_s, expr):
-        """From miasm2/jitter/vm_mngr.h: cpuid"""
+        """From miasm2/jitter/op_semantics.h: cpuid"""
         if expr.op != "cpuid":
             return expr
 
