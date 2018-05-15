@@ -296,10 +296,10 @@ unsigned int my_imul08(unsigned int a, unsigned int b)
 
 
 
-unsigned int cpuid(unsigned int a, unsigned int reg_num)
+unsigned int x86_cpuid(unsigned int a, unsigned int reg_num)
 {
 	if (reg_num >3){
-		fprintf(stderr, "not implemented cpuid reg %x\n", reg_num);
+		fprintf(stderr, "not implemented x86_cpuid reg %x\n", reg_num);
 		exit(EXIT_FAILURE);
 	}
 
@@ -333,7 +333,7 @@ unsigned int cpuid(unsigned int a, unsigned int reg_num)
 		}
 	}
 	else{
-		fprintf(stderr, "WARNING not implemented cpuid index %X!\n", a);
+		fprintf(stderr, "WARNING not implemented x86_cpuid index %X!\n", a);
 		//exit(EXIT_FAILURE);
 	}
 	return 0;

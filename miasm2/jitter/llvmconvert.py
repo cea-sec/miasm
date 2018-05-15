@@ -231,7 +231,7 @@ class LLVMContext_JIT(LLVMContext):
                             "args": [p8,
                                      itype,
                                      itype]},
-              "cpuid": {"ret": itype,
+              "x86_cpuid": {"ret": itype,
                         "args": [itype,
                                  itype]},
         }
@@ -368,7 +368,7 @@ class LLVMFunction():
 
     # Operation translation
     ## Basics
-    op_translate = {'cpuid': 'cpuid',
+    op_translate = {'x86_cpuid': 'x86_cpuid',
     }
     ## Add the size as first argument
     op_translate_with_size = {}

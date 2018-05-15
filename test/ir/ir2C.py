@@ -40,7 +40,7 @@ class TestIrIr2C(unittest.TestCase):
         self.translationTest(
             ExprOp('cntleadzeros',     *args[:1]), r'cntleadzeros(0x0, 0x20)')
         self.translationTest(
-            ExprOp('cpuid',  *args[:2]), r'cpuid(0x0, 0x1)')
+            ExprOp('x86_cpuid',  *args[:2]), r'x86_cpuid(0x0, 0x1)')
         self.translationTest(
             ExprOp('fcom0',   *args[:2]), r'fcom0(0x0, 0x1)')
         self.translationTest(
