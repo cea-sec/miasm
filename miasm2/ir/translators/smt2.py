@@ -233,7 +233,7 @@ class TranslatorSMT2(Translator):
                 res = bvxor(res, bv_extract(i, i, arg))
         elif expr.op == '-':
             res = bvneg(res)
-        elif expr.op == "bsf":
+        elif expr.op == "cnttrailzeros":
             src = res
             size = expr.size
             size_smt2 = bit_vec_val(size, size)
@@ -254,7 +254,7 @@ class TranslatorSMT2(Translator):
                 cond = smt2_distinct(op, zero_smt2)
                 # ite(cond, i, res)
                 res = smt2_ite(cond, i_smt2, res)
-        elif expr.op == "bsr":
+        elif expr.op == "cntleadzeros":
             src = res
             size = expr.size
             one_smt2 = bit_vec_val(1, size)
@@ -271,7 +271,8 @@ class TranslatorSMT2(Translator):
                 # op != 0
                 cond = smt2_distinct(op, zero_smt2)
                 # ite(cond, index, res)
-                res = smt2_ite(cond, index_smt2, res)
+                value_smt2 = bit_vec_val(size - (index + 1), size)
+                res = smt2_ite(cond, value_smt2, res)
         else:
             raise NotImplementedError("Unsupported OP yet: %s" % expr.op)
 

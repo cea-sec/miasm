@@ -227,12 +227,6 @@ class LLVMContext_JIT(LLVMContext):
         itype = LLVMType.IntType(64)
         fc = {"llvm.ctpop.i8": {"ret": i8,
                                 "args": [i8]},
-              "x86_bsr": {"ret": itype,
-                          "args": [itype,
-                                   itype]},
-              "x86_bsf": {"ret": itype,
-                          "args": [itype,
-                                   itype]},
               "segm2addr": {"ret": itype,
                             "args": [p8,
                                      itype,
@@ -377,9 +371,7 @@ class LLVMFunction():
     op_translate = {'cpuid': 'cpuid',
     }
     ## Add the size as first argument
-    op_translate_with_size = {'bsr': 'x86_bsr',
-                              'bsf': 'x86_bsf',
-    }
+    op_translate_with_size = {}
     ## Add the size as suffix
     op_translate_with_suffix_size = {'bcdadd': 'bcdadd',
                                      'bcdadd_cf': 'bcdadd_cf',
@@ -711,6 +703,24 @@ class LLVMFunction():
                 bitcount = builder.call(self.mod.get_global("llvm.ctpop.i8"),
                                         [truncated])
                 ret = builder.not_(builder.trunc(bitcount, LLVMType.IntType(1)))
+                self.update_cache(expr, ret)
+                return ret
+
+            if op in ["cntleadzeros", "cnttrailzeros"]:
+                assert len(expr.args) == 1
+                arg = self.add_ir(expr.args[0])
+                func_name = {
+                    "cntleadzeros": "ctlz",
+                    "cnttrailzeros": "cttz",
+                }[op]
+                func_llvm_name = "llvm.%s.i%d" % (func_name, expr.size)
+                func_sig = {func_llvm_name: {
+                    "ret": LLVMType.IntType(expr.size),
+                    "args": [LLVMType.IntType(expr.args[0].size)]
+                }}
+                self.llvm_context.add_fc(func_sig, readonly=True)
+                ret = builder.call(self.mod.get_global(func_llvm_name),
+                                   [arg])
                 self.update_cache(expr, ret)
                 return ret
 

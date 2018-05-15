@@ -43,8 +43,8 @@ class TranslatorC(Translator):
             if expr.op == 'parity':
                 return "parity(%s&0x%x)" % (self.from_expr(expr.args[0]),
                                             size2mask(expr.args[0].size))
-            elif expr.op in ['bsr', 'bsf']:
-                return "x86_%s(0x%x, %s)" % (expr.op,
+            elif expr.op in ['cntleadzeros', 'cnttrailzeros']:
+                return "%s(0x%x, %s)" % (expr.op,
                                              expr.args[0].size,
                                              self.from_expr(expr.args[0]))
             elif expr.op in ['clz']:

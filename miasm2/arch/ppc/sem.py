@@ -98,9 +98,7 @@ def mn_do_and(ir, instr, ra, rs, arg2):
     return ret, []
 
 def mn_do_cntlzw(ir, instr, ra, rs):
-    rvalue = ExprCond(rs, ExprInt(31, 32) - ExprOp('bsr', rs), ExprInt(32, 32))
-
-    ret = [ ExprAff(ra, rvalue) ]
+    ret = [ ExprAff(ra, ExprOp('cntleadzeros'), rs) ]
 
     if instr.name[-1] == '.':
         ret += mn_compute_flags(rvalue)
