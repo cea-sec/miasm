@@ -3073,16 +3073,16 @@ def cpuid(_, instr):
     e = []
     e.append(
         m2_expr.ExprAff(mRAX[instr.mode],
-                        m2_expr.ExprOp('cpuid', mRAX[instr.mode], m2_expr.ExprInt(0, instr.mode))))
+                        m2_expr.ExprOp('x86_cpuid', mRAX[instr.mode], m2_expr.ExprInt(0, instr.mode))))
     e.append(
         m2_expr.ExprAff(mRBX[instr.mode],
-                        m2_expr.ExprOp('cpuid', mRAX[instr.mode], m2_expr.ExprInt(1, instr.mode))))
+                        m2_expr.ExprOp('x86_cpuid', mRAX[instr.mode], m2_expr.ExprInt(1, instr.mode))))
     e.append(
         m2_expr.ExprAff(mRCX[instr.mode],
-                        m2_expr.ExprOp('cpuid', mRAX[instr.mode], m2_expr.ExprInt(2, instr.mode))))
+                        m2_expr.ExprOp('x86_cpuid', mRAX[instr.mode], m2_expr.ExprInt(2, instr.mode))))
     e.append(
         m2_expr.ExprAff(mRDX[instr.mode],
-                        m2_expr.ExprOp('cpuid', mRAX[instr.mode], m2_expr.ExprInt(3, instr.mode))))
+                        m2_expr.ExprOp('x86_cpuid', mRAX[instr.mode], m2_expr.ExprInt(3, instr.mode))))
     return e, []
 
 

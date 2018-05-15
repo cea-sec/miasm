@@ -94,7 +94,7 @@ class TranslatorC(Translator):
                                                    self.from_expr(expr.args[0]),
                                                    self.from_expr(expr.args[1]),
                                                    size2mask(expr.args[0].size))
-            elif expr.op == 'cpuid':
+            elif expr.op == 'x86_cpuid':
                 return "%s(%s, %s)" % (expr.op,
                                        self.from_expr(expr.args[0]),
                                        self.from_expr(expr.args[1]))

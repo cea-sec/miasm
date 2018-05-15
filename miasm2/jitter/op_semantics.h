@@ -77,7 +77,7 @@ unsigned int cnttrailzeros(uint64_t size, uint64_t src);
 		return r;						\
 	}
 
-unsigned int cpuid(unsigned int a, unsigned int reg_num);
+unsigned int x86_cpuid(unsigned int a, unsigned int reg_num);
 double int2double(unsigned int m);
 
 double fpu_fadd(double a, double b);

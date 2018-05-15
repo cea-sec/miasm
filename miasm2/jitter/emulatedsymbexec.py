@@ -5,7 +5,7 @@ from miasm2.ir.symbexec import SymbolicExecutionEngine
 class EmulatedSymbExec(SymbolicExecutionEngine):
     """Symbolic exec instance linked with a jitter"""
 
-    cpuid = {
+    x86_cpuid = {
         0: {
             0: 0xa,
             1: 0x756E6547,
@@ -116,9 +116,9 @@ class EmulatedSymbExec(SymbolicExecutionEngine):
         segmaddr = self.cpu.get_segm_base(segm_nb)
         return e_s(m2_expr.ExprInt(segmaddr, expr.size) + expr.args[1])
 
-    def _simp_handle_cpuid(self, e_s, expr):
-        """From miasm2/jitter/op_semantics.h: cpuid"""
-        if expr.op != "cpuid":
+    def _simp_handle_x86_cpuid(self, e_s, expr):
+        """From miasm2/jitter/op_semantics.h: x86_cpuid"""
+        if expr.op != "x86_cpuid":
             return expr
 
         if any(not arg.is_int() for arg in expr.args):
@@ -126,12 +126,12 @@ class EmulatedSymbExec(SymbolicExecutionEngine):
         a, reg_num = (int(arg) for arg in expr.args)
 
         # Not found error is keeped on purpose
-        return m2_expr.ExprInt(self.cpuid[a][reg_num], expr.size)
+        return m2_expr.ExprInt(self.x86_cpuid[a][reg_num], expr.size)
 
     def enable_emulated_simplifications(self):
         """Enable simplifications needing a CPU instance on associated
         ExpressionSimplifier
         """
         self.expr_simp.enable_passes({
-            m2_expr.ExprOp: [self._simp_handle_segm, self._simp_handle_cpuid],
+            m2_expr.ExprOp: [self._simp_handle_segm, self._simp_handle_x86_cpuid],
         })
