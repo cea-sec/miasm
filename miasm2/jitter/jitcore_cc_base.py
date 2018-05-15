@@ -13,6 +13,7 @@ def gen_core(arch, attrib):
 
     txt = ""
     txt += '#include "%s/queue.h"\n' % lib_dir
+    txt += '#include "%s/op_semantics.h"\n' % lib_dir
     txt += '#include "%s/vm_mngr.h"\n' % lib_dir
     txt += '#include "%s/vm_mngr_py.h"\n' % lib_dir
     txt += '#include "%s/JitCore.h"\n' % lib_dir
