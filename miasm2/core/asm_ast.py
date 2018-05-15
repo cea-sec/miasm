@@ -39,9 +39,6 @@ class AstNode(object):
     def __and__(self, other):
         return AstOp('&', self, other)
 
-    def __neg__(self):
-        return AstOp('-', self)
-
 
 class AstInt(AstNode):
     """
