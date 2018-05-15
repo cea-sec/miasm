@@ -207,19 +207,20 @@ class TranslatorZ3(Translator):
                 res = res ^ z3.Extract(i, i, arg)
         elif expr.op == '-':
             res = -res
-        elif expr.op == "bsf":
+        elif expr.op == "cnttrailzeros":
             size = expr.size
             src = res
-            res = z3.If((src & (1 << (size - 1))) != 0, size - 1, src)
-            for i in xrange(size - 2, -1, -1):
+            res = z3.If(src == 0, size, src)
+            for i in xrange(size - 1, -1, -1):
                 res = z3.If((src & (1 << i)) != 0, i, res)
-        elif expr.op == "bsr":
+        elif expr.op == "cntleadzeros":
             size = expr.size
             src = res
-            res = z3.If((src & 1) != 0, 0, src)
-            for i in xrange(size - 1, 0, -1):
+            res = z3.If(src == 0, size, src)
+            for i in xrange(size, 0, -1):
                 index = - i % size
-                res = z3.If((src & (1 << index)) != 0, index, res)
+                out = size - (index + 1)
+                res = z3.If((src & (1 << index)) != 0, out, res)
         else:
             raise NotImplementedError("Unsupported OP yet: %s" % expr.op)
 

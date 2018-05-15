@@ -2867,14 +2867,14 @@ def aas(ir, instr):
     return _tpl_aaa(ir, instr, "-")
 
 
-def bsr_bsf(ir, instr, dst, src, op_name):
+def bsr_bsf(ir, instr, dst, src, op_func):
     """
     IF SRC == 0
         ZF = 1
         DEST is left unchanged
     ELSE
         ZF = 0
-        DEST = @op_name(SRC)
+        DEST = @op_func(SRC)
     """
     lbl_src_null = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
     lbl_src_not_null = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
@@ -2891,7 +2891,7 @@ def bsr_bsf(ir, instr, dst, src, op_name):
 
     e_src_not_null = []
     e_src_not_null.append(m2_expr.ExprAff(zf, m2_expr.ExprInt(0, zf.size)))
-    e_src_not_null.append(m2_expr.ExprAff(dst, m2_expr.ExprOp(op_name, src)))
+    e_src_not_null.append(m2_expr.ExprAff(dst, op_func(src)))
     e_src_not_null.append(aff_dst)
 
     return e, [IRBlock(lbl_src_null.name, [AssignBlock(e_src_null, instr)]),
@@ -2899,11 +2899,15 @@ def bsr_bsf(ir, instr, dst, src, op_name):
 
 
 def bsf(ir, instr, dst, src):
-    return bsr_bsf(ir, instr, dst, src, "bsf")
+    return bsr_bsf(ir, instr, dst, src,
+                   lambda src: m2_expr.ExprOp("cnttrailzeros", src))
 
 
 def bsr(ir, instr, dst, src):
-    return bsr_bsf(ir, instr, dst, src, "bsr")
+    return bsr_bsf(
+        ir, instr, dst, src,
+        lambda src: m2_expr.ExprInt(src.size - 1, src.size) - m2_expr.ExprOp("cntleadzeros", src)
+    )
 
 
 def arpl(_, instr, dst, src):

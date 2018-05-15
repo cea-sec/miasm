@@ -150,22 +150,22 @@ ez3 = Translator.to_language('z3').from_expr(e8)
 assert not equiv(ez3, z3_e7)
 
 # --------------------------------------------------------------------------
-# bsr, bsf
+# cntleadzeros, cnttrailzeros
 
-# bsf(0x1138) == 3
-bsf1 = Translator.to_language('z3').from_expr(ExprOp("bsf", ExprInt(0x1138, 32)))
-bsf2 = z3.BitVecVal(3, 32)
-assert(equiv(bsf1, bsf2))
+# cnttrailzeros(0x1138) == 3
+cnttrailzeros1 = Translator.to_language('z3').from_expr(ExprOp("cnttrailzeros", ExprInt(0x1138, 32)))
+cnttrailzeros2 = z3.BitVecVal(3, 32)
+assert(equiv(cnttrailzeros1, cnttrailzeros2))
 
-# bsr(0x11300) == 0x10
-bsr1 = Translator.to_language('z3').from_expr(ExprOp("bsr", ExprInt(0x11300, 32)))
-bsr2 = z3.BitVecVal(0x10, 32)
-assert(equiv(bsr1, bsr2))
+# cntleadzeros(0x11300) == 0xf
+cntleadzeros1 = Translator.to_language('z3').from_expr(ExprOp("cntleadzeros", ExprInt(0x11300, 32)))
+cntleadzeros2 = z3.BitVecVal(0xf, 32)
+assert(equiv(cntleadzeros1, cntleadzeros2))
 
-# bsf(0x80000) == bsr(0x80000)
-bsf3 = Translator.to_language('z3').from_expr(ExprOp("bsf", ExprInt(0x80000, 32)))
-bsr3 = Translator.to_language('z3').from_expr(ExprOp("bsr", ExprInt(0x80000, 32)))
-assert(equiv(bsf3, bsr3))
+# cnttrailzeros(0x8000) + 1 == cntleadzeros(0x8000)
+cnttrailzeros3 = Translator.to_language('z3').from_expr(ExprOp("cnttrailzeros", ExprInt(0x8000, 32)) + ExprInt(1, 32))
+cntleadzeros3 = Translator.to_language('z3').from_expr(ExprOp("cntleadzeros", ExprInt(0x8000, 32)))
+assert(equiv(cnttrailzeros3, cntleadzeros3))
 
 print "TranslatorZ3 tests are OK."
 

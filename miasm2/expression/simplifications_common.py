@@ -95,19 +95,21 @@ def simp_cst_propagation(e_s, expr):
 
             args.append(ExprInt(out, int1.size))
 
-    # bsf(int) => int
-    if op_name == "bsf" and args[0].is_int() and args[0].arg != 0:
+    # cnttrailzeros(int) => int
+    if op_name == "cnttrailzeros" and args[0].is_int():
         i = 0
-        while args[0].arg & (1 << i) == 0:
+        while args[0].arg & (1 << i) == 0 and i < args[0].size:
             i += 1
         return ExprInt(i, args[0].size)
 
-    # bsr(int) => int
-    if op_name == "bsr" and args[0].is_int() and args[0].arg != 0:
+    # cntleadzeros(int) => int
+    if op_name == "cntleadzeros" and args[0].is_int():
+        if args[0].arg == 0:
+            return ExprInt(args[0].size, args[0].size)
         i = args[0].size - 1
         while args[0].arg & (1 << i) == 0:
             i -= 1
-        return ExprInt(i, args[0].size)
+        return ExprInt(expr.size - (i + 1), args[0].size)
 
     # -(-(A)) => A
     if (op_name == '-' and len(args) == 1 and args[0].is_op('-') and
