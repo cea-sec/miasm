@@ -27,7 +27,7 @@ unsigned int cntleadzeros(uint64_t size, uint64_t src);
 unsigned int cnttrailzeros(uint64_t size, uint64_t src);
 
 #define UDIV(sizeA)						\
-	uint ## sizeA ## _t udiv ## sizeA (vm_cpu_t* vmcpu, uint ## sizeA ## _t a, uint ## sizeA ## _t b) \
+	uint ## sizeA ## _t udiv ## sizeA (uint ## sizeA ## _t a, uint ## sizeA ## _t b) \
 	{								\
 		uint ## sizeA ## _t r;					\
 		if (b == 0) {						\
@@ -40,7 +40,7 @@ unsigned int cnttrailzeros(uint64_t size, uint64_t src);
 
 
 #define UMOD(sizeA)						\
-	uint ## sizeA ## _t umod ## sizeA (vm_cpu_t* vmcpu, uint ## sizeA ## _t a, uint ## sizeA ## _t b) \
+	uint ## sizeA ## _t umod ## sizeA (uint ## sizeA ## _t a, uint ## sizeA ## _t b) \
 	{								\
 		uint ## sizeA ## _t r;					\
 		if (b == 0) {						\
@@ -53,7 +53,7 @@ unsigned int cnttrailzeros(uint64_t size, uint64_t src);
 
 
 #define IDIV(sizeA)						\
-	int ## sizeA ## _t idiv ## sizeA (vm_cpu_t* vmcpu, int ## sizeA ## _t a, int ## sizeA ## _t b) \
+	int ## sizeA ## _t idiv ## sizeA (int ## sizeA ## _t a, int ## sizeA ## _t b) \
 	{								\
 		int ## sizeA ## _t r;					\
 		if (b == 0) {						\
@@ -66,7 +66,7 @@ unsigned int cnttrailzeros(uint64_t size, uint64_t src);
 
 
 #define IMOD(sizeA)						\
-	int ## sizeA ## _t imod ## sizeA (vm_cpu_t* vmcpu, int ## sizeA ## _t a, int ## sizeA ## _t b) \
+	int ## sizeA ## _t imod ## sizeA (int ## sizeA ## _t a, int ## sizeA ## _t b) \
 	{								\
 		int ## sizeA ## _t r;					\
 		if (b == 0) {						\
@@ -76,6 +76,21 @@ unsigned int cnttrailzeros(uint64_t size, uint64_t src);
 		r = a%b;						\
 		return r;						\
 	}
+
+uint64_t udiv64(uint64_t a, uint64_t b);
+uint64_t umod64(uint64_t a, uint64_t b);
+int64_t idiv64(int64_t a, int64_t b);
+int64_t imod64(int64_t a, int64_t b);
+
+uint32_t udiv32(uint32_t a, uint32_t b);
+uint32_t umod32(uint32_t a, uint32_t b);
+int32_t idiv32(int32_t a, int32_t b);
+int32_t imod32(int32_t a, int32_t b);
+
+uint16_t udiv16(uint16_t a, uint16_t b);
+uint16_t umod16(uint16_t a, uint16_t b);
+int16_t idiv16(int16_t a, int16_t b);
+int16_t imod16(int16_t a, int16_t b);
 
 unsigned int x86_cpuid(unsigned int a, unsigned int reg_num);
 double int2double(unsigned int m);

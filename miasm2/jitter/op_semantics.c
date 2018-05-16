@@ -774,3 +774,19 @@ uint64_t double_to_mem_64(double d)
 #endif
 	return m;
 }
+
+UDIV(16)
+UDIV(32)
+UDIV(64)
+
+UMOD(16)
+UMOD(32)
+UMOD(64)
+
+IDIV(16)
+IDIV(32)
+IDIV(64)
+
+IMOD(16)
+IMOD(32)
+IMOD(64)

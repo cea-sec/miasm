@@ -284,25 +284,6 @@ PyObject* vm_set_mem(JitCpu *self, PyObject* args)
        return Py_None;
 }
 
-
-UDIV(16)
-UDIV(32)
-UDIV(64)
-
-UMOD(16)
-UMOD(32)
-UMOD(64)
-
-
-IDIV(16)
-IDIV(32)
-IDIV(64)
-
-IMOD(16)
-IMOD(32)
-IMOD(64)
-
-
 static PyMemberDef JitCpu_members[] = {
     {NULL}  /* Sentinel */
 };

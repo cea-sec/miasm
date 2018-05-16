@@ -222,25 +222,6 @@ void check_automod(JitCpu* jitcpu, uint64_t addr, uint64_t size)
 }
 
 
-UDIV(16)
-UDIV(32)
-UDIV(64)
-
-UMOD(16)
-UMOD(32)
-UMOD(64)
-
-
-IDIV(16)
-IDIV(32)
-IDIV(64)
-
-IMOD(16)
-IMOD(32)
-IMOD(64)
-
-
-
 void MEM_WRITE_08(JitCpu* jitcpu, uint64_t addr, uint8_t src)
 {
 	vm_MEM_WRITE_08(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr, src);

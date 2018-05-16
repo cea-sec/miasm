@@ -187,16 +187,6 @@ void check_automod(JitCpu* jitcpu, uint64_t addr, uint64_t size)
 
 }
 
-
-UDIV(32)
-
-UMOD(32)
-
-IDIV(32)
-
-IMOD(32)
-
-
 void MEM_WRITE_08(JitCpu* jitcpu, uint64_t addr, uint8_t src)
 {
 	vm_MEM_WRITE_08(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr, src);
@@ -220,22 +210,6 @@ void MEM_WRITE_64(JitCpu* jitcpu, uint64_t addr, uint64_t src)
 	vm_MEM_WRITE_64(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr, src);
 	check_automod(jitcpu, addr, 64);
 }
-
-
-uint32_t clz(uint32_t arg)
-{
-
-	int i;
-
-	for (i=0; i<32; i++) {
-		if (arg & (1ull << (31-i)))
-			break;
-	}
-	return i;
-}
-
-
-
 
 PyObject* vm_set_mem(JitCpu *self, PyObject* args)
 {
