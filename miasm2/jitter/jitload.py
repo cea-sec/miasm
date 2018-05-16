@@ -171,7 +171,6 @@ class jitter(object):
         @ir_arch: ir instance for this architecture
         @jit_type: JiT backend to use. Available options are:
             - "gcc"
-            - "tcc"
             - "llvm"
             - "python"
         """
@@ -210,9 +209,7 @@ class jitter(object):
         self.symbexec.reset_regs()
 
         try:
-            if jit_type == "tcc":
-                from miasm2.jitter.jitcore_tcc import JitCore_Tcc as JitCore
-            elif jit_type == "llvm":
+            if jit_type == "llvm":
                 from miasm2.jitter.jitcore_llvm import JitCore_LLVM as JitCore
             elif jit_type == "python":
                 from miasm2.jitter.jitcore_python import JitCore_Python as JitCore

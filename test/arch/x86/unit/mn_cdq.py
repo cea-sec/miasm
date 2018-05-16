@@ -433,7 +433,7 @@ if __name__ == "__main__":
         Test_CDQE_64,
         Test_CDQE_64_signed,
     ]
-    if sys.argv[1] not in ["gcc", "tcc"]:
+    if sys.argv[1] not in ["gcc"]:
         # TODO XXX CQO use 128 bit not supported in gcc yet!
         tests += [
             Test_CQO_64,

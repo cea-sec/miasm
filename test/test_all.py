@@ -15,7 +15,6 @@ TAGS = {"regression": "REGRESSION", # Regression tests
         "example": "EXAMPLE", # Examples
         "long": "LONG", # Very time consumming tests
         "llvm": "LLVM", # LLVM dependency is required
-        "tcc": "TCC", # TCC dependency is required
         "gcc": "GCC", # GCC based tests
         "z3": "Z3", # Z3 dependecy is needed
         "qemu": "QEMU", # QEMU tests (several tests)
@@ -52,7 +51,7 @@ testset += RegressionTest(["x86/arch.py"], base_dir="arch",
 class ArchUnitTest(RegressionTest):
     """Test against arch unit regression tests"""
 
-    jitter_engines = ["tcc", "llvm", "gcc", "python"]
+    jitter_engines = ["llvm", "gcc", "python"]
 
     def __init__(self, script, jitter ,*args, **kwargs):
         super(ArchUnitTest, self).__init__([script, jitter], *args, **kwargs)
@@ -60,7 +59,7 @@ class ArchUnitTest(RegressionTest):
 # script -> blacklisted jitter
 blacklist = {
     "x86/unit/mn_float.py": ["python", "llvm"],
-    "x86/unit/mn_div.py": ["tcc", "gcc"],
+    "x86/unit/mn_div.py": ["gcc"],
 }
 for script in ["x86/sem.py",
                "x86/unit/mn_strings.py",
@@ -107,7 +106,7 @@ class QEMUTest(RegressionTest):
     SCRIPT_NAME = "testqemu.py"
     SAMPLE_NAME = "test-i386"
     EXPECTED_PATH = "expected"
-    jitter_engines = ["tcc", "llvm", "python", "gcc"]
+    jitter_engines = ["llvm", "python", "gcc"]
 
     def __init__(self, name, jitter, *args, **kwargs):
         super(QEMUTest, self).__init__([self.SCRIPT_NAME], *args, **kwargs)
@@ -655,7 +654,7 @@ class ExampleJitter(Example):
     - script path begins with "jitter/"
     """
     example_dir = "jitter"
-    jitter_engines = ["tcc", "llvm", "python", "gcc"]
+    jitter_engines = ["llvm", "python", "gcc"]
 
 
 class ExampleJitterNoPython(ExampleJitter):
@@ -663,14 +662,13 @@ class ExampleJitterNoPython(ExampleJitter):
     - script path begins with "jitter/"
     Run jitting script without python support
     """
-    jitter_engines = ["tcc", "llvm", "gcc"]
+    jitter_engines = ["llvm", "gcc"]
 
 
 for jitter in ExampleJitter.jitter_engines:
     # Take 5 min on a Core i5
     tags = {"python": [TAGS["long"]],
             "llvm": [TAGS["llvm"]],
-            "tcc": [TAGS["tcc"]],
             "gcc": [TAGS["gcc"]],
             }
     testset += ExampleJitter(["unpack_upx.py",
@@ -804,13 +802,6 @@ By default, all tag are considered." % ", ".join(TAGS.keys()), default="")
     except ImportError:
         llvm = False
 
-    # Handle tcc modularity
-    tcc = True
-    try:
-        from miasm2.jitter import Jittcc
-    except ImportError:
-        tcc = False
-
     if llvm is False:
         print "%(red)s[LLVM]%(end)s Python" % cosmetics.colors + \
             "'llvmlite' module is required for llvm tests"
@@ -818,14 +809,6 @@ By default, all tag are considered." % ", ".join(TAGS.keys()), default="")
         # Remove llvm tests
         if TAGS["llvm"] not in exclude_tags:
             exclude_tags.append(TAGS["llvm"])
-
-    if tcc is False:
-        print "%(red)s[TCC]%(end)s Python" % cosmetics.colors + \
-            "'libtcc' module is required for tcc tests"
-
-        # Remove tcc tests
-        if TAGS["tcc"] not in exclude_tags:
-            exclude_tags.append(TAGS["tcc"])
 
     # Handle Z3 dependency
     try:

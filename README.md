@@ -425,7 +425,7 @@ How does it work?
 Miasm embeds its own disassembler, intermediate language and
 instruction semantic. It is written in Python.
 
-To emulate code, it uses LibTCC, LLVM, GCC, Clang or Python to JIT the
+To emulate code, it uses LLVM, GCC, Clang or Python to JIT the
 intermediate representation. It can emulate shellcodes and all or parts of
 binaries. Python callbacks can be executed to interact with the execution, for
 instance to emulate library functions effects.
@@ -457,7 +457,6 @@ To enable code JIT, one of the following module is mandatory:
 * GCC
 * Clang
 * LLVM with Numba llvmlite, see below
-* LibTCC [tinycc (ONLY version 0.9.26)](http://repo.or.cz/w/tinycc.git)
 
 'optional' Miasm can also use:
 * Z3, the [Theorem Prover](https://github.com/Z3Prover/z3)
@@ -473,17 +472,9 @@ python setup.py build
 sudo python setup.py install
 ```
 
-To use the jitter, GCC, TCC or LLVM is recommended
+To use the jitter, GCC or LLVM is recommended
 * GCC (any version)
 * Clang (any version)
-* LibTCC needs to be configured with the `--disable-static` option
-  * remove `libtcc-dev` from the system to avoid conflicts
-  * clone [TinyCC](http://repo.or.cz/tinycc.git): `git clone http://repo.or.cz/tinycc.git`
-  * set branch to version 0.9.26: `cd tinycc/` and `git checkout release_0_9_26`
-  * `./configure --disable-static`
-  * `make`
-  * `sudo make install`
-  * There may be an error on documentation generation
 * LLVM
   * Debian (testing/unstable): Not tested
   * Debian stable/Ubuntu/Kali/whatever: `pip install llvmlite` or install from [llvmlite](https://github.com/numba/llvmlite)
