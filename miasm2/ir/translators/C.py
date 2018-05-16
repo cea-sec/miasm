@@ -50,9 +50,6 @@ class TranslatorC(Translator):
             elif expr.op == '!':
                 return "(~ %s)&0x%x" % (self.from_expr(expr.args[0]),
                                         size2mask(expr.args[0].size))
-            elif expr.op in ["hex2bcd", "bcd2hex"]:
-                return "%s_%d(%s)" % (expr.op, expr.args[0].size,
-                                      self.from_expr(expr.args[0]))
             elif (expr.op.startswith("double_to_") or
                   expr.op.endswith("_to_double")   or
                   expr.op.startswith("access_")    or

@@ -36,16 +36,4 @@ typedef struct {
 
 #define RETURN_PC return BlockDst;
 
-uint16_t bcdadd_16(uint16_t a, uint16_t b);
-
-uint16_t bcdadd_cf_16(uint16_t a, uint16_t b);
-
-uint16_t hex2bcd_16(uint16_t a);
-
-uint8_t hex2bcd_8(uint8_t a);
-
-uint8_t bcd2hex_8(uint8_t a);
-
-uint16_t bcd2hex_16(uint16_t a);
-
 void dump_gpregs(vm_cpu_t* vmcpu);
