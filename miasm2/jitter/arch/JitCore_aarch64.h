@@ -49,19 +49,4 @@ typedef struct {
 
 void dump_gpregs(vm_cpu_t* vmcpu);
 
-uint64_t udiv64(uint64_t a, uint64_t b);
-uint64_t umod64(uint64_t a, uint64_t b);
-int64_t idiv64(int64_t a, int64_t b);
-int64_t imod64(int64_t a, int64_t b);
-
-uint32_t udiv32(uint32_t a, uint32_t b);
-uint32_t umod32(uint32_t a, uint32_t b);
-int32_t idiv32(int32_t a, int32_t b);
-int32_t imod32(int32_t a, int32_t b);
-
-uint16_t udiv16(uint16_t a, uint16_t b);
-uint16_t umod16(uint16_t a, uint16_t b);
-int16_t idiv16(int16_t a, int16_t b);
-int16_t imod16(int16_t a, int16_t b);
-
 #define RETURN_PC return BlockDst;

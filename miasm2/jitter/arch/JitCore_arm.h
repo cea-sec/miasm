@@ -38,13 +38,6 @@ typedef struct {
 
 void dump_gpregs(vm_cpu_t* vmcpu);
 
-
-uint32_t udiv32(uint32_t a, uint32_t b);
-uint32_t umod32(uint32_t a, uint32_t b);
-int32_t idiv32(int32_t a, int32_t b);
-int32_t imod32(int32_t a, int32_t b);
-
-
 #define RETURN_PC return BlockDst;
 
 uint32_t clz(uint32_t arg);

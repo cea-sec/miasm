@@ -330,24 +330,6 @@ uint64_t segm2addr(JitCpu* jitcpu, uint64_t segm, uint64_t addr)
 	return addr + ((vm_cpu_t*)jitcpu->cpu)->segm_base[segm];
 }
 
-
-UDIV(16)
-UDIV(32)
-UDIV(64)
-
-UMOD(16)
-UMOD(32)
-UMOD(64)
-
-
-IDIV(16)
-IDIV(32)
-IDIV(64)
-
-IMOD(16)
-IMOD(32)
-IMOD(64)
-
 void MEM_WRITE_08(JitCpu* jitcpu, uint64_t addr, uint8_t src)
 {
 	vm_MEM_WRITE_08(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr, src);

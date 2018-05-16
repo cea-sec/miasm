@@ -246,38 +246,6 @@ get_gpreg_offset_all(void) {
     return dict;
 }
 
-int32_t
-idiv32(int32_t a, int32_t b) {
-    if (b == 0)
-	return 0;
-
-    return a / b;
-}
-
-uint32_t
-udiv32(uint32_t a, uint32_t b) {
-    if (b == 0)
-	return 0;
-
-    return a / b;
-}
-
-int32_t
-imod32(int32_t a, int32_t b) {
-    if (b == 0)
-	return 0;
-
-    return a % b;
-}
-
-uint32_t
-umod32(uint32_t a, uint32_t b) {
-    if (b == 0)
-	return 0;
-
-    return a % b;
-}
-
 static PyGetSetDef JitCpu_getseters[] = {
     {"vmmngr",
      (getter)JitCpu_get_vmmngr, (setter)JitCpu_set_vmmngr,
