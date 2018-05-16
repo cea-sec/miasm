@@ -247,7 +247,7 @@ get_gpreg_offset_all(void) {
 }
 
 int32_t
-idiv32(struct vm_cpu *cpu, int32_t a, int32_t b) {
+idiv32(int32_t a, int32_t b) {
     if (b == 0)
 	return 0;
 
@@ -255,7 +255,7 @@ idiv32(struct vm_cpu *cpu, int32_t a, int32_t b) {
 }
 
 uint32_t
-udiv32(struct vm_cpu *cpu, uint32_t a, uint32_t b) {
+udiv32(uint32_t a, uint32_t b) {
     if (b == 0)
 	return 0;
 
@@ -263,7 +263,7 @@ udiv32(struct vm_cpu *cpu, uint32_t a, uint32_t b) {
 }
 
 int32_t
-imod32(struct vm_cpu *cpu, int32_t a, int32_t b) {
+imod32(int32_t a, int32_t b) {
     if (b == 0)
 	return 0;
 
@@ -271,7 +271,7 @@ imod32(struct vm_cpu *cpu, int32_t a, int32_t b) {
 }
 
 uint32_t
-umod32(struct vm_cpu *cpu, uint32_t a, uint32_t b) {
+umod32(uint32_t a, uint32_t b) {
     if (b == 0)
 	return 0;
 

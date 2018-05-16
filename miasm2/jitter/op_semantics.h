@@ -27,7 +27,7 @@ unsigned int cntleadzeros(uint64_t size, uint64_t src);
 unsigned int cnttrailzeros(uint64_t size, uint64_t src);
 
 #define UDIV(sizeA)						\
-	uint ## sizeA ## _t udiv ## sizeA (vm_cpu_t* vmcpu, uint ## sizeA ## _t a, uint ## sizeA ## _t b) \
+	uint ## sizeA ## _t udiv ## sizeA (uint ## sizeA ## _t a, uint ## sizeA ## _t b) \
 	{								\
 		uint ## sizeA ## _t r;					\
 		if (b == 0) {						\
@@ -40,7 +40,7 @@ unsigned int cnttrailzeros(uint64_t size, uint64_t src);
 
 
 #define UMOD(sizeA)						\
-	uint ## sizeA ## _t umod ## sizeA (vm_cpu_t* vmcpu, uint ## sizeA ## _t a, uint ## sizeA ## _t b) \
+	uint ## sizeA ## _t umod ## sizeA (uint ## sizeA ## _t a, uint ## sizeA ## _t b) \
 	{								\
 		uint ## sizeA ## _t r;					\
 		if (b == 0) {						\
@@ -53,7 +53,7 @@ unsigned int cnttrailzeros(uint64_t size, uint64_t src);
 
 
 #define IDIV(sizeA)						\
-	int ## sizeA ## _t idiv ## sizeA (vm_cpu_t* vmcpu, int ## sizeA ## _t a, int ## sizeA ## _t b) \
+	int ## sizeA ## _t idiv ## sizeA (int ## sizeA ## _t a, int ## sizeA ## _t b) \
 	{								\
 		int ## sizeA ## _t r;					\
 		if (b == 0) {						\
@@ -66,7 +66,7 @@ unsigned int cnttrailzeros(uint64_t size, uint64_t src);
 
 
 #define IMOD(sizeA)						\
-	int ## sizeA ## _t imod ## sizeA (vm_cpu_t* vmcpu, int ## sizeA ## _t a, int ## sizeA ## _t b) \
+	int ## sizeA ## _t imod ## sizeA (int ## sizeA ## _t a, int ## sizeA ## _t b) \
 	{								\
 		int ## sizeA ## _t r;					\
 		if (b == 0) {						\
