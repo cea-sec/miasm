@@ -1038,7 +1038,7 @@ def pldw(ir, instr, a):
 
 def clz(ir, instr, a, b):
     e = []
-    e.append(ExprAff(a, ExprOp('clz', b)))
+    e.append(ExprAff(a, ExprOp('cntleadzeros', b)))
     return e, []
 
 def uxtab(ir, instr, a, b, c):

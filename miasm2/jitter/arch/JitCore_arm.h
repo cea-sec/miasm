@@ -39,5 +39,3 @@ typedef struct {
 void dump_gpregs(vm_cpu_t* vmcpu);
 
 #define RETURN_PC return BlockDst;
-
-uint32_t clz(uint32_t arg);
