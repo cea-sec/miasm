@@ -1,6 +1,9 @@
 #ifndef OP_SEMANTICS_H
 #define OP_SEMANTICS_H
 
+#define uint128_t __uint128_t
+#define int128_t __int128_t
+
 #define CC_P 1
 extern const uint8_t parity_table[256];
 #define parity(a) parity_table[(a) & 0xFF]
