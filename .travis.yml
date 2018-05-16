@@ -22,12 +22,6 @@ before_script:
 - "python /usr/lib/python2.7/dist-packages/virtualenv.py virtualenv;"
 - "cd virtualenv;"
 - "source bin/activate;"
-# install tcc
-- "git clone http://repo.or.cz/tinycc.git tinycc && cd tinycc && git checkout d5e22108a0dc48899e44a158f91d5b3215eb7fe6"
-- "./configure --disable-static --tccdir=./ --libdir=$(pwd) --includedir=$(pwd)"
-- "make && export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(pwd);cd ..;"
-- "cp tinycc/libtcc.h include"
-- "cp tinycc/libtcc.so.1.0 tinycc/libtcc.so"
 # install llvmlite
 - "pip install enum34"
 - "pip install llvmlite"
