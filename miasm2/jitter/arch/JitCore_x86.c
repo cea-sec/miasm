@@ -120,6 +120,23 @@ PyObject* cpu_get_gpreg(JitCpu* self)
     get_reg(MM6);
     get_reg(MM7);
 
+    get_reg(XMM0);
+    get_reg(XMM1);
+    get_reg(XMM2);
+    get_reg(XMM3);
+    get_reg(XMM4);
+    get_reg(XMM5);
+    get_reg(XMM6);
+    get_reg(XMM7);
+    get_reg(XMM8);
+    get_reg(XMM9);
+    get_reg(XMM10);
+    get_reg(XMM11);
+    get_reg(XMM12);
+    get_reg(XMM13);
+    get_reg(XMM14);
+    get_reg(XMM15);
+
     get_reg(tsc1);
     get_reg(tsc2);
 
@@ -526,6 +543,23 @@ getset_reg_u64(MM5);
 getset_reg_u64(MM6);
 getset_reg_u64(MM7);
 
+getset_reg_u128(XMM0);
+getset_reg_u128(XMM1);
+getset_reg_u128(XMM2);
+getset_reg_u128(XMM3);
+getset_reg_u128(XMM4);
+getset_reg_u128(XMM5);
+getset_reg_u128(XMM6);
+getset_reg_u128(XMM7);
+getset_reg_u128(XMM8);
+getset_reg_u128(XMM9);
+getset_reg_u128(XMM10);
+getset_reg_u128(XMM11);
+getset_reg_u128(XMM12);
+getset_reg_u128(XMM13);
+getset_reg_u128(XMM14);
+getset_reg_u128(XMM15);
+
 getset_reg_u32(tsc1);
 getset_reg_u32(tsc2);
 
@@ -601,6 +635,23 @@ PyObject* get_gpreg_offset_all(void)
     get_reg_off(MM5);
     get_reg_off(MM6);
     get_reg_off(MM7);
+
+    get_reg_off(XMM0);
+    get_reg_off(XMM1);
+    get_reg_off(XMM2);
+    get_reg_off(XMM3);
+    get_reg_off(XMM4);
+    get_reg_off(XMM5);
+    get_reg_off(XMM6);
+    get_reg_off(XMM7);
+    get_reg_off(XMM8);
+    get_reg_off(XMM9);
+    get_reg_off(XMM10);
+    get_reg_off(XMM11);
+    get_reg_off(XMM12);
+    get_reg_off(XMM13);
+    get_reg_off(XMM14);
+    get_reg_off(XMM15);
 
     get_reg_off(tsc1);
     get_reg_off(tsc2);
@@ -689,6 +740,23 @@ static PyGetSetDef JitCpu_getseters[] = {
     {"MM5", (getter)JitCpu_get_MM5, (setter)JitCpu_set_MM5, "MM5", NULL},
     {"MM6", (getter)JitCpu_get_MM6, (setter)JitCpu_set_MM6, "MM6", NULL},
     {"MM7", (getter)JitCpu_get_MM7, (setter)JitCpu_set_MM7, "MM7", NULL},
+
+    {"XMM0", (getter)JitCpu_get_XMM0, (setter)JitCpu_set_XMM0, "XMM0", NULL},
+    {"XMM1", (getter)JitCpu_get_XMM1, (setter)JitCpu_set_XMM1, "XMM1", NULL},
+    {"XMM2", (getter)JitCpu_get_XMM2, (setter)JitCpu_set_XMM2, "XMM2", NULL},
+    {"XMM3", (getter)JitCpu_get_XMM3, (setter)JitCpu_set_XMM3, "XMM3", NULL},
+    {"XMM4", (getter)JitCpu_get_XMM4, (setter)JitCpu_set_XMM4, "XMM4", NULL},
+    {"XMM5", (getter)JitCpu_get_XMM5, (setter)JitCpu_set_XMM5, "XMM5", NULL},
+    {"XMM6", (getter)JitCpu_get_XMM6, (setter)JitCpu_set_XMM6, "XMM6", NULL},
+    {"XMM7", (getter)JitCpu_get_XMM7, (setter)JitCpu_set_XMM7, "XMM7", NULL},
+    {"XMM8", (getter)JitCpu_get_XMM8, (setter)JitCpu_set_XMM8, "XMM8", NULL},
+    {"XMM9", (getter)JitCpu_get_XMM9, (setter)JitCpu_set_XMM9, "XMM9", NULL},
+    {"XMM10", (getter)JitCpu_get_XMM10, (setter)JitCpu_set_XMM10, "XMM10", NULL},
+    {"XMM11", (getter)JitCpu_get_XMM11, (setter)JitCpu_set_XMM11, "XMM11", NULL},
+    {"XMM12", (getter)JitCpu_get_XMM12, (setter)JitCpu_set_XMM12, "XMM12", NULL},
+    {"XMM13", (getter)JitCpu_get_XMM13, (setter)JitCpu_set_XMM13, "XMM13", NULL},
+    {"XMM14", (getter)JitCpu_get_XMM14, (setter)JitCpu_set_XMM14, "XMM14", NULL},
+    {"XMM15", (getter)JitCpu_get_XMM15, (setter)JitCpu_set_XMM15, "XMM15", NULL},
 
     {"tsc1", (getter)JitCpu_get_tsc1, (setter)JitCpu_set_tsc1, "tsc1", NULL},
     {"tsc2", (getter)JitCpu_get_tsc2, (setter)JitCpu_set_tsc2, "tsc2", NULL},

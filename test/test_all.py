@@ -97,6 +97,8 @@ for script in ["x86/sem.py",
         tags = [TAGS[jitter]] if jitter in TAGS else []
         testset += ArchUnitTest(script, jitter, base_dir="arch", tags=tags)
 
+testset += ArchUnitTest("x86/unit/access_xmm.py", "python", base_dir="arch")
+
 ### QEMU regression tests
 class QEMUTest(RegressionTest):
     """Test against QEMU regression tests
