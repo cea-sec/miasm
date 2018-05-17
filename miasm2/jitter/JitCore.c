@@ -74,6 +74,11 @@ uint64_t __attribute__((weak)) MEM_LOOKUP_64(JitCpu* jitcpu, uint64_t addr)
 	return vm_MEM_LOOKUP_64(&(jitcpu->pyvm->vm_mngr), addr);
 }
 
+uint128_t __attribute__((weak)) MEM_LOOKUP_128(JitCpu* jitcpu, uint64_t addr)
+{
+	return vm_MEM_LOOKUP_128(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr);
+}
+
 void __attribute__((weak)) MEM_WRITE_08(JitCpu* jitcpu, uint64_t addr, uint8_t src)
 {
 	vm_MEM_WRITE_08(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr, src);
@@ -94,8 +99,10 @@ void __attribute__((weak)) MEM_WRITE_64(JitCpu* jitcpu, uint64_t addr, uint64_t 
 	vm_MEM_WRITE_64(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr, src);
 }
 
-
-
+void __attribute__((weak)) MEM_WRITE_128(JitCpu* jitcpu, uint64_t addr, uint128_t src)
+{
+	vm_MEM_WRITE_128(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr, src);
+}
 
 PyObject* __attribute__((weak)) vm_get_mem(JitCpu *self, PyObject* args)
 {

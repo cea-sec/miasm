@@ -1,3 +1,4 @@
+#define uint128_t __uint128_t
 
 typedef struct {
 	uint32_t exception_flags;
@@ -95,6 +96,24 @@ typedef struct {
 	uint64_t MM5;
 	uint64_t MM6;
 	uint64_t MM7;
+
+	/* SSE */
+	uint128_t XMM0;
+	uint128_t XMM1;
+	uint128_t XMM2;
+	uint128_t XMM3;
+	uint128_t XMM4;
+	uint128_t XMM5;
+	uint128_t XMM6;
+	uint128_t XMM7;
+	uint128_t XMM8;
+	uint128_t XMM9;
+	uint128_t XMM10;
+	uint128_t XMM11;
+	uint128_t XMM12;
+	uint128_t XMM13;
+	uint128_t XMM14;
+	uint128_t XMM15;
 
 	uint32_t segm_base[0x10000];
 
