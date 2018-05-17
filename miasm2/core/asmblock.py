@@ -297,19 +297,31 @@ class AsmBlockBad(AsmBlock):
     """Stand for a *bad* ASM block (malformed, unreachable,
     not disassembled, ...)"""
 
-    ERROR_TYPES = {-1: "Unknown error",
-                   0: "Unable to disassemble",
-                   1: "Null starting block",
-                   2: "Address forbidden by dont_dis",
-                   }
 
-    def __init__(self, label=None, alignment=1, errno=-1, *args, **kwargs):
+    ERROR_UNKNOWN = -1
+    ERROR_CANNOT_DISASM = 0
+    ERROR_NULL_STARTING_BLOCK = 1
+    ERROR_FORBIDDEN = 2
+    ERROR_IO = 3
+
+
+    ERROR_TYPES = {
+        ERROR_UNKNOWN: "Unknown error",
+        ERROR_CANNOT_DISASM: "Unable to disassemble",
+        ERROR_NULL_STARTING_BLOCK: "Null starting block",
+        ERROR_FORBIDDEN: "Address forbidden by dont_dis",
+        ERROR_IO: "IOError",
+    }
+
+    def __init__(self, label=None, alignment=1, errno=ERROR_UNKNOWN, *args, **kwargs):
         """Instanciate an AsmBlock_bad.
         @label, @alignement: same as AsmBlock.__init__
         @errno: (optional) specify a error type associated with the block
         """
         super(AsmBlockBad, self).__init__(label, alignment, *args, **kwargs)
         self._errno = errno
+
+    errno = property(lambda self: self._errno)
 
     def __str__(self):
         error_txt = self.ERROR_TYPES.get(self._errno, self._errno)
@@ -1450,7 +1462,7 @@ class disasmEngine(object):
                 if not cur_block.lines:
                     job_done.add(offset)
                     # Block is empty -> bad block
-                    cur_block = AsmBlockBad(label, errno=2)
+                    cur_block = AsmBlockBad(label, errno=AsmBlockBad.ERROR_FORBIDDEN)
                 else:
                     # Block is not empty, stop the desassembly pass and add a
                     # constraint to the next block
@@ -1475,18 +1487,25 @@ class disasmEngine(object):
                 break
 
             off_i = offset
+            error = None
             try:
                 instr = self.arch.dis(self.bin_stream, self.attrib, offset)
-            except (Disasm_Exception, IOError), e:
+            except Disasm_Exception as e:
                 log_asmblock.warning(e)
                 instr = None
+                error = AsmBlockBad.ERROR_CANNOT_DISASM
+            except IOError as e:
+                log_asmblock.warning(e)
+                instr = None
+                error = AsmBlockBad.ERROR_IO
+
 
             if instr is None:
                 log_asmblock.warning("cannot disasm at %X", int(off_i))
                 if not cur_block.lines:
                     job_done.add(offset)
                     # Block is empty -> bad block
-                    cur_block = AsmBlockBad(label, errno=0)
+                    cur_block = AsmBlockBad(label, errno=error)
                 else:
                     # Block is not empty, stop the desassembly pass and add a
                     # constraint to the next block
@@ -1499,7 +1518,7 @@ class disasmEngine(object):
                 log_asmblock.warning("reach nul instr at %X", int(off_i))
                 if not cur_block.lines:
                     # Block is empty -> bad block
-                    cur_block = AsmBlockBad(label, errno=1)
+                    cur_block = AsmBlockBad(label, errno=AsmBlockBad.ERROR_NULL_STARTING_BLOCK)
                 else:
                     # Block is not empty, stop the desassembly pass and add a
                     # constraint to the next block
