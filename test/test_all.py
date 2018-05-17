@@ -380,6 +380,8 @@ for script in ["jitload.py",
                "vm_mngr.py",
                "jit_options.py",
                "test_post_instr.py",
+               "bad_block.py",
+               "jmp_out_mem.py",
                ]:
     for engine in ArchUnitTest.jitter_engines:
         testset += RegressionTest([script, engine], base_dir="jitter",

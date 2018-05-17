@@ -17,7 +17,7 @@
 #
 from hashlib import md5
 
-from miasm2.core import asmblock
+from miasm2.core.asmblock import disasmEngine, AsmLabel, AsmBlockBad
 from miasm2.core.interval import interval
 from miasm2.core.utils import BoundedDict
 from miasm2.jitter.csts import *
@@ -57,13 +57,15 @@ class JitCore(object):
                         "max_exec_per_call": 0 # 0 means no limit
                         }
 
-        self.mdis = asmblock.disasmEngine(ir_arch.arch, ir_arch.attrib, bs,
-                                          lines_wd=self.options["jit_maxline"],
-                                          symbol_pool=ir_arch.symbol_pool,
-                                          follow_call=False,
-                                          dontdis_retcall=False,
-                                          split_dis=self.split_dis,
-                                          dis_block_callback=self.disasm_cb)
+        self.mdis = disasmEngine(
+            ir_arch.arch, ir_arch.attrib, bs,
+            lines_wd=self.options["jit_maxline"],
+            symbol_pool=ir_arch.symbol_pool,
+            follow_call=False,
+            dontdis_retcall=False,
+            split_dis=self.split_dis,
+            dis_block_callback=self.disasm_cb
+        )
 
 
     def set_options(self, **kwargs):
@@ -135,7 +137,7 @@ class JitCore(object):
         """
 
         # Get the block
-        if isinstance(addr, asmblock.AsmLabel):
+        if isinstance(addr, AsmLabel):
             addr = addr.offset
 
         # Prepare disassembler
@@ -143,13 +145,9 @@ class JitCore(object):
         self.mdis.dis_block_callback = self.disasm_cb
 
         # Disassemble it
-        try:
-            cur_block = self.mdis.dis_block(addr)
-        except IOError:
-            # vm_exception_flag is set
-            label = self.ir_arch.symbol_pool.getby_offset_create(addr)
-            cur_block = asmblock.AsmBlockBad(label)
-
+        cur_block = self.mdis.dis_block(addr)
+        if isinstance(cur_block, AsmBlockBad):
+            return cur_block
         # Logging
         if self.log_newbloc:
             print cur_block
@@ -165,6 +163,7 @@ class JitCore(object):
 
         # Update jitcode mem range
         self.add_bloc_to_mem_interval(vm, cur_block)
+        return cur_block
 
     def runbloc(self, cpu, lbl, breakpoints):
         """Run the block starting at lbl.
@@ -177,7 +176,16 @@ class JitCore(object):
 
         if not lbl in self.lbl2jitbloc:
             # Need to JiT the block
-            self.disbloc(lbl, cpu.vmmngr)
+            cur_block = self.disbloc(lbl, cpu.vmmngr)
+            if isinstance(cur_block, AsmBlockBad):
+                errno = cur_block.errno
+                if errno == AsmBlockBad.ERROR_IO:
+                    cpu.vmmngr.set_exception(EXCEPT_ACCESS_VIOL)
+                elif errno == AsmBlockBad.ERROR_CANNOT_DISASM:
+                    cpu.set_exception(EXCEPT_UNK_MNEMO)
+                else:
+                    raise RuntimeError("Unhandled disasm result %r" % errno)
+                return lbl
 
         # Run the block and update cpu/vmmngr state
         return self.exec_wrapper(lbl, cpu, self.lbl2jitbloc.data, breakpoints,
