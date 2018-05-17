@@ -10,9 +10,8 @@ from miasm2.core.asmblock import expr_is_label, AsmBlockBad, AsmLabel
 # Miasm to C translator
 TRANSLATOR = Translator.to_language("C")
 
-SIZE_TO_MASK = {x: 2**x - 1 for x in (1, 2, 3, 7, 8, 16, 32, 64)}
-
-MASK_INT = 0xffffffffffffffff
+SIZE_TO_MASK = {size: TRANSLATOR.from_expr(m2_expr.ExprInt(0, size).mask)
+                for size in (1, 2, 3, 7, 8, 16, 32, 64, 128)}
 
 
 class Attributes(object):
@@ -246,9 +245,9 @@ class CGen(object):
                         '%s = (%s);' % (self.id_to_c(new_dst), self.id_to_c(src)))
                 else:
                     c_main.append(
-                        '%s = (%s)&0x%X;' % (self.id_to_c(new_dst),
-                                             self.id_to_c(src),
-                                             SIZE_TO_MASK[src.size]))
+                        '%s = (%s)&%s;' % (self.id_to_c(new_dst),
+                                           self.id_to_c(src),
+                                           SIZE_TO_MASK[src.size]))
             elif isinstance(dst, m2_expr.ExprMem):
                 ptr = dst.arg.replace_expr(prefetchers)
                 new_dst = m2_expr.ExprMem(ptr, dst.size)

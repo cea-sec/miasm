@@ -18,6 +18,17 @@ class TranslatorC(Translator):
                '>>>': 'rot_right',
                }
 
+    def _size2mask(self, size):
+        """Return a C string corresponding to the size2mask operation, with support for
+        @size <= 128"""
+        mask = size2mask(size)
+        if size > 64:
+            # Avoid "integer constant is too large for its type" error
+            return "(0x%x | ((uint128_t) 0x%x << 64))" % (
+                mask & 0xFFFFFFFFFFFFFFFF,
+                (mask >> 64) & 0xFFFFFFFFFFFFFFFF,
+            )
+        return "0x%x" % mask
 
     def from_ExprId(self, expr):
         if isinstance(expr.name, asmblock.AsmLabel):
@@ -25,6 +36,12 @@ class TranslatorC(Translator):
         return str(expr)
 
     def from_ExprInt(self, expr):
+        if expr.size == 128:
+            # Avoid "integer constant is too large for its type" error
+            return "(0x%x | ((uint128_t) 0x%x << 64))" % (
+                int(expr) & 0xFFFFFFFFFFFFFFFF,
+                (int(expr) >> 64) & 0xFFFFFFFFFFFFFFFF,
+            )
         return "0x%x" % expr.arg.arg
 
     def from_ExprAff(self, expr):
@@ -41,15 +58,19 @@ class TranslatorC(Translator):
     def from_ExprOp(self, expr):
         if len(expr.args) == 1:
             if expr.op == 'parity':
-                return "parity(%s&0x%x)" % (self.from_expr(expr.args[0]),
-                                            size2mask(expr.args[0].size))
+                return "parity(%s&%s)" % (
+                    self.from_expr(expr.args[0]),
+                    self._size2mask(expr.args[0].size),
+                )
             elif expr.op in ['cntleadzeros', 'cnttrailzeros']:
                 return "%s(0x%x, %s)" % (expr.op,
                                              expr.args[0].size,
                                              self.from_expr(expr.args[0]))
             elif expr.op == '!':
-                return "(~ %s)&0x%x" % (self.from_expr(expr.args[0]),
-                                        size2mask(expr.args[0].size))
+                return "(~ %s)&%s" % (
+                    self.from_expr(expr.args[0]),
+                    self._size2mask(expr.args[0].size),
+                )
             elif (expr.op.startswith("double_to_") or
                   expr.op.endswith("_to_double")   or
                   expr.op.startswith("access_")    or
@@ -63,31 +84,40 @@ class TranslatorC(Translator):
 
         elif len(expr.args) == 2:
             if expr.op == "==":
-                return '(((%s&0x%x) == (%s&0x%x))?1:0)' % (
-                    self.from_expr(expr.args[0]), size2mask(expr.args[0].size),
-                    self.from_expr(expr.args[1]), size2mask(expr.args[1].size))
+                return '(((%s&%s) == (%s&%s))?1:0)' % (
+                    self.from_expr(expr.args[0]),
+                    self._size2mask(expr.args[0].size),
+                    self.from_expr(expr.args[1]),
+                    self._size2mask(expr.args[1].size),
+                )
             elif expr.op in self.dct_shift:
                 return 'SHIFT_%s(%d, %s, %s)' % (self.dct_shift[expr.op].upper(),
                                                  expr.args[0].size,
                                                  self.from_expr(expr.args[0]),
                                                  self.from_expr(expr.args[1]))
             elif expr.is_associative() or expr.op in ["%", "/"]:
-                oper = ['(%s&0x%x)' % (self.from_expr(arg), size2mask(arg.size))
+                oper = ['(%s&%s)' % (
+                    self.from_expr(arg),
+                    self._size2mask(arg.size)
+                )
                         for arg in expr.args]
                 oper = str(expr.op).join(oper)
-                return "((%s)&0x%x)" % (oper, size2mask(expr.args[0].size))
+                return "((%s)&%s)" % (oper, self._size2mask(expr.args[0].size))
             elif expr.op in ['-']:
-                return '(((%s&0x%x) %s (%s&0x%x))&0x%x)' % (
-                    self.from_expr(expr.args[0]), size2mask(expr.args[0].size),
+                return '(((%s&%s) %s (%s&%s))&%s)' % (
+                    self.from_expr(expr.args[0]), self._size2mask(expr.args[0].size),
                     str(expr.op),
-                    self.from_expr(expr.args[1]), size2mask(expr.args[1].size),
-                    size2mask(expr.args[0].size))
+                    self.from_expr(expr.args[1]), self._size2mask(expr.args[1].size),
+                    self._size2mask(expr.args[0].size)
+                )
             elif expr.op in self.dct_rot:
-                return '(%s(%s, %s, %s) &0x%x)' % (self.dct_rot[expr.op],
-                                                   expr.args[0].size,
-                                                   self.from_expr(expr.args[0]),
-                                                   self.from_expr(expr.args[1]),
-                                                   size2mask(expr.args[0].size))
+                return '(%s(%s, %s, %s) &%s)' % (
+                    self.dct_rot[expr.op],
+                    expr.args[0].size,
+                    self.from_expr(expr.args[0]),
+                    self.from_expr(expr.args[1]),
+                    self._size2mask(expr.args[0].size),
+                )
             elif expr.op == 'x86_cpuid':
                 return "%s(%s, %s)" % (expr.op,
                                        self.from_expr(expr.args[0]),
@@ -114,19 +144,24 @@ class TranslatorC(Translator):
                 raise NotImplementedError('Unknown op: %r' % expr.op)
 
         elif len(expr.args) >= 3 and expr.is_associative():  # ?????
-            oper = ['(%s&0x%x)' % (self.from_expr(arg), size2mask(arg.size))
+            oper = ['(%s&%s)' % (
+                self.from_expr(arg),
+                self._size2mask(arg.size),
+            )
                     for arg in expr.args]
             oper = str(expr.op).join(oper)
-            return "((%s)&0x%x)" % (oper, size2mask(expr.args[0].size))
-
+            return "((%s)&%s)" % (
+                oper,
+                self._size2mask(expr.args[0].size)
+            )
         else:
             raise NotImplementedError('Unknown op: %s' % expr.op)
 
     def from_ExprSlice(self, expr):
         # XXX check mask for 64 bit & 32 bit compat
-        return "((%s>>%d) & 0x%X)" % (self.from_expr(expr.arg),
-                                      expr.start,
-                                      (1 << (expr.stop - expr.start)) - 1)
+        return "((%s>>%d) &%s)" % (self.from_expr(expr.arg),
+                                   expr.start,
+                                   self._size2mask(expr.stop - expr.start))
 
     def from_ExprCompose(self, expr):
         out = []
@@ -143,10 +178,10 @@ class TranslatorC(Translator):
 
         dst_cast = "uint%d_t" % size
         for index, arg in expr.iter_args():
-            out.append("(((%s)(%s & 0x%X)) << %d)" % (dst_cast,
-                                                      self.from_expr(arg),
-                                                      (1 << arg.size) - 1,
-                                                      index))
+            out.append("(((%s)(%s & %s)) << %d)" % (dst_cast,
+                                                    self.from_expr(arg),
+                                                    self._size2mask(arg.size),
+                                                    index))
         out = ' | '.join(out)
         return '(' + out + ')'
 

@@ -4,6 +4,7 @@
 #define RAISE(errtype, msg) {PyObject* p; p = PyErr_Format( errtype, msg ); return p;}
 #define RAISE_ret0(errtype, msg) {PyObject* p; p = PyErr_Format( errtype, msg ); return 0;}
 
+#define uint128_t __uint128_t
 
 #define PyGetInt(item, value)						\
 	if (PyInt_Check(item)){						\
@@ -30,6 +31,23 @@
 	}								\
 
 
+#define getset_reg_u128(regname)						\
+	static PyObject *JitCpu_get_ ## regname  (JitCpu *self, void *closure) \
+	{ \
+		return _PyLong_FromByteArray((const unsigned char*) &(((vm_cpu_t*)(self->cpu))->  regname  ), sizeof(uint128_t), /*little_endian*/ 1, /*is_signed*/ 0); \
+	}								\
+	static int JitCpu_set_ ## regname  (JitCpu *self, PyObject *value, void *closure) \
+	{								\
+		uint128_t val = 0;					\
+		int i;                                                  \
+		unsigned char bytes[sizeof(uint128_t)];			\
+		_PyLong_AsByteArray((PyLongObject*)value, bytes, sizeof(uint128_t), /*little_endian*/ 1, /*is_signed*/ 0); \
+		for (i = 0; i < sizeof(uint128_t); i++) {               \
+			val |= (uint128_t) bytes[i] << (8 * i);         \
+		}                                                       \
+		((vm_cpu_t*)(self->cpu))->  regname   = val;		\
+		return 0;						\
+	}
 
 #define getset_reg_u64(regname)						\
 	static PyObject *JitCpu_get_ ## regname  (JitCpu *self, void *closure) \
@@ -122,10 +140,12 @@ uint8_t MEM_LOOKUP_08(JitCpu* jitcpu, uint64_t addr);
 uint16_t MEM_LOOKUP_16(JitCpu* jitcpu, uint64_t addr);
 uint32_t MEM_LOOKUP_32(JitCpu* jitcpu, uint64_t addr);
 uint64_t MEM_LOOKUP_64(JitCpu* jitcpu, uint64_t addr);
+uint128_t MEM_LOOKUP_128(JitCpu* jitcpu, uint64_t addr);
 void MEM_WRITE_08(JitCpu* jitcpu, uint64_t addr, uint8_t src);
 void MEM_WRITE_16(JitCpu* jitcpu, uint64_t addr, uint16_t src);
 void MEM_WRITE_32(JitCpu* jitcpu, uint64_t addr, uint32_t src);
 void MEM_WRITE_64(JitCpu* jitcpu, uint64_t addr, uint64_t src);
+void MEM_WRITE_128(JitCpu* jitcpu, uint64_t addr, uint128_t src);
 PyObject* vm_get_mem(JitCpu *self, PyObject* args);
 
 

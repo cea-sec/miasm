@@ -193,7 +193,7 @@ class LLVMContext_JIT(LLVMContext):
 
         fc = {}
         p8 = llvm_ir.PointerType(LLVMType.IntType(8))
-        for i in [8, 16, 32, 64]:
+        for i in [8, 16, 32, 64, 128]:
             fc["MEM_LOOKUP_%02d" % i] = {"ret": LLVMType.IntType(i),
                                          "args": [p8,
                                                   LLVMType.IntType(64)]}

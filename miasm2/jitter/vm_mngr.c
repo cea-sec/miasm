@@ -101,6 +101,13 @@ uint64_t set_endian64(vm_mngr_t* vm_mngr, uint64_t val)
 		return Endian64_Swap(val);
 }
 
+uint128_t set_endian128(vm_mngr_t* vm_mngr, uint128_t val)
+{
+	if (vm_mngr->sex == __BYTE_ORDER)
+		return val;
+	else
+		return Endian128_Swap(val);
+}
 
 void print_val(uint64_t base, uint64_t addr)
 {
@@ -159,11 +166,11 @@ struct memory_page_node * get_memory_page_from_address(vm_mngr_t* vm_mngr, uint6
 
 
 
-static uint64_t memory_page_read(vm_mngr_t* vm_mngr, unsigned int my_size, uint64_t ad)
+static uint128_t memory_page_read(vm_mngr_t* vm_mngr, unsigned int my_size, uint64_t ad)
 {
 	struct memory_page_node * mpn;
 	unsigned char * addr;
-	uint64_t ret = 0;
+	uint128_t ret = 0;
 	struct memory_breakpoint_info * b;
 
 
@@ -206,6 +213,10 @@ static uint64_t memory_page_read(vm_mngr_t* vm_mngr, unsigned int my_size, uint6
 			ret = *((uint64_t*)addr)&0xFFFFFFFFFFFFFFFFULL;
 			ret = set_endian64(vm_mngr, ret);
 			break;
+		case 128:
+			ret = *((uint128_t*)addr)&MASK_128;
+			ret = set_endian128(vm_mngr, ret);
+			break;
 		default:
 			exit(EXIT_FAILURE);
 			break;
@@ -238,6 +249,9 @@ static uint64_t memory_page_read(vm_mngr_t* vm_mngr, unsigned int my_size, uint6
 		case 64:
 			ret = set_endian64(vm_mngr, ret);
 			break;
+		case 128:
+			ret = set_endian128(vm_mngr, ret);
+			break;
 		default:
 			exit(EXIT_FAILURE);
 			break;
@@ -247,7 +261,7 @@ static uint64_t memory_page_read(vm_mngr_t* vm_mngr, unsigned int my_size, uint6
 }
 
 static void memory_page_write(vm_mngr_t* vm_mngr, unsigned int my_size,
-			      uint64_t ad, uint64_t src)
+			      uint64_t ad, uint128_t src)
 {
 	struct memory_page_node * mpn;
 	unsigned char * addr;
@@ -291,6 +305,10 @@ static void memory_page_write(vm_mngr_t* vm_mngr, unsigned int my_size,
 			src = set_endian64(vm_mngr, src);
 			*((uint64_t*)addr) = src&0xFFFFFFFFFFFFFFFFULL;
 			break;
+		case 128:
+			src = set_endian128(vm_mngr, src);
+			*((uint128_t*)addr) = src&MASK_128;
+			break;
 		default:
 			exit(EXIT_FAILURE);
 			break;
@@ -311,6 +329,9 @@ static void memory_page_write(vm_mngr_t* vm_mngr, unsigned int my_size,
 			break;
 		case 64:
 			src = set_endian64(vm_mngr, src);
+			break;
+		case 128:
+			src = set_endian128(vm_mngr, src);
 			break;
 		default:
 			exit(EXIT_FAILURE);
@@ -480,6 +501,12 @@ void vm_MEM_WRITE_64(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t src)
 	memory_page_write(vm_mngr, 64, addr, src);
 }
 
+void vm_MEM_WRITE_128(vm_mngr_t* vm_mngr, uint64_t addr, uint128_t src)
+{
+	add_mem_write(vm_mngr, addr, 16);
+	memory_page_write(vm_mngr, 128, addr, src);
+}
+
 unsigned char vm_MEM_LOOKUP_08(vm_mngr_t* vm_mngr, uint64_t addr)
 {
 	unsigned char ret;
@@ -506,6 +533,13 @@ uint64_t vm_MEM_LOOKUP_64(vm_mngr_t* vm_mngr, uint64_t addr)
 	uint64_t ret;
 	add_mem_read(vm_mngr, addr, 8);
 	ret = memory_page_read(vm_mngr, 64, addr);
+	return ret;
+}
+uint128_t vm_MEM_LOOKUP_128(vm_mngr_t* vm_mngr, uint128_t addr)
+{
+	uint128_t ret;
+	add_mem_read(vm_mngr, addr, 16);
+	ret = memory_page_read(vm_mngr, 128, addr);
 	return ret;
 }
 
