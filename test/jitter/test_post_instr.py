@@ -1,6 +1,6 @@
+import sys
 from miasm2.analysis.machine import Machine
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE, EXCEPT_BREAKPOINT_MEMORY, EXCEPT_ACCESS_VIOL
-import sys
 
 machine = Machine("x86_32")
 jitter = machine.jitter(sys.argv[1])
@@ -40,7 +40,4 @@ jitter.init_run(0x1000)
 try:
     jitter.continue_run()
 except AssertionError:
-    assert jitter.vm.get_exception() == EXCEPT_ACCESS_VIOL
-except RuntimeError:
-    assert sys.argv[1] == 'python'
     assert jitter.vm.get_exception() == EXCEPT_ACCESS_VIOL
