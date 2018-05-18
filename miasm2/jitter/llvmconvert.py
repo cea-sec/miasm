@@ -1056,6 +1056,9 @@ class LLVMFunction():
             self.builder.call(fc_ptr, [self.local_vars["vmmngr"]])
             self.check_memory_exception(next_instr, restricted_exception=False)
 
+        if attrib.set_exception:
+            self.check_cpu_exception(next_instr, restricted_exception=False)
+
         if attrib.mem_read | attrib.mem_write:
             fc_ptr = self.mod.get_global("reset_memory_access")
             self.builder.call(fc_ptr, [self.local_vars["vmmngr"]])
