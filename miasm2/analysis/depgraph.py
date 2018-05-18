@@ -2,6 +2,7 @@
 
 from miasm2.expression.expression import ExprInt, ExprLoc, ExprAff
 from miasm2.core.graph import DiGraph
+from miasm2.core.asmblock import AsmSymbolPool
 from miasm2.expression.simplifications import expr_simp
 from miasm2.ir.symbexec import SymbolicExecutionEngine
 from miasm2.ir.ir import IRBlock, AssignBlock
@@ -19,23 +20,23 @@ class DependencyNode(object):
     """Node elements of a DependencyGraph
 
     A dependency node stands for the dependency on the @element at line number
-    @line_nb in the IRblock named @label, *before* the evaluation of this
+    @line_nb in the IRblock named @loc_key, *before* the evaluation of this
     line.
     """
 
-    __slots__ = ["_label", "_element", "_line_nb", "_hash"]
+    __slots__ = ["_loc_key", "_element", "_line_nb", "_hash"]
 
-    def __init__(self, label, element, line_nb):
+    def __init__(self, loc_key, element, line_nb):
         """Create a dependency node with:
-        @label: AsmLabel instance
+        @loc_key: LocKey instance
         @element: Expr instance
         @line_nb: int
         """
-        self._label = label
+        self._loc_key = loc_key
         self._element = element
         self._line_nb = line_nb
         self._hash = hash(
-            (self._label, self._element, self._line_nb))
+            (self._loc_key, self._element, self._line_nb))
 
     def __hash__(self):
         """Returns a hash of @self to uniquely identify @self"""
@@ -45,7 +46,7 @@ class DependencyNode(object):
         """Returns True if @self and @depnode are equals."""
         if not isinstance(depnode, self.__class__):
             return False
-        return (self.label == depnode.label and
+        return (self.loc_key == depnode.loc_key and
                 self.element == depnode.element and
                 self.line_nb == depnode.line_nb)
 
@@ -54,13 +55,13 @@ class DependencyNode(object):
         if not isinstance(node, self.__class__):
             return cmp(self.__class__, node.__class__)
 
-        return cmp((self.label, self.element, self.line_nb),
-                   (node.label, node.element, node.line_nb))
+        return cmp((self.loc_key, self.element, self.line_nb),
+                   (node.loc_key, node.element, node.line_nb))
 
     def __str__(self):
         """Returns a string representation of DependencyNode"""
         return "<%s %s %s %s>" % (self.__class__.__name__,
-                                  self.label, self.element,
+                                  self.loc_key, self.element,
                                   self.line_nb)
 
     def __repr__(self):
@@ -68,9 +69,9 @@ class DependencyNode(object):
         return self.__str__()
 
     @property
-    def label(self):
+    def loc_key(self):
         "Name of the current IRBlock"
-        return self._label
+        return self._loc_key
 
     @property
     def element(self):
@@ -89,9 +90,9 @@ class DependencyState(object):
     Store intermediate depnodes states during dependencygraph analysis
     """
 
-    def __init__(self, label, pending, line_nb=None):
-        self.label = label
-        self.history = [label]
+    def __init__(self, loc_key, pending, line_nb=None):
+        self.loc_key = loc_key
+        self.history = [loc_key]
         self.pending = {k: set(v) for k, v in pending.iteritems()}
         self.line_nb = line_nb
         self.links = set()
@@ -100,22 +101,22 @@ class DependencyState(object):
         self._graph = None
 
     def __repr__(self):
-        return "<State: %r (%r) (%r)>" % (self.label,
+        return "<State: %r (%r) (%r)>" % (self.loc_key,
                                           self.pending,
                                           self.links)
 
-    def extend(self, label):
+    def extend(self, loc_key):
         """Return a copy of itself, with itself in history
-        @label: AsmLabel instance for the new DependencyState's label
+        @loc_key: LocKey instance for the new DependencyState's loc_key
         """
-        new_state = self.__class__(label, self.pending)
+        new_state = self.__class__(loc_key, self.pending)
         new_state.links = set(self.links)
-        new_state.history = self.history + [label]
+        new_state.history = self.history + [loc_key]
         return new_state
 
     def get_done_state(self):
         """Returns immutable object representing current state"""
-        return (self.label, frozenset(self.links))
+        return (self.loc_key, frozenset(self.links))
 
     def as_graph(self):
         """Generates a Digraph of dependencies"""
@@ -156,7 +157,7 @@ class DependencyState(object):
         @line_nb: the element's line
         """
 
-        depnode = DependencyNode(self.label, element, line_nb)
+        depnode = DependencyNode(self.loc_key, element, line_nb)
         if not self.pending[element]:
             # Create start node
             self.links.add((depnode, None))
@@ -174,14 +175,14 @@ class DependencyState(object):
         @future_pending: the future dependencies
         """
 
-        depnode = DependencyNode(self.label, element, line_nb)
+        depnode = DependencyNode(self.loc_key, element, line_nb)
 
         # Update pending, add link to unfollowed nodes
         for dependency in dependencies:
             if not dependency.follow:
                 # Add non followed dependencies to the dependency graph
                 parent = DependencyNode(
-                    self.label, dependency.element, line_nb)
+                    self.loc_key, dependency.element, line_nb)
                 self.links.add((parent, depnode))
                 continue
             # Create future pending between new dependency and the current
@@ -195,7 +196,7 @@ class DependencyResult(DependencyState):
 
     def __init__(self, ira, initial_state, state, inputs):
         self.initial_state = initial_state
-        self.label = state.label
+        self.loc_key = state.loc_key
         self.history = state.history
         self.pending = state.pending
         self.line_nb = state.line_nb
@@ -224,17 +225,17 @@ class DependencyResult(DependencyState):
         return output
 
     @property
-    def relevant_labels(self):
-        """List of labels containing nodes influencing inputs.
+    def relevant_loc_keys(self):
+        """List of loc_keys containing nodes influencing inputs.
         The history order is preserved."""
-        # Get used labels
-        used_labels = set(depnode.label for depnode in self.relevant_nodes)
+        # Get used loc_keys
+        used_loc_keys = set(depnode.loc_key for depnode in self.relevant_nodes)
 
         # Keep history order
         output = []
-        for label in self.history:
-            if label in used_labels:
-                output.append(label)
+        for loc_key in self.history:
+            if loc_key in used_loc_keys:
+                output.append(loc_key)
 
         return output
 
@@ -254,7 +255,7 @@ class DependencyResult(DependencyState):
         assignblks = []
         line2elements = {}
         for depnode in self.relevant_nodes:
-            if depnode.label != irb.label:
+            if depnode.loc_key != irb.loc_key:
                 continue
             line2elements.setdefault(depnode.line_nb,
                                      set()).add(depnode.element)
@@ -265,11 +266,11 @@ class DependencyResult(DependencyState):
             assignmnts = {}
             for element in elements:
                 if element in irb[line_nb]:
-                    # constants, label, ... are not in destination
+                    # constants, loc_key, ... are not in destination
                     assignmnts[element] = irb[line_nb][element]
             assignblks.append(AssignBlock(assignmnts))
 
-        return IRBlock(irb.label, assignblks)
+        return IRBlock(irb.loc_key, assignblks)
 
     def emul(self, ctx=None, step=False):
         """Symbolic execution of relevant nodes according to the history
@@ -286,20 +287,20 @@ class DependencyResult(DependencyState):
         assignblks = []
 
         # Build a single affectation block according to history
-        last_index = len(self.relevant_labels)
-        for index, label in enumerate(reversed(self.relevant_labels), 1):
-            if index == last_index and label == self.initial_state.label:
+        last_index = len(self.relevant_loc_keys)
+        for index, loc_key in enumerate(reversed(self.relevant_loc_keys), 1):
+            if index == last_index and loc_key == self.initial_state.loc_key:
                 line_nb = self.initial_state.line_nb
             else:
                 line_nb = None
-            assignblks += self.irblock_slice(self._ira.blocks[label],
+            assignblks += self.irblock_slice(self._ira.blocks[loc_key],
                                              line_nb).assignblks
 
         # Eval the block
         symbol_pool = AsmSymbolPool()
-        temp_label = symbol_pool.getby_name_create("Temp")
+        temp_loc = symbol_pool.getby_name_create("Temp")
         symb_exec = SymbolicExecutionEngine(self._ira, ctx_init)
-        symb_exec.eval_updt_irblock(IRBlock(temp_label.loc_key, assignblks), step=step)
+        symb_exec.eval_updt_irblock(IRBlock(temp_loc, assignblks), step=step)
 
         # Return only inputs values (others could be wrongs)
         return {element: symb_exec.symbols[element]
@@ -318,16 +319,16 @@ class DependencyResultImplicit(DependencyResult):
 
     def _gen_path_constraints(self, translator, expr, expected):
         """Generate path constraint from @expr. Handle special case with
-        generated labels
+        generated loc_keys
         """
         out = []
         expected = self._ira.symbol_pool.canonize_to_exprloc(expected)
-        expected_is_label = expected.is_label()
+        expected_is_loc_key = expected.is_loc()
         for consval in possible_values(expr):
             value = self._ira.symbol_pool.canonize_to_exprloc(consval.value)
-            if expected_is_label and value != expected:
+            if expected_is_loc_key and value != expected:
                 continue
-            if not expected_is_label and value.is_label():
+            if not expected_is_loc_key and value.is_loc_key():
                 continue
 
             conds = z3.And(*[translator.from_expr(cond.to_constraint())
@@ -361,20 +362,20 @@ class DependencyResultImplicit(DependencyResult):
         translator = Translator.to_language("z3")
         size = self._ira.IRDst.size
 
-        for hist_nb, label in enumerate(history, 1):
-            if hist_nb == history_size and label == self.initial_state.label:
+        for hist_nb, loc_key in enumerate(history, 1):
+            if hist_nb == history_size and loc_key == self.initial_state.loc_key:
                 line_nb = self.initial_state.line_nb
             else:
                 line_nb = None
-            irb = self.irblock_slice(self._ira.blocks[label], line_nb)
+            irb = self.irblock_slice(self._ira.blocks[loc_key], line_nb)
 
             # Emul the block and get back destination
             dst = symb_exec.eval_updt_irblock(irb, step=step)
 
             # Add constraint
             if hist_nb < history_size:
-                next_label = history[hist_nb]
-                expected = symb_exec.eval_expr(ExprLoc(next_label, size))
+                next_loc_key = history[hist_nb]
+                expected = symb_exec.eval_expr(ExprLoc(next_loc_key, size))
                 solver.add(self._gen_path_constraints(translator, dst, expected))
         # Save the solver
         self._solver = solver
@@ -411,17 +412,17 @@ class FollowExpr(object):
         return '%s(%r, %r)' % (self.__class__.__name__, self.follow, self.element)
 
     @staticmethod
-    def to_depnodes(follow_exprs, label, line):
+    def to_depnodes(follow_exprs, loc_key, line):
         """Build a set of FollowExpr(DependencyNode) from the @follow_exprs set
         of FollowExpr
         @follow_exprs: set of FollowExpr
-        @label: AsmLabel instance
+        @loc_key: LocKey instance
         @line: integer
         """
         dependencies = set()
         for follow_expr in follow_exprs:
             dependencies.add(FollowExpr(follow_expr.follow,
-                                        DependencyNode(label,
+                                        DependencyNode(loc_key,
                                                        follow_expr.element,
                                                        line)))
         return dependencies
@@ -469,7 +470,7 @@ class DependencyGraph(object):
         self._cb_follow.append(lambda exprs: self._follow_exprs(exprs,
                                                                 follow_mem,
                                                                 follow_call))
-        self._cb_follow.append(self._follow_nolabel)
+        self._cb_follow.append(self._follow_no_loc_key)
 
     @staticmethod
     def _follow_simp_expr(exprs):
@@ -529,11 +530,11 @@ class DependencyGraph(object):
         return follow, nofollow
 
     @staticmethod
-    def _follow_nolabel(exprs):
-        """Do not follow labels"""
+    def _follow_no_loc_key(exprs):
+        """Do not follow loc_keys"""
         follow = set()
         for expr in exprs:
-            if expr.is_int() or expr.is_label():
+            if expr.is_int() or expr.is_loc():
                 continue
             follow.add(expr)
 
@@ -580,25 +581,25 @@ class DependencyGraph(object):
         """Follow dependencies tracked in @state in the current irbloc
         @state: instance of DependencyState"""
 
-        irb = self._ira.blocks[state.label]
+        irb = self._ira.blocks[state.loc_key]
         line_nb = len(irb) if state.line_nb is None else state.line_nb
 
         for cur_line_nb, assignblk in reversed(list(enumerate(irb[:line_nb]))):
             self._track_exprs(state, assignblk, cur_line_nb)
 
-    def get(self, label, elements, line_nb, heads):
+    def get(self, loc_key, elements, line_nb, heads):
         """Compute the dependencies of @elements at line number @line_nb in
-        the block named @label in the current IRA, before the execution of
+        the block named @loc_key in the current IRA, before the execution of
         this line. Dependency check stop if one of @heads is reached
-        @label: AsmLabel instance
+        @loc_key: LocKey instance
         @element: set of Expr instances
         @line_nb: int
-        @heads: set of AsmLabel instances
+        @heads: set of LocKey instances
         Return an iterator on DiGraph(DependencyNode)
         """
         # Init the algorithm
         inputs = {element: set() for element in elements}
-        initial_state = DependencyState(label, inputs, line_nb)
+        initial_state = DependencyState(loc_key, inputs, line_nb)
         todo = set([initial_state])
         done = set()
         dpResultcls = DependencyResultImplicit if self._implicit else DependencyResult
@@ -611,8 +612,8 @@ class DependencyGraph(object):
                 continue
             done.add(done_state)
             if (not state.pending or
-                    state.label in heads or
-                    not self._ira.graph.predecessors(state.label)):
+                    state.loc_key in heads or
+                    not self._ira.graph.predecessors(state.loc_key)):
                 yield dpResultcls(self._ira, initial_state, state, elements)
                 if not state.pending:
                     continue
@@ -622,16 +623,16 @@ class DependencyGraph(object):
                 state.pending[self._ira.IRDst] = set()
 
             # Propagate state to parents
-            for pred in self._ira.graph.predecessors_iter(state.label):
+            for pred in self._ira.graph.predecessors_iter(state.loc_key):
                 todo.add(state.extend(pred))
 
     def get_from_depnodes(self, depnodes, heads):
         """Alias for the get() method. Use the attributes of @depnodes as
         argument.
-        PRE: Labels and lines of depnodes have to be equals
+        PRE: Loc_Keys and lines of depnodes have to be equals
         @depnodes: set of DependencyNode instances
-        @heads: set of AsmLabel instances
+        @heads: set of LocKey instances
         """
         lead = list(depnodes)[0]
         elements = set(depnode.element for depnode in depnodes)
-        return self.get(lead.label, elements, lead.line_nb, heads)
+        return self.get(lead.loc_key, elements, lead.line_nb, heads)

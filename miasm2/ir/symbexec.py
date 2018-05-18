@@ -17,9 +17,10 @@ log.setLevel(logging.INFO)
 
 def get_block(ir_arch, mdis, addr):
     """Get IRBlock at address @addr"""
-    lbl = ir_arch.get_label(addr)
+    lbl = ir_arch.get_loc_key(addr)
     if not lbl in ir_arch.blocks:
-        block = mdis.dis_block(lbl.offset)
+        offset = mdis.symbol_pool.loc_key_to_offset(lbl)
+        block = mdis.dis_block(offset)
         ir_arch.add_block(block)
     irblock = ir_arch.get_block(lbl)
     if irblock is None:
@@ -891,9 +892,9 @@ class SymbolicExecutionEngine(object):
 
     def eval_exprloc(self, expr, **kwargs):
         """[DEV]: Evaluate an ExprLoc using the current state"""
-        label = self.ir_arch.symbol_pool.loc_key_to_label(expr.loc_key)
-        if label.offset is not None:
-            ret = ExprInt(label.offset, expr.size)
+        offset = self.ir_arch.symbol_pool.loc_key_to_offset(expr.loc_key)
+        if offset is not None:
+            ret = ExprInt(offset, expr.size)
         else:
             ret = expr
         return ret
@@ -1050,11 +1051,11 @@ class SymbolicExecutionEngine(object):
         dst = self.eval_expr(self.ir_arch.IRDst)
 
         # Best effort to resolve destination as ExprLoc
-        if dst.is_label():
+        if dst.is_loc():
             ret = dst
         elif dst.is_int():
             label = self.ir_arch.symbol_pool.getby_offset_create(int(dst))
-            ret = ExprLoc(label.loc_key, dst.size)
+            ret = ExprLoc(label, dst.size)
         else:
             ret = dst
         return ret
@@ -1074,14 +1075,14 @@ class SymbolicExecutionEngine(object):
         """
         Symbolic execution starting at @addr
         @addr: address to execute (int or ExprInt or label)
-        @lbl_stop: AsmLabel to stop execution on
+        @lbl_stop: LocKey to stop execution on
         @step: display intermediate steps
         """
         while True:
             irblock = self.ir_arch.get_block(addr)
             if irblock is None:
                 break
-            if irblock.label == lbl_stop:
+            if irblock.loc_key == lbl_stop:
                 break
             addr = self.eval_updt_irblock(irblock, step=step)
         return addr

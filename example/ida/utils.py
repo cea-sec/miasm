@@ -72,22 +72,29 @@ class TranslatorIDA(Translator):
     # Implemented language
     __LANG__ = "ida_w_color"
 
-    def __init__(self, regs_ids=None, **kwargs):
+    def __init__(self, symbol_pool=None, **kwargs):
         super(TranslatorIDA, self).__init__(**kwargs)
-        if regs_ids is None:
-            regs_ids = {}
-        self.regs_ids = regs_ids
+        self.symbol_pool = symbol_pool
 
     def str_protected_child(self, child, parent):
-        return ("(%s)" % self.from_expr(child)) if m2_expr.should_parenthesize_child(child, parent) else self.from_expr(child)
+        return ("(%s)" % (
+            self.from_expr(child)) if m2_expr.should_parenthesize_child(child, parent)
+                else self.from_expr(child)
+        )
 
     def from_ExprInt(self, expr):
         return idaapi.COLSTR(str(expr), idaapi.SCOLOR_NUMBER)
 
     def from_ExprId(self, expr):
-        out = str(expr)
-        if expr in self.regs_ids:
-            out = idaapi.COLSTR(out, idaapi.SCOLOR_REG)
+        out = idaapi.COLSTR(str(expr), idaapi.SCOLOR_REG)
+        return out
+
+    def from_ExprLoc(self, expr):
+        if self.symbol_pool is not None:
+            out = self.symbol_pool.str_loc_key(expr.loc_key)
+        else:
+            out = str(expr)
+        out = idaapi.COLSTR(out, idaapi.SCOLOR_REG)
         return out
 
     def from_ExprMem(self, expr):
@@ -126,20 +133,23 @@ class TranslatorIDA(Translator):
             return (' ' + expr._op + ' ').join([self.str_protected_child(arg, expr)
                                                 for arg in expr._args])
         return (expr._op + '(' +
-                ', '.join([self.from_expr(arg) for arg in expr._args]) + ')')
+                ', '.join(
+                    self.from_expr(arg)
+                    for arg in expr._args
+                ) + ')')
 
     def from_ExprAff(self, expr):
         return "%s = %s" % tuple(map(expr.from_expr, (expr.dst, expr.src)))
 
 
 
-def expr2colorstr(regs_ids, expr):
+def expr2colorstr(expr, symbol_pool):
     """Colorize an Expr instance for IDA
-    @regs_ids: list of ExprId corresponding to available registers
     @expr: Expr instance to colorize
+    @symbol_pool: AsmSymbolPool instance
     """
 
-    translator = TranslatorIDA(regs_ids)
+    translator = TranslatorIDA(symbol_pool=symbol_pool)
     return translator.from_expr(expr)
 
 

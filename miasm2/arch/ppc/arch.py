@@ -5,7 +5,6 @@ from miasm2.expression.expression import *
 from miasm2.core.cpu import *
 from collections import defaultdict
 from miasm2.core.bin_stream import bin_stream
-from miasm2.core.asmblock import asm_label
 import miasm2.arch.ppc.regs as regs_module
 from miasm2.arch.ppc.regs import *
 from miasm2.core.asm_ast import AstInt, AstId, AstMem, AstOp
@@ -41,8 +40,8 @@ class ppc_arg(m_arg):
                 return arg.name
             if arg.name in gpregs.str:
                 return None
-            label = symbol_pool.getby_name_create(arg.name)
-            return ExprLoc(label.loc_key, 32)
+            loc_key = symbol_pool.getby_name_create(arg.name)
+            return ExprLoc(loc_key, 32)
         if isinstance(arg, AstOp):
             args = [self.asm_ast_to_expr(tmp, symbol_pool) for tmp in arg.args]
             if None in args:
@@ -132,8 +131,8 @@ class instruction_ppc(instruction):
                 ad = e.arg + self.offset
             else:
                 ad = e.arg
-            label = symbol_pool.getby_offset_create(ad)
-            s = ExprLoc(label.loc_key, e.size)
+            loc_key = symbol_pool.getby_offset_create(ad)
+            s = ExprLoc(loc_key, e.size)
             self.args[address_index] = s
 
     def breakflow(self):

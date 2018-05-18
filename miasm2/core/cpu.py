@@ -1018,11 +1018,11 @@ class instruction(object):
         args_out = []
         for expr in self.args:
             # try to resolve symbols using symbols (0 for default value)
-            labels = m2_expr.get_expr_labels(expr)
+            loc_keys = m2_expr.get_expr_locs(expr)
             fixed_expr = {}
-            for exprloc in labels:
-                label = symbols.loc_key_to_label(exprloc.loc_key)
-                name = label.name
+            for exprloc in loc_keys:
+                loc_key = exprloc.loc_key
+                name = symbols.loc_key_to_name(loc_key)
                 # special symbols
                 if name == '$':
                     fixed_expr[exprloc] = self.get_asm_offset(exprloc)
@@ -1033,16 +1033,18 @@ class instruction(object):
                 if not name in symbols:
                     raise ValueError('Unresolved symbol: %r' % exprloc)
 
-                if symbols[name].offset is None:
-                    raise ValueError('The offset of label "%s" cannot be '
-                                     'determined' % name)
+                offset = symbols.loc_key_to_offset(loc_key)
+                if offset is None:
+                    raise ValueError(
+                        'The offset of loc_key "%s" cannot be determined' % name
+                    )
                 else:
                     # Fix symbol with its offset
                     size = exprloc.size
                     if size is None:
                         default_size = self.get_symbol_size(exprloc, symbols)
                         size = default_size
-                    value = m2_expr.ExprInt(symbols[name].offset, size)
+                    value = m2_expr.ExprInt(offset, size)
                 fixed_expr[exprloc] = value
 
             expr = expr.replace_expr(fixed_expr)

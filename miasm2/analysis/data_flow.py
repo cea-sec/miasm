@@ -57,15 +57,15 @@ class ReachingDefinitions(dict):
         the assignblk in block @block.
         """
         predecessor_state = {}
-        for pred_lbl in self.ir_a.graph.predecessors(block.label):
+        for pred_lbl in self.ir_a.graph.predecessors(block.loc_key):
             pred = self.ir_a.blocks[pred_lbl]
             for lval, definitions in self.get_definitions(pred_lbl, len(pred)).iteritems():
                 predecessor_state.setdefault(lval, set()).update(definitions)
 
-        modified = self.get((block.label, 0)) != predecessor_state
+        modified = self.get((block.loc_key, 0)) != predecessor_state
         if not modified:
             return False
-        self[(block.label, 0)] = predecessor_state
+        self[(block.loc_key, 0)] = predecessor_state
 
         for index in xrange(len(block)):
             modified |= self.process_assignblock(block, index)
@@ -80,13 +80,13 @@ class ReachingDefinitions(dict):
         """
 
         assignblk = block[assignblk_index]
-        defs = self.get_definitions(block.label, assignblk_index).copy()
+        defs = self.get_definitions(block.loc_key, assignblk_index).copy()
         for lval in assignblk:
-            defs.update({lval: set([(block.label, assignblk_index)])})
+            defs.update({lval: set([(block.loc_key, assignblk_index)])})
 
-        modified = self.get((block.label, assignblk_index + 1)) != defs
+        modified = self.get((block.loc_key, assignblk_index + 1)) != defs
         if modified:
-            self[(block.label, assignblk_index + 1)] = defs
+            self[(block.loc_key, assignblk_index + 1)] = defs
 
         return modified
 
@@ -149,9 +149,9 @@ class DiGraphDefUse(DiGraph):
 
     def _compute_def_use_block(self, block, reaching_defs, deref_mem=False):
         for index, assignblk in enumerate(block):
-            assignblk_reaching_defs = reaching_defs.get_definitions(block.label, index)
+            assignblk_reaching_defs = reaching_defs.get_definitions(block.loc_key, index)
             for lval, expr in assignblk.iteritems():
-                self.add_node(AssignblkNode(block.label, index, lval))
+                self.add_node(AssignblkNode(block.loc_key, index, lval))
 
                 read_vars = expr.get_r(mem_read=deref_mem)
                 if deref_mem and lval.is_mem():
@@ -159,7 +159,7 @@ class DiGraphDefUse(DiGraph):
                 for read_var in read_vars:
                     for reach in assignblk_reaching_defs.get(read_var, set()):
                         self.add_data_edge(AssignblkNode(reach[0], reach[1], read_var),
-                                           AssignblkNode(block.label, index, lval))
+                                           AssignblkNode(block.loc_key, index, lval))
 
     def del_edge(self, src, dst):
         super(DiGraphDefUse, self).del_edge(src, dst)
@@ -257,9 +257,9 @@ def dead_simp(ir_a):
         for idx, assignblk in enumerate(block):
             new_assignblk = dict(assignblk)
             for lval in assignblk:
-                if AssignblkNode(block.label, idx, lval) not in useful:
+                if AssignblkNode(block.loc_key, idx, lval) not in useful:
                     del new_assignblk[lval]
                     modified = True
             irs.append(AssignBlock(new_assignblk, assignblk.instr))
-        ir_a.blocks[block.label] = IRBlock(block.label, irs)
+        ir_a.blocks[block.loc_key] = IRBlock(block.loc_key, irs)
     return modified

@@ -34,8 +34,16 @@ class ActionHandlerTranslate(ActionHandler):
 class symbolicexec_t(idaapi.simplecustviewer_t):
 
     def add(self, key, value):
-        self.AddLine("%s = %s" % (expr2colorstr(self.machine.mn.regs.all_regs_ids, key),
-                                  expr2colorstr(self.machine.mn.regs.all_regs_ids, value)))
+        self.AddLine("%s = %s" % (
+            expr2colorstr(
+                key,
+                symbol_pool=self.symbol_pool
+            ),
+            expr2colorstr(
+                value,
+                symbol_pool=self.symbol_pool
+            )
+        ))
 
     def expand(self, linenum):
         element = self.line2eq[linenum]
@@ -61,11 +69,12 @@ class symbolicexec_t(idaapi.simplecustviewer_t):
         form.Compile()
         form.Execute()
 
-    def Create(self, equations, machine, *args, **kwargs):
+    def Create(self, equations, machine, symbol_pool, *args, **kwargs):
         if not super(symbolicexec_t, self).Create(*args, **kwargs):
             return False
 
         self.machine = machine
+        self.symbol_pool = symbol_pool
         self.line2eq = sorted(equations.items(), key=operator.itemgetter(0))
         self.lines_expanded = set()
 
@@ -126,9 +135,9 @@ def symbolic_exec():
     start, end = idc.SelStart(), idc.SelEnd()
 
     mdis.dont_dis = [end]
-    blocks = mdis.dis_multiblock(start)
-    ira = machine.ira()
-    for block in blocks:
+    asmcfg = mdis.dis_multiblock(start)
+    ira = machine.ira(symbol_pool=mdis.symbol_pool)
+    for block in asmcfg.blocks:
         ira.add_block(block)
 
     print "Run symbolic execution..."
@@ -141,7 +150,7 @@ def symbolic_exec():
 
     view = symbolicexec_t()
     all_views.append(view)
-    if not view.Create(modified, machine,
+    if not view.Create(modified, machine, mdis.symbol_pool,
                        "Symbolic Execution - 0x%x to 0x%x" % (start, end)):
         return
 

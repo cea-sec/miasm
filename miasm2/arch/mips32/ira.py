@@ -27,10 +27,10 @@ class ir_a_mips32l(ir_mips32l, ira):
             if pc_val is None or lr_val is None:
                 new_irblocks.append(irb)
                 continue
-            if lr_val.is_label():
-                label = self.symbol_pool.loc_key_to_label(lr_valloc_key)
-                if label.offset is not None:
-                    lr_val = ExprInt(label.offset, 32)
+            if lr_val.is_loc():
+                offset = self.symbol_pool.loc_key_to_offset(lr_val.loc_key)
+                if offset is not None:
+                    lr_val = ExprInt(offset, 32)
             if not lr_val.is_int():
                 continue
 

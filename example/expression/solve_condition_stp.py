@@ -54,8 +54,8 @@ def emul_symb(ir_arch, mdis, states_todo, states_done):
             cond_group_b = {addr.cond: ExprInt(1, addr.cond.size)}
             addr_a = expr_simp(symbexec.eval_expr(addr.replace_expr(cond_group_a), {}))
             addr_b = expr_simp(symbexec.eval_expr(addr.replace_expr(cond_group_b), {}))
-            if not (addr_a.is_int() or addr_a.is_label() and
-                    addr_b.is_int() or addr_b.is_label()):
+            if not (addr_a.is_int() or addr_a.is_loc() and
+                    addr_b.is_int() or addr_b.is_loc()):
                 print str(addr_a), str(addr_b)
                 raise ValueError("Unsupported condition")
             if isinstance(addr_a, ExprInt):
@@ -70,8 +70,7 @@ def emul_symb(ir_arch, mdis, states_todo, states_done):
         elif addr.is_int():
             addr = int(addr.arg)
             states_todo.add((addr, symbexec.symbols.copy(), tuple(conds)))
-        elif addr.is_label():
-            addr = ir_arch.symbol_pool.loc_key_to_label(addr.loc_key)
+        elif addr.is_loc():
             states_todo.add((addr, symbexec.symbols.copy(), tuple(conds)))
         else:
             raise ValueError("Unsupported destination")
@@ -93,7 +92,7 @@ if __name__ == '__main__':
 
     symbexec = SymbolicExecutionEngine(ir_arch, symbols_init)
 
-    blocks, symbol_pool = parse_asm.parse_txt(machine.mn, 32, '''
+    asmcfg, symbol_pool = parse_asm.parse_txt(machine.mn, 32, '''
     init:
     PUSH argv
     PUSH argc
@@ -107,16 +106,16 @@ if __name__ == '__main__':
     ret_addr_lbl = symbol_pool.getby_name('ret_addr')
     init_lbl = symbol_pool.getby_name('init')
 
-    argc = ExprLoc(argc_lbl.loc_key, 32)
-    argv = ExprLoc(argv_lbl.loc_key, 32)
-    ret_addr = ExprLoc(ret_addr_lbl.loc_key, 32)
+    argc = ExprLoc(argc_lbl, 32)
+    argv = ExprLoc(argv_lbl, 32)
+    ret_addr = ExprLoc(ret_addr_lbl, 32)
 
 
-    block = list(blocks)[0]
+    block = asmcfg.loc_key_to_block(init_lbl)
     print block
     # add fake address and len to parsed instructions
     ir_arch.add_block(block)
-    irb = ir_arch.blocks[init_lbl.loc_key]
+    irb = ir_arch.blocks[init_lbl]
     symbexec.eval_updt_irblock(irb)
     symbexec.dump(ids=False)
     # reset ir_arch blocks

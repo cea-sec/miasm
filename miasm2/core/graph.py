@@ -715,11 +715,12 @@ class MatchGraphJoker(object):
                       matched node must be the same than the joker node in the
                       associated MatchGraph
         @restrict_out: (optional) counterpart of @restrict_in for successors
-        @filt: (optional) function(node) -> boolean for filtering candidate node
+        @filt: (optional) function(graph, node) -> boolean for filtering
+        candidate node
         @name: (optional) helper for displaying the current joker
         """
         if filt is None:
-            filt = lambda node: True
+            filt = lambda graph, node: True
         self.filt = filt
         if name is None:
             name = str(id(self))
@@ -816,7 +817,7 @@ class MatchGraph(DiGraph):
             return False
 
         # Check lambda filtering
-        if not expected.filt(candidate):
+        if not expected.filt(graph, candidate):
             return False
 
         # Check arity

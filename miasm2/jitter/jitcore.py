@@ -17,9 +17,10 @@
 #
 from hashlib import md5
 
-from miasm2.core.asmblock import disasmEngine, AsmLabel, AsmBlockBad
+from miasm2.core.asmblock import disasmEngine, AsmBlockBad
 from miasm2.core.interval import interval
 from miasm2.core.utils import BoundedDict
+from miasm2.expression.expression import LocKey
 from miasm2.jitter.csts import *
 
 
@@ -40,7 +41,7 @@ class JitCore(object):
         self.arch_name = "%s%s" % (self.ir_arch.arch.name, self.ir_arch.attrib)
         self.bs = bs
         self.known_blocs = {}
-        self.lbl2jitbloc = BoundedDict(self.jitted_block_max_size,
+        self.loc_key_to_jit_block = BoundedDict(self.jitted_block_max_size,
                                        delete_cb=self.jitted_block_delete_cb)
         self.lbl2bloc = {}
         self.log_mn = False
@@ -75,7 +76,7 @@ class JitCore(object):
 
     def clear_jitted_blocks(self):
         "Reset all jitted blocks"
-        self.lbl2jitbloc.clear()
+        self.loc_key_to_jit_block.clear()
         self.lbl2bloc.clear()
         self.blocs_mem_interval = interval()
 
@@ -100,8 +101,9 @@ class JitCore(object):
             cur_block.ad_max = cur_block.lines[-1].offset + cur_block.lines[-1].l
         else:
             # 1 byte block for unknown mnemonic
-            cur_block.ad_min = cur_block.label.offset
-            cur_block.ad_max = cur_block.label.offset+1
+            offset = ir_arch.symbol_pool.loc_key_to_offset(cur_block.loc_key)
+            cur_block.ad_min = offset
+            cur_block.ad_max = offset+1
 
 
     def add_bloc_to_mem_interval(self, vm, block):
@@ -125,20 +127,21 @@ class JitCore(object):
         """Add a block to JiT and JiT it.
         @block: asm_bloc to add
         """
-
         irblocks = self.ir_arch.add_block(block, gen_pc_updt = True)
         block.blocks = irblocks
-        self.jitirblocs(block.label, irblocks)
+        self.jitirblocs(block.loc_key, irblocks)
 
     def disbloc(self, addr, vm):
         """Disassemble a new block and JiT it
-        @addr: address of the block to disassemble (AsmLabel or int)
+        @addr: address of the block to disassemble (LocKey or int)
         @vm: VmMngr instance
         """
 
         # Get the block
-        if isinstance(addr, AsmLabel):
-            addr = addr.offset
+        if isinstance(addr, LocKey):
+            addr = self.ir_arch.symbol_pool.loc_key_to_offset(addr)
+            if addr is None:
+                raise RuntimeError("Unknown offset for LocKey")
 
         # Prepare disassembler
         self.mdis.lines_wd = self.options["jit_maxline"]
@@ -153,7 +156,7 @@ class JitCore(object):
             print cur_block
 
         # Update label -> block
-        self.lbl2bloc[cur_block.label] = cur_block
+        self.lbl2bloc[cur_block.loc_key] = cur_block
 
         # Store min/max block address needed in jit automod code
         self.get_bloc_min_max(cur_block)
@@ -174,7 +177,7 @@ class JitCore(object):
         if lbl is None:
             lbl = getattr(cpu, self.ir_arch.pc.name)
 
-        if not lbl in self.lbl2jitbloc:
+        if not lbl in self.loc_key_to_jit_block:
             # Need to JiT the block
             cur_block = self.disbloc(lbl, cpu.vmmngr)
             if isinstance(cur_block, AsmBlockBad):
@@ -188,7 +191,7 @@ class JitCore(object):
                 return lbl
 
         # Run the block and update cpu/vmmngr state
-        return self.exec_wrapper(lbl, cpu, self.lbl2jitbloc.data, breakpoints,
+        return self.exec_wrapper(lbl, cpu, self.loc_key_to_jit_block.data, breakpoints,
                                  self.options["max_exec_per_call"])
 
     def blocs2memrange(self, blocks):
@@ -245,16 +248,18 @@ class JitCore(object):
             try:
                 for irblock in block.blocks:
                     # Remove offset -> jitted block link
-                    if irblock.label.offset in self.lbl2jitbloc:
-                        del(self.lbl2jitbloc[irblock.label.offset])
+                    offset = self.ir_arch.symbol_pool.loc_key_to_offset(irblock.loc_key)
+                    if offset in self.loc_key_to_jit_block:
+                        del(self.loc_key_to_jit_block[offset])
 
             except AttributeError:
                 # The block has never been translated in IR
-                if block.label.offset in self.lbl2jitbloc:
-                    del(self.lbl2jitbloc[block.label.offset])
+                offset = self.ir_arch.symbol_pool.loc_key_to_offset(block.loc_key)
+                if offset in self.loc_key_to_jit_block:
+                    del(self.loc_key_to_jit_block[offset])
 
             # Remove label -> block link
-            del(self.lbl2bloc[block.label])
+            del(self.lbl2bloc[block.loc_key])
 
         return modified_blocks
 
@@ -283,7 +288,8 @@ class JitCore(object):
         @block: asmblock
         """
         block_raw = "".join(line.b for line in block.lines)
-        block_hash = md5("%X_%s_%s_%s_%s" % (block.label.offset,
+        offset = self.ir_arch.symbol_pool.loc_key_to_offset(block.loc_key)
+        block_hash = md5("%X_%s_%s_%s_%s" % (offset,
                                              self.arch_name,
                                              self.log_mn,
                                              self.log_regs,

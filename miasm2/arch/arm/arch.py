@@ -347,9 +347,9 @@ class instruction_arm(instruction):
         wb = False
         if expr.is_id() or expr.is_int():
             return str(expr)
-        elif expr.is_label():
+        elif expr.is_loc():
             if symbol_pool is not None:
-                return str(symbol_pool.loc_key_to_label(expr.loc_key))
+                return symbol_pool.str_loc_key(expr.loc_key)
             else:
                 return str(expr)
         if isinstance(expr, ExprOp) and expr.op in expr2shift_dct:
@@ -430,8 +430,8 @@ class instruction_arm(instruction):
             addr = expr.arg + self.offset
         else:
             addr = expr.arg + self.offset
-        label = symbol_pool.getby_offset_create(addr)
-        self.args[0] = ExprLoc(label.loc_key, expr.size)
+        loc_key = symbol_pool.getby_offset_create(addr)
+        self.args[0] = ExprLoc(loc_key, expr.size)
 
     def breakflow(self):
         if self.name in conditional_branch + unconditional_branch:
@@ -512,8 +512,8 @@ class instruction_armt(instruction_arm):
         else:
             addr = expr.arg + self.offset
 
-        label = symbol_pool.getby_offset_create(addr)
-        dst = ExprLoc(label.loc_key, expr.size)
+        loc_key = symbol_pool.getby_offset_create(addr)
+        dst = ExprLoc(loc_key, expr.size)
 
         if self.name in ["CBZ", "CBNZ"]:
             self.args[1] = dst
@@ -780,8 +780,8 @@ class arm_arg(m_arg):
                 return arg.name
             if arg.name in gpregs.str:
                 return None
-            label = symbol_pool.getby_name_create(arg.name)
-            return ExprLoc(label.loc_key, 32)
+            loc_key = symbol_pool.getby_name_create(arg.name)
+            return ExprLoc(loc_key, 32)
         if isinstance(arg, AstOp):
             args = [self.asm_ast_to_expr(tmp, symbol_pool) for tmp in arg.args]
             if None in args:

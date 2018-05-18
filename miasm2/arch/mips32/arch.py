@@ -63,9 +63,9 @@ class instruction_mips32(cpu.instruction):
     def arg2str(expr, index=None, symbol_pool=None):
         if expr.is_id() or expr.is_int():
             return str(expr)
-        elif expr.is_label():
+        elif expr.is_loc():
             if symbol_pool is not None:
-                return str(symbol_pool.loc_key_to_label(expr.loc_key))
+                return symbol_pool.str_loc_key(expr.loc_key)
             else:
                 return str(expr)
         assert(isinstance(expr, ExprMem))
@@ -107,8 +107,8 @@ class instruction_mips32(cpu.instruction):
         if not isinstance(expr, ExprInt):
             return
         addr = expr.arg + self.offset
-        label = symbol_pool.getby_offset_create(addr)
-        self.args[ndx] = ExprLoc(label.loc_key, expr.size)
+        loc_key = symbol_pool.getby_offset_create(addr)
+        self.args[ndx] = ExprLoc(loc_key, expr.size)
 
     def breakflow(self):
         if self.name == 'BREAK':
@@ -265,8 +265,8 @@ class mips32_arg(cpu.m_arg):
                 return arg.name
             if arg.name in gpregs.str:
                 return None
-            label = symbol_pool.getby_name_create(arg.name)
-            return ExprLoc(label.loc_key, 32)
+            loc_key = symbol_pool.getby_name_create(arg.name)
+            return ExprLoc(loc_key, 32)
         if isinstance(arg, AstOp):
             args = [self.asm_ast_to_expr(tmp, symbol_pool) for tmp in arg.args]
             if None in args:

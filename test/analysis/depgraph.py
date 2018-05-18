@@ -1,6 +1,7 @@
 """Regression test module for DependencyGraph"""
-from miasm2.expression.expression import ExprId, ExprInt, ExprAff, ExprCond, ExprLoc
-from miasm2.core.asmblock import AsmLabel, AsmSymbolPool
+from miasm2.expression.expression import ExprId, ExprInt, ExprAff, ExprCond, \
+    ExprLoc, LocKey
+from miasm2.core.asmblock import AsmSymbolPool
 from miasm2.ir.analysis import ira
 from miasm2.ir.ir import IRBlock, AssignBlock
 from miasm2.core.graph import DiGraph
@@ -43,13 +44,13 @@ CST33 = ExprInt(0x33, 32)
 CST35 = ExprInt(0x35, 32)
 CST37 = ExprInt(0x37, 32)
 
-LBL0 = symbol_pool.add_label("lbl0", 0)
-LBL1 = symbol_pool.add_label("lbl1", 1)
-LBL2 = symbol_pool.add_label("lbl2", 2)
-LBL3 = symbol_pool.add_label("lbl3", 3)
-LBL4 = symbol_pool.add_label("lbl4", 4)
-LBL5 = symbol_pool.add_label("lbl5", 5)
-LBL6 = symbol_pool.add_label("lbl6", 6)
+LBL0 = symbol_pool.add_location("lbl0", 0)
+LBL1 = symbol_pool.add_location("lbl1", 1)
+LBL2 = symbol_pool.add_location("lbl2", 2)
+LBL3 = symbol_pool.add_location("lbl3", 3)
+LBL4 = symbol_pool.add_location("lbl4", 4)
+LBL5 = symbol_pool.add_location("lbl5", 5)
+LBL6 = symbol_pool.add_location("lbl6", 6)
 
 def gen_irblock(label, exprs_list):
     """ Returns an IRBlock.
@@ -62,7 +63,7 @@ def gen_irblock(label, exprs_list):
         else:
             irs.append(AssignBlock(exprs))
 
-    irbl = IRBlock(label.loc_key, irs)
+    irbl = IRBlock(label, irs)
     return irbl
 
 
@@ -114,8 +115,8 @@ def bloc2graph(irgraph, label=False, lines=True):
     # Generate basic blocks
     out_blocks = []
     for label in irgraph.graph.nodes():
-        if isinstance(label, AsmLabel):
-            label_name = label.name
+        if isinstance(label, LocKey):
+            label_name = irgraph.symbol_pool.loc_key_to_name(label)
         else:
             label_name = str(label)
 
@@ -123,8 +124,8 @@ def bloc2graph(irgraph, label=False, lines=True):
             irblock = irgraph.blocks[label]
         else:
             irblock = None
-        if isinstance(label, AsmLabel):
-            out_block = '%s [\n' % label.name
+        if isinstance(label, LocKey):
+            out_block = '%s [\n' % label_name
         else:
             out_block = '%s [\n' % label
         out_block += "%s " % block_attr
@@ -154,12 +155,12 @@ def bloc2graph(irgraph, label=False, lines=True):
     out += out_blocks
     # Generate links
     for src, dst in irgraph.graph.edges():
-            if isinstance(src, AsmLabel):
-                src_name = src.name
+            if isinstance(src, LocKey):
+                src_name = irgraph.symbol_pool.loc_key_to_name(src)
             else:
                 src_name = str(src)
-            if isinstance(dst, AsmLabel):
-                dst_name = dst.name
+            if isinstance(dst, LocKey):
+                dst_name = irgraph.symbol_pool.loc_key_to_name(dst)
             else:
                 dst_name = str(dst)
 
@@ -186,20 +187,20 @@ def dg2graph(graph, label=False, lines=True):
 
     # Generate basic blocks
     out_blocks = []
-    for label in graph.nodes():
-        if isinstance(label, DependencyNode):
-            lbl = symbol_pool.loc_key_to_label(label.label)
-            label_name = "%s %s %s" % (lbl.name,
-                                       label.element,
-                                       label.line_nb)
+    for node in graph.nodes():
+        if isinstance(node, DependencyNode):
+            name = symbol_pool.loc_key_to_name(node.loc_key)
+            node_name = "%s %s %s" % (name,
+                                       node.element,
+                                       node.line_nb)
         else:
-            label_name = str(label)
-        out_block = '%s [\n' % hash(label)
+            node_name = str(node)
+        out_block = '%s [\n' % hash(node)
         out_block += "%s " % block_attr
         out_block += 'label =<<table border="0" cellborder="0" cellpadding="3">'
 
         block_label = '<tr><td %s>%s</td></tr>' % (
-            label_attr, label_name)
+            label_attr, node_name)
         block_html_lines = []
         block_html_lines = ('<tr><td %s>' % td_attr +
                             ('</td></tr><tr><td %s>' % td_attr).join(block_html_lines) +
@@ -237,10 +238,10 @@ G1_IRB0 = gen_irblock(LBL0, [[ExprAff(C, CST1)]])
 G1_IRB1 = gen_irblock(LBL1, [[ExprAff(B, C)]])
 G1_IRB2 = gen_irblock(LBL2, [[ExprAff(A, B)]])
 
-G1_IRA.graph.add_uniq_edge(G1_IRB0.label, G1_IRB1.label)
-G1_IRA.graph.add_uniq_edge(G1_IRB1.label, G1_IRB2.label)
+G1_IRA.graph.add_uniq_edge(G1_IRB0.loc_key, G1_IRB1.loc_key)
+G1_IRA.graph.add_uniq_edge(G1_IRB1.loc_key, G1_IRB2.loc_key)
 
-G1_IRA.blocks = dict([(irb.label, irb) for irb in [G1_IRB0, G1_IRB1, G1_IRB2]])
+G1_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G1_IRB0, G1_IRB1, G1_IRB2]])
 
 # graph 2
 
@@ -250,10 +251,10 @@ G2_IRB0 = gen_irblock(LBL0, [[ExprAff(C, CST1)]])
 G2_IRB1 = gen_irblock(LBL1, [[ExprAff(B, CST2)]])
 G2_IRB2 = gen_irblock(LBL2, [[ExprAff(A, B + C)]])
 
-G2_IRA.graph.add_uniq_edge(G2_IRB0.label, G2_IRB1.label)
-G2_IRA.graph.add_uniq_edge(G2_IRB1.label, G2_IRB2.label)
+G2_IRA.graph.add_uniq_edge(G2_IRB0.loc_key, G2_IRB1.loc_key)
+G2_IRA.graph.add_uniq_edge(G2_IRB1.loc_key, G2_IRB2.loc_key)
 
-G2_IRA.blocks = dict([(irb.label, irb) for irb in [G2_IRB0, G2_IRB1, G2_IRB2]])
+G2_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G2_IRB0, G2_IRB1, G2_IRB2]])
 
 
 # graph 3
@@ -265,12 +266,12 @@ G3_IRB1 = gen_irblock(LBL1, [[ExprAff(B, CST2)]])
 G3_IRB2 = gen_irblock(LBL2, [[ExprAff(B, CST3)]])
 G3_IRB3 = gen_irblock(LBL3, [[ExprAff(A, B + C)]])
 
-G3_IRA.graph.add_uniq_edge(G3_IRB0.label, G3_IRB1.label)
-G3_IRA.graph.add_uniq_edge(G3_IRB0.label, G3_IRB2.label)
-G3_IRA.graph.add_uniq_edge(G3_IRB1.label, G3_IRB3.label)
-G3_IRA.graph.add_uniq_edge(G3_IRB2.label, G3_IRB3.label)
+G3_IRA.graph.add_uniq_edge(G3_IRB0.loc_key, G3_IRB1.loc_key)
+G3_IRA.graph.add_uniq_edge(G3_IRB0.loc_key, G3_IRB2.loc_key)
+G3_IRA.graph.add_uniq_edge(G3_IRB1.loc_key, G3_IRB3.loc_key)
+G3_IRA.graph.add_uniq_edge(G3_IRB2.loc_key, G3_IRB3.loc_key)
 
-G3_IRA.blocks = dict([(irb.label, irb) for irb in [G3_IRB0, G3_IRB1,
+G3_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G3_IRB0, G3_IRB1,
                                                    G3_IRB2, G3_IRB3]])
 
 # graph 4
@@ -280,16 +281,16 @@ G4_IRA = IRATest(symbol_pool)
 G4_IRB0 = gen_irblock(LBL0, [[ExprAff(C, CST1)]])
 G4_IRB1 = gen_irblock(LBL1, [[ExprAff(C, C + CST2)],
                              [ExprAff(G4_IRA.IRDst,
-                                      ExprCond(C, ExprLoc(LBL2.loc_key, 32),
-                                               ExprLoc(LBL1.loc_key, 32)))]])
+                                      ExprCond(C, ExprLoc(LBL2, 32),
+                                               ExprLoc(LBL1, 32)))]])
 
 G4_IRB2 = gen_irblock(LBL2, [[ExprAff(A, B)]])
 
-G4_IRA.graph.add_uniq_edge(G4_IRB0.label, G4_IRB1.label)
-G4_IRA.graph.add_uniq_edge(G4_IRB1.label, G4_IRB2.label)
-G4_IRA.graph.add_uniq_edge(G4_IRB1.label, G4_IRB1.label)
+G4_IRA.graph.add_uniq_edge(G4_IRB0.loc_key, G4_IRB1.loc_key)
+G4_IRA.graph.add_uniq_edge(G4_IRB1.loc_key, G4_IRB2.loc_key)
+G4_IRA.graph.add_uniq_edge(G4_IRB1.loc_key, G4_IRB1.loc_key)
 
-G4_IRA.blocks = dict([(irb.label, irb) for irb in [G4_IRB0, G4_IRB1, G4_IRB2]])
+G4_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G4_IRB0, G4_IRB1, G4_IRB2]])
 
 
 # graph 5
@@ -299,16 +300,16 @@ G5_IRA = IRATest(symbol_pool)
 G5_IRB0 = gen_irblock(LBL0, [[ExprAff(B, CST1)]])
 G5_IRB1 = gen_irblock(LBL1, [[ExprAff(B, B + CST2)],
                              [ExprAff(G5_IRA.IRDst,
-                                      ExprCond(B, ExprLoc(LBL2.loc_key, 32),
-                                               ExprLoc(LBL1.loc_key, 32)))]])
+                                      ExprCond(B, ExprLoc(LBL2, 32),
+                                               ExprLoc(LBL1, 32)))]])
 
 G5_IRB2 = gen_irblock(LBL2, [[ExprAff(A, B)]])
 
-G5_IRA.graph.add_uniq_edge(G5_IRB0.label, G5_IRB1.label)
-G5_IRA.graph.add_uniq_edge(G5_IRB1.label, G5_IRB2.label)
-G5_IRA.graph.add_uniq_edge(G5_IRB1.label, G5_IRB1.label)
+G5_IRA.graph.add_uniq_edge(G5_IRB0.loc_key, G5_IRB1.loc_key)
+G5_IRA.graph.add_uniq_edge(G5_IRB1.loc_key, G5_IRB2.loc_key)
+G5_IRA.graph.add_uniq_edge(G5_IRB1.loc_key, G5_IRB1.loc_key)
 
-G5_IRA.blocks = dict([(irb.label, irb) for irb in [G5_IRB0, G5_IRB1, G5_IRB2]])
+G5_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G5_IRB0, G5_IRB1, G5_IRB2]])
 
 # graph 6
 
@@ -317,10 +318,10 @@ G6_IRA = IRATest(symbol_pool)
 G6_IRB0 = gen_irblock(LBL0, [[ExprAff(B, CST1)]])
 G6_IRB1 = gen_irblock(LBL1, [[ExprAff(A, B)]])
 
-G6_IRA.graph.add_uniq_edge(G6_IRB0.label, G6_IRB1.label)
-G6_IRA.graph.add_uniq_edge(G6_IRB1.label, G6_IRB1.label)
+G6_IRA.graph.add_uniq_edge(G6_IRB0.loc_key, G6_IRB1.loc_key)
+G6_IRA.graph.add_uniq_edge(G6_IRB1.loc_key, G6_IRB1.loc_key)
 
-G6_IRA.blocks = dict([(irb.label, irb) for irb in [G6_IRB0, G6_IRB1]])
+G6_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G6_IRB0, G6_IRB1]])
 
 # graph 7
 
@@ -330,11 +331,11 @@ G7_IRB0 = gen_irblock(LBL0, [[ExprAff(C, CST1)]])
 G7_IRB1 = gen_irblock(LBL1, [[ExprAff(B, C)], [ExprAff(A, B)]])
 G7_IRB2 = gen_irblock(LBL2, [[ExprAff(D, A)]])
 
-G7_IRA.graph.add_uniq_edge(G7_IRB0.label, G7_IRB1.label)
-G7_IRA.graph.add_uniq_edge(G7_IRB1.label, G7_IRB1.label)
-G7_IRA.graph.add_uniq_edge(G7_IRB1.label, G7_IRB2.label)
+G7_IRA.graph.add_uniq_edge(G7_IRB0.loc_key, G7_IRB1.loc_key)
+G7_IRA.graph.add_uniq_edge(G7_IRB1.loc_key, G7_IRB1.loc_key)
+G7_IRA.graph.add_uniq_edge(G7_IRB1.loc_key, G7_IRB2.loc_key)
 
-G7_IRA.blocks = dict([(irb.label, irb) for irb in [G7_IRB0, G7_IRB1, G7_IRB2]])
+G7_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G7_IRB0, G7_IRB1, G7_IRB2]])
 
 # graph 8
 
@@ -344,11 +345,11 @@ G8_IRB0 = gen_irblock(LBL0, [[ExprAff(C, CST1)]])
 G8_IRB1 = gen_irblock(LBL1, [[ExprAff(B, C)], [ExprAff(C, D)]])
 G8_IRB2 = gen_irblock(LBL2, [[ExprAff(A, B)]])
 
-G8_IRA.graph.add_uniq_edge(G8_IRB0.label, G8_IRB1.label)
-G8_IRA.graph.add_uniq_edge(G8_IRB1.label, G8_IRB1.label)
-G8_IRA.graph.add_uniq_edge(G8_IRB1.label, G8_IRB2.label)
+G8_IRA.graph.add_uniq_edge(G8_IRB0.loc_key, G8_IRB1.loc_key)
+G8_IRA.graph.add_uniq_edge(G8_IRB1.loc_key, G8_IRB1.loc_key)
+G8_IRA.graph.add_uniq_edge(G8_IRB1.loc_key, G8_IRB2.loc_key)
 
-G8_IRA.blocks = dict([(irb.label, irb) for irb in [G8_IRB0, G8_IRB1, G8_IRB2]])
+G8_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G8_IRB0, G8_IRB1, G8_IRB2]])
 
 # graph 9 is graph 8
 
@@ -359,10 +360,10 @@ G10_IRA = IRATest(symbol_pool)
 G10_IRB1 = gen_irblock(LBL1, [[ExprAff(B, B + CST2)]])
 G10_IRB2 = gen_irblock(LBL2, [[ExprAff(A, B)]])
 
-G10_IRA.graph.add_uniq_edge(G10_IRB1.label, G10_IRB2.label)
-G10_IRA.graph.add_uniq_edge(G10_IRB1.label, G10_IRB1.label)
+G10_IRA.graph.add_uniq_edge(G10_IRB1.loc_key, G10_IRB2.loc_key)
+G10_IRA.graph.add_uniq_edge(G10_IRB1.loc_key, G10_IRB1.loc_key)
 
-G10_IRA.blocks = dict([(irb.label, irb) for irb in [G10_IRB1, G10_IRB2]])
+G10_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G10_IRB1, G10_IRB2]])
 
 # graph 11
 
@@ -374,10 +375,10 @@ G11_IRB1 = gen_irblock(LBL1, [[ExprAff(A, B),
                                ExprAff(B, A)]])
 G11_IRB2 = gen_irblock(LBL2, [[ExprAff(A, A - B)]])
 
-G11_IRA.graph.add_uniq_edge(G11_IRB0.label, G11_IRB1.label)
-G11_IRA.graph.add_uniq_edge(G11_IRB1.label, G11_IRB2.label)
+G11_IRA.graph.add_uniq_edge(G11_IRB0.loc_key, G11_IRB1.loc_key)
+G11_IRA.graph.add_uniq_edge(G11_IRB1.loc_key, G11_IRB2.loc_key)
 
-G11_IRA.blocks = dict([(irb.label, irb)
+G11_IRA.blocks = dict([(irb.loc_key, irb)
                        for irb in [G11_IRB0, G11_IRB1, G11_IRB2]])
 
 # graph 12
@@ -388,11 +389,11 @@ G12_IRB0 = gen_irblock(LBL0, [[ExprAff(B, CST1)]])
 G12_IRB1 = gen_irblock(LBL1, [[ExprAff(A, B)], [ExprAff(B, B + CST2)]])
 G12_IRB2 = gen_irblock(LBL2, [[ExprAff(B, A)]])
 
-G12_IRA.graph.add_uniq_edge(G12_IRB0.label, G12_IRB1.label)
-G12_IRA.graph.add_uniq_edge(G12_IRB1.label, G12_IRB2.label)
-G12_IRA.graph.add_uniq_edge(G12_IRB1.label, G12_IRB1.label)
+G12_IRA.graph.add_uniq_edge(G12_IRB0.loc_key, G12_IRB1.loc_key)
+G12_IRA.graph.add_uniq_edge(G12_IRB1.loc_key, G12_IRB2.loc_key)
+G12_IRA.graph.add_uniq_edge(G12_IRB1.loc_key, G12_IRB1.loc_key)
 
-G12_IRA.blocks = dict([(irb.label, irb) for irb in [G12_IRB0, G12_IRB1,
+G12_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G12_IRB0, G12_IRB1,
                                                     G12_IRB2]])
 
 
@@ -403,25 +404,25 @@ G13_IRA = IRATest(symbol_pool)
 G13_IRB0 = gen_irblock(LBL0, [[ExprAff(A, CST1)],
                               #[ExprAff(B, A)],
                               [ExprAff(G13_IRA.IRDst,
-                                       ExprLoc(LBL1.loc_key, 32))]])
+                                       ExprLoc(LBL1, 32))]])
 G13_IRB1 = gen_irblock(LBL1, [[ExprAff(C, A)],
                               #[ExprAff(A, A + CST1)],
                               [ExprAff(G13_IRA.IRDst,
-                                       ExprCond(R, ExprLoc(LBL2.loc_key, 32),
-                                                ExprLoc(LBL1.loc_key, 32)))]])
+                                       ExprCond(R, ExprLoc(LBL2, 32),
+                                                ExprLoc(LBL1, 32)))]])
 
 G13_IRB2 = gen_irblock(LBL2, [[ExprAff(B, A + CST3)], [ExprAff(A, B + CST3)],
                               [ExprAff(G13_IRA.IRDst,
-                                       ExprLoc(LBL1.loc_key, 32))]])
+                                       ExprLoc(LBL1, 32))]])
 
 G13_IRB3 = gen_irblock(LBL3, [[ExprAff(R, C)]])
 
-G13_IRA.graph.add_uniq_edge(G13_IRB0.label, G13_IRB1.label)
-G13_IRA.graph.add_uniq_edge(G13_IRB1.label, G13_IRB2.label)
-G13_IRA.graph.add_uniq_edge(G13_IRB2.label, G13_IRB1.label)
-G13_IRA.graph.add_uniq_edge(G13_IRB1.label, G13_IRB3.label)
+G13_IRA.graph.add_uniq_edge(G13_IRB0.loc_key, G13_IRB1.loc_key)
+G13_IRA.graph.add_uniq_edge(G13_IRB1.loc_key, G13_IRB2.loc_key)
+G13_IRA.graph.add_uniq_edge(G13_IRB2.loc_key, G13_IRB1.loc_key)
+G13_IRA.graph.add_uniq_edge(G13_IRB1.loc_key, G13_IRB3.loc_key)
 
-G13_IRA.blocks = dict([(irb.label, irb) for irb in [G13_IRB0, G13_IRB1,
+G13_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G13_IRB0, G13_IRB1,
                                                     G13_IRB2, G13_IRB3]])
 
 # graph 14
@@ -430,28 +431,28 @@ G14_IRA = IRATest(symbol_pool)
 
 G14_IRB0 = gen_irblock(LBL0, [[ExprAff(A, CST1)],
                               [ExprAff(G14_IRA.IRDst,
-                                       ExprLoc(LBL1.loc_key, 32))]
+                                       ExprLoc(LBL1, 32))]
                              ])
 G14_IRB1 = gen_irblock(LBL1, [[ExprAff(B, A)],
                               [ExprAff(G14_IRA.IRDst,
-                                       ExprCond(C, ExprLoc(LBL2.loc_key, 32),
-                                                ExprLoc(LBL3.loc_key, 32)))]
+                                       ExprCond(C, ExprLoc(LBL2, 32),
+                                                ExprLoc(LBL3, 32)))]
                              ])
 
 G14_IRB2 = gen_irblock(LBL2, [[ExprAff(D, A)],
                               [ExprAff(A, D + CST1)],
                               [ExprAff(G14_IRA.IRDst,
-                                       ExprLoc(LBL1.loc_key, 32))]
+                                       ExprLoc(LBL1, 32))]
                              ])
 
 G14_IRB3 = gen_irblock(LBL3, [[ExprAff(R, D + B)]])
 
-G14_IRA.graph.add_uniq_edge(G14_IRB0.label, G14_IRB1.label)
-G14_IRA.graph.add_uniq_edge(G14_IRB1.label, G14_IRB2.label)
-G14_IRA.graph.add_uniq_edge(G14_IRB2.label, G14_IRB1.label)
-G14_IRA.graph.add_uniq_edge(G14_IRB1.label, G14_IRB3.label)
+G14_IRA.graph.add_uniq_edge(G14_IRB0.loc_key, G14_IRB1.loc_key)
+G14_IRA.graph.add_uniq_edge(G14_IRB1.loc_key, G14_IRB2.loc_key)
+G14_IRA.graph.add_uniq_edge(G14_IRB2.loc_key, G14_IRB1.loc_key)
+G14_IRA.graph.add_uniq_edge(G14_IRB1.loc_key, G14_IRB3.loc_key)
 
-G14_IRA.blocks = dict([(irb.label, irb) for irb in [G14_IRB0, G14_IRB1,
+G14_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G14_IRB0, G14_IRB1,
                                                     G14_IRB2, G14_IRB3]])
 
 # graph 16
@@ -464,11 +465,11 @@ G15_IRB1 = gen_irblock(LBL1, [[ExprAff(D, A + B)],
                               [ExprAff(B, C)]])
 G15_IRB2 = gen_irblock(LBL2, [[ExprAff(R, B)]])
 
-G15_IRA.graph.add_uniq_edge(G15_IRB0.label, G15_IRB1.label)
-G15_IRA.graph.add_uniq_edge(G15_IRB1.label, G15_IRB2.label)
-G15_IRA.graph.add_uniq_edge(G15_IRB1.label, G15_IRB1.label)
+G15_IRA.graph.add_uniq_edge(G15_IRB0.loc_key, G15_IRB1.loc_key)
+G15_IRA.graph.add_uniq_edge(G15_IRB1.loc_key, G15_IRB2.loc_key)
+G15_IRA.graph.add_uniq_edge(G15_IRB1.loc_key, G15_IRB1.loc_key)
 
-G15_IRA.blocks = dict([(irb.label, irb) for irb in [G15_IRB0, G15_IRB1,
+G15_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G15_IRB0, G15_IRB1,
                                                     G15_IRB2]])
 
 # graph 16
@@ -482,16 +483,16 @@ G16_IRB3 = gen_irblock(LBL3, [[ExprAff(R, D)]])
 G16_IRB4 = gen_irblock(LBL4, [[ExprAff(R, A)]])
 G16_IRB5 = gen_irblock(LBL5, [[ExprAff(R, A)]])
 
-G16_IRA.graph.add_uniq_edge(G16_IRB0.label, G16_IRB1.label)
-G16_IRA.graph.add_uniq_edge(G16_IRB1.label, G16_IRB2.label)
-G16_IRA.graph.add_uniq_edge(G16_IRB2.label, G16_IRB1.label)
-G16_IRA.graph.add_uniq_edge(G16_IRB1.label, G16_IRB3.label)
-G16_IRA.graph.add_uniq_edge(G16_IRB3.label, G16_IRB1.label)
-G16_IRA.graph.add_uniq_edge(G16_IRB1.label, G16_IRB4.label)
-G16_IRA.graph.add_uniq_edge(G16_IRB4.label, G16_IRB1.label)
-G16_IRA.graph.add_uniq_edge(G16_IRB1.label, G16_IRB5.label)
+G16_IRA.graph.add_uniq_edge(G16_IRB0.loc_key, G16_IRB1.loc_key)
+G16_IRA.graph.add_uniq_edge(G16_IRB1.loc_key, G16_IRB2.loc_key)
+G16_IRA.graph.add_uniq_edge(G16_IRB2.loc_key, G16_IRB1.loc_key)
+G16_IRA.graph.add_uniq_edge(G16_IRB1.loc_key, G16_IRB3.loc_key)
+G16_IRA.graph.add_uniq_edge(G16_IRB3.loc_key, G16_IRB1.loc_key)
+G16_IRA.graph.add_uniq_edge(G16_IRB1.loc_key, G16_IRB4.loc_key)
+G16_IRA.graph.add_uniq_edge(G16_IRB4.loc_key, G16_IRB1.loc_key)
+G16_IRA.graph.add_uniq_edge(G16_IRB1.loc_key, G16_IRB5.loc_key)
 
-G16_IRA.blocks = dict([(irb.label, irb) for irb in [G16_IRB0, G16_IRB1,
+G16_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G16_IRB0, G16_IRB1,
                                                     G16_IRB2, G16_IRB3,
                                                     G16_IRB4, G16_IRB5]])
 
@@ -505,94 +506,94 @@ G17_IRB1 = gen_irblock(LBL1, [[ExprAff(A, D),
                                ExprAff(B, D)]])
 G17_IRB2 = gen_irblock(LBL2, [[ExprAff(A, A - B)]])
 
-G17_IRA.graph.add_uniq_edge(G17_IRB0.label, G17_IRB1.label)
-G17_IRA.graph.add_uniq_edge(G17_IRB1.label, G17_IRB2.label)
+G17_IRA.graph.add_uniq_edge(G17_IRB0.loc_key, G17_IRB1.loc_key)
+G17_IRA.graph.add_uniq_edge(G17_IRB1.loc_key, G17_IRB2.loc_key)
 
-G17_IRA.blocks = dict([(irb.label, irb) for irb in [G17_IRB0, G17_IRB1,
+G17_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G17_IRB0, G17_IRB1,
                                                     G17_IRB2]])
 
 # Test graph 1
 G1_TEST1_DN1 = DependencyNode(
-    G1_IRB2.label, A, len(G1_IRB2))
+    G1_IRB2.loc_key, A, len(G1_IRB2))
 
-G1_INPUT = (set([G1_TEST1_DN1]), set([G1_IRB0.label]))
+G1_INPUT = (set([G1_TEST1_DN1]), set([G1_IRB0.loc_key]))
 
 # Test graph 2
 
 G2_TEST1_DN1 = DependencyNode(
-    G2_IRB2.label, A, len(G2_IRB2))
+    G2_IRB2.loc_key, A, len(G2_IRB2))
 
-G2_INPUT = (set([G2_TEST1_DN1]), set([G2_IRB0.label]))
+G2_INPUT = (set([G2_TEST1_DN1]), set([G2_IRB0.loc_key]))
 
 # Test graph 3
 
 G3_TEST1_0_DN1 = DependencyNode(
-    G3_IRB3.label, A, len(G3_IRB3))
+    G3_IRB3.loc_key, A, len(G3_IRB3))
 
-G3_INPUT = (set([G3_TEST1_0_DN1]), set([G3_IRB0.label]))
+G3_INPUT = (set([G3_TEST1_0_DN1]), set([G3_IRB0.loc_key]))
 
 # Test graph 4
 
 G4_TEST1_DN1 = DependencyNode(
-    G4_IRB2.label, A, len(G2_IRB0))
+    G4_IRB2.loc_key, A, len(G2_IRB0))
 
-G4_INPUT = (set([G4_TEST1_DN1]), set([G4_IRB0.label]))
+G4_INPUT = (set([G4_TEST1_DN1]), set([G4_IRB0.loc_key]))
 
 # Test graph 5
 
 G5_TEST1_0_DN1 = DependencyNode(
-    G5_IRB2.label, A, len(G5_IRB2))
+    G5_IRB2.loc_key, A, len(G5_IRB2))
 
-G5_INPUT = (set([G5_TEST1_0_DN1]), set([G5_IRB0.label]))
+G5_INPUT = (set([G5_TEST1_0_DN1]), set([G5_IRB0.loc_key]))
 
 # Test graph 6
 
 G6_TEST1_0_DN1 = DependencyNode(
-    G6_IRB1.label, A, len(G6_IRB1))
+    G6_IRB1.loc_key, A, len(G6_IRB1))
 
-G6_INPUT = (set([G6_TEST1_0_DN1]), set([G6_IRB0.label]))
+G6_INPUT = (set([G6_TEST1_0_DN1]), set([G6_IRB0.loc_key]))
 
 # Test graph 7
 
 G7_TEST1_0_DN1 = DependencyNode(
-    G7_IRB2.label, D, len(G7_IRB2))
+    G7_IRB2.loc_key, D, len(G7_IRB2))
 
-G7_INPUT = (set([G7_TEST1_0_DN1]), set([G7_IRB0.label]))
+G7_INPUT = (set([G7_TEST1_0_DN1]), set([G7_IRB0.loc_key]))
 
 # Test graph 8
 
 G8_TEST1_0_DN1 = DependencyNode(
-    G8_IRB2.label, A, len(G8_IRB2))
+    G8_IRB2.loc_key, A, len(G8_IRB2))
 
-G8_INPUT = (set([G8_TEST1_0_DN1]), set([G3_IRB0.label]))
+G8_INPUT = (set([G8_TEST1_0_DN1]), set([G3_IRB0.loc_key]))
 
 # Test 9: Multi elements
 
 G9_TEST1_0_DN1 = DependencyNode(
-    G8_IRB2.label, A, len(G8_IRB2))
+    G8_IRB2.loc_key, A, len(G8_IRB2))
 G9_TEST1_0_DN5 = DependencyNode(
-    G8_IRB2.label, C, len(G8_IRB2))
+    G8_IRB2.loc_key, C, len(G8_IRB2))
 
-G9_INPUT = (set([G9_TEST1_0_DN1, G9_TEST1_0_DN5]), set([G8_IRB0.label]))
+G9_INPUT = (set([G9_TEST1_0_DN1, G9_TEST1_0_DN5]), set([G8_IRB0.loc_key]))
 
 # Test 10: loop at beginning
 
 G10_TEST1_0_DN1 = DependencyNode(
-    G10_IRB2.label, A, len(G10_IRB2))
+    G10_IRB2.loc_key, A, len(G10_IRB2))
 
-G10_INPUT = (set([G10_TEST1_0_DN1]), set([G10_IRB1.label]))
+G10_INPUT = (set([G10_TEST1_0_DN1]), set([G10_IRB1.loc_key]))
 
 
 # Test 11: no dual bloc emulation
 
 G11_TEST1_DN1 = DependencyNode(
-    G11_IRB2.label, A, len(G11_IRB2))
+    G11_IRB2.loc_key, A, len(G11_IRB2))
 
-G11_INPUT = (set([G11_TEST1_DN1]), set([G11_IRB0.label]))
+G11_INPUT = (set([G11_TEST1_DN1]), set([G11_IRB0.loc_key]))
 
 # Test graph 12
 
-G12_TEST1_0_DN1 = DependencyNode(G12_IRB2.label, B, 1)
+G12_TEST1_0_DN1 = DependencyNode(G12_IRB2.loc_key, B, 1)
 
 G12_INPUT = (set([G12_TEST1_0_DN1]), set([]))
 
@@ -600,7 +601,7 @@ G12_INPUT = (set([G12_TEST1_0_DN1]), set([]))
 
 # All filters
 
-G13_TEST1_0_DN4 = DependencyNode(G13_IRB3.label, R, 1)
+G13_TEST1_0_DN4 = DependencyNode(G13_IRB3.loc_key, R, 1)
 
 G13_INPUT = (set([G13_TEST1_0_DN4]), set([]))
 
@@ -608,24 +609,24 @@ G13_INPUT = (set([G13_TEST1_0_DN4]), set([]))
 
 # All filters
 
-G14_TEST1_0_DN1 = DependencyNode(G14_IRB3.label, R, 1)
+G14_TEST1_0_DN1 = DependencyNode(G14_IRB3.loc_key, R, 1)
 
 G14_INPUT = (set([G14_TEST1_0_DN1]), set([]))
 
 # Test graph 15
 
-G15_TEST1_0_DN1 = DependencyNode(G15_IRB2.label, R, 1)
+G15_TEST1_0_DN1 = DependencyNode(G15_IRB2.loc_key, R, 1)
 
 G15_INPUT = (set([G15_TEST1_0_DN1]), set([]))
 
 # Test graph 16
-G16_TEST1_0_DN1 = DependencyNode(G16_IRB5.label, R, 1)
+G16_TEST1_0_DN1 = DependencyNode(G16_IRB5.loc_key, R, 1)
 
 G16_INPUT = (set([G16_TEST1_0_DN1]), set([]))
 
 # Test graph 17
 
-G17_TEST1_DN1 = DependencyNode(G17_IRB2.label, A, 1)
+G17_TEST1_DN1 = DependencyNode(G17_IRB2.loc_key, A, 1)
 
 G17_INPUT = (set([G17_TEST1_DN1]), set([]))
 
@@ -641,8 +642,8 @@ def flatNode(node):
             element = int(node.element.arg)
         else:
             RuntimeError("Unsupported type '%s'" % type(enode.element))
-        label = symbol_pool.loc_key_to_label(node.label)
-        return (label.name,
+        name = symbol_pool.loc_key_to_name(node.loc_key)
+        return (name,
                 element,
                 node.line_nb)
     else:
@@ -740,8 +741,8 @@ def match_results(resultsA, resultsB, nodes):
 def get_flat_init_depnodes(depnodes):
     out = []
     for node in depnodes:
-        label = symbol_pool.loc_key_to_label(node.label)
-        out.append((label.name,
+        name = symbol_pool.loc_key_to_name(node.loc_key)
+        out.append((name,
                     node.element.name,
                     node.line_nb,
                     0))

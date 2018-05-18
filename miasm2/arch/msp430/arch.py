@@ -69,8 +69,8 @@ class msp430_arg(m_arg):
                 index = gpregs.str.index(name)
                 reg = gpregs.expr[index]
                 return reg
-            label = symbol_pool.getby_name_create(value.name)
-            return ExprLoc(label.loc_key, 16)
+            loc_key = symbol_pool.getby_name_create(value.name)
+            return ExprLoc(loc_key, 16)
         if isinstance(value, AstOp):
             args = [self.asm_ast_to_expr(tmp, symbol_pool) for tmp in value.args]
             if None in args:
@@ -107,9 +107,9 @@ class instruction_msp430(instruction):
             o = str(expr)
         elif isinstance(expr, ExprInt):
             o = str(expr)
-        elif expr.is_label():
+        elif expr.is_loc():
             if symbol_pool is not None:
-                return str(symbol_pool.loc_key_to_label(expr.loc_key))
+                return symbol_pool.str_loc_key(expr.loc_key)
             else:
                 return str(expr)
         elif isinstance(expr, ExprOp) and expr.op == "autoinc":
@@ -138,8 +138,8 @@ class instruction_msp430(instruction):
         else:
             addr = expr.arg + int(self.offset)
 
-        label = symbol_pool.getby_offset_create(addr)
-        self.args[0] = ExprLoc(label.loc_key, expr.size)
+        loc_key = symbol_pool.getby_offset_create(addr)
+        self.args[0] = ExprLoc(loc_key, expr.size)
 
     def breakflow(self):
         if self.name in conditional_branch + unconditional_branch:

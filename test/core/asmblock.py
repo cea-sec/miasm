@@ -3,7 +3,7 @@ from pdb import pm
 from miasm2.arch.x86.disasm import dis_x86_32
 from miasm2.analysis.binary import Container
 from miasm2.core.asmblock import AsmCFG, AsmConstraint, AsmBlock, \
-    AsmLabel, AsmBlockBad, AsmConstraintTo, AsmConstraintNext, \
+    AsmBlockBad, AsmConstraintTo, AsmConstraintNext, \
     bbl_simplifier
 from miasm2.core.graph import DiGraphSimplifier, MatchGraphJoker
 from miasm2.expression.expression import ExprId
@@ -19,57 +19,57 @@ first_block = mdis.dis_block(0)
 assert len(first_block.lines) == 5
 print first_block
 
-## Test redisassemble blocks
+## Test redisassemble asmcfg
 first_block_bis = mdis.dis_block(0)
 assert len(first_block.lines) == len(first_block_bis.lines)
 print first_block_bis
 
 ## Disassembly of several block, with cache
-blocks = mdis.dis_multiblock(0)
-assert len(blocks) == 17
+asmcfg = mdis.dis_multiblock(0)
+assert len(asmcfg) == 17
 
-## Test redisassemble blocks
-blocks = mdis.dis_multiblock(0)
-assert len(blocks) == 17
+## Test redisassemble asmcfg
+asmcfg = mdis.dis_multiblock(0)
+assert len(asmcfg) == 17
 ## Equality between assembly lines is not yet implemented
-assert len(blocks.heads()) == 1
-assert len(blocks.heads()[0].lines) == len(first_block.lines)
+assert len(asmcfg.heads()) == 1
+assert len(asmcfg.loc_key_to_block(asmcfg.heads()[0]).lines) == len(first_block.lines)
 
 # Test AsmCFG
-assert isinstance(blocks, AsmCFG)
-assert len(blocks.pendings) == 0
-assert len(blocks.nodes()) == 17
-assert len(blocks.edges2constraint) == len(blocks.edges())
-assert len(blocks.edges()) == 24
-assert blocks.getby_offset(0x63).lines[0].offset == 0x5f
-assert blocks.getby_offset(0x69).lines[0].offset == 0x69
+assert isinstance(asmcfg, AsmCFG)
+assert len(asmcfg.pendings) == 0
+assert len(asmcfg.nodes()) == 17
+assert len(asmcfg.edges2constraint) == len(asmcfg.edges())
+assert len(asmcfg.edges()) == 24
+assert asmcfg.getby_offset(0x63).lines[0].offset == 0x5f
+assert asmcfg.getby_offset(0x69).lines[0].offset == 0x69
 
 ## Convert to dot
-open("graph.dot", "w").write(blocks.dot())
+open("graph.dot", "w").write(asmcfg.dot())
 
 ## Modify the structure: link the first and the last block
-leaves = blocks.leaves()
+leaves = asmcfg.leaves()
 assert len(leaves) == 1
-last_block = leaves.pop()
+last_block_loc_key = leaves.pop()
 
 ### Remove first_block for the rest of the graph
-first_block = blocks.heads()[0]
+first_block = asmcfg.loc_key_to_block(asmcfg.heads()[0])
 assert len(first_block.bto) == 2
-for succ in blocks.successors(first_block):
-    blocks.del_edge(first_block, succ)
+for succ in asmcfg.successors(first_block.loc_key):
+    asmcfg.del_edge(first_block.loc_key, succ)
 
 ### Modification must be reported from the graph
 assert len(first_block.bto) == 0
-assert last_block in blocks
+assert last_block_loc_key in asmcfg.nodes()
 
 ### Remove predecessors of last block
-for pred in blocks.predecessors(last_block):
-    blocks.del_edge(pred, last_block)
+for pred in asmcfg.predecessors(last_block_loc_key):
+    asmcfg.del_edge(pred, last_block_loc_key)
 ### Link first and last block
-blocks.add_edge(first_block, last_block, AsmConstraint.c_next)
-### Only one link between two blocks
+asmcfg.add_edge(first_block.loc_key, last_block_loc_key, AsmConstraint.c_next)
+### Only one link between two asmcfg
 try:
-    blocks.add_edge(first_block, last_block, AsmConstraint.c_to)
+    asmcfg.add_edge(first_block, last_block_loc_key, AsmConstraint.c_to)
     good = False
 except AssertionError:
     good = True
@@ -79,107 +79,108 @@ assert good
 assert len(first_block.bto) == 1
 assert list(first_block.bto)[0].c_t == AsmConstraint.c_next
 
-## Simplify the obtained graph to keep only blocks which reach a block
+## Simplify the obtained graph to keep only asmcfg which reach a block
 ## finishing with RET
 
 def remove_useless_blocks(d_g, graph):
     """Remove leaves without a RET"""
-    for block in graph.leaves():
+    for leaf_label in graph.leaves():
+        block = graph.loc_key_to_block(leaf_label)
         if block.lines[-1].name != "RET":
-            graph.del_node(block)
+            graph.del_block(graph.loc_key_to_block(leaf_label))
 
 ### Use a graph simplifier to recursively apply the simplification pass
 dg = DiGraphSimplifier()
 dg.enable_passes([remove_useless_blocks])
-blocks = dg(blocks)
+asmcfg = dg(asmcfg)
 
-### Only two blocks should remain
-assert len(blocks) == 2
-assert first_block in blocks
-assert last_block in blocks
+### Only two asmcfg should remain
+assert len(asmcfg) == 2
+assert first_block.loc_key in asmcfg.nodes()
+assert last_block_loc_key in asmcfg.nodes()
 
 ## Graph the final output
-open("graph2.dot", "w").write(blocks.dot())
+open("graph2.dot", "w").write(asmcfg.dot())
 
 # Test helper methods
-## Label2block should always be updated
-assert blocks.label2block(first_block.label) == first_block
+## loc_key_to_block should always be updated
+assert asmcfg.loc_key_to_block(first_block.loc_key) == first_block
 testlabel = mdis.symbol_pool.getby_name_create("testlabel")
 my_block = AsmBlock(testlabel)
-blocks.add_node(my_block)
-assert len(blocks) == 3
-assert blocks.label2block(first_block.label) == first_block
-assert blocks.label2block(my_block.label) == my_block
+asmcfg.add_block(my_block)
+assert len(asmcfg) == 3
+assert asmcfg.loc_key_to_block(first_block.loc_key) == first_block
+assert asmcfg.loc_key_to_block(my_block.loc_key) == my_block
 
-## Bad blocks
-assert len(list(blocks.get_bad_blocks())) == 0
-assert len(list(blocks.get_bad_blocks_predecessors())) == 0
+## Bad asmcfg
+assert len(list(asmcfg.get_bad_blocks())) == 0
+assert len(list(asmcfg.get_bad_blocks_predecessors())) == 0
 ### Add a bad block, not linked
 testlabel_bad = mdis.symbol_pool.getby_name_create("testlabel_bad")
 my_bad_block = AsmBlockBad(testlabel_bad)
-blocks.add_node(my_bad_block)
-assert list(blocks.get_bad_blocks()) == [my_bad_block]
-assert len(list(blocks.get_bad_blocks_predecessors())) == 0
+asmcfg.add_block(my_bad_block)
+assert list(asmcfg.get_bad_blocks()) == [my_bad_block]
+assert len(list(asmcfg.get_bad_blocks_predecessors())) == 0
 ### Link the bad block and update edges
-### Indeed, a sub-element has been modified (bto from a block from blocks)
-my_block.bto.add(AsmConstraintTo(my_bad_block.label))
-blocks.rebuild_edges()
-assert list(blocks.get_bad_blocks_predecessors()) == [my_block]
+### Indeed, a sub-element has been modified (bto from a block from asmcfg)
+my_block.bto.add(AsmConstraintTo(my_bad_block.loc_key))
+asmcfg.rebuild_edges()
+assert list(asmcfg.get_bad_blocks_predecessors()) == [my_block.loc_key]
 ### Test strict option
-my_block.bto.add(AsmConstraintTo(my_block.label))
-blocks.rebuild_edges()
-assert list(blocks.get_bad_blocks_predecessors(strict=False)) == [my_block]
-assert len(list(blocks.get_bad_blocks_predecessors(strict=True))) == 0
+my_block.bto.add(AsmConstraintTo(my_block.loc_key))
+asmcfg.rebuild_edges()
+assert list(asmcfg.get_bad_blocks_predecessors(strict=False)) == [my_block.loc_key]
+assert len(list(asmcfg.get_bad_blocks_predecessors(strict=True))) == 0
 
 ## Sanity check
-blocks.sanity_check()
+asmcfg.sanity_check()
 ### Next on itself
 testlabel_nextitself = mdis.symbol_pool.getby_name_create("testlabel_nextitself")
 my_block_ni = AsmBlock(testlabel_nextitself)
-my_block_ni.bto.add(AsmConstraintNext(my_block_ni.label))
-blocks.add_node(my_block_ni)
+my_block_ni.bto.add(AsmConstraintNext(my_block_ni.loc_key))
+asmcfg.add_block(my_block_ni)
 error_raised = False
 try:
-    blocks.sanity_check()
+    asmcfg.sanity_check()
 except RuntimeError:
     error_raised = True
 assert error_raised
 ### Back to a normal state
-blocks.del_node(my_block_ni)
-blocks.sanity_check()
+asmcfg.del_block(my_block_ni)
+asmcfg.sanity_check()
 ### Multiple next on the same node
 testlabel_target = mdis.symbol_pool.getby_name_create("testlabel_target")
 my_block_target = AsmBlock(testlabel_target)
-blocks.add_node(my_block_target)
+asmcfg.add_block(my_block_target)
 testlabel_src1 = mdis.symbol_pool.getby_name_create("testlabel_src1")
 testlabel_src2 = mdis.symbol_pool.getby_name_create("testlabel_src2")
 my_block_src1 = AsmBlock(testlabel_src1)
 my_block_src2 = AsmBlock(testlabel_src2)
-my_block_src1.bto.add(AsmConstraintNext(my_block_target.label))
-blocks.add_node(my_block_src1)
+my_block_src1.bto.add(AsmConstraintNext(my_block_target.loc_key))
+asmcfg.add_block(my_block_src1)
 ### OK for now
-blocks.sanity_check()
+asmcfg.sanity_check()
 ### Add a second next from src2 to target (already src1 -> target)
-my_block_src2.bto.add(AsmConstraintNext(my_block_target.label))
-blocks.add_node(my_block_src2)
+my_block_src2.bto.add(AsmConstraintNext(my_block_target.loc_key))
+asmcfg.add_block(my_block_src2)
 error_raised = False
 try:
-    blocks.sanity_check()
+    asmcfg.sanity_check()
 except RuntimeError:
     error_raised = True
 assert error_raised
-blocks.del_node(my_block_src2)
-blocks.sanity_check()
+asmcfg.del_block(my_block_src2)
+asmcfg.sanity_check()
 
 ## Guess block size
 ### Initial state
 assert not hasattr(first_block, 'size')
 assert not hasattr(first_block, 'max_size')
-blocks.guess_blocks_size(mdis.arch)
+asmcfg.guess_blocks_size(mdis.arch)
 assert first_block.size == 39
-assert blocks.label2block(my_block_src1.label).size == 0
+assert asmcfg.loc_key_to_block(my_block_src1.loc_key).size == 0
 assert first_block.max_size == 39
-assert blocks.label2block(my_block_src1.label).max_size == 0
+assert asmcfg.loc_key_to_block(my_block_src1.loc_key).max_size == 0
 
 ## Check pendings
 ### Create a pending element
@@ -187,122 +188,124 @@ testlabel_pend_src = mdis.symbol_pool.getby_name_create("testlabel_pend_src")
 testlabel_pend_dst = mdis.symbol_pool.getby_name_create("testlabel_pend_dst")
 my_block_src = AsmBlock(testlabel_pend_src)
 my_block_dst = AsmBlock(testlabel_pend_dst)
-my_block_src.bto.add(AsmConstraintTo(my_block_dst.label))
-blocks.add_node(my_block_src)
+my_block_src.bto.add(AsmConstraintTo(my_block_dst.loc_key))
+asmcfg.add_block(my_block_src)
 ### Check resulting state
-assert len(blocks) == 7
-assert len(blocks.pendings) == 1
-assert my_block_dst.label in blocks.pendings
-assert len(blocks.pendings[my_block_dst.label]) == 1
-pending = list(blocks.pendings[my_block_dst.label])[0]
-assert isinstance(pending, blocks.AsmCFGPending)
+assert len(asmcfg) == 7
+assert len(asmcfg.pendings) == 1
+assert my_block_dst.loc_key in asmcfg.pendings
+assert len(asmcfg.pendings[my_block_dst.loc_key]) == 1
+pending = list(asmcfg.pendings[my_block_dst.loc_key])[0]
+assert isinstance(pending, asmcfg.AsmCFGPending)
 assert pending.waiter == my_block_src
 assert pending.constraint == AsmConstraint.c_to
 ### Sanity check must fail
 error_raised = False
 try:
-    blocks.sanity_check()
+    asmcfg.sanity_check()
 except RuntimeError:
     error_raised = True
 assert error_raised
 ### Pending must disappeared when adding expected block
-blocks.add_node(my_block_dst)
-assert len(blocks) == 8
-assert len(blocks.pendings) == 0
-blocks.sanity_check()
+asmcfg.add_block(my_block_dst)
+assert len(asmcfg) == 8
+assert len(asmcfg.pendings) == 0
+asmcfg.sanity_check()
 
 # Test block_merge
 data2 = "31c0eb0c31c9750c31d2eb0c31ffebf831dbebf031edebfc31f6ebf031e4c3".decode("hex")
 cont2 = Container.from_string(data2)
 mdis = dis_x86_32(cont2.bin_stream)
 ## Elements to merge
-blocks = mdis.dis_multiblock(0)
+asmcfg = mdis.dis_multiblock(0)
 ## Block alone
-blocks.add_node(mdis.dis_block(0x1c))
+asmcfg.add_block(mdis.dis_block(0x1c))
 ## Bad block
-blocks.add_node(mdis.dis_block(len(data2)))
+asmcfg.add_block(mdis.dis_block(len(data2)))
 ## Dump the graph before merging
-open("graph3.dot", "w").write(blocks.dot())
+open("graph3.dot", "w").write(asmcfg.dot())
 ## Apply merging
-blocks = bbl_simplifier(blocks)
+asmcfg = bbl_simplifier(asmcfg)
 ## Dump the graph after merging
-open("graph4.dot", "w").write(blocks.dot())
+open("graph4.dot", "w").write(asmcfg.dot())
 ## Check the final state
-assert len(blocks) == 5
-assert len(list(blocks.get_bad_blocks())) == 1
-### Check "special" blocks
-entry_blocks = blocks.heads()
-bad_block = (block for block in entry_blocks
-             if isinstance(block, AsmBlockBad)).next()
-entry_blocks.remove(bad_block)
-alone_block = (block for block in entry_blocks
-               if len(blocks.successors(block)) == 0).next()
-entry_blocks.remove(alone_block)
+assert len(asmcfg) == 5
+assert len(list(asmcfg.get_bad_blocks())) == 1
+### Check "special" asmcfg
+entry_asmcfg = asmcfg.heads()
+bad_block_lbl = (lbl for lbl in entry_asmcfg
+                 if isinstance(asmcfg.loc_key_to_block(lbl), AsmBlockBad)).next()
+entry_asmcfg.remove(bad_block_lbl)
+alone_block = (asmcfg.loc_key_to_block(lbl) for lbl in entry_asmcfg
+               if len(asmcfg.successors(lbl)) == 0).next()
+entry_asmcfg.remove(alone_block.loc_key)
 assert alone_block.lines[-1].name == "RET"
 assert len(alone_block.lines) == 2
 ### Check resulting function
-entry_block = entry_blocks.pop()
+entry_block = asmcfg.loc_key_to_block(entry_asmcfg.pop())
 assert len(entry_block.lines) == 4
 assert map(str, entry_block.lines) == ['XOR        EAX, EAX',
                                        'XOR        EBX, EBX',
                                        'XOR        ECX, ECX',
                                        'JNZ        label_3']
-assert len(blocks.successors(entry_block)) == 2
+assert len(asmcfg.successors(entry_block.loc_key)) == 2
 assert len(entry_block.bto) == 2
-nextb = blocks.label2block((cons.label for cons in entry_block.bto
-                            if cons.c_t == AsmConstraint.c_next).next())
-tob = blocks.label2block((cons.label for cons in entry_block.bto
-                          if cons.c_t == AsmConstraint.c_to).next())
+nextb = asmcfg.loc_key_to_block((cons.loc_key for cons in entry_block.bto
+                              if cons.c_t == AsmConstraint.c_next).next())
+tob = asmcfg.loc_key_to_block((cons.loc_key for cons in entry_block.bto
+                            if cons.c_t == AsmConstraint.c_to).next())
 assert len(nextb.lines) == 4
 assert map(str, nextb.lines) == ['XOR        EDX, EDX',
                                  'XOR        ESI, ESI',
                                  'XOR        EDI, EDI',
                                  'JMP        label_4']
-assert blocks.successors(nextb) == [nextb]
+assert asmcfg.successors(nextb.loc_key) == [nextb.loc_key]
 assert len(tob.lines) == 2
 assert map(str, tob.lines) == ['XOR        EBP, EBP',
                                'JMP        label_3']
-assert blocks.successors(tob) == [tob]
+assert asmcfg.successors(tob.loc_key) == [tob.loc_key]
 
 # Check split_block
 ## Without condition for a split, no change
-blocks_bef = blocks.copy()
-blocks.apply_splitting(mdis.symbol_pool)
-assert blocks_bef == blocks
+asmcfg_bef = asmcfg.copy()
+asmcfg.apply_splitting(mdis.symbol_pool)
+assert asmcfg_bef == asmcfg
+open("graph5.dot", "w").write(asmcfg.dot())
 ## Create conditions for a block split
 inside_firstbbl = mdis.symbol_pool.getby_offset(4)
 tob.bto.add(AsmConstraintTo(inside_firstbbl))
-blocks.rebuild_edges()
-assert len(blocks.pendings) == 1
-assert inside_firstbbl in blocks.pendings
-blocks.apply_splitting(mdis.symbol_pool)
+asmcfg.rebuild_edges()
+assert len(asmcfg.pendings) == 1
+assert inside_firstbbl in asmcfg.pendings
+asmcfg.apply_splitting(mdis.symbol_pool)
 ## Check result
-assert len(blocks) == 6
-assert len(blocks.pendings) == 0
+assert len(asmcfg) == 6
+assert len(asmcfg.pendings) == 0
 assert len(entry_block.lines) == 2
 assert map(str, entry_block.lines) == ['XOR        EAX, EAX',
                                        'XOR        EBX, EBX']
-assert len(blocks.successors(entry_block)) == 1
-newb = blocks.successors(entry_block)[0]
+assert len(asmcfg.successors(entry_block.loc_key)) == 1
+lbl_newb = asmcfg.successors(entry_block.loc_key)[0]
+newb = asmcfg.loc_key_to_block(lbl_newb)
 assert len(newb.lines) == 2
 assert map(str, newb.lines) == ['XOR        ECX, ECX',
                                 'JNZ        label_3']
-preds = blocks.predecessors(newb)
+preds = asmcfg.predecessors(lbl_newb)
 assert len(preds) == 2
-assert entry_block in preds
-assert tob in preds
-assert blocks.edges2constraint[(entry_block, newb)] == AsmConstraint.c_next
-assert blocks.edges2constraint[(tob, newb)] == AsmConstraint.c_to
+assert entry_block.loc_key in preds
+assert tob.loc_key in preds
+assert asmcfg.edges2constraint[(entry_block.loc_key, lbl_newb)] == AsmConstraint.c_next
+assert asmcfg.edges2constraint[(tob.loc_key, lbl_newb)] == AsmConstraint.c_to
 
 
 # Check double block split
 data = "74097405b8020000007405b803000000b804000000c3".decode('hex')
 cont = Container.from_string(data)
 mdis = dis_x86_32(cont.bin_stream)
-blocks = mdis.dis_multiblock(0)
+asmcfg = mdis.dis_multiblock(0)
 ## Check resulting disasm
-assert len(blocks.nodes()) == 6
-blocks.sanity_check()
+assert len(asmcfg.nodes()) == 6
+asmcfg.sanity_check()
 ## Check graph structure
 bbl0 = MatchGraphJoker(name="0")
 bbl2 = MatchGraphJoker(name="2")
@@ -315,8 +318,18 @@ matcher = bbl0 >> bbl2 >> bbl4 >> bbl9 >> bblB >> bbl10
 matcher += bbl2 >> bbl9 >> bbl10
 matcher += bbl0 >> bblB
 
-solutions = list(matcher.match(blocks))
+solutions = list(matcher.match(asmcfg))
 assert len(solutions) == 1
 solution = solutions.pop()
-for jbbl, block in solution.iteritems():
-    assert block.label.offset == int(jbbl._name, 16)
+for jbbl, label in solution.iteritems():
+    offset = mdis.symbol_pool.loc_key_to_offset(label)
+    assert offset == int(jbbl._name, 16)
+
+loc_key_dum = mdis.symbol_pool.getby_name_create("dummy_loc")
+asmcfg.add_node(loc_key_dum)
+error_raised = False
+try:
+    asmcfg.sanity_check()
+except RuntimeError:
+    error_raised = True
+assert error_raised

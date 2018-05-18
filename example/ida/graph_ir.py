@@ -6,7 +6,7 @@ import idc
 import idautils
 
 from miasm2.core.bin_stream_ida import bin_stream_ida
-from miasm2.core.asmblock import AsmLabel, is_int
+from miasm2.core.asmblock import is_int
 from miasm2.expression.simplifications import expr_simp
 from miasm2.analysis.data_flow import dead_simp
 from miasm2.ir.ir import AssignBlock, IRBlock
@@ -33,17 +33,15 @@ def label_str(self):
     else:
         return "%s:%s" % (self.name, str(self.offset))
 
-AsmLabel.__init__ = label_init
-AsmLabel.__str__ = label_str
 
 def color_irblock(irblock, ir_arch):
     out = []
-    lbl = idaapi.COLSTR(str(irblock.label), idaapi.SCOLOR_INSN)
+    lbl = idaapi.COLSTR(ir_arch.symbol_pool.str_loc_key(irblock.loc_key), idaapi.SCOLOR_INSN)
     out.append(lbl)
     for assignblk in irblock:
         for dst, src in sorted(assignblk.iteritems()):
-            dst_f = expr2colorstr(ir_arch.arch.regs.all_regs_ids, dst)
-            src_f = expr2colorstr(ir_arch.arch.regs.all_regs_ids, src)
+            dst_f = expr2colorstr(dst, symbol_pool=ir_arch.symbol_pool)
+            src_f = expr2colorstr(src, symbol_pool=ir_arch.symbol_pool)
             line = idaapi.COLSTR("%s = %s" % (dst_f, src_f), idaapi.SCOLOR_INSN)
             out.append('    %s' % line)
         out.append("")
@@ -74,7 +72,7 @@ class GraphMiasmIR(idaapi.GraphViewer):
                 continue
             all_dst = self.ir_arch.dst_trackback(irblock)
             for dst in all_dst:
-                if not dst.is_label():
+                if not dst.is_loc():
                     continue
                 if not dst.loc_key in self.ir_arch.blocks:
                     continue
@@ -123,7 +121,7 @@ def build_graph(verbose=False, simplify=False):
             mdis.symbol_pool.getby_name(name)):
             # Symbol alias
             continue
-        mdis.symbol_pool.add_label(name, addr)
+        mdis.symbol_pool.add_location(name, addr)
 
     if verbose:
         print "start disasm"
@@ -131,15 +129,15 @@ def build_graph(verbose=False, simplify=False):
     if verbose:
         print hex(addr)
 
-    blocks = mdis.dis_multiblock(addr)
+    asmcfg = mdis.dis_multiblock(addr)
 
     if verbose:
         print "generating graph"
-        open('asm_flow.dot', 'w').write(blocks.dot())
+        open('asm_flow.dot', 'w').write(asmcfg.dot())
 
         print "generating IR... %x" % addr
 
-    for block in blocks:
+    for block in asmcfg.blocks:
         if verbose:
             print 'ADD'
             print block
@@ -156,7 +154,7 @@ def build_graph(verbose=False, simplify=False):
                 for dst, src in assignblk.iteritems()
             }
             irs.append(AssignBlock(new_assignblk, instr=assignblk.instr))
-        ir_arch.blocks[irb.label] = IRBlock(irb.label, irs)
+        ir_arch.blocks[irb.loc_key] = IRBlock(irb.loc_key, irs)
 
     if verbose:
         out = ir_arch.graph.dot()

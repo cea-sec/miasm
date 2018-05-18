@@ -102,8 +102,8 @@ class sh4_arg(m_arg):
                 return arg.name
             if arg.name in gpregs.str:
                 return None
-            label = symbol_pool.getby_name_create(arg.name)
-            return ExprLoc(label.loc_key, 32)
+            loc_key = symbol_pool.getby_name_create(arg.name)
+            return ExprLoc(loc_key, 32)
         if isinstance(arg, AstOp):
             args = [self.asm_ast_to_expr(tmp, symbol_pool) for tmp in arg.args]
             if None in args:
@@ -409,9 +409,9 @@ class instruction_sh4(instruction):
     def arg2str(expr, index=None, symbol_pool=None):
         if isinstance(expr, ExprId) or isinstance(expr, ExprInt):
             return str(expr)
-        elif expr.is_label():
+        elif expr.is_loc():
             if symbol_pool is not None:
-                return str(symbol_pool.loc_key_to_label(expr.loc_key))
+                return symbol_pool.str_loc_key(expr.loc_key)
             else:
                 return str(expr)
         assert(isinstance(expr, ExprMem))

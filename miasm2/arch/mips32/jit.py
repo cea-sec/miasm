@@ -57,10 +57,10 @@ class mipsCGen(CGen):
                         self.ir_arch.pc]
                     assignments[self.delay_slot_set] = m2_expr.ExprInt(1, 32)
                     # Replace IRDst with next instruction
-                    dst = self.ir_arch.get_next_instr(assignblock.instr)
-                    assignments[self.ir_arch.IRDst] = m2_expr.ExprLoc(dst.loc_key, 32)
+                    dst_loc_key = self.ir_arch.get_next_instr(assignblock.instr)
+                    assignments[self.ir_arch.IRDst] = m2_expr.ExprLoc(dst_loc_key, 32)
                     irs.append(AssignBlock(assignments, assignblock.instr))
-                irblocks[blk_idx] = IRBlock(irblock.label, irs)
+                irblocks[blk_idx] = IRBlock(irblock.loc_key, irs)
 
         return irblocks_list
 
@@ -69,12 +69,13 @@ class mipsCGen(CGen):
         Generate the C code for the final block instruction
         """
 
-        lbl = self.get_block_post_label(block)
-        out = (self.CODE_RETURN_NO_EXCEPTION % (self.label_to_jitlabel(lbl),
+        loc_key = self.get_block_post_label(block)
+        offset = self.ir_arch.symbol_pool.loc_key_to_offset(loc_key)
+        out = (self.CODE_RETURN_NO_EXCEPTION % (self.loc_key_to_jitlabel(loc_key),
                                                 self.C_PC,
                                                 m2_expr.ExprId('branch_dst_irdst', 32),
                                                 m2_expr.ExprId('branch_dst_irdst', 32),
-                                                self.id_to_c(m2_expr.ExprInt(lbl.offset, 32)))
+                                                self.id_to_c(m2_expr.ExprInt(offset, 32)))
               ).split('\n')
         return out
 

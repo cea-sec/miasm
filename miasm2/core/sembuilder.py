@@ -139,22 +139,22 @@ class SemBuilder(object):
         return self._functions.copy()
 
     @staticmethod
-    def _create_labels(lbl_else=False):
+    def _create_labels(loc_else=False):
         """Return the AST standing for label creations
-        @lbl_else (optional): if set, create a label 'lbl_else'"""
-        lbl_end = "lbl_end = ir.get_next_label(instr)"
-        lbl_end_expr = "lbl_end_expr = ExprLoc(lbl_end.loc_key, ir.IRDst.size)"
-        out = ast.parse(lbl_end).body
-        out += ast.parse(lbl_end_expr).body
-        lbl_if = "lbl_if = ir.gen_label()"
-        lbl_if_expr = "lbl_if_expr = ExprLoc(lbl_if.loc_key, ir.IRDst.size)"
-        out += ast.parse(lbl_if).body
-        out += ast.parse(lbl_if_expr).body
-        if lbl_else:
-            lbl_else = "lbl_else = ir.gen_label()"
-            lbl_else_expr = "lbl_else_expr = ExprLoc(lbl_else.loc_key, ir.IRDst.size)"
-            out += ast.parse(lbl_else).body
-            out += ast.parse(lbl_else_expr).body
+        @loc_else (optional): if set, create a label 'loc_else'"""
+        loc_end = "loc_end = ir.get_next_loc_key(instr)"
+        loc_end_expr = "loc_end_expr = ExprLoc(loc_end, ir.IRDst.size)"
+        out = ast.parse(loc_end).body
+        out += ast.parse(loc_end_expr).body
+        loc_if = "loc_if = ir.symbol_pool.gen_loc_key()"
+        loc_if_expr = "loc_if_expr = ExprLoc(loc_if, ir.IRDst.size)"
+        out += ast.parse(loc_if).body
+        out += ast.parse(loc_if_expr).body
+        if loc_else:
+            loc_else = "loc_else = ir.symbol_pool.gen_loc_key()"
+            loc_else_expr = "loc_else_expr = ExprLoc(loc_else, ir.IRDst.size)"
+            out += ast.parse(loc_else).body
+            out += ast.parse(loc_else_expr).body
         return out
 
     def _parse_body(self, body, argument_names):
@@ -203,20 +203,20 @@ class SemBuilder(object):
                 real_body.append(statement)
 
             elif isinstance(statement, ast.If):
-                # Create jumps : ir.IRDst = lbl_if if cond else lbl_end
+                # Create jumps : ir.IRDst = loc_if if cond else loc_end
                 # if .. else .. are also handled
                 cond = statement.test
-                real_body += self._create_labels(lbl_else=True)
+                real_body += self._create_labels(loc_else=True)
 
-                lbl_end = ast.Name(id='lbl_end_expr', ctx=ast.Load())
-                lbl_if = ast.Name(id='lbl_if_expr', ctx=ast.Load())
-                lbl_else = ast.Name(id='lbl_else_expr', ctx=ast.Load()) \
-                           if statement.orelse else lbl_end
+                loc_end = ast.Name(id='loc_end_expr', ctx=ast.Load())
+                loc_if = ast.Name(id='loc_if_expr', ctx=ast.Load())
+                loc_else = ast.Name(id='loc_else_expr', ctx=ast.Load()) \
+                           if statement.orelse else loc_end
                 dst = ast.Call(func=ast.Name(id='ExprCond',
                                              ctx=ast.Load()),
                                args=[cond,
-                                     lbl_if,
-                                     lbl_else],
+                                     loc_if,
+                                     loc_else],
                                keywords=[],
                                starargs=None,
                                kwargs=None)
@@ -238,10 +238,10 @@ class SemBuilder(object):
                                                kwargs=None))
 
                 # Create the new blocks
-                elements = [(statement.body, 'lbl_if')]
+                elements = [(statement.body, 'loc_if')]
                 if statement.orelse:
-                    elements.append((statement.orelse, 'lbl_else'))
-                for content, lbl_name in elements:
+                    elements.append((statement.orelse, 'loc_else'))
+                for content, loc_name in elements:
                     sub_blocks, sub_body = self._parse_body(content,
                                                             argument_names)
                     if len(sub_blocks) > 1:
@@ -250,7 +250,7 @@ class SemBuilder(object):
                     ## Close the last block
                     jmp_end = ast.Call(func=ast.Name(id='ExprAff',
                                                      ctx=ast.Load()),
-                                       args=[IRDst, lbl_end],
+                                       args=[IRDst, loc_end],
                                        keywords=[],
                                        starargs=None,
                                        kwargs=None)
@@ -269,18 +269,14 @@ class SemBuilder(object):
 
 
                     ## Replace the block with a call to 'IRBlock'
-                    lbl_if_name = value= ast.Attribute(
-                        value=ast.Name(id=lbl_name, ctx=ast.Load()),
-                        attr="loc_key",
-                        ctx=ast.Load()
-                    )
+                    loc_if_name = ast.Name(id=loc_name, ctx=ast.Load())
 
                     assignblks = ast.List(elts=[assignblk],
                                           ctx=ast.Load())
 
                     sub_blocks[-1] = ast.Call(func=ast.Name(id='IRBlock',
                                                             ctx=ast.Load()),
-                                              args=[lbl_if_name,
+                                              args=[loc_if_name,
                                                     assignblks],
                                               keywords=[],
                                               starargs=None,

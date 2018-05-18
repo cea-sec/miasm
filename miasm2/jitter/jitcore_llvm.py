@@ -84,7 +84,7 @@ class JitCore_LLVM(jitcore.JitCore):
 
         if not os.access(fname_out, os.R_OK):
             # Build a function in the context
-            func = LLVMFunction(self.context, block.label)
+            func = LLVMFunction(self.context, block.loc_key)
 
             # Set log level
             func.log_regs = self.log_regs
@@ -115,7 +115,9 @@ class JitCore_LLVM(jitcore.JitCore):
 
         else:
             # The cache file exists: function can be loaded from cache
-            ptr = self.context.get_ptr_from_cache(fname_out, block.label)
+            ptr = self.context.get_ptr_from_cache(fname_out, block.loc_key)
 
         # Store a pointer on the function jitted code
-        self.lbl2jitbloc[block.label.offset] = ptr
+        loc_key = block.loc_key
+        offset = self.ir_arch.symbol_pool.loc_key_to_offset(loc_key)
+        self.loc_key_to_jit_block[offset] = ptr

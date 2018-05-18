@@ -190,7 +190,7 @@ class DSEEngine(object):
         self.jitter.exec_cb = self.callback
 
         # Clean jit cache to avoid multi-line basic blocks already jitted
-        self.jitter.jit.lbl2jitbloc.clear()
+        self.jitter.jit.loc_key_to_jit_block.clear()
 
     def attach(self, emulator):
         """Attach the DSE to @emulator
@@ -219,7 +219,7 @@ class DSEEngine(object):
     def handle(self, cur_addr):
         r"""Handle destination
         @cur_addr: Expr of the next address in concrete execution
-        /!\ cur_addr may be a lbl_gen
+        /!\ cur_addr may be a loc_key
 
         In this method, self.symb is in the "just before branching" state
         """

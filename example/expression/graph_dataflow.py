@@ -47,7 +47,7 @@ def intra_block_flow_symb(ir_arch, flow_graph, irblock, in_nodes, out_nodes):
             all_mems.update(get_expr_mem(n))
 
         for n in all_mems:
-            node_n_w = get_node_name(irblock.label, 0, n)
+            node_n_w = get_node_name(irblock.loc_key, 0, n)
             if not n == src:
                 continue
             o_r = n.arg.get_r(mem_read=False, cst_read=True)
@@ -55,7 +55,7 @@ def intra_block_flow_symb(ir_arch, flow_graph, irblock, in_nodes, out_nodes):
                 if n_r in current_nodes:
                     node_n_r = current_nodes[n_r]
                 else:
-                    node_n_r = get_node_name(irblock.label, i, n_r)
+                    node_n_r = get_node_name(irblock.loc_key, i, n_r)
                 if not n_r in in_nodes:
                     in_nodes[n_r] = node_n_r
                 flow_graph.add_uniq_edge(node_n_r, node_n_w)
@@ -69,13 +69,13 @@ def intra_block_flow_symb(ir_arch, flow_graph, irblock, in_nodes, out_nodes):
             if n_r in current_nodes:
                 node_n_r = current_nodes[n_r]
             else:
-                node_n_r = get_node_name(irblock.label, 0, n_r)
+                node_n_r = get_node_name(irblock.loc_key, 0, n_r)
             if not n_r in in_nodes:
                 in_nodes[n_r] = node_n_r
 
             flow_graph.add_node(node_n_r)
             for n_w in nodes_w:
-                node_n_w = get_node_name(irblock.label, 1, n_w)
+                node_n_w = get_node_name(irblock.loc_key, 1, n_w)
                 out_nodes[n_w] = node_n_w
 
                 flow_graph.add_node(node_n_w)
@@ -96,8 +96,9 @@ def gen_block_data_flow_graph(ir_arch, ad, block_flow_cb):
 
     irblock_0 = None
     for irblock in ir_arch.blocks.values():
-        label = ir_arch.symbol_pool.loc_key_to_label(irblock.label)
-        if label.offset == ad:
+        loc_key = irblock.loc_key
+        offset = ir_arch.symbol_pool.loc_key_to_offset(loc_key)
+        if offset == ad:
             irblock_0 = irblock
             break
     assert(irblock_0 is not None)
@@ -120,7 +121,7 @@ def gen_block_data_flow_graph(ir_arch, ad, block_flow_cb):
         print 'OUT', [str(x) for x in irb_out_nodes[label]]
 
     print '*' * 20, 'interblock', '*' * 20
-    inter_block_flow(ir_arch, flow_graph, irblock_0.label, irb_in_nodes, irb_out_nodes)
+    inter_block_flow(ir_arch, flow_graph, irblock_0.loc_key, irb_in_nodes, irb_out_nodes)
 
     # from graph_qt import graph_qt
     # graph_qt(flow_graph)
@@ -133,15 +134,14 @@ ad = int(args.addr, 16)
 print 'disasm...'
 mdis = dis_x86_32(data)
 mdis.follow_call = True
-ab = mdis.dis_multiblock(ad)
+asmcfg = mdis.dis_multiblock(ad)
 print 'ok'
 
 
 print 'generating dataflow graph for:'
 ir_arch = ir_a_x86_32(mdis.symbol_pool)
 
-blocks = ab
-for block in blocks:
+for block in asmcfg.blocks:
     print block
     ir_arch.add_block(block)
 for irblock in ir_arch.blocks.values():

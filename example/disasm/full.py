@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 from pdb import pm
 
 from miasm2.analysis.binary import Container
-from miasm2.core.asmblock import log_asmblock, AsmLabel, AsmCFG
+from miasm2.core.asmblock import log_asmblock, AsmCFG
 from miasm2.expression.expression import ExprId
 from miasm2.core.interval import interval
 from miasm2.analysis.machine import Machine
@@ -99,7 +99,9 @@ for addr in args.address:
         addrs.append(int(addr, 0))
     except ValueError:
         # Second chance, try with symbol
-        addrs.append(mdis.symbol_pool.getby_name(addr).offset)
+        loc_key = mdis.symbol_pool.getby_name(addr)
+        offset = mdis.symbol_pool.loc_key_to_offset(loc_key)
+        addrs.append(offset)
 
 if len(addrs) == 0 and default_addr is not None:
     addrs.append(default_addr)
@@ -121,27 +123,28 @@ while not finish and todo:
         if ad in done:
             continue
         done.add(ad)
-        allblocks = mdis.dis_multiblock(ad)
+        asmcfg = mdis.dis_multiblock(ad)
 
         log.info('func ok %.16x (%d)' % (ad, len(all_funcs)))
 
         all_funcs.add(ad)
-        all_funcs_blocks[ad] = allblocks
-        for block in allblocks:
+        all_funcs_blocks[ad] = asmcfg
+        for block in asmcfg.blocks:
             for l in block.lines:
                 done_interval += interval([(l.offset, l.offset + l.l)])
 
         if args.funcswatchdog is not None:
             args.funcswatchdog -= 1
         if args.recurfunctions:
-            for block in allblocks:
+            for block in asmcfg.blocks:
                 instr = block.get_subcall_instr()
                 if not instr:
                     continue
                 for dest in instr.getdstflow(mdis.symbol_pool):
-                    if not (isinstance(dest, ExprId) and isinstance(dest.name, AsmLabel)):
+                    if not dest.is_loc():
                         continue
-                    todo.append((mdis, instr, dest.name.offset))
+                    offset = mdis.symbol_pool.loc_key_to_offset(dest.loc_key)
+                    todo.append((mdis, instr, offset))
 
         if args.funcswatchdog is not None and args.funcswatchdog <= 0:
             finish = True
@@ -155,13 +158,13 @@ while not finish and todo:
 
 
 # Generate dotty graph
-all_blocks = AsmCFG(mdis.symbol_pool)
+all_asmcfg = AsmCFG(mdis.symbol_pool)
 for blocks in all_funcs_blocks.values():
-    all_blocks += blocks
+    all_asmcfg += blocks
 
 
 log.info('generate graph file')
-open('graph_execflow.dot', 'w').write(all_blocks.dot(offset=True))
+open('graph_execflow.dot', 'w').write(all_asmcfg.dot(offset=True))
 
 log.info('generate intervals')
 
@@ -190,9 +193,9 @@ if args.gen_ir:
     ir_arch_a = ira(mdis.symbol_pool)
     ir_arch.blocks = {}
     ir_arch_a.blocks = {}
-    for ad, all_block in all_funcs_blocks.items():
+    for ad, asmcfg in all_funcs_blocks.items():
         log.info("generating IR... %x" % ad)
-        for block in all_block:
+        for block in asmcfg.blocks:
             ir_arch_a.add_block(block)
             ir_arch.add_block(block)
 

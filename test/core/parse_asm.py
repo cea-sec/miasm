@@ -64,18 +64,19 @@ class TestParseAsm(unittest.TestCase):
         .string "toto"
         '''
 
-        blocks, symbol_pool = parse_txt(mn_x86, 32, ASM0)
+        asmcfg, symbol_pool = parse_txt(mn_x86, 32, ASM0)
         patches = asm_resolve_final(mn_x86,
-                                    blocks,
+                                    asmcfg,
                                     symbol_pool)
         lbls = []
         for i in xrange(6):
             lbls.append(symbol_pool.getby_name('lbl%d' % i))
         # align test
-        assert(lbls[5].offset % 0x10 == 0)
+        offset = symbol_pool.loc_key_to_offset(lbls[5])
+        assert(offset % 0x10 == 0)
         lbl2block = {}
-        for block in blocks:
-            lbl2block[block.label] = block
+        for block in asmcfg.blocks:
+            lbl2block[block.loc_key] = block
         # dontsplit test
         assert(lbls[2] == lbl2block[lbls[1]].get_next())
         assert(lbls[3] == lbl2block[lbls[2]].get_next())
@@ -94,13 +95,13 @@ class TestParseAsm(unittest.TestCase):
             RET
         '''
 
-        blocks, symbol_pool = parse_txt(mn_x86, 32, ASM0)
+        asmcfg, symbol_pool = parse_txt(mn_x86, 32, ASM0)
         lbls = []
         for i in xrange(2):
             lbls.append(symbol_pool.getby_name('lbl%d' % i))
         lbl2block = {}
-        for block in blocks:
-            lbl2block[block.label] = block
+        for block in asmcfg.blocks:
+            lbl2block[block.loc_key] = block
         # split test
         assert(lbl2block[lbls[1]].get_next() is None)
 

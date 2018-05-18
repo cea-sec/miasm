@@ -9,7 +9,6 @@ from collections import defaultdict
 from miasm2.core.bin_stream import bin_stream
 import regs as regs_module
 from regs import *
-from miasm2.core.asmblock import AsmLabel
 from miasm2.core.cpu import log as log_cpu
 from miasm2.expression.modint import uint32, uint64, mod_size2int
 from miasm2.core.asm_ast import AstInt, AstId, AstMem, AstOp
@@ -277,8 +276,8 @@ class aarch64_arg(m_arg):
             if isinstance(value.name, ExprId):
                 fixed_size.add(value.name.size)
                 return value.name
-            label = symbol_pool.getby_name_create(value.name)
-            return ExprLoc(label.loc_key, size_hint)
+            loc_key = symbol_pool.getby_name_create(value.name)
+            return ExprLoc(loc_key, size_hint)
         if isinstance(value, AstInt):
             assert size_hint is not None
             return ExprInt(value.value, size_hint)
@@ -315,9 +314,9 @@ class instruction_aarch64(instruction):
         wb = False
         if expr.is_id() or expr.is_int():
             return str(expr)
-        elif expr.is_label():
+        elif expr.is_loc():
             if symbol_pool is not None:
-                return str(symbol_pool.loc_key_to_label(expr.loc_key))
+                return symbol_pool.str_loc_key(expr.loc_key)
             else:
                 return str(expr)
         elif isinstance(expr, m2_expr.ExprOp) and expr.op in shift_expr:
@@ -375,8 +374,8 @@ class instruction_aarch64(instruction):
         if not expr.is_int():
             return
         addr = expr.arg + self.offset
-        label = symbol_pool.getby_offset_create(addr)
-        self.args[index] = m2_expr.ExprLoc(label.loc_key, expr.size)
+        loc_key = symbol_pool.getby_offset_create(addr)
+        self.args[index] = m2_expr.ExprLoc(loc_key, expr.size)
 
     def breakflow(self):
         return self.name in BRCOND + ["BR", "BLR", "RET", "ERET", "DRPS", "B", "BL"]

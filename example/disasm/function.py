@@ -8,9 +8,9 @@ from miasm2.arch.x86.disasm import dis_x86_32
 # RET
 shellcode = '\xb8\xef\xbe7\x13\xb9\x04\x00\x00\x00\xc1\xc0\x08\xe2\xfb\xc3'
 mdis = dis_x86_32(shellcode)
-blocks = mdis.dis_multiblock(0)
+asmcfg = mdis.dis_multiblock(0)
 
-for block in blocks:
+for block in asmcfg.blocks:
     print block
 
-open('graph.dot', 'w').write(blocks.dot())
+open('graph.dot', 'w').write(asmcfg.dot())

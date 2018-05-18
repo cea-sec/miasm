@@ -1,7 +1,6 @@
 import logging
 import operator
 
-from miasm2.core.asmblock import AsmLabel
 from miasm2.ir.translators.translator import Translator
 from miasm2.expression.smt2_helper import *
 
@@ -136,19 +135,9 @@ class TranslatorSMT2(Translator):
         return bit_vec_val(expr.arg.arg, expr.size)
 
     def from_ExprId(self, expr):
-        if isinstance(expr.name, AsmLabel):
-            if expr.name.offset is not None:
-                return bit_vec_val(str(expr.name.offset), expr.size)
-            else:
-                # SMT2-escape expression name
-                name = "|{}|".format(str(expr.name))
-                if name not in self._bitvectors:
-                    self._bitvectors[name] = expr.size
-                return name
-        else:
-            if str(expr) not in self._bitvectors:
-                self._bitvectors[str(expr)] = expr.size
-            return str(expr)
+        if str(expr) not in self._bitvectors:
+            self._bitvectors[str(expr)] = expr.size
+        return str(expr)
 
     def from_ExprLoc(self, expr):
         loc_key = expr.loc_key

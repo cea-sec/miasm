@@ -34,9 +34,9 @@ class JitCore_Python(jitcore.JitCore):
         "Preload symbols according to current architecture"
         self.symbexec.reset_regs()
 
-    def jitirblocs(self, label, irblocks):
+    def jitirblocs(self, loc_key, irblocks):
         """Create a python function corresponding to an irblocks' group.
-        @label: the label of the irblocks
+        @loc_key: the loc_key of the irblocks
         @irblocks: a gorup of irblocks
         """
 
@@ -48,7 +48,7 @@ class JitCore_Python(jitcore.JitCore):
             vmmngr = cpu.vmmngr
 
             # Keep current location in irblocks
-            cur_label = label.loc_key
+            cur_loc_key = loc_key
 
             # Required to detect new instructions
             offsets_jitted = set()
@@ -57,13 +57,12 @@ class JitCore_Python(jitcore.JitCore):
             exec_engine = self.symbexec
             expr_simp = exec_engine.expr_simp
 
-            known_loc_keys = set(irb.label for irb in irblocks)
+            known_loc_keys = set(irb.loc_key for irb in irblocks)
             # For each irbloc inside irblocks
             while True:
-
                 # Get the current bloc
                 for irb in irblocks:
-                    if irb.label == cur_label:
+                    if irb.loc_key == cur_loc_key:
                         break
 
                 else:
@@ -123,24 +122,24 @@ class JitCore_Python(jitcore.JitCore):
                 if isinstance(ad, m2_expr.ExprInt):
                     return ad.arg.arg
                 elif isinstance(ad, m2_expr.ExprLoc):
-                    cur_label = ad.loc_key
-                    if cur_label not in known_loc_keys:
-                        return cur_label
+                    cur_loc_key = ad.loc_key
                 else:
                     raise NotImplementedError("Type not handled: %s" % ad)
 
-        # Associate myfunc with current label
-        self.lbl2jitbloc[label.offset] = myfunc
+        # Associate myfunc with current loc_key
+        offset = self.ir_arch.symbol_pool.loc_key_to_offset(loc_key)
+        assert offset is not None
+        self.loc_key_to_jit_block[offset] = myfunc
 
-    def exec_wrapper(self, label, cpu, _lbl2jitbloc, _breakpoints,
+    def exec_wrapper(self, loc_key, cpu, _loc_key_to_jit_block, _breakpoints,
                      _max_exec_per_call):
-        """Call the function @label with @cpu
-        @label: function's label
+        """Call the function @loc_key with @cpu
+        @loc_key: function's loc_key
         @cpu: JitCpu instance
         """
 
-        # Get Python function corresponding to @label
-        fc_ptr = self.lbl2jitbloc[label]
+        # Get Python function corresponding to @loc_key
+        fc_ptr = self.loc_key_to_jit_block[loc_key]
 
         # Execute the function
         return fc_ptr(cpu)

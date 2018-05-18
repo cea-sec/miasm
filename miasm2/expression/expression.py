@@ -118,7 +118,7 @@ class DiGraphExpr(DiGraph):
         elif isinstance(node, ExprId):
             return node.name
         elif isinstance(node, ExprLoc):
-            return "label_%r" % node.label
+            return "%s" % node.loc_key
         elif isinstance(node, ExprMem):
             return "@%d" % node.size
         elif isinstance(node, ExprCompose):
@@ -167,6 +167,9 @@ class LocKey(object):
 
     def __repr__(self):
         return "<%s %d>" % (self.__class__.__name__, self._key)
+
+    def __str__(self):
+        return "loc_%d" % self.key
 
 # IR definitions
 
@@ -410,7 +413,7 @@ class Expr(object):
     def is_id(self, name=None):
         return False
 
-    def is_label(self, label=None):
+    def is_loc(self, label=None):
         return False
 
     def is_aff(self):
@@ -671,7 +674,7 @@ class ExprLoc(Expr):
     def graph_recursive(self, graph):
         graph.add_node(self)
 
-    def is_label(self, loc_key=None):
+    def is_loc(self, loc_key=None):
         if loc_key is not None and self._loc_key != loc_key:
             return False
         return True
@@ -1483,11 +1486,11 @@ def get_expr_ids_visit(expr, ids):
     return expr
 
 
-def get_expr_labels_visit(expr, labels):
+def get_expr_locs_visit(expr, locs):
     """Visitor to retrieve ExprLoc in @expr
     @expr: Expr"""
-    if expr.is_label():
-        labels.add(expr)
+    if expr.is_loc():
+        locs.add(expr)
     return expr
 
 
@@ -1499,12 +1502,12 @@ def get_expr_ids(expr):
     return ids
 
 
-def get_expr_labels(expr):
+def get_expr_locs(expr):
     """Retrieve ExprLoc in @expr
     @expr: Expr"""
-    ids = set()
-    expr.visit(lambda x: get_expr_labels_visit(x, ids))
-    return ids
+    locs = set()
+    expr.visit(lambda x: get_expr_locs_visit(x, locs))
+    return locs
 
 
 def test_set(expr, pattern, tks, result):
@@ -1546,7 +1549,7 @@ def match_expr(expr, pattern, tks, result=None):
     elif expr.is_id():
         return test_set(expr, pattern, tks, result)
 
-    elif expr.is_label():
+    elif expr.is_loc():
         return test_set(expr, pattern, tks, result)
 
     elif expr.is_op():

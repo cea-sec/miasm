@@ -59,10 +59,10 @@ if args.rename_args:
             init_ctx[e_mem] = ExprId("arg%d" % i, 32)
 
 # Disassemble the targeted function
-blocks = mdis.dis_multiblock(int(args.func_addr, 0))
+asmcfg = mdis.dis_multiblock(int(args.func_addr, 0))
 
 # Generate IR
-for block in blocks:
+for block in asmcfg.blocks:
     ir_arch.add_block(block)
 
 # Get the instance
@@ -81,7 +81,7 @@ for assignblk_index, assignblk in enumerate(current_block):
 
 # Enumerate solutions
 json_solutions = []
-for sol_nb, sol in enumerate(dg.get(current_block.label, elements, assignblk_index, set())):
+for sol_nb, sol in enumerate(dg.get(current_block.loc_key, elements, assignblk_index, set())):
     fname = "sol_%d.dot" % sol_nb
     with open(fname, "w") as fdesc:
             fdesc.write(sol.graph.dot())

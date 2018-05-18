@@ -39,8 +39,6 @@ class TranslatorC(Translator):
         return "0x%x" % mask
 
     def from_ExprId(self, expr):
-        if isinstance(expr.name, asmblock.AsmLabel):
-            return "0x%x" % expr.name.offset
         return str(expr)
 
     def from_ExprInt(self, expr):
@@ -56,6 +54,7 @@ class TranslatorC(Translator):
         loc_key = expr.loc_key
         if self.symbol_pool is None:
             return str(loc_key)
+
         offset = self.symbol_pool.loc_key_to_offset(loc_key)
         name = self.symbol_pool.loc_key_to_name(loc_key)
 
