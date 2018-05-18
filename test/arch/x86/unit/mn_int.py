@@ -8,12 +8,18 @@ from asm_test import Asm_Test_32
 class Test_INT(Asm_Test_32):
     TXT = '''
     main:
+       MOV ECX, 0x10
+    loop:
        INT 0x42
+       DEC ECX
+       JNZ loop
+    ret:
        RET
     '''
 
     def set_int_num(self, jitter):
-        self.int_num = jitter.cpu.get_interrupt_num()
+        assert jitter.cpu.get_interrupt_num() == 0x42
+        self.int_num += 1
         jitter.cpu.set_exception(0)
         return True
 
@@ -24,7 +30,7 @@ class Test_INT(Asm_Test_32):
                                          self.set_int_num)
 
     def check(self):
-        assert self.int_num == 0x42
+        assert self.int_num == 0x10
         self.myjit.cpu.set_interrupt_num(14)
         assert self.myjit.cpu.get_interrupt_num() == 14
 
