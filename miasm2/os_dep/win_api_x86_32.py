@@ -734,11 +734,12 @@ def kernel32_VirtualProtect(jitter):
     flnewprotect = args.flnewprotect & 0xFFF
     if not flnewprotect in ACCESS_DICT:
         raise ValueError('unknown access dw!')
-    jitter.vm.set_mem_access(args.lpvoid, ACCESS_DICT[flnewprotect])
 
     if args.lpfloldprotect:
         old = jitter.vm.get_mem_access(args.lpvoid)
         jitter.vm.set_mem(args.lpfloldprotect, pck32(ACCESS_DICT_INV[old]))
+
+    jitter.vm.set_mem_access(args.lpvoid, ACCESS_DICT[flnewprotect])
 
     jitter.func_ret_stdcall(ret_ad, 1)
 
