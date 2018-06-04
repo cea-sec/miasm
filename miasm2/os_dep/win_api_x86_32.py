@@ -739,7 +739,10 @@ def kernel32_VirtualProtect(jitter):
         old = jitter.vm.get_mem_access(args.lpvoid)
         jitter.vm.set_mem(args.lpfloldprotect, pck32(ACCESS_DICT_INV[old]))
 
-    jitter.vm.set_mem_access(args.lpvoid, ACCESS_DICT[flnewprotect])
+    for addr in jitter.vm.get_all_memory():
+        # Multi-page
+        if args.lpvoid <= addr < args.lpvoid + args.dwsize:
+            jitter.vm.set_mem_access(addr, ACCESS_DICT[flnewprotect])
 
     jitter.func_ret_stdcall(ret_ad, 1)
 
