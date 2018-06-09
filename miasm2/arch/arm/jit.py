@@ -7,6 +7,7 @@ from miasm2.arch.arm.sem import ir_armb, ir_arml, ir_armtl, ir_armtb, cond_dct_i
 from miasm2.jitter.codegen import CGen
 from miasm2.expression.expression import ExprId, ExprAff, ExprCond
 from miasm2.ir.ir import IRBlock, AssignBlock
+from miasm2.ir.translators.C import TranslatorC
 
 log = logging.getLogger('jit_arm')
 hnd = logging.StreamHandler()
@@ -17,11 +18,6 @@ log.setLevel(logging.CRITICAL)
 
 
 class arm_CGen(CGen):
-    def __init__(self, ir_arch):
-        self.ir_arch = ir_arch
-        self.PC = self.ir_arch.arch.regs.PC
-        self.init_arch_C()
-
 
     def block2assignblks(self, block):
         """

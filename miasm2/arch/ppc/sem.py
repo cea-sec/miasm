@@ -606,21 +606,21 @@ def mn_do_store(ir, instr, arg1, arg2, arg3=None):
             ret.append(ExprAff(arg2, address))
 
     if is_stwcx:
-        lbl_do = ExprId(ir.gen_label(), ir.IRDst.size)
-        lbl_dont = ExprId(ir.gen_label(), ir.IRDst.size)
-        lbl_next = ExprId(ir.get_next_label(instr), ir.IRDst.size)
+        loc_do = ExprLoc(ir.symbol_pool.gen_loc_key(), ir.IRDst.size)
+        loc_dont = ExprLoc(ir.symbol_pool.gen_loc_key(), ir.IRDst.size)
+        loc_next = ExprLoc(ir.get_next_loc_key(instr), ir.IRDst.size)
         flags = [ ExprAff(CR0_LT, ExprInt(0,1)),
                   ExprAff(CR0_GT, ExprInt(0,1)),
                   ExprAff(CR0_SO, XER_SO)]
         ret += flags
         ret.append(ExprAff(CR0_EQ, ExprInt(1,1)))
-        ret.append(ExprAff(ir.IRDst, lbl_next))
+        ret.append(ExprAff(ir.IRDst, loc_next))
         dont = flags + [ ExprAff(CR0_EQ, ExprInt(0,1)),
-                         ExprAff(ir.IRDst, lbl_next) ]
-        additional_ir = [ IRBlock(lbl_do.name, [ AssignBlock(ret) ]),
-                          IRBlock(lbl_dont.name, [ AssignBlock(dont) ]) ]
+                         ExprAff(ir.IRDst, loc_next) ]
+        additional_ir = [ IRBlock(loc_do, [ AssignBlock(ret) ]),
+                          IRBlock(loc_dont, [ AssignBlock(dont) ]) ]
         ret = [ ExprAff(reserve, ExprInt(0, 1)),
-                ExprAff(ir.IRDst, ExprCond(reserve, lbl_do, lbl_dont)) ]
+                ExprAff(ir.IRDst, ExprCond(reserve, loc_do, loc_dont)) ]
 
     return ret, additional_ir
 
@@ -690,7 +690,8 @@ def mn_b(ir, instr, arg1, arg2 = None):
 def mn_bl(ir, instr, arg1, arg2 = None):
     if arg2 is not None:
         arg1 = arg2
-    return [ ExprAff(LR, ExprId(ir.get_next_instr(instr), 32)),
+    dst = ir.get_next_instr(instr)
+    return [ ExprAff(LR, ExprLoc(dst, 32)),
              ExprAff(PC, arg1),
              ExprAff(ir.IRDst, arg1) ], []
 
@@ -726,13 +727,15 @@ def mn_do_cond_branch(ir, instr, dest):
                 condition = condition & cond_cond
         else:
             condition = cond_cond
+        dst = ir.get_next_instr(instr)
         dest_expr = ExprCond(condition, dest,
-                             ExprId(ir.get_next_instr(instr), 32))
+                             ExprLoc(dst, 32))
     else:
         dest_expr = dest
 
     if instr.name[-1] == 'L' or instr.name[-2:-1] == 'LA':
-        ret.append(ExprAff(LR, ExprId(ir.get_next_instr(instr), 32)))
+        dst = ir.get_next_instr(instr)
+        ret.append(ExprAff(LR, ExprLoc(dst, 32)))
 
     ret.append(ExprAff(PC, dest_expr))
     ret.append(ExprAff(ir.IRDst, dest_expr))
@@ -916,6 +919,6 @@ class ir_ppc32b(IntermediateRepresentation):
         l = self.symbol_pool.getby_offset_create(instr.offset  + 4)
         return l
 
-    def get_next_break_label(self, instr):
+    def get_next_break_loc_key(self, instr):
         l = self.symbol_pool.getby_offset_create(instr.offset  + 4)
         return l

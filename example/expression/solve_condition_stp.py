@@ -5,9 +5,8 @@ from pdb import pm
 
 from miasm2.analysis.machine import Machine
 from miasm2.expression.expression import ExprInt, ExprCond, ExprId, \
-    get_expr_ids, ExprAff
+    get_expr_ids, ExprAff, ExprLoc
 from miasm2.core.bin_stream import bin_stream_str
-from miasm2.core import asmblock
 from miasm2.ir.symbexec import SymbolicExecutionEngine, get_block
 from miasm2.expression.simplifications import expr_simp
 from miasm2.core import parse_asm
@@ -55,8 +54,8 @@ def emul_symb(ir_arch, mdis, states_todo, states_done):
             cond_group_b = {addr.cond: ExprInt(1, addr.cond.size)}
             addr_a = expr_simp(symbexec.eval_expr(addr.replace_expr(cond_group_a), {}))
             addr_b = expr_simp(symbexec.eval_expr(addr.replace_expr(cond_group_b), {}))
-            if not (addr_a.is_int() or asmblock.expr_is_label(addr_a) and
-                    addr_b.is_int() or asmblock.expr_is_label(addr_b)):
+            if not (addr_a.is_int() or addr_a.is_loc() and
+                    addr_b.is_int() or addr_b.is_loc()):
                 print str(addr_a), str(addr_b)
                 raise ValueError("Unsupported condition")
             if isinstance(addr_a, ExprInt):
@@ -68,11 +67,10 @@ def emul_symb(ir_arch, mdis, states_todo, states_done):
         elif addr == ret_addr:
             print 'Return address reached'
             continue
-        elif isinstance(addr, ExprInt):
+        elif addr.is_int():
             addr = int(addr.arg)
             states_todo.add((addr, symbexec.symbols.copy(), tuple(conds)))
-        elif asmblock.expr_is_label(addr):
-            addr = addr.name
+        elif addr.is_loc():
             states_todo.add((addr, symbexec.symbols.copy(), tuple(conds)))
         else:
             raise ValueError("Unsupported destination")
@@ -94,7 +92,8 @@ if __name__ == '__main__':
 
     symbexec = SymbolicExecutionEngine(ir_arch, symbols_init)
 
-    blocks, symbol_pool = parse_asm.parse_txt(machine.mn, 32, '''
+    asmcfg, symbol_pool = parse_asm.parse_txt(machine.mn, 32, '''
+    init:
     PUSH argv
     PUSH argc
     PUSH ret_addr
@@ -105,22 +104,20 @@ if __name__ == '__main__':
     argc_lbl = symbol_pool.getby_name('argc')
     argv_lbl = symbol_pool.getby_name('argv')
     ret_addr_lbl = symbol_pool.getby_name('ret_addr')
+    init_lbl = symbol_pool.getby_name('init')
 
-    argc = ExprId(argc_lbl, 32)
-    argv = ExprId(argv_lbl, 32)
-    ret_addr = ExprId(ret_addr_lbl, 32)
+    argc = ExprLoc(argc_lbl, 32)
+    argv = ExprLoc(argv_lbl, 32)
+    ret_addr = ExprLoc(ret_addr_lbl, 32)
 
 
-    b = list(blocks)[0]
-    print b
+    block = asmcfg.loc_key_to_block(init_lbl)
+    print block
     # add fake address and len to parsed instructions
-    for i, line in enumerate(b.lines):
-        line.offset, line.l = i, 1
-    ir_arch.add_block(b)
-    irb = get_block(ir_arch, mdis, 0)
+    ir_arch.add_block(block)
+    irb = ir_arch.blocks[init_lbl]
     symbexec.eval_updt_irblock(irb)
     symbexec.dump(ids=False)
-
     # reset ir_arch blocks
     ir_arch.blocks = {}
 

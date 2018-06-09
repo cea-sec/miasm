@@ -5,7 +5,6 @@ import operator
 # Raise an ImportError if z3 is not available WITHOUT actually importing it
 imp.find_module("z3")
 
-from miasm2.core.asmblock import AsmLabel
 from miasm2.ir.translators.translator import Translator
 
 log = logging.getLogger("translator_z3")
@@ -116,7 +115,7 @@ class TranslatorZ3(Translator):
     # Operations translation
     trivial_ops = ["+", "-", "/", "%", "&", "^", "|", "*", "<<"]
 
-    def __init__(self, endianness="<", **kwargs):
+    def __init__(self, endianness="<", symbol_pool=None, **kwargs):
         """Instance a Z3 translator
         @endianness: (optional) memory endianness
         """
@@ -126,15 +125,28 @@ class TranslatorZ3(Translator):
 
         super(TranslatorZ3, self).__init__(**kwargs)
         self._mem = Z3Mem(endianness)
+        # symbol pool
+        self.symbol_pool = symbol_pool
 
     def from_ExprInt(self, expr):
         return z3.BitVecVal(expr.arg.arg, expr.size)
 
     def from_ExprId(self, expr):
-        if isinstance(expr.name, AsmLabel) and expr.name.offset is not None:
-            return z3.BitVecVal(expr.name.offset, expr.size)
-        else:
+        return z3.BitVec(str(expr), expr.size)
+
+    def from_ExprLoc(self, expr):
+        if self.symbol_pool is None:
+            # No symbol_pool, fallback to default name
             return z3.BitVec(str(expr), expr.size)
+        loc_key = expr.loc_key
+        offset = self.symbol_pool.loc_key_to_offset(loc_key)
+        name = self.symbol_pool.loc_key_to_name(loc_key)
+        if offset is not None:
+            return z3.BitVecVal(offset, expr.size)
+        if name is not None:
+            return z3.BitVec(name, expr.size)
+        # fallback to default name
+        return z3.BitVec(str(loc_key), expr.size)
 
     def from_ExprMem(self, expr):
         addr = self.from_expr(expr.arg)

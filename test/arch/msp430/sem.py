@@ -26,8 +26,8 @@ def compute(asm, inputstate={}, debug=False):
     code = mn.asm(instr)[0]
     instr = mn.dis(code, mode)
     instr.offset = inputstate.get(PC, 0)
-    interm.add_instr(instr)
-    symexec.run_at(instr.offset)
+    loc_key = interm.add_instr(instr)
+    symexec.run_at(loc_key)
     if debug:
         for k, v in symexec.symbols.items():
             if regs_init.get(k, None) != v:

@@ -2,8 +2,8 @@ import warnings
 import logging
 from collections import MutableMapping
 
-from miasm2.expression.expression import ExprOp, ExprId, ExprInt, ExprMem, \
-    ExprCompose, ExprSlice, ExprCond, ExprAff
+from miasm2.expression.expression import ExprOp, ExprId, ExprLoc, ExprInt, \
+    ExprMem, ExprCompose, ExprSlice, ExprCond, ExprAff
 from miasm2.expression.simplifications import expr_simp
 from miasm2.core import asmblock
 from miasm2.ir.ir import AssignBlock
@@ -17,9 +17,10 @@ log.setLevel(logging.INFO)
 
 def get_block(ir_arch, mdis, addr):
     """Get IRBlock at address @addr"""
-    lbl = ir_arch.get_label(addr)
+    lbl = ir_arch.get_loc_key(addr)
     if not lbl in ir_arch.blocks:
-        block = mdis.dis_block(lbl.offset)
+        offset = mdis.symbol_pool.loc_key_to_offset(lbl)
+        block = mdis.dis_block(offset)
         ir_arch.add_block(block)
     irblock = ir_arch.get_block(lbl)
     if irblock is None:
@@ -812,6 +813,7 @@ class SymbolicExecutionEngine(object):
         self.expr_to_visitor = {
             ExprInt: self.eval_exprint,
             ExprId: self.eval_exprid,
+            ExprLoc: self.eval_exprloc,
             ExprMem: self.eval_exprmem,
             ExprSlice: self.eval_exprslice,
             ExprCond: self.eval_exprcond,
@@ -885,10 +887,16 @@ class SymbolicExecutionEngine(object):
 
     def eval_exprid(self, expr, **kwargs):
         """[DEV]: Evaluate an ExprId using the current state"""
-        if isinstance(expr.name, asmblock.AsmLabel) and expr.name.offset is not None:
-            ret = ExprInt(expr.name.offset, expr.size)
+        ret = self.symbols.read(expr)
+        return ret
+
+    def eval_exprloc(self, expr, **kwargs):
+        """[DEV]: Evaluate an ExprLoc using the current state"""
+        offset = self.ir_arch.symbol_pool.loc_key_to_offset(expr.loc_key)
+        if offset is not None:
+            ret = ExprInt(offset, expr.size)
         else:
-            ret = self.symbols.read(expr)
+            ret = expr
         return ret
 
     def eval_exprmem(self, expr, **kwargs):
@@ -1040,7 +1048,17 @@ class SymbolicExecutionEngine(object):
                 self.dump(mems=False)
                 self.dump(ids=False)
                 print '_' * 80
-        return self.eval_expr(self.ir_arch.IRDst)
+        dst = self.eval_expr(self.ir_arch.IRDst)
+
+        # Best effort to resolve destination as ExprLoc
+        if dst.is_loc():
+            ret = dst
+        elif dst.is_int():
+            label = self.ir_arch.symbol_pool.getby_offset_create(int(dst))
+            ret = ExprLoc(label, dst.size)
+        else:
+            ret = dst
+        return ret
 
     def run_block_at(self, addr, step=False):
         """
@@ -1057,14 +1075,14 @@ class SymbolicExecutionEngine(object):
         """
         Symbolic execution starting at @addr
         @addr: address to execute (int or ExprInt or label)
-        @lbl_stop: AsmLabel to stop execution on
+        @lbl_stop: LocKey to stop execution on
         @step: display intermediate steps
         """
         while True:
             irblock = self.ir_arch.get_block(addr)
             if irblock is None:
                 break
-            if irblock.label == lbl_stop:
+            if irblock.loc_key == lbl_stop:
                 break
             addr = self.eval_updt_irblock(irblock, step=step)
         return addr

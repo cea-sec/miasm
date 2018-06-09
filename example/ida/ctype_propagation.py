@@ -201,7 +201,7 @@ class SymbExecCTypeFix(SymbExecCType):
                 if expr.is_int():
                     continue
                 for c_str, c_type in self.chandler.expr_to_c_and_types(expr, self.symbols):
-                    expr = self.cst_propag_link.get((irb.label, index), {}).get(expr, expr)
+                    expr = self.cst_propag_link.get((irb.loc_key, index), {}).get(expr, expr)
                     offset2cmt.setdefault(instr.offset, set()).add(
                         "\n%s: %s\n%s" % (expr, c_str, c_type))
 

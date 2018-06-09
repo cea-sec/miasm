@@ -257,7 +257,7 @@ assert len([sol for sol in sols if sol[j1] == 1]) == 1
 assert len([sol for sol in sols if sol[j1] == 2]) == 1
 
 ## Check filter
-j2 = MatchGraphJoker(name="son", restrict_out=False, filt=lambda node: node < 2)
+j2 = MatchGraphJoker(name="son", restrict_out=False, filt=lambda graph, node: node < 2)
 matcher = j1 >> j2 >> j1
 sols = list(matcher.match(graph))
 assert len(sols) == 1

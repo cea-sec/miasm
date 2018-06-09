@@ -1,7 +1,6 @@
 import logging
 import operator
 
-from miasm2.core.asmblock import AsmLabel
 from miasm2.ir.translators.translator import Translator
 from miasm2.expression.smt2_helper import *
 
@@ -120,7 +119,7 @@ class TranslatorSMT2(Translator):
     # Implemented language
     __LANG__ = "smt2"
 
-    def __init__(self, endianness="<", **kwargs):
+    def __init__(self, endianness="<", symbol_pool=None, **kwargs):
         """Instance a SMT2 translator
         @endianness: (optional) memory endianness
         """
@@ -129,24 +128,33 @@ class TranslatorSMT2(Translator):
         self._mem = SMT2Mem(endianness)
         # map of translated bit vectors
         self._bitvectors = dict()
+        # symbol pool
+        self.symbol_pool = symbol_pool
 
     def from_ExprInt(self, expr):
         return bit_vec_val(expr.arg.arg, expr.size)
 
     def from_ExprId(self, expr):
-        if isinstance(expr.name, AsmLabel):
-            if expr.name.offset is not None:
-                return bit_vec_val(str(expr.name.offset), expr.size)
-            else:
-                # SMT2-escape expression name
-                name = "|{}|".format(str(expr.name))
-                if name not in self._bitvectors:
-                    self._bitvectors[name] = expr.size
-                return name
-        else:
-            if str(expr) not in self._bitvectors:
-                self._bitvectors[str(expr)] = expr.size
-            return str(expr)
+        if str(expr) not in self._bitvectors:
+            self._bitvectors[str(expr)] = expr.size
+        return str(expr)
+
+    def from_ExprLoc(self, expr):
+        loc_key = expr.loc_key
+        if self.symbol_pool is None:
+            if str(loc_key) not in self._bitvectors:
+                self._bitvectors[str(loc_key)] = expr.size
+            return str(loc_key)
+
+        offset = self.symbol_pool.loc_key_to_offset(loc_key)
+        name = self.symbol_pool.loc_key_to_name(loc_key)
+
+        if offset is None:
+            return bit_vec_val(str(offset), expr.size)
+        name = "|{}|".format(str(name))
+        if name not in self._bitvectors:
+            self._bitvectors[name] = expr.size
+        return name
 
     def from_ExprMem(self, expr):
         addr = self.from_expr(expr.arg)

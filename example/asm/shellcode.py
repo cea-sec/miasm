@@ -67,7 +67,7 @@ with open(args.source) as fstream:
 
 symbol_pool = asmblock.AsmSymbolPool()
 
-blocks, symbol_pool = parse_asm.parse_txt(machine.mn, attrib, source, symbol_pool)
+asmcfg, symbol_pool = parse_asm.parse_txt(machine.mn, attrib, source, symbol_pool)
 
 # Fix shellcode addrs
 symbol_pool.set_offset(symbol_pool.getby_name("main"), addr_main)
@@ -77,19 +77,21 @@ if args.PE:
                            pe.DirImport.get_funcvirt('USER32.dll', 'MessageBoxA'))
 
 # Print and graph firsts blocks before patching it
-for block in blocks:
+for block in asmcfg.blocks:
     print block
-open("graph.dot", "w").write(blocks.dot())
+open("graph.dot", "w").write(asmcfg.dot())
 
 # Apply patches
 patches = asmblock.asm_resolve_final(machine.mn,
-                                    blocks,
+                                    asmcfg,
                                     symbol_pool,
                                     dst_interval)
 if args.encrypt:
     # Encrypt code
-    ad_start = symbol_pool.getby_name_create(args.encrypt[0]).offset
-    ad_stop = symbol_pool.getby_name_create(args.encrypt[1]).offset
+    loc_start = symbol_pool.getby_name_create(args.encrypt[0])
+    loc_stop = symbol_pool.getby_name_create(args.encrypt[1])
+    ad_start = symbol_pool.loc_key_to_offset(loc_start)
+    ad_stop = symbol_pool.loc_key_to_offset(loc_stop)
 
     new_patches = dict(patches)
     for ad, val in patches.items():

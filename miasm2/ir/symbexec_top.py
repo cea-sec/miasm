@@ -121,12 +121,18 @@ class SymbExecTopNoMem(SymbolicExecutionEngine):
 
     def eval_exprid(self, expr, **kwargs):
         """[DEV]: Evaluate an ExprId using the current state"""
-        if isinstance(expr.name, asmblock.AsmLabel) and expr.name.offset is not None:
-            ret = ExprInt(expr.name.offset, expr.size)
-        elif expr in self.regstop:
+        if expr in self.regstop:
             ret = exprid_top(expr)
         else:
             ret = self.symbols.read(expr)
+        return ret
+
+    def eval_exprloc(self, expr, **kwargs):
+        offset = self.ir_arch.symbol_pool.loc_key_to_offset(expr.loc_key)
+        if offset is not None:
+            ret = ExprInt(offset, expr.size)
+        else:
+            ret = expr
         return ret
 
     def eval_exprcond(self, expr, **kwargs):

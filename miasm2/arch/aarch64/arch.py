@@ -9,7 +9,6 @@ from collections import defaultdict
 from miasm2.core.bin_stream import bin_stream
 import regs as regs_module
 from regs import *
-from miasm2.core.asmblock import AsmLabel
 from miasm2.core.cpu import log as log_cpu
 from miasm2.expression.modint import uint32, uint64, mod_size2int
 from miasm2.core.asm_ast import AstInt, AstId, AstMem, AstOp
@@ -277,8 +276,8 @@ class aarch64_arg(m_arg):
             if isinstance(value.name, ExprId):
                 fixed_size.add(value.name.size)
                 return value.name
-            label = symbol_pool.getby_name_create(value.name)
-            return ExprId(label, size_hint)
+            loc_key = symbol_pool.getby_name_create(value.name)
+            return ExprLoc(loc_key, size_hint)
         if isinstance(value, AstInt):
             assert size_hint is not None
             return ExprInt(value.value, size_hint)
@@ -311,44 +310,49 @@ class instruction_aarch64(instruction):
         super(instruction_aarch64, self).__init__(*args, **kargs)
 
     @staticmethod
-    def arg2str(e, pos=None):
+    def arg2str(expr, index=None, symbol_pool=None):
         wb = False
-        if isinstance(e, m2_expr.ExprId) or isinstance(e, m2_expr.ExprInt):
-            return str(e)
-        elif isinstance(e, m2_expr.ExprOp) and e.op in shift_expr:
-            op_str = shift_str[shift_expr.index(e.op)]
-            return "%s %s %s" % (e.args[0], op_str, e.args[1])
-        elif isinstance(e, m2_expr.ExprOp) and e.op == "slice_at":
-            return "%s LSL %s" % (e.args[0], e.args[1])
-        elif isinstance(e, m2_expr.ExprOp) and e.op in extend_lst:
-            op_str = e.op
-            return "%s %s %s" % (e.args[0], op_str, e.args[1])
-        elif isinstance(e, m2_expr.ExprOp) and e.op == "postinc":
-            if e.args[1].arg != 0:
-                return "[%s], %s" % (e.args[0], e.args[1])
+        if expr.is_id() or expr.is_int():
+            return str(expr)
+        elif expr.is_loc():
+            if symbol_pool is not None:
+                return symbol_pool.str_loc_key(expr.loc_key)
             else:
-                return "[%s]" % (e.args[0])
-        elif isinstance(e, m2_expr.ExprOp) and e.op == "preinc_wb":
-            if e.args[1].arg != 0:
-                return "[%s, %s]!" % (e.args[0], e.args[1])
+                return str(expr)
+        elif isinstance(expr, m2_expr.ExprOp) and expr.op in shift_expr:
+            op_str = shift_str[shift_expr.index(expr.op)]
+            return "%s %s %s" % (expr.args[0], op_str, expr.args[1])
+        elif isinstance(expr, m2_expr.ExprOp) and expr.op == "slice_at":
+            return "%s LSL %s" % (expr.args[0], expr.args[1])
+        elif isinstance(expr, m2_expr.ExprOp) and expr.op in extend_lst:
+            op_str = expr.op
+            return "%s %s %s" % (expr.args[0], op_str, expr.args[1])
+        elif isinstance(expr, m2_expr.ExprOp) and expr.op == "postinc":
+            if expr.args[1].arg != 0:
+                return "[%s], %s" % (expr.args[0], expr.args[1])
             else:
-                return "[%s]" % (e.args[0])
-        elif isinstance(e, m2_expr.ExprOp) and e.op == "preinc":
-            if len(e.args) == 1:
-                return "[%s]" % (e.args[0])
-            elif not isinstance(e.args[1], m2_expr.ExprInt) or e.args[1].arg != 0:
-                return "[%s, %s]" % (e.args[0], e.args[1])
+                return "[%s]" % (expr.args[0])
+        elif isinstance(expr, m2_expr.ExprOp) and expr.op == "preinc_wb":
+            if expr.args[1].arg != 0:
+                return "[%s, %s]!" % (expr.args[0], expr.args[1])
             else:
-                return "[%s]" % (e.args[0])
-        elif isinstance(e, m2_expr.ExprOp) and e.op == 'segm':
-            arg = e.args[1]
+                return "[%s]" % (expr.args[0])
+        elif isinstance(expr, m2_expr.ExprOp) and expr.op == "preinc":
+            if len(expr.args) == 1:
+                return "[%s]" % (expr.args[0])
+            elif not isinstance(expr.args[1], m2_expr.ExprInt) or expr.args[1].arg != 0:
+                return "[%s, %s]" % (expr.args[0], expr.args[1])
+            else:
+                return "[%s]" % (expr.args[0])
+        elif isinstance(expr, m2_expr.ExprOp) and expr.op == 'segm':
+            arg = expr.args[1]
             if isinstance(arg, m2_expr.ExprId):
                 arg = str(arg)
             elif arg.op == 'LSL' and arg.args[1].arg == 0:
                 arg = str(arg.args[0])
             else:
                 arg = "%s %s %s" % (arg.args[0], arg.op, arg.args[1])
-            return '[%s, %s]' % (e.args[0], arg)
+            return '[%s, %s]' % (expr.args[0], arg)
 
         else:
             raise NotImplementedError("bad op")
@@ -366,13 +370,12 @@ class instruction_aarch64(instruction):
 
     def dstflow2label(self, symbol_pool):
         index = self.mnemo_flow_to_dst_index(self.name)
-        e = self.args[index]
-        if not isinstance(e, m2_expr.ExprInt):
+        expr = self.args[index]
+        if not expr.is_int():
             return
-        ad = e.arg + self.offset
-        l = symbol_pool.getby_offset_create(ad)
-        s = m2_expr.ExprId(l, e.size)
-        self.args[index] = s
+        addr = expr.arg + self.offset
+        loc_key = symbol_pool.getby_offset_create(addr)
+        self.args[index] = m2_expr.ExprLoc(loc_key, expr.size)
 
     def breakflow(self):
         return self.name in BRCOND + ["BR", "BLR", "RET", "ERET", "DRPS", "B", "BL"]

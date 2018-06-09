@@ -8,13 +8,12 @@ from collections import defaultdict
 import pyparsing
 
 import miasm2.expression.expression as m2_expr
-from miasm2.core import asmblock
 from miasm2.core.bin_stream import bin_stream, bin_stream_str
 from miasm2.core.utils import Disasm_Exception
 from miasm2.expression.simplifications import expr_simp
 
 
-from miasm2.core.asm_ast import AstNode, AstInt, AstId, AstMem, AstOp
+from miasm2.core.asm_ast import AstNode, AstInt, AstId, AstOp
 
 log = logging.getLogger("cpuhelper")
 console_handler = logging.StreamHandler()
@@ -985,18 +984,24 @@ class instruction(object):
         self.mode = mode
         self.args = args
         self.additional_info = additional_info
+        self.offset = None
+        self.l = None
+        self.b = None
 
     def gen_args(self, args):
         out = ', '.join([str(x) for x in args])
         return out
 
     def __str__(self):
+        return self.to_string()
+
+    def to_string(self, symbol_pool=None):
         o = "%-10s " % self.name
         args = []
         for i, arg in enumerate(self.args):
             if not isinstance(arg, m2_expr.Expr):
                 raise ValueError('zarb arg type')
-            x = self.arg2str(arg, pos = i)
+            x = self.arg2str(arg, i, symbol_pool)
             args.append(x)
         o += self.gen_args(args)
         return o
@@ -1011,40 +1016,40 @@ class instruction(object):
         if symbols is None:
             symbols = {}
         args_out = []
-        for a in self.args:
-            e = a
+        for expr in self.args:
             # try to resolve symbols using symbols (0 for default value)
-            ids = m2_expr.get_expr_ids(e)
-            fixed_ids = {}
-            for x in ids:
-                if isinstance(x.name, asmblock.AsmLabel):
-                    name = x.name.name
-                    # special symbol $
-                    if name == '$':
-                        fixed_ids[x] = self.get_asm_offset(x)
-                        continue
-                    if name == '_':
-                        fixed_ids[x] = self.get_asm_next_offset(x)
-                        continue
-                    if not name in symbols:
-                        raise ValueError('unresolved symbol! %r' % x)
-                else:
-                    name = x.name
-                if not name in symbols:
+            loc_keys = m2_expr.get_expr_locs(expr)
+            fixed_expr = {}
+            for exprloc in loc_keys:
+                loc_key = exprloc.loc_key
+                name = symbols.loc_key_to_name(loc_key)
+                # special symbols
+                if name == '$':
+                    fixed_expr[exprloc] = self.get_asm_offset(exprloc)
                     continue
-                if symbols[name].offset is None:
-                    raise ValueError('The offset of label "%s" cannot be '
-                                     'determined' % name)
+                if name == '_':
+                    fixed_expr[exprloc] = self.get_asm_next_offset(exprloc)
+                    continue
+                if not name in symbols:
+                    raise ValueError('Unresolved symbol: %r' % exprloc)
+
+                offset = symbols.loc_key_to_offset(loc_key)
+                if offset is None:
+                    raise ValueError(
+                        'The offset of loc_key "%s" cannot be determined' % name
+                    )
                 else:
-                    size = x.size
+                    # Fix symbol with its offset
+                    size = exprloc.size
                     if size is None:
-                        default_size = self.get_symbol_size(x, symbols)
+                        default_size = self.get_symbol_size(exprloc, symbols)
                         size = default_size
-                    value = m2_expr.ExprInt(symbols[name].offset, size)
-                fixed_ids[x] = value
-            e = e.replace_expr(fixed_ids)
-            e = expr_simp(e)
-            args_out.append(e)
+                    value = m2_expr.ExprInt(offset, size)
+                fixed_expr[exprloc] = value
+
+            expr = expr.replace_expr(fixed_expr)
+            expr = expr_simp(expr)
+            args_out.append(expr)
         return args_out
 
     def get_info(self, c):

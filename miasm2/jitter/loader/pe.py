@@ -163,7 +163,8 @@ def vm_load_pe(vm, fdata, align_s=True, load_hdr=True, name="", **kargs):
                 section.size = new_size
                 section.rawsize = new_size
                 section.data = strpatchwork.StrPatchwork(
-                    section.data[:new_size])
+                    section.data[:new_size]
+                )
                 section.offset = section.addr
 
             # Last section alignement

@@ -25,12 +25,13 @@ class JitCore_Gcc(JitCore_Cc_Base):
         del self.states[offset]
 
     def load_code(self, label, fname_so):
-        f_name = self.label2fname(label)
+        f_name = self.loc_key_to_filename(label)
         lib = ctypes.cdll.LoadLibrary(fname_so)
         func = getattr(lib, f_name)
         addr = ctypes.cast(func, ctypes.c_void_p).value
-        self.lbl2jitbloc[label.offset] = addr
-        self.states[label.offset] = lib
+        offset = self.ir_arch.symbol_pool.loc_key_to_offset(label)
+        self.loc_key_to_jit_block[offset] = addr
+        self.states[offset] = lib
 
     def add_bloc(self, block):
         """Add a bloc to JiT and JiT it.
@@ -40,7 +41,7 @@ class JitCore_Gcc(JitCore_Cc_Base):
         fname_out = os.path.join(self.tempdir, "%s.so" % block_hash)
 
         if not os.access(fname_out, os.R_OK | os.X_OK):
-            func_code = self.gen_c_code(block.label, block)
+            func_code = self.gen_c_code(block.loc_key, block)
 
             # Create unique C file
             fdesc, fname_in = tempfile.mkstemp(suffix=".c")
@@ -60,7 +61,7 @@ class JitCore_Gcc(JitCore_Cc_Base):
             os.rename(fname_tmp, fname_out)
             os.remove(fname_in)
 
-        self.load_code(block.label, fname_out)
+        self.load_code(block.loc_key, fname_out)
 
     @staticmethod
     def gen_C_source(ir_arch, func_code):

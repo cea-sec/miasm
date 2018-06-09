@@ -203,7 +203,7 @@ class ContainerELF(Container):
                 if offset == 0:
                     continue
                 try:
-                    self._symbol_pool.add_label(name, offset)
+                    self._symbol_pool.add_location(name, offset)
                 except ValueError:
                     # Two symbols points on the same offset
                     log.warning("Same offset (%s) for %s and %s",

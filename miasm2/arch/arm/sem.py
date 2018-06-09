@@ -441,16 +441,16 @@ def sdiv(ir, instr, a, b, c=None):
     if c is None:
         b, c = a, b
 
-    lbl_div = ExprId(ir.gen_label(), ir.IRDst.size)
-    lbl_except = ExprId(ir.gen_label(), ir.IRDst.size)
-    lbl_next = ExprId(ir.get_next_label(instr), ir.IRDst.size)
+    loc_div = ExprLoc(ir.symbol_pool.gen_loc_key(), ir.IRDst.size)
+    loc_except = ExprId(ir.symbol_pool.gen_loc_key(), ir.IRDst.size)
+    loc_next = ExprLoc(ir.get_next_loc_key(instr), ir.IRDst.size)
 
-    e.append(ExprAff(ir.IRDst, ExprCond(c, lbl_div, lbl_except)))
+    e.append(ExprAff(ir.IRDst, ExprCond(c, loc_div, loc_except)))
 
     do_except = []
     do_except.append(ExprAff(exception_flags, ExprInt(EXCEPT_DIV_BY_ZERO, exception_flags.size)))
-    do_except.append(ExprAff(ir.IRDst, lbl_next))
-    blk_except = IRBlock(lbl_except.name, [AssignBlock(do_except, instr)])
+    do_except.append(ExprAff(ir.IRDst, loc_next))
+    blk_except = IRBlock(loc_except.loc_key, [AssignBlock(do_except, instr)])
 
 
 
@@ -461,8 +461,8 @@ def sdiv(ir, instr, a, b, c=None):
     if dst is not None:
         do_div.append(ExprAff(ir.IRDst, r))
 
-    do_div.append(ExprAff(ir.IRDst, lbl_next))
-    blk_div = IRBlock(lbl_div.name, [AssignBlock(do_div, instr)])
+    do_div.append(ExprAff(ir.IRDst, loc_next))
+    blk_div = IRBlock(loc_div.loc_key, [AssignBlock(do_div, instr)])
 
     return e, [blk_div, blk_except]
 
@@ -474,16 +474,16 @@ def udiv(ir, instr, a, b, c=None):
 
 
 
-    lbl_div = ExprId(ir.gen_label(), ir.IRDst.size)
-    lbl_except = ExprId(ir.gen_label(), ir.IRDst.size)
-    lbl_next = ExprId(ir.get_next_label(instr), ir.IRDst.size)
+    loc_div = ExprLoc(ir.symbol_pool.gen_loc_key(), ir.IRDst.size)
+    loc_except = ExprLoc(ir.symbol_pool.gen_loc_key(), ir.IRDst.size)
+    loc_next = ExprLoc(ir.get_next_loc_key(instr), ir.IRDst.size)
 
-    e.append(ExprAff(ir.IRDst, ExprCond(c, lbl_div, lbl_except)))
+    e.append(ExprAff(ir.IRDst, ExprCond(c, loc_div, loc_except)))
 
     do_except = []
     do_except.append(ExprAff(exception_flags, ExprInt(EXCEPT_DIV_BY_ZERO, exception_flags.size)))
-    do_except.append(ExprAff(ir.IRDst, lbl_next))
-    blk_except = IRBlock(lbl_except.name, [AssignBlock(do_except, instr)])
+    do_except.append(ExprAff(ir.IRDst, loc_next))
+    blk_except = IRBlock(loc_except.loc_key, [AssignBlock(do_except, instr)])
 
 
     r = ExprOp("udiv", b, c)
@@ -493,8 +493,8 @@ def udiv(ir, instr, a, b, c=None):
     if dst is not None:
         do_div.append(ExprAff(ir.IRDst, r))
 
-    do_div.append(ExprAff(ir.IRDst, lbl_next))
-    blk_div = IRBlock(lbl_div.name, [AssignBlock(do_div, instr)])
+    do_div.append(ExprAff(ir.IRDst, loc_next))
+    blk_div = IRBlock(loc_div.loc_key, [AssignBlock(do_div, instr)])
 
     return e, [blk_div, blk_except]
 
@@ -932,17 +932,18 @@ def pop(ir, instr, a):
 
 def cbz(ir, instr, a, b):
     e = []
-    lbl_next = ExprId(ir.get_next_label(instr), 32)
-    e.append(ExprAff(ir.IRDst, ExprCond(a, lbl_next, b)))
+    loc_next = ir.get_next_loc_key(instr)
+    loc_next_expr = ExprLoc(loc_next, 32)
+    e.append(ExprAff(ir.IRDst, ExprCond(a, loc_next_expr, b)))
     return e, []
 
 
 def cbnz(ir, instr, a, b):
     e = []
-    lbl_next = ExprId(ir.get_next_label(instr), 32)
-    e.append(ExprAff(ir.IRDst, ExprCond(a, b, lbl_next)))
+    loc_next = ir.get_next_loc_key(instr)
+    loc_next_expr = ExprLoc(loc_next, 32)
+    e.append(ir.IRDst, ExprCond(a, b, loc_next_expr))
     return e, []
-
 
 
 def uxtb(ir, instr, a, b):
@@ -1264,10 +1265,14 @@ def add_condition_expr(ir, instr, cond, instr_ir, extra_ir):
         raise ValueError('unknown condition %r' % cond)
     cond = tab_cond[cond]
 
-    lbl_next = ExprId(ir.get_next_label(instr), 32)
-    lbl_do = ExprId(ir.gen_label(), 32)
 
-    dst_cond = ExprCond(cond, lbl_do, lbl_next)
+
+    loc_next = ir.get_next_loc_key(instr)
+    loc_next_expr = ExprLoc(loc_next, 32)
+    loc_do = ir.symbol_pool.gen_loc_key()
+    loc_do_expr = ExprLoc(loc_do, 32)
+
+    dst_cond = ExprCond(cond, loc_do_expr, loc_next_expr)
     assert(isinstance(instr_ir, list))
 
     has_irdst = False
@@ -1276,8 +1281,8 @@ def add_condition_expr(ir, instr, cond, instr_ir, extra_ir):
             has_irdst = True
             break
     if not has_irdst:
-        instr_ir.append(ExprAff(ir.IRDst, lbl_next))
-    e_do = IRBlock(lbl_do.name, [AssignBlock(instr_ir, instr)])
+        instr_ir.append(ExprAff(ir.IRDst, loc_next_expr))
+    e_do = IRBlock(loc_do, [AssignBlock(instr_ir, instr)])
     e = [ExprAff(ir.IRDst, dst_cond)]
     return e, [e_do] + extra_ir
 
@@ -1527,7 +1532,7 @@ class ir_arml(IntermediateRepresentation):
                 raise ValueError("IT name invalid %s" % instr)
         return out, instr.args[0]
 
-    def do_it_block(self, label, index, block, assignments, gen_pc_updt):
+    def do_it_block(self, loc, index, block, assignments, gen_pc_updt):
         instr = block.lines[index]
         it_hints, it_cond = self.parse_itt(instr)
         cond_num = cond_dct_inv[it_cond.name]
@@ -1539,14 +1544,14 @@ class ir_arml(IntermediateRepresentation):
         ir_blocks_all = []
 
         # Gen dummy irblock for IT instr
-        label_next = self.get_next_label(instr)
-        dst = ExprAff(self.IRDst, ExprId(label_next, 32))
+        loc_next = self.get_next_loc_key(instr)
+        dst = ExprAff(self.IRDst, ExprId(loc_next, 32))
         dst_blk = AssignBlock([dst], instr)
         assignments.append(dst_blk)
-        irblock = IRBlock(label, assignments)
+        irblock = IRBlock(loc, assignments)
         ir_blocks_all.append([irblock])
 
-        label = label_next
+        loc = loc_next
         assignments = []
         for hint in it_hints:
             irblocks = []
@@ -1554,33 +1559,33 @@ class ir_arml(IntermediateRepresentation):
             instr = block.lines[index]
 
             # Add conditionnal jump to current irblock
-            label_do = self.symbol_pool.gen_label()
-            label_next = self.get_next_label(instr)
+            loc_do = self.symbol_pool.gen_loc_key()
+            loc_next = self.get_next_loc_key(instr)
 
             if hint:
                 local_cond = ~cond_eq
             else:
                 local_cond = cond_eq
-            dst = ExprAff(self.IRDst, ExprCond(local_cond, ExprId(label_do, 32), ExprId(label_next, 32)))
+            dst = ExprAff(self.IRDst, ExprCond(local_cond, ExprLoc(loc_do, 32), ExprLoc(loc_next, 32)))
             dst_blk = AssignBlock([dst], instr)
             assignments.append(dst_blk)
-            irblock = IRBlock(label, assignments)
+            irblock = IRBlock(loc, assignments)
 
             irblocks.append(irblock)
 
             assignments = []
-            label = label_do
+            loc = loc_do
             split = self.add_instr_to_irblock(block, instr, assignments,
                                               irblocks, gen_pc_updt)
             if split:
                 raise NotImplementedError("Unsupported instr in IT block (%s)" % instr)
 
-            dst = ExprAff(self.IRDst, ExprId(label_next, 32))
+            dst = ExprAff(self.IRDst, ExprId(loc_next, 32))
             dst_blk = AssignBlock([dst], instr)
             assignments.append(dst_blk)
-            irblock = IRBlock(label, assignments)
+            irblock = IRBlock(loc, assignments)
             irblocks.append(irblock)
-            label = label_next
+            loc = loc_next
             assignments = []
             ir_blocks_all.append(irblocks)
         return index, ir_blocks_all
@@ -1594,7 +1599,8 @@ class ir_arml(IntermediateRepresentation):
 
         it_hints = None
         it_cond = None
-        label = None
+        label = block.loc_key
+        assignments = []
         ir_blocks_all = []
         index = -1
         while index + 1 < len(block.lines):
@@ -1602,7 +1608,7 @@ class ir_arml(IntermediateRepresentation):
             instr = block.lines[index]
             if label is None:
                 assignments = []
-                label = self.get_instr_label(instr)
+                label = self.get_loc_key_for_instr(instr)
             if instr.name.startswith("IT"):
                 index, irblocks_it = self.do_it_block(label, index, block, assignments, gen_pc_updt)
                 for irblocks in irblocks_it:
@@ -1621,7 +1627,7 @@ class ir_arml(IntermediateRepresentation):
 
         new_ir_blocks_all = self.post_add_block(block, ir_blocks_all)
         for irblock in new_ir_blocks_all:
-            self.blocks[irblock.label] = irblock
+            self.blocks[irblock.loc_key] = irblock
         return new_ir_blocks_all
 
 

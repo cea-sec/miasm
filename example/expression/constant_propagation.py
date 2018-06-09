@@ -32,8 +32,8 @@ ir_arch = ira(mdis.symbol_pool)
 addr = int(args.address, 0)
 
 
-blocks = mdis.dis_multiblock(addr)
-for block in blocks:
+asmcfg = mdis.dis_multiblock(addr)
+for block in asmcfg.blocks:
     ir_arch.add_block(block)
 
 

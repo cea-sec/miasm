@@ -100,7 +100,7 @@ def get_funcs_arg0(ctx, ira, lbl_head):
     for irb, index in find_call(ira):
         instr = irb[index].instr
         print 'Analysing references from:', hex(instr.offset), instr
-        g_list = g_dep.get(irb.label, set([element]), index, set([lbl_head]))
+        g_list = g_dep.get(irb.loc_key, set([element]), index, set([lbl_head]))
         for dep in g_list:
             emul_result = dep.emul(ctx)
             value = emul_result[element]
@@ -143,11 +143,11 @@ dis_engine, ira = machine.dis_engine, machine.ira
 
 mdis = dis_engine(cont.bin_stream, symbol_pool=cont.symbol_pool)
 addr_head = 0
-blocks = mdis.dis_multiblock(addr_head)
+asmcfg = mdis.dis_multiblock(addr_head)
 lbl_head = mdis.symbol_pool.getby_offset(addr_head)
 
 ir_arch_a = ira(mdis.symbol_pool)
-for block in blocks:
+for block in asmcfg.blocks:
     ir_arch_a.add_block(block)
 
 open('graph_irflow.dot', 'w').write(ir_arch_a.graph.dot())

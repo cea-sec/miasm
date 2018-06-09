@@ -240,11 +240,13 @@ def gen_jcc(ir, instr, cond, dst, jmp_if):
 
     e = []
     meip = mRIP[ir.IRDst.size]
-    next_lbl = m2_expr.ExprId(ir.get_next_label(instr), dst.size)
+    loc_next = ir.get_next_loc_key(instr)
+    loc_next_expr = m2_expr.ExprLoc(loc_next, dst.size)
+
     if jmp_if:
-        dstA, dstB = dst, next_lbl
+        dstA, dstB = dst, loc_next_expr
     else:
-        dstA, dstB = next_lbl, dst
+        dstA, dstB = loc_next_expr, dst
     mn_dst = m2_expr.ExprCond(cond,
                               dstA.zeroExtend(ir.IRDst.size),
                               dstB.zeroExtend(ir.IRDst.size))
@@ -260,17 +262,18 @@ def gen_fcmov(ir, instr, cond, arg1, arg2, mov_if):
     @cond: condition
     @mov_if: invert condition if False"""
 
-    lbl_do = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
+    loc_do, loc_do_expr = ir.gen_loc_key_and_expr(ir.IRDst.size)
+    loc_skip = ir.get_next_loc_key(instr)
+    loc_skip_expr = m2_expr.ExprLoc(loc_skip, ir.IRDst.size)
     if mov_if:
-        dstA, dstB = lbl_do, lbl_skip
+        dstA, dstB = loc_do_expr, loc_skip_expr
     else:
-        dstA, dstB = lbl_skip, lbl_do
+        dstA, dstB = loc_skip_expr, loc_do_expr
     e = []
     e_do, extra_irs = [m2_expr.ExprAff(arg1, arg2)], []
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
+    e_do.append(m2_expr.ExprAff(ir.IRDst, loc_skip_expr))
     e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(cond, dstA, dstB)))
-    return e, [IRBlock(lbl_do.name, [AssignBlock(e_do, instr)])]
+    return e, [IRBlock(loc_do, [AssignBlock(e_do, instr)])]
 
 
 def gen_cmov(ir, instr, cond, dst, src, mov_if):
@@ -280,17 +283,18 @@ def gen_cmov(ir, instr, cond, dst, src, mov_if):
     @cond: condition
     @mov_if: invert condition if False"""
 
-    lbl_do = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
+    loc_do, loc_do_expr = ir.gen_loc_key_and_expr(ir.IRDst.size)
+    loc_skip = ir.get_next_loc_key(instr)
+    loc_skip_expr = m2_expr.ExprLoc(loc_skip, ir.IRDst.size)
     if mov_if:
-        dstA, dstB = lbl_do, lbl_skip
+        dstA, dstB = loc_do_expr, loc_skip_expr
     else:
-        dstA, dstB = lbl_skip, lbl_do
+        dstA, dstB = loc_skip_expr, loc_do_expr
     e = []
     e_do, extra_irs = mov(ir, instr, dst, src)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
+    e_do.append(m2_expr.ExprAff(ir.IRDst, loc_skip_expr))
     e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(cond, dstA, dstB)))
-    return e, [IRBlock(lbl_do.name, [AssignBlock(e_do, instr)])]
+    return e, [IRBlock(loc_do, [AssignBlock(e_do, instr)])]
 
 
 def mov(_, instr, dst, src):
@@ -504,12 +508,14 @@ def _rotate_tpl(ir, instr, dst, src, op, left=False):
         else:
             return ([], [])
     e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
+    loc_do, loc_do_expr = ir.gen_loc_key_and_expr(ir.IRDst.size)
+    loc_skip = ir.get_next_loc_key(instr)
+    loc_skip_expr = m2_expr.ExprLoc(loc_skip, ir.IRDst.size)
+
+    e_do.append(m2_expr.ExprAff(ir.IRDst, loc_skip_expr))
     e.append(m2_expr.ExprAff(
-        ir.IRDst, m2_expr.ExprCond(shifter, lbl_do, lbl_skip)))
-    return (e, [IRBlock(lbl_do.name, [AssignBlock(e_do, instr)])])
+        ir.IRDst, m2_expr.ExprCond(shifter, loc_do_expr, loc_skip_expr)))
+    return (e, [IRBlock(loc_do, [AssignBlock(e_do, instr)])])
 
 
 def l_rol(ir, instr, dst, src):
@@ -551,12 +557,14 @@ def rotate_with_carry_tpl(ir, instr, op, dst, src):
         else:
             return ([], [])
     e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
+    loc_do, loc_do_expr = ir.gen_loc_key_and_expr(ir.IRDst.size)
+    loc_skip = ir.get_next_loc_key(instr)
+    loc_skip_expr = m2_expr.ExprLoc(loc_skip, ir.IRDst.size)
+
+    e_do.append(m2_expr.ExprAff(ir.IRDst, loc_skip_expr))
     e.append(m2_expr.ExprAff(
-        ir.IRDst, m2_expr.ExprCond(shifter, lbl_do, lbl_skip)))
-    return (e, [IRBlock(lbl_do.name, [AssignBlock(e_do, instr)])])
+        ir.IRDst, m2_expr.ExprCond(shifter, loc_do_expr, loc_skip_expr)))
+    return (e, [IRBlock(loc_do, [AssignBlock(e_do, instr)])])
 
 def rcl(ir, instr, dst, src):
     return rotate_with_carry_tpl(ir, instr, '<<<', dst, src)
@@ -638,12 +646,13 @@ def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None, left=False,
             return [], []
 
     e = []
-    lbl_do = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
-    lbl_skip = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_skip))
-    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(shifter, lbl_do,
-                                                        lbl_skip)))
-    return e, [IRBlock(lbl_do.name, [AssignBlock(e_do, instr)])]
+    loc_do, loc_do_expr = ir.gen_loc_key_and_expr(ir.IRDst.size)
+    loc_skip = ir.get_next_loc_key(instr)
+    loc_skip_expr = m2_expr.ExprLoc(loc_skip, ir.IRDst.size)
+    e_do.append(m2_expr.ExprAff(ir.IRDst, loc_skip_expr))
+    e.append(m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(shifter, loc_do_expr,
+                                                        loc_skip_expr)))
+    return e, [IRBlock(loc_do, [AssignBlock(e_do, instr)])]
 
 
 def sar(ir, instr, dst, src):
@@ -973,9 +982,9 @@ def bswap(_, instr, dst):
 
 
 def cmps(ir, instr, size):
-    lbl_df_0 = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
-    lbl_df_1 = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
-    lbl_next = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
+    loc_df_0, loc_df_0_expr = ir.gen_loc_key_and_expr(ir.IRDst.size)
+    loc_df_1, loc_df_1_expr = ir.gen_loc_key_and_expr(ir.IRDst.size)
+    loc_next_expr = m2_expr.ExprLoc(ir.get_next_loc_key(instr), ir.IRDst.size)
 
     src1 = mRSI[instr.mode][:instr.v_admode()]
     src2 = mRDI[instr.mode][:instr.v_admode()]
@@ -999,24 +1008,24 @@ def cmps(ir, instr, size):
     e0 = []
     e0.append(m2_expr.ExprAff(src1, src1 + offset))
     e0.append(m2_expr.ExprAff(src2, src2 + offset))
-    e0.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
-    e0 = IRBlock(lbl_df_0.name, [AssignBlock(e0, instr)])
+    e0.append(m2_expr.ExprAff(ir.IRDst, loc_next_expr))
+    e0 = IRBlock(loc_df_0, [AssignBlock(e0, instr)])
 
     e1 = []
     e1.append(m2_expr.ExprAff(src1, src1 - offset))
     e1.append(m2_expr.ExprAff(src2, src2 - offset))
-    e1.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
-    e1 = IRBlock(lbl_df_1.name, [AssignBlock(e1, instr)])
+    e1.append(m2_expr.ExprAff(ir.IRDst, loc_next_expr))
+    e1 = IRBlock(loc_df_1, [AssignBlock(e1, instr)])
 
     e.append(m2_expr.ExprAff(ir.IRDst,
-                             m2_expr.ExprCond(df, lbl_df_1, lbl_df_0)))
+                             m2_expr.ExprCond(df, loc_df_1_expr, loc_df_0_expr)))
     return e, [e0, e1]
 
 
 def scas(ir, instr, size):
-    lbl_df_0 = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
-    lbl_df_1 = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
-    lbl_next = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
+    loc_df_0, loc_df_0_expr = ir.gen_loc_key_and_expr(ir.IRDst.size)
+    loc_df_1, loc_df_1_expr = ir.gen_loc_key_and_expr(ir.IRDst.size)
+    loc_next_expr = m2_expr.ExprLoc(ir.get_next_loc_key(instr), ir.IRDst.size)
 
     src = mRDI[instr.mode][:instr.v_admode()]
 
@@ -1036,16 +1045,16 @@ def scas(ir, instr, size):
     e0 = []
     e0.append(m2_expr.ExprAff(src, src + offset))
 
-    e0.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
-    e0 = IRBlock(lbl_df_0.name, [AssignBlock(e0, instr)])
+    e0.append(m2_expr.ExprAff(ir.IRDst, loc_next_expr))
+    e0 = IRBlock(loc_df_0, [AssignBlock(e0, instr)])
 
     e1 = []
     e1.append(m2_expr.ExprAff(src, src - offset))
-    e1.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
-    e1 = IRBlock(lbl_df_1.name, [AssignBlock(e1, instr)])
+    e1.append(m2_expr.ExprAff(ir.IRDst, loc_next_expr))
+    e1 = IRBlock(loc_df_1, [AssignBlock(e1, instr)])
 
     e.append(m2_expr.ExprAff(ir.IRDst,
-                             m2_expr.ExprCond(df, lbl_df_1, lbl_df_0)))
+                             m2_expr.ExprCond(df, loc_df_1_expr, loc_df_0_expr)))
 
     return e, [e0, e1]
 
@@ -1185,7 +1194,7 @@ def call(ir, instr, dst):
     meip = mRIP[ir.IRDst.size]
     opmode, admode = s, instr.v_admode()
     myesp = mRSP[instr.mode][:opmode]
-    n = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
+    n = m2_expr.ExprLoc(ir.get_next_loc_key(instr), ir.IRDst.size)
 
     if isinstance(dst, m2_expr.ExprOp):
         if dst.op == "segm":
@@ -1229,8 +1238,6 @@ def call(ir, instr, dst):
     e.append(m2_expr.ExprAff(ir.ExprMem(c, size=s), n))
     e.append(m2_expr.ExprAff(meip, dst.zeroExtend(ir.IRDst.size)))
     e.append(m2_expr.ExprAff(ir.IRDst, dst.zeroExtend(ir.IRDst.size)))
-    # if not expr_is_int_or_label(dst):
-    #    dst = meip
     return e, []
 
 
@@ -1432,7 +1439,7 @@ def loop(ir, instr, dst):
     admode = instr.v_admode()
     myecx = mRCX[instr.mode][:admode]
 
-    n = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
+    n = m2_expr.ExprLoc(ir.get_next_loc_key(instr), ir.IRDst.size)
     c = myecx - m2_expr.ExprInt(1, myecx.size)
     dst_o = m2_expr.ExprCond(c,
                              dst.zeroExtend(ir.IRDst.size),
@@ -1449,7 +1456,7 @@ def loopne(ir, instr, dst):
     admode = instr.v_admode()
     myecx = mRCX[instr.mode][:admode]
 
-    n = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
+    n = m2_expr.ExprLoc(ir.get_next_loc_key(instr), ir.IRDst.size)
 
     c = m2_expr.ExprCond(myecx - m2_expr.ExprInt(1, size=myecx.size),
                          m2_expr.ExprInt(1, 1),
@@ -1471,7 +1478,7 @@ def loope(ir, instr, dst):
     admode = instr.v_admode()
     myecx = mRCX[instr.mode][:admode]
 
-    n = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
+    n = m2_expr.ExprLoc(ir.get_next_loc_key(instr), ir.IRDst.size)
     c = m2_expr.ExprCond(myecx - m2_expr.ExprInt(1, size=myecx.size),
                          m2_expr.ExprInt(1, 1),
                          m2_expr.ExprInt(0, 1))
@@ -1508,24 +1515,25 @@ def div(ir, instr, src1):
         e.append(m2_expr.ExprAff(s1, c_r[:size]))
         e.append(m2_expr.ExprAff(s2, c_d[:size]))
 
-    lbl_div = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
-    lbl_except = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
-    lbl_next = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
+    loc_div, loc_div_expr = ir.gen_loc_key_and_expr(ir.IRDst.size)
+    loc_except, loc_except_expr = ir.gen_loc_key_and_expr(ir.IRDst.size)
+    loc_next = ir.get_next_loc_key(instr)
+    loc_next_expr = m2_expr.ExprLoc(loc_next, ir.IRDst.size)
 
     do_div = []
     do_div += e
-    do_div.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
-    blk_div = IRBlock(lbl_div.name, [AssignBlock(do_div, instr)])
+    do_div.append(m2_expr.ExprAff(ir.IRDst, loc_next_expr))
+    blk_div = IRBlock(loc_div, [AssignBlock(do_div, instr)])
 
     do_except = []
     do_except.append(m2_expr.ExprAff(exception_flags, m2_expr.ExprInt(
         EXCEPT_DIV_BY_ZERO, exception_flags.size)))
-    do_except.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
-    blk_except = IRBlock(lbl_except.name, [AssignBlock(do_except, instr)])
+    do_except.append(m2_expr.ExprAff(ir.IRDst, loc_next_expr))
+    blk_except = IRBlock(loc_except, [AssignBlock(do_except, instr)])
 
     e = []
     e.append(m2_expr.ExprAff(ir.IRDst,
-                             m2_expr.ExprCond(src1, lbl_div, lbl_except)))
+                             m2_expr.ExprCond(src1, loc_div_expr, loc_except_expr)))
 
     return e, [blk_div, blk_except]
 
@@ -1554,24 +1562,25 @@ def idiv(ir, instr, src1):
         e.append(m2_expr.ExprAff(s1, c_r[:size]))
         e.append(m2_expr.ExprAff(s2, c_d[:size]))
 
-    lbl_div = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
-    lbl_except = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
-    lbl_next = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
+    loc_div, loc_div_expr = ir.gen_loc_key_and_expr(ir.IRDst.size)
+    loc_except, loc_except_expr = ir.gen_loc_key_and_expr(ir.IRDst.size)
+    loc_next = ir.get_next_loc_key(instr)
+    loc_next_expr = m2_expr.ExprLoc(loc_next, ir.IRDst.size)
 
     do_div = []
     do_div += e
-    do_div.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
-    blk_div = IRBlock(lbl_div.name, [AssignBlock(do_div, instr)])
+    do_div.append(m2_expr.ExprAff(ir.IRDst, loc_next_expr))
+    blk_div = IRBlock(loc_div, [AssignBlock(do_div, instr)])
 
     do_except = []
     do_except.append(m2_expr.ExprAff(exception_flags, m2_expr.ExprInt(
         EXCEPT_DIV_BY_ZERO, exception_flags.size)))
-    do_except.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
-    blk_except = IRBlock(lbl_except.name, [AssignBlock(do_except, instr)])
+    do_except.append(m2_expr.ExprAff(ir.IRDst, loc_next_expr))
+    blk_except = IRBlock(loc_except, [AssignBlock(do_except, instr)])
 
     e = []
     e.append(m2_expr.ExprAff(ir.IRDst,
-                             m2_expr.ExprCond(src1, lbl_div, lbl_except)))
+                             m2_expr.ExprCond(src1, loc_div_expr, loc_except_expr)))
 
     return e, [blk_div, blk_except]
 
@@ -1713,9 +1722,9 @@ def cqo(_, instr):
 
 
 def stos(ir, instr, size):
-    lbl_df_0 = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
-    lbl_df_1 = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
-    lbl_next = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
+    loc_df_0, loc_df_0_expr = ir.gen_loc_key_and_expr(ir.IRDst.size)
+    loc_df_1, loc_df_1_expr = ir.gen_loc_key_and_expr(ir.IRDst.size)
+    loc_next_expr = m2_expr.ExprLoc(ir.get_next_loc_key(instr), ir.IRDst.size)
 
     addr_o = mRDI[instr.mode][:instr.v_admode()]
     addr = addr_o
@@ -1732,25 +1741,25 @@ def stos(ir, instr, size):
 
     e0 = []
     e0.append(m2_expr.ExprAff(addr_o, addr_p))
-    e0.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
-    e0 = IRBlock(lbl_df_0.name, [AssignBlock(e0, instr)])
+    e0.append(m2_expr.ExprAff(ir.IRDst, loc_next_expr))
+    e0 = IRBlock(loc_df_0, [AssignBlock(e0, instr)])
 
     e1 = []
     e1.append(m2_expr.ExprAff(addr_o, addr_m))
-    e1.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
-    e1 = IRBlock(lbl_df_1.name, [AssignBlock(e1, instr)])
+    e1.append(m2_expr.ExprAff(ir.IRDst, loc_next_expr))
+    e1 = IRBlock(loc_df_1, [AssignBlock(e1, instr)])
 
     e = []
     e.append(m2_expr.ExprAff(ir.ExprMem(addr, size), b))
     e.append(m2_expr.ExprAff(ir.IRDst,
-                             m2_expr.ExprCond(df, lbl_df_1, lbl_df_0)))
+                             m2_expr.ExprCond(df, loc_df_1_expr, loc_df_0_expr)))
     return e, [e0, e1]
 
 
 def lods(ir, instr, size):
-    lbl_df_0 = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
-    lbl_df_1 = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
-    lbl_next = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
+    loc_df_0, loc_df_0_expr = ir.gen_loc_key_and_expr(ir.IRDst.size)
+    loc_df_1, loc_df_1_expr = ir.gen_loc_key_and_expr(ir.IRDst.size)
+    loc_next_expr = m2_expr.ExprLoc(ir.get_next_loc_key(instr), ir.IRDst.size)
     e = []
 
     addr_o = mRSI[instr.mode][:instr.v_admode()]
@@ -1768,13 +1777,13 @@ def lods(ir, instr, size):
 
     e0 = []
     e0.append(m2_expr.ExprAff(addr_o, addr_p))
-    e0.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
-    e0 = IRBlock(lbl_df_0.name, [AssignBlock(e0, instr)])
+    e0.append(m2_expr.ExprAff(ir.IRDst, loc_next_expr))
+    e0 = IRBlock(loc_df_0, [AssignBlock(e0, instr)])
 
     e1 = []
     e1.append(m2_expr.ExprAff(addr_o, addr_m))
-    e1.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
-    e1 = IRBlock(lbl_df_1.name, [AssignBlock(e1, instr)])
+    e1.append(m2_expr.ExprAff(ir.IRDst, loc_next_expr))
+    e1 = IRBlock(loc_df_1, [AssignBlock(e1, instr)])
 
     e = []
     if instr.mode == 64 and b.size == 32:
@@ -1784,14 +1793,14 @@ def lods(ir, instr, size):
         e.append(m2_expr.ExprAff(b, ir.ExprMem(addr, size)))
 
     e.append(m2_expr.ExprAff(ir.IRDst,
-                             m2_expr.ExprCond(df, lbl_df_1, lbl_df_0)))
+                             m2_expr.ExprCond(df, loc_df_1_expr, loc_df_0_expr)))
     return e, [e0, e1]
 
 
 def movs(ir, instr, size):
-    lbl_df_0 = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
-    lbl_df_1 = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
-    lbl_next = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
+    loc_df_0, loc_df_0_expr = ir.gen_loc_key_and_expr(ir.IRDst.size)
+    loc_df_1, loc_df_1_expr = ir.gen_loc_key_and_expr(ir.IRDst.size)
+    loc_next_expr = m2_expr.ExprLoc(ir.get_next_loc_key(instr), ir.IRDst.size)
 
     dst = mRDI[instr.mode][:instr.v_admode()]
     src = mRSI[instr.mode][:instr.v_admode()]
@@ -1815,17 +1824,17 @@ def movs(ir, instr, size):
     e0 = []
     e0.append(m2_expr.ExprAff(src, src + offset))
     e0.append(m2_expr.ExprAff(dst, dst + offset))
-    e0.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
-    e0 = IRBlock(lbl_df_0.name, [AssignBlock(e0, instr)])
+    e0.append(m2_expr.ExprAff(ir.IRDst, loc_next_expr))
+    e0 = IRBlock(loc_df_0, [AssignBlock(e0, instr)])
 
     e1 = []
     e1.append(m2_expr.ExprAff(src, src - offset))
     e1.append(m2_expr.ExprAff(dst, dst - offset))
-    e1.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
-    e1 = IRBlock(lbl_df_1.name, [AssignBlock(e1, instr)])
+    e1.append(m2_expr.ExprAff(ir.IRDst, loc_next_expr))
+    e1 = IRBlock(loc_df_1, [AssignBlock(e1, instr)])
 
     e.append(m2_expr.ExprAff(ir.IRDst,
-                             m2_expr.ExprCond(df, lbl_df_1, lbl_df_0)))
+                             m2_expr.ExprCond(df, loc_df_1_expr, loc_df_0_expr)))
     return e, [e0, e1]
 
 
@@ -2876,14 +2885,15 @@ def bsr_bsf(ir, instr, dst, src, op_func):
         ZF = 0
         DEST = @op_func(SRC)
     """
-    lbl_src_null = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
-    lbl_src_not_null = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
-    lbl_next = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
+    loc_src_null, loc_src_null_expr = ir.gen_loc_key_and_expr(ir.IRDst.size)
+    loc_src_not_null, loc_src_not_null_expr = ir.gen_loc_key_and_expr(ir.IRDst.size)
+    loc_next = ir.get_next_loc_key(instr)
+    loc_next_expr = m2_expr.ExprLoc(loc_next, ir.IRDst.size)
 
-    aff_dst = m2_expr.ExprAff(ir.IRDst, lbl_next)
+    aff_dst = m2_expr.ExprAff(ir.IRDst, loc_next_expr)
     e = [m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(src,
-                                                    lbl_src_not_null,
-                                                    lbl_src_null))]
+                                                    loc_src_not_null_expr,
+                                                    loc_src_null_expr))]
     e_src_null = []
     e_src_null.append(m2_expr.ExprAff(zf, m2_expr.ExprInt(1, zf.size)))
     # XXX destination is undefined
@@ -2894,8 +2904,8 @@ def bsr_bsf(ir, instr, dst, src, op_func):
     e_src_not_null.append(m2_expr.ExprAff(dst, op_func(src)))
     e_src_not_null.append(aff_dst)
 
-    return e, [IRBlock(lbl_src_null.name, [AssignBlock(e_src_null, instr)]),
-               IRBlock(lbl_src_not_null.name, [AssignBlock(e_src_not_null, instr)])]
+    return e, [IRBlock(loc_src_null, [AssignBlock(e_src_null, instr)]),
+               IRBlock(loc_src_not_null, [AssignBlock(e_src_not_null, instr)])]
 
 
 def bsf(ir, instr, dst, src):
@@ -3925,9 +3935,10 @@ def pshufd(_, instr, dst, src, imm):
 
 
 def ps_rl_ll(ir, instr, dst, src, op, size):
-    lbl_zero = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
-    lbl_do = m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
-    lbl_next = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
+    loc_zero, loc_zero_expr = ir.gen_loc_key_and_expr(ir.IRDst.size)
+    loc_do, loc_do_expr = ir.gen_loc_key_and_expr(ir.IRDst.size)
+    loc_next = ir.get_next_loc_key(instr)
+    loc_next_expr = m2_expr.ExprLoc(loc_next, ir.IRDst.size)
 
     if src.size == 8:
         count = src.zeroExtend(dst.size)
@@ -3940,8 +3951,8 @@ def ps_rl_ll(ir, instr, dst, src, op, size):
     test = expr_simp(count & m2_expr.ExprInt(
         ((1 << dst.size) - 1) ^ mask, dst.size))
     e = [m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(test,
-                                                    lbl_zero,
-                                                    lbl_do))]
+                                                    loc_zero_expr,
+                                                    loc_do_expr))]
 
     slices = []
     for i in xrange(0, dst.size, size):
@@ -3954,12 +3965,12 @@ def ps_rl_ll(ir, instr, dst, src, op, size):
             return [m2_expr.ExprAff(dst, m2_expr.ExprInt(0, dst.size))], []
 
     e_zero = [m2_expr.ExprAff(dst, m2_expr.ExprInt(0, dst.size)),
-              m2_expr.ExprAff(ir.IRDst, lbl_next)]
+              m2_expr.ExprAff(ir.IRDst, loc_next_expr)]
     e_do = []
     e.append(m2_expr.ExprAff(dst[0:dst.size], m2_expr.ExprCompose(*slices)))
-    e_do.append(m2_expr.ExprAff(ir.IRDst, lbl_next))
-    return e, [IRBlock(lbl_do.name, [AssignBlock(e_do, instr)]),
-               IRBlock(lbl_zero.name, [AssignBlock(e_zero, instr)])]
+    e_do.append(m2_expr.ExprAff(ir.IRDst, loc_next_expr))
+    return e, [IRBlock(loc_do, [AssignBlock(e_do, instr)]),
+               IRBlock(loc_zero, [AssignBlock(e_zero, instr)])]
 
 
 def psrlw(ir, instr, dst, src):
@@ -4463,7 +4474,8 @@ paddsw = vec_vertical_instr('+', 16, _saturation_add_signed)
 # Others SSE operations
 
 def maskmovq(ir, instr, src, mask):
-    lbl_next = m2_expr.ExprId(ir.get_next_label(instr), ir.IRDst.size)
+    loc_next = ir.get_next_loc_key(instr)
+    loc_next_expr = m2_expr.ExprLoc(loc_next, ir.IRDst.size)
     blks = []
 
     # For each possibility, check if a write is necessary
@@ -4477,32 +4489,32 @@ def maskmovq(ir, instr, src, mask):
     for i, start in enumerate(xrange(0, mask.size, 8)):
         bit = mask[start + 7: start + 8]
         cur_label = check_labels[i]
-        next_check_label = check_labels[i + 1] if (i + 1) < len(check_labels) else lbl_next
+        next_check_label = check_labels[i + 1] if (i + 1) < len(check_labels) else loc_next_expr
         write_label = write_labels[i]
         check = m2_expr.ExprAff(ir.IRDst,
                                 m2_expr.ExprCond(bit,
                                                  write_label,
                                                  next_check_label))
-        blks.append(IRBlock(cur_label.name, [AssignBlock([check], instr)]))
+        blks.append(IRBlock(cur_label.name.loc_key, [AssignBlock([check], instr)]))
 
     # Build write blocks
     dst_addr = mRDI[instr.mode]
     for i, start in enumerate(xrange(0, mask.size, 8)):
         bit = mask[start + 7: start + 8]
         cur_label = write_labels[i]
-        next_check_label = check_labels[i + 1] if (i + 1) < len(check_labels) else lbl_next
+        next_check_label = check_labels[i + 1] if (i + 1) < len(check_labels) else loc_next_expr
         write_addr = dst_addr + m2_expr.ExprInt(i, dst_addr.size)
 
         # @8[DI/EDI/RDI + i] = src[byte i]
         write_mem = m2_expr.ExprAff(m2_expr.ExprMem(write_addr, 8),
                                     src[start: start + 8])
         jump = m2_expr.ExprAff(ir.IRDst, next_check_label)
-        blks.append(IRBlock(cur_label.name, [AssignBlock([write_mem, jump], instr)]))
+        blks.append(IRBlock(cur_label.name.loc_key, [AssignBlock([write_mem, jump], instr)]))
 
     # If mask is null, bypass all
     e = [m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(mask,
                                                     check_labels[0],
-                                                    lbl_next))]
+                                                    loc_next_expr))]
     return e, blks
 
 
@@ -5145,13 +5157,15 @@ class ir_x86_16(IntermediateRepresentation):
             c_cond = cond_dec | (zf ^ m2_expr.ExprInt(1, 1))
 
         # gen while
-        lbl_do = m2_expr.ExprId(self.gen_label(), self.IRDst.size)
-        lbl_end = m2_expr.ExprId(self.gen_label(), self.IRDst.size)
-        lbl_skip = m2_expr.ExprId(self.get_next_label(instr), self.IRDst.size)
-        lbl_next = m2_expr.ExprId(self.get_next_label(instr), self.IRDst.size)
+        loc_do, loc_do_expr = self.gen_loc_key_and_expr(self.IRDst.size)
+        loc_end, loc_end_expr = self.gen_loc_key_and_expr(self.IRDst.size)
+        loc_skip = self.get_next_loc_key(instr)
+        loc_skip_expr = m2_expr.ExprLoc(loc_skip, self.IRDst.size)
+        loc_next = self.get_next_loc_key(instr)
+        loc_next_expr = m2_expr.ExprLoc(loc_next, self.IRDst.size)
 
-        fix_next_lbl = {lbl_next: lbl_end}
-        new_extra_ir = [irblock.modify_exprs(mod_src=lambda expr: expr.replace_expr(fix_next_lbl))
+        fix_next_loc = {loc_next_expr: loc_end_expr}
+        new_extra_ir = [irblock.modify_exprs(mod_src=lambda expr: expr.replace_expr(fix_next_loc))
                         for irblock in extra_ir]
 
         cond_bloc = []
@@ -5159,14 +5173,14 @@ class ir_x86_16(IntermediateRepresentation):
                                          c_reg - m2_expr.ExprInt(1,
                                                                  c_reg.size)))
         cond_bloc.append(m2_expr.ExprAff(self.IRDst, m2_expr.ExprCond(c_cond,
-                                                                      lbl_skip,
-                                                                      lbl_do)))
-        cond_bloc = IRBlock(lbl_end.name, [AssignBlock(cond_bloc, instr)])
+                                                                      loc_skip_expr,
+                                                                      loc_do_expr)))
+        cond_bloc = IRBlock(loc_end, [AssignBlock(cond_bloc, instr)])
         e_do = instr_ir
 
-        c = IRBlock(lbl_do.name, [AssignBlock(e_do, instr)])
-        e_n = [m2_expr.ExprAff(self.IRDst, m2_expr.ExprCond(c_reg, lbl_do,
-                                                            lbl_skip))]
+        c = IRBlock(loc_do, [AssignBlock(e_do, instr)])
+        e_n = [m2_expr.ExprAff(self.IRDst, m2_expr.ExprCond(c_reg, loc_do_expr,
+                                                            loc_skip_expr))]
         return e_n, [cond_bloc, c] + new_extra_ir
 
     def expr_fix_regs_for_mode(self, e, mode=64):
@@ -5195,7 +5209,7 @@ class ir_x86_16(IntermediateRepresentation):
                 src = self.expr_fix_regs_for_mode(src, mode)
                 new_assignblk[dst] = src
             irs.append(AssignBlock(new_assignblk, assignblk.instr))
-        return IRBlock(irblock.label, irs)
+        return IRBlock(irblock.loc_key, irs)
 
 
 class ir_x86_32(ir_x86_16):

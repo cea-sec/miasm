@@ -25,11 +25,11 @@ symbol_pool = AsmSymbolPool()
 m32 = 32
 m64 = 64
 
-def symb_exec(interm, inputstate, debug):
+def symb_exec(lbl, interm, inputstate, debug):
     sympool = dict(regs_init)
     sympool.update(inputstate)
     symexec = SymbolicExecutionEngine(interm, sympool)
-    symexec.run_at(0)
+    symexec.run_at(lbl)
     if debug:
         for k, v in symexec.symbols.items():
             if regs_init.get(k, None) != v:
@@ -43,18 +43,19 @@ def compute(ir, mode, asm, inputstate={}, debug=False):
     instr = mn.dis(code, mode)
     instr.offset = inputstate.get(EIP, 0)
     interm = ir()
-    interm.add_instr(instr)
-    return symb_exec(interm, inputstate, debug)
+    lbl = interm.add_instr(instr)
+    return symb_exec(lbl, interm, inputstate, debug)
 
 
 def compute_txt(ir, mode, txt, inputstate={}, debug=False):
-    blocks, symbol_pool = parse_asm.parse_txt(mn, mode, txt)
+    asmcfg, symbol_pool = parse_asm.parse_txt(mn, mode, txt)
     symbol_pool.set_offset(symbol_pool.getby_name("main"), 0x0)
-    patches = asmblock.asm_resolve_final(mn, blocks, symbol_pool)
+    patches = asmblock.asm_resolve_final(mn, asmcfg, symbol_pool)
     interm = ir(symbol_pool)
-    for bbl in blocks:
+    lbl = symbol_pool.getby_name("main")
+    for bbl in asmcfg.blocks:
         interm.add_block(bbl)
-    return symb_exec(interm, inputstate, debug)
+    return symb_exec(lbl, interm, inputstate, debug)
 
 op_add = lambda a, b: a+b
 op_sub = lambda a, b: a-b

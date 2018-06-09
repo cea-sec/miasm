@@ -69,8 +69,8 @@ class msp430_arg(m_arg):
                 index = gpregs.str.index(name)
                 reg = gpregs.expr[index]
                 return reg
-            label = symbol_pool.getby_name_create(value.name)
-            return ExprId(label, 16)
+            loc_key = symbol_pool.getby_name_create(value.name)
+            return ExprLoc(loc_key, 16)
         if isinstance(value, AstOp):
             args = [self.asm_ast_to_expr(tmp, symbol_pool) for tmp in value.args]
             if None in args:
@@ -102,40 +102,44 @@ class instruction_msp430(instruction):
         return self.name in ['call']
 
     @staticmethod
-    def arg2str(e, pos = None):
-        if isinstance(e, ExprId):
-            o = str(e)
-        elif isinstance(e, ExprInt):
-            o = str(e)
-        elif isinstance(e, ExprOp) and e.op == "autoinc":
-            o = "@%s+" % str(e.args[0])
-        elif isinstance(e, ExprMem):
-            if isinstance(e.arg, ExprId):
-                if pos == 0:
-                    o = "@%s" % e.arg
+    def arg2str(expr, index=None, symbol_pool=None):
+        if isinstance(expr, ExprId):
+            o = str(expr)
+        elif isinstance(expr, ExprInt):
+            o = str(expr)
+        elif expr.is_loc():
+            if symbol_pool is not None:
+                return symbol_pool.str_loc_key(expr.loc_key)
+            else:
+                return str(expr)
+        elif isinstance(expr, ExprOp) and expr.op == "autoinc":
+            o = "@%s+" % str(expr.args[0])
+        elif isinstance(expr, ExprMem):
+            if isinstance(expr.arg, ExprId):
+                if index == 0:
+                    o = "@%s" % expr.arg
                 else:
-                    o = "0x0(%s)" % e.arg
-            elif isinstance(e.arg, ExprInt):
-                o = "@%s" % e.arg
-            elif isinstance(e.arg, ExprOp):
-                o = "%s(%s)" % (e.arg.args[1], e.arg.args[0])
+                    o = "0x0(%s)" % expr.arg
+            elif isinstance(expr.arg, ExprInt):
+                o = "@%s" % expr.arg
+            elif isinstance(expr.arg, ExprOp):
+                o = "%s(%s)" % (expr.arg.args[1], expr.arg.args[0])
         else:
-            raise NotImplementedError('unknown instance e = %s' % type(e))
+            raise NotImplementedError('unknown instance expr = %s' % type(expr))
         return o
 
 
     def dstflow2label(self, symbol_pool):
-        e = self.args[0]
-        if not isinstance(e, ExprInt):
+        expr = self.args[0]
+        if not isinstance(expr, ExprInt):
             return
         if self.name == "call":
-            ad = e.arg
+            addr = expr.arg
         else:
-            ad = e.arg + int(self.offset)
+            addr = expr.arg + int(self.offset)
 
-        l = symbol_pool.getby_offset_create(ad)
-        s = ExprId(l, e.size)
-        self.args[0] = s
+        loc_key = symbol_pool.getby_offset_create(addr)
+        self.args[0] = ExprLoc(loc_key, expr.size)
 
     def breakflow(self):
         if self.name in conditional_branch + unconditional_branch:

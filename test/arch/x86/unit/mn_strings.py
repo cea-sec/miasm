@@ -21,7 +21,8 @@ class Test_SCAS(Asm_Test_32):
 
     def check(self):
         assert(self.myjit.cpu.ECX == len(self.MYSTRING))
-        assert(self.myjit.cpu.EDI == self.myjit.ir_arch.symbol_pool.getby_name('mystr').offset + len(self.MYSTRING)+1)
+        mystr = self.myjit.ir_arch.symbol_pool.getby_name('mystr')
+        assert(self.myjit.cpu.EDI == self.myjit.ir_arch.symbol_pool.loc_key_to_offset(mystr) + len(self.MYSTRING)+1)
 
 
 class Test_MOVS(Asm_Test_32):
@@ -42,8 +43,10 @@ class Test_MOVS(Asm_Test_32):
 
     def check(self):
         assert(self.myjit.cpu.ECX == 0)
-        assert(self.myjit.cpu.EDI == self.myjit.ir_arch.symbol_pool.getby_name('buffer').offset + len(self.MYSTRING))
-        assert(self.myjit.cpu.ESI == self.myjit.ir_arch.symbol_pool.getby_name('mystr').offset + len(self.MYSTRING))
+        buffer = self.myjit.ir_arch.symbol_pool.getby_name('buffer')
+        assert(self.myjit.cpu.EDI == self.myjit.ir_arch.symbol_pool.loc_key_to_offset(buffer) + len(self.MYSTRING))
+        mystr = self.myjit.ir_arch.symbol_pool.getby_name('mystr')
+        assert(self.myjit.cpu.ESI == self.myjit.ir_arch.symbol_pool.loc_key_to_offset(mystr) + len(self.MYSTRING))
 
 
 if __name__ == "__main__":

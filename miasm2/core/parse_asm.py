@@ -1,10 +1,11 @@
 #-*- coding:utf-8 -*-
 import re
 
-import miasm2.expression.expression as m2_expr
+from miasm2.expression.expression import ExprId, ExprInt, ExprOp, ExprLoc, \
+    LocKey
 import miasm2.core.asmblock as asmblock
 from miasm2.core.cpu import instruction, base_expr
-from miasm2.core.asm_ast import AstInt, AstId, AstMem, AstOp
+from miasm2.core.asm_ast import AstInt, AstId, AstOp
 
 declarator = {'byte': 8,
               'word': 16,
@@ -68,21 +69,20 @@ def guess_next_new_label(symbol_pool):
         name = gen_name % i
         label = symbol_pool.getby_name(name)
         if label is None:
-            return symbol_pool.add_label(name)
+            return symbol_pool.add_location(name)
         i += 1
 
 
 def replace_expr_labels(expr, symbol_pool, replace_id):
-    """Create AsmLabel of the expression @expr in the @symbol_pool
+    """Create LocKey of the expression @expr in the @symbol_pool
     Update @replace_id"""
 
-    if not (isinstance(expr, m2_expr.ExprId) and
-            isinstance(expr.name, asmblock.AsmLabel)):
+    if not expr.is_loc():
         return expr
 
-    old_lbl = expr.name
-    new_lbl = symbol_pool.getby_name_create(old_lbl.name)
-    replace_id[expr] = m2_expr.ExprId(new_lbl, expr.size)
+    old_name = symbol_pool.loc_key_to_name(expr.loc_key)
+    new_lbl = symbol_pool.getby_name_create(old_name)
+    replace_id[expr] = ExprLoc(new_lbl, expr.size)
     return replace_id[expr]
 
 
@@ -103,17 +103,17 @@ STATE_IN_BLOC = 1
 
 def asm_ast_to_expr_with_size(arg, symbol_pool, size):
     if isinstance(arg, AstId):
-        return m2_expr.ExprId(arg.name, size)
+        return ExprId(arg.name, size)
     if isinstance(arg, AstOp):
         args = [asm_ast_to_expr_with_size(tmp, symbol_pool, size) for tmp in arg.args]
-        return m2_expr.ExprOp(arg.op, *args)
+        return ExprOp(arg.op, *args)
     if isinstance(arg, AstInt):
-        return m2_expr.ExprInt(arg.value, size)
+        return ExprInt(arg.value, size)
     return None
 
 def parse_txt(mnemo, attrib, txt, symbol_pool=None):
-    """Parse an assembly listing. Returns a couple (blocks, symbol_pool), where
-    blocks is a list of asm_bloc and symbol_pool the associated AsmSymbolPool
+    """Parse an assembly listing. Returns a couple (asmcfg, symbol_pool), where
+    asmcfg is an AsmCfg instance and symbol_pool the associated AsmSymbolPool
 
     @mnemo: architecture used
     @attrib: architecture attribute
@@ -224,7 +224,6 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
         line = line.strip(' ').strip('\t')
         instr = mnemo.fromstring(line, symbol_pool, attrib)
 
-        # replace orphan AsmLabel with labels from symbol_pool
         replace_orphan_labels(instr, symbol_pool)
 
         if instr.dstflow():
@@ -232,12 +231,12 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
         lines.append(instr)
 
     asmblock.log_asmblock.info("___pre asm oki___")
-    # make blocks
+    # make asmcfg
 
     cur_block = None
     state = STATE_NO_BLOC
     i = 0
-    blocks = asmblock.AsmCFG()
+    asmcfg = asmblock.AsmCFG(symbol_pool)
     block_to_nlink = None
     delayslot = 0
     while i < len(lines):
@@ -256,21 +255,24 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
                 block_to_nlink = None
                 i += 1
                 continue
-            elif not isinstance(line, asmblock.AsmLabel):
+            elif not isinstance(line, LocKey):
                 # First line must be a label. If it's not the case, generate
                 # it.
-                label = guess_next_new_label(symbol_pool)
-                cur_block = asmblock.AsmBlock(label, alignment=mnemo.alignment)
+                loc = guess_next_new_label(symbol_pool)
+                cur_block = asmblock.AsmBlock(loc, alignment=mnemo.alignment)
             else:
                 cur_block = asmblock.AsmBlock(line, alignment=mnemo.alignment)
                 i += 1
             # Generate the current bloc
-            blocks.add_node(cur_block)
+            asmcfg.add_block(cur_block)
             state = STATE_IN_BLOC
             if block_to_nlink:
                 block_to_nlink.addto(
-                    asmblock.AsmConstraint(cur_block.label,
-                                           C_NEXT))
+                    asmblock.AsmConstraint(
+                        cur_block.loc_key,
+                        C_NEXT
+                    )
+                )
             block_to_nlink = None
             continue
 
@@ -287,10 +289,11 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
             elif isinstance(line, asmblock.AsmRaw):
                 cur_block.addline(line)
                 block_to_nlink = cur_block
-            elif isinstance(line, asmblock.AsmLabel):
+            elif isinstance(line, LocKey):
                 if block_to_nlink:
                     cur_block.addto(
-                        asmblock.AsmConstraint(line, C_NEXT))
+                        asmblock.AsmConstraint(line, C_NEXT)
+                    )
                     block_to_nlink = None
                 state = STATE_NO_BLOC
                 continue
@@ -305,7 +308,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
                     raise RuntimeError("Cannot have breakflow in delayslot")
                 if line.dstflow():
                     for dst in line.getdstflow(symbol_pool):
-                        if not isinstance(dst, m2_expr.ExprId):
+                        if not isinstance(dst, ExprId):
                             continue
                         if dst in mnemo.regs.all_regs_ids:
                             continue
@@ -319,10 +322,10 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
                 raise RuntimeError("unknown class %s" % line.__class__)
         i += 1
 
-    for block in blocks:
+    for block in asmcfg.blocks:
         # Fix multiple constraints
         block.fix_constraints()
 
         # Log block
         asmblock.log_asmblock.info(block)
-    return blocks, symbol_pool
+    return asmcfg, symbol_pool

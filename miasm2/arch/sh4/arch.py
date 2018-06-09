@@ -102,8 +102,8 @@ class sh4_arg(m_arg):
                 return arg.name
             if arg.name in gpregs.str:
                 return None
-            label = symbol_pool.getby_name_create(arg.name)
-            return ExprId(label, 32)
+            loc_key = symbol_pool.getby_name_create(arg.name)
+            return ExprLoc(loc_key, 32)
         if isinstance(arg, AstOp):
             args = [self.asm_ast_to_expr(tmp, symbol_pool) for tmp in arg.args]
             if None in args:
@@ -406,24 +406,29 @@ class instruction_sh4(instruction):
         return self.name.startswith('J')
 
     @staticmethod
-    def arg2str(e, pos = None):
-        if isinstance(e, ExprId) or isinstance(e, ExprInt):
-            return str(e)
-        assert(isinstance(e, ExprMem))
-        e = e.arg
+    def arg2str(expr, index=None, symbol_pool=None):
+        if isinstance(expr, ExprId) or isinstance(expr, ExprInt):
+            return str(expr)
+        elif expr.is_loc():
+            if symbol_pool is not None:
+                return symbol_pool.str_loc_key(expr.loc_key)
+            else:
+                return str(expr)
+        assert(isinstance(expr, ExprMem))
+        expr = expr.arg
 
-        if isinstance(e, ExprOp):
-            if e.op == "predec":
-                s = '-%s' % e.args[0]
-            elif e.op == "postinc":
-                s = '%s+' % e.args[0]
+        if isinstance(expr, ExprOp):
+            if expr.op == "predec":
+                s = '-%s' % expr.args[0]
+            elif expr.op == "postinc":
+                s = '%s+' % expr.args[0]
             else:
                 s = ','.join([str(x).replace('(', '').replace(')', '')
-                              for x in e.args])
+                              for x in expr.args])
                 s = "(%s)"%s
             s = "@%s" % s
-        elif isinstance(e, ExprId):
-            s = "@%s" % e
+        elif isinstance(expr, ExprId):
+            s = "@%s" % expr
         else:
             raise NotImplementedError('zarb arg2str')
         return s

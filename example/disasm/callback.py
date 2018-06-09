@@ -1,5 +1,5 @@
 from miasm2.core.bin_stream import bin_stream_str
-from miasm2.core.asmblock import AsmLabel, AsmConstraint, expr_is_label
+from miasm2.core.asmblock import AsmConstraint
 from miasm2.arch.x86.disasm import dis_x86_32, cb_x86_funcs
 
 
@@ -21,12 +21,15 @@ def cb_x86_callpop(cur_bloc, symbol_pool, *args, **kwargs):
     last_instr = cur_bloc.lines[-1]
     if last_instr.name != 'CALL':
         return
-    ## The destination must be a label
+    ## The destination must be a location
     dst = last_instr.args[0]
-    if not expr_is_label(dst):
+    if not dst.is_loc():
         return
+
+    loc_key = dst.loc_key
+    offset = symbol_pool.loc_key_to_offset(loc_key)
     ## The destination must be the next instruction
-    if dst.name.offset != last_instr.offset + last_instr.l:
+    if offset != last_instr.offset + last_instr.l:
         return
 
     # Update instruction instance
@@ -34,7 +37,7 @@ def cb_x86_callpop(cur_bloc, symbol_pool, *args, **kwargs):
 
     # Update next blocks to process in the disassembly engine
     cur_bloc.bto.clear()
-    cur_bloc.add_cst(dst.name.offset, AsmConstraint.c_next, symbol_pool)
+    cur_bloc.add_cst(loc_key, AsmConstraint.c_next, symbol_pool)
 
 
 # Prepare a tiny shellcode
@@ -46,8 +49,8 @@ bin_stream = bin_stream_str(shellcode)
 mdis = dis_x86_32(bin_stream)
 
 print "Without callback:\n"
-blocks = mdis.dis_multiblock(0)
-print "\n".join(str(block) for block in blocks)
+asmcfg = mdis.dis_multiblock(0)
+print "\n".join(str(block) for block in asmcfg.blocks)
 
 # Enable callback
 cb_x86_funcs.append(cb_x86_callpop)
@@ -56,9 +59,9 @@ cb_x86_funcs.append(cb_x86_callpop)
 
 print "=" * 40
 print "With callback:\n"
-blocks_after = mdis.dis_multiblock(0)
-print "\n".join(str(block) for block in blocks_after)
+asmcfg_after = mdis.dis_multiblock(0)
+print "\n".join(str(block) for block in asmcfg_after.blocks)
 
 # Ensure the callback has been called
-assert blocks.heads()[0].lines[0].name == "CALL"
-assert blocks_after.heads()[0].lines[0].name == "PUSH"
+assert asmcfg.loc_key_to_block(asmcfg.heads()[0]).lines[0].name == "CALL"
+assert asmcfg_after.loc_key_to_block(asmcfg_after.heads()[0]).lines[0].name == "PUSH"

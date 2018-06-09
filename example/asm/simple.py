@@ -6,7 +6,7 @@ from miasm2.core import parse_asm, asmblock
 
 
 # Assemble code
-blocks, symbol_pool = parse_asm.parse_txt(mn_x86, 32, '''
+asmcfg, symbol_pool = parse_asm.parse_txt(mn_x86, 32, '''
 main:
    MOV    EAX, 1
    MOV    EBX, 2
@@ -21,14 +21,14 @@ loop:
    RET
 ''')
 
-# Set 'main' label's offset
+# Set 'main' loc_key's offset
 symbol_pool.set_offset(symbol_pool.getby_name("main"), 0x0)
 
 # Spread information and resolve instructions offset
-patches = asmblock.asm_resolve_final(mn_x86, blocks, symbol_pool)
+patches = asmblock.asm_resolve_final(mn_x86, asmcfg, symbol_pool)
 
-# Show resolved blocks
-for block in blocks:
+# Show resolved asmcfg
+for block in asmcfg.blocks:
     print block
 
 # Print offset -> bytes

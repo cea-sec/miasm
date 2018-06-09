@@ -28,7 +28,8 @@ class depGraphSettingsForm(ida_kernwin.Form):
         self.address = idc.ScreenEA()
         cur_block = None
         for block in ira.getby_offset(self.address):
-            if block.label.offset is not None:
+            offset = self.ira.symbol_pool.loc_key_to_offset(block.loc_key)
+            if offset is not None:
                 # Only one block non-generated
                 assert cur_block is None
                 cur_block = block
@@ -38,7 +39,7 @@ class depGraphSettingsForm(ida_kernwin.Form):
             if assignblk.instr.offset == self.address:
                 break
         assert line_nb is not None
-        cur_label = str(cur_block.label)
+        cur_label = str(cur_block.loc_key)
         labels = sorted(map(str, ira.blocks.keys()))
         regs = sorted(ira.arch.regs.all_regs_ids_byname.keys())
         regs += self.stk_args.keys()
@@ -110,13 +111,13 @@ Method to use:
         elif mode == 1:
             return value + 1
         else:
-            return len(self.ira.blocks[self.label])
+            return len(self.ira.blocks[self.loc_key])
 
     @property
     def elements(self):
         value = self.cbReg.value
         if value in self.stk_args:
-            line = self.ira.blocks[self.label][self.line_nb].instr
+            line = self.ira.blocks[self.loc_key][self.line_nb].instr
             arg_num = self.stk_args[value]
             stk_high = m2_expr.ExprInt(idc.GetSpd(line.offset), ir_arch.sp.size)
             stk_off = m2_expr.ExprInt(self.ira.sp.size/8 * arg_num, ir_arch.sp.size)
@@ -174,7 +175,7 @@ def treat_element():
 
     for node in graph.relevant_nodes:
         try:
-            offset = ir_arch.blocks[node.label][node.line_nb].instr.offset
+            offset = ir_arch.blocks[node.loc_key][node.line_nb].instr.offset
         except IndexError:
             print "Unable to highlight %s" % node
             continue
@@ -209,26 +210,27 @@ def launch_depgraph():
     for ad, name in idautils.Names():
         if name is None:
             continue
-        mdis.symbol_pool.add_label(name, ad)
+        mdis.symbol_pool.add_location(name, ad)
 
     # Get the current function
     addr = idc.ScreenEA()
     func = ida_funcs.get_func(addr)
-    blocks = mdis.dis_multiblock(func.startEA)
+    asmcfg = mdis.dis_multiblock(func.startEA)
 
     # Generate IR
-    for block in blocks:
+    for block in asmcfg.blocks:
         ir_arch.add_block(block)
 
     # Get settings
     settings = depGraphSettingsForm(ir_arch)
     settings.Execute()
 
-    label, elements, line_nb = settings.label, settings.elements, settings.line_nb
+    label, elements, line_nb = settings.loc_key, settings.elements, settings.line_nb
     # Simplify affectations
     for irb in ir_arch.blocks.values():
         irs = []
-        fix_stack = irb.label.offset is not None and settings.unalias_stack
+        offset = ir_arch.symbol_pool.loc_key_to_offset(irb.loc_key)
+        fix_stack = offset is not None and settings.unalias_stack
         for assignblk in irb:
             if fix_stack:
                 stk_high = m2_expr.ExprInt(idc.GetSpd(assignblk.instr.offset), ir_arch.sp.size)
@@ -243,7 +245,7 @@ def launch_depgraph():
                 dst, src = expr_simp(dst), expr_simp(src)
                 new_assignblk[dst] = src
             irs.append(AssignBlock(new_assignblk, instr=assignblk.instr))
-        ir_arch.blocks[irb.label] = IRBlock(irb.label, irs)
+        ir_arch.blocks[irb.loc_key] = IRBlock(irb.loc_key, irs)
 
     # Get dependency graphs
     dg = settings.depgraph

@@ -35,7 +35,7 @@ def jal(arg1):
     "Jumps to the calculated address @arg1 and stores the return address in $RA"
     PC = arg1
     ir.IRDst = arg1
-    RA = ExprId(ir.get_next_break_label(instr), 32)
+    RA = ExprLoc(ir.get_next_break_loc_key(instr), RA.size)
 
 @sbuild.parse
 def jalr(arg1, arg2):
@@ -43,13 +43,13 @@ def jalr(arg1, arg2):
     address in another register @arg2"""
     PC = arg1
     ir.IRDst = arg1
-    arg2 = ExprId(ir.get_next_break_label(instr), 32)
+    arg2 = ExprLoc(ir.get_next_break_loc_key(instr), arg2.size)
 
 @sbuild.parse
 def bal(arg1):
     PC = arg1
     ir.IRDst = arg1
-    RA = ExprId(ir.get_next_break_label(instr), 32)
+    RA = ExprLoc(ir.get_next_break_loc_key(instr), RA.size)
 
 @sbuild.parse
 def l_b(arg1):
@@ -76,7 +76,7 @@ def lb(arg1, arg2):
 @sbuild.parse
 def beq(arg1, arg2, arg3):
     "Branches on @arg3 if the quantities of two registers @arg1, @arg2 are eq"
-    dst = ExprId(ir.get_next_break_label(instr), 32) if arg1 - arg2 else arg3
+    dst = ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size) if arg1 - arg2 else arg3
     PC = dst
     ir.IRDst = dst
 
@@ -84,7 +84,7 @@ def beq(arg1, arg2, arg3):
 def bgez(arg1, arg2):
     """Branches on @arg2 if the quantities of register @arg1 is greater than or
     equal to zero"""
-    dst = ExprId(ir.get_next_break_label(instr), 32) if arg1.msb() else arg2
+    dst = ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size) if arg1.msb() else arg2
     PC = dst
     ir.IRDst = dst
 
@@ -92,7 +92,7 @@ def bgez(arg1, arg2):
 def bne(arg1, arg2, arg3):
     """Branches on @arg3 if the quantities of two registers @arg1, @arg2 are NOT
     equal"""
-    dst = arg3 if arg1 - arg2 else ExprId(ir.get_next_break_label(instr), 32)
+    dst = arg3 if arg1 - arg2 else ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size)
     PC = dst
     ir.IRDst = dst
 
@@ -230,7 +230,7 @@ def seh(arg1, arg2):
 @sbuild.parse
 def bltz(arg1, arg2):
     """Branches on @arg2 if the register @arg1 is less than zero"""
-    dst_o = arg2 if arg1.msb() else ExprId(ir.get_next_break_label(instr), 32)
+    dst_o = arg2 if arg1.msb() else ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size)
     PC = dst_o
     ir.IRDst = dst_o
 
@@ -238,7 +238,7 @@ def bltz(arg1, arg2):
 def blez(arg1, arg2):
     """Branches on @arg2 if the register @arg1 is less than or equal to zero"""
     cond = (i1(1) if arg1 else i1(0)) | arg1.msb()
-    dst_o = arg2 if cond else ExprId(ir.get_next_break_label(instr), 32)
+    dst_o = arg2 if cond else ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size)
     PC = dst_o
     ir.IRDst = dst_o
 
@@ -246,7 +246,7 @@ def blez(arg1, arg2):
 def bgtz(arg1, arg2):
     """Branches on @arg2 if the register @arg1 is greater than zero"""
     cond = (i1(1) if arg1 else i1(0)) | arg1.msb()
-    dst_o = ExprId(ir.get_next_break_label(instr), 32) if cond else arg2
+    dst_o = ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size) if cond else arg2
     PC = dst_o
     ir.IRDst = dst_o
 
@@ -346,13 +346,13 @@ def c_le_d(arg1, arg2, arg3):
 
 @sbuild.parse
 def bc1t(arg1, arg2):
-    dst_o = arg2 if arg1 else ExprId(ir.get_next_break_label(instr), 32)
+    dst_o = arg2 if arg1 else ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size)
     PC = dst_o
     ir.IRDst = dst_o
 
 @sbuild.parse
 def bc1f(arg1, arg2):
-    dst_o = ExprId(ir.get_next_break_label(instr), 32) if arg1 else arg2
+    dst_o = ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size) if arg1 else arg2
     PC = dst_o
     ir.IRDst = dst_o
 
@@ -415,22 +415,22 @@ def ehb(arg1):
 def teq(ir, instr, arg1, arg2):
     e = []
 
-    lbl_except, lbl_except_expr = ir.gen_label_and_expr(ir.IRDst.size)
-    lbl_next = ir.get_next_label(instr)
-    lbl_next_expr = m2_expr.ExprId(lbl_next, ir.IRDst.size)
+    loc_except, loc_except_expr = ir.gen_loc_key_and_expr(ir.IRDst.size)
+    loc_next = ir.get_next_loc_key(instr)
+    loc_next_expr = m2_expr.ExprLoc(loc_next, ir.IRDst.size)
 
     do_except = []
     do_except.append(m2_expr.ExprAff(exception_flags, m2_expr.ExprInt(
         EXCEPT_DIV_BY_ZERO, exception_flags.size)))
-    do_except.append(m2_expr.ExprAff(ir.IRDst, lbl_next_expr))
-    blk_except = IRBlock(lbl_except, [AssignBlock(do_except, instr)])
+    do_except.append(m2_expr.ExprAff(ir.IRDst, loc_next_expr))
+    blk_except = IRBlock(loc_except.index, [AssignBlock(do_except, instr)])
 
     cond = arg1 - arg2
 
 
     e = []
     e.append(m2_expr.ExprAff(ir.IRDst,
-                             m2_expr.ExprCond(cond, lbl_next_expr, lbl_except_expr)))
+                             m2_expr.ExprCond(cond, loc_next_expr, loc_except_expr)))
 
     return e, [blk_except]
 
@@ -492,7 +492,7 @@ class ir_mips32l(IntermediateRepresentation):
     def get_next_instr(self, instr):
         return self.symbol_pool.getby_offset_create(instr.offset  + 4)
 
-    def get_next_break_label(self, instr):
+    def get_next_break_loc_key(self, instr):
         return self.symbol_pool.getby_offset_create(instr.offset  + 8)
 
 class ir_mips32b(ir_mips32l):

@@ -2,22 +2,23 @@ import inspect
 from pdb import pm
 
 from miasm2.core.sembuilder import SemBuilder
+from miasm2.core.asmblock import AsmSymbolPool
 import miasm2.expression.expression as m2_expr
-from miasm2.core.asmblock import AsmLabel
+
+
 
 # Test classes
 class IR(object):
+    def __init__(self, symbol_pool):
+        self.symbol_pool = symbol_pool
 
     IRDst = m2_expr.ExprId("IRDst", 32)
 
     def get_next_instr(self, _):
-        return AsmLabel("NEXT")
+        return m2_expr.LocKey(0)
 
-    def get_next_label(self, _):
-        return AsmLabel("NEXT")
-
-    def gen_label(self):
-        return AsmLabel("GEN")
+    def get_next_loc_key(self, _):
+        return m2_expr.LocKey(0)
 
 class Instr(object):
     mode = 32
@@ -44,7 +45,8 @@ def test(Arg1, Arg2, Arg3):
 a = m2_expr.ExprId('A', 32)
 b = m2_expr.ExprId('B', 32)
 c = m2_expr.ExprId('C', 32)
-ir = IR()
+symbol_pool = AsmSymbolPool()
+ir = IR(symbol_pool)
 instr = Instr()
 res = test(ir, instr, a, b, c)
 
@@ -58,7 +60,7 @@ for statement in res[0]:
 
 print "[+] Blocks:"
 for irb in res[1]:
-    print irb.label
+    print irb.loc_key
     for assignblk in irb:
         for expr in assignblk:
             print expr

@@ -31,7 +31,7 @@ def add_state(ir_arch, todo, states, addr, state):
     @addr: address of the concidered block
     @state: computed state
     """
-    addr = ir_arch.get_label(addr)
+    addr = ir_arch.get_loc_key(addr)
     todo.add(addr)
     if addr not in states:
         states[addr] = state
@@ -108,11 +108,11 @@ class SymbExecStateFix(SymbolicExecutionEngine):
                 for arg in assignblk.instr.args:
                     new_arg = self.propag_expr_cst(arg)
                     links[new_arg] = arg
-                self.cst_propag_link[(irb.label, index)] = links
+                self.cst_propag_link[(irb.loc_key, index)] = links
 
             self.eval_updt_assignblk(assignblk)
             assignblks.append(AssignBlock(new_assignblk, assignblk.instr))
-        self.ir_arch.blocks[irb.label] = IRBlock(irb.label, assignblks)
+        self.ir_arch.blocks[irb.loc_key] = IRBlock(irb.loc_key, assignblks)
 
 
 def compute_cst_propagation_states(ir_arch, init_addr, init_infos):
@@ -128,7 +128,7 @@ def compute_cst_propagation_states(ir_arch, init_addr, init_infos):
 
     done = set()
     state = SymbExecState.StateEngine(init_infos)
-    lbl = ir_arch.get_label(init_addr)
+    lbl = ir_arch.get_loc_key(init_addr)
     todo = set([lbl])
     states = {lbl: state}
 
@@ -153,7 +153,7 @@ def compute_cst_propagation_states(ir_arch, init_addr, init_infos):
                 LOG_CST_PROPAG.warning('Bad destination: %s', value)
                 continue
             elif value.is_int():
-                value = ir_arch.get_label(value)
+                value = ir_arch.get_loc_key(value)
             add_state(ir_arch, todo, states, value,
                       symbexec_engine.get_state())
 

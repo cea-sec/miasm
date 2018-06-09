@@ -30,8 +30,8 @@ def compute(asm, inputstate={}, debug=False):
     code = mn.asm(instr)[0]
     instr = mn.dis(code, "l")
     instr.offset = inputstate.get(PC, 0)
-    interm.add_instr(instr)
-    symexec.run_at(instr.offset)
+    lbl = interm.add_instr(instr)
+    symexec.run_at(lbl)
     if debug:
         for k, v in symexec.symbols.items():
             if regs_init.get(k, None) != v:

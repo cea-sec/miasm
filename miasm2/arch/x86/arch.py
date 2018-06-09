@@ -7,7 +7,6 @@ from miasm2.core.cpu import *
 from collections import defaultdict
 import miasm2.arch.x86.regs as regs_module
 from miasm2.arch.x86.regs import *
-from miasm2.core.asmblock import AsmLabel
 from miasm2.core.asm_ast import AstNode, AstInt, AstId, AstMem, AstOp
 
 
@@ -273,8 +272,8 @@ class x86_arg(m_arg):
             if value.name in ["FAR"]:
                 return None
 
-            label = symbol_pool.getby_name_create(value.name)
-            return ExprId(label, size_hint)
+            loc_key = symbol_pool.getby_name_create(value.name)
+            return ExprLoc(loc_key, size_hint)
         if isinstance(value, AstOp):
             # First pass to retreive fixed_size
             if value.op == "segm":
@@ -474,16 +473,11 @@ class instruction_x86(instruction):
         if self.additional_info.g1.value & 6 and self.name in repeat_mn:
             return
         expr = self.args[0]
-        if isinstance(expr, ExprId):
-            if not isinstance(expr.name, AsmLabel) and expr not in all_regs_ids:
-                raise ValueError("ExprId must be a label or a register")
-        elif isinstance(expr, ExprInt):
-            ad = expr.arg + int(self.offset)
-            l = symbol_pool.getby_offset_create(ad)
-            s = ExprId(l, expr.size)
-            self.args[0] = s
-        else:
+        if not expr.is_int():
             return
+        addr = expr.arg + int(self.offset)
+        loc_key = symbol_pool.getby_offset_create(addr)
+        self.args[0] = ExprLoc(loc_key, expr.size)
 
     def breakflow(self):
         if self.name in conditional_branch + unconditional_branch:
@@ -519,10 +513,9 @@ class instruction_x86(instruction):
 
     def getdstflow(self, symbol_pool):
         if self.additional_info.g1.value & 6 and self.name in repeat_mn:
-            ad = int(self.offset)
-            l = symbol_pool.getby_offset_create(ad)
-            s = ExprId(l, self.v_opmode())
-            return [s]
+            addr = int(self.offset)
+            loc_key = symbol_pool.getby_offset_create(addr)
+            return [ExprLoc(loc_key, self.v_opmode())]
         return [self.args[0]]
 
     def get_symbol_size(self, symbol, symbol_pool):
@@ -566,9 +559,14 @@ class instruction_x86(instruction):
         return args
 
     @staticmethod
-    def arg2str(expr, pos=None):
-        if isinstance(expr, ExprId) or isinstance(expr, ExprInt):
+    def arg2str(expr, index=None, symbol_pool=None):
+        if expr.is_id() or expr.is_int():
             o = str(expr)
+        elif expr.is_loc():
+            if symbol_pool is not None:
+                o = symbol_pool.str_loc_key(expr.loc_key)
+            else:
+                o = str(expr)
         elif ((isinstance(expr, ExprOp) and expr.op == 'far' and
                isinstance(expr.args[0], ExprMem)) or
               isinstance(expr, ExprMem)):

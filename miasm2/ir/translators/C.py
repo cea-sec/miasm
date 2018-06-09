@@ -18,6 +18,14 @@ class TranslatorC(Translator):
                '>>>': 'rot_right',
                }
 
+    def __init__(self, symbol_pool=None, **kwargs):
+        """Instance a C translator
+        @symbol_pool: AsmSymbolPool instance
+        """
+        super(TranslatorC, self).__init__(**kwargs)
+        # symbol pool
+        self.symbol_pool = symbol_pool
+
     def _size2mask(self, size):
         """Return a C string corresponding to the size2mask operation, with support for
         @size <= 128"""
@@ -31,8 +39,6 @@ class TranslatorC(Translator):
         return "0x%x" % mask
 
     def from_ExprId(self, expr):
-        if isinstance(expr.name, asmblock.AsmLabel):
-            return "0x%x" % expr.name.offset
         return str(expr)
 
     def from_ExprInt(self, expr):
@@ -44,16 +50,32 @@ class TranslatorC(Translator):
             )
         return "0x%x" % expr.arg.arg
 
+    def from_ExprLoc(self, expr):
+        loc_key = expr.loc_key
+        if self.symbol_pool is None:
+            return str(loc_key)
+
+        offset = self.symbol_pool.loc_key_to_offset(loc_key)
+        name = self.symbol_pool.loc_key_to_name(loc_key)
+
+        if offset is None:
+            return name
+        return "0x%x" % offset
+
     def from_ExprAff(self, expr):
-        return "%s = %s" % tuple(map(self.from_expr, (expr.dst, expr.src)))
+        new_dst = self.from_expr(expr.dst)
+        new_src = self.from_expr(expr.src)
+        return "%s = %s" % (new_dst, new_src)
 
     def from_ExprCond(self, expr):
-        return "(%s?%s:%s)" % tuple(map(self.from_expr,
-                                        (expr.cond, expr.src1, expr.src2)))
+        new_cond = self.from_expr(expr.cond)
+        new_src1 = self.from_expr(expr.src1)
+        new_src2 = self.from_expr(expr.src2)
+        return "(%s?%s:%s)" % (new_cond, new_src1, new_src2)
 
     def from_ExprMem(self, expr):
-        return "MEM_LOOKUP_%.2d(jitcpu, %s)" % (expr.size,
-                                                self.from_expr(expr.arg))
+        new_ptr = self.from_expr(expr.arg)
+        return "MEM_LOOKUP_%.2d(jitcpu, %s)" % (expr.size, new_ptr)
 
     def from_ExprOp(self, expr):
         if len(expr.args) == 1:
@@ -63,9 +85,11 @@ class TranslatorC(Translator):
                     self._size2mask(expr.args[0].size),
                 )
             elif expr.op in ['cntleadzeros', 'cnttrailzeros']:
-                return "%s(0x%x, %s)" % (expr.op,
-                                             expr.args[0].size,
-                                             self.from_expr(expr.args[0]))
+                return "%s(0x%x, %s)" % (
+                    expr.op,
+                    expr.args[0].size,
+                    self.from_expr(expr.args[0])
+                )
             elif expr.op == '!':
                 return "(~ %s)&%s" % (
                     self.from_expr(expr.args[0]),
@@ -78,7 +102,10 @@ class TranslatorC(Translator):
                   expr.op.startswith("fxam_c")     or
                   expr.op in ["-", "ftan", "frndint", "f2xm1",
                               "fsin", "fsqrt", "fabs", "fcos", "fchs"]):
-                return "%s(%s)" % (expr.op, self.from_expr(expr.args[0]))
+                return "%s(%s)" % (
+                    expr.op,
+                    self.from_expr(expr.args[0])
+                )
             else:
                 raise NotImplementedError('Unknown op: %r' % expr.op)
 
@@ -91,10 +118,12 @@ class TranslatorC(Translator):
                     self._size2mask(expr.args[1].size),
                 )
             elif expr.op in self.dct_shift:
-                return 'SHIFT_%s(%d, %s, %s)' % (self.dct_shift[expr.op].upper(),
-                                                 expr.args[0].size,
-                                                 self.from_expr(expr.args[0]),
-                                                 self.from_expr(expr.args[1]))
+                return 'SHIFT_%s(%d, %s, %s)' % (
+                    self.dct_shift[expr.op].upper(),
+                    expr.args[0].size,
+                    self.from_expr(expr.args[0]),
+                    self.from_expr(expr.args[1])
+                )
             elif expr.is_associative() or expr.op in ["%", "/"]:
                 oper = ['(%s&%s)' % (
                     self.from_expr(arg),
@@ -105,9 +134,11 @@ class TranslatorC(Translator):
                 return "((%s)&%s)" % (oper, self._size2mask(expr.args[0].size))
             elif expr.op in ['-']:
                 return '(((%s&%s) %s (%s&%s))&%s)' % (
-                    self.from_expr(expr.args[0]), self._size2mask(expr.args[0].size),
+                    self.from_expr(expr.args[0]),
+                    self._size2mask(expr.args[0].size),
                     str(expr.op),
-                    self.from_expr(expr.args[1]), self._size2mask(expr.args[1].size),
+                    self.from_expr(expr.args[1]),
+                    self._size2mask(expr.args[1].size),
                     self._size2mask(expr.args[0].size)
                 )
             elif expr.op in self.dct_rot:
@@ -125,21 +156,29 @@ class TranslatorC(Translator):
             elif (expr.op.startswith("fcom")  or
                   expr.op in ["fadd", "fsub", "fdiv", 'fmul', "fscale",
                               "fprem", "fprem_lsb", "fyl2x", "fpatan"]):
-                return "fpu_%s(%s, %s)" % (expr.op,
-                                           self.from_expr(expr.args[0]),
-                                           self.from_expr(expr.args[1]))
+                return "fpu_%s(%s, %s)" % (
+                    expr.op,
+                    self.from_expr(expr.args[0]),
+                    self.from_expr(expr.args[1])
+                )
             elif expr.op == "segm":
                 return "segm2addr(jitcpu, %s, %s)" % (
-                    self.from_expr(expr.args[0]), self.from_expr(expr.args[1]))
+                    self.from_expr(expr.args[0]),
+                    self.from_expr(expr.args[1])
+                )
             elif expr.op in ['udiv', 'umod', 'idiv', 'imod']:
-                return '%s%d(%s, %s)' % (expr.op,
-                                         expr.args[0].size,
-                                         self.from_expr(expr.args[0]),
-                                         self.from_expr(expr.args[1]))
+                return '%s%d(%s, %s)' % (
+                    expr.op,
+                    expr.args[0].size,
+                    self.from_expr(expr.args[0]),
+                    self.from_expr(expr.args[1])
+                )
             elif expr.op in ["bcdadd", "bcdadd_cf"]:
-                return "%s_%d(%s, %s)" % (expr.op, expr.args[0].size,
-                                          self.from_expr(expr.args[0]),
-                                          self.from_expr(expr.args[1]))
+                return "%s_%d(%s, %s)" % (
+                    expr.op, expr.args[0].size,
+                    self.from_expr(expr.args[0]),
+                    self.from_expr(expr.args[1])
+                )
             else:
                 raise NotImplementedError('Unknown op: %r' % expr.op)
 
@@ -159,9 +198,11 @@ class TranslatorC(Translator):
 
     def from_ExprSlice(self, expr):
         # XXX check mask for 64 bit & 32 bit compat
-        return "((%s>>%d) &%s)" % (self.from_expr(expr.arg),
-                                   expr.start,
-                                   self._size2mask(expr.stop - expr.start))
+        return "((%s>>%d) &%s)" % (
+            self.from_expr(expr.arg),
+            expr.start,
+            self._size2mask(expr.stop - expr.start)
+        )
 
     def from_ExprCompose(self, expr):
         out = []
@@ -178,10 +219,12 @@ class TranslatorC(Translator):
 
         dst_cast = "uint%d_t" % size
         for index, arg in expr.iter_args():
-            out.append("(((%s)(%s & %s)) << %d)" % (dst_cast,
-                                                    self.from_expr(arg),
-                                                    self._size2mask(arg.size),
-                                                    index))
+            out.append("(((%s)(%s & %s)) << %d)" % (
+                dst_cast,
+                self.from_expr(arg),
+                self._size2mask(arg.size),
+                index)
+            )
         out = ' | '.join(out)
         return '(' + out + ')'
 
