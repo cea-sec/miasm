@@ -685,7 +685,7 @@ class IntermediateRepresentation(object):
                         loc_key = self.symbol_pool.getby_offset_create(line.offset + line.l)
                 if loc_key is None:
                     loc_key = self.symbol_pool.gen_loc_key()
-                block.add_cst(loc_key, AsmConstraint.c_next, self.symbol_pool)
+                block.add_cst(loc_key, AsmConstraint.c_next)
             else:
                 loc_key = next_loc_key
             dst = m2_expr.ExprLoc(loc_key, self.pc.size)
