@@ -153,7 +153,7 @@ class JitCore(object):
             return cur_block
         # Logging
         if self.log_newbloc:
-            print cur_block
+            print cur_block.to_string(self.mdis.symbol_pool)
 
         # Update label -> block
         self.lbl2bloc[cur_block.loc_key] = cur_block

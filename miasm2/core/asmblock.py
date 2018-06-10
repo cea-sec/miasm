@@ -67,8 +67,17 @@ class AsmConstraint(object):
 
     label = property(get_label, set_label)
 
+    def to_string(self, symbol_pool=None):
+        if symbol_pool is None:
+            return "%s:%s" % (self.c_t, self.loc_key)
+        else:
+            return "%s:%s" % (
+                self.c_t,
+                symbol_pool.str_loc_key(self.loc_key)
+            )
+
     def __str__(self):
-        return "%s:%s" % (str(self.c_t), str(self.loc_key))
+        return self.to_string()
 
 
 class asm_constraint(AsmConstraint):
@@ -127,21 +136,28 @@ class AsmBlock(object):
     label = property(get_label)
 
 
-    def __str__(self):
+    def to_string(self, symbol_pool=None):
         out = []
-        out.append(str(self.loc_key))
-        for l in self.lines:
-            out.append(str(l))
+        if symbol_pool is None:
+            out.append(str(self.loc_key))
+        else:
+            out.append(symbol_pool.str_loc_key(self.loc_key))
+
+        for instr in self.lines:
+            out.append(instr.to_string(symbol_pool))
         if self.bto:
             lbls = ["->"]
-            for l in self.bto:
-                if l is None:
+            for dst in self.bto:
+                if dst is None:
                     lbls.append("Unknown? ")
                 else:
-                    lbls.append(str(l) + " ")
+                    lbls.append(dst.to_string(symbol_pool) + " ")
             lbls = '\t'.join(lbls)
             out.append(lbls)
         return '\n'.join(out)
+
+    def __str__(self):
+        return self.to_string()
 
     def addline(self, l):
         self.lines.append(l)

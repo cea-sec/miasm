@@ -342,8 +342,12 @@ class CGen(object):
         out = []
 
         if instr_attrib.log_mn:
-            out.append('printf("%.8X %s\\n");' % (instr_attrib.instr.offset,
-                                                  instr_attrib.instr))
+            out.append(
+                'printf("%.8X %s\\n");' % (
+                    instr_attrib.instr.offset,
+                    instr_attrib.instr.to_string(self.ir_arch.symbol_pool)
+                )
+            )
         return out
 
     def gen_post_code(self, attrib):
