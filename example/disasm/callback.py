@@ -37,7 +37,7 @@ def cb_x86_callpop(cur_bloc, symbol_pool, *args, **kwargs):
 
     # Update next blocks to process in the disassembly engine
     cur_bloc.bto.clear()
-    cur_bloc.add_cst(loc_key, AsmConstraint.c_next, symbol_pool)
+    cur_bloc.add_cst(loc_key, AsmConstraint.c_next)
 
 
 # Prepare a tiny shellcode

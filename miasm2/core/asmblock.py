@@ -211,9 +211,14 @@ class AsmBlock(object):
     def get_offsets(self):
         return [x.offset for x in self.lines]
 
-    def add_cst(self, loc_key, c_t, symbol_pool):
+    def add_cst(self, loc_key, constraint_type):
+        """
+        Add constraint between current block and block at @loc_key
+        @loc_key: LocKey instance of constraint target
+        @constraint_type: AsmConstraint c_to/c_next
+        """
         assert isinstance(loc_key, LocKey)
-        c = AsmConstraint(loc_key, c_t)
+        c = AsmConstraint(loc_key, constraint_type)
         self.bto.add(c)
 
     def get_flow_instr(self):
@@ -1628,20 +1633,12 @@ class disasmEngine(object):
                     # Block is not empty, stop the desassembly pass and add a
                     # constraint to the next block
                     loc_key_cst = self.symbol_pool.getby_offset_create(offset)
-                    cur_block.add_cst(
-                        loc_key_cst,
-                        AsmConstraint.c_next,
-                        self.symbol_pool
-                    )
+                    cur_block.add_cst(loc_key_cst, AsmConstraint.c_next)
                 break
 
             if lines_cpt > 0 and offset in self.split_dis:
                 loc_key_cst = self.symbol_pool.getby_offset_create(offset)
-                cur_block.add_cst(
-                    loc_key_cst,
-                    AsmConstraint.c_next,
-                    self.symbol_pool
-                )
+                cur_block.add_cst(loc_key_cst, AsmConstraint.c_next)
                 offsets_to_dis.add(offset)
                 break
 
@@ -1652,11 +1649,7 @@ class disasmEngine(object):
 
             if offset in job_done:
                 loc_key_cst = self.symbol_pool.getby_offset_create(offset)
-                cur_block.add_cst(
-                    loc_key_cst,
-                    AsmConstraint.c_next,
-                    self.symbol_pool
-                )
+                cur_block.add_cst(loc_key_cst, AsmConstraint.c_next)
                 break
 
             off_i = offset
@@ -1683,11 +1676,7 @@ class disasmEngine(object):
                     # Block is not empty, stop the desassembly pass and add a
                     # constraint to the next block
                     loc_key_cst = self.symbol_pool.getby_offset_create(off_i)
-                    cur_block.add_cst(
-                        loc_key_cst,
-                        AsmConstraint.c_next,
-                        self.symbol_pool
-                    )
+                    cur_block.add_cst(loc_key_cst, AsmConstraint.c_next)
                 break
 
             # XXX TODO nul start block option
@@ -1700,11 +1689,7 @@ class disasmEngine(object):
                     # Block is not empty, stop the desassembly pass and add a
                     # constraint to the next block
                     loc_key_cst = self.symbol_pool.getby_offset_create(off_i)
-                    cur_block.add_cst(
-                        loc_key_cst,
-                        AsmConstraint.c_next,
-                        self.symbol_pool
-                    )
+                    cur_block.add_cst(loc_key_cst, AsmConstraint.c_next)
                 break
 
             # special case: flow graph modificator in delayslot
@@ -1750,11 +1735,7 @@ class disasmEngine(object):
 
         if add_next_offset:
             loc_key_cst = self.symbol_pool.getby_offset_create(offset)
-            cur_block.add_cst(
-                loc_key_cst,
-                AsmConstraint.c_next,
-                self.symbol_pool
-            )
+            cur_block.add_cst(loc_key_cst, AsmConstraint.c_next)
             offsets_to_dis.add(offset)
 
         # Fix multiple constraints
