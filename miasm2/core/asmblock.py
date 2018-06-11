@@ -374,6 +374,7 @@ class AsmSymbolPool(object):
         Return offset of @loc_key, None otherwise.
         @loc_key: LocKey instance
         """
+        assert isinstance(loc_key, LocKey)
         return self._loc_key_to_offset.get(loc_key)
 
     def loc_key_to_name(self, loc_key):
@@ -381,6 +382,7 @@ class AsmSymbolPool(object):
         Return name of @loc_key.
         @loc_key: LocKey instance
         """
+        assert isinstance(loc_key, LocKey)
         return self._loc_key_to_name[loc_key]
 
     def add_location(self, name, offset=None):
