@@ -667,14 +667,9 @@ class AsmCFG(DiGraph):
 
     def add_uniq_edge(self, src, dst, constraint):
         """
-        Add an edge from @src to @dst if it doesn't already exist
-        @src: LocKey instance, source
-        @dst: LocKey instance, destination
-        @constraint: constraint associated to this edge
+        Synonym for `add_edge`
         """
-        if (src not in self._nodes_succ or
-                dst not in self._nodes_succ[src]):
-            self.add_edge(src, dst, constraint)
+        self.add_edge(src, dst, constraint)
 
     def del_edge(self, src, dst):
         """Delete the edge @src->@dst and its associated constraint"""
@@ -743,14 +738,16 @@ class AsmCFG(DiGraph):
 
     def merge(self, graph):
         """Merge with @graph, taking in account constraints"""
+        # Add known blocks
+        for block in graph.blocks:
+            self.add_block(block)
+        # Add nodes not already in it (ie. not linked to a block)
+        for node in graph.nodes():
+            self.add_node(node)
         # -> add_edge(x, y, constraint)
-        self._loc_key_to_block.update(graph._loc_key_to_block)
-        for loc_key in graph._nodes:
-            self.add_node(loc_key)
-            if loc_key in graph._loc_key_to_block:
-                self.add_block(graph._loc_key_to_block[loc_key])
         for edge in graph._edges:
-            # Use "_uniq_" beacause the edge can already exist due to add_node
+            # May fail if there is an incompatibility in edges constraints
+            # between the two graphs
             self.add_edge(*edge, constraint=graph.edges2constraint[edge])
 
 
