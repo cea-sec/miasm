@@ -115,7 +115,7 @@ void print_val(uint64_t base, uint64_t addr)
 	fprintf(stderr, "addr 0x%"PRIX64" val 0x%"PRIX64"\n", addr-base, *ptr);
 }
 
-inline int midpoint(int imin, int imax)
+int midpoint(int imin, int imax)
 {
 	return (imin + imax) / 2;
 }
