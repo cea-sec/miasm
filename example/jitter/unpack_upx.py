@@ -53,21 +53,21 @@ if options.verbose is True:
 # Ensure there is one and only one leave (for OEP discovering)
 mdis = sb.machine.dis_engine(sb.jitter.bs)
 mdis.dont_dis_nulstart_bloc = True
-ab = mdis.dis_multiblock(sb.entry_point)
+asmcfg = mdis.dis_multiblock(sb.entry_point)
 
-leaves = list(ab.get_bad_blocks_predecessors())
+leaves = list(asmcfg.get_bad_blocks_predecessors())
 assert(len(leaves) == 1)
 l = leaves.pop()
 logging.info(l)
 
-end_loc_key = mdis.symbol_pool.loc_key_to_offset(l)
+end_offset = mdis.symbol_pool.loc_key_to_offset(l)
 
-logging.info('final loc_key')
-logging.info(end_loc_key)
+logging.info('final offset')
+logging.info(hex(end_offset))
 
 # Export CFG graph (dot format)
 if options.graph is True:
-    open("graph.dot", "w").write(ab.graph.dot())
+    open("graph.dot", "w").write(asmcfg.dot())
 
 
 if options.verbose is True:
@@ -86,7 +86,7 @@ def update_binary(jitter):
     return False
 
 # Set callbacks
-sb.jitter.add_breakpoint(end_loc_key, update_binary)
+sb.jitter.add_breakpoint(end_offset, update_binary)
 
 # Run
 sb.run()
