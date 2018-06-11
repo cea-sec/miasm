@@ -63,7 +63,6 @@ from miasm2.expression.expression_helper import possible_values
 from miasm2.ir.translators import Translator
 from miasm2.analysis.expression_range import expr_range
 from miasm2.analysis.modularintervals import ModularIntervals
-from miasm2.core.asmblock import AsmBlockBad
 
 DriftInfo = namedtuple("DriftInfo", ["symbol", "computed", "expected"])
 
@@ -326,8 +325,7 @@ class DSEEngine(object):
 
             ## Update current state
             asm_block = self.mdis.dis_block(cur_addr)
-            if not isinstance(asm_block, AsmBlockBad):
-                self.ir_arch.add_block(asm_block)
+            self.ir_arch.add_block(asm_block)
             self.addr_to_cacheblocks[cur_addr] = dict(self.ir_arch.blocks)
 
         # Emulate the current instruction
@@ -351,12 +349,9 @@ class DSEEngine(object):
 
                 if not (isinstance(next_addr_concrete, ExprLoc) and
                         self.ir_arch.symbol_pool.loc_key_to_offset(
-                            next_addr_concrete
+                            next_addr_concrete.loc_key
                         ) is None):
                     # Not a lbl_gen, exit
-                    break
-
-                if self.symb.ir_arch.get_block(cur_addr) is None:
                     break
 
                 # Call handle with lbl_gen state

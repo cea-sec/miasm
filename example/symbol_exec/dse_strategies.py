@@ -67,7 +67,7 @@ jitter.init_run(run_addr)
 # Init a DSE instance with a given strategy
 dse = DSEPathConstraint(machine, produce_solution=strategy)
 dse.attach(jitter)
-# Concretize everything exept the argument
+# Concretize everything except the argument
 dse.update_state_from_concrete()
 regs = jitter.ir_arch.arch.regs
 arg = ExprId("ARG", 32)
