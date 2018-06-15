@@ -3,6 +3,8 @@
 from collections import namedtuple
 from miasm2.core.graph import DiGraph
 from miasm2.ir.ir import AssignBlock, IRBlock
+from miasm2.expression.expression import ExprLoc
+
 
 class ReachingDefinitions(dict):
     """
@@ -94,6 +96,7 @@ ATTR_DEP = {"color" : "black",
             "_type" : "data"}
 
 AssignblkNode = namedtuple('AssignblkNode', ['label', 'index', 'var'])
+
 
 class DiGraphDefUse(DiGraph):
     """Representation of a Use-Definition graph as defined by
@@ -217,23 +220,23 @@ def dead_simp_useful_assignblks(irarch, defuse, reaching_defs):
             valid_definitions = reaching_defs.get_definitions(block_lbl,
                                                               len(block))
             for lval, definitions in valid_definitions.iteritems():
-                if (lval in irarch.get_out_regs(block)
-                    or keep_all_definitions):
+                if lval in irarch.get_out_regs(block) or keep_all_definitions:
                     for definition in definitions:
                         useful.add(AssignblkNode(definition[0], definition[1], lval))
 
         # Force keeping of specific cases
         for index, assignblk in enumerate(block):
             for lval, rval in assignblk.iteritems():
-                if (lval.is_mem()
-                    or irarch.IRDst == lval
-                    or rval.is_function_call()):
+                if (lval.is_mem() or
+                    irarch.IRDst == lval or
+                    rval.is_function_call()):
                     useful.add(AssignblkNode(block_lbl, index, lval))
 
     # Useful nodes dependencies
     for node in useful:
         for parent in defuse.reachable_parents(node):
             yield parent
+
 
 def dead_simp(irarch, ircfg):
     """
@@ -262,4 +265,241 @@ def dead_simp(irarch, ircfg):
                     modified = True
             irs.append(AssignBlock(new_assignblk, assignblk.instr))
         ircfg.blocks[block.loc_key] = IRBlock(block.loc_key, irs)
+    return modified
+
+
+def _test_merge_next_block(ircfg, loc_key):
+    """
+    Test if the irblock at @loc_key can be merge with its son
+    @ircfg: DiGraphIR instance
+    @loc_key: LocKey instance of the candidate parent irblock
+    """
+
+    if loc_key not in ircfg.blocks:
+        return None
+    sons = ircfg.successors(loc_key)
+    if len(sons) != 1:
+        return None
+    son = list(sons)[0]
+    if ircfg.predecessors(son) != [loc_key]:
+        return None
+    if son not in ircfg.blocks:
+        return None
+    return son
+
+def _do_merge_blocks(ircfg, loc_key, son_loc_key):
+    """
+    Merge two irblocks at @loc_key and @son_loc_key
+
+    @ircfg: DiGrpahIR
+    @loc_key: LocKey instance of the parent IRBlock
+    @loc_key: LocKey instance of the son IRBlock
+    """
+
+    assignblks = []
+    for assignblk in ircfg.blocks[loc_key]:
+        if ircfg.IRDst not in assignblk:
+            assignblks.append(assignblk)
+            continue
+        affs = {}
+        for dst, src in assignblk.iteritems():
+            if dst != ircfg.IRDst:
+                affs[dst] = src
+        if affs:
+            assignblks.append(AssignBlock(affs, assignblk.instr))
+
+    assignblks += ircfg.blocks[son_loc_key].assignblks
+    new_block = IRBlock(loc_key, assignblks)
+
+    ircfg.discard_edge(loc_key, son_loc_key)
+
+    for son_successor in ircfg.successors(son_loc_key):
+        ircfg.add_uniq_edge(loc_key, son_successor)
+        ircfg.discard_edge(son_loc_key, son_successor)
+    del ircfg.blocks[son_loc_key]
+    ircfg.del_node(son_loc_key)
+    ircfg.blocks[loc_key] = new_block
+
+
+def _test_jmp_only(ircfg, loc_key):
+    """
+    If irblock at @loc_key sets only IRDst to an ExprLoc, return the
+    corresponding loc_key target.
+    None in other cases.
+
+    @ircfg: IRCFG instance
+    @loc_key: LocKey instance of the candidate irblock
+
+    """
+
+    if loc_key not in ircfg.blocks:
+        return None
+    irblock = ircfg.blocks[loc_key]
+    if len(irblock.assignblks) != 1:
+        return None
+    items = dict(irblock.assignblks[0]).items()
+    if len(items) != 1:
+        return None
+    dst, src = items[0]
+    assert dst.is_id("IRDst")
+    if not src.is_loc():
+        return None
+    return src.loc_key
+
+
+def _relink_block_node(ircfg, loc_key, son_loc_key, replace_dct):
+    """
+    Link loc_key's parents to parents directly to son_loc_key
+    """
+    for parent in set(ircfg.predecessors(loc_key)):
+        parent_block = ircfg.blocks[parent]
+
+        new_block = parent_block.modify_exprs(
+            lambda expr:expr.replace_expr(replace_dct),
+            lambda expr:expr.replace_expr(replace_dct)
+        )
+
+        # Link parent to new dst
+        ircfg.add_edge(parent, son_loc_key)
+
+        # Unlink block
+        ircfg.blocks[new_block.loc_key] = new_block
+        ircfg.del_node(loc_key)
+
+
+def _remove_to_son(ircfg, loc_key, son_loc_key):
+    """
+    Merge irblocks; The final block has the @son_loc_key loc_key
+    Update references
+
+    Condition:
+    - irblock at @loc_key is a pure jump block
+    - @loc_key is not an entry point (can be removed)
+
+    @irblock: DiGraphIR
+    @loc_key: LocKey instance of the parent irblock
+    @son_loc_key: LocKey instance of the son irblock
+    """
+
+    # Ircfg loop => don't mess
+    if loc_key == son_loc_key:
+        return False
+
+    # Unlink block destinations
+    ircfg.del_edge(loc_key, son_loc_key)
+    del ircfg.blocks[loc_key]
+
+    replace_dct = {
+        ExprLoc(loc_key, ircfg.IRDst.size):ExprLoc(son_loc_key, ircfg.IRDst.size)
+    }
+
+    _relink_block_node(ircfg, loc_key, son_loc_key, replace_dct)
+
+    return True
+
+
+def _remove_to_parent(ircfg, loc_key, son_loc_key):
+    """
+    Merge irblocks; The final block has the @loc_key loc_key
+    Update references
+
+    Condition:
+    - irblock at @loc_key is a pure jump block
+    - @son_loc_key is not an entry point (can be removed)
+
+    @irblock: IRCFG instance
+    @loc_key: LocKey instance of the parent irblock
+    @son_loc_key: LocKey instance of the son irblock
+    """
+
+    # Ircfg loop => don't mess
+    if loc_key == son_loc_key:
+        return False
+
+    # Unlink block destinations
+    ircfg.del_edge(loc_key, son_loc_key)
+
+    old_irblock = ircfg.blocks[son_loc_key]
+    new_irblock = IRBlock(loc_key, old_irblock.assignblks)
+
+    ircfg.blocks[son_loc_key] = new_irblock
+
+    del ircfg.blocks[son_loc_key]
+    ircfg.add_irblock(new_irblock)
+
+    replace_dct = {
+        ExprLoc(son_loc_key, ircfg.IRDst.size):ExprLoc(loc_key, ircfg.IRDst.size)
+    }
+
+    _relink_block_node(ircfg, son_loc_key, loc_key, replace_dct)
+
+    return True
+
+
+def merge_blocks(ircfg, loc_key_entries):
+    """
+    This function modifies @ircfg to apply the following transformations:
+    - group an irblock with its son if the irblock has one and only one son and
+      this son has one and only one parent (spaghetti code).
+    - if an irblock is only made of an assignment to IRDst with a given label,
+      this irblock is dropped and its parent destination targets are
+      updated. The irblock must have a parent (avoid deleting the function head)
+    - if an irblock is a head of the graph and is only made of an assignment to
+      IRDst with a given label, this irblock is dropped and its son becomes the
+      head. References are fixed
+
+    Return True if at least an irblock has been modified
+
+    @ircfg: DiGraphIR instance
+    @loc_key_entries: loc_key to keep
+    """
+
+    modified = False
+    todo = set(ircfg.nodes())
+    while todo:
+        loc_key = todo.pop()
+
+        # Test merge block
+        son = _test_merge_next_block(ircfg, loc_key)
+        if son is not None and son not in loc_key_entries:
+            _do_merge_blocks(ircfg, loc_key, son)
+            todo.add(loc_key)
+            modified = True
+            continue
+
+        # Test jmp only block
+        son = _test_jmp_only(ircfg, loc_key)
+        if son is not None and loc_key not in loc_key_entries:
+            modified |= _remove_to_son(ircfg, loc_key, son)
+            todo.add(loc_key)
+            continue
+
+        # Test head jmp only block
+        if son is not None and son not in loc_key_entries:
+            # jmp only test done previously
+            modified |= _remove_to_parent(ircfg, loc_key, son)
+            todo.add(loc_key)
+            continue
+
+
+    return modified
+
+
+def remove_empty_assignblks(ircfg):
+    """
+    Remove empty assignblks in irblocks of @ircfg
+    Return True if at least an irblock has been modified
+
+    @ircfg: DiGraphIR
+    """
+    modified = False
+    for loc_key, block in ircfg.blocks.iteritems():
+        irs = []
+        for assignblk in block:
+            if len(assignblk):
+                irs.append(assignblk)
+            else:
+                modified = True
+        ircfg.blocks[loc_key] = IRBlock(loc_key, irs)
+
     return modified

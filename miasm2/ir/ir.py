@@ -302,6 +302,20 @@ class IRBlock(object):
         self._dst = None
         self._dst_linenb = None
 
+    def __eq__(self, other):
+        if self.__class__ is not other.__class__:
+            return False
+        if self.loc_key != other.loc_key:
+            return False
+        if len(self.assignblks) != len(other.assignblks):
+            return False
+        for assignblk1, assignblk2 in zip(self.assignblks, other.assignblks):
+            if assignblk1 != assignblk2:
+                return False
+        return True
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def get_label(self):
         warnings.warn('DEPRECATION WARNING: use ".loc_key" instead of ".label"')
@@ -421,7 +435,7 @@ class IRBlock(object):
                 node_name = "".join("%s:\n" % name for name in names)
         out.append(node_name)
 
-        for i, assignblk in enumerate(self):
+        for assignblk in self:
             out.append(assignblk.to_string(loc_db))
         return '\n'.join(out)
 
@@ -660,138 +674,6 @@ class DiGraphIR(DiGraph):
             todo = follow
 
         return done
-
-    def remove_empty_assignblks(self):
-        modified = False
-        for loc_key, block in self.blocks.iteritems():
-            irs = []
-            for assignblk in block:
-                if len(assignblk):
-                    irs.append(assignblk)
-                else:
-                    modified = True
-            self.blocks[loc_key] = IRBlock(loc_key, irs)
-        return modified
-
-    def remove_jmp_blocks(self):
-        """
-        Remove irblock with only IRDst set, by linking it's parent destination to
-        the block destination.
-        """
-
-        # Find candidates
-        jmp_blocks = set()
-        for block in self.blocks.itervalues():
-            if len(block) != 1:
-                continue
-            assignblk = block[0]
-            if len(assignblk) > 1:
-                continue
-            assert set(assignblk.keys()) == set([self.IRDst])
-            if len(self.successors(block.loc_key)) != 1:
-                continue
-            if not assignblk[self.IRDst].is_loc():
-                continue
-            dst = assignblk[self.IRDst].loc_key
-            if dst == block.loc_key:
-                # Infinite loop block
-                continue
-            jmp_blocks.add(block.loc_key)
-
-        # Remove them, relink graph
-        modified = False
-        for loc_key in jmp_blocks:
-            block = self.blocks[loc_key]
-            dst_loc_key = block.dst
-            parents = self.predecessors(block.loc_key)
-            for lbl in parents:
-                parent = self.blocks.get(lbl, None)
-                if parent is None:
-                    continue
-                dst = parent.dst
-                if dst.is_id(block.loc_key):
-                    dst = m2_expr.ExprLoc(dst_loc_key, dst.size)
-
-                    self.discard_edge(lbl, block.loc_key)
-                    self.discard_edge(block.loc_key, dst_loc_key)
-
-                    self.add_uniq_edge(lbl, dst_loc_key)
-                    modified = True
-                elif dst.is_cond():
-                    src1, src2 = dst.src1, dst.src2
-                    if src1.is_id(block.loc_key):
-                        dst = m2_expr.ExprCond(dst.cond, m2_expr.ExprLoc(dst_loc_key, dst.size), dst.src2)
-                        self.discard_edge(lbl, block.loc_key)
-                        self.discard_edge(block.loc_key, dst_loc_key)
-                        self.add_uniq_edge(lbl, dst_loc_key)
-                        modified = True
-                    if src2.is_id(block.loc_key):
-                        dst = m2_expr.ExprCond(dst.cond, dst.src1, m2_expr.ExprLoc(dst_loc_key, dst.size))
-                        self.discard_edge(lbl, block.loc_key)
-                        self.discard_edge(block.loc_key, dst_loc_key)
-                        self.add_uniq_edge(lbl, dst_loc_key)
-                        modified = True
-                    if dst.src1 == dst.src2:
-                        dst = dst.src1
-                else:
-                    continue
-                new_parent = parent.set_dst(dst)
-                self.blocks[parent.loc_key] = new_parent
-
-        # Remove unlinked useless nodes
-        for loc_key in jmp_blocks:
-            if (len(self.predecessors(loc_key)) == 0 and
-                len(self.successors(loc_key)) == 0):
-                self.del_node(loc_key)
-                del self.blocks[loc_key]
-        return modified
-
-    def merge_blocks(self):
-        """
-        Group irblock with one and only one son if this son has one and only one
-        parent
-        """
-        modified = False
-        todo = set(self.nodes())
-        while todo:
-            block = todo.pop()
-            sons = self.successors(block)
-            if len(sons) != 1:
-                continue
-            son = list(sons)[0]
-            if self.predecessors(son) != [block]:
-                continue
-            if block not in self.blocks:
-                continue
-            if son not in self.blocks:
-                continue
-            # Block has one son, son has one parent => merge
-            assignblks = []
-            for assignblk in self.blocks[block]:
-                if self.IRDst not in assignblk:
-                    assignblks.append(assignblk)
-                    continue
-                affs = {}
-                for dst, src in assignblk.iteritems():
-                    if dst != self.IRDst:
-                        affs[dst] = src
-                assignblks.append(AssignBlock(affs, assignblk.instr))
-
-            assignblks += self.blocks[son].assignblks
-            new_block = IRBlock(block, assignblks)
-
-            self.discard_edge(block, son)
-
-            for lson in self.successors(son):
-                self.add_uniq_edge(block, lson)
-                self.discard_edge(son, lson)
-            del self.blocks[son]
-            self.del_node(son)
-
-            self.blocks[block] = new_block
-            todo.add(block)
-            modified = True
-        return modified
 
 
 class IntermediateRepresentation(object):
