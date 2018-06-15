@@ -39,8 +39,8 @@ class depGraphSettingsForm(ida_kernwin.Form):
             if assignblk.instr.offset == self.address:
                 break
         assert line_nb is not None
-        cur_label = str(cur_block.loc_key)
-        labels = sorted(map(str, ira.blocks.keys()))
+        cur_loc_key = str(cur_block.loc_key)
+        loc_keys = sorted(map(str, ira.blocks.keys()))
         regs = sorted(ira.arch.regs.all_regs_ids_byname.keys())
         regs += self.stk_args.keys()
         reg_default = regs[0]
@@ -86,21 +86,21 @@ Method to use:
                 tp=ida_kernwin.Form.FT_RAWHEX,
                 value=line_nb),
             'cbBBL': ida_kernwin.Form.DropdownListControl(
-                    items=labels,
+                    items=loc_keys,
                     readonly=False,
-                    selval=cur_label),
+                    selval=cur_loc_key),
             'cColor': ida_kernwin.Form.ColorInput(value=0xc0c020),
         })
 
         self.Compile()
 
     @property
-    def label(self):
+    def loc_key(self):
         value = self.cbBBL.value
-        for real_label in self.ira.blocks:
-            if str(real_label) == value:
-                return real_label
-        raise ValueError("Bad label")
+        for real_loc_key in self.ira.blocks:
+            if str(real_loc_key) == value:
+                return real_loc_key
+        raise ValueError("Bad loc_key")
 
     @property
     def line_nb(self):
@@ -225,7 +225,7 @@ def launch_depgraph():
     settings = depGraphSettingsForm(ir_arch)
     settings.Execute()
 
-    label, elements, line_nb = settings.loc_key, settings.elements, settings.line_nb
+    loc_key, elements, line_nb = settings.loc_key, settings.elements, settings.line_nb
     # Simplify affectations
     for irb in ir_arch.blocks.values():
         irs = []
@@ -249,7 +249,7 @@ def launch_depgraph():
 
     # Get dependency graphs
     dg = settings.depgraph
-    graphs = dg.get(label, elements, line_nb,
+    graphs = dg.get(loc_key, elements, line_nb,
                     set([ir_arch.symbol_pool.getby_offset(func.startEA)]))
 
     # Display the result
