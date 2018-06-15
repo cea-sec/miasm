@@ -776,7 +776,7 @@ def pop_gen(ir, instr, src, size):
         e.append(m2_expr.ExprAff(sp, new_sp))
     # XXX FIX XXX for pop [esp]
     if isinstance(src, m2_expr.ExprMem):
-        src = src.replace_expr({sp: new_sp})
+        src = expr_simp(src.replace_expr({sp: new_sp}))
     result = sp
     if ir.do_stk_segm:
         result = ir.gen_segm_expr(SS, result)
