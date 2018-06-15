@@ -250,6 +250,26 @@ def simp_cst_propagation(e_s, expr):
             e_s(Y.msb()) == ExprInt(0, 1)):
             args = [args[0].args[0], X + Y]
 
+    # ((var >> int1) << int1) => var & mask
+    # ((var << int1) >> int1) => var & mask
+    if (op_name in ['<<', '>>'] and
+        args[0].is_op() and
+        args[0].op in ['<<', '>>'] and
+        op_name != args[0]):
+        var = args[0].args[0]
+        int1 = args[0].args[1]
+        int2 = args[1]
+        if int1 == int2 and int1.is_int() and int(int1) < expr.size:
+            if op_name == '>>':
+                mask = ExprInt((1 << (expr.size - int(int1))) - 1, expr.size)
+            else:
+                mask = ExprInt(
+                    ((1 << int(int1)) - 1) ^ ((1 << expr.size) - 1),
+                    expr.size
+                )
+            ret = var & mask
+            return ret
+
     # ((A & A.mask)
     if op_name == "&" and args[-1] == expr.mask:
         return ExprOp('&', *args[:-1])
