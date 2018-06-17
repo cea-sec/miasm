@@ -247,7 +247,7 @@ assert len(entry_block.lines) == 4
 assert map(str, entry_block.lines) == ['XOR        EAX, EAX',
                                        'XOR        EBX, EBX',
                                        'XOR        ECX, ECX',
-                                       'JNZ        label_3']
+                                       'JNZ        loc_3']
 assert len(asmcfg.successors(entry_block.loc_key)) == 2
 assert len(entry_block.bto) == 2
 nextb = asmcfg.loc_key_to_block((cons.loc_key for cons in entry_block.bto
@@ -258,11 +258,11 @@ assert len(nextb.lines) == 4
 assert map(str, nextb.lines) == ['XOR        EDX, EDX',
                                  'XOR        ESI, ESI',
                                  'XOR        EDI, EDI',
-                                 'JMP        label_4']
+                                 'JMP        loc_4']
 assert asmcfg.successors(nextb.loc_key) == [nextb.loc_key]
 assert len(tob.lines) == 2
 assert map(str, tob.lines) == ['XOR        EBP, EBP',
-                               'JMP        label_3']
+                               'JMP        loc_3']
 assert asmcfg.successors(tob.loc_key) == [tob.loc_key]
 
 # Check split_block
@@ -289,7 +289,7 @@ lbl_newb = asmcfg.successors(entry_block.loc_key)[0]
 newb = asmcfg.loc_key_to_block(lbl_newb)
 assert len(newb.lines) == 2
 assert map(str, newb.lines) == ['XOR        ECX, ECX',
-                                'JNZ        label_3']
+                                'JNZ        loc_3']
 preds = asmcfg.predecessors(lbl_newb)
 assert len(preds) == 2
 assert entry_block.loc_key in preds
