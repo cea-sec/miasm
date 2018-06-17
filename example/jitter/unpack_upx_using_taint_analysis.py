@@ -152,10 +152,11 @@ leaves = list(ab.get_bad_blocks_predecessors())
 assert(len(leaves) == 1)
 l = leaves.pop()
 logging.info(l)
-end_label = l.label.offset
 
-logging.info('final label')
-logging.info(end_label)
+end_loc_key = mdis.symbol_pool.loc_key_to_offset(l)
+
+logging.info('final loc_key')
+logging.info(end_loc_key)
 
 # Export CFG graph (dot format)
 if options.graph is True:
@@ -176,7 +177,7 @@ def update_binary(jitter):
     return False
 
 # Set callbacks
-sb.jitter.add_breakpoint(end_label, update_binary)
+sb.jitter.add_breakpoint(end_loc_key, update_binary)
 
 
 #####################TAINT##########################
