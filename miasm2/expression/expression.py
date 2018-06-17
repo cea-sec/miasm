@@ -644,7 +644,7 @@ class ExprLoc(Expr):
         return Expr.get_object(cls, (loc_key, size))
 
     def __str__(self):
-        return "label_%d" % self._loc_key.key
+        return "loc_%d" % self._loc_key.key
 
     def get_r(self, mem_read=False, cst_read=False):
         return set()
