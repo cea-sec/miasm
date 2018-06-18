@@ -5,7 +5,7 @@ from miasm2.analysis.machine import Machine
 from miasm2.ir.translators import Translator
 import miasm2.expression.expression as m2_expr
 
-def guess_machine():
+def guess_machine(addr=None):
     "Return an instance of Machine corresponding to the IDA guessed processor"
 
     processor_name = GetLongPrm(INF_PROCNAME)
@@ -39,7 +39,14 @@ def guess_machine():
                         (False, 64, True): "aarch64b",
                         (False, 64, False): "aarch64l",
                         }
-        is_armt = globals().get('armt', False)
+
+        # Get T reg to detect arm/thumb function
+        # Default is arm
+        is_armt = False
+        if addr is not None:
+            t_reg = GetReg(addr, "T")
+            is_armt = t_reg == 1
+
         is_bigendian = info.is_be()
         infos = (is_armt, size, is_bigendian)
         if not infos in info2machine:

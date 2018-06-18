@@ -4,8 +4,8 @@ Apply reduction rules to an Expression ast
 """
 
 import logging
-from miasm2.expression.expression import ExprInt, ExprId, ExprOp, ExprSlice,\
-    ExprCompose, ExprMem, ExprCond
+from miasm2.expression.expression import ExprInt, ExprId, ExprLoc, ExprOp, \
+    ExprSlice, ExprCompose, ExprMem, ExprCond
 
 log_reduce = logging.getLogger("expr_reduce")
 console_handler = logging.StreamHandler()
@@ -29,7 +29,7 @@ class ExprNode(object):
         expr = self.expr
         if self.info is not None:
             out = repr(self.info)
-        elif expr.is_int() or expr.is_id():
+        elif expr.is_int() or expr.is_id() or expr.is_loc():
             out = str(expr)
         elif expr.is_mem():
             out = "@%d[%r]" % (self.expr.size, self.arg)
@@ -76,7 +76,7 @@ class ExprReducer(object):
         @expr: Expression to analyze
         """
 
-        if isinstance(expr, (ExprId, ExprInt)):
+        if isinstance(expr, (ExprId, ExprLoc, ExprInt)):
             node = ExprNode(expr)
         elif isinstance(expr, (ExprMem, ExprSlice)):
             son = self.expr2node(expr.arg)
@@ -118,7 +118,7 @@ class ExprReducer(object):
 
         expr = node.expr
         log_reduce.debug("\t" * lvl + "Reduce...: %s", node.expr)
-        if isinstance(expr, (ExprId, ExprInt)):
+        if isinstance(expr, (ExprId, ExprInt, ExprLoc)):
             pass
         elif isinstance(expr, ExprMem):
             arg = self.categorize(node.arg, lvl=lvl + 1, **kwargs)

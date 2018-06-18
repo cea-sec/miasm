@@ -10,7 +10,7 @@ from miasm2.arch.x86.ctype import CTypeAMD64_unk, CTypeX86_unk
 from miasm2.arch.msp430.ctype import CTypeMSP430_unk
 from miasm2.core.objc import CTypesManagerNotPacked, ExprToAccessC, CHandler
 from miasm2.core.ctypesmngr import CAstTypes
-from miasm2.expression.expression import ExprId, ExprInt, ExprOp, ExprAff
+from miasm2.expression.expression import ExprLoc, ExprInt, ExprOp, ExprAff
 from miasm2.ir.symbexec_types import SymbExecCType
 from miasm2.expression.parser import str_to_expr
 from miasm2.analysis.cst_propag import add_state, propagate_cst_expr
@@ -19,9 +19,7 @@ from utils import guess_machine
 
 class TypePropagationForm(ida_kernwin.Form):
 
-    def __init__(self, ira):
-
-        self.ira = ira
+    def __init__(self):
 
         default_types_info = r"""ExprId("RDX", 64): char *"""
         archs = ["AMD64_unk", "X86_32_unk", "msp430_unk"]
@@ -204,7 +202,6 @@ class SymbExecCTypeFix(SymbExecCType):
                     expr = self.cst_propag_link.get((irb.loc_key, index), {}).get(expr, expr)
                     offset2cmt.setdefault(instr.offset, set()).add(
                         "\n%s: %s\n%s" % (expr, c_str, c_type))
-
             self.eval_updt_assignblk(assignblk)
         for offset, value in offset2cmt.iteritems():
             idc.MakeComm(offset, '\n'.join(value))
@@ -243,38 +240,39 @@ def get_ira_call_fixer(ira):
 
 
 def analyse_function():
-
-    # Init
-    machine = guess_machine()
-    mn, dis_engine, ira = machine.mn, machine.dis_engine, machine.ira
-
-    bs = bin_stream_ida()
-    mdis = dis_engine(bs, dont_dis_nulstart_bloc=True)
-
-
-    iraCallStackFixer = get_ira_call_fixer(ira)
-    ir_arch = iraCallStackFixer(mdis.symbol_pool)
-
-
     # Get settings
-    settings = TypePropagationForm(ir_arch)
+    settings = TypePropagationForm()
     ret = settings.Execute()
     if not ret:
         return
 
+
+    end = None
     if settings.cScope.value == 0:
         addr = settings.functionAddr.value
     else:
         addr = settings.startAddr.value
         if settings.cScope.value == 2:
             end = settings.endAddr
-            mdis.dont_dis = [end]
 
-    blocks = mdis.dis_multiblock(addr)
+    # Init
+    machine = guess_machine(addr=addr)
+    mn, dis_engine, ira = machine.mn, machine.dis_engine, machine.ira
+
+    bs = bin_stream_ida()
+    mdis = dis_engine(bs, dont_dis_nulstart_bloc=True)
+    if end is not None:
+        mdis.dont_dis = [end]
+
+
+    iraCallStackFixer = get_ira_call_fixer(ira)
+    ir_arch = iraCallStackFixer(mdis.symbol_pool)
+
+
+    asmcfg = mdis.dis_multiblock(addr)
     # Generate IR
-    for block in blocks:
+    for block in asmcfg.blocks:
         ir_arch.add_block(block)
-
     cst_propag_link = {}
     if settings.cUnalias.value:
         init_infos = {ir_arch.sp: ir_arch.arch.regs.regs_init[ir_arch.sp] }
@@ -298,7 +296,8 @@ def analyse_function():
         expr_str, ctype_str = expr_str.strip(), ctype_str.strip()
         expr = str_to_expr(expr_str)
         ast = mychandler.types_mngr.types_ast.parse_c_type(
-            ctype_str)
+            ctype_str
+        )
         ctype = mychandler.types_mngr.types_ast.ast_parse_declaration(ast.ext[0])
         objc = types_mngr.get_objc(ctype)
         print '=' * 20
@@ -309,12 +308,15 @@ def analyse_function():
     lbl_real_start = ir_arch.symbol_pool.getby_offset(addr)
     lbl_head = ir_arch.symbol_pool.getby_name_create("start")
 
-    first_block = blocks.label2block(lbl_real_start)
+    first_block = asmcfg.label2block(lbl_real_start)
 
-    assignblk_head = AssignBlock([ExprAff(ir_arch.IRDst, ExprId(lbl_real_start, ir_arch.IRDst.size)),
-                                  ExprAff(
-                                      ir_arch.sp, ir_arch.arch.regs.regs_init[ir_arch.sp])
-                                  ], first_block.lines[0])
+    assignblk_head = AssignBlock(
+        [
+            ExprAff(ir_arch.IRDst, ExprLoc(lbl_real_start, ir_arch.IRDst.size)),
+            ExprAff(ir_arch.sp, ir_arch.arch.regs.regs_init[ir_arch.sp])
+        ],
+        first_block.lines[0]
+    )
     irb_head = IRBlock(lbl_head, [assignblk_head])
     ir_arch.blocks[lbl_head] = irb_head
     ir_arch.graph.add_uniq_edge(lbl_head, lbl_real_start)
@@ -332,7 +334,6 @@ def analyse_function():
         done.add((lbl, state))
         if lbl not in ir_arch.blocks:
             continue
-
         symbexec_engine = TypePropagationEngine(ir_arch, types_mngr, state)
         addr = symbexec_engine.run_block_at(lbl)
         symbexec_engine.del_mem_above_stack(ir_arch.sp)
