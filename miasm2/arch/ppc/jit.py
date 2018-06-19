@@ -1,4 +1,4 @@
-from miasm2.jitter.jitload import jitter, named_arguments
+from miasm2.jitter.jitload import Jitter, named_arguments
 from miasm2.core import asmblock
 from miasm2.arch.ppc.sem import ir_ppc32b
 import struct
@@ -11,7 +11,7 @@ hnd.setFormatter(logging.Formatter("[%(levelname)s]: %(message)s"))
 log.addHandler(hnd)
 log.setLevel(logging.CRITICAL)
 
-class jitter_ppc32b(jitter):
+class jitter_ppc32b(Jitter):
     max_reg_arg = 8
 
     def __init__(self, *args, **kwargs):
@@ -66,5 +66,5 @@ class jitter_ppc32b(jitter):
 
 
     def init_run(self, *args, **kwargs):
-        jitter.init_run(self, *args, **kwargs)
+        Jitter.init_run(self, *args, **kwargs)
         self.cpu.PC = self.pc

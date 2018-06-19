@@ -1,5 +1,6 @@
 
 import logging
+import warnings
 from functools import wraps
 from collections import Sequence, namedtuple, Iterator
 
@@ -160,7 +161,7 @@ class ExceptionHandle():
         return not self.__eq__(to_cmp)
 
 
-class jitter(object):
+class Jitter(object):
 
     "Main class for JIT handling"
 
@@ -502,3 +503,15 @@ class jitter(object):
         self.jit.log_mn = trace_instr
         self.jit.log_regs = trace_regs
         self.jit.log_newbloc = trace_new_blocks
+
+
+class jitter(Jitter):
+    """
+    DEPRECATED object
+    Use Jitter instead of jitter
+    """
+
+
+    def __init__(self, *args, **kwargs):
+        warnings.warn("Deprecated API: use Jitter")
+        super(jitter, self).__init__(*args, **kwargs)

@@ -1,6 +1,6 @@
 import logging
 
-from miasm2.jitter.jitload import jitter, named_arguments
+from miasm2.jitter.jitload import Jitter, named_arguments
 from miasm2.core import asmblock
 from miasm2.core.utils import pck64, upck64
 from miasm2.arch.aarch64.sem import ir_aarch64b, ir_aarch64l
@@ -11,12 +11,12 @@ hnd.setFormatter(logging.Formatter("[%(levelname)s]: %(message)s"))
 log.addHandler(hnd)
 log.setLevel(logging.CRITICAL)
 
-class jitter_aarch64l(jitter):
+class jitter_aarch64l(Jitter):
     max_reg_arg = 8
 
     def __init__(self, *args, **kwargs):
         sp = asmblock.AsmSymbolPool()
-        jitter.__init__(self, ir_aarch64l(sp), *args, **kwargs)
+        Jitter.__init__(self, ir_aarch64l(sp), *args, **kwargs)
         self.vm.set_little_endian()
 
     def push_uint64_t(self, value):
@@ -69,7 +69,7 @@ class jitter_aarch64l(jitter):
     func_prepare_systemv = func_prepare_stdcall
 
     def init_run(self, *args, **kwargs):
-        jitter.init_run(self, *args, **kwargs)
+        Jitter.init_run(self, *args, **kwargs)
         self.cpu.PC = self.pc
 
 
@@ -77,5 +77,5 @@ class jitter_aarch64b(jitter_aarch64l):
 
     def __init__(self, *args, **kwargs):
         sp = asmblock.AsmSymbolPool()
-        jitter.__init__(self, ir_aarch64b(sp), *args, **kwargs)
+        Jitter.__init__(self, ir_aarch64b(sp), *args, **kwargs)
         self.vm.set_big_endian()
