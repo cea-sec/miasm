@@ -24,7 +24,7 @@ def cb_arm_fix_call(mn, cur_bloc, symbol_pool, offsets_to_dis, *args, **kwargs):
         return
     if not l2.args[1] in values:
         return
-    loc_key_cst = self.symbol_pool.getby_offset_create(l1.offset + 4)
+    loc_key_cst = symbol_pool.getby_offset_create(l1.offset + 4)
     cur_bloc.add_cst(loc_key_cst, AsmConstraint.c_next)
     offsets_to_dis.add(l1.offset + 4)
 
