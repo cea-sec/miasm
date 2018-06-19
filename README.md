@@ -217,8 +217,7 @@ def code_sentinelle(jitter):
 Active logs:
 
 ```
->>> jitter.jit.log_regs = True
->>> jitter.jit.log_mn = True
+>>> jitter.set_trace_log()
 ```
 
 Run at arbitrary address:

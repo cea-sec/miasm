@@ -35,8 +35,7 @@ run_addr = 0x40000000
 
 jitter.vm.add_memory_page(run_addr, PAGE_READ | PAGE_WRITE, data)
 
-jitter.jit.log_regs = True
-jitter.jit.log_mn = True
+jitter.set_trace_log()
 jitter.push_uint32_t(0x1337beef)
 
 jitter.add_breakpoint(0x1337beef, code_sentinelle)

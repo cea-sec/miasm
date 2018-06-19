@@ -18,9 +18,6 @@ class Asm_Test(object):
         self.myjit = Machine("mips32l").jitter(jitter)
         self.myjit.init_stack()
 
-        self.myjit.jit.log_regs = False
-        self.myjit.jit.log_mn = False
-
     def __call__(self):
         self.asm()
         self.run()
