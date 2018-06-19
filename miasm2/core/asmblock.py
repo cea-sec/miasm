@@ -521,7 +521,7 @@ class AsmSymbolPool(object):
         return "".join("%s\n" % loc_key for loc_key in self._loc_keys)
 
     def __getitem__(self, item):
-        warnings.warn('DEPRECATION WARNING: use "offset_to_loc_key" or "name_to_loc_key"')
+        warnings.warn('DEPRECATION WARNING: use "getby_name" or "getby_offset"')
         if item in self._name_to_loc_key:
             return self._name_to_loc_key[item]
         if item in self._offset_to_loc_key:
@@ -529,7 +529,7 @@ class AsmSymbolPool(object):
         raise KeyError('unknown symbol %r' % item)
 
     def __contains__(self, item):
-        warnings.warn('DEPRECATION WARNING: use "offset_to_loc_key" or "name_to_loc_key"')
+        warnings.warn('DEPRECATION WARNING: use "getby_name" or "getby_offset"')
         return item in self._name_to_loc_key or item in self._offset_to_loc_key
 
     def merge(self, symbol_pool):
