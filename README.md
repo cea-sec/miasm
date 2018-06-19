@@ -165,8 +165,8 @@ Disassembling the shellcode at address `0`:
 >>> from miasm2.analysis.machine import Machine
 >>> machine = Machine('x86_32')
 >>> mdis = machine.dis_engine(c.bin_stream)
->>> blocks = mdis.dis_multiblock(0)
->>> for block in blocks:
+>>> asmcfg = mdis.dis_multiblock(0)
+>>> for block in asmcfg.blocks:
 ...  print block
 ...
 loc_0000000000000000:0x00000000
@@ -269,7 +269,7 @@ Initializing the IR pool:
 
 ```
 >>> ira = machine.ira()
->>> for block in blocks:
+>>> for block in asmcfg.blocks:
 ...    ira.add_block(block)
 ...
 ```
