@@ -202,6 +202,8 @@ class ContainerELF(Container):
                 offset = symb.value
                 if offset == 0:
                     continue
+                if not name:
+                    continue
                 try:
                     self._symbol_pool.add_location(name, offset)
                 except ValueError:

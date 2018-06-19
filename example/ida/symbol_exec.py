@@ -128,11 +128,12 @@ def symbolic_exec():
 
     from utils import guess_machine
 
+    start, end = idc.SelStart(), idc.SelEnd()
+
     bs = bin_stream_ida()
-    machine = guess_machine()
+    machine = guess_machine(addr=start)
 
     mdis = machine.dis_engine(bs)
-    start, end = idc.SelStart(), idc.SelEnd()
 
     if start == idc.BADADDR and end == idc.BADADDR:
         start = idc.ScreenEA()

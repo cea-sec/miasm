@@ -1050,15 +1050,7 @@ class SymbolicExecutionEngine(object):
                 print '_' * 80
         dst = self.eval_expr(self.ir_arch.IRDst)
 
-        # Best effort to resolve destination as ExprLoc
-        if dst.is_loc():
-            ret = dst
-        elif dst.is_int():
-            label = self.ir_arch.symbol_pool.getby_offset_create(int(dst))
-            ret = ExprLoc(label, dst.size)
-        else:
-            ret = dst
-        return ret
+        return dst
 
     def run_block_at(self, addr, step=False):
         """

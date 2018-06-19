@@ -198,8 +198,12 @@ def next_element():
 
 def launch_depgraph():
     global graphs, comments, sol_nb, settings, addr, ir_arch
+    # Get the current function
+    addr = idc.ScreenEA()
+    func = ida_funcs.get_func(addr)
+
     # Init
-    machine = guess_machine()
+    machine = guess_machine(addr=func.startEA)
     mn, dis_engine, ira = machine.mn, machine.dis_engine, machine.ira
 
     bs = bin_stream_ida()
@@ -212,9 +216,6 @@ def launch_depgraph():
             continue
         mdis.symbol_pool.add_location(name, ad)
 
-    # Get the current function
-    addr = idc.ScreenEA()
-    func = ida_funcs.get_func(addr)
     asmcfg = mdis.dis_multiblock(func.startEA)
 
     # Generate IR

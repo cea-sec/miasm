@@ -98,7 +98,9 @@ class GraphMiasmIR(idaapi.GraphViewer):
 
 
 def build_graph(verbose=False, simplify=False):
-    machine = guess_machine()
+    start_addr = idc.ScreenEA()
+
+    machine = guess_machine(addr=start_addr)
     mn, dis_engine, ira = machine.mn, machine.dis_engine, machine.ira
 
     if verbose:
@@ -125,17 +127,16 @@ def build_graph(verbose=False, simplify=False):
 
     if verbose:
         print "start disasm"
-    addr = idc.ScreenEA()
     if verbose:
         print hex(addr)
 
-    asmcfg = mdis.dis_multiblock(addr)
+    asmcfg = mdis.dis_multiblock(start_addr)
 
     if verbose:
         print "generating graph"
         open('asm_flow.dot', 'w').write(asmcfg.dot())
 
-        print "generating IR... %x" % addr
+        print "generating IR... %x" % start_addr
 
     for block in asmcfg.blocks:
         if verbose:
@@ -144,7 +145,7 @@ def build_graph(verbose=False, simplify=False):
         ir_arch.add_block(block)
 
     if verbose:
-        print "IR ok... %x" % addr
+        print "IR ok... %x" % start_addr
 
     for irb in ir_arch.blocks.itervalues():
         irs = []
