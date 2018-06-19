@@ -134,6 +134,10 @@ def symbolic_exec():
     mdis = machine.dis_engine(bs)
     start, end = idc.SelStart(), idc.SelEnd()
 
+    if start == idc.BADADDR and end == idc.BADADDR:
+        start = idc.ScreenEA()
+        end = idc.next_head(start) # Get next instruction address
+
     mdis.dont_dis = [end]
     asmcfg = mdis.dis_multiblock(start)
     ira = machine.ira(symbol_pool=mdis.symbol_pool)
@@ -151,7 +155,8 @@ def symbolic_exec():
     view = symbolicexec_t()
     all_views.append(view)
     if not view.Create(modified, machine, mdis.symbol_pool,
-                       "Symbolic Execution - 0x%x to 0x%x" % (start, end)):
+                       "Symbolic Execution - 0x%x to 0x%x"
+                       % (start, idc.prev_head(end))):
         return
 
     view.Show()
