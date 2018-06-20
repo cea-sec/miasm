@@ -166,7 +166,7 @@ Disassembling the shellcode at address `0`:
 >>> machine = Machine('x86_32')
 >>> mdis = machine.dis_engine(c.bin_stream)
 >>> blocks = mdis.dis_multiblock(0)
->>> for block in blocks:
+>>> for block in blocks.blocks:
 ...  print block
 ...
 loc_0000000000000000:0x00000000
@@ -269,7 +269,7 @@ Initializing the IR pool:
 
 ```
 >>> ira = machine.ira()
->>> for block in blocks:
+>>> for block in blocks.blocks
 ...    ira.add_block(block)
 ...
 ```
@@ -440,7 +440,7 @@ An auto-generated documentation is available [here](http://miasmdoc.ajax.re).
 Obtaining Miasm
 ===============
 
-* Clone the repository: [Miasm on GitHub](https://github.com/serpilliere/miasm)
+* Clone the repository: [Miasm on GitHub](https://github.com/cea-sec/miasm/)
 * Get one of the Docker images at [Docker Hub](https://registry.hub.docker.com/u/miasm/)
 
 Software requirements
