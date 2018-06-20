@@ -268,7 +268,6 @@ def analyse_function():
     iraCallStackFixer = get_ira_call_fixer(ira)
     ir_arch = iraCallStackFixer(mdis.symbol_pool)
 
-
     asmcfg = mdis.dis_multiblock(addr)
     # Generate IR
     for block in asmcfg.blocks:
