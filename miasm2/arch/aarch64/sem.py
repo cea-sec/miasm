@@ -350,7 +350,36 @@ def csel(arg1, arg2, arg3, arg4):
     cond_expr = cond2expr[arg4.name]
     arg1 = arg2 if cond_expr else arg3
 
+def ccmp(ir, instr, arg1, arg2, arg3, arg4):
+    e = []
+    if(arg2.is_int):
+        arg2=m2_expr.ExprInt(arg2.arg.arg,arg1.size)
+    default_nf = arg3[0:1]
+    default_zf = arg3[1:2]
+    default_cf = arg3[2:3]
+    default_of = arg3[3:4]
+    cond_expr = cond2expr[arg4.name]
+    res = arg1 - arg2
+    new_nf = nf
+    new_zf = update_flag_zf(res)[0].src
+    new_cf = update_flag_sub_cf(arg1, arg2, res).src
+    new_of = update_flag_sub_of(arg1, arg2, res).src
 
+    e.append(m2_expr.ExprAff(nf, m2_expr.ExprCond(cond_expr,
+                                                    new_nf,
+                                                    default_nf)))
+    e.append(m2_expr.ExprAff(zf, m2_expr.ExprCond(cond_expr,
+                                                    new_zf,
+                                                    default_zf)))
+    e.append(m2_expr.ExprAff(cf, m2_expr.ExprCond(cond_expr,
+                                                    new_cf,
+                                                    default_cf)))
+    e.append(m2_expr.ExprAff(of, m2_expr.ExprCond(cond_expr,
+                                                    new_of,
+                                                    default_of)))
+    return e, []
+
+    
 def csinc(ir, instr, arg1, arg2, arg3, arg4):
     e = []
     cond_expr = cond2expr[arg4.name]
@@ -761,6 +790,7 @@ mnemo_func.update({
     'cmp': cmp,
     'cmn': cmn,
     'movk': movk,
+    'ccmp': ccmp,
     'csinc': csinc,
     'csinv': csinv,
     'csneg': csneg,
