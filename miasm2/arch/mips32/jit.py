@@ -1,6 +1,6 @@
 import logging
 
-from miasm2.jitter.jitload import jitter, named_arguments
+from miasm2.jitter.jitload import Jitter, named_arguments
 from miasm2.core import asmblock
 from miasm2.core.utils import pck32, upck32
 from miasm2.arch.mips32.sem import ir_mips32l, ir_mips32b
@@ -80,13 +80,13 @@ class mipsCGen(CGen):
         return out
 
 
-class jitter_mips32l(jitter):
+class jitter_mips32l(Jitter):
 
     C_Gen = mipsCGen
 
     def __init__(self, *args, **kwargs):
         sp = asmblock.AsmSymbolPool()
-        jitter.__init__(self, ir_mips32l(sp), *args, **kwargs)
+        Jitter.__init__(self, ir_mips32l(sp), *args, **kwargs)
         self.vm.set_little_endian()
 
     def push_uint32_t(self, value):
@@ -102,7 +102,7 @@ class jitter_mips32l(jitter):
         return upck32(self.vm.get_mem(self.cpu.SP + 4 * index, 4))
 
     def init_run(self, *args, **kwargs):
-        jitter.init_run(self, *args, **kwargs)
+        Jitter.init_run(self, *args, **kwargs)
         self.cpu.PC = self.pc
 
     # calling conventions
@@ -146,5 +146,5 @@ class jitter_mips32b(jitter_mips32l):
 
     def __init__(self, *args, **kwargs):
         sp = asmblock.AsmSymbolPool()
-        jitter.__init__(self, ir_mips32b(sp), *args, **kwargs)
+        Jitter.__init__(self, ir_mips32b(sp), *args, **kwargs)
         self.vm.set_big_endian()

@@ -1,6 +1,6 @@
 import logging
 
-from miasm2.jitter.jitload import jitter, named_arguments
+from miasm2.jitter.jitload import Jitter, named_arguments
 from miasm2.core import asmblock
 from miasm2.core.utils import pck32, upck32
 from miasm2.arch.arm.sem import ir_armb, ir_arml, ir_armtl, ir_armtb, cond_dct_inv, tab_cond
@@ -51,12 +51,12 @@ class arm_CGen(CGen):
         return irblocks_list
 
 
-class jitter_arml(jitter):
+class jitter_arml(Jitter):
     C_Gen = arm_CGen
 
     def __init__(self, *args, **kwargs):
         sp = asmblock.AsmSymbolPool()
-        jitter.__init__(self, ir_arml(sp), *args, **kwargs)
+        Jitter.__init__(self, ir_arml(sp), *args, **kwargs)
         self.vm.set_little_endian()
 
     def push_uint32_t(self, value):
@@ -107,7 +107,7 @@ class jitter_arml(jitter):
     get_arg_n_systemv = get_arg_n_stdcall
 
     def init_run(self, *args, **kwargs):
-        jitter.init_run(self, *args, **kwargs)
+        Jitter.init_run(self, *args, **kwargs)
         self.cpu.PC = self.pc
 
 
@@ -116,7 +116,7 @@ class jitter_armb(jitter_arml):
 
     def __init__(self, *args, **kwargs):
         sp = asmblock.AsmSymbolPool()
-        jitter.__init__(self, ir_armb(sp), *args, **kwargs)
+        Jitter.__init__(self, ir_armb(sp), *args, **kwargs)
         self.vm.set_big_endian()
 
 
@@ -125,5 +125,5 @@ class jitter_armtl(jitter_arml):
 
     def __init__(self, *args, **kwargs):
         sp = asmblock.AsmSymbolPool()
-        jitter.__init__(self, ir_armtl(sp), *args, **kwargs)
+        Jitter.__init__(self, ir_armtl(sp), *args, **kwargs)
         self.vm.set_little_endian()

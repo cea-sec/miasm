@@ -1,4 +1,4 @@
-from miasm2.jitter.jitload import jitter
+from miasm2.jitter.jitload import Jitter
 from miasm2.core import asmblock
 from miasm2.core.utils import pck16, upck16
 from miasm2.arch.msp430.sem import ir_msp430
@@ -11,11 +11,11 @@ hnd.setFormatter(logging.Formatter("[%(levelname)s]: %(message)s"))
 log.addHandler(hnd)
 log.setLevel(logging.CRITICAL)
 
-class jitter_msp430(jitter):
+class jitter_msp430(Jitter):
 
     def __init__(self, *args, **kwargs):
         sp = asmblock.AsmSymbolPool()
-        jitter.__init__(self, ir_msp430(sp), *args, **kwargs)
+        Jitter.__init__(self, ir_msp430(sp), *args, **kwargs)
         self.vm.set_little_endian()
 
     def push_uint16_t(self, value):
@@ -37,6 +37,6 @@ class jitter_msp430(jitter):
         return value
 
     def init_run(self, *args, **kwargs):
-        jitter.init_run(self, *args, **kwargs)
+        Jitter.init_run(self, *args, **kwargs)
         self.cpu.PC = self.pc
 
