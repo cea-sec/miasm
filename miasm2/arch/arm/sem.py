@@ -635,7 +635,6 @@ def st_ld_r(ir, instr, a, a2, b, store=False, size=32, s_ext=False, z_ext=False)
         base, off = b.args[0],  b.args[1]  # ExprInt(size/8, 32)
     else:
         base, off = b, ExprInt(0, 32)
-    # print a, wb, base, off, postinc
     if postinc:
         ad = base
     else:
@@ -734,13 +733,11 @@ def ldrsh(ir, instr, a, b):
 def st_ld_m(ir, instr, a, b, store=False, postinc=False, updown=False):
     e = []
     wb = False
-    # sb = False
     dst = None
     if isinstance(a, ExprOp) and a.op == 'wback':
         wb = True
         a = a.args[0]
     if isinstance(b, ExprOp) and b.op == 'sbit':
-        # sb = True
         b = b.args[0]
     regs = b.args
     base = a

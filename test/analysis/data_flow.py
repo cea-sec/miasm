@@ -673,7 +673,6 @@ for test_nb, test in enumerate([(G1_IRA, G1_EXP_IRA),
 
     reaching_defs = ReachingDefinitions(g_ira)
     defuse = DiGraphDefUse(reaching_defs, deref_mem=True)
-    #open("defuse_%02d.dot" % (test_nb+1), "w").write(defuse.dot())
 
     # # Simplify graph
     dead_simp(g_ira)

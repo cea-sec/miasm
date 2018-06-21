@@ -116,7 +116,6 @@ def build_graph(verbose=False, simplify=False):
 
     # populate symbols with ida names
     for addr, name in idautils.Names():
-        # print hex(ad), repr(name)
         if name is None:
             continue
         if (mdis.symbol_pool.getby_offset(addr) or

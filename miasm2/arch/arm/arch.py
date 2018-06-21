@@ -1038,16 +1038,12 @@ class arm_op2(arm_arg):
         shift_kind = shift & 1
         shift_type = (shift >> 1) & 3
         shift >>= 3
-        # print self.parent.immop.value, hex(shift), hex(shift_kind),
-        # hex(shift_type)
         if shift_kind:
             # shift kind is reg
             if shift & 1:
-                # log.debug('error in shift1')
                 return False
             rs = shift >> 1
             if rs == 0xf:
-                # log.debug('error in shift2')
                 return False
             shift_op = regs_expr[rs]
         else:
@@ -2155,12 +2151,10 @@ class armt_rlist_pclr(armt_rlist):
         reg_l = list(e.args)
         self.parent.pclr.value = 0
         if self.parent.pp.value == 0:
-            # print 'push'
             if regs_expr[14] in reg_l:
                 reg_l.remove(regs_expr[14])
                 self.parent.pclr.value = 1
         else:
-            # print 'pop',
             if regs_expr[15] in reg_l:
                 reg_l.remove(regs_expr[15])
                 self.parent.pclr.value = 1
