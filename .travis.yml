@@ -37,9 +37,12 @@ before_script:
 - "cd z3/build"
 - "make install"
 - "cd ../.."
-# install miasm
+# Miasm
 - "cd ..;"
 - "cd miasm;"
+# turn deprecation warning into RuntimeError
+- "find . -name '*.py' | xargs sed -i 's/warnings\\.warn(/raise RuntimeError(/g'"
+# install
 - "python setup.py build build_ext -I$(pwd)/../virtualenv/include -L$(pwd)/../virtualenv/tinycc"
 - "python setup.py install"
 script: "python -c 'import z3; x = z3.BitVec(chr(0x41), 32)' && cd test && python test_all.py && git ls-files -o --exclude-standard"
