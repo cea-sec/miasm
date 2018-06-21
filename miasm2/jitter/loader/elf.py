@@ -32,7 +32,6 @@ def preload_elf(vm, e, runtime_lib, patch_vm_imp=True):
     # XXX quick hack
     fa = get_import_address_elf(e)
     dyn_funcs = {}
-    # log.debug('imported funcs: %s' % fa)
     for (libname, libfunc), ads in fa.items():
         for ad in ads:
             ad_base_lib = runtime_lib.lib_get_add_base(libname)
@@ -77,7 +76,6 @@ def vm_load_elf(vm, fdata, name="", **kargs):
         # -2: Trick to avoid merging 2 consecutive pages
         i += [(a_addr, b_addr - 2)]
     for a, b in i.intervals:
-        # print hex(a), hex(b)
         vm.add_memory_page(a, PAGE_READ | PAGE_WRITE, "\x00" * (b + 2 - a),
                            repr(name))
 

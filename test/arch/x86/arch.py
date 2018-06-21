@@ -3062,17 +3062,13 @@ for mode, s, l, in reg_tests:
     print s
     print mn
     assert(str(mn).strip() == s)
-    # print hex(b)
-    # print [str(x.get()) for x in mn.args]
     print 'fromstring', repr(s)
     l = mn_x86.fromstring(s, symbol_pool, mode)
-    # print l
     print 'str args', [(str(x), x.size) for x in l.args]
     assert(str(l).strip(' ') == s)
     a = mn_x86.asm(l)
     print 'asm result', [x for x in a]
     print repr(b)
-    # test_file[mode[0]].write(b)
 
     for x in a:
         print "BYTES", repr(x)
@@ -3086,7 +3082,6 @@ for mode, s, l, in reg_tests:
         assert(str(rl).strip(' ') == s)
     print repr(b), a
     assert(b in a)
-    # print mn.args
 print 'TEST time', time.time() - ts
 
 
@@ -3118,9 +3113,7 @@ def profile_dis(o):
     print 'instr per sec:', instr_num / (time.time() - ts)
 
 import cProfile
-# cProfile.run(r'mn_x86.dis("\x81\x54\x18\xfe\x44\x33\x22\x11", m32)')
 cProfile.run('profile_dis(o)')
-# profile_dis(o)
 
 # Test instruction representation with prefix
 instr_bytes = '\x65\xc7\x00\x09\x00\x00\x00'

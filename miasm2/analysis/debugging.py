@@ -273,7 +273,7 @@ class DebugCmd(cmd.Cmd, object):
 
     def add_breakpoints(self, bp_addr):
         for addr in bp_addr:
-	    addr = int(addr, 0)
+            addr = int(addr, 0)
 
             good = True
             for i, dbg_obj in enumerate(self.dbg.bp_list):

@@ -32,7 +32,6 @@ x = ExprMem(a + b + ExprInt(0x42, 32), 32)
 
 
 def replace_expr(e):
-    # print 'visit', e
     dct = {c + ExprInt(0x42, 32): d,
            a + b: c, }
     if e in dct:

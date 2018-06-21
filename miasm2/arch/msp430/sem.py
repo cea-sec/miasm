@@ -434,7 +434,6 @@ class ir_msp430(IntermediateRepresentation):
         pass
 
     def get_ir(self, instr):
-        # print instr#, args
         args = instr.args
         instr_ir, extra_ir = mnemo_func[instr.name](self, instr, *args)
         self.mod_sr(instr, instr_ir, extra_ir)
