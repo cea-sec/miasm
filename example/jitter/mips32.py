@@ -5,16 +5,11 @@ from miasm2.analysis import debugging
 from miasm2.jitter.csts import *
 from miasm2.analysis.machine import Machine
 
-from pdb import pm
-
 parser = ArgumentParser(
     description="""Sandbox raw binary with mips32 engine
 (ex: jit_mips32.py example/mips32_sc_l.bin 0)""")
-parser.add_argument("-r", "--log-regs",
-                    help="Log registers value for each instruction",
-                    action="store_true")
-parser.add_argument("-m", "--log-mn",
-                    help="Log desassembly conversion for each instruction",
+parser.add_argument("-t", "--trace",
+                    help="Log instructions/registers values",
                     action="store_true")
 parser.add_argument("-n", "--log-newbloc",
                     help="Log basic blocks processed by the Jitter",
@@ -43,9 +38,11 @@ def jit_mips32_binary(args):
     myjit.init_stack()
 
     # Log level (if available with jitter engine)
-    myjit.jit.log_regs = args.log_regs
-    myjit.jit.log_mn = args.log_mn
-    myjit.jit.log_newbloc = args.log_newbloc
+    myjit.set_trace_log(
+        trace_instr=args.trace,
+        trace_regs=args.trace,
+        trace_new_blocks=args.log_newbloc
+    )
 
     myjit.vm.add_memory_page(0, PAGE_READ | PAGE_WRITE, open(filepath).read())
     myjit.add_breakpoint(0x1337BEEF, code_sentinelle)

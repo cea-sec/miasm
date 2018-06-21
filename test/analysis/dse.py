@@ -34,8 +34,7 @@ class DSETest(object):
         self.myjit = jitter(jitter_engine)
         self.myjit.init_stack()
 
-        self.myjit.jit.log_regs = True
-        self.myjit.jit.log_mn = True
+        self.myjit.set_trace_log()
 
         self.dse = None
         self.assembly = None

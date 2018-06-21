@@ -23,8 +23,8 @@ jitter.vm.add_memory_page(0x1000, PAGE_READ|PAGE_WRITE, "\x00"*0x1000, "code pag
 # RET
 jitter.vm.set_mem(0x1000, "B844332211C3".decode('hex'))
 
-jitter.jit.log_mn = True
-jitter.jit.log_regs = True
+
+jitter.set_trace_log()
 
 def do_not_raise_me(jitter):
     raise ValueError("Should not be here")

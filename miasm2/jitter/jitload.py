@@ -484,3 +484,21 @@ class jitter(object):
         self.symbexec.update_cpu_from_engine()
 
         return ret
+
+    def set_trace_log(self,
+                      trace_instr=True, trace_regs=True,
+                      trace_new_blocks=False):
+        """
+        Activate/Deactivate trace log options
+
+        @trace_instr: activate instructions tracing log
+        @trace_regs: activate registers tracing log
+        @trace_new_blocks: dump new code blocks log
+        """
+
+        # As trace state changes, clear already jitted blocks
+        self.jit.clear_jitted_blocks()
+
+        self.jit.log_mn = trace_instr
+        self.jit.log_regs = trace_regs
+        self.jit.log_newbloc = trace_new_blocks
