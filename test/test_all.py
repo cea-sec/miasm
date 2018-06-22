@@ -262,6 +262,7 @@ testset += RegressionTest(["test_chandler.py"], base_dir="expr_type",
 ## IR
 for script in ["symbexec.py",
                "ir.py",
+               "reduce_graph.py"
                ]:
     testset += RegressionTest([script], base_dir="ir")
 
