@@ -18,9 +18,6 @@ class Asm_Test(object):
         self.myjit = Machine(self.arch_name).jitter(jitter_engine)
         self.myjit.init_stack()
 
-        self.myjit.jit.log_regs = False
-        self.myjit.jit.log_mn = False
-
     def test_init(self):
         pass
 
@@ -80,10 +77,6 @@ class Asm_Test_16(Asm_Test):
         self.myjit.stack_base = 0x1000
         self.myjit.stack_size = 0x1000
         self.myjit.init_stack()
-
-        self.myjit.jit.log_regs = False
-        self.myjit.jit.log_mn = False
-
 
     def init_machine(self):
         self.myjit.vm.add_memory_page(self.run_addr, PAGE_READ | PAGE_WRITE, self.assembly)

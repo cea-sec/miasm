@@ -228,13 +228,9 @@ for s, l in reg_tests_mips32:
     print s
     print mn
     assert(str(mn) == s)
-    # print hex(b)
-    # print [str(x.get()) for x in mn.args]
     l = mn_mips32.fromstring(s, symbol_pool, 'b')
-    # print l
     assert(str(l) == s)
     a = mn_mips32.asm(l, 'b')
     print [x for x in a]
     print repr(b)
-    # print mn.args
     assert(b in a)

@@ -1,6 +1,6 @@
 import logging
 
-from miasm2.jitter.jitload import jitter, named_arguments
+from miasm2.jitter.jitload import Jitter, named_arguments
 from miasm2.core import asmblock
 from miasm2.core.utils import pck16, pck32, pck64, upck16, upck32, upck64
 from miasm2.arch.x86.sem import ir_x86_16, ir_x86_32, ir_x86_64
@@ -34,13 +34,13 @@ class x86_64_CGen(x86_32_CGen):
             out.append('dump_gpregs_64(jitcpu->cpu);')
         return out
 
-class jitter_x86_16(jitter):
+class jitter_x86_16(Jitter):
 
     C_Gen = x86_32_CGen
 
     def __init__(self, *args, **kwargs):
         sp = asmblock.AsmSymbolPool()
-        jitter.__init__(self, ir_x86_16(sp), *args, **kwargs)
+        Jitter.__init__(self, ir_x86_16(sp), *args, **kwargs)
         self.vm.set_little_endian()
         self.ir_arch.do_stk_segm = False
         self.orig_irbloc_fix_regs_for_mode = self.ir_arch.irbloc_fix_regs_for_mode
@@ -62,17 +62,17 @@ class jitter_x86_16(jitter):
         return upck16(self.vm.get_mem(self.cpu.SP + 4 * index, 4))
 
     def init_run(self, *args, **kwargs):
-        jitter.init_run(self, *args, **kwargs)
+        Jitter.init_run(self, *args, **kwargs)
         self.cpu.IP = self.pc
 
 
-class jitter_x86_32(jitter):
+class jitter_x86_32(Jitter):
 
     C_Gen = x86_32_CGen
 
     def __init__(self, *args, **kwargs):
         sp = asmblock.AsmSymbolPool()
-        jitter.__init__(self, ir_x86_32(sp), *args, **kwargs)
+        Jitter.__init__(self, ir_x86_32(sp), *args, **kwargs)
         self.vm.set_little_endian()
         self.ir_arch.do_stk_segm = False
 
@@ -104,7 +104,7 @@ class jitter_x86_32(jitter):
         return upck32(self.vm.get_mem(self.cpu.ESP + 4 * index, 4))
 
     def init_run(self, *args, **kwargs):
-        jitter.init_run(self, *args, **kwargs)
+        Jitter.init_run(self, *args, **kwargs)
         self.cpu.EIP = self.pc
 
     # calling conventions
@@ -180,7 +180,7 @@ class jitter_x86_32(jitter):
 
 
 
-class jitter_x86_64(jitter):
+class jitter_x86_64(Jitter):
 
     C_Gen = x86_64_CGen
     args_regs_systemv = ['RDI', 'RSI', 'RDX', 'RCX', 'R8', 'R9']
@@ -188,7 +188,7 @@ class jitter_x86_64(jitter):
 
     def __init__(self, *args, **kwargs):
         sp = asmblock.AsmSymbolPool()
-        jitter.__init__(self, ir_x86_64(sp), *args, **kwargs)
+        Jitter.__init__(self, ir_x86_64(sp), *args, **kwargs)
         self.vm.set_little_endian()
         self.ir_arch.do_stk_segm = False
 
@@ -211,7 +211,7 @@ class jitter_x86_64(jitter):
         return upck64(self.vm.get_mem(self.cpu.RSP + 8 * index, 8))
 
     def init_run(self, *args, **kwargs):
-        jitter.init_run(self, *args, **kwargs)
+        Jitter.init_run(self, *args, **kwargs)
         self.cpu.RIP = self.pc
 
     # calling conventions

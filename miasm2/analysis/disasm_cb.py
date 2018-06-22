@@ -5,7 +5,6 @@ from miasm2.expression.simplifications import expr_simp
 from miasm2.core.asmblock \
     import AsmSymbolPool, AsmConstraintNext, AsmConstraintTo
 from miasm2.core.utils import upck32
-# from miasm2.core.graph import DiGraph
 
 
 def get_ira(mnemo, attrib):
@@ -32,11 +31,8 @@ def arm_guess_subcall(
     ir_arch.add_block(cur_bloc)
 
     ir_blocks = ir_arch.blocks.values()
-    # flow_graph = DiGraph()
     to_add = set()
     for irblock in ir_blocks:
-        # print 'X'*40
-        # print irblock
         pc_val = None
         lr_val = None
         for exprs in irblock:
@@ -53,17 +49,13 @@ def arm_guess_subcall(
         l = cur_bloc.lines[-1]
         if lr_val.arg != l.offset + l.l:
             continue
-        # print 'IS CALL!'
         l = symbol_pool.getby_offset_create(int(lr_val))
         c = AsmConstraintNext(l)
 
         to_add.add(c)
         offsets_to_dis.add(int(lr_val))
 
-    # if to_add:
-    #    print 'R'*70
     for c in to_add:
-        # print c
         cur_bloc.addto(c)
 
 
@@ -80,16 +72,11 @@ def arm_guess_jump_table(
 
     ir_blocks = ir_arch.blocks.values()
     for irblock in ir_blocks:
-        # print 'X'*40
-        # print irblock
         pc_val = None
-        # lr_val = None
         for exprs in irblock:
             for e in exprs:
                 if e.dst == ir_arch.pc:
                     pc_val = e.src
-                # if e.dst == mnemo.regs.LR:
-                #    lr_val = e.src
         if pc_val is None:
             continue
         if not isinstance(pc_val, ExprMem):

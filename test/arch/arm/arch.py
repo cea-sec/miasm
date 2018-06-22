@@ -5,41 +5,6 @@ from pdb import pm
 
 
 symbol_pool = AsmSymbolPool()
-if 0:
-    a = bs('00')
-    b = bs('01')
-    c = bs(l=2)
-    d = bs(l=4, fname='rd')
-    e = bs_name(l=1, name={'ADD': 0, 'SUB': 1})
-    assert(isinstance(e, bs_divert))
-    scc = bs_mod_name(l=1, mn_mod=['', 'S'])
-    f = bs(l=1, cls=(arm_reg,))
-
-    class arm_mov(mn_arm):
-        fields = [bs('0000'), bs('0000'), bs('0000')]
-
-    class arm_DATA(mn_arm):
-        fields = [bs('1111'), e, scc, f, bs('0')]
-    mn = mn_arm.dis(0xF000000)
-
-
-if 0:
-    import cProfile
-    cProfile.run('mn_arm.dis("\xe1\xa0\xa0\x06", "l")')
-    # l = mn_arm.dis(bin_stream("\xe1\xa0\xa0\x06"), mode_arm)
-    # print l
-    """
-    mode = 64
-    l = mn_x86.fromstring("ADC      DWORD PTR [RAX], 0x11223344", mode)
-    print 'xx'
-    #t= time.time()
-    import cProfile
-    def f():
-        x = l.asm(mode)
-        print x
-    cProfile.run('f()')
-    """
-
 
 def h2i(s):
     return s.replace(' ', '').decode('hex')
@@ -268,15 +233,11 @@ for s, l in reg_tests_arm:
     print s
     print mn
     assert(str(mn) == s)
-    # print hex(b)
-    # print [str(x.get()) for x in mn.args]
     l = mn_arm.fromstring(s, symbol_pool, 'l')
-    # print l
     assert(str(l) == s)
     a = mn_arm.asm(l)
     print [x for x in a]
     print repr(b)
-    # print mn.args
     assert(b in a)
 
 reg_tests_armt = [
@@ -720,35 +681,13 @@ for s, l in reg_tests_armt:
     print s
     print mn
     assert(str(mn) == s)
-    # print hex(b)
-    # print [str(x.get()) for x in mn.args]
     l = mn_armt.fromstring(s, symbol_pool, 'l')
-    # print l
     assert(str(l) == s)
     print 'Asm..', l
     a = mn_armt.asm(l)
     print [x for x in a]
     print repr(b)
-    # print mn.args
     assert(b in a)
-
-"""
-print "*"*30, "START SPECIAL PARSING", "*"*30
-parse_tests = [
-    "MOV      LR, toto",
-    "MOV      LR, 1+toto",
-    "MOV      LR, (lend-lstart)^toto<<<R1",
-    "MOV      LR, R1 LSL (l_end-l_start)^toto<<<R1",
-    "MOV      LR, R1 LSL (l_end-l_start)^toto<<<R1",
-    "EOR      R0, R1, toto^titi+1",
-    ]
-
-for l in parse_tests:
-    print "-"*80
-    l = mn_arm.fromstring(l, 'l')
-    print l.name, ", ".join([str(a) for a in l.args])
-"""
-
 
 print 'TEST time', time.time() - ts
 
@@ -787,7 +726,6 @@ instr_num = 0
 ts = time.time()
 while off < bs.getlen():
     mn = mn_armt.dis(bs, 'l', off)
-    # print instr_num, off, str(mn)
     instr_num += 1
     off += mn.l
 print 'instr per sec:', instr_num / (time.time() - ts)

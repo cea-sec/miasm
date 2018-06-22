@@ -57,15 +57,14 @@ class Sandbox(object):
                 cls.__init__(self, **kwargs)
 
         # Logging options
-        if self.options.singlestep:
-            self.jitter.jit.log_mn = True
-            self.jitter.jit.log_regs = True
+        self.jitter.set_trace_log(
+            trace_instr=self.options.singlestep,
+            trace_regs=self.options.singlestep,
+            trace_new_blocks=self.options.dumpblocs
+        )
 
         if not self.options.quiet_function_calls:
             log_func.setLevel(logging.INFO)
-
-        if self.options.dumpblocs:
-            self.jitter.jit.log_newbloc = True
 
     @classmethod
     def parser(cls, *args, **kwargs):

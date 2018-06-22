@@ -33,8 +33,7 @@ def init_jitter():
 
     # Init jitter
     myjit.init_stack()
-    myjit.jit.log_regs = True
-    myjit.jit.log_mn = True
+    myjit.set_trace_log()
     myjit.push_uint32_t(0x1337beef)
 
     myjit.add_breakpoint(0x1337beef, code_sentinelle)

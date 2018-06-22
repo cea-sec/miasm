@@ -73,30 +73,6 @@ def guess_next_new_label(symbol_pool):
         i += 1
 
 
-def replace_expr_labels(expr, symbol_pool, replace_id):
-    """Create LocKey of the expression @expr in the @symbol_pool
-    Update @replace_id"""
-
-    if not expr.is_loc():
-        return expr
-
-    old_name = symbol_pool.loc_key_to_name(expr.loc_key)
-    new_lbl = symbol_pool.getby_name_create(old_name)
-    replace_id[expr] = ExprLoc(new_lbl, expr.size)
-    return replace_id[expr]
-
-
-def replace_orphan_labels(instr, symbol_pool):
-    """Link orphan labels used by @instr to the @symbol_pool"""
-
-    for i, arg in enumerate(instr.args):
-        replace_id = {}
-        arg.visit(lambda e: replace_expr_labels(e,
-                                                symbol_pool,
-                                                replace_id))
-        instr.args[i] = instr.args[i].replace_expr(replace_id)
-
-
 STATE_NO_BLOC = 0
 STATE_IN_BLOC = 1
 
@@ -223,8 +199,6 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
             line = line[:line.find(';')]
         line = line.strip(' ').strip('\t')
         instr = mnemo.fromstring(line, symbol_pool, attrib)
-
-        replace_orphan_labels(instr, symbol_pool)
 
         if instr.dstflow():
             instr.dstflow2label(symbol_pool)

@@ -398,15 +398,11 @@ for s, l in reg_tests_sh4:
     print s
     print mn
     assert(str(mn) == s)
-    # print hex(b)
-    # print [str(x.get()) for x in mn.args]
     l = mn_sh4.fromstring(s, symbol_pool, None)
-    # print l
     assert(str(l) == s)
     a = mn_sh4.asm(l)
     print [x for x in a]
     print repr(b)
-    # print mn.args
     assert(b in a)
 
 

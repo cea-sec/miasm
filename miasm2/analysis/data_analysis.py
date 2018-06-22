@@ -4,7 +4,6 @@ from miasm2.ir.symbexec import SymbolicExecutionEngine
 
 
 def get_node_name(label, i, n):
-    # n_name = "%s_%d_%s"%(label.name, i, n)
     n_name = (label, i, n)
     return n_name
 
@@ -69,18 +68,12 @@ def intra_block_flow_symbexec(ir_arch, flow_graph, irb, in_nodes, out_nodes):
 
     sb = SymbolicExecutionEngine(ir_arch, dict(symbols_init))
     sb.emulbloc(irb)
-    # print "*"*40
-    # print irb
-    # print sb.dump_id()
-    # print sb.dump_mem()
 
     for n_w in sb.symbols:
-        # print n_w
         v = sb.symbols[n_w]
         if n_w in symbols_init and symbols_init[n_w] == v:
             continue
         read_values = v.get_r(cst_read=True)
-        # print n_w, v, [str(x) for x in read_values]
         node_n_w = get_node_name(irb.loc_key, len(irb), n_w)
 
         for n_r in read_values:
@@ -97,9 +90,6 @@ def intra_block_flow_symbexec(ir_arch, flow_graph, irb, in_nodes, out_nodes):
 
 def inter_block_flow_link(ir_arch, flow_graph, irb_in_nodes, irb_out_nodes, todo, link_exec_to_data):
     lbl, current_nodes, exec_nodes = todo
-    # print 'TODO'
-    # print lbl
-    # print [(str(x[0]), str(x[1])) for x in current_nodes]
     current_nodes = dict(current_nodes)
 
     # link current nodes to bloc in_nodes
@@ -107,12 +97,10 @@ def inter_block_flow_link(ir_arch, flow_graph, irb_in_nodes, irb_out_nodes, todo
         print "cannot find bloc!!", lbl
         return set()
     irb = ir_arch.blocks[lbl]
-    # pp(('IN', lbl, [(str(x[0]), str(x[1])) for x in current_nodes.items()]))
     to_del = set()
     for n_r, node_n_r in irb_in_nodes[irb.loc_key].items():
         if not n_r in current_nodes:
             continue
-        # print 'add link', current_nodes[n_r], node_n_r
         flow_graph.add_uniq_edge(current_nodes[n_r], node_n_r)
         to_del.add(n_r)
 
@@ -137,8 +125,6 @@ def inter_block_flow_link(ir_arch, flow_graph, irb_in_nodes, irb_out_nodes, todo
     for lbl_dst in ir_arch.graph.successors(irb.loc_key):
         todo.add((lbl_dst, tuple(current_nodes.items()), x_nodes))
 
-    # pp(('OUT', lbl, [(str(x[0]), str(x[1])) for x in current_nodes.items()]))
-
     return todo
 
 
@@ -161,18 +147,11 @@ def create_implicit_flow(ir_arch, flow_graph, irb_in_nodes, irb_out_ndes):
                 if not isinstance(n_r, ExprId):
                     continue
 
-                # print "###", n_r
-                # print "###", irb
-                # print "###", 'OUT', [str(x) for x in irb.out_nodes]
-                # print "###", irb_son
-                # print "###", 'IN', [str(x) for x in irb_son.in_nodes]
-
                 node_n_w = irb.loc_key, len(irb), n_r
                 irb_out_nodes[irb.loc_key][n_r] = node_n_w
                 if not n_r in irb_in_nodes[irb.loc_key]:
                     irb_in_nodes[irb.loc_key][n_r] = irb.loc_key, 0, n_r
                 node_n_r = irb_in_nodes[irb.loc_key][n_r]
-                # print "###", node_n_r
                 for lbl_p in ir_arch.graph.predecessors(irb.loc_key):
                     todo.add(lbl_p)
 
@@ -220,45 +199,10 @@ class symb_exec_func:
         b = self.ir_arch.get_block(ad)
         if b is None:
             raise ValueError("unknown bloc! %s" % ad)
-        """
-        dead = b.dead[0]
-        for d in dead:
-            if d in variables:
-                del(variables[d])
-        """
         variables = variables.items()
 
         s = parent, ad, tuple(sorted(variables))
-        """
-        state_var = s[1]
-        if s in self.states_var_done:
-            print 'skip state'
-            return
-        if not ad in self.stateby_ad:
-            self.stateby_ad[ad] = set()
-        self.stateby_ad[ad].add(state_var)
-
-        """
         self.todo.add(s)
-
-        """
-        if not ad in self.cpt:
-            self.cpt[ad] = 0
-        """
-    """
-    def get_next_min(self):
-        state_by_ad = {}
-        for state in self.todo:
-            ad = state[1]
-            if not ad in state_by_ad:
-                state_by_ad[ad] = []
-            state_by_ad[ad].append(state)
-        print "XX", [len(x) for x in state_by_ad.values()]
-        state_by_ad = state_by_ad.items()
-        state_by_ad.sort(key=lambda x:len(x[1]))
-        state_by_ad.reverse()
-        return state_by_ad.pop()[1][0]
-    """
 
     def get_next_state(self):
         state = self.todo.pop()
@@ -273,16 +217,10 @@ class symb_exec_func:
         self.total_done += 1
         print 'CPT', self.total_done
         while self.todo:
-            # if self.total_done>20:
-            #    self.get_next_min()
-            # state = self.todo.pop()
             state = self.get_next_state()
             parent, ad, s = state
             self.states_done.add(state)
             self.states_var_done.add(state)
-            # if s in self.states_var_done:
-            #    print "state done"
-            #    continue
 
             sb = SymbolicExecutionEngine(self.ir_arch, dict(s))
 

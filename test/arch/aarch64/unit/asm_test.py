@@ -16,15 +16,10 @@ class Asm_Test(object):
         self.myjit = Machine("aarch64l").jitter(jitter)
         self.myjit.init_stack()
 
-        self.myjit.jit.log_regs = False
-        self.myjit.jit.log_mn = False
-
-
     def __call__(self):
         self.asm()
         self.run()
         self.check()
-
 
     def asm(self):
         blocks, symbol_pool = parse_asm.parse_txt(mn_aarch64, 'l', self.TXT,

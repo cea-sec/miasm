@@ -13,6 +13,6 @@ cont = Container.from_stream(open(sys.argv[1]))
 mdis = dis_x86_32(cont.bin_stream)
 # Inform the engine to avoid disassembling null instructions
 mdis.dont_dis_nulstart_bloc = True
-blocks = mdis.dis_multiblock(addr)
+asmcfg = mdis.dis_multiblock(addr)
 
-open('graph.dot', 'w').write(blocks.dot())
+open('graph.dot', 'w').write(asmcfg.dot())

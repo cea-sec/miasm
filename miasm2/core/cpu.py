@@ -1030,7 +1030,7 @@ class instruction(object):
                 if name == '_':
                     fixed_expr[exprloc] = self.get_asm_next_offset(exprloc)
                     continue
-                if not name in symbols:
+                if symbols.getby_name(name) is None:
                     raise ValueError('Unresolved symbol: %r' % exprloc)
 
                 offset = symbols.loc_key_to_offset(loc_key)

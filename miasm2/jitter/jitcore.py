@@ -16,6 +16,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 from hashlib import md5
+import warnings
 
 from miasm2.core.asmblock import disasmEngine, AsmBlockBad
 from miasm2.core.interval import interval
@@ -52,7 +53,6 @@ class JitCore(object):
         self.addr2obj = {}
         self.addr2objref = {}
         self.blocs_mem_interval = interval()
-        self.disasm_cb = None
         self.split_dis = set()
         self.options = {"jit_maxline": 50,  # Maximum number of line jitted
                         "max_exec_per_call": 0 # 0 means no limit
@@ -65,7 +65,6 @@ class JitCore(object):
             follow_call=False,
             dontdis_retcall=False,
             split_dis=self.split_dis,
-            dis_block_callback=self.disasm_cb
         )
 
 
@@ -145,7 +144,6 @@ class JitCore(object):
 
         # Prepare disassembler
         self.mdis.lines_wd = self.options["jit_maxline"]
-        self.mdis.dis_block_callback = self.disasm_cb
 
         # Disassemble it
         cur_block = self.mdis.dis_block(addr)
@@ -295,3 +293,13 @@ class JitCore(object):
                                              self.log_regs,
                                              block_raw)).hexdigest()
         return block_hash
+
+    @property
+    def disasm_cb(self):
+        warnings.warn("Deprecated API: use .mdis.dis_block_callback")
+        return self.mdis.dis_block_callback
+
+    @disasm_cb.setter
+    def disasm_cb(self, value):
+        warnings.warn("Deprecated API: use .mdis.dis_block_callback")
+        self.mdis.dis_block_callback = value

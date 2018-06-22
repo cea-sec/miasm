@@ -165,8 +165,8 @@ Disassembling the shellcode at address `0`:
 >>> from miasm2.analysis.machine import Machine
 >>> machine = Machine('x86_32')
 >>> mdis = machine.dis_engine(c.bin_stream)
->>> blocks = mdis.dis_multiblock(0)
->>> for block in blocks.blocks:
+>>> asmcfg = mdis.dis_multiblock(0)
+>>> for block in asmcfg.blocks:
 ...  print block
 ...
 loc_0000000000000000:0x00000000
@@ -217,8 +217,7 @@ def code_sentinelle(jitter):
 Active logs:
 
 ```
->>> jitter.jit.log_regs = True
->>> jitter.jit.log_mn = True
+>>> jitter.set_trace_log()
 ```
 
 Run at arbitrary address:
@@ -269,7 +268,7 @@ Initializing the IR pool:
 
 ```
 >>> ira = machine.ira()
->>> for block in blocks.blocks
+>>> for block in asmcfg.blocks:
 ...    ira.add_block(block)
 ...
 ```
