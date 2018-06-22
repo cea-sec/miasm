@@ -16,7 +16,7 @@ PyObject* gcc_exec_block(PyObject* self, PyObject* args)
 	PyObject* jitcpu;
 	PyObject* func_py;
 	PyObject* lbl2ptr;
-	PyObject* breakpoints;
+	PyObject* stop_offsets;
 	PyObject* retaddr = NULL;
 	int status;
 	block_id BlockDst;
@@ -26,7 +26,7 @@ PyObject* gcc_exec_block(PyObject* self, PyObject* args)
 
 
 	if (!PyArg_ParseTuple(args, "OOOO|K",
-			      &retaddr, &jitcpu, &lbl2ptr, &breakpoints,
+			      &retaddr, &jitcpu, &lbl2ptr, &stop_offsets,
 			      &max_exec_per_call))
 		return NULL;
 
@@ -73,8 +73,8 @@ PyObject* gcc_exec_block(PyObject* self, PyObject* args)
 		if (status)
 			return retaddr;
 
-		// Check breakpoint
-		if (PyDict_Contains(breakpoints, retaddr))
+		// Check stop offsets
+		if (PySet_Contains(stop_offsets, retaddr))
 			return retaddr;
 	}
 }

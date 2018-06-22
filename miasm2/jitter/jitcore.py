@@ -166,10 +166,16 @@ class JitCore(object):
         self.add_block_to_mem_interval(vm, cur_block)
         return cur_block
 
-    def run_at(self, cpu, offset, breakpoints):
-        """Run from the starting address @offset
+    def run_at(self, cpu, offset, stop_offsets):
+        """Run from the starting address @offset.
+        Execution will stop if:
+        - max_exec_per_call option is reached
+        - a new, yet unknown, block is reached after the execution of block at
+          address @offset
+        - an address in @stop_offsets is reached
         @cpu: JitCpu instance
-        @offset: target offset
+        @offset: starting address (int)
+        @stop_offsets: set of address on which the jitter must stop
         """
 
         if offset is None:
@@ -189,7 +195,8 @@ class JitCore(object):
                 return offset
 
         # Run the block and update cpu/vmmngr state
-        return self.exec_wrapper(offset, cpu, self.offset_to_jitted_func.data, breakpoints,
+        return self.exec_wrapper(offset, cpu, self.offset_to_jitted_func.data,
+                                 stop_offsets,
                                  self.options["max_exec_per_call"])
 
     def blocks_to_memrange(self, blocks):

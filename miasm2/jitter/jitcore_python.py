@@ -131,7 +131,7 @@ class JitCore_Python(jitcore.JitCore):
         assert offset is not None
         self.offset_to_jitted_func[offset] = myfunc
 
-    def exec_wrapper(self, loc_key, cpu, _offset_to_jitted_func, _breakpoints,
+    def exec_wrapper(self, loc_key, cpu, _offset_to_jitted_func, _stop_offsets,
                      _max_exec_per_call):
         """Call the function @loc_key with @cpu
         @loc_key: function's loc_key
