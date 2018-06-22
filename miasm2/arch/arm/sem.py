@@ -1624,7 +1624,7 @@ class ir_arml(IntermediateRepresentation):
 
         new_ir_blocks_all = self.post_add_block(block, ir_blocks_all)
         for irblock in new_ir_blocks_all:
-            self.blocks[irblock.loc_key] = irblock
+            ircfg.add_irblock(irblock)
         return new_ir_blocks_all
 
 
