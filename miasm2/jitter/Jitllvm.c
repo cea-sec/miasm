@@ -10,7 +10,7 @@
 // Needed to get the JitCpu.cpu offset, arch independent
 #include "arch/JitCore_x86.h"
 
-PyObject* llvm_exec_bloc(PyObject* self, PyObject* args)
+PyObject* llvm_exec_block(PyObject* self, PyObject* args)
 {
 	uint64_t (*func)(void*, void*, void*, uint8_t*);
 	vm_cpu_t* cpu;
@@ -20,14 +20,14 @@ PyObject* llvm_exec_bloc(PyObject* self, PyObject* args)
 	uint8_t status;
 	PyObject* func_py;
 	PyObject* lbl2ptr;
-	PyObject* breakpoints;
+	PyObject* stop_offsets;
 	PyObject* retaddr = NULL;
 	uint64_t max_exec_per_call = 0;
 	uint64_t cpt;
 	int do_cpt;
 
 	if (!PyArg_ParseTuple(args, "OOOO|K",
-			      &retaddr, &jitcpu, &lbl2ptr, &breakpoints,
+			      &retaddr, &jitcpu, &lbl2ptr, &stop_offsets,
 			      &max_exec_per_call))
 		return NULL;
 
@@ -68,16 +68,16 @@ PyObject* llvm_exec_bloc(PyObject* self, PyObject* args)
 		if (status)
 			return retaddr;
 
-		// Check breakpoint
-		if (PyDict_Contains(breakpoints, retaddr))
+		// Check stop offsets
+		if (PySet_Contains(stop_offsets, retaddr))
 			return retaddr;
 	}
 }
 
 
 static PyMethodDef LLVMMethods[] = {
-    {"llvm_exec_bloc",  llvm_exec_bloc, METH_VARARGS,
-     "llvm exec bloc"},
+    {"llvm_exec_block",  llvm_exec_block, METH_VARARGS,
+     "llvm exec block"},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 

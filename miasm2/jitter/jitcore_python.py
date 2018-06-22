@@ -15,8 +15,8 @@ class JitCore_Python(jitcore.JitCore):
 
     SymbExecClass = EmulatedSymbExec
 
-    def __init__(self, ir_arch, bs=None):
-        super(JitCore_Python, self).__init__(ir_arch, bs)
+    def __init__(self, ir_arch, bin_stream):
+        super(JitCore_Python, self).__init__(ir_arch, bin_stream)
         self.ir_arch = ir_arch
 
         # CPU & VM (None for now) will be set later
@@ -34,10 +34,10 @@ class JitCore_Python(jitcore.JitCore):
         "Preload symbols according to current architecture"
         self.symbexec.reset_regs()
 
-    def jitirblocs(self, loc_key, irblocks):
+    def jit_irblocks(self, loc_key, irblocks):
         """Create a python function corresponding to an irblocks' group.
         @loc_key: the loc_key of the irblocks
-        @irblocks: a gorup of irblocks
+        @irblocks: a group of irblocks
         """
 
         def myfunc(cpu):
@@ -129,9 +129,9 @@ class JitCore_Python(jitcore.JitCore):
         # Associate myfunc with current loc_key
         offset = self.ir_arch.symbol_pool.loc_key_to_offset(loc_key)
         assert offset is not None
-        self.loc_key_to_jit_block[offset] = myfunc
+        self.offset_to_jitted_func[offset] = myfunc
 
-    def exec_wrapper(self, loc_key, cpu, _loc_key_to_jit_block, _breakpoints,
+    def exec_wrapper(self, loc_key, cpu, _offset_to_jitted_func, _stop_offsets,
                      _max_exec_per_call):
         """Call the function @loc_key with @cpu
         @loc_key: function's loc_key
@@ -139,7 +139,7 @@ class JitCore_Python(jitcore.JitCore):
         """
 
         # Get Python function corresponding to @loc_key
-        fc_ptr = self.loc_key_to_jit_block[loc_key]
+        fc_ptr = self.offset_to_jitted_func[loc_key]
 
         # Execute the function
         return fc_ptr(cpu)

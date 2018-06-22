@@ -13,9 +13,9 @@ from miasm2.jitter.jitcore_cc_base import JitCore_Cc_Base, gen_core
 class JitCore_Gcc(JitCore_Cc_Base):
     "JiT management, using a C compiler as backend"
 
-    def __init__(self, ir_arch, bs=None):
-        super(JitCore_Gcc, self).__init__(ir_arch, bs)
-        self.exec_wrapper = Jitgcc.gcc_exec_bloc
+    def __init__(self, ir_arch, bin_stream):
+        super(JitCore_Gcc, self).__init__(ir_arch, bin_stream)
+        self.exec_wrapper = Jitgcc.gcc_exec_block
 
     def deleteCB(self, offset):
         """Free the state associated to @offset and delete it
@@ -25,15 +25,14 @@ class JitCore_Gcc(JitCore_Cc_Base):
         del self.states[offset]
 
     def load_code(self, label, fname_so):
-        f_name = self.loc_key_to_filename(label)
         lib = ctypes.cdll.LoadLibrary(fname_so)
-        func = getattr(lib, f_name)
+        func = getattr(lib, self.FUNCNAME)
         addr = ctypes.cast(func, ctypes.c_void_p).value
         offset = self.ir_arch.symbol_pool.loc_key_to_offset(label)
-        self.loc_key_to_jit_block[offset] = addr
+        self.offset_to_jitted_func[offset] = addr
         self.states[offset] = lib
 
-    def add_bloc(self, block):
+    def add_block(self, block):
         """Add a bloc to JiT and JiT it.
         @block: block to jit
         """
@@ -41,7 +40,7 @@ class JitCore_Gcc(JitCore_Cc_Base):
         fname_out = os.path.join(self.tempdir, "%s.so" % block_hash)
 
         if not os.access(fname_out, os.R_OK | os.X_OK):
-            func_code = self.gen_c_code(block.loc_key, block)
+            func_code = self.gen_c_code(block)
 
             # Create unique C file
             fdesc, fname_in = tempfile.mkstemp(suffix=".c")
