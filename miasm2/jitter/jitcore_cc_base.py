@@ -85,21 +85,12 @@ class JitCore_Cc_Base(JitCore):
         """
         self.codegen = codegen
 
-    def loc_key_to_filename(self, loc_key):
-        """
-        Generate function name from @loc_key
-        @loc_key: LocKey instance
-        """
-        return "block_%s" % self.codegen.loc_key_to_jitlabel(loc_key)
-
-    def gen_c_code(self, loc_key, block):
+    def gen_c_code(self, block):
         """
         Return the C code corresponding to the @irblocks
-        @loc_key: LocKey of the block to jit
         @irblocks: list of irblocks
         """
-        f_name = self.loc_key_to_filename(loc_key)
-        f_declaration = 'int %s(block_id * BlockDst, JitCpu* jitcpu)' % f_name
+        f_declaration = 'int %s(block_id * BlockDst, JitCpu* jitcpu)' % self.FUNCNAME
         out = self.codegen.gen_c(block, log_mn=self.log_mn, log_regs=self.log_regs)
         out = [f_declaration + '{'] + out + ['}\n']
         c_code = out

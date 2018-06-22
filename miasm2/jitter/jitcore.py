@@ -29,6 +29,9 @@ class JitCore(object):
 
     "JiT management. This is an abstract class"
 
+    # Jitted function's name
+    FUNCNAME = "block_entry"
+
     jitted_block_delete_cb = None
     jitted_block_max_size = 10000
 

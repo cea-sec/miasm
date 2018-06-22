@@ -56,10 +56,9 @@ class TranslatorC(Translator):
             return str(loc_key)
 
         offset = self.symbol_pool.loc_key_to_offset(loc_key)
-        name = self.symbol_pool.loc_key_to_name(loc_key)
-
         if offset is None:
-            return name
+            return str(loc_key)
+
         return "0x%x" % offset
 
     def from_ExprAff(self, expr):

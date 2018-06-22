@@ -113,12 +113,6 @@ class CGen(object):
 
         self.C_PC = self.id_to_c(self.PC)
 
-    def loc_key_to_jitlabel(self, lbl):
-        """Convert LocKey to a jitter label name"""
-        offset = self.ir_arch.symbol_pool.loc_key_to_offset(lbl)
-        assert offset is not None
-        return "jitblock_%X" % offset
-
     def dst_to_c(self, src):
         """Translate Expr @src into C code"""
         if not isinstance(src, Expr):
@@ -241,7 +235,7 @@ class CGen(object):
 
         for dst, src in sorted(assignblk.iteritems()):
             src = src.replace_expr(prefetchers)
-            if dst is self.ir_arch.IRDst:
+            if dst == self.ir_arch.IRDst:
                 pass
             elif isinstance(dst, ExprId):
                 new_dst = self.add_local_var(dst_var, dst_index, dst)
@@ -263,7 +257,7 @@ class CGen(object):
                 raise ValueError("Unknown dst")
 
         for dst, new_dst in dst_var.iteritems():
-            if dst is self.ir_arch.IRDst:
+            if dst == self.ir_arch.IRDst:
                 continue
             c_updt.append('%s = %s;' % (self.id_to_c(dst), self.id_to_c(new_dst)))
             c_var.append("uint%d_t %s;" % (new_dst.size, new_dst))
@@ -376,15 +370,14 @@ class CGen(object):
         offset = self.ir_arch.symbol_pool.loc_key_to_offset(dst)
         if offset is None:
             # Generate goto for local labels
-            name = self.ir_arch.symbol_pool.loc_key_to_name(dst)
-            return ['goto %s;' % name]
+            return ['goto %s;' % dst]
         if (offset > attrib.instr.offset and
             offset in instr_offsets):
             # Only generate goto for next instructions.
             # (consecutive instructions)
             out += self.gen_post_code(attrib)
             out += self.gen_post_instr_checks(attrib)
-            out.append('goto %s;' % self.loc_key_to_jitlabel(dst))
+            out.append('goto %s;' % dst)
         else:
             out += self.gen_post_code(attrib)
             out.append('BlockDst->address = DST_value;')
@@ -537,8 +530,8 @@ class CGen(object):
         post_label = self.get_block_post_label(block)
         post_offset = self.ir_arch.symbol_pool.loc_key_to_offset(post_label)
         instr_offsets.append(post_offset)
-        lbl_start = self.ir_arch.symbol_pool.getby_offset_create(instr_offsets[0])
-        return (self.CODE_INIT % self.loc_key_to_jitlabel(lbl_start)).split("\n"), instr_offsets
+        lbl_start = block.loc_key
+        return (self.CODE_INIT % lbl_start).split("\n"), instr_offsets
 
     def gen_irblock(self, instr_attrib, attributes, instr_offsets, irblock):
         """
@@ -570,10 +563,10 @@ class CGen(object):
         Generate the C code for the final block instruction
         """
 
-        lbl = self.get_block_post_label(block)
-        offset = self.ir_arch.symbol_pool.loc_key_to_offset(lbl)
+        loc_key = self.get_block_post_label(block)
+        offset = self.ir_arch.symbol_pool.loc_key_to_offset(loc_key)
         dst = self.dst_to_c(offset)
-        code = self.CODE_RETURN_NO_EXCEPTION % (self.loc_key_to_jitlabel(lbl), self.C_PC, dst, dst)
+        code = self.CODE_RETURN_NO_EXCEPTION % (loc_key, self.C_PC, dst, dst)
         return code.split('\n')
 
     def gen_c(self, block, log_mn=False, log_regs=False):
@@ -592,15 +585,9 @@ class CGen(object):
             instr_attrib, irblocks_attributes = self.get_attributes(instr, irblocks, log_mn, log_regs)
             for index, irblock in enumerate(irblocks):
                 new_irblock = self.ir_arch.irbloc_fix_regs_for_mode(irblock, self.ir_arch.attrib)
-                label = new_irblock.loc_key
-                offset = self.ir_arch.symbol_pool.loc_key_to_offset(label)
-                if offset is None:
-                    name = self.ir_arch.symbol_pool.loc_key_to_name(label)
-                    out.append("%-40s // %.16X %s" %
-                               (str(name) + ":", instr.offset, instr))
-                else:
-                    out.append("%-40s // %.16X %s" %
-                               (self.loc_key_to_jitlabel(label) + ":", instr.offset, instr))
+                label = str(new_irblock.loc_key)
+                out.append("%-40s // %.16X %s" %
+                           (label + ":", instr.offset, instr))
                 if index == 0:
                     out += self.gen_pre_code(instr_attrib)
                 out += self.gen_irblock(instr_attrib, irblocks_attributes[index], instr_offsets, new_irblock)

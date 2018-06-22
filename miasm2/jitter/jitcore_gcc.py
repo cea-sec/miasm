@@ -25,9 +25,8 @@ class JitCore_Gcc(JitCore_Cc_Base):
         del self.states[offset]
 
     def load_code(self, label, fname_so):
-        f_name = self.loc_key_to_filename(label)
         lib = ctypes.cdll.LoadLibrary(fname_so)
-        func = getattr(lib, f_name)
+        func = getattr(lib, self.FUNCNAME)
         addr = ctypes.cast(func, ctypes.c_void_p).value
         offset = self.ir_arch.symbol_pool.loc_key_to_offset(label)
         self.loc_key_to_jit_block[offset] = addr
@@ -41,7 +40,7 @@ class JitCore_Gcc(JitCore_Cc_Base):
         fname_out = os.path.join(self.tempdir, "%s.so" % block_hash)
 
         if not os.access(fname_out, os.R_OK | os.X_OK):
-            func_code = self.gen_c_code(block.loc_key, block)
+            func_code = self.gen_c_code(block)
 
             # Create unique C file
             fdesc, fname_in = tempfile.mkstemp(suffix=".c")

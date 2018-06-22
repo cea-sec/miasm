@@ -75,16 +75,10 @@ class LLVMContext():
         @label: str or asmlabel instance"""
         if isinstance(label, str):
             return label
-        if not isinstance(label, LocKey):
-            raise ValueError("label must either be str or LocKey")
-
-        offset = self.ir_arch.symbol_pool.loc_key_to_offset(label)
-
-        if offset is None:
-            name = self.ir_arch.symbol_pool.loc_key_to_name(label)
-            return "%s" % name
+        elif isinstance(label, LocKey):
+            return str(label)
         else:
-            return "label_off_%X" % offset
+            raise ValueError("label must either be str or LocKey")
 
     def optimise_level(self, level=2):
         """Set the optimisation level to @level from 0 to 2
@@ -341,7 +335,6 @@ class LLVMContext_JIT(LLVMContext):
     def get_ptr_from_cache(self, file_name, func_name):
         "Load @file_name and return a pointer on the jitter @func_name"
         # We use an empty module to avoid loosing time on function building
-        func_name = self.canonize_label_name(func_name)
         empty_module = llvm.parse_assembly("")
         empty_module.fname_out = file_name
 
@@ -398,7 +391,6 @@ class LLVMFunction():
     def __init__(self, llvm_context, name="fc", new_module=True):
         "Create a new function with name @name"
         self.llvm_context = llvm_context
-        name = self.llvm_context.canonize_label_name(name)
         if new_module:
             self.llvm_context.new_module()
         self.mod = self.llvm_context.get_module()

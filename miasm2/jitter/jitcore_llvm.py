@@ -8,7 +8,6 @@ import Jitllvm
 
 
 class JitCore_LLVM(jitcore.JitCore):
-
     "JiT management, using LLVM as backend"
 
     # Architecture dependant libraries
@@ -84,7 +83,7 @@ class JitCore_LLVM(jitcore.JitCore):
 
         if not os.access(fname_out, os.R_OK):
             # Build a function in the context
-            func = LLVMFunction(self.context, block.loc_key)
+            func = LLVMFunction(self.context, self.FUNCNAME)
 
             # Set log level
             func.log_regs = self.log_regs
@@ -115,7 +114,7 @@ class JitCore_LLVM(jitcore.JitCore):
 
         else:
             # The cache file exists: function can be loaded from cache
-            ptr = self.context.get_ptr_from_cache(fname_out, block.loc_key)
+            ptr = self.context.get_ptr_from_cache(fname_out, self.FUNCNAME)
 
         # Store a pointer on the function jitted code
         loc_key = block.loc_key
