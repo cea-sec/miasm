@@ -439,7 +439,7 @@ An auto-generated documentation is available [here](http://miasmdoc.ajax.re).
 Obtaining Miasm
 ===============
 
-* Clone the repository: [Miasm on GitHub](https://github.com/serpilliere/miasm)
+* Clone the repository: [Miasm on GitHub](https://github.com/cea-sec/miasm/)
 * Get one of the Docker images at [Docker Hub](https://registry.hub.docker.com/u/miasm/)
 
 Software requirements
