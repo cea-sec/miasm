@@ -189,7 +189,7 @@ class DSEEngine(object):
         self.jitter.exec_cb = self.callback
 
         # Clean jit cache to avoid multi-line basic blocks already jitted
-        self.jitter.jit.loc_key_to_jit_block.clear()
+        self.jitter.jit.clear_jitted_blocks()
 
     def attach(self, emulator):
         """Attach the DSE to @emulator

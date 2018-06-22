@@ -303,11 +303,11 @@ class Jitter(object):
         """
         self.exceptions_handler.add_callback(flag, callback)
 
-    def runbloc(self, pc):
+    def run_at(self, pc):
         """Wrapper on JiT backend. Run the code at PC and return the next PC.
         @pc: address of code to run"""
 
-        return self.jit.runbloc(self.cpu, pc, self.breakpoints_handler.callbacks)
+        return self.jit.run_at(self.cpu, pc, self.breakpoints_handler.callbacks)
 
     def runiter_once(self, pc):
         """Iterator on callbacks results on code running from PC.
@@ -349,7 +349,7 @@ class Jitter(object):
         assert(self.get_exception() == 0)
 
         # Run the bloc at PC
-        self.pc = self.runbloc(self.pc)
+        self.pc = self.run_at(self.pc)
 
         # Check exceptions (raised by the execution of the block)
         exception_flag = self.get_exception()

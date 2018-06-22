@@ -10,7 +10,7 @@ typedef struct {
 typedef int (*jitted_func)(block_id*, PyObject*);
 
 
-PyObject* gcc_exec_bloc(PyObject* self, PyObject* args)
+PyObject* gcc_exec_block(PyObject* self, PyObject* args)
 {
 	jitted_func func;
 	PyObject* jitcpu;
@@ -85,8 +85,8 @@ static PyObject *GccError;
 
 
 static PyMethodDef GccMethods[] = {
-    {"gcc_exec_bloc",  gcc_exec_bloc, METH_VARARGS,
-     "gcc exec bloc"},
+    {"gcc_exec_block",  gcc_exec_block, METH_VARARGS,
+     "gcc exec block"},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 

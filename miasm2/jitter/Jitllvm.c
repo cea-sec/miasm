@@ -10,7 +10,7 @@
 // Needed to get the JitCpu.cpu offset, arch independent
 #include "arch/JitCore_x86.h"
 
-PyObject* llvm_exec_bloc(PyObject* self, PyObject* args)
+PyObject* llvm_exec_block(PyObject* self, PyObject* args)
 {
 	uint64_t (*func)(void*, void*, void*, uint8_t*);
 	vm_cpu_t* cpu;
@@ -76,8 +76,8 @@ PyObject* llvm_exec_bloc(PyObject* self, PyObject* args)
 
 
 static PyMethodDef LLVMMethods[] = {
-    {"llvm_exec_bloc",  llvm_exec_bloc, METH_VARARGS,
-     "llvm exec bloc"},
+    {"llvm_exec_block",  llvm_exec_block, METH_VARARGS,
+     "llvm exec block"},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 

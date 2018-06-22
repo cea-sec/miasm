@@ -19,8 +19,8 @@ class JitCore_LLVM(jitcore.JitCore):
                            "ppc32": "JitCore_ppc32.so",
     }
 
-    def __init__(self, ir_arch, bs=None):
-        super(JitCore_LLVM, self).__init__(ir_arch, bs)
+    def __init__(self, ir_arch, bin_stream):
+        super(JitCore_LLVM, self).__init__(ir_arch, bin_stream)
 
         self.options.update({"safe_mode": True,   # Verify each function
                              "optimise": True,     # Optimise functions
@@ -28,7 +28,7 @@ class JitCore_LLVM(jitcore.JitCore):
                              "log_assembly": False,  # Print assembly executed
                              })
 
-        self.exec_wrapper = Jitllvm.llvm_exec_bloc
+        self.exec_wrapper = Jitllvm.llvm_exec_block
         self.ir_arch = ir_arch
 
         # Cache temporary dir
@@ -73,7 +73,7 @@ class JitCore_LLVM(jitcore.JitCore):
         # Enable caching
         self.context.enable_cache()
 
-    def add_bloc(self, block):
+    def add_block(self, block):
         """Add a block to JiT and JiT it.
         @block: the block to add
         """
@@ -119,4 +119,4 @@ class JitCore_LLVM(jitcore.JitCore):
         # Store a pointer on the function jitted code
         loc_key = block.loc_key
         offset = self.ir_arch.symbol_pool.loc_key_to_offset(loc_key)
-        self.loc_key_to_jit_block[offset] = ptr
+        self.offset_to_jitted_func[offset] = ptr

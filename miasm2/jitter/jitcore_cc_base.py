@@ -46,9 +46,9 @@ class resolver:
 class JitCore_Cc_Base(JitCore):
     "JiT management, abstract class using a C compiler as backend"
 
-    def __init__(self, ir_arch, bs=None):
+    def __init__(self, ir_arch, bin_stream):
         self.jitted_block_delete_cb = self.deleteCB
-        super(JitCore_Cc_Base, self).__init__(ir_arch, bs)
+        super(JitCore_Cc_Base, self).__init__(ir_arch, bin_stream)
         self.resolver = resolver()
         self.ir_arch = ir_arch
         self.states = {}
