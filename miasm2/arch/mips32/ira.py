@@ -10,12 +10,8 @@ class ir_a_mips32l(ir_mips32l, ira):
         ir_mips32l.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.V0
 
-    def pre_add_instr(self, block, instr, assignments, ir_blocks_all, gen_pc_updt):
-        # Avoid adding side effects, already done in post_add_bloc
-        return False
-
-    def post_add_block(self, block, ir_blocks):
-        IntermediateRepresentation.post_add_block(self, block, ir_blocks)
+    def post_add_asmblock_to_ircfg(self, block, ircfg, ir_blocks):
+        IntermediateRepresentation.post_add_asmblock_to_ircfg(self, block, ircfg, ir_blocks)
         new_irblocks = []
         for irb in ir_blocks:
             pc_val = None

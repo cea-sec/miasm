@@ -13,7 +13,6 @@ from miasm2.core import parse_asm
 from miasm2.arch.x86.disasm import dis_x86_32 as dis_engine
 from miasm2.ir.translators.translator  import Translator
 
-
 machine = Machine("x86_32")
 
 
@@ -27,7 +26,7 @@ if not args:
     sys.exit(0)
 
 
-def emul_symb(ir_arch, mdis, states_todo, states_done):
+def emul_symb(ir_arch, ircfg, mdis, states_todo, states_done):
     while states_todo:
         addr, symbols, conds = states_todo.pop()
         print '*' * 40, "addr", addr, '*' * 40
@@ -39,7 +38,7 @@ def emul_symb(ir_arch, mdis, states_todo, states_done):
         symbexec.symbols = symbols.copy()
         if ir_arch.pc in symbexec.symbols:
             del symbexec.symbols[ir_arch.pc]
-        irblock = get_block(ir_arch, mdis, addr)
+        irblock = get_block(ir_arch, ircfg, mdis, addr)
 
         print 'Run block:'
         print irblock
@@ -88,7 +87,7 @@ if __name__ == '__main__':
 
 
     ir_arch = machine.ir(mdis.loc_db)
-
+    ircfg = ir_arch.new_ircfg()
     symbexec = SymbolicExecutionEngine(ir_arch)
 
     asmcfg, loc_db = parse_asm.parse_txt(machine.mn, 32, '''
@@ -127,8 +126,8 @@ if __name__ == '__main__':
     print block
 
     # add fake address and len to parsed instructions
-    ir_arch.add_block(block)
-    irb = ir_arch.blocks[init_lbl]
+    ir_arch.add_asmblock_to_ircfg(block, ircfg)
+    irb = ircfg.blocks[init_lbl]
     symbexec.eval_updt_irblock(irb)
     symbexec.dump(ids=False)
     # reset ir_arch blocks
@@ -139,7 +138,7 @@ if __name__ == '__main__':
     states_todo.add((addr, symbexec.symbols, ()))
 
     # emul blocks, propagate states
-    emul_symb(ir_arch, mdis, states_todo, states_done)
+    emul_symb(ir_arch, ircfg, mdis, states_todo, states_done)
 
     all_info = []
 

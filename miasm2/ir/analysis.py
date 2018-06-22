@@ -3,10 +3,10 @@
 import warnings
 import logging
 
-from miasm2.ir.symbexec import SymbolicExecutionEngine
 from miasm2.ir.ir import IntermediateRepresentation, AssignBlock
-from miasm2.expression.expression import ExprAff, ExprOp
+from miasm2.expression.expression import ExprOp
 from miasm2.analysis.data_flow import dead_simp as new_dead_simp_imp
+
 
 log = logging.getLogger("analysis")
 console_handler = logging.StreamHandler()
@@ -27,6 +27,7 @@ class ira(IntermediateRepresentation):
         class ira_x86_16(ir_x86_16, ira)
 
     """
+    ret_reg = None
 
     def call_effects(self, addr, instr):
         """Default modelisation of a function call to @addr. This may be used to:
@@ -44,14 +45,36 @@ class ira(IntermediateRepresentation):
             instr)
         return [assignblk]
 
-    def pre_add_instr(self, block, instr, assignments, ir_blocks_all, gen_pc_update):
-        """Replace function call with corresponding call effects,
-        inside the IR block"""
-        if not instr.is_subcall():
-            return False
-        call_effects = self.call_effects(instr.args[0], instr)
-        assignments+= call_effects
-        return True
+    def add_instr_to_current_state(self, instr, block, assignments, ir_blocks_all, gen_pc_updt):
+        """
+        Add the IR effects of an instruction to the current state.
+        If the instruction is a function call, replace the original IR by a
+        model of the sub function
+
+        Returns a bool:
+        * True if the current assignments list must be split
+        * False in other cases.
+
+        @instr: native instruction
+        @block: native block source
+        @assignments: current irbloc
+        @ir_blocks_all: list of additional effects
+        @gen_pc_updt: insert PC update effects between instructions
+        """
+        if instr.is_subcall():
+            call_effects = self.call_effects(instr.args[0], instr)
+            assignments+= call_effects
+            return True
+
+        if gen_pc_updt is not False:
+            self.gen_pc_update(assignments, instr)
+
+        assignblk, ir_blocks_extra = self.instr2ir(instr)
+        assignments.append(assignblk)
+        ir_blocks_all += ir_blocks_extra
+        if ir_blocks_extra:
+            return True
+        return False
 
     def sizeof_char(self):
         "Return the size of a char in bits"
@@ -73,7 +96,7 @@ class ira(IntermediateRepresentation):
         "Return the size of a void* in bits"
         raise NotImplementedError("Abstract method")
 
-    def dead_simp(self):
+    def dead_simp(self, ircfg):
         """Deprecated: See miasm2.analysis.data_flow.dead_simp()"""
         warnings.warn('DEPRECATION WARNING: Please use miasm2.analysis.data_flow.dead_simp(ira) instead of ira.dead_simp()')
-        new_dead_simp_imp(self)
+        new_dead_simp_imp(self, ircfg)

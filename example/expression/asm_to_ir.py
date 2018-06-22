@@ -7,6 +7,7 @@ from miasm2.core import asmblock
 from miasm2.arch.x86.ira import ir_a_x86_32
 from miasm2.analysis.data_flow import dead_simp
 
+
 # First, asm code
 asmcfg, loc_db = parse_asm.parse_txt(mn_x86, 32, '''
 main:
@@ -35,22 +36,19 @@ patches = asmblock.asm_resolve_final(mn_x86, asmcfg, loc_db)
 
 # Translate to IR
 ir_arch = ir_a_x86_32(loc_db)
-for block in asmcfg.blocks:
-    print 'add block'
-    print block
-    ir_arch.add_block(block)
+ircfg = ir_arch.new_ircfg_from_asmcfg(asmcfg)
 
 # Display IR
-for lbl, irblock in ir_arch.blocks.items():
+for lbl, irblock in ircfg.blocks.items():
     print irblock
 
 # Dead propagation
-open('graph.dot', 'w').write(ir_arch.graph.dot())
+open('graph.dot', 'w').write(ircfg.dot())
 print '*' * 80
-dead_simp(ir_arch)
-open('graph2.dot', 'w').write(ir_arch.graph.dot())
+dead_simp(ir_arch, ircfg)
+open('graph2.dot', 'w').write(ircfg.dot())
 
 # Display new IR
 print 'new ir blocks'
-for lbl, irblock in ir_arch.blocks.items():
+for lbl, irblock in ircfg.blocks.items():
     print irblock

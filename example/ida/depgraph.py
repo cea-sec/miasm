@@ -19,16 +19,17 @@ from utils import guess_machine
 
 class depGraphSettingsForm(ida_kernwin.Form):
 
-    def __init__(self, ira):
+    def __init__(self, ira, ircfg):
 
         self.ira = ira
+        self.ircfg = ircfg
         self.stk_args = {'ARG%d' % i:i for i in xrange(10)}
         self.stk_unalias_force = False
 
         self.address = idc.ScreenEA()
         cur_block = None
-        for block in ira.getby_offset(self.address):
-            offset = self.ira.loc_db.get_location_offset(block.loc_key)
+        for block in ircfg.getby_offset(self.address):
+            offset = self.ircfg.loc_db.get_location_offset(block.loc_key)
             if offset is not None:
                 # Only one block non-generated
                 assert cur_block is None
@@ -40,7 +41,7 @@ class depGraphSettingsForm(ida_kernwin.Form):
                 break
         assert line_nb is not None
         cur_loc_key = str(cur_block.loc_key)
-        loc_keys = sorted(map(str, ira.blocks.keys()))
+        loc_keys = sorted(map(str, ircfg.blocks.keys()))
         regs = sorted(ira.arch.regs.all_regs_ids_byname.keys())
         regs += self.stk_args.keys()
         reg_default = regs[0]
@@ -97,7 +98,7 @@ Method to use:
     @property
     def loc_key(self):
         value = self.cbBBL.value
-        for real_loc_key in self.ira.blocks:
+        for real_loc_key in self.ircfg.blocks:
             if str(real_loc_key) == value:
                 return real_loc_key
         raise ValueError("Bad loc_key")
@@ -111,13 +112,13 @@ Method to use:
         elif mode == 1:
             return value + 1
         else:
-            return len(self.ira.blocks[self.loc_key])
+            return len(self.ircfg.blocks[self.loc_key])
 
     @property
     def elements(self):
         value = self.cbReg.value
         if value in self.stk_args:
-            line = self.ira.blocks[self.loc_key][self.line_nb].instr
+            line = self.ircfg.blocks[self.loc_key][self.line_nb].instr
             arg_num = self.stk_args[value]
             stk_high = m2_expr.ExprInt(idc.GetSpd(line.offset), ir_arch.sp.size)
             stk_off = m2_expr.ExprInt(self.ira.sp.size/8 * arg_num, ir_arch.sp.size)
@@ -135,7 +136,7 @@ Method to use:
     @property
     def depgraph(self):
         value = self.cMethod.value
-        return DependencyGraph(self.ira,
+        return DependencyGraph(self.ircfg,
                                implicit=value & 4,
                                follow_mem=value & 1,
                                follow_call=value & 2)
@@ -185,7 +186,7 @@ def treat_element():
     if graph.has_loop:
         print 'Graph has dependency loop: symbolic execution is inexact'
     else:
-        print "Possible value: %s" % graph.emul().values()[0]
+        print "Possible value: %s" % graph.emul(self.ira).values()[0]
 
     for offset, elements in comments.iteritems():
         idc.MakeComm(offset, ", ".join(map(str, elements)))
@@ -219,11 +220,10 @@ def launch_depgraph():
     asmcfg = mdis.dis_multiblock(func.startEA)
 
     # Generate IR
-    for block in asmcfg.blocks:
-        ir_arch.add_block(block)
+    ircfg = ir_arch.new_ircfg_from_asmcfg(asmcfg)
 
     # Get settings
-    settings = depGraphSettingsForm(ir_arch)
+    settings = depGraphSettingsForm(ir_arch, ircfg)
     settings.Execute()
 
     loc_key, elements, line_nb = settings.loc_key, settings.elements, settings.line_nb

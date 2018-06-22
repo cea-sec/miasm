@@ -9,25 +9,29 @@ from miasm2.arch.msp430.arch import mn_msp430 as mn, mode_msp430 as mode
 from miasm2.arch.msp430.sem import ir_msp430 as ir_arch
 from miasm2.arch.msp430.regs import *
 from miasm2.expression.expression import *
+from miasm2.core.locationdb import LocationDB
 
 logging.getLogger('cpuhelper').setLevel(logging.ERROR)
 EXCLUDE_REGS = set([res, ir_arch().IRDst])
+
 
 def M(addr):
     return ExprMem(ExprInt(addr, 16), 16)
 
 
 def compute(asm, inputstate={}, debug=False):
+    loc_db = LocationDB()
     sympool = dict(regs_init)
     sympool.update({k: ExprInt(v, k.size) for k, v in inputstate.iteritems()})
-    interm = ir_arch()
-    symexec = SymbolicExecutionEngine(interm, sympool)
+    ir_tmp = ir_arch(loc_db)
+    ircfg = ir_tmp.new_ircfg()
+    symexec = SymbolicExecutionEngine(ir_tmp, sympool)
     instr = mn.fromstring(asm, mode)
     code = mn.asm(instr)[0]
     instr = mn.dis(code, mode)
     instr.offset = inputstate.get(PC, 0)
-    loc_key = interm.add_instr(instr)
-    symexec.run_at(loc_key)
+    loc_key = ir_tmp.add_instr_to_ircfg(instr, ircfg)
+    symexec.run_at(ircfg, loc_key)
     if debug:
         for k, v in symexec.symbols.items():
             if regs_init.get(k, None) != v:

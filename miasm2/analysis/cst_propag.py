@@ -17,21 +17,20 @@ class SymbExecState(SymbolicExecutionEngine):
     """
     State manager for SymbolicExecution
     """
-    def __init__(self, ir_arch, state):
+    def __init__(self, ir_arch, ircfg, state):
         super(SymbExecState, self).__init__(ir_arch, {})
         self.set_state(state)
 
 
-def add_state(ir_arch, todo, states, addr, state):
+def add_state(ircfg, todo, states, addr, state):
     """
     Add or merge the computed @state for the block at @addr. Update @todo
-    @ir_arch: IR instance
     @todo: modified block set
     @states: dictionnary linking a label to its entering state.
     @addr: address of the concidered block
     @state: computed state
     """
-    addr = ir_arch.get_loc_key(addr)
+    addr = ircfg.get_loc_key(addr)
     todo.add(addr)
     if addr not in states:
         states[addr] = state
@@ -67,7 +66,8 @@ class SymbExecStateFix(SymbolicExecutionEngine):
     # Function used to test if an Expression is considered as a constant
     is_expr_cst = lambda _, ir_arch, expr: is_expr_cst(ir_arch, expr)
 
-    def __init__(self, ir_arch, state, cst_propag_link):
+    def __init__(self, ir_arch, ircfg, state, cst_propag_link):
+        self.ircfg = ircfg
         super(SymbExecStateFix, self).__init__(ir_arch, {})
         self.set_state(state)
         self.cst_propag_link = cst_propag_link
@@ -112,10 +112,10 @@ class SymbExecStateFix(SymbolicExecutionEngine):
 
             self.eval_updt_assignblk(assignblk)
             assignblks.append(AssignBlock(new_assignblk, assignblk.instr))
-        self.ir_arch.blocks[irb.loc_key] = IRBlock(irb.loc_key, assignblks)
+        self.ircfg.blocks[irb.loc_key] = IRBlock(irb.loc_key, assignblks)
 
 
-def compute_cst_propagation_states(ir_arch, init_addr, init_infos):
+def compute_cst_propagation_states(ir_arch, ircfg, init_addr, init_infos):
     """
     Propagate "constant expressions" in a function.
     The attribute "constant expression" is true if the expression is based on
@@ -128,7 +128,7 @@ def compute_cst_propagation_states(ir_arch, init_addr, init_infos):
 
     done = set()
     state = SymbExecState.StateEngine(init_infos)
-    lbl = ir_arch.get_loc_key(init_addr)
+    lbl = ircfg.get_loc_key(init_addr)
     todo = set([lbl])
     states = {lbl: state}
 
@@ -140,11 +140,11 @@ def compute_cst_propagation_states(ir_arch, init_addr, init_infos):
         if (lbl, state) in done:
             continue
         done.add((lbl, state))
-        if lbl not in ir_arch.blocks:
+        if lbl not in ircfg.blocks:
             continue
 
-        symbexec_engine = SymbExecState(ir_arch, state)
-        addr = symbexec_engine.run_block_at(lbl)
+        symbexec_engine = SymbExecState(ir_arch, ircfg, state)
+        addr = symbexec_engine.run_block_at(ircfg, lbl)
         symbexec_engine.del_mem_above_stack(ir_arch.sp)
 
         for dst in possible_values(addr):
@@ -153,14 +153,16 @@ def compute_cst_propagation_states(ir_arch, init_addr, init_infos):
                 LOG_CST_PROPAG.warning('Bad destination: %s', value)
                 continue
             elif value.is_int():
-                value = ir_arch.get_loc_key(value)
-            add_state(ir_arch, todo, states, value,
-                      symbexec_engine.get_state())
+                value = ircfg.get_loc_key(value)
+            add_state(
+                ircfg, todo, states, value,
+                symbexec_engine.get_state()
+            )
 
     return states
 
 
-def propagate_cst_expr(ir_arch, addr, init_infos):
+def propagate_cst_expr(ir_arch, ircfg, addr, init_infos):
     """
     Propagate "constant expressions" in a @ir_arch.
     The attribute "constant expression" is true if the expression is based on
@@ -172,11 +174,11 @@ def propagate_cst_expr(ir_arch, addr, init_infos):
 
     Returns a mapping between replaced Expression and their new values.
     """
-    states = compute_cst_propagation_states(ir_arch, addr, init_infos)
+    states = compute_cst_propagation_states(ir_arch, ircfg, addr, init_infos)
     cst_propag_link = {}
     for lbl, state in states.iteritems():
-        if lbl not in ir_arch.blocks:
+        if lbl not in ircfg.blocks:
             continue
-        symbexec = SymbExecStateFix(ir_arch, state, cst_propag_link)
-        symbexec.eval_updt_irblock(ir_arch.blocks[lbl])
+        symbexec = SymbExecStateFix(ir_arch, ircfg, state, cst_propag_link)
+        symbexec.eval_updt_irblock(ircfg.blocks[lbl])
     return cst_propag_link

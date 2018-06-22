@@ -31,24 +31,21 @@ mdis = dis_engine(cont.bin_stream)
 ir_arch = ira(mdis.loc_db)
 addr = int(args.address, 0)
 
-
 asmcfg = mdis.dis_multiblock(addr)
-for block in asmcfg.blocks:
-    ir_arch.add_block(block)
-
+ircfg = ir_arch.new_ircfg_from_asmcfg(asmcfg)
 
 init_infos = ir_arch.arch.regs.regs_init
-cst_propag_link = propagate_cst_expr(ir_arch, addr, init_infos)
+cst_propag_link = propagate_cst_expr(ir_arch, ircfg, addr, init_infos)
 
 if args.simplify:
-    ir_arch.simplify(expr_simp)
+    ircfg.simplify(expr_simp)
     modified = True
     while modified:
         modified = False
-        modified |= dead_simp(ir_arch)
-        modified |= ir_arch.remove_empty_assignblks()
-        modified |= ir_arch.remove_jmp_blocks()
-        modified |= ir_arch.merge_blocks()
+        modified |= dead_simp(ir_arch, ircfg)
+        modified |= ircfg.remove_empty_assignblks()
+        modified |= ircfg.remove_jmp_blocks()
+        modified |= ircfg.merge_blocks()
 
 
-open("%s.propag.dot" % args.filename, 'w').write(ir_arch.graph.dot())
+open("%s.propag.dot" % args.filename, 'w').write(ircfg.dot())

@@ -28,7 +28,7 @@ def get_node_name(label, i, n):
     return n_name
 
 
-def intra_block_flow_symb(ir_arch, flow_graph, irblock, in_nodes, out_nodes):
+def intra_block_flow_symb(ir_arch, _, flow_graph, irblock, in_nodes, out_nodes):
     symbols_init = ir_arch.arch.regs.regs_init.copy()
     sb = SymbolicExecutionEngine(ir_arch, symbols_init)
     sb.eval_updt_irblock(irblock)
@@ -87,17 +87,17 @@ def node2str(self, node):
     return out
 
 
-def gen_block_data_flow_graph(ir_arch, ad, block_flow_cb):
-    for irblock in ir_arch.blocks.values():
+def gen_block_data_flow_graph(ir_arch, ircfg, ad, block_flow_cb):
+    for irblock in ircfg.blocks.values():
         print irblock
 
-    dead_simp(ir_arch)
+    dead_simp(ir_arch, ircfg)
 
 
     irblock_0 = None
-    for irblock in ir_arch.blocks.values():
+    for irblock in ircfg.blocks.values():
         loc_key = irblock.loc_key
-        offset = ir_arch.loc_db.get_location_offset(loc_key)
+        offset = ircfg.loc_db.get_location_offset(loc_key)
         if offset == ad:
             irblock_0 = irblock
             break
@@ -108,20 +108,20 @@ def gen_block_data_flow_graph(ir_arch, ad, block_flow_cb):
 
     irb_in_nodes = {}
     irb_out_nodes = {}
-    for label in ir_arch.blocks:
+    for label in ircfg.blocks:
         irb_in_nodes[label] = {}
         irb_out_nodes[label] = {}
 
-    for label, irblock in ir_arch.blocks.iteritems():
-        block_flow_cb(ir_arch, flow_graph, irblock, irb_in_nodes[label], irb_out_nodes[label])
+    for label, irblock in ircfg.blocks.iteritems():
+        block_flow_cb(ir_arch, ircfg, flow_graph, irblock, irb_in_nodes[label], irb_out_nodes[label])
 
-    for label in ir_arch.blocks:
+    for label in ircfg.blocks:
         print label
         print 'IN', [str(x) for x in irb_in_nodes[label]]
         print 'OUT', [str(x) for x in irb_out_nodes[label]]
 
     print '*' * 20, 'interblock', '*' * 20
-    inter_block_flow(ir_arch, flow_graph, irblock_0.loc_key, irb_in_nodes, irb_out_nodes)
+    inter_block_flow(ir_arch, ircfg, flow_graph, irblock_0.loc_key, irb_in_nodes, irb_out_nodes)
 
     # from graph_qt import graph_qt
     # graph_qt(flow_graph)
@@ -140,11 +140,9 @@ print 'ok'
 
 print 'generating dataflow graph for:'
 ir_arch = ir_a_x86_32(mdis.loc_db)
+ircfg = ir_arch.new_ircfg_from_asmcfg(asmcfg)
 
-for block in asmcfg.blocks:
-    print block
-    ir_arch.add_block(block)
-for irblock in ir_arch.blocks.values():
+for irblock in ircfg.blocks.values():
     print irblock
 
 
@@ -153,7 +151,7 @@ if args.symb:
 else:
     block_flow_cb = intra_block_flow_raw
 
-gen_block_data_flow_graph(ir_arch, ad, block_flow_cb)
+gen_block_data_flow_graph(ir_arch, ircfg, ad, block_flow_cb)
 
 print '*' * 40
 print """

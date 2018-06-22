@@ -21,14 +21,15 @@ asm_block = mdis.dis_block(START_ADDR)
 
 # Translate ASM -> IR
 ira = machine.ira(mdis.loc_db)
-ira.add_block(asm_block)
+ircfg = ira.new_ircfg()
+ira.add_asmblock_to_ircfg(asm_block, ircfg)
 
 # Instanciate a Symbolic Execution engine with default value for registers
 symb = SymbolicExecutionEngine(ira)
 
 # Emulate one IR basic block
 ## Emulation of several basic blocks can be done through .emul_ir_blocks
-cur_addr = symb.run_at(START_ADDR)
+cur_addr = symb.run_at(ircfg, START_ADDR)
 
 # Modified elements
 print 'Modified registers:'

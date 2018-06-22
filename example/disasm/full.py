@@ -191,13 +191,17 @@ if args.gen_ir:
 
     ir_arch = ir(mdis.loc_db)
     ir_arch_a = ira(mdis.loc_db)
+
+    ircfg = ir_arch.new_ircfg()
+    ircfg_a = ir_arch.new_ircfg()
+
     ir_arch.blocks = {}
     ir_arch_a.blocks = {}
     for ad, asmcfg in all_funcs_blocks.items():
         log.info("generating IR... %x" % ad)
         for block in asmcfg.blocks:
-            ir_arch_a.add_block(block)
-            ir_arch.add_block(block)
+            ir_arch.add_asmblock_to_ircfg(block, ircfg)
+            ir_arch_a.add_asmblock_to_ircfg(block, ircfg_a)
 
     log.info("Print blocks (without analyse)")
     for label, block in ir_arch.blocks.iteritems():
@@ -210,25 +214,25 @@ if args.gen_ir:
         print block
 
     if args.simplify > 0:
-        dead_simp(ir_arch_a)
+        dead_simp(ir_arch_a, ircfg_a)
 
     if args.defuse:
         reachings = ReachingDefinitions(ir_arch_a)
         open('graph_defuse.dot', 'w').write(DiGraphDefUse(reachings).dot())
 
-    out = ir_arch_a.graph.dot()
+    out = ircfg.dot()
     open('graph_irflow.dot', 'w').write(out)
-    out = ir_arch.graph.dot()
+    out = ircfg_a.dot()
     open('graph_irflow_raw.dot', 'w').write(out)
 
     if args.simplify > 1:
-        ir_arch_a.simplify(expr_simp)
+        ircfg_a.simplify(expr_simp)
         modified = True
         while modified:
             modified = False
-            modified |= dead_simp(ir_arch_a)
-            modified |= ir_arch_a.remove_empty_assignblks()
-            modified |= ir_arch_a.remove_jmp_blocks()
-            modified |= ir_arch_a.merge_blocks()
+            modified |= dead_simp(ir_arch_a, ircfg_a)
+            modified |= ircfg_a.remove_empty_assignblks()
+            modified |= ircfg_a.remove_jmp_blocks()
+            modified |= ircfg_a.merge_blocks()
 
-        open('graph_irflow_reduced.dot', 'w').write(ir_arch_a.graph.dot())
+        open('graph_irflow_reduced.dot', 'w').write(ircfg_a.dot())

@@ -47,10 +47,16 @@ Assembling / Disassembling
 Import Miasm x86 architecture:
 ```
 >>> from miasm2.arch.x86.arch import mn_x86
+>>> from miasm2.core.locationdb import LocationDB
+```
+Get a location db:
+
+```
+>>> loc_db = LocationDB()
 ```
 Assemble a line:
 ```
->>> l = mn_x86.fromstring('XOR ECX, ECX', 32)
+>>> l = mn_x86.fromstring('XOR ECX, ECX', loc_db, 32)
 >>> print l
 XOR        ECX, ECX
 >>> mn_x86.asm(l)
@@ -92,34 +98,37 @@ Create an instruction:
 
 ```
 >>> machine = Machine('arml')
->>> l = machine.mn.dis('002088e0'.decode('hex'), 'l')
->>> print l
+>>> instr = machine.mn.dis('002088e0'.decode('hex'), 'l')
+>>> print instr
 ADD        R2, R8, R0
 ```
 
-Create an intermediate representation (IR) object:
+Create an intermediate representation object:
 ```
->>> ira = machine.ira()
+>>> ira = machine.ira(loc_db)
+```
+Create an empty ircfg
+```
+>>> ircfg = ira.new_ircfg()
 ```
 Add instruction to the pool:
 ```
->>> ira.add_instr(l)
+>>> ira.add_instr_to_ircfg(instr, ircfg)
 ```
 
 Print current pool:
 ```
->>> for lbl, irblock in ira.blocks.items():
-...     print irblock
-...
-loc_0000000000000000:0x00000000
+>>> for lbl, irblock in ircfg.blocks.items():
+...     print irblock.to_string(loc_db)
+loc_0:
+R2 = R8 + R0
 
-	R2 = (R8+R0)
+IRDst = loc_4
 
-	IRDst = loc_0000000000000004:0x00000004
 ```
 Working with IR, for instance by getting side effects:
 ```
->>> for lbl, irblock in ira.blocks.iteritems():
+>>> for lbl, irblock in ircfg.blocks.iteritems():
 ...     for assignblk in irblock:
 ...         rw = assignblk.get_rw()
 ...         for dst, reads in rw.iteritems():
@@ -130,8 +139,9 @@ Working with IR, for instance by getting side effects:
 read:    ['R8', 'R0']
 written: R2
 
-read:    ['loc_0000000000000004:0x00000004']
+read:    []
 written: IRDst
+
 ```
 
 Emulation
@@ -266,12 +276,8 @@ Symbolic execution
 Initializing the IR pool:
 
 ```
->>> ira = machine.ira(loc_db=mdis.loc_db)
->>>
->>> for block in asmcfg.blocks:
-...  ira.add_block(block)
-...
-...
+>>> ira = machine.ira()
+>>> ircfg = ira.new_ircfg_from_asmcfg(asmcfg)
 ```
 
 Initializing the engine with default symbolic values:
@@ -284,7 +290,7 @@ Initializing the engine with default symbolic values:
 Launching the execution:
 
 ```
->>> symbolic_pc = sb.run_at(0)
+>>> symbolic_pc = sb.run_at(ircfg, 0)
 >>> print symbolic_pc
 ((ECX + 0x4)[0:8] + 0xFF)?(0xB,0x10)
 ```
@@ -292,8 +298,8 @@ Launching the execution:
 Same, with step logs (only changes are displayed):
 
 ```
->>> sb = SymbolicExecutionEngine(ira)
->>> symbolic_pc = sb.run_at(0, step=True)
+>>> sb = SymbolicExecutionEngine(ira, machine.mn.regs.regs_init)
+>>> symbolic_pc = sb.run_at(ircfg, 0, step=True)
 Instr LEA        ECX, DWORD PTR [ECX + 0x4]
 Assignblk:
 ECX = ECX + 0x4
@@ -349,8 +355,8 @@ Retry execution with a concrete ECX. Here, the symbolic / concolic execution rea
 
 ```
 >>> from miasm2.expression.expression import ExprInt
->>> sb.symbols[machine.mn.regs.ECX] = ExprInt(-3, 32)
->>> symbolic_pc = sb.run_at(0, step=True)
+>>> sb.symbols[machine.mn.regs.ECX] = ExprInt(-3)
+>>> symbolic_pc = sb.run_at(ircfg, 0, step=True)
 Instr LEA        ECX, DWORD PTR [ECX + 0x4]
 Assignblk:
 ECX = ECX + 0x4

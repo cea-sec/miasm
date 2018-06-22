@@ -10,9 +10,14 @@ class TestSymbExec(unittest.TestCase):
         from miasm2.expression.expression import ExprInt, ExprId, ExprMem, \
             ExprCompose, ExprAff
         from miasm2.arch.x86.sem import ir_x86_32
+        from miasm2.core.locationdb import LocationDB
         from miasm2.ir.symbexec import SymbolicExecutionEngine
         from miasm2.ir.ir import AssignBlock
 
+
+        loc_db = LocationDB()
+        ira = ir_x86_32(loc_db)
+        ircfg = ira.new_ircfg()
 
         id_x = ExprId('x', 32)
         id_a = ExprId('a', 32)
@@ -21,7 +26,7 @@ class TestSymbExec(unittest.TestCase):
         id_d = ExprId('d', 32)
         id_e = ExprId('e', 64)
 
-        sb = SymbolicExecutionEngine(ir_x86_32(),
+        sb = SymbolicExecutionEngine(ira,
                                     {
                                         ExprMem(ExprInt(0x4, 32), 8): ExprInt(0x44, 8),
                                         ExprMem(ExprInt(0x5, 32), 8): ExprInt(0x33, 8),
@@ -222,13 +227,14 @@ class TestSymbExec(unittest.TestCase):
         assert found
 
 
-        sb_empty = SymbolicExecutionEngine(ir_x86_32())
+        sb_empty = SymbolicExecutionEngine(ira)
         sb_empty.dump()
 
 
         # Test memory full
         print 'full'
-        arch_addr8 = ir_x86_32()
+        arch_addr8 = ir_x86_32(loc_db)
+        ircfg = arch_addr8.new_ircfg()
         # Hack to obtain tiny address space
         arch_addr8.addrsize = 5
         sb_addr8 = SymbolicExecutionEngine(arch_addr8)

@@ -54,29 +54,29 @@ def color_irblock(irblock, ir_arch):
 
 class GraphMiasmIR(idaapi.GraphViewer):
 
-    def __init__(self, ir_arch, title, result):
+    def __init__(self, ircfg, title, result):
         idaapi.GraphViewer.__init__(self, title)
-        self.ir_arch = ir_arch
+        self.ircfg = ircfg
         self.result = result
         self.names = {}
 
     def OnRefresh(self):
         self.Clear()
         addr_id = {}
-        for irblock in self.ir_arch.blocks.values():
-            id_irblock = self.AddNode(color_irblock(irblock, self.ir_arch))
+        for irblock in self.ircfg.blocks.values():
+            id_irblock = self.AddNode(color_irblock(irblock, self.ircfg))
             addr_id[irblock] = id_irblock
 
-        for irblock in self.ir_arch.blocks.values():
+        for irblock in self.ircfg.blocks.values():
             if not irblock:
                 continue
-            all_dst = self.ir_arch.dst_trackback(irblock)
+            all_dst = self.ircfg.dst_trackback(irblock)
             for dst in all_dst:
                 if not dst.is_loc():
                     continue
-                if not dst.loc_key in self.ir_arch.blocks:
+                if not dst.loc_key in self.ircfg.blocks:
                     continue
-                dst_block = self.ir_arch.blocks[dst.loc_key]
+                dst_block = self.ircfg.blocks[dst.loc_key]
                 node1 = addr_id[irblock]
                 node2 = addr_id[dst_block]
                 self.AddEdge(node1, node2)
@@ -137,16 +137,12 @@ def build_graph(verbose=False, simplify=False):
 
         print "generating IR... %x" % start_addr
 
-    for block in asmcfg.blocks:
-        if verbose:
-            print 'ADD'
-            print block
-        ir_arch.add_block(block)
+    ircfg = ir_arch.new_ircfg_from_asmcfg(asmcfg)
 
     if verbose:
         print "IR ok... %x" % start_addr
 
-    for irb in ir_arch.blocks.itervalues():
+    for irb in ircfg.blocks.itervalues():
         irs = []
         for assignblk in irb:
             new_assignblk = {
@@ -154,27 +150,27 @@ def build_graph(verbose=False, simplify=False):
                 for dst, src in assignblk.iteritems()
             }
             irs.append(AssignBlock(new_assignblk, instr=assignblk.instr))
-        ir_arch.blocks[irb.loc_key] = IRBlock(irb.loc_key, irs)
+        ircfg.blocks[irb.loc_key] = IRBlock(irb.loc_key, irs)
 
     if verbose:
-        out = ir_arch.graph.dot()
+        out = ircfg.dot()
         open(os.path.join(tempfile.gettempdir(), 'graph.dot'), 'wb').write(out)
     title = "Miasm IR graph"
 
     if simplify:
-        dead_simp(ir_arch)
+        dead_simp(ir_arch, ircfg)
 
-        ir_arch.simplify(expr_simp)
+        ircfg.simplify(expr_simp)
         modified = True
         while modified:
             modified = False
-            modified |= dead_simp(ir_arch)
-            modified |= ir_arch.remove_empty_assignblks()
-            modified |= ir_arch.remove_jmp_blocks()
-            modified |= ir_arch.merge_blocks()
+            modified |= dead_simp(ir_arch, ircfg)
+            modified |= ircfg.remove_empty_assignblks()
+            modified |= ircfg.remove_jmp_blocks()
+            modified |= ircfg.merge_blocks()
         title += " (simplified)"
 
-    g = GraphMiasmIR(ir_arch, title, None)
+    g = GraphMiasmIR(ircfg, title, None)
 
     g.Show()
 

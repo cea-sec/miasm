@@ -24,7 +24,6 @@ from miasm2.core.utils import BoundedDict
 from miasm2.expression.expression import LocKey
 from miasm2.jitter.csts import *
 
-
 class JitCore(object):
 
     "JiT management. This is an abstract class"
@@ -42,6 +41,7 @@ class JitCore(object):
         """
         # Arch related
         self.ir_arch = ir_arch
+        self.ircfg = self.ir_arch.new_ircfg()
         self.arch_name = "%s%s" % (self.ir_arch.arch.name, self.ir_arch.attrib)
 
         # Structures for block tracking
@@ -126,7 +126,7 @@ class JitCore(object):
         """Add a block to JiT and JiT it.
         @block: asm_bloc to add
         """
-        irblocks = self.ir_arch.add_block(block, gen_pc_updt = True)
+        irblocks = self.ir_arch.add_asmblock_to_ircfg(block, self.ircfg, gen_pc_updt = True)
         block.blocks = irblocks
         self.jit_irblocks(block.loc_key, irblocks)
 

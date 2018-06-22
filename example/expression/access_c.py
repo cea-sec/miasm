@@ -54,11 +54,10 @@ from miasm2.core.objc import ExprToAccessC, CHandler
 from miasm2.core.objc import CTypesManagerNotPacked
 from miasm2.core.ctypesmngr import CAstTypes, CTypePtr, CTypeStruct
 
-
-def find_call(ira):
+def find_call(ircfg):
     """Returns (irb, index) which call"""
 
-    for irb in ira.blocks.values():
+    for irb in ircfg.blocks.values():
         out = set()
         if len(irb) < 2:
             continue
@@ -92,17 +91,17 @@ class MyExprToAccessC(ExprToAccessC):
     reduction_rules = ExprToAccessC.reduction_rules + [reduce_compose]
 
 
-def get_funcs_arg0(ctx, ira, lbl_head):
+def get_funcs_arg0(ctx, ira, ircfg, lbl_head):
     """Compute DependencyGraph on the func @lbl_head"""
-    g_dep = DependencyGraph(ira, follow_call=False)
+    g_dep = DependencyGraph(ircfg, follow_call=False)
     element = ira.arch.regs.RSI
 
-    for irb, index in find_call(ira):
+    for irb, index in find_call(ircfg):
         instr = irb[index].instr
         print 'Analysing references from:', hex(instr.offset), instr
         g_list = g_dep.get(irb.loc_key, set([element]), index, set([lbl_head]))
         for dep in g_list:
-            emul_result = dep.emul(ctx)
+            emul_result = dep.emul(ira, ctx)
             value = emul_result[element]
             yield value
 
@@ -147,10 +146,9 @@ asmcfg = mdis.dis_multiblock(addr_head)
 lbl_head = mdis.loc_db.get_offset_location(addr_head)
 
 ir_arch_a = ira(mdis.loc_db)
-for block in asmcfg.blocks:
-    ir_arch_a.add_block(block)
+ircfg = ir_arch_a.new_ircfg_from_asmcfg(asmcfg)
 
-open('graph_irflow.dot', 'w').write(ir_arch_a.graph.dot())
+open('graph_irflow.dot', 'w').write(ircfg.dot())
 
 # Main function's first argument's type is "struct ll_human*"
 ptr_llhuman = types_mngr.get_objc(CTypePtr(CTypeStruct('ll_human')))
@@ -161,7 +159,7 @@ expr_types = {arg0: (ptr_llhuman,),
 
 mychandler = MyCHandler(types_mngr, expr_types)
 
-for expr in get_funcs_arg0(ctx, ir_arch_a, lbl_head):
+for expr in get_funcs_arg0(ctx, ir_arch_a, ircfg, lbl_head):
     print "Access:", expr
     for c_str, ctype in mychandler.expr_to_c_and_types(expr):
         print '\taccess:', c_str

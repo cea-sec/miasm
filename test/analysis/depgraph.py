@@ -24,6 +24,7 @@ B = ExprId("b", 32)
 C = ExprId("c", 32)
 D = ExprId("d", 32)
 R = ExprId("r", 32)
+COND = ExprId("cond", 32)
 
 A_INIT = ExprId("a_init", 32)
 B_INIT = ExprId("b_init", 32)
@@ -93,11 +94,82 @@ class IRATest(ira):
     def __init__(self, loc_db=None):
         arch = Arch()
         super(IRATest, self).__init__(arch, 32, loc_db)
-        self.IRDst = PC
+        self.IRDst = ExprId("IRDst", 32)
         self.ret_reg = R
 
     def get_out_regs(self, _):
         return set([self.ret_reg, self.sp])
+
+
+def bloc2graph(irgraph, label=False, lines=True):
+    """Render dot graph of @blocks"""
+
+    escape_chars = re.compile('[' + re.escape('{}') + ']')
+    label_attr = 'colspan="2" align="center" bgcolor="grey"'
+    edge_attr = 'label = "%s" color="%s" style="bold"'
+    td_attr = 'align="left"'
+    block_attr = 'shape="Mrecord" fontname="Courier New"'
+
+    out = ["digraph asm_graph {"]
+    fix_chars = lambda x: '\\' + x.group()
+
+    # Generate basic blocks
+    out_blocks = []
+    for label in irgraph.nodes():
+        assert isinstance(label, LocKey)
+        label_names = irgraph.loc_db.get_location_names(label)
+        label_name = list(label_names)[0]
+
+        if hasattr(irgraph, 'blocks'):
+            irblock = irgraph.blocks[label]
+        else:
+            irblock = None
+        if isinstance(label, LocKey):
+            out_block = '%s [\n' % label_name
+        else:
+            out_block = '%s [\n' % label
+        out_block += "%s " % block_attr
+        out_block += 'label =<<table border="0" cellborder="0" cellpadding="3">'
+
+        block_label = '<tr><td %s>%s</td></tr>' % (
+            label_attr, label_name)
+        block_html_lines = []
+        if lines and irblock is not None:
+            for assignblk in irblock:
+                for dst, src in assignblk.iteritems():
+                    if False:
+                        out_render = "%.8X</td><td %s> " % (0, td_attr)
+                    else:
+                        out_render = ""
+                    out_render += escape_chars.sub(fix_chars, "%s = %s" % (dst, src))
+                    block_html_lines.append(out_render)
+                block_html_lines.append(" ")
+            block_html_lines.pop()
+        block_html_lines = ('<tr><td %s>' % td_attr +
+                            ('</td></tr><tr><td %s>' % td_attr).join(block_html_lines) +
+                            '</td></tr>')
+        out_block += "%s " % block_label
+        out_block += block_html_lines + "</table>> ];"
+        out_blocks.append(out_block)
+
+    out += out_blocks
+    # Generate links
+    for src, dst in irgraph.edges():
+        assert isinstance(src, LocKey)
+        src_names = irgraph.loc_db.get_location_names(src)
+        assert isinstance(dst, LocKey)
+        dst_names = irgraph.loc_db.get_location_names(dst)
+
+        src_name = list(src_names)[0]
+        dst_name = list(dst_names)[0]
+
+        edge_color = "black"
+        out.append('%s -> %s' % (src_name,
+                                 dst_name) +
+                   '[' + edge_attr % ("", edge_color) + '];')
+
+    out.append("}")
+    return '\n'.join(out)
 
 
 def dg2graph(graph, label=False, lines=True):
@@ -157,287 +229,393 @@ DNC2 = DependencyNode(LBL1, C, 0)
 DNB3 = DependencyNode(LBL1, B, 1)
 DNC3 = DependencyNode(LBL1, C, 0)
 
+IRA = IRATest(loc_db)
+IRDst = IRA.IRDst
+END = ExprId("END", IRDst.size)
 # graph 1
 
-G1_IRA = IRATest(loc_db)
+G1_IRA = IRA.new_ircfg()
 
-G1_IRB0 = gen_irblock(LBL0, [[ExprAff(C, CST1)]])
-G1_IRB1 = gen_irblock(LBL1, [[ExprAff(B, C)]])
-G1_IRB2 = gen_irblock(LBL2, [[ExprAff(A, B)]])
+G1_IRB0 = gen_irblock(LBL0, [[ExprAff(C, CST1), ExprAff(IRDst, ExprLoc(LBL1, 32))]])
+G1_IRB1 = gen_irblock(LBL1, [[ExprAff(B, C), ExprAff(IRDst, ExprLoc(LBL2, 32))]])
+G1_IRB2 = gen_irblock(LBL2, [[ExprAff(A, B), ExprAff(IRDst, END)]])
 
-G1_IRA.graph.add_uniq_edge(G1_IRB0.loc_key, G1_IRB1.loc_key)
-G1_IRA.graph.add_uniq_edge(G1_IRB1.loc_key, G1_IRB2.loc_key)
-
-G1_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G1_IRB0, G1_IRB1, G1_IRB2]])
+for irb in [G1_IRB0, G1_IRB1, G1_IRB2]:
+    G1_IRA.add_irblock(irb)
 
 # graph 2
 
-G2_IRA = IRATest(loc_db)
+G2_IRA = IRA.new_ircfg()
 
-G2_IRB0 = gen_irblock(LBL0, [[ExprAff(C, CST1)]])
-G2_IRB1 = gen_irblock(LBL1, [[ExprAff(B, CST2)]])
-G2_IRB2 = gen_irblock(LBL2, [[ExprAff(A, B + C)]])
+G2_IRB0 = gen_irblock(LBL0, [[ExprAff(C, CST1), ExprAff(IRDst, ExprLoc(LBL1, 32))]])
+G2_IRB1 = gen_irblock(LBL1, [[ExprAff(B, CST2), ExprAff(IRDst, ExprLoc(LBL2, 32))]])
+G2_IRB2 = gen_irblock(LBL2, [[ExprAff(A, B + C), ExprAff(IRDst, END)]])
 
-G2_IRA.graph.add_uniq_edge(G2_IRB0.loc_key, G2_IRB1.loc_key)
-G2_IRA.graph.add_uniq_edge(G2_IRB1.loc_key, G2_IRB2.loc_key)
-
-G2_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G2_IRB0, G2_IRB1, G2_IRB2]])
+for irb in [G2_IRB0, G2_IRB1, G2_IRB2]:
+    G2_IRA.add_irblock(irb)
 
 
 # graph 3
 
-G3_IRA = IRATest(loc_db)
+G3_IRA = IRA.new_ircfg()
 
-G3_IRB0 = gen_irblock(LBL0, [[ExprAff(C, CST1)]])
-G3_IRB1 = gen_irblock(LBL1, [[ExprAff(B, CST2)]])
-G3_IRB2 = gen_irblock(LBL2, [[ExprAff(B, CST3)]])
-G3_IRB3 = gen_irblock(LBL3, [[ExprAff(A, B + C)]])
+G3_IRB0 = gen_irblock(
+    LBL0,
+    [
+        [ExprAff(C, CST1), ExprAff(
+            IRDst, ExprCond(
+                COND,
+                ExprLoc(LBL1, 32),
+                ExprLoc(LBL2, 32)
+            )
+        )
+        ]
+    ]
+)
 
-G3_IRA.graph.add_uniq_edge(G3_IRB0.loc_key, G3_IRB1.loc_key)
-G3_IRA.graph.add_uniq_edge(G3_IRB0.loc_key, G3_IRB2.loc_key)
-G3_IRA.graph.add_uniq_edge(G3_IRB1.loc_key, G3_IRB3.loc_key)
-G3_IRA.graph.add_uniq_edge(G3_IRB2.loc_key, G3_IRB3.loc_key)
+G3_IRB1 = gen_irblock(LBL1, [[ExprAff(B, CST2), ExprAff(IRDst, ExprLoc(LBL3, 32))]])
+G3_IRB2 = gen_irblock(LBL2, [[ExprAff(B, CST3), ExprAff(IRDst, ExprLoc(LBL3, 32))]])
+G3_IRB3 = gen_irblock(LBL3, [[ExprAff(A, B + C), ExprAff(IRDst, END)]])
 
-G3_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G3_IRB0, G3_IRB1,
-                                                   G3_IRB2, G3_IRB3]])
+for irb in [G3_IRB0, G3_IRB1, G3_IRB2, G3_IRB3]:
+    G3_IRA.add_irblock(irb)
 
 # graph 4
 
-G4_IRA = IRATest(loc_db)
+G4_IRA = IRA.new_ircfg()
 
-G4_IRB0 = gen_irblock(LBL0, [[ExprAff(C, CST1)]])
-G4_IRB1 = gen_irblock(LBL1, [[ExprAff(C, C + CST2)],
-                             [ExprAff(G4_IRA.IRDst,
-                                      ExprCond(C, ExprLoc(LBL2, 32),
-                                               ExprLoc(LBL1, 32)))]])
+G4_IRB0 = gen_irblock(LBL0, [[ExprAff(C, CST1), ExprAff(IRDst, ExprLoc(LBL1, 32))]])
+G4_IRB1 = gen_irblock(
+    LBL1,
+    [
+        [ExprAff(C, C + CST2)],
+        [ExprAff(IRDst,
+                 ExprCond(
+                     C,
+                     ExprLoc(LBL2, 32),
+                     ExprLoc(LBL1, 32))
+        )
+        ]]
+)
 
-G4_IRB2 = gen_irblock(LBL2, [[ExprAff(A, B)]])
+G4_IRB2 = gen_irblock(LBL2, [[ExprAff(A, B), ExprAff(IRDst, END)]])
 
-G4_IRA.graph.add_uniq_edge(G4_IRB0.loc_key, G4_IRB1.loc_key)
-G4_IRA.graph.add_uniq_edge(G4_IRB1.loc_key, G4_IRB2.loc_key)
-G4_IRA.graph.add_uniq_edge(G4_IRB1.loc_key, G4_IRB1.loc_key)
-
-G4_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G4_IRB0, G4_IRB1, G4_IRB2]])
+for irb in [G4_IRB0, G4_IRB1, G4_IRB2]:
+    G4_IRA.add_irblock(irb)
 
 
 # graph 5
 
-G5_IRA = IRATest(loc_db)
+G5_IRA = IRA.new_ircfg()
 
-G5_IRB0 = gen_irblock(LBL0, [[ExprAff(B, CST1)]])
-G5_IRB1 = gen_irblock(LBL1, [[ExprAff(B, B + CST2)],
-                             [ExprAff(G5_IRA.IRDst,
-                                      ExprCond(B, ExprLoc(LBL2, 32),
-                                               ExprLoc(LBL1, 32)))]])
+G5_IRB0 = gen_irblock(LBL0, [[ExprAff(B, CST1), ExprAff(IRDst, ExprLoc(LBL1, 32))]])
+G5_IRB1 = gen_irblock(
+    LBL1,
+    [
+        [ExprAff(B, B + CST2)],
+        [ExprAff(
+            IRDst,
+            ExprCond(
+                B,
+                ExprLoc(LBL2, 32),
+                ExprLoc(LBL1, 32)
+            )
+        )
+        ]
+    ]
+)
 
-G5_IRB2 = gen_irblock(LBL2, [[ExprAff(A, B)]])
+G5_IRB2 = gen_irblock(LBL2, [[ExprAff(A, B), ExprAff(IRDst, END)]])
 
-G5_IRA.graph.add_uniq_edge(G5_IRB0.loc_key, G5_IRB1.loc_key)
-G5_IRA.graph.add_uniq_edge(G5_IRB1.loc_key, G5_IRB2.loc_key)
-G5_IRA.graph.add_uniq_edge(G5_IRB1.loc_key, G5_IRB1.loc_key)
-
-G5_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G5_IRB0, G5_IRB1, G5_IRB2]])
+for irb in [G5_IRB0, G5_IRB1, G5_IRB2]:
+    G5_IRA.add_irblock(irb)
 
 # graph 6
 
-G6_IRA = IRATest(loc_db)
+G6_IRA = IRA.new_ircfg()
 
-G6_IRB0 = gen_irblock(LBL0, [[ExprAff(B, CST1)]])
-G6_IRB1 = gen_irblock(LBL1, [[ExprAff(A, B)]])
+G6_IRB0 = gen_irblock(LBL0, [[ExprAff(B, CST1), ExprAff(IRDst, ExprLoc(LBL1, 32))]])
+G6_IRB1 = gen_irblock(LBL1, [[ExprAff(A, B), ExprAff(IRDst, ExprLoc(LBL1, 32))]])
 
-G6_IRA.graph.add_uniq_edge(G6_IRB0.loc_key, G6_IRB1.loc_key)
-G6_IRA.graph.add_uniq_edge(G6_IRB1.loc_key, G6_IRB1.loc_key)
-
-G6_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G6_IRB0, G6_IRB1]])
+for irb in [G6_IRB0, G6_IRB1]:
+    G6_IRA.add_irblock(irb)
 
 # graph 7
 
-G7_IRA = IRATest(loc_db)
+G7_IRA = IRA.new_ircfg()
 
-G7_IRB0 = gen_irblock(LBL0, [[ExprAff(C, CST1)]])
-G7_IRB1 = gen_irblock(LBL1, [[ExprAff(B, C)], [ExprAff(A, B)]])
-G7_IRB2 = gen_irblock(LBL2, [[ExprAff(D, A)]])
+G7_IRB0 = gen_irblock(LBL0, [[ExprAff(C, CST1), ExprAff(IRDst, ExprLoc(LBL1, 32))]])
+G7_IRB1 = gen_irblock(
+    LBL1,
+    [
+        [ExprAff(B, C)],
+        [ExprAff(A, B)],
+        [ExprAff(
+            IRDst,
+            ExprCond(
+                COND,
+                ExprLoc(LBL1, 32),
+                ExprLoc(LBL2, 32)
+            )
+        )
+        ]
+    ]
+)
 
-G7_IRA.graph.add_uniq_edge(G7_IRB0.loc_key, G7_IRB1.loc_key)
-G7_IRA.graph.add_uniq_edge(G7_IRB1.loc_key, G7_IRB1.loc_key)
-G7_IRA.graph.add_uniq_edge(G7_IRB1.loc_key, G7_IRB2.loc_key)
+G7_IRB2 = gen_irblock(LBL2, [[ExprAff(D, A), ExprAff(IRDst, END)]])
 
-G7_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G7_IRB0, G7_IRB1, G7_IRB2]])
+for irb in [G7_IRB0, G7_IRB1, G7_IRB2]:
+    G7_IRA.add_irblock(irb)
 
 # graph 8
 
-G8_IRA = IRATest(loc_db)
+G8_IRA = IRA.new_ircfg()
 
-G8_IRB0 = gen_irblock(LBL0, [[ExprAff(C, CST1)]])
-G8_IRB1 = gen_irblock(LBL1, [[ExprAff(B, C)], [ExprAff(C, D)]])
-G8_IRB2 = gen_irblock(LBL2, [[ExprAff(A, B)]])
+G8_IRB0 = gen_irblock(LBL0, [[ExprAff(C, CST1), ExprAff(IRDst, ExprLoc(LBL1, 32))]])
+G8_IRB1 = gen_irblock(
+    LBL1,
+    [
+        [ExprAff(B, C)],
+        [ExprAff(C, D),
+         ExprAff(
+             IRDst,
+             ExprCond(
+                 COND,
+                 ExprLoc(LBL1, 32),
+                 ExprLoc(LBL2, 32)
+             )
+         )
+        ]
+    ]
+)
+G8_IRB2 = gen_irblock(LBL2, [[ExprAff(A, B), ExprAff(IRDst, END)]])
 
-G8_IRA.graph.add_uniq_edge(G8_IRB0.loc_key, G8_IRB1.loc_key)
-G8_IRA.graph.add_uniq_edge(G8_IRB1.loc_key, G8_IRB1.loc_key)
-G8_IRA.graph.add_uniq_edge(G8_IRB1.loc_key, G8_IRB2.loc_key)
-
-G8_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G8_IRB0, G8_IRB1, G8_IRB2]])
+for irb in [G8_IRB0, G8_IRB1, G8_IRB2]:
+    G8_IRA.add_irblock(irb)
 
 # graph 9 is graph 8
 
 # graph 10
 
-G10_IRA = IRATest(loc_db)
+G10_IRA = IRA.new_ircfg()
 
-G10_IRB1 = gen_irblock(LBL1, [[ExprAff(B, B + CST2)]])
-G10_IRB2 = gen_irblock(LBL2, [[ExprAff(A, B)]])
+G10_IRB1 = gen_irblock(
+    LBL1,
+    [
+        [ExprAff(B, B + CST2),
+         ExprAff(
+             IRDst,
+             ExprCond(
+                 COND,
+                 ExprLoc(LBL1, 32),
+                 ExprLoc(LBL2, 32)
+             )
+         )
+        ]
+    ]
+)
 
-G10_IRA.graph.add_uniq_edge(G10_IRB1.loc_key, G10_IRB2.loc_key)
-G10_IRA.graph.add_uniq_edge(G10_IRB1.loc_key, G10_IRB1.loc_key)
+G10_IRB2 = gen_irblock(LBL2, [[ExprAff(A, B), ExprAff(IRDst, END)]])
 
-G10_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G10_IRB1, G10_IRB2]])
+for irb in [G10_IRB1, G10_IRB2]:
+    G10_IRA.add_irblock(irb)
 
 # graph 11
 
-G11_IRA = IRATest(loc_db)
+G11_IRA = IRA.new_ircfg()
 
-G11_IRB0 = gen_irblock(LBL0, [[ExprAff(A, CST1),
-                               ExprAff(B, CST2)]])
-G11_IRB1 = gen_irblock(LBL1, [[ExprAff(A, B),
-                               ExprAff(B, A)]])
-G11_IRB2 = gen_irblock(LBL2, [[ExprAff(A, A - B)]])
+G11_IRB0 = gen_irblock(
+    LBL0,
+    [
+        [ExprAff(A, CST1),
+         ExprAff(B, CST2),
+         ExprAff(IRDst, ExprLoc(LBL1, 32))
+        ]
+    ]
+)
 
-G11_IRA.graph.add_uniq_edge(G11_IRB0.loc_key, G11_IRB1.loc_key)
-G11_IRA.graph.add_uniq_edge(G11_IRB1.loc_key, G11_IRB2.loc_key)
+G11_IRB1 = gen_irblock(
+    LBL1,
+    [
+        [ExprAff(A, B),
+         ExprAff(B, A),
+         ExprAff(IRDst, ExprLoc(LBL2, 32))
+        ]
+    ]
+)
 
-G11_IRA.blocks = dict([(irb.loc_key, irb)
-                       for irb in [G11_IRB0, G11_IRB1, G11_IRB2]])
+G11_IRB2 = gen_irblock(LBL2, [[ExprAff(A, A - B), ExprAff(IRDst, END)]])
+
+for irb in [G11_IRB0, G11_IRB1, G11_IRB2]:
+    G11_IRA.add_irblock(irb)
 
 # graph 12
 
-G12_IRA = IRATest(loc_db)
+G12_IRA = IRA.new_ircfg()
 
-G12_IRB0 = gen_irblock(LBL0, [[ExprAff(B, CST1)]])
-G12_IRB1 = gen_irblock(LBL1, [[ExprAff(A, B)], [ExprAff(B, B + CST2)]])
-G12_IRB2 = gen_irblock(LBL2, [[ExprAff(B, A)]])
+G12_IRB0 = gen_irblock(LBL0, [[ExprAff(B, CST1), ExprAff(IRDst, ExprLoc(LBL1, 32))]])
+G12_IRB1 = gen_irblock(
+    LBL1,
+    [
+        [ExprAff(A, B)],
+        [ExprAff(B, B + CST2),
+         ExprAff(
+             IRDst,
+             ExprCond(
+                 COND,
+                 ExprLoc(LBL1, 32),
+                 ExprLoc(LBL2, 32)
+             )
+         )
+        ]
+    ]
+)
 
-G12_IRA.graph.add_uniq_edge(G12_IRB0.loc_key, G12_IRB1.loc_key)
-G12_IRA.graph.add_uniq_edge(G12_IRB1.loc_key, G12_IRB2.loc_key)
-G12_IRA.graph.add_uniq_edge(G12_IRB1.loc_key, G12_IRB1.loc_key)
+G12_IRB2 = gen_irblock(LBL2, [[ExprAff(B, A), ExprAff(IRDst, END)]])
 
-G12_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G12_IRB0, G12_IRB1,
-                                                    G12_IRB2]])
+for irb in [G12_IRB0, G12_IRB1, G12_IRB2]:
+    G12_IRA.add_irblock(irb)
 
 
 # graph 13
 
-G13_IRA = IRATest(loc_db)
+G13_IRA = IRA.new_ircfg()
 
 G13_IRB0 = gen_irblock(LBL0, [[ExprAff(A, CST1)],
                               #[ExprAff(B, A)],
-                              [ExprAff(G13_IRA.IRDst,
+                              [ExprAff(IRDst,
                                        ExprLoc(LBL1, 32))]])
 G13_IRB1 = gen_irblock(LBL1, [[ExprAff(C, A)],
                               #[ExprAff(A, A + CST1)],
-                              [ExprAff(G13_IRA.IRDst,
-                                       ExprCond(R, ExprLoc(LBL2, 32),
-                                                ExprLoc(LBL1, 32)))]])
+                              [ExprAff(IRDst,
+                                       ExprCond(
+                                           R,
+                                           ExprLoc(LBL2, 32),
+                                           ExprLoc(LBL3, 32)
+                                       )
+                              )]])
 
 G13_IRB2 = gen_irblock(LBL2, [[ExprAff(B, A + CST3)], [ExprAff(A, B + CST3)],
-                              [ExprAff(G13_IRA.IRDst,
+                              [ExprAff(IRDst,
                                        ExprLoc(LBL1, 32))]])
 
-G13_IRB3 = gen_irblock(LBL3, [[ExprAff(R, C)]])
+G13_IRB3 = gen_irblock(LBL3, [[ExprAff(R, C), ExprAff(IRDst, END)]])
 
-G13_IRA.graph.add_uniq_edge(G13_IRB0.loc_key, G13_IRB1.loc_key)
-G13_IRA.graph.add_uniq_edge(G13_IRB1.loc_key, G13_IRB2.loc_key)
-G13_IRA.graph.add_uniq_edge(G13_IRB2.loc_key, G13_IRB1.loc_key)
-G13_IRA.graph.add_uniq_edge(G13_IRB1.loc_key, G13_IRB3.loc_key)
-
-G13_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G13_IRB0, G13_IRB1,
-                                                    G13_IRB2, G13_IRB3]])
+for irb in [G13_IRB0, G13_IRB1, G13_IRB2, G13_IRB3]:
+    G13_IRA.add_irblock(irb)
 
 # graph 14
 
-G14_IRA = IRATest(loc_db)
+G14_IRA = IRA.new_ircfg()
 
 G14_IRB0 = gen_irblock(LBL0, [[ExprAff(A, CST1)],
-                              [ExprAff(G14_IRA.IRDst,
+                              [ExprAff(IRDst,
                                        ExprLoc(LBL1, 32))]
                              ])
 G14_IRB1 = gen_irblock(LBL1, [[ExprAff(B, A)],
-                              [ExprAff(G14_IRA.IRDst,
-                                       ExprCond(C, ExprLoc(LBL2, 32),
-                                                ExprLoc(LBL3, 32)))]
+                              [ExprAff(IRDst,
+                                       ExprCond(
+                                           C,
+                                           ExprLoc(LBL2, 32),
+                                           ExprLoc(LBL3, 32)
+                                       )
+                              )
+                              ]
                              ])
 
 G14_IRB2 = gen_irblock(LBL2, [[ExprAff(D, A)],
                               [ExprAff(A, D + CST1)],
-                              [ExprAff(G14_IRA.IRDst,
+                              [ExprAff(IRDst,
                                        ExprLoc(LBL1, 32))]
                              ])
 
-G14_IRB3 = gen_irblock(LBL3, [[ExprAff(R, D + B)]])
+G14_IRB3 = gen_irblock(LBL3, [[ExprAff(R, D + B), ExprAff(IRDst, END)]])
 
-G14_IRA.graph.add_uniq_edge(G14_IRB0.loc_key, G14_IRB1.loc_key)
-G14_IRA.graph.add_uniq_edge(G14_IRB1.loc_key, G14_IRB2.loc_key)
-G14_IRA.graph.add_uniq_edge(G14_IRB2.loc_key, G14_IRB1.loc_key)
-G14_IRA.graph.add_uniq_edge(G14_IRB1.loc_key, G14_IRB3.loc_key)
-
-G14_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G14_IRB0, G14_IRB1,
-                                                    G14_IRB2, G14_IRB3]])
+for irb in [G14_IRB0, G14_IRB1, G14_IRB2, G14_IRB3]:
+    G14_IRA.add_irblock(irb)
 
 # graph 16
 
-G15_IRA = IRATest(loc_db)
+G15_IRA = IRA.new_ircfg()
 
-G15_IRB0 = gen_irblock(LBL0, [[ExprAff(A, CST1)]])
+G15_IRB0 = gen_irblock(LBL0, [[ExprAff(A, CST1), ExprAff(IRDst, ExprLoc(LBL1, 32))]])
 G15_IRB1 = gen_irblock(LBL1, [[ExprAff(D, A + B)],
                               [ExprAff(C, D)],
-                              [ExprAff(B, C)]])
-G15_IRB2 = gen_irblock(LBL2, [[ExprAff(R, B)]])
+                              [ExprAff(B, C),
+                               ExprAff(IRDst,
+                                       ExprCond(
+                                           C,
+                                           ExprLoc(LBL1, 32),
+                                           ExprLoc(LBL2, 32)
+                                       )
+                               )]])
+G15_IRB2 = gen_irblock(LBL2, [[ExprAff(R, B), ExprAff(IRDst, END)]])
 
-G15_IRA.graph.add_uniq_edge(G15_IRB0.loc_key, G15_IRB1.loc_key)
-G15_IRA.graph.add_uniq_edge(G15_IRB1.loc_key, G15_IRB2.loc_key)
-G15_IRA.graph.add_uniq_edge(G15_IRB1.loc_key, G15_IRB1.loc_key)
-
-G15_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G15_IRB0, G15_IRB1,
-                                                    G15_IRB2]])
+for irb in [G15_IRB0, G15_IRB1, G15_IRB2]:
+    G15_IRA.add_irblock(irb)
 
 # graph 16
 
-G16_IRA = IRATest(loc_db)
+G16_IRA = IRA.new_ircfg()
 
-G16_IRB0 = gen_irblock(LBL0, [[ExprAff(A, CST1)]])
-G16_IRB1 = gen_irblock(LBL1, [[ExprAff(R, D)]])
-G16_IRB2 = gen_irblock(LBL2, [[ExprAff(D, A)]])
-G16_IRB3 = gen_irblock(LBL3, [[ExprAff(R, D)]])
-G16_IRB4 = gen_irblock(LBL4, [[ExprAff(R, A)]])
-G16_IRB5 = gen_irblock(LBL5, [[ExprAff(R, A)]])
+G16_IRB0 = gen_irblock(
+    LBL0, [
+        [ExprAff(A, CST1), ExprAff(IRDst, ExprLoc(LBL1, 32))]
+    ]
+)
 
-G16_IRA.graph.add_uniq_edge(G16_IRB0.loc_key, G16_IRB1.loc_key)
-G16_IRA.graph.add_uniq_edge(G16_IRB1.loc_key, G16_IRB2.loc_key)
-G16_IRA.graph.add_uniq_edge(G16_IRB2.loc_key, G16_IRB1.loc_key)
-G16_IRA.graph.add_uniq_edge(G16_IRB1.loc_key, G16_IRB3.loc_key)
-G16_IRA.graph.add_uniq_edge(G16_IRB3.loc_key, G16_IRB1.loc_key)
-G16_IRA.graph.add_uniq_edge(G16_IRB1.loc_key, G16_IRB4.loc_key)
-G16_IRA.graph.add_uniq_edge(G16_IRB4.loc_key, G16_IRB1.loc_key)
-G16_IRA.graph.add_uniq_edge(G16_IRB1.loc_key, G16_IRB5.loc_key)
+G16_IRB1 = gen_irblock(
+    LBL1,
+    [
+        [ExprAff(R, D),
+         ExprAff(
+             IRDst,
+             ExprCond(
+                 C,
+                 ExprCond(
+                     C,
+                     ExprCond(
+                         C,
+                         ExprLoc(LBL2, 32),
+                         ExprLoc(LBL3, 32)
+                     ),
+                     ExprLoc(LBL4, 32)
+                 ),
+                 ExprLoc(LBL5, 32)
+             )
+         )
+        ]
+    ]
+)
 
-G16_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G16_IRB0, G16_IRB1,
-                                                    G16_IRB2, G16_IRB3,
-                                                    G16_IRB4, G16_IRB5]])
+
+
+G16_IRB2 = gen_irblock(LBL2, [[ExprAff(D, A), ExprAff(IRDst, ExprLoc(LBL1, 32))]])
+G16_IRB3 = gen_irblock(LBL3, [[ExprAff(R, D), ExprAff(IRDst, ExprLoc(LBL1, 32))]])
+G16_IRB4 = gen_irblock(LBL4, [[ExprAff(R, A), ExprAff(IRDst, ExprLoc(LBL1, 32))]])
+G16_IRB5 = gen_irblock(LBL5, [[ExprAff(R, A), ExprAff(IRDst, ExprLoc(LBL1, 32))]])
+
+for irb in [G16_IRB0, G16_IRB1, G16_IRB2, G16_IRB3, G16_IRB4, G16_IRB5]:
+    G16_IRA.add_irblock(irb)
 
 # graph 17
 
-G17_IRA = IRATest(loc_db)
+G17_IRA = IRA.new_ircfg()
 
 G17_IRB0 = gen_irblock(LBL0, [[ExprAff(A, CST1),
-                               ExprAff(D, CST2)]])
+                               ExprAff(D, CST2),
+                               ExprAff(IRDst, ExprLoc(LBL1, 32))]])
 G17_IRB1 = gen_irblock(LBL1, [[ExprAff(A, D),
-                               ExprAff(B, D)]])
-G17_IRB2 = gen_irblock(LBL2, [[ExprAff(A, A - B)]])
+                               ExprAff(B, D),
+                               ExprAff(IRDst, ExprLoc(LBL2, 32))]])
+G17_IRB2 = gen_irblock(LBL2, [[ExprAff(A, A - B),
+                               ExprAff(IRDst, END)]])
 
-G17_IRA.graph.add_uniq_edge(G17_IRB0.loc_key, G17_IRB1.loc_key)
-G17_IRA.graph.add_uniq_edge(G17_IRB1.loc_key, G17_IRB2.loc_key)
+G17_IRA.add_uniq_edge(G17_IRB0.loc_key, G17_IRB1.loc_key)
+G17_IRA.add_uniq_edge(G17_IRB1.loc_key, G17_IRB2.loc_key)
 
-G17_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G17_IRB0, G17_IRB1,
-                                                    G17_IRB2]])
+for irb in [G17_IRB0, G17_IRB1, G17_IRB2]:
+    G17_IRA.add_irblock(irb)
 
 # Test graph 1
 G1_TEST1_DN1 = DependencyNode(
@@ -950,20 +1128,23 @@ for test_nb, test in enumerate([(G1_IRA, G1_INPUT),
 
     # Extract test elements
     print "[+] Test", test_nb + 1
-    g_ira, (depnodes, heads) = test
+    ircfg, (depnodes, heads) = test
 
-    open("graph_%02d.dot" % (test_nb + 1), "w").write(g_ira.graph.dot())
+    open("graph_%02d.dot" % (test_nb + 1), "w").write(ircfg.dot())
+    open("graph_%02d.dot" % (test_nb + 1), "w").write(bloc2graph(ircfg))
 
     # Different options
     suffix_key_list = ["", "_nosimp", "_nomem", "_nocall",
                        "_implicit"]
     # Test classes
-    for g_ind, g_dep in enumerate([DependencyGraph(g_ira),
-                                   DependencyGraph(g_ira, apply_simp=False),
-                                   DependencyGraph(g_ira, follow_mem=False),
-                                   DependencyGraph(g_ira, follow_mem=False,
-                                                   follow_call=False),
-                                   # DependencyGraph(g_ira, implicit=True),
+    for g_ind, g_dep in enumerate([DependencyGraph(ircfg),
+                                   DependencyGraph(ircfg, apply_simp=False),
+                                   DependencyGraph(ircfg, follow_mem=False),
+                                   DependencyGraph(
+                                       ircfg, follow_mem=False,
+                                       follow_call=False
+                                   ),
+                                   # DependencyGraph(ircfg, implicit=True),
                                    ]):
         # if g_ind == 4:
         # TODO: Implicit specifications
@@ -991,7 +1172,6 @@ for test_nb, test in enumerate([(G1_IRA, G1_INPUT),
         flat_depnodes = get_flat_init_depnodes(depnodes)
         if not match_results(all_results, test_results[test_nb], flat_depnodes):
             FAILED.add(test_nb)
-            # fds
         continue
 
 if FAILED:

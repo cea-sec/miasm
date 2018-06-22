@@ -15,23 +15,24 @@ from pdb import pm
 logging.getLogger('cpuhelper').setLevel(logging.ERROR)
 EXCLUDE_REGS = set([ir_arch().IRDst])
 
-loc_db = LocationDB()
 
 def M(addr):
     return ExprMem(ExprInt(addr, 16), 16)
 
 
 def compute(asm, inputstate={}, debug=False):
+    loc_db = LocationDB()
     sympool = dict(regs_init)
     sympool.update({k: ExprInt(v, k.size) for k, v in inputstate.iteritems()})
-    interm = ir_arch(loc_db)
-    symexec = SymbolicExecutionEngine(interm, sympool)
+    ir_tmp = ir_arch(loc_db)
+    ircfg = ir_tmp.new_ircfg()
+    symexec = SymbolicExecutionEngine(ir_tmp, sympool)
     instr = mn.fromstring(asm, loc_db, "l")
     code = mn.asm(instr)[0]
     instr = mn.dis(code, "l")
     instr.offset = inputstate.get(PC, 0)
-    lbl = interm.add_instr(instr)
-    symexec.run_at(lbl)
+    lbl = ir_tmp.add_instr_to_ircfg(instr, ircfg)
+    symexec.run_at(ircfg, lbl)
     if debug:
         for k, v in symexec.symbols.items():
             if regs_init.get(k, None) != v:

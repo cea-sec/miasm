@@ -205,8 +205,11 @@ class Jitter(object):
         self.cpu = jcore.JitCpu()
         self.ir_arch = ir_arch
         self.bs = bin_stream_vm(self.vm)
+        self.ircfg = self.ir_arch.new_ircfg()
 
-        self.symbexec = EmulatedSymbExec(self.cpu, self.vm, self.ir_arch, {})
+        self.symbexec = EmulatedSymbExec(
+            self.cpu, self.vm, self.ir_arch, {}
+        )
         self.symbexec.reset_regs()
 
         try:

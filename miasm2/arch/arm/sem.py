@@ -1572,8 +1572,10 @@ class ir_arml(IntermediateRepresentation):
 
             assignments = []
             loc = loc_do
-            split = self.add_instr_to_irblock(block, instr, assignments,
-                                              irblocks, gen_pc_updt)
+            split = self.add_instr_to_current_state(
+                instr, block, assignments,
+                irblocks, gen_pc_updt
+            )
             if split:
                 raise NotImplementedError("Unsupported instr in IT block (%s)" % instr)
 
@@ -1587,7 +1589,7 @@ class ir_arml(IntermediateRepresentation):
             ir_blocks_all.append(irblocks)
         return index, ir_blocks_all
 
-    def add_block(self, block, gen_pc_updt=False):
+    def add_asmblock_to_ircfg(self, block, ircfg, gen_pc_updt=False):
         """
         Add a native block to the current IR
         @block: native assembly block
@@ -1613,8 +1615,10 @@ class ir_arml(IntermediateRepresentation):
                 label = None
                 continue
 
-            split = self.add_instr_to_irblock(block, instr, assignments,
-                                              ir_blocks_all, gen_pc_updt)
+            split = self.add_instr_to_current_state(
+                instr, block, assignments,
+                ir_blocks_all, gen_pc_updt
+            )
             if split:
                 ir_blocks_all.append(IRBlock(label, assignments))
                 label = None
@@ -1622,7 +1626,7 @@ class ir_arml(IntermediateRepresentation):
         if label is not None:
             ir_blocks_all.append(IRBlock(label, assignments))
 
-        new_ir_blocks_all = self.post_add_block(block, ir_blocks_all)
+        new_ir_blocks_all = self.post_add_asmblock_to_ircfg(block, ircfg, ir_blocks_all)
         for irblock in new_ir_blocks_all:
             ircfg.add_irblock(irblock)
         return new_ir_blocks_all

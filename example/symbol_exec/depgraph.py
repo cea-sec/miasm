@@ -62,18 +62,19 @@ if args.rename_args:
 asmcfg = mdis.dis_multiblock(int(args.func_addr, 0))
 
 # Generate IR
-for block in asmcfg.blocks:
-    ir_arch.add_block(block)
+ircfg = ir_arch.new_ircfg_from_asmcfg(asmcfg)
 
 # Get the instance
-dg = DependencyGraph(ir_arch, implicit=args.implicit,
-                     apply_simp=not args.do_not_simplify,
-                     follow_mem=not args.unfollow_mem,
-                     follow_call=not args.unfollow_call)
+dg = DependencyGraph(
+    ircfg, implicit=args.implicit,
+    apply_simp=not args.do_not_simplify,
+    follow_mem=not args.unfollow_mem,
+    follow_call=not args.unfollow_call
+)
 
 # Build information
 target_addr = int(args.target_addr, 0)
-current_block = list(ir_arch.getby_offset(target_addr))[0]
+current_block = list(ircfg.getby_offset(target_addr))[0]
 assignblk_index = 0
 for assignblk_index, assignblk in enumerate(current_block):
     if assignblk.instr.offset == target_addr:
@@ -86,7 +87,7 @@ for sol_nb, sol in enumerate(dg.get(current_block.loc_key, elements, assignblk_i
     with open(fname, "w") as fdesc:
             fdesc.write(sol.graph.dot())
 
-    results = sol.emul(ctx=init_ctx)
+    results = sol.emul(ir_arch, ctx=init_ctx)
     tokens = {str(k): str(v) for k, v in results.iteritems()}
     if not args.json:
         result = ", ".join("=".join(x) for x in tokens.iteritems())
