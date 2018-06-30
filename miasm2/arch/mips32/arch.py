@@ -97,8 +97,8 @@ class instruction_mips32(cpu.instruction):
         if self.name in ["J", 'JAL']:
             expr = self.args[0].arg
             addr = (self.offset & (0xFFFFFFFF ^ ((1<< 28)-1))) + expr
-            label = symbol_pool.getby_offset_create(addr)
-            self.args[0] = ExprLoc(label.loc_key, expr.size)
+            loc_key = symbol_pool.getby_offset_create(addr)
+            self.args[0] = ExprLoc(loc_key, expr.size)
             return
 
         ndx = self.get_dst_num()
