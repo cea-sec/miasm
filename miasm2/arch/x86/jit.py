@@ -1,10 +1,10 @@
 import logging
 
 from miasm2.jitter.jitload import Jitter, named_arguments
-from miasm2.core import asmblock
 from miasm2.core.utils import pck16, pck32, pck64, upck16, upck32, upck64
 from miasm2.arch.x86.sem import ir_x86_16, ir_x86_32, ir_x86_64
 from miasm2.jitter.codegen import CGen
+from miasm2.core.locationdb import LocationDB
 from miasm2.ir.translators.C import TranslatorC
 
 log = logging.getLogger('jit_x86')
@@ -18,7 +18,7 @@ class x86_32_CGen(CGen):
     def __init__(self, ir_arch):
         self.ir_arch = ir_arch
         self.PC = self.ir_arch.arch.regs.RIP
-        self.translator = TranslatorC(self.ir_arch.symbol_pool)
+        self.translator = TranslatorC(self.ir_arch.loc_db)
         self.init_arch_C()
 
     def gen_post_code(self, attrib):
@@ -39,7 +39,7 @@ class jitter_x86_16(Jitter):
     C_Gen = x86_32_CGen
 
     def __init__(self, *args, **kwargs):
-        sp = asmblock.AsmSymbolPool()
+        sp = LocationDB()
         Jitter.__init__(self, ir_x86_16(sp), *args, **kwargs)
         self.vm.set_little_endian()
         self.ir_arch.do_stk_segm = False
@@ -71,7 +71,7 @@ class jitter_x86_32(Jitter):
     C_Gen = x86_32_CGen
 
     def __init__(self, *args, **kwargs):
-        sp = asmblock.AsmSymbolPool()
+        sp = LocationDB()
         Jitter.__init__(self, ir_x86_32(sp), *args, **kwargs)
         self.vm.set_little_endian()
         self.ir_arch.do_stk_segm = False
@@ -187,7 +187,7 @@ class jitter_x86_64(Jitter):
     args_regs_stdcall = ['RCX', 'RDX', 'R8', 'R9']
 
     def __init__(self, *args, **kwargs):
-        sp = asmblock.AsmSymbolPool()
+        sp = LocationDB()
         Jitter.__init__(self, ir_x86_64(sp), *args, **kwargs)
         self.vm.set_little_endian()
         self.ir_arch.do_stk_segm = False

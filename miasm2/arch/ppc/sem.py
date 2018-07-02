@@ -606,8 +606,8 @@ def mn_do_store(ir, instr, arg1, arg2, arg3=None):
             ret.append(ExprAff(arg2, address))
 
     if is_stwcx:
-        loc_do = ExprLoc(ir.symbol_pool.gen_loc_key(), ir.IRDst.size)
-        loc_dont = ExprLoc(ir.symbol_pool.gen_loc_key(), ir.IRDst.size)
+        loc_do = ExprLoc(ir.loc_db.gen_loc_key(), ir.IRDst.size)
+        loc_dont = ExprLoc(ir.loc_db.gen_loc_key(), ir.IRDst.size)
         loc_next = ExprLoc(ir.get_next_loc_key(instr), ir.IRDst.size)
         flags = [ ExprAff(CR0_LT, ExprInt(0,1)),
                   ExprAff(CR0_GT, ExprInt(0,1)),
@@ -842,8 +842,8 @@ sem_dir = {
 
 class ir_ppc32b(IntermediateRepresentation):
 
-    def __init__(self, symbol_pool=None):
-        super(ir_ppc32b, self).__init__(mn_ppc, 'b', symbol_pool)
+    def __init__(self, loc_db=None):
+        super(ir_ppc32b, self).__init__(mn_ppc, 'b', loc_db)
         self.pc = mn_ppc.getpc()
         self.sp = mn_ppc.getsp()
         self.IRDst = expr.ExprId('IRDst', 32)
@@ -916,9 +916,9 @@ class ir_ppc32b(IntermediateRepresentation):
         return instr_ir, extra_ir
 
     def get_next_instr(self, instr):
-        l = self.symbol_pool.getby_offset_create(instr.offset  + 4)
+        l = self.loc_db.getby_offset_create(instr.offset  + 4)
         return l
 
     def get_next_break_loc_key(self, instr):
-        l = self.symbol_pool.getby_offset_create(instr.offset  + 4)
+        l = self.loc_db.getby_offset_create(instr.offset  + 4)
         return l

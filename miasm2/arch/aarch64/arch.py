@@ -263,7 +263,7 @@ conds_inv_expr, _, conds_inv_info = gen_regs(CONDS_INV, {})
 
 
 class aarch64_arg(m_arg):
-    def asm_ast_to_expr(self, value, symbol_pool, size_hint=None, fixed_size=None):
+    def asm_ast_to_expr(self, value, loc_db, size_hint=None, fixed_size=None):
         if size_hint is None:
             size_hint = 64
         if fixed_size is None:
@@ -276,25 +276,25 @@ class aarch64_arg(m_arg):
             if isinstance(value.name, ExprId):
                 fixed_size.add(value.name.size)
                 return value.name
-            loc_key = symbol_pool.getby_name_create(value.name)
+            loc_key = loc_db.getby_name_create(value.name)
             return ExprLoc(loc_key, size_hint)
         if isinstance(value, AstInt):
             assert size_hint is not None
             return ExprInt(value.value, size_hint)
         if isinstance(value, AstOp):
             if value.op == "segm":
-                segm = self.asm_ast_to_expr(value.args[0], symbol_pool)
-                ptr = self.asm_ast_to_expr(value.args[1], symbol_pool, None, fixed_size)
+                segm = self.asm_ast_to_expr(value.args[0], loc_db)
+                ptr = self.asm_ast_to_expr(value.args[1], loc_db, None, fixed_size)
                 return ExprOp('segm', segm, ptr)
 
-            args = [self.asm_ast_to_expr(arg, symbol_pool, None, fixed_size) for arg in value.args]
+            args = [self.asm_ast_to_expr(arg, loc_db, None, fixed_size) for arg in value.args]
             if len(fixed_size) == 0:
                 # No fixed size
                 pass
             elif len(fixed_size) == 1:
                 # One fixed size, regen all
                 size = list(fixed_size)[0]
-                args = [self.asm_ast_to_expr(arg, symbol_pool, size, fixed_size) for arg in value.args]
+                args = [self.asm_ast_to_expr(arg, loc_db, size, fixed_size) for arg in value.args]
             else:
                 raise ValueError("Size conflict")
 
@@ -310,13 +310,13 @@ class instruction_aarch64(instruction):
         super(instruction_aarch64, self).__init__(*args, **kargs)
 
     @staticmethod
-    def arg2str(expr, index=None, symbol_pool=None):
+    def arg2str(expr, index=None, loc_db=None):
         wb = False
         if expr.is_id() or expr.is_int():
             return str(expr)
         elif expr.is_loc():
-            if symbol_pool is not None:
-                return symbol_pool.str_loc_key(expr.loc_key)
+            if loc_db is not None:
+                return loc_db.str_loc_key(expr.loc_key)
             else:
                 return str(expr)
         elif isinstance(expr, m2_expr.ExprOp) and expr.op in shift_expr:
@@ -368,13 +368,13 @@ class instruction_aarch64(instruction):
         else:
             return 0
 
-    def dstflow2label(self, symbol_pool):
+    def dstflow2label(self, loc_db):
         index = self.mnemo_flow_to_dst_index(self.name)
         expr = self.args[index]
         if not expr.is_int():
             return
         addr = expr.arg + self.offset
-        loc_key = symbol_pool.getby_offset_create(addr)
+        loc_key = loc_db.getby_offset_create(addr)
         self.args[index] = m2_expr.ExprLoc(loc_key, expr.size)
 
     def breakflow(self):
@@ -383,14 +383,14 @@ class instruction_aarch64(instruction):
     def is_subcall(self):
         return self.name in ["BLR", "BL"]
 
-    def getdstflow(self, symbol_pool):
+    def getdstflow(self, loc_db):
         index = self.mnemo_flow_to_dst_index(self.name)
         return [self.args[index]]
 
     def splitflow(self):
         return self.name in BRCOND + ["BLR", "BL"]
 
-    def get_symbol_size(self, symbol, symbol_pool):
+    def get_symbol_size(self, symbol, loc_db):
         return 64
 
     def fixDstOffset(self):
@@ -502,7 +502,7 @@ class mn_aarch64(cls_mn):
         else:
             raise NotImplementedError('bad attrib')
 
-    def get_symbol_size(self, symbol, symbol_pool, mode):
+    def get_symbol_size(self, symbol, loc_db, mode):
         return 32
 
     def reset_class(self):
@@ -800,8 +800,8 @@ def set_imm_to_size(size, expr):
 class aarch64_imm_sf(imm_noarg):
     parser = base_expr
 
-    def fromstring(self, text, symbol_pool, parser_result=None):
-        start, stop = super(aarch64_imm_sf, self).fromstring(text, symbol_pool, parser_result)
+    def fromstring(self, text, loc_db, parser_result=None):
+        start, stop = super(aarch64_imm_sf, self).fromstring(text, loc_db, parser_result)
         if start is None:
             return start, stop
         size = self.parent.args[0].expr.size

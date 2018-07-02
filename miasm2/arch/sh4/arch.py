@@ -96,23 +96,23 @@ dgbr_reg = (DEREF + LPARENT + reg_info_gbr.parser + COMMA + gpregs.parser + RPAR
 
 
 class sh4_arg(m_arg):
-    def asm_ast_to_expr(self, arg, symbol_pool):
+    def asm_ast_to_expr(self, arg, loc_db):
         if isinstance(arg, AstId):
             if isinstance(arg.name, ExprId):
                 return arg.name
             if arg.name in gpregs.str:
                 return None
-            loc_key = symbol_pool.getby_name_create(arg.name)
+            loc_key = loc_db.getby_name_create(arg.name)
             return ExprLoc(loc_key, 32)
         if isinstance(arg, AstOp):
-            args = [self.asm_ast_to_expr(tmp, symbol_pool) for tmp in arg.args]
+            args = [self.asm_ast_to_expr(tmp, loc_db) for tmp in arg.args]
             if None in args:
                 return None
             return ExprOp(arg.op, *args)
         if isinstance(arg, AstInt):
             return ExprInt(arg.value, 32)
         if isinstance(arg, AstMem):
-            ptr = self.asm_ast_to_expr(arg.ptr, symbol_pool)
+            ptr = self.asm_ast_to_expr(arg.ptr, loc_db)
             if ptr is None:
                 return None
             return ExprMem(ptr, arg.size)
@@ -165,8 +165,8 @@ class sh4_freg(sh4_reg):
 class sh4_dgpreg(sh4_arg):
     parser = dgpregs_base
 
-    def fromstring(self, text, symbol_pool, parser_result=None):
-        start, stop = super(sh4_dgpreg, self).fromstring(text, symbol_pool, parser_result)
+    def fromstring(self, text, loc_db, parser_result=None):
+        start, stop = super(sh4_dgpreg, self).fromstring(text, loc_db, parser_result)
         if start is None or self.expr == [None]:
             return start, stop
         self.expr = ExprMem(self.expr.arg, self.sz)
@@ -191,8 +191,8 @@ class sh4_dgpreg(sh4_arg):
 class sh4_dgpregpinc(sh4_arg):
     parser = dgpregs_p
 
-    def fromstring(self, text, symbol_pool, parser_result=None):
-        start, stop = super(sh4_dgpregpinc, self).fromstring(text, symbol_pool, parser_result)
+    def fromstring(self, text, loc_db, parser_result=None):
+        start, stop = super(sh4_dgpregpinc, self).fromstring(text, loc_db, parser_result)
         if self.expr == [None]:
             return None, None
         if not isinstance(self.expr.arg, ExprOp):
@@ -406,12 +406,12 @@ class instruction_sh4(instruction):
         return self.name.startswith('J')
 
     @staticmethod
-    def arg2str(expr, index=None, symbol_pool=None):
+    def arg2str(expr, index=None, loc_db=None):
         if isinstance(expr, ExprId) or isinstance(expr, ExprInt):
             return str(expr)
         elif expr.is_loc():
-            if symbol_pool is not None:
-                return symbol_pool.str_loc_key(expr.loc_key)
+            if loc_db is not None:
+                return loc_db.str_loc_key(expr.loc_key)
             else:
                 return str(expr)
         assert(isinstance(expr, ExprMem))
@@ -435,7 +435,7 @@ class instruction_sh4(instruction):
 
 
     """
-    def dstflow2label(self, symbol_pool):
+    def dstflow2label(self, loc_db):
         e = self.args[0]
         if not isinstance(e, ExprInt):
             return
@@ -443,7 +443,7 @@ class instruction_sh4(instruction):
             ad = e.arg+8+self.offset
         else:
             ad = e.arg+8+self.offset
-        l = symbol_pool.getby_offset_create(ad)
+        l = loc_db.getby_offset_create(ad)
         s = ExprId(l, e.size)
         self.args[0] = s
     """
@@ -456,13 +456,13 @@ class instruction_sh4(instruction):
     def is_subcall(self):
         return self.name == 'JSR'
 
-    def getdstflow(self, symbol_pool):
+    def getdstflow(self, loc_db):
         return [self.args[0]]
 
     def splitflow(self):
         return self.name == 'JSR'
 
-    def get_symbol_size(self, symbol, symbol_pool):
+    def get_symbol_size(self, symbol, loc_db):
         return 32
 
     def fixDstOffset(self):
@@ -823,10 +823,10 @@ addop("bf", [bs('10001011'), s08imm])
         return True
     def dstflow(self):
         return True
-    def dstflow2label(self, symbol_pool):
+    def dstflow2label(self, loc_db):
         e = self.args[0].expr
         ad = e.arg*2+4+self.offset
-        l = symbol_pool.getby_offset_create(ad)
+        l = loc_db.getby_offset_create(ad)
         s = ExprId(l, e.size)
         self.args[0].expr = s
 """
@@ -846,10 +846,10 @@ addop("bra", [bs('1010'), s12imm])
         return True
     def dstflow(self):
         return True
-    def dstflow2label(self, symbol_pool):
+    def dstflow2label(self, loc_db):
         e = self.args[0].expr
         ad = e.arg*2+4+self.offset
-        l = symbol_pool.getby_offset_create(ad)
+        l = loc_db.getby_offset_create(ad)
         s = ExprId(l, e.size)
         self.args[0].expr = s
 """

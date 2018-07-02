@@ -1,14 +1,14 @@
 import z3
 
-from miasm2.core.asmblock import AsmSymbolPool
+from miasm2.core.locationdb import LocationDB
 from miasm2.expression.expression import *
 from miasm2.ir.translators.z3_ir import Z3Mem, TranslatorZ3
 
 # Some examples of use/unit tests.
 
-symbol_pool = AsmSymbolPool()
-translator1 = TranslatorZ3(endianness="<", symbol_pool=symbol_pool)
-translator2 = TranslatorZ3(endianness=">", symbol_pool=symbol_pool)
+loc_db = LocationDB()
+translator1 = TranslatorZ3(endianness="<", loc_db=loc_db)
+translator2 = TranslatorZ3(endianness=">", loc_db=loc_db)
 
 
 def equiv(z3_expr1, z3_expr2):
@@ -143,14 +143,14 @@ for miasm_int, res in [(five, -5), (four, -4)]:
     assert equiv(ez3, z3_e6)
 
 # --------------------------------------------------------------------------
-label_histoire = symbol_pool.add_location("label_histoire", 0xdeadbeef)
+label_histoire = loc_db.add_location("label_histoire", 0xdeadbeef)
 e7 = ExprLoc(label_histoire, 32)
 ez3 = translator1.from_expr(e7)
 z3_e7 = z3.BitVecVal(0xdeadbeef, 32)
 assert equiv(ez3, z3_e7)
 
 # Should just not throw anything to pass
-lbl_e8 = symbol_pool.add_location("label_jambe")
+lbl_e8 = loc_db.add_location("label_jambe")
 
 e8 = ExprLoc(lbl_e8, 32)
 ez3 = translator1.from_expr(e8)

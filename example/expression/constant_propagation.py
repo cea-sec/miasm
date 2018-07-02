@@ -28,7 +28,7 @@ machine = Machine("x86_32")
 cont = Container.from_stream(open(args.filename))
 ira, dis_engine = machine.ira, machine.dis_engine
 mdis = dis_engine(cont.bin_stream)
-ir_arch = ira(mdis.symbol_pool)
+ir_arch = ira(mdis.loc_db)
 addr = int(args.address, 0)
 
 

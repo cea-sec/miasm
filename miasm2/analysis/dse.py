@@ -159,14 +159,14 @@ class DSEEngine(object):
         self.symb_concrete = None # Concrete SymbExec for path desambiguisation
         self.mdis = None # DisasmEngine
 
-        self.symbol_pool = self.ir_arch.symbol_pool
+        self.loc_db = self.ir_arch.loc_db
 
     def prepare(self):
         """Prepare the environment for attachment with a jitter"""
         # Disassembler
         self.mdis = self.machine.dis_engine(bin_stream_vm(self.jitter.vm),
                                             lines_wd=1,
-                                            symbol_pool=self.symbol_pool)
+                                            loc_db=self.loc_db)
 
         # Symbexec engine
         ## Prepare symbexec engines
@@ -297,7 +297,7 @@ class DSEEngine(object):
         # Call callbacks associated to the current address
         cur_addr = self.jitter.pc
         if isinstance(cur_addr, LocKey):
-            lbl = self.ir_arch.symbol_pool.loc_key_to_label(cur_addr)
+            lbl = self.ir_arch.loc_db.loc_key_to_label(cur_addr)
             cur_addr = lbl.offset
 
         if cur_addr in self.handler:
@@ -348,7 +348,7 @@ class DSEEngine(object):
                 self.symb.run_block_at(cur_addr)
 
                 if not (isinstance(next_addr_concrete, ExprLoc) and
-                        self.ir_arch.symbol_pool.loc_key_to_offset(
+                        self.ir_arch.loc_db.loc_key_to_offset(
                             next_addr_concrete.loc_key
                         ) is None):
                     # Not a lbl_gen, exit
@@ -604,17 +604,17 @@ class DSEPathConstraint(DSEEngine):
             self.cur_solver.add(self.z3_trans.from_expr(cons))
 
     def handle(self, cur_addr):
-        cur_addr = self.ir_arch.symbol_pool.canonize_to_exprloc(cur_addr)
+        cur_addr = self.ir_arch.loc_db.canonize_to_exprloc(cur_addr)
         symb_pc = self.eval_expr(self.ir_arch.IRDst)
         possibilities = possible_values(symb_pc)
         cur_path_constraint = set() # path_constraint for the concrete path
         if len(possibilities) == 1:
             dst = next(iter(possibilities)).value
-            dst = self.ir_arch.symbol_pool.canonize_to_exprloc(dst)
+            dst = self.ir_arch.loc_db.canonize_to_exprloc(dst)
             assert dst == cur_addr
         else:
             for possibility in possibilities:
-                target_addr = self.ir_arch.symbol_pool.canonize_to_exprloc(
+                target_addr = self.ir_arch.loc_db.canonize_to_exprloc(
                     possibility.value
                 )
                 path_constraint = set() # Set of ExprAff for the possible path

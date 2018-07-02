@@ -1,7 +1,7 @@
 """Regression test module for DependencyGraph"""
 from miasm2.expression.expression import ExprId, ExprInt, ExprAff, ExprCond, \
     ExprLoc, LocKey
-from miasm2.core.asmblock import AsmSymbolPool
+from miasm2.core.locationdb import LocationDB
 from miasm2.ir.analysis import ira
 from miasm2.ir.ir import IRBlock, AssignBlock
 from miasm2.core.graph import DiGraph
@@ -10,7 +10,7 @@ from itertools import count
 from pdb import pm
 import re
 
-symbol_pool = AsmSymbolPool()
+loc_db = LocationDB()
 
 EMULATION = True
 try:
@@ -44,13 +44,13 @@ CST33 = ExprInt(0x33, 32)
 CST35 = ExprInt(0x35, 32)
 CST37 = ExprInt(0x37, 32)
 
-LBL0 = symbol_pool.add_location("lbl0", 0)
-LBL1 = symbol_pool.add_location("lbl1", 1)
-LBL2 = symbol_pool.add_location("lbl2", 2)
-LBL3 = symbol_pool.add_location("lbl3", 3)
-LBL4 = symbol_pool.add_location("lbl4", 4)
-LBL5 = symbol_pool.add_location("lbl5", 5)
-LBL6 = symbol_pool.add_location("lbl6", 6)
+LBL0 = loc_db.add_location("lbl0", 0)
+LBL1 = loc_db.add_location("lbl1", 1)
+LBL2 = loc_db.add_location("lbl2", 2)
+LBL3 = loc_db.add_location("lbl3", 3)
+LBL4 = loc_db.add_location("lbl4", 4)
+LBL5 = loc_db.add_location("lbl5", 5)
+LBL6 = loc_db.add_location("lbl6", 6)
 
 def gen_irblock(label, exprs_list):
     """ Returns an IRBlock.
@@ -90,9 +90,9 @@ class IRATest(ira):
 
     """Fake IRA class for tests"""
 
-    def __init__(self, symbol_pool=None):
+    def __init__(self, loc_db=None):
         arch = Arch()
-        super(IRATest, self).__init__(arch, 32, symbol_pool)
+        super(IRATest, self).__init__(arch, 32, loc_db)
         self.IRDst = PC
         self.ret_reg = R
 
@@ -116,7 +116,7 @@ def bloc2graph(irgraph, label=False, lines=True):
     out_blocks = []
     for label in irgraph.graph.nodes():
         if isinstance(label, LocKey):
-            label_name = irgraph.symbol_pool.loc_key_to_name(label)
+            label_name = irgraph.loc_db.loc_key_to_name(label)
         else:
             label_name = str(label)
 
@@ -156,11 +156,11 @@ def bloc2graph(irgraph, label=False, lines=True):
     # Generate links
     for src, dst in irgraph.graph.edges():
             if isinstance(src, LocKey):
-                src_name = irgraph.symbol_pool.loc_key_to_name(src)
+                src_name = irgraph.loc_db.loc_key_to_name(src)
             else:
                 src_name = str(src)
             if isinstance(dst, LocKey):
-                dst_name = irgraph.symbol_pool.loc_key_to_name(dst)
+                dst_name = irgraph.loc_db.loc_key_to_name(dst)
             else:
                 dst_name = str(dst)
 
@@ -189,7 +189,7 @@ def dg2graph(graph, label=False, lines=True):
     out_blocks = []
     for node in graph.nodes():
         if isinstance(node, DependencyNode):
-            name = symbol_pool.loc_key_to_name(node.loc_key)
+            name = loc_db.loc_key_to_name(node.loc_key)
             node_name = "%s %s %s" % (name,
                                        node.element,
                                        node.line_nb)
@@ -232,7 +232,7 @@ DNC3 = DependencyNode(LBL1, C, 0)
 
 # graph 1
 
-G1_IRA = IRATest(symbol_pool)
+G1_IRA = IRATest(loc_db)
 
 G1_IRB0 = gen_irblock(LBL0, [[ExprAff(C, CST1)]])
 G1_IRB1 = gen_irblock(LBL1, [[ExprAff(B, C)]])
@@ -245,7 +245,7 @@ G1_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G1_IRB0, G1_IRB1, G1_IRB2]]
 
 # graph 2
 
-G2_IRA = IRATest(symbol_pool)
+G2_IRA = IRATest(loc_db)
 
 G2_IRB0 = gen_irblock(LBL0, [[ExprAff(C, CST1)]])
 G2_IRB1 = gen_irblock(LBL1, [[ExprAff(B, CST2)]])
@@ -259,7 +259,7 @@ G2_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G2_IRB0, G2_IRB1, G2_IRB2]]
 
 # graph 3
 
-G3_IRA = IRATest(symbol_pool)
+G3_IRA = IRATest(loc_db)
 
 G3_IRB0 = gen_irblock(LBL0, [[ExprAff(C, CST1)]])
 G3_IRB1 = gen_irblock(LBL1, [[ExprAff(B, CST2)]])
@@ -276,7 +276,7 @@ G3_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G3_IRB0, G3_IRB1,
 
 # graph 4
 
-G4_IRA = IRATest(symbol_pool)
+G4_IRA = IRATest(loc_db)
 
 G4_IRB0 = gen_irblock(LBL0, [[ExprAff(C, CST1)]])
 G4_IRB1 = gen_irblock(LBL1, [[ExprAff(C, C + CST2)],
@@ -295,7 +295,7 @@ G4_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G4_IRB0, G4_IRB1, G4_IRB2]]
 
 # graph 5
 
-G5_IRA = IRATest(symbol_pool)
+G5_IRA = IRATest(loc_db)
 
 G5_IRB0 = gen_irblock(LBL0, [[ExprAff(B, CST1)]])
 G5_IRB1 = gen_irblock(LBL1, [[ExprAff(B, B + CST2)],
@@ -313,7 +313,7 @@ G5_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G5_IRB0, G5_IRB1, G5_IRB2]]
 
 # graph 6
 
-G6_IRA = IRATest(symbol_pool)
+G6_IRA = IRATest(loc_db)
 
 G6_IRB0 = gen_irblock(LBL0, [[ExprAff(B, CST1)]])
 G6_IRB1 = gen_irblock(LBL1, [[ExprAff(A, B)]])
@@ -325,7 +325,7 @@ G6_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G6_IRB0, G6_IRB1]])
 
 # graph 7
 
-G7_IRA = IRATest(symbol_pool)
+G7_IRA = IRATest(loc_db)
 
 G7_IRB0 = gen_irblock(LBL0, [[ExprAff(C, CST1)]])
 G7_IRB1 = gen_irblock(LBL1, [[ExprAff(B, C)], [ExprAff(A, B)]])
@@ -339,7 +339,7 @@ G7_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G7_IRB0, G7_IRB1, G7_IRB2]]
 
 # graph 8
 
-G8_IRA = IRATest(symbol_pool)
+G8_IRA = IRATest(loc_db)
 
 G8_IRB0 = gen_irblock(LBL0, [[ExprAff(C, CST1)]])
 G8_IRB1 = gen_irblock(LBL1, [[ExprAff(B, C)], [ExprAff(C, D)]])
@@ -355,7 +355,7 @@ G8_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G8_IRB0, G8_IRB1, G8_IRB2]]
 
 # graph 10
 
-G10_IRA = IRATest(symbol_pool)
+G10_IRA = IRATest(loc_db)
 
 G10_IRB1 = gen_irblock(LBL1, [[ExprAff(B, B + CST2)]])
 G10_IRB2 = gen_irblock(LBL2, [[ExprAff(A, B)]])
@@ -367,7 +367,7 @@ G10_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G10_IRB1, G10_IRB2]])
 
 # graph 11
 
-G11_IRA = IRATest(symbol_pool)
+G11_IRA = IRATest(loc_db)
 
 G11_IRB0 = gen_irblock(LBL0, [[ExprAff(A, CST1),
                                ExprAff(B, CST2)]])
@@ -383,7 +383,7 @@ G11_IRA.blocks = dict([(irb.loc_key, irb)
 
 # graph 12
 
-G12_IRA = IRATest(symbol_pool)
+G12_IRA = IRATest(loc_db)
 
 G12_IRB0 = gen_irblock(LBL0, [[ExprAff(B, CST1)]])
 G12_IRB1 = gen_irblock(LBL1, [[ExprAff(A, B)], [ExprAff(B, B + CST2)]])
@@ -399,7 +399,7 @@ G12_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G12_IRB0, G12_IRB1,
 
 # graph 13
 
-G13_IRA = IRATest(symbol_pool)
+G13_IRA = IRATest(loc_db)
 
 G13_IRB0 = gen_irblock(LBL0, [[ExprAff(A, CST1)],
                               #[ExprAff(B, A)],
@@ -427,7 +427,7 @@ G13_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G13_IRB0, G13_IRB1,
 
 # graph 14
 
-G14_IRA = IRATest(symbol_pool)
+G14_IRA = IRATest(loc_db)
 
 G14_IRB0 = gen_irblock(LBL0, [[ExprAff(A, CST1)],
                               [ExprAff(G14_IRA.IRDst,
@@ -457,7 +457,7 @@ G14_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G14_IRB0, G14_IRB1,
 
 # graph 16
 
-G15_IRA = IRATest(symbol_pool)
+G15_IRA = IRATest(loc_db)
 
 G15_IRB0 = gen_irblock(LBL0, [[ExprAff(A, CST1)]])
 G15_IRB1 = gen_irblock(LBL1, [[ExprAff(D, A + B)],
@@ -474,7 +474,7 @@ G15_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G15_IRB0, G15_IRB1,
 
 # graph 16
 
-G16_IRA = IRATest(symbol_pool)
+G16_IRA = IRATest(loc_db)
 
 G16_IRB0 = gen_irblock(LBL0, [[ExprAff(A, CST1)]])
 G16_IRB1 = gen_irblock(LBL1, [[ExprAff(R, D)]])
@@ -498,7 +498,7 @@ G16_IRA.blocks = dict([(irb.loc_key, irb) for irb in [G16_IRB0, G16_IRB1,
 
 # graph 17
 
-G17_IRA = IRATest(symbol_pool)
+G17_IRA = IRATest(loc_db)
 
 G17_IRB0 = gen_irblock(LBL0, [[ExprAff(A, CST1),
                                ExprAff(D, CST2)]])
@@ -642,7 +642,7 @@ def flatNode(node):
             element = int(node.element.arg)
         else:
             RuntimeError("Unsupported type '%s'" % type(enode.element))
-        name = symbol_pool.loc_key_to_name(node.loc_key)
+        name = loc_db.loc_key_to_name(node.loc_key)
         return (name,
                 element,
                 node.line_nb)
@@ -741,7 +741,7 @@ def match_results(resultsA, resultsB, nodes):
 def get_flat_init_depnodes(depnodes):
     out = []
     for node in depnodes:
-        name = symbol_pool.loc_key_to_name(node.loc_key)
+        name = loc_db.loc_key_to_name(node.loc_key)
         out.append((name,
                     node.element.name,
                     node.line_nb,

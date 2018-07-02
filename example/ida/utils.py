@@ -79,9 +79,9 @@ class TranslatorIDA(Translator):
     # Implemented language
     __LANG__ = "ida_w_color"
 
-    def __init__(self, symbol_pool=None, **kwargs):
+    def __init__(self, loc_db=None, **kwargs):
         super(TranslatorIDA, self).__init__(**kwargs)
-        self.symbol_pool = symbol_pool
+        self.loc_db = loc_db
 
     def str_protected_child(self, child, parent):
         return ("(%s)" % (
@@ -97,8 +97,8 @@ class TranslatorIDA(Translator):
         return out
 
     def from_ExprLoc(self, expr):
-        if self.symbol_pool is not None:
-            out = self.symbol_pool.str_loc_key(expr.loc_key)
+        if self.loc_db is not None:
+            out = self.loc_db.str_loc_key(expr.loc_key)
         else:
             out = str(expr)
         out = idaapi.COLSTR(out, idaapi.SCOLOR_REG)
@@ -150,13 +150,13 @@ class TranslatorIDA(Translator):
 
 
 
-def expr2colorstr(expr, symbol_pool):
+def expr2colorstr(expr, loc_db):
     """Colorize an Expr instance for IDA
     @expr: Expr instance to colorize
-    @symbol_pool: AsmSymbolPool instance
+    @loc_db: LocationDB instance
     """
 
-    translator = TranslatorIDA(symbol_pool=symbol_pool)
+    translator = TranslatorIDA(loc_db=loc_db)
     return translator.from_expr(expr)
 
 

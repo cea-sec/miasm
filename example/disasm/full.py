@@ -85,7 +85,7 @@ mn, dis_engine = machine.mn, machine.dis_engine
 ira, ir = machine.ira, machine.ir
 log.info('ok')
 
-mdis = dis_engine(bs, symbol_pool=cont.symbol_pool)
+mdis = dis_engine(bs, loc_db=cont.loc_db)
 # configure disasm engine
 mdis.dontdis_retcall = args.dontdis_retcall
 mdis.blocs_wd = args.blockwatchdog
@@ -99,8 +99,8 @@ for addr in args.address:
         addrs.append(int(addr, 0))
     except ValueError:
         # Second chance, try with symbol
-        loc_key = mdis.symbol_pool.getby_name(addr)
-        offset = mdis.symbol_pool.loc_key_to_offset(loc_key)
+        loc_key = mdis.loc_db.getby_name(addr)
+        offset = mdis.loc_db.loc_key_to_offset(loc_key)
         addrs.append(offset)
 
 if len(addrs) == 0 and default_addr is not None:
@@ -140,10 +140,10 @@ while not finish and todo:
                 instr = block.get_subcall_instr()
                 if not instr:
                     continue
-                for dest in instr.getdstflow(mdis.symbol_pool):
+                for dest in instr.getdstflow(mdis.loc_db):
                     if not dest.is_loc():
                         continue
-                    offset = mdis.symbol_pool.loc_key_to_offset(dest.loc_key)
+                    offset = mdis.loc_db.loc_key_to_offset(dest.loc_key)
                     todo.append((mdis, instr, offset))
 
         if args.funcswatchdog is not None and args.funcswatchdog <= 0:
@@ -158,7 +158,7 @@ while not finish and todo:
 
 
 # Generate dotty graph
-all_asmcfg = AsmCFG(mdis.symbol_pool)
+all_asmcfg = AsmCFG(mdis.loc_db)
 for blocks in all_funcs_blocks.values():
     all_asmcfg += blocks
 
@@ -189,8 +189,8 @@ log.info('total lines %s' % total_l)
 if args.gen_ir:
     log.info("generating IR and IR analysis")
 
-    ir_arch = ir(mdis.symbol_pool)
-    ir_arch_a = ira(mdis.symbol_pool)
+    ir_arch = ir(mdis.loc_db)
+    ir_arch_a = ira(mdis.loc_db)
     ir_arch.blocks = {}
     ir_arch_a.blocks = {}
     for ad, asmcfg in all_funcs_blocks.items():

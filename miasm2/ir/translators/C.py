@@ -18,13 +18,13 @@ class TranslatorC(Translator):
                '>>>': 'rot_right',
                }
 
-    def __init__(self, symbol_pool=None, **kwargs):
+    def __init__(self, loc_db=None, **kwargs):
         """Instance a C translator
-        @symbol_pool: AsmSymbolPool instance
+        @loc_db: LocationDB instance
         """
         super(TranslatorC, self).__init__(**kwargs)
         # symbol pool
-        self.symbol_pool = symbol_pool
+        self.loc_db = loc_db
 
     def _size2mask(self, size):
         """Return a C string corresponding to the size2mask operation, with support for
@@ -52,10 +52,10 @@ class TranslatorC(Translator):
 
     def from_ExprLoc(self, expr):
         loc_key = expr.loc_key
-        if self.symbol_pool is None:
+        if self.loc_db is None:
             return str(loc_key)
 
-        offset = self.symbol_pool.loc_key_to_offset(loc_key)
+        offset = self.loc_db.loc_key_to_offset(loc_key)
         if offset is None:
             return str(loc_key)
 

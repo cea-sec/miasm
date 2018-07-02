@@ -3,7 +3,7 @@ from miasm2.core.asmblock import AsmConstraint
 from miasm2.arch.x86.disasm import dis_x86_32, cb_x86_funcs
 
 
-def cb_x86_callpop(cur_bloc, symbol_pool, *args, **kwargs):
+def cb_x86_callpop(cur_bloc, loc_db, *args, **kwargs):
     """
     1000: call 1005
     1005: pop
@@ -27,7 +27,7 @@ def cb_x86_callpop(cur_bloc, symbol_pool, *args, **kwargs):
         return
 
     loc_key = dst.loc_key
-    offset = symbol_pool.loc_key_to_offset(loc_key)
+    offset = loc_db.loc_key_to_offset(loc_key)
     ## The destination must be the next instruction
     if offset != last_instr.offset + last_instr.l:
         return

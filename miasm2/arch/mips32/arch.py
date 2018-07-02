@@ -60,12 +60,12 @@ class instruction_mips32(cpu.instruction):
 
 
     @staticmethod
-    def arg2str(expr, index=None, symbol_pool=None):
+    def arg2str(expr, index=None, loc_db=None):
         if expr.is_id() or expr.is_int():
             return str(expr)
         elif expr.is_loc():
-            if symbol_pool is not None:
-                return symbol_pool.str_loc_key(expr.loc_key)
+            if loc_db is not None:
+                return loc_db.str_loc_key(expr.loc_key)
             else:
                 return str(expr)
         assert(isinstance(expr, ExprMem))
@@ -93,11 +93,11 @@ class instruction_mips32(cpu.instruction):
             raise NotImplementedError("TODO %s"%self)
         return i
 
-    def dstflow2label(self, symbol_pool):
+    def dstflow2label(self, loc_db):
         if self.name in ["J", 'JAL']:
             expr = self.args[0].arg
             addr = (self.offset & (0xFFFFFFFF ^ ((1<< 28)-1))) + expr
-            loc_key = symbol_pool.getby_offset_create(addr)
+            loc_key = loc_db.getby_offset_create(addr)
             self.args[0] = ExprLoc(loc_key, expr.size)
             return
 
@@ -107,7 +107,7 @@ class instruction_mips32(cpu.instruction):
         if not isinstance(expr, ExprInt):
             return
         addr = expr.arg + self.offset
-        loc_key = symbol_pool.getby_offset_create(addr)
+        loc_key = loc_db.getby_offset_create(addr)
         self.args[ndx] = ExprLoc(loc_key, expr.size)
 
     def breakflow(self):
@@ -122,7 +122,7 @@ class instruction_mips32(cpu.instruction):
             return True
         return False
 
-    def getdstflow(self, symbol_pool):
+    def getdstflow(self, loc_db):
         if self.name in br_0:
             return [self.args[0]]
         elif self.name in br_1:
@@ -147,7 +147,7 @@ class instruction_mips32(cpu.instruction):
             return True
         return False
 
-    def get_symbol_size(self, symbol, symbol_pool):
+    def get_symbol_size(self, symbol, loc_db):
         return 32
 
     def fixDstOffset(self):
@@ -259,23 +259,23 @@ def mips32op(name, fields, args=None, alias=False):
     #type(name, (mn_mips32b,), dct)
 
 class mips32_arg(cpu.m_arg):
-    def asm_ast_to_expr(self, arg, symbol_pool):
+    def asm_ast_to_expr(self, arg, loc_db):
         if isinstance(arg, AstId):
             if isinstance(arg.name, ExprId):
                 return arg.name
             if arg.name in gpregs.str:
                 return None
-            loc_key = symbol_pool.getby_name_create(arg.name)
+            loc_key = loc_db.getby_name_create(arg.name)
             return ExprLoc(loc_key, 32)
         if isinstance(arg, AstOp):
-            args = [self.asm_ast_to_expr(tmp, symbol_pool) for tmp in arg.args]
+            args = [self.asm_ast_to_expr(tmp, loc_db) for tmp in arg.args]
             if None in args:
                 return None
             return ExprOp(arg.op, *args)
         if isinstance(arg, AstInt):
             return ExprInt(arg.value, 32)
         if isinstance(arg, AstMem):
-            ptr = self.asm_ast_to_expr(arg.ptr, symbol_pool)
+            ptr = self.asm_ast_to_expr(arg.ptr, loc_db)
             if ptr is None:
                 return None
             return ExprMem(ptr, arg.size)

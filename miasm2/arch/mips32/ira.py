@@ -6,8 +6,8 @@ from miasm2.ir.analysis import ira
 from miasm2.arch.mips32.sem import ir_mips32l, ir_mips32b
 
 class ir_a_mips32l(ir_mips32l, ira):
-    def __init__(self, symbol_pool=None):
-        ir_mips32l.__init__(self, symbol_pool)
+    def __init__(self, loc_db=None):
+        ir_mips32l.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.V0
 
     def pre_add_instr(self, block, instr, assignments, ir_blocks_all, gen_pc_updt):
@@ -28,7 +28,7 @@ class ir_a_mips32l(ir_mips32l, ira):
                 new_irblocks.append(irb)
                 continue
             if lr_val.is_loc():
-                offset = self.symbol_pool.loc_key_to_offset(lr_val.loc_key)
+                offset = self.loc_db.loc_key_to_offset(lr_val.loc_key)
                 if offset is not None:
                     lr_val = ExprInt(offset, 32)
             if not lr_val.is_int():
@@ -70,6 +70,6 @@ class ir_a_mips32l(ir_mips32l, ira):
 
 
 class ir_a_mips32b(ir_mips32b, ir_a_mips32l):
-    def __init__(self, symbol_pool=None):
-        ir_mips32b.__init__(self, symbol_pool)
+    def __init__(self, loc_db=None):
+        ir_mips32b.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.V0

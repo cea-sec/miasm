@@ -1,11 +1,11 @@
 """ Test cases for dead code elimination"""
 from miasm2.expression.expression import ExprId, ExprInt, ExprAff, ExprMem
-from miasm2.core.asmblock import AsmSymbolPool
+from miasm2.core.locationdb import LocationDB
 from miasm2.analysis.data_flow import *
 from miasm2.ir.analysis import ira
 from miasm2.ir.ir import IRBlock, AssignBlock
 
-symbol_pool = AsmSymbolPool()
+loc_db = LocationDB()
 
 a = ExprId("a", 32)
 b = ExprId("b", 32)
@@ -26,13 +26,13 @@ CST1 = ExprInt(0x11, 32)
 CST2 = ExprInt(0x12, 32)
 CST3 = ExprInt(0x13, 32)
 
-LBL0 = symbol_pool.add_location("lbl0", 0)
-LBL1 = symbol_pool.add_location("lbl1", 1)
-LBL2 = symbol_pool.add_location("lbl2", 2)
-LBL3 = symbol_pool.add_location("lbl3", 3)
-LBL4 = symbol_pool.add_location("lbl4", 4)
-LBL5 = symbol_pool.add_location("lbl5", 5)
-LBL6 = symbol_pool.add_location("lbl6", 6)
+LBL0 = loc_db.add_location("lbl0", 0)
+LBL1 = loc_db.add_location("lbl1", 1)
+LBL2 = loc_db.add_location("lbl2", 2)
+LBL3 = loc_db.add_location("lbl3", 3)
+LBL4 = loc_db.add_location("lbl4", 4)
+LBL5 = loc_db.add_location("lbl5", 5)
+LBL6 = loc_db.add_location("lbl6", 6)
 
 IRDst = ExprId('IRDst', 32)
 dummy = ExprId('dummy', 32)
@@ -68,9 +68,9 @@ class IRATest(ira):
 
     """Fake IRA class for tests"""
 
-    def __init__(self, symbol_pool=None):
+    def __init__(self, loc_db=None):
         arch = Arch()
-        super(IRATest, self).__init__(arch, 32, symbol_pool)
+        super(IRATest, self).__init__(arch, 32, loc_db)
         self.IRDst = IRDst
         self.ret_reg = r
 
@@ -79,7 +79,7 @@ class IRATest(ira):
 
 # graph 1 : Simple graph with dead and alive variables
 
-G1_IRA = IRATest(symbol_pool)
+G1_IRA = IRATest(loc_db)
 
 G1_IRB0 = gen_irblock(LBL0, [[ExprAff(a, CST1)], [ExprAff(b, CST2)]])
 G1_IRB1 = gen_irblock(LBL1, [[ExprAff(a, b)]])
@@ -91,7 +91,7 @@ G1_IRA.graph.add_uniq_edge(G1_IRB0.loc_key, G1_IRB1.loc_key)
 G1_IRA.graph.add_uniq_edge(G1_IRB1.loc_key, G1_IRB2.loc_key)
 
 # Expected output for graph 1
-G1_EXP_IRA = IRATest(symbol_pool)
+G1_EXP_IRA = IRATest(loc_db)
 
 G1_EXP_IRB0 = gen_irblock(LBL0, [[], [ExprAff(b, CST2)]])
 G1_EXP_IRB1 = gen_irblock(LBL1, [[ExprAff(a, b)]])
@@ -102,7 +102,7 @@ G1_EXP_IRA.blocks = {irb.loc_key : irb for irb in [G1_EXP_IRB0, G1_EXP_IRB1,
 
 # graph 2 : Natural loop with dead variable
 
-G2_IRA = IRATest(symbol_pool)
+G2_IRA = IRATest(loc_db)
 
 G2_IRB0 = gen_irblock(LBL0, [[ExprAff(a, CST1)], [ExprAff(r, CST1)]])
 G2_IRB1 = gen_irblock(LBL1, [[ExprAff(a, a+CST1)]])
@@ -115,7 +115,7 @@ G2_IRA.graph.add_uniq_edge(G2_IRB1.loc_key, G2_IRB2.loc_key)
 G2_IRA.graph.add_uniq_edge(G2_IRB1.loc_key, G2_IRB1.loc_key)
 
 # Expected output for graph 2
-G2_EXP_IRA = IRATest(symbol_pool)
+G2_EXP_IRA = IRATest(loc_db)
 
 G2_EXP_IRB0 = gen_irblock(LBL0, [[], [ExprAff(r, CST1)]])
 G2_EXP_IRB1 = gen_irblock(LBL1, [[]])
@@ -126,7 +126,7 @@ G2_EXP_IRA.blocks = {irb.loc_key : irb for irb in [G2_EXP_IRB0, G2_EXP_IRB1,
 
 # graph 3 : Natural loop with alive variables
 
-G3_IRA = IRATest(symbol_pool)
+G3_IRA = IRATest(loc_db)
 
 G3_IRB0 = gen_irblock(LBL0, [[ExprAff(a, CST1)]])
 G3_IRB1 = gen_irblock(LBL1, [[ExprAff(a, a+CST1)]])
@@ -139,7 +139,7 @@ G3_IRA.graph.add_uniq_edge(G3_IRB1.loc_key, G3_IRB2.loc_key)
 G3_IRA.graph.add_uniq_edge(G3_IRB1.loc_key, G3_IRB1.loc_key)
 
 # Expected output for graph 3
-G3_EXP_IRA = IRATest(symbol_pool)
+G3_EXP_IRA = IRATest(loc_db)
 
 G3_EXP_IRB0 = gen_irblock(LBL0, [[ExprAff(a, CST1)]])
 G3_EXP_IRB1 = gen_irblock(LBL1, [[ExprAff(a, a+CST1)]])
@@ -150,7 +150,7 @@ G3_EXP_IRA.blocks = {irb.loc_key : irb for irb in [G3_EXP_IRB0, G3_EXP_IRB1,
 
 # graph 4 : If/else with dead variables
 
-G4_IRA = IRATest(symbol_pool)
+G4_IRA = IRATest(loc_db)
 
 G4_IRB0 = gen_irblock(LBL0, [[ExprAff(a, CST1)]])
 G4_IRB1 = gen_irblock(LBL1, [[ExprAff(a, a+CST1)]])
@@ -166,7 +166,7 @@ G4_IRA.graph.add_uniq_edge(G4_IRB1.loc_key, G4_IRB3.loc_key)
 G4_IRA.graph.add_uniq_edge(G4_IRB2.loc_key, G4_IRB3.loc_key)
 
 # Expected output for graph 4
-G4_EXP_IRA = IRATest(symbol_pool)
+G4_EXP_IRA = IRATest(loc_db)
 
 G4_EXP_IRB0 = gen_irblock(LBL0, [[]])
 G4_EXP_IRB1 = gen_irblock(LBL1, [[]])
@@ -178,7 +178,7 @@ G4_EXP_IRA.blocks = {irb.loc_key : irb for irb in [G4_EXP_IRB0, G4_EXP_IRB1,
 
 # graph 5 : Loop and If/else with dead variables
 
-G5_IRA = IRATest(symbol_pool)
+G5_IRA = IRATest(loc_db)
 
 G5_IRB0 = gen_irblock(LBL0, [[ExprAff(a, CST1)]])
 G5_IRB1 = gen_irblock(LBL1, [[ExprAff(r, CST2)]])
@@ -199,7 +199,7 @@ G5_IRA.graph.add_uniq_edge(G5_IRB4.loc_key, G5_IRB5.loc_key)
 G5_IRA.graph.add_uniq_edge(G5_IRB4.loc_key, G5_IRB1.loc_key)
 
 # Expected output for graph 5
-G5_EXP_IRA = IRATest(symbol_pool)
+G5_EXP_IRA = IRATest(loc_db)
 
 G5_EXP_IRB0 = gen_irblock(LBL0, [[]])
 G5_EXP_IRB1 = gen_irblock(LBL1, [[ExprAff(r, CST2)]])
@@ -215,7 +215,7 @@ G5_EXP_IRA.blocks = {irb.loc_key : irb for irb in [G5_EXP_IRB0, G5_EXP_IRB1,
 # graph 6 : Natural loop with dead variables symetric affectation
 # (a = b <-> b = a )
 
-G6_IRA = IRATest(symbol_pool)
+G6_IRA = IRATest(loc_db)
 
 G6_IRB0 = gen_irblock(LBL0, [[ExprAff(a, CST1)]])
 G6_IRB1 = gen_irblock(LBL1, [[ExprAff(b, a)]])
@@ -231,7 +231,7 @@ G6_IRA.graph.add_uniq_edge(G6_IRB2.loc_key, G6_IRB1.loc_key)
 G6_IRA.graph.add_uniq_edge(G6_IRB2.loc_key, G6_IRB3.loc_key)
 
 # Expected output for graph 6
-G6_EXP_IRA = IRATest(symbol_pool)
+G6_EXP_IRA = IRATest(loc_db)
 
 G6_EXP_IRB0 = gen_irblock(LBL0, [[]])
 G6_EXP_IRB1 = gen_irblock(LBL1, [[]])
@@ -243,7 +243,7 @@ G6_EXP_IRA.blocks = {irb.loc_key : irb for irb in [G6_EXP_IRB0, G6_EXP_IRB1,
 
 # graph 7 : Double entry loop with dead variables
 
-G7_IRA = IRATest(symbol_pool)
+G7_IRA = IRATest(loc_db)
 
 G7_IRB0 = gen_irblock(LBL0, [[ExprAff(a, CST1)], [ExprAff(r, CST1)]])
 G7_IRB1 = gen_irblock(LBL1, [[ExprAff(a, a+CST1)]])
@@ -261,7 +261,7 @@ G7_IRA.graph.add_uniq_edge(G7_IRB0.loc_key, G7_IRB2.loc_key)
 
 
 # Expected output for graph 7
-G7_EXP_IRA = IRATest(symbol_pool)
+G7_EXP_IRA = IRATest(loc_db)
 
 G7_EXP_IRB0 = gen_irblock(LBL0, [[], [ExprAff(r, CST1)]])
 G7_EXP_IRB1 = gen_irblock(LBL1, [[]])
@@ -273,7 +273,7 @@ G7_EXP_IRA.blocks = {irb.loc_key : irb for irb in [G7_EXP_IRB0, G7_EXP_IRB1,
 
 # graph 8 : Nested loops with dead variables
 
-G8_IRA = IRATest(symbol_pool)
+G8_IRA = IRATest(loc_db)
 
 G8_IRB0 = gen_irblock(LBL0, [[ExprAff(a, CST1)], [ExprAff(b, CST1)]])
 G8_IRB1 = gen_irblock(LBL1, [[ExprAff(a, a+CST1)]])
@@ -293,7 +293,7 @@ G8_IRA.graph.add_uniq_edge(G8_IRB3.loc_key, G8_IRB2.loc_key)
 
 # Expected output for graph 8
 
-G8_EXP_IRA = IRATest(symbol_pool)
+G8_EXP_IRA = IRATest(loc_db)
 
 G8_EXP_IRB0 = gen_irblock(LBL0, [[], []])
 G8_EXP_IRB1 = gen_irblock(LBL1, [[]])
@@ -305,7 +305,7 @@ G8_EXP_IRA.blocks = {irb.loc_key : irb for irb in [G8_EXP_IRB0, G8_EXP_IRB1,
 
 # graph 9 : Miultiple-exits loops with dead variables
 
-G9_IRA = IRATest(symbol_pool)
+G9_IRA = IRATest(loc_db)
 
 G9_IRB0 = gen_irblock(LBL0, [[ExprAff(a, CST1)], [ExprAff(b, CST1)]])
 G9_IRB1 = gen_irblock(LBL1, [[ExprAff(a, a+CST1)], [ExprAff(b, b+CST1)]])
@@ -328,7 +328,7 @@ G9_IRA.graph.add_uniq_edge(G9_IRB3.loc_key, G9_IRB4.loc_key)
 
 # Expected output for graph 9
 
-G9_EXP_IRA = IRATest(symbol_pool)
+G9_EXP_IRA = IRATest(loc_db)
 
 G9_EXP_IRB0 = gen_irblock(LBL0, [[], [ExprAff(b, CST1)]])
 G9_EXP_IRB1 = gen_irblock(LBL1, [[], [ExprAff(b, b+CST1)]])
@@ -343,7 +343,7 @@ G9_EXP_IRA.blocks = {irb.loc_key : irb for irb in [G9_EXP_IRB0, G9_EXP_IRB1,
 # graph 10 : Natural loop with alive variables symetric affectation
 # (a = b <-> b = a )
 
-G10_IRA = IRATest(symbol_pool)
+G10_IRA = IRATest(loc_db)
 
 G10_IRB0 = gen_irblock(LBL0, [[ExprAff(a, CST1)]])
 G10_IRB1 = gen_irblock(LBL1, [[ExprAff(b, a)]])
@@ -359,7 +359,7 @@ G10_IRA.graph.add_uniq_edge(G10_IRB2.loc_key, G10_IRB1.loc_key)
 G10_IRA.graph.add_uniq_edge(G10_IRB2.loc_key, G10_IRB3.loc_key)
 
 # Expected output for graph 10
-G10_EXP_IRA = IRATest(symbol_pool)
+G10_EXP_IRA = IRATest(loc_db)
 
 G10_EXP_IRB0 = gen_irblock(LBL0, [[]])
 G10_EXP_IRB1 = gen_irblock(LBL1, [[]])
@@ -371,7 +371,7 @@ G10_EXP_IRA.blocks = {irb.loc_key : irb for irb in [G10_EXP_IRB0, G10_EXP_IRB1,
 
 # graph 11 : If/Else conditions with alive variables
 
-G11_IRA = IRATest(symbol_pool)
+G11_IRA = IRATest(loc_db)
 
 G11_IRB0 = gen_irblock(LBL0, [[ExprAff(a, b)]])
 G11_IRB1 = gen_irblock(LBL1, [[ExprAff(b, a)]])
@@ -390,7 +390,7 @@ G11_IRA.graph.add_uniq_edge(G11_IRB1.loc_key, G11_IRB2.loc_key)
 
 
 # Expected output for graph 11
-G11_EXP_IRA = IRATest(symbol_pool)
+G11_EXP_IRA = IRATest(loc_db)
 
 G11_EXP_IRB0 = gen_irblock(LBL0, [[ExprAff(a, b)]])
 G11_EXP_IRB1 = gen_irblock(LBL1, [[ExprAff(b, a)]])
@@ -404,7 +404,7 @@ G11_EXP_IRA.blocks = {irb.loc_key : irb for irb in [G11_EXP_IRB0, G11_EXP_IRB1,
 # graph 12 : Graph with multiple out points and useless definitions
 # of return register
 
-G12_IRA = IRATest(symbol_pool)
+G12_IRA = IRATest(loc_db)
 
 G12_IRB0 = gen_irblock(LBL0, [[ExprAff(r, CST1)], [ExprAff(a, CST2)]])
 G12_IRB1 = gen_irblock(LBL1, [[ExprAff(r, CST2)]])
@@ -423,7 +423,7 @@ G12_IRA.graph.add_uniq_edge(G12_IRB2.loc_key, G12_IRB4.loc_key)
 G12_IRA.graph.add_uniq_edge(G12_IRB4.loc_key, G12_IRB5.loc_key)
 
 # Expected output for graph 12
-G12_EXP_IRA = IRATest(symbol_pool)
+G12_EXP_IRA = IRATest(loc_db)
 
 G12_EXP_IRB0 = gen_irblock(LBL0, [[], []])
 G12_EXP_IRB1 = gen_irblock(LBL1, [[ExprAff(r, CST2)]])
@@ -439,7 +439,7 @@ G12_EXP_IRA.blocks = {irb.loc_key : irb for irb in [G12_EXP_IRB0, G12_EXP_IRB1,
 
 # graph 13 : Graph where a leaf has lost its son
 
-G13_IRA = IRATest(symbol_pool)
+G13_IRA = IRATest(loc_db)
 
 G13_IRB0 = gen_irblock(LBL0, [[ExprAff(a, CST1)], [ExprAff(b, CST2)]])
 G13_IRB1 = gen_irblock(LBL1, [[ExprAff(r, b)]])
@@ -457,7 +457,7 @@ G13_IRA.graph.add_uniq_edge(G13_IRB2.loc_key, G13_IRB3.loc_key)
 G13_IRA.graph.add_uniq_edge(G13_IRB4.loc_key, G13_IRB2.loc_key)
 
 # Expected output for graph 13
-G13_EXP_IRA = IRATest(symbol_pool)
+G13_EXP_IRA = IRATest(loc_db)
 
 G13_EXP_IRB0 = gen_irblock(LBL0, [[ExprAff(a, CST1)], [ExprAff(b, CST2)]])
 G13_EXP_IRB1 = gen_irblock(LBL1, [[ExprAff(r, b)]])
@@ -474,7 +474,7 @@ G13_EXP_IRA.blocks = {irb.loc_key: irb for irb in [G13_EXP_IRB0, G13_EXP_IRB1,
 # graph 14 : Graph where variable assigned multiple times in a block but still
 # useful in the end
 
-G14_IRA = IRATest(symbol_pool)
+G14_IRA = IRATest(loc_db)
 
 G14_IRB0 = gen_irblock(LBL0, [[ExprAff(a, CST1)], [ExprAff(c, a)],
                               [ExprAff(a, CST2)]])
@@ -485,7 +485,7 @@ G14_IRA.blocks = {irb.loc_key : irb for irb in [G14_IRB0, G14_IRB1]}
 G14_IRA.graph.add_uniq_edge(G14_IRB0.loc_key, G14_IRB1.loc_key)
 
 # Expected output for graph 1
-G14_EXP_IRA = IRATest(symbol_pool)
+G14_EXP_IRA = IRATest(loc_db)
 
 G14_EXP_IRB0 = gen_irblock(LBL0, [[ExprAff(a, CST1)], [ExprAff(c, a)],
                                   [ExprAff(a, CST2)]])
@@ -496,7 +496,7 @@ G14_EXP_IRA.blocks = {irb.loc_key: irb for irb in [G14_EXP_IRB0, G14_EXP_IRB1]}
 # graph 15 : Graph where variable assigned multiple and read at the same time,
 # but useless
 
-G15_IRA = IRATest(symbol_pool)
+G15_IRA = IRATest(loc_db)
 
 G15_IRB0 = gen_irblock(LBL0, [[ExprAff(a, CST2)], [ExprAff(a, CST1),
                                                    ExprAff(b, a+CST2),
@@ -508,7 +508,7 @@ G15_IRA.blocks = {irb.loc_key : irb for irb in [G15_IRB0, G15_IRB1]}
 G15_IRA.graph.add_uniq_edge(G15_IRB0.loc_key, G15_IRB1.loc_key)
 
 # Expected output for graph 1
-G15_EXP_IRA = IRATest(symbol_pool)
+G15_EXP_IRA = IRATest(loc_db)
 
 G15_EXP_IRB0 = gen_irblock(LBL0, [[], [ExprAff(a, CST1)]])
 G15_EXP_IRB1 = gen_irblock(LBL1, [[ExprAff(r, a)]])
@@ -517,7 +517,7 @@ G15_EXP_IRA.blocks = {irb.loc_key: irb for irb in [G15_EXP_IRB0, G15_EXP_IRB1]}
 
 # graph 16 : Graph where variable assigned multiple times in the same bloc
 
-G16_IRA = IRATest(symbol_pool)
+G16_IRA = IRATest(loc_db)
 
 G16_IRB0 = gen_irblock(LBL0, [[ExprAff(a, CST1), ExprAff(b, CST2),
                                ExprAff(c, CST3)], [ExprAff(a, c+CST1),
@@ -533,7 +533,7 @@ G16_IRA.graph.add_uniq_edge(G16_IRB1.loc_key, G16_IRB2.loc_key)
 G16_IRA.blocks = {irb.loc_key : irb for irb in [G16_IRB0, G16_IRB1]}
 
 # Expected output for graph 1
-G16_EXP_IRA = IRATest(symbol_pool)
+G16_EXP_IRA = IRATest(loc_db)
 
 G16_EXP_IRB0 = gen_irblock(LBL0, [[ExprAff(c, CST3)], [ExprAff(a, c + CST1),
                                                        ExprAff(b, c + CST2)]])
@@ -543,7 +543,7 @@ G16_EXP_IRA.blocks = {irb.loc_key: irb for irb in [G16_EXP_IRB0, G16_EXP_IRB1]}
 
 # graph 17 : parallel ir
 
-G17_IRA = IRATest(symbol_pool)
+G17_IRA = IRATest(loc_db)
 
 G17_IRB0 = gen_irblock(LBL0, [[ExprAff(a, a*b),
                                ExprAff(b, c),
@@ -604,7 +604,7 @@ G17_IRA.blocks = {irb.loc_key : irb for irb in [G17_IRB0]}
 G17_IRA.graph.add_node(G17_IRB0.loc_key)
 
 # Expected output for graph 17
-G17_EXP_IRA = IRATest(symbol_pool)
+G17_EXP_IRA = IRATest(loc_db)
 
 G17_EXP_IRB0 = gen_irblock(LBL0, [[],
 

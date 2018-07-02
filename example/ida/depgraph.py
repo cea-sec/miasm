@@ -28,7 +28,7 @@ class depGraphSettingsForm(ida_kernwin.Form):
         self.address = idc.ScreenEA()
         cur_block = None
         for block in ira.getby_offset(self.address):
-            offset = self.ira.symbol_pool.loc_key_to_offset(block.loc_key)
+            offset = self.ira.loc_db.loc_key_to_offset(block.loc_key)
             if offset is not None:
                 # Only one block non-generated
                 assert cur_block is None
@@ -208,13 +208,13 @@ def launch_depgraph():
 
     bs = bin_stream_ida()
     mdis = dis_engine(bs, dont_dis_nulstart_bloc=True)
-    ir_arch = ira(mdis.symbol_pool)
+    ir_arch = ira(mdis.loc_db)
 
     # Populate symbols with ida names
     for ad, name in idautils.Names():
         if name is None:
             continue
-        mdis.symbol_pool.add_location(name, ad)
+        mdis.loc_db.add_location(name, ad)
 
     asmcfg = mdis.dis_multiblock(func.startEA)
 
@@ -230,7 +230,7 @@ def launch_depgraph():
     # Simplify affectations
     for irb in ir_arch.blocks.values():
         irs = []
-        offset = ir_arch.symbol_pool.loc_key_to_offset(irb.loc_key)
+        offset = ir_arch.loc_db.loc_key_to_offset(irb.loc_key)
         fix_stack = offset is not None and settings.unalias_stack
         for assignblk in irb:
             if fix_stack:
@@ -251,7 +251,7 @@ def launch_depgraph():
     # Get dependency graphs
     dg = settings.depgraph
     graphs = dg.get(loc_key, elements, line_nb,
-                    set([ir_arch.symbol_pool.getby_offset(func.startEA)]))
+                    set([ir_arch.loc_db.getby_offset(func.startEA)]))
 
     # Display the result
     comments = {}

@@ -97,7 +97,7 @@ def gen_block_data_flow_graph(ir_arch, ad, block_flow_cb):
     irblock_0 = None
     for irblock in ir_arch.blocks.values():
         loc_key = irblock.loc_key
-        offset = ir_arch.symbol_pool.loc_key_to_offset(loc_key)
+        offset = ir_arch.loc_db.loc_key_to_offset(loc_key)
         if offset == ad:
             irblock_0 = irblock
             break
@@ -139,7 +139,7 @@ print 'ok'
 
 
 print 'generating dataflow graph for:'
-ir_arch = ir_a_x86_32(mdis.symbol_pool)
+ir_arch = ir_a_x86_32(mdis.loc_db)
 
 for block in asmcfg.blocks:
     print block

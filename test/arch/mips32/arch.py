@@ -1,10 +1,10 @@
 import time
 from pdb import pm
 
-from miasm2.core.asmblock import AsmSymbolPool
+from miasm2.core.locationdb import LocationDB
 from miasm2.arch.mips32.arch import *
 
-symbol_pool = AsmSymbolPool()
+loc_db = LocationDB()
 
 reg_tests_mips32 = [
     ("004496D8    ADDU       GP, GP, T9",
@@ -228,7 +228,7 @@ for s, l in reg_tests_mips32:
     print s
     print mn
     assert(str(mn) == s)
-    l = mn_mips32.fromstring(s, symbol_pool, 'b')
+    l = mn_mips32.fromstring(s, loc_db, 'b')
     assert(str(l) == s)
     a = mn_mips32.asm(l, 'b')
     print [x for x in a]

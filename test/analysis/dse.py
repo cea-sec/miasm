@@ -69,17 +69,17 @@ class DSETest(object):
 
     def asm(self):
         mn_x86 = self.machine.mn
-        blocks, symbol_pool = parse_asm.parse_txt(
+        blocks, loc_db = parse_asm.parse_txt(
             mn_x86,
             self.arch_attrib,
             self.TXT,
-            symbol_pool=self.myjit.ir_arch.symbol_pool
+            loc_db=self.myjit.ir_arch.loc_db
         )
 
         # fix shellcode addr
-        symbol_pool.set_offset(symbol_pool.getby_name("main"), 0x0)
+        loc_db.set_offset(loc_db.getby_name("main"), 0x0)
         output = StrPatchwork()
-        patches = asm_resolve_final(mn_x86, blocks, symbol_pool)
+        patches = asm_resolve_final(mn_x86, blocks, loc_db)
         for offset, raw in patches.items():
             output[offset] = raw
 

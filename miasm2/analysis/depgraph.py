@@ -2,7 +2,7 @@
 
 from miasm2.expression.expression import ExprInt, ExprLoc, ExprAff
 from miasm2.core.graph import DiGraph
-from miasm2.core.asmblock import AsmSymbolPool
+from miasm2.core.locationdb import LocationDB
 from miasm2.expression.simplifications import expr_simp
 from miasm2.ir.symbexec import SymbolicExecutionEngine
 from miasm2.ir.ir import IRBlock, AssignBlock
@@ -297,8 +297,8 @@ class DependencyResult(DependencyState):
                                              line_nb).assignblks
 
         # Eval the block
-        symbol_pool = AsmSymbolPool()
-        temp_loc = symbol_pool.getby_name_create("Temp")
+        loc_db = LocationDB()
+        temp_loc = loc_db.getby_name_create("Temp")
         symb_exec = SymbolicExecutionEngine(self._ira, ctx_init)
         symb_exec.eval_updt_irblock(IRBlock(temp_loc, assignblks), step=step)
 
@@ -322,10 +322,10 @@ class DependencyResultImplicit(DependencyResult):
         generated loc_keys
         """
         out = []
-        expected = self._ira.symbol_pool.canonize_to_exprloc(expected)
+        expected = self._ira.loc_db.canonize_to_exprloc(expected)
         expected_is_loc_key = expected.is_loc()
         for consval in possible_values(expr):
-            value = self._ira.symbol_pool.canonize_to_exprloc(consval.value)
+            value = self._ira.loc_db.canonize_to_exprloc(consval.value)
             if expected_is_loc_key and value != expected:
                 continue
             if not expected_is_loc_key and value.is_loc_key():

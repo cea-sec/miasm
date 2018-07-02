@@ -861,8 +861,8 @@ class aarch64info:
 
 class ir_aarch64l(IntermediateRepresentation):
 
-    def __init__(self, symbol_pool=None):
-        IntermediateRepresentation.__init__(self, mn_aarch64, "l", symbol_pool)
+    def __init__(self, loc_db=None):
+        IntermediateRepresentation.__init__(self, mn_aarch64, "l", loc_db)
         self.pc = PC
         self.sp = SP
         self.IRDst = m2_expr.ExprId('IRDst', 64)
@@ -945,8 +945,8 @@ class ir_aarch64l(IntermediateRepresentation):
 
 class ir_aarch64b(ir_aarch64l):
 
-    def __init__(self, symbol_pool=None):
-        IntermediateRepresentation.__init__(self, mn_aarch64, "b", symbol_pool)
+    def __init__(self, loc_db=None):
+        IntermediateRepresentation.__init__(self, mn_aarch64, "b", loc_db)
         self.pc = PC
         self.sp = SP
         self.IRDst = m2_expr.ExprId('IRDst', 64)

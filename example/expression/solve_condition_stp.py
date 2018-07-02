@@ -88,23 +88,23 @@ if __name__ == '__main__':
 
     symbols_init = dict(machine.mn.regs.regs_init)
 
-    ir_arch = machine.ir(mdis.symbol_pool)
+    ir_arch = machine.ir(mdis.loc_db)
 
     symbexec = SymbolicExecutionEngine(ir_arch, symbols_init)
 
-    asmcfg, symbol_pool = parse_asm.parse_txt(machine.mn, 32, '''
+    asmcfg, loc_db = parse_asm.parse_txt(machine.mn, 32, '''
     init:
     PUSH argv
     PUSH argc
     PUSH ret_addr
     ''',
-    symbol_pool=mdis.symbol_pool)
+    loc_db=mdis.loc_db)
 
 
-    argc_lbl = symbol_pool.getby_name('argc')
-    argv_lbl = symbol_pool.getby_name('argv')
-    ret_addr_lbl = symbol_pool.getby_name('ret_addr')
-    init_lbl = symbol_pool.getby_name('init')
+    argc_lbl = loc_db.getby_name('argc')
+    argv_lbl = loc_db.getby_name('argv')
+    ret_addr_lbl = loc_db.getby_name('ret_addr')
+    init_lbl = loc_db.getby_name('init')
 
     argc = ExprLoc(argc_lbl, 32)
     argv = ExprLoc(argv_lbl, 32)

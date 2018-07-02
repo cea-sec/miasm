@@ -343,13 +343,13 @@ class instruction_arm(instruction):
         super(instruction_arm, self).__init__(*args, **kargs)
 
     @staticmethod
-    def arg2str(expr, index=None, symbol_pool=None):
+    def arg2str(expr, index=None, loc_db=None):
         wb = False
         if expr.is_id() or expr.is_int():
             return str(expr)
         elif expr.is_loc():
-            if symbol_pool is not None:
-                return symbol_pool.str_loc_key(expr.loc_key)
+            if loc_db is not None:
+                return loc_db.str_loc_key(expr.loc_key)
             else:
                 return str(expr)
         if isinstance(expr, ExprOp) and expr.op in expr2shift_dct:
@@ -422,7 +422,7 @@ class instruction_arm(instruction):
     def dstflow(self):
         return self.name in conditional_branch + unconditional_branch
 
-    def dstflow2label(self, symbol_pool):
+    def dstflow2label(self, loc_db):
         expr = self.args[0]
         if not isinstance(expr, ExprInt):
             return
@@ -430,7 +430,7 @@ class instruction_arm(instruction):
             addr = expr.arg + self.offset
         else:
             addr = expr.arg + self.offset
-        loc_key = symbol_pool.getby_offset_create(addr)
+        loc_key = loc_db.getby_offset_create(addr)
         self.args[0] = ExprLoc(loc_key, expr.size)
 
     def breakflow(self):
@@ -447,7 +447,7 @@ class instruction_arm(instruction):
             return True
         return self.additional_info.lnk
 
-    def getdstflow(self, symbol_pool):
+    def getdstflow(self, loc_db):
         return [self.args[0]]
 
     def splitflow(self):
@@ -459,7 +459,7 @@ class instruction_arm(instruction):
             return False
         return self.breakflow() and self.additional_info.cond != 14
 
-    def get_symbol_size(self, symbol, symbol_pool):
+    def get_symbol_size(self, symbol, loc_db):
         return 32
 
     def fixDstOffset(self):
@@ -494,7 +494,7 @@ class instruction_armt(instruction_arm):
             return True
         return self.name in conditional_branch + unconditional_branch
 
-    def dstflow2label(self, symbol_pool):
+    def dstflow2label(self, loc_db):
         if self.name in ["CBZ", "CBNZ"]:
             expr = self.args[1]
         else:
@@ -512,7 +512,7 @@ class instruction_armt(instruction_arm):
         else:
             addr = expr.arg + self.offset
 
-        loc_key = symbol_pool.getby_offset_create(addr)
+        loc_key = loc_db.getby_offset_create(addr)
         dst = ExprLoc(loc_key, expr.size)
 
         if self.name in ["CBZ", "CBNZ"]:
@@ -529,7 +529,7 @@ class instruction_armt(instruction_arm):
             return True
         return False
 
-    def getdstflow(self, symbol_pool):
+    def getdstflow(self, loc_db):
         if self.name in ['CBZ', 'CBNZ']:
             return [self.args[1]]
         return [self.args[0]]
@@ -662,7 +662,7 @@ class mn_arm(cls_mn):
             raise NotImplementedError('bad attrib')
 
 
-    def get_symbol_size(self, symbol, symbol_pool, mode):
+    def get_symbol_size(self, symbol, loc_db, mode):
         return 32
 
 
@@ -769,28 +769,28 @@ class mn_armt(cls_mn):
         args = [a.expr for a in self.args]
         return args
 
-    def get_symbol_size(self, symbol, symbol_pool, mode):
+    def get_symbol_size(self, symbol, loc_db, mode):
         return 32
 
 
 class arm_arg(m_arg):
-    def asm_ast_to_expr(self, arg, symbol_pool):
+    def asm_ast_to_expr(self, arg, loc_db):
         if isinstance(arg, AstId):
             if isinstance(arg.name, ExprId):
                 return arg.name
             if arg.name in gpregs.str:
                 return None
-            loc_key = symbol_pool.getby_name_create(arg.name)
+            loc_key = loc_db.getby_name_create(arg.name)
             return ExprLoc(loc_key, 32)
         if isinstance(arg, AstOp):
-            args = [self.asm_ast_to_expr(tmp, symbol_pool) for tmp in arg.args]
+            args = [self.asm_ast_to_expr(tmp, loc_db) for tmp in arg.args]
             if None in args:
                 return None
             return ExprOp(arg.op, *args)
         if isinstance(arg, AstInt):
             return ExprInt(arg.value, 32)
         if isinstance(arg, AstMem):
-            ptr = self.asm_ast_to_expr(arg.ptr, symbol_pool)
+            ptr = self.asm_ast_to_expr(arg.ptr, loc_db)
             if ptr is None:
                 return None
             return ExprMem(ptr, arg.size)
@@ -2809,8 +2809,8 @@ class armt_aif(reg_noarg, arm_arg):
             return ret
         return self.value != 0
 
-    def fromstring(self, text, symbol_pool, parser_result=None):
-        start, stop = super(armt_aif, self).fromstring(text, symbol_pool, parser_result)
+    def fromstring(self, text, loc_db, parser_result=None):
+        start, stop = super(armt_aif, self).fromstring(text, loc_db, parser_result)
         if self.expr.name == "X":
             return None, None
         return start, stop

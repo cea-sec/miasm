@@ -1,9 +1,9 @@
 from miasm2.arch.x86.arch import mn_x86
 from miasm2.arch.x86.regs import EDX
-from miasm2.core.asmblock import AsmSymbolPool
+from miasm2.core.locationdb import LocationDB
 
-symbol_pool = AsmSymbolPool()
-l = mn_x86.fromstring('MOV EAX, EBX', symbol_pool, 32)
+loc_db = LocationDB()
+l = mn_x86.fromstring('MOV EAX, EBX', loc_db, 32)
 print "instruction:", l
 print "arg:", l.args[0]
 x = mn_x86.asm(l)

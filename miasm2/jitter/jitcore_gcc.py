@@ -28,7 +28,7 @@ class JitCore_Gcc(JitCore_Cc_Base):
         lib = ctypes.cdll.LoadLibrary(fname_so)
         func = getattr(lib, self.FUNCNAME)
         addr = ctypes.cast(func, ctypes.c_void_p).value
-        offset = self.ir_arch.symbol_pool.loc_key_to_offset(label)
+        offset = self.ir_arch.loc_db.loc_key_to_offset(label)
         self.offset_to_jitted_func[offset] = addr
         self.states[offset] = lib
 

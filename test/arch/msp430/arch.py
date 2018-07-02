@@ -1,9 +1,9 @@
 import time
 from pdb import pm
 from miasm2.arch.msp430.arch import *
-from miasm2.core.asmblock import AsmSymbolPool
+from miasm2.core.locationdb import LocationDB
 
-symbol_pool = AsmSymbolPool()
+loc_db = LocationDB()
 
 def h2i(s):
     return s.replace(' ', '').decode('hex')
@@ -95,7 +95,7 @@ for s, l in reg_tests_msp:
     print s
     print mn
     assert(str(mn) == s)
-    l = mn_msp430.fromstring(s, symbol_pool, None)
+    l = mn_msp430.fromstring(s, loc_db, None)
     assert(str(l) == s)
     a = mn_msp430.asm(l)
     print [x for x in a]

@@ -63,7 +63,7 @@ class JitCore(object):
         self.mdis = disasmEngine(
             ir_arch.arch, ir_arch.attrib, bin_stream,
             lines_wd=self.options["jit_maxline"],
-            symbol_pool=ir_arch.symbol_pool,
+            loc_db=ir_arch.loc_db,
             follow_call=False,
             dontdis_retcall=False,
             split_dis=self.split_dis,
@@ -101,7 +101,7 @@ class JitCore(object):
             cur_block.ad_max = cur_block.lines[-1].offset + cur_block.lines[-1].l
         else:
             # 1 byte block for unknown mnemonic
-            offset = ir_arch.symbol_pool.loc_key_to_offset(cur_block.loc_key)
+            offset = ir_arch.loc_db.loc_key_to_offset(cur_block.loc_key)
             cur_block.ad_min = offset
             cur_block.ad_max = offset+1
 
@@ -138,7 +138,7 @@ class JitCore(object):
 
         # Get the block
         if isinstance(addr, LocKey):
-            addr = self.ir_arch.symbol_pool.loc_key_to_offset(addr)
+            addr = self.ir_arch.loc_db.loc_key_to_offset(addr)
             if addr is None:
                 raise RuntimeError("Unknown offset for LocKey")
 
@@ -151,7 +151,7 @@ class JitCore(object):
             return cur_block
         # Logging
         if self.log_newbloc:
-            print cur_block.to_string(self.mdis.symbol_pool)
+            print cur_block.to_string(self.mdis.loc_db)
 
         # Update label -> block
         self.loc_key_to_block[cur_block.loc_key] = cur_block
@@ -253,13 +253,13 @@ class JitCore(object):
             try:
                 for irblock in block.blocks:
                     # Remove offset -> jitted block link
-                    offset = self.ir_arch.symbol_pool.loc_key_to_offset(irblock.loc_key)
+                    offset = self.ir_arch.loc_db.loc_key_to_offset(irblock.loc_key)
                     if offset in self.offset_to_jitted_func:
                         del(self.offset_to_jitted_func[offset])
 
             except AttributeError:
                 # The block has never been translated in IR
-                offset = self.ir_arch.symbol_pool.loc_key_to_offset(block.loc_key)
+                offset = self.ir_arch.loc_db.loc_key_to_offset(block.loc_key)
                 if offset in self.offset_to_jitted_func:
                     del(self.offset_to_jitted_func[offset])
 
@@ -293,7 +293,7 @@ class JitCore(object):
         @block: asmblock
         """
         block_raw = "".join(line.b for line in block.lines)
-        offset = self.ir_arch.symbol_pool.loc_key_to_offset(block.loc_key)
+        offset = self.ir_arch.loc_db.loc_key_to_offset(block.loc_key)
         block_hash = md5("%X_%s_%s_%s_%s" % (offset,
                                              self.arch_name,
                                              self.log_mn,

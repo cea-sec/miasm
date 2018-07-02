@@ -141,12 +141,12 @@ cont = Container.fallback_container(data, None, addr=0)
 machine = Machine("x86_64")
 dis_engine, ira = machine.dis_engine, machine.ira
 
-mdis = dis_engine(cont.bin_stream, symbol_pool=cont.symbol_pool)
+mdis = dis_engine(cont.bin_stream, loc_db=cont.loc_db)
 addr_head = 0
 asmcfg = mdis.dis_multiblock(addr_head)
-lbl_head = mdis.symbol_pool.getby_offset(addr_head)
+lbl_head = mdis.loc_db.getby_offset(addr_head)
 
-ir_arch_a = ira(mdis.symbol_pool)
+ir_arch_a = ira(mdis.loc_db)
 for block in asmcfg.blocks:
     ir_arch_a.add_block(block)
 

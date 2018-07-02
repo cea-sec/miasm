@@ -254,7 +254,7 @@ cl_or_imm |= base_expr
 
 
 class x86_arg(m_arg):
-    def asm_ast_to_expr(self, value, symbol_pool, size_hint=None, fixed_size=None):
+    def asm_ast_to_expr(self, value, loc_db, size_hint=None, fixed_size=None):
         if size_hint is None:
             size_hint = self.parent.v_opmode()
         if fixed_size is None:
@@ -272,22 +272,22 @@ class x86_arg(m_arg):
             if value.name in ["FAR"]:
                 return None
 
-            loc_key = symbol_pool.getby_name_create(value.name)
+            loc_key = loc_db.getby_name_create(value.name)
             return ExprLoc(loc_key, size_hint)
         if isinstance(value, AstOp):
             # First pass to retreive fixed_size
             if value.op == "segm":
-                segm = self.asm_ast_to_expr(value.args[0], symbol_pool)
-                ptr = self.asm_ast_to_expr(value.args[1], symbol_pool, None, fixed_size)
+                segm = self.asm_ast_to_expr(value.args[0], loc_db)
+                ptr = self.asm_ast_to_expr(value.args[1], loc_db, None, fixed_size)
                 return ExprOp('segm', segm, ptr)
-            args = [self.asm_ast_to_expr(arg, symbol_pool, None, fixed_size) for arg in value.args]
+            args = [self.asm_ast_to_expr(arg, loc_db, None, fixed_size) for arg in value.args]
             if len(fixed_size) == 0:
                 # No fixed size
                 pass
             elif len(fixed_size) == 1:
                 # One fixed size, regen all
                 size = list(fixed_size)[0]
-                args = [self.asm_ast_to_expr(arg, symbol_pool, size, fixed_size) for arg in value.args]
+                args = [self.asm_ast_to_expr(arg, loc_db, size, fixed_size) for arg in value.args]
             else:
                 raise ValueError("Size conflict")
             if None in args:
@@ -299,7 +299,7 @@ class x86_arg(m_arg):
             return ExprInt(value.value, size_hint)
         if isinstance(value, AstMem):
             fixed_size.add(value.size)
-            ptr = self.asm_ast_to_expr(value.ptr, symbol_pool, None, set())
+            ptr = self.asm_ast_to_expr(value.ptr, loc_db, None, set())
             if ptr is None:
                 return None
             return ExprMem(ptr, value.size)
@@ -469,14 +469,14 @@ class instruction_x86(instruction):
             return True
         return self.name in ['CALL']
 
-    def dstflow2label(self, symbol_pool):
+    def dstflow2label(self, loc_db):
         if self.additional_info.g1.value & 6 and self.name in repeat_mn:
             return
         expr = self.args[0]
         if not expr.is_int():
             return
         addr = expr.arg + int(self.offset)
-        loc_key = symbol_pool.getby_offset_create(addr)
+        loc_key = loc_db.getby_offset_create(addr)
         self.args[0] = ExprLoc(loc_key, expr.size)
 
     def breakflow(self):
@@ -511,14 +511,14 @@ class instruction_x86(instruction):
     def is_subcall(self):
         return self.name in ['CALL']
 
-    def getdstflow(self, symbol_pool):
+    def getdstflow(self, loc_db):
         if self.additional_info.g1.value & 6 and self.name in repeat_mn:
             addr = int(self.offset)
-            loc_key = symbol_pool.getby_offset_create(addr)
+            loc_key = loc_db.getby_offset_create(addr)
             return [ExprLoc(loc_key, self.v_opmode())]
         return [self.args[0]]
 
-    def get_symbol_size(self, symbol, symbol_pool):
+    def get_symbol_size(self, symbol, loc_db):
         return self.mode
 
     def fixDstOffset(self):
@@ -559,12 +559,12 @@ class instruction_x86(instruction):
         return args
 
     @staticmethod
-    def arg2str(expr, index=None, symbol_pool=None):
+    def arg2str(expr, index=None, loc_db=None):
         if expr.is_id() or expr.is_int():
             o = str(expr)
         elif expr.is_loc():
-            if symbol_pool is not None:
-                o = symbol_pool.str_loc_key(expr.loc_key)
+            if loc_db is not None:
+                o = loc_db.str_loc_key(expr.loc_key)
             else:
                 o = str(expr)
         elif ((isinstance(expr, ExprOp) and expr.op == 'far' and
@@ -668,7 +668,7 @@ class mn_x86(cls_mn):
         return [(subcls, name, bases, dct, fields)]
 
     @classmethod
-    def fromstring(cls, text, symbol_pool, mode):
+    def fromstring(cls, text, loc_db, mode):
         pref = 0
         prefix, new_s = get_prefix(text)
         if prefix == "LOCK":
@@ -680,7 +680,7 @@ class mn_x86(cls_mn):
         elif prefix == "REPE":
             pref |= 4
             text = new_s
-        c = super(mn_x86, cls).fromstring(text, symbol_pool, mode)
+        c = super(mn_x86, cls).fromstring(text, loc_db, mode)
         c.additional_info.g1.value = pref
         return c
 
@@ -877,7 +877,7 @@ class mn_x86(cls_mn):
             return None
         return prefix + v
 
-    def getnextflow(self, symbol_pool):
+    def getnextflow(self, loc_db):
         raise NotImplementedError('not fully functional')
 
     def ir_pre_instruction(self):
@@ -1920,8 +1920,8 @@ def modrm2expr(modrm, parent, w8, sx=0, xmm=0, mm=0, bnd=0):
 class x86_rm_arg(x86_arg):
     parser = rmarg
 
-    def fromstring(self, text, symbol_pool, parser_result=None):
-        start, stop = super(x86_rm_arg, self).fromstring(text, symbol_pool, parser_result)
+    def fromstring(self, text, loc_db, parser_result=None):
+        start, stop = super(x86_rm_arg, self).fromstring(text, loc_db, parser_result)
         p = self.parent
         if start is None:
             return None, None
@@ -2056,9 +2056,9 @@ class x86_rm_arg(x86_arg):
             yield x
 
 class x86_rm_mem(x86_rm_arg):
-    def fromstring(self, text, symbol_pool, parser_result=None):
+    def fromstring(self, text, loc_db, parser_result=None):
         self.expr = None
-        start, stop = super(x86_rm_mem, self).fromstring(text, symbol_pool, parser_result)
+        start, stop = super(x86_rm_mem, self).fromstring(text, loc_db, parser_result)
         if not isinstance(self.expr, ExprMem):
             return None, None
         return start, stop
@@ -2066,9 +2066,9 @@ class x86_rm_mem(x86_rm_arg):
 
 class x86_rm_mem_far(x86_rm_arg):
     parser = mem_far
-    def fromstring(self, text, symbol_pool, parser_result=None):
+    def fromstring(self, text, loc_db, parser_result=None):
         self.expr = None
-        start, stop = super(x86_rm_mem_far, self).fromstring(text, symbol_pool, parser_result)
+        start, stop = super(x86_rm_mem_far, self).fromstring(text, loc_db, parser_result)
         if not isinstance(self.expr, ExprMem):
             return None, None
         self.expr = ExprOp('far', self.expr)
@@ -2438,7 +2438,7 @@ class x86_rm_reg_noarg(object):
 
     parser = gpreg
 
-    def fromstring(self, text, symbol_pool, parser_result=None):
+    def fromstring(self, text, loc_db, parser_result=None):
         if not hasattr(self.parent, 'sx') and hasattr(self.parent, "w8"):
             self.parent.w8.value = 1
         if parser_result:
@@ -2455,7 +2455,7 @@ class x86_rm_reg_noarg(object):
             result, start, stop = self.parser.scanString(text).next()
         except StopIteration:
             return None, None
-        expr = self.asm_ast_to_expr(result[0], symbol_pool)
+        expr = self.asm_ast_to_expr(result[0], loc_db)
         if expr is None:
             return None, None
 
@@ -2742,7 +2742,7 @@ class bs_cond_imm(bs_cond_scale, x86_arg):
     parser = base_expr
     max_size = 32
 
-    def fromstring(self, text, symbol_pool, parser_result=None):
+    def fromstring(self, text, loc_db, parser_result=None):
         if parser_result:
             expr, start, stop = parser_result[self.parser]
         else:
@@ -2869,7 +2869,7 @@ class bs_cond_imm64(bs_cond_imm):
 class bs_rel_off(bs_cond_imm):
     parser = base_expr
 
-    def fromstring(self, text, symbol_pool, parser_result=None):
+    def fromstring(self, text, loc_db, parser_result=None):
         if parser_result:
             expr, start, stop = parser_result[self.parser]
         else:
@@ -3011,7 +3011,7 @@ class bs_moff(bsi):
 class bs_movoff(x86_arg):
     parser = deref_mem
 
-    def fromstring(self, text, symbol_pool, parser_result=None):
+    def fromstring(self, text, loc_db, parser_result=None):
         if parser_result:
             e, start, stop = parser_result[self.parser]
             if e is None:
@@ -3078,7 +3078,7 @@ class bs_movoff(x86_arg):
 class bs_msegoff(x86_arg):
     parser = deref_ptr
 
-    def fromstring(self, text, symbol_pool, parser_result=None):
+    def fromstring(self, text, loc_db, parser_result=None):
         if parser_result:
             e, start, stop = parser_result[self.parser]
             if e is None:

@@ -60,7 +60,7 @@ assert(len(leaves) == 1)
 l = leaves.pop()
 logging.info(l)
 
-end_offset = mdis.symbol_pool.loc_key_to_offset(l)
+end_offset = mdis.loc_db.loc_key_to_offset(l)
 
 logging.info('final offset')
 logging.info(hex(end_offset))
