@@ -169,7 +169,7 @@ class LocKey(object):
         return "<%s %d>" % (self.__class__.__name__, self._key)
 
     def __str__(self):
-        return "loc_%d" % self.key
+        return "loc_key_%d" % self.key
 
 # IR definitions
 
@@ -644,7 +644,7 @@ class ExprLoc(Expr):
         return Expr.get_object(cls, (loc_key, size))
 
     def __str__(self):
-        return "loc_%d" % self._loc_key.key
+        return str(self._loc_key)
 
     def get_r(self, mem_read=False, cst_read=False):
         return set()
