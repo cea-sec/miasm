@@ -70,9 +70,9 @@ class TestParseAsm(unittest.TestCase):
                                     loc_db)
         lbls = []
         for i in xrange(6):
-            lbls.append(loc_db.getby_name('lbl%d' % i))
+            lbls.append(loc_db.get_name_location('lbl%d' % i))
         # align test
-        offset = loc_db.loc_key_to_offset(lbls[5])
+        offset = loc_db.get_location_offset(lbls[5])
         assert(offset % 0x10 == 0)
         lbl2block = {}
         for block in asmcfg.blocks:
@@ -98,7 +98,7 @@ class TestParseAsm(unittest.TestCase):
         asmcfg, loc_db = parse_txt(mn_x86, 32, ASM0)
         lbls = []
         for i in xrange(2):
-            lbls.append(loc_db.getby_name('lbl%d' % i))
+            lbls.append(loc_db.get_name_location('lbl%d' % i))
         lbl2block = {}
         for block in asmcfg.blocks:
             lbl2block[block.loc_key] = block

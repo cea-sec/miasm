@@ -24,7 +24,7 @@ loop:
 ''')
 
 
-loc_db.set_offset(loc_db.getby_name("main"), 0x0)
+loc_db.set_location_offset(loc_db.get_name_location("main"), 0x0)
 for block in asmcfg.blocks:
     print block
 

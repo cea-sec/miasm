@@ -49,7 +49,7 @@ def arm_guess_subcall(
         l = cur_bloc.lines[-1]
         if lr_val.arg != l.offset + l.l:
             continue
-        l = loc_db.getby_offset_create(int(lr_val))
+        l = loc_db.get_or_create_offset_location(int(lr_val))
         c = AsmConstraintNext(l)
 
         to_add.add(c)
@@ -111,7 +111,7 @@ def arm_guess_jump_table(
 
         for ad in addrs:
             offsets_to_dis.add(ad)
-            l = loc_db.getby_offset_create(ad)
+            l = loc_db.get_or_create_offset_location(ad)
             c = AsmConstraintTo(l)
             cur_bloc.addto(c)
 

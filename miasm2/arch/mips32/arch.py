@@ -65,7 +65,7 @@ class instruction_mips32(cpu.instruction):
             return str(expr)
         elif expr.is_loc():
             if loc_db is not None:
-                return loc_db.str_loc_key(expr.loc_key)
+                return loc_db.pretty_str(expr.loc_key)
             else:
                 return str(expr)
         assert(isinstance(expr, ExprMem))
@@ -97,7 +97,7 @@ class instruction_mips32(cpu.instruction):
         if self.name in ["J", 'JAL']:
             expr = self.args[0].arg
             addr = (self.offset & (0xFFFFFFFF ^ ((1<< 28)-1))) + expr
-            loc_key = loc_db.getby_offset_create(addr)
+            loc_key = loc_db.get_or_create_offset_location(addr)
             self.args[0] = ExprLoc(loc_key, expr.size)
             return
 
@@ -107,7 +107,7 @@ class instruction_mips32(cpu.instruction):
         if not isinstance(expr, ExprInt):
             return
         addr = expr.arg + self.offset
-        loc_key = loc_db.getby_offset_create(addr)
+        loc_key = loc_db.get_or_create_offset_location(addr)
         self.args[ndx] = ExprLoc(loc_key, expr.size)
 
     def breakflow(self):
@@ -265,7 +265,7 @@ class mips32_arg(cpu.m_arg):
                 return arg.name
             if arg.name in gpregs.str:
                 return None
-            loc_key = loc_db.getby_name_create(arg.name)
+            loc_key = loc_db.get_or_create_name_location(arg.name)
             return ExprLoc(loc_key, 32)
         if isinstance(arg, AstOp):
             args = [self.asm_ast_to_expr(tmp, loc_db) for tmp in arg.args]

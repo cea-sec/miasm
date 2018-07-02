@@ -348,7 +348,7 @@ class DSEEngine(object):
                 self.symb.run_block_at(cur_addr)
 
                 if not (isinstance(next_addr_concrete, ExprLoc) and
-                        self.ir_arch.loc_db.loc_key_to_offset(
+                        self.ir_arch.loc_db.get_location_offset(
                             next_addr_concrete.loc_key
                         ) is None):
                     # Not a lbl_gen, exit

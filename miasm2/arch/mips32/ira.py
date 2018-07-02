@@ -28,7 +28,7 @@ class ir_a_mips32l(ir_mips32l, ira):
                 new_irblocks.append(irb)
                 continue
             if lr_val.is_loc():
-                offset = self.loc_db.loc_key_to_offset(lr_val.loc_key)
+                offset = self.loc_db.get_location_offset(lr_val.loc_key)
                 if offset is not None:
                     lr_val = ExprInt(offset, 32)
             if not lr_val.is_int():

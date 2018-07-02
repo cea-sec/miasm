@@ -28,7 +28,7 @@ class depGraphSettingsForm(ida_kernwin.Form):
         self.address = idc.ScreenEA()
         cur_block = None
         for block in ira.getby_offset(self.address):
-            offset = self.ira.loc_db.loc_key_to_offset(block.loc_key)
+            offset = self.ira.loc_db.get_location_offset(block.loc_key)
             if offset is not None:
                 # Only one block non-generated
                 assert cur_block is None
@@ -230,7 +230,7 @@ def launch_depgraph():
     # Simplify affectations
     for irb in ir_arch.blocks.values():
         irs = []
-        offset = ir_arch.loc_db.loc_key_to_offset(irb.loc_key)
+        offset = ir_arch.loc_db.get_location_offset(irb.loc_key)
         fix_stack = offset is not None and settings.unalias_stack
         for assignblk in irb:
             if fix_stack:
@@ -251,7 +251,7 @@ def launch_depgraph():
     # Get dependency graphs
     dg = settings.depgraph
     graphs = dg.get(loc_key, elements, line_nb,
-                    set([ir_arch.loc_db.getby_offset(func.startEA)]))
+                    set([ir_arch.loc_db.get_offset_location(func.startEA)]))
 
     # Display the result
     comments = {}

@@ -69,7 +69,7 @@ class msp430_arg(m_arg):
                 index = gpregs.str.index(name)
                 reg = gpregs.expr[index]
                 return reg
-            loc_key = loc_db.getby_name_create(value.name)
+            loc_key = loc_db.get_or_create_name_location(value.name)
             return ExprLoc(loc_key, 16)
         if isinstance(value, AstOp):
             args = [self.asm_ast_to_expr(tmp, loc_db) for tmp in value.args]
@@ -109,7 +109,7 @@ class instruction_msp430(instruction):
             o = str(expr)
         elif expr.is_loc():
             if loc_db is not None:
-                return loc_db.str_loc_key(expr.loc_key)
+                return loc_db.pretty_str(expr.loc_key)
             else:
                 return str(expr)
         elif isinstance(expr, ExprOp) and expr.op == "autoinc":
@@ -138,7 +138,7 @@ class instruction_msp430(instruction):
         else:
             addr = expr.arg + int(self.offset)
 
-        loc_key = loc_db.getby_offset_create(addr)
+        loc_key = loc_db.get_or_create_offset_location(addr)
         self.args[0] = ExprLoc(loc_key, expr.size)
 
     def breakflow(self):

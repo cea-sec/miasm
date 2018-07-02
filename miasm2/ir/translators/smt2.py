@@ -141,20 +141,13 @@ class TranslatorSMT2(Translator):
 
     def from_ExprLoc(self, expr):
         loc_key = expr.loc_key
-        if self.loc_db is None:
+        if self.loc_db is None or self.loc_db.get_location_offset(loc_key) is None:
             if str(loc_key) not in self._bitvectors:
                 self._bitvectors[str(loc_key)] = expr.size
             return str(loc_key)
 
-        offset = self.loc_db.loc_key_to_offset(loc_key)
-        name = self.loc_db.loc_key_to_name(loc_key)
-
-        if offset is None:
-            return bit_vec_val(str(offset), expr.size)
-        name = "|{}|".format(str(name))
-        if name not in self._bitvectors:
-            self._bitvectors[name] = expr.size
-        return name
+        offset = self.loc_db.get_location_offset(loc_key)
+        return bit_vec_val(str(offset), expr.size)
 
     def from_ExprMem(self, expr):
         addr = self.from_expr(expr.arg)

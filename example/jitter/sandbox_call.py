@@ -15,8 +15,8 @@ sb = Sandbox_Linux_arml(options.filename, options, globals())
 
 with open(options.filename, "rb") as fdesc:
     cont = Container.from_stream(fdesc)
-    loc_key = cont.loc_db.getby_name("md5_starts")
-    addr_to_call = cont.loc_db.loc_key_to_offset(loc_key)
+    loc_key = cont.loc_db.get_name_location("md5_starts")
+    addr_to_call = cont.loc_db.get_location_offset(loc_key)
 
 # Calling md5_starts(malloc(0x64))
 addr = linobjs.heap.alloc(sb.jitter, 0x64)

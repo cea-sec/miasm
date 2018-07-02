@@ -101,10 +101,10 @@ if __name__ == '__main__':
     loc_db=mdis.loc_db)
 
 
-    argc_lbl = loc_db.getby_name('argc')
-    argv_lbl = loc_db.getby_name('argv')
-    ret_addr_lbl = loc_db.getby_name('ret_addr')
-    init_lbl = loc_db.getby_name('init')
+    argc_lbl = loc_db.get_name_location('argc')
+    argv_lbl = loc_db.get_name_location('argv')
+    ret_addr_lbl = loc_db.get_name_location('ret_addr')
+    init_lbl = loc_db.get_name_location('init')
 
     argc = ExprLoc(argc_lbl, 32)
     argv = ExprLoc(argv_lbl, 32)

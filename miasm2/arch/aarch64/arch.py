@@ -276,7 +276,7 @@ class aarch64_arg(m_arg):
             if isinstance(value.name, ExprId):
                 fixed_size.add(value.name.size)
                 return value.name
-            loc_key = loc_db.getby_name_create(value.name)
+            loc_key = loc_db.get_or_create_name_location(value.name)
             return ExprLoc(loc_key, size_hint)
         if isinstance(value, AstInt):
             assert size_hint is not None
@@ -316,7 +316,7 @@ class instruction_aarch64(instruction):
             return str(expr)
         elif expr.is_loc():
             if loc_db is not None:
-                return loc_db.str_loc_key(expr.loc_key)
+                return loc_db.pretty_str(expr.loc_key)
             else:
                 return str(expr)
         elif isinstance(expr, m2_expr.ExprOp) and expr.op in shift_expr:
@@ -374,7 +374,7 @@ class instruction_aarch64(instruction):
         if not expr.is_int():
             return
         addr = expr.arg + self.offset
-        loc_key = loc_db.getby_offset_create(addr)
+        loc_key = loc_db.get_or_create_offset_location(addr)
         self.args[index] = m2_expr.ExprLoc(loc_key, expr.size)
 
     def breakflow(self):

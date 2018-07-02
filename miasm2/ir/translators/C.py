@@ -55,7 +55,7 @@ class TranslatorC(Translator):
         if self.loc_db is None:
             return str(loc_key)
 
-        offset = self.loc_db.loc_key_to_offset(loc_key)
+        offset = self.loc_db.get_location_offset(loc_key)
         if offset is None:
             return str(loc_key)
 

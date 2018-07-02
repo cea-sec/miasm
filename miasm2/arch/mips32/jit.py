@@ -70,7 +70,7 @@ class mipsCGen(CGen):
         """
 
         loc_key = self.get_block_post_label(block)
-        offset = self.ir_arch.loc_db.loc_key_to_offset(loc_key)
+        offset = self.ir_arch.loc_db.get_location_offset(loc_key)
         out = (self.CODE_RETURN_NO_EXCEPTION % (loc_key,
                                                 self.C_PC,
                                                 m2_expr.ExprId('branch_dst_irdst', 32),

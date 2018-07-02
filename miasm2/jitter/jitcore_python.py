@@ -127,7 +127,7 @@ class JitCore_Python(jitcore.JitCore):
                     raise NotImplementedError("Type not handled: %s" % ad)
 
         # Associate myfunc with current loc_key
-        offset = self.ir_arch.loc_db.loc_key_to_offset(loc_key)
+        offset = self.ir_arch.loc_db.get_location_offset(loc_key)
         assert offset is not None
         self.offset_to_jitted_func[offset] = myfunc
 

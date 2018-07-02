@@ -71,11 +71,12 @@ loc_db = LocationDB()
 asmcfg, loc_db = parse_asm.parse_txt(machine.mn, attrib, source, loc_db)
 
 # Fix shellcode addrs
-loc_db.set_offset(loc_db.getby_name("main"), addr_main)
+loc_db.set_location_offset(loc_db.get_name_location("main"), addr_main)
 
 if args.PE:
-    loc_db.set_offset(loc_db.getby_name_create("MessageBoxA"),
-                           pe.DirImport.get_funcvirt('USER32.dll', 'MessageBoxA'))
+    loc_db.set_location_offset(loc_db.get_or_create_name_location("MessageBoxA"),
+                               pe.DirImport.get_funcvirt('USER32.dll',
+                                                         'MessageBoxA'))
 
 # Print and graph firsts blocks before patching it
 for block in asmcfg.blocks:
@@ -89,10 +90,10 @@ patches = asmblock.asm_resolve_final(machine.mn,
                                     dst_interval)
 if args.encrypt:
     # Encrypt code
-    loc_start = loc_db.getby_name_create(args.encrypt[0])
-    loc_stop = loc_db.getby_name_create(args.encrypt[1])
-    ad_start = loc_db.loc_key_to_offset(loc_start)
-    ad_stop = loc_db.loc_key_to_offset(loc_stop)
+    loc_start = loc_db.get_or_create_name_location(args.encrypt[0])
+    loc_stop = loc_db.get_or_create_name_location(args.encrypt[1])
+    ad_start = loc_db.get_location_offset(loc_start)
+    ad_stop = loc_db.get_location_offset(loc_stop)
 
     new_patches = dict(patches)
     for ad, val in patches.items():

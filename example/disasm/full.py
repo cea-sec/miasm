@@ -99,8 +99,8 @@ for addr in args.address:
         addrs.append(int(addr, 0))
     except ValueError:
         # Second chance, try with symbol
-        loc_key = mdis.loc_db.getby_name(addr)
-        offset = mdis.loc_db.loc_key_to_offset(loc_key)
+        loc_key = mdis.loc_db.get_name_location(addr)
+        offset = mdis.loc_db.get_location_offset(loc_key)
         addrs.append(offset)
 
 if len(addrs) == 0 and default_addr is not None:
@@ -143,7 +143,7 @@ while not finish and todo:
                 for dest in instr.getdstflow(mdis.loc_db):
                     if not dest.is_loc():
                         continue
-                    offset = mdis.loc_db.loc_key_to_offset(dest.loc_key)
+                    offset = mdis.loc_db.get_location_offset(dest.loc_key)
                     todo.append((mdis, instr, offset))
 
         if args.funcswatchdog is not None and args.funcswatchdog <= 0:

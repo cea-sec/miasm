@@ -146,12 +146,12 @@ class SemBuilder(object):
         loc_end_expr = "loc_end_expr = ExprLoc(loc_end, ir.IRDst.size)"
         out = ast.parse(loc_end).body
         out += ast.parse(loc_end_expr).body
-        loc_if = "loc_if = ir.loc_db.gen_loc_key()"
+        loc_if = "loc_if = ir.loc_db.add_location()"
         loc_if_expr = "loc_if_expr = ExprLoc(loc_if, ir.IRDst.size)"
         out += ast.parse(loc_if).body
         out += ast.parse(loc_if_expr).body
         if loc_else:
-            loc_else = "loc_else = ir.loc_db.gen_loc_key()"
+            loc_else = "loc_else = ir.loc_db.add_location()"
             loc_else_expr = "loc_else_expr = ExprLoc(loc_else, ir.IRDst.size)"
             out += ast.parse(loc_else).body
             out += ast.parse(loc_else_expr).body

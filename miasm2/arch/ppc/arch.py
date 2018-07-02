@@ -40,7 +40,7 @@ class ppc_arg(m_arg):
                 return arg.name
             if arg.name in gpregs.str:
                 return None
-            loc_key = loc_db.getby_name_create(arg.name)
+            loc_key = loc_db.get_or_create_name_location(arg.name)
             return ExprLoc(loc_key, 32)
         if isinstance(arg, AstOp):
             args = [self.asm_ast_to_expr(tmp, loc_db) for tmp in arg.args]
@@ -131,7 +131,7 @@ class instruction_ppc(instruction):
                 ad = e.arg + self.offset
             else:
                 ad = e.arg
-            loc_key = loc_db.getby_offset_create(ad)
+            loc_key = loc_db.get_or_create_offset_location(ad)
             s = ExprLoc(loc_key, e.size)
             self.args[address_index] = s
 

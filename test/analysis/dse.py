@@ -77,7 +77,7 @@ class DSETest(object):
         )
 
         # fix shellcode addr
-        loc_db.set_offset(loc_db.getby_name("main"), 0x0)
+        loc_db.set_location_offset(loc_db.get_name_location("main"), 0x0)
         output = StrPatchwork()
         patches = asm_resolve_final(mn_x86, blocks, loc_db)
         for offset, raw in patches.items():

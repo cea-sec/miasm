@@ -67,7 +67,7 @@ def guess_next_new_label(loc_db):
     gen_name = "loc_%.8X"
     while True:
         name = gen_name % i
-        label = loc_db.getby_name(name)
+        label = loc_db.get_name_location(name)
         if label is None:
             return loc_db.add_location(name)
         i += 1
@@ -121,7 +121,7 @@ def parse_txt(mnemo, attrib, txt, loc_db=None):
         match_re = LABEL_RE.match(line)
         if match_re:
             label_name = match_re.group(1)
-            label = loc_db.getby_name_create(label_name)
+            label = loc_db.get_or_create_name_location(label_name)
             lines.append(label)
             continue
         # directive
@@ -190,7 +190,7 @@ def parse_txt(mnemo, attrib, txt, loc_db=None):
         match_re = LABEL_RE.match(line)
         if match_re:
             label_name = match_re.group(1)
-            label = loc_db.getby_name_create(label_name)
+            label = loc_db.get_or_create_name_location(label_name)
             lines.append(label)
             continue
 

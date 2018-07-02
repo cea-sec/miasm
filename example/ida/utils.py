@@ -98,7 +98,7 @@ class TranslatorIDA(Translator):
 
     def from_ExprLoc(self, expr):
         if self.loc_db is not None:
-            out = self.loc_db.str_loc_key(expr.loc_key)
+            out = self.loc_db.pretty_str(expr.loc_key)
         else:
             out = str(expr)
         out = idaapi.COLSTR(out, idaapi.SCOLOR_REG)

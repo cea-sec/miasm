@@ -298,7 +298,7 @@ class DependencyResult(DependencyState):
 
         # Eval the block
         loc_db = LocationDB()
-        temp_loc = loc_db.getby_name_create("Temp")
+        temp_loc = loc_db.get_or_create_name_location("Temp")
         symb_exec = SymbolicExecutionEngine(self._ira, ctx_init)
         symb_exec.eval_updt_irblock(IRBlock(temp_loc, assignblks), step=step)
 

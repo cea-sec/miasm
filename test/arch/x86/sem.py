@@ -49,10 +49,10 @@ def compute(ir, mode, asm, inputstate={}, debug=False):
 
 def compute_txt(ir, mode, txt, inputstate={}, debug=False):
     asmcfg, loc_db = parse_asm.parse_txt(mn, mode, txt)
-    loc_db.set_offset(loc_db.getby_name("main"), 0x0)
+    loc_db.set_location_offset(loc_db.get_name_location("main"), 0x0)
     patches = asmblock.asm_resolve_final(mn, asmcfg, loc_db)
     interm = ir(loc_db)
-    lbl = loc_db.getby_name("main")
+    lbl = loc_db.get_name_location("main")
     for bbl in asmcfg.blocks:
         interm.add_block(bbl)
     return symb_exec(lbl, interm, inputstate, debug)

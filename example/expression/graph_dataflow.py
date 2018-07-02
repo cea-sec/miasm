@@ -97,7 +97,7 @@ def gen_block_data_flow_graph(ir_arch, ad, block_flow_cb):
     irblock_0 = None
     for irblock in ir_arch.blocks.values():
         loc_key = irblock.loc_key
-        offset = ir_arch.loc_db.loc_key_to_offset(loc_key)
+        offset = ir_arch.loc_db.get_location_offset(loc_key)
         if offset == ad:
             irblock_0 = irblock
             break

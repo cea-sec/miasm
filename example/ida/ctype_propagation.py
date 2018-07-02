@@ -304,8 +304,8 @@ def analyse_function():
         infos_types[expr] = set([objc])
 
     # Add fake head
-    lbl_real_start = ir_arch.loc_db.getby_offset(addr)
-    lbl_head = ir_arch.loc_db.getby_name_create("start")
+    lbl_real_start = ir_arch.loc_db.get_offset_location(addr)
+    lbl_head = ir_arch.loc_db.get_or_create_name_location("start")
 
     first_block = asmcfg.label2block(lbl_real_start)
 

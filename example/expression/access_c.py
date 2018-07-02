@@ -144,7 +144,7 @@ dis_engine, ira = machine.dis_engine, machine.ira
 mdis = dis_engine(cont.bin_stream, loc_db=cont.loc_db)
 addr_head = 0
 asmcfg = mdis.dis_multiblock(addr_head)
-lbl_head = mdis.loc_db.getby_offset(addr_head)
+lbl_head = mdis.loc_db.get_offset_location(addr_head)
 
 ir_arch_a = ira(mdis.loc_db)
 for block in asmcfg.blocks:

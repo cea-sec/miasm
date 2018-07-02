@@ -138,12 +138,9 @@ class TranslatorZ3(Translator):
             # No loc_db, fallback to default name
             return z3.BitVec(str(expr), expr.size)
         loc_key = expr.loc_key
-        offset = self.loc_db.loc_key_to_offset(loc_key)
-        name = self.loc_db.loc_key_to_name(loc_key)
+        offset = self.loc_db.get_location_offset(loc_key)
         if offset is not None:
             return z3.BitVecVal(offset, expr.size)
-        if name is not None:
-            return z3.BitVec(name, expr.size)
         # fallback to default name
         return z3.BitVec(str(loc_key), expr.size)
 

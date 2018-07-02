@@ -101,7 +101,7 @@ class JitCore(object):
             cur_block.ad_max = cur_block.lines[-1].offset + cur_block.lines[-1].l
         else:
             # 1 byte block for unknown mnemonic
-            offset = ir_arch.loc_db.loc_key_to_offset(cur_block.loc_key)
+            offset = ir_arch.loc_db.get_location_offset(cur_block.loc_key)
             cur_block.ad_min = offset
             cur_block.ad_max = offset+1
 
@@ -138,7 +138,7 @@ class JitCore(object):
 
         # Get the block
         if isinstance(addr, LocKey):
-            addr = self.ir_arch.loc_db.loc_key_to_offset(addr)
+            addr = self.ir_arch.loc_db.get_location_offset(addr)
             if addr is None:
                 raise RuntimeError("Unknown offset for LocKey")
 
@@ -253,13 +253,13 @@ class JitCore(object):
             try:
                 for irblock in block.blocks:
                     # Remove offset -> jitted block link
-                    offset = self.ir_arch.loc_db.loc_key_to_offset(irblock.loc_key)
+                    offset = self.ir_arch.loc_db.get_location_offset(irblock.loc_key)
                     if offset in self.offset_to_jitted_func:
                         del(self.offset_to_jitted_func[offset])
 
             except AttributeError:
                 # The block has never been translated in IR
-                offset = self.ir_arch.loc_db.loc_key_to_offset(block.loc_key)
+                offset = self.ir_arch.loc_db.get_location_offset(block.loc_key)
                 if offset in self.offset_to_jitted_func:
                     del(self.offset_to_jitted_func[offset])
 
@@ -293,7 +293,7 @@ class JitCore(object):
         @block: asmblock
         """
         block_raw = "".join(line.b for line in block.lines)
-        offset = self.ir_arch.loc_db.loc_key_to_offset(block.loc_key)
+        offset = self.ir_arch.loc_db.get_location_offset(block.loc_key)
         block_hash = md5("%X_%s_%s_%s_%s" % (offset,
                                              self.arch_name,
                                              self.log_mn,

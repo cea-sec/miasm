@@ -102,7 +102,7 @@ class sh4_arg(m_arg):
                 return arg.name
             if arg.name in gpregs.str:
                 return None
-            loc_key = loc_db.getby_name_create(arg.name)
+            loc_key = loc_db.get_or_create_name_location(arg.name)
             return ExprLoc(loc_key, 32)
         if isinstance(arg, AstOp):
             args = [self.asm_ast_to_expr(tmp, loc_db) for tmp in arg.args]
@@ -411,7 +411,7 @@ class instruction_sh4(instruction):
             return str(expr)
         elif expr.is_loc():
             if loc_db is not None:
-                return loc_db.str_loc_key(expr.loc_key)
+                return loc_db.pretty_str(expr.loc_key)
             else:
                 return str(expr)
         assert(isinstance(expr, ExprMem))
@@ -443,7 +443,7 @@ class instruction_sh4(instruction):
             ad = e.arg+8+self.offset
         else:
             ad = e.arg+8+self.offset
-        l = loc_db.getby_offset_create(ad)
+        l = loc_db.get_or_create_offset_location(ad)
         s = ExprId(l, e.size)
         self.args[0] = s
     """
@@ -826,7 +826,7 @@ addop("bf", [bs('10001011'), s08imm])
     def dstflow2label(self, loc_db):
         e = self.args[0].expr
         ad = e.arg*2+4+self.offset
-        l = loc_db.getby_offset_create(ad)
+        l = loc_db.get_or_create_offset_location(ad)
         s = ExprId(l, e.size)
         self.args[0].expr = s
 """
@@ -849,7 +849,7 @@ addop("bra", [bs('1010'), s12imm])
     def dstflow2label(self, loc_db):
         e = self.args[0].expr
         ad = e.arg*2+4+self.offset
-        l = loc_db.getby_offset_create(ad)
+        l = loc_db.get_or_create_offset_location(ad)
         s = ExprId(l, e.size)
         self.args[0].expr = s
 """

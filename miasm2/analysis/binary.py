@@ -217,7 +217,7 @@ class ContainerELF(Container):
                     log.warning("Same offset (%s) for %s and %s",
                                 (hex(offset),
                                  name,
-                                 self._loc_db.getby_offset(offset)))
+                                 self._loc_db.get_offset_location(offset)))
                     continue
 
 

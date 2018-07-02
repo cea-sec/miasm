@@ -27,7 +27,7 @@ def cb_x86_callpop(cur_bloc, loc_db, *args, **kwargs):
         return
 
     loc_key = dst.loc_key
-    offset = loc_db.loc_key_to_offset(loc_key)
+    offset = loc_db.get_location_offset(loc_key)
     ## The destination must be the next instruction
     if offset != last_instr.offset + last_instr.l:
         return

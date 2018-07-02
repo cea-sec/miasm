@@ -357,7 +357,7 @@ class IRBlock(object):
 
     def __str__(self):
         out = []
-        out.append('loc_key_%s' % self.loc_key.key)
+        out.append(str(self.loc_key))
         for assignblk in self:
             for dst, src in assignblk.iteritems():
                 out.append('\t%s = %s' % (dst, src))
@@ -416,14 +416,23 @@ class DiGraphIR(DiGraph):
         if self.loc_db is None:
             name = str(expr)
         else:
-            name = self.loc_db.loc_key_to_name(expr.loc_key)
+            names = self.loc_db.get_location_names(expr.loc_key)
+            if not names:
+                name = self.loc_db.pretty_str(expr.loc_key)
+            else:
+                # Use only one name for readability
+                name = sorted(names)[0]
         return m2_expr.ExprId(name, expr.size)
 
     def node2lines(self, node):
         if self.loc_db is None:
             node_name = str(node)
         else:
-            node_name = self.loc_db.loc_key_to_name(node)
+            names = self.loc_db.get_location_names(node)
+            if not names:
+                node_name = self.loc_db.pretty_str(node)
+            else:
+                node_name = "".join("%s:\n" % name for name in names)
         yield self.DotCellDescription(
             text="%s" % node_name,
             attr={
@@ -530,7 +539,7 @@ class IntermediateRepresentation(object):
         except (ValueError, TypeError):
             return None
 
-        return self.loc_db.getby_offset_create(addr)
+        return self.loc_db.get_or_create_offset_location(addr)
 
     def get_block(self, addr):
         """Returns the irbloc associated to an ExprId/ExprInt/loc_key/int
@@ -551,7 +560,7 @@ class IntermediateRepresentation(object):
 
     def add_instr(self, line, loc_key=None, gen_pc_updt=False):
         if loc_key is None:
-            loc_key = self.loc_db.gen_loc_key()
+            loc_key = self.loc_db.add_location()
         block = AsmBlock(loc_key)
         block.lines = [line]
         self.add_block(block, gen_pc_updt)
@@ -687,9 +696,9 @@ class IntermediateRepresentation(object):
                 if block.lines:
                     line = block.lines[-1]
                     if line.offset is not None:
-                        loc_key = self.loc_db.getby_offset_create(line.offset + line.l)
+                        loc_key = self.loc_db.get_or_create_offset_location(line.offset + line.l)
                 if loc_key is None:
-                    loc_key = self.loc_db.gen_loc_key()
+                    loc_key = self.loc_db.add_location()
                 block.add_cst(loc_key, AsmConstraint.c_next)
             else:
                 loc_key = next_loc_key
@@ -724,18 +733,18 @@ class IntermediateRepresentation(object):
     def get_loc_key_for_instr(self, instr):
         """Returns the loc_key associated to an instruction
         @instr: current instruction"""
-        return self.loc_db.getby_offset_create(instr.offset)
+        return self.loc_db.get_or_create_offset_location(instr.offset)
 
     def gen_loc_key_and_expr(self, size):
         """
         Return a loc_key and it's corresponding ExprLoc
         @size: size of expression
         """
-        loc_key = self.loc_db.gen_loc_key()
+        loc_key = self.loc_db.add_location()
         return loc_key, m2_expr.ExprLoc(loc_key, size)
 
     def get_next_loc_key(self, instr):
-        loc_key = self.loc_db.getby_offset_create(instr.offset + instr.l)
+        loc_key = self.loc_db.get_or_create_offset_location(instr.offset + instr.l)
         return loc_key
 
     def simplify(self, simplifier):
@@ -825,7 +834,7 @@ class IntermediateRepresentation(object):
             self._graph.add_node(lbl)
             for dst in self.dst_trackback(block):
                 if dst.is_int():
-                    dst_lbl = self.loc_db.getby_offset_create(int(dst))
+                    dst_lbl = self.loc_db.get_or_create_offset_location(int(dst))
                     dst = m2_expr.ExprLoc(dst_lbl.loc_key, self.pc.size)
                 if dst.is_loc():
                     self._graph.add_edge(lbl, dst.loc_key)

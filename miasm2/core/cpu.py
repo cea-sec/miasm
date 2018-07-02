@@ -1022,18 +1022,18 @@ class instruction(object):
             fixed_expr = {}
             for exprloc in loc_keys:
                 loc_key = exprloc.loc_key
-                name = symbols.loc_key_to_name(loc_key)
+                names = symbols.get_location_names(loc_key)
                 # special symbols
-                if name == '$':
+                if '$' in names:
                     fixed_expr[exprloc] = self.get_asm_offset(exprloc)
                     continue
-                if name == '_':
+                if '_' in names:
                     fixed_expr[exprloc] = self.get_asm_next_offset(exprloc)
                     continue
-                if symbols.getby_name(name) is None:
+                if not names:
                     raise ValueError('Unresolved symbol: %r' % exprloc)
 
-                offset = symbols.loc_key_to_offset(loc_key)
+                offset = symbols.get_location_offset(loc_key)
                 if offset is None:
                     raise ValueError(
                         'The offset of loc_key "%s" cannot be determined' % name
@@ -1534,7 +1534,7 @@ class cls_mn(object):
         args = []
         for d in dst:
             if isinstance(d, m2_expr.ExprInt):
-                l = loc_db.getby_offset_create(int(d))
+                l = loc_db.get_or_create_offset_location(int(d))
 
                 a = m2_expr.ExprId(l.name, d.size)
             else:

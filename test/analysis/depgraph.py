@@ -100,79 +100,6 @@ class IRATest(ira):
         return set([self.ret_reg, self.sp])
 
 
-def bloc2graph(irgraph, label=False, lines=True):
-    """Render dot graph of @blocks"""
-
-    escape_chars = re.compile('[' + re.escape('{}') + ']')
-    label_attr = 'colspan="2" align="center" bgcolor="grey"'
-    edge_attr = 'label = "%s" color="%s" style="bold"'
-    td_attr = 'align="left"'
-    block_attr = 'shape="Mrecord" fontname="Courier New"'
-
-    out = ["digraph asm_graph {"]
-    fix_chars = lambda x: '\\' + x.group()
-
-    # Generate basic blocks
-    out_blocks = []
-    for label in irgraph.graph.nodes():
-        if isinstance(label, LocKey):
-            label_name = irgraph.loc_db.loc_key_to_name(label)
-        else:
-            label_name = str(label)
-
-        if hasattr(irgraph, 'blocks'):
-            irblock = irgraph.blocks[label]
-        else:
-            irblock = None
-        if isinstance(label, LocKey):
-            out_block = '%s [\n' % label_name
-        else:
-            out_block = '%s [\n' % label
-        out_block += "%s " % block_attr
-        out_block += 'label =<<table border="0" cellborder="0" cellpadding="3">'
-
-        block_label = '<tr><td %s>%s</td></tr>' % (
-            label_attr, label_name)
-        block_html_lines = []
-        if lines and irblock is not None:
-            for assignblk in irblock:
-                for dst, src in assignblk.iteritems():
-                    if False:
-                        out_render = "%.8X</td><td %s> " % (0, td_attr)
-                    else:
-                        out_render = ""
-                    out_render += escape_chars.sub(fix_chars, "%s = %s" % (dst, src))
-                    block_html_lines.append(out_render)
-                block_html_lines.append(" ")
-            block_html_lines.pop()
-        block_html_lines = ('<tr><td %s>' % td_attr +
-                            ('</td></tr><tr><td %s>' % td_attr).join(block_html_lines) +
-                            '</td></tr>')
-        out_block += "%s " % block_label
-        out_block += block_html_lines + "</table>> ];"
-        out_blocks.append(out_block)
-
-    out += out_blocks
-    # Generate links
-    for src, dst in irgraph.graph.edges():
-            if isinstance(src, LocKey):
-                src_name = irgraph.loc_db.loc_key_to_name(src)
-            else:
-                src_name = str(src)
-            if isinstance(dst, LocKey):
-                dst_name = irgraph.loc_db.loc_key_to_name(dst)
-            else:
-                dst_name = str(dst)
-
-            edge_color = "black"
-            out.append('%s -> %s' % (src_name,
-                                     dst_name) +
-                       '[' + edge_attr % ("", edge_color) + '];')
-
-    out.append("}")
-    return '\n'.join(out)
-
-
 def dg2graph(graph, label=False, lines=True):
     """Render dot graph of @blocks"""
 
@@ -189,7 +116,7 @@ def dg2graph(graph, label=False, lines=True):
     out_blocks = []
     for node in graph.nodes():
         if isinstance(node, DependencyNode):
-            name = loc_db.loc_key_to_name(node.loc_key)
+            name = loc_db.pretty_str(node.loc_key)
             node_name = "%s %s %s" % (name,
                                        node.element,
                                        node.line_nb)
@@ -642,7 +569,7 @@ def flatNode(node):
             element = int(node.element.arg)
         else:
             RuntimeError("Unsupported type '%s'" % type(enode.element))
-        name = loc_db.loc_key_to_name(node.loc_key)
+        name = loc_db.pretty_str(node.loc_key)
         return (name,
                 element,
                 node.line_nb)
@@ -741,7 +668,7 @@ def match_results(resultsA, resultsB, nodes):
 def get_flat_init_depnodes(depnodes):
     out = []
     for node in depnodes:
-        name = loc_db.loc_key_to_name(node.loc_key)
+        name = loc_db.pretty_str(node.loc_key)
         out.append((name,
                     node.element.name,
                     node.line_nb,
@@ -1026,7 +953,6 @@ for test_nb, test in enumerate([(G1_IRA, G1_INPUT),
     g_ira, (depnodes, heads) = test
 
     open("graph_%02d.dot" % (test_nb + 1), "w").write(g_ira.graph.dot())
-    open("graph_%02d.dot" % (test_nb + 1), "w").write(bloc2graph(g_ira))
 
     # Different options
     suffix_key_list = ["", "_nosimp", "_nomem", "_nocall",

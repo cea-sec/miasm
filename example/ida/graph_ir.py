@@ -36,7 +36,7 @@ def label_str(self):
 
 def color_irblock(irblock, ir_arch):
     out = []
-    lbl = idaapi.COLSTR(ir_arch.loc_db.str_loc_key(irblock.loc_key), idaapi.SCOLOR_INSN)
+    lbl = idaapi.COLSTR(ir_arch.loc_db.pretty_str(irblock.loc_key), idaapi.SCOLOR_INSN)
     out.append(lbl)
     for assignblk in irblock:
         for dst, src in sorted(assignblk.iteritems()):
@@ -118,8 +118,8 @@ def build_graph(verbose=False, simplify=False):
     for addr, name in idautils.Names():
         if name is None:
             continue
-        if (mdis.loc_db.getby_offset(addr) or
-            mdis.loc_db.getby_name(name)):
+        if (mdis.loc_db.get_offset_location(addr) or
+            mdis.loc_db.get_name_location(name)):
             # Symbol alias
             continue
         mdis.loc_db.add_location(name, addr)

@@ -349,7 +349,7 @@ class instruction_arm(instruction):
             return str(expr)
         elif expr.is_loc():
             if loc_db is not None:
-                return loc_db.str_loc_key(expr.loc_key)
+                return loc_db.pretty_str(expr.loc_key)
             else:
                 return str(expr)
         if isinstance(expr, ExprOp) and expr.op in expr2shift_dct:
@@ -430,7 +430,7 @@ class instruction_arm(instruction):
             addr = expr.arg + self.offset
         else:
             addr = expr.arg + self.offset
-        loc_key = loc_db.getby_offset_create(addr)
+        loc_key = loc_db.get_or_create_offset_location(addr)
         self.args[0] = ExprLoc(loc_key, expr.size)
 
     def breakflow(self):
@@ -512,7 +512,7 @@ class instruction_armt(instruction_arm):
         else:
             addr = expr.arg + self.offset
 
-        loc_key = loc_db.getby_offset_create(addr)
+        loc_key = loc_db.get_or_create_offset_location(addr)
         dst = ExprLoc(loc_key, expr.size)
 
         if self.name in ["CBZ", "CBNZ"]:
@@ -780,7 +780,7 @@ class arm_arg(m_arg):
                 return arg.name
             if arg.name in gpregs.str:
                 return None
-            loc_key = loc_db.getby_name_create(arg.name)
+            loc_key = loc_db.get_or_create_name_location(arg.name)
             return ExprLoc(loc_key, 32)
         if isinstance(arg, AstOp):
             args = [self.asm_ast_to_expr(tmp, loc_db) for tmp in arg.args]

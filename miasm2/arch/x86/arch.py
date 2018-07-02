@@ -272,7 +272,7 @@ class x86_arg(m_arg):
             if value.name in ["FAR"]:
                 return None
 
-            loc_key = loc_db.getby_name_create(value.name)
+            loc_key = loc_db.get_or_create_name_location(value.name)
             return ExprLoc(loc_key, size_hint)
         if isinstance(value, AstOp):
             # First pass to retreive fixed_size
@@ -476,7 +476,7 @@ class instruction_x86(instruction):
         if not expr.is_int():
             return
         addr = expr.arg + int(self.offset)
-        loc_key = loc_db.getby_offset_create(addr)
+        loc_key = loc_db.get_or_create_offset_location(addr)
         self.args[0] = ExprLoc(loc_key, expr.size)
 
     def breakflow(self):
@@ -514,7 +514,7 @@ class instruction_x86(instruction):
     def getdstflow(self, loc_db):
         if self.additional_info.g1.value & 6 and self.name in repeat_mn:
             addr = int(self.offset)
-            loc_key = loc_db.getby_offset_create(addr)
+            loc_key = loc_db.get_or_create_offset_location(addr)
             return [ExprLoc(loc_key, self.v_opmode())]
         return [self.args[0]]
 
@@ -564,7 +564,7 @@ class instruction_x86(instruction):
             o = str(expr)
         elif expr.is_loc():
             if loc_db is not None:
-                o = loc_db.str_loc_key(expr.loc_key)
+                o = loc_db.pretty_str(expr.loc_key)
             else:
                 o = str(expr)
         elif ((isinstance(expr, ExprOp) and expr.op == 'far' and

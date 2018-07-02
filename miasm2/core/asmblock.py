@@ -74,7 +74,7 @@ class AsmConstraint(object):
         else:
             return "%s:%s" % (
                 self.c_t,
-                loc_db.str_loc_key(self.loc_key)
+                loc_db.pretty_str(self.loc_key)
             )
 
     def __str__(self):
@@ -142,7 +142,7 @@ class AsmBlock(object):
         if loc_db is None:
             out.append(str(self.loc_key))
         else:
-            out.append(loc_db.str_loc_key(self.loc_key))
+            out.append(loc_db.pretty_str(self.loc_key))
 
         for instr in self.lines:
             out.append(instr.to_string(loc_db))
@@ -168,11 +168,11 @@ class AsmBlock(object):
         self.bto.add(c)
 
     def split(self, loc_db, offset):
-        loc_key = loc_db.getby_offset_create(offset)
+        loc_key = loc_db.get_or_create_offset_location(offset)
         log_asmblock.debug('split at %x', offset)
         i = -1
         offsets = [x.offset for x in self.lines]
-        offset = loc_db.loc_key_to_offset(loc_key)
+        offset = loc_db.get_location_offset(loc_key)
         if offset not in offsets:
             log_asmblock.warning(
                 'cannot split bloc at %X ' % offset +
@@ -540,7 +540,7 @@ class AsmCFG(DiGraph):
         if self.loc_db is None:
             loc_key_name = str(node)
         else:
-            loc_key_name = self.loc_db.str_loc_key(node)
+            loc_key_name = self.loc_db.pretty_str(node)
         yield self.DotCellDescription(text=loc_key_name,
                                       attr={'align': 'center',
                                             'colspan': 2,
@@ -777,7 +777,7 @@ class AsmCFG(DiGraph):
         # offset
         block_dst = []
         for loc_key in self.pendings:
-            offset = loc_db.loc_key_to_offset(loc_key)
+            offset = loc_db.get_location_offset(loc_key)
             if offset is not None:
                 block_dst.append(offset)
 
@@ -812,7 +812,7 @@ class AsmCFG(DiGraph):
                 # The new block destinations may need to be disassembled
                 if dis_block_callback:
                     offsets_to_dis = set(
-                        self.loc_db.loc_key_to_offset(constraint.loc_key)
+                        self.loc_db.get_location_offset(constraint.loc_key)
                         for constraint in new_b.bto
                     )
                     dis_block_callback(cur_bloc=new_b,
@@ -919,8 +919,8 @@ def fix_expr_val(expr, symbols):
             # Example:
             # toto:
             # .dword label
-            loc_key = symbols.getby_name(e.name)
-            offset = symbols.loc_key_to_offset(loc_key)
+            loc_key = symbols.get_name_location(e.name)
+            offset = symbols.get_location_offset(loc_key)
             e = ExprInt(offset, e.size)
         return e
     result = expr.visit(expr_calc)
@@ -936,10 +936,10 @@ def fix_loc_offset(loc_db, loc_key, offset, modified):
     to @modified
     @loc_db: current loc_db
     """
-    loc_offset = loc_db.loc_key_to_offset(loc_key)
+    loc_offset = loc_db.get_location_offset(loc_key)
     if loc_offset == offset:
         return
-    loc_db.set_offset(loc_key, offset)
+    loc_db.set_location_offset(loc_key, offset, force=True)
     modified.add(loc_key)
 
 
@@ -961,7 +961,7 @@ class BlockChain(object):
         self.pinned_block_idx = None
         for i, block in enumerate(self.blocks):
             loc_key = block.loc_key
-            if self.loc_db.loc_key_to_offset(loc_key) is not None:
+            if self.loc_db.get_location_offset(loc_key) is not None:
                 if self.pinned_block_idx is not None:
                     raise ValueError("Multiples pinned block detected")
                 self.pinned_block_idx = i
@@ -980,7 +980,7 @@ class BlockChain(object):
             return
 
         loc = self.blocks[self.pinned_block_idx].loc_key
-        offset_base = self.loc_db.loc_key_to_offset(loc)
+        offset_base = self.loc_db.get_location_offset(loc)
         assert(offset_base % self.blocks[self.pinned_block_idx].alignment == 0)
 
         self.offset_min = offset_base
@@ -1009,7 +1009,7 @@ class BlockChain(object):
 
         # Propagate offset to blocks before pinned block
         pinned_block = self.blocks[self.pinned_block_idx]
-        offset = self.loc_db.loc_key_to_offset(pinned_block.loc_key)
+        offset = self.loc_db.get_location_offset(pinned_block.loc_key)
         if offset % pinned_block.alignment != 0:
             raise RuntimeError('Bad alignment')
 
@@ -1022,7 +1022,7 @@ class BlockChain(object):
                            modified_loc_keys)
 
         # Propagate offset to blocks after pinned block
-        offset = self.loc_db.loc_key_to_offset(pinned_block.loc_key) + pinned_block.size
+        offset = self.loc_db.get_location_offset(pinned_block.loc_key) + pinned_block.size
 
         last_block = pinned_block
         for block in self.blocks[self.pinned_block_idx + 1:]:
@@ -1050,7 +1050,7 @@ class BlockChainWedge(object):
     def merge(self, chain):
         """Best effort merge two block chains
         Return the list of resulting blockchains"""
-        self.loc_db.set_offset(chain.blocks[0].loc_key, self.offset_max)
+        self.loc_db.set_location_offset(chain.blocks[0].loc_key, self.offset_max)
         chain.place()
         return [self, chain]
 
@@ -1197,7 +1197,7 @@ def assemble_block(mnemo, block, loc_db, conservative=False):
 
         # Assemble an instruction
         saved_args = list(instr.args)
-        instr.offset = loc_db.loc_key_to_offset(block.loc_key) + offset_i
+        instr.offset = loc_db.get_location_offset(block.loc_key) + offset_i
 
         # Replace instruction's arguments by resolved ones
         instr.args = instr.resolve_args_with_symbols(loc_db)
@@ -1297,7 +1297,7 @@ def asm_resolve_final(mnemo, asmcfg, loc_db, dst_interval=None):
     output_interval = interval()
 
     for block in asmcfg.blocks:
-        offset = loc_db.loc_key_to_offset(block.loc_key)
+        offset = loc_db.get_location_offset(block.loc_key)
         for instr in block.lines:
             if not instr.data:
                 # Empty line
@@ -1404,7 +1404,7 @@ class disasmEngine(object):
         delayslot_count = self.arch.delayslot
         offsets_to_dis = set()
         add_next_offset = False
-        loc_key = self.loc_db.getby_offset_create(offset)
+        loc_key = self.loc_db.get_or_create_offset_location(offset)
         cur_block = AsmBlock(loc_key)
         log_asmblock.debug("dis at %X", int(offset))
         while not in_delayslot or delayslot_count > 0:
@@ -1419,12 +1419,12 @@ class disasmEngine(object):
                 else:
                     # Block is not empty, stop the desassembly pass and add a
                     # constraint to the next block
-                    loc_key_cst = self.loc_db.getby_offset_create(offset)
+                    loc_key_cst = self.loc_db.get_or_create_offset_location(offset)
                     cur_block.add_cst(loc_key_cst, AsmConstraint.c_next)
                 break
 
             if lines_cpt > 0 and offset in self.split_dis:
-                loc_key_cst = self.loc_db.getby_offset_create(offset)
+                loc_key_cst = self.loc_db.get_or_create_offset_location(offset)
                 cur_block.add_cst(loc_key_cst, AsmConstraint.c_next)
                 offsets_to_dis.add(offset)
                 break
@@ -1435,7 +1435,7 @@ class disasmEngine(object):
                 break
 
             if offset in job_done:
-                loc_key_cst = self.loc_db.getby_offset_create(offset)
+                loc_key_cst = self.loc_db.get_or_create_offset_location(offset)
                 cur_block.add_cst(loc_key_cst, AsmConstraint.c_next)
                 break
 
@@ -1462,7 +1462,7 @@ class disasmEngine(object):
                 else:
                     # Block is not empty, stop the desassembly pass and add a
                     # constraint to the next block
-                    loc_key_cst = self.loc_db.getby_offset_create(off_i)
+                    loc_key_cst = self.loc_db.get_or_create_offset_location(off_i)
                     cur_block.add_cst(loc_key_cst, AsmConstraint.c_next)
                 break
 
@@ -1475,7 +1475,7 @@ class disasmEngine(object):
                 else:
                     # Block is not empty, stop the desassembly pass and add a
                     # constraint to the next block
-                    loc_key_cst = self.loc_db.getby_offset_create(off_i)
+                    loc_key_cst = self.loc_db.get_or_create_offset_location(off_i)
                     cur_block.add_cst(loc_key_cst, AsmConstraint.c_next)
                 break
 
@@ -1505,7 +1505,7 @@ class disasmEngine(object):
                     if not dst.is_loc():
                         continue
                     loc_key = dst.loc_key
-                    loc_key_offset = self.loc_db.loc_key_to_offset(loc_key)
+                    loc_key_offset = self.loc_db.get_location_offset(loc_key)
                     known_dsts.append(loc_key)
                     if loc_key_offset in self.dont_dis_retcall_funcs:
                         add_next_offset = False
@@ -1517,11 +1517,11 @@ class disasmEngine(object):
             delayslot_count = instr.delayslot
 
         for c in cur_block.bto:
-            loc_key_offset = self.loc_db.loc_key_to_offset(c.loc_key)
+            loc_key_offset = self.loc_db.get_location_offset(c.loc_key)
             offsets_to_dis.add(loc_key_offset)
 
         if add_next_offset:
-            loc_key_cst = self.loc_db.getby_offset_create(offset)
+            loc_key_cst = self.loc_db.get_or_create_offset_location(offset)
             cur_block.add_cst(loc_key_cst, AsmConstraint.c_next)
             offsets_to_dis.add(offset)
 

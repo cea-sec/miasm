@@ -490,10 +490,10 @@ class ir_mips32l(IntermediateRepresentation):
         return instr_ir, new_extra_ir
 
     def get_next_instr(self, instr):
-        return self.loc_db.getby_offset_create(instr.offset  + 4)
+        return self.loc_db.get_or_create_offset_location(instr.offset  + 4)
 
     def get_next_break_loc_key(self, instr):
-        return self.loc_db.getby_offset_create(instr.offset  + 8)
+        return self.loc_db.get_or_create_offset_location(instr.offset  + 8)
 
 class ir_mips32b(ir_mips32l):
     def __init__(self, loc_db=None):
