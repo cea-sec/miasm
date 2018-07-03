@@ -232,6 +232,7 @@ for script in ["interval.py",
                "parse_asm.py",
                "utils.py",
                "sembuilder.py",
+               "locationdb.py",
                "test_types.py",
                ]:
     testset += RegressionTest([script], base_dir="core")

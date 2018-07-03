@@ -1,5 +1,5 @@
 from miasm2.jitter.jitload import Jitter, named_arguments
-from miasm2.core import asmblock
+from miasm2.core.locationdb import LocationDB
 from miasm2.arch.ppc.sem import ir_ppc32b
 import struct
 
@@ -15,7 +15,7 @@ class jitter_ppc32b(Jitter):
     max_reg_arg = 8
 
     def __init__(self, *args, **kwargs):
-        super(jitter_ppc32b, self).__init__(ir_ppc32b(asmblock.AsmSymbolPool()),
+        super(jitter_ppc32b, self).__init__(ir_ppc32b(LocationDB()),
                                             *args, **kwargs)
         self.vm.set_big_endian()
 

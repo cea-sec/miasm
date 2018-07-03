@@ -59,7 +59,7 @@ sreg_p = (deref_pinc | deref_nooff | deref_off | base_expr).setParseAction(cb_ex
 
 
 class msp430_arg(m_arg):
-    def asm_ast_to_expr(self, value, symbol_pool):
+    def asm_ast_to_expr(self, value, loc_db):
         if isinstance(value, AstId):
             name = value.name
             if isinstance(name, Expr):
@@ -69,17 +69,17 @@ class msp430_arg(m_arg):
                 index = gpregs.str.index(name)
                 reg = gpregs.expr[index]
                 return reg
-            loc_key = symbol_pool.getby_name_create(value.name)
+            loc_key = loc_db.get_or_create_name_location(value.name)
             return ExprLoc(loc_key, 16)
         if isinstance(value, AstOp):
-            args = [self.asm_ast_to_expr(tmp, symbol_pool) for tmp in value.args]
+            args = [self.asm_ast_to_expr(tmp, loc_db) for tmp in value.args]
             if None in args:
                 return None
             return ExprOp(value.op, *args)
         if isinstance(value, AstInt):
             return ExprInt(value.value, 16)
         if isinstance(value, AstMem):
-            ptr = self.asm_ast_to_expr(value.ptr, symbol_pool)
+            ptr = self.asm_ast_to_expr(value.ptr, loc_db)
             if ptr is None:
                 return None
             return ExprMem(ptr, value.size)
@@ -102,14 +102,14 @@ class instruction_msp430(instruction):
         return self.name in ['call']
 
     @staticmethod
-    def arg2str(expr, index=None, symbol_pool=None):
+    def arg2str(expr, index=None, loc_db=None):
         if isinstance(expr, ExprId):
             o = str(expr)
         elif isinstance(expr, ExprInt):
             o = str(expr)
         elif expr.is_loc():
-            if symbol_pool is not None:
-                return symbol_pool.str_loc_key(expr.loc_key)
+            if loc_db is not None:
+                return loc_db.pretty_str(expr.loc_key)
             else:
                 return str(expr)
         elif isinstance(expr, ExprOp) and expr.op == "autoinc":
@@ -129,7 +129,7 @@ class instruction_msp430(instruction):
         return o
 
 
-    def dstflow2label(self, symbol_pool):
+    def dstflow2label(self, loc_db):
         expr = self.args[0]
         if not isinstance(expr, ExprInt):
             return
@@ -138,7 +138,7 @@ class instruction_msp430(instruction):
         else:
             addr = expr.arg + int(self.offset)
 
-        loc_key = symbol_pool.getby_offset_create(addr)
+        loc_key = loc_db.get_or_create_offset_location(addr)
         self.args[0] = ExprLoc(loc_key, expr.size)
 
     def breakflow(self):
@@ -165,10 +165,10 @@ class instruction_msp430(instruction):
     def is_subcall(self):
         return self.name in ['call']
 
-    def getdstflow(self, symbol_pool):
+    def getdstflow(self, loc_db):
         return [self.args[0]]
 
-    def get_symbol_size(self, symbol, symbol_pool):
+    def get_symbol_size(self, symbol, loc_db):
         return 16
 
     def fixDstOffset(self):
@@ -289,7 +289,7 @@ class mn_msp430(cls_mn):
     def reset_class(self):
         super(mn_msp430, self).reset_class()
 
-    def getnextflow(self, symbol_pool):
+    def getnextflow(self, loc_db):
         raise NotImplementedError('not fully functional')
 
 

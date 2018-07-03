@@ -8,6 +8,7 @@ from elfesteem.strpatchwork import StrPatchwork
 from miasm2.core import parse_asm, asmblock
 from miasm2.analysis.machine import Machine
 from miasm2.core.interval import interval
+from miasm2.core.locationdb import LocationDB
 
 parser = ArgumentParser("Multi-arch (32 bits) assembler")
 parser.add_argument('architecture', help="architecture: " +
@@ -65,16 +66,17 @@ with open(args.source) as fstream:
     source = fstream.read()
 
 
-symbol_pool = asmblock.AsmSymbolPool()
+loc_db = LocationDB()
 
-asmcfg, symbol_pool = parse_asm.parse_txt(machine.mn, attrib, source, symbol_pool)
+asmcfg, loc_db = parse_asm.parse_txt(machine.mn, attrib, source, loc_db)
 
 # Fix shellcode addrs
-symbol_pool.set_offset(symbol_pool.getby_name("main"), addr_main)
+loc_db.set_location_offset(loc_db.get_name_location("main"), addr_main)
 
 if args.PE:
-    symbol_pool.set_offset(symbol_pool.getby_name_create("MessageBoxA"),
-                           pe.DirImport.get_funcvirt('USER32.dll', 'MessageBoxA'))
+    loc_db.set_location_offset(loc_db.get_or_create_name_location("MessageBoxA"),
+                               pe.DirImport.get_funcvirt('USER32.dll',
+                                                         'MessageBoxA'))
 
 # Print and graph firsts blocks before patching it
 for block in asmcfg.blocks:
@@ -84,14 +86,14 @@ open("graph.dot", "w").write(asmcfg.dot())
 # Apply patches
 patches = asmblock.asm_resolve_final(machine.mn,
                                     asmcfg,
-                                    symbol_pool,
+                                    loc_db,
                                     dst_interval)
 if args.encrypt:
     # Encrypt code
-    loc_start = symbol_pool.getby_name_create(args.encrypt[0])
-    loc_stop = symbol_pool.getby_name_create(args.encrypt[1])
-    ad_start = symbol_pool.loc_key_to_offset(loc_start)
-    ad_stop = symbol_pool.loc_key_to_offset(loc_stop)
+    loc_start = loc_db.get_or_create_name_location(args.encrypt[0])
+    loc_stop = loc_db.get_or_create_name_location(args.encrypt[1])
+    ad_start = loc_db.get_location_offset(loc_start)
+    ad_stop = loc_db.get_location_offset(loc_stop)
 
     new_patches = dict(patches)
     for ad, val in patches.items():

@@ -2,15 +2,15 @@ import inspect
 from pdb import pm
 
 from miasm2.core.sembuilder import SemBuilder
-from miasm2.core.asmblock import AsmSymbolPool
+from miasm2.core.locationdb import LocationDB
 import miasm2.expression.expression as m2_expr
 
 
 
 # Test classes
 class IR(object):
-    def __init__(self, symbol_pool):
-        self.symbol_pool = symbol_pool
+    def __init__(self, loc_db):
+        self.loc_db = loc_db
 
     IRDst = m2_expr.ExprId("IRDst", 32)
 
@@ -45,8 +45,8 @@ def test(Arg1, Arg2, Arg3):
 a = m2_expr.ExprId('A', 32)
 b = m2_expr.ExprId('B', 32)
 c = m2_expr.ExprId('C', 32)
-symbol_pool = AsmSymbolPool()
-ir = IR(symbol_pool)
+loc_db = LocationDB()
+ir = IR(loc_db)
 instr = Instr()
 res = test(ir, instr, a, b, c)
 

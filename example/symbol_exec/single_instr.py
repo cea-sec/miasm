@@ -2,27 +2,25 @@
 from miasm2.core.bin_stream import bin_stream_str
 from miasm2.ir.symbexec import SymbolicExecutionEngine
 from miasm2.analysis.machine import Machine
-from miasm2.core.asmblock import AsmSymbolPool
+from miasm2.core.locationdb import LocationDB
 
 START_ADDR = 0
 machine = Machine("x86_32")
-
-symbol_pool = AsmSymbolPool()
-
+loc_db = LocationDB()
 
 # Assemble and disassemble a MOV
 ## Ensure that attributes 'offset' and 'l' are set
-line = machine.mn.fromstring("MOV EAX, EBX", symbol_pool, 32)
+line = machine.mn.fromstring("MOV EAX, EBX", loc_db, 32)
 asm = machine.mn.asm(line)[0]
 
 # Get back block
 bin_stream = bin_stream_str(asm)
-mdis = machine.dis_engine(bin_stream, symbol_pool=symbol_pool)
+mdis = machine.dis_engine(bin_stream, loc_db=loc_db)
 mdis.lines_wd = 1
 asm_block = mdis.dis_block(START_ADDR)
 
 # Translate ASM -> IR
-ira = machine.ira(mdis.symbol_pool)
+ira = machine.ira(mdis.loc_db)
 ira.add_block(asm_block)
 
 # Instanciate a Symbolic Execution engine with default value for registers

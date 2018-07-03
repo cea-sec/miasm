@@ -19,7 +19,7 @@ def get_block(ir_arch, mdis, addr):
     """Get IRBlock at address @addr"""
     lbl = ir_arch.get_loc_key(addr)
     if not lbl in ir_arch.blocks:
-        offset = mdis.symbol_pool.loc_key_to_offset(lbl)
+        offset = mdis.loc_db.get_location_offset(lbl)
         block = mdis.dis_block(offset)
         ir_arch.add_block(block)
     irblock = ir_arch.get_block(lbl)
@@ -892,7 +892,7 @@ class SymbolicExecutionEngine(object):
 
     def eval_exprloc(self, expr, **kwargs):
         """[DEV]: Evaluate an ExprLoc using the current state"""
-        offset = self.ir_arch.symbol_pool.loc_key_to_offset(expr.loc_key)
+        offset = self.ir_arch.loc_db.get_location_offset(expr.loc_key)
         if offset is not None:
             ret = ExprInt(offset, expr.size)
         else:

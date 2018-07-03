@@ -266,7 +266,7 @@ def analyse_function():
 
 
     iraCallStackFixer = get_ira_call_fixer(ira)
-    ir_arch = iraCallStackFixer(mdis.symbol_pool)
+    ir_arch = iraCallStackFixer(mdis.loc_db)
 
     asmcfg = mdis.dis_multiblock(addr)
     # Generate IR
@@ -304,8 +304,8 @@ def analyse_function():
         infos_types[expr] = set([objc])
 
     # Add fake head
-    lbl_real_start = ir_arch.symbol_pool.getby_offset(addr)
-    lbl_head = ir_arch.symbol_pool.getby_name_create("start")
+    lbl_real_start = ir_arch.loc_db.get_offset_location(addr)
+    lbl_head = ir_arch.loc_db.get_or_create_name_location("start")
 
     first_block = asmcfg.label2block(lbl_real_start)
 

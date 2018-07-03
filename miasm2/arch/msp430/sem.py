@@ -423,8 +423,8 @@ def ComposeExprAff(dst, src):
 
 class ir_msp430(IntermediateRepresentation):
 
-    def __init__(self, symbol_pool=None):
-        IntermediateRepresentation.__init__(self, mn_msp430, None, symbol_pool)
+    def __init__(self, loc_db=None):
+        IntermediateRepresentation.__init__(self, mn_msp430, None, loc_db)
         self.pc = PC
         self.sp = SP
         self.IRDst = ExprId('IRDst', 16)

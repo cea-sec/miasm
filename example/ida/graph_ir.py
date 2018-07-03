@@ -36,12 +36,12 @@ def label_str(self):
 
 def color_irblock(irblock, ir_arch):
     out = []
-    lbl = idaapi.COLSTR(ir_arch.symbol_pool.str_loc_key(irblock.loc_key), idaapi.SCOLOR_INSN)
+    lbl = idaapi.COLSTR(ir_arch.loc_db.pretty_str(irblock.loc_key), idaapi.SCOLOR_INSN)
     out.append(lbl)
     for assignblk in irblock:
         for dst, src in sorted(assignblk.iteritems()):
-            dst_f = expr2colorstr(dst, symbol_pool=ir_arch.symbol_pool)
-            src_f = expr2colorstr(src, symbol_pool=ir_arch.symbol_pool)
+            dst_f = expr2colorstr(dst, loc_db=ir_arch.loc_db)
+            src_f = expr2colorstr(src, loc_db=ir_arch.loc_db)
             line = idaapi.COLSTR("%s = %s" % (dst_f, src_f), idaapi.SCOLOR_INSN)
             out.append('    %s' % line)
         out.append("")
@@ -112,17 +112,17 @@ def build_graph(verbose=False, simplify=False):
 
     bs = bin_stream_ida()
     mdis = dis_engine(bs)
-    ir_arch = ira(mdis.symbol_pool)
+    ir_arch = ira(mdis.loc_db)
 
     # populate symbols with ida names
     for addr, name in idautils.Names():
         if name is None:
             continue
-        if (mdis.symbol_pool.getby_offset(addr) or
-            mdis.symbol_pool.getby_name(name)):
+        if (mdis.loc_db.get_offset_location(addr) or
+            mdis.loc_db.get_name_location(name)):
             # Symbol alias
             continue
-        mdis.symbol_pool.add_location(name, addr)
+        mdis.loc_db.add_location(name, addr)
 
     if verbose:
         print "start disasm"

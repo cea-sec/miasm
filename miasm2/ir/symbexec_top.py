@@ -128,7 +128,7 @@ class SymbExecTopNoMem(SymbolicExecutionEngine):
         return ret
 
     def eval_exprloc(self, expr, **kwargs):
-        offset = self.ir_arch.symbol_pool.loc_key_to_offset(expr.loc_key)
+        offset = self.ir_arch.loc_db.get_location_offset(expr.loc_key)
         if offset is not None:
             ret = ExprInt(offset, expr.size)
         else:

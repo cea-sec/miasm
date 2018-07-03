@@ -37,11 +37,11 @@ class symbolicexec_t(idaapi.simplecustviewer_t):
         self.AddLine("%s = %s" % (
             expr2colorstr(
                 key,
-                symbol_pool=self.symbol_pool
+                loc_db=self.loc_db
             ),
             expr2colorstr(
                 value,
-                symbol_pool=self.symbol_pool
+                loc_db=self.loc_db
             )
         ))
 
@@ -69,12 +69,12 @@ class symbolicexec_t(idaapi.simplecustviewer_t):
         form.Compile()
         form.Execute()
 
-    def Create(self, equations, machine, symbol_pool, *args, **kwargs):
+    def Create(self, equations, machine, loc_db, *args, **kwargs):
         if not super(symbolicexec_t, self).Create(*args, **kwargs):
             return False
 
         self.machine = machine
-        self.symbol_pool = symbol_pool
+        self.loc_db = loc_db
         self.line2eq = sorted(equations.items(), key=operator.itemgetter(0))
         self.lines_expanded = set()
 
@@ -141,7 +141,7 @@ def symbolic_exec():
 
     mdis.dont_dis = [end]
     asmcfg = mdis.dis_multiblock(start)
-    ira = machine.ira(symbol_pool=mdis.symbol_pool)
+    ira = machine.ira(loc_db=mdis.loc_db)
     for block in asmcfg.blocks:
         ira.add_block(block)
 
@@ -155,7 +155,7 @@ def symbolic_exec():
 
     view = symbolicexec_t()
     all_views.append(view)
-    if not view.Create(modified, machine, mdis.symbol_pool,
+    if not view.Create(modified, machine, mdis.loc_db,
                        "Symbolic Execution - 0x%x to 0x%x"
                        % (start, idc.prev_head(end))):
         return

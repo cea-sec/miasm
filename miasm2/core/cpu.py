@@ -671,7 +671,7 @@ class bs_swapargs(bs_divert):
 
 class m_arg(object):
 
-    def fromstring(self, text, symbol_pool, parser_result=None):
+    def fromstring(self, text, loc_db, parser_result=None):
         if parser_result:
             e, start, stop = parser_result[self.parser]
             self.expr = e
@@ -681,11 +681,11 @@ class m_arg(object):
         except StopIteration:
             return None, None
         arg = v[0]
-        expr = self.asm_ast_to_expr(arg, symbol_pool)
+        expr = self.asm_ast_to_expr(arg, loc_db)
         self.expr = expr
         return start, stop
 
-    def asm_ast_to_expr(self, arg, symbol_pool):
+    def asm_ast_to_expr(self, arg, loc_db):
         raise NotImplementedError("Virtual")
 
 
@@ -708,7 +708,7 @@ class reg_noarg(object):
     reg_info = None
     parser = None
 
-    def fromstring(self, text, symbol_pool, parser_result=None):
+    def fromstring(self, text, loc_db, parser_result=None):
         if parser_result:
             e, start, stop = parser_result[self.parser]
             self.expr = e
@@ -718,7 +718,7 @@ class reg_noarg(object):
         except StopIteration:
             return None, None
         arg = v[0]
-        expr = self.parses_to_expr(arg, symbol_pool)
+        expr = self.parses_to_expr(arg, loc_db)
         self.expr = expr
         return start, stop
 
@@ -995,13 +995,13 @@ class instruction(object):
     def __str__(self):
         return self.to_string()
 
-    def to_string(self, symbol_pool=None):
+    def to_string(self, loc_db=None):
         o = "%-10s " % self.name
         args = []
         for i, arg in enumerate(self.args):
             if not isinstance(arg, m2_expr.Expr):
                 raise ValueError('zarb arg type')
-            x = self.arg2str(arg, i, symbol_pool)
+            x = self.arg2str(arg, i, loc_db)
             args.append(x)
         o += self.gen_args(args)
         return o
@@ -1022,18 +1022,18 @@ class instruction(object):
             fixed_expr = {}
             for exprloc in loc_keys:
                 loc_key = exprloc.loc_key
-                name = symbols.loc_key_to_name(loc_key)
+                names = symbols.get_location_names(loc_key)
                 # special symbols
-                if name == '$':
+                if '$' in names:
                     fixed_expr[exprloc] = self.get_asm_offset(exprloc)
                     continue
-                if name == '_':
+                if '_' in names:
                     fixed_expr[exprloc] = self.get_asm_next_offset(exprloc)
                     continue
-                if symbols.getby_name(name) is None:
+                if not names:
                     raise ValueError('Unresolved symbol: %r' % exprloc)
 
-                offset = symbols.loc_key_to_offset(loc_key)
+                offset = symbols.get_location_offset(loc_key)
                 if offset is None:
                     raise ValueError(
                         'The offset of loc_key "%s" cannot be determined' % name
@@ -1280,7 +1280,7 @@ class cls_mn(object):
         return out[0]
 
     @classmethod
-    def fromstring(cls, text, symbol_pool, mode = None):
+    def fromstring(cls, text, loc_db, mode = None):
         global total_scans
         name = re.search('(\S+)', text).groups()
         if not name:
@@ -1320,11 +1320,11 @@ class cls_mn(object):
                         if start != 0:
                             v, start, stop = [None], None, None
                         if v != [None]:
-                            v = f.asm_ast_to_expr(v[0], symbol_pool)
+                            v = f.asm_ast_to_expr(v[0], loc_db)
                         if v is None:
                             v, start, stop = [None], None, None
                         parsers[(i, start_i)][p] = v, start, stop
-                    start, stop = f.fromstring(args_str, symbol_pool, parsers[(i, start_i)])
+                    start, stop = f.fromstring(args_str, loc_db, parsers[(i, start_i)])
                     if start != 0:
                         log.debug("cannot fromstring %r", args_str)
                         cannot_parse = True
@@ -1529,12 +1529,12 @@ class cls_mn(object):
     def parse_prefix(self, v):
         return 0
 
-    def set_dst_symbol(self, symbol_pool):
-        dst = self.getdstflow(symbol_pool)
+    def set_dst_symbol(self, loc_db):
+        dst = self.getdstflow(loc_db)
         args = []
         for d in dst:
             if isinstance(d, m2_expr.ExprInt):
-                l = symbol_pool.getby_offset_create(int(d))
+                l = loc_db.get_or_create_offset_location(int(d))
 
                 a = m2_expr.ExprId(l.name, d.size)
             else:
@@ -1542,7 +1542,7 @@ class cls_mn(object):
             args.append(a)
         self.args_symb = args
 
-    def getdstflow(self, symbol_pool):
+    def getdstflow(self, loc_db):
         return [self.args[0].expr]
 
 
@@ -1563,7 +1563,7 @@ class imm_noarg(object):
             return None
         return v
 
-    def fromstring(self, text, symbol_pool, parser_result=None):
+    def fromstring(self, text, loc_db, parser_result=None):
         if parser_result:
             e, start, stop = parser_result[self.parser]
         else:

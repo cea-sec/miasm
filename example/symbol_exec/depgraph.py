@@ -47,7 +47,7 @@ for element in args.element:
         raise ValueError("Unknown element '%s'" % element)
 
 mdis = machine.dis_engine(cont.bin_stream, dont_dis_nulstart_bloc=True)
-ir_arch = machine.ira(mdis.symbol_pool)
+ir_arch = machine.ira(mdis.loc_db)
 
 # Common argument forms
 init_ctx = {}

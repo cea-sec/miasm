@@ -118,5 +118,5 @@ class JitCore_LLVM(jitcore.JitCore):
 
         # Store a pointer on the function jitted code
         loc_key = block.loc_key
-        offset = self.ir_arch.symbol_pool.loc_key_to_offset(loc_key)
+        offset = self.ir_arch.loc_db.get_location_offset(loc_key)
         self.offset_to_jitted_func[offset] = ptr

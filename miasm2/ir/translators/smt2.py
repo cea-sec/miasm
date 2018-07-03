@@ -119,7 +119,7 @@ class TranslatorSMT2(Translator):
     # Implemented language
     __LANG__ = "smt2"
 
-    def __init__(self, endianness="<", symbol_pool=None, **kwargs):
+    def __init__(self, endianness="<", loc_db=None, **kwargs):
         """Instance a SMT2 translator
         @endianness: (optional) memory endianness
         """
@@ -129,7 +129,7 @@ class TranslatorSMT2(Translator):
         # map of translated bit vectors
         self._bitvectors = dict()
         # symbol pool
-        self.symbol_pool = symbol_pool
+        self.loc_db = loc_db
 
     def from_ExprInt(self, expr):
         return bit_vec_val(expr.arg.arg, expr.size)
@@ -141,20 +141,13 @@ class TranslatorSMT2(Translator):
 
     def from_ExprLoc(self, expr):
         loc_key = expr.loc_key
-        if self.symbol_pool is None:
+        if self.loc_db is None or self.loc_db.get_location_offset(loc_key) is None:
             if str(loc_key) not in self._bitvectors:
                 self._bitvectors[str(loc_key)] = expr.size
             return str(loc_key)
 
-        offset = self.symbol_pool.loc_key_to_offset(loc_key)
-        name = self.symbol_pool.loc_key_to_name(loc_key)
-
-        if offset is None:
-            return bit_vec_val(str(offset), expr.size)
-        name = "|{}|".format(str(name))
-        if name not in self._bitvectors:
-            self._bitvectors[name] = expr.size
-        return name
+        offset = self.loc_db.get_location_offset(loc_key)
+        return bit_vec_val(str(offset), expr.size)
 
     def from_ExprMem(self, expr):
         addr = self.from_expr(expr.arg)

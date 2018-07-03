@@ -5,9 +5,9 @@ from miasm2.arch.x86.arch import mn_x86, deref_mem_ad, \
     base_expr, rmarg, print_size
 from miasm2.arch.x86.sem import ir_x86_16, ir_x86_32, ir_x86_64
 from miasm2.core.bin_stream import bin_stream_str
-from miasm2.core.asmblock import AsmSymbolPool
+from miasm2.core.locationdb import LocationDB
 
-symbol_pool = AsmSymbolPool()
+loc_db = LocationDB()
 
 mylabel16 = m2_expr.ExprId('mylabel16', 16)
 mylabel32 = m2_expr.ExprId('mylabel32', 32)
@@ -3063,7 +3063,7 @@ for mode, s, l, in reg_tests:
     print mn
     assert(str(mn).strip() == s)
     print 'fromstring', repr(s)
-    l = mn_x86.fromstring(s, symbol_pool, mode)
+    l = mn_x86.fromstring(s, loc_db, mode)
     print 'str args', [(str(x), x.size) for x in l.args]
     assert(str(l).strip(' ') == s)
     a = mn_x86.asm(l)

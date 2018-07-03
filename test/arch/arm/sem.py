@@ -9,13 +9,13 @@ from miasm2.arch.arm.arch import mn_arm as mn
 from miasm2.arch.arm.sem import ir_arml as ir_arch
 from miasm2.arch.arm.regs import *
 from miasm2.expression.expression import *
-from miasm2.core.asmblock import AsmSymbolPool
+from miasm2.core.locationdb import LocationDB
 from pdb import pm
 
 logging.getLogger('cpuhelper').setLevel(logging.ERROR)
 EXCLUDE_REGS = set([ir_arch().IRDst])
 
-symbol_pool = AsmSymbolPool()
+loc_db = LocationDB()
 
 def M(addr):
     return ExprMem(ExprInt(addr, 16), 16)
@@ -26,7 +26,7 @@ def compute(asm, inputstate={}, debug=False):
     sympool.update({k: ExprInt(v, k.size) for k, v in inputstate.iteritems()})
     interm = ir_arch()
     symexec = SymbolicExecutionEngine(interm, sympool)
-    instr = mn.fromstring(asm, symbol_pool, "l")
+    instr = mn.fromstring(asm, loc_db, "l")
     code = mn.asm(instr)[0]
     instr = mn.dis(code, "l")
     instr.offset = inputstate.get(PC, 0)

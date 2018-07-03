@@ -2,8 +2,8 @@
 
 from miasm2.expression.expression import ExprInt, ExprId, ExprMem, match_expr
 from miasm2.expression.simplifications import expr_simp
-from miasm2.core.asmblock \
-    import AsmSymbolPool, AsmConstraintNext, AsmConstraintTo
+from miasm2.core.asmblock import AsmConstraintNext, AsmConstraintTo
+from miasm2.core.locationdb import LocationDB
 from miasm2.core.utils import upck32
 
 
@@ -21,10 +21,10 @@ def get_ira(mnemo, attrib):
 
 
 def arm_guess_subcall(
-    mnemo, attrib, pool_bin, cur_bloc, offsets_to_dis, symbol_pool):
+    mnemo, attrib, pool_bin, cur_bloc, offsets_to_dis, loc_db):
     ira = get_ira(mnemo, attrib)
 
-    sp = AsmSymbolPool()
+    sp = LocationDB()
     ir_arch = ira(sp)
     print '###'
     print cur_bloc
@@ -49,7 +49,7 @@ def arm_guess_subcall(
         l = cur_bloc.lines[-1]
         if lr_val.arg != l.offset + l.l:
             continue
-        l = symbol_pool.getby_offset_create(int(lr_val))
+        l = loc_db.get_or_create_offset_location(int(lr_val))
         c = AsmConstraintNext(l)
 
         to_add.add(c)
@@ -60,13 +60,13 @@ def arm_guess_subcall(
 
 
 def arm_guess_jump_table(
-    mnemo, attrib, pool_bin, cur_bloc, offsets_to_dis, symbol_pool):
+    mnemo, attrib, pool_bin, cur_bloc, offsets_to_dis, loc_db):
     ira = get_ira(mnemo, attrib)
 
     jra = ExprId('jra')
     jrb = ExprId('jrb')
 
-    sp = AsmSymbolPool()
+    sp = LocationDB()
     ir_arch = ira(sp)
     ir_arch.add_block(cur_bloc)
 
@@ -111,7 +111,7 @@ def arm_guess_jump_table(
 
         for ad in addrs:
             offsets_to_dis.add(ad)
-            l = symbol_pool.getby_offset_create(ad)
+            l = loc_db.get_or_create_offset_location(ad)
             c = AsmConstraintTo(l)
             cur_bloc.addto(c)
 
@@ -119,6 +119,6 @@ guess_funcs = []
 
 
 def guess_multi_cb(
-    mnemo, attrib, pool_bin, cur_bloc, offsets_to_dis, symbol_pool):
+    mnemo, attrib, pool_bin, cur_bloc, offsets_to_dis, loc_db):
     for f in guess_funcs:
-        f(mnemo, attrib, pool_bin, cur_bloc, offsets_to_dis, symbol_pool)
+        f(mnemo, attrib, pool_bin, cur_bloc, offsets_to_dis, loc_db)

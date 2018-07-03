@@ -441,8 +441,8 @@ def sdiv(ir, instr, a, b, c=None):
     if c is None:
         b, c = a, b
 
-    loc_div = ExprLoc(ir.symbol_pool.gen_loc_key(), ir.IRDst.size)
-    loc_except = ExprId(ir.symbol_pool.gen_loc_key(), ir.IRDst.size)
+    loc_div = ExprLoc(ir.loc_db.add_location(), ir.IRDst.size)
+    loc_except = ExprId(ir.loc_db.add_location(), ir.IRDst.size)
     loc_next = ExprLoc(ir.get_next_loc_key(instr), ir.IRDst.size)
 
     e.append(ExprAff(ir.IRDst, ExprCond(c, loc_div, loc_except)))
@@ -474,8 +474,8 @@ def udiv(ir, instr, a, b, c=None):
 
 
 
-    loc_div = ExprLoc(ir.symbol_pool.gen_loc_key(), ir.IRDst.size)
-    loc_except = ExprLoc(ir.symbol_pool.gen_loc_key(), ir.IRDst.size)
+    loc_div = ExprLoc(ir.loc_db.add_location(), ir.IRDst.size)
+    loc_except = ExprLoc(ir.loc_db.add_location(), ir.IRDst.size)
     loc_next = ExprLoc(ir.get_next_loc_key(instr), ir.IRDst.size)
 
     e.append(ExprAff(ir.IRDst, ExprCond(c, loc_div, loc_except)))
@@ -1266,7 +1266,7 @@ def add_condition_expr(ir, instr, cond, instr_ir, extra_ir):
 
     loc_next = ir.get_next_loc_key(instr)
     loc_next_expr = ExprLoc(loc_next, 32)
-    loc_do = ir.symbol_pool.gen_loc_key()
+    loc_do = ir.loc_db.add_location()
     loc_do_expr = ExprLoc(loc_do, 32)
 
     dst_cond = ExprCond(cond, loc_do_expr, loc_next_expr)
@@ -1474,8 +1474,8 @@ class arminfo:
 
 
 class ir_arml(IntermediateRepresentation):
-    def __init__(self, symbol_pool=None):
-        IntermediateRepresentation.__init__(self, mn_arm, "l", symbol_pool)
+    def __init__(self, loc_db=None):
+        IntermediateRepresentation.__init__(self, mn_arm, "l", loc_db)
         self.pc = PC
         self.sp = SP
         self.IRDst = ExprId('IRDst', 32)
@@ -1556,7 +1556,7 @@ class ir_arml(IntermediateRepresentation):
             instr = block.lines[index]
 
             # Add conditionnal jump to current irblock
-            loc_do = self.symbol_pool.gen_loc_key()
+            loc_do = self.loc_db.add_location()
             loc_next = self.get_next_loc_key(instr)
 
             if hint:
@@ -1630,8 +1630,8 @@ class ir_arml(IntermediateRepresentation):
 
 
 class ir_armb(ir_arml):
-    def __init__(self, symbol_pool=None):
-        IntermediateRepresentation.__init__(self, mn_arm, "b", symbol_pool)
+    def __init__(self, loc_db=None):
+        IntermediateRepresentation.__init__(self, mn_arm, "b", loc_db)
         self.pc = PC
         self.sp = SP
         self.IRDst = ExprId('IRDst', 32)
@@ -1639,8 +1639,8 @@ class ir_armb(ir_arml):
 
 
 class ir_armtl(ir_arml):
-    def __init__(self, symbol_pool=None):
-        IntermediateRepresentation.__init__(self, mn_armt, "l", symbol_pool)
+    def __init__(self, loc_db=None):
+        IntermediateRepresentation.__init__(self, mn_armt, "l", loc_db)
         self.pc = PC
         self.sp = SP
         self.IRDst = ExprId('IRDst', 32)
@@ -1665,8 +1665,8 @@ class ir_armtl(ir_arml):
 
 
 class ir_armtb(ir_armtl):
-    def __init__(self, symbol_pool=None):
-        IntermediateRepresentation.__init__(self, mn_armt, "b", symbol_pool)
+    def __init__(self, loc_db=None):
+        IntermediateRepresentation.__init__(self, mn_armt, "b", loc_db)
         self.pc = PC
         self.sp = SP
         self.IRDst = ExprId('IRDst', 32)

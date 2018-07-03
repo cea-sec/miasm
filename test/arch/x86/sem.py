@@ -14,13 +14,13 @@ from miasm2.arch.x86.regs import *
 from miasm2.expression.expression import *
 from miasm2.expression.simplifications      import expr_simp
 from miasm2.core import parse_asm, asmblock
-from miasm2.core.asmblock import AsmSymbolPool
+from miasm2.core.locationdb import LocationDB
 
 
 logging.getLogger('cpuhelper').setLevel(logging.ERROR)
 EXCLUDE_REGS = set([ir_32().IRDst, ir_64().IRDst])
 
-symbol_pool = AsmSymbolPool()
+loc_db = LocationDB()
 
 m32 = 32
 m64 = 64
@@ -38,7 +38,7 @@ def symb_exec(lbl, interm, inputstate, debug):
             if k not in EXCLUDE_REGS and regs_init.get(k, None) != v}
 
 def compute(ir, mode, asm, inputstate={}, debug=False):
-    instr = mn.fromstring(asm, symbol_pool, mode)
+    instr = mn.fromstring(asm, loc_db, mode)
     code = mn.asm(instr)[0]
     instr = mn.dis(code, mode)
     instr.offset = inputstate.get(EIP, 0)
@@ -48,11 +48,11 @@ def compute(ir, mode, asm, inputstate={}, debug=False):
 
 
 def compute_txt(ir, mode, txt, inputstate={}, debug=False):
-    asmcfg, symbol_pool = parse_asm.parse_txt(mn, mode, txt)
-    symbol_pool.set_offset(symbol_pool.getby_name("main"), 0x0)
-    patches = asmblock.asm_resolve_final(mn, asmcfg, symbol_pool)
-    interm = ir(symbol_pool)
-    lbl = symbol_pool.getby_name("main")
+    asmcfg, loc_db = parse_asm.parse_txt(mn, mode, txt)
+    loc_db.set_location_offset(loc_db.get_name_location("main"), 0x0)
+    patches = asmblock.asm_resolve_final(mn, asmcfg, loc_db)
+    interm = ir(loc_db)
+    lbl = loc_db.get_name_location("main")
     for bbl in asmcfg.blocks:
         interm.add_block(bbl)
     return symb_exec(lbl, interm, inputstate, debug)

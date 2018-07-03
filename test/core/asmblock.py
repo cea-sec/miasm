@@ -105,7 +105,7 @@ open("graph2.dot", "w").write(asmcfg.dot())
 # Test helper methods
 ## loc_key_to_block should always be updated
 assert asmcfg.loc_key_to_block(first_block.loc_key) == first_block
-testlabel = mdis.symbol_pool.getby_name_create("testlabel")
+testlabel = mdis.loc_db.get_or_create_name_location("testlabel")
 my_block = AsmBlock(testlabel)
 asmcfg.add_block(my_block)
 assert len(asmcfg) == 3
@@ -116,7 +116,7 @@ assert asmcfg.loc_key_to_block(my_block.loc_key) == my_block
 assert len(list(asmcfg.get_bad_blocks())) == 0
 assert len(list(asmcfg.get_bad_blocks_predecessors())) == 0
 ### Add a bad block, not linked
-testlabel_bad = mdis.symbol_pool.getby_name_create("testlabel_bad")
+testlabel_bad = mdis.loc_db.get_or_create_name_location("testlabel_bad")
 my_bad_block = AsmBlockBad(testlabel_bad)
 asmcfg.add_block(my_bad_block)
 assert list(asmcfg.get_bad_blocks()) == [my_bad_block]
@@ -135,7 +135,7 @@ assert len(list(asmcfg.get_bad_blocks_predecessors(strict=True))) == 0
 ## Sanity check
 asmcfg.sanity_check()
 ### Next on itself
-testlabel_nextitself = mdis.symbol_pool.getby_name_create("testlabel_nextitself")
+testlabel_nextitself = mdis.loc_db.get_or_create_name_location("testlabel_nextitself")
 my_block_ni = AsmBlock(testlabel_nextitself)
 my_block_ni.bto.add(AsmConstraintNext(my_block_ni.loc_key))
 asmcfg.add_block(my_block_ni)
@@ -149,11 +149,11 @@ assert error_raised
 asmcfg.del_block(my_block_ni)
 asmcfg.sanity_check()
 ### Multiple next on the same node
-testlabel_target = mdis.symbol_pool.getby_name_create("testlabel_target")
+testlabel_target = mdis.loc_db.get_or_create_name_location("testlabel_target")
 my_block_target = AsmBlock(testlabel_target)
 asmcfg.add_block(my_block_target)
-testlabel_src1 = mdis.symbol_pool.getby_name_create("testlabel_src1")
-testlabel_src2 = mdis.symbol_pool.getby_name_create("testlabel_src2")
+testlabel_src1 = mdis.loc_db.get_or_create_name_location("testlabel_src1")
+testlabel_src2 = mdis.loc_db.get_or_create_name_location("testlabel_src2")
 my_block_src1 = AsmBlock(testlabel_src1)
 my_block_src2 = AsmBlock(testlabel_src2)
 my_block_src1.bto.add(AsmConstraintNext(my_block_target.loc_key))
@@ -184,8 +184,8 @@ assert asmcfg.loc_key_to_block(my_block_src1.loc_key).max_size == 0
 
 ## Check pendings
 ### Create a pending element
-testlabel_pend_src = mdis.symbol_pool.getby_name_create("testlabel_pend_src")
-testlabel_pend_dst = mdis.symbol_pool.getby_name_create("testlabel_pend_dst")
+testlabel_pend_src = mdis.loc_db.get_or_create_name_location("testlabel_pend_src")
+testlabel_pend_dst = mdis.loc_db.get_or_create_name_location("testlabel_pend_dst")
 my_block_src = AsmBlock(testlabel_pend_src)
 my_block_dst = AsmBlock(testlabel_pend_dst)
 my_block_src.bto.add(AsmConstraintTo(my_block_dst.loc_key))
@@ -247,7 +247,7 @@ assert len(entry_block.lines) == 4
 assert map(str, entry_block.lines) == ['XOR        EAX, EAX',
                                        'XOR        EBX, EBX',
                                        'XOR        ECX, ECX',
-                                       'JNZ        loc_3']
+                                       'JNZ        loc_key_3']
 assert len(asmcfg.successors(entry_block.loc_key)) == 2
 assert len(entry_block.bto) == 2
 nextb = asmcfg.loc_key_to_block((cons.loc_key for cons in entry_block.bto
@@ -258,26 +258,26 @@ assert len(nextb.lines) == 4
 assert map(str, nextb.lines) == ['XOR        EDX, EDX',
                                  'XOR        ESI, ESI',
                                  'XOR        EDI, EDI',
-                                 'JMP        loc_4']
+                                 'JMP        loc_key_4']
 assert asmcfg.successors(nextb.loc_key) == [nextb.loc_key]
 assert len(tob.lines) == 2
 assert map(str, tob.lines) == ['XOR        EBP, EBP',
-                               'JMP        loc_3']
+                               'JMP        loc_key_3']
 assert asmcfg.successors(tob.loc_key) == [tob.loc_key]
 
 # Check split_block
 ## Without condition for a split, no change
 asmcfg_bef = asmcfg.copy()
-asmcfg.apply_splitting(mdis.symbol_pool)
+asmcfg.apply_splitting(mdis.loc_db)
 assert asmcfg_bef == asmcfg
 open("graph5.dot", "w").write(asmcfg.dot())
 ## Create conditions for a block split
-inside_firstbbl = mdis.symbol_pool.getby_offset(4)
+inside_firstbbl = mdis.loc_db.get_offset_location(4)
 tob.bto.add(AsmConstraintTo(inside_firstbbl))
 asmcfg.rebuild_edges()
 assert len(asmcfg.pendings) == 1
 assert inside_firstbbl in asmcfg.pendings
-asmcfg.apply_splitting(mdis.symbol_pool)
+asmcfg.apply_splitting(mdis.loc_db)
 ## Check result
 assert len(asmcfg) == 6
 assert len(asmcfg.pendings) == 0
@@ -289,7 +289,7 @@ lbl_newb = asmcfg.successors(entry_block.loc_key)[0]
 newb = asmcfg.loc_key_to_block(lbl_newb)
 assert len(newb.lines) == 2
 assert map(str, newb.lines) == ['XOR        ECX, ECX',
-                                'JNZ        loc_3']
+                                'JNZ        loc_key_3']
 preds = asmcfg.predecessors(lbl_newb)
 assert len(preds) == 2
 assert entry_block.loc_key in preds
@@ -322,10 +322,10 @@ solutions = list(matcher.match(asmcfg))
 assert len(solutions) == 1
 solution = solutions.pop()
 for jbbl, label in solution.iteritems():
-    offset = mdis.symbol_pool.loc_key_to_offset(label)
+    offset = mdis.loc_db.get_location_offset(label)
     assert offset == int(jbbl._name, 16)
 
-loc_key_dum = mdis.symbol_pool.getby_name_create("dummy_loc")
+loc_key_dum = mdis.loc_db.get_or_create_name_location("dummy_loc")
 asmcfg.add_node(loc_key_dum)
 error_raised = False
 try:

@@ -9,7 +9,7 @@ from miasm2.ir.ir import IRBlock, AssignBlock
 from miasm2.ir.translators.C import TranslatorC
 from miasm2.core.asmblock import AsmBlockBad
 
-TRANSLATOR_NO_SYMBOL = TranslatorC(symbol_pool=None)
+TRANSLATOR_NO_SYMBOL = TranslatorC(loc_db=None)
 
 SIZE_TO_MASK = {size: TRANSLATOR_NO_SYMBOL.from_expr(ExprInt(0, size).mask)
                 for size in (1, 2, 3, 7, 8, 16, 32, 64, 128)}
@@ -102,7 +102,7 @@ class CGen(object):
     def __init__(self, ir_arch):
         self.ir_arch = ir_arch
         self.PC = self.ir_arch.pc
-        self.translator = TranslatorC(self.ir_arch.symbol_pool)
+        self.translator = TranslatorC(self.ir_arch.loc_db)
         self.init_arch_C()
 
     def init_arch_C(self):
@@ -143,7 +143,7 @@ class CGen(object):
         new_assignblk = dict(assignblk)
         if self.ir_arch.IRDst not in assignblk:
             offset = instr.offset + instr.l
-            loc_key = self.ir_arch.symbol_pool.getby_offset_create(offset)
+            loc_key = self.ir_arch.loc_db.get_or_create_offset_location(offset)
             dst = ExprLoc(loc_key, self.ir_arch.IRDst.size)
             new_assignblk[self.ir_arch.IRDst] = dst
         irs = [AssignBlock(new_assignblk, instr)]
@@ -290,12 +290,12 @@ class CGen(object):
                     "((%s)?(%s):(%s))" % (cond, src1b, src2b))
         if isinstance(expr, ExprInt):
             offset = int(expr)
-            loc_key = self.ir_arch.symbol_pool.getby_offset_create(offset)
+            loc_key = self.ir_arch.loc_db.get_or_create_offset_location(offset)
             self.add_label_index(dst2index, loc_key)
             return ("%s" % dst2index[loc_key], hex(offset))
         if expr.is_loc():
             loc_key = expr.loc_key
-            offset = self.ir_arch.symbol_pool.loc_key_to_offset(expr.loc_key)
+            offset = self.ir_arch.loc_db.get_location_offset(expr.loc_key)
             if offset is not None:
                 self.add_label_index(dst2index, loc_key)
                 return ("%s" % dst2index[loc_key], hex(offset))
@@ -339,7 +339,7 @@ class CGen(object):
             out.append(
                 'printf("%.8X %s\\n");' % (
                     instr_attrib.instr.offset,
-                    instr_attrib.instr.to_string(self.ir_arch.symbol_pool)
+                    instr_attrib.instr.to_string(self.ir_arch.loc_db)
                 )
             )
         return out
@@ -367,7 +367,7 @@ class CGen(object):
             return out
 
         assert isinstance(dst, LocKey)
-        offset = self.ir_arch.symbol_pool.loc_key_to_offset(dst)
+        offset = self.ir_arch.loc_db.get_location_offset(dst)
         if offset is None:
             # Generate goto for local labels
             return ['goto %s;' % dst]
@@ -518,7 +518,7 @@ class CGen(object):
 
         last_instr = block.lines[-1]
         offset = last_instr.offset + last_instr.l
-        return self.ir_arch.symbol_pool.getby_offset_create(offset)
+        return self.ir_arch.loc_db.get_or_create_offset_location(offset)
 
     def gen_init(self, block):
         """
@@ -528,7 +528,7 @@ class CGen(object):
 
         instr_offsets = [line.offset for line in block.lines]
         post_label = self.get_block_post_label(block)
-        post_offset = self.ir_arch.symbol_pool.loc_key_to_offset(post_label)
+        post_offset = self.ir_arch.loc_db.get_location_offset(post_label)
         instr_offsets.append(post_offset)
         lbl_start = block.loc_key
         return (self.CODE_INIT % lbl_start).split("\n"), instr_offsets
@@ -564,7 +564,7 @@ class CGen(object):
         """
 
         loc_key = self.get_block_post_label(block)
-        offset = self.ir_arch.symbol_pool.loc_key_to_offset(loc_key)
+        offset = self.ir_arch.loc_db.get_location_offset(loc_key)
         dst = self.dst_to_c(offset)
         code = self.CODE_RETURN_NO_EXCEPTION % (loc_key, self.C_PC, dst, dst)
         return code.split('\n')

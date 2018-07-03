@@ -1,8 +1,9 @@
 import logging
+import warnings
 
 from miasm2.core.bin_stream import bin_stream_str, bin_stream_elf, bin_stream_pe
 from miasm2.jitter.csts import PAGE_READ
-from miasm2.core.asmblock import AsmSymbolPool
+from miasm2.core.locationdb import LocationDB
 
 
 log = logging.getLogger("binary")
@@ -94,7 +95,7 @@ class Container(object):
         self._bin_stream = None
         self._entry_point = None
         self._arch = None
-        self._symbol_pool = AsmSymbolPool()
+        self._loc_db = LocationDB()
 
         # Launch parsing
         self.parse(*args, **kwargs)
@@ -120,10 +121,15 @@ class Container(object):
         return self._arch
 
     @property
-    def symbol_pool(self):
-        "AsmSymbolPool instance preloaded with container symbols (if any)"
-        return self._symbol_pool
+    def loc_db(self):
+        "LocationDB instance preloaded with container symbols (if any)"
+        return self._loc_db
 
+    @property
+    def symbol_pool(self):
+        "[DEPRECATED API]"
+        warnings.warn("Deprecated API: use 'loc_db'")
+        return self.loc_db
 
 ## Format dependent classes
 class ContainerPE(Container):
@@ -205,13 +211,13 @@ class ContainerELF(Container):
                 if not name:
                     continue
                 try:
-                    self._symbol_pool.add_location(name, offset)
+                    self._loc_db.add_location(name, offset)
                 except ValueError:
                     # Two symbols points on the same offset
                     log.warning("Same offset (%s) for %s and %s",
                                 (hex(offset),
                                  name,
-                                 self._symbol_pool.getby_offset(offset)))
+                                 self._loc_db.get_offset_location(offset)))
                     continue
 
 

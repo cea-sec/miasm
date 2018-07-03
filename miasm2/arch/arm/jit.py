@@ -1,7 +1,7 @@
 import logging
 
 from miasm2.jitter.jitload import Jitter, named_arguments
-from miasm2.core import asmblock
+from miasm2.core.locationdb import LocationDB
 from miasm2.core.utils import pck32, upck32
 from miasm2.arch.arm.sem import ir_armb, ir_arml, ir_armtl, ir_armtb, cond_dct_inv, tab_cond
 from miasm2.jitter.codegen import CGen
@@ -55,7 +55,7 @@ class jitter_arml(Jitter):
     C_Gen = arm_CGen
 
     def __init__(self, *args, **kwargs):
-        sp = asmblock.AsmSymbolPool()
+        sp = LocationDB()
         Jitter.__init__(self, ir_arml(sp), *args, **kwargs)
         self.vm.set_little_endian()
 
@@ -115,7 +115,7 @@ class jitter_armb(jitter_arml):
     C_Gen = arm_CGen
 
     def __init__(self, *args, **kwargs):
-        sp = asmblock.AsmSymbolPool()
+        sp = LocationDB()
         Jitter.__init__(self, ir_armb(sp), *args, **kwargs)
         self.vm.set_big_endian()
 
@@ -124,6 +124,6 @@ class jitter_armtl(jitter_arml):
     C_Gen = arm_CGen
 
     def __init__(self, *args, **kwargs):
-        sp = asmblock.AsmSymbolPool()
+        sp = LocationDB()
         Jitter.__init__(self, ir_armtl(sp), *args, **kwargs)
         self.vm.set_little_endian()

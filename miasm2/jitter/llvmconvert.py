@@ -625,7 +625,7 @@ class LLVMFunction():
             return ret
 
         if expr.is_loc():
-            offset = self.llvm_context.ir_arch.symbol_pool.loc_key_to_offset(expr.loc_key)
+            offset = self.llvm_context.ir_arch.loc_db.get_location_offset(expr.loc_key)
             ret = llvm_ir.Constant(LLVMType.IntType(expr.size), offset)
             self.update_cache(expr, ret)
             return ret
@@ -1099,13 +1099,13 @@ class LLVMFunction():
         self.main_stream = False
 
         if isinstance(dst, ExprInt):
-            loc_key = self.llvm_context.ir_arch.symbol_pool.getby_offset_create(int(dst))
+            loc_key = self.llvm_context.ir_arch.loc_db.get_or_create_offset_location(int(dst))
             dst = ExprLoc(loc_key, dst.size)
 
         if isinstance(dst, ExprLoc):
             loc_key = dst.loc_key
             bbl = self.get_basic_block_by_loc_key(loc_key)
-            offset = self.llvm_context.ir_arch.symbol_pool.loc_key_to_offset(loc_key)
+            offset = self.llvm_context.ir_arch.loc_db.get_location_offset(loc_key)
             if bbl is not None:
                 # "local" jump, inside this function
                 if offset is None:
@@ -1234,7 +1234,7 @@ class LLVMFunction():
                     ExprId("status", 32))
         self.affect(t_size(m2_csts.EXCEPT_UNK_MNEMO),
                     m2_exception_flag)
-        offset = self.llvm_context.ir_arch.symbol_pool.loc_key_to_offset(asmblock.loc_key)
+        offset = self.llvm_context.ir_arch.loc_db.get_location_offset(asmblock.loc_key)
         self.set_ret(LLVMType.IntType(64)(offset))
 
     def gen_finalize(self, asmblock, codegen):
@@ -1280,7 +1280,7 @@ class LLVMFunction():
             # Else Block
             builder.position_at_end(else_block)
             PC = self.llvm_context.PC
-            next_label_offset = self.llvm_context.ir_arch.symbol_pool.loc_key_to_offset(next_label)
+            next_label_offset = self.llvm_context.ir_arch.loc_db.get_location_offset(next_label)
             to_ret = LLVMType.IntType(PC.size)(next_label_offset)
             self.affect(to_ret, PC)
             self.set_ret(to_ret)
@@ -1317,7 +1317,7 @@ class LLVMFunction():
         # Create basic blocks (for label branchs)
         entry_bbl, builder = self.entry_bbl, self.builder
         for instr in asmblock.lines:
-            lbl = self.llvm_context.ir_arch.symbol_pool.getby_offset_create(instr.offset)
+            lbl = self.llvm_context.ir_arch.loc_db.get_or_create_offset_location(instr.offset)
             self.append_basic_block(lbl)
 
         # TODO: merge duplicate code with CGen
@@ -1333,7 +1333,7 @@ class LLVMFunction():
                                                   default_value=eltype(0))
                 self.local_vars_pointers[element.name] = ptr
             loc_key = codegen.get_block_post_label(asmblock)
-            offset = self.llvm_context.ir_arch.symbol_pool.loc_key_to_offset(loc_key)
+            offset = self.llvm_context.ir_arch.loc_db.get_location_offset(loc_key)
             instr_offsets.append(offset)
             self.append_basic_block(loc_key)
 

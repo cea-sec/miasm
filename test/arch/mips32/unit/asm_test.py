@@ -24,12 +24,12 @@ class Asm_Test(object):
         self.check()
 
     def asm(self):
-        blocks, symbol_pool = parse_asm.parse_txt(mn_mips32, 'l', self.TXT,
-                                                  symbol_pool=self.myjit.ir_arch.symbol_pool)
+        blocks, loc_db = parse_asm.parse_txt(mn_mips32, 'l', self.TXT,
+                                                  loc_db=self.myjit.ir_arch.loc_db)
         # fix shellcode addr
-        symbol_pool.set_offset(symbol_pool.getby_name("main"), 0x0)
+        loc_db.set_location_offset(loc_db.get_name_location("main"), 0x0)
         s = StrPatchwork()
-        patches = asmblock.asm_resolve_final(mn_mips32, blocks, symbol_pool)
+        patches = asmblock.asm_resolve_final(mn_mips32, blocks, loc_db)
         for offset, raw in patches.items():
             s[offset] = raw
 

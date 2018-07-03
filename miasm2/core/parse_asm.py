@@ -60,16 +60,16 @@ class DirectiveDontSplit(Directive):
     pass
 
 
-def guess_next_new_label(symbol_pool):
+def guess_next_new_label(loc_db):
     """Generate a new label
-    @symbol_pool: the AsmSymbolPool instance"""
+    @loc_db: the LocationDB instance"""
     i = 0
     gen_name = "loc_%.8X"
     while True:
         name = gen_name % i
-        label = symbol_pool.getby_name(name)
+        label = loc_db.get_name_location(name)
         if label is None:
-            return symbol_pool.add_location(name)
+            return loc_db.add_location(name)
         i += 1
 
 
@@ -77,30 +77,30 @@ STATE_NO_BLOC = 0
 STATE_IN_BLOC = 1
 
 
-def asm_ast_to_expr_with_size(arg, symbol_pool, size):
+def asm_ast_to_expr_with_size(arg, loc_db, size):
     if isinstance(arg, AstId):
         return ExprId(arg.name, size)
     if isinstance(arg, AstOp):
-        args = [asm_ast_to_expr_with_size(tmp, symbol_pool, size) for tmp in arg.args]
+        args = [asm_ast_to_expr_with_size(tmp, loc_db, size) for tmp in arg.args]
         return ExprOp(arg.op, *args)
     if isinstance(arg, AstInt):
         return ExprInt(arg.value, size)
     return None
 
-def parse_txt(mnemo, attrib, txt, symbol_pool=None):
-    """Parse an assembly listing. Returns a couple (asmcfg, symbol_pool), where
-    asmcfg is an AsmCfg instance and symbol_pool the associated AsmSymbolPool
+def parse_txt(mnemo, attrib, txt, loc_db=None):
+    """Parse an assembly listing. Returns a couple (asmcfg, loc_db), where
+    asmcfg is an AsmCfg instance and loc_db the associated LocationDB
 
     @mnemo: architecture used
     @attrib: architecture attribute
     @txt: assembly listing
-    @symbol_pool: (optional) the AsmSymbolPool instance used to handle labels
+    @loc_db: (optional) the LocationDB instance used to handle labels
     of the listing
 
     """
 
-    if symbol_pool is None:
-        symbol_pool = asmblock.AsmSymbolPool()
+    if loc_db is None:
+        loc_db = asmblock.LocationDB()
 
     C_NEXT = asmblock.AsmConstraint.c_next
     C_TO = asmblock.AsmConstraint.c_to
@@ -121,7 +121,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
         match_re = LABEL_RE.match(line)
         if match_re:
             label_name = match_re.group(1)
-            label = symbol_pool.getby_name_create(label_name)
+            label = loc_db.get_or_create_name_location(label_name)
             lines.append(label)
             continue
         # directive
@@ -158,7 +158,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
                 for element in data_raw:
                     element = element.strip()
                     element_parsed = base_expr.parseString(element)[0]
-                    element_expr = asm_ast_to_expr_with_size(element_parsed, symbol_pool, size)
+                    element_expr = asm_ast_to_expr_with_size(element_parsed, loc_db, size)
                     expr_list.append(element_expr)
 
                 raw_data = asmblock.AsmRaw(expr_list)
@@ -190,7 +190,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
         match_re = LABEL_RE.match(line)
         if match_re:
             label_name = match_re.group(1)
-            label = symbol_pool.getby_name_create(label_name)
+            label = loc_db.get_or_create_name_location(label_name)
             lines.append(label)
             continue
 
@@ -198,10 +198,10 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
         if ';' in line:
             line = line[:line.find(';')]
         line = line.strip(' ').strip('\t')
-        instr = mnemo.fromstring(line, symbol_pool, attrib)
+        instr = mnemo.fromstring(line, loc_db, attrib)
 
         if instr.dstflow():
-            instr.dstflow2label(symbol_pool)
+            instr.dstflow2label(loc_db)
         lines.append(instr)
 
     asmblock.log_asmblock.info("___pre asm oki___")
@@ -210,7 +210,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
     cur_block = None
     state = STATE_NO_BLOC
     i = 0
-    asmcfg = asmblock.AsmCFG(symbol_pool)
+    asmcfg = asmblock.AsmCFG(loc_db)
     block_to_nlink = None
     delayslot = 0
     while i < len(lines):
@@ -232,7 +232,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
             elif not isinstance(line, LocKey):
                 # First line must be a label. If it's not the case, generate
                 # it.
-                loc = guess_next_new_label(symbol_pool)
+                loc = guess_next_new_label(loc_db)
                 cur_block = asmblock.AsmBlock(loc, alignment=mnemo.alignment)
             else:
                 cur_block = asmblock.AsmBlock(line, alignment=mnemo.alignment)
@@ -281,7 +281,7 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
                 if delayslot:
                     raise RuntimeError("Cannot have breakflow in delayslot")
                 if line.dstflow():
-                    for dst in line.getdstflow(symbol_pool):
+                    for dst in line.getdstflow(loc_db):
                         if not isinstance(dst, ExprId):
                             continue
                         if dst in mnemo.regs.all_regs_ids:
@@ -302,4 +302,4 @@ def parse_txt(mnemo, attrib, txt, symbol_pool=None):
 
         # Log block
         asmblock.log_asmblock.info(block)
-    return asmcfg, symbol_pool
+    return asmcfg, loc_db

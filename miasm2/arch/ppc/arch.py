@@ -34,23 +34,23 @@ deref = deref_reg | deref_reg_disp
 
 
 class ppc_arg(m_arg):
-    def asm_ast_to_expr(self, arg, symbol_pool):
+    def asm_ast_to_expr(self, arg, loc_db):
         if isinstance(arg, AstId):
             if isinstance(arg.name, ExprId):
                 return arg.name
             if arg.name in gpregs.str:
                 return None
-            loc_key = symbol_pool.getby_name_create(arg.name)
+            loc_key = loc_db.get_or_create_name_location(arg.name)
             return ExprLoc(loc_key, 32)
         if isinstance(arg, AstOp):
-            args = [self.asm_ast_to_expr(tmp, symbol_pool) for tmp in arg.args]
+            args = [self.asm_ast_to_expr(tmp, loc_db) for tmp in arg.args]
             if None in args:
                 return None
             return ExprOp(arg.op, *args)
         if isinstance(arg, AstInt):
             return ExprInt(arg.value, 32)
         if isinstance(arg, AstMem):
-            ptr = self.asm_ast_to_expr(arg.ptr, symbol_pool)
+            ptr = self.asm_ast_to_expr(arg.ptr, loc_db)
             if ptr is None:
                 return None
             return ExprMem(ptr, arg.size)
@@ -73,7 +73,7 @@ class instruction_ppc(instruction):
         super(instruction_ppc, self).__init__(*args, **kargs)
 
     @staticmethod
-    def arg2str(e, pos = None, symbol_pool=None):
+    def arg2str(e, pos = None, loc_db=None):
         if isinstance(e, ExprId) or isinstance(e, ExprInt):
             return str(e)
         elif isinstance(e, ExprMem):
@@ -109,7 +109,7 @@ class instruction_ppc(instruction):
                 name[-3:] != 'CTR' and
                 name[-4:] != 'CTRL')
 
-    def dstflow2label(self, symbol_pool):
+    def dstflow2label(self, loc_db):
         name = self.name
         if name[-1] == '+' or name[-1] == '-':
             name = name[:-1]
@@ -131,7 +131,7 @@ class instruction_ppc(instruction):
                 ad = e.arg + self.offset
             else:
                 ad = e.arg
-            loc_key = symbol_pool.getby_offset_create(ad)
+            loc_key = loc_db.get_or_create_offset_location(ad)
             s = ExprLoc(loc_key, e.size)
             self.args[address_index] = s
 
@@ -144,7 +144,7 @@ class instruction_ppc(instruction):
             name = name[0:-1]
         return name[0] == 'B' and (name[-1] == 'L' or name[-2:-1] == 'LA')
 
-    def getdstflow(self, symbol_pool):
+    def getdstflow(self, loc_db):
         if 'LR' in self.name:
             return [ LR ]
         elif 'CTR' in self.name:
@@ -163,7 +163,7 @@ class instruction_ppc(instruction):
         ret = ret or self.is_subcall()
         return ret
 
-    def get_symbol_size(self, symbol, symbol_pool):
+    def get_symbol_size(self, symbol, loc_db):
         return 32
 
     def fixDstOffset(self):
@@ -279,7 +279,7 @@ class mn_ppc(cls_mn):
         else:
             raise NotImplementedError("bad attrib")
 
-    def get_symbol_size(self, symbol, symbol_pool, mode):
+    def get_symbol_size(self, symbol, loc_db, mode):
         return 32
 
 
