@@ -715,7 +715,9 @@ class ExprAff(Expr):
         return self.__class__, state
 
     def __new__(cls, dst, src):
-        if isinstance(dst, ExprSlice):
+        if dst.is_slice() and dst.arg.size == src.size:
+            new_dst, new_src = dst.arg, src
+        elif dst.is_slice():
             # Complete the source with missing slice parts
             new_dst = dst.arg
             rest = [(ExprSlice(dst.arg, r[0], r[1]), r[0], r[1])

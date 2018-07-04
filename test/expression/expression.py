@@ -65,3 +65,8 @@ for expr in [
 ]:
     print repr(expr)
     assert expr == eval(repr(expr))
+
+
+aff = ExprAff(A[0:32], cst1)
+
+assert aff.dst == A and aff.src == cst1
