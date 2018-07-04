@@ -229,6 +229,7 @@ def dead_simp_useful_assignblks(irarch, defuse, reaching_defs):
             for lval, rval in assignblk.iteritems():
                 if (lval.is_mem() or
                     irarch.IRDst == lval or
+                    lval.is_id("exception_flags") or
                     rval.is_function_call()):
                     useful.add(AssignblkNode(block_lbl, index, lval))
 
