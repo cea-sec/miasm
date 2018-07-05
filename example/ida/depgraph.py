@@ -159,7 +159,7 @@ def clean_lines():
 
 def treat_element():
     "Display an element"
-    global graphs, comments, sol_nb, settings, addr, ir_arch
+    global graphs, comments, sol_nb, settings, addr, ir_arch, ircfg
 
     try:
         graph = graphs.next()
@@ -176,7 +176,7 @@ def treat_element():
 
     for node in graph.relevant_nodes:
         try:
-            offset = ir_arch.blocks[node.loc_key][node.line_nb].instr.offset
+            offset = ircfg.blocks[node.loc_key][node.line_nb].instr.offset
         except IndexError:
             print "Unable to highlight %s" % node
             continue
@@ -186,7 +186,7 @@ def treat_element():
     if graph.has_loop:
         print 'Graph has dependency loop: symbolic execution is inexact'
     else:
-        print "Possible value: %s" % graph.emul(self.ira).values()[0]
+        print "Possible value: %s" % graph.emul(ir_arch).values()[0]
 
     for offset, elements in comments.iteritems():
         idc.MakeComm(offset, ", ".join(map(str, elements)))
@@ -198,7 +198,7 @@ def next_element():
 
 
 def launch_depgraph():
-    global graphs, comments, sol_nb, settings, addr, ir_arch
+    global graphs, comments, sol_nb, settings, addr, ir_arch, ircfg
     # Get the current function
     addr = idc.ScreenEA()
     func = ida_funcs.get_func(addr)
@@ -228,7 +228,7 @@ def launch_depgraph():
 
     loc_key, elements, line_nb = settings.loc_key, settings.elements, settings.line_nb
     # Simplify affectations
-    for irb in ir_arch.blocks.values():
+    for irb in ircfg.blocks.values():
         irs = []
         offset = ir_arch.loc_db.get_location_offset(irb.loc_key)
         fix_stack = offset is not None and settings.unalias_stack
@@ -246,7 +246,7 @@ def launch_depgraph():
                 dst, src = expr_simp(dst), expr_simp(src)
                 new_assignblk[dst] = src
             irs.append(AssignBlock(new_assignblk, instr=assignblk.instr))
-        ir_arch.blocks[irb.loc_key] = IRBlock(irb.loc_key, irs)
+        ircfg.blocks[irb.loc_key] = IRBlock(irb.loc_key, irs)
 
     # Get dependency graphs
     dg = settings.depgraph
