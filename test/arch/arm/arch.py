@@ -401,6 +401,9 @@ reg_tests_armt = [
 
     ("0007479c    B          0x12",
      "07e0"),
+    ("XXXXXXXX    BLT        0xFFFFFFEA",
+     "F3DB"),
+
     ("0006b946    B          0xFFFFFFE8",
      "f2e7"),
     ("C010163C    BLX        0x1F916C",

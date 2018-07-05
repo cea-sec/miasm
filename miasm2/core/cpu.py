@@ -1649,6 +1649,8 @@ class int32_noarg(imm_noarg):
         if sign_ext(v & self.lmask, self.l, self.intsize) != v:
             return False
         v = self.encodeval(v & self.lmask)
+        if v is False:
+            return False
         self.value = v & self.lmask
         return True
 
