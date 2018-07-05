@@ -58,36 +58,6 @@ def intra_block_flow_raw(ir_arch, flow_graph, irb, in_nodes, out_nodes):
                 flow_graph.add_uniq_edge(node_n_r, node_n_w)
 
 
-def intra_block_flow_symbexec(ir_arch, flow_graph, irb, in_nodes, out_nodes):
-    """
-    Create data flow for an irbloc using symbolic execution
-    """
-    current_nodes = {}
-
-    symbols_init = dict(ir_arch.arch.regs.regs_init)
-
-    sb = SymbolicExecutionEngine(ir_arch, dict(symbols_init))
-    sb.emulbloc(irb)
-
-    for n_w in sb.symbols:
-        v = sb.symbols[n_w]
-        if n_w in symbols_init and symbols_init[n_w] == v:
-            continue
-        read_values = v.get_r(cst_read=True)
-        node_n_w = get_node_name(irb.loc_key, len(irb), n_w)
-
-        for n_r in read_values:
-            if n_r in current_nodes:
-                node_n_r = current_nodes[n_r]
-            else:
-                node_n_r = get_node_name(irb.loc_key, 0, n_r)
-                current_nodes[n_r] = node_n_r
-                in_nodes[n_r] = node_n_r
-
-            out_nodes[n_w] = node_n_w
-            flow_graph.add_uniq_edge(node_n_r, node_n_w)
-
-
 def inter_block_flow_link(ir_arch, flow_graph, irb_in_nodes, irb_out_nodes, todo, link_exec_to_data):
     lbl, current_nodes, exec_nodes = todo
     current_nodes = dict(current_nodes)
