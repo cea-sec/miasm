@@ -217,7 +217,7 @@ if args.gen_ir:
         dead_simp(ir_arch_a, ircfg_a)
 
     if args.defuse:
-        reachings = ReachingDefinitions(ir_arch_a)
+        reachings = ReachingDefinitions(ircfg_a)
         open('graph_defuse.dot', 'w').write(DiGraphDefUse(reachings).dot())
 
     out = ircfg.dot()
