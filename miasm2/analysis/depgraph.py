@@ -194,7 +194,7 @@ class DependencyResult(DependencyState):
 
     """Container and methods for DependencyGraph results"""
 
-    def __init__(self, ira, initial_state, state, inputs):
+    def __init__(self, ircfg, initial_state, state, inputs):
         self.initial_state = initial_state
         self.loc_key = state.loc_key
         self.history = state.history
@@ -202,7 +202,7 @@ class DependencyResult(DependencyState):
         self.line_nb = state.line_nb
         self.inputs = inputs
         self.links = state.links
-        self._ira = ira
+        self._ircfg = ircfg
 
         # Init lazy elements
         self._graph = None
@@ -212,7 +212,7 @@ class DependencyResult(DependencyState):
     def unresolved(self):
         """Set of nodes whose dependencies weren't found"""
         return set(element for element in self.pending
-                   if element != self._ira.IRDst)
+                   if element != self._ircfg.IRDst)
 
     @property
     def relevant_nodes(self):
@@ -272,9 +272,10 @@ class DependencyResult(DependencyState):
 
         return IRBlock(irb.loc_key, assignblks)
 
-    def emul(self, ctx=None, step=False):
+    def emul(self, ir_arch, ctx=None, step=False):
         """Symbolic execution of relevant nodes according to the history
         Return the values of inputs nodes' elements
+        @ir_arch: IntermediateRepresentation instance
         @ctx: (optional) Initial context as dictionnary
         @step: (optional) Verbose execution
         Warning: The emulation is not sound if the inputs nodes depend on loop
@@ -293,13 +294,13 @@ class DependencyResult(DependencyState):
                 line_nb = self.initial_state.line_nb
             else:
                 line_nb = None
-            assignblks += self.irblock_slice(self._ira.blocks[loc_key],
+            assignblks += self.irblock_slice(self._ircfg.blocks[loc_key],
                                              line_nb).assignblks
 
         # Eval the block
         loc_db = LocationDB()
         temp_loc = loc_db.get_or_create_name_location("Temp")
-        symb_exec = SymbolicExecutionEngine(self._ira, ctx_init)
+        symb_exec = SymbolicExecutionEngine(ir_arch, ctx_init)
         symb_exec.eval_updt_irblock(IRBlock(temp_loc, assignblks), step=step)
 
         # Return only inputs values (others could be wrongs)
@@ -322,10 +323,10 @@ class DependencyResultImplicit(DependencyResult):
         generated loc_keys
         """
         out = []
-        expected = self._ira.loc_db.canonize_to_exprloc(expected)
+        expected = self._ircfg.loc_db.canonize_to_exprloc(expected)
         expected_is_loc_key = expected.is_loc()
         for consval in possible_values(expr):
-            value = self._ira.loc_db.canonize_to_exprloc(consval.value)
+            value = self._ircfg.loc_db.canonize_to_exprloc(consval.value)
             if expected_is_loc_key and value != expected:
                 continue
             if not expected_is_loc_key and value.is_loc_key():
@@ -350,24 +351,24 @@ class DependencyResultImplicit(DependencyResult):
             conds = translator.from_expr(self.unsat_expr)
         return conds
 
-    def emul(self, ctx=None, step=False):
+    def emul(self, ir_arch, ctx=None, step=False):
         # Init
         ctx_init = {}
         if ctx is not None:
             ctx_init.update(ctx)
         solver = z3.Solver()
-        symb_exec = SymbolicExecutionEngine(self._ira, ctx_init)
+        symb_exec = SymbolicExecutionEngine(ir_arch, ctx_init)
         history = self.history[::-1]
         history_size = len(history)
         translator = Translator.to_language("z3")
-        size = self._ira.IRDst.size
+        size = self._ircfg.IRDst.size
 
         for hist_nb, loc_key in enumerate(history, 1):
             if hist_nb == history_size and loc_key == self.initial_state.loc_key:
                 line_nb = self.initial_state.line_nb
             else:
                 line_nb = None
-            irb = self.irblock_slice(self._ira.blocks[loc_key], line_nb)
+            irb = self.irblock_slice(self._ircfg.blocks[loc_key], line_nb)
 
             # Emul the block and get back destination
             dst = symb_exec.eval_updt_irblock(irb, step=step)
@@ -446,12 +447,12 @@ class DependencyGraph(object):
     *explicitely* or *implicitely* involved in the equation of given element.
     """
 
-    def __init__(self, ira, implicit=False, apply_simp=True, follow_mem=True,
+    def __init__(self, ircfg,
+                 implicit=False, apply_simp=True, follow_mem=True,
                  follow_call=True):
-        """Create a DependencyGraph linked to @ira
-        The IRA graph must have been computed
+        """Create a DependencyGraph linked to @ircfg
 
-        @ira: IRAnalysis instance
+        @ircfg: DiGraphIR instance
         @implicit: (optional) Track IRDst for each block in the resulting path
 
         Following arguments define filters used to generate dependencies
@@ -460,7 +461,7 @@ class DependencyGraph(object):
         @follow_call: (optional) Track through "call"
         """
         # Init
-        self._ira = ira
+        self._ircfg = ircfg
         self._implicit = implicit
 
         # Create callback filters. The order is relevant.
@@ -563,7 +564,7 @@ class DependencyGraph(object):
             if dst not in state.pending:
                 continue
             # Track IRDst in implicit mode only
-            if dst == self._ira.IRDst and not self._implicit:
+            if dst == self._ircfg.IRDst and not self._implicit:
                 continue
             assert dst not in node_resolved
             node_resolved.add(dst)
@@ -581,7 +582,7 @@ class DependencyGraph(object):
         """Follow dependencies tracked in @state in the current irbloc
         @state: instance of DependencyState"""
 
-        irb = self._ira.blocks[state.loc_key]
+        irb = self._ircfg.blocks[state.loc_key]
         line_nb = len(irb) if state.line_nb is None else state.line_nb
 
         for cur_line_nb, assignblk in reversed(list(enumerate(irb[:line_nb]))):
@@ -589,7 +590,7 @@ class DependencyGraph(object):
 
     def get(self, loc_key, elements, line_nb, heads):
         """Compute the dependencies of @elements at line number @line_nb in
-        the block named @loc_key in the current IRA, before the execution of
+        the block named @loc_key in the current DiGraphIR, before the execution of
         this line. Dependency check stop if one of @heads is reached
         @loc_key: LocKey instance
         @element: set of Expr instances
@@ -613,17 +614,17 @@ class DependencyGraph(object):
             done.add(done_state)
             if (not state.pending or
                     state.loc_key in heads or
-                    not self._ira.graph.predecessors(state.loc_key)):
-                yield dpResultcls(self._ira, initial_state, state, elements)
+                    not self._ircfg.predecessors(state.loc_key)):
+                yield dpResultcls(self._ircfg, initial_state, state, elements)
                 if not state.pending:
                     continue
 
             if self._implicit:
                 # Force IRDst to be tracked, except in the input block
-                state.pending[self._ira.IRDst] = set()
+                state.pending[self._ircfg.IRDst] = set()
 
             # Propagate state to parents
-            for pred in self._ira.graph.predecessors_iter(state.loc_key):
+            for pred in self._ircfg.predecessors_iter(state.loc_key):
                 todo.add(state.extend(pred))
 
     def get_from_depnodes(self, depnodes, heads):

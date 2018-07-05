@@ -35,14 +35,30 @@ class ir_a_ppc32b(ir_ppc32b, ira):
                              instr
                            )]
 
-    def pre_add_instr(self, block, instr, assignments, ir_blocks_all, gen_pc_update):
-        """Replace function call with corresponding call effects,
-        inside the IR block"""
-        if not instr.is_subcall():
-            return False
-        call_effects = self.call_effects(instr.getdstflow(None)[0], instr)
-        assignments+= call_effects
-        return True
+    def add_instr_to_current_state(self, instr, block, assignments, ir_blocks_all, gen_pc_updt):
+        """
+        Add the IR effects of an instruction to the current state.
+
+        @instr: native instruction
+        @block: native block source
+        @assignments: list of current AssignBlocks
+        @ir_blocks_all: list of additional effects
+        @gen_pc_updt: insert PC update effects between instructions
+        """
+        if instr.is_subcall():
+            call_effects = self.call_effects(instr.getdstflow(None)[0], instr)
+            assignments+= call_effects
+            return True
+
+        if gen_pc_updt is not False:
+            self.gen_pc_update(assignments, instr)
+
+        assignblk, ir_blocks_extra = self.instr2ir(instr)
+        assignments.append(assignblk)
+        ir_blocks_all += ir_blocks_extra
+        if ir_blocks_extra:
+            return True
+        return False
 
     def sizeof_char(self):
         return 8

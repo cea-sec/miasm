@@ -1,9 +1,6 @@
 from miasm2.ir.symbexec import SymbolicExecutionEngine, StateEngine
 from miasm2.expression.simplifications import expr_simp
-from miasm2.expression.expression import ExprId, ExprInt, ExprSlice,\
-    ExprMem, ExprCond, ExprCompose, ExprOp
-
-from miasm2.core.ctypesmngr import CTypeId
+from miasm2.expression.expression import ExprId, ExprMem
 
 
 class SymbolicStateCTypes(StateEngine):
@@ -88,7 +85,6 @@ class SymbExecCType(SymbolicExecutionEngine):
         @assignblk: AssignBlock instance
         """
         pool_out = {}
-        eval_cache = {}
         for dst, src in assignblk.iteritems():
             objcs = self.chandler.expr_to_types(src, self.symbols)
             if isinstance(dst, ExprMem):

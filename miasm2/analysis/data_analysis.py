@@ -8,7 +8,7 @@ def get_node_name(label, i, n):
     return n_name
 
 
-def intra_block_flow_raw(ir_arch, flow_graph, irb, in_nodes, out_nodes):
+def intra_block_flow_raw(ir_arch, ircfg, flow_graph, irb, in_nodes, out_nodes):
     """
     Create data flow for an irbloc using raw IR expressions
     """
@@ -58,15 +58,16 @@ def intra_block_flow_raw(ir_arch, flow_graph, irb, in_nodes, out_nodes):
                 flow_graph.add_uniq_edge(node_n_r, node_n_w)
 
 
-def inter_block_flow_link(ir_arch, flow_graph, irb_in_nodes, irb_out_nodes, todo, link_exec_to_data):
+
+def inter_block_flow_link(ir_arch, ircfg, flow_graph, irb_in_nodes, irb_out_nodes, todo, link_exec_to_data):
     lbl, current_nodes, exec_nodes = todo
     current_nodes = dict(current_nodes)
 
     # link current nodes to bloc in_nodes
-    if not lbl in ir_arch.blocks:
+    if not lbl in ircfg.blocks:
         print "cannot find bloc!!", lbl
         return set()
-    irb = ir_arch.blocks[lbl]
+    irb = ircfg.blocks[lbl]
     to_del = set()
     for n_r, node_n_r in irb_in_nodes[irb.loc_key].items():
         if not n_r in current_nodes:
@@ -92,7 +93,7 @@ def inter_block_flow_link(ir_arch, flow_graph, irb_in_nodes, irb_out_nodes, todo
     x_nodes = tuple(sorted(list(irb.dst.get_r())))
 
     todo = set()
-    for lbl_dst in ir_arch.graph.successors(irb.loc_key):
+    for lbl_dst in ircfg.successors(irb.loc_key):
         todo.add((lbl_dst, tuple(current_nodes.items()), x_nodes))
 
     return todo
@@ -128,7 +129,7 @@ def create_implicit_flow(ir_arch, flow_graph, irb_in_nodes, irb_out_ndes):
                 flow_graph.add_uniq_edge(node_n_r, node_n_w)
 
 
-def inter_block_flow(ir_arch, flow_graph, irb_0, irb_in_nodes, irb_out_nodes, link_exec_to_data=True):
+def inter_block_flow(ir_arch, ircfg, flow_graph, irb_0, irb_in_nodes, irb_out_nodes, link_exec_to_data=True):
 
     todo = set()
     done = set()
@@ -139,7 +140,7 @@ def inter_block_flow(ir_arch, flow_graph, irb_0, irb_in_nodes, irb_out_nodes, li
         if state in done:
             continue
         done.add(state)
-        out = inter_block_flow_link(ir_arch, flow_graph, irb_in_nodes, irb_out_nodes, state, link_exec_to_data)
+        out = inter_block_flow_link(ir_arch, ircfg, flow_graph, irb_in_nodes, irb_out_nodes, state, link_exec_to_data)
         todo.update(out)
 
 

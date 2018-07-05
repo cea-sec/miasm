@@ -12,14 +12,14 @@ Get read/written registers for a given instruction
 """
 
 arch = mn_x86
-ir_arch = ir_a_x86_32()
-
-l = arch.fromstring('LODSB', loc_db, 32)
-l.offset, l.l = 0, 15
-ir_arch.add_instr(l)
+ir_arch = ir_a_x86_32(loc_db)
+ircfg = ir_arch.new_ircfg()
+instr = arch.fromstring('LODSB', loc_db, 32)
+instr.offset, instr.l = 0, 15
+ir_arch.add_instr_to_ircfg(instr, ircfg)
 
 print '*' * 80
-for lbl, irblock in ir_arch.blocks.iteritems():
+for lbl, irblock in ircfg.blocks.iteritems():
     print irblock
     for assignblk in irblock:
         rw = assignblk.get_rw()
@@ -28,4 +28,4 @@ for lbl, irblock in ir_arch.blocks.iteritems():
             print 'written:', dst
             print
 
-open('graph_instr.dot', 'w').write(ir_arch.graph.dot())
+open('graph_instr.dot', 'w').write(ircfg.dot())

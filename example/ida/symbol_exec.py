@@ -142,12 +142,11 @@ def symbolic_exec():
     mdis.dont_dis = [end]
     asmcfg = mdis.dis_multiblock(start)
     ira = machine.ira(loc_db=mdis.loc_db)
-    for block in asmcfg.blocks:
-        ira.add_block(block)
+    ircfg = ira.new_ircfg_from_asmcfg(asmcfg)
 
     print "Run symbolic execution..."
     sb = SymbolicExecutionEngine(ira, machine.mn.regs.regs_init)
-    sb.run_at(start)
+    sb.run_at(ircfg, start)
     modified = {}
 
     for dst, src in sb.modified(init_state=machine.mn.regs.regs_init):

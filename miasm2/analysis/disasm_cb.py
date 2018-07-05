@@ -26,11 +26,12 @@ def arm_guess_subcall(
 
     sp = LocationDB()
     ir_arch = ira(sp)
+    ircfg = ira.new_ircfg()
     print '###'
     print cur_bloc
-    ir_arch.add_block(cur_bloc)
+    ir_arch.add_asmblock_to_ircfg(cur_bloc, ircfg)
 
-    ir_blocks = ir_arch.blocks.values()
+    ir_blocks = ircfg.blocks.values()
     to_add = set()
     for irblock in ir_blocks:
         pc_val = None
@@ -68,9 +69,10 @@ def arm_guess_jump_table(
 
     sp = LocationDB()
     ir_arch = ira(sp)
-    ir_arch.add_block(cur_bloc)
+    ircfg = ira.new_ircfg()
+    ir_arch.add_asmblock_to_ircfg(cur_bloc, ircfg)
 
-    ir_blocks = ir_arch.blocks.values()
+    ir_blocks = ircfg.blocks.values()
     for irblock in ir_blocks:
         pc_val = None
         for exprs in irblock:

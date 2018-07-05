@@ -12,7 +12,7 @@ from miasm2.arch.x86.arch import mn_x86 as mn
 from miasm2.arch.x86.sem import ir_x86_32 as ir_32, ir_x86_64 as ir_64
 from miasm2.arch.x86.regs import *
 from miasm2.expression.expression import *
-from miasm2.expression.simplifications      import expr_simp
+from miasm2.expression.simplifications import expr_simp
 from miasm2.core import parse_asm, asmblock
 from miasm2.core.locationdb import LocationDB
 
@@ -20,16 +20,15 @@ from miasm2.core.locationdb import LocationDB
 logging.getLogger('cpuhelper').setLevel(logging.ERROR)
 EXCLUDE_REGS = set([ir_32().IRDst, ir_64().IRDst])
 
-loc_db = LocationDB()
 
 m32 = 32
 m64 = 64
 
-def symb_exec(lbl, interm, inputstate, debug):
+def symb_exec(lbl, ir_arch, ircfg, inputstate, debug):
     sympool = dict(regs_init)
     sympool.update(inputstate)
-    symexec = SymbolicExecutionEngine(interm, sympool)
-    symexec.run_at(lbl)
+    symexec = SymbolicExecutionEngine(ir_arch, sympool)
+    symexec.run_at(ircfg, lbl)
     if debug:
         for k, v in symexec.symbols.items():
             if regs_init.get(k, None) != v:
@@ -38,24 +37,25 @@ def symb_exec(lbl, interm, inputstate, debug):
             if k not in EXCLUDE_REGS and regs_init.get(k, None) != v}
 
 def compute(ir, mode, asm, inputstate={}, debug=False):
+    loc_db = LocationDB()
     instr = mn.fromstring(asm, loc_db, mode)
     code = mn.asm(instr)[0]
     instr = mn.dis(code, mode)
     instr.offset = inputstate.get(EIP, 0)
-    interm = ir()
-    lbl = interm.add_instr(instr)
-    return symb_exec(lbl, interm, inputstate, debug)
+    ir_arch = ir(loc_db)
+    ircfg = ir_arch.new_ircfg()
+    lbl = ir_arch.add_instr_to_ircfg(instr, ircfg)
+    return symb_exec(lbl, ir_arch, ircfg, inputstate, debug)
 
 
 def compute_txt(ir, mode, txt, inputstate={}, debug=False):
     asmcfg, loc_db = parse_asm.parse_txt(mn, mode, txt)
     loc_db.set_location_offset(loc_db.get_name_location("main"), 0x0)
     patches = asmblock.asm_resolve_final(mn, asmcfg, loc_db)
-    interm = ir(loc_db)
+    ir_arch = ir(loc_db)
     lbl = loc_db.get_name_location("main")
-    for bbl in asmcfg.blocks:
-        interm.add_block(bbl)
-    return symb_exec(lbl, interm, inputstate, debug)
+    ircfg = ir_arch.new_ircfg_from_asmcfg(asmcfg)
+    return symb_exec(lbl, ir_arch, ircfg, inputstate, debug)
 
 op_add = lambda a, b: a+b
 op_sub = lambda a, b: a-b

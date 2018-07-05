@@ -63,6 +63,7 @@ from miasm2.expression.expression_helper import possible_values
 from miasm2.ir.translators import Translator
 from miasm2.analysis.expression_range import expr_range
 from miasm2.analysis.modularintervals import ModularIntervals
+from miasm2.core.locationdb import LocationDB
 
 DriftInfo = namedtuple("DriftInfo", ["symbol", "computed", "expected"])
 
@@ -148,18 +149,18 @@ class DSEEngine(object):
 
     def __init__(self, machine):
         self.machine = machine
+        self.loc_db = LocationDB()
         self.handler = {} # addr -> callback(DSEEngine instance)
         self.instrumentation = {} # addr -> callback(DSEEngine instance)
         self.addr_to_cacheblocks = {} # addr -> {label -> IRBlock}
-        self.ir_arch = self.machine.ir() # corresponding IR
+        self.ir_arch = self.machine.ir(loc_db=self.loc_db) # corresponding IR
+        self.ircfg = self.ir_arch.new_ircfg() # corresponding IR
 
         # Defined after attachment
         self.jitter = None # Jitload (concrete execution)
         self.symb = None # SymbolicExecutionEngine
         self.symb_concrete = None # Concrete SymbExec for path desambiguisation
         self.mdis = None # DisasmEngine
-
-        self.loc_db = self.ir_arch.loc_db
 
     def prepare(self):
         """Prepare the environment for attachment with a jitter"""
@@ -173,13 +174,16 @@ class DSEEngine(object):
         self.symb = self.SYMB_ENGINE(self.jitter.cpu, self.jitter.vm,
                                      self.ir_arch, {})
         self.symb.enable_emulated_simplifications()
-        self.symb_concrete = EmulatedSymbExec(self.jitter.cpu, self.jitter.vm,
-                                              self.ir_arch, {})
+        self.symb_concrete = EmulatedSymbExec(
+            self.jitter.cpu, self.jitter.vm,
+            self.ir_arch, {}
+        )
 
         ## Update registers value
-        self.symb.symbols[self.ir_arch.IRDst] = ExprInt(getattr(self.jitter.cpu,
-                                                                self.ir_arch.pc.name),
-                                                        self.ir_arch.IRDst.size)
+        self.symb.symbols[self.ir_arch.IRDst] = ExprInt(
+            getattr(self.jitter.cpu, self.ir_arch.pc.name),
+            self.ir_arch.IRDst.size
+        )
 
         # Avoid memory write
         self.symb.func_write = None
@@ -316,24 +320,24 @@ class DSEEngine(object):
 
         # Get IR blocks
         if cur_addr in self.addr_to_cacheblocks:
-            self.ir_arch.blocks.clear()
-            self.ir_arch.blocks.update(self.addr_to_cacheblocks[cur_addr])
+            self.ircfg.blocks.clear()
+            self.ircfg.blocks.update(self.addr_to_cacheblocks[cur_addr])
         else:
 
             ## Reset cache structures
-            self.ir_arch.blocks.clear()# = {}
+            self.ircfg.blocks.clear()# = {}
 
             ## Update current state
             asm_block = self.mdis.dis_block(cur_addr)
-            self.ir_arch.add_block(asm_block)
-            self.addr_to_cacheblocks[cur_addr] = dict(self.ir_arch.blocks)
+            self.ir_arch.add_asmblock_to_ircfg(asm_block, self.ircfg)
+            self.addr_to_cacheblocks[cur_addr] = dict(self.ircfg.blocks)
 
         # Emulate the current instruction
         self.symb.reset_modified()
 
         # Is the symbolic execution going (potentially) to jump on a lbl_gen?
-        if len(self.ir_arch.blocks) == 1:
-            self.symb.run_at(cur_addr)
+        if len(self.ircfg.blocks) == 1:
+            self.symb.run_at(self.ircfg, cur_addr)
         else:
             # Emulation could stuck in generated IR blocks
             # But concrete execution callback is not enough precise to obtain
@@ -344,8 +348,10 @@ class DSEEngine(object):
             self._update_state_from_concrete_symb(self.symb_concrete)
             while True:
 
-                next_addr_concrete = self.symb_concrete.run_block_at(cur_addr)
-                self.symb.run_block_at(cur_addr)
+                next_addr_concrete = self.symb_concrete.run_block_at(
+                    self.ircfg, cur_addr
+                )
+                self.symb.run_block_at(self.ircfg, cur_addr)
 
                 if not (isinstance(next_addr_concrete, ExprLoc) and
                         self.ir_arch.loc_db.get_location_offset(

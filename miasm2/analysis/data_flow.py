@@ -29,16 +29,16 @@ class ReachingDefinitions(dict):
     { (block, index): { lvalue: set((block, index)) } }
     """
 
-    ir_a = None
+    ircfg = None
 
-    def __init__(self, ir_a):
+    def __init__(self, ircfg):
         super(ReachingDefinitions, self).__init__()
-        self.ir_a = ir_a
+        self.ircfg = ircfg
         self.compute()
 
     def get_definitions(self, block_lbl, assignblk_index):
         """Returns the dict { lvalue: set((def_block_lbl, def_index)) }
-        associated with self.ir_a.@block.assignblks[@assignblk_index]
+        associated with self.ircfg.@block.assignblks[@assignblk_index]
         or {} if it is not yet computed
         """
         return self.get((block_lbl, assignblk_index), {})
@@ -48,7 +48,7 @@ class ReachingDefinitions(dict):
         modified = True
         while modified:
             modified = False
-            for block in self.ir_a.blocks.itervalues():
+            for block in self.ircfg.blocks.itervalues():
                 modified |= self.process_block(block)
 
     def process_block(self, block):
@@ -57,8 +57,8 @@ class ReachingDefinitions(dict):
         the assignblk in block @block.
         """
         predecessor_state = {}
-        for pred_lbl in self.ir_a.graph.predecessors(block.loc_key):
-            pred = self.ir_a.blocks[pred_lbl]
+        for pred_lbl in self.ircfg.predecessors(block.loc_key):
+            pred = self.ircfg.blocks[pred_lbl]
             for lval, definitions in self.get_definitions(pred_lbl, len(pred)).iteritems():
                 predecessor_state.setdefault(lval, set()).update(definitions)
 
@@ -126,7 +126,7 @@ class DiGraphDefUse(DiGraph):
         # For dot display
         self._filter_node = None
         self._dot_offset = None
-        self._blocks = reaching_defs.ir_a.blocks
+        self._blocks = reaching_defs.ircfg.blocks
 
         super(DiGraphDefUse, self).__init__(*args, **kwargs)
         self._compute_def_use(reaching_defs,
@@ -189,7 +189,7 @@ class DiGraphDefUse(DiGraph):
         yield self.DotCellDescription(text="", attr={})
 
 
-def dead_simp_useful_assignblks(defuse, reaching_defs):
+def dead_simp_useful_assignblks(irarch, defuse, reaching_defs):
     """Mark useful statements using previous reach analysis and defuse
 
     Source : Kennedy, K. (1979). A survey of data flow analysis techniques.
@@ -200,13 +200,13 @@ def dead_simp_useful_assignblks(defuse, reaching_defs):
     PRE: compute_reach(self)
 
     """
-    ir_a = reaching_defs.ir_a
+    ircfg = reaching_defs.ircfg
     useful = set()
 
-    for block_lbl, block in ir_a.blocks.iteritems():
-        successors = ir_a.graph.successors(block_lbl)
+    for block_lbl, block in ircfg.blocks.iteritems():
+        successors = ircfg.successors(block_lbl)
         for successor in successors:
-            if successor not in ir_a.blocks:
+            if successor not in ircfg.blocks:
                 keep_all_definitions = True
                 break
         else:
@@ -217,7 +217,7 @@ def dead_simp_useful_assignblks(defuse, reaching_defs):
             valid_definitions = reaching_defs.get_definitions(block_lbl,
                                                               len(block))
             for lval, definitions in valid_definitions.iteritems():
-                if (lval in ir_a.get_out_regs(block)
+                if (lval in irarch.get_out_regs(block)
                     or keep_all_definitions):
                     for definition in definitions:
                         useful.add(AssignblkNode(definition[0], definition[1], lval))
@@ -226,7 +226,7 @@ def dead_simp_useful_assignblks(defuse, reaching_defs):
         for index, assignblk in enumerate(block):
             for lval, rval in assignblk.iteritems():
                 if (lval.is_mem()
-                    or ir_a.IRDst == lval
+                    or irarch.IRDst == lval
                     or rval.is_function_call()):
                     useful.add(AssignblkNode(block_lbl, index, lval))
 
@@ -235,7 +235,7 @@ def dead_simp_useful_assignblks(defuse, reaching_defs):
         for parent in defuse.reachable_parents(node):
             yield parent
 
-def dead_simp(ir_a):
+def dead_simp(irarch, ircfg):
     """
     Remove useless affectations.
 
@@ -245,14 +245,14 @@ def dead_simp(ir_a):
     Source : Kennedy, K. (1979). A survey of data flow analysis techniques.
     IBM Thomas J. Watson Research Division, page 43
 
-    @ir_a: IntermediateRepresentation instance
+    @ircfg: IntermediateRepresentation instance
     """
 
     modified = False
-    reaching_defs = ReachingDefinitions(ir_a)
+    reaching_defs = ReachingDefinitions(ircfg)
     defuse = DiGraphDefUse(reaching_defs, deref_mem=True)
-    useful = set(dead_simp_useful_assignblks(defuse, reaching_defs))
-    for block in ir_a.blocks.itervalues():
+    useful = set(dead_simp_useful_assignblks(irarch, defuse, reaching_defs))
+    for block in ircfg.blocks.itervalues():
         irs = []
         for idx, assignblk in enumerate(block):
             new_assignblk = dict(assignblk)
@@ -261,5 +261,5 @@ def dead_simp(ir_a):
                     del new_assignblk[lval]
                     modified = True
             irs.append(AssignBlock(new_assignblk, assignblk.instr))
-        ir_a.blocks[block.loc_key] = IRBlock(block.loc_key, irs)
+        ircfg.blocks[block.loc_key] = IRBlock(block.loc_key, irs)
     return modified

@@ -3,9 +3,8 @@ import logging
 from collections import MutableMapping
 
 from miasm2.expression.expression import ExprOp, ExprId, ExprLoc, ExprInt, \
-    ExprMem, ExprCompose, ExprSlice, ExprCond, ExprAff
+    ExprMem, ExprCompose, ExprSlice, ExprCond
 from miasm2.expression.simplifications import expr_simp
-from miasm2.core import asmblock
 from miasm2.ir.ir import AssignBlock
 
 log = logging.getLogger("symbexec")
@@ -15,14 +14,14 @@ log.addHandler(console_handler)
 log.setLevel(logging.INFO)
 
 
-def get_block(ir_arch, mdis, addr):
+def get_block(ir_arch, ircfg, mdis, addr):
     """Get IRBlock at address @addr"""
-    loc_key = ir_arch.get_or_create_loc_key(addr)
-    if loc_key not in ir_arch.blocks:
+    loc_key = ircfg.get_or_create_loc_key(addr)
+    if not loc_key in ircfg.blocks:
         offset = mdis.loc_db.get_location_offset(loc_key)
         block = mdis.dis_block(offset)
-        ir_arch.add_block(block)
-    irblock = ir_arch.get_block(loc_key)
+        ir_arch.add_asmblock_to_ircfg(block, ircfg)
+    irblock = ircfg.get_block(loc_key)
     if irblock is None:
         raise LookupError('No block found at that address: %s' % ir_arch.loc_db.pretty_str(loc_key))
     return irblock
@@ -1055,18 +1054,18 @@ class SymbolicExecutionEngine(object):
 
         return dst
 
-    def run_block_at(self, addr, step=False):
+    def run_block_at(self, ircfg, addr, step=False):
         """
         Symbolic execution of the block at @addr
         @addr: address to execute (int or ExprInt or label)
         @step: display intermediate steps
         """
-        irblock = self.ir_arch.get_block(addr)
+        irblock = ircfg.get_block(addr)
         if irblock is not None:
             addr = self.eval_updt_irblock(irblock, step=step)
         return addr
 
-    def run_at(self, addr, lbl_stop=None, step=False):
+    def run_at(self, ircfg, addr, lbl_stop=None, step=False):
         """
         Symbolic execution starting at @addr
         @addr: address to execute (int or ExprInt or label)
@@ -1074,7 +1073,7 @@ class SymbolicExecutionEngine(object):
         @step: display intermediate steps
         """
         while True:
-            irblock = self.ir_arch.get_block(addr)
+            irblock = ircfg.get_block(addr)
             if irblock is None:
                 break
             if irblock.loc_key == lbl_stop:

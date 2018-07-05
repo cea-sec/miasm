@@ -23,9 +23,23 @@ from itertools import chain
 
 import miasm2.expression.expression as m2_expr
 from miasm2.expression.expression_helper import get_missing_interval
-from miasm2.core.asmblock import AsmBlock, AsmConstraint, AsmBlockBad
-from miasm2.core.locationdb import LocationDB
+from miasm2.core.asmblock import AsmBlock, AsmConstraint
 from miasm2.core.graph import DiGraph
+
+
+def _expr_loc_to_symb(expr, loc_db):
+    if not expr.is_loc():
+        return expr
+    if loc_db is None:
+        name = str(expr)
+    else:
+        names = loc_db.get_location_names(expr.loc_key)
+        if not names:
+            name = loc_db.pretty_str(expr.loc_key)
+        else:
+            # Use only one name for readability
+            name = sorted(names)[0]
+    return m2_expr.ExprId(name, expr.size)
 
 class AssignBlock(object):
     """Represent parallel IR assignment, such as:
@@ -256,6 +270,15 @@ class AssignBlock(object):
             new_assignblk[new_dst] = new_src
         return AssignBlock(irs=new_assignblk, instr=self.instr)
 
+    def to_string(self, loc_db=None):
+        out = []
+        for dst, src in self.iteritems():
+            new_src = src.visit(lambda expr:_expr_loc_to_symb(expr, loc_db))
+            new_dst = dst.visit(lambda expr:_expr_loc_to_symb(expr, loc_db))
+            line = "%s = %s" % (new_dst, new_src)
+            out.append(line)
+            out.append("")
+        return "\n".join(out)
 
 class IRBlock(object):
     """Intermediate representation block object.
@@ -386,6 +409,22 @@ class IRBlock(object):
             assignblks.append(AssignBlock(new_assignblk, assignblk.instr))
         return IRBlock(self.loc_key, assignblks)
 
+    def to_string(self, loc_db=None):
+        out = []
+        if loc_db is None:
+            node_name = "%s:" % self.loc_key
+        else:
+            names = loc_db.get_location_names(self.loc_key)
+            if not names:
+                node_name = "%s:" % loc_db.pretty_str(self.loc_key)
+            else:
+                node_name = "".join("%s:\n" % name for name in names)
+        out.append(node_name)
+
+        for i, assignblk in enumerate(self):
+            out.append(assignblk.to_string(loc_db))
+        return '\n'.join(out)
+
 
 class irbloc(IRBlock):
     """
@@ -402,27 +441,40 @@ class DiGraphIR(DiGraph):
 
     """DiGraph for IR instances"""
 
-    def __init__(self, blocks, loc_db=None, *args, **kwargs):
+    def __init__(self, irdst, loc_db, blocks=None, *args, **kwargs):
         """Instanciate a DiGraphIR
+        @loc_db: LocationDB instance
         @blocks: IR blocks
         """
         self.loc_db = loc_db
+        if blocks is None:
+            blocks = {}
         self._blocks = blocks
+        self._irdst = irdst
         super(DiGraphIR, self).__init__(*args, **kwargs)
 
-    def _expr_loc_to_symb(self, expr):
-        if not expr.is_loc():
-            return expr
-        if self.loc_db is None:
-            name = str(expr)
-        else:
-            names = self.loc_db.get_location_names(expr.loc_key)
-            if not names:
-                name = self.loc_db.pretty_str(expr.loc_key)
-            else:
-                # Use only one name for readability
-                name = sorted(names)[0]
-        return m2_expr.ExprId(name, expr.size)
+    @property
+    def IRDst(self):
+        return self._irdst
+
+    @property
+    def blocks(self):
+        return self._blocks
+
+    def add_irblock(self, irblock):
+        """
+        Add the @irblock to the current DiGraphIR
+        @irblock: IRBlock instance
+        """
+        self.blocks[irblock.loc_key] = irblock
+        self.add_node(irblock.loc_key)
+
+        for dst in self.dst_trackback(irblock):
+            if dst.is_int():
+                dst_loc_key = self.loc_db.get_or_create_offset_location(int(dst))
+                dst = m2_expr.ExprLoc(dst_loc_key, irblock.dst.size)
+            if dst.is_loc():
+                self.add_uniq_edge(irblock.loc_key, dst.loc_key)
 
     def node2lines(self, node):
         if self.loc_db is None:
@@ -446,8 +498,9 @@ class DiGraphIR(DiGraph):
             raise StopIteration
         for i, assignblk in enumerate(self._blocks[node]):
             for dst, src in assignblk.iteritems():
-                new_src = src.visit(self._expr_loc_to_symb)
-                new_dst = dst.visit(self._expr_loc_to_symb)
+
+                new_src = src.visit(lambda expr:_expr_loc_to_symb(expr, self.loc_db))
+                new_dst = dst.visit(lambda expr:_expr_loc_to_symb(expr, self.loc_db))
                 line = "%s = %s" % (new_dst, new_src)
                 if self._dot_offset:
                     yield [self.DotCellDescription(text="%-4d" % i, attr={}),
@@ -481,49 +534,6 @@ class DiGraphIR(DiGraph):
         """
         self._dot_offset = offset
         return super(DiGraphIR, self).dot()
-
-
-class IntermediateRepresentation(object):
-    """
-    Intermediate representation object
-
-    Allow native assembly to intermediate representation traduction
-    """
-
-    def __init__(self, arch, attrib, loc_db=None):
-        if loc_db is None:
-            loc_db = LocationDB()
-        self.loc_db = loc_db
-        self.blocks = {}
-        self.pc = arch.getpc(attrib)
-        self.sp = arch.getsp(attrib)
-        self.arch = arch
-        self.attrib = attrib
-        # Lazy structure
-        self._graph = None
-
-    @property
-    def blocs(self):
-        warnings.warn('DEPRECATION WARNING: use ".blocks" instead of ".blocs"')
-        return self.blocks
-
-    @property
-    def symbol_pool(self):
-        warnings.warn('DEPRECATION WARNING: use ".loc_db" instead of ".symbol_pool"')
-        return self.loc_db
-
-    def get_ir(self, instr):
-        raise NotImplementedError("Abstract Method")
-
-    def instr2ir(self, instr):
-        ir_bloc_cur, extra_irblocks = self.get_ir(instr)
-        for index, irb in enumerate(extra_irblocks):
-            irs = []
-            for assignblk in irb:
-                irs.append(AssignBlock(assignblk, instr))
-            extra_irblocks[index] = IRBlock(irb.loc_key, irs)
-        assignblk = AssignBlock(ir_bloc_cur, instr)
-        return assignblk, extra_irblocks
 
     def get_loc_key(self, addr):
         """Transforms an ExprId/ExprInt/loc_key/int into a loc_key
@@ -562,22 +572,6 @@ class IntermediateRepresentation(object):
             return None
         return self.blocks.get(loc_key, None)
 
-    def get_bloc(self, addr):
-        """
-        DEPRECATED function
-        Use get_block instead of get_block
-        """
-        warnings.warn('DEPRECATION WARNING: use "get_block" instead of "get_bloc"')
-        return self.get_block(addr)
-
-    def add_instr(self, line, loc_key=None, gen_pc_updt=False):
-        if loc_key is None:
-            loc_key = self.loc_db.add_location()
-        block = AsmBlock(loc_key)
-        block.lines = [line]
-        self.add_block(block, gen_pc_updt)
-        return loc_key
-
     def getby_offset(self, offset):
         out = set()
         for irb in self.blocks.values():
@@ -589,175 +583,6 @@ class IntermediateRepresentation(object):
                     out.add(irb)
         return out
 
-    def gen_pc_update(self, assignments, instr):
-        offset = m2_expr.ExprInt(instr.offset, self.pc.size)
-        assignments.append(AssignBlock({self.pc:offset}, instr))
-
-    def pre_add_instr(self, block, instr, assignments, ir_blocks_all, gen_pc_updt):
-        """Function called before adding an instruction from the the native @block to
-        the current irbloc.
-
-        Returns a couple. The first element is the new irblock. The second the a
-        bool:
-        * True if the current irblock must be split
-        * False in other cases.
-
-        @block: native block source
-        @instr: native instruction
-        @irb_cur: current irbloc
-        @ir_blocks_all: list of additional effects
-        @gen_pc_updt: insert PC update effects between instructions
-
-        """
-
-        return False
-
-    def add_instr_to_irblock(self, block, instr, assignments, ir_blocks_all, gen_pc_updt):
-        """
-        Add the IR effects of an instruction to the current irblock.
-
-        Returns a couple. The first element is the new irblock. The second the a
-        bool:
-        * True if the current irblock must be split
-        * False in other cases.
-
-        @block: native block source
-        @instr: native instruction
-        @irb_cur: current irbloc
-        @ir_blocks_all: list of additional effects
-        @gen_pc_updt: insert PC update effects between instructions
-        """
-
-        split = self.pre_add_instr(block, instr, assignments, ir_blocks_all, gen_pc_updt)
-        if split:
-            return True
-
-        assignblk, ir_blocks_extra = self.instr2ir(instr)
-
-        if gen_pc_updt is not False:
-            self.gen_pc_update(assignments, instr)
-
-        assignments.append(assignblk)
-        ir_blocks_all += ir_blocks_extra
-        if ir_blocks_extra:
-            return True
-        return False
-
-    def add_block(self, block, gen_pc_updt=False):
-        """
-        Add a native block to the current IR
-        @block: native assembly block
-        @gen_pc_updt: insert PC update effects between instructions
-        """
-
-        loc_key = block.loc_key
-        ir_blocks_all = []
-
-        assignments = []
-        for instr in block.lines:
-            if loc_key is None:
-                assignments = []
-                loc_key = self.get_loc_key_for_instr(instr)
-            split = self.add_instr_to_irblock(block, instr, assignments,
-                                              ir_blocks_all, gen_pc_updt)
-            if split:
-                ir_blocks_all.append(IRBlock(loc_key, assignments))
-                loc_key = None
-                assignments = []
-        if loc_key is not None:
-            ir_blocks_all.append(IRBlock(loc_key, assignments))
-
-        new_ir_blocks_all = self.post_add_block(block, ir_blocks_all)
-        for irblock in new_ir_blocks_all:
-            self.blocks[irblock.loc_key] = irblock
-        return new_ir_blocks_all
-
-    def add_bloc(self, block, gen_pc_updt=False):
-        """
-        DEPRECATED function
-        Use add_block instead of add_block
-        """
-        warnings.warn('DEPRECATION WARNING: use "add_block" instead of "add_bloc"')
-        return self.add_block(block, gen_pc_updt)
-
-    def expr_fix_regs_for_mode(self, expr, *args, **kwargs):
-        return expr
-
-    def expraff_fix_regs_for_mode(self, expr, *args, **kwargs):
-        return expr
-
-    def irbloc_fix_regs_for_mode(self, irblock, *args, **kwargs):
-        return irblock
-
-    def is_pc_written(self, block):
-        """Return the first Assignblk of the @blockin which PC is written
-        @block: IRBlock instance"""
-        all_pc = self.arch.pc.values()
-        for assignblk in block:
-            if assignblk.dst in all_pc:
-                return assignblk
-        return None
-
-    def set_empty_dst_to_next(self, block, ir_blocks):
-        for index, irblock in enumerate(ir_blocks):
-            if irblock.dst is not None:
-                continue
-            next_loc_key = block.get_next()
-            if next_loc_key is None:
-                loc_key = None
-                if block.lines:
-                    line = block.lines[-1]
-                    if line.offset is not None:
-                        loc_key = self.loc_db.get_or_create_offset_location(line.offset + line.l)
-                if loc_key is None:
-                    loc_key = self.loc_db.add_location()
-                block.add_cst(loc_key, AsmConstraint.c_next)
-            else:
-                loc_key = next_loc_key
-            dst = m2_expr.ExprLoc(loc_key, self.pc.size)
-            if irblock.assignblks:
-                instr = irblock.assignblks[-1].instr
-            else:
-                instr = None
-            assignblk = AssignBlock({self.IRDst: dst}, instr)
-            ir_blocks[index] = IRBlock(irblock.loc_key, list(irblock.assignblks) + [assignblk])
-
-    def post_add_block(self, block, ir_blocks):
-        self.set_empty_dst_to_next(block, ir_blocks)
-
-        new_irblocks = []
-        for irblock in ir_blocks:
-            new_irblock = self.irbloc_fix_regs_for_mode(irblock, self.attrib)
-            self.blocks[irblock.loc_key] = new_irblock
-            new_irblocks.append(new_irblock)
-        # Forget graph if any
-        self._graph = None
-        return new_irblocks
-
-    def post_add_bloc(self, block, ir_blocks):
-        """
-        DEPRECATED function
-        Use post_add_block instead of post_add_bloc
-        """
-        warnings.warn('DEPRECATION WARNING: use "post_add_block" instead of "post_add_bloc"')
-        return self.post_add_block(block, ir_blocks)
-
-    def get_loc_key_for_instr(self, instr):
-        """Returns the loc_key associated to an instruction
-        @instr: current instruction"""
-        return self.loc_db.get_or_create_offset_location(instr.offset)
-
-    def gen_loc_key_and_expr(self, size):
-        """
-        Return a loc_key and it's corresponding ExprLoc
-        @size: size of expression
-        """
-        loc_key = self.loc_db.add_location()
-        return loc_key, m2_expr.ExprLoc(loc_key, size)
-
-    def get_next_loc_key(self, instr):
-        loc_key = self.loc_db.get_or_create_offset_location(instr.offset + instr.l)
-        return loc_key
 
     def simplify(self, simplifier):
         """
@@ -775,11 +600,11 @@ class IntermediateRepresentation(object):
             self.blocks[loc_key] = IRBlock(loc_key, assignblks)
         return modified
 
-    def replace_expr_in_ir(self, bloc, rep):
-        for assignblk in bloc:
+    def replace_expr_in_ir(self, block, replaced):
+        for assignblk in block:
             for dst, src in assignblk.items():
                 del assignblk[dst]
-                assignblk[dst.replace_expr(rep)] = src.replace_expr(rep)
+                assignblk[dst.replace_expr(replaced)] = src.replace_expr(replaced)
 
     def get_rw(self, regs_ids=None):
         """
@@ -836,29 +661,6 @@ class IntermediateRepresentation(object):
 
         return done
 
-    def _gen_graph(self):
-        """
-        Gen irbloc digraph
-        """
-        self._graph = DiGraphIR(self.blocks, self.loc_db)
-        for lbl, block in self.blocks.iteritems():
-            assert isinstance(lbl, m2_expr.LocKey)
-            self._graph.add_node(lbl)
-            for dst in self.dst_trackback(block):
-                if dst.is_int():
-                    dst_lbl = self.loc_db.get_or_create_offset_location(int(dst))
-                    dst = m2_expr.ExprLoc(dst_lbl.loc_key, self.pc.size)
-                if dst.is_loc():
-                    self._graph.add_edge(lbl, dst.loc_key)
-
-    @property
-    def graph(self):
-        """Get a DiGraph representation of current IR instance.
-        Lazy property, building the graph on-demand"""
-        if self._graph is None:
-            self._gen_graph()
-        return self._graph
-
     def remove_empty_assignblks(self):
         modified = False
         for loc_key, block in self.blocks.iteritems():
@@ -886,7 +688,7 @@ class IntermediateRepresentation(object):
             if len(assignblk) > 1:
                 continue
             assert set(assignblk.keys()) == set([self.IRDst])
-            if len(self.graph.successors(block.loc_key)) != 1:
+            if len(self.successors(block.loc_key)) != 1:
                 continue
             if not assignblk[self.IRDst].is_loc():
                 continue
@@ -901,7 +703,7 @@ class IntermediateRepresentation(object):
         for loc_key in jmp_blocks:
             block = self.blocks[loc_key]
             dst_loc_key = block.dst
-            parents = self.graph.predecessors(block.loc_key)
+            parents = self.predecessors(block.loc_key)
             for lbl in parents:
                 parent = self.blocks.get(lbl, None)
                 if parent is None:
@@ -910,24 +712,24 @@ class IntermediateRepresentation(object):
                 if dst.is_id(block.loc_key):
                     dst = m2_expr.ExprLoc(dst_loc_key, dst.size)
 
-                    self.graph.discard_edge(lbl, block.loc_key)
-                    self.graph.discard_edge(block.loc_key, dst_loc_key)
+                    self.discard_edge(lbl, block.loc_key)
+                    self.discard_edge(block.loc_key, dst_loc_key)
 
-                    self.graph.add_uniq_edge(lbl, dst_loc_key)
+                    self.add_uniq_edge(lbl, dst_loc_key)
                     modified = True
                 elif dst.is_cond():
                     src1, src2 = dst.src1, dst.src2
                     if src1.is_id(block.loc_key):
                         dst = m2_expr.ExprCond(dst.cond, m2_expr.ExprLoc(dst_loc_key, dst.size), dst.src2)
-                        self.graph.discard_edge(lbl, block.loc_key)
-                        self.graph.discard_edge(block.loc_key, dst_loc_key)
-                        self.graph.add_uniq_edge(lbl, dst_loc_key)
+                        self.discard_edge(lbl, block.loc_key)
+                        self.discard_edge(block.loc_key, dst_loc_key)
+                        self.add_uniq_edge(lbl, dst_loc_key)
                         modified = True
                     if src2.is_id(block.loc_key):
                         dst = m2_expr.ExprCond(dst.cond, dst.src1, m2_expr.ExprLoc(dst_loc_key, dst.size))
-                        self.graph.discard_edge(lbl, block.loc_key)
-                        self.graph.discard_edge(block.loc_key, dst_loc_key)
-                        self.graph.add_uniq_edge(lbl, dst_loc_key)
+                        self.discard_edge(lbl, block.loc_key)
+                        self.discard_edge(block.loc_key, dst_loc_key)
+                        self.add_uniq_edge(lbl, dst_loc_key)
                         modified = True
                     if dst.src1 == dst.src2:
                         dst = dst.src1
@@ -938,9 +740,9 @@ class IntermediateRepresentation(object):
 
         # Remove unlinked useless nodes
         for loc_key in jmp_blocks:
-            if (len(self.graph.predecessors(loc_key)) == 0 and
-                len(self.graph.successors(loc_key)) == 0):
-                self.graph.del_node(loc_key)
+            if (len(self.predecessors(loc_key)) == 0 and
+                len(self.successors(loc_key)) == 0):
+                self.del_node(loc_key)
                 del self.blocks[loc_key]
         return modified
 
@@ -950,21 +752,21 @@ class IntermediateRepresentation(object):
         parent
         """
         modified = False
-        todo = set(self.graph.nodes())
+        todo = set(self.nodes())
         while todo:
             block = todo.pop()
-            sons = self.graph.successors(block)
+            sons = self.successors(block)
             if len(sons) != 1:
                 continue
             son = list(sons)[0]
-            if self.graph.predecessors(son) != [block]:
+            if self.predecessors(son) != [block]:
                 continue
             if block not in self.blocks:
                 continue
             if son not in self.blocks:
                 continue
             # Block has one son, son has one parent => merge
-            assignblks =[]
+            assignblks = []
             for assignblk in self.blocks[block]:
                 if self.IRDst not in assignblk:
                     assignblks.append(assignblk)
@@ -978,18 +780,230 @@ class IntermediateRepresentation(object):
             assignblks += self.blocks[son].assignblks
             new_block = IRBlock(block, assignblks)
 
-            self.graph.discard_edge(block, son)
+            self.discard_edge(block, son)
 
-            for lson in self.graph.successors(son):
-                self.graph.add_uniq_edge(block, lson)
-                self.graph.discard_edge(son, lson)
+            for lson in self.successors(son):
+                self.add_uniq_edge(block, lson)
+                self.discard_edge(son, lson)
             del self.blocks[son]
-            self.graph.del_node(son)
+            self.del_node(son)
 
             self.blocks[block] = new_block
             todo.add(block)
             modified = True
         return modified
+
+
+class IntermediateRepresentation(object):
+    """
+    Intermediate representation object
+
+    Allow native assembly to intermediate representation traduction
+    """
+
+    def __init__(self, arch, attrib, loc_db):
+        self.pc = arch.getpc(attrib)
+        self.sp = arch.getsp(attrib)
+        self.arch = arch
+        self.attrib = attrib
+        self.loc_db = loc_db
+        self.IRDst = None
+
+    def get_ir(self, instr):
+        raise NotImplementedError("Abstract Method")
+
+    def new_ircfg(self, *args, **kwargs):
+        """
+        Return a new instance of DiGraphIR
+        """
+        return DiGraphIR(self.IRDst, self.loc_db, *args, **kwargs)
+
+    def new_ircfg_from_asmcfg(self, asmcfg, *args, **kwargs):
+        """
+        Return a new instance of DiGraphIR from an @asmcfg
+        @asmcfg: AsmCFG instance
+        """
+
+        ircfg = DiGraphIR(self.IRDst, self.loc_db, *args, **kwargs)
+        for block in asmcfg.blocks:
+            self.add_asmblock_to_ircfg(block, ircfg)
+        return ircfg
+
+    def instr2ir(self, instr):
+        ir_bloc_cur, extra_irblocks = self.get_ir(instr)
+        for index, irb in enumerate(extra_irblocks):
+            irs = []
+            for assignblk in irb:
+                irs.append(AssignBlock(assignblk, instr))
+            extra_irblocks[index] = IRBlock(irb.loc_key, irs)
+        assignblk = AssignBlock(ir_bloc_cur, instr)
+        return assignblk, extra_irblocks
+
+    def add_instr_to_ircfg(self, instr, ircfg, loc_key=None, gen_pc_updt=False):
+        """
+        Add the native instruction @instr to the @ircfg
+        @instr: instruction instance
+        @ircfg: IRCFG instance
+        @loc_key: loc_key instance of the instruction destination
+        @gen_pc_updt: insert PC update effects between instructions
+        """
+
+        if loc_key is None:
+            offset = getattr(instr, "offset", None)
+            loc_key = self.loc_db.add_location(offset=offset)
+        block = AsmBlock(loc_key)
+        block.lines = [instr]
+        self.add_asmblock_to_ircfg(block, ircfg, gen_pc_updt)
+        return loc_key
+
+    def gen_pc_update(self, assignments, instr):
+        offset = m2_expr.ExprInt(instr.offset, self.pc.size)
+        assignments.append(AssignBlock({self.pc:offset}, instr))
+
+    def add_instr_to_current_state(self, instr, block, assignments, ir_blocks_all, gen_pc_updt):
+        """
+        Add the IR effects of an instruction to the current state.
+
+        Returns a bool:
+        * True if the current assignments list must be split
+        * False in other cases.
+
+        @instr: native instruction
+        @block: native block source
+        @assignments: list of current AssignBlocks
+        @ir_blocks_all: list of additional effects
+        @gen_pc_updt: insert PC update effects between instructions
+        """
+        if gen_pc_updt is not False:
+            self.gen_pc_update(assignments, instr)
+
+        assignblk, ir_blocks_extra = self.instr2ir(instr)
+        assignments.append(assignblk)
+        ir_blocks_all += ir_blocks_extra
+        if ir_blocks_extra:
+            return True
+        return False
+
+    def add_asmblock_to_ircfg(self, block, ircfg, gen_pc_updt=False):
+        """
+        Add a native block to the current IR
+        @block: native assembly block
+        @ircfg: DiGraphIR instance
+        @gen_pc_updt: insert PC update effects between instructions
+        """
+
+        loc_key = block.loc_key
+        ir_blocks_all = []
+
+        assignments = []
+        for instr in block.lines:
+            if loc_key is None:
+                assignments = []
+                loc_key = self.get_loc_key_for_instr(instr)
+            split = self.add_instr_to_current_state(
+                instr, block, assignments,
+                ir_blocks_all, gen_pc_updt
+            )
+            if split:
+                ir_blocks_all.append(IRBlock(loc_key, assignments))
+                loc_key = None
+                assignments = []
+        if loc_key is not None:
+            ir_blocks_all.append(IRBlock(loc_key, assignments))
+
+        new_ir_blocks_all = self.post_add_asmblock_to_ircfg(block, ircfg, ir_blocks_all)
+        for irblock in new_ir_blocks_all:
+            ircfg.add_irblock(irblock)
+        return new_ir_blocks_all
+
+    def add_block(self, block, gen_pc_updt=False):
+        """
+        DEPRECATED function
+        Use add_block instead of add_block
+        """
+        warnings.warn("""DEPRECATION WARNING
+        ircfg is now out of IntermediateRepresentation
+        Use:
+        ircfg = ir_arch.new_ircfg()
+        ir_arch.add_asmblock_to_ircfg(block, ircfg)
+        """)
+        raise RuntimeError("API Deprecated")
+
+    def add_bloc(self, block, gen_pc_updt=False):
+        """
+        DEPRECATED function
+        Use add_block instead of add_block
+        """
+        self.add_block(block, gen_pc_updt)
+
+    def get_next_loc_key(self, instr):
+        loc_key = self.loc_db.get_or_create_offset_location(instr.offset + instr.l)
+        return loc_key
+
+    def get_loc_key_for_instr(self, instr):
+        """Returns the loc_key associated to an instruction
+        @instr: current instruction"""
+        return self.loc_db.get_or_create_offset_location(instr.offset)
+
+    def gen_loc_key_and_expr(self, size):
+        """
+        Return a loc_key and it's corresponding ExprLoc
+        @size: size of expression
+        """
+        loc_key = self.loc_db.add_location()
+        return loc_key, m2_expr.ExprLoc(loc_key, size)
+
+    def expr_fix_regs_for_mode(self, expr, *args, **kwargs):
+        return expr
+
+    def expraff_fix_regs_for_mode(self, expr, *args, **kwargs):
+        return expr
+
+    def irbloc_fix_regs_for_mode(self, irblock, *args, **kwargs):
+        return irblock
+
+    def is_pc_written(self, block):
+        """Return the first Assignblk of the @blockin which PC is written
+        @block: IRBlock instance"""
+        all_pc = self.arch.pc.values()
+        for assignblk in block:
+            if assignblk.dst in all_pc:
+                return assignblk
+        return None
+
+    def set_empty_dst_to_next(self, block, ir_blocks):
+        for index, irblock in enumerate(ir_blocks):
+            if irblock.dst is not None:
+                continue
+            next_loc_key = block.get_next()
+            if next_loc_key is None:
+                loc_key = None
+                if block.lines:
+                    line = block.lines[-1]
+                    if line.offset is not None:
+                        loc_key = self.loc_db.get_or_create_offset_location(line.offset + line.l)
+                if loc_key is None:
+                    loc_key = self.loc_db.add_location()
+                block.add_cst(loc_key, AsmConstraint.c_next)
+            else:
+                loc_key = next_loc_key
+            dst = m2_expr.ExprLoc(loc_key, self.pc.size)
+            if irblock.assignblks:
+                instr = irblock.assignblks[-1].instr
+            else:
+                instr = None
+            assignblk = AssignBlock({self.IRDst: dst}, instr)
+            ir_blocks[index] = IRBlock(irblock.loc_key, list(irblock.assignblks) + [assignblk])
+
+    def post_add_asmblock_to_ircfg(self, block, ircfg, ir_blocks):
+        self.set_empty_dst_to_next(block, ir_blocks)
+
+        new_irblocks = []
+        for irblock in ir_blocks:
+            new_irblock = self.irbloc_fix_regs_for_mode(irblock, self.attrib)
+            ircfg.add_irblock(new_irblock)
+            new_irblocks.append(new_irblock)
+        return new_irblocks
 
 
 class ir(IntermediateRepresentation):

@@ -270,12 +270,12 @@ def analyse_function():
 
     asmcfg = mdis.dis_multiblock(addr)
     # Generate IR
-    for block in asmcfg.blocks:
-        ir_arch.add_block(block)
+    ircfg = ir_arch.new_ircfg_from_asmcfg(asmcfg)
+
     cst_propag_link = {}
     if settings.cUnalias.value:
         init_infos = {ir_arch.sp: ir_arch.arch.regs.regs_init[ir_arch.sp] }
-        cst_propag_link = propagate_cst_expr(ir_arch, addr, init_infos)
+        cst_propag_link = propagate_cst_expr(ir_arch, ircfg, addr, init_infos)
 
 
     types_mngr = get_types_mngr(settings.headerFile.value, settings.arch.value)
@@ -317,8 +317,8 @@ def analyse_function():
         first_block.lines[0]
     )
     irb_head = IRBlock(lbl_head, [assignblk_head])
-    ir_arch.blocks[lbl_head] = irb_head
-    ir_arch.graph.add_uniq_edge(lbl_head, lbl_real_start)
+    ircfg.blocks[lbl_head] = irb_head
+    ircfg.add_uniq_edge(lbl_head, lbl_real_start)
 
     state = TypePropagationEngine.StateEngine(infos_types)
     states = {lbl_head: state}
@@ -331,23 +331,24 @@ def analyse_function():
         if (lbl, state) in done:
             continue
         done.add((lbl, state))
-        if lbl not in ir_arch.blocks:
+        if lbl not in ircfg.blocks:
             continue
         symbexec_engine = TypePropagationEngine(ir_arch, types_mngr, state)
-        addr = symbexec_engine.run_block_at(lbl)
+        addr = symbexec_engine.run_block_at(ircfg, lbl)
         symbexec_engine.del_mem_above_stack(ir_arch.sp)
 
-        ir_arch._graph = None
-        sons = ir_arch.graph.successors(lbl)
+        sons = ircfg.successors(lbl)
         for son in sons:
-            add_state(ir_arch, todo, states, son,
-                      symbexec_engine.get_state())
+            add_state(
+                ircfg, todo, states, son,
+                symbexec_engine.get_state()
+            )
 
     for lbl, state in states.iteritems():
-        if lbl not in ir_arch.blocks:
+        if lbl not in ircfg.blocks:
             continue
         symbexec_engine = CTypeEngineFixer(ir_arch, types_mngr, state, cst_propag_link)
-        addr = symbexec_engine.run_block_at(lbl)
+        addr = symbexec_engine.run_block_at(ircfg, lbl)
         symbexec_engine.del_mem_above_stack(ir_arch.sp)
 
 
