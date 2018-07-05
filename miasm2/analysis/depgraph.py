@@ -281,7 +281,7 @@ class DependencyResult(DependencyState):
         variant.
         """
         # Init
-        ctx_init = self._ira.arch.regs.regs_init
+        ctx_init = {}
         if ctx is not None:
             ctx_init.update(ctx)
         assignblks = []
@@ -352,7 +352,7 @@ class DependencyResultImplicit(DependencyResult):
 
     def emul(self, ctx=None, step=False):
         # Init
-        ctx_init = self._ira.arch.regs.regs_init
+        ctx_init = {}
         if ctx is not None:
             ctx_init.update(ctx)
         solver = z3.Solver()

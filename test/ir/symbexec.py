@@ -222,7 +222,7 @@ class TestSymbExec(unittest.TestCase):
         assert found
 
 
-        sb_empty = SymbolicExecutionEngine(ir_x86_32(), {})
+        sb_empty = SymbolicExecutionEngine(ir_x86_32())
         sb_empty.dump()
 
 
@@ -231,7 +231,7 @@ class TestSymbExec(unittest.TestCase):
         arch_addr8 = ir_x86_32()
         # Hack to obtain tiny address space
         arch_addr8.addrsize = 5
-        sb_addr8 = SymbolicExecutionEngine(arch_addr8, {})
+        sb_addr8 = SymbolicExecutionEngine(arch_addr8)
         sb_addr8.dump()
         # Fulfill memory
         sb_addr8.apply_change(ExprMem(ExprInt(0, 5), 256), ExprInt(0, 256))

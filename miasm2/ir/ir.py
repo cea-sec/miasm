@@ -539,7 +539,19 @@ class IntermediateRepresentation(object):
         except (ValueError, TypeError):
             return None
 
-        return self.loc_db.get_or_create_offset_location(addr)
+        return self.loc_db.get_offset_location(addr)
+
+
+    def get_or_create_loc_key(self, addr):
+        """Transforms an ExprId/ExprInt/loc_key/int into a loc_key
+        If the offset @addr is not in the LocationDB, create it
+        @addr: an ExprId/ExprInt/loc_key/int"""
+
+        loc_key = self.get_loc_key(addr)
+        if loc_key is not None:
+            return loc_key
+
+        return self.loc_db.add_location(offset=int(addr))
 
     def get_block(self, addr):
         """Returns the irbloc associated to an ExprId/ExprInt/loc_key/int

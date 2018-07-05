@@ -17,14 +17,14 @@ log.setLevel(logging.INFO)
 
 def get_block(ir_arch, mdis, addr):
     """Get IRBlock at address @addr"""
-    lbl = ir_arch.get_loc_key(addr)
-    if not lbl in ir_arch.blocks:
-        offset = mdis.loc_db.get_location_offset(lbl)
+    loc_key = ir_arch.get_or_create_loc_key(addr)
+    if loc_key not in ir_arch.blocks:
+        offset = mdis.loc_db.get_location_offset(loc_key)
         block = mdis.dis_block(offset)
         ir_arch.add_block(block)
-    irblock = ir_arch.get_block(lbl)
+    irblock = ir_arch.get_block(loc_key)
     if irblock is None:
-        raise LookupError('No block found at that address: %s' % lbl)
+        raise LookupError('No block found at that address: %s' % ir_arch.loc_db.pretty_str(loc_key))
     return irblock
 
 
@@ -805,7 +805,7 @@ class SymbolicExecutionEngine(object):
 
     StateEngine = SymbolicState
 
-    def __init__(self, ir_arch, state,
+    def __init__(self, ir_arch, state=None,
                  func_read=None,
                  func_write=None,
                  sb_expr_simp=expr_simp):
@@ -820,6 +820,9 @@ class SymbolicExecutionEngine(object):
             ExprOp: self.eval_exprop,
             ExprCompose: self.eval_exprcompose,
         }
+
+        if state is None:
+            state = {}
 
         self.symbols = SymbolMngr(addrsize=ir_arch.addrsize, expr_simp=expr_simp)
 
@@ -961,7 +964,7 @@ class SymbolicExecutionEngine(object):
         @mems: track mems only
         """
         if init_state is None:
-            init_state = self.ir_arch.arch.regs.regs_init
+            init_state = {}
         if ids:
             for variable, value in self.symbols.symbols_id.iteritems():
                 if variable in init_state and init_state[variable] == value:
