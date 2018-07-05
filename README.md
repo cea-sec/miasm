@@ -45,17 +45,17 @@ Assembling / Disassembling
 --------------------------
 
 Import Miasm x86 architecture:
-```
+```pycon
 >>> from miasm2.arch.x86.arch import mn_x86
 >>> from miasm2.core.locationdb import LocationDB
 ```
 Get a location db:
 
-```
+```pycon
 >>> loc_db = LocationDB()
 ```
 Assemble a line:
-```
+```pycon
 >>> l = mn_x86.fromstring('XOR ECX, ECX', loc_db, 32)
 >>> print l
 XOR        ECX, ECX
@@ -63,7 +63,7 @@ XOR        ECX, ECX
 ['1\xc9', '3\xc9', 'g1\xc9', 'g3\xc9']
 ```
 Modify an operand:
-```
+```pycon
 >>> l.args[0] = mn_x86.regs.EAX
 >>> print l
 XOR        EAX, ECX
@@ -72,13 +72,13 @@ XOR        EAX, ECX
 ['1\xc8', '3\xc1', 'g1\xc8', 'g3\xc1']
 ```
 Disassemble the result:
-```
+```pycon
 >>> print mn_x86.dis(a[0], 32)
 XOR        EAX, ECX
 ```
 Using `Machine` abstraction:
 
-```
+```pycon
 >>> from miasm2.analysis.machine import Machine
 >>> mn = Machine('x86_32').mn
 >>> print mn.dis('\x33\x30', 32)
@@ -86,7 +86,7 @@ XOR        ESI, DWORD PTR [EAX]
 ```
 
 For Mips:
-```
+```pycon
 >>> mn = Machine('mips32b').mn
 >>> print  mn.dis('97A30020'.decode('hex'), "b")
 LHU        V1, 0x20(SP)
@@ -96,7 +96,7 @@ Intermediate representation
 
 Create an instruction:
 
-```
+```pycon
 >>> machine = Machine('arml')
 >>> instr = machine.mn.dis('002088e0'.decode('hex'), 'l')
 >>> print instr
@@ -104,20 +104,20 @@ ADD        R2, R8, R0
 ```
 
 Create an intermediate representation object:
-```
+```pycon
 >>> ira = machine.ira(loc_db)
 ```
 Create an empty ircfg
-```
+```pycon
 >>> ircfg = ira.new_ircfg()
 ```
 Add instruction to the pool:
-```
+```pycon
 >>> ira.add_instr_to_ircfg(instr, ircfg)
 ```
 
 Print current pool:
-```
+```pycon
 >>> for lbl, irblock in ircfg.blocks.items():
 ...     print irblock.to_string(loc_db)
 loc_0:
@@ -127,7 +127,7 @@ IRDst = loc_4
 
 ```
 Working with IR, for instance by getting side effects:
-```
+```pycon
 >>> for lbl, irblock in ircfg.blocks.iteritems():
 ...     for assignblk in irblock:
 ...         rw = assignblk.get_rw()
@@ -148,7 +148,7 @@ Emulation
 ---------
 
 Giving a shellcode:
-```
+```pycon
 00000000 8d4904      lea    ecx, [ecx+0x4]
 00000003 8d5b01      lea    ebx, [ebx+0x1]
 00000006 80f901      cmp    cl, 0x1
@@ -162,7 +162,7 @@ Giving a shellcode:
 ```
 Import the shellcode thanks to the `Container` abstraction:
 
-```
+```pycon
 >>> from miasm2.analysis.binary import Container
 >>> c = Container.from_string(s)
 >>> c
@@ -171,7 +171,7 @@ Import the shellcode thanks to the `Container` abstraction:
 
 Disassembling the shellcode at address `0`:
 
-```
+```pycon
 >>> from miasm2.analysis.machine import Machine
 >>> machine = Machine('x86_32')
 >>> mdis = machine.dis_engine(c.bin_stream)
@@ -199,13 +199,13 @@ RET
 
 Initializing the Jit engine with a stack:
 
-```
+```pycon
 >>> jitter = machine.jitter(jit_type='python')
 >>> jitter.init_stack()
 ```
 
 Add the shellcode in an arbitrary memory location:
-```
+```pycon
 >>> run_addr = 0x40000000
 >>> from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
 >>> jitter.vm.add_memory_page(run_addr, PAGE_READ | PAGE_WRITE, s)
@@ -213,7 +213,7 @@ Add the shellcode in an arbitrary memory location:
 
 Create a sentinelle to catch the return of the shellcode:
 
-```
+```Python
 def code_sentinelle(jitter):
     jitter.run = False
     jitter.pc = 0
@@ -225,13 +225,13 @@ def code_sentinelle(jitter):
 
 Active logs:
 
-```
+```pycon
 >>> jitter.set_trace_log()
 ```
 
 Run at arbitrary address:
 
-```
+```pycon
 >>> jitter.init_run(run_addr)
 >>> jitter.continue_run()
 RAX 0000000000000000 RBX 0000000000000000 RCX 0000000000000000 RDX 0000000000000000
@@ -260,7 +260,7 @@ RIP 0000000040000013
 
 Interacting with the jitter:
 
-```
+```pycon
 >>> jitter.vm
 ad 1230000 size 10000 RW_ hpad 0x2854b40
 ad 40000000 size 16 RW_ hpad 0x25e0ed0
@@ -275,21 +275,21 @@ Symbolic execution
 
 Initializing the IR pool:
 
-```
+```pycon
 >>> ira = machine.ira()
 >>> ircfg = ira.new_ircfg_from_asmcfg(asmcfg)
 ```
 
 Initializing the engine with default symbolic values:
 
-```
+```pycon
 >>> from miasm2.ir.symbexec import SymbolicExecutionEngine
 >>> sb = SymbolicExecutionEngine(ira)
 ```
 
 Launching the execution:
 
-```
+```pycon
 >>> symbolic_pc = sb.run_at(ircfg, 0)
 >>> print symbolic_pc
 ((ECX + 0x4)[0:8] + 0xFF)?(0xB,0x10)
@@ -297,7 +297,7 @@ Launching the execution:
 
 Same, with step logs (only changes are displayed):
 
-```
+```pycon
 >>> sb = SymbolicExecutionEngine(ira, machine.mn.regs.regs_init)
 >>> symbolic_pc = sb.run_at(ircfg, 0, step=True)
 Instr LEA        ECX, DWORD PTR [ECX + 0x4]
@@ -353,7 +353,7 @@ ________________________________________________________________________________
 
 Retry execution with a concrete ECX. Here, the symbolic / concolic execution reach the shellcode's end:
 
-```
+```pycon
 >>> from miasm2.expression.expression import ExprInt
 >>> sb.symbols[machine.mn.regs.ECX] = ExprInt(-3)
 >>> symbolic_pc = sb.run_at(ircfg, 0, step=True)
@@ -539,7 +539,7 @@ Configuration
 -------------
 
 * Install elfesteem
-```
+```pycon
 git clone https://github.com/serpilliere/elfesteem.git elfesteem
 cd elfesteem
 python setup.py build
@@ -554,7 +554,7 @@ To use the jitter, GCC or LLVM is recommended
   * Debian stable/Ubuntu/Kali/whatever: `pip install llvmlite` or install from [llvmlite](https://github.com/numba/llvmlite)
   * Windows: Not tested
 * Build and install Miasm:
-```
+```pycon
 $ cd miasm_directory
 $ python setup.py build
 $ sudo python setup.py install
@@ -579,7 +579,7 @@ Testing
 
 Miasm comes with a set of regression tests. To run all of them:
 
-```
+```pycon
 cd miasm_directory/test
 python test_all.py
 ```
