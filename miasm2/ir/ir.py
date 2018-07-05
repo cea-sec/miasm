@@ -26,6 +26,21 @@ from miasm2.expression.expression_helper import get_missing_interval
 from miasm2.core.asmblock import AsmBlock, AsmConstraint
 from miasm2.core.graph import DiGraph
 
+
+def _expr_loc_to_symb(expr, loc_db):
+    if not expr.is_loc():
+        return expr
+    if loc_db is None:
+        name = str(expr)
+    else:
+        names = loc_db.get_location_names(expr.loc_key)
+        if not names:
+            name = loc_db.pretty_str(expr.loc_key)
+        else:
+            # Use only one name for readability
+            name = sorted(names)[0]
+    return m2_expr.ExprId(name, expr.size)
+
 class AssignBlock(object):
     """Represent parallel IR assignment, such as:
     EAX = EBX
@@ -255,6 +270,15 @@ class AssignBlock(object):
             new_assignblk[new_dst] = new_src
         return AssignBlock(irs=new_assignblk, instr=self.instr)
 
+    def to_string(self, loc_db=None):
+        out = []
+        for dst, src in self.iteritems():
+            new_src = src.visit(lambda expr:_expr_loc_to_symb(expr, loc_db))
+            new_dst = dst.visit(lambda expr:_expr_loc_to_symb(expr, loc_db))
+            line = "%s = %s" % (new_dst, new_src)
+            out.append(line)
+            out.append("")
+        return "\n".join(out)
 
 class IRBlock(object):
     """Intermediate representation block object.
@@ -385,6 +409,21 @@ class IRBlock(object):
             assignblks.append(AssignBlock(new_assignblk, assignblk.instr))
         return IRBlock(self.loc_key, assignblks)
 
+    def to_string(self, loc_db=None):
+        out = []
+        if loc_db is None:
+            node_name = "%s:" % self.loc_key
+        else:
+            names = loc_db.get_location_names(self.loc_key)
+            if not names:
+                node_name = "%s:" % loc_db.pretty_str(self.loc_key)
+            else:
+                node_name = "".join("%s:\n" % name for name in names)
+        out.append(node_name)
+
+        for i, assignblk in enumerate(self):
+            out.append(assignblk.to_string(loc_db))
+        return '\n'.join(out)
 
 
 class irbloc(IRBlock):
@@ -437,20 +476,6 @@ class DiGraphIR(DiGraph):
             if dst.is_loc():
                 self.add_uniq_edge(irblock.loc_key, dst.loc_key)
 
-    def _expr_loc_to_symb(self, expr):
-        if not expr.is_loc():
-            return expr
-        if self.loc_db is None:
-            name = str(expr)
-        else:
-            names = self.loc_db.get_location_names(expr.loc_key)
-            if not names:
-                name = self.loc_db.pretty_str(expr.loc_key)
-            else:
-                # Use only one name for readability
-                name = sorted(names)[0]
-        return m2_expr.ExprId(name, expr.size)
-
     def node2lines(self, node):
         if self.loc_db is None:
             node_name = str(node)
@@ -473,8 +498,9 @@ class DiGraphIR(DiGraph):
             raise StopIteration
         for i, assignblk in enumerate(self._blocks[node]):
             for dst, src in assignblk.iteritems():
-                new_src = src.visit(self._expr_loc_to_symb)
-                new_dst = dst.visit(self._expr_loc_to_symb)
+
+                new_src = src.visit(lambda expr:_expr_loc_to_symb(expr, self.loc_db))
+                new_dst = dst.visit(lambda expr:_expr_loc_to_symb(expr, self.loc_db))
                 line = "%s = %s" % (new_dst, new_src)
                 if self._dot_offset:
                     yield [self.DotCellDescription(text="%-4d" % i, attr={}),
