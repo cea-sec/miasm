@@ -1,1 +1,1 @@
-[{"has_loop": false, "EAX": "EBX_init", "satisfiability": true, "constraints": {}}, {"has_loop": true, "EAX": "EBX_init", "satisfiability": false, "constraints": {}}]
+[{"has_loop": false, "EAX": "EBX", "satisfiability": true, "constraints": {}}, {"has_loop": true, "EAX": "EBX", "satisfiability": false, "constraints": {}}]

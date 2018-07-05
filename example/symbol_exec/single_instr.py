@@ -24,7 +24,7 @@ ira = machine.ira(mdis.loc_db)
 ira.add_block(asm_block)
 
 # Instanciate a Symbolic Execution engine with default value for registers
-symb = SymbolicExecutionEngine(ira, {})
+symb = SymbolicExecutionEngine(ira)
 
 # Emulate one IR basic block
 ## Emulation of several basic blocks can be done through .emul_ir_blocks

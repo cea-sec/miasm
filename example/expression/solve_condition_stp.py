@@ -35,7 +35,7 @@ def emul_symb(ir_arch, mdis, states_todo, states_done):
             print 'Known state, skipping', addr
             continue
         states_done.add((addr, symbols, conds))
-        symbexec = SymbolicExecutionEngine(ir_arch, {})
+        symbexec = SymbolicExecutionEngine(ir_arch)
         symbexec.symbols = symbols.copy()
         if ir_arch.pc in symbexec.symbols:
             del symbexec.symbols[ir_arch.pc]
@@ -86,11 +86,10 @@ if __name__ == '__main__':
 
     addr = int(options.address, 16)
 
-    symbols_init = dict(machine.mn.regs.regs_init)
 
     ir_arch = machine.ir(mdis.loc_db)
 
-    symbexec = SymbolicExecutionEngine(ir_arch, symbols_init)
+    symbexec = SymbolicExecutionEngine(ir_arch)
 
     asmcfg, loc_db = parse_asm.parse_txt(machine.mn, 32, '''
     init:
@@ -106,13 +105,27 @@ if __name__ == '__main__':
     ret_addr_lbl = loc_db.get_name_location('ret_addr')
     init_lbl = loc_db.get_name_location('init')
 
-    argc = ExprLoc(argc_lbl, 32)
-    argv = ExprLoc(argv_lbl, 32)
-    ret_addr = ExprLoc(ret_addr_lbl, 32)
+    argc_loc = ExprLoc(argc_lbl, 32)
+    argv_loc = ExprLoc(argv_lbl, 32)
+    ret_addr_loc = ExprLoc(ret_addr_lbl, 32)
+
+
+    ret_addr = ExprId("ret_addr", ret_addr_loc.size)
+
+    fix_args = {
+        argc_loc: ExprId("argc", argc_loc.size),
+        argv_loc: ExprId("argv", argv_loc.size),
+        ret_addr_loc: ret_addr,
+    }
+
 
 
     block = asmcfg.loc_key_to_block(init_lbl)
+    for instr in block.lines:
+        for i, arg in enumerate(instr.args):
+            instr.args[i]= arg.replace_expr(fix_args)
     print block
+
     # add fake address and len to parsed instructions
     ir_arch.add_block(block)
     irb = ir_arch.blocks[init_lbl]
@@ -141,7 +154,7 @@ if __name__ == '__main__':
 
     all_cases = set()
 
-    symbexec = SymbolicExecutionEngine(ir_arch, symbols_init)
+    symbexec = SymbolicExecutionEngine(ir_arch)
     for addr, reqs_cond in all_info:
         out = ['(set-logic QF_ABV)',
                '(set-info :smt-lib-version 2.0)']

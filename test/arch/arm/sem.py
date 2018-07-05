@@ -24,7 +24,7 @@ def M(addr):
 def compute(asm, inputstate={}, debug=False):
     sympool = dict(regs_init)
     sympool.update({k: ExprInt(v, k.size) for k, v in inputstate.iteritems()})
-    interm = ir_arch()
+    interm = ir_arch(loc_db)
     symexec = SymbolicExecutionEngine(interm, sympool)
     instr = mn.fromstring(asm, loc_db, "l")
     code = mn.asm(instr)[0]

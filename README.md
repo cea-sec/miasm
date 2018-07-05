@@ -113,9 +113,9 @@ Print current pool:
 ...
 loc_0000000000000000:0x00000000
 
-        R2 = (R8+R0)
+	R2 = (R8+R0)
 
-        IRDst = loc_0000000000000004:0x00000004
+	IRDst = loc_0000000000000004:0x00000004
 ```
 Working with IR, for instance by getting side effects:
 ```
@@ -167,25 +167,24 @@ Disassembling the shellcode at address `0`:
 >>> mdis = machine.dis_engine(c.bin_stream)
 >>> asmcfg = mdis.dis_multiblock(0)
 >>> for block in asmcfg.blocks:
-...  print block
+...  print block.to_string(asmcfg.loc_db)
 ...
-loc_0000000000000000:0x00000000
-LEA        ECX, DWORD PTR [ECX+0x4]
-LEA        EBX, DWORD PTR [EBX+0x1]
+loc_0
+LEA        ECX, DWORD PTR [ECX + 0x4]
+LEA        EBX, DWORD PTR [EBX + 0x1]
 CMP        CL, 0x1
-JZ         loc_0000000000000010:0x00000010
-->      c_next:loc_000000000000000B:0x0000000b  c_to:loc_0000000000000010:0x00000010
-loc_0000000000000010:0x00000010
-LEA        EBX, DWORD PTR [EBX+0x1]
-->      c_next:loc_0000000000000013:0x00000013
-loc_000000000000000B:0x0000000b
-LEA        EBX, DWORD PTR [EBX+0xFFFFFFFF]
-JMP        loc_0000000000000013:0x00000013
-->      c_to:loc_0000000000000013:0x00000013
-loc_0000000000000013:0x00000013
+JZ         loc_10
+->      c_next:loc_b    c_to:loc_10
+loc_10
+LEA        EBX, DWORD PTR [EBX + 0x1]
+->      c_next:loc_13
+loc_b
+LEA        EBX, DWORD PTR [EBX + 0xFFFFFFFF]
+JMP        loc_13
+->      c_to:loc_13
+loc_13
 MOV        EAX, EBX
 RET
->>>
 ```
 
 Initializing the Jit engine with a stack:
@@ -267,9 +266,11 @@ Symbolic execution
 Initializing the IR pool:
 
 ```
->>> ira = machine.ira()
+>>> ira = machine.ira(loc_db=mdis.loc_db)
+>>>
 >>> for block in asmcfg.blocks:
-...    ira.add_block(block)
+...  ira.add_block(block)
+...
 ...
 ```
 
@@ -277,7 +278,7 @@ Initializing the engine with default symbolic values:
 
 ```
 >>> from miasm2.ir.symbexec import SymbolicExecutionEngine
->>> sb = SymbolicExecutionEngine(ira, machine.mn.regs.regs_init)
+>>> sb = SymbolicExecutionEngine(ira)
 ```
 
 Launching the execution:
@@ -285,135 +286,203 @@ Launching the execution:
 ```
 >>> symbolic_pc = sb.run_at(0)
 >>> print symbolic_pc
-((ECX_init+0x4)[0:8]+0xFF)?(0xB,0x10)
+((ECX + 0x4)[0:8] + 0xFF)?(0xB,0x10)
 ```
 
 Same, with step logs (only changes are displayed):
 
 ```
->>> sb = SymbolicExecutionEngine(ira, machine.mn.regs.regs_init)
+>>> sb = SymbolicExecutionEngine(ira)
 >>> symbolic_pc = sb.run_at(0, step=True)
+Instr LEA        ECX, DWORD PTR [ECX + 0x4]
+Assignblk:
+ECX = ECX + 0x4
 ________________________________________________________________________________
-ECX (ECX_init+0x4)
+ECX                = ECX + 0x4
 ________________________________________________________________________________
-ECX (ECX_init+0x4)
-EBX (EBX_init+0x1)
+Instr LEA        EBX, DWORD PTR [EBX + 0x1]
+Assignblk:
+EBX = EBX + 0x1
 ________________________________________________________________________________
-zf ((ECX_init+0x4)[0:8]+0xFF)?(0x0,0x1)
-nf ((ECX_init+0x4)[0:8]+0xFF)[7:8]
-pf (parity ((ECX_init+0x4)[0:8]+0xFF))
-of ((((ECX_init+0x4)[0:8]+0xFF)^(ECX_init+0x4)[0:8])&((ECX_init+0x4)[0:8]^0x1))[7:8]
-cf (((((ECX_init+0x4)[0:8]+0xFF)^(ECX_init+0x4)[0:8])&((ECX_init+0x4)[0:8]^0x1))^((ECX_init+0x4)[0:8]+0xFF)^(ECX_init+0x4)[0:8]^0x1)[7:8]
-af (((ECX_init+0x4)[0:8]+0xFF)&0x10)?(0x1,0x0)
-ECX (ECX_init+0x4)
-EBX (EBX_init+0x1)
+EBX                = EBX + 0x1
+ECX                = ECX + 0x4
 ________________________________________________________________________________
-IRDst ((ECX_init+0x4)[0:8]+0xFF)?(0xB,0x10)
-zf ((ECX_init+0x4)[0:8]+0xFF)?(0x0,0x1)
-nf ((ECX_init+0x4)[0:8]+0xFF)[7:8]
-pf (parity ((ECX_init+0x4)[0:8]+0xFF))
-of ((((ECX_init+0x4)[0:8]+0xFF)^(ECX_init+0x4)[0:8])&((ECX_init+0x4)[0:8]^0x1))[7:8]
-cf (((((ECX_init+0x4)[0:8]+0xFF)^(ECX_init+0x4)[0:8])&((ECX_init+0x4)[0:8]^0x1))^((ECX_init+0x4)[0:8]+0xFF)^(ECX_init+0x4)[0:8]^0x1)[7:8]
-af (((ECX_init+0x4)[0:8]+0xFF)&0x10)?(0x1,0x0)
-EIP ((ECX_init+0x4)[0:8]+0xFF)?(0xB,0x10)
-ECX (ECX_init+0x4)
-EBX (EBX_init+0x1)
+Instr CMP        CL, 0x1
+Assignblk:
+zf = (ECX[0:8] + -0x1)?(0x0,0x1)
+nf = (ECX[0:8] + -0x1)[7:8]
+pf = parity((ECX[0:8] + -0x1) & 0xFF)
+of = ((ECX[0:8] ^ (ECX[0:8] + -0x1)) & (ECX[0:8] ^ 0x1))[7:8]
+cf = (((ECX[0:8] ^ 0x1) ^ (ECX[0:8] + -0x1)) ^ ((ECX[0:8] ^ (ECX[0:8] + -0x1)) & (ECX[0:8] ^ 0x1)))[7:8]
+af = ((ECX[0:8] ^ 0x1) ^ (ECX[0:8] + -0x1))[4:5]
+________________________________________________________________________________
+af                 = (((ECX + 0x4)[0:8] + 0xFF) ^ (ECX + 0x4)[0:8] ^ 0x1)[4:5]
+pf                 = parity((ECX + 0x4)[0:8] + 0xFF)
+zf                 = ((ECX + 0x4)[0:8] + 0xFF)?(0x0,0x1)
+ECX                = ECX + 0x4
+of                 = ((((ECX + 0x4)[0:8] + 0xFF) ^ (ECX + 0x4)[0:8]) & ((ECX + 0x4)[0:8] ^ 0x1))[7:8]
+nf                 = ((ECX + 0x4)[0:8] + 0xFF)[7:8]
+cf                 = (((((ECX + 0x4)[0:8] + 0xFF) ^ (ECX + 0x4)[0:8]) & ((ECX + 0x4)[0:8] ^ 0x1)) ^ ((ECX + 0x4)[0:8] + 0xFF) ^ (ECX + 0x4)[0:8] ^ 0x1)[7:8]
+EBX                = EBX + 0x1
+________________________________________________________________________________
+Instr JZ         loc_key_1
+Assignblk:
+IRDst = zf?(loc_key_1,loc_key_2)
+EIP = zf?(loc_key_1,loc_key_2)
+________________________________________________________________________________
+af                 = (((ECX + 0x4)[0:8] + 0xFF) ^ (ECX + 0x4)[0:8] ^ 0x1)[4:5]
+EIP                = ((ECX + 0x4)[0:8] + 0xFF)?(0xB,0x10)
+pf                 = parity((ECX + 0x4)[0:8] + 0xFF)
+IRDst              = ((ECX + 0x4)[0:8] + 0xFF)?(0xB,0x10)
+zf                 = ((ECX + 0x4)[0:8] + 0xFF)?(0x0,0x1)
+ECX                = ECX + 0x4
+of                 = ((((ECX + 0x4)[0:8] + 0xFF) ^ (ECX + 0x4)[0:8]) & ((ECX + 0x4)[0:8] ^ 0x1))[7:8]
+nf                 = ((ECX + 0x4)[0:8] + 0xFF)[7:8]
+cf                 = (((((ECX + 0x4)[0:8] + 0xFF) ^ (ECX + 0x4)[0:8]) & ((ECX + 0x4)[0:8] ^ 0x1)) ^ ((ECX + 0x4)[0:8] + 0xFF) ^ (ECX + 0x4)[0:8] ^ 0x1)[7:8]
+EBX                = EBX + 0x1
+________________________________________________________________________________
+>>>
 ```
 
 
 Retry execution with a concrete ECX. Here, the symbolic / concolic execution reach the shellcode's end:
 
 ```
->>> from miasm2.expression.expression import ExprInt32
->>> sb.symbols[machine.mn.regs.ECX] = ExprInt32(-3)
+>>> from miasm2.expression.expression import ExprInt
+>>> sb.symbols[machine.mn.regs.ECX] = ExprInt(-3, 32)
 >>> symbolic_pc = sb.run_at(0, step=True)
+Instr LEA        ECX, DWORD PTR [ECX + 0x4]
+Assignblk:
+ECX = ECX + 0x4
 ________________________________________________________________________________
-ECX 0x1
+af                 = (((ECX + 0x4)[0:8] + 0xFF) ^ (ECX + 0x4)[0:8] ^ 0x1)[4:5]
+EIP                = ((ECX + 0x4)[0:8] + 0xFF)?(0xB,0x10)
+pf                 = parity((ECX + 0x4)[0:8] + 0xFF)
+IRDst              = ((ECX + 0x4)[0:8] + 0xFF)?(0xB,0x10)
+zf                 = ((ECX + 0x4)[0:8] + 0xFF)?(0x0,0x1)
+ECX                = 0x1
+of                 = ((((ECX + 0x4)[0:8] + 0xFF) ^ (ECX + 0x4)[0:8]) & ((ECX + 0x4)[0:8] ^ 0x1))[7:8]
+nf                 = ((ECX + 0x4)[0:8] + 0xFF)[7:8]
+cf                 = (((((ECX + 0x4)[0:8] + 0xFF) ^ (ECX + 0x4)[0:8]) & ((ECX + 0x4)[0:8] ^ 0x1)) ^ ((ECX + 0x4)[0:8] + 0xFF) ^ (ECX + 0x4)[0:8] ^ 0x1)[7:8]
+EBX                = EBX + 0x1
 ________________________________________________________________________________
-ECX 0x1
-EBX (EBX_init+0x1)
+Instr LEA        EBX, DWORD PTR [EBX + 0x1]
+Assignblk:
+EBX = EBX + 0x1
 ________________________________________________________________________________
-zf 0x1
-nf 0x0
-pf 0x1
-of 0x0
-cf 0x0
-af 0x0
-ECX 0x1
-EBX (EBX_init+0x1)
+af                 = (((ECX + 0x4)[0:8] + 0xFF) ^ (ECX + 0x4)[0:8] ^ 0x1)[4:5]
+EIP                = ((ECX + 0x4)[0:8] + 0xFF)?(0xB,0x10)
+pf                 = parity((ECX + 0x4)[0:8] + 0xFF)
+IRDst              = ((ECX + 0x4)[0:8] + 0xFF)?(0xB,0x10)
+zf                 = ((ECX + 0x4)[0:8] + 0xFF)?(0x0,0x1)
+ECX                = 0x1
+of                 = ((((ECX + 0x4)[0:8] + 0xFF) ^ (ECX + 0x4)[0:8]) & ((ECX + 0x4)[0:8] ^ 0x1))[7:8]
+nf                 = ((ECX + 0x4)[0:8] + 0xFF)[7:8]
+cf                 = (((((ECX + 0x4)[0:8] + 0xFF) ^ (ECX + 0x4)[0:8]) & ((ECX + 0x4)[0:8] ^ 0x1)) ^ ((ECX + 0x4)[0:8] + 0xFF) ^ (ECX + 0x4)[0:8] ^ 0x1)[7:8]
+EBX                = EBX + 0x2
 ________________________________________________________________________________
-IRDst 0x10
-zf 0x1
-nf 0x0
-pf 0x1
-of 0x0
-cf 0x0
-af 0x0
-EIP 0x10
-ECX 0x1
-EBX (EBX_init+0x1)
+Instr CMP        CL, 0x1
+Assignblk:
+zf = (ECX[0:8] + -0x1)?(0x0,0x1)
+nf = (ECX[0:8] + -0x1)[7:8]
+pf = parity((ECX[0:8] + -0x1) & 0xFF)
+of = ((ECX[0:8] ^ (ECX[0:8] + -0x1)) & (ECX[0:8] ^ 0x1))[7:8]
+cf = (((ECX[0:8] ^ 0x1) ^ (ECX[0:8] + -0x1)) ^ ((ECX[0:8] ^ (ECX[0:8] + -0x1)) & (ECX[0:8] ^ 0x1)))[7:8]
+af = ((ECX[0:8] ^ 0x1) ^ (ECX[0:8] + -0x1))[4:5]
 ________________________________________________________________________________
-IRDst 0x10
-zf 0x1
-nf 0x0
-pf 0x1
-of 0x0
-cf 0x0
-af 0x0
-EIP 0x10
-ECX 0x1
-EBX (EBX_init+0x2)
+af                 = 0x0
+EIP                = ((ECX + 0x4)[0:8] + 0xFF)?(0xB,0x10)
+pf                 = 0x1
+IRDst              = ((ECX + 0x4)[0:8] + 0xFF)?(0xB,0x10)
+zf                 = 0x1
+ECX                = 0x1
+of                 = 0x0
+nf                 = 0x0
+cf                 = 0x0
+EBX                = EBX + 0x2
 ________________________________________________________________________________
-IRDst 0x13
-zf 0x1
-nf 0x0
-pf 0x1
-of 0x0
-cf 0x0
-af 0x0
-EIP 0x10
-ECX 0x1
-EBX (EBX_init+0x2)
+Instr JZ         loc_key_1
+Assignblk:
+IRDst = zf?(loc_key_1,loc_key_2)
+EIP = zf?(loc_key_1,loc_key_2)
 ________________________________________________________________________________
-IRDst 0x13
-zf 0x1
-nf 0x0
-pf 0x1
-of 0x0
-cf 0x0
-af 0x0
-EIP 0x10
-EAX (EBX_init+0x2)
-ECX 0x1
-EBX (EBX_init+0x2)
+af                 = 0x0
+EIP                = 0x10
+pf                 = 0x1
+IRDst              = 0x10
+zf                 = 0x1
+ECX                = 0x1
+of                 = 0x0
+nf                 = 0x0
+cf                 = 0x0
+EBX                = EBX + 0x2
 ________________________________________________________________________________
-IRDst @32[ESP_init]
-zf 0x1
-nf 0x0
-pf 0x1
-of 0x0
-cf 0x0
-af 0x0
-EIP @32[ESP_init]
-EAX (EBX_init+0x2)
-ECX 0x1
-EBX (EBX_init+0x2)
-ESP (ESP_init+0x4)
->>> print symbolic_pc
-@32[ESP_init]
->>> sb.dump_id()
-IRDst @32[ESP_init]
-zf 0x1
-nf 0x0
-pf 0x1
-of 0x0
-cf 0x0
-af 0x0
-EIP @32[ESP_init]
-EAX (EBX_init+0x2)
-ECX 0x1
-EBX (EBX_init+0x2)
-ESP (ESP_init+0x4)
+Instr LEA        EBX, DWORD PTR [EBX + 0x1]
+Assignblk:
+EBX = EBX + 0x1
+________________________________________________________________________________
+af                 = 0x0
+EIP                = 0x10
+pf                 = 0x1
+IRDst              = 0x10
+zf                 = 0x1
+ECX                = 0x1
+of                 = 0x0
+nf                 = 0x0
+cf                 = 0x0
+EBX                = EBX + 0x3
+________________________________________________________________________________
+Instr LEA        EBX, DWORD PTR [EBX + 0x1]
+Assignblk:
+IRDst = loc_key_3
+________________________________________________________________________________
+af                 = 0x0
+EIP                = 0x10
+pf                 = 0x1
+IRDst              = 0x13
+zf                 = 0x1
+ECX                = 0x1
+of                 = 0x0
+nf                 = 0x0
+cf                 = 0x0
+EBX                = EBX + 0x3
+________________________________________________________________________________
+Instr MOV        EAX, EBX
+Assignblk:
+EAX = EBX
+________________________________________________________________________________
+af                 = 0x0
+EIP                = 0x10
+pf                 = 0x1
+IRDst              = 0x13
+zf                 = 0x1
+ECX                = 0x1
+of                 = 0x0
+nf                 = 0x0
+cf                 = 0x0
+EBX                = EBX + 0x3
+EAX                = EBX + 0x3
+________________________________________________________________________________
+Instr RET
+Assignblk:
+IRDst = @32[ESP[0:32]]
+ESP = {ESP[0:32] + 0x4 0 32}
+EIP = @32[ESP[0:32]]
+________________________________________________________________________________
+af                 = 0x0
+EIP                = @32[ESP]
+pf                 = 0x1
+IRDst              = @32[ESP]
+zf                 = 0x1
+ECX                = 0x1
+of                 = 0x0
+nf                 = 0x0
+cf                 = 0x0
+EBX                = EBX + 0x3
+ESP                = ESP + 0x4
+EAX                = EBX + 0x3
+________________________________________________________________________________
+>>>
 ```
 
 
