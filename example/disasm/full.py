@@ -9,6 +9,7 @@ from miasm2.core.interval import interval
 from miasm2.analysis.machine import Machine
 from miasm2.analysis.data_flow import dead_simp, DiGraphDefUse, ReachingDefinitions
 from miasm2.expression.simplifications import expr_simp
+from miasm2.analysis.ssa import SSAPath, SSADiGraph
 
 log = logging.getLogger("dis")
 console_handler = logging.StreamHandler()
@@ -52,6 +53,8 @@ parser.add_argument('-c', "--rawbinary", default=False, action="store_true",
 parser.add_argument('-d', "--defuse", action="store_true",
                     help="Dump the def-use graph in file 'defuse.dot'."
                     "The defuse is dumped after simplifications if -s option is specified")
+parser.add_argument('-p', "--ssa", action="store_true",
+                    help="Generate the ssa form in  'ssa.dot'.")
 
 args = parser.parse_args()
 
@@ -236,3 +239,13 @@ if args.gen_ir:
             modified |= ircfg_a.merge_blocks()
 
         open('graph_irflow_reduced.dot', 'w').write(ircfg_a.dot())
+
+    if args.ssa:
+        heads = ircfg_a.heads()
+        if len(heads) != 1:
+            raise RuntimeError("Your graph should have only one head")
+        head = list(heads)[0]
+        ssa = SSADiGraph(ircfg_a)
+        ssa.transform(head)
+
+        open("ssa.dot", "wb").write(ssa.graph.dot())
