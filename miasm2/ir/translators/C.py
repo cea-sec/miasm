@@ -209,8 +209,8 @@ class TranslatorC(Translator):
         if expr.size in [8, 16, 32, 64, 128]:
             size = expr.size
         else:
-            # Uncommon expression size
-            size = expr.size
+            # Uncommon expression size, use at least uint8
+            size = max(expr.size, 8)
             next_power = 1
             while next_power <= size:
                 next_power <<= 1
