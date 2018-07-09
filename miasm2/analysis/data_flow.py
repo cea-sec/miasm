@@ -121,7 +121,7 @@ class DiGraphDefUse(DiGraph):
 
     def __init__(self, reaching_defs,
                  deref_mem=False, *args, **kwargs):
-        """Instanciate a DiGraphIR
+        """Instanciate a DiGraph
         @blocks: IR blocks
         """
         self._edge_attr = {}
@@ -271,7 +271,7 @@ def dead_simp(irarch, ircfg):
 def _test_merge_next_block(ircfg, loc_key):
     """
     Test if the irblock at @loc_key can be merge with its son
-    @ircfg: DiGraphIR instance
+    @ircfg: IRCFG instance
     @loc_key: LocKey instance of the candidate parent irblock
     """
 
@@ -286,6 +286,7 @@ def _test_merge_next_block(ircfg, loc_key):
     if son not in ircfg.blocks:
         return None
     return son
+
 
 def _do_merge_blocks(ircfg, loc_key, son_loc_key):
     """
@@ -376,7 +377,7 @@ def _remove_to_son(ircfg, loc_key, son_loc_key):
     - irblock at @loc_key is a pure jump block
     - @loc_key is not an entry point (can be removed)
 
-    @irblock: DiGraphIR
+    @irblock: IRCFG instance
     @loc_key: LocKey instance of the parent irblock
     @son_loc_key: LocKey instance of the son irblock
     """
@@ -450,7 +451,7 @@ def merge_blocks(ircfg, loc_key_entries):
 
     Return True if at least an irblock has been modified
 
-    @ircfg: DiGraphIR instance
+    @ircfg: IRCFG instance
     @loc_key_entries: loc_key to keep
     """
 
@@ -490,7 +491,7 @@ def remove_empty_assignblks(ircfg):
     Remove empty assignblks in irblocks of @ircfg
     Return True if at least an irblock has been modified
 
-    @ircfg: DiGraphIR
+    @ircfg: IRCFG instance
     """
     modified = False
     for loc_key, block in ircfg.blocks.iteritems():

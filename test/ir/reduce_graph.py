@@ -6,7 +6,7 @@ from miasm2.expression.expression import ExprId, ExprInt, ExprAff, ExprCond, \
 
 from miasm2.core.locationdb import LocationDB
 from miasm2.ir.analysis import ira
-from miasm2.ir.ir import IRBlock, AssignBlock, DiGraphIR
+from miasm2.ir.ir import IRBlock, AssignBlock, IRCFG
 from miasm2.analysis.data_flow import merge_blocks
 
 loc_db = LocationDB()

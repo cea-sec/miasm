@@ -451,12 +451,12 @@ class irbloc(IRBlock):
         super(irbloc, self).__init__(loc_key, irs)
 
 
-class DiGraphIR(DiGraph):
+class IRCFG(DiGraph):
 
     """DiGraph for IR instances"""
 
     def __init__(self, irdst, loc_db, blocks=None, *args, **kwargs):
-        """Instanciate a DiGraphIR
+        """Instanciate a IRCFG
         @loc_db: LocationDB instance
         @blocks: IR blocks
         """
@@ -465,7 +465,7 @@ class DiGraphIR(DiGraph):
             blocks = {}
         self._blocks = blocks
         self._irdst = irdst
-        super(DiGraphIR, self).__init__(*args, **kwargs)
+        super(IRCFG, self).__init__(*args, **kwargs)
 
     @property
     def IRDst(self):
@@ -477,7 +477,7 @@ class DiGraphIR(DiGraph):
 
     def add_irblock(self, irblock):
         """
-        Add the @irblock to the current DiGraphIR
+        Add the @irblock to the current IRCFG
         @irblock: IRBlock instance
         """
         self.blocks[irblock.loc_key] = irblock
@@ -547,7 +547,7 @@ class DiGraphIR(DiGraph):
         node
         """
         self._dot_offset = offset
-        return super(DiGraphIR, self).dot()
+        return super(IRCFG, self).dot()
 
     def get_loc_key(self, addr):
         """Transforms an ExprId/ExprInt/loc_key/int into a loc_key
@@ -676,6 +676,17 @@ class DiGraphIR(DiGraph):
         return done
 
 
+class DiGraphIR(IRCFG):
+    """
+    DEPRECATED object
+    Use IRCFG instead of DiGraphIR
+    """
+
+    def __init__(self, irdst, loc_db, blocks=None, *args, **kwargs):
+        warnings.warn('DEPRECATION WARNING: use "IRCFG" instead of "DiGraphIR"')
+        super(IRCFG, self).__init__(irdst, loc_db, blocks=None, *args, **kwargs)
+
+
 class IntermediateRepresentation(object):
     """
     Intermediate representation object
@@ -696,17 +707,17 @@ class IntermediateRepresentation(object):
 
     def new_ircfg(self, *args, **kwargs):
         """
-        Return a new instance of DiGraphIR
+        Return a new instance of IRCFG
         """
-        return DiGraphIR(self.IRDst, self.loc_db, *args, **kwargs)
+        return IRCFG(self.IRDst, self.loc_db, *args, **kwargs)
 
     def new_ircfg_from_asmcfg(self, asmcfg, *args, **kwargs):
         """
-        Return a new instance of DiGraphIR from an @asmcfg
+        Return a new instance of IRCFG from an @asmcfg
         @asmcfg: AsmCFG instance
         """
 
-        ircfg = DiGraphIR(self.IRDst, self.loc_db, *args, **kwargs)
+        ircfg = IRCFG(self.IRDst, self.loc_db, *args, **kwargs)
         for block in asmcfg.blocks:
             self.add_asmblock_to_ircfg(block, ircfg)
         return ircfg
@@ -770,7 +781,7 @@ class IntermediateRepresentation(object):
         """
         Add a native block to the current IR
         @block: native assembly block
-        @ircfg: DiGraphIR instance
+        @ircfg: IRCFG instance
         @gen_pc_updt: insert PC update effects between instructions
         """
 
