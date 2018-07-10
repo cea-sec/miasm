@@ -452,7 +452,7 @@ class DependencyGraph(object):
                  follow_call=True):
         """Create a DependencyGraph linked to @ircfg
 
-        @ircfg: DiGraphIR instance
+        @ircfg: IRCFG instance
         @implicit: (optional) Track IRDst for each block in the resulting path
 
         Following arguments define filters used to generate dependencies
@@ -590,7 +590,7 @@ class DependencyGraph(object):
 
     def get(self, loc_key, elements, line_nb, heads):
         """Compute the dependencies of @elements at line number @line_nb in
-        the block named @loc_key in the current DiGraphIR, before the execution of
+        the block named @loc_key in the current IRCFG, before the execution of
         this line. Dependency check stop if one of @heads is reached
         @loc_key: LocKey instance
         @element: set of Expr instances

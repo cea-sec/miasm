@@ -7,7 +7,8 @@ from miasm2.core.asmblock import log_asmblock, AsmCFG
 from miasm2.expression.expression import ExprId
 from miasm2.core.interval import interval
 from miasm2.analysis.machine import Machine
-from miasm2.analysis.data_flow import dead_simp, DiGraphDefUse, ReachingDefinitions
+from miasm2.analysis.data_flow import dead_simp, DiGraphDefUse, \
+    ReachingDefinitions, merge_blocks, remove_empty_assignblks
 from miasm2.expression.simplifications import expr_simp
 from miasm2.analysis.ssa import SSAPath, SSADiGraph
 
@@ -119,6 +120,7 @@ all_funcs_blocks = {}
 done_interval = interval()
 finish = False
 
+entry_points = set()
 # Main disasm loop
 while not finish and todo:
     while not finish and todo:
@@ -127,6 +129,7 @@ while not finish and todo:
             continue
         done.add(ad)
         asmcfg = mdis.dis_multiblock(ad)
+        entry_points.add(mdis.loc_db.get_offset_location(ad))
 
         log.info('func ok %.16x (%d)' % (ad, len(all_funcs)))
 
@@ -229,22 +232,21 @@ if args.gen_ir:
     open('graph_irflow_raw.dot', 'w').write(out)
 
     if args.simplify > 1:
+
         ircfg_a.simplify(expr_simp)
         modified = True
         while modified:
             modified = False
             modified |= dead_simp(ir_arch_a, ircfg_a)
-            modified |= ircfg_a.remove_empty_assignblks()
-            modified |= ircfg_a.remove_jmp_blocks()
-            modified |= ircfg_a.merge_blocks()
+            modified |= remove_empty_assignblks(ircfg_a)
+            modified |= merge_blocks(ircfg_a, entry_points)
 
         open('graph_irflow_reduced.dot', 'w').write(ircfg_a.dot())
 
     if args.ssa:
-        heads = ircfg_a.heads()
-        if len(heads) != 1:
+        if len(entry_points) != 1:
             raise RuntimeError("Your graph should have only one head")
-        head = list(heads)[0]
+        head = list(entry_points)[0]
         ssa = SSADiGraph(ircfg_a)
         ssa.transform(head)
 
