@@ -2306,7 +2306,8 @@ reg_tests = [
      "0f50c2"),
     (m64, "00000000    MOVMSKPS   R8D, XMM2",
      "440f50c2"),
-
+    (m64, "00000000    MOVMSKPD   EAX, XMM2",
+     "660F50C2"),
     (m32, "00000000    ADDSS      XMM2, DWORD PTR [ECX]",
      "f30f5811"),
     (m32, "00000000    ADDSS      XMM1, XMM2",
@@ -2350,6 +2351,32 @@ reg_tests = [
      "f20f5f8337bd2c00"),
     (m32, "00000000    MAXSS      XMM0, DWORD PTR [EBX + 0x2CBD37]",
      "f30f5f8337bd2c00"),
+
+
+    (m32, "00000000    MINPS      XMM0, XMM2",
+     "0F5DC2"),
+    (m32, "00000000    MINSS      XMM0, XMM3",
+     "F30F5DC3"),
+    (m32, "00000000    MINPD      XMM0, XMM4",
+     "660F5DC4"),
+    (m32, "00000000    MINSD      XMM0, XMM5",
+     "F20F5DC5"),
+    (m32, "00000000    MAXPS      XMM0, XMM6",
+     "0F5FC6"),
+    (m32, "00000000    MAXPD      XMM0, XMM1",
+     "660F5FC1"),
+    (m32, "00000000    MAXSD      XMM0, XMM2",
+     "F20F5FC2"),
+    (m32, "00000000    MAXSS      XMM0, XMM7",
+     "F30F5FC7"),
+    (m32, "00000000    CMPEQPS    XMM0, XMM3",
+     "0FC2C300"),
+    (m32, "00000000    CMPEQSS    XMM0, XMM4",
+     "F30FC2C400"),
+    (m32, "00000000    CMPEQPD    XMM0, XMM5",
+     "660FC2C500"),
+    (m32, "00000000    CMPEQSD    XMM0, XMM6",
+     "F20FC2C600"),
 
     (m32, "00000000    CVTDQ2PD   XMM0, XMM3",
      "f30fe6c3"),
@@ -2484,6 +2511,9 @@ reg_tests = [
 
     (m64, "00000000    MOVQ       RCX, XMM0",
      "66480F7EC1"),
+
+    (m32, "00000000    MOVQ2DQ    XMM0, MM1",
+     "F30FD6C1"),
 
     (m32, "00000000    PAND       MM2, MM6",
      "0fdbd6"),
@@ -2671,6 +2701,14 @@ reg_tests = [
     (m32, "00000000    PSRLW      XMM6, 0x5",
     "660F71D605"),
 
+    (m32, "00000000    PSRAW      XMM0, 0x7",
+     "660F71E007"),
+    (m32, "00000000    PSRAW      XMM0, XMM3",
+     "660FE1C3"),
+    (m32, "00000000    PSRAD      XMM0, 0x7",
+     "660F72E007"),
+    (m32, "00000000    PSRAD      XMM0, XMM3",
+     "660FE2C3"),
 
     (m32, "00000000    PSRLQ      MM2, QWORD PTR [EDX]",
     "0FD312"),
