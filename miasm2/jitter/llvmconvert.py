@@ -215,7 +215,7 @@ class LLVMContext_JIT(LLVMContext):
 
         fc = {}
         p8 = llvm_ir.PointerType(LLVMType.IntType(8))
-        for i in [8, 16, 32, 64, 128]:
+        for i in [8, 16, 32, 64]:
             fc["MEM_LOOKUP_%02d" % i] = {"ret": LLVMType.IntType(i),
                                          "args": [p8,
                                                   LLVMType.IntType(64)]}
@@ -224,6 +224,22 @@ class LLVMContext_JIT(LLVMContext):
                                         "args": [p8,
                                                  LLVMType.IntType(64),
                                                  LLVMType.IntType(i)]}
+
+        fc["MEM_LOOKUP_INT_BN_TO_PTR"] = {"ret": llvm_ir.VoidType(),
+                                          "args": [
+                                              p8,
+                                              LLVMType.IntType(32),
+                                              LLVMType.IntType(64),
+                                              p8
+                                          ]}
+        fc["MEM_WRITE_INT_BN_FROM_PTR"] = {"ret": llvm_ir.VoidType(),
+                                           "args": [
+                                               p8,
+                                               LLVMType.IntType(32),
+                                               LLVMType.IntType(64),
+                                               p8,
+                                           ]}
+
         fc["reset_memory_access"] = {"ret": llvm_ir.VoidType(),
                                      "args": [p8,
                                      ]}
@@ -307,25 +323,86 @@ class LLVMContext_JIT(LLVMContext):
     def memory_lookup(self, func, addr, size):
         """Perform a memory lookup at @addr of size @size (in bit)"""
         builder = func.builder
-        fc_name = "MEM_LOOKUP_%02d" % size
-        fc_ptr = self.mod.get_global(fc_name)
-        addr_casted = builder.zext(addr,
-                                   LLVMType.IntType(64))
+        if size <= 64:
+            fc_name = "MEM_LOOKUP_%02d" % size
+            fc_ptr = self.mod.get_global(fc_name)
+            addr_casted = builder.zext(addr, LLVMType.IntType(64))
+            ret = builder.call(
+                fc_ptr, [func.local_vars["jitcpu"],addr_casted]
+            )
+        else:
+            # Miasm uses a memory lookup function which returns a bn_t for its
+            # result. We cannot simply translate this into IntType. The trick
+            # here is to use the function MEM_LOOKUP_INT_BN_TO_PTR which has a
+            # different interface: the resulting bn_t is passed through a char*
+            # argument.
+            #
+            # WARNING: Here, we use the fact that the serialisation of LLVM
+            # IntType is the *same* as the bn_t structure.
 
-        ret = builder.call(fc_ptr, [func.local_vars["jitcpu"],
-                                    addr_casted])
+            fc_name = "MEM_LOOKUP_INT_BN_TO_PTR"
+            fc_ptr = self.mod.get_global(fc_name)
+            addr_casted = builder.zext(addr, LLVMType.IntType(64))
+            size_cst = llvm_ir.Constant(LLVMType.IntType(32), size)
+
+            value_ptr = builder.alloca(llvm_ir.IntType(size))
+            value_ptr_u8 = builder.bitcast(
+                value_ptr,
+                LLVMType.IntType(8).as_pointer()
+            )
+
+
+            builder.call(
+                fc_ptr,
+                [
+                    func.local_vars["jitcpu"],
+                    size_cst,
+                    addr_casted,
+                    value_ptr_u8
+                ]
+            )
+            ret = builder.load(value_ptr)
+
         return ret
 
     def memory_write(self, func, addr, size, value):
         """Perform a memory write at @addr of size @size (in bit) with LLVM IR @value"""
         # Function call
         builder = func.builder
-        fc_name = "MEM_WRITE_%02d" % size
-        fc_ptr = self.mod.get_global(fc_name)
-        dst_casted = builder.zext(addr, LLVMType.IntType(64))
-        builder.call(fc_ptr, [func.local_vars["jitcpu"],
-                              dst_casted,
-                              value])
+        if size <= 64:
+            fc_name = "MEM_WRITE_%02d" % size
+            fc_ptr = self.mod.get_global(fc_name)
+            dst_casted = builder.zext(addr, LLVMType.IntType(64))
+            builder.call(
+                fc_ptr,
+                [
+                    func.local_vars["jitcpu"],
+                    dst_casted,
+                    value
+                ]
+            )
+        else:
+            # The same trick as described in MEM_LOOKUP_INT_BN_TO_PTR is used
+            # here.
+
+            fc_name = "MEM_WRITE_INT_BN_FROM_PTR"
+            fc_ptr = self.mod.get_global(fc_name)
+            addr_casted = builder.zext(addr, LLVMType.IntType(64))
+            size_cst = llvm_ir.Constant(LLVMType.IntType(32), size)
+
+            ret = builder.alloca(value.type)
+            builder.store(value, ret)
+            value_ptr = builder.bitcast(ret, llvm_ir.IntType(8).as_pointer())
+
+            ret = builder.call(
+                fc_ptr,
+                [
+                    func.local_vars["jitcpu"],
+                    size_cst,
+                    addr_casted,
+                    value_ptr,
+                ]
+            )
 
 
     @staticmethod

@@ -26,7 +26,6 @@
 #define __LITTLE_ENDIAN _LITTLE_ENDIAN
 #endif
 
-#define uint128_t __uint128_t
 
 #define Endian16_Swap(value) \
       ((((uint16_t)((value) & 0x00FF)) << 8) | \
@@ -48,25 +47,6 @@
 	 ((((uint64_t)value)>>40) & 0x000000000000FF00ULL)  |	      \
 	 ((((uint64_t)value)>>56) & 0x00000000000000FFULL))
 
-#define Endian128_Swap(value)                                   \
-	(((((uint128_t)value)>>120) & 0xFF)             |	\
-	 ((((uint128_t)value)>>112) & 0xFF) << 8	|	\
-	 ((((uint128_t)value)>>104) & 0xFF) << 16       |	\
-	 ((((uint128_t)value)>>96) & 0xFF) << 24	|	\
-	 ((((uint128_t)value)>>88) & 0xFF) << 32	|	\
-	 ((((uint128_t)value)>>80) & 0xFF) << 40	|	\
-	 ((((uint128_t)value)>>72) & 0xFF) << 48	|	\
-	 ((((uint128_t)value)>>64) & 0xFF) << 56	|	\
-	 ((((uint128_t)value)>>56) & 0xFF) << 64	|	\
-	 ((((uint128_t)value)>>48) & 0xFF) << 72	|	\
-	 ((((uint128_t)value)>>40) & 0xFF) << 80	|	\
-	 ((((uint128_t)value)>>32) & 0xFF) << 88	|	\
-	 ((((uint128_t)value)>>24) & 0xFF) << 96	|	\
-	 ((((uint128_t)value)>>16) & 0xFF) << 104       |	\
-	 ((((uint128_t)value)>>8) & 0xFF) << 112	|	\
-	 ((((uint128_t)value)) & 0xFF) << 120)
-
-#define MASK_128 ((uint128_t) 0xFFFFFFFFFFFFFFFFULL | (uint128_t) 0xFFFFFFFFFFFFFFFFULL << 64)
 
 LIST_HEAD(code_bloc_list_head, code_bloc_node);
 LIST_HEAD(memory_breakpoint_info_head, memory_breakpoint_info);
@@ -193,13 +173,11 @@ void vm_MEM_WRITE_08(vm_mngr_t* vm_mngr, uint64_t addr, unsigned char src);
 void vm_MEM_WRITE_16(vm_mngr_t* vm_mngr, uint64_t addr, unsigned short src);
 void vm_MEM_WRITE_32(vm_mngr_t* vm_mngr, uint64_t addr, unsigned int src);
 void vm_MEM_WRITE_64(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t src);
-void vm_MEM_WRITE_128(vm_mngr_t* vm_mngr, uint64_t addr, uint128_t src);
 
 unsigned char vm_MEM_LOOKUP_08(vm_mngr_t* vm_mngr, uint64_t addr);
 unsigned short vm_MEM_LOOKUP_16(vm_mngr_t* vm_mngr, uint64_t addr);
 unsigned int vm_MEM_LOOKUP_32(vm_mngr_t* vm_mngr, uint64_t addr);
 uint64_t vm_MEM_LOOKUP_64(vm_mngr_t* vm_mngr, uint64_t addr);
-uint128_t vm_MEM_LOOKUP_128(vm_mngr_t* vm_mngr, uint128_t addr);
 
 void MEM_WRITE_08_PASSTHROUGH(uint64_t addr, unsigned char src);
 void MEM_WRITE_16_PASSTHROUGH(uint64_t addr, unsigned short src);

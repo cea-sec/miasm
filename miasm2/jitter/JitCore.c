@@ -5,6 +5,7 @@
 #include "queue.h"
 #include "vm_mngr.h"
 #include "vm_mngr_py.h"
+#include "bn.h"
 #include "JitCore.h"
 
 
@@ -74,9 +75,85 @@ uint64_t __attribute__((weak)) MEM_LOOKUP_64(JitCpu* jitcpu, uint64_t addr)
 	return vm_MEM_LOOKUP_64(&(jitcpu->pyvm->vm_mngr), addr);
 }
 
-uint128_t __attribute__((weak)) MEM_LOOKUP_128(JitCpu* jitcpu, uint64_t addr)
+
+bn_t MEM_LOOKUP_BN_BN(JitCpu* jitcpu, int size, bn_t addr)
 {
-	return vm_MEM_LOOKUP_128(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr);
+	uint64_t ptr;
+	int i;
+	uint8_t tmp;
+	bn_t val = bignum_from_int(0);
+
+	ptr = bignum_to_uint64(addr);
+
+
+	for (i=0; i < size; i += 8) {
+		tmp = vm_MEM_LOOKUP_08(&((VmMngr*)jitcpu->pyvm)->vm_mngr, ptr);
+		ptr += 1;
+		val = bignum_or(val, bignum_lshift(bignum_from_int(tmp), i));
+	}
+
+	return val;
+}
+
+
+uint64_t MEM_LOOKUP_BN_INT(JitCpu* jitcpu, int size, bn_t addr)
+{
+	uint64_t ptr;
+	uint64_t val = 0;
+
+	ptr = bignum_to_uint64(addr);
+
+	switch (size) {
+		case 8:
+			val = vm_MEM_LOOKUP_08(&(jitcpu->pyvm->vm_mngr), ptr);
+			break;
+		case 16:
+			val = vm_MEM_LOOKUP_16(&(jitcpu->pyvm->vm_mngr), ptr);
+			break;
+		case 32:
+			val = vm_MEM_LOOKUP_32(&(jitcpu->pyvm->vm_mngr), ptr);
+			break;
+		case 64:
+			val = vm_MEM_LOOKUP_64(&(jitcpu->pyvm->vm_mngr), ptr);
+			break;
+		default:
+			fprintf(stderr, "Error: bad READ size %d\n", size);
+			exit(-1);
+			break;
+	}
+
+	return val;
+}
+
+
+
+bn_t MEM_LOOKUP_INT_BN(JitCpu* jitcpu, int size, uint64_t addr)
+{
+	int i;
+	uint8_t tmp;
+	bn_t val = bignum_from_int(0);
+
+	for (i=0; i < size; i += 8) {
+		tmp = vm_MEM_LOOKUP_08(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr);
+		addr += 1;
+		val = bignum_or(val, bignum_lshift(bignum_from_int(tmp), i));
+	}
+
+	return val;
+}
+
+
+void MEM_LOOKUP_INT_BN_TO_PTR(JitCpu* jitcpu, int size, uint64_t addr, char* ptr)
+{
+	bn_t ret;
+
+	if (size % 8) {
+		fprintf(stderr, "Bad size %d\n", size);
+		exit(-1);
+	}
+
+	ret = MEM_LOOKUP_INT_BN(jitcpu, size, addr);
+	memcpy(ptr, (char*)&ret, size / 8);
 }
 
 void __attribute__((weak)) MEM_WRITE_08(JitCpu* jitcpu, uint64_t addr, uint8_t src)
@@ -99,10 +176,77 @@ void __attribute__((weak)) MEM_WRITE_64(JitCpu* jitcpu, uint64_t addr, uint64_t 
 	vm_MEM_WRITE_64(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr, src);
 }
 
-void __attribute__((weak)) MEM_WRITE_128(JitCpu* jitcpu, uint64_t addr, uint128_t src)
+
+void MEM_WRITE_BN_BN(JitCpu* jitcpu, int size, bn_t addr, bn_t src)
 {
-	vm_MEM_WRITE_128(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr, src);
+	uint64_t ptr;
+	int val;
+	int i;
+
+	ptr = bignum_to_uint64(addr);
+	for (i=0; i < size; i += 8) {
+		val = bignum_to_uint64(src) & 0xFF;
+		vm_MEM_WRITE_08(&((VmMngr*)jitcpu->pyvm)->vm_mngr, ptr, val);
+		ptr += 1;
+		src = bignum_rshift(src, 8);
+	}
 }
+
+
+void MEM_WRITE_BN_INT(JitCpu* jitcpu, int size, bn_t addr, uint64_t src)
+{
+	uint64_t ptr;
+	ptr = bignum_to_uint64(addr);
+
+	switch (size) {
+		case 8:
+			vm_MEM_WRITE_08(&((VmMngr*)jitcpu->pyvm)->vm_mngr, ptr, src);
+			break;
+		case 16:
+			vm_MEM_WRITE_16(&((VmMngr*)jitcpu->pyvm)->vm_mngr, ptr, src);
+			break;
+		case 32:
+			vm_MEM_WRITE_32(&((VmMngr*)jitcpu->pyvm)->vm_mngr, ptr, src);
+			break;
+		case 64:
+			vm_MEM_WRITE_64(&((VmMngr*)jitcpu->pyvm)->vm_mngr, ptr, src);
+			break;
+		default:
+			fprintf(stderr, "Error: bad write size %d\n", size);
+			exit(-1);
+			break;
+	}
+}
+
+void MEM_WRITE_INT_BN(JitCpu* jitcpu, int size, uint64_t addr, bn_t src)
+{
+	int val;
+	int i;
+
+	for (i=0; i < size; i += 8) {
+		val = bignum_to_uint64(src) & 0xFF;
+		vm_MEM_WRITE_08(&((VmMngr*)jitcpu->pyvm)->vm_mngr, addr, val);
+		addr += 1;
+		src = bignum_rshift(src, 8);
+	}
+}
+
+
+void MEM_WRITE_INT_BN_FROM_PTR(JitCpu* jitcpu, int size, uint64_t addr, char* ptr)
+{
+	bn_t val;
+
+	if (size % 8) {
+		fprintf(stderr, "Bad size %d\n", size);
+		exit(-1);
+	}
+
+	val = bignum_from_int(0);
+	memcpy(&val, ptr, size / 8);
+	MEM_WRITE_INT_BN(jitcpu, size, addr, val);
+}
+
+
 
 PyObject* __attribute__((weak)) vm_get_mem(JitCpu *self, PyObject* args)
 {

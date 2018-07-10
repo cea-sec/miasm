@@ -16,6 +16,7 @@ def gen_core(arch, attrib):
     txt += '#include "%s/op_semantics.h"\n' % lib_dir
     txt += '#include "%s/vm_mngr.h"\n' % lib_dir
     txt += '#include "%s/vm_mngr_py.h"\n' % lib_dir
+    txt += '#include "%s/bn.h"\n' % lib_dir
     txt += '#include "%s/JitCore.h"\n' % lib_dir
     txt += '#include "%s/arch/JitCore_%s.h"\n' % (lib_dir, arch.name)
 

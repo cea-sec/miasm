@@ -6,13 +6,16 @@ from miasm2.expression.expression import Expr, ExprId, ExprLoc, ExprInt, \
     ExprMem, ExprCond, LocKey
 from miasm2.ir.ir import IRBlock, AssignBlock
 
-from miasm2.ir.translators.C import TranslatorC
+from miasm2.ir.translators.C import TranslatorC, int_size_to_bn
 from miasm2.core.asmblock import AsmBlockBad
 
 TRANSLATOR_NO_SYMBOL = TranslatorC(loc_db=None)
 
 SIZE_TO_MASK = {size: TRANSLATOR_NO_SYMBOL.from_expr(ExprInt(0, size).mask)
-                for size in (1, 2, 3, 7, 8, 16, 32, 64, 128)}
+                for size in (1, 2, 3, 7, 8, 16, 32, 64)}
+
+
+
 
 
 
@@ -88,7 +91,7 @@ class CGen(object):
 
     CODE_INIT = r"""
     int DST_case;
-    unsigned long long DST_value;
+    uint64_t DST_value;
     vm_cpu_t* mycpu = (vm_cpu_t*)jitcpu->cpu;
 
     goto %s;
@@ -232,7 +235,10 @@ class CGen(object):
             c_prefetch.append('%s = %s;' % (str_dst, str_src))
 
         for var in prefetchers.itervalues():
-            c_var.append("uint%d_t %s;" % (var.size, var))
+            if var.size <= self.translator.NATIVE_INT_MAX_SIZE:
+                c_var.append("uint%d_t %s;" % (var.size, var))
+            else:
+                c_var.append("bn_t %s; // %d" % (var, var.size))
 
         for dst, src in sorted(assignblk.iteritems()):
             src = src.replace_expr(prefetchers)
@@ -244,24 +250,50 @@ class CGen(object):
                     # Dont mask float affectation
                     c_main.append(
                         '%s = (%s);' % (self.id_to_c(new_dst), self.id_to_c(src)))
-                else:
+                elif new_dst.size <= self.translator.NATIVE_INT_MAX_SIZE:
                     c_main.append(
                         '%s = (%s)&%s;' % (self.id_to_c(new_dst),
                                            self.id_to_c(src),
                                            SIZE_TO_MASK[src.size]))
+                else:
+                    c_main.append(
+                        '%s = bignum_mask(%s, %d);' % (
+                            self.id_to_c(new_dst),
+                            self.id_to_c(src),
+                            src.size
+                        )
+                    )
             elif isinstance(dst, ExprMem):
                 ptr = dst.arg.replace_expr(prefetchers)
-                new_dst = ExprMem(ptr, dst.size)
-                str_dst = self.id_to_c(new_dst).replace('MEM_LOOKUP', 'MEM_WRITE')
-                c_mem.append('%s, %s);' % (str_dst[:-1], self.id_to_c(src)))
+                if ptr.size <= self.translator.NATIVE_INT_MAX_SIZE:
+                    new_dst = ExprMem(ptr, dst.size)
+                    str_dst = self.id_to_c(new_dst).replace('MEM_LOOKUP', 'MEM_WRITE')
+                    c_mem.append('%s, %s);' % (str_dst[:-1], self.id_to_c(src)))
+                else:
+                    ptr_str = self.id_to_c(ptr)
+                    if ptr.size <= self.translator.NATIVE_INT_MAX_SIZE:
+                        c_mem.append('%s, %s);' % (str_dst[:-1], self.id_to_c(src)))
+                    else:
+                        if src.size <= self.translator.NATIVE_INT_MAX_SIZE:
+                            c_mem.append('MEM_WRITE_BN_INT(jitcpu, %d, %s, %s);' % (
+                                src.size, ptr_str, self.id_to_c(src))
+                            )
+                        else:
+                            c_mem.append('MEM_WRITE_BN_BN(jitcpu, %d, %s, %s);' % (
+                                src.size, ptr_str, self.id_to_c(src))
+                            )
             else:
                 raise ValueError("Unknown dst")
 
         for dst, new_dst in dst_var.iteritems():
             if dst == self.ir_arch.IRDst:
                 continue
+
             c_updt.append('%s = %s;' % (self.id_to_c(dst), self.id_to_c(new_dst)))
-            c_var.append("uint%d_t %s;" % (new_dst.size, new_dst))
+            if dst.size <= self.translator.NATIVE_INT_MAX_SIZE:
+                c_var.append("uint%d_t %s;" % (new_dst.size, new_dst))
+            else:
+                c_var.append("bn_t %s; // %d" % (new_dst, new_dst.size))
 
         return c_prefetch, c_var, c_main, c_mem, c_updt
 
@@ -284,24 +316,39 @@ class CGen(object):
         """
 
         if isinstance(expr, ExprCond):
-            cond = self.id_to_c(expr.cond)
             src1, src1b = self.traverse_expr_dst(expr.src1, dst2index)
             src2, src2b = self.traverse_expr_dst(expr.src2, dst2index)
+            cond = self.id_to_c(expr.cond)
+            if not expr.cond.size <= self.translator.NATIVE_INT_MAX_SIZE:
+                cond = "(!bignum_is_zero(%s))" % cond
+
             return ("((%s)?(%s):(%s))" % (cond, src1, src2),
                     "((%s)?(%s):(%s))" % (cond, src1b, src2b))
         if isinstance(expr, ExprInt):
             offset = int(expr)
             loc_key = self.ir_arch.loc_db.get_or_create_offset_location(offset)
             self.add_label_index(dst2index, loc_key)
-            return ("%s" % dst2index[loc_key], hex(offset))
+
+            value, int_size = int_size_to_bn(offset, 64)
+            out = hex(offset)
+
+            return ("%s" % dst2index[loc_key], out)
         if expr.is_loc():
             loc_key = expr.loc_key
             offset = self.ir_arch.loc_db.get_location_offset(expr.loc_key)
             if offset is not None:
                 self.add_label_index(dst2index, loc_key)
-                return ("%s" % dst2index[loc_key], hex(offset))
+
+                value, int_size = int_size_to_bn(offset, 64)
+                out = hex(offset)
+
+                return ("%s" % dst2index[loc_key], out)
             self.add_label_index(dst2index, loc_key)
-            return ("%s" % dst2index[loc_key], "0")
+
+            value, int_size = int_size_to_bn(0, 64)
+            out = hex(0)
+
+            return ("%s" % dst2index[loc_key], out)
         dst2index[expr] = -1
         return ("-1", self.id_to_c(expr))
 
@@ -311,7 +358,7 @@ class CGen(object):
         dst2index = {}
         (ret, retb) = self.traverse_expr_dst(dst, dst2index)
         ret = "DST_case = %s;" % ret
-        retb = "DST_value = %s;" % retb
+        retb = 'DST_value = %s;' % retb
         return ['// %s' % dst2index,
                 '%s' % ret,
                 '%s' % retb], dst2index

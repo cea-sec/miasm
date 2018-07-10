@@ -1,10 +1,11 @@
 #ifndef JITCORE_H
 #define JITCORE_H
 
+
+
 #define RAISE(errtype, msg) {PyObject* p; p = PyErr_Format( errtype, msg ); return p;}
 #define RAISE_ret0(errtype, msg) {PyObject* p; p = PyErr_Format( errtype, msg ); return 0;}
 
-#define uint128_t __uint128_t
 
 #define PyGetInt(item, value)						\
 	if (PyInt_Check(item)){						\
@@ -31,23 +32,65 @@
 	}								\
 
 
-#define getset_reg_u128(regname)						\
+#define getset_reg_bn(regname)						\
 	static PyObject *JitCpu_get_ ## regname  (JitCpu *self, void *closure) \
-	{ \
-		return _PyLong_FromByteArray((const unsigned char*) &(((vm_cpu_t*)(self->cpu))->  regname  ), sizeof(uint128_t), /*little_endian*/ 1, /*is_signed*/ 0); \
+	{								\
+		bn_t bn;						\
+		PyObject* py_long;					\
+		PyObject* py_tmp;					\
+		PyObject* cst_32;					\
+		uint64_t tmp;						\
+		py_long = PyLong_FromLong(0);				\
+		cst_32 = PyLong_FromLong(32);				\
+		bn = ((vm_cpu_t*)(self->cpu))->  regname;		\
+		while (!bignum_is_zero(bn)) {				\
+			tmp = bignum_to_uint64(bignum_mask(bn, 32)) & 0xffffffff; \
+			bn = bignum_rshift(bn, 32);			\
+			py_tmp = PyLong_FromLong(tmp);			\
+			py_long = PyObject_CallMethod(py_long, "__lshift__", "O", cst_32); \
+			py_long = PyObject_CallMethod(py_long, "__add__", "O", py_tmp);	\
+		}							\
+		return py_long;						\
 	}								\
+									\
 	static int JitCpu_set_ ## regname  (JitCpu *self, PyObject *value, void *closure) \
 	{								\
-		uint128_t val = 0;					\
-		int i;                                                  \
-		unsigned char bytes[sizeof(uint128_t)];			\
-		_PyLong_AsByteArray((PyLongObject*)value, bytes, sizeof(uint128_t), /*little_endian*/ 1, /*is_signed*/ 0); \
-		for (i = 0; i < sizeof(uint128_t); i++) {               \
-			val |= (uint128_t) bytes[i] << (8 * i);         \
-		}                                                       \
-		((vm_cpu_t*)(self->cpu))->  regname   = val;		\
+		bn_t bn;						\
+		int j;							\
+		PyObject* py_long = value;				\
+		PyObject* py_tmp;					\
+		PyObject* cst_32;					\
+		PyObject* cst_ffffffff;					\
+		uint64_t tmp;						\
+									\
+		/* Ensure py_long is a PyLong */			\
+		if (PyInt_Check(py_long)){				\
+			tmp = (uint64_t)PyInt_AsLong(py_long);		\
+			py_long = PyLong_FromLong(tmp);			\
+		} else if (PyLong_Check(py_long)){			\
+			/* Already PyLong */				\
+		}							\
+		else{							\
+			PyErr_SetString(PyExc_TypeError, "Arg must be int"); \
+			return -1;					\
+		}							\
+									\
+		cst_ffffffff = PyLong_FromLong(0xffffffff);		\
+		cst_32 = PyLong_FromLong(32);				\
+		bn = bignum_from_int(0);				\
+									\
+		for (j = 0; j < BN_BYTE_SIZE; j += 4) {			\
+			py_tmp = PyObject_CallMethod(py_long, "__and__", "O", cst_ffffffff); \
+			tmp = PyLong_AsUnsignedLongMask(py_tmp);	\
+			bn = bignum_lshift(bn, 32);			\
+			bn = bignum_or(bn, bignum_from_uint64(tmp));	\
+			py_long = PyObject_CallMethod(py_long, "__rshift__", "O", cst_32); \
+		}							\
+									\
+		((vm_cpu_t*)(self->cpu))->  regname   = bn;		\
 		return 0;						\
 	}
+
 
 #define getset_reg_u64(regname)						\
 	static PyObject *JitCpu_get_ ## regname  (JitCpu *self, void *closure) \
@@ -97,11 +140,34 @@
 	} while(0);
 
 
+#define get_reg_bn(reg)  do {						\
+		bn_t bn;						\
+		PyObject* py_long;					\
+		PyObject* py_tmp;					\
+		PyObject* cst_32;					\
+		uint64_t tmp;						\
+		py_long = PyLong_FromLong(0);				\
+		cst_32 = PyLong_FromLong(32);				\
+		bn = ((vm_cpu_t*)(self->cpu))->  reg;			\
+		while (!bignum_is_zero(bn)) {				\
+			tmp = bignum_to_uint64(bignum_mask(bn, 32)) & 0xffffffff; \
+			bn = bignum_rshift(bn, 32);			\
+			py_tmp = PyLong_FromLong(tmp);			\
+			py_long = PyObject_CallMethod(py_long, "__lshift__", "O", cst_32); \
+			py_long = PyObject_CallMethod(py_long, "__add__", "O", py_tmp);	\
+		}							\
+		PyDict_SetItemString(dict, #reg, py_long);		\
+		Py_DECREF(py_long);					\
+	} while(0);
+
+
 #define get_reg_off(reg)  do {						\
 		o = PyLong_FromUnsignedLongLong((uint64_t)offsetof(vm_cpu_t, reg)); \
 		PyDict_SetItemString(dict, #reg, o);			\
 		Py_DECREF(o);						\
 	} while(0);
+
+
 
 
 typedef struct {
@@ -120,6 +186,7 @@ typedef struct {
 typedef struct _reg_dict{
     char* name;
     size_t offset;
+    size_t size;
 } reg_dict;
 
 
@@ -140,13 +207,26 @@ uint8_t MEM_LOOKUP_08(JitCpu* jitcpu, uint64_t addr);
 uint16_t MEM_LOOKUP_16(JitCpu* jitcpu, uint64_t addr);
 uint32_t MEM_LOOKUP_32(JitCpu* jitcpu, uint64_t addr);
 uint64_t MEM_LOOKUP_64(JitCpu* jitcpu, uint64_t addr);
-uint128_t MEM_LOOKUP_128(JitCpu* jitcpu, uint64_t addr);
+
+bn_t MEM_LOOKUP_BN_BN(JitCpu* jitcpu, int size, bn_t addr);
+bn_t MEM_LOOKUP_INT_BN(JitCpu* jitcpu, int size, uint64_t addr);
+
+uint64_t MEM_LOOKUP_BN_INT(JitCpu* jitcpu, int size, bn_t addr);
+
 void MEM_WRITE_08(JitCpu* jitcpu, uint64_t addr, uint8_t src);
 void MEM_WRITE_16(JitCpu* jitcpu, uint64_t addr, uint16_t src);
 void MEM_WRITE_32(JitCpu* jitcpu, uint64_t addr, uint32_t src);
 void MEM_WRITE_64(JitCpu* jitcpu, uint64_t addr, uint64_t src);
-void MEM_WRITE_128(JitCpu* jitcpu, uint64_t addr, uint128_t src);
+
+void MEM_WRITE_BN_BN(JitCpu* jitcpu, int size, bn_t addr, bn_t src);
+void MEM_WRITE_BN_INT(JitCpu* jitcpu, int size, bn_t addr, uint64_t src);
+void MEM_WRITE_INT_BN(JitCpu* jitcpu, int size, uint64_t addr, bn_t src);
+
+
 PyObject* vm_get_mem(JitCpu *self, PyObject* args);
+
+void MEM_LOOKUP_INT_BN_TO_PTR(JitCpu* jitcpu, int size, uint64_t addr, char* ptr);
+void MEM_WRITE_INT_BN_FROM_PTR(JitCpu* jitcpu, int size, uint64_t addr, char* ptr);
 
 
 

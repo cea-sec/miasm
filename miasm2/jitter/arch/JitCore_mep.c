@@ -8,6 +8,7 @@
 #include "../queue.h"
 #include "../vm_mngr.h"
 #include "../vm_mngr_py.h"
+#include "../bn.h"
 #include "../JitCore.h"
 #include "JitCore_mep.h"
 

@@ -5,6 +5,7 @@
 #include "../queue.h"
 #include "../vm_mngr.h"
 #include "../vm_mngr_py.h"
+#include "../bn.h"
 #include "../JitCore.h"
 #include "../op_semantics.h"
 #include "JitCore_aarch64.h"

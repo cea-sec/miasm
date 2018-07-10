@@ -776,22 +776,22 @@ uint64_t fpround_towardszero_fp64(uint64_t a)
 }
 
 
+UDIV(8)
 UDIV(16)
 UDIV(32)
 UDIV(64)
-UDIV(128)
 
+UMOD(8)
 UMOD(16)
 UMOD(32)
 UMOD(64)
-UMOD(128)
 
+IDIV(8)
 IDIV(16)
 IDIV(32)
 IDIV(64)
-IDIV(128)
 
+IMOD(8)
 IMOD(16)
 IMOD(32)
 IMOD(64)
-IMOD(128)

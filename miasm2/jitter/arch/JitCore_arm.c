@@ -5,6 +5,7 @@
 #include "../queue.h"
 #include "../vm_mngr.h"
 #include "../vm_mngr_py.h"
+#include "../bn.h"
 #include "../JitCore.h"
 #include "../op_semantics.h"
 #include "JitCore_arm.h"
@@ -380,9 +381,9 @@ static PyGetSetDef JitCpu_getseters[] = {
     {"cf", (getter)JitCpu_get_cf, (setter)JitCpu_set_cf, "cf", NULL},
 
     {"ge0", (getter)JitCpu_get_ge0, (setter)JitCpu_set_ge0, "ge0", NULL},
-    {"ge1", (getter)JitCpu_get_ge1, (setter)JitCpu_set_ge0, "ge1", NULL},
-    {"ge2", (getter)JitCpu_get_ge2, (setter)JitCpu_set_ge0, "ge2", NULL},
-    {"ge3", (getter)JitCpu_get_ge3, (setter)JitCpu_set_ge0, "ge3", NULL},
+    {"ge1", (getter)JitCpu_get_ge1, (setter)JitCpu_set_ge1, "ge1", NULL},
+    {"ge2", (getter)JitCpu_get_ge2, (setter)JitCpu_set_ge2, "ge2", NULL},
+    {"ge3", (getter)JitCpu_get_ge3, (setter)JitCpu_set_ge3, "ge3", NULL},
 
     {NULL}  /* Sentinel */
 };
