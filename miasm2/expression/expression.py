@@ -1018,26 +1018,12 @@ class ExprOp(Expr):
                            TOK_POS_STRICT,
                           ]:
             size = 1
-        elif self._op in ['mem_16_to_double', 'mem_32_to_double',
-                           'mem_64_to_double', 'mem_80_to_double',
-                           'int_16_to_double', 'int_32_to_double',
-                           'int_64_to_double', 'int_80_to_double']:
-            size = 64
-        elif self._op in ['double_to_mem_16', 'double_to_int_16',
-                           'float_trunc_to_int_16', 'double_trunc_to_int_16']:
-            size = 16
-        elif self._op in ['double_to_mem_32', 'double_to_int_32',
-                           'float_trunc_to_int_32', 'double_trunc_to_int_32',
-                           'double_to_float']:
-            size = 32
-        elif self._op in ['double_to_mem_64', 'double_to_int_64',
-                           'float_trunc_to_int_64', 'double_trunc_to_int_64',
-                           'float_to_double']:
-            size = 64
-        elif self._op in ['double_to_mem_80', 'double_to_int_80',
-                           'float_trunc_to_int_80',
-                           'double_trunc_to_int_80']:
-            size = 80
+        elif self._op.startswith("sint_to_fp"):
+            size = int(self._op[len("sint_to_fp"):])
+        elif self._op.startswith("fp_to_sint"):
+            size = int(self._op[len("fp_to_sint"):])
+        elif self._op.startswith("fpconvert_fp"):
+            size = int(self._op[len("fpconvert_fp"):])
         elif self._op in ['segm']:
             size = self._args[1].size
         else:

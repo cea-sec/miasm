@@ -1883,7 +1883,7 @@ def float_pop(avoid_flt=None, popcount=1):
         if avoid_flt != float_list[i]:
             e.append(m2_expr.ExprAff(float_list[i],
                                      float_list[i + popcount]))
-    fill_value = m2_expr.ExprOp("int_64_to_double",
+    fill_value = m2_expr.ExprOp("sint_to_fp64",
                                 m2_expr.ExprInt(0, float_list[i].size))
     for i in xrange(8 - popcount, 8):
         e.append(m2_expr.ExprAff(float_list[i],
@@ -1919,7 +1919,7 @@ def ftst(_, instr):
     dst = float_st0
 
     e = []
-    src = m2_expr.ExprOp('int_32_to_double', m2_expr.ExprInt(0, 32))
+    src = m2_expr.ExprOp('sint_to_fp64', m2_expr.ExprInt(0, 32))
     e.append(m2_expr.ExprAff(float_c0, m2_expr.ExprOp('fcom_c0', dst, src)))
     e.append(m2_expr.ExprAff(float_c1, m2_expr.ExprOp('fcom_c1', dst, src)))
     e.append(m2_expr.ExprAff(float_c2, m2_expr.ExprOp('fcom_c2', dst, src)))
@@ -2045,8 +2045,8 @@ def comiss(_, instr, dst, src):
 
     e = []
 
-    dst = m2_expr.ExprOp('int_32_to_float', dst[:32])
-    src = m2_expr.ExprOp('int_32_to_float', src[:32])
+    dst = m2_expr.ExprOp('sint_to_fp32', dst[:32])
+    src = m2_expr.ExprOp('sint_to_fp32', src[:32])
 
     e.append(m2_expr.ExprAff(cf, m2_expr.ExprOp('fcom_c0', dst, src)))
     e.append(m2_expr.ExprAff(pf, m2_expr.ExprOp('fcom_c2', dst, src)))
@@ -2065,8 +2065,8 @@ def comisd(_, instr, dst, src):
 
     e = []
 
-    dst = m2_expr.ExprOp('int_64_to_double', dst[:64])
-    src = m2_expr.ExprOp('int_64_to_double', src[:64])
+    dst = m2_expr.ExprOp('sint_to_fp64', dst[:64])
+    src = m2_expr.ExprOp('sint_to_fp64', src[:64])
 
     e.append(m2_expr.ExprAff(cf, m2_expr.ExprOp('fcom_c0', dst, src)))
     e.append(m2_expr.ExprAff(pf, m2_expr.ExprOp('fcom_c2', dst, src)))
@@ -2081,7 +2081,9 @@ def comisd(_, instr, dst, src):
 
 
 def fld(_, instr, src):
-    src = mem2double(instr, src)
+
+    if src.size == 32:
+        src = m2_expr.ExprOp("fpconvert_fp64", src)
 
     e = []
     e.append(m2_expr.ExprAff(float_st7, float_st6))
@@ -2103,13 +2105,12 @@ def fld(_, instr, src):
 def fst(_, instr, dst):
     e = []
 
-    if isinstance(dst, m2_expr.ExprMem):
-        if dst.size > 64:
-            raise NotImplementedError('float to long')
-        src = m2_expr.ExprOp('double_to_mem_%.2d' % dst.size, float_st0)
-    else:
-        src = float_st0
+    if isinstance(dst, m2_expr.ExprMem) and dst.size > 64:
+        raise NotImplementedError('convert to 80bits')
+    src = float_st0
 
+    if dst.size == 32:
+        src = m2_expr.ExprOp("fpconvert_fp32", src)
     e.append(m2_expr.ExprAff(dst, src))
     e += set_float_cs_eip(instr)
     return e, []
@@ -2118,12 +2119,13 @@ def fst(_, instr, dst):
 def fstp(ir, instr, dst):
     e = []
 
-    if isinstance(dst, m2_expr.ExprMem):
-        if dst.size > 64:
-            # TODO: move to 80 bits
-            dst = ir.ExprMem(dst.arg, size=64)
+    if isinstance(dst, m2_expr.ExprMem) and dst.size > 64:
+        raise NotImplementedError('convert to 80bits')
 
-        src = m2_expr.ExprOp('double_to_mem_%.2d' % dst.size, float_st0)
+    if isinstance(dst, m2_expr.ExprMem):
+        src = float_st0
+        if dst.size == 32:
+            src = m2_expr.ExprOp("fpconvert_fp32", src)
         e.append(m2_expr.ExprAff(dst, src))
     else:
         src = float_st0
@@ -2139,7 +2141,7 @@ def fstp(ir, instr, dst):
 
 def fist(_, instr, dst):
     e = []
-    e.append(m2_expr.ExprAff(dst, m2_expr.ExprOp('double_to_int_%d' % dst.size,
+    e.append(m2_expr.ExprAff(dst, m2_expr.ExprOp('fp_to_sint%d' % dst.size,
                                                  float_st0)))
 
     e += set_float_cs_eip(instr)
@@ -2154,9 +2156,11 @@ def fistp(ir, instr, dst):
 
 def fisttp(_, instr, dst):
     e = []
-    e.append(m2_expr.ExprAff(dst,
-                             m2_expr.ExprOp('double_trunc_to_int_%d' % dst.size,
-                                            float_st0)))
+    e.append(m2_expr.ExprAff(
+        dst,
+        m2_expr.ExprOp('fp_to_sint%d' % dst.size,
+                       m2_expr.ExprOp('fpround_towardszero', float_st0)
+        )))
 
     e += set_float_cs_eip(instr)
     e += float_pop(dst)
@@ -2165,7 +2169,7 @@ def fisttp(_, instr, dst):
 
 def fild(ir, instr, src):
     # XXXXX
-    src = m2_expr.ExprOp('int_%.2d_to_double' % src.size, src)
+    src = m2_expr.ExprOp('sint_to_fp64', src)
     e = []
     e += set_float_cs_eip(instr)
     e_fld, extra = fld(ir, instr, src)
@@ -2174,26 +2178,26 @@ def fild(ir, instr, src):
 
 
 def fldz(ir, instr):
-    return fld(ir, instr, m2_expr.ExprOp('int_32_to_double',
+    return fld(ir, instr, m2_expr.ExprOp('sint_to_fp64',
                                          m2_expr.ExprInt(0, 32)))
 
 
 def fld1(ir, instr):
-    return fld(ir, instr, m2_expr.ExprOp('int_32_to_double',
+    return fld(ir, instr, m2_expr.ExprOp('sint_to_fp64',
                                          m2_expr.ExprInt(1, 32)))
 
 
 def fldl2t(ir, instr):
     value_f = math.log(10) / math.log(2)
     value = struct.unpack('I', struct.pack('f', value_f))[0]
-    return fld(ir, instr, m2_expr.ExprOp('int_32_to_double',
+    return fld(ir, instr, m2_expr.ExprOp('sint_to_fp64',
                                          m2_expr.ExprInt(value, 32)))
 
 
 def fldpi(ir, instr):
     value_f = math.pi
     value = struct.unpack('I', struct.pack('f', value_f))[0]
-    return fld(ir, instr, m2_expr.ExprOp('int_32_to_double',
+    return fld(ir, instr, m2_expr.ExprOp('sint_to_fp64',
                                          m2_expr.ExprInt(value, 32)))
 
 
@@ -2534,7 +2538,7 @@ def fptan(_, instr):
     e.append(m2_expr.ExprAff(float_st2, float_st1))
     e.append(m2_expr.ExprAff(float_st1, m2_expr.ExprOp('ftan', float_st0)))
     e.append(m2_expr.ExprAff(float_st0,
-                             m2_expr.ExprOp('int_32_to_double',
+                             m2_expr.ExprOp('sint_to_fp64',
                                             m2_expr.ExprInt(1, 32))))
     e.append(
         m2_expr.ExprAff(float_stack_ptr,
@@ -3665,31 +3669,31 @@ def por(_, instr, dst, src):
 def cvtdq2pd(_, instr, dst, src):
     e = []
     e.append(
-        m2_expr.ExprAff(dst[:64], m2_expr.ExprOp('int_32_to_double', src[:32])))
+        m2_expr.ExprAff(dst[:64], m2_expr.ExprOp('sint_to_fp64', src[:32])))
     e.append(
-        m2_expr.ExprAff(dst[64:128], m2_expr.ExprOp('int_32_to_double', src[32:64])))
+        m2_expr.ExprAff(dst[64:128], m2_expr.ExprOp('sint_to_fp64', src[32:64])))
     return e, []
 
 
 def cvtdq2ps(_, instr, dst, src):
     e = []
     e.append(
-        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('int_32_to_float', src[:32])))
+        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('sint_to_fp32', src[:32])))
     e.append(
-        m2_expr.ExprAff(dst[32:64], m2_expr.ExprOp('int_32_to_float', src[32:64])))
+        m2_expr.ExprAff(dst[32:64], m2_expr.ExprOp('sint_to_fp32', src[32:64])))
     e.append(
-        m2_expr.ExprAff(dst[64:96], m2_expr.ExprOp('int_32_to_float', src[64:96])))
+        m2_expr.ExprAff(dst[64:96], m2_expr.ExprOp('sint_to_fp32', src[64:96])))
     e.append(
-        m2_expr.ExprAff(dst[96:128], m2_expr.ExprOp('int_32_to_float', src[96:128])))
+        m2_expr.ExprAff(dst[96:128], m2_expr.ExprOp('sint_to_fp32', src[96:128])))
     return e, []
 
 
 def cvtpd2dq(_, instr, dst, src):
     e = []
     e.append(
-        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('double_to_int_32', src[:64])))
+        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('fp_to_sint32', src[:64])))
     e.append(
-        m2_expr.ExprAff(dst[32:64], m2_expr.ExprOp('double_to_int_32', src[64:128])))
+        m2_expr.ExprAff(dst[32:64], m2_expr.ExprOp('fp_to_sint32', src[64:128])))
     e.append(m2_expr.ExprAff(dst[64:128], m2_expr.ExprInt(0, 64)))
     return e, []
 
@@ -3697,18 +3701,18 @@ def cvtpd2dq(_, instr, dst, src):
 def cvtpd2pi(_, instr, dst, src):
     e = []
     e.append(
-        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('double_to_int_32', src[:64])))
+        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('fp_to_sint32', src[:64])))
     e.append(
-        m2_expr.ExprAff(dst[32:64], m2_expr.ExprOp('double_to_int_32', src[64:128])))
+        m2_expr.ExprAff(dst[32:64], m2_expr.ExprOp('fp_to_sint32', src[64:128])))
     return e, []
 
 
 def cvtpd2ps(_, instr, dst, src):
     e = []
     e.append(
-        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('double_to_float', src[:64])))
+        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('fpconvert_fp32', src[:64])))
     e.append(
-        m2_expr.ExprAff(dst[32:64], m2_expr.ExprOp('double_to_float', src[64:128])))
+        m2_expr.ExprAff(dst[32:64], m2_expr.ExprOp('fpconvert_fp32', src[64:128])))
     e.append(m2_expr.ExprAff(dst[64:128], m2_expr.ExprInt(0, 64)))
     return e, []
 
@@ -3716,141 +3720,126 @@ def cvtpd2ps(_, instr, dst, src):
 def cvtpi2pd(_, instr, dst, src):
     e = []
     e.append(
-        m2_expr.ExprAff(dst[:64], m2_expr.ExprOp('int_32_to_double', src[:32])))
+        m2_expr.ExprAff(dst[:64], m2_expr.ExprOp('sint_to_fp64', src[:32])))
     e.append(
-        m2_expr.ExprAff(dst[64:128], m2_expr.ExprOp('int_32_to_double', src[32:64])))
+        m2_expr.ExprAff(dst[64:128], m2_expr.ExprOp('sint_to_fp64', src[32:64])))
     return e, []
 
 
 def cvtpi2ps(_, instr, dst, src):
     e = []
     e.append(
-        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('int_32_to_float', src[:32])))
+        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('sint_to_fp32', src[:32])))
     e.append(
-        m2_expr.ExprAff(dst[32:64], m2_expr.ExprOp('int_32_to_float', src[32:64])))
+        m2_expr.ExprAff(dst[32:64], m2_expr.ExprOp('sint_to_fp32', src[32:64])))
     return e, []
 
 
 def cvtps2dq(_, instr, dst, src):
     e = []
     e.append(
-        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('float_to_int_32', src[:32])))
+        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('fp_to_sint32', src[:32])))
     e.append(
-        m2_expr.ExprAff(dst[32:64], m2_expr.ExprOp('float_to_int_32', src[32:64])))
+        m2_expr.ExprAff(dst[32:64], m2_expr.ExprOp('fp_to_sint32', src[32:64])))
     e.append(
-        m2_expr.ExprAff(dst[64:96], m2_expr.ExprOp('float_to_int_32', src[64:96])))
+        m2_expr.ExprAff(dst[64:96], m2_expr.ExprOp('fp_to_sint32', src[64:96])))
     e.append(
-        m2_expr.ExprAff(dst[96:128], m2_expr.ExprOp('float_to_int_32', src[96:128])))
+        m2_expr.ExprAff(dst[96:128], m2_expr.ExprOp('fp_to_sint32', src[96:128])))
     return e, []
 
 
 def cvtps2pd(_, instr, dst, src):
     e = []
     e.append(
-        m2_expr.ExprAff(dst[:64], m2_expr.ExprOp('float_to_double', src[:32])))
+        m2_expr.ExprAff(dst[:64], m2_expr.ExprOp('fpconvert_fp64', src[:32])))
     e.append(
-        m2_expr.ExprAff(dst[64:128], m2_expr.ExprOp('float_to_double', src[32:64])))
+        m2_expr.ExprAff(dst[64:128], m2_expr.ExprOp('fpconvert_fp64', src[32:64])))
     return e, []
 
 
 def cvtps2pi(_, instr, dst, src):
     e = []
     e.append(
-        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('float_to_int_32', src[:32])))
+        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('fp_to_sint32', src[:32])))
     e.append(
-        m2_expr.ExprAff(dst[32:64], m2_expr.ExprOp('float_to_int_32', src[32:64])))
+        m2_expr.ExprAff(dst[32:64], m2_expr.ExprOp('fp_to_sint32', src[32:64])))
     return e, []
 
 
 def cvtsd2si(_, instr, dst, src):
     e = []
     e.append(
-        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('double_to_int_32', src[:64])))
+        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('fp_to_sint32', src[:64])))
     return e, []
 
 
 def cvtsd2ss(_, instr, dst, src):
     e = []
     e.append(
-        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('double_to_float', src[:64])))
+        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('fpconvert_fp32', src[:64])))
     return e, []
 
 
 def cvtsi2sd(_, instr, dst, src):
     e = []
     e.append(
-        m2_expr.ExprAff(dst[:64], m2_expr.ExprOp('int_32_to_double', src[:32])))
+        m2_expr.ExprAff(dst[:64], m2_expr.ExprOp('sint_to_fp64', src[:32])))
     return e, []
 
 
 def cvtsi2ss(_, instr, dst, src):
     e = []
     e.append(
-        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('int_32_to_float', src[:32])))
+        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('sint_to_fp32', src[:32])))
     return e, []
 
 
 def cvtss2sd(_, instr, dst, src):
     e = []
     e.append(
-        m2_expr.ExprAff(dst[:64], m2_expr.ExprOp('float_to_double', src[:32])))
+        m2_expr.ExprAff(dst[:64], m2_expr.ExprOp('fpconvert_fp64', src[:32])))
     return e, []
 
 
 def cvtss2si(_, instr, dst, src):
     e = []
     e.append(
-        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('float_to_int_32', src[:32])))
+        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('fp_to_sint32', src[:32])))
     return e, []
 
+
+def _cvtt_tpl(dst, src, numbers, double):
+    e = []
+    for i in numbers:
+        # For CVTT*D2* (Convert with Truncation ... Double-Precision) to work,
+        # a first conversion fp64 -> fp32 is needed
+        if double:
+            tmp_src = m2_expr.ExprOp('fpconvert_fp32', src[i*64:i*64 + 64])
+        else:
+            tmp_src = src[i*32:i*32 + 32]
+
+        e.append(m2_expr.ExprAff(
+            dst[i*32:i*32 + 32],
+            m2_expr.ExprOp('fp_to_sint32', m2_expr.ExprOp(
+                'fpround_towardszero',
+                tmp_src
+            ))))
+    return e
 
 def cvttpd2pi(_, instr, dst, src):
-    e = []
-    e.append(
-        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('double_trunc_to_int_32', src[:64])))
-    e.append(
-        m2_expr.ExprAff(dst[32:64], m2_expr.ExprOp('double_trunc_to_int_32', src[64:128])))
-    return e, []
-
+    return _cvtt_tpl(dst, src, [0, 1], double=True), []
 
 def cvttpd2dq(_, instr, dst, src):
-    e = []
-    e.append(
-        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('double_trunc_to_int_32', src[:64])))
-    e.append(
-        m2_expr.ExprAff(dst[32:64], m2_expr.ExprOp('double_trunc_to_int_32', src[64:128])))
+    e = _cvtt_tpl(dst, src, [0, 1], double=True)
     e.append(m2_expr.ExprAff(dst[64:128], m2_expr.ExprInt(0, 64)))
     return e, []
 
 
 def cvttps2dq(_, instr, dst, src):
-    e = []
-    e.append(
-        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('float_trunc_to_int_32', src[:32])))
-    e.append(
-        m2_expr.ExprAff(dst[32:64], m2_expr.ExprOp('float_trunc_to_int_32', src[32:64])))
-    e.append(
-        m2_expr.ExprAff(dst[64:96], m2_expr.ExprOp('float_trunc_to_int_32', src[64:96])))
-    e.append(
-        m2_expr.ExprAff(dst[96:128], m2_expr.ExprOp('float_trunc_to_int_32', src[96:128])))
-    return e, []
-
+    return _cvtt_tpl(dst, src, [0, 1, 2, 3], double=False), []
 
 def cvttps2pi(_, instr, dst, src):
-    e = []
-    e.append(
-        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('float_trunc_to_int_32', src[:32])))
-    e.append(
-        m2_expr.ExprAff(dst[32:64], m2_expr.ExprOp('float_trunc_to_int_32', src[32:64])))
-    return e, []
-
-
-def cvttsd2si(_, instr, dst, src):
-    e = []
-    e.append(
-        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('double_trunc_to_int_32', src[:64])))
-    return e, []
-
+    return _cvtt_tpl(dst, src, [0, 1], double=False), []
 
 def cvttss2si(_, instr, dst, src):
     e = []
