@@ -162,6 +162,7 @@ QEMU_TESTS = [
     "xchg",
     "string",
     "misc",
+    'sse',
     # Unsupported
     # "floats", "segs", "code16", "exceptions", "single_step"
 ]
@@ -169,6 +170,9 @@ QEMU_TESTS = [
 
 for test_name in QEMU_TESTS:
     for jitter in QEMUTest.jitter_engines:
+        if (test_name, jitter) in [("sse", "python")]:
+            # SKIP unsupported
+            continue
         tags = [TAGS[jitter]] if jitter in TAGS else []
         testset += QEMUTest(test_name, jitter, tags=tags)
 
