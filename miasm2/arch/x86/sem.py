@@ -1883,7 +1883,7 @@ def float_pop(avoid_flt=None, popcount=1):
         if avoid_flt != float_list[i]:
             e.append(m2_expr.ExprAff(float_list[i],
                                      float_list[i + popcount]))
-    fill_value = m2_expr.ExprOp("int_64_to_double",
+    fill_value = m2_expr.ExprOp("sint_to_fp64",
                                 m2_expr.ExprInt(0, float_list[i].size))
     for i in xrange(8 - popcount, 8):
         e.append(m2_expr.ExprAff(float_list[i],
@@ -1919,7 +1919,7 @@ def ftst(_, instr):
     dst = float_st0
 
     e = []
-    src = m2_expr.ExprOp('int_32_to_double', m2_expr.ExprInt(0, 32))
+    src = m2_expr.ExprOp('sint_to_fp64', m2_expr.ExprInt(0, 32))
     e.append(m2_expr.ExprAff(float_c0, m2_expr.ExprOp('fcom_c0', dst, src)))
     e.append(m2_expr.ExprAff(float_c1, m2_expr.ExprOp('fcom_c1', dst, src)))
     e.append(m2_expr.ExprAff(float_c2, m2_expr.ExprOp('fcom_c2', dst, src)))
@@ -2045,8 +2045,8 @@ def comiss(_, instr, dst, src):
 
     e = []
 
-    dst = m2_expr.ExprOp('int_32_to_float', dst[:32])
-    src = m2_expr.ExprOp('int_32_to_float', src[:32])
+    dst = m2_expr.ExprOp('sint_to_fp32', dst[:32])
+    src = m2_expr.ExprOp('sint_to_fp32', src[:32])
 
     e.append(m2_expr.ExprAff(cf, m2_expr.ExprOp('fcom_c0', dst, src)))
     e.append(m2_expr.ExprAff(pf, m2_expr.ExprOp('fcom_c2', dst, src)))
@@ -2065,8 +2065,8 @@ def comisd(_, instr, dst, src):
 
     e = []
 
-    dst = m2_expr.ExprOp('int_64_to_double', dst[:64])
-    src = m2_expr.ExprOp('int_64_to_double', src[:64])
+    dst = m2_expr.ExprOp('sint_to_fp64', dst[:64])
+    src = m2_expr.ExprOp('sint_to_fp64', src[:64])
 
     e.append(m2_expr.ExprAff(cf, m2_expr.ExprOp('fcom_c0', dst, src)))
     e.append(m2_expr.ExprAff(pf, m2_expr.ExprOp('fcom_c2', dst, src)))
@@ -2081,7 +2081,9 @@ def comisd(_, instr, dst, src):
 
 
 def fld(_, instr, src):
-    src = mem2double(instr, src)
+
+    if src.size == 32:
+        src = m2_expr.ExprOp("fpconvert_fp64", src)
 
     e = []
     e.append(m2_expr.ExprAff(float_st7, float_st6))
@@ -2103,13 +2105,12 @@ def fld(_, instr, src):
 def fst(_, instr, dst):
     e = []
 
-    if isinstance(dst, m2_expr.ExprMem):
-        if dst.size > 64:
-            raise NotImplementedError('float to long')
-        src = m2_expr.ExprOp('double_to_mem_%.2d' % dst.size, float_st0)
-    else:
-        src = float_st0
+    if isinstance(dst, m2_expr.ExprMem) and dst.size > 64:
+        raise NotImplementedError('convert to 80bits')
+    src = float_st0
 
+    if dst.size == 32:
+        src = m2_expr.ExprOp("fpconvert_fp32", src)
     e.append(m2_expr.ExprAff(dst, src))
     e += set_float_cs_eip(instr)
     return e, []
@@ -2118,12 +2119,13 @@ def fst(_, instr, dst):
 def fstp(ir, instr, dst):
     e = []
 
-    if isinstance(dst, m2_expr.ExprMem):
-        if dst.size > 64:
-            # TODO: move to 80 bits
-            dst = ir.ExprMem(dst.arg, size=64)
+    if isinstance(dst, m2_expr.ExprMem) and dst.size > 64:
+        raise NotImplementedError('convert to 80bits')
 
-        src = m2_expr.ExprOp('double_to_mem_%.2d' % dst.size, float_st0)
+    if isinstance(dst, m2_expr.ExprMem):
+        src = float_st0
+        if dst.size == 32:
+            src = m2_expr.ExprOp("fpconvert_fp32", src)
         e.append(m2_expr.ExprAff(dst, src))
     else:
         src = float_st0
@@ -2139,7 +2141,7 @@ def fstp(ir, instr, dst):
 
 def fist(_, instr, dst):
     e = []
-    e.append(m2_expr.ExprAff(dst, m2_expr.ExprOp('double_to_int_%d' % dst.size,
+    e.append(m2_expr.ExprAff(dst, m2_expr.ExprOp('fp_to_sint%d' % dst.size,
                                                  float_st0)))
 
     e += set_float_cs_eip(instr)
@@ -2154,9 +2156,11 @@ def fistp(ir, instr, dst):
 
 def fisttp(_, instr, dst):
     e = []
-    e.append(m2_expr.ExprAff(dst,
-                             m2_expr.ExprOp('double_trunc_to_int_%d' % dst.size,
-                                            float_st0)))
+    e.append(m2_expr.ExprAff(
+        dst,
+        m2_expr.ExprOp('fp_to_sint%d' % dst.size,
+                       m2_expr.ExprOp('fpround_towardszero', float_st0)
+        )))
 
     e += set_float_cs_eip(instr)
     e += float_pop(dst)
@@ -2165,7 +2169,7 @@ def fisttp(_, instr, dst):
 
 def fild(ir, instr, src):
     # XXXXX
-    src = m2_expr.ExprOp('int_%.2d_to_double' % src.size, src)
+    src = m2_expr.ExprOp('sint_to_fp64', src)
     e = []
     e += set_float_cs_eip(instr)
     e_fld, extra = fld(ir, instr, src)
@@ -2174,26 +2178,26 @@ def fild(ir, instr, src):
 
 
 def fldz(ir, instr):
-    return fld(ir, instr, m2_expr.ExprOp('int_32_to_double',
+    return fld(ir, instr, m2_expr.ExprOp('sint_to_fp64',
                                          m2_expr.ExprInt(0, 32)))
 
 
 def fld1(ir, instr):
-    return fld(ir, instr, m2_expr.ExprOp('int_32_to_double',
+    return fld(ir, instr, m2_expr.ExprOp('sint_to_fp64',
                                          m2_expr.ExprInt(1, 32)))
 
 
 def fldl2t(ir, instr):
     value_f = math.log(10) / math.log(2)
     value = struct.unpack('I', struct.pack('f', value_f))[0]
-    return fld(ir, instr, m2_expr.ExprOp('int_32_to_double',
+    return fld(ir, instr, m2_expr.ExprOp('sint_to_fp64',
                                          m2_expr.ExprInt(value, 32)))
 
 
 def fldpi(ir, instr):
     value_f = math.pi
     value = struct.unpack('I', struct.pack('f', value_f))[0]
-    return fld(ir, instr, m2_expr.ExprOp('int_32_to_double',
+    return fld(ir, instr, m2_expr.ExprOp('sint_to_fp64',
                                          m2_expr.ExprInt(value, 32)))
 
 
@@ -2534,7 +2538,7 @@ def fptan(_, instr):
     e.append(m2_expr.ExprAff(float_st2, float_st1))
     e.append(m2_expr.ExprAff(float_st1, m2_expr.ExprOp('ftan', float_st0)))
     e.append(m2_expr.ExprAff(float_st0,
-                             m2_expr.ExprOp('int_32_to_double',
+                             m2_expr.ExprOp('sint_to_fp64',
                                             m2_expr.ExprInt(1, 32))))
     e.append(
         m2_expr.ExprAff(float_stack_ptr,
@@ -3371,8 +3375,7 @@ def wrmsr(ir, instr):
 # MMX/SSE/AVX operations
 #
 
-
-def vec_op_clip(op, size):
+def vec_op_clip(op, size, callback=None):
     """
     Generate simd operations
     @op: the operator
@@ -3380,9 +3383,12 @@ def vec_op_clip(op, size):
     """
     def vec_op_clip_instr(ir, instr, dst, src):
         if op == '-':
-            return [m2_expr.ExprAff(dst[:size], dst[:size] - src[:size])], []
+            result = dst[:size] - src[:size]
         else:
-            return [m2_expr.ExprAff(dst[:size], m2_expr.ExprOp(op, dst[:size], src[:size]))], []
+            result = m2_expr.ExprOp(op, dst[:size], src[:size])
+        if callback is not None:
+            result = callback(result)
+        return [m2_expr.ExprAff(dst[:size], result)], []
     return vec_op_clip_instr
 
 # Generic vertical operation
@@ -3407,38 +3413,6 @@ def vec_vertical_sem(op, elt_size, reg_size, dst, src, apply_on_output):
     return m2_expr.ExprCompose(*ops)
 
 
-def float_vec_vertical_sem(op, elt_size, reg_size, dst, src, apply_on_output):
-    assert reg_size % elt_size == 0
-    n = reg_size / elt_size
-
-    x_to_int, int_to_x = {32: ('float_to_int_%d', 'int_%d_to_float'),
-                          64: ('double_to_int_%d', 'int_%d_to_double')}[elt_size]
-    if op == '-':
-        ops = [
-            apply_on_output(m2_expr.ExprOp(
-                x_to_int % elt_size,
-                m2_expr.ExprOp(int_to_x % elt_size, dst[i * elt_size:(i + 1) * elt_size]) -
-                m2_expr.ExprOp(
-                    int_to_x % elt_size, src[i * elt_size:(
-                        i + 1) * elt_size])))
-            for i in xrange(0, n)
-        ]
-    else:
-        ops = [
-            apply_on_output(m2_expr.ExprOp(
-                x_to_int % elt_size,
-                m2_expr.ExprOp(op,
-                               m2_expr.ExprOp(
-                                   int_to_x % elt_size, dst[i * elt_size:(
-                                       i + 1) * elt_size]),
-                               m2_expr.ExprOp(
-                                   int_to_x % elt_size, src[i * elt_size:(
-                                       i + 1) * elt_size]))))
-            for i in xrange(0, n)]
-
-    return m2_expr.ExprCompose(*ops)
-
-
 def __vec_vertical_instr_gen(op, elt_size, sem, apply_on_output):
     def vec_instr(ir, instr, dst, src):
         e = []
@@ -3453,11 +3427,6 @@ def __vec_vertical_instr_gen(op, elt_size, sem, apply_on_output):
 
 def vec_vertical_instr(op, elt_size, apply_on_output=lambda x: x):
     return __vec_vertical_instr_gen(op, elt_size, vec_vertical_sem,
-                                    apply_on_output)
-
-
-def float_vec_vertical_instr(op, elt_size, apply_on_output=lambda x: x):
-    return __vec_vertical_instr_gen(op, elt_size, float_vec_vertical_sem,
                                     apply_on_output)
 
 
@@ -3485,6 +3454,32 @@ def _min_max(expr, signed):
         _min_max_func[(expr.op, signed)](expr.args[1], expr.args[0]),
         expr.args[1],
         expr.args[0],
+    )
+
+def _float_min_max(expr):
+    assert (expr.is_op("fmin") or expr.is_op("fmax")) and len(expr.args) == 2
+    src1 = expr.args[0]
+    src2 = expr.args[1]
+    if expr.is_op("fmin"):
+        comp = m2_expr.expr_is_float_lower(src1, src2)
+    elif expr.is_op("fmax"):
+        comp = m2_expr.expr_is_float_lower(src2, src1)
+
+    # x86 documentation (for MIN):
+    # IF ((SRC1 = 0.0) and (SRC2 = 0.0)) THEN DEST <-SRC2;
+    # ELSE IF (SRC1 = SNaN) THEN DEST <-SRC2; FI;
+    # ELSE IF (SRC2 = SNaN) THEN DEST <-SRC2; FI;
+    # ELSE IF (SRC1 < SRC2) THEN DEST <-SRC1;
+    # ELSE DEST<-SRC2;
+    #
+    # But this includes the NaN output of "SRC1 < SRC2"
+    # Associated text is more detailed, and this is the version impl here
+    return m2_expr.ExprCond(
+        m2_expr.expr_is_sNaN(src2), src2,
+        m2_expr.ExprCond(
+            m2_expr.expr_is_NaN(src2) | m2_expr.expr_is_NaN(src1), src2,
+            m2_expr.ExprCond(comp, src1, src2)
+        )
     )
 
 
@@ -3616,22 +3611,100 @@ pmaxsw = vec_vertical_instr('max', 16, lambda x: _min_max(x, signed=True))
 #
 
 # SSE
-addss = vec_op_clip('+', 32)
-addsd = vec_op_clip('+', 64)
-addps = float_vec_vertical_instr('+', 32)
-addpd = float_vec_vertical_instr('+', 64)
-subss = vec_op_clip('-', 32)
-subsd = vec_op_clip('-', 64)
-subps = float_vec_vertical_instr('-', 32)
-subpd = float_vec_vertical_instr('-', 64)
-mulss = vec_op_clip('*', 32)
-mulsd = vec_op_clip('*', 64)
-mulps = float_vec_vertical_instr('*', 32)
-mulpd = float_vec_vertical_instr('*', 64)
-divss = vec_op_clip('/', 32)
-divsd = vec_op_clip('/', 64)
-divps = float_vec_vertical_instr('/', 32)
-divpd = float_vec_vertical_instr('/', 64)
+addss = vec_op_clip('fadd', 32)
+addsd = vec_op_clip('fadd', 64)
+addps = vec_vertical_instr('fadd', 32)
+addpd = vec_vertical_instr('fadd', 64)
+subss = vec_op_clip('fsub', 32)
+subsd = vec_op_clip('fsub', 64)
+subps = vec_vertical_instr('fsub', 32)
+subpd = vec_vertical_instr('fsub', 64)
+mulss = vec_op_clip('fmul', 32)
+mulsd = vec_op_clip('fmul', 64)
+mulps = vec_vertical_instr('fmul', 32)
+mulpd = vec_vertical_instr('fmul', 64)
+divss = vec_op_clip('fdiv', 32)
+divsd = vec_op_clip('fdiv', 64)
+divps = vec_vertical_instr('fdiv', 32)
+divpd = vec_vertical_instr('fdiv', 64)
+
+# Comparisons (floating-point)
+
+minps = vec_vertical_instr('fmin', 32, _float_min_max)
+minpd = vec_vertical_instr('fmin', 64, _float_min_max)
+minss = vec_op_clip('fmin', 32, _float_min_max)
+minsd = vec_op_clip('fmin', 64, _float_min_max)
+maxps = vec_vertical_instr('fmax', 32, _float_min_max)
+maxpd = vec_vertical_instr('fmax', 64, _float_min_max)
+maxss = vec_op_clip('fmax', 32, _float_min_max)
+maxsd = vec_op_clip('fmax', 64, _float_min_max)
+
+def _float_compare_to_mask(expr):
+    if expr.op == 'unord':
+        to_ext = m2_expr.expr_is_NaN(expr.args[0]) | m2_expr.expr_is_NaN(expr.args[1])
+    elif expr.op == 'ord':
+        to_ext = ~m2_expr.expr_is_NaN(expr.args[0]) & ~m2_expr.expr_is_NaN(expr.args[1])
+    else:
+        if expr.op == '==fu':
+            to_ext = m2_expr.expr_is_float_equal(expr.args[0], expr.args[1])
+            on_NaN = m2_expr.ExprInt(0, 1)
+        elif expr.op == '<fu':
+            to_ext = m2_expr.expr_is_float_lower(expr.args[0], expr.args[1])
+            on_NaN = m2_expr.ExprInt(0, 1)
+        elif expr.op == '<=fu':
+            to_ext = (m2_expr.expr_is_float_equal(expr.args[0], expr.args[1]) |
+                      m2_expr.expr_is_float_lower(expr.args[0], expr.args[1]))
+            on_NaN = m2_expr.ExprInt(0, 1)
+        elif expr.op == '!=fu':
+            to_ext = ~m2_expr.expr_is_float_equal(expr.args[0], expr.args[1])
+            on_NaN = m2_expr.ExprInt(1, 1)
+        elif expr.op == '!<fu':
+            to_ext = ~m2_expr.expr_is_float_lower(expr.args[0], expr.args[1])
+            on_NaN = m2_expr.ExprInt(1, 1)
+        elif expr.op == '!<=fu':
+            to_ext = ~(m2_expr.expr_is_float_equal(expr.args[0], expr.args[1]) |
+                      m2_expr.expr_is_float_lower(expr.args[0], expr.args[1]))
+            on_NaN = m2_expr.ExprInt(1, 1)
+
+        to_ext = m2_expr.ExprCond(
+            m2_expr.expr_is_NaN(expr.args[0]) | m2_expr.expr_is_NaN(expr.args[1]),
+            on_NaN,
+            to_ext
+        )
+    return to_ext.signExtend(expr.size)
+
+cmpeqps = vec_vertical_instr('==fu', 32, lambda x: _float_compare_to_mask(x))
+cmpeqpd = vec_vertical_instr('==fu', 64, lambda x: _float_compare_to_mask(x))
+cmpeqss = vec_op_clip('==fu', 32, lambda x: _float_compare_to_mask(x))
+cmpeqsd = vec_op_clip('==fu', 64, lambda x: _float_compare_to_mask(x))
+cmpltps = vec_vertical_instr('<fu', 32, lambda x: _float_compare_to_mask(x))
+cmpltpd = vec_vertical_instr('<fu', 64, lambda x: _float_compare_to_mask(x))
+cmpltss = vec_op_clip('<fu', 32, lambda x: _float_compare_to_mask(x))
+cmpltsd = vec_op_clip('<fu', 64, lambda x: _float_compare_to_mask(x))
+cmpleps = vec_vertical_instr('<=fu', 32, lambda x: _float_compare_to_mask(x))
+cmplepd = vec_vertical_instr('<=fu', 64, lambda x: _float_compare_to_mask(x))
+cmpless = vec_op_clip('<=fu', 32, lambda x: _float_compare_to_mask(x))
+cmplesd = vec_op_clip('<=fu', 64, lambda x: _float_compare_to_mask(x))
+cmpunordps = vec_vertical_instr('unord', 32, lambda x: _float_compare_to_mask(x))
+cmpunordpd = vec_vertical_instr('unord', 64, lambda x: _float_compare_to_mask(x))
+cmpunordss = vec_op_clip('unord', 32, lambda x: _float_compare_to_mask(x))
+cmpunordsd = vec_op_clip('unord', 64, lambda x: _float_compare_to_mask(x))
+cmpneqps = vec_vertical_instr('!=fu', 32, lambda x: _float_compare_to_mask(x))
+cmpneqpd = vec_vertical_instr('!=fu', 64, lambda x: _float_compare_to_mask(x))
+cmpneqss = vec_op_clip('!=fu', 32, lambda x: _float_compare_to_mask(x))
+cmpneqsd = vec_op_clip('!=fu', 64, lambda x: _float_compare_to_mask(x))
+cmpnltps = vec_vertical_instr('!<fu', 32, lambda x: _float_compare_to_mask(x))
+cmpnltpd = vec_vertical_instr('!<fu', 64, lambda x: _float_compare_to_mask(x))
+cmpnltss = vec_op_clip('!<fu', 32, lambda x: _float_compare_to_mask(x))
+cmpnltsd = vec_op_clip('!<fu', 64, lambda x: _float_compare_to_mask(x))
+cmpnleps = vec_vertical_instr('!<=fu', 32, lambda x: _float_compare_to_mask(x))
+cmpnlepd = vec_vertical_instr('!<=fu', 64, lambda x: _float_compare_to_mask(x))
+cmpnless = vec_op_clip('!<=fu', 32, lambda x: _float_compare_to_mask(x))
+cmpnlesd = vec_op_clip('!<=fu', 64, lambda x: _float_compare_to_mask(x))
+cmpordps = vec_vertical_instr('ord', 32, lambda x: _float_compare_to_mask(x))
+cmpordpd = vec_vertical_instr('ord', 64, lambda x: _float_compare_to_mask(x))
+cmpordss = vec_op_clip('ord', 32, lambda x: _float_compare_to_mask(x))
+cmpordsd = vec_op_clip('ord', 64, lambda x: _float_compare_to_mask(x))
 
 # Logical (floating-point)
 #
@@ -3665,31 +3738,31 @@ def por(_, instr, dst, src):
 def cvtdq2pd(_, instr, dst, src):
     e = []
     e.append(
-        m2_expr.ExprAff(dst[:64], m2_expr.ExprOp('int_32_to_double', src[:32])))
+        m2_expr.ExprAff(dst[:64], m2_expr.ExprOp('sint_to_fp64', src[:32])))
     e.append(
-        m2_expr.ExprAff(dst[64:128], m2_expr.ExprOp('int_32_to_double', src[32:64])))
+        m2_expr.ExprAff(dst[64:128], m2_expr.ExprOp('sint_to_fp64', src[32:64])))
     return e, []
 
 
 def cvtdq2ps(_, instr, dst, src):
     e = []
     e.append(
-        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('int_32_to_float', src[:32])))
+        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('sint_to_fp32', src[:32])))
     e.append(
-        m2_expr.ExprAff(dst[32:64], m2_expr.ExprOp('int_32_to_float', src[32:64])))
+        m2_expr.ExprAff(dst[32:64], m2_expr.ExprOp('sint_to_fp32', src[32:64])))
     e.append(
-        m2_expr.ExprAff(dst[64:96], m2_expr.ExprOp('int_32_to_float', src[64:96])))
+        m2_expr.ExprAff(dst[64:96], m2_expr.ExprOp('sint_to_fp32', src[64:96])))
     e.append(
-        m2_expr.ExprAff(dst[96:128], m2_expr.ExprOp('int_32_to_float', src[96:128])))
+        m2_expr.ExprAff(dst[96:128], m2_expr.ExprOp('sint_to_fp32', src[96:128])))
     return e, []
 
 
 def cvtpd2dq(_, instr, dst, src):
     e = []
     e.append(
-        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('double_to_int_32', src[:64])))
+        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('fp_to_sint32', src[:64])))
     e.append(
-        m2_expr.ExprAff(dst[32:64], m2_expr.ExprOp('double_to_int_32', src[64:128])))
+        m2_expr.ExprAff(dst[32:64], m2_expr.ExprOp('fp_to_sint32', src[64:128])))
     e.append(m2_expr.ExprAff(dst[64:128], m2_expr.ExprInt(0, 64)))
     return e, []
 
@@ -3697,18 +3770,18 @@ def cvtpd2dq(_, instr, dst, src):
 def cvtpd2pi(_, instr, dst, src):
     e = []
     e.append(
-        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('double_to_int_32', src[:64])))
+        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('fp_to_sint32', src[:64])))
     e.append(
-        m2_expr.ExprAff(dst[32:64], m2_expr.ExprOp('double_to_int_32', src[64:128])))
+        m2_expr.ExprAff(dst[32:64], m2_expr.ExprOp('fp_to_sint32', src[64:128])))
     return e, []
 
 
 def cvtpd2ps(_, instr, dst, src):
     e = []
     e.append(
-        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('double_to_float', src[:64])))
+        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('fpconvert_fp32', src[:64])))
     e.append(
-        m2_expr.ExprAff(dst[32:64], m2_expr.ExprOp('double_to_float', src[64:128])))
+        m2_expr.ExprAff(dst[32:64], m2_expr.ExprOp('fpconvert_fp32', src[64:128])))
     e.append(m2_expr.ExprAff(dst[64:128], m2_expr.ExprInt(0, 64)))
     return e, []
 
@@ -3716,148 +3789,131 @@ def cvtpd2ps(_, instr, dst, src):
 def cvtpi2pd(_, instr, dst, src):
     e = []
     e.append(
-        m2_expr.ExprAff(dst[:64], m2_expr.ExprOp('int_32_to_double', src[:32])))
+        m2_expr.ExprAff(dst[:64], m2_expr.ExprOp('sint_to_fp64', src[:32])))
     e.append(
-        m2_expr.ExprAff(dst[64:128], m2_expr.ExprOp('int_32_to_double', src[32:64])))
+        m2_expr.ExprAff(dst[64:128], m2_expr.ExprOp('sint_to_fp64', src[32:64])))
     return e, []
 
 
 def cvtpi2ps(_, instr, dst, src):
     e = []
     e.append(
-        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('int_32_to_float', src[:32])))
+        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('sint_to_fp32', src[:32])))
     e.append(
-        m2_expr.ExprAff(dst[32:64], m2_expr.ExprOp('int_32_to_float', src[32:64])))
+        m2_expr.ExprAff(dst[32:64], m2_expr.ExprOp('sint_to_fp32', src[32:64])))
     return e, []
 
 
 def cvtps2dq(_, instr, dst, src):
     e = []
     e.append(
-        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('float_to_int_32', src[:32])))
+        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('fp_to_sint32', src[:32])))
     e.append(
-        m2_expr.ExprAff(dst[32:64], m2_expr.ExprOp('float_to_int_32', src[32:64])))
+        m2_expr.ExprAff(dst[32:64], m2_expr.ExprOp('fp_to_sint32', src[32:64])))
     e.append(
-        m2_expr.ExprAff(dst[64:96], m2_expr.ExprOp('float_to_int_32', src[64:96])))
+        m2_expr.ExprAff(dst[64:96], m2_expr.ExprOp('fp_to_sint32', src[64:96])))
     e.append(
-        m2_expr.ExprAff(dst[96:128], m2_expr.ExprOp('float_to_int_32', src[96:128])))
+        m2_expr.ExprAff(dst[96:128], m2_expr.ExprOp('fp_to_sint32', src[96:128])))
     return e, []
 
 
 def cvtps2pd(_, instr, dst, src):
     e = []
     e.append(
-        m2_expr.ExprAff(dst[:64], m2_expr.ExprOp('float_to_double', src[:32])))
+        m2_expr.ExprAff(dst[:64], m2_expr.ExprOp('fpconvert_fp64', src[:32])))
     e.append(
-        m2_expr.ExprAff(dst[64:128], m2_expr.ExprOp('float_to_double', src[32:64])))
+        m2_expr.ExprAff(dst[64:128], m2_expr.ExprOp('fpconvert_fp64', src[32:64])))
     return e, []
 
 
 def cvtps2pi(_, instr, dst, src):
     e = []
     e.append(
-        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('float_to_int_32', src[:32])))
+        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('fp_to_sint32', src[:32])))
     e.append(
-        m2_expr.ExprAff(dst[32:64], m2_expr.ExprOp('float_to_int_32', src[32:64])))
+        m2_expr.ExprAff(dst[32:64], m2_expr.ExprOp('fp_to_sint32', src[32:64])))
     return e, []
 
 
 def cvtsd2si(_, instr, dst, src):
     e = []
     e.append(
-        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('double_to_int_32', src[:64])))
+        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('fp_to_sint32', src[:64])))
     return e, []
 
 
 def cvtsd2ss(_, instr, dst, src):
     e = []
     e.append(
-        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('double_to_float', src[:64])))
+        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('fpconvert_fp32', src[:64])))
     return e, []
 
 
 def cvtsi2sd(_, instr, dst, src):
     e = []
     e.append(
-        m2_expr.ExprAff(dst[:64], m2_expr.ExprOp('int_32_to_double', src[:32])))
+        m2_expr.ExprAff(dst[:64], m2_expr.ExprOp('sint_to_fp64', src[:32])))
     return e, []
 
 
 def cvtsi2ss(_, instr, dst, src):
     e = []
     e.append(
-        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('int_32_to_float', src[:32])))
+        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('sint_to_fp32', src[:32])))
     return e, []
 
 
 def cvtss2sd(_, instr, dst, src):
     e = []
     e.append(
-        m2_expr.ExprAff(dst[:64], m2_expr.ExprOp('float_to_double', src[:32])))
+        m2_expr.ExprAff(dst[:64], m2_expr.ExprOp('fpconvert_fp64', src[:32])))
     return e, []
 
 
 def cvtss2si(_, instr, dst, src):
     e = []
     e.append(
-        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('float_to_int_32', src[:32])))
+        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('fp_to_sint32', src[:32])))
     return e, []
 
+
+def _cvtt_tpl(dst, src, numbers, double):
+    e = []
+    for i in numbers:
+        # For CVTT*D2* (Convert with Truncation ... Double-Precision) to work,
+        # a first conversion fp64 -> fp32 is needed
+        if double:
+            tmp_src = m2_expr.ExprOp('fpconvert_fp32', src[i*64:i*64 + 64])
+        else:
+            tmp_src = src[i*32:i*32 + 32]
+
+        e.append(m2_expr.ExprAff(
+            dst[i*32:i*32 + 32],
+            m2_expr.ExprOp('fp_to_sint32', m2_expr.ExprOp(
+                'fpround_towardszero',
+                tmp_src
+            ))))
+    return e
 
 def cvttpd2pi(_, instr, dst, src):
-    e = []
-    e.append(
-        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('double_trunc_to_int_32', src[:64])))
-    e.append(
-        m2_expr.ExprAff(dst[32:64], m2_expr.ExprOp('double_trunc_to_int_32', src[64:128])))
-    return e, []
-
+    return _cvtt_tpl(dst, src, [0, 1], double=True), []
 
 def cvttpd2dq(_, instr, dst, src):
-    e = []
-    e.append(
-        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('double_trunc_to_int_32', src[:64])))
-    e.append(
-        m2_expr.ExprAff(dst[32:64], m2_expr.ExprOp('double_trunc_to_int_32', src[64:128])))
+    e = _cvtt_tpl(dst, src, [0, 1], double=True)
     e.append(m2_expr.ExprAff(dst[64:128], m2_expr.ExprInt(0, 64)))
     return e, []
 
+def cvttsd2si(_, instr, dst, src):
+    return _cvtt_tpl(dst, src, [0], double=True), []
 
 def cvttps2dq(_, instr, dst, src):
-    e = []
-    e.append(
-        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('float_trunc_to_int_32', src[:32])))
-    e.append(
-        m2_expr.ExprAff(dst[32:64], m2_expr.ExprOp('float_trunc_to_int_32', src[32:64])))
-    e.append(
-        m2_expr.ExprAff(dst[64:96], m2_expr.ExprOp('float_trunc_to_int_32', src[64:96])))
-    e.append(
-        m2_expr.ExprAff(dst[96:128], m2_expr.ExprOp('float_trunc_to_int_32', src[96:128])))
-    return e, []
-
+    return _cvtt_tpl(dst, src, [0, 1, 2, 3], double=False), []
 
 def cvttps2pi(_, instr, dst, src):
-    e = []
-    e.append(
-        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('float_trunc_to_int_32', src[:32])))
-    e.append(
-        m2_expr.ExprAff(dst[32:64], m2_expr.ExprOp('float_trunc_to_int_32', src[32:64])))
-    return e, []
-
-
-def cvttsd2si(_, instr, dst, src):
-    e = []
-    e.append(
-        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('double_trunc_to_int_32', src[:64])))
-    return e, []
-
+    return _cvtt_tpl(dst, src, [0, 1], double=False), []
 
 def cvttss2si(_, instr, dst, src):
-    e = []
-    e.append(
-        m2_expr.ExprAff(dst[:32], m2_expr.ExprOp('float_trunc_to_int_32', src[:32])))
-    return e, []
-
+    return _cvtt_tpl(dst, src, [0], double=False), []
 
 def movss(_, instr, dst, src):
     e = []
@@ -3925,52 +3981,55 @@ def pshufb(_, instr, dst, src):
 
 
 def pshufd(_, instr, dst, src, imm):
-    e = []
+    control = int(imm)
+    out = []
     for i in xrange(4):
-        index = imm[2 * i:2 * (i + 1)].zeroExtend(dst.size)
-        index <<= m2_expr.ExprInt(5, dst.size)
-        value = (dst >> index)[:32]
-        e.append(m2_expr.ExprAff(dst[32 * i:32 * (i + 1)], value))
-    return e, []
+        shift = ((control >> (i * 2)) & 3) * 32
+        # shift is 2 bits long, expr.size is 128
+        # => shift + 32 <= src.size
+        out.append(src[shift: shift + 32])
+    return [m2_expr.ExprAff(dst, m2_expr.ExprCompose(*out))], []
+
+
+def pshuflw(_, instr, dst, src, imm):
+    control = int(imm)
+    out = []
+    for i in xrange(4):
+        shift = ((control >> (i * 2)) & 3) * 16
+        out.append(src[shift: shift + 16])
+    out.append(src[64:])
+    return [m2_expr.ExprAff(dst, m2_expr.ExprCompose(*out))], []
+
+
+def pshufhw(_, instr, dst, src, imm):
+    control = int(imm)
+    out = [src[:64]]
+    for i in xrange(4):
+        shift = ((control >> (i * 2)) & 3) * 16
+        out.append(src[shift + 64: shift + 16 + 64])
+    return [m2_expr.ExprAff(dst, m2_expr.ExprCompose(*out))], []
 
 
 def ps_rl_ll(ir, instr, dst, src, op, size):
-    loc_zero, loc_zero_expr = ir.gen_loc_key_and_expr(ir.IRDst.size)
-    loc_do, loc_do_expr = ir.gen_loc_key_and_expr(ir.IRDst.size)
-    loc_next = ir.get_next_loc_key(instr)
-    loc_next_expr = m2_expr.ExprLoc(loc_next, ir.IRDst.size)
-
-    if src.size == 8:
-        count = src.zeroExtend(dst.size)
-    else:
-        count = src.zeroExtend(dst.size)
-
     mask = {16: 0xF,
             32: 0x1F,
             64: 0x3F}[size]
-    test = expr_simp(count & m2_expr.ExprInt(
-        ((1 << dst.size) - 1) ^ mask, dst.size))
-    e = [m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(test,
-                                                    loc_zero_expr,
-                                                    loc_do_expr))]
+    mask = m2_expr.ExprInt(mask, dst.size)
 
-    slices = []
+    # Saturate the counter to 2**size
+    count = src.zeroExtend(dst.size)
+    count = m2_expr.ExprCond(count & expr_simp(~mask),
+                             m2_expr.ExprInt(size, dst.size), # saturation
+                             count, # count < 2**size
+    )
+    count = count[:size]
+    if src.is_int():
+        count = expr_simp(count)
+
+    out = []
     for i in xrange(0, dst.size, size):
-        slices.append(m2_expr.ExprOp(op, dst[i:i + size], count[:size]))
-
-    if isinstance(test, m2_expr.ExprInt):
-        if int(test) == 0:
-            return [m2_expr.ExprAff(dst[0:dst.size], m2_expr.ExprCompose(*slices))], []
-        else:
-            return [m2_expr.ExprAff(dst, m2_expr.ExprInt(0, dst.size))], []
-
-    e_zero = [m2_expr.ExprAff(dst, m2_expr.ExprInt(0, dst.size)),
-              m2_expr.ExprAff(ir.IRDst, loc_next_expr)]
-    e_do = []
-    e.append(m2_expr.ExprAff(dst[0:dst.size], m2_expr.ExprCompose(*slices)))
-    e_do.append(m2_expr.ExprAff(ir.IRDst, loc_next_expr))
-    return e, [IRBlock(loc_do, [AssignBlock(e_do, instr)]),
-               IRBlock(loc_zero, [AssignBlock(e_zero, instr)])]
+        out.append(m2_expr.ExprOp(op, dst[i:i + size], count))
+    return [m2_expr.ExprAff(dst, m2_expr.ExprCompose(*out))], []
 
 
 def psrlw(ir, instr, dst, src):
@@ -3995,6 +4054,14 @@ def pslld(ir, instr, dst, src):
 
 def psllq(ir, instr, dst, src):
     return ps_rl_ll(ir, instr, dst, src, "<<",  64)
+
+
+def psraw(ir, instr, dst, src):
+    return ps_rl_ll(ir, instr, dst, src, "a>>", 16)
+
+
+def psrad(ir, instr, dst, src):
+    return ps_rl_ll(ir, instr, dst, src, "a>>", 32)
 
 
 def pslldq(_, instr, dst, src):
@@ -4250,11 +4317,17 @@ def movdq2q(_, instr, dst, src):
     return e, []
 
 
+def movq2dq(_, instr, dst, src):
+    e = []
+    e.append(m2_expr.ExprAff(dst, src[:64].zeroExtend(dst.size)))
+    return e, []
+
+
 def sqrt_gen(_, instr, dst, src, size):
     e = []
     out = []
-    for i in src.size / size:
-        out.append(m2_expr.ExprOp('fsqrt' % size,
+    for i in xrange(src.size / size):
+        out.append(m2_expr.ExprOp('fsqrt',
                                   src[i * size: (i + 1) * size]))
     src = m2_expr.ExprCompose(*out)
     e.append(m2_expr.ExprAff(dst, src))
@@ -4479,10 +4552,10 @@ def maskmovq(ir, instr, src, mask):
     blks = []
 
     # For each possibility, check if a write is necessary
-    check_labels = [m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
+    check_labels = [m2_expr.ExprLoc(ir.loc_db.add_location(), ir.IRDst.size)
                     for _ in xrange(0, mask.size, 8)]
     # If the write has to be done, do it (otherwise, nothing happen)
-    write_labels = [m2_expr.ExprId(ir.gen_label(), ir.IRDst.size)
+    write_labels = [m2_expr.ExprLoc(ir.loc_db.add_location(), ir.IRDst.size)
                     for _ in xrange(0, mask.size, 8)]
 
     # Build check blocks
@@ -4495,7 +4568,7 @@ def maskmovq(ir, instr, src, mask):
                                 m2_expr.ExprCond(bit,
                                                  write_label,
                                                  next_check_label))
-        blks.append(IRBlock(cur_label.name.loc_key, [AssignBlock([check], instr)]))
+        blks.append(IRBlock(cur_label.loc_key, [AssignBlock([check], instr)]))
 
     # Build write blocks
     dst_addr = mRDI[instr.mode]
@@ -4509,7 +4582,7 @@ def maskmovq(ir, instr, src, mask):
         write_mem = m2_expr.ExprAff(m2_expr.ExprMem(write_addr, 8),
                                     src[start: start + 8])
         jump = m2_expr.ExprAff(ir.IRDst, next_check_label)
-        blks.append(IRBlock(cur_label.name.loc_key, [AssignBlock([write_mem, jump], instr)]))
+        blks.append(IRBlock(cur_label.loc_key, [AssignBlock([write_mem, jump], instr)]))
 
     # If mask is null, bypass all
     e = [m2_expr.ExprAff(ir.IRDst, m2_expr.ExprCond(mask,
@@ -4521,6 +4594,63 @@ def maskmovq(ir, instr, src, mask):
 def emms(ir, instr):
     # Implemented as a NOP
     return [], []
+
+# Common value without too many option, 0x1fa0
+STMXCSR_VALUE = 0x1fa0
+def stmxcsr(ir, instr, dst):
+    return [m2_expr.ExprAff(dst, m2_expr.ExprInt(STMXCSR_VALUE, dst.size))], []
+
+def ldmxcsr(ir, instr, dst):
+    # Implemented as a NOP
+    return [], []
+
+
+def _select4(src, control):
+    # Implementation inspired from Intel Intrisics Guide
+    # @control is already resolved (was an immediate)
+
+    if control == 0:
+        return src[:32] # 0
+    elif control == 1:
+        return src[32:64]
+    elif control == 2:
+        return src[64:96]
+    elif control == 3:
+        return src[96:]
+    else:
+        raise ValueError("Control must be on 2 bits")
+
+
+def shufps(ir, instr, dst, src, imm8):
+    out = []
+    control = int(imm8)
+    for i in xrange(4):
+        if i < 2:
+            source = dst
+        else:
+            source = src
+        out.append(_select4(source, (control >> (i * 2)) & 3))
+    return [m2_expr.ExprAff(dst, m2_expr.ExprCompose(*out))], []
+
+
+def shufpd(ir, instr, dst, src, imm8):
+    out = []
+    control = int(imm8)
+    out.append(dst[64:] if control & 1 else dst[:64])
+    out.append(src[64:] if control & 2 else src[:64])
+    return [m2_expr.ExprAff(dst, m2_expr.ExprCompose(*out))], []
+
+def movmskps(ir, instr, dst, src):
+    out = []
+    for i in xrange(4):
+        out.append(src[(32 * i) + 31:(32 * i) + 32])
+    return [m2_expr.ExprAff(dst, m2_expr.ExprCompose(*out).zeroExtend(dst.size))], []
+
+def movmskpd(ir, instr, dst, src):
+    out = []
+    for i in xrange(2):
+        out.append(src[(64 * i) + 63:(64 * i) + 64])
+    return [m2_expr.ExprAff(dst, m2_expr.ExprCompose(*out).zeroExtend(dst.size))], []
 
 
 mnemo_func = {'mov': mov,
@@ -4961,6 +5091,49 @@ mnemo_func = {'mov': mov,
               "divps": divps,
               "divpd": divpd,
 
+              # Comparisons (floating-point)
+              #
+              "minps": minps,
+              "minpd": minpd,
+              "minss": minss,
+              "minsd": minsd,
+              "maxps": maxps,
+              "maxpd": maxpd,
+              "maxss": maxss,
+              "maxsd": maxsd,
+              "cmpeqps": cmpeqps,
+              "cmpeqpd": cmpeqpd,
+              "cmpeqss": cmpeqss,
+              "cmpeqsd": cmpeqsd,
+              "cmpltps": cmpltps,
+              "cmpltpd": cmpltpd,
+              "cmpltss": cmpltss,
+              "cmpltsd": cmpltsd,
+              "cmpleps": cmpleps,
+              "cmplepd": cmplepd,
+              "cmpless": cmpless,
+              "cmplesd": cmplesd,
+              "cmpunordps": cmpunordps,
+              "cmpunordpd": cmpunordpd,
+              "cmpunordss": cmpunordss,
+              "cmpunordsd": cmpunordsd,
+              "cmpneqps": cmpneqps,
+              "cmpneqpd": cmpneqpd,
+              "cmpneqss": cmpneqss,
+              "cmpneqsd": cmpneqsd,
+              "cmpnltps": cmpnltps,
+              "cmpnltpd": cmpnltpd,
+              "cmpnltss": cmpnltss,
+              "cmpnltsd": cmpnltsd,
+              "cmpnleps": cmpnleps,
+              "cmpnlepd": cmpnlepd,
+              "cmpnless": cmpnless,
+              "cmpnlesd": cmpnlesd,
+              "cmpordps": cmpordps,
+              "cmpordpd": cmpordpd,
+              "cmpordss": cmpordss,
+              "cmpordsd": cmpordsd,
+
               # Logical (floating-point)
               #
 
@@ -4972,6 +5145,8 @@ mnemo_func = {'mov': mov,
               "wrmsr": wrmsr,
               "pshufb": pshufb,
               "pshufd": pshufd,
+              "pshuflw": pshuflw,
+              "pshufhw": pshufhw,
 
               "psrlw": psrlw,
               "psrld": psrld,
@@ -4981,6 +5156,8 @@ mnemo_func = {'mov': mov,
               "psllq": psllq,
               "pslldq": pslldq,
               "psrldq": psrldq,
+              "psraw": psraw,
+              "psrad": psrad,
 
               "palignr": palignr,
 
@@ -5036,6 +5213,7 @@ mnemo_func = {'mov': mov,
               "movlhps": movlhps,
               "movhlps": movhlps,
               "movdq2q": movdq2q,
+              "movq2dq": movq2dq,
 
               "sqrtpd": sqrtpd,
               "sqrtps": sqrtps,
@@ -5061,6 +5239,12 @@ mnemo_func = {'mov': mov,
               "maskmovq": maskmovq,
               "maskmovdqu": maskmovq,
               "emms": emms,
+              "shufps": shufps,
+              "shufpd": shufpd,
+              "movmskps": movmskps,
+              "movmskpd": movmskpd,
+              "stmxcsr": stmxcsr,
+              "ldmxcsr": ldmxcsr,
               }
 
 

@@ -94,17 +94,70 @@ class TranslatorC(Translator):
                     self.from_expr(expr.args[0]),
                     self._size2mask(expr.args[0].size),
                 )
-            elif (expr.op.startswith("double_to_") or
-                  expr.op.endswith("_to_double")   or
-                  expr.op.startswith("access_")    or
+            elif expr.op in [
+                    "ftan", "frndint", "f2xm1", "fsin", "fsqrt", "fabs", "fcos",
+                    "fchs",
+            ]:
+                return "fpu_%s%d(%s)" % (
+                    expr.op,
+                    expr.size,
+                    self.from_expr(expr.args[0]),
+                )
+            elif (expr.op.startswith("access_")    or
                   expr.op.startswith("load_")      or
                   expr.op.startswith("fxam_c")     or
-                  expr.op in ["-", "ftan", "frndint", "f2xm1",
-                              "fsin", "fsqrt", "fabs", "fcos", "fchs"]):
+                  expr.op in ["-"]):
                 return "%s(%s)" % (
                     expr.op,
                     self.from_expr(expr.args[0])
                 )
+            elif expr.op.startswith("fpround_"):
+                return "%s_fp%d(%s)" % (
+                    expr.op,
+                    expr.size,
+                    self.from_expr(expr.args[0]),
+                )
+            elif expr.op.startswith("sint_to_fp"):
+                dest_size = expr.size
+                arg_size = expr.args[0].size
+                if (arg_size, dest_size) in [
+                        (32, 32), (64, 64), (32, 64),
+                ]:
+                    func = "sint%d_to_fp%d" % (arg_size, dest_size)
+                else:
+                    raise RuntimeError(
+                        "Unsupported size for sint_to_fp: %r to %r" % (
+                            arg_size,
+                            dest_size
+                        ))
+                return "%s(%s)" % (func, self.from_expr(expr.args[0]))
+            elif expr.op.startswith("fp_to_sint"):
+                dest_size = expr.size
+                arg_size = expr.args[0].size
+                if (arg_size, dest_size) in [
+                        (32, 32), (64, 64), (64, 32),
+                ]:
+                    func = "fp%d_to_sint%d" % (arg_size, dest_size)
+                else:
+                    raise RuntimeError(
+                        "Unsupported size for fp_to_sint: %r to %r" % (
+                            arg_size,
+                            dest_size
+                        ))
+                return "%s(%s)" % (func, self.from_expr(expr.args[0]))
+            elif expr.op.startswith("fpconvert_fp"):
+                dest_size = expr.size
+                arg_size = expr.args[0].size
+                if (arg_size, dest_size) in [
+                        (32, 64), (64, 32)
+                ]:
+                    func = "fp%d_to_fp%d" % (arg_size, dest_size)
+                else:
+                    raise RuntimeError(
+                        "Unsupported size for fpconvert: %r to %r" % (arg_size,
+                                                                      dest_size)
+                    )
+                return "%s(%s)" % (func, self.from_expr(expr.args[0]))
             else:
                 raise NotImplementedError('Unknown op: %r' % expr.op)
 
@@ -155,10 +208,11 @@ class TranslatorC(Translator):
             elif (expr.op.startswith("fcom")  or
                   expr.op in ["fadd", "fsub", "fdiv", 'fmul', "fscale",
                               "fprem", "fprem_lsb", "fyl2x", "fpatan"]):
-                return "fpu_%s(%s, %s)" % (
+                return "fpu_%s%d(%s, %s)" % (
                     expr.op,
+                    expr.size,
                     self.from_expr(expr.args[0]),
-                    self.from_expr(expr.args[1])
+                    self.from_expr(expr.args[1]),
                 )
             elif expr.op == "segm":
                 return "segm2addr(jitcpu, %s, %s)" % (
@@ -209,8 +263,8 @@ class TranslatorC(Translator):
         if expr.size in [8, 16, 32, 64, 128]:
             size = expr.size
         else:
-            # Uncommon expression size
-            size = expr.size
+            # Uncommon expression size, use at least uint8
+            size = max(expr.size, 8)
             next_power = 1
             while next_power <= size:
                 next_power <<= 1

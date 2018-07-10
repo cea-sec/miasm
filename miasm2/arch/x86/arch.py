@@ -3771,7 +3771,8 @@ addop("movq", [bs8(0x0f), bs8(0xd6), pref_66] +
 
 addop("movmskps", [bs8(0x0f), bs8(0x50), no_xmm_pref] +
       rmmod(reg_modrm, rm_arg_xmm_reg))
-
+addop("movmskpd", [bs8(0x0f), bs8(0x50), pref_66] +
+      rmmod(reg_modrm, rm_arg_xmm_reg))
 
 addop("addss", [bs8(0x0f), bs8(0x58), pref_f3] + rmmod(xmm_reg, rm_arg_xmm_m32))
 addop("addsd", [bs8(0x0f), bs8(0x58), pref_f2] + rmmod(xmm_reg, rm_arg_xmm_m64))
@@ -3791,10 +3792,6 @@ addop("pminsw", [bs8(0x0f), bs8(0xea), pref_66] + rmmod(xmm_reg, rm_arg_xmm))
 
 addop("ucomiss", [bs8(0x0f), bs8(0x2e), no_xmm_pref] + rmmod(xmm_reg, rm_arg_xmm_m32))
 addop("ucomisd", [bs8(0x0f), bs8(0x2e), pref_66] + rmmod(xmm_reg, rm_arg_xmm_m64))
-
-addop("maxsd", [bs8(0x0f), bs8(0x5f), pref_f2] + rmmod(xmm_reg, rm_arg_xmm_m64))
-addop("maxss", [bs8(0x0f), bs8(0x5f), pref_f3] + rmmod(xmm_reg, rm_arg_xmm_m32))
-
 
 
 addop("movzx", [bs8(0x0f), bs("1011011"), w8, sx] + rmmod(rmreg, rm_arg_sx))
@@ -4021,9 +4018,9 @@ addop("xgetbv", [bs8(0x0f), bs8(0x01), bs8(0xd0)])
 addop("movapd", [bs8(0x0f), bs("0010100"), swapargs]
       + rmmod(xmm_reg, rm_arg_xmm) + [bs_opmode16], [xmm_reg, rm_arg_xmm])
 addop("movaps", [bs8(0x0f), bs("0010100"), swapargs]
-      + rmmod(xmm_reg, rm_arg_xmm) + [bs_opmode32], [xmm_reg, rm_arg_xmm])
+      + rmmod(xmm_reg, rm_arg_xmm_m128) + [bs_opmode32], [xmm_reg, rm_arg_xmm_m128])
 addop("movaps", [bs8(0x0f), bs("0010100"), swapargs]
-      + rmmod(xmm_reg, rm_arg_xmm) + [bs_opmode64], [xmm_reg, rm_arg_xmm])
+      + rmmod(xmm_reg, rm_arg_xmm_m128) + [bs_opmode64], [xmm_reg, rm_arg_xmm_m128])
 addop("movdqu", [bs8(0x0f), bs("011"), swapargs, bs("1111"), pref_f3]
       + rmmod(xmm_reg, rm_arg_xmm), [xmm_reg, rm_arg_xmm])
 addop("movdqa", [bs8(0x0f), bs("011"), swapargs, bs("1111"), pref_66]
@@ -4045,7 +4042,8 @@ addop("movlhps", [bs8(0x0f), bs8(0x16), no_xmm_pref] +
 
 addop("movdq2q", [bs8(0x0f), bs8(0xd6), pref_f2] +
       rmmod(mm_reg, rm_arg_xmm_reg), [mm_reg, rm_arg_xmm_reg])
-
+addop("movq2dq", [bs8(0x0f), bs8(0xd6), pref_f3] +
+      rmmod(xmm_reg, rm_arg_mm))
 
 ## Additions
 # SSE
@@ -4144,13 +4142,54 @@ addop("pxor", [bs8(0x0f), bs8(0xef), no_xmm_pref] +
 addop("pxor", [bs8(0x0f), bs8(0xef), pref_66] +
       rmmod(xmm_reg, rm_arg_xmm))
 
-addop("pshufb", [bs8(0x0f), bs8(0x38), bs8(0x00), no_xmm_pref] +
-      rmmod(mm_reg, rm_arg_mm))
-addop("pshufb", [bs8(0x0f), bs8(0x38), bs8(0x00), pref_66] +
-      rmmod(xmm_reg, rm_arg_xmm))
-addop("pshufd", [bs8(0x0f), bs8(0x70), pref_66] +
-      rmmod(xmm_reg, rm_arg_xmm) + [u08])
+### Comparisons (floating-point)
+###
+addop("minps", [bs8(0x0f), bs8(0x5d), no_xmm_pref] + rmmod(xmm_reg,
+                                                           rm_arg_xmm_m128))
+addop("minss", [bs8(0x0f), bs8(0x5d), pref_f3] + rmmod(xmm_reg,
+                                                       rm_arg_xmm_m32))
+addop("minpd", [bs8(0x0f), bs8(0x5d), pref_66] + rmmod(xmm_reg,
+                                                       rm_arg_xmm_m128))
+addop("minsd", [bs8(0x0f), bs8(0x5d), pref_f2] + rmmod(xmm_reg,
+                                                       rm_arg_xmm_m64))
+addop("maxps", [bs8(0x0f), bs8(0x5f), no_xmm_pref] + rmmod(xmm_reg,
+                                                           rm_arg_xmm_m128))
+addop("maxpd", [bs8(0x0f), bs8(0x5f), pref_66] + rmmod(xmm_reg,
+                                                       rm_arg_xmm_m128))
+addop("maxsd", [bs8(0x0f), bs8(0x5f), pref_f2] + rmmod(xmm_reg, rm_arg_xmm_m64))
+addop("maxss", [bs8(0x0f), bs8(0x5f), pref_f3] + rmmod(xmm_reg, rm_arg_xmm_m32))
 
+for cond_name, value in [
+        ("eq", 0x00),
+        ("lt", 0x01),
+        ("le", 0x02),
+        ("unord", 0x03),
+        ("neq", 0x04),
+        ("nlt", 0x05),
+        ("nle", 0x06),
+        ("ord", 0x07),
+]:
+    addop("cmp%sps" % cond_name, [bs8(0x0f), bs8(0xc2), no_xmm_pref] +
+          rmmod(xmm_reg, rm_arg_xmm_m64) + [bs8(value)])
+    addop("cmp%spd" % cond_name, [bs8(0x0f), bs8(0xc2), pref_66] +
+          rmmod(xmm_reg, rm_arg_xmm_m64) + [bs8(value)])
+    addop("cmp%sss" % cond_name, [bs8(0x0f), bs8(0xc2), pref_f3] +
+          rmmod(xmm_reg, rm_arg_xmm_m32) + [bs8(value)])
+    addop("cmp%ssd" % cond_name, [bs8(0x0f), bs8(0xc2), pref_f2] +
+          rmmod(xmm_reg, rm_arg_xmm_m32) + [bs8(value)])
+
+
+
+addop("pshufb", [bs8(0x0f), bs8(0x38), bs8(0x00), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm_m64))
+addop("pshufb", [bs8(0x0f), bs8(0x38), bs8(0x00), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m128))
+addop("pshufd", [bs8(0x0f), bs8(0x70), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m128) + [u08])
+addop("pshuflw", [bs8(0x0f), bs8(0x70), pref_f2] +
+      rmmod(xmm_reg, rm_arg_xmm_m128) + [u08])
+addop("pshufhw", [bs8(0x0f), bs8(0x70), pref_f3] +
+      rmmod(xmm_reg, rm_arg_xmm_m128) + [u08])
 
 
 ### Convert
@@ -4241,10 +4280,29 @@ addop("psrlw", [bs8(0x0f), bs8(0x71), pref_66] +
       rmmod(d2, rm_arg_xmm) + [u08], [rm_arg_xmm, u08])
 
 addop("psrlw", [bs8(0x0f), bs8(0xd1), no_xmm_pref] +
-      rmmod(mm_reg, rm_arg_mm), [mm_reg, rm_arg_mm])
+      rmmod(mm_reg, rm_arg_mm_m64), [mm_reg, rm_arg_mm_m64])
 addop("psrlw", [bs8(0x0f), bs8(0xd1), pref_66] +
-      rmmod(xmm_reg, rm_arg_xmm), [xmm_reg, rm_arg_xmm])
+      rmmod(xmm_reg, rm_arg_xmm_m128), [xmm_reg, rm_arg_xmm_m128])
 
+addop("psraw", [bs8(0x0f), bs8(0xe1), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm_m64), [mm_reg, rm_arg_mm_m64])
+addop("psraw", [bs8(0x0f), bs8(0xe1), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m128), [xmm_reg, rm_arg_xmm_m128])
+
+addop("psraw", [bs8(0x0f), bs8(0x71), no_xmm_pref] +
+      rmmod(d4, rm_arg_mm_m64) + [u08], [rm_arg_mm_m64, u08])
+addop("psraw", [bs8(0x0f), bs8(0x71), pref_66] +
+      rmmod(d4, rm_arg_xmm_m128) + [u08], [rm_arg_xmm_m128, u08])
+
+addop("psrad", [bs8(0x0f), bs8(0xe2), no_xmm_pref] +
+      rmmod(mm_reg, rm_arg_mm_m64), [mm_reg, rm_arg_mm_m64])
+addop("psrad", [bs8(0x0f), bs8(0xe2), pref_66] +
+      rmmod(xmm_reg, rm_arg_xmm_m128), [xmm_reg, rm_arg_xmm_m128])
+
+addop("psrad", [bs8(0x0f), bs8(0x72), no_xmm_pref] +
+      rmmod(d4, rm_arg_mm_m64) + [u08], [rm_arg_mm_m64, u08])
+addop("psrad", [bs8(0x0f), bs8(0x72), pref_66] +
+      rmmod(d4, rm_arg_xmm_m128) + [u08], [rm_arg_xmm_m128, u08])
 
 
 addop("psllq", [bs8(0x0f), bs8(0x73), no_xmm_pref] +

@@ -49,14 +49,14 @@ typedef struct {
 
 	uint64_t cond;
 
-	double float_st0;
-	double float_st1;
-	double float_st2;
-	double float_st3;
-	double float_st4;
-	double float_st5;
-	double float_st6;
-	double float_st7;
+	uint64_t float_st0;
+	uint64_t float_st1;
+	uint64_t float_st2;
+	uint64_t float_st3;
+	uint64_t float_st4;
+	uint64_t float_st5;
+	uint64_t float_st6;
+	uint64_t float_st7;
 
 	unsigned int float_c0;
 	unsigned int float_c1;
