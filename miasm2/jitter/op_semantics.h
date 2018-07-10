@@ -96,19 +96,23 @@ int16_t idiv16(int16_t a, int16_t b);
 int16_t imod16(int16_t a, int16_t b);
 
 unsigned int x86_cpuid(unsigned int a, unsigned int reg_num);
-double int2double(unsigned int m);
 
-double fpu_fadd(double a, double b);
-double fpu_fsub(double a, double b);
-double fpu_fmul(double a, double b);
-double fpu_fdiv(double a, double b);
+uint32_t fpu_fadd32(uint32_t a, uint32_t b);
+uint64_t fpu_fadd64(uint64_t a, uint64_t b);
+uint32_t fpu_fsub32(uint32_t a, uint32_t b);
+uint64_t fpu_fsub64(uint64_t a, uint64_t b);
+uint32_t fpu_fmul32(uint32_t a, uint32_t b);
+uint64_t fpu_fmul64(uint64_t a, uint64_t b);
+uint32_t fpu_fdiv32(uint32_t a, uint32_t b);
+uint64_t fpu_fdiv64(uint64_t a, uint64_t b);
 double fpu_ftan(double a);
 double fpu_frndint(double a);
 double fpu_fsin(double a);
 double fpu_fcos(double a);
 double fpu_fscale(double a, double b);
 double fpu_f2xm1(double a);
-double fpu_fsqrt(double a);
+uint32_t fpu_fsqrt32(uint32_t a);
+uint64_t fpu_fsqrt64(uint64_t a);
 double fpu_fabs(double a);
 double fpu_fprem(double a, double b);
 double fpu_fchs(double a);
@@ -124,18 +128,16 @@ unsigned int fpu_fxam_c1(double a);
 unsigned int fpu_fxam_c2(double a);
 unsigned int fpu_fxam_c3(double a);
 
-
-double mem_32_to_double(unsigned int m);
-double mem_64_to_double(uint64_t m);
-double int_16_to_double(unsigned int m);
-double int_32_to_double(unsigned int m);
-double int_64_to_double(uint64_t m);
-int16_t double_to_int_16(double d);
-int32_t double_to_int_32(double d);
-int64_t double_to_int_64(double d);
-unsigned int double_to_mem_32(double d);
-uint64_t double_to_mem_64(double d);
-
+uint64_t sint64_to_fp64(int64_t a);
+uint32_t sint32_to_fp32(int32_t a);
+uint64_t sint32_to_fp64(int32_t a);
+int32_t fp32_to_sint32(uint32_t a);
+int64_t fp64_to_sint64(uint64_t a);
+int32_t fp64_to_sint32(uint64_t a);
+uint32_t fp64_to_fp32(uint64_t a);
+uint64_t fp32_to_fp64(uint32_t a);
+uint32_t fpround_towardszero_fp32(uint32_t a);
+uint64_t fpround_towardszero_fp64(uint64_t a);
 
 #define SHIFT_RIGHT_ARITH(size, value, shift)				\
 	((uint ## size ## _t)((((uint64_t) (shift)) > ((size) - 1))?	\

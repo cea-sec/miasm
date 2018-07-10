@@ -355,147 +355,92 @@ void dump_float(void)
 	*/
 }
 
-double mem_32_to_double(unsigned int m)
+uint32_t fpu_fadd32(uint32_t a, uint32_t b)
 {
-	float f;
-	double d;
-
-	f = *((float*)&m);
-	d = f;
-#ifdef DEBUG_MIASM_DOUBLE
-	dump_float();
-	printf("%d float %e\n", m, d);
-#endif
-	return d;
-}
-
-
-double mem_64_to_double(uint64_t m)
-{
-	double d;
-	d = *((double*)&m);
-#ifdef DEBUG_MIASM_DOUBLE
-	dump_float();
-	printf("%"PRId64" double %e\n", m, d);
-#endif
-	return d;
-}
-
-double int_16_to_double(unsigned int m)
-{
-	double d;
-
-	d = (double)(m&0xffff);
-#ifdef DEBUG_MIASM_DOUBLE
-	dump_float();
-	printf("%d double %e\n", m, d);
-#endif
-	return d;
-}
-
-double int_32_to_double(unsigned int m)
-{
-	double d;
-
-	d = (double)m;
-#ifdef DEBUG_MIASM_DOUBLE
-	dump_float();
-	printf("%d double %e\n", m, d);
-#endif
-	return d;
-}
-
-double int_64_to_double(uint64_t m)
-{
-	double d;
-
-	d = (double)m;
-#ifdef DEBUG_MIASM_DOUBLE
-	dump_float();
-	printf("%"PRId64" double %e\n", m, d);
-#endif
-	return d;
-}
-
-int16_t double_to_int_16(double d)
-{
-	int16_t i;
-
-	i = (int16_t)d;
-#ifdef DEBUG_MIASM_DOUBLE
-	dump_float();
-	printf("%e int %d\n", d, i);
-#endif
-	return i;
-}
-
-int32_t double_to_int_32(double d)
-{
-	int32_t i;
-
-	i = (int32_t)d;
-#ifdef DEBUG_MIASM_DOUBLE
-	dump_float();
-	printf("%e int %d\n", d, i);
-#endif
-	return i;
-}
-
-int64_t double_to_int_64(double d)
-{
-	int64_t i;
-
-	i = (int64_t)d;
-#ifdef DEBUG_MIASM_DOUBLE
-	dump_float();
-	printf("%e int %"PRId64"\n", d, i);
-#endif
-	return i;
-}
-
-
-double fpu_fadd(double a, double b)
-{
-	double c;
-	c = a + b;
+	float c;
+	c = *((float*)&a) + *((float*)&b);
 #ifdef DEBUG_MIASM_DOUBLE
 	dump_float();
 	printf("%e + %e -> %e\n", a, b, c);
 #endif
-	return c;
+	return *((uint32_t*)&c);
 }
 
-double fpu_fsub(double a, double b)
+uint64_t fpu_fadd64(uint64_t a, uint64_t b)
 {
 	double c;
-	c = a - b;
+	c = *((double*)&a) + *((double*)&b);
 #ifdef DEBUG_MIASM_DOUBLE
 	dump_float();
-	printf("%e - %e -> %e\n", a, b, c);
+	printf("%e + %e -> %e\n", a, b, c);
 #endif
-	return c;
+	return *((uint64_t*)&c);
 }
 
-double fpu_fmul(double a, double b)
+uint32_t fpu_fsub32(uint32_t a, uint32_t b)
+{
+	float c;
+	c = *((float*)&a) - *((float*)&b);
+#ifdef DEBUG_MIASM_DOUBLE
+	dump_float();
+	printf("%e + %e -> %e\n", a, b, c);
+#endif
+	return *((uint32_t*)&c);
+}
+
+uint64_t fpu_fsub64(uint64_t a, uint64_t b)
 {
 	double c;
-	c = a * b;
+	c = *((double*)&a) - *((double*)&b);
+#ifdef DEBUG_MIASM_DOUBLE
+	dump_float();
+	printf("%e + %e -> %e\n", a, b, c);
+#endif
+	return *((uint64_t*)&c);
+}
+
+uint32_t fpu_fmul32(uint32_t a, uint32_t b)
+{
+	float c;
+	c = *((float*)&a) * *((float*)&b);
 #ifdef DEBUG_MIASM_DOUBLE
 	dump_float();
 	printf("%e * %e -> %e\n", a, b, c);
 #endif
-	return c;
+	return *((uint32_t*)&c);
 }
 
-double fpu_fdiv(double a, double b)
+uint64_t fpu_fmul64(uint64_t a, uint64_t b)
 {
 	double c;
-	c = a / b;
+	c = *((double*)&a) * *((double*)&b);
 #ifdef DEBUG_MIASM_DOUBLE
 	dump_float();
-	printf("%e / %e -> %e\n", a, b, c);
+	printf("%e * %e -> %e\n", a, b, c);
 #endif
-	return c;
+	return *((uint64_t*)&c);
+}
+
+uint32_t fpu_fdiv32(uint32_t a, uint32_t b)
+{
+	float c;
+	c = *((float*)&a) / *((float*)&b);
+#ifdef DEBUG_MIASM_DOUBLE
+	dump_float();
+	printf("%e * %e -> %e\n", a, b, c);
+#endif
+	return *((uint32_t*)&c);
+}
+
+uint64_t fpu_fdiv64(uint64_t a, uint64_t b)
+{
+	double c;
+	c = *((double*)&a) / *((double*)&b);
+#ifdef DEBUG_MIASM_DOUBLE
+	dump_float();
+	printf("%e * %e -> %e\n", a, b, c);
+#endif
+	return *((uint64_t*)&c);
 }
 
 double fpu_ftan(double a)
@@ -567,15 +512,26 @@ double fpu_f2xm1(double a)
 	return b;
 }
 
-double fpu_fsqrt(double a)
+uint32_t fpu_fsqrt32(uint32_t a)
 {
-	double b;
-	b = sqrt(a);
+	float b;
+	b = sqrtf(*((float*)&a));
 #ifdef DEBUG_MIASM_DOUBLE
 	dump_float();
 	printf("%e sqrt %e\n", a, b);
 #endif
-	return b;
+	return *((uint32_t*)&b);
+}
+
+uint64_t fpu_fsqrt64(uint64_t a)
+{
+	double b;
+	b = sqrt(*((double*)&a));
+#ifdef DEBUG_MIASM_DOUBLE
+	dump_float();
+	printf("%e sqrt %e\n", a, b);
+#endif
+	return *((uint64_t*)&b);
 }
 
 double fpu_fabs(double a)
@@ -751,29 +707,74 @@ unsigned int fpu_fxam_c3(double a)
 	}
 }
 
-unsigned int double_to_mem_32(double d)
+uint64_t sint64_to_fp64(int64_t a)
 {
-	unsigned int m;
-	float f;
-	f = d;
-	m = *((unsigned int*)&f);
-#ifdef DEBUG_MIASM_DOUBLE
-	dump_float();
-	printf("%d %e\n", m, d);
-#endif
-	return m;
+	double result = (double) a;
+	return *((uint64_t*)&result);
 }
 
-uint64_t double_to_mem_64(double d)
+uint32_t sint32_to_fp32(int32_t a)
 {
-	uint64_t m;
-	m = *((uint64_t*)&d);
-#ifdef DEBUG_MIASM_DOUBLE
-	dump_float();
-	printf("%"PRId64" %e\n", m, d);
-#endif
-	return m;
+	float result = (float) a;
+	return *((uint32_t*)&result);
 }
+
+uint64_t sint32_to_fp64(int32_t a)
+{
+	double result = (double) a;
+	return *((uint64_t*)&result);
+}
+
+int32_t fp32_to_sint32(uint32_t a)
+{
+	// Enforce nearbyint (IEEE-754 behavior)
+	float rounded = *((float*)&a);
+	rounded = nearbyintf(rounded);
+	return (int32_t) rounded;
+}
+
+int64_t fp64_to_sint64(uint64_t a)
+{
+	// Enforce nearbyint (IEEE-754 behavior)
+	double rounded = *((double*)&a);
+	rounded = nearbyint(rounded);
+	return (int64_t) rounded;
+}
+
+int32_t fp64_to_sint32(uint64_t a)
+{
+	// Enforce nearbyint (IEEE-754 behavior)
+	double rounded = *((double*)&a);
+	rounded = nearbyint(rounded);
+	return (int32_t) rounded;
+}
+
+uint32_t fp64_to_fp32(uint64_t a)
+{
+	float result = (float) *((double*)&a);
+	return *((uint32_t*)&result);
+}
+
+uint64_t fp32_to_fp64(uint32_t a)
+{
+	double result = (double) *((float*)&a);
+	return *((uint64_t*)&result);
+}
+
+uint32_t fpround_towardszero_fp32(uint32_t a)
+{
+	float rounded = *((float*)&a);
+	rounded = truncf(rounded);
+	return *((uint32_t*)&rounded);
+}
+
+uint64_t fpround_towardszero_fp64(uint64_t a)
+{
+	double rounded = *((float*)&a);
+	rounded = trunc(rounded);
+	return *((uint64_t*)&rounded);
+}
+
 
 UDIV(16)
 UDIV(32)
