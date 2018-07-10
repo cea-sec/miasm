@@ -1870,3 +1870,80 @@ def expr_is_signed_lower_or_equal(op1, op2):
     of = _expr_compute_of(op1, op2)
     zf = _expr_compute_zf(op1, op2)
     return zf | (nf ^ of)
+
+# sign bit | exponent | significand
+size_to_IEEE754_info = {
+    16: {
+        "exponent": 5,
+        "significand": 10,
+    },
+    32: {
+        "exponent": 8,
+        "significand": 23,
+    },
+    64: {
+        "exponent": 11,
+        "significand": 52,
+    },
+}
+
+def expr_is_NaN(expr):
+    """Return 1 or 0 on 1 bit if expr represent a NaN value according to IEEE754
+    """
+    info = size_to_IEEE754_info[expr.size]
+    exponent = expr[info["significand"]: info["significand"] + info["exponent"]]
+
+    # exponent is full of 1s and significand is not NULL
+    return ExprCond(exponent - ExprInt(-1, exponent.size),
+                    ExprInt(0, 1),
+                    ExprCond(expr[:info["significand"]], ExprInt(1, 1),
+                             ExprInt(0, 1)))
+
+
+def expr_is_qNaN(expr):
+    """Return 1 or 0 on 1 bit if expr represent a qNaN (quiet) value according to
+    IEEE754
+    """
+    info = size_to_IEEE754_info[expr.size]
+    significand_top = expr[info["significand"]: info["significand"] + 1]
+    return expr_is_NaN(expr) & significand_top
+
+
+def expr_is_sNaN(expr):
+    """Return 1 or 0 on 1 bit if expr represent a sNaN (signalling) value according
+    to IEEE754
+    """
+    info = size_to_IEEE754_info[expr.size]
+    significand_top = expr[info["significand"]: info["significand"] + 1]
+    return expr_is_NaN(expr) & ~significand_top
+
+
+def expr_is_float_lower(op1, op2):
+    """Return 1 on 1 bit if @op1 < @op2, 0 otherwise.
+    /!\ Assume @op1 and @op2 are not NaN
+    Comparision is the floating point one, defined in IEEE754
+    """
+    sign1, sign2 = op1.msb(), op2.msb()
+    magn1, magn2 = op1[:-1], op2[:-1]
+    return ExprCond(sign1 ^ sign2,
+                    # Sign different, only the sign matters
+                    sign1, # sign1 ? op1 < op2 : op1 >= op2
+                    # Sign equals, the result is inversed for negatives
+                    sign1 ^ (expr_is_unsigned_lower(magn1, magn2)))
+
+
+def expr_is_float_equal(op1, op2):
+    """Return 1 on 1 bit if @op1 == @op2, 0 otherwise.
+    /!\ Assume @op1 and @op2 are not NaN
+    Comparision is the floating point one, defined in IEEE754
+    """
+    sign1, sign2 = op1.msb(), op2.msb()
+    magn1, magn2 = op1[:-1], op2[:-1]
+    return ExprCond(magn1 ^ magn2,
+                    ExprInt(0, 1),
+                    ExprCond(magn1,
+                             # magn1 == magn2, are the signal equals?
+                             ~(sign1 ^ sign2),
+                             # Special case: -0.0 == +0.0
+                             ExprInt(1, 1))
+                    )
