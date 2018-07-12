@@ -227,9 +227,9 @@ if args.gen_ir:
         open('graph_defuse.dot', 'w').write(DiGraphDefUse(reachings).dot())
 
     out = ircfg.dot()
-    open('graph_irflow.dot', 'w').write(out)
-    out = ircfg_a.dot()
     open('graph_irflow_raw.dot', 'w').write(out)
+    out = ircfg_a.dot()
+    open('graph_irflow.dot', 'w').write(out)
 
     if args.simplify > 1:
 
