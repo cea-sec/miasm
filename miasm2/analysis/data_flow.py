@@ -476,7 +476,9 @@ def merge_blocks(ircfg, loc_key_entries):
             continue
 
         # Test head jmp only block
-        if son is not None and son not in loc_key_entries:
+        if (son is not None and
+            son not in loc_key_entries and
+            son in ircfg.blocks):
             # jmp only test done previously
             modified |= _remove_to_parent(ircfg, loc_key, son)
             todo.add(loc_key)
