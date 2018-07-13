@@ -180,16 +180,24 @@ class Machine(object):
             from miasm2.arch.ppc.sem import ir_ppc32b as ir
         elif machine_name == "mepb":
             from miasm2.arch.mep.disasm import dis_mepb as dis_engine
-            from miasm2.arch.mep import arch, jit
+            from miasm2.arch.mep import arch
+            try:
+                from miasm2.arch.mep import jit
+                jitter = jit.jitter_mepb
+            except ImportError:
+                pass
             mn = arch.mn_mep
-            jitter = jit.jitter_mepb
             from miasm2.arch.mep.ira import ir_a_mepb as ira
             from miasm2.arch.mep.sem import ir_mepb as ir
         elif machine_name == "mepl":
             from miasm2.arch.mep.disasm import dis_mepl as dis_engine
-            from miasm2.arch.mep import arch, jit
+            from miasm2.arch.mep import arch
+            try:
+                from miasm2.arch.mep import jit
+                jitter = jit.jitter_mepl
+            except ImportError:
+                pass
             mn = arch.mn_mep
-            jitter = jit.jitter_mepl
             from miasm2.arch.mep.ira import ir_a_mepl as ira
             from miasm2.arch.mep.sem import ir_mepl as ir
         else:
