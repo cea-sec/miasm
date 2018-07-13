@@ -132,7 +132,8 @@ class CGen(object):
         @dst2index: LocKey -> uniq value
         @loc_key: LocKey istance"""
 
-        dst2index[loc_key] = len(dst2index)
+        if loc_key not in dst2index:
+            dst2index[loc_key] = len(dst2index)
 
     def assignblk_to_irbloc(self, instr, assignblk):
         """
