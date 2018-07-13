@@ -725,7 +725,6 @@ testset += ExampleJitter(["trace.py", Example.get_sample("md5_arm"), "-a",
                           "0xA684"])
 
 ## Toshiba MeP
-testset = TestSet("../")
 testset += RegressionTest(["launch.py"], base_dir="arch/mep/asm")
 testset += RegressionTest(["launch.py"], base_dir="arch/mep/ir")
 testset += RegressionTest(["launch.py"], base_dir="arch/mep/jit")
