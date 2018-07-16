@@ -6,7 +6,9 @@ from argparse import ArgumentParser
 import logging
 
 from miasm2.expression.expression import *
-from miasm2.expression.simplifications import expr_simp, ExpressionSimplifier, log_exprsimp
+from miasm2.expression.simplifications import expr_simp, expr_simp_explicit, \
+    ExpressionSimplifier, log_exprsimp
+
 from miasm2.expression.simplifications_cond import ExprOp_inf_signed, ExprOp_inf_unsigned, ExprOp_equal
 
 parser = ArgumentParser("Expression simplification regression tests")
@@ -53,8 +55,8 @@ if args.z3:
             new_expr_out = expr_out.replace_expr(to_rep)
 
             print "Check %s = %s" % (new_expr_in, new_expr_out)
-            simp_in = expr_simp(new_expr_in)
-            simp_out =  expr_simp(new_expr_out)
+            simp_in = expr_simp_explicit(new_expr_in)
+            simp_out =  expr_simp_explicit(new_expr_out)
             print "[%s] %s = %s" % (simp_in == simp_out, simp_in, simp_out)
 
             # Either the simplification does not stand, either the test is wrong
@@ -420,10 +422,10 @@ to_test = [(ExprInt(1, 32) - ExprInt(1, 32), ExprInt(0, 32)),
 
     (a << b << c, a << b << c), # Left unmodified
     (a << b_msb_null << c_msb_null,
-     a << (b_msb_null + c_msb_null)),
+     a << (ExprCompose(b[:31], ExprInt(0, 1)) + ExprCompose(c[:31], ExprInt(0, 1)))),
     (a >> b >> c, a >> b >> c), # Left unmodified
     (a >> b_msb_null >> c_msb_null,
-     a >> (b_msb_null + c_msb_null)),
+     a >> (ExprCompose(b[:31], ExprInt(0, 1)) + ExprCompose(c[:31], ExprInt(0, 1)))),
 
     # Degenerated case from fuzzing, which had previously raised bugs
     (ExprCompose(ExprInt(0x7, 3), ExprMem(ExprInt(0x39E21, 19), 1), ExprMem(ExprInt(0x39E21, 19), 1)),
@@ -434,16 +436,23 @@ to_test = [(ExprInt(1, 32) - ExprInt(1, 32), ExprInt(0, 32)),
      ExprInt(0x0, 92)),
     (ExprOp('a>>', ExprInt(-0x5E580475, 92), ExprInt(0x7D800000000000000331720, 92)),
      ExprInt(-1, 92)),
+
+    (ExprOp("zeroExt_16", ExprInt(0x8, 8)), ExprInt(0x8, 16)),
+    (ExprOp("zeroExt_16", ExprInt(0x88, 8)), ExprInt(0x88, 16)),
+    (ExprOp("signExt_16", ExprInt(0x8, 8)), ExprInt(0x8, 16)),
+    (ExprOp("signExt_16", ExprInt(-0x8, 8)), ExprInt(-0x8, 16)),
+
+
 ]
 
 for e_input, e_check in to_test:
     print "#" * 80
-    e_new = expr_simp(e_input)
+    e_new = expr_simp_explicit(e_input)
     print "original: ", str(e_input), "new: ", str(e_new)
     rez = e_new == e_check
     if not rez:
         raise ValueError(
-            'bug in expr_simp simp(%s) is %s and should be %s' % (e_input, e_new, e_check))
+            'bug in expr_simp_explicit simp(%s) is %s and should be %s' % (e_input, e_new, e_check))
     check(e_input, e_check)
 
 # Test conds
@@ -471,18 +480,18 @@ to_test = [
 ]
 
 expr_simp_cond = ExpressionSimplifier()
-expr_simp.enable_passes(ExpressionSimplifier.PASS_COND)
+expr_simp_explicit.enable_passes(ExpressionSimplifier.PASS_COND)
 
 
 for e_input, e_check in to_test:
     print "#" * 80
-    e_check = expr_simp(e_check)
-    e_new = expr_simp(e_input)
+    e_check = expr_simp_explicit(e_check)
+    e_new = expr_simp_explicit(e_input)
     print "original: ", str(e_input), "new: ", str(e_new)
     rez = e_new == e_check
     if not rez:
         raise ValueError(
-            'bug in expr_simp simp(%s) is %s and should be %s' % (e_input, e_new, e_check))
+            'bug in expr_simp_explicit simp(%s) is %s and should be %s' % (e_input, e_new, e_check))
 
 if args.z3:
     # This check is done on 32 bits, but the size is not use by Miasm formulas, so
