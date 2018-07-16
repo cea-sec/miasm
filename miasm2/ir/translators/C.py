@@ -57,7 +57,10 @@ class TranslatorC(Translator):
     def from_ExprInt(self, expr):
         if expr.size <= self.NATIVE_INT_MAX_SIZE:
             assert expr.size <= 64
-            return "0x%x" % expr.arg.arg
+            out = "0x%x" % int(expr)
+            if expr.size == 64:
+                out += "ULL"
+            return out
         value, int_size = int_size_to_bn(int(expr), expr.size)
         return 'bignum_from_string("%s", %d)' % (value, int_size)
 
