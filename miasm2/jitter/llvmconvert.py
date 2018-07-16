@@ -1242,8 +1242,9 @@ class LLVMFunction():
 
     def gen_pre_code(self, instr_attrib):
         if instr_attrib.log_mn:
+            loc_db = self.llvm_context.ir_arch.loc_db
             self.printf("%.8X %s\n" % (instr_attrib.instr.offset,
-                                       instr_attrib.instr))
+                                       instr_attrib.instr.to_string(loc_db)))
 
     def gen_post_code(self, attributes):
         if attributes.log_regs:
