@@ -6,6 +6,7 @@
 #include "queue.h"
 #include "vm_mngr.h"
 #include "vm_mngr_py.h"
+#include "bn.h"
 #include "JitCore.h"
 // Needed to get the JitCpu.cpu offset, arch independent
 #include "arch/JitCore_x86.h"

@@ -2820,8 +2820,8 @@ def das(_, instr):
 def aam(_, instr, src):
     e = []
     tempAL = mRAX[instr.mode][0:8]
-    newEAX = m2_expr.ExprCompose(tempAL % src,
-                                 tempAL / src,
+    newEAX = m2_expr.ExprCompose(m2_expr.ExprOp("umod", tempAL, src),
+                                 m2_expr.ExprOp("udiv", tempAL, src),
                                  mRAX[instr.mode][16:])
     e += [m2_expr.ExprAff(mRAX[instr.mode], newEAX)]
     e += update_flag_arith(newEAX)

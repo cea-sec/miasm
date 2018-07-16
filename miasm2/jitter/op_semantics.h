@@ -1,9 +1,6 @@
 #ifndef OP_SEMANTICS_H
 #define OP_SEMANTICS_H
 
-#define uint128_t __uint128_t
-#define int128_t __int128_t
-
 #define CC_P 1
 extern const uint8_t parity_table[256];
 #define parity(a) parity_table[(a) & 0xFF]
@@ -94,6 +91,11 @@ uint16_t udiv16(uint16_t a, uint16_t b);
 uint16_t umod16(uint16_t a, uint16_t b);
 int16_t idiv16(int16_t a, int16_t b);
 int16_t imod16(int16_t a, int16_t b);
+
+uint8_t udiv8(uint8_t a, uint8_t b);
+uint8_t umod8(uint8_t a, uint8_t b);
+int8_t idiv8(int8_t a, int8_t b);
+int8_t imod8(int8_t a, int8_t b);
 
 unsigned int x86_cpuid(unsigned int a, unsigned int reg_num);
 

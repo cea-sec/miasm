@@ -1,4 +1,5 @@
-#define uint128_t __uint128_t
+#include "../bn.h"
+
 
 typedef struct {
 	uint32_t exception_flags;
@@ -26,28 +27,28 @@ typedef struct {
 	uint64_t RIP;
 
 	/* eflag */
-	uint64_t zf;
-	uint64_t nf;
-	uint64_t pf;
-	uint64_t of;
-	uint64_t cf;
-	uint64_t af;
-	uint64_t df;
+	uint8_t zf;
+	uint8_t nf;
+	uint8_t pf;
+	uint8_t of;
+	uint8_t cf;
+	uint8_t af;
+	uint8_t df;
 
-	uint64_t tf;
-	uint64_t i_f;
-	uint64_t iopl_f;
-	uint64_t nt;
-	uint64_t rf;
-	uint64_t vm;
-	uint64_t ac;
-	uint64_t vif;
-	uint64_t vip;
-	uint64_t i_d;
+	uint8_t tf;
+	uint8_t i_f;
+	uint8_t iopl_f;
+	uint8_t nt;
+	uint8_t rf;
+	uint8_t vm;
+	uint8_t ac;
+	uint8_t vif;
+	uint8_t vip;
+	uint8_t i_d;
 
-	uint64_t my_tick;
+	bn_t my_tick;
 
-	uint64_t cond;
+	bn_t cond;
 
 	uint64_t float_st0;
 	uint64_t float_st1;
@@ -78,12 +79,12 @@ typedef struct {
 	uint64_t tsc2;
 
 
-	uint64_t ES;
-	uint64_t CS;
-	uint64_t SS;
-	uint64_t DS;
-	uint64_t FS;
-	uint64_t GS;
+	uint16_t ES;
+	uint16_t CS;
+	uint16_t SS;
+	uint16_t DS;
+	uint16_t FS;
+	uint16_t GS;
 
 	unsigned int cr0;
 	unsigned int cr3;
@@ -98,22 +99,22 @@ typedef struct {
 	uint64_t MM7;
 
 	/* SSE */
-	uint128_t XMM0;
-	uint128_t XMM1;
-	uint128_t XMM2;
-	uint128_t XMM3;
-	uint128_t XMM4;
-	uint128_t XMM5;
-	uint128_t XMM6;
-	uint128_t XMM7;
-	uint128_t XMM8;
-	uint128_t XMM9;
-	uint128_t XMM10;
-	uint128_t XMM11;
-	uint128_t XMM12;
-	uint128_t XMM13;
-	uint128_t XMM14;
-	uint128_t XMM15;
+	bn_t XMM0;
+	bn_t XMM1;
+	bn_t XMM2;
+	bn_t XMM3;
+	bn_t XMM4;
+	bn_t XMM5;
+	bn_t XMM6;
+	bn_t XMM7;
+	bn_t XMM8;
+	bn_t XMM9;
+	bn_t XMM10;
+	bn_t XMM11;
+	bn_t XMM12;
+	bn_t XMM13;
+	bn_t XMM14;
+	bn_t XMM15;
 
 	uint32_t segm_base[0x10000];
 
