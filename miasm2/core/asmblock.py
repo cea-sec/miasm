@@ -153,7 +153,7 @@ class AsmBlock(object):
                     lbls.append("Unknown? ")
                 else:
                     lbls.append(dst.to_string(loc_db) + " ")
-            lbls = '\t'.join(lbls)
+            lbls = '\t'.join(sorted(lbls))
             out.append(lbls)
         return '\n'.join(out)
 
