@@ -1036,7 +1036,7 @@ class instruction(object):
                 offset = symbols.get_location_offset(loc_key)
                 if offset is None:
                     raise ValueError(
-                        'The offset of loc_key "%s" cannot be determined' % name
+                        'The offset of loc_key "%s" cannot be determined' % names
                     )
                 else:
                     # Fix symbol with its offset
