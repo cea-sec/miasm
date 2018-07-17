@@ -22,6 +22,7 @@ def buil_all():
               'miasm2/ir/translators',
               'miasm2/analysis',
               'miasm2/os_dep',
+              'miasm2/os_dep/linux',
               'miasm2/jitter',
               'miasm2/jitter/arch',
               'miasm2/jitter/loader',
