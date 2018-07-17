@@ -1,0 +1,30 @@
+from miasm2.core import asmblock
+from miasm2.arch.x86  import arch
+from miasm2.core import parse_asm
+from miasm2.core.interval import interval
+
+my_mn = arch.mn_x86
+
+
+asmcfg, loc_db = parse_asm.parse_txt(my_mn, 64, r'''
+main:
+  PUSH   RBP
+  MOV    RBP, RSP
+loop_dec:
+  CMP    RCX, RDX
+  JB    loop_dec
+end:
+  MOV    RSP, RBP
+  POP    RBP
+  RET
+
+''')
+
+loc_db.set_location_offset(loc_db.get_name_location("main"), 0x100001000)
+dst_interval = interval([(0x100001000, 0x100002000)])
+patches = asmblock.asm_resolve_final(
+    my_mn,
+    asmcfg,
+    loc_db,
+    dst_interval
+)
