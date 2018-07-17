@@ -256,7 +256,7 @@ cl_or_imm |= base_expr
 class x86_arg(m_arg):
     def asm_ast_to_expr(self, value, loc_db, size_hint=None, fixed_size=None):
         if size_hint is None:
-            size_hint = self.parent.v_opmode()
+            size_hint = self.parent.mode
         if fixed_size is None:
             fixed_size = set()
         if isinstance(value, AstId):
