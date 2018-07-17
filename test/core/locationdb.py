@@ -92,6 +92,11 @@ loc_key5_bis = loc_db.get_or_create_name_location(name3)
 assert loc_db.get_name_location(name3) == loc_key5_bis
 loc_db.consistency_check()
 
+# Name and offset manipulation
+assert loc_db.get_name_offset(name2) is None
+assert loc_db.get_name_offset("unk_name") is None
+assert loc_db.get_name_offset("first_name") == 0x5678
+
 # Merge
 loc_db2 = LocationDB()
 loc_db2.add_location(offset=0x3344)

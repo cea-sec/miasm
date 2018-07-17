@@ -39,6 +39,8 @@ class LocationDB(object):
     None
     >>> loc_db.get_location_offset(loc_key2)
     0x1234
+    >>> loc_db.get_location_offset("first_name")
+    0x5678
 
     # Display a location
     >>> loc_db.pretty_str(loc_key1)
@@ -111,6 +113,16 @@ class LocationDB(object):
         if loc_key is not None:
             return loc_key
         return self.add_location(offset=offset)
+
+    def get_name_offset(self, name):
+        """
+        Return the offset of @name if any, None otherwise.
+        @name: target name
+        """
+        loc_key = self.get_name_location(name)
+        if loc_key is None:
+            return None
+        return self.get_location_offset(loc_key)
 
     def add_location_name(self, loc_key, name):
         """Associate a name @name to a given @loc_key
