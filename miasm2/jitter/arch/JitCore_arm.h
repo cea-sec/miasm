@@ -1,6 +1,7 @@
 
 typedef struct {
 	uint32_t exception_flags;
+	uint32_t interrupt_num;
 
 	/* gpregs */
 	uint32_t R0;

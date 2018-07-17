@@ -38,6 +38,9 @@ reg_dict gpreg_dict[] = { {.name = "R0", .offset = offsetof(vm_cpu_t, R0)},
 			  {.name = "ge1", .offset = offsetof(vm_cpu_t, ge1)},
 			  {.name = "ge2", .offset = offsetof(vm_cpu_t, ge2)},
 			  {.name = "ge3", .offset = offsetof(vm_cpu_t, ge3)},
+
+        {.name = "exception_flags", .offset = offsetof(vm_cpu_t, exception_flags)},
+        {.name = "interrupt_num", .offset = offsetof(vm_cpu_t, interrupt_num)},
 };
 
 /************************** JitCpu object **************************/
@@ -243,6 +246,26 @@ PyObject* vm_set_mem(JitCpu *self, PyObject* args)
        return Py_None;
 }
 
+PyObject* cpu_set_interrupt_num(JitCpu* self, PyObject* args)
+{
+	PyObject *item1;
+	uint64_t i;
+
+	if (!PyArg_ParseTuple(args, "O", &item1))
+		RAISE(PyExc_TypeError,"Cannot parse arguments");
+
+	PyGetInt(item1, i);
+
+	((vm_cpu_t*)self->cpu)->interrupt_num = i;
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
+PyObject* cpu_get_interrupt_num(JitCpu* self, PyObject* args)
+{
+	return PyLong_FromUnsignedLongLong((uint64_t)(((vm_cpu_t*)self->cpu)->interrupt_num));
+}
+
 static PyMemberDef JitCpu_members[] = {
     {NULL}  /* Sentinel */
 };
@@ -259,6 +282,10 @@ static PyMethodDef JitCpu_methods[] = {
 	{"get_exception", (PyCFunction)cpu_get_exception, METH_VARARGS,
 	 "X"},
 	{"set_exception", (PyCFunction)cpu_set_exception, METH_VARARGS,
+	 "X"},
+	{"get_interrupt_num", (PyCFunction)cpu_get_interrupt_num, METH_VARARGS,
+	 "X"},
+	{"set_interrupt_num", (PyCFunction)cpu_set_interrupt_num, METH_VARARGS,
 	 "X"},
 	{"set_mem", (PyCFunction)vm_set_mem, METH_VARARGS,
 	 "X"},
@@ -305,6 +332,8 @@ getset_reg_u32(ge1);
 getset_reg_u32(ge2);
 getset_reg_u32(ge3);
 
+getset_reg_u32(exception_flags);
+getset_reg_u32(interrupt_num);
 
 PyObject* get_gpreg_offset_all(void)
 {
@@ -312,6 +341,7 @@ PyObject* get_gpreg_offset_all(void)
     PyObject *o;
 
     get_reg_off(exception_flags);
+    get_reg_off(interrupt_num);
 
     get_reg_off(R0);
     get_reg_off(R1);
@@ -343,7 +373,6 @@ PyObject* get_gpreg_offset_all(void)
 
     return dict;
 }
-
 
 static PyGetSetDef JitCpu_getseters[] = {
     {"vmmngr",
@@ -384,6 +413,9 @@ static PyGetSetDef JitCpu_getseters[] = {
     {"ge1", (getter)JitCpu_get_ge1, (setter)JitCpu_set_ge1, "ge1", NULL},
     {"ge2", (getter)JitCpu_get_ge2, (setter)JitCpu_set_ge2, "ge2", NULL},
     {"ge3", (getter)JitCpu_get_ge3, (setter)JitCpu_set_ge3, "ge3", NULL},
+
+    {"exception_flags", (getter)JitCpu_get_exception_flags, (setter)JitCpu_set_exception_flags, "exception_flags", NULL},
+    {"interrupt_num", (getter)JitCpu_get_interrupt_num, (setter)JitCpu_set_interrupt_num, "interrupt_num", NULL},
 
     {NULL}  /* Sentinel */
 };

@@ -9,6 +9,7 @@ regs32_str = ["R%d" % i for i in xrange(13)] + ["SP", "LR", "PC"]
 regs32_expr = [ExprId(x, 32) for x in regs32_str]
 
 exception_flags = ExprId('exception_flags', 32)
+interrupt_num = ExprId('interrupt_num', 32)
 bp_num = ExprId('bp_num', 32)
 
 
@@ -84,7 +85,7 @@ all_regs_ids = [
     R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, SP, LR, PC,
     zf, nf, of, cf,
     ge0, ge1, ge2, ge3,
-    exception_flags, bp_num
+    exception_flags, interrupt_num, bp_num
 ]
 
 all_regs_ids_no_alias = all_regs_ids
@@ -102,7 +103,7 @@ all_regs_ids_init = [R0_init, R1_init, R2_init, R3_init,
                      R12_init, SP_init, LR_init, PC_init,
                      zf_init, nf_init, of_init, cf_init,
                      ge0_init, ge1_init, ge2_init, ge3_init,
-                     ExprInt(0, 32), ExprInt(0, 32)
+                     ExprInt(0, 32), ExprInt(0, 32), ExprInt(0, 32)
                      ]
 
 regs_init = {}

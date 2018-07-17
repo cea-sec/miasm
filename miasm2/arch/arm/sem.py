@@ -3,7 +3,7 @@ from miasm2.ir.ir import IntermediateRepresentation, IRBlock, AssignBlock
 from miasm2.arch.arm.arch import mn_arm, mn_armt
 from miasm2.arch.arm.regs import *
 
-from miasm2.jitter.csts import EXCEPT_DIV_BY_ZERO
+from miasm2.jitter.csts import EXCEPT_DIV_BY_ZERO, EXCEPT_INT_XX
 
 # liris.cnrs.fr/~mmrissa/lib/exe/fetch.php?media=armv7-a-r-manual.pdf
 EXCEPT_SOFT_BP = (1 << 1)
@@ -805,9 +805,10 @@ def stmdb(ir, instr, a, b):
 
 
 def svc(ir, instr, a):
-    # XXX TODO implement
-    e = [
-        ExprAff(exception_flags, ExprInt(EXCEPT_PRIV_INSN, 32))]
+    e = []
+    except_int = EXCEPT_INT_XX
+    e.append(ExprAff(exception_flags, ExprInt(except_int, 32)))
+    e.append(ExprAff(interrupt_num, a))
     return e, []
 
 
