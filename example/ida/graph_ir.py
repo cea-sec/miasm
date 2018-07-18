@@ -8,7 +8,8 @@ import idautils
 from miasm2.core.bin_stream_ida import bin_stream_ida
 from miasm2.core.asmblock import is_int
 from miasm2.expression.simplifications import expr_simp
-from miasm2.analysis.data_flow import dead_simp
+from miasm2.analysis.data_flow import dead_simp, remove_empty_assignblks, \
+    merge_blocks
 from miasm2.ir.ir import AssignBlock, IRBlock
 
 from utils import guess_machine, expr2colorstr
@@ -101,7 +102,7 @@ def build_graph(verbose=False, simplify=False):
     start_addr = idc.ScreenEA()
 
     machine = guess_machine(addr=start_addr)
-    mn, dis_engine, ira = machine.mn, machine.dis_engine, machine.ira
+    dis_engine, ira = machine.dis_engine, machine.ira
 
     if verbose:
         print "Arch", dis_engine
@@ -130,6 +131,8 @@ def build_graph(verbose=False, simplify=False):
         print hex(addr)
 
     asmcfg = mdis.dis_multiblock(start_addr)
+
+    entry_points = set([start_addr])
 
     if verbose:
         print "generating graph"
@@ -165,14 +168,13 @@ def build_graph(verbose=False, simplify=False):
         while modified:
             modified = False
             modified |= dead_simp(ir_arch, ircfg)
-            modified |= ircfg.remove_empty_assignblks()
-            modified |= ircfg.remove_jmp_blocks()
-            modified |= ircfg.merge_blocks()
+            modified |= remove_empty_assignblks(ircfg)
+            modified |= merge_blocks(ircfg, entry_points)
         title += " (simplified)"
 
-    g = GraphMiasmIR(ircfg, title, None)
+    graph = GraphMiasmIR(ircfg, title, None)
 
-    g.Show()
+    graph.Show()
 
 if __name__ == "__main__":
     build_graph(verbose=True, simplify=False)
