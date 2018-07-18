@@ -637,8 +637,10 @@ def cbnz(arg1, arg2):
 @sbuild.parse
 def tbz(arg1, arg2, arg3):
     bitmask = m2_expr.ExprInt(1, arg1.size) << arg2
-    dst = m2_expr.ExprId(
-        ir.get_next_loc_key(instr), 64) if arg1 & bitmask else arg3
+    dst = m2_expr.ExprLoc(
+        ir.get_next_loc_key(instr),
+        64
+    ) if arg1 & bitmask else arg3
     PC = dst
     ir.IRDst = dst
 
@@ -646,8 +648,10 @@ def tbz(arg1, arg2, arg3):
 @sbuild.parse
 def tbnz(arg1, arg2, arg3):
     bitmask = m2_expr.ExprInt(1, arg1.size) << arg2
-    dst = arg3 if arg1 & bitmask else m2_expr.ExprId(
-        ir.get_next_loc_key(instr), 64)
+    dst = arg3 if arg1 & bitmask else m2_expr.ExprLoc(
+        ir.get_next_loc_key(instr),
+        64
+    )
     PC = dst
     ir.IRDst = dst
 
