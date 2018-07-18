@@ -420,6 +420,8 @@ class instruction_arm(instruction):
 
 
     def dstflow(self):
+        if self.is_subcall():
+            return True
         return self.name in conditional_branch + unconditional_branch
 
     def dstflow2label(self, loc_db):
@@ -434,6 +436,8 @@ class instruction_arm(instruction):
         self.args[0] = ExprLoc(loc_key, expr.size)
 
     def breakflow(self):
+        if self.is_subcall():
+            return True
         if self.name in conditional_branch + unconditional_branch:
             return True
         if self.name.startswith("LDM") and PC in self.args[1].args:
