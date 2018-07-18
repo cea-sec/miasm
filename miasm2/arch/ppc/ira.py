@@ -23,17 +23,24 @@ class ir_a_ppc32b(ir_ppc32b, ira):
             self.set_dead_regs(irblock)
 
     def call_effects(self, ad, instr):
-        return [AssignBlock([ExprAff(self.ret_reg, ExprOp('call_func_ret', ad,
-                                                          self.sp,
-                                                          self.arch.regs.R3,
-                                                          self.arch.regs.R4,
-                                                          self.arch.regs.R5,
-                                                          )),
-                             ExprAff(self.sp, ExprOp('call_func_stack',
-                                                     ad, self.sp)),
-                            ],
-                             instr
-                           )]
+        call_assignblks = AssignBlock(
+            [
+                ExprAff(
+                    self.ret_reg,
+                    ExprOp(
+                        'call_func_ret',
+                        ad,
+                        self.sp,
+                        self.arch.regs.R3,
+                        self.arch.regs.R4,
+                        self.arch.regs.R5,
+                    )
+                ),
+                ExprAff(self.sp, ExprOp('call_func_stack', ad, self.sp)),
+            ],
+            instr
+        )
+        return [call_assignblks], []
 
     def add_instr_to_current_state(self, instr, block, assignments, ir_blocks_all, gen_pc_updt):
         """
@@ -46,8 +53,12 @@ class ir_a_ppc32b(ir_ppc32b, ira):
         @gen_pc_updt: insert PC update effects between instructions
         """
         if instr.is_subcall():
-            call_effects = self.call_effects(instr.getdstflow(None)[0], instr)
-            assignments+= call_effects
+            call_assignblks, extra_irblocks = self.call_effects(
+                instr.getdstflow(None)[0],
+                instr
+            )
+            assignments += call_assignblks
+            ir_blocks_all += extra_irblocks
             return True
 
         if gen_pc_updt is not False:

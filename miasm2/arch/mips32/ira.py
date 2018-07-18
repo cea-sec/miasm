@@ -37,11 +37,12 @@ class ir_a_mips32l(ir_mips32l, ira):
             # CALL
             lbl = block.get_next()
             new_lbl = self.gen_label()
-            irs = self.call_effects(pc_val, instr)
+            call_assignblks, extra_irblocks = self.call_effects(pc_val, instr)
+            ir_blocks += extra_irblocks
             irs.append(AssignBlock([ExprAff(self.IRDst,
                                             ExprId(lbl, size=self.pc.size))],
                                    instr))
-            new_irblocks.append(IRBlock(new_lbl, irs))
+            new_irblocks.append(IRBlock(new_lbl, call_assignblks))
             new_irblocks.append(irb.set_dst(ExprId(new_lbl, size=self.pc.size)))
         return new_irblocks
 
