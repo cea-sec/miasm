@@ -23,17 +23,27 @@ class ir_a_arml(ir_a_arml_base):
         self.ret_reg = self.arch.regs.R0
 
     def call_effects(self, ad, instr):
-        return [AssignBlock([ExprAff(self.ret_reg, ExprOp('call_func_ret', ad,
-                                                          self.arch.regs.R0,
-                                                          self.arch.regs.R1,
-                                                          self.arch.regs.R2,
-                                                          self.arch.regs.R3,
-                                                          )),
-                             ExprAff(self.sp, ExprOp('call_func_stack',
-                                                     ad, self.sp)),
-                            ],
-                             instr
-                           )]
+        call_assignblk = AssignBlock(
+            [
+                ExprAff(
+                    self.ret_reg,
+                    ExprOp(
+                        'call_func_ret',
+                        ad,
+                        self.arch.regs.R0,
+                        self.arch.regs.R1,
+                        self.arch.regs.R2,
+                        self.arch.regs.R3,
+                    )
+                ),
+                ExprAff(
+                    self.sp,
+                    ExprOp('call_func_stack', ad, self.sp)
+                ),
+            ],
+            instr
+        )
+        return [call_assignblk], []
 
     def get_out_regs(self, _):
         return set([self.ret_reg, self.sp])

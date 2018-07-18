@@ -4,7 +4,7 @@ import warnings
 import logging
 
 from miasm2.ir.ir import IntermediateRepresentation, AssignBlock
-from miasm2.expression.expression import ExprOp
+from miasm2.expression.expression import ExprOp, ExprAff
 from miasm2.analysis.data_flow import dead_simp as new_dead_simp_imp
 
 
@@ -35,15 +35,22 @@ class ira(IntermediateRepresentation):
         * insert dependencies to arguments (stack base, registers, ...)
         * add some side effects (stack clean, return value, ...)
 
+        Return a couple:
+        * list of assignments to add to the current irblock
+        * list of additional irblocks
+
         @addr: (Expr) address of the called function
         @instr: native instruction which is responsible of the call
         """
 
-        assignblk = AssignBlock({
-            self.ret_reg: ExprOp('call_func_ret', addr, self.sp),
-            self.sp: ExprOp('call_func_stack', addr, self.sp)},
-            instr)
-        return [assignblk]
+        call_assignblk = AssignBlock(
+            [
+                ExprAff(self.ret_reg, ExprOp('call_func_ret', addr, self.sp)),
+                ExprAff(self.sp, ExprOp('call_func_stack', addr, self.sp))
+            ],
+            instr
+        )
+        return [call_assignblk], []
 
     def add_instr_to_current_state(self, instr, block, assignments, ir_blocks_all, gen_pc_updt):
         """
@@ -62,8 +69,12 @@ class ira(IntermediateRepresentation):
         @gen_pc_updt: insert PC update effects between instructions
         """
         if instr.is_subcall():
-            call_effects = self.call_effects(instr.args[0], instr)
-            assignments+= call_effects
+            call_assignblks, extra_irblocks = self.call_effects(
+                instr.args[0],
+                instr
+            )
+            assignments += call_assignblks
+            ir_blocks_all += extra_irblocks
             return True
 
         if gen_pc_updt is not False:

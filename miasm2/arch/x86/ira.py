@@ -44,18 +44,25 @@ class ir_a_x86_64(ir_x86_64, ir_a_x86_16):
         self.ret_reg = self.arch.regs.RAX
 
     def call_effects(self, ad, instr):
-        return [AssignBlock([ExprAff(self.ret_reg, ExprOp('call_func_ret', ad,
-                                                          self.sp,
-                                                          self.arch.regs.RCX,
-                                                          self.arch.regs.RDX,
-                                                          self.arch.regs.R8,
-                                                          self.arch.regs.R9,
-                                                          )),
-                             ExprAff(self.sp, ExprOp('call_func_stack',
-                                                     ad, self.sp)),
-                            ],
-                             instr
-                           )]
+        call_assignblk = AssignBlock(
+            [
+                ExprAff(
+                    self.ret_reg,
+                    ExprOp(
+                        'call_func_ret',
+                        ad,
+                        self.sp,
+                        self.arch.regs.RCX,
+                        self.arch.regs.RDX,
+                        self.arch.regs.R8,
+                        self.arch.regs.R9,
+                    )
+                ),
+                ExprAff(self.sp, ExprOp('call_func_stack', ad, self.sp)),
+            ],
+            instr
+        )
+        return [call_assignblk], []
 
     def sizeof_char(self):
         return 8

@@ -230,11 +230,14 @@ def get_ira_call_fixer(ira):
             stk_after = idc.GetSpd(instr.offset + instr.l)
             stk_diff = stk_after - stk_before
             print hex(stk_diff)
-            return [AssignBlock([ExprAff(self.ret_reg, ExprOp('call_func_ret', ad)),
-                                 ExprAff(self.sp, self.sp + ExprInt(stk_diff, self.sp.size))
-                                 ],
-                                instr
-                                )]
+            call_assignblk = AssignBlock(
+                [
+                    ExprAff(self.ret_reg, ExprOp('call_func_ret', ad)),
+                    ExprAff(self.sp, self.sp + ExprInt(stk_diff, self.sp.size))
+                ],
+                instr
+            )
+            return [call_assignblk], []
 
     return iraCallStackFixer
 
