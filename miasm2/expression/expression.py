@@ -367,8 +367,7 @@ class Expr(object):
         assert self.size <= size
         if self.size == size:
             return self
-        ad_size = size - self.size
-        return ExprCompose(self, ExprInt(0, ad_size))
+        return ExprOp('zeroExt_%d' % size, self)
 
     def signExtend(self, size):
         """Sign extend to size
@@ -377,11 +376,7 @@ class Expr(object):
         assert self.size <= size
         if self.size == size:
             return self
-        ad_size = size - self.size
-        return ExprCompose(self,
-                           ExprCond(self.msb(),
-                                    ExprInt(size2mask(ad_size), ad_size),
-                                    ExprInt(0, ad_size)))
+        return ExprOp('signExt_%d' % size, self)
 
     def graph_recursive(self, graph):
         """Recursive method used by graph
@@ -994,7 +989,14 @@ class ExprOp(Expr):
 
         if len(sizes) != 1:
             # Special cases : operande sizes can differ
-            if op not in ["segm"]:
+            if op not in [
+                    "segm",
+                    "FLAG_EQ_ADDWC", "FLAG_EQ_SUBWC",
+                    "FLAG_SIGN_ADDWC", "FLAG_SIGN_SUBWC",
+                    "FLAG_ADDWC_CF", "FLAG_ADDWC_OF",
+                    "FLAG_SUBWC_CF", "FLAG_SUBWC_OF",
+
+            ]:
                 raise ValueError(
                     "sanitycheck: ExprOp args must have same size! %s" %
                     ([(str(arg), arg.size) for arg in args]))
@@ -1026,6 +1028,23 @@ class ExprOp(Expr):
             size = int(self._op[len("fp_to_sint"):])
         elif self._op.startswith("fpconvert_fp"):
             size = int(self._op[len("fpconvert_fp"):])
+        elif self._op in [
+                "FLAG_ADD_CF", "FLAG_SUB_CF",
+                "FLAG_ADD_OF", "FLAG_SUB_OF",
+                "FLAG_EQ", "FLAG_EQ_CMP",
+                "FLAG_SIGN_SUB", "FLAG_SIGN_ADD",
+                "FLAG_EQ_AND",
+                "FLAG_EQ_ADDWC", "FLAG_EQ_SUBWC",
+                "FLAG_SIGN_ADDWC", "FLAG_SIGN_SUBWC",
+                "FLAG_ADDWC_CF", "FLAG_ADDWC_OF",
+                "FLAG_SUBWC_CF", "FLAG_SUBWC_OF",
+        ]:
+            size = 1
+
+        elif self._op.startswith('signExt_'):
+            size = int(self._op[8:])
+        elif self._op.startswith('zeroExt_'):
+            size = int(self._op[8:])
         elif self._op in ['segm']:
             size = self._args[1].size
         else:
