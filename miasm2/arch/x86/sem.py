@@ -59,16 +59,30 @@ OF(A-B) = ((A XOR D) AND (A XOR B)) < 0
 
 
 # XXX TODO make default check against 0 or not 0 (same eq as in C)
+def update_flag_zf_eq(a, b):
+    return [m2_expr.ExprAff(zf, m2_expr.ExprOp("FLAG_EQ_CMP", a, b))]
 
 
 def update_flag_zf(a):
-    return [m2_expr.ExprAff(
-        zf, m2_expr.ExprCond(a, m2_expr.ExprInt(0, zf.size),
-                             m2_expr.ExprInt(1, zf.size)))]
+    return [
+        m2_expr.ExprAff(
+            zf,
+            m2_expr.ExprCond(
+                a,
+                m2_expr.ExprInt(0, zf.size),
+                m2_expr.ExprInt(1, zf.size)
+            )
+        )
+    ]
 
 
-def update_flag_nf(a):
-    return [m2_expr.ExprAff(nf, a.msb())]
+def update_flag_nf(arg):
+    return [
+        m2_expr.ExprAff(
+            nf,
+            m2_expr.ExprOp("FLAG_SIGN_SUB", arg, m2_expr.ExprInt(0, arg.size))
+        )
+    ]
 
 
 def update_flag_pf(a):
@@ -89,9 +103,15 @@ def update_flag_znp(a):
     return e
 
 
-def update_flag_logic(a):
+def update_flag_np(result):
     e = []
-    e += update_flag_znp(a)
+    e += update_flag_nf(result)
+    e += update_flag_pf(result)
+    return e
+
+
+def null_flag_co():
+    e = []
     e.append(m2_expr.ExprAff(of, m2_expr.ExprInt(0, of.size)))
     e.append(m2_expr.ExprAff(cf, m2_expr.ExprInt(0, cf.size)))
     return e
@@ -100,6 +120,59 @@ def update_flag_logic(a):
 def update_flag_arith(a):
     e = []
     e += update_flag_znp(a)
+    return e
+
+
+def update_flag_zfaddwc_eq(arg1, arg2, arg3):
+    return [m2_expr.ExprAff(zf, m2_expr.ExprOp("FLAG_EQ_ADDWC", arg1, arg2, arg3))]
+
+def update_flag_zfsubwc_eq(arg1, arg2, arg3):
+    return [m2_expr.ExprAff(zf, m2_expr.ExprOp("FLAG_EQ_SUBWC", arg1, arg2, arg3))]
+
+
+def update_flag_arith_add_znp(arg1, arg2):
+    """
+    Compute znp flags for (arg1 + arg2)
+    """
+    e = []
+    e += update_flag_zf_eq(arg1, -arg2)
+    e += [m2_expr.ExprAff(nf, m2_expr.ExprOp("FLAG_SIGN_SUB", arg1, -arg2))]
+    e += update_flag_pf(arg1+arg2)
+    return e
+
+
+def update_flag_arith_addwc_znp(arg1, arg2, arg3):
+    """
+    Compute znp flags for (arg1 + arg2 + cf)
+    """
+    e = []
+    e += update_flag_zfaddwc_eq(arg1, arg2, arg3)
+    e += [m2_expr.ExprAff(nf, m2_expr.ExprOp("FLAG_SIGN_ADDWC", arg1, arg2, arg3))]
+    e += update_flag_pf(arg1+arg2+arg3.zeroExtend(arg2.size))
+    return e
+
+
+
+
+def update_flag_arith_sub_znp(arg1, arg2):
+    """
+    Compute znp flags for (arg1 - arg2)
+    """
+    e = []
+    e += update_flag_zf_eq(arg1, arg2)
+    e += [m2_expr.ExprAff(nf, m2_expr.ExprOp("FLAG_SIGN_SUB", arg1, arg2))]
+    e += update_flag_pf(arg1 - arg2)
+    return e
+
+
+def update_flag_arith_subwc_znp(arg1, arg2, arg3):
+    """
+    Compute znp flags for (arg1 - (arg2 + cf))
+    """
+    e = []
+    e += update_flag_zfsubwc_eq(arg1, arg2, arg3)
+    e += [m2_expr.ExprAff(nf, m2_expr.ExprOp("FLAG_SIGN_SUBWC", arg1, arg2, arg3))]
+    e += update_flag_pf(arg1 - (arg2+arg3.zeroExtend(arg2.size)))
     return e
 
 
@@ -119,43 +192,78 @@ def arith_flag(a, b, c):
 
 def update_flag_add_cf(op1, op2, res):
     "Compute cf in @res = @op1 + @op2"
-    ret = (((op1 ^ op2) ^ res) ^ ((op1 ^ res) & (~(op1 ^ op2)))).msb()
-    return m2_expr.ExprAff(cf, ret)
+    #return [m2_expr.ExprAff(cf, m2_expr.ExprOp("FLAG_SUB_CF", op1, -op2))]
+    return [m2_expr.ExprAff(cf, m2_expr.ExprOp("FLAG_ADD_CF", op1, op2))]
 
 
 def update_flag_add_of(op1, op2, res):
     "Compute of in @res = @op1 + @op2"
-    return m2_expr.ExprAff(of, (((op1 ^ res) & (~(op1 ^ op2)))).msb())
+    return [m2_expr.ExprAff(of, m2_expr.ExprOp("FLAG_ADD_OF", op1, op2))]
 
 
 # checked: ok for sbb add because b & c before +cf
 def update_flag_sub_cf(op1, op2, res):
     "Compote CF in @res = @op1 - @op2"
-    ret = (((op1 ^ op2) ^ res) ^ ((op1 ^ res) & (op1 ^ op2))).msb()
-    return m2_expr.ExprAff(cf, ret)
+    return [m2_expr.ExprAff(cf, m2_expr.ExprOp("FLAG_SUB_CF", op1, op2))]
 
 
 def update_flag_sub_of(op1, op2, res):
     "Compote OF in @res = @op1 - @op2"
-    return m2_expr.ExprAff(of, (((op1 ^ res) & (op1 ^ op2))).msb())
-
-# z = x+y (+cf?)
+    return [m2_expr.ExprAff(of, m2_expr.ExprOp("FLAG_SUB_OF", op1, op2))]
 
 
-def update_flag_add(x, y, z):
+def update_flag_addwc_cf(op1, op2, op3):
+    "Compute cf in @res = @op1 + @op2 + @op3"
+    return [m2_expr.ExprAff(cf, m2_expr.ExprOp("FLAG_ADDWC_CF", op1, op2, op3))]
+
+
+def update_flag_addwc_of(op1, op2, op3):
+    "Compute of in @res = @op1 + @op2 + @op3"
+    return [m2_expr.ExprAff(of, m2_expr.ExprOp("FLAG_ADDWC_OF", op1, op2, op3))]
+
+
+
+def update_flag_subwc_cf(op1, op2, op3):
+    "Compute cf in @res = @op1 + @op2 + @op3"
+    return [m2_expr.ExprAff(cf, m2_expr.ExprOp("FLAG_SUBWC_CF", op1, op2, op3))]
+
+
+def update_flag_subwc_of(op1, op2, op3):
+    "Compute of in @res = @op1 + @op2 + @op3"
+    return [m2_expr.ExprAff(of, m2_expr.ExprOp("FLAG_SUBWC_OF", op1, op2, op3))]
+
+
+
+
+def update_flag_arith_add_co(x, y, z):
     e = []
-    e.append(update_flag_add_cf(x, y, z))
-    e.append(update_flag_add_of(x, y, z))
+    e += update_flag_add_cf(x, y, z)
+    e += update_flag_add_of(x, y, z)
     return e
 
-# z = x-y (+cf?)
 
-
-def update_flag_sub(x, y, z):
+def update_flag_arith_sub_co(x, y, z):
     e = []
-    e.append(update_flag_sub_cf(x, y, z))
-    e.append(update_flag_sub_of(x, y, z))
+    e += update_flag_sub_cf(x, y, z)
+    e += update_flag_sub_of(x, y, z)
     return e
+
+
+
+
+def update_flag_arith_addwc_co(arg1, arg2, arg3):
+    e = []
+    e += update_flag_addwc_cf(arg1, arg2, arg3)
+    e += update_flag_addwc_of(arg1, arg2, arg3)
+    return e
+
+
+def update_flag_arith_subwc_co(arg1, arg2, arg3):
+    e = []
+    e += update_flag_subwc_cf(arg1, arg2, arg3)
+    e += update_flag_subwc_of(arg1, arg2, arg3)
+    return e
+
 
 
 def set_float_cs_eip(instr):
@@ -344,20 +452,23 @@ def lea(_, instr, dst, src):
 
 def add(_, instr, dst, src):
     e = []
+
     result = dst + src
-    e += update_flag_arith(result)
+
+    e += update_flag_arith_add_znp(dst, src)
+    e += update_flag_arith_add_co(dst, src, result)
     e += update_flag_af(dst, src, result)
-    e += update_flag_add(dst, src, result)
     e.append(m2_expr.ExprAff(dst, result))
     return e, []
 
 
 def xadd(_, instr, dst, src):
     e = []
+
     result = dst + src
-    e += update_flag_arith(result)
+    e += update_flag_arith_add_znp(dst, src)
+    e += update_flag_arith_add_co(src, dst, result)
     e += update_flag_af(dst, src, result)
-    e += update_flag_add(src, dst, result)
     if dst != src:
         e.append(m2_expr.ExprAff(src, dst))
     e.append(m2_expr.ExprAff(dst, result))
@@ -366,21 +477,27 @@ def xadd(_, instr, dst, src):
 
 def adc(_, instr, dst, src):
     e = []
-    result = dst + (src + m2_expr.ExprCompose(cf,
-                                              m2_expr.ExprInt(0, dst.size - 1)))
-    e += update_flag_arith(result)
-    e += update_flag_af(dst, src, result)
-    e += update_flag_add(dst, src, result)
+
+    arg1 = dst
+    arg2 = src
+    result = arg1 + (arg2 + cf.zeroExtend(src.size))
+
+    e += update_flag_arith_addwc_znp(arg1, arg2, cf)
+    e += update_flag_arith_addwc_co(arg1, arg2, cf)
+    e += update_flag_af(arg1, arg2, result)
     e.append(m2_expr.ExprAff(dst, result))
     return e, []
 
 
 def sub(_, instr, dst, src):
     e = []
+    arg1, arg2 = dst, src
     result = dst - src
-    e += update_flag_arith(result)
+
+    e += update_flag_arith_sub_znp(arg1, arg2)
+    e += update_flag_arith_sub_co(arg1, arg2, result)
     e += update_flag_af(dst, src, result)
-    e += update_flag_sub(dst, src, result)
+
     e.append(m2_expr.ExprAff(dst, result))
     return e, []
 
@@ -389,11 +506,13 @@ def sub(_, instr, dst, src):
 
 def sbb(_, instr, dst, src):
     e = []
-    result = dst - (src + m2_expr.ExprCompose(cf,
-                                              m2_expr.ExprInt(0, dst.size - 1)))
-    e += update_flag_arith(result)
-    e += update_flag_af(dst, src, result)
-    e += update_flag_sub(dst, src, result)
+    arg1 = dst
+    arg2 = src
+    result = arg1 - (arg2 + cf.zeroExtend(src.size))
+
+    e += update_flag_arith_subwc_znp(arg1, arg2, cf)
+    e += update_flag_af(arg1, arg2, result)
+    e += update_flag_arith_subwc_co(arg1, arg2, cf)
     e.append(m2_expr.ExprAff(dst, result))
     return e, []
 
@@ -401,10 +520,12 @@ def sbb(_, instr, dst, src):
 def neg(_, instr, src):
     e = []
     dst = m2_expr.ExprInt(0, src.size)
-    result = dst - src
-    e += update_flag_arith(result)
-    e += update_flag_sub(dst, src, result)
-    e += update_flag_af(dst, src, result)
+    arg1, arg2 = dst, src
+    result = arg1 - arg2
+
+    e += update_flag_arith_sub_znp(arg1, arg2)
+    e += update_flag_arith_sub_co(arg1, arg2, result)
+    e += update_flag_af(arg1, arg2, result)
     e.append(m2_expr.ExprAff(src, result))
     return (e, [])
 
@@ -418,9 +539,11 @@ def l_not(_, instr, dst):
 
 def l_cmp(_, instr, dst, src):
     e = []
+    arg1, arg2 = dst, src
     result = dst - src
-    e += update_flag_arith(result)
-    e += update_flag_sub(dst, src, result)
+
+    e += update_flag_arith_sub_znp(arg1, arg2)
+    e += update_flag_arith_sub_co(arg1, arg2, result)
     e += update_flag_af(dst, src, result)
     return (e, [])
 
@@ -428,7 +551,9 @@ def l_cmp(_, instr, dst, src):
 def xor(_, instr, dst, src):
     e = []
     result = dst ^ src
-    e += update_flag_logic(result)
+    e += [m2_expr.ExprAff(zf, m2_expr.ExprOp('FLAG_EQ_CMP', dst, src))]
+    e += update_flag_np(result)
+    e += null_flag_co()
     e.append(m2_expr.ExprAff(dst, result))
     return (e, [])
 
@@ -443,7 +568,9 @@ def pxor(_, instr, dst, src):
 def l_or(_, instr, dst, src):
     e = []
     result = dst | src
-    e += update_flag_logic(result)
+    e += [m2_expr.ExprAff(zf, m2_expr.ExprOp('FLAG_EQ', dst | src))]
+    e += update_flag_np(result)
+    e += null_flag_co()
     e.append(m2_expr.ExprAff(dst, result))
     return (e, [])
 
@@ -451,7 +578,10 @@ def l_or(_, instr, dst, src):
 def l_and(_, instr, dst, src):
     e = []
     result = dst & src
-    e += update_flag_logic(result)
+    e += [m2_expr.ExprAff(zf, m2_expr.ExprOp('FLAG_EQ_AND', dst, src))]
+    e += update_flag_np(result)
+    e += null_flag_co()
+
     e.append(m2_expr.ExprAff(dst, result))
     return (e, [])
 
@@ -459,7 +589,12 @@ def l_and(_, instr, dst, src):
 def l_test(_, instr, dst, src):
     e = []
     result = dst & src
-    e += update_flag_logic(result)
+
+    e += [m2_expr.ExprAff(zf, m2_expr.ExprOp('FLAG_EQ_CMP', result, m2_expr.ExprInt(0, result.size)))]
+    e += [m2_expr.ExprAff(nf, m2_expr.ExprOp("FLAG_SIGN_SUB", result, m2_expr.ExprInt(0, result.size)))]
+    e += update_flag_pf(result)
+    e += null_flag_co()
+
     return (e, [])
 
 
@@ -717,23 +852,27 @@ def sti(_, instr):
 def inc(_, instr, dst):
     e = []
     src = m2_expr.ExprInt(1, dst.size)
+    arg1, arg2 = dst, src
     result = dst + src
-    e += update_flag_arith(result)
-    e += update_flag_af(dst, src, result)
 
-    e.append(update_flag_add_of(dst, src, result))
+    e += update_flag_arith_add_znp(arg1, arg2)
+    e += update_flag_af(arg1, arg2, result)
+    e += update_flag_add_of(arg1, arg2, result)
+
     e.append(m2_expr.ExprAff(dst, result))
     return e, []
 
 
 def dec(_, instr, dst):
     e = []
-    src = m2_expr.ExprInt(-1, dst.size)
-    result = dst + src
-    e += update_flag_arith(result)
-    e += update_flag_af(dst, src, ~result)
+    src = m2_expr.ExprInt(1, dst.size)
+    arg1, arg2 = dst, src
+    result = dst - src
 
-    e.append(update_flag_add_of(dst, src, result))
+    e += update_flag_arith_sub_znp(arg1, arg2)
+    e += update_flag_af(arg1, arg2, result)
+    e += update_flag_sub_of(arg1, arg2, result)
+
     e.append(m2_expr.ExprAff(dst, result))
     return e, []
 
@@ -796,16 +935,22 @@ def popw(ir, instr, src):
 def sete(_, instr, dst):
     e = []
     e.append(
-        m2_expr.ExprAff(dst, m2_expr.ExprCond(zf, m2_expr.ExprInt(1, dst.size),
-                                              m2_expr.ExprInt(0, dst.size))))
+        m2_expr.ExprAff(
+            dst,
+            m2_expr.ExprOp("CC_EQ", zf).zeroExtend(dst.size),
+        )
+    )
     return e, []
 
 
 def setnz(_, instr, dst):
     e = []
     e.append(
-        m2_expr.ExprAff(dst, m2_expr.ExprCond(zf, m2_expr.ExprInt(0, dst.size),
-                                              m2_expr.ExprInt(1, dst.size))))
+        m2_expr.ExprAff(
+            dst,
+            m2_expr.ExprOp("CC_EQ", ~zf).zeroExtend(dst.size),
+        )
+    )
     return e, []
 
 
@@ -813,17 +958,21 @@ def setl(_, instr, dst):
     e = []
     e.append(
         m2_expr.ExprAff(
-            dst, m2_expr.ExprCond(nf - of, m2_expr.ExprInt(1, dst.size),
-                                  m2_expr.ExprInt(0, dst.size))))
+            dst,
+            m2_expr.ExprOp("CC_S<", nf, of).zeroExtend(dst.size),
+        )
+    )
     return e, []
 
 
 def setg(_, instr, dst):
     e = []
-    a0 = m2_expr.ExprInt(0, dst.size)
-    a1 = m2_expr.ExprInt(1, dst.size)
-    ret = m2_expr.ExprCond(zf, a0, a1) & m2_expr.ExprCond(nf - of, a0, a1)
-    e.append(m2_expr.ExprAff(dst, ret))
+    e.append(
+        m2_expr.ExprAff(
+            dst,
+            m2_expr.ExprOp("CC_S>", nf, of, zf).zeroExtend(dst.size),
+        )
+    )
     return e, []
 
 
@@ -831,128 +980,172 @@ def setge(_, instr, dst):
     e = []
     e.append(
         m2_expr.ExprAff(
-            dst, m2_expr.ExprCond(nf - of, m2_expr.ExprInt(0, dst.size),
-                                  m2_expr.ExprInt(1, dst.size))))
+            dst,
+            m2_expr.ExprOp("CC_S>=", nf, of).zeroExtend(dst.size),
+        )
+    )
     return e, []
 
 
 def seta(_, instr, dst):
     e = []
-    e.append(m2_expr.ExprAff(dst, m2_expr.ExprCond(cf | zf,
-                                                   m2_expr.ExprInt(
-                                                       0, dst.size),
-                                                   m2_expr.ExprInt(1, dst.size))))
-
+    e.append(
+        m2_expr.ExprAff(
+            dst,
+            m2_expr.ExprOp("CC_U>", cf, zf).zeroExtend(dst.size),
+        )
+    )
     return e, []
 
 
 def setae(_, instr, dst):
     e = []
     e.append(
-        m2_expr.ExprAff(dst, m2_expr.ExprCond(cf, m2_expr.ExprInt(0, dst.size),
-                                              m2_expr.ExprInt(1, dst.size))))
+        m2_expr.ExprAff(
+            dst,
+            m2_expr.ExprOp("CC_U>=", cf).zeroExtend(dst.size),
+        )
+    )
     return e, []
 
 
 def setb(_, instr, dst):
     e = []
     e.append(
-        m2_expr.ExprAff(dst, m2_expr.ExprCond(cf, m2_expr.ExprInt(1, dst.size),
-                                              m2_expr.ExprInt(0, dst.size))))
+        m2_expr.ExprAff(
+            dst,
+            m2_expr.ExprOp("CC_U<", cf).zeroExtend(dst.size),
+        )
+    )
     return e, []
 
 
 def setbe(_, instr, dst):
     e = []
-    e.append(m2_expr.ExprAff(dst, m2_expr.ExprCond(cf | zf,
-                                                   m2_expr.ExprInt(
-                                                       1, dst.size),
-                                                   m2_expr.ExprInt(0, dst.size)))
-             )
+    e.append(
+        m2_expr.ExprAff(
+            dst,
+            m2_expr.ExprOp("CC_U<=", cf, zf).zeroExtend(dst.size),
+        )
+    )
     return e, []
 
 
 def setns(_, instr, dst):
     e = []
     e.append(
-        m2_expr.ExprAff(dst, m2_expr.ExprCond(nf, m2_expr.ExprInt(0, dst.size),
-                                              m2_expr.ExprInt(1, dst.size))))
+        m2_expr.ExprAff(
+            dst,
+            m2_expr.ExprOp("CC_NEG", ~nf).zeroExtend(dst.size),
+        )
+    )
     return e, []
 
 
 def sets(_, instr, dst):
     e = []
     e.append(
-        m2_expr.ExprAff(dst, m2_expr.ExprCond(nf, m2_expr.ExprInt(1, dst.size),
-                                              m2_expr.ExprInt(0, dst.size))))
+        m2_expr.ExprAff(
+            dst,
+            m2_expr.ExprOp("CC_NEG", nf).zeroExtend(dst.size),
+        )
+    )
     return e, []
 
 
 def seto(_, instr, dst):
     e = []
     e.append(
-        m2_expr.ExprAff(dst, m2_expr.ExprCond(of, m2_expr.ExprInt(1, dst.size),
-                                              m2_expr.ExprInt(0, dst.size))))
+        m2_expr.ExprAff(
+            dst,
+            of.zeroExtend(dst.size)
+        )
+    )
     return e, []
 
 
 def setp(_, instr, dst):
     e = []
     e.append(
-        m2_expr.ExprAff(dst, m2_expr.ExprCond(pf, m2_expr.ExprInt(1, dst.size),
-                                              m2_expr.ExprInt(0, dst.size))))
+        m2_expr.ExprAff(
+            dst,
+            pf.zeroExtend(dst.size)
+        )
+    )
     return e, []
 
 
 def setnp(_, instr, dst):
     e = []
     e.append(
-        m2_expr.ExprAff(dst, m2_expr.ExprCond(pf, m2_expr.ExprInt(0, dst.size),
-                                              m2_expr.ExprInt(1, dst.size))))
+        m2_expr.ExprAff(
+            dst,
+            m2_expr.ExprCond(
+                pf,
+                m2_expr.ExprInt(0, dst.size),
+                m2_expr.ExprInt(1, dst.size)
+            )
+        )
+    )
     return e, []
 
 
 def setle(_, instr, dst):
     e = []
-    a0 = m2_expr.ExprInt(0, dst.size)
-    a1 = m2_expr.ExprInt(1, dst.size)
-    ret = m2_expr.ExprCond(zf, a1, a0) | m2_expr.ExprCond(nf ^ of, a1, a0)
-    e.append(m2_expr.ExprAff(dst, ret))
+    e.append(
+        m2_expr.ExprAff(
+            dst,
+            m2_expr.ExprOp("CC_S<=", nf, of, zf).zeroExtend(dst.size),
+        )
+    )
     return e, []
 
 
 def setna(_, instr, dst):
     e = []
-    a0 = m2_expr.ExprInt(0, dst.size)
-    a1 = m2_expr.ExprInt(1, dst.size)
-    ret = m2_expr.ExprCond(cf, a1, a0) & m2_expr.ExprCond(zf, a1, a0)
-    e.append(m2_expr.ExprAff(dst, ret))
+    e.append(
+        m2_expr.ExprAff(
+            dst,
+            m2_expr.ExprOp("CC_U<=", cf, zf).zeroExtend(dst.size),
+        )
+    )
     return e, []
 
 
 def setnbe(_, instr, dst):
     e = []
-    e.append(m2_expr.ExprAff(dst, m2_expr.ExprCond(cf | zf,
-                                                   m2_expr.ExprInt(
-                                                       0, dst.size),
-                                                   m2_expr.ExprInt(1, dst.size)))
-             )
+    e.append(
+        m2_expr.ExprAff(
+            dst,
+            m2_expr.ExprOp("CC_U>", cf, zf).zeroExtend(dst.size),
+        )
+    )
     return e, []
 
 
 def setno(_, instr, dst):
     e = []
     e.append(
-        m2_expr.ExprAff(dst, m2_expr.ExprCond(of, m2_expr.ExprInt(0, dst.size),
-                                              m2_expr.ExprInt(1, dst.size))))
+        m2_expr.ExprAff(
+            dst,
+            m2_expr.ExprCond(
+                of,
+                m2_expr.ExprInt(0, dst.size),
+                m2_expr.ExprInt(1, dst.size)
+            )
+        )
+    )
     return e, []
 
 
 def setnb(_, instr, dst):
     e = []
     e.append(
-        m2_expr.ExprAff(dst, m2_expr.ExprCond(cf, m2_expr.ExprInt(0, dst.size),
-                                              m2_expr.ExprInt(1, dst.size))))
+        m2_expr.ExprAff(
+            dst,
+            m2_expr.ExprOp("CC_U>=", cf).zeroExtend(dst.size),
+        )
+    )
     return e, []
 
 
@@ -1358,7 +1551,8 @@ def jmp(ir, instr, dst):
 
 
 def jz(ir, instr, dst):
-    return gen_jcc(ir, instr, zf, dst, True)
+    #return gen_jcc(ir, instr, zf, dst, True)
+    return gen_jcc(ir, instr, m2_expr.ExprOp("CC_EQ", zf), dst, True)
 
 
 def jcxz(ir, instr, dst):
@@ -1374,7 +1568,9 @@ def jrcxz(ir, instr, dst):
 
 
 def jnz(ir, instr, dst):
-    return gen_jcc(ir, instr, zf, dst, False)
+    #return gen_jcc(ir, instr, zf, dst, False)
+    return gen_jcc(ir, instr, m2_expr.ExprOp("CC_EQ", zf), dst, False)
+
 
 
 def jp(ir, instr, dst):
@@ -1386,43 +1582,55 @@ def jnp(ir, instr, dst):
 
 
 def ja(ir, instr, dst):
-    return gen_jcc(ir, instr, cf | zf, dst, False)
+    #return gen_jcc(ir, instr, cf | zf, dst, False)
+    return gen_jcc(ir, instr, m2_expr.ExprOp("CC_U>", cf, zf), dst, True)
 
 
 def jae(ir, instr, dst):
-    return gen_jcc(ir, instr, cf, dst, False)
+    #return gen_jcc(ir, instr, cf, dst, False)
+    return gen_jcc(ir, instr, m2_expr.ExprOp("CC_U>=", cf), dst, True)
 
 
 def jb(ir, instr, dst):
-    return gen_jcc(ir, instr, cf, dst, True)
+    #return gen_jcc(ir, instr, cf, dst, True)
+    return gen_jcc(ir, instr, m2_expr.ExprOp("CC_U<", cf), dst, True)
 
 
 def jbe(ir, instr, dst):
-    return gen_jcc(ir, instr, cf | zf, dst, True)
+    #return gen_jcc(ir, instr, cf | zf, dst, True)
+    return gen_jcc(ir, instr, m2_expr.ExprOp("CC_U<=", cf, zf), dst, True)
 
 
 def jge(ir, instr, dst):
-    return gen_jcc(ir, instr, nf - of, dst, False)
+    #return gen_jcc(ir, instr, nf - of, dst, False)
+    return gen_jcc(ir, instr, m2_expr.ExprOp("CC_S>=", nf, of), dst, True)
 
 
 def jg(ir, instr, dst):
-    return gen_jcc(ir, instr, zf | (nf - of), dst, False)
+    #return gen_jcc(ir, instr, zf | (nf - of), dst, False)
+    return gen_jcc(ir, instr, m2_expr.ExprOp("CC_S>", nf, of, zf), dst, True)
 
 
 def jl(ir, instr, dst):
-    return gen_jcc(ir, instr, nf - of, dst, True)
+    #return gen_jcc(ir, instr, nf - of, dst, True)
+    return gen_jcc(ir, instr, m2_expr.ExprOp("CC_S<", nf, of), dst, True)
 
 
 def jle(ir, instr, dst):
-    return gen_jcc(ir, instr, zf | (nf - of), dst, True)
+    #return gen_jcc(ir, instr, zf | (nf - of), dst, True)
+    return gen_jcc(ir, instr, m2_expr.ExprOp("CC_S<=", nf, of, zf), dst, True)
+
 
 
 def js(ir, instr, dst):
-    return gen_jcc(ir, instr, nf, dst, True)
+    #return gen_jcc(ir, instr, nf, dst, True)
+    return gen_jcc(ir, instr, m2_expr.ExprOp("CC_NEG", nf), dst, True)
+
 
 
 def jns(ir, instr, dst):
-    return gen_jcc(ir, instr, nf, dst, False)
+    #return gen_jcc(ir, instr, nf, dst, False)
+    return gen_jcc(ir, instr, m2_expr.ExprOp("CC_NEG", nf), dst, False)
 
 
 def jo(ir, instr, dst):
@@ -2957,11 +3165,13 @@ def sldt(_, instr, dst):
 
 
 def cmovz(ir, instr, dst, src):
-    return gen_cmov(ir, instr, zf, dst, src, True)
+    #return gen_cmov(ir, instr, zf, dst, src, True)
+    return gen_cmov(ir, instr, m2_expr.ExprOp("CC_EQ", zf), dst, src, True)
 
 
 def cmovnz(ir, instr, dst, src):
-    return gen_cmov(ir, instr, zf, dst, src, False)
+    #return gen_cmov(ir, instr, zf, dst, src, False)
+    return gen_cmov(ir, instr, m2_expr.ExprOp("CC_EQ", zf), dst, src, False)
 
 
 def cmovpe(ir, instr, dst, src):
@@ -2973,35 +3183,43 @@ def cmovnp(ir, instr, dst, src):
 
 
 def cmovge(ir, instr, dst, src):
-    return gen_cmov(ir, instr, nf ^ of, dst, src, False)
+    #return gen_cmov(ir, instr, nf ^ of, dst, src, False)
+    return gen_cmov(ir, instr, m2_expr.ExprOp("CC_S>=", nf, of), dst, src, True)
 
 
 def cmovg(ir, instr, dst, src):
-    return gen_cmov(ir, instr, zf | (nf ^ of), dst, src, False)
+    #return gen_cmov(ir, instr, zf | (nf ^ of), dst, src, False)
+    return gen_cmov(ir, instr, m2_expr.ExprOp("CC_S>", nf, of, zf), dst, src, True)
 
 
 def cmovl(ir, instr, dst, src):
-    return gen_cmov(ir, instr, nf ^ of, dst, src, True)
+    #return gen_cmov(ir, instr, nf ^ of, dst, src, True)
+    return gen_cmov(ir, instr, m2_expr.ExprOp("CC_S<", nf, of), dst, src, True)
 
 
 def cmovle(ir, instr, dst, src):
-    return gen_cmov(ir, instr, zf | (nf ^ of), dst, src, True)
+    #return gen_cmov(ir, instr, zf | (nf ^ of), dst, src, True)
+    return gen_cmov(ir, instr, m2_expr.ExprOp("CC_S<=", nf, of, zf), dst, src, True)
 
 
 def cmova(ir, instr, dst, src):
-    return gen_cmov(ir, instr, cf | zf, dst, src, False)
+    #return gen_cmov(ir, instr, cf | zf, dst, src, False)
+    return gen_cmov(ir, instr, m2_expr.ExprOp("CC_U>", cf, zf), dst, src, True)
 
 
 def cmovae(ir, instr, dst, src):
-    return gen_cmov(ir, instr, cf, dst, src, False)
+    #return gen_cmov(ir, instr, cf, dst, src, False)
+    return gen_cmov(ir, instr, m2_expr.ExprOp("CC_U>=", cf), dst, src, True)
 
 
 def cmovbe(ir, instr, dst, src):
-    return gen_cmov(ir, instr, cf | zf, dst, src, True)
+    #return gen_cmov(ir, instr, cf | zf, dst, src, True)
+    return gen_cmov(ir, instr, m2_expr.ExprOp("CC_U<=", cf, zf), dst, src, True)
 
 
 def cmovb(ir, instr, dst, src):
-    return gen_cmov(ir, instr, cf, dst, src, True)
+    #return gen_cmov(ir, instr, cf, dst, src, True)
+    return gen_cmov(ir, instr, m2_expr.ExprOp("CC_U<", cf), dst, src, True)
 
 
 def cmovo(ir, instr, dst, src):
@@ -3013,11 +3231,13 @@ def cmovno(ir, instr, dst, src):
 
 
 def cmovs(ir, instr, dst, src):
-    return gen_cmov(ir, instr, nf, dst, src, True)
+    #return gen_cmov(ir, instr, nf, dst, src, True)
+    return gen_cmov(ir, instr, m2_expr.ExprOp("CC_NEG", nf), dst, src, True)
 
 
 def cmovns(ir, instr, dst, src):
-    return gen_cmov(ir, instr, nf, dst, src, False)
+    #return gen_cmov(ir, instr, nf, dst, src, False)
+    return gen_cmov(ir, instr, m2_expr.ExprOp("CC_NEG", nf), dst, src, False)
 
 
 def icebp(_, instr):
