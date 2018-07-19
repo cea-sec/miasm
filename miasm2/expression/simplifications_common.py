@@ -518,7 +518,10 @@ def simp_slice(e_s, expr):
             return tmp
     # distributivity of slice and exprcond
     # (a?int1:int2)[x:y] => (a?int1[x:y]:int2[x:y])
-    if expr.arg.is_cond() and expr.arg.src1.is_int() and expr.arg.src2.is_int():
+    # (a?compose1:compose2)[x:y] => (a?compose1[x:y]:compose2[x:y])
+    if (expr.arg.is_cond() and
+        (expr.arg.src1.is_int() or expr.arg.src1.is_compose()) and
+        (expr.arg.src2.is_int() or expr.arg.src2.is_compose())):
         src1 = expr.arg.src1[expr.start:expr.stop]
         src2 = expr.arg.src2[expr.start:expr.stop]
         return ExprCond(expr.arg.cond, src1, src2)
@@ -645,6 +648,15 @@ def simp_cond(e_s, expr):
             expr = ExprCond(expr.cond.cond, expr.src2, expr.src1)
         elif int1 and int2 == 0:
             expr = ExprCond(expr.cond.cond, expr.src1, expr.src2)
+
+    elif expr.cond.is_compose():
+        # {0, X, 0}?(A:B) => X?(A:B)
+        args = [arg for arg in expr.cond.args if not arg.is_int(0)]
+        if len(args) == 1:
+            arg = args.pop()
+            return ExprCond(arg, expr.src1, expr.src2)
+        elif len(args) < len(expr.cond.args):
+            return ExprCond(ExprCompose(*args), expr.src1, expr.src2)
     return expr
 
 
