@@ -568,6 +568,8 @@ class SSADiGraph(SSA):
         into IRBlock at the beginning"""
         for loc_key in self._phinodes:
             irblock = self.get_block(loc_key)
+            if irblock is None:
+                continue
             assignblk = AssignBlock(self._phinodes[loc_key])
             # insert at the beginning
             new_irs = IRBlock(loc_key, [assignblk] + list(irblock.assignblks))
