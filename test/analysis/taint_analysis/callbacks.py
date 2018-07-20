@@ -10,6 +10,7 @@ def test_callbacks():
     def on_taint_register_handler(jitter):
         global check_callback_occured
         check_callback_occured += 1
+        assert  jitter.cpu.EIP == 0x40000005
         print "\t[+] Test on taint register callback"
 
         last_regs = jitter.cpu.last_tainted_registers(red)
@@ -29,6 +30,7 @@ def test_callbacks():
     def on_taint_register_handler_2(jitter):
         global check_callback_occured
         check_callback_occured += 1
+        assert  jitter.cpu.EIP == 0x4000001C
         print "\t[+] Test mix reg callback (taint/untaint)"
 
         last_regs = jitter.cpu.last_tainted_registers(red)
@@ -52,6 +54,7 @@ def test_callbacks():
     def on_untaint_register_handler(jitter):
         global check_callback_occured
         check_callback_occured += 1
+        assert  jitter.cpu.EIP == 0x40000007
         print "\t[+] Test on untaint register callback"
 
         last_regs = jitter.cpu.last_tainted_registers(red)
@@ -71,6 +74,7 @@ def test_callbacks():
     def on_untaint_register_handler_2(jitter):
         global check_callback_occured
         check_callback_occured += 1
+        assert  jitter.cpu.EIP == 0x4000001C
         print "\t[+] Test mix reg callback (taint/untaint) - Part. 2"
 
         last_regs = jitter.cpu.last_tainted_registers(red)
@@ -95,6 +99,7 @@ def test_callbacks():
     def on_taint_memory_handler(jitter):
         global check_callback_occured
         check_callback_occured += 1
+        assert  jitter.cpu.EIP == 0x4000000C
         print "\t[+] Test on taint memory callback"
 
         no_reg_tainted(jitter, red)
@@ -114,6 +119,7 @@ def test_callbacks():
     def on_taint_memory_handler_2(jitter):
         global check_callback_occured
         check_callback_occured += 1
+        assert  jitter.cpu.EIP == 0x40000019
         print "\t[+] Test mix mem callback (taint/untaint) - Part. 2"
 
         no_reg_tainted(jitter, red)
@@ -134,6 +140,7 @@ def test_callbacks():
     def on_taint_memory_handler_3(jitter):
         global check_callback_occured
         check_callback_occured += 1
+        assert  jitter.cpu.EIP == 0x4000001E
         print "\t[+] Test mix colors callback"
 
         no_reg_tainted(jitter, red)
@@ -158,6 +165,7 @@ def test_callbacks():
     def on_untaint_memory_handler(jitter):
         global check_callback_occured
         check_callback_occured += 1
+        assert  jitter.cpu.EIP == 0x4000000E
         print "\t[+] Test on untaint memory callback"
 
         no_reg_tainted(jitter, red)
@@ -177,6 +185,7 @@ def test_callbacks():
     def on_untaint_memory_handler_2(jitter):
         global check_callback_occured
         check_callback_occured += 1
+        assert  jitter.cpu.EIP == 0x40000019
         print "\t[+] Test mix mem callback (taint/untaint)"
 
         no_reg_tainted(jitter, red)
