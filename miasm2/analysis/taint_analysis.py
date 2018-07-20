@@ -17,6 +17,7 @@ def makeTaintGen(C_Gen, ir_arch):
       struct taint_interval_t* taint_interval_arg;
       taint_interval = malloc(sizeof(*taint_interval));
       taint_interval_arg = malloc(sizeof(*taint_interval_arg));
+      int do_not_clean_taint_cb_info = 1;
       int is_tainted;
       """
 
@@ -107,9 +108,19 @@ def makeTaintGen(C_Gen, ir_arch):
       CODE_EXCEPTION_TAINT = r"""
       // Check taint analysis exceptions
       if (VM_exception_flag & EXCEPT_TAINT) {
-          %s = %s;
-          BlockDst->address = DST_value;
-          return JIT_RET_EXCEPTION;
+          // When DST_value == 0 we do not want to raise exception.
+          // If we raise an exception in this case, the execution will try to
+          // continue at address 0 after exception is handled.
+          // DST_value == 0 when a branching is occuring within an instruction
+          // (LODSD for example). In this case, we want to raise an exception
+          // only at the end of the instruction, not during branching.
+          if (DST_value) {
+              %s = %s;
+              BlockDst->address = DST_value;
+              return JIT_RET_EXCEPTION;
+          } else {
+             do_not_clean_taint_cb_info = 0;
+          }
       }
       """
 
@@ -312,7 +323,16 @@ def makeTaintGen(C_Gen, ir_arch):
       def gen_clean_callback_info(self):
           c_code = []
 
-          c_code.append("taint_clean_all_callback_info(taint_analysis);")
+          # When DST_value == 0, we do not raise exception.
+          # This mean that the exception will be raised at the 'real' end of
+          # the instruction.
+          # In this case, we do not want to clean callback information because
+          # we want to be able to retrieve them when we actually raise the
+          # exception.
+          c_code.append("if (do_not_clean_taint_cb_info) {")
+          c_code.append("\ttaint_clean_all_callback_info(taint_analysis);")
+          c_code.append("\tdo_not_clean_taint_cb_info = 1;")
+          c_code.append("}")
 
           return c_code
 

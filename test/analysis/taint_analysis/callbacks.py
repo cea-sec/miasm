@@ -224,6 +224,26 @@ def test_callbacks():
         jitter.cpu.taint_register(blue, jitter.jit.codegen.regs_index["RBX"])
         return True
 
+    def LODSD_handlers(jitter):
+        print "\t[+] LODSD"
+
+        jitter.exceptions_handler.remove_callback(on_taint_register_handler_2)
+        jitter.add_exception_handler(csts.EXCEPT_TAINT_ADD_REG, on_taint_register_handler_3)
+        jitter.cpu.enable_taint_reg_cb(blue)
+        jitter.cpu.taint_memory(0x80000000,1,blue) # taint [ESI]
+        return True
+
+    def on_taint_register_handler_3(jitter):
+        global check_callback_occured
+        check_callback_occured += 1
+        assert  jitter.cpu.EIP == 0x40000024
+        last_regs = jitter.cpu.last_tainted_registers(blue)
+        assert len(last_regs) == 1
+        check_reg(last_regs[0], jitter, "RAX", 0, 0)
+
+        jitter.vm.set_exception(jitter.vm.get_exception() & (~csts.EXCEPT_TAINT_ADD_REG))
+        return True
+
     global check_callback_occured
     check_callback_occured = 0
 
@@ -239,6 +259,8 @@ def test_callbacks():
        ADD    EAX, EBX                              ; preparation
        TEST   EAX, EAX                              ; taint_reg_cb + untaint_reg_cb
        PUSHAD                                       ; multiple colors
+       MOV    ESI, 0x80000000                       ; LODSD preparation
+       LODSD                                        ;
        PUSH   0x1337BEEF                            ; clean exit value
        RET
     '''
@@ -250,6 +272,7 @@ def test_callbacks():
     jitter.add_breakpoint(code_addr+0x19, second_handlers)
     jitter.add_breakpoint(code_addr+0x1C, third_handlers)
     jitter.add_breakpoint(code_addr+0x1E, fourth_handlers)
+    jitter.add_breakpoint(code_addr+0x1F, LODSD_handlers)
 
     jitter.add_exception_handler(csts.EXCEPT_TAINT_ADD_REG, on_taint_register_handler)
     jitter.cpu.enable_taint_reg_cb(red)
@@ -266,4 +289,4 @@ def test_callbacks():
 
     jitter.init_run(code_addr)
     jitter.continue_run()
-    assert check_callback_occured == 9
+    assert check_callback_occured == 10
