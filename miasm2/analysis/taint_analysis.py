@@ -331,6 +331,7 @@ def makeTaintGen(C_Gen, ir_arch):
           # exception.
           c_code.append("if (do_not_clean_taint_cb_info) {")
           c_code.append("\ttaint_clean_all_callback_info(taint_analysis);")
+          c_code.append("} else {")
           c_code.append("\tdo_not_clean_taint_cb_info = 1;")
           c_code.append("}")
 
