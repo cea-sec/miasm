@@ -1138,12 +1138,13 @@ class ir_mepb(IntermediateRepresentation):
        It transforms an instructon into an IR.
     """
 
+    addrsize = 32
+
     def __init__(self, loc_db=None):
         IntermediateRepresentation.__init__(self, mn_mep, "b", loc_db)
         self.pc = mn_mep.getpc()
         self.sp = mn_mep.getsp()
         self.IRDst = ExprId("IRDst", 32)
-        self.addrsize = 32
 
     def get_ir(self, instr):
         """Get the IR from a miasm instruction."""
