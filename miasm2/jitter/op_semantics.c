@@ -302,11 +302,12 @@ unsigned int x86_cpuid(unsigned int a, unsigned int reg_num)
 		fprintf(stderr, "not implemented x86_cpuid reg %x\n", reg_num);
 		exit(EXIT_FAILURE);
 	}
-
+	// cases are output: EAX: 0; EBX: 1; ECX: 2; EDX: 3
 	if (a == 0){
 		switch(reg_num){
 		case 0:
 			return 0xa;
+		// "GenuineIntel"
 		case 1:
 			return 0x756E6547;
 		case 2:
@@ -319,8 +320,10 @@ unsigned int x86_cpuid(unsigned int a, unsigned int reg_num)
 	else if (a == 1){
 		switch(reg_num){
 		case 0:
-			//return 0x000006FB;
-			return 0x00020652;
+			// Using a version too high will enable recent
+			// instruction set
+			return 0x000006FB;
+			//return 0x00020652;
 		case 1:
 			//return 0x02040800;
 			return 0x00000800;
@@ -328,13 +331,58 @@ unsigned int x86_cpuid(unsigned int a, unsigned int reg_num)
 			//return 0x0004E3BD;
 			return 0x00000209;
 		case 3:
-			//return 0xBFEBFBFF;
-			return 0x078bf9ff;
+			return (/* fpu */ 1 << 0) |
+				(/* tsc */ 1 << 4) |
+				(/* cx8 */ 1 << 8) |
+				(/* cmov */ 1 << 15) |
+				(/* mmx */ 1 << 23) |
+				(/* sse */ 1 << 25) |
+				(/* sse2 */ 1 << 26) |
+				(/* ia64 */ 1 << 30);
+		}
+	}
+	// Cache and TLB
+	else if (a == 2){
+		switch(reg_num){
+		case 0:
+			return 0x00000000;
+		case 1:
+			return 0x00000000;
+		case 2:
+			return 0x00000000;
+		case 3:
+			return 0x00000000;
+		}
+	}
+	// Intel thread/core and cache topology
+	else if (a == 4){
+		switch(reg_num){
+		case 0:
+			return 0x00000000;
+		case 1:
+			return 0x00000000;
+		case 2:
+			return 0x00000000;
+		case 3:
+			return 0x00000000;
+		}
+	}
+	// Extended features
+	else if (a == 7){
+		switch(reg_num){
+		case 0:
+			return 0x00000000;
+		case 1:
+			return (/* fsgsbase */ 1 << 0) | (/* bmi1 */ 1 << 3);
+		case 2:
+			return 0x00000000;
+		case 3:
+			return 0x00000000;
 		}
 	}
 	else{
 		fprintf(stderr, "WARNING not implemented x86_cpuid index %X!\n", a);
-		//exit(EXIT_FAILURE);
+		exit(EXIT_FAILURE);
 	}
 	return 0;
 }

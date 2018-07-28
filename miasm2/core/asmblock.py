@@ -1596,3 +1596,17 @@ class disasmEngine(object):
         warnings.warn('DEPRECATION WARNING: use "dis_multiblock" instead of "dis_multibloc"')
         return self.dis_multiblock(offset, blocs)
 
+    def dis_instr(self, offset):
+        """Disassemble one instruction at offset @offset and return the
+        corresponding instruction instance
+        @offset: targeted offset to disassemble
+        """
+        old_lineswd = self.lines_wd
+        self.lines_wd = 1
+        try:
+            block = self.dis_block(offset)
+        finally:
+            self.lines_wd = old_lineswd
+
+        instr = block.lines[0]
+        return instr

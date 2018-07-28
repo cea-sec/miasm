@@ -272,3 +272,11 @@ class jitter_x86_64(Jitter):
         remaining_args = args[len(args_regs):]
         for arg in reversed(remaining_args):
             self.push_uint64_t(arg)
+
+    def syscall_args_systemv(self, n_args):
+        args = [self.cpu.RDI, self.cpu.RSI, self.cpu.RDX, self.cpu.R10,
+                self.cpu.R8, self.cpu.R9][:n_args]
+        return args
+
+    def syscall_ret_systemv(self, value):
+        self.cpu.RAX = value

@@ -106,6 +106,14 @@ class jitter_arml(Jitter):
     func_prepare_systemv = func_prepare_stdcall
     get_arg_n_systemv = get_arg_n_stdcall
 
+    def syscall_args_systemv(self, n_args):
+        args = [self.cpu.R0, self.cpu.R1, self.cpu.R2, self.cpu.R3,
+            self.cpu.R4, self.cpu.R5][:n_args]
+        return args
+
+    def syscall_ret_systemv(self, value):
+        self.cpu.R0 = value
+
     def init_run(self, *args, **kwargs):
         Jitter.init_run(self, *args, **kwargs)
         self.cpu.PC = self.pc

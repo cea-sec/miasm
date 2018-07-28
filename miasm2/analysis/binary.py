@@ -35,34 +35,23 @@ class Container(object):
     fallback_container = None # Fallback container format
 
     @classmethod
-    def from_string(cls, data, vm=None, addr=None):
+    def from_string(cls, data, *args, **kwargs):
         """Instanciate a container and parse the binary
         @data: str containing the binary
-        @vm: (optional) VmMngr instance to link with the executable
-        @addr: (optional) Base address for the binary. If set,
-               force the unknown format
         """
         log.info('Load binary')
-
-        if not addr:
-            addr = 0
-        else:
-            # Force fallback mode
-            log.warning('Fallback to string input (offset=%s)', hex(addr))
-            return cls.fallback_container(data, vm, addr)
-
         # Try each available format
         for container_type in cls.available_container:
             try:
-                return container_type(data, vm)
+                return container_type(data, *args, **kwargs)
             except ContainerSignatureException:
                 continue
             except ContainerParsingException, error:
                 log.error(error)
 
         # Fallback mode
-        log.warning('Fallback to string input (offset=%s)', hex(addr))
-        return cls.fallback_container(data, vm, addr)
+        log.warning('Fallback to string input')
+        return cls.fallback_container(data, *args, **kwargs)
 
     @classmethod
     def register_container(cls, container):
@@ -85,20 +74,25 @@ class Container(object):
         return Container.from_string(stream.read(), *args, **kwargs)
 
     def parse(self, data, *args, **kwargs):
-        "Launch parsing of @data"
+        """Launch parsing of @data
+        @data: str containing the binary
+        """
         raise NotImplementedError("Abstract method")
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, data, loc_db=None, **kwargs):
         "Alias for 'parse'"
         # Init attributes
         self._executable = None
         self._bin_stream = None
         self._entry_point = None
         self._arch = None
-        self._loc_db = LocationDB()
+        if loc_db is None:
+            self._loc_db = LocationDB()
+        else:
+            self._loc_db = loc_db
 
         # Launch parsing
-        self.parse(*args, **kwargs)
+        self.parse(data, **kwargs)
 
     @property
     def bin_stream(self):
@@ -135,7 +129,7 @@ class Container(object):
 class ContainerPE(Container):
     "Container abstraction for PE"
 
-    def parse(self, data, vm=None):
+    def parse(self, data, vm=None, **kwargs):
         from miasm2.jitter.loader.pe import vm_load_pe, guess_arch
         from elfesteem import pe_init
 
@@ -172,8 +166,18 @@ class ContainerPE(Container):
 class ContainerELF(Container):
     "Container abstraction for ELF"
 
-    def parse(self, data, vm=None):
-        from miasm2.jitter.loader.elf import vm_load_elf, guess_arch
+    def parse(self, data, vm=None, addr=0, apply_reloc=False, **kwargs):
+        """Load an ELF from @data
+        @data: str containing the ELF bytes
+        @vm (optional): VmMngr instance. If set, load the ELF in virtual memory
+        @addr (optional): base address the ELF in virtual memory
+        @apply_reloc (optional): if set, apply relocation during ELF loading
+
+        @addr and @apply_reloc are only meaningful in the context of a
+        non-empty @vm
+        """
+        from miasm2.jitter.loader.elf import vm_load_elf, guess_arch, \
+            fill_loc_db_with_symbols
         from elfesteem import elf_init
 
         # Parse signature
@@ -183,7 +187,9 @@ class ContainerELF(Container):
         # Build executable instance
         try:
             if vm is not None:
-                self._executable = vm_load_elf(vm, data)
+                self._executable = vm_load_elf(vm, data, loc_db=self.loc_db,
+                                               base_addr=addr,
+                                               apply_reloc=apply_reloc)
             else:
                 self._executable = elf_init.ELF(data)
         except Exception, error:
@@ -195,37 +201,20 @@ class ContainerELF(Container):
         # Build the bin_stream instance and set the entry point
         try:
             self._bin_stream = bin_stream_elf(self._executable.virt)
-            self._entry_point = self._executable.Ehdr.entry
+            self._entry_point = self._executable.Ehdr.entry + addr
         except Exception, error:
             raise ContainerParsingException('Cannot read ELF: %s' % error)
 
-        # Add known symbols
-        for symb_source_name in [".symtab", ".dynsym"]:
-            symb_source = self._executable.getsectionbyname(symb_source_name)
-            if symb_source is None:
-                continue
-            for name, symb in symb_source.symbols.iteritems():
-                offset = symb.value
-                if offset == 0:
-                    continue
-                if not name:
-                    continue
-                try:
-                    self._loc_db.add_location(name, offset)
-                except ValueError:
-                    # Two symbols points on the same offset
-                    log.warning("Same offset (%s) for %s and %s",
-                                (hex(offset),
-                                 name,
-                                 self._loc_db.get_offset_location(offset)))
-                    continue
+        if vm is None:
+            # Add known symbols (vm_load_elf already does it)
+            fill_loc_db_with_symbols(self._executable, self.loc_db, addr)
 
 
 
 class ContainerUnknown(Container):
     "Container abstraction for unknown format"
 
-    def parse(self, data, vm, addr):
+    def parse(self, data, vm=None, addr=0, **kwargs):
         self._bin_stream = bin_stream_str(data, shift=addr)
         if vm is not None:
             vm.add_memory_page(addr,

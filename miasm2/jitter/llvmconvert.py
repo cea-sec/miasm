@@ -821,7 +821,10 @@ class LLVMFunction():
                     "ret": LLVMType.IntType(expr.size),
                     "args": [LLVMType.IntType(expr.args[0].size)]
                 }}
-                self.llvm_context.add_fc(func_sig, readonly=True)
+                try:
+                    self.mod.get_global(func_llvm_name)
+                except KeyError:
+                    self.llvm_context.add_fc(func_sig, readonly=True)
                 ret = builder.call(self.mod.get_global(func_llvm_name),
                                    [arg])
                 self.update_cache(expr, ret)
