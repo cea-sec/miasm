@@ -3,8 +3,7 @@
 from collections import namedtuple
 from miasm2.core.graph import DiGraph
 from miasm2.ir.ir import AssignBlock, IRBlock
-from miasm2.expression.expression import ExprLoc
-
+from miasm2.expression.expression import ExprLoc, ExprMem, ExprId
 
 class ReachingDefinitions(dict):
     """
@@ -513,3 +512,257 @@ def remove_empty_assignblks(ircfg):
         ircfg.blocks[loc_key] = IRBlock(loc_key, irs)
 
     return modified
+
+
+
+class SSADefUse(DiGraph):
+    """
+    Generate DefUse information from SSA transformation
+    Links are not valid for ExprMem.
+    """
+
+    def add_var_def(self, node, src):
+        lbl, index, dst = node
+        index2dst = self._links.setdefault(lbl, {})
+        dst2src = index2dst.setdefault(index, {})
+        dst2src[dst] = src
+
+    def add_def_node(self, def_nodes, node, src):
+        lbl, index, dst = node
+        if dst.is_id():
+            def_nodes[dst] = node
+
+    def add_use_node(self, use_nodes, node, src):
+        lbl, index, dst = node
+        sources = set()
+        if dst.is_mem():
+            sources.update(dst.arg.get_r(mem_read=True))
+        sources.update(src.get_r(mem_read=True))
+        for source in sources:
+            if not source.is_mem():
+                use_nodes.setdefault(source, set()).add(node)
+
+    def get_node_target(self, node):
+        lbl, index, reg = node
+        return self._links[lbl][index][reg]
+
+    def set_node_target(self, node, src):
+        lbl, index, reg = node
+        self._links[lbl][index][reg] = src
+
+    @classmethod
+    def from_ssa(cls, ssa):
+        """
+        Return a DefUse DiGraph from a SSA graph
+        @ssa: SSADiGraph instance
+        """
+
+        graph = cls()
+        # First pass
+        # Link line to its use and def
+        def_nodes = {}
+        use_nodes = {}
+        graph._links = {}
+        for lbl in ssa.graph.nodes():
+            block = ssa.graph.blocks.get(lbl, None)
+            if block is None:
+                continue
+            for index, assignblk in enumerate(block):
+                for dst, src in assignblk.iteritems():
+                    node = lbl, index, dst
+                    graph.add_var_def(node, src)
+                    graph.add_def_node(def_nodes, node, src)
+                    graph.add_use_node(use_nodes, node, src)
+
+        for dst, node in def_nodes.iteritems():
+            graph.add_node(node)
+            if dst not in use_nodes:
+                continue
+            for use in use_nodes[dst]:
+                graph.add_uniq_edge(node, use)
+
+        return graph
+
+
+
+
+def expr_test_visit(expr, test):
+    result = set()
+    expr.visit(
+        lambda expr: expr,
+        lambda expr: test(expr, result)
+    )
+    if result:
+        return True
+    else:
+        return False
+
+
+def expr_has_mem_test(expr, result):
+    if result:
+        # Don't analyse if we already found a candidate
+        return False
+    if expr.is_mem():
+        result.add(expr)
+        return False
+    return True
+
+
+def expr_has_mem(expr):
+    """
+    Return True if expr contains at least one memory access
+    @expr: Expr instance
+    """
+    return expr_test_visit(expr, expr_has_mem_test)
+
+
+def expr_has_call_test(expr, result):
+    if result:
+        # Don't analyse if we already found a candidate
+        return False
+    if expr.is_op() and expr.op.startswith("call"):
+        result.add(expr)
+        return False
+    return True
+
+
+def expr_has_call(expr):
+    """
+    Return True if expr contains at least one "call" operator
+    @expr: Expr instance
+    """
+    return expr_test_visit(expr, expr_has_call_test)
+
+
+class PropagateExpr(object):
+
+
+    def assignblk_is_propagation_barrier(self, assignblk):
+        for dst, src in assignblk.iteritems():
+            if expr_has_call(src):
+                return True
+            if dst.is_mem():
+                return True
+        return False
+
+    def has_propagation_barrier(self, assignblks):
+        for assignblk in assignblks:
+            for dst, src in assignblk.iteritems():
+                if expr_has_call(src):
+                    return True
+                if dst.is_mem():
+                    return True
+        return False
+
+    def is_mem_written(self, ssa, node, successor):
+        loc_a, index_a, reg_a = node
+        loc_b, index_b, reg_b = successor
+        block_b = ssa.graph.blocks[loc_b]
+
+        nodes_to_do = self.compute_reachable_nodes_from_a_to_b(ssa.graph, loc_a, loc_b)
+
+
+        if loc_a == loc_b:
+            # src is dst
+            assert nodes_to_do == set([loc_a])
+            if self.has_propagation_barrier(block_b.assignblks[index_a:index_b]):
+                return True
+        else:
+            # Check everyone but loc_a and loc_b
+            for loc in nodes_to_do - set([loc_a, loc_b]):
+                block = ssa.graph.blocks[loc]
+                if self.has_propagation_barrier(block.assignblks):
+                    return True
+            # Check loc_a partially
+            block_a = ssa.graph.blocks[loc_a]
+            if self.has_propagation_barrier(block_a.assignblks[index_a:]):
+                return True
+            if nodes_to_do.intersection(ssa.graph.successors(loc_b)):
+                # There is a path from loc_b to loc_b => Check loc_b fully
+                if self.has_propagation_barrier(block_b.assignblks):
+                    return True
+            else:
+                # Check loc_b partially
+                if self.has_propagation_barrier(block_b.assignblks[:index_b]):
+                    return True
+        return False
+
+    def compute_reachable_nodes_from_a_to_b(self, ssa, loc_a, loc_b):
+        reachables_a = set(ssa.reachable_sons(loc_a))
+        reachables_b = set(ssa.reachable_parents_stop_node(loc_b, loc_a))
+        return reachables_a.intersection(reachables_b)
+
+    def propagation_allowed(self, ssa, to_replace, node_a, node_b):
+        """
+        Return True if we can replace @node source into @node_b
+        """
+        loc_a, index_a, reg_a = node_a
+        if not expr_has_mem(to_replace[reg_a]):
+            return True
+        if self.is_mem_written(ssa, node_a, node_b):
+            return False
+        return True
+
+    def propagate(self, ssa, head):
+        defuse = SSADefUse.from_ssa(ssa)
+        to_replace = {}
+        node_to_reg = {}
+        for node in defuse.nodes():
+            lbl, index, reg = node
+            src = defuse.get_node_target(node)
+            if expr_has_call(src):
+                continue
+            if src.is_op('Phi'):
+                continue
+            if reg.is_mem():
+                continue
+            to_replace[reg] = src
+            node_to_reg[node] = reg
+
+        modified = False
+        for node, reg in node_to_reg.iteritems():
+            src = to_replace[reg]
+
+            for successor in defuse.successors(node):
+                if not self.propagation_allowed(ssa, to_replace, node, successor):
+                    continue
+
+                loc_a, index_a, reg_a = node
+                loc_b, index_b, reg_b = successor
+                block = ssa.graph.blocks[loc_b]
+
+                replace = {reg_a: to_replace[reg_a]}
+                # Replace
+                assignblks = list(block)
+                assignblk = block[index_b]
+                out = {}
+                for dst, src in assignblk.iteritems():
+                    if src.is_op('Phi'):
+                        out[dst] = src
+                        continue
+
+                    if src.is_mem():
+                        ptr = src.arg
+                        ptr = ptr.replace_expr(replace)
+                        new_src = ExprMem(ptr, src.size)
+                    else:
+                        new_src = src.replace_expr(replace)
+
+                    if dst.is_id():
+                        new_dst = dst
+                    elif dst.is_mem():
+                        ptr = dst.arg
+                        ptr = ptr.replace_expr(replace)
+                        new_dst = ExprMem(ptr, dst.size)
+                    else:
+                        new_dst = dst.replace_expr(replace)
+                        if not (new_dst.is_id() or new_dst.is_mem()):
+                            new_dst = dst
+                    if src != new_src or dst != new_dst:
+                        modified = True
+                    out[new_dst] = new_src
+                out = AssignBlock(out, assignblk.instr)
+                assignblks[index_b] = out
+                new_block = IRBlock(block.loc_key, assignblks)
+                ssa.graph.blocks[block.loc_key] = new_block
+        return modified
