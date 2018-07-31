@@ -354,7 +354,9 @@ def _relink_block_node(ircfg, loc_key, son_loc_key, replace_dct):
     Link loc_key's parents to parents directly to son_loc_key
     """
     for parent in set(ircfg.predecessors(loc_key)):
-        parent_block = ircfg.blocks[parent]
+        parent_block = ircfg.blocks.get(parent, None)
+        if parent_block is None:
+            continue
 
         new_block = parent_block.modify_exprs(
             lambda expr:expr.replace_expr(replace_dct),
