@@ -567,6 +567,58 @@ for irb in [G7_RES_IRB0, G7_RES_IRB1]:
 
 
 
+########## G8 ##########
+# Input
+
+G8 = IRA.new_ircfg()
+
+G8_IRB0 = gen_irblock(
+    LBL0,
+    [
+        [
+            ExprAff(IRDst, ExprLoc(LBL1, 32)),
+        ]
+    ]
+)
+
+G8_IRB1 = gen_irblock(
+    LBL1,
+    [
+        [
+            ExprAff(A, C),
+            ExprAff(IRDst, ExprLoc(LBL1, 32)),
+        ]
+    ]
+)
+
+
+for irb in [G8_IRB0, G8_IRB1]:
+    G8.add_irblock(irb)
+
+
+# Result
+G8_RES = IRA.new_ircfg()
+
+
+
+G8_RES_IRB0 = gen_irblock(
+    LBL0,
+    [
+        [
+            ExprAff(A, C),
+            ExprAff(IRDst, ExprLoc(LBL0, 32)),
+        ]
+    ]
+)
+
+
+for irb in [G8_RES_IRB0]:
+    G8_RES.add_irblock(irb)
+
+
+
+
+
 ################# Tests
 
 
@@ -579,6 +631,7 @@ for i, (g_test, g_ref) in enumerate(
             (G5, G5_RES),
             (G6, G6_RES),
             (G7, G7_RES),
+            (G8, G8_RES),
         ], 1):
 
     heads = g_test.heads()
