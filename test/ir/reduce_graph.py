@@ -507,6 +507,66 @@ for irb in [G6_RES_IRB0, G6_RES_IRB2, G6_RES_IRB3  ]:
 
 
 
+
+########## G7 ##########
+# Input
+
+G7 = IRA.new_ircfg()
+
+G7_IRB0 = gen_irblock(
+    LBL0,
+    [
+        [
+            ExprAff(A, C),
+            ExprAff(IRDst, ExprLoc(LBL1, 32)),
+        ]
+    ]
+)
+
+G7_IRB1 = gen_irblock(
+    LBL1,
+    [
+        [
+            ExprAff(IRDst, ExprLoc(LBL1, 32)),
+        ]
+    ]
+)
+
+
+for irb in [G7_IRB0, G7_IRB1]:
+    G7.add_irblock(irb)
+
+
+# Result
+G7_RES = IRA.new_ircfg()
+
+
+
+G7_RES_IRB0 = gen_irblock(
+    LBL0,
+    [
+        [
+            ExprAff(A, C),
+            ExprAff(IRDst, ExprLoc(LBL1, 32)),
+        ]
+    ]
+)
+
+G7_RES_IRB1 = gen_irblock(
+    LBL1,
+    [
+        [
+            ExprAff(IRDst, ExprLoc(LBL1, 32)),
+        ]
+    ]
+)
+
+
+for irb in [G7_RES_IRB0, G7_RES_IRB1]:
+    G7_RES.add_irblock(irb)
+
+
+
 ################# Tests
 
 
@@ -518,14 +578,15 @@ for i, (g_test, g_ref) in enumerate(
             (G4, G4_RES),
             (G5, G5_RES),
             (G6, G6_RES),
+            (G7, G7_RES),
         ], 1):
 
     heads = g_test.heads()
     print '*'*10, 'Test', i, "*"*10
     open('test_in_%d.dot' % i, 'w').write(g_test.dot())
+    open('test_ref_%d.dot' % i, 'w').write(g_ref.dot())
     merge_blocks(g_test, heads)
     open('test_out_%d.dot' % i, 'w').write(g_test.dot())
-    open('test_ref_%d.dot' % i, 'w').write(g_ref.dot())
 
     cmp_ir_graph(g_test, g_ref)
     print '\t', 'OK'
