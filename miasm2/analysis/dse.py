@@ -178,6 +178,8 @@ class DSEEngine(object):
             self.jitter.cpu, self.jitter.vm,
             self.ir_arch, {}
         )
+        ### Avoid side effects on jitter while using 'symb_concrete'
+        self.symb_concrete.func_write = None
 
         ## Update registers value
         self.symb.symbols[self.ir_arch.IRDst] = ExprInt(
@@ -345,7 +347,9 @@ class DSEEngine(object):
             # -> Use a fully concrete execution to get back path
 
             # Update the concrete execution
-            self._update_state_from_concrete_symb(self.symb_concrete)
+            self._update_state_from_concrete_symb(
+                self.symb_concrete, cpu=True, mem=True
+            )
             while True:
 
                 next_addr_concrete = self.symb_concrete.run_block_at(
@@ -431,8 +435,7 @@ class DSEEngine(object):
         if mem:
             # Values will be retrieved from the concrete execution if they are
             # not present
-            for symbol in symbexec.symbols.symbols_mem.copy():
-                del symbexec.symbols[symbol]
+            symbexec.symbols.symbols_mem.base_to_memarray.clear()
         if cpu:
             regs = self.ir_arch.arch.regs.attrib_to_regs[self.ir_arch.attrib]
             for reg in regs:
