@@ -267,6 +267,12 @@ class DiGraph(object):
             for next_node in next_cb(node):
                 todo.add(next_node)
 
+    def predecessors_stop_node_iter(self, node, head):
+        if node == head:
+            raise StopIteration
+        for next_node in self.predecessors_iter(node):
+            yield next_node
+
     def reachable_sons(self, head):
         """Compute all nodes reachable from node @head. Each son is an
         immediate successor of an arbitrary, already yielded son of @head"""
@@ -276,6 +282,18 @@ class DiGraph(object):
         """Compute all parents of node @leaf. Each parent is an immediate
         predecessor of an arbitrary, already yielded parent of @leaf"""
         return self._reachable_nodes(leaf, self.predecessors_iter)
+
+    def reachable_parents_stop_node(self, leaf, head):
+        """Compute all parents of node @leaf. Each parent is an immediate
+        predecessor of an arbitrary, already yielded parent of @leaf.
+        Do not compute reachables past @head node"""
+        return self._reachable_nodes(
+            leaf,
+            lambda node_cur: self.predecessors_stop_node_iter(
+                node_cur, head
+            )
+        )
+
 
     @staticmethod
     def _compute_generic_dominators(head, reachable_cb, prev_cb, next_cb):
