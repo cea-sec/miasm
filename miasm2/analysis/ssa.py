@@ -574,3 +574,121 @@ class SSADiGraph(SSA):
             # insert at the beginning
             new_irs = IRBlock(loc_key, [assignblk] + list(irblock.assignblks))
             self.ircfg.blocks[loc_key] = new_irs
+
+
+
+def get_assignblk(graph, loc, index):
+    """
+    Return the dictionnary of the AssignBlock from @graph at location @loc at
+    @index
+    @graph: IRCFG instance
+    @loc: Location instance
+    @index: assignblock index
+    """
+
+    irblock = graph.blocks[loc]
+    assignblks = irblock.assignblks
+    assignblk = assignblks[index]
+    assignblk_dct = dict(assignblk)
+    return assignblk_dct
+
+
+def set_assignblk(graph, loc, index, assignblk_dct):
+    """
+    Set the Assignblock in @graph at location @loc at @index using dictionnary
+    @assignblk_dct
+
+    @graph: IRCFG instance
+    @loc: Location instance
+    @index: assignblock index
+    @assignblk_dct: dictionnary representing the AssignBlock
+    """
+
+    irblock = graph.blocks[loc]
+    assignblks = list(irblock.assignblks)
+    assignblk = assignblks[index]
+
+    assignblks[index] = AssignBlock(
+        assignblk_dct,
+        assignblk.instr
+    )
+    new_irblock = IRBlock(loc, assignblks)
+    return new_irblock
+
+
+def remove_phi(ssa, head):
+    """
+    Remove Phi using naive algorithm
+    Note: The _ssa_variable_to_expr must be up to date
+
+    @ssa: a SSADiGraph instance
+    @head: the loc_key of the graph head
+    """
+
+    phivar2var = {}
+
+    all_ssa_vars = ssa._ssa_variable_to_expr
+
+    # Retrive Phi nodes
+    phi_nodes = []
+    for irblock in ssa.graph.blocks.itervalues():
+        for index, assignblk in enumerate(irblock):
+            for dst, src in assignblk.iteritems():
+                if src.is_op('Phi'):
+                    phi_nodes.append((irblock.loc_key, index))
+
+
+    for phi_loc, phi_index in phi_nodes:
+        assignblk_dct = get_assignblk(ssa.graph, phi_loc, phi_index)
+        for dst, src in assignblk_dct.iteritems():
+            if src.is_op('Phi'):
+                break
+        else:
+            raise RuntimeError('Cannot find phi?')
+        node_src = src
+        var = dst
+
+        # Create new variable
+        new_var = ExprId('var%d' % len(phivar2var), var.size)
+        phivar2var[var] = new_var
+        phi_sources = set(node_src.args)
+
+        # Place var init for non ssa variables
+        to_remove = set()
+        for phi_source in list(phi_sources):
+            if phi_source not in all_ssa_vars.union(phivar2var):
+                assignblk_dct = get_assignblk(ssa.graph, head, 0)
+                assignblk_dct[new_var] = phi_source
+                new_irblock = set_assignblk(ssa.graph, head, 0, assignblk_dct)
+                ssa.graph.blocks[head] = new_irblock
+                to_remove.add(phi_source)
+        phi_sources.difference_update(to_remove)
+
+        var_to_replace = set([var])
+        var_to_replace.update(phi_sources)
+
+
+
+
+        # Replace variables
+        to_replace_dct = {x:new_var for x in var_to_replace}
+        for loc in ssa.graph.blocks:
+            irblock = ssa.graph.blocks[loc]
+            assignblks = []
+            for assignblk in irblock:
+                assignblk_dct = {}
+                for dst, src in assignblk.iteritems():
+                    dst = dst.replace_expr(to_replace_dct)
+                    src = src.replace_expr(to_replace_dct)
+                    assignblk_dct[dst] = src
+                assignblks.append(AssignBlock(assignblk_dct, assignblk.instr))
+            new_irblock = IRBlock(loc, assignblks)
+            ssa.graph.blocks[loc] = new_irblock
+
+        # Remove phi
+        assignblk_dct = get_assignblk(ssa.graph, phi_loc, phi_index)
+        del assignblk_dct[new_var]
+
+
+        new_irblock = set_assignblk(ssa.graph, phi_loc, phi_index, assignblk_dct)
+        ssa.graph.blocks[phi_loc] = new_irblock
