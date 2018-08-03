@@ -363,7 +363,7 @@ def _relink_block_node(ircfg, loc_key, son_loc_key, replace_dct):
         )
 
         # Link parent to new dst
-        ircfg.add_edge(parent, son_loc_key)
+        ircfg.add_uniq_edge(parent, son_loc_key)
 
         # Unlink block
         ircfg.blocks[new_block.loc_key] = new_block
