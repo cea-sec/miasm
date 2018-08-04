@@ -6,6 +6,7 @@ import logging
 
 from miasm2.expression import simplifications_common
 from miasm2.expression import simplifications_cond
+from miasm2.expression import simplifications_explicit
 from miasm2.expression.expression_helper import fast_unify
 import miasm2.expression.expression as m2_expr
 
@@ -53,6 +54,16 @@ class ExpressionSimplifier(object):
                                   simplifications_cond.exec_equal],
                  m2_expr.ExprCond: [simplifications_cond.expr_simp_equal]
                  }
+
+
+    # Available passes lists are:
+    #  - highlevel: transform high level operators to explicit computations
+    PASS_HIGH_TO_EXPLICIT = {
+        m2_expr.ExprOp: [
+            simplifications_explicit.simp_flags,
+            simplifications_explicit.simp_ext,
+        ],
+    }
 
 
     def __init__(self):
@@ -136,3 +147,12 @@ class ExpressionSimplifier(object):
 # Public ExprSimplificationPass instance with commons passes
 expr_simp = ExpressionSimplifier()
 expr_simp.enable_passes(ExpressionSimplifier.PASS_COMMONS)
+
+
+
+expr_simp_high_to_explicit = ExpressionSimplifier()
+expr_simp_high_to_explicit.enable_passes(ExpressionSimplifier.PASS_HIGH_TO_EXPLICIT)
+
+expr_simp_explicit = ExpressionSimplifier()
+expr_simp_explicit.enable_passes(ExpressionSimplifier.PASS_COMMONS)
+expr_simp_explicit.enable_passes(ExpressionSimplifier.PASS_HIGH_TO_EXPLICIT)
