@@ -830,6 +830,28 @@ class LLVMFunction():
                 self.update_cache(expr, ret)
                 return ret
 
+
+            if op.startswith('zeroExt_'):
+                arg = expr.args[0]
+                if expr.size == arg.size:
+                    return arg
+                new_expr = ExprCompose(arg, ExprInt(0, expr.size - arg.size))
+                return self.add_ir(new_expr)
+
+            if op.startswith("signExt_"):
+                arg = expr.args[0]
+                add_size = expr.size - arg.size
+                new_expr = ExprCompose(
+                    arg,
+                    ExprCond(
+                        arg.msb(),
+                        ExprInt(size2mask(add_size), add_size),
+                        ExprInt(0, add_size)
+                    )
+                )
+                return self.add_ir(new_expr)
+
+
             if op == "segm":
                 fc_ptr = self.mod.get_global("segm2addr")
 
