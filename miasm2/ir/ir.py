@@ -440,6 +440,21 @@ class IRBlock(object):
         return '\n'.join(out)
 
 
+    def simplify(self, simplifier):
+        """
+        Simplify expressions in each assignblock
+        @simplifier: ExpressionSimplifier instance
+        """
+        modified = False
+        assignblks = []
+        for assignblk in self:
+            new_assignblk = assignblk.simplify(simplifier)
+            if assignblk != new_assignblk:
+                modified = True
+            assignblks.append(new_assignblk)
+        return modified, IRBlock(self.loc_key, assignblks)
+
+
 class irbloc(IRBlock):
     """
     DEPRECATED object
