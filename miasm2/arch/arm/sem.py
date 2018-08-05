@@ -513,6 +513,33 @@ def mvns(ir, instr, a, b):
     return e, []
 
 
+
+def mrs(ir, instr, a, b):
+    e = []
+    if b.is_id('CPSR_cxsf'):
+        out = []
+        out.append(ExprInt(0x10, 28))
+        out.append(of)
+        out.append(cf)
+        out.append(zf)
+        out.append(nf)
+        e.append(ExprAff(a, ExprCompose(*out)))
+    else:
+        raise NotImplementedError("MSR not implemented")
+    return e, []
+
+def msr(ir, instr, a, b):
+    e = []
+    if a.is_id('CPSR_cf'):
+        e.append(ExprAff(nf, b[31:32]))
+        e.append(ExprAff(zf, b[30:31]))
+        e.append(ExprAff(cf, b[29:30]))
+        e.append(ExprAff(of, b[28:29]))
+    else:
+        raise NotImplementedError("MRS not implemented")
+    return e, []
+
+
 def neg(ir, instr, a, b):
     e = []
     r = - b
@@ -1504,6 +1531,10 @@ mnemo_condm1 = {'adds': add,
                 'movs': movs,
                 'bics': bics,
                 'mvns': mvns,
+
+                'mrs': mrs,
+                'msr': msr,
+
                 'negs': negs,
 
                 'muls': muls,
