@@ -4,13 +4,15 @@ from pdb import pm
 
 from miasm2.analysis.binary import Container
 from miasm2.core.asmblock import log_asmblock, AsmCFG
-from miasm2.expression.expression import ExprId
+from miasm2.expression.expression import ExprId, ExprInt
 from miasm2.core.interval import interval
 from miasm2.analysis.machine import Machine
 from miasm2.analysis.data_flow import dead_simp, DiGraphDefUse, \
-    ReachingDefinitions, merge_blocks, remove_empty_assignblks
+    ReachingDefinitions, merge_blocks, remove_empty_assignblks, \
+    PropagateExpr, SSADefUse, replace_stack_vars, load_from_int
 from miasm2.expression.simplifications import expr_simp
-from miasm2.analysis.ssa import SSAPath, SSADiGraph
+from miasm2.analysis.ssa import SSAPath, SSADiGraph, remove_phi
+from miasm2.ir.ir import AssignBlock, IRBlock
 
 log = logging.getLogger("dis")
 console_handler = logging.StreamHandler()
@@ -33,7 +35,7 @@ parser.add_argument('-n', "--funcswatchdog", default=None, type=int,
                     help="Maximum number of function to disassemble")
 parser.add_argument('-r', "--recurfunctions", action="store_true",
                     help="Disassemble founded functions")
-parser.add_argument('-v', "--verbose", action="store_true", help="Verbose mode")
+parser.add_argument('-v', "--verbose", action="count", help="Verbose mode")
 parser.add_argument('-g', "--gen_ir", action="store_true",
                     help="Compute the intermediate representation")
 parser.add_argument('-z', "--dis-nulstart-block", action="store_true",
@@ -56,6 +58,13 @@ parser.add_argument('-d', "--defuse", action="store_true",
                     "The defuse is dumped after simplifications if -s option is specified")
 parser.add_argument('-p', "--ssa", action="store_true",
                     help="Generate the ssa form in  'ssa.dot'.")
+parser.add_argument('-x', "--propagexpr", action="store_true",
+                    help="Do Expression propagation.")
+parser.add_argument('-y', "--stack2var", action="store_true",
+                    help="*Try* to do transform stack accesses into variables. "
+                    "Use only with --propagexpr option. "
+                    "WARNING: not reliable, may fail.")
+
 
 args = parser.parse_args()
 
@@ -190,6 +199,10 @@ open('lines.dot', 'w').write('\n'.join([str(l) for l in all_lines]))
 log.info('total lines %s' % total_l)
 
 
+
+if args.propagexpr:
+    args.gen_ir = True
+
 # Bonus, generate IR graph
 if args.gen_ir:
     log.info("generating IR and IR analysis")
@@ -242,7 +255,7 @@ if args.gen_ir:
 
         open('graph_irflow_reduced.dot', 'w').write(ircfg_a.dot())
 
-    if args.ssa:
+    if args.ssa and not args.propagexpr:
         if len(entry_points) != 1:
             raise RuntimeError("Your graph should have only one head")
         head = list(entry_points)[0]
@@ -250,3 +263,144 @@ if args.gen_ir:
         ssa.transform(head)
 
         open("ssa.dot", "wb").write(ssa.graph.dot())
+
+
+
+
+
+if args.propagexpr:
+    class IRAOutRegs(ira):
+        def get_out_regs(self, block):
+            regs_todo = super(self.__class__, self).get_out_regs(block)
+            out = {}
+            for assignblk in block:
+                for dst in assignblk:
+                    reg = self.ssa_var.get(dst, None)
+                    if reg is None:
+                        continue
+                    if reg in regs_todo:
+                        out[reg] = dst
+            return set(out.values())
+
+
+    # Add dummy dependecy to uncover out regs affectation
+    for loc in ircfg_a.leaves():
+        irblock = ircfg_a.blocks.get(loc)
+        if irblock is None:
+            continue
+        regs = {}
+        for reg in ir_arch_a.get_out_regs(irblock):
+            regs[reg] = reg
+        assignblks = list(irblock)
+        new_assiblk = AssignBlock(regs, assignblks[-1].instr)
+        assignblks.append(new_assiblk)
+        new_irblock = IRBlock(irblock.loc_key, assignblks)
+        ircfg_a.blocks[loc] = new_irblock
+
+
+
+    ir_arch_a = IRAOutRegs(mdis.loc_db)
+
+    def is_addr_ro_variable(bs, addr, size):
+        """
+        Return True if address at @addr is a read-only variable.
+        WARNING: Quick & Dirty
+
+        @addr: integer representing the address of the variable
+        @size: size in bits
+
+        """
+        try:
+            _ = bs.getbytes(addr, size/8)
+        except IOError:
+            return False
+        return True
+
+
+    ir_arch_a.ssa_var = {}
+    index = 0
+    modified = True
+    ssa_forbidden_regs = set([
+        ir_arch_a.pc,
+        ir_arch_a.IRDst,
+        ir_arch_a.arch.regs.exception_flags
+    ])
+
+    head = list(entry_points)[0]
+    heads = set([head])
+    all_ssa_vars = set()
+
+    propagate_expr = PropagateExpr()
+
+
+
+    while modified:
+        ssa = SSADiGraph(ircfg_a)
+        ssa.immutable_ids.update(ssa_forbidden_regs)
+
+        ssa.transform(head)
+
+        all_ssa_vars.update(ssa._ssa_variable_to_expr)
+
+        ssa_regs = [reg for reg in ssa.expressions if reg.is_id()]
+        ssa_forbidden_regs.update(ssa_regs)
+
+        if args.verbose > 3:
+            open("ssa_%d.dot" % index, "wb").write(ssa.graph.dot())
+
+        ir_arch_a.ssa_var.update(ssa._ssa_variable_to_expr)
+        if args.verbose > 3:
+            open("ssa_orig.dot", "wb").write(ssa.graph.dot())
+
+        while modified:
+            log.debug('Loop %d', index)
+            index += 1
+            modified = False
+            if args.verbose > 3:
+                open('tmp_before_%d.dot' % index, 'w').write(ircfg_a.dot())
+            modified |= propagate_expr.propagate(ssa, head)
+            if args.verbose > 3:
+                open('tmp_adter_%d.dot' % index, 'w').write(ircfg_a.dot())
+            modified |= ircfg_a.simplify(expr_simp)
+            if args.verbose > 3:
+                open('tmp_simp_%d.dot' % index, 'w').write(ircfg_a.dot())
+            simp_modified = True
+            while simp_modified:
+                index += 1
+                if args.verbose > 3:
+                    open('tmp_before_%d.dot' % index, 'w').write(ircfg_a.dot())
+                simp_modified = False
+                simp_modified |= dead_simp(ir_arch_a, ircfg_a)
+                index += 1
+                if args.verbose > 3:
+                    open('tmp_after_%d.dot' % index, 'w').write(ircfg_a.dot())
+                simp_modified |= remove_empty_assignblks(ircfg_a)
+                simp_modified |= merge_blocks(ircfg_a, heads)
+                simp_modified |= load_from_int(ircfg_a, bs, is_addr_ro_variable)
+                modified |= simp_modified
+                index += 1
+        if args.verbose > 3:
+            open('stack_%d.dot' % index, 'w').write(ircfg_a.dot())
+        if args.stack2var:
+            modified |= replace_stack_vars(ir_arch_a, ssa)
+
+    if args.verbose > 3:
+        open('final_pre.dot', 'w').write(ircfg_a.dot())
+
+    merge_blocks(ircfg_a, heads)
+    if args.verbose > 3:
+        open('final_merge.dot', 'w').write(ircfg_a.dot())
+    ssa = SSADiGraph(ircfg_a)
+    ssa.immutable_ids.update(ssa_forbidden_regs)
+    ssa.transform(head)
+    all_ssa_vars.update(ssa._ssa_variable_to_expr)
+    print '*'*80, "Remove phi"
+    ssa._ssa_variable_to_expr = all_ssa_vars
+    if args.verbose > 3:
+        open('final_ssa.dot', 'w').write(ssa.graph.dot())
+    remove_phi(ssa, head)
+    if args.verbose > 3:
+        open('final_no_phi.dot', 'w').write(ssa.graph.dot())
+    dead_simp(ir_arch_a, ssa.graph)
+    open('final.dot', 'w').write(ssa.graph.dot())
+
