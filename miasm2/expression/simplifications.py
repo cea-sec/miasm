@@ -33,13 +33,30 @@ class ExpressionSimplifier(object):
 
     # Common passes
     PASS_COMMONS = {
-        m2_expr.ExprOp: [simplifications_common.simp_cst_propagation,
-                         simplifications_common.simp_cond_op_int,
-                         simplifications_common.simp_cond_factor],
+        m2_expr.ExprOp: [
+            simplifications_common.simp_cst_propagation,
+            simplifications_common.simp_cond_op_int,
+            simplifications_common.simp_cond_factor,
+            # CC op
+            simplifications_common.simp_cc_conds,
+            simplifications_common.simp_subwc_cf,
+            simplifications_common.simp_subwc_of,
+            simplifications_common.simp_sign_subwc_cf,
+            simplifications_common.simp_zeroext_eq_cst,
+
+        ],
+
         m2_expr.ExprSlice: [simplifications_common.simp_slice],
         m2_expr.ExprCompose: [simplifications_common.simp_compose],
-        m2_expr.ExprCond: [simplifications_common.simp_cond],
+        m2_expr.ExprCond: [
+            simplifications_common.simp_cond,
+            # CC op
+            simplifications_common.simp_cond_flag,
+            simplifications_common.simp_cond_int,
+            simplifications_common.simp_cmp_int_arg,
+        ],
         m2_expr.ExprMem: [simplifications_common.simp_mem],
+
     }
 
     # Heavy passes
