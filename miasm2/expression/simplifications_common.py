@@ -518,7 +518,10 @@ def simp_slice(e_s, expr):
             return tmp
     # distributivity of slice and exprcond
     # (a?int1:int2)[x:y] => (a?int1[x:y]:int2[x:y])
-    if expr.arg.is_cond() and expr.arg.src1.is_int() and expr.arg.src2.is_int():
+    # (a?compose1:compose2)[x:y] => (a?compose1[x:y]:compose2[x:y])
+    if (expr.arg.is_cond() and
+        (expr.arg.src1.is_int() or expr.arg.src1.is_compose()) and
+        (expr.arg.src2.is_int() or expr.arg.src2.is_compose())):
         src1 = expr.arg.src1[expr.start:expr.stop]
         src2 = expr.arg.src2[expr.start:expr.stop]
         return ExprCond(expr.arg.cond, src1, src2)
@@ -645,6 +648,15 @@ def simp_cond(e_s, expr):
             expr = ExprCond(expr.cond.cond, expr.src2, expr.src1)
         elif int1 and int2 == 0:
             expr = ExprCond(expr.cond.cond, expr.src1, expr.src2)
+
+    elif expr.cond.is_compose():
+        # {0, X, 0}?(A:B) => X?(A:B)
+        args = [arg for arg in expr.cond.args if not arg.is_int(0)]
+        if len(args) == 1:
+            arg = args.pop()
+            return ExprCond(arg, expr.src1, expr.src2)
+        elif len(args) < len(expr.cond.args):
+            return ExprCond(ExprCompose(*args), expr.src1, expr.src2)
     return expr
 
 
@@ -659,3 +671,337 @@ def simp_mem(e_s, expr):
                        ExprMem(cond.src2, expr.size))
         return ret
     return expr
+
+
+
+
+def test_cc_eq_args(expr, *sons_op):
+    if not expr.is_op():
+        return False
+    if len(expr.args) != len(sons_op):
+        return False
+    all_args = set()
+    for i, arg in enumerate(expr.args):
+        if not arg.is_op(sons_op[i]):
+            return False
+        all_args.add(arg.args)
+    return len(all_args) == 1
+
+
+def simp_cc_conds(expr_simp, expr):
+    if (expr.is_op("CC_U>=") and
+          test_cc_eq_args(
+              expr,
+              "FLAG_SUB_CF"
+          )):
+        expr = ExprCond(
+            ExprOp("<u", *expr.args[0].args),
+            ExprInt(0, 1),
+            ExprInt(1, 1))
+
+    elif (expr.is_op("CC_U<") and
+          test_cc_eq_args(
+              expr,
+              "FLAG_SUB_CF"
+          )):
+        expr = ExprOp("<u", *expr.args[0].args)
+
+    elif (expr.is_op("CC_NEG") and
+          test_cc_eq_args(
+              expr,
+              "FLAG_SIGN_SUB"
+          )):
+        expr = ExprOp("<s", *expr.args[0].args)
+
+    elif (expr.is_op("CC_POS") and
+          test_cc_eq_args(
+              expr,
+              "FLAG_SIGN_SUB"
+          )):
+        expr = ExprCond(
+            ExprOp("<s", *expr.args[0].args),
+            ExprInt(0, 1),
+            ExprInt(1, 1)
+        )
+
+    elif (expr.is_op("CC_EQ") and
+          test_cc_eq_args(
+              expr,
+              "FLAG_EQ"
+          )):
+        arg = expr.args[0].args[0]
+        expr = ExprOp("==", arg, ExprInt(0, arg.size))
+
+    elif (expr.is_op("CC_NE") and
+          test_cc_eq_args(
+              expr,
+              "FLAG_EQ"
+          )):
+        arg = expr.args[0].args[0]
+        expr = ExprCond(
+            ExprOp("==",arg, ExprInt(0, arg.size)),
+            ExprInt(0, 1),
+            ExprInt(1, 1)
+        )
+    elif (expr.is_op("CC_NE") and
+          test_cc_eq_args(
+              expr,
+              "FLAG_EQ_CMP"
+          )):
+        expr = ExprCond(
+            ExprOp("==", *expr.args[0].args),
+            ExprInt(0, 1),
+            ExprInt(1, 1)
+        )
+
+    elif (expr.is_op("CC_EQ") and
+          test_cc_eq_args(
+              expr,
+              "FLAG_EQ_CMP"
+          )):
+        expr = ExprOp("==", *expr.args[0].args)
+
+    elif (expr.is_op("CC_NE") and
+          test_cc_eq_args(
+              expr,
+              "FLAG_EQ_AND"
+          )):
+        expr = ExprOp("&", *expr.args[0].args)
+
+    elif (expr.is_op("CC_EQ") and
+          test_cc_eq_args(
+              expr,
+              "FLAG_EQ_AND"
+          )):
+        expr = ExprCond(
+            ExprOp("&", *expr.args[0].args),
+            ExprInt(0, 1),
+            ExprInt(1, 1)
+        )
+
+    elif (expr.is_op("CC_S>") and
+          test_cc_eq_args(
+              expr,
+              "FLAG_SIGN_SUB",
+              "FLAG_SUB_OF",
+              "FLAG_EQ_CMP",
+          )):
+        expr = ExprCond(
+            ExprOp("<=s", *expr.args[0].args),
+            ExprInt(0, 1),
+            ExprInt(1, 1)
+        )
+
+    elif (expr.is_op("CC_S>") and
+          len(expr.args) == 3 and
+          expr.args[0].is_op("FLAG_SIGN_SUB") and
+          expr.args[2].is_op("FLAG_EQ_CMP") and
+          expr.args[0].args == expr.args[2].args and
+          expr.args[1].is_int(0)):
+        expr = ExprCond(
+            ExprOp("<=s", *expr.args[0].args),
+            ExprInt(0, 1),
+            ExprInt(1, 1)
+        )
+
+
+
+    elif (expr.is_op("CC_S>=") and
+          test_cc_eq_args(
+              expr,
+              "FLAG_SIGN_SUB",
+              "FLAG_SUB_OF"
+          )):
+        expr = ExprCond(
+            ExprOp("<s", *expr.args[0].args),
+            ExprInt(0, 1),
+            ExprInt(1, 1)
+        )
+
+    elif (expr.is_op("CC_S<") and
+          test_cc_eq_args(
+              expr,
+              "FLAG_SIGN_SUB",
+              "FLAG_SUB_OF"
+          )):
+        expr = ExprOp("<s", *expr.args[0].args)
+
+    elif (expr.is_op("CC_S<=") and
+          test_cc_eq_args(
+              expr,
+              "FLAG_SIGN_SUB",
+              "FLAG_SUB_OF",
+              "FLAG_EQ_CMP",
+          )):
+        expr = ExprOp("<=s", *expr.args[0].args)
+
+    elif (expr.is_op("CC_S<=") and
+          len(expr.args) == 3 and
+          expr.args[0].is_op("FLAG_SIGN_SUB") and
+          expr.args[2].is_op("FLAG_EQ_CMP") and
+          expr.args[0].args == expr.args[2].args and
+          expr.args[1].is_int(0)):
+        expr = ExprOp("<=s", *expr.args[0].args)
+
+    elif (expr.is_op("CC_U<=") and
+          test_cc_eq_args(
+              expr,
+              "FLAG_SUB_CF",
+              "FLAG_EQ_CMP",
+          )):
+        expr = ExprOp("<=u", *expr.args[0].args)
+
+    elif (expr.is_op("CC_U>") and
+          test_cc_eq_args(
+              expr,
+              "FLAG_SUB_CF",
+              "FLAG_EQ_CMP",
+          )):
+        expr = ExprCond(
+            ExprOp("<=u", *expr.args[0].args),
+            ExprInt(0, 1),
+            ExprInt(1, 1)
+        )
+
+    elif (expr.is_op("CC_S<") and
+          test_cc_eq_args(
+              expr,
+              "FLAG_SIGN_ADD",
+              "FLAG_ADD_OF"
+          )):
+        arg0, arg1 = expr.args[0].args
+        expr = ExprOp("<s", arg0, -arg1)
+
+    return expr
+
+
+
+def simp_cond_flag(expr_simp, expr):
+    # FLAG_EQ_CMP(X, Y)?A:B => (X == Y)?A:B
+    cond = expr.cond
+    if cond.is_op("FLAG_EQ_CMP"):
+        return ExprCond(ExprOp("==", *cond.args), expr.src1, expr.src2)
+    return expr
+
+
+def simp_cond_int(expr_simp, expr):
+    if (expr.cond.is_op('==') and
+          expr.cond.args[1].is_int() and
+          expr.cond.args[0].is_compose() and
+          len(expr.cond.args[0].args) == 2 and
+          expr.cond.args[0].args[1].is_int(0)):
+        # ({X, 0} == int) => X == int[:]
+        src = expr.cond.args[0].args[0]
+        int_val = int(expr.cond.args[1])
+        new_int = ExprInt(int_val, src.size)
+        expr = expr_simp(ExprCond(ExprOp("==", src, new_int), expr.src1, expr.src2))
+    elif (expr.cond.is_op() and
+          expr.cond.op in ['==', '<s', '<=s', '<u', '<=u'] and
+          expr.cond.args[1].is_int() and
+          expr.cond.args[0].is_op("+") and
+          expr.cond.args[0].args[-1].is_int()):
+        # X + int1 == int2 => X == int2-int1
+        left, right = expr.cond.args
+        left, int_diff = left.args[:-1], left.args[-1]
+        if len(left) == 1:
+            left = left[0]
+        else:
+            left = ExprOp('+', *left)
+        new_int = expr_simp(right - int_diff)
+        expr = expr_simp(ExprCond(ExprOp(expr.cond.op, left, new_int), expr.src1, expr.src2))
+    return expr
+
+
+
+def simp_cmp_int_arg(expr_simp, expr):
+    """
+    (0x10 <= R0) ? A:B
+    =>
+    (R0 < 0x10) ? B:A
+    """
+    cond = expr.cond
+    if not cond.is_op():
+        return expr
+    op = cond.op
+    if op not in ['==', '<s', '<=s', '<u', '<=u']:
+        return expr
+    arg1, arg2 = cond.args
+    if arg2.is_int():
+        return expr
+    if not arg1.is_int():
+        return expr
+    src1, src2 = expr.src1, expr.src2
+    if op == "==":
+        return ExprCond(ExprOp('==', arg2, arg1), src1, src2)
+
+    arg1, arg2 = arg2, arg1
+    src1, src2 = src2, src1
+    if op == '<s':
+        op = '<=s'
+    elif op == '<=s':
+        op = '<s'
+    elif op == '<u':
+        op = '<=u'
+    elif op == '<=u':
+        op = '<u'
+    return ExprCond(ExprOp(op, arg1, arg2), src1, src2)
+
+
+
+
+def simp_subwc_cf(expr_s, expr):
+    # SUBWC_CF(A, B, SUB_CF(C, D)) => SUB_CF({A, C}, {B, D})
+    if not expr.is_op('FLAG_SUBWC_CF'):
+        return expr
+    op3 = expr.args[2]
+    if not op3.is_op("FLAG_SUB_CF"):
+        return expr
+
+    op1 = ExprCompose(expr.args[0], op3.args[0])
+    op2 = ExprCompose(expr.args[1], op3.args[1])
+
+    return ExprOp("FLAG_SUB_CF", op1, op2)
+
+
+def simp_subwc_of(expr_s, expr):
+    # SUBWC_OF(A, B, SUB_CF(C, D)) => SUB_OF({A, C}, {B, D})
+    if not expr.is_op('FLAG_SUBWC_OF'):
+        return expr
+    op3 = expr.args[2]
+    if not op3.is_op("FLAG_SUB_CF"):
+        return expr
+
+    op1 = ExprCompose(expr.args[0], op3.args[0])
+    op2 = ExprCompose(expr.args[1], op3.args[1])
+
+    return ExprOp("FLAG_SUB_OF", op1, op2)
+
+
+def simp_sign_subwc_cf(expr_s, expr):
+    # SIGN_SUBWC(A, B, SUB_CF(C, D)) => SIGN_SUB({A, C}, {B, D})
+    if not expr.is_op('FLAG_SIGN_SUBWC'):
+        return expr
+    op3 = expr.args[2]
+    if not op3.is_op("FLAG_SUB_CF"):
+        return expr
+
+    op1 = ExprCompose(expr.args[0], op3.args[0])
+    op2 = ExprCompose(expr.args[1], op3.args[1])
+
+    return ExprOp("FLAG_SIGN_SUB", op1, op2)
+
+
+def simp_zeroext_eq_cst(expr_s, expr):
+    # A.zeroExt(X) == int => A == int[:A.size]
+    if not expr.is_op("=="):
+        return expr
+    arg1, arg2 = expr.args
+    if not arg2.is_int():
+        return expr
+    if not (arg1.is_op() and arg1.op.startswith("zeroExt")):
+        return expr
+    src = arg1.args[0]
+    if int(arg2) > (1 << src.size):
+        # Always false
+        return ExprInt(0, 1)
+    return ExprOp("==", src, ExprInt(int(arg2), src.size))

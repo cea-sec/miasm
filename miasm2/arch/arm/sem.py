@@ -14,11 +14,20 @@ EXCEPT_PRIV_INSN = (1 << 17)
 
 
 def update_flag_zf(a):
-    return [ExprAff(zf, ExprCond(a, ExprInt(0, 1), ExprInt(1, 1)))]
+    return [ExprAff(zf, ExprOp("FLAG_EQ", a))]
 
 
-def update_flag_nf(a):
-    return [ExprAff(nf, a.msb())]
+def update_flag_zf_eq(a, b):
+    return [ExprAff(zf, ExprOp("FLAG_EQ_CMP", a, b))]
+
+
+def update_flag_nf(arg):
+    return [
+        ExprAff(
+            nf,
+            ExprOp("FLAG_SIGN_SUB", arg, ExprInt(0, arg.size))
+        )
+    ]
 
 
 def update_flag_zn(a):
@@ -28,71 +37,134 @@ def update_flag_zn(a):
     return e
 
 
-def update_flag_logic(a):
-    e = []
-    e += update_flag_zn(a)
-    # XXX TODO: set cf if ROT imm in argument
-    #e.append(ExprAff(cf, ExprInt(0, 1)))
-    return e
 
-
-def update_flag_arith(a):
-    e = []
-    e += update_flag_zn(a)
-    return e
+# XXX TODO: set cf if ROT imm in argument
 
 
 def check_ops_msb(a, b, c):
     if not a or not b or not c or a != b or a != c:
         raise ValueError('bad ops size %s %s %s' % (a, b, c))
 
-
-def arith_flag(a, b, c):
-    a_s, b_s, c_s = a.size, b.size, c.size
-    check_ops_msb(a_s, b_s, c_s)
-    a_s, b_s, c_s = a.msb(), b.msb(), c.msb()
-    return a_s, b_s, c_s
-
-# checked: ok for adc add because b & c before +cf
-
-def update_flag_add_cf(op1, op2, res):
-    "Compute cf in @res = @op1 + @op2"
-    return ExprAff(cf, (((op1 ^ op2) ^ res) ^ ((op1 ^ res) & (~(op1 ^ op2)))).msb())
+def update_flag_add_cf(op1, op2):
+    "Compute cf in @op1 + @op2"
+    return [ExprAff(cf, ExprOp("FLAG_ADD_CF", op1, op2))]
 
 
-def update_flag_add_of(op1, op2, res):
-    "Compute of in @res = @op1 + @op2"
-    return ExprAff(of, (((op1 ^ res) & (~(op1 ^ op2)))).msb())
+def update_flag_add_of(op1, op2):
+    "Compute of in @op1 + @op2"
+    return [ExprAff(of, ExprOp("FLAG_ADD_OF", op1, op2))]
 
 
-# checked: ok for sbb add because b & c before +cf
-def update_flag_sub_cf(op1, op2, res):
-    "Compote CF in @res = @op1 - @op2"
-    return ExprAff(cf,
-        ((((op1 ^ op2) ^ res) ^ ((op1 ^ res) & (op1 ^ op2))).msb()) ^ ExprInt(1, 1))
+def update_flag_sub_cf(op1, op2):
+    "Compote CF in @op1 - @op2"
+    return [ExprAff(cf, ExprOp("FLAG_SUB_CF", op1, op2) ^ ExprInt(1, 1))]
 
 
-def update_flag_sub_of(op1, op2, res):
-    "Compote OF in @res = @op1 - @op2"
-    return ExprAff(of, (((op1 ^ res) & (op1 ^ op2))).msb())
-
-# z = x+y (+cf?)
+def update_flag_sub_of(op1, op2):
+    "Compote OF in @op1 - @op2"
+    return [ExprAff(of, ExprOp("FLAG_SUB_OF", op1, op2))]
 
 
-def update_flag_add(x, y, z):
+def update_flag_arith_add_co(arg1, arg2):
     e = []
-    e.append(update_flag_add_cf(x, y, z))
-    e.append(update_flag_add_of(x, y, z))
+    e += update_flag_add_cf(arg1, arg2)
+    e += update_flag_add_of(arg1, arg2)
     return e
 
-# z = x-y (+cf?)
 
-
-def update_flag_sub(x, y, z):
+def update_flag_arith_add_zn(arg1, arg2):
+    """
+    Compute zf and nf flags for (arg1 + arg2)
+    """
     e = []
-    e.append(update_flag_sub_cf(x, y, z))
-    e.append(update_flag_sub_of(x, y, z))
+    e += update_flag_zf_eq(arg1, -arg2)
+    e += [ExprAff(nf, ExprOp("FLAG_SIGN_SUB", arg1, -arg2))]
     return e
+
+
+def update_flag_arith_sub_co(arg1, arg2):
+    """
+    Compute cf and of flags for (arg1 - arg2)
+    """
+    e = []
+    e += update_flag_sub_cf(arg1, arg2)
+    e += update_flag_sub_of(arg1, arg2)
+    return e
+
+
+def update_flag_arith_sub_zn(arg1, arg2):
+    """
+    Compute zf and nf flags for (arg1 - arg2)
+    """
+    e = []
+    e += update_flag_zf_eq(arg1, arg2)
+    e += [ExprAff(nf, ExprOp("FLAG_SIGN_SUB", arg1, arg2))]
+    return e
+
+
+
+
+def update_flag_zfaddwc_eq(arg1, arg2, arg3):
+    return [ExprAff(zf, ExprOp("FLAG_EQ_ADDWC", arg1, arg2, arg3))]
+
+def update_flag_zfsubwc_eq(arg1, arg2, arg3):
+    return [ExprAff(zf, ExprOp("FLAG_EQ_SUBWC", arg1, arg2, arg3))]
+
+
+def update_flag_arith_addwc_zn(arg1, arg2, arg3):
+    """
+    Compute znp flags for (arg1 + arg2 + cf)
+    """
+    e = []
+    e += update_flag_zfaddwc_eq(arg1, arg2, arg3)
+    e += [ExprAff(nf, ExprOp("FLAG_SIGN_ADDWC", arg1, arg2, arg3))]
+    return e
+
+
+def update_flag_arith_subwc_zn(arg1, arg2, arg3):
+    """
+    Compute znp flags for (arg1 - (arg2 + cf))
+    """
+    e = []
+    e += update_flag_zfsubwc_eq(arg1, arg2, arg3)
+    e += [ExprAff(nf, ExprOp("FLAG_SIGN_SUBWC", arg1, arg2, arg3))]
+    return e
+
+
+def update_flag_addwc_cf(op1, op2, op3):
+    "Compute cf in @res = @op1 + @op2 + @op3"
+    return [ExprAff(cf, ExprOp("FLAG_ADDWC_CF", op1, op2, op3))]
+
+
+def update_flag_addwc_of(op1, op2, op3):
+    "Compute of in @res = @op1 + @op2 + @op3"
+    return [ExprAff(of, ExprOp("FLAG_ADDWC_OF", op1, op2, op3))]
+
+
+def update_flag_arith_addwc_co(arg1, arg2, arg3):
+    e = []
+    e += update_flag_addwc_cf(arg1, arg2, arg3)
+    e += update_flag_addwc_of(arg1, arg2, arg3)
+    return e
+
+
+
+def update_flag_subwc_cf(op1, op2, op3):
+    "Compute cf in @res = @op1 + @op2 + @op3"
+    return [ExprAff(cf, ExprOp("FLAG_SUBWC_CF", op1, op2, op3) ^ ExprInt(1, 1))]
+
+
+def update_flag_subwc_of(op1, op2, op3):
+    "Compute of in @res = @op1 + @op2 + @op3"
+    return [ExprAff(of, ExprOp("FLAG_SUBWC_OF", op1, op2, op3))]
+
+
+def update_flag_arith_subwc_co(arg1, arg2, arg3):
+    e = []
+    e += update_flag_subwc_cf(arg1, arg2, arg3)
+    e += update_flag_subwc_of(arg1, arg2, arg3)
+    return e
+
 
 
 def get_dst(a):
@@ -107,10 +179,11 @@ def adc(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    arg1, arg2 = b, c
     r = b + c + cf.zeroExtend(32)
     if instr.name == 'ADCS' and a != PC:
-        e += update_flag_arith(r)
-        e += update_flag_add(b, c, r)
+        e += update_flag_arith_addwc_zn(arg1, arg2, cf)
+        e += update_flag_arith_addwc_co(arg1, arg2, cf)
     e.append(ExprAff(a, r))
     dst = get_dst(a)
     if dst is not None:
@@ -122,10 +195,11 @@ def add(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    arg1, arg2 = b, c
     r = b + c
     if instr.name == 'ADDS' and a != PC:
-        e += update_flag_arith(r)
-        e += update_flag_add(b, c, r)
+        e += update_flag_arith_add_zn(arg1, arg2)
+        e += update_flag_arith_add_co(arg1, arg2)
     e.append(ExprAff(a, r))
     dst = get_dst(a)
     if dst is not None:
@@ -139,7 +213,9 @@ def l_and(ir, instr, a, b, c=None):
         b, c = a, b
     r = b & c
     if instr.name == 'ANDS' and a != PC:
-        e += update_flag_logic(r)
+        e += [ExprAff(zf, ExprOp('FLAG_EQ_AND', b, c))]
+        e += update_flag_nf(r)
+
     e.append(ExprAff(a, r))
     dst = get_dst(a)
     if dst is not None:
@@ -163,9 +239,10 @@ def subs(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    arg1, arg2 = b, c
     r = b - c
-    e += update_flag_arith(r)
-    e += update_flag_sub(b, c, r)
+    e += update_flag_arith_sub_zn(arg1, arg2)
+    e += update_flag_arith_sub_co(arg1, arg2)
     e.append(ExprAff(a, r))
     dst = get_dst(a)
     if dst is not None:
@@ -189,8 +266,12 @@ def eors(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
-    r = b ^ c
-    e += update_flag_logic(r)
+    arg1, arg2 = b, c
+    r = arg1 ^ arg2
+
+    e += [ExprAff(zf, ExprOp('FLAG_EQ_CMP', arg1, arg2))]
+    e += update_flag_nf(r)
+
     e.append(ExprAff(a, r))
     dst = get_dst(a)
     if dst is not None:
@@ -214,9 +295,12 @@ def rsbs(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
-    r = c - b
-    e += update_flag_arith(r)
-    e += update_flag_sub(c, b, r)
+    arg1, arg2 = c, b
+    r = arg1 - arg2
+
+    e += update_flag_arith_sub_zn(arg1, arg2)
+    e += update_flag_arith_sub_co(arg1, arg2)
+
     e.append(ExprAff(a, r))
     dst = get_dst(a)
     if dst is not None:
@@ -228,7 +312,8 @@ def sbc(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
-    r = (b + cf.zeroExtend(32)) - (c + ExprInt(1, 32))
+    arg1, arg2 = b, c
+    r = arg1 - (arg2 + (~cf).zeroExtend(32))
     e.append(ExprAff(a, r))
     dst = get_dst(a)
     if dst is not None:
@@ -240,9 +325,12 @@ def sbcs(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
-    r = (b + cf.zeroExtend(32)) - (c + ExprInt(1, 32))
-    e += update_flag_arith(r)
-    e += update_flag_sub(b, c, r)
+    arg1, arg2 = b, c
+    r = arg1 - (arg2 + (~cf).zeroExtend(32))
+
+    e += update_flag_arith_subwc_zn(arg1, arg2, ~cf)
+    e += update_flag_arith_subwc_co(arg1, arg2, ~cf)
+
     e.append(ExprAff(a, r))
     dst = get_dst(a)
     if dst is not None:
@@ -254,7 +342,8 @@ def rsc(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
-    r = (c + cf.zeroExtend(32)) - (b + ExprInt(1, 32))
+    arg1, arg2 = c, b
+    r = arg1 - (arg2 + (~cf).zeroExtend(32))
     e.append(ExprAff(a, r))
     dst = get_dst(a)
     if dst is not None:
@@ -266,11 +355,14 @@ def rscs(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
-    r = (c + cf.zeroExtend(32)) - (b + ExprInt(1, 32))
+    arg1, arg2 = c, b
+    r = arg1 - (arg2 + (~cf).zeroExtend(32))
+
+    e += update_flag_arith_subwc_zn(arg1, arg2, ~cf)
+    e += update_flag_arith_subwc_co(arg1, arg2, ~cf)
+
     e.append(ExprAff(a, r))
-    e += update_flag_arith(r)
-    e += update_flag_sub(c, b, r)
-    e.append(ExprAff(a, r))
+
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
@@ -279,8 +371,12 @@ def rscs(ir, instr, a, b, c=None):
 
 def tst(ir, instr, a, b):
     e = []
-    r = a & b
-    e += update_flag_logic(r)
+    arg1, arg2 = a, b
+    r = arg1 & arg2
+
+    e += [ExprAff(zf, ExprOp('FLAG_EQ_AND', arg1, arg2))]
+    e += update_flag_nf(r)
+
     return e, []
 
 
@@ -288,8 +384,12 @@ def teq(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
-    r = b ^ c
-    e += update_flag_logic(r)
+    arg1, arg2 = b, c
+    r = arg1 ^ arg2
+
+    e += [ExprAff(zf, ExprOp('FLAG_EQ_CMP', arg1, arg2))]
+    e += update_flag_nf(r)
+
     return e, []
 
 
@@ -297,9 +397,12 @@ def l_cmp(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    arg1, arg2 = b, c
     r = b - c
-    e += update_flag_arith(r)
-    e += update_flag_sub(b, c, r)
+
+    e += update_flag_arith_sub_zn(arg1, arg2)
+    e += update_flag_arith_sub_co(arg1, arg2)
+
     return e, []
 
 
@@ -307,9 +410,12 @@ def cmn(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    arg1, arg2 = b, c
     r = b + c
-    e += update_flag_arith(r)
-    e += update_flag_add(b, c, r)
+
+    e += update_flag_arith_add_zn(arg1, arg2)
+    e += update_flag_arith_add_co(arg1, arg2)
+
     return e, []
 
 
@@ -341,8 +447,12 @@ def orrs(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
+    arg1, arg2 = b, c
     r = b | c
-    e += update_flag_logic(r)
+
+    e += [ExprAff(zf, ExprOp('FLAG_EQ', r))]
+    e += update_flag_nf(r)
+
     e.append(ExprAff(a, r))
     dst = get_dst(a)
     if dst is not None:
@@ -371,7 +481,9 @@ def movs(ir, instr, a, b):
     e = []
     e.append(ExprAff(a, b))
     # XXX TODO check
-    e += update_flag_logic(b)
+    e += [ExprAff(zf, ExprOp('FLAG_EQ', b))]
+    e += update_flag_nf(b)
+
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, b))
@@ -392,10 +504,39 @@ def mvns(ir, instr, a, b):
     r = b ^ ExprInt(-1, 32)
     e.append(ExprAff(a, r))
     # XXX TODO check
-    e += update_flag_logic(r)
+    e += [ExprAff(zf, ExprOp('FLAG_EQ', r))]
+    e += update_flag_nf(r)
+
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
+    return e, []
+
+
+
+def mrs(ir, instr, a, b):
+    e = []
+    if b.is_id('CPSR_cxsf'):
+        out = []
+        out.append(ExprInt(0x10, 28))
+        out.append(of)
+        out.append(cf)
+        out.append(zf)
+        out.append(nf)
+        e.append(ExprAff(a, ExprCompose(*out)))
+    else:
+        raise NotImplementedError("MSR not implemented")
+    return e, []
+
+def msr(ir, instr, a, b):
+    e = []
+    if a.is_id('CPSR_cf'):
+        e.append(ExprAff(nf, b[31:32]))
+        e.append(ExprAff(zf, b[30:31]))
+        e.append(ExprAff(cf, b[29:30]))
+        e.append(ExprAff(of, b[28:29]))
+    else:
+        raise NotImplementedError("MRS not implemented")
     return e, []
 
 
@@ -427,8 +568,12 @@ def bics(ir, instr, a, b, c=None):
     e = []
     if c is None:
         b, c = a, b
-    r = b & (c ^ ExprInt(-1, 32))
-    e += update_flag_logic(r)
+    tmp1, tmp2 = b, ~c
+    r = tmp1 & tmp2
+
+    e += [ExprAff(zf, ExprOp('FLAG_EQ_AND', tmp1, tmp2))]
+    e += update_flag_nf(r)
+
     e.append(ExprAff(a, r))
     dst = get_dst(a)
     if dst is not None:
@@ -836,7 +981,10 @@ def lsrs(ir, instr, a, b, c=None):
         b, c = a, b
     r = b >> c
     e.append(ExprAff(a, r))
-    e += update_flag_logic(r)
+
+    e += [ExprAff(zf, ExprOp('FLAG_EQ', r))]
+    e += update_flag_nf(r)
+
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
@@ -859,7 +1007,10 @@ def asrs(ir, instr, a, b, c=None):
         b, c = a, b
     r = ExprOp("a>>", b, c)
     e.append(ExprAff(a, r))
-    e += update_flag_logic(r)
+
+    e += [ExprAff(zf, ExprOp('FLAG_EQ', r))]
+    e += update_flag_nf(r)
+
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
@@ -883,7 +1034,10 @@ def lsls(ir, instr, a, b, c=None):
         b, c = a, b
     r = b << c
     e.append(ExprAff(a, r))
-    e += update_flag_logic(r)
+
+    e += [ExprAff(zf, ExprOp('FLAG_EQ', r))]
+    e += update_flag_nf(r)
+
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
@@ -894,7 +1048,10 @@ def rors(ir, instr, a, b):
     e = []
     r = ExprOp(">>>", a, b)
     e.append(ExprAff(a, r))
-    e += update_flag_logic(r)
+
+    e += [ExprAff(zf, ExprOp('FLAG_EQ', r))]
+    e += update_flag_nf(r)
+
     dst = get_dst(a)
     if dst is not None:
         e.append(ExprAff(ir.IRDst, r))
@@ -1223,29 +1380,44 @@ cond_dct = {
 
 cond_dct_inv = dict((name, num) for num, name in cond_dct.iteritems())
 
-tab_cond = {COND_EQ: zf,
-            COND_NE: ExprCond(zf, ExprInt(0, 1), ExprInt(1, 1)),
-            COND_CS: cf,
-            COND_CC: ExprCond(cf, ExprInt(0, 1), ExprInt(1, 1)),
-            COND_MI: nf,
-            COND_PL: ExprCond(nf, ExprInt(0, 1), ExprInt(1, 1)),
-            COND_VS: of,
-            COND_VC: ExprCond(of, ExprInt(0, 1), ExprInt(1, 1)),
-            COND_HI: cf & ExprCond(zf, ExprInt(0, 1), ExprInt(1, 1)),
-            # COND_HI: cf,
-            # COND_HI: ExprOp('==',
-            #                ExprOp('|', cf, zf),
-            #                ExprInt(0, 1)),
-            COND_LS: ExprCond(cf, ExprInt(0, 1), ExprInt(1, 1)) | zf,
-            COND_GE: ExprCond(nf - of, ExprInt(0, 1), ExprInt(1, 1)),
-            COND_LT: nf ^ of,
-            # COND_GT: ExprOp('|',
-            #                ExprOp('==', zf, ExprInt(0, 1)) & (nf | of),
-            # ExprOp('==', nf, ExprInt(0, 1)) & ExprOp('==', of, ExprInt(0, 1))),
-            COND_GT: (ExprCond(zf, ExprInt(0, 1), ExprInt(1, 1)) &
-                      ExprCond(nf - of, ExprInt(0, 1), ExprInt(1, 1))),
-            COND_LE: zf | (nf ^ of),
+
+"""
+Code            Meaning (for cmp or subs)                                  Flags Tested
+eq              Equal.                                                     Z==1
+ne              Not equal.                                                 Z==0
+cs or hs        Unsigned higher or same (or carry set).                    C==1
+cc or lo        Unsigned lower (or carry clear).                           C==0
+mi              Negative. The mnemonic stands for "minus".                 N==1
+pl              Positive or zero. The mnemonic stands for "plus".          N==0
+vs              Signed overflow. The mnemonic stands for "V set".          V==1
+vc              No signed overflow. The mnemonic stands for "V clear".     V==0
+hi              Unsigned higher.                                           (C==1) && (Z==0)
+ls              Unsigned lower or same.                                    (C==0) || (Z==1)
+ge              Signed greater than or equal.                              N==V
+lt              Signed less than.                                          N!=V
+gt              Signed greater than.                                       (Z==0) && (N==V)
+le              Signed less than or equal.                                 (Z==1) || (N!=V)
+al (or omitted) Always executed.        None tested.
+"""
+
+tab_cond = {COND_EQ: ExprOp("CC_EQ", zf),
+            COND_NE: ExprOp("CC_NE", zf),
+            COND_CS: ExprOp("CC_U>=", cf ^ ExprInt(1, 1)), # inv cf
+            COND_CC: ExprOp("CC_U<", cf ^ ExprInt(1, 1)), # inv cf
+            COND_MI: ExprOp("CC_NEG", nf),
+            COND_PL: ExprOp("CC_POS", nf),
+            COND_VS: ExprOp("CC_sOVR", of),
+            COND_VC: ExprOp("CC_sNOOVR", of),
+            COND_HI: ExprOp("CC_U>", cf ^ ExprInt(1, 1), zf), # inv cf
+            COND_LS: ExprOp("CC_U<=", cf ^ ExprInt(1, 1), zf), # inv cf
+            COND_GE: ExprOp("CC_S>=", nf, of),
+            COND_LT: ExprOp("CC_S<", nf, of),
+            COND_GT: ExprOp("CC_S>", nf, of, zf),
+            COND_LE: ExprOp("CC_S<=", nf, of, zf),
             }
+
+
+
 
 
 def is_pc_written(ir, instr_ir):
@@ -1359,6 +1531,10 @@ mnemo_condm1 = {'adds': add,
                 'movs': movs,
                 'bics': bics,
                 'mvns': mvns,
+
+                'mrs': mrs,
+                'msr': msr,
+
                 'negs': negs,
 
                 'muls': muls,

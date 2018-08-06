@@ -522,7 +522,7 @@ class ExampleDisasmFull(ExampleDisassembler):
 
     def __init__(self, *args, **kwargs):
         super(ExampleDisasmFull, self).__init__(*args, **kwargs)
-        self.command_line = ["full.py", "-g", "-ss", "-d", "-p", "-m"] + self.command_line
+        self.command_line = ["full.py", "-g", "-ss", "-d", "-p", "-x", "-m"] + self.command_line
         self.products += ["graph_defuse.dot", "graph_execflow.dot", "ssa.dot",
                           "graph_irflow.dot", "graph_irflow_raw.dot", "lines.dot", "graph_irflow_reduced.dot"]
 

@@ -1,6 +1,7 @@
 #-*- coding:utf-8 -*-
 
-from miasm2.expression.expression import *
+from miasm2.expression.expression import ExprId, ExprInt, ExprLoc, ExprMem, \
+    ExprSlice, ExprCond, ExprCompose, ExprOp
 from miasm2.core.cpu import gen_reg, gen_regs
 
 exception_flags = ExprId('exception_flags', 32)

@@ -3,8 +3,9 @@
 from collections import namedtuple
 from miasm2.core.graph import DiGraph
 from miasm2.ir.ir import AssignBlock, IRBlock
-from miasm2.expression.expression import ExprLoc
-
+from miasm2.expression.expression import ExprLoc, ExprMem, ExprId, ExprInt
+from miasm2.expression.simplifications import expr_simp
+from miasm2.core.interval import interval
 
 class ReachingDefinitions(dict):
     """
@@ -364,7 +365,7 @@ def _relink_block_node(ircfg, loc_key, son_loc_key, replace_dct):
         )
 
         # Link parent to new dst
-        ircfg.add_edge(parent, son_loc_key)
+        ircfg.add_uniq_edge(parent, son_loc_key)
 
         # Unlink block
         ircfg.blocks[new_block.loc_key] = new_block
@@ -512,4 +513,502 @@ def remove_empty_assignblks(ircfg):
                 modified = True
         ircfg.blocks[loc_key] = IRBlock(loc_key, irs)
 
+    return modified
+
+
+
+class SSADefUse(DiGraph):
+    """
+    Generate DefUse information from SSA transformation
+    Links are not valid for ExprMem.
+    """
+
+    def add_var_def(self, node, src):
+        lbl, index, dst = node
+        index2dst = self._links.setdefault(lbl, {})
+        dst2src = index2dst.setdefault(index, {})
+        dst2src[dst] = src
+
+    def add_def_node(self, def_nodes, node, src):
+        lbl, index, dst = node
+        if dst.is_id():
+            def_nodes[dst] = node
+
+    def add_use_node(self, use_nodes, node, src):
+        lbl, index, dst = node
+        sources = set()
+        if dst.is_mem():
+            sources.update(dst.arg.get_r(mem_read=True))
+        sources.update(src.get_r(mem_read=True))
+        for source in sources:
+            if not source.is_mem():
+                use_nodes.setdefault(source, set()).add(node)
+
+    def get_node_target(self, node):
+        lbl, index, reg = node
+        return self._links[lbl][index][reg]
+
+    def set_node_target(self, node, src):
+        lbl, index, reg = node
+        self._links[lbl][index][reg] = src
+
+    @classmethod
+    def from_ssa(cls, ssa):
+        """
+        Return a DefUse DiGraph from a SSA graph
+        @ssa: SSADiGraph instance
+        """
+
+        graph = cls()
+        # First pass
+        # Link line to its use and def
+        def_nodes = {}
+        use_nodes = {}
+        graph._links = {}
+        for lbl in ssa.graph.nodes():
+            block = ssa.graph.blocks.get(lbl, None)
+            if block is None:
+                continue
+            for index, assignblk in enumerate(block):
+                for dst, src in assignblk.iteritems():
+                    node = lbl, index, dst
+                    graph.add_var_def(node, src)
+                    graph.add_def_node(def_nodes, node, src)
+                    graph.add_use_node(use_nodes, node, src)
+
+        for dst, node in def_nodes.iteritems():
+            graph.add_node(node)
+            if dst not in use_nodes:
+                continue
+            for use in use_nodes[dst]:
+                graph.add_uniq_edge(node, use)
+
+        return graph
+
+
+
+
+def expr_test_visit(expr, test):
+    result = set()
+    expr.visit(
+        lambda expr: expr,
+        lambda expr: test(expr, result)
+    )
+    if result:
+        return True
+    else:
+        return False
+
+
+def expr_has_mem_test(expr, result):
+    if result:
+        # Don't analyse if we already found a candidate
+        return False
+    if expr.is_mem():
+        result.add(expr)
+        return False
+    return True
+
+
+def expr_has_mem(expr):
+    """
+    Return True if expr contains at least one memory access
+    @expr: Expr instance
+    """
+    return expr_test_visit(expr, expr_has_mem_test)
+
+
+def expr_has_call_test(expr, result):
+    if result:
+        # Don't analyse if we already found a candidate
+        return False
+    if expr.is_op() and expr.op.startswith("call"):
+        result.add(expr)
+        return False
+    return True
+
+
+def expr_has_call(expr):
+    """
+    Return True if expr contains at least one "call" operator
+    @expr: Expr instance
+    """
+    return expr_test_visit(expr, expr_has_call_test)
+
+
+class PropagateExpr(object):
+
+    def assignblk_is_propagation_barrier(self, assignblk):
+        for dst, src in assignblk.iteritems():
+            if expr_has_call(src):
+                return True
+            if dst.is_mem():
+                return True
+        return False
+
+    def has_propagation_barrier(self, assignblks):
+        for assignblk in assignblks:
+            for dst, src in assignblk.iteritems():
+                if expr_has_call(src):
+                    return True
+                if dst.is_mem():
+                    return True
+        return False
+
+    def is_mem_written(self, ssa, node, successor):
+        loc_a, index_a, reg_a = node
+        loc_b, index_b, reg_b = successor
+        block_b = ssa.graph.blocks[loc_b]
+
+        nodes_to_do = self.compute_reachable_nodes_from_a_to_b(ssa.graph, loc_a, loc_b)
+
+
+        if loc_a == loc_b:
+            # src is dst
+            assert nodes_to_do == set([loc_a])
+            if self.has_propagation_barrier(block_b.assignblks[index_a:index_b]):
+                return True
+        else:
+            # Check everyone but loc_a and loc_b
+            for loc in nodes_to_do - set([loc_a, loc_b]):
+                block = ssa.graph.blocks[loc]
+                if self.has_propagation_barrier(block.assignblks):
+                    return True
+            # Check loc_a partially
+            block_a = ssa.graph.blocks[loc_a]
+            if self.has_propagation_barrier(block_a.assignblks[index_a:]):
+                return True
+            if nodes_to_do.intersection(ssa.graph.successors(loc_b)):
+                # There is a path from loc_b to loc_b => Check loc_b fully
+                if self.has_propagation_barrier(block_b.assignblks):
+                    return True
+            else:
+                # Check loc_b partially
+                if self.has_propagation_barrier(block_b.assignblks[:index_b]):
+                    return True
+        return False
+
+    def compute_reachable_nodes_from_a_to_b(self, ssa, loc_a, loc_b):
+        reachables_a = set(ssa.reachable_sons(loc_a))
+        reachables_b = set(ssa.reachable_parents_stop_node(loc_b, loc_a))
+        return reachables_a.intersection(reachables_b)
+
+    def propagation_allowed(self, ssa, to_replace, node_a, node_b):
+        """
+        Return True if we can replace @node source into @node_b
+        """
+        loc_a, index_a, reg_a = node_a
+        if not expr_has_mem(to_replace[reg_a]):
+            return True
+        if self.is_mem_written(ssa, node_a, node_b):
+            return False
+        return True
+
+    def propagate(self, ssa, head):
+        defuse = SSADefUse.from_ssa(ssa)
+        to_replace = {}
+        node_to_reg = {}
+        for node in defuse.nodes():
+            lbl, index, reg = node
+            src = defuse.get_node_target(node)
+            if expr_has_call(src):
+                continue
+            if src.is_op('Phi'):
+                continue
+            if reg.is_mem():
+                continue
+            to_replace[reg] = src
+            node_to_reg[node] = reg
+
+        modified = False
+        for node, reg in node_to_reg.iteritems():
+            src = to_replace[reg]
+
+            for successor in defuse.successors(node):
+                if not self.propagation_allowed(ssa, to_replace, node, successor):
+                    continue
+
+                loc_a, index_a, reg_a = node
+                loc_b, index_b, reg_b = successor
+                block = ssa.graph.blocks[loc_b]
+
+                replace = {reg_a: to_replace[reg_a]}
+                # Replace
+                assignblks = list(block)
+                assignblk = block[index_b]
+                out = {}
+                for dst, src in assignblk.iteritems():
+                    if src.is_op('Phi'):
+                        out[dst] = src
+                        continue
+
+                    if src.is_mem():
+                        ptr = src.arg
+                        ptr = ptr.replace_expr(replace)
+                        new_src = ExprMem(ptr, src.size)
+                    else:
+                        new_src = src.replace_expr(replace)
+
+                    if dst.is_id():
+                        new_dst = dst
+                    elif dst.is_mem():
+                        ptr = dst.arg
+                        ptr = ptr.replace_expr(replace)
+                        new_dst = ExprMem(ptr, dst.size)
+                    else:
+                        new_dst = dst.replace_expr(replace)
+                        if not (new_dst.is_id() or new_dst.is_mem()):
+                            new_dst = dst
+                    if src != new_src or dst != new_dst:
+                        modified = True
+                    out[new_dst] = new_src
+                out = AssignBlock(out, assignblk.instr)
+                assignblks[index_b] = out
+                new_block = IRBlock(block.loc_key, assignblks)
+                ssa.graph.blocks[block.loc_key] = new_block
+        return modified
+
+
+def stack_to_reg(expr):
+    if expr.is_mem():
+        ptr = expr.arg
+        SP = ir_arch_a.sp
+        if ptr == SP:
+            return ExprId("STACK.0", expr.size)
+        elif (ptr.is_op('+') and
+              len(ptr.args) == 2 and
+              ptr.args[0] == SP and
+              ptr.args[1].is_int()):
+            diff = int(ptr.args[1])
+            assert diff % 4 == 0
+            diff = (0 - diff) & 0xFFFFFFFF
+            return ExprId("STACK.%d" % (diff / 4), expr.size)
+    return False
+
+
+def is_stack_access(ir_arch_a, expr):
+    if not expr.is_mem():
+        return False
+    ptr = expr.arg
+    diff = expr_simp(ptr - ir_arch_a.sp)
+    if not diff.is_int():
+        return False
+    return expr
+
+
+def visitor_get_stack_accesses(ir_arch_a, expr, stack_vars):
+    if is_stack_access(ir_arch_a, expr):
+        stack_vars.add(expr)
+    return expr
+
+
+def get_stack_accesses(ir_arch_a, expr):
+    result = set()
+    expr.visit(lambda expr:visitor_get_stack_accesses(ir_arch_a, expr, result))
+    return result
+
+
+def get_interval_length(interval_in):
+    length = 0
+    for start, stop in interval_in.intervals:
+        length += stop + 1 - start
+    return length
+
+
+def check_expr_below_stack(ir_arch_a, expr):
+    """
+    Return False if expr pointer is below original stack pointer
+    @ir_arch_a: ira instance
+    @expr: Expression instance
+    """
+    ptr = expr.arg
+    diff = expr_simp(ptr - ir_arch_a.sp)
+    if not diff.is_int():
+        return True
+    if int(diff) == 0 or int(expr_simp(diff.msb())) == 0:
+        return False
+    return True
+
+
+def retrieve_stack_accesses(ir_arch_a, ssa):
+    """
+    Walk the ssa graph and find stack based variables.
+    Return a dictionnary linking stack base address to its size/name
+    @ir_arch_a: ira instance
+    @ssa: SSADiGraph instance
+    """
+    stack_vars = set()
+    for block in ssa.graph.blocks.itervalues():
+        for assignblk in block:
+            for dst, src in assignblk.iteritems():
+                stack_vars.update(get_stack_accesses(ir_arch_a, dst))
+                stack_vars.update(get_stack_accesses(ir_arch_a, src))
+    stack_vars = filter(lambda expr: check_expr_below_stack(ir_arch_a, expr), stack_vars)
+
+    base_to_var = {}
+    for var in stack_vars:
+        base_to_var.setdefault(var.arg, set()).add(var)
+
+
+    base_to_interval = {}
+    for addr, vars in base_to_var.iteritems():
+        var_interval = interval()
+        for var in vars:
+            offset = expr_simp(addr - ir_arch_a.sp)
+            if not offset.is_int():
+                # skip non linear stack offset
+                continue
+
+            start = int(offset)
+            stop = int(expr_simp(offset + ExprInt(var.size / 8, offset.size)))
+            mem = interval([(start, stop-1)])
+            var_interval += mem
+        base_to_interval[addr] = var_interval
+    if not base_to_interval:
+        return {}
+    # Check if not intervals overlap
+    _, tmp = base_to_interval.popitem()
+    while base_to_interval:
+        addr, mem = base_to_interval.popitem()
+        assert (tmp & mem).empty
+        tmp += mem
+
+    base_to_info = {}
+    base_to_name = {}
+    for addr, vars in base_to_var.iteritems():
+        name = "var_%d" % (len(base_to_info))
+        size = max([var.size for var in vars])
+        base_to_info[addr] = size, name
+    return base_to_info
+
+
+def fix_stack_vars(expr, base_to_info):
+    """
+    Replace local stack accesses in expr using informations in @base_to_info
+    @expr: Expression instance
+    @base_to_info: dictionnary linking stack base address to its size/name
+    """
+    if not expr.is_mem():
+        return expr
+    ptr = expr.arg
+    if ptr not in base_to_info:
+        return expr
+    size, name = base_to_info[ptr]
+    var = ExprId(name, size)
+    if size == expr.size:
+        return var
+    assert expr.size < size
+    return var[:expr.size]
+
+
+def replace_mem_stack_vars(expr, base_to_info):
+    return expr.visit(lambda expr:fix_stack_vars(expr, base_to_info))
+
+
+def replace_stack_vars(ir_arch_a, ssa):
+    """
+    Try to replace stack based memory accesses by variables.
+    WARNING: may fail
+
+    @ir_arch_a: ira instance
+    @ssa: SSADiGraph instance
+    """
+    defuse = SSADefUse.from_ssa(ssa)
+
+    base_to_info = retrieve_stack_accesses(ir_arch_a, ssa)
+    stack_vars = {}
+    modified = False
+    for block in ssa.graph.blocks.itervalues():
+        assignblks = []
+        for assignblk in block:
+            out = {}
+            for dst, src in assignblk.iteritems():
+                new_dst = dst.visit(lambda expr:replace_mem_stack_vars(expr, base_to_info))
+                new_src = src.visit(lambda expr:replace_mem_stack_vars(expr, base_to_info))
+                if new_dst != dst or new_src != src:
+                    modified |= True
+
+                out[new_dst] = new_src
+
+            out = AssignBlock(out, assignblk.instr)
+            assignblks.append(out)
+        new_block = IRBlock(block.loc_key, assignblks)
+        ssa.graph.blocks[block.loc_key] = new_block
+    return modified
+
+
+def memlookup_test(expr, bs, is_addr_ro_variable, result):
+    if expr.is_mem() and expr.arg.is_int():
+        ptr = int(expr.arg)
+        if is_addr_ro_variable(bs, ptr, expr.size):
+            result.add(expr)
+        return False
+    return True
+
+
+def memlookup_visit(expr, bs, is_addr_ro_variable):
+    result = set()
+    expr.visit(lambda expr: expr,
+               lambda expr: memlookup_test(expr, bs, is_addr_ro_variable, result))
+    return result
+
+
+def get_memlookup(expr, bs, is_addr_ro_variable):
+    return memlookup_visit(expr, bs, is_addr_ro_variable)
+
+
+def read_mem(bs, expr):
+    ptr = int(expr.arg)
+    var_bytes = bs.getbytes(ptr, expr.size / 8)[::-1]
+    try:
+        value = int(var_bytes.encode('hex'), 16)
+    except:
+        return expr
+    return ExprInt(value, expr.size)
+
+
+def load_from_int(ir_arch, bs, is_addr_ro_variable):
+    """
+    Replace memory read based on constant with static value
+    @ir_arch: ira instance
+    @bs: binstream instance
+    @is_addr_ro_variable: callback(addr, size) to test memory candidate
+    """
+
+    modified = False
+    for label, block in ir_arch.blocks.iteritems():
+        assignblks = list()
+        for assignblk in block:
+            out = {}
+            for dst, src in assignblk.iteritems():
+                # Test src
+                mems = get_memlookup(src, bs, is_addr_ro_variable)
+                src_new = src
+                if mems:
+                    replace = {}
+                    for mem in mems:
+                        value = read_mem(bs, mem)
+                        replace[mem] = value
+                    src_new = src.replace_expr(replace)
+                    if src_new != src:
+                        modified = True
+                # Test dst pointer if dst is mem
+                if dst.is_mem():
+                    ptr = dst.arg
+                    mems = get_memlookup(ptr, bs, is_addr_ro_variable)
+                    ptr_new = ptr
+                    if mems:
+                        replace = {}
+                        for mem in mems:
+                            value = read_mem(bs, mem)
+                            replace[mem] = value
+                        ptr_new = ptr.replace_expr(replace)
+                        if ptr_new != ptr:
+                            modified = True
+                            dst = ExprMem(ptr_new, dst.size)
+                out[dst] = src_new
+            out = AssignBlock(out, assignblk.instr)
+            assignblks.append(out)
+        block = IRBlock(block.loc_key, assignblks)
+        ir_arch.blocks[block.loc_key] = block
     return modified

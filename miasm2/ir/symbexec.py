@@ -4,7 +4,7 @@ from collections import MutableMapping
 
 from miasm2.expression.expression import ExprOp, ExprId, ExprLoc, ExprInt, \
     ExprMem, ExprCompose, ExprSlice, ExprCond
-from miasm2.expression.simplifications import expr_simp
+from miasm2.expression.simplifications import expr_simp_explicit
 from miasm2.ir.ir import AssignBlock
 
 log = logging.getLogger("symbexec")
@@ -138,7 +138,7 @@ class MemArray(MutableMapping):
 
     """
 
-    def __init__(self, base, expr_simp=expr_simp):
+    def __init__(self, base, expr_simp=expr_simp_explicit):
         self._base = base
         self.expr_simp = expr_simp
         self._mask = int(base.mask)
@@ -461,7 +461,7 @@ class MemSparse(object):
 
     """
 
-    def __init__(self, addrsize, expr_simp=expr_simp):
+    def __init__(self, addrsize, expr_simp=expr_simp_explicit):
         """
         @addrsize: size (in bits) of the addresses manipulated by the MemSparse
         @expr_simp: an ExpressionSimplifier instance
@@ -604,7 +604,7 @@ class MemSparse(object):
 class SymbolMngr(object):
     """Symbolic store manager (IDs and MEMs)"""
 
-    def __init__(self, init=None, addrsize=None, expr_simp=expr_simp):
+    def __init__(self, init=None, addrsize=None, expr_simp=expr_simp_explicit):
         assert addrsize is not None
         if init is None:
             init = {}
@@ -807,7 +807,7 @@ class SymbolicExecutionEngine(object):
     def __init__(self, ir_arch, state=None,
                  func_read=None,
                  func_write=None,
-                 sb_expr_simp=expr_simp):
+                 sb_expr_simp=expr_simp_explicit):
 
         self.expr_to_visitor = {
             ExprInt: self.eval_exprint,
@@ -823,7 +823,7 @@ class SymbolicExecutionEngine(object):
         if state is None:
             state = {}
 
-        self.symbols = SymbolMngr(addrsize=ir_arch.addrsize, expr_simp=expr_simp)
+        self.symbols = SymbolMngr(addrsize=ir_arch.addrsize, expr_simp=sb_expr_simp)
 
         for dst, src in state.iteritems():
             self.symbols.write(dst, src)
@@ -1270,9 +1270,9 @@ class symbexec(SymbolicExecutionEngine):
     def __init__(self, ir_arch, known_symbols,
                  func_read=None,
                  func_write=None,
-                 sb_expr_simp=expr_simp):
+                 sb_expr_simp=expr_simp_explicit):
         warnings.warn("Deprecated API: use SymbolicExecutionEngine")
         super(symbexec, self).__init__(ir_arch, known_symbols,
                                        func_read,
                                        func_write,
-                                       sb_expr_simp=expr_simp)
+                                       sb_expr_simp=sb_expr_simp)

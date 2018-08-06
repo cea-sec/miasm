@@ -1,4 +1,5 @@
-from miasm2.expression import expression as m2_expr
+from miasm2.expression.expression import ExprId, ExprInt, ExprLoc, ExprMem, \
+    ExprSlice, ExprCond, ExprCompose, ExprOp, ExprAff
 from miasm2.ir.ir import IntermediateRepresentation, IRBlock, AssignBlock
 from miasm2.arch.aarch64.arch import mn_aarch64, conds_expr, replace_regs
 from miasm2.arch.aarch64.regs import *
@@ -10,11 +11,20 @@ from miasm2.jitter.csts import EXCEPT_DIV_BY_ZERO, EXCEPT_INT_XX
 
 
 def update_flag_zf(a):
-    return [m2_expr.ExprAff(zf, m2_expr.ExprCond(a, m2_expr.ExprInt(0, 1), m2_expr.ExprInt(1, 1)))]
+    return [ExprAff(zf, ExprOp("FLAG_EQ", a))]
 
 
-def update_flag_nf(a):
-    return [m2_expr.ExprAff(nf, a.msb())]
+def update_flag_zf_eq(a, b):
+    return [ExprAff(zf, ExprOp("FLAG_EQ_CMP", a, b))]
+
+
+def update_flag_nf(arg):
+    return [
+        ExprAff(
+            nf,
+            ExprOp("FLAG_SIGN_SUB", arg, ExprInt(0, arg.size))
+        )
+    ]
 
 
 def update_flag_zn(a):
@@ -24,103 +34,153 @@ def update_flag_zn(a):
     return e
 
 
-def update_flag_logic(a):
-    e = []
-    e += update_flag_zn(a)
-    # XXX TODO: set cf if ROT imm in argument
-    # e.append(m2_expr.ExprAff(cf, m2_expr.ExprInt(0, 1)))
-    return e
-
-
-def update_flag_arith(a):
-    e = []
-    e += update_flag_zn(a)
-    return e
-
-
 def check_ops_msb(a, b, c):
     if not a or not b or not c or a != b or a != c:
         raise ValueError('bad ops size %s %s %s' % (a, b, c))
 
 
-def arith_flag(a, b, c):
-    a_s, b_s, c_s = a.size, b.size, c.size
-    check_ops_msb(a_s, b_s, c_s)
-    a_s, b_s, c_s = a.msb(), b.msb(), c.msb()
-    return a_s, b_s, c_s
-
-# checked: ok for adc add because b & c before +cf
+def update_flag_add_cf(op1, op2):
+    "Compute cf in @op1 + @op2"
+    return [ExprAff(cf, ExprOp("FLAG_ADD_CF", op1, op2))]
 
 
-def update_flag_add_cf(op1, op2, res):
-    "Compute cf in @res = @op1 + @op2"
-    return m2_expr.ExprAff(cf, (((op1 ^ op2) ^ res) ^ ((op1 ^ res) & (~(op1 ^ op2)))).msb())
+def update_flag_add_of(op1, op2):
+    "Compute of in @op1 + @op2"
+    return [ExprAff(of, ExprOp("FLAG_ADD_OF", op1, op2))]
 
 
-def update_flag_add_of(op1, op2, res):
-    "Compute of in @res = @op1 + @op2"
-    return m2_expr.ExprAff(of, (((op1 ^ res) & (~(op1 ^ op2)))).msb())
+def update_flag_sub_cf(op1, op2):
+    "Compote CF in @op1 - @op2"
+    return [ExprAff(cf, ExprOp("FLAG_SUB_CF", op1, op2) ^ ExprInt(1, 1))]
 
 
-# checked: ok for sbb add because b & c before +cf
-def update_flag_sub_cf(op1, op2, res):
-    "Compote CF in @res = @op1 - @op2"
-    return m2_expr.ExprAff(cf,
-                           ((((op1 ^ op2) ^ res) ^ ((op1 ^ res) & (op1 ^ op2))).msb()) ^ m2_expr.ExprInt(1, 1))
+def update_flag_sub_of(op1, op2):
+    "Compote OF in @op1 - @op2"
+    return [ExprAff(of, ExprOp("FLAG_SUB_OF", op1, op2))]
 
 
-def update_flag_sub_of(op1, op2, res):
-    "Compote OF in @res = @op1 - @op2"
-    return m2_expr.ExprAff(of, (((op1 ^ res) & (op1 ^ op2))).msb())
-
-
-# clearing cv flags for bics (see C5.6.25)
-
-def update_flag_bics ():
-    "Clear CF and OF"
-    return [ExprAff(cf, ExprInt (0,1)), ExprAff(of, ExprInt (0,1))]
-
-# z = x+y (+cf?)
-
-
-def update_flag_add(x, y, z):
+def update_flag_arith_add_co(arg1, arg2):
     e = []
-    e.append(update_flag_add_cf(x, y, z))
-    e.append(update_flag_add_of(x, y, z))
-    return e
-
-# z = x-y (+cf?)
-
-
-def update_flag_sub(x, y, z):
-    e = []
-    e.append(update_flag_sub_cf(x, y, z))
-    e.append(update_flag_sub_of(x, y, z))
+    e += update_flag_add_cf(arg1, arg2)
+    e += update_flag_add_of(arg1, arg2)
     return e
 
 
-cond2expr = {'EQ': zf,
-             'NE': zf ^ m2_expr.ExprInt(1, 1),
-             'CS': cf,
-             'CC': cf ^ m2_expr.ExprInt(1, 1),
-             'MI': nf,
-             'PL': nf ^ m2_expr.ExprInt(1, 1),
-             'VS': of,
-             'VC': of ^ m2_expr.ExprInt(1, 1),
-             'HI': cf & (zf ^ m2_expr.ExprInt(1, 1)),
-             'LS': (cf ^ m2_expr.ExprInt(1, 1)) | zf,
-             'GE': nf ^ of ^ m2_expr.ExprInt(1, 1),
-             'LT': nf ^ of,
-             'GT': ((zf ^ m2_expr.ExprInt(1, 1)) &
-                    (nf ^ of ^ m2_expr.ExprInt(1, 1))),
-             'LE': zf | (nf ^ of),
-             'AL': m2_expr.ExprInt(1, 1),
-             'NV': m2_expr.ExprInt(0, 1)
+def update_flag_arith_add_zn(arg1, arg2):
+    """
+    Compute zf and nf flags for (arg1 + arg2)
+    """
+    e = []
+    e += update_flag_zf_eq(arg1, -arg2)
+    e += [ExprAff(nf, ExprOp("FLAG_SIGN_SUB", arg1, -arg2))]
+    return e
+
+
+def update_flag_arith_sub_co(arg1, arg2):
+    """
+    Compute cf and of flags for (arg1 - arg2)
+    """
+    e = []
+    e += update_flag_sub_cf(arg1, arg2)
+    e += update_flag_sub_of(arg1, arg2)
+    return e
+
+
+def update_flag_arith_sub_zn(arg1, arg2):
+    """
+    Compute zf and nf flags for (arg1 - arg2)
+    """
+    e = []
+    e += update_flag_zf_eq(arg1, arg2)
+    e += [ExprAff(nf, ExprOp("FLAG_SIGN_SUB", arg1, arg2))]
+    return e
+
+
+
+
+def update_flag_zfaddwc_eq(arg1, arg2, arg3):
+    return [ExprAff(zf, ExprOp("FLAG_EQ_ADDWC", arg1, arg2, arg3))]
+
+def update_flag_zfsubwc_eq(arg1, arg2, arg3):
+    return [ExprAff(zf, ExprOp("FLAG_EQ_SUBWC", arg1, arg2, arg3))]
+
+
+def update_flag_arith_addwc_zn(arg1, arg2, arg3):
+    """
+    Compute znp flags for (arg1 + arg2 + cf)
+    """
+    e = []
+    e += update_flag_zfaddwc_eq(arg1, arg2, arg3)
+    e += [ExprAff(nf, ExprOp("FLAG_SIGN_ADDWC", arg1, arg2, arg3))]
+    return e
+
+
+def update_flag_arith_subwc_zn(arg1, arg2, arg3):
+    """
+    Compute znp flags for (arg1 - (arg2 + cf))
+    """
+    e = []
+    e += update_flag_zfsubwc_eq(arg1, arg2, arg3)
+    e += [ExprAff(nf, ExprOp("FLAG_SIGN_SUBWC", arg1, arg2, arg3))]
+    return e
+
+
+def update_flag_addwc_cf(op1, op2, op3):
+    "Compute cf in @res = @op1 + @op2 + @op3"
+    return [ExprAff(cf, ExprOp("FLAG_ADDWC_CF", op1, op2, op3))]
+
+
+def update_flag_addwc_of(op1, op2, op3):
+    "Compute of in @res = @op1 + @op2 + @op3"
+    return [ExprAff(of, ExprOp("FLAG_ADDWC_OF", op1, op2, op3))]
+
+
+def update_flag_arith_addwc_co(arg1, arg2, arg3):
+    e = []
+    e += update_flag_addwc_cf(arg1, arg2, arg3)
+    e += update_flag_addwc_of(arg1, arg2, arg3)
+    return e
+
+
+
+def update_flag_subwc_cf(op1, op2, op3):
+    "Compute cf in @res = @op1 + @op2 + @op3"
+    return [ExprAff(cf, ExprOp("FLAG_SUBWC_CF", op1, op2, op3) ^ ExprInt(1, 1))]
+
+
+def update_flag_subwc_of(op1, op2, op3):
+    "Compute of in @res = @op1 + @op2 + @op3"
+    return [ExprAff(of, ExprOp("FLAG_SUBWC_OF", op1, op2, op3))]
+
+
+def update_flag_arith_subwc_co(arg1, arg2, arg3):
+    e = []
+    e += update_flag_subwc_cf(arg1, arg2, arg3)
+    e += update_flag_subwc_of(arg1, arg2, arg3)
+    return e
+
+
+cond2expr = {'EQ': ExprOp("CC_EQ", zf),
+             'NE': ExprOp("CC_NE", zf),
+             'CS': ExprOp("CC_U>=", cf ^ ExprInt(1, 1)), # inv cf
+             'CC': ExprOp("CC_U<", cf ^ ExprInt(1, 1)), # inv cf
+             'MI': ExprOp("CC_NEG", nf),
+             'PL': ExprOp("CC_POS", nf),
+             'VS': ExprOp("CC_sOVR", of),
+             'VC': ExprOp("CC_sNOOVR", of),
+             'HI': ExprOp("CC_U>", cf ^ ExprInt(1, 1), zf), # inv cf
+             'LS': ExprOp("CC_U<=", cf ^ ExprInt(1, 1), zf), # inv cf
+             'GE': ExprOp("CC_S>=", nf, of),
+             'LT': ExprOp("CC_S<", nf, of),
+             'GT': ExprOp("CC_S>", nf, of, zf),
+             'LE': ExprOp("CC_S<=", nf, of, zf),
+             'AL': ExprInt(1, 1),
+             'NV': ExprInt(0, 1)
              }
 
 
 def extend_arg(dst, arg):
-    if not isinstance(arg, m2_expr.ExprOp):
+    if not isinstance(arg, ExprOp):
         return arg
 
     op, (reg, shift) = arg.op, arg.args
@@ -156,7 +216,7 @@ def extend_arg(dst, arg):
         raise NotImplementedError('Unknown shifter operator')
 
     out = ExprOp(op, base, (shift.zeroExtend(dst.size)
-                            & m2_expr.ExprInt(dst.size - 1, dst.size)))
+                            & ExprInt(dst.size - 1, dst.size)))
     return out
 
 
@@ -169,7 +229,7 @@ ctx = {"PC": PC,
        "of": of,
        "cond2expr": cond2expr,
        "extend_arg": extend_arg,
-       "m2_expr":m2_expr,
+       "ExprId":ExprId,
        "exception_flags": exception_flags,
        "interrupt_num": interrupt_num,
        "EXCEPT_DIV_BY_ZERO": EXCEPT_DIV_BY_ZERO,
@@ -228,9 +288,14 @@ def bic(arg1, arg2, arg3):
 
 def bics(ir, instr, arg1, arg2, arg3):
     e = []
-    arg1 = arg2 & (~extend_arg(arg2, arg3))
-    e += update_flag_logic (arg1)
-    e += update_flag_bics ()
+    tmp1, tmp2 = arg2, (~extend_arg(arg2, arg3))
+
+    e += [ExprAff(zf, ExprOp('FLAG_EQ_AND', tmp1, tmp2))]
+    e += update_flag_nf(res)
+
+    e.append(ExprAff(arg1, res))
+
+    e += null_flag_co()
     return e, []
 
 
@@ -243,9 +308,12 @@ def adds(ir, instr, arg1, arg2, arg3):
     e = []
     arg3 = extend_arg(arg2, arg3)
     res = arg2 + arg3
-    e += update_flag_arith(res)
-    e += update_flag_add(arg2, arg3, res)
-    e.append(m2_expr.ExprAff(arg1, res))
+
+    e += update_flag_arith_add_zn(arg2, arg3)
+    e += update_flag_arith_add_co(arg2, arg3)
+
+    e.append(ExprAff(arg1, res))
+
     return e, []
 
 
@@ -253,18 +321,22 @@ def subs(ir, instr, arg1, arg2, arg3):
     e = []
     arg3 = extend_arg(arg2, arg3)
     res = arg2 - arg3
-    e += update_flag_arith(res)
-    e += update_flag_sub(arg2, arg3, res)
-    e.append(m2_expr.ExprAff(arg1, res))
+
+
+    e += update_flag_arith_sub_zn(arg2, arg3)
+    e += update_flag_arith_sub_co(arg2, arg3)
+
+    e.append(ExprAff(arg1, res))
     return e, []
 
 
 def cmp(ir, instr, arg1, arg2):
     e = []
     arg2 = extend_arg(arg1, arg2)
-    res = arg1 - arg2
-    e += update_flag_arith(res)
-    e += update_flag_sub(arg1, arg2, res)
+
+    e += update_flag_arith_sub_zn(arg1, arg2)
+    e += update_flag_arith_sub_co(arg1, arg2)
+
     return e, []
 
 
@@ -272,8 +344,11 @@ def cmn(ir, instr, arg1, arg2):
     e = []
     arg2 = extend_arg(arg1, arg2)
     res = arg1 + arg2
-    e += update_flag_arith(res)
-    e += update_flag_add(arg1, arg2, res)
+
+
+    e += update_flag_arith_add_zn(arg1, arg2)
+    e += update_flag_arith_add_co(arg1, arg2)
+
     return e, []
 
 
@@ -281,32 +356,38 @@ def ands(ir, instr, arg1, arg2, arg3):
     e = []
     arg3 = extend_arg(arg2, arg3)
     res = arg2 & arg3
-    e += update_flag_logic(res)
-    e.append(m2_expr.ExprAff(arg1, res))
+
+    e += [ExprAff(zf, ExprOp('FLAG_EQ_AND', arg2, arg3))]
+    e += update_flag_nf(res)
+
+    e.append(ExprAff(arg1, res))
     return e, []
 
 def tst(ir, instr, arg1, arg2):
     e = []
     arg2 = extend_arg(arg1, arg2)
     res = arg1 & arg2
-    e += update_flag_logic(res)
+
+    e += [ExprAff(zf, ExprOp('FLAG_EQ_AND', arg1, arg2))]
+    e += update_flag_nf(res)
+
     return e, []
 
 
 @sbuild.parse
 def lsl(arg1, arg2, arg3):
-    arg1 = arg2 << (arg3 & m2_expr.ExprInt(arg3.size - 1, arg3.size))
+    arg1 = arg2 << (arg3 & ExprInt(arg3.size - 1, arg3.size))
 
 
 @sbuild.parse
 def lsr(arg1, arg2, arg3):
-    arg1 = arg2 >> (arg3 & m2_expr.ExprInt(arg3.size - 1, arg3.size))
+    arg1 = arg2 >> (arg3 & ExprInt(arg3.size - 1, arg3.size))
 
 
 @sbuild.parse
 def asr(arg1, arg2, arg3):
-    arg1 = m2_expr.ExprOp(
-        'a>>', arg2, (arg3 & m2_expr.ExprInt(arg3.size - 1, arg3.size)))
+    arg1 = ExprOp(
+        'a>>', arg2, (arg3 & ExprInt(arg3.size - 1, arg3.size)))
 
 
 @sbuild.parse
@@ -316,15 +397,15 @@ def mov(arg1, arg2):
 
 def movk(ir, instr, arg1, arg2):
     e = []
-    if isinstance(arg2, m2_expr.ExprOp):
+    if isinstance(arg2, ExprOp):
         assert(arg2.op == 'slice_at' and
-               isinstance(arg2.args[0], m2_expr.ExprInt) and
-               isinstance(arg2.args[1], m2_expr.ExprInt))
+               isinstance(arg2.args[0], ExprInt) and
+               isinstance(arg2.args[1], ExprInt))
         value, shift = int(arg2.args[0].arg), int(arg2.args[1])
         e.append(
-            m2_expr.ExprAff(arg1[shift:shift + 16], m2_expr.ExprInt(value, 16)))
+            ExprAff(arg1[shift:shift + 16], ExprInt(value, 16)))
     else:
-        e.append(m2_expr.ExprAff(arg1[:16], m2_expr.ExprInt(int(arg2), 16)))
+        e.append(ExprAff(arg1[:16], ExprInt(int(arg2), 16)))
 
     return e, []
 
@@ -343,7 +424,7 @@ def movn(arg1, arg2):
 def bl(arg1):
     PC = arg1
     ir.IRDst = arg1
-    LR = m2_expr.ExprInt(instr.offset + instr.l, 64)
+    LR = ExprInt(instr.offset + instr.l, 64)
 
 @sbuild.parse
 def csel(arg1, arg2, arg3, arg4):
@@ -353,7 +434,7 @@ def csel(arg1, arg2, arg3, arg4):
 def ccmp(ir, instr, arg1, arg2, arg3, arg4):
     e = []
     if(arg2.is_int):
-        arg2=m2_expr.ExprInt(arg2.arg.arg,arg1.size)
+        arg2=ExprInt(arg2.arg.arg,arg1.size)
     default_nf = arg3[0:1]
     default_zf = arg3[1:2]
     default_cf = arg3[2:3]
@@ -365,71 +446,102 @@ def ccmp(ir, instr, arg1, arg2, arg3, arg4):
     new_cf = update_flag_sub_cf(arg1, arg2, res).src
     new_of = update_flag_sub_of(arg1, arg2, res).src
 
-    e.append(m2_expr.ExprAff(nf, m2_expr.ExprCond(cond_expr,
+    e.append(ExprAff(nf, ExprCond(cond_expr,
                                                     new_nf,
                                                     default_nf)))
-    e.append(m2_expr.ExprAff(zf, m2_expr.ExprCond(cond_expr,
+    e.append(ExprAff(zf, ExprCond(cond_expr,
                                                     new_zf,
                                                     default_zf)))
-    e.append(m2_expr.ExprAff(cf, m2_expr.ExprCond(cond_expr,
+    e.append(ExprAff(cf, ExprCond(cond_expr,
                                                     new_cf,
                                                     default_cf)))
-    e.append(m2_expr.ExprAff(of, m2_expr.ExprCond(cond_expr,
+    e.append(ExprAff(of, ExprCond(cond_expr,
                                                     new_of,
                                                     default_of)))
     return e, []
 
-    
+
 def csinc(ir, instr, arg1, arg2, arg3, arg4):
     e = []
     cond_expr = cond2expr[arg4.name]
-    e.append(m2_expr.ExprAff(arg1, m2_expr.ExprCond(cond_expr,
-                                                    arg2,
-                                                    arg3 + m2_expr.ExprInt(1, arg3.size))))
+    e.append(
+        ExprAff(
+            arg1,
+            ExprCond(
+                cond_expr,
+                arg2,
+                arg3 + ExprInt(1, arg3.size)
+            )
+        )
+    )
     return e, []
 
 
 def csinv(ir, instr, arg1, arg2, arg3, arg4):
     e = []
     cond_expr = cond2expr[arg4.name]
-    e.append(m2_expr.ExprAff(arg1, m2_expr.ExprCond(cond_expr,
-                                                    arg2,
-                                                    ~arg3)))
+    e.append(
+        ExprAff(
+            arg1,
+            ExprCond(
+                cond_expr,
+                arg2,
+                ~arg3)
+        )
+    )
     return e, []
 
 
 def csneg(ir, instr, arg1, arg2, arg3, arg4):
     e = []
     cond_expr = cond2expr[arg4.name]
-    e.append(m2_expr.ExprAff(arg1, m2_expr.ExprCond(cond_expr,
-                                                    arg2,
-                                                    -arg3)))
+    e.append(
+        ExprAff(
+            arg1,
+            ExprCond(
+                cond_expr,
+                arg2,
+                -arg3)
+        )
+    )
     return e, []
 
 
 def cset(ir, instr, arg1, arg2):
     e = []
     cond_expr = cond2expr[arg2.name]
-    e.append(m2_expr.ExprAff(arg1, m2_expr.ExprCond(cond_expr,
-                                                    m2_expr.ExprInt(
-                                                        1, arg1.size),
-                                                    m2_expr.ExprInt(0, arg1.size))))
+    e.append(
+        ExprAff(
+            arg1,
+            ExprCond(
+                cond_expr,
+                ExprInt(1, arg1.size),
+                ExprInt(0, arg1.size)
+            )
+        )
+    )
     return e, []
 
 
 def csetm(ir, instr, arg1, arg2):
     e = []
     cond_expr = cond2expr[arg2.name]
-    e.append(m2_expr.ExprAff(arg1, m2_expr.ExprCond(cond_expr,
-                                                    m2_expr.ExprInt(
-                                                        -1, arg1.size),
-                                                    m2_expr.ExprInt(0, arg1.size))))
+    e.append(
+        ExprAff(
+            arg1,
+            ExprCond(
+                cond_expr,
+                ExprInt(-1, arg1.size),
+                ExprInt(0, arg1.size)
+            )
+        )
+    )
     return e, []
 
 
 def get_mem_access(mem):
     updt = None
-    if isinstance(mem, m2_expr.ExprOp):
+    if isinstance(mem, ExprOp):
         if mem.op == 'preinc':
             addr = mem.args[0] + mem.args[1]
         elif mem.op == 'segm':
@@ -442,7 +554,7 @@ def get_mem_access(mem):
                 off = reg.zeroExtend(base.size) << shift.zeroExtend(base.size)
                 addr = base + off
             elif op == 'LSL':
-                if isinstance(shift, m2_expr.ExprInt) and int(shift) == 0:
+                if isinstance(shift, ExprInt) and int(shift) == 0:
                     addr = base + reg.zeroExtend(base.size)
                 else:
                     addr = base + \
@@ -452,11 +564,11 @@ def get_mem_access(mem):
                 raise NotImplementedError('bad op')
         elif mem.op == "postinc":
             addr, off = mem.args
-            updt = m2_expr.ExprAff(addr, addr + off)
+            updt = ExprAff(addr, addr + off)
         elif mem.op == "preinc_wb":
             base, off = mem.args
             addr = base + off
-            updt = m2_expr.ExprAff(base, base + off)
+            updt = ExprAff(base, base + off)
         else:
             raise NotImplementedError('bad op')
     else:
@@ -468,7 +580,7 @@ def get_mem_access(mem):
 def ldr(ir, instr, arg1, arg2):
     e = []
     addr, updt = get_mem_access(arg2)
-    e.append(m2_expr.ExprAff(arg1, m2_expr.ExprMem(addr, arg1.size)))
+    e.append(ExprAff(arg1, ExprMem(addr, arg1.size)))
     if updt:
         e.append(updt)
     return e, []
@@ -478,7 +590,7 @@ def ldr_size(ir, instr, arg1, arg2, size):
     e = []
     addr, updt = get_mem_access(arg2)
     e.append(
-        m2_expr.ExprAff(arg1, m2_expr.ExprMem(addr, size).zeroExtend(arg1.size)))
+        ExprAff(arg1, ExprMem(addr, size).zeroExtend(arg1.size)))
     if updt:
         e.append(updt)
     return e, []
@@ -496,7 +608,7 @@ def ldrs_size(ir, instr, arg1, arg2, size):
     e = []
     addr, updt = get_mem_access(arg2)
     e.append(
-        m2_expr.ExprAff(arg1, m2_expr.ExprMem(addr, size).signExtend(arg1.size)))
+        ExprAff(arg1, ExprMem(addr, size).signExtend(arg1.size)))
     if updt:
         e.append(updt)
     return e, []
@@ -518,7 +630,7 @@ def ldrsw(ir, instr, arg1, arg2):
 def l_str(ir, instr, arg1, arg2):
     e = []
     addr, updt = get_mem_access(arg2)
-    e.append(m2_expr.ExprAff(m2_expr.ExprMem(addr, arg1.size), arg1))
+    e.append(ExprAff(ExprMem(addr, arg1.size), arg1))
     if updt:
         e.append(updt)
     return e, []
@@ -527,7 +639,7 @@ def l_str(ir, instr, arg1, arg2):
 def strb(ir, instr, arg1, arg2):
     e = []
     addr, updt = get_mem_access(arg2)
-    e.append(m2_expr.ExprAff(m2_expr.ExprMem(addr, 8), arg1[:8]))
+    e.append(ExprAff(ExprMem(addr, 8), arg1[:8]))
     if updt:
         e.append(updt)
     return e, []
@@ -536,7 +648,7 @@ def strb(ir, instr, arg1, arg2):
 def strh(ir, instr, arg1, arg2):
     e = []
     addr, updt = get_mem_access(arg2)
-    e.append(m2_expr.ExprAff(m2_expr.ExprMem(addr, 16), arg1[:16]))
+    e.append(ExprAff(ExprMem(addr, 16), arg1[:16]))
     if updt:
         e.append(updt)
     return e, []
@@ -545,9 +657,9 @@ def strh(ir, instr, arg1, arg2):
 def stp(ir, instr, arg1, arg2, arg3):
     e = []
     addr, updt = get_mem_access(arg3)
-    e.append(m2_expr.ExprAff(m2_expr.ExprMem(addr, arg1.size), arg1))
+    e.append(ExprAff(ExprMem(addr, arg1.size), arg1))
     e.append(
-        m2_expr.ExprAff(m2_expr.ExprMem(addr + m2_expr.ExprInt(arg1.size / 8, addr.size), arg2.size), arg2))
+        ExprAff(ExprMem(addr + ExprInt(arg1.size / 8, addr.size), arg2.size), arg2))
     if updt:
         e.append(updt)
     return e, []
@@ -556,9 +668,9 @@ def stp(ir, instr, arg1, arg2, arg3):
 def ldp(ir, instr, arg1, arg2, arg3):
     e = []
     addr, updt = get_mem_access(arg3)
-    e.append(m2_expr.ExprAff(arg1, m2_expr.ExprMem(addr, arg1.size)))
+    e.append(ExprAff(arg1, ExprMem(addr, arg1.size)))
     e.append(
-        m2_expr.ExprAff(arg2, m2_expr.ExprMem(addr + m2_expr.ExprInt(arg1.size / 8, addr.size), arg2.size)))
+        ExprAff(arg2, ExprMem(addr + ExprInt(arg1.size / 8, addr.size), arg2.size)))
     if updt:
         e.append(updt)
     return e, []
@@ -570,9 +682,9 @@ def sbfm(ir, instr, arg1, arg2, arg3, arg4):
     if sim > rim:
         res = arg2[rim:sim].signExtend(arg1.size)
     else:
-        shift = m2_expr.ExprInt(arg2.size - rim, arg2.size)
+        shift = ExprInt(arg2.size - rim, arg2.size)
         res = (arg2[:sim].signExtend(arg1.size) << shift)
-    e.append(m2_expr.ExprAff(arg1, res))
+    e.append(ExprAff(arg1, res))
     return e, []
 
 
@@ -582,9 +694,9 @@ def ubfm(ir, instr, arg1, arg2, arg3, arg4):
     if sim > rim:
         res = arg2[rim:sim].zeroExtend(arg1.size)
     else:
-        shift = m2_expr.ExprInt(arg2.size - rim, arg2.size)
+        shift = ExprInt(arg2.size - rim, arg2.size)
         res = (arg2[:sim].zeroExtend(arg1.size) << shift)
-    e.append(m2_expr.ExprAff(arg1, res))
+    e.append(ExprAff(arg1, res))
     return e, []
 
 def bfm(ir, instr, arg1, arg2, arg3, arg4):
@@ -592,12 +704,77 @@ def bfm(ir, instr, arg1, arg2, arg3, arg4):
     rim, sim = int(arg3.arg), int(arg4) + 1
     if sim > rim:
         res = arg2[rim:sim]
-        e.append(m2_expr.ExprAff(arg1[:sim-rim], res))
+        e.append(ExprAff(arg1[:sim-rim], res))
     else:
         shift_i = arg2.size - rim
-        shift = m2_expr.ExprInt(shift_i, arg2.size)
+        shift = ExprInt(shift_i, arg2.size)
         res = arg2[:sim]
-        e.append(m2_expr.ExprAff(arg1[shift_i:shift_i+sim], res))
+        e.append(ExprAff(arg1[shift_i:shift_i+sim], res))
+    return e, []
+
+
+
+def mrs(ir, insr, arg1, arg2, arg3, arg4, arg5):
+    e = []
+    if arg2.is_int(3) and arg3.is_id("c4") and arg4.is_id("c2") and arg5.is_int(0):
+        out = []
+        out.append(ExprInt(0x0, 28))
+        out.append(of)
+        out.append(cf)
+        out.append(zf)
+        out.append(nf)
+        e.append(ExprAff(arg1, ExprCompose(*out).zeroExtend(arg1.size)))
+    else:
+        raise NotImplementedError("MSR not implemented")
+    return e, []
+
+def msr(ir, instr, arg1, arg2, arg3, arg4, arg5):
+
+    e = []
+    if arg1.is_int(3) and arg2.is_id("c4") and arg3.is_id("c2") and arg4.is_int(0):
+        e.append(ExprAff(nf, arg5[31:32]))
+        e.append(ExprAff(zf, arg5[30:31]))
+        e.append(ExprAff(cf, arg5[29:30]))
+        e.append(ExprAff(of, arg5[28:29]))
+    else:
+        raise NotImplementedError("MRS not implemented")
+    return e, []
+
+
+
+def adc(ir, instr, arg1, arg2, arg3):
+    arg3 = extend_arg(arg2, arg3)
+    e = []
+    r = arg2 + arg3 + cf.zeroExtend(arg3.size)
+    e.append(ExprAff(arg1, r))
+    return e, []
+
+
+def adcs(ir, instr, arg1, arg2, arg3):
+    arg3 = extend_arg(arg2, arg3)
+    e = []
+    r = arg2 + arg3 + cf.zeroExtend(arg3.size)
+    e.append(ExprAff(arg1, r))
+    e += update_flag_arith_addwc_zn(arg2, arg3, cf)
+    e += update_flag_arith_addwc_co(arg2, arg3, cf)
+    return e, []
+
+
+def sbc(ir, instr, arg1, arg2, arg3):
+    arg3 = extend_arg(arg2, arg3)
+    e = []
+    r = arg2 - (arg3 + (~cf).zeroExtend(arg3.size))
+    e.append(ExprAff(arg1, r))
+    return e, []
+
+
+def sbcs(ir, instr, arg1, arg2, arg3):
+    arg3 = extend_arg(arg2, arg3)
+    e = []
+    r = arg2 - (arg3 + (~cf).zeroExtend(arg3.size))
+    e.append(ExprAff(arg1, r))
+    e += update_flag_arith_subwc_zn(arg2, arg3, ~cf)
+    e += update_flag_arith_subwc_co(arg2, arg3, ~cf)
     return e, []
 
 
@@ -614,30 +791,30 @@ def msub(arg1, arg2, arg3, arg4):
 @sbuild.parse
 def udiv(arg1, arg2, arg3):
     if arg3:
-        arg1 = m2_expr.ExprOp('udiv', arg2, arg3)
+        arg1 = ExprOp('udiv', arg2, arg3)
     else:
-        exception_flags = m2_expr.ExprInt(EXCEPT_DIV_BY_ZERO,
+        exception_flags = ExprInt(EXCEPT_DIV_BY_ZERO,
                                           exception_flags.size)
 
 
 @sbuild.parse
 def cbz(arg1, arg2):
-    dst = m2_expr.ExprLoc(ir.get_next_loc_key(instr), 64) if arg1 else arg2
+    dst = ExprLoc(ir.get_next_loc_key(instr), 64) if arg1 else arg2
     PC = dst
     ir.IRDst = dst
 
 
 @sbuild.parse
 def cbnz(arg1, arg2):
-    dst = arg2 if arg1 else m2_expr.ExprLoc(ir.get_next_loc_key(instr), 64)
+    dst = arg2 if arg1 else ExprLoc(ir.get_next_loc_key(instr), 64)
     PC = dst
     ir.IRDst = dst
 
 
 @sbuild.parse
 def tbz(arg1, arg2, arg3):
-    bitmask = m2_expr.ExprInt(1, arg1.size) << arg2
-    dst = m2_expr.ExprLoc(
+    bitmask = ExprInt(1, arg1.size) << arg2
+    dst = ExprLoc(
         ir.get_next_loc_key(instr),
         64
     ) if arg1 & bitmask else arg3
@@ -647,8 +824,8 @@ def tbz(arg1, arg2, arg3):
 
 @sbuild.parse
 def tbnz(arg1, arg2, arg3):
-    bitmask = m2_expr.ExprInt(1, arg1.size) << arg2
-    dst = arg3 if arg1 & bitmask else m2_expr.ExprLoc(
+    bitmask = ExprInt(1, arg1.size) << arg2
+    dst = arg3 if arg1 & bitmask else ExprLoc(
         ir.get_next_loc_key(instr),
         64
     )
@@ -658,14 +835,16 @@ def tbnz(arg1, arg2, arg3):
 
 @sbuild.parse
 def b_ne(arg1):
-    dst = m2_expr.ExprLoc(ir.get_next_loc_key(instr), 64) if zf else arg1
+    cond = cond2expr['NE']
+    dst = arg1 if cond else ExprLoc(ir.get_next_loc_key(instr), 64)
     PC = dst
     ir.IRDst = dst
 
 
 @sbuild.parse
 def b_eq(arg1):
-    dst = arg1 if zf else m2_expr.ExprLoc(ir.get_next_loc_key(instr), 64)
+    cond = cond2expr['EQ']
+    dst = arg1 if cond else ExprLoc(ir.get_next_loc_key(instr), 64)
     PC = dst
     ir.IRDst = dst
 
@@ -673,7 +852,7 @@ def b_eq(arg1):
 @sbuild.parse
 def b_ge(arg1):
     cond = cond2expr['GE']
-    dst = arg1 if cond else m2_expr.ExprLoc(ir.get_next_loc_key(instr), 64)
+    dst = arg1 if cond else ExprLoc(ir.get_next_loc_key(instr), 64)
     PC = dst
     ir.IRDst = dst
 
@@ -681,7 +860,7 @@ def b_ge(arg1):
 @sbuild.parse
 def b_gt(arg1):
     cond = cond2expr['GT']
-    dst = arg1 if cond else m2_expr.ExprLoc(ir.get_next_loc_key(instr), 64)
+    dst = arg1 if cond else ExprLoc(ir.get_next_loc_key(instr), 64)
     PC = dst
     ir.IRDst = dst
 
@@ -689,7 +868,7 @@ def b_gt(arg1):
 @sbuild.parse
 def b_cc(arg1):
     cond = cond2expr['CC']
-    dst = arg1 if cond else m2_expr.ExprLoc(ir.get_next_loc_key(instr), 64)
+    dst = arg1 if cond else ExprLoc(ir.get_next_loc_key(instr), 64)
     PC = dst
     ir.IRDst = dst
 
@@ -697,7 +876,7 @@ def b_cc(arg1):
 @sbuild.parse
 def b_cs(arg1):
     cond = cond2expr['CS']
-    dst = arg1 if cond else m2_expr.ExprLoc(ir.get_next_loc_key(instr), 64)
+    dst = arg1 if cond else ExprLoc(ir.get_next_loc_key(instr), 64)
     PC = dst
     ir.IRDst = dst
 
@@ -705,7 +884,7 @@ def b_cs(arg1):
 @sbuild.parse
 def b_hi(arg1):
     cond = cond2expr['HI']
-    dst = arg1 if cond else m2_expr.ExprLoc(ir.get_next_loc_key(instr), 64)
+    dst = arg1 if cond else ExprLoc(ir.get_next_loc_key(instr), 64)
     PC = dst
     ir.IRDst = dst
 
@@ -713,7 +892,7 @@ def b_hi(arg1):
 @sbuild.parse
 def b_le(arg1):
     cond = cond2expr['LE']
-    dst = arg1 if cond else m2_expr.ExprLoc(ir.get_next_loc_key(instr), 64)
+    dst = arg1 if cond else ExprLoc(ir.get_next_loc_key(instr), 64)
     PC = dst
     ir.IRDst = dst
 
@@ -721,7 +900,7 @@ def b_le(arg1):
 @sbuild.parse
 def b_ls(arg1):
     cond = cond2expr['LS']
-    dst = arg1 if cond else m2_expr.ExprLoc(ir.get_next_loc_key(instr), 64)
+    dst = arg1 if cond else ExprLoc(ir.get_next_loc_key(instr), 64)
     PC = dst
     ir.IRDst = dst
 
@@ -729,7 +908,7 @@ def b_ls(arg1):
 @sbuild.parse
 def b_lt(arg1):
     cond = cond2expr['LT']
-    dst = arg1 if cond else m2_expr.ExprLoc(ir.get_next_loc_key(instr), 64)
+    dst = arg1 if cond else ExprLoc(ir.get_next_loc_key(instr), 64)
     PC = dst
     ir.IRDst = dst
 
@@ -742,7 +921,7 @@ def ret(arg1):
 
 @sbuild.parse
 def adrp(arg1, arg2):
-    arg1 = (PC & m2_expr.ExprInt(0xfffffffffffff000, 64)) + arg2
+    arg1 = (PC & ExprInt(0xfffffffffffff000, 64)) + arg2
 
 
 @sbuild.parse
@@ -765,24 +944,34 @@ def br(arg1):
 def blr(arg1):
     PC = arg1
     ir.IRDst = arg1
-    LR = m2_expr.ExprLoc(ir.get_next_loc_key(instr), 64)
+    LR = ExprLoc(ir.get_next_loc_key(instr), 64)
 
 @sbuild.parse
 def nop():
     """Do nothing"""
 
 
+def rev(ir, instr, arg1, arg2):
+    out = []
+    for i in xrange(0, arg2.size, 8):
+        out.append(arg2[i:i+8])
+    out.reverse()
+    e = []
+    result = ExprCompose(*out)
+    e.append(ExprAff(arg1, result))
+    return e, []
+
 
 @sbuild.parse
 def extr(arg1, arg2, arg3, arg4):
-    compose = m2_expr.ExprCompose(arg2, arg3)
+    compose = ExprCompose(arg2, arg3)
     arg1 = compose[int(arg4.arg):int(arg4)+arg1.size]
 
 
 @sbuild.parse
 def svc(arg1):
-    exception_flags = m2_expr.ExprInt(EXCEPT_INT_XX, exception_flags.size)
-    interrupt_num = m2_expr.ExprInt(int(arg1), interrupt_num.size)
+    exception_flags = ExprInt(EXCEPT_INT_XX, exception_flags.size)
+    interrupt_num = ExprInt(int(arg1), interrupt_num.size)
 
 mnemo_func = sbuild.functions
 mnemo_func.update({
@@ -847,6 +1036,16 @@ mnemo_func.update({
     'ubfm': ubfm,
 
     'extr': extr,
+    'rev': rev,
+
+    'msr': msr,
+    'mrs': mrs,
+
+    'adc': adc,
+    'adcs': adcs,
+    'sbc': sbc,
+    'sbcs': sbcs,
+
 
 })
 
@@ -869,15 +1068,15 @@ class ir_aarch64l(IntermediateRepresentation):
         IntermediateRepresentation.__init__(self, mn_aarch64, "l", loc_db)
         self.pc = PC
         self.sp = SP
-        self.IRDst = m2_expr.ExprId('IRDst', 64)
+        self.IRDst = ExprId('IRDst', 64)
         self.addrsize = 64
 
     def get_ir(self, instr):
         args = instr.args
-        if len(args) and isinstance(args[-1], m2_expr.ExprOp):
+        if len(args) and isinstance(args[-1], ExprOp):
             if (args[-1].op in ['<<', '>>', '<<a', 'a>>', '<<<', '>>>'] and
-               isinstance(args[-1].args[-1], m2_expr.ExprId)):
-                args[-1] = m2_expr.ExprOp(args[-1].op,
+               isinstance(args[-1].args[-1], ExprId)):
+                args[-1] = ExprOp(args[-1].op,
                                           args[-1].args[0],
                                           args[-1].args[-1][:8].zeroExtend(32))
         instr_ir, extra_ir = get_mnemo_expr(self, instr, *args)
@@ -891,7 +1090,7 @@ class ir_aarch64l(IntermediateRepresentation):
     def expraff_fix_regs_for_mode(self, e):
         dst = self.expr_fix_regs_for_mode(e.dst)
         src = self.expr_fix_regs_for_mode(e.src)
-        return m2_expr.ExprAff(dst, src)
+        return ExprAff(dst, src)
 
     def irbloc_fix_regs_for_mode(self, irblock, mode=64):
         irs = []
@@ -901,7 +1100,7 @@ class ir_aarch64l(IntermediateRepresentation):
                 del(new_assignblk[dst])
                 # Special case for 64 bits:
                 # If destination is a 32 bit reg, zero extend the 64 bit reg
-                if (isinstance(dst, m2_expr.ExprId) and
+                if (isinstance(dst, ExprId) and
                     dst.size == 32 and
                     dst in replace_regs):
                     src = src.zeroExtend(64)
@@ -915,14 +1114,14 @@ class ir_aarch64l(IntermediateRepresentation):
 
     def mod_pc(self, instr, instr_ir, extra_ir):
         "Replace PC by the instruction's offset"
-        cur_offset = m2_expr.ExprInt(instr.offset, 64)
+        cur_offset = ExprInt(instr.offset, 64)
         pc_fixed = {self.pc: cur_offset}
         for i, expr in enumerate(instr_ir):
             dst, src = expr.dst, expr.src
             if dst != self.pc:
                 dst = dst.replace_expr(pc_fixed)
             src = src.replace_expr(pc_fixed)
-            instr_ir[i] = m2_expr.ExprAff(dst, src)
+            instr_ir[i] = ExprAff(dst, src)
 
         for idx, irblock in enumerate(extra_ir):
             extra_ir[idx] = irblock.modify_exprs(lambda expr: expr.replace_expr(pc_fixed) \
@@ -953,4 +1152,4 @@ class ir_aarch64b(ir_aarch64l):
         IntermediateRepresentation.__init__(self, mn_aarch64, "b", loc_db)
         self.pc = PC
         self.sp = SP
-        self.IRDst = m2_expr.ExprId('IRDst', 64)
+        self.IRDst = ExprId('IRDst', 64)

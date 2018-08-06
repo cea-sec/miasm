@@ -1839,6 +1839,14 @@ aarch64op("bics", [sf, bs('11'), bs('01010'), shift, bs('1'), rm_sft, imm6, rn, 
 aarch64op("mov",  [sf, bs('01'), bs('01010'), bs('00'), bs('0'), rmz, bs('000000'), bs('11111'), rd], [rd, rmz], alias=True)
 
 
+aarch64op("adc", [sf, bs('00'), bs('11010000'), rm, bs('000000'), rn, rd], [rd, rn, rm])
+aarch64op("adcs", [sf, bs('01'), bs('11010000'), rm, bs('000000'), rn, rd], [rd, rn, rm])
+
+
+aarch64op("sbc", [sf, bs('10'), bs('11010000'), rm, bs('000000'), rn, rd], [rd, rn, rm])
+aarch64op("sbcs", [sf, bs('11'), bs('11010000'), rm, bs('000000'), rn, rd], [rd, rn, rm])
+
+
 
 bcond = bs_mod_name(l=4, fname='cond', mn_mod=['EQ', 'NE', 'CS', 'CC',
                                                'MI', 'PL', 'VS', 'VC',
