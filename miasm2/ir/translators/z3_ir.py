@@ -229,6 +229,12 @@ class TranslatorZ3(Translator):
                 index = - i % size
                 out = size - (index + 1)
                 res = z3.If((src & (1 << index)) != 0, out, res)
+        elif expr.op.startswith("zeroExt"):
+            arg, = expr.args
+            res = z3.ZeroExt(expr.size - arg.size, self.from_expr(arg))
+        elif expr.op.startswith("signExt"):
+            arg, = expr.args
+            res = z3.SignExt(expr.size - arg.size, self.from_expr(arg))
         else:
             raise NotImplementedError("Unsupported OP yet: %s" % expr.op)
 

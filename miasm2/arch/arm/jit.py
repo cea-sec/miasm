@@ -8,6 +8,7 @@ from miasm2.jitter.codegen import CGen
 from miasm2.expression.expression import ExprId, ExprAff, ExprCond
 from miasm2.ir.ir import IRBlock, AssignBlock
 from miasm2.ir.translators.C import TranslatorC
+from miasm2.expression.simplifications import expr_simp_high_to_explicit
 
 log = logging.getLogger('jit_arm')
 hnd = logging.StreamHandler()
@@ -44,6 +45,15 @@ class arm_CGen(CGen):
             # The remainings order is not really important
             irblock_head = self.assignblk_to_irbloc(instr, assignblk_head)
             irblocks = [irblock_head] + assignblks_extra
+
+
+            # Simplify high level operators
+            out = []
+            for irblock in irblocks:
+                new_irblock = irblock.simplify(expr_simp_high_to_explicit)[1]
+                out.append(new_irblock)
+            irblocks = out
+
 
             for irblock in irblocks:
                 assert irblock.dst is not None

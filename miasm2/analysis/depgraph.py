@@ -3,7 +3,7 @@
 from miasm2.expression.expression import ExprInt, ExprLoc, ExprAff
 from miasm2.core.graph import DiGraph
 from miasm2.core.locationdb import LocationDB
-from miasm2.expression.simplifications import expr_simp
+from miasm2.expression.simplifications import expr_simp_explicit
 from miasm2.ir.symbexec import SymbolicExecutionEngine
 from miasm2.ir.ir import IRBlock, AssignBlock
 from miasm2.ir.translators import Translator
@@ -456,7 +456,7 @@ class DependencyGraph(object):
         @implicit: (optional) Track IRDst for each block in the resulting path
 
         Following arguments define filters used to generate dependencies
-        @apply_simp: (optional) Apply expr_simp
+        @apply_simp: (optional) Apply expr_simp_explicit
         @follow_mem: (optional) Track memory syntactically
         @follow_call: (optional) Track through "call"
         """
@@ -480,7 +480,7 @@ class DependencyGraph(object):
         """
         follow = set()
         for expr in exprs:
-            follow.add(expr_simp(expr))
+            follow.add(expr_simp_explicit(expr))
         return follow, set()
 
     @staticmethod

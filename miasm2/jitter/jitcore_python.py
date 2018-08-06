@@ -1,7 +1,7 @@
 import miasm2.jitter.jitcore as jitcore
 import miasm2.expression.expression as m2_expr
 import miasm2.jitter.csts as csts
-from miasm2.expression.simplifications import ExpressionSimplifier
+from miasm2.expression.simplifications import ExpressionSimplifier, expr_simp_explicit
 from miasm2.jitter.emulatedsymbexec import EmulatedSymbExec
 
 ################################################################################
@@ -20,12 +20,11 @@ class JitCore_Python(jitcore.JitCore):
         self.ircfg = self.ir_arch.new_ircfg()
 
         # CPU & VM (None for now) will be set later
-        expr_simp = ExpressionSimplifier()
-        expr_simp.enable_passes(ExpressionSimplifier.PASS_COMMONS)
+
         self.symbexec = self.SymbExecClass(
             None, None,
             self.ir_arch, {},
-            sb_expr_simp=expr_simp
+            sb_expr_simp=expr_simp_explicit
         )
         self.symbexec.enable_emulated_simplifications()
 
