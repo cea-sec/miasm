@@ -939,7 +939,8 @@ class mep_target24_signed(mep_target24):
 
         mep_target24.decode(self, v)
         v = int(self.expr.arg)
-        self.expr = ExprInt(v, 24).signExtend(32)
+        self.expr = ExprInt(sign_ext(v, 24, 32), 32)
+
         return True
 
 
@@ -1160,7 +1161,7 @@ class mep_disp12_align2_signed(mep_disp12_align2):
         mep_disp12_align2.decode(self, v)
         v = int(self.expr.arg)
 
-        self.expr = ExprInt(v, 12).signExtend(32)
+        self.expr = ExprInt(sign_ext(v, 12, 32), 32)
         return True
 
 
