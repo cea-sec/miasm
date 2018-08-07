@@ -198,7 +198,7 @@ class MemArray(MutableMapping):
             ptr = base
         else:
             ptr = base + ExprInt(offset, base.size)
-        return ptr
+        return ptr.canonize()
 
     def read(self, offset, size):
         """
