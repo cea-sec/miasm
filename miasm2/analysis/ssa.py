@@ -656,7 +656,7 @@ def remove_phi(ssa, head):
         # Place var init for non ssa variables
         to_remove = set()
         for phi_source in list(phi_sources):
-            if phi_source not in all_ssa_vars.union(phivar2var):
+            if phi_source not in all_ssa_vars.union(phivar2var.values()):
                 assignblk_dct = get_assignblk(ssa.graph, head, 0)
                 assignblk_dct[new_var] = phi_source
                 new_irblock = set_assignblk(ssa.graph, head, 0, assignblk_dct)
