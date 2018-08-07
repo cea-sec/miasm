@@ -41,7 +41,10 @@ class EmulatedSymbExec(SymbolicExecutionEngine):
         """Memory read wrapper for symbolic execution
         @expr_mem: ExprMem"""
 
-        addr = expr_mem.arg.arg.arg
+        addr = expr_mem.arg
+        if not addr.is_int():
+            return expr_mem
+        addr = int(addr)
         size = expr_mem.size / 8
         value = self.cpu.get_mem(addr, size)
         if self.vm.is_little_endian():
