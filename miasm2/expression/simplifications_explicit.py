@@ -151,5 +151,9 @@ def simp_flags(_, expr):
         op_zf, = args
         return ~op_zf
 
+    elif expr.is_op("CC_POS"):
+        op_nf, = args
+        return ~op_nf
+
     return expr
 
