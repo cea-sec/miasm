@@ -497,6 +497,7 @@ class ir_mips32l(IntermediateRepresentation):
 
 class ir_mips32b(ir_mips32l):
     def __init__(self, loc_db=None):
+        self.addrsize = 32
         IntermediateRepresentation.__init__(self, mn_mips32, 'b', loc_db)
         self.pc = mn_mips32.getpc()
         self.sp = mn_mips32.getsp()
