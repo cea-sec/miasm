@@ -186,7 +186,7 @@ class AssignBlock(object):
         raise RuntimeError('AssignBlock is immutable')
 
     def __eq__(self, other):
-        if self.keys() != other.keys():
+        if set(self.keys()) != set(other.keys()):
             return False
         return all(other[dst] == src for dst, src in self.iteritems())
 
