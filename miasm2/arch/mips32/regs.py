@@ -24,6 +24,7 @@ regs32_str = ["ZERO", 'AT', 'V0', 'V1'] +\
     ['GP', 'SP', 'FP', 'RA']
 
 regs32_expr = [ExprId(x, 32) for x in regs32_str]
+ZERO = regs32_expr[0]
 
 regs_flt_str = ['F%d'%i for i in xrange(0x20)]
 
