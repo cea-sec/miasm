@@ -3799,6 +3799,13 @@ addop("mul", [bs('1111011'), w8] + rmmod(d4, rm_arg_w8))
 
 addop("neg", [bs('1111011'), w8] + rmmod(d3, rm_arg_w8))
 addop("nop", [bs8(0x0f), bs8(0x1f)] + rmmod(d0, rm_arg))  # XXX TODO m512
+addop("nop", [bs8(0x0f), bs8(0x1f)] + rmmod(d1, rm_arg))  # XXX TODO m512
+addop("nop", [bs8(0x0f), bs8(0x1f)] + rmmod(d2, rm_arg))  # XXX TODO m512
+addop("nop", [bs8(0x0f), bs8(0x1f)] + rmmod(d3, rm_arg))  # XXX TODO m512
+addop("nop", [bs8(0x0f), bs8(0x1f)] + rmmod(d4, rm_arg))  # XXX TODO m512
+addop("nop", [bs8(0x0f), bs8(0x1f)] + rmmod(d5, rm_arg))  # XXX TODO m512
+addop("nop", [bs8(0x0f), bs8(0x1f)] + rmmod(d6, rm_arg))  # XXX TODO m512
+addop("nop", [bs8(0x0f), bs8(0x1f)] + rmmod(d7, rm_arg))  # XXX TODO m512
 addop("not", [bs('1111011'), w8] + rmmod(d2, rm_arg_w8))
 addop("or", [bs("0000110"), w8, d_eax, d_imm])
 addop("or", [bs("100000"), se, w8] + rmmod(d1, rm_arg_w8) + [d_imm])

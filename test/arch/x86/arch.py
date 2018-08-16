@@ -1584,6 +1584,10 @@ reg_tests = [
     (m32, "00000000    NOP        DWORD PTR [EAX]",
      "0f1f00"),
 
+    (m32, "00000000    NOP        EAX",
+     "0f1fc8"),
+
+
     (m32, "00000000    NOT        BYTE PTR [EAX]",
      "f610"),
     (m32, "00000000    NOT        EBX",
