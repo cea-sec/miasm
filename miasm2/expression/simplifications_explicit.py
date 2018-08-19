@@ -154,5 +154,13 @@ def simp_flags(_, expr):
         op_nf, = args
         return ~op_nf
 
+    elif expr.is_op("=="):
+        arg1, arg2 = args
+        return ExprCond(
+            arg1 - arg2,
+            ExprInt(0, expr.size),
+            ExprInt(1, expr.size),
+        )
+
     return expr
 
