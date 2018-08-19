@@ -1005,3 +1005,15 @@ def simp_zeroext_eq_cst(expr_s, expr):
         # Always false
         return ExprInt(0, 1)
     return ExprOp("==", src, ExprInt(int(arg2), src.size))
+
+
+def simp_cond_eq_zero(expr_s, expr):
+    # (X == 0)?(A:B) => X?(B:A)
+    cond = expr.cond
+    if not cond.is_op('=='):
+        return expr
+    arg1, arg2 = cond.args
+    if not arg2.is_int(0):
+        return expr
+    new_expr = ExprCond(arg1, expr.src2, expr.src1)
+    return new_expr
