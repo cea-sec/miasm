@@ -990,6 +990,25 @@ def simp_sign_subwc_cf(expr_s, expr):
 
     return ExprOp("FLAG_SIGN_SUB", op1, op2)
 
+def simp_double_zeroext(expr_s, expr):
+    # A.zeroExt(X).zeroExt(Y) => A.zeroExt(Y)
+    if not (expr.is_op() and expr.op.startswith("zeroExt")):
+        return expr
+    arg1 = expr.args[0]
+    if not (arg1.is_op() and arg1.op.startswith("zeroExt")):
+        return expr
+    arg2 = arg1.args[0]
+    return ExprOp(expr.op, arg2)
+
+def simp_double_signext(expr_s, expr):
+    # A.signExt(X).signExt(Y) => A.signExt(Y)
+    if not (expr.is_op() and expr.op.startswith("signExt")):
+        return expr
+    arg1 = expr.args[0]
+    if not (arg1.is_op() and arg1.op.startswith("signExt")):
+        return expr
+    arg2 = arg1.args[0]
+    return ExprOp(expr.op, arg2)
 
 def simp_zeroext_eq_cst(expr_s, expr):
     # A.zeroExt(X) == int => A == int[:A.size]
