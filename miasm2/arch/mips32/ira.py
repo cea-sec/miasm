@@ -1,7 +1,7 @@
 #-*- coding:utf-8 -*-
 
-from miasm2.expression.expression import ExprAff, ExprInt, ExprId
-from miasm2.ir.ir import IntermediateRepresentation, IRBlock, AssignBlock
+from miasm2.expression.expression import ExprAff, ExprOp
+from miasm2.ir.ir import IRBlock, AssignBlock
 from miasm2.ir.analysis import ira
 from miasm2.arch.mips32.sem import ir_mips32l, ir_mips32b
 
@@ -10,41 +10,73 @@ class ir_a_mips32l(ir_mips32l, ira):
         ir_mips32l.__init__(self, loc_db)
         self.ret_reg = self.arch.regs.V0
 
-    def post_add_asmblock_to_ircfg(self, block, ircfg, ir_blocks):
-        IntermediateRepresentation.post_add_asmblock_to_ircfg(self, block, ircfg, ir_blocks)
-        new_irblocks = []
-        for irb in ir_blocks:
-            pc_val = None
-            lr_val = None
-            for assignblk in irb:
-                pc_val = assignblk.get(self.arch.regs.PC, pc_val)
-                lr_val = assignblk.get(self.arch.regs.RA, lr_val)
+    def call_effects(self, ad, instr):
+        call_assignblk = AssignBlock(
+            [
+                ExprAff(
+                    self.ret_reg,
+                    ExprOp(
+                        'call_func_ret',
+                        ad,
+                        self.arch.regs.A0,
+                        self.arch.regs.A1,
+                        self.arch.regs.A2,
+                        self.arch.regs.A3,
+                    )
+                ),
+            ],
+            instr
+        )
 
-            if pc_val is None or lr_val is None:
-                new_irblocks.append(irb)
-                continue
-            if lr_val.is_loc():
-                offset = self.loc_db.get_location_offset(lr_val.loc_key)
-                if offset is not None:
-                    lr_val = ExprInt(offset, 32)
-            if not lr_val.is_int():
-                continue
+        return [call_assignblk], []
 
-            instr = block.lines[-2]
-            if int(lr_val) != instr.offset + 8:
-                raise ValueError("Wrong arg")
 
-            # CALL
-            lbl = block.get_next()
-            new_lbl = self.gen_label()
-            call_assignblks, extra_irblocks = self.call_effects(pc_val, instr)
-            ir_blocks += extra_irblocks
-            irs.append(AssignBlock([ExprAff(self.IRDst,
-                                            ExprId(lbl, size=self.pc.size))],
-                                   instr))
-            new_irblocks.append(IRBlock(new_lbl, call_assignblks))
-            new_irblocks.append(irb.set_dst(ExprId(new_lbl, size=self.pc.size)))
-        return new_irblocks
+    def add_asmblock_to_ircfg(self, block, ircfg, gen_pc_updt=False):
+        """
+        Add a native block to the current IR
+        @block: native assembly block
+        @ircfg: IRCFG instance
+        @gen_pc_updt: insert PC update effects between instructions
+        """
+        loc_key = block.loc_key
+        ir_blocks_all = []
+
+        assignments = []
+        for index, instr in enumerate(block.lines):
+            if loc_key is None:
+                assignments = []
+                loc_key = self.get_loc_key_for_instr(instr)
+            if instr.is_subcall():
+                assert index == len(block.lines) - 2
+
+                # Add last instruction first (before call)
+                split = self.add_instr_to_current_state(
+                    block.lines[-1], block, assignments,
+                    ir_blocks_all, gen_pc_updt
+                )
+                assert not split
+                # Add call effects after the delay splot
+                split = self.add_instr_to_current_state(
+                    instr, block, assignments,
+                    ir_blocks_all, gen_pc_updt
+                )
+                assert split
+                break
+            split = self.add_instr_to_current_state(
+                instr, block, assignments,
+                ir_blocks_all, gen_pc_updt
+            )
+            if split:
+                ir_blocks_all.append(IRBlock(loc_key, assignments))
+                loc_key = None
+                assignments = []
+        if loc_key is not None:
+            ir_blocks_all.append(IRBlock(loc_key, assignments))
+
+        new_ir_blocks_all = self.post_add_asmblock_to_ircfg(block, ircfg, ir_blocks_all)
+        for irblock in new_ir_blocks_all:
+            ircfg.add_irblock(irblock)
+        return new_ir_blocks_all
 
     def get_out_regs(self, _):
         return set([self.ret_reg, self.sp])
