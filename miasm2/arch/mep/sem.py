@@ -505,8 +505,8 @@ def bnez(reg_test, disp8):
     """BNEZ - Branch if the register does not store zero."""
 
     # if(Rn!=0) PC <- PC + SignExt((disp8)7..1||0)
-    dst = disp8 if "-"(reg_test, i32(0)) else ExprLoc(ir.get_next_break_loc_key(instr), 32)
-    take_jmp = ExprInt(1, 32) if "-"(reg_test, i32(0)) else ExprInt(0, 32)
+    dst = disp8 if reg_test else ExprLoc(ir.get_next_break_loc_key(instr), 32)
+    take_jmp = ExprInt(1, 32) if reg_test else ExprInt(0, 32)
     PC = dst
     ir.IRDst = dst
 
@@ -516,8 +516,8 @@ def beqi(reg_test, imm4, disp16):
     """BEQI - Branch if the register stores imm4."""
 
     # if(Rn==ZeroExt(imm4)) PC <- PC +SignExt((disp17)16..1||0)
-    dst = ExprLoc(ir.get_next_break_loc_key(instr), 32) if "-"(reg_test, imm4) else disp16
-    take_jmp = ExprInt(0, 32) if "-"(reg_test, imm4) else ExprInt(1, 32)
+    dst = ExprLoc(ir.get_next_break_loc_key(instr), 32) if (reg_test - imm4) else disp16
+    take_jmp = ExprInt(0, 32) if (reg_test - imm4) else ExprInt(1, 32)
     PC = dst
     ir.IRDst = dst
 
@@ -527,8 +527,8 @@ def bnei(reg_test, imm4, disp16):
     """BNEI - Branch if the register does not store imm4."""
 
     # if(Rn!=ZeroExt(imm4)) PC <- PC+SignExt((disp17)16..1||0)
-    dst = disp16 if "-"(reg_test, imm4) else ExprLoc(ir.get_next_break_loc_key(instr), 32)
-    take_jmp = ExprInt(1, 32) if "-"(reg_test, imm4) else ExprInt(0, 32)
+    dst = disp16 if (reg_test - imm4) else ExprLoc(ir.get_next_break_loc_key(instr), 32)
+    take_jmp = ExprInt(1, 32) if (reg_test - imm4) else ExprInt(0, 32)
     PC = dst
     ir.IRDst = dst
 
@@ -560,8 +560,8 @@ def beq(rn, rm, disp16):
     """BEQ - Branch if the two registers are equal."""
 
     # if(Rn==Rm) PC <- PC +SignExt((disp17)16..1||0)
-    dst = ExprLoc(ir.get_next_break_loc_key(instr), 32) if "-"(rn, rm) else disp16
-    take_jmp = ExprInt(0, 32) if "-"(rn, rm) else ExprInt(1, 32)
+    dst = ExprLoc(ir.get_next_break_loc_key(instr), 32) if (rn - rm) else disp16
+    take_jmp = ExprInt(0, 32) if (rn - rm) else ExprInt(1, 32)
     PC = dst
     ir.IRDst = dst
 
@@ -571,8 +571,8 @@ def bne(rn, rm, disp16):
     """BNE - Branch if the two registers are not equal."""
 
     # if(Rn!=Rm) PC <- PC +SignExt((disp17)16..1||0)
-    dst = disp16 if "-"(rn, rm) else ExprLoc(ir.get_next_break_loc_key(instr), 32)
-    take_jmp = ExprInt(1, 32) if "-"(rn, rm) else ExprInt(0, 32)
+    dst = disp16 if (rn - rm) else ExprLoc(ir.get_next_break_loc_key(instr), 32)
+    take_jmp = ExprInt(1, 32) if (rn - rm) else ExprInt(0, 32)
     PC = dst
     ir.IRDst = dst
 

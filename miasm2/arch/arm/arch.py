@@ -1915,7 +1915,6 @@ class arm_offspc(arm_offs):
         if v > (1 << (self.l - 1)) - 1:
             return False
         return v >> 1
-        return False
 
 
 class arm_off8sppc(arm_imm):

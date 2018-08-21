@@ -722,8 +722,6 @@ class PropagateExpr(object):
 
         modified = False
         for node, reg in node_to_reg.iteritems():
-            src = to_replace[reg]
-
             for successor in defuse.successors(node):
                 if not self.propagation_allowed(ssa, to_replace, node, successor):
                     continue
@@ -874,7 +872,6 @@ def retrieve_stack_accesses(ir_arch_a, ssa):
         tmp += mem
 
     base_to_info = {}
-    base_to_name = {}
     for addr, vars in base_to_var.iteritems():
         name = "var_%d" % (len(base_to_info))
         size = max([var.size for var in vars])
@@ -913,10 +910,8 @@ def replace_stack_vars(ir_arch_a, ssa):
     @ir_arch_a: ira instance
     @ssa: SSADiGraph instance
     """
-    defuse = SSADefUse.from_ssa(ssa)
 
     base_to_info = retrieve_stack_accesses(ir_arch_a, ssa)
-    stack_vars = {}
     modified = False
     for block in ssa.graph.blocks.itervalues():
         assignblks = []
@@ -996,7 +991,6 @@ def load_from_int(ir_arch, bs, is_addr_ro_variable):
                 if dst.is_mem():
                     ptr = dst.arg
                     mems = get_memlookup(ptr, bs, is_addr_ro_variable)
-                    ptr_new = ptr
                     if mems:
                         replace = {}
                         for mem in mems:

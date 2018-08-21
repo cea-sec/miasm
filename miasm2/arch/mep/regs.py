@@ -1,7 +1,7 @@
 # Toshiba MeP-c4 - miasm registers definition
 # Guillaume Valadon <guillaume@valadon.net>
 
-from miasm2.expression.expression import *
+from miasm2.expression.expression import ExprId
 from miasm2.core.cpu import reg_info, gen_reg, gen_regs
 
 # Used by internal miasm exceptions

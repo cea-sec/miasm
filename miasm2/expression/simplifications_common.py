@@ -322,7 +322,6 @@ def simp_cst_propagation(e_s, expr):
                 continue
             if stop > final_size:
                 tmp = tmp[:tmp.size  - (stop - final_size)]
-                stop = final_size
             filter_args.append(tmp)
             min_index = min(start, min_index)
         # create entry 0
@@ -347,7 +346,6 @@ def simp_cst_propagation(e_s, expr):
                 continue
             if start < 0:
                 tmp = tmp[-start:]
-                start = 0
             filter_args.append(tmp)
             max_index = max(stop, max_index)
         # create entry 0
@@ -363,7 +361,6 @@ def simp_cst_propagation(e_s, expr):
             bound = tuple([tmp.size for tmp in arg.args])
             bounds.add(bound)
         if len(bounds) == 1:
-            bound = list(bounds)[0]
             new_args = [[tmp] for tmp in args[0].args]
             for sub_arg in args[1:]:
                 for i, tmp in enumerate(sub_arg.args):

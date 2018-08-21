@@ -336,26 +336,17 @@ class CGen(object):
             offset = int(expr)
             loc_key = self.ir_arch.loc_db.get_or_create_offset_location(offset)
             self.add_label_index(dst2index, loc_key)
-
-            value, int_size = int_size_to_bn(offset, 64)
             out = hex(offset)
-
             return ("%s" % dst2index[loc_key], out)
         if expr.is_loc():
             loc_key = expr.loc_key
             offset = self.ir_arch.loc_db.get_location_offset(expr.loc_key)
             if offset is not None:
                 self.add_label_index(dst2index, loc_key)
-
-                value, int_size = int_size_to_bn(offset, 64)
                 out = hex(offset)
-
                 return ("%s" % dst2index[loc_key], out)
             self.add_label_index(dst2index, loc_key)
-
-            value, int_size = int_size_to_bn(0, 64)
             out = hex(0)
-
             return ("%s" % dst2index[loc_key], out)
         dst2index[expr] = -1
         return ("-1", self.id_to_c(expr))

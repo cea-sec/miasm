@@ -4,12 +4,11 @@ from pdb import pm
 
 from miasm2.analysis.binary import Container
 from miasm2.core.asmblock import log_asmblock, AsmCFG
-from miasm2.expression.expression import ExprId, ExprInt
 from miasm2.core.interval import interval
 from miasm2.analysis.machine import Machine
 from miasm2.analysis.data_flow import dead_simp, DiGraphDefUse, \
     ReachingDefinitions, merge_blocks, remove_empty_assignblks, \
-    PropagateExpr, SSADefUse, replace_stack_vars, load_from_int
+    PropagateExpr, replace_stack_vars, load_from_int
 from miasm2.expression.simplifications import expr_simp
 from miasm2.analysis.ssa import SSAPath, SSADiGraph, remove_phi
 from miasm2.ir.ir import AssignBlock, IRBlock

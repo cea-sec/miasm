@@ -1,5 +1,5 @@
 from miasm2.expression.expression import ExprId, ExprInt, ExprLoc, ExprMem, \
-    ExprSlice, ExprCond, ExprCompose, ExprOp, ExprAff
+    ExprCond, ExprCompose, ExprOp, ExprAff
 from miasm2.ir.ir import IntermediateRepresentation, IRBlock, AssignBlock
 from miasm2.arch.aarch64.arch import mn_aarch64, conds_expr, replace_regs
 from miasm2.arch.aarch64.regs import *
@@ -343,8 +343,6 @@ def cmp(ir, instr, arg1, arg2):
 def cmn(ir, instr, arg1, arg2):
     e = []
     arg2 = extend_arg(arg1, arg2)
-    res = arg1 + arg2
-
 
     e += update_flag_arith_add_zn(arg1, arg2)
     e += update_flag_arith_add_co(arg1, arg2)
@@ -443,8 +441,8 @@ def ccmp(ir, instr, arg1, arg2, arg3, arg4):
     res = arg1 - arg2
     new_nf = nf
     new_zf = update_flag_zf(res)[0].src
-    new_cf = update_flag_sub_cf(arg1, arg2, res).src
-    new_of = update_flag_sub_of(arg1, arg2, res).src
+    new_cf = update_flag_sub_cf(arg1, arg2).src
+    new_of = update_flag_sub_of(arg1, arg2).src
 
     e.append(ExprAff(nf, ExprCond(cond_expr,
                                                     new_nf,

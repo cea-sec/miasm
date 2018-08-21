@@ -1,7 +1,6 @@
 #-*- coding:utf-8 -*-
 
 import logging
-import math
 from pyparsing import *
 from miasm2.expression import expression as m2_expr
 from miasm2.core.cpu import *
@@ -277,15 +276,15 @@ class aarch64_arg(m_arg):
                 fixed_size.add(value.name.size)
                 return value.name
             loc_key = loc_db.get_or_create_name_location(value.name)
-            return ExprLoc(loc_key, size_hint)
+            return m2_expr.ExprLoc(loc_key, size_hint)
         if isinstance(value, AstInt):
             assert size_hint is not None
-            return ExprInt(value.value, size_hint)
+            return m2_expr.ExprInt(value.value, size_hint)
         if isinstance(value, AstOp):
             if value.op == "segm":
                 segm = self.asm_ast_to_expr(value.args[0], loc_db)
                 ptr = self.asm_ast_to_expr(value.args[1], loc_db, None, fixed_size)
-                return ExprOp('segm', segm, ptr)
+                return m2_expr.ExprOp('segm', segm, ptr)
 
             args = [self.asm_ast_to_expr(arg, loc_db, None, fixed_size) for arg in value.args]
             if len(fixed_size) == 0:
@@ -298,7 +297,7 @@ class aarch64_arg(m_arg):
             else:
                 raise ValueError("Size conflict")
 
-            return ExprOp(value.op, *args)
+            return m2_expr.ExprOp(value.op, *args)
         return None
 
 
@@ -1420,7 +1419,7 @@ class aarch64_offs_pc(imm_noarg, aarch64_arg):
         v = v & self.lmask
         v = (v << 2)
         v = sign_ext(v, (self.l + 2), 64)
-        self.expr = ExprOp("preinc", PC, m2_expr.ExprInt(v, 64))
+        self.expr = m2_expr.ExprOp("preinc", PC, m2_expr.ExprInt(v, 64))
         return True
 
     def encode(self):

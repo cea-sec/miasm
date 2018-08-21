@@ -395,7 +395,7 @@ class GdbServer_msp430(GdbServer):
                               "SP": 2,
                               "SR": 2,
                               "R3": 2,
-                              "R2": 2,
+                              "R4": 2,
                               "R5": 2,
                               "R6": 2,
                               "R7": 2,
@@ -405,7 +405,7 @@ class GdbServer_msp430(GdbServer):
                               "R11": 2,
                               "R12": 2,
                               "R13": 2,
-                              "R12": 2,
+                              "R14": 2,
                               "R15": 2}
 
     def read_register_by_name(self, reg_name):
