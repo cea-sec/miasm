@@ -55,12 +55,11 @@ mdis = sb.machine.dis_engine(sb.jitter.bs)
 mdis.dont_dis_nulstart_bloc = True
 asmcfg = mdis.dis_multiblock(sb.entry_point)
 
-leaves = list(asmcfg.get_bad_blocks_predecessors())
+leaves = list(asmcfg.get_bad_blocks())
 assert(len(leaves) == 1)
 l = leaves.pop()
 logging.info(l)
-
-end_offset = mdis.loc_db.get_location_offset(l)
+end_offset = mdis.loc_db.get_location_offset(l.loc_key)
 
 logging.info('final offset')
 logging.info(hex(end_offset))
