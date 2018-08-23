@@ -42,6 +42,8 @@ class ExpressionSimplifier(object):
             simplifications_common.simp_subwc_cf,
             simplifications_common.simp_subwc_of,
             simplifications_common.simp_sign_subwc_cf,
+            simplifications_common.simp_double_zeroext,
+            simplifications_common.simp_double_signext,
             simplifications_common.simp_zeroext_eq_cst,
 
         ],
