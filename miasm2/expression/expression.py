@@ -1022,8 +1022,6 @@ class ExprOp(Expr):
                            TOK_POS_STRICT,
                           ]:
             size = 1
-        elif self._op.startswith("sint_to_fp"):
-            size = int(self._op[len("sint_to_fp"):])
         elif self._op.startswith("fp_to_sint"):
             size = int(self._op[len("fp_to_sint"):])
         elif self._op.startswith("fpconvert_fp"):

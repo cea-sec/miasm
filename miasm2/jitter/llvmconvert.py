@@ -938,7 +938,7 @@ class LLVMFunction():
                 self.update_cache(expr, ret)
                 return ret
 
-            if op.startswith("sint_to_fp"):
+            if op == "sint_to_fp":
                 fptype = LLVMType.fptype(expr.size)
                 arg = self.add_ir(expr.args[0])
                 ret = builder.sitofp(arg, fptype)
@@ -946,7 +946,7 @@ class LLVMFunction():
                 self.update_cache(expr, ret)
                 return ret
 
-            if op == "fp_to_sint32":
+            if op.startswith("fp_to_sint"):
                 size_arg = expr.args[0].size
                 fptype_orig = LLVMType.fptype(size_arg)
                 arg = self.add_ir(expr.args[0])

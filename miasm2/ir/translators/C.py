@@ -198,20 +198,14 @@ class TranslatorC(Translator):
                     expr.size,
                     self.from_expr(expr.args[0]),
                 )
-            elif expr.op.startswith("sint_to_fp"):
-                dest_size = expr.size
-                arg_size = expr.args[0].size
-                if (arg_size, dest_size) in [
-                        (32, 32), (64, 64), (32, 64),
-                ]:
-                    func = "sint%d_to_fp%d" % (arg_size, dest_size)
-                else:
+            elif expr.op == "sint_to_fp":
+                size = expr.size
+                arg = expr.args[0]
+                if size not in [32, 64]:
                     raise RuntimeError(
-                        "Unsupported size for sint_to_fp: %r to %r" % (
-                            arg_size,
-                            dest_size
-                        ))
-                return "%s(%s)" % (func, self.from_expr(expr.args[0]))
+                        "Unsupported size for sint_to_fp: %r" % size
+                    )
+                return "%s_%d(%s)" % (expr.op, size, self.from_expr(arg))
             elif expr.op.startswith("fp_to_sint"):
                 dest_size = expr.size
                 arg_size = expr.args[0].size
