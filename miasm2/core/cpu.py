@@ -1030,6 +1030,10 @@ class instruction(object):
                 if '_' in names:
                     fixed_expr[exprloc] = self.get_asm_next_offset(exprloc)
                     continue
+                arg_int = symbols.get_location_offset(loc_key)
+                if arg_int is not None:
+                    fixed_expr[exprloc] = m2_expr.ExprInt(arg_int, exprloc.size)
+                    continue
                 if not names:
                     raise ValueError('Unresolved symbol: %r' % exprloc)
 
