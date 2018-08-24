@@ -214,7 +214,7 @@ class LocationDB(object):
         raised.
         Otherwise:
           If a location with @offset or @name already exists, the corresponding
-        LocKey will be returned.
+        LocKey may be updated and will be returned.
         """
 
         # Deprecation handling
@@ -262,14 +262,8 @@ class LocationDB(object):
 
             elif offset_loc_key is not None:
                 if name is not None:
-                    # This is an error. Check for already known name are checked above
-                    raise ValueError(
-                        "Location with offset 0x%x already exists."
-                        "To add a name to this location, use the dedicated API"
-                        "'add_location_name(%r, %r)'" % (
-                            offset_loc_key,
-                            name
-                        ))
+                    # Check for already known name are checked above
+                    return self.add_location_name(offset_loc_key, name)
                 # Offset already known, no name specified
                 return offset_loc_key
 
