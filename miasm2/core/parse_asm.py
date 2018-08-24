@@ -199,9 +199,6 @@ def parse_txt(mnemo, attrib, txt, loc_db=None):
             line = line[:line.find(';')]
         line = line.strip(' ').strip('\t')
         instr = mnemo.fromstring(line, loc_db, attrib)
-
-        if instr.dstflow():
-            instr.dstflow2label(loc_db)
         lines.append(instr)
 
     asmblock.log_asmblock.info("___pre asm oki___")
