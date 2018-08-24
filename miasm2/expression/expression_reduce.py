@@ -14,38 +14,128 @@ log_reduce.addHandler(console_handler)
 log_reduce.setLevel(logging.WARNING)
 
 
+
 class ExprNode(object):
     """Clone of Expression object with additionnal information"""
 
     def __init__(self, expr):
         self.expr = expr
-        # Generic field to store custom node information
-        self.info = None
 
-        self.arg, self.args = None, None
-        self.cond, self.src1, self.src2 = None, None, None
+
+class ExprNodeInt(ExprNode):
+    def __init__(self, expr):
+        assert expr.is_int()
+        super(ExprNodeInt, self).__init__(expr)
+        self.arg = None
 
     def __repr__(self):
-        expr = self.expr
         if self.info is not None:
             out = repr(self.info)
-        elif expr.is_int() or expr.is_id() or expr.is_loc():
-            out = str(expr)
-        elif expr.is_mem():
-            out = "@%d[%r]" % (self.expr.size, self.arg)
-        elif expr.is_slice():
-            out = "%r[%d:%d]" % (self.arg, expr.start, expr.stop)
-        elif expr.is_op():
-            if len(self.args) == 1:
-                out = "(%s(%r))" % (expr.op, self.args[0])
-            else:
-                out = "(%s)" % expr.op.join(repr(arg) for arg in self.args)
-        elif expr.is_compose():
-            out = "{%s}" % ', '.join(repr(arg) for arg in self.args)
-        elif expr.is_cond():
-            out = "(%r?%r:%r)" % (self.cond, self.src1, self.src2)
         else:
-            raise TypeError("Unknown node Type %r", type(expr))
+            out = str(self.expr)
+        return out
+
+
+class ExprNodeId(ExprNode):
+    def __init__(self, expr):
+        assert expr.is_id()
+        super(ExprNodeId, self).__init__(expr)
+        self.arg = None
+
+    def __repr__(self):
+        if self.info is not None:
+            out = repr(self.info)
+        else:
+            out = str(self.expr)
+        return out
+
+
+class ExprNodeLoc(ExprNode):
+    def __init__(self, expr):
+        assert expr.is_loc()
+        super(ExprNodeLoc, self).__init__(expr)
+        self.arg = None
+
+    def __repr__(self):
+        if self.info is not None:
+            out = repr(self.info)
+        else:
+            out = str(self.expr)
+        return out
+
+
+class ExprNodeMem(ExprNode):
+    def __init__(self, expr):
+        assert expr.is_mem()
+        super(ExprNodeMem, self).__init__(expr)
+        self.arg = None
+
+    def __repr__(self):
+        if self.info is not None:
+            out = repr(self.info)
+        else:
+            out = "@%d[%r]" % (self.expr.size, self.arg)
+        return out
+
+
+class ExprNodeOp(ExprNode):
+    def __init__(self, expr):
+        assert expr.is_op()
+        super(ExprNodeOp, self).__init__(expr)
+        self.args = None
+
+    def __repr__(self):
+        if self.info is not None:
+            out = repr(self.info)
+        else:
+            if len(self.args) == 1:
+                out = "(%s(%r))" % (self.expr.op, self.args[0])
+            else:
+                out = "(%s)" % self.expr.op.join(repr(arg) for arg in self.args)
+        return out
+
+
+class ExprNodeSlice(ExprNode):
+    def __init__(self, expr):
+        assert expr.is_slice()
+        super(ExprNodeSlice, self).__init__(expr)
+        self.arg = None
+
+    def __repr__(self):
+        if self.info is not None:
+            out = repr(self.info)
+        else:
+            out = "%r[%d:%d]" % (self.arg, expr.start, expr.stop)
+        return out
+
+
+class ExprNodeCompose(ExprNode):
+    def __init__(self, expr):
+        assert expr.is_compose()
+        super(ExprNodeCompose, self).__init__(expr)
+        self.args = None
+
+    def __repr__(self):
+        if self.info is not None:
+            out = repr(self.info)
+        else:
+            out = "{%s}" % ', '.join(repr(arg) for arg in self.args)
+        return out
+
+
+class ExprNodeCond(ExprNode):
+    def __init__(self, expr):
+        assert expr.is_cond()
+        super(ExprNodeCond, self).__init__(expr)
+        self.cond = None
+        self.src1 = None
+        self.src2 = None
+
+    def __repr__(self):
+        if self.info is not None:
+            out = repr(self.info)
+        else:
+            out = "(%r?%r:%r)" % (self.cond, self.src1, self.src2)
         return out
 
 
@@ -76,22 +166,30 @@ class ExprReducer(object):
         @expr: Expression to analyze
         """
 
-        if isinstance(expr, (ExprId, ExprLoc, ExprInt)):
-            node = ExprNode(expr)
-        elif isinstance(expr, (ExprMem, ExprSlice)):
+        if isinstance(expr, ExprId):
+            node = ExprNodeId(expr)
+        elif isinstance(expr, ExprLoc):
+            node = ExprNodeLoc(expr)
+        elif isinstance(expr, ExprInt):
+            node = ExprNodeInt(expr)
+        elif isinstance(expr, ExprMem):
             son = self.expr2node(expr.arg)
-            node = ExprNode(expr)
+            node = ExprNodeMem(expr)
+            node.arg = son
+        elif isinstance(expr, ExprSlice):
+            son = self.expr2node(expr.arg)
+            node = ExprNodeSlice(expr)
             node.arg = son
         elif isinstance(expr, ExprOp):
             sons = [self.expr2node(arg) for arg in expr.args]
-            node = ExprNode(expr)
+            node = ExprNodeOp(expr)
             node.args = sons
         elif isinstance(expr, ExprCompose):
             sons = [self.expr2node(arg) for arg in expr.args]
-            node = ExprNode(expr)
+            node = ExprNodeCompose(expr)
             node.args = sons
         elif isinstance(expr, ExprCond):
-            node = ExprNode(expr)
+            node = ExprNodeCond(expr)
             node.cond = self.expr2node(expr.cond)
             node.src1 = self.expr2node(expr.src1)
             node.src2 = self.expr2node(expr.src2)
