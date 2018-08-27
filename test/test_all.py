@@ -5,11 +5,14 @@ from distutils.spawn import find_executable
 import time
 import os
 import tempfile
+import platform
 
 from utils.test import Test
 from utils.testset import TestSet
 from utils import cosmetics, multithread
 from multiprocessing import Queue
+
+is_win = platform.system() == "Windows"
 
 testset = TestSet("../")
 TAGS = {"regression": "REGRESSION", # Regression tests
@@ -97,6 +100,8 @@ for script in ["x86/sem.py",
         if jitter in blacklist.get(script, []):
             continue
         tags = [TAGS[jitter]] if jitter in TAGS else []
+        if is_win and script.endswith("mn_div.py"):
+            continue
         testset += ArchUnitTest(script, jitter, base_dir="arch", tags=tags)
 
 testset += ArchUnitTest("x86/unit/access_xmm.py", "python", base_dir="arch")
@@ -643,21 +648,35 @@ for options, nb_sol, tag in [([], 4, []),
                                  depends=[test_x86_32_if_reg],
                                  tags=tag)
 
+opts, cc = None, None
 dse_crackme_out = Example.get_sample("dse_crackme.c")[:-2]
-dse_crackme = ExampleSymbolExec([Example.get_sample("dse_crackme.c"),
-                                 "-o", dse_crackme_out],
+if is_win:
+    cc = "cl"
+    basename = dse_crackme_out
+    dse_crackme_out += ".exe"
+    opts = [Example.get_sample("dse_crackme.c"),
+            "/Fo" + basename + ".obj",
+            "/Fe" + basename + ".exe"]
+else:
+    cc = "cc"
+    opts = [Example.get_sample("dse_crackme.c"), "-o", dse_crackme_out]
+
+dse_crackme = ExampleSymbolExec(opts,
                                 products=[dse_crackme_out],
-                                executable="cc")
+                                executable=cc)
+
 testset += dse_crackme
+
 for strategy in ["code-cov", "branch-cov", "path-cov"]:
-    testset += ExampleSymbolExec(["dse_crackme.py", dse_crackme_out,
-                                  "--strategy", strategy],
-                                 depends=[dse_crackme],
-                                 tags=[TAGS["z3"]])
+    if not is_win:
+        testset += ExampleSymbolExec(["dse_crackme.py", dse_crackme_out,
+                                      "--strategy", strategy],
+                                      depends=[dse_crackme],
+                                      tags=[TAGS["z3"]])
     testset += ExampleSymbolExec(["dse_strategies.py",
                                   Example.get_sample("simple_test.bin"),
                                   strategy],
-                                 tags=[TAGS["z3"]])
+                                  tags=[TAGS["z3"]])
 
 ## Jitter
 class ExampleJitter(Example):
@@ -687,7 +706,7 @@ for jitter in ExampleJitter.jitter_engines:
                              ["--jitter", jitter],
                              products=[Example.get_sample("box_upx_exe_unupx.bin")],
                              tags=tags.get(jitter, []))
-    if jitter != "python":
+    if jitter != "python" and is_win == False:
         tags = tags.get(jitter, []) + [TAGS["long"]]
         ls_path = find_executable("ls")
         file_path = find_executable("file")

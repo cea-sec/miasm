@@ -35,7 +35,7 @@ jitter.add_exception_handler(EXCEPT_BREAKPOINT_MEMORY,
 jitter.vm.add_memory_breakpoint(0x11000-4, 4, PAGE_READ | PAGE_WRITE)
 
 # The memory write pending will raise automod execption
-# The RET should not re evalueate PC @ [ESP+4]
+# The RET should not re evaluate PC @ [ESP+4]
 jitter.init_run(0x1000)
 try:
     jitter.continue_run()

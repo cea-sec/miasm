@@ -35,10 +35,44 @@ class MessageClose(Message):
     "Close the channel"
     pass
 
+def worker(todo_queue, message_queue, init_args):
+    """Worker launched in parrallel
+    @todo_queue: task to do
+    @message_queue: communication with Host
+    @init_args: additionnal arguments for command line
+    """
+
+    # Main loop
+    while True:
+        # Acquire a task
+        test = todo_queue.get()
+        if test is None:
+            break
+        test.start_time = time.time()
+        message_queue.put(MessageTaskNew(test))
+
+        # Launch test
+        executable = test.executable if test.executable else sys.executable
+        testpy = subprocess.Popen(([executable] +
+                                   init_args + test.command_line),
+                                  stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE,
+                                  cwd=test.base_dir)
+        outputs = testpy.communicate()
+
+        # Check result
+        error = None
+        if testpy.returncode != 0:
+            error = outputs[1]
+
+        # Report task finish
+        message_queue.put(MessageTaskDone(test, error))
 
 class TestSet(object):
 
     "Manage a set of test"
+
+    worker = staticmethod(worker)
 
     def __init__(self, base_dir):
         """Initalise a test set
@@ -130,46 +164,6 @@ class TestSet(object):
                     self.errorcode = -1
             else:
                 raise ValueError("Unknown message type %s" % type(message))
-
-    @staticmethod
-    def worker(todo_queue, message_queue, init_args):
-        """Worker launched in parrallel
-        @todo_queue: task to do
-        @message_queue: communication with Host
-        @init_args: additionnal arguments for command line
-        """
-
-        # Main loop
-        while True:
-            # Acquire a task
-            test = todo_queue.get()
-            if test is None:
-                break
-            test.start_time = time.time()
-            message_queue.put(MessageTaskNew(test))
-
-            # Go to the expected directory
-            current_directory = os.getcwd()
-            os.chdir(test.base_dir)
-
-            # Launch test
-            executable = test.executable if test.executable else sys.executable
-            testpy = subprocess.Popen(([executable] +
-                                       init_args + test.command_line),
-                                      stdout=subprocess.PIPE,
-                                      stderr=subprocess.PIPE)
-            outputs = testpy.communicate()
-
-            # Check result
-            error = None
-            if testpy.returncode != 0:
-                error = outputs[1]
-
-            # Restore directory
-            os.chdir(current_directory)
-
-            # Report task finish
-            message_queue.put(MessageTaskDone(test, error))
 
     @staticmethod
     def fast_unify(seq, idfun=None):

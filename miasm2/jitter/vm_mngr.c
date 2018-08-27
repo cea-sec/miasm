@@ -15,18 +15,14 @@
 ** with this program; if not, write to the Free Software Foundation, Inc.,
 ** 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
-#include <Python.h>
+#include "vm_mngr.h"
+
+#include <inttypes.h>
 
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <stdint.h>
-#include <inttypes.h>
-
-
 #include "queue.h"
-#include "vm_mngr.h"
-
 
 
 
@@ -192,11 +188,11 @@ static uint64_t memory_page_read(vm_mngr_t* vm_mngr, unsigned int my_size, uint6
 			break;
 		case 16:
 			ret = *((unsigned short*)addr)&0xFFFF;
-			ret = set_endian16(vm_mngr, ret);
+			ret = set_endian16(vm_mngr, (uint16_t)ret);
 			break;
 		case 32:
 			ret = *((unsigned int*)addr)&0xFFFFFFFF;
-			ret = set_endian32(vm_mngr, ret);
+			ret = set_endian32(vm_mngr, (uint32_t)ret);
 			break;
 		case 64:
 			ret = *((uint64_t*)addr)&0xFFFFFFFFFFFFFFFFULL;
@@ -227,10 +223,10 @@ static uint64_t memory_page_read(vm_mngr_t* vm_mngr, unsigned int my_size, uint6
 			ret = ret;
 			break;
 		case 16:
-			ret = set_endian16(vm_mngr, ret);
+			ret = set_endian16(vm_mngr, (uint16_t)ret);
 			break;
 		case 32:
-			ret = set_endian32(vm_mngr, ret);
+			ret = set_endian32(vm_mngr, (uint32_t)ret);
 			break;
 		case 64:
 			ret = set_endian64(vm_mngr, ret);
@@ -278,11 +274,11 @@ static void memory_page_write(vm_mngr_t* vm_mngr, unsigned int my_size,
 			*((unsigned char*)addr) = src&0xFF;
 			break;
 		case 16:
-			src = set_endian16(vm_mngr, src);
+			src = set_endian16(vm_mngr, (uint16_t)src);
 			*((unsigned short*)addr) = src&0xFFFF;
 			break;
 		case 32:
-			src = set_endian32(vm_mngr, src);
+			src = set_endian32(vm_mngr, (uint32_t)src);
 			*((unsigned int*)addr) = src&0xFFFFFFFF;
 			break;
 		case 64:
@@ -303,10 +299,10 @@ static void memory_page_write(vm_mngr_t* vm_mngr, unsigned int my_size,
 			src = src;
 			break;
 		case 16:
-			src = set_endian16(vm_mngr, src);
+			src = set_endian16(vm_mngr, (uint16_t)src);
 			break;
 		case 32:
-			src = set_endian32(vm_mngr, src);
+			src = set_endian32(vm_mngr, (uint32_t)src);
 			break;
 		case 64:
 			src = set_endian64(vm_mngr, src);
@@ -484,21 +480,21 @@ unsigned char vm_MEM_LOOKUP_08(vm_mngr_t* vm_mngr, uint64_t addr)
 {
 	unsigned char ret;
 	add_mem_read(vm_mngr, addr, 1);
-	ret = memory_page_read(vm_mngr, 8, addr);
+	ret = (unsigned char)memory_page_read(vm_mngr, 8, addr);
 	return ret;
 }
 unsigned short vm_MEM_LOOKUP_16(vm_mngr_t* vm_mngr, uint64_t addr)
 {
 	unsigned short ret;
 	add_mem_read(vm_mngr, addr, 2);
-	ret = memory_page_read(vm_mngr, 16, addr);
+	ret = (unsigned short)memory_page_read(vm_mngr, 16, addr);
 	return ret;
 }
 unsigned int vm_MEM_LOOKUP_32(vm_mngr_t* vm_mngr, uint64_t addr)
 {
 	unsigned int ret;
 	add_mem_read(vm_mngr, addr, 4);
-	ret = memory_page_read(vm_mngr, 32, addr);
+	ret = (unsigned int)memory_page_read(vm_mngr, 32, addr);
 	return ret;
 }
 uint64_t vm_MEM_LOOKUP_64(vm_mngr_t* vm_mngr, uint64_t addr)
@@ -533,7 +529,7 @@ int vm_read_mem(vm_mngr_t* vm_mngr, uint64_t addr, char** buffer_ptr, uint64_t s
 	      }
 
 	      len = MIN(size, mpn->size - (addr - mpn->ad));
-	      memcpy(buffer, (char*)(mpn->ad_hp + (addr - mpn->ad)), len);
+	      memcpy(buffer, (char*)mpn->ad_hp + (addr - mpn->ad), len);
 	      buffer += len;
 	      addr += len;
 	      size -= len;
@@ -556,7 +552,7 @@ int vm_write_mem(vm_mngr_t* vm_mngr, uint64_t addr, char *buffer, uint64_t size)
 	      }
 
 	      len = MIN(size, mpn->size - (addr - mpn->ad));
-	      memcpy(mpn->ad_hp + (addr-mpn->ad), buffer, len);
+	      memcpy((char*)mpn->ad_hp + (addr-mpn->ad), buffer, len);
 	      buffer += len;
 	      addr += len;
 	      size -= len;
@@ -800,7 +796,7 @@ char* dump(vm_mngr_t* vm_mngr)
 	struct memory_page_node * mpn;
 	/*             0x1234567812345678 0x1234567812345678        */
 	char* intro = "Addr               Size               Access Comment\n";
-	int total_len = strlen(intro) + 1;
+	size_t total_len = strlen(intro) + 1;
 
 	buf_final = malloc(total_len);
 	if (buf_final == NULL) {
@@ -883,7 +879,7 @@ void remove_memory_breakpoint(vm_mngr_t* vm_mngr, uint64_t ad, unsigned int acce
 
 void hexdump(char* m, unsigned int l)
 {
-  int i, j, last;
+  unsigned int i, j, last;
   last = 0;
   for (i=0;i<l;i++){
       if (!(i%0x10) && i){
@@ -922,7 +918,7 @@ void hexdump(char* m, unsigned int l)
 
 
 // Return vm_mngr's exception flag value
-uint64_t get_exception_flag(vm_mngr_t* vm_mngr)
+_MIASM_EXPORT uint64_t get_exception_flag(vm_mngr_t* vm_mngr)
 {
 	return vm_mngr->exception_flags;
 }

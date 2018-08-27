@@ -1,5 +1,7 @@
 import os
+import platform
 
+is_win = platform.system() == "Windows"
 
 def getTerminalSize():
     "Return the size of the terminal : COLUMNS, LINES"
@@ -37,6 +39,12 @@ colors = {"red": "\033[91;1m",
           "lightcyan": "\033[96m",
           "blue": "\033[94;1m"}
 
+if is_win:
+    colors = {"red": "",
+              "end": "",
+              "green": "",
+              "lightcyan": "",
+              "blue": ""}
 
 def write_colored(text, color, already_printed=0):
     text_colored = colors[color] + text + colors["end"]

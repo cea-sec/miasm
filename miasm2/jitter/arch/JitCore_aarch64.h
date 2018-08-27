@@ -47,6 +47,11 @@ typedef struct {
 	uint32_t cf;
 }vm_cpu_t;
 
-void dump_gpregs(vm_cpu_t* vmcpu);
+_MIASM_EXPORT void dump_gpregs(vm_cpu_t* vmcpu);
+
+_MIASM_EXPORT void MEM_WRITE_08(JitCpu* jitcpu, uint64_t addr, uint8_t src);
+_MIASM_EXPORT void MEM_WRITE_16(JitCpu* jitcpu, uint64_t addr, uint16_t src);
+_MIASM_EXPORT void MEM_WRITE_32(JitCpu* jitcpu, uint64_t addr, uint32_t src);
+_MIASM_EXPORT void MEM_WRITE_64(JitCpu* jitcpu, uint64_t addr, uint64_t src);
 
 #define RETURN_PC return BlockDst;

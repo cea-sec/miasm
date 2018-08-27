@@ -14,6 +14,11 @@ struct vm_cpu {
     uint32_t reserve_address;
 };
 
-void dump_gpregs(struct vm_cpu *);
+_MIASM_EXPORT void dump_gpregs(struct vm_cpu *);
 
 typedef struct vm_cpu vm_cpu_t;
+
+_MIASM_EXPORT void MEM_WRITE_08(JitCpu* jitcpu, uint64_t addr, uint8_t src);
+_MIASM_EXPORT void MEM_WRITE_16(JitCpu* jitcpu, uint64_t addr, uint16_t src);
+_MIASM_EXPORT void MEM_WRITE_32(JitCpu* jitcpu, uint64_t addr, uint32_t src);
+_MIASM_EXPORT void MEM_WRITE_64(JitCpu* jitcpu, uint64_t addr, uint64_t src);

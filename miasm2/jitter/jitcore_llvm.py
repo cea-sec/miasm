@@ -5,18 +5,18 @@ import tempfile
 from miasm2.jitter.llvmconvert import *
 import miasm2.jitter.jitcore as jitcore
 import Jitllvm
-
+import platform
 
 class JitCore_LLVM(jitcore.JitCore):
     "JiT management, using LLVM as backend"
 
     # Architecture dependant libraries
-    arch_dependent_libs = {"x86": "JitCore_x86.so",
-                           "arm": "JitCore_arm.so",
-                           "msp430": "JitCore_msp430.so",
-                           "mips32": "JitCore_mips32.so",
-                           "aarch64": "JitCore_aarch64.so",
-                           "ppc32": "JitCore_ppc32.so",
+    arch_dependent_libs = {"x86": "JitCore_x86",
+                           "arm": "JitCore_arm",
+                           "msp430": "JitCore_msp430",
+                           "mips32": "JitCore_mips32",
+                           "aarch64": "JitCore_aarch64",
+                           "ppc32": "JitCore_ppc32",
     }
 
     def __init__(self, ir_arch, bin_stream):
@@ -49,9 +49,10 @@ class JitCore_LLVM(jitcore.JitCore):
         # Get architecture dependant Jitcore library (if any)
         lib_dir = os.path.dirname(os.path.realpath(__file__))
         lib_dir = os.path.join(lib_dir, 'arch')
+        ext = '.so' if platform.system() != 'Windows' else '.pyd'
         try:
             jit_lib = os.path.join(
-                lib_dir, self.arch_dependent_libs[self.ir_arch.arch.name])
+                lib_dir, self.arch_dependent_libs[self.ir_arch.arch.name] + ext)
             libs_to_load.append(jit_lib)
         except KeyError:
             pass
