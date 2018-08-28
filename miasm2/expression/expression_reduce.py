@@ -105,7 +105,7 @@ class ExprNodeSlice(ExprNode):
         if self.info is not None:
             out = repr(self.info)
         else:
-            out = "%r[%d:%d]" % (self.arg, expr.start, expr.stop)
+            out = "%r[%d:%d]" % (self.arg, self.expr.start, self.expr.stop)
         return out
 
 
@@ -216,15 +216,19 @@ class ExprReducer(object):
 
         expr = node.expr
         log_reduce.debug("\t" * lvl + "Reduce...: %s", node.expr)
-        if isinstance(expr, (ExprId, ExprInt, ExprLoc)):
-            pass
+        if isinstance(expr, ExprId):
+            node = ExprNodeId(expr)
+        elif isinstance(expr, ExprInt):
+            node = ExprNodeInt(expr)
+        elif isinstance(expr, ExprLoc):
+            node = ExprNodeLoc(expr)
         elif isinstance(expr, ExprMem):
             arg = self.categorize(node.arg, lvl=lvl + 1, **kwargs)
-            node = ExprNode(ExprMem(arg.expr, expr.size))
+            node = ExprNodeMem(ExprMem(arg.expr, expr.size))
             node.arg = arg
         elif isinstance(expr, ExprSlice):
             arg = self.categorize(node.arg, lvl=lvl + 1, **kwargs)
-            node = ExprNode(ExprSlice(arg.expr, expr.start, expr.stop))
+            node = ExprNodeSlice(ExprSlice(arg.expr, expr.start, expr.stop))
             node.arg = arg
         elif isinstance(expr, ExprOp):
             new_args = []
@@ -232,7 +236,7 @@ class ExprReducer(object):
                 new_a = self.categorize(arg, lvl=lvl + 1, **kwargs)
                 assert new_a.expr.size == arg.expr.size
                 new_args.append(new_a)
-            node = ExprNode(ExprOp(expr.op, *[x.expr for x in new_args]))
+            node = ExprNodeOp(ExprOp(expr.op, *[x.expr for x in new_args]))
             node.args = new_args
             expr = node.expr
         elif isinstance(expr, ExprCompose):
@@ -243,13 +247,13 @@ class ExprReducer(object):
                 new_args.append(arg)
                 new_expr_args.append(arg.expr)
             new_expr = ExprCompose(*new_expr_args)
-            node = ExprNode(new_expr)
+            node = ExprNodeCompose(new_expr)
             node.args = new_args
         elif isinstance(expr, ExprCond):
             cond = self.categorize(node.cond, lvl=lvl + 1, **kwargs)
             src1 = self.categorize(node.src1, lvl=lvl + 1, **kwargs)
             src2 = self.categorize(node.src2, lvl=lvl + 1, **kwargs)
-            node = ExprNode(ExprCond(cond.expr, src1.expr, src2.expr))
+            node = ExprNodeCond(ExprCond(cond.expr, src1.expr, src2.expr))
             node.cond, node.src1, node.src2 = cond, src1, src2
         else:
             raise TypeError("Unknown Expr Type %r", type(expr))
