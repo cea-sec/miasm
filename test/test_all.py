@@ -645,16 +645,10 @@ for options, nb_sol, tag in [([], 4, []),
                                  depends=[test_x86_32_if_reg],
                                  tags=tag)
 
-dse_crackme_out = Example.get_sample("dse_crackme.c")[:-2]
-dse_crackme = ExampleSymbolExec([Example.get_sample("dse_crackme.c"),
-                                 "-o", dse_crackme_out],
-                                products=[dse_crackme_out],
-                                executable="cc")
-testset += dse_crackme
+dse_crackme_out = Example.get_sample("dse_crackme")
 for strategy in ["code-cov", "branch-cov", "path-cov"]:
     testset += ExampleSymbolExec(["dse_crackme.py", dse_crackme_out,
                                   "--strategy", strategy],
-                                 depends=[dse_crackme],
                                  tags=[TAGS["z3"]])
     testset += ExampleSymbolExec(["dse_strategies.py",
                                   Example.get_sample("simple_test.bin"),
