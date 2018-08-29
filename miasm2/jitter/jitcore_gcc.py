@@ -74,10 +74,7 @@ class JitCore_Gcc(JitCore_Cc_Base):
                 out_dir, _ = os.path.split(fname_tmp)
                 check_call(cl, cwd = out_dir)
             else:
-                args = []
-                args.extend(inc_dir)
-                args.extend(["cc", "-O3", "-shared", "-fPIC", fname_in, "-o", fname_tmp])
-                args.extend(libs)
+                args = ["cc", "-O3", "-shared", "-fPIC", fname_in, "-o", fname_tmp] + inc_dir + libs
                 check_call(args)
 
             # Move temporary file to final file
