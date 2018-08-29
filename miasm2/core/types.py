@@ -369,6 +369,9 @@ class RawStruct(Type):
     def __eq__(self, other):
         return self.__class__ == other.__class__ and self._fmt == other._fmt
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def __hash__(self):
         return hash((self.__class__, self._fmt))
 
@@ -502,6 +505,9 @@ class Ptr(Num):
                 self.dst_type == other.dst_type and \
                 self._type_args == other._type_args and \
                 self._type_kwargs == other._type_kwargs
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def __hash__(self):
         return hash((super(Ptr, self).__hash__(), self.dst_type,
@@ -672,6 +678,9 @@ class Struct(Type):
         return self.__class__ == other.__class__ and \
                 self.fields == other.fields and \
                 self.name == other.name
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def __hash__(self):
         # Only hash name, not fields, because if a field is a Ptr to this
@@ -862,6 +871,9 @@ class Array(Type):
                 self.field_type == other.field_type and \
                 self.array_len == other.array_len
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def __hash__(self):
         return hash((self.__class__, self.field_type, self.array_len))
 
@@ -926,6 +938,9 @@ class Bits(Type):
                 self._num == other._num and self._bits == other._bits and \
                 self._bit_offset == other._bit_offset
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def __hash__(self):
         return hash((self.__class__, self._num, self._bits, self._bit_offset))
 
@@ -982,6 +997,9 @@ class BitField(Union):
     def __eq__(self, other):
         return self.__class__ == other.__class__ and \
                 self._num == other._num and super(BitField, self).__eq__(other)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def __hash__(self):
         return hash((super(BitField, self).__hash__(), self._num))
@@ -1095,6 +1113,9 @@ class Str(Type):
     def __eq__(self, other):
         return self.__class__ == other.__class__ and self._enc == other._enc
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def __hash__(self):
         return hash((self.__class__, self._enc))
 
@@ -1110,6 +1131,9 @@ class Void(Type):
 
     def __eq__(self, other):
         return self.__class__ == other.__class__
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def __hash__(self):
         return hash(self.__class__)

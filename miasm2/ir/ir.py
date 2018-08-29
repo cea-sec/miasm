@@ -697,9 +697,9 @@ class DiGraphIR(IRCFG):
     Use IRCFG instead of DiGraphIR
     """
 
-    def __init__(self, irdst, loc_db, blocks=None, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         warnings.warn('DEPRECATION WARNING: use "IRCFG" instead of "DiGraphIR"')
-        super(IRCFG, self).__init__(irdst, loc_db, blocks=None, *args, **kwargs)
+        raise NotImplementedError("Depreceated")
 
 
 class IntermediateRepresentation(object):

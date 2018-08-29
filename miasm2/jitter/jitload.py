@@ -2,12 +2,11 @@
 import logging
 import warnings
 from functools import wraps
-from collections import Sequence, namedtuple, Iterator
+from collections import Sequence, namedtuple
 
 from miasm2.jitter.csts import *
 from miasm2.core.utils import *
 from miasm2.core.bin_stream import bin_stream_vm
-from miasm2.core.interval import interval
 from miasm2.jitter.emulatedsymbexec import EmulatedSymbExec
 from miasm2.jitter.codegen import CGen
 from miasm2.jitter.jitcore_cc_base import JitCore_Cc_Base
@@ -131,7 +130,6 @@ class CallbackHandlerBitflag(CallbackHandler):
         callbacks return True, continue with next callback.
         Iterator on other results"""
 
-        res = True
         for bitflag_expected in self.callbacks:
             if bitflag_expected & bitflag == bitflag_expected:
                 # If the flag matched

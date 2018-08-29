@@ -464,6 +464,9 @@ class CGenInt(CGen):
         return (super(CGenInt, self).__eq__(other) and
                 self._integer == other.integer)
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def to_c(self):
         """Generate corresponding C"""
 

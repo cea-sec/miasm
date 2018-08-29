@@ -1,8 +1,7 @@
 #-*- coding:utf-8 -*-
 import re
 
-from miasm2.expression.expression import ExprId, ExprInt, ExprOp, ExprLoc, \
-    LocKey
+from miasm2.expression.expression import ExprId, ExprInt, ExprOp, LocKey
 import miasm2.core.asmblock as asmblock
 from miasm2.core.cpu import instruction, base_expr
 from miasm2.core.asm_ast import AstInt, AstId, AstOp

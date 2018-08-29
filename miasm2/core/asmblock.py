@@ -4,8 +4,7 @@ import logging
 import warnings
 from collections import namedtuple
 
-from miasm2.expression.expression import ExprId, ExprInt, ExprLoc, \
-    get_expr_locs
+from miasm2.expression.expression import ExprId, ExprInt, get_expr_locs
 from miasm2.expression.expression import LocKey
 from miasm2.expression.simplifications import expr_simp
 from miasm2.expression.modint import moduint, modint

@@ -1,6 +1,5 @@
 import imp
 import logging
-import operator
 
 # Raise an ImportError if z3 is not available WITHOUT actually importing it
 imp.find_module("z3")

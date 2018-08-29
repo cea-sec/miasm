@@ -1,11 +1,9 @@
 from miasm2.ir.translators.translator import Translator
-from miasm2.core import asmblock
 from miasm2.expression.modint import size2mask
 from miasm2.expression.expression import ExprInt, ExprCond, ExprCompose
 
 def int_size_to_bn(value, size):
     if size < 32:
-        size = 32
         int_str = "%.8x" % value
         size_nibble = 8
     else:
@@ -259,8 +257,8 @@ class TranslatorC(Translator):
                     out = 'SHIFT_%s(%d, %s, %s)' % (
                         self.dct_shift[expr.op].upper(),
                         expr.args[0].size,
-                        self.from_expr(expr.args[0]),
-                        self.from_expr(expr.args[1])
+                        arg0,
+                        arg1
                     )
                 else:
                     op = {
@@ -315,8 +313,8 @@ class TranslatorC(Translator):
                     out = '(%s(%s, %s, %s) &%s)' % (
                         self.dct_rot[expr.op],
                         expr.args[0].size,
-                        self.from_expr(expr.args[0]),
-                        self.from_expr(expr.args[1]),
+                        arg0,
+                        arg1,
                         self._size2mask(expr.args[0].size),
                     )
                 else:
@@ -358,14 +356,14 @@ class TranslatorC(Translator):
                     out = '%s%d(%s, %s)' % (
                         expr.op,
                         expr.args[0].size,
-                        self.from_expr(expr.args[0]),
-                        self.from_expr(expr.args[1])
+                        arg0,
+                        arg1
                     )
                 else:
                     out = "bignum_%s(%s, %s)" % (
                         expr.op,
-                        self.from_expr(expr.args[0]),
-                        self.from_expr(expr.args[1])
+                        arg0,
+                        arg1
                     )
                     out = "bignum_mask(%s, %d)"% (out, expr.size)
                 return out
@@ -380,14 +378,14 @@ class TranslatorC(Translator):
                     out = '%s%d(%s, %s)' % (
                         expr.op,
                         expr.args[0].size,
-                        self.from_expr(expr.args[0]),
-                        self.from_expr(expr.args[1])
+                        arg0,
+                        arg1
                     )
                 else:
                     out = "bignum_%s(%s, %s, %d)" % (
                         expr.op,
-                        self.from_expr(expr.args[0]),
-                        self.from_expr(expr.args[1]),
+                        arg0,
+                        arg1,
                         expr.size
                     )
                     out = "bignum_mask(%s, %d)"% (out, expr.size)

@@ -135,7 +135,6 @@ class reg_info_dct(object):
 
 def gen_reg(reg_name, sz=32):
     """Gen reg expr and parser"""
-    reg_name_lower = reg_name.lower()
     reg = m2_expr.ExprId(reg_name, sz)
     reginfo = reg_info([reg_name], [reg])
     return reg, reginfo
@@ -149,7 +148,6 @@ def gen_reg_bs(reg_name, reg_info, base_cls):
 
         bs_reg_name = bs(l=0, cls=(bs_reg_name,))
     """
-    reg_name_lower = reg_name.lower()
 
     bs_name = "bs_%s" % reg_name
     cls = type(bs_name, base_cls, {'reg': reg_info})

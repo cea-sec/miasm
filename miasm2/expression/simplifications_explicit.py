@@ -1,6 +1,5 @@
 from miasm2.expression.modint import size2mask
-from miasm2.expression.expression import ExprInt, ExprCond, ExprOp, \
-    ExprCompose
+from miasm2.expression.expression import ExprInt, ExprCond, ExprCompose
 
 
 def simp_ext(_, expr):

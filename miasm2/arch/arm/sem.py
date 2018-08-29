@@ -801,7 +801,6 @@ def st_ld_r(ir, instr, a, a2, b, store=False, size=32, s_ext=False, z_ext=False)
             raise ValueError('unhandled case')
     elif size == 32:
         m = ExprMem(ad, size=size)
-        pass
     elif size == 64:
         assert a2 is not None
         m = ExprMem(ad, size=32)
@@ -1176,11 +1175,6 @@ def bfc(ir, instr, a, b, c):
         e.append(ExprAff(ir.IRDst, r))
     return e, []
 
-def rev(ir, instr, a, b):
-    e = []
-    c = ExprCompose(b[24:32], b[16:24], b[8:16], b[:8])
-    e.append(ExprAff(a, c))
-    return e, []
 
 def pld(ir, instr, a):
     e = []

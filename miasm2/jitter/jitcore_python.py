@@ -1,7 +1,7 @@
 import miasm2.jitter.jitcore as jitcore
 import miasm2.expression.expression as m2_expr
 import miasm2.jitter.csts as csts
-from miasm2.expression.simplifications import ExpressionSimplifier, expr_simp_explicit
+from miasm2.expression.simplifications import expr_simp_explicit
 from miasm2.jitter.emulatedsymbexec import EmulatedSymbExec
 
 ################################################################################
@@ -59,7 +59,6 @@ class JitCore_Python(jitcore.JitCore):
             exec_engine = self.symbexec
             expr_simp = exec_engine.expr_simp
 
-            known_loc_keys = set(irb.loc_key for irb in irblocks)
             # For each irbloc inside irblocks
             while True:
                 # Get the current bloc

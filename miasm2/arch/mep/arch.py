@@ -3,7 +3,8 @@
 
 from miasm2.core.cpu import *
 from miasm2.core.utils import Disasm_Exception
-from miasm2.expression.expression import *
+from miasm2.expression.expression import Expr, ExprId, ExprInt, ExprLoc, \
+    ExprMem, ExprOp
 from miasm2.core.asm_ast import AstId, AstMem
 
 from miasm2.arch.mep.regs import *

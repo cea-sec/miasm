@@ -69,6 +69,9 @@ class CTypeId(CTypeBase):
         return (self.eq_base(other) and
                 self.names == other.names)
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def __str__(self):
         return "<Id:%s>" % ', '.join(self.names)
 
@@ -92,6 +95,9 @@ class CTypeArray(CTypeBase):
                 self.target == other.target and
                 self.size == other.size)
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def __str__(self):
         return "<Array[%s]:%s>" % (self.size, str(self.target))
 
@@ -112,6 +118,9 @@ class CTypePtr(CTypeBase):
     def __eq__(self, other):
         return (self.eq_base(other) and
                 self.target == other.target)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def __str__(self):
         return "<Ptr:%s>" % str(self.target)
@@ -138,6 +147,9 @@ class CTypeStruct(CTypeBase):
         return (self.eq_base(other) and
                 self.name == other.name and
                 self.fields == other.fields)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def __str__(self):
         out = []
@@ -191,6 +203,9 @@ class CTypeEnum(CTypeBase):
         return (self.eq_base(other) and
                 self.name == other.name)
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def __str__(self):
         return "<Enum:%s>" % self.name
 
@@ -224,6 +239,9 @@ class CTypeFunc(CTypeBase):
                 self.type_ret == other.type_ret and
                 self.args == other.args)
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def __str__(self):
         return "<Func:%s (%s) %s(%s)>" % (self.type_ret,
                                           self.abi,
@@ -239,6 +257,9 @@ class CTypeEllipsis(CTypeBase):
 
     def __eq__(self, other):
         return self.eq_base(other)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def __str__(self):
         return "<Ellipsis>"
@@ -257,6 +278,9 @@ class CTypeSizeof(CTypeBase):
     def __eq__(self, other):
         return (self.eq_base(other) and
                 self.target == other.target)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def __str__(self):
         return "<Sizeof(%s)>" % self.target
