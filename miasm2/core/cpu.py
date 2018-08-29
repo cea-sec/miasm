@@ -11,6 +11,7 @@ import miasm2.expression.expression as m2_expr
 from miasm2.core.bin_stream import bin_stream, bin_stream_str
 from miasm2.core.utils import Disasm_Exception
 from miasm2.expression.simplifications import expr_simp
+from miasm2.core.locationdb import LocationDB
 
 
 from miasm2.core.asm_ast import AstNode, AstInt, AstId, AstOp
@@ -1012,7 +1013,7 @@ class instruction(object):
 
     def resolve_args_with_symbols(self, symbols=None):
         if symbols is None:
-            symbols = {}
+            symbols = LocationDB()
         args_out = []
         for expr in self.args:
             # try to resolve symbols using symbols (0 for default value)
