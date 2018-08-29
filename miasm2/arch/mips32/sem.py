@@ -7,10 +7,14 @@ from miasm2.jitter.csts import EXCEPT_DIV_BY_ZERO
 
 
 # SemBuilder context
-ctx = {"R_LO": R_LO,
-       "R_HI": R_HI,
-       "PC": PC,
-       "RA": RA}
+ctx = {
+    "R_LO": R_LO,
+    "R_HI": R_HI,
+    "PC": PC,
+    "RA": RA,
+    "m2_expr": m2_expr
+}
+
 sbuild = SemBuilder(ctx)
 
 
@@ -76,7 +80,7 @@ def lb(arg1, arg2):
 @sbuild.parse
 def beq(arg1, arg2, arg3):
     "Branches on @arg3 if the quantities of two registers @arg1, @arg2 are eq"
-    dst = arg3 if ExprOp("==", arg1, arg2) else ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size)
+    dst = arg3 if ExprOp(m2_expr.TOK_EQUAL, arg1, arg2) else ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size)
     PC = dst
     ir.IRDst = dst
 
@@ -84,7 +88,7 @@ def beq(arg1, arg2, arg3):
 def bgez(arg1, arg2):
     """Branches on @arg2 if the quantities of register @arg1 is greater than or
     equal to zero"""
-    dst = ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size) if ExprOp('<s', arg1, ExprInt(0, arg1.size)) else arg2
+    dst = ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size) if ExprOp(m2_expr.TOK_INF_SIGNED, arg1, ExprInt(0, arg1.size)) else arg2
     PC = dst
     ir.IRDst = dst
 
@@ -92,7 +96,7 @@ def bgez(arg1, arg2):
 def bne(arg1, arg2, arg3):
     """Branches on @arg3 if the quantities of two registers @arg1, @arg2 are NOT
     equal"""
-    dst = ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size) if ExprOp('==', arg1, arg2) else arg3
+    dst = ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size) if ExprOp(m2_expr.TOK_EQUAL, arg1, arg2) else arg3
     PC = dst
     ir.IRDst = dst
 
@@ -146,7 +150,7 @@ def sltu(arg1, arg2, arg3):
     """If @arg2 is less than @arg3 (unsigned), @arg1 is set to one. It gets zero
     otherwise."""
     arg1 = ExprCond(
-        ExprOp("<u", arg2, arg3),
+        ExprOp(m2_expr.TOK_INF_UNSIGNED, arg2, arg3),
         ExprInt(1, arg1.size),
         ExprInt(0, arg1.size)
     )
@@ -156,7 +160,7 @@ def slt(arg1, arg2, arg3):
     """If @arg2 is less than @arg3 (signed), @arg1 is set to one. It gets zero
     otherwise."""
     arg1 = ExprCond(
-        ExprOp("<s", arg2, arg3),
+        ExprOp(m2_expr.TOK_INF_SIGNED, arg2, arg3),
         ExprInt(1, arg1.size),
         ExprInt(0, arg1.size)
     )
@@ -239,14 +243,14 @@ def seh(arg1, arg2):
 @sbuild.parse
 def bltz(arg1, arg2):
     """Branches on @arg2 if the register @arg1 is less than zero"""
-    dst_o = arg2 if ExprOp('<s', arg1, ExprInt(0, arg1.size)) else ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size)
+    dst_o = arg2 if ExprOp(m2_expr.TOK_INF_SIGNED, arg1, ExprInt(0, arg1.size)) else ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size)
     PC = dst_o
     ir.IRDst = dst_o
 
 @sbuild.parse
 def blez(arg1, arg2):
     """Branches on @arg2 if the register @arg1 is less than or equal to zero"""
-    cond = ExprOp("<=s", arg1, ExprInt(0, arg1.size))
+    cond = ExprOp(m2_expr.TOK_INF_EQUAL_SIGNED, arg1, ExprInt(0, arg1.size))
     dst_o = arg2 if cond else ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size)
     PC = dst_o
     ir.IRDst = dst_o
@@ -254,7 +258,7 @@ def blez(arg1, arg2):
 @sbuild.parse
 def bgtz(arg1, arg2):
     """Branches on @arg2 if the register @arg1 is greater than zero"""
-    cond =  ExprOp("<=s", arg1, ExprInt(0, arg1.size))
+    cond =  ExprOp(m2_expr.TOK_INF_EQUAL_SIGNED, arg1, ExprInt(0, arg1.size))
     dst_o = ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size) if cond else arg2
     PC = dst_o
     ir.IRDst = dst_o

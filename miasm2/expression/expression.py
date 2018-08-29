@@ -1009,7 +1009,7 @@ class ExprOp(Expr):
 
         # Set size for special cases
         if self._op in [
-                '==', 'parity', 'fcom_c0', 'fcom_c1', 'fcom_c2', 'fcom_c3',
+                TOK_EQUAL, 'parity', 'fcom_c0', 'fcom_c1', 'fcom_c2', 'fcom_c3',
                 'fxam_c0', 'fxam_c1', 'fxam_c2', 'fxam_c3',
                 "access_segment_ok", "load_segment_limit_ok", "bcdadd_cf",
                 "ucomiss_zf", "ucomiss_pf", "ucomiss_cf",
@@ -1102,9 +1102,15 @@ class ExprOp(Expr):
         return self._op.startswith('call')
 
     def is_infix(self):
-        return self._op in [ '-', '+', '*', '^', '&', '|', '>>', '<<',
-                             'a>>', '>>>', '<<<', '/', '%', '**',
-                             '<u', '<s', '<=u', '<=s', '==' ]
+        return self._op in [
+            '-', '+', '*', '^', '&', '|', '>>', '<<',
+            'a>>', '>>>', '<<<', '/', '%', '**',
+            TOK_INF_UNSIGNED,
+            TOK_INF_SIGNED,
+            TOK_INF_EQUAL_UNSIGNED,
+            TOK_INF_EQUAL_SIGNED,
+            TOK_EQUAL
+        ]
 
     def is_associative(self):
         "Return True iff current operation is associative"

@@ -1,6 +1,7 @@
 from miasm2.ir.translators.translator import Translator
 from miasm2.expression.modint import size2mask
-from miasm2.expression.expression import ExprInt, ExprCond, ExprCompose
+from miasm2.expression.expression import ExprInt, ExprCond, ExprCompose, \
+    TOK_EQUAL
 
 def int_size_to_bn(value, size):
     if size < 32:
@@ -243,7 +244,7 @@ class TranslatorC(Translator):
                 raise NotImplementedError('Unknown op: %r' % expr.op)
 
         elif len(expr.args) == 2:
-            if expr.op == "==":
+            if expr.op == TOK_EQUAL:
                 return '(((%s&%s) == (%s&%s))?1:0)' % (
                     self.from_expr(expr.args[0]),
                     self._size2mask(expr.args[0].size),

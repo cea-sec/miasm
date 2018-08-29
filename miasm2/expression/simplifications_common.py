@@ -4,8 +4,11 @@
 
 
 from miasm2.expression.modint import mod_size2int, mod_size2uint
-from miasm2.expression.expression import ExprInt, ExprSlice, ExprMem, ExprCond, ExprOp, ExprCompose
-from miasm2.expression.expression_helper import parity, op_propag_cst, merge_sliceto_slice
+from miasm2.expression.expression import ExprInt, ExprSlice, ExprMem, \
+    ExprCond, ExprOp, ExprCompose, TOK_INF_SIGNED, TOK_INF_UNSIGNED, \
+    TOK_INF_EQUAL_SIGNED, TOK_INF_EQUAL_UNSIGNED, TOK_EQUAL
+from miasm2.expression.expression_helper import parity, op_propag_cst, \
+    merge_sliceto_slice
 
 
 def simp_cst_propagation(e_s, expr):
@@ -692,7 +695,7 @@ def simp_cc_conds(expr_simp, expr):
               "FLAG_SUB_CF"
           )):
         expr = ExprCond(
-            ExprOp("<u", *expr.args[0].args),
+            ExprOp(TOK_INF_UNSIGNED, *expr.args[0].args),
             ExprInt(0, 1),
             ExprInt(1, 1))
 
@@ -701,14 +704,14 @@ def simp_cc_conds(expr_simp, expr):
               expr,
               "FLAG_SUB_CF"
           )):
-        expr = ExprOp("<u", *expr.args[0].args)
+        expr = ExprOp(TOK_INF_UNSIGNED, *expr.args[0].args)
 
     elif (expr.is_op("CC_NEG") and
           test_cc_eq_args(
               expr,
               "FLAG_SIGN_SUB"
           )):
-        expr = ExprOp("<s", *expr.args[0].args)
+        expr = ExprOp(TOK_INF_SIGNED, *expr.args[0].args)
 
     elif (expr.is_op("CC_POS") and
           test_cc_eq_args(
@@ -716,7 +719,7 @@ def simp_cc_conds(expr_simp, expr):
               "FLAG_SIGN_SUB"
           )):
         expr = ExprCond(
-            ExprOp("<s", *expr.args[0].args),
+            ExprOp(TOK_INF_SIGNED, *expr.args[0].args),
             ExprInt(0, 1),
             ExprInt(1, 1)
         )
@@ -727,7 +730,7 @@ def simp_cc_conds(expr_simp, expr):
               "FLAG_EQ"
           )):
         arg = expr.args[0].args[0]
-        expr = ExprOp("==", arg, ExprInt(0, arg.size))
+        expr = ExprOp(TOK_EQUAL, arg, ExprInt(0, arg.size))
 
     elif (expr.is_op("CC_NE") and
           test_cc_eq_args(
@@ -736,7 +739,7 @@ def simp_cc_conds(expr_simp, expr):
           )):
         arg = expr.args[0].args[0]
         expr = ExprCond(
-            ExprOp("==",arg, ExprInt(0, arg.size)),
+            ExprOp(TOK_EQUAL,arg, ExprInt(0, arg.size)),
             ExprInt(0, 1),
             ExprInt(1, 1)
         )
@@ -746,7 +749,7 @@ def simp_cc_conds(expr_simp, expr):
               "FLAG_EQ_CMP"
           )):
         expr = ExprCond(
-            ExprOp("==", *expr.args[0].args),
+            ExprOp(TOK_EQUAL, *expr.args[0].args),
             ExprInt(0, 1),
             ExprInt(1, 1)
         )
@@ -756,7 +759,7 @@ def simp_cc_conds(expr_simp, expr):
               expr,
               "FLAG_EQ_CMP"
           )):
-        expr = ExprOp("==", *expr.args[0].args)
+        expr = ExprOp(TOK_EQUAL, *expr.args[0].args)
 
     elif (expr.is_op("CC_NE") and
           test_cc_eq_args(
@@ -784,7 +787,7 @@ def simp_cc_conds(expr_simp, expr):
               "FLAG_EQ_CMP",
           )):
         expr = ExprCond(
-            ExprOp("<=s", *expr.args[0].args),
+            ExprOp(TOK_INF_EQUAL_SIGNED, *expr.args[0].args),
             ExprInt(0, 1),
             ExprInt(1, 1)
         )
@@ -796,7 +799,7 @@ def simp_cc_conds(expr_simp, expr):
           expr.args[0].args == expr.args[2].args and
           expr.args[1].is_int(0)):
         expr = ExprCond(
-            ExprOp("<=s", *expr.args[0].args),
+            ExprOp(TOK_INF_EQUAL_SIGNED, *expr.args[0].args),
             ExprInt(0, 1),
             ExprInt(1, 1)
         )
@@ -810,7 +813,7 @@ def simp_cc_conds(expr_simp, expr):
               "FLAG_SUB_OF"
           )):
         expr = ExprCond(
-            ExprOp("<s", *expr.args[0].args),
+            ExprOp(TOK_INF_SIGNED, *expr.args[0].args),
             ExprInt(0, 1),
             ExprInt(1, 1)
         )
@@ -821,7 +824,7 @@ def simp_cc_conds(expr_simp, expr):
               "FLAG_SIGN_SUB",
               "FLAG_SUB_OF"
           )):
-        expr = ExprOp("<s", *expr.args[0].args)
+        expr = ExprOp(TOK_INF_SIGNED, *expr.args[0].args)
 
     elif (expr.is_op("CC_S<=") and
           test_cc_eq_args(
@@ -830,7 +833,7 @@ def simp_cc_conds(expr_simp, expr):
               "FLAG_SUB_OF",
               "FLAG_EQ_CMP",
           )):
-        expr = ExprOp("<=s", *expr.args[0].args)
+        expr = ExprOp(TOK_INF_EQUAL_SIGNED, *expr.args[0].args)
 
     elif (expr.is_op("CC_S<=") and
           len(expr.args) == 3 and
@@ -838,7 +841,7 @@ def simp_cc_conds(expr_simp, expr):
           expr.args[2].is_op("FLAG_EQ_CMP") and
           expr.args[0].args == expr.args[2].args and
           expr.args[1].is_int(0)):
-        expr = ExprOp("<=s", *expr.args[0].args)
+        expr = ExprOp(TOK_INF_EQUAL_SIGNED, *expr.args[0].args)
 
     elif (expr.is_op("CC_U<=") and
           test_cc_eq_args(
@@ -846,7 +849,7 @@ def simp_cc_conds(expr_simp, expr):
               "FLAG_SUB_CF",
               "FLAG_EQ_CMP",
           )):
-        expr = ExprOp("<=u", *expr.args[0].args)
+        expr = ExprOp(TOK_INF_EQUAL_UNSIGNED, *expr.args[0].args)
 
     elif (expr.is_op("CC_U>") and
           test_cc_eq_args(
@@ -855,7 +858,7 @@ def simp_cc_conds(expr_simp, expr):
               "FLAG_EQ_CMP",
           )):
         expr = ExprCond(
-            ExprOp("<=u", *expr.args[0].args),
+            ExprOp(TOK_INF_EQUAL_UNSIGNED, *expr.args[0].args),
             ExprInt(0, 1),
             ExprInt(1, 1)
         )
@@ -867,7 +870,7 @@ def simp_cc_conds(expr_simp, expr):
               "FLAG_ADD_OF"
           )):
         arg0, arg1 = expr.args[0].args
-        expr = ExprOp("<s", arg0, -arg1)
+        expr = ExprOp(TOK_INF_SIGNED, arg0, -arg1)
 
     return expr
 
@@ -877,12 +880,12 @@ def simp_cond_flag(expr_simp, expr):
     # FLAG_EQ_CMP(X, Y)?A:B => (X == Y)?A:B
     cond = expr.cond
     if cond.is_op("FLAG_EQ_CMP"):
-        return ExprCond(ExprOp("==", *cond.args), expr.src1, expr.src2)
+        return ExprCond(ExprOp(TOK_EQUAL, *cond.args), expr.src1, expr.src2)
     return expr
 
 
 def simp_cond_int(expr_simp, expr):
-    if (expr.cond.is_op('==') and
+    if (expr.cond.is_op(TOK_EQUAL) and
           expr.cond.args[1].is_int() and
           expr.cond.args[0].is_compose() and
           len(expr.cond.args[0].args) == 2 and
@@ -891,9 +894,20 @@ def simp_cond_int(expr_simp, expr):
         src = expr.cond.args[0].args[0]
         int_val = int(expr.cond.args[1])
         new_int = ExprInt(int_val, src.size)
-        expr = expr_simp(ExprCond(ExprOp("==", src, new_int), expr.src1, expr.src2))
+        expr = expr_simp(
+            ExprCond(
+                ExprOp(TOK_EQUAL, src, new_int),
+                expr.src1,
+                expr.src2)
+        )
     elif (expr.cond.is_op() and
-          expr.cond.op in ['==', '<s', '<=s', '<u', '<=u'] and
+          expr.cond.op in [
+              TOK_EQUAL,
+              TOK_INF_SIGNED,
+              TOK_INF_EQUAL_SIGNED,
+              TOK_INF_UNSIGNED,
+              TOK_INF_EQUAL_UNSIGNED
+          ] and
           expr.cond.args[1].is_int() and
           expr.cond.args[0].is_op("+") and
           expr.cond.args[0].args[-1].is_int()):
@@ -905,7 +919,12 @@ def simp_cond_int(expr_simp, expr):
         else:
             left = ExprOp('+', *left)
         new_int = expr_simp(right - int_diff)
-        expr = expr_simp(ExprCond(ExprOp(expr.cond.op, left, new_int), expr.src1, expr.src2))
+        expr = expr_simp(
+            ExprCond(
+                ExprOp(expr.cond.op, left, new_int),
+                expr.src1,
+                expr.src2)
+        )
     return expr
 
 
@@ -920,7 +939,13 @@ def simp_cmp_int_arg(expr_simp, expr):
     if not cond.is_op():
         return expr
     op = cond.op
-    if op not in ['==', '<s', '<=s', '<u', '<=u']:
+    if op not in [
+            TOK_EQUAL,
+            TOK_INF_SIGNED,
+            TOK_INF_EQUAL_SIGNED,
+            TOK_INF_UNSIGNED,
+            TOK_INF_EQUAL_UNSIGNED
+    ]:
         return expr
     arg1, arg2 = cond.args
     if arg2.is_int():
@@ -928,19 +953,19 @@ def simp_cmp_int_arg(expr_simp, expr):
     if not arg1.is_int():
         return expr
     src1, src2 = expr.src1, expr.src2
-    if op == "==":
-        return ExprCond(ExprOp('==', arg2, arg1), src1, src2)
+    if op == TOK_EQUAL:
+        return ExprCond(ExprOp(TOK_EQUAL, arg2, arg1), src1, src2)
 
     arg1, arg2 = arg2, arg1
     src1, src2 = src2, src1
-    if op == '<s':
-        op = '<=s'
-    elif op == '<=s':
-        op = '<s'
-    elif op == '<u':
-        op = '<=u'
-    elif op == '<=u':
-        op = '<u'
+    if op == TOK_INF_SIGNED:
+        op = TOK_INF_EQUAL_SIGNED
+    elif op == TOK_INF_EQUAL_SIGNED:
+        op = TOK_INF_SIGNED
+    elif op == TOK_INF_UNSIGNED:
+        op = TOK_INF_EQUAL_UNSIGNED
+    elif op == TOK_INF_EQUAL_UNSIGNED:
+        op = TOK_INF_UNSIGNED
     return ExprCond(ExprOp(op, arg1, arg2), src1, src2)
 
 
@@ -1009,7 +1034,7 @@ def simp_double_signext(expr_s, expr):
 
 def simp_zeroext_eq_cst(expr_s, expr):
     # A.zeroExt(X) == int => A == int[:A.size]
-    if not expr.is_op("=="):
+    if not expr.is_op(TOK_EQUAL):
         return expr
     arg1, arg2 = expr.args
     if not arg2.is_int():
@@ -1020,13 +1045,13 @@ def simp_zeroext_eq_cst(expr_s, expr):
     if int(arg2) > (1 << src.size):
         # Always false
         return ExprInt(0, 1)
-    return ExprOp("==", src, ExprInt(int(arg2), src.size))
+    return ExprOp(TOK_EQUAL, src, ExprInt(int(arg2), src.size))
 
 
 def simp_cond_eq_zero(expr_s, expr):
     # (X == 0)?(A:B) => X?(B:A)
     cond = expr.cond
-    if not cond.is_op('=='):
+    if not cond.is_op(TOK_EQUAL):
         return expr
     arg1, arg2 = cond.args
     if not arg2.is_int(0):

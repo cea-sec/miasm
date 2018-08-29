@@ -512,7 +512,7 @@ class CondConstraint(object):
 class CondConstraintZero(CondConstraint):
 
     """Stand for a constraint like 'A == 0'"""
-    operator = "=="
+    operator = m2_expr.TOK_EQUAL
 
     def to_constraint(self):
         return m2_expr.ExprAff(self.expr, m2_expr.ExprInt(0, self.expr.size))
