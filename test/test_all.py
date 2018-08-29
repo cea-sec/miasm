@@ -2,8 +2,9 @@
 
 import argparse
 from distutils.spawn import find_executable
-import time
 import os
+import platform
+import time
 import tempfile
 
 from utils.test import Test
@@ -20,6 +21,7 @@ TAGS = {"regression": "REGRESSION", # Regression tests
         "z3": "Z3", # Z3 dependecy is needed
         "qemu": "QEMU", # QEMU tests (several tests)
         "cparser": "CPARSER", # pycparser is needed
+        "linux": "LINUX", # Test must be run on a Linux
         }
 
 # Regression tests
@@ -688,7 +690,7 @@ for jitter in ExampleJitter.jitter_engines:
                              products=[Example.get_sample("box_upx_exe_unupx.bin")],
                              tags=tags.get(jitter, []))
     if jitter != "python":
-        tags = tags.get(jitter, []) + [TAGS["long"]]
+        tags = tags.get(jitter, []) + [TAGS["long"], TAGS["linux"]]
         ls_path = find_executable("ls")
         file_path = find_executable("file")
         # Launch simulation of "file /bin/ls", with access to libs and ld info
@@ -854,6 +856,11 @@ By default, all tag are considered." % ", ".join(TAGS.keys()), default="")
             "pycparser are necessary for Objc."
         if TAGS["cparser"] not in exclude_tags:
             exclude_tags.append(TAGS["cparser"])
+
+    # Handle Linux tests
+    if platform.system() != "Linux":
+        if TAGS["linux"] not in exclude_tags:
+            exclude_tags.append(TAGS["linux"])
 
     test_ko = []
     test_ok = []
