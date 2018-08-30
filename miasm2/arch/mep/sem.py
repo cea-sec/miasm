@@ -912,7 +912,12 @@ def div(rn, rm):
 
     # Check if both numbers are positive or negative
     are_both_neg = sign_rn & sign_rm
-    are_both_pos = "=="(are_both_neg, sign_mask)
+    are_both_pos = ExprCond(
+        are_both_neg - sign_mask,
+        ExprInt(0, are_both_neg.size),
+        ExprInt(1, are_both_neg.size)
+    )
+
 
     # Invert both numbers
     rn_inv = ~rn + i32(1)

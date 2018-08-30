@@ -56,6 +56,9 @@ class ExpressionSimplifier(object):
             simplifications_common.simp_cond_flag,
             simplifications_common.simp_cond_int,
             simplifications_common.simp_cmp_int_arg,
+
+            simplifications_common.simp_cond_eq_zero,
+
         ],
         m2_expr.ExprMem: [simplifications_common.simp_mem],
 
