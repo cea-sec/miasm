@@ -8,6 +8,7 @@ This example should run on the compiled ELF x86 64bits version of
 #### This part is only related to the run of the sample, without DSE ####
 import os
 import subprocess
+import platform
 from collections import namedtuple
 from pdb import pm
 from tempfile import NamedTemporaryFile
@@ -16,11 +17,13 @@ from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm2.analysis.sandbox import Sandbox_Linux_x86_64
 from miasm2.expression.expression import *
 
+is_win = platform.system() == "Windows"
+
 # File "management"
 my_FILE_ptr = 0x11223344
 FInfo = namedtuple("FInfo", ["path", "fdesc"])
 FILE_to_info = {}
-TEMP_FILE = NamedTemporaryFile()
+TEMP_FILE = NamedTemporaryFile(delete = False)
 
 def xxx_fopen(jitter):
     '''
@@ -296,13 +299,20 @@ while todo:
 assert found == True
 print "FOUND !"
 
+TEMP_FILE.close()
+
 # Replay for real
-print "Trying to launch the binary without Miasm"
-crackme = subprocess.Popen([options.filename, TEMP_FILE.name],
-                           stdout=subprocess.PIPE,
-                           stderr=subprocess.PIPE)
-stdout, stderr = crackme.communicate()
-assert not stderr
-stdout = stdout.strip()
-print stdout
-assert stdout == "OK"
+if not is_win:
+    print "Trying to launch the binary without Miasm"
+    crackme = subprocess.Popen([options.filename, TEMP_FILE.name],
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE)
+    stdout, stderr = crackme.communicate()
+    assert not stderr
+    os.unlink(TEMP_FILE.name)
+    stdout = stdout.strip()
+    print stdout
+    assert stdout == "OK"
+else:
+    os.unlink(TEMP_FILE.name)
+
