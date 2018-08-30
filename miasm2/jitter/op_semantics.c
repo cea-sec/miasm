@@ -755,22 +755,16 @@ unsigned int fpu_fxam_c3(double a)
 	}
 }
 
-uint64_t sint64_to_fp64(int64_t a)
+uint64_t sint_to_fp_64(int64_t a)
 {
 	double result = (double) a;
 	return *((uint64_t*)&result);
 }
 
-uint32_t sint32_to_fp32(int32_t a)
+uint32_t sint_to_fp_32(int32_t a)
 {
 	float result = (float) a;
 	return *((uint32_t*)&result);
-}
-
-uint64_t sint32_to_fp64(int32_t a)
-{
-	double result = (double) a;
-	return *((uint64_t*)&result);
 }
 
 int32_t fp32_to_sint32(uint32_t a)

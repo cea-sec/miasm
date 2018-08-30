@@ -1,6 +1,6 @@
 from miasm2.expression.modint import size2mask
-from miasm2.expression.expression import ExprInt, ExprCond, ExprOp, \
-    ExprCompose
+from miasm2.expression.expression import ExprInt, ExprCond, ExprCompose, \
+    TOK_EQUAL
 
 
 def simp_ext(_, expr):
@@ -154,6 +154,14 @@ def simp_flags(_, expr):
     elif expr.is_op("CC_POS"):
         op_nf, = args
         return ~op_nf
+
+    elif expr.is_op(TOK_EQUAL):
+        arg1, arg2 = args
+        return ExprCond(
+            arg1 - arg2,
+            ExprInt(0, expr.size),
+            ExprInt(1, expr.size),
+        )
 
     return expr
 

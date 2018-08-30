@@ -3,7 +3,7 @@
 import logging
 from collections import defaultdict
 
-from pyparsing import Literal, Group, Optional
+from pyparsing import Literal, Optional
 
 from miasm2.expression.expression import ExprMem, ExprInt, ExprId, ExprOp, ExprLoc
 from miasm2.core.bin_stream import bin_stream

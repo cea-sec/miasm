@@ -39,33 +39,21 @@ class TestDivide:
         exec_instruction("DIV R0, R1",
                          [(ExprId("R0", 32), ExprInt(4, 32)),
                           (ExprId("R1", 32), ExprInt(2, 32))],
-                         [(ExprId("HI", 32), ExprCond(ExprOp("==",
-                                                             ExprInt(0, 32),
-                                                             ExprInt(0x80000000, 32)),
-                                                      ExprInt(0, 32),
-                                                      ExprInt(0xFFFFFFFC, 32))),
-                          (ExprId("LO", 32), ExprCond(ExprOp("==",
-                                                             ExprInt(0, 32),
-                                                             ExprInt(0x80000000, 32)),
-                                                       ExprInt(2, 32),
-                                                       ExprInt(0, 32)))])
+                         [(ExprId("HI", 32), ExprInt(0xFFFFFFFC, 32)),
+                          (ExprId("LO", 32), ExprInt(0, 32))])
 
         # Negative & positive numbers
         exec_instruction("DIV R0, R1",
                          [(ExprId("R0", 32), ExprInt(-5, 32)),
                           (ExprId("R1", 32), ExprInt(2, 32))],
-                         [(ExprId("HI", 32), ExprCond(ExprOp("==", ExprInt(0, 32), ExprInt(0x80000000, 32)),
-                                                      ExprInt(1, 32), ExprInt(0xFFFFFFFF, 32))),
-                          (ExprId("LO", 32), ExprCond(ExprOp("==", ExprInt(0, 32), ExprInt(0x80000000, 32)),
-                                                      ExprInt(0x7FFFFFFD, 32), ExprInt(0xFFFFFFFE, 32)))])
+                         [(ExprId("HI", 32), ExprInt(0xFFFFFFFF, 32)),
+                          (ExprId("LO", 32), ExprInt(0xFFFFFFFE, 32))])
 
         exec_instruction("DIV R0, R1",
                          [(ExprId("R0", 32), ExprInt(5, 32)),
                           (ExprId("R1", 32), ExprInt(-2, 32))],
-                         [(ExprId("HI", 32), ExprCond(ExprOp("==", ExprInt(0, 32), ExprInt(0x80000000, 32)),
-                                                      ExprInt(5, 32), ExprInt(0xFFFFFFFF, 32))),
-                          (ExprId("LO", 32), ExprCond(ExprOp("==", ExprInt(0, 32), ExprInt(0x80000000, 32)),
-                                                      ExprInt(0, 32), ExprInt(0xFFFFFFFE, 32)))])
+                         [(ExprId("HI", 32), ExprInt(0xFFFFFFFF, 32)),
+                          (ExprId("LO", 32), ExprInt(0xFFFFFFFE, 32))])
 
     def test_divu(self):
         """Test DIVU execution"""

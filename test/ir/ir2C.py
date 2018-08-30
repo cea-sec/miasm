@@ -2,7 +2,7 @@
 #-*- coding:utf-8 -*-
 
 import unittest
-
+from miasm2.expression.expression import TOK_EQUAL
 
 class TestIrIr2C(unittest.TestCase):
 
@@ -32,7 +32,7 @@ class TestIrIr2C(unittest.TestCase):
 
         # Binary operators
         self.translationTest(
-            ExprOp('==',      *args[:2]), r'(((0x0&0xffffffff) == (0x1&0xffffffff))?1:0)')
+            ExprOp(TOK_EQUAL,      *args[:2]), r'(((0x0&0xffffffff) == (0x1&0xffffffff))?1:0)')
         self.translationTest(
             ExprOp('%',       *args[:2]), r'(((0x0&0xffffffff)%(0x1&0xffffffff))&0xffffffff)')
         self.translationTest(

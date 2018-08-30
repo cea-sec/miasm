@@ -1,11 +1,10 @@
 from miasm2.ir.translators.translator import Translator
-from miasm2.core import asmblock
 from miasm2.expression.modint import size2mask
-from miasm2.expression.expression import ExprInt, ExprCond, ExprCompose
+from miasm2.expression.expression import ExprInt, ExprCond, ExprCompose, \
+    TOK_EQUAL
 
 def int_size_to_bn(value, size):
     if size < 32:
-        size = 32
         int_str = "%.8x" % value
         size_nibble = 8
     else:
@@ -200,20 +199,14 @@ class TranslatorC(Translator):
                     expr.size,
                     self.from_expr(expr.args[0]),
                 )
-            elif expr.op.startswith("sint_to_fp"):
-                dest_size = expr.size
-                arg_size = expr.args[0].size
-                if (arg_size, dest_size) in [
-                        (32, 32), (64, 64), (32, 64),
-                ]:
-                    func = "sint%d_to_fp%d" % (arg_size, dest_size)
-                else:
+            elif expr.op == "sint_to_fp":
+                size = expr.size
+                arg = expr.args[0]
+                if size not in [32, 64]:
                     raise RuntimeError(
-                        "Unsupported size for sint_to_fp: %r to %r" % (
-                            arg_size,
-                            dest_size
-                        ))
-                return "%s(%s)" % (func, self.from_expr(expr.args[0]))
+                        "Unsupported size for sint_to_fp: %r" % size
+                    )
+                return "%s_%d(%s)" % (expr.op, size, self.from_expr(arg))
             elif expr.op.startswith("fp_to_sint"):
                 dest_size = expr.size
                 arg_size = expr.args[0].size
@@ -245,7 +238,7 @@ class TranslatorC(Translator):
                 raise NotImplementedError('Unknown op: %r' % expr.op)
 
         elif len(expr.args) == 2:
-            if expr.op == "==":
+            if expr.op == TOK_EQUAL:
                 return '(((%s&%s) == (%s&%s))?1:0)' % (
                     self.from_expr(expr.args[0]),
                     self._size2mask(expr.args[0].size),
@@ -259,8 +252,8 @@ class TranslatorC(Translator):
                     out = 'SHIFT_%s(%d, %s, %s)' % (
                         self.dct_shift[expr.op].upper(),
                         expr.args[0].size,
-                        self.from_expr(expr.args[0]),
-                        self.from_expr(expr.args[1])
+                        arg0,
+                        arg1
                     )
                 else:
                     op = {
@@ -315,8 +308,8 @@ class TranslatorC(Translator):
                     out = '(%s(%s, %s, %s) &%s)' % (
                         self.dct_rot[expr.op],
                         expr.args[0].size,
-                        self.from_expr(expr.args[0]),
-                        self.from_expr(expr.args[1]),
+                        arg0,
+                        arg1,
                         self._size2mask(expr.args[0].size),
                     )
                 else:
@@ -358,14 +351,14 @@ class TranslatorC(Translator):
                     out = '%s%d(%s, %s)' % (
                         expr.op,
                         expr.args[0].size,
-                        self.from_expr(expr.args[0]),
-                        self.from_expr(expr.args[1])
+                        arg0,
+                        arg1
                     )
                 else:
                     out = "bignum_%s(%s, %s)" % (
                         expr.op,
-                        self.from_expr(expr.args[0]),
-                        self.from_expr(expr.args[1])
+                        arg0,
+                        arg1
                     )
                     out = "bignum_mask(%s, %d)"% (out, expr.size)
                 return out
@@ -380,14 +373,14 @@ class TranslatorC(Translator):
                     out = '%s%d(%s, %s)' % (
                         expr.op,
                         expr.args[0].size,
-                        self.from_expr(expr.args[0]),
-                        self.from_expr(expr.args[1])
+                        arg0,
+                        arg1
                     )
                 else:
                     out = "bignum_%s(%s, %s, %d)" % (
                         expr.op,
-                        self.from_expr(expr.args[0]),
-                        self.from_expr(expr.args[1]),
+                        arg0,
+                        arg1,
                         expr.size
                     )
                     out = "bignum_mask(%s, %d)"% (out, expr.size)

@@ -1,16 +1,20 @@
 import miasm2.expression.expression as m2_expr
 from miasm2.ir.ir import IntermediateRepresentation, IRBlock, AssignBlock
 from miasm2.arch.mips32.arch import mn_mips32
-from miasm2.arch.mips32.regs import R_LO, R_HI, PC, RA, exception_flags
+from miasm2.arch.mips32.regs import R_LO, R_HI, PC, RA, ZERO, exception_flags
 from miasm2.core.sembuilder import SemBuilder
 from miasm2.jitter.csts import EXCEPT_DIV_BY_ZERO
 
 
 # SemBuilder context
-ctx = {"R_LO": R_LO,
-       "R_HI": R_HI,
-       "PC": PC,
-       "RA": RA}
+ctx = {
+    "R_LO": R_LO,
+    "R_HI": R_HI,
+    "PC": PC,
+    "RA": RA,
+    "m2_expr": m2_expr
+}
+
 sbuild = SemBuilder(ctx)
 
 
@@ -76,7 +80,7 @@ def lb(arg1, arg2):
 @sbuild.parse
 def beq(arg1, arg2, arg3):
     "Branches on @arg3 if the quantities of two registers @arg1, @arg2 are eq"
-    dst = ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size) if arg1 - arg2 else arg3
+    dst = arg3 if ExprOp(m2_expr.TOK_EQUAL, arg1, arg2) else ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size)
     PC = dst
     ir.IRDst = dst
 
@@ -84,7 +88,7 @@ def beq(arg1, arg2, arg3):
 def bgez(arg1, arg2):
     """Branches on @arg2 if the quantities of register @arg1 is greater than or
     equal to zero"""
-    dst = ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size) if arg1.msb() else arg2
+    dst = ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size) if ExprOp(m2_expr.TOK_INF_SIGNED, arg1, ExprInt(0, arg1.size)) else arg2
     PC = dst
     ir.IRDst = dst
 
@@ -92,7 +96,7 @@ def bgez(arg1, arg2):
 def bne(arg1, arg2, arg3):
     """Branches on @arg3 if the quantities of two registers @arg1, @arg2 are NOT
     equal"""
-    dst = arg3 if arg1 - arg2 else ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size)
+    dst = ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size) if ExprOp(m2_expr.TOK_EQUAL, arg1, arg2) else arg3
     PC = dst
     ir.IRDst = dst
 
@@ -143,15 +147,24 @@ def mul(arg1, arg2, arg3):
 
 @sbuild.parse
 def sltu(arg1, arg2, arg3):
-    """If @arg3 is less than @arg2 (unsigned), @arg1 is set to one. It gets zero
+    """If @arg2 is less than @arg3 (unsigned), @arg1 is set to one. It gets zero
     otherwise."""
-    arg1 = (((arg2 - arg3) ^ ((arg2 ^ arg3) & ((arg2 - arg3) ^ arg2))) ^ arg2 ^ arg3).msb().zeroExtend(32)
+    arg1 = ExprCond(
+        ExprOp(m2_expr.TOK_INF_UNSIGNED, arg2, arg3),
+        ExprInt(1, arg1.size),
+        ExprInt(0, arg1.size)
+    )
 
 @sbuild.parse
 def slt(arg1, arg2, arg3):
-    """If @arg3 is less than @arg2 (signed), @arg1 is set to one. It gets zero
+    """If @arg2 is less than @arg3 (signed), @arg1 is set to one. It gets zero
     otherwise."""
-    arg1 = ((arg2 - arg3) ^ ((arg2 ^ arg3) & ((arg2 - arg3) ^ arg2))).msb().zeroExtend(32)
+    arg1 = ExprCond(
+        ExprOp(m2_expr.TOK_INF_SIGNED, arg2, arg3),
+        ExprInt(1, arg1.size),
+        ExprInt(0, arg1.size)
+    )
+
 
 @sbuild.parse
 def l_sub(arg1, arg2, arg3):
@@ -230,14 +243,14 @@ def seh(arg1, arg2):
 @sbuild.parse
 def bltz(arg1, arg2):
     """Branches on @arg2 if the register @arg1 is less than zero"""
-    dst_o = arg2 if arg1.msb() else ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size)
+    dst_o = arg2 if ExprOp(m2_expr.TOK_INF_SIGNED, arg1, ExprInt(0, arg1.size)) else ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size)
     PC = dst_o
     ir.IRDst = dst_o
 
 @sbuild.parse
 def blez(arg1, arg2):
     """Branches on @arg2 if the register @arg1 is less than or equal to zero"""
-    cond = (i1(1) if arg1 else i1(0)) | arg1.msb()
+    cond = ExprOp(m2_expr.TOK_INF_EQUAL_SIGNED, arg1, ExprInt(0, arg1.size))
     dst_o = arg2 if cond else ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size)
     PC = dst_o
     ir.IRDst = dst_o
@@ -245,7 +258,7 @@ def blez(arg1, arg2):
 @sbuild.parse
 def bgtz(arg1, arg2):
     """Branches on @arg2 if the register @arg1 is greater than zero"""
-    cond = (i1(1) if arg1 else i1(0)) | arg1.msb()
+    cond =  ExprOp(m2_expr.TOK_INF_EQUAL_SIGNED, arg1, ExprInt(0, arg1.size))
     dst_o = ExprLoc(ir.get_next_break_loc_key(instr), ir.IRDst.size) if cond else arg2
     PC = dst_o
     ir.IRDst = dst_o
@@ -480,12 +493,15 @@ class ir_mips32l(IntermediateRepresentation):
         args = instr.args
         instr_ir, extra_ir = get_mnemo_expr(self, instr, *args)
 
-        pc_fixed = {self.pc: m2_expr.ExprInt(instr.offset + 4, 32)}
+        fixed_regs = {
+            self.pc: m2_expr.ExprInt(instr.offset + 4, 32),
+            ZERO: m2_expr.ExprInt(0, 32)
+        }
 
-        instr_ir = [m2_expr.ExprAff(expr.dst, expr.src.replace_expr(pc_fixed))
+        instr_ir = [m2_expr.ExprAff(expr.dst, expr.src.replace_expr(fixed_regs))
                     for expr in instr_ir]
 
-        new_extra_ir = [irblock.modify_exprs(mod_src=lambda expr: expr.replace_expr(pc_fixed))
+        new_extra_ir = [irblock.modify_exprs(mod_src=lambda expr: expr.replace_expr(fixed_regs))
                         for irblock in extra_ir]
         return instr_ir, new_extra_ir
 
@@ -497,6 +513,7 @@ class ir_mips32l(IntermediateRepresentation):
 
 class ir_mips32b(ir_mips32l):
     def __init__(self, loc_db=None):
+        self.addrsize = 32
         IntermediateRepresentation.__init__(self, mn_mips32, 'b', loc_db)
         self.pc = mn_mips32.getpc()
         self.sp = mn_mips32.getsp()

@@ -184,7 +184,7 @@ def mn_do_div(ir, instr, rd, ra, rb):
         flags_update += mn_compute_flags(rvalue, over_expr)
 
     return ([ ExprAff(rd, rvalue) ] + flags_update), []
-    
+
 
 def mn_do_eqv(ir, instr, ra, rs, rb):
     rvalue = ~(rs ^ rb)
@@ -225,7 +225,6 @@ def mn_do_load(ir, instr, arg1, arg2, arg3=None):
         return mn_do_lmw(ir, instr, arg1, arg2)
     elif instr.name[1] == 'S':
         raise RuntimeError("LSWI, and LSWX need implementing")
-        pass # XXX
 
     size = {'B': 8, 'H': 16, 'W': 32}[instr.name[1]]
 
@@ -565,7 +564,6 @@ def mn_do_store(ir, instr, arg1, arg2, arg3=None):
 
     if instr.name[2] == 'S':
         raise RuntimeError("STSWI, and STSWX need implementing")
-        pass # XXX
 
     size = {'B': 8, 'H': 16, 'W': 32}[instr.name[2]]
 

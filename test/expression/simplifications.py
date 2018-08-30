@@ -479,19 +479,18 @@ to_test = [
     (ExprOp_inf_signed(ExprInt(-3, 32), ExprInt(0, 32)), ExprInt(1, 1)),
 ]
 
-expr_simp_cond = ExpressionSimplifier()
-expr_simp_explicit.enable_passes(ExpressionSimplifier.PASS_COND)
+expr_simp.enable_passes(ExpressionSimplifier.PASS_COND)
 
 
 for e_input, e_check in to_test:
     print "#" * 80
-    e_check = expr_simp_explicit(e_check)
-    e_new = expr_simp_explicit(e_input)
+    e_check = expr_simp(e_check)
+    e_new = expr_simp(e_input)
     print "original: ", str(e_input), "new: ", str(e_new)
     rez = e_new == e_check
     if not rez:
         raise ValueError(
-            'bug in expr_simp_explicit simp(%s) is %s and should be %s' % (e_input, e_new, e_check))
+            'bug in expr_simp simp(%s) is %s and should be %s' % (e_input, e_new, e_check))
 
 if args.z3:
     # This check is done on 32 bits, but the size is not use by Miasm formulas, so

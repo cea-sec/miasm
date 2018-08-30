@@ -1,5 +1,4 @@
 import logging
-import operator
 
 from miasm2.ir.translators.translator import Translator
 from miasm2.expression.smt2_helper import *

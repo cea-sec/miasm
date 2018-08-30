@@ -2,8 +2,9 @@
 
 import argparse
 from distutils.spawn import find_executable
-import time
 import os
+import platform
+import time
 import tempfile
 import platform
 
@@ -23,6 +24,7 @@ TAGS = {"regression": "REGRESSION", # Regression tests
         "z3": "Z3", # Z3 dependecy is needed
         "qemu": "QEMU", # QEMU tests (several tests)
         "cparser": "CPARSER", # pycparser is needed
+        "linux": "LINUX", # Test must be run on a Linux
         }
 
 # Regression tests
@@ -648,31 +650,11 @@ for options, nb_sol, tag in [([], 4, []),
                                  depends=[test_x86_32_if_reg],
                                  tags=tag)
 
-opts, cc = None, None
-dse_crackme_out = Example.get_sample("dse_crackme.c")[:-2]
-if is_win:
-    cc = "cl"
-    basename = dse_crackme_out
-    dse_crackme_out += ".exe"
-    opts = [Example.get_sample("dse_crackme.c"),
-            "/Fo" + basename + ".obj",
-            "/Fe" + basename + ".exe"]
-else:
-    cc = "cc"
-    opts = [Example.get_sample("dse_crackme.c"), "-o", dse_crackme_out]
-
-dse_crackme = ExampleSymbolExec(opts,
-                                products=[dse_crackme_out],
-                                executable=cc)
-
-testset += dse_crackme
-
+dse_crackme_out = Example.get_sample("dse_crackme")
 for strategy in ["code-cov", "branch-cov", "path-cov"]:
-    if not is_win:
-        testset += ExampleSymbolExec(["dse_crackme.py", dse_crackme_out,
-                                      "--strategy", strategy],
-                                      depends=[dse_crackme],
-                                      tags=[TAGS["z3"]])
+    testset += ExampleSymbolExec(["dse_crackme.py", dse_crackme_out,
+                                  "--strategy", strategy],
+                                 tags=[TAGS["z3"]])
     testset += ExampleSymbolExec(["dse_strategies.py",
                                   Example.get_sample("simple_test.bin"),
                                   strategy],
@@ -706,8 +688,8 @@ for jitter in ExampleJitter.jitter_engines:
                              ["--jitter", jitter],
                              products=[Example.get_sample("box_upx_exe_unupx.bin")],
                              tags=tags.get(jitter, []))
-    if jitter != "python" and is_win == False:
-        tags = tags.get(jitter, []) + [TAGS["long"]]
+    if jitter != "python":
+        tags = tags.get(jitter, []) + [TAGS["long"], TAGS["linux"]]
         ls_path = find_executable("ls")
         file_path = find_executable("file")
         # Launch simulation of "file /bin/ls", with access to libs and ld info
@@ -873,6 +855,11 @@ By default, all tag are considered." % ", ".join(TAGS.keys()), default="")
             "pycparser are necessary for Objc."
         if TAGS["cparser"] not in exclude_tags:
             exclude_tags.append(TAGS["cparser"])
+
+    # Handle Linux tests
+    if platform.system() != "Linux":
+        if TAGS["linux"] not in exclude_tags:
+            exclude_tags.append(TAGS["linux"])
 
     test_ko = []
     test_ok = []

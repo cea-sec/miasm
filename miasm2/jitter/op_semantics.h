@@ -144,9 +144,8 @@ _MIASM_EXPORT unsigned int fpu_fxam_c1(double a);
 _MIASM_EXPORT unsigned int fpu_fxam_c2(double a);
 _MIASM_EXPORT unsigned int fpu_fxam_c3(double a);
 
-_MIASM_EXPORT uint64_t sint64_to_fp64(int64_t a);
-_MIASM_EXPORT uint32_t sint32_to_fp32(int32_t a);
-_MIASM_EXPORT uint64_t sint32_to_fp64(int32_t a);
+_MIASM_EXPORT uint64_t sint_to_fp_64(int64_t a);
+_MIASM_EXPORT uint32_t sint_to_fp_32(int32_t a);
 _MIASM_EXPORT int32_t fp32_to_sint32(uint32_t a);
 _MIASM_EXPORT int64_t fp64_to_sint64(uint64_t a);
 _MIASM_EXPORT int32_t fp64_to_sint32(uint64_t a);

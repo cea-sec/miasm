@@ -512,7 +512,7 @@ class CondConstraint(object):
 class CondConstraintZero(CondConstraint):
 
     """Stand for a constraint like 'A == 0'"""
-    operator = "=="
+    operator = m2_expr.TOK_EQUAL
 
     def to_constraint(self):
         return m2_expr.ExprAff(self.expr, m2_expr.ExprInt(0, self.expr.size))
@@ -572,7 +572,6 @@ def possible_values(expr):
         consvals.update(possible_values(expr.src))
     # Special case: constraint insertion
     elif isinstance(expr, m2_expr.ExprCond):
-        to_ret = set()
         src1cond = CondConstraintNotZero(expr.cond)
         src2cond = CondConstraintZero(expr.cond)
         consvals.update(ConstrainedValue(consval.constraints.union([src1cond]),

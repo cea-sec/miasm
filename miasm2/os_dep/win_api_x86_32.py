@@ -944,9 +944,7 @@ def kernel32_LoadLibraryExW(jitter):
 def kernel32_GetProcAddress(jitter):
     ret_ad, args = jitter.func_args_stdcall(["libbase", "fname"])
     fname = args.fname
-    if fname < 0x10000:
-        fname = fname
-    else:
+    if fname >= 0x10000:
         fname = jitter.get_str_ansi(fname, 0x100)
         if not fname:
             fname = None
