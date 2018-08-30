@@ -1925,6 +1925,40 @@ def expr_is_NaN(expr):
                              ExprInt(0, 1)))
 
 
+def expr_is_infinite(expr):
+    """Return 1 or 0 on 1 bit if expr represent an infinite value according to
+    IEEE754
+    """
+    info = size_to_IEEE754_info[expr.size]
+    exponent = expr[info["significand"]: info["significand"] + info["exponent"]]
+
+    # exponent is full of 1s and significand is NULL
+    return ExprCond(exponent - ExprInt(-1, exponent.size),
+                    ExprInt(0, 1),
+                    ExprCond(expr[:info["significand"]], ExprInt(0, 1),
+                             ExprInt(1, 1)))
+
+
+def expr_is_IEEE754_zero(expr):
+    """Return 1 or 0 on 1 bit if expr represent a zero value according to
+    IEEE754
+    """
+    info = size_to_IEEE754_info[expr.size]
+    # Sign is the msb
+    expr_no_sign = expr[:expr.size - 1]
+    return ExprCond(expr_no_sign, ExprInt(0, 1), ExprInt(1, 1))
+
+
+def expr_is_IEEE754_denormal(expr):
+    """Return 1 or 0 on 1 bit if expr represent a denormalized value according
+    to IEEE754
+    """
+    info = size_to_IEEE754_info[expr.size]
+    exponent = expr[info["significand"]: info["significand"] + info["exponent"]]
+    # exponent is full of 0s
+    return ExprCond(exponent, ExprInt(0, 1), ExprInt(1, 1))
+
+
 def expr_is_qNaN(expr):
     """Return 1 or 0 on 1 bit if expr represent a qNaN (quiet) value according to
     IEEE754
