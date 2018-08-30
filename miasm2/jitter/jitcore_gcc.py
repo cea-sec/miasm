@@ -80,15 +80,16 @@ class JitCore_Gcc(JitCore_Cc_Base):
             # Move temporary file to final file
             try:
                 os.rename(fname_tmp, fname_out)
-            except OSError, e:
+            except WindowsError, e:
                 # On Windows, os.rename works slightly differently than on Linux; quoting the documentation:
                 # "On Unix, if dst exists and is a file, it will be replaced silently if the user has permission.
                 # The operation may fail on some Unix flavors if src and dst are on different filesystems.
                 # If successful, the renaming will be an atomic operation (this is a POSIX requirement).
                 # On Windows, if dst already exists, OSError will be raised even if it is a file; there may be no way
                 # to implement an atomic rename when dst names an existing file."
-                if not is_win:
-                    raise e
+                # [Error 183] Cannot create a file when that file already exists
+                if e.winerror != 183:
+                    raise
             os.remove(fname_in)
 
         self.load_code(block.loc_key, fname_out)
