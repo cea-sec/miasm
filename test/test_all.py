@@ -584,8 +584,8 @@ class ExampleExpression(Example):
 
 for args in [[], ["--symb"]]:
     testset += ExampleExpression(["graph_dataflow.py",
-                                  Example.get_sample("sc_connect_back.bin"),
-                                  "0x2e"] + args,
+                                  Example.get_sample("simple_test.bin"),
+                                  "0x0"] + args,
                                  products=["data.dot"])
 testset += ExampleExpression(["asm_to_ir.py"],
                              products=["graph.dot", "graph2.dot"])
