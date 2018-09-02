@@ -25,7 +25,7 @@ class JitCore_Gcc(JitCore_Cc_Base):
         @offset: gcc state offset
         """
         flib = None
-        if platform.system() == "Windows":
+        if is_win:
             flib = _ctypes.FreeLibrary
         else:
             flib = _ctypes.dlclose
