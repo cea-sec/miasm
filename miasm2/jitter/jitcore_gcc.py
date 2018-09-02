@@ -73,6 +73,15 @@ class JitCore_Gcc(JitCore_Cc_Base):
                 cl += ["/link", "/DLL", "/OUT:" + fname_tmp]
                 out_dir, _ = os.path.split(fname_tmp)
                 check_call(cl, cwd = out_dir)
+                basename_out, _ = os.path.splitext(fname_tmp)
+                basename_in, _ = os.path.splitext(os.path.basename(fname_in))
+                for ext in ('.obj', '.exp', '.lib'):
+                    artifact_out_path = os.path.join(out_dir, basename_out + ext)
+                    if os.path.isfile(artifact_out_path):
+                        os.remove(artifact_out_path)
+                    artifact_in_path = os.path.join(out_dir, basename_in + ext)
+                    if os.path.isfile(artifact_in_path):
+                        os.remove(artifact_in_path)
             else:
                 args = ["cc", "-O3", "-shared", "-fPIC", fname_in, "-o", fname_tmp] + inc_dir + libs
                 check_call(args)
@@ -90,6 +99,7 @@ class JitCore_Gcc(JitCore_Cc_Base):
                 # [Error 183] Cannot create a file when that file already exists
                 if e.winerror != 183:
                     raise
+                os.remove(fname_tmp)
             os.remove(fname_in)
 
         self.load_code(block.loc_key, fname_out)
