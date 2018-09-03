@@ -263,7 +263,7 @@ while todo:
     # Prepare a solution to try, based on the clean state
     file_content = todo.pop()
     print "CUR: %r" % file_content
-    open(TEMP_FILE.name, "w").write(file_content)
+    open(TEMP_FILE.name, "wb").write(file_content)
     dse.restore_snapshot(snapshot, keep_known_solutions=True)
     FILE_to_info.clear()
     FILE_to_info_symb.clear()
