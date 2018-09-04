@@ -103,7 +103,7 @@ for sol_nb, sol in enumerate(dg.get(current_block.loc_key, elements, assignblk_i
         if sat:
             for element in sol.constraints:
                 try:
-                    result = hex(sol.constraints[element].as_long()).strip('L')
+                    result = '0x%x' % sol.constraints[element].as_long()
                 except AttributeError:
                     result = str(sol.constraints[element])
                 constraints[element] = result

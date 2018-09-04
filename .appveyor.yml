@@ -11,8 +11,6 @@ environment:
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       PLATFORM_TOOLSET: v141
       PYTHON: c:\Python27
-      Z3_INCLUDE_DIRS: c:\projects\triton\build\z3-4.6.0-x86-win\include
-      Z3_LIBRARIES: c:\projects\triton\build\z3-4.6.0-x86-win\bin\libz3.lib
       Z3_PKG_NAME: z3-4.6.0-x86-win
 
     - platform: x64
