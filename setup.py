@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-from setuptools import setup, Extension
+from distutils.core import setup, Extension
 from distutils.util import get_platform
 from shutil import copy2
 import platform
