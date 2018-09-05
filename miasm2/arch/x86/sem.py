@@ -2136,17 +2136,98 @@ def ftst(_, instr):
     return e, []
 
 
-def fxam(_, instr):
+def fxam(ir, instr):
+    """
+    NaN:
+        C3, C2, C0 = 001;
+    Normal:
+        C3, C2, C0 = 010;
+    Infinity:
+        C3, C2, C0 = 011;
+    Zero:
+        C3, C2, C0 = 100;
+    Empty:
+        C3, C2, C0 = 101;
+    Denormal:
+        C3, C2, C0 = 110;
+
+    C1 = sign bit of ST; (* 0 for positive, 1 for negative *)
+    """
     dst = float_st0
 
-    e = []
-    e.append(m2_expr.ExprAff(float_c0, m2_expr.ExprOp('fxam_c0', dst)))
-    e.append(m2_expr.ExprAff(float_c1, m2_expr.ExprOp('fxam_c1', dst)))
-    e.append(m2_expr.ExprAff(float_c2, m2_expr.ExprOp('fxam_c2', dst)))
-    e.append(m2_expr.ExprAff(float_c3, m2_expr.ExprOp('fxam_c3', dst)))
+    # Empty not handled
+    locs = {}
+    for name in ["NaN", "Normal", "Infinity", "Zero", "Denormal"]:
+        locs[name] = ir.gen_loc_key_and_expr(ir.IRDst.size)
+    loc_next = ir.get_next_loc_key(instr)
+    loc_next_expr = m2_expr.ExprLoc(loc_next, ir.IRDst.size)
 
-    e += set_float_cs_eip(instr)
-    return e, []
+    # if Denormal:
+    #     if zero:
+    #         do_zero
+    #     else:
+    #         do_denormal
+    # else:
+    #     if Nan:
+    #         do_nan
+    #     else:
+    #         if infinity:
+    #             do_infinity
+    #         else:
+    #             do_normal
+
+    irdst = m2_expr.ExprCond(
+        m2_expr.expr_is_IEEE754_denormal(dst),
+        m2_expr.ExprCond(m2_expr.expr_is_IEEE754_zero(dst),
+                 locs["Zero"][1],
+                 locs["Denormal"][1],
+        ),
+        m2_expr.ExprCond(m2_expr.expr_is_NaN(dst),
+                 locs["NaN"][1],
+                 m2_expr.ExprCond(m2_expr.expr_is_infinite(dst),
+                          locs["Infinity"][1],
+                          locs["Normal"][1],
+                 )
+        )
+    )
+    base = [m2_expr.ExprAff(ir.IRDst, irdst),
+         m2_expr.ExprAff(float_c1, dst.msb())
+    ]
+    base += set_float_cs_eip(instr)
+
+    out = [
+        IRBlock(locs["Zero"][0], [AssignBlock({
+            float_c0: m2_expr.ExprInt(0, float_c0.size),
+            float_c2: m2_expr.ExprInt(0, float_c2.size),
+            float_c3: m2_expr.ExprInt(1, float_c3.size),
+            ir.IRDst: loc_next_expr,
+        }, instr)]),
+        IRBlock(locs["Denormal"][0], [AssignBlock({
+            float_c0: m2_expr.ExprInt(0, float_c0.size),
+            float_c2: m2_expr.ExprInt(1, float_c2.size),
+            float_c3: m2_expr.ExprInt(1, float_c3.size),
+            ir.IRDst: loc_next_expr,
+        }, instr)]),
+        IRBlock(locs["NaN"][0], [AssignBlock({
+            float_c0: m2_expr.ExprInt(1, float_c0.size),
+            float_c2: m2_expr.ExprInt(0, float_c2.size),
+            float_c3: m2_expr.ExprInt(0, float_c3.size),
+            ir.IRDst: loc_next_expr,
+        }, instr)]),
+        IRBlock(locs["Infinity"][0], [AssignBlock({
+            float_c0: m2_expr.ExprInt(1, float_c0.size),
+            float_c2: m2_expr.ExprInt(1, float_c2.size),
+            float_c3: m2_expr.ExprInt(0, float_c3.size),
+            ir.IRDst: loc_next_expr,
+        }, instr)]),
+        IRBlock(locs["Normal"][0], [AssignBlock({
+            float_c0: m2_expr.ExprInt(0, float_c0.size),
+            float_c2: m2_expr.ExprInt(1, float_c2.size),
+            float_c3: m2_expr.ExprInt(0, float_c3.size),
+            ir.IRDst: loc_next_expr,
+        }, instr)]),
+    ]
+    return base, out
 
 
 def ficom(_, instr, dst, src=None):
@@ -2485,10 +2566,10 @@ def fprem(_, instr):
     e.append(
         m2_expr.ExprAff(float_st0, m2_expr.ExprOp('fprem', float_st0, float_st1)))
     # Remaining bits (ex: used in argument reduction in tan)
-    remain = m2_expr.ExprOp('fprem_lsb', float_st0, float_st1)
-    e += [m2_expr.ExprAff(float_c0, remain[2:3]),
-          m2_expr.ExprAff(float_c3, remain[1:2]),
-          m2_expr.ExprAff(float_c1, remain[0:1]),
+    quotient = m2_expr.ExprOp('fp_to_sint32', m2_expr.ExprOp('fpround_towardszero', m2_expr.ExprOp('fdiv', float_st0, float_st1)))
+    e += [m2_expr.ExprAff(float_c0, quotient[2:3]),
+          m2_expr.ExprAff(float_c3, quotient[1:2]),
+          m2_expr.ExprAff(float_c1, quotient[0:1]),
           # Consider the reduction is always completed
           m2_expr.ExprAff(float_c2, m2_expr.ExprInt(0, 1)),
           ]
