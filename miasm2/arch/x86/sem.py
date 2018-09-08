@@ -3115,15 +3115,28 @@ def das(_, instr):
     return e, []
 
 
-def aam(_, instr, src):
+def aam(ir, instr, src):
     e = []
-    tempAL = mRAX[instr.mode][0:8]
-    newEAX = m2_expr.ExprCompose(m2_expr.ExprOp("umod", tempAL, src),
-                                 m2_expr.ExprOp("udiv", tempAL, src),
-                                 mRAX[instr.mode][16:])
-    e += [m2_expr.ExprAff(mRAX[instr.mode], newEAX)]
-    e += update_flag_arith(newEAX)
-    e.append(m2_expr.ExprAff(af, m2_expr.ExprInt(0, 1)))
+    assert src.is_int()
+
+    value = int(src)
+    if value:
+        tempAL = mRAX[instr.mode][0:8]
+        newEAX = m2_expr.ExprCompose(
+            m2_expr.ExprOp("umod", tempAL, src),
+            m2_expr.ExprOp("udiv", tempAL, src),
+            mRAX[instr.mode][16:]
+        )
+        e += [m2_expr.ExprAff(mRAX[instr.mode], newEAX)]
+        e += update_flag_arith(newEAX)
+        e.append(m2_expr.ExprAff(af, m2_expr.ExprInt(0, 1)))
+    else:
+        e.append(
+            m2_expr.ExprAff(
+                exception_flags,
+                m2_expr.ExprInt(EXCEPT_DIV_BY_ZERO, exception_flags.size)
+            )
+        )
     return e, []
 
 
