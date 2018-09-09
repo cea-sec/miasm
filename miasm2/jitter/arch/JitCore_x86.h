@@ -1,5 +1,10 @@
 #include "../bn.h"
 
+#if _WIN32
+#define _MIASM_EXPORT __declspec(dllexport)
+#else
+#define _MIASM_EXPORT
+#endif
 
 typedef struct {
 	uint32_t exception_flags;
@@ -120,8 +125,13 @@ typedef struct {
 
 }vm_cpu_t;
 
-void dump_gpregs_32(vm_cpu_t* vmcpu);
-void dump_gpregs_64(vm_cpu_t* vmcpu);
-uint64_t segm2addr(JitCpu* jitcpu, uint64_t segm, uint64_t addr);
+_MIASM_EXPORT void dump_gpregs_32(vm_cpu_t* vmcpu);
+_MIASM_EXPORT void dump_gpregs_64(vm_cpu_t* vmcpu);
+_MIASM_EXPORT uint64_t segm2addr(JitCpu* jitcpu, uint64_t segm, uint64_t addr);
+
+_MIASM_EXPORT void MEM_WRITE_08(JitCpu* jitcpu, uint64_t addr, uint8_t src);
+_MIASM_EXPORT void MEM_WRITE_16(JitCpu* jitcpu, uint64_t addr, uint16_t src);
+_MIASM_EXPORT void MEM_WRITE_32(JitCpu* jitcpu, uint64_t addr, uint32_t src);
+_MIASM_EXPORT void MEM_WRITE_64(JitCpu* jitcpu, uint64_t addr, uint64_t src);
 
 #define RETURN_PC return BlockDst;

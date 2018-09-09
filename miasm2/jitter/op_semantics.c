@@ -140,21 +140,21 @@ int imul_hi_op_08(char a, char b)
 {
 	int64_t res = 0;
 	res = a*b;
-	return res>>8;
+	return (int)(res>>8);
 }
 
 int imul_hi_op_16(short a, short b)
 {
 	int64_t res = 0;
 	res = a*b;
-	return res>>16;
+	return (int)(res>>16);
 }
 
 int imul_hi_op_32(int a, int b)
 {
 	int64_t res = 0;
 	res = (int64_t)a*(int64_t)b;
-	return res>>32ULL;
+	return (int)(res>>32ULL);
 }
 
 unsigned int umul16_lo(unsigned short a, unsigned short b)
@@ -259,9 +259,9 @@ unsigned int cntleadzeros(uint64_t size, uint64_t src)
 
 	for (i=(int64_t)size-1; i>=0; i--){
 		if (src & (1ull << i))
-			return size - (i + 1);
+			return (unsigned int)(size - (i + 1));
 	}
-	return size;
+	return (unsigned int)size;
 }
 
 /*
@@ -277,9 +277,9 @@ unsigned int cnttrailzeros(uint64_t size, uint64_t src)
 	uint64_t i;
 	for (i=0; i<size; i++){
 		if (src & (1ull << i))
-			return i;
+			return (unsigned int)i;
 	}
-	return size;
+	return (unsigned int)size;
 }
 
 

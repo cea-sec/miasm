@@ -6,11 +6,14 @@ import os
 import platform
 import time
 import tempfile
+import platform
 
 from utils.test import Test
 from utils.testset import TestSet
 from utils import cosmetics, multithread
 from multiprocessing import Queue
+
+is_win = platform.system() == "Windows"
 
 testset = TestSet("../")
 TAGS = {"regression": "REGRESSION", # Regression tests
@@ -99,6 +102,8 @@ for script in ["x86/sem.py",
         if jitter in blacklist.get(script, []):
             continue
         tags = [TAGS[jitter]] if jitter in TAGS else []
+        if is_win and script.endswith("mn_div.py"):
+            continue
         testset += ArchUnitTest(script, jitter, base_dir="arch", tags=tags)
 
 testset += ArchUnitTest("x86/unit/access_xmm.py", "python", base_dir="arch")
@@ -653,7 +658,7 @@ for strategy in ["code-cov", "branch-cov", "path-cov"]:
     testset += ExampleSymbolExec(["dse_strategies.py",
                                   Example.get_sample("simple_test.bin"),
                                   strategy],
-                                 tags=[TAGS["z3"]])
+                                  tags=[TAGS["z3"]])
 
 ## Jitter
 class ExampleJitter(Example):

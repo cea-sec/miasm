@@ -2,11 +2,13 @@
 
 import os
 import tempfile
+import platform
 from distutils.sysconfig import get_python_inc
 
 from miasm2.jitter.jitcore import JitCore
 from miasm2.core.utils import keydefaultdict
 
+is_win = platform.system() == "Windows"
 
 def gen_core(arch, attrib):
     lib_dir = os.path.dirname(os.path.realpath(__file__))
@@ -70,9 +72,9 @@ class JitCore_Cc_Base(JitCore):
 
     def load(self):
         lib_dir = os.path.dirname(os.path.realpath(__file__))
-        libs = [os.path.join(lib_dir, 'VmMngr.so'),
-                os.path.join(lib_dir,
-                             'arch/JitCore_%s.so' % (self.ir_arch.arch.name))]
+        ext = ".so" if not is_win else ".lib"
+        libs = [os.path.join(lib_dir, "VmMngr" + ext),
+                os.path.join(lib_dir, "arch", "JitCore_%s%s" % (self.ir_arch.arch.name, ext))]
 
         include_files = [os.path.dirname(__file__),
                          get_python_inc()]
@@ -91,7 +93,7 @@ class JitCore_Cc_Base(JitCore):
         Return the C code corresponding to the @irblocks
         @irblocks: list of irblocks
         """
-        f_declaration = 'int %s(block_id * BlockDst, JitCpu* jitcpu)' % self.FUNCNAME
+        f_declaration = '_MIASM_EXPORT int %s(block_id * BlockDst, JitCpu* jitcpu)' % self.FUNCNAME
         out = self.codegen.gen_c(block, log_mn=self.log_mn, log_regs=self.log_regs)
         out = [f_declaration + '{'] + out + ['}\n']
         c_code = out

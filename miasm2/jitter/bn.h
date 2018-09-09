@@ -1,5 +1,12 @@
 #ifndef __BIGNUM_H__
 #define __BIGNUM_H__
+
+#if _WIN32
+#define _MIASM_EXPORT __declspec(dllexport)
+#else
+#define _MIASM_EXPORT
+#endif
+
 /*
 
 Big number library - arithmetic on multiple-precision unsigned integers.
@@ -94,51 +101,51 @@ typedef struct bn
 enum { SMALLER = -1, EQUAL = 0, LARGER = 1 };
 
 /* Initialization functions: */
-bn_t bignum_init(void);
-bn_t bignum_from_int(DTYPE_TMP i);
-bn_t bignum_from_uint64(uint64_t i);
-int  bignum_to_int(bn_t n);
-uint64_t bignum_to_uint64(bn_t n);
-bn_t bignum_from_string(char* str, int nbytes);
-void bignum_to_string(bn_t n, char* str, int maxsize);
+_MIASM_EXPORT bn_t bignum_init(void);
+_MIASM_EXPORT bn_t bignum_from_int(DTYPE_TMP i);
+_MIASM_EXPORT bn_t bignum_from_uint64(uint64_t i);
+_MIASM_EXPORT int  bignum_to_int(bn_t n);
+_MIASM_EXPORT uint64_t bignum_to_uint64(bn_t n);
+_MIASM_EXPORT bn_t bignum_from_string(char* str, int nbytes);
+_MIASM_EXPORT void bignum_to_string(bn_t n, char* str, int maxsize);
 
 
 /* Basic arithmetic operations: */
-bn_t bignum_add(bn_t a, bn_t b); /* c = a + b */
-bn_t bignum_sub(bn_t a, bn_t b); /* c = a - b */
-bn_t bignum_mul(bn_t a, bn_t b); /* c = a * b */
-bn_t bignum_udiv(bn_t a, bn_t b); /* c = a / b */
-bn_t bignum_umod(bn_t a, bn_t b); /* c = a % b */
-bn_t bignum_idiv(bn_t a, bn_t b, int size);
-bn_t bignum_imod(bn_t a, bn_t b, int size);
+_MIASM_EXPORT bn_t bignum_add(bn_t a, bn_t b); /* c = a + b */
+_MIASM_EXPORT bn_t bignum_sub(bn_t a, bn_t b); /* c = a - b */
+_MIASM_EXPORT bn_t bignum_mul(bn_t a, bn_t b); /* c = a * b */
+_MIASM_EXPORT bn_t bignum_udiv(bn_t a, bn_t b); /* c = a / b */
+_MIASM_EXPORT bn_t bignum_umod(bn_t a, bn_t b); /* c = a % b */
+_MIASM_EXPORT bn_t bignum_idiv(bn_t a, bn_t b, int size);
+_MIASM_EXPORT bn_t bignum_imod(bn_t a, bn_t b, int size);
 //void bignum_udivmod(struct bn* a, struct bn* b, struct bn* c, struct bn* d); /* c = a/b, d = a%b */
 
 
 
 /* Bitwise operations: */
-bn_t bignum_and(bn_t a, bn_t b); /* c = a & b */
-bn_t bignum_or(bn_t a, bn_t b);  /* c = a | b */
-bn_t bignum_xor(bn_t a, bn_t b); /* c = a ^ b */
-bn_t bignum_lshift(bn_t a, int nbits); /* b = a << nbits */
-bn_t bignum_rshift(bn_t a, int nbits); /* b = a >> nbits */
-bn_t bignum_a_rshift(bn_t a, int size, int nbits); /* b = a a>> nbits */
-bn_t bignum_not(bn_t a); /* c = ~a */
+_MIASM_EXPORT bn_t bignum_and(bn_t a, bn_t b); /* c = a & b */
+_MIASM_EXPORT bn_t bignum_or(bn_t a, bn_t b);  /* c = a | b */
+_MIASM_EXPORT bn_t bignum_xor(bn_t a, bn_t b); /* c = a ^ b */
+_MIASM_EXPORT bn_t bignum_lshift(bn_t a, int nbits); /* b = a << nbits */
+_MIASM_EXPORT bn_t bignum_rshift(bn_t a, int nbits); /* b = a >> nbits */
+_MIASM_EXPORT bn_t bignum_a_rshift(bn_t a, int size, int nbits); /* b = a a>> nbits */
+_MIASM_EXPORT bn_t bignum_not(bn_t a); /* c = ~a */
 
 /* Special operators and comparison */
-int  bignum_cmp(bn_t a, bn_t b);               /* Compare: returns LARGER, EQUAL or SMALLER */
-int  bignum_is_zero(bn_t n);                         /* For comparison with zero */
-bn_t bignum_inc(bn_t n);                             /* Increment: add one to n */
-bn_t bignum_dec(bn_t n);                             /* Decrement: subtract one from n */
+_MIASM_EXPORT int  bignum_cmp(bn_t a, bn_t b);               /* Compare: returns LARGER, EQUAL or SMALLER */
+_MIASM_EXPORT int  bignum_is_zero(bn_t n);                         /* For comparison with zero */
+_MIASM_EXPORT bn_t bignum_inc(bn_t n);                             /* Increment: add one to n */
+_MIASM_EXPORT bn_t bignum_dec(bn_t n);                             /* Decrement: subtract one from n */
 //bn_t bignum_pow(bn_t a, bn_t b, bn_t c); /* Calculate a^b -- e.g. 2^10 => 1024 */
 //bn_t bignum_isqrt(bn_t a, bn_t b);             /* Integer square root -- e.g. isqrt(5) => 2*/
-int bignum_cntleadzeros(bn_t n, int size);
-int bignum_cnttrailzeros(bn_t n, int size);
-bn_t bignum_assign(bn_t src);        /* Copy src into dst -- dst := src */
-bn_t bignum_mask(bn_t src, int bits);  /*  c = src & ((1<<bits) -1) */
+_MIASM_EXPORT int bignum_cntleadzeros(bn_t n, int size);
+_MIASM_EXPORT int bignum_cnttrailzeros(bn_t n, int size);
+_MIASM_EXPORT bn_t bignum_assign(bn_t src);        /* Copy src into dst -- dst := src */
+_MIASM_EXPORT bn_t bignum_mask(bn_t src, int bits);  /*  c = src & ((1<<bits) -1) */
 
-bn_t bignum_rol(bn_t a, int size, int nbits);
-bn_t bignum_ror(bn_t a, int size, int nbits);
-int bignum_getbit(bn_t a, int pos);
+_MIASM_EXPORT bn_t bignum_rol(bn_t a, int size, int nbits);
+_MIASM_EXPORT bn_t bignum_ror(bn_t a, int size, int nbits);
+_MIASM_EXPORT int bignum_getbit(bn_t a, int pos);
 
 #endif /* #ifndef __BIGNUM_H__ */
 

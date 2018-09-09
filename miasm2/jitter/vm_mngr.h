@@ -18,12 +18,31 @@
 #ifndef CODENAT_H
 #define CODENAT_H
 
+#if defined(_WIN32) || defined(_WIN64)
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+
+#if _WIN32
+#define _MIASM_EXPORT __declspec(dllexport)
+#else
+#define _MIASM_EXPORT
+#endif
+
+#include <Python.h>
+#include <stdint.h>
+
+#include "queue.h"
+
 #ifdef __APPLE__
 #define __BYTE_ORDER __BYTE_ORDER__
 #elif defined(__NetBSD__) || defined(__OpenBSD__)
 #define __BYTE_ORDER _BYTE_ORDER
 #define __BIG_ENDIAN _BIG_ENDIAN
 #define __LITTLE_ENDIAN _LITTLE_ENDIAN
+#elif defined(_WIN32) || defined(_WIN64)
+#define __BIG_ENDIAN '>'
+#define __LITTLE_ENDIAN '<'
+#define __BYTE_ORDER __LITTLE_ENDIAN
 #endif
 
 
@@ -219,9 +238,9 @@ void add_memory_page(vm_mngr_t* vm_mngr, struct memory_page_node* mpn);
 
 void add_mem_read(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t size);
 void add_mem_write(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t size);
-void check_invalid_code_blocs(vm_mngr_t* vm_mngr);
-void check_memory_breakpoint(vm_mngr_t* vm_mngr);
-void reset_memory_access(vm_mngr_t* vm_mngr);
+_MIASM_EXPORT void check_invalid_code_blocs(vm_mngr_t* vm_mngr);
+_MIASM_EXPORT void check_memory_breakpoint(vm_mngr_t* vm_mngr);
+_MIASM_EXPORT void reset_memory_access(vm_mngr_t* vm_mngr);
 PyObject* get_memory_read(vm_mngr_t* vm_mngr);
 PyObject* get_memory_write(vm_mngr_t* vm_mngr);
 

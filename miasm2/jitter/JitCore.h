@@ -1,7 +1,11 @@
 #ifndef JITCORE_H
 #define JITCORE_H
 
-
+#if _WIN32
+#define _MIASM_EXPORT __declspec(dllexport)
+#else
+#define _MIASM_EXPORT
+#endif
 
 #define RAISE(errtype, msg) {PyObject* p; p = PyErr_Format( errtype, msg ); return p;}
 #define RAISE_ret0(errtype, msg) {PyObject* p; p = PyErr_Format( errtype, msg ); return 0;}
@@ -46,7 +50,7 @@
 		while (!bignum_is_zero(bn)) {				\
 			tmp = bignum_to_uint64(bignum_mask(bn, 32)) & 0xffffffff; \
 			bn = bignum_rshift(bn, 32);			\
-			py_tmp = PyLong_FromLong(tmp);			\
+			py_tmp = PyLong_FromUnsignedLong(tmp);			\
 			py_long = PyObject_CallMethod(py_long, "__lshift__", "O", cst_32); \
 			py_long = PyObject_CallMethod(py_long, "__add__", "O", py_tmp);	\
 		}							\
@@ -203,30 +207,25 @@ void Resolve_dst(block_id* BlockDst, uint64_t addr, uint64_t is_local);
 
 
 
-uint8_t MEM_LOOKUP_08(JitCpu* jitcpu, uint64_t addr);
-uint16_t MEM_LOOKUP_16(JitCpu* jitcpu, uint64_t addr);
-uint32_t MEM_LOOKUP_32(JitCpu* jitcpu, uint64_t addr);
-uint64_t MEM_LOOKUP_64(JitCpu* jitcpu, uint64_t addr);
+_MIASM_EXPORT uint8_t MEM_LOOKUP_08(JitCpu* jitcpu, uint64_t addr);
+_MIASM_EXPORT uint16_t MEM_LOOKUP_16(JitCpu* jitcpu, uint64_t addr);
+_MIASM_EXPORT uint32_t MEM_LOOKUP_32(JitCpu* jitcpu, uint64_t addr);
+_MIASM_EXPORT uint64_t MEM_LOOKUP_64(JitCpu* jitcpu, uint64_t addr);
 
-bn_t MEM_LOOKUP_BN_BN(JitCpu* jitcpu, int size, bn_t addr);
-bn_t MEM_LOOKUP_INT_BN(JitCpu* jitcpu, int size, uint64_t addr);
+_MIASM_EXPORT bn_t MEM_LOOKUP_BN_BN(JitCpu* jitcpu, int size, bn_t addr);
+_MIASM_EXPORT bn_t MEM_LOOKUP_INT_BN(JitCpu* jitcpu, int size, uint64_t addr);
 
-uint64_t MEM_LOOKUP_BN_INT(JitCpu* jitcpu, int size, bn_t addr);
+_MIASM_EXPORT uint64_t MEM_LOOKUP_BN_INT(JitCpu* jitcpu, int size, bn_t addr);
 
-void MEM_WRITE_08(JitCpu* jitcpu, uint64_t addr, uint8_t src);
-void MEM_WRITE_16(JitCpu* jitcpu, uint64_t addr, uint16_t src);
-void MEM_WRITE_32(JitCpu* jitcpu, uint64_t addr, uint32_t src);
-void MEM_WRITE_64(JitCpu* jitcpu, uint64_t addr, uint64_t src);
-
-void MEM_WRITE_BN_BN(JitCpu* jitcpu, int size, bn_t addr, bn_t src);
-void MEM_WRITE_BN_INT(JitCpu* jitcpu, int size, bn_t addr, uint64_t src);
-void MEM_WRITE_INT_BN(JitCpu* jitcpu, int size, uint64_t addr, bn_t src);
+_MIASM_EXPORT void MEM_WRITE_BN_BN(JitCpu* jitcpu, int size, bn_t addr, bn_t src);
+_MIASM_EXPORT void MEM_WRITE_BN_INT(JitCpu* jitcpu, int size, bn_t addr, uint64_t src);
+_MIASM_EXPORT void MEM_WRITE_INT_BN(JitCpu* jitcpu, int size, uint64_t addr, bn_t src);
 
 
 PyObject* vm_get_mem(JitCpu *self, PyObject* args);
 
-void MEM_LOOKUP_INT_BN_TO_PTR(JitCpu* jitcpu, int size, uint64_t addr, char* ptr);
-void MEM_WRITE_INT_BN_FROM_PTR(JitCpu* jitcpu, int size, uint64_t addr, char* ptr);
+_MIASM_EXPORT void MEM_LOOKUP_INT_BN_TO_PTR(JitCpu* jitcpu, int size, uint64_t addr, char* ptr);
+_MIASM_EXPORT void MEM_WRITE_INT_BN_FROM_PTR(JitCpu* jitcpu, int size, uint64_t addr, char* ptr);
 
 
 

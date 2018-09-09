@@ -117,7 +117,7 @@ PyObject* vm_add_memory_page(VmMngr* self, PyObject* args)
 			RAISE(PyExc_TypeError,"name must be str");
 		name_ptr = PyString_AsString(name);
 	}
-	mpn = create_memory_page_node(page_addr, buf_size, page_access, name_ptr);
+	mpn = create_memory_page_node(page_addr, (unsigned int)buf_size, (unsigned int)page_access, name_ptr);
 	if (mpn == NULL)
 		RAISE(PyExc_TypeError,"cannot create page");
 	if (is_mpn_in_tab(&self->vm_mngr, mpn)) {
@@ -261,7 +261,7 @@ PyObject* vm_add_memory_breakpoint(VmMngr* self, PyObject* args)
 	PyGetInt(size, b_size);
 	PyGetInt(access, b_access);
 
-	add_memory_breakpoint(&self->vm_mngr, b_ad, b_size, b_access);
+	add_memory_breakpoint(&self->vm_mngr, b_ad, b_size, (unsigned int)b_access);
 
 	/* Raise exception in the following pattern:
 	   - set_mem(XXX)
@@ -287,7 +287,7 @@ PyObject* vm_remove_memory_breakpoint(VmMngr* self, PyObject* args)
 
 	PyGetInt(ad, b_ad);
 	PyGetInt(access, b_access);
-	remove_memory_breakpoint(&self->vm_mngr, b_ad, b_access);
+	remove_memory_breakpoint(&self->vm_mngr, b_ad, (unsigned int)b_access);
 
 	Py_INCREF(Py_None);
 	return Py_None;
@@ -452,7 +452,7 @@ PyObject* vm_get_all_memory(VmMngr* self, PyObject* args)
 		PyDict_SetItemString(dict2, "access", o);
 		Py_DECREF(o);
 
-		o = PyInt_FromLong((long)mpn->ad);
+		o = PyLong_FromUnsignedLongLong(mpn->ad);
 		PyDict_SetItem(dict, o, dict2);
 		Py_DECREF(o);
 		Py_DECREF(dict2);

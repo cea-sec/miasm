@@ -216,7 +216,7 @@ PyObject* cpu_set_gpreg(JitCpu* self, PyObject *args)
 					    /* Ensure py_long is a PyLong */
 					    if (PyInt_Check(py_long)){
 						    tmp = (uint64_t)PyInt_AsLong(py_long);
-						    py_long = PyLong_FromLong(tmp);
+						    py_long = PyLong_FromLong((long)tmp);
 					    } else if (PyLong_Check(py_long)){
 						    /* Already PyLong */
 					    }
