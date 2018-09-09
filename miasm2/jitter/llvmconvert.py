@@ -280,21 +280,25 @@ class LLVMContext_JIT(LLVMContext):
               "x86_cpuid": {"ret": itype,
                         "args": [itype,
                                  itype]},
-              "fcom_c0": {"ret": itype,
+              "fpu_fcom_c0": {"ret": itype,
                           "args": [dtype,
                                    dtype]},
-              "fcom_c1": {"ret": itype,
+              "fpu_fcom_c1": {"ret": itype,
                           "args": [dtype,
                                    dtype]},
-              "fcom_c2": {"ret": itype,
+              "fpu_fcom_c2": {"ret": itype,
                           "args": [dtype,
                                    dtype]},
-              "fcom_c3": {"ret": itype,
+              "fpu_fcom_c3": {"ret": itype,
                           "args": [dtype,
                                    dtype]},
               "llvm.sqrt.f32": {"ret": ftype,
                                 "args": [ftype]},
               "llvm.sqrt.f64": {"ret": dtype,
+                                "args": [dtype]},
+              "llvm.fabs.f32": {"ret": ftype,
+                                "args": [ftype]},
+              "llvm.fabs.f64": {"ret": dtype,
                                 "args": [dtype]},
         }
 
@@ -999,7 +1003,7 @@ class LLVMFunction():
             if op in ["fcom_c0", "fcom_c1", "fcom_c2", "fcom_c3"]:
                 arg1 = self.add_ir(expr.args[0])
                 arg2 = self.add_ir(expr.args[0])
-                fc_name = op
+                fc_name = "fpu_%s" % op
                 fc_ptr = self.mod.get_global(fc_name)
                 casted_args = [
                     builder.bitcast(arg1, llvm_ir.DoubleType()),
@@ -1014,17 +1018,19 @@ class LLVMFunction():
                 self.update_cache(expr, ret)
                 return ret
 
-            if op in ["fsqrt"]:
+            if op in ["fsqrt", "fabs"]:
                 arg = self.add_ir(expr.args[0])
+                if op == "fsqrt":
+                    op = "sqrt"
 
-                # Apply the correct sqrt func
+                # Apply the correct func
                 if expr.size == 32:
                     arg = builder.bitcast(arg, llvm_ir.FloatType())
-                    ret = builder.call(self.mod.get_global("llvm.sqrt.f32"),
+                    ret = builder.call(self.mod.get_global("llvm.%s.f32" % op),
                                        [arg])
                 elif expr.size == 64:
                     arg = builder.bitcast(arg, llvm_ir.DoubleType())
-                    ret = builder.call(self.mod.get_global("llvm.sqrt.f64"),
+                    ret = builder.call(self.mod.get_global("llvm.%s.f64" % op),
                                        [arg])
                 else:
                     raise RuntimeError("Unsupported precision: %x", expr.size)

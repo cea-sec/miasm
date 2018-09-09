@@ -582,49 +582,26 @@ uint64_t fpu_fsqrt64(uint64_t a)
 	return *((uint64_t*)&b);
 }
 
-double fpu_fabs(double a)
+uint64_t fpu_fabs64(uint64_t a)
 {
 	double b;
-	b = (double)abs((int)a);
+	b = abs(*((double*)&a));
 #ifdef DEBUG_MIASM_DOUBLE
 	dump_float();
 	printf("%e abs %e\n", a, b);
 #endif
-	return b;
+	return *((uint64_t*)&b);
 }
 
-double fpu_fprem(double a, double b)
+uint64_t fpu_fprem64(uint64_t a, uint64_t b)
 {
 	double c;
-	c = fmod(a, b);
+	c = fmod(*((double*)&a), *((double*)&b));
 #ifdef DEBUG_MIASM_DOUBLE
 	dump_float();
 	printf("%e %% %e -> %e\n", a, b, c);
 #endif
-	return c;
-}
-
-unsigned int fpu_fprem_lsb(double a, double b)
-{
-	// Inspired from qemu/fpu_helper.c
-	double c;
-	signed long long int q;
-	c = a / b; /* ST0 / ST1 */
-	/* round dblq towards zero */
-	c = (c < 0.0) ? ceil(c) : floor(c);
-
-	/* convert dblq to q by truncating towards zero */
-	if (c < 0.0) {
-	    q = (signed long long int)(-c);
-	} else {
-	    q = (signed long long int)c;
-	}
-#ifdef DEBUG_MIASM_DOUBLE
-	dump_float();
-	printf("%e %% %e -> %d %d %d\n", a, b, q & 0x4,
-	       q & 0x2, q & 0x1);
-#endif
-	return (unsigned int)q;
+	return *((uint64_t*)&c);
 }
 
 double fpu_fchs(double a)
@@ -686,73 +663,6 @@ unsigned int fpu_fcom_c3(double a, double b)
 	if (a==b)
 		return 1;
 	return 0;
-}
-
-unsigned int fpu_fxam_c0(double a)
-{
-	switch(fpclassify(a)) {
-		case FP_NAN:
-			return 1;
-		case FP_NORMAL:
-			return 0;
-		case FP_INFINITE:
-			return 1;
-		case FP_ZERO:
-			return 0;
-		case FP_SUBNORMAL:
-			return 0;
-		default:
-			// ClassEmpty
-			// ClassUnsupported
-			return 0;
-	}
-}
-
-unsigned int fpu_fxam_c1(double a)
-{
-	if ((a < 0) || isnan(a))
-		return 1;
-	return 0;
-}
-
-unsigned int fpu_fxam_c2(double a)
-{
-	switch(fpclassify(a)) {
-		case FP_NAN:
-			return 0;
-		case FP_NORMAL:
-			return 1;
-		case FP_INFINITE:
-			return 1;
-		case FP_ZERO:
-			return 0;
-		case FP_SUBNORMAL:
-			return 1;
-		default:
-			// ClassEmpty
-			// ClassUnsupported
-			return 0;
-	}
-}
-
-unsigned int fpu_fxam_c3(double a)
-{
-	switch(fpclassify(a)) {
-		case FP_NAN:
-			return 0;
-		case FP_NORMAL:
-			return 0;
-		case FP_INFINITE:
-			return 0;
-		case FP_ZERO:
-			return 1;
-		case FP_SUBNORMAL:
-			return 1;
-		default:
-			// ClassEmpty
-			// ClassUnsupported
-			return 0;
-	}
 }
 
 uint64_t sint_to_fp_64(int64_t a)

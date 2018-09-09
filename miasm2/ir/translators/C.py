@@ -327,9 +327,16 @@ class TranslatorC(Translator):
                 return "%s(%s, %s)" % (expr.op,
                                        self.from_expr(expr.args[0]),
                                        self.from_expr(expr.args[1]))
-            elif (expr.op.startswith("fcom")  or
-                  expr.op in ["fadd", "fsub", "fdiv", 'fmul', "fscale",
-                              "fprem", "fprem_lsb", "fyl2x", "fpatan"]):
+            elif expr.op.startswith("fcom"):
+                arg0 = self.from_expr(expr.args[0])
+                arg1 = self.from_expr(expr.args[1])
+                if not expr.args[0].size <= self.NATIVE_INT_MAX_SIZE:
+                    raise ValueError("Bad semantic: fpu do operations do not support such size")
+                out = "fpu_%s(%s, %s)" % (expr.op, arg0, arg1)
+                return out
+
+            elif expr.op in ["fadd", "fsub", "fdiv", 'fmul', "fscale",
+                             "fprem", "fyl2x", "fpatan"]:
                 arg0 = self.from_expr(expr.args[0])
                 arg1 = self.from_expr(expr.args[1])
                 if not expr.args[0].size <= self.NATIVE_INT_MAX_SIZE:
