@@ -1,7 +1,6 @@
 import fcntl
 import functools
 import logging
-import os
 import struct
 import termios
 

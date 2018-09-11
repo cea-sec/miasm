@@ -357,7 +357,7 @@ class instruction_aarch64(instruction):
             raise NotImplementedError("bad op")
 
     def dstflow(self):
-        return self.name in self.name in BRCOND + ["B", "BL", "BR", "BLR"]
+        return self.name in BRCOND + ["B", "BL", "BR", "BLR"]
 
     def mnemo_flow_to_dst_index(self, name):
         if self.name in ['CBZ', 'CBNZ']:

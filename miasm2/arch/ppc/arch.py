@@ -313,7 +313,7 @@ class ppc_gpreg_or_0(ppc_reg):
     parser = reg_info.parser
 
     def decode(self, v):
-        ret = super(ppc_reg, self).decode(v)
+        ret = super(ppc_gpreg_or_0, self).decode(v)
         if ret == False:
             return False
         reg = self.expr

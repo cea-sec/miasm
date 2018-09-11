@@ -135,7 +135,7 @@ def mn_do_cr(ir, instr, crd, cra, crb):
     elif op == 'XOR':
         r = a ^ b
     else:
-        raise "Unknown operation on CR"
+        raise RuntimeError("Unknown operation on CR")
     return [ ExprAff(d, r) ], []
 
 def mn_do_div(ir, instr, rd, ra, rb):
@@ -294,10 +294,10 @@ def mn_do_lswi(ir, instr, rd, ra, nb):
     if nb == 0:
         nb = 32
     i = 32
-    raise "%r not implemented" % instr
+    raise RuntimeError("%r not implemented" % instr)
 
 def mn_do_lswx(ir, instr, rd, ra, nb):
-    raise "%r not implemented" % instr
+    raise RuntimeError("%r not implemented" % instr)
 
 def mn_do_mcrf(ir, instr, crfd, crfs):
     ret = []

@@ -1441,7 +1441,6 @@ def ret(ir, instr, src=None):
     myesp = mRSP[instr.mode][:size]
 
     if src is None:
-        src = m2_expr.ExprInt(0, size)
         value = (myesp + (m2_expr.ExprInt((size / 8), size)))
     else:
         src = m2_expr.ExprInt(int(src), size)
@@ -1490,7 +1489,6 @@ def retf(ir, instr, src=None):
 
 
 def leave(ir, instr):
-    opmode, admode = instr.v_opmode(), instr.v_admode()
     size = instr.mode
     myesp = mRSP[size]
     e = []
@@ -4427,7 +4425,6 @@ def pslldq(_, instr, dst, src):
 
 def psrldq(_, instr, dst, src):
     assert src.is_int()
-    e = []
     count = int(src)
     if count > 15:
         return [m2_expr.ExprAff(dst, m2_expr.ExprInt(0, dst.size))], []
@@ -4924,7 +4921,6 @@ def maskmovq(ir, instr, src, mask):
     # Build write blocks
     dst_addr = mRDI[instr.mode]
     for i, start in enumerate(xrange(0, mask.size, 8)):
-        bit = mask[start + 7: start + 8]
         cur_label = write_labels[i]
         next_check_label = check_labels[i + 1] if (i + 1) < len(check_labels) else loc_next_expr
         write_addr = dst_addr + m2_expr.ExprInt(i, dst_addr.size)
@@ -5664,13 +5660,9 @@ class ir_x86_16(IntermediateRepresentation):
             return instr_ir, extra_ir
 
         instr.additional_info.except_on_instr = True
-        # get instruction size
-        s = {"B": 8, "W": 16, "D": 32, 'Q': 64}[instr.name[-1]]
-        size = instr.v_opmode()
         admode = instr.v_admode()
         c_reg = mRCX[instr.mode][:admode]
 
-        out_ir = []
         zf_val = None
         # set if zf is tested (cmps, scas)
         for e in instr_ir:  # +[updt_c]:

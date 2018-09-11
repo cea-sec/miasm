@@ -939,7 +939,6 @@ class bs_modname_size(bs_divert):
                     osize = v_opmode_info(size, opmode, 1, 0)
                     nfields[i] = f
                     nfields = nfields[:-1]
-                    args = dict(self.args)
                     ndct = dict(dct)
                     if osize in self.args['name']:
                         ndct['name'] = self.args['name'][osize]
@@ -951,7 +950,6 @@ class bs_modname_size(bs_divert):
                     f = bs("0", l=0, cls=(bs_fbit,), fname="rex_w")
                     osize = v_opmode_info(size, opmode, 0, 0)
                     nfields[i] = f
-                    args = dict(self.args)
                     ndct = dict(dct)
                     if osize in self.args['name']:
                         ndct['name'] = self.args['name'][osize]
@@ -960,7 +958,6 @@ class bs_modname_size(bs_divert):
                 l = opmode_prefix((dct['mode'], dct['opmode'], dct['admode']))
                 osize = v_opmode_info(size, opmode, None, 0)
                 nfields = fields[:-1]
-                args = dict(self.args)
                 ndct = dict(dct)
                 if osize in self.args['name']:
                     ndct['name'] = self.args['name'][osize]
@@ -2897,9 +2894,7 @@ class bs_rel_off(bs_cond_imm):
         if not isinstance(self.expr, ExprInt):
             raise StopIteration
         arg0_expr = self.parent.args[0].expr
-        if self.l != 0:
-            l = self.l
-        else:
+        if self.l == 0:
             l = self.parent.v_opmode()
             self.l = l
         l = offsize(self.parent)

@@ -957,7 +957,7 @@ def read_mem(bs, expr):
     var_bytes = bs.getbytes(ptr, expr.size / 8)[::-1]
     try:
         value = int(var_bytes.encode('hex'), 16)
-    except:
+    except ValueError:
         return expr
     return ExprInt(value, expr.size)
 

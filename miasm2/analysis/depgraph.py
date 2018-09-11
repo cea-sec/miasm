@@ -50,6 +50,9 @@ class DependencyNode(object):
                 self.element == depnode.element and
                 self.line_nb == depnode.line_nb)
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def __cmp__(self, node):
         """Compares @self with @node."""
         if not isinstance(node, self.__class__):
@@ -195,8 +198,9 @@ class DependencyResult(DependencyState):
     """Container and methods for DependencyGraph results"""
 
     def __init__(self, ircfg, initial_state, state, inputs):
+
+        super(DependencyResult, self).__init__(state.loc_key, state.pending)
         self.initial_state = initial_state
-        self.loc_key = state.loc_key
         self.history = state.history
         self.pending = state.pending
         self.line_nb = state.line_nb
@@ -205,7 +209,6 @@ class DependencyResult(DependencyState):
         self._ircfg = ircfg
 
         # Init lazy elements
-        self._graph = None
         self._has_loop = None
 
     @property

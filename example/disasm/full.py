@@ -10,7 +10,7 @@ from miasm2.analysis.data_flow import dead_simp, DiGraphDefUse, \
     ReachingDefinitions, merge_blocks, remove_empty_assignblks, \
     PropagateExpr, replace_stack_vars, load_from_int
 from miasm2.expression.simplifications import expr_simp
-from miasm2.analysis.ssa import SSAPath, SSADiGraph, remove_phi
+from miasm2.analysis.ssa import SSADiGraph, remove_phi
 from miasm2.ir.ir import AssignBlock, IRBlock
 
 log = logging.getLogger("dis")

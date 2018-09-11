@@ -8,7 +8,6 @@ _op_range_handler = {
     "|": lambda x, y: x | y,
     "^": lambda x, y: x ^ y,
     "*": lambda x, y: x * y,
-    ">>": lambda x, y: x >> y,
     "a>>": lambda x, y: x.arithmetic_shift_right(y),
     "<<": lambda x, y: x << y,
     ">>": lambda x, y: x >> y,

@@ -337,7 +337,7 @@ def analyse_function():
         if lbl not in ircfg.blocks:
             continue
         symbexec_engine = TypePropagationEngine(ir_arch, types_mngr, state)
-        addr = symbexec_engine.run_block_at(ircfg, lbl)
+        symbexec_engine.run_block_at(ircfg, lbl)
         symbexec_engine.del_mem_above_stack(ir_arch.sp)
 
         sons = ircfg.successors(lbl)
@@ -351,7 +351,7 @@ def analyse_function():
         if lbl not in ircfg.blocks:
             continue
         symbexec_engine = CTypeEngineFixer(ir_arch, types_mngr, state, cst_propag_link)
-        addr = symbexec_engine.run_block_at(ircfg, lbl)
+        symbexec_engine.run_block_at(ircfg, lbl)
         symbexec_engine.del_mem_above_stack(ir_arch.sp)
 
 

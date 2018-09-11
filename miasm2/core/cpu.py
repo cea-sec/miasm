@@ -684,7 +684,7 @@ class m_arg(object):
         self.expr = expr
         return start, stop
 
-    def asm_ast_to_expr(self, arg, loc_db):
+    def asm_ast_to_expr(self, arg, loc_db, **kwargs):
         raise NotImplementedError("Virtual")
 
 

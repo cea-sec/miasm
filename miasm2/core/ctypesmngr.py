@@ -36,6 +36,9 @@ class CTypeBase(object):
     def _typerepr(self):
         return self.__repr
 
+    def __eq__(self, other):
+        raise NotImplementedError("Abstract method")
+
     def __ne__(self, other):
         return not self.__eq__(other)
 

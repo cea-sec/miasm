@@ -398,7 +398,7 @@ class LLVMContext_JIT(LLVMContext):
             builder.store(value, ret)
             value_ptr = builder.bitcast(ret, llvm_ir.IntType(8).as_pointer())
 
-            ret = builder.call(
+            builder.call(
                 fc_ptr,
                 [
                     func.local_vars["jitcpu"],
@@ -581,7 +581,6 @@ class LLVMFunction():
         ptr = builder.gep(self.local_vars["vmcpu"],
                           [llvm_ir.Constant(LLVMType.IntType(),
                                             offset)])
-        regs = self.llvm_context.ir_arch.arch.regs
         pointee_type = LLVMType.IntType(expr.size)
         ptr_casted = builder.bitcast(ptr,
                                      llvm_ir.PointerType(pointee_type))

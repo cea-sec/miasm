@@ -1530,6 +1530,8 @@ def my_GetVolumeInformation(jitter, funcname, get_str, set_str):
                                              "nfilesystemnamesize"])
     if args.lprootpathname:
         s = get_str(args.lprootpathname)
+        log.info('GetVolumeInformation %r', s)
+
 
     if args.lpvolumenamebuffer:
         s = "volumename"
@@ -2066,7 +2068,7 @@ def msvcrt_swprintf(jitter):
 def msvcrt_fprintf(jitter):
     ret_addr, args = jitter.func_args_cdecl(['file', 'fmt'])
     cur_arg, fmt = 2, args.fmt
-    output = get_fmt_args(jitter, fmt, cur_arg)
+    output = get_fmt_args(jitter, fmt, cur_arg, jitter.get_str_ansi)
     ret = len(output)
     log.info("fprintf(%x, '%s') = '%s'" % (args.file, jitter.get_str_ansi(args.fmt), output))
 

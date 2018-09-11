@@ -509,7 +509,7 @@ class SSADiGraph(SSA):
                 self._rename_phi_rhs(successor)
 
             # Save current SSA variable stack for successors in the dominator tree
-            for successor in dominator_tree.successors_iter(loc_key):
+            for _ in dominator_tree.successors_iter(loc_key):
                 stack.append(self._stack_rhs)
 
     def _rename_phi_lhs(self, loc_key):
