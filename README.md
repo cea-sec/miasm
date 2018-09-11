@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/cea-sec/miasm.svg)](https://travis-ci.org/cea-sec/miasm)
+[![Build status](https://ci.appveyor.com/api/projects/status/7upfa3hkkpmd916q/branch/master?svg=true)](https://ci.appveyor.com/project/serpilliere/miasm-g9v6o/branch/master)
 [![Code Climate](https://codeclimate.com/github/cea-sec/miasm/badges/gpa.svg)](https://codeclimate.com/github/cea-sec/miasm)
 
 Reverse engineering framework in Python
