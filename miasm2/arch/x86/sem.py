@@ -3681,18 +3681,12 @@ def xorps(_, instr, dst, src):
 
 
 def rdmsr(ir, instr):
-    msr_addr = m2_expr.ExprId('MSR', 64) + m2_expr.ExprInt(8, 64) * mRCX[32].zeroExtend(64)
-    e = []
-    e.append(m2_expr.ExprAff(mRAX[32], ir.ExprMem(msr_addr, 32)))
-    e.append(m2_expr.ExprAff(mRDX[32], ir.ExprMem(msr_addr + m2_expr.ExprInt(4, 64), 32)))
+    e = [m2_expr.ExprAff(exception_flags,m2_expr.ExprInt(EXCEPT_PRIV_INSN, 32))]
     return e, []
 
 
 def wrmsr(ir, instr):
-    msr_addr = m2_expr.ExprId('MSR', 64) + m2_expr.ExprInt(8, 64) * mRCX[32].zeroExtend(64)
-    e = []
-    src = m2_expr.ExprCompose(mRAX[32], mRDX[32])
-    e.append(m2_expr.ExprAff(ir.ExprMem(msr_addr, 64), src))
+    e = [m2_expr.ExprAff(exception_flags,m2_expr.ExprInt(EXCEPT_PRIV_INSN, 32))]
     return e, []
 
 # MMX/SSE/AVX operations
