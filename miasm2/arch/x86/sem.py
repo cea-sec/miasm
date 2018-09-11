@@ -3115,15 +3115,28 @@ def das(_, instr):
     return e, []
 
 
-def aam(_, instr, src):
+def aam(ir, instr, src):
     e = []
-    tempAL = mRAX[instr.mode][0:8]
-    newEAX = m2_expr.ExprCompose(m2_expr.ExprOp("umod", tempAL, src),
-                                 m2_expr.ExprOp("udiv", tempAL, src),
-                                 mRAX[instr.mode][16:])
-    e += [m2_expr.ExprAff(mRAX[instr.mode], newEAX)]
-    e += update_flag_arith(newEAX)
-    e.append(m2_expr.ExprAff(af, m2_expr.ExprInt(0, 1)))
+    assert src.is_int()
+
+    value = int(src)
+    if value:
+        tempAL = mRAX[instr.mode][0:8]
+        newEAX = m2_expr.ExprCompose(
+            m2_expr.ExprOp("umod", tempAL, src),
+            m2_expr.ExprOp("udiv", tempAL, src),
+            mRAX[instr.mode][16:]
+        )
+        e += [m2_expr.ExprAff(mRAX[instr.mode], newEAX)]
+        e += update_flag_arith(newEAX)
+        e.append(m2_expr.ExprAff(af, m2_expr.ExprInt(0, 1)))
+    else:
+        e.append(
+            m2_expr.ExprAff(
+                exception_flags,
+                m2_expr.ExprInt(EXCEPT_DIV_BY_ZERO, exception_flags.size)
+            )
+        )
     return e, []
 
 
@@ -3668,18 +3681,12 @@ def xorps(_, instr, dst, src):
 
 
 def rdmsr(ir, instr):
-    msr_addr = m2_expr.ExprId('MSR', 64) + m2_expr.ExprInt(8, 64) * mRCX[32].zeroExtend(64)
-    e = []
-    e.append(m2_expr.ExprAff(mRAX[32], ir.ExprMem(msr_addr, 32)))
-    e.append(m2_expr.ExprAff(mRDX[32], ir.ExprMem(msr_addr + m2_expr.ExprInt(4, 64), 32)))
+    e = [m2_expr.ExprAff(exception_flags,m2_expr.ExprInt(EXCEPT_PRIV_INSN, 32))]
     return e, []
 
 
 def wrmsr(ir, instr):
-    msr_addr = m2_expr.ExprId('MSR', 64) + m2_expr.ExprInt(8, 64) * mRCX[32].zeroExtend(64)
-    e = []
-    src = m2_expr.ExprCompose(mRAX[32], mRDX[32])
-    e.append(m2_expr.ExprAff(ir.ExprMem(msr_addr, 64), src))
+    e = [m2_expr.ExprAff(exception_flags,m2_expr.ExprInt(EXCEPT_PRIV_INSN, 32))]
     return e, []
 
 # MMX/SSE/AVX operations
