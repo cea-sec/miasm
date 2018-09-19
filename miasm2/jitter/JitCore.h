@@ -41,6 +41,7 @@
 	{								\
 		bn_t bn;						\
 		PyObject* py_long;					\
+		PyObject* py_long_new;					\
 		PyObject* py_tmp;					\
 		PyObject* cst_32;					\
 		uint64_t tmp;						\
@@ -50,10 +51,14 @@
 		while (!bignum_is_zero(bn)) {				\
 			tmp = bignum_to_uint64(bignum_mask(bn, 32)) & 0xffffffff; \
 			bn = bignum_rshift(bn, 32);			\
-			py_tmp = PyLong_FromUnsignedLong(tmp);			\
-			py_long = PyObject_CallMethod(py_long, "__lshift__", "O", cst_32); \
-			py_long = PyObject_CallMethod(py_long, "__add__", "O", py_tmp);	\
+			py_tmp = PyLong_FromUnsignedLong(tmp);		\
+			py_long_new = PyObject_CallMethod(py_long, "__lshift__", "O", cst_32); \
+			Py_DECREF(py_long);				\
+			py_long = PyObject_CallMethod(py_long_new, "__add__", "O", py_tmp);	\
+			Py_DECREF(py_long_new);				\
+			Py_DECREF(py_tmp);				\
 		}							\
+		Py_DECREF(cst_32);					\
 		return py_long;						\
 	}								\
 									\
@@ -62,17 +67,20 @@
 		bn_t bn;						\
 		int j;							\
 		PyObject* py_long = value;				\
+		PyObject* py_long_new;					\
 		PyObject* py_tmp;					\
 		PyObject* cst_32;					\
 		PyObject* cst_ffffffff;					\
 		uint64_t tmp;						\
 									\
 		/* Ensure py_long is a PyLong */			\
-		if (PyInt_Check(py_long)){				\
+		if (PyInt_Check(py_long)) {				\
 			tmp = (uint64_t)PyInt_AsLong(py_long);		\
 			py_long = PyLong_FromLong(tmp);			\
 		} else if (PyLong_Check(py_long)){			\
 			/* Already PyLong */				\
+			/* Increment ref as we will decement it next */	\
+			Py_INCREF(py_long);				\
 		}							\
 		else{							\
 			PyErr_SetString(PyExc_TypeError, "Arg must be int"); \
@@ -86,12 +94,18 @@
 		for (j = 0; j < BN_BYTE_SIZE; j += 4) {			\
 			py_tmp = PyObject_CallMethod(py_long, "__and__", "O", cst_ffffffff); \
 			tmp = PyLong_AsUnsignedLongMask(py_tmp);	\
+			Py_DECREF(py_tmp);				\
 			bn = bignum_lshift(bn, 32);			\
 			bn = bignum_or(bn, bignum_from_uint64(tmp));	\
-			py_long = PyObject_CallMethod(py_long, "__rshift__", "O", cst_32); \
+			py_long_new = PyObject_CallMethod(py_long, "__rshift__", "O", cst_32); \
+			Py_DECREF(py_long);				\
+			py_long = py_long_new;				\
 		}							\
 									\
 		((vm_cpu_t*)(self->cpu))->  regname   = bn;		\
+		Py_DECREF(py_long);					\
+		Py_DECREF(cst_32);					\
+		Py_DECREF(cst_ffffffff);				\
 		return 0;						\
 	}
 
@@ -147,6 +161,7 @@
 #define get_reg_bn(reg)  do {						\
 		bn_t bn;						\
 		PyObject* py_long;					\
+		PyObject* py_long_new;					\
 		PyObject* py_tmp;					\
 		PyObject* cst_32;					\
 		uint64_t tmp;						\
@@ -157,11 +172,15 @@
 			tmp = bignum_to_uint64(bignum_mask(bn, 32)) & 0xffffffff; \
 			bn = bignum_rshift(bn, 32);			\
 			py_tmp = PyLong_FromLong(tmp);			\
-			py_long = PyObject_CallMethod(py_long, "__lshift__", "O", cst_32); \
-			py_long = PyObject_CallMethod(py_long, "__add__", "O", py_tmp);	\
+			py_long_new = PyObject_CallMethod(py_long, "__lshift__", "O", cst_32); \
+			Py_DECREF(py_long);				\
+			py_long = PyObject_CallMethod(py_long_new, "__add__", "O", py_tmp); \
+			Py_DECREF(py_long_new);				\
+			Py_DECREF(py_tmp);				\
 		}							\
 		PyDict_SetItemString(dict, #reg, py_long);		\
 		Py_DECREF(py_long);					\
+		Py_DECREF(cst_32);					\
 	} while(0);
 
 
