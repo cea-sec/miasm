@@ -12,72 +12,73 @@
 
 vm_cpu_t ref_arch_regs;
 
-reg_dict gpreg_dict[] = { {.name = "RAX", .offset = offsetof(vm_cpu_t, RAX), .size = 8*sizeof(ref_arch_regs.RAX)},
-			  {.name = "RBX", .offset = offsetof(vm_cpu_t, RBX), .size = 8*sizeof(ref_arch_regs.RBX)},
-			  {.name = "RCX", .offset = offsetof(vm_cpu_t, RCX), .size = 8*sizeof(ref_arch_regs.RCX)},
-			  {.name = "RDX", .offset = offsetof(vm_cpu_t, RDX), .size = 8*sizeof(ref_arch_regs.RDX)},
-			  {.name = "RSI", .offset = offsetof(vm_cpu_t, RSI), .size = 8*sizeof(ref_arch_regs.RSI)},
-			  {.name = "RDI", .offset = offsetof(vm_cpu_t, RDI), .size = 8*sizeof(ref_arch_regs.RDI)},
-			  {.name = "RSP", .offset = offsetof(vm_cpu_t, RSP), .size = 8*sizeof(ref_arch_regs.RSP)},
-			  {.name = "RBP", .offset = offsetof(vm_cpu_t, RBP), .size = 8*sizeof(ref_arch_regs.RBP)},
+reg_dict gpreg_dict[] = {
+			 {.name = "RAX", .offset = offsetof(vm_cpu_t, RAX), .size = 64},
+			 {.name = "RBX", .offset = offsetof(vm_cpu_t, RBX), .size = 64},
+			 {.name = "RCX", .offset = offsetof(vm_cpu_t, RCX), .size = 64},
+			 {.name = "RDX", .offset = offsetof(vm_cpu_t, RDX), .size = 64},
+			 {.name = "RSI", .offset = offsetof(vm_cpu_t, RSI), .size = 64},
+			 {.name = "RDI", .offset = offsetof(vm_cpu_t, RDI), .size = 64},
+			 {.name = "RSP", .offset = offsetof(vm_cpu_t, RSP), .size = 64},
+			 {.name = "RBP", .offset = offsetof(vm_cpu_t, RBP), .size = 64},
 
-			  {.name = "R8", .offset = offsetof(vm_cpu_t, R8), .size = 8*sizeof(ref_arch_regs.R8)},
-			  {.name = "R9", .offset = offsetof(vm_cpu_t, R9), .size = 8*sizeof(ref_arch_regs.R9)},
-			  {.name = "R10", .offset = offsetof(vm_cpu_t, R10), .size = 8*sizeof(ref_arch_regs.R10)},
-			  {.name = "R11", .offset = offsetof(vm_cpu_t, R11), .size = 8*sizeof(ref_arch_regs.R11)},
-			  {.name = "R12", .offset = offsetof(vm_cpu_t, R12), .size = 8*sizeof(ref_arch_regs.R12)},
-			  {.name = "R13", .offset = offsetof(vm_cpu_t, R13), .size = 8*sizeof(ref_arch_regs.R13)},
-			  {.name = "R14", .offset = offsetof(vm_cpu_t, R14), .size = 8*sizeof(ref_arch_regs.R14)},
-			  {.name = "R15", .offset = offsetof(vm_cpu_t, R15), .size = 8*sizeof(ref_arch_regs.R15)},
+			 {.name = "R8", .offset = offsetof(vm_cpu_t, R8), .size = 64},
+			 {.name = "R9", .offset = offsetof(vm_cpu_t, R9), .size = 64},
+			 {.name = "R10", .offset = offsetof(vm_cpu_t, R10), .size = 64},
+			 {.name = "R11", .offset = offsetof(vm_cpu_t, R11), .size = 64},
+			 {.name = "R12", .offset = offsetof(vm_cpu_t, R12), .size = 64},
+			 {.name = "R13", .offset = offsetof(vm_cpu_t, R13), .size = 64},
+			 {.name = "R14", .offset = offsetof(vm_cpu_t, R14), .size = 64},
+			 {.name = "R15", .offset = offsetof(vm_cpu_t, R15), .size = 64},
 
-			  {.name = "RIP", .offset = offsetof(vm_cpu_t, RIP), .size = 8*sizeof(ref_arch_regs.RIP)},
+			 {.name = "RIP", .offset = offsetof(vm_cpu_t, RIP), .size = 64},
 
-			  {.name = "zf", .offset = offsetof(vm_cpu_t, zf), .size = 8*sizeof(ref_arch_regs.zf)},
-			  {.name = "nf", .offset = offsetof(vm_cpu_t, nf), .size = 8*sizeof(ref_arch_regs.nf)},
-			  {.name = "pf", .offset = offsetof(vm_cpu_t, pf), .size = 8*sizeof(ref_arch_regs.pf)},
-			  {.name = "of", .offset = offsetof(vm_cpu_t, of), .size = 8*sizeof(ref_arch_regs.of)},
-			  {.name = "cf", .offset = offsetof(vm_cpu_t, cf), .size = 8*sizeof(ref_arch_regs.cf)},
-			  {.name = "af", .offset = offsetof(vm_cpu_t, af), .size = 8*sizeof(ref_arch_regs.af)},
-			  {.name = "df", .offset = offsetof(vm_cpu_t, df), .size = 8*sizeof(ref_arch_regs.df)},
+			 {.name = "zf", .offset = offsetof(vm_cpu_t, zf), .size = 8},
+			 {.name = "nf", .offset = offsetof(vm_cpu_t, nf), .size = 8},
+			 {.name = "pf", .offset = offsetof(vm_cpu_t, pf), .size = 8},
+			 {.name = "of", .offset = offsetof(vm_cpu_t, of), .size = 8},
+			 {.name = "cf", .offset = offsetof(vm_cpu_t, cf), .size = 8},
+			 {.name = "af", .offset = offsetof(vm_cpu_t, af), .size = 8},
+			 {.name = "df", .offset = offsetof(vm_cpu_t, df), .size = 8},
 
-			  {.name = "ES", .offset = offsetof(vm_cpu_t, ES), .size = 8*sizeof(ref_arch_regs.ES)},
-			  {.name = "CS", .offset = offsetof(vm_cpu_t, CS), .size = 8*sizeof(ref_arch_regs.CS)},
-			  {.name = "SS", .offset = offsetof(vm_cpu_t, SS), .size = 8*sizeof(ref_arch_regs.SS)},
-			  {.name = "DS", .offset = offsetof(vm_cpu_t, DS), .size = 8*sizeof(ref_arch_regs.DS)},
-			  {.name = "FS", .offset = offsetof(vm_cpu_t, FS), .size = 8*sizeof(ref_arch_regs.FS)},
-			  {.name = "GS", .offset = offsetof(vm_cpu_t, GS), .size = 8*sizeof(ref_arch_regs.GS)},
+			 {.name = "ES", .offset = offsetof(vm_cpu_t, ES), .size = 16},
+			 {.name = "CS", .offset = offsetof(vm_cpu_t, CS), .size = 16},
+			 {.name = "SS", .offset = offsetof(vm_cpu_t, SS), .size = 16},
+			 {.name = "DS", .offset = offsetof(vm_cpu_t, DS), .size = 16},
+			 {.name = "FS", .offset = offsetof(vm_cpu_t, FS), .size = 16},
+			 {.name = "GS", .offset = offsetof(vm_cpu_t, GS), .size = 16},
 
-			  {.name = "MM0", .offset = offsetof(vm_cpu_t, MM0), .size = 8*sizeof(ref_arch_regs.MM0)},
-			  {.name = "MM1", .offset = offsetof(vm_cpu_t, MM1), .size = 8*sizeof(ref_arch_regs.MM1)},
-			  {.name = "MM2", .offset = offsetof(vm_cpu_t, MM2), .size = 8*sizeof(ref_arch_regs.MM2)},
-			  {.name = "MM3", .offset = offsetof(vm_cpu_t, MM3), .size = 8*sizeof(ref_arch_regs.MM3)},
-			  {.name = "MM4", .offset = offsetof(vm_cpu_t, MM4), .size = 8*sizeof(ref_arch_regs.MM4)},
-			  {.name = "MM5", .offset = offsetof(vm_cpu_t, MM5), .size = 8*sizeof(ref_arch_regs.MM5)},
-			  {.name = "MM6", .offset = offsetof(vm_cpu_t, MM6), .size = 8*sizeof(ref_arch_regs.MM6)},
-			  {.name = "MM7", .offset = offsetof(vm_cpu_t, MM7), .size = 8*sizeof(ref_arch_regs.MM7)},
+			 {.name = "MM0", .offset = offsetof(vm_cpu_t, MM0), .size = 64},
+			 {.name = "MM1", .offset = offsetof(vm_cpu_t, MM1), .size = 64},
+			 {.name = "MM2", .offset = offsetof(vm_cpu_t, MM2), .size = 64},
+			 {.name = "MM3", .offset = offsetof(vm_cpu_t, MM3), .size = 64},
+			 {.name = "MM4", .offset = offsetof(vm_cpu_t, MM4), .size = 64},
+			 {.name = "MM5", .offset = offsetof(vm_cpu_t, MM5), .size = 64},
+			 {.name = "MM6", .offset = offsetof(vm_cpu_t, MM6), .size = 64},
+			 {.name = "MM7", .offset = offsetof(vm_cpu_t, MM7), .size = 64},
 
-			  {.name = "XMM0", .offset = offsetof(vm_cpu_t, XMM0), .size = 128},
-			  {.name = "XMM1", .offset = offsetof(vm_cpu_t, XMM1), .size = 128},
-			  {.name = "XMM2", .offset = offsetof(vm_cpu_t, XMM2), .size = 128},
-			  {.name = "XMM3", .offset = offsetof(vm_cpu_t, XMM3), .size = 128},
-			  {.name = "XMM4", .offset = offsetof(vm_cpu_t, XMM4), .size = 128},
-			  {.name = "XMM5", .offset = offsetof(vm_cpu_t, XMM5), .size = 128},
-			  {.name = "XMM6", .offset = offsetof(vm_cpu_t, XMM6), .size = 128},
-			  {.name = "XMM7", .offset = offsetof(vm_cpu_t, XMM7), .size = 128},
-			  {.name = "XMM8", .offset = offsetof(vm_cpu_t, XMM8), .size = 128},
-			  {.name = "XMM9", .offset = offsetof(vm_cpu_t, XMM9), .size = 128},
-			  {.name = "XMM10", .offset = offsetof(vm_cpu_t, XMM10), .size = 128},
-			  {.name = "XMM11", .offset = offsetof(vm_cpu_t, XMM11), .size = 128},
-			  {.name = "XMM12", .offset = offsetof(vm_cpu_t, XMM12), .size = 128},
-			  {.name = "XMM13", .offset = offsetof(vm_cpu_t, XMM13), .size = 128},
-			  {.name = "XMM14", .offset = offsetof(vm_cpu_t, XMM14), .size = 128},
-			  {.name = "XMM15", .offset = offsetof(vm_cpu_t, XMM15), .size = 128},
+			 {.name = "XMM0", .offset = offsetof(vm_cpu_t, XMM0), .size = 128},
+			 {.name = "XMM1", .offset = offsetof(vm_cpu_t, XMM1), .size = 128},
+			 {.name = "XMM2", .offset = offsetof(vm_cpu_t, XMM2), .size = 128},
+			 {.name = "XMM3", .offset = offsetof(vm_cpu_t, XMM3), .size = 128},
+			 {.name = "XMM4", .offset = offsetof(vm_cpu_t, XMM4), .size = 128},
+			 {.name = "XMM5", .offset = offsetof(vm_cpu_t, XMM5), .size = 128},
+			 {.name = "XMM6", .offset = offsetof(vm_cpu_t, XMM6), .size = 128},
+			 {.name = "XMM7", .offset = offsetof(vm_cpu_t, XMM7), .size = 128},
+			 {.name = "XMM8", .offset = offsetof(vm_cpu_t, XMM8), .size = 128},
+			 {.name = "XMM9", .offset = offsetof(vm_cpu_t, XMM9), .size = 128},
+			 {.name = "XMM10", .offset = offsetof(vm_cpu_t, XMM10), .size = 128},
+			 {.name = "XMM11", .offset = offsetof(vm_cpu_t, XMM11), .size = 128},
+			 {.name = "XMM12", .offset = offsetof(vm_cpu_t, XMM12), .size = 128},
+			 {.name = "XMM13", .offset = offsetof(vm_cpu_t, XMM13), .size = 128},
+			 {.name = "XMM14", .offset = offsetof(vm_cpu_t, XMM14), .size = 128},
+			 {.name = "XMM15", .offset = offsetof(vm_cpu_t, XMM15), .size = 128},
 
-			  {.name = "tsc1", .offset = offsetof(vm_cpu_t, tsc1), .size = 8*sizeof(ref_arch_regs.tsc1)},
-			  {.name = "tsc2", .offset = offsetof(vm_cpu_t, tsc2), .size = 8*sizeof(ref_arch_regs.tsc2)},
+			 {.name = "tsc1", .offset = offsetof(vm_cpu_t, tsc1), .size = 32},
+			 {.name = "tsc2", .offset = offsetof(vm_cpu_t, tsc2), .size = 32},
 
-			  {.name = "exception_flags", .offset = offsetof(vm_cpu_t, exception_flags), .size = 8*sizeof(ref_arch_regs.exception_flags)},
-			  {.name = "interrupt_num", .offset = offsetof(vm_cpu_t, interrupt_num), .size = 8*sizeof(ref_arch_regs.interrupt_num)},
+			 {.name = "exception_flags", .offset = offsetof(vm_cpu_t, exception_flags), .size = 32},
+			 {.name = "interrupt_num", .offset = offsetof(vm_cpu_t, interrupt_num), .size = 32},
 };
 
 
@@ -138,22 +139,22 @@ PyObject* cpu_get_gpreg(JitCpu* self)
     get_reg(MM6);
     get_reg(MM7);
 
-    get_reg_bn(XMM0);
-    get_reg_bn(XMM1);
-    get_reg_bn(XMM2);
-    get_reg_bn(XMM3);
-    get_reg_bn(XMM4);
-    get_reg_bn(XMM5);
-    get_reg_bn(XMM6);
-    get_reg_bn(XMM7);
-    get_reg_bn(XMM8);
-    get_reg_bn(XMM9);
-    get_reg_bn(XMM10);
-    get_reg_bn(XMM11);
-    get_reg_bn(XMM12);
-    get_reg_bn(XMM13);
-    get_reg_bn(XMM14);
-    get_reg_bn(XMM15);
+    get_reg_bn(XMM0, 128);
+    get_reg_bn(XMM1, 128);
+    get_reg_bn(XMM2, 128);
+    get_reg_bn(XMM3, 128);
+    get_reg_bn(XMM4, 128);
+    get_reg_bn(XMM5, 128);
+    get_reg_bn(XMM6, 128);
+    get_reg_bn(XMM7, 128);
+    get_reg_bn(XMM8, 128);
+    get_reg_bn(XMM9, 128);
+    get_reg_bn(XMM10, 128);
+    get_reg_bn(XMM11, 128);
+    get_reg_bn(XMM12, 128);
+    get_reg_bn(XMM13, 128);
+    get_reg_bn(XMM14, 128);
+    get_reg_bn(XMM15, 128);
 
     get_reg(tsc1);
     get_reg(tsc2);
@@ -220,12 +221,12 @@ PyObject* cpu_set_gpreg(JitCpu* self, PyObject *args)
 						    py_long = PyLong_FromLong((long)tmp);
 					    } else if (PyLong_Check(py_long)){
 						    /* Already PyLong */
+						    /* Increment ref as we will decement it next */
 						    Py_INCREF(py_long);
 					    }
 					    else{
 						    RAISE(PyExc_TypeError,"arg must be int");
 					    }
-
 
 
 					    cst_ffffffff = PyLong_FromLong(0xffffffff);
@@ -246,10 +247,7 @@ PyObject* cpu_set_gpreg(JitCpu* self, PyObject *args)
 					    Py_DECREF(py_long);
 					    Py_DECREF(cst_32);
 					    Py_DECREF(cst_ffffffff);
-
-
-
-					    *(bn_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset) = bn;
+					    *(bn_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset) = bignum_mask(bn, 128);
 				    }
 				    break;
 		    }
@@ -619,22 +617,22 @@ getset_reg_u64(MM5);
 getset_reg_u64(MM6);
 getset_reg_u64(MM7);
 
-getset_reg_bn(XMM0);
-getset_reg_bn(XMM1);
-getset_reg_bn(XMM2);
-getset_reg_bn(XMM3);
-getset_reg_bn(XMM4);
-getset_reg_bn(XMM5);
-getset_reg_bn(XMM6);
-getset_reg_bn(XMM7);
-getset_reg_bn(XMM8);
-getset_reg_bn(XMM9);
-getset_reg_bn(XMM10);
-getset_reg_bn(XMM11);
-getset_reg_bn(XMM12);
-getset_reg_bn(XMM13);
-getset_reg_bn(XMM14);
-getset_reg_bn(XMM15);
+getset_reg_bn(XMM0, 128);
+getset_reg_bn(XMM1, 128);
+getset_reg_bn(XMM2, 128);
+getset_reg_bn(XMM3, 128);
+getset_reg_bn(XMM4, 128);
+getset_reg_bn(XMM5, 128);
+getset_reg_bn(XMM6, 128);
+getset_reg_bn(XMM7, 128);
+getset_reg_bn(XMM8, 128);
+getset_reg_bn(XMM9, 128);
+getset_reg_bn(XMM10, 128);
+getset_reg_bn(XMM11, 128);
+getset_reg_bn(XMM12, 128);
+getset_reg_bn(XMM13, 128);
+getset_reg_bn(XMM14, 128);
+getset_reg_bn(XMM15, 128);
 
 getset_reg_u32(tsc1);
 getset_reg_u32(tsc2);

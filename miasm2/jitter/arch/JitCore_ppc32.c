@@ -11,7 +11,7 @@
 
 reg_dict gpreg_dict[] = {
 #define JITCORE_PPC_REG_EXPAND(_name, _size)				\
-    { .name = #_name, .offset = offsetof(struct vm_cpu, _name) },
+    { .name = #_name, .offset = offsetof(struct vm_cpu, _name), .size = _size },
 #include "JitCore_ppc32_regs.h"
 #undef JITCORE_PPC_REG_EXPAND
 };

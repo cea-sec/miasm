@@ -615,10 +615,9 @@ bn_t bignum_mask(bn_t src, int bits)
 	bn_t dst;
 	bn_t mask;
 
-	mask = bignum_from_int(1);
-	mask = bignum_lshift(mask, bits);
+	mask = bignum_from_int(0);
 	mask = bignum_dec(mask);
-
+	mask = bignum_rshift(mask, BN_BIT_SIZE - bits);
 	dst = bignum_and(src, mask);
 	return dst;
 }
