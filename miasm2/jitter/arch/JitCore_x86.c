@@ -220,12 +220,12 @@ PyObject* cpu_set_gpreg(JitCpu* self, PyObject *args)
 						    py_long = PyLong_FromLong((long)tmp);
 					    } else if (PyLong_Check(py_long)){
 						    /* Already PyLong */
+						    /* Increment ref as we will decement it next */
 						    Py_INCREF(py_long);
 					    }
 					    else{
 						    RAISE(PyExc_TypeError,"arg must be int");
 					    }
-
 
 
 					    cst_ffffffff = PyLong_FromLong(0xffffffff);
@@ -246,10 +246,7 @@ PyObject* cpu_set_gpreg(JitCpu* self, PyObject *args)
 					    Py_DECREF(py_long);
 					    Py_DECREF(cst_32);
 					    Py_DECREF(cst_ffffffff);
-
-
-
-					    *(bn_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset) = bn;
+					    *(bn_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset) = bignum_mask(bn, 128);
 				    }
 				    break;
 		    }
