@@ -1,6 +1,6 @@
 #-*- coding:utf-8 -*-
 
-from miasm2.expression.expression import ExprAff, ExprOp
+from miasm2.expression.expression import ExprAssign, ExprOp
 from miasm2.ir.ir import AssignBlock
 from miasm2.ir.analysis import ira
 from miasm2.arch.x86.sem import ir_x86_16, ir_x86_32, ir_x86_64
@@ -46,7 +46,7 @@ class ir_a_x86_64(ir_x86_64, ir_a_x86_16):
     def call_effects(self, ad, instr):
         call_assignblk = AssignBlock(
             [
-                ExprAff(
+                ExprAssign(
                     self.ret_reg,
                     ExprOp(
                         'call_func_ret',
@@ -58,7 +58,7 @@ class ir_a_x86_64(ir_x86_64, ir_a_x86_16):
                         self.arch.regs.R9,
                     )
                 ),
-                ExprAff(self.sp, ExprOp('call_func_stack', ad, self.sp)),
+                ExprAssign(self.sp, ExprOp('call_func_stack', ad, self.sp)),
             ],
             instr
         )

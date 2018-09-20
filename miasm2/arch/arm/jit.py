@@ -5,7 +5,7 @@ from miasm2.core.locationdb import LocationDB
 from miasm2.core.utils import pck32, upck32
 from miasm2.arch.arm.sem import ir_armb, ir_arml, ir_armtl, ir_armtb, cond_dct_inv, tab_cond
 from miasm2.jitter.codegen import CGen
-from miasm2.expression.expression import ExprId, ExprAff, ExprCond
+from miasm2.expression.expression import ExprId, ExprAssign, ExprCond
 from miasm2.ir.ir import IRBlock, AssignBlock
 from miasm2.ir.translators.C import TranslatorC
 from miasm2.expression.simplifications import expr_simp_high_to_explicit

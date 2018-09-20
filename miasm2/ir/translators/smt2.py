@@ -278,7 +278,7 @@ class TranslatorSMT2(Translator):
 
         return res
 
-    def from_ExprAff(self, expr):
+    def from_ExprAssign(self, expr):
         src = self.from_expr(expr.src)
         dst = self.from_expr(expr.dst)
         return smt2_assert(smt2_eq(src, dst))

@@ -74,7 +74,7 @@ class TranslatorPython(Translator):
 
         raise NotImplementedError("Unknown operator: %s" % expr.op)
 
-    def from_ExprAff(self, expr):
+    def from_ExprAssign(self, expr):
         return "%s = %s" % tuple(map(self.from_expr, (expr.dst, expr.src)))
 
 

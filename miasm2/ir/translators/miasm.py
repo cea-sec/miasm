@@ -30,8 +30,8 @@ class TranslatorMiasm(Translator):
         args = ["%s" % self.from_expr(arg) for arg in expr.args]
         return "ExprCompose(%s)" % ", ".join(args)
 
-    def from_ExprAff(self, expr):
-        return "ExprAff(%s, %s)" % (self.from_expr(expr.dst),
+    def from_ExprAssign(self, expr):
+        return "ExprAssign(%s, %s)" % (self.from_expr(expr.dst),
                                     self.from_expr(expr.src))
 
     def from_ExprMem(self, expr):

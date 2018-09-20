@@ -8,7 +8,7 @@ from miasm2.arch.mep.regs import PC, SP, LP, SAR, TP, RPB, RPE, RPC, EPC, NPC, \
     take_jmp, in_erepeat
 from miasm2.arch.mep.regs import EXC, HI, LO, PSW, DEPC, DBG
 from miasm2.expression.expression import ExprId, ExprInt, ExprOp
-from miasm2.expression.expression import ExprAff, ExprCond, ExprMem
+from miasm2.expression.expression import ExprAssign, ExprCond, ExprMem
 from miasm2.core.cpu import sign_ext
 from miasm2.jitter.csts import EXCEPT_DIV_BY_ZERO
 
@@ -105,7 +105,7 @@ def sw(reg_src, deref_dst):
 #        imm = deref_reg_or_imm.zeroExtend(32)
 #        dst = ExprMem(ExprOp("+", imm, deref_reg.arg))
 #
-#    return [ExprAff(dst, reg_src)], []
+#    return [ExprAssign(dst, reg_src)], []
 
 
 @sbuild.parse
@@ -242,7 +242,7 @@ def add3(ir, instr, reg_dst, reg_src, reg_or_imm):
         value = int(reg_or_imm.arg)
         result = ExprOp("+", reg_src, ExprInt(value, 32))
 
-    return [ExprAff(reg_dst, result)], []
+    return [ExprAssign(reg_dst, result)], []
 
 manual_functions["add3"] = add3
 
@@ -287,7 +287,7 @@ def sbvck3(ir, instr, r0, rn, rm):
 
     # Return the result
     condition = ExprCond(overflow_test, ExprInt(1, 32), ExprInt(0, 32))
-    return [ExprAff(r0, condition)], []
+    return [ExprAssign(r0, condition)], []
 
 manual_functions["sbvck3"] = sbvck3
 
@@ -602,12 +602,12 @@ def jmp(ir, instr, reg_or_imm):
 
     if isinstance(reg_or_imm, ExprId):
         # PC <- Rm31..1||0
-        new_PC = ExprAff(PC, reg_or_imm)
+        new_PC = ExprAssign(PC, reg_or_imm)
     else:
         # PC <- PC31..28||0000||(target24)23..1||0
-        new_PC = ExprAff(PC, ExprOp("+", ExprOp("&", PC, ExprInt(0xF0000000, 32)), reg_or_imm))
+        new_PC = ExprAssign(PC, ExprOp("+", ExprOp("&", PC, ExprInt(0xF0000000, 32)), reg_or_imm))
 
-    return [new_PC, ExprAff(ir.IRDst, new_PC)], []
+    return [new_PC, ExprAssign(ir.IRDst, new_PC)], []
 
 manual_functions["jmp"] = jmp
 

@@ -22,7 +22,7 @@ from argparse import ArgumentParser
 from miasm2.analysis.machine import Machine
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm2.analysis.dse import DSEPathConstraint
-from miasm2.expression.expression import ExprMem, ExprId, ExprInt, ExprAff
+from miasm2.expression.expression import ExprMem, ExprId, ExprInt, ExprAssign
 
 # Argument handling
 parser = ArgumentParser("DSE Example")
@@ -102,7 +102,7 @@ while todo:
     jitter.init_run(run_addr)
 
     # Set the argument value in the jitter context
-    jitter.eval_expr(ExprAff(arg_addr, arg_value))
+    jitter.eval_expr(ExprAssign(arg_addr, arg_value))
 
     # Launch
     jitter.continue_run()

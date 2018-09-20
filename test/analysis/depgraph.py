@@ -1,5 +1,5 @@
 """Regression test module for DependencyGraph"""
-from miasm2.expression.expression import ExprId, ExprInt, ExprAff, ExprCond, \
+from miasm2.expression.expression import ExprId, ExprInt, ExprAssign, ExprCond, \
     ExprLoc, LocKey
 from miasm2.core.locationdb import LocationDB
 from miasm2.ir.analysis import ira
@@ -236,9 +236,9 @@ END = ExprId("END", IRDst.size)
 
 G1_IRA = IRA.new_ircfg()
 
-G1_IRB0 = gen_irblock(LBL0, [[ExprAff(C, CST1), ExprAff(IRDst, ExprLoc(LBL1, 32))]])
-G1_IRB1 = gen_irblock(LBL1, [[ExprAff(B, C), ExprAff(IRDst, ExprLoc(LBL2, 32))]])
-G1_IRB2 = gen_irblock(LBL2, [[ExprAff(A, B), ExprAff(IRDst, END)]])
+G1_IRB0 = gen_irblock(LBL0, [[ExprAssign(C, CST1), ExprAssign(IRDst, ExprLoc(LBL1, 32))]])
+G1_IRB1 = gen_irblock(LBL1, [[ExprAssign(B, C), ExprAssign(IRDst, ExprLoc(LBL2, 32))]])
+G1_IRB2 = gen_irblock(LBL2, [[ExprAssign(A, B), ExprAssign(IRDst, END)]])
 
 for irb in [G1_IRB0, G1_IRB1, G1_IRB2]:
     G1_IRA.add_irblock(irb)
@@ -247,9 +247,9 @@ for irb in [G1_IRB0, G1_IRB1, G1_IRB2]:
 
 G2_IRA = IRA.new_ircfg()
 
-G2_IRB0 = gen_irblock(LBL0, [[ExprAff(C, CST1), ExprAff(IRDst, ExprLoc(LBL1, 32))]])
-G2_IRB1 = gen_irblock(LBL1, [[ExprAff(B, CST2), ExprAff(IRDst, ExprLoc(LBL2, 32))]])
-G2_IRB2 = gen_irblock(LBL2, [[ExprAff(A, B + C), ExprAff(IRDst, END)]])
+G2_IRB0 = gen_irblock(LBL0, [[ExprAssign(C, CST1), ExprAssign(IRDst, ExprLoc(LBL1, 32))]])
+G2_IRB1 = gen_irblock(LBL1, [[ExprAssign(B, CST2), ExprAssign(IRDst, ExprLoc(LBL2, 32))]])
+G2_IRB2 = gen_irblock(LBL2, [[ExprAssign(A, B + C), ExprAssign(IRDst, END)]])
 
 for irb in [G2_IRB0, G2_IRB1, G2_IRB2]:
     G2_IRA.add_irblock(irb)
@@ -262,7 +262,7 @@ G3_IRA = IRA.new_ircfg()
 G3_IRB0 = gen_irblock(
     LBL0,
     [
-        [ExprAff(C, CST1), ExprAff(
+        [ExprAssign(C, CST1), ExprAssign(
             IRDst, ExprCond(
                 COND,
                 ExprLoc(LBL1, 32),
@@ -273,9 +273,9 @@ G3_IRB0 = gen_irblock(
     ]
 )
 
-G3_IRB1 = gen_irblock(LBL1, [[ExprAff(B, CST2), ExprAff(IRDst, ExprLoc(LBL3, 32))]])
-G3_IRB2 = gen_irblock(LBL2, [[ExprAff(B, CST3), ExprAff(IRDst, ExprLoc(LBL3, 32))]])
-G3_IRB3 = gen_irblock(LBL3, [[ExprAff(A, B + C), ExprAff(IRDst, END)]])
+G3_IRB1 = gen_irblock(LBL1, [[ExprAssign(B, CST2), ExprAssign(IRDst, ExprLoc(LBL3, 32))]])
+G3_IRB2 = gen_irblock(LBL2, [[ExprAssign(B, CST3), ExprAssign(IRDst, ExprLoc(LBL3, 32))]])
+G3_IRB3 = gen_irblock(LBL3, [[ExprAssign(A, B + C), ExprAssign(IRDst, END)]])
 
 for irb in [G3_IRB0, G3_IRB1, G3_IRB2, G3_IRB3]:
     G3_IRA.add_irblock(irb)
@@ -284,12 +284,12 @@ for irb in [G3_IRB0, G3_IRB1, G3_IRB2, G3_IRB3]:
 
 G4_IRA = IRA.new_ircfg()
 
-G4_IRB0 = gen_irblock(LBL0, [[ExprAff(C, CST1), ExprAff(IRDst, ExprLoc(LBL1, 32))]])
+G4_IRB0 = gen_irblock(LBL0, [[ExprAssign(C, CST1), ExprAssign(IRDst, ExprLoc(LBL1, 32))]])
 G4_IRB1 = gen_irblock(
     LBL1,
     [
-        [ExprAff(C, C + CST2)],
-        [ExprAff(IRDst,
+        [ExprAssign(C, C + CST2)],
+        [ExprAssign(IRDst,
                  ExprCond(
                      C,
                      ExprLoc(LBL2, 32),
@@ -298,7 +298,7 @@ G4_IRB1 = gen_irblock(
         ]]
 )
 
-G4_IRB2 = gen_irblock(LBL2, [[ExprAff(A, B), ExprAff(IRDst, END)]])
+G4_IRB2 = gen_irblock(LBL2, [[ExprAssign(A, B), ExprAssign(IRDst, END)]])
 
 for irb in [G4_IRB0, G4_IRB1, G4_IRB2]:
     G4_IRA.add_irblock(irb)
@@ -308,12 +308,12 @@ for irb in [G4_IRB0, G4_IRB1, G4_IRB2]:
 
 G5_IRA = IRA.new_ircfg()
 
-G5_IRB0 = gen_irblock(LBL0, [[ExprAff(B, CST1), ExprAff(IRDst, ExprLoc(LBL1, 32))]])
+G5_IRB0 = gen_irblock(LBL0, [[ExprAssign(B, CST1), ExprAssign(IRDst, ExprLoc(LBL1, 32))]])
 G5_IRB1 = gen_irblock(
     LBL1,
     [
-        [ExprAff(B, B + CST2)],
-        [ExprAff(
+        [ExprAssign(B, B + CST2)],
+        [ExprAssign(
             IRDst,
             ExprCond(
                 B,
@@ -325,7 +325,7 @@ G5_IRB1 = gen_irblock(
     ]
 )
 
-G5_IRB2 = gen_irblock(LBL2, [[ExprAff(A, B), ExprAff(IRDst, END)]])
+G5_IRB2 = gen_irblock(LBL2, [[ExprAssign(A, B), ExprAssign(IRDst, END)]])
 
 for irb in [G5_IRB0, G5_IRB1, G5_IRB2]:
     G5_IRA.add_irblock(irb)
@@ -334,8 +334,8 @@ for irb in [G5_IRB0, G5_IRB1, G5_IRB2]:
 
 G6_IRA = IRA.new_ircfg()
 
-G6_IRB0 = gen_irblock(LBL0, [[ExprAff(B, CST1), ExprAff(IRDst, ExprLoc(LBL1, 32))]])
-G6_IRB1 = gen_irblock(LBL1, [[ExprAff(A, B), ExprAff(IRDst, ExprLoc(LBL1, 32))]])
+G6_IRB0 = gen_irblock(LBL0, [[ExprAssign(B, CST1), ExprAssign(IRDst, ExprLoc(LBL1, 32))]])
+G6_IRB1 = gen_irblock(LBL1, [[ExprAssign(A, B), ExprAssign(IRDst, ExprLoc(LBL1, 32))]])
 
 for irb in [G6_IRB0, G6_IRB1]:
     G6_IRA.add_irblock(irb)
@@ -344,13 +344,13 @@ for irb in [G6_IRB0, G6_IRB1]:
 
 G7_IRA = IRA.new_ircfg()
 
-G7_IRB0 = gen_irblock(LBL0, [[ExprAff(C, CST1), ExprAff(IRDst, ExprLoc(LBL1, 32))]])
+G7_IRB0 = gen_irblock(LBL0, [[ExprAssign(C, CST1), ExprAssign(IRDst, ExprLoc(LBL1, 32))]])
 G7_IRB1 = gen_irblock(
     LBL1,
     [
-        [ExprAff(B, C)],
-        [ExprAff(A, B)],
-        [ExprAff(
+        [ExprAssign(B, C)],
+        [ExprAssign(A, B)],
+        [ExprAssign(
             IRDst,
             ExprCond(
                 COND,
@@ -362,7 +362,7 @@ G7_IRB1 = gen_irblock(
     ]
 )
 
-G7_IRB2 = gen_irblock(LBL2, [[ExprAff(D, A), ExprAff(IRDst, END)]])
+G7_IRB2 = gen_irblock(LBL2, [[ExprAssign(D, A), ExprAssign(IRDst, END)]])
 
 for irb in [G7_IRB0, G7_IRB1, G7_IRB2]:
     G7_IRA.add_irblock(irb)
@@ -371,13 +371,13 @@ for irb in [G7_IRB0, G7_IRB1, G7_IRB2]:
 
 G8_IRA = IRA.new_ircfg()
 
-G8_IRB0 = gen_irblock(LBL0, [[ExprAff(C, CST1), ExprAff(IRDst, ExprLoc(LBL1, 32))]])
+G8_IRB0 = gen_irblock(LBL0, [[ExprAssign(C, CST1), ExprAssign(IRDst, ExprLoc(LBL1, 32))]])
 G8_IRB1 = gen_irblock(
     LBL1,
     [
-        [ExprAff(B, C)],
-        [ExprAff(C, D),
-         ExprAff(
+        [ExprAssign(B, C)],
+        [ExprAssign(C, D),
+         ExprAssign(
              IRDst,
              ExprCond(
                  COND,
@@ -388,7 +388,7 @@ G8_IRB1 = gen_irblock(
         ]
     ]
 )
-G8_IRB2 = gen_irblock(LBL2, [[ExprAff(A, B), ExprAff(IRDst, END)]])
+G8_IRB2 = gen_irblock(LBL2, [[ExprAssign(A, B), ExprAssign(IRDst, END)]])
 
 for irb in [G8_IRB0, G8_IRB1, G8_IRB2]:
     G8_IRA.add_irblock(irb)
@@ -402,8 +402,8 @@ G10_IRA = IRA.new_ircfg()
 G10_IRB1 = gen_irblock(
     LBL1,
     [
-        [ExprAff(B, B + CST2),
-         ExprAff(
+        [ExprAssign(B, B + CST2),
+         ExprAssign(
              IRDst,
              ExprCond(
                  COND,
@@ -415,7 +415,7 @@ G10_IRB1 = gen_irblock(
     ]
 )
 
-G10_IRB2 = gen_irblock(LBL2, [[ExprAff(A, B), ExprAff(IRDst, END)]])
+G10_IRB2 = gen_irblock(LBL2, [[ExprAssign(A, B), ExprAssign(IRDst, END)]])
 
 for irb in [G10_IRB1, G10_IRB2]:
     G10_IRA.add_irblock(irb)
@@ -427,9 +427,9 @@ G11_IRA = IRA.new_ircfg()
 G11_IRB0 = gen_irblock(
     LBL0,
     [
-        [ExprAff(A, CST1),
-         ExprAff(B, CST2),
-         ExprAff(IRDst, ExprLoc(LBL1, 32))
+        [ExprAssign(A, CST1),
+         ExprAssign(B, CST2),
+         ExprAssign(IRDst, ExprLoc(LBL1, 32))
         ]
     ]
 )
@@ -437,14 +437,14 @@ G11_IRB0 = gen_irblock(
 G11_IRB1 = gen_irblock(
     LBL1,
     [
-        [ExprAff(A, B),
-         ExprAff(B, A),
-         ExprAff(IRDst, ExprLoc(LBL2, 32))
+        [ExprAssign(A, B),
+         ExprAssign(B, A),
+         ExprAssign(IRDst, ExprLoc(LBL2, 32))
         ]
     ]
 )
 
-G11_IRB2 = gen_irblock(LBL2, [[ExprAff(A, A - B), ExprAff(IRDst, END)]])
+G11_IRB2 = gen_irblock(LBL2, [[ExprAssign(A, A - B), ExprAssign(IRDst, END)]])
 
 for irb in [G11_IRB0, G11_IRB1, G11_IRB2]:
     G11_IRA.add_irblock(irb)
@@ -453,13 +453,13 @@ for irb in [G11_IRB0, G11_IRB1, G11_IRB2]:
 
 G12_IRA = IRA.new_ircfg()
 
-G12_IRB0 = gen_irblock(LBL0, [[ExprAff(B, CST1), ExprAff(IRDst, ExprLoc(LBL1, 32))]])
+G12_IRB0 = gen_irblock(LBL0, [[ExprAssign(B, CST1), ExprAssign(IRDst, ExprLoc(LBL1, 32))]])
 G12_IRB1 = gen_irblock(
     LBL1,
     [
-        [ExprAff(A, B)],
-        [ExprAff(B, B + CST2),
-         ExprAff(
+        [ExprAssign(A, B)],
+        [ExprAssign(B, B + CST2),
+         ExprAssign(
              IRDst,
              ExprCond(
                  COND,
@@ -471,7 +471,7 @@ G12_IRB1 = gen_irblock(
     ]
 )
 
-G12_IRB2 = gen_irblock(LBL2, [[ExprAff(B, A), ExprAff(IRDst, END)]])
+G12_IRB2 = gen_irblock(LBL2, [[ExprAssign(B, A), ExprAssign(IRDst, END)]])
 
 for irb in [G12_IRB0, G12_IRB1, G12_IRB2]:
     G12_IRA.add_irblock(irb)
@@ -481,13 +481,13 @@ for irb in [G12_IRB0, G12_IRB1, G12_IRB2]:
 
 G13_IRA = IRA.new_ircfg()
 
-G13_IRB0 = gen_irblock(LBL0, [[ExprAff(A, CST1)],
-                              #[ExprAff(B, A)],
-                              [ExprAff(IRDst,
+G13_IRB0 = gen_irblock(LBL0, [[ExprAssign(A, CST1)],
+                              #[ExprAssign(B, A)],
+                              [ExprAssign(IRDst,
                                        ExprLoc(LBL1, 32))]])
-G13_IRB1 = gen_irblock(LBL1, [[ExprAff(C, A)],
-                              #[ExprAff(A, A + CST1)],
-                              [ExprAff(IRDst,
+G13_IRB1 = gen_irblock(LBL1, [[ExprAssign(C, A)],
+                              #[ExprAssign(A, A + CST1)],
+                              [ExprAssign(IRDst,
                                        ExprCond(
                                            R,
                                            ExprLoc(LBL2, 32),
@@ -495,11 +495,11 @@ G13_IRB1 = gen_irblock(LBL1, [[ExprAff(C, A)],
                                        )
                               )]])
 
-G13_IRB2 = gen_irblock(LBL2, [[ExprAff(B, A + CST3)], [ExprAff(A, B + CST3)],
-                              [ExprAff(IRDst,
+G13_IRB2 = gen_irblock(LBL2, [[ExprAssign(B, A + CST3)], [ExprAssign(A, B + CST3)],
+                              [ExprAssign(IRDst,
                                        ExprLoc(LBL1, 32))]])
 
-G13_IRB3 = gen_irblock(LBL3, [[ExprAff(R, C), ExprAff(IRDst, END)]])
+G13_IRB3 = gen_irblock(LBL3, [[ExprAssign(R, C), ExprAssign(IRDst, END)]])
 
 for irb in [G13_IRB0, G13_IRB1, G13_IRB2, G13_IRB3]:
     G13_IRA.add_irblock(irb)
@@ -508,12 +508,12 @@ for irb in [G13_IRB0, G13_IRB1, G13_IRB2, G13_IRB3]:
 
 G14_IRA = IRA.new_ircfg()
 
-G14_IRB0 = gen_irblock(LBL0, [[ExprAff(A, CST1)],
-                              [ExprAff(IRDst,
+G14_IRB0 = gen_irblock(LBL0, [[ExprAssign(A, CST1)],
+                              [ExprAssign(IRDst,
                                        ExprLoc(LBL1, 32))]
                              ])
-G14_IRB1 = gen_irblock(LBL1, [[ExprAff(B, A)],
-                              [ExprAff(IRDst,
+G14_IRB1 = gen_irblock(LBL1, [[ExprAssign(B, A)],
+                              [ExprAssign(IRDst,
                                        ExprCond(
                                            C,
                                            ExprLoc(LBL2, 32),
@@ -523,13 +523,13 @@ G14_IRB1 = gen_irblock(LBL1, [[ExprAff(B, A)],
                               ]
                              ])
 
-G14_IRB2 = gen_irblock(LBL2, [[ExprAff(D, A)],
-                              [ExprAff(A, D + CST1)],
-                              [ExprAff(IRDst,
+G14_IRB2 = gen_irblock(LBL2, [[ExprAssign(D, A)],
+                              [ExprAssign(A, D + CST1)],
+                              [ExprAssign(IRDst,
                                        ExprLoc(LBL1, 32))]
                              ])
 
-G14_IRB3 = gen_irblock(LBL3, [[ExprAff(R, D + B), ExprAff(IRDst, END)]])
+G14_IRB3 = gen_irblock(LBL3, [[ExprAssign(R, D + B), ExprAssign(IRDst, END)]])
 
 for irb in [G14_IRB0, G14_IRB1, G14_IRB2, G14_IRB3]:
     G14_IRA.add_irblock(irb)
@@ -538,18 +538,18 @@ for irb in [G14_IRB0, G14_IRB1, G14_IRB2, G14_IRB3]:
 
 G15_IRA = IRA.new_ircfg()
 
-G15_IRB0 = gen_irblock(LBL0, [[ExprAff(A, CST1), ExprAff(IRDst, ExprLoc(LBL1, 32))]])
-G15_IRB1 = gen_irblock(LBL1, [[ExprAff(D, A + B)],
-                              [ExprAff(C, D)],
-                              [ExprAff(B, C),
-                               ExprAff(IRDst,
+G15_IRB0 = gen_irblock(LBL0, [[ExprAssign(A, CST1), ExprAssign(IRDst, ExprLoc(LBL1, 32))]])
+G15_IRB1 = gen_irblock(LBL1, [[ExprAssign(D, A + B)],
+                              [ExprAssign(C, D)],
+                              [ExprAssign(B, C),
+                               ExprAssign(IRDst,
                                        ExprCond(
                                            C,
                                            ExprLoc(LBL1, 32),
                                            ExprLoc(LBL2, 32)
                                        )
                                )]])
-G15_IRB2 = gen_irblock(LBL2, [[ExprAff(R, B), ExprAff(IRDst, END)]])
+G15_IRB2 = gen_irblock(LBL2, [[ExprAssign(R, B), ExprAssign(IRDst, END)]])
 
 for irb in [G15_IRB0, G15_IRB1, G15_IRB2]:
     G15_IRA.add_irblock(irb)
@@ -560,15 +560,15 @@ G16_IRA = IRA.new_ircfg()
 
 G16_IRB0 = gen_irblock(
     LBL0, [
-        [ExprAff(A, CST1), ExprAff(IRDst, ExprLoc(LBL1, 32))]
+        [ExprAssign(A, CST1), ExprAssign(IRDst, ExprLoc(LBL1, 32))]
     ]
 )
 
 G16_IRB1 = gen_irblock(
     LBL1,
     [
-        [ExprAff(R, D),
-         ExprAff(
+        [ExprAssign(R, D),
+         ExprAssign(
              IRDst,
              ExprCond(
                  C,
@@ -590,10 +590,10 @@ G16_IRB1 = gen_irblock(
 
 
 
-G16_IRB2 = gen_irblock(LBL2, [[ExprAff(D, A), ExprAff(IRDst, ExprLoc(LBL1, 32))]])
-G16_IRB3 = gen_irblock(LBL3, [[ExprAff(R, D), ExprAff(IRDst, ExprLoc(LBL1, 32))]])
-G16_IRB4 = gen_irblock(LBL4, [[ExprAff(R, A), ExprAff(IRDst, ExprLoc(LBL1, 32))]])
-G16_IRB5 = gen_irblock(LBL5, [[ExprAff(R, A), ExprAff(IRDst, ExprLoc(LBL1, 32))]])
+G16_IRB2 = gen_irblock(LBL2, [[ExprAssign(D, A), ExprAssign(IRDst, ExprLoc(LBL1, 32))]])
+G16_IRB3 = gen_irblock(LBL3, [[ExprAssign(R, D), ExprAssign(IRDst, ExprLoc(LBL1, 32))]])
+G16_IRB4 = gen_irblock(LBL4, [[ExprAssign(R, A), ExprAssign(IRDst, ExprLoc(LBL1, 32))]])
+G16_IRB5 = gen_irblock(LBL5, [[ExprAssign(R, A), ExprAssign(IRDst, ExprLoc(LBL1, 32))]])
 
 for irb in [G16_IRB0, G16_IRB1, G16_IRB2, G16_IRB3, G16_IRB4, G16_IRB5]:
     G16_IRA.add_irblock(irb)
@@ -602,14 +602,14 @@ for irb in [G16_IRB0, G16_IRB1, G16_IRB2, G16_IRB3, G16_IRB4, G16_IRB5]:
 
 G17_IRA = IRA.new_ircfg()
 
-G17_IRB0 = gen_irblock(LBL0, [[ExprAff(A, CST1),
-                               ExprAff(D, CST2),
-                               ExprAff(IRDst, ExprLoc(LBL1, 32))]])
-G17_IRB1 = gen_irblock(LBL1, [[ExprAff(A, D),
-                               ExprAff(B, D),
-                               ExprAff(IRDst, ExprLoc(LBL2, 32))]])
-G17_IRB2 = gen_irblock(LBL2, [[ExprAff(A, A - B),
-                               ExprAff(IRDst, END)]])
+G17_IRB0 = gen_irblock(LBL0, [[ExprAssign(A, CST1),
+                               ExprAssign(D, CST2),
+                               ExprAssign(IRDst, ExprLoc(LBL1, 32))]])
+G17_IRB1 = gen_irblock(LBL1, [[ExprAssign(A, D),
+                               ExprAssign(B, D),
+                               ExprAssign(IRDst, ExprLoc(LBL2, 32))]])
+G17_IRB2 = gen_irblock(LBL2, [[ExprAssign(A, A - B),
+                               ExprAssign(IRDst, END)]])
 
 G17_IRA.add_uniq_edge(G17_IRB0.loc_key, G17_IRB1.loc_key)
 G17_IRA.add_uniq_edge(G17_IRB1.loc_key, G17_IRB2.loc_key)

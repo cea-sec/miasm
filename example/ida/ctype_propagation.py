@@ -10,7 +10,7 @@ from miasm2.arch.x86.ctype import CTypeAMD64_unk, CTypeX86_unk
 from miasm2.arch.msp430.ctype import CTypeMSP430_unk
 from miasm2.core.objc import CTypesManagerNotPacked, ExprToAccessC, CHandler
 from miasm2.core.ctypesmngr import CAstTypes
-from miasm2.expression.expression import ExprLoc, ExprInt, ExprOp, ExprAff
+from miasm2.expression.expression import ExprLoc, ExprInt, ExprOp, ExprAssign
 from miasm2.ir.symbexec_types import SymbExecCType
 from miasm2.expression.parser import str_to_expr
 from miasm2.analysis.cst_propag import add_state, propagate_cst_expr
@@ -232,8 +232,8 @@ def get_ira_call_fixer(ira):
             print hex(stk_diff)
             call_assignblk = AssignBlock(
                 [
-                    ExprAff(self.ret_reg, ExprOp('call_func_ret', ad)),
-                    ExprAff(self.sp, self.sp + ExprInt(stk_diff, self.sp.size))
+                    ExprAssign(self.ret_reg, ExprOp('call_func_ret', ad)),
+                    ExprAssign(self.sp, self.sp + ExprInt(stk_diff, self.sp.size))
                 ],
                 instr
             )
@@ -314,8 +314,8 @@ def analyse_function():
 
     assignblk_head = AssignBlock(
         [
-            ExprAff(ir_arch.IRDst, ExprLoc(lbl_real_start, ir_arch.IRDst.size)),
-            ExprAff(ir_arch.sp, ir_arch.arch.regs.regs_init[ir_arch.sp])
+            ExprAssign(ir_arch.IRDst, ExprLoc(lbl_real_start, ir_arch.IRDst.size)),
+            ExprAssign(ir_arch.sp, ir_arch.arch.regs.regs_init[ir_arch.sp])
         ],
         first_block.lines[0]
     )

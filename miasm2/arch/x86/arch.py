@@ -881,7 +881,7 @@ class mn_x86(cls_mn):
         raise NotImplementedError('not fully functional')
 
     def ir_pre_instruction(self):
-        return [ExprAff(mRIP[self.mode],
+        return [ExprAssign(mRIP[self.mode],
             ExprInt(self.offset + self.l, mRIP[self.mode].size))]
 
     @classmethod

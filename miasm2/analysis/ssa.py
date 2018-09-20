@@ -1,6 +1,6 @@
 from collections import deque
 
-from miasm2.expression.expression import ExprId, ExprAff, ExprOp, get_expr_ids
+from miasm2.expression.expression import ExprId, ExprAssign, ExprOp, get_expr_ids
 from miasm2.ir.ir import AssignBlock, IRBlock
 
 
@@ -185,7 +185,7 @@ class SSA(object):
         instructions = []
         for dst in assignblk:
             # dst = src
-            aff = assignblk.dst2ExprAff(dst)
+            aff = assignblk.dst2ExprAssign(dst)
             # insert memory expression into start of list
             if dst.is_mem():
                 instructions.insert(0, aff)
@@ -259,7 +259,7 @@ class SSA(object):
                 src_ssa = rhs.popleft()
 
                 # rebuild SSA expression
-                expr = ExprAff(dst_ssa, src_ssa)
+                expr = ExprAssign(dst_ssa, src_ssa)
                 self.expressions[dst_ssa] = src_ssa
                 self.ssa_to_location[dst_ssa] = (loc_key, index)
 
@@ -455,10 +455,10 @@ class SSADiGraph(SSA):
         """
         Generates an empty phi function for a variable
         :param expr: variable
-        :return: ExprAff, empty phi function for expr
+        :return: ExprAssign, empty phi function for expr
         """
         phi = ExprId(self.PHI_STR, expr.size)
-        return ExprAff(expr, phi)
+        return ExprAssign(expr, phi)
 
     def _fill_phi(self, *args):
         """

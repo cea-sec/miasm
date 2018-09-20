@@ -24,23 +24,23 @@ def bcd2hex(val):
 
 
 def reset_sr_res():
-    return [ExprAff(res, ExprInt(0, 7))]
+    return [ExprAssign(res, ExprInt(0, 7))]
 
 
 def update_flag_zf(a):
-    return [ExprAff(zf, ExprCond(a, ExprInt(0, zf.size), ExprInt(1, zf.size)))]
+    return [ExprAssign(zf, ExprCond(a, ExprInt(0, zf.size), ExprInt(1, zf.size)))]
 
 
 def update_flag_nf(a):
-    return [ExprAff(nf, a.msb())]
+    return [ExprAssign(nf, a.msb())]
 
 
 def update_flag_pf(a):
-    return [ExprAff(pf, ExprOp('parity', a & ExprInt(0xFF, a.size)))]
+    return [ExprAssign(pf, ExprOp('parity', a & ExprInt(0xFF, a.size)))]
 
 
 def update_flag_cf_inv_zf(a):
-    return [ExprAff(cf, ExprCond(a, ExprInt(1, cf.size), ExprInt(0, cf.size)))]
+    return [ExprAssign(cf, ExprCond(a, ExprInt(1, cf.size), ExprInt(0, cf.size)))]
 
 
 def update_flag_zn_r(a):
@@ -52,20 +52,20 @@ def update_flag_zn_r(a):
 
 
 def update_flag_sub_cf(a, b, c):
-    return [ExprAff(cf,
+    return [ExprAssign(cf,
         ((((a ^ b) ^ c) ^ ((a ^ c) & (a ^ b))).msb()) ^ ExprInt(1, 1))]
 
 
 def update_flag_add_cf(a, b, c):
-    return [ExprAff(cf, (((a ^ b) ^ c) ^ ((a ^ c) & (~(a ^ b)))).msb())]
+    return [ExprAssign(cf, (((a ^ b) ^ c) ^ ((a ^ c) & (~(a ^ b)))).msb())]
 
 
 def update_flag_add_of(a, b, c):
-    return [ExprAff(of, (((a ^ c) & (~(a ^ b)))).msb())]
+    return [ExprAssign(of, (((a ^ c) & (~(a ^ b)))).msb())]
 
 
 def update_flag_sub_of(a, b, c):
-    return [ExprAff(of, (((a ^ c) & (a ^ b))).msb())]
+    return [ExprAssign(of, (((a ^ c) & (a ^ b))).msb())]
 
 
 def mng_autoinc(a, b, size):
@@ -74,7 +74,7 @@ def mng_autoinc(a, b, size):
         return e, a, b
 
     a_r = a.args[0]
-    e.append(ExprAff(a_r, a_r + ExprInt(size / 8, a_r.size)))
+    e.append(ExprAssign(a_r, a_r + ExprInt(size / 8, a_r.size)))
     a = ExprMem(a_r, size)
     if isinstance(b, ExprMem) and a_r in b.arg:
         b = ExprMem(b.arg + ExprInt(size / 8, 16), b.size)
@@ -90,35 +90,35 @@ def mov_b(ir, instr, a, b):
         a = a[:8]
     else:
         a = a[:8].zeroExtend(16)
-    e.append(ExprAff(b, a))
+    e.append(ExprAssign(b, a))
     return e, []
 
 
 def mov_w(ir, instr, a, b):
     e, a, b = mng_autoinc(a, b, 16)
-    e.append(ExprAff(b, a))
+    e.append(ExprAssign(b, a))
     if b == ir.pc:
-        e.append(ExprAff(ir.IRDst, a))
+        e.append(ExprAssign(ir.IRDst, a))
     return e, []
 
 
 def and_b(ir, instr, a, b):
     e, a, b = mng_autoinc(a, b, 8)
     c = a[:8] & b[:8]
-    e.append(ExprAff(b, c.zeroExtend(16)))
+    e.append(ExprAssign(b, c.zeroExtend(16)))
     e += update_flag_zn_r(c)
     e += update_flag_cf_inv_zf(c)
-    e += [ExprAff(of, ExprInt(0, 1))]
+    e += [ExprAssign(of, ExprInt(0, 1))]
     return e, []
 
 
 def and_w(ir, instr, a, b):
     e, a, b = mng_autoinc(a, b, 16)
     c = a & b
-    e.append(ExprAff(b, c))
+    e.append(ExprAssign(b, c))
     e += update_flag_zn_r(c)
     e += update_flag_cf_inv_zf(c)
-    e += [ExprAff(of, ExprInt(0, 1))]
+    e += [ExprAssign(of, ExprInt(0, 1))]
     return e, []
 
 
@@ -126,21 +126,21 @@ def bic_b(ir, instr, a, b):
     e, a, b = mng_autoinc(a, b, 8)
     c = (a[:8] ^ ExprInt(0xff, 8)) & b[:8]
     c = c.zeroExtend(b.size)
-    e.append(ExprAff(b, c))
+    e.append(ExprAssign(b, c))
     return e, []
 
 
 def bic_w(ir, instr, a, b):
     e, a, b = mng_autoinc(a, b, 16)
     c = (a ^ ExprInt(0xffff, 16)) & b
-    e.append(ExprAff(b, c))
+    e.append(ExprAssign(b, c))
     return e, []
 
 
 def bis_w(ir, instr, a, b):
     e, a, b = mng_autoinc(a, b, 16)
     c = a | b
-    e.append(ExprAff(b, c))
+    e.append(ExprAssign(b, c))
     return e, []
 
 
@@ -149,14 +149,14 @@ def bit_w(ir, instr, a, b):
     c = a & b
     e += update_flag_zn_r(c)
     e += update_flag_cf_inv_zf(c)
-    e.append(ExprAff(of, ExprInt(0, 1)))
+    e.append(ExprAssign(of, ExprInt(0, 1)))
     return e, []
 
 """
 def sub_b(ir, instr, a, b):
     e, a, b = mng_autoinc(a, b, 8)
     c = b - a
-    e.append(ExprAff(b, c))
+    e.append(ExprAssign(b, c))
     e += update_flag_zn_r(c)
     e += update_flag_sub_cf(b, a, c)
     return None, e, []
@@ -166,7 +166,7 @@ def sub_b(ir, instr, a, b):
 def sub_w(ir, instr, a, b):
     e, a, b = mng_autoinc(a, b, 16)
     c = b - a
-    e.append(ExprAff(b, c))
+    e.append(ExprAssign(b, c))
     e += update_flag_zn_r(c)
     e += update_flag_sub_cf(b, a, c)
     # micrcorruption
@@ -183,7 +183,7 @@ def add_b(ir, instr, a, b):
         b = b[:8]
     a = a[:8]
     c = b + a
-    e.append(ExprAff(b, c))
+    e.append(ExprAssign(b, c))
     e += update_flag_zn_r(c)
     e += update_flag_add_cf(a, b, c)
     e += update_flag_add_of(a, b, c)
@@ -193,7 +193,7 @@ def add_b(ir, instr, a, b):
 def add_w(ir, instr, a, b):
     e, a, b = mng_autoinc(a, b, 16)
     c = b + a
-    e.append(ExprAff(b, c))
+    e.append(ExprAssign(b, c))
     e += update_flag_zn_r(c)
     e += update_flag_add_cf(a, b, c)
     e += update_flag_add_of(a, b, c)
@@ -205,7 +205,7 @@ def dadd_w(ir, instr, a, b):
     # TODO: microcorruption no carryflag
     c = ExprOp("bcdadd", b, a)  # +zeroExtend(cf, 16))
 
-    e.append(ExprAff(b, c))
+    e.append(ExprAssign(b, c))
     # e += update_flag_zn_r(c)
 
     # micrcorruption
@@ -213,7 +213,7 @@ def dadd_w(ir, instr, a, b):
     # e += update_flag_nf(a)
     e += reset_sr_res()
 
-    e.append(ExprAff(cf, ExprOp("bcdadd_cf", b, a)))  # +zeroExtend(cf, 16))))
+    e.append(ExprAssign(cf, ExprOp("bcdadd_cf", b, a)))  # +zeroExtend(cf, 16))))
 
     # of : undefined
     return e, []
@@ -222,17 +222,17 @@ def dadd_w(ir, instr, a, b):
 def xor_w(ir, instr, a, b):
     e, a, b = mng_autoinc(a, b, 16)
     c = b ^ a
-    e.append(ExprAff(b, c))
+    e.append(ExprAssign(b, c))
     e += update_flag_zn_r(c)
     e += update_flag_cf_inv_zf(c)
-    e.append(ExprAff(of, b.msb() & a.msb()))
+    e.append(ExprAssign(of, b.msb() & a.msb()))
     return e, []
 
 
 def push_w(ir, instr, a):
     e = []
-    e.append(ExprAff(ExprMem(SP - ExprInt(2, 16), 16), a))
-    e.append(ExprAff(SP, SP - ExprInt(2, 16)))
+    e.append(ExprAssign(ExprMem(SP - ExprInt(2, 16), 16), a))
+    e.append(ExprAssign(SP, SP - ExprInt(2, 16)))
     return e, []
 
 
@@ -242,17 +242,17 @@ def call(ir, instr, a):
     loc_next = ir.get_next_loc_key(instr)
     loc_next_expr = ExprLoc(loc_next, 16)
 
-    e.append(ExprAff(ExprMem(SP - ExprInt(2, 16), 16), loc_next_expr))
-    e.append(ExprAff(SP, SP - ExprInt(2, 16)))
-    e.append(ExprAff(PC, a))
-    e.append(ExprAff(ir.IRDst, a))
+    e.append(ExprAssign(ExprMem(SP - ExprInt(2, 16), 16), loc_next_expr))
+    e.append(ExprAssign(SP, SP - ExprInt(2, 16)))
+    e.append(ExprAssign(PC, a))
+    e.append(ExprAssign(ir.IRDst, a))
     return e, []
 
 
 def swpb(ir, instr, a):
     e = []
     x, y = a[:8], a[8:16]
-    e.append(ExprAff(a, ExprCompose(y, x)))
+    e.append(ExprAssign(a, ExprCompose(y, x)))
     return e, []
 
 
@@ -278,8 +278,8 @@ def jz(ir, instr, a):
     loc_next = ir.get_next_loc_key(instr)
     loc_next_expr = ExprLoc(loc_next, 16)
     e = []
-    e.append(ExprAff(PC, ExprCond(zf, a, loc_next_expr)))
-    e.append(ExprAff(ir.IRDst, ExprCond(zf, a, loc_next_expr)))
+    e.append(ExprAssign(PC, ExprCond(zf, a, loc_next_expr)))
+    e.append(ExprAssign(ir.IRDst, ExprCond(zf, a, loc_next_expr)))
     return e, []
 
 
@@ -287,8 +287,8 @@ def jnz(ir, instr, a):
     loc_next = ir.get_next_loc_key(instr)
     loc_next_expr = ExprLoc(loc_next, 16)
     e = []
-    e.append(ExprAff(PC, ExprCond(zf, loc_next_expr, a)))
-    e.append(ExprAff(ir.IRDst, ExprCond(zf, loc_next_expr, a)))
+    e.append(ExprAssign(PC, ExprCond(zf, loc_next_expr, a)))
+    e.append(ExprAssign(ir.IRDst, ExprCond(zf, loc_next_expr, a)))
     return e, []
 
 
@@ -296,8 +296,8 @@ def jl(ir, instr, a):
     loc_next = ir.get_next_loc_key(instr)
     loc_next_expr = ExprLoc(loc_next, 16)
     e = []
-    e.append(ExprAff(PC, ExprCond(nf ^ of, a, loc_next_expr)))
-    e.append(ExprAff(ir.IRDst, ExprCond(nf ^ of, a, loc_next_expr)))
+    e.append(ExprAssign(PC, ExprCond(nf ^ of, a, loc_next_expr)))
+    e.append(ExprAssign(ir.IRDst, ExprCond(nf ^ of, a, loc_next_expr)))
     return e, []
 
 
@@ -305,8 +305,8 @@ def jc(ir, instr, a):
     loc_next = ir.get_next_loc_key(instr)
     loc_next_expr = ExprLoc(loc_next, 16)
     e = []
-    e.append(ExprAff(PC, ExprCond(cf, a, loc_next_expr)))
-    e.append(ExprAff(ir.IRDst, ExprCond(cf, a, loc_next_expr)))
+    e.append(ExprAssign(PC, ExprCond(cf, a, loc_next_expr)))
+    e.append(ExprAssign(ir.IRDst, ExprCond(cf, a, loc_next_expr)))
     return e, []
 
 
@@ -314,8 +314,8 @@ def jnc(ir, instr, a):
     loc_next = ir.get_next_loc_key(instr)
     loc_next_expr = ExprLoc(loc_next, 16)
     e = []
-    e.append(ExprAff(PC, ExprCond(cf, loc_next_expr, a)))
-    e.append(ExprAff(ir.IRDst, ExprCond(cf, loc_next_expr, a)))
+    e.append(ExprAssign(PC, ExprCond(cf, loc_next_expr, a)))
+    e.append(ExprAssign(ir.IRDst, ExprCond(cf, loc_next_expr, a)))
     return e, []
 
 
@@ -323,23 +323,23 @@ def jge(ir, instr, a):
     loc_next = ir.get_next_loc_key(instr)
     loc_next_expr = ExprLoc(loc_next, 16)
     e = []
-    e.append(ExprAff(PC, ExprCond(nf ^ of, loc_next_expr, a)))
-    e.append(ExprAff(ir.IRDst, ExprCond(nf ^ of, loc_next_expr, a)))
+    e.append(ExprAssign(PC, ExprCond(nf ^ of, loc_next_expr, a)))
+    e.append(ExprAssign(ir.IRDst, ExprCond(nf ^ of, loc_next_expr, a)))
     return e, []
 
 
 def jmp(ir, instr, a):
     e = []
-    e.append(ExprAff(PC, a))
-    e.append(ExprAff(ir.IRDst, a))
+    e.append(ExprAssign(PC, a))
+    e.append(ExprAssign(ir.IRDst, a))
     return e, []
 
 
 def rrc_w(ir, instr, a):
     e = []
     c = ExprCompose(a[1:16], cf)
-    e.append(ExprAff(a, c))
-    e.append(ExprAff(cf, a[:1]))
+    e.append(ExprAssign(a, c))
+    e.append(ExprAssign(cf, a[:1]))
     # e += update_flag_zn_r(c)
 
     # micrcorruption
@@ -347,16 +347,16 @@ def rrc_w(ir, instr, a):
     # e += update_flag_nf(a)
     e += reset_sr_res()
 
-    e.append(ExprAff(of, ExprInt(0, 1)))
+    e.append(ExprAssign(of, ExprInt(0, 1)))
     return e, []
 
 
 def rra_w(ir, instr, a):
     e = []
     c = ExprCompose(a[1:16], a[15:16])
-    e.append(ExprAff(a, c))
+    e.append(ExprAssign(a, c))
     # TODO: error in disasm microcorruption?
-    # e.append(ExprAff(cf, a[:1]))
+    # e.append(ExprAssign(cf, a[:1]))
     # e += update_flag_zn_r(c)
 
     # micrcorruption
@@ -364,18 +364,18 @@ def rra_w(ir, instr, a):
     # e += update_flag_nf(a)
     e += reset_sr_res()
 
-    e.append(ExprAff(of, ExprInt(0, 1)))
+    e.append(ExprAssign(of, ExprInt(0, 1)))
     return e, []
 
 
 def sxt(ir, instr, a):
     e = []
     c = a[:8].signExtend(16)
-    e.append(ExprAff(a, c))
+    e.append(ExprAssign(a, c))
 
     e += update_flag_zn_r(c)
     e += update_flag_cf_inv_zf(c)
-    e.append(ExprAff(of, ExprInt(0, 1)))
+    e.append(ExprAssign(of, ExprInt(0, 1)))
 
     return e, []
 
@@ -414,10 +414,10 @@ mnemo_func = {
 composed_sr = ExprCompose(cf, zf, nf, gie, cpuoff, osc, scg0, scg1, of, res)
 
 
-def ComposeExprAff(dst, src):
+def ComposeExprAssign(dst, src):
     e = []
     for start, arg in dst.iter_args():
-        e.append(ExprAff(arg, src[start:start+arg.size]))
+        e.append(ExprAssign(arg, src[start:start+arg.size]))
     return e
 
 
@@ -442,14 +442,14 @@ class ir_msp430(IntermediateRepresentation):
 
     def mod_sr(self, instr, instr_ir, extra_ir):
         for i, x in enumerate(instr_ir):
-            x = ExprAff(x.dst, x.src.replace_expr({SR: composed_sr}))
+            x = ExprAssign(x.dst, x.src.replace_expr({SR: composed_sr}))
             instr_ir[i] = x
             if x.dst != SR:
                 continue
-            xx = ComposeExprAff(composed_sr, x.src)
+            xx = ComposeExprAssign(composed_sr, x.src)
             instr_ir[i:i+1] = xx
         for i, x in enumerate(instr_ir):
-            x = ExprAff(x.dst, x.src.replace_expr(
+            x = ExprAssign(x.dst, x.src.replace_expr(
                 {self.pc: ExprInt(instr.offset + instr.l, 16)}))
             instr_ir[i] = x
 

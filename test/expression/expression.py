@@ -61,12 +61,12 @@ for expr in [
         A + cst1,
         ExprCompose(A, cst1),
         A.msb(),
-        ExprAff(A, cst1),
+        ExprAssign(A, cst1),
 ]:
     print repr(expr)
     assert expr == eval(repr(expr))
 
 
-aff = ExprAff(A[0:32], cst1)
+aff = ExprAssign(A[0:32], cst1)
 
 assert aff.dst == A and aff.src == cst1

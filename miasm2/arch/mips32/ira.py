@@ -1,6 +1,6 @@
 #-*- coding:utf-8 -*-
 
-from miasm2.expression.expression import ExprAff, ExprOp
+from miasm2.expression.expression import ExprAssign, ExprOp
 from miasm2.ir.ir import IRBlock, AssignBlock
 from miasm2.ir.analysis import ira
 from miasm2.arch.mips32.sem import ir_mips32l, ir_mips32b
@@ -13,7 +13,7 @@ class ir_a_mips32l(ir_mips32l, ira):
     def call_effects(self, ad, instr):
         call_assignblk = AssignBlock(
             [
-                ExprAff(
+                ExprAssign(
                     self.ret_reg,
                     ExprOp(
                         'call_func_ret',

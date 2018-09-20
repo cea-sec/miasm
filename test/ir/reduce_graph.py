@@ -1,7 +1,7 @@
 """Regression test module for DependencyGraph"""
 from pdb import pm
 
-from miasm2.expression.expression import ExprId, ExprInt, ExprAff, ExprCond, \
+from miasm2.expression.expression import ExprId, ExprInt, ExprAssign, ExprCond, \
     ExprLoc, LocKey
 
 from miasm2.core.locationdb import LocationDB
@@ -109,8 +109,8 @@ G1_IRB0 = gen_irblock(
     LBL0,
     [
         [
-            ExprAff(B, C),
-            ExprAff(IRDst, ExprLoc(LBL1, 32)),
+            ExprAssign(B, C),
+            ExprAssign(IRDst, ExprLoc(LBL1, 32)),
         ]
     ]
 )
@@ -119,7 +119,7 @@ G1_IRB1 = gen_irblock(
     LBL1,
     [
         [
-            ExprAff(IRDst, ExprLoc(LBL2, 32)),
+            ExprAssign(IRDst, ExprLoc(LBL2, 32)),
         ]
     ]
 )
@@ -128,8 +128,8 @@ G1_IRB2 = gen_irblock(
     LBL2,
     [
         [
-            ExprAff(A, B),
-            ExprAff(IRDst, C),
+            ExprAssign(A, B),
+            ExprAssign(IRDst, C),
         ]
     ]
 )
@@ -144,11 +144,11 @@ G1_RES_IRB0 = gen_irblock(
     LBL0,
     [
         [
-            ExprAff(B, C),
+            ExprAssign(B, C),
         ],
         [
-            ExprAff(A, B),
-            ExprAff(IRDst, C),
+            ExprAssign(A, B),
+            ExprAssign(IRDst, C),
         ]
 
     ]
@@ -176,7 +176,7 @@ G2_IRB0 = gen_irblock(
     LBL0,
     [
         [
-            ExprAff(IRDst, ExprLoc(LBL1, 32)),
+            ExprAssign(IRDst, ExprLoc(LBL1, 32)),
         ]
     ]
 )
@@ -185,8 +185,8 @@ G2_IRB1 = gen_irblock(
     LBL1,
     [
         [
-            ExprAff(A, C),
-            ExprAff(IRDst, C),
+            ExprAssign(A, C),
+            ExprAssign(IRDst, C),
         ]
     ]
 )
@@ -202,8 +202,8 @@ G2_RES_IRB0 = gen_irblock(
     LBL0,
     [
         [
-            ExprAff(A, C),
-            ExprAff(IRDst, C),
+            ExprAssign(A, C),
+            ExprAssign(IRDst, C),
         ]
     ]
 )
@@ -222,7 +222,7 @@ G3_IRB0 = gen_irblock(
     LBL0,
     [
         [
-            ExprAff(IRDst, ExprLoc(LBL1, 32)),
+            ExprAssign(IRDst, ExprLoc(LBL1, 32)),
         ]
     ]
 )
@@ -231,8 +231,8 @@ G3_IRB1 = gen_irblock(
     LBL1,
     [
         [
-            ExprAff(A, C),
-            ExprAff(IRDst, ExprLoc(LBL2, 32)),
+            ExprAssign(A, C),
+            ExprAssign(IRDst, ExprLoc(LBL2, 32)),
         ]
     ]
 )
@@ -241,8 +241,8 @@ G3_IRB2 = gen_irblock(
     LBL2,
     [
         [
-            ExprAff(D, A),
-            ExprAff(IRDst, C),
+            ExprAssign(D, A),
+            ExprAssign(IRDst, C),
         ]
     ]
 )
@@ -259,11 +259,11 @@ G3_RES_IRB0 = gen_irblock(
     LBL0,
     [
         [
-            ExprAff(A, C),
+            ExprAssign(A, C),
         ],
         [
-            ExprAff(D, A),
-            ExprAff(IRDst, C),
+            ExprAssign(D, A),
+            ExprAssign(IRDst, C),
         ]
     ]
 )
@@ -284,7 +284,7 @@ G4_IRB0 = gen_irblock(
     LBL0,
     [
         [
-            ExprAff(IRDst, ExprLoc(LBL1, 32)),
+            ExprAssign(IRDst, ExprLoc(LBL1, 32)),
         ]
     ]
 )
@@ -293,8 +293,8 @@ G4_IRB1 = gen_irblock(
     LBL1,
     [
         [
-            ExprAff(A, C),
-            ExprAff(IRDst, ExprLoc(LBL2, 32)),
+            ExprAssign(A, C),
+            ExprAssign(IRDst, ExprLoc(LBL2, 32)),
         ]
     ]
 )
@@ -303,8 +303,8 @@ G4_IRB2 = gen_irblock(
     LBL2,
     [
         [
-            ExprAff(D, A),
-            ExprAff(IRDst, ExprLoc(LBL1, 32)),
+            ExprAssign(D, A),
+            ExprAssign(IRDst, ExprLoc(LBL1, 32)),
         ]
     ]
 )
@@ -321,11 +321,11 @@ G4_RES_IRB0 = gen_irblock(
     LBL0,
     [
         [
-            ExprAff(A, C),
+            ExprAssign(A, C),
         ],
         [
-            ExprAff(D, A),
-            ExprAff(IRDst, ExprLoc(LBL0, 32)),
+            ExprAssign(D, A),
+            ExprAssign(IRDst, ExprLoc(LBL0, 32)),
         ]
     ]
 )
@@ -345,7 +345,7 @@ G5_IRB0 = gen_irblock(
     LBL0,
     [
         [
-            ExprAff(IRDst, ExprLoc(LBL1, 32)),
+            ExprAssign(IRDst, ExprLoc(LBL1, 32)),
         ]
     ]
 )
@@ -354,8 +354,8 @@ G5_IRB1 = gen_irblock(
     LBL1,
     [
         [
-            ExprAff(A, C),
-            ExprAff(IRDst, ExprLoc(LBL2, 32)),
+            ExprAssign(A, C),
+            ExprAssign(IRDst, ExprLoc(LBL2, 32)),
         ]
     ]
 )
@@ -364,8 +364,8 @@ G5_IRB2 = gen_irblock(
     LBL2,
     [
         [
-            ExprAff(D, A),
-            ExprAff(IRDst, ExprCond(C, ExprLoc(LBL1, 32), ExprLoc(LBL3, 32))),
+            ExprAssign(D, A),
+            ExprAssign(IRDst, ExprCond(C, ExprLoc(LBL1, 32), ExprLoc(LBL3, 32))),
         ]
     ]
 )
@@ -375,8 +375,8 @@ G5_IRB3 = gen_irblock(
     LBL3,
     [
         [
-            ExprAff(D, A),
-            ExprAff(IRDst, C),
+            ExprAssign(D, A),
+            ExprAssign(IRDst, C),
         ]
     ]
 )
@@ -393,11 +393,11 @@ G5_RES_IRB0 = gen_irblock(
     LBL0,
     [
         [
-            ExprAff(A, C),
+            ExprAssign(A, C),
         ],
         [
-            ExprAff(D, A),
-            ExprAff(IRDst, ExprCond(C, ExprLoc(LBL0, 32), ExprLoc(LBL3, 32))),
+            ExprAssign(D, A),
+            ExprAssign(IRDst, ExprCond(C, ExprLoc(LBL0, 32), ExprLoc(LBL3, 32))),
         ]
     ]
 )
@@ -407,8 +407,8 @@ G5_RES_IRB3 = gen_irblock(
     LBL3,
     [
         [
-            ExprAff(D, A),
-            ExprAff(IRDst, C),
+            ExprAssign(D, A),
+            ExprAssign(IRDst, C),
         ]
     ]
 )
@@ -427,7 +427,7 @@ G6_IRB0 = gen_irblock(
     LBL0,
     [
         [
-            ExprAff(IRDst, ExprCond(C, ExprLoc(LBL1, 32), ExprLoc(LBL2, 32))),
+            ExprAssign(IRDst, ExprCond(C, ExprLoc(LBL1, 32), ExprLoc(LBL2, 32))),
         ]
     ]
 )
@@ -436,7 +436,7 @@ G6_IRB1 = gen_irblock(
     LBL1,
     [
         [
-            ExprAff(IRDst, ExprLoc(LBL3, 32)),
+            ExprAssign(IRDst, ExprLoc(LBL3, 32)),
         ]
     ]
 )
@@ -445,8 +445,8 @@ G6_IRB2 = gen_irblock(
     LBL2,
     [
         [
-            ExprAff(D, A),
-            ExprAff(IRDst, D),
+            ExprAssign(D, A),
+            ExprAssign(IRDst, D),
         ]
     ]
 )
@@ -456,8 +456,8 @@ G6_IRB3 = gen_irblock(
     LBL3,
     [
         [
-            ExprAff(A, D),
-            ExprAff(IRDst, ExprLoc(LBL3, 32)),
+            ExprAssign(A, D),
+            ExprAssign(IRDst, ExprLoc(LBL3, 32)),
         ]
     ]
 )
@@ -474,7 +474,7 @@ G6_RES_IRB0 = gen_irblock(
     LBL0,
     [
         [
-            ExprAff(IRDst, ExprCond(C, ExprLoc(LBL3, 32), ExprLoc(LBL2, 32))),
+            ExprAssign(IRDst, ExprCond(C, ExprLoc(LBL3, 32), ExprLoc(LBL2, 32))),
         ]
     ]
 )
@@ -484,8 +484,8 @@ G6_RES_IRB2 = gen_irblock(
     LBL2,
     [
         [
-            ExprAff(D, A),
-            ExprAff(IRDst, D),
+            ExprAssign(D, A),
+            ExprAssign(IRDst, D),
         ]
     ]
 )
@@ -495,8 +495,8 @@ G6_RES_IRB3 = gen_irblock(
     LBL3,
     [
         [
-            ExprAff(A, D),
-            ExprAff(IRDst, ExprLoc(LBL3, 32)),
+            ExprAssign(A, D),
+            ExprAssign(IRDst, ExprLoc(LBL3, 32)),
         ]
     ]
 )
@@ -517,8 +517,8 @@ G7_IRB0 = gen_irblock(
     LBL0,
     [
         [
-            ExprAff(A, C),
-            ExprAff(IRDst, ExprLoc(LBL1, 32)),
+            ExprAssign(A, C),
+            ExprAssign(IRDst, ExprLoc(LBL1, 32)),
         ]
     ]
 )
@@ -527,7 +527,7 @@ G7_IRB1 = gen_irblock(
     LBL1,
     [
         [
-            ExprAff(IRDst, ExprLoc(LBL1, 32)),
+            ExprAssign(IRDst, ExprLoc(LBL1, 32)),
         ]
     ]
 )
@@ -546,8 +546,8 @@ G7_RES_IRB0 = gen_irblock(
     LBL0,
     [
         [
-            ExprAff(A, C),
-            ExprAff(IRDst, ExprLoc(LBL1, 32)),
+            ExprAssign(A, C),
+            ExprAssign(IRDst, ExprLoc(LBL1, 32)),
         ]
     ]
 )
@@ -556,7 +556,7 @@ G7_RES_IRB1 = gen_irblock(
     LBL1,
     [
         [
-            ExprAff(IRDst, ExprLoc(LBL1, 32)),
+            ExprAssign(IRDst, ExprLoc(LBL1, 32)),
         ]
     ]
 )
@@ -576,7 +576,7 @@ G8_IRB0 = gen_irblock(
     LBL0,
     [
         [
-            ExprAff(IRDst, ExprLoc(LBL1, 32)),
+            ExprAssign(IRDst, ExprLoc(LBL1, 32)),
         ]
     ]
 )
@@ -585,8 +585,8 @@ G8_IRB1 = gen_irblock(
     LBL1,
     [
         [
-            ExprAff(A, C),
-            ExprAff(IRDst, ExprLoc(LBL1, 32)),
+            ExprAssign(A, C),
+            ExprAssign(IRDst, ExprLoc(LBL1, 32)),
         ]
     ]
 )
@@ -605,8 +605,8 @@ G8_RES_IRB0 = gen_irblock(
     LBL0,
     [
         [
-            ExprAff(A, C),
-            ExprAff(IRDst, ExprLoc(LBL0, 32)),
+            ExprAssign(A, C),
+            ExprAssign(IRDst, ExprLoc(LBL0, 32)),
         ]
     ]
 )

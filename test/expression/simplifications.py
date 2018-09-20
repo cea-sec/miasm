@@ -575,9 +575,9 @@ for test, res in match_tests:
 
 
 get_tests = [
-    (ExprAff(ExprMem(a, 32), ExprMem(b, 32)).get_r(True), set([a, b, ExprMem(b, 32)])),
-    (ExprAff(ExprMem(a, 32), ExprMem(b, 32)).get_w(), set([ExprMem(a, 32)])),
-    (ExprAff(ExprMem(ExprMem(a, 32), 32), ExprMem(b, 32))
+    (ExprAssign(ExprMem(a, 32), ExprMem(b, 32)).get_r(True), set([a, b, ExprMem(b, 32)])),
+    (ExprAssign(ExprMem(a, 32), ExprMem(b, 32)).get_w(), set([ExprMem(a, 32)])),
+    (ExprAssign(ExprMem(ExprMem(a, 32), 32), ExprMem(b, 32))
      .get_r(True), set([a, b, ExprMem(b, 32), ExprMem(a, 32)])),
 ]
 

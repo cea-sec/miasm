@@ -83,9 +83,9 @@ class Translator(object):
         """
         raise NotImplementedError("Abstract method")
 
-    def from_ExprAff(self, expr):
-        """Translate an ExprAff
-        @expr: ExprAff to translate
+    def from_ExprAssign(self, expr):
+        """Translate an ExprAssign
+        @expr: ExprAssign to translate
         """
         raise NotImplementedError("Abstract method")
 
@@ -111,7 +111,7 @@ class Translator(object):
                     m2_expr.ExprSlice: self.from_ExprSlice,
                     m2_expr.ExprOp: self.from_ExprOp,
                     m2_expr.ExprMem: self.from_ExprMem,
-                    m2_expr.ExprAff: self.from_ExprAff,
+                    m2_expr.ExprAssign: self.from_ExprAssign,
                     m2_expr.ExprCond: self.from_ExprCond
                     }
         for target, handler in handlers.iteritems():
