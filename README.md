@@ -277,7 +277,7 @@ Symbolic execution
 Initializing the IR pool:
 
 ```pycon
->>> ira = machine.ira()
+>>> ira = machine.ira(loc_db)
 >>> ircfg = ira.new_ircfg_from_asmcfg(asmcfg)
 ```
 
@@ -356,7 +356,7 @@ Retry execution with a concrete ECX. Here, the symbolic / concolic execution rea
 
 ```pycon
 >>> from miasm2.expression.expression import ExprInt
->>> sb.symbols[machine.mn.regs.ECX] = ExprInt(-3)
+>>> sb.symbols[machine.mn.regs.ECX] = ExprInt(-3, 32)
 >>> symbolic_pc = sb.run_at(ircfg, 0, step=True)
 Instr LEA        ECX, DWORD PTR [ECX + 0x4]
 Assignblk:
