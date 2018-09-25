@@ -504,6 +504,8 @@ class instruction_armt(instruction_arm):
         else:
             expr = self.args[0]
         if not isinstance(expr, ExprInt):
+            if self.name == 'BLX' and isinstance(expr, ExprId):
+                self.args[0] = expr & ExprInt(0xfffffffe, 32)
             return
         if self.name == 'BLX':
             addr = expr.arg + (self.offset & 0xfffffffc)
