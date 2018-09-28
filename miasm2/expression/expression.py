@@ -1943,7 +1943,6 @@ def expr_is_IEEE754_zero(expr):
     """Return 1 or 0 on 1 bit if expr represent a zero value according to
     IEEE754
     """
-    info = size_to_IEEE754_info[expr.size]
     # Sign is the msb
     expr_no_sign = expr[:expr.size - 1]
     return ExprCond(expr_no_sign, ExprInt(0, 1), ExprInt(1, 1))

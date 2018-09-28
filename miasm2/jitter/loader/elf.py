@@ -166,7 +166,6 @@ def apply_reloc_x86(elf, vm, section, base_addr, loc_db):
     for reloc in section.reltab:
 
         # Parse relocation info
-        r_addend = reloc.addend if hasattr(reloc, "addend") else 0
         r_info = reloc.info
         if elf.size == 64:
             r_info_sym = (r_info >> 32) & 0xFFFFFFFF

@@ -6,7 +6,7 @@ from miasm2.expression.expression import Expr, ExprId, ExprLoc, ExprInt, \
     ExprMem, ExprCond, LocKey
 from miasm2.ir.ir import IRBlock, AssignBlock
 
-from miasm2.ir.translators.C import TranslatorC, int_size_to_bn
+from miasm2.ir.translators.C import TranslatorC
 from miasm2.core.asmblock import AsmBlockBad
 from miasm2.expression.simplifications import expr_simp_high_to_explicit
 

@@ -52,9 +52,8 @@ def is_expr_cst(ir_arch, expr):
         if element.is_int():
             continue
         return False
-    else:
-        # Expr is a constant
-        return True
+    # Expr is a constant
+    return True
 
 
 class SymbExecStateFix(SymbolicExecutionEngine):

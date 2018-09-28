@@ -169,7 +169,6 @@ class AsmBlock(object):
     def split(self, loc_db, offset):
         loc_key = loc_db.get_or_create_offset_location(offset)
         log_asmblock.debug('split at %x', offset)
-        i = -1
         offsets = [x.offset for x in self.lines]
         offset = loc_db.get_location_offset(loc_key)
         if offset not in offsets:

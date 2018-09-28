@@ -1,6 +1,5 @@
 from argparse import ArgumentParser
 import logging
-import os
 import re
 
 from elfesteem import elf as elf_csts

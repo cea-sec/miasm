@@ -404,7 +404,6 @@ class libimp_pe(libimp):
                         # Ensure function entry is created
                         _ = self.lib_get_add_func(new_lib_base, exp_fname)
 
-                    c_name = canon_libname_libfunc(exp_dname, exp_fname)
                     libad_tmp = self.name2off[exp_dname]
                     ad = self.lib_imp2ad[libad_tmp][exp_fname]
 
