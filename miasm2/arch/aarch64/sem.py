@@ -723,7 +723,7 @@ def mrs(ir, insr, arg1, arg2, arg3, arg4, arg5):
         out.append(nf)
         e.append(ExprAff(arg1, ExprCompose(*out).zeroExtend(arg1.size)))
     else:
-        raise NotImplementedError("MSR not implemented")
+        raise NotImplementedError("MRS not implemented")
     return e, []
 
 def msr(ir, instr, arg1, arg2, arg3, arg4, arg5):
@@ -735,7 +735,7 @@ def msr(ir, instr, arg1, arg2, arg3, arg4, arg5):
         e.append(ExprAff(cf, arg5[29:30]))
         e.append(ExprAff(of, arg5[28:29]))
     else:
-        raise NotImplementedError("MRS not implemented")
+        raise NotImplementedError("MSR not implemented")
     return e, []
 
 
