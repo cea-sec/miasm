@@ -3483,7 +3483,7 @@ addop("cqo", [bs8(0x99), bs_opmode64])
 addop("daa", [bs8(0x27)])
 addop("das", [bs8(0x2f)])
 addop("dec", [bs('1111111'), w8] + rmmod(d1, rm_arg_w8))
-addop("dec", [bs('01001'), reg])
+addop("dec", [bs('01001'), reg, bs_modeno64])
 addop("div", [bs('1111011'), w8] + rmmod(d6, rm_arg_w8))
 addop("enter", [bs8(0xc8), u16, u08])
 
@@ -3660,7 +3660,7 @@ addop("in", [bs("1110010"), w8, d_eax, u08])
 addop("in", [bs("1110110"), w8, d_eax, d_edx])
 
 addop("inc", [bs('1111111'), w8] + rmmod(d0, rm_arg_w8))
-addop("inc", [bs('01000'), reg])
+addop("inc", [bs('01000'), reg, bs_modeno64])
 
 addop("insb", [bs8(0x6c)])
 addop("insw", [bs8(0x6d), bs_opmode16])
