@@ -239,7 +239,7 @@ class TranslatorZ3(Translator):
 
         return res
 
-    def from_ExprAff(self, expr):
+    def from_ExprAssign(self, expr):
         src = self.from_expr(expr.src)
         dst = self.from_expr(expr.dst)
         return (src == dst)

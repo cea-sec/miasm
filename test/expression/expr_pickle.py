@@ -1,5 +1,5 @@
 import pickle
-from miasm2.expression.expression import ExprInt, ExprAff, ExprId, \
+from miasm2.expression.expression import ExprInt, ExprAssign, ExprId, \
     Expr, ExprCompose, ExprMem
 
 
@@ -9,7 +9,7 @@ c = a + b
 d = ExprCompose(a, b)
 e = ExprMem(a, 32)
 f = a[:8]
-aff = ExprAff(a, b)
+aff = ExprAssign(a, b)
 
 
 print 'Pickling'

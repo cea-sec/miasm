@@ -5,7 +5,7 @@ from pdb import pm
 
 from miasm2.analysis.machine import Machine
 from miasm2.expression.expression import ExprInt, ExprCond, ExprId, \
-    get_expr_ids, ExprAff, ExprLoc
+    get_expr_ids, ExprAssign, ExprLoc
 from miasm2.core.bin_stream import bin_stream_str
 from miasm2.ir.symbexec import SymbolicExecutionEngine, get_block
 from miasm2.expression.simplifications import expr_simp
@@ -166,7 +166,7 @@ if __name__ == '__main__':
             expr_test = ExprCond(expr,
                                  ExprInt(1, value.size),
                                  ExprInt(0, value.size))
-            cond = translator_smt2.from_expr(ExprAff(expr_test, value))
+            cond = translator_smt2.from_expr(ExprAssign(expr_test, value))
             conditions.append(cond)
 
         for name in all_ids:

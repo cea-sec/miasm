@@ -1,4 +1,4 @@
-from miasm2.expression.expression import ExprAff, ExprOp
+from miasm2.expression.expression import ExprAssign, ExprOp
 from miasm2.ir.ir import AssignBlock
 from miasm2.ir.analysis import ira
 from miasm2.arch.ppc.sem import ir_ppc32b
@@ -25,7 +25,7 @@ class ir_a_ppc32b(ir_ppc32b, ira):
     def call_effects(self, ad, instr):
         call_assignblks = AssignBlock(
             [
-                ExprAff(
+                ExprAssign(
                     self.ret_reg,
                     ExprOp(
                         'call_func_ret',
@@ -36,7 +36,7 @@ class ir_a_ppc32b(ir_ppc32b, ira):
                         self.arch.regs.R5,
                     )
                 ),
-                ExprAff(self.sp, ExprOp('call_func_stack', ad, self.sp)),
+                ExprAssign(self.sp, ExprOp('call_func_stack', ad, self.sp)),
             ],
             instr
         )

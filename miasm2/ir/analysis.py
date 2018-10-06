@@ -4,7 +4,7 @@ import warnings
 import logging
 
 from miasm2.ir.ir import IntermediateRepresentation, AssignBlock
-from miasm2.expression.expression import ExprOp, ExprAff
+from miasm2.expression.expression import ExprOp, ExprAssign
 from miasm2.analysis.data_flow import dead_simp as new_dead_simp_imp
 
 
@@ -45,8 +45,8 @@ class ira(IntermediateRepresentation):
 
         call_assignblk = AssignBlock(
             [
-                ExprAff(self.ret_reg, ExprOp('call_func_ret', addr, self.sp)),
-                ExprAff(self.sp, ExprOp('call_func_stack', addr, self.sp))
+                ExprAssign(self.ret_reg, ExprOp('call_func_ret', addr, self.sp)),
+                ExprAssign(self.sp, ExprOp('call_func_stack', addr, self.sp))
             ],
             instr
         )

@@ -161,7 +161,7 @@ class SemBuilder(object):
         """Recursive function transforming a @body to a block expression
         Return:
          - AST to append to body (real python statements)
-         - a list of blocks, ie list of affblock, ie list of ExprAff (AST)"""
+         - a list of blocks, ie list of affblock, ie list of ExprAssign (AST)"""
 
         # Init
         ## Real instructions
@@ -188,7 +188,7 @@ class SemBuilder(object):
 
                 dst.ctx = ast.Load()
 
-                res = ast.Call(func=ast.Name(id='ExprAff',
+                res = ast.Call(func=ast.Name(id='ExprAssign',
                                              ctx=ast.Load()),
                                args=[dst, src],
                                keywords=[],
@@ -230,7 +230,7 @@ class SemBuilder(object):
                 IRDst = ast.Attribute(value=ast.Name(id='ir',
                                                      ctx=ast.Load()),
                                       attr='IRDst', ctx=ast.Load())
-                blocks[-1][-1].append(ast.Call(func=ast.Name(id='ExprAff',
+                blocks[-1][-1].append(ast.Call(func=ast.Name(id='ExprAssign',
                                                              ctx=ast.Load()),
                                                args=[IRDst, dst],
                                                keywords=[],
@@ -248,7 +248,7 @@ class SemBuilder(object):
                         raise RuntimeError("Imbricated if unimplemented")
 
                     ## Close the last block
-                    jmp_end = ast.Call(func=ast.Name(id='ExprAff',
+                    jmp_end = ast.Call(func=ast.Name(id='ExprAssign',
                                                      ctx=ast.Load()),
                                        args=[IRDst, loc_end],
                                        keywords=[],

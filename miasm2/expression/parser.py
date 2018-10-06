@@ -1,6 +1,6 @@
 import pyparsing
 from miasm2.expression.expression import ExprInt, ExprId, ExprLoc, ExprSlice, \
-    ExprMem, ExprCond, ExprCompose, ExprOp, ExprAff, LocKey
+    ExprMem, ExprCond, ExprCompose, ExprOp, ExprAssign, LocKey
 
 integer = pyparsing.Word(pyparsing.nums).setParseAction(lambda t:
                                                         int(t[0]))
@@ -22,7 +22,7 @@ STR_EXPRMEM = pyparsing.Suppress("ExprMem")
 STR_EXPRCOND = pyparsing.Suppress("ExprCond")
 STR_EXPRCOMPOSE = pyparsing.Suppress("ExprCompose")
 STR_EXPROP = pyparsing.Suppress("ExprOp")
-STR_EXPRAFF = pyparsing.Suppress("ExprAff")
+STR_EXPRASSIGN = pyparsing.Suppress("ExprAssign")
 
 LOCKEY = pyparsing.Suppress("LocKey")
 
@@ -51,7 +51,7 @@ expr_mem = STR_EXPRMEM + LPARENTHESIS + expr + STR_COMMA + str_int + RPARENTHESI
 expr_cond = STR_EXPRCOND + LPARENTHESIS + expr + STR_COMMA + expr + STR_COMMA + expr + RPARENTHESIS
 expr_compose = STR_EXPRCOMPOSE + LPARENTHESIS + pyparsing.delimitedList(expr, delim=',') + RPARENTHESIS
 expr_op = STR_EXPROP + LPARENTHESIS + string + STR_COMMA + pyparsing.delimitedList(expr, delim=',') + RPARENTHESIS
-expr_aff = STR_EXPRAFF + LPARENTHESIS + expr + STR_COMMA + expr + RPARENTHESIS
+expr_aff = STR_EXPRASSIGN + LPARENTHESIS + expr + STR_COMMA + expr + RPARENTHESIS
 
 expr << (expr_int | expr_id | expr_loc | expr_slice | expr_mem | expr_cond | \
          expr_compose | expr_op | expr_aff)
@@ -69,7 +69,7 @@ expr_mem.setParseAction(lambda t: ExprMem(*t))
 expr_cond.setParseAction(lambda t: ExprCond(*t))
 expr_compose.setParseAction(lambda t: ExprCompose(*t))
 expr_op.setParseAction(lambda t: ExprOp(*t))
-expr_aff.setParseAction(lambda t: ExprAff(*t))
+expr_aff.setParseAction(lambda t: ExprAssign(*t))
 
 
 def str_to_expr(str_in):

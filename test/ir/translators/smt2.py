@@ -19,7 +19,7 @@ right = ExprCond(cond,
                  a + ExprInt(0x64L, 64),
                  ExprInt(0x16L, 64))
 
-e = ExprAff(left, right)
+e = ExprAssign(left, right)
 
 # initialise translators
 t_z3 = TranslatorZ3()

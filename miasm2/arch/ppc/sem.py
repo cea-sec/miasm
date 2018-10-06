@@ -23,15 +23,15 @@ sbuild = SemBuilder(ctx)
 
 def mn_compute_flags(rvalue, overflow_expr=None):
     ret = []
-    ret.append(ExprAff(CR0_LT, rvalue.msb()))
-    ret.append(ExprAff(CR0_GT, (ExprCond(rvalue, ExprInt(1, 1),
+    ret.append(ExprAssign(CR0_LT, rvalue.msb()))
+    ret.append(ExprAssign(CR0_GT, (ExprCond(rvalue, ExprInt(1, 1),
                                          ExprInt(0, 1)) & ~rvalue.msb())))
-    ret.append(ExprAff(CR0_EQ, ExprCond(rvalue, ExprInt(0, 1),
+    ret.append(ExprAssign(CR0_EQ, ExprCond(rvalue, ExprInt(0, 1),
                                         ExprInt(1, 1))))
     if overflow_expr != None:
-        ret.append(ExprAff(CR0_SO, XER_SO | overflow_expr))
+        ret.append(ExprAssign(CR0_SO, XER_SO | overflow_expr))
     else:
-        ret.append(ExprAff(CR0_SO, XER_SO))
+        ret.append(ExprAssign(CR0_SO, XER_SO))
 
     return ret
 
@@ -70,8 +70,8 @@ def mn_do_add(ir, instr, arg1, arg2, arg3):
         msb2 = arg3.msb()
         msba = rvalue.msb()
         over_expr = ~(msb1 ^ msb2) & (msb1 ^ msba)
-        flags_update.append(ExprAff(XER_OV, over_expr))
-        flags_update.append(ExprAff(XER_SO, XER_SO | over_expr))
+        flags_update.append(ExprAssign(XER_OV, over_expr))
+        flags_update.append(ExprAssign(XER_SO, XER_SO | over_expr))
 
     if has_dot:
         flags_update += mn_compute_flags(rvalue, over_expr)
@@ -79,9 +79,9 @@ def mn_do_add(ir, instr, arg1, arg2, arg3):
     if has_c or has_e:
         carry_expr = (((arg2 ^ arg3) ^ rvalue) ^
                       ((arg2 ^ rvalue) & (~(arg2 ^ arg3)))).msb()
-        flags_update.append(ExprAff(XER_CA, carry_expr))
+        flags_update.append(ExprAssign(XER_CA, carry_expr))
 
-    return ([ ExprAff(arg1, rvalue) ] + flags_update), []
+    return ([ ExprAssign(arg1, rvalue) ] + flags_update), []
 
 def mn_do_and(ir, instr, ra, rs, arg2):
     if len(instr.name) > 3 and instr.name[3] == 'C':
@@ -90,7 +90,7 @@ def mn_do_and(ir, instr, ra, rs, arg2):
         oarg = arg2
 
     rvalue = rs & oarg
-    ret = [ ExprAff(ra, rvalue) ]
+    ret = [ ExprAssign(ra, rvalue) ]
 
     if instr.name[-1] == '.':
         ret += mn_compute_flags(rvalue)
@@ -98,7 +98,7 @@ def mn_do_and(ir, instr, ra, rs, arg2):
     return ret, []
 
 def mn_do_cntlzw(ir, instr, ra, rs):
-    ret = [ ExprAff(ra, ExprOp('cntleadzeros', rs)) ]
+    ret = [ ExprAssign(ra, ExprOp('cntleadzeros', rs)) ]
 
     if instr.name[-1] == '.':
         ret += mn_compute_flags(rvalue)
@@ -136,7 +136,7 @@ def mn_do_cr(ir, instr, crd, cra, crb):
         r = a ^ b
     else:
         raise RuntimeError("Unknown operation on CR")
-    return [ ExprAff(d, r) ], []
+    return [ ExprAssign(d, r) ], []
 
 def mn_do_div(ir, instr, rd, ra, rb):
     assert instr.name[0:4] == 'DIVW'
@@ -177,18 +177,18 @@ def mn_do_div(ir, instr, rd, ra, rb):
                                               ExprInt(1, 1)) &
                                      ExprCond(rb ^ 0xFFFFFFFF, ExprInt(0, 1),
                                               ExprInt(1, 1)))
-        flags_update.append(ExprAff(XER_OV, over_expr))
-        flags_update.append(ExprAff(XER_SO, XER_SO | over_expr))
+        flags_update.append(ExprAssign(XER_OV, over_expr))
+        flags_update.append(ExprAssign(XER_SO, XER_SO | over_expr))
 
     if has_dot:
         flags_update += mn_compute_flags(rvalue, over_expr)
 
-    return ([ ExprAff(rd, rvalue) ] + flags_update), []
+    return ([ ExprAssign(rd, rvalue) ] + flags_update), []
 
 
 def mn_do_eqv(ir, instr, ra, rs, rb):
     rvalue = ~(rs ^ rb)
-    ret = [ ExprAff(ra, rvalue) ]
+    ret = [ ExprAssign(ra, rvalue) ]
 
     if instr.name[-1] == '.':
         ret += mn_compute_flags(rvalue)
@@ -204,7 +204,7 @@ def mn_do_exts(ir, instr, ra, rs):
         assert False
 
     rvalue = rs[0:size].signExtend(32)
-    ret = [ ExprAff(ra, rvalue) ]
+    ret = [ ExprAssign(ra, rvalue) ]
 
     if instr.name[-1] == '.':
         ret += mn_compute_flags(rvalue)
@@ -264,16 +264,16 @@ def mn_do_load(ir, instr, arg1, arg2, arg3=None):
     else:
         src = src.zeroExtend(32)
 
-    ret.append(ExprAff(arg1, src))
+    ret.append(ExprAssign(arg1, src))
     if has_u:
         if arg3 is None:
-            ret.append(ExprAff(arg2.arg.args[0], address))
+            ret.append(ExprAssign(arg2.arg.args[0], address))
         else:
-            ret.append(ExprAff(arg2, address))
+            ret.append(ExprAssign(arg2, address))
 
     if is_lwarx:
-        ret.append(ExprAff(reserve, ExprInt(1, 1)))
-        ret.append(ExprAff(reserve_address, address))	# XXX should be the PA
+        ret.append(ExprAssign(reserve, ExprInt(1, 1)))
+        ret.append(ExprAssign(reserve_address, address))	# XXX should be the PA
 
     return ret, []
 
@@ -283,7 +283,7 @@ def mn_do_lmw(ir, instr, rd, src):
     ri = int(rd.name[1:],10)
     i = 0
     while ri <= 31:
-        ret.append(ExprAff(all_regs_ids_byname["R%d" % ri],
+        ret.append(ExprAssign(all_regs_ids_byname["R%d" % ri],
                            ExprMem(address + ExprInt(i, 32), 32)))
         ri += 1
         i += 4
@@ -305,7 +305,7 @@ def mn_do_mcrf(ir, instr, crfd, crfs):
     for bit in [ 'LT', 'GT', 'EQ', 'SO' ]:
         d = all_regs_ids_byname["%s_%s" % (crfd, bit)]
         s = all_regs_ids_byname["%s_%s" % (crfs, bit)]
-        ret.append(ExprAff(d, s))
+        ret.append(ExprAssign(d, s))
 
     return ret, []
 
@@ -314,12 +314,12 @@ def mn_do_mcrxr(ir, instr, crfd):
 
     for (bit, val) in [ ('LT', XER_SO), ('GT', XER_OV), ('EQ', XER_CA),
                         ('SO', ExprInt(0, 1)) ]:
-        ret.append(ExprAff(all_regs_ids_byname["%s_%s" % (crfd, bit)], val))
+        ret.append(ExprAssign(all_regs_ids_byname["%s_%s" % (crfd, bit)], val))
 
     return ret, []
 
 def mn_do_mfcr(ir, instr, rd):
-    return ([ ExprAff(rd, ExprCompose(*[ all_regs_ids_byname["CR%d_%s" % (i, b)]
+    return ([ ExprAssign(rd, ExprCompose(*[ all_regs_ids_byname["CR%d_%s" % (i, b)]
                                         for i in xrange(7, -1, -1)
                                         for b in ['SO', 'EQ', 'GT', 'LT']]))],
             [])
@@ -332,15 +332,15 @@ def mn_mfspr(ir, instr, arg1, arg2):
     sprid = arg2.arg.arg
     gprid = int(arg1.name[1:])
     if sprid in spr_dict:
-        return [ ExprAff(arg1, spr_dict[sprid]) ], []
+        return [ ExprAssign(arg1, spr_dict[sprid]) ], []
     elif sprid == 1:		# XER
-        return [ ExprAff(arg1, ExprCompose(XER_BC, ExprInt(0, 22),
+        return [ ExprAssign(arg1, ExprCompose(XER_BC, ExprInt(0, 22),
                                            XER_CA, XER_OV, XER_SO)) ], []
     else:
-        return [ ExprAff(spr_access,
+        return [ ExprAssign(spr_access,
                          ExprInt(((sprid << SPR_ACCESS_SPR_OFF) |
                                     (gprid << SPR_ACCESS_GPR_OFF)), 32)),
-                 ExprAff(exception_flags, ExprInt(EXCEPT_SPR_ACCESS, 32)) ], []
+                 ExprAssign(exception_flags, ExprInt(EXCEPT_SPR_ACCESS, 32)) ], []
 
 def mn_mtcrf(ir, instr, crm, rs):
     ret = []
@@ -349,7 +349,7 @@ def mn_mtcrf(ir, instr, crm, rs):
         if crm.arg.arg & (1 << (7 - i)):
             j = (28 - 4 * i) + 3
             for b in ['LT', 'GT', 'EQ', 'SO']:
-                ret.append(ExprAff(all_regs_ids_byname["CR%d_%s" % (i, b)],
+                ret.append(ExprAssign(all_regs_ids_byname["CR%d_%s" % (i, b)],
                                    rs[j:j+1]))
                 j -= 1
 
@@ -357,24 +357,24 @@ def mn_mtcrf(ir, instr, crm, rs):
 
 def mn_mtmsr(ir, instr, rs):
     print "%08x: MSR assigned" % instr.offset
-    return [ ExprAff(MSR, rs) ], []
+    return [ ExprAssign(MSR, rs) ], []
 
 def mn_mtspr(ir, instr, arg1, arg2):
     sprid = arg1.arg.arg
     gprid = int(arg2.name[1:])
     if sprid in spr_dict:
-        return [ ExprAff(spr_dict[sprid], arg2) ], []
+        return [ ExprAssign(spr_dict[sprid], arg2) ], []
     elif sprid == 1:		# XER
-        return [ ExprAff(XER_SO, arg2[31:32]),
-                 ExprAff(XER_OV, arg2[30:31]),
-                 ExprAff(XER_CA, arg2[29:30]),
-                 ExprAff(XER_BC, arg2[0:7]) ], []
+        return [ ExprAssign(XER_SO, arg2[31:32]),
+                 ExprAssign(XER_OV, arg2[30:31]),
+                 ExprAssign(XER_CA, arg2[29:30]),
+                 ExprAssign(XER_BC, arg2[0:7]) ], []
     else:
-        return [ ExprAff(spr_access,
+        return [ ExprAssign(spr_access,
                          ExprInt(((sprid << SPR_ACCESS_SPR_OFF) |
                                     (gprid << SPR_ACCESS_GPR_OFF) |
                                     SPR_ACCESS_IS_WRITE), 32)),
-                 ExprAff(exception_flags, ExprInt(EXCEPT_SPR_ACCESS, 32)) ], []
+                 ExprAssign(exception_flags, ExprInt(EXCEPT_SPR_ACCESS, 32)) ], []
 
 def mn_do_mul(ir, instr, rd, ra, arg2):
     variant = instr.name[3:]
@@ -398,7 +398,7 @@ def mn_do_mul(ir, instr, rd, ra, arg2):
     if shift != 0:
         rvalue = rvalue[shift : shift + 32]
 
-    ret = [ ExprAff(rd, rvalue) ]
+    ret = [ ExprAssign(rd, rvalue) ]
 
     over_expr = None
     if variant[-1] == 'O':
@@ -406,8 +406,8 @@ def mn_do_mul(ir, instr, rd, ra, arg2):
                               ExprOp('*', v1.signExtend(64),
                                      v2.signExtend(64))),
                              ExprInt(1, 1), ExprInt(0, 1))
-        ret.append(ExprAff(XER_OV, over_expr))
-        ret.append(ExprAff(XER_SO, XER_SO | over_expr))
+        ret.append(ExprAssign(XER_OV, over_expr))
+        ret.append(ExprAssign(XER_SO, XER_SO | over_expr))
 
     if instr.name[-1] == '.':
         ret += mn_compute_flags(rvalue, over_expr)
@@ -416,7 +416,7 @@ def mn_do_mul(ir, instr, rd, ra, arg2):
 
 def mn_do_nand(ir, instr, ra, rs, rb):
     rvalue = ~(rs & rb)
-    ret = [ ExprAff(ra, rvalue) ]
+    ret = [ ExprAssign(ra, rvalue) ]
 
     if instr.name[-1] == '.':
         ret += mn_compute_flags(rvalue)
@@ -425,7 +425,7 @@ def mn_do_nand(ir, instr, ra, rs, rb):
 
 def mn_do_neg(ir, instr, rd, ra):
     rvalue = -ra
-    ret = [ ExprAff(rd, rvalue) ]
+    ret = [ ExprAssign(rd, rvalue) ]
     has_o = False
 
     over_expr = None
@@ -433,8 +433,8 @@ def mn_do_neg(ir, instr, rd, ra):
         has_o = True
         over_expr = ExprCond(ra ^ ExprInt(0x80000000, 32),
                              ExprInt(0, 1), ExprInt(1, 1))
-        ret.append(ExprAff(XER_OV, over_expr))
-        ret.append(ExprAff(XER_SO, XER_SO | over_expr))
+        ret.append(ExprAssign(XER_OV, over_expr))
+        ret.append(ExprAssign(XER_SO, XER_SO | over_expr))
 
     if instr.name[-1] == '.':
         ret += mn_compute_flags(rvalue, over_expr)
@@ -444,7 +444,7 @@ def mn_do_neg(ir, instr, rd, ra):
 def mn_do_nor(ir, instr, ra, rs, rb):
 
     rvalue = ~(rs | rb)
-    ret = [ ExprAff(ra, rvalue) ]
+    ret = [ ExprAssign(ra, rvalue) ]
 
     if instr.name[-1] == '.':
         ret += mn_compute_flags(rvalue)
@@ -458,7 +458,7 @@ def mn_do_or(ir, instr, ra, rs, arg2):
         oarg = arg2
 
     rvalue = rs | oarg
-    ret = [ ExprAff(ra, rvalue) ]
+    ret = [ ExprAssign(ra, rvalue) ]
 
     if instr.name[-1] == '.':
         ret += mn_compute_flags(rvalue)
@@ -467,13 +467,13 @@ def mn_do_or(ir, instr, ra, rs, arg2):
 
 def mn_do_rfi(ir, instr):
     dest = ExprCompose(ExprInt(0, 2), SRR0[2:32])
-    ret = [ ExprAff(MSR, (MSR &
+    ret = [ ExprAssign(MSR, (MSR &
                           ~ExprInt(0b1111111101110011, 32) |
                           ExprCompose(SRR1[0:2], ExprInt(0, 2),
                                       SRR1[4:7], ExprInt(0, 1), 
                                       SRR1[8:16], ExprInt(0, 16)))),
-            ExprAff(PC, dest),
-            ExprAff(ir.IRDst, dest) ]
+            ExprAssign(PC, dest),
+            ExprAssign(ir.IRDst, dest) ]
     return ret, []
 
 def mn_do_rotate(ir, instr, ra, rs, shift, mb, me):
@@ -486,7 +486,7 @@ def mn_do_rotate(ir, instr, ra, rs, shift, mb, me):
     if instr.name[0:6] == 'RLWIMI':
         rvalue = rvalue | (ra & ~m)
 
-    ret = [ ExprAff(ra, rvalue) ]
+    ret = [ ExprAssign(ra, rvalue) ]
 
     if instr.name[-1] == '.':
         ret += mn_compute_flags(rvalue)
@@ -497,7 +497,7 @@ def mn_do_slw(ir, instr, ra, rs, rb):
 
     rvalue = ExprCond(rb[5:6], ExprInt(0, 32),
                       ExprOp('<<', rs, rb & ExprInt(0b11111, 32)))
-    ret = [ ExprAff(ra, rvalue) ]
+    ret = [ ExprAssign(ra, rvalue) ]
 
     if instr.name[-1] == '.':
         ret += mn_compute_flags(rvalue)
@@ -507,7 +507,7 @@ def mn_do_slw(ir, instr, ra, rs, rb):
 def mn_do_sraw(ir, instr, ra, rs, rb):
     rvalue = ExprCond(rb[5:6], ExprInt(0xFFFFFFFF, 32),
                       ExprOp('a>>', rs, rb & ExprInt(0b11111, 32)))
-    ret = [ ExprAff(ra, rvalue) ]
+    ret = [ ExprAssign(ra, rvalue) ]
 
     if instr.name[-1] == '.':
         ret += mn_compute_flags(rvalue)
@@ -515,28 +515,28 @@ def mn_do_sraw(ir, instr, ra, rs, rb):
     mask = ExprCond(rb[5:6], ExprInt(0xFFFFFFFF, 32),
                     (ExprInt(0xFFFFFFFF, 32) >>
                      (ExprInt(32, 32) - (rb & ExprInt(0b11111, 32)))))
-    ret.append(ExprAff(XER_CA, rs.msb() &
+    ret.append(ExprAssign(XER_CA, rs.msb() &
                        ExprCond(rs & mask, ExprInt(1, 1), ExprInt(0, 1))))
 
     return ret, []
 
 def mn_do_srawi(ir, instr, ra, rs, imm):
     rvalue = ExprOp('a>>', rs, imm)
-    ret = [ ExprAff(ra, rvalue) ]
+    ret = [ ExprAssign(ra, rvalue) ]
 
     if instr.name[-1] == '.':
         ret += mn_compute_flags(rvalue)
 
     mask = ExprInt(0xFFFFFFFF >> (32 - imm.arg.arg), 32)
 
-    ret.append(ExprAff(XER_CA, rs.msb() &
+    ret.append(ExprAssign(XER_CA, rs.msb() &
                        ExprCond(rs & mask, ExprInt(1, 1), ExprInt(0, 1))))
 
     return ret, []
 
 def mn_do_srw(ir, instr, ra, rs, rb):
     rvalue = rs >> (rb & ExprInt(0b11111, 32))
-    ret = [ ExprAff(ra, rvalue) ]
+    ret = [ ExprAssign(ra, rvalue) ]
 
     if instr.name[-1] == '.':
         ret += mn_compute_flags(rvalue)
@@ -549,7 +549,7 @@ def mn_do_stmw(ir, instr, rs, dest):
     ri = int(rs.name[1:],10)
     i = 0
     while ri <= 31:
-        ret.append(ExprAff(ExprMem(address + ExprInt(i,32), 32),
+        ret.append(ExprAssign(ExprMem(address + ExprInt(i,32), 32),
                            all_regs_ids_byname["R%d" % ri]))
         ri += 1
         i += 4
@@ -596,29 +596,29 @@ def mn_do_store(ir, instr, arg1, arg2, arg3=None):
     if has_b:
         src = byte_swap(src)
 
-    ret.append(ExprAff(dest, src))
+    ret.append(ExprAssign(dest, src))
     if has_u:
         if arg3 is None:
-            ret.append(ExprAff(arg2.arg.args[0], address))
+            ret.append(ExprAssign(arg2.arg.args[0], address))
         else:
-            ret.append(ExprAff(arg2, address))
+            ret.append(ExprAssign(arg2, address))
 
     if is_stwcx:
         loc_do = ExprLoc(ir.loc_db.add_location(), ir.IRDst.size)
         loc_dont = ExprLoc(ir.loc_db.add_location(), ir.IRDst.size)
         loc_next = ExprLoc(ir.get_next_loc_key(instr), ir.IRDst.size)
-        flags = [ ExprAff(CR0_LT, ExprInt(0,1)),
-                  ExprAff(CR0_GT, ExprInt(0,1)),
-                  ExprAff(CR0_SO, XER_SO)]
+        flags = [ ExprAssign(CR0_LT, ExprInt(0,1)),
+                  ExprAssign(CR0_GT, ExprInt(0,1)),
+                  ExprAssign(CR0_SO, XER_SO)]
         ret += flags
-        ret.append(ExprAff(CR0_EQ, ExprInt(1,1)))
-        ret.append(ExprAff(ir.IRDst, loc_next))
-        dont = flags + [ ExprAff(CR0_EQ, ExprInt(0,1)),
-                         ExprAff(ir.IRDst, loc_next) ]
+        ret.append(ExprAssign(CR0_EQ, ExprInt(1,1)))
+        ret.append(ExprAssign(ir.IRDst, loc_next))
+        dont = flags + [ ExprAssign(CR0_EQ, ExprInt(0,1)),
+                         ExprAssign(ir.IRDst, loc_next) ]
         additional_ir = [ IRBlock(loc_do, [ AssignBlock(ret) ]),
                           IRBlock(loc_dont, [ AssignBlock(dont) ]) ]
-        ret = [ ExprAff(reserve, ExprInt(0, 1)),
-                ExprAff(ir.IRDst, ExprCond(reserve, loc_do, loc_dont)) ]
+        ret = [ ExprAssign(reserve, ExprInt(0, 1)),
+                ExprAssign(ir.IRDst, ExprCond(reserve, loc_do, loc_dont)) ]
 
     return ret, additional_ir
 
@@ -658,8 +658,8 @@ def mn_do_sub(ir, instr, arg1, arg2, arg3):
         msb2 = arg3.msb()
         msba = rvalue.msb()
         over_expr = (msb1 ^ msb2) & (msb1 ^ msba)
-        flags_update.append(ExprAff(XER_OV, over_expr))
-        flags_update.append(ExprAff(XER_SO, XER_SO | over_expr))
+        flags_update.append(ExprAssign(XER_OV, over_expr))
+        flags_update.append(ExprAssign(XER_SO, XER_SO | over_expr))
 
     if has_dot:
         flags_update += mn_compute_flags(rvalue, over_expr)
@@ -667,13 +667,13 @@ def mn_do_sub(ir, instr, arg1, arg2, arg3):
     if has_c or has_e:
         carry_expr = ((((arg3 ^ arg2) ^ rvalue) ^
                        ((arg3 ^ rvalue) & (arg3 ^ arg2))).msb())
-        flags_update.append(ExprAff(XER_CA, ~carry_expr))
+        flags_update.append(ExprAssign(XER_CA, ~carry_expr))
 
-    return ([ ExprAff(arg1, rvalue) ] + flags_update), []
+    return ([ ExprAssign(arg1, rvalue) ] + flags_update), []
 
 def mn_do_xor(ir, instr, ra, rs, rb):
     rvalue = rs ^ rb
-    ret = [ ExprAff(ra, rvalue) ]
+    ret = [ ExprAssign(ra, rvalue) ]
 
     if instr.name[-1] == '.':
         ret += mn_compute_flags(rvalue)
@@ -683,15 +683,15 @@ def mn_do_xor(ir, instr, ra, rs, rb):
 def mn_b(ir, instr, arg1, arg2 = None):
     if arg2 is not None:
         arg1 = arg2
-    return [ ExprAff(PC, arg1), ExprAff(ir.IRDst, arg1) ], []
+    return [ ExprAssign(PC, arg1), ExprAssign(ir.IRDst, arg1) ], []
 
 def mn_bl(ir, instr, arg1, arg2 = None):
     if arg2 is not None:
         arg1 = arg2
     dst = ir.get_next_instr(instr)
-    return [ ExprAff(LR, ExprLoc(dst, 32)),
-             ExprAff(PC, arg1),
-             ExprAff(ir.IRDst, arg1) ], []
+    return [ ExprAssign(LR, ExprLoc(dst, 32)),
+             ExprAssign(PC, arg1),
+             ExprAssign(ir.IRDst, arg1) ], []
 
 def mn_get_condition(instr):
     bit = instr.additional_info.bi & 0b11
@@ -706,7 +706,7 @@ def mn_do_cond_branch(ir, instr, dest):
     if bo & 0b00100:
         ctr_cond = True
     else:
-        ret.append(ExprAff(CTR, CTR - ExprInt(1, 32)))
+        ret.append(ExprAssign(CTR, CTR - ExprInt(1, 32)))
         ctr_cond = ExprCond(CTR ^ ExprInt(1, 32), ExprInt(1, 1), ExprInt(0, 1))
         if bo & 0b00010:
             ctr_cond = ~ctr_cond
@@ -733,10 +733,10 @@ def mn_do_cond_branch(ir, instr, dest):
 
     if instr.name[-1] == 'L' or instr.name[-2:-1] == 'LA':
         dst = ir.get_next_instr(instr)
-        ret.append(ExprAff(LR, ExprLoc(dst, 32)))
+        ret.append(ExprAssign(LR, ExprLoc(dst, 32)))
 
-    ret.append(ExprAff(PC, dest_expr))
-    ret.append(ExprAff(ir.IRDst, dest_expr))
+    ret.append(ExprAssign(PC, dest_expr))
+    ret.append(ExprAssign(ir.IRDst, dest_expr))
 
     return ret, []
 
@@ -777,7 +777,7 @@ def mn_assign(arg1, arg2):
 
 def mn_stb(ir, instr, arg1, arg2):
     dest = ExprMem(arg2.arg, 8)
-    return [ExprAff(dest, ExprSlice(arg1, 0, 8))], []
+    return [ExprAssign(dest, ExprSlice(arg1, 0, 8))], []
 
 @sbuild.parse
 def mn_stwu(arg1, arg2):

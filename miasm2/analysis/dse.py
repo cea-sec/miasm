@@ -56,7 +56,7 @@ except ImportError:
     z3 = None
 
 from miasm2.expression.expression import ExprMem, ExprInt, ExprCompose, \
-    ExprAff, ExprId, ExprLoc, LocKey
+    ExprAssign, ExprId, ExprLoc, LocKey
 from miasm2.core.bin_stream import bin_stream_vm
 from miasm2.jitter.emulatedsymbexec import EmulatedSymbExec
 from miasm2.expression.expression_helper import possible_values
@@ -626,14 +626,14 @@ class DSEPathConstraint(DSEEngine):
                 target_addr = self.ir_arch.loc_db.canonize_to_exprloc(
                     possibility.value
                 )
-                path_constraint = set() # Set of ExprAff for the possible path
+                path_constraint = set() # Set of ExprAssign for the possible path
 
                 # Get constraint associated to the possible path
                 memory_to_add = ModularIntervals(symb_pc.size)
                 for cons in possibility.constraints:
                     eaff = cons.to_constraint()
                     # eaff.get_r(mem_read=True) is not enough
-                    # ExprAff consider a Memory access in dst as a write
+                    # ExprAssign consider a Memory access in dst as a write
                     mem = eaff.dst.get_r(mem_read=True)
                     mem.update(eaff.src.get_r(mem_read=True))
                     for expr in mem:
@@ -663,7 +663,7 @@ class DSEPathConstraint(DSEEngine):
                         if not value.is_int():
                             raise TypeError("Rely on a symbolic memory case, " \
                                             "address 0x%x" % address)
-                        path_constraint.add(ExprAff(expr_mem, value))
+                        path_constraint.add(ExprAssign(expr_mem, value))
 
                 if target_addr == cur_addr:
                     # Add path constraint

@@ -1,6 +1,6 @@
 """Provide dependency graph"""
 
-from miasm2.expression.expression import ExprInt, ExprLoc, ExprAff
+from miasm2.expression.expression import ExprInt, ExprLoc, ExprAssign
 from miasm2.core.graph import DiGraph
 from miasm2.core.locationdb import LocationDB
 from miasm2.expression.simplifications import expr_simp_explicit
@@ -319,7 +319,7 @@ class DependencyResultImplicit(DependencyResult):
     # Z3 Solver instance
     _solver = None
 
-    unsat_expr = ExprAff(ExprInt(0, 1), ExprInt(1, 1))
+    unsat_expr = ExprAssign(ExprInt(0, 1), ExprInt(1, 1))
 
     def _gen_path_constraints(self, translator, expr, expected):
         """Generate path constraint from @expr. Handle special case with
@@ -341,7 +341,7 @@ class DependencyResultImplicit(DependencyResult):
                 conds = z3.And(
                     conds,
                     translator.from_expr(
-                        ExprAff(value,
+                        ExprAssign(value,
                                 expected))
                 )
             out.append(conds)

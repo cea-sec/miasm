@@ -10,7 +10,7 @@ from miasm2.core.locationdb import LocationDB
 from miasm2.core.utils import Disasm_Exception
 from miasm2.ir.ir import AssignBlock
 from miasm2.arch.mep.ira import ir_a_mepb
-from miasm2.expression.expression import ExprId, ExprInt, ExprOp, ExprMem, ExprAff, ExprLoc
+from miasm2.expression.expression import ExprId, ExprInt, ExprOp, ExprMem, ExprAssign, ExprLoc
 
 
 def exec_instruction(mn_str, init_values, results, index=0, offset=0):
@@ -36,7 +36,7 @@ def exec_instruction(mn_str, init_values, results, index=0, offset=0):
     iir, eiir = im.get_ir(instr)
 
     # Filter out IRDst
-    iir = [ir for ir in iir if not (isinstance(ir, ExprAff) and
+    iir = [ir for ir in iir if not (isinstance(ir, ExprAssign) and
                                     isinstance(ir.dst, ExprId) and
                                     ir.dst.name == "IRDst")]
 

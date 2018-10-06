@@ -8,7 +8,7 @@ class TestSymbExec(unittest.TestCase):
 
     def test_ClassDef(self):
         from miasm2.expression.expression import ExprInt, ExprId, ExprMem, \
-            ExprCompose, ExprAff
+            ExprCompose, ExprAssign
         from miasm2.arch.x86.sem import ir_x86_32
         from miasm2.core.locationdb import LocationDB
         from miasm2.ir.symbexec import SymbolicExecutionEngine
@@ -128,7 +128,7 @@ class TestSymbExec(unittest.TestCase):
         self.assertEqual(sb.eval_expr(id_x), id_a)
 
         ## x = a (with a = 0x0)
-        self.assertEqual(sb.eval_updt_expr(assignblk.dst2ExprAff(id_x)), ExprInt(0, 32))
+        self.assertEqual(sb.eval_updt_expr(assignblk.dst2ExprAssign(id_x)), ExprInt(0, 32))
         self.assertEqual(sb.eval_expr(id_x), ExprInt(0, 32))
         self.assertEqual(sb.eval_updt_expr(id_x), ExprInt(0, 32))
 
@@ -137,7 +137,7 @@ class TestSymbExec(unittest.TestCase):
         ## state
         reads = set()
         for dst, src in sb.modified():
-            reads.update(ExprAff(dst, src).get_r())
+            reads.update(ExprAssign(dst, src).get_r())
 
         self.assertEqual(reads, set([
             id_x, id_a,

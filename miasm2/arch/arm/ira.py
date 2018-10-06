@@ -3,7 +3,7 @@
 from miasm2.ir.analysis import ira
 from miasm2.ir.ir import IRBlock
 from miasm2.arch.arm.sem import ir_arml, ir_armtl, ir_armb, ir_armtb, tab_cond
-from miasm2.expression.expression import ExprAff, ExprOp, ExprLoc, ExprCond
+from miasm2.expression.expression import ExprAssign, ExprOp, ExprLoc, ExprCond
 from miasm2.ir.ir import AssignBlock
 
 class ir_a_arml_base(ir_arml, ira):
@@ -26,7 +26,7 @@ class ir_a_arml(ir_a_arml_base):
     def call_effects(self, ad, instr):
         call_assignblk = AssignBlock(
             [
-                ExprAff(
+                ExprAssign(
                     self.ret_reg,
                     ExprOp(
                         'call_func_ret',
@@ -37,7 +37,7 @@ class ir_a_arml(ir_a_arml_base):
                         self.arch.regs.R3,
                     )
                 ),
-                ExprAff(
+                ExprAssign(
                     self.sp,
                     ExprOp('call_func_stack', ad, self.sp)
                 ),
@@ -61,11 +61,11 @@ class ir_a_arml(ir_a_arml_base):
 
         call_assignblks = [
             call_assignblk,
-            AssignBlock([ExprAff(self.IRDst, loc_next_expr)], instr),
+            AssignBlock([ExprAssign(self.IRDst, loc_next_expr)], instr),
         ]
         e_do = IRBlock(loc_do, call_assignblks)
         assignblks_out = [
-            AssignBlock([ExprAff(self.IRDst, dst_cond)], instr)
+            AssignBlock([ExprAssign(self.IRDst, dst_cond)], instr)
         ]
         return assignblks_out, [e_do]
 

@@ -1,5 +1,5 @@
 """ Test cases for dead code elimination"""
-from miasm2.expression.expression import ExprId, ExprInt, ExprAff, ExprMem
+from miasm2.expression.expression import ExprId, ExprInt, ExprAssign, ExprMem
 from miasm2.core.locationdb import LocationDB
 from miasm2.analysis.data_flow import *
 from miasm2.ir.analysis import ira
@@ -83,9 +83,9 @@ IRA = IRATest(loc_db)
 
 G1_IRA = IRA.new_ircfg()
 
-G1_IRB0 = gen_irblock(LBL0, [[ExprAff(a, CST1)], [ExprAff(b, CST2)]])
-G1_IRB1 = gen_irblock(LBL1, [[ExprAff(a, b)]])
-G1_IRB2 = gen_irblock(LBL2, [[ExprAff(r, a)]])
+G1_IRB0 = gen_irblock(LBL0, [[ExprAssign(a, CST1)], [ExprAssign(b, CST2)]])
+G1_IRB1 = gen_irblock(LBL1, [[ExprAssign(a, b)]])
+G1_IRB2 = gen_irblock(LBL2, [[ExprAssign(r, a)]])
 
 for irb in [G1_IRB0, G1_IRB1, G1_IRB2]:
     G1_IRA.add_irblock(irb)
@@ -96,9 +96,9 @@ G1_IRA.add_uniq_edge(G1_IRB1.loc_key, G1_IRB2.loc_key)
 # Expected output for graph 1
 G1_EXP_IRA = IRA.new_ircfg()
 
-G1_EXP_IRB0 = gen_irblock(LBL0, [[], [ExprAff(b, CST2)]])
-G1_EXP_IRB1 = gen_irblock(LBL1, [[ExprAff(a, b)]])
-G1_EXP_IRB2 = gen_irblock(LBL2, [[ExprAff(r, a)]])
+G1_EXP_IRB0 = gen_irblock(LBL0, [[], [ExprAssign(b, CST2)]])
+G1_EXP_IRB1 = gen_irblock(LBL1, [[ExprAssign(a, b)]])
+G1_EXP_IRB2 = gen_irblock(LBL2, [[ExprAssign(r, a)]])
 
 for irb in [G1_EXP_IRB0, G1_EXP_IRB1, G1_EXP_IRB2]:
     G1_EXP_IRA.add_irblock(irb)
@@ -107,9 +107,9 @@ for irb in [G1_EXP_IRB0, G1_EXP_IRB1, G1_EXP_IRB2]:
 
 G2_IRA = IRA.new_ircfg()
 
-G2_IRB0 = gen_irblock(LBL0, [[ExprAff(a, CST1)], [ExprAff(r, CST1)]])
-G2_IRB1 = gen_irblock(LBL1, [[ExprAff(a, a+CST1)]])
-G2_IRB2 = gen_irblock(LBL2, [[ExprAff(a, r)]])
+G2_IRB0 = gen_irblock(LBL0, [[ExprAssign(a, CST1)], [ExprAssign(r, CST1)]])
+G2_IRB1 = gen_irblock(LBL1, [[ExprAssign(a, a+CST1)]])
+G2_IRB2 = gen_irblock(LBL2, [[ExprAssign(a, r)]])
 
 for irb in [G2_IRB0, G2_IRB1, G2_IRB2]:
     G2_IRA.add_irblock(irb)
@@ -121,7 +121,7 @@ G2_IRA.add_uniq_edge(G2_IRB1.loc_key, G2_IRB1.loc_key)
 # Expected output for graph 2
 G2_EXP_IRA = IRA.new_ircfg()
 
-G2_EXP_IRB0 = gen_irblock(LBL0, [[], [ExprAff(r, CST1)]])
+G2_EXP_IRB0 = gen_irblock(LBL0, [[], [ExprAssign(r, CST1)]])
 G2_EXP_IRB1 = gen_irblock(LBL1, [[]])
 G2_EXP_IRB2 = gen_irblock(LBL2, [[]])
 
@@ -132,9 +132,9 @@ for irb in [G2_EXP_IRB0, G2_EXP_IRB1, G2_EXP_IRB2]:
 
 G3_IRA = IRA.new_ircfg()
 
-G3_IRB0 = gen_irblock(LBL0, [[ExprAff(a, CST1)]])
-G3_IRB1 = gen_irblock(LBL1, [[ExprAff(a, a+CST1)]])
-G3_IRB2 = gen_irblock(LBL2, [[ExprAff(r, a)]])
+G3_IRB0 = gen_irblock(LBL0, [[ExprAssign(a, CST1)]])
+G3_IRB1 = gen_irblock(LBL1, [[ExprAssign(a, a+CST1)]])
+G3_IRB2 = gen_irblock(LBL2, [[ExprAssign(r, a)]])
 
 for irb in [G3_IRB0, G3_IRB1, G3_IRB2]:
     G3_IRA.add_irblock(irb)
@@ -146,9 +146,9 @@ G3_IRA.add_uniq_edge(G3_IRB1.loc_key, G3_IRB1.loc_key)
 # Expected output for graph 3
 G3_EXP_IRA = IRA.new_ircfg()
 
-G3_EXP_IRB0 = gen_irblock(LBL0, [[ExprAff(a, CST1)]])
-G3_EXP_IRB1 = gen_irblock(LBL1, [[ExprAff(a, a+CST1)]])
-G3_EXP_IRB2 = gen_irblock(LBL2, [[ExprAff(r, a)]])
+G3_EXP_IRB0 = gen_irblock(LBL0, [[ExprAssign(a, CST1)]])
+G3_EXP_IRB1 = gen_irblock(LBL1, [[ExprAssign(a, a+CST1)]])
+G3_EXP_IRB2 = gen_irblock(LBL2, [[ExprAssign(r, a)]])
 
 for irb in [G3_EXP_IRB0, G3_EXP_IRB1, G3_EXP_IRB2]:
     G3_EXP_IRA.add_irblock(irb)
@@ -157,10 +157,10 @@ for irb in [G3_EXP_IRB0, G3_EXP_IRB1, G3_EXP_IRB2]:
 
 G4_IRA = IRA.new_ircfg()
 
-G4_IRB0 = gen_irblock(LBL0, [[ExprAff(a, CST1)]])
-G4_IRB1 = gen_irblock(LBL1, [[ExprAff(a, a+CST1)]])
-G4_IRB2 = gen_irblock(LBL2, [[ExprAff(a, a+CST2)]])
-G4_IRB3 = gen_irblock(LBL3, [[ExprAff(a, CST3)], [ExprAff(r, a)]])
+G4_IRB0 = gen_irblock(LBL0, [[ExprAssign(a, CST1)]])
+G4_IRB1 = gen_irblock(LBL1, [[ExprAssign(a, a+CST1)]])
+G4_IRB2 = gen_irblock(LBL2, [[ExprAssign(a, a+CST2)]])
+G4_IRB3 = gen_irblock(LBL3, [[ExprAssign(a, CST3)], [ExprAssign(r, a)]])
 
 for irb in [G4_IRB0, G4_IRB1, G4_IRB2, G4_IRB3]:
     G4_IRA.add_irblock(irb)
@@ -176,7 +176,7 @@ G4_EXP_IRA = IRA.new_ircfg()
 G4_EXP_IRB0 = gen_irblock(LBL0, [[]])
 G4_EXP_IRB1 = gen_irblock(LBL1, [[]])
 G4_EXP_IRB2 = gen_irblock(LBL2, [[]])
-G4_EXP_IRB3 = gen_irblock(LBL3, [[ExprAff(a, CST3)], [ExprAff(r, a)]])
+G4_EXP_IRB3 = gen_irblock(LBL3, [[ExprAssign(a, CST3)], [ExprAssign(r, a)]])
 
 for irb in [G4_EXP_IRB0, G4_EXP_IRB1, G4_EXP_IRB2, G4_EXP_IRB3]:
     G4_EXP_IRA.add_irblock(irb)
@@ -185,12 +185,12 @@ for irb in [G4_EXP_IRB0, G4_EXP_IRB1, G4_EXP_IRB2, G4_EXP_IRB3]:
 
 G5_IRA = IRA.new_ircfg()
 
-G5_IRB0 = gen_irblock(LBL0, [[ExprAff(a, CST1)]])
-G5_IRB1 = gen_irblock(LBL1, [[ExprAff(r, CST2)]])
-G5_IRB2 = gen_irblock(LBL2, [[ExprAff(a, a+CST2)]])
-G5_IRB3 = gen_irblock(LBL3, [[ExprAff(a, a+CST3)]])
-G5_IRB4 = gen_irblock(LBL4, [[ExprAff(a, a+CST1)]])
-G5_IRB5 = gen_irblock(LBL5, [[ExprAff(a, r)]])
+G5_IRB0 = gen_irblock(LBL0, [[ExprAssign(a, CST1)]])
+G5_IRB1 = gen_irblock(LBL1, [[ExprAssign(r, CST2)]])
+G5_IRB2 = gen_irblock(LBL2, [[ExprAssign(a, a+CST2)]])
+G5_IRB3 = gen_irblock(LBL3, [[ExprAssign(a, a+CST3)]])
+G5_IRB4 = gen_irblock(LBL4, [[ExprAssign(a, a+CST1)]])
+G5_IRB5 = gen_irblock(LBL5, [[ExprAssign(a, r)]])
 
 for irb in [G5_IRB0, G5_IRB1, G5_IRB2, G5_IRB3, G5_IRB4, G5_IRB5]:
     G5_IRA.add_irblock(irb)
@@ -207,7 +207,7 @@ G5_IRA.add_uniq_edge(G5_IRB4.loc_key, G5_IRB1.loc_key)
 G5_EXP_IRA = IRA.new_ircfg()
 
 G5_EXP_IRB0 = gen_irblock(LBL0, [[]])
-G5_EXP_IRB1 = gen_irblock(LBL1, [[ExprAff(r, CST2)]])
+G5_EXP_IRB1 = gen_irblock(LBL1, [[ExprAssign(r, CST2)]])
 G5_EXP_IRB2 = gen_irblock(LBL2, [[]])
 G5_EXP_IRB3 = gen_irblock(LBL3, [[]])
 G5_EXP_IRB4 = gen_irblock(LBL4, [[]])
@@ -222,10 +222,10 @@ for irb in [G5_EXP_IRB0, G5_EXP_IRB1, G5_EXP_IRB2,
 
 G6_IRA = IRA.new_ircfg()
 
-G6_IRB0 = gen_irblock(LBL0, [[ExprAff(a, CST1)]])
-G6_IRB1 = gen_irblock(LBL1, [[ExprAff(b, a)]])
-G6_IRB2 = gen_irblock(LBL2, [[ExprAff(a, b)]])
-G6_IRB3 = gen_irblock(LBL3, [[ExprAff(r, CST2)]])
+G6_IRB0 = gen_irblock(LBL0, [[ExprAssign(a, CST1)]])
+G6_IRB1 = gen_irblock(LBL1, [[ExprAssign(b, a)]])
+G6_IRB2 = gen_irblock(LBL2, [[ExprAssign(a, b)]])
+G6_IRB3 = gen_irblock(LBL3, [[ExprAssign(r, CST2)]])
 
 for irb in [G6_IRB0, G6_IRB1, G6_IRB2, G6_IRB3]:
     G6_IRA.add_irblock(irb)
@@ -241,7 +241,7 @@ G6_EXP_IRA = IRA.new_ircfg()
 G6_EXP_IRB0 = gen_irblock(LBL0, [[]])
 G6_EXP_IRB1 = gen_irblock(LBL1, [[]])
 G6_EXP_IRB2 = gen_irblock(LBL2, [[]])
-G6_EXP_IRB3 = gen_irblock(LBL3, [[ExprAff(r, CST2)]])
+G6_EXP_IRB3 = gen_irblock(LBL3, [[ExprAssign(r, CST2)]])
 
 for irb in [G6_EXP_IRB0, G6_EXP_IRB1, G6_EXP_IRB2, G6_EXP_IRB3]:
     G6_EXP_IRA.add_irblock(irb)
@@ -250,10 +250,10 @@ for irb in [G6_EXP_IRB0, G6_EXP_IRB1, G6_EXP_IRB2, G6_EXP_IRB3]:
 
 G7_IRA = IRA.new_ircfg()
 
-G7_IRB0 = gen_irblock(LBL0, [[ExprAff(a, CST1)], [ExprAff(r, CST1)]])
-G7_IRB1 = gen_irblock(LBL1, [[ExprAff(a, a+CST1)]])
-G7_IRB2 = gen_irblock(LBL2, [[ExprAff(a, a+CST2)]])
-G7_IRB3 = gen_irblock(LBL3, [[ExprAff(a, r)]])
+G7_IRB0 = gen_irblock(LBL0, [[ExprAssign(a, CST1)], [ExprAssign(r, CST1)]])
+G7_IRB1 = gen_irblock(LBL1, [[ExprAssign(a, a+CST1)]])
+G7_IRB2 = gen_irblock(LBL2, [[ExprAssign(a, a+CST2)]])
+G7_IRB3 = gen_irblock(LBL3, [[ExprAssign(a, r)]])
 
 for irb in [G7_IRB0, G7_IRB1, G7_IRB2, G7_IRB3]:
     G7_IRA.add_irblock(irb)
@@ -268,7 +268,7 @@ G7_IRA.add_uniq_edge(G7_IRB0.loc_key, G7_IRB2.loc_key)
 # Expected output for graph 7
 G7_EXP_IRA = IRA.new_ircfg()
 
-G7_EXP_IRB0 = gen_irblock(LBL0, [[], [ExprAff(r, CST1)]])
+G7_EXP_IRB0 = gen_irblock(LBL0, [[], [ExprAssign(r, CST1)]])
 G7_EXP_IRB1 = gen_irblock(LBL1, [[]])
 G7_EXP_IRB2 = gen_irblock(LBL2, [[]])
 G7_EXP_IRB3 = gen_irblock(LBL3, [[]])
@@ -280,10 +280,10 @@ for irb in [G7_EXP_IRB0, G7_EXP_IRB1, G7_EXP_IRB2, G7_EXP_IRB3]:
 
 G8_IRA = IRA.new_ircfg()
 
-G8_IRB0 = gen_irblock(LBL0, [[ExprAff(a, CST1)], [ExprAff(b, CST1)]])
-G8_IRB1 = gen_irblock(LBL1, [[ExprAff(a, a+CST1)]])
-G8_IRB2 = gen_irblock(LBL2, [[ExprAff(b, b+CST2)]])
-G8_IRB3 = gen_irblock(LBL3, [[ExprAff(a, b)]])
+G8_IRB0 = gen_irblock(LBL0, [[ExprAssign(a, CST1)], [ExprAssign(b, CST1)]])
+G8_IRB1 = gen_irblock(LBL1, [[ExprAssign(a, a+CST1)]])
+G8_IRB2 = gen_irblock(LBL2, [[ExprAssign(b, b+CST2)]])
+G8_IRB3 = gen_irblock(LBL3, [[ExprAssign(a, b)]])
 
 
 for irb in [G8_IRB0, G8_IRB1, G8_IRB2, G8_IRB3]:
@@ -312,11 +312,11 @@ for irb in [G8_EXP_IRB0, G8_EXP_IRB1, G8_EXP_IRB2, G8_EXP_IRB3]:
 
 G9_IRA = IRA.new_ircfg()
 
-G9_IRB0 = gen_irblock(LBL0, [[ExprAff(a, CST1)], [ExprAff(b, CST1)]])
-G9_IRB1 = gen_irblock(LBL1, [[ExprAff(a, a+CST1)], [ExprAff(b, b+CST1)]])
-G9_IRB2 = gen_irblock(LBL2, [[ExprAff(a, a+CST2)], [ExprAff(b, b+CST2)]])
-G9_IRB3 = gen_irblock(LBL3, [[ExprAff(a, b)]])
-G9_IRB4 = gen_irblock(LBL4, [[ExprAff(r, a)], [ExprAff(r, b)]])
+G9_IRB0 = gen_irblock(LBL0, [[ExprAssign(a, CST1)], [ExprAssign(b, CST1)]])
+G9_IRB1 = gen_irblock(LBL1, [[ExprAssign(a, a+CST1)], [ExprAssign(b, b+CST1)]])
+G9_IRB2 = gen_irblock(LBL2, [[ExprAssign(a, a+CST2)], [ExprAssign(b, b+CST2)]])
+G9_IRB3 = gen_irblock(LBL3, [[ExprAssign(a, b)]])
+G9_IRB4 = gen_irblock(LBL4, [[ExprAssign(r, a)], [ExprAssign(r, b)]])
 
 for irb in [G9_IRB0, G9_IRB1, G9_IRB2, G9_IRB3, G9_IRB4]:
     G9_IRA.add_irblock(irb)
@@ -335,11 +335,11 @@ G9_IRA.add_uniq_edge(G9_IRB3.loc_key, G9_IRB4.loc_key)
 
 G9_EXP_IRA = IRA.new_ircfg()
 
-G9_EXP_IRB0 = gen_irblock(LBL0, [[], [ExprAff(b, CST1)]])
-G9_EXP_IRB1 = gen_irblock(LBL1, [[], [ExprAff(b, b+CST1)]])
-G9_EXP_IRB2 = gen_irblock(LBL2, [[], [ExprAff(b, b+CST2)]])
+G9_EXP_IRB0 = gen_irblock(LBL0, [[], [ExprAssign(b, CST1)]])
+G9_EXP_IRB1 = gen_irblock(LBL1, [[], [ExprAssign(b, b+CST1)]])
+G9_EXP_IRB2 = gen_irblock(LBL2, [[], [ExprAssign(b, b+CST2)]])
 G9_EXP_IRB3 = gen_irblock(LBL3, [[]])
-G9_EXP_IRB4 = gen_irblock(LBL4, [[], [ExprAff(r, b)]])
+G9_EXP_IRB4 = gen_irblock(LBL4, [[], [ExprAssign(r, b)]])
 
 for irb in [G9_EXP_IRB0, G9_EXP_IRB1, G9_EXP_IRB2, G9_EXP_IRB3, G9_EXP_IRB4]:
     G9_EXP_IRA.add_irblock(irb)
@@ -349,10 +349,10 @@ for irb in [G9_EXP_IRB0, G9_EXP_IRB1, G9_EXP_IRB2, G9_EXP_IRB3, G9_EXP_IRB4]:
 
 G10_IRA = IRA.new_ircfg()
 
-G10_IRB0 = gen_irblock(LBL0, [[ExprAff(a, CST1)]])
-G10_IRB1 = gen_irblock(LBL1, [[ExprAff(b, a)]])
-G10_IRB2 = gen_irblock(LBL2, [[ExprAff(a, b)]])
-G10_IRB3 = gen_irblock(LBL3, [[ExprAff(r, CST1)]])
+G10_IRB0 = gen_irblock(LBL0, [[ExprAssign(a, CST1)]])
+G10_IRB1 = gen_irblock(LBL1, [[ExprAssign(b, a)]])
+G10_IRB2 = gen_irblock(LBL2, [[ExprAssign(a, b)]])
+G10_IRB3 = gen_irblock(LBL3, [[ExprAssign(r, CST1)]])
 
 for irb in [G10_IRB0, G10_IRB1, G10_IRB2, G10_IRB3]:
     G10_IRA.add_irblock(irb)
@@ -369,7 +369,7 @@ G10_EXP_IRA = IRA.new_ircfg()
 G10_EXP_IRB0 = gen_irblock(LBL0, [[]])
 G10_EXP_IRB1 = gen_irblock(LBL1, [[]])
 G10_EXP_IRB2 = gen_irblock(LBL2, [[]])
-G10_EXP_IRB3 = gen_irblock(LBL3, [[ExprAff(r, CST1)]])
+G10_EXP_IRB3 = gen_irblock(LBL3, [[ExprAssign(r, CST1)]])
 
 for irb in [G10_EXP_IRB0, G10_EXP_IRB1, G10_EXP_IRB2, G10_EXP_IRB3]:
     G10_EXP_IRA.add_irblock(irb)
@@ -378,11 +378,11 @@ for irb in [G10_EXP_IRB0, G10_EXP_IRB1, G10_EXP_IRB2, G10_EXP_IRB3]:
 
 G11_IRA = IRA.new_ircfg()
 
-G11_IRB0 = gen_irblock(LBL0, [[ExprAff(a, b)]])
-G11_IRB1 = gen_irblock(LBL1, [[ExprAff(b, a)]])
-G11_IRB2 = gen_irblock(LBL2, [[ExprAff(r, a)]])
-G11_IRB3 = gen_irblock(LBL3, [[ExprAff(a, a+CST1)]])
-G11_IRB4 = gen_irblock(LBL4, [[ExprAff(b, b+CST1)]])
+G11_IRB0 = gen_irblock(LBL0, [[ExprAssign(a, b)]])
+G11_IRB1 = gen_irblock(LBL1, [[ExprAssign(b, a)]])
+G11_IRB2 = gen_irblock(LBL2, [[ExprAssign(r, a)]])
+G11_IRB3 = gen_irblock(LBL3, [[ExprAssign(a, a+CST1)]])
+G11_IRB4 = gen_irblock(LBL4, [[ExprAssign(b, b+CST1)]])
 
 
 for irb in [G11_IRB0, G11_IRB1, G11_IRB2]:
@@ -398,11 +398,11 @@ G11_IRA.add_uniq_edge(G11_IRB1.loc_key, G11_IRB2.loc_key)
 # Expected output for graph 11
 G11_EXP_IRA = IRA.new_ircfg()
 
-G11_EXP_IRB0 = gen_irblock(LBL0, [[ExprAff(a, b)]])
-G11_EXP_IRB1 = gen_irblock(LBL1, [[ExprAff(b, a)]])
-G11_EXP_IRB2 = gen_irblock(LBL2, [[ExprAff(r, a)]])
-#G11_EXP_IRB3 = gen_irblock(LBL3, [[ExprAff(a, a+CST1)]])
-#G11_EXP_IRB4 = gen_irblock(LBL4, [[ExprAff(b, b+CST1)]])
+G11_EXP_IRB0 = gen_irblock(LBL0, [[ExprAssign(a, b)]])
+G11_EXP_IRB1 = gen_irblock(LBL1, [[ExprAssign(b, a)]])
+G11_EXP_IRB2 = gen_irblock(LBL2, [[ExprAssign(r, a)]])
+#G11_EXP_IRB3 = gen_irblock(LBL3, [[ExprAssign(a, a+CST1)]])
+#G11_EXP_IRB4 = gen_irblock(LBL4, [[ExprAssign(b, b+CST1)]])
 
 for irb in [G11_EXP_IRB0, G11_EXP_IRB1,
             G11_EXP_IRB2]:
@@ -413,12 +413,12 @@ for irb in [G11_EXP_IRB0, G11_EXP_IRB1,
 
 G12_IRA = IRA.new_ircfg()
 
-G12_IRB0 = gen_irblock(LBL0, [[ExprAff(r, CST1)], [ExprAff(a, CST2)]])
-G12_IRB1 = gen_irblock(LBL1, [[ExprAff(r, CST2)]])
-G12_IRB2 = gen_irblock(LBL2, [[ExprAff(r, a)], [ExprAff(b, CST3)]])
-G12_IRB3 = gen_irblock(LBL3, [[ExprAff(r, CST3)]])
-G12_IRB4 = gen_irblock(LBL4, [[ExprAff(r, CST2)]])
-G12_IRB5 = gen_irblock(LBL5, [[ExprAff(r, b)]])
+G12_IRB0 = gen_irblock(LBL0, [[ExprAssign(r, CST1)], [ExprAssign(a, CST2)]])
+G12_IRB1 = gen_irblock(LBL1, [[ExprAssign(r, CST2)]])
+G12_IRB2 = gen_irblock(LBL2, [[ExprAssign(r, a)], [ExprAssign(b, CST3)]])
+G12_IRB3 = gen_irblock(LBL3, [[ExprAssign(r, CST3)]])
+G12_IRB4 = gen_irblock(LBL4, [[ExprAssign(r, CST2)]])
+G12_IRB5 = gen_irblock(LBL5, [[ExprAssign(r, b)]])
 
 for irb in [G12_IRB0, G12_IRB1, G12_IRB2, G12_IRB3, G12_IRB4, G12_IRB5]:
     G12_IRA.add_irblock(irb)
@@ -433,11 +433,11 @@ G12_IRA.add_uniq_edge(G12_IRB4.loc_key, G12_IRB5.loc_key)
 G12_EXP_IRA = IRA.new_ircfg()
 
 G12_EXP_IRB0 = gen_irblock(LBL0, [[], []])
-G12_EXP_IRB1 = gen_irblock(LBL1, [[ExprAff(r, CST2)]])
-G12_EXP_IRB2 = gen_irblock(LBL2, [[], [ExprAff(b, CST3)]])
-G12_EXP_IRB3 = gen_irblock(LBL3, [[ExprAff(r, CST3)]])
+G12_EXP_IRB1 = gen_irblock(LBL1, [[ExprAssign(r, CST2)]])
+G12_EXP_IRB2 = gen_irblock(LBL2, [[], [ExprAssign(b, CST3)]])
+G12_EXP_IRB3 = gen_irblock(LBL3, [[ExprAssign(r, CST3)]])
 G12_EXP_IRB4 = gen_irblock(LBL4, [[]])
-G12_EXP_IRB5 = gen_irblock(LBL5, [[ExprAff(r, b)]])
+G12_EXP_IRB5 = gen_irblock(LBL5, [[ExprAssign(r, b)]])
 
 
 for irb in [G12_EXP_IRB0, G12_EXP_IRB1,
@@ -449,12 +449,12 @@ for irb in [G12_EXP_IRB0, G12_EXP_IRB1,
 
 G13_IRA = IRA.new_ircfg()
 
-G13_IRB0 = gen_irblock(LBL0, [[ExprAff(a, CST1)], [ExprAff(b, CST2)]])
-G13_IRB1 = gen_irblock(LBL1, [[ExprAff(r, b)]])
-G13_IRB2 = gen_irblock(LBL2, [[ExprAff(d, CST2)], [ExprAff(a, b+CST1),
-                                                   ExprAff(c, a+b)]])
+G13_IRB0 = gen_irblock(LBL0, [[ExprAssign(a, CST1)], [ExprAssign(b, CST2)]])
+G13_IRB1 = gen_irblock(LBL1, [[ExprAssign(r, b)]])
+G13_IRB2 = gen_irblock(LBL2, [[ExprAssign(d, CST2)], [ExprAssign(a, b+CST1),
+                                                   ExprAssign(c, a+b)]])
 G13_IRB3 = gen_irblock(LBL3, [[]]) # lost son
-G13_IRB4 = gen_irblock(LBL4, [[ExprAff(b, CST2)]])
+G13_IRB4 = gen_irblock(LBL4, [[ExprAssign(b, CST2)]])
 
 for irb in [G13_IRB0, G13_IRB1, G13_IRB2, G13_IRB4]:
     G13_IRA.add_irblock(irb)
@@ -467,12 +467,12 @@ G13_IRA.add_uniq_edge(G13_IRB4.loc_key, G13_IRB2.loc_key)
 # Expected output for graph 13
 G13_EXP_IRA = IRA.new_ircfg()
 
-G13_EXP_IRB0 = gen_irblock(LBL0, [[ExprAff(a, CST1)], [ExprAff(b, CST2)]])
-G13_EXP_IRB1 = gen_irblock(LBL1, [[ExprAff(r, b)]])
-G13_EXP_IRB2 = gen_irblock(LBL2, [[ExprAff(d, CST2)], [ExprAff(a, b+CST1),
-                                                       ExprAff(c, a+b)]])
+G13_EXP_IRB0 = gen_irblock(LBL0, [[ExprAssign(a, CST1)], [ExprAssign(b, CST2)]])
+G13_EXP_IRB1 = gen_irblock(LBL1, [[ExprAssign(r, b)]])
+G13_EXP_IRB2 = gen_irblock(LBL2, [[ExprAssign(d, CST2)], [ExprAssign(a, b+CST1),
+                                                       ExprAssign(c, a+b)]])
 G13_EXP_IRB3 = gen_irblock(LBL3, [[]])
-G13_EXP_IRB4 = gen_irblock(LBL4, [[ExprAff(b, CST2)]])
+G13_EXP_IRB4 = gen_irblock(LBL4, [[ExprAssign(b, CST2)]])
 
 for irb in [G13_EXP_IRB0, G13_EXP_IRB1, G13_EXP_IRB2, G13_EXP_IRB4]:
     G13_EXP_IRA.add_irblock(irb)
@@ -484,9 +484,9 @@ for irb in [G13_EXP_IRB0, G13_EXP_IRB1, G13_EXP_IRB2, G13_EXP_IRB4]:
 
 G14_IRA = IRA.new_ircfg()
 
-G14_IRB0 = gen_irblock(LBL0, [[ExprAff(a, CST1)], [ExprAff(c, a)],
-                              [ExprAff(a, CST2)]])
-G14_IRB1 = gen_irblock(LBL1, [[ExprAff(r, a+c)]])
+G14_IRB0 = gen_irblock(LBL0, [[ExprAssign(a, CST1)], [ExprAssign(c, a)],
+                              [ExprAssign(a, CST2)]])
+G14_IRB1 = gen_irblock(LBL1, [[ExprAssign(r, a+c)]])
 
 for irb in [G14_IRB0, G14_IRB1]:
     G14_IRA.add_irblock(irb)
@@ -496,9 +496,9 @@ G14_IRA.add_uniq_edge(G14_IRB0.loc_key, G14_IRB1.loc_key)
 # Expected output for graph 1
 G14_EXP_IRA = IRA.new_ircfg()
 
-G14_EXP_IRB0 = gen_irblock(LBL0, [[ExprAff(a, CST1)], [ExprAff(c, a)],
-                                  [ExprAff(a, CST2)]])
-G14_EXP_IRB1 = gen_irblock(LBL1, [[ExprAff(r, a+c)]])
+G14_EXP_IRB0 = gen_irblock(LBL0, [[ExprAssign(a, CST1)], [ExprAssign(c, a)],
+                                  [ExprAssign(a, CST2)]])
+G14_EXP_IRB1 = gen_irblock(LBL1, [[ExprAssign(r, a+c)]])
 
 for irb in [G14_EXP_IRB0, G14_EXP_IRB1]:
     G14_EXP_IRA.add_irblock(irb)
@@ -508,10 +508,10 @@ for irb in [G14_EXP_IRB0, G14_EXP_IRB1]:
 
 G15_IRA = IRA.new_ircfg()
 
-G15_IRB0 = gen_irblock(LBL0, [[ExprAff(a, CST2)], [ExprAff(a, CST1),
-                                                   ExprAff(b, a+CST2),
-                                                   ExprAff(c, CST1)]])
-G15_IRB1 = gen_irblock(LBL1, [[ExprAff(r, a)]])
+G15_IRB0 = gen_irblock(LBL0, [[ExprAssign(a, CST2)], [ExprAssign(a, CST1),
+                                                   ExprAssign(b, a+CST2),
+                                                   ExprAssign(c, CST1)]])
+G15_IRB1 = gen_irblock(LBL1, [[ExprAssign(r, a)]])
 
 for irb in [G15_IRB0, G15_IRB1]:
     G15_IRA.add_irblock(irb)
@@ -521,8 +521,8 @@ G15_IRA.add_uniq_edge(G15_IRB0.loc_key, G15_IRB1.loc_key)
 # Expected output for graph 1
 G15_EXP_IRA = IRA.new_ircfg()
 
-G15_EXP_IRB0 = gen_irblock(LBL0, [[], [ExprAff(a, CST1)]])
-G15_EXP_IRB1 = gen_irblock(LBL1, [[ExprAff(r, a)]])
+G15_EXP_IRB0 = gen_irblock(LBL0, [[], [ExprAssign(a, CST1)]])
+G15_EXP_IRB1 = gen_irblock(LBL1, [[ExprAssign(r, a)]])
 
 for irb in [G15_EXP_IRB0, G15_EXP_IRB1]:
     G15_EXP_IRA.add_irblock(irb)
@@ -531,10 +531,10 @@ for irb in [G15_EXP_IRB0, G15_EXP_IRB1]:
 
 G16_IRA = IRA.new_ircfg()
 
-G16_IRB0 = gen_irblock(LBL0, [[ExprAff(a, CST1), ExprAff(b, CST2),
-                               ExprAff(c, CST3)], [ExprAff(a, c+CST1),
-                                                   ExprAff(b, c+CST2)]])
-G16_IRB1 = gen_irblock(LBL1, [[ExprAff(r, a+b)], [ExprAff(r, c+r)]])
+G16_IRB0 = gen_irblock(LBL0, [[ExprAssign(a, CST1), ExprAssign(b, CST2),
+                               ExprAssign(c, CST3)], [ExprAssign(a, c+CST1),
+                                                   ExprAssign(b, c+CST2)]])
+G16_IRB1 = gen_irblock(LBL1, [[ExprAssign(r, a+b)], [ExprAssign(r, c+r)]])
 G16_IRB2 = gen_irblock(LBL2, [[]])
 
 for irb in [G16_IRB0, G16_IRB1]:
@@ -549,9 +549,9 @@ for irb in [G16_IRB0, G16_IRB1]:
 # Expected output for graph 1
 G16_EXP_IRA = IRA.new_ircfg()
 
-G16_EXP_IRB0 = gen_irblock(LBL0, [[ExprAff(c, CST3)], [ExprAff(a, c + CST1),
-                                                       ExprAff(b, c + CST2)]])
-G16_EXP_IRB1 = gen_irblock(LBL1, [[ExprAff(r, a+b)], [ExprAff(r, c+r)]])
+G16_EXP_IRB0 = gen_irblock(LBL0, [[ExprAssign(c, CST3)], [ExprAssign(a, c + CST1),
+                                                       ExprAssign(b, c + CST2)]])
+G16_EXP_IRB1 = gen_irblock(LBL1, [[ExprAssign(r, a+b)], [ExprAssign(r, c+r)]])
 
 for irb in [G16_EXP_IRB0, G16_EXP_IRB1]:
     G16_EXP_IRA.add_irblock(irb)
@@ -560,57 +560,57 @@ for irb in [G16_EXP_IRB0, G16_EXP_IRB1]:
 
 G17_IRA = IRA.new_ircfg()
 
-G17_IRB0 = gen_irblock(LBL0, [[ExprAff(a, a*b),
-                               ExprAff(b, c),
-                               ExprAff(c, CST1)],
+G17_IRB0 = gen_irblock(LBL0, [[ExprAssign(a, a*b),
+                               ExprAssign(b, c),
+                               ExprAssign(c, CST1)],
 
-                              [ExprAff(d, d+ CST2)],
+                              [ExprAssign(d, d+ CST2)],
 
-                              [ExprAff(a, CST1),
-                               ExprAff(b, a),
-                               ExprAff(c, b)],
+                              [ExprAssign(a, CST1),
+                               ExprAssign(b, a),
+                               ExprAssign(c, b)],
 
-                              [ExprAff(ExprMem(d+CST1, 32), a),
-                               ExprAff(a, b),
-                               ExprAff(b, c),
-                               ExprAff(c, CST1)],
+                              [ExprAssign(ExprMem(d+CST1, 32), a),
+                               ExprAssign(a, b),
+                               ExprAssign(b, c),
+                               ExprAssign(c, CST1)],
 
-                              [ExprAff(a, CST1),
-                               ExprAff(b, a),
-                               ExprAff(c, b)],
+                              [ExprAssign(a, CST1),
+                               ExprAssign(b, a),
+                               ExprAssign(c, b)],
 
-                              [ExprAff(ExprMem(d+CST2, 32), a),
-                               ExprAff(a, b),
-                               ExprAff(b, c),
-                               ExprAff(c, CST1)],
+                              [ExprAssign(ExprMem(d+CST2, 32), a),
+                               ExprAssign(a, b),
+                               ExprAssign(b, c),
+                               ExprAssign(c, CST1)],
 
 
-                              [ExprAff(a, CST2),
-                               ExprAff(b, a),
-                               ExprAff(c, b)],
+                              [ExprAssign(a, CST2),
+                               ExprAssign(b, a),
+                               ExprAssign(c, b)],
 
-                              [ExprAff(a, a+CST1)],
+                              [ExprAssign(a, a+CST1)],
 
-                              [ExprAff(d, a),
-                               ExprAff(a, d)],
+                              [ExprAssign(d, a),
+                               ExprAssign(a, d)],
 
-                              [ExprAff(d, d+CST1)],
+                              [ExprAssign(d, d+CST1)],
 
-                              [ExprAff(a, CST2),
-                               ExprAff(b, a),
-                               ExprAff(c, b)],
+                              [ExprAssign(a, CST2),
+                               ExprAssign(b, a),
+                               ExprAssign(c, b)],
 
-                              [ExprAff(a, a+CST2)],
+                              [ExprAssign(a, a+CST2)],
 
-                              [ExprAff(a, CST2),
-                               ExprAff(b, a),
-                               ExprAff(c, b)],
+                              [ExprAssign(a, CST2),
+                               ExprAssign(b, a),
+                               ExprAssign(c, b)],
 
-                              [ExprAff(a, CST1),
-                               ExprAff(b, a),
-                               ExprAff(c, b)],
+                              [ExprAssign(a, CST1),
+                               ExprAssign(b, a),
+                               ExprAssign(c, b)],
 
-                              [ExprAff(ExprMem(d, 32), a+b+c)],
+                              [ExprAssign(ExprMem(d, 32), a+b+c)],
 
                          ])
 
@@ -624,34 +624,34 @@ G17_EXP_IRA = IRA.new_ircfg()
 
 G17_EXP_IRB0 = gen_irblock(LBL0, [[],
 
-                                  [ExprAff(d, d+ CST2)],
+                                  [ExprAssign(d, d+ CST2)],
 
-                                  [ExprAff(a, CST1)],
+                                  [ExprAssign(a, CST1)],
 
-                                  [ExprAff(ExprMem(d+CST1, 32), a)],
+                                  [ExprAssign(ExprMem(d+CST1, 32), a)],
 
-                                  [ExprAff(a, CST1)],
+                                  [ExprAssign(a, CST1)],
 
-                                  [ExprAff(ExprMem(d+CST2, 32), a)],
+                                  [ExprAssign(ExprMem(d+CST2, 32), a)],
 
-                                  [ExprAff(a, CST2)],
+                                  [ExprAssign(a, CST2)],
 
-                                  [ExprAff(a, a+CST1)],
+                                  [ExprAssign(a, a+CST1)],
 
-                                  [ExprAff(d, a)],
+                                  [ExprAssign(d, a)],
 
-                                  [ExprAff(d, d+CST1)],
+                                  [ExprAssign(d, d+CST1)],
 
-                                  [ExprAff(a, CST2)],
+                                  [ExprAssign(a, CST2)],
 
-                                  [ExprAff(a, a+CST2)],
+                                  [ExprAssign(a, a+CST2)],
 
-                                  [ExprAff(a, CST2),
-                                   ExprAff(b, a)],
+                                  [ExprAssign(a, CST2),
+                                   ExprAssign(b, a)],
 
-                                  [ExprAff(a, CST1),
-                                   ExprAff(b, a),
-                                   ExprAff(c, b)],
+                                  [ExprAssign(a, CST1),
+                                   ExprAssign(b, a),
+                                   ExprAssign(c, b)],
 
                                   G17_IRB0[14]
                                   # Trick because a+b+c != ((a+b)+c)

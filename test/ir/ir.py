@@ -8,11 +8,11 @@ int0 = ExprInt(0, id_a.size)
 
 # Test AssignBlock
 ## Constructors
-assignblk1 = AssignBlock([ExprAff(id_a, id_b)])
+assignblk1 = AssignBlock([ExprAssign(id_a, id_b)])
 assignblk2 = AssignBlock({id_a: id_b})
 
 ## Equality
-assignblk1_bis = AssignBlock([ExprAff(id_a, id_b)])
+assignblk1_bis = AssignBlock([ExprAssign(id_a, id_b)])
 assert assignblk1 == assignblk1_bis
 assert assignblk1 == assignblk2
 

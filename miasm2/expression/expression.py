@@ -20,7 +20,7 @@
 #  - ExprInt
 #  - ExprId
 #  - ExprLoc
-#  - ExprAff
+#  - ExprAssign
 #  - ExprCond
 #  - ExprMem
 #  - ExprOp
@@ -50,7 +50,7 @@ TOK_POS_STRICT = "Spos"
 EXPRINT = 1
 EXPRID = 2
 EXPRLOC = 3
-EXPRAFF = 4
+EXPRASSIGN = 4
 EXPRCOND = 5
 EXPRMEM = 6
 EXPROP = 7
@@ -675,9 +675,9 @@ class ExprLoc(Expr):
         return True
 
 
-class ExprAff(Expr):
+class ExprAssign(Expr):
 
-    """An ExprAff represent an affection from an Expression to another one.
+    """An ExprAssign represent an affection from an Expression to another one.
 
     Some use cases:
      - var1 <- 2
@@ -686,7 +686,7 @@ class ExprAff(Expr):
     __slots__ = Expr.__slots__ + ["_dst", "_src"]
 
     def __init__(self, dst, src):
-        """Create an ExprAff for dst <- src
+        """Create an ExprAssign for dst <- src
         @dst: Expr, affectation destination
         @src: Expr, affectation source
         """
@@ -696,10 +696,10 @@ class ExprAff(Expr):
 
         if dst.size != src.size:
             raise ValueError(
-                "sanitycheck: ExprAff args must have same size! %s" %
+                "sanitycheck: ExprAssign args must have same size! %s" %
                 ([(str(arg), arg.size) for arg in [dst, src]]))
 
-        super(ExprAff, self).__init__(self.dst.size)
+        super(ExprAssign, self).__init__(self.dst.size)
 
     dst = property(lambda self: self._dst)
     src = property(lambda self: self._src)
@@ -743,7 +743,7 @@ class ExprAff(Expr):
             return self._dst.get_w()
 
     def _exprhash(self):
-        return hash((EXPRAFF, hash(self._dst), hash(self._src)))
+        return hash((EXPRASSIGN, hash(self._dst), hash(self._src)))
 
     def _exprrepr(self):
         return "%s(%r, %r)" % (self.__class__.__name__, self._dst, self._src)
@@ -759,10 +759,10 @@ class ExprAff(Expr):
         if dst == self._dst and src == self._src:
             return self
         else:
-            return ExprAff(dst, src)
+            return ExprAssign(dst, src)
 
     def copy(self):
-        return ExprAff(self._dst.copy(), self._src.copy())
+        return ExprAssign(self._dst.copy(), self._src.copy())
 
     def depth(self):
         return max(self._src.depth(), self._dst.depth()) + 1
@@ -775,6 +775,17 @@ class ExprAff(Expr):
 
     def is_aff(self):
         return True
+
+
+class ExprAff(ExprAssign):
+    """
+    DEPRECATED class.
+    Use ExprAssign instead of ExprAff
+    """
+
+    def __init__(self, dst, src):
+        warnings.warn('DEPRECATION WARNING: use ExprAssign instead of ExprAff')
+        super(ExprAff, self).__init__(dst, src)
 
 
 class ExprCond(Expr):
@@ -1402,9 +1413,9 @@ def compare_exprs(expr1, expr2):
         if ret:
             return ret
         return cmp(expr1.size, expr2.size)
-    elif cls1 == ExprAff:
+    elif cls1 == ExprAssign:
         raise NotImplementedError(
-            "Comparaison from an ExprAff not yet implemented")
+            "Comparaison from an ExprAssign not yet implemented")
     elif cls2 == ExprCond:
         ret = compare_exprs(expr1.cond, expr2.cond)
         if ret:

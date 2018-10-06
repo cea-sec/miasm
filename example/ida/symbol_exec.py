@@ -3,7 +3,7 @@ import operator
 import idaapi
 import idc
 from miasm2.expression.expression_helper import Variables_Identifier
-from miasm2.expression.expression import ExprAff
+from miasm2.expression.expression import ExprAssign
 
 from utils import expr2colorstr, translatorForm
 
@@ -64,7 +64,7 @@ class symbolicexec_t(idaapi.simplecustviewer_t):
 
     def translate_expr(self, line_nb):
         element = self.line2eq[line_nb]
-        expr = ExprAff(*element)
+        expr = ExprAssign(*element)
         form = translatorForm(expr)
         form.Compile()
         form.Execute()

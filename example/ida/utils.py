@@ -145,7 +145,7 @@ class TranslatorIDA(Translator):
                     for arg in expr._args
                 ) + ')')
 
-    def from_ExprAff(self, expr):
+    def from_ExprAssign(self, expr):
         return "%s = %s" % tuple(map(expr.from_expr, (expr.dst, expr.src)))
 
 

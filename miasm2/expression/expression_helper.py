@@ -515,7 +515,7 @@ class CondConstraintZero(CondConstraint):
     operator = m2_expr.TOK_EQUAL
 
     def to_constraint(self):
-        return m2_expr.ExprAff(self.expr, m2_expr.ExprInt(0, self.expr.size))
+        return m2_expr.ExprAssign(self.expr, m2_expr.ExprInt(0, self.expr.size))
 
 
 class CondConstraintNotZero(CondConstraint):
@@ -525,7 +525,7 @@ class CondConstraintNotZero(CondConstraint):
 
     def to_constraint(self):
         cst1, cst2 = m2_expr.ExprInt(0, 1), m2_expr.ExprInt(1, 1)
-        return m2_expr.ExprAff(cst1, m2_expr.ExprCond(self.expr, cst1, cst2))
+        return m2_expr.ExprAssign(cst1, m2_expr.ExprCond(self.expr, cst1, cst2))
 
 
 ConstrainedValue = collections.namedtuple("ConstrainedValue",
@@ -568,7 +568,7 @@ def possible_values(expr):
                                          m2_expr.ExprMem(consval.value,
                                                          expr.size))
                         for consval in possible_values(expr.arg))
-    elif isinstance(expr, m2_expr.ExprAff):
+    elif isinstance(expr, m2_expr.ExprAssign):
         consvals.update(possible_values(expr.src))
     # Special case: constraint insertion
     elif isinstance(expr, m2_expr.ExprCond):

@@ -58,7 +58,7 @@ class AssignBlock(object):
 
     def __init__(self, irs=None, instr=None):
         """Create a new AssignBlock
-        @irs: (optional) sequence of ExprAff, or dictionnary dst (Expr) -> src
+        @irs: (optional) sequence of ExprAssign, or dictionnary dst (Expr) -> src
               (Expr)
         @instr: (optional) associate an instruction with this AssignBlock
 
@@ -66,7 +66,7 @@ class AssignBlock(object):
         if irs is None:
             irs = []
         self._instr = instr
-        self._assigns = {} # ExprAff.dst -> ExprAff.src
+        self._assigns = {} # ExprAssign.dst -> ExprAssign.src
 
         # Concurrent assignments are handled in _set
         if hasattr(irs, "iteritems"):
@@ -250,10 +250,10 @@ class AssignBlock(object):
             out.append("%s = %s" % (dst, src))
         return "\n".join(out)
 
-    def dst2ExprAff(self, dst):
-        """Return an ExprAff corresponding to @dst equation
+    def dst2ExprAssign(self, dst):
+        """Return an ExprAssign corresponding to @dst equation
         @dst: Expr instance"""
-        return m2_expr.ExprAff(dst, self[dst])
+        return m2_expr.ExprAssign(dst, self[dst])
 
     def simplify(self, simplifier):
         """

@@ -333,7 +333,7 @@ def ins(ir, instr, a, b, c, d):
     if pos + l != 32:
         my_slices.append((a[pos+l:], pos+l, 32))
     r = m2_expr.ExprCompose(my_slices)
-    e.append(m2_expr.ExprAff(a, r))
+    e.append(m2_expr.ExprAssign(a, r))
     return e, []
 
 
@@ -433,16 +433,16 @@ def teq(ir, instr, arg1, arg2):
     loc_next_expr = m2_expr.ExprLoc(loc_next, ir.IRDst.size)
 
     do_except = []
-    do_except.append(m2_expr.ExprAff(exception_flags, m2_expr.ExprInt(
+    do_except.append(m2_expr.ExprAssign(exception_flags, m2_expr.ExprInt(
         EXCEPT_DIV_BY_ZERO, exception_flags.size)))
-    do_except.append(m2_expr.ExprAff(ir.IRDst, loc_next_expr))
+    do_except.append(m2_expr.ExprAssign(ir.IRDst, loc_next_expr))
     blk_except = IRBlock(loc_except.index, [AssignBlock(do_except, instr)])
 
     cond = arg1 - arg2
 
 
     e = []
-    e.append(m2_expr.ExprAff(ir.IRDst,
+    e.append(m2_expr.ExprAssign(ir.IRDst,
                              m2_expr.ExprCond(cond, loc_next_expr, loc_except_expr)))
 
     return e, [blk_except]
@@ -498,7 +498,7 @@ class ir_mips32l(IntermediateRepresentation):
             ZERO: m2_expr.ExprInt(0, 32)
         }
 
-        instr_ir = [m2_expr.ExprAff(expr.dst, expr.src.replace_expr(fixed_regs))
+        instr_ir = [m2_expr.ExprAssign(expr.dst, expr.src.replace_expr(fixed_regs))
                     for expr in instr_ir]
 
         new_extra_ir = [irblock.modify_exprs(mod_src=lambda expr: expr.replace_expr(fixed_regs))
