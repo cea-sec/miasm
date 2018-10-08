@@ -885,6 +885,8 @@ def simp_cond_flag(expr_simp, expr):
 
 
 def simp_cond_int(expr_simp, expr):
+    # ({X, 0} == int) => X == int[:]
+    # X + int1 == int2 => X == int2-int1
     if (expr.cond.is_op(TOK_EQUAL) and
           expr.cond.args[1].is_int() and
           expr.cond.args[0].is_compose() and
@@ -903,15 +905,15 @@ def simp_cond_int(expr_simp, expr):
     elif (expr.cond.is_op() and
           expr.cond.op in [
               TOK_EQUAL,
-              TOK_INF_SIGNED,
-              TOK_INF_EQUAL_SIGNED,
-              TOK_INF_UNSIGNED,
-              TOK_INF_EQUAL_UNSIGNED
           ] and
           expr.cond.args[1].is_int() and
           expr.cond.args[0].is_op("+") and
           expr.cond.args[0].args[-1].is_int()):
         # X + int1 == int2 => X == int2-int1
+        # WARNING:
+        # X - 0x10 <=u 0x20 gives X in [0x10 0x30]
+        # which is not equivalet to A <=u 0x10
+
         left, right = expr.cond.args
         left, int_diff = left.args[:-1], left.args[-1]
         if len(left) == 1:
