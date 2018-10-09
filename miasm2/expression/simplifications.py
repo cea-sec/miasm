@@ -46,6 +46,7 @@ class ExpressionSimplifier(object):
             simplifications_common.simp_double_signext,
             simplifications_common.simp_zeroext_eq_cst,
 
+            simplifications_common.simp_cmp_int,
             simplifications_common.simp_cmp_int_int,
             simplifications_common.simp_ext_cst,
 
@@ -60,7 +61,6 @@ class ExpressionSimplifier(object):
             simplifications_common.simp_cond,
             # CC op
             simplifications_common.simp_cond_flag,
-            simplifications_common.simp_cond_int,
             simplifications_common.simp_cmp_int_arg,
 
             simplifications_common.simp_cond_eq_zero,
