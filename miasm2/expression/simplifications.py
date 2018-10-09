@@ -46,9 +46,15 @@ class ExpressionSimplifier(object):
             simplifications_common.simp_double_signext,
             simplifications_common.simp_zeroext_eq_cst,
 
+            simplifications_common.simp_cmp_int_int,
+            simplifications_common.simp_ext_cst,
+
         ],
 
-        m2_expr.ExprSlice: [simplifications_common.simp_slice],
+        m2_expr.ExprSlice: [
+            simplifications_common.simp_slice,
+            simplifications_common.simp_slice_of_ext,
+        ],
         m2_expr.ExprCompose: [simplifications_common.simp_compose],
         m2_expr.ExprCond: [
             simplifications_common.simp_cond,
@@ -68,14 +74,18 @@ class ExpressionSimplifier(object):
     PASS_HEAVY = {}
 
     # Cond passes
-    PASS_COND = {m2_expr.ExprSlice: [simplifications_cond.expr_simp_inf_signed,
-                                     simplifications_cond.expr_simp_inf_unsigned_inversed],
-                 m2_expr.ExprOp: [simplifications_cond.exec_inf_unsigned,
-                                  simplifications_cond.exec_inf_signed,
-                                  simplifications_cond.expr_simp_inverse,
-                                  simplifications_cond.exec_equal],
-                 m2_expr.ExprCond: [simplifications_cond.expr_simp_equal]
-                 }
+    PASS_COND = {
+        m2_expr.ExprSlice: [
+            simplifications_cond.expr_simp_inf_signed,
+            simplifications_cond.expr_simp_inf_unsigned_inversed
+        ],
+        m2_expr.ExprOp: [
+            simplifications_cond.expr_simp_inverse,
+        ],
+        m2_expr.ExprCond: [
+            simplifications_cond.expr_simp_equal
+        ]
+    }
 
 
     # Available passes lists are:
