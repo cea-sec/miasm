@@ -1060,3 +1060,73 @@ def simp_cond_eq_zero(expr_s, expr):
         return expr
     new_expr = ExprCond(arg1, expr.src2, expr.src1)
     return new_expr
+
+
+def simp_cmp_int_int(expr_s, expr):
+    # IntA <s IntB => int
+    # IntA <u IntB => int
+    # IntA <=s IntB => int
+    # IntA <=u IntB => int
+    # IntA == IntB => int
+    if expr.op not in [
+            TOK_EQUAL,
+            TOK_INF_SIGNED, TOK_INF_UNSIGNED,
+            TOK_INF_EQUAL_SIGNED, TOK_INF_EQUAL_UNSIGNED,
+    ]:
+        return expr
+    if not all(arg.is_int() for arg in expr.args):
+        return expr
+    int_a, int_b = expr.args
+    if expr.is_op(TOK_EQUAL):
+        if int_a == int_b:
+            return ExprInt(1, 1)
+        else:
+            return ExprInt(0, 1)
+
+    if expr.op in [TOK_INF_SIGNED, TOK_INF_EQUAL_SIGNED]:
+        int_a = int(mod_size2int[int_a.size](int(int_a)))
+        int_b = int(mod_size2int[int_b.size](int(int_b)))
+    else:
+        int_a = int(mod_size2uint[int_a.size](int(int_a)))
+        int_b = int(mod_size2uint[int_b.size](int(int_b)))
+
+    if expr.op in [TOK_INF_SIGNED, TOK_INF_UNSIGNED]:
+        ret = int_a < int_b
+    else:
+        ret = int_a <= int_b
+
+    if ret:
+        ret = 1
+    else:
+        ret = 0
+    return ExprInt(ret, 1)
+
+
+def simp_ext_cst(expr_s, expr):
+    # Int.zeroExt(X) => Int
+    # Int.signExt(X) => Int
+    if not (expr.op.startswith("zeroExt") or expr.op.startswith("signExt")):
+        return expr
+    arg = expr.args[0]
+    if not arg.is_int():
+        return expr
+    if expr.op.startswith("zeroExt"):
+        ret = int(arg)
+    else:
+        ret = int(mod_size2int[arg.size](int(arg)))
+    ret = ExprInt(ret, expr.size)
+    return ret
+
+
+def simp_slice_of_ext(expr_s, expr):
+    # zeroExt(X)[0:size(X)] => X
+    if expr.start != 0:
+        return expr
+    if not expr.arg.is_op():
+        return expr
+    if not expr.arg.op.startswith("zeroExt"):
+        return expr
+    arg = expr.arg.args[0]
+    if arg.size != expr.size:
+        return expr
+    return arg
