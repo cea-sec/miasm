@@ -495,6 +495,9 @@ to_test = [
     (ExprOp(TOK_INF_EQUAL_SIGNED, i1, im1), ExprInt(0, 1)),
     (ExprOp(TOK_INF_EQUAL_UNSIGNED, i1, im1), ExprInt(1, 1)),
 
+    (ExprOp(TOK_EQUAL, a8.zeroExtend(32), b8.zeroExtend(32)), ExprOp(TOK_EQUAL, a8, b8)),
+    (ExprOp(TOK_EQUAL, a8.signExtend(32), b8.signExtend(32)), ExprOp(TOK_EQUAL, a8, b8)),
+
 ]
 
 for e_input, e_check in to_test:
