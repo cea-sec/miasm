@@ -1043,6 +1043,20 @@ def simp_zeroext_eq_cst(expr_s, expr):
         return ExprInt(0, 1)
     return ExprOp(TOK_EQUAL, src, ExprInt(int(arg2), src.size))
 
+def simp_ext_eq_ext(expr_s, expr):
+    # A.zeroExt(X) == B.zeroExt(X) => A == B
+    # A.signExt(X) == B.signExt(X) => A == B
+    if not expr.is_op(TOK_EQUAL):
+        return expr
+    arg1, arg2 = expr.args
+    if (not ((arg1.is_op() and arg1.op.startswith("zeroExt") and
+              arg2.is_op() and arg2.op.startswith("zeroExt")) or
+             (arg1.is_op() and arg1.op.startswith("signExt") and
+               arg2.is_op() and arg2.op.startswith("signExt")))):
+        return expr
+    if arg1.args[0].size != arg2.args[0].size:
+        return expr
+    return ExprOp(TOK_EQUAL, arg1.args[0], arg2.args[0])
 
 def simp_cond_eq_zero(expr_s, expr):
     # (X == 0)?(A:B) => X?(B:A)
