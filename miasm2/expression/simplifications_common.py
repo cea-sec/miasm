@@ -884,37 +884,34 @@ def simp_cond_flag(expr_simp, expr):
     return expr
 
 
-def simp_cond_int(expr_simp, expr):
+def simp_cmp_int(expr_simp, expr):
     # ({X, 0} == int) => X == int[:]
     # X + int1 == int2 => X == int2-int1
-    if (expr.cond.is_op(TOK_EQUAL) and
-          expr.cond.args[1].is_int() and
-          expr.cond.args[0].is_compose() and
-          len(expr.cond.args[0].args) == 2 and
-          expr.cond.args[0].args[1].is_int(0)):
+    if (expr.is_op(TOK_EQUAL) and
+          expr.args[1].is_int() and
+          expr.args[0].is_compose() and
+          len(expr.args[0].args) == 2 and
+          expr.args[0].args[1].is_int(0)):
         # ({X, 0} == int) => X == int[:]
-        src = expr.cond.args[0].args[0]
-        int_val = int(expr.cond.args[1])
+        src = expr.args[0].args[0]
+        int_val = int(expr.args[1])
         new_int = ExprInt(int_val, src.size)
         expr = expr_simp(
-            ExprCond(
-                ExprOp(TOK_EQUAL, src, new_int),
-                expr.src1,
-                expr.src2)
+            ExprOp(TOK_EQUAL, src, new_int)
         )
-    elif (expr.cond.is_op() and
-          expr.cond.op in [
+    elif (expr.is_op() and
+          expr.op in [
               TOK_EQUAL,
           ] and
-          expr.cond.args[1].is_int() and
-          expr.cond.args[0].is_op("+") and
-          expr.cond.args[0].args[-1].is_int()):
+          expr.args[1].is_int() and
+          expr.args[0].is_op("+") and
+          expr.args[0].args[-1].is_int()):
         # X + int1 == int2 => X == int2-int1
         # WARNING:
         # X - 0x10 <=u 0x20 gives X in [0x10 0x30]
         # which is not equivalet to A <=u 0x10
 
-        left, right = expr.cond.args
+        left, right = expr.args
         left, int_diff = left.args[:-1], left.args[-1]
         if len(left) == 1:
             left = left[0]
@@ -922,10 +919,7 @@ def simp_cond_int(expr_simp, expr):
             left = ExprOp('+', *left)
         new_int = expr_simp(right - int_diff)
         expr = expr_simp(
-            ExprCond(
-                ExprOp(expr.cond.op, left, new_int),
-                expr.src1,
-                expr.src2)
+            ExprOp(expr.op, left, new_int),
         )
     return expr
 
