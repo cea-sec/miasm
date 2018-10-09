@@ -205,6 +205,36 @@ class TranslatorZ3(Translator):
                     res = res - (arg * (self._idivC(res, arg)))
                 elif expr.op == "umod":
                     res = z3.URem(res, arg)
+                elif expr.op == "==":
+                    res = z3.If(
+                        args[0] == args[1],
+                        z3.BitVecVal(1, 1),
+                        z3.BitVecVal(0, 1)
+                    )
+                elif expr.op == "<u":
+                    res = z3.If(
+                        z3.ULT(args[0], args[1]),
+                        z3.BitVecVal(1, 1),
+                        z3.BitVecVal(0, 1)
+                    )
+                elif expr.op == "<s":
+                    res = z3.If(
+                        z3.SLT(args[0], args[1]),
+                        z3.BitVecVal(1, 1),
+                        z3.BitVecVal(0, 1)
+                    )
+                elif expr.op == "<=u":
+                    res = z3.If(
+                        z3.ULE(args[0], args[1]),
+                        z3.BitVecVal(1, 1),
+                        z3.BitVecVal(0, 1)
+                    )
+                elif expr.op == "<=s":
+                    res = z3.If(
+                        z3.SLE(args[0], args[1]),
+                        z3.BitVecVal(1, 1),
+                        z3.BitVecVal(0, 1)
+                    )
                 else:
                     raise NotImplementedError("Unsupported OP yet: %s" % expr.op)
         elif expr.op == 'parity':
