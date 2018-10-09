@@ -97,6 +97,7 @@ s = a[:8]
 i0 = ExprInt(0, 32)
 i1 = ExprInt(1, 32)
 i2 = ExprInt(2, 32)
+im1 = ExprInt(-1, 32)
 icustom = ExprInt(0x12345678, 32)
 cc = ExprCond(a, b, c)
 
@@ -452,8 +453,61 @@ for e_input, e_check in to_test:
     rez = e_new == e_check
     if not rez:
         raise ValueError(
-            'bug in expr_simp_explicit simp(%s) is %s and should be %s' % (e_input, e_new, e_check))
+            'bug in expr_simp_explicit simp(%s) is %s and should be %s' % (e_input, e_new, e_check)
+        )
     check(e_input, e_check)
+
+
+# Test high level op
+to_test = [
+    (ExprOp(TOK_EQUAL, a+i2, i1), ExprOp(TOK_EQUAL, a+i1, i0)),
+    (ExprOp(TOK_INF_SIGNED, a+i2, i1), ExprOp(TOK_INF_SIGNED, a+i2, i1)),
+    (ExprOp(TOK_INF_UNSIGNED, a+i2, i1), ExprOp(TOK_INF_UNSIGNED, a+i2, i1)),
+
+    (
+        ExprOp(TOK_EQUAL, ExprCompose(a8, ExprInt(0, 24)), im1),
+        ExprOp(TOK_EQUAL, a8, ExprInt(0xFF, 8))
+    ),
+
+    (ExprOp(TOK_INF_SIGNED, i1, i2), ExprInt(1, 1)),
+    (ExprOp(TOK_INF_UNSIGNED, i1, i2), ExprInt(1, 1)),
+    (ExprOp(TOK_INF_EQUAL_SIGNED, i1, i2), ExprInt(1, 1)),
+    (ExprOp(TOK_INF_EQUAL_UNSIGNED, i1, i2), ExprInt(1, 1)),
+
+    (ExprOp(TOK_INF_SIGNED, i2, i1), ExprInt(0, 1)),
+    (ExprOp(TOK_INF_UNSIGNED, i2, i1), ExprInt(0, 1)),
+    (ExprOp(TOK_INF_EQUAL_SIGNED, i2, i1), ExprInt(0, 1)),
+    (ExprOp(TOK_INF_EQUAL_UNSIGNED, i2, i1), ExprInt(0, 1)),
+
+    (ExprOp(TOK_INF_SIGNED, i1, i1), ExprInt(0, 1)),
+    (ExprOp(TOK_INF_UNSIGNED, i1, i1), ExprInt(0, 1)),
+    (ExprOp(TOK_INF_EQUAL_SIGNED, i1, i1), ExprInt(1, 1)),
+    (ExprOp(TOK_INF_EQUAL_UNSIGNED, i1, i1), ExprInt(1, 1)),
+
+
+    (ExprOp(TOK_INF_SIGNED, im1, i1), ExprInt(1, 1)),
+    (ExprOp(TOK_INF_UNSIGNED, im1, i1), ExprInt(0, 1)),
+    (ExprOp(TOK_INF_EQUAL_SIGNED, im1, i1), ExprInt(1, 1)),
+    (ExprOp(TOK_INF_EQUAL_UNSIGNED, im1, i1), ExprInt(0, 1)),
+
+    (ExprOp(TOK_INF_SIGNED, i1, im1), ExprInt(0, 1)),
+    (ExprOp(TOK_INF_UNSIGNED, i1, im1), ExprInt(1, 1)),
+    (ExprOp(TOK_INF_EQUAL_SIGNED, i1, im1), ExprInt(0, 1)),
+    (ExprOp(TOK_INF_EQUAL_UNSIGNED, i1, im1), ExprInt(1, 1)),
+
+]
+
+for e_input, e_check in to_test:
+    print "#" * 80
+    e_check = expr_simp(e_check)
+    e_new = expr_simp(e_input)
+    print "original: ", str(e_input), "new: ", str(e_new)
+    rez = e_new == e_check
+    if not rez:
+        raise ValueError(
+            'bug in expr_simp simp(%s) is %s and should be %s' % (e_input, e_new, e_check)
+        )
+
 
 # Test conds
 
@@ -490,7 +544,9 @@ for e_input, e_check in to_test:
     rez = e_new == e_check
     if not rez:
         raise ValueError(
-            'bug in expr_simp simp(%s) is %s and should be %s' % (e_input, e_new, e_check))
+            'bug in expr_simp simp(%s) is %s and should be %s' % (e_input, e_new, e_check)
+        )
+
 
 if args.z3:
     # This check is done on 32 bits, but the size is not use by Miasm formulas, so
