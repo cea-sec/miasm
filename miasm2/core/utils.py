@@ -12,6 +12,30 @@ pck16 = lambda x: struct.pack('H', x)
 pck32 = lambda x: struct.pack('I', x)
 pck64 = lambda x: struct.pack('Q', x)
 
+# Little endian
+upck8le = lambda x: struct.unpack('<B', x)[0]
+upck16le = lambda x: struct.unpack('<H', x)[0]
+upck32le = lambda x: struct.unpack('<I', x)[0]
+upck64le = lambda x: struct.unpack('<Q', x)[0]
+pck8le = lambda x: struct.pack('<B', x)
+pck16le = lambda x: struct.pack('<H', x)
+pck32le = lambda x: struct.pack('<I', x)
+pck64le = lambda x: struct.pack('<Q', x)
+
+# Big endian
+upck8be = lambda x: struct.unpack('>B', x)[0]
+upck16be = lambda x: struct.unpack('>H', x)[0]
+upck32be = lambda x: struct.unpack('>I', x)[0]
+upck64be = lambda x: struct.unpack('>Q', x)[0]
+pck8be = lambda x: struct.pack('>B', x)
+pck16be = lambda x: struct.pack('>H', x)
+pck32be = lambda x: struct.pack('>I', x)
+pck64be = lambda x: struct.pack('>Q', x)
+
+
+LITTLE_ENDIAN = 1
+BIG_ENDIAN = 2
+
 
 pck = {8: pck8,
        16: pck16,
