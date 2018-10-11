@@ -243,6 +243,247 @@ PyObject* vm_get_mem(VmMngr* self, PyObject* args)
        return obj_out;
 }
 
+PyObject* vm_get_u8(VmMngr* self, PyObject* args)
+{
+       PyObject *py_addr;
+
+       uint64_t addr;
+       uint64_t size;
+       PyObject *obj_out;
+       char * buf_out;
+       int ret;
+       uint32_t value;
+
+       if (!PyArg_ParseTuple(args, "O", &py_addr))
+	       RAISE(PyExc_TypeError,"Cannot parse arguments");
+
+       PyGetInt(py_addr, addr);
+
+       ret = vm_read_mem(&self->vm_mngr, addr, &buf_out, 1);
+       if (ret < 0) {
+	       RAISE(PyExc_RuntimeError,"Cannot find address");
+       }
+
+       value = *(uint8_t*)buf_out;
+
+       obj_out = PyLong_FromUnsignedLongLong(value);
+       free(buf_out);
+       return obj_out;
+}
+
+PyObject* vm_get_u16(VmMngr* self, PyObject* args)
+{
+       PyObject *py_addr;
+
+       uint64_t addr;
+       uint64_t size;
+       PyObject *obj_out;
+       char * buf_out;
+       int ret;
+       uint16_t value;
+
+       if (!PyArg_ParseTuple(args, "O", &py_addr))
+	       RAISE(PyExc_TypeError,"Cannot parse arguments");
+
+       PyGetInt(py_addr, addr);
+
+       ret = vm_read_mem(&self->vm_mngr, addr, &buf_out, 2);
+       if (ret < 0) {
+	       RAISE(PyExc_RuntimeError,"Cannot find address");
+       }
+
+       value = set_endian16(&self->vm_mngr, *(uint16_t*)buf_out);
+
+       obj_out = PyLong_FromUnsignedLongLong(value);
+       free(buf_out);
+       return obj_out;
+}
+
+PyObject* vm_get_u32(VmMngr* self, PyObject* args)
+{
+       PyObject *py_addr;
+
+       uint64_t addr;
+       uint64_t size;
+       PyObject *obj_out;
+       char * buf_out;
+       int ret;
+       uint32_t value;
+
+       if (!PyArg_ParseTuple(args, "O", &py_addr))
+	       RAISE(PyExc_TypeError,"Cannot parse arguments");
+
+       PyGetInt(py_addr, addr);
+
+       ret = vm_read_mem(&self->vm_mngr, addr, &buf_out, 4);
+       if (ret < 0) {
+	       RAISE(PyExc_RuntimeError,"Cannot find address");
+       }
+
+       value = set_endian32(&self->vm_mngr, *(uint32_t*)buf_out);
+
+       obj_out = PyLong_FromUnsignedLongLong(value);
+       free(buf_out);
+       return obj_out;
+}
+
+
+PyObject* vm_get_u64(VmMngr* self, PyObject* args)
+{
+       PyObject *py_addr;
+
+       uint64_t addr;
+       uint64_t size;
+       PyObject *obj_out;
+       char * buf_out;
+       int ret;
+       uint64_t value;
+
+       if (!PyArg_ParseTuple(args, "O", &py_addr))
+	       RAISE(PyExc_TypeError,"Cannot parse arguments");
+
+       PyGetInt(py_addr, addr);
+
+       ret = vm_read_mem(&self->vm_mngr, addr, &buf_out, 8);
+       if (ret < 0) {
+	       RAISE(PyExc_RuntimeError,"Cannot find address");
+       }
+
+       value = set_endian64(&self->vm_mngr, *(uint64_t*)buf_out);
+
+       obj_out = PyLong_FromUnsignedLongLong(value);
+       free(buf_out);
+       return obj_out;
+}
+
+
+PyObject* vm_set_u8(VmMngr* self, PyObject* args)
+{
+       PyObject *py_addr;
+       PyObject *py_val;
+       uint64_t value;
+       uint64_t addr;
+       uint8_t final_value;
+       int ret;
+
+       if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_val))
+	       RAISE(PyExc_TypeError,"Cannot parse arguments");
+
+       PyGetInt(py_addr, addr);
+       PyGetInt(py_val, value);
+
+       if (value > 0xFF) {
+		fprintf(stderr, "Warning: int to big\n");
+       }
+
+       final_value = value;
+
+       ret = vm_write_mem(&self->vm_mngr, addr, (char*)&final_value, 1);
+       if (ret < 0)
+	      RAISE(PyExc_TypeError, "Error in set_mem");
+
+       add_mem_write(&self->vm_mngr, addr, 1);
+       check_invalid_code_blocs(&self->vm_mngr);
+
+       Py_INCREF(Py_None);
+       return Py_None;
+}
+
+PyObject* vm_set_u16(VmMngr* self, PyObject* args)
+{
+       PyObject *py_addr;
+       PyObject *py_val;
+       uint64_t value;
+       uint64_t addr;
+       uint16_t final_value;
+       int ret;
+
+       if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_val))
+	       RAISE(PyExc_TypeError,"Cannot parse arguments");
+
+       PyGetInt(py_addr, addr);
+       PyGetInt(py_val, value);
+
+       if (value > 0xFFFF) {
+		fprintf(stderr, "Warning: int to big\n");
+       }
+
+       final_value = set_endian16(&self->vm_mngr, value);
+
+       ret = vm_write_mem(&self->vm_mngr, addr, (char*)&final_value, 2);
+       if (ret < 0)
+	      RAISE(PyExc_TypeError, "Error in set_mem");
+
+       add_mem_write(&self->vm_mngr, addr, 2);
+       check_invalid_code_blocs(&self->vm_mngr);
+
+       Py_INCREF(Py_None);
+       return Py_None;
+}
+
+PyObject* vm_set_u32(VmMngr* self, PyObject* args)
+{
+       PyObject *py_addr;
+       PyObject *py_val;
+       uint64_t value;
+       uint64_t addr;
+       uint32_t final_value;
+       int ret;
+
+       if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_val))
+	       RAISE(PyExc_TypeError,"Cannot parse arguments");
+
+       PyGetInt(py_addr, addr);
+       PyGetInt(py_val, value);
+
+       if (value > 0xFFFFFFFF) {
+		fprintf(stderr, "Warning: int to big\n");
+       }
+
+       final_value = set_endian32(&self->vm_mngr, value);
+
+       ret = vm_write_mem(&self->vm_mngr, addr, (char*)&final_value, 4);
+       if (ret < 0)
+	      RAISE(PyExc_TypeError, "Error in set_mem");
+
+       add_mem_write(&self->vm_mngr, addr, 4);
+       check_invalid_code_blocs(&self->vm_mngr);
+
+       Py_INCREF(Py_None);
+       return Py_None;
+}
+
+PyObject* vm_set_u64(VmMngr* self, PyObject* args)
+{
+       PyObject *py_addr;
+       PyObject *py_val;
+       uint64_t value;
+       uint64_t addr;
+       uint64_t final_value;
+       int ret;
+
+       if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_val))
+	       RAISE(PyExc_TypeError,"Cannot parse arguments");
+
+       PyGetInt(py_addr, addr);
+       PyGetInt(py_val, value);
+
+       final_value = set_endian64(&self->vm_mngr, value);
+
+       ret = vm_write_mem(&self->vm_mngr, addr, (char*)&final_value, 8);
+       if (ret < 0)
+	      RAISE(PyExc_TypeError, "Error in set_mem");
+
+       add_mem_write(&self->vm_mngr, addr, 8);
+       check_invalid_code_blocs(&self->vm_mngr);
+
+       Py_INCREF(Py_None);
+       return Py_None;
+}
+
+
+
+
 
 PyObject* vm_add_memory_breakpoint(VmMngr* self, PyObject* args)
 {
@@ -630,6 +871,26 @@ static PyMethodDef VmMngr_methods[] = {
 	 "get_mem_access(address) -> Retrieve the memory protection of the page at @address"},
 	{"get_mem", (PyCFunction)vm_get_mem, METH_VARARGS,
 	 "get_mem(addr, size) -> Get the memory content at @address of @size bytes"},
+
+	{"get_u8", (PyCFunction)vm_get_u8, METH_VARARGS,
+	 "get_u8(addr) -> Get a u8 at @address of @size bytes (vm endianness)"},
+	{"get_u16", (PyCFunction)vm_get_u16, METH_VARARGS,
+	 "get_u16(addr) -> Get a u16 at @address of @size bytes (vm endianness)"},
+	{"get_u32", (PyCFunction)vm_get_u32, METH_VARARGS,
+	 "get_u32(addr) -> Get a u32 at @address of @size bytes (vm endianness)"},
+	{"get_u64", (PyCFunction)vm_get_u64, METH_VARARGS,
+	 "get_u64(addr) -> Get a u64 at @address of @size bytes (vm endianness)"},
+
+
+	{"set_u8", (PyCFunction)vm_set_u8, METH_VARARGS,
+	 "set_u8(addr, value) -> Set a u8 at @address of @size bytes (vm endianness)"},
+	{"set_u16", (PyCFunction)vm_set_u16, METH_VARARGS,
+	 "set_u16(addr, value) -> Set a u16 at @address of @size bytes (vm endianness)"},
+	{"set_u32", (PyCFunction)vm_set_u32, METH_VARARGS,
+	 "set_u32(addr, value) -> Set a u32 at @address of @size bytes (vm endianness)"},
+	{"set_u64", (PyCFunction)vm_set_u64, METH_VARARGS,
+	 "set_u64(addr, value) -> Set a u64 at @address of @size bytes (vm endianness)"},
+
 	{"add_memory_page",(PyCFunction)vm_add_memory_page, METH_VARARGS,
 	 "add_memory_page(address, access, content [, cmt]) -> Maps a memory page at @address of len(@content) bytes containing @content with protection @access\n"
 	"@cmt is a comment linked to the memory page"},
