@@ -156,7 +156,7 @@ class ContainerPE(Container):
 
         # Build the bin_stream instance and set the entry point
         try:
-            self._bin_stream = bin_stream_pe(self._executable.virt)
+            self._bin_stream = bin_stream_pe(self._executable)
             ep_detected = self._executable.Opthdr.AddressOfEntryPoint
             self._entry_point = self._executable.rva2virt(ep_detected)
         except Exception, error:
@@ -200,7 +200,7 @@ class ContainerELF(Container):
 
         # Build the bin_stream instance and set the entry point
         try:
-            self._bin_stream = bin_stream_elf(self._executable.virt)
+            self._bin_stream = bin_stream_elf(self._executable)
             self._entry_point = self._executable.Ehdr.entry + addr
         except Exception, error:
             raise ContainerParsingException('Cannot read ELF: %s' % error)
