@@ -26,14 +26,14 @@ class jitter_msp430(Jitter):
 
     def pop_uint16_t(self):
         regs = self.cpu.get_gpreg()
-        value = upck16(self.vm.get_mem(regs['SP'], 2))
+        value = self.vm.get_u16(regs['SP'])
         regs['SP'] += 2
         self.cpu.set_gpreg(regs)
         return value
 
     def get_stack_arg(self, index):
         regs = self.cpu.get_gpreg()
-        value = upck16(self.vm.get_mem(regs['SP'] + 2 * index, 2))
+        value = self.vm.get_u16(regs['SP'] + 2 * index)
         return value
 
     def init_run(self, *args, **kwargs):

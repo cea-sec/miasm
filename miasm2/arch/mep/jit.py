@@ -91,14 +91,14 @@ class jitter_mepl(Jitter):
 
     def pop_uint16_t(self):
         regs = self.cpu.get_gpreg()
-        x = upck16(self.vm.get_mem(regs["SP"], 2))
+        x = self.vm.get_u16(regs["SP"])
         regs["SP"] += 2
         self.cpu.set_gpreg(regs)
         return x
 
     def get_stack_arg(self, n):
         regs = self.cpu.get_gpreg()
-        x = upck16(self.vm.get_mem(regs["SP"] + 2 * n, 2))
+        x = self.vm.get_u16(regs["SP"] + 2 * n)
         return x
 
     def init_run(self, *args, **kwargs):
