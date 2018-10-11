@@ -24,7 +24,7 @@ import struct
 from elfesteem import pe_init
 
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
-from miasm2.core.utils import pck32, upck32
+from miasm2.core.utils import pck32
 import miasm2.arch.x86.regs as x86_regs
 
 from miasm2.os_dep.win_32_structs import LdrDataEntry, ListEntry, \
@@ -614,8 +614,8 @@ def return_from_seh(jitter):
     @jitter: jitter instance"""
 
     # Get object addresses
-    seh_address = upck32(jitter.vm.get_mem(jitter.cpu.ESP + 0x4, 4))
-    context_address = upck32(jitter.vm.get_mem(jitter.cpu.ESP + 0x8, 4))
+    seh_address = jitter.vm.get_u32(jitter.cpu.ESP + 0x4)
+    context_address = jitter.vm.get_u32(jitter.cpu.ESP + 0x8)
 
     # Get registers changes
     log.info('Context address: %x', context_address)

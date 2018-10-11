@@ -23,12 +23,12 @@ class jitter_aarch64l(Jitter):
         self.vm.set_mem(self.cpu.SP, pck64(value))
 
     def pop_uint64_t(self):
-        value = upck64(self.vm.get_mem(self.cpu.SP, 8))
+        value = self.vm.get_u64(self.cpu.SP)
         self.cpu.SP += 8
         return value
 
     def get_stack_arg(self, index):
-        return upck64(self.vm.get_mem(self.cpu.SP + 8 * index, 8))
+        return self.vm.get_u64(self.cpu.SP + 8 * index)
 
     # calling conventions
 

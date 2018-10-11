@@ -74,12 +74,12 @@ class jitter_arml(Jitter):
         self.vm.set_mem(self.cpu.SP, pck32(value))
 
     def pop_uint32_t(self):
-        value = upck32(self.vm.get_mem(self.cpu.SP, 4))
+        value = self.vm.get_u32(self.cpu.SP)
         self.cpu.SP += 4
         return value
 
     def get_stack_arg(self, index):
-        return upck32(self.vm.get_mem(self.cpu.SP + 4 * index, 4))
+        return self.vm.get_u32(self.cpu.SP + 4 * index)
 
     # calling conventions
 
