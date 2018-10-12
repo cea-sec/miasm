@@ -41,7 +41,7 @@ class EmulatedSymbExec(SymbolicExecutionEngine):
         """Memory read wrapper for symbolic execution
         @expr_mem: ExprMem"""
 
-        addr = expr_mem.arg
+        addr = expr_mem.ptr
         if not addr.is_int():
             return expr_mem
         addr = int(addr)
@@ -67,7 +67,7 @@ class EmulatedSymbExec(SymbolicExecutionEngine):
         to_write = data.arg.arg
 
         # Format information
-        addr = dest.arg.arg.arg
+        addr = dest.ptr.arg.arg
         size = data.size / 8
         content = hex(to_write).replace("0x", "").replace("L", "")
         content = "0" * (size * 2 - len(content)) + content

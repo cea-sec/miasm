@@ -68,13 +68,13 @@ class ExprNodeMem(ExprNode):
     def __init__(self, expr):
         assert expr.is_mem()
         super(ExprNodeMem, self).__init__(expr)
-        self.arg = None
+        self.ptr = None
 
     def __repr__(self):
         if self.info is not None:
             out = repr(self.info)
         else:
-            out = "@%d[%r]" % (self.expr.size, self.arg)
+            out = "@%d[%r]" % (self.expr.size, self.ptr)
         return out
 
 
@@ -173,9 +173,9 @@ class ExprReducer(object):
         elif isinstance(expr, ExprInt):
             node = ExprNodeInt(expr)
         elif isinstance(expr, ExprMem):
-            son = self.expr2node(expr.arg)
+            son = self.expr2node(expr.ptr)
             node = ExprNodeMem(expr)
-            node.arg = son
+            node.ptr = son
         elif isinstance(expr, ExprSlice):
             son = self.expr2node(expr.arg)
             node = ExprNodeSlice(expr)
@@ -223,9 +223,9 @@ class ExprReducer(object):
         elif isinstance(expr, ExprLoc):
             node = ExprNodeLoc(expr)
         elif isinstance(expr, ExprMem):
-            arg = self.categorize(node.arg, lvl=lvl + 1, **kwargs)
-            node = ExprNodeMem(ExprMem(arg.expr, expr.size))
-            node.arg = arg
+            ptr = self.categorize(node.ptr, lvl=lvl + 1, **kwargs)
+            node = ExprNodeMem(ExprMem(ptr.expr, expr.size))
+            node.ptr = ptr
         elif isinstance(expr, ExprSlice):
             arg = self.categorize(node.arg, lvl=lvl + 1, **kwargs)
             node = ExprNodeSlice(ExprSlice(arg.expr, expr.start, expr.stop))

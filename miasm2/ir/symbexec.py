@@ -256,8 +256,8 @@ class MemArray(MutableMapping):
                 continue
             if data_a.is_mem() and data_b.is_mem():
                 # Read consecutive bytes of a memory variable
-                ptr_base_a, ptr_offset_a = get_expr_base_offset(data_a.arg)
-                ptr_base_b, ptr_offset_b = get_expr_base_offset(data_b.arg)
+                ptr_base_a, ptr_offset_a = get_expr_base_offset(data_a.ptr)
+                ptr_base_b, ptr_offset_b = get_expr_base_offset(data_b.ptr)
                 if ptr_base_a != ptr_base_b:
                     index += 1
                     continue
@@ -303,11 +303,11 @@ class MemArray(MutableMapping):
             # Special case: Simplify slice of pointer (simplification is ok
             # here, as we won't store the simplified expression)
             if tmp.is_slice() and tmp.arg.is_mem() and tmp.start % 8 == 0:
-                new_ptr = self.expr_simp(tmp.arg.arg + ExprInt(tmp.start / 8, tmp.arg.arg.size))
+                new_ptr = self.expr_simp(tmp.arg.ptr + ExprInt(tmp.start / 8, tmp.arg.ptr.size))
                 tmp = ExprMem(new_ptr, tmp.stop - tmp.start)
             # Test if write to original value
             if tmp.is_mem():
-                src_ptr, src_off = get_expr_base_offset(tmp.arg)
+                src_ptr, src_off = get_expr_base_offset(tmp.ptr)
                 if src_ptr == self.base and src_off == request_offset:
                     del self._offset_to_expr[request_offset]
 
@@ -477,7 +477,7 @@ class MemSparse(object):
         """
         if not expr.is_mem():
             return False
-        ptr = expr.arg
+        ptr = expr.ptr
         base, offset = get_expr_base_offset(ptr)
         memarray = self.base_to_memarray.get(base, None)
         if memarray is None:
@@ -493,7 +493,7 @@ class MemSparse(object):
         """
         if not expr.is_mem():
             return False
-        ptr = expr.arg
+        ptr = expr.ptr
         base, offset = get_expr_base_offset(ptr)
         memarray = self.base_to_memarray.get(base, None)
         if memarray is None:
@@ -521,7 +521,7 @@ class MemSparse(object):
         Delete a value @expr *fully* present in memory
         For partial delete, use delete_partial
         """
-        ptr = expr.arg
+        ptr = expr.ptr
         base, offset = get_expr_base_offset(ptr)
         memarray = self.base_to_memarray.get(base, None)
         if memarray is None:
@@ -538,7 +538,7 @@ class MemSparse(object):
         Delete @expr from memory. Skip parts of @expr which are not present in
         memory.
         """
-        ptr = expr.arg
+        ptr = expr.ptr
         base, offset = get_expr_base_offset(ptr)
         memarray = self.base_to_memarray.get(base, None)
         if memarray is None:
@@ -657,7 +657,7 @@ class SymbolMngr(object):
         elif src.is_mem():
             # Only byte aligned accesses are supported for now
             assert src.size % 8 == 0
-            return self.symbols_mem.read(src.arg, src.size)
+            return self.symbols_mem.read(src.ptr, src.size)
         else:
             raise TypeError("Bad source expr")
 
@@ -677,7 +677,7 @@ class SymbolMngr(object):
         elif dst.is_mem():
             # Only byte aligned accesses are supported for now
             assert dst.size % 8 == 0
-            self.symbols_mem.write(dst.arg, src)
+            self.symbols_mem.write(dst.ptr, src)
         else:
             raise TypeError("Bad destination expr")
 
@@ -906,7 +906,7 @@ class SymbolicExecutionEngine(object):
         This function first evaluate the memory pointer value.
         Override 'mem_read' to modify the effective memory accesses
         """
-        ptr = self.eval_expr_visitor(expr.arg, **kwargs)
+        ptr = self.eval_expr_visitor(expr.ptr, **kwargs)
         mem = ExprMem(ptr, expr.size)
         ret = self.mem_read(mem)
         return ret
@@ -998,7 +998,7 @@ class SymbolicExecutionEngine(object):
         for dst, src in assignblk.iteritems():
             src = self.eval_expr(src, eval_cache)
             if dst.is_mem():
-                ptr = self.eval_expr(dst.arg, eval_cache)
+                ptr = self.eval_expr(dst.ptr, eval_cache)
                 # Test if mem lookup is known
                 tmp = ExprMem(ptr, dst.size)
                 pool_out[tmp] = src
@@ -1124,7 +1124,7 @@ class SymbolicExecutionEngine(object):
 
         # Extract known parts in symbols
         assert expr.size % 8 == 0
-        ptr = expr.arg
+        ptr = expr.ptr
         known = []
         ptrs = []
         for index in xrange(expr.size / 8):

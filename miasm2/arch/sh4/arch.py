@@ -169,7 +169,7 @@ class sh4_dgpreg(sh4_arg):
         start, stop = super(sh4_dgpreg, self).fromstring(text, loc_db, parser_result)
         if start is None or self.expr == [None]:
             return start, stop
-        self.expr = ExprMem(self.expr.arg, self.sz)
+        self.expr = ExprMem(self.expr.ptr, self.sz)
         return start, stop
 
     def decode(self, v):
@@ -181,9 +181,9 @@ class sh4_dgpreg(sh4_arg):
         e = self.expr
         if not isinstance(e, ExprMem):
             return False
-        if not isinstance(e.arg, ExprId):
+        if not isinstance(e.ptr, ExprId):
             return False
-        v = gpregs.expr.index(e.arg)
+        v = gpregs.expr.index(e.ptr)
         self.value = v
         return True
 
@@ -195,9 +195,9 @@ class sh4_dgpregpinc(sh4_arg):
         start, stop = super(sh4_dgpregpinc, self).fromstring(text, loc_db, parser_result)
         if self.expr == [None]:
             return None, None
-        if not isinstance(self.expr.arg, ExprOp):
+        if not isinstance(self.expr.ptr, ExprOp):
             return None, None
-        if self.expr.arg.op != self.op:
+        if self.expr.ptr.op != self.op:
             return None, None
         return start, stop
 
@@ -211,7 +211,7 @@ class sh4_dgpregpinc(sh4_arg):
         e = self.expr
         if not isinstance(e, ExprMem):
             return False
-        e = e.arg
+        e = e.ptr
         res = match_expr(e, ExprOp(self.op, jra), [jra])
         if not res:
             return False
@@ -246,10 +246,10 @@ class sh4_dgpreg_imm(sh4_dgpreg):
         s = self.sz
         if not isinstance(e, ExprMem):
             return False
-        if isinstance(e.arg, ExprId):
-            v = gpregs.expr.index(e.arg)
+        if isinstance(e.ptr, ExprId):
+            v = gpregs.expr.index(e.ptr)
             p.disp.value = 0
-        elif isinstance(e.arg, ExprOp):
+        elif isinstance(e.ptr, ExprOp):
             res = match_expr(e, ExprMem(jra + jrb, self.sz), [jra, jrb])
             if not res:
                 return False
@@ -415,20 +415,20 @@ class instruction_sh4(instruction):
             else:
                 return str(expr)
         assert(isinstance(expr, ExprMem))
-        expr = expr.arg
+        ptr = expr.ptr
 
-        if isinstance(expr, ExprOp):
-            if expr.op == "predec":
-                s = '-%s' % expr.args[0]
-            elif expr.op == "postinc":
-                s = '%s+' % expr.args[0]
+        if isinstance(ptr, ExprOp):
+            if ptr.op == "predec":
+                s = '-%s' % ptr.args[0]
+            elif ptr.op == "postinc":
+                s = '%s+' % ptr.args[0]
             else:
                 s = ','.join([str(x).replace('(', '').replace(')', '')
-                              for x in expr.args])
+                              for x in ptr.args])
                 s = "(%s)"%s
             s = "@%s" % s
-        elif isinstance(expr, ExprId):
-            s = "@%s" % expr
+        elif isinstance(ptr, ExprId):
+            s = "@%s" % ptr
         else:
             raise NotImplementedError('zarb arg2str')
         return s

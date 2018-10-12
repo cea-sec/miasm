@@ -92,7 +92,7 @@ class TranslatorC(Translator):
         return out
 
     def from_ExprMem(self, expr):
-        ptr = expr.arg
+        ptr = expr.ptr
         if ptr.size <= self.NATIVE_INT_MAX_SIZE:
             new_ptr = self.from_expr(ptr)
             if expr.size <= self.NATIVE_INT_MAX_SIZE:

@@ -272,7 +272,7 @@ class CGen(object):
                         )
                     )
             elif isinstance(dst, ExprMem):
-                ptr = dst.arg.replace_expr(prefetchers)
+                ptr = dst.ptr.replace_expr(prefetchers)
                 if ptr.size <= self.translator.NATIVE_INT_MAX_SIZE:
                     new_dst = ExprMem(ptr, dst.size)
                     str_dst = self.id_to_c(new_dst).replace('MEM_LOOKUP', 'MEM_WRITE')

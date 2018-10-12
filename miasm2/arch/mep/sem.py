@@ -60,7 +60,7 @@ def sb(reg_src, deref_dst):
     # MemByte(Rm31..0) <- Rn7..0
     # MemByte((ZeroExt(disp7)+TP)31..0)) <- Rn7..0
     # MemByte((SignExt(disp16)+Rm)31..0) <- Rn7..0
-    mem8[deref_dst.arg] = reg_src[:8]
+    mem8[deref_dst.ptr] = reg_src[:8]
 
 
 @sbuild.parse
@@ -70,7 +70,7 @@ def sh(reg_src, deref_dst):
     # MemHword(Rm31..1||0) <- Rn15..0
     # MemHword((ZeroExt((disp7)6..1||0)+TP)31..1||0)) <- Rn15..0
     # MemHword((SignExt(disp16)+Rm)31..1||0) <- Rn15..0
-    mem16[deref_dst.arg & i32(0xFFFFFFFE)] = reg_src[:16]
+    mem16[deref_dst.ptr & i32(0xFFFFFFFE)] = reg_src[:16]
 
 
 @sbuild.parse
@@ -83,7 +83,7 @@ def sw(reg_src, deref_dst):
     # MemWord((SignExt(disp16)+Rm)31..2||00) <- Rn31..0
     # MemWord(ZeroExt((abs24)23..2||00)) - Rn31..0
 
-    mem32[deref_dst.arg & i32(0xFFFFFFFC)] = reg_src
+    mem32[deref_dst.ptr & i32(0xFFFFFFFC)] = reg_src
 
 # Without the sembuilder
 #def sw(ir, instr, reg_src, deref_reg_or_imm, deref_reg=None):
@@ -115,7 +115,7 @@ def lb(reg_dst, deref_dst):
     # Rn <- SignExt(MemByte(Rm31..0))
     # Rn <- SignExt(MemByte((ZeroExt(disp7)+TP)31..0))
     # Rn <- SignExt(MemByte((SignExt(disp16)+Rm)31..0)
-    reg_dst = mem8[deref_dst.arg].signExtend(32)
+    reg_dst = mem8[deref_dst.ptr].signExtend(32)
 
 
 @sbuild.parse
@@ -125,7 +125,7 @@ def lh(reg_dst, deref_dst):
     # Rn <- SignExt(MemHword(Rm31..1||0))
     # Rn <- SignExt(MemHword((ZeroExt((disp7)6..1||0)+TP)31..1||0)
     # Rn <- SignExt(MemHword((SignExt(disp16)+Rm)31..1||0))
-    reg_dst = mem16[deref_dst.arg & i32(0xFFFFFFFE)].signExtend(32)
+    reg_dst = mem16[deref_dst.ptr & i32(0xFFFFFFFE)].signExtend(32)
 
 
 @sbuild.parse
@@ -136,7 +136,7 @@ def lw(reg_dst, deref_dst):
     # Rn <- MemWord((ZeroExt((disp7)6..2||00)+TP)31..2||00)
     # Rn <- MemWord((SignExt(disp16)+Rm)31..2||00)
     # Rn <- MemWord(ZeroExt((abs24)23..2||00))
-    reg_dst = mem32[deref_dst.arg & i32(0xFFFFFFFC)]
+    reg_dst = mem32[deref_dst.ptr & i32(0xFFFFFFFC)]
 
 
 @sbuild.parse
@@ -146,7 +146,7 @@ def lbu(reg_dst, deref_dst):
     # Rn <- ZeroExt(MemByte(Rm31..0))
     # Rn <- ZeroExt(MemByte((ZeroExt(disp7)+TP)31..0))
     # Rn <- ZeroExt(MemByte((SignExt(disp16)+Rm)31..0))
-    reg_dst = mem8[deref_dst.arg].zeroExtend(32)
+    reg_dst = mem8[deref_dst.ptr].zeroExtend(32)
 
 
 @sbuild.parse
@@ -156,7 +156,7 @@ def lhu(reg_dst, deref_dst):
     # Rn <- ZeroExt(MemHword(Rm31..1||0))
     # Rn <- ZeroExt(MemHword((SignExt(disp16)+Rm)31..1||0))
     # Rn <- ZeroExt(MemHword((ZeroExt((disp7)6..1||0)+TP)31..1||0))
-    reg_dst = mem16[deref_dst.arg & i32(0xFFFFFFFE)].zeroExtend(32)
+    reg_dst = mem16[deref_dst.ptr & i32(0xFFFFFFFE)].zeroExtend(32)
 
 
 ### Byte/Halfword extension instructions
@@ -767,7 +767,7 @@ def bsetm(rm_deref, imm3):
     """BSETM - Bit Set Memory"""
 
     # MemByte(Rm) <- MemByte(Rm) or (1<<imm3)
-    mem8[rm_deref.arg] = ExprOp("|", mem8[rm_deref.arg], (i8(1) << imm3[:8]))
+    mem8[rm_deref.ptr] = ExprOp("|", mem8[rm_deref.ptr], (i8(1) << imm3[:8]))
 
 
 @sbuild.parse
@@ -776,7 +776,7 @@ def bclrm(rm_deref, imm3):
 
     # MemByte(Rm) <- MemByte(Rm) and ~(1<<imm3)
     shift = ExprOp("<<", i8(1), imm3[:8])
-    mem8[rm_deref.arg] = ExprOp("&", mem8[rm_deref.arg], shift.__invert__())
+    mem8[rm_deref.ptr] = ExprOp("&", mem8[rm_deref.ptr], shift.__invert__())
 
 
 @sbuild.parse
@@ -784,7 +784,7 @@ def bnotm(rm_deref, imm3):
     """BNOTM - Bit Not Memory"""
 
     # MemByte(Rm) <- MemByte(Rm) xor (1<<imm3)
-    mem8[rm_deref.arg] = ExprOp("^", mem8[rm_deref.arg], (i8(1) << imm3[:8]))
+    mem8[rm_deref.ptr] = ExprOp("^", mem8[rm_deref.ptr], (i8(1) << imm3[:8]))
 
 
 @sbuild.parse
@@ -792,7 +792,7 @@ def btstm(r0, rm_deref, imm3):
     """BTSTM - Bit Test Memory"""
 
     # R0 <- ZeroExt( MemByte(Rm) and (1<<imm3) )
-    r0 = ExprOp("&", mem8[rm_deref.arg], i8(1) << imm3[:8]).zeroExtend(32)
+    r0 = ExprOp("&", mem8[rm_deref.ptr], i8(1) << imm3[:8]).zeroExtend(32)
 
 
 @sbuild.parse
@@ -801,8 +801,8 @@ def tas(rn, rm_deref):
 
     # temp <- Rm; Rn <- ZeroExt(MemByte(temp)); MemByte(temp) <- 1
     temp = rm_deref
-    rn = mem8[temp.arg].zeroExtend(32)
-    mem8[temp.arg] = i8(1)
+    rn = mem8[temp.ptr].zeroExtend(32)
+    mem8[temp.ptr] = i8(1)
 
 
 ### Data cache option
@@ -1076,7 +1076,7 @@ def smcp(reg_src, deref_dst):
     """SMCP - Store Word to memory from a coprocessor register"""
 
     # MemDword(Rm31..3||000) <- CRn
-    mem32[deref_dst.arg & i32(0xFFFFFFF8)] = reg_src
+    mem32[deref_dst.ptr & i32(0xFFFFFFF8)] = reg_src
 
 
 @sbuild.parse
@@ -1084,7 +1084,7 @@ def lmcp(reg_dst, deref_src):
     """LMCP - Load Word from memory to a coprocessor register"""
 
     # CRn <- MemDword(Rm31..3||000)
-    reg_dst = mem32[deref_src.arg & i32(0xFFFFFFF8)]
+    reg_dst = mem32[deref_src.ptr & i32(0xFFFFFFF8)]
 
 
 @sbuild.parse
@@ -1092,8 +1092,8 @@ def swcpi(reg_src, deref_dst):
     """SWCPI - Store Word to memory, and increment the address"""
 
     # MemWord(Rm31..2||00) <- CRn 31..0; Rm<-Rm+4
-    mem32[deref_dst.arg & i32(0xFFFFFFFC)] = reg_src
-    deref_dst.arg = deref_dst.arg + i32(4)
+    mem32[deref_dst.ptr & i32(0xFFFFFFFC)] = reg_src
+    deref_dst.ptr = deref_dst.ptr + i32(4)
 
 
 @sbuild.parse
@@ -1101,8 +1101,8 @@ def lwcpi(reg_dst, deref_src):
     """LWCPI - Load Word from memory, and increment the address"""
 
     # CRn <- MemWord(Rm31..2||00); Rm<-Rm+4
-    reg_dst = mem32[deref_src.arg & i32(0xFFFFFFFC)]
-    deref_src.arg = deref_src.arg + i32(4)
+    reg_dst = mem32[deref_src.ptr & i32(0xFFFFFFFC)]
+    deref_src.ptr = deref_src.ptr + i32(4)
 
 
 @sbuild.parse
@@ -1110,8 +1110,8 @@ def smcpi(reg_src, deref_dst):
     """SMCPI - Store Word to memory, and increment the address"""
 
     # MemDword(Rm31..3||000) <- CRn; Rm<-Rm+8
-    mem32[deref_dst.arg & i32(0xFFFFFFF8)] = reg_src
-    deref_dst.arg = deref_dst.arg + i32(8)
+    mem32[deref_dst.ptr & i32(0xFFFFFFF8)] = reg_src
+    deref_dst.ptr = deref_dst.ptr + i32(8)
 
 
 @sbuild.parse
@@ -1119,8 +1119,8 @@ def lmcpi(reg_dst, deref_src):
     """LMCPI - Load Word from memory, and increment the address"""
 
     # CRn <- MemDword(Rm31..3||000); Rm<-Rm+8
-    reg_dst = mem32[deref_src.arg & i32(0xFFFFFFFC)]
-    deref_src.arg = deref_src.arg + i32(8)
+    reg_dst = mem32[deref_src.ptr & i32(0xFFFFFFFC)]
+    deref_src.ptr = deref_src.ptr + i32(8)
 
 
 ### IR MeP definitions

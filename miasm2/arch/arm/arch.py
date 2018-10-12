@@ -385,7 +385,7 @@ class instruction_arm(instruction):
         if not isinstance(expr, ExprMem):
             return str(expr)
 
-        expr = expr.arg
+        expr = expr.ptr
         if isinstance(expr, ExprOp) and expr.op == 'wback':
             wb = True
             expr = expr.args[0]
@@ -946,7 +946,7 @@ class arm_imm8_12(arm_arg):
         e = self.expr
         if not isinstance(e, ExprMem):
             return False
-        e = e.arg
+        e = e.ptr
         if isinstance(e, ExprOp) and e.op == 'wback':
             self.parent.wback.value = 1
             e = e.args[0]
@@ -1171,7 +1171,7 @@ class arm_op2imm(arm_imm8_12):
 
         e = self.expr
         assert(isinstance(e, ExprMem))
-        e = e.arg
+        e = e.ptr
         if e.op == 'wback':
             self.parent.wback.value = 1
             e = e.args[0]
@@ -1481,7 +1481,7 @@ class arm_immed(arm_arg):
         e = self.expr
         if not isinstance(e, ExprMem):
             return False
-        e = e.arg
+        e = e.ptr
         if isinstance(e, ExprOp) and e.op == 'wback':
             self.parent.wback.value = 1
             e = e.args[0]
@@ -1570,7 +1570,7 @@ class arm_mem_rn_imm(arm_arg):
         expr = self.expr
         if not isinstance(expr, ExprMem):
             return False
-        ptr = expr.arg
+        ptr = expr.ptr
         if ptr in gpregs.expr:
             self.value = gpregs.expr.index(ptr)
         elif (isinstance(ptr, ExprOp) and
@@ -1865,7 +1865,7 @@ class arm_offpc(arm_offreg):
         else:
             self.expr = ExprMem(self.off_reg, 32)
 
-        e = self.expr.arg
+        e = self.expr.ptr
         if isinstance(e, ExprOp) and e.op == 'wback':
             self.parent.wback.value = 1
             e = e.args[0]
@@ -1875,7 +1875,7 @@ class arm_offpc(arm_offreg):
         e = self.expr
         if not isinstance(e, ExprMem):
             return False
-        e = e.arg
+        e = e.ptr
         if not (isinstance(e, ExprOp) and e.op == "preinc"):
             log.debug('cannot encode %r', e)
             return False
@@ -1949,7 +1949,7 @@ class arm_deref_reg_imm(arm_arg):
         e = self.expr
         if not isinstance(e, ExprMem):
             return False
-        e = e.arg
+        e = e.ptr
         if not (isinstance(e, ExprOp) and e.op == 'preinc'):
             log.debug('cannot encode %r', e)
             return False
@@ -2733,7 +2733,7 @@ class armt2_imm6_11l(arm_imm):
         v = self.expr.arg.arg - 4
         s = 0
         if v != sign_ext(v & ((1 << 22) - 1), 21, 32):
-            return False 
+            return False
         if v & 0x80000000:
             s = 1
         v &= (1<<22) - 1
@@ -2961,7 +2961,7 @@ class armt_op2imm(arm_imm8_12):
 
         e = self.expr
         assert(isinstance(e, ExprMem))
-        e = e.arg
+        e = e.ptr
         if e.op == 'wback':
             self.parent.wback.value = 1
             e = e.args[0]
@@ -3034,7 +3034,7 @@ class armt_deref_reg(arm_imm8_12):
     def encode(self):
         if not isinstance(self.expr, ExprMem):
             return False
-        ptr = self.expr.arg
+        ptr = self.expr.ptr
         if not ptr.is_op('preinc'):
             return False
         if len(ptr.args) != 2:
@@ -3074,7 +3074,7 @@ class armt_deref_reg_reg(arm_arg):
         expr = self.expr
         if not expr.is_mem():
             return False
-        ptr = expr.arg
+        ptr = expr.ptr
         if not ptr.is_op('+') or len(ptr.args) != 2:
             return False
         reg1, reg2 = ptr.args
@@ -3097,7 +3097,7 @@ class armt_deref_reg_reg_lsl_1(arm_reg):
         expr = self.expr
         if not expr.is_mem():
             return False
-        ptr = expr.arg
+        ptr = expr.ptr
         if not ptr.is_op('+') or len(ptr.args) != 2:
             return False
         reg1, reg_shift = ptr.args

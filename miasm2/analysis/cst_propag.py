@@ -98,7 +98,7 @@ class SymbExecStateFix(SymbolicExecutionEngine):
             for dst, src in assignblk.iteritems():
                 src = self.propag_expr_cst(src)
                 if dst.is_mem():
-                    ptr = dst.arg
+                    ptr = dst.ptr
                     ptr = self.propag_expr_cst(ptr)
                     dst = ExprMem(ptr, dst.size)
                 new_assignblk[dst] = src
