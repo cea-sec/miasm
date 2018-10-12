@@ -37,6 +37,7 @@ class ExpressionSimplifier(object):
             simplifications_common.simp_cst_propagation,
             simplifications_common.simp_cond_op_int,
             simplifications_common.simp_cond_factor,
+            simplifications_common.simp_add_multiple,
             # CC op
             simplifications_common.simp_cc_conds,
             simplifications_common.simp_subwc_cf,
