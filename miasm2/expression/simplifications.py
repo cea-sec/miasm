@@ -99,6 +99,9 @@ class ExpressionSimplifier(object):
         Callback signature: Expr callback(ExpressionSimplifier, Expr)
         """
 
+        # Clear cache of simplifiied expressions when adding a new pass
+        self.simplified_exprs.clear()
+
         for k, v in passes.items():
             self.expr_simp_cb[k] = fast_unify(self.expr_simp_cb.get(k, []) + v)
 
