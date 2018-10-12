@@ -24,7 +24,7 @@ class TranslatorPython(Translator):
         return str(expr)
 
     def from_ExprMem(self, expr):
-        return "memory(%s, 0x%x)" % (self.from_expr(expr.arg),
+        return "memory(%s, 0x%x)" % (self.from_expr(expr.ptr),
                                      expr.size / 8)
 
     def from_ExprSlice(self, expr):

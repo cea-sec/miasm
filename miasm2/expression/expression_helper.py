@@ -272,7 +272,7 @@ class Variables_Identifier(object):
             pass
 
         elif isinstance(expr, m2_expr.ExprMem):
-            self.find_variables_rec(expr.arg)
+            self.find_variables_rec(expr.ptr)
 
         elif isinstance(expr, m2_expr.ExprCompose):
             for arg in expr.args:
@@ -567,7 +567,7 @@ def possible_values(expr):
         consvals.update(ConstrainedValue(consval.constraints,
                                          m2_expr.ExprMem(consval.value,
                                                          expr.size))
-                        for consval in possible_values(expr.arg))
+                        for consval in possible_values(expr.ptr))
     elif isinstance(expr, m2_expr.ExprAssign):
         consvals.update(possible_values(expr.src))
     # Special case: constraint insertion

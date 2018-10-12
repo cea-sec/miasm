@@ -29,7 +29,7 @@ def intra_block_flow_raw(ir_arch, ircfg, flow_graph, irb, in_nodes, out_nodes):
                 node_n_w = get_node_name(irb.loc_key, i, n)
                 if not n in nodes_r:
                     continue
-                o_r = n.arg.get_r(mem_read=False, cst_read=True)
+                o_r = n.ptr.get_r(mem_read=False, cst_read=True)
                 for n_r in o_r:
                     if n_r in current_nodes:
                         node_n_r = current_nodes[n_r]

@@ -115,15 +115,15 @@ class instruction_msp430(instruction):
         elif isinstance(expr, ExprOp) and expr.op == "autoinc":
             o = "@%s+" % str(expr.args[0])
         elif isinstance(expr, ExprMem):
-            if isinstance(expr.arg, ExprId):
+            if isinstance(expr.ptr, ExprId):
                 if index == 0:
-                    o = "@%s" % expr.arg
+                    o = "@%s" % expr.ptr
                 else:
-                    o = "0x0(%s)" % expr.arg
-            elif isinstance(expr.arg, ExprInt):
-                o = "@%s" % expr.arg
-            elif isinstance(expr.arg, ExprOp):
-                o = "%s(%s)" % (expr.arg.args[1], expr.arg.args[0])
+                    o = "0x0(%s)" % expr.ptr
+            elif isinstance(expr.ptr, ExprInt):
+                o = "@%s" % expr.ptr
+            elif isinstance(expr.ptr, ExprOp):
+                o = "%s(%s)" % (expr.ptr.args[1], expr.ptr.args[0])
         else:
             raise NotImplementedError('unknown instance expr = %s' % type(expr))
         return o
@@ -388,20 +388,20 @@ class msp430_sreg_arg(reg_noarg, msp430_arg):
                 self.value = 0
                 self.parent.off_s.value = v
         elif isinstance(e, ExprMem):
-            if isinstance(e.arg, ExprId):
+            if isinstance(e.ptr, ExprId):
                 self.parent.a_s.value = 0b10
-                self.value = self.reg_info.expr.index(e.arg)
-            elif isinstance(e.arg, ExprInt):
+                self.value = self.reg_info.expr.index(e.ptr)
+            elif isinstance(e.ptr, ExprInt):
                 self.parent.a_s.value = 0b01
                 self.value = self.reg_info.expr.index(SR)
-                self.parent.off_s.value = int(e.arg)
-            elif isinstance(e.arg, ExprOp):
+                self.parent.off_s.value = int(e.ptr)
+            elif isinstance(e.ptr, ExprOp):
                 self.parent.a_s.value = 0b01
-                self.value = self.reg_info.expr.index(e.arg.args[0])
-                self.parent.off_s.value = int(e.arg.args[1])
+                self.value = self.reg_info.expr.index(e.ptr.args[0])
+                self.parent.off_s.value = int(e.ptr.args[1])
             else:
                 raise NotImplementedError(
-                    'unknown instance e.arg = %s' % type(e.arg))
+                    'unknown instance e.ptr = %s' % type(e.ptr))
         elif isinstance(e, ExprOp) and e.op == "autoinc":
             self.parent.a_s.value = 0b11
             self.value = self.reg_info.expr.index(e.args[0])
@@ -443,15 +443,15 @@ class msp430_dreg_arg(msp430_sreg_arg):
             self.parent.a_d.value = 0
             self.value = self.reg_info.expr.index(e)
         elif isinstance(e, ExprMem):
-            if isinstance(e.arg, ExprId):
-                r, i = e.arg, ExprInt(0, 16)
-            elif isinstance(e.arg, ExprOp):
-                r, i = e.arg.args[0], e.arg.args[1]
-            elif isinstance(e.arg, ExprInt):
-                r, i = SR, e.arg
+            if isinstance(e.ptr, ExprId):
+                r, i = e.ptr, ExprInt(0, 16)
+            elif isinstance(e.ptr, ExprOp):
+                r, i = e.ptr.args[0], e.ptr.args[1]
+            elif isinstance(e.ptr, ExprInt):
+                r, i = SR, e.ptr
             else:
                 raise NotImplementedError(
-                    'unknown instance e.arg = %s' % type(e.arg))
+                    'unknown instance e.arg = %s' % type(e.ptr))
             self.parent.a_d.value = 1
             self.value = self.reg_info.expr.index(r)
             self.parent.off_d.value = int(i)

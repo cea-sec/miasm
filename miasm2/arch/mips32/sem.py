@@ -64,18 +64,18 @@ def l_b(arg1):
 def lbu(arg1, arg2):
     """A byte is loaded (unsigned extended) into a register @arg1 from the
     specified address @arg2."""
-    arg1 = mem8[arg2.arg].zeroExtend(32)
+    arg1 = mem8[arg2.ptr].zeroExtend(32)
 
 @sbuild.parse
 def lhu(arg1, arg2):
     """A word is loaded (unsigned extended) into a register @arg1 from the
     specified address @arg2."""
-    arg1 = mem16[arg2.arg].zeroExtend(32)
+    arg1 = mem16[arg2.ptr].zeroExtend(32)
 
 @sbuild.parse
 def lb(arg1, arg2):
     "A byte is loaded into a register @arg1 from the specified address @arg2."
-    arg1 = mem8[arg2.arg].signExtend(32)
+    arg1 = mem8[arg2.ptr].signExtend(32)
 
 @sbuild.parse
 def beq(arg1, arg2, arg3):
@@ -174,11 +174,11 @@ def l_sub(arg1, arg2, arg3):
 def sb(arg1, arg2):
     """The least significant byte of @arg1 is stored at the specified address
     @arg2."""
-    mem8[arg2.arg] = arg1[:8]
+    mem8[arg2.ptr] = arg1[:8]
 
 @sbuild.parse
 def sh(arg1, arg2):
-    mem16[arg2.arg] = arg1[:16]
+    mem16[arg2.ptr] = arg1[:16]
 
 @sbuild.parse
 def movn(arg1, arg2, arg3):

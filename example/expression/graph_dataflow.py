@@ -50,7 +50,7 @@ def intra_block_flow_symb(ir_arch, _, flow_graph, irblock, in_nodes, out_nodes):
             node_n_w = get_node_name(irblock.loc_key, 0, n)
             if not n == src:
                 continue
-            o_r = n.arg.get_r(mem_read=False, cst_read=True)
+            o_r = n.ptr.get_r(mem_read=False, cst_read=True)
             for i, n_r in enumerate(o_r):
                 if n_r in current_nodes:
                     node_n_r = current_nodes[n_r]

@@ -35,7 +35,7 @@ class TranslatorMiasm(Translator):
                                     self.from_expr(expr.src))
 
     def from_ExprMem(self, expr):
-        return "ExprMem(%s, size=%d)" % (self.from_expr(expr.arg), expr.size)
+        return "ExprMem(%s, size=%d)" % (self.from_expr(expr.ptr), expr.size)
 
 
 # Register the class

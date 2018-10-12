@@ -577,10 +577,10 @@ class instruction_x86(instruction):
             sz = SIZE2MEMPREFIX[expr.size]
             segm = ""
             if expr.is_mem_segm():
-                segm = "%s:" % expr.arg.args[0]
-                expr = expr.arg.args[1]
+                segm = "%s:" % expr.ptr.args[0]
+                expr = expr.ptr.args[1]
             else:
-                expr = expr.arg
+                expr = expr.ptr
             if isinstance(expr, ExprOp):
                 s = str(expr).replace('(', '').replace(')', '')
             else:
@@ -766,7 +766,7 @@ class mn_x86(cls_mn):
                     continue
                 m = a.expr
                 a.expr = ExprMem(
-                    ExprOp('segm', enc2segm[self.g2.value], m.arg), m.size)
+                    ExprOp('segm', enc2segm[self.g2.value], m.ptr), m.size)
         return self
 
     def dup_info(self, infos):
@@ -1701,15 +1701,15 @@ SIZE2BNDREG = {64:gpregs_mm,
 def parse_mem(expr, parent, w8, sx=0, xmm=0, mm=0, bnd=0):
     dct_expr = {}
     opmode = parent.v_opmode()
-    if expr.is_mem_segm() and expr.arg.args[0].is_int():
+    if expr.is_mem_segm() and expr.ptr.args[0].is_int():
         return None, None, False
 
     if expr.is_mem_segm():
-        segm = expr.arg.args[0]
-        ptr = expr.arg.args[1]
+        segm = expr.ptr.args[0]
+        ptr = expr.ptr.args[1]
     else:
         segm = None
-        ptr = expr.arg
+        ptr = expr.ptr
 
     dct_expr[f_isad] = True
     ad_size = ptr.size
@@ -2178,9 +2178,9 @@ class x86_rm_sd(x86_rm_arg):
         if not isinstance(expr, ExprMem):
             return False
         if self.get_s_value() == 0:
-            expr = ExprMem(expr.arg, 32)
+            expr = ExprMem(expr.ptr, 32)
         else:
-            expr = ExprMem(expr.arg, self.out_size)
+            expr = ExprMem(expr.ptr, self.out_size)
         self.expr = expr
         return self.expr is not None
 
@@ -2223,7 +2223,7 @@ class x86_rm_08(x86_rm_arg):
         if not isinstance(expr, ExprMem):
             self.expr = expr
             return True
-        self.expr = ExprMem(expr.arg, self.msize)
+        self.expr = ExprMem(expr.ptr, self.msize)
         return self.expr is not None
 
     def encode(self):
@@ -2243,7 +2243,7 @@ class x86_rm_reg_m08(x86_rm_arg):
             return ret
         if not isinstance(self.expr, ExprMem):
             return True
-        self.expr = ExprMem(self.expr.arg, self.msize)
+        self.expr = ExprMem(self.expr.ptr, self.msize)
         return self.expr is not None
 
     def encode(self):
@@ -2251,7 +2251,7 @@ class x86_rm_reg_m08(x86_rm_arg):
             raise StopIteration
         p = self.parent
         if isinstance(self.expr, ExprMem):
-            expr = ExprMem(self.expr.arg, 32)
+            expr = ExprMem(self.expr.ptr, 32)
         else:
             expr = self.expr
         v_cand, segm, ok = expr2modrm(expr, p, 1, 0, 0, 0)
@@ -2270,7 +2270,7 @@ class x86_rm_m64(x86_rm_arg):
         expr = modrm2expr(xx, p, 1)
         if not isinstance(expr, ExprMem):
             return False
-        self.expr = ExprMem(expr.arg, self.msize)
+        self.expr = ExprMem(expr.ptr, self.msize)
         return self.expr is not None
 
     def encode(self):
@@ -2294,7 +2294,7 @@ class x86_rm_m80(x86_rm_m64):
         mode = p.mode
         if mode == 64:
             mode = 32
-        self.expr = ExprMem(self.expr.arg, mode)
+        self.expr = ExprMem(self.expr.ptr, mode)
         v_cand, segm, ok = expr2modrm(self.expr, p, 1)
         for x in self.gen_cand(v_cand, p.v_admode()):
             yield x
@@ -2337,7 +2337,7 @@ class x86_rm_mm(x86_rm_m80):
             if self.msize is None:
                 return False
             if expr.size != self.msize:
-                expr = ExprMem(expr.arg, self.msize)
+                expr = ExprMem(expr.ptr, self.msize)
         self.expr = expr
         return True
 
@@ -2354,9 +2354,9 @@ class x86_rm_mm(x86_rm_m80):
             mode = 32
         if isinstance(expr, ExprMem):
             if self.is_xmm:
-                expr = ExprMem(expr.arg, 128)
+                expr = ExprMem(expr.ptr, 128)
             elif self.is_mm:
-                expr = ExprMem(expr.arg, 64)
+                expr = ExprMem(expr.ptr, 64)
 
         v_cand, segm, ok = expr2modrm(expr, p, 0, 0, self.is_xmm, self.is_mm,
                                       self.is_bnd)
@@ -3041,10 +3041,10 @@ class bs_movoff(x86_arg):
 
     def encode(self):
         p = self.parent
-        if not isinstance(self.expr, ExprMem) or not isinstance(self.expr.arg, ExprInt):
+        if not isinstance(self.expr, ExprMem) or not isinstance(self.expr.ptr, ExprInt):
             raise StopIteration
         self.l = p.v_admode()
-        v = int(self.expr.arg)
+        v = int(self.expr.ptr)
         mask = ((1 << self.l) - 1)
         if v != mask & v:
             raise StopIteration

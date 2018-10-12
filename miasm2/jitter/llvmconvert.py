@@ -679,7 +679,7 @@ class LLVMFunction():
             builder.store(src, ptr_casted)
 
         elif isinstance(dst, ExprMem):
-            addr = self.add_ir(dst.arg)
+            addr = self.add_ir(dst.ptr)
             self.llvm_context.memory_write(self, addr, dst.size, src)
         else:
             raise Exception("UnknownAffectationType")
@@ -1091,7 +1091,7 @@ class LLVMFunction():
 
         if isinstance(expr, ExprMem):
 
-            addr = self.add_ir(expr.arg)
+            addr = self.add_ir(expr.ptr)
             return self.llvm_context.memory_lookup(self, addr, expr.size)
 
         if isinstance(expr, ExprCond):

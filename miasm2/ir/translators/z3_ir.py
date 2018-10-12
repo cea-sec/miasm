@@ -144,7 +144,7 @@ class TranslatorZ3(Translator):
         return z3.BitVec(str(loc_key), expr.size)
 
     def from_ExprMem(self, expr):
-        addr = self.from_expr(expr.arg)
+        addr = self.from_expr(expr.ptr)
         return self._mem.get(addr, expr.size)
 
     def from_ExprSlice(self, expr):

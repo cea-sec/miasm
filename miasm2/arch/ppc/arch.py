@@ -77,7 +77,7 @@ class instruction_ppc(instruction):
         if isinstance(e, ExprId) or isinstance(e, ExprInt):
             return str(e)
         elif isinstance(e, ExprMem):
-            addr = e.arg
+            addr = e.ptr
             if isinstance(addr, ExprInt) or isinstance(addr, ExprId):
                 out = '(%s)'%addr
             elif isinstance(addr, ExprOp):
@@ -509,7 +509,7 @@ class ppc_deref32(ppc_arg):
         e = self.expr
         if not isinstance(e, ExprMem):
             return False
-        addr = e.arg
+        addr = e.ptr
         if isinstance(addr, ExprId) or isinstance(addr, ExprInt):
             addr = addr + ExprInt(0, 32)
         elif not isinstance(addr, ExprOp):

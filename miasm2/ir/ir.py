@@ -230,7 +230,7 @@ class AssignBlock(object):
             src_read = src.get_r(mem_read=mem_read, cst_read=cst_read)
             if isinstance(dst, m2_expr.ExprMem) and mem_read:
                 # Read on destination happens only with ExprMem
-                src_read.update(dst.arg.get_r(mem_read=mem_read,
+                src_read.update(dst.ptr.get_r(mem_read=mem_read,
                                               cst_read=cst_read))
             out[dst] = src_read
         return out
