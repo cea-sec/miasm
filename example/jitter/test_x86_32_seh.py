@@ -36,7 +36,7 @@ parser = Sandbox_Win_x86_32.parser(description="PE sandboxer")
 parser.add_argument("filename", help="PE Filename")
 options = parser.parse_args()
 options.usesegm = True
-options.use_seh = True
+options.use_windows_structs = True
 
 # Create sandbox
 sb = Sandbox_Win_x86_32(options.filename, options, globals())

@@ -236,7 +236,7 @@ class OS_Win(OS):
         self.jitter.add_lib_handler(libs, methods)
 
         # Manage SEH
-        if self.options.use_seh:
+        if self.options.use_windows_structs:
             win_api_x86_32_seh.main_pe_name = fname_basename
             win_api_x86_32_seh.main_pe = self.pe
             win_api_x86_32.winobjs.hcurmodule = self.pe.NThdr.ImageBase
@@ -251,8 +251,8 @@ class OS_Win(OS):
     def update_parser(cls, parser):
         parser.add_argument('-o', "--load-hdr", action="store_true",
                             help="Load pe hdr")
-        parser.add_argument('-y', "--use-seh", action="store_true",
-                            help="Use windows SEH")
+        parser.add_argument('-y', "--use-windows-structs", action="store_true",
+                            help="Create and use windows structures (peb, ldr, seh, ...)")
         parser.add_argument('-l', "--loadbasedll", action="store_true",
                             help="Load base dll (path './win_dll')")
         parser.add_argument('-r', "--parse-resources",
