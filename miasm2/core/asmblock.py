@@ -600,8 +600,12 @@ class AsmCFG(DiGraph):
         return self._pendings
 
     def label2block(self, loc_key):
-        """Return the block corresponding to loc_key @loc_key
-        @loc_key: LocKey instance"""
+        """
+        DEPRECATED: Use "loc_key_to_block" instead of "label2block"
+
+        Return the block corresponding to loc_key @loc_key
+        @loc_key: LocKey instance
+        """
         warnings.warn('DEPRECATION WARNING: use "loc_key_to_block" instead of "label2block"')
         return self.loc_key_to_block(loc_key)
 
