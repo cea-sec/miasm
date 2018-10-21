@@ -16,6 +16,10 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
+from miasm2.core.utils import BIG_ENDIAN, LITTLE_ENDIAN
+from miasm2.core.utils import upck8le, upck16le, upck32le, upck64le
+from miasm2.core.utils import upck8be, upck16be, upck32be, upck64be
+
 
 class bin_stream(object):
 
@@ -26,7 +30,7 @@ class bin_stream(object):
     _atomic_mode = False
 
     def __init__(self, *args, **kargs):
-        pass
+        self.endianness = LITTLE_ENDIAN
 
     def __repr__(self):
         return "<%s !!>" % self.__class__.__name__
@@ -104,6 +108,55 @@ class bin_stream(object):
             start += cur_len
         return out
 
+    def get_u8(self, addr, endianness=None):
+        """
+        Return u8 from address @addr
+        endianness: Optional: LITTLE_ENDIAN/BIG_ENDIAN
+        """
+        if endianness is None:
+            endianness = self.endianness
+        data = self.getbytes(addr, 1)
+        return data
+
+    def get_u16(self, addr, endianness=None):
+        """
+        Return u16 from address @addr
+        endianness: Optional: LITTLE_ENDIAN/BIG_ENDIAN
+        """
+        if endianness is None:
+            endianness = self.endianness
+        data = self.getbytes(addr, 2)
+        if endianness == LITTLE_ENDIAN:
+            return upck16le(data)
+        else:
+            return upck32be(data)
+
+    def get_u32(self, addr, endianness=None):
+        """
+        Return u32 from address @addr
+        endianness: Optional: LITTLE_ENDIAN/BIG_ENDIAN
+        """
+        if endianness is None:
+            endianness = self.endianness
+        data = self.getbytes(addr, 4)
+        if endianness == LITTLE_ENDIAN:
+            return upck32le(data)
+        else:
+            return upck32be(data)
+
+    def get_u64(self, addr, endianness=None):
+        """
+        Return u64 from address @addr
+        endianness: Optional: LITTLE_ENDIAN/BIG_ENDIAN
+        """
+        if endianness is None:
+            endianness = self.endianness
+        data = self.getbytes(addr, 8)
+        if endianness == LITTLE_ENDIAN:
+            return upck64le(data)
+        else:
+            return upck64be(data)
+
 
 class bin_stream_str(bin_stream):
 
@@ -168,14 +221,14 @@ class bin_stream_file(bin_stream):
 
 class bin_stream_container(bin_stream):
 
-    def __init__(self, virt_view, offset=0L):
+    def __init__(self, binary, offset=0L):
         bin_stream.__init__(self)
-        self.bin = virt_view
-        self.l = virt_view.max_addr()
+        self.bin = binary
+        self.l = binary.virt.max_addr()
         self.offset = offset
 
     def is_addr_in(self, ad):
-        return self.bin.is_addr_in(ad)
+        return self.bin.virt.is_addr_in(ad)
 
     def getlen(self):
         return self.l
@@ -184,16 +237,16 @@ class bin_stream_container(bin_stream):
         if self.offset + l > self.l:
             raise IOError("not enough bytes")
         self.offset += l
-        return self.bin.get(self.offset - l, self.offset)
+        return self.bin.virt.get(self.offset - l, self.offset)
 
     def _getbytes(self, start, l=1):
         try:
-            return self.bin.get(start, start + l)
+            return self.bin.virt.get(start, start + l)
         except ValueError:
             raise IOError("cannot get bytes")
 
     def __str__(self):
-        out = self.bin.get(self.offset, self.offset + self.l)
+        out = self.bin.virt.get(self.offset, self.offset + self.l)
         return out
 
     def setoffset(self, val):
@@ -201,11 +254,15 @@ class bin_stream_container(bin_stream):
 
 
 class bin_stream_pe(bin_stream_container):
-    pass
+    def __init__(self, binary, *args, **kwargs):
+        super(bin_stream_pe, self).__init__(binary, *args, **kwargs)
+        self.endianness = binary._sex
 
 
 class bin_stream_elf(bin_stream_container):
-    pass
+    def __init__(self, binary, *args, **kwargs):
+        super(bin_stream_elf, self).__init__(binary, *args, **kwargs)
+        self.endianness = binary.sex
 
 
 class bin_stream_vm(bin_stream):
@@ -214,6 +271,10 @@ class bin_stream_vm(bin_stream):
         self.offset = offset
         self.base_offset = base_offset
         self.vm = vm
+        if self.vm.is_little_endian():
+            self.endianness = LITTLE_ENDIAN
+        else:
+            self.endianness = BIG_ENDIAN
 
     def getlen(self):
         return 0xFFFFFFFFFFFFFFFF
