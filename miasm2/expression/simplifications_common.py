@@ -509,7 +509,7 @@ def simp_slice(e_s, expr):
     if (expr.arg.is_mem() and
           expr.start == 0 and
           expr.arg.size > expr.stop and expr.stop % 8 == 0):
-        return ExprMem(expr.arg.arg, size=expr.stop)
+        return ExprMem(expr.arg.ptr, size=expr.stop)
     # distributivity of slice and &
     # (a & int)[x:y] => 0 if int[x:y] == 0
     if expr.arg.is_op("&") and expr.arg.args[-1].is_int():
@@ -576,9 +576,9 @@ def simp_compose(e_s, expr):
     for i, arg in enumerate(args[:-1]):
         nxt = args[i + 1]
         if arg.is_mem() and nxt.is_mem():
-            gap = e_s(nxt.arg - arg.arg)
+            gap = e_s(nxt.ptr - arg.ptr)
             if gap.is_int() and arg.size % 8 == 0 and int(gap) == arg.size / 8:
-                args = args[:i] + [ExprMem(arg.arg,
+                args = args[:i] + [ExprMem(arg.ptr,
                                           arg.size + nxt.size)] + args[i + 2:]
                 return ExprCompose(*args)
 
@@ -664,8 +664,8 @@ def simp_mem(e_s, expr):
     "Common simplifications on ExprMem"
 
     # @32[x?a:b] => x?@32[a]:@32[b]
-    if expr.arg.is_cond():
-        cond = expr.arg
+    if expr.ptr.is_cond():
+        cond = expr.ptr
         ret = ExprCond(cond.cond,
                        ExprMem(cond.src1, expr.size),
                        ExprMem(cond.src2, expr.size))

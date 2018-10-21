@@ -1012,12 +1012,12 @@ class ExprToAccessC(ExprReducer):
 
         if not isinstance(node.expr, ExprMem):
             return None
-        if node.arg.info is None:
+        if node.ptr.info is None:
             return None
-        assert isinstance(node.arg.info, set)
+        assert isinstance(node.ptr.info, set)
         void_type = self.types_mngr.void_ptr
         found = set()
-        for subcgenobj in node.arg.info:
+        for subcgenobj in node.ptr.info:
             if isinstance(subcgenobj.ctype, ObjCArray):
                 nobj = CGenArray(subcgenobj, 0,
                                  void_type.align,
@@ -1285,7 +1285,7 @@ class ExprCToExpr(ExprReducer):
             out = (src.arg, ObjCPtr(src_type.objtype,
                                     void_type.align, void_type.size))
         elif isinstance(src, ExprMem):
-            out = (src.arg, ObjCPtr(src_type,
+            out = (src.ptr, ObjCPtr(src_type,
                                     void_type.align, void_type.size))
         elif isinstance(src_type, ObjCStruct):
             out = (src, ObjCPtr(src_type,

@@ -250,7 +250,7 @@ def mn_do_load(ir, instr, arg1, arg2, arg3=None):
     if arg3 is None:
         assert isinstance(arg2, ExprMem)
 
-        address = arg2.arg
+        address = arg2.ptr
     else:
         address = arg2 + arg3
 
@@ -267,7 +267,7 @@ def mn_do_load(ir, instr, arg1, arg2, arg3=None):
     ret.append(ExprAssign(arg1, src))
     if has_u:
         if arg3 is None:
-            ret.append(ExprAssign(arg2.arg.args[0], address))
+            ret.append(ExprAssign(arg2.ptr.args[0], address))
         else:
             ret.append(ExprAssign(arg2, address))
 
@@ -586,7 +586,7 @@ def mn_do_store(ir, instr, arg1, arg2, arg3=None):
     if arg3 is None:
         assert isinstance(arg2, ExprMem)
 
-        address = arg2.arg
+        address = arg2.ptr
     else:
         address = arg2 + arg3
 
@@ -599,7 +599,7 @@ def mn_do_store(ir, instr, arg1, arg2, arg3=None):
     ret.append(ExprAssign(dest, src))
     if has_u:
         if arg3 is None:
-            ret.append(ExprAssign(arg2.arg.args[0], address))
+            ret.append(ExprAssign(arg2.ptr.args[0], address))
         else:
             ret.append(ExprAssign(arg2, address))
 

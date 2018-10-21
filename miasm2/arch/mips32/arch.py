@@ -69,7 +69,7 @@ class instruction_mips32(cpu.instruction):
             else:
                 return str(expr)
         assert(isinstance(expr, ExprMem))
-        arg = expr.arg
+        arg = expr.ptr
         if isinstance(arg, ExprId):
             return "(%s)"%arg
         assert(len(arg.args) == 2 and arg.op == '+')
@@ -394,13 +394,13 @@ class mips32_dreg_imm(mips32_arg):
         e = self.expr
         if not isinstance(e, ExprMem):
             return False
-        arg = e.arg
-        if isinstance(arg, ExprId):
+        ptr = e.ptr
+        if isinstance(ptr, ExprId):
             self.parent.imm.expr = ExprInt(0, 32)
-            r = arg
-        elif len(arg.args) == 2 and arg.op == "+":
-            self.parent.imm.expr = arg.args[1]
-            r = arg.args[0]
+            r = ptr
+        elif len(ptr.args) == 2 and ptr.op == "+":
+            self.parent.imm.expr = ptr.args[1]
+            r = ptr.args[0]
         else:
             return False
         self.value = gpregs.expr.index(r)
@@ -409,11 +409,11 @@ class mips32_dreg_imm(mips32_arg):
     @staticmethod
     def arg2str(expr, index=None):
         assert(isinstance(expr, ExprMem))
-        arg = expr.arg
-        if isinstance(arg, ExprId):
-            return "(%s)"%arg
-        assert(len(arg.args) == 2 and arg.op == '+')
-        return "%s(%s)"%(arg.args[1], arg.args[0])
+        ptr = expr.ptr
+        if isinstance(ptr, ExprId):
+            return "(%s)"%ptr
+        assert(len(ptr.args) == 2 and ptr.op == '+')
+        return "%s(%s)"%(ptr.args[1], ptr.args[0])
 
 class mips32_esize(mips32_imm, mips32_arg):
     def decode(self, v):

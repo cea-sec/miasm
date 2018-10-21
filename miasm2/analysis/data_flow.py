@@ -159,7 +159,7 @@ class DiGraphDefUse(DiGraph):
 
                 read_vars = expr.get_r(mem_read=deref_mem)
                 if deref_mem and lval.is_mem():
-                    read_vars.update(lval.arg.get_r(mem_read=deref_mem))
+                    read_vars.update(lval.ptr.get_r(mem_read=deref_mem))
                 for read_var in read_vars:
                     for reach in assignblk_reaching_defs.get(read_var, set()):
                         self.add_data_edge(AssignblkNode(reach[0], reach[1], read_var),
@@ -538,7 +538,7 @@ class SSADefUse(DiGraph):
         lbl, index, dst = node
         sources = set()
         if dst.is_mem():
-            sources.update(dst.arg.get_r(mem_read=True))
+            sources.update(dst.ptr.get_r(mem_read=True))
         sources.update(src.get_r(mem_read=True))
         for source in sources:
             if not source.is_mem():
@@ -741,7 +741,7 @@ class PropagateExpr(object):
                         continue
 
                     if src.is_mem():
-                        ptr = src.arg
+                        ptr = src.ptr
                         ptr = ptr.replace_expr(replace)
                         new_src = ExprMem(ptr, src.size)
                     else:
@@ -750,7 +750,7 @@ class PropagateExpr(object):
                     if dst.is_id():
                         new_dst = dst
                     elif dst.is_mem():
-                        ptr = dst.arg
+                        ptr = dst.ptr
                         ptr = ptr.replace_expr(replace)
                         new_dst = ExprMem(ptr, dst.size)
                     else:
@@ -933,8 +933,8 @@ def replace_stack_vars(ir_arch_a, ssa):
 
 
 def memlookup_test(expr, bs, is_addr_ro_variable, result):
-    if expr.is_mem() and expr.arg.is_int():
-        ptr = int(expr.arg)
+    if expr.is_mem() and expr.ptr.is_int():
+        ptr = int(expr.ptr)
         if is_addr_ro_variable(bs, ptr, expr.size):
             result.add(expr)
         return False
@@ -953,7 +953,7 @@ def get_memlookup(expr, bs, is_addr_ro_variable):
 
 
 def read_mem(bs, expr):
-    ptr = int(expr.arg)
+    ptr = int(expr.ptr)
     var_bytes = bs.getbytes(ptr, expr.size / 8)[::-1]
     try:
         value = int(var_bytes.encode('hex'), 16)
@@ -989,7 +989,7 @@ def load_from_int(ir_arch, bs, is_addr_ro_variable):
                         modified = True
                 # Test dst pointer if dst is mem
                 if dst.is_mem():
-                    ptr = dst.arg
+                    ptr = dst.ptr
                     mems = get_memlookup(ptr, bs, is_addr_ro_variable)
                     if mems:
                         replace = {}

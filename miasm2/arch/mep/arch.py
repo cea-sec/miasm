@@ -85,11 +85,11 @@ class instruction_mep(instruction):
             else:
                 return str(expr)
 
-        elif isinstance(expr, ExprMem) and (isinstance(expr.arg, ExprId) or isinstance(expr.arg, ExprInt)):
-            return "(%s)" % expr.arg
+        elif isinstance(expr, ExprMem) and (isinstance(expr.ptr, ExprId) or isinstance(expr.ptr, ExprInt)):
+            return "(%s)" % expr.ptr
 
-        elif isinstance(expr, ExprMem) and isinstance(expr.arg, ExprOp):
-            return "0x%X(%s)" % (expr.arg.args[1].arg, expr.arg.args[0])
+        elif isinstance(expr, ExprMem) and isinstance(expr.ptr, ExprOp):
+            return "0x%X(%s)" % (expr.ptr.args[1].arg, expr.ptr.args[0])
 
         # Raise an exception if the expression type was not processed
         message = "instruction_mep.arg2str(): don't know what \
@@ -133,18 +133,18 @@ class instruction_mep(instruction):
             o += ", %s" % ExprInt2SignedString(self.args[2].arg)
 
         elif len(self.args) == 2 and self.name in ["SB", "SH", "LBU", "LB", "LH", "LW"] and \
-                isinstance(self.args[1], ExprMem) and isinstance(self.args[1].arg, ExprOp):  # Major Opcodes #12
+                isinstance(self.args[1], ExprMem) and isinstance(self.args[1].ptr, ExprOp):  # Major Opcodes #12
             # The second operand is an offset to a register
             o += " " + self.arg2str(self.args[0])
-            o += ", %s" % ExprInt2SignedString(self.args[1].arg.args[1], "0x%X")
-            o += "(%s)" % self.arg2str(self.args[1].arg.args[0])
+            o += ", %s" % ExprInt2SignedString(self.args[1].ptr.args[1], "0x%X")
+            o += "(%s)" % self.arg2str(self.args[1].ptr.args[0])
 
         elif len(self.args) == 2 and self.name in ["SWCP", "LWCP", "SMCP", "LMCP"] \
-                and isinstance(self.args[1], ExprMem) and isinstance(self.args[1].arg, ExprOp):  # Major Opcodes #12
+                and isinstance(self.args[1], ExprMem) and isinstance(self.args[1].ptr, ExprOp):  # Major Opcodes #12
             # The second operand is an offset to a register
             o += " " + self.arg2str(self.args[0])
-            o += ", %s" % ExprInt2SignedString(self.args[1].arg.args[1])
-            o += "(%s)" % self.arg2str(self.args[1].arg.args[0])
+            o += ", %s" % ExprInt2SignedString(self.args[1].ptr.args[1])
+            o += "(%s)" % self.arg2str(self.args[1].ptr.args[0])
 
         elif self.name == "SLL" and isinstance(self.args[1], ExprInt):  # Major Opcodes #6
             # The second operand is displayed in hex, not in decimal
@@ -605,11 +605,11 @@ class mep_deref_reg(mep_arg):
 
         if not isinstance(self.expr, ExprMem):
             return False
-        if not isinstance(self.expr.arg, ExprId):
+        if not isinstance(self.expr.ptr, ExprId):
             return False
 
         # Get the ExprId index, i.e. its value
-        self.value = gpr_exprs.index(self.expr.arg)
+        self.value = gpr_exprs.index(self.expr.ptr)
         return True
 
 
@@ -666,14 +666,14 @@ class mep_deref_reg_offset(mep_arg):
         # Verify the expression
         if not isinstance(self.expr, ExprMem):
             return False
-        if not isinstance(self.expr.arg, ExprOp):
+        if not isinstance(self.expr.ptr, ExprOp):
             return False
 
         # Get the integer and check the upper bound
-        v = int(self.expr.arg.args[1].arg & 0xFFFF)
+        v = int(self.expr.ptr.args[1].arg & 0xFFFF)
 
         # Encode the values
-        self.parent.reg04_deref.value = gpr_exprs.index(self.expr.arg.args[0])
+        self.parent.reg04_deref.value = gpr_exprs.index(self.expr.ptr.args[0])
         self.value = v & 0xFFFF
         return True
 
@@ -726,15 +726,15 @@ class mep_deref_sp_offset(mep_deref_reg):
         # Verify the expression
         if not isinstance(self.expr, ExprMem):
             return False
-        if not isinstance(self.expr.arg, ExprOp):
+        if not isinstance(self.expr.ptr, ExprOp):
             return False
-        if self.expr.arg.args[0] != self.implicit_reg:
+        if self.expr.ptr.args[0] != self.implicit_reg:
             return False
 
         if getattr(self.parent, "imm7_align4", False):
 
             # Get the integer and check the upper bound
-            v = int(self.expr.arg.args[1].arg)
+            v = int(self.expr.ptr.args[1].arg)
             if v > 0x80:
                 return False
 
@@ -746,7 +746,7 @@ class mep_deref_sp_offset(mep_deref_reg):
         elif getattr(self.parent, "imm7", False):
 
             # Get the integer and check the upper bound
-            v = int(self.expr.arg.args[1].arg)
+            v = int(self.expr.ptr.args[1].arg)
             if v > 0x80:
                 return False
 
@@ -758,7 +758,7 @@ class mep_deref_sp_offset(mep_deref_reg):
         elif getattr(self.parent, "disp7_align2", False):
 
             # Get the integer and check the upper bound
-            v = int(self.expr.arg.args[1].arg)
+            v = int(self.expr.ptr.args[1].arg)
             if v > 0x80:
                 return False
 
@@ -1231,11 +1231,11 @@ class mep_abs24(mep_imm):
         the other one in imm6.
         """
 
-        if not (isinstance(self.expr, ExprMem) and isinstance(self.expr.arg, ExprInt)):
+        if not (isinstance(self.expr, ExprMem) and isinstance(self.expr.ptr, ExprInt)):
             return False
 
         # Get the integer and check the upper bound
-        v = int(self.expr.arg.arg)
+        v = int(self.expr.ptr.arg)
         if v > 0xffffff:
             return False
 
