@@ -456,6 +456,18 @@ class DiGraph(object):
                     break
         return idoms
 
+    def compute_immediate_postdominators(self,tail):
+        """Compute the immediate postdominators of the graph"""
+        postdominators = self.compute_postdominators(tail)
+        ipdoms = {}
+
+        for node in postdominators:
+            for successor in self.walk_postdominators(node, postdominators):
+                if successor in postdominators[node] and node != successor:
+                    ipdoms[node] = successor
+                    break
+        return ipdoms
+
     def compute_dominance_frontier(self, head):
         """
         Compute the dominance frontier of the graph
