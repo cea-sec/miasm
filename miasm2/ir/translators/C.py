@@ -317,7 +317,7 @@ class TranslatorC(Translator):
                         ">>>": "ror",
                         "<<<": "rol"
                     }
-                    out = "bignum_%d(%s, %d, bignum_to_uint64(%s))" % (
+                    out = "bignum_%s(%s, %d, bignum_to_uint64(%s))" % (
                         op[expr.op], arg0, expr.size, arg1
                     )
                     out = "bignum_mask(%s, %d)"% (out, expr.size)
