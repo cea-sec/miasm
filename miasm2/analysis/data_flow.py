@@ -787,7 +787,7 @@ def stack_to_reg(expr):
 def is_stack_access(ir_arch_a, expr):
     if not expr.is_mem():
         return False
-    ptr = expr.arg
+    ptr = expr.ptr
     diff = expr_simp(ptr - ir_arch_a.sp)
     if not diff.is_int():
         return False
@@ -819,7 +819,7 @@ def check_expr_below_stack(ir_arch_a, expr):
     @ir_arch_a: ira instance
     @expr: Expression instance
     """
-    ptr = expr.arg
+    ptr = expr.ptr
     diff = expr_simp(ptr - ir_arch_a.sp)
     if not diff.is_int():
         return True
@@ -845,7 +845,7 @@ def retrieve_stack_accesses(ir_arch_a, ssa):
 
     base_to_var = {}
     for var in stack_vars:
-        base_to_var.setdefault(var.arg, set()).add(var)
+        base_to_var.setdefault(var.ptr, set()).add(var)
 
 
     base_to_interval = {}
@@ -887,7 +887,7 @@ def fix_stack_vars(expr, base_to_info):
     """
     if not expr.is_mem():
         return expr
-    ptr = expr.arg
+    ptr = expr.ptr
     if ptr not in base_to_info:
         return expr
     size, name = base_to_info[ptr]
