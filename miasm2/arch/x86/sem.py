@@ -636,17 +636,18 @@ def _rotate_tpl(ir, instr, dst, src, op, left=False):
             m2_expr.ExprAssign(of, new_of),
             m2_expr.ExprAssign(dst, res)
             ]
+    e = []
+    if dst.size == 32 and dst in replace_regs[64]:
+        e.append(m2_expr.ExprAssign(dst[:dst.size], dst))
     # Don't generate conditional shifter on constant
     if isinstance(shifter, m2_expr.ExprInt):
         if int(shifter) != 0:
             return (e_do, [])
         else:
-            return ([], [])
-    e = []
+            return (e, [])
     loc_do, loc_do_expr = ir.gen_loc_key_and_expr(ir.IRDst.size)
     loc_skip = ir.get_next_loc_key(instr)
     loc_skip_expr = m2_expr.ExprLoc(loc_skip, ir.IRDst.size)
-
     e_do.append(m2_expr.ExprAssign(ir.IRDst, loc_skip_expr))
     e.append(m2_expr.ExprAssign(
         ir.IRDst, m2_expr.ExprCond(shifter, loc_do_expr, loc_skip_expr)))
@@ -685,17 +686,18 @@ def rotate_with_carry_tpl(ir, instr, op, dst, src):
             m2_expr.ExprAssign(of, new_of),
             m2_expr.ExprAssign(dst, new_dst)
             ]
+    e = []
+    if dst.size == 32 and dst in replace_regs[64]:
+        e.append(m2_expr.ExprAssign(dst[:dst.size], dst))
     # Don't generate conditional shifter on constant
     if isinstance(shifter, m2_expr.ExprInt):
         if int(shifter) != 0:
             return (e_do, [])
         else:
-            return ([], [])
-    e = []
+            return (e, [])
     loc_do, loc_do_expr = ir.gen_loc_key_and_expr(ir.IRDst.size)
     loc_skip = ir.get_next_loc_key(instr)
     loc_skip_expr = m2_expr.ExprLoc(loc_skip, ir.IRDst.size)
-
     e_do.append(m2_expr.ExprAssign(ir.IRDst, loc_skip_expr))
     e.append(m2_expr.ExprAssign(
         ir.IRDst, m2_expr.ExprCond(shifter, loc_do_expr, loc_skip_expr)))
@@ -772,15 +774,15 @@ def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None, left=False,
         m2_expr.ExprAssign(a, res),
     ]
     e_do += update_flag_znp(res)
-
+    e = []
+    if a.size == 32 and a in replace_regs[64]:
+        e.append(m2_expr.ExprAssign(a[:a.size], a))
     # Don't generate conditional shifter on constant
     if isinstance(shifter, m2_expr.ExprInt):
         if int(shifter) != 0:
-            return e_do, []
+            return (e_do, [])
         else:
-            return [], []
-
-    e = []
+            return (e, [])
     loc_do, loc_do_expr = ir.gen_loc_key_and_expr(ir.IRDst.size)
     loc_skip = ir.get_next_loc_key(instr)
     loc_skip_expr = m2_expr.ExprLoc(loc_skip, ir.IRDst.size)
