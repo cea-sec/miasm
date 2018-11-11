@@ -32,7 +32,7 @@ except ImportError:
     print "cannot find crypto, skipping"
 
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE, PAGE_EXEC
-from miasm2.core.utils import pck16, pck32, upck16, upck32, hexdump, whoami
+from miasm2.core.utils import pck16, pck32, hexdump, whoami
 from miasm2.os_dep.common import heap, windows_to_sbpath
 from miasm2.os_dep.common import set_str_unic, set_str_ansi
 from miasm2.os_dep.common import get_fmt_args as _get_fmt_args
@@ -358,7 +358,7 @@ def kernel32_GetVersion(jitter):
 def kernel32_GetVersionEx(jitter, str_size, set_str):
     ret_ad, args = jitter.func_args_stdcall(["ptr_struct"])
 
-    size = upck32(jitter.vm.get_mem(args.ptr_struct, 4))
+    size = jitter.vm.get_u32(args.ptr_struct)
     if size in [0x14+str_size, 0x1c+str_size]:
         tmp = struct.pack("IIIII%dsHHHBB" % str_size,
                           0x114,            # struct size
@@ -434,7 +434,7 @@ def advapi32_CryptAcquireContext(jitter, funcname, get_str):
                                              "dwflags"])
     prov = get_str(args.pszprovider) if args.pszprovider else "NONE"
     log.debug('prov: %r', prov)
-    jitter.vm.set_mem(args.phprov, pck32(winobjs.cryptcontext_hwnd))
+    jitter.vm.set_u32(args.phprov, winobjs.cryptcontext_hwnd)
     jitter.func_ret_stdcall(ret_ad, 1)
 
 
@@ -454,9 +454,9 @@ def advapi32_CryptCreateHash(jitter):
 
     if args.algid == 0x00008003:
         log.debug('algo is MD5')
-        jitter.vm.set_mem(
+        jitter.vm.set_u32(
             args.phhash,
-            pck32(winobjs.cryptcontext_bnum + winobjs.cryptcontext_num)
+            winobjs.cryptcontext_bnum + winobjs.cryptcontext_num
         )
         winobjs.cryptcontext[
             winobjs.cryptcontext_bnum + winobjs.cryptcontext_num] = hobj()
@@ -464,9 +464,9 @@ def advapi32_CryptCreateHash(jitter):
             winobjs.cryptcontext_bnum + winobjs.cryptcontext_num].h = MD5.new()
     elif args.algid == 0x00008004:
         log.debug('algo is SHA1')
-        jitter.vm.set_mem(
+        jitter.vm.set_u32(
             args.phhash,
-            pck32(winobjs.cryptcontext_bnum + winobjs.cryptcontext_num)
+            winobjs.cryptcontext_bnum + winobjs.cryptcontext_num
         )
         winobjs.cryptcontext[
             winobjs.cryptcontext_bnum + winobjs.cryptcontext_num] = hobj()
@@ -504,7 +504,7 @@ def advapi32_CryptGetHashParam(jitter):
     else:
         raise ValueError('not impl', args.param)
     jitter.vm.set_mem(args.pbdata, h)
-    jitter.vm.set_mem(args.dwdatalen, pck32(len(h)))
+    jitter.vm.set_u32(args.dwdatalen, len(h))
 
     jitter.func_ret_stdcall(ret_ad, 1)
 
@@ -525,7 +525,7 @@ def advapi32_CryptDeriveKey(jitter):
     h = winobjs.cryptcontext[args.hbasedata].h.digest()
     log.debug('hash %r', h)
     winobjs.cryptcontext[args.hbasedata].h_result = h
-    jitter.vm.set_mem(args.phkey, pck32(args.hbasedata))
+    jitter.vm.set_u32(args.phkey, args.hbasedata)
     jitter.func_ret_stdcall(ret_ad, 1)
 
 
@@ -681,7 +681,7 @@ def kernel32_ReadFile(jitter):
 
     if data is not None:
         if (args.lpnumberofbytesread):
-            jitter.vm.set_mem(args.lpnumberofbytesread, pck32(len(data)))
+            jitter.vm.set_u32(args.lpnumberofbytesread, len(data))
         jitter.vm.set_mem(args.lpbuffer, data)
 
     jitter.func_ret_stdcall(ret_ad, 1)
@@ -699,7 +699,7 @@ def kernel32_GetFileSize(jitter):
         raise ValueError('unknown hwnd!')
 
     if args.lpfilesizehight != 0:
-        jitter.vm.set_mem(args.lpfilesizehight, pck32(ret))
+        jitter.vm.set_u32(args.lpfilesizehight, ret)
     jitter.func_ret_stdcall(ret_ad, ret)
 
 
@@ -737,7 +737,7 @@ def kernel32_VirtualProtect(jitter):
 
     if args.lpfloldprotect:
         old = jitter.vm.get_mem_access(args.lpvoid)
-        jitter.vm.set_mem(args.lpfloldprotect, pck32(ACCESS_DICT_INV[old]))
+        jitter.vm.set_u32(args.lpfloldprotect, ACCESS_DICT_INV[old])
 
     for addr in jitter.vm.get_all_memory():
         # Multi-page
@@ -864,7 +864,7 @@ def kernel32_CreateMutexW(jitter):
 
 def shell32_SHGetSpecialFolderLocation(jitter):
     ret_ad, args = jitter.func_args_stdcall(["hwndowner", "nfolder", "ppidl"])
-    jitter.vm.set_mem(args.ppidl, pck32(args.nfolder))
+    jitter.vm.set_u32(args.ppidl, args.nfolder)
     jitter.func_ret_stdcall(ret_ad, 0)
 
 
@@ -1022,7 +1022,7 @@ def kernel32_GetSystemInfo(jitter):
 
 def kernel32_IsWow64Process(jitter):
     ret_ad, args = jitter.func_args_stdcall(["process", "bool_ptr"])
-    jitter.vm.set_mem(args.bool_ptr, pck32(0))
+    jitter.vm.set_u32(args.bool_ptr, 0)
     jitter.func_ret_stdcall(ret_ad, 1)
 
 
@@ -1052,11 +1052,11 @@ def shell32_CommandLineToArgvW(jitter):
     o = 0
     for i, t in enumerate(tks):
         jitter.set_str_unic(addr + o, t)
-        jitter.vm.set_mem(addr_ret + 4 * i, pck32(addr + o))
+        jitter.vm.set_u32(addr_ret + 4 * i, addr + o)
         o += len(t)*2 + 2
 
-    jitter.vm.set_mem(addr_ret + 4 * i, pck32(0))
-    jitter.vm.set_mem(args.pnumargs, pck32(len(tks)))
+    jitter.vm.set_u32(addr_ret + 4 * i, 0)
+    jitter.vm.set_u32(args.pnumargs, len(tks))
     jitter.func_ret_stdcall(ret_ad, addr_ret)
 
 
@@ -1066,15 +1066,14 @@ def cryptdll_MD5Init(jitter):
     h = MD5.new()
     winobjs.cryptdll_md5_h[index] = h
 
-    jitter.vm.set_mem(args.ad_ctx, pck32(index))
+    jitter.vm.set_u32(args.ad_ctx, index)
     jitter.func_ret_stdcall(ret_ad, 0)
 
 
 def cryptdll_MD5Update(jitter):
     ret_ad, args = jitter.func_args_stdcall(["ad_ctx", "ad_input", "inlen"])
 
-    index = jitter.vm.get_mem(args.ad_ctx, 4)
-    index = upck32(index)
+    index = jitter.vm.get_u32(args.ad_ctx)
     if not index in winobjs.cryptdll_md5_h:
         raise ValueError('unknown h context', index)
 
@@ -1088,8 +1087,7 @@ def cryptdll_MD5Update(jitter):
 def cryptdll_MD5Final(jitter):
     ret_ad, args = jitter.func_args_stdcall(["ad_ctx"])
 
-    index = jitter.vm.get_mem(args.ad_ctx, 4)
-    index = upck32(index)
+    index = jitter.vm.get_u32(args.ad_ctx)
     if not index in winobjs.cryptdll_md5_h:
         raise ValueError('unknown h context', index)
     h = winobjs.cryptdll_md5_h[index].digest()
@@ -1123,7 +1121,7 @@ def ntdll_RtlHashUnicodeString(jitter):
         s = s.lower()
     for c in s:
         hv = ((65599 * hv) + ord(c)) & 0xffffffff
-    jitter.vm.set_mem(args.phout, pck32(hv))
+    jitter.vm.set_u32(args.phout, hv)
     jitter.func_ret_stdcall(ret_ad, 0)
 
 
@@ -1136,9 +1134,9 @@ def kernel32_RtlMoveMemory(jitter):
 
 def ntdll_RtlAnsiCharToUnicodeChar(jitter):
     ret_ad, args = jitter.func_args_stdcall(['ad_ad_ch'])
-    ad_ch = upck32(jitter.vm.get_mem(args.ad_ad_ch, 4))
+    ad_ch = jitter.vm.get_u32(args.ad_ad_ch)
     ch = ord(jitter.vm.get_mem(ad_ch, 1))
-    jitter.vm.set_mem(args.ad_ad_ch, pck32(ad_ch + 1))
+    jitter.vm.set_u32(args.ad_ad_ch, ad_ch + 1)
     jitter.func_ret_stdcall(ret_ad, ch)
 
 
@@ -1166,10 +1164,10 @@ def ntdll_RtlFindCharInUnicodeString(jitter):
             break
     if pos is None:
         ret = 0xC0000225
-        jitter.vm.set_mem(args.pos_ad, pck32(0))
+        jitter.vm.set_u32(args.pos_ad, 0)
     else:
         ret = 0
-        jitter.vm.set_mem(args.pos_ad, pck32(pos))
+        jitter.vm.set_u32(args.pos_ad, pos)
 
     jitter.func_ret_stdcall(ret_ad, ret)
 
@@ -1253,7 +1251,7 @@ def kernel32_IsBadReadPtr(jitter):
 def ntoskrnl_KeInitializeEvent(jitter):
     ret_ad, args = jitter.func_args_stdcall(['my_event', 'my_type',
                                              'my_state'])
-    jitter.vm.set_mem(args.my_event, pck32(winobjs.win_event_num))
+    jitter.vm.set_u32(args.my_event, winobjs.win_event_num)
     winobjs.win_event_num += 1
 
     jitter.func_ret_stdcall(ret_ad, 0)
@@ -1539,11 +1537,11 @@ def my_GetVolumeInformation(jitter, funcname, get_str, set_str):
         set_str(args.lpvolumenamebuffer, s)
 
     if args.lpvolumeserialnumber:
-        jitter.vm.set_mem(args.lpvolumeserialnumber, pck32(11111111))
+        jitter.vm.set_u32(args.lpvolumeserialnumber, 11111111)
     if args.lpmaximumcomponentlength:
-        jitter.vm.set_mem(args.lpmaximumcomponentlength, pck32(0xff))
+        jitter.vm.set_u32(args.lpmaximumcomponentlength, 0xff)
     if args.lpfilesystemflags:
-        jitter.vm.set_mem(args.lpfilesystemflags, pck32(22222222))
+        jitter.vm.set_u32(args.lpfilesystemflags, 22222222)
 
     if args.lpfilesystemnamebuffer:
         s = "filesystemname"
@@ -1690,7 +1688,7 @@ def kernel32_SetFileAttributesA(jitter):
         ret = 1
     else:
         ret = 0
-        jitter.vm.set_mem(tib_address + 0x34, pck32(3))
+        jitter.vm.set_u32(tib_address + 0x34, 3)
 
     jitter.func_ret_stdcall(ret_ad, ret)
 
@@ -1725,7 +1723,7 @@ def ntdll_ZwProtectVirtualMemory(jitter):
                                              "flnewprotect",
                                              "lpfloldprotect"])
 
-    ad = upck32(jitter.vm.get_mem(args.lppvoid, 4))
+    ad = jitter.vm.get_u32(args.lppvoid)
     # dwsize = upck32(jitter.vm.get_mem(args.pdwsize, 4))
     # XXX mask hpart
     flnewprotect = args.flnewprotect & 0xFFF
@@ -1735,7 +1733,7 @@ def ntdll_ZwProtectVirtualMemory(jitter):
     jitter.vm.set_mem_access(ad, ACCESS_DICT[flnewprotect])
 
     # XXX todo real old protect
-    jitter.vm.set_mem(args.lpfloldprotect, pck32(0x40))
+    jitter.vm.set_u32(args.lpfloldprotect, 0x40)
 
     jitter.func_ret_stdcall(ret_ad, 1)
 
@@ -1747,7 +1745,7 @@ def ntdll_ZwAllocateVirtualMemory(jitter):
                                              "flprotect"])
 
     # ad = upck32(jitter.vm.get_mem(args.lppvoid, 4))
-    dwsize = upck32(jitter.vm.get_mem(args.pdwsize, 4))
+    dwsize = jitter.vm.get_u32(args.pdwsize)
 
     if not args.flprotect in ACCESS_DICT:
         raise ValueError('unknown access dw!')
@@ -1756,7 +1754,7 @@ def ntdll_ZwAllocateVirtualMemory(jitter):
     jitter.vm.add_memory_page(
         alloc_addr, ACCESS_DICT[args.flprotect], "\x00" * dwsize,
         "Alloc in %s ret 0x%X" % (whoami(), ret_ad))
-    jitter.vm.set_mem(args.lppvoid, pck32(alloc_addr))
+    jitter.vm.set_u32(args.lppvoid, alloc_addr)
 
     jitter.func_ret_stdcall(ret_ad, 0)
 
@@ -1808,7 +1806,7 @@ def ntdll_LdrLoadDll(jitter):
     libname = s.lower()
 
     ad = winobjs.runtime_dll.lib_get_add_base(libname)
-    jitter.vm.set_mem(args.modhandle, pck32(ad))
+    jitter.vm.set_u32(args.modhandle, ad)
 
     jitter.func_ret_stdcall(ret_ad, 0)
 
@@ -1830,7 +1828,7 @@ def ntdll_LdrGetProcedureAddress(jitter):
     ad = winobjs.runtime_dll.lib_get_add_func(args.libbase, fname)
     jitter.add_breakpoint(ad, jitter.handle_lib)
 
-    jitter.vm.set_mem(args.p_ad, pck32(ad))
+    jitter.vm.set_u32(args.p_ad, ad)
 
     jitter.func_ret_stdcall(ret_ad, 0)
 
@@ -2072,7 +2070,7 @@ def msvcrt_fprintf(jitter):
     ret = len(output)
     log.info("fprintf(%x, '%s') = '%s'" % (args.file, jitter.get_str_ansi(args.fmt), output))
 
-    fd = upck32(jitter.vm.get_mem(args.file + 0x10, 4))
+    fd = jitter.vm.get_u32(args.file + 0x10)
     if not fd in winobjs.handle_pool:
         raise NotImplementedError("Untested case")
     winobjs.handle_pool[fd].info.write(output)
@@ -2105,7 +2103,7 @@ def advapi32_RegCreateKeyW(jitter):
             ret_hkey = args.hkey
 
     log.info("RegCreateKeyW(%x, '%s') = (%x,%d)" % (args.hkey, s_subkey, ret_hkey, ret))
-    jitter.vm.set_mem(args.phandle, pck32(ret_hkey))
+    jitter.vm.set_u32(args.phandle, ret_hkey)
 
     jitter.func_ret_stdcall(ret_ad, ret)
 
@@ -2136,7 +2134,7 @@ def advapi32_RegOpenKeyEx(jitter, funcname, get_str):
         else:
             log.error('unknown skey')
 
-    jitter.vm.set_mem(args.phandle, pck32(ret_hkey))
+    jitter.vm.set_u32(args.phandle, ret_hkey)
 
     jitter.func_ret_stdcall(ret_ad, ret)
 
@@ -2497,10 +2495,10 @@ def kernel32_GetDiskFreeSpace(jitter, funcname, get_str):
                                              "lpbytespersector",
                                              "lpnumberoffreeclusters",
                                              "lptotalnumberofclusters"])
-    jitter.vm.set_mem(args.lpsectorpercluster, pck32(8))
-    jitter.vm.set_mem(args.lpbytespersector, pck32(0x200))
-    jitter.vm.set_mem(args.lpnumberoffreeclusters, pck32(0x222222))
-    jitter.vm.set_mem(args.lptotalnumberofclusters, pck32(0x333333))
+    jitter.vm.set_u32(args.lpsectorpercluster, 8)
+    jitter.vm.set_u32(args.lpbytespersector, 0x200)
+    jitter.vm.set_u32(args.lpnumberoffreeclusters, 0x222222)
+    jitter.vm.set_u32(args.lptotalnumberofclusters, 0x333333)
     jitter.func_ret_stdcall(ret_ad, 1)
 
 
@@ -2542,8 +2540,8 @@ def kernel32_GetProcessAffinityMask(jitter):
     ret_ad, args = jitter.func_args_stdcall(["hprocess",
                                              "procaffmask",
                                              "systemaffmask"])
-    jitter.vm.set_mem(args.procaffmask, pck32(1))
-    jitter.vm.set_mem(args.systemaffmask, pck32(1))
+    jitter.vm.set_u32(args.procaffmask, 1)
+    jitter.vm.set_u32(args.systemaffmask, 1)
     jitter.func_ret_stdcall(ret_ad, 1)
 
 
@@ -2653,7 +2651,7 @@ def kernel32_WriteFile(jitter):
         raise ValueError('unknown filename')
 
     if (args.lpnumberofbyteswrite):
-        jitter.vm.set_mem(args.lpnumberofbyteswrite, pck32(len(data)))
+        jitter.vm.set_u32(args.lpnumberofbyteswrite, len(data))
 
     jitter.func_ret_stdcall(ret_ad, 1)
 
@@ -2688,7 +2686,7 @@ def msvcrt_free(jitter):
 
 def msvcrt_fseek(jitter):
     ret_ad, args = jitter.func_args_cdecl(['stream', 'offset', 'orig'])
-    fd = upck32(jitter.vm.get_mem(args.stream + 0x10, 4))
+    fd = jitter.vm.get_u32(args.stream + 0x10)
 
     if not fd in winobjs.handle_pool:
         raise NotImplementedError("Untested case")
@@ -2699,7 +2697,7 @@ def msvcrt_fseek(jitter):
 
 def msvcrt_ftell(jitter):
     ret_ad, args = jitter.func_args_cdecl(["stream"])
-    fd = upck32(jitter.vm.get_mem(args.stream + 0x10, 4))
+    fd = jitter.vm.get_u32(args.stream + 0x10)
 
     if not fd in winobjs.handle_pool:
         raise NotImplementedError("Untested case")
@@ -2710,7 +2708,7 @@ def msvcrt_ftell(jitter):
 
 def msvcrt_rewind(jitter):
     ret_ad, args = jitter.func_args_cdecl(["stream"])
-    fd = upck32(jitter.vm.get_mem(args.stream + 0x10, 4))
+    fd = jitter.vm.get_u32(args.stream + 0x10)
     if not fd in winobjs.handle_pool:
         raise NotImplementedError("Untested case")
     o = winobjs.handle_pool[fd]
@@ -2720,7 +2718,7 @@ def msvcrt_rewind(jitter):
 
 def msvcrt_fread(jitter):
     ret_ad, args = jitter.func_args_cdecl(["buf", "size", "nmemb", "stream"])
-    fd = upck32(jitter.vm.get_mem(args.stream + 0x10, 4))
+    fd = jitter.vm.get_u32(args.stream + 0x10)
     if not fd in winobjs.handle_pool:
         raise NotImplementedError("Untested case")
 
@@ -2731,7 +2729,7 @@ def msvcrt_fread(jitter):
 
 def msvcrt_fwrite(jitter):
     ret_ad, args = jitter.func_args_cdecl(["buf", "size", "nmemb", "stream"])
-    fd = upck32(jitter.vm.get_mem(args.stream + 0x10, 4))
+    fd = jitter.vm.get_u32(args.stream + 0x10)
     if not fd in winobjs.handle_pool:
         raise NotImplementedError("Unknown file handle!")
 
@@ -2742,7 +2740,7 @@ def msvcrt_fwrite(jitter):
 
 def msvcrt_fclose(jitter):
     ret_ad, args = jitter.func_args_cdecl(['stream'])
-    fd = upck32(jitter.vm.get_mem(args.stream + 0x10, 4))
+    fd = jitter.vm.get_u32(args.stream + 0x10)
 
     if not fd in winobjs.handle_pool:
         raise NotImplementedError("Untested case")

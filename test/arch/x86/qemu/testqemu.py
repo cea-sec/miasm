@@ -7,7 +7,6 @@ from pdb import pm
 from miasm2.analysis.sandbox import Sandbox_Linux_x86_32
 from miasm2.jitter.jitload import log_func
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
-from miasm2.core.utils import upck32
 
 # Utils
 def parse_fmt(s):
@@ -54,17 +53,17 @@ def xxx___printf_chk(jitter):
     i = 0
 
     for x in fmt_a:
-        a = upck32(jitter.vm.get_mem(esp + 8 + 4*i, 4))
+        a = jitter.vm.get_u32(esp + 8 + 4*i)
         if x == "s":
             a = jitter.get_str_ansi(a)
         elif x.lower() in ("x", 'd'):
             pass
         elif x.lower() in ("f", "l"):
-            a2 = upck32(jitter.vm.get_mem(esp + 8 + 4*(i+1), 4))
+            a2 = jitter.vm.get_u32(esp + 8 + 4*(i+1))
             a = struct.unpack("d", struct.pack("Q", a2 << 32 | a))[0]
             i += 1
         elif x.lower() == 'z':
-            a2 = upck32(jitter.vm.get_mem(esp + 8 + 4*(i+1), 4))
+            a2 = jitter.vm.get_u32(esp + 8 + 4*(i+1))
             a = a2 << 32 | a
             i += 1
         else:

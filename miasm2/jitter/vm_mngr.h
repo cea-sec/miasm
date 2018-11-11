@@ -214,6 +214,10 @@ void memory_access_list_init(struct memory_access_list * access);
 void memory_access_list_reset(struct memory_access_list * access);
 void memory_access_list_add(struct memory_access_list * access, uint64_t start, uint64_t stop);
 
+uint16_t set_endian16(vm_mngr_t* vm_mngr, uint16_t val);
+uint32_t set_endian32(vm_mngr_t* vm_mngr, uint32_t val);
+uint64_t set_endian64(vm_mngr_t* vm_mngr, uint64_t val);
+
 
 void hexdump(char* m, unsigned int l);
 
