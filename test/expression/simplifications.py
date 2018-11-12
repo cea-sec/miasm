@@ -97,7 +97,10 @@ s = a[:8]
 i0 = ExprInt(0, 32)
 i1 = ExprInt(1, 32)
 i2 = ExprInt(2, 32)
+i3 = ExprInt(3, 32)
 im1 = ExprInt(-1, 32)
+im2 = ExprInt(-2, 32)
+
 icustom = ExprInt(0x12345678, 32)
 cc = ExprCond(a, b, c)
 
@@ -242,7 +245,7 @@ to_test = [(ExprInt(1, 32) - ExprInt(1, 32), ExprInt(0, 32)),
     (ExprOp('*', -a, -b, c, ExprInt(0x12, 32)),
      ExprOp('*', a, b, c, ExprInt(0x12, 32))),
     (ExprOp('*', -a, -b, -c, ExprInt(0x12, 32)),
-     - ExprOp('*', a, b, c, ExprInt(0x12, 32))),
+     ExprOp('*', a, b, c, ExprInt(-0x12, 32))),
     (a | ExprInt(0xffffffff, 32),
      ExprInt(0xffffffff, 32)),
     (ExprCond(a, ExprInt(1, 32), ExprInt(2, 32)) * ExprInt(4, 32),
@@ -442,6 +445,21 @@ to_test = [(ExprInt(1, 32) - ExprInt(1, 32), ExprInt(0, 32)),
     (ExprOp("zeroExt_16", ExprInt(0x88, 8)), ExprInt(0x88, 16)),
     (ExprOp("signExt_16", ExprInt(0x8, 8)), ExprInt(0x8, 16)),
     (ExprOp("signExt_16", ExprInt(-0x8, 8)), ExprInt(-0x8, 16)),
+
+    (- (i2*a), a * im2),
+    (a + a, a * i2),
+    (ExprOp('+', a, a), a * i2),
+    (ExprOp('+', a, a, a), a * i3),
+    ((a<<i1) - a, a),
+    ((a<<i1) - (a<<i2), a*im2),
+    ((a<<i1) - a - a, i0),
+    ((a<<i2) - (a<<i1) - (a<<i1), i0),
+    ((a<<i2) - a*i3, a),
+    (((a+b) * i3) - (a + b), (a+b) * i2),
+    (((a+b) * i2) + a + b, (a+b) * i3),
+    (((a+b) * i3) - a - b, (a+b) * i2),
+    (((a+b) * i2) - a - b, a+b),
+    (((a+b) * i2) - i2 * a - i2 * b, i0),
 
 
 ]
