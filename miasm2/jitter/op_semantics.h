@@ -37,7 +37,7 @@ _MIASM_EXPORT unsigned int umul16_hi(unsigned short a, unsigned short b);
 _MIASM_EXPORT uint64_t rot_left(uint64_t size, uint64_t a, uint64_t b);
 _MIASM_EXPORT uint64_t rot_right(uint64_t size, uint64_t a, uint64_t b);
 
-_MIASM_EXPORT unsigned int cntleadzeros(uint64_t size, uint64_t src);
+_MIASM_EXPORT uint64_t cntleadzeros(uint64_t size, uint64_t src);
 _MIASM_EXPORT unsigned int cnttrailzeros(uint64_t size, uint64_t src);
 
 #define UDIV(sizeA)						\
