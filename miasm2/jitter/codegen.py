@@ -170,7 +170,8 @@ class CGen(object):
             # Simplify high level operators
             out = []
             for irblock in irblocks:
-                new_irblock = irblock.simplify(expr_simp_high_to_explicit)[1]
+                new_irblock = self.ir_arch.irbloc_fix_regs_for_mode(irblock, self.ir_arch.attrib)
+                new_irblock = new_irblock.simplify(expr_simp_high_to_explicit)[1]
                 out.append(new_irblock)
             irblocks = out
 
@@ -631,13 +632,12 @@ class CGen(object):
         for instr, irblocks in zip(block.lines, irblocks_list):
             instr_attrib, irblocks_attributes = self.get_attributes(instr, irblocks, log_mn, log_regs)
             for index, irblock in enumerate(irblocks):
-                new_irblock = self.ir_arch.irbloc_fix_regs_for_mode(irblock, self.ir_arch.attrib)
-                label = str(new_irblock.loc_key)
+                label = str(irblock.loc_key)
                 out.append("%-40s // %.16X %s" %
                            (label + ":", instr.offset, instr))
                 if index == 0:
                     out += self.gen_pre_code(instr_attrib)
-                out += self.gen_irblock(instr_attrib, irblocks_attributes[index], instr_offsets, new_irblock)
+                out += self.gen_irblock(instr_attrib, irblocks_attributes[index], instr_offsets, irblock)
 
         out += self.gen_finalize(block)
 
