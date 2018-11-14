@@ -638,7 +638,7 @@ def _rotate_tpl(ir, instr, dst, src, op, left=False):
             ]
     e = []
     if dst.size == 32 and dst in replace_regs[64]:
-        e.append(m2_expr.ExprAssign(dst[:dst.size], dst))
+        e.append(m2_expr.ExprAssign(dst, dst))
     # Don't generate conditional shifter on constant
     if isinstance(shifter, m2_expr.ExprInt):
         if int(shifter) != 0:
@@ -688,7 +688,7 @@ def rotate_with_carry_tpl(ir, instr, op, dst, src):
             ]
     e = []
     if dst.size == 32 and dst in replace_regs[64]:
-        e.append(m2_expr.ExprAssign(dst[:dst.size], dst))
+        e.append(m2_expr.ExprAssign(dst, dst))
     # Don't generate conditional shifter on constant
     if isinstance(shifter, m2_expr.ExprInt):
         if int(shifter) != 0:
@@ -776,7 +776,7 @@ def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None, left=False,
     e_do += update_flag_znp(res)
     e = []
     if a.size == 32 and a in replace_regs[64]:
-        e.append(m2_expr.ExprAssign(a[:a.size], a))
+        e.append(m2_expr.ExprAssign(a, a))
     # Don't generate conditional shifter on constant
     if isinstance(shifter, m2_expr.ExprInt):
         if int(shifter) != 0:
@@ -5652,7 +5652,6 @@ class ir_x86_16(IntermediateRepresentation):
 
         instr_ir, extra_ir = mnemo_func[
             instr.name.lower()](self, instr, *args)
-
         self.mod_pc(instr, instr_ir, extra_ir)
         instr.additional_info.except_on_instr = False
         if instr.additional_info.g1.value & 6 == 0 or \
