@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/cea-sec/miasm.svg)](https://travis-ci.org/cea-sec/miasm)
 [![Build status](https://ci.appveyor.com/api/projects/status/mtt2hwae77w7utnd/branch/master?svg=true)](https://ci.appveyor.com/project/serpilliere/miasm-6lfba/branch/master)
-[![Code Climate](https://codeclimate.com/github/cea-sec/miasm/badges/gpa.svg)](https://codeclimate.com/github/cea-sec/miasm)
+[![Code Climate](https://codeclimate.com/github/cea-sec/miasm/badges/gpa.svg)](https://codeclimate.com/github/cea-sec/miasm) [![Join the chat at https://gitter.im/cea-sec/miasm](https://badges.gitter.im/cea-sec/miasm.svg)](https://gitter.im/cea-sec/miasm?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 Reverse engineering framework in Python
 
