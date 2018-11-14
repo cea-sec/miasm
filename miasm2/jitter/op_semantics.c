@@ -253,15 +253,15 @@ uint64_t rot_right(uint64_t size, uint64_t a, uint64_t b)
  * - cntleadzeros(size=32, src=2): 30
  * - cntleadzeros(size=32, src=0): 32
  */
-unsigned int cntleadzeros(uint64_t size, uint64_t src)
+uint64_t cntleadzeros(uint64_t size, uint64_t src)
 {
 	int64_t i;
 
 	for (i=(int64_t)size-1; i>=0; i--){
 		if (src & (1ull << i))
-			return (unsigned int)(size - (i + 1));
+			return (uint64_t)(size - (i + 1));
 	}
-	return (unsigned int)size;
+	return (uint64_t)size;
 }
 
 /*
