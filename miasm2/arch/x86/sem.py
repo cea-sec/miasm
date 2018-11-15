@@ -398,7 +398,7 @@ def gen_cmov(ir, instr, cond, dst, src, mov_if):
         dstA, dstB = loc_do_expr, loc_skip_expr
     else:
         dstA, dstB = loc_skip_expr, loc_do_expr
-    e = []
+    e = [m2_expr.ExprAssign(dst, dst)]
     e_do, extra_irs = mov(ir, instr, dst, src)
     e_do.append(m2_expr.ExprAssign(ir.IRDst, loc_skip_expr))
     e.append(m2_expr.ExprAssign(ir.IRDst, m2_expr.ExprCond(cond, dstA, dstB)))
