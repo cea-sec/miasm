@@ -8,11 +8,17 @@ import idautils
 from miasm2.core.bin_stream_ida import bin_stream_ida
 from miasm2.core.asmblock import is_int
 from miasm2.expression.simplifications import expr_simp
-from miasm2.analysis.data_flow import dead_simp, remove_empty_assignblks, \
-    merge_blocks
-from miasm2.ir.ir import AssignBlock, IRBlock
 
+from miasm2.analysis.data_flow import dead_simp, DiGraphDefUse, \
+    ReachingDefinitions, merge_blocks, remove_empty_assignblks, \
+    PropagateExpr, replace_stack_vars, load_from_int, dead_simp, remove_empty_assignblks, \
+    read_mem, get_memlookup
+
+from miasm2.expression.simplifications import expr_simp
+from miasm2.analysis.ssa import SSADiGraph, remove_phi
+from miasm2.ir.ir import AssignBlock, IRBlock
 from utils import guess_machine, expr2colorstr
+from miasm2.expression.expression import ExprLoc, ExprMem, ExprId, ExprInt
 
 
 # Override Miasm asmblock default label naming convention to shrink block size
@@ -33,6 +39,7 @@ def label_str(self):
         return "%s:0x%x" % (self.name, self.offset)
     else:
         return "%s:%s" % (self.name, str(self.offset))
+
 
 
 def color_irblock(irblock, ir_arch):
@@ -98,11 +105,12 @@ class GraphMiasmIR(idaapi.GraphViewer):
         return True
 
 
-def build_graph(verbose=False, simplify=False):
+def build_graph(verbose=False, simplify=False, ssa=False, ssa_simplify=False):
     start_addr = idc.ScreenEA()
 
     machine = guess_machine(addr=start_addr)
     dis_engine, ira = machine.dis_engine, machine.ira
+
 
     if verbose:
         print "Arch", dis_engine
@@ -132,8 +140,7 @@ def build_graph(verbose=False, simplify=False):
 
     asmcfg = mdis.dis_multiblock(start_addr)
 
-    entry_points = set([start_addr])
-
+    entry_points = set([mdis.loc_db.get_offset_location(start_addr)])
     if verbose:
         print "generating graph"
         open('asm_flow.dot', 'w').write(asmcfg.dot())
@@ -173,6 +180,123 @@ def build_graph(verbose=False, simplify=False):
         title += " (simplified)"
 
     graph = GraphMiasmIR(ircfg, title, None)
+
+    if ssa:
+        if len(entry_points) != 1:
+            raise RuntimeError("Your graph should have only one head")
+        head = list(entry_points)[0]
+        ssa = SSADiGraph(ircfg)
+        ssa.transform(head)
+        title += " (SSA)"
+        graph = GraphMiasmIR(ssa.graph, title, None)
+
+    if ssa_simplify:
+        class IRAOutRegs(ira):
+            def get_out_regs(self, block):
+                regs_todo = super(self.__class__, self).get_out_regs(block)
+                out = {}
+                for assignblk in block:
+                    for dst in assignblk:
+                        reg = self.ssa_var.get(dst, None)
+                        if reg is None:
+                            continue
+                        if reg in regs_todo:
+                            out[reg] = dst
+                return set(out.values())
+
+        # Add dummy dependecy to uncover out regs affectation
+        for loc in ircfg.leaves():
+            irblock = ircfg.blocks.get(loc)
+            if irblock is None:
+                continue
+            regs = {}
+            for reg in ir_arch.get_out_regs(irblock):
+                regs[reg] = reg
+            assignblks = list(irblock)
+            new_assiblk = AssignBlock(regs, assignblks[-1].instr)
+            assignblks.append(new_assiblk)
+            new_irblock = IRBlock(irblock.loc_key, assignblks)
+            ircfg.blocks[loc] = new_irblock
+
+
+
+        ir_arch = IRAOutRegs(mdis.loc_db)
+
+        def is_addr_ro_variable(bs, addr, size):
+            """
+            Return True if address at @addr is a read-only variable.
+            WARNING: Quick & Dirty
+
+            @addr: integer representing the address of the variable
+            @size: size in bits
+
+            """
+            try:
+                _ = bs.getbytes(addr, size/8)
+            except IOError:
+                return False
+            return True
+
+
+        ir_arch.ssa_var = {}
+        index = 0
+        modified = True
+        ssa_forbidden_regs = set([
+            ir_arch.pc,
+            ir_arch.IRDst,
+            ir_arch.arch.regs.exception_flags
+        ])
+
+        head = list(entry_points)[0]
+        heads = set([head])
+        all_ssa_vars = set()
+
+        propagate_expr = PropagateExpr()
+
+
+        while modified:
+            ssa = SSADiGraph(ircfg)
+            ssa.immutable_ids.update(ssa_forbidden_regs)
+
+            ssa.transform(head)
+
+            all_ssa_vars.update(ssa._ssa_variable_to_expr)
+
+            ssa_regs = [reg for reg in ssa.expressions if reg.is_id()]
+            ssa_forbidden_regs.update(ssa_regs)
+
+
+            ir_arch.ssa_var.update(ssa._ssa_variable_to_expr)
+
+            while modified:
+                index += 1
+                modified = False
+                modified |= propagate_expr.propagate(ssa, head)
+                modified |= ircfg.simplify(expr_simp)
+                simp_modified = True
+                while simp_modified:
+                    index += 1
+                    simp_modified = False
+                    simp_modified |= dead_simp(ir_arch, ircfg)
+                    index += 1
+                    simp_modified |= remove_empty_assignblks(ircfg)
+                    simp_modified |= merge_blocks(ircfg, heads)
+                    simp_modified |= load_from_int(ircfg, bs, is_addr_ro_variable)
+                    modified |= simp_modified
+                    index += 1
+
+
+        merge_blocks(ircfg, heads)
+        ssa = SSADiGraph(ircfg)
+        ssa.immutable_ids.update(ssa_forbidden_regs)
+        ssa.transform(head)
+        all_ssa_vars.update(ssa._ssa_variable_to_expr)
+        ssa._ssa_variable_to_expr = all_ssa_vars
+        dead_simp(ir_arch, ssa.graph)
+
+        title += " (SSA Simplified)"
+        graph = GraphMiasmIR(ssa.graph, title, None)
+
 
     graph.Show()
 
