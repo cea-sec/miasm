@@ -66,6 +66,16 @@ handler_graph_simp = Handler(lambda: build_graph(simplify=True))
 handler_graph_simp.register("miasm:graphirsimp",
                             "Graph IR (simplified)", shortcut="F8", icon=191)
 handler_graph_simp.attach_to_menu("Miasm/Graph IR (simplified)")
+handler_graph_simp = Handler(lambda: build_graph(simplify=True, ssa=True))
+handler_graph_simp.register("miasm:graphirssa",
+                            "Graph IR (SSA)", shortcut="F8", icon=191)
+handler_graph_simp.attach_to_menu("Miasm/Graph IR (SSA)")
+
+handler_graph_simp = Handler(lambda: build_graph(simplify=True, ssa_simplify=True))
+handler_graph_simp.register("miasm:graphirssasimple",
+                            "Graph IR (SSA Simplified)", shortcut="F8", icon=191)
+handler_graph_simp.attach_to_menu("Miasm/Graph IR (SSA Simplified)")
+
 if serve_threaded is not None:
     handler_rpyc = Handler(serve_threaded)
     handler_rpyc.register("miasm:rpyc", "RPYC server", shortcut="F10", icon=182)
