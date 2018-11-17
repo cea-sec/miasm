@@ -1469,16 +1469,12 @@ class disasmEngine(object):
                 break
 
             # XXX TODO nul start block option
-            if self.dont_dis_nulstart_bloc and instr.b.count('\x00') == instr.l:
+            if (self.dont_dis_nulstart_bloc and
+                not cur_block.lines and
+                instr.b.count('\x00') == instr.l):
                 log_asmblock.warning("reach nul instr at %X", int(off_i))
-                if not cur_block.lines:
-                    # Block is empty -> bad block
-                    cur_block = AsmBlockBad(loc_key, errno=AsmBlockBad.ERROR_NULL_STARTING_BLOCK)
-                else:
-                    # Block is not empty, stop the desassembly pass and add a
-                    # constraint to the next block
-                    loc_key_cst = self.loc_db.get_or_create_offset_location(off_i)
-                    cur_block.add_cst(loc_key_cst, AsmConstraint.c_next)
+                # Block is empty -> bad block
+                cur_block = AsmBlockBad(loc_key, errno=AsmBlockBad.ERROR_NULL_STARTING_BLOCK)
                 break
 
             # special case: flow graph modificator in delayslot
