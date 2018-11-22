@@ -3,7 +3,7 @@
 
 from ut_helpers_ir import exec_instruction
 
-from miasm2.expression.expression import ExprId, ExprCond, ExprOp, ExprInt
+from miasm2.expression.expression import ExprId, ExprInt
 
 
 class TestBranchJump:
@@ -105,7 +105,17 @@ class TestBranchJump:
         # BGEI Rn,imm4,disp17.align2
         exec_instruction("BGEI R1, 0x5, 0x10000",
                          [(ExprId("R1", 32), ExprInt(0x10, 32))],
-                         [(ExprId("PC", 32), ExprCond(ExprOp(">=", ExprInt(0x10, 32), ExprInt(0x5, 32)), ExprInt(0xFFFF0010, 32), ExprInt(0x14, 32)))],
+                         [(ExprId("PC", 32), ExprInt(0xFFFF0010, 32))],
+                         offset=0x10)
+
+        exec_instruction("BGEI R1, 0x5, 0x10000",
+                         [(ExprId("R1", 32), ExprInt(0x01, 32))],
+                         [(ExprId("PC", 32), ExprInt(0x14, 32))],
+                         offset=0x10)
+
+        exec_instruction("BGEI R1, 0x5, 0x10000",
+                         [(ExprId("R1", 32), ExprInt(0x05, 32))],
+                         [(ExprId("PC", 32), ExprInt(0xFFFF0010, 32))],
                          offset=0x10)
 
     def test_beq(self):

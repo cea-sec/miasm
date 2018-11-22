@@ -7,7 +7,7 @@ from miasm2.arch.mep.arch import mn_mep
 from miasm2.arch.mep.regs import PC, SP, LP, SAR, TP, RPB, RPE, RPC, EPC, NPC, \
     take_jmp, in_erepeat
 from miasm2.arch.mep.regs import EXC, HI, LO, PSW, DEPC, DBG
-from miasm2.expression.expression import ExprId, ExprInt, ExprOp
+from miasm2.expression.expression import ExprId, ExprInt, ExprOp, TOK_EQUAL
 from miasm2.expression.expression import ExprAssign, ExprCond, ExprMem
 from miasm2.core.cpu import sign_ext
 from miasm2.jitter.csts import EXCEPT_DIV_BY_ZERO
@@ -549,8 +549,9 @@ def bgei(reg_test, imm4, disp16):
     """BGEI - Branch if the register is greater or equal to imm4."""
 
     # if(Rn>=ZeroExt(imm4)) PC <- PC +SignExt((disp17)16..1||0) - (Signed comparison)
-    dst = disp16 if ">="(reg_test, imm4) else ExprLoc(ir.get_next_break_loc_key(instr), 32)
-    take_jmp = ExprInt(1, 32) if ">="(reg_test, imm4) else ExprInt(0, 32)
+    cond = i32(1) if ExprOp(TOK_EQUAL, reg_test, imm4) else compute_s_inf(imm4, reg_test).zeroExtend(32)
+    dst = disp16 if cond else ExprLoc(ir.get_next_break_loc_key(instr), 32)
+    take_jmp = ExprInt(1, 32) if cond else ExprInt(0, 32)
     PC = dst
     ir.IRDst = dst
 
