@@ -1,0 +1,35 @@
+xchgq      A=fbcadd99fbca7654 B=1234fdb512345678
+xchgl      A=00000000fbca7654 B=0000000012345678
+xchgw      A=1234fdb512347654 B=fbcadd99fbca5678
+xchgb      A=1234fdb512345654 B=fbcadd99fbca7678
+xchgq      A=00007ffc67d02100 B=1234fdb512345678
+xchgl      A=00000000fbca7654 B=fbcadd9912345678
+xchgw      A=1234fdb512347654 B=fbcadd99fbca5678
+xchgb      A=1234fdb512345654 B=fbcadd99fbca7678
+xaddq      A=fbcadd99fbca7654 B=0dffdb4f0dfecccc
+xaddl      A=00000000fbca7654 B=000000000dfecccc
+xaddw      A=1234fdb512347654 B=fbcadd99fbcacccc
+xaddb      A=1234fdb512345654 B=fbcadd99fbca76cc
+xaddl same res=2468acf0
+xaddq      A=fbcadd99fbca7654 B=0dffdb4f0dfecccc
+xaddl      A=00000000fbca7654 B=fbcadd990dfecccc
+xaddw      A=1234fdb512347654 B=fbcadd99fbcacccc
+xaddb      A=1234fdb512345654 B=fbcadd99fbca76cc
+cmpxchgq   EAX=fbcadd99fbca7654 A=1234fdb512345678 C=1234fdb512345678
+cmpxchgl   EAX=fbcadd99fbca7654 A=1234fdb512345678 C=0000000012345678
+cmpxchgw   EAX=fbcadd99fbca7654 A=1234fdb512345678 C=fbcadd99fbca5678
+cmpxchgb   EAX=fbcadd99fbca7654 A=1234fdb512345678 C=fbcadd99fbca7678
+cmpxchgq   EAX=fffe5631fffefdfc A=1234fdb512345678 C=fbcadd99fbca7654
+cmpxchgl   EAX=fffe5631fffefdfc A=1234fdb512345678 C=fbcadd99fbca7654
+cmpxchgw   EAX=fffe5631fffefdfc A=1234fdb512345678 C=fbcadd99fbca7654
+cmpxchgb   EAX=fffe5631fffefdfc A=1234fdb512345678 C=fbcadd99fbca7654
+cmpxchgq   EAX=fbcadd99fbca7654 A=1234fdb512345678 C=1234fdb512345678
+cmpxchgl   EAX=fbcadd99fbca7654 A=1234fdb512345678 C=fbcadd9912345678
+cmpxchgw   EAX=fbcadd99fbca7654 A=1234fdb512345678 C=fbcadd99fbca5678
+cmpxchgb   EAX=fbcadd99fbca7654 A=1234fdb512345678 C=fbcadd99fbca7678
+cmpxchgq   EAX=fffe5631fffefdfc A=1234fdb512345678 C=fbcadd99fbca7654
+cmpxchgl   EAX=fffe5631fffefdfc A=1234fdb512345678 C=fbcadd99fbca7654
+cmpxchgw   EAX=fffe5631fffefdfc A=1234fdb512345678 C=fbcadd99fbca7654
+cmpxchgb   EAX=fffe5631fffefdfc A=1234fdb512345678 C=fbcadd99fbca7654
+cmpxchg8b: eax=0000000065423456 edx=00000000000fbca7 op1=000fbca765423456 CC=00
+cmpxchg8b: eax=678900006789abcd edx=0001888800012345 op1=0006532432432434 CC=40
