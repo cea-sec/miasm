@@ -243,7 +243,7 @@ class FileSystem(object):
         sb_path = self.resolve_path(path, follow_link=False)
         if not os.path.islink(sb_path):
             return None
-        return os.path.readlink(sb_path)
+        return os.readlink(sb_path)
 
     def statfs(self):
         return StatFSInfo(
