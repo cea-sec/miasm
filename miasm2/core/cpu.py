@@ -670,6 +670,9 @@ class bs_swapargs(bs_divert):
 
 class m_arg(object):
 
+    parser = base_expr  # defines the default mnemonics parser, used for
+                        # assembling
+
     def fromstring(self, text, loc_db, parser_result=None):
         if parser_result:
             e, start, stop = parser_result[self.parser]
@@ -978,6 +981,8 @@ class instruction(object):
                  "l", "b", "offset", "data",
                  "additional_info", "delayslot"]
 
+    delayslot = 0
+
     def __init__(self, name, mode, args, additional_info=None):
         self.name = name
         self.mode = mode
@@ -990,6 +995,12 @@ class instruction(object):
     def gen_args(self, args):
         out = ', '.join([str(x) for x in args])
         return out
+
+
+    def arg2str(self, expr, pos=None):
+        """Convert mnemonics arguments into readable strings according to
+        their internal types """
+        return str(expr)
 
     def __str__(self):
         return self.to_string()
@@ -1058,13 +1069,52 @@ class instruction(object):
     def get_info(self, c):
         return
 
+    def breakflow(self):
+        """Instructions that stop a basic block."""
+        raise NotImplementedError("Abstract method")
+
+    def splitflow(self):
+        """Instructions that splits a basic block, i.e. the CPU can go somewhere
+        or execute the next instruction."""
+        raise NotImplementedError("Abstract method")
+
+    def dstflow(self):
+        """Instructions that explicitly provide the destination.""" 
+        raise NotImplementedError("Abstract method")
+
+    def dstflow2label(self, symbol_pool):
+        """Set the label for the current destination."""
+        raise NotImplementedError("Abstract method")
+
+    def getdstflow(self, symbol_pool):
+        """Get the argument that points to the instruction destination."""
+        raise NotImplementedError("Abstract method")
+
+    def is_subcall(self):
+        """Instructions used to call functions."""
+        raise NotImplementedError("Abstract method")
+
 
 class cls_mn(object):
     __metaclass__ = metamn
     args_symb = []
-    instruction = instruction
+    instruction = instruction  # defines the instruction set that will be used
     # Block's offset alignement
     alignment = 1
+
+    num = 0  # holds the number of mnenomnics
+
+    all_mn = list()  # list of mnenomnics, converted to metamn objects
+    all_mn_mode = defaultdict(list)  # mnemonics, converted to metamn objects
+    all_mn_name = defaultdict(list)  # mnenomnics strings
+    all_mn_inst = defaultdict(list)  # mnemonics objects
+
+    bintree = dict()  # Variable storing internal values used to guess a                                                         
+                      # mnemonic during disassembly
+
+    delayslot = 0
+
+    name = "architecture name"
 
     @classmethod
     def guess_mnemo(cls, bs, attrib, pre_dis_info, offset):
@@ -1547,6 +1597,45 @@ class cls_mn(object):
 
     def getdstflow(self, loc_db):
         return [self.args[0].expr]
+
+    @classmethod
+    def getmn(cls, name):
+        """Get the mnemonic name
+
+        Args:
+            cls:  the mnemonic class
+            name: the mnemonic string
+        """
+
+        return name.upper()
+
+    @classmethod
+    def gen_modes(cls, subcls, name, bases, dct, fields):
+        """Ease populating internal variables used to disassemble & assemble, such
+        as self.all_mn_mode, self.all_mn_name and self.all_mn_inst
+        """
+
+        dct["mode"] = None
+        return [(subcls, name, bases, dct, fields)]
+
+    def additional_info(self):
+        """Define instruction side effects"""
+        class DummyAdditionalInfo(object):
+            pass
+
+        return DummyAdditionalInfo()
+
+    @classmethod
+    def addop(cls, name, fields, args=None, alias=False):
+        """Dynamically create the "name" object
+        """
+
+        namespace = {"fields": fields, "alias": alias}
+
+        if args is not None:
+            namespace["args"] = args
+
+        return type(name, (cls,), namespace)
 
 
 class imm_noarg(object):
