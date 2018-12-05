@@ -189,6 +189,60 @@ for test_name in QEMU_TESTS:
         testset += QEMUTest(test_name, jitter, tags=tags)
 
 
+class QEMUTestx86_64(QEMUTest):
+    SAMPLE_NAME = "test-x86_64"
+    SCRIPT_NAME = "testqemu64.py"
+    EXPECTED_PATH = "expected_x86_64"
+
+
+# Test name -> supported jitter engines
+QEMU_TESTS_x86_64 = [
+    "adc",
+    "add",
+    "and",
+    "btc",
+    "bt",
+    "btr",
+    "bts",
+    "cmp",
+    "conv",
+    "dec",
+    "inc",
+    "jcc",
+    "lea",
+    "misc",
+    "mul",
+    "neg",
+    "not",
+    "or",
+    "rcl",
+    "rcr",
+    "rol",
+    "ror",
+    "sar",
+    "sbb",
+    "shld",
+    "shl",
+    "shrd",
+    "shr",
+    "string",
+    "sub",
+    "xor",
+    # Unsupported
+    # "sse", "floats", "loop", "xchg", "fxsave"
+]
+
+
+for test_name in QEMU_TESTS_x86_64:
+    for jitter in QEMUTestx86_64.jitter_engines:
+        if is_win and jitter == "llvm" and test_name in [
+                "mul", "rcl", "rcr"
+        ]:
+            continue
+        tags = [TAGS[jitter]] if jitter in TAGS else []
+        testset += QEMUTestx86_64(test_name, jitter, tags=tags)
+
+
 ## Semantic
 class SemanticTestAsm(RegressionTest):
     """Assemble an asm file"""
