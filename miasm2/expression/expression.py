@@ -318,12 +318,10 @@ class Expr(object):
         @dct: dictionary of Expr -> *
         """
         if dct is None:
-            dct = {}
+            return self
 
         def my_replace(expr, dct):
-            if expr in dct:
-                return dct[expr]
-            return expr
+            return dst.get(expr, expr)
 
         return self.visit(lambda expr: my_replace(expr, dct))
 
