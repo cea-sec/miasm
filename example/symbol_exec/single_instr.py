@@ -1,7 +1,7 @@
 # Minimalist Symbol Exec example
-from miasm2.core.bin_stream import bin_stream_str
-from miasm2.ir.symbexec import SymbolicExecutionEngine
+from miasm2.analysis.binary import Container
 from miasm2.analysis.machine import Machine
+from miasm2.ir.symbexec import SymbolicExecutionEngine
 from miasm2.core.locationdb import LocationDB
 
 START_ADDR = 0
@@ -14,8 +14,8 @@ line = machine.mn.fromstring("MOV EAX, EBX", loc_db, 32)
 asm = machine.mn.asm(line)[0]
 
 # Get back block
-bin_stream = bin_stream_str(asm)
-mdis = machine.dis_engine(bin_stream, loc_db=loc_db)
+cont = Container.from_string(asm, loc_db = loc_db)
+mdis = machine.dis_engine(cont.bin_stream, loc_db=loc_db)
 mdis.lines_wd = 1
 asm_block = mdis.dis_block(START_ADDR)
 

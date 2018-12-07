@@ -1,6 +1,6 @@
 from pdb import pm
 
-from miasm2.arch.x86.disasm import dis_x86_32
+from miasm2.analysis.machine import Machine
 from miasm2.analysis.binary import Container
 from miasm2.core.asmblock import AsmCFG, AsmConstraint, AsmBlock, \
     AsmBlockBad, AsmConstraintTo, AsmConstraintNext, \
@@ -13,7 +13,8 @@ data = "5589e583ec10837d08007509c745fc01100000eb73837d08017709c745fc02100000eb64
 cont = Container.from_string(data)
 
 # Test Disasm engine
-mdis = dis_x86_32(cont.bin_stream)
+machine = Machine("x86_32")
+mdis = machine.dis_engine(cont.bin_stream, loc_db=cont.loc_db)
 ## Disassembly of one block
 first_block = mdis.dis_block(0)
 assert len(first_block.lines) == 5
@@ -215,7 +216,7 @@ asmcfg.sanity_check()
 # Test block_merge
 data2 = "31c0eb0c31c9750c31d2eb0c31ffebf831dbebf031edebfc31f6ebf031e4c3".decode("hex")
 cont2 = Container.from_string(data2)
-mdis = dis_x86_32(cont2.bin_stream)
+mdis = machine.dis_engine(cont2.bin_stream, loc_db=cont2.loc_db)
 ## Elements to merge
 asmcfg = mdis.dis_multiblock(0)
 ## Block alone
@@ -301,7 +302,7 @@ assert asmcfg.edges2constraint[(tob.loc_key, lbl_newb)] == AsmConstraint.c_to
 # Check double block split
 data = "74097405b8020000007405b803000000b804000000c3".decode('hex')
 cont = Container.from_string(data)
-mdis = dis_x86_32(cont.bin_stream)
+mdis = machine.dis_engine(cont.bin_stream, loc_db=cont.loc_db)
 asmcfg = mdis.dis_multiblock(0)
 ## Check resulting disasm
 assert len(asmcfg.nodes()) == 6
