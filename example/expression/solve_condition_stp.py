@@ -4,13 +4,13 @@ from optparse import OptionParser
 from pdb import pm
 
 from miasm2.analysis.machine import Machine
+from miasm2.analysis.binary import Container
 from miasm2.expression.expression import ExprInt, ExprCond, ExprId, \
     get_expr_ids, ExprAssign, ExprLoc
 from miasm2.core.bin_stream import bin_stream_str
 from miasm2.ir.symbexec import SymbolicExecutionEngine, get_block
 from miasm2.expression.simplifications import expr_simp
 from miasm2.core import parse_asm
-from miasm2.arch.x86.disasm import dis_x86_32 as dis_engine
 from miasm2.ir.translators.translator  import Translator
 
 machine = Machine("x86_32")
@@ -78,14 +78,11 @@ def emul_symb(ir_arch, ircfg, mdis, states_todo, states_done):
 if __name__ == '__main__':
 
     translator_smt2 = Translator.to_language("smt2")
-    data = open(args[0]).read()
-    bs = bin_stream_str(data)
-
-    mdis = dis_engine(bs)
 
     addr = int(options.address, 16)
 
-
+    cont = Container.from_stream(open(args[0]))
+    mdis = machine.dis_engine(cont.bin_stream, loc_db=cont.loc_db)
     ir_arch = machine.ir(mdis.loc_db)
     ircfg = ir_arch.new_ircfg()
     symbexec = SymbolicExecutionEngine(ir_arch)

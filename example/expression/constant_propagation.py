@@ -6,7 +6,6 @@ A "constant expression" is an expression based on constants or init regs.
 
 from argparse import ArgumentParser
 
-from miasm2.arch.x86.disasm import dis_x86_32 as dis_engine
 from miasm2.analysis.machine import Machine
 from miasm2.analysis.binary import Container
 from miasm2.analysis.cst_propag import propagate_cst_expr
@@ -27,9 +26,8 @@ args = parser.parse_args()
 machine = Machine("x86_32")
 
 cont = Container.from_stream(open(args.filename))
-ira, dis_engine = machine.ira, machine.dis_engine
-mdis = dis_engine(cont.bin_stream)
-ir_arch = ira(mdis.loc_db)
+mdis = machine.dis_engine(cont.bin_stream, loc_db=cont.loc_db)
+ir_arch = machine.ira(mdis.loc_db)
 addr = int(args.address, 0)
 
 asmcfg = mdis.dis_multiblock(addr)

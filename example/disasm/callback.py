@@ -1,6 +1,6 @@
-from miasm2.core.bin_stream import bin_stream_str
+from miasm2.analysis.binary import Container
+from miasm2.analysis.machine import Machine
 from miasm2.core.asmblock import AsmConstraint
-from miasm2.arch.x86.disasm import dis_x86_32, cb_x86_funcs
 
 
 def cb_x86_callpop(cur_bloc, loc_db, *args, **kwargs):
@@ -45,17 +45,18 @@ shellcode = ''.join(["\xe8\x00\x00\x00\x00", # CALL $
                      "X",                    # POP EAX
                      "\xc3",                 # RET
                      ])
-bin_stream = bin_stream_str(shellcode)
-mdis = dis_x86_32(bin_stream)
+
+# Instantiate a x86 32 bit architecture
+machine = Machine("x86_32")
+cont = Container.from_string(shellcode)
+mdis = machine.dis_engine(cont.bin_stream, loc_db=cont.loc_db)
 
 print "Without callback:\n"
 asmcfg = mdis.dis_multiblock(0)
 print "\n".join(str(block) for block in asmcfg.blocks)
 
 # Enable callback
-cb_x86_funcs.append(cb_x86_callpop)
-## Other method:
-## mdis.dis_block_callback = cb_x86_callpop
+mdis.dis_block_callback = cb_x86_callpop
 
 print "=" * 40
 print "With callback:\n"
