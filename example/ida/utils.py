@@ -105,7 +105,7 @@ class TranslatorIDA(Translator):
         return out
 
     def from_ExprMem(self, expr):
-        ptr = self.from_expr(expr.arg)
+        ptr = self.from_expr(expr.ptr)
         size = idaapi.COLSTR('@' + str(expr.size), idaapi.SCOLOR_RPTCMT)
         out = '%s[%s]' % (size, ptr)
         return out
