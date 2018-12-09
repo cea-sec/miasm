@@ -317,15 +317,10 @@ class Expr(object):
         """Find and replace sub expression using dct
         @dct: dictionary of Expr -> *
         """
-        if dct is None:
-            dct = {}
+        if not dct:
+            return self
 
-        def my_replace(expr, dct):
-            if expr in dct:
-                return dct[expr]
-            return expr
-
-        return self.visit(lambda expr: my_replace(expr, dct))
+        return self.visit(lambda expr: dct.get(expr, expr))
 
     def canonize(self):
         "Canonize the Expression"
