@@ -313,13 +313,10 @@ class Expr(object):
     def __deepcopy__(self, _):
         return self.copy()
 
-    def replace_expr(self, dct=None):
+    def replace_expr(self, dct):
         """Find and replace sub expression using dct
-        @dct: dictionary of Expr -> *
+        @dct: dictionary associating replaced Expr to its new Expr value
         """
-        if not dct:
-            return self
-
         return self.visit(lambda expr: dct.get(expr, expr))
 
     def canonize(self):
