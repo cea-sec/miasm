@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include "../jitter/bn.h"
 #include "../jitter/queue.h"
 #include "../jitter/vm_mngr.h"
 #include "../jitter/vm_mngr_py.h"

@@ -143,16 +143,16 @@ def makeTaintGen(C_Gen, ir_arch):
           if isinstance(dst, m2_expr.ExprMem):
               # If dst is an ExprMem, Expr composing its address can spread taint
               # to the ExprMem
-              dst.arg.visit(lambda x: visit_get_read_elements_with_real_size(x,
+              dst.ptr.visit(lambda x: visit_get_read_elements_with_real_size(x,
                                                                              read_elements),
                             lambda x: get_id_slice(x, read_elements))
           return read_elements
 
       def gen_segm2addr(self, expr, prefetchers):
           """ Properly convert ExprMem to C """
-          ptr = expr.arg.replace_expr(prefetchers)
+          ptr = expr.ptr.replace_expr(prefetchers)
           new_expr = m2_expr.ExprMem(ptr, expr.size)
-          return self.id_to_c(new_expr.arg)
+          return self.id_to_c(new_expr.ptr)
 
       def gen_check_taint_exception(self, address):
           dst = self.dst_to_c(address)

@@ -42,7 +42,7 @@ def assemble_code(code_str):
     blocks, symbol_pool = parse_asm.parse_txt(mn_x86, 32, code_str)
 
     # Set 'main' label's offset
-    symbol_pool.set_offset(symbol_pool.getby_name("main"), 0x0)
+    symbol_pool.set_location_offset(symbol_pool.get_name_location("main"), 0x0)
 
     # Spread information and resolve instructions offset
     patches = asm_resolve_final(mn_x86, blocks, symbol_pool)

@@ -11,8 +11,16 @@
 #include "../bn.h"
 #include "../vm_mngr_py.h"
 #include "../JitCore.h"
+#ifdef TAINT
+#include "../../analysis/taint_analysis.h"
+#endif
 #include "JitCore_mep.h"
 
+#ifdef TAINT
+#define PYTHON_CLASS_NAME "JitCore_mep_taint"
+#else
+#define PYTHON_CLASS_NAME "JitCore_mep"
+#endif
 
 reg_dict gpreg_dict[] = {
 	{.name = "R0", .offset = offsetof(struct vm_cpu, R0), .size = 32},
@@ -274,13 +282,11 @@ static PyMemberDef JitCpu_members[] = {
 };
 
 static PyMethodDef JitCpu_methods[] = {
-    {"init_regs", (PyCFunction)cpu_init_regs, METH_NOARGS, "X"},
-    {"dump_gpregs", (PyCFunction)cpu_dump_gpregs, METH_NOARGS, "X"},
     {"dump_gpregs_with_attrib", (PyCFunction)cpu_dump_gpregs_with_attrib, METH_VARARGS, "X"},
-    {"get_gpreg", (PyCFunction)cpu_get_gpreg, METH_NOARGS, "X"},
-    {"set_gpreg", (PyCFunction)cpu_set_gpreg, METH_VARARGS, "X"},
-    {"get_exception", (PyCFunction)cpu_get_exception, METH_VARARGS, "X"},
-    {"set_exception", (PyCFunction)cpu_set_exception, METH_VARARGS, "X"},
+       DEFAULT_METHODS
+#ifdef TAINT
+       TAINT_METHODS
+#endif
     {NULL}  /* Sentinel */
 };
 
@@ -496,7 +502,7 @@ static PyGetSetDef JitCpu_getseters[] = {
 
 static PyTypeObject JitCpuType = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "JitCore_mep.JitCpu",   /*tp_name*/
+    PYTHON_CLASS_NAME".JitCpu",/*tp_name*/
     sizeof(JitCpu),            /*tp_basicsize*/
     0,                         /*tp_itemsize*/
     (destructor)JitCpu_dealloc,/*tp_dealloc*/
@@ -549,7 +555,11 @@ static PyMethodDef JitCore_mep_Methods[] = {
 
 
 
+#ifdef TAINT
+MOD_INIT(JitCore_mep_taint)
+#else
 MOD_INIT(JitCore_mep)
+#endif
 {
 	PyObject *module = NULL;
 

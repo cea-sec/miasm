@@ -964,7 +964,7 @@ static PyGetSetDef VmMngr_getseters[] = {
 
 static PyTypeObject VmMngrType = {
     PyVarObject_HEAD_INIT(NULL, 0)
-#ifdef TAINTA
+#ifdef TAINT
     "VmMngr_taint",            /*tp_name*/
 #else
     "VmMngr",                  /*tp_name*/
