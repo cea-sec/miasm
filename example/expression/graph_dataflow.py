@@ -1,10 +1,8 @@
 from argparse import ArgumentParser
-from pdb import pm
-from pprint import pprint
 
+from miasm2.analysis.binary import Container
+from miasm2.analysis.machine import Machine
 from miasm2.expression.expression import get_expr_mem
-from miasm2.arch.x86.ira import ir_a_x86_32
-from miasm2.arch.x86.disasm import dis_x86_32
 from miasm2.analysis.data_analysis import intra_block_flow_raw, inter_block_flow
 from miasm2.core.graph import DiGraph
 from miasm2.ir.symbexec import SymbolicExecutionEngine
@@ -82,7 +80,7 @@ def intra_block_flow_symb(ir_arch, _, flow_graph, irblock, in_nodes, out_nodes):
                 flow_graph.add_uniq_edge(node_n_r, node_n_w)
 
 
-def node2str(self, node):
+def node2str(node):
     out = "%s,%s\\l\\\n%s" % node
     return out
 
@@ -101,9 +99,9 @@ def gen_block_data_flow_graph(ir_arch, ircfg, ad, block_flow_cb):
         if offset == ad:
             irblock_0 = irblock
             break
-    assert(irblock_0 is not None)
+    assert irblock_0 is not None
     flow_graph = DiGraph()
-    flow_graph.node2str = lambda n: node2str(flow_graph, n)
+    flow_graph.node2str = node2str
 
 
     irb_in_nodes = {}
@@ -128,19 +126,21 @@ def gen_block_data_flow_graph(ir_arch, ircfg, ad, block_flow_cb):
     open('data.dot', 'w').write(flow_graph.dot())
 
 
-data = open(args.filename).read()
 ad = int(args.addr, 16)
 
 print 'disasm...'
-mdis = dis_x86_32(data)
+cont = Container.from_stream(open(args.filename))
+machine = Machine("x86_32")
+
+mdis = machine.dis_engine(cont.bin_stream, loc_db=cont.loc_db)
 mdis.follow_call = True
 asmcfg = mdis.dis_multiblock(ad)
 print 'ok'
 
 
 print 'generating dataflow graph for:'
-ir_arch = ir_a_x86_32(mdis.loc_db)
-ircfg = ir_arch.new_ircfg_from_asmcfg(asmcfg)
+ir_arch_analysis = machine.ira(mdis.loc_db)
+ircfg = ir_arch_analysis.new_ircfg_from_asmcfg(asmcfg)
 
 for irblock in ircfg.blocks.values():
     print irblock
@@ -151,7 +151,7 @@ if args.symb:
 else:
     block_flow_cb = intra_block_flow_raw
 
-gen_block_data_flow_graph(ir_arch, ircfg, ad, block_flow_cb)
+gen_block_data_flow_graph(ir_arch_analysis, ircfg, ad, block_flow_cb)
 
 print '*' * 40
 print """

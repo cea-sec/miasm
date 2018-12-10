@@ -538,6 +538,11 @@ test_x86_32_if_reg = ExampleShellcode(['x86_32', 'x86_32_if_reg.S', "x86_32_if_r
 test_x86_32_seh = ExampleShellcode(["x86_32", "x86_32_seh.S", "x86_32_seh.bin",
                                     "--PE"])
 test_x86_32_dead = ExampleShellcode(['x86_32', 'x86_32_dead.S', "x86_32_dead.bin"])
+test_x86_32_dis = ExampleShellcode(
+    [
+        "x86_32", "test_x86_32_dis.S", "test_x86_32_dis.bin", "--PE"
+    ]
+)
 
 test_human = ExampleShellcode(["x86_64", "human.S", "human.bin"])
 
@@ -557,6 +562,7 @@ testset += test_x86_32_if_reg
 testset += test_x86_32_seh
 testset += test_x86_32_dead
 testset += test_human
+testset += test_x86_32_dis
 
 class ExampleDisassembler(Example):
     """Disassembler examples specificities:
@@ -565,15 +571,20 @@ class ExampleDisassembler(Example):
     example_dir = "disasm"
 
 
-for script, prods in [(["single_instr.py"], []),
-                      (["callback.py"], []),
-                      (["function.py"], ["graph.dot"]),
-                      (["file.py", Example.get_sample("box_upx.exe"),
-                        "0x407570"], ["graph.dot"]),
-                      (["full.py", Example.get_sample("box_upx.exe")],
-                       ["graph_execflow.dot", "lines.dot"]),
-                      ]:
-    testset += ExampleDisassembler(script, products=prods)
+for script, prods, depends in [
+        (["single_instr.py"], [], []),
+        (["callback.py"], [], []),
+        (["dis_x86_string.py"], ["str_cfg.dot"], []),
+        (["dis_binary.py", Example.get_sample("test_x86_32_dis.bin"),
+        ], ["bin_cfg.dot"], [test_x86_32_dis]),
+        (["dis_binary_ir.py", Example.get_sample("test_x86_32_dis.bin"),
+        ], ["bin_ir_cfg.dot"], [test_x86_32_dis]),
+        (["dis_binary_ira.py", Example.get_sample("test_x86_32_dis.bin"),
+        ], ["bin_ira_cfg.dot"], [test_x86_32_dis]),
+        (["full.py", Example.get_sample("box_upx.exe")],
+         ["graph_execflow.dot", "lines.dot"], []),
+]:
+    testset += ExampleDisassembler(script, products=prods, depends=depends)
 
 
 class ExampleDisasmFull(ExampleDisassembler):
