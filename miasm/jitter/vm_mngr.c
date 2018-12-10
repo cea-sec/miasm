@@ -880,7 +880,7 @@ void add_memory_page(vm_mngr_t* vm_mngr, struct memory_page_node* mpn_a)
 
 			if (mpn_a->taint[color_index] == NULL)
 			{
-				fprintf(stderr, "cannot alloc mpn_a->taint[%" PRIu64 "]\n", color_index);
+				fprintf(stderr, "cannot alloc mpn_a->taint[%"PRIu64"]\n", color_index);
 				exit(EXIT_FAILURE);
 			}
 		}

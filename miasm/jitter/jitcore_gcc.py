@@ -77,9 +77,10 @@ class JitCore_Gcc(JitCore_Cc_Base):
                 cl = [
                     "cl", "/nologo", "/W3", "/MP",
                     "/Od", "/DNDEBUG", "/D_WINDOWS", "/Gm-", "/EHsc",
-                    "/RTC1", "/MD", "/GS",
-                    fname_in
-                ] + inc_dir + libs
+                    "/RTC1", "/MD", "/GS"
+                ]
+                cl += ["/DTAINT"] if self.taint else []
+                cl += [fname_in] + inc_dir + libs
                 cl += ["/link", "/DLL", "/OUT:" + fname_tmp]
                 out_dir, _ = os.path.split(fname_tmp)
                 check_call(cl, cwd = out_dir)

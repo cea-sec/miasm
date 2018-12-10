@@ -198,10 +198,6 @@ def buil_all():
             ]
         ),
         Extension(
-            "miasm2.jitter.VmMngr_taint",
-            sources = ["miasm2/jitter/vm_mngr.c",
-                   "miasm2/jitter/vm_mngr_py.c"]),
-        Extension(
             "miasm.jitter.VmMngr_taint",
             define_macros = [('TAINT', None)],
             [

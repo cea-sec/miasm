@@ -4,8 +4,6 @@ import miasm2.expression.expression as m2_expr
 def makeTaintGen(C_Gen, ir_arch):
   class TaintGen(C_Gen):
 
-      ## Taint Analysis
-
       CODE_INIT_TAINT = r"""
       struct taint_colors_t* taint_analysis = jitcpu->taint_analysis;
       vm_mngr_t* vm_mngr = &jitcpu->pyvm->vm_mngr;

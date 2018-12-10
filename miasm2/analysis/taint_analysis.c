@@ -1,5 +1,7 @@
 #include <Python.h>
 
+#include <inttypes.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -38,7 +40,6 @@ taint_init_colors(uint64_t nb_colors, uint64_t nb_registers, uint32_t max_regist
 	taint_colors->max_register_size = max_register_size;
 
 	int i;
-	struct taint_color_t *taint_analysis;
 	for (i = 0 ; i < nb_colors ; i++)
 	{
 		taint_colors->colors[i] = taint_init_color(nb_registers, max_register_size);
@@ -81,7 +82,7 @@ taint_check_color(uint64_t color_index, uint64_t nb_colors)
 	if (color_index >= nb_colors)
 	{
 		fprintf(stderr,
-			"TAINT: color %" PRIu64 " does not exist\n",
+			"TAINT: color %"PRIu64" does not exist\n",
 			color_index);
 		exit(EXIT_FAILURE);
 	}
@@ -97,16 +98,16 @@ taint_check_register(uint64_t register_index,
 	if (register_index >= nb_registers)
 	{
 		fprintf(stderr,
-			"TAINT: register %" PRIu64 " does not exist\n",
+			"TAINT: register %"PRIu64" does not exist\n",
 			register_index);
 		exit(EXIT_FAILURE);
 	}
 	if (interval->start >= max_register_size)
 	{
 		fprintf(stderr,
-			"TAINT: register %" PRIu64 " does not have more than "
-			"%" PRIu32 " bytes.\n You tried to start reading at "
-			"byte %" PRIu32 "(+1).\n",
+			"TAINT: register %"PRIu64" does not have more than "
+			"%"PRIu32" bytes.\n You tried to start reading at "
+			"byte %"PRIu32"(+1).\n",
 			register_index,
 			max_register_size,
 			interval->start);
@@ -115,9 +116,9 @@ taint_check_register(uint64_t register_index,
 	if (interval->end >= max_register_size)
 	{
 		fprintf(stderr,
-			"TAINT: register %" PRIu64 " does not have more than "
-			"%" PRIu32 " bytes.\n You tried to reading until byte "
-			"%" PRIu32 " (+1).\n",
+			"TAINT: register %"PRIu64" does not have more than "
+			"%"PRIu32" bytes.\n You tried to reading until byte "
+			"%"PRIu32" (+1).\n",
 			register_index,
 			max_register_size,
 			interval->end);
@@ -126,8 +127,8 @@ taint_check_register(uint64_t register_index,
 	if (interval->end < interval->start)
 	{
 		fprintf(stderr,
-			"TAINT: register %" PRIu64 " -> You tried to reading "
-			"from byte %" PRIu32 " to byte %" PRIu32 "\n",
+			"TAINT: register %"PRIu64" -> You tried to reading "
+			"from byte %"PRIu32" to byte %"PRIu32"\n",
 			register_index,
 			interval->start,
 			interval->end);
@@ -252,7 +253,7 @@ taint_memory_generic_access(vm_mngr_t* vm_mngr,
 
 	if(!mpn)
 	{
-		fprintf(stderr, "TAINT: address %" PRIu64 " is not mapped\n", addr);
+		fprintf(stderr, "TAINT: address %"PRIu64" is not mapped\n", addr);
 		return;
 	}
 
@@ -282,7 +283,7 @@ taint_memory_generic_access(vm_mngr_t* vm_mngr,
 			if (!mpn)
 			{
 				fprintf(stderr,
-					"TAINT: address %" PRIu64 " is not "
+					"TAINT: address %"PRIu64" is not "
 					"mapped\n",
 					addr + i);
 				return;
@@ -307,7 +308,7 @@ taint_get_memory(vm_mngr_t* vm_mngr,
 	if(!mpn)
 	{
 		fprintf(stderr,
-			"TAINT: address %" PRIu64 " is not mapped\n",
+			"TAINT: address %"PRIu64" is not mapped\n",
 			addr);
 		return NULL;
 	}
@@ -369,7 +370,7 @@ taint_get_memory(vm_mngr_t* vm_mngr,
 			if (!mpn)
 			{
 				fprintf(stderr,
-					"TAINT: address %" PRIu64 " is not"
+					"TAINT: address %"PRIu64" is not"
 					"mapped\n",
 					addr + i);
 				free(tainted_interval);
@@ -478,7 +479,7 @@ taint_init_memory(vm_mngr_t* vm_mngr, uint64_t nb_colors)
 				fprintf(stderr,
 					"TAINT: cannot alloc "
 					"vm_mngr->memory_pages_array[%d].taint"
-					"[%" PRIu64  "]\n",
+					"[%"PRIu64"]\n",
 					i,
 					color_index
 					);
