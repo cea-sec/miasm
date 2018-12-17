@@ -289,13 +289,12 @@ def bic(arg1, arg2, arg3):
 def bics(ir, instr, arg1, arg2, arg3):
     e = []
     tmp1, tmp2 = arg2, (~extend_arg(arg2, arg3))
+    res = tmp1 & tmp2
 
     e += [ExprAssign(zf, ExprOp('FLAG_EQ_AND', tmp1, tmp2))]
     e += update_flag_nf(res)
 
     e.append(ExprAssign(arg1, res))
-
-    e += null_flag_co()
     return e, []
 
 
