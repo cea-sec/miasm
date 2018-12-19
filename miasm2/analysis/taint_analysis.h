@@ -1,3 +1,9 @@
+#if _WIN32
+#define _MIASM_EXPORT __declspec(dllexport)
+#else
+#define _MIASM_EXPORT
+#endif
+
 #define DO_RAISE_EXCEPTION 1
 #define NB_BITS_IN_UINT32_T 32
 #define NB_MEM_ALLOC_CB 8
@@ -132,13 +138,13 @@ void taint_check_register(uint64_t register_index,
 			  );
 
 /* Regsiters */
-void taint_register_generic_access(struct taint_colors_t *colors,
+_MIASM_EXPORT void taint_register_generic_access(struct taint_colors_t *colors,
 				   uint64_t color_index,
 				   uint64_t register_index,
 				   struct taint_interval_t* interval,
 				   uint32_t access_type
 				   );
-struct taint_interval_t* taint_get_register_color(struct taint_colors_t *colors,
+_MIASM_EXPORT struct taint_interval_t* taint_get_register_color(struct taint_colors_t *colors,
 						    uint64_t color_index,
 						    uint64_t register_index,
 						    struct taint_interval_t* interval
@@ -154,13 +160,13 @@ void taint_color_remove_all_registers(struct taint_colors_t *colors,
 				      );
 
 /* Memory */
-void taint_memory_generic_access(vm_mngr_t* vm_mngr,
+_MIASM_EXPORT void taint_memory_generic_access(vm_mngr_t* vm_mngr,
 				 uint64_t addr,
 				 uint64_t size,
 				 uint32_t access_type,
 				 uint64_t color_index
 				 );
-struct taint_interval_t* taint_get_memory(vm_mngr_t* vm_mngr,
+_MIASM_EXPORT struct taint_interval_t* taint_get_memory(vm_mngr_t* vm_mngr,
 					    uint64_t addr,
 					    uint64_t size,
 					    uint64_t color_index
@@ -173,17 +179,17 @@ void taint_init_memory(vm_mngr_t* vm_mngr, uint64_t color_index);
 struct taint_callback_info_t *taint_init_callback_info(uint64_t nb_registers,
 						       uint32_t max_register_size
 						       );
-void taint_clean_all_callback_info(struct taint_colors_t *colors);
+_MIASM_EXPORT void taint_clean_all_callback_info(struct taint_colors_t *colors);
 void taint_clean_callback_info(struct taint_colors_t *colors,
 			       uint64_t color_index
 			       );
-void taint_update_register_callback_info(struct taint_colors_t *colors,
+_MIASM_EXPORT void taint_update_register_callback_info(struct taint_colors_t *colors,
 					 uint64_t color_index,
 					 uint64_t register_index,
 					 struct taint_interval_t* interval,
 					 int event_type
 					 );
-void taint_update_memory_callback_info(struct taint_colors_t *colors,
+_MIASM_EXPORT void taint_update_memory_callback_info(struct taint_colors_t *colors,
 				       uint64_t color_index,
 				       uint64_t addr,
 				       uint64_t size,
