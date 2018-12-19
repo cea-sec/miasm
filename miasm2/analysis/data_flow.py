@@ -3,7 +3,8 @@
 from collections import namedtuple
 from miasm2.core.graph import DiGraph
 from miasm2.ir.ir import AssignBlock, IRBlock
-from miasm2.expression.expression import ExprLoc, ExprMem, ExprId, ExprInt
+from miasm2.expression.expression import ExprLoc, ExprMem, ExprId, ExprInt,\
+    ExprAssign
 from miasm2.expression.simplifications import expr_simp
 from miasm2.core.interval import interval
 
@@ -1006,3 +1007,208 @@ def load_from_int(ir_arch, bs, is_addr_ro_variable):
         block = IRBlock(block.loc_key, assignblks)
         ir_arch.blocks[block.loc_key] = block
     return modified
+
+
+class AssignBlockLivenessInfos(object):
+    """
+    Description of live in / live out of an AssignBlock
+    """
+
+    __slots__ = ["gen", "kill", "var_in", "var_out", "live", "assignblk"]
+
+    def __init__(self, assignblk, gen, kill):
+        self.gen = gen
+        self.kill = kill
+        self.var_in = set()
+        self.var_out = set()
+        self.live = set()
+        self.assignblk = assignblk
+
+    def __str__(self):
+        out = []
+        out.append("\tVarIn:" + ", ".join(str(x) for x in self.var_in))
+        out.append("\tGen:" + ", ".join(str(x) for x in self.gen))
+        out.append("\tKill:" + ", ".join(str(x) for x in self.kill))
+        out.append(
+            '\n'.join(
+                "\t%s = %s" % (dst, src)
+                for (dst, src) in self.assignblk.iteritems()
+            )
+        )
+        out.append("\tVarOut:" + ", ".join(str(x) for x in self.var_out))
+        return '\n'.join(out)
+
+
+class IRBlockLivenessInfos(object):
+    """
+    Description of live in / live out of an AssignBlock
+    """
+    __slots__ = ["loc_key", "infos", "assignblks"]
+
+
+    def __init__(self, irblock):
+        self.loc_key = irblock.loc_key
+        self.infos = []
+        self.assignblks = []
+        for assignblk in irblock:
+            gens, kills = set(), set()
+            for dst, src in assignblk.iteritems():
+                expr = ExprAssign(dst, src)
+                read = expr.get_r(mem_read=True)
+                write = expr.get_w()
+                gens.update(read)
+                kills.update(write)
+            self.infos.append(AssignBlockLivenessInfos(assignblk, gens, kills))
+            self.assignblks.append(assignblk)
+
+    def __getitem__(self, index):
+        """Getitem on assignblks"""
+        return self.assignblks.__getitem__(index)
+
+    def __str__(self):
+        out = []
+        out.append("%s:" % self.loc_key)
+        for info in self.infos:
+            out.append(str(info))
+            out.append('')
+        return "\n".join(out)
+
+
+class DiGraphLiveness(DiGraph):
+    """
+    DiGraph representing variable liveness
+    """
+
+    def __init__(self, ircfg, loc_db=None):
+        super(DiGraphLiveness, self).__init__()
+        self.ircfg = ircfg
+        self.loc_db = loc_db
+        self._blocks = {}
+        # Add irblocks gen/kill
+        for node in ircfg.nodes():
+            irblock = ircfg.blocks[node]
+            irblockinfos = IRBlockLivenessInfos(irblock)
+            self.add_node(irblockinfos.loc_key)
+            self.blocks[irblockinfos.loc_key] = irblockinfos
+            for succ in ircfg.successors(node):
+                self.add_uniq_edge(node, succ)
+            for pred in ircfg.predecessors(node):
+                self.add_uniq_edge(pred, node)
+
+    @property
+    def blocks(self):
+        return self._blocks
+
+    def init_var_info(self):
+        """Add ircfg out regs"""
+        raise NotImplementedError("Abstract method")
+
+    def node2lines(self, node):
+        """
+        Output liveness information in dot format
+        """
+        if self.loc_db is None:
+            node_name = str(node)
+        else:
+            names = self.loc_db.get_location_names(node)
+            if not names:
+                node_name = self.loc_db.pretty_str(node)
+            else:
+                node_name = "".join("%s:\n" % name for name in names)
+        yield self.DotCellDescription(
+            text="%s" % node_name,
+            attr={
+                'align': 'center',
+                'colspan': 2,
+                'bgcolor': 'grey',
+            }
+        )
+        if node not in self._blocks:
+            yield [self.DotCellDescription(text="NOT PRESENT", attr={})]
+            raise StopIteration
+
+        for i, info in enumerate(self._blocks[node].infos):
+            var_in = "VarIn:" + ", ".join(str(x) for x in info.var_in)
+            var_out = "VarOut:" + ", ".join(str(x) for x in info.var_out)
+
+            assignmnts = ["%s = %s" % (dst, src) for (dst, src) in info.assignblk.iteritems()]
+
+            if i == 0:
+                yield self.DotCellDescription(
+                    text=var_in,
+                    attr={
+                        'bgcolor': 'green',
+                    }
+                )
+
+            for assign in assignmnts:
+                yield self.DotCellDescription(text=assign, attr={})
+            yield self.DotCellDescription(
+                text=var_out,
+                attr={
+                    'bgcolor': 'green',
+                }
+            )
+            yield self.DotCellDescription(text="", attr={})
+
+    def back_propagate_compute(self, block):
+        """
+        Compute the liveness information in the @block.
+        @block: AssignBlockLivenessInfos instance
+        """
+        infos = block.infos
+        modified = False
+        for i in reversed(xrange(len(infos))):
+            new_vars = set(infos[i].gen.union(infos[i].var_out.difference(infos[i].kill)))
+            if infos[i].var_in != new_vars:
+                modified = True
+                infos[i].var_in = new_vars
+            if i > 0 and infos[i - 1].var_out != set(infos[i].var_in):
+                modified = True
+                infos[i - 1].var_out = set(infos[i].var_in)
+        return modified
+
+    def back_propagate_to_parent(self, todo, node, parent):
+        """
+        Back propagate the liveness information from @node to @parent.
+        @node: loc_key of the source node
+        @parent: loc_key of the node to update
+        """
+        parent_block = self.blocks[parent]
+        cur_block = self.blocks[node]
+        if cur_block.infos[0].var_in == parent_block.infos[-1].var_out:
+            return
+        var_info = cur_block.infos[0].var_in.union(parent_block.infos[-1].var_out)
+        parent_block.infos[-1].var_out = var_info
+        todo.add(parent)
+
+    def compute_liveness(self):
+        """
+        Compute the liveness information for the digraph.
+        """
+        todo = set(self.leaves())
+        while todo:
+            node = todo.pop()
+            cur_block = self.blocks[node]
+            modified = self.back_propagate_compute(cur_block)
+            if not modified:
+                continue
+            # We modified parent in, propagate to parents
+            for pred in self.predecessors(node):
+                self.back_propagate_to_parent(todo, node, pred)
+        return True
+
+
+class DiGraphLivenessIRA(DiGraphLiveness):
+    """
+    DiGraph representing variable liveness for IRA
+    """
+
+    def init_var_info(self, ir_arch_a):
+        """Add ircfg out regs"""
+
+        for node in self.leaves():
+            irblock = self.ircfg.blocks[node]
+            var_out = ir_arch_a.get_out_regs(irblock)
+            irblock_liveness = self.blocks[node]
+            irblock_liveness.infos[-1].var_out = var_out
