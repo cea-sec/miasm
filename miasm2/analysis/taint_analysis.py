@@ -359,13 +359,11 @@ def makeTaintGen(C_Gen, ir_arch):
           @assignblk: an AssignBlock instance
           """
 
-          c_prefetch, c_var, c_main, c_mem, c_updt = super(TaintGen, self).gen_c_assignments(assignblk)
-
           self.c_taint = []
           prefetchers = self.get_mem_prefetch(assignblk) # XXX: could be optimised, this is already done in G_Gen.gen_c_assignments
-          self.c_taint = self.gen_taint(assignblk, prefetchers)
+          self.c_taint = self.gen_taint(assignblk, prefetchers) # XXX: for convenience we use a attribute for c_taint
 
-          return c_prefetch, c_var, c_main, c_mem, c_updt #, c_taint # XXX: for convenience we use a attribute for c_taint
+          return super(TaintGen, self).gen_c_assignments(assignblk)
 
       def gen_c_code(self, attrib, c_dst, c_assignmnts):
           """
