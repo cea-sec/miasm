@@ -664,6 +664,9 @@ testset += ExampleExpression(["expr_c.py"],
 testset += ExampleExpression(["constant_propagation.py",
                               Example.get_sample("simple_test.bin"), "-s", "0"],
                              products=["%s.propag.dot" % Example.get_sample("simple_test.bin")])
+testset += ExampleExpression(["export_llvm.py", "-a", "x86_32", Example.get_sample("simple_test.bin"), "0"],
+                             products=["out.ll"])
+
 
 for script in [["basic_op.py"],
                ["basic_simplification.py"],
