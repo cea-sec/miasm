@@ -275,7 +275,6 @@ if args.gen_ir:
             modified = False
             modified |= dead_simp(ir_arch_a, ircfg_a)
             modified |= remove_empty_assignblks(ircfg_a)
-            modified |= merge_blocks(ircfg_a, entry_points)
 
         open('graph_irflow_reduced.dot', 'w').write(ircfg_a.dot())
 
@@ -396,7 +395,6 @@ if args.propagexpr:
                 if args.verbose > 3:
                     open('tmp_after_%d.dot' % index, 'w').write(ircfg_a.dot())
                 simp_modified |= remove_empty_assignblks(ircfg_a)
-                simp_modified |= merge_blocks(ircfg_a, heads)
                 if args.loadint:
                     simp_modified |= load_from_int(ircfg_a, bs, is_addr_ro_variable)
                 modified |= simp_modified
@@ -409,7 +407,6 @@ if args.propagexpr:
     if args.verbose > 3:
         open('final_pre.dot', 'w').write(ircfg_a.dot())
 
-    merge_blocks(ircfg_a, heads)
     if args.verbose > 3:
         open('final_merge.dot', 'w').write(ircfg_a.dot())
     ssa = SSADiGraph(ircfg_a)
