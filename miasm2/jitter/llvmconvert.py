@@ -114,6 +114,7 @@ class LLVMContext():
         """Create a module, with needed functions"""
         self.mod = llvm_ir.Module(name=name)
         self.add_fc(self.known_fc)
+        self.add_op()
 
     def get_execengine(self):
         "Return the Execution Engine associated with this context"
@@ -139,6 +140,60 @@ class LLVMContext():
             fn = llvm_ir.Function(self.mod, fnty, name=name)
             if readonly:
                 fn.attributes.add("readonly")
+
+    def add_op(self):
+        "Add operations functions"
+
+        i8 = LLVMType.IntType(8)
+        p8 = llvm_ir.PointerType(i8)
+        itype = LLVMType.IntType(64)
+        ftype = llvm_ir.FloatType()
+        dtype = llvm_ir.DoubleType()
+        fc = {"llvm.ctpop.i8": {"ret": i8,
+                                "args": [i8]},
+              "llvm.nearbyint.f32": {"ret": ftype,
+                                     "args": [ftype]},
+              "llvm.nearbyint.f64": {"ret": dtype,
+                                     "args": [dtype]},
+              "llvm.trunc.f32": {"ret": ftype,
+                                 "args": [ftype]},
+              "segm2addr": {"ret": itype,
+                            "args": [p8,
+                                     itype,
+                                     itype]},
+              "x86_cpuid": {"ret": itype,
+                        "args": [itype,
+                                 itype]},
+              "fpu_fcom_c0": {"ret": itype,
+                          "args": [dtype,
+                                   dtype]},
+              "fpu_fcom_c1": {"ret": itype,
+                          "args": [dtype,
+                                   dtype]},
+              "fpu_fcom_c2": {"ret": itype,
+                          "args": [dtype,
+                                   dtype]},
+              "fpu_fcom_c3": {"ret": itype,
+                          "args": [dtype,
+                                   dtype]},
+              "llvm.sqrt.f32": {"ret": ftype,
+                                "args": [ftype]},
+              "llvm.sqrt.f64": {"ret": dtype,
+                                "args": [dtype]},
+              "llvm.fabs.f32": {"ret": ftype,
+                                "args": [ftype]},
+              "llvm.fabs.f64": {"ret": dtype,
+                                "args": [dtype]},
+        }
+
+        for k in [8, 16]:
+            fc["bcdadd_%s" % k] = {"ret": LLVMType.IntType(k),
+                                   "args": [LLVMType.IntType(k),
+                                            LLVMType.IntType(k)]}
+            fc["bcdadd_cf_%s" % k] = {"ret": LLVMType.IntType(k),
+                                      "args": [LLVMType.IntType(k),
+                                               LLVMType.IntType(k)]}
+        self.add_fc(fc, readonly=True)
 
 
     def memory_lookup(self, func, addr, size):
@@ -187,7 +242,6 @@ class LLVMContext_JIT(LLVMContext):
         LLVMContext.new_module(self, name)
         self.add_memlookups()
         self.add_get_exceptionflag()
-        self.add_op()
         self.add_log_functions()
 
     def arch_specific(self):
@@ -256,60 +310,6 @@ class LLVMContext_JIT(LLVMContext):
         p8 = llvm_ir.PointerType(LLVMType.IntType(8))
         self.add_fc({"get_exception_flag": {"ret": LLVMType.IntType(64),
                                             "args": [p8]}}, readonly=True)
-
-    def add_op(self):
-        "Add operations functions"
-
-        i8 = LLVMType.IntType(8)
-        p8 = llvm_ir.PointerType(i8)
-        itype = LLVMType.IntType(64)
-        ftype = llvm_ir.FloatType()
-        dtype = llvm_ir.DoubleType()
-        fc = {"llvm.ctpop.i8": {"ret": i8,
-                                "args": [i8]},
-              "llvm.nearbyint.f32": {"ret": ftype,
-                                     "args": [ftype]},
-              "llvm.nearbyint.f64": {"ret": dtype,
-                                     "args": [dtype]},
-              "llvm.trunc.f32": {"ret": ftype,
-                                 "args": [ftype]},
-              "segm2addr": {"ret": itype,
-                            "args": [p8,
-                                     itype,
-                                     itype]},
-              "x86_cpuid": {"ret": itype,
-                        "args": [itype,
-                                 itype]},
-              "fpu_fcom_c0": {"ret": itype,
-                          "args": [dtype,
-                                   dtype]},
-              "fpu_fcom_c1": {"ret": itype,
-                          "args": [dtype,
-                                   dtype]},
-              "fpu_fcom_c2": {"ret": itype,
-                          "args": [dtype,
-                                   dtype]},
-              "fpu_fcom_c3": {"ret": itype,
-                          "args": [dtype,
-                                   dtype]},
-              "llvm.sqrt.f32": {"ret": ftype,
-                                "args": [ftype]},
-              "llvm.sqrt.f64": {"ret": dtype,
-                                "args": [dtype]},
-              "llvm.fabs.f32": {"ret": ftype,
-                                "args": [ftype]},
-              "llvm.fabs.f64": {"ret": dtype,
-                                "args": [dtype]},
-        }
-
-        for k in [8, 16]:
-            fc["bcdadd_%s" % k] = {"ret": LLVMType.IntType(k),
-                                   "args": [LLVMType.IntType(k),
-                                            LLVMType.IntType(k)]}
-            fc["bcdadd_cf_%s" % k] = {"ret": LLVMType.IntType(k),
-                                      "args": [LLVMType.IntType(k),
-                                               LLVMType.IntType(k)]}
-        self.add_fc(fc, readonly=True)
 
     def add_log_functions(self):
         "Add functions for state logging"
