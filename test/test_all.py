@@ -384,6 +384,7 @@ testset += RegressionTest(["data_flow.py"], base_dir="analysis",
             ["simp_graph_%02d.dot" % test_nb, "graph_%02d.dot" % test_nb]
             for test_nb in xrange(1, 18))
                                     for fname in fnames])
+testset += RegressionTest(["unssa.py"], base_dir="analysis")
 
 for i in xrange(1, 21):
     input_name = "cst_propag/x86_32_sc_%d" % i
@@ -604,17 +605,17 @@ class ExampleDisasmFull(ExampleDisassembler):
 
 
 testset += ExampleDisasmFull(["arml", Example.get_sample("demo_arm_l.bin"),
-                              "0"], depends=[test_arml])
+                              "0x2c", "-z"], depends=[test_arml])
 testset += ExampleDisasmFull(["armb", Example.get_sample("demo_arm_b.bin"),
-                              "0"], depends=[test_armb])
+                              "0x2c", "-z"], depends=[test_armb])
 testset += ExampleDisasmFull(["arml", Example.get_sample("demo_arm2_l.bin"),
-                              "0"], depends=[test_arml_sc])
+                              "0x0", "-z"], depends=[test_arml_sc])
 testset += ExampleDisasmFull(["armb", Example.get_sample("demo_arm2_b.bin"),
-                              "0"], depends=[test_armb_sc])
+                              "0x0", "-z"], depends=[test_armb_sc])
 testset += ExampleDisasmFull(["armtl", Example.get_sample("demo_armt_l.bin"),
-                              "0"], depends=[test_armtl])
+                              "0x2c", "-z"], depends=[test_armtl])
 testset += ExampleDisasmFull(["armtb", Example.get_sample("demo_armt_b.bin"),
-                              "0"], depends=[test_armtb])
+                              "0x2c", "-z"], depends=[test_armtb])
 testset += ExampleDisasmFull(["aarch64l", Example.get_sample("demo_aarch64_l.bin"),
                               "0"], depends=[test_aarch64l])
 testset += ExampleDisasmFull(["aarch64b", Example.get_sample("demo_aarch64_b.bin"),
