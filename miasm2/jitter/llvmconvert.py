@@ -482,7 +482,7 @@ class LLVMContext_IRCompilation(LLVMContext):
         return builder.store(value, ptr_casted)
 
 
-class LLVMFunction():
+class LLVMFunction(object):
     """Represent a LLVM function
 
     Implementation note:
@@ -890,6 +890,22 @@ class LLVMFunction():
                     callback = builder.udiv
 
                 ret = callback(arg_a, arg_b)
+                self.update_cache(expr, ret)
+                return ret
+
+            unsigned_cmps = {
+                "==": "==",
+                "<u": "<",
+                "<=u": "<="
+            }
+            if op in unsigned_cmps:
+                op = unsigned_cmps[op]
+                args = [self.add_ir(arg) for arg in expr.args]
+                ret = builder.select(builder.icmp_unsigned(op,
+                                                           args[0],
+                                                           args[1]),
+                                     llvm_ir.IntType(expr.size)(1),
+                                     llvm_ir.IntType(expr.size)(0))
                 self.update_cache(expr, ret)
                 return ret
 
