@@ -15,7 +15,7 @@ from miasm2.analysis.data_flow import dead_simp, DiGraphDefUse, \
     read_mem, get_memlookup
 
 from miasm2.expression.simplifications import expr_simp
-from miasm2.analysis.ssa import SSADiGraph, remove_phi
+from miasm2.analysis.ssa import SSADiGraph
 from miasm2.ir.ir import AssignBlock, IRBlock
 from utils import guess_machine, expr2colorstr
 from miasm2.expression.expression import ExprLoc, ExprMem, ExprId, ExprInt
@@ -44,7 +44,7 @@ def label_str(self):
 
 def color_irblock(irblock, ir_arch):
     out = []
-    lbl = idaapi.COLSTR(ir_arch.loc_db.pretty_str(irblock.loc_key), idaapi.SCOLOR_INSN)
+    lbl = idaapi.COLSTR("%s:" % ir_arch.loc_db.pretty_str(irblock.loc_key), idaapi.SCOLOR_INSN)
     out.append(lbl)
     for assignblk in irblock:
         for dst, src in sorted(assignblk.iteritems()):
@@ -54,9 +54,6 @@ def color_irblock(irblock, ir_arch):
             out.append('    %s' % line)
         out.append("")
     out.pop()
-    dst = str('    Dst: %s' % irblock.dst)
-    dst = idaapi.COLSTR(dst, idaapi.SCOLOR_RPTCMT)
-    out.append(dst)
     return "\n".join(out)
 
 
