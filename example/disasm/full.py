@@ -339,7 +339,7 @@ if args.propagexpr:
 
         ssa.transform(head)
 
-        all_ssa_vars.update(ssa._ssa_variable_to_expr)
+        all_ssa_vars.update(ssa.ssa_variable_to_expr)
 
         ssa_regs = [reg for reg in ssa.expressions if reg.is_id()]
         ssa_forbidden_regs.update(ssa_regs)
@@ -347,7 +347,7 @@ if args.propagexpr:
         if args.verbose > 3:
             open("ssa_%d.dot" % index, "wb").write(ircfg_a.dot())
 
-        ir_arch_a.ssa_var.update(ssa._ssa_variable_to_expr)
+        ir_arch_a.ssa_var.update(ssa.ssa_variable_to_expr)
         if args.verbose > 3:
             open("ssa_orig.dot", "wb").write(ircfg_a.dot())
 
@@ -392,9 +392,9 @@ if args.propagexpr:
     ssa = SSADiGraph(ircfg_a)
     ssa.immutable_ids.update(ssa_forbidden_regs)
     ssa.transform(head)
-    all_ssa_vars.update(ssa._ssa_variable_to_expr)
+    all_ssa_vars.update(ssa.ssa_variable_to_expr)
     print '*'*80, "Remove phi"
-    ssa._ssa_variable_to_expr = all_ssa_vars
+    ssa.ssa_variable_to_expr = all_ssa_vars
     if args.verbose > 3:
         open('final_ssa.dot', 'w').write(ircfg_a.dot())
     remove_phi(ssa, head)

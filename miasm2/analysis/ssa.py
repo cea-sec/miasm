@@ -44,7 +44,7 @@ class SSA(object):
         # stack for LHS
         self._stack_lhs = {}
 
-        self._ssa_variable_to_expr = {}
+        self.ssa_variable_to_expr = {}
 
         # dict of SSA expressions
         self.expressions = {}
@@ -78,7 +78,7 @@ class SSA(object):
         :param ssa_var: ExprId, variable in SSA form
         :return: ExprId, variable in non-SSA form
         """
-        expr = self._ssa_variable_to_expr.get(ssa_var, ssa_var)
+        expr = self.ssa_variable_to_expr.get(ssa_var, ssa_var)
         return expr
 
     def reset(self):
@@ -99,7 +99,7 @@ class SSA(object):
         index = stack[expr]
         name = "%s.%d" % (expr.name, index)
         ssa_var = ExprId(name, expr.size)
-        self._ssa_variable_to_expr[ssa_var] = expr
+        self.ssa_variable_to_expr[ssa_var] = expr
 
         return ssa_var
 

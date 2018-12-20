@@ -260,13 +260,13 @@ def build_graph(verbose=False, simplify=False, ssa=False, ssa_simplify=False):
 
             ssa.transform(head)
 
-            all_ssa_vars.update(ssa._ssa_variable_to_expr)
+            all_ssa_vars.update(ssa.ssa_variable_to_expr)
 
             ssa_regs = [reg for reg in ssa.expressions if reg.is_id()]
             ssa_forbidden_regs.update(ssa_regs)
 
 
-            ir_arch.ssa_var.update(ssa._ssa_variable_to_expr)
+            ir_arch.ssa_var.update(ssa.ssa_variable_to_expr)
 
             while modified:
                 index += 1
@@ -290,8 +290,8 @@ def build_graph(verbose=False, simplify=False, ssa=False, ssa_simplify=False):
         ssa = SSADiGraph(ircfg)
         ssa.immutable_ids.update(ssa_forbidden_regs)
         ssa.transform(head)
-        all_ssa_vars.update(ssa._ssa_variable_to_expr)
-        ssa._ssa_variable_to_expr = all_ssa_vars
+        all_ssa_vars.update(ssa.ssa_variable_to_expr)
+        ssa.ssa_variable_to_expr = all_ssa_vars
         dead_simp(ir_arch, ssa.graph)
 
         title += " (SSA Simplified)"
