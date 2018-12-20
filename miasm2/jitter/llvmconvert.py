@@ -15,10 +15,10 @@ import os
 from llvmlite import binding as llvm
 from llvmlite import ir as llvm_ir
 from miasm2.expression.expression import ExprId, ExprInt, ExprMem, ExprSlice, \
-    ExprCond, ExprLoc, ExprOp, ExprCompose, LocKey
+    ExprCond, ExprLoc, ExprOp, ExprCompose, LocKey, Expr
 import miasm2.jitter.csts as m2_csts
 import miasm2.core.asmblock as m2_asmblock
-from miasm2.jitter.codegen import CGen
+from miasm2.jitter.codegen import CGen, Attributes
 from miasm2.expression.expression_helper import possible_values
 
 
@@ -1677,3 +1677,94 @@ class LLVMFunction(object):
         engine.finalize_object()
 
         return engine.get_function_address(self.fc.name)
+
+
+class LLVMFunction_IRCompilation(LLVMFunction):
+    """LLVMFunction made for IR export, in conjunction with
+    LLVMContext_IRCompilation.
+
+    This class offers only the basics, and decision must be made by the class
+    user on how actual registers, ABI, etc. are reflected
+
+
+    Example of use:
+    >>> context = LLVMContext_IRCompilation()
+    >>> context.ir_arch = ir
+    >>>
+    >>> func = LLVMFunction_IRCompilation(context, name="test")
+    >>> func.ret_type = llvm_ir.VoidType()
+    >>> func.init_fc()
+    >>>
+    >>> # Insert here function additionnal inits
+    >>> XX = func.builder.alloca(...)
+    >>> func.local_vars_pointers["EAX"] = XX
+    >>> #
+    >>>
+    >>> func.from_ircfg(ircfg)
+    """
+
+    def init_fc(self):
+        super(LLVMFunction_IRCompilation, self).init_fc()
+
+        # Create a global IRDst if not any
+        IRDst = self.llvm_context.ir_arch.IRDst
+        if str(IRDst) not in self.mod.globals:
+            llvm_ir.GlobalVariable(self.mod, LLVMType.IntType(IRDst.size),
+                                   name=str(IRDst))
+
+        # Create an 'exit' basic block, the final leave
+        self.exit_bbl = self.append_basic_block("exit")
+
+    def gen_jump2dst(self, _attrib, _instr_offsets, dst):
+        self.main_stream = False
+
+        if isinstance(dst, Expr):
+            if dst.is_int():
+                loc = self.llvm_context.ir_arch.loc_db.getby_offset_create(int(dst))
+                dst = ExprLoc(loc, dst.size)
+            assert dst.is_loc()
+            bbl = self.get_basic_block_by_loc_key(dst.loc_key)
+            if bbl is not None:
+                # "local" jump, inside this function
+                self.builder.branch(bbl)
+                return
+
+            # extern jump
+            dst = self.add_ir(dst)
+
+        # Emulate indirect jump with:
+        #   @IRDst = dst
+        #   goto exit
+        self.builder.store(dst, self.mod.get_global("IRDst"))
+        self.builder.branch(self.exit_bbl)
+
+    def gen_irblock(self, irblock):
+        instr_attrib = Attributes()
+        attributes = [Attributes() for _ in xrange(len(irblock.assignblks))]
+        instr_offsets = None
+        return super(LLVMFunction_IRCompilation, self).gen_irblock(
+            instr_attrib, attributes, instr_offsets, irblock
+        )
+
+    def from_ircfg(self, ircfg, append_ret=True):
+        # Create basic blocks
+        for loc_key, irblock in ircfg.blocks.iteritems():
+            self.append_basic_block(loc_key)
+
+        # Add IRBlocks
+        for label, irblock in ircfg.blocks.iteritems():
+            self.builder.position_at_end(self.get_basic_block_by_loc_key(label))
+            self.gen_irblock(irblock)
+
+        # Branch the entry BBL on the IRCFG head
+        self.builder.position_at_end(self.entry_bbl)
+        heads = ircfg.heads()
+        assert len(heads) == 1
+        starting_label = list(heads).pop()
+        self.builder.branch(self.get_basic_block_by_loc_key(starting_label))
+
+        # Returns with the builder on the exit block
+        self.builder.position_at_end(self.exit_bbl)
+
+        if append_ret:
+            self.builder.ret_void()
