@@ -430,7 +430,7 @@ def csel(arg1, arg2, arg3, arg4):
 
 def ccmp(ir, instr, arg1, arg2, arg3, arg4):
     e = []
-    if(arg2.is_int):
+    if(arg2.is_int()):
         arg2=ExprInt(arg2.arg.arg,arg1.size)
     default_nf = arg3[0:1]
     default_zf = arg3[1:2]
@@ -440,8 +440,8 @@ def ccmp(ir, instr, arg1, arg2, arg3, arg4):
     res = arg1 - arg2
     new_nf = nf
     new_zf = update_flag_zf(res)[0].src
-    new_cf = update_flag_sub_cf(arg1, arg2).src
-    new_of = update_flag_sub_of(arg1, arg2).src
+    new_cf = update_flag_sub_cf(arg1, arg2)[0].src
+    new_of = update_flag_sub_of(arg1, arg2)[0].src
 
     e.append(ExprAssign(nf, ExprCond(cond_expr,
                                                     new_nf,
