@@ -390,7 +390,7 @@ class DSEEngine(object):
         snapshot = {
             "mem": self.jitter.vm.get_all_memory(),
             "regs": self._get_gpregs(),
-            "symb": self.symb.symbols.copy(),
+            "symb": {e: v for e,v in self.symb.symbols.items()}
         }
         return snapshot
 
