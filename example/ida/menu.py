@@ -3,13 +3,12 @@
 - Miasm > Symbolic execution (icon 81, F3)
 - Miasm > Dependency graph (icon 79, F4)
 - Miasm > Graph IR (icon 188, F7)
-- Miasm > Graph IR (simplified) (icon 191, F8)
 - Miasm > RPYC server (icon 182, F10)
 - Miasm > Type propagation (icon 38, F11)
 """
 
 from symbol_exec import symbolic_exec
-from graph_ir import build_graph
+from graph_ir import function_graph_ir
 try:
     from rpyc_ida import serve_threaded
 except ImportError:
@@ -59,22 +58,10 @@ handler_symb.attach_to_menu("Miasm/Symbolic exec")
 handler_depgraph = Handler(launch_depgraph)
 handler_depgraph.register("miasm:depgraph", "Dependency graph", shortcut="F4", icon=79)
 handler_depgraph.attach_to_menu("Miasm/Dependency graph")
-handler_graph = Handler(build_graph)
+
+handler_graph = Handler(function_graph_ir)
 handler_graph.register("miasm:graphir", "Graph IR", shortcut="F7", icon=188)
 handler_graph.attach_to_menu("Miasm/Graph IR")
-handler_graph_simp = Handler(lambda: build_graph(simplify=True))
-handler_graph_simp.register("miasm:graphirsimp",
-                            "Graph IR (simplified)", shortcut="F8", icon=191)
-handler_graph_simp.attach_to_menu("Miasm/Graph IR (simplified)")
-handler_graph_simp = Handler(lambda: build_graph(simplify=True, ssa=True))
-handler_graph_simp.register("miasm:graphirssa",
-                            "Graph IR (SSA)", shortcut="F8", icon=191)
-handler_graph_simp.attach_to_menu("Miasm/Graph IR (SSA)")
-
-handler_graph_simp = Handler(lambda: build_graph(simplify=True, ssa_simplify=True))
-handler_graph_simp.register("miasm:graphirssasimple",
-                            "Graph IR (SSA Simplified)", shortcut="F8", icon=191)
-handler_graph_simp.attach_to_menu("Miasm/Graph IR (SSA Simplified)")
 
 if serve_threaded is not None:
     handler_rpyc = Handler(serve_threaded)
