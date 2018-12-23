@@ -222,7 +222,7 @@ def xxx_puts_symb(dse):
 
 todo = set([""]) # Set of file content to test
 
-# Instanciate the DSE engine
+# Instantiate the DSE engine
 machine = Machine("x86_64")
 # Convert strategy to the correct value
 strategy = {
@@ -236,7 +236,7 @@ dse = DSEPathConstraint(machine, produce_solution=strategy)
 dse.attach(sb.jitter)
 
 # Update the jitter state: df is read, but never set
-# Approachs: specific or generic
+# Approaches: specific or generic
 # - Specific:
 #   df_value = ExprInt(sb.jitter.cpu.df, dse.ir_arch.arch.regs.df.size)
 #   dse.update_state({

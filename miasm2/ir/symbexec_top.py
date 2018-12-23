@@ -68,7 +68,7 @@ class SymbolicStateTop(StateEngine):
 
     @property
     def symbols(self):
-        """Return the dictionnary of known symbols"""
+        """Return the dictionary of known symbols"""
         return dict(self._symbols)
 
     @property

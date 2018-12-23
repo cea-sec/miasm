@@ -2559,8 +2559,8 @@ def msvcrt_wcslen(jitter):
     jitter.func_ret_cdecl(ret_ad, len(s))
 
 def kernel32_SetFilePointer(jitter):
-    ret_ad, args = jitter.func_args_stdcall(["hwnd", "distance",
-                                             "p_distance_high",
+    ret_ad, args = jitter.func_args_stdcall(["hwnd", "dinstance",
+                                             "p_dinstance_high",
                                              "movemethod"])
 
     if args.hwnd == winobjs.module_cur_hwnd:
@@ -2572,22 +2572,22 @@ def kernel32_SetFilePointer(jitter):
 
     # data = None
     if args.hwnd in winobjs.files_hwnd:
-        winobjs.files_hwnd[winobjs.module_cur_hwnd].seek(args.distance, args.movemethod)
+        winobjs.files_hwnd[winobjs.module_cur_hwnd].seek(args.dinstance, args.movemethod)
     elif args.hwnd in winobjs.handle_pool:
         wh = winobjs.handle_pool[args.hwnd]
-        wh.info.seek(args.distance, args.movemethod)
+        wh.info.seek(args.dinstance, args.movemethod)
     else:
         raise ValueError('unknown filename')
-    jitter.func_ret_stdcall(ret_ad, args.distance)
+    jitter.func_ret_stdcall(ret_ad, args.dinstance)
 
 
 def kernel32_SetFilePointerEx(jitter):
-    ret_ad, args = jitter.func_args_stdcall(["hwnd", "distance_l",
-                                             "distance_h",
+    ret_ad, args = jitter.func_args_stdcall(["hwnd", "dinstance_l",
+                                             "dinstance_h",
                                              "pnewfileptr",
                                              "movemethod"])
-    distance = args.distance_l | (args.distance_h << 32)
-    if distance:
+    dinstance = args.dinstance_l | (args.dinstance_h << 32)
+    if dinstance:
         raise ValueError('Not implemented')
     if args.pnewfileptr:
         raise ValueError('Not implemented')
@@ -2600,10 +2600,10 @@ def kernel32_SetFilePointerEx(jitter):
 
     # data = None
     if args.hwnd in winobjs.files_hwnd:
-        winobjs.files_hwnd[winobjs.module_cur_hwnd].seek(distance, args.movemethod)
+        winobjs.files_hwnd[winobjs.module_cur_hwnd].seek(dinstance, args.movemethod)
     elif args.hwnd in winobjs.handle_pool:
         wh = winobjs.handle_pool[args.hwnd]
-        wh.info.seek(distance, args.movemethod)
+        wh.info.seek(dinstance, args.movemethod)
     else:
         raise ValueError('unknown filename')
     jitter.func_ret_stdcall(ret_ad, 1)

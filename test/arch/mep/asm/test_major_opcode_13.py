@@ -16,7 +16,7 @@ class TestMajor13:
         check_instruction("MOVU $4, 0x202EE0", "d4e0202e", multi=2)
         check_instruction("MOVU $4, 0xC12A8E", "d48ec12a", multi=2)
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("MOVU $4, 0x1D7100", "d4001d71", multi=2)
         check_instruction("MOVU $4, 0x8A395B", "d45b8a39", multi=2)
         check_instruction("MOVU $4, 0x67A3E6", "d4e667a3", multi=2)
@@ -32,7 +32,7 @@ class TestMajor13:
         check_instruction("BCPEQ 0xC, 0xAADA", "d8c4556d")
         check_instruction("BCPEQ 0x7, 0xFFFF18F6", "d8748c7b")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("BCPEQ 0x6, 0xFFFF18CA", "d8648c65")
 
     def test_BCPNE(self):
@@ -44,7 +44,7 @@ class TestMajor13:
         check_instruction("BCPNE 0x7, 0xFFFF18FA", "d8758c7d")
         check_instruction("BCPNE 0x1, 0x674E", "d81533a7")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("BCPNE 0xB, 0xD820", "d8b56c10")
         check_instruction("BCPNE 0x8, 0xFFFF1922", "d8858c91")
         check_instruction("BCPNE 0xD, 0xA6C8", "d8d55364")
@@ -61,7 +61,7 @@ class TestMajor13:
         check_instruction("BCPAT 0xC, 0x9D88", "d8c64ec4")
         check_instruction("BCPAT 0x7, 0xFFFF18FA", "d8768c7d")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("BCPAT 0x6, 0xFFFF18D0", "d8668c68")
         check_instruction("BCPAT 0x7, 0xFFFF18FC", "d8768c7e")
         check_instruction("BCPAT 0x6, 0xFFFF18CE", "d8668c67")
@@ -78,7 +78,7 @@ class TestMajor13:
         check_instruction("BCPAF 0xF, 0x9E4E", "d8f74f27")
         check_instruction("BCPAF 0xD, 0xA412", "d8d75209")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("BCPAF 0xB, 0xFFFF01CA", "d8b780e5")
         check_instruction("BCPAF 0xA, 0x9C2A", "d8a74e15")
         check_instruction("BCPAF 0x8, 0xFFFF1924", "d8878c92")
@@ -95,7 +95,7 @@ class TestMajor13:
         check_instruction("JMP 0x80FF2C", "d96880ff")
         check_instruction("JMP 0x814174", "dba88141")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("JMP 0xC3F782", "dc18c3f7")
         check_instruction("JMP 0xC814", "d8a800c8")
         check_instruction("JMP 0x9079EE", "df789079")
@@ -115,7 +115,7 @@ class TestMajor13:
         check_instruction("BSR 0x36C4", "de290036", multi=2)
         check_instruction("BSR 0xFFFC6AC4", "de29fc6a", multi=2)
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("BSR 0x22C", "d9690002", multi=2)
         check_instruction("BSR 0x5FEE6A", "db595fee", multi=2)
         check_instruction("BSR 0x4AFF4", "dfa904af", multi=2)
@@ -135,7 +135,7 @@ class TestMajor13:
         check_instruction("BSRV 0x6509F4", "dfab6509")
         check_instruction("BSRV 0x8F50C8", "de4b8f50")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("BSRV 0x544BF6", "dfbb544b")
         check_instruction("BSRV 0x8CCA2A", "d95b8cca")
         check_instruction("BSRV 0x4F681E", "d8fb4f68")

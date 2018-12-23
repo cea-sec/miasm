@@ -50,7 +50,7 @@ class Z3Mem(object):
         try:
             mem = self.mems[size]
         except KeyError:
-            # Lazy instanciation
+            # Lazy instantiation
             self.mems[size] = z3.Array(self.name + str(size),
                                         z3.BitVecSort(size),
                                         z3.BitVecSort(8))
@@ -104,8 +104,8 @@ class TranslatorZ3(Translator):
     expression. Memory is abstracted via z3.Array (see Z3Mem).
     The result of from_expr will be a z3 Expr.
 
-    If you want to interract with the memory abstraction after the translation,
-    you can instanciate your own Z3Mem, that will be equivalent to the one
+    If you want to interact with the memory abstraction after the translation,
+    you can instantiate your own Z3Mem, that will be equivalent to the one
     used by TranslatorZ3.
     """
 

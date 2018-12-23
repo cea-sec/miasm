@@ -16,7 +16,7 @@ class TestMajor9:
         check_instruction("ADD3 $7, $12, $0", "9c07")
         check_instruction("ADD3 $TP, $4, $0", "940d")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("ADD3 $4, $1, $9", "9194")
         check_instruction("ADD3 $7, $12, $9", "9c97")
         check_instruction("ADD3 $12, $9, $SP", "99fc")

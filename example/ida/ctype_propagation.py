@@ -50,9 +50,9 @@ Analysis scope:
 <Architecture/compilator :{arch}>
 
 <##Header file          :{headerFile}>
-<Use a file for type informations:{rTypeFile}>{cTypeFile}>
-<##Types informations   :{typeFile}>
-<Types informations     :{strTypesInfo}>
+<Use a file for type information:{rTypeFile}>{cTypeFile}>
+<##Types information   :{typeFile}>
+<Types information     :{strTypesInfo}>
 
 <Unalias stack:{rUnaliasStack}>{cUnalias}>
 """, {

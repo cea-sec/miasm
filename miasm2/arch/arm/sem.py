@@ -778,7 +778,7 @@ def st_ld_r(ir, instr, a, a2, b, store=False, size=32, s_ext=False, z_ext=False)
     else:
         ad = base + off
 
-    # PC base lookup uses PC 4 byte alignemnt
+    # PC base lookup uses PC 4 byte alignment
     ad = ad.replace_expr({PC: PC & ExprInt(0xFFFFFFFC, 32)})
 
     dmem = False
@@ -1700,7 +1700,7 @@ class ir_arml(IntermediateRepresentation):
         cond_eq = tab_cond[cond_num]
 
         if not index + len(it_hints) <= len(block.lines):
-            raise NotImplementedError("Splitted IT block non supported yet")
+            raise NotImplementedError("Split IT block non supported yet")
 
         ir_blocks_all = []
 

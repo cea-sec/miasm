@@ -444,7 +444,7 @@ class mn_aarch64(cls_mn):
             return 0
         o = 0
         if n > bs.getlen() * 8:
-            raise ValueError('not enought bits %r %r' % (n, len(bs.bin) * 8))
+            raise ValueError('not enough bits %r %r' % (n, len(bs.bin) * 8))
         while n:
             offset = start / 8
             n_offset = cls.endian_offset(attrib, offset)
@@ -1068,7 +1068,7 @@ class bits(object):
     __slots__ = ["size", "value"]
 
     def __init__(self, size, value):
-        """Instanciate a bitvector of size @size with value @value"""
+        """Instantiate a bitvector of size @size with value @value"""
         self.size = size
         if value & self.mask != value:
             raise ValueError("Value %s is too large for %d bits",
@@ -2065,7 +2065,7 @@ aarch64op("fmsub", [bs('0'), bs('00'), bs('11111'), bs('0'), sdsize1, bs('0'), s
 aarch64op("fnmadd",[bs('0'), bs('00'), bs('11111'), bs('0'), sdsize1, bs('1'), sdm_32_64, bs('0'), sda_32_64, sdn_32_64, sdd_32_64], [sdd_32_64, sdn_32_64, sdm_32_64, sda_32_64])
 aarch64op("fnmsub",[bs('0'), bs('00'), bs('11111'), bs('0'), sdsize1, bs('1'), sdm_32_64, bs('1'), sda_32_64, sdn_32_64, sdd_32_64], [sdd_32_64, sdn_32_64, sdm_32_64, sda_32_64])
 
-# convertion float integer p.235
+# conversion float integer p.235
 aarch64op("scvtf", [sf, bs('0'), bs('0'), bs('11110'), bs('0'), sdsize1, bs('1'), bs('00'), bs('010'), bs('000000'), rn, sdd_32_64], [sdd_32_64, rn])
 aarch64op("ucvtf", [sf, bs('0'), bs('0'), bs('11110'), bs('0'), sdsize1, bs('1'), bs('00'), bs('011'), bs('000000'), rn, sdd_32_64], [sdd_32_64, rn])
 

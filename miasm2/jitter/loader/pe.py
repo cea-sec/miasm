@@ -126,7 +126,7 @@ def vm_load_pe(vm, fdata, align_s=True, load_hdr=True, name="", **kargs):
     @load_hdr: (optional) If False, do not load the NThdr in memory
     Return the corresponding PE instance.
 
-    Extra arguments are passed to PE instanciation.
+    Extra arguments are passed to PE instantiation.
     If all sections are aligned, they will be mapped on several different pages
     Otherwise, a big page is created, containing all sections
     """
@@ -167,7 +167,7 @@ def vm_load_pe(vm, fdata, align_s=True, load_hdr=True, name="", **kargs):
                 )
                 section.offset = section.addr
 
-            # Last section alignement
+            # Last section alignment
             last_section = pe.SHList[-1]
             last_section.size = (last_section.size + 0xfff) & 0xfffff000
 

@@ -116,7 +116,7 @@ class SemBuilder(object):
 
     This class provides a decorator @parse to use on them.
     The context in which the function will be parsed must be supplied on
-    instanciation
+    instantiation
     """
 
     def __init__(self, ctx):

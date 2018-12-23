@@ -716,7 +716,7 @@ def ast_get_c_access_expr(ast, expr_types, lvl=0):
     """Transform C ast object into a C Miasm expression
 
     @ast: parsed pycparser.c_ast object
-    @expr_types: a dictionnary linking ID names to their types
+    @expr_types: a dictionary linking ID names to their types
     @lvl: actual recursion level
 
     Example:
@@ -796,7 +796,7 @@ class ExprToAccessC(ExprReducer):
     def __init__(self, expr_types, types_mngr, enforce_strict_access=True):
         """Init GenCAccess
 
-        @expr_types: a dictionnary linking ID names to their types
+        @expr_types: a dictionary linking ID names to their types
         @types_mngr: types manager
         @enforce_strict_access: If false, generate access even on expression
         pointing to a middle of an object. If true, raise exception if such a
@@ -809,7 +809,7 @@ class ExprToAccessC(ExprReducer):
 
     def updt_expr_types(self, expr_types):
         """Update expr_types
-        @expr_types: Dictionnary associating name to type
+        @expr_types: Dictionary associating name to type
         """
 
         self.expr_types = expr_types
@@ -969,7 +969,7 @@ class ExprToAccessC(ExprReducer):
 
     def get_solo_type(self, node):
         """Return the type of the @node if it has only one possible type,
-        different from not None. In othe cases, return None.
+        different from not None. In other cases, return None.
         """
         if node.info is None or len(node.info) != 1:
             return None
@@ -1060,7 +1060,7 @@ class ExprToAccessC(ExprReducer):
     def get_accesses(self, expr, expr_context=None):
         """Generate C access(es) for the native Miasm expression @expr
         @expr: native Miasm expression
-        @expr_context: a dictionnary linking known expressions to their
+        @expr_context: a dictionary linking known expressions to their
         types. An expression is linked to a tuple of types.
         """
         if expr_context is None:
@@ -1115,7 +1115,7 @@ class ExprCToExpr(ExprReducer):
     def __init__(self, expr_types, types_mngr):
         """Init ExprCAccess
 
-        @expr_types: a dictionnary linking ID names to their types
+        @expr_types: a dictionary linking ID names to their types
         @types_mngr: types manager
         """
 
@@ -1124,7 +1124,7 @@ class ExprCToExpr(ExprReducer):
 
     def updt_expr_types(self, expr_types):
         """Update expr_types
-        @expr_types: Dictionnary associating name to type
+        @expr_types: Dictionary associating name to type
         """
 
         self.expr_types = expr_types
@@ -1330,7 +1330,7 @@ class ExprCToExpr(ExprReducer):
         """Translate a Miasm expression @expr (representing a C access) into a
         tuple composed of a native Miasm expression and its C type.
         @expr: Miasm expression (representing a C access)
-        @c_context: a dictionnary linking known tokens (strings) to their
+        @c_context: a dictionary linking known tokens (strings) to their
         types. A token is linked to only one type.
         """
         ret = self.reduce(expr, ctxt=c_context)
@@ -1597,7 +1597,7 @@ class CHandler(object):
 
     def updt_expr_types(self, expr_types):
         """Update expr_types
-        @expr_types: Dictionnary associating name to type
+        @expr_types: Dictionary associating name to type
         """
 
         self.expr_types = expr_types
@@ -1607,7 +1607,7 @@ class CHandler(object):
     def expr_to_c_access(self, expr, expr_context=None):
         """Generate the C access object(s) for a given native Miasm expression.
         @expr: Miasm expression
-        @expr_context: a dictionnary linking known expressions to a set of types
+        @expr_context: a dictionary linking known expressions to a set of types
         """
 
         if expr_context is None:
@@ -1618,7 +1618,7 @@ class CHandler(object):
     def expr_to_c_and_types(self, expr, expr_context=None):
         """Generate the C access string and corresponding type for a given
         native Miasm expression.
-        @expr_context: a dictionnary linking known expressions to a set of types
+        @expr_context: a dictionary linking known expressions to a set of types
         """
 
         accesses = set()
@@ -1629,7 +1629,7 @@ class CHandler(object):
 
     def expr_to_c(self, expr, expr_context=None):
         """Convert a Miasm @expr into it's C equivalent string
-        @expr_context: a dictionnary linking known expressions to a set of types
+        @expr_context: a dictionary linking known expressions to a set of types
         """
 
         return set(access[0]
@@ -1637,7 +1637,7 @@ class CHandler(object):
 
     def expr_to_types(self, expr, expr_context=None):
         """Get the possible types of the Miasm @expr
-        @expr_context: a dictionnary linking known expressions to a set of types
+        @expr_context: a dictionary linking known expressions to a set of types
         """
 
         return set(access.ctype
@@ -1647,7 +1647,7 @@ class CHandler(object):
         """Convert a C string expression to a Miasm expression and it's
         corresponding c type
         @c_str: C string
-        @c_context: a dictionnary linking known tokens (strings) to its type.
+        @c_context: a dictionary linking known tokens (strings) to its type.
         """
 
         ast = parse_access(c_str)
@@ -1657,7 +1657,7 @@ class CHandler(object):
     def c_to_expr(self, c_str, c_context):
         """Convert a C string expression to a Miasm expression
         @c_str: C string
-        @c_context: a dictionnary linking known tokens (strings) to its type.
+        @c_context: a dictionary linking known tokens (strings) to its type.
         """
 
         expr, _ = self.c_to_expr_and_type(c_str, c_context)
@@ -1666,7 +1666,7 @@ class CHandler(object):
     def c_to_type(self, c_str, c_context):
         """Get the type of a C string expression
         @expr: Miasm expression
-        @c_context: a dictionnary linking known tokens (strings) to its type.
+        @c_context: a dictionary linking known tokens (strings) to its type.
         """
 
         _, ctype = self.c_to_expr_and_type(c_str, c_context)
@@ -1674,5 +1674,5 @@ class CHandler(object):
 
 
 class CLeafTypes(object):
-    """Define C types sizes/alignement for a given architecture"""
+    """Define C types sizes/alignment for a given architecture"""
     pass

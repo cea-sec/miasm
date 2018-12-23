@@ -125,7 +125,7 @@ class DSEAttachInBreakpoint(DSETest):
             self._regs.EBX: self._testid,
         })
 
-        # Additionnal call to the exec callback is necessary, as breakpoints are
+        # Additional call to the exec callback is necessary, as breakpoints are
         # honored AFTER exec callback
         jitter.exec_cb(jitter)
 

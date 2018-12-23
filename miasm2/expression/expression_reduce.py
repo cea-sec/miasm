@@ -16,7 +16,7 @@ log_reduce.setLevel(logging.WARNING)
 
 
 class ExprNode(object):
-    """Clone of Expression object with additionnal information"""
+    """Clone of Expression object with additional information"""
 
     def __init__(self, expr):
         self.expr = expr
@@ -211,7 +211,7 @@ class ExprReducer(object):
         """Recursively apply rules to @node
 
         @node: ExprNode to analyze
-        @lvl: actual recusion level
+        @lvl: actual recursion level
         """
 
         expr = node.expr
@@ -267,7 +267,7 @@ class ExprReducer(object):
         """Find and apply reduction rules to @node
 
         @node: ExprNode to analyse
-        @lvl: actuel recusion level
+        @lvl: actuel recursion level
         """
 
         for rule in self.reduction_rules:

@@ -108,7 +108,7 @@ def visit_chk(visitor):
 
 class DiGraphExpr(DiGraph):
 
-    """Enhanced graph for Expression diplay
+    """Enhanced graph for Expression display
     Expression are displayed as a tree with node and edge labeled
     with only relevant information"""
 
@@ -187,7 +187,7 @@ class Expr(object):
         raise ValueError('size is not mutable')
 
     def __init__(self, size):
-        """Instanciate an Expr with size @size
+        """Instantiate an Expr with size @size
         @size: int
         """
         # Common attribute
@@ -1343,7 +1343,7 @@ class ExprCompose(Expr):
     def is_compose(self):
         return True
 
-# Expression order for comparaison
+# Expression order for comparison
 EXPR_ORDER_DICT = {ExprId: 1,
                    ExprLoc: 2,
                    ExprCond: 3,
@@ -1416,7 +1416,7 @@ def compare_exprs(expr1, expr2):
         return cmp(expr1.size, expr2.size)
     elif cls1 == ExprAssign:
         raise NotImplementedError(
-            "Comparaison from an ExprAssign not yet implemented")
+            "Comparison from an ExprAssign not yet implemented")
     elif cls2 == ExprCond:
         ret = compare_exprs(expr1.cond, expr2.cond)
         if ret:
@@ -1447,7 +1447,7 @@ def compare_exprs(expr1, expr2):
     elif cls1 == ExprCompose:
         return compare_expr_list_compose(expr1.args, expr2.args)
     raise NotImplementedError(
-        "Comparaison between %r %r not implemented" % (expr1, expr2))
+        "Comparison between %r %r not implemented" % (expr1, expr2))
 
 
 def canonize_expr_list(expr_list):
@@ -1554,7 +1554,7 @@ def match_expr(expr, pattern, tks, result=None):
     """Try to match the @pattern expression with the pattern @expr with @tks jokers.
     Result is output dictionary with matching joker values.
     @expr : Expr pattern
-    @pattern : Targetted Expr to match
+    @pattern : Targeted Expr to match
     @tks : list of ExprId, available jokers
     @result : dictionary of ExprId -> Expr, output matching context
     """
@@ -1991,7 +1991,7 @@ def expr_is_sNaN(expr):
 def expr_is_float_lower(op1, op2):
     """Return 1 on 1 bit if @op1 < @op2, 0 otherwise.
     /!\ Assume @op1 and @op2 are not NaN
-    Comparision is the floating point one, defined in IEEE754
+    Comparison is the floating point one, defined in IEEE754
     """
     sign1, sign2 = op1.msb(), op2.msb()
     magn1, magn2 = op1[:-1], op2[:-1]
@@ -2005,7 +2005,7 @@ def expr_is_float_lower(op1, op2):
 def expr_is_float_equal(op1, op2):
     """Return 1 on 1 bit if @op1 == @op2, 0 otherwise.
     /!\ Assume @op1 and @op2 are not NaN
-    Comparision is the floating point one, defined in IEEE754
+    Comparison is the floating point one, defined in IEEE754
     """
     sign1, sign2 = op1.msb(), op2.msb()
     magn1, magn2 = op1[:-1], op2[:-1]

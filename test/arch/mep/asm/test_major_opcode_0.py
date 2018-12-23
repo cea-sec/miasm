@@ -16,7 +16,7 @@ class TestMajor0:
         check_instruction("MOV $1, $8", "0180")
         check_instruction("MOV $1, $TP", "01d0")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("MOV $3, $7", "0370")
         check_instruction("MOV $0, $SP", "00f0")
         check_instruction("MOV $5, $SP", "05f0")
@@ -33,7 +33,7 @@ class TestMajor0:
         check_instruction("NEG $0, $0", "0001")
         check_instruction("NEG $0, $8", "0081")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("NEG $6, $6", "0661")
         check_instruction("NEG $9, $5", "0951")
         check_instruction("NEG $11, $12", "0bc1")
@@ -50,7 +50,7 @@ class TestMajor0:
         check_instruction("SLT3 $0, $0, $0", "0002")
         check_instruction("SLT3 $0, $0, $8", "0082")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("SLT3 $0, $2, $4", "0242")
         check_instruction("SLT3 $0, $SP, $2", "0f22")
         check_instruction("SLT3 $0, $5, $9", "0592")
@@ -67,7 +67,7 @@ class TestMajor0:
         check_instruction("SLTU3 $0, $12, $0", "0c03")
         check_instruction("SLTU3 $0, $4, $3", "0433")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("SLTU3 $0, $5, $TP", "05d3")
         check_instruction("SLTU3 $0, $2, $5", "0253")
         check_instruction("SLTU3 $0, $SP, $TP", "0fd3")
@@ -84,7 +84,7 @@ class TestMajor0:
         check_instruction("SUB $4, $3", "0434")
         check_instruction("SUB $0, $8", "0084")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("SUB $11, $9", "0b94")
         check_instruction("SUB $9, $9", "0994")
         check_instruction("SUB $TP, $2", "0d24")
@@ -101,7 +101,7 @@ class TestMajor0:
         check_instruction("SBVCK3 $0, $0, $6", "0065")
         check_instruction("SBVCK3 $0, $0, $12", "00c5")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("SBVCK3 $0, $0, $5", "0055")
         check_instruction("SBVCK3 $0, $4, $8", "0485")
         check_instruction("SBVCK3 $0, $4, $1", "0415")
@@ -124,7 +124,7 @@ class TestMajor0:
         check_instruction("ADVCK3 $0, $0, $0", "0007")
         check_instruction("ADVCK3 $0, $0, $12", "00c7")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("ADVCK3 $0, $3, $9", "0397")
         check_instruction("ADVCK3 $0, $10, $7", "0a77")
         check_instruction("ADVCK3 $0, $1, $5", "0157")
@@ -141,7 +141,7 @@ class TestMajor0:
         check_instruction("SB $12, ($4)", "0c48")
         check_instruction("SB $12, ($11)", "0cb8")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("SB $4, ($4)", "0448")
         check_instruction("SB $10, ($8)", "0a88")
         check_instruction("SB $7, ($6)", "0768")
@@ -158,7 +158,7 @@ class TestMajor0:
         check_instruction("SH $0, ($2)", "0029")
         check_instruction("SH $0, ($12)", "00c9")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("SH $GP, ($12)", "0ec9")
         check_instruction("SH $6, ($10)", "06a9")
         check_instruction("SH $10, ($11)", "0ab9")
@@ -175,7 +175,7 @@ class TestMajor0:
         check_instruction("SW $12, ($SP)", "0cfa")
         check_instruction("SW $0, ($SP)", "00fa")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("SW $0, ($7)", "007a")
         check_instruction("SW $4, ($12)", "04ca")
         check_instruction("SW $12, ($7)", "0c7a")
@@ -192,7 +192,7 @@ class TestMajor0:
         check_instruction("LBU $12, ($4)", "0c4b")
         check_instruction("LBU $0, ($4)", "004b")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("LBU $6, ($TP)", "06db")
         check_instruction("LBU $11, ($SP)", "0bfb")
         check_instruction("LBU $10, ($10)", "0aab")
@@ -209,7 +209,7 @@ class TestMajor0:
         check_instruction("LB $10, ($4)", "0a4c")
         check_instruction("LB $12, ($TP)", "0cdc")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("LB $0, ($12)", "00cc")
         check_instruction("LB $2, ($7)", "027c")
         check_instruction("LB $5, ($7)", "057c")
@@ -226,7 +226,7 @@ class TestMajor0:
         check_instruction("LH $0, ($12)", "00cd")
         check_instruction("LH $10, ($0)", "0a0d")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("LH $0, ($GP)", "00ed")
         check_instruction("LH $12, ($5)", "0c5d")
         check_instruction("LH $0, ($3)", "003d")
@@ -243,7 +243,7 @@ class TestMajor0:
         check_instruction("LW $0, ($12)", "00ce")
         check_instruction("LW $1, ($SP)", "01fe")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("LW $1, ($0)", "010e")
         check_instruction("LW $7, ($12)", "07ce")
         check_instruction("LW $TP, ($2)", "0d2e")
@@ -260,7 +260,7 @@ class TestMajor0:
         check_instruction("LHU $12, ($8)", "0c8f")
         check_instruction("LHU $12, ($4)", "0c4f")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("LHU $5, ($11)", "05bf")
         check_instruction("LHU $12, ($3)", "0c3f")
         check_instruction("LHU $9, ($8)", "098f")

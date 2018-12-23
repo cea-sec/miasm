@@ -16,7 +16,7 @@ class TestMajor3:
         check_instruction("SWCPI $C2, ($3+)", "3230")
         check_instruction("SWCPI $C0, ($3+)", "3030")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("SWCPI $C2, ($2+)", "3220")
         check_instruction("SWCPI $C6, ($10+)", "36a0")
         check_instruction("SWCPI $C15, ($SP+)", "3ff0")
@@ -33,7 +33,7 @@ class TestMajor3:
         check_instruction("LWCPI $C1, ($3+)", "3131")
         check_instruction("LWCPI $C10, ($4+)", "3a41")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("LWCPI $C0, ($1+)", "3011")
         check_instruction("LWCPI $C0, ($11+)", "30b1")
         check_instruction("LWCPI $C3, ($10+)", "33a1")
@@ -50,7 +50,7 @@ class TestMajor3:
         check_instruction("SMCPI $C8, ($10+)", "38a2")
         check_instruction("SMCPI $C0, ($3+)", "3032")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("SMCPI $C5, ($10+)", "35a2")
         check_instruction("SMCPI $C9, ($3+)", "3932")
         check_instruction("SMCPI $C11, ($5+)", "3b52")
@@ -67,7 +67,7 @@ class TestMajor3:
         check_instruction("LMCPI $C3, ($3+)", "3333")
         check_instruction("LMCPI $C0, ($0+)", "3003")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("LMCPI $C0, ($SP+)", "30f3")
         check_instruction("LMCPI $C1, ($1+)", "3113")
         check_instruction("LMCPI $C3, ($0+)", "3303")
@@ -84,7 +84,7 @@ class TestMajor3:
         check_instruction("SWCP $C10, ($7)", "3a78")
         check_instruction("SWCP $C0, ($10)", "30a8")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("SWCP $C7, ($12)", "37c8")
         check_instruction("SWCP $C1, ($1)", "3118")
         check_instruction("SWCP $C10, ($5)", "3a58")
@@ -101,7 +101,7 @@ class TestMajor3:
         check_instruction("LWCP $C6, ($10)", "36a9")
         check_instruction("LWCP $C6, ($TP)", "36d9")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("LWCP $C11, ($9)", "3b99")
         check_instruction("LWCP $C1, ($1)", "3119")
         check_instruction("LWCP $C7, ($3)", "3739")
@@ -118,7 +118,7 @@ class TestMajor3:
         check_instruction("SMCP $C0, ($GP)", "30ea")
         check_instruction("SMCP $C12, ($0)", "3c0a")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("SMCP $C3, ($4)", "334a")
         check_instruction("SMCP $C13, ($0)", "3d0a")
         check_instruction("SMCP $C3, ($3)", "333a")
@@ -135,7 +135,7 @@ class TestMajor3:
         check_instruction("LMCP $C9, ($4)", "394b")
         check_instruction("LMCP $C15, ($6)", "3f6b")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("LMCP $C0, ($4)", "304b")
         check_instruction("LMCP $C0, ($GP)", "30eb")
         check_instruction("LMCP $C13, ($6)", "3d6b")

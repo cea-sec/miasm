@@ -220,7 +220,7 @@ def dg2graph(graph, label=False, lines=True):
     return '\n'.join(out)
 
 
-print "   [+] Test dictionnary equality"
+print "   [+] Test dictionary equality"
 DNA = DependencyNode(LBL2, A, 0)
 DNB = DependencyNode(LBL1, B, 1)
 DNC = DependencyNode(LBL1, C, 0)

@@ -21,7 +21,7 @@ ircfg = ir.new_ircfg_from_asmcfg(asmcfg)
 ircfg.simplify(expr_simp_high_to_explicit)
 ######################################################
 
-# Instanciate a context and the function to fill
+# Instantiate a context and the function to fill
 context = LLVMContext_IRCompilation()
 context.ir_arch = ir
 
@@ -31,7 +31,7 @@ func.init_fc()
 
 # Here, as an example, we arbitrarily represent registers with global
 # variables. Locals allocas are used for the computation during the function,
-# and is finally saved in the aforementionned global variable.
+# and is finally saved in the aforementioned global variable.
 
 # In other words, for each registers:
 # entry:

@@ -1,8 +1,8 @@
 ################################################################################
 #
-# By choice, Miasm2 does not handle comparaison as a single operation, but with
-# operations corresponding to comparaison computation.
-# One may want to detect those comparaison; this library is designed to add them
+# By choice, Miasm2 does not handle comparison as a single operation, but with
+# operations corresponding to comparison computation.
+# One may want to detect those comparison; this library is designed to add them
 # in Miasm2 engine thanks to :
 # - Conditions computation in ExprOp
 # - Simplifications to catch known condition forms
@@ -132,7 +132,7 @@ def expr_simp_inverse(expr_simp, e):
                         to_match,
                         [jok1, jok2, jok_small])
 
-    # Check for 2 symetric cases
+    # Check for 2 symmetric cases
     if r is False:
         to_match = (ExprOp_inf_signed(jok1, jok2) ^ jok_small)
         r = __match_expr_wrap(e,

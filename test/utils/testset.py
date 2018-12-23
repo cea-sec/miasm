@@ -36,10 +36,10 @@ class MessageClose(Message):
     pass
 
 def worker(todo_queue, message_queue, init_args):
-    """Worker launched in parrallel
+    """Worker launched in parallel
     @todo_queue: task to do
     @message_queue: communication with Host
-    @init_args: additionnal arguments for command line
+    @init_args: additional arguments for command line
     """
 
     # Main loop
@@ -75,7 +75,7 @@ class TestSet(object):
     worker = staticmethod(worker)
 
     def __init__(self, base_dir):
-        """Initalise a test set
+        """Initialise a test set
         @base_dir: base directory for tests
         """
         # Parse arguments
@@ -203,7 +203,7 @@ class TestSet(object):
             except OSError:
                 print "Cleanning error: Unable to remove %s" % product
 
-    def add_additionnal_args(self, args):
+    def add_additional_args(self, args):
         """Add arguments to used on the test command line
         @args: list of str
         """

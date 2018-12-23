@@ -28,7 +28,7 @@ class ReachingDefinitions(dict):
     A survey of data flow analysis techniques.
     IBM Thomas J. Watson Research Division,  Algorithm MK
 
-    This class is usable as a dictionnary whose struture is
+    This class is usable as a dictionary whose structure is
     { (block, index): { lvalue: set((block, index)) } }
     """
 
@@ -122,7 +122,7 @@ class DiGraphDefUse(DiGraph):
 
     def __init__(self, reaching_defs,
                  deref_mem=False, *args, **kwargs):
-        """Instanciate a DiGraph
+        """Instantiate a DiGraph
         @blocks: IR blocks
         """
         self._edge_attr = {}
@@ -171,7 +171,7 @@ class DiGraphDefUse(DiGraph):
 
     def add_uniq_labeled_edge(self, src, dst, edge_label):
         """Adds the edge (@src, @dst) with label @edge_label.
-        if edge (@src, @dst) already exists, the previous label is overriden
+        if edge (@src, @dst) already exists, the previous label is overridden
         """
         self.add_uniq_edge(src, dst)
         self._edge_attr[(src, dst)] = edge_label
@@ -216,7 +216,7 @@ def dead_simp_useful_assignblks(irarch, defuse, reaching_defs):
         else:
             keep_all_definitions = False
 
-        # Block has a nonexistant successor or is a leaf
+        # Block has a nonexistent successor or is a leaf
         if keep_all_definitions or (len(successors) == 0):
             valid_definitions = reaching_defs.get_definitions(block_lbl,
                                                               len(block))
@@ -831,7 +831,7 @@ def check_expr_below_stack(ir_arch_a, expr):
 def retrieve_stack_accesses(ir_arch_a, ssa):
     """
     Walk the ssa graph and find stack based variables.
-    Return a dictionnary linking stack base address to its size/name
+    Return a dictionary linking stack base address to its size/name
     @ir_arch_a: ira instance
     @ssa: SSADiGraph instance
     """
@@ -881,9 +881,9 @@ def retrieve_stack_accesses(ir_arch_a, ssa):
 
 def fix_stack_vars(expr, base_to_info):
     """
-    Replace local stack accesses in expr using informations in @base_to_info
+    Replace local stack accesses in expr using information in @base_to_info
     @expr: Expression instance
-    @base_to_info: dictionnary linking stack base address to its size/name
+    @base_to_info: dictionary linking stack base address to its size/name
     """
     if not expr.is_mem():
         return expr

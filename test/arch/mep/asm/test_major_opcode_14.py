@@ -16,7 +16,7 @@ class TestMajor14:
         check_instruction("BEQI $0, 0xA, 0x8", "e0a00004")
         check_instruction("BEQI $0, 0x0, 0xC4", "e0000062")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("BEQI $0, 0x1, 0xFFFFFF6A", "e010ffb5")
         check_instruction("BEQI $1, 0x2, 0x20", "e1200010")
         check_instruction("BEQI $9, 0x0, 0xE0", "e9000070")
@@ -33,7 +33,7 @@ class TestMajor14:
         check_instruction("BEQ $0, $0, 0x102", "e0010081")
         check_instruction("BEQ $7, $11, 0x56", "e7b1002b")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("BEQ $11, $9, 0x26", "eb910013")
         check_instruction("BEQ $12, $11, 0x28", "ecb10014")
         check_instruction("BEQ $0, $0, 0xA12", "e0010509")
@@ -53,7 +53,7 @@ class TestMajor14:
         check_instruction("BNEI $4, 0x2, 0xDA", "e424006d")
         check_instruction("BNEI $12, 0x1, 0x8", "ec140004")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("BNEI $12, 0x2, 0x6", "ec240003")
         check_instruction("BNEI $3, 0xC, 0xFFFF2D68", "e3c496b4")
         check_instruction("BNEI $4, 0x1, 0x10", "e4140008")
@@ -70,7 +70,7 @@ class TestMajor14:
         check_instruction("BNE $3, $0, 0xFFFF35A8", "e3059ad4")
         check_instruction("BNE $10, $3, 0xA", "ea350005")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("BNE $4, $12, 0x8", "e4c50004")
         check_instruction("BNE $4, $1, 0x10", "e4150008")
         check_instruction("BNE $4, $12, 0x34", "e4c5001a")
@@ -87,7 +87,7 @@ class TestMajor14:
         check_instruction("BGEI $12, 0x0, 0x22", "ec080011")
         check_instruction("BGEI $GP, 0xE, 0xFFFF2996", "eee894cb")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("BGEI $4, 0x5, 0x52", "e4580029")
         check_instruction("BGEI $1, 0x4, 0xA", "e1480005")
         check_instruction("BGEI $8, 0x0, 0x10", "e8080008")
@@ -103,7 +103,7 @@ class TestMajor14:
         check_instruction("REPEAT $11, 0x8", "eb090004")
         check_instruction("REPEAT $11, 0x6", "eb090003")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("REPEAT $12, 0x24", "ec090012")
         check_instruction("REPEAT $9, 0x8", "e9090004")
         check_instruction("REPEAT $12, 0x14", "ec09000a")
@@ -120,7 +120,7 @@ class TestMajor14:
         check_instruction("EREPEAT 0x12", "e0190009")
         check_instruction("EREPEAT 0x1C", "e019000e")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("EREPEAT 0x12", "e0190009")
         check_instruction("EREPEAT 0x7E", "e019003f")
         check_instruction("EREPEAT 0x8", "e0190004")
@@ -137,7 +137,7 @@ class TestMajor14:
         check_instruction("BLTI $7, 0x1, 0x1A", "e71c000d")
         check_instruction("BLTI $12, 0x9, 0xEA52", "ec9c7529")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("BLTI $4, 0x6, 0xFFFF25AE", "e46c92d7")
         check_instruction("BLTI $12, 0x1, 0x24", "ec1c0012")
         check_instruction("BLTI $9, 0xF, 0xFFFF1F0A", "e9fc8f85")
@@ -154,7 +154,7 @@ class TestMajor14:
         check_instruction("SW $4, (0x826864)", "e4668268")
         check_instruction("SW $4, (0x826994)", "e4968269")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("SW $1, (0x815864)", "e1668158")
         check_instruction("SW $1, (0x825BD8)", "e1da825b")
         check_instruction("SW $10, (0x6225AC)", "eaae6225")
@@ -171,7 +171,7 @@ class TestMajor14:
         check_instruction("LW $3, (0x816820)", "e3238168")
         check_instruction("LW $4, (0x81F0F0)", "e4f381f0")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("LW $GP, (0x94CEE8)", "eeeb94ce")
         check_instruction("LW $4, (0x823608)", "e40b8236")
         check_instruction("LW $0, (0x815E40)", "e043815e")

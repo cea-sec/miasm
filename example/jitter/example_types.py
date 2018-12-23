@@ -10,7 +10,7 @@ from miasm2.core.types import MemStruct, Self, Void, Str, Array, Ptr, \
                               Num, Array, set_allocator
 from miasm2.os_dep.common import heap
 
-# Instanciate a heap
+# Instantiate a heap
 my_heap = heap()
 # And set it as the default memory allocator, to avoid manual allocation and
 # explicit address passing to the MemType subclasses (like MemStruct)
@@ -129,7 +129,7 @@ class DataArray(MemStruct):
     fields = [
         ("val1", Num("B")),
         ("val2", Num("B")),
-        # Ptr can also be instanciated with a Type instance as an argument, the
+        # Ptr can also be instantiated with a Type instance as an argument, the
         # corresponding Memtype will be returned when dereferencing
         # Here, data_array.array.deref will allow to access an Array
         ("arrayptr", Ptr("<I", Array(Num("B"), 16))),

@@ -31,9 +31,9 @@ if cont_target_tmp.executable.Ehdr.type in [elf_csts.ET_REL, elf_csts.ET_DYN]:
 elif cont_target_tmp.executable.Ehdr.type == elf_csts.ET_EXEC:
     elf_base_addr = 0 # Not relocatable
 else:
-    raise ValueError("Unsuported type %d" % cont_target_tmp.executable.Ehdr.type)
+    raise ValueError("Unsupported type %d" % cont_target_tmp.executable.Ehdr.type)
 
-# Instanciate a jitter
+# Instantiate a jitter
 machine = Machine(cont_target_tmp.arch)
 jitter = machine.jitter(args.jitter)
 jitter.init_stack()

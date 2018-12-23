@@ -15,6 +15,8 @@ addons:
             - llvm-6.0-dev
             - g++-5
 before_script:
+# codespell
+- "pip install codespell && git ls-files | xargs codespell --ignore-words=.codespell_ignore 2>/dev/null"
 - "cd .."
 - "export LLVM_CONFIG=$(which llvm-config-6.0)"
 - "export CXX=$(which g++-5)"

@@ -16,7 +16,7 @@ class TestMajor10:
         check_instruction("BEQZ $11, 0x4", "ab04")
         check_instruction("BEQZ $12, 0xA", "ac0a")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("BEQZ $0, 0x42", "a042")
         check_instruction("BEQZ $10, 0x6", "aa06")
         check_instruction("BEQZ $0, 0x8", "a008")
@@ -33,7 +33,7 @@ class TestMajor10:
         check_instruction("BNEZ $0, 0xFFFFFFF6", "a0f7")
         check_instruction("BNEZ $4, 0xA", "a40b")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("BNEZ $7, 0xE", "a70f")
         check_instruction("BNEZ $11, 0xE", "ab0f")
         check_instruction("BNEZ $10, 0x28", "aa29")

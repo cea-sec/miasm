@@ -608,7 +608,7 @@ class mn_arm(cls_mn):
             return 0
         o = 0
         if n > bs.getlen() * 8:
-            raise ValueError('not enought bits %r %r' % (n, len(bs.bin) * 8))
+            raise ValueError('not enough bits %r %r' % (n, len(bs.bin) * 8))
         while n:
             offset = start / 8
             n_offset = cls.endian_offset(attrib, offset)
@@ -709,7 +709,7 @@ class mn_armt(cls_mn):
             return 0
         o = 0
         if n > bs.getlen() * 8:
-            raise ValueError('not enought bits %r %r' % (n, len(bs.bin) * 8))
+            raise ValueError('not enough bits %r %r' % (n, len(bs.bin) * 8))
         while n:
             offset = start / 8
             n_offset = cls.endian_offset(attrib, offset)

@@ -204,7 +204,7 @@ def build_graph(verbose=False, simplify=False, ssa=False, ssa_simplify=False):
                             out[reg] = dst
                 return set(out.values())
 
-        # Add dummy dependecy to uncover out regs affectation
+        # Add dummy dependency to uncover out regs affectation
         for loc in ircfg.leaves():
             irblock = ircfg.blocks.get(loc)
             if irblock is None:

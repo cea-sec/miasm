@@ -301,8 +301,8 @@ class DiGraph(object):
         of the graph.
         @head: the head/leaf of the graph
         @reachable_cb: sons/parents of the head/leaf
-        @prev_cb: return predecessors/succesors of a node
-        @next_cb: return succesors/predecessors of a node
+        @prev_cb: return predecessors/successors of a node
+        @next_cb: return successors/predecessors of a node
         """
 
         nodes = set(reachable_cb(head))
@@ -382,7 +382,7 @@ class DiGraph(object):
         @node: The start node
         @gen_dominators: The dictionary containing at least node's
         dominators/post_dominators
-        @succ_cb: return predecessors/succesors of a node
+        @succ_cb: return predecessors/successors of a node
 
         """
         # Init
@@ -756,7 +756,7 @@ class MatchGraphJoker(object):
 
     def __init__(self, restrict_in=True, restrict_out=True, filt=None,
                  name=None):
-        """Instanciate a MatchGraphJoker, with restrictions
+        """Instantiate a MatchGraphJoker, with restrictions
         @restrict_in: (optional) if set, the number of predecessors of the
                       matched node must be the same than the joker node in the
                       associated MatchGraph
@@ -809,7 +809,7 @@ class MatchGraph(DiGraph):
     restrictions.
     The implemented algorithm is a naive approach.
 
-    The recommended way to instanciate a MatchGraph is the use of
+    The recommended way to instantiate a MatchGraph is the use of
     MatchGraphJoker.
     """
 
@@ -937,7 +937,7 @@ class MatchGraph(DiGraph):
         # Partial solution: nodes corrects, edges between these nodes corrects
         # A partial solution is a dictionary MatchGraphJoker -> @graph's node
         todo = list()  # Dictionnaries containing partial solution
-        done = list()  # Aleady computed partial solutions
+        done = list()  # Already computed partial solutions
 
         # Elect first candidates
         to_match = next(iter(self._nodes))

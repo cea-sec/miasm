@@ -48,7 +48,7 @@ class AssignBlock(object):
 
     -> Exchange between EBX and EAX
 
-    AssignBlock can be seen as a dictionnary where keys are the destinations
+    AssignBlock can be seen as a dictionary where keys are the destinations
     (ExprId or ExprMem), and values their corresponding sources.
 
     Also provides common manipulation on this assignments.
@@ -58,7 +58,7 @@ class AssignBlock(object):
 
     def __init__(self, irs=None, instr=None):
         """Create a new AssignBlock
-        @irs: (optional) sequence of ExprAssign, or dictionnary dst (Expr) -> src
+        @irs: (optional) sequence of ExprAssign, or dictionary dst (Expr) -> src
               (Expr)
         @instr: (optional) associate an instruction with this AssignBlock
 
@@ -109,7 +109,7 @@ class AssignBlock(object):
                 # prev_RAX = 0x1122334455667788
                 # input_RAX[0:8] = 0x89
                 # final_RAX -> ? (assignment are in parallel)
-                raise RuntimeError("Concurent access on same bit not allowed")
+                raise RuntimeError("Concurrent access on same bit not allowed")
 
             # Consider slice grouping
             expr_list = [(new_dst, new_src),
@@ -126,7 +126,7 @@ class AssignBlock(object):
             for i, (_, stop) in enumerate(known_intervals[:-1]):
                 if stop > known_intervals[i + 1][0]:
                     raise RuntimeError(
-                        "Concurent access on same bit not allowed")
+                        "Concurrent access on same bit not allowed")
 
             # Fill with missing data
             missing_i = get_missing_interval(known_intervals, 0, new_dst.size)
@@ -202,7 +202,7 @@ class AssignBlock(object):
     @staticmethod
     def get_modified_slice(dst, src):
         """Return an Expr list of extra expressions needed during the
-        object instanciation"""
+        object instantiation"""
         if not isinstance(src, m2_expr.ExprCompose):
             raise ValueError("Get mod slice not on expraff slice", str(src))
         modified_s = []
@@ -220,7 +220,7 @@ class AssignBlock(object):
         return set(self.keys())
 
     def get_rw(self, mem_read=False, cst_read=False):
-        """Return a dictionnary associating written expressions to a set of
+        """Return a dictionary associating written expressions to a set of
         their read requirements
         @mem_read: (optional) mem_read argument of `get_r`
         @cst_read: (optional) cst_read argument of `get_r`
@@ -471,7 +471,7 @@ class IRCFG(DiGraph):
     """DiGraph for IR instances"""
 
     def __init__(self, irdst, loc_db, blocks=None, *args, **kwargs):
-        """Instanciate a IRCFG
+        """Instantiate a IRCFG
         @loc_db: LocationDB instance
         @blocks: IR blocks
         """
