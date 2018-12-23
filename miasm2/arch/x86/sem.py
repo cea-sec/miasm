@@ -314,8 +314,8 @@ def fix_mem_args_size(instr, *args):
 
 def mem2double(instr, arg):
     """
-    Add float convertion if argument is an ExprMem
-    @arg: argument to tranform
+    Add float conversion if argument is an ExprMem
+    @arg: argument to transform
     """
     if isinstance(arg, m2_expr.ExprMem):
         if arg.size > 64:
@@ -341,8 +341,8 @@ def gen_jcc(ir, instr, cond, dst, jmp_if):
     Macro to generate jcc semantic
     @ir: ir instance
     @instr: instruction
-    @cond: condtion of the jcc
-    @dst: the dstination if jcc is taken
+    @cond: condition of the jcc
+    @dst: the destination if jcc is taken
     @jmp_if: jump if/notif cond
     """
 
@@ -733,7 +733,7 @@ def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None, left=False,
         isize = m2_expr.ExprInt(a.size, size=a.size)
         mask = m2_expr.ExprOp(op_inv, i1, (isize - shifter)) - i1
 
-        # An overflow can occured, emulate the 'undefined behavior'
+        # An overflow can occurred, emulate the 'undefined behavior'
         # Overflow behavior if (shift / size % 2)
         base_cond_overflow = shifter if left else (
             shifter - m2_expr.ExprInt(1, size=shifter.size))
@@ -755,7 +755,7 @@ def _shift_tpl(op, ir, instr, a, b, c=None, op_inv=None, left=False,
         cf_from_src = cf_from_src.msb() if left else cf_from_src[:1]
         new_cf = m2_expr.ExprCond(cond_overflow, cf_from_src, cf_from_dst)
 
-    # Overflow flag, only occured when shifter is equal to 1
+    # Overflow flag, only occurred when shifter is equal to 1
     if custom_of is None:
         value_of = a.msb() ^ a[-2:-1] if left else b[:1] ^ a.msb()
     else:
@@ -3641,12 +3641,12 @@ def movd(_, instr, dst, src):
 
 
 def movdqu(_, instr, dst, src):
-    # XXX TODO alignement check
+    # XXX TODO alignment check
     return [m2_expr.ExprAssign(dst, src)], []
 
 
 def movapd(_, instr, dst, src):
-    # XXX TODO alignement check
+    # XXX TODO alignment check
     return [m2_expr.ExprAssign(dst, src)], []
 
 
@@ -3899,7 +3899,7 @@ def _average(expr):
     arg1 = expr.args[0].zeroExtend(expr.size * 2)
     arg2 = expr.args[1].zeroExtend(expr.size * 2)
     one = m2_expr.ExprInt(1, arg1.size)
-    # avg(unsigned) = (a + b + 1) >> 1, addition beeing at least on one more bit
+    # avg(unsigned) = (a + b + 1) >> 1, addition being at least on one more bit
     return ((arg1 + arg2 + one) >> one)[:expr.size]
 
 pavgb = vec_vertical_instr('avg', 8, _average)
@@ -4843,7 +4843,7 @@ def _saturation_sub_unsigned(expr):
 def _saturation_sub_signed(expr):
     assert expr.is_op("+") and len(expr.args) == 2 and expr.args[-1].is_op("-")
 
-    # Compute the substraction on two more bits, see _saturation_sub_unsigned
+    # Compute the subtraction on two more bits, see _saturation_sub_unsigned
     arg1 = expr.args[0].signExtend(expr.size + 2)
     arg2 = expr.args[1].args[0].signExtend(expr.size + 2)
     return _signed_saturation(arg1 - arg2, expr.size)
@@ -4857,7 +4857,7 @@ def _saturation_add(expr):
     arg1 = expr.args[0].zeroExtend(expr.size + 1)
     arg2 = expr.args[1].zeroExtend(expr.size + 1)
 
-    # We can also use _unsigned_saturation with two additionnal bits (to
+    # We can also use _unsigned_saturation with two additional bits (to
     # distinguish minus and overflow case)
     # The resulting expression being more complicated with an impossible case
     # (signed=True), we rewrite the rule here
@@ -4868,7 +4868,7 @@ def _saturation_add(expr):
 def _saturation_add_signed(expr):
     assert expr.is_op("+") and len(expr.args) == 2
 
-    # Compute the substraction on two more bits, see _saturation_add_unsigned
+    # Compute the subtraction on two more bits, see _saturation_add_unsigned
 
     arg1 = expr.args[0].signExtend(expr.size + 2)
     arg2 = expr.args[1].signExtend(expr.size + 2)
@@ -5306,10 +5306,10 @@ mnemo_func = {'mov': mov,
               "movd": movd,
               "movdqu": movdqu,
               "movdqa": movdqu,
-              "movapd": movapd,  # XXX TODO alignement check
-              "movupd": movapd,  # XXX TODO alignement check
-              "movaps": movapd,  # XXX TODO alignement check
-              "movups": movapd,  # XXX TODO alignement check
+              "movapd": movapd,  # XXX TODO alignment check
+              "movupd": movapd,  # XXX TODO alignment check
+              "movaps": movapd,  # XXX TODO alignment check
+              "movups": movapd,  # XXX TODO alignment check
               "andps": andps,
               "andpd": andps,
               "andnps": andnps,
@@ -5600,7 +5600,7 @@ class ir_x86_16(IntermediateRepresentation):
         self.IRDst = m2_expr.ExprId('IRDst', 16)
         # Size of memory pointer access in IR
         # 16 bit mode memory accesses may be greater than 16 bits
-        # 32 bit size may be enought
+        # 32 bit size may be enough
         self.addrsize = 32
 
     def mod_pc(self, instr, instr_ir, extra_ir):

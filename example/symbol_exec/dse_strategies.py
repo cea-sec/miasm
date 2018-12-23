@@ -83,7 +83,7 @@ done = set()
 snapshot = dse.take_snapshot()
 
 # Only needed for the final output
-reachs = set()
+reaches = set()
 
 while todo:
     # Get the next candidate
@@ -122,8 +122,8 @@ while todo:
         # Display info and update storages
         print "\tARG = %s" % sol_expr
         todo.add(sol_expr)
-        reachs.add(sol_ident)
+        reaches.add(sol_ident)
 
 print "Found %d input, to reach %d element of coverage" % (len(done),
-                                                           len(reachs))
+                                                           len(reaches))
 

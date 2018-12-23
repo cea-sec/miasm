@@ -16,7 +16,7 @@ class TestMajor6:
         check_instruction("ADD $SP, -8", "6fe0")
         check_instruction("ADD $4, 1", "6404")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("ADD $2, -26", "6298")
         check_instruction("ADD $TP, 7", "6d1c")
         check_instruction("ADD $SP, 26", "6f68")
@@ -33,7 +33,7 @@ class TestMajor6:
         check_instruction("SLT3 $0, $GP, 0xC", "6e61", multi=2)
         check_instruction("SLT3 $0, $GP, 0xD", "6e69", multi=2)
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("SLT3 $0, $8, 0x14", "68a1", multi=2)
         check_instruction("SLT3 $0, $6, 0x0", "6601", multi=2)
         check_instruction("SLT3 $0, $2, 0xB", "6259", multi=2)
@@ -50,7 +50,7 @@ class TestMajor6:
         check_instruction("SRL $12, 0x2", "6c12")
         check_instruction("SRL $5, 0xE", "6572")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("SRL $3, 0x16", "63b2")
         check_instruction("SRL $0, 0x1F", "60fa")
         check_instruction("SRL $5, 0xF", "657a")
@@ -67,7 +67,7 @@ class TestMajor6:
         check_instruction("SRA $4, 0x1", "640b")
         check_instruction("SRA $12, 0x8", "6c43")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("SRA $0, 0x1B", "60db")
         check_instruction("SRA $10, 0x17", "6abb")
         check_instruction("SRA $GP, 0xB", "6e5b")
@@ -84,7 +84,7 @@ class TestMajor6:
         check_instruction("SLTU3 $0, $GP, 0xC", "6e65", multi=2)
         check_instruction("SLTU3 $0, $4, 0x4", "6425", multi=2)
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("SLTU3 $0, $9, 0x9", "694d", multi=2)
         check_instruction("SLTU3 $0, $TP, 0xF", "6d7d", multi=2)
         check_instruction("SLTU3 $0, $10, 0x1D", "6aed", multi=2)
@@ -101,7 +101,7 @@ class TestMajor6:
         check_instruction("SLL $0, 0x2", "6016")
         check_instruction("SLL $0, 0x3", "601e")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("SLL $8, 0x16", "68b6")
         check_instruction("SLL $SP, 0x4", "6f26")
         check_instruction("SLL $4, 0x19", "64ce")
@@ -118,7 +118,7 @@ class TestMajor6:
         check_instruction("SLL3 $0, $GP, 0xD", "6e6f")
         check_instruction("SLL3 $0, $1, 0x3", "611f")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("SLL3 $0, $11, 0x16", "6bb7")
         check_instruction("SLL3 $0, $TP, 0xD", "6d6f")
         check_instruction("SLL3 $0, $10, 0xB", "6a5f")

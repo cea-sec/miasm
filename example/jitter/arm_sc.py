@@ -9,18 +9,18 @@ from pdb import pm
 parser = Sandbox_Linux_arml_str.parser(description="""Sandbox an elf binary with arm engine
 (ex: jit_arm_sc.py example/demo_arm_l.bin)""")
 parser.add_argument("filename", help="string Filename")
-parser.add_argument("endianess", help="endianness [b/l]")
+parser.add_argument("endianness", help="endianness [b/l]")
 parser.add_argument('-v', "--verbose",
                     help="verbose mode", action="store_true")
 
 options = parser.parse_args()
 
-if options.endianess == 'b':
+if options.endianness == 'b':
     sandbox = Sandbox_Linux_armb_str
-elif options.endianess == 'l':
+elif options.endianness == 'l':
     sandbox = Sandbox_Linux_arml_str
 else:
-    raise ValueError("Bad endianess!")
+    raise ValueError("Bad endianness!")
 
 sb = sandbox(options.filename, options, globals())
 

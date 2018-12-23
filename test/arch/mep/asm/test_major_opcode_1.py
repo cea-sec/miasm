@@ -16,7 +16,7 @@ class TestMajor1:
         check_instruction("OR $0, $11", "10b0")
         check_instruction("OR $0, $12", "10c0")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("OR $1, $12", "11c0")
         check_instruction("OR $6, $11", "16b0")
         check_instruction("OR $10, $9", "1a90")
@@ -33,7 +33,7 @@ class TestMajor1:
         check_instruction("AND $12, $11", "1cb1")
         check_instruction("AND $0, $0", "1001")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("AND $6, $12", "16c1")
         check_instruction("AND $8, $6", "1861")
         check_instruction("AND $1, $12", "11c1")
@@ -50,7 +50,7 @@ class TestMajor1:
         check_instruction("XOR $4, $0", "1402")
         check_instruction("XOR $11, $12", "1bc2")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("XOR $0, $12", "10c2")
         check_instruction("XOR $12, $1", "1c12")
         check_instruction("XOR $SP, $10", "1fa2")
@@ -67,7 +67,7 @@ class TestMajor1:
         check_instruction("NOR $11, $0", "1b03")
         check_instruction("NOR $0, $0", "1003")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("NOR $4, $1", "1413")
         check_instruction("NOR $11, $11", "1bb3")
         check_instruction("NOR $9, $9", "1993")
@@ -84,7 +84,7 @@ class TestMajor1:
         check_instruction("MUL $10, $9", "1a94")
         check_instruction("MUL $10, $3", "1a34")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("MUL $2, $2", "1224")
         check_instruction("MUL $4, $12", "14c4")
         check_instruction("MUL $9, $3", "1934")
@@ -101,7 +101,7 @@ class TestMajor1:
         check_instruction("MULU $5, $12", "15c5")
         check_instruction("MULU $1, $8", "1185")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("MULU $9, $6", "1965")
         check_instruction("MULU $5, $1", "1515")
         check_instruction("MULU $5, $11", "15b5")
@@ -118,7 +118,7 @@ class TestMajor1:
         check_instruction("MULR $12, $1", "1c16")
         check_instruction("MULR $6, $1", "1616")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("MULR $7, $1", "1716")
         check_instruction("MULR $10, $8", "1a86")
         check_instruction("MULR $4, $1", "1416")
@@ -135,7 +135,7 @@ class TestMajor1:
         check_instruction("MULRU $7, $1", "1717")
         check_instruction("MULRU $GP, $6", "1e67")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("MULRU $3, $12", "13c7")
         check_instruction("MULRU $2, $TP", "12d7")
         check_instruction("MULRU $3, $TP", "13d7")
@@ -152,7 +152,7 @@ class TestMajor1:
         check_instruction("DIV $9, $12", "19c8")
         check_instruction("DIV $12, $11", "1cb8")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("DIV $6, $1", "1618")
         check_instruction("DIV $5, $11", "15b8")
         check_instruction("DIV $1, $9", "1198")
@@ -169,7 +169,7 @@ class TestMajor1:
         check_instruction("DIVU $0, $10", "10a9")
         check_instruction("DIVU $11, $10", "1ba9")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("DIVU $3, $9", "1399")
         check_instruction("DIVU $SP, $4", "1f49")
         check_instruction("DIVU $12, $5", "1c59")
@@ -202,7 +202,7 @@ class TestMajor1:
         check_instruction("EXTB $11", "1b0d")
         check_instruction("EXTB $12", "1c0d")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("EXTB $6", "160d")
         check_instruction("EXTB $10", "1a0d")
         check_instruction("EXTB $9", "190d")
@@ -229,7 +229,7 @@ class TestMajor1:
         check_instruction("EXTUB $0", "108d")
         check_instruction("EXTUB $4", "148d")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("EXTUB $7", "178d")
         check_instruction("EXTUB $1", "118d")
         check_instruction("EXTUB $6", "168d")
@@ -246,7 +246,7 @@ class TestMajor1:
         check_instruction("EXTUH $3", "13ad")
         check_instruction("EXTUH $0", "10ad")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("EXTUH $7", "17ad")
         check_instruction("EXTUH $5", "15ad")
         check_instruction("EXTUH $2", "12ad")
@@ -263,7 +263,7 @@ class TestMajor1:
         check_instruction("JMP $12", "10ce")
         check_instruction("JMP $1", "101e")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("JMP $7", "107e")
         check_instruction("JMP $8", "108e")
         check_instruction("JMP $10", "10ae")
@@ -280,7 +280,7 @@ class TestMajor1:
         check_instruction("JSR $12", "10cf")
         check_instruction("JSR $4", "104f")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("JSR $9", "109f")
         check_instruction("JSR $10", "10af")
         check_instruction("JSR $6", "106f")

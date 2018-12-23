@@ -579,7 +579,7 @@ class SSADiGraph(SSA):
 
 def get_assignblk(graph, loc, index):
     """
-    Return the dictionnary of the AssignBlock from @graph at location @loc at
+    Return the dictionary of the AssignBlock from @graph at location @loc at
     @index
     @graph: IRCFG instance
     @loc: Location instance
@@ -595,13 +595,13 @@ def get_assignblk(graph, loc, index):
 
 def set_assignblk(graph, loc, index, assignblk_dct):
     """
-    Set the Assignblock in @graph at location @loc at @index using dictionnary
+    Set the Assignblock in @graph at location @loc at @index using dictionary
     @assignblk_dct
 
     @graph: IRCFG instance
     @loc: Location instance
     @index: assignblock index
-    @assignblk_dct: dictionnary representing the AssignBlock
+    @assignblk_dct: dictionary representing the AssignBlock
     """
 
     irblock = graph.blocks[loc]
@@ -629,7 +629,7 @@ def remove_phi(ssa, head):
 
     all_ssa_vars = ssa._ssa_variable_to_expr
 
-    # Retrive Phi nodes
+    # Retrieve Phi nodes
     phi_nodes = []
     for irblock in ssa.graph.blocks.itervalues():
         for index, assignblk in enumerate(irblock):

@@ -91,7 +91,7 @@ And access the fields:
 MemUnion and MemBitField can also be subclassed, the `fields` field being
 in the format expected by, respectively, Union and BitField.
 
-The `addr` argument can be omited if an allocator is set, in which case the
+The `addr` argument can be omitted if an allocator is set, in which case the
 structure will be automatically allocated in memory:
 
     my_heap = miasm2.os_dep.common.heap()
@@ -277,7 +277,7 @@ class Type(object):
         """Set a VmMngr memory from a value.
 
         @vm: VmMngr instance
-        @addr: the start adress in memory to set
+        @addr: the start address in memory to set
         @val: the python value to serialize in @vm at @addr
         """
         raw = self._pack(val)
@@ -293,7 +293,7 @@ class Type(object):
         """Returns a class with a (vm, addr) constructor that allows to
         interact with this type in memory.
 
-        In compilation terms, it returns a class allowing to instanciate an
+        In compilation terms, it returns a class allowing to instantiate an
         lvalue of this type.
 
         @return: a MemType subclass.
@@ -305,7 +305,7 @@ class Type(object):
         return pinned_type
 
     def _build_pinned_type(self):
-        """Builds the MemType subclass allowing to interract with this type.
+        """Builds the MemType subclass allowing to interact with this type.
 
         Called by self.lval when it is not in cache.
         """
@@ -419,7 +419,7 @@ class Ptr(Num):
             If a Type is given, it is transformed into a MemType with
             TheType.lval.
         *type_args, **type_kwargs: arguments to pass to the the pointed
-            MemType when instanciating it (e.g. for MemStr encoding or
+            MemType when instantiating it (e.g. for MemStr encoding or
             MemArray field_type).
         """
         if (not isinstance(dst_type, Type) and
@@ -490,7 +490,7 @@ class Ptr(Num):
         """
         # Sanity check
         if self.dst_type != val.get_type():
-            log.warning("Original type was %s, overriden by value of type %s",
+            log.warning("Original type was %s, overridden by value of type %s",
                         self._dst_type.__name__, val.__class__.__name__)
 
         # Actual job
@@ -980,7 +980,7 @@ class BitField(Union):
     """
 
     def __init__(self, backing_num, bit_list):
-        """@backing num: Num intance, @bit_list: [(name, n_bits)]"""
+        """@backing num: Num instance, @bit_list: [(name, n_bits)]"""
         self._num = backing_num
         fields = []
         offset = 0
@@ -1161,7 +1161,7 @@ class Self(Void):
     def _build_pinned_type(self):
         return MemSelf
 
-# To avoid reinstanciation when testing equality
+# To avoid reinstantiation when testing equality
 SELF_TYPE_INSTANCE = Self()
 VOID_TYPE_INSTANCE = Void()
 
@@ -1232,7 +1232,7 @@ class MemType(object):
 
     @classmethod
     def set_allocator(cls, alloc_func):
-        """Set an allocator for this class; allows to instanciate statically
+        """Set an allocator for this class; allows to instantiate statically
         sized MemTypes (i.e. sizeof() is implemented) without specifying the
         address (the object is allocated by @alloc_func in the vm).
 
@@ -1357,7 +1357,7 @@ class MemStruct(MemType):
     The mechanism is the following:
         - set a "fields" class field to be a list of
           (<field_name (str)>, <Type_subclass_instance>)
-        - instances of this class will have properties to interract with these
+        - instances of this class will have properties to interact with these
           fields.
 
     Example:

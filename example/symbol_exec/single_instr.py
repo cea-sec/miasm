@@ -24,7 +24,7 @@ ira = machine.ira(mdis.loc_db)
 ircfg = ira.new_ircfg()
 ira.add_asmblock_to_ircfg(asm_block, ircfg)
 
-# Instanciate a Symbolic Execution engine with default value for registers
+# Instantiate a Symbolic Execution engine with default value for registers
 symb = SymbolicExecutionEngine(ira)
 
 # Emulate one IR basic block

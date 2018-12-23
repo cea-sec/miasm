@@ -48,7 +48,7 @@
 - Better BigEndian handling in Miasm
 - Misleading name `EXCEPT_BREAKPOINT_INTERN` is renamed `EXCEPT_BREAKPOINT_MEMORY`
 - Gentoo compilation
-- Jitter memory page managment
+- Jitter memory page management
 - Sanitization of floats representation
 - Fix build on 32 bit machines
 - Fix DSE read/write bug

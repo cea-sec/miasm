@@ -21,7 +21,7 @@ class EmulatedSymbExec(SymbolicExecutionEngine):
     }
 
     def __init__(self, cpu, vm, *args, **kwargs):
-        """Instanciate an EmulatedSymbExec, associated to CPU @cpu and bind
+        """Instantiate an EmulatedSymbExec, associated to CPU @cpu and bind
         memory accesses.
         @cpu: JitCpu instance
         """

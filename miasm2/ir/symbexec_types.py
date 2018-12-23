@@ -51,7 +51,7 @@ class SymbolicStateCTypes(StateEngine):
 
     @property
     def symbols(self):
-        """Return the dictionnary of known symbols'types"""
+        """Return the dictionary of known symbols'types"""
         return dict(self._symbols)
 
 

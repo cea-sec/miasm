@@ -44,7 +44,7 @@ class bitobj:
         if not n:
             return 0
         if n > len(self.bits) - self.offset:
-            raise ValueError('not enought bits %r %r' % (n, len(self.bits)))
+            raise ValueError('not enough bits %r %r' % (n, len(self.bits)))
         b = self.bits[self.offset:self.offset + n]
         b = int("".join([str(x) for x in b]), 2)
         self.offset += n
@@ -1063,7 +1063,7 @@ class cls_mn(object):
     __metaclass__ = metamn
     args_symb = []
     instruction = instruction
-    # Block's offset alignement
+    # Block's offset alignment
     alignment = 1
 
     @classmethod

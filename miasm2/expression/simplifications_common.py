@@ -23,7 +23,7 @@ def simp_cst_propagation(e_s, expr):
     op_name = expr.op
     # simpl integer manip
     # int OP int => int
-    # TODO: <<< >>> << >> are architecture dependant
+    # TODO: <<< >>> << >> are architecture dependent
     if op_name in op_propag_cst:
         while (len(args) >= 2 and
             args[-1].is_int() and
@@ -240,7 +240,7 @@ def simp_cst_propagation(e_s, expr):
 
         else:
             # Do not consider this case, too tricky (overflow on addition /
-            # substraction)
+            # subtraction)
             pass
 
     # A >> X >> Y  =>  A >> (X+Y) if X + Y does not overflow
@@ -284,7 +284,7 @@ def simp_cst_propagation(e_s, expr):
     # ! (!X + int) => X - int
     # TODO
 
-    # ((A & mask) >> shift) whith mask < 2**shift => 0
+    # ((A & mask) >> shift) with mask < 2**shift => 0
     if op_name == ">>" and args[1].is_int() and args[0].is_op("&"):
         if (args[0].args[1].is_int() and
             2 ** args[1].arg > args[0].args[1].arg):

@@ -21,7 +21,7 @@ TAGS = {"regression": "REGRESSION", # Regression tests
         "long": "LONG", # Very time consumming tests
         "llvm": "LLVM", # LLVM dependency is required
         "gcc": "GCC", # GCC based tests
-        "z3": "Z3", # Z3 dependecy is needed
+        "z3": "Z3", # Z3 dependency is needed
         "qemu": "QEMU", # QEMU tests (several tests)
         "cparser": "CPARSER", # pycparser is needed
         "linux": "LINUX", # Test must be run on a Linux
@@ -847,7 +847,7 @@ By default, all tag are considered." % ", ".join(TAGS.keys()), default="")
                 continue
             if tag not in TAGS:
                 print "%(red)s[TAG]%(end)s" % cosmetics.colors, \
-                    "Unkown tag '%s'" % tag
+                    "Unknown tag '%s'" % tag
                 exit(-1)
             dest.append(TAGS[tag])
 
@@ -884,7 +884,7 @@ By default, all tag are considered." % ", ".join(TAGS.keys()), default="")
         config.write(open(coveragerc, 'w'))
 
         # Add arguments to tests command line
-        testset.add_additionnal_args(["-m", "coverage", "run", "--rcfile",
+        testset.add_additional_args(["-m", "coverage", "run", "--rcfile",
                                       coveragerc, "-a"])
 
 

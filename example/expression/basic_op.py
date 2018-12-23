@@ -15,7 +15,7 @@ c = ExprOp('+', a, b)
 print c
 # (eax + ebx)
 
-# + automaticaly generates ExprOp('+', a, b)
+# + automatically generates ExprOp('+', a, b)
 c = a + b
 print c
 # (eax + ebx)

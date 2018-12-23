@@ -16,7 +16,7 @@ class TestMajor5:
         check_instruction("MOV $0, 0", "5000", multi=2)
         check_instruction("MOV $0, 3", "5003", multi=2)
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("MOV $8, 84", "5854", multi=2)
         check_instruction("MOV $SP, 108", "5f6c", multi=2)
         check_instruction("MOV $12, 80", "5c50", multi=2)

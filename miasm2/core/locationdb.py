@@ -13,7 +13,7 @@ class LocationDB(object):
     LocationDB is a "database" of information associated to location.
 
     An entry in a LocationDB is uniquely identified with a LocKey.
-    Additionnal information which can be associated with a LocKey are:
+    Additional information which can be associated with a LocKey are:
     - an offset (uniq per LocationDB)
     - several names (each are uniqs per LocationDB)
 
@@ -22,7 +22,7 @@ class LocationDB(object):
              1 <-> 0..n  name
 
     >>> loc_db = LocationDB()
-    # Add a location with no additionnal information
+    # Add a location with no additional information
     >>> loc_key1 = loc_db.add_location()
     # Add a location with an offset
     >>> loc_key2 = loc_db.add_location(offset=0x1234)
@@ -221,7 +221,7 @@ class LocationDB(object):
         if is_int(name):
             assert offset is None or offset == name
             warnings.warn("Deprecated API: use 'add_location(offset=)' instead."
-                          " An additionnal 'name=' can be provided to also "
+                          " An additional 'name=' can be provided to also "
                           "associate a name (there is no more default name)")
             offset = name
             name = None

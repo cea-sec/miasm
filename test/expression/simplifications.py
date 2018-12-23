@@ -20,7 +20,7 @@ args = parser.parse_args()
 if args.verbose:
     log_exprsimp.setLevel(logging.DEBUG)
 
-# Additionnal imports and definitions
+# Additional imports and definitions
 if args.z3:
     import z3
     from miasm2.ir.translators import Translator

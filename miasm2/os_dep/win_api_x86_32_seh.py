@@ -85,7 +85,7 @@ MAX_SEH = 5
 
 def build_teb(jitter, teb_address):
     """
-    Build TEB informations using following structure:
+    Build TEB information using following structure:
 
     @jitter: jitter instance
     @teb_address: the TEB address
@@ -111,7 +111,7 @@ def build_teb(jitter, teb_address):
 
 def build_peb(jitter, peb_address):
     """
-    Build PEB informations using following structure:
+    Build PEB information using following structure:
 
     @jitter: jitter instance
     @peb_address: the PEB address
@@ -135,7 +135,7 @@ def build_peb(jitter, peb_address):
 
 def build_ldr_data(jitter, modules_info):
     """
-    Build Loader informations using following structure:
+    Build Loader information using following structure:
 
     +0x000 Length                          : Uint4B
     +0x004 Initialized                     : UChar
@@ -232,7 +232,7 @@ def create_modules_chain(jitter, name2module):
     out = ""
     for i, (fname, pe_obj) in enumerate(name2module.items(), 1):
         if pe_obj is None:
-            log.warning("Unknown module: ommited from link list (%r)",
+            log.warning("Unknown module: omitted from link list (%r)",
                         fname)
             continue
         addr = base_addr + i * 0x1000
@@ -368,7 +368,7 @@ def fix_InInitializationOrderModuleList(jitter, modules_info):
 
 def add_process_env(jitter):
     """
-    Build a process environement structure
+    Build a process environment structure
     @jitter: jitter instance
     """
 

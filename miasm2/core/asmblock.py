@@ -313,8 +313,8 @@ class AsmBlockBad(AsmBlock):
     }
 
     def __init__(self, loc_key=None, alignment=1, errno=ERROR_UNKNOWN, *args, **kwargs):
-        """Instanciate an AsmBlock_bad.
-        @loc_key, @alignement: same as AsmBlock.__init__
+        """Instantiate an AsmBlock_bad.
+        @loc_key, @alignment: same as AsmBlock.__init__
         @errno: (optional) specify a error type associated with the block
         """
         super(AsmBlockBad, self).__init__(loc_key, alignment, *args, **kwargs)
@@ -334,7 +334,7 @@ class AsmBlockBad(AsmBlock):
         raise RuntimeError("An AsmBlockBad cannot have bto")
 
     def split(self, *args, **kwargs):
-        raise RuntimeError("An AsmBlockBad cannot be splitted")
+        raise RuntimeError("An AsmBlockBad cannot be split")
 
 
 class asm_block_bad(AsmBlockBad):
@@ -486,7 +486,7 @@ class AsmCFG(DiGraph):
 
         Edges will be created for @block.bto, if destinations are already in
         this instance. If not, they will be resolved when adding these
-        aforementionned destinations.
+        aforementioned destinations.
         `self.pendings` indicates which blocks are not yet resolved.
 
         """
@@ -795,7 +795,7 @@ class AsmCFG(DiGraph):
                 if not (off > range_start and off < range_stop):
                     continue
 
-                # `cur_block` must be splitted at offset `off`from miasm2.core.locationdb import LocationDB
+                # `cur_block` must be split at offset `off`from miasm2.core.locationdb import LocationDB
 
                 new_b = cur_block.split(loc_db, off)
                 log_asmblock.debug("Split block %x", off)
@@ -1253,7 +1253,7 @@ def asmblock_final(mnemo, asmcfg, blockChains, loc_db, conservative=False):
             chain.fix_blocks(modified_loc_keys)
 
         for loc_key in modified_loc_keys:
-            # Retrive block with modified reference
+            # Retrieve block with modified reference
             mod_block = asmcfg.loc_key_to_block(loc_key)
             if mod_block is not None:
                 blocks_to_rework.add(mod_block)
@@ -1343,7 +1343,7 @@ class disasmEngine(object):
     """
 
     def __init__(self, arch, attrib, bin_stream, **kwargs):
-        """Instanciate a new disassembly engine
+        """Instantiate a new disassembly engine
         @arch: targeted architecture
         @attrib: architecture attribute
         @bin_stream: bytes source

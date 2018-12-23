@@ -236,7 +236,7 @@ class mn_msp430(cls_mn):
             return 0
         o = 0
         if n > bs.getlen() * 8:
-            raise ValueError('not enought bits %r %r' % (n, len(bs.bin) * 8))
+            raise ValueError('not enough bits %r %r' % (n, len(bs.bin) * 8))
         while n:
             i = start / 8
             c = cls.getbytes(bs, i)

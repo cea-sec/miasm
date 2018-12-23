@@ -152,7 +152,7 @@ class TestMajor15:
         check_instruction("MADD $10, $4", "fa413004")
         check_instruction("MADD $4, $11", "f4b13004")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("MADD $7, $10", "f7a13004")
         check_instruction("MADD $0, $10", "f0a13004")
         check_instruction("MADD $12, $9", "fc913004")
@@ -169,7 +169,7 @@ class TestMajor15:
         check_instruction("MADDU $6, $9", "f6913005")
         check_instruction("MADDU $6, $10", "f6a13005")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("MADDU $10, $12", "fac13005")
         check_instruction("MADDU $10, $2", "fa213005")
         check_instruction("MADDU $1, $12", "f1c13005")
@@ -195,7 +195,7 @@ class TestMajor15:
         check_instruction("MADDRU $11, $1", "fb113007")
         check_instruction("MADDRU $12, $1", "fc113007")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("MADDRU $1, $0", "f1013007")
         check_instruction("MADDRU $10, $3", "fa313007")
         check_instruction("MADDRU $12, $11", "fcb13007")
@@ -221,7 +221,7 @@ class TestMajor15:
         check_instruction("STCB $11, 0x0", "fb040000")
         check_instruction("STCB $12, 0x4100", "fc044100")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("STCB $2, 0x4007", "f2044007")
         check_instruction("STCB $10, 0x4002", "fa044002")
         check_instruction("STCB $11, 0x2", "fb040002")
@@ -238,7 +238,7 @@ class TestMajor15:
         check_instruction("LDCB $12, 0x1000", "fc141000")
         check_instruction("LDCB $12, 0x0", "fc140000")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("LDCB $12, 0x420", "fc140420")
         check_instruction("LDCB $10, 0x1", "fa140001")
         check_instruction("LDCB $11, 0x5", "fb140005")
@@ -255,7 +255,7 @@ class TestMajor15:
         check_instruction("SBCPA $C4, ($TP+), -52", "f4d500cc")
         check_instruction("SBCPA $C6, ($4+), -55", "f64500c9")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("SBCPA $C2, ($SP+), -51", "f2f500cd")
         check_instruction("SBCPA $C13, ($8+), -52", "fd8500cc")
         check_instruction("SBCPA $C2, ($TP+), -51", "f2d500cd")
@@ -524,7 +524,7 @@ class TestMajor15:
         check_instruction("SWCP $C2, 24658($5)", "f25c6052")
         check_instruction("SWCP $C0, 27132($9)", "f09c69fc")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("SWCP $C9, 195($10)", "f9ac00c3")
         check_instruction("SWCP $C5, -25704($5)", "f55c9b98")
         check_instruction("SWCP $C2, -31068($11)", "f2bc86a4")
@@ -541,7 +541,7 @@ class TestMajor15:
         check_instruction("LWCP $C15, -26720($8)", "ff8d97a0")
         check_instruction("LWCP $C15, 26934($4)", "ff4d6936")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("LWCP $C11, -25049($5)", "fb5d9e27")
         check_instruction("LWCP $C6, -25560($8)", "f68d9c28")
         check_instruction("LWCP $C7, -24867($GP)", "f7ed9edd")
@@ -558,7 +558,7 @@ class TestMajor15:
         check_instruction("SMCP $C3, 6490($4)", "f34e195a")
         check_instruction("SMCP $C2, -11232($10)", "f2aed420")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("SMCP $C6, 201($7)", "f67e00c9")
         check_instruction("SMCP $C3, -25912($6)", "f36e9ac8")
         check_instruction("SMCP $C9, -25215($7)", "f97e9d81")
@@ -575,7 +575,7 @@ class TestMajor15:
         check_instruction("LMCP $C15, 4095($SP)", "ffff0fff")
         check_instruction("LMCP $C15, -1($SP)", "ffffffff")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("LMCP $C7, -24863($GP)", "f7ef9ee1")
         check_instruction("LMCP $C14, 16674($SP)", "feff4122")
         check_instruction("LMCP $C13, 1023($SP)", "fdff03ff")

@@ -21,7 +21,7 @@ class TestMajor4:
         check_instruction("ADD3 $SP, $SP, 0x20", "4f20", multi=2)
         check_instruction("ADD3 $1, $SP, 0x4", "4104", multi=2)
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("ADD3 $11, $SP, 0x38", "4b38", multi=2)
         check_instruction("ADD3 $5, $SP, 0x30", "4530", multi=2)
         check_instruction("ADD3 $TP, $SP, 0x38", "4d38", multi=2)
@@ -48,7 +48,7 @@ class TestMajor4:
         check_instruction("SW $8, 0x4($SP)", "4806", multi=2)
         check_instruction("SW $4, 0x40($SP)", "4442", multi=2)
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("SW $4, 0x30($SP)", "4432", multi=2)
         check_instruction("SW $9, 0x3C($SP)", "493e", multi=2)
         check_instruction("SW $6, 0x68($SP)", "466a", multi=2)
@@ -75,7 +75,7 @@ class TestMajor4:
         check_instruction("LW $TP, 0x4($SP)", "4d07", multi=2)
         check_instruction("LW $8, 0x4($SP)", "4807", multi=2)
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("LW $9, 0x4C($SP)", "494f", multi=2)
         check_instruction("LW $2, 0x44($TP)", "42c7", multi=2)
         check_instruction("LW $6, 0x58($SP)", "465b", multi=2)
@@ -102,7 +102,7 @@ class TestMajor4:
         check_instruction("LBU $4, 0x5($TP)", "4c85", multi=2)
         check_instruction("LBU $4, 0x6($TP)", "4c86", multi=2)
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("LBU $4, 0x21($TP)", "4ca1", multi=2)
         check_instruction("LBU $4, 0x22($TP)", "4ca2", multi=2)
         # Note: the following instruction can not be easily manipulated due to
