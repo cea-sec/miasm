@@ -36,7 +36,7 @@ class Container(object):
 
     @classmethod
     def from_string(cls, data, *args, **kwargs):
-        """Instanciate a container and parse the binary
+        """Instantiate a container and parse the binary
         @data: str containing the binary
         """
         log.info('Load binary')
@@ -65,7 +65,7 @@ class Container(object):
 
     @classmethod
     def from_stream(cls, stream, *args, **kwargs):
-        """Instanciate a container and parse the binary
+        """Instantiate a container and parse the binary
         @stream: stream to use as binary
         @vm: (optional) VmMngr instance to link with the executable
         @addr: (optional) Shift to apply before parsing the binary. If set,

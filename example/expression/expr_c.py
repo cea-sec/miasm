@@ -14,7 +14,7 @@ from miasm2.expression.expression import ExprId
 C manipulation example
 """
 
-# Digest C informations
+# Digest C information
 text = """
 struct line {
         char color[20];

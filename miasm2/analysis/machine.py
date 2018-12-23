@@ -2,7 +2,7 @@
 
 
 class Machine(object):
-    """Abstract machine architecture to restrict architecture dependant code"""
+    """Abstract machine architecture to restrict architecture dependent code"""
 
     __dis_engine = None   # Disassembly engine
     __mn = None           # Machine instance

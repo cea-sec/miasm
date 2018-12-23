@@ -279,7 +279,7 @@ class DependencyResult(DependencyState):
         """Symbolic execution of relevant nodes according to the history
         Return the values of inputs nodes' elements
         @ir_arch: IntermediateRepresentation instance
-        @ctx: (optional) Initial context as dictionnary
+        @ctx: (optional) Initial context as dictionary
         @step: (optional) Verbose execution
         Warning: The emulation is not sound if the inputs nodes depend on loop
         variant.
@@ -447,7 +447,7 @@ class DependencyGraph(object):
     A dependency graph contains DependencyNode as nodes. The oriented edges
     stand for a dependency.
     The dependency graph is made of the lines of a group of IRblock
-    *explicitely* or *implicitely* involved in the equation of given element.
+    *explicitly* or *implicitly* involved in the equation of given element.
     """
 
     def __init__(self, ircfg,

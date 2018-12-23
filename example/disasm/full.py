@@ -282,7 +282,7 @@ if args.propagexpr:
             return set(out.values())
 
 
-    # Add dummy dependecy to uncover out regs affectation
+    # Add dummy dependency to uncover out regs affectation
     for loc in ircfg_a.leaves():
         irblock = ircfg_a.blocks.get(loc)
         if irblock is None:

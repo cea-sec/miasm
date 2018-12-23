@@ -3,7 +3,7 @@ from miasm2.core.ctypesmngr import CTypeId, CTypePtr
 
 
 class CTypeMSP430_unk(CLeafTypes):
-    """Define C types sizes/alignement for msp430 architecture"""
+    """Define C types sizes/alignment for msp430 architecture"""
 
     obj_pad = ObjCDecl(PADDING_TYPE_NAME, 1, 1) # __padding__ is size 1/align 1
 

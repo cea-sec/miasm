@@ -114,7 +114,7 @@ class MyCHandler(CHandler):
 
 
 data = open(sys.argv[1]).read()
-# Digest C informations
+# Digest C information
 text = """
 struct human {
         unsigned short age;

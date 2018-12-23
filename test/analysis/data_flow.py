@@ -217,7 +217,7 @@ for irb in [G5_EXP_IRB0, G5_EXP_IRB1, G5_EXP_IRB2,
             G5_EXP_IRB3, G5_EXP_IRB4, G5_EXP_IRB5]:
     G5_EXP_IRA.add_irblock(irb)
 
-# graph 6 : Natural loop with dead variables symetric affectation
+# graph 6 : Natural loop with dead variables symmetric affectation
 # (a = b <-> b = a )
 
 G6_IRA = IRA.new_ircfg()
@@ -344,7 +344,7 @@ G9_EXP_IRB4 = gen_irblock(LBL4, [[], [ExprAssign(r, b)]])
 for irb in [G9_EXP_IRB0, G9_EXP_IRB1, G9_EXP_IRB2, G9_EXP_IRB3, G9_EXP_IRB4]:
     G9_EXP_IRA.add_irblock(irb)
 
-# graph 10 : Natural loop with alive variables symetric affectation
+# graph 10 : Natural loop with alive variables symmetric affectation
 # (a = b <-> b = a )
 
 G10_IRA = IRA.new_ircfg()
@@ -660,7 +660,7 @@ G17_EXP_IRB0 = gen_irblock(LBL0, [[],
 for irb in [G17_EXP_IRB0]:
     G17_EXP_IRA.add_irblock(irb)
 
-# Begining  of tests
+# Beginning  of tests
 
 for test_nb, test in enumerate([(G1_IRA, G1_EXP_IRA),
                                 (G2_IRA, G2_EXP_IRA),

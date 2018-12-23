@@ -82,7 +82,7 @@ class TestMajor7:
         check_instruction("CACHE 0x9, ($7)", "7974")
         check_instruction("CACHE 0x2, ($6)", "7264")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("CACHE 0x5, ($8)", "7584")
         check_instruction("CACHE 0xC, ($6)", "7c64")
         check_instruction("CACHE 0x2, ($1)", "7214")
@@ -108,7 +108,7 @@ class TestMajor7:
         check_instruction("STC $8, $LO", "7888")
         check_instruction("STC $0, $LP", "7018")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("STC $9, $DBG", "7989")
         check_instruction("STC $2, $DBG", "7289")
         check_instruction("STC $9, $LO", "7988")
@@ -125,7 +125,7 @@ class TestMajor7:
         check_instruction("LDC $12, $LO", "7c8a")
         check_instruction("LDC $0, $LP", "701a")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("LDC $11, $RPC", "7b6a")
         check_instruction("LDC $10, $CFG", "7a5b")
         check_instruction("LDC $2, $NPC", "727b")

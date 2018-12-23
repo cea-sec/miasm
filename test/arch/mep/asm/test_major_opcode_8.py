@@ -16,7 +16,7 @@ class TestMajor8:
         check_instruction("SB $4, 0x1($TP)", "8401", multi=2)
         check_instruction("SB $0, 0x3($TP)", "8003", multi=2)
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("SB $2, 0x65($TP)", "8265", multi=2)
         check_instruction("SB $5, 0x48($TP)", "8548", multi=2)
         check_instruction("SB $7, 0x77($TP)", "8777", multi=2)
@@ -33,7 +33,7 @@ class TestMajor8:
         check_instruction("SH $4, 0x4($TP)", "8484", multi=2)
         check_instruction("SH $4, 0xC($TP)", "848c", multi=2)
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("SH $7, 0x3A($TP)", "87ba", multi=2)
         check_instruction("SH $2, 0x36($TP)", "82b6", multi=2)
         check_instruction("SH $1, 0x76($TP)", "81f6", multi=2)
@@ -50,7 +50,7 @@ class TestMajor8:
         check_instruction("LB $4, 0x1A($TP)", "8c1a", multi=2)
         check_instruction("LB $4, 0x6($TP)", "8c06", multi=2)
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("LB $4, 0x59($TP)", "8c59", multi=2)
         check_instruction("LB $7, 0x53($TP)", "8f53", multi=2)
         check_instruction("LB $6, 0x62($TP)", "8e62", multi=2)
@@ -67,7 +67,7 @@ class TestMajor8:
         check_instruction("LH $4, 0x6($TP)", "8c86", multi=2)
         check_instruction("LH $4, 0x4($TP)", "8c84", multi=2)
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("LH $7, 0x28($TP)", "8fa8", multi=2)
         check_instruction("LH $4, 0x16($TP)", "8c96", multi=2)
         check_instruction("LH $0, 0x56($TP)", "88d6", multi=2)
@@ -84,7 +84,7 @@ class TestMajor8:
         check_instruction("LHU $4, 0x10($TP)", "8c91", multi=2)
         check_instruction("LHU $3, 0xC($TP)", "8b8d", multi=2)
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("LHU $3, 0x54($TP)", "8bd5", multi=2)
         check_instruction("LHU $7, 0x66($TP)", "8fe7", multi=2)
         check_instruction("LHU $2, 0x6E($TP)", "8aef", multi=2)

@@ -21,7 +21,7 @@ asmcfg = mdis.dis_multiblock(addr)
 #    End common section             #
 #####################################
 
-# Get an IRA convertor
+# Get an IRA converter
 # The sub call are modelised by default operators
 # call_func_ret and call_func_stack
 ir_arch_analysis = machine.ira(mdis.loc_db)

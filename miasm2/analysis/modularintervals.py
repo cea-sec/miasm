@@ -7,7 +7,7 @@ class ModularIntervals(object):
     """Intervals with a maximum size, supporting modular arithmetic"""
 
     def __init__(self, size, intervals=None):
-        """Instanciate a ModularIntervals of size @size
+        """Instantiate a ModularIntervals of size @size
         @size: maximum size of elements
         @intervals: (optional) interval instance, or any type  supported by
                     interval initialisation; element of the current instance

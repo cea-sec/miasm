@@ -47,7 +47,7 @@ class SMT2Mem(object):
         try:
             mem = self.mems[size]
         except KeyError:
-            # Lazy instanciation
+            # Lazy instantiation
             self.mems[size] = self.name + str(size)
             mem = self.mems[size]
         return mem
@@ -105,7 +105,7 @@ class TranslatorSMT2(Translator):
     expression. Memory is abstracted via SMT2Mem.
     The result of from_expr will be an SMT2 expression.
 
-    If you want to interract with the memory abstraction after the translation,
+    If you want to interact with the memory abstraction after the translation,
     you can instantiate your own SMT2Mem that will be equivalent to the one
     used by TranslatorSMT2.
 

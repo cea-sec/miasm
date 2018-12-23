@@ -16,7 +16,7 @@ class TestMajor12:
         check_instruction("ADD3 $12, $4, 0x48", "cc400048")
         check_instruction("ADD3 $SP, $SP, -68", "cff0ffbc")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("ADD3 $12, $SP, 0x6", "ccf00006")
         check_instruction("ADD3 $12, $12, 0x3E4", "ccc003e4")
         check_instruction("ADD3 $7, $5, -31912", "c7508358")
@@ -33,7 +33,7 @@ class TestMajor12:
         check_instruction("MOV $2, 139", "c201008b", multi=2)
         check_instruction("MOV $0, 194", "c00100c2", multi=2)
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("MOV $12, 239", "cc0100ef", multi=2)
         check_instruction("MOV $1, 136", "c1010088", multi=2)
         check_instruction("MOV $3, 168", "c30100a8", multi=2)
@@ -50,7 +50,7 @@ class TestMajor12:
         check_instruction("MOVU $11, 0x8105", "cb118105")
         check_instruction("MOVU $11, 0x8106", "cb118106")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("MOVU $9, 0x8126", "c9118126")
         check_instruction("MOVU $7, 0xFF00", "c711ff00")
         check_instruction("MOVU $2, 0xE200", "c211e200")
@@ -67,7 +67,7 @@ class TestMajor12:
         check_instruction("MOVH $1, 0x101", "c1210101")
         check_instruction("MOVH $12, 0x81", "cc210081")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("MOVH $4, 0xF4D5", "c421f4d5")
         check_instruction("MOVH $10, 0xFC00", "ca21fc00")
         check_instruction("MOVH $12, 0xC003", "cc21c003")
@@ -84,7 +84,7 @@ class TestMajor12:
         check_instruction("SLT3 $0, $12, 0x801", "c0c20801")
         check_instruction("SLT3 $0, $4, 0x800", "c0420800")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("SLT3 $2, $4, 0x6A18", "c2426a18")
         check_instruction("SLT3 $2, $11, -31153", "c2b2864f")
         check_instruction("SLT3 $11, $12, 0x5BFA", "cbc25bfa")
@@ -101,7 +101,7 @@ class TestMajor12:
         check_instruction("SLTU3 $0, $12, 0x941", "c0c30941")
         check_instruction("SLTU3 $12, $8, 0x1001", "cc831001")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("SLTU3 $8, $12, 0x8BA9", "c8c38ba9")
         check_instruction("SLTU3 $12, $11, 0x1E", "ccb3001e")
         check_instruction("SLTU3 $6, $GP, 0x6C90", "c6e36c90")
@@ -118,7 +118,7 @@ class TestMajor12:
         check_instruction("OR3 $12, $12, 0x1", "ccc40001")
         check_instruction("OR3 $12, $12, 0x2", "ccc40002")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("OR3 $12, $GP, 0xC7", "cce400c7")
         check_instruction("OR3 $10, $3, 0x40", "ca340040")
         check_instruction("OR3 $3, $3, 0xFF97", "c334ff97")
@@ -135,7 +135,7 @@ class TestMajor12:
         check_instruction("AND3 $11, $12, 0x8", "cbc50008")
         check_instruction("AND3 $11, $12, 0x1", "cbc50001")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("AND3 $12, $7, 0x1FF", "cc7501ff")
         check_instruction("AND3 $9, $10, 0x4E27", "c9a54e27")
         check_instruction("AND3 $4, $4, 0xFB", "c44500fb")
@@ -152,7 +152,7 @@ class TestMajor12:
         check_instruction("XOR3 $12, $11, 0x4", "ccb60004")
         check_instruction("XOR3 $4, $4, 0x1", "c4460001")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("XOR3 $TP, $9, 0x8704", "cd968704")
         check_instruction("XOR3 $11, $SP, 0x7411", "cbf67411")
         check_instruction("XOR3 $SP, $8, 0x8801", "cf868801")
@@ -169,7 +169,7 @@ class TestMajor12:
         check_instruction("SB $11, 0x17($SP)", "cbf80017")
         check_instruction("SB $12, 0x16($SP)", "ccf80016")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("SB $TP, -31053($6)", "cd6886b3")
         check_instruction("SB $3, 0x6E($8)", "c388006e")
         check_instruction("SB $7, 0x81($8)", "c7880081")
@@ -186,7 +186,7 @@ class TestMajor12:
         check_instruction("SH $4, 0xC($SP)", "c4f9000c")
         check_instruction("SH $11, 0x1E($4)", "cb49001e")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("SH $SP, -30753($6)", "cf6987df")
         check_instruction("SH $12, 0x6C4($TP)", "ccd906c4")
         check_instruction("SH $4, 0x38($3)", "c4390038")
@@ -207,7 +207,7 @@ class TestMajor12:
         check_instruction("SW $10, 0xC($12)", "caca000c")
         check_instruction("SW $10, 0x4($12)", "caca0004")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("SW $12, 0x100($1)", "cc1a0100")
         check_instruction("SW $10, 0x88($6)", "ca6a0088")
         check_instruction("SW $0, 0x188($SP)", "c0fa0188")
@@ -224,7 +224,7 @@ class TestMajor12:
         check_instruction("LBU $12, 0x16($SP)", "ccfb0016")
         check_instruction("LBU $11, 0x2($4)", "cb4b0002")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("LBU $12, 0x16($4)", "cc4b0016")
         check_instruction("LBU $2, 0x3($11)", "c2bb0003")
         check_instruction("LBU $7, 0x5($2)", "c72b0005")
@@ -241,7 +241,7 @@ class TestMajor12:
         check_instruction("LB $9, 0x2($12)", "c9cc0002")
         check_instruction("LB $12, 0x16($SP)", "ccfc0016")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("LB $0, 0x5784($10)", "c0ac5784")
         check_instruction("LB $11, -31243($9)", "cb9c85f5")
         check_instruction("LB $5, 0x11($6)", "c56c0011")
@@ -258,7 +258,7 @@ class TestMajor12:
         check_instruction("LH $4, 0x4($8)", "c48d0004")
         check_instruction("LH $9, 0x10($1)", "c91d0010")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("LH $4, 0x8($8)", "c48d0008")
         check_instruction("LH $12, 0x8($10)", "ccad0008")
         check_instruction("LH $6, -32042($6)", "c66d82d6")
@@ -275,7 +275,7 @@ class TestMajor12:
         check_instruction("LW $2, 0x8($8)", "c28e0008")
         check_instruction("LW $4, 0x14($8)", "c48e0014")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("LW $12, 0x1D48($7)", "cc7e1d48")
         check_instruction("LW $8, 0x58($1)", "c81e0058")
         check_instruction("LW $12, 0xB0($7)", "cc7e00b0")
@@ -292,7 +292,7 @@ class TestMajor12:
         check_instruction("LHU $4, 0x18($8)", "c48f0018")
         check_instruction("LHU $2, 0x10($8)", "c28f0010")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("LHU $12, 0x94($8)", "cc8f0094")
         check_instruction("LHU $4, 0xE($6)", "c46f000e")
         check_instruction("LHU $11, 0x5B59($GP)", "cbef5b59")

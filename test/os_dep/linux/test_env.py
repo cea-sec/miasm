@@ -20,7 +20,7 @@ elif arch == "arml":
 elif arch == "aarch64l":
     sandbox = Sandbox_Linux_aarch64l
 else:
-    raise ValueError("Unsuported arch: %s" % arch)
+    raise ValueError("Unsupported arch: %s" % arch)
 
 # Parse arguments
 parser = sandbox.parser(description="ELF sandboxer")

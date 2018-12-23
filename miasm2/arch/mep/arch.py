@@ -313,7 +313,7 @@ class mn_mep(cls_mn):
     all_mn_inst = defaultdict(list)  # mnemonics objects
                                      # Note:
                                      #   - the key is the mnemonic Python class
-                                     #   - the data is an instanciated object
+                                     #   - the data is an instantiated object
 
     bintree = dict()  # Variable storing internal values used to guess a
                       # mnemonic during disassembly
@@ -321,7 +321,7 @@ class mn_mep(cls_mn):
     # Defines the instruction set that will be used
     instruction = instruction_mep
 
-    # Python module that stores registers informations
+    # Python module that stores registers information
     regs = mep_regs_module
 
     # Default delay slot
@@ -826,7 +826,7 @@ class mep_copro_reg_split(mep_copro_reg):
 
 
 class mep_deref_inc_reg(mep_deref_reg):
-    """Generic Toshiba MeP-c4 coprocess dereferenced & incremented registe
+    """Generic Toshiba MeP-c4 coprocess dereferenced & incremented register
     """
     parser = deref_inc_reg_parser
 

@@ -16,7 +16,7 @@ class TestMajor11:
         check_instruction("BRA 0x46", "b046")
         check_instruction("BRA 0xFFFFFF98", "bf98")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("BRA 0x2AA", "b2aa")
         check_instruction("BRA 0x22", "b022")
         check_instruction("BRA 0x12", "b012")
@@ -33,7 +33,7 @@ class TestMajor11:
         check_instruction("BSR 0xFFFFFBB2", "bbb3", multi=2)
         check_instruction("BSR 0xFFFFFCCE", "bccf", multi=2)
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("BSR 0xFFFFFED4", "bed5", multi=2)
         check_instruction("BSR 0xFFFFFF62", "bf63", multi=2)
         check_instruction("BSR 0xFFFFFF36", "bf37", multi=2)

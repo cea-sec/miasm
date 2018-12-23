@@ -275,7 +275,7 @@ class x86_arg(m_arg):
             loc_key = loc_db.get_or_create_name_location(value.name)
             return ExprLoc(loc_key, size_hint)
         if isinstance(value, AstOp):
-            # First pass to retreive fixed_size
+            # First pass to retrieve fixed_size
             if value.op == "segm":
                 segm = self.asm_ast_to_expr(value.args[0], loc_db)
                 ptr = self.asm_ast_to_expr(value.args[1], loc_db, None, fixed_size)
@@ -930,7 +930,7 @@ class bs_modname_size(bs_divert):
                 (dct['mode'], dct['opmode'], dct['admode']))
             mode = dct['mode']
             size, opmode, admode = dct['mode'], dct['opmode'], dct['admode']
-            # no mode64 existance in name means no 64bit version of mnemo
+            # no mode64 exinstance in name means no 64bit version of mnemo
             if mode == 64:
                 if mode in self.args['name']:
                     nfields = fields[:]

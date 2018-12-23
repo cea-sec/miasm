@@ -3,7 +3,7 @@ from miasm2.core.ctypesmngr import CTypeId, CTypePtr
 
 
 class CTypeAMD64_unk(CLeafTypes):
-    """Define C types sizes/alignement for x86_64 architecture"""
+    """Define C types sizes/alignment for x86_64 architecture"""
 
     obj_pad = ObjCDecl(PADDING_TYPE_NAME, 1, 1) # __padding__ is size 1/align 1
 
@@ -72,7 +72,7 @@ class CTypeAMD64_unk(CLeafTypes):
 
 
 class CTypeX86_unk(CLeafTypes):
-    """Define C types sizes/alignement for x86_32 architecture"""
+    """Define C types sizes/alignment for x86_32 architecture"""
 
     obj_pad = ObjCDecl(PADDING_TYPE_NAME, 1, 1) # __padding__ is size 1/align 1
 

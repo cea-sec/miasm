@@ -265,18 +265,18 @@ def advck3(r0, rn, rm):
 
 @sbuild.parse
 def sub(reg1, reg2):
-    """SUB - Substract one register to another."""
+    """SUB - Subtract one register to another."""
 
     # Rn <- Rn - Rm
     reg1 = reg1 - reg2
 
 
 def sbvck3(ir, instr, r0, rn, rm):
-    """SBVCK3 - Check substraction overflow"""
+    """SBVCK3 - Check subtraction overflow"""
 
     # if(Overflow(Rn-Rm)) R0<-1 else R0<-0 (Signed)
 
-    # Substract registers
+    # Subtract registers
     reg_sub = ExprOp("+", rn, rm)
 
     # Get the register storing the highest value
@@ -1160,7 +1160,7 @@ class ir_mepb(IntermediateRepresentation):
         return instr_ir, extra_ir
 
     def get_next_break_loc_key(self, instr):
-        """Returns a new label that identifies where the instuction is going.
+        """Returns a new label that identifies where the instruction is going.
 
            Note: it eases linking IR blocs
         """

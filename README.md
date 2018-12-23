@@ -568,7 +568,7 @@ output).
 Windows & IDA
 -------------
 
-Most of Miasm's IDA plugins use a subset of Miasm functionnality.
+Most of Miasm's IDA plugins use a subset of Miasm functionality.
 A quick way to have them working is to add:
 * `elfesteem` directory and `pyparsing.py` to `C:\...\IDA\python\` or `pip install pyparsing elfesteem`
 * `miasm2/miasm2` directory to `C:\...\IDA\python\`

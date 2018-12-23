@@ -132,9 +132,9 @@ class CGen(object):
         return self.translator.from_expr(self.patch_c_id(expr))
 
     def add_label_index(self, dst2index, loc_key):
-        """Insert @lbl to the dictionnary @dst2index with a uniq value
+        """Insert @lbl to the dictionary @dst2index with a uniq value
         @dst2index: LocKey -> uniq value
-        @loc_key: LocKey istance"""
+        @loc_key: LocKey instance"""
 
         if loc_key not in dst2index:
             dst2index[loc_key] = len(dst2index)
@@ -183,9 +183,9 @@ class CGen(object):
 
     def add_local_var(self, dst_var, dst_index, expr):
         """
-        Add local varaible used to store temporay result
-        @dst_var: dictionnary of Expr -> local_var_expr
-        @dst_index : dictionnary of size -> local var count
+        Add local variable used to store temporay result
+        @dst_var: dictionary of Expr -> local_var_expr
+        @dst_index : dictionary of size -> local var count
         @expr: Expression source
         """
         size = expr.size
@@ -202,7 +202,7 @@ class CGen(object):
     def get_mem_prefetch(self, assignblk):
         """
         Generate temporary variables used to fetch memory used in the @assignblk
-        Return a dictionnary: ExprMem -> temporary variable
+        Return a dictionary: ExprMem -> temporary variable
         @assignblk: AssignBlock instance
         """
         mem_index = {8: 0, 16: 0, 32: 0, 64: 0, 128:0}
@@ -224,7 +224,7 @@ class CGen(object):
 
     def gen_c_assignments(self, assignblk):
         """
-        Return C informations used to generate the C code of the @assignblk
+        Return C information used to generate the C code of the @assignblk
         @assignblk: an AssignBlock instance
         """
         c_var = []
@@ -256,7 +256,7 @@ class CGen(object):
             elif isinstance(dst, ExprId):
                 new_dst = self.add_local_var(dst_var, dst_index, dst)
                 if dst in self.ir_arch.arch.regs.regs_flt_expr:
-                    # Dont mask float affectation
+                    # Don't mask float affectation
                     c_main.append(
                         '%s = (%s);' % (self.id_to_c(new_dst), self.id_to_c(src)))
                 elif new_dst.size <= self.translator.NATIVE_INT_MAX_SIZE:
@@ -321,7 +321,7 @@ class CGen(object):
     def traverse_expr_dst(self, expr, dst2index):
         """
         Generate the index of the destination label for the @expr
-        @dst2index: dictionnary to link label to its index
+        @dst2index: dictionary to link label to its index
         """
 
         if isinstance(expr, ExprCond):

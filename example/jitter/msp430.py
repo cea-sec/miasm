@@ -18,7 +18,7 @@ parser.add_argument("-j", "--jitter",
                     help="Jitter engine (default is 'gcc')",
                     default="gcc")
 parser.add_argument("-d", "--debugging",
-                    help="Attach a CLI debugguer to the sandboxed programm",
+                    help="Attach a CLI debugguer to the sandboxed program",
                     action="store_true")
 parser.add_argument("binary",
                     help="binary to run")

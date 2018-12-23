@@ -10,7 +10,7 @@ import platform
 class JitCore_LLVM(jitcore.JitCore):
     "JiT management, using LLVM as backend"
 
-    # Architecture dependant libraries
+    # Architecture dependent libraries
     arch_dependent_libs = {"x86": "JitCore_x86",
                            "arm": "JitCore_arm",
                            "msp430": "JitCore_msp430",
@@ -46,7 +46,7 @@ class JitCore_LLVM(jitcore.JitCore):
         # Library to load within Jit context
         libs_to_load = []
 
-        # Get architecture dependant Jitcore library (if any)
+        # Get architecture dependent Jitcore library (if any)
         lib_dir = os.path.dirname(os.path.realpath(__file__))
         lib_dir = os.path.join(lib_dir, 'arch')
         ext = '.so' if platform.system() != 'Windows' else '.pyd'
@@ -66,7 +66,7 @@ class JitCore_LLVM(jitcore.JitCore):
         # Save the current architecture parameters
         self.arch = self.ir_arch.arch
 
-        # Get the correspondance between registers and vmcpu struct
+        # Get the correspondence between registers and vmcpu struct
         mod_name = "miasm2.jitter.arch.JitCore_%s" % (self.ir_arch.arch.name)
         mod = importlib.import_module(mod_name)
         self.context.set_vmcpu(mod.get_gpreg_offset_all())

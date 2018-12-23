@@ -81,7 +81,7 @@ class SymbolicState(StateEngine):
 
     @property
     def symbols(self):
-        """Return the dictionnary of known symbols"""
+        """Return the dictionary of known symbols"""
         return dict(self._symbols)
 
 
@@ -945,7 +945,7 @@ class SymbolicExecutionEngine(object):
     def eval_expr(self, expr, eval_cache=None):
         """
         Evaluate @expr
-        @expr: Expresion instance to evaluate
+        @expr: Expression instance to evaluate
         @cache: None or dictionary linking variables to their values
         """
         if eval_cache is None:

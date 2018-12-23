@@ -35,7 +35,7 @@ If one is only interested in constraints associated to its path, the option
 The constraints are accumulated in the .z3_cur z3.Solver object.
 
 Here are a few remainings TODO:
- - handle endianess in check_state / atomic read: currently, but this is also
+ - handle endianness in check_state / atomic read: currently, but this is also
    true for others Miasm2 symbolic engines, the endianness is not take in
    account, and assumed to be Little Endian
 
@@ -143,7 +143,7 @@ class ESETrackModif(EmulatedSymbExec):
 class DSEEngine(object):
     """Dynamic Symbolic Execution Engine
 
-    This class aims to be overrided for each specific purpose
+    This class aims to be overridden for each specific purpose
     """
     SYMB_ENGINE = ESETrackModif
 
@@ -208,7 +208,7 @@ class DSEEngine(object):
             dse.attach(jitter)
             dse.update...
             ...
-            # Additionnal call to the exec callback is necessary, as breakpoints are
+            # Additional call to the exec callback is necessary, as breakpoints are
             # honored AFTER exec callback
             jitter.exec_cb(jitter)
 

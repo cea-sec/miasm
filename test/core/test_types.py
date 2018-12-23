@@ -79,7 +79,7 @@ set_allocator(my_heap.vm_alloc)
 
 # Ptr tests
 ## Setup for Ptr tests
-# the addr field can now be omited since allocator is set
+# the addr field can now be omitted since allocator is set
 other = OtherStruct(jitter.vm)
 other.foo = 0x1234
 assert other.foo == 0x1234

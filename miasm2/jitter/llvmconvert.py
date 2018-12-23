@@ -76,7 +76,7 @@ class LLVMContext():
         llvm.initialize_native_target()
         llvm.initialize_native_asmprinter()
 
-        # Initilize target for compilation
+        # Initialize target for compilation
         target = llvm.Target.from_default_triple()
         self.target_machine = target.create_target_machine()
         self.init_exec_engine()
@@ -320,7 +320,7 @@ class LLVMContext_JIT(LLVMContext):
                     readonly=True)
 
     def set_vmcpu(self, lookup_table):
-        "Set the correspondance between register name and vmcpu offset"
+        "Set the correspondence between register name and vmcpu offset"
 
         self.vmcpu = lookup_table
 
@@ -450,7 +450,7 @@ class LLVMContext_JIT(LLVMContext):
 
     def get_ptr_from_cache(self, file_name, func_name):
         "Load @file_name and return a pointer on the jitter @func_name"
-        # We use an empty module to avoid loosing time on function building
+        # We use an empty module to avoid losing time on function building
         empty_module = llvm.parse_assembly("")
         empty_module.fname_out = file_name
 
@@ -1399,8 +1399,8 @@ class LLVMFunction(object):
     def gen_irblock(self, instr_attrib, attributes, instr_offsets, irblock):
         """
         Generate the code for an @irblock
-        @instr_attrib: an Attributs instance or the instruction to translate
-        @attributes: list of Attributs corresponding to irblock assignments
+        @instr_attrib: an Attributes instance or the instruction to translate
+        @attributes: list of Attributes corresponding to irblock assignments
         @instr_offsets: offset of all asmblock's instructions
         @irblock: an irblock instance
         """
@@ -1610,7 +1610,7 @@ class LLVMFunction(object):
                 new_irblock = self.llvm_context.ir_arch.irbloc_fix_regs_for_mode(
                     irblock, self.llvm_context.ir_arch.attrib)
 
-                # Set the builder at the begining of the correct bbl
+                # Set the builder at the beginning of the correct bbl
                 self.builder.position_at_end(self.get_basic_block_by_loc_key(new_irblock.loc_key))
 
                 if index == 0:
@@ -1695,7 +1695,7 @@ class LLVMFunction_IRCompilation(LLVMFunction):
     >>> func.ret_type = llvm_ir.VoidType()
     >>> func.init_fc()
     >>>
-    >>> # Insert here function additionnal inits
+    >>> # Insert here function additional inits
     >>> XX = func.builder.alloca(...)
     >>> func.local_vars_pointers["EAX"] = XX
     >>> #

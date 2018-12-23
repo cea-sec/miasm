@@ -16,7 +16,7 @@ class TestMajor2:
         check_instruction("BSETM ($2), 0x5", "2520")
         check_instruction("BSETM ($2), 0x0", "2020")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("BSETM ($8), 0x4", "2480")
         check_instruction("BSETM ($5), 0x5", "2550")
         check_instruction("BSETM ($5), 0x0", "2050")
@@ -33,7 +33,7 @@ class TestMajor2:
         check_instruction("BCLRM ($2), 0x1", "2121")
         check_instruction("BCLRM ($0), 0x0", "2001")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("BCLRM ($6), 0x4", "2461")
         check_instruction("BCLRM ($7), 0x4", "2471")
         check_instruction("BCLRM ($6), 0x5", "2561")
@@ -50,7 +50,7 @@ class TestMajor2:
         check_instruction("BNOTM ($3), 0x0", "2032")
         check_instruction("BNOTM ($7), 0x0", "2072")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("BNOTM ($6), 0x4", "2462")
         check_instruction("BNOTM ($2), 0x2", "2222")
         check_instruction("BNOTM ($0), 0x1", "2102")
@@ -67,7 +67,7 @@ class TestMajor2:
         check_instruction("BTSTM $0, ($0), 0x0", "2003")
         check_instruction("BTSTM $0, ($7), 0x0", "2073")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("BTSTM $0, ($2), 0x4", "2423")
         check_instruction("BTSTM $0, ($12), 0x6", "26c3")
         check_instruction("BTSTM $0, ($4), 0x5", "2543")
@@ -84,7 +84,7 @@ class TestMajor2:
         check_instruction("TAS $0, ($7)", "2074")
         check_instruction("TAS $0, ($6)", "2064")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("TAS $1, ($6)", "2164")
         check_instruction("TAS $11, ($3)", "2b34")
         check_instruction("TAS $1, ($0)", "2104")
@@ -101,7 +101,7 @@ class TestMajor2:
         check_instruction("SL1AD3 $0, $3, $3", "2336")
         check_instruction("SL1AD3 $0, $12, $12", "2cc6")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("SL1AD3 $0, $5, $4", "2546")
         check_instruction("SL1AD3 $0, $11, $4", "2b46")
         check_instruction("SL1AD3 $0, $GP, $3", "2e36")
@@ -118,7 +118,7 @@ class TestMajor2:
         check_instruction("SL2AD3 $0, $12, $0", "2c07")
         check_instruction("SL2AD3 $0, $11, $4", "2b47")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("SL2AD3 $0, $10, $SP", "2af7")
         check_instruction("SL2AD3 $0, $4, $8", "2487")
         check_instruction("SL2AD3 $0, $10, $12", "2ac7")
@@ -135,7 +135,7 @@ class TestMajor2:
         check_instruction("SRL $0, $6", "206c")
         check_instruction("SRL $SP, $3", "2f3c")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("SRL $9, $6", "296c")
         check_instruction("SRL $2, $7", "227c")
         check_instruction("SRL $9, $12", "29cc")
@@ -152,7 +152,7 @@ class TestMajor2:
         check_instruction("SRA $0, $3", "203d")
         check_instruction("SRA $0, $5", "205d")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("SRA $11, $2", "2b2d")
         check_instruction("SRA $9, $6", "296d")
         check_instruction("SRA $4, $8", "248d")
@@ -169,7 +169,7 @@ class TestMajor2:
         check_instruction("SLL $5, $2", "252e")
         check_instruction("SLL $0, $6", "206e")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("SLL $4, $0", "240e")
         check_instruction("SLL $SP, $10", "2fae")
         check_instruction("SLL $0, $4", "204e")
@@ -186,7 +186,7 @@ class TestMajor2:
         check_instruction("FSFT $SP, $2", "2f2f")
         check_instruction("FSFT $0, $6", "206f")
 
-        # Randomly choosen instructions
+        # Randomly chosen instructions
         check_instruction("FSFT $SP, $6", "2f6f")
         check_instruction("FSFT $0, $9", "209f")
         check_instruction("FSFT $5, $9", "259f")
