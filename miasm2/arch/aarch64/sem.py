@@ -430,7 +430,7 @@ def csel(arg1, arg2, arg3, arg4):
 
 def ccmp(ir, instr, arg1, arg2, arg3, arg4):
     e = []
-    if(arg2.is_int):
+    if(arg2.is_int()):
         arg2=ExprInt(arg2.arg.arg,arg1.size)
     default_nf = arg3[0:1]
     default_zf = arg3[1:2]
@@ -440,8 +440,8 @@ def ccmp(ir, instr, arg1, arg2, arg3, arg4):
     res = arg1 - arg2
     new_nf = nf
     new_zf = update_flag_zf(res)[0].src
-    new_cf = update_flag_sub_cf(arg1, arg2).src
-    new_of = update_flag_sub_of(arg1, arg2).src
+    new_cf = update_flag_sub_cf(arg1, arg2)[0].src
+    new_of = update_flag_sub_of(arg1, arg2)[0].src
 
     e.append(ExprAssign(nf, ExprCond(cond_expr,
                                                     new_nf,
@@ -688,6 +688,19 @@ def sbfm(ir, instr, arg1, arg2, arg3, arg4):
 def ubfm(ir, instr, arg1, arg2, arg3, arg4):
     e = []
     rim, sim = int(arg3.arg), int(arg4) + 1
+    if sim != arg1.size - 1 and rim == sim:
+        # Simple case: lsl
+        value = int(rim)
+        assert value < arg1.size
+        e.append(ExprAssign(arg1, arg2 << (ExprInt(arg1.size - value, arg2.size))))
+        return e, []
+    if sim == arg1.size:
+        # Simple case: lsr
+        value = int(rim)
+        assert value < arg1.size
+        e.append(ExprAssign(arg1, arg2 >> (ExprInt(value, arg2.size))))
+        return e, []
+
     if sim > rim:
         res = arg2[rim:sim].zeroExtend(arg1.size)
     else:
@@ -793,6 +806,20 @@ def udiv(arg1, arg2, arg3):
         exception_flags = ExprInt(EXCEPT_DIV_BY_ZERO,
                                           exception_flags.size)
 
+@sbuild.parse
+def sdiv(arg1, arg2, arg3):
+    if arg3:
+        arg1 = ExprOp('idiv', arg2, arg3)
+    else:
+        exception_flags = ExprInt(EXCEPT_DIV_BY_ZERO,
+                                          exception_flags.size)
+
+
+
+@sbuild.parse
+def smaddl(arg1, arg2, arg3, arg4):
+    arg1 = arg2.signExtend(arg1.size) * arg3.signExtend(arg1.size) + arg4
+
 
 @sbuild.parse
 def cbz(arg1, arg2):
@@ -849,6 +876,22 @@ def b_eq(arg1):
 @sbuild.parse
 def b_ge(arg1):
     cond = cond2expr['GE']
+    dst = arg1 if cond else ExprLoc(ir.get_next_loc_key(instr), 64)
+    PC = dst
+    ir.IRDst = dst
+
+
+@sbuild.parse
+def b_mi(arg1):
+    cond = cond2expr['MI']
+    dst = arg1 if cond else ExprLoc(ir.get_next_loc_key(instr), 64)
+    PC = dst
+    ir.IRDst = dst
+
+
+@sbuild.parse
+def b_pl(arg1):
+    cond = cond2expr['PL']
     dst = arg1 if cond else ExprLoc(ir.get_next_loc_key(instr), 64)
     PC = dst
     ir.IRDst = dst
@@ -959,6 +1002,17 @@ def rev(ir, instr, arg1, arg2):
     return e, []
 
 
+def rev16(ir, instr, arg1, arg2):
+    out = []
+    for i in xrange(0, arg2.size / 8):
+        index = (i & ~1) + (1 - (i & 1))
+        out.append(arg2[index * 8:(index + 1) * 8])
+    e = []
+    result = ExprCompose(*out)
+    e.append(ExprAssign(arg1, result))
+    return e, []
+
+
 @sbuild.parse
 def extr(arg1, arg2, arg3, arg4):
     compose = ExprCompose(arg2, arg3)
@@ -969,6 +1023,182 @@ def extr(arg1, arg2, arg3, arg4):
 def svc(arg1):
     exception_flags = ExprInt(EXCEPT_INT_XX, exception_flags.size)
     interrupt_num = ExprInt(int(arg1), interrupt_num.size)
+
+
+def fmov(ir, instr, arg1, arg2):
+    if arg2.is_int():
+        # Transform int to signed floating-point constant with 3-bit exponent
+        # and normalized 4 bits of precision
+        # VFPExpandImm() of ARM Architecture Reference Manual
+        imm8 = int(arg2)
+        N = arg1.size
+        assert N in [32, 64]
+        E = 8 if N == 32 else 11
+        F = N - E - 1;
+        # sign = imm8<7>;
+        sign = (imm8 >> 7) & 1;
+        # exp = NOT(imm8<6>):Replicate(imm8<6>,E-3):imm8<5:4>;
+        exp = (((imm8 >> 6) & 1) ^ 1) << (E - 3 + 2)
+        if (imm8 >> 6) & 1:
+            tmp = (1 << (E - 3)) - 1
+        else:
+            tmp = 0
+        exp |= tmp << 2
+        exp |= (imm8 >> 4) & 3
+        # frac = imm8<3:0>:Zeros(F-4);
+        frac = (imm8 & 0xf) << (F - 4)
+        value = frac
+        value |= exp << (4 + F - 4)
+        value |= sign << (4 + F - 4  + 1 + E - 3 + 2)
+        arg2 = ExprInt(value, N)
+    e = [ExprAssign(arg1, arg2)]
+    return e, []
+
+
+def fadd(ir, instr, arg1, arg2, arg3):
+    e = []
+    e.append(ExprAssign(arg1, ExprOp('fadd', arg2, arg3)))
+    return e, []
+
+
+def fsub(ir, instr, arg1, arg2, arg3):
+    e = []
+    e.append(ExprAssign(arg1, ExprOp('fsub', arg2, arg3)))
+    return e, []
+
+
+def fmul(ir, instr, arg1, arg2, arg3):
+    e = []
+    e.append(ExprAssign(arg1, ExprOp('fmul', arg2, arg3)))
+    return e, []
+
+
+def fdiv(ir, instr, arg1, arg2, arg3):
+    e = []
+    e.append(ExprAssign(arg1, ExprOp('fdiv', arg2, arg3)))
+    return e, []
+
+
+def fabs(ir, instr, arg1, arg2):
+    e = []
+    e.append(ExprAssign(arg1, ExprOp('fabs', arg2)))
+    return e, []
+
+
+def fmadd(ir, instr, arg1, arg2, arg3, arg4):
+    e = []
+    e.append(
+        ExprAssign(
+            arg1,
+            ExprOp(
+                'fadd',
+                arg4,
+                ExprOp('fmul', arg2, arg3)
+            )
+        )
+    )
+    return e, []
+
+
+def fmsub(ir, instr, arg1, arg2, arg3, arg4):
+    e = []
+    e.append(
+        ExprAssign(
+            arg1,
+            ExprOp(
+                'fsub',
+                arg4,
+                ExprOp('fmul', arg2, arg3)
+            )
+        )
+    )
+    return e, []
+
+
+def fcvt(ir, instr, arg1, arg2):
+    # XXX TODO: rounding
+    e = []
+    src = ExprOp('fpconvert_fp%d' % arg1.size, arg2)
+    e.append(ExprAssign(arg1, src))
+    return e, []
+
+
+def scvtf(ir, instr, arg1, arg2):
+    # XXX TODO: rounding
+    e = []
+    src = ExprOp('sint_to_fp', arg2)
+    if arg1.size != src.size:
+        src = ExprOp('fpconvert_fp%d' % arg1.size, src)
+    e.append(ExprAssign(arg1, src))
+    return e, []
+
+
+def ucvtf(ir, instr, arg1, arg2):
+    # XXX TODO: rounding
+    e = []
+    src = ExprOp('uint_to_fp', arg2)
+    if arg1.size != src.size:
+        src = ExprOp('fpconvert_fp%d' % arg1.size, src)
+    e.append(ExprAssign(arg1, src))
+    return e, []
+
+
+def fcvtzs(ir, instr, arg1, arg2):
+    # XXX TODO: rounding
+    e = []
+    e.append(
+        ExprAssign(
+            arg1,
+            ExprOp('fp_to_sint%d' % arg1.size,
+                   ExprOp('fpround_towardszero', arg2)
+            )
+        )
+    )
+    return e, []
+
+
+def fcvtzu(ir, instr, arg1, arg2):
+    # XXX TODO: rounding
+    e = []
+    e.append(
+        ExprAssign(
+            arg1,
+            ExprOp('fp_to_uint%d' % arg1.size,
+                   ExprOp('fpround_towardszero', arg2)
+            )
+        )
+    )
+    return e, []
+
+
+def fcmpe(ir, instr, arg1, arg2):
+    e = []
+    e.append(
+        ExprAssign(
+            nf,
+            ExprOp('fcom_c0', arg1, arg2)
+        )
+    )
+    e.append(
+        ExprAssign(
+            cf,
+            ~ExprOp('fcom_c0', arg1, arg2)
+        )
+    )
+    e.append(
+        ExprAssign(
+            zf,
+            ExprOp('fcom_c3', arg1, arg2)
+        )
+    )
+    e.append(ExprAssign(of, ExprInt(0, 1)))
+    return e, []
+
+
+def clz(ir, instr, arg1, arg2):
+    e = []
+    e.append(ExprAssign(arg1, ExprOp('cntleadzeros', arg2)))
+    return e, []
 
 mnemo_func = sbuild.functions
 mnemo_func.update({
@@ -990,6 +1220,8 @@ mnemo_func.update({
     'b.ne': b_ne,
     'b.eq': b_eq,
     'b.ge': b_ge,
+    'b.mi': b_mi,
+    'b.pl': b_pl,
     'b.gt': b_gt,
     'b.cc': b_cc,
     'b.cs': b_cs,
@@ -1034,6 +1266,7 @@ mnemo_func.update({
 
     'extr': extr,
     'rev': rev,
+    'rev16': rev16,
 
     'msr': msr,
     'mrs': mrs,
@@ -1042,6 +1275,22 @@ mnemo_func.update({
     'adcs': adcs,
     'sbc': sbc,
     'sbcs': sbcs,
+
+    'fmov': fmov,
+    'fadd': fadd,
+    'fsub': fsub,
+    'fmul': fmul,
+    'fdiv': fdiv,
+    'fabs': fabs,
+    'fmadd': fmadd,
+    'fmsub': fmsub,
+    'fcvt': fcvt,
+    'scvtf': scvtf,
+    'ucvtf': ucvtf,
+    'fcvtzs': fcvtzs,
+    'fcvtzu': fcvtzu,
+    'fcmpe': fcmpe,
+    'clz': clz,
 
 
 })
