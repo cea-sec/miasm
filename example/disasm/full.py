@@ -10,8 +10,10 @@ from miasm2.analysis.data_flow import dead_simp, DiGraphDefUse, \
     ReachingDefinitions, merge_blocks, remove_empty_assignblks, \
     PropagateExpr, replace_stack_vars, load_from_int
 from miasm2.expression.simplifications import expr_simp
-from miasm2.analysis.ssa import SSADiGraph, remove_phi
+from miasm2.analysis.ssa import SSADiGraph, UnSSADiGraph, DiGraphLivenessSSA
 from miasm2.ir.ir import AssignBlock, IRBlock
+
+
 
 log = logging.getLogger("dis")
 console_handler = logging.StreamHandler()
@@ -63,6 +65,10 @@ parser.add_argument('-y', "--stack2var", action="store_true",
                     help="*Try* to do transform stack accesses into variables. "
                     "Use only with --propagexpr option. "
                     "WARNING: not reliable, may fail.")
+parser.add_argument('-e', "--loadint", action="store_true",
+                    help="Load integers from binary in fixed memory lookup.")
+parser.add_argument('-j', "--calldontmodstack", action="store_true",
+                    help="Consider stack high is not modified in subcalls")
 
 
 args = parser.parse_args()
@@ -202,12 +208,29 @@ log.info('total lines %s' % total_l)
 if args.propagexpr:
     args.gen_ir = True
 
+
+class IRADelModCallStack(ira):
+
+        def call_effects(self, addr, instr):
+            assignblks, extra = super(IRADelModCallStack, self).call_effects(addr, instr)
+            if not args.calldontmodstack:
+                return assignblks, extra
+            out = []
+            for assignblk in assignblks:
+                dct = dict(assignblk)
+                dct = {
+                    dst:src for (dst, src) in dct.iteritems() if dst != self.sp
+                }
+                out.append(AssignBlock(dct, assignblk.instr))
+            return out, extra
+
+
 # Bonus, generate IR graph
 if args.gen_ir:
     log.info("generating IR and IR analysis")
 
     ir_arch = ir(mdis.loc_db)
-    ir_arch_a = ira(mdis.loc_db)
+    ir_arch_a = IRADelModCallStack(mdis.loc_db)
 
     ircfg = ir_arch.new_ircfg()
     ircfg_a = ir_arch.new_ircfg()
@@ -231,7 +254,9 @@ if args.gen_ir:
         print block
 
     if args.simplify > 0:
+        log.info("dead simp...")
         dead_simp(ir_arch_a, ircfg_a)
+        log.info("ok...")
 
     if args.defuse:
         reachings = ReachingDefinitions(ircfg_a)
@@ -281,7 +306,6 @@ if args.propagexpr:
                         out[reg] = dst
             return set(out.values())
 
-
     # Add dummy dependency to uncover out regs affectation
     for loc in ircfg_a.leaves():
         irblock = ircfg_a.blocks.get(loc)
@@ -327,22 +351,17 @@ if args.propagexpr:
 
     head = list(entry_points)[0]
     heads = set([head])
-    all_ssa_vars = set()
+    all_ssa_vars = {}
 
     propagate_expr = PropagateExpr()
-
-
+    ssa_variable_to_expr = {}
 
     while modified:
         ssa = SSADiGraph(ircfg_a)
         ssa.immutable_ids.update(ssa_forbidden_regs)
-
+        ssa.ssa_variable_to_expr.update(all_ssa_vars)
         ssa.transform(head)
-
         all_ssa_vars.update(ssa.ssa_variable_to_expr)
-
-        ssa_regs = [reg for reg in ssa.expressions if reg.is_id()]
-        ssa_forbidden_regs.update(ssa_regs)
 
         if args.verbose > 3:
             open("ssa_%d.dot" % index, "wb").write(ircfg_a.dot())
@@ -369,13 +388,17 @@ if args.propagexpr:
                 if args.verbose > 3:
                     open('tmp_before_%d.dot' % index, 'w').write(ircfg_a.dot())
                 simp_modified = False
+                log.info("dead simp...")
                 simp_modified |= dead_simp(ir_arch_a, ircfg_a)
+                log.info("ok...")
+
                 index += 1
                 if args.verbose > 3:
                     open('tmp_after_%d.dot' % index, 'w').write(ircfg_a.dot())
                 simp_modified |= remove_empty_assignblks(ircfg_a)
                 simp_modified |= merge_blocks(ircfg_a, heads)
-                simp_modified |= load_from_int(ircfg_a, bs, is_addr_ro_variable)
+                if args.loadint:
+                    simp_modified |= load_from_int(ircfg_a, bs, is_addr_ro_variable)
                 modified |= simp_modified
                 index += 1
         if args.verbose > 3:
@@ -391,14 +414,42 @@ if args.propagexpr:
         open('final_merge.dot', 'w').write(ircfg_a.dot())
     ssa = SSADiGraph(ircfg_a)
     ssa.immutable_ids.update(ssa_forbidden_regs)
+    ssa.ssa_variable_to_expr.update(all_ssa_vars)
     ssa.transform(head)
-    all_ssa_vars.update(ssa.ssa_variable_to_expr)
     print '*'*80, "Remove phi"
-    ssa.ssa_variable_to_expr = all_ssa_vars
     if args.verbose > 3:
         open('final_ssa.dot', 'w').write(ircfg_a.dot())
-    remove_phi(ssa, head)
+
+    cfg_liveness = DiGraphLivenessSSA(ircfg_a)
+    cfg_liveness.init_var_info(ir_arch_a)
+    cfg_liveness.compute_liveness()
+
+    unssa = UnSSADiGraph(ssa, head, cfg_liveness)
+
     if args.verbose > 3:
         open('final_no_phi.dot', 'w').write(ircfg_a.dot())
-    dead_simp(ir_arch_a, ircfg_a)
+
+    modified = True
+    while modified:
+        log.debug('Loop %d', index)
+        index += 1
+        modified = False
+        modified |= ircfg_a.simplify(expr_simp)
+        if args.verbose > 3:
+            open('tmp_simp_%d.dot' % index, 'w').write(ircfg_a.dot())
+        simp_modified = True
+        while simp_modified:
+            index += 1
+            if args.verbose > 3:
+                open('tmp_before_%d.dot' % index, 'w').write(ircfg_a.dot())
+            simp_modified = False
+            simp_modified |= dead_simp(ir_arch_a, ircfg_a)
+            index += 1
+            if args.verbose > 3:
+                open('tmp_after_%d.dot' % index, 'w').write(ircfg_a.dot())
+            simp_modified |= remove_empty_assignblks(ircfg_a)
+            simp_modified |= merge_blocks(ircfg_a, heads)
+            modified |= simp_modified
+            index += 1
+
     open('final.dot', 'w').write(ircfg_a.dot())

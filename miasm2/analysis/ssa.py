@@ -1,8 +1,8 @@
 from collections import deque
 
+from miasm2.analysis.data_flow import DiGraphLivenessIRA, remove_empty_assignblks
 from miasm2.expression.expression import ExprId, ExprAssign, ExprOp, get_expr_ids
 from miasm2.ir.ir import AssignBlock, IRBlock
-
 
 
 class SSA(object):
@@ -250,7 +250,7 @@ class SSA(object):
 
             # transform LHS
             for expr in instructions:
-                if expr.dst in self.immutable_ids:
+                if expr.dst in self.immutable_ids or expr.dst in self.ssa_variable_to_expr:
                     dst_ssa = expr.dst
                 else:
                     dst_ssa = self._transform_expression_lhs(expr.dst)
@@ -372,6 +372,7 @@ class SSADiGraph(SSA):
         self._rename(head)
         self._insert_phi()
         self._convert_phi()
+        self._fix_no_def_var(head)
 
     def reset(self):
         """Resets SSA transformation"""
@@ -400,7 +401,7 @@ class SSADiGraph(SSA):
                     # enforce ExprId
                     if dst.is_id():
                         # exclude immutable ids
-                        if dst in self.immutable_ids:
+                        if dst in self.immutable_ids or dst in self.ssa_variable_to_expr:
                             continue
                         # map variable definition to blocks
                         self.defs.setdefault(dst, set()).add(irblock.loc_key)
@@ -438,13 +439,11 @@ class SSADiGraph(SSA):
                 for node in frontier.get(loc_key, []):
                     if node in done:
                         continue
-
                     # place empty phi functions for a variable
                     empty_phi = self._gen_empty_phi(variable)
 
                     # add empty phi node for variable in node
                     self._phinodes.setdefault(node, {})[variable] = empty_phi.src
-
                     done.add(node)
 
                     if node not in intodo:
@@ -575,120 +574,506 @@ class SSADiGraph(SSA):
             new_irs = IRBlock(loc_key, [assignblk] + list(irblock.assignblks))
             self.ircfg.blocks[loc_key] = new_irs
 
+    def _fix_no_def_var(self, head):
+        """
+        Replace phi source variables which are not ssa vars by ssa vars.
+        @head: loc_key of the graph head
+        """
+        var_to_insert = set()
+        for loc_key in self._phinodes:
+            for dst, sources in self._phinodes[loc_key].iteritems():
+                for src in sources.args:
+                    if src in self.ssa_variable_to_expr:
+                        continue
+                    var_to_insert.add(src)
+        var_to_newname = {}
+        newname_to_var = {}
+        for var in var_to_insert:
+            new_var = self._transform_var_lhs(var)
+            var_to_newname[var] = new_var
+            newname_to_var[new_var] = var
+
+        # Replace non modified node used in phi with new variable
+        self.ircfg.simplify(lambda expr:expr.replace_expr(var_to_newname))
+
+        irblock = self.ircfg.blocks[head]
+        assignblks = list(irblock)
+        assignblks[0:0] = [AssignBlock(newname_to_var, assignblks[0].instr)]
+        self.ircfg.blocks[head] = IRBlock(head, assignblks)
+
+        # Updt structure
+        for loc_key in self._phinodes:
+            for dst, sources in self._phinodes[loc_key].items():
+                self._phinodes[loc_key][dst] = sources.replace_expr(var_to_newname)
+
+        for var, (loc_key, index) in self.ssa_to_location.items():
+            if loc_key == head:
+                self.ssa_to_location[var] = loc_key, index + 1
+
+        for newname, var in newname_to_var.iteritems():
+            self.ssa_to_location[newname] = head, 0
+            self.ssa_variable_to_expr[newname] = var
+            self.immutable_ids.add(newname)
+            self.expressions[newname] = var
 
 
-def get_assignblk(graph, loc, index):
+def irblock_has_phi(irblock):
     """
-    Return the dictionary of the AssignBlock from @graph at location @loc at
-    @index
-    @graph: IRCFG instance
-    @loc: Location instance
-    @index: assignblock index
+    Return True if @irblock has Phi assignments
+    @irblock: IRBlock instance
     """
+    if not irblock.assignblks:
+        return False
+    for src in irblock[0].itervalues():
+        return src.is_op('Phi')
+    return False
 
-    irblock = graph.blocks[loc]
-    assignblks = irblock.assignblks
-    assignblk = assignblks[index]
-    assignblk_dct = dict(assignblk)
-    return assignblk_dct
+
+class VarInfos(object):
+    """Store liveness information for a variable"""
+    __slots__ = ["live_index", "loc_key", "index"]
+
+    def __init__(self, live_index, loc_key, index):
+        self.live_index = live_index
+        self.loc_key = loc_key
+        self.index = index
 
 
-def set_assignblk(graph, loc, index, assignblk_dct):
+def get_var_assignment_src(ircfg, node, variables):
     """
-    Set the Assignblock in @graph at location @loc at @index using dictionary
-    @assignblk_dct
-
-    @graph: IRCFG instance
-    @loc: Location instance
-    @index: assignblock index
-    @assignblk_dct: dictionary representing the AssignBlock
+    Return the variable of @variables which is written by the irblock at @node
+    @node: Location
+    @variables: a set of variable to test
     """
-
-    irblock = graph.blocks[loc]
-    assignblks = list(irblock.assignblks)
-    assignblk = assignblks[index]
-
-    assignblks[index] = AssignBlock(
-        assignblk_dct,
-        assignblk.instr
-    )
-    new_irblock = IRBlock(loc, assignblks)
-    return new_irblock
+    irblock = ircfg.blocks[node]
+    for assignblk in irblock:
+        result = set(assignblk).intersection(variables)
+        if not result:
+            continue
+        assert len(result) == 1
+        return list(result)[0]
+    return None
 
 
-def remove_phi(ssa, head):
+def get_phi_sources_parent_block(ircfg, loc_key, sources):
     """
-    Remove Phi using naive algorithm
-    Note: The _ssa_variable_to_expr must be up to date
-
-    @ssa: a SSADiGraph instance
-    @head: the loc_key of the graph head
+    Return a dictionary linking a variable to it's direct parent label
+    which belong to a path which affects the node.
+    @loc_key: the starting node
+    @sources: set of variables to resolve
     """
-
-    phivar2var = {}
-
-    all_ssa_vars = ssa._ssa_variable_to_expr
-
-    # Retrieve Phi nodes
-    phi_nodes = []
-    for irblock in ssa.graph.blocks.itervalues():
-        for index, assignblk in enumerate(irblock):
-            for dst, src in assignblk.iteritems():
-                if src.is_op('Phi'):
-                    phi_nodes.append((irblock.loc_key, index))
-
-
-    for phi_loc, phi_index in phi_nodes:
-        assignblk_dct = get_assignblk(ssa.graph, phi_loc, phi_index)
-        for dst, src in assignblk_dct.iteritems():
-            if src.is_op('Phi'):
+    source_to_parent = {}
+    for parent in ircfg.predecessors(loc_key):
+        done = set()
+        todo = set([parent])
+        found = False
+        while todo:
+            node = todo.pop()
+            if node in done:
+                continue
+            done.add(node)
+            ret = get_var_assignment_src(ircfg, node, sources)
+            if ret:
+                source_to_parent.setdefault(ret, set()).add(parent)
+                found = True
                 break
-        else:
-            raise RuntimeError('Cannot find phi?')
-        node_src = src
-        var = dst
-
-        # Create new variable
-        new_var = ExprId('var%d' % len(phivar2var), var.size)
-        phivar2var[var] = new_var
-        phi_sources = set(node_src.args)
-
-        # Place var init for non ssa variables
-        to_remove = set()
-        for phi_source in list(phi_sources):
-            if phi_source not in all_ssa_vars.union(phivar2var.values()):
-                assignblk_dct = get_assignblk(ssa.graph, head, 0)
-                assignblk_dct[new_var] = phi_source
-                new_irblock = set_assignblk(ssa.graph, head, 0, assignblk_dct)
-                ssa.graph.blocks[head] = new_irblock
-                to_remove.add(phi_source)
-        phi_sources.difference_update(to_remove)
-
-        var_to_replace = set([var])
-        var_to_replace.update(phi_sources)
+            for pred in ircfg.predecessors(node):
+                todo.add(pred)
+        assert found
+    return source_to_parent
 
 
+class UnSSADiGraph(object):
+    """
+    Implements unssa algorithm
+    Revisiting Out-of-SSA Translation for Correctness, Code Quality, and
+    Efficiency
+    """
+
+    def __init__(self, ssa, head, cfg_liveness):
+        self.cfg_liveness = cfg_liveness
+        self.ssa = ssa
+        self.head = head
+
+        self.copy_vars = set()
+        self.parallel_copy_block_at_end = {}
+        self.parallel_copy_block_at_phi = {}
+        self.phi_new_var = {}
+        self.end_new_var = {}
+
+        self.isolate_phi_nodes_block()
+        self.coalesce_phi_nodes_block()
+        self.order_ssa_var_dom()
+        self.aggressive_coalesce_block()
+        self.insert_parallel_copy()
+        self.replace_merge_sets()
+        self.remove_assign_eq()
+        remove_empty_assignblks(self.ssa.graph)
+
+    def insert_parallel_copy(self):
+        """Insert generated parallel copies"""
+        ircfg = self.ssa.graph
+
+        # Run coalesce on the post phi parallel copy
+        for irblock in ircfg.blocks.values():
+            if not irblock_has_phi(irblock):
+                continue
+            parallel_copies = {}
+            for dst in self.parallel_copy_block_at_phi[irblock.loc_key]:
+                new_var = self.phi_new_var[(irblock.loc_key, dst)]
+                parallel_copies[dst] = new_var
+
+            assignblks = list(irblock)
+            assignblks[0] = AssignBlock(parallel_copies, irblock[0].instr)
+            new_irblock = IRBlock(irblock.loc_key, assignblks)
+            ircfg.blocks[irblock.loc_key] = new_irblock
 
 
-        # Replace variables
-        to_replace_dct = {x:new_var for x in var_to_replace}
-        for loc in ssa.graph.blocks:
-            irblock = ssa.graph.blocks[loc]
-            assignblks = []
-            for assignblk in irblock:
-                assignblk_dct = {}
+            parent_to_parallel_copies = {}
+            parallel_copies = {}
+            for dst in irblock[0]:
+                new_var = self.phi_new_var[(irblock.loc_key, dst)]
+                for parent, src in self.parallel_copy_block_at_end[(irblock.loc_key, dst)]:
+                    parent_to_parallel_copies.setdefault(parent, {})[new_var] = src
+
+            for parent, parallel_copies in parent_to_parallel_copies.iteritems():
+                parent = ircfg.blocks[parent]
+                assignblks = list(parent)
+                assignblks.append(AssignBlock(parallel_copies, parent[-1].instr))
+                new_irblock = IRBlock(parent.loc_key, assignblks)
+                ircfg.blocks[parent.loc_key] = new_irblock
+
+    def create_copy_var(self, var):
+        """
+        Generate a new var in @phivar2var replacing @var
+        @phivar2var: dictionary associating variable with their replacing one.
+        @var: variable to replace
+        """
+        new_phi_var = ExprId('var%d' % len(self.copy_vars), var.size)
+        self.copy_vars.add(new_phi_var)
+        return new_phi_var
+
+    def isolate_phi_nodes_block(self):
+        """Insert parallel copy before/after each phi node"""
+
+        ircfg = self.ssa.graph
+        for irblock in ircfg.blocks.values():
+            if not irblock_has_phi(irblock):
+                continue
+            all_dst = set()
+            for dst, sources in irblock[0].items():
+                all_dst.add(dst)
+                assert sources.is_op('Phi')
+                new_var = self.create_copy_var(dst)
+                self.phi_new_var[(irblock.loc_key, dst)] = new_var
+
+                var_to_parents = get_phi_sources_parent_block(
+                    self.ssa.graph,
+                    irblock.loc_key,
+                    sources.args
+                )
+                for src in sources.args:
+                    parents = var_to_parents[src]
+                    for parent in parents:
+                        self.parallel_copy_block_at_end.setdefault((irblock.loc_key, dst), set()).add((parent, src))
+                        self.end_new_var.setdefault(new_var, set()).add(parent)
+
+            self.parallel_copy_block_at_phi.setdefault(irblock.loc_key, set()).update(all_dst)
+
+    def coalesce_phi_nodes_block(self):
+        """
+        Generate trivial coalescing of phi variable and its destination
+        """
+        merge_state = {}
+        for phi_new_var in self.phi_new_var.itervalues():
+            merge_state.setdefault(phi_new_var, set([phi_new_var]))
+        self.merge_state = merge_state
+
+    def order_ssa_var_dom(self):
+        """Compute dominance order of each ssa variable"""
+        ircfg = self.ssa.graph
+
+        # compute dominator tree
+        dominator_tree = ircfg.compute_dominator_tree(self.head)
+
+        self.var_to_infos = {}
+        live_index = 0
+        # walk in DFS over the dominator tree
+        for loc_key in dominator_tree.walk_depth_first_forward(self.head):
+            irblock = ircfg.blocks[loc_key]
+
+            # Create live index for phi new vars
+            if irblock_has_phi(irblock):
+                for dst in irblock[0]:
+                    if not dst.is_id():
+                        continue
+                    new_var = self.phi_new_var[(irblock.loc_key, dst)]
+                    self.var_to_infos[new_var] = VarInfos(live_index, loc_key, None)
+
+                live_index += 1
+
+            # Create live index for remaining assignments
+            for index, assignblk in enumerate(irblock):
+                used = False
+                for dst in assignblk:
+                    if not dst.is_id():
+                        continue
+                    if dst in self.ssa.immutable_ids:
+                        continue
+
+                    assert dst not in self.var_to_infos
+                    self.var_to_infos[dst] = VarInfos(live_index, loc_key, index)
+                    used = True
+                if used:
+                    live_index += 1
+
+
+    def ssa_def_dominates(self, node_a, node_b):
+        """
+        Return living index order of @node_a and @node_b
+        @node_a: VarInfos instance
+        @node_b: VarInfos instance
+        """
+        ret = self.var_to_infos[node_a].live_index <= self.var_to_infos[node_b].live_index
+        return ret
+
+    def merge_set_sort(self, merge_set):
+        """
+        Sort the list of nodes @merge_set in dominance order
+        @node_a: VarInfos instance
+        @node_b: VarInfos instance
+        """
+        out = [(self.var_to_infos[var].live_index, var) for var in merge_set]
+        out.sort()
+        return out
+
+    def ssa_def_is_live_at(self, node_a, node_b, parent):
+        """
+        Return true if @node_a is live during @node_b definition
+        if @parent is None, this is a liveness test for a post phi variable;
+        Else, it is a liveness test for a variable source of the phi node
+
+        @node_a: VarInfos instance
+        @node_b: VarInfos instance
+        @parent: Optional parent location of the phi source
+        """
+        loc_key, index = self.var_to_infos[node_b].loc_key, self.var_to_infos[node_b].index
+        if parent and index is None:
+            index = 0
+        if node_a not in self.end_new_var:
+            info = self.cfg_liveness.blocks[loc_key].infos[index]
+            ret = node_a in info.var_out
+            return ret
+
+        for def_loc_key in self.end_new_var[node_a]:
+            if def_loc_key == parent:
+                continue
+            info = self.cfg_liveness.blocks[def_loc_key].infos[-1]
+            if node_b in info.var_out:
+                return True
+        return False
+
+    def merge_nodes_interfere(self, node_a, node_b, parent):
+        """
+        Return True if @node_a and @node_b interfere
+        @node_a: VarInfos instance
+        @node_b: VarInfos instance
+        @parent: Optional parent location of the phi source for liveness tests
+        """
+        if self.var_to_infos[node_a].live_index == self.var_to_infos[node_b].live_index:
+            return True
+
+        if self.var_to_infos[node_a].live_index < self.var_to_infos[node_b].live_index:
+            return self.ssa_def_is_live_at(node_a, node_b, parent)
+        return self.ssa_def_is_live_at(node_b, node_a, parent)
+
+    def merge_sets_interfere(self, merge_a, merge_b, parent):
+        """
+        Return True if no variable in @merge_a and @merge_b interferes.
+        @merge_a: a dom ordered list of equivalent variables
+        @merge_b: a dom ordered list of equivalent variables
+        @parent: Optional parent location of the phi source for liveness tests
+        """
+        merge_a_list = self.merge_set_sort(merge_a)
+        merge_b_list = self.merge_set_sort(merge_b)
+        dom = []
+        while merge_a_list or merge_b_list:
+            if not merge_a_list:
+                _, current = merge_b_list.pop(0)
+            elif not merge_b_list:
+                _, current = merge_a_list.pop(0)
+            else:
+                if merge_a_list[-1] < merge_b_list[-1]:
+                    _, current = merge_a_list.pop(0)
+                else:
+                    _, current = merge_b_list.pop(0)
+            while dom and not self.ssa_def_dominates(dom[-1], current):
+                dom.pop()
+
+            # Don't test node in same merge_set
+            if (dom and
+                not (dom[-1] in merge_a and current in merge_a) and
+                not (dom[-1] in merge_b and current in merge_b)):
+                if dom and self.merge_nodes_interfere(current, dom[-1], parent):
+                    return True
+            dom.append(current)
+        return False
+
+    def aggressive_coalesce_parallel_copy(self, parallel_copies, parent):
+        """
+        Try to coalesce variables each dst/src couple together from
+        @parallel_copies
+
+        @parallel_copies: a dictionary representing dst/src parallel
+        assignments.
+        @parent: Optional parent location of the phi source for liveness tests
+        """
+        for dst, src in parallel_copies.iteritems():
+            dst_merge = self.merge_state.setdefault(dst, set([dst]))
+            src_merge = self.merge_state.setdefault(src, set([src]))
+            if dst_merge == src_merge:
+                continue
+            if not self.merge_sets_interfere(dst_merge, src_merge, parent):
+                dst_merge.update(src_merge)
+                for node in dst_merge:
+                    self.merge_state[node] = dst_merge
+
+    def aggressive_coalesce_block(self):
+        """Try to coalesce phi var with their pre/post variables"""
+
+        ircfg = self.ssa.graph
+
+        # Run coalesce on the post phi parallel copy
+        for irblock in ircfg.blocks.values():
+            if not irblock_has_phi(irblock):
+                continue
+            parallel_copies = {}
+            for dst in self.parallel_copy_block_at_phi[irblock.loc_key]:
+                parallel_copies[dst] = self.phi_new_var[(irblock.loc_key, dst)]
+            self.aggressive_coalesce_parallel_copy(parallel_copies, None)
+
+            # Run coalesce on the pre phi parallel copy
+            parent_to_parallel_copies = {}
+            parallel_copies = {}
+            for dst in irblock[0]:
+                new_var = self.phi_new_var[(irblock.loc_key, dst)]
+                for parent, src in self.parallel_copy_block_at_end[(irblock.loc_key, dst)]:
+                    parent_to_parallel_copies.setdefault(parent, {})[new_var] = src
+                    #self.end_new_var.setdefault(new_var, set()).add(parent)
+
+            for parent, parallel_copies in parent_to_parallel_copies.iteritems():
+                self.aggressive_coalesce_parallel_copy(parallel_copies, parent)
+
+    def get_best_merge_set_name(self, merge_set):
+        """
+        For a given @merge_set, prefer an original SSA variable instead of a
+        created copy. In other case, take a random name.
+        @merge_set: set of equivalent expressions
+        """
+        if not merge_set:
+            raise RuntimeError("Merge set should not be empty")
+        for var in merge_set:
+            if var not in self.copy_vars:
+                return var
+        # Get random name
+        return var
+
+
+    def replace_merge_sets(self):
+        """
+        Replace all variables in a merge state by a representative variable
+        """
+        replace = {}
+        merge_sets = set()
+        merge_set_to_name = {}
+        for merge_set in self.merge_state.itervalues():
+            frozen_merge_set = frozenset(merge_set)
+            merge_sets.add(frozen_merge_set)
+            var_name = self.get_best_merge_set_name(merge_set)
+            merge_set_to_name[frozen_merge_set] = var_name
+
+        for merge_set in merge_sets:
+            var_name = merge_set_to_name[merge_set]
+            merge_set = list(merge_set)
+            for var in merge_set:
+                replace[var] = var_name
+
+        self.ssa.graph.simplify(lambda x: x.replace_expr(replace))
+
+    def remove_phi(self):
+        """
+        Remove phi operators in @ifcfg
+        @ircfg: IRDiGraph instance
+        """
+
+        for irblock in self.ssa.graph.blocks.values():
+            assignblks = list(irblock)
+            out = {}
+            for dst, src in assignblks[0].iteritems():
+                if src.is_op('Phi'):
+                    assert set([dst]) == set(src.args)
+                    continue
+                out[dst] = src
+            assignblks[0] = AssignBlock(out, assignblks[0].instr)
+            self.ssa.graph.blocks[irblock.loc_key] = IRBlock(irblock.loc_key, assignblks)
+
+    def remove_assign_eq(self):
+        """
+        Remove trivial expressions (a=a) in @ifcfg
+        @ircfg: IRDiGraph instance
+        """
+
+        for irblock in self.ssa.graph.blocks.values():
+            assignblks = list(irblock)
+            for i, assignblk in enumerate(assignblks):
+                out = {}
                 for dst, src in assignblk.iteritems():
-                    dst = dst.replace_expr(to_replace_dct)
-                    src = src.replace_expr(to_replace_dct)
-                    assignblk_dct[dst] = src
-                assignblks.append(AssignBlock(assignblk_dct, assignblk.instr))
-            new_irblock = IRBlock(loc, assignblks)
-            ssa.graph.blocks[loc] = new_irblock
-
-        # Remove phi
-        assignblk_dct = get_assignblk(ssa.graph, phi_loc, phi_index)
-        del assignblk_dct[new_var]
+                    if dst == src:
+                        continue
+                    out[dst] = src
+                assignblks[i] = AssignBlock(out, assignblk.instr)
+            self.ssa.graph.blocks[irblock.loc_key] = IRBlock(irblock.loc_key, assignblks)
 
 
-        new_irblock = set_assignblk(ssa.graph, phi_loc, phi_index, assignblk_dct)
-        ssa.graph.blocks[phi_loc] = new_irblock
+class DiGraphLivenessSSA(DiGraphLivenessIRA):
+    """
+    DiGraph representing variable liveness is a SSA graph
+    """
+    def __init__(self, ircfg):
+        super(DiGraphLivenessSSA, self).__init__(ircfg)
+
+        self.loc_key_to_phi_parents = {}
+        for irblock in self.blocks.values():
+            if not irblock_has_phi(irblock):
+                continue
+            out = {}
+            for sources in irblock[0].itervalues():
+                var_to_parents = get_phi_sources_parent_block(self, irblock.loc_key, sources.args)
+                for var, var_parents in var_to_parents.iteritems():
+                    out.setdefault(var, set()).update(var_parents)
+            self.loc_key_to_phi_parents[irblock.loc_key] = out
+
+    def back_propagate_to_parent(self, todo, node, parent):
+        parent_block = self.blocks[parent]
+        cur_block = self.blocks[node]
+        irblock = self.ircfg.blocks[node]
+        if cur_block.infos[0].var_in == parent_block.infos[-1].var_out:
+            return
+        var_info = cur_block.infos[0].var_in.union(parent_block.infos[-1].var_out)
+
+        if irblock_has_phi(irblock):
+            # Remove phi special case
+            out = set()
+            phi_sources = self.loc_key_to_phi_parents[irblock.loc_key]
+            for var in var_info:
+                if var not in phi_sources:
+                    out.add(var)
+                    continue
+                if parent in phi_sources[var]:
+                    out.add(var)
+            var_info = out
+
+        parent_block.infos[-1].var_out = var_info
+        todo.add(parent)
+
+
