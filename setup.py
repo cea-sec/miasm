@@ -17,6 +17,10 @@ def set_extension_compile_args(extension):
     extension.extra_link_args = [ '-Wl,-install_name,' + lib_name]
 
 def buil_all():
+    if is_darwin:
+        vars = sysconfig.get_config_vars()
+        vars['LDSHARED'] = vars['LDSHARED'].replace('-bundle', '-dynamiclib')
+
     packages=["miasm2",
               "miasm2/arch",
               "miasm2/arch/x86",
