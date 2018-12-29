@@ -2,13 +2,19 @@
 
 from distutils.core import setup, Extension
 from distutils.util import get_platform
+from distutils import sysconfig
 from shutil import copy2
 import platform
 import os, sys
 
 is_win = platform.system() == "Windows"
+is_darwin = platform.system() == "Darwin"
 
 def buil_all():
+    if is_darwin:
+        vars = sysconfig.get_config_vars()
+        vars['LDSHARED'] = vars['LDSHARED'].replace('-bundle', '-dynamiclib')
+
     packages=["miasm2",
               "miasm2/arch",
               "miasm2/arch/x86",
