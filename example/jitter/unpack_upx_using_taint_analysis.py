@@ -15,7 +15,7 @@ from miasm2.jitter.loader.utils import canon_libname_libfunc
 def kernel32_GetProcAddress(jitter):
     """Hook on GetProcAddress to note where the packer stores import pointers"""
 
-    # Retrieve the return adress of the current procedure and arguments (needed
+    # Retrieve the return address of the current procedure and arguments (needed
     # to rebuild a clean import table)
     ret_ad, args = jitter.func_args_stdcall(["libbase", "fname"])
 
@@ -112,7 +112,7 @@ def on_memory_taint(jitter):
     jitter.jit.log_mn = False
     return True
 
-# Parsing agruments
+# Parsing arguments
 parser = Sandbox_Win_x86_32.parser(description="Generic UPX unpacker")
 parser.add_argument("filename", help="PE Filename")
 parser.add_argument('-v', "--verbose",

@@ -1133,7 +1133,7 @@ cpu_get_all_taint(JitCpu* self, PyObject* args)
 
 	taint_check_color(color_index, self->taint_analysis->nb_colors);
 
-	/* Regsiters */
+	/* Registers */
 	PyObject *tainted_registers
 		= cpu_get_registers(self->taint_analysis->colors[color_index].registers,
 				    self->taint_analysis->nb_registers,

@@ -109,7 +109,7 @@ def makeTaintGen(C_Gen, ir_arch):
           // When DST_value == 0 we do not want to raise exception.
           // If we raise an exception in this case, the execution will try to
           // continue at address 0 after exception is handled.
-          // DST_value == 0 when a branching is occuring within an instruction
+          // DST_value == 0 when a branching is occurring within an instruction
           // (LODSD for example). In this case, we want to raise an exception
           // only at the end of the instruction, not during branching.
           if (DST_value) {
@@ -354,7 +354,7 @@ def makeTaintGen(C_Gen, ir_arch):
 
       def gen_c_assignments(self, assignblk):
           """
-          Return C informations used to generate the C code of the @assignblk
+          Return C information used to generate the C code of the @assignblk
           Only add c_taint compare to the parent method
           @assignblk: an AssignBlock instance
           """
@@ -372,9 +372,6 @@ def makeTaintGen(C_Gen, ir_arch):
           @attrib: Attributes instance
           @c_dst: irdst C code
           """
-          # XXX: pas tres propre comme facon de s'integrer au code
-          # -> serait peut etre mieux si on manipulait un objet plutot qu'un
-          # tableau de strings
 
           new_out = []
           out = super(TaintGen, self).gen_c_code(attrib, c_dst, c_assignmnts)

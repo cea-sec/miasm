@@ -1,8 +1,8 @@
 from commons import *
 
 def test_callbacks():
-    """Test callback managment
-    Test the callback managment done by the taint analysis engine
+    """Test callback management
+    Test the callback management done by the taint analysis engine
     """
 
     print "[+] Test callbacks"

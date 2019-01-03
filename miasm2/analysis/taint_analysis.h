@@ -137,7 +137,7 @@ void taint_check_register(uint64_t register_index,
 			  uint32_t max_register_size
 			  );
 
-/* Regsiters */
+/* Registers */
 _MIASM_EXPORT void taint_register_generic_access(struct taint_colors_t *colors,
 				   uint64_t color_index,
 				   uint64_t register_index,

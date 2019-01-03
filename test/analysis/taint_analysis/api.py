@@ -2,7 +2,7 @@ from commons import *
 
 def test_api():
     """Test API
-    Test all functions made avalable by the taint analysis engine
+    Test all functions made available by the taint analysis engine
     """
 
     print "[+] Test API"
