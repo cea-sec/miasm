@@ -83,8 +83,8 @@
 	 "X"}, \
 
 struct taint_interval_t {
-	uint32_t start;
-	uint32_t end;
+	uint64_t start;
+	uint64_t end;
 };
 
 struct taint_memory_cb_t {

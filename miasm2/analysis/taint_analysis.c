@@ -145,7 +145,7 @@ taint_register_generic_access(struct taint_colors_t *colors,
 			      uint32_t access_type
 			      )
 {
-	int index;
+	uint64_t index;
 	for (index = interval->start; index <= interval->end ; index++)
 		bitfield_generic_access(colors->colors[color_index].registers,
 					register_index*colors->max_register_size+index,
@@ -183,7 +183,7 @@ taint_get_register(uint32_t* registers,
 	}
 	tainted_interval->start = -1;
 
-	int index;
+	uint64_t index;
 	for (index = interval->start; index <= interval->end ; index++)
 	{
 		if (bitfield_test_bit(registers, register_index*max_register_size+index))
@@ -648,7 +648,7 @@ taint_update_register_callback_info(struct taint_colors_t *colors,
 	if (event_type == TAINT_EVENT)
 	{
 
-		int index;
+		uint64_t index;
 		for (index = interval->start;
 		     index <= interval->end;
 		     index++)
@@ -660,7 +660,7 @@ taint_update_register_callback_info(struct taint_colors_t *colors,
 	}
 	else if (event_type == UNTAINT_EVENT)
 	{
-		int index;
+		uint64_t index;
 		for (index = interval->start;
 		     index <= interval->end;
 		     index++)
@@ -715,8 +715,8 @@ cpu_access_register(JitCpu* cpu, PyObject* args, uint32_t access_type)
 	end_py = PyInt_FromLong(cpu->taint_analysis->max_register_size-1);
 	uint64_t color_index;
 	uint64_t register_index;
-	uint32_t start;
-	uint32_t end;
+	uint64_t start;
+	uint64_t end;
 
 	if (!PyArg_ParseTuple(args,
 			      "OO|OO",
@@ -1047,11 +1047,11 @@ cpu_get_memory(vm_mngr_t* vm_mngr, uint64_t color_index)
 					addr_size = PyTuple_New(2);
 					PyTuple_SetItem(addr_size,
 							0,
-							PyInt_FromLong(addr)
+							PyLong_FromUnsignedLongLong(addr)
 							);
 					PyTuple_SetItem(addr_size,
 							1,
-							PyInt_FromLong(size)
+							PyLong_FromUnsignedLongLong(size)
 							);
 					PyList_Append(tainted_memory,
 						      addr_size
@@ -1069,7 +1069,7 @@ PyObject *
 cpu_get_last_memory(JitCpu* cpu, PyObject* args, uint32_t event_type)
 {
 	PyObject *color_index_py;
-	int color_index;
+	uint64_t color_index;
 
 	if (!PyArg_ParseTuple(args, "O", &color_index_py))
 		return NULL;
@@ -1095,8 +1095,8 @@ cpu_get_last_memory(JitCpu* cpu, PyObject* args, uint32_t event_type)
 		PyObject *addr;
 		PyObject *size;
 
-		addr = PyInt_FromLong(last_modify.memory[i].addr);
-		size = PyInt_FromLong(last_modify.memory[i].size);
+		addr = PyLong_FromUnsignedLongLong(last_modify.memory[i].addr);
+		size = PyLong_FromUnsignedLongLong(last_modify.memory[i].size);
 
 		PyObject *tuple = PyTuple_New(2);
 
@@ -1124,7 +1124,7 @@ PyObject *
 cpu_get_all_taint(JitCpu* self, PyObject* args)
 {
 	PyObject *color_index_py;
-	int color_index;
+	uint64_t color_index;
 
 	if (!PyArg_ParseTuple(args, "O", &color_index_py))
 		return NULL;
@@ -1156,7 +1156,7 @@ PyObject *
 cpu_enable_cb(JitCpu* cpu, PyObject* args, uint32_t cb)
 {
 	PyObject *color_index_py;
-	int color_index;
+	uint64_t color_index;
 
 	if (!PyArg_ParseTuple(args, "O", &color_index_py))
 		return NULL;
@@ -1200,7 +1200,7 @@ PyObject *
 cpu_disable_cb(JitCpu* cpu, PyObject* args, uint32_t cb)
 {
 	PyObject *color_index_py;
-	int color_index;
+	uint64_t color_index;
 
 	if (!PyArg_ParseTuple(args, "O", &color_index_py))
 		return NULL;
