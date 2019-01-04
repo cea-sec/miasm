@@ -261,7 +261,7 @@ if args.gen_ir:
         ssa = SSADiGraph(ircfg_a)
         ssa.transform(head)
 
-        open("ssa.dot", "wb").write(ssa.graph.dot())
+        open("ssa.dot", "wb").write(ircfg_a.dot())
 
 
 
@@ -345,11 +345,11 @@ if args.propagexpr:
         ssa_forbidden_regs.update(ssa_regs)
 
         if args.verbose > 3:
-            open("ssa_%d.dot" % index, "wb").write(ssa.graph.dot())
+            open("ssa_%d.dot" % index, "wb").write(ircfg_a.dot())
 
         ir_arch_a.ssa_var.update(ssa._ssa_variable_to_expr)
         if args.verbose > 3:
-            open("ssa_orig.dot", "wb").write(ssa.graph.dot())
+            open("ssa_orig.dot", "wb").write(ircfg_a.dot())
 
         while modified:
             log.debug('Loop %d', index)
@@ -396,10 +396,9 @@ if args.propagexpr:
     print '*'*80, "Remove phi"
     ssa._ssa_variable_to_expr = all_ssa_vars
     if args.verbose > 3:
-        open('final_ssa.dot', 'w').write(ssa.graph.dot())
+        open('final_ssa.dot', 'w').write(ircfg_a.dot())
     remove_phi(ssa, head)
     if args.verbose > 3:
-        open('final_no_phi.dot', 'w').write(ssa.graph.dot())
-    dead_simp(ir_arch_a, ssa.graph)
-    open('final.dot', 'w').write(ssa.graph.dot())
-
+        open('final_no_phi.dot', 'w').write(ircfg_a.dot())
+    dead_simp(ir_arch_a, ircfg_a)
+    open('final.dot', 'w').write(ircfg_a.dot())
