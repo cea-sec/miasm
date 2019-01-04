@@ -200,7 +200,7 @@ class TEB(MemStruct):
 
 class ContextException(MemStruct):
     fields = [
-        ("ContectFlags", Num("<I")),
+        ("ContextFlags", Num("<I")),
         ("dr0", Num("<I")),
         ("dr1", Num("<I")),
         ("dr2", Num("<I")),
