@@ -1190,6 +1190,12 @@ def uxtab(ir, instr, a, b, c):
     return e, []
 
 
+def uxtah(ir, instr, a, b, c):
+    e = []
+    e.append(ExprAssign(a, b + (c & ExprInt(0xffff, 32))))
+    return e, []
+
+
 def bkpt(ir, instr, a):
     e = []
     e.append(ExprAssign(exception_flags, ExprInt(EXCEPT_SOFT_BP, 32)))
@@ -1294,6 +1300,13 @@ def rev(ir, instr, a, b):
     return e, []
 
 
+def rev16(ir, instr, a, b):
+    e = []
+    result = ExprCompose(b[8:16], b[:8], b[24:32], b[16:24])
+    e.append(ExprAssign(a, result))
+    return e, []
+
+
 def nop(ir, instr):
     e = []
     return e, []
@@ -1328,6 +1341,10 @@ def wfi(ir, instr):
     e = []
     return e, []
 
+def adr(ir, instr, arg1, arg2):
+    e = []
+    e.append(ExprAssign(arg1, (PC & ExprInt(0xfffffffc, 32)) + arg2))
+    return e, []
 
 COND_EQ = 0
 COND_NE = 1
@@ -1494,8 +1511,10 @@ mnemo_condm0 = {'add': add,
                 'ubfx': ubfx,
                 'bfc': bfc,
                 'rev': rev,
+                'rev16': rev16,
                 'clz': clz,
                 'uxtab': uxtab,
+                'uxtah': uxtah,
                 'bkpt': bkpt,
                 'smulbb': smul,
                 'smulbt': smul,
@@ -1579,6 +1598,7 @@ mnemo_nocond = {'lsr': lsr,
                 'cpsid': cpsid,
                 'wfe': wfe,
                 'wfi': wfi,
+                'adr': adr,
                 'orn': orn,
                 'smlabb': smlabb,
                 'smlabt': smlabt,
