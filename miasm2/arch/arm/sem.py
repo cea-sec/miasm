@@ -1089,7 +1089,7 @@ def cbnz(ir, instr, a, b):
     e = []
     loc_next = ir.get_next_loc_key(instr)
     loc_next_expr = ExprLoc(loc_next, 32)
-    e.append(ir.IRDst, ExprCond(a, b, loc_next_expr))
+    e.append(ExprAssign(ir.IRDst, ExprCond(a, b, loc_next_expr)))
     return e, []
 
 
