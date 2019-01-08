@@ -1706,7 +1706,7 @@ class ir_arml(IntermediateRepresentation):
 
         # Gen dummy irblock for IT instr
         loc_next = self.get_next_loc_key(instr)
-        dst = ExprAssign(self.IRDst, ExprId(loc_next, 32))
+        dst = ExprAssign(self.IRDst, ExprLoc(loc_next, 32))
         dst_blk = AssignBlock([dst], instr)
         assignments.append(dst_blk)
         irblock = IRBlock(loc, assignments)
@@ -1743,7 +1743,7 @@ class ir_arml(IntermediateRepresentation):
             if split:
                 raise NotImplementedError("Unsupported instr in IT block (%s)" % instr)
 
-            dst = ExprAssign(self.IRDst, ExprId(loc_next, 32))
+            dst = ExprAssign(self.IRDst, ExprLoc(loc_next, 32))
             dst_blk = AssignBlock([dst], instr)
             assignments.append(dst_blk)
             irblock = IRBlock(loc, assignments)
