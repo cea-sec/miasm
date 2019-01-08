@@ -1237,6 +1237,37 @@ def casp(ir, instr, arg1, arg2, arg3):
     return e, [blk_store, blk_do]
 
 
+@sbuild.parse
+def umaddl(arg1, arg2, arg3, arg4):
+    arg1 = arg2.zeroExtend(arg1.size) * arg3.zeroExtend(arg1.size) + arg4
+
+
+@sbuild.parse
+def umsubbl(arg1, arg2, arg3, arg4):
+    arg1 = arg2.zeroExtend(arg1.size) * arg3.zeroExtend(arg1.size) + arg4
+
+
+@sbuild.parse
+def umull(arg1, arg2, arg3):
+    arg1 = (arg2.zeroExtend(64) * arg3.zeroExtend(64))
+
+
+@sbuild.parse
+def umulh(arg1, arg2, arg3):
+    arg1 = (arg2.zeroExtend(128) * arg3.zeroExtend(128))[64:]
+
+
+@sbuild.parse
+def smulh(arg1, arg2, arg3):
+    arg1 = (arg2.signExtend(128) * arg3.signExtend(128))[64:]
+
+
+@sbuild.parse
+def smull(arg1, arg2, arg3):
+    arg1 = (arg2.signExtend(64) * arg3.signExtend(64))[64:]
+
+
+
 mnemo_func = sbuild.functions
 mnemo_func.update({
     'and': and_l,
