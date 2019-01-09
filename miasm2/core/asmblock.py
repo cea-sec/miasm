@@ -886,7 +886,8 @@ def _merge_blocks(dg, graph):
         block.lines += succ.lines
         for nextb in graph.successors_iter(lbl_succ):
             graph.add_edge(lbl_block, nextb, graph.edges2constraint[(lbl_succ, nextb)])
-
+        # Keep succ.bto in the merged block
+        block.bto = set(succ.bto)
         graph.del_block(succ)
         to_ignore.add(lbl_succ)
 
