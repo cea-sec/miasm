@@ -456,16 +456,6 @@ class AsmCFG(DiGraph):
 
     def del_edge(self, src, dst):
         """Delete the edge @src->@dst and its associated constraint"""
-        src_blk = self.loc_key_to_block(src)
-        dst_blk = self.loc_key_to_block(dst)
-        assert src_blk is not None
-        assert dst_blk is not None
-        # Delete from src.bto
-        to_remove = [cons for cons in src_blk.bto if cons.loc_key == dst]
-        if to_remove:
-            assert len(to_remove) == 1
-            src_blk.bto.remove(to_remove[0])
-
         # Del edge
         del self.edges2constraint[(src, dst)]
         super(AsmCFG, self).del_edge(src, dst)
