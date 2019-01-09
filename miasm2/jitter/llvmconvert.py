@@ -77,7 +77,8 @@ class LLVMContext():
         llvm.initialize_native_asmprinter()
 
         # Initialize target for compilation
-        target = llvm.Target.from_default_triple()
+        triple = llvm.get_process_triple()
+        target = llvm.Target.from_triple(triple)
         self.target_machine = target.create_target_machine()
         self.init_exec_engine()
 
