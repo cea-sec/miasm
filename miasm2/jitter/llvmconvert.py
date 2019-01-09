@@ -77,7 +77,8 @@ class LLVMContext():
         llvm.initialize_native_asmprinter()
 
         # Initialize target for compilation
-        target = llvm.Target.from_default_triple()
+        triple = llvm.get_process_triple()
+        target = llvm.Target.from_triple(triple)
         self.target_machine = target.create_target_machine()
         self.init_exec_engine()
 
@@ -221,16 +222,25 @@ class LLVMContext_JIT(LLVMContext):
 
     def load_libraries(self):
         # Get LLVM specific functions
-        name = "libLLVM-%d.%d" % (llvm.llvm_version_info[0],
-                                  llvm.llvm_version_info[1],
-        )
-        try:
-            # On Windows, no need to add ".dll"
-            self.add_shared_library(name)
-        except RuntimeError:
+        names = [
+            "libLLVM-%d.%d" % (
+                llvm.llvm_version_info[0],
+                llvm.llvm_version_info[1],
+            )
+            ,
+            "libLLVM-%d" % llvm.llvm_version_info[0]
+        ]
+        for name in names:
+            try:
+                # On Windows, no need to add ".dll"
+                self.add_shared_library(name)
+                break
+            except RuntimeError:
+                pass
             try:
                 # On Linux, ".so" is needed
                 self.add_shared_library("%s.so" % name)
+                break
             except RuntimeError:
                 pass
 

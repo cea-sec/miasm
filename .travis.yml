@@ -5,28 +5,28 @@ python:
 - "2.7"
 addons:
     apt:
-        sources: ['llvm-toolchain-trusty-6.0', 'ubuntu-toolchain-r-test']
+        sources: ['llvm-toolchain-trusty-7', 'ubuntu-toolchain-r-test']
         packages:
             - make
             - gcc
             - python-virtualenv
             - unzip
-            - llvm-6.0
-            - llvm-6.0-dev
-            - g++-5
+            - llvm-7
+            - llvm-7-dev
+            - g++-7
 before_script:
 # codespell
 - "pip install codespell && git ls-files | xargs codespell --ignore-words=.codespell_ignore 2>/dev/null"
 - "cd .."
-- "export LLVM_CONFIG=$(which llvm-config-6.0)"
-- "export CXX=$(which g++-5)"
+- "export LLVM_CONFIG=$(which llvm-config-7)"
+- "export CXX=$(which g++-7)"
 # make virtual env
 - "python /usr/lib/python2.7/dist-packages/virtualenv.py virtualenv;"
 - "cd virtualenv;"
 - "source bin/activate;"
 # install llvmlite
 - "pip install enum34"
-- "pip install llvmlite"
+- 'CXX="$(which g++-7) -fPIC" pip install llvmlite'
 # install elfesteem
 - "git clone https://github.com/serpilliere/elfesteem elfesteem && cd elfesteem && python setup.py install && cd ..;"
 # install pyparsing
