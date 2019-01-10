@@ -24,8 +24,8 @@ environment:
 
 install:
   - cmd: cd c:\projects\miasm
-  - cmd: "%PYTHON%\\pip.exe install -r requirements.txt"
-  - cmd: "%PYTHON%\\pip.exe install -r optional_requirements.txt"
+  - cmd: "%PYTHON%\\python.exe -m pip install -r requirements.txt"
+  - cmd: "%PYTHON%\\python.exe -m pip install -r optional_requirements.txt"
 
 build_script:
   - cmd: if "%platform%"=="Win32" call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" x86
