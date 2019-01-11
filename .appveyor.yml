@@ -11,41 +11,27 @@ environment:
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       PLATFORM_TOOLSET: v141
       PYTHON: c:\Python27
-      Z3_PKG_NAME: z3-4.6.0-x86-win
 
     - platform: x64
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       PLATFORM_TOOLSET: v141
       PYTHON: c:\Python27-x64
-      Z3_INCLUDE_DIRS: c:\projects\triton\build\z3-4.6.0-x64-win\include
-      Z3_LIBRARIES: c:\projects\triton\build\z3-4.6.0-x64-win\bin\libz3.lib
-      Z3_PKG_NAME: z3-4.6.0-x64-win
 
       # on_finish:
       #  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
 install:
   - cmd: cd c:\projects\miasm
-  - cmd: mkdir build
-  - cmd: cd build
-  - cmd: echo Downloading z3...
-  - cmd: appveyor DownloadFile https://github.com/Z3Prover/z3/releases/download/z3-4.6.0/%Z3_PKG_NAME%.zip
-  - cmd: 7z x %Z3_PKG_NAME%.zip
-  - "%PYTHON%\\Scripts\\pip.exe install pyparsing llvmlite"
-  - cmd: git clone https://github.com/serpilliere/elfesteem
-  - cmd: cd elfesteem
-  - "%PYTHON%\\python.exe setup.py install"
+  - cmd: "%PYTHON%\\python.exe -m pip install -r requirements.txt"
+  - cmd: "%PYTHON%\\python.exe -m pip install -r optional_requirements.txt"
 
 build_script:
   - cmd: if "%platform%"=="Win32" call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" x86
   - cmd: if "%platform%"=="x64" call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" x64
-  - cmd: cd c:\projects\miasm
   - "%PYTHON%\\python.exe setup.py build"
   - "%PYTHON%\\python.exe setup.py install"
 
 test_script:
-  - cmd: set PYTHONPATH=c:\projects\miasm\build\%Z3_PKG_NAME%\bin\python
-  - cmd: set PATH=c:\projects\miasm\build\%Z3_PKG_NAME%\bin;%PATH%
   - cmd: cd c:\projects\miasm\test
   - "%PYTHON%\\python.exe test_all.py"
 
