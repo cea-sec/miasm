@@ -8,7 +8,17 @@ addons:
       - llvm-6.0
       - llvm-6.0-dev
       - g++-5
-env: CXX=g++-5 LLVM_CONFIG=llvm-config-6.0
+env:
+  global: CXX=g++-5 LLVM_CONFIG=llvm-config-6.0
+  matrix:
+    - MIASM_TEST_TAG=regression
+    - MIASM_TEST_TAG=example
+    - MIASM_TEST_TAG=long
+    - MIASM_TEST_TAG=llvm
+    - MIASM_TEST_TAG=gcc
+    - MIASM_TEST_TAG=z3
+    - MIASM_TEST_TAG=qemu
+    - MIASM_TEST_TAG=cparser
 before_script:
 - pip install -r optional_requirements.txt
 # codespell
@@ -18,4 +28,4 @@ before_script:
 # install
 - python setup.py build build_ext
 - python setup.py install
-script: cd test && python test_all.py && git ls-files -o --exclude-standard
+script: cd test && python test_all.py -o=$MIASM_TEST_TAG && git ls-files -o --exclude-standard
