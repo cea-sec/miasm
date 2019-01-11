@@ -142,7 +142,7 @@ def buil_all():
     if not build_ok:
         raise ValueError("Unable to build Miasm!")
     print "build", name
-   if is_win:
+    if is_win:
        # we copy libraries from build dir to current miasm directory
        build_base = "build"
        if "build" in s.command_options:
