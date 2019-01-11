@@ -2,13 +2,24 @@ sudo: false
 language: python
 python: 2.7
 addons:
+  homebrew:
+    brewfile: true
   apt:
     sources: ['llvm-toolchain-trusty-6.0', 'ubuntu-toolchain-r-test']
     packages:
       - llvm-6.0
       - llvm-6.0-dev
       - g++-5
-env: CXX=g++-5 LLVM_CONFIG=llvm-config-6.0
+env:
+  global: CXX=g++-5 LLVM_CONFIG=llvm-config-6.0
+cache: pip
+matrix:
+  include:
+    - os: linux
+    - os: osx
+      language: generic
+      install: pip install --user -r requirements.txt
+      env: PATH=/usr/local/opt/gnu-sed/libexec/gnubin:$PATH
 before_script:
 - pip install -r optional_requirements.txt
 # codespell
@@ -16,6 +27,5 @@ before_script:
 # turn deprecation warning into RuntimeError
 - "find . -name '*.py' | xargs sed -i 's/warnings\\.warn(/raise RuntimeError(/g'"
 # install
-- python setup.py build build_ext
 - python setup.py install
 script: cd test && python test_all.py && git ls-files -o --exclude-standard
