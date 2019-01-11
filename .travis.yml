@@ -12,6 +12,15 @@ addons:
       - g++-5
 env:
   global: CXX=g++-5 LLVM_CONFIG=llvm-config-6.0
+  matrix:
+    - MIASM_TEST_TAG=regression
+    - MIASM_TEST_TAG=example
+    - MIASM_TEST_TAG=long
+    - MIASM_TEST_TAG=llvm
+    - MIASM_TEST_TAG=gcc
+    - MIASM_TEST_TAG=z3
+    - MIASM_TEST_TAG=qemu
+    - MIASM_TEST_TAG=cparser
 cache: pip
 matrix:
   include:
@@ -28,4 +37,4 @@ before_script:
 - "find . -name '*.py' | xargs sed -i 's/warnings\\.warn(/raise RuntimeError(/g'"
 # install
 - python setup.py install
-script: cd test && python test_all.py && git ls-files -o --exclude-standard
+script: cd test && python test_all.py -o=$MIASM_TEST_TAG && git ls-files -o --exclude-standard
