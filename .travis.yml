@@ -5,10 +5,6 @@ addons:
   apt:
     sources: ['llvm-toolchain-trusty-6.0', 'ubuntu-toolchain-r-test']
     packages:
-      - make
-      - gcc
-      - python-virtualenv
-      - unzip
       - llvm-6.0
       - llvm-6.0-dev
       - g++-5
