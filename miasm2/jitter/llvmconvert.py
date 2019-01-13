@@ -1292,8 +1292,14 @@ class LLVMFunction(object):
             self.printf("%.8X %s\n" % (instr_attrib.instr.offset,
                                        instr_attrib.instr.to_string(loc_db)))
 
-    def gen_post_code(self, attributes):
+    def gen_post_code(self, attributes, pc_value):
         if attributes.log_regs:
+            # Update PC for dump_gpregs
+            PC = self.llvm_context.PC
+            t_size = LLVMType.IntType(PC.size)
+            dst = self.builder.zext(t_size(pc_value), LLVMType.IntType(PC.size))
+            self.affect(dst, PC)
+
             fc_ptr = self.mod.get_global(self.llvm_context.logging_func)
             self.builder.call(fc_ptr, [self.local_vars["vmcpu"]])
 
@@ -1353,8 +1359,10 @@ class LLVMFunction(object):
         # We are no longer in the main stream, deactivate cache
         self.main_stream = False
 
+        offset = None
         if isinstance(dst, ExprInt):
-            loc_key = self.llvm_context.ir_arch.loc_db.get_or_create_offset_location(int(dst))
+            offset = int(dst)
+            loc_key = self.llvm_context.ir_arch.loc_db.get_or_create_offset_location(offset)
             dst = ExprLoc(loc_key, dst.size)
 
         if isinstance(dst, ExprLoc):
@@ -1371,7 +1379,7 @@ class LLVMFunction(object):
                 if (offset in instr_offsets and
                     offset > attrib.instr.offset):
                     # forward local jump (ie. next instruction)
-                    self.gen_post_code(attrib)
+                    self.gen_post_code(attrib, offset)
                     self.gen_post_instr_checks(attrib, offset)
                     self.builder.branch(bbl)
                     return
@@ -1389,7 +1397,7 @@ class LLVMFunction(object):
         if dst.type.width != PC.size:
             dst = self.builder.zext(dst, LLVMType.IntType(PC.size))
 
-        self.gen_post_code(attrib)
+        self.gen_post_code(attrib, offset)
         self.affect(dst, PC)
         self.gen_post_instr_checks(attrib, dst)
         self.affect(self.add_ir(ExprInt(0, 8)), ExprId("status", 32))
