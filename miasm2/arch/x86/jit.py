@@ -20,16 +20,20 @@ class x86_32_CGen(CGen):
         self.translator = TranslatorC(self.ir_arch.loc_db)
         self.init_arch_C()
 
-    def gen_post_code(self, attrib):
+    def gen_post_code(self, attrib, pc_value):
         out = []
         if attrib.log_regs:
+            # Update PC for dump_gpregs
+            out.append("%s = %s;" % (self.C_PC, pc_value))
             out.append('dump_gpregs_32(jitcpu->cpu);')
         return out
 
 class x86_64_CGen(x86_32_CGen):
-    def gen_post_code(self, attrib):
+    def gen_post_code(self, attrib, pc_value):
         out = []
         if attrib.log_regs:
+            # Update PC for dump_gpregs
+            out.append("%s = %s;" % (self.C_PC, pc_value))
             out.append('dump_gpregs_64(jitcpu->cpu);')
         return out
 

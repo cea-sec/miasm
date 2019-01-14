@@ -43,11 +43,11 @@ class mep_CGen(CGen):
 
         return out
 
-    def gen_post_code(self, attrib):
+    def gen_post_code(self, attrib, pc_value):
         """Generate C code inserted after the current bloc"""
 
         # Call the base class method
-        out = super(mep_CGen, self).gen_post_code(attrib)
+        out = super(mep_CGen, self).gen_post_code(attrib, pc_value)
 
         # Implement the *REPEAT instructions logics
         tmp = r"""
