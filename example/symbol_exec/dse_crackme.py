@@ -18,6 +18,7 @@ from miasm2.analysis.sandbox import Sandbox_Linux_x86_64
 from miasm2.expression.expression import *
 
 is_win = platform.system() == "Windows"
+is_mac = platform.system() == "Darwin"
 
 # File "management"
 my_FILE_ptr = 0x11223344
@@ -302,7 +303,7 @@ print "FOUND !"
 TEMP_FILE.close()
 
 # Replay for real
-if not is_win:
+if not is_win and not is_mac:
     print "Trying to launch the binary without Miasm"
     crackme = subprocess.Popen([options.filename, TEMP_FILE.name],
                                stdout=subprocess.PIPE,
