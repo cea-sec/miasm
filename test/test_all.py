@@ -21,6 +21,7 @@ TAGS = {"regression": "REGRESSION", # Regression tests
         "long": "LONG", # Very time consumming tests
         "llvm": "LLVM", # LLVM dependency is required
         "gcc": "GCC", # GCC based tests
+        "python": "PYTHON", # Python jitted tests
         "z3": "Z3", # Z3 dependency is needed
         "qemu": "QEMU", # QEMU tests (several tests)
         "cparser": "CPARSER", # pycparser is needed
@@ -109,7 +110,7 @@ for script in ["x86/sem.py",
             continue
         testset += ArchUnitTest(script, jitter, base_dir="arch", tags=tags)
 
-testset += ArchUnitTest("x86/unit/access_xmm.py", "python", base_dir="arch")
+testset += ArchUnitTest("x86/unit/access_xmm.py", "python", base_dir="arch", tags=[TAGS["python"]])
 
 ### QEMU regression tests
 class QEMUTest(RegressionTest):
@@ -750,7 +751,7 @@ class ExampleJitterNoPython(ExampleJitter):
 
 for jitter in ExampleJitter.jitter_engines:
     # Take 5 min on a Core i5
-    tags = {"python": [TAGS["long"]],
+    tags = {"python": [TAGS["long"], TAGS["python"]],
             "llvm": [TAGS["llvm"]],
             "gcc": [TAGS["gcc"]],
             }
