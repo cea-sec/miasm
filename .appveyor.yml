@@ -28,7 +28,6 @@ install:
 build_script:
   - cmd: if "%platform%"=="Win32" call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" x86
   - cmd: if "%platform%"=="x64" call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" x64
-  - "%PYTHON%\\python.exe setup.py build"
   - "%PYTHON%\\python.exe setup.py install"
 
 test_script:
