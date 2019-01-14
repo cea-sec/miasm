@@ -11,14 +11,17 @@ addons:
 env:
   global: CXX=g++-5 LLVM_CONFIG=llvm-config-6.0
   matrix:
-    - MIASM_TEST_TAG=regression
-    - MIASM_TEST_TAG=example
-    - MIASM_TEST_TAG=long
-    - MIASM_TEST_TAG=llvm
-    - MIASM_TEST_TAG=gcc
-    - MIASM_TEST_TAG=z3
-    - MIASM_TEST_TAG=qemu
-    - MIASM_TEST_TAG=cparser
+    - MIASM_TEST_EXTRA_ARG="-o regression -t long,python,llvm,gcc,z3,qemu,cparser"
+    - MIASM_TEST_EXTRA_ARG="-o example -t long,python,llvm,gcc,z3,qemu,cparser"
+    - MIASM_TEST_EXTRA_ARG="-o long"
+    - MIASM_TEST_EXTRA_ARG="-o qemu -t llvm,gcc"
+    - MIASM_TEST_EXTRA_ARG="-o qemu -t python,gcc"
+    - MIASM_TEST_EXTRA_ARG="-o qemu -t python,llvm"
+    - MIASM_TEST_EXTRA_ARG="-o llvm -t qemu,long"
+    - MIASM_TEST_EXTRA_ARG="-o gcc -t qemu,long"
+    - MIASM_TEST_EXTRA_ARG="-o python -t qemu,long"
+    - MIASM_TEST_EXTRA_ARG="-o z3"
+    - MIASM_TEST_EXTRA_ARG="-o cparser"
 before_script:
 - pip install -r optional_requirements.txt
 # codespell
@@ -28,4 +31,4 @@ before_script:
 # install
 - python setup.py build build_ext
 - python setup.py install
-script: cd test && python test_all.py -o=$MIASM_TEST_TAG && git ls-files -o --exclude-standard
+script: cd test && python test_all.py $MIASM_TEST_EXTRA_ARG && git ls-files -o --exclude-standard
