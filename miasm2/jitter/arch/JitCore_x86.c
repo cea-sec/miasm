@@ -349,6 +349,32 @@ PyObject * cpu_dump_gpregs(JitCpu* self, PyObject* args)
 }
 
 
+PyObject * cpu_dump_gpregs_with_attrib(JitCpu* self, PyObject* args)
+{
+	vm_cpu_t* vmcpu;
+	PyObject *item1;
+	uint64_t attrib;
+
+	if (!PyArg_ParseTuple(args, "O", &item1))
+		RAISE(PyExc_TypeError,"Cannot parse arguments");
+
+	PyGetInt(item1, attrib);
+
+	vmcpu = self->cpu;
+	if (attrib == 16 || attrib == 32)
+		dump_gpregs_32(vmcpu);
+	else if (attrib == 64)
+		dump_gpregs_64(vmcpu);
+	else {
+		RAISE(PyExc_TypeError,"Bad attrib");
+	}
+
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
+
+
 PyObject* cpu_set_exception(JitCpu* self, PyObject* args)
 {
 	PyObject *item1;
@@ -483,6 +509,8 @@ static PyMethodDef JitCpu_methods[] = {
 	{"init_regs", (PyCFunction)cpu_init_regs, METH_NOARGS,
 	 "X"},
 	{"dump_gpregs", (PyCFunction)cpu_dump_gpregs, METH_NOARGS,
+	 "X"},
+	{"dump_gpregs_with_attrib", (PyCFunction)cpu_dump_gpregs_with_attrib, METH_VARARGS,
 	 "X"},
 	{"get_gpreg", (PyCFunction)cpu_get_gpreg, METH_NOARGS,
 	 "X"},
