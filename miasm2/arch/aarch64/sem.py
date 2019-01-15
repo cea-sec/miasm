@@ -1200,6 +1200,74 @@ def clz(ir, instr, arg1, arg2):
     e.append(ExprAssign(arg1, ExprOp('cntleadzeros', arg2)))
     return e, []
 
+def casp(ir, instr, arg1, arg2, arg3):
+    # XXX TODO: memory barrier
+    e = []
+    if arg1.size == 32:
+        regs = gpregs32_expr
+    else:
+        regs = gpregs64_expr
+    index1 = regs.index(arg1)
+    index2 = regs.index(arg2)
+
+    # TODO endianness
+    comp_value = ExprCompose(regs[index1], regs[index1 + 1])
+    new_value = ExprCompose(regs[index2], regs[index2 + 1])
+    assert arg3.is_op('preinc')
+    ptr = arg3.args[0]
+    data = ExprMem(ptr, comp_value.size)
+
+    loc_store = ExprLoc(ir.loc_db.add_location(), ir.IRDst.size)
+    loc_do = ExprLoc(ir.loc_db.add_location(), ir.IRDst.size)
+    loc_next = ExprLoc(ir.get_next_loc_key(instr), ir.IRDst.size)
+
+    e.append(ExprAssign(ir.IRDst, ExprCond(ExprOp("FLAG_EQ_CMP", data, comp_value), loc_do, loc_store)))
+
+    e_store = []
+    e_store.append(ExprAssign(data, new_value))
+    e_store.append(ExprAssign(ir.IRDst, loc_do))
+    blk_store = IRBlock(loc_store.loc_key, [AssignBlock(e_store, instr)])
+
+    e_do = []
+    e_do.append(ExprAssign(regs[index1], data[:data.size / 2]))
+    e_do.append(ExprAssign(regs[index1 + 1], data[data.size / 2:]))
+    e_do.append(ExprAssign(ir.IRDst, loc_next))
+    blk_do = IRBlock(loc_do.loc_key, [AssignBlock(e_do, instr)])
+
+    return e, [blk_store, blk_do]
+
+
+@sbuild.parse
+def umaddl(arg1, arg2, arg3, arg4):
+    arg1 = arg2.zeroExtend(arg1.size) * arg3.zeroExtend(arg1.size) + arg4
+
+
+@sbuild.parse
+def umsubbl(arg1, arg2, arg3, arg4):
+    arg1 = arg2.zeroExtend(arg1.size) * arg3.zeroExtend(arg1.size) + arg4
+
+
+@sbuild.parse
+def umull(arg1, arg2, arg3):
+    arg1 = (arg2.zeroExtend(64) * arg3.zeroExtend(64))
+
+
+@sbuild.parse
+def umulh(arg1, arg2, arg3):
+    arg1 = (arg2.zeroExtend(128) * arg3.zeroExtend(128))[64:]
+
+
+@sbuild.parse
+def smulh(arg1, arg2, arg3):
+    arg1 = (arg2.signExtend(128) * arg3.signExtend(128))[64:]
+
+
+@sbuild.parse
+def smull(arg1, arg2, arg3):
+    arg1 = (arg2.signExtend(64) * arg3.signExtend(64))[64:]
+
+
+
 mnemo_func = sbuild.functions
 mnemo_func.update({
     'and': and_l,
@@ -1291,6 +1359,12 @@ mnemo_func.update({
     'fcvtzu': fcvtzu,
     'fcmpe': fcmpe,
     'clz': clz,
+
+    # XXX TODO: memory barrier
+    'casp':casp,
+    'caspl':casp,
+    'caspa':casp,
+    'caspal':casp,
 
 
 })
