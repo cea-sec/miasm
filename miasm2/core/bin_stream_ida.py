@@ -1,5 +1,6 @@
 from idc import Byte, SegEnd
 from idautils import Segments
+from idaapi import is_mapped
 
 from miasm2.core.bin_stream import bin_stream_str
 
@@ -14,7 +15,10 @@ class bin_stream_ida(bin_stream_str):
     def _getbytes(self, start, l=1):
         o = ""
         for ad in xrange(l):
-            o += chr(Byte(ad + start - self.shift))
+            offset = ad + start - self.shift
+            if not is_mapped(offset):
+                raise IOError("not enough bytes")
+            o += chr(Byte(offset))
         return o
 
     def readbs(self, l=1):
