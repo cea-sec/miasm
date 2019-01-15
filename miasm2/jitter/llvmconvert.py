@@ -874,15 +874,15 @@ class LLVMFunction(object):
                 self.update_cache(expr, ret)
                 return ret
 
-            if op in ["imod", "idiv", "umod", "udiv"]:
+            if op in ["smod", "sdiv", "umod", "udiv"]:
                 assert len(expr.args) == 2
 
                 arg_b = self.add_ir(expr.args[1])
                 arg_a = self.add_ir(expr.args[0])
 
-                if op == "imod":
+                if op == "smod":
                     callback = builder.srem
-                elif op == "idiv":
+                elif op == "sdiv":
                     callback = builder.sdiv
                 elif op == "umod":
                     callback = builder.urem

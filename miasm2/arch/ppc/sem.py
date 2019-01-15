@@ -165,7 +165,7 @@ def mn_do_div(ir, instr, rd, ra, rb):
     if has_u:
         op = 'udiv'
     else:
-        op = 'idiv'
+        op = 'sdiv'
 
     rvalue = ExprOp(op, ra, rb)
 

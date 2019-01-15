@@ -1754,8 +1754,8 @@ def idiv(ir, instr, src1):
     else:
         raise ValueError('div arg not impl', src1)
 
-    c_d = m2_expr.ExprOp('idiv', src2, src1.signExtend(src2.size))
-    c_r = m2_expr.ExprOp('imod', src2, src1.signExtend(src2.size))
+    c_d = m2_expr.ExprOp('sdiv', src2, src1.signExtend(src2.size))
+    c_r = m2_expr.ExprOp('smod', src2, src1.signExtend(src2.size))
 
     # if 8 bit div, only ax is affected
     if size == 8:

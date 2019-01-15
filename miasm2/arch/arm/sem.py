@@ -592,7 +592,7 @@ def sdiv(ir, instr, a, b, c=None):
 
 
 
-    r = ExprOp("idiv", b, c)
+    r = ExprOp("sdiv", b, c)
     do_div = []
     do_div.append(ExprAssign(a, r))
     dst = get_dst(a)

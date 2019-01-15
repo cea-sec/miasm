@@ -73,12 +73,12 @@ def simp_cst_propagation(e_s, expr):
                 out = int1.arg / int2.arg
             elif op_name == '%':
                 out = int1.arg % int2.arg
-            elif op_name == 'idiv':
+            elif op_name == 'sdiv':
                 assert int2.arg.arg
                 tmp1 = mod_size2int[int1.arg.size](int1.arg)
                 tmp2 = mod_size2int[int2.arg.size](int2.arg)
                 out = mod_size2uint[int1.arg.size](tmp1 / tmp2)
-            elif op_name == 'imod':
+            elif op_name == 'smod':
                 assert int2.arg.arg
                 tmp1 = mod_size2int[int1.arg.size](int1.arg)
                 tmp2 = mod_size2int[int2.arg.size](int2.arg)
@@ -143,7 +143,7 @@ def simp_cst_propagation(e_s, expr):
 
     # op A => A
     if op_name in ['+', '*', '^', '&', '|', '>>', '<<',
-              'a>>', '<<<', '>>>', 'idiv', 'imod', 'umod', 'udiv'] and len(args) == 1:
+              'a>>', '<<<', '>>>', 'sdiv', 'smod', 'umod', 'udiv'] and len(args) == 1:
         return args[0]
 
     # A-B => A + (-B)

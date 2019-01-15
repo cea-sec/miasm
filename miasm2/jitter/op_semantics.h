@@ -66,8 +66,8 @@ _MIASM_EXPORT unsigned int cnttrailzeros(uint64_t size, uint64_t src);
 	}
 
 
-#define IDIV(sizeA)						\
-	int ## sizeA ## _t idiv ## sizeA (int ## sizeA ## _t a, int ## sizeA ## _t b) \
+#define SDIV(sizeA)						\
+	int ## sizeA ## _t sdiv ## sizeA (int ## sizeA ## _t a, int ## sizeA ## _t b) \
 	{								\
 		int ## sizeA ## _t r;					\
 		if (b == 0) {						\
@@ -79,8 +79,8 @@ _MIASM_EXPORT unsigned int cnttrailzeros(uint64_t size, uint64_t src);
 	}
 
 
-#define IMOD(sizeA)						\
-	int ## sizeA ## _t imod ## sizeA (int ## sizeA ## _t a, int ## sizeA ## _t b) \
+#define SMOD(sizeA)						\
+	int ## sizeA ## _t smod ## sizeA (int ## sizeA ## _t a, int ## sizeA ## _t b) \
 	{								\
 		int ## sizeA ## _t r;					\
 		if (b == 0) {						\
@@ -93,23 +93,23 @@ _MIASM_EXPORT unsigned int cnttrailzeros(uint64_t size, uint64_t src);
 
 _MIASM_EXPORT uint64_t udiv64(uint64_t a, uint64_t b);
 _MIASM_EXPORT uint64_t umod64(uint64_t a, uint64_t b);
-_MIASM_EXPORT int64_t idiv64(int64_t a, int64_t b);
-_MIASM_EXPORT int64_t imod64(int64_t a, int64_t b);
+_MIASM_EXPORT int64_t sdiv64(int64_t a, int64_t b);
+_MIASM_EXPORT int64_t smod64(int64_t a, int64_t b);
 
 _MIASM_EXPORT uint32_t udiv32(uint32_t a, uint32_t b);
 _MIASM_EXPORT uint32_t umod32(uint32_t a, uint32_t b);
-_MIASM_EXPORT int32_t idiv32(int32_t a, int32_t b);
-_MIASM_EXPORT int32_t imod32(int32_t a, int32_t b);
+_MIASM_EXPORT int32_t sdiv32(int32_t a, int32_t b);
+_MIASM_EXPORT int32_t smod32(int32_t a, int32_t b);
 
 _MIASM_EXPORT uint16_t udiv16(uint16_t a, uint16_t b);
 _MIASM_EXPORT uint16_t umod16(uint16_t a, uint16_t b);
-_MIASM_EXPORT int16_t idiv16(int16_t a, int16_t b);
-_MIASM_EXPORT int16_t imod16(int16_t a, int16_t b);
+_MIASM_EXPORT int16_t sdiv16(int16_t a, int16_t b);
+_MIASM_EXPORT int16_t smod16(int16_t a, int16_t b);
 
 _MIASM_EXPORT uint8_t udiv8(uint8_t a, uint8_t b);
 _MIASM_EXPORT uint8_t umod8(uint8_t a, uint8_t b);
-_MIASM_EXPORT int8_t idiv8(int8_t a, int8_t b);
-_MIASM_EXPORT int8_t imod8(int8_t a, int8_t b);
+_MIASM_EXPORT int8_t sdiv8(int8_t a, int8_t b);
+_MIASM_EXPORT int8_t smod8(int8_t a, int8_t b);
 
 _MIASM_EXPORT unsigned int x86_cpuid(unsigned int a, unsigned int reg_num);
 
