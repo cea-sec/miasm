@@ -90,7 +90,7 @@ class JitCore_Python(jitcore.JitCore):
                         # Log registers values
                         if self.log_regs:
                             exec_engine.update_cpu_from_engine()
-                            exec_engine.cpu.dump_gpregs()
+                            exec_engine.cpu.dump_gpregs_with_attrib(self.ir_arch.attrib)
 
                         # Log instruction
                         if self.log_mn:
