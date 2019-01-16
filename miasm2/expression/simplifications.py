@@ -49,24 +49,32 @@ class ExpressionSimplifier(object):
             simplifications_common.simp_ext_eq_ext,
 
             simplifications_common.simp_cmp_int,
+            simplifications_common.simp_sign_inf_zeroext,
             simplifications_common.simp_cmp_int_int,
             simplifications_common.simp_ext_cst,
+            simplifications_common.simp_zeroext_and_cst_eq_cst,
+            simplifications_common.simp_test_signext_inf,
+            simplifications_common.simp_test_zeroext_inf,
 
         ],
 
         m2_expr.ExprSlice: [
             simplifications_common.simp_slice,
             simplifications_common.simp_slice_of_ext,
+            simplifications_common.simp_slice_of_op_ext,
         ],
         m2_expr.ExprCompose: [simplifications_common.simp_compose],
         m2_expr.ExprCond: [
             simplifications_common.simp_cond,
+            simplifications_common.simp_cond_zeroext,
             # CC op
             simplifications_common.simp_cond_flag,
             simplifications_common.simp_cmp_int_arg,
 
             simplifications_common.simp_cond_eq_zero,
-
+            simplifications_common.simp_x_and_cst_eq_cst,
+            simplifications_common.simp_cond_logic_ext,
+            simplifications_common.simp_cond_sign_bit,
         ],
         m2_expr.ExprMem: [simplifications_common.simp_mem],
 

@@ -446,6 +446,9 @@ to_test = [(ExprInt(1, 32) - ExprInt(1, 32), ExprInt(0, 32)),
     (ExprOp("signExt_16", ExprInt(0x8, 8)), ExprInt(0x8, 16)),
     (ExprOp("signExt_16", ExprInt(-0x8, 8)), ExprInt(-0x8, 16)),
 
+    (ExprCond(a8.zeroExtend(32), a, b), ExprCond(a8, a, b)),
+
+
     (- (i2*a), a * im2),
     (a + a, a * i2),
     (ExprOp('+', a, a), a * i2),
@@ -515,6 +518,179 @@ to_test = [
 
     (ExprOp(TOK_EQUAL, a8.zeroExtend(32), b8.zeroExtend(32)), ExprOp(TOK_EQUAL, a8, b8)),
     (ExprOp(TOK_EQUAL, a8.signExtend(32), b8.signExtend(32)), ExprOp(TOK_EQUAL, a8, b8)),
+
+    (ExprOp(TOK_INF_EQUAL_SIGNED, a8.zeroExtend(32), i0), ExprOp(TOK_EQUAL, a8, ExprInt(0, 8))),
+
+    ((a8.zeroExtend(32) + b8.zeroExtend(32) + ExprInt(1, 32))[0:8], a8 + b8 + ExprInt(1, 8)),
+
+    (ExprCond(a8.zeroExtend(32), a, b), ExprCond(a8, a, b)),
+    (ExprCond(a8.signExtend(32), a, b), ExprCond(a8, a, b)),
+
+
+    (
+        ExprOp(
+            TOK_EQUAL,
+            a8.zeroExtend(32) & b8.zeroExtend(32) & ExprInt(0x12, 32),
+            i1
+        ),
+        ExprOp(
+            TOK_EQUAL,
+            a8 & b8 & ExprInt(0x12, 8),
+            ExprInt(1, 8)
+        )
+    ),
+
+    (
+        ExprCond(
+            ExprOp(
+                TOK_EQUAL,
+                a & b & ExprInt(0x80, 32),
+                ExprInt(0x80, 32)
+            ), a, b
+        ),
+        ExprCond(a & b & ExprInt(0x80, 32), a, b)
+    ),
+
+
+
+    (
+        ExprCond(
+            a8.zeroExtend(32) & b8.zeroExtend(32) & ExprInt(0x12, 32),
+            a, b
+        ),
+        ExprCond(
+            a8 & b8 & ExprInt(0x12, 8),
+            a, b
+        ),
+    ),
+
+
+    (a8.zeroExtend(32)[:8], a8),
+    (a.zeroExtend(64)[:32], a),
+    (a.zeroExtend(64)[:8], a[:8]),
+    (a8.zeroExtend(32)[:16], a8.zeroExtend(16)),
+
+    (
+        ExprCond(
+            a & ExprInt(0x80000000, 32),
+            a, b
+        ),
+        ExprCond(
+            ExprOp(TOK_INF_SIGNED, a, ExprInt(0, 32) ),
+            a, b
+        )
+    ),
+
+
+
+    (
+        ExprCond(
+            a8.signExtend(32) & ExprInt(0x80000000, 32),
+            a, b
+        ),
+        ExprCond(
+            ExprOp(TOK_INF_SIGNED, a8, ExprInt(0, 8) ),
+            a, b
+        )
+    ),
+
+
+    (
+        ExprCond(
+            ExprOp(TOK_INF_SIGNED, a8.signExtend(32), ExprInt(0x10, 32) ),
+            a, b
+        ),
+        ExprCond(
+            ExprOp(TOK_INF_SIGNED, a8, ExprInt(0x10, 8) ),
+            a, b
+        )
+    ),
+
+    (
+        ExprCond(
+            ExprOp(TOK_INF_SIGNED, a8.signExtend(32), ExprInt(-0x10, 32) ),
+            a, b
+        ),
+        ExprCond(
+            ExprOp(TOK_INF_SIGNED, a8, ExprInt(-0x10, 8) ),
+            a, b
+        )
+    ),
+
+
+    (
+        ExprCond(
+            ExprOp(TOK_INF_UNSIGNED, a8.zeroExtend(32), ExprInt(0x10, 32) ),
+            a, b
+        ),
+        ExprCond(
+            ExprOp(TOK_INF_UNSIGNED, a8, ExprInt(0x10, 8) ),
+            a, b
+        )
+    ),
+
+
+
+    (
+        ExprCond(
+            ExprOp(TOK_INF_SIGNED, a8.signExtend(32), ExprInt(0x200, 32) ),
+            a, b
+        ),
+        a
+    ),
+
+
+    (
+        ExprCond(
+            ExprOp(TOK_INF_UNSIGNED, a8.zeroExtend(32), ExprInt(0x200, 32) ),
+            a, b
+        ),
+        a
+    ),
+
+
+
+    (
+        ExprCond(
+            ExprOp(TOK_INF_SIGNED, a8.zeroExtend(32), ExprInt(0x10, 32) ),
+            a, b
+        ),
+        ExprCond(
+            ExprOp(TOK_INF_UNSIGNED, a8, ExprInt(0x10, 8) ),
+            a, b
+        )
+    ),
+
+    (
+        ExprCond(
+            ExprOp(TOK_INF_EQUAL_SIGNED, a8.zeroExtend(32), ExprInt(0x10, 32) ),
+            a, b
+        ),
+        ExprCond(
+            ExprOp(TOK_INF_EQUAL_UNSIGNED, a8, ExprInt(0x10, 8) ),
+            a, b
+        )
+    ),
+
+
+    (
+        ExprCond(
+            ExprOp(TOK_INF_SIGNED, a8.zeroExtend(32), ExprInt(-1, 32) ),
+            a, b
+        ),
+        b
+    ),
+
+    (
+        ExprCond(
+            ExprOp(TOK_INF_EQUAL_SIGNED, a8.zeroExtend(32), ExprInt(-1, 32) ),
+            a, b
+        ),
+        b
+    ),
+
+
+    (a8.zeroExtend(32)[2:5], a8[2:5]),
 
 ]
 
