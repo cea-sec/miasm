@@ -372,7 +372,7 @@ class TranslatorC(Translator):
 
 
 
-            elif expr.op in ['idiv', 'imod']:
+            elif expr.op in ['sdiv', 'smod']:
                 arg0 = self.from_expr(expr.args[0])
                 arg1 = self.from_expr(expr.args[1])
 

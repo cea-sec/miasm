@@ -393,8 +393,8 @@ def multu(arg1, arg2):
 @sbuild.parse
 def div(arg1, arg2):
     """Divide (signed) @arg1 by @arg2 and stores the remaining/result in $R_HI/$R_LO"""
-    R_LO = ExprOp('idiv' ,arg1, arg2)
-    R_HI = ExprOp('imod', arg1, arg2)
+    R_LO = ExprOp('sdiv' ,arg1, arg2)
+    R_HI = ExprOp('smod', arg1, arg2)
 
 @sbuild.parse
 def divu(arg1, arg2):

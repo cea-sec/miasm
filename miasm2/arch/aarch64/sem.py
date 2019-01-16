@@ -809,7 +809,7 @@ def udiv(arg1, arg2, arg3):
 @sbuild.parse
 def sdiv(arg1, arg2, arg3):
     if arg3:
-        arg1 = ExprOp('idiv', arg2, arg3)
+        arg1 = ExprOp('sdiv', arg2, arg3)
     else:
         exception_flags = ExprInt(EXCEPT_DIV_BY_ZERO,
                                           exception_flags.size)
