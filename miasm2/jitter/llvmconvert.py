@@ -1297,7 +1297,7 @@ class LLVMFunction(object):
             # Update PC for dump_gpregs
             PC = self.llvm_context.PC
             t_size = LLVMType.IntType(PC.size)
-            dst = self.builder.zext(t_size(pc_value), LLVMType.IntType(PC.size))
+            dst = self.builder.zext(t_size(pc_value), t_size)
             self.affect(dst, PC)
 
             fc_ptr = self.mod.get_global(self.llvm_context.logging_func)
