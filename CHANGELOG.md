@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+## 0.1.1 - 2019-01-16
+### Added
+- Graph: add postdominators computation from [@GAJaloyan](https://github.com/GAJaloyan)
+- Multiple X86/MeP/Arm/Amrt/Aarch64 mnemonics ([@guedou](https://github.com/guedou), [@w4kfu](https://github.com/w4kfu), [@nguigo](https://github.com/nguigo))
+- Qemu regression tests for X86_64
+- Start export of the intermediate language to LLVM
+- IR simplifications
+- Typos & codespell checker from [@p-l-](https://github.com/p-l-)
+- High level flags for MSP430
+
+### Fixed
+- Out-of-SSA with new algorithm
+- Travis cleanup/rework/improvement from [@stephengroat](https://github.com/stephengroat)
+- Jitter: pc update
+- Jitter/python: global refactoring
+- Change ExprMem pointer access (.ptr instead of .arg)
+- Rename IR operators idiv/imod to sdiv/smod for homogeneity
+- Clean replace_expr from [@Mizari](https://github.com/Mizari)
+- Various fixes
+- Instruction to_string from [@nofiv](https://github.com/nofiv)
 
 ## 0.1.0 - 2018-11-12
 ### Added
