@@ -84,7 +84,7 @@ class AssignBlock(object):
     def _set(self, dst, src):
         """
         Special cases:
-        * if dst is an ExprSlice, expand it to affect the full Expression
+        * if dst is an ExprSlice, expand it to assign the full Expression
         * if dst already known, sources are merged
         """
         if dst.size != src.size:

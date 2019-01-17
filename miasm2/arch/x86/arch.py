@@ -902,7 +902,7 @@ class mn_x86(cls_mn):
             if hasattr(c, "fadmode") and v_admode(c) != c.fadmode.mode:
                 continue
             # relative dstflow must not have opmode set
-            # (affect IP instead of EIP for instance)
+            # (assign IP instead of EIP for instance)
             if (instr.dstflow() and
                 instr.name not in ["JCXZ", "JECXZ", "JRCXZ"] and
                 len(instr.args) == 1 and

@@ -243,7 +243,7 @@ def dead_simp_useful_assignblks(irarch, defuse, reaching_defs):
 
 def dead_simp(irarch, ircfg):
     """
-    Remove useless affectations.
+    Remove useless assignments.
 
     This function is used to analyse relation of a * complete function *
     This means the blocks under study represent a solid full function graph.

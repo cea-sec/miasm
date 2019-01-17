@@ -290,7 +290,7 @@ class DependencyResult(DependencyState):
             ctx_init.update(ctx)
         assignblks = []
 
-        # Build a single affectation block according to history
+        # Build a single assignment block according to history
         last_index = len(self.relevant_loc_keys)
         for index, loc_key in enumerate(reversed(self.relevant_loc_keys), 1):
             if index == last_index and loc_key == self.initial_state.loc_key:

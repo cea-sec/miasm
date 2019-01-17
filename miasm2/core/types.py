@@ -886,7 +886,7 @@ class Bits(Type):
     bits of a Num.
 
     The @backing_num is used to know how to serialize/deserialize data in vm,
-    but getting/setting this fields only affects bits from @bit_offset to
+    but getting/setting this fields only assign bits from @bit_offset to
     @bit_offset + @bits. Masking and shifting is handled by the class, the aim
     is to provide a transparent way to set and get some bits of a num.
     """

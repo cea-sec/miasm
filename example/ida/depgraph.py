@@ -227,7 +227,7 @@ def launch_depgraph():
     settings.Execute()
 
     loc_key, elements, line_nb = settings.loc_key, settings.elements, settings.line_nb
-    # Simplify affectations
+    # Simplify assignments
     for irb in ircfg.blocks.values():
         irs = []
         offset = ir_arch.loc_db.get_location_offset(irb.loc_key)
