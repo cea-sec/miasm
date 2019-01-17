@@ -290,6 +290,8 @@ reg_tests_armt = [
      "be42"),
     ("001845ea    CMN        R3, R0",
      "c342"),
+    ("XXXXXXXX    CMN        R0, 0x1",
+     "10F1010F"),
     ("001845ea    ORRS       R0, R4",
      "2043"),
     # muls
