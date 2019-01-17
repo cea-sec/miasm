@@ -256,7 +256,7 @@ class CGen(object):
             elif isinstance(dst, ExprId):
                 new_dst = self.add_local_var(dst_var, dst_index, dst)
                 if dst in self.ir_arch.arch.regs.regs_flt_expr:
-                    # Don't mask float affectation
+                    # Don't mask float assignment
                     c_main.append(
                         '%s = (%s);' % (self.id_to_c(new_dst), self.id_to_c(src)))
                 elif new_dst.size <= self.translator.NATIVE_INT_MAX_SIZE:

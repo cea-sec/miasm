@@ -119,7 +119,7 @@ class MemArray(MutableMapping):
 
     The value associated to a given offset is a description of the slice of a
     stored expression. The slice size depends on the configutation of the
-    MemArray. For example, for a slice size of 8 bits, the affectation:
+    MemArray. For example, for a slice size of 8 bits, the assignment:
     - @32[EAX+0x10] = EBX
 
     will store for the base EAX:

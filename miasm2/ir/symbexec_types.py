@@ -95,7 +95,7 @@ class SymbExecCType(SymbolicExecutionEngine):
             elif isinstance(dst, ExprId):
                 pool_out[dst] = frozenset(objcs)
             else:
-                raise ValueError("Unsupported affectation", str(dst))
+                raise ValueError("Unsupported assignment", str(dst))
         return pool_out
 
     def eval_expr(self, expr, eval_cache=None):
