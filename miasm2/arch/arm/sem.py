@@ -1754,15 +1754,52 @@ class ir_arml(IntermediateRepresentation):
 
             irblocks.append(irblock)
 
+            it_instr_irblocks = []
             assignments = []
             loc = loc_do
+
             split = self.add_instr_to_current_state(
                 instr, block, assignments,
-                irblocks, gen_pc_updt
+                it_instr_irblocks, gen_pc_updt
             )
             if split:
                 raise NotImplementedError("Unsupported instr in IT block (%s)" % instr)
 
+            if it_instr_irblocks:
+                assert len(it_instr_irblocks) == 1
+                it_instr_irblocks = it_instr_irblocks.pop()
+            # Remove flags assignment if instr != [CMP, CMN, TST]
+            if instr.name not in ["CMP", "CMN", "TST"]:
+                # Fix assignments
+                out = []
+                for assignment in assignments:
+                    assignment = AssignBlock(
+                        {
+                            dst:src for (dst, src) in assignment.iteritems()
+                            if dst not in [zf, nf, of, cf]
+                        },
+                        assignment.instr
+                    )
+                    out.append(assignment)
+                assignments = out
+                # Fix extra irblocksx
+                new_irblocks = []
+                for irblock in it_instr_irblocks:
+                    out = []
+                    for tmp_assignment in irblock:
+                        assignment = AssignBlock(
+                            {
+                                dst:src for (dst, src) in assignment.iteritems()
+                                if dst not in [zf, nf, of, cf]
+                            },
+                            assignment.instr
+                        )
+                        out.append(assignment)
+                    new_irblock = IRBlock(irblock.loc_key, out)
+                    new_irblocks.append(new_irblock)
+                it_instr_irblocks = new_irblocks
+
+            irblocks += it_instr_irblocks
             dst = ExprAssign(self.IRDst, ExprLoc(loc_next, 32))
             dst_blk = AssignBlock([dst], instr)
             assignments.append(dst_blk)
