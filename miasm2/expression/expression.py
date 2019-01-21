@@ -669,7 +669,7 @@ class ExprLoc(Expr):
 
 class ExprAssign(Expr):
 
-    """An ExprAssign represent an affection from an Expression to another one.
+    """An ExprAssign represent an assignment from an Expression to another one.
 
     Some use cases:
      - var1 <- 2
@@ -679,8 +679,8 @@ class ExprAssign(Expr):
 
     def __init__(self, dst, src):
         """Create an ExprAssign for dst <- src
-        @dst: Expr, affectation destination
-        @src: Expr, affectation source
+        @dst: Expr, assignment destination
+        @src: Expr, assignment source
         """
         # dst & src must be Expr
         assert isinstance(dst, Expr)

@@ -2378,12 +2378,16 @@ armtop("svc", [bs('11011111'),  imm8])
 armtop("b", [bs('11100'),  offs11])
 armtop("und", [bs('1101'), bs('1110'), imm8_d1])
 
-armtop("rev",  [bs('10111010'), bs('00'), rsl, rdl], [rdl, rsl])
+armtop("rev",    [bs('10111010'), bs('00'), rsl, rdl], [rdl, rsl])
+armtop("rev16",  [bs('10111010'), bs('01'), rsl, rdl], [rdl, rsl])
 
 armtop("uxtb", [bs('10110010'), bs('11'), rml, rdl], [rdl, rml])
 armtop("uxth", [bs('10110010'), bs('10'), rml, rdl], [rdl, rml])
 armtop("sxtb", [bs('10110010'), bs('01'), rml, rdl], [rdl, rml])
 armtop("sxth", [bs('10110010'), bs('00'), rml, rdl], [rdl, rml])
+
+armtop("uxtab", [bs('111110100'), bs('101'), rn_nopc, bs('1111'), rd, bs('10'), rot2, rm_rot2], [rd, rn_nopc, rm_rot2])
+armtop("uxtah", [bs('111110100'), bs('001'), rn_nopc, bs('1111'), rd, bs('10'), rot2, rm_rot2], [rd, rn_nopc, rm_rot2])
 
 # thumb2 ######################
 #
@@ -2768,6 +2772,7 @@ imm5_2 = bs(l=2, fname="imm5_2")
 imm_stype = bs(l=2, fname="stype")
 
 imm_stype_00 = bs('00', fname="stype")
+imm_stype_01 = bs('01', fname="stype")
 imm_stype_11 = bs('11', fname="stype")
 
 
@@ -3207,17 +3212,23 @@ armtop("rsb", [bs('11101011110'), scc, rn, bs('0'), imm5_3, rd, imm5_2, imm_styp
 armtop("orn", [bs('11101010011'), scc, rn_nopc, bs('0'), imm5_3, rd, imm5_2, imm_stype, rm_sh], [rd, rn_nopc, rm_sh] )
 # lsl
 armtop("mov", [bs('11101010010'), scc, bs('1111'), bs('0'), imm5_3, rd_nosppc, imm5_2, imm_stype_00, rm_sh], [rd_nosppc, rm_sh] )
+armtop("mov", [bs('11101010010'), scc, bs('1111'), bs('0'), imm5_3, rd_nosppc, imm5_2, imm_stype_01, rm_sh], [rd_nosppc, rm_sh] )
 armtop("mov", [bs('11101010010'), scc, bs('1111'), bs('0'), imm5_3, rd_nosppc, imm5_2, imm_stype_11, rm_sh], [rd_nosppc, rm_sh] )
 
 
 armtop("orr", [bs('11110'), imm12_1, bs('00010'), scc, rn_nosppc, bs('0'), imm12_3, rd, imm12_8] )
-armtop("add", [bs('11110'), imm12_1, bs('01000'), scc, rn, bs('0'), imm12_3, rd, imm12_8], [rd, rn, imm12_8])
+armtop("add", [bs('11110'), imm12_1, bs('01000'), bs('0'), rn, bs('0'), imm12_3, rd_nopc, imm12_8], [rd_nopc, rn, imm12_8])
+armtop("adds",[bs('11110'), imm12_1, bs('01000'), bs('1'), rn, bs('0'), imm12_3, rd_nopc, imm12_8], [rd_nopc, rn, imm12_8])
 armtop("bic", [bs('11110'), imm12_1, bs('00001'), scc, rn_nosppc, bs('0'), imm12_3, rd, imm12_8], [rd, rn_nosppc, imm12_8])
 armtop("and", [bs('11110'), imm12_1, bs('00000'), scc, rn, bs('0'), imm12_3, rd_nopc, imm12_8], [rd_nopc, rn, imm12_8])
 armtop("sub", [bs('11110'), imm12_1, bs('01101'), scc, rn, bs('0'), imm12_3, rd_nopc, imm12_8], [rd_nopc, rn, imm12_8])
 armtop("eor", [bs('11110'), imm12_1, bs('00100'), scc, rn, bs('0'), imm12_3, rd_nopc, imm12_8], [rd_nopc, rn, imm12_8])
 armtop("add", [bs('11110'), imm12_1, bs('10000'), scc, rn_nosppc, bs('0'), imm12_3, rd, imm12_8_t4], [rd, rn_nosppc, imm12_8_t4])
 armtop("cmp", [bs('11110'), imm12_1, bs('01101'), bs('1'), rn, bs('0'), imm12_3, bs('1111'), imm12_8] )
+
+armtop("cmp", [bs('11101011101'), bs('1'), rn, bs('0'), imm5_3, bs('1111'), imm5_2, imm_stype, rm_sh], [rn, rm_sh] )
+
+armtop("cmn", [bs('11110'), imm12_1, bs('01000'), bs('1'), rn, bs('0'), imm12_3, bs('1111'), imm12_8], [rn, imm12_8])
 
 
 armtop("mvn", [bs('11110'), imm12_1, bs('00011'), scc, bs('1111'), bs('0'), imm12_3, rd, imm12_8])
@@ -3277,3 +3288,5 @@ armtop("clz",  [bs('111110101011'), rm, bs('1111'), rd, bs('1000'), rm_cp], [rd,
 armtop("tbb",  [bs('111010001101'), rn_noarg, bs('11110000000'), bs('0'), bs_deref_reg_reg], [bs_deref_reg_reg])
 armtop("tbh",  [bs('111010001101'), rn_noarg, bs('11110000000'), bs('1'), bs_deref_reg_reg_lsl_1], [bs_deref_reg_reg_lsl_1])
 armtop("dsb",  [bs('111100111011'), bs('1111'), bs('1000'), bs('1111'), bs('0100'), barrier_option])
+
+armtop("adr", [bs('11110'), imm12_1, bs('100000'), bs('1111'), bs('0'), imm12_3, rd, imm12_8_t4], [rd, imm12_8_t4])

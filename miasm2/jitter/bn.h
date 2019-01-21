@@ -116,8 +116,8 @@ _MIASM_EXPORT bn_t bignum_sub(bn_t a, bn_t b); /* c = a - b */
 _MIASM_EXPORT bn_t bignum_mul(bn_t a, bn_t b); /* c = a * b */
 _MIASM_EXPORT bn_t bignum_udiv(bn_t a, bn_t b); /* c = a / b */
 _MIASM_EXPORT bn_t bignum_umod(bn_t a, bn_t b); /* c = a % b */
-_MIASM_EXPORT bn_t bignum_idiv(bn_t a, bn_t b, int size);
-_MIASM_EXPORT bn_t bignum_imod(bn_t a, bn_t b, int size);
+_MIASM_EXPORT bn_t bignum_sdiv(bn_t a, bn_t b, int size);
+_MIASM_EXPORT bn_t bignum_smod(bn_t a, bn_t b, int size);
 //void bignum_udivmod(struct bn* a, struct bn* b, struct bn* c, struct bn* d); /* c = a/b, d = a%b */
 
 

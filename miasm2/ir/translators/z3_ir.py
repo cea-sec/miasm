@@ -171,7 +171,7 @@ class TranslatorZ3(Translator):
     def _abs(self, z3_value):
         return z3.If(z3_value >= 0,z3_value,-z3_value)
 
-    def _idivC(self, num, den):
+    def _sdivC(self, num, den):
         """Divide (signed) @num by @den (z3 values) as C would
         See modint.__div__ for implementation choice
         """
@@ -197,12 +197,12 @@ class TranslatorZ3(Translator):
                     res = z3.RotateLeft(res, arg)
                 elif expr.op == ">>>":
                     res = z3.RotateRight(res, arg)
-                elif expr.op == "idiv":
-                    res = self._idivC(res, arg)
+                elif expr.op == "sdiv":
+                    res = self._sdivC(res, arg)
                 elif expr.op == "udiv":
                     res = z3.UDiv(res, arg)
-                elif expr.op == "imod":
-                    res = res - (arg * (self._idivC(res, arg)))
+                elif expr.op == "smod":
+                    res = res - (arg * (self._sdivC(res, arg)))
                 elif expr.op == "umod":
                     res = z3.URem(res, arg)
                 elif expr.op == "==":

@@ -592,7 +592,7 @@ def sdiv(ir, instr, a, b, c=None):
 
 
 
-    r = ExprOp("idiv", b, c)
+    r = ExprOp("sdiv", b, c)
     do_div = []
     do_div.append(ExprAssign(a, r))
     dst = get_dst(a)
@@ -1089,7 +1089,7 @@ def cbnz(ir, instr, a, b):
     e = []
     loc_next = ir.get_next_loc_key(instr)
     loc_next_expr = ExprLoc(loc_next, 32)
-    e.append(ir.IRDst, ExprCond(a, b, loc_next_expr))
+    e.append(ExprAssign(ir.IRDst, ExprCond(a, b, loc_next_expr)))
     return e, []
 
 
@@ -1187,6 +1187,12 @@ def clz(ir, instr, a, b):
 def uxtab(ir, instr, a, b, c):
     e = []
     e.append(ExprAssign(a, b + (c & ExprInt(0xff, 32))))
+    return e, []
+
+
+def uxtah(ir, instr, a, b, c):
+    e = []
+    e.append(ExprAssign(a, b + (c & ExprInt(0xffff, 32))))
     return e, []
 
 
@@ -1294,6 +1300,13 @@ def rev(ir, instr, a, b):
     return e, []
 
 
+def rev16(ir, instr, a, b):
+    e = []
+    result = ExprCompose(b[8:16], b[:8], b[24:32], b[16:24])
+    e.append(ExprAssign(a, result))
+    return e, []
+
+
 def nop(ir, instr):
     e = []
     return e, []
@@ -1328,6 +1341,10 @@ def wfi(ir, instr):
     e = []
     return e, []
 
+def adr(ir, instr, arg1, arg2):
+    e = []
+    e.append(ExprAssign(arg1, (PC & ExprInt(0xfffffffc, 32)) + arg2))
+    return e, []
 
 COND_EQ = 0
 COND_NE = 1
@@ -1494,8 +1511,10 @@ mnemo_condm0 = {'add': add,
                 'ubfx': ubfx,
                 'bfc': bfc,
                 'rev': rev,
+                'rev16': rev16,
                 'clz': clz,
                 'uxtab': uxtab,
+                'uxtah': uxtah,
                 'bkpt': bkpt,
                 'smulbb': smul,
                 'smulbt': smul,
@@ -1579,6 +1598,7 @@ mnemo_nocond = {'lsr': lsr,
                 'cpsid': cpsid,
                 'wfe': wfe,
                 'wfi': wfi,
+                'adr': adr,
                 'orn': orn,
                 'smlabb': smlabb,
                 'smlabt': smlabt,
@@ -1706,7 +1726,7 @@ class ir_arml(IntermediateRepresentation):
 
         # Gen dummy irblock for IT instr
         loc_next = self.get_next_loc_key(instr)
-        dst = ExprAssign(self.IRDst, ExprId(loc_next, 32))
+        dst = ExprAssign(self.IRDst, ExprLoc(loc_next, 32))
         dst_blk = AssignBlock([dst], instr)
         assignments.append(dst_blk)
         irblock = IRBlock(loc, assignments)
@@ -1743,7 +1763,7 @@ class ir_arml(IntermediateRepresentation):
             if split:
                 raise NotImplementedError("Unsupported instr in IT block (%s)" % instr)
 
-            dst = ExprAssign(self.IRDst, ExprId(loc_next, 32))
+            dst = ExprAssign(self.IRDst, ExprLoc(loc_next, 32))
             dst_blk = AssignBlock([dst], instr)
             assignments.append(dst_blk)
             irblock = IRBlock(loc, assignments)

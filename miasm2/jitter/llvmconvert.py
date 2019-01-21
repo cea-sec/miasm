@@ -668,8 +668,8 @@ class LLVMFunction(object):
 
     # Effective constructors
 
-    def affect(self, src, dst):
-        "Affect from LLVM src to M2 dst"
+    def assign(self, src, dst):
+        "Assign from LLVM src to M2 dst"
 
         # Destination
         builder = self.builder
@@ -682,7 +682,7 @@ class LLVMFunction(object):
             addr = self.add_ir(dst.ptr)
             self.llvm_context.memory_write(self, addr, dst.size, src)
         else:
-            raise Exception("UnknownAffectationType")
+            raise Exception("UnknownAssignmentType")
 
     def init_fc(self):
         "Init the function"
@@ -874,15 +874,15 @@ class LLVMFunction(object):
                 self.update_cache(expr, ret)
                 return ret
 
-            if op in ["imod", "idiv", "umod", "udiv"]:
+            if op in ["smod", "sdiv", "umod", "udiv"]:
                 assert len(expr.args) == 2
 
                 arg_b = self.add_ir(expr.args[1])
                 arg_a = self.add_ir(expr.args[0])
 
-                if op == "imod":
+                if op == "smod":
                     callback = builder.srem
-                elif op == "idiv":
+                elif op == "sdiv":
                     callback = builder.sdiv
                 elif op == "umod":
                     callback = builder.urem
@@ -1231,8 +1231,8 @@ class LLVMFunction(object):
         PC = self.llvm_context.PC
         if isinstance(offset, (int, long)):
             offset = self.add_ir(ExprInt(offset, PC.size))
-        self.affect(offset, PC)
-        self.affect(self.add_ir(ExprInt(1, 8)), ExprId("status", 32))
+        self.assign(offset, PC)
+        self.assign(self.add_ir(ExprInt(1, 8)), ExprId("status", 32))
         self.set_ret(offset)
 
         builder.position_at_end(merge_block)
@@ -1278,8 +1278,8 @@ class LLVMFunction(object):
         PC = self.llvm_context.PC
         if isinstance(offset, (int, long)):
             offset = self.add_ir(ExprInt(offset, PC.size))
-        self.affect(offset, PC)
-        self.affect(self.add_ir(ExprInt(1, 8)), ExprId("status", 32))
+        self.assign(offset, PC)
+        self.assign(self.add_ir(ExprInt(1, 8)), ExprId("status", 32))
         self.set_ret(offset)
 
         builder.position_at_end(merge_block)
@@ -1292,8 +1292,14 @@ class LLVMFunction(object):
             self.printf("%.8X %s\n" % (instr_attrib.instr.offset,
                                        instr_attrib.instr.to_string(loc_db)))
 
-    def gen_post_code(self, attributes):
+    def gen_post_code(self, attributes, pc_value):
         if attributes.log_regs:
+            # Update PC for dump_gpregs
+            PC = self.llvm_context.PC
+            t_size = LLVMType.IntType(PC.size)
+            dst = self.builder.zext(t_size(pc_value), t_size)
+            self.assign(dst, PC)
+
             fc_ptr = self.mod.get_global(self.llvm_context.logging_func)
             self.builder.call(fc_ptr, [self.local_vars["vmcpu"]])
 
@@ -1353,8 +1359,10 @@ class LLVMFunction(object):
         # We are no longer in the main stream, deactivate cache
         self.main_stream = False
 
+        offset = None
         if isinstance(dst, ExprInt):
-            loc_key = self.llvm_context.ir_arch.loc_db.get_or_create_offset_location(int(dst))
+            offset = int(dst)
+            loc_key = self.llvm_context.ir_arch.loc_db.get_or_create_offset_location(offset)
             dst = ExprLoc(loc_key, dst.size)
 
         if isinstance(dst, ExprLoc):
@@ -1371,7 +1379,7 @@ class LLVMFunction(object):
                 if (offset in instr_offsets and
                     offset > attrib.instr.offset):
                     # forward local jump (ie. next instruction)
-                    self.gen_post_code(attrib)
+                    self.gen_post_code(attrib, offset)
                     self.gen_post_instr_checks(attrib, offset)
                     self.builder.branch(bbl)
                     return
@@ -1389,10 +1397,10 @@ class LLVMFunction(object):
         if dst.type.width != PC.size:
             dst = self.builder.zext(dst, LLVMType.IntType(PC.size))
 
-        self.gen_post_code(attrib)
-        self.affect(dst, PC)
+        self.gen_post_code(attrib, offset)
+        self.assign(dst, PC)
         self.gen_post_instr_checks(attrib, dst)
-        self.affect(self.add_ir(ExprInt(0, 8)), ExprId("status", 32))
+        self.assign(self.add_ir(ExprInt(0, 8)), ExprId("status", 32))
         self.set_ret(dst)
 
 
@@ -1435,7 +1443,7 @@ class LLVMFunction(object):
             # Update the memory
             for dst, src in values.iteritems():
                 if isinstance(dst, ExprMem):
-                    self.affect(src, dst)
+                    self.assign(src, dst)
 
             # Check memory write exception
             if attributes[index].mem_write:
@@ -1445,7 +1453,7 @@ class LLVMFunction(object):
             # Update registers values
             for dst, src in values.iteritems():
                 if not isinstance(dst, ExprMem):
-                    self.affect(src, dst)
+                    self.assign(src, dst)
 
             # Check post assignblk exception flags
             if attributes[index].set_exception:
@@ -1485,9 +1493,9 @@ class LLVMFunction(object):
         builder = self.builder
         m2_exception_flag = self.llvm_context.ir_arch.arch.regs.exception_flags
         t_size = LLVMType.IntType(m2_exception_flag.size)
-        self.affect(self.add_ir(ExprInt(1, 8)),
+        self.assign(self.add_ir(ExprInt(1, 8)),
                     ExprId("status", 32))
-        self.affect(t_size(m2_csts.EXCEPT_UNK_MNEMO),
+        self.assign(t_size(m2_csts.EXCEPT_UNK_MNEMO),
                     m2_exception_flag)
         offset = self.llvm_context.ir_arch.loc_db.get_location_offset(asmblock.loc_key)
         self.set_ret(LLVMType.IntType(64)(offset))
@@ -1504,7 +1512,7 @@ class LLVMFunction(object):
             builder.position_at_end(self.get_basic_block_by_loc_key(next_label))
 
             # Common code
-            self.affect(self.add_ir(ExprInt(0, 8)),
+            self.assign(self.add_ir(ExprInt(0, 8)),
                         ExprId("status", 32))
 
             # Check if IRDst has been set
@@ -1527,8 +1535,8 @@ class LLVMFunction(object):
             builder.position_at_end(then_block)
             PC = self.llvm_context.PC
             to_ret = self.add_ir(codegen.delay_slot_dst)
-            self.affect(to_ret, PC)
-            self.affect(self.add_ir(ExprInt(0, 8)),
+            self.assign(to_ret, PC)
+            self.assign(self.add_ir(ExprInt(0, 8)),
                         ExprId("status", 32))
             self.set_ret(to_ret)
 
@@ -1537,7 +1545,7 @@ class LLVMFunction(object):
             PC = self.llvm_context.PC
             next_label_offset = self.llvm_context.ir_arch.loc_db.get_location_offset(next_label)
             to_ret = LLVMType.IntType(PC.size)(next_label_offset)
-            self.affect(to_ret, PC)
+            self.assign(to_ret, PC)
             self.set_ret(to_ret)
 
     def from_asmblock(self, asmblock):

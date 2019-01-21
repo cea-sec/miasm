@@ -2155,3 +2155,9 @@ aarch64op("stlxp", [bs('1'), sf, bs('001000'), bs('0'), bs('0'), bs('1'), rs32, 
 aarch64op("dsb", [bs('1101010100'), bs('0000110011'), crm, bs('1'), bs('00'), bs('11111')], [crm])
 aarch64op("dmb", [bs('1101010100'), bs('0000110011'), crm, bs('1'), bs('01'), bs('11111')], [crm])
 aarch64op("isb", [bs('1101010100'), bs('0000110011'), crm, bs('1'), bs('10'), bs('11111')], [crm])
+
+stacctype = bs_mod_name(l=1, fname='order', mn_mod=['', 'L'])
+ltacctype = bs_mod_name(l=1, fname='order', mn_mod=['', 'A'])
+
+
+aarch64op("casp",   [bs('0'), sf, bs('001000'), bs('0'), ltacctype, bs('1'), rs, stacctype, bs('11111'), rn64_deref_nooff, rt], [rs, rt, rn64_deref_nooff])

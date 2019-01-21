@@ -198,13 +198,13 @@ class TranslatorSMT2(Translator):
                     res = bvmul(res, arg)
                 elif expr.op == "/":
                     res = bvsdiv(res, arg)
-                elif expr.op == "idiv":
+                elif expr.op == "sdiv":
                     res = bvsdiv(res, arg)
                 elif expr.op == "udiv":
                     res = bvudiv(res, arg)
                 elif expr.op == "%":
                     res = bvsmod(res, arg)
-                elif expr.op == "imod":
+                elif expr.op == "smod":
                     res = bvsmod(res, arg)
                 elif expr.op == "umod":
                     res = bvurem(res, arg)

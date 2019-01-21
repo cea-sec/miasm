@@ -21,6 +21,7 @@ TAGS = {"regression": "REGRESSION", # Regression tests
         "long": "LONG", # Very time consumming tests
         "llvm": "LLVM", # LLVM dependency is required
         "gcc": "GCC", # GCC based tests
+        "python": "PYTHON", # Python jitted tests
         "z3": "Z3", # Z3 dependency is needed
         "qemu": "QEMU", # QEMU tests (several tests)
         "cparser": "CPARSER", # pycparser is needed
@@ -109,7 +110,7 @@ for script in ["x86/sem.py",
             continue
         testset += ArchUnitTest(script, jitter, base_dir="arch", tags=tags)
 
-testset += ArchUnitTest("x86/unit/access_xmm.py", "python", base_dir="arch")
+testset += ArchUnitTest("x86/unit/access_xmm.py", "python", base_dir="arch", tags=[TAGS["python"]])
 
 ### QEMU regression tests
 class QEMUTest(RegressionTest):
@@ -383,6 +384,7 @@ testset += RegressionTest(["data_flow.py"], base_dir="analysis",
             ["simp_graph_%02d.dot" % test_nb, "graph_%02d.dot" % test_nb]
             for test_nb in xrange(1, 18))
                                     for fname in fnames])
+testset += RegressionTest(["unssa.py"], base_dir="analysis")
 
 for i in xrange(1, 21):
     input_name = "cst_propag/x86_32_sc_%d" % i
@@ -603,17 +605,17 @@ class ExampleDisasmFull(ExampleDisassembler):
 
 
 testset += ExampleDisasmFull(["arml", Example.get_sample("demo_arm_l.bin"),
-                              "0"], depends=[test_arml])
+                              "0x2c", "-z"], depends=[test_arml])
 testset += ExampleDisasmFull(["armb", Example.get_sample("demo_arm_b.bin"),
-                              "0"], depends=[test_armb])
+                              "0x2c", "-z"], depends=[test_armb])
 testset += ExampleDisasmFull(["arml", Example.get_sample("demo_arm2_l.bin"),
-                              "0"], depends=[test_arml_sc])
+                              "0x0", "-z"], depends=[test_arml_sc])
 testset += ExampleDisasmFull(["armb", Example.get_sample("demo_arm2_b.bin"),
-                              "0"], depends=[test_armb_sc])
+                              "0x0", "-z"], depends=[test_armb_sc])
 testset += ExampleDisasmFull(["armtl", Example.get_sample("demo_armt_l.bin"),
-                              "0"], depends=[test_armtl])
+                              "0x2c", "-z"], depends=[test_armtl])
 testset += ExampleDisasmFull(["armtb", Example.get_sample("demo_armt_b.bin"),
-                              "0"], depends=[test_armtb])
+                              "0x2c", "-z"], depends=[test_armtb])
 testset += ExampleDisasmFull(["aarch64l", Example.get_sample("demo_aarch64_l.bin"),
                               "0"], depends=[test_aarch64l])
 testset += ExampleDisasmFull(["aarch64b", Example.get_sample("demo_aarch64_b.bin"),
@@ -750,7 +752,7 @@ class ExampleJitterNoPython(ExampleJitter):
 
 for jitter in ExampleJitter.jitter_engines:
     # Take 5 min on a Core i5
-    tags = {"python": [TAGS["long"]],
+    tags = {"python": [TAGS["long"], TAGS["python"]],
             "llvm": [TAGS["llvm"]],
             "gcc": [TAGS["gcc"]],
             }

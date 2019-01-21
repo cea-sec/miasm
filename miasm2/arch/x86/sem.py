@@ -1710,7 +1710,7 @@ def div(ir, instr, src1):
     c_d = m2_expr.ExprOp('udiv', src2, src1.zeroExtend(src2.size))
     c_r = m2_expr.ExprOp('umod', src2, src1.zeroExtend(src2.size))
 
-    # if 8 bit div, only ax is affected
+    # if 8 bit div, only ax is assigned
     if size == 8:
         e.append(m2_expr.ExprAssign(src2, m2_expr.ExprCompose(c_d[:8], c_r[:8])))
     else:
@@ -1754,10 +1754,10 @@ def idiv(ir, instr, src1):
     else:
         raise ValueError('div arg not impl', src1)
 
-    c_d = m2_expr.ExprOp('idiv', src2, src1.signExtend(src2.size))
-    c_r = m2_expr.ExprOp('imod', src2, src1.signExtend(src2.size))
+    c_d = m2_expr.ExprOp('sdiv', src2, src1.signExtend(src2.size))
+    c_r = m2_expr.ExprOp('smod', src2, src1.signExtend(src2.size))
 
-    # if 8 bit div, only ax is affected
+    # if 8 bit div, only ax is assigned
     if size == 8:
         e.append(m2_expr.ExprAssign(src2, m2_expr.ExprCompose(c_d[:8], c_r[:8])))
     else:
@@ -4026,7 +4026,7 @@ cmpordsd = vec_op_clip('ord', 64, lambda x: _float_compare_to_mask(x))
 def pand(_, instr, dst, src):
     e = []
     result = dst & src
-    # No flag affected
+    # No flag assigned
     e.append(m2_expr.ExprAssign(dst, result))
     return e, []
 
@@ -4034,7 +4034,7 @@ def pand(_, instr, dst, src):
 def pandn(_, instr, dst, src):
     e = []
     result = (dst ^ dst.mask) & src
-    # No flag affected
+    # No flag assigned
     e.append(m2_expr.ExprAssign(dst, result))
     return e, []
 

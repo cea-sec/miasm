@@ -256,7 +256,7 @@ class CGen(object):
             elif isinstance(dst, ExprId):
                 new_dst = self.add_local_var(dst_var, dst_index, dst)
                 if dst in self.ir_arch.arch.regs.regs_flt_expr:
-                    # Don't mask float affectation
+                    # Don't mask float assignment
                     c_main.append(
                         '%s = (%s);' % (self.id_to_c(new_dst), self.id_to_c(src)))
                 elif new_dst.size <= self.translator.NATIVE_INT_MAX_SIZE:
@@ -392,11 +392,13 @@ class CGen(object):
             )
         return out
 
-    def gen_post_code(self, attrib):
+    def gen_post_code(self, attrib, pc_value):
         """Callback to generate code AFTER the instruction execution
         @attrib: Attributes instance"""
         out = []
         if attrib.log_regs:
+            # Update PC for dump_gpregs
+            out.append("%s = %s;" % (self.C_PC, pc_value))
             out.append('dump_gpregs(jitcpu->cpu);')
         return out
 
@@ -408,7 +410,7 @@ class CGen(object):
 
         out = []
         if isinstance(dst, Expr):
-            out += self.gen_post_code(attrib)
+            out += self.gen_post_code(attrib, "DST_value")
             out.append('BlockDst->address = DST_value;')
             out += self.gen_post_instr_checks(attrib)
             out.append('\t\treturn JIT_RET_NO_EXCEPTION;')
@@ -423,11 +425,11 @@ class CGen(object):
             offset in instr_offsets):
             # Only generate goto for next instructions.
             # (consecutive instructions)
-            out += self.gen_post_code(attrib)
+            out += self.gen_post_code(attrib, "0x%x" % offset)
             out += self.gen_post_instr_checks(attrib)
             out.append('goto %s;' % dst)
         else:
-            out += self.gen_post_code(attrib)
+            out += self.gen_post_code(attrib, "0x%x" % offset)
             out.append('BlockDst->address = DST_value;')
             out += self.gen_post_instr_checks(attrib)
             out.append('\t\treturn JIT_RET_NO_EXCEPTION;')

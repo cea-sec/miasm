@@ -7,6 +7,7 @@ from miasm2.core.locationdb import LocationDB
 loc_db = LocationDB()
 
 reg_tests_aarch64 = [
+
     ("XXXXXXXX    MOV        W1, WZR",
      "E1031F2A"),
     ("XXXXXXXX    TST        W5, W3",
@@ -1793,6 +1794,25 @@ reg_tests_aarch64 = [
 
     ("XXXXXXXX    ORR        X8, 0x0, 0x1000100010001",
      "E88300B2"),
+
+
+    ("XXXXXXXX    CASP       X0, X2, [X4]",
+     "827C2048"),
+    ("XXXXXXXX    CASPL      X0, X2, [X4]",
+     "82FC2048"),
+    ("XXXXXXXX    CASPA      X0, X2, [X4]",
+     "827C6048"),
+    ("XXXXXXXX    CASPAL     X0, X2, [X4]",
+     "82FC6048"),
+
+    ("XXXXXXXX    CASP       W0, W2, [X4]",
+     "827C2008"),
+    ("XXXXXXXX    CASPL      W0, W2, [X4]",
+     "82FC2008"),
+    ("XXXXXXXX    CASPA      W0, W2, [X4]",
+     "827C6008"),
+    ("XXXXXXXX    CASPAL     W0, W2, [X4]",
+     "82FC6008"),
 
 ]
 

@@ -114,21 +114,11 @@ class JitCore(object):
         for a, b in self.blocks_mem_interval:
             vm.add_code_bloc(a, b + 1)
 
-    def jit_irblocks(self, label, irblocks):
-        """JiT a group of irblocks.
-        @label: the label of the irblocks
-        @irblocks: a group of irblocks
-        """
-
-        raise NotImplementedError("Abstract class")
-
     def add_block(self, block):
         """Add a block to JiT and JiT it.
         @block: asm_bloc to add
         """
-        irblocks = self.ir_arch.add_asmblock_to_ircfg(block, self.ircfg, gen_pc_updt = True)
-        block.blocks = irblocks
-        self.jit_irblocks(block.loc_key, irblocks)
+        raise NotImplementedError("Abstract class")
 
     def disasm_and_jit_block(self, addr, vm):
         """Disassemble a new block and JiT it

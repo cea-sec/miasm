@@ -248,7 +248,6 @@ PyObject* vm_get_u8(VmMngr* self, PyObject* args)
        PyObject *py_addr;
 
        uint64_t addr;
-       uint64_t size;
        PyObject *obj_out;
        char * buf_out;
        int ret;
@@ -276,7 +275,6 @@ PyObject* vm_get_u16(VmMngr* self, PyObject* args)
        PyObject *py_addr;
 
        uint64_t addr;
-       uint64_t size;
        PyObject *obj_out;
        char * buf_out;
        int ret;
@@ -304,7 +302,6 @@ PyObject* vm_get_u32(VmMngr* self, PyObject* args)
        PyObject *py_addr;
 
        uint64_t addr;
-       uint64_t size;
        PyObject *obj_out;
        char * buf_out;
        int ret;
@@ -333,7 +330,6 @@ PyObject* vm_get_u64(VmMngr* self, PyObject* args)
        PyObject *py_addr;
 
        uint64_t addr;
-       uint64_t size;
        PyObject *obj_out;
        char * buf_out;
        int ret;

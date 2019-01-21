@@ -290,6 +290,8 @@ reg_tests_armt = [
      "be42"),
     ("001845ea    CMN        R3, R0",
      "c342"),
+    ("XXXXXXXX    CMN        R0, 0x1",
+     "10F1010F"),
     ("001845ea    ORRS       R0, R4",
      "2043"),
     # muls
@@ -449,6 +451,13 @@ reg_tests_armt = [
 
     ("00000000    UXTB       R5, R0",
      "C5B2"),
+
+    ("00000000    UXTAB      R7, R0, R1",
+     "50FA81F7"),
+
+    ("00000000    UXTAH      R4, R0, R1",
+     "10FA81F4"),
+
     ("xxxxxxxx    BKPT       0x13",
      "13be"),
     ("xxxxxxxx    SVC        0x13",
@@ -493,6 +502,8 @@ reg_tests_armt = [
     ("xxxxxxxx    MOV        R1, R1 LSL 0x10",
      "4FEA0141"),
 
+    ("xxxxxxxx    MOV        R2, R11 LSR 0x1",
+     "4FEA5B02"),
 
     ("xxxxxxxx    ADD        R1, R4, 0x30",
      "04F13001"),
@@ -675,6 +686,9 @@ reg_tests_armt = [
 
     ("xxxxxxxx    DSB        SY",
      "bff34f8f"),
+
+    ("xxxxxxxx    CMP        R5, R0 LSR 0x8",
+     "B5EB102F"),
 
 
 ]

@@ -540,7 +540,10 @@ class instruction_x86(instruction):
         self.additional_info.prefixed = getattr(c, "prefixed", "")
 
     def __str__(self):
-        o = super(instruction_x86, self).__str__()
+        return self.to_string()
+      
+    def to_string(self, loc_db=None):
+        o = super(instruction_x86, self).to_string(loc_db)
         if self.additional_info.g1.value & 1:
             o = "LOCK %s" % o
         if self.additional_info.g1.value & 2:
@@ -899,7 +902,7 @@ class mn_x86(cls_mn):
             if hasattr(c, "fadmode") and v_admode(c) != c.fadmode.mode:
                 continue
             # relative dstflow must not have opmode set
-            # (affect IP instead of EIP for instance)
+            # (assign IP instead of EIP for instance)
             if (instr.dstflow() and
                 instr.name not in ["JCXZ", "JECXZ", "JRCXZ"] and
                 len(instr.args) == 1 and

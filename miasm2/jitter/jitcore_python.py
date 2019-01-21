@@ -1,5 +1,5 @@
 import miasm2.jitter.jitcore as jitcore
-import miasm2.expression.expression as m2_expr
+from miasm2.expression.expression import ExprInt, ExprLoc
 import miasm2.jitter.csts as csts
 from miasm2.expression.simplifications import expr_simp_explicit
 from miasm2.jitter.emulatedsymbexec import EmulatedSymbExec
@@ -36,11 +36,37 @@ class JitCore_Python(jitcore.JitCore):
         "Preload symbols according to current architecture"
         self.symbexec.reset_regs()
 
-    def jit_irblocks(self, loc_key, irblocks):
-        """Create a python function corresponding to an irblocks' group.
-        @loc_key: the loc_key of the irblocks
-        @irblocks: a group of irblocks
+    def arch_specific(self):
+        """Return arch specific information for the current architecture"""
+        arch = self.ir_arch.arch
+        has_delayslot = False
+        if arch.name == "mips32":
+            from miasm2.arch.mips32.jit import mipsCGen
+            cgen_class = mipsCGen
+            has_delayslot = True
+        elif arch.name == "arm":
+            from miasm2.arch.arm.jit import arm_CGen
+            cgen_class = arm_CGen
+        else:
+            from miasm2.jitter.codegen import CGen
+            cgen_class = CGen
+        return cgen_class(self.ir_arch), has_delayslot
+
+    def add_block(self, asmblock):
+        """Create a python function corresponding to an AsmBlock
+        @asmblock: AsmBlock
         """
+
+        # TODO: merge duplicate code with CGen, llvmconvert
+        codegen, has_delayslot = self.arch_specific()
+        irblocks_list = codegen.block2assignblks(asmblock)
+        instr_offsets = [line.offset for line in asmblock.lines]
+
+        loc_db = self.ir_arch.loc_db
+        local_loc_keys = []
+        for irblocks in irblocks_list:
+            for irblock in irblocks:
+                local_loc_keys.append(irblock.loc_key)
 
         def myfunc(cpu):
             """Execute the function according to cpu and vmmngr states
@@ -49,86 +75,131 @@ class JitCore_Python(jitcore.JitCore):
             # Get virtual memory handler
             vmmngr = cpu.vmmngr
 
-            # Keep current location in irblocks
-            cur_loc_key = loc_key
-
-            # Required to detect new instructions
-            offsets_jitted = set()
-
-            # Get exec engine
+            # Get execution engine (EmulatedSymbExec instance)
             exec_engine = self.symbexec
-            expr_simp = exec_engine.expr_simp
 
-            # For each irbloc inside irblocks
+            # Refresh CPU values according to @cpu instance
+            exec_engine.update_engine_from_cpu()
+
+            # Get initial loc_key
+            cur_loc_key = asmblock.loc_key
+
+            # Update PC helper
+            update_pc = lambda value: setattr(cpu, self.ir_arch.pc.name, value)
+
             while True:
-                # Get the current bloc
-                for irb in irblocks:
-                    if irb.loc_key == cur_loc_key:
-                        break
-
+                # Retrieve the expected irblock
+                for instr, irblocks in zip(asmblock.lines, irblocks_list):
+                    for index, irblock in enumerate(irblocks):
+                        if irblock.loc_key == cur_loc_key:
+                            break
+                    else:
+                        continue
+                    break
                 else:
-                    raise RuntimeError("Irblocks must end with returning an "
-                                       "ExprInt instance")
+                    raise RuntimeError("Unable to find the block for %r" % cur_loc_key)
 
-                # Refresh CPU values according to @cpu instance
-                exec_engine.update_engine_from_cpu()
+                instr_attrib, irblocks_attributes = codegen.get_attributes(
+                    instr, irblocks, self.log_mn, self.log_regs
+                )
+                irblock_attributes = irblocks_attributes[index]
 
-                # Execute current ir bloc
-                for assignblk in irb:
-                    instr = assignblk.instr
-                    # For each new instruction (in assembly)
-                    if instr is not None and instr.offset not in offsets_jitted:
-                        # Test exceptions
-                        vmmngr.check_invalid_code_blocs()
-                        vmmngr.check_memory_breakpoint()
-                        if vmmngr.get_exception():
-                            exec_engine.update_cpu_from_engine()
-                            return instr.offset
+                # Do IRBlock
+                new_irblock = self.ir_arch.irbloc_fix_regs_for_mode(
+                    irblock, self.ir_arch.attrib
+                )
+                if index == 0:
+                    # Pre code
+                    if instr_attrib.log_mn:
+                        print "%.8X %s" % (
+                            instr_attrib.instr.offset,
+                            instr_attrib.instr.to_string(loc_db)
+                        )
 
-                        offsets_jitted.add(instr.offset)
+                # Exec IRBlock
+                instr = instr_attrib.instr
 
-                        # Log registers values
-                        if self.log_regs:
-                            exec_engine.update_cpu_from_engine()
-                            exec_engine.cpu.dump_gpregs()
-
-                        # Log instruction
-                        if self.log_mn:
-                            print "%08x %s" % (instr.offset, instr)
-
-                        # Check for exception
-                        if (vmmngr.get_exception() != 0 or
-                            cpu.get_exception() != 0):
-                            exec_engine.update_cpu_from_engine()
-                            return instr.offset
+                for index, assignblk in enumerate(irblock):
+                    attributes = irblock_attributes[index]
 
                     # Eval current instruction (in IR)
                     exec_engine.eval_updt_assignblk(assignblk)
-                    # Check for exceptions which do not update PC
+
+                    # Check memory access / write exception
+                    # TODO: insert a check between memory reads and writes
+                    if attributes.mem_read or attributes.mem_write:
+                        # Restricted exception
+                        flag = ~csts.EXCEPT_CODE_AUTOMOD & csts.EXCEPT_DO_NOT_UPDATE_PC
+                        if (vmmngr.get_exception() & flag != 0):
+                            # Do not update registers
+                            update_pc(instr.offset)
+                            return instr.offset
+
+                    # Update registers values
                     exec_engine.update_cpu_from_engine()
-                    if (vmmngr.get_exception() & csts.EXCEPT_DO_NOT_UPDATE_PC != 0 or
-                        cpu.get_exception() > csts.EXCEPT_NUM_UPDT_EIP):
-                        return instr.offset
 
-                vmmngr.check_invalid_code_blocs()
-                vmmngr.check_memory_breakpoint()
+                    # Check post assignblk exception flags
+                    if attributes.set_exception:
+                        # Restricted exception
+                        if cpu.get_exception() > csts.EXCEPT_NUM_UPDT_EIP:
+                            # Update PC
+                            update_pc(instr.offset)
+                            return instr.offset
 
-                # Get next bloc address
-                ad = expr_simp(exec_engine.eval_expr(self.ir_arch.IRDst))
+                dst = exec_engine.eval_expr(self.ir_arch.IRDst)
+                if dst.is_int():
+                    loc_key = loc_db.get_or_create_offset_location(int(dst))
+                    dst = ExprLoc(loc_key, dst.size)
 
-                # Updates @cpu instance according to new CPU values
-                exec_engine.update_cpu_from_engine()
+                assert dst.is_loc()
+                loc_key = dst.loc_key
+                offset = loc_db.get_location_offset(loc_key)
+                if offset is None:
+                    # Avoid checks on generated label
+                    cur_loc_key = loc_key
+                    continue
+
+                if instr_attrib.log_regs:
+                    update_pc(offset)
+                    cpu.dump_gpregs_with_attrib(self.ir_arch.attrib)
+
+                # Post-instr checks
+                if instr_attrib.mem_read | instr_attrib.mem_write:
+                    vmmngr.check_memory_breakpoint()
+                    vmmngr.check_invalid_code_blocs()
+                    if vmmngr.get_exception():
+                        update_pc(offset)
+                        return offset
+
+                if instr_attrib.set_exception:
+                    if cpu.get_exception():
+                        update_pc(offset)
+                        return offset
+
+                if instr_attrib.mem_read | instr_attrib.mem_write:
+                    vmmngr.reset_memory_access()
 
                 # Manage resulting address
-                if isinstance(ad, m2_expr.ExprInt):
-                    return ad.arg.arg
-                elif isinstance(ad, m2_expr.ExprLoc):
-                    cur_loc_key = ad.loc_key
-                else:
-                    raise NotImplementedError("Type not handled: %s" % ad)
+                if (loc_key in local_loc_keys and
+                    offset > instr.offset):
+                    # Forward local jump
+                    # Note: a backward local jump has to be promoted to extern,
+                    # for max_exec_per_call support
+                    cur_loc_key = loc_key
+                    continue
+
+                # Delay slot
+                if has_delayslot:
+                    delay_slot_set = exec_engine.eval_expr(codegen.delay_slot_set)
+                    if delay_slot_set.is_int() and int(delay_slot_set) != 0:
+                        return int(exec_engine.eval_expr(codegen.delay_slot_dst))
+
+                # Extern of asmblock, must have an offset
+                assert offset is not None
+                return offset
 
         # Associate myfunc with current loc_key
-        offset = self.ir_arch.loc_db.get_location_offset(loc_key)
+        offset = loc_db.get_location_offset(asmblock.loc_key)
         assert offset is not None
         self.offset_to_jitted_func[offset] = myfunc
 
