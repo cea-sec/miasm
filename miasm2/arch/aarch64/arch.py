@@ -2161,3 +2161,4 @@ ltacctype = bs_mod_name(l=1, fname='order', mn_mod=['', 'A'])
 
 
 aarch64op("casp",   [bs('0'), sf, bs('001000'), bs('0'), ltacctype, bs('1'), rs, stacctype, bs('11111'), rn64_deref_nooff, rt], [rs, rt, rn64_deref_nooff])
+aarch64op("ldaxrb", [bs('00'),  bs('001000'), bs('0'), bs('1'), bs('0'), bs('11111'), bs('1'), bs('11111'), rn64_deref_nooff, rt32], [rt32, rn64_deref_nooff])
