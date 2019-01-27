@@ -579,6 +579,92 @@ int bignum_cmp(bn_t a, bn_t b)
 }
 
 
+/* Signed compare bn */
+int bignum_cmp_signed(bn_t a, bn_t b)
+{
+	int i = BN_ARRAY_SIZE;
+	do {
+		i -= 1; /* Decrement first, to start with last array element */
+		if ((DTYPE_SIGNED)a.array[i] > (DTYPE_SIGNED)b.array[i]) {
+			return LARGER;
+		}
+		else if ((DTYPE_SIGNED)a.array[i] < (DTYPE_SIGNED)b.array[i]) {
+			return SMALLER;
+		}
+	}
+	while (i != 0);
+
+	return EQUAL;
+}
+
+
+/* Unsigned compare bn */
+int bignum_cmp_unsigned(bn_t a, bn_t b)
+{
+	return bignum_cmp(a, b);
+}
+
+
+/* Return 1 if a == b else 0 */
+int bignum_is_equal(bn_t a, bn_t b)
+{
+	int ret;
+	ret = bignum_cmp_unsigned(a, b);
+	if (ret == EQUAL)
+		return 1;
+	else
+		return 0;
+}
+
+
+/* Return 1 if a <u b else 0 */
+int bignum_is_inf_unsigned(bn_t a, bn_t b)
+{
+	int ret;
+	ret = bignum_cmp_unsigned(a, b);
+	if (ret == SMALLER)
+		return 1;
+	else
+		return 0;
+}
+
+
+/* Return 1 if a <=u b else 0 */
+int bignum_is_inf_equal_unsigned(bn_t a, bn_t b)
+{
+	int ret;
+	ret = bignum_cmp_unsigned(a, b);
+	if (ret == EQUAL || ret == SMALLER)
+		return 1;
+	else
+		return 0;
+}
+
+
+/* Return 1 if a <s b else 0 */
+int bignum_is_inf_signed(bn_t a, bn_t b)
+{
+	int ret;
+	ret = bignum_cmp_signed(a, b);
+	if (ret == SMALLER)
+		return 1;
+	else
+		return 0;
+}
+
+
+/* Return 1 if a <=s b else 0 */
+int bignum_is_inf_equal_signed(bn_t a, bn_t b)
+{
+	int ret;
+	ret = bignum_cmp_signed(a, b);
+	if (ret == EQUAL || ret == SMALLER)
+		return 1;
+	else
+		return 0;
+}
+
+
 int bignum_is_zero(bn_t n)
 {
 	//require(n, "n is null");
