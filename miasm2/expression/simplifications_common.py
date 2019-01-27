@@ -1300,11 +1300,17 @@ def simp_slice_of_ext(_, expr):
     return expr
 
 def simp_slice_of_op_ext(expr_s, expr):
-    """(X.zeroExt() + ... + Int)[0:8] => X + ... + int[:]"""
+    """
+    (X.zeroExt() + {Z, } + ... + Int)[0:8] => X + ... + int[:]
+    (X.zeroExt() | ... | Int)[0:8] => X | ... | int[:]
+    ...
+    """
     if expr.start != 0:
         return expr
     src = expr.arg
-    if not src.is_op("+"):
+    if not src.is_op():
+        return expr
+    if src.op not in ['+', '|', '^', '&']:
         return expr
     is_ok = True
     for arg in src.args:
@@ -1314,12 +1320,14 @@ def simp_slice_of_op_ext(expr_s, expr):
             arg.op.startswith("zeroExt") and
             arg.args[0].size == expr.stop):
             continue
+        if arg.is_compose():
+            continue
         is_ok = False
         break
     if not is_ok:
         return expr
     args = [expr_s(arg[:expr.stop]) for arg in src.args]
-    return ExprOp("+", *args)
+    return ExprOp(src.op, *args)
 
 
 def simp_cond_logic_ext(expr_s, expr):
