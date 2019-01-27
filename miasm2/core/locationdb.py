@@ -252,7 +252,10 @@ class LocationDB(object):
             # Non-strict mode
             if name_loc_key is not None:
                 known_offset = self.get_offset_location(name_loc_key)
-                if known_offset != offset:
+                if known_offset is None:
+                    if offset is not None:
+                        self.set_location_offset(name_loc_key, offset)
+                elif known_offset != offset:
                     raise ValueError(
                         "Location with name '%s' already have an offset: 0x%x "
                         "(!= 0x%x)" % (name, offset, known_offset)
