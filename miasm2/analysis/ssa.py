@@ -791,7 +791,6 @@ class UnSSADiGraph(object):
                 for src in sources.args:
                     parents = var_to_parents[src]
                     self.new_var_to_srcs_parents.setdefault(new_var, set()).update(parents)
-                    parent_dsts = set((parent, src) for parent in parents)
                     for parent in parents:
                         self.phi_parent_sources.setdefault(dst, set()).add((parent, src))
 
