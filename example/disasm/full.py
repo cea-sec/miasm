@@ -8,9 +8,12 @@ from miasm2.core.interval import interval
 from miasm2.analysis.machine import Machine
 from miasm2.analysis.data_flow import dead_simp, DiGraphDefUse, \
     ReachingDefinitions, merge_blocks, remove_empty_assignblks, \
-    PropagateExpr, replace_stack_vars, load_from_int
+    PropagateExpr, replace_stack_vars, load_from_int, \
+    del_unused_edges
 from miasm2.expression.simplifications import expr_simp
-from miasm2.analysis.ssa import SSADiGraph, UnSSADiGraph, DiGraphLivenessSSA
+from miasm2.analysis.ssa import SSADiGraph
+from miasm2.analysis.outofssa import UnSSADiGraph
+from miasm2.analysis.data_flow import DiGraphLivenessSSA
 from miasm2.ir.ir import AssignBlock, IRBlock
 
 
@@ -395,6 +398,9 @@ if args.propagexpr:
                 if args.verbose > 3:
                     open('tmp_after_%d.dot' % index, 'w').write(ircfg_a.dot())
                 simp_modified |= remove_empty_assignblks(ircfg_a)
+                simp_modified |= del_unused_edges(ircfg_a, heads)
+                simp_modified |= merge_blocks(ircfg_a, heads)
+
                 if args.loadint:
                     simp_modified |= load_from_int(ircfg_a, bs, is_addr_ro_variable)
                 modified |= simp_modified

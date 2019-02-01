@@ -1,6 +1,5 @@
 from collections import deque
 
-from miasm2.analysis.data_flow import DiGraphLivenessIRA, remove_empty_assignblks
 from miasm2.expression.expression import ExprId, ExprAssign, ExprOp, get_expr_ids
 from miasm2.ir.ir import AssignBlock, IRBlock
 
@@ -1079,47 +1078,3 @@ class UnSSADiGraph(object):
                     out[dst] = src
                 assignblks[i] = AssignBlock(out, assignblk.instr)
             self.ssa.graph.blocks[irblock.loc_key] = IRBlock(irblock.loc_key, assignblks)
-
-
-class DiGraphLivenessSSA(DiGraphLivenessIRA):
-    """
-    DiGraph representing variable liveness is a SSA graph
-    """
-    def __init__(self, ircfg):
-        super(DiGraphLivenessSSA, self).__init__(ircfg)
-
-        self.loc_key_to_phi_parents = {}
-        for irblock in self.blocks.values():
-            if not irblock_has_phi(irblock):
-                continue
-            out = {}
-            for sources in irblock[0].itervalues():
-                var_to_parents = get_phi_sources_parent_block(self, irblock.loc_key, sources.args)
-                for var, var_parents in var_to_parents.iteritems():
-                    out.setdefault(var, set()).update(var_parents)
-            self.loc_key_to_phi_parents[irblock.loc_key] = out
-
-    def back_propagate_to_parent(self, todo, node, parent):
-        parent_block = self.blocks[parent]
-        cur_block = self.blocks[node]
-        irblock = self.ircfg.blocks[node]
-        if cur_block.infos[0].var_in == parent_block.infos[-1].var_out:
-            return
-        var_info = cur_block.infos[0].var_in.union(parent_block.infos[-1].var_out)
-
-        if irblock_has_phi(irblock):
-            # Remove phi special case
-            out = set()
-            phi_sources = self.loc_key_to_phi_parents[irblock.loc_key]
-            for var in var_info:
-                if var not in phi_sources:
-                    out.add(var)
-                    continue
-                if parent in phi_sources[var]:
-                    out.add(var)
-            var_info = out
-
-        parent_block.infos[-1].var_out = var_info
-        todo.add(parent)
-
-
