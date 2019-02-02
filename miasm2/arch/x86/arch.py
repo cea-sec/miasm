@@ -470,7 +470,7 @@ class instruction_x86(instruction):
         return self.name in ['CALL']
 
     def dstflow2label(self, loc_db):
-        if self.additional_info.g1.value & 6 and self.name in repeat_mn:
+        if self.additional_info.g1.value & 14 and self.name in repeat_mn:
             return
         expr = self.args[0]
         if not expr.is_int():
@@ -512,7 +512,7 @@ class instruction_x86(instruction):
         return self.name in ['CALL']
 
     def getdstflow(self, loc_db):
-        if self.additional_info.g1.value & 6 and self.name in repeat_mn:
+        if self.additional_info.g1.value & 14 and self.name in repeat_mn:
             addr = int(self.offset)
             loc_key = loc_db.get_or_create_offset_location(addr)
             return [ExprLoc(loc_key, self.v_opmode())]
@@ -552,6 +552,9 @@ class instruction_x86(instruction):
         if self.additional_info.g1.value & 4:
             if getattr(self.additional_info.prefixed, 'default', "") != "\xF3":
                 o = "REPE %s" % o
+        if self.additional_info.g1.value & 8:
+            if getattr(self.additional_info.prefixed, 'default', "") != "\xF3":
+                o = "REP %s" % o
         return o
 
     def get_args_expr(self):
@@ -683,6 +686,9 @@ class mn_x86(cls_mn):
         elif prefix == "REPE":
             pref |= 4
             text = new_s
+        elif prefix == "REP":
+            pref |= 8
+            text = new_s
         c = super(mn_x86, cls).fromstring(text, loc_db, mode)
         c.additional_info.g1.value = pref
         return c
@@ -712,8 +718,10 @@ class mn_x86(cls_mn):
                 pre_dis_info['g1'] = 1
             elif c == '\xf2':
                 pre_dis_info['g1'] = 2
-            elif c == '\xf3':
+            elif c == '\xf3' and v.getbytes(offset + 1) in ['\xa6', '\xa7', '\xae', '\xaf']:
                 pre_dis_info['g1'] = 4
+            elif c == '\xf3':
+                pre_dis_info['g1'] = 8
 
             elif c == '\x2e':
                 pre_dis_info['g2'] = 1
@@ -856,7 +864,7 @@ class mn_x86(cls_mn):
             if hasattr(self, 'no_xmm_pref'):
                 return None
             v = "\xf2" + v
-        if self.g1.value & 4:
+        if self.g1.value & 12:
             if hasattr(self, 'no_xmm_pref'):
                 return None
             v = "\xf3" + v
@@ -895,7 +903,7 @@ class mn_x86(cls_mn):
         out = []
         for c, v in candidates:
             if (hasattr(c, 'no_xmm_pref') and
-                (c.g1.value & 2 or c.g1.value & 4 or c.opmode)):
+                (c.g1.value & 2 or c.g1.value & 4 or c.g1.value & 8 or c.opmode)):
                 continue
             if hasattr(c, "fopmode") and v_opmode(c) != c.fopmode.mode:
                 continue
