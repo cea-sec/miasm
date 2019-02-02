@@ -549,12 +549,12 @@ class instruction_x86(instruction):
         if self.additional_info.g1.value & 2:
             if getattr(self.additional_info.prefixed, 'default', "") != "\xF2":
                 o = "REPNE %s" % o
-        if self.additional_info.g1.value & 4:
-            if getattr(self.additional_info.prefixed, 'default', "") != "\xF3":
-                o = "REPE %s" % o
         if self.additional_info.g1.value & 8:
             if getattr(self.additional_info.prefixed, 'default', "") != "\xF3":
                 o = "REP %s" % o
+        elif self.additional_info.g1.value & 4:
+            if getattr(self.additional_info.prefixed, 'default', "") != "\xF3":
+                o = "REPE %s" % o
         return o
 
     def get_args_expr(self):
@@ -680,10 +680,10 @@ class mn_x86(cls_mn):
         if prefix == "LOCK":
             pref |= 1
             text = new_s
-        elif prefix == "REPNE":
+        elif prefix == "REPNE" or prefix == "REPNZ":
             pref |= 2
             text = new_s
-        elif prefix == "REPE":
+        elif prefix == "REPE" or prefix == "REPZ":
             pref |= 4
             text = new_s
         elif prefix == "REP":
@@ -721,7 +721,7 @@ class mn_x86(cls_mn):
             elif c == '\xf3' and v.getbytes(offset + 1) in ['\xa6', '\xa7', '\xae', '\xaf']:
                 pre_dis_info['g1'] = 4
             elif c == '\xf3':
-                pre_dis_info['g1'] = 8
+                pre_dis_info['g1'] = 12
 
             elif c == '\x2e':
                 pre_dis_info['g2'] = 1
