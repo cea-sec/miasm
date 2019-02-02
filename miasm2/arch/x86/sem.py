@@ -5671,8 +5671,10 @@ class ir_x86_16(IntermediateRepresentation):
             c_cond = cond_dec
         elif instr.additional_info.g1.value & 2:  # REPNE
             c_cond = cond_dec | zf
-        elif instr.additional_info.g1.value & 4:  # REP
+        elif instr.additional_info.g1.value & 4:  # REPE
             c_cond = cond_dec | (zf ^ m2_expr.ExprInt(1, 1))
+        elif instr.additional_info.g1.value & 8:  # REP
+            c_cond = cond_dec
 
         # gen while
         loc_do, loc_do_expr = self.gen_loc_key_and_expr(self.IRDst.size)
