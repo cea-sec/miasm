@@ -56,6 +56,7 @@ Code slightly modified to support ast generation calculus style from Expr.
 #elif (WORD_SIZE == 1)
   /* Data type of array in structure */
   #define DTYPE                    uint8_t
+  #define DTYPE_SIGNED             int8_t
   /* bitmask for getting MSB */
   #define DTYPE_MSB                ((DTYPE_TMP)(0x80))
   /* Data-type larger than DTYPE, for holding intermediate results of calculations */
@@ -67,6 +68,7 @@ Code slightly modified to support ast generation calculus style from Expr.
   #define MAX_VAL                  ((DTYPE_TMP)0xFF)
 #elif (WORD_SIZE == 2)
   #define DTYPE                    uint16_t
+  #define DTYPE_SIGNED             int16_t
   #define DTYPE_TMP                uint32_t
   #define DTYPE_MSB                ((DTYPE_TMP)(0x8000))
   #define SPRINTF_FORMAT_STR       "%.04x"
@@ -74,6 +76,7 @@ Code slightly modified to support ast generation calculus style from Expr.
   #define MAX_VAL                  ((DTYPE_TMP)0xFFFF)
 #elif (WORD_SIZE == 4)
   #define DTYPE                    uint32_t
+  #define DTYPE_SIGNED             int32_t
   #define DTYPE_TMP                uint64_t
   #define DTYPE_MSB                ((DTYPE_TMP)(0x80000000))
   #define SPRINTF_FORMAT_STR       "%.08x"
@@ -132,7 +135,15 @@ _MIASM_EXPORT bn_t bignum_a_rshift(bn_t a, int size, int nbits); /* b = a a>> nb
 _MIASM_EXPORT bn_t bignum_not(bn_t a); /* c = ~a */
 
 /* Special operators and comparison */
-_MIASM_EXPORT int  bignum_cmp(bn_t a, bn_t b);               /* Compare: returns LARGER, EQUAL or SMALLER */
+_MIASM_EXPORT int bignum_cmp(bn_t a, bn_t b);                      /* Compare: returns LARGER, EQUAL or SMALLER */
+_MIASM_EXPORT int bignum_is_equal(bn_t a, bn_t b);                 /* Return 1 if a == b else 0 */
+_MIASM_EXPORT int bignum_is_inf_unsigned(bn_t a, bn_t b);          /* Return 1 if a <u b else 0 */
+_MIASM_EXPORT int bignum_is_inf_equal_unsigned(bn_t a, bn_t b);    /* Return 1 if a <=u b else 0 */
+_MIASM_EXPORT int bignum_is_inf_signed(bn_t a, bn_t b);            /* Return 1 if a <s b else 0 */
+_MIASM_EXPORT int bignum_is_inf_equal_signed(bn_t a, bn_t b);      /* Return 1 if a <=s b else 0 */
+
+
+
 _MIASM_EXPORT int  bignum_is_zero(bn_t n);                         /* For comparison with zero */
 _MIASM_EXPORT bn_t bignum_inc(bn_t n);                             /* Increment: add one to n */
 _MIASM_EXPORT bn_t bignum_dec(bn_t n);                             /* Decrement: subtract one from n */

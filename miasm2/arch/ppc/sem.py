@@ -17,7 +17,12 @@ crf_dict = dict((ExprId("CR%d" % i, 4),
                        for bit in ['LT', 'GT', 'EQ', 'SO' ] ))
                 for i in xrange(8) )
 
-ctx = { 'crf_dict': crf_dict, 'spr_dict': spr_dict }
+ctx = {
+    'crf_dict': crf_dict,
+    'spr_dict': spr_dict,
+    'expr': expr,
+}
+
 ctx.update(all_regs_ids_byname)
 sbuild = SemBuilder(ctx)
 
@@ -746,22 +751,16 @@ def mn_do_nop_warn(ir, instr, *args):
 
 @sbuild.parse
 def mn_cmp_signed(arg1, arg2, arg3):
-    crf_dict[arg1]['LT'] = ((arg2 - arg3) ^
-                            ((arg2 ^ arg3) & ((arg2 - arg3) ^ arg2))).msb()
-    crf_dict[arg1]['GT'] = ((arg3 - arg2) ^
-                            ((arg3 ^ arg2) & ((arg3 - arg2) ^ arg3))).msb()
-    crf_dict[arg1]['EQ'] = i1(0) if arg2 - arg3 else i1(1)
+    crf_dict[arg1]['LT'] = expr.ExprOp(expr.TOK_INF_SIGNED, arg2, arg3)
+    crf_dict[arg1]['GT'] = expr.ExprOp(expr.TOK_INF_SIGNED, arg3, arg2)
+    crf_dict[arg1]['EQ'] = expr.ExprOp(expr.TOK_EQUAL, arg2, arg3)
     crf_dict[arg1]['SO'] = XER_SO
 
 @sbuild.parse
 def mn_cmp_unsigned(arg1, arg2, arg3):
-    crf_dict[arg1]['LT'] = (((arg2 - arg3) ^
-                             ((arg2 ^ arg3) & ((arg2 - arg3) ^ arg2))) ^
-                            arg2 ^ arg3).msb()
-    crf_dict[arg1]['GT'] = (((arg3 - arg2) ^
-                             ((arg3 ^ arg2) & ((arg3 - arg2) ^ arg3))) ^
-                            arg2 ^ arg3).msb()
-    crf_dict[arg1]['EQ'] = i1(0) if arg2 - arg3 else i1(1)
+    crf_dict[arg1]['LT'] = expr.ExprOp(expr.TOK_INF_UNSIGNED, arg2, arg3)
+    crf_dict[arg1]['GT'] = expr.ExprOp(expr.TOK_INF_UNSIGNED, arg3, arg2)
+    crf_dict[arg1]['EQ'] = expr.ExprOp(expr.TOK_EQUAL, arg2, arg3)
     crf_dict[arg1]['SO'] = XER_SO
 
 def mn_nop(ir, instr, *args):
