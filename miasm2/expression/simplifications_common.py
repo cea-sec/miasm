@@ -1375,6 +1375,59 @@ def simp_cond_sign_bit(_, expr):
     return ExprCond(cond, expr.src1, expr.src2)
 
 
+def simp_cond_add(expr_s, expr):
+    """
+    (a+b)?X:Y => (a == b)?Y:X
+    (a^b)?X:Y => (a == b)?Y:X
+    """
+    cond = expr.cond
+    if not cond.is_op():
+        return expr
+    if cond.op not in ['+', '^']:
+        return expr
+    if len(cond.args) != 2:
+        return expr
+    arg1, arg2 = cond.args
+    if cond.is_op('+'):
+        new_cond = ExprOp('==', arg1, expr_s(-arg2))
+    elif cond.is_op('^'):
+        new_cond = ExprOp('==', arg1, arg2)
+    else:
+        raise ValueError('Bad case')
+    return ExprCond(new_cond, expr.src2, expr.src1)
+
+
+def simp_cond_eq_1_0(expr_s, expr):
+    """
+    (a == b)?ExprInt(1, 1):ExprInt(0, 1) => a == b
+    (a <s b)?ExprInt(1, 1):ExprInt(0, 1) => a == b
+    ...
+    """
+    cond = expr.cond
+    if not cond.is_op():
+        return expr
+    if cond.op not in [
+            TOK_EQUAL,
+            TOK_INF_SIGNED, TOK_INF_EQUAL_SIGNED,
+            TOK_INF_UNSIGNED, TOK_INF_EQUAL_UNSIGNED
+            ]:
+        return expr
+    if expr.src1 != ExprInt(1, 1) or expr.src2 != ExprInt(0, 1):
+        return expr
+    return cond
+
+
+def simp_cond_inf_eq_unsigned_zero(expr_s, expr):
+    """
+    (a <=u 0) => a == 0
+    """
+    if not expr.is_op(TOK_INF_EQUAL_UNSIGNED):
+        return expr
+    if not expr.args[1].is_int(0):
+        return expr
+    return ExprOp(TOK_EQUAL, expr.args[0], expr.args[1])
+
+
 def simp_test_signext_inf(expr_s, expr):
     """A.signExt() <s int => A <s int[:]"""
     if not (expr.is_op(TOK_INF_SIGNED) or expr.is_op(TOK_INF_EQUAL_SIGNED)):
