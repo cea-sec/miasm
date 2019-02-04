@@ -595,10 +595,11 @@ class SSADiGraph(SSA):
         # Replace non modified node used in phi with new variable
         self.ircfg.simplify(lambda expr:expr.replace_expr(var_to_newname))
 
-        irblock = self.ircfg.blocks[head]
-        assignblks = list(irblock)
-        assignblks[0:0] = [AssignBlock(newname_to_var, assignblks[0].instr)]
-        self.ircfg.blocks[head] = IRBlock(head, assignblks)
+        if newname_to_var:
+            irblock = self.ircfg.blocks[head]
+            assignblks = list(irblock)
+            assignblks[0:0] = [AssignBlock(newname_to_var, assignblks[0].instr)]
+            self.ircfg.blocks[head] = IRBlock(head, assignblks)
 
         # Updt structure
         for loc_key in self._phinodes:
