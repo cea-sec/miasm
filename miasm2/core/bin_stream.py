@@ -170,12 +170,16 @@ class bin_stream_str(bin_stream):
     def _getbytes(self, start, l=1):
         if start + l + self.shift > self.l:
             raise IOError("not enough bytes in str")
+        if start + self.shift < 0:
+            raise IOError("Negative offset")
 
         return super(bin_stream_str, self)._getbytes(start + self.shift, l)
 
     def readbs(self, l=1):
         if self.offset + l + self.shift > self.l:
             raise IOError("not enough bytes in str")
+        if self.offset + self.shift < 0:
+            raise IOError("Negative offset")
         self.offset += l
         return self.bin[self.offset - l + self.shift:self.offset + self.shift]
 
@@ -210,6 +214,8 @@ class bin_stream_file(bin_stream):
     def readbs(self, l=1):
         if self.offset + l + self.shift > self.l:
             raise IOError("not enough bytes in file")
+        if self.offset + self.shift < 0:
+            raise IOError("Negative offset")
         return self.bin.read(l)
 
     def __str__(self):
@@ -236,6 +242,8 @@ class bin_stream_container(bin_stream):
     def readbs(self, l=1):
         if self.offset + l > self.l:
             raise IOError("not enough bytes")
+        if self.offset < 0:
+            raise IOError("Negative offset")
         self.offset += l
         return self.bin.virt.get(self.offset - l, self.offset)
 
