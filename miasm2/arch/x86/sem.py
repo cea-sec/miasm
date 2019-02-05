@@ -4938,6 +4938,14 @@ def emms(ir, instr):
     # Implemented as a NOP
     return [], []
 
+def endbr64(ir, instr):
+    # Implemented as a NOP
+    return [], []
+
+def endbr32(ir, instr):
+    # Implemented as a NOP
+    return [], []
+
 # Common value without too many option, 0x1fa0
 STMXCSR_VALUE = 0x1fa0
 def stmxcsr(ir, instr, dst):
@@ -5584,6 +5592,8 @@ mnemo_func = {'mov': mov,
               "movmskpd": movmskpd,
               "stmxcsr": stmxcsr,
               "ldmxcsr": ldmxcsr,
+              "endbr64": endbr64,
+              "endbr32": endbr32,
               }
 
 
