@@ -4607,6 +4607,8 @@ addop("maskmovdqu", [bs8(0x0f), bs8(0xf7), pref_66] +
 
 addop("emms", [bs8(0x0f), bs8(0x77)])
 
+addop("endbr64", [pref_f3, bs8(0x0f), bs8(0x1e), bs8(0xfa)])
+addop("endbr32", [pref_f3, bs8(0x0f), bs8(0x1e), bs8(0xfb)])
 
 mn_x86.bintree = factor_one_bit(mn_x86.bintree)
 # mn_x86.bintree = factor_fields_all(mn_x86.bintree)
