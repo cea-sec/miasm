@@ -528,33 +528,28 @@ class SSADefUse(DiGraph):
     """
 
     def add_var_def(self, node, src):
-        lbl, index, dst = node
-        index2dst = self._links.setdefault(lbl, {})
-        dst2src = index2dst.setdefault(index, {})
-        dst2src[dst] = src
+        index2dst = self._links.setdefault(node.label, {})
+        dst2src = index2dst.setdefault(node.index, {})
+        dst2src[node.var] = src
 
     def add_def_node(self, def_nodes, node, src):
-        lbl, index, dst = node
-        if dst.is_id():
-            def_nodes[dst] = node
+        if node.var.is_id():
+            def_nodes[node.var] = node
 
     def add_use_node(self, use_nodes, node, src):
-        lbl, index, dst = node
         sources = set()
-        if dst.is_mem():
-            sources.update(dst.ptr.get_r(mem_read=True))
+        if node.var.is_mem():
+            sources.update(node.var.ptr.get_r(mem_read=True))
         sources.update(src.get_r(mem_read=True))
         for source in sources:
             if not source.is_mem():
                 use_nodes.setdefault(source, set()).add(node)
 
     def get_node_target(self, node):
-        lbl, index, reg = node
-        return self._links[lbl][index][reg]
+        return self._links[node.label][node.index][node.var]
 
     def set_node_target(self, node, src):
-        lbl, index, reg = node
-        self._links[lbl][index][reg] = src
+        self._links[node.label][node.index][node.var] = src
 
     @classmethod
     def from_ssa(cls, ssa):
@@ -575,7 +570,7 @@ class SSADefUse(DiGraph):
                 continue
             for index, assignblk in enumerate(block):
                 for dst, src in assignblk.iteritems():
-                    node = lbl, index, dst
+                    node = AssignblkNode(lbl, index, dst)
                     graph.add_var_def(node, src)
                     graph.add_def_node(def_nodes, node, src)
                     graph.add_use_node(use_nodes, node, src)
@@ -713,16 +708,15 @@ class PropagateExpr(object):
         to_replace = {}
         node_to_reg = {}
         for node in defuse.nodes():
-            lbl, index, reg = node
             src = defuse.get_node_target(node)
             if expr_has_call(src):
                 continue
             if src.is_op('Phi'):
                 continue
-            if reg.is_mem():
+            if node.var.is_mem():
                 continue
-            to_replace[reg] = src
-            node_to_reg[node] = reg
+            to_replace[node.var] = src
+            node_to_reg[node] = node.var
 
         modified = False
         for node, reg in node_to_reg.iteritems():
@@ -730,14 +724,14 @@ class PropagateExpr(object):
                 if not self.propagation_allowed(ssa, to_replace, node, successor):
                     continue
 
-                loc_a, index_a, reg_a = node
-                loc_b, index_b, reg_b = successor
-                block = ssa.graph.blocks[loc_b]
+                node_a = node
+                node_b = successor
+                block = ssa.graph.blocks[node_b.label]
 
-                replace = {reg_a: to_replace[reg_a]}
+                replace = {node_a.var: to_replace[node_a.var]}
                 # Replace
                 assignblks = list(block)
-                assignblk = block[index_b]
+                assignblk = block[node_b.index]
                 out = {}
                 for dst, src in assignblk.iteritems():
                     if src.is_op('Phi'):
@@ -765,7 +759,7 @@ class PropagateExpr(object):
                         modified = True
                     out[new_dst] = new_src
                 out = AssignBlock(out, assignblk.instr)
-                assignblks[index_b] = out
+                assignblks[node_b.index] = out
                 new_block = IRBlock(block.loc_key, assignblks)
                 ssa.graph.blocks[block.loc_key] = new_block
         return modified
