@@ -2020,7 +2020,7 @@ reg_tests = [
      "F2AE"),
     (m32, "00000000    REPE SCASB",
      "F3AE"),
-    (m32, "00000000    REPE LODSD",
+    (m32, "00000000    REP LODSD",
      "F3ad"),
 
     (m32, "00000000    RET",

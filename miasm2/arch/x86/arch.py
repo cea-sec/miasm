@@ -470,7 +470,7 @@ class instruction_x86(instruction):
         return self.name in ['CALL']
 
     def dstflow2label(self, loc_db):
-        if self.additional_info.g1.value & 6 and self.name in repeat_mn:
+        if self.additional_info.g1.value & 14 and self.name in repeat_mn:
             return
         expr = self.args[0]
         if not expr.is_int():
@@ -512,7 +512,7 @@ class instruction_x86(instruction):
         return self.name in ['CALL']
 
     def getdstflow(self, loc_db):
-        if self.additional_info.g1.value & 6 and self.name in repeat_mn:
+        if self.additional_info.g1.value & 14 and self.name in repeat_mn:
             addr = int(self.offset)
             loc_key = loc_db.get_or_create_offset_location(addr)
             return [ExprLoc(loc_key, self.v_opmode())]
@@ -549,7 +549,10 @@ class instruction_x86(instruction):
         if self.additional_info.g1.value & 2:
             if getattr(self.additional_info.prefixed, 'default', "") != "\xF2":
                 o = "REPNE %s" % o
-        if self.additional_info.g1.value & 4:
+        if self.additional_info.g1.value & 8:
+            if getattr(self.additional_info.prefixed, 'default', "") != "\xF3":
+                o = "REP %s" % o
+        elif self.additional_info.g1.value & 4:
             if getattr(self.additional_info.prefixed, 'default', "") != "\xF3":
                 o = "REPE %s" % o
         return o
@@ -677,11 +680,14 @@ class mn_x86(cls_mn):
         if prefix == "LOCK":
             pref |= 1
             text = new_s
-        elif prefix == "REPNE":
+        elif prefix == "REPNE" or prefix == "REPNZ":
             pref |= 2
             text = new_s
-        elif prefix == "REPE":
+        elif prefix == "REPE" or prefix == "REPZ":
             pref |= 4
+            text = new_s
+        elif prefix == "REP":
+            pref |= 8
             text = new_s
         c = super(mn_x86, cls).fromstring(text, loc_db, mode)
         c.additional_info.g1.value = pref
@@ -713,7 +719,7 @@ class mn_x86(cls_mn):
             elif c == '\xf2':
                 pre_dis_info['g1'] = 2
             elif c == '\xf3':
-                pre_dis_info['g1'] = 4
+                pre_dis_info['g1'] = 12
 
             elif c == '\x2e':
                 pre_dis_info['g2'] = 1
@@ -728,20 +734,20 @@ class mn_x86(cls_mn):
             elif c == '\x65':
                 pre_dis_info['g2'] = 6
 
-            elif mode == 64 and c in '@ABCDEFGHIJKLMNO':
-                x = ord(c)
-                pre_dis_info['rex_p'] = 1
-                pre_dis_info['rex_w'] = (x >> 3) & 1
-                pre_dis_info['rex_r'] = (x >> 2) & 1
-                pre_dis_info['rex_x'] = (x >> 1) & 1
-                pre_dis_info['rex_b'] = (x >> 0) & 1
-                offset += 1
-                break
             else:
-                c = ''
                 break
             pre_dis_info['prefix'] += c
             offset += 1
+        if mode == 64 and c in '@ABCDEFGHIJKLMNO':
+            x = ord(c)
+            pre_dis_info['rex_p'] = 1
+            pre_dis_info['rex_w'] = (x >> 3) & 1
+            pre_dis_info['rex_r'] = (x >> 2) & 1
+            pre_dis_info['rex_x'] = (x >> 1) & 1
+            pre_dis_info['rex_b'] = (x >> 0) & 1
+            offset += 1
+        elif pre_dis_info.get('g1', None) == 12 and c in ['\xa6', '\xa7', '\xae', '\xaf']:
+            pre_dis_info['g1'] = 4
         return pre_dis_info, v, mode, offset, offset - offset_o
 
     @classmethod
@@ -856,7 +862,7 @@ class mn_x86(cls_mn):
             if hasattr(self, 'no_xmm_pref'):
                 return None
             v = "\xf2" + v
-        if self.g1.value & 4:
+        if self.g1.value & 12:
             if hasattr(self, 'no_xmm_pref'):
                 return None
             v = "\xf3" + v
@@ -895,7 +901,7 @@ class mn_x86(cls_mn):
         out = []
         for c, v in candidates:
             if (hasattr(c, 'no_xmm_pref') and
-                (c.g1.value & 2 or c.g1.value & 4 or c.opmode)):
+                (c.g1.value & 2 or c.g1.value & 4 or c.g1.value & 8 or c.opmode)):
                 continue
             if hasattr(c, "fopmode") and v_opmode(c) != c.fopmode.mode:
                 continue
