@@ -656,42 +656,40 @@ class PropagateThroughExprId(object):
                     return True
         return False
 
-    def is_mem_written(self, ssa, node, successor):
+    def is_mem_written(self, ssa, node_a, node_b):
         """
-        Return True if memory is written at least once between @node and
-        @successor
+        Return True if memory is written at least once between @node_a and
+        @node_b
 
-        @node: Location of the block to start with
-        @successor: Location of last block
+        @node: AssignblkNode representing the start position
+        @successor: AssignblkNode representing the end position
         """
-        loc_a, index_a, reg_a = node
-        loc_b, index_b, reg_b = successor
-        block_b = ssa.graph.blocks[loc_b]
 
-        nodes_to_do = self.compute_reachable_nodes_from_a_to_b(ssa.graph, loc_a, loc_b)
+        block_b = ssa.graph.blocks[node_b.label]
+        nodes_to_do = self.compute_reachable_nodes_from_a_to_b(ssa.graph, node_a.label, node_b.label)
 
-        if loc_a == loc_b:
+        if node_a.label == node_b.label:
             # src is dst
-            assert nodes_to_do == set([loc_a])
-            if self.has_propagation_barrier(block_b.assignblks[index_a:index_b]):
+            assert nodes_to_do == set([node_a.label])
+            if self.has_propagation_barrier(block_b.assignblks[node_a.index:node_b.index]):
                 return True
         else:
-            # Check everyone but loc_a and loc_b
-            for loc in nodes_to_do - set([loc_a, loc_b]):
+            # Check everyone but node_a.label and node_b.label
+            for loc in nodes_to_do - set([node_a.label, node_b.label]):
                 block = ssa.graph.blocks[loc]
                 if self.has_propagation_barrier(block.assignblks):
                     return True
-            # Check loc_a partially
-            block_a = ssa.graph.blocks[loc_a]
-            if self.has_propagation_barrier(block_a.assignblks[index_a:]):
+            # Check node_a.label partially
+            block_a = ssa.graph.blocks[node_a.label]
+            if self.has_propagation_barrier(block_a.assignblks[node_a.index:]):
                 return True
-            if nodes_to_do.intersection(ssa.graph.successors(loc_b)):
-                # There is a path from loc_b to loc_b => Check loc_b fully
+            if nodes_to_do.intersection(ssa.graph.successors(node_b.label)):
+                # There is a path from node_b.label to node_b.label => Check node_b.label fully
                 if self.has_propagation_barrier(block_b.assignblks):
                     return True
             else:
-                # Check loc_b partially
-                if self.has_propagation_barrier(block_b.assignblks[:index_b]):
+                # Check node_b.label partially
+                if self.has_propagation_barrier(block_b.assignblks[:node_b.index]):
                     return True
         return False
 
@@ -702,10 +700,13 @@ class PropagateThroughExprId(object):
 
     def propagation_allowed(self, ssa, to_replace, node_a, node_b):
         """
-        Return True if we can replace @node source into @node_b
+        Return True if we can replace @node_a source present in @to_replace into
+        @node_b
+
+        @node_a: AssignblkNode position
+        @node_b: AssignblkNode position
         """
-        loc_a, index_a, reg_a = node_a
-        if not expr_has_mem(to_replace[reg_a]):
+        if not expr_has_mem(to_replace[node_a.var]):
             return True
         if self.is_mem_written(ssa, node_a, node_b):
             return False
