@@ -718,8 +718,6 @@ class mn_x86(cls_mn):
                 pre_dis_info['g1'] = 1
             elif c == '\xf2':
                 pre_dis_info['g1'] = 2
-            elif c == '\xf3' and v.getbytes(offset + 1) in ['\xa6', '\xa7', '\xae', '\xaf']:
-                pre_dis_info['g1'] = 4
             elif c == '\xf3':
                 pre_dis_info['g1'] = 12
 
@@ -736,20 +734,20 @@ class mn_x86(cls_mn):
             elif c == '\x65':
                 pre_dis_info['g2'] = 6
 
-            elif mode == 64 and c in '@ABCDEFGHIJKLMNO':
-                x = ord(c)
-                pre_dis_info['rex_p'] = 1
-                pre_dis_info['rex_w'] = (x >> 3) & 1
-                pre_dis_info['rex_r'] = (x >> 2) & 1
-                pre_dis_info['rex_x'] = (x >> 1) & 1
-                pre_dis_info['rex_b'] = (x >> 0) & 1
-                offset += 1
-                break
             else:
-                c = ''
                 break
             pre_dis_info['prefix'] += c
             offset += 1
+        if mode == 64 and c in '@ABCDEFGHIJKLMNO':
+            x = ord(c)
+            pre_dis_info['rex_p'] = 1
+            pre_dis_info['rex_w'] = (x >> 3) & 1
+            pre_dis_info['rex_r'] = (x >> 2) & 1
+            pre_dis_info['rex_x'] = (x >> 1) & 1
+            pre_dis_info['rex_b'] = (x >> 0) & 1
+            offset += 1
+        elif pre_dis_info.get('g1', None) == 12 and c in ['\xa6', '\xa7', '\xae', '\xaf']:
+            pre_dis_info['g1'] = 4
         return pre_dis_info, v, mode, offset, offset - offset_o
 
     @classmethod
