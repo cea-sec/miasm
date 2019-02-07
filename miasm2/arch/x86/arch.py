@@ -549,12 +549,12 @@ class instruction_x86(instruction):
         if self.additional_info.g1.value & 2:
             if getattr(self.additional_info.prefixed, 'default', "") != "\xF2":
                 o = "REPNE %s" % o
+        if self.additional_info.g1.value & 4:
+            if getattr(self.additional_info.prefixed, 'default', "") != "\xF3":
+                o = "REPE %s" % o
         if self.additional_info.g1.value & 8:
             if getattr(self.additional_info.prefixed, 'default', "") != "\xF3":
                 o = "REP %s" % o
-        elif self.additional_info.g1.value & 4:
-            if getattr(self.additional_info.prefixed, 'default', "") != "\xF3":
-                o = "REPE %s" % o
         return o
 
     def get_args_expr(self):
