@@ -708,6 +708,8 @@ class PropagateExpr(object):
         to_replace = {}
         node_to_reg = {}
         for node in defuse.nodes():
+            if node.var in ssa.immutable_ids:
+                continue
             src = defuse.get_node_target(node)
             if expr_has_call(src):
                 continue
