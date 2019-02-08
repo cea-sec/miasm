@@ -494,6 +494,21 @@ to_test = [
         ExprOp(TOK_EQUAL, a8, ExprInt(0xFF, 8))
     ),
 
+    (
+        ExprOp(TOK_EQUAL, i2, a + i1),
+        ExprOp(TOK_EQUAL, a , i1)
+    ),
+
+    (
+        ExprOp(TOK_EQUAL, a ^ i1, i2),
+        ExprOp(TOK_EQUAL, a , i3)
+    ),
+
+    (
+        ExprOp(TOK_EQUAL, i2, a ^ i1),
+        ExprOp(TOK_EQUAL, a , i3)
+    ),
+
     (ExprOp(TOK_INF_SIGNED, i1, i2), ExprInt(1, 1)),
     (ExprOp(TOK_INF_UNSIGNED, i1, i2), ExprInt(1, 1)),
     (ExprOp(TOK_INF_EQUAL_SIGNED, i1, i2), ExprInt(1, 1)),
