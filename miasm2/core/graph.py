@@ -157,6 +157,28 @@ class DiGraph(object):
                 if path and path[0] == src:
                     out.append(path + [dst])
         return out
+    
+    def find_path_from_src(self, src, dst, cycles_count=0, done=None):
+        """
+        This function does the same as function find_path.
+        But it searches the paths from src to dst, not vice versa like find_path.
+        This approach might be more efficient in some cases.
+        """
+        
+        if done is None:
+            done = {}
+        if src == dst:
+            return [[src]]
+        if src in done and done[src] > cycles_count:
+            return [[]]
+        out = []
+        for node in self.mlt_blck.successors(src):
+            done_n = dict(done)
+            done_n[src] = done_n.get(src, 0) + 1
+            for path in self.find_path_from_src(node, dst, cycles_count, done_n):
+                if path and path[len(path)-1] == dst:
+                    out.append([src] + path)
+        return out
 
     def nodeid(self, node):
         """
