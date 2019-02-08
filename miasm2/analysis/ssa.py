@@ -366,6 +366,7 @@ class SSADiGraph(SSA):
 
     def transform(self, head):
         """Transforms into SSA"""
+        assert not self.graph.predecessors(head)
         self._init_variable_defs(head)
         self._place_phi(head)
         self._rename(head)
