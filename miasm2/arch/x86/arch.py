@@ -549,7 +549,10 @@ class instruction_x86(instruction):
         if self.additional_info.g1.value & 2:
             if getattr(self.additional_info.prefixed, 'default', "") != "\xF2":
                 o = "REPNE %s" % o
-        if self.additional_info.g1.value & 4:
+        if self.additional_info.g1.value & 8:
+            if getattr(self.additional_info.prefixed, 'default', "") != "\xF3":
+                o = "REP %s" % o
+        elif self.additional_info.g1.value & 4:
             if getattr(self.additional_info.prefixed, 'default', "") != "\xF3":
                 o = "REPE %s" % o
         if self.additional_info.g1.value & 8:
@@ -4613,6 +4616,8 @@ addop("maskmovdqu", [bs8(0x0f), bs8(0xf7), pref_66] +
 
 addop("emms", [bs8(0x0f), bs8(0x77)])
 
+addop("endbr64", [pref_f3, bs8(0x0f), bs8(0x1e), bs8(0xfa)])
+addop("endbr32", [pref_f3, bs8(0x0f), bs8(0x1e), bs8(0xfb)])
 
 mn_x86.bintree = factor_one_bit(mn_x86.bintree)
 # mn_x86.bintree = factor_fields_all(mn_x86.bintree)

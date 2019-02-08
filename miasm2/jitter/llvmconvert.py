@@ -15,7 +15,11 @@ import os
 from llvmlite import binding as llvm
 from llvmlite import ir as llvm_ir
 from miasm2.expression.expression import ExprId, ExprInt, ExprMem, ExprSlice, \
-    ExprCond, ExprLoc, ExprOp, ExprCompose, LocKey, Expr
+    ExprCond, ExprLoc, ExprOp, ExprCompose, LocKey, Expr, \
+    TOK_EQUAL, \
+    TOK_INF_SIGNED, TOK_INF_UNSIGNED, \
+    TOK_INF_EQUAL_SIGNED, TOK_INF_EQUAL_UNSIGNED
+
 import miasm2.jitter.csts as m2_csts
 import miasm2.core.asmblock as m2_asmblock
 from miasm2.jitter.codegen import CGen, Attributes
@@ -1072,6 +1076,37 @@ class LLVMFunction(object):
                     ret = builder.fdiv(arg1, arg2)
                 ret = builder.bitcast(ret, llvm_ir.IntType(expr.size))
                 self.update_cache(expr, ret)
+                return ret
+
+            if op in [
+                    TOK_EQUAL,
+                    TOK_INF_SIGNED,
+                    TOK_INF_EQUAL_SIGNED,
+                    TOK_INF_UNSIGNED,
+                    TOK_INF_EQUAL_UNSIGNED,
+            ]:
+                if op == TOK_EQUAL:
+                    opname = "=="
+                    callback = builder.icmp_unsigned
+                elif op == TOK_INF_SIGNED:
+                    opname = "<"
+                    callback = builder.icmp_signed
+                elif op == TOK_INF_UNSIGNED:
+                    opname = "<"
+                    callback = builder.icmp_unsigned
+                elif op == TOK_INF_EQUAL_SIGNED:
+                    opname = "<="
+                    callback = builder.icmp_signed
+                elif op == TOK_INF_EQUAL_UNSIGNED:
+                    opname = "<"
+                    callback = builder.icmp_unsigned
+
+                left = self.add_ir(expr.args[0])
+                right = self.add_ir(expr.args[1])
+
+                ret = callback(opname, left, right)
+                self.update_cache(expr, ret)
+
                 return ret
 
             if len(expr.args) > 1:

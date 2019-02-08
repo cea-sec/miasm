@@ -1814,6 +1814,11 @@ reg_tests_aarch64 = [
     ("XXXXXXXX    CASPAL     W0, W2, [X4]",
      "82FC6008"),
 
+    ("XXXXXXXX    LDAXRB     W15, [X14]",
+     "CFFD5F08"),
+    ("XXXXXXXX    STLXRB     W17, W16, [X14]",
+     "D0FD1108"),
+
 ]
 
 

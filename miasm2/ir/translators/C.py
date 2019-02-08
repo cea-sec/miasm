@@ -1,7 +1,9 @@
 from miasm2.ir.translators.translator import Translator
 from miasm2.expression.modint import size2mask
 from miasm2.expression.expression import ExprInt, ExprCond, ExprCompose, \
-    TOK_EQUAL
+    TOK_EQUAL, \
+    TOK_INF_SIGNED, TOK_INF_UNSIGNED, \
+    TOK_INF_EQUAL_SIGNED, TOK_INF_EQUAL_UNSIGNED
 
 def int_size_to_bn(value, size):
     if size < 32:
@@ -16,6 +18,22 @@ def int_size_to_bn(value, size):
     assert len(int_str) == size_nibble
     return int_str, size_nibble
 
+
+TOK_CMP_TO_NATIVE_C = {
+    TOK_EQUAL: "==",
+    TOK_INF_SIGNED: "<",
+    TOK_INF_UNSIGNED: "<",
+    TOK_INF_EQUAL_SIGNED: "<=",
+    TOK_INF_EQUAL_UNSIGNED: "<=",
+}
+
+TOK_CMP_TO_BIGNUM_C = {
+    TOK_EQUAL: "equal",
+    TOK_INF_SIGNED: "inf_signed",
+    TOK_INF_UNSIGNED: "inf_unsigned",
+    TOK_INF_EQUAL_SIGNED: "inf_equal_signed",
+    TOK_INF_EQUAL_UNSIGNED: "inf_equal_unsigned",
+}
 
 
 class TranslatorC(Translator):
@@ -238,14 +256,7 @@ class TranslatorC(Translator):
                 raise NotImplementedError('Unknown op: %r' % expr.op)
 
         elif len(expr.args) == 2:
-            if expr.op == TOK_EQUAL:
-                return '(((%s&%s) == (%s&%s))?1:0)' % (
-                    self.from_expr(expr.args[0]),
-                    self._size2mask(expr.args[0].size),
-                    self.from_expr(expr.args[1]),
-                    self._size2mask(expr.args[1].size),
-                )
-            elif expr.op in self.dct_shift:
+            if expr.op in self.dct_shift:
                 arg0 = self.from_expr(expr.args[0])
                 arg1 = self.from_expr(expr.args[1])
                 if expr.size <= self.NATIVE_INT_MAX_SIZE:
@@ -399,6 +410,42 @@ class TranslatorC(Translator):
                     self.from_expr(expr.args[0]),
                     self.from_expr(expr.args[1])
                 )
+
+
+            elif expr.op in [
+                    TOK_EQUAL,
+                    TOK_INF_SIGNED,
+                    TOK_INF_UNSIGNED,
+                    TOK_INF_EQUAL_SIGNED,
+                    TOK_INF_EQUAL_UNSIGNED,
+            ]:
+                arg0 = self.from_expr(expr.args[0])
+                arg1 = self.from_expr(expr.args[1])
+
+                if expr.size <= self.NATIVE_INT_MAX_SIZE:
+                    op = TOK_CMP_TO_NATIVE_C[expr.op]
+                    if expr.op in [TOK_INF_SIGNED, TOK_INF_EQUAL_SIGNED]:
+                        cast = "(int%d_t)" % expr.args[0].size
+                    else:
+                        cast = "(uint%d_t)" % expr.args[0].size
+                    out = '((%s%s %s %s%s)?1:0)' % (
+                        cast,
+                        arg0,
+                        op,
+                        cast,
+                        arg1
+                    )
+                else:
+                    op = TOK_CMP_TO_BIGNUM_C[expr.op]
+                    out = "bignum_is_%s(%s, %s)" % (
+                        op,
+                        arg0,
+                        arg1
+                    )
+                    out = "bignum_mask(%s, %d)"% (out, expr.size)
+                return out
+
+
             else:
                 raise NotImplementedError('Unknown op: %r' % expr.op)
 
