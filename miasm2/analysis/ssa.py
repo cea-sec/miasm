@@ -612,7 +612,6 @@ class SSADiGraph(SSA):
         for newname, var in newname_to_var.iteritems():
             self.ssa_to_location[newname] = head, 0
             self.ssa_variable_to_expr[newname] = var
-            self.immutable_ids.add(newname)
             self.expressions[newname] = var
 
 
