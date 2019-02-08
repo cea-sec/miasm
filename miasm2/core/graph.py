@@ -143,6 +143,14 @@ class DiGraph(object):
         return [x for x in self.heads_iter()]
 
     def find_path(self, src, dst, cycles_count=0, done=None):
+        """
+        Searches for paths from @src to @dst
+        @src: loc_key of basic block from which it should start
+        @dst: loc_key of basic block where it should stop
+        @cycles_count: maximum number of times a basic block can be processed
+        @done: dictionary of already processed loc_keys, it's value is number of times it was processed
+        @out: list of paths from @src to @dst
+        """
         if done is None:
             done = {}
         if dst in done and done[dst] > cycles_count:
@@ -163,6 +171,11 @@ class DiGraph(object):
         This function does the same as function find_path.
         But it searches the paths from src to dst, not vice versa like find_path.
         This approach might be more efficient in some cases.
+        @src: loc_key of basic block from which it should start
+        @dst: loc_key of basic block where it should stop
+        @cycles_count: maximum number of times a basic block can be processed
+        @done: dictionary of already processed loc_keys, it's value is number of times it was processed
+        @out: list of paths from @src to @dst
         """
         
         if done is None:
@@ -172,7 +185,7 @@ class DiGraph(object):
         if src in done and done[src] > cycles_count:
             return [[]]
         out = []
-        for node in self.mlt_blck.successors(src):
+        for node in self.successors(src):
             done_n = dict(done)
             done_n[src] = done_n.get(src, 0) + 1
             for path in self.find_path_from_src(node, dst, cycles_count, done_n):
