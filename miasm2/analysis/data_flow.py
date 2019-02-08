@@ -292,6 +292,7 @@ def _test_merge_next_block(ircfg, loc_key):
         return None
     if son not in ircfg.blocks:
         return None
+
     return son
 
 
@@ -329,14 +330,16 @@ def _do_merge_blocks(ircfg, loc_key, son_loc_key):
     ircfg.blocks[loc_key] = new_block
 
 
-def _test_jmp_only(ircfg, loc_key):
+def _test_jmp_only(ircfg, loc_key, heads):
     """
     If irblock at @loc_key sets only IRDst to an ExprLoc, return the
     corresponding loc_key target.
+    Avoid creating predecssors for heads LocKeys
     None in other cases.
 
     @ircfg: IRCFG instance
     @loc_key: LocKey instance of the candidate irblock
+    @heads: LocKey heads of the graph
 
     """
 
@@ -348,11 +351,20 @@ def _test_jmp_only(ircfg, loc_key):
     items = dict(irblock.assignblks[0]).items()
     if len(items) != 1:
         return None
+    if len(ircfg.successors(loc_key)) != 1:
+        return None
+    # Don't create predecessors on heads
     dst, src = items[0]
     assert dst.is_id("IRDst")
     if not src.is_loc():
         return None
-    return src.loc_key
+    dst = src.loc_key
+    if loc_key in heads:
+        predecessors = set(ircfg.predecessors(dst))
+        predecessors.difference_update(set([loc_key]))
+        if predecessors:
+            return None
+    return dst
 
 
 def _relink_block_node(ircfg, loc_key, son_loc_key, replace_dct):
@@ -397,13 +409,15 @@ def _remove_to_son(ircfg, loc_key, son_loc_key):
 
     # Unlink block destinations
     ircfg.del_edge(loc_key, son_loc_key)
-    del ircfg.blocks[loc_key]
 
     replace_dct = {
         ExprLoc(loc_key, ircfg.IRDst.size):ExprLoc(son_loc_key, ircfg.IRDst.size)
     }
 
     _relink_block_node(ircfg, loc_key, son_loc_key, replace_dct)
+
+    ircfg.del_node(loc_key)
+    del ircfg.blocks[loc_key]
 
     return True
 
@@ -434,7 +448,6 @@ def _remove_to_parent(ircfg, loc_key, son_loc_key):
 
     ircfg.blocks[son_loc_key] = new_irblock
 
-    del ircfg.blocks[son_loc_key]
     ircfg.add_irblock(new_irblock)
 
     replace_dct = {
@@ -443,10 +456,14 @@ def _remove_to_parent(ircfg, loc_key, son_loc_key):
 
     _relink_block_node(ircfg, son_loc_key, loc_key, replace_dct)
 
+
+    ircfg.del_node(son_loc_key)
+    del ircfg.blocks[son_loc_key]
+
     return True
 
 
-def merge_blocks(ircfg, loc_key_entries):
+def merge_blocks(ircfg, heads):
     """
     This function modifies @ircfg to apply the following transformations:
     - group an irblock with its son if the irblock has one and only one son and
@@ -458,10 +475,12 @@ def merge_blocks(ircfg, loc_key_entries):
       IRDst with a given label, this irblock is dropped and its son becomes the
       head. References are fixed
 
+    This function avoid creating predecessors on heads
+
     Return True if at least an irblock has been modified
 
     @ircfg: IRCFG instance
-    @loc_key_entries: loc_key to keep
+    @heads: loc_key to keep
     """
 
     modified = False
@@ -471,15 +490,15 @@ def merge_blocks(ircfg, loc_key_entries):
 
         # Test merge block
         son = _test_merge_next_block(ircfg, loc_key)
-        if son is not None and son not in loc_key_entries:
+        if son is not None and son not in heads:
             _do_merge_blocks(ircfg, loc_key, son)
             todo.add(loc_key)
             modified = True
             continue
 
         # Test jmp only block
-        son = _test_jmp_only(ircfg, loc_key)
-        if son is not None and loc_key not in loc_key_entries:
+        son = _test_jmp_only(ircfg, loc_key, heads)
+        if son is not None and loc_key not in heads:
             ret = _remove_to_son(ircfg, loc_key, son)
             modified |= ret
             if ret:
@@ -488,7 +507,7 @@ def merge_blocks(ircfg, loc_key_entries):
 
         # Test head jmp only block
         if (son is not None and
-            son not in loc_key_entries and
+            son not in heads and
             son in ircfg.blocks):
             # jmp only test done previously
             ret = _remove_to_parent(ircfg, loc_key, son)
