@@ -219,7 +219,7 @@ class TranslatorZ3(Translator):
                     )
                 elif expr.op == "<s":
                     res = z3.If(
-                        z3.SLT(args[0], args[1]),
+                        args[0] < args[1],
                         z3.BitVecVal(1, 1),
                         z3.BitVecVal(0, 1)
                     )
@@ -231,7 +231,7 @@ class TranslatorZ3(Translator):
                     )
                 elif expr.op == "<=s":
                     res = z3.If(
-                        z3.SLE(args[0], args[1]),
+                        args[0] <= args[1],
                         z3.BitVecVal(1, 1),
                         z3.BitVecVal(0, 1)
                     )
