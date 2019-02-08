@@ -712,7 +712,47 @@ class PropagateThroughExprId(object):
             return False
         return True
 
+
+    def get_var_definitions(self, ssa):
+        """
+        Return a dictionary linking variable to its assignment location
+        @ssa: SSADiGraph instance
+        """
+        ircfg = ssa.graph
+        def_dct = {}
+        for node in ircfg.nodes():
+            for index, assignblk in enumerate(ircfg.blocks[node]):
+                for dst, src in assignblk.iteritems():
+                    if not dst.is_id():
+                        continue
+                    if dst in ssa.immutable_ids:
+                        continue
+                    assert dst not in def_dct
+                    def_dct[dst] = node, index
+        return def_dct
+
+    def phi_has_identical_sources(self, ssa, def_dct, var):
+        """
+        If phi operation has identical source values, return it; else None
+        @ssa: SSADiGraph instance
+        @def_dct: dictionary linking variable to its assignment location
+        @var: Phi destination variable
+        """
+        loc_key, index = def_dct[var]
+        sources = ssa.graph.blocks[loc_key][index][var]
+        assert sources.is_op('Phi')
+        sources_values = set()
+        for src in sources.args:
+            assert src in def_dct
+            loc_key, index = def_dct[src]
+            value = ssa.graph.blocks[loc_key][index][src]
+            sources_values.add(value)
+        if len(sources_values) != 1:
+            return None
+        return list(sources_values)[0]
+
     def get_candidates(self, ssa, head, max_expr_depth):
+        def_dct = self.get_var_definitions(ssa)
         defuse = SSADefUse.from_ssa(ssa)
         to_replace = {}
         node_to_reg = {}
@@ -720,13 +760,17 @@ class PropagateThroughExprId(object):
             if node.var in ssa.immutable_ids:
                 continue
             src = defuse.get_node_target(node)
-            if expr_has_call(src):
+            if max_expr_depth is not None and len(str(src)) > max_expr_depth:
                 continue
-            if src.is_op('Phi'):
+            if expr_has_call(src):
                 continue
             if node.var.is_mem():
                 continue
-            if max_expr_depth is not None and len(str(src)) > max_expr_depth:
+            if src.is_op('Phi'):
+                ret = self.phi_has_identical_sources(ssa, def_dct, node.var)
+                if ret:
+                    to_replace[node.var] = ret
+                    node_to_reg[node] = node.var
                 continue
             to_replace[node.var] = src
             node_to_reg[node] = node.var
