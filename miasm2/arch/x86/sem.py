@@ -1321,7 +1321,7 @@ def _tpl_eflags(tmp):
 
 
 def popfw(ir, instr):
-    tmp = ir.ExprMem(mRSP[instr.mode], 32)
+    tmp = ir.ExprMem(mRSP[instr.mode], 16)
     e = _tpl_eflags(tmp)
     e.append(
         m2_expr.ExprAssign(mRSP[instr.mode], mRSP[instr.mode] + m2_expr.ExprInt(2, mRSP[instr.mode].size)))
