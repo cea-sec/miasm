@@ -68,7 +68,7 @@ class Container(object):
         """Instantiate a container and parse the binary
         @stream: stream to use as binary
         @vm: (optional) VmMngr instance to link with the executable
-        @addr: (optional) Shift to apply before parsing the binary. If set,
+        @addr: (optional) Base address of the parsed binary. If set,
                force the unknown format
         """
         return Container.from_string(stream.read(), *args, **kwargs)
@@ -215,7 +215,7 @@ class ContainerUnknown(Container):
     "Container abstraction for unknown format"
 
     def parse(self, data, vm=None, addr=0, **kwargs):
-        self._bin_stream = bin_stream_str(data, shift=addr)
+        self._bin_stream = bin_stream_str(data, base_address=addr)
         if vm is not None:
             vm.add_memory_page(addr,
                                PAGE_READ,
