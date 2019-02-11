@@ -45,9 +45,9 @@ parser.add_argument('-l', "--dontdis-retcall", action="store_true",
                     help="If set, disassemble only call destinations")
 parser.add_argument('-s', "--simplify", action="count",
                     help="Apply simplifications rules (liveness, graph simplification, ...)")
-parser.add_argument('-o', "--shiftoffset", default=0,
+parser.add_argument("--base-address", default=0,
                     type=lambda x: int(x, 0),
-                    help="Shift input binary by an offset")
+                    help="Base address of the input binary")
 parser.add_argument('-a', "--try-disasm-all", action="store_true",
                     help="Try to disassemble the whole binary")
 parser.add_argument('-i', "--image", action="store_true",
@@ -79,10 +79,10 @@ if args.verbose:
 log.info('Load binary')
 if args.rawbinary:
     cont = Container.fallback_container(open(args.filename, "rb").read(),
-                                        vm=None, addr=args.shiftoffset)
+                                        vm=None, addr=args.base_address)
 else:
     with open(args.filename, "rb") as fdesc:
-        cont = Container.from_stream(fdesc, addr=args.shiftoffset)
+        cont = Container.from_stream(fdesc, addr=args.base_address)
 
 default_addr = cont.entry_point
 bs = cont.bin_stream
