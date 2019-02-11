@@ -204,6 +204,22 @@ class LocationDB(object):
         for name, loc_key in self._name_to_loc_key.iteritems():
             assert name in self._loc_key_to_names[loc_key]
 
+    def find_free_name(self, name):
+        """
+        If @name is not known in DB, return it
+        Else append an index to it corresponding to the next unknown name
+
+        @name: string
+        """
+        if self.get_name_location(name) is None:
+            return name
+        i = 0
+        while True:
+            new_name = "%s_%d" % (name, i)
+            if self.get_name_location(new_name) is None:
+                return new_name
+            i += 1
+
     def add_location(self, name=None, offset=None, strict=True):
         """Add a new location in the locationDB. Returns the corresponding LocKey.
         If @name is set, also associate a name to this new location.
@@ -252,7 +268,10 @@ class LocationDB(object):
             # Non-strict mode
             if name_loc_key is not None:
                 known_offset = self.get_offset_location(name_loc_key)
-                if known_offset != offset:
+                if known_offset is None:
+                    if offset is not None:
+                        self.set_location_offset(name_loc_key, offset)
+                elif known_offset != offset:
                     raise ValueError(
                         "Location with name '%s' already have an offset: 0x%x "
                         "(!= 0x%x)" % (name, offset, known_offset)

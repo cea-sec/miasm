@@ -65,6 +65,20 @@ def fill_loc_db_with_symbols(elf, loc_db, base_addr=0):
     # Get symbol sections
     symbol_sections = []
     for section_header in elf.sh:
+        if hasattr(section_header, 'symbols'):
+            for name, sym in section_header.symbols.iteritems():
+                if not name or sym.value == 0:
+                    continue
+                name = loc_db.find_free_name(name)
+                loc_db.add_location(name, sym.value, strict=False)
+
+        if hasattr(section_header, 'reltab'):
+            for rel in section_header.reltab:
+                if not rel.sym or rel.offset == 0:
+                    continue
+                name = loc_db.find_free_name(rel.sym)
+                loc_db.add_location(name, rel.offset, strict=False)
+
         if hasattr(section_header, 'symtab'):
             log.debug("Find %d symbols in %r", len(section_header.symtab),
                       section_header)
