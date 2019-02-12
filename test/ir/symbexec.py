@@ -26,28 +26,34 @@ class TestSymbExec(unittest.TestCase):
         id_d = ExprId('d', 32)
         id_e = ExprId('e', 64)
 
-        sb = SymbolicExecutionEngine(ira,
-                                    {
-                                        ExprMem(ExprInt(0x4, 32), 8): ExprInt(0x44, 8),
-                                        ExprMem(ExprInt(0x5, 32), 8): ExprInt(0x33, 8),
-                                        ExprMem(ExprInt(0x6, 32), 8): ExprInt(0x22, 8),
-                                        ExprMem(ExprInt(0x7, 32), 8): ExprInt(0x11, 8),
+        class CustomSymbExec(SymbolicExecutionEngine):
+            def mem_read(self, expr):
+                if expr == ExprMem(ExprInt(0x1000, 32), 32):
+                    return id_x
+                return super(CustomSymbExec, self).mem_read(expr)
 
-                                        ExprMem(ExprInt(0x20, 32), 32): id_x,
+        sb = CustomSymbExec(ira,
+                            {
+                                ExprMem(ExprInt(0x4, 32), 8): ExprInt(0x44, 8),
+                                ExprMem(ExprInt(0x5, 32), 8): ExprInt(0x33, 8),
+                                ExprMem(ExprInt(0x6, 32), 8): ExprInt(0x22, 8),
+                                ExprMem(ExprInt(0x7, 32), 8): ExprInt(0x11, 8),
 
-                                        ExprMem(ExprInt(0x40, 32), 32): id_x,
-                                        ExprMem(ExprInt(0x44, 32), 32): id_a,
+                                ExprMem(ExprInt(0x20, 32), 32): id_x,
 
-                                        ExprMem(ExprInt(0x54, 32), 32): ExprInt(0x11223344, 32),
+                                ExprMem(ExprInt(0x40, 32), 32): id_x,
+                                ExprMem(ExprInt(0x44, 32), 32): id_a,
 
-                                        ExprMem(id_a, 32): ExprInt(0x11223344, 32),
-                                        id_a: ExprInt(0, 32),
-                                        id_b: ExprInt(0, 32),
+                                ExprMem(ExprInt(0x54, 32), 32): ExprInt(0x11223344, 32),
 
-                                        ExprMem(id_c, 32): ExprMem(id_d + ExprInt(0x4, 32), 32),
-                                        ExprMem(id_c + ExprInt(0x4, 32), 32): ExprMem(id_d + ExprInt(0x8, 32), 32),
+                                ExprMem(id_a, 32): ExprInt(0x11223344, 32),
+                                id_a: ExprInt(0, 32),
+                                id_b: ExprInt(0, 32),
 
-                                    })
+                                ExprMem(id_c, 32): ExprMem(id_d + ExprInt(0x4, 32), 32),
+                                ExprMem(id_c + ExprInt(0x4, 32), 32): ExprMem(id_d + ExprInt(0x8, 32), 32),
+
+                            })
 
 
         self.assertEqual(sb.eval_expr(ExprInt(1, 32)-ExprInt(1, 32)), ExprInt(0, 32))
@@ -100,14 +106,6 @@ class TestSymbExec(unittest.TestCase):
         # Merge memory
         self.assertEqual(sb.eval_expr(ExprMem(ExprInt(0x100, 32), 32)), ExprMem(ExprInt(0x100, 32), 32))
         self.assertEqual(sb.eval_expr(ExprMem(id_c + ExprInt(0x2, 32), 32)), ExprMem(id_d  + ExprInt(0x6, 32), 32))
-
-        ## Func read
-        def custom_func_read(mem):
-            if mem == ExprMem(ExprInt(0x1000, 32), 32):
-                return id_x
-            return mem
-
-        sb.func_read = custom_func_read
 
         ## Unmodified read
         self.assertEqual(sb.eval_expr(ExprMem(ExprInt(4, 32), 8)), ExprInt(0x44, 8))

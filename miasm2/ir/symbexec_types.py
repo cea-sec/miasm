@@ -66,15 +66,11 @@ class SymbExecCType(SymbolicExecutionEngine):
     def __init__(self, ir_arch,
                  symbols,
                  chandler,
-                 func_read=None,
-                 func_write=None,
                  sb_expr_simp=expr_simp):
         self.chandler = chandler
 
         super(SymbExecCType, self).__init__(ir_arch,
                                             {},
-                                            func_read,
-                                            func_write,
                                             sb_expr_simp)
         self.symbols = dict(symbols)
 

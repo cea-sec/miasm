@@ -28,8 +28,6 @@ class EmulatedSymbExec(SymbolicExecutionEngine):
         super(EmulatedSymbExec, self).__init__(*args, **kwargs)
         self.cpu = cpu
         self.vm = vm
-        self.func_read = self._func_read
-        self.func_write = self._func_write
 
     def reset_regs(self):
         """Set registers value to 0. Ignore register aliases"""
@@ -37,13 +35,13 @@ class EmulatedSymbExec(SymbolicExecutionEngine):
             self.symbols.symbols_id[reg] = m2_expr.ExprInt(0, size=reg.size)
 
     # Memory management
-    def _func_read(self, expr_mem):
+    def mem_read(self, expr_mem):
         """Memory read wrapper for symbolic execution
         @expr_mem: ExprMem"""
 
         addr = expr_mem.ptr
         if not addr.is_int():
-            return expr_mem
+            return super(EmulatedSymbExec, self).mem_read(expr_mem)
         addr = int(addr)
         size = expr_mem.size / 8
         value = self.cpu.get_mem(addr, size)
@@ -54,9 +52,8 @@ class EmulatedSymbExec(SymbolicExecutionEngine):
         return m2_expr.ExprInt(int(value.encode("hex"), 16),
                                expr_mem.size)
 
-    def _func_write(self, symb_exec, dest, data):
+    def mem_write(self, dest, data):
         """Memory read wrapper for symbolic execution
-        @symb_exec: symbexec instance
         @dest: ExprMem instance
         @data: Expr instance"""
 

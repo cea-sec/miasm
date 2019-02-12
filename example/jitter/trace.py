@@ -24,14 +24,14 @@ def instr_hook(jitter):
 class ESETrackMemory(EmulatedSymbExec):
     """Emulated symb exec with memory access tracking"""
 
-    def _func_read(self, expr_mem):
-        value = super(ESETrackMemory, self)._func_read(expr_mem)
+    def mem_read(self, expr_mem):
+        value = super(ESETrackMemory, self).mem_read(expr_mem)
         print "Read %s: %s" % (expr_mem, value)
         return value
 
-    def _func_write(self, symb_exec, dest, data):
+    def mem_write(self, dest, data):
         print "Write %s: %s" % (dest, data)
-        return super(ESETrackMemory, self)._func_write(symb_exec, dest, data)
+        return super(ESETrackMemory, self).mem_write(dest, data)
 
 # Parse arguments
 parser = Sandbox_Linux_arml.parser(description="Tracer")

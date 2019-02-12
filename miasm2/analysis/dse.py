@@ -104,14 +104,10 @@ class ESETrackModif(EmulatedSymbExec):
         self.dse_memory_to_expr = None # function(addr) -> Expr used to
                                        # symbolize
 
-    def _func_read(self, expr_mem):
+    def mem_read(self, expr_mem):
         if not expr_mem.ptr.is_int():
             return expr_mem
         dst_addr = int(expr_mem.ptr)
-
-        if not self.dse_memory_range:
-            # Trivial case (optimization)
-            return super(ESETrackModif, self)._func_read(expr_mem)
 
         # Split access in atomic accesses
         out = []
@@ -119,10 +115,14 @@ class ESETrackModif(EmulatedSymbExec):
             if addr in self.dse_memory_range:
                 # Symbolize memory access
                 out.append(self.dse_memory_to_expr(addr))
+                continue
+            atomic_access = ExprMem(ExprInt(addr, expr_mem.ptr.size), 8)
+            if atomic_access in self.symbols:
+                out.append( super(EmulatedSymbExec, self).mem_read(atomic_access))
             else:
                 # Get concrete value
                 atomic_access = ExprMem(ExprInt(addr, expr_mem.ptr.size), 8)
-                out.append(super(ESETrackModif, self)._func_read(atomic_access))
+                out.append(super(ESETrackModif, self).mem_read(atomic_access))
 
         if len(out) == 1:
             # Trivial case (optimization)
@@ -131,6 +131,10 @@ class ESETrackModif(EmulatedSymbExec):
         # Simplify for constant merging (ex: {ExprInt(1, 8), ExprInt(2, 8)})
         return self.expr_simp(ExprCompose(*out))
 
+    def mem_write(self, expr, data):
+        # Call Symbolic mem_write (avoid side effects on vm)
+        return super(EmulatedSymbExec, self).mem_write(expr, data)
+
     def reset_modified(self):
         """Reset modified expression tracker"""
         self.modified_expr.clear()
@@ -138,6 +142,14 @@ class ESETrackModif(EmulatedSymbExec):
     def apply_change(self, dst, src):
         super(ESETrackModif, self).apply_change(dst, src)
         self.modified_expr.add(dst)
+
+
+class ESENoVMSideEffects(EmulatedSymbExec):
+    """
+    Do EmulatedSymbExec without modifying memory
+    """
+    def mem_write(self, expr, data):
+        return super(EmulatedSymbExec, self).mem_write(expr, data)
 
 
 class DSEEngine(object):
@@ -174,21 +186,16 @@ class DSEEngine(object):
         self.symb = self.SYMB_ENGINE(self.jitter.cpu, self.jitter.vm,
                                      self.ir_arch, {})
         self.symb.enable_emulated_simplifications()
-        self.symb_concrete = EmulatedSymbExec(
+        self.symb_concrete = ESENoVMSideEffects(
             self.jitter.cpu, self.jitter.vm,
             self.ir_arch, {}
         )
-        ### Avoid side effects on jitter while using 'symb_concrete'
-        self.symb_concrete.func_write = None
 
         ## Update registers value
         self.symb.symbols[self.ir_arch.IRDst] = ExprInt(
             getattr(self.jitter.cpu, self.ir_arch.pc.name),
             self.ir_arch.IRDst.size
         )
-
-        # Avoid memory write
-        self.symb.func_write = None
 
         # Activate callback on each instr
         self.jitter.jit.set_options(max_exec_per_call=1, jit_maxline=1)
