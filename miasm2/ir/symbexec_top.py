@@ -86,13 +86,9 @@ class SymbExecTopNoMem(SymbolicExecutionEngine):
     StateEngine = SymbolicStateTop
 
     def __init__(self, ir_arch, state, regstop,
-                 func_read=None,
-                 func_write=None,
                  sb_expr_simp=expr_simp):
         known_symbols = dict(state)
         super(SymbExecTopNoMem, self).__init__(ir_arch, known_symbols,
-                                               func_read,
-                                               func_write,
                                                sb_expr_simp)
         self.regstop = set(regstop)
 

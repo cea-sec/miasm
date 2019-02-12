@@ -156,13 +156,10 @@ class SymbExecCTypeFix(SymbExecCType):
     def __init__(self, ir_arch,
                  symbols, chandler,
                  cst_propag_link,
-                 func_read=None, func_write=None,
                  sb_expr_simp=expr_simp):
         super(SymbExecCTypeFix, self).__init__(ir_arch,
                                                symbols,
                                                chandler,
-                                               func_read=func_read,
-                                               func_write=func_write,
                                                sb_expr_simp=expr_simp)
 
         self.cst_propag_link = cst_propag_link

@@ -1,4 +1,3 @@
-import warnings
 import logging
 from collections import MutableMapping
 
@@ -153,6 +152,9 @@ class MemArray(MutableMapping):
     def mask(self):
         """Mask offset"""
         return self._mask
+
+    def __contains__(self, offset):
+        return offset in self._offset_to_expr
 
     def __getitem__(self, offset):
         assert 0 <= offset <= self._mask
@@ -725,14 +727,6 @@ class SymbolMngr(object):
         """Variables of the current state"""
         return list(self)
 
-    def get(self, expr, default=None):
-        """Deprecated version of read"""
-        warnings.warn('DEPRECATION WARNING: use "read(self, expr)" instead of get')
-        ret = self.read(expr)
-        if default is not None and ret == expr:
-            return default
-        return ret
-
 
 def merge_ptr_read(known, ptrs):
     """
@@ -805,8 +799,6 @@ class SymbolicExecutionEngine(object):
     StateEngine = SymbolicState
 
     def __init__(self, ir_arch, state=None,
-                 func_read=None,
-                 func_write=None,
                  sb_expr_simp=expr_simp_explicit):
 
         self.expr_to_visitor = {
@@ -828,13 +820,6 @@ class SymbolicExecutionEngine(object):
         for dst, src in state.iteritems():
             self.symbols.write(dst, src)
 
-        if func_read:
-            warnings.warn('DEPRECATION WARNING: override function "mem_read(self, expr)" instead of func_read')
-        if func_write:
-            warnings.warn('DEPRECATION WARNING: override function "mem_write(self, dsr, src)" instead of func_write')
-
-        self.func_read = func_read
-        self.func_write = func_write
         self.ir_arch = ir_arch
         self.expr_simp = sb_expr_simp
 
@@ -1149,21 +1134,7 @@ class SymbolicExecutionEngine(object):
         Read symbolic value at ExprMem @expr
         @expr: ExprMem
         """
-
-        parts = self._resolve_mem_parts(expr)
-
-        out = []
-        for known, part in parts:
-            if not known and part.is_mem() and self.func_read is not None:
-                ret = self.func_read(part)
-            else:
-                ret = part
-
-            out.append(ret)
-        ret = self.expr_simp(ExprCompose(*out))
-
-        assert ret.size == expr.size
-        return ret
+        return self.symbols.read(expr)
 
     def mem_write(self, dst, src):
         """
@@ -1173,106 +1144,4 @@ class SymbolicExecutionEngine(object):
         @dst: destination ExprMem
         @src: source Expression
         """
-        if self.func_write is not None:
-            self.func_write(self, dst, src)
-        else:
-            self.symbols.write(dst, src)
-
-
-    # Deprecated methods
-
-    def apply_expr_on_state(self, expr, cache):
-        """Deprecated version of eval_expr"""
-        warnings.warn('DEPRECATION WARNING: use "eval_expr" instead of apply_expr_on_state')
-
-        if cache is None:
-            cache = {}
-        ret = self.eval_expr(expr, eval_cache=cache)
-        return ret
-
-    def modified_mems(self, init_state=None):
-        """Deprecated version of modified(ids=False)"""
-        warnings.warn('DEPRECATION WARNING: use "modified(self, ids=False)" instead of modified_mems')
-        for mem in self.modified(init_state=init_state, ids=False):
-            yield mem
-
-    def modified_regs(self, init_state=None):
-        """Deprecated version of modified(mems=False)"""
-        warnings.warn('DEPRECATION WARNING: use "modified(self, mems=False)" instead of modified_regs')
-        for reg in self.modified(init_state=init_state, mems=False):
-            yield reg
-
-    def dump_id(self):
-        """Deprecated version of dump(mems=False)"""
-        warnings.warn('DEPRECATION WARNING: use "dump(self, mems=False)" instead of dump_id')
-        self.dump(mems=False)
-
-    def dump_mem(self):
-        """Deprecated version of dump(ids=False)"""
-        warnings.warn('DEPRECATION WARNING: use "dump(self, ids=False)" instead of dump_mem')
-        self.dump(ids=False)
-
-    def eval_ir_expr(self, assignblk):
-        """Deprecated version of eval_ir_expr(self, assignblk)"""
-        warnings.warn('DEPRECATION WARNING: use "eval_assignblk(self, assignblk)" instead of eval_ir_expr')
-        return self.eval_assignblk(assignblk).iteritems()
-
-    def eval_ir(self, assignblk):
-        """Deprecated version of eval_updt_assignblk(self, assignblk)"""
-        warnings.warn('DEPRECATION WARNING: use "eval_assignblk(self, assignblk)" instead of eval_ir')
-        return self.eval_updt_assignblk(assignblk)
-
-    def emulbloc(self, irb, step=False):
-        """Deprecated version of eval_updt_irblock(self, irb, step=False)"""
-        warnings.warn('DEPRECATION WARNING: use "eval_updt_irblock(self, irb, step=False)" instead of emulbloc')
-        return self.eval_updt_irblock(irb, step)
-
-    def emul_ir_bloc(self, _, addr, step=False):
-        """Deprecated version of run_block_at"""
-        warnings.warn('DEPRECATION WARNING: use "run_block_at(self, addr, step=False)" instead of emul_ir_bloc')
-        return self.run_block_at(addr, step)
-
-    def emul_ir_block(self, addr, step=False):
-        """Deprecated version of run_block_at"""
-        warnings.warn('DEPRECATION WARNING: use "run_block_at(self, addr, step=False)" instead of emul_ir_block')
-        return self.run_block_at(addr, step)
-
-    def emul_ir_blocks(self, addr, lbl_stop=None, step=False):
-        """Deprecated version of run_at"""
-        warnings.warn('DEPRECATION WARNING: use "run_at(self, addr, lbl_stop=None, step=False):" instead of emul_ir_blocks')
-        return self.run_at(addr, lbl_stop, step)
-
-    def emul_ir_blocs(self, _, addr, lbl_stop=None, step=False):
-        """Deprecated version of run_at"""
-        warnings.warn('DEPRECATION WARNING: use "run_at(self, addr, lbl_stop=None, step=False):" instead of emul_ir_blocs')
-        return self.run_at(addr, lbl_stop, step)
-
-    def apply_expr(self, expr):
-        """Deprecated version of eval_updt_expr"""
-        warnings.warn('DEPRECATION WARNING: use "eval_updt_expr" instead of apply_expr')
-        return self.eval_updt_expr(expr)
-
-    def as_assignblock(self):
-        """Return the current state as an AssignBlock"""
-        warnings.warn('DEPRECATION WARNING: use "modified(ids=True, mems=True)" instead of as_assignblock')
-        out = []
-        for dst, src in self.modified(ids=True, mems=True):
-            out.append((dst, src))
-        return AssignBlock(dict(out))
-
-
-class symbexec(SymbolicExecutionEngine):
-    """
-    DEPRECATED object
-    Use SymbolicExecutionEngine instead of symbexec
-    """
-
-    def __init__(self, ir_arch, known_symbols,
-                 func_read=None,
-                 func_write=None,
-                 sb_expr_simp=expr_simp_explicit):
-        warnings.warn("Deprecated API: use SymbolicExecutionEngine")
-        super(symbexec, self).__init__(ir_arch, known_symbols,
-                                       func_read,
-                                       func_write,
-                                       sb_expr_simp=sb_expr_simp)
+        self.symbols.write(dst, src)
