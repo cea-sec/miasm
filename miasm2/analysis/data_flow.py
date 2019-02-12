@@ -4,9 +4,12 @@ from collections import namedtuple
 from miasm2.core.graph import DiGraph
 from miasm2.ir.ir import AssignBlock, IRBlock
 from miasm2.expression.expression import ExprLoc, ExprMem, ExprId, ExprInt,\
-    ExprAssign
+    ExprAssign, ExprOp
 from miasm2.expression.simplifications import expr_simp
 from miasm2.core.interval import interval
+from miasm2.expression.expression_helper import possible_values
+from miasm2.analysis.ssa import get_phi_sources_parent_block, \
+    irblock_has_phi
 
 class ReachingDefinitions(dict):
     """
@@ -1212,3 +1215,201 @@ class DiGraphLivenessIRA(DiGraphLiveness):
             var_out = ir_arch_a.get_out_regs(irblock)
             irblock_liveness = self.blocks[node]
             irblock_liveness.infos[-1].var_out = var_out
+
+
+def discard_phi_sources(ircfg, deleted_vars):
+    """
+    Remove phi sources in @ircfg belonging to @deleted_vars set
+    @ircfg: IRCFG instance in ssa form
+    @deleted_vars: unused phi sources
+    """
+    for block in ircfg.blocks.values():
+        if not block.assignblks:
+            continue
+        assignblk = block[0]
+        todo = {}
+        modified = False
+        for dst, src in assignblk.iteritems():
+            if not src.is_op('Phi'):
+                todo[dst] = src
+                continue
+            srcs = set(expr for expr in src.args if expr not in deleted_vars)
+            assert(srcs)
+            if len(srcs) > 1:
+                todo[dst] = srcs
+                continue
+            todo[dst] = srcs.pop()
+            modified = True
+        if not modified:
+            continue
+        assignblks = list(block)
+        assignblk = dict(assignblk)
+        assignblk.update(todo)
+        assignblk = AssignBlock(assignblk, assignblks[0].instr)
+        assignblks[0] = assignblk
+        new_irblock = IRBlock(block.loc_key, assignblks)
+        ircfg.blocks[block.loc_key] = new_irblock
+    return True
+
+
+def get_unreachable_nodes(ircfg, edges_to_del, heads):
+    """
+    Return the unreachable nodes starting from heads and the associated edges to
+    be deleted.
+
+    @ircfg: IRCFG instance
+    @edges_to_del: edges already marked as deleted
+    heads: locations of graph heads
+    """
+    todo = set(heads)
+    visited_nodes = set()
+    new_edges_to_del = set()
+    while todo:
+        node = todo.pop()
+        if node in visited_nodes:
+            continue
+        visited_nodes.add(node)
+        for successor in ircfg.successors(node):
+            if (node, successor) not in edges_to_del:
+                todo.add(successor)
+    all_nodes = set(ircfg.nodes())
+    nodes_to_del = all_nodes.difference(visited_nodes)
+    for node in nodes_to_del:
+        for successor in ircfg.successors(node):
+            if successor not in nodes_to_del:
+                # Frontier: link from a deleted node to a living node
+                new_edges_to_del.add((node, successor))
+    return nodes_to_del, new_edges_to_del
+
+
+def update_phi_with_deleted_edges(ircfg, edges_to_del):
+    """
+    Update phi which have a source present in @edges_to_del
+    @ssa: IRCFG instance in ssa form
+    @edges_to_del: edges to delete
+    """
+
+    modified = False
+    blocks = dict(ircfg.blocks)
+    for loc_src, loc_dst in edges_to_del:
+        block = ircfg.blocks[loc_dst]
+        assert block.assignblks
+        assignblks = list(block)
+        assignblk = assignblks[0]
+        out = {}
+        for dst, phi_sources in assignblk.iteritems():
+            if not phi_sources.is_op('Phi'):
+                out = assignblk
+                break
+            var_to_parents = get_phi_sources_parent_block(
+                ircfg,
+                loc_dst,
+                phi_sources.args
+            )
+            to_keep = set(phi_sources.args)
+            for src in phi_sources.args:
+                parents = var_to_parents[src]
+                if loc_src in parents:
+                    to_keep.discard(src)
+                    modified = True
+            assert to_keep
+            if len(to_keep) == 1:
+                out[dst] = to_keep.pop()
+            else:
+                out[dst] = ExprOp('Phi', *to_keep)
+        assignblk = AssignBlock(out, assignblks[0].instr)
+        assignblks[0] = assignblk
+        new_irblock = IRBlock(loc_dst, assignblks)
+        blocks[block.loc_key] = new_irblock
+
+    for loc_key, block in blocks.iteritems():
+        ircfg.blocks[loc_key] = block
+    return modified
+
+
+def del_unused_edges(ircfg, heads):
+    """
+    Delete non accessible edges in the @ircfg graph.
+    @ircfg: IRCFG instance in ssa form
+    @heads: location of the heads of the graph
+    """
+
+    deleted_vars = set()
+    modified = False
+    edges_to_del_1 = set()
+    for node in ircfg.nodes():
+        successors = set(ircfg.successors(node))
+        block = ircfg.blocks[node]
+        dst = block.dst
+        possible_dsts = set(solution.value for solution in possible_values(dst))
+        if not all(dst.is_loc() for dst in possible_dsts):
+            continue
+        possible_dsts = set(dst.loc_key for dst in possible_dsts)
+        if len(possible_dsts) == len(successors):
+            continue
+        dsts_to_del = successors.difference(possible_dsts)
+        for dst in dsts_to_del:
+            edges_to_del_1.add((node, dst))
+
+    # Remove edges and update phi accordingly
+    # Two cases here:
+    # - edge is directly linked to a phi node
+    # - edge is indirect linked to a phi node
+    nodes_to_del, edges_to_del_2 = get_unreachable_nodes(ircfg, edges_to_del_1, heads)
+    modified |= update_phi_with_deleted_edges(ircfg, edges_to_del_1.union(edges_to_del_2))
+
+    for src, dst in edges_to_del_1.union(edges_to_del_2):
+        ircfg.del_edge(src, dst)
+    for node in nodes_to_del:
+        block = ircfg.blocks[node]
+        ircfg.del_node(node)
+        for assignblock in block:
+            for dst in assignblock:
+                deleted_vars.add(dst)
+
+    if deleted_vars:
+        modified |= discard_phi_sources(ircfg, deleted_vars)
+
+    return modified
+
+
+class DiGraphLivenessSSA(DiGraphLivenessIRA):
+    """
+    DiGraph representing variable liveness is a SSA graph
+    """
+    def __init__(self, ircfg):
+        super(DiGraphLivenessSSA, self).__init__(ircfg)
+
+        self.loc_key_to_phi_parents = {}
+        for irblock in self.blocks.values():
+            if not irblock_has_phi(irblock):
+                continue
+            out = {}
+            for sources in irblock[0].itervalues():
+                var_to_parents = get_phi_sources_parent_block(self, irblock.loc_key, sources.args)
+                for var, var_parents in var_to_parents.iteritems():
+                    out.setdefault(var, set()).update(var_parents)
+            self.loc_key_to_phi_parents[irblock.loc_key] = out
+
+    def back_propagate_to_parent(self, todo, node, parent):
+        parent_block = self.blocks[parent]
+        cur_block = self.blocks[node]
+        irblock = self.ircfg.blocks[node]
+        if cur_block.infos[0].var_in == parent_block.infos[-1].var_out:
+            return
+        var_info = cur_block.infos[0].var_in.union(parent_block.infos[-1].var_out)
+
+        if irblock_has_phi(irblock):
+            # Remove phi special case
+            out = set()
+            phi_sources = self.loc_key_to_phi_parents[irblock.loc_key]
+            for var in var_info:
+                if var not in phi_sources:
+                    out.add(var)
+                    continue
+                if parent in phi_sources[var]:
+                    out.add(var)
+            var_info = out
+
+        parent_block.infos[-1].var_out = var_info
+        todo.add(parent)
