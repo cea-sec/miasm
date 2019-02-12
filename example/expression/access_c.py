@@ -154,8 +154,8 @@ open('graph_irflow.dot', 'w').write(ircfg.dot())
 ptr_llhuman = types_mngr.get_objc(CTypePtr(CTypeStruct('ll_human')))
 arg0 = ExprId('ptr', 64)
 ctx = {ir_arch_a.arch.regs.RDI: arg0}
-expr_types = {arg0: (ptr_llhuman,),
-              ExprInt(0x8A, 64): (ptr_llhuman,)}
+expr_types = {str(arg0): (ptr_llhuman,),
+              str(ExprInt(0x8A, 64)): (ptr_llhuman,)}
 
 mychandler = MyCHandler(types_mngr, expr_types)
 

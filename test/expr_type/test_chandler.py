@@ -208,8 +208,8 @@ assert obj_test_context.size > obj_test_st.size
 assert cmp(obj_test_st, obj_recurse) != 0
 
 
-expr_types = {ptr_test: set([obj_test]),
-              ptr_recurse: set([obj_recurse])}
+expr_types = {ptr_test.name: set([obj_test]),
+              ptr_recurse.name: set([obj_recurse])}
 
 
 c_context = {ptr_test.name: obj_test,

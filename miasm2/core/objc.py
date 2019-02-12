@@ -955,8 +955,8 @@ class ExprToAccessC(ExprReducer):
 
     def reduce_known_expr(self, node, ctxt, **kwargs):
         """Generate access for known expr"""
-        if node.expr in ctxt:
-            objcs = ctxt[node.expr]
+        objcs = ctxt.get(str(node.expr), None)
+        if objcs is not None:
             return set(CGenId(objc, str(node.expr)) for objc in objcs)
         return None
 
