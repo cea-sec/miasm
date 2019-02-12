@@ -1099,34 +1099,6 @@ class SymbolicExecutionEngine(object):
 
         return ret
 
-    def _resolve_mem_parts(self, expr):
-        """For a given ExprMem @expr, get known/unknown parts from the store.
-        @expr: ExprMem instance
-
-        Return a list of (known, value) where known is a bool representing if
-        the value has been resolved from the store or not.
-        """
-
-        # Extract known parts in symbols
-        assert expr.size % 8 == 0
-        ptr = expr.ptr
-        known = []
-        ptrs = []
-        for index in xrange(expr.size / 8):
-            offset = self.expr_simp(ptr + ExprInt(index, ptr.size))
-            ptrs.append(offset)
-            mem = ExprMem(offset, 8)
-            known.append(mem in self.symbols)
-
-        reads = merge_ptr_read(known, ptrs)
-        out = []
-        for is_known, ptr_value, size in reads:
-            mem = ExprMem(ptr_value, size)
-            if is_known:
-                mem = self.symbols.read(mem)
-            out.append((is_known, mem))
-        return out
-
     def mem_read(self, expr):
         """
         [DEV]: Override to modify the effective memory reads
