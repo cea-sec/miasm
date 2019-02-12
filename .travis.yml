@@ -26,9 +26,7 @@ before_script:
 - pip install -r optional_requirements.txt
 # codespell
 - "pip install codespell && git ls-files | xargs codespell --ignore-words=.codespell_ignore 2>/dev/null"
-# turn deprecation warning into RuntimeError
-- "find . -name '*.py' | xargs sed -i 's/warnings\\.warn(/raise RuntimeError(/g'"
 # install
 - python setup.py build build_ext
 - python setup.py install
-script: cd test && python test_all.py $MIASM_TEST_EXTRA_ARG && git ls-files -o --exclude-standard
+script: cd test && python -W error test_all.py $MIASM_TEST_EXTRA_ARG && git ls-files -o --exclude-standard
