@@ -8,9 +8,12 @@ from miasm2.core.interval import interval
 from miasm2.analysis.machine import Machine
 from miasm2.analysis.data_flow import dead_simp, DiGraphDefUse, \
     ReachingDefinitions, merge_blocks, remove_empty_assignblks, \
-    PropagateExpr, replace_stack_vars, load_from_int
+    PropagateExpr, replace_stack_vars, load_from_int, \
+    del_unused_edges
 from miasm2.expression.simplifications import expr_simp
-from miasm2.analysis.ssa import SSADiGraph, UnSSADiGraph, DiGraphLivenessSSA
+from miasm2.analysis.ssa import SSADiGraph
+from miasm2.analysis.outofssa import UnSSADiGraph
+from miasm2.analysis.data_flow import DiGraphLivenessSSA
 from miasm2.ir.ir import AssignBlock, IRBlock
 
 
@@ -45,9 +48,9 @@ parser.add_argument('-l', "--dontdis-retcall", action="store_true",
                     help="If set, disassemble only call destinations")
 parser.add_argument('-s', "--simplify", action="count",
                     help="Apply simplifications rules (liveness, graph simplification, ...)")
-parser.add_argument('-o', "--shiftoffset", default=0,
+parser.add_argument("--base-address", default=0,
                     type=lambda x: int(x, 0),
-                    help="Shift input binary by an offset")
+                    help="Base address of the input binary")
 parser.add_argument('-a', "--try-disasm-all", action="store_true",
                     help="Try to disassemble the whole binary")
 parser.add_argument('-i', "--image", action="store_true",
@@ -79,10 +82,10 @@ if args.verbose:
 log.info('Load binary')
 if args.rawbinary:
     cont = Container.fallback_container(open(args.filename, "rb").read(),
-                                        vm=None, addr=args.shiftoffset)
+                                        vm=None, addr=args.base_address)
 else:
     with open(args.filename, "rb") as fdesc:
-        cont = Container.from_stream(fdesc, addr=args.shiftoffset)
+        cont = Container.from_stream(fdesc, addr=args.base_address)
 
 default_addr = cont.entry_point
 bs = cont.bin_stream
@@ -395,6 +398,9 @@ if args.propagexpr:
                 if args.verbose > 3:
                     open('tmp_after_%d.dot' % index, 'w').write(ircfg_a.dot())
                 simp_modified |= remove_empty_assignblks(ircfg_a)
+                simp_modified |= del_unused_edges(ircfg_a, heads)
+                simp_modified |= merge_blocks(ircfg_a, heads)
+
                 if args.loadint:
                     simp_modified |= load_from_int(ircfg_a, bs, is_addr_ro_variable)
                 modified |= simp_modified

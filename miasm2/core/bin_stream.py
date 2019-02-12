@@ -160,61 +160,65 @@ class bin_stream(object):
 
 class bin_stream_str(bin_stream):
 
-    def __init__(self, input_str="", offset=0L, shift=0):
+    def __init__(self, input_str="", offset=0L, base_address=0, shift=None):
         bin_stream.__init__(self)
+        if shift is not None:
+            raise DeprecationWarning("use base_address instead of shift")
         self.bin = input_str
         self.offset = offset
-        self.shift = shift
+        self.base_address = base_address
         self.l = len(input_str)
 
     def _getbytes(self, start, l=1):
-        if start + l + self.shift > self.l:
+        if start + l - self.base_address > self.l:
             raise IOError("not enough bytes in str")
-        if start + self.shift < 0:
+        if start - self.base_address < 0:
             raise IOError("Negative offset")
 
-        return super(bin_stream_str, self)._getbytes(start + self.shift, l)
+        return super(bin_stream_str, self)._getbytes(start - self.base_address, l)
 
     def readbs(self, l=1):
-        if self.offset + l + self.shift > self.l:
+        if self.offset + l - self.base_address > self.l:
             raise IOError("not enough bytes in str")
-        if self.offset + self.shift < 0:
+        if self.offset - self.base_address < 0:
             raise IOError("Negative offset")
         self.offset += l
-        return self.bin[self.offset - l + self.shift:self.offset + self.shift]
+        return self.bin[self.offset - l - self.base_address:self.offset - self.base_address]
 
     def __str__(self):
-        out = self.bin[self.offset + self.shift:]
+        out = self.bin[self.offset - self.base_address:]
         return out
 
     def setoffset(self, val):
         self.offset = val
 
     def getlen(self):
-        return self.l - (self.offset + self.shift)
+        return self.l - (self.offset - self.base_address)
 
 
 class bin_stream_file(bin_stream):
 
-    def __init__(self, binary, offset=0L, shift=0):
+    def __init__(self, binary, offset=0L, base_address=0, shift=None):
         bin_stream.__init__(self)
+        if shift is not None:
+            raise DeprecationWarning("use base_address instead of shift")
         self.bin = binary
         self.bin.seek(0, 2)
-        self.shift = shift
+        self.base_address = base_address
         self.l = self.bin.tell()
         self.offset = offset
 
     def getoffset(self):
-        return self.bin.tell() - self.shift
+        return self.bin.tell() + self.base_address
 
     def setoffset(self, val):
-        self.bin.seek(val + self.shift)
+        self.bin.seek(val - self.base_address)
     offset = property(getoffset, setoffset)
 
     def readbs(self, l=1):
-        if self.offset + l + self.shift > self.l:
+        if self.offset + l - self.base_address > self.l:
             raise IOError("not enough bytes in file")
-        if self.offset + self.shift < 0:
+        if self.offset - self.base_address < 0:
             raise IOError("Negative offset")
         return self.bin.read(l)
 
@@ -222,7 +226,7 @@ class bin_stream_file(bin_stream):
         return str(self.bin)
 
     def getlen(self):
-        return self.l - (self.offset + self.shift)
+        return self.l - (self.offset - self.base_address)
 
 
 class bin_stream_container(bin_stream):

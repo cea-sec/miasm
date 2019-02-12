@@ -2,12 +2,13 @@
 from pdb import pm
 from pprint import pprint as pp
 from miasm2.expression.expression import ExprId, ExprInt, ExprAssign, ExprMem, \
-    ExprCond, ExprOp
+    ExprCond, ExprOp, ExprLoc
 from miasm2.core.locationdb import LocationDB
-from miasm2.analysis.data_flow import *
+from miasm2.analysis.data_flow import DiGraphLivenessSSA, dead_simp, PropagateExpr
 from miasm2.ir.analysis import ira
 from miasm2.ir.ir import IRCFG, IRBlock, AssignBlock
-from miasm2.analysis.ssa import SSADiGraph, UnSSADiGraph, DiGraphLivenessSSA
+from miasm2.analysis.ssa import SSADiGraph
+from miasm2.analysis.outofssa import UnSSADiGraph
 
 loc_db = LocationDB()
 
