@@ -909,6 +909,7 @@ def simp_cmp_int(expr_simp, expr):
     """
     ({X, 0} == int) => X == int[:]
     X + int1 == int2 => X == int2-int1
+    X ^ int1 == int2 => X == int1^int2
     """
     if (expr.is_op(TOK_EQUAL) and
           expr.args[1].is_int() and
@@ -922,28 +923,42 @@ def simp_cmp_int(expr_simp, expr):
         expr = expr_simp(
             ExprOp(TOK_EQUAL, src, new_int)
         )
-    elif (expr.is_op() and
-          expr.op in [
-              TOK_EQUAL,
-          ] and
-          expr.args[1].is_int() and
-          expr.args[0].is_op("+") and
-          expr.args[0].args[-1].is_int()):
-        # X + int1 == int2 => X == int2-int1
-        # WARNING:
-        # X - 0x10 <=u 0x20 gives X in [0x10 0x30]
-        # which is not equivalet to A <=u 0x10
+    elif not expr.is_op(TOK_EQUAL):
+        return expr
+    assert len(expr.args) == 2
 
-        left, right = expr.args
-        left, int_diff = left.args[:-1], left.args[-1]
-        if len(left) == 1:
-            left = left[0]
-        else:
-            left = ExprOp('+', *left)
-        new_int = expr_simp(right - int_diff)
-        expr = expr_simp(
-            ExprOp(expr.op, left, new_int),
-        )
+    left, right = expr.args
+    if left.is_int() and not right.is_int():
+        left, right = right, left
+    if not right.is_int():
+        return expr
+    if not (left.is_op() and left.op in ['+', '^']):
+        return expr
+    if not left.args[-1].is_int():
+        return expr
+    # X + int1 == int2 => X == int2-int1
+    # WARNING:
+    # X - 0x10 <=u 0x20 gives X in [0x10 0x30]
+    # which is not equivalet to A <=u 0x10
+
+    left_orig = left
+    left, last_int = left.args[:-1], left.args[-1]
+
+    if len(left) == 1:
+        left = left[0]
+    else:
+        left = ExprOp(left.op, *left)
+
+    if left_orig.op == "+":
+        new_int = expr_simp(right - last_int)
+    elif left_orig.op == '^':
+        new_int = expr_simp(right ^ last_int)
+    else:
+        raise RuntimeError("Unsupported operator")
+
+    expr = expr_simp(
+        ExprOp(TOK_EQUAL, left, new_int),
+    )
     return expr
 
 
@@ -1373,6 +1388,59 @@ def simp_cond_sign_bit(_, expr):
         args = [ExprOp('&', *list(cond.args[:-1])), zero]
     cond = ExprOp(TOK_INF_SIGNED, *args)
     return ExprCond(cond, expr.src1, expr.src2)
+
+
+def simp_cond_add(expr_s, expr):
+    """
+    (a+b)?X:Y => (a == b)?Y:X
+    (a^b)?X:Y => (a == b)?Y:X
+    """
+    cond = expr.cond
+    if not cond.is_op():
+        return expr
+    if cond.op not in ['+', '^']:
+        return expr
+    if len(cond.args) != 2:
+        return expr
+    arg1, arg2 = cond.args
+    if cond.is_op('+'):
+        new_cond = ExprOp('==', arg1, expr_s(-arg2))
+    elif cond.is_op('^'):
+        new_cond = ExprOp('==', arg1, arg2)
+    else:
+        raise ValueError('Bad case')
+    return ExprCond(new_cond, expr.src2, expr.src1)
+
+
+def simp_cond_eq_1_0(expr_s, expr):
+    """
+    (a == b)?ExprInt(1, 1):ExprInt(0, 1) => a == b
+    (a <s b)?ExprInt(1, 1):ExprInt(0, 1) => a == b
+    ...
+    """
+    cond = expr.cond
+    if not cond.is_op():
+        return expr
+    if cond.op not in [
+            TOK_EQUAL,
+            TOK_INF_SIGNED, TOK_INF_EQUAL_SIGNED,
+            TOK_INF_UNSIGNED, TOK_INF_EQUAL_UNSIGNED
+            ]:
+        return expr
+    if expr.src1 != ExprInt(1, 1) or expr.src2 != ExprInt(0, 1):
+        return expr
+    return cond
+
+
+def simp_cond_inf_eq_unsigned_zero(expr_s, expr):
+    """
+    (a <=u 0) => a == 0
+    """
+    if not expr.is_op(TOK_INF_EQUAL_UNSIGNED):
+        return expr
+    if not expr.args[1].is_int(0):
+        return expr
+    return ExprOp(TOK_EQUAL, expr.args[0], expr.args[1])
 
 
 def simp_test_signext_inf(expr_s, expr):

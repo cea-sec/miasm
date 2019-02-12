@@ -101,6 +101,10 @@ i3 = ExprInt(3, 32)
 im1 = ExprInt(-1, 32)
 im2 = ExprInt(-2, 32)
 
+bi0 = ExprInt(0, 1)
+bi1 = ExprInt(1, 1)
+
+
 icustom = ExprInt(0x12345678, 32)
 cc = ExprCond(a, b, c)
 
@@ -490,6 +494,21 @@ to_test = [
         ExprOp(TOK_EQUAL, a8, ExprInt(0xFF, 8))
     ),
 
+    (
+        ExprOp(TOK_EQUAL, i2, a + i1),
+        ExprOp(TOK_EQUAL, a , i1)
+    ),
+
+    (
+        ExprOp(TOK_EQUAL, a ^ i1, i2),
+        ExprOp(TOK_EQUAL, a , i3)
+    ),
+
+    (
+        ExprOp(TOK_EQUAL, i2, a ^ i1),
+        ExprOp(TOK_EQUAL, a , i3)
+    ),
+
     (ExprOp(TOK_INF_SIGNED, i1, i2), ExprInt(1, 1)),
     (ExprOp(TOK_INF_UNSIGNED, i1, i2), ExprInt(1, 1)),
     (ExprOp(TOK_INF_EQUAL_SIGNED, i1, i2), ExprInt(1, 1)),
@@ -691,6 +710,33 @@ to_test = [
 
 
     (a8.zeroExtend(32)[2:5], a8[2:5]),
+
+
+    (
+        ExprCond(a + b, a, b),
+        ExprCond(ExprOp(TOK_EQUAL, a, -b), b, a)
+    ),
+
+    (
+        ExprCond(a + i1, a, b),
+        ExprCond(ExprOp(TOK_EQUAL, a, im1), b, a)
+    ),
+
+
+    (
+        ExprCond(ExprOp(TOK_EQUAL, a, i1), bi1, bi0),
+        ExprOp(TOK_EQUAL, a, i1)
+    ),
+
+    (
+        ExprCond(ExprOp(TOK_INF_SIGNED, a, i1), bi1, bi0),
+        ExprOp(TOK_INF_SIGNED, a, i1)
+    ),
+
+    (
+        ExprOp(TOK_INF_EQUAL_UNSIGNED, a, i0),
+        ExprOp(TOK_EQUAL, a, i0)
+    ),
 
 ]
 

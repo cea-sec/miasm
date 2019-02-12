@@ -55,6 +55,7 @@ class ExpressionSimplifier(object):
             simplifications_common.simp_zeroext_and_cst_eq_cst,
             simplifications_common.simp_test_signext_inf,
             simplifications_common.simp_test_zeroext_inf,
+            simplifications_common.simp_cond_inf_eq_unsigned_zero,
 
         ],
 
@@ -67,6 +68,7 @@ class ExpressionSimplifier(object):
         m2_expr.ExprCond: [
             simplifications_common.simp_cond,
             simplifications_common.simp_cond_zeroext,
+            simplifications_common.simp_cond_add,
             # CC op
             simplifications_common.simp_cond_flag,
             simplifications_common.simp_cmp_int_arg,
@@ -75,10 +77,12 @@ class ExpressionSimplifier(object):
             simplifications_common.simp_x_and_cst_eq_cst,
             simplifications_common.simp_cond_logic_ext,
             simplifications_common.simp_cond_sign_bit,
+            simplifications_common.simp_cond_eq_1_0,
         ],
         m2_expr.ExprMem: [simplifications_common.simp_mem],
 
     }
+
 
     # Heavy passes
     PASS_HEAVY = {}
@@ -192,8 +196,6 @@ class ExpressionSimplifier(object):
 # Public ExprSimplificationPass instance with commons passes
 expr_simp = ExpressionSimplifier()
 expr_simp.enable_passes(ExpressionSimplifier.PASS_COMMONS)
-
-
 
 expr_simp_high_to_explicit = ExpressionSimplifier()
 expr_simp_high_to_explicit.enable_passes(ExpressionSimplifier.PASS_HIGH_TO_EXPLICIT)
