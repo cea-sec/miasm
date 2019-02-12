@@ -639,24 +639,6 @@ def expr_has_mem(expr):
     return expr_test_visit(expr, expr_has_mem_test)
 
 
-def expr_has_call_test(expr, result):
-    if result:
-        # Don't analyse if we already found a candidate
-        return False
-    if expr.is_op() and expr.op.startswith("call"):
-        result.add(expr)
-        return False
-    return True
-
-
-def expr_has_call(expr):
-    """
-    Return True if expr contains at least one "call" operator
-    @expr: Expr instance
-    """
-    return expr_test_visit(expr, expr_has_call_test)
-
-
 class PropagateThroughExprId(object):
     """
     Propagate expressions though ExprId
@@ -669,7 +651,7 @@ class PropagateThroughExprId(object):
         """
         for assignblk in assignblks:
             for dst, src in assignblk.iteritems():
-                if expr_has_call(src):
+                if src.is_function_call():
                     return True
                 if dst.is_mem():
                     return True
@@ -781,7 +763,7 @@ class PropagateThroughExprId(object):
             src = defuse.get_node_target(node)
             if max_expr_depth is not None and len(str(src)) > max_expr_depth:
                 continue
-            if expr_has_call(src):
+            if src.is_function_call():
                 continue
             if node.var.is_mem():
                 continue
@@ -866,7 +848,7 @@ class PropagateExprIntThroughExprId(PropagateThroughExprId):
             src = defuse.get_node_target(node)
             if not src.is_int():
                 continue
-            if expr_has_call(src):
+            if src.is_function_call():
                 continue
             if node.var.is_mem():
                 continue
