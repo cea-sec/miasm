@@ -33,7 +33,7 @@ build_script:
 
 test_script:
   - cmd: cd c:\projects\miasm\test
-  - "%PYTHON%\\python.exe test_all.py"
+  - "%PYTHON%\\python.exe -W error test_all.py"
 
 after_test:
   - cmd: chdir
