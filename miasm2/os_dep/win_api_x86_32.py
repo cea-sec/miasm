@@ -1490,20 +1490,20 @@ def kernel32_lstrlen(jitter):
     my_strlen(jitter, whoami(), jitter.get_str_ansi, len)
 
 
-def my_lstrcat(jitter, funcname, get_str):
+def my_lstrcat(jitter, funcname, get_str, set_str):
     ret_ad, args = jitter.func_args_stdcall(['ptr_str1', 'ptr_str2'])
     s1 = get_str(args.ptr_str1)
     s2 = get_str(args.ptr_str2)
-    jitter.vm.set_mem(args.ptr_str1, s1 + s2)
+    set_str(args.ptr_str1, s1 + s2)
     jitter.func_ret_stdcall(ret_ad, args.ptr_str1)
 
 
 def kernel32_lstrcatA(jitter):
-    my_lstrcat(jitter, whoami(), jitter.get_str_ansi)
+    my_lstrcat(jitter, whoami(), jitter.get_str_ansi, jitter.set_str_ansi)
 
 
 def kernel32_lstrcatW(jitter):
-    my_lstrcat(jitter, whoami(), jitter.get_str_unic)
+    my_lstrcat(jitter, whoami(), jitter.get_str_unic, jitter.set_str_unic)
 
 
 def kernel32_GetUserGeoID(jitter):
