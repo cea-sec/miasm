@@ -15,7 +15,7 @@ class bin_stream_ida(bin_stream_str):
     def _getbytes(self, start, l=1):
         o = ""
         for ad in xrange(l):
-            offset = ad + start - self.shift
+            offset = ad + start + self.base_address
             if not is_mapped(offset):
                 raise IOError("not enough bytes")
             o += chr(Byte(offset))
@@ -38,6 +38,6 @@ class bin_stream_ida(bin_stream_str):
         # Lazy version
         if hasattr(self, "_getlen"):
             return self._getlen
-        max_addr = SegEnd(list(Segments())[-1]  - (self.offset + self.shift))
+        max_addr = SegEnd(list(Segments())[-1]  - (self.offset - self.base_address))
         self._getlen = max_addr
         return max_addr
