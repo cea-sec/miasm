@@ -512,7 +512,7 @@ exprc2expr = ExprCToExpr(expr_types, types_mngr)
 mychandler.updt_expr_types(expr_types)
 
 
-for (expr, result) in tests[4:]:
+for (expr, result) in tests:
     print "*" * 80
     print "Native expr:", expr
     result = set(result)
