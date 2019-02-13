@@ -1585,6 +1585,7 @@ class CHandler(object):
     exprToAccessC_cls = ExprToAccessC
 
     def __init__(self, types_mngr, expr_types=None,
+                 C_types=None,
                  simplify_c=access_simplifier,
                  enforce_strict_access=True):
         self.exprc2expr = self.exprCToExpr_cls(expr_types, types_mngr)
@@ -1596,6 +1597,9 @@ class CHandler(object):
         if expr_types is None:
             expr_types = {}
         self.expr_types = expr_types
+        if C_types is None:
+            C_types = {}
+        self.C_types = C_types
 
     def updt_expr_types(self, expr_types):
         """Update expr_types
@@ -1645,32 +1649,41 @@ class CHandler(object):
         return set(access.ctype
                    for access in self.expr_to_c_access(expr, expr_context))
 
-    def c_to_expr_and_type(self, c_str, c_context):
+    def c_to_expr_and_type(self, c_str, c_context=None):
         """Convert a C string expression to a Miasm expression and it's
         corresponding c type
         @c_str: C string
-        @c_context: a dictionary linking known tokens (strings) to its type.
+        @c_context: (optional) dictionary linking known tokens (strings) to its
+        type.
         """
 
         ast = parse_access(c_str)
+        if c_context is None:
+            c_context = self.C_types
         access_c = ast_get_c_access_expr(ast, c_context)
         return self.exprc2expr.get_expr(access_c, c_context)
 
-    def c_to_expr(self, c_str, c_context):
+    def c_to_expr(self, c_str, c_context=None):
         """Convert a C string expression to a Miasm expression
         @c_str: C string
-        @c_context: a dictionary linking known tokens (strings) to its type.
+        @c_context: (optional) dictionary linking known tokens (strings) to its
+        type.
         """
 
+        if c_context is None:
+            c_context = self.C_types
         expr, _ = self.c_to_expr_and_type(c_str, c_context)
         return expr
 
-    def c_to_type(self, c_str, c_context):
+    def c_to_type(self, c_str, c_context=None):
         """Get the type of a C string expression
         @expr: Miasm expression
-        @c_context: a dictionary linking known tokens (strings) to its type.
+        @c_context: (optional) dictionary linking known tokens (strings) to its
+        type.
         """
 
+        if c_context is None:
+            c_context = self.C_types
         _, ctype = self.c_to_expr_and_type(c_str, c_context)
         return ctype
 

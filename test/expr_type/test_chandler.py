@@ -507,7 +507,7 @@ tests = [
 
 ]
 
-mychandler = CHandler(types_mngr, expr_types)
+mychandler = CHandler(types_mngr, expr_types=expr_types, C_types=c_context)
 exprc2expr = ExprCToExpr(expr_types, types_mngr)
 mychandler.updt_expr_types(expr_types)
 
@@ -530,8 +530,8 @@ for (expr, result) in tests[4:]:
 
 
     for out_type, out_str in computed:
-        parsed_expr = mychandler.c_to_expr(out_str, c_context)
-        parsed_type = mychandler.c_to_type(out_str, c_context)
+        parsed_expr = mychandler.c_to_expr(out_str)
+        parsed_type = mychandler.c_to_type(out_str)
         print "Access expr:", parsed_expr
         print "Access type:", parsed_type
 
@@ -543,6 +543,11 @@ for (expr, result) in tests[4:]:
         assert parsed_expr_bis is not None
         assert parsed_expr == parsed_expr_bis
         assert parsed_type == parsed_type_bis
+
+        parsed_expr_3, parsed_type_3 = mychandler.c_to_expr_and_type(out_str)
+        assert parsed_expr_3 is not None
+        assert parsed_expr == parsed_expr_3
+        assert parsed_type == parsed_type_3
 
         expr_new1 = expr_simp(parsed_expr)
         expr_new2 = expr_simp(expr)
