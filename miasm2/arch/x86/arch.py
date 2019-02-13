@@ -500,7 +500,7 @@ class instruction_x86(instruction):
         if self.name.startswith('LOOP'):
             return True
         if self.name.startswith('INT'):
-            return True
+            return False
         if self.name.startswith('SYS'):
             return True
         return self.name in ['CALL']
