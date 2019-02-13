@@ -1584,7 +1584,7 @@ class CHandler(object):
     exprCToExpr_cls = ExprCToExpr
     exprToAccessC_cls = ExprToAccessC
 
-    def __init__(self, types_mngr, expr_types,
+    def __init__(self, types_mngr, expr_types=None,
                  simplify_c=access_simplifier,
                  enforce_strict_access=True):
         self.exprc2expr = self.exprCToExpr_cls(expr_types, types_mngr)
@@ -1593,6 +1593,8 @@ class CHandler(object):
                                                    enforce_strict_access)
         self.types_mngr = types_mngr
         self.simplify_c = simplify_c
+        if expr_types is None:
+            expr_types = {}
         self.expr_types = expr_types
 
     def updt_expr_types(self, expr_types):
