@@ -11,11 +11,12 @@ from miasm2.core.bin_stream_ida import bin_stream_ida
 from miasm2.expression.simplifications import expr_simp
 from miasm2.ir.ir import IRBlock, AssignBlock
 
-from miasm2.analysis.ssa import SSADiGraph, UnSSADiGraph, DiGraphLivenessSSA
+from miasm2.analysis.ssa import SSADiGraph, UnSSADiGraph
 
 from miasm2.analysis.data_flow import dead_simp,  \
     merge_blocks, remove_empty_assignblks, \
-    PropagateExpr, load_from_int
+    PropagateExpr, load_from_int, \
+    DiGraphLivenessSSA
 
 
 from utils import guess_machine, expr2colorstr

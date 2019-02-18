@@ -718,7 +718,6 @@ class UnSSADiGraph(object):
         self.insert_parallel_copy()
         self.replace_merge_sets()
         self.remove_assign_eq()
-        remove_empty_assignblks(self.ssa.graph)
 
     def insert_parallel_copy(self):
         """
