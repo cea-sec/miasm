@@ -1699,6 +1699,7 @@ armop("rev16", [bs('01101011'), bs('1111'), rd, bs('1111'), bs('1011'), rm])
 armop("pld", [bs8(0xF5), bs_addi, bs_rw, bs('01'), mem_rn_imm, bs('1111'), imm12_off])
 
 armop("isb", [bs8(0xF5), bs8(0x7F), bs8(0xF0), bs8(0x6F)])
+armop("nop", [bs8(0xE3), bs8(0x20), bs8(0xF0), bs8(0)])
 
 class arm_widthm1(arm_imm, m_arg):
     def decode(self, v):
