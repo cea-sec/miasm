@@ -1694,6 +1694,7 @@ armop("sxtb", [bs('01101010'), bs('1111'), rd, rot_rm, bs('00'), bs('0111'), rm_
 armop("sxth", [bs('01101011'), bs('1111'), rd, rot_rm, bs('00'), bs('0111'), rm_noarg])
 
 armop("rev", [bs('01101011'), bs('1111'), rd, bs('1111'), bs('0011'), rm])
+armop("rev16", [bs('01101011'), bs('1111'), rd, bs('1111'), bs('1011'), rm])
 
 armop("pld", [bs8(0xF5), bs_addi, bs_rw, bs('01'), mem_rn_imm, bs('1111'), imm12_off])
 
