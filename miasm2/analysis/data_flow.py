@@ -11,6 +11,7 @@ from miasm2.expression.expression_helper import possible_values
 from miasm2.analysis.ssa import get_phi_sources_parent_block, \
     irblock_has_phi
 
+
 class ReachingDefinitions(dict):
     """
     Computes for each assignblock the set of reaching definitions.
@@ -291,6 +292,7 @@ def _test_merge_next_block(ircfg, loc_key):
         return None
     if son not in ircfg.blocks:
         return None
+
     return son
 
 
@@ -328,14 +330,16 @@ def _do_merge_blocks(ircfg, loc_key, son_loc_key):
     ircfg.blocks[loc_key] = new_block
 
 
-def _test_jmp_only(ircfg, loc_key):
+def _test_jmp_only(ircfg, loc_key, heads):
     """
     If irblock at @loc_key sets only IRDst to an ExprLoc, return the
     corresponding loc_key target.
+    Avoid creating predecssors for heads LocKeys
     None in other cases.
 
     @ircfg: IRCFG instance
     @loc_key: LocKey instance of the candidate irblock
+    @heads: LocKey heads of the graph
 
     """
 
@@ -347,11 +351,20 @@ def _test_jmp_only(ircfg, loc_key):
     items = dict(irblock.assignblks[0]).items()
     if len(items) != 1:
         return None
+    if len(ircfg.successors(loc_key)) != 1:
+        return None
+    # Don't create predecessors on heads
     dst, src = items[0]
     assert dst.is_id("IRDst")
     if not src.is_loc():
         return None
-    return src.loc_key
+    dst = src.loc_key
+    if loc_key in heads:
+        predecessors = set(ircfg.predecessors(dst))
+        predecessors.difference_update(set([loc_key]))
+        if predecessors:
+            return None
+    return dst
 
 
 def _relink_block_node(ircfg, loc_key, son_loc_key, replace_dct):
@@ -396,13 +409,15 @@ def _remove_to_son(ircfg, loc_key, son_loc_key):
 
     # Unlink block destinations
     ircfg.del_edge(loc_key, son_loc_key)
-    del ircfg.blocks[loc_key]
 
     replace_dct = {
         ExprLoc(loc_key, ircfg.IRDst.size):ExprLoc(son_loc_key, ircfg.IRDst.size)
     }
 
     _relink_block_node(ircfg, loc_key, son_loc_key, replace_dct)
+
+    ircfg.del_node(loc_key)
+    del ircfg.blocks[loc_key]
 
     return True
 
@@ -433,7 +448,6 @@ def _remove_to_parent(ircfg, loc_key, son_loc_key):
 
     ircfg.blocks[son_loc_key] = new_irblock
 
-    del ircfg.blocks[son_loc_key]
     ircfg.add_irblock(new_irblock)
 
     replace_dct = {
@@ -442,10 +456,14 @@ def _remove_to_parent(ircfg, loc_key, son_loc_key):
 
     _relink_block_node(ircfg, son_loc_key, loc_key, replace_dct)
 
+
+    ircfg.del_node(son_loc_key)
+    del ircfg.blocks[son_loc_key]
+
     return True
 
 
-def merge_blocks(ircfg, loc_key_entries):
+def merge_blocks(ircfg, heads):
     """
     This function modifies @ircfg to apply the following transformations:
     - group an irblock with its son if the irblock has one and only one son and
@@ -457,10 +475,12 @@ def merge_blocks(ircfg, loc_key_entries):
       IRDst with a given label, this irblock is dropped and its son becomes the
       head. References are fixed
 
+    This function avoid creating predecessors on heads
+
     Return True if at least an irblock has been modified
 
     @ircfg: IRCFG instance
-    @loc_key_entries: loc_key to keep
+    @heads: loc_key to keep
     """
 
     modified = False
@@ -470,15 +490,15 @@ def merge_blocks(ircfg, loc_key_entries):
 
         # Test merge block
         son = _test_merge_next_block(ircfg, loc_key)
-        if son is not None and son not in loc_key_entries:
+        if son is not None and son not in heads:
             _do_merge_blocks(ircfg, loc_key, son)
             todo.add(loc_key)
             modified = True
             continue
 
         # Test jmp only block
-        son = _test_jmp_only(ircfg, loc_key)
-        if son is not None and loc_key not in loc_key_entries:
+        son = _test_jmp_only(ircfg, loc_key, heads)
+        if son is not None and loc_key not in heads:
             ret = _remove_to_son(ircfg, loc_key, son)
             modified |= ret
             if ret:
@@ -487,7 +507,7 @@ def merge_blocks(ircfg, loc_key_entries):
 
         # Test head jmp only block
         if (son is not None and
-            son not in loc_key_entries and
+            son not in heads and
             son in ircfg.blocks):
             # jmp only test done previously
             ret = _remove_to_parent(ircfg, loc_key, son)
@@ -510,15 +530,17 @@ def remove_empty_assignblks(ircfg):
     modified = False
     for loc_key, block in ircfg.blocks.iteritems():
         irs = []
+        block_modified = False
         for assignblk in block:
             if len(assignblk):
                 irs.append(assignblk)
             else:
-                modified = True
-        ircfg.blocks[loc_key] = IRBlock(loc_key, irs)
-
+                block_modified = True
+        if block_modified:
+            new_irblock = IRBlock(loc_key, irs)
+            ircfg.blocks[loc_key] = new_irblock
+            modified = True
     return modified
-
 
 
 class SSADefUse(DiGraph):
@@ -528,33 +550,28 @@ class SSADefUse(DiGraph):
     """
 
     def add_var_def(self, node, src):
-        lbl, index, dst = node
-        index2dst = self._links.setdefault(lbl, {})
-        dst2src = index2dst.setdefault(index, {})
-        dst2src[dst] = src
+        index2dst = self._links.setdefault(node.label, {})
+        dst2src = index2dst.setdefault(node.index, {})
+        dst2src[node.var] = src
 
     def add_def_node(self, def_nodes, node, src):
-        lbl, index, dst = node
-        if dst.is_id():
-            def_nodes[dst] = node
+        if node.var.is_id():
+            def_nodes[node.var] = node
 
     def add_use_node(self, use_nodes, node, src):
-        lbl, index, dst = node
         sources = set()
-        if dst.is_mem():
-            sources.update(dst.ptr.get_r(mem_read=True))
+        if node.var.is_mem():
+            sources.update(node.var.ptr.get_r(mem_read=True))
         sources.update(src.get_r(mem_read=True))
         for source in sources:
             if not source.is_mem():
                 use_nodes.setdefault(source, set()).add(node)
 
     def get_node_target(self, node):
-        lbl, index, reg = node
-        return self._links[lbl][index][reg]
+        return self._links[node.label][node.index][node.var]
 
     def set_node_target(self, node, src):
-        lbl, index, reg = node
-        self._links[lbl][index][reg] = src
+        self._links[node.label][node.index][node.var] = src
 
     @classmethod
     def from_ssa(cls, ssa):
@@ -575,7 +592,7 @@ class SSADefUse(DiGraph):
                 continue
             for index, assignblk in enumerate(block):
                 for dst, src in assignblk.iteritems():
-                    node = lbl, index, dst
+                    node = AssignblkNode(lbl, index, dst)
                     graph.add_var_def(node, src)
                     graph.add_def_node(def_nodes, node, src)
                     graph.add_use_node(use_nodes, node, src)
@@ -622,73 +639,58 @@ def expr_has_mem(expr):
     return expr_test_visit(expr, expr_has_mem_test)
 
 
-def expr_has_call_test(expr, result):
-    if result:
-        # Don't analyse if we already found a candidate
-        return False
-    if expr.is_op() and expr.op.startswith("call"):
-        result.add(expr)
-        return False
-    return True
-
-
-def expr_has_call(expr):
+class PropagateThroughExprId(object):
     """
-    Return True if expr contains at least one "call" operator
-    @expr: Expr instance
+    Propagate expressions though ExprId
     """
-    return expr_test_visit(expr, expr_has_call_test)
-
-
-class PropagateExpr(object):
-
-    def assignblk_is_propagation_barrier(self, assignblk):
-        for dst, src in assignblk.iteritems():
-            if expr_has_call(src):
-                return True
-            if dst.is_mem():
-                return True
-        return False
 
     def has_propagation_barrier(self, assignblks):
+        """
+        Return True if propagation cannot cross the @assignblks
+        @assignblks: list of AssignBlock to check
+        """
         for assignblk in assignblks:
             for dst, src in assignblk.iteritems():
-                if expr_has_call(src):
+                if src.is_function_call():
                     return True
                 if dst.is_mem():
                     return True
         return False
 
-    def is_mem_written(self, ssa, node, successor):
-        loc_a, index_a, reg_a = node
-        loc_b, index_b, reg_b = successor
-        block_b = ssa.graph.blocks[loc_b]
+    def is_mem_written(self, ssa, node_a, node_b):
+        """
+        Return True if memory is written at least once between @node_a and
+        @node_b
 
-        nodes_to_do = self.compute_reachable_nodes_from_a_to_b(ssa.graph, loc_a, loc_b)
+        @node: AssignblkNode representing the start position
+        @successor: AssignblkNode representing the end position
+        """
 
+        block_b = ssa.graph.blocks[node_b.label]
+        nodes_to_do = self.compute_reachable_nodes_from_a_to_b(ssa.graph, node_a.label, node_b.label)
 
-        if loc_a == loc_b:
+        if node_a.label == node_b.label:
             # src is dst
-            assert nodes_to_do == set([loc_a])
-            if self.has_propagation_barrier(block_b.assignblks[index_a:index_b]):
+            assert nodes_to_do == set([node_a.label])
+            if self.has_propagation_barrier(block_b.assignblks[node_a.index:node_b.index]):
                 return True
         else:
-            # Check everyone but loc_a and loc_b
-            for loc in nodes_to_do - set([loc_a, loc_b]):
+            # Check everyone but node_a.label and node_b.label
+            for loc in nodes_to_do - set([node_a.label, node_b.label]):
                 block = ssa.graph.blocks[loc]
                 if self.has_propagation_barrier(block.assignblks):
                     return True
-            # Check loc_a partially
-            block_a = ssa.graph.blocks[loc_a]
-            if self.has_propagation_barrier(block_a.assignblks[index_a:]):
+            # Check node_a.label partially
+            block_a = ssa.graph.blocks[node_a.label]
+            if self.has_propagation_barrier(block_a.assignblks[node_a.index:]):
                 return True
-            if nodes_to_do.intersection(ssa.graph.successors(loc_b)):
-                # There is a path from loc_b to loc_b => Check loc_b fully
+            if nodes_to_do.intersection(ssa.graph.successors(node_b.label)):
+                # There is a path from node_b.label to node_b.label => Check node_b.label fully
                 if self.has_propagation_barrier(block_b.assignblks):
                     return True
             else:
-                # Check loc_b partially
-                if self.has_propagation_barrier(block_b.assignblks[:index_b]):
+                # Check node_b.label partially
+                if self.has_propagation_barrier(block_b.assignblks[:node_b.index]):
                     return True
         return False
 
@@ -699,45 +701,104 @@ class PropagateExpr(object):
 
     def propagation_allowed(self, ssa, to_replace, node_a, node_b):
         """
-        Return True if we can replace @node source into @node_b
+        Return True if we can replace @node_a source present in @to_replace into
+        @node_b
+
+        @node_a: AssignblkNode position
+        @node_b: AssignblkNode position
         """
-        loc_a, index_a, reg_a = node_a
-        if not expr_has_mem(to_replace[reg_a]):
+        if not expr_has_mem(to_replace[node_a.var]):
             return True
         if self.is_mem_written(ssa, node_a, node_b):
             return False
         return True
 
-    def propagate(self, ssa, head):
+
+    def get_var_definitions(self, ssa):
+        """
+        Return a dictionary linking variable to its assignment location
+        @ssa: SSADiGraph instance
+        """
+        ircfg = ssa.graph
+        def_dct = {}
+        for node in ircfg.nodes():
+            for index, assignblk in enumerate(ircfg.blocks[node]):
+                for dst, src in assignblk.iteritems():
+                    if not dst.is_id():
+                        continue
+                    if dst in ssa.immutable_ids:
+                        continue
+                    assert dst not in def_dct
+                    def_dct[dst] = node, index
+        return def_dct
+
+    def phi_has_identical_sources(self, ssa, def_dct, var):
+        """
+        If phi operation has identical source values, return it; else None
+        @ssa: SSADiGraph instance
+        @def_dct: dictionary linking variable to its assignment location
+        @var: Phi destination variable
+        """
+        loc_key, index = def_dct[var]
+        sources = ssa.graph.blocks[loc_key][index][var]
+        assert sources.is_op('Phi')
+        sources_values = set()
+        for src in sources.args:
+            assert src in def_dct
+            loc_key, index = def_dct[src]
+            value = ssa.graph.blocks[loc_key][index][src]
+            sources_values.add(value)
+        if len(sources_values) != 1:
+            return None
+        return list(sources_values)[0]
+
+    def get_candidates(self, ssa, head, max_expr_depth):
+        def_dct = self.get_var_definitions(ssa)
         defuse = SSADefUse.from_ssa(ssa)
         to_replace = {}
         node_to_reg = {}
         for node in defuse.nodes():
-            lbl, index, reg = node
+            if node.var in ssa.immutable_ids:
+                continue
             src = defuse.get_node_target(node)
-            if expr_has_call(src):
+            if max_expr_depth is not None and len(str(src)) > max_expr_depth:
+                continue
+            if src.is_function_call():
+                continue
+            if node.var.is_mem():
                 continue
             if src.is_op('Phi'):
+                ret = self.phi_has_identical_sources(ssa, def_dct, node.var)
+                if ret:
+                    to_replace[node.var] = ret
+                    node_to_reg[node] = node.var
                 continue
-            if reg.is_mem():
-                continue
-            to_replace[reg] = src
-            node_to_reg[node] = reg
+            to_replace[node.var] = src
+            node_to_reg[node] = node.var
+        return node_to_reg, to_replace, defuse
 
+    def propagate(self, ssa, head, max_expr_depth=None):
+        """
+        Do expression propagation
+        @ssa: SSADiGraph instance
+        @head: the head location of the graph
+        @max_expr_depth: the maximum allowed depth of an expression
+        """
+        node_to_reg, to_replace, defuse = self.get_candidates(ssa, head, max_expr_depth)
         modified = False
         for node, reg in node_to_reg.iteritems():
             for successor in defuse.successors(node):
                 if not self.propagation_allowed(ssa, to_replace, node, successor):
                     continue
 
-                loc_a, index_a, reg_a = node
-                loc_b, index_b, reg_b = successor
-                block = ssa.graph.blocks[loc_b]
+                node_a = node
+                node_b = successor
+                block = ssa.graph.blocks[node_b.label]
 
-                replace = {reg_a: to_replace[reg_a]}
+                replace = {node_a.var: to_replace[node_a.var]}
                 # Replace
                 assignblks = list(block)
-                assignblk = block[index_b]
+                assignblk = block[node_b.index]
                 out = {}
                 for dst, src in assignblk.iteritems():
                     if src.is_op('Phi'):
@@ -745,8 +806,7 @@ class PropagateExpr(object):
                         continue
 
                     if src.is_mem():
-                        ptr = src.ptr
-                        ptr = ptr.replace_expr(replace)
+                        ptr = src.ptr.replace_expr(replace)
                         new_src = ExprMem(ptr, src.size)
                     else:
                         new_src = src.replace_expr(replace)
@@ -754,8 +814,7 @@ class PropagateExpr(object):
                     if dst.is_id():
                         new_dst = dst
                     elif dst.is_mem():
-                        ptr = dst.ptr
-                        ptr = ptr.replace_expr(replace)
+                        ptr = dst.ptr.replace_expr(replace)
                         new_dst = ExprMem(ptr, dst.size)
                     else:
                         new_dst = dst.replace_expr(replace)
@@ -765,9 +824,108 @@ class PropagateExpr(object):
                         modified = True
                     out[new_dst] = new_src
                 out = AssignBlock(out, assignblk.instr)
-                assignblks[index_b] = out
+                assignblks[node_b.index] = out
                 new_block = IRBlock(block.loc_key, assignblks)
                 ssa.graph.blocks[block.loc_key] = new_block
+
+        return modified
+
+
+
+class PropagateExprIntThroughExprId(PropagateThroughExprId):
+    """
+    Propagate ExprInt though ExprId: classic constant propagation
+    This is a sub family of PropagateThroughExprId.
+    It reduces leaves in expressions of a program.
+    """
+
+    def get_candidates(self, ssa, head, max_expr_depth):
+        defuse = SSADefUse.from_ssa(ssa)
+
+        to_replace = {}
+        node_to_reg = {}
+        for node in defuse.nodes():
+            src = defuse.get_node_target(node)
+            if not src.is_int():
+                continue
+            if src.is_function_call():
+                continue
+            if node.var.is_mem():
+                continue
+            to_replace[node.var] = src
+            node_to_reg[node] = node.var
+        return node_to_reg, to_replace, defuse
+
+    def propagation_allowed(self, ssa, to_replace, node_a, node_b):
+        """
+        Propagating ExprInt is always ok
+        """
+        return True
+
+
+class PropagateThroughExprMem(object):
+    """
+    Propagate through ExprMem in very simple cases:
+    - if no memory write between source and target
+    - if source does not contain any memory reference
+    """
+
+    def propagate(self, ssa, head, max_expr_depth=None):
+        ircfg = ssa.graph
+        todo = set()
+        modified = False
+        for block in ircfg.blocks.itervalues():
+            for i, assignblk in enumerate(block):
+                for dst, src in assignblk.iteritems():
+                    if not dst.is_mem():
+                        continue
+                    if expr_has_mem(src):
+                        continue
+                    todo.add((block.loc_key, i + 1, dst, src))
+                    ptr = dst.ptr
+                    for size in xrange(8, dst.size, 8):
+                        todo.add((block.loc_key, i + 1, ExprMem(ptr, size), src[:size]))
+
+        while todo:
+            loc_key, index, mem_dst, mem_src = todo.pop()
+            block = ircfg.blocks[loc_key]
+            assignblks = list(block)
+            block_modified = False
+            for i in xrange(index, len(block)):
+                assignblk = block[i]
+                write_mem = False
+                assignblk_modified = False
+                out = dict(assignblk)
+                out_new = {}
+                for dst, src in out.iteritems():
+                    if dst.is_mem():
+                        write_mem = True
+                    if dst != mem_dst and mem_dst in dst:
+                        dst = dst.replace_expr({mem_dst:mem_src})
+                    if mem_dst in src:
+                        src = src.replace_expr({mem_dst:mem_src})
+                    out_new[dst] = src
+                if out != out_new:
+                    assignblk_modified = True
+
+                if assignblk_modified:
+                    assignblks[i] = AssignBlock(out_new, assignblk.instr)
+                    block_modified = True
+                if write_mem:
+                    break
+            else:
+                # If no memory written, we may propagate to sons
+                # if son has only parent
+                for successor in ircfg.successors(loc_key):
+                    predecessors = ircfg.predecessors(successor)
+                    if len(predecessors) != 1:
+                        continue
+                    todo.add((successor, 0, mem_dst, mem_src))
+
+            if block_modified:
+                modified = True
+                new_block = IRBlock(block.loc_key, assignblks)
+                ircfg.blocks[block.loc_key] = new_block
         return modified
 
 
@@ -975,7 +1133,7 @@ def load_from_int(ir_arch, bs, is_addr_ro_variable):
     """
 
     modified = False
-    for label, block in ir_arch.blocks.iteritems():
+    for block in ir_arch.blocks.itervalues():
         assignblks = list()
         for assignblk in block:
             out = {}

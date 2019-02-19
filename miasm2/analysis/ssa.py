@@ -1,7 +1,44 @@
 from collections import deque
 
-from miasm2.expression.expression import ExprId, ExprAssign, ExprOp, get_expr_ids
+from miasm2.expression.expression import ExprId, ExprAssign, ExprOp, \
+    ExprLoc, get_expr_ids
 from miasm2.ir.ir import AssignBlock, IRBlock
+
+
+def sanitize_graph_head(ircfg, head):
+    """
+    In multiple algorithm, the @head of the ircfg may not have predecessors.
+    The function transform the @ircfg in order to ensure this property
+    @ircfg: IRCFG instance
+    @head: the location of the graph's head
+    """
+
+    if not ircfg.predecessors(head):
+        return
+    original_edges = ircfg.predecessors(head)
+    sub_head = ircfg.loc_db.add_location()
+
+    # Duplicate graph, replacing references to head by sub_head
+    replaced_expr = {
+        ExprLoc(head, ircfg.IRDst.size):
+        ExprLoc(sub_head, ircfg.IRDst.size)
+    }
+    ircfg.simplify(
+        lambda expr:expr.replace_expr(replaced_expr)
+    )
+    # Duplicate head block
+    ircfg.add_irblock(IRBlock(sub_head, list(ircfg.blocks[head])))
+
+    # Remove original head block
+    ircfg.del_node(head)
+
+    for src in original_edges:
+        ircfg.add_edge(src, sub_head)
+
+    # Create new head, jumping to sub_head
+    assignblk = AssignBlock({ircfg.IRDst:ExprLoc(sub_head, ircfg.IRDst.size)})
+    new_irblock = IRBlock(head, [assignblk])
+    ircfg.add_irblock(new_irblock)
 
 
 class SSA(object):
@@ -366,6 +403,7 @@ class SSADiGraph(SSA):
 
     def transform(self, head):
         """Transforms into SSA"""
+        sanitize_graph_head(self.graph, head)
         self._init_variable_defs(head)
         self._place_phi(head)
         self._rename(head)
@@ -595,10 +633,11 @@ class SSADiGraph(SSA):
         # Replace non modified node used in phi with new variable
         self.ircfg.simplify(lambda expr:expr.replace_expr(var_to_newname))
 
-        irblock = self.ircfg.blocks[head]
-        assignblks = list(irblock)
-        assignblks[0:0] = [AssignBlock(newname_to_var, assignblks[0].instr)]
-        self.ircfg.blocks[head] = IRBlock(head, assignblks)
+        if newname_to_var:
+            irblock = self.ircfg.blocks[head]
+            assignblks = list(irblock)
+            assignblks[0:0] = [AssignBlock(newname_to_var, assignblks[0].instr)]
+            self.ircfg.blocks[head] = IRBlock(head, assignblks)
 
         # Updt structure
         for loc_key in self._phinodes:
@@ -612,7 +651,6 @@ class SSADiGraph(SSA):
         for newname, var in newname_to_var.iteritems():
             self.ssa_to_location[newname] = head, 0
             self.ssa_variable_to_expr[newname] = var
-            self.immutable_ids.add(newname)
             self.expressions[newname] = var
 
 

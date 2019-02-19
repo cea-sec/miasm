@@ -321,17 +321,27 @@ G4_RES_IRB0 = gen_irblock(
     LBL0,
     [
         [
-            ExprAssign(A, C),
-        ],
-        [
-            ExprAssign(D, A),
-            ExprAssign(IRDst, ExprLoc(LBL0, 32)),
+            ExprAssign(IRDst, ExprLoc(LBL1, 32)),
         ]
     ]
 )
 
 
-for irb in [G4_RES_IRB0 ]:
+G4_RES_IRB1 = gen_irblock(
+    LBL1,
+    [
+        [
+            ExprAssign(A, C),
+        ],
+        [
+            ExprAssign(D, A),
+            ExprAssign(IRDst, ExprLoc(LBL1, 32)),
+        ]
+    ]
+)
+
+
+for irb in [G4_RES_IRB0, G4_RES_IRB1 ]:
     G4_RES.add_irblock(irb)
 
 
@@ -389,15 +399,25 @@ for irb in [G5_IRB0, G5_IRB1, G5_IRB2, G5_IRB3]:
 # Result
 G5_RES = IRA.new_ircfg()
 
+
 G5_RES_IRB0 = gen_irblock(
     LBL0,
+    [
+        [
+            ExprAssign(IRDst, ExprLoc(LBL1, 32)),
+        ]
+    ]
+)
+
+G5_RES_IRB1 = gen_irblock(
+    LBL1,
     [
         [
             ExprAssign(A, C),
         ],
         [
             ExprAssign(D, A),
-            ExprAssign(IRDst, ExprCond(C, ExprLoc(LBL0, 32), ExprLoc(LBL3, 32))),
+            ExprAssign(IRDst, ExprCond(C, ExprLoc(LBL1, 32), ExprLoc(LBL3, 32))),
         ]
     ]
 )
@@ -413,7 +433,7 @@ G5_RES_IRB3 = gen_irblock(
     ]
 )
 
-for irb in [G5_RES_IRB0, G5_RES_IRB3 ]:
+for irb in [G5_RES_IRB0, G5_RES_IRB1, G5_RES_IRB3 ]:
     G5_RES.add_irblock(irb)
 
 
@@ -605,14 +625,23 @@ G8_RES_IRB0 = gen_irblock(
     LBL0,
     [
         [
+            ExprAssign(IRDst, ExprLoc(LBL1, 32)),
+        ]
+    ]
+)
+
+G8_RES_IRB1 = gen_irblock(
+    LBL1,
+    [
+        [
             ExprAssign(A, C),
-            ExprAssign(IRDst, ExprLoc(LBL0, 32)),
+            ExprAssign(IRDst, ExprLoc(LBL1, 32)),
         ]
     ]
 )
 
 
-for irb in [G8_RES_IRB0]:
+for irb in [G8_RES_IRB0, G8_RES_IRB1]:
     G8_RES.add_irblock(irb)
 
 

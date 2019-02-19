@@ -10,16 +10,9 @@ from miasm2.core.asmblock import is_int
 from miasm2.core.bin_stream_ida import bin_stream_ida
 from miasm2.expression.simplifications import expr_simp
 from miasm2.ir.ir import IRBlock, AssignBlock
-
-from miasm2.analysis.ssa import SSADiGraph, UnSSADiGraph
-
-from miasm2.analysis.data_flow import dead_simp,  \
-    merge_blocks, remove_empty_assignblks, \
-    PropagateExpr, load_from_int, \
-    DiGraphLivenessSSA
-
-
+from miasm2.analysis.data_flow import load_from_int
 from utils import guess_machine, expr2colorstr
+from miasm2.analysis.simplifier import IRCFGSimplifierCommon, IRCFGSimplifierSSA
 
 
 
@@ -251,23 +244,17 @@ def build_graph(start_addr, type_graph, simplify=False, dontmodstack=True, loadi
     title = "Miasm IR graph"
 
 
+    head = list(entry_points)[0]
+
     if simplify:
-        dead_simp(ir_arch, ircfg)
-        ircfg.simplify(expr_simp)
-        modified = True
-        while modified:
-            modified = False
-            modified |= dead_simp(ir_arch, ircfg)
-            modified |= remove_empty_assignblks(ircfg)
-            modified |= merge_blocks(ircfg, entry_points)
+        ircfg_simplifier = IRCFGSimplifierCommon(ir_arch)
+        ircfg_simplifier.simplify(ircfg, head)
         title += " (simplified)"
 
     if type_graph == TYPE_GRAPH_IR:
         graph = GraphMiasmIR(ircfg, title, None)
         graph.Show()
         return
-
-    head = list(entry_points)[0]
 
 
     class IRAOutRegs(ira):
@@ -299,86 +286,38 @@ def build_graph(start_addr, type_graph, simplify=False, dontmodstack=True, loadi
         new_irblock = IRBlock(irblock.loc_key, assignblks)
         ircfg.blocks[loc] = new_irblock
 
-    ir_arch = IRAOutRegs(mdis.loc_db)
-    ir_arch.ssa_var = {}
-    modified = True
-    ssa_forbidden_regs = set([
-        ir_arch.pc,
-        ir_arch.IRDst,
-        ir_arch.arch.regs.exception_flags
-    ])
+
+    class CustomIRCFGSimplifierSSA(IRCFGSimplifierSSA):
+        def do_simplify(self, ssa, head):
+            modified = super(CustomIRCFGSimplifierSSA, self).do_simplify(ssa, head)
+            if loadint:
+                modified |= load_from_int(ssa.graph, bs, is_addr_ro_variable)
+            return modified
+
+        def simplify(self, ircfg, head):
+            ssa = self.ircfg_to_ssa(ircfg, head)
+            ssa = self.do_simplify_loop(ssa, head)
+
+            if type_graph == TYPE_GRAPH_IRSSA:
+                ret = ssa.graph
+            elif type_graph == TYPE_GRAPH_IRSSAUNSSA:
+                ircfg = self.ssa_to_unssa(ssa, head)
+                ircfg_simplifier = IRCFGSimplifierCommon(self.ir_arch)
+                ircfg_simplifier.simplify(ircfg, head)
+                ret = ircfg
+            else:
+                raise ValueError("Unknown option")
+            return ret
+
 
     head = list(entry_points)[0]
-    heads = set([head])
-    all_ssa_vars = {}
-
-    propagate_expr = PropagateExpr()
-
-    ssa = SSADiGraph(ircfg)
-    ssa.immutable_ids.update(ssa_forbidden_regs)
-    ssa.ssa_variable_to_expr.update(all_ssa_vars)
-    ssa.transform(head)
-    all_ssa_vars.update(ssa.ssa_variable_to_expr)
-
-    ir_arch.ssa_var.update(ssa.ssa_variable_to_expr)
-
-    if simplify:
-
-        while modified:
-            ssa = SSADiGraph(ircfg)
-            ssa.immutable_ids.update(ssa_forbidden_regs)
-            ssa.ssa_variable_to_expr.update(all_ssa_vars)
-            ssa.transform(head)
-            all_ssa_vars.update(ssa.ssa_variable_to_expr)
-
-            ir_arch.ssa_var.update(ssa.ssa_variable_to_expr)
-
-            while modified:
-                modified = False
-                modified |= propagate_expr.propagate(ssa, head)
-                modified |= ircfg.simplify(expr_simp)
-                simp_modified = True
-                while simp_modified:
-                    simp_modified = False
-                    simp_modified |= dead_simp(ir_arch, ircfg)
-                    simp_modified |= remove_empty_assignblks(ircfg)
-                    simp_modified |= load_from_int(ircfg, bs, is_addr_ro_variable)
-                    modified |= simp_modified
+    simplifier = CustomIRCFGSimplifierSSA(ir_arch)
+    ircfg = simplifier.simplify(ircfg, head)
+    open('final.dot', 'w').write(ircfg.dot())
 
 
-    ssa = SSADiGraph(ircfg)
-    ssa.immutable_ids.update(ssa_forbidden_regs)
-    ssa.ssa_variable_to_expr.update(all_ssa_vars)
-    ssa.transform(head)
-    all_ssa_vars.update(ssa.ssa_variable_to_expr)
-
-    if type_graph == TYPE_GRAPH_IRSSA:
-        graph = GraphMiasmIR(ssa.graph, title, None)
-        graph.Show()
-        return
-
-    if type_graph == TYPE_GRAPH_IRSSAUNSSA:
-
-        cfg_liveness = DiGraphLivenessSSA(ssa.graph)
-        cfg_liveness.init_var_info(ir_arch)
-        cfg_liveness.compute_liveness()
-
-        UnSSADiGraph(ssa, head, cfg_liveness)
-        if simplify:
-            modified = True
-            while modified:
-                modified = False
-                modified |= ssa.graph.simplify(expr_simp)
-                simp_modified = True
-                while simp_modified:
-                    simp_modified = False
-                    simp_modified |= dead_simp(ir_arch, ssa.graph)
-                    simp_modified |= remove_empty_assignblks(ssa.graph)
-                    simp_modified |= merge_blocks(ssa.graph, heads)
-                    modified |= simp_modified
-        graph = GraphMiasmIR(ssa.graph, title, None)
-        graph.Show()
-
+    graph = GraphMiasmIR(ircfg, title, None)
+    graph.Show()
 
 def function_graph_ir():
     # Get settings
