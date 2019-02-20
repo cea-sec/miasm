@@ -74,8 +74,7 @@ reg_dict gpreg_dict[] = {
 			 {.name = "XMM14", .offset = offsetof(vm_cpu_t, XMM14), .size = 128},
 			 {.name = "XMM15", .offset = offsetof(vm_cpu_t, XMM15), .size = 128},
 
-			 {.name = "tsc1", .offset = offsetof(vm_cpu_t, tsc1), .size = 32},
-			 {.name = "tsc2", .offset = offsetof(vm_cpu_t, tsc2), .size = 32},
+			 {.name = "tsc", .offset = offsetof(vm_cpu_t, tsc), .size = 64},
 
 			 {.name = "exception_flags", .offset = offsetof(vm_cpu_t, exception_flags), .size = 32},
 			 {.name = "interrupt_num", .offset = offsetof(vm_cpu_t, interrupt_num), .size = 32},
@@ -156,8 +155,7 @@ PyObject* cpu_get_gpreg(JitCpu* self)
     get_reg_bn(XMM14, 128);
     get_reg_bn(XMM15, 128);
 
-    get_reg(tsc1);
-    get_reg(tsc2);
+    get_reg(tsc);
 
     return dict;
 }
@@ -266,8 +264,7 @@ PyObject* cpu_set_gpreg(JitCpu* self, PyObject *args)
 PyObject * cpu_init_regs(JitCpu* self)
 {
 	memset(self->cpu, 0, sizeof(vm_cpu_t));
-	((vm_cpu_t*)self->cpu)->tsc1 = 0x22222222;
-	((vm_cpu_t*)self->cpu)->tsc2 = 0x11111111;
+	((vm_cpu_t*)self->cpu)->tsc = 0x1122334455667788ULL;
 	((vm_cpu_t*)self->cpu)->i_f = 1;
 	Py_INCREF(Py_None);
 	return Py_None;
@@ -662,8 +659,7 @@ getset_reg_bn(XMM13, 128);
 getset_reg_bn(XMM14, 128);
 getset_reg_bn(XMM15, 128);
 
-getset_reg_u32(tsc1);
-getset_reg_u32(tsc2);
+getset_reg_u64(tsc);
 
 getset_reg_u32(exception_flags);
 getset_reg_u32(interrupt_num);
@@ -754,8 +750,7 @@ PyObject* get_gpreg_offset_all(void)
     get_reg_off(XMM14);
     get_reg_off(XMM15);
 
-    get_reg_off(tsc1);
-    get_reg_off(tsc2);
+    get_reg_off(tsc);
 
     get_reg_off(interrupt_num);
     get_reg_off(exception_flags);
@@ -859,8 +854,7 @@ static PyGetSetDef JitCpu_getseters[] = {
     {"XMM14", (getter)JitCpu_get_XMM14, (setter)JitCpu_set_XMM14, "XMM14", NULL},
     {"XMM15", (getter)JitCpu_get_XMM15, (setter)JitCpu_set_XMM15, "XMM15", NULL},
 
-    {"tsc1", (getter)JitCpu_get_tsc1, (setter)JitCpu_set_tsc1, "tsc1", NULL},
-    {"tsc2", (getter)JitCpu_get_tsc2, (setter)JitCpu_set_tsc2, "tsc2", NULL},
+    {"tsc", (getter)JitCpu_get_tsc, (setter)JitCpu_set_tsc, "tsc", NULL},
 
     {"exception_flags", (getter)JitCpu_get_exception_flags, (setter)JitCpu_set_exception_flags, "exception_flags", NULL},
     {"interrupt_num", (getter)JitCpu_get_interrupt_num, (setter)JitCpu_set_interrupt_num, "interrupt_num", NULL},

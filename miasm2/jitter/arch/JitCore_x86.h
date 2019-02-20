@@ -80,8 +80,7 @@ typedef struct {
 	unsigned int reg_float_ds;
 
 
-	uint64_t tsc1;
-	uint64_t tsc2;
+	uint64_t tsc;
 
 
 	uint16_t ES;
