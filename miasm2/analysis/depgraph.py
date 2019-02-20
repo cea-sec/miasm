@@ -619,7 +619,7 @@ class DependencyGraph(object):
                     state.loc_key in heads or
                     not self._ircfg.predecessors(state.loc_key)):
                 yield dpResultcls(self._ircfg, initial_state, state, elements)
-                if not state.pending:
+                if state.loc_key in heads or not state.pending:
                     continue
 
             if self._implicit:
