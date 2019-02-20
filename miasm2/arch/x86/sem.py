@@ -3040,12 +3040,9 @@ def hlt(_, instr):
 
 def rdtsc(_, instr):
     e = []
-    e.append(m2_expr.ExprAssign(tsc1, tsc1 + m2_expr.ExprInt(1, 32)))
-    e.append(m2_expr.ExprAssign(tsc2, tsc2 + m2_expr.ExprCond(tsc1 - tsc1.mask,
-                                                           m2_expr.ExprInt(0, 32),
-                                                           m2_expr.ExprInt(1, 32))))
-    e.append(m2_expr.ExprAssign(mRAX[32], tsc1))
-    e.append(m2_expr.ExprAssign(mRDX[32], tsc2))
+    e.append(m2_expr.ExprAssign(tsc, tsc + m2_expr.ExprInt(1, 64)))
+    e.append(m2_expr.ExprAssign(mRAX[32], tsc[:32]))
+    e.append(m2_expr.ExprAssign(mRDX[32], tsc[32:]))
     return e, []
 
 

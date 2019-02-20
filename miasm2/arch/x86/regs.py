@@ -235,9 +235,7 @@ reg_mm5 = 'MM5'
 reg_mm6 = 'MM6'
 reg_mm7 = 'MM7'
 
-
-reg_tsc1 = "tsc1"
-reg_tsc2 = "tsc2"
+reg_tsc = "tsc"
 
 reg_float_c0 = 'float_c0'
 reg_float_c1 = 'float_c1'
@@ -321,8 +319,7 @@ DS = ExprId(reg_ds, size=16)
 FS = ExprId(reg_fs, size=16)
 GS = ExprId(reg_gs, size=16)
 
-tsc1 = ExprId(reg_tsc1, size=32)
-tsc2 = ExprId(reg_tsc2, size=32)
+tsc = ExprId(reg_tsc, size=64)
 
 float_c0 = ExprId(reg_float_c0, size=1)
 float_c1 = ExprId(reg_float_c1, size=1)
@@ -388,7 +385,7 @@ all_regs_ids = [
     zf, nf, pf, of, cf, af, df,
     tf, i_f, iopl, nt, rf, vm, ac, vif, vip, i_d,
     float_control, float_eip, float_cs, float_address, float_ds,
-    tsc1, tsc2,
+    tsc,
     ES, CS, SS, DS, FS, GS,
     float_st0, float_st1, float_st2, float_st3,
     float_st4, float_st5, float_st6, float_st7,
@@ -411,7 +408,7 @@ all_regs_ids_no_alias = [
     zf, nf, pf, of, cf, af, df,
     tf, i_f, iopl, nt, rf, vm, ac, vif, vip, i_d,
     float_control, float_eip, float_cs, float_address, float_ds,
-    tsc1, tsc2,
+    tsc,
     ES, CS, SS, DS, FS, GS,
     float_st0, float_st1, float_st2, float_st3,
     float_st4, float_st5, float_st6, float_st7,
