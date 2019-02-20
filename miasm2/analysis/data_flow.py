@@ -900,10 +900,9 @@ class PropagateThroughExprMem(object):
                 for dst, src in out.iteritems():
                     if dst.is_mem():
                         write_mem = True
-                    if dst != mem_dst and mem_dst in dst:
-                        dst = dst.replace_expr({mem_dst:mem_src})
-                    if mem_dst in src:
-                        src = src.replace_expr({mem_dst:mem_src})
+                        ptr = dst.ptr.replace_expr({mem_dst:mem_src})
+                        dst = ExprMem(ptr, dst.size)
+                    src = src.replace_expr({mem_dst:mem_src})
                     out_new[dst] = src
                 if out != out_new:
                     assignblk_modified = True
