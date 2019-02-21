@@ -104,6 +104,12 @@ class CallbackHandler(object):
     def has_callbacks(self, name):
         return name in self.callbacks
 
+    def remove_name(self, name):
+        """Remove and return all callbacks associated to @name"""
+        callbacks = self.callbacks.get(name, [])
+        del self.callbacks[name]
+        return callbacks
+
     def call_callbacks(self, name, *args):
         """Call callbacks associated to key 'name' with arguments args. While
         callbacks return True, continue with next callback.
@@ -298,6 +304,14 @@ class Jitter(object):
         empty_keys = self.breakpoints_handler.remove_callback(callback)
         for key in empty_keys:
             self.jit.remove_disassembly_splits(key)
+
+    def remove_breakpoints_by_address(self, address):
+        """Remove all breakpoints associated with @address.
+        @address: address of breakpoints to remove
+        """
+        callbacks = self.breakpoints_handler.remove_name(address)
+        if callbacks:
+            self.jit.remove_disassembly_splits(address)
 
     def add_exception_handler(self, flag, callback):
         """Add a callback associated with an exception flag.
