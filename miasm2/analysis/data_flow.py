@@ -989,15 +989,15 @@ def check_expr_below_stack(ir_arch_a, expr):
     return True
 
 
-def retrieve_stack_accesses(ir_arch_a, ssa):
+def retrieve_stack_accesses(ir_arch_a, ircfg):
     """
     Walk the ssa graph and find stack based variables.
     Return a dictionary linking stack base address to its size/name
     @ir_arch_a: ira instance
-    @ssa: SSADiGraph instance
+    @ircfg: IRCFG instance
     """
     stack_vars = set()
-    for block in ssa.graph.blocks.itervalues():
+    for block in ircfg.blocks.itervalues():
         for assignblk in block:
             for dst, src in assignblk.iteritems():
                 stack_vars.update(get_stack_accesses(ir_arch_a, dst))
@@ -1063,18 +1063,23 @@ def replace_mem_stack_vars(expr, base_to_info):
     return expr.visit(lambda expr:fix_stack_vars(expr, base_to_info))
 
 
-def replace_stack_vars(ir_arch_a, ssa):
+def replace_stack_vars(ir_arch_a, ircfg):
     """
     Try to replace stack based memory accesses by variables.
+
+    Hypothesis: the input ircfg must have all it's accesses to stack explicitly
+    done through the stack register, ie every aliases on those variables is
+    resolved.
+
     WARNING: may fail
 
     @ir_arch_a: ira instance
-    @ssa: SSADiGraph instance
+    @ircfg: IRCFG instance
     """
 
-    base_to_info = retrieve_stack_accesses(ir_arch_a, ssa)
+    base_to_info = retrieve_stack_accesses(ir_arch_a, ircfg)
     modified = False
-    for block in ssa.graph.blocks.itervalues():
+    for block in ircfg.blocks.itervalues():
         assignblks = []
         for assignblk in block:
             out = {}
@@ -1089,7 +1094,7 @@ def replace_stack_vars(ir_arch_a, ssa):
             out = AssignBlock(out, assignblk.instr)
             assignblks.append(out)
         new_block = IRBlock(block.loc_key, assignblks)
-        ssa.graph.blocks[block.loc_key] = new_block
+        ircfg.blocks[block.loc_key] = new_block
     return modified
 
 

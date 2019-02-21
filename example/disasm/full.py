@@ -330,9 +330,20 @@ if args.propagexpr:
             modified = super(CustomIRCFGSimplifierSSA, self).do_simplify(ssa, head)
             if args.loadint:
                 modified |= load_from_int(ssa.graph, bs, is_addr_ro_variable)
+
+        def simplify(self, ircfg, head):
+            ssa = self.ircfg_to_ssa(ircfg, head)
+            ssa = self.do_simplify_loop(ssa, head)
+            ircfg = self.ssa_to_unssa(ssa, head)
+
             if args.stack2var:
-                modified |= replace_stack_vars(self.ir_arch, ssa)
-            return modified
+                replace_stack_vars(self.ir_arch, ircfg)
+
+            ircfg_simplifier = IRCFGSimplifierCommon(self.ir_arch)
+            ircfg_simplifier.simplify(ircfg, head)
+            return ircfg
+
+
 
 
     head = list(entry_points)[0]
