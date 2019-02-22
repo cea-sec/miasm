@@ -67,19 +67,19 @@ class CallbackHandler(object):
     def __init__(self):
         self.callbacks = {}  # Key -> [callback list]
 
-    def add_callback(self, name, callback):
-        """Add a callback to the key @name, iff the @callback isn't already
+    def add_callback(self, key, callback):
+        """Add a callback to the key @key, iff the @callback isn't already
         assigned to it"""
-        if callback not in self.callbacks.get(name, []):
-            self.callbacks[name] = self.callbacks.get(name, []) + [callback]
+        if callback not in self.callbacks.get(key, []):
+            self.callbacks[key] = self.callbacks.get(key, []) + [callback]
 
-    def set_callback(self, name, *args):
-        "Set the list of callback for key 'name'"
-        self.callbacks[name] = list(args)
+    def set_callback(self, key, *args):
+        "Set the list of callback for key 'key'"
+        self.callbacks[key] = list(args)
 
-    def get_callbacks(self, name):
-        "Return the list of callbacks associated to key 'name'"
-        return self.callbacks.get(name, [])
+    def get_callbacks(self, key):
+        "Return the list of callbacks associated to key 'key'"
+        return self.callbacks.get(key, [])
 
     def remove_callback(self, callback):
         """Remove the callback from the list.
@@ -101,30 +101,30 @@ class CallbackHandler(object):
 
         return empty_keys
 
-    def has_callbacks(self, name):
-        return name in self.callbacks
+    def has_callbacks(self, key):
+        return key in self.callbacks
 
-    def remove_name(self, name):
-        """Remove and return all callbacks associated to @name"""
-        callbacks = self.callbacks.get(name, [])
-        del self.callbacks[name]
+    def remove_key(self, key):
+        """Remove and return all callbacks associated to @key"""
+        callbacks = self.callbacks.get(key, [])
+        del self.callbacks[key]
         return callbacks
 
-    def call_callbacks(self, name, *args):
-        """Call callbacks associated to key 'name' with arguments args. While
+    def call_callbacks(self, key, *args):
+        """Call callbacks associated to key 'key' with arguments args. While
         callbacks return True, continue with next callback.
         Iterator on other results."""
 
         res = True
 
-        for c in self.get_callbacks(name):
+        for c in self.get_callbacks(key):
             res = c(*args)
             if res is not True:
                 yield res
 
-    def __call__(self, name, *args):
+    def __call__(self, key, *args):
         "Wrapper for call_callbacks"
-        return self.call_callbacks(name, *args)
+        return self.call_callbacks(key, *args)
 
 
 class CallbackHandlerBitflag(CallbackHandler):
@@ -309,7 +309,7 @@ class Jitter(object):
         """Remove all breakpoints associated with @address.
         @address: address of breakpoints to remove
         """
-        callbacks = self.breakpoints_handler.remove_name(address)
+        callbacks = self.breakpoints_handler.remove_key(address)
         if callbacks:
             self.jit.remove_disassembly_splits(address)
 
