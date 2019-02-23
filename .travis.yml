@@ -2,6 +2,8 @@ sudo: false
 language: python
 python: 2.7
 addons:
+  homebrew:
+    brewfile: true
   apt:
     sources: ['llvm-toolchain-trusty-6.0', 'ubuntu-toolchain-r-test']
     packages:
@@ -9,7 +11,7 @@ addons:
       - llvm-6.0-dev
       - g++-5
 env:
-  global: CXX=g++-5 LLVM_CONFIG=llvm-config-6.0
+  global: CXX=g++-5 LLVM_CONFIG=llvm-config-6.0 PATH=/usr/local/opt/gnu-sed/libexec/gnubin:$PATH
   matrix:
     - MIASM_TEST_EXTRA_ARG="-o regression -t long,python,llvm,gcc,z3,qemu,cparser"
     - MIASM_TEST_EXTRA_ARG="-o example -t long,python,llvm,gcc,z3,qemu,cparser"
@@ -22,11 +24,58 @@ env:
     - MIASM_TEST_EXTRA_ARG="-o python -t qemu,long"
     - MIASM_TEST_EXTRA_ARG="-o z3"
     - MIASM_TEST_EXTRA_ARG="-o cparser"
+cache: pip
+matrix:
+  include:
+    - os: linux
+    - os: osx
+      language: generic
+      install: pip install --user -r requirements.txt
+      env: MIASM_TEST_EXTRA_ARG="-o regression -t long,python,llvm,gcc,z3,qemu,cparser"
+    - os: osx
+      language: generic
+      install: pip install --user -r requirements.txt
+      env: MIASM_TEST_EXTRA_ARG="-o example -t long,python,llvm,gcc,z3,qemu,cparser"
+    - os: osx
+      language: generic
+      install: pip install --user -r requirements.txt
+      env: MIASM_TEST_EXTRA_ARG="-o long"
+    - os: osx
+      language: generic
+      install: pip install --user -r requirements.txt
+      env: MIASM_TEST_EXTRA_ARG="-o qemu -t llvm,gcc"
+    - os: osx
+      language: generic
+      install: pip install --user -r requirements.txt
+      env: MIASM_TEST_EXTRA_ARG="-o qemu -t python,gcc"
+    - os: osx
+      language: generic
+      install: pip install --user -r requirements.txt
+      env: MIASM_TEST_EXTRA_ARG="-o qemu -t python,llvm"
+     - os: osx
+      language: generic
+      install: pip install --user -r requirements.txt
+      env: MIASM_TEST_EXTRA_ARG="-o llvm -t qemu,long"
+    - os: osx
+      language: generic
+      install: pip install --user -r requirements.txt
+      env: MIASM_TEST_EXTRA_ARG="-o gcc -t qemu,long"
+    - os: osx
+      language: generic
+      install: pip install --user -r requirements.txt
+      env: MIASM_TEST_EXTRA_ARG="-o python -t qemu,long"
+    - os: osx
+      language: generic
+      install: pip install --user -r requirements.txt
+      env: MIASM_TEST_EXTRA_ARG="-o z3"
+    - os: osx
+      language: generic
+      install: pip install --user -r requirements.txt
+      env: MIASM_TEST_EXTRA_ARG="-o cparser"
 before_script:
 - pip install -r optional_requirements.txt
 # codespell
 - "pip install codespell && git ls-files | xargs codespell --ignore-words=.codespell_ignore 2>/dev/null"
 # install
-- python setup.py build build_ext
 - python setup.py install
 script: cd test && python -W error test_all.py $MIASM_TEST_EXTRA_ARG && git ls-files -o --exclude-standard
