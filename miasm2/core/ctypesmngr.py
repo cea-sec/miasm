@@ -522,15 +522,15 @@ class CAstTypes(object):
         if isinstance(ast, c_ast.BinaryOp):
             left = self.ast_eval_int(ast.left)
             right = self.ast_eval_int(ast.right)
-            is_pure_int = (isinstance(left, (int, long)) and
-                           isinstance(right, (int, long)))
+            is_pure_int = (isinstance(left, int) and
+                           isinstance(right, int))
 
             if is_pure_int:
                 if ast.op == '*':
                     result = left * right
                 elif ast.op == '/':
                     assert left % right == 0
-                    result = left / right
+                    result = left // right
                 elif ast.op == '+':
                     result = left + right
                 elif ast.op == '-':

@@ -1,6 +1,8 @@
+from __future__ import print_function
 import sys
 import time
 from pdb import pm
+from miasm2.core.utils import decode_hex
 from miasm2.arch.aarch64.arch import *
 from miasm2.core.locationdb import LocationDB
 
@@ -1824,25 +1826,25 @@ reg_tests_aarch64 = [
 
 
 def h2i(s):
-    return s.replace(' ', '').decode('hex')
+    return decode_hex(s.replace(' ', ''))
 
 
 ts = time.time()
 
 for s, l in reg_tests_aarch64[:]:
-    print "-" * 80
-    print s[:12], l
+    print("-" * 80)
+    print(s[:12], l)
     s = s[12:]
     b = h2i((l))
     mn = mn_aarch64.dis(b, 'l')
-    print [str(x) for x in mn.args]
-    print s
-    print mn
+    print([str(x) for x in mn.args])
+    print(s)
+    print(mn)
     assert(str(mn) == s)
     l = mn_aarch64.fromstring(s, loc_db, 'l')
     assert(str(l) == s)
     a = mn_aarch64.asm(l)
-    print [x for x in a]
-    print repr(b)
+    print([x for x in a])
+    print(repr(b))
     assert(b in a)
 

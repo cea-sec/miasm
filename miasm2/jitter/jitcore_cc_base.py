@@ -3,6 +3,7 @@
 import os
 import tempfile
 import platform
+import sysconfig
 from distutils.sysconfig import get_python_inc
 
 from miasm2.jitter.jitcore import JitCore
@@ -28,7 +29,7 @@ def gen_core(arch, attrib):
     return txt
 
 
-class myresolver:
+class myresolver(object):
 
     def __init__(self, offset):
         self.offset = offset
@@ -37,7 +38,7 @@ class myresolver:
         return "return PyLong_FromUnsignedLongLong(0x%X);" % self.offset
 
 
-class resolver:
+class resolver(object):
 
     def __init__(self):
         self.resolvers = keydefaultdict(myresolver)
@@ -57,7 +58,7 @@ class JitCore_Cc_Base(JitCore):
         self.states = {}
         self.tempdir = os.path.join(tempfile.gettempdir(), "miasm_cache")
         try:
-            os.mkdir(self.tempdir, 0755)
+            os.mkdir(self.tempdir, 0o755)
         except OSError:
             pass
         if not os.access(self.tempdir, os.R_OK | os.W_OK):
@@ -72,12 +73,23 @@ class JitCore_Cc_Base(JitCore):
 
     def load(self):
         lib_dir = os.path.dirname(os.path.realpath(__file__))
-        ext = ".so" if not is_win else ".lib"
-        libs = [os.path.join(lib_dir, "VmMngr" + ext),
-                os.path.join(lib_dir, "arch", "JitCore_%s%s" % (self.ir_arch.arch.name, ext))]
+        ext = sysconfig.get_config_var('EXT_SUFFIX')
+        if ext is None:
+            ext = ".so" if not is_win else ".lib"
 
-        include_files = [os.path.dirname(__file__),
-                         get_python_inc()]
+        libs = [
+            os.path.join(lib_dir, "VmMngr" + ext),
+            os.path.join(
+                lib_dir,
+                "arch",
+                "JitCore_%s%s" % (self.ir_arch.arch.name, ext)
+            )
+        ]
+
+        include_files = [
+            os.path.dirname(__file__),
+            get_python_inc()
+        ]
         self.include_files = include_files
         self.libs = libs
 
@@ -94,7 +106,11 @@ class JitCore_Cc_Base(JitCore):
         @irblocks: list of irblocks
         """
         f_declaration = '_MIASM_EXPORT int %s(block_id * BlockDst, JitCpu* jitcpu)' % self.FUNCNAME
-        out = self.codegen.gen_c(block, log_mn=self.log_mn, log_regs=self.log_regs)
+        out = self.codegen.gen_c(
+            block,
+            log_mn=self.log_mn,
+            log_regs=self.log_regs
+        )
         out = [f_declaration + '{'] + out + ['}\n']
         c_code = out
 

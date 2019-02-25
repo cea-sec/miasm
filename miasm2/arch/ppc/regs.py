@@ -1,4 +1,5 @@
 
+from builtins import range
 from miasm2.expression.expression import *
 from miasm2.core.cpu import gen_reg, gen_regs
 
@@ -14,13 +15,13 @@ SPR_ACCESS_SPR_OFF  = 0
 SPR_ACCESS_GPR_MASK = 0x0001F000
 SPR_ACCESS_GPR_OFF  = 12
 
-gpregs_str = ["R%d" % i for i in xrange(32)]
+gpregs_str = ["R%d" % i for i in range(32)]
 gpregs_expr, gpregs_init, gpregs = gen_regs(gpregs_str, globals(), 32)
 
-crfregs_str = ["CR%d" % i for i in xrange(8)]
+crfregs_str = ["CR%d" % i for i in range(8)]
 crfregs_expr, crfregs_init, crfregs = gen_regs(crfregs_str, globals(), 4)
 
-crfbitregs_str = ["CR%d_%s" % (i, flag) for i in xrange(8)
+crfbitregs_str = ["CR%d_%s" % (i, flag) for i in range(8)
                   for flag in ['LT', 'GT', 'EQ', 'SO'] ]
 crfbitregs_expr, crfbitregs_init, crfbitregs = gen_regs(crfbitregs_str,
                                                         globals(), 1)
@@ -38,8 +39,8 @@ otherregs_str = ["PC", "CTR", "LR" ]
 otherregs_expr, otherregs_init, otherregs = gen_regs(otherregs_str,
                                                      globals(), 32)
 
-superregs_str = (["SPRG%d" % i for i in xrange(4)] +
-                 ["SRR%d" % i for i in xrange(2)] +
+superregs_str = (["SPRG%d" % i for i in range(4)] +
+                 ["SRR%d" % i for i in range(2)] +
                  ["DAR", "DSISR", "MSR", "PIR", "PVR",
                   "DEC", "TBL", "TBU"])
 superregs_expr, superregs_init, superregs = gen_regs(superregs_str,

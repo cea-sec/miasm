@@ -1,3 +1,5 @@
+from builtins import map
+from builtins import range
 import imp
 import logging
 
@@ -76,13 +78,13 @@ class Z3Mem(object):
         original_size = size
         if original_size % 8 != 0:
             # Size not aligned on 8bits -> read more than size and extract after
-            size = ((original_size / 8) + 1) * 8
+            size = ((original_size // 8) + 1) * 8
         res = self[addr]
         if self.is_little_endian():
-            for i in xrange(1, size/8):
+            for i in range(1, size // 8):
                 res = z3.Concat(self[addr+i], res)
         else:
-            for i in xrange(1, size/8):
+            for i in range(1, size //8):
                 res = z3.Concat(res, self[addr+i])
         if size == original_size:
             return res
@@ -182,7 +184,7 @@ class TranslatorZ3(Translator):
         return z3.UDiv(self._abs(num), self._abs(den)) * result_sign
 
     def from_ExprOp(self, expr):
-        args = map(self.from_expr, expr.args)
+        args = list(map(self.from_expr, expr.args))
         res = args[0]
 
         if len(args) > 1:
@@ -240,7 +242,7 @@ class TranslatorZ3(Translator):
         elif expr.op == 'parity':
             arg = z3.Extract(7, 0, res)
             res = z3.BitVecVal(1, 1)
-            for i in xrange(8):
+            for i in range(8):
                 res = res ^ z3.Extract(i, i, arg)
         elif expr.op == '-':
             res = -res
@@ -248,13 +250,13 @@ class TranslatorZ3(Translator):
             size = expr.size
             src = res
             res = z3.If(src == 0, size, src)
-            for i in xrange(size - 1, -1, -1):
+            for i in range(size - 1, -1, -1):
                 res = z3.If((src & (1 << i)) != 0, i, res)
         elif expr.op == "cntleadzeros":
             size = expr.size
             src = res
             res = z3.If(src == 0, size, src)
-            for i in xrange(size, 0, -1):
+            for i in range(size, 0, -1):
                 index = - i % size
                 out = size - (index + 1)
                 res = z3.If((src & (1 << index)) != 0, out, res)

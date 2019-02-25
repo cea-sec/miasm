@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #include <inttypes.h>
+#include "../compat_py23.h"
 #include "../queue.h"
 #include "../vm_mngr.h"
 #include "../vm_mngr_py.h"
@@ -148,32 +149,31 @@ PyObject* cpu_set_gpreg(JitCpu* self, PyObject *args)
     PyObject* dict;
     PyObject *d_key, *d_value = NULL;
     Py_ssize_t pos = 0;
+    char* d_key_name;
     uint64_t val;
     unsigned int i, found;
 
     if (!PyArg_ParseTuple(args, "O", &dict))
-        return NULL;
+	return NULL;
     if(!PyDict_Check(dict))
-        RAISE(PyExc_TypeError, "arg must be dict");
+	RAISE(PyExc_TypeError, "arg must be dict");
     while(PyDict_Next(dict, &pos, &d_key, &d_value)){
-        if(!PyString_Check(d_key))
-            RAISE(PyExc_TypeError, "key must be str");
+	PyGetStr(d_key_name, d_key);
+	PyGetInt(d_value, val);
 
-        PyGetInt(d_value, val);
+	found = 0;
+	for (i=0; i < sizeof(gpreg_dict)/sizeof(reg_dict); i++){
+	    if (strcmp(d_key_name, gpreg_dict[i].name))
+		continue;
+	    *((uint32_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset)) = val;
+	    found = 1;
+	    break;
+	}
 
-        found = 0;
-        for (i=0; i < sizeof(gpreg_dict)/sizeof(reg_dict); i++){
-            if (strcmp(PyString_AsString(d_key), gpreg_dict[i].name))
-                continue;
-            *((uint32_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset)) = val;
-            found = 1;
-            break;
-        }
-
-        if (found)
-            continue;
-        fprintf(stderr, "unknown key: %s\n", PyString_AsString(d_key));
-        RAISE(PyExc_ValueError, "unknown reg");
+	if (found)
+	    continue;
+	fprintf(stderr, "unknown key: %s\n", d_key_name);
+	RAISE(PyExc_ValueError, "unknown reg");
     }
     Py_INCREF(Py_None);
     return Py_None;
@@ -193,23 +193,23 @@ PyObject * cpu_init_regs(JitCpu* self)
 
 void dump_gpregs(vm_cpu_t* vmcpu)
 {
-        printf("R0  %.4"PRIX32" ", vmcpu->R0);
-        printf("R1  %.4"PRIX32" ", vmcpu->R1);
-        printf("R2  %.4"PRIX32" ", vmcpu->R2);
-        printf("R3  %.4"PRIX32" ", vmcpu->R3);
-        printf("R4  %.4"PRIX32" ", vmcpu->R4);
-        printf("R5  %.4"PRIX32" ", vmcpu->R5);
-        printf("R6  %.4"PRIX32" ", vmcpu->R6);
-        printf("R7  %.4"PRIX32" ", vmcpu->R7);
-        printf("R8  %.4"PRIX32" ", vmcpu->R8);
-        printf("R9  %.4"PRIX32" ", vmcpu->R9);
-        printf("R10  %.4"PRIX32" ", vmcpu->R10);
-        printf("R11  %.4"PRIX32" ", vmcpu->R11);
-        printf("R12  %.4"PRIX32" ", vmcpu->R12);
-        printf("TP  %.4"PRIX32" ", vmcpu->TP);
-        printf("GP  %.4"PRIX32" ", vmcpu->GP);
-        printf("SP  %.4"PRIX32" ", vmcpu->SP);
-        printf("\n");
+	printf("R0  %.4"PRIX32" ", vmcpu->R0);
+	printf("R1  %.4"PRIX32" ", vmcpu->R1);
+	printf("R2  %.4"PRIX32" ", vmcpu->R2);
+	printf("R3  %.4"PRIX32" ", vmcpu->R3);
+	printf("R4  %.4"PRIX32" ", vmcpu->R4);
+	printf("R5  %.4"PRIX32" ", vmcpu->R5);
+	printf("R6  %.4"PRIX32" ", vmcpu->R6);
+	printf("R7  %.4"PRIX32" ", vmcpu->R7);
+	printf("R8  %.4"PRIX32" ", vmcpu->R8);
+	printf("R9  %.4"PRIX32" ", vmcpu->R9);
+	printf("R10  %.4"PRIX32" ", vmcpu->R10);
+	printf("R11  %.4"PRIX32" ", vmcpu->R11);
+	printf("R12  %.4"PRIX32" ", vmcpu->R12);
+	printf("TP  %.4"PRIX32" ", vmcpu->TP);
+	printf("GP  %.4"PRIX32" ", vmcpu->GP);
+	printf("SP  %.4"PRIX32" ", vmcpu->SP);
+	printf("\n");
 }
 
 
@@ -234,7 +234,7 @@ PyObject* cpu_set_exception(JitCpu* self, PyObject* args)
     uint64_t i;
 
     if (!PyArg_ParseTuple(args, "O", &item1))
-        return NULL;
+	return NULL;
 
     PyGetInt(item1, i);
 
@@ -253,7 +253,7 @@ void check_automod(JitCpu* jitcpu, uint64_t addr, uint64_t size)
     PyObject *result;
 
     if (!(((VmMngr*)jitcpu->pyvm)->vm_mngr.exception_flags & EXCEPT_CODE_AUTOMOD))
-        return;
+	return;
     result = PyObject_CallMethod(jitcpu->jitter, "automod_cb", "LL", addr, size);
     Py_DECREF(result);
 
@@ -296,19 +296,19 @@ PyObject* vm_set_mem(JitCpu *self, PyObject* args)
        int ret = 0x1337;
 
        if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_buffer))
-           return NULL;
+	   return NULL;
 
        PyGetInt(py_addr, addr);
 
-       if(!PyString_Check(py_buffer))
-           RAISE(PyExc_TypeError,"arg must be str");
+       if(!PyBytes_Check(py_buffer))
+	   RAISE(PyExc_TypeError,"arg must be bytes");
 
-       size = PyString_Size(py_buffer);
-       PyString_AsStringAndSize(py_buffer, &buffer, &py_length);
+       size = PyBytes_Size(py_buffer);
+       PyBytes_AsStringAndSize(py_buffer, &buffer, &py_length);
 
        ret = vm_write_mem(&(((VmMngr*)self->pyvm)->vm_mngr), addr, buffer, size);
        if (ret < 0)
-           RAISE(PyExc_TypeError,"arg must be str");
+	   RAISE(PyExc_TypeError,"arg must be str");
        check_automod(self, addr, size*8);
 
        Py_INCREF(Py_None);
@@ -337,8 +337,8 @@ JitCpu_init(JitCpu *self, PyObject *args, PyObject *kwds)
 {
     self->cpu = malloc(sizeof(vm_cpu_t));
     if (self->cpu == NULL) {
-        fprintf(stderr, "cannot alloc vm_cpu_t\n");
-        exit(0);
+	fprintf(stderr, "cannot alloc vm_cpu_t\n");
+	exit(0);
     }
     return 0;
 }
@@ -543,8 +543,7 @@ static PyGetSetDef JitCpu_getseters[] = {
 
 
 static PyTypeObject JitCpuType = {
-    PyObject_HEAD_INIT(NULL)
-    0,                         /*ob_size*/
+    PyVarObject_HEAD_INIT(NULL, 0)
     "JitCore_mep.JitCpu",   /*tp_name*/
     sizeof(JitCpu),            /*tp_basicsize*/
     0,                         /*tp_itemsize*/
@@ -596,25 +595,23 @@ static PyMethodDef JitCore_mep_Methods[] = {
 
 };
 
-static PyObject *JitCore_mep_Error;
 
-PyMODINIT_FUNC
-initJitCore_mep(void)
+
+MOD_INIT(JitCore_mep)
 {
-    PyObject *m;
+	PyObject *module;
 
-    if (PyType_Ready(&JitCpuType) < 0)
-    return;
+	MOD_DEF(module, "JitCore_mep", "JitCore_mep module", JitCore_mep_Methods);
 
-    m = Py_InitModule("JitCore_mep", JitCore_mep_Methods);
-    if (m == NULL)
-        return;
+	if (module == NULL)
+		return NULL;
 
-    JitCore_mep_Error = PyErr_NewException("JitCore_mep.error", NULL, NULL);
-    Py_INCREF(JitCore_mep_Error);
-    PyModule_AddObject(m, "error", JitCore_mep_Error);
+	if (PyType_Ready(&JitCpuType) < 0)
+		return NULL;
 
-    Py_INCREF(&JitCpuType);
-    PyModule_AddObject(m, "JitCpu", (PyObject *)&JitCpuType);
+	Py_INCREF(&JitCpuType);
+	if (PyModule_AddObject(module, "JitCpu", (PyObject *)&JitCpuType) < 0)
+		return NULL;
 
+	return module;
 }

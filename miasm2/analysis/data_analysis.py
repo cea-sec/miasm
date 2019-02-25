@@ -1,5 +1,12 @@
+from __future__ import print_function
+
+from future.utils import viewitems
+
+from builtins import object
+from functools import cmp_to_key
 from miasm2.expression.expression \
-    import get_expr_mem, get_list_rw, ExprId, ExprInt
+    import get_expr_mem, get_list_rw, ExprId, ExprInt, \
+    compare_exprs
 from miasm2.ir.symbexec import SymbolicExecutionEngine
 
 
@@ -19,7 +26,7 @@ def intra_block_flow_raw(ir_arch, ircfg, flow_graph, irb, in_nodes, out_nodes):
 
         # gen mem arg to mem node links
         all_mems = set()
-        for node_w, nodes_r in dict_rw.iteritems():
+        for node_w, nodes_r in viewitems(dict_rw):
             for n in nodes_r.union([node_w]):
                 all_mems.update(get_expr_mem(n))
             if not all_mems:
@@ -40,7 +47,7 @@ def intra_block_flow_raw(ir_arch, ircfg, flow_graph, irb, in_nodes, out_nodes):
                     flow_graph.add_uniq_edge(node_n_r, node_n_w)
 
         # gen data flow links
-        for node_w, nodes_r in dict_rw.iteritems():
+        for node_w, nodes_r in viewitems(dict_rw):
             for n_r in nodes_r:
                 if n_r in current_nodes:
                     node_n_r = current_nodes[n_r]
@@ -65,11 +72,11 @@ def inter_block_flow_link(ir_arch, ircfg, flow_graph, irb_in_nodes, irb_out_node
 
     # link current nodes to bloc in_nodes
     if not lbl in ircfg.blocks:
-        print "cannot find bloc!!", lbl
+        print("cannot find bloc!!", lbl)
         return set()
     irb = ircfg.blocks[lbl]
     to_del = set()
-    for n_r, node_n_r in irb_in_nodes[irb.loc_key].items():
+    for n_r, node_n_r in viewitems(irb_in_nodes[irb.loc_key]):
         if not n_r in current_nodes:
             continue
         flow_graph.add_uniq_edge(current_nodes[n_r], node_n_r)
@@ -78,7 +85,7 @@ def inter_block_flow_link(ir_arch, ircfg, flow_graph, irb_in_nodes, irb_out_node
     # if link exec to data, all nodes depends on exec nodes
     if link_exec_to_data:
         for n_x_r in exec_nodes:
-            for n_r, node_n_r in irb_in_nodes[irb.loc_key].items():
+            for n_r, node_n_r in viewitems(irb_in_nodes[irb.loc_key]):
                 if not n_x_r in current_nodes:
                     continue
                 if isinstance(n_r, ExprInt):
@@ -86,15 +93,15 @@ def inter_block_flow_link(ir_arch, ircfg, flow_graph, irb_in_nodes, irb_out_node
                 flow_graph.add_uniq_edge(current_nodes[n_x_r], node_n_r)
 
     # update current nodes using bloc out_nodes
-    for n_w, node_n_w in irb_out_nodes[irb.loc_key].items():
+    for n_w, node_n_w in viewitems(irb_out_nodes[irb.loc_key]):
         current_nodes[n_w] = node_n_w
 
     # get nodes involved in exec flow
-    x_nodes = tuple(sorted(list(irb.dst.get_r())))
+    x_nodes = tuple(sorted(irb.dst.get_r(), key=cmp_to_key(compare_exprs)))
 
     todo = set()
     for lbl_dst in ircfg.successors(irb.loc_key):
-        todo.add((lbl_dst, tuple(current_nodes.items()), x_nodes))
+        todo.add((lbl_dst, tuple(viewitems(current_nodes)), x_nodes))
 
     return todo
 
@@ -109,7 +116,7 @@ def create_implicit_flow(ir_arch, flow_graph, irb_in_nodes, irb_out_ndes):
         irb = ir_arch.blocks[lbl]
         for lbl_son in ir_arch.graph.successors(irb.loc_key):
             if not lbl_son in ir_arch.blocks:
-                print "cannot find bloc!!", lbl
+                print("cannot find bloc!!", lbl)
                 continue
             irb_son = ir_arch.blocks[lbl_son]
             for n_r in irb_in_nodes[irb_son.loc_key]:
@@ -144,7 +151,7 @@ def inter_block_flow(ir_arch, ircfg, flow_graph, irb_0, irb_in_nodes, irb_out_no
         todo.update(out)
 
 
-class symb_exec_func:
+class symb_exec_func(object):
 
     """
     This algorithm will do symbolic execution on a function, trying to propagate
@@ -164,15 +171,13 @@ class symb_exec_func:
         self.ir_arch = ir_arch
 
     def add_state(self, parent, ad, state):
-        variables = dict(state.symbols.items())
+        variables = dict(state.symbols)
 
         # get bloc dead, and remove from state
         b = self.ir_arch.get_block(ad)
         if b is None:
             raise ValueError("unknown bloc! %s" % ad)
-        variables = variables.items()
-
-        s = parent, ad, tuple(sorted(variables))
+        s = parent, ad, tuple(sorted(viewitems(variables)))
         self.todo.add(s)
 
     def get_next_state(self):
@@ -183,10 +188,10 @@ class symb_exec_func:
         if len(self.todo) == 0:
             return None
         if self.total_done > 600:
-            print "symbexec watchdog!"
+            print("symbexec watchdog!")
             return None
         self.total_done += 1
-        print 'CPT', self.total_done
+        print('CPT', self.total_done)
         while self.todo:
             state = self.get_next_state()
             parent, ad, s = state

@@ -1,3 +1,4 @@
+from miasm2.core.utils import decode_hex, encode_hex
 import miasm2.expression.expression as m2_expr
 from miasm2.ir.symbexec import SymbolicExecutionEngine
 
@@ -43,14 +44,16 @@ class EmulatedSymbExec(SymbolicExecutionEngine):
         if not addr.is_int():
             return super(EmulatedSymbExec, self).mem_read(expr_mem)
         addr = int(addr)
-        size = expr_mem.size / 8
+        size = expr_mem.size // 8
         value = self.cpu.get_mem(addr, size)
         if self.vm.is_little_endian():
             value = value[::-1]
         self.vm.add_mem_read(addr, size)
 
-        return m2_expr.ExprInt(int(value.encode("hex"), 16),
-                               expr_mem.size)
+        return m2_expr.ExprInt(
+            int(encode_hex(value), 16),
+            expr_mem.size
+        )
 
     def mem_write(self, dest, data):
         """Memory read wrapper for symbolic execution
@@ -65,10 +68,10 @@ class EmulatedSymbExec(SymbolicExecutionEngine):
 
         # Format information
         addr = dest.ptr.arg.arg
-        size = data.size / 8
+        size = data.size // 8
         content = hex(to_write).replace("0x", "").replace("L", "")
         content = "0" * (size * 2 - len(content)) + content
-        content = content.decode("hex")
+        content = decode_hex(content)
 
         if self.vm.is_little_endian():
             content = content[::-1]

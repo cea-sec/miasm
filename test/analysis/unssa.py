@@ -1,4 +1,6 @@
 """ Test cases for dead code elimination"""
+from future.utils import viewvalues
+
 from miasm2.expression.expression import ExprId, ExprInt, ExprAssign, ExprMem, \
     ExprCond, ExprLoc
 from miasm2.core.locationdb import LocationDB
@@ -568,7 +570,7 @@ class IRAOutRegs(IRATest):
                     continue
                 if reg in regs_todo:
                     out[reg] = dst
-        return set(out.values())
+        return set(viewvalues(out))
 
 
 
@@ -623,7 +625,7 @@ for test_nb, ircfg in enumerate(
 
     # Save a copy of ircfg
     ircfg_orig = IRCFG(IRDst, loc_db)
-    for irblock in ircfg.blocks.values():
+    for irblock in viewvalues(ircfg.blocks):
         ircfg_orig.add_irblock(irblock)
 
     # SSA

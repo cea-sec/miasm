@@ -1,5 +1,9 @@
 """Regression test module for DependencyGraph"""
+from __future__ import print_function
+from builtins import object
 from pdb import pm
+
+from future.utils import viewitems
 
 from miasm2.expression.expression import ExprId, ExprInt, ExprAssign, ExprCond, \
     ExprLoc, LocKey
@@ -162,7 +166,7 @@ for irb in [G1_RES_IRB0]:
 
 
 def cmp_ir_graph(g1, g2):
-    assert g1.blocks.items() == g2.blocks.items()
+    assert list(viewitems(g1.blocks)) == list(viewitems(g2.blocks))
     assert set(g1.edges()) == set(g2.edges())
 
 
@@ -664,11 +668,11 @@ for i, (g_test, g_ref) in enumerate(
         ], 1):
 
     heads = g_test.heads()
-    print '*'*10, 'Test', i, "*"*10
+    print('*'*10, 'Test', i, "*"*10)
     open('test_in_%d.dot' % i, 'w').write(g_test.dot())
     open('test_ref_%d.dot' % i, 'w').write(g_ref.dot())
     merge_blocks(g_test, heads)
     open('test_out_%d.dot' % i, 'w').write(g_test.dot())
 
     cmp_ir_graph(g_test, g_ref)
-    print '\t', 'OK'
+    print('\t', 'OK')

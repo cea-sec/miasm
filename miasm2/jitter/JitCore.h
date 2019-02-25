@@ -11,31 +11,73 @@
 #define RAISE_ret0(errtype, msg) {PyObject* p; p = PyErr_Format( errtype, msg ); return 0;}
 
 
-#define PyGetInt(item, value)						\
-	if (PyInt_Check(item)){						\
-		value = (uint64_t)PyInt_AsLong(item);			\
+#if PY_MAJOR_VERSION >= 3
+#define getset_reg_bn(regname, size)					\
+	static PyObject *JitCpu_get_ ## regname  (JitCpu *self, void *closure) \
+	{								\
+		bn_t bn;						\
+		int j;							\
+		PyObject* py_long;					\
+		PyObject* py_long_new;					\
+		PyObject* py_tmp;					\
+		PyObject* cst_32;					\
+		uint64_t tmp;						\
+		py_long = PyLong_FromLong(0);				\
+		cst_32 = PyLong_FromLong(32);				\
+		bn = ((vm_cpu_t*)(self->cpu))->  regname;		\
+		bn = bignum_mask(bn, (size));				\
+		for (j = BN_BYTE_SIZE - 4; j >= 0 ; j -= 4) {		\
+			tmp = bignum_to_uint64(bignum_mask(bignum_rshift(bn, 8 * j), 32)); \
+			py_tmp = PyLong_FromUnsignedLong(tmp);		\
+			py_long_new = PyObject_CallMethod(py_long, "__lshift__", "O", cst_32); \
+			Py_DECREF(py_long);				\
+			py_long = PyObject_CallMethod(py_long_new, "__add__", "O", py_tmp); \
+			Py_DECREF(py_long_new);				\
+			Py_DECREF(py_tmp);				\
+		}							\
+		Py_DECREF(cst_32);					\
+		return py_long;						\
 	}								\
-	else if (PyLong_Check(item)){					\
-		value = (uint64_t)PyLong_AsUnsignedLongLong(item);	\
-	}								\
-	else{								\
-		RAISE(PyExc_TypeError,"arg must be int");		\
-	}								\
+									\
+	static int JitCpu_set_ ## regname  (JitCpu *self, PyObject *value, void *closure) \
+	{								\
+		bn_t bn;						\
+		int j;							\
+		PyObject* py_long = value;				\
+		PyObject* py_long_new;					\
+		PyObject* py_tmp;					\
+		PyObject* cst_32;					\
+		PyObject* cst_ffffffff;					\
+		uint64_t tmp;						\
+		if (PyLong_Check(py_long)){				\
+				Py_INCREF(py_long);			\
+			} else {					\
+				RAISE(PyExc_TypeError,"arg must be int"); \
+			}						\
+									\
+		cst_ffffffff = PyLong_FromLong(0xffffffff);		\
+		cst_32 = PyLong_FromLong(32);				\
+		bn = bignum_from_int(0);				\
+									\
+		for (j = 0; j < BN_BYTE_SIZE; j += 4) {			\
+			py_tmp = PyObject_CallMethod(py_long, "__and__", "O", cst_ffffffff); \
+			py_long_new = PyObject_CallMethod(py_long, "__rshift__", "O", cst_32); \
+			Py_DECREF(py_long);				\
+			py_long = py_long_new;				\
+			tmp = PyLong_AsUnsignedLongMask(py_tmp);	\
+			Py_DECREF(py_tmp);				\
+			bn = bignum_or(bn, bignum_lshift(bignum_from_uint64(tmp), 8 * j)); \
+		}							\
+									\
+		((vm_cpu_t*)(self->cpu))->  regname   = bignum_mask(bn, (size)); \
+		Py_DECREF(py_long);					\
+		Py_DECREF(cst_32);					\
+		Py_DECREF(cst_ffffffff);				\
+		return 0;						\
+	}
 
 
-#define PyGetInt_retneg(item, value)					\
-	if (PyInt_Check(item)){						\
-		value = (uint64_t)PyInt_AsLong(item);			\
-	}								\
-	else if (PyLong_Check(item)){					\
-		value = (uint64_t)PyLong_AsUnsignedLongLong(item);	\
-	}								\
-	else{								\
-		PyErr_SetString(PyExc_TypeError, "Arg must be int");	\
-		return -1;						\
-	}								\
-
-
+#else
 #define getset_reg_bn(regname, size)					\
 	static PyObject *JitCpu_get_ ## regname  (JitCpu *self, void *closure) \
 	{								\
@@ -74,18 +116,14 @@
 		PyObject* cst_ffffffff;					\
 		uint64_t tmp;						\
 									\
-		/* Ensure py_long is a PyLong */			\
-		if (PyInt_Check(py_long)) {				\
+		if (PyInt_Check(py_long)){				\
 			tmp = (uint64_t)PyInt_AsLong(py_long);		\
-			py_long = PyLong_FromLong(tmp);			\
+			py_long = PyLong_FromLong((long)tmp);		\
 		} else if (PyLong_Check(py_long)){			\
-			/* Already PyLong */				\
-			/* Increment ref as we will decement it next */	\
 			Py_INCREF(py_long);				\
 		}							\
-		else {							\
-			PyErr_SetString(PyExc_TypeError, "Arg must be int"); \
-			return -1;					\
+		else{							\
+			RAISE(PyExc_TypeError,"arg must be int");	\
 		}							\
 									\
 		cst_ffffffff = PyLong_FromLong(0xffffffff);		\
@@ -108,6 +146,17 @@
 		Py_DECREF(cst_ffffffff);				\
 		return 0;						\
 	}
+#endif
+
+
+
+
+
+
+
+
+
+
 
 #define getset_reg_u64(regname)						\
 	static PyObject *JitCpu_get_ ## regname  (JitCpu *self, void *closure) \

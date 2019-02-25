@@ -2,6 +2,7 @@
 #include "structmember.h"
 #include <stdint.h>
 #include <inttypes.h>
+#include "compat_py23.h"
 #include "queue.h"
 #include "vm_mngr.h"
 #include "vm_mngr_py.h"
@@ -11,7 +12,7 @@
 
 void JitCpu_dealloc(JitCpu* self)
 {
-    self->ob_type->tp_free((PyObject*)self);
+    Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 
@@ -250,7 +251,7 @@ PyObject* vm_get_mem(JitCpu *self, PyObject* args)
 	       return NULL;
        }
 
-       obj_out = PyString_FromStringAndSize(buf_out, size);
+       obj_out = PyBytes_FromStringAndSize(buf_out, size);
        free(buf_out);
        return obj_out;
 }

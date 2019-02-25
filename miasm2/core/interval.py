@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 INT_EQ = 0      # Equivalent
 INT_B_IN_A = 1  # B in A
 INT_A_IN_B = -1 # A in B
@@ -232,16 +234,16 @@ class interval(object):
             import Image
             import ImageDraw
         except ImportError:
-            print 'cannot import python PIL imaging'
+            print('cannot import python PIL imaging')
             return
 
         img = Image.new('RGB', (img_x, img_y), (100, 100, 100))
         draw = ImageDraw.Draw(img)
         i_min, i_max = self.hull()
 
-        print hex(i_min), hex(i_max)
+        print(hex(i_min), hex(i_max))
 
-        addr2x = lambda addr: (addr - i_min) * img_x / (i_max - i_min)
+        addr2x = lambda addr: ((addr - i_min) * img_x) // (i_max - i_min)
         for a, b in self.intervals:
             draw.rectangle((addr2x(a), 0, addr2x(b), img_y), (200, 0, 0))
 

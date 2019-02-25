@@ -1,3 +1,5 @@
+from builtins import int as int_types
+
 class AstNode(object):
     """
     Ast node object
@@ -68,7 +70,7 @@ class AstMem(AstNode):
     """
     def __init__(self, ptr, size):
         assert isinstance(ptr, AstNode)
-        assert isinstance(size, (int, long))
+        assert isinstance(size, int_types)
         self.ptr = ptr
         self.size = size
 

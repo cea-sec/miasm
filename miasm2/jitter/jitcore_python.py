@@ -1,3 +1,5 @@
+from __future__ import print_function
+from builtins import zip
 import miasm2.jitter.jitcore as jitcore
 from miasm2.expression.expression import ExprInt, ExprLoc
 import miasm2.jitter.csts as csts
@@ -111,10 +113,10 @@ class JitCore_Python(jitcore.JitCore):
                 if index == 0:
                     # Pre code
                     if instr_attrib.log_mn:
-                        print "%.8X %s" % (
+                        print("%.8X %s" % (
                             instr_attrib.instr.offset,
                             instr_attrib.instr.to_string(loc_db)
-                        )
+                        ))
 
                 # Exec IRBlock
                 instr = instr_attrib.instr

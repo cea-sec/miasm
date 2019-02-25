@@ -7,7 +7,7 @@ from miasm2.expression.expression import ExprId, ExprInt, ExprCond, ExprOp
 from miasm2.core.cpu import sign_ext
 
 
-class TestShift:
+class TestShift(object):
 
     def test_sra(self):
         """Test SRA execution"""

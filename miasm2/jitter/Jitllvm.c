@@ -3,6 +3,7 @@
 #include <inttypes.h>
 
 #include <stdint.h>
+#include "compat_py23.h"
 #include "queue.h"
 #include "vm_mngr.h"
 #include "vm_mngr_py.h"
@@ -82,13 +83,17 @@ static PyMethodDef LLVMMethods[] = {
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
-PyMODINIT_FUNC
-initJitllvm(void)
+
+
+
+MOD_INIT(Jitllvm)
 {
-    PyObject *m;
+	PyObject *module;
 
-    m = Py_InitModule("Jitllvm", LLVMMethods);
-    if (m == NULL)
-	    return;
+	MOD_DEF(module, "Jitllvm", "llvm module", LLVMMethods);
 
+	if (module == NULL)
+		return NULL;
+
+	return module;
 }

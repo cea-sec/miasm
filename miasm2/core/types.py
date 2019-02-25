@@ -102,9 +102,13 @@ Note that some structures (e.g. MemStr or MemArray) do not have a static
 size and cannot be allocated automatically.
 """
 
+from builtins import range, zip
+from builtins import int as int_types
 import itertools
 import logging
 import struct
+from future.utils import PY3
+from future.utils import viewitems, with_metaclass
 
 log = logging.getLogger(__name__)
 console_handler = logging.StreamHandler()
@@ -155,7 +159,7 @@ def indent(s, size=4):
 # String generic getter/setter/len-er
 # TODO: make miasm2.os_dep.common and jitter ones use these ones
 
-def get_str(vm, addr, enc, max_char=None, end='\x00'):
+def get_str(vm, addr, enc, max_char=None, end=u'\x00'):
     """Get a @end (by default '\\x00') terminated @enc encoded string from a
     VmMngr.
 
@@ -186,7 +190,7 @@ def get_str(vm, addr, enc, max_char=None, end='\x00'):
             break
         s.append(c)
         i += step
-    return ''.join(s).decode(enc)
+    return b''.join(s).decode(enc)
 
 def raw_str(s, enc, end=u'\x00'):
     """Returns a string representing @s as an @end (by default \\x00)
@@ -225,7 +229,7 @@ def raw_len(py_unic_str, enc, end=u'\x00'):
     """
     return len(raw_str(py_unic_str, enc))
 
-def enc_triplet(enc, max_char=None, end='\x00'):
+def enc_triplet(enc, max_char=None, end=u'\x00'):
     """Returns a triplet of functions (get_str_enc, set_str_enc, raw_len_enc)
     for a given encoding (as needed by Str to add an encoding). The prototypes
     are:
@@ -310,8 +314,11 @@ class Type(object):
         Called by self.lval when it is not in cache.
         """
         pinned_base_class = self._get_pinned_base_class()
-        pinned_type = type("Mem%r" % self, (pinned_base_class,),
-                           {'_type': self})
+        pinned_type = type(
+            "Mem%r" % self,
+            (pinned_base_class,),
+            {'_type': self}
+        )
         return pinned_type
 
     def _get_pinned_base_class(self):
@@ -344,7 +351,7 @@ class Type(object):
         raise NotImplementedError("Abstract method")
 
     def __ne__(self, other):
-        return not self.__eq__(other)
+        return not self == other
 
 
 class RawStruct(Type):
@@ -373,7 +380,7 @@ class RawStruct(Type):
         return self.__class__ == other.__class__ and self._fmt == other._fmt
 
     def __ne__(self, other):
-        return not self.__eq__(other)
+        return not self == other
 
     def __hash__(self):
         return hash((self.__class__, self._fmt))
@@ -495,7 +502,7 @@ class Ptr(Num):
 
         # Actual job
         dst_addr = self.get_val(vm, addr)
-        vm.set_mem(dst_addr, str(val))
+        vm.set_mem(dst_addr, bytes(val))
 
     def _get_pinned_base_class(self):
         return MemPtr
@@ -510,7 +517,7 @@ class Ptr(Num):
                 self._type_kwargs == other._type_kwargs
 
     def __ne__(self, other):
-        return not self.__eq__(other)
+        return not self == other
 
     def __hash__(self):
         return hash((super(Ptr, self).__hash__(), self.dst_type,
@@ -587,7 +594,7 @@ class Struct(Type):
                         # But the current offset is added
                         'offset': fd['offset'] + offset,
                     }
-                    for name, fd in field._fields_desc.iteritems()
+                    for name, fd in viewitems(field._fields_desc)
                 }
 
                 # Add the newly generated fields from the anon field
@@ -629,7 +636,7 @@ class Struct(Type):
         return self._fields
 
     def set(self, vm, addr, val):
-        raw = str(val)
+        raw = bytes(val)
         vm.set_mem(addr, raw)
 
     def get(self, vm, addr):
@@ -683,7 +690,7 @@ class Struct(Type):
                 self.name == other.name
 
     def __ne__(self, other):
-        return not self.__eq__(other)
+        return not self == other
 
     def __hash__(self):
         # Only hash name, not fields, because if a field is a Ptr to this
@@ -771,7 +778,7 @@ class Array(Type):
         if isinstance(val, MemSizedArray):
             if val.array_len != self.array_len or len(val) != self.size:
                 raise ValueError("Size mismatch in MemSizedArray assignment")
-            raw = str(val)
+            raw = bytes(val)
             vm.set_mem(addr, raw)
 
         # list assignment
@@ -810,7 +817,7 @@ class Array(Type):
         if isinstance(idx, slice):
             res = []
             idx = self._normalize_slice(idx)
-            for i in xrange(idx.start, idx.stop, idx.step):
+            for i in range(idx.start, idx.stop, idx.step):
                 res.append(self.field_type.get(vm, addr + self.get_offset(i)))
             return res
         else:
@@ -823,9 +830,9 @@ class Array(Type):
         """
         if isinstance(idx, slice):
             idx = self._normalize_slice(idx)
-            if len(item) != len(xrange(idx.start, idx.stop, idx.step)):
+            if len(item) != len(range(idx.start, idx.stop, idx.step)):
                 raise ValueError("Mismatched lengths in slice assignment")
-            for i, val in itertools.izip(xrange(idx.start, idx.stop, idx.step),
+            for i, val in zip(range(idx.start, idx.stop, idx.step),
                                          item):
                 self.field_type.set(vm, addr + self.get_offset(i), val)
         else:
@@ -855,7 +862,7 @@ class Array(Type):
         return slice(start, stop, step)
 
     def _check_bounds(self, idx):
-        if not isinstance(idx, (int, long)):
+        if not isinstance(idx, int_types):
             raise ValueError("index must be an int or a long")
         if idx < 0 or (self.is_sized() and idx >= self.size):
             raise IndexError("Index %s out of bounds" % idx)
@@ -875,7 +882,7 @@ class Array(Type):
                 self.array_len == other.array_len
 
     def __ne__(self, other):
-        return not self.__eq__(other)
+        return not self == other
 
     def __hash__(self):
         return hash((self.__class__, self.field_type, self.array_len))
@@ -942,7 +949,7 @@ class Bits(Type):
                 self._bit_offset == other._bit_offset
 
     def __ne__(self, other):
-        return not self.__eq__(other)
+        return not self == other
 
     def __hash__(self):
         return hash((self.__class__, self._num, self._bits, self._bit_offset))
@@ -1002,7 +1009,7 @@ class BitField(Union):
                 self._num == other._num and super(BitField, self).__eq__(other)
 
     def __ne__(self, other):
-        return not self.__eq__(other)
+        return not self == other
 
     def __hash__(self):
         return hash((super(BitField, self).__hash__(), self._num))
@@ -1117,7 +1124,7 @@ class Str(Type):
         return self.__class__ == other.__class__ and self._enc == other._enc
 
     def __ne__(self, other):
-        return not self.__eq__(other)
+        return not self == other
 
     def __hash__(self):
         return hash((self.__class__, self._enc))
@@ -1136,7 +1143,7 @@ class Void(Type):
         return self.__class__ == other.__class__
 
     def __ne__(self, other):
-        return not self.__eq__(other)
+        return not self == other
 
     def __hash__(self):
         return hash(self.__class__)
@@ -1191,7 +1198,7 @@ class _MetaMemStruct(_MetaMemType):
             cls.gen_fields()
 
 
-class MemType(object):
+class MemType(with_metaclass(_MetaMemType, object)):
     """Base class for classes that allow to map python objects to C types in
     virtual memory. Represents an lvalue of a given type.
 
@@ -1200,7 +1207,6 @@ class MemType(object):
     The main exception is MemStruct, which you may want to subclass yourself
     for syntactic ease.
     """
-    __metaclass__ = _MetaMemType
 
     # allocator is a function(vm, size) -> allocated_address
     allocator = None
@@ -1278,12 +1284,12 @@ class MemType(object):
         """
         return self.sizeof()
 
-    def memset(self, byte='\x00'):
+    def memset(self, byte=b'\x00'):
         """Fill the memory space of this MemType with @byte ('\x00' by
         default). The size is retrieved with self.get_size() (dynamic size).
         """
         # TODO: multibyte patterns
-        if not isinstance(byte, str) or not len(byte) == 1:
+        if not isinstance(byte, bytes) or len(byte) != 1:
             raise ValueError("byte must be a 1-lengthed str")
         self._vm.set_mem(self.get_addr(), byte * self.get_size())
 
@@ -1319,6 +1325,11 @@ class MemType(object):
         return self.get_size()
 
     def __str__(self):
+        if PY3:
+            return repr(self)
+        return self.__bytes__()
+
+    def __bytes__(self):
         return self.raw()
 
     def __repr__(self):
@@ -1327,7 +1338,7 @@ class MemType(object):
     def __eq__(self, other):
         return self.__class__ == other.__class__ and \
                 self.get_type() == other.get_type() and \
-                str(self) == str(other)
+                bytes(self) == bytes(other)
 
     def __ne__(self, other):
         return not self == other
@@ -1350,7 +1361,7 @@ class MemValue(MemType):
         return "%r: %r" % (self.__class__, self.val)
 
 
-class MemStruct(MemType):
+class MemStruct(with_metaclass(_MetaMemStruct, MemType)):
     """Base class to easily implement VmMngr backed C-like structures in miasm.
     Represents a structure in virtual memory.
 
@@ -1403,7 +1414,6 @@ class MemStruct(MemType):
     doc for more information on how to handle recursive types and cyclic
     dependencies.
     """
-    __metaclass__ = _MetaMemStruct
     fields = None
 
     def get_addr(self, field_name=None):
@@ -1667,7 +1677,7 @@ class MemSizedArray(MemArray):
         return self.get_type().size
 
     def __iter__(self):
-        for i in xrange(self.get_type().array_len):
+        for i in range(self.get_type().array_len):
             yield self[i]
 
     def raw(self):

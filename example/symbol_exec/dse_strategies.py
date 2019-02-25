@@ -17,7 +17,10 @@ Global overview:
    - Ask the DSE for new candidates, according to its strategy, ie. finding new
 block / branch / path
 """
+from __future__ import print_function
 from argparse import ArgumentParser
+
+from future.utils import viewitems
 
 from miasm2.analysis.machine import Machine
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
@@ -42,9 +45,13 @@ strategy = {
 run_addr = 0x40000
 machine = Machine("x86_32")
 jitter = machine.jitter("python")
-with open(args.filename) as fdesc:
-    jitter.vm.add_memory_page(run_addr, PAGE_READ | PAGE_WRITE, fdesc.read(),
-                              "Binary")
+with open(args.filename, "rb") as fdesc:
+    jitter.vm.add_memory_page(
+        run_addr,
+        PAGE_READ | PAGE_WRITE,
+        fdesc.read(),
+        "Binary"
+    )
 
 # Expect a binary with one argument on the stack
 jitter.init_stack()
@@ -94,7 +101,7 @@ while todo:
         continue
     done.add(arg_value)
 
-    print "Run with ARG = %s" % arg_value
+    print("Run with ARG = %s" % arg_value)
     # Restore state, while keeping already found solutions
     dse.restore_snapshot(snapshot, keep_known_solutions=True)
 
@@ -113,17 +120,21 @@ while todo:
     # - last edge for branch coverage
     # - execution path for path coverage
 
-    for sol_ident, model in dse.new_solutions.iteritems():
-        print "Found a solution to reach: %s" % str(sol_ident)
+    for sol_ident, model in viewitems(dse.new_solutions):
+        print("Found a solution to reach: %s" % str(sol_ident))
         # Get the argument to use as a Miasm Expr
         sol_value = model.eval(dse.z3_trans.from_expr(arg)).as_long()
         sol_expr = ExprInt(sol_value, arg.size)
 
         # Display info and update storages
-        print "\tARG = %s" % sol_expr
+        print("\tARG = %s" % sol_expr)
         todo.add(sol_expr)
         reaches.add(sol_ident)
 
-print "Found %d input, to reach %d element of coverage" % (len(done),
-                                                           len(reaches))
+print(
+    "Found %d input, to reach %d element of coverage" % (
+        len(done),
+        len(reaches)
+    )
+)
 

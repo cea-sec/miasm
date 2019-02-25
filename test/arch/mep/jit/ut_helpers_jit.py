@@ -1,6 +1,8 @@
 # Toshiba MeP-c4 - unit tests helpers
 # Guillaume Valadon <guillaume@valadon.net>
 
+from __future__ import print_function
+
 from miasm2.analysis.machine import Machine
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
 
@@ -13,7 +15,7 @@ def jit_instructions(mn_str):
     mn_mep = machine.mn()
 
     # Assemble the instructions
-    asm = ""
+    asm = b""
     for instr_str in mn_str.split("\n"):
         instr = mn_mep.fromstring(instr_str, "b")
         instr.mode = "b"
@@ -40,10 +42,10 @@ def launch_tests(obj):
     test_methods = [name for name in dir(obj) if name.startswith("test")]
 
     for method in test_methods:
-        print method
+        print(method)
         try:
             getattr(obj, method)()
         except AttributeError as e:
-            print "Method not found: %s" % method
+            print("Method not found: %s" % method)
             assert(False)
-        print '-' * 42
+        print('-' * 42)

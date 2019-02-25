@@ -10,14 +10,26 @@ c = ExprId('c', 16)
 d = ExprId('d', 8)
 e = ExprId('e', 1)
 
-left = ExprCond(e + ExprOp('parity', a),
-                ExprMem(a * a, 64),
-                ExprMem(a, 64))
+left = ExprCond(
+    e + ExprOp('parity', a),
+    ExprMem(a * a, 64),
+    ExprMem(a, 64)
+)
 
-cond = ExprSlice(ExprSlice(ExprSlice(a, 0, 32) + b, 0, 16) * c, 0, 8) << ExprOp('>>>', d, ExprInt(0x5L, 8))
-right = ExprCond(cond,
-                 a + ExprInt(0x64L, 64),
-                 ExprInt(0x16L, 64))
+cond = (
+    ExprSlice(
+        ExprSlice(
+            ExprSlice(a, 0, 32) + b, 0, 16
+        ) * c,
+        0,
+        8
+    ) << ExprOp('>>>', d, ExprInt(0x5, 8))
+)
+right = ExprCond(
+    cond,
+    a + ExprInt(0x64, 64),
+    ExprInt(0x16, 64)
+)
 
 e = ExprAssign(left, right)
 
@@ -32,6 +44,7 @@ smt2 = t_smt2.to_smt2([t_smt2.from_expr(e)])
 
 # parse smt2 string with z3
 smt2_z3 = parse_smt2_string(smt2)
+
 # initialise SMT solver
 s = Solver()
 

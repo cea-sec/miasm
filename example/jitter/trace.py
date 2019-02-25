@@ -6,6 +6,8 @@ This example demonstrates two instrumentation possibility:
 Note: for better performance, one can also extend Codegen to produce
 instrumentation at the C / LLVM level
 """
+from __future__ import print_function
+
 import os
 import time
 from pdb import pm
@@ -26,11 +28,11 @@ class ESETrackMemory(EmulatedSymbExec):
 
     def mem_read(self, expr_mem):
         value = super(ESETrackMemory, self).mem_read(expr_mem)
-        print "Read %s: %s" % (expr_mem, value)
+        print("Read %s: %s" % (expr_mem, value))
         return value
 
     def mem_write(self, dest, data):
-        print "Write %s: %s" % (dest, data)
+        print("Write %s: %s" % (dest, data))
         return super(ESETrackMemory, self).mem_write(dest, data)
 
 # Parse arguments
@@ -55,4 +57,4 @@ sb.run()
 stop_time = time.time()
 
 assert sb.jitter.run is False
-print "Instr speed: %02.f / sec" % (instr_count / (stop_time - start_time))
+print("Instr speed: %02.f / sec" % (instr_count / (stop_time - start_time)))

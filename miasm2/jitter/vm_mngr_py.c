@@ -20,6 +20,7 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <signal.h>
+#include "compat_py23.h"
 #include "queue.h"
 #include "vm_mngr.h"
 #include "vm_mngr_py.h"
@@ -53,18 +54,6 @@ PyObject* _vm_get_exception(unsigned int xcpt)
 	else  p = PyErr_Format( PyExc_RuntimeError, "EXCEPT_UNKNOWN" );
 	return p;
 }
-
-
-#define PyGetInt(item, value)						\
-	if (PyInt_Check(item)){						\
-		value = (uint64_t)PyInt_AsLong(item);			\
-	}								\
-	else if (PyLong_Check(item)){					\
-		value = (uint64_t)PyLong_AsUnsignedLongLong(item);	\
-	}								\
-	else{								\
-		RAISE(PyExc_TypeError,"arg must be int");		\
-	}								\
 
 static void sig_alarm(int signo)
 {
@@ -104,18 +93,16 @@ PyObject* vm_add_memory_page(VmMngr* self, PyObject* args)
 	PyGetInt(addr, page_addr);
 	PyGetInt(access, page_access);
 
-	if(!PyString_Check(item_str))
-		RAISE(PyExc_TypeError,"arg must be str");
+	if(!PyBytes_Check(item_str))
+		RAISE(PyExc_TypeError,"arg must be bytes");
 
-	buf_size = PyString_Size(item_str);
-	PyString_AsStringAndSize(item_str, &buf_data, &length);
+	buf_size = PyBytes_Size(item_str);
+	PyBytes_AsStringAndSize(item_str, &buf_data, &length);
 
 	if (name == NULL) {
 		name_ptr = (char*)"";
 	} else {
-		if (!PyString_Check(name))
-			RAISE(PyExc_TypeError,"name must be str");
-		name_ptr = PyString_AsString(name);
+		PyGetStr(name_ptr, name);
 	}
 	mpn = create_memory_page_node(page_addr, (unsigned int)buf_size, (unsigned int)page_access, name_ptr);
 	if (mpn == NULL)
@@ -177,11 +164,11 @@ PyObject* vm_set_mem(VmMngr* self, PyObject* args)
 
        PyGetInt(py_addr, addr);
 
-       if (!PyString_Check(py_buffer))
-	       RAISE(PyExc_TypeError,"arg must be str");
+       if (!PyBytes_Check(py_buffer))
+	       RAISE(PyExc_TypeError,"arg must be bytes");
 
-       size = PyString_Size(py_buffer);
-       PyString_AsStringAndSize(py_buffer, &buffer, &py_length);
+       size = PyBytes_Size(py_buffer);
+       PyBytes_AsStringAndSize(py_buffer, &buffer, &py_length);
 
        ret = vm_write_mem(&self->vm_mngr, addr, buffer, size);
        if (ret < 0)
@@ -238,7 +225,7 @@ PyObject* vm_get_mem(VmMngr* self, PyObject* args)
 	       RAISE(PyExc_RuntimeError,"Cannot find address");
        }
 
-       obj_out = PyString_FromStringAndSize(buf_out, size);
+       obj_out = PyBytes_FromStringAndSize(buf_out, size);
        free(buf_out);
        return obj_out;
 }
@@ -648,7 +635,7 @@ PyObject *vm_dump(PyObject* self)
 	PyObject* ret_obj;
 
 	buf_final = dump(&((VmMngr* )self)->vm_mngr);
-	ret_obj = PyString_FromString(buf_final);
+	ret_obj = PyUnicode_FromString(buf_final);
 	free(buf_final);
 	return ret_obj;
 }
@@ -677,15 +664,15 @@ PyObject* vm_get_all_memory(VmMngr* self, PyObject* args)
 
 		dict2 =  PyDict_New();
 
-		o = PyString_FromStringAndSize(mpn->ad_hp, mpn->size);
+		o = PyBytes_FromStringAndSize(mpn->ad_hp, mpn->size);
 		PyDict_SetItemString(dict2, "data", o);
 		Py_DECREF(o);
 
-		o = PyInt_FromLong((long)mpn->size);
+		o = PyLong_FromLong((long)mpn->size);
 		PyDict_SetItemString(dict2, "size", o);
 		Py_DECREF(o);
 
-		o = PyInt_FromLong((long)mpn->access);
+		o = PyLong_FromLong((long)mpn->access);
 		PyDict_SetItemString(dict2, "access", o);
 		Py_DECREF(o);
 
@@ -818,7 +805,7 @@ VmMngr_dealloc(VmMngr* self)
     vm_reset_memory_page_pool(self, NULL);
     vm_reset_code_bloc_pool(self, NULL);
     vm_reset_memory_breakpoint(self, NULL);
-    self->ob_type->tp_free((PyObject*)self);
+    Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 
@@ -957,8 +944,7 @@ static PyGetSetDef VmMngr_getseters[] = {
 };
 
 static PyTypeObject VmMngrType = {
-    PyObject_HEAD_INIT(NULL)
-    0,                         /*ob_size*/
+    PyVarObject_HEAD_INIT(NULL, 0)
     "VmMngr",                  /*tp_name*/
     sizeof(VmMngr),            /*tp_basicsize*/
     0,                         /*tp_itemsize*/
@@ -998,30 +984,30 @@ static PyTypeObject VmMngrType = {
     VmMngr_new,                /* tp_new */
 };
 
-
 static PyMethodDef VmMngr_Methods[] = {
 	{NULL, NULL, 0, NULL}        /* Sentinel */
 
 };
 
-static PyObject *Vm_Mngr_Error;
+char vm_mngr_mod_docs[] = "vm_mngr module.";
+char vm_mngr_mod_name[] = "VmMngr";
 
-PyMODINIT_FUNC
-initVmMngr(void)
+
+MOD_INIT(VmMngr)
 {
-    PyObject *m;
+	PyObject *module;
 
-    if (PyType_Ready(&VmMngrType) < 0)
-	return;
+	MOD_DEF(module, "VmMngr", "vm_mngr module", VmMngr_Methods);
 
-    m = Py_InitModule("VmMngr", VmMngr_Methods);
-    if (m == NULL)
-	    return;
+	if (module == NULL)
+		return NULL;
 
-    Vm_Mngr_Error = PyErr_NewException("VmMngr.error", NULL, NULL);
-    Py_INCREF(Vm_Mngr_Error);
-    PyModule_AddObject(m, "error", Vm_Mngr_Error);
+	if (PyType_Ready(&VmMngrType) < 0)
+		return NULL;
 
-    Py_INCREF(&VmMngrType);
-    PyModule_AddObject(m, "Vm", (PyObject *)&VmMngrType);
+	Py_INCREF(&VmMngrType);
+	if (PyModule_AddObject(module, "Vm", (PyObject *)&VmMngrType) < 0)
+		return NULL;
+
+	return module;
 }

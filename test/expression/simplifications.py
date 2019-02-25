@@ -1,3 +1,4 @@
+from __future__ import print_function
 #
 # Expression simplification regression tests  #
 #
@@ -28,18 +29,18 @@ if args.z3:
 
     def check(expr_in, expr_out):
         """Check that expr_in is always equals to expr_out"""
-        print "Ensure %s = %s" % (expr_in, expr_out)
+        print("Ensure %s = %s" % (expr_in, expr_out))
         solver = z3.Solver()
         solver.add(trans.from_expr(expr_in) != trans.from_expr(expr_out))
 
         result = solver.check()
 
         if result != z3.unsat:
-            print "ERROR: a counter-example has been founded:"
+            print("ERROR: a counter-example has been founded:")
             model = solver.model()
-            print model
+            print(model)
 
-            print "Reinjecting in the simplifier:"
+            print("Reinjecting in the simplifier:")
             to_rep = {}
             expressions = expr_in.get_r().union(expr_out.get_r())
             for expr in expressions:
@@ -54,10 +55,10 @@ if args.z3:
             new_expr_in = expr_in.replace_expr(to_rep)
             new_expr_out = expr_out.replace_expr(to_rep)
 
-            print "Check %s = %s" % (new_expr_in, new_expr_out)
+            print("Check %s = %s" % (new_expr_in, new_expr_out))
             simp_in = expr_simp_explicit(new_expr_in)
             simp_out =  expr_simp_explicit(new_expr_out)
-            print "[%s] %s = %s" % (simp_in == simp_out, simp_in, simp_out)
+            print("[%s] %s = %s" % (simp_in == simp_out, simp_in, simp_out))
 
             # Either the simplification does not stand, either the test is wrong
             raise RuntimeError("Bad simplification")
@@ -313,7 +314,7 @@ to_test = [(ExprInt(1, 32) - ExprInt(1, 32), ExprInt(0, 32)),
      (ExprCompose(a, ExprInt(0, 32)) * ExprInt(0x123, 64))[32:64]),
 
     (ExprInt(0x12, 32),
-     ExprInt(0x12L, 32)),
+     ExprInt(0x12, 32)),
 
 
     (ExprCompose(a, b, c)[:16],
@@ -335,32 +336,32 @@ to_test = [(ExprInt(1, 32) - ExprInt(1, 32), ExprInt(0, 32)),
     (ExprCompose(a, b, c)[48:80],
      ExprCompose(b[16:], c[:16])),
 
-    (ExprCompose(a[0:8], b[8:16], ExprInt(0x0L, 48))[12:32],
+    (ExprCompose(a[0:8], b[8:16], ExprInt(0x0, 48))[12:32],
      ExprCompose(b[12:16], ExprInt(0, 16))
        ),
 
-    (ExprCompose(ExprCompose(a[:8], ExprInt(0x0L, 56))[8:32]
+    (ExprCompose(ExprCompose(a[:8], ExprInt(0x0, 56))[8:32]
                   &
-                  ExprInt(0x1L, 24),
-                  ExprInt(0x0L, 40)),
+                  ExprInt(0x1, 24),
+                  ExprInt(0x0, 40)),
      ExprInt(0, 64)),
 
-    (ExprCompose(ExprCompose(a[:8], ExprInt(0x0L, 56))[:8]
+    (ExprCompose(ExprCompose(a[:8], ExprInt(0x0, 56))[:8]
                  &
-                 ExprInt(0x1L, 8),
-                 (ExprInt(0x0L, 56))),
+                 ExprInt(0x1, 8),
+                 (ExprInt(0x0, 56))),
      ExprCompose(a[:8]&ExprInt(1, 8), ExprInt(0, 56))),
 
     (ExprCompose(ExprCompose(a[:8],
-                             ExprInt(0x0L, 56))[:32]
+                             ExprInt(0x0, 56))[:32]
                  &
-                 ExprInt(0x1L, 32),
-                 ExprInt(0x0L, 32)),
+                 ExprInt(0x1, 32),
+                 ExprInt(0x0, 32)),
      ExprCompose(ExprCompose(ExprSlice(a, 0, 8),
-                             ExprInt(0x0L, 24))
+                             ExprInt(0x0, 24))
                  &
-                 ExprInt(0x1L, 32),
-                 ExprInt(0x0L, 32))
+                 ExprInt(0x1, 32),
+                 ExprInt(0x0, 32))
        ),
     (ExprCompose(a[:16], b[:16])[8:32],
      ExprCompose(a[8:16], b[:16])),
@@ -472,9 +473,9 @@ to_test = [(ExprInt(1, 32) - ExprInt(1, 32), ExprInt(0, 32)),
 ]
 
 for e_input, e_check in to_test:
-    print "#" * 80
+    print("#" * 80)
     e_new = expr_simp_explicit(e_input)
-    print "original: ", str(e_input), "new: ", str(e_new)
+    print("original: ", str(e_input), "new: ", str(e_new))
     rez = e_new == e_check
     if not rez:
         raise ValueError(
@@ -741,10 +742,10 @@ to_test = [
 ]
 
 for e_input, e_check in to_test:
-    print "#" * 80
+    print("#" * 80)
     e_check = expr_simp(e_check)
     e_new = expr_simp(e_input)
-    print "original: ", str(e_input), "new: ", str(e_new)
+    print("original: ", str(e_input), "new: ", str(e_new))
     rez = e_new == e_check
     if not rez:
         raise ValueError(
@@ -780,10 +781,10 @@ expr_simp.enable_passes(ExpressionSimplifier.PASS_COND)
 
 
 for e_input, e_check in to_test:
-    print "#" * 80
+    print("#" * 80)
     e_check = expr_simp(e_check)
     e_new = expr_simp(e_input)
-    print "original: ", str(e_input), "new: ", str(e_new)
+    print("original: ", str(e_input), "new: ", str(e_new))
     rez = e_new == e_check
     if not rez:
         raise ValueError(
@@ -902,6 +903,6 @@ for x, y in to_test:
 
     assert(x == y)
     assert(str(x) == str(y))
-    print x
+    print(x)
 
-print 'all tests ok'
+print('all tests ok')

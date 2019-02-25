@@ -1,4 +1,5 @@
 """rpyc IDA server"""
+from __future__ import print_function
 
 from rpyc.utils.server import OneShotServer
 from rpyc.core import SlaveService
@@ -11,7 +12,7 @@ def serve_threaded(hostname="localhost", port=4455):
     WARNING: IDA will be locked until the client script terminates.
     """
 
-    print 'Running server'
+    print('Running server')
     server = OneShotServer(SlaveService, hostname=hostname,
                            port=port, reuse_addr=True, ipv6=False,
                            authenticator=None,

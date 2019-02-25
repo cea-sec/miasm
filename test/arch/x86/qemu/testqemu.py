@@ -1,8 +1,14 @@
+from __future__ import print_function
 import os
-import sys
 import struct
 import logging
+from sys import stdout
 from pdb import pm
+
+try:
+    stdout = stdout.buffer
+except AttributeError:
+    pass
 
 from miasm2.analysis.sandbox import Sandbox_Linux_x86_32
 from miasm2.jitter.jitload import log_func
@@ -10,27 +16,27 @@ from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
 
 # Utils
 def parse_fmt(s):
-    fmt = s[:]+"\x00"
+    fmt = s[:]+b"\x00"
     out = []
     i = 0
     while i < len(fmt):
-        c = fmt[i]
-        if c != "%":
+        c = fmt[i:i+1]
+        if c != b"%":
             i+=1
             continue
-        if fmt[i+1] == "%":
+        if fmt[i+1:i+2] == b"%":
             i+=2
             continue
         j = 0
         i+=1
-        while fmt[i+j] in "0123456789$.-":
+        while fmt[i+j:i+j+1] in b"0123456789$.-":
             j+=1
-        if fmt[i+j] in ['l']:
+        if fmt[i+j:i+j+1] in [b'l']:
             j +=1
-        if fmt[i+j] == "h":
+        if fmt[i+j:i+j+1] == b"h":
             x = fmt[i+j:i+j+2]
         else:
-            x = fmt[i+j]
+            x = fmt[i+j:i+j+1]
         i+=j
         out.append(x)
     return out
@@ -44,25 +50,24 @@ def xxx___printf_chk(jitter):
         raise RuntimeError("Not implemented")
     fmt = jitter.get_str_ansi(args.format)
     # Manage llx
-    fmt = fmt.replace("llx", "lx")
-    fmt = fmt.replace("%016lx", "%016z")
+    fmt = fmt.replace(b"llx", b"lx")
+    fmt = fmt.replace(b"%016lx", b"%016z")
 
     fmt_a = parse_fmt(fmt)
     esp = jitter.cpu.ESP
     args = []
     i = 0
-
     for x in fmt_a:
         a = jitter.vm.get_u32(esp + 8 + 4*i)
-        if x == "s":
+        if x == b"s":
             a = jitter.get_str_ansi(a)
-        elif x.lower() in ("x", 'd'):
+        elif x in (b"x", b'X', b"d"):
             pass
-        elif x.lower() in ("f", "l"):
+        elif x.lower() in (b"f", b"l"):
             a2 = jitter.vm.get_u32(esp + 8 + 4*(i+1))
             a = struct.unpack("d", struct.pack("Q", a2 << 32 | a))[0]
             i += 1
-        elif x.lower() == 'z':
+        elif x.lower() == b'z':
             a2 = jitter.vm.get_u32(esp + 8 + 4*(i+1))
             a = a2 << 32 | a
             i += 1
@@ -70,23 +75,22 @@ def xxx___printf_chk(jitter):
             raise RuntimeError("Not implemented format")
         args.append(a)
         i += 1
-
-    fmt = fmt.replace("%016z", "%016lx")
+    fmt = fmt.replace(b"%016z", b"%016lx")
     output = fmt%(tuple(args))
     # NaN bad repr in Python
-    output = output.replace("nan", "-nan")
+    output = output.replace(b"nan", b"-nan")
 
-    if "\n" not in output:
+    if b"\n" not in output:
         raise RuntimeError("Format must end with a \\n")
 
     # Check with expected result
-    line = expected.next()
-    if output != line:
-        print "Expected:", line
-        print "Obtained:", output
+    line = next(expected)
+    if output != line.encode():
+        print("Expected:", line)
+        print("Obtained:", output)
         raise RuntimeError("Bad semantic")
 
-    sys.stdout.write("[%d] %s" % (nb_tests, output))
+    stdout.write(b"[%d] %s" % (nb_tests, output))
     nb_tests += 1
     jitter.func_ret_systemv(ret_ad, 0)
 
@@ -100,10 +104,10 @@ def xxx_puts(jitter):
     ret_addr, args = jitter.func_args_systemv(['target'])
     output = jitter.get_str_ansi(args.target)
     # Check with expected result
-    line = expected.next()
-    if output != line.rstrip():
-        print "Expected:", line
-        print "Obtained:", output
+    line = next(expected)
+    if output != line.rstrip().encode():
+        print("Expected:", line)
+        print("Obtained:", output)
         raise RuntimeError("Bad semantic")
     return jitter.func_ret_systemv(ret_addr, 1)
 
@@ -120,7 +124,7 @@ expected = open(options.expected)
 # Create sandbox
 sb = Sandbox_Linux_x86_32(options.filename, options, globals())
 try:
-    addr = sb.elf.getsectionbyname(".symtab").symbols[options.funcname].value
+    addr = sb.elf.getsectionbyname(".symtab")[options.funcname].value
 except AttributeError:
     raise RuntimeError("The target binary must have a symtab section")
 
@@ -129,7 +133,7 @@ log_func.setLevel(logging.ERROR)
 # Segmentation
 sb.jitter.cpu.set_segm_base(8, 0x7fff0000)
 sb.jitter.cpu.GS = 8
-sb.jitter.vm.add_memory_page(0x7fff0000 + 0x14, PAGE_READ | PAGE_WRITE, "AAAA")
+sb.jitter.vm.add_memory_page(0x7fff0000 + 0x14, PAGE_READ | PAGE_WRITE, b"AAAA")
 
 
 # Run

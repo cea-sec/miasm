@@ -17,14 +17,17 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
+from builtins import zip
 import warnings
 
 from itertools import chain
+from future.utils import viewvalues, viewitems
 
 import miasm2.expression.expression as m2_expr
 from miasm2.expression.expression_helper import get_missing_interval
 from miasm2.core.asmblock import AsmBlock, AsmConstraint
 from miasm2.core.graph import DiGraph
+from functools import reduce
 
 
 def _expr_loc_to_symb(expr, loc_db):
@@ -69,8 +72,8 @@ class AssignBlock(object):
         self._assigns = {} # ExprAssign.dst -> ExprAssign.src
 
         # Concurrent assignments are handled in _set
-        if hasattr(irs, "iteritems"):
-            for dst, src in irs.iteritems():
+        if hasattr(irs, "items"):
+            for dst, src in viewitems(irs):
                 self._set(dst, src)
         else:
             for expraff in irs:
@@ -159,21 +162,21 @@ class AssignBlock(object):
         return key in self._assigns
 
     def iteritems(self):
-        for dst, src in self._assigns.iteritems():
+        for dst, src in viewitems(self._assigns):
             yield dst, src
 
     def items(self):
-        return [(dst, src) for dst, src in self.iteritems()]
+        return [(dst, src) for dst, src in viewitems(self._assigns)]
 
     def itervalues(self):
-        for src in self._assigns.itervalues():
+        for src in viewvalues(self._assigns):
             yield src
 
     def keys(self):
-        return self._assigns.keys()
+        return list(self._assigns)
 
     def values(self):
-        return self._assigns.values()
+        return list(viewvalues(self._assigns))
 
     def __iter__(self):
         for dst in self._assigns:
@@ -188,10 +191,10 @@ class AssignBlock(object):
     def __eq__(self, other):
         if set(self.keys()) != set(other.keys()):
             return False
-        return all(other[dst] == src for dst, src in self.iteritems())
+        return all(other[dst] == src for dst, src in viewitems(self))
 
     def __ne__(self, other):
-        return not self.__eq__(other)
+        return not self == other
 
     def __len__(self):
         return len(self._assigns)
@@ -226,7 +229,7 @@ class AssignBlock(object):
         @cst_read: (optional) cst_read argument of `get_r`
         """
         out = {}
-        for dst, src in self.iteritems():
+        for dst, src in viewitems(self):
             src_read = src.get_r(mem_read=mem_read, cst_read=cst_read)
             if isinstance(dst, m2_expr.ExprMem) and mem_read:
                 # Read on destination happens only with ExprMem
@@ -241,12 +244,19 @@ class AssignBlock(object):
         @cst_read: (optional) cst_read argument of `get_r`
         """
         return set(
-            chain.from_iterable(self.get_rw(mem_read=mem_read,
-                                            cst_read=cst_read).itervalues()))
+            chain.from_iterable(
+                viewvalues(
+                    self.get_rw(
+                        mem_read=mem_read,
+                        cst_read=cst_read
+                    )
+                )
+            )
+        )
 
     def __str__(self):
         out = []
-        for dst, src in sorted(self._assigns.iteritems()):
+        for dst, src in sorted(viewitems(self._assigns)):
             out.append("%s = %s" % (dst, src))
         return "\n".join(out)
 
@@ -262,7 +272,7 @@ class AssignBlock(object):
         @simplifier: ExpressionSimplifier instance
         """
         new_assignblk = {}
-        for dst, src in self.iteritems():
+        for dst, src in viewitems(self):
             if dst == src:
                 continue
             new_src = simplifier(src)
@@ -272,7 +282,7 @@ class AssignBlock(object):
 
     def to_string(self, loc_db=None):
         out = []
-        for dst, src in self.iteritems():
+        for dst, src in viewitems(self):
             new_src = src.visit(lambda expr:_expr_loc_to_symb(expr, loc_db))
             new_dst = dst.visit(lambda expr:_expr_loc_to_symb(expr, loc_db))
             line = "%s = %s" % (new_dst, new_src)
@@ -315,7 +325,7 @@ class IRBlock(object):
         return True
 
     def __ne__(self, other):
-        return not self.__eq__(other)
+        return not self == other
 
     def get_label(self):
         warnings.warn('DEPRECATION WARNING: use ".loc_key" instead of ".label"')
@@ -352,7 +362,7 @@ class IRBlock(object):
         final_dst = None
         final_linenb = None
         for linenb, assignblk in enumerate(self):
-            for dst, src in assignblk.iteritems():
+            for dst, src in viewitems(assignblk):
                 if dst.is_id("IRDst"):
                     if final_dst is not None:
                         raise ValueError('Multiple destinations!')
@@ -375,7 +385,7 @@ class IRBlock(object):
         dst_found = False
         for assignblk in self:
             new_assignblk = {}
-            for dst, src in assignblk.iteritems():
+            for dst, src in viewitems(assignblk):
                 if dst.is_id("IRDst"):
                     assert dst_found is False
                     dst_found = True
@@ -396,7 +406,7 @@ class IRBlock(object):
         out = []
         out.append(str(self.loc_key))
         for assignblk in self:
-            for dst, src in assignblk.iteritems():
+            for dst, src in viewitems(assignblk):
                 out.append('\t%s = %s' % (dst, src))
             out.append("")
         return "\n".join(out)
@@ -418,7 +428,7 @@ class IRBlock(object):
         assignblks = []
         for assignblk in self:
             new_assignblk = {}
-            for dst, src in assignblk.iteritems():
+            for dst, src in viewitems(assignblk):
                 new_assignblk[mod_dst(dst)] = mod_src(src)
             assignblks.append(AssignBlock(new_assignblk, assignblk.instr))
         return IRBlock(self.loc_key, assignblks)
@@ -509,11 +519,7 @@ class IRCFG(DiGraph):
         if self.loc_db is None:
             node_name = str(node)
         else:
-            names = self.loc_db.get_location_names(node)
-            if not names:
-                node_name = self.loc_db.pretty_str(node)
-            else:
-                node_name = "".join("%s:\n" % name for name in names)
+            node_name = self.loc_db.pretty_str(node)
         yield self.DotCellDescription(
             text="%s" % node_name,
             attr={
@@ -524,9 +530,9 @@ class IRCFG(DiGraph):
         )
         if node not in self._blocks:
             yield [self.DotCellDescription(text="NOT PRESENT", attr={})]
-            raise StopIteration
+            return
         for i, assignblk in enumerate(self._blocks[node]):
-            for dst, src in assignblk.iteritems():
+            for dst, src in viewitems(assignblk):
 
                 new_src = src.visit(lambda expr:_expr_loc_to_symb(expr, self.loc_db))
                 new_dst = dst.visit(lambda expr:_expr_loc_to_symb(expr, self.loc_db))
@@ -602,14 +608,18 @@ class IRCFG(DiGraph):
         return self.blocks.get(loc_key, None)
 
     def getby_offset(self, offset):
+        """
+        Return the set of loc_keys of irblocks containing @offset
+        @offset: address
+        """
         out = set()
-        for irb in self.blocks.values():
+        for irb in viewvalues(self.blocks):
             for assignblk in irb:
                 instr = assignblk.instr
                 if instr is None:
                     continue
                 if instr.offset <= offset < instr.offset + instr.l:
-                    out.add(irb)
+                    out.add(irb.loc_key)
         return out
 
 
@@ -619,7 +629,7 @@ class IRCFG(DiGraph):
         @simplifier: ExpressionSimplifier instance
         """
         modified = False
-        for loc_key, block in self.blocks.iteritems():
+        for loc_key, block in list(viewitems(self.blocks)):
             assignblks = []
             for assignblk in block:
                 new_assignblk = assignblk.simplify(simplifier)
@@ -629,12 +639,6 @@ class IRCFG(DiGraph):
             self.blocks[loc_key] = IRBlock(loc_key, assignblks)
         return modified
 
-    def replace_expr_in_ir(self, block, replaced):
-        for assignblk in block:
-            for dst, src in assignblk.items():
-                del assignblk[dst]
-                assignblk[dst.replace_expr(replaced)] = src.replace_expr(replaced)
-
     def get_rw(self, regs_ids=None):
         """
         Calls get_rw(irb) for each bloc
@@ -642,7 +646,7 @@ class IRCFG(DiGraph):
         """
         if regs_ids is None:
             regs_ids = []
-        for irblock in self.blocks.values():
+        for irblock in viewvalues(self.blocks):
             irblock.get_rw(regs_ids)
 
     def _extract_dst(self, todo, done):
@@ -873,7 +877,7 @@ class IntermediateRepresentation(object):
     def is_pc_written(self, block):
         """Return the first Assignblk of the @blockin which PC is written
         @block: IRBlock instance"""
-        all_pc = self.arch.pc.values()
+        all_pc = viewvalues(self.arch.pc)
         for assignblk in block:
             if assignblk.dst in all_pc:
                 return assignblk

@@ -1,3 +1,5 @@
+from future.utils import viewitems, viewvalues
+
 from miasm2.expression.expression import ExprId
 from miasm2.ir.ir import IRBlock, AssignBlock
 from miasm2.analysis.ssa import get_phi_sources_parent_block, \
@@ -59,7 +61,7 @@ class UnSSADiGraph(object):
         """
         ircfg = self.ssa.graph
 
-        for irblock in ircfg.blocks.values():
+        for irblock in list(viewvalues(ircfg.blocks)):
             if not irblock_has_phi(irblock):
                 continue
 
@@ -82,7 +84,7 @@ class UnSSADiGraph(object):
                 for parent, src in self.phi_parent_sources[dst]:
                     parent_to_parallel_copies.setdefault(parent, {})[new_var] = src
 
-            for parent, parallel_copies in parent_to_parallel_copies.iteritems():
+            for parent, parallel_copies in viewitems(parent_to_parallel_copies):
                 parent = ircfg.blocks[parent]
                 assignblks = list(parent)
                 assignblks.append(AssignBlock(parallel_copies, parent[-1].instr))
@@ -104,10 +106,10 @@ class UnSSADiGraph(object):
         node
         """
         ircfg = self.ssa.graph
-        for irblock in ircfg.blocks.itervalues():
+        for irblock in viewvalues(ircfg.blocks):
             if not irblock_has_phi(irblock):
                 continue
-            for dst, sources in irblock[0].iteritems():
+            for dst, sources in viewitems(irblock[0]):
                 assert sources.is_op('Phi')
                 new_var = self.create_copy_var(dst)
                 self.phi_new_var[dst] = new_var
@@ -130,7 +132,7 @@ class UnSSADiGraph(object):
         """
         Generate trivial coalescing of phi variable and itself
         """
-        for phi_new_var in self.phi_new_var.itervalues():
+        for phi_new_var in viewvalues(self.phi_new_var):
             self.merge_state.setdefault(phi_new_var, set([phi_new_var]))
 
     def order_ssa_var_dom(self):
@@ -303,7 +305,7 @@ class UnSSADiGraph(object):
         assignments.
         @parent: Optional parent location of the phi source for liveness tests
         """
-        for dst, src in parallel_copies.iteritems():
+        for dst, src in viewitems(parallel_copies):
             dst_merge = self.merge_state.setdefault(dst, set([dst]))
             src_merge = self.merge_state.setdefault(src, set([src]))
             if not self.merge_sets_interfere(dst_merge, src_merge, parent):
@@ -317,7 +319,7 @@ class UnSSADiGraph(object):
         ircfg = self.ssa.graph
 
         # Run coalesce on the post phi parallel copy
-        for irblock in ircfg.blocks.values():
+        for irblock in viewvalues(ircfg.blocks):
             if not irblock_has_phi(irblock):
                 continue
             parallel_copies = {}
@@ -335,7 +337,7 @@ class UnSSADiGraph(object):
                 for parent, src in self.phi_parent_sources[dst]:
                     parent_to_parallel_copies.setdefault(parent, {})[new_var] = src
 
-            for parent, parallel_copies in parent_to_parallel_copies.iteritems():
+            for parent, parallel_copies in viewitems(parent_to_parallel_copies):
                 self.aggressive_coalesce_parallel_copy(parallel_copies, parent)
 
     def get_best_merge_set_name(self, merge_set):
@@ -363,7 +365,7 @@ class UnSSADiGraph(object):
 
         # Elect representative for merge sets
         merge_set_to_name = {}
-        for merge_set in self.merge_state.itervalues():
+        for merge_set in viewvalues(self.merge_state):
             frozen_merge_set = frozenset(merge_set)
             merge_sets.add(frozen_merge_set)
             var_name = self.get_best_merge_set_name(merge_set)
@@ -384,10 +386,10 @@ class UnSSADiGraph(object):
         @ircfg: IRDiGraph instance
         """
 
-        for irblock in self.ssa.graph.blocks.values():
+        for irblock in list(viewvalues(self.ssa.graph.blocks)):
             assignblks = list(irblock)
             out = {}
-            for dst, src in assignblks[0].iteritems():
+            for dst, src in viewitems(assignblks[0]):
                 if src.is_op('Phi'):
                     assert set([dst]) == set(src.args)
                     continue
@@ -399,11 +401,11 @@ class UnSSADiGraph(object):
         """
         Remove trivial expressions (a=a) in the current graph
         """
-        for irblock in self.ssa.graph.blocks.values():
+        for irblock in list(viewvalues(self.ssa.graph.blocks)):
             assignblks = list(irblock)
             for i, assignblk in enumerate(assignblks):
                 out = {}
-                for dst, src in assignblk.iteritems():
+                for dst, src in viewitems(assignblk):
                     if dst == src:
                         continue
                     out[dst] = src

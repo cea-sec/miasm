@@ -1,6 +1,7 @@
 # Toshiba MeP-c4 - miasm architecture definition
 # Guillaume Valadon <guillaume@valadon.net>
 
+from builtins import range
 from miasm2.core.cpu import *
 from miasm2.core.utils import Disasm_Exception
 from miasm2.expression.expression import Expr, ExprId, ExprInt, ExprLoc, \
@@ -279,7 +280,7 @@ class instruction_mep(instruction):
         self.args[num] = ExprInt(off, 32)
 
 
-class mep_additional_info:
+class mep_additional_info(object):
     """Additional MeP instructions information
     """
 
@@ -432,7 +433,7 @@ class mn_mep(cls_mn):
         o = 0  # the returned value
         while n:
             # Get a byte, the offset is adjusted according to the endianness
-            offset = start / 8  # the offset in bytes
+            offset = start // 8  # the offset in bytes
             n_offset = cls.endian_offset(attrib, offset)  # the adjusted offset
             c = cls.getbytes(bitstream, n_offset, 1)
             if not c:
@@ -552,7 +553,7 @@ class mep_arg(m_arg):
                 return arg.name
             if isinstance(arg.name, str) and arg.name in gpr_names:
                 return None  # GV: why?
-            loc_key = loc_db.get_or_create_name_location(arg.name)
+            loc_key = loc_db.get_or_create_name_location(arg.name.encode())
             return ExprLoc(loc_key, 32)
 
         elif isinstance(arg, AstMem):

@@ -1,3 +1,4 @@
+from builtins import range
 import logging
 
 from miasm2.jitter.jitload import Jitter, named_arguments
@@ -109,7 +110,7 @@ class jitter_mips32l(Jitter):
 
     @named_arguments
     def func_args_stdcall(self, n_args):
-        args = [self.get_arg_n_stdcall(i) for i in xrange(n_args)]
+        args = [self.get_arg_n_stdcall(i) for i in range(n_args)]
         ret_ad = self.cpu.RA
         return ret_ad, args
 
@@ -122,9 +123,9 @@ class jitter_mips32l(Jitter):
         return True
 
     def func_prepare_stdcall(self, ret_addr, *args):
-        for index in xrange(min(len(args), 4)):
+        for index in range(min(len(args), 4)):
             setattr(self.cpu, 'A%d' % index, args[index])
-        for index in xrange(4, len(args)):
+        for index in range(4, len(args)):
             self.vm.set_mem(self.cpu.SP + 4 * (index - 4), pck32(args[index]))
         self.cpu.RA = ret_addr
 

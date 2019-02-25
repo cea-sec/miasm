@@ -1,3 +1,5 @@
+from future.utils import viewvalues
+
 from miasm2.core.asmblock import AsmConstraint, disasmEngine
 from miasm2.arch.arm.arch import mn_arm, mn_armt
 
@@ -19,7 +21,7 @@ def cb_arm_fix_call(mn, cur_bloc, loc_db, offsets_to_dis, *args, **kwargs):
     if l2.name != "MOV":
         return
 
-    values = mn.pc.values()
+    values = viewvalues(mn.pc)
     if not l1.args[0] in values:
         return
     if not l2.args[1] in values:

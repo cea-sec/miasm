@@ -6,7 +6,7 @@ from ut_helpers_ir import exec_instruction
 from miasm2.expression.expression import ExprId, ExprInt, ExprCond, ExprOp
 
 
-class TestLogical:
+class TestLogical(object):
 
     def test_or(self):
         """Test OR execution"""

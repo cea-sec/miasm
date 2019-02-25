@@ -1,13 +1,16 @@
 #-*- coding:utf-8 -*-
 
+from builtins import range
+from future.utils import viewitems, viewvalues
+
 import logging
 from pyparsing import *
 from miasm2.expression import expression as m2_expr
 from miasm2.core.cpu import *
 from collections import defaultdict
 from miasm2.core.bin_stream import bin_stream
-import regs as regs_module
-from regs import *
+from miasm2.arch.aarch64 import regs as regs_module
+from miasm2.arch.aarch64.regs import *
 from miasm2.core.cpu import log as log_cpu
 from miasm2.expression.modint import uint32, uint64, mod_size2int
 from miasm2.core.asm_ast import AstInt, AstId, AstMem, AstOp
@@ -182,7 +185,7 @@ def cb_deref_nooff(t):
 def cb_deref_post(t):
     assert len(t) == 2
     if isinstance(t[1], AstId) and isinstance(t[1].name, ExprId):
-        raise StopIteration
+        return
     result = AstOp("postinc", *t)
     return result
 
@@ -190,7 +193,7 @@ def cb_deref_post(t):
 def cb_deref_pre(t):
     assert len(t) == 2
     if isinstance(t[1], AstId) and isinstance(t[1].name, ExprId):
-        raise StopIteration
+        return
     result = AstOp("preinc", *t)
     return result
 
@@ -198,7 +201,7 @@ def cb_deref_pre(t):
 def cb_deref_pre_wb(t):
     assert len(t) == 2
     if isinstance(t[1], AstId) and isinstance(t[1].name, ExprId):
-        raise StopIteration
+        return
     result = AstOp("preinc_wb", *t)
     return result
 
@@ -234,7 +237,7 @@ def cb_deref_ext2op(t):
 deref_ext2 = (LBRACK + gpregs_32_64 + COMMA + gpregs_32_64 + Optional(all_extend2_t + base_expr) + RBRACK).setParseAction(cb_deref_ext2op)
 
 
-class additional_info:
+class additional_info(object):
 
     def __init__(self):
         self.except_on_instr = False
@@ -275,7 +278,7 @@ class aarch64_arg(m_arg):
             if isinstance(value.name, ExprId):
                 fixed_size.add(value.name.size)
                 return value.name
-            loc_key = loc_db.get_or_create_name_location(value.name)
+            loc_key = loc_db.get_or_create_name_location(value.name.encode())
             return m2_expr.ExprLoc(loc_key, size_hint)
         if isinstance(value, AstInt):
             assert size_hint is not None
@@ -446,7 +449,7 @@ class mn_aarch64(cls_mn):
         if n > bs.getlen() * 8:
             raise ValueError('not enough bits %r %r' % (n, len(bs.bin) * 8))
         while n:
-            offset = start / 8
+            offset = start // 8
             n_offset = cls.endian_offset(attrib, offset)
             c = cls.getbytes(bs, n_offset, 1)
             if not c:
@@ -897,11 +900,14 @@ class aarch64_gpreg_ext(reg_noarg, aarch64_arg):
                            reg, m2_expr.ExprInt(self.parent.imm.value, reg.size))
         return True
 
-EXT2_OP = {0b010: 'UXTW',
-           0b011: 'LSL',
-           0b110: 'SXTW',
-           0b111: 'SXTX'}
-EXT2_OP_INV = dict([(items[1], items[0]) for items in EXT2_OP.items()])
+EXT2_OP = {
+    0b010: 'UXTW',
+    0b011: 'LSL',
+    0b110: 'SXTW',
+    0b111: 'SXTX'
+}
+
+EXT2_OP_INV = dict((value, key) for key, value in viewitems(EXT2_OP))
 
 
 class aarch64_gpreg_ext2(reg_noarg, aarch64_arg):
@@ -933,7 +939,7 @@ class aarch64_gpreg_ext2(reg_noarg, aarch64_arg):
             reg = arg1
             self.parent.option.value = 0b011
             is_reg = True
-        elif isinstance(arg1, m2_expr.ExprOp) and arg1.op in EXT2_OP.values():
+        elif isinstance(arg1, m2_expr.ExprOp) and arg1.op in viewvalues(EXT2_OP):
             reg = arg1.args[0]
         else:
             return False
@@ -1069,10 +1075,15 @@ class bits(object):
 
     def __init__(self, size, value):
         """Instantiate a bitvector of size @size with value @value"""
-        self.size = size
+        value = int(value)
+        self.size = int(size)
         if value & self.mask != value:
-            raise ValueError("Value %s is too large for %d bits",
-                             hex(value), size)
+            raise ValueError(
+                "Value %r is too large for %r bits (mask %r)",
+                value,
+                size,
+                self.mask
+            )
         self.value = value
 
     def concat_left(self, other_bits):
@@ -1123,11 +1134,11 @@ class bits(object):
 
     def __str__(self):
         return "'%s'" % "".join('1' if self.value & (1 << i) else '0'
-                                for i in reversed(xrange(self.size)))
+                                for i in reversed(range(self.size)))
 
 # From J1-6035
 def HighestSetBit(x):
-    for i in reversed(xrange(x.size)):
+    for i in reversed(range(x.size)):
         if x.value & (1 << i):
             return i
     return - 1
@@ -1198,7 +1209,7 @@ def DecodeBitMasks(M, immN, imms, immr, immediate):
 def EncodeBitMasks(wmask):
     # Find replicate
     M = wmask.size
-    for i in xrange(1, M + 1):
+    for i in range(1, M + 1):
         if M % i != 0:
             continue
         if wmask == Replicate(wmask[:i], M):
@@ -1211,7 +1222,7 @@ def EncodeBitMasks(wmask):
     esize = welem_after_ror.size
     S = welem_after_ror.pop_count - 1
     welem = ZeroExtend(Ones(S + 1), esize)
-    for i in xrange(welem_after_ror.size):
+    for i in range(welem_after_ror.size):
         if ROR(welem, i) == welem_after_ror:
             break
     else:
@@ -1219,7 +1230,7 @@ def EncodeBitMasks(wmask):
     R = i
 
     # Find len value
-    for i in xrange(M):
+    for i in range(M):
         if (1 << i) == esize:
             break
     else:
@@ -1340,7 +1351,7 @@ class aarch64_imm_hw(aarch64_arg):
             return False
         value = int(self.expr)
         mask = (1 << size) - 1
-        for i in xrange(size / 16):
+        for i in range(size // 16):
             if ((0xffff << (i * 16)) ^ mask) & value:
                 continue
             self.parent.hw.value = i
@@ -1384,10 +1395,10 @@ class aarch64_imm_hw_sc(aarch64_arg):
         arg, amount = [int(arg) for arg in self.expr.args]
         if arg > 0xFFFF:
             return False
-        if amount % 16 or amount / 16 > 4:
+        if amount % 16 or amount // 16 > 4:
             return False
         self.value = arg
-        self.parent.hw.value = amount / 16
+        self.parent.hw.value = amount // 16
         return True
 
 
@@ -1852,8 +1863,8 @@ bcond = bs_mod_name(l=4, fname='cond', mn_mod=['EQ', 'NE', 'CS', 'CC',
                                                'HI', 'LS', 'GE', 'LT',
                                                'GT', 'LE', 'AL', 'NV'])
 
-cond_arg = bs(l=4, cls=(aarch64_cond_arg,), fname=cond)
-cond_inv_arg = bs(l=4, cls=(aarch64_cond_inv_arg,), fname=cond)
+cond_arg = bs(l=4, cls=(aarch64_cond_arg,), fname="cond")
+cond_inv_arg = bs(l=4, cls=(aarch64_cond_inv_arg,), fname="cond")
 # unconditional branch (ret)
 aarch64op("br", [bs('1101011'), bs('0000'), bs('11111'), bs('000000'), rn64, bs('00000')], [rn64])
 aarch64op("blr", [bs('1101011'), bs('0001'), bs('11111'), bs('000000'), rn64, bs('00000')], [rn64])
@@ -2037,7 +2048,7 @@ aarch64op("fcvt",  [bs('000'), bs('11110'), bs('01'), bs('1'), bs('0001'), bs('0
 
 
 
-swapargs = bs_swapargs(l=1, fname="swap", mn_mod=range(1 << 1))
+swapargs = bs_swapargs(l=1, fname="swap", mn_mod=list(range(1 << 1)))
 
 aarch64op("fmov",  [bs('0'), bs('00'), bs('11110'), bs('00'), bs('1'), bs('00'), bs('110'), bs('000000'), sn32, rd32], [rd32, sn32])
 aarch64op("fmov",  [bs('0'), bs('00'), bs('11110'), bs('00'), bs('1'), bs('00'), bs('111'), bs('000000'), rn32, sd32], [sd32, rn32])

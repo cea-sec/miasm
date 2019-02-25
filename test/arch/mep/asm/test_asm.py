@@ -1,9 +1,11 @@
 # Toshiba MeP-c4 - Misc unit tests
 # Guillaume Valadon <guillaume@valadon.net>
 
+from __future__ import print_function
+from miasm2.core.utils import decode_hex, encode_hex
 from miasm2.arch.mep.arch import mn_mep
 
-class TestMisc:
+class TestMisc(object):
 
     def test(self):
 
@@ -18,21 +20,23 @@ class TestMisc:
         unit_tests += [("SW R7, 0x50(SP)", "4752")]
 
         for mn_str, mn_hex in unit_tests:
-            print "-" * 49  # Tests separation
+            print("-" * 49)  # Tests separation
 
             # Dissassemble
-            mn_bin = mn_hex.decode("hex")
+            mn_bin = decode_hex(mn_hex)
             mn = mn_mep.dis(mn_bin, "b")
 
-            print "dis: %s -> %s" % (mn_hex.rjust(20), str(mn).rjust(20))
+            print("dis: %s -> %s" % (mn_hex.rjust(20), str(mn).rjust(20)))
             assert(str(mn) == mn_str)  # dissassemble assertion
 
             # Assemble and return all possible candidates
             instr = mn_mep.fromstring(str(mn), "b")
             instr.mode = "b"
-            asm_list = [i.encode("hex") for i in mn_mep.asm(instr)]
+            asm_list = [encode_hex(i).decode() for i in mn_mep.asm(instr)]
 
             # Print the results
-            print "asm: %s -> %s" % (mn_str.rjust(20),
-                                     ", ".join(asm_list).rjust(20))
+            print("asm: %s -> %s" % (
+                mn_str.rjust(20),
+                ", ".join(asm_list).rjust(20))
+            )
             assert(mn_hex in asm_list)  # assemble assertion

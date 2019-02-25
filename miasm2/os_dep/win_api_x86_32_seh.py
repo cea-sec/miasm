@@ -21,6 +21,8 @@ import logging
 import os
 import struct
 
+from future.utils import viewitems
+
 from elfesteem import pe_init
 
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
@@ -78,7 +80,7 @@ return_from_exception = 0x6eadbeef
 
 name2module = []
 main_pe = None
-main_pe_name = "c:\\xxx\\toto.exe"
+main_pe_name = b"c:\\xxx\\toto.exe"
 
 MAX_SEH = 5
 
@@ -92,18 +94,27 @@ def build_teb(jitter, teb_address):
     """
 
     # Only allocate space for ExceptionList/ProcessEnvironmentBlock/Self
-    jitter.vm.add_memory_page(teb_address, PAGE_READ | PAGE_WRITE,
-                              "\x00" * NT_TIB.get_offset("StackBase"),
-                              "TEB.NtTib.ExceptionList")
-    jitter.vm.add_memory_page(teb_address + NT_TIB.get_offset("Self"),
-                              PAGE_READ | PAGE_WRITE,
-                              "\x00" * (NT_TIB.sizeof() - NT_TIB.get_offset("Self")),
-                              "TEB.NtTib.Self")
-    jitter.vm.add_memory_page(teb_address + TEB.get_offset("ProcessEnvironmentBlock"),
-                              PAGE_READ | PAGE_WRITE,
-                              "\x00" * (TEB.get_offset("LastErrorValue") -
-                                        TEB.get_offset("ProcessEnvironmentBlock")),
-                              "TEB.ProcessEnvironmentBlock")
+    jitter.vm.add_memory_page(
+        teb_address,
+        PAGE_READ | PAGE_WRITE,
+        b"\x00" * NT_TIB.get_offset("StackBase"),
+        "TEB.NtTib.ExceptionList"
+    )
+    jitter.vm.add_memory_page(
+        teb_address + NT_TIB.get_offset("Self"),
+        PAGE_READ | PAGE_WRITE,
+        b"\x00" * (NT_TIB.sizeof() - NT_TIB.get_offset("Self")),
+        "TEB.NtTib.Self"
+    )
+    jitter.vm.add_memory_page(
+        teb_address + TEB.get_offset("ProcessEnvironmentBlock"),
+        PAGE_READ | PAGE_WRITE,
+        b"\x00" * (
+            TEB.get_offset("LastErrorValue") -
+            TEB.get_offset("ProcessEnvironmentBlock")
+        ),
+        "TEB.ProcessEnvironmentBlock"
+    )
     Teb = TEB(jitter.vm, teb_address)
     Teb.NtTib.ExceptionList = DEFAULT_SEH
     Teb.NtTib.Self = teb_address
@@ -123,9 +134,12 @@ def build_peb(jitter, peb_address):
         offset, length = peb_address + 0xC, 0
     length += 4
 
-    jitter.vm.add_memory_page(offset, PAGE_READ | PAGE_WRITE,
-                              "\x00" * length,
-                              "PEB")
+    jitter.vm.add_memory_page(
+        offset,
+        PAGE_READ | PAGE_WRITE,
+        b"\x00" * length,
+        "PEB"
+    )
 
     Peb = PEB(jitter.vm, peb_address)
     if main_pe:
@@ -167,9 +181,12 @@ def build_ldr_data(jitter, modules_info):
         size += ListEntry.sizeof()
         ntdll_addr_entry = modules_info.module2entry[ntdll_pe]
 
-    jitter.vm.add_memory_page(addr + offset, PAGE_READ | PAGE_WRITE,
-                              "\x00" * size,
-                              "Loader struct")  # (ldrdata.get_size() - offset))
+    jitter.vm.add_memory_page(
+        addr + offset,
+        PAGE_READ | PAGE_WRITE,
+        b"\x00" * size,
+        "Loader struct"
+    )  # (ldrdata.get_size() - offset))
 
     if main_pe:
         ldrdata.InLoadOrderModuleList.flink = main_addr_entry
@@ -213,7 +230,7 @@ class LoadedModules(object):
         self.module2name[module] = name
 
     def __repr__(self):
-        return "\n".join([str(x) for x in self.name2module.iteritems()])
+        return "\n".join(str(x) for x in viewitems(self.name2module))
 
 
 def create_modules_chain(jitter, name2module):
@@ -230,7 +247,7 @@ def create_modules_chain(jitter, name2module):
     offset_path = 0x600
 
     out = ""
-    for i, (fname, pe_obj) in enumerate(name2module.items(), 1):
+    for i, (fname, pe_obj) in enumerate(viewitems(name2module), 1):
         if pe_obj is None:
             log.warning("Unknown module: omitted from link list (%r)",
                         fname)
@@ -238,35 +255,45 @@ def create_modules_chain(jitter, name2module):
         addr = base_addr + i * 0x1000
         bpath = fname.replace('/', '\\')
         bname_str = os.path.split(fname)[1].lower()
-        bname = "\x00".join(bname_str) + "\x00"
+        bname_unicode = bname_str.encode("utf-16le")
         log.info("Add module %x %r", pe_obj.NThdr.ImageBase, bname_str)
 
         modules_info.add(bname_str, pe_obj, addr)
 
         # Allocate a partial LdrDataEntry (0-Flags)
-        jitter.vm.add_memory_page(addr, PAGE_READ | PAGE_WRITE,
-                                  "\x00" * LdrDataEntry.get_offset("Flags"),
-                                  "Module info %r" % bname_str)
+        jitter.vm.add_memory_page(
+            addr,
+            PAGE_READ | PAGE_WRITE,
+            b"\x00" * LdrDataEntry.get_offset("Flags"),
+            "Module info %r" % bname_str
+        )
 
         LdrEntry = LdrDataEntry(jitter.vm, addr)
 
         LdrEntry.DllBase = pe_obj.NThdr.ImageBase
         LdrEntry.EntryPoint = pe_obj.Opthdr.AddressOfEntryPoint
         LdrEntry.SizeOfImage = pe_obj.NThdr.sizeofimage
-        LdrEntry.FullDllName.length = len(bname)
-        LdrEntry.FullDllName.maxlength = len(bname) + 2
+        LdrEntry.FullDllName.length = len(bname_unicode)
+        LdrEntry.FullDllName.maxlength = len(bname_unicode) + 2
         LdrEntry.FullDllName.data = addr + offset_path
-        LdrEntry.BaseDllName.length = len(bname)
-        LdrEntry.BaseDllName.maxlength = len(bname) + 2
+        LdrEntry.BaseDllName.length = len(bname_unicode)
+        LdrEntry.BaseDllName.maxlength = len(bname_unicode) + 2
         LdrEntry.BaseDllName.data = addr + offset_name
 
-        jitter.vm.add_memory_page(addr + offset_name, PAGE_READ | PAGE_WRITE,
-                                  bname + "\x00" * 3,
-                                  "Module name %r" % bname_str)
+        jitter.vm.add_memory_page(
+            addr + offset_name,
+            PAGE_READ | PAGE_WRITE,
+            bname_unicode + b"\x00" * 2,
+            "Module name %r" % bname_str
+        )
 
-        jitter.vm.add_memory_page(addr + offset_path, PAGE_READ | PAGE_WRITE,
-                                  "\x00".join(bpath) + "\x00" + "\x00" * 3,
-                                  "Module path %r" % bname_str)
+        bpath_unicode = bpath.encode('utf-16le')
+        jitter.vm.add_memory_page(
+            addr + offset_path,
+            PAGE_READ | PAGE_WRITE,
+            bpath_unicode + b"\x00" * 2,
+            "Module path %r" % bname_str
+        )
 
     return modules_info
 
@@ -372,14 +399,15 @@ def add_process_env(jitter):
     @jitter: jitter instance
     """
 
-    env_str = 'ALLUSEESPROFILE=C:\\Documents and Settings\\All Users\x00'
-    env_str = '\x00'.join(env_str)
-    env_str += "\x00" * 0x10
-    jitter.vm.add_memory_page(process_environment_address,
-                              PAGE_READ | PAGE_WRITE,
-                              env_str,
-                              "Process environment")
-    jitter.vm.set_mem(process_environment_address, env_str)
+    env_unicode = 'ALLUSEESPROFILE=C:\\Documents and Settings\\All Users\x00'.encode('utf-16le')
+    env_unicode += b"\x00" * 0x10
+    jitter.vm.add_memory_page(
+        process_environment_address,
+        PAGE_READ | PAGE_WRITE,
+        env_unicode,
+        "Process environment"
+    )
+    jitter.vm.set_mem(process_environment_address, env_unicode)
 
 
 def add_process_parameters(jitter):
@@ -388,13 +416,15 @@ def add_process_parameters(jitter):
     @jitter: jitter instance
     """
 
-    o = ""
+    o = b""
     o += pck32(0x1000)  # size
-    o += "E" * (0x48 - len(o))
+    o += b"E" * (0x48 - len(o))
     o += pck32(process_environment_address)
-    jitter.vm.add_memory_page(process_parameters_address,
-                              PAGE_READ | PAGE_WRITE,
-                              o, "Process parameters")
+    jitter.vm.add_memory_page(
+        process_parameters_address,
+        PAGE_READ | PAGE_WRITE,
+        o, "Process parameters"
+    )
 
 
 # http://blog.fireeye.com/research/2010/08/download_exec_notes.html
@@ -431,7 +461,7 @@ def regs2ctxt(jitter, context_address):
     """
 
     ctxt = ContextException(jitter.vm, context_address)
-    ctxt.memset("\x00")
+    ctxt.memset(b"\x00")
     # ContextFlags
     # XXX
 
@@ -543,12 +573,17 @@ def fake_seh_handler(jitter, except_code, previous_seh=None):
             seh = seh.Next.deref
         seh = seh.Next.deref
 
-    log.info('seh_ptr %x { old_seh %r eh %r} ctx_addr %x',
-             seh.get_addr(), seh.Next, seh.Handler, context_address)
+    log.info(
+        'seh_ptr %x { old_seh %r eh %r} ctx_addr %x',
+        seh.get_addr(),
+        seh.Next,
+        seh.Handler,
+        context_address
+    )
 
     # Write exception_record
     except_record = EXCEPTION_RECORD(jitter.vm, exception_record_address)
-    except_record.memset("\x00")
+    except_record.memset(b"\x00")
     except_record.ExceptionCode = except_code
     except_record.ExceptionAddress = jitter.cpu.EIP
 

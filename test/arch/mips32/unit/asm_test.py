@@ -1,6 +1,8 @@
 import sys
 import os
 
+from future.utils import viewitems
+
 from miasm2.arch.mips32.arch import mn_mips32
 from miasm2.core import parse_asm
 from miasm2.expression.expression import *
@@ -30,10 +32,10 @@ class Asm_Test(object):
         loc_db.set_location_offset(loc_db.get_name_location("main"), 0x0)
         s = StrPatchwork()
         patches = asmblock.asm_resolve_final(mn_mips32, blocks, loc_db)
-        for offset, raw in patches.items():
+        for offset, raw in viewitems(patches):
             s[offset] = raw
 
-        s = str(s)
+        s = bytes(s)
         self.assembly = s
 
     def run(self):

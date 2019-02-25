@@ -1,5 +1,9 @@
 #-*- coding:utf-8 -*-
 
+from __future__ import print_function
+
+from future.utils import viewvalues
+
 from miasm2.expression.expression import ExprInt, ExprId, ExprMem, match_expr
 from miasm2.expression.simplifications import expr_simp
 from miasm2.core.asmblock import AsmConstraintNext, AsmConstraintTo
@@ -27,13 +31,12 @@ def arm_guess_subcall(
     sp = LocationDB()
     ir_arch = ira(sp)
     ircfg = ira.new_ircfg()
-    print '###'
-    print cur_bloc
+    print('###')
+    print(cur_bloc)
     ir_arch.add_asmblock_to_ircfg(cur_bloc, ircfg)
 
-    ir_blocks = ircfg.blocks.values()
     to_add = set()
-    for irblock in ir_blocks:
+    for irblock in viewvalues(ircfg.blocks):
         pc_val = None
         lr_val = None
         for exprs in irblock:
@@ -72,8 +75,7 @@ def arm_guess_jump_table(
     ircfg = ira.new_ircfg()
     ir_arch.add_asmblock_to_ircfg(cur_bloc, ircfg)
 
-    ir_blocks = ircfg.blocks.values()
-    for irblock in ir_blocks:
+    for irblock in viewvalues(ircfg.blocks):
         pc_val = None
         for exprs in irblock:
             for e in exprs:
@@ -84,18 +86,18 @@ def arm_guess_jump_table(
         if not isinstance(pc_val, ExprMem):
             continue
         assert(pc_val.size == 32)
-        print pc_val
+        print(pc_val)
         ad = pc_val.arg
         ad = expr_simp(ad)
-        print ad
+        print(ad)
         res = match_expr(ad, jra + jrb, set([jra, jrb]))
         if res is False:
             raise NotImplementedError('not fully functional')
-        print res
+        print(res)
         if not isinstance(res[jrb], ExprInt):
             raise NotImplementedError('not fully functional')
         base_ad = int(res[jrb])
-        print base_ad
+        print(base_ad)
         addrs = set()
         i = -1
         max_table_entry = 10000
@@ -109,7 +111,7 @@ def arm_guess_jump_table(
             if abs(ad - base_ad) > max_diff_addr:
                 break
             addrs.add(ad)
-        print [hex(x) for x in addrs]
+        print([hex(x) for x in addrs])
 
         for ad in addrs:
             offsets_to_dis.add(ad)

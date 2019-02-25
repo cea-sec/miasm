@@ -19,12 +19,12 @@ class TestLinuxStdlib(unittest.TestCase):
 
     def test_xxx_sprintf(self):
         def alloc_str(s):
-            s += "\x00"
+            s += b"\x00"
             ptr = heap.alloc(jit, len(s))
             jit.vm.set_mem(ptr, s)
             return ptr
-        fmt  = alloc_str("'%s' %d")
-        str_ = alloc_str("coucou")
+        fmt  = alloc_str(b"'%s' %d")
+        str_ = alloc_str(b"coucou")
         buf = heap.alloc(jit,1024)
 
         jit.push_uint32_t(1111)
@@ -34,7 +34,7 @@ class TestLinuxStdlib(unittest.TestCase):
         jit.push_uint32_t(0) # ret_ad
         stdlib.xxx_sprintf(jit)
         ret = jit.get_str_ansi(buf)
-        self.assertEqual(ret, "'coucou' 1111")
+        self.assertEqual(ret, b"'coucou' 1111")
 
 
 if __name__ == '__main__':

@@ -1,3 +1,7 @@
+from __future__ import print_function
+
+from future.utils import viewitems
+
 from miasm2.ir.symbexec import SymbolicExecutionEngine, StateEngine
 from miasm2.expression.simplifications import expr_simp
 from miasm2.expression.expression import ExprId, ExprMem
@@ -8,9 +12,9 @@ class SymbolicStateCTypes(StateEngine):
 
     def __init__(self, symbols):
         tmp = {}
-        for expr, types in symbols.iteritems():
+        for expr, types in viewitems(symbols):
             tmp[expr] = frozenset(types)
-        self._symbols = frozenset(tmp.iteritems())
+        self._symbols = frozenset(viewitems(tmp))
 
     def __hash__(self):
         return hash((self.__class__, self._symbols))
@@ -84,7 +88,7 @@ class SymbExecCType(SymbolicExecutionEngine):
         @assignblk: AssignBlock instance
         """
         pool_out = {}
-        for dst, src in assignblk.iteritems():
+        for dst, src in viewitems(assignblk):
             objcs = self.chandler.expr_to_types(src, self.symbols)
             if isinstance(dst, ExprMem):
                 continue
@@ -112,16 +116,16 @@ class SymbExecCType(SymbolicExecutionEngine):
         """
         Dump modififed registers symbols only
         """
-        for expr, expr_types in sorted(self.symbols.iteritems()):
+        for expr, expr_types in sorted(viewitems(self.symbols)):
             if not expr.is_mem():
-                print expr
+                print(expr)
                 for expr_type in expr_types:
-                    print '\t', expr_type
+                    print('\t', expr_type)
 
     def dump_mem(self):
         """
         Dump modififed memory symbols
         """
-        for expr, value in sorted(self.symbols.iteritems()):
+        for expr, value in sorted(viewitems(self.symbols)):
             if expr.is_mem():
-                print expr, value
+                print(expr, value)

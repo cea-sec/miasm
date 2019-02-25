@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Minimalist Symbol Exec example
 from miasm2.analysis.binary import Container
 from miasm2.analysis.machine import Machine
@@ -32,9 +33,9 @@ symb = SymbolicExecutionEngine(ira)
 cur_addr = symb.run_at(ircfg, START_ADDR)
 
 # Modified elements
-print 'Modified registers:'
+print('Modified registers:')
 symb.dump(mems=False)
-print 'Modified memory (should be empty):'
+print('Modified memory (should be empty):')
 symb.dump(ids=False)
 
 # Check final status

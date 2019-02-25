@@ -1,3 +1,4 @@
+from builtins import range
 import logging
 
 from miasm2.jitter.jitload import Jitter, named_arguments
@@ -53,12 +54,12 @@ class jitter_x86_16(Jitter):
         return self.orig_irbloc_fix_regs_for_mode(irblock, 64)
 
     def push_uint16_t(self, value):
-        self.cpu.SP -= self.ir_arch.sp.size / 8
+        self.cpu.SP -= self.ir_arch.sp.size // 8
         self.vm.set_u16(self.cpu.SP, value)
 
     def pop_uint16_t(self):
         value = self.vm.get_u16(self.cpu.SP)
-        self.cpu.SP += self.ir_arch.sp.size / 8
+        self.cpu.SP += self.ir_arch.sp.size // 8
         return value
 
     def get_stack_arg(self, index):
@@ -86,21 +87,21 @@ class jitter_x86_32(Jitter):
         return self.orig_irbloc_fix_regs_for_mode(irblock, 64)
 
     def push_uint16_t(self, value):
-        self.cpu.ESP -= self.ir_arch.sp.size / 8
+        self.cpu.ESP -= self.ir_arch.sp.size // 8
         self.vm.set_u16(self.cpu.ESP, value)
 
     def pop_uint16_t(self):
         value = self.vm.get_u16(self.cpu.ESP)
-        self.cpu.ESP += self.ir_arch.sp.size / 8
+        self.cpu.ESP += self.ir_arch.sp.size // 8
         return value
 
     def push_uint32_t(self, value):
-        self.cpu.ESP -= self.ir_arch.sp.size / 8
+        self.cpu.ESP -= self.ir_arch.sp.size // 8
         self.vm.set_u32(self.cpu.ESP, value)
 
     def pop_uint32_t(self):
         value = self.vm.get_u32(self.cpu.ESP)
-        self.cpu.ESP += self.ir_arch.sp.size / 8
+        self.cpu.ESP += self.ir_arch.sp.size // 8
         return value
 
     def get_stack_arg(self, index):
@@ -116,7 +117,7 @@ class jitter_x86_32(Jitter):
     @named_arguments
     def func_args_stdcall(self, n_args):
         ret_ad = self.pop_uint32_t()
-        args = [self.pop_uint32_t() for _ in xrange(n_args)]
+        args = [self.pop_uint32_t() for _ in range(n_args)]
         return ret_ad, args
 
     def func_ret_stdcall(self, ret_addr, ret_value1=None, ret_value2=None):
@@ -137,7 +138,7 @@ class jitter_x86_32(Jitter):
     @named_arguments
     def func_args_cdecl(self, n_args):
         ret_ad = self.pop_uint32_t()
-        args = [self.get_stack_arg(i) for i in xrange(n_args)]
+        args = [self.get_stack_arg(i) for i in range(n_args)]
         return ret_ad, args
 
     def func_ret_cdecl(self, ret_addr, ret_value1=None, ret_value2=None):
@@ -162,13 +163,13 @@ class jitter_x86_32(Jitter):
         args_regs = ['ECX', 'EDX']
         ret_ad = self.pop_uint32_t()
         args = []
-        for i in xrange(n_args):
+        for i in range(n_args):
             args.append(self.get_arg_n_fastcall(i))
         return ret_ad, args
 
     def func_prepare_fastcall(self, ret_addr, *args):
         args_regs = ['ECX', 'EDX']
-        for i in xrange(min(len(args), len(args_regs))):
+        for i in range(min(len(args), len(args_regs))):
             setattr(self.cpu, args_regs[i], args[i])
         remaining_args = args[len(args_regs):]
         for arg in reversed(remaining_args):
@@ -202,12 +203,12 @@ class jitter_x86_64(Jitter):
         return self.orig_irbloc_fix_regs_for_mode(irblock, 64)
 
     def push_uint64_t(self, value):
-        self.cpu.RSP -= self.ir_arch.sp.size / 8
+        self.cpu.RSP -= self.ir_arch.sp.size // 8
         self.vm.set_u64(self.cpu.RSP, value)
 
     def pop_uint64_t(self):
         value = self.vm.get_u64(self.cpu.RSP)
-        self.cpu.RSP += self.ir_arch.sp.size / 8
+        self.cpu.RSP += self.ir_arch.sp.size // 8
         return value
 
     def get_stack_arg(self, index):
@@ -225,15 +226,15 @@ class jitter_x86_64(Jitter):
         args_regs = self.args_regs_stdcall
         ret_ad = self.pop_uint64_t()
         args = []
-        for i in xrange(min(n_args, 4)):
+        for i in range(min(n_args, 4)):
             args.append(self.cpu.get_gpreg()[args_regs[i]])
-        for i in xrange(max(0, n_args - 4)):
+        for i in range(max(0, n_args - 4)):
             args.append(self.get_stack_arg(i))
         return ret_ad, args
 
     def func_prepare_stdcall(self, ret_addr, *args):
         args_regs = self.args_regs_stdcall
-        for i in xrange(min(len(args), len(args_regs))):
+        for i in range(min(len(args), len(args_regs))):
             setattr(self.cpu, args_regs[i], args[i])
         remaining_args = args[len(args_regs):]
         for arg in reversed(remaining_args):
@@ -262,7 +263,7 @@ class jitter_x86_64(Jitter):
     @named_arguments
     def func_args_systemv(self, n_args):
         ret_ad = self.pop_uint64_t()
-        args = [self.get_arg_n_systemv(index) for index in xrange(n_args)]
+        args = [self.get_arg_n_systemv(index) for index in range(n_args)]
         return ret_ad, args
 
     func_ret_systemv = func_ret_cdecl
@@ -270,7 +271,7 @@ class jitter_x86_64(Jitter):
     def func_prepare_systemv(self, ret_addr, *args):
         args_regs = self.args_regs_systemv
         self.push_uint64_t(ret_addr)
-        for i in xrange(min(len(args), len(args_regs))):
+        for i in range(min(len(args), len(args_regs))):
             setattr(self.cpu, args_regs[i], args[i])
         remaining_args = args[len(args_regs):]
         for arg in reversed(remaining_args):

@@ -1,3 +1,4 @@
+from __future__ import print_function
 #
 # Copyright (C) 2011 EADS France, Fabrice Desclaux <fabrice.desclaux@eads.net>
 #
@@ -15,6 +16,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
+from past.builtins import cmp
 import struct
 import os
 import stat
@@ -22,14 +24,16 @@ import time
 import string
 import logging
 from zlib import crc32
-from StringIO import StringIO
+from io import StringIO
 import time
 import datetime
+
+from future.utils import PY3, viewitems
 
 try:
     from Crypto.Hash import MD5, SHA
 except ImportError:
-    print "cannot find crypto, skipping"
+    print("cannot find crypto, skipping")
 
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE, PAGE_EXEC
 from miasm2.core.utils import pck16, pck32, hexdump, whoami
@@ -77,10 +81,10 @@ ACCESS_DICT = {0x0: 0,
                0x100: 0
                }
 
-ACCESS_DICT_INV = dict((x[1], x[0]) for x in ACCESS_DICT.iteritems())
+ACCESS_DICT_INV = dict((x[1], x[0]) for x in viewitems(ACCESS_DICT))
 
 
-class whandle():
+class whandle(object):
 
     def __init__(self, name, info):
         self.name = name
@@ -90,7 +94,7 @@ class whandle():
         return '<%r %r %r>' % (self.__class__.__name__, self.name, self.info)
 
 
-class handle_generator():
+class handle_generator(object):
 
     def __init__(self):
         self.offset = 600
@@ -106,7 +110,7 @@ class handle_generator():
 
     def __repr__(self):
         out = '<%r\n' % self.__class__.__name__
-        ks = self.all_handles.keys()
+        ks = list(self.all_handles)
         ks.sort()
 
         for k in ks:
@@ -124,7 +128,7 @@ class handle_generator():
         self.all_handles.__delitem__(item)
 
 
-class c_winobjs:
+class c_winobjs(object):
 
     def __init__(self):
         self.alloc_ad = 0x20000000
@@ -140,8 +144,8 @@ class c_winobjs:
         self.dw_pid_dummy2 = 0x333
         self.dw_pid_cur = 0x444
         self.module_fname_nux = None
-        self.module_name = "test.exe"
-        self.module_path = "c:\\mydir\\" + self.module_name
+        self.module_name = b"test.exe"
+        self.module_path = b"c:\\mydir\\" + self.module_name
         self.hcurmodule = None
         self.module_filesize = None
         self.getversion = 0x0A280105
@@ -161,8 +165,11 @@ class c_winobjs:
         self.tls_values = {}
         self.handle_pool = handle_generator()
         self.handle_mapped = {}
-        self.hkey_handles = {0x80000001: "hkey_current_user", 0x80000002: "hkey_local_machine"}
-        self.cur_dir = "c:\\tmp"
+        self.hkey_handles = {
+            0x80000001: b"hkey_current_user",
+            0x80000002: b"hkey_local_machine"
+        }
+        self.cur_dir = b"c:\\tmp"
 
         self.nt_mdl = {}
         self.nt_mdl_ad = None
@@ -176,9 +183,11 @@ class c_winobjs:
         self.events_pool = {}
         self.find_data = None
 
-        self.current_datetime = datetime.datetime(year=2017, month=8, day=21,
-                                                  hour=13, minute=37,
-                                                  second=11, microsecond=123456)
+        self.current_datetime = datetime.datetime(
+            year=2017, month=8, day=21,
+            hour=13, minute=37,
+            second=11, microsecond=123456
+        )
 
 winobjs = c_winobjs()
 
@@ -194,7 +203,7 @@ process_list = [
         winobjs.dw_pid_explorer,  # DWORD     th32ParentProcessID;
         0xbeef,  # LONG      pcPriClassBase;
         0x0,  # DWORD     dwFlags;
-        "dummy1.exe"  # TCHAR     szExeFile[MAX_PATH];
+        b"dummy1.exe"  # TCHAR     szExeFile[MAX_PATH];
     ],
     [
         0x40,  # DWORD     dwSize;
@@ -206,7 +215,7 @@ process_list = [
         4,  # DWORD     th32ParentProcessID;
         0xbeef,  # LONG      pcPriClassBase;
         0x0,  # DWORD     dwFlags;
-        "explorer.exe"  # TCHAR     szExeFile[MAX_PATH];
+        b"explorer.exe"  # TCHAR     szExeFile[MAX_PATH];
     ],
 
     [
@@ -219,7 +228,7 @@ process_list = [
         winobjs.dw_pid_explorer,  # DWORD     th32ParentProcessID;
         0xbeef,  # LONG      pcPriClassBase;
         0x0,  # DWORD     dwFlags;
-        "dummy2.exe"  # TCHAR     szExeFile[MAX_PATH];
+        b"dummy2.exe"  # TCHAR     szExeFile[MAX_PATH];
     ],
 
     [
@@ -239,18 +248,23 @@ process_list = [
 ]
 
 
-class hobj:
+class hobj(object):
     pass
 
 
-class mdl:
+class mdl(object):
 
     def __init__(self, ad, l):
         self.ad = ad
         self.l = l
 
-    def __str__(self):
+    def __bytes__(self):
         return struct.pack('LL', self.ad, self.l)
+
+    def __str__(self):
+        if PY3:
+            return repr(self)
+        return self.__bytes__()
 
 
 def kernel32_HeapAlloc(jitter):
@@ -322,7 +336,8 @@ def kernel32_Process32First(jitter):
     ret_ad, args = jitter.func_args_stdcall(["s_handle", "ad_pentry"])
 
     pentry = struct.pack(
-        'IIIIIIIII', *process_list[0][:-1]) + process_list[0][-1]
+        'IIIIIIIII', *process_list[0][:-1]
+    ) + process_list[0][-1]
     jitter.vm.set_mem(args.ad_pentry, pentry)
     winobjs.toolhelpsnapshot_info[args.s_handle] = 0
 
@@ -360,19 +375,20 @@ def kernel32_GetVersionEx(jitter, str_size, set_str):
 
     size = jitter.vm.get_u32(args.ptr_struct)
     if size in [0x14+str_size, 0x1c+str_size]:
-        tmp = struct.pack("IIIII%dsHHHBB" % str_size,
-                          0x114,            # struct size
-                          0x5,              # maj vers
-                          0x2,              # min vers
-                          0xa28,            # build nbr
-                          0x2,              # platform id
-                          set_str("Service pack 4"),
-                          3,                # wServicePackMajor
-                          0,                # wServicePackMinor
-                          0x100,            # wSuiteMask
-                          1,                # wProductType
-                          0                 # wReserved
-                          )
+        tmp = struct.pack(
+            "IIIII%dsHHHBB" % str_size,
+            0x114,            # struct size
+            0x5,              # maj vers
+            0x2,              # min vers
+            0xa28,            # build nbr
+            0x2,              # platform id
+            set_str("Service pack 4"),
+            3,                # wServicePackMajor
+            0,                # wServicePackMinor
+            0x100,            # wSuiteMask
+            1,                # wProductType
+            0                 # wReserved
+        )
         tmp = tmp[:size]
         jitter.vm.set_mem(args.ptr_struct, tmp)
         ret = 1
@@ -691,10 +707,10 @@ def kernel32_GetFileSize(jitter):
     ret_ad, args = jitter.func_args_stdcall(["hwnd", "lpfilesizehight"])
 
     if args.hwnd == winobjs.module_cur_hwnd:
-        ret = len(open(winobjs.module_fname_nux).read())
+        ret = len(open(winobjs.module_fname_nux, "rb").read())
     elif args.hwnd in winobjs.handle_pool:
         wh = winobjs.handle_pool[args.hwnd]
-        ret = len(open(wh.name).read())
+        ret = len(open(wh.name, "rb").read())
     else:
         raise ValueError('unknown hwnd!')
 
@@ -707,10 +723,10 @@ def kernel32_GetFileSizeEx(jitter):
     ret_ad, args = jitter.func_args_stdcall(["hwnd", "lpfilesizehight"])
 
     if args.hwnd == winobjs.module_cur_hwnd:
-        l = len(open(winobjs.module_fname_nux).read())
+        l = len(open(winobjs.module_fname_nux, "rb").read())
     elif args.hwnd in winobjs.handle_pool:
         wh = winobjs.handle_pool[args.hwnd]
-        l = len(open(wh.name).read())
+        l = len(open(wh.name, "rb").read())
     else:
         raise ValueError('unknown hwnd!')
 
@@ -797,9 +813,13 @@ def kernel32_GetModuleFileName(jitter, funcname, set_str):
     if args.hmodule in [0, winobjs.hcurmodule]:
         p = winobjs.module_path[:]
     elif (winobjs.runtime_dll and
-          args.hmodule in winobjs.runtime_dll.name2off.values()):
-        name_inv = dict([(x[1], x[0])
-                        for x in winobjs.runtime_dll.name2off.items()])
+          args.hmodule in viewvalues(winobjs.runtime_dll.name2off)):
+        name_inv = dict(
+            [
+                (x[1], x[0])
+                for x in viewitems(winobjs.runtime_dll.name2off)
+            ]
+        )
         p = name_inv[args.hmodule]
     else:
         log.warning(('Unknown module 0x%x.' +
@@ -987,7 +1007,7 @@ def kernel32_VirtualLock(jitter):
     jitter.func_ret_stdcall(ret_ad, 1)
 
 
-class systeminfo:
+class systeminfo(object):
     oemId = 0
     dwPageSize = 0x1000
     lpMinimumApplicationAddress = 0x10000
@@ -1292,7 +1312,7 @@ def mdl2ad(n):
 
 
 def ad2mdl(ad):
-    return ((ad - winobjs.nt_mdl_ad) & 0xFFFFFFFFL) / 0x10
+    return ((ad - winobjs.nt_mdl_ad) & 0xFFFFFFFF) // 0x10
 
 
 def ntoskrnl_IoAllocateMdl(jitter):
@@ -1300,7 +1320,7 @@ def ntoskrnl_IoAllocateMdl(jitter):
                                              "chargequota", "pirp"])
     m = mdl(args.v_addr, args.l)
     winobjs.nt_mdl[winobjs.nt_mdl_cur] = m
-    jitter.vm.set_mem(mdl2ad(winobjs.nt_mdl_cur), str(m))
+    jitter.vm.set_mem(mdl2ad(winobjs.nt_mdl_cur), bytes(m))
     jitter.func_ret_stdcall(ret_ad, mdl2ad(winobjs.nt_mdl_cur))
     winobjs.nt_mdl_cur += 1
 
@@ -1665,7 +1685,7 @@ def kernel32_WaitForSingleObject(jitter):
         if args.dwms and args.dwms + t_start > time.time() * 1000:
             ret = 0x102
             break
-        for key, value in winobjs.events_pool.iteritems():
+        for key, value in viewitems(winobjs.events_pool):
             if key != args.handle:
                 continue
             found = True
@@ -1835,19 +1855,19 @@ def ntdll_LdrGetProcedureAddress(jitter):
 
 def ntdll_memset(jitter):
     ret_ad, args = jitter.func_args_cdecl(['addr', 'c', 'size'])
-    jitter.vm.set_mem(args.addr, chr(args.c) * args.size)
+    jitter.vm.set_mem(args.addr, int_to_byte(args.c) * args.size)
     jitter.func_ret_cdecl(ret_ad, args.addr)
 
 
 def msvcrt_memset(jitter):
     ret_ad, args = jitter.func_args_cdecl(['addr', 'c', 'size'])
-    jitter.vm.set_mem(args.addr, chr(args.c) * args.size)
+    jitter.vm.set_mem(args.addr, int_to_byte(args.c) * args.size)
     jitter.func_ret_cdecl(ret_ad, args.addr)
 
 def msvcrt_strrchr(jitter):
     ret_ad, args = jitter.func_args_cdecl(['pstr','c'])
     s = jitter.get_str_ansi(args.pstr)
-    c = chr(args.c)
+    c = int_to_byte(args.c)
     ret = args.pstr + s.rfind(c)
     log.info("strrchr(%x '%s','%s') = %x" % (args.pstr,s,c,ret))
     jitter.func_ret_cdecl(ret_ad, ret)
@@ -1855,7 +1875,7 @@ def msvcrt_strrchr(jitter):
 def msvcrt_wcsrchr(jitter):
     ret_ad, args = jitter.func_args_cdecl(['pstr','c'])
     s = jitter.get_str_unic(args.pstr)
-    c = chr(args.c)
+    c = int_to_byte(args.c)
     ret = args.pstr + (s.rfind(c)*2)
     log.info("wcsrchr(%x '%s',%s) = %x" % (args.pstr,s,c,ret))
     jitter.func_ret_cdecl(ret_ad, ret)
@@ -1863,7 +1883,6 @@ def msvcrt_wcsrchr(jitter):
 def msvcrt_memcpy(jitter):
     ret_ad, args = jitter.func_args_cdecl(['dst', 'src', 'size'])
     s = jitter.vm.get_mem(args.src, args.size)
-    #log.info("memcpy buf %s" % s.encode("hex"))
     jitter.vm.set_mem(args.dst, s)
     jitter.func_ret_cdecl(ret_ad, args.dst)
 
@@ -2011,7 +2030,7 @@ def shlwapi_StrToInt64ExW(jitter):
 def user32_IsCharAlpha(jitter, funcname, get_str):
     ret_ad, args = jitter.func_args_stdcall(["c"])
     try:
-        c = chr(args.c)
+        c = int_to_byte(args.c)
     except:
         log.error('bad char %r', args.c)
         c = "\x00"
@@ -2032,7 +2051,7 @@ def user32_IsCharAlphaW(jitter):
 
 def user32_IsCharAlphaNumericA(jitter):
     ret_ad, args = jitter.func_args_stdcall(["c"])
-    c = chr(args.c)
+    c = int_to_byte(args.c)
     if c.isalnum(jitter):
         ret = 1
     else:
@@ -2051,7 +2070,7 @@ def msvcrt_sprintf(jitter):
     ret_ad, args, output = msvcrt_sprintf_str(jitter, jitter.get_str_ansi)
     ret = len(output)
     log.info("sprintf() = '%s'" % (output))
-    jitter.vm.set_mem(args.string, output + '\x00')
+    jitter.vm.set_mem(args.string, output + b'\x00')
     return jitter.func_ret_cdecl(ret_ad, ret)
 
 def msvcrt_swprintf(jitter):
@@ -2060,7 +2079,7 @@ def msvcrt_swprintf(jitter):
     output = get_fmt_args(jitter, fmt, cur_arg, jitter.get_str_unic)
     ret = len(output)
     log.info("swprintf('%s') = '%s'" % (jitter.get_str_unic(args.fmt), output))
-    jitter.vm.set_mem(args.string, output.encode("utf-16le") + '\x00\x00')
+    jitter.vm.set_mem(args.string, output.encode("utf-16le") + b'\x00\x00')
     return jitter.func_ret_cdecl(ret_ad, ret)
 
 def msvcrt_fprintf(jitter):
@@ -2111,7 +2130,7 @@ def kernel32_GetCurrentDirectoryA(jitter):
     ret_ad, args = jitter.func_args_stdcall(["size","buf"])
     dir_ = winobjs.cur_dir
     log.debug("GetCurrentDirectory() = '%s'" % dir_)
-    jitter.vm.set_mem(args.buf, dir_[:args.size-1] + "\x00")
+    jitter.vm.set_mem(args.buf, dir_[:args.size-1] + b"\x00")
     ret = len(dir_)
     if args.size <= len(dir_):
         ret += 1
@@ -2346,7 +2365,7 @@ def filetime_to_unixtime(filetime):
     Convert filetime to unixtime
     # https://msdn.microsoft.com/en-us/library/ms724228
     """
-    return int((filetime - DATE_1601_TO_1970) / 10000000)
+    return int((filetime - DATE_1601_TO_1970) // 10000000)
 
 
 def datetime_to_systemtime(curtime):
@@ -2359,7 +2378,7 @@ def datetime_to_systemtime(curtime):
                     curtime.hour,      # hour
                     curtime.minute ,   # minutes
                     curtime.second,    # seconds
-                    int(curtime.microsecond / 1000),  # millisec
+                    int(curtime.microsecond // 1000),  # millisec
                     )
     return s
 
@@ -2515,7 +2534,7 @@ def kernel32_VirtualQuery(jitter):
 
     all_mem = jitter.vm.get_all_memory()
     found = None
-    for basead, m in all_mem.iteritems():
+    for basead, m in viewitems(all_mem):
         if basead <= args.ad < basead + m['size']:
             found = args.ad, m
             break
@@ -2798,7 +2817,7 @@ def kernel32_GetTempFileNameA(jitter):
     jitter.func_ret_stdcall(ret_ad, 0)
 
 
-class win32_find_data:
+class win32_find_data(object):
     fileattrib = 0
     creationtime = 0
     lastaccesstime = 0
@@ -2811,7 +2830,7 @@ class win32_find_data:
     alternamefilename = ""
 
     def __init__(self, **kargs):
-        for k, v in kargs.items():
+        for k, v in viewitems(kargs):
             setattr(self, k, v)
 
     def toStruct(self):
@@ -2833,7 +2852,7 @@ class win32_find_data:
         return s
 
 
-class find_data_mngr:
+class find_data_mngr(object):
 
     def __init__(self):
         self.patterns = {}
@@ -2904,7 +2923,7 @@ def raw2guid(r):
     return '{%.8X-%.4X-%.4X-%.4X-%.2X%.2X%.2X%.2X%.2X%.2X}' % o
 
 
-digs = string.digits + string.lowercase
+digs = string.digits + string.ascii_lowercase
 
 
 def int2base(x, base):

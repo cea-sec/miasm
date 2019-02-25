@@ -1,7 +1,9 @@
 #! /usr/bin/env python2
+from __future__ import print_function
 from argparse import ArgumentParser
 from pdb import pm
 
+from future.utils import viewitems
 from elfesteem import pe_init
 from elfesteem.strpatchwork import StrPatchwork
 
@@ -9,6 +11,7 @@ from miasm2.core import parse_asm, asmblock
 from miasm2.analysis.machine import Machine
 from miasm2.core.interval import interval
 from miasm2.core.locationdb import LocationDB
+from miasm2.core.utils import iterbytes, int_to_byte
 
 parser = ArgumentParser("Multi-arch (32 bits) assembler")
 parser.add_argument('architecture', help="architecture: " +
@@ -41,8 +44,17 @@ if args.PE:
     pe = pe_init.PE(wsize=size)
     s_text = pe.SHList.add_section(name="text", addr=0x1000, rawsize=0x1000)
     s_iat = pe.SHList.add_section(name="iat", rawsize=0x100)
-    new_dll = [({"name": "USER32.dll",
-                 "firstthunk": s_iat.addr}, ["MessageBoxA"])]
+    new_dll = [
+        (
+            {
+                "name": "USER32.dll",
+                "firstthunk": s_iat.addr
+            },
+            [
+                "MessageBoxA"
+            ]
+        )
+    ]
     pe.DirImport.add_dlldesc(new_dll)
     s_myimp = pe.SHList.add_section(name="myimp", rawsize=len(pe.DirImport))
     pe.DirImport.set_rva(s_myimp.addr)
@@ -51,8 +63,11 @@ if args.PE:
     addr_main = pe.rva2virt(s_text.addr)
     virt = pe.virt
     output = pe
-    dst_interval = interval([(pe.rva2virt(s_text.addr),
-                              pe.rva2virt(s_text.addr + s_text.size))])
+    dst_interval = interval(
+        [
+            (pe.rva2virt(s_text.addr), pe.rva2virt(s_text.addr + s_text.size))
+        ]
+    )
 else:
     st = StrPatchwork()
 
@@ -74,20 +89,26 @@ asmcfg, loc_db = parse_asm.parse_txt(machine.mn, attrib, source, loc_db)
 loc_db.set_location_offset(loc_db.get_name_location("main"), addr_main)
 
 if args.PE:
-    loc_db.set_location_offset(loc_db.get_or_create_name_location("MessageBoxA"),
-                               pe.DirImport.get_funcvirt('USER32.dll',
-                                                         'MessageBoxA'))
+    loc_db.set_location_offset(
+        loc_db.get_or_create_name_location("MessageBoxA"),
+        pe.DirImport.get_funcvirt(
+            'USER32.dll',
+            'MessageBoxA'
+        )
+    )
 
 # Print and graph firsts blocks before patching it
 for block in asmcfg.blocks:
-    print block
+    print(block)
 open("graph.dot", "w").write(asmcfg.dot())
 
 # Apply patches
-patches = asmblock.asm_resolve_final(machine.mn,
-                                    asmcfg,
-                                    loc_db,
-                                    dst_interval)
+patches = asmblock.asm_resolve_final(
+    machine.mn,
+    asmcfg,
+    loc_db,
+    dst_interval
+)
 if args.encrypt:
     # Encrypt code
     loc_start = loc_db.get_or_create_name_location(args.encrypt[0])
@@ -95,20 +116,18 @@ if args.encrypt:
     ad_start = loc_db.get_location_offset(loc_start)
     ad_stop = loc_db.get_location_offset(loc_stop)
 
-    new_patches = dict(patches)
-    for ad, val in patches.items():
+    for ad, val in list(viewitems(patches)):
         if ad_start <= ad < ad_stop:
-            new_patches[ad] = "".join([chr(ord(x) ^ 0x42) for x in val])
-    patches = new_patches
+            patches[ad] = b"".join(int_to_byte(ord(x) ^ 0x42) for x in iterbytes(val))
 
-print patches
+print(patches)
 if isinstance(virt, StrPatchwork):
-    for offset, raw in patches.items():
+    for offset, raw in viewitems(patches):
         virt[offset] = raw
 else:
-    for offset, raw in patches.items():
+    for offset, raw in viewitems(patches):
         virt.set(offset, raw)
 
 
 # Produce output
-open(args.output, 'wb').write(str(output))
+open(args.output, 'wb').write(bytes(output))

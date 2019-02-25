@@ -1,3 +1,4 @@
+from builtins import range
 from random import shuffle, seed
 
 from miasm2.core.interval import interval
@@ -11,10 +12,10 @@ def gen_all_intervals(size):
     -> 2**(2**size) (number of partition)
     """
     nb_elements = 1 << size
-    for bvec in xrange(1 << nb_elements):
+    for bvec in range(1 << nb_elements):
         # Bit vector: if bit i is on, i is in the interval
         to_ret = interval()
-        for i in xrange(nb_elements):
+        for i in range(nb_elements):
             if bvec & i == i:
                 to_ret += [(i, i)]
         yield to_ret
@@ -22,12 +23,12 @@ def gen_all_intervals(size):
 def interval_elements(interv):
     """Generator on element of an interval"""
     for sub_range in interv:
-        for i in xrange(sub_range[0], sub_range[1] + 1):
+        for i in range(sub_range[0], sub_range[1] + 1):
             yield i
 
 size = 4
 left, right = list(gen_all_intervals(size)), list(gen_all_intervals(size))
-right_int = range(1 << size)
+right_int = list(range(1 << size))
 mask = (1 << size) - 1
 
 def test(left, right):

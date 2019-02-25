@@ -1,3 +1,4 @@
+from __future__ import print_function
 from pdb import pm
 from pprint import pprint
 
@@ -29,7 +30,7 @@ patches = asmblock.asm_resolve_final(mn_x86, asmcfg, loc_db)
 
 # Show resolved asmcfg
 for block in asmcfg.blocks:
-    print block
+    print(block)
 
 # Print offset -> bytes
 pprint(patches)

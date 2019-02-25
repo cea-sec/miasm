@@ -1,5 +1,9 @@
 """Provide dependency graph"""
 
+from functools import total_ordering
+
+from future.utils import viewitems
+
 from miasm2.expression.expression import ExprInt, ExprLoc, ExprAssign
 from miasm2.core.graph import DiGraph
 from miasm2.core.locationdb import LocationDB
@@ -14,7 +18,7 @@ try:
 except ImportError:
     pass
 
-
+@total_ordering
 class DependencyNode(object):
 
     """Node elements of a DependencyGraph
@@ -50,16 +54,17 @@ class DependencyNode(object):
                 self.element == depnode.element and
                 self.line_nb == depnode.line_nb)
 
-    def __ne__(self, other):
-        return not self.__eq__(other)
+    def __ne__(self, depnode):
+        # required Python 2.7.14
+        return not self == depnode
 
-    def __cmp__(self, node):
+    def __lt__(self, node):
         """Compares @self with @node."""
         if not isinstance(node, self.__class__):
-            return cmp(self.__class__, node.__class__)
+            return NotImplemented
 
-        return cmp((self.loc_key, self.element, self.line_nb),
-                   (node.loc_key, node.element, node.line_nb))
+        return ((self.loc_key, self.element, self.line_nb) <
+                (node.loc_key, node.element, node.line_nb))
 
     def __str__(self):
         """Returns a string representation of DependencyNode"""
@@ -96,7 +101,7 @@ class DependencyState(object):
     def __init__(self, loc_key, pending, line_nb=None):
         self.loc_key = loc_key
         self.history = [loc_key]
-        self.pending = {k: set(v) for k, v in pending.iteritems()}
+        self.pending = {k: set(v) for k, v in viewitems(pending)}
         self.line_nb = line_nb
         self.links = set()
 
@@ -104,9 +109,11 @@ class DependencyState(object):
         self._graph = None
 
     def __repr__(self):
-        return "<State: %r (%r) (%r)>" % (self.loc_key,
-                                          self.pending,
-                                          self.links)
+        return "<State: %r (%r) (%r)>" % (
+            self.loc_key,
+            self.pending,
+            self.links
+        )
 
     def extend(self, loc_key):
         """Return a copy of itself, with itself in history
@@ -129,7 +136,7 @@ class DependencyState(object):
                 graph.add_node(node_a)
             else:
                 graph.add_edge(node_a, node_b)
-        for parent, sons in self.pending.iteritems():
+        for parent, sons in viewitems(self.pending):
             for son in sons:
                 graph.add_edge(parent, son)
         return graph
@@ -148,7 +155,7 @@ class DependencyState(object):
 
     def add_pendings(self, future_pending):
         """Add @future_pending to the state"""
-        for node, depnodes in future_pending.iteritems():
+        for node, depnodes in viewitems(future_pending):
             if node not in self.pending:
                 self.pending[node] = depnodes
             else:
@@ -263,7 +270,7 @@ class DependencyResult(DependencyState):
             line2elements.setdefault(depnode.line_nb,
                                      set()).add(depnode.element)
 
-        for line_nb, elements in sorted(line2elements.iteritems()):
+        for line_nb, elements in sorted(viewitems(line2elements)):
             if max_line is not None and line_nb >= max_line:
                 break
             assignmnts = {}
@@ -385,8 +392,10 @@ class DependencyResultImplicit(DependencyResult):
         self._solver = solver
 
         # Return only inputs values (others could be wrongs)
-        return {element: symb_exec.eval_expr(element)
-                for element in self.inputs}
+        return {
+            element: symb_exec.eval_expr(element)
+            for element in self.inputs
+        }
 
     @property
     def is_satisfiable(self):
@@ -562,7 +571,7 @@ class DependencyGraph(object):
         """Track pending expression in an assignblock"""
         future_pending = {}
         node_resolved = set()
-        for dst, src in assignblk.iteritems():
+        for dst, src in viewitems(assignblk):
             # Only track pending
             if dst not in state.pending:
                 continue

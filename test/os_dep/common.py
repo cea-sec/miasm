@@ -1,6 +1,7 @@
 #! /usr/bin/env python2
 #-*- coding:utf-8 -*-
 
+from builtins import range
 import unittest
 import logging
 from miasm2.analysis.machine import Machine
@@ -25,7 +26,7 @@ class TestCommonAPI(unittest.TestCase):
         heap.alloc(jit, 60)
         ptr = heap.alloc(jit, 10)
         heap.alloc(jit, 80)
-        for i in xrange(10):
+        for i in range(10):
             self.assertEqual(heap.get_size(jit.vm, ptr+i), 10)
 
 if __name__ == '__main__':

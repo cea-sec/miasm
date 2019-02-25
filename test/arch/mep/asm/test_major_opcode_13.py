@@ -4,7 +4,7 @@
 from ut_helpers_asm import check_instruction
 
 
-class TestMajor13:
+class TestMajor13(object):
 
     def test_MOVU(self):
         """Test the MOVU instruction"""

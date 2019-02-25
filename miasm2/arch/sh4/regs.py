@@ -1,20 +1,21 @@
+from builtins import range
 from miasm2.expression.expression import *
 from miasm2.core.cpu import reg_info, gen_reg
 
 # GP
-gpregs_str = ['R%d' % r for r in xrange(0x10)]
+gpregs_str = ['R%d' % r for r in range(0x10)]
 gpregs_expr = [ExprId(x, 32) for x in gpregs_str]
 gpregs = reg_info(gpregs_str, gpregs_expr)
 
-bgpregs_str = ['R%d_BANK' % r for r in xrange(0x8)]
+bgpregs_str = ['R%d_BANK' % r for r in range(0x8)]
 bgpregs_expr = [ExprId(x, 32) for x in bgpregs_str]
 bgpregs = reg_info(bgpregs_str, bgpregs_expr)
 
-fregs_str = ['FR%d' % r for r in xrange(0x10)]
+fregs_str = ['FR%d' % r for r in range(0x10)]
 fregs_expr = [ExprId(x, 32) for x in fregs_str]
 fregs = reg_info(fregs_str, fregs_expr)
 
-dregs_str = ['DR%d' % r for r in xrange(0x8)]
+dregs_str = ['DR%d' % r for r in range(0x8)]
 dregs_expr = [ExprId(x, 32) for x in dregs_str]
 dregs = reg_info(dregs_str, dregs_expr)
 

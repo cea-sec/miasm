@@ -2,8 +2,11 @@
 
 # miasm2.core.types tests
 
+from __future__ import print_function
+from builtins import range
 import struct
 
+from miasm2.core.utils import int_to_byte
 from miasm2.analysis.machine import Machine
 from miasm2.core.types import MemStruct, Num, Ptr, Str, \
                               Array, RawStruct, Union, \
@@ -40,7 +43,7 @@ addr_str = 0x1100
 addr_str2 = 0x1200
 addr_str3 = 0x1300
 # Initialize all mem with 0xaa
-jitter.vm.add_memory_page(addr, PAGE_READ | PAGE_WRITE, "\xaa"*size)
+jitter.vm.add_memory_page(addr, PAGE_READ | PAGE_WRITE, b"\xaa"*size)
 
 
 # MemStruct tests
@@ -64,7 +67,7 @@ assert mstruct.flags == 0
 assert mstruct.other.val == 0
 assert mstruct.s.val == 0
 assert mstruct.i.val == 0
-mstruct.memset('\x11')
+mstruct.memset(b'\x11')
 assert mstruct.num == 0x11111111
 assert mstruct.flags == 0x11
 assert mstruct.other.val == 0x11111111
@@ -122,10 +125,10 @@ assert memval == 8
 memstr = Str().lval(jitter.vm, addr_str)
 memstr.val = ""
 assert memstr.val == ""
-assert jitter.vm.get_mem(memstr.get_addr(), 1) == '\x00'
+assert jitter.vm.get_mem(memstr.get_addr(), 1) == b'\x00'
 memstr.val = "lala"
-assert jitter.vm.get_mem(memstr.get_addr(), memstr.get_size()) == 'lala\x00'
-jitter.vm.set_mem(memstr.get_addr(), 'MIAMs\x00')
+assert jitter.vm.get_mem(memstr.get_addr(), memstr.get_size()) == b'lala\x00'
+jitter.vm.set_mem(memstr.get_addr(), b'MIAMs\x00')
 assert memstr.val == 'MIAMs'
 
 ## Ptr(Str()) manipulations
@@ -148,7 +151,7 @@ memstr3 = Str("utf16").lval(jitter.vm, addr_str3)
 memstr3.val = "That's all folks!"
 assert memstr3.get_addr() != memstr.get_addr()
 assert memstr3.get_size() != memstr.get_size() # Size is different
-assert str(memstr3) != str(memstr) # Mem representation is different
+assert bytes(memstr3) != bytes(memstr) # Mem representation is different
 assert memstr3 != memstr # Encoding is different, so they are not eq
 assert memstr3.val == memstr.val # But the python value is the same
 
@@ -163,13 +166,13 @@ memarray = Array(Num("I")).lval(jitter.vm, alloc_addr)
 memarray[0] = 0x02
 assert memarray[0] == 0x02
 assert jitter.vm.get_mem(memarray.get_addr(),
-                         Num("I").size) == '\x02\x00\x00\x00'
+                         Num("I").size) == b'\x02\x00\x00\x00'
 memarray[2] = 0xbbbbbbbb
 assert memarray[2] == 0xbbbbbbbb
 assert jitter.vm.get_mem(memarray.get_addr() + 2 * Num("I").size,
-                         Num("I").size) == '\xbb\xbb\xbb\xbb'
+                         Num("I").size) == b'\xbb\xbb\xbb\xbb'
 try:
-    s = str(memarray)
+    s = bytes(memarray)
     assert False, "Should raise"
 except (NotImplementedError, ValueError):
     pass
@@ -194,16 +197,16 @@ except ValueError:
 memsarray = Array(Num("I"), 10).lval(jitter.vm)
 # And Array(type, size).lval generates statically sized types
 assert memsarray.sizeof() == Num("I").size * 10
-memsarray.memset('\xcc')
+memsarray.memset(b'\xcc')
 assert memsarray[0] == 0xcccccccc
 assert len(memsarray) == 10 * 4
-assert str(memsarray) == '\xcc' * (4 * 10)
+assert bytes(memsarray) == b'\xcc' * (4 * 10)
 for val in memsarray:
     assert val == 0xcccccccc
 assert list(memsarray) == [0xcccccccc] * 10
 memsarray[0] = 2
 assert memsarray[0] == 2
-assert str(memsarray) == '\x02\x00\x00\x00' + '\xcc' * (4 * 9)
+assert bytes(memsarray) == b'\x02\x00\x00\x00' + b'\xcc' * (4 * 9)
 
 
 # Atypical fields (RawStruct and Array)
@@ -214,7 +217,7 @@ class MyStruct2(MemStruct):
     ]
 
 ms2 = MyStruct2(jitter.vm)
-ms2.memset('\xaa')
+ms2.memset(b'\xaa')
 assert len(ms2) == 15
 
 ## RawStruct
@@ -241,7 +244,7 @@ for val in ms2.s2:
 
 ### Field assignment (MemSizedArray)
 array2 = Array(Num("B"), 10).lval(jitter.vm)
-jitter.vm.set_mem(array2.get_addr(), '\x02'*10)
+jitter.vm.set_mem(array2.get_addr(), b'\x02'*10)
 for val in array2:
     assert val == 2
 ms2.s2 = array2
@@ -272,7 +275,7 @@ assert cont.one == 0
 assert cont.last == 0
 assert cont.instruct.foo == 0
 assert cont.instruct.bar == 0
-cont.memset('\x11')
+cont.memset(b'\x11')
 assert cont.one == 0x11
 assert cont.last == 0x11
 assert cont.instruct.foo == 0x11
@@ -286,7 +289,7 @@ assert cont.one == 0x01
 assert cont.instruct.foo == 0x02
 assert cont.instruct.bar == 0x03
 assert cont.last == 0x04
-assert jitter.vm.get_mem(cont.get_addr(), len(cont)) == '\x01\x02\x03\x04'
+assert jitter.vm.get_mem(cont.get_addr(), len(cont)) == b'\x01\x02\x03\x04'
 
 
 # Union test
@@ -301,7 +304,7 @@ class UniStruct(MemStruct):
     ]
 
 uni = UniStruct(jitter.vm)
-jitter.vm.set_mem(uni.get_addr(), ''.join(chr(x) for x in xrange(len(uni))))
+jitter.vm.set_mem(uni.get_addr(), b''.join(int_to_byte(x) for x in range(len(uni))))
 assert len(uni) == 6 # 1 + max(InStruct.sizeof(), 4) + 1
 assert uni.one == 0x00
 assert uni.union.instruct.foo == 0x01
@@ -535,18 +538,18 @@ for idx, off in ((0, 0), (1, 2), (30, 60)):
 
 # Repr tests
 
-print "Some struct reprs:\n"
-print repr(mstruct), '\n'
-print repr(ms2), '\n'
-print repr(cont), '\n'
-print repr(uni), '\n'
-print repr(bit), '\n'
-print repr(ideas), '\n'
-print repr(Array(MyStruct2.get_type(), 2).lval(jitter.vm, addr)), '\n'
-print repr(Num("f").lval(jitter.vm, addr)), '\n'
-print repr(memarray)
-print repr(memsarray)
-print repr(memstr)
-print repr(memstr3)
+print("Some struct reprs:\n")
+print(repr(mstruct), '\n')
+print(repr(ms2), '\n')
+print(repr(cont), '\n')
+print(repr(uni), '\n')
+print(repr(bit), '\n')
+print(repr(ideas), '\n')
+print(repr(Array(MyStruct2.get_type(), 2).lval(jitter.vm, addr)), '\n')
+print(repr(Num("f").lval(jitter.vm, addr)), '\n')
+print(repr(memarray))
+print(repr(memsarray))
+print(repr(memstr))
+print(repr(memstr3))
 
-print "\nOk" # That's all folks!
+print("\nOk") # That's all folks!

@@ -1,6 +1,7 @@
 #! /usr/bin/env python2
 #-*- coding:utf-8 -*-
 
+from builtins import range
 import unittest
 
 
@@ -11,7 +12,7 @@ class TestIrIr2STP(unittest.TestCase):
         from miasm2.ir.translators.translator  import Translator
         translator_smt2 = Translator.to_language("smt2")
 
-        args = [ExprInt(i, 32) for i in xrange(9)]
+        args = [ExprInt(i, 32) for i in range(9)]
 
         self.assertEqual(
             translator_smt2.from_expr(ExprOp('|',  *args[:2])), r'(bvor (_ bv0 32) (_ bv1 32))')
@@ -26,7 +27,7 @@ class TestIrIr2STP(unittest.TestCase):
         from miasm2.ir.translators.translator  import Translator
         translator_smt2 = Translator.to_language("smt2")
 
-        args = [ExprInt(i, 32) for i in xrange(9)]
+        args = [ExprInt(i, 32) for i in range(9)]
 
         self.assertEqual(
             translator_smt2.from_expr(args[0][1:2]), r'((_ extract 1 1) (_ bv0 32))')

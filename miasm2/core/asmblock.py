@@ -1,8 +1,13 @@
 #-*- coding:utf-8 -*-
 
+from builtins import map
+from builtins import range
 import logging
 import warnings
 from collections import namedtuple
+from builtins import int as int_types
+
+from future.utils import viewitems, viewvalues
 
 from miasm2.expression.expression import ExprId, ExprInt, get_expr_locs
 from miasm2.expression.expression import LocKey
@@ -22,14 +27,12 @@ log_asmblock.setLevel(logging.WARNING)
 
 
 def is_int(a):
-    return isinstance(a, int) or isinstance(a, long) or \
-        isinstance(a, moduint) or isinstance(a, modint)
-
+    return isinstance(a, (modint, moduint, int_types))
 
 
 class AsmRaw(object):
 
-    def __init__(self, raw=""):
+    def __init__(self, raw=b""):
         self.raw = raw
 
     def __str__(self):
@@ -41,7 +44,7 @@ class AsmRaw(object):
 
 class asm_raw(AsmRaw):
 
-    def __init__(self, raw=""):
+    def __init__(self, raw=b""):
         warnings.warn('DEPRECATION WARNING: use "AsmRaw" instead of "asm_raw"')
         super(asm_label, self).__init__(raw)
 
@@ -190,7 +193,8 @@ class AsmBlock(object):
             for xx in self.bto:
                 log_asmblock.debug('lbl %s', xx)
             c_next = set(
-                [x for x in self.bto if x.c_t == AsmConstraint.c_next])
+                x for x in self.bto if x.c_t == AsmConstraint.c_next
+            )
             c_to = [x for x in self.bto if x.c_t != AsmConstraint.c_next]
             self.bto = set([c] + c_to)
             new_bloc.bto = c_next
@@ -223,7 +227,7 @@ class AsmBlock(object):
     def get_flow_instr(self):
         if not self.lines:
             return None
-        for i in xrange(-1, -1 - self.lines[0].delayslot - 1, -1):
+        for i in range(-1, -1 - self.lines[0].delayslot - 1, -1):
             if not 0 <= i < len(self.lines):
                 return None
             l = self.lines[i]
@@ -236,7 +240,7 @@ class AsmBlock(object):
         delayslot = self.lines[0].delayslot
         end_index = len(self.lines) - 1
         ds_max_index = max(end_index - delayslot, 0)
-        for i in xrange(end_index, ds_max_index - 1, -1):
+        for i in range(end_index, ds_max_index - 1, -1):
             l = self.lines[i]
             if l.is_subcall():
                 return l
@@ -280,8 +284,10 @@ class AsmBlock(object):
         for constraint in self.bto:
             dests.setdefault(constraint.loc_key, set()).add(constraint)
 
-        self.bto = set(self._filter_constraint(constraints)
-                       for constraints in dests.itervalues())
+        self.bto = set(
+            self._filter_constraint(constraints)
+            for constraints in viewvalues(dests)
+        )
 
 
 class asm_bloc(object):
@@ -324,8 +330,10 @@ class AsmBlockBad(AsmBlock):
 
     def __str__(self):
         error_txt = self.ERROR_TYPES.get(self._errno, self._errno)
-        return "\n".join([str(self.loc_key),
-                          "\tBad block: %s" % error_txt])
+        return "%s\n\tBad block: %s" % (
+            self.loc_key,
+            error_txt
+        )
 
     def addline(self, *args, **kwargs):
         raise RuntimeError("An AsmBlockBad cannot have line")
@@ -421,7 +429,9 @@ class AsmCFG(DiGraph):
         """Return the number of blocks in AsmCFG"""
         return len(self._nodes)
 
-    blocks = property(lambda x:x._loc_key_to_block.itervalues())
+    @property
+    def blocks(self):
+        return viewvalues(self._loc_key_to_block)
 
     # Manage graph with associated constraints
     def add_edge(self, src, dst, constraint):
@@ -536,7 +546,7 @@ class AsmCFG(DiGraph):
 
     def node2lines(self, node):
         if self.loc_db is None:
-            loc_key_name = str(node)
+            loc_key_name = node
         else:
             loc_key_name = self.loc_db.pretty_str(node)
         yield self.DotCellDescription(text=loc_key_name,
@@ -545,7 +555,7 @@ class AsmCFG(DiGraph):
                                             'bgcolor': 'grey'})
         block = self._loc_key_to_block.get(node, None)
         if block is None:
-            raise StopIteration
+            return
         if isinstance(block, AsmBlockBad):
             yield [
                 self.DotCellDescription(
@@ -554,7 +564,7 @@ class AsmCFG(DiGraph):
                     ),
                     attr={})
             ]
-            raise StopIteration
+            return
         for line in block.lines:
             if self._dot_offset:
                 yield [self.DotCellDescription(text="%.8X" % line.offset,
@@ -700,14 +710,20 @@ class AsmCFG(DiGraph):
         """
 
         if len(self._pendings) != 0:
-            raise RuntimeError("Some blocks are missing: %s" % map(
-                str,
-                self._pendings.keys()
-            ))
+            raise RuntimeError(
+                "Some blocks are missing: %s" % list(
+                    map(
+                        str,
+                        self._pendings
+                    )
+                )
+            )
 
-        next_edges = {edge: constraint
-                      for edge, constraint in self.edges2constraint.iteritems()
-                      if constraint == AsmConstraint.c_next}
+        next_edges = {
+            edge: constraint
+            for edge, constraint in viewitems(self.edges2constraint)
+            if constraint == AsmConstraint.c_next
+        }
 
         for loc_key in self._nodes:
             if loc_key not in self._loc_key_to_block:
@@ -740,8 +756,11 @@ class AsmCFG(DiGraph):
                         if len(instr.raw) == 0:
                             l = 0
                         else:
-                            l = instr.raw[0].size / 8 * len(instr.raw)
+                            l = (instr.raw[0].size // 8) * len(instr.raw)
                     elif isinstance(instr.raw, str):
+                        data = instr.raw.encode()
+                        l = len(data)
+                    elif isinstance(instr.raw, bytes):
                         data = instr.raw
                         l = len(data)
                     else:
@@ -1148,7 +1167,7 @@ def resolve_symbol(blockChains, loc_db, dst_interval=None):
         if chain.pinned:
             continue
         fixed = False
-        for i in xrange(1, len(fixed_chains)):
+        for i in range(1, len(fixed_chains)):
             prev_chain = fixed_chains[i - 1]
             next_chain = fixed_chains[i]
 
@@ -1187,7 +1206,7 @@ def assemble_block(mnemo, block, loc_db, conservative=False):
         if isinstance(instr, AsmRaw):
             if isinstance(instr.raw, list):
                 # Fix special AsmRaw
-                data = ""
+                data = b""
                 for expr in instr.raw:
                     expr_int = fix_expr_val(expr, loc_db)
                     data += pck[expr_int.size](expr_int.arg)
@@ -1471,7 +1490,7 @@ class disasmEngine(object):
             # XXX TODO nul start block option
             if (self.dont_dis_nulstart_bloc and
                 not cur_block.lines and
-                instr.b.count('\x00') == instr.l):
+                instr.b.count(b'\x00') == instr.l):
                 log_asmblock.warning("reach nul instr at %X", int(off_i))
                 # Block is empty -> bad block
                 cur_block = AsmBlockBad(loc_key, errno=AsmBlockBad.ERROR_NULL_STARTING_BLOCK)

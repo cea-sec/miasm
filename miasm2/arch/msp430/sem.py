@@ -96,10 +96,10 @@ def mng_autoinc(a, b, size):
         return e, a, b
 
     a_r = a.args[0]
-    e.append(ExprAssign(a_r, a_r + ExprInt(size / 8, a_r.size)))
+    e.append(ExprAssign(a_r, a_r + ExprInt(size // 8, a_r.size)))
     a = ExprMem(a_r, size)
     if isinstance(b, ExprMem) and a_r in b.arg:
-        b = ExprMem(b.arg + ExprInt(size / 8, 16), b.size)
+        b = ExprMem(b.arg + ExprInt(size // 8, 16), b.size)
     return e, a, b
 
 # Mnemonics

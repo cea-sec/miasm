@@ -1,6 +1,8 @@
 """Data flow analysis based on miasm intermediate representation"""
-
+from builtins import range
 from collections import namedtuple
+from future.utils import viewitems, viewvalues
+from miasm2.core.utils import encode_hex
 from miasm2.core.graph import DiGraph
 from miasm2.ir.ir import AssignBlock, IRBlock
 from miasm2.expression.expression import ExprLoc, ExprMem, ExprId, ExprInt,\
@@ -56,7 +58,7 @@ class ReachingDefinitions(dict):
         modified = True
         while modified:
             modified = False
-            for block in self.ircfg.blocks.itervalues():
+            for block in viewvalues(self.ircfg.blocks):
                 modified |= self.process_block(block)
 
     def process_block(self, block):
@@ -67,7 +69,7 @@ class ReachingDefinitions(dict):
         predecessor_state = {}
         for pred_lbl in self.ircfg.predecessors(block.loc_key):
             pred = self.ircfg.blocks[pred_lbl]
-            for lval, definitions in self.get_definitions(pred_lbl, len(pred)).iteritems():
+            for lval, definitions in viewitems(self.get_definitions(pred_lbl, len(pred))):
                 predecessor_state.setdefault(lval, set()).update(definitions)
 
         modified = self.get((block.loc_key, 0)) != predecessor_state
@@ -75,7 +77,7 @@ class ReachingDefinitions(dict):
             return False
         self[(block.loc_key, 0)] = predecessor_state
 
-        for index in xrange(len(block)):
+        for index in range(len(block)):
             modified |= self.process_assignblock(block, index)
         return modified
 
@@ -151,7 +153,7 @@ class DiGraphDefUse(DiGraph):
 
     def _compute_def_use(self, reaching_defs,
                          deref_mem=False):
-        for block in self._blocks.itervalues():
+        for block in viewvalues(self._blocks):
             self._compute_def_use_block(block,
                                         reaching_defs,
                                         deref_mem=deref_mem)
@@ -159,7 +161,7 @@ class DiGraphDefUse(DiGraph):
     def _compute_def_use_block(self, block, reaching_defs, deref_mem=False):
         for index, assignblk in enumerate(block):
             assignblk_reaching_defs = reaching_defs.get_definitions(block.loc_key, index)
-            for lval, expr in assignblk.iteritems():
+            for lval, expr in viewitems(assignblk):
                 self.add_node(AssignblkNode(block.loc_key, index, lval))
 
                 read_vars = expr.get_r(mem_read=deref_mem)
@@ -212,7 +214,7 @@ def dead_simp_useful_assignblks(irarch, defuse, reaching_defs):
     ircfg = reaching_defs.ircfg
     useful = set()
 
-    for block_lbl, block in ircfg.blocks.iteritems():
+    for block_lbl, block in viewitems(ircfg.blocks):
         successors = ircfg.successors(block_lbl)
         for successor in successors:
             if successor not in ircfg.blocks:
@@ -225,14 +227,14 @@ def dead_simp_useful_assignblks(irarch, defuse, reaching_defs):
         if keep_all_definitions or (len(successors) == 0):
             valid_definitions = reaching_defs.get_definitions(block_lbl,
                                                               len(block))
-            for lval, definitions in valid_definitions.iteritems():
+            for lval, definitions in viewitems(valid_definitions):
                 if lval in irarch.get_out_regs(block) or keep_all_definitions:
                     for definition in definitions:
                         useful.add(AssignblkNode(definition[0], definition[1], lval))
 
         # Force keeping of specific cases
         for index, assignblk in enumerate(block):
-            for lval, rval in assignblk.iteritems():
+            for lval, rval in viewitems(assignblk):
                 if (lval.is_mem() or
                     irarch.IRDst == lval or
                     lval.is_id("exception_flags") or
@@ -262,7 +264,7 @@ def dead_simp(irarch, ircfg):
     reaching_defs = ReachingDefinitions(ircfg)
     defuse = DiGraphDefUse(reaching_defs, deref_mem=True)
     useful = set(dead_simp_useful_assignblks(irarch, defuse, reaching_defs))
-    for block in ircfg.blocks.itervalues():
+    for block in list(viewvalues(ircfg.blocks)):
         irs = []
         for idx, assignblk in enumerate(block):
             new_assignblk = dict(assignblk)
@@ -311,7 +313,7 @@ def _do_merge_blocks(ircfg, loc_key, son_loc_key):
             assignblks.append(assignblk)
             continue
         affs = {}
-        for dst, src in assignblk.iteritems():
+        for dst, src in viewitems(assignblk):
             if dst != ircfg.IRDst:
                 affs[dst] = src
         if affs:
@@ -348,7 +350,7 @@ def _test_jmp_only(ircfg, loc_key, heads):
     irblock = ircfg.blocks[loc_key]
     if len(irblock.assignblks) != 1:
         return None
-    items = dict(irblock.assignblks[0]).items()
+    items = list(viewitems(dict(irblock.assignblks[0])))
     if len(items) != 1:
         return None
     if len(ircfg.successors(loc_key)) != 1:
@@ -528,7 +530,7 @@ def remove_empty_assignblks(ircfg):
     @ircfg: IRCFG instance
     """
     modified = False
-    for loc_key, block in ircfg.blocks.iteritems():
+    for loc_key, block in list(viewitems(ircfg.blocks)):
         irs = []
         block_modified = False
         for assignblk in block:
@@ -591,13 +593,13 @@ class SSADefUse(DiGraph):
             if block is None:
                 continue
             for index, assignblk in enumerate(block):
-                for dst, src in assignblk.iteritems():
+                for dst, src in viewitems(assignblk):
                     node = AssignblkNode(lbl, index, dst)
                     graph.add_var_def(node, src)
                     graph.add_def_node(def_nodes, node, src)
                     graph.add_use_node(use_nodes, node, src)
 
-        for dst, node in def_nodes.iteritems():
+        for dst, node in viewitems(def_nodes):
             graph.add_node(node)
             if dst not in use_nodes:
                 continue
@@ -650,7 +652,7 @@ class PropagateThroughExprId(object):
         @assignblks: list of AssignBlock to check
         """
         for assignblk in assignblks:
-            for dst, src in assignblk.iteritems():
+            for dst, src in viewitems(assignblk):
                 if src.is_function_call():
                     return True
                 if dst.is_mem():
@@ -723,7 +725,7 @@ class PropagateThroughExprId(object):
         def_dct = {}
         for node in ircfg.nodes():
             for index, assignblk in enumerate(ircfg.blocks[node]):
-                for dst, src in assignblk.iteritems():
+                for dst, src in viewitems(assignblk):
                     if not dst.is_id():
                         continue
                     if dst in ssa.immutable_ids:
@@ -786,7 +788,7 @@ class PropagateThroughExprId(object):
         """
         node_to_reg, to_replace, defuse = self.get_candidates(ssa, head, max_expr_depth)
         modified = False
-        for node, reg in node_to_reg.iteritems():
+        for node, reg in viewitems(node_to_reg):
             for successor in defuse.successors(node):
                 if not self.propagation_allowed(ssa, to_replace, node, successor):
                     continue
@@ -800,7 +802,7 @@ class PropagateThroughExprId(object):
                 assignblks = list(block)
                 assignblk = block[node_b.index]
                 out = {}
-                for dst, src in assignblk.iteritems():
+                for dst, src in viewitems(assignblk):
                     if src.is_op('Phi'):
                         out[dst] = src
                         continue
@@ -874,16 +876,16 @@ class PropagateThroughExprMem(object):
         ircfg = ssa.graph
         todo = set()
         modified = False
-        for block in ircfg.blocks.itervalues():
+        for block in viewvalues(ircfg.blocks):
             for i, assignblk in enumerate(block):
-                for dst, src in assignblk.iteritems():
+                for dst, src in viewitems(assignblk):
                     if not dst.is_mem():
                         continue
                     if expr_has_mem(src):
                         continue
                     todo.add((block.loc_key, i + 1, dst, src))
                     ptr = dst.ptr
-                    for size in xrange(8, dst.size, 8):
+                    for size in range(8, dst.size, 8):
                         todo.add((block.loc_key, i + 1, ExprMem(ptr, size), src[:size]))
 
         while todo:
@@ -891,13 +893,13 @@ class PropagateThroughExprMem(object):
             block = ircfg.blocks[loc_key]
             assignblks = list(block)
             block_modified = False
-            for i in xrange(index, len(block)):
+            for i in range(index, len(block)):
                 assignblk = block[i]
                 write_mem = False
                 assignblk_modified = False
                 out = dict(assignblk)
                 out_new = {}
-                for dst, src in out.iteritems():
+                for dst, src in viewitems(out):
                     if dst.is_mem():
                         write_mem = True
                         ptr = dst.ptr.replace_expr({mem_dst:mem_src})
@@ -941,7 +943,7 @@ def stack_to_reg(expr):
             diff = int(ptr.args[1])
             assert diff % 4 == 0
             diff = (0 - diff) & 0xFFFFFFFF
-            return ExprId("STACK.%d" % (diff / 4), expr.size)
+            return ExprId("STACK.%d" % (diff // 4), expr.size)
     return False
 
 
@@ -997,12 +999,12 @@ def retrieve_stack_accesses(ir_arch_a, ircfg):
     @ircfg: IRCFG instance
     """
     stack_vars = set()
-    for block in ircfg.blocks.itervalues():
+    for block in viewvalues(ircfg.blocks):
         for assignblk in block:
-            for dst, src in assignblk.iteritems():
+            for dst, src in viewitems(assignblk):
                 stack_vars.update(get_stack_accesses(ir_arch_a, dst))
                 stack_vars.update(get_stack_accesses(ir_arch_a, src))
-    stack_vars = filter(lambda expr: check_expr_below_stack(ir_arch_a, expr), stack_vars)
+    stack_vars = [expr for expr in stack_vars if check_expr_below_stack(ir_arch_a, expr)]
 
     base_to_var = {}
     for var in stack_vars:
@@ -1010,7 +1012,7 @@ def retrieve_stack_accesses(ir_arch_a, ircfg):
 
 
     base_to_interval = {}
-    for addr, vars in base_to_var.iteritems():
+    for addr, vars in viewitems(base_to_var):
         var_interval = interval()
         for var in vars:
             offset = expr_simp(addr - ir_arch_a.sp)
@@ -1019,7 +1021,7 @@ def retrieve_stack_accesses(ir_arch_a, ircfg):
                 continue
 
             start = int(offset)
-            stop = int(expr_simp(offset + ExprInt(var.size / 8, offset.size)))
+            stop = int(expr_simp(offset + ExprInt(var.size // 8, offset.size)))
             mem = interval([(start, stop-1)])
             var_interval += mem
         base_to_interval[addr] = var_interval
@@ -1033,7 +1035,7 @@ def retrieve_stack_accesses(ir_arch_a, ircfg):
         tmp += mem
 
     base_to_info = {}
-    for addr, vars in base_to_var.iteritems():
+    for addr, vars in viewitems(base_to_var):
         name = "var_%d" % (len(base_to_info))
         size = max([var.size for var in vars])
         base_to_info[addr] = size, name
@@ -1079,11 +1081,11 @@ def replace_stack_vars(ir_arch_a, ircfg):
 
     base_to_info = retrieve_stack_accesses(ir_arch_a, ircfg)
     modified = False
-    for block in ircfg.blocks.itervalues():
+    for block in list(viewvalues(ircfg.blocks)):
         assignblks = []
         for assignblk in block:
             out = {}
-            for dst, src in assignblk.iteritems():
+            for dst, src in viewitems(assignblk):
                 new_dst = dst.visit(lambda expr:replace_mem_stack_vars(expr, base_to_info))
                 new_src = src.visit(lambda expr:replace_mem_stack_vars(expr, base_to_info))
                 if new_dst != dst or new_src != src:
@@ -1120,9 +1122,9 @@ def get_memlookup(expr, bs, is_addr_ro_variable):
 
 def read_mem(bs, expr):
     ptr = int(expr.ptr)
-    var_bytes = bs.getbytes(ptr, expr.size / 8)[::-1]
+    var_bytes = bs.getbytes(ptr, expr.size // 8)[::-1]
     try:
-        value = int(var_bytes.encode('hex'), 16)
+        value = int(encode_hex(var_bytes), 16)
     except ValueError:
         return expr
     return ExprInt(value, expr.size)
@@ -1137,11 +1139,11 @@ def load_from_int(ir_arch, bs, is_addr_ro_variable):
     """
 
     modified = False
-    for block in ir_arch.blocks.itervalues():
+    for block in list(viewvalues(ir_arch.blocks)):
         assignblks = list()
         for assignblk in block:
             out = {}
-            for dst, src in assignblk.iteritems():
+            for dst, src in viewitems(assignblk):
                 # Test src
                 mems = get_memlookup(src, bs, is_addr_ro_variable)
                 src_new = src
@@ -1197,7 +1199,7 @@ class AssignBlockLivenessInfos(object):
         out.append(
             '\n'.join(
                 "\t%s = %s" % (dst, src)
-                for (dst, src) in self.assignblk.iteritems()
+                for (dst, src) in viewitems(self.assignblk)
             )
         )
         out.append("\tVarOut:" + ", ".join(str(x) for x in self.var_out))
@@ -1217,7 +1219,7 @@ class IRBlockLivenessInfos(object):
         self.assignblks = []
         for assignblk in irblock:
             gens, kills = set(), set()
-            for dst, src in assignblk.iteritems():
+            for dst, src in viewitems(assignblk):
                 expr = ExprAssign(dst, src)
                 read = expr.get_r(mem_read=True)
                 write = expr.get_w()
@@ -1290,13 +1292,13 @@ class DiGraphLiveness(DiGraph):
         )
         if node not in self._blocks:
             yield [self.DotCellDescription(text="NOT PRESENT", attr={})]
-            raise StopIteration
+            return
 
         for i, info in enumerate(self._blocks[node].infos):
             var_in = "VarIn:" + ", ".join(str(x) for x in info.var_in)
             var_out = "VarOut:" + ", ".join(str(x) for x in info.var_out)
 
-            assignmnts = ["%s = %s" % (dst, src) for (dst, src) in info.assignblk.iteritems()]
+            assignmnts = ["%s = %s" % (dst, src) for (dst, src) in viewitems(info.assignblk)]
 
             if i == 0:
                 yield self.DotCellDescription(
@@ -1323,7 +1325,7 @@ class DiGraphLiveness(DiGraph):
         """
         infos = block.infos
         modified = False
-        for i in reversed(xrange(len(infos))):
+        for i in reversed(range(len(infos))):
             new_vars = set(infos[i].gen.union(infos[i].var_out.difference(infos[i].kill)))
             if infos[i].var_in != new_vars:
                 modified = True
@@ -1385,13 +1387,13 @@ def discard_phi_sources(ircfg, deleted_vars):
     @ircfg: IRCFG instance in ssa form
     @deleted_vars: unused phi sources
     """
-    for block in ircfg.blocks.values():
+    for block in list(viewvalues(ircfg.blocks)):
         if not block.assignblks:
             continue
         assignblk = block[0]
         todo = {}
         modified = False
-        for dst, src in assignblk.iteritems():
+        for dst, src in viewitems(assignblk):
             if not src.is_op('Phi'):
                 todo[dst] = src
                 continue
@@ -1459,7 +1461,7 @@ def update_phi_with_deleted_edges(ircfg, edges_to_del):
         assignblks = list(block)
         assignblk = assignblks[0]
         out = {}
-        for dst, phi_sources in assignblk.iteritems():
+        for dst, phi_sources in viewitems(assignblk):
             if not phi_sources.is_op('Phi'):
                 out = assignblk
                 break
@@ -1484,7 +1486,7 @@ def update_phi_with_deleted_edges(ircfg, edges_to_del):
         new_irblock = IRBlock(loc_dst, assignblks)
         blocks[block.loc_key] = new_irblock
 
-    for loc_key, block in blocks.iteritems():
+    for loc_key, block in viewitems(blocks):
         ircfg.blocks[loc_key] = block
     return modified
 
@@ -1543,13 +1545,13 @@ class DiGraphLivenessSSA(DiGraphLivenessIRA):
         super(DiGraphLivenessSSA, self).__init__(ircfg)
 
         self.loc_key_to_phi_parents = {}
-        for irblock in self.blocks.values():
+        for irblock in viewvalues(self.blocks):
             if not irblock_has_phi(irblock):
                 continue
             out = {}
-            for sources in irblock[0].itervalues():
+            for sources in viewvalues(irblock[0]):
                 var_to_parents = get_phi_sources_parent_block(self, irblock.loc_key, sources.args)
-                for var, var_parents in var_to_parents.iteritems():
+                for var, var_parents in viewitems(var_to_parents):
                     out.setdefault(var, set()).update(var_parents)
             self.loc_key_to_phi_parents[irblock.loc_key] = out
 

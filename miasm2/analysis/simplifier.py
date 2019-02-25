@@ -24,7 +24,7 @@ log.setLevel(logging.WARNING)
 def fix_point(func):
     @wraps(func)
     def ret_func(self, ircfg, head):
-        log.debug('[%s]: start', func.func_name)
+        log.debug('[%s]: start', func.__name__)
         has_been_modified = False
         modified = True
         while modified:
@@ -32,7 +32,7 @@ def fix_point(func):
             has_been_modified |= modified
         log.debug(
             '[%s]: stop %r',
-            func.func_name,
+            func.__name__,
             has_been_modified
         )
         return has_been_modified

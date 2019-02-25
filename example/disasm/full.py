@@ -1,6 +1,9 @@
+from __future__ import print_function
 import logging
 from argparse import ArgumentParser
 from pdb import pm
+
+from future.utils import viewitems, viewvalues
 
 from miasm2.analysis.binary import Container
 from miasm2.core.asmblock import log_asmblock, AsmCFG
@@ -35,7 +38,8 @@ parser.add_argument('-n', "--funcswatchdog", default=None, type=int,
                     help="Maximum number of function to disassemble")
 parser.add_argument('-r', "--recurfunctions", action="store_true",
                     help="Disassemble founded functions")
-parser.add_argument('-v', "--verbose", action="count", help="Verbose mode")
+parser.add_argument('-v', "--verbose", action="count", help="Verbose mode",
+                    default=0)
 parser.add_argument('-g', "--gen_ir", action="store_true",
                     help="Compute the intermediate representation")
 parser.add_argument('-z', "--dis-nulstart-block", action="store_true",
@@ -43,7 +47,8 @@ parser.add_argument('-z', "--dis-nulstart-block", action="store_true",
 parser.add_argument('-l', "--dontdis-retcall", action="store_true",
                     help="If set, disassemble only call destinations")
 parser.add_argument('-s', "--simplify", action="count",
-                    help="Apply simplifications rules (liveness, graph simplification, ...)")
+                    help="Apply simplifications rules (liveness, graph simplification, ...)",
+                    default=0)
 parser.add_argument("--base-address", default=0,
                     type=lambda x: int(x, 0),
                     help="Base address of the input binary")
@@ -92,7 +97,7 @@ log.info("import machine...")
 # Use the guessed architecture or the specified one
 arch = args.architecture if args.architecture else cont.arch
 if not arch:
-    print "Architecture recognition fail. Please specify it in arguments"
+    print("Architecture recognition fail. Please specify it in arguments")
     exit(-1)
 
 # Instance the arch-dependent machine
@@ -177,7 +182,7 @@ while not finish and todo:
 
 # Generate dotty graph
 all_asmcfg = AsmCFG(mdis.loc_db)
-for blocks in all_funcs_blocks.values():
+for blocks in viewvalues(all_funcs_blocks):
     all_asmcfg += blocks
 
 
@@ -189,7 +194,7 @@ log.info('generate intervals')
 all_lines = []
 total_l = 0
 
-print done_interval
+print(done_interval)
 if args.image:
     log.info('build img')
     done_interval.show()
@@ -199,7 +204,7 @@ for i, j in done_interval.intervals:
 
 
 all_lines.sort(key=lambda x: x.offset)
-open('lines.dot', 'w').write('\n'.join([str(l) for l in all_lines]))
+open('lines.dot', 'w').write('\n'.join(str(l) for l in all_lines))
 log.info('total lines %s' % total_l)
 
 
@@ -217,7 +222,7 @@ class IRADelModCallStack(ira):
             for assignblk in assignblks:
                 dct = dict(assignblk)
                 dct = {
-                    dst:src for (dst, src) in dct.iteritems() if dst != self.sp
+                    dst:src for (dst, src) in viewitems(dct) if dst != self.sp
                 }
                 out.append(AssignBlock(dct, assignblk.instr))
             return out, extra
@@ -238,21 +243,21 @@ if args.gen_ir:
 
     head = list(entry_points)[0]
 
-    for ad, asmcfg in all_funcs_blocks.items():
+    for ad, asmcfg in viewitems(all_funcs_blocks):
         log.info("generating IR... %x" % ad)
         for block in asmcfg.blocks:
             ir_arch.add_asmblock_to_ircfg(block, ircfg)
             ir_arch_a.add_asmblock_to_ircfg(block, ircfg_a)
 
     log.info("Print blocks (without analyse)")
-    for label, block in ir_arch.blocks.iteritems():
-        print block
+    for label, block in viewitems(ir_arch.blocks):
+        print(block)
 
     log.info("Gen Graph... %x" % ad)
 
     log.info("Print blocks (with analyse)")
-    for label, block in ir_arch_a.blocks.iteritems():
-        print block
+    for label, block in viewitems(ir_arch_a.blocks):
+        print(block)
 
     if args.simplify > 0:
         log.info("Simplify...")
@@ -289,7 +294,7 @@ if args.propagexpr:
                         continue
                     if reg in regs_todo:
                         out[reg] = dst
-            return set(out.values())
+            return set(viewvalues(out))
 
     # Add dummy dependency to uncover out regs assignment
     for loc in ircfg_a.leaves():
@@ -317,7 +322,7 @@ if args.propagexpr:
 
         """
         try:
-            _ = bs.getbytes(addr, size/8)
+            _ = bs.getbytes(addr, size // 8)
         except IOError:
             return False
         return True

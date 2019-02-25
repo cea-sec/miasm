@@ -1,4 +1,7 @@
+from __future__ import print_function
 from argparse import ArgumentParser
+
+from future.utils import viewitems, viewvalues
 
 from miasm2.analysis.binary import Container
 from miasm2.analysis.machine import Machine
@@ -17,10 +20,6 @@ parser.add_argument("-s", "--symb", help="Symbolic execution mode",
 args = parser.parse_args()
 
 
-def node_x_2_id(n, x):
-    return hash(str(n) + str(x)) & 0xffffffffffffffff
-
-
 def get_node_name(label, i, n):
     n_name = (label, i, n)
     return n_name
@@ -30,8 +29,8 @@ def intra_block_flow_symb(ir_arch, _, flow_graph, irblock, in_nodes, out_nodes):
     symbols_init = ir_arch.arch.regs.regs_init.copy()
     sb = SymbolicExecutionEngine(ir_arch, symbols_init)
     sb.eval_updt_irblock(irblock)
-    print '*' * 40
-    print irblock
+    print('*' * 40)
+    print(irblock)
 
 
     out = sb.modified(mems=False)
@@ -86,14 +85,14 @@ def node2str(node):
 
 
 def gen_block_data_flow_graph(ir_arch, ircfg, ad, block_flow_cb):
-    for irblock in ircfg.blocks.values():
-        print irblock
+    for irblock in viewvalues(ircfg.blocks):
+        print(irblock)
 
     dead_simp(ir_arch, ircfg)
 
 
     irblock_0 = None
-    for irblock in ircfg.blocks.values():
+    for irblock in viewvalues(ircfg.blocks):
         loc_key = irblock.loc_key
         offset = ircfg.loc_db.get_location_offset(loc_key)
         if offset == ad:
@@ -110,15 +109,15 @@ def gen_block_data_flow_graph(ir_arch, ircfg, ad, block_flow_cb):
         irb_in_nodes[label] = {}
         irb_out_nodes[label] = {}
 
-    for label, irblock in ircfg.blocks.iteritems():
+    for label, irblock in viewitems(ircfg.blocks):
         block_flow_cb(ir_arch, ircfg, flow_graph, irblock, irb_in_nodes[label], irb_out_nodes[label])
 
     for label in ircfg.blocks:
-        print label
-        print 'IN', [str(x) for x in irb_in_nodes[label]]
-        print 'OUT', [str(x) for x in irb_out_nodes[label]]
+        print(label)
+        print('IN', [str(x) for x in irb_in_nodes[label]])
+        print('OUT', [str(x) for x in irb_out_nodes[label]])
 
-    print '*' * 20, 'interblock', '*' * 20
+    print('*' * 20, 'interblock', '*' * 20)
     inter_block_flow(ir_arch, ircfg, flow_graph, irblock_0.loc_key, irb_in_nodes, irb_out_nodes)
 
     # from graph_qt import graph_qt
@@ -128,22 +127,22 @@ def gen_block_data_flow_graph(ir_arch, ircfg, ad, block_flow_cb):
 
 ad = int(args.addr, 16)
 
-print 'disasm...'
-cont = Container.from_stream(open(args.filename))
+print('disasm...')
+cont = Container.from_stream(open(args.filename, 'rb'))
 machine = Machine("x86_32")
 
 mdis = machine.dis_engine(cont.bin_stream, loc_db=cont.loc_db)
 mdis.follow_call = True
 asmcfg = mdis.dis_multiblock(ad)
-print 'ok'
+print('ok')
 
 
-print 'generating dataflow graph for:'
+print('generating dataflow graph for:')
 ir_arch_analysis = machine.ira(mdis.loc_db)
 ircfg = ir_arch_analysis.new_ircfg_from_asmcfg(asmcfg)
 
-for irblock in ircfg.blocks.values():
-    print irblock
+for irblock in viewvalues(ircfg.blocks):
+    print(irblock)
 
 
 if args.symb:
@@ -153,11 +152,11 @@ else:
 
 gen_block_data_flow_graph(ir_arch_analysis, ircfg, ad, block_flow_cb)
 
-print '*' * 40
-print """
+print('*' * 40)
+print("""
  View with:
 dotty dataflow.dot
  or
  Generate ps with pdf:
 dot -Tps dataflow_xx.dot -o graph.ps
-"""
+""")

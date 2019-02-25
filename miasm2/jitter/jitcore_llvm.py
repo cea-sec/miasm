@@ -1,32 +1,40 @@
+from __future__ import print_function
 import os
 import importlib
 import tempfile
+import sysconfig
 
 from miasm2.jitter.llvmconvert import *
 import miasm2.jitter.jitcore as jitcore
-import Jitllvm
+from miasm2.jitter import Jitllvm
 import platform
+
+is_win = platform.system() == "Windows"
 
 class JitCore_LLVM(jitcore.JitCore):
     "JiT management, using LLVM as backend"
 
     # Architecture dependent libraries
-    arch_dependent_libs = {"x86": "JitCore_x86",
-                           "arm": "JitCore_arm",
-                           "msp430": "JitCore_msp430",
-                           "mips32": "JitCore_mips32",
-                           "aarch64": "JitCore_aarch64",
-                           "ppc32": "JitCore_ppc32",
+    arch_dependent_libs = {
+        "x86": "JitCore_x86",
+        "arm": "JitCore_arm",
+        "msp430": "JitCore_msp430",
+        "mips32": "JitCore_mips32",
+        "aarch64": "JitCore_aarch64",
+        "ppc32": "JitCore_ppc32",
     }
 
     def __init__(self, ir_arch, bin_stream):
         super(JitCore_LLVM, self).__init__(ir_arch, bin_stream)
 
-        self.options.update({"safe_mode": True,   # Verify each function
-                             "optimise": True,     # Optimise functions
-                             "log_func": False,    # Print LLVM functions
-                             "log_assembly": False,  # Print assembly executed
-                             })
+        self.options.update(
+            {
+                "safe_mode": True,   # Verify each function
+                "optimise": True,     # Optimise functions
+                "log_func": False,    # Print LLVM functions
+                "log_assembly": False,  # Print assembly executed
+            }
+        )
 
         self.exec_wrapper = Jitllvm.llvm_exec_block
         self.ir_arch = ir_arch
@@ -34,7 +42,7 @@ class JitCore_LLVM(jitcore.JitCore):
         # Cache temporary dir
         self.tempdir = os.path.join(tempfile.gettempdir(), "miasm_cache")
         try:
-            os.mkdir(self.tempdir, 0755)
+            os.mkdir(self.tempdir, 0o755)
         except OSError:
             pass
         if not os.access(self.tempdir, os.R_OK | os.W_OK):
@@ -49,10 +57,13 @@ class JitCore_LLVM(jitcore.JitCore):
         # Get architecture dependent Jitcore library (if any)
         lib_dir = os.path.dirname(os.path.realpath(__file__))
         lib_dir = os.path.join(lib_dir, 'arch')
-        ext = '.so' if platform.system() != 'Windows' else '.pyd'
+        ext = sysconfig.get_config_var('EXT_SUFFIX')
+        if ext is None:
+            ext = ".so" if not is_win else ".pyd"
         try:
             jit_lib = os.path.join(
-                lib_dir, self.arch_dependent_libs[self.ir_arch.arch.name] + ext)
+                lib_dir, self.arch_dependent_libs[self.ir_arch.arch.name] + ext
+            )
             libs_to_load.append(jit_lib)
         except KeyError:
             pass
@@ -103,9 +114,9 @@ class JitCore_LLVM(jitcore.JitCore):
 
             # Log
             if self.options["log_func"] is True:
-                print func
+                print(func)
             if self.options["log_assembly"] is True:
-                print func.get_assembly()
+                print(func.get_assembly())
 
             # Use propagate the cache filename
             self.context.set_cache_filename(func, fname_out)

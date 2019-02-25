@@ -25,7 +25,7 @@ args = parser.parse_args()
 
 machine = Machine("x86_32")
 
-cont = Container.from_stream(open(args.filename))
+cont = Container.from_stream(open(args.filename, 'rb'))
 mdis = machine.dis_engine(cont.bin_stream, loc_db=cont.loc_db)
 ir_arch = machine.ira(mdis.loc_db)
 addr = int(args.address, 0)

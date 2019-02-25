@@ -1,5 +1,7 @@
 #-*- coding:utf-8 -*-
 import re
+import codecs
+from builtins import range
 
 from miasm2.expression.expression import ExprId, ExprInt, ExprOp, LocKey
 import miasm2.core.asmblock as asmblock
@@ -63,7 +65,7 @@ def guess_next_new_label(loc_db):
     """Generate a new label
     @loc_db: the LocationDB instance"""
     i = 0
-    gen_name = "loc_%.8X"
+    gen_name = b"loc_%.8X"
     while True:
         name = gen_name % i
         label = loc_db.get_name_location(name)
@@ -78,7 +80,7 @@ STATE_IN_BLOC = 1
 
 def asm_ast_to_expr_with_size(arg, loc_db, size):
     if isinstance(arg, AstId):
-        return ExprId(arg.name, size)
+        return ExprId(arg.name.encode(), size)
     if isinstance(arg, AstOp):
         args = [asm_ast_to_expr_with_size(tmp, loc_db, size) for tmp in arg.args]
         return ExprOp(arg.op, *args)
@@ -119,7 +121,7 @@ def parse_txt(mnemo, attrib, txt, loc_db=None):
         # label beginning with .L
         match_re = LABEL_RE.match(line)
         if match_re:
-            label_name = match_re.group(1)
+            label_name = match_re.group(1).encode()
             label = loc_db.get_or_create_name_location(label_name)
             lines.append(label)
             continue
@@ -133,18 +135,20 @@ def parse_txt(mnemo, attrib, txt, loc_db=None):
                 # XXX HACK
                 line = line.replace(r'\n', '\n').replace(r'\r', '\r')
                 raw = line[line.find(r'"') + 1:line.rfind(r'"')]
-                raw = raw.decode('string_escape')
+                raw = codecs.escape_decode(raw)[0]
                 if directive == 'string':
-                    raw += "\x00"
+                    raw += b"\x00"
                 lines.append(asmblock.AsmRaw(raw))
                 continue
             if directive == 'ustring':
                 # XXX HACK
                 line = line.replace(r'\n', '\n').replace(r'\r', '\r')
                 raw = line[line.find(r'"') + 1:line.rfind(r'"')] + "\x00"
-                raw = raw.decode('string_escape')
-                raw = "".join([string + '\x00' for string in raw])
-                lines.append(asmblock.AsmRaw(raw))
+                raw = codecs.escape_decode(raw)[0]
+                out = b''
+                for i in range(len(raw)):
+                    out += raw[i:i+1] + b'\x00'
+                lines.append(asmblock.AsmRaw(out))
                 continue
             if directive in declarator:
                 data_raw = line[match_re.end():].split(' ', 1)[1]
@@ -183,12 +187,12 @@ def parse_txt(mnemo, attrib, txt, loc_db=None):
             if directive[0:4] == 'cfi_':
                 continue
 
-            raise ValueError("unknown directive %s" % str(directive))
+            raise ValueError("unknown directive %s" % directive)
 
         # label
         match_re = LABEL_RE.match(line)
         if match_re:
-            label_name = match_re.group(1)
+            label_name = match_re.group(1).encode()
             label = loc_db.get_or_create_name_location(label_name)
             lines.append(label)
             continue

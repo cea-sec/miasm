@@ -1,6 +1,8 @@
 import struct
 from collections import defaultdict
 
+from future.utils import viewitems
+
 from elfesteem import cstruct
 from elfesteem import *
 import elfesteem.elf as elf_csts
@@ -23,7 +25,7 @@ def get_import_address_elf(e):
     for sh in e.sh:
         if not hasattr(sh, 'rel'):
             continue
-        for k, v in sh.rel.items():
+        for k, v in viewitems(sh.rel):
             import2addr[('xxx', k)].add(v.offset)
     return import2addr
 
@@ -32,7 +34,7 @@ def preload_elf(vm, e, runtime_lib, patch_vm_imp=True, loc_db=None):
     # XXX quick hack
     fa = get_import_address_elf(e)
     dyn_funcs = {}
-    for (libname, libfunc), ads in fa.items():
+    for (libname, libfunc), ads in viewitems(fa):
         # Quick hack - if a symbol is already known, do not stub it
         if loc_db and loc_db.get_name_location(libfunc) is not None:
             continue
@@ -66,7 +68,7 @@ def fill_loc_db_with_symbols(elf, loc_db, base_addr=0):
     symbol_sections = []
     for section_header in elf.sh:
         if hasattr(section_header, 'symbols'):
-            for name, sym in section_header.symbols.iteritems():
+            for name, sym in viewitems(section_header.symbols):
                 if not name or sym.value == 0:
                     continue
                 name = loc_db.find_free_name(name)
@@ -275,10 +277,14 @@ def vm_load_elf(vm, fdata, name="", base_addr=0, loc_db=None, apply_reloc=False,
         # -2: Trick to avoid merging 2 consecutive pages
         i += [(a_addr, b_addr - 2)]
     for a, b in i.intervals:
-        vm.add_memory_page(a, PAGE_READ | PAGE_WRITE, "\x00" * (b + 2 - a),
-                           repr(name))
+        vm.add_memory_page(
+            a,
+            PAGE_READ | PAGE_WRITE,
+            b"\x00" * (b + 2 - a),
+            repr(name)
+        )
 
-    for r_vaddr, data in all_data.items():
+    for r_vaddr, data in viewitems(all_data):
         vm.set_mem(r_vaddr, data)
 
     if loc_db is not None:

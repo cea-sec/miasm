@@ -5,12 +5,6 @@ from miasm2.jitter.csts import *
 from miasm2.jitter.jitload import log_func
 import logging
 
-
-# Python auto completion
-filename = os.environ.get('PYTHONSTARTUP')
-if filename and os.path.isfile(filename):
-    execfile(filename)
-
 # Insert here user defined methods
 
 # Parse arguments

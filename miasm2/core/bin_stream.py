@@ -16,6 +16,9 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
+from builtins import str
+from future.utils import PY3
+
 from miasm2.core.utils import BIG_ENDIAN, LITTLE_ENDIAN
 from miasm2.core.utils import upck8le, upck16le, upck32le, upck64le
 from miasm2.core.utils import upck8be, upck16be, upck32be, upck64be
@@ -34,6 +37,11 @@ class bin_stream(object):
 
     def __repr__(self):
         return "<%s !!>" % self.__class__.__name__
+
+    def __str__(self):
+        if PY3:
+            return repr(self)
+        return self.__bytes__()
 
     def hexdump(self, offset, l):
         return
@@ -81,8 +89,8 @@ class bin_stream(object):
         # Get initial bytes
         if n > self.getlen() * 8:
             raise IOError('not enough bits %r %r' % (n, len(self.bin) * 8))
-        byte_start = start / 8
-        byte_stop = (start + n + 7) / 8
+        byte_start = start // 8
+        byte_stop = (start + n + 7) // 8
         temp = self.getbytes(byte_start, byte_stop - byte_start)
         if not temp:
             raise IOError('cannot get bytes')
@@ -92,8 +100,8 @@ class bin_stream(object):
         out = 0
         while n:
             # Get needed bits, working on maximum 8 bits at a time
-            cur_byte_idx = start / 8
-            new_bits = ord(temp[cur_byte_idx])
+            cur_byte_idx = start // 8
+            new_bits = ord(temp[cur_byte_idx:cur_byte_idx + 1])
             to_keep = 8 - start % 8
             new_bits &= (1 << to_keep) - 1
             cur_len = min(to_keep, n)
@@ -160,7 +168,7 @@ class bin_stream(object):
 
 class bin_stream_str(bin_stream):
 
-    def __init__(self, input_str="", offset=0L, base_address=0, shift=None):
+    def __init__(self, input_str=b"", offset=0, base_address=0, shift=None):
         bin_stream.__init__(self)
         if shift is not None:
             raise DeprecationWarning("use base_address instead of shift")
@@ -185,9 +193,8 @@ class bin_stream_str(bin_stream):
         self.offset += l
         return self.bin[self.offset - l - self.base_address:self.offset - self.base_address]
 
-    def __str__(self):
-        out = self.bin[self.offset - self.base_address:]
-        return out
+    def __bytes__(self):
+        return self.bin[self.offset - self.base_address:]
 
     def setoffset(self, val):
         self.offset = val
@@ -198,7 +205,7 @@ class bin_stream_str(bin_stream):
 
 class bin_stream_file(bin_stream):
 
-    def __init__(self, binary, offset=0L, base_address=0, shift=None):
+    def __init__(self, binary, offset=0, base_address=0, shift=None):
         bin_stream.__init__(self)
         if shift is not None:
             raise DeprecationWarning("use base_address instead of shift")
@@ -222,8 +229,8 @@ class bin_stream_file(bin_stream):
             raise IOError("Negative offset")
         return self.bin.read(l)
 
-    def __str__(self):
-        return str(self.bin)
+    def __bytes__(self):
+        return self.bin.read()
 
     def getlen(self):
         return self.l - (self.offset - self.base_address)
@@ -231,7 +238,7 @@ class bin_stream_file(bin_stream):
 
 class bin_stream_container(bin_stream):
 
-    def __init__(self, binary, offset=0L):
+    def __init__(self, binary, offset=0):
         bin_stream.__init__(self)
         self.bin = binary
         self.l = binary.virt.max_addr()
@@ -257,9 +264,8 @@ class bin_stream_container(bin_stream):
         except ValueError:
             raise IOError("cannot get bytes")
 
-    def __str__(self):
-        out = self.bin.virt.get(self.offset, self.offset + self.l)
-        return out
+    def __bytes__(self):
+        return self.bin.virt.get(self.offset, self.offset + self.l)
 
     def setoffset(self, val):
         self.offset = val
@@ -279,7 +285,7 @@ class bin_stream_elf(bin_stream_container):
 
 class bin_stream_vm(bin_stream):
 
-    def __init__(self, vm, offset=0L, base_offset=0L):
+    def __init__(self, vm, offset=0, base_offset=0):
         self.offset = offset
         self.base_offset = base_offset
         self.vm = vm

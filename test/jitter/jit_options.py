@@ -1,5 +1,8 @@
+from __future__ import print_function
 import os
 import sys
+
+from miasm2.core.utils import decode_hex
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm2.analysis.machine import Machine
 from pdb import pm
@@ -16,7 +19,7 @@ from pdb import pm
 #       RET
 
 
-data = "b810000000bb0100000083e8010f44cb75f8c3".decode("hex")
+data = decode_hex("b810000000bb0100000083e8010f44cb75f8c3")
 run_addr = 0x40000000
 
 def code_sentinelle(jitter):
@@ -40,7 +43,7 @@ def init_jitter():
     return myjit
 
 # Test 'max_exec_per_call'
-print "[+] First run, to jit blocks"
+print("[+] First run, to jit blocks")
 myjit = init_jitter()
 myjit.init_run(run_addr)
 myjit.continue_run()
@@ -62,7 +65,7 @@ def cb(jitter):
     return False
 
 ## Second run
-print "[+] Second run"
+print("[+] Second run")
 myjit.push_uint32_t(0x1337beef)
 myjit.cpu.EAX = 0
 myjit.init_run(run_addr)
@@ -74,7 +77,7 @@ assert myjit.run is True
 assert myjit.cpu.EAX >= 0xA
 
 # Test 'jit_maxline'
-print "[+] Run instr one by one"
+print("[+] Run instr one by one")
 myjit = init_jitter()
 myjit.jit.options["jit_maxline"] = 1
 myjit.jit.options["max_exec_per_call"] = 1

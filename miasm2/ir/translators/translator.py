@@ -1,3 +1,5 @@
+from future.utils import viewitems
+
 import miasm2.expression.expression as m2_expr
 from miasm2.core.utils import BoundedDict
 
@@ -104,17 +106,18 @@ class Translator(object):
             return self._cache[expr]
 
         # Handle Expr type
-        handlers = {m2_expr.ExprInt: self.from_ExprInt,
-                    m2_expr.ExprId: self.from_ExprId,
-                    m2_expr.ExprLoc: self.from_ExprLoc,
-                    m2_expr.ExprCompose: self.from_ExprCompose,
-                    m2_expr.ExprSlice: self.from_ExprSlice,
-                    m2_expr.ExprOp: self.from_ExprOp,
-                    m2_expr.ExprMem: self.from_ExprMem,
-                    m2_expr.ExprAssign: self.from_ExprAssign,
-                    m2_expr.ExprCond: self.from_ExprCond
-                    }
-        for target, handler in handlers.iteritems():
+        handlers = {
+            m2_expr.ExprInt: self.from_ExprInt,
+            m2_expr.ExprId: self.from_ExprId,
+            m2_expr.ExprLoc: self.from_ExprLoc,
+            m2_expr.ExprCompose: self.from_ExprCompose,
+            m2_expr.ExprSlice: self.from_ExprSlice,
+            m2_expr.ExprOp: self.from_ExprOp,
+            m2_expr.ExprMem: self.from_ExprMem,
+            m2_expr.ExprAssign: self.from_ExprAssign,
+            m2_expr.ExprCond: self.from_ExprCond
+        }
+        for target, handler in viewitems(handlers):
             if isinstance(expr, target):
                 ## Compute value and update the internal cache
                 ret = handler(expr)

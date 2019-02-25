@@ -4,7 +4,7 @@
 from ut_helpers_jit import jit_instructions
 
 
-class TestRepeat:
+class TestRepeat(object):
     def test_repeat(self):
         """Test REPEAT jit"""
 

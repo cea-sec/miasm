@@ -1,11 +1,16 @@
 import warnings
+from builtins import int as int_types
 
+from functools import reduce
+from future.utils import viewitems, viewvalues
+
+from miasm2.core.utils import printable, force_bytes
 from miasm2.expression.expression import LocKey, ExprLoc
 from miasm2.expression.modint import moduint, modint
 
 
 def is_int(a):
-    return isinstance(a, (int, long, moduint, modint))
+    return isinstance(a, (int_types, moduint, modint))
 
 
 class LocationDB(object):
@@ -85,6 +90,7 @@ class LocationDB(object):
         Return the LocKey of @name if any, None otherwise.
         @name: target name
         """
+        name = force_bytes(name)
         return self._name_to_loc_key.get(name)
 
     def get_or_create_name_location(self, name):
@@ -92,6 +98,7 @@ class LocationDB(object):
         Return the LocKey of @name if any, create one otherwise.
         @name: target name
         """
+        name = force_bytes(name)
         loc_key = self._name_to_loc_key.get(name)
         if loc_key is not None:
             return loc_key
@@ -100,7 +107,7 @@ class LocationDB(object):
     def get_offset_location(self, offset):
         """
         Return the LocKey of @offset if any, None otherwise.
-        @name: target offset
+        @offset: target offset
         """
         return self._offset_to_loc_key.get(offset)
 
@@ -119,6 +126,7 @@ class LocationDB(object):
         Return the offset of @name if any, None otherwise.
         @name: target name
         """
+        name = force_bytes(name)
         loc_key = self.get_name_location(name)
         if loc_key is None:
             return None
@@ -129,6 +137,7 @@ class LocationDB(object):
         @name: str instance
         @loc_key: LocKey instance
         """
+        name = force_bytes(name)
         assert loc_key in self._loc_keys
         already_existing_loc = self._name_to_loc_key.get(name)
         if already_existing_loc is not None and already_existing_loc != loc_key:
@@ -144,6 +153,7 @@ class LocationDB(object):
         @loc_key: LocKey instance
         """
         assert loc_key in self._loc_keys
+        name = force_bytes(name)
         already_existing_loc = self._name_to_loc_key.get(name)
         if already_existing_loc is None:
             raise KeyError("%r is not already associated" % name)
@@ -195,13 +205,13 @@ class LocationDB(object):
         """Ensure internal structures are consistent with each others"""
         assert set(self._loc_key_to_names).issubset(self._loc_keys)
         assert set(self._loc_key_to_offset).issubset(self._loc_keys)
-        assert self._loc_key_to_offset == {v: k for k, v in self._offset_to_loc_key.iteritems()}
+        assert self._loc_key_to_offset == {v: k for k, v in viewitems(self._offset_to_loc_key)}
         assert reduce(
             lambda x, y:x.union(y),
-            self._loc_key_to_names.itervalues(),
+            viewvalues(self._loc_key_to_names),
             set(),
         ) == set(self._name_to_loc_key)
-        for name, loc_key in self._name_to_loc_key.iteritems():
+        for name, loc_key in viewitems(self._name_to_loc_key):
             assert name in self._loc_key_to_names[loc_key]
 
     def find_free_name(self, name):
@@ -211,6 +221,7 @@ class LocationDB(object):
 
         @name: string
         """
+        name = force_bytes(name)
         if self.get_name_location(name) is None:
             return name
         i = 0
@@ -233,6 +244,7 @@ class LocationDB(object):
         LocKey may be updated and will be returned.
         """
 
+        name = force_bytes(name)
         # Deprecation handling
         if is_int(name):
             assert offset is None or offset == name
@@ -321,6 +333,14 @@ class LocationDB(object):
         """Return a human readable version of @loc_key, according to information
         available in this LocationDB instance"""
         names = self.get_location_names(loc_key)
+        new_names = set()
+        for name in names:
+            try:
+                name = name.decode()
+            except AttributeError:
+                pass
+            new_names.add(name)
+        names = new_names
         if names:
             return ",".join(names)
         offset = self.get_location_offset(loc_key)
@@ -336,23 +356,25 @@ class LocationDB(object):
     @property
     def names(self):
         """Return all known names"""
-        return self._name_to_loc_key.keys()
+        return list(self._name_to_loc_key)
 
     @property
     def offsets(self):
         """Return all known offsets"""
-        return self._offset_to_loc_key.keys()
+        return list(self._offset_to_loc_key)
 
     def __str__(self):
         out = []
         for loc_key in self._loc_keys:
             names = self.get_location_names(loc_key)
             offset = self.get_location_offset(loc_key)
-            out.append("%s: %s - %s" % (
-                loc_key,
-                "0x%x" % offset if offset is not None else None,
-                ",".join(names)
-            ))
+            out.append(
+                "%s: %s - %s" % (
+                    loc_key,
+                    "0x%x" % offset if offset is not None else None,
+                    ",".join(printable(name) for name in names)
+                )
+            )
         return "\n".join(out)
 
     def merge(self, location_db):

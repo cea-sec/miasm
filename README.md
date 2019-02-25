@@ -58,7 +58,7 @@ Get a location db:
 Assemble a line:
 ```pycon
 >>> l = mn_x86.fromstring('XOR ECX, ECX', loc_db, 32)
->>> print l
+>>> print(l)
 XOR        ECX, ECX
 >>> mn_x86.asm(l)
 ['1\xc9', '3\xc9', 'g1\xc9', 'g3\xc9']
@@ -66,15 +66,15 @@ XOR        ECX, ECX
 Modify an operand:
 ```pycon
 >>> l.args[0] = mn_x86.regs.EAX
->>> print l
+>>> print(l)
 XOR        EAX, ECX
 >>> a = mn_x86.asm(l)
->>> print a
+>>> print(a)
 ['1\xc8', '3\xc1', 'g1\xc8', 'g3\xc1']
 ```
 Disassemble the result:
 ```pycon
->>> print mn_x86.dis(a[0], 32)
+>>> print(mn_x86.dis(a[0], 32))
 XOR        EAX, ECX
 ```
 Using `Machine` abstraction:
@@ -82,14 +82,14 @@ Using `Machine` abstraction:
 ```pycon
 >>> from miasm2.analysis.machine import Machine
 >>> mn = Machine('x86_32').mn
->>> print mn.dis('\x33\x30', 32)
+>>> print(mn.dis('\x33\x30', 32))
 XOR        ESI, DWORD PTR [EAX]
 ```
 
 For Mips:
 ```pycon
 >>> mn = Machine('mips32b').mn
->>> print  mn.dis('97A30020'.decode('hex'), "b")
+>>> print(mn.dis(b'\x97\xa3\x00 ', "b"))
 LHU        V1, 0x20(SP)
 ```
 Intermediate representation
@@ -99,8 +99,8 @@ Create an instruction:
 
 ```pycon
 >>> machine = Machine('arml')
->>> instr = machine.mn.dis('002088e0'.decode('hex'), 'l')
->>> print instr
+>>> instr = machine.mn.dis('\x00 \x88\xe0', 'l')
+>>> print(instr)
 ADD        R2, R8, R0
 ```
 
@@ -120,7 +120,7 @@ Add instruction to the pool:
 Print current pool:
 ```pycon
 >>> for lbl, irblock in ircfg.blocks.items():
-...     print irblock.to_string(loc_db)
+...     print(irblock.to_string(loc_db))
 loc_0:
 R2 = R8 + R0
 
@@ -133,9 +133,9 @@ Working with IR, for instance by getting side effects:
 ...     for assignblk in irblock:
 ...         rw = assignblk.get_rw()
 ...         for dst, reads in rw.iteritems():
-...             print 'read:   ', [str(x) for x in reads]
-...             print 'written:', dst
-...             print
+...             print('read:   ', [str(x) for x in reads])
+...             print('written:', dst)
+...             print()
 ...
 read:    ['R8', 'R0']
 written: R2
@@ -178,7 +178,7 @@ Disassembling the shellcode at address `0`:
 >>> mdis = machine.dis_engine(c.bin_stream)
 >>> asmcfg = mdis.dis_multiblock(0)
 >>> for block in asmcfg.blocks:
-...  print block.to_string(asmcfg.loc_db)
+...  print(block.to_string(asmcfg.loc_db))
 ...
 loc_0
 LEA        ECX, DWORD PTR [ECX + 0x4]
@@ -292,7 +292,7 @@ Launching the execution:
 
 ```pycon
 >>> symbolic_pc = sb.run_at(ircfg, 0)
->>> print symbolic_pc
+>>> print(symbolic_pc)
 ((ECX + 0x4)[0:8] + 0xFF)?(0xB,0x10)
 ```
 

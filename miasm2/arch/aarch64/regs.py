@@ -1,5 +1,6 @@
 #-*- coding:utf-8 -*-
 
+from builtins import range
 from miasm2.expression.expression import ExprId
 from miasm2.core.cpu import gen_reg, gen_regs
 
@@ -7,40 +8,40 @@ exception_flags = ExprId('exception_flags', 32)
 interrupt_num = ExprId('interrupt_num', 32)
 
 
-gpregs32_str = ["W%d" % i for i in xrange(0x1f)] + ["WSP"]
+gpregs32_str = ["W%d" % i for i in range(0x1f)] + ["WSP"]
 gpregs32_expr, gpregs32_init, gpregs32_info = gen_regs(
     gpregs32_str, globals(), 32)
 
-gpregs64_str = ["X%d" % i for i in xrange(0x1E)] + ["LR", "SP"]
+gpregs64_str = ["X%d" % i for i in range(0x1E)] + ["LR", "SP"]
 gpregs64_expr, gpregs64_init, gpregs64_info = gen_regs(
     gpregs64_str, globals(), 64)
 
 
-gpregsz32_str = ["W%d" % i for i in xrange(0x1f)] + ["WZR"]
+gpregsz32_str = ["W%d" % i for i in range(0x1f)] + ["WZR"]
 gpregsz32_expr, gpregsz32_init, gpregsz32_info = gen_regs(
     gpregsz32_str, globals(), 32)
 
-gpregsz64_str = ["X%d" % i for i in xrange(0x1e)] + ["LR", "XZR"]
+gpregsz64_str = ["X%d" % i for i in range(0x1e)] + ["LR", "XZR"]
 gpregsz64_expr, gpregsz64_init, gpregsz64_info = gen_regs(
     gpregsz64_str, globals(), 64)
 
-cr_str = ["c%d" % i for i in xrange(0xf)]
+cr_str = ["c%d" % i for i in range(0xf)]
 cr_expr, cr_init, cr_info = gen_regs(cr_str, globals(), 32)
 
 
-simd08_str = ["B%d" % i for i in xrange(0x20)]
+simd08_str = ["B%d" % i for i in range(0x20)]
 simd08_expr, simd08_init, simd08_info = gen_regs(simd08_str, globals(), 8)
 
-simd16_str = ["H%d" % i for i in xrange(0x20)]
+simd16_str = ["H%d" % i for i in range(0x20)]
 simd16_expr, simd16_init, simd16_info = gen_regs(simd16_str, globals(), 16)
 
-simd32_str = ["S%d" % i for i in xrange(0x20)]
+simd32_str = ["S%d" % i for i in range(0x20)]
 simd32_expr, simd32_init, simd32_info = gen_regs(simd32_str, globals(), 32)
 
-simd64_str = ["D%d" % i for i in xrange(0x20)]
+simd64_str = ["D%d" % i for i in range(0x20)]
 simd64_expr, simd64_init, simd64_info = gen_regs(simd64_str, globals(), 64)
 
-simd128_str = ["Q%d" % i for i in xrange(0x20)]
+simd128_str = ["Q%d" % i for i in range(0x20)]
 simd128_expr, simd128_init, simd128_info = gen_regs(
     simd128_str, globals(), 128)
 

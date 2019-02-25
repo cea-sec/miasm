@@ -1,8 +1,11 @@
+from __future__ import print_function
 from collections import namedtuple
 import functools
 import os
 import struct
 import termios
+
+from future.utils import viewitems
 
 from miasm2.core.interval import interval
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
@@ -99,7 +102,7 @@ class FileDescriptorSTDOUT(FileDescriptorCharDevice):
     inode = 1
 
     def write(self, data):
-        print "[STDOUT] %s" % data.rstrip()
+        print("[STDOUT] %s" % data.rstrip())
 
 
 class FileDescriptorSTDERR(FileDescriptorCharDevice):
@@ -107,7 +110,7 @@ class FileDescriptorSTDERR(FileDescriptorCharDevice):
     inode = 2
 
     def write(self, data):
-        print "[STDERR] %s" % data.rstrip()
+        print("[STDERR] %s" % data.rstrip())
 
 
 class FileDescriptorDirectory(FileDescriptor):
@@ -301,7 +304,7 @@ class FileSystem(object):
         size = os.path.getsize(path)
         fdesc.size = size
         fdesc.blksize = self.blocksize
-        fdesc.blocks = (size + ((512 - (size % 512)) % 512)) / 512
+        fdesc.blocks = (size + ((512 - (size % 512)) % 512)) // 512
         return fd
 
 
@@ -330,17 +333,17 @@ class LinuxEnvironment(object):
     user_euid = 1000
     user_gid = 1000
     user_egid = 1000
-    user_name = "user"
+    user_name = b"user"
 
     # Memory mapping information
     brk_current = 0x74000000
     mmap_current = 0x75000000
 
     # System information
-    sys_sysname = "Linux"
-    sys_nodename = "user-pc"
-    sys_release = "4.13.0-19-generic"
-    sys_version = "#22-Ubuntu"
+    sys_sysname = b"Linux"
+    sys_nodename = b"user-pc"
+    sys_release = b"4.13.0-19-generic"
+    sys_version = b"#22-Ubuntu"
     sys_machine = None
 
     # Filesystem
@@ -525,17 +528,24 @@ class LinuxEnvironment(object):
             self.mmap_current += (len_ + 0x1000) & ~0xfff
 
         all_mem = vmmngr.get_all_memory()
-        mapped = interval([(start, start + info["size"] - 1)
-                           for start, info in all_mem.iteritems()])
+        mapped = interval(
+            [
+                (start, start + info["size"] - 1)
+                for start, info in viewitems(all_mem)
+            ]
+        )
 
         MAP_FIXED = 0x10
         if flags & MAP_FIXED:
             # Alloc missing and override
             missing = interval([(addr, addr + len_ - 1)]) - mapped
             for start, stop in missing:
-                vmmngr.add_memory_page(start, PAGE_READ|PAGE_WRITE,
-                                          "\x00" * (stop - start + 1),
-                                          "mmap allocated")
+                vmmngr.add_memory_page(
+                    start,
+                    PAGE_READ|PAGE_WRITE,
+                    b"\x00" * (stop - start + 1),
+                    "mmap allocated"
+                )
         else:
             # Find first candidate segment nearby addr
             for start, stop in mapped:
@@ -548,14 +558,18 @@ class LinuxEnvironment(object):
             else:
                 assert (interval([(addr, addr + len_)]) & mapped).empty
 
-            vmmngr.add_memory_page(addr, PAGE_READ|PAGE_WRITE, "\x00" * len_,
-                                      "mmap allocated")
+            vmmngr.add_memory_page(
+                addr,
+                PAGE_READ|PAGE_WRITE,
+                b"\x00" * len_,
+                "mmap allocated"
+            )
 
 
         if fd == 0xffffffff:
             if off != 0:
                 raise RuntimeError("Not implemented")
-            data = "\x00" * len_
+            data = b"\x00" * len_
         else:
             fdesc = self.file_descriptors[fd]
             cur_pos = fdesc.tell()
@@ -572,23 +586,30 @@ class LinuxEnvironment(object):
             addr = self.brk_current
         else:
             all_mem = vmmngr.get_all_memory()
-            mapped = interval([(start, start + info["size"] - 1)
-                               for start, info in all_mem.iteritems()])
+            mapped = interval(
+                [
+                    (start, start + info["size"] - 1)
+                    for start, info in viewitems(all_mem)
+                ]
+            )
 
             # Alloc missing and override
             missing = interval([(self.brk_current, addr)]) - mapped
             for start, stop in missing:
-                vmmngr.add_memory_page(start, PAGE_READ|PAGE_WRITE,
-                                       "\x00" * (stop - start + 1),
-                                       "BRK")
+                vmmngr.add_memory_page(
+                    start,
+                    PAGE_READ|PAGE_WRITE,
+                    b"\x00" * (stop - start + 1),
+                    "BRK"
+                )
 
             self.brk_current = addr
         return addr
 
 
 class LinuxEnvironment_x86_64(LinuxEnvironment):
-    platform_arch = "x86_64"
-    sys_machine = "x86_64"
+    platform_arch = b"x86_64"
+    sys_machine = b"x86_64"
 
     O_ACCMODE = 0x3
     O_CLOEXEC = 0x80000
@@ -599,8 +620,8 @@ class LinuxEnvironment_x86_64(LinuxEnvironment):
 
 
 class LinuxEnvironment_arml(LinuxEnvironment):
-    platform_arch = "arml"
-    sys_machine = "arml"
+    platform_arch = b"arml"
+    sys_machine = b"arml"
 
     O_ACCMODE = 0x3
     O_CLOEXEC = 0x80000
@@ -676,7 +697,7 @@ class AuxVec(object):
             self.AT_PLATFORM: linux_env.platform_arch,
             self.AT_HWCAP: 0,
             self.AT_SECURE: 0,
-            self.AT_RANDOM: "\x00" * 0x10,
+            self.AT_RANDOM: b"\x00" * 0x10,
             # vDSO is not mandatory
             self.AT_SYSINFO_EHDR: None,
         }
@@ -693,7 +714,7 @@ class AuxVec(object):
 
     def iteritems(self):
         """Iterator on auxiliary vector id and values"""
-        for AT_number, value in self.info.iteritems():
+        for AT_number, value in viewitems(self.info):
             if AT_number in self.ptrs:
                 value = self.ptrs[AT_number]
             if value is None:
@@ -701,6 +722,7 @@ class AuxVec(object):
                 continue
             yield (AT_number, value)
 
+    items = iteritems
 
 def prepare_loader_x86_64(jitter, argv, envp, auxv, linux_env,
                           hlt_address=0x13371acc):
@@ -735,15 +757,15 @@ def prepare_loader_x86_64(jitter, argv, envp, auxv, linux_env,
     # [argument vector]
 
     for AT_number, data in auxv.data_to_map():
-        data += "\x00"
+        data += b"\x00"
         jitter.cpu.RSP -= len(data)
         ptr = jitter.cpu.RSP
         jitter.vm.set_mem(ptr, data)
         auxv.ptrs[AT_number] = ptr
 
     env_ptrs = []
-    for name, value in envp.iteritems():
-        env = "%s=%s\x00" % (name, value)
+    for name, value in viewitems(envp):
+        env = b"%s=%s\x00" % (name, value)
         jitter.cpu.RSP -= len(env)
         ptr = jitter.cpu.RSP
         jitter.vm.set_mem(ptr, env)
@@ -751,7 +773,7 @@ def prepare_loader_x86_64(jitter, argv, envp, auxv, linux_env,
 
     argv_ptrs = []
     for arg in argv:
-        arg += "\x00"
+        arg += b"\x00"
         jitter.cpu.RSP -= len(arg)
         ptr = jitter.cpu.RSP
         jitter.vm.set_mem(ptr, arg)
@@ -760,7 +782,7 @@ def prepare_loader_x86_64(jitter, argv, envp, auxv, linux_env,
     jitter.push_uint64_t(hlt_address)
     jitter.push_uint64_t(0)
     jitter.push_uint64_t(0)
-    for auxid, auxval in auxv.iteritems():
+    for auxid, auxval in viewitems(auxv):
         jitter.push_uint64_t(auxval)
         jitter.push_uint64_t(auxid)
     jitter.push_uint64_t(0)
@@ -840,15 +862,15 @@ def prepare_loader_arml(jitter, argv, envp, auxv, linux_env,
     # [argument vector]
 
     for AT_number, data in auxv.data_to_map():
-        data += "\x00"
+        data += b"\x00"
         jitter.cpu.SP -= len(data)
         ptr = jitter.cpu.SP
         jitter.vm.set_mem(ptr, data)
         auxv.ptrs[AT_number] = ptr
 
     env_ptrs = []
-    for name, value in envp.iteritems():
-        env = "%s=%s\x00" % (name, value)
+    for name, value in viewitems(envp):
+        env = b"%s=%s\x00" % (name, value)
         jitter.cpu.SP -= len(env)
         ptr = jitter.cpu.SP
         jitter.vm.set_mem(ptr, env)
@@ -856,7 +878,7 @@ def prepare_loader_arml(jitter, argv, envp, auxv, linux_env,
 
     argv_ptrs = []
     for arg in argv:
-        arg += "\x00"
+        arg += b"\x00"
         jitter.cpu.SP -= len(arg)
         ptr = jitter.cpu.SP
         jitter.vm.set_mem(ptr, arg)
@@ -865,7 +887,7 @@ def prepare_loader_arml(jitter, argv, envp, auxv, linux_env,
     jitter.push_uint32_t(hlt_address)
     jitter.push_uint32_t(0)
     jitter.push_uint32_t(0)
-    for auxid, auxval in auxv.iteritems():
+    for auxid, auxval in viewitems(auxv):
         jitter.push_uint32_t(auxval)
         jitter.push_uint32_t(auxid)
     jitter.push_uint32_t(0)

@@ -1,11 +1,12 @@
 #-*- coding:utf-8 -*-
 
+from builtins import range
 from miasm2.expression.expression import *
 
 
 # GP
 
-regs32_str = ["R%d" % i for i in xrange(13)] + ["SP", "LR", "PC"]
+regs32_str = ["R%d" % i for i in range(13)] + ["SP", "LR", "PC"]
 regs32_expr = [ExprId(x, 32) for x in regs32_str]
 
 exception_flags = ExprId('exception_flags', 32)

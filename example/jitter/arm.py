@@ -1,5 +1,6 @@
 #! /usr/bin/env python2
 #-*- coding:utf-8 -*-
+from __future__ import print_function
 import logging
 from pdb import pm
 
@@ -22,7 +23,7 @@ else:
     logging.basicConfig(level=logging.WARNING)
 
 if options.verbose is True:
-    print sb.jitter.vm
+    print(sb.jitter.vm)
 
 # Run the code
 sb.run()

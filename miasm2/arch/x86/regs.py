@@ -1,3 +1,4 @@
+from builtins import range
 from miasm2.expression.expression import ExprId
 from miasm2.core.cpu import reg_info
 
@@ -12,20 +13,20 @@ interrupt_num = ExprId('interrupt_num', 8)
 
 
 regs08_str = ["AL", "CL", "DL", "BL", "AH", "CH", "DH", "BH"] + \
-    ["R%dB" % (i + 8) for i in xrange(8)]
+    ["R%dB" % (i + 8) for i in range(8)]
 regs08_expr = [ExprId(x, 8) for x in regs08_str]
 
 regs08_64_str = ["AL", "CL", "DL", "BL", "SPL", "BPL", "SIL", "DIL"] + \
-    ["R%dB" % (i + 8) for i in xrange(8)]
+    ["R%dB" % (i + 8) for i in range(8)]
 regs08_64_expr = [ExprId(x, 8) for x in regs08_64_str]
 
 
 regs16_str = ["AX", "CX", "DX", "BX", "SP", "BP", "SI", "DI"] + \
-    ["R%dW" % (i + 8) for i in xrange(8)]
+    ["R%dW" % (i + 8) for i in range(8)]
 regs16_expr = [ExprId(x, 16) for x in regs16_str]
 
 regs32_str = ["EAX", "ECX", "EDX", "EBX", "ESP", "EBP", "ESI", "EDI"] + \
-    ["R%dD" % (i + 8) for i in xrange(8)]
+    ["R%dD" % (i + 8) for i in range(8)]
 regs32_expr = [ExprId(x, 32) for x in regs32_str]
 
 regs64_str = ["RAX", "RCX", "RDX", "RBX", "RSP", "RBP", "RSI", "RDI",
@@ -34,13 +35,13 @@ regs64_str = ["RAX", "RCX", "RDX", "RBX", "RSP", "RBP", "RSI", "RDI",
 regs64_expr = [ExprId(x, 64) for x in regs64_str]
 
 
-regs_xmm_str = ["XMM%d" % i for i in xrange(16)]
+regs_xmm_str = ["XMM%d" % i for i in range(16)]
 regs_xmm_expr = [ExprId(x, 128) for x in regs_xmm_str]
 
-regs_mm_str = ["MM%d" % i for i in xrange(16)]
+regs_mm_str = ["MM%d" % i for i in range(16)]
 regs_mm_expr = [ExprId(x, 64) for x in regs_mm_str]
 
-regs_bnd_str = ["BND%d" % i for i in xrange(4)]
+regs_bnd_str = ["BND%d" % i for i in range(4)]
 regs_bnd_expr = [ExprId(x, 128) for x in regs_bnd_str]
 
 gpregs08 = reg_info(regs08_str, regs08_expr)
@@ -74,17 +75,17 @@ selectr_str = ["ES", "CS", "SS", "DS", "FS", "GS"]
 selectr_expr = [ExprId(x, 16) for x in selectr_str]
 segmreg = reg_info(selectr_str, selectr_expr)
 
-crregs32_str = ["CR%d" % i for i in xrange(8)]
+crregs32_str = ["CR%d" % i for i in range(8)]
 crregs32_expr = [ExprId(x, 32) for x in crregs32_str]
 crregs = reg_info(crregs32_str, crregs32_expr)
 
 
-drregs32_str = ["DR%d" % i for i in xrange(8)]
+drregs32_str = ["DR%d" % i for i in range(8)]
 drregs32_expr = [ExprId(x, 32) for x in drregs32_str]
 drregs = reg_info(drregs32_str, drregs32_expr)
 
 
-fltregs32_str = ["ST(%d)" % i for i in xrange(8)]
+fltregs32_str = ["ST(%d)" % i for i in range(8)]
 fltregs32_expr = [ExprId(x, 64) for x in fltregs32_str]
 fltregs = reg_info(fltregs32_str, fltregs32_expr)
 
@@ -345,7 +346,7 @@ float_st7 = ExprId("float_st7", 64)
 float_list = [float_st0, float_st1, float_st2, float_st3,
               float_st4, float_st5, float_st6, float_st7]
 
-float_replace = {fltregs32_expr[i]: float_list[i] for i in xrange(8)}
+float_replace = {fltregs32_expr[i]: float_list[i] for i in range(8)}
 float_replace[r_st_all.expr[0]] = float_st0
 
 

@@ -1,4 +1,8 @@
 """ Test cases for dead code elimination"""
+from __future__ import print_function
+
+from future.utils import viewitems
+
 from miasm2.expression.expression import ExprId, ExprInt, ExprAssign, ExprMem
 from miasm2.core.locationdb import LocationDB
 from miasm2.analysis.data_flow import *
@@ -683,7 +687,7 @@ for test_nb, test in enumerate([(G1_IRA, G1_EXP_IRA),
     # Extract test elements
     g_ira, g_exp_ira = test
 
-    print "[+] Test", test_nb+1
+    print("[+] Test", test_nb+1)
 
     # Print initial graph, for debug
     open("graph_%02d.dot" % (test_nb+1), "w").write(g_ira.dot())
@@ -700,6 +704,6 @@ for test_nb, test in enumerate([(G1_IRA, G1_EXP_IRA),
     # Same number of blocks
     assert len(g_ira.blocks) == len(g_exp_ira.blocks)
     # Check that each expr in the blocks are the same
-    for lbl, irb in g_ira.blocks.iteritems():
+    for lbl, irb in viewitems(g_ira.blocks):
         exp_irb = g_exp_ira.blocks[lbl]
         assert exp_irb.assignblks == irb.assignblks

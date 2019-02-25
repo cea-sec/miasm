@@ -1,3 +1,5 @@
+from future.utils import viewitems, viewvalues
+
 from argparse import ArgumentParser
 from miasm2.analysis.binary import Container
 from miasm2.analysis.machine import Machine
@@ -12,7 +14,7 @@ parser.add_argument("--architecture", "-a", help="Force architecture")
 args = parser.parse_args()
 
 # This part focus on obtaining an IRCFG to transform #
-cont = Container.from_stream(open(args.target))
+cont = Container.from_stream(open(args.target, 'rb'))
 machine = Machine(args.architecture if args.architecture else cont.arch)
 ir = machine.ir(cont.loc_db)
 dis = machine.dis_engine(cont.bin_stream, loc_db=cont.loc_db)
@@ -47,12 +49,14 @@ func.init_fc()
 #     ...
 
 all_regs = set()
-for block in ircfg.blocks.itervalues():
+for block in viewvalues(ircfg.blocks):
     for irs in block.assignblks:
-        for dst, src in irs.get_rw(mem_read=True).iteritems():
+        for dst, src in viewitems(irs.get_rw(mem_read=True)):
             elem = src.union(set([dst]))
-            all_regs.update(x for x in elem
-                            if x.is_id())
+            all_regs.update(
+                x for x in elem
+                if x.is_id()
+            )
 
 reg2glob = {}
 for var in all_regs:
@@ -70,7 +74,7 @@ for var in all_regs:
 func.from_ircfg(ircfg, append_ret=False)
 
 # Finish the saving of registers (temporary version to global)
-for reg, glob in reg2glob.iteritems():
+for reg, glob in viewitems(reg2glob):
     value = func.builder.load(func.local_vars_pointers[reg.name])
     func.builder.store(value, glob)
 

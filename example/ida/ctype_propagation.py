@@ -1,6 +1,9 @@
+from __future__ import print_function
 import ida_kernwin
 import idc
 import ida_funcs
+
+from future.utils import viewitems
 
 from miasm2.core.bin_stream_ida import bin_stream_ida
 from miasm2.expression import expression as m2_expr
@@ -198,11 +201,12 @@ class SymbExecCTypeFix(SymbExecCType):
                 for c_str, c_type in self.chandler.expr_to_c_and_types(expr, self.symbols):
                     expr = self.cst_propag_link.get((irb.loc_key, index), {}).get(expr, expr)
                     offset2cmt.setdefault(instr.offset, set()).add(
-                        "\n%s: %s\n%s" % (expr, c_str, c_type))
+                        "\n%s: %s\n%s" % (expr, c_str, c_type)
+                    )
             self.eval_updt_assignblk(assignblk)
-        for offset, value in offset2cmt.iteritems():
+        for offset, value in viewitems(offset2cmt):
             idc.MakeComm(offset, '\n'.join(value))
-            print "%x\n" % offset, '\n'.join(value)
+            print("%x\n" % offset, '\n'.join(value))
 
         return self.eval_expr(self.ir_arch.IRDst)
 
@@ -222,11 +226,11 @@ def get_ira_call_fixer(ira):
     class iraCallStackFixer(ira):
 
         def call_effects(self, ad, instr):
-            print hex(instr.offset), instr
+            print(hex(instr.offset), instr)
             stk_before = idc.GetSpd(instr.offset)
             stk_after = idc.GetSpd(instr.offset + instr.l)
             stk_diff = stk_after - stk_before
-            print hex(stk_diff)
+            print(hex(stk_diff))
             call_assignblk = AssignBlock(
                 [
                     ExprAssign(self.ret_reg, ExprOp('call_func_ret', ad)),
@@ -299,8 +303,8 @@ def analyse_function():
         )
         ctype = mychandler.types_mngr.types_ast.ast_parse_declaration(ast.ext[0])
         objc = types_mngr.get_objc(ctype)
-        print '=' * 20
-        print expr, objc
+        print('=' * 20)
+        print(expr, objc)
         infos_types[expr] = set([objc])
 
     # Add fake head
@@ -344,7 +348,7 @@ def analyse_function():
                 symbexec_engine.get_state()
             )
 
-    for lbl, state in states.iteritems():
+    for lbl, state in viewitems(states):
         if lbl not in ircfg.blocks:
             continue
         symbexec_engine = CTypeEngineFixer(ir_arch, types_mngr, state, cst_propag_link)

@@ -1,6 +1,7 @@
 #! /usr/bin/env python2
 #-*- coding:utf-8 -*-
 
+from builtins import range
 from miasm2.core.interval import *
 from random import randint
 from pdb import pm
@@ -107,7 +108,7 @@ assert(i_empty.hull() == (None, None))
 
 def gen_random_interval(l=100):
     r = []
-    for j in xrange(5):
+    for j in range(5):
         a = randint(0, l)
         b = a + randint(0, l)
         r.append((a, b))
@@ -117,7 +118,7 @@ def gen_random_interval(l=100):
 def check_add(r1, r2):
     i_sum = interval(r1) + interval(r2)
     for a, b in r1 + r2:
-        for i in xrange(a, b + 1):
+        for i in range(a, b + 1):
             assert(i in i_sum)
 
 
@@ -126,7 +127,7 @@ def check_sub(r1, r2):
     i2 = interval(r2)
     i_sub = i1 - i2
     for a, b in r1:
-        for i in xrange(a, b + 1):
+        for i in range(a, b + 1):
             if i in i2:
                 assert(i not in i_sub)
             else:
@@ -138,14 +139,14 @@ def check_and(r1, r2):
     i2 = interval(r2)
     i_and = i1 & i2
     for a, b in r1:
-        for i in xrange(a, b + 1):
+        for i in range(a, b + 1):
             if i in i2:
                 assert(i in i_and)
             else:
                 assert(i not in i_and)
 
 
-for i in xrange(1000):
+for i in range(1000):
     r1 = gen_random_interval()
     r2 = gen_random_interval()
     r3 = gen_random_interval()

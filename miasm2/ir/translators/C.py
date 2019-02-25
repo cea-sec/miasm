@@ -11,8 +11,8 @@ def int_size_to_bn(value, size):
         size_nibble = 8
     else:
         # size must be multiple of 4
-        size = ((size + 31) / 32) * 32
-        size_nibble = size / 4
+        size = ((size + 31) // 32) * 32
+        size_nibble = size // 4
         fmt_str = "%%.%dx" % size_nibble
         int_str = fmt_str % value
     assert len(int_str) == size_nibble

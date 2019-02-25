@@ -1,7 +1,15 @@
+from __future__ import print_function
+from builtins import range
 import struct
 import inspect
-import UserDict
+from collections import MutableMapping as DictMixin
+
 from operator import itemgetter
+import codecs
+
+from future.utils import viewitems
+
+import collections
 
 upck8 = lambda x: struct.unpack('B', x)[0]
 upck16 = lambda x: struct.unpack('H', x)[0]
@@ -62,23 +70,57 @@ class Disasm_Exception(Exception):
     pass
 
 
+def printable(string):
+    if isinstance(string, bytes):
+        return "".join(
+            c.decode() if b" " <= c < b"~" else "."
+            for c in (string[i:i+1] for i in range(len(string)))
+        )
+    return string
+
+
+def force_bytes(value):
+    try:
+        return value.encode()
+    except AttributeError:
+        return value
+
+
+def iterbytes(string):
+    for i in range(len(string)):
+        yield string[i:i+1]
+
+
+def int_to_byte(value):
+    return struct.pack('B', value)
+
+def cmp_elts(elt1, elt2):
+    return (elt1 > elt2) - (elt1 < elt2)
+
+
+_DECODE_HEX = codecs.getdecoder("hex_codec")
+_ENCODE_HEX = codecs.getencoder("hex_codec")
+
+def decode_hex(value):
+    return _DECODE_HEX(value)[0]
+
+def encode_hex(value):
+    return _ENCODE_HEX(value)[0]
+
+
 def hexdump(src, length=16):
-    FILTER = ''.join(
-        [(len(repr(chr(x))) == 3) and chr(x) or '.' for x in range(256)])
     lines = []
-    for c in xrange(0, len(src), length):
+    for c in range(0, len(src), length):
         chars = src[c:c + length]
-        hexa = ' '.join(["%02x" % ord(x) for x in chars])
+        hexa = ' '.join("%02x" % ord(x) for x in iterbytes(chars))
         printable = ''.join(
-            ["%s" % ((ord(x) <= 127 and FILTER[ord(x)]) or '.') for x in chars])
+            x.decode() if 32 <= ord(x) <= 126 else '.' for x in iterbytes(chars)
+        )
         lines.append("%04x  %-*s  %s\n" % (c, length * 3, hexa, printable))
-    print ''.join(lines)
+    print(''.join(lines))
+
 
 # stackoverflow.com/questions/2912231
-
-import collections
-
-
 class keydefaultdict(collections.defaultdict):
 
     def __missing__(self, key):
@@ -88,7 +130,7 @@ class keydefaultdict(collections.defaultdict):
         return value
 
 
-class BoundedDict(UserDict.DictMixin):
+class BoundedDict(DictMixin):
 
     """Limited in size dictionary.
 
@@ -108,7 +150,7 @@ class BoundedDict(UserDict.DictMixin):
         @delete_cb: (optional) callback called when an element is removed
         """
         self._data = initialdata.copy() if initialdata else {}
-        self._min_size = min_size if min_size else max_size / 3
+        self._min_size = min_size if min_size else max_size // 3
         self._max_size = max_size
         self._size = len(self._data)
         # Do not use collections.Counter as it is quite slow
@@ -122,8 +164,11 @@ class BoundedDict(UserDict.DictMixin):
 
             # Bound can only be reached on a new element
             if (self._size >= self._max_size):
-                most_common = sorted(self._counter.iteritems(),
-                                     key=itemgetter(1), reverse=True)
+                most_common = sorted(
+                    viewitems(self._counter),
+                    key=itemgetter(1),
+                    reverse=True
+                )
 
                 # Handle callback
                 if self._delete_cb is not None:
@@ -154,7 +199,7 @@ class BoundedDict(UserDict.DictMixin):
 
     def keys(self):
         "Return the list of dict's keys"
-        return self._data.keys()
+        return list(self._data)
 
     @property
     def data(self):
@@ -180,3 +225,10 @@ class BoundedDict(UserDict.DictMixin):
         if self._delete_cb:
             for key in self._data:
                 self._delete_cb(key)
+
+
+    def __len__(self):
+        return len(self._data)
+
+    def __iter__(self):
+        return iter(self._data)

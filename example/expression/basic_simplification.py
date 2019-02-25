@@ -1,9 +1,10 @@
+from __future__ import print_function
 from miasm2.expression.expression import *
 from miasm2.expression.simplifications import expr_simp
 
-print """
+print("""
 Simple expression simplification demo
-"""
+""")
 
 
 a = ExprId('eax', 32)
@@ -14,6 +15,6 @@ exprs = [a + b - a,
          ExprCompose(a[:8], a[8:16])]
 
 for e in exprs:
-    print '*' * 40
-    print 'original expression:', e
-    print "simplified:", expr_simp(e)
+    print('*' * 40)
+    print('original expression:', e)
+    print("simplified:", expr_simp(e))

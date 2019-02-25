@@ -5,9 +5,9 @@ import tempfile
 import ctypes
 import _ctypes
 import platform
+import sysconfig
 from subprocess import check_call
 from distutils.sysconfig import get_python_inc
-
 from miasm2.jitter import Jitgcc
 from miasm2.jitter.jitcore_cc_base import JitCore_Cc_Base, gen_core
 
@@ -45,7 +45,9 @@ class JitCore_Gcc(JitCore_Cc_Base):
         @block: block to jit
         """
         block_hash = self.hash_block(block)
-        ext = ".so" if not is_win else ".pyd"
+        ext = sysconfig.get_config_var('EXT_SUFFIX')
+        if ext is None:
+            ext = ".so" if not is_win else ".pyd"
         fname_out = os.path.join(self.tempdir, "%s%s" % (block_hash, ext))
 
         if not os.access(fname_out, os.R_OK | os.X_OK):
@@ -53,7 +55,7 @@ class JitCore_Gcc(JitCore_Cc_Base):
 
             # Create unique C file
             fdesc, fname_in = tempfile.mkstemp(suffix=".c")
-            os.write(fdesc, func_code)
+            os.write(fdesc, func_code.encode())
             os.close(fdesc)
 
             # Create unique SO file
@@ -63,7 +65,14 @@ class JitCore_Gcc(JitCore_Cc_Base):
             inc_dir = ["-I%s" % inc for inc in self.include_files]
             libs = ["%s" % lib for lib in self.libs]
             if is_win:
-                libs.append(os.path.join(get_python_inc(), "..", "libs", "python27.lib"))
+                libs.append(
+                    os.path.join(
+                        get_python_inc(),
+                        "..",
+                        "libs",
+                        "python27.lib"
+                    )
+                )
                 cl = [
                     "cl", "/nologo", "/W3", "/MP",
                     "/Od", "/DNDEBUG", "/D_WINDOWS", "/Gm-", "/EHsc",
@@ -76,26 +85,44 @@ class JitCore_Gcc(JitCore_Cc_Base):
                 basename_out, _ = os.path.splitext(fname_tmp)
                 basename_in, _ = os.path.splitext(os.path.basename(fname_in))
                 for ext in ('.obj', '.exp', '.lib'):
-                    artifact_out_path = os.path.join(out_dir, basename_out + ext)
+                    artifact_out_path = os.path.join(
+                        out_dir,
+                        basename_out + ext
+                    )
                     if os.path.isfile(artifact_out_path):
                         os.remove(artifact_out_path)
-                    artifact_in_path = os.path.join(out_dir, basename_in + ext)
+                    artifact_in_path = os.path.join(
+                        out_dir,
+                        basename_in + ext
+                    )
                     if os.path.isfile(artifact_in_path):
                         os.remove(artifact_in_path)
             else:
-                args = ["cc", "-O3", "-shared", "-fPIC", fname_in, "-o", fname_tmp] + inc_dir + libs
+                args = [
+                    "cc",
+                    "-O3",
+                    "-shared",
+                    "-fPIC",
+                    fname_in,
+                    "-o",
+                    fname_tmp
+                ] + inc_dir + libs
                 check_call(args)
 
             # Move temporary file to final file
             try:
                 os.rename(fname_tmp, fname_out)
-            except WindowsError, e:
-                # On Windows, os.rename works slightly differently than on Linux; quoting the documentation:
-                # "On Unix, if dst exists and is a file, it will be replaced silently if the user has permission.
-                # The operation may fail on some Unix flavors if src and dst are on different filesystems.
-                # If successful, the renaming will be an atomic operation (this is a POSIX requirement).
-                # On Windows, if dst already exists, OSError will be raised even if it is a file; there may be no way
-                # to implement an atomic rename when dst names an existing file."
+            except WindowsError as e:
+                # On Windows, os.rename works slightly differently than on
+                # Linux; quoting the documentation:
+                # "On Unix, if dst exists and is a file, it will be replaced
+                # silently if the user has permission.  The operation may fail
+                # on some Unix flavors if src and dst are on different
+                # filesystems.  If successful, the renaming will be an atomic
+                # operation (this is a POSIX requirement).  On Windows, if dst
+                # already exists, OSError will be raised even if it is a file;
+                # there may be no way to implement an atomic rename when dst
+                # names an existing file."
                 # [Error 183] Cannot create a file when that file already exists
                 if e.winerror != 183:
                     raise

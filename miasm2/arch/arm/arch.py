@@ -1,5 +1,8 @@
 #-*- coding:utf-8 -*-
 
+from builtins import range
+from future.utils import viewitems
+
 import logging
 from pyparsing import *
 from miasm2.expression.expression import *
@@ -24,7 +27,7 @@ reg_dum = ExprId('DumReg', 32)
 PC, _ = gen_reg('PC')
 
 # GP
-regs_str = ['R%d' % r for r in xrange(0x10)]
+regs_str = ['R%d' % r for r in range(0x10)]
 regs_str[13] = 'SP'
 regs_str[14] = 'LR'
 regs_str[15] = 'PC'
@@ -49,9 +52,9 @@ gpregs_nosp = reg_info(regs_str[:13] + [str(reg_dum), regs_str[14], regs_str[15]
 sr_flags = "cxsf"
 cpsr_regs_str = []
 spsr_regs_str = []
-for i in xrange(0x10):
+for i in range(0x10):
     o = ""
-    for j in xrange(4):
+    for j in range(4):
         if i & (1 << j):
             o += sr_flags[j]
     cpsr_regs_str.append("CPSR_%s" % o)
@@ -69,13 +72,13 @@ cpsr_regs = reg_info(cpsr_regs_str, cpsr_regs_expr)
 spsr_regs = reg_info(spsr_regs_str, spsr_regs_expr)
 
 # CP
-cpregs_str = ['c%d' % r for r in xrange(0x10)]
+cpregs_str = ['c%d' % r for r in range(0x10)]
 cpregs_expr = [ExprId(x, 32) for x in cpregs_str]
 
 cp_regs = reg_info(cpregs_str, cpregs_expr)
 
 # P
-pregs_str = ['p%d' % r for r in xrange(0x10)]
+pregs_str = ['p%d' % r for r in range(0x10)]
 pregs_expr = [ExprId(x, 32) for x in pregs_str]
 
 p_regs = reg_info(pregs_str, pregs_expr)
@@ -110,7 +113,7 @@ def cb_tok_reg_duo(tokens):
     i1 = gpregs.expr.index(tokens[0].name)
     i2 = gpregs.expr.index(tokens[1].name)
     o = []
-    for i in xrange(i1, i2 + 1):
+    for i in range(i1, i2 + 1):
         o.append(AstId(gpregs.expr[i]))
     return o
 
@@ -155,7 +158,7 @@ allshifts_armt = ['<<', '>>', 'a>>', '>>>', 'rrx']
 shift2expr_dct = {'LSL': '<<', 'LSR': '>>', 'ASR': 'a>>',
                   'ROR': ">>>", 'RRX': "rrx"}
 
-expr2shift_dct = dict([(x[1], x[0]) for x in shift2expr_dct.items()])
+expr2shift_dct = dict((value, key) for key, value in viewitems(shift2expr_dct))
 
 
 def op_shift2expr(tokens):
@@ -321,13 +324,13 @@ def permut_args(order, args):
     for i, x in enumerate(order):
         l.append((x.__class__, i))
     l = dict(l)
-    out = [None for x in xrange(len(args))]
+    out = [None for x in range(len(args))]
     for a in args:
         out[l[a.__class__]] = a
     return out
 
 
-class additional_info:
+class additional_info(object):
 
     def __init__(self):
         self.except_on_instr = False
@@ -400,8 +403,10 @@ class instruction_arm(instruction):
         else:
             r, s = expr.args[0].args
         if isinstance(s, ExprOp) and s.op in expr2shift_dct:
-            s = ' '.join([str(x)
-                for x in s.args[0], expr2shift_dct[s.op], s.args[1]])
+            s = ' '.join(
+                str(x)
+                for x in (s.args[0], expr2shift_dct[s.op], s.args[1])
+            )
 
         if isinstance(expr, ExprOp) and expr.op == 'postinc':
             o = '[%s]' % r
@@ -563,7 +568,7 @@ class instruction_armt(instruction_arm):
 
     def get_asm_offset(self, expr):
         # ADR XXX, PC, imm => PC is 4 aligned + imm
-        new_offset = ((self.offset+self.l)/4)*4
+        new_offset = ((self.offset + self.l) // 4) * 4
         return ExprInt(new_offset, expr.size)
 
 
@@ -610,7 +615,7 @@ class mn_arm(cls_mn):
         if n > bs.getlen() * 8:
             raise ValueError('not enough bits %r %r' % (n, len(bs.bin) * 8))
         while n:
-            offset = start / 8
+            offset = start // 8
             n_offset = cls.endian_offset(attrib, offset)
             c = cls.getbytes(bs, n_offset, 1)
             if not c:
@@ -711,7 +716,7 @@ class mn_armt(cls_mn):
         if n > bs.getlen() * 8:
             raise ValueError('not enough bits %r %r' % (n, len(bs.bin) * 8))
         while n:
-            offset = start / 8
+            offset = start // 8
             n_offset = cls.endian_offset(attrib, offset)
             c = cls.getbytes(bs, n_offset, 1)
             if not c:
@@ -784,7 +789,7 @@ class arm_arg(m_arg):
                 return arg.name
             if arg.name in gpregs.str:
                 return None
-            loc_key = loc_db.get_or_create_name_location(arg.name)
+            loc_key = loc_db.get_or_create_name_location(arg.name.encode())
             return ExprLoc(loc_key, 32)
         if isinstance(arg, AstOp):
             args = [self.asm_ast_to_expr(tmp, loc_db) for tmp in arg.args]
@@ -1025,10 +1030,10 @@ class arm_op2(arm_arg):
     def str_to_imm_rot_form(self, s, neg=False):
         if neg:
             s = -s & 0xffffffff
-        for i in xrange(0, 32, 2):
+        for i in range(0, 32, 2):
             v = myrol32(s, i)
             if 0 <= v < 0x100:
-                return ((i / 2) << 8) | v
+                return ((i // 2) << 8) | v
         return None
 
     def decode(self, v):
@@ -1267,7 +1272,7 @@ class arm_rlist(arm_arg):
     def decode(self, v):
         v = v & self.lmask
         out = []
-        for i in xrange(0x10):
+        for i in range(0x10):
             if 1 << i & v:
                 out.append(gpregs.expr[i])
         if not out:
@@ -1616,7 +1621,7 @@ data_test_name = {'TST': 8, 'TEQ': 9, 'CMP': 10, 'CMN': 11}
 
 data_name = {}
 for i, n in enumerate(op_list):
-    if n in data_mov_name.keys() + data_test_name.keys():
+    if n in list(data_mov_name) + list(data_test_name):
         continue
     data_name[n] = i
 bs_data_name = bs_name(l=4, name=data_name)
@@ -1740,7 +1745,7 @@ class arm_rm_rot2(arm_arg):
             value = int(value)
             if not value in [8, 16, 24]:
                 return False
-            self.parent.rot2.value = value / 8
+            self.parent.rot2.value = value // 8
         return True
 
 class arm_gpreg_nopc(reg_noarg):
@@ -2052,7 +2057,7 @@ class armt_rlist(arm_arg):
     def decode(self, v):
         v = v & self.lmask
         out = []
-        for i in xrange(0x10):
+        for i in range(0x10):
             if 1 << i & v:
                 out.append(gpregs.expr[i])
         if not out:
@@ -2093,7 +2098,7 @@ class armt_rlist13(armt_rlist):
     def decode(self, v):
         v = v & self.lmask
         out = []
-        for i in xrange(13):
+        for i in range(13):
             if 1 << i & v:
                 out.append(gpregs_l_13.expr[i])
 
@@ -2141,7 +2146,7 @@ class armt_rlist13_pc_lr(armt_rlist):
     def decode(self, v):
         v = v & self.lmask
         out = []
-        for i in xrange(13):
+        for i in range(13):
             if 1 << i & v:
                 out.append(gpregs_l_13.expr[i])
 
@@ -2184,7 +2189,7 @@ class armt_rlist_pclr(armt_rlist):
     def decode(self, v):
         v = v & self.lmask
         out = []
-        for i in xrange(0x10):
+        for i in range(0x10):
             if 1 << i & v:
                 out.append(gpregs.expr[i])
 
@@ -2522,7 +2527,7 @@ class armt2_imm12(arm_imm):
             value = (3 << 8) | ((v >> 16) & 0xff)
         else:
             # rol encoding
-            for i in xrange(32):
+            for i in range(32):
                 o = myrol32(v, i)
                 if 0x80 <= o <= 0xFF:
                     value = (i << 7) | (o & 0x7F)
@@ -2860,7 +2865,7 @@ class armt_itmask(bs_divert):
     def divert(self, i, candidates):
         out = []
         for cls, _, bases, dct, fields in candidates:
-            for value in xrange(1, 0x10):
+            for value in range(1, 0x10):
                 nfields = fields[:]
                 s = int2bin(value, self.args['l'])
                 args = dict(self.args)
@@ -2881,7 +2886,7 @@ class armt_itmask(bs_divert):
         values = ['E', 'T']
         if inv== 1:
             values.reverse()
-        for index in xrange(3 - count):
+        for index in range(3 - count):
             if value & (1 << (3 - index)):
                 out.append(values[0])
             else:
@@ -2896,7 +2901,7 @@ class armt_cond_lsb(bs_divert):
     def divert(self, i, candidates):
         out = []
         for cls, _, bases, dct, fields in candidates:
-            for value in xrange(2):
+            for value in range(2):
                 nfields = fields[:]
                 s = int2bin(value, self.args['l'])
                 args = dict(self.args)

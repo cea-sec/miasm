@@ -1,12 +1,13 @@
 import sys
 from pdb import pm
 
+from miasm2.core.utils import decode_hex, encode_hex
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm2.analysis.machine import Machine
 from miasm2.expression.expression import ExprId, ExprAssign, ExprInt, ExprMem
 
 # Initial data: from 'example/samples/x86_32_sc.bin'
-data = "8d49048d5b0180f90174058d5bffeb038d5b0189d8c3".decode("hex")
+data = decode_hex("8d49048d5b0180f90174058d5bffeb038d5b0189d8c3")
 
 # Init jitter
 myjit = Machine("x86_32").jitter(sys.argv[1])
@@ -46,4 +47,4 @@ assert myjit.eval_expr(eax) == imm4
 ## Changes must be passed on myjit.cpu instance
 assert myjit.cpu.EAX == 4
 ## Memory
-assert myjit.eval_expr(memdata).arg.arg == int(data[::-1].encode("hex"), 16)
+assert myjit.eval_expr(memdata).arg.arg == int(encode_hex(data[::-1]), 16)

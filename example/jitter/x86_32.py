@@ -20,7 +20,7 @@ def code_sentinelle(jitter):
 myjit = Machine("x86_32").jitter(args.jitter)
 myjit.init_stack()
 
-data = open(args.filename).read()
+data = open(args.filename, 'rb').read()
 run_addr = 0x40000000
 myjit.vm.add_memory_page(run_addr, PAGE_READ | PAGE_WRITE, data)
 

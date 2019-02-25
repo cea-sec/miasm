@@ -5,10 +5,14 @@ C helper for Miasm:
 * Miasm expression to C type
 """
 
+from builtins import zip
+from builtins import int as int_types
 
 import warnings
 from pycparser import c_parser, c_ast
+from functools import total_ordering
 
+from miasm2.core.utils import cmp_elts
 from miasm2.expression.expression_reduce import ExprReducer
 from miasm2.expression.expression import ExprInt, ExprId, ExprOp, ExprMem
 
@@ -65,6 +69,7 @@ def objc_to_str(objc, result=None):
     return result
 
 
+@total_ordering
 class ObjC(object):
     """Generic ObjC"""
 
@@ -87,10 +92,13 @@ class ObjC(object):
         assert other.__class__ in OBJC_PRIO
 
         if OBJC_PRIO[self.__class__] != OBJC_PRIO[other.__class__]:
-            return cmp(OBJC_PRIO[self.__class__], OBJC_PRIO[other.__class__])
+            return cmp_elts(
+                OBJC_PRIO[self.__class__],
+                OBJC_PRIO[other.__class__]
+            )
         if self.align != other.align:
-            return cmp(self.align, other.align)
-        return cmp(self.size, other.size)
+            return cmp_elts(self.align, other.align)
+        return cmp_elts(self.size, other.size)
 
     def __hash__(self):
         return hash((self.__class__, self._align, self._size))
@@ -98,7 +106,18 @@ class ObjC(object):
     def __str__(self):
         return objc_to_str(self)
 
+    def __eq__(self, other):
+        return self.cmp_base(other) == 0
 
+    def __ne__(self, other):
+        # required Python 2.7.14
+        return not self == other
+
+    def __lt__(self, other):
+        return self.cmp_base(other) < 0
+
+
+@total_ordering
 class ObjCDecl(ObjC):
     """C Declaration identified"""
 
@@ -117,11 +136,19 @@ class ObjCDecl(ObjC):
     def __str__(self):
         return str(self.name)
 
-    def __cmp__(self, other):
+    def __eq__(self, other):
         ret = self.cmp_base(other)
         if ret:
-            return ret
-        return cmp(self.name, other.name)
+            return False
+        return self.name == other.name
+
+    def __lt__(self, other):
+        ret = self.cmp_base(other)
+        if ret:
+            if ret < 0:
+                return True
+            return False
+        return self.name < other.name
 
 
 class ObjCInt(ObjC):
@@ -133,10 +160,8 @@ class ObjCInt(ObjC):
     def __str__(self):
         return 'int'
 
-    def __cmp__(self, other):
-        return self.cmp_base(other)
 
-
+@total_ordering
 class ObjCPtr(ObjC):
     """C Pointer"""
 
@@ -172,16 +197,27 @@ class ObjCPtr(ObjC):
         return hash((super(ObjCPtr, self).__hash__(), hash(self._objtype)))
 
     def __repr__(self):
-        return '<%s %r>' % (self.__class__.__name__,
-                            self.objtype.__class__)
+        return '<%s %r>' % (
+            self.__class__.__name__,
+            self.objtype.__class__
+        )
 
-    def __cmp__(self, other):
+    def __eq__(self, other):
         ret = self.cmp_base(other)
         if ret:
-            return ret
-        return cmp(self.objtype, other.objtype)
+            return False
+        return self.objtype == other.objtype
+
+    def __lt__(self, other):
+        ret = self.cmp_base(other)
+        if ret:
+            if ret < 0:
+                return True
+            return False
+        return self.objtype < other.objtype
 
 
+@total_ordering
 class ObjCArray(ObjC):
     """C array (test[XX])"""
 
@@ -205,16 +241,23 @@ class ObjCArray(ObjC):
     def __repr__(self):
         return '<%r[%d]>' % (self.objtype, self.elems)
 
-    def __cmp__(self, other):
+    def __eq__(self, other):
         ret = self.cmp_base(other)
         if ret:
-            return ret
-        ret = cmp(self.elems, other.elems)
-        if ret:
-            return ret
-        return cmp(self.objtype, other.objtype)
+            return False
+        if self.objtype != other.objtype:
+            return False
+        return self.elems == other.elems
 
+    def __lt__(self, other):
+        ret = self.cmp_base(other)
+        if ret > 0:
+            return False
+        if self.objtype > other.objtype:
+            return False
+        return self.elems < other.elems
 
+@total_ordering
 class ObjCStruct(ObjC):
     """C object for structures"""
 
@@ -241,12 +284,22 @@ class ObjCStruct(ObjC):
     def __str__(self):
         return 'struct %s' % (self.name)
 
-    def __cmp__(self, other):
+    def __eq__(self, other):
         ret = self.cmp_base(other)
         if ret:
-            return ret
-        return cmp(self.name, other.name)
+            return False
+        return self.name == other.name
 
+    def __lt__(self, other):
+        ret = self.cmp_base(other)
+        if ret:
+            if ret < 0:
+                return True
+            return False
+        return self.name < other.name
+
+
+@total_ordering
 class ObjCUnion(ObjC):
     """C object for unions"""
 
@@ -273,11 +326,19 @@ class ObjCUnion(ObjC):
     def __str__(self):
         return 'union %s' % (self.name)
 
-    def __cmp__(self, other):
+    def __eq__(self, other):
         ret = self.cmp_base(other)
         if ret:
-            return ret
-        return cmp(self.name, other.name)
+            return False
+        return self.name == other.name
+
+    def __lt__(self, other):
+        ret = self.cmp_base(other)
+        if ret:
+            if ret < 0:
+                return True
+            return False
+        return self.name < other.name
 
 class ObjCEllipsis(ObjC):
     """C integer"""
@@ -288,10 +349,7 @@ class ObjCEllipsis(ObjC):
     align = property(lambda self: self._align)
     size = property(lambda self: self._size)
 
-    def __cmp__(self, other):
-        return self.cmp_base(other)
-
-
+@total_ordering
 class ObjCFunc(ObjC):
     """C object for Functions"""
 
@@ -311,8 +369,10 @@ class ObjCFunc(ObjC):
         return hash((super(ObjCFunc, self).__hash__(), hash(self._args), self._name))
 
     def __repr__(self):
-        return "<%s %s>" % (self.__class__.__name__,
-                            self.name)
+        return "<%s %s>" % (
+            self.__class__.__name__,
+            self.name
+        )
 
     def __str__(self):
         out = []
@@ -323,11 +383,19 @@ class ObjCFunc(ObjC):
             out.append("  %s %s" % (name, arg))
         return '\n'.join(out)
 
-    def __cmp__(self, other):
+    def __eq__(self, other):
         ret = self.cmp_base(other)
         if ret:
-            return ret
-        return cmp(self.name, other.name)
+            return False
+        return self.name == other.name
+
+    def __lt__(self, other):
+        ret = self.cmp_base(other)
+        if ret:
+            if ret < 0:
+                return True
+            return False
+        return self.name < other.name
 
 OBJC_PRIO = {
     ObjC: 0,
@@ -448,7 +516,7 @@ class CGenInt(CGen):
     """Int C object"""
 
     def __init__(self, integer):
-        assert isinstance(integer, (int, long))
+        assert isinstance(integer, int_types)
         self._integer = integer
         super(CGenInt, self).__init__(ObjCInt())
 
@@ -898,7 +966,7 @@ class ExprToAccessC(ExprReducer):
             if base_type.objtype.size == 0:
                 missing_definition(base_type.objtype)
                 return set()
-            element_num = offset / (base_type.objtype.size)
+            element_num = offset // (base_type.objtype.size)
             field_offset = offset % base_type.objtype.size
             if element_num >= base_type.elems:
                 return set()
@@ -919,7 +987,7 @@ class ExprToAccessC(ExprReducer):
         elif isinstance(base_type, ObjCDecl):
             if self.enforce_strict_access and offset % base_type.size != 0:
                 return set()
-            elem_num = offset / base_type.size
+            elem_num = offset // base_type.size
 
             nobj = CGenArray(cgenobj, elem_num,
                              void_type.align, void_type.size)
@@ -942,7 +1010,7 @@ class ExprToAccessC(ExprReducer):
             new_type = out
 
         elif isinstance(base_type, ObjCPtr):
-            elem_num = offset / base_type.size
+            elem_num = offset // base_type.size
             if self.enforce_strict_access and offset % base_type.size != 0:
                 return set()
             nobj = CGenArray(cgenobj, elem_num,
@@ -1025,7 +1093,7 @@ class ExprToAccessC(ExprReducer):
                 target = nobj.ctype.objtype
                 for finalcgenobj in self.cgen_access(nobj, target, 0, True, lvl):
                     assert isinstance(finalcgenobj.ctype, ObjCPtr)
-                    if self.enforce_strict_access and finalcgenobj.ctype.objtype.size != node.expr.size / 8:
+                    if self.enforce_strict_access and finalcgenobj.ctype.objtype.size != node.expr.size // 8:
                         continue
                     found.add(CGenDeref(finalcgenobj))
 
@@ -1035,16 +1103,16 @@ class ExprToAccessC(ExprReducer):
                 if isinstance(target, (ObjCStruct, ObjCUnion)):
                     for finalcgenobj in self.cgen_access(subcgenobj, target, 0, True, lvl):
                         target = finalcgenobj.ctype.objtype
-                        if self.enforce_strict_access and target.size != node.expr.size / 8:
+                        if self.enforce_strict_access and target.size != node.expr.size // 8:
                             continue
                         found.add(CGenDeref(finalcgenobj))
                 elif isinstance(target, ObjCArray):
-                    if self.enforce_strict_access and subcgenobj.ctype.size != node.expr.size / 8:
+                    if self.enforce_strict_access and subcgenobj.ctype.size != node.expr.size // 8:
                         continue
                     found.update(self.cgen_access(CGenDeref(subcgenobj), target,
                                                   0, False, lvl))
                 else:
-                    if self.enforce_strict_access and target.size != node.expr.size / 8:
+                    if self.enforce_strict_access and target.size != node.expr.size // 8:
                         continue
                     found.add(CGenDeref(subcgenobj))
         if not found:
@@ -1504,14 +1572,14 @@ class CTypesManager(object):
             elif size.operator == "*":
                 return arg0 * arg1
             elif size.operator == "/":
-                return arg0 / arg1
+                return arg0 // arg1
             elif size.operator == "<<":
                 return arg0 << arg1
             elif size.operator == ">>":
                 return arg0 >> arg1
             else:
                 raise ValueError("Unknown operator %s" % size.operator)
-        elif isinstance(size, (int, long)):
+        elif isinstance(size, int_types):
             return size
         elif isinstance(size, CTypeSizeof):
             obj = self._get_objc(size.target)

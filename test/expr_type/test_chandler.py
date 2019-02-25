@@ -4,7 +4,11 @@ Regression test for objc
 * C Miasm expression to native expression
 * Miasm expression to type
 """
+from __future__ import print_function
 
+from future.utils import viewitems
+from past.builtins import cmp
+from builtins import str
 from miasm2.expression.expression import ExprInt, ExprId, ExprMem
 from miasm2.expression.simplifications import expr_simp
 
@@ -147,18 +151,18 @@ types_ast.add_c_decl(text_2)
 
 types_mngr = CTypesManagerNotPacked(types_ast, base_types)
 
-for type_id, type_desc in types_mngr.types_ast._types.iteritems():
-    print type_id
+for type_id, type_desc in viewitems(types_mngr.types_ast._types):
+    print(type_id)
     obj = types_mngr.get_objc(type_id)
-    print obj
-    print repr(obj)
+    print(obj)
+    print(repr(obj))
     types_mngr.check_objc(obj)
 
-for type_id, type_desc in types_mngr.types_ast._typedefs.iteritems():
-    print type_id
+for type_id, type_desc in viewitems(types_mngr.types_ast._typedefs):
+    print(type_id)
     obj = types_mngr.get_objc(type_id)
-    print obj
-    print repr(obj)
+    print(obj)
+    print(repr(obj))
     types_mngr.check_objc(obj)
 
 void_ptr = types_mngr.void_ptr
@@ -200,9 +204,9 @@ ptr_recurse = ExprId("ptr_recurse", 64)
 
 
 obj_test_st = types_mngr.get_objc(CTypeStruct("test_st"))
-print repr(obj_test_st)
+print(repr(obj_test_st))
 obj_test_context = types_mngr.get_objc(CTypeStruct("test_context"))
-print repr(obj_test_context)
+print(repr(obj_test_context))
 assert obj_test_context.size > obj_test_st.size
 
 assert cmp(obj_test_st, obj_recurse) != 0
@@ -513,8 +517,8 @@ mychandler.updt_expr_types(expr_types)
 
 
 for (expr, result) in tests:
-    print "*" * 80
-    print "Native expr:", expr
+    print("*" * 80)
+    print("Native expr:", expr)
     result = set(result)
     expr_c = mychandler.expr_to_c(expr)
     types = mychandler.expr_to_types(expr)
@@ -524,7 +528,7 @@ for (expr, result) in tests:
     access_c_gen = ExprToAccessC(expr_types, types_mngr)
     computed = set()
     for c_str, ctype in mychandler.expr_to_c_and_types(expr):
-        print c_str, ctype
+        print(c_str, ctype)
         computed.add((str(ctype), c_str))
     assert computed == result
 
@@ -532,12 +536,12 @@ for (expr, result) in tests:
     for out_type, out_str in computed:
         parsed_expr = mychandler.c_to_expr(out_str)
         parsed_type = mychandler.c_to_type(out_str)
-        print "Access expr:", parsed_expr
-        print "Access type:", parsed_type
+        print("Access expr:", parsed_expr)
+        print("Access type:", parsed_type)
 
         ast = parse_access(out_str)
         access_c = ast_get_c_access_expr(ast, c_context)
-        print "Generated access:", access_c
+        print("Generated access:", access_c)
 
         parsed_expr_bis, parsed_type_bis = mychandler.exprc2expr.get_expr(access_c, c_context)
         assert parsed_expr_bis is not None
@@ -551,5 +555,5 @@ for (expr, result) in tests:
 
         expr_new1 = expr_simp(parsed_expr)
         expr_new2 = expr_simp(expr)
-        print "\t", expr_new1
+        print("\t", expr_new1)
         assert expr_new1 == expr_new2

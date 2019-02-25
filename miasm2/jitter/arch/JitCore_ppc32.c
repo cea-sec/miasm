@@ -2,6 +2,7 @@
 #include "structmember.h"
 #include <stdint.h>
 #include <inttypes.h>
+#include "../compat_py23.h"
 #include "../queue.h"
 #include "../vm_mngr.h"
 #include "../vm_mngr_py.h"
@@ -36,6 +37,7 @@ cpu_set_gpreg(JitCpu *self, PyObject *args) {
     PyObject *dict;
     PyObject *d_key, *d_value = NULL;
     Py_ssize_t pos = 0;
+    char* d_key_name;
     uint64_t val;
     unsigned int i;
 
@@ -46,14 +48,11 @@ cpu_set_gpreg(JitCpu *self, PyObject *args) {
 
     while(PyDict_Next(dict, &pos, &d_key, &d_value)) {
 	int found = 0;
-
-	if(!PyString_Check(d_key))
-	    RAISE(PyExc_TypeError, "key must be str");
-
+	PyGetStr(d_key_name, d_key);
 	PyGetInt(d_value, val);
 
 	for (i=0; i < sizeof(gpreg_dict)/sizeof(reg_dict); i++){
-	    if (strcmp(PyString_AsString(d_key), gpreg_dict[i].name))
+	    if (strcmp(d_key_name, gpreg_dict[i].name))
 		continue;
 	    *((uint32_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset)) = val;
 	    found = 1;
@@ -62,7 +61,7 @@ cpu_set_gpreg(JitCpu *self, PyObject *args) {
 
 	if (found)
 	    continue;
-	fprintf(stderr, "unknown key: %s\n", PyString_AsString(d_key));
+	fprintf(stderr, "unknown key: %s\n", d_key_name);
 	RAISE(PyExc_ValueError, "unknown reg");
     }
 
@@ -192,11 +191,11 @@ vm_set_mem(JitCpu *self, PyObject *args) {
 
    PyGetInt(py_addr, addr);
 
-   if(!PyString_Check(py_buffer))
-       RAISE(PyExc_TypeError,"arg must be str");
+   if(!PyBytes_Check(py_buffer))
+       RAISE(PyExc_TypeError,"arg must be bytes");
 
-   size = PyString_Size(py_buffer);
-   PyString_AsStringAndSize(py_buffer, &buffer, &py_length);
+   size = PyBytes_Size(py_buffer);
+   PyBytes_AsStringAndSize(py_buffer, &buffer, &py_length);
 
    ret = vm_write_mem(&(((VmMngr*)self->pyvm)->vm_mngr), addr, buffer, size);
    if (ret < 0)
@@ -276,8 +275,7 @@ static PyGetSetDef JitCpu_getseters[] = {
 
 
 static PyTypeObject JitCpuType = {
-    PyObject_HEAD_INIT(NULL)
-    0,                         /*ob_size*/
+    PyVarObject_HEAD_INIT(NULL, 0)
     "JitCore_ppc.JitCpu",      /*tp_name*/
     sizeof(JitCpu),            /*tp_basicsize*/
     0,                         /*tp_itemsize*/
@@ -319,31 +317,28 @@ static PyTypeObject JitCpuType = {
 
 
 
-static PyMethodDef JitCore_ppc_Methods[] = {
+static PyMethodDef JitCore_ppc32_Methods[] = {
     {"get_gpreg_offset_all", (PyCFunction)get_gpreg_offset_all, METH_NOARGS},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
-static PyObject *JitCore_ppc32_Error;
 
-PyMODINIT_FUNC
-initJitCore_ppc32(void)
+
+MOD_INIT(JitCore_ppc32)
 {
-    PyObject *m;
+	PyObject *module;
 
-    if (PyType_Ready(&JitCpuType) < 0)
-	return;
+	MOD_DEF(module, "JitCore_ppc32", "JitCore_ppc32 module", JitCore_ppc32_Methods);
 
-    m = Py_InitModule("JitCore_ppc32", JitCore_ppc_Methods);
-    if (m == NULL)
-	return;
+	if (module == NULL)
+		return NULL;
 
-    JitCore_ppc32_Error = PyErr_NewException("JitCore_ppc32.error", NULL, NULL);
-    Py_INCREF(JitCore_ppc32_Error);
-    PyModule_AddObject(m, "error", JitCore_ppc32_Error);
+	if (PyType_Ready(&JitCpuType) < 0)
+		return NULL;
 
-    Py_INCREF(&JitCpuType);
-    PyModule_AddObject(m, "JitCpu", (PyObject *)&JitCpuType);
+	Py_INCREF(&JitCpuType);
+	if (PyModule_AddObject(module, "JitCpu", (PyObject *)&JitCpuType) < 0)
+		return NULL;
 
+	return module;
 }
-

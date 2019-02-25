@@ -1,3 +1,5 @@
+from future.utils import viewitems
+
 from miasm2.ir.symbexec import SymbolicExecutionEngine, StateEngine
 from miasm2.expression.simplifications import expr_simp
 from miasm2.expression.expression import ExprId, ExprInt, ExprSlice,\
@@ -16,7 +18,7 @@ def exprid_top(expr):
 class SymbolicStateTop(StateEngine):
 
     def __init__(self, dct, regstop):
-        self._symbols = frozenset(dct.items())
+        self._symbols = frozenset(viewitems(dct))
         self._regstop = frozenset(regstop)
 
     def __hash__(self):
@@ -52,8 +54,8 @@ class SymbolicStateTop(StateEngine):
         """
         symb_a = self.symbols
         symb_b = other.symbols
-        intersection = set(symb_a.keys()).intersection(symb_b.keys())
-        diff = set(symb_a.keys()).union(symb_b.keys()).difference(intersection)
+        intersection = set(symb_a).intersection(symb_b)
+        diff = set(symb_a).union(symb_b).difference(intersection)
         symbols = {}
         regstop = set()
         for dst in diff:

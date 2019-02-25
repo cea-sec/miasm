@@ -1,3 +1,4 @@
+from __future__ import print_function
 import sys
 from miasm2.analysis.binary import Container
 from miasm2.analysis.machine import Machine
@@ -23,7 +24,7 @@ asmcfg = mdis.dis_multiblock(addr)
 
 # Display each basic blocks
 for block in asmcfg.blocks:
-    print block
+    print(block)
 
 # Output control flow graph in a dot file
 open('bin_cfg.dot', 'w').write(asmcfg.dot())

@@ -1,5 +1,6 @@
 #-*- coding:utf-8 -*-
 
+from builtins import range
 from miasm2.expression.expression import ExprId
 from miasm2.core.cpu import gen_reg, gen_regs
 
@@ -16,19 +17,19 @@ PC_init = ExprId("PC_init", 32)
 PC_FETCH_init = ExprId("PC_FETCH_init", 32)
 
 regs32_str = ["ZERO", 'AT', 'V0', 'V1'] +\
-    ['A%d'%i for i in xrange(4)] +\
-    ['T%d'%i for i in xrange(8)] +\
-    ['S%d'%i for i in xrange(8)] +\
-    ['T%d'%i for i in xrange(8, 10)] +\
+    ['A%d'%i for i in range(4)] +\
+    ['T%d'%i for i in range(8)] +\
+    ['S%d'%i for i in range(8)] +\
+    ['T%d'%i for i in range(8, 10)] +\
     ['K0', 'K1'] +\
     ['GP', 'SP', 'FP', 'RA']
 
 regs32_expr = [ExprId(x, 32) for x in regs32_str]
 ZERO = regs32_expr[0]
 
-regs_flt_str = ['F%d'%i for i in xrange(0x20)]
+regs_flt_str = ['F%d'%i for i in range(0x20)]
 
-regs_fcc_str = ['FCC%d'%i for i in xrange(8)]
+regs_fcc_str = ['FCC%d'%i for i in range(8)]
 
 R_LO = ExprId('R_LO', 32)
 R_HI = ExprId('R_HI', 32)
@@ -37,7 +38,7 @@ R_LO_init = ExprId('R_LO_init', 32)
 R_HI_init = ExprId('R_HI_init', 32)
 
 
-cpr0_str = ["CPR0_%d"%x for x in xrange(0x100)]
+cpr0_str = ["CPR0_%d"%x for x in range(0x100)]
 cpr0_str[0] = "INDEX"
 cpr0_str[16] = "ENTRYLO0"
 cpr0_str[24] = "ENTRYLO1"

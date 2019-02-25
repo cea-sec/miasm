@@ -1,13 +1,15 @@
+from __future__ import print_function
 import time
 from pdb import pm
 from sys import stderr
+from miasm2.core.utils import decode_hex, encode_hex
 from miasm2.arch.sh4.arch import *
 from miasm2.core.locationdb import LocationDB
 
 loc_db = LocationDB()
 
 def h2i(s):
-    return s.replace(' ', '').decode('hex')
+    return decode_hex(s.replace(' ', ''))
 
 reg_tests_sh4 = [
     # vxworks
@@ -389,25 +391,25 @@ reg_tests_sh4 = [
 ]
 
 for s, l in reg_tests_sh4:
-    print "-" * 80
+    print("-" * 80)
     s = s[12:]
     b = h2i((l))
-    print b.encode('hex')
+    print(encode_hex(b))
     mn = mn_sh4.dis(b, None)
-    print [str(x) for x in mn.args]
-    print s
-    print mn
+    print([str(x) for x in mn.args])
+    print(s)
+    print(mn)
     assert(str(mn) == s)
     l = mn_sh4.fromstring(s, loc_db, None)
     assert(str(l) == s)
     a = mn_sh4.asm(l)
-    print [x for x in a]
-    print repr(b)
+    print([x for x in a])
+    print(repr(b))
     assert(b in a)
 
 
 # speed test
-o = ""
+o = b""
 for s, l, in reg_tests_sh4:
     s = s[12:]
     b = h2i((l))
@@ -421,10 +423,10 @@ instr_num = 0
 ts = time.time()
 while off < bs.getlen():
     mn = mn_sh4.dis(bs, None, off)
-    print instr_num, off, mn.l, str(mn)
+    print(instr_num, off, mn.l, str(mn))
     instr_num += 1
     off += mn.l
-print 'instr per sec:', instr_num / (time.time() - ts)
+print('instr per sec:', instr_num // (time.time() - ts))
 
 import cProfile
-cProfile.run(r'mn_sh4.dis("\x17\xfe", None)')
+cProfile.run(r'mn_sh4.dis(b"\x17\xfe", None)')

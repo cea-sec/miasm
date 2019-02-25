@@ -1,5 +1,6 @@
 #! /usr/bin/env python2
 #-*- coding:utf-8 -*-
+from __future__ import print_function
 from argparse import ArgumentParser
 from miasm2.analysis import debugging
 from miasm2.jitter.csts import *
@@ -44,12 +45,16 @@ def jit_mips32_binary(args):
         trace_new_blocks=args.log_newbloc
     )
 
-    myjit.vm.add_memory_page(0, PAGE_READ | PAGE_WRITE, open(filepath).read())
+    myjit.vm.add_memory_page(
+        0,
+        PAGE_READ | PAGE_WRITE,
+        open(filepath, 'rb').read()
+    )
     myjit.add_breakpoint(0x1337BEEF, code_sentinelle)
 
 
     # for stack
-    myjit.vm.add_memory_page(0xF000, PAGE_READ | PAGE_WRITE, "\x00"*0x1000)
+    myjit.vm.add_memory_page(0xF000, PAGE_READ | PAGE_WRITE, b"\x00"*0x1000)
 
     myjit.cpu.SP = 0xF800
 

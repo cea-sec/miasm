@@ -3,6 +3,11 @@
 
 # Loosely based on ARM's sem.py
 
+from __future__ import print_function
+from builtins import range
+
+from future.utils import viewitems
+
 import unittest
 import logging
 import copy
@@ -30,11 +35,13 @@ def symb_exec(lbl, ir_arch, ircfg, inputstate, debug):
     symexec = SymbolicExecutionEngine(ir_arch, sympool)
     symexec.run_at(ircfg, lbl)
     if debug:
-        for k, v in symexec.symbols.items():
+        for k, v in viewitems(symexec.symbols):
             if regs_init.get(k, None) != v:
-                print k, v
-    return {k: v for k, v in symexec.symbols.items()
-            if k not in EXCLUDE_REGS and regs_init.get(k, None) != v}
+                print(k, v)
+    return {
+        k: v for k, v in viewitems(symexec.symbols)
+        if k not in EXCLUDE_REGS and regs_init.get(k, None) != v
+    }
 
 def compute(ir, mode, asm, inputstate={}, debug=False):
     loc_db = LocationDB()
@@ -60,7 +67,7 @@ def compute_txt(ir, mode, txt, inputstate={}, debug=False):
 op_add = lambda a, b: a+b
 op_sub = lambda a, b: a-b
 op_mul = lambda a, b: a*b
-op_div = lambda a, b: a/b
+op_div = lambda a, b: a //b
 
 op_and = lambda a, b: a&b
 op_or  = lambda a, b: a|b
@@ -72,8 +79,8 @@ def int_vec_op(op, elt_size, reg_size, arg1, arg2):
     assert(reg_size % elt_size == 0)
     ret = 0
     mask = (1<<elt_size)-1
-    nelts = reg_size/elt_size
-    for i in xrange(0, nelts):
+    nelts = reg_size // elt_size
+    for i in range(0, nelts):
         ret |= (op(arg1 & mask, arg2 & mask) & mask) << (i*elt_size)
         arg1 >>= elt_size
         arg2 >>= elt_size

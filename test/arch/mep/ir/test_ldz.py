@@ -6,7 +6,7 @@ from ut_helpers_ir import exec_instruction
 from miasm2.expression.expression import ExprId, ExprInt, ExprCond, ExprOp
 
 
-class TestLdz:
+class TestLdz(object):
 
     def test_ldz(self):
         """Test LDZ execution"""

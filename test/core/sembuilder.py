@@ -1,3 +1,4 @@
+from __future__ import print_function
 import inspect
 from pdb import pm
 
@@ -50,18 +51,18 @@ ir = IR(loc_db)
 instr = Instr()
 res = test(ir, instr, a, b, c)
 
-print "[+] Returned:"
-print res
-print "[+] DocString:", test.__doc__
+print("[+] Returned:")
+print(res)
+print("[+] DocString:", test.__doc__)
 
-print "[+] Cur instr:"
+print("[+] Cur instr:")
 for statement in res[0]:
-    print statement
+    print(statement)
 
-print "[+] Blocks:"
+print("[+] Blocks:")
 for irb in res[1]:
-    print irb.loc_key
+    print(irb.loc_key)
     for assignblk in irb:
         for expr in assignblk:
-            print expr
-        print
+            print(expr)
+        print()

@@ -1,3 +1,4 @@
+from builtins import range
 from miasm2.jitter.jitload import Jitter, named_arguments
 from miasm2.core.locationdb import LocationDB
 from miasm2.arch.ppc.sem import ir_ppc32b
@@ -34,7 +35,7 @@ class jitter_ppc32b(Jitter):
 
     @named_arguments
     def func_args_systemv(self, n_args):
-        args = [self.get_arg_n_systemv(i) for i in xrange(n_args)]
+        args = [self.get_arg_n_systemv(i) for i in range(n_args)]
         ret_ad = self.cpu.LR
         return ret_ad, args
 
@@ -47,9 +48,9 @@ class jitter_ppc32b(Jitter):
         return True
 
     def func_prepare_systemv(self, ret_addr, *args):
-        for index in xrange(min(len(args), self.max_reg_arg)):
+        for index in range(min(len(args), self.max_reg_arg)):
             setattr(self.cpu, 'R%d' % (index + 3), args[index])
-        for index in xrange(len(args) - 1, self.max_reg_arg - 1, -1):
+        for index in range(len(args) - 1, self.max_reg_arg - 1, -1):
             self.push_uint32_t(args[index])
 
         # reserve room for LR save word and backchain

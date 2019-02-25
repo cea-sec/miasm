@@ -1,12 +1,15 @@
+from __future__ import print_function
+
 import time
 from pdb import pm
+from miasm2.core.utils import decode_hex, encode_hex
 from miasm2.arch.msp430.arch import *
 from miasm2.core.locationdb import LocationDB
 
 loc_db = LocationDB()
 
 def h2i(s):
-    return s.replace(' ', '').decode('hex')
+    return decode_hex(s.replace(' ', ''))
 
 
 def u16swap(i):
@@ -86,18 +89,18 @@ reg_tests_msp = [
 ts = time.time()
 
 for s, l in reg_tests_msp:
-    print "-" * 80
+    print("-" * 80)
     s = s[8:]
     b = h2i((l))
-    print repr(b)
+    print(repr(b))
     mn = mn_msp430.dis(b, None)
-    print [str(x) for x in mn.args]
-    print s
-    print mn
+    print([str(x) for x in mn.args])
+    print(s)
+    print(mn)
     assert(str(mn) == s)
     l = mn_msp430.fromstring(s, loc_db, None)
     assert(str(l) == s)
     a = mn_msp430.asm(l)
-    print [x for x in a]
-    print repr(b)
+    print([x for x in a])
+    print(repr(b))
     assert(b in a)

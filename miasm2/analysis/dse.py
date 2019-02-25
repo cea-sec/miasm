@@ -47,7 +47,7 @@ Here are a few remainings TODO:
    the solver for reducing the possible values thanks to its accumulated
    constraints.
 """
-
+from builtins import range
 from collections import namedtuple
 
 try:
@@ -55,6 +55,9 @@ try:
 except ImportError:
     z3 = None
 
+from future.utils import viewitems
+
+from miasm2.core.utils import encode_hex, force_bytes
 from miasm2.expression.expression import ExprMem, ExprInt, ExprCompose, \
     ExprAssign, ExprId, ExprLoc, LocKey
 from miasm2.core.bin_stream import bin_stream_vm
@@ -111,7 +114,7 @@ class ESETrackModif(EmulatedSymbExec):
 
         # Split access in atomic accesses
         out = []
-        for addr in xrange(dst_addr, dst_addr + (expr_mem.size / 8)):
+        for addr in range(dst_addr, dst_addr + expr_mem.size // 8):
             if addr in self.dse_memory_range:
                 # Symbolize memory access
                 out.append(self.dse_memory_to_expr(addr))
@@ -249,14 +252,18 @@ class DSEEngine(object):
 
         Known functions will be looked by {name}_symb in the @namespace
         """
+        namespace = dict(
+            (force_bytes(name), func) for name, func in viewitems(namespace)
+        )
 
         # lambda cannot contain statement
         def default_func(dse):
-            fname = "%s_symb" % libimp.fad2cname[dse.jitter.pc]
+            fname = b"%s_symb" % libimp.fad2cname[dse.jitter.pc]
             raise RuntimeError("Symbolic stub '%s' not found" % fname)
 
-        for addr, fname in libimp.fad2cname.iteritems():
-            fname = "%s_symb" % fname
+        for addr, fname in viewitems(libimp.fad2cname):
+            fname = force_bytes(fname)
+            fname = b"%s_symb" % fname
             func = namespace.get(fname, None)
             if func is not None:
                 self.add_handler(addr, func)
@@ -292,9 +299,11 @@ class DSEEngine(object):
                     if value != symb_value:
                         errors.append(DriftInfo(symbol, symb_value, value))
             elif symbol.is_mem() and symbol.ptr.is_int():
-                value_chr = self.jitter.vm.get_mem(int(symbol.ptr),
-                                                   symbol.size / 8)
-                exp_value = int(value_chr[::-1].encode("hex"), 16)
+                value_chr = self.jitter.vm.get_mem(
+                    int(symbol.ptr),
+                    symbol.size // 8
+                )
+                exp_value = int(encode_hex(value_chr[::-1]), 16)
                 if exp_value != symb_value:
                     errors.append(DriftInfo(symbol, symb_value, exp_value))
 
@@ -410,14 +419,16 @@ class DSEEngine(object):
         if memory:
             self.jitter.vm.reset_memory_page_pool()
             self.jitter.vm.reset_code_bloc_pool()
-            for addr, metadata in snapshot["mem"].iteritems():
-                self.jitter.vm.add_memory_page(addr,
-                                               metadata["access"],
-                                               metadata["data"])
+            for addr, metadata in viewitems(snapshot["mem"]):
+                self.jitter.vm.add_memory_page(
+                    addr,
+                    metadata["access"],
+                    metadata["data"]
+                )
 
         # Restore registers
         self.jitter.pc = snapshot["regs"][self.ir_arch.pc.name]
-        for reg, value in snapshot["regs"].iteritems():
+        for reg, value in viewitems(snapshot["regs"]):
             setattr(self.jitter.cpu, reg, value)
 
         # Reset intern elements
@@ -426,16 +437,16 @@ class DSEEngine(object):
         self.jitter.bs._atomic_mode = False
 
         # Reset symb exec
-        for key, _ in self.symb.symbols.items():
+        for key, _ in list(viewitems(self.symb.symbols)):
             del self.symb.symbols[key]
-        for expr, value in snapshot["symb"].items():
+        for expr, value in viewitems(snapshot["symb"]):
             self.symb.symbols[expr] = value
 
     def update_state(self, assignblk):
         """From this point, assume @assignblk in the symbolic execution
         @assignblk: AssignBlock/{dst -> src}
         """
-        for dst, src in assignblk.iteritems():
+        for dst, src in viewitems(assignblk):
             self.symb.apply_change(dst, src)
 
     def _update_state_from_concrete_symb(self, symbexec, cpu=True, mem=False):
@@ -534,8 +545,10 @@ class DSEPathConstraint(DSEEngine):
 
     def take_snapshot(self, *args, **kwargs):
         snap = super(DSEPathConstraint, self).take_snapshot(*args, **kwargs)
-        snap["new_solutions"] = {dst: src.copy
-                                 for dst, src in self.new_solutions.iteritems()}
+        snap["new_solutions"] = {
+            dst: src.copy
+            for dst, src in viewitems(self.new_solutions)
+        }
         snap["cur_constraints"] = self.cur_solver.assertions()
         if self._produce_solution_strategy == self.PRODUCE_SOLUTION_PATH_COV:
             snap["_history"] = list(self._history)
@@ -650,9 +663,11 @@ class DSEPathConstraint(DSEEngine):
                             # if addr (- [a, b], then @size[addr] reachables
                             # values are in @8[a, b + size[
                             for start, stop in addr_range:
-                                stop += (expr.size / 8) - 1
-                                full_range = ModularIntervals(symb_pc.size,
-                                                              [(start, stop)])
+                                stop += expr.size // 8 - 1
+                                full_range = ModularIntervals(
+                                    symb_pc.size,
+                                    [(start, stop)]
+                                )
                                 memory_to_add.update(full_range)
                     path_constraint.add(eaff)
 
@@ -662,7 +677,7 @@ class DSEPathConstraint(DSEEngine):
 
                 # Inject memory
                 for start, stop in memory_to_add:
-                    for address in xrange(start, stop + 1):
+                    for address in range(start, stop + 1):
                         expr_mem = ExprMem(ExprInt(address,
                                                    self.ir_arch.pc.size),
                                            8)

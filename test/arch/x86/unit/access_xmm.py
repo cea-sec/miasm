@@ -10,7 +10,7 @@ myjit = Machine("x86_32").jitter("python")
 assert myjit.cpu.XMM0 == 0
 
 # Test set
-myjit.cpu.XMM1 = 0x00112233445566778899aabbccddeeffL
+myjit.cpu.XMM1 = 0x00112233445566778899aabbccddeeff
 
 # Ensure set has been correctly handled
-assert myjit.cpu.XMM1 == 0x00112233445566778899aabbccddeeffL
+assert myjit.cpu.XMM1 == 0x00112233445566778899aabbccddeeff

@@ -1,3 +1,4 @@
+from builtins import range
 
 import logging
 from pyparsing import *
@@ -40,7 +41,7 @@ class ppc_arg(m_arg):
                 return arg.name
             if arg.name in gpregs.str:
                 return None
-            loc_key = loc_db.get_or_create_name_location(arg.name)
+            loc_key = loc_db.get_or_create_name_location(arg.name.encode())
             return ExprLoc(loc_key, 32)
         if isinstance(arg, AstOp):
             args = [self.asm_ast_to_expr(tmp, loc_db) for tmp in arg.args]
@@ -57,7 +58,7 @@ class ppc_arg(m_arg):
         return None
 
 
-class additional_info:
+class additional_info(object):
 
     def __init__(self):
         self.except_on_instr = False
@@ -227,7 +228,7 @@ class mn_ppc(cls_mn):
         if n > bs.getlen() * 8:
             raise ValueError('not enough bits %r %r' % (n, len(bs.bin) * 8))
         while n:
-            offset = start / 8
+            offset = start // 8
             n_offset = cls.endian_offset(attrib, offset)
             c = cls.getbytes(bs, n_offset, 1)
             if not c:
@@ -468,7 +469,7 @@ def ppc_bo_bi_to_mnemo(bo, bi, prefer_taken=True, default_taken=True):
 
 def ppc_all_bo_bi():
     for bo in [0, 2, 4, 8, 10, 12, 16, 18, 20]:
-        for bi in xrange(4):
+        for bi in range(4):
             yield bo, bi
 
 class ppc_divert_conditional_branch(bs_divert):

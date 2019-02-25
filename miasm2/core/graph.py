@@ -1,4 +1,6 @@
 from collections import defaultdict, namedtuple
+
+from future.utils import viewitems, viewvalues
 import re
 
 
@@ -54,8 +56,9 @@ class DiGraph(object):
     def __eq__(self, graph):
         if not isinstance(graph, self.__class__):
             return False
-        return all((self._nodes == graph.nodes(),
-                    sorted(self._edges) == sorted(graph.edges())))
+        if self._nodes != graph.nodes():
+            return False
+        return sorted(self._edges) == sorted(graph.edges())
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -110,7 +113,7 @@ class DiGraph(object):
 
     def predecessors_iter(self, node):
         if not node in self._nodes_pred:
-            raise StopIteration
+            return
         for n_pred in self._nodes_pred[node]:
             yield n_pred
 
@@ -119,7 +122,7 @@ class DiGraph(object):
 
     def successors_iter(self, node):
         if not node in self._nodes_succ:
-            raise StopIteration
+            return
         for n_suc in self._nodes_succ[node]:
             yield n_suc
 
@@ -165,7 +168,7 @@ class DiGraph(object):
                 if path and path[0] == src:
                     out.append(path + [dst])
         return out
-    
+
     def find_path_from_src(self, src, dst, cycles_count=0, done=None):
         """
         This function does the same as function find_path.
@@ -177,7 +180,7 @@ class DiGraph(object):
         @done: dictionary of already processed loc_keys, it's value is number of times it was processed
         @out: list of paths from @src to @dst
         """
-        
+
         if done is None:
             done = {}
         if src == dst:
@@ -229,10 +232,12 @@ class DiGraph(object):
 
     @staticmethod
     def _attr2str(default_attr, attr):
-        return ' '.join('%s="%s"' % (name, value)
-                        for name, value in
-                        dict(default_attr,
-                             **attr).iteritems())
+        return ' '.join(
+            '%s="%s"' % (name, value)
+            for name, value in
+            viewitems(dict(default_attr,
+                           **attr))
+        )
 
     def dot(self):
         """Render dot graph with HTML"""
@@ -277,8 +282,10 @@ class DiGraph(object):
         for src, dst in self.edges():
             attrs = self.edge_attr(src, dst)
 
-            attrs = ' '.join('%s="%s"' % (name, value)
-                             for name, value in attrs.iteritems())
+            attrs = ' '.join(
+                '%s="%s"' % (name, value)
+                for name, value in viewitems(attrs)
+            )
 
             out.append('%s -> %s' % (self.nodeid(src), self.nodeid(dst)) +
                        '[' + attrs + '];')
@@ -304,7 +311,7 @@ class DiGraph(object):
 
     def predecessors_stop_node_iter(self, node, head):
         if node == head:
-            raise StopIteration
+            return
         for next_node in self.predecessors_iter(node):
             yield next_node
 
@@ -515,7 +522,7 @@ class DiGraph(object):
         frontier = {}
 
         for node in idoms:
-            if self._nodes_pred[node] >= 2:
+            if len(self._nodes_pred[node]) >= 2:
                 for predecessor in self.predecessors_iter(node):
                     runner = predecessor
                     if runner not in idoms:
@@ -894,7 +901,7 @@ class MatchGraph(DiGraph):
         standing for a partial solution
         """
         # Avoid having 2 different joker for the same node
-        if partial_sol and candidate in partial_sol.values():
+        if partial_sol and candidate in viewvalues(partial_sol):
             return False
 
         # Check lambda filtering
@@ -1008,5 +1015,3 @@ class MatchGraph(DiGraph):
                                     MatchGraph._propagate_successors)
                 self._propagate_sol(node, partial_sol, graph, todo,
                                     MatchGraph._propagate_predecessors)
-
-        raise StopIteration

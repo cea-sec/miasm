@@ -1,5 +1,8 @@
 """Naive range analysis for expression"""
 
+from future.builtins import zip
+from functools import reduce
+
 from miasm2.analysis.modularintervals import ModularIntervals
 
 _op_range_handler = {
@@ -44,9 +47,11 @@ def expr_range(expr):
         # Otherwise, overapproximate (ie. full range interval)
         if expr.op in _op_range_handler:
             sub_ranges = [expr_range(arg) for arg in expr.args]
-            return reduce(_op_range_handler[expr.op],
-                          (sub_range for sub_range in sub_ranges[1:]),
-                          sub_ranges[0])
+            return reduce(
+                _op_range_handler[expr.op],
+                (sub_range for sub_range in sub_ranges[1:]),
+                sub_ranges[0]
+            )
         elif expr.op == "-":
             assert len(expr.args) == 1
             return - expr_range(expr.args[0])

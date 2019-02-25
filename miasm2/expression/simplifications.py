@@ -4,6 +4,8 @@
 
 import logging
 
+from future.utils import viewitems
+
 from miasm2.expression import simplifications_common
 from miasm2.expression import simplifications_cond
 from miasm2.expression import simplifications_explicit
@@ -126,7 +128,7 @@ class ExpressionSimplifier(object):
         # Clear cache of simplifiied expressions when adding a new pass
         self.simplified_exprs.clear()
 
-        for k, v in passes.items():
+        for k, v in viewitems(passes):
             self.expr_simp_cb[k] = fast_unify(self.expr_simp_cb.get(k, []) + v)
 
     def apply_simp(self, expression):

@@ -1,10 +1,11 @@
+from builtins import range
 from miasm2.expression.expression import *
 from miasm2.core.cpu import reg_info
 
 
 # GP
 
-regs16_str = ["PC", "SP", "SR"] + ["R%d" % i for i in xrange(3, 16)]
+regs16_str = ["PC", "SP", "SR"] + ["R%d" % i for i in range(3, 16)]
 regs16_expr = [ExprId(x, 16) for x in regs16_str]
 
 exception_flags = ExprId('exception_flags', 32)

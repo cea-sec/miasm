@@ -1,4 +1,7 @@
+from __future__ import print_function
 import time
+
+from miasm2.core.utils import decode_hex, encode_hex
 from miasm2.arch.arm.arch import *
 from miasm2.core.locationdb import LocationDB
 from pdb import pm
@@ -7,7 +10,7 @@ from pdb import pm
 loc_db = LocationDB()
 
 def h2i(s):
-    return s.replace(' ', '').decode('hex')
+    return decode_hex(s.replace(' ', ''))
 
 
 def u16swap(i):
@@ -225,19 +228,19 @@ reg_tests_arm = [
 ts = time.time()
 
 for s, l in reg_tests_arm:
-    print "-" * 80
+    print("-" * 80)
     s = s[12:]
     b = h2i((l))
     mn = mn_arm.dis(b, 'l')
-    print [str(x) for x in mn.args]
-    print s
-    print mn
+    print([str(x) for x in mn.args])
+    print(s)
+    print(mn)
     assert(str(mn) == s)
     l = mn_arm.fromstring(s, loc_db, 'l')
     assert(str(l) == s)
     a = mn_arm.asm(l)
-    print [x for x in a]
-    print repr(b)
+    print([x for x in a])
+    print(repr(b))
     assert(b in a)
 
 reg_tests_armt = [
@@ -692,30 +695,30 @@ reg_tests_armt = [
 
 
 ]
-print "#" * 40, 'armthumb', '#' * 40
+print("#" * 40, 'armthumb', '#' * 40)
 
 for s, l in reg_tests_armt:
-    print "-" * 80
+    print("-" * 80)
     s = s[12:]
     b = h2i((l))
-    print b.encode('hex')
+    print(encode_hex(b))
     mn = mn_armt.dis(b, 'l')
-    print [str(x) for x in mn.args]
-    print s
-    print mn
+    print([str(x) for x in mn.args])
+    print(s)
+    print(mn)
     assert(str(mn) == s)
     l = mn_armt.fromstring(s, loc_db, 'l')
     assert(str(l) == s)
-    print 'Asm..', l
+    print('Asm..', l)
     a = mn_armt.asm(l)
-    print [x for x in a]
-    print repr(b)
+    print([x for x in a])
+    print(repr(b))
     assert(b in a)
 
-print 'TEST time', time.time() - ts
+print('TEST time', time.time() - ts)
 
 # speed test arm
-o = ""
+o = b""
 for s, l in reg_tests_arm:
     s = s[12:]
     b = h2i((l))
@@ -731,11 +734,11 @@ while off < bs.getlen():
     mn = mn_arm.dis(bs, 'l', off)
     instr_num += 1
     off += 4
-print 'instr per sec:', instr_num / (time.time() - ts)
+print('instr per sec:', instr_num // (time.time() - ts))
 
 
 # speed test thumb
-o = ""
+o = b""
 for s, l in reg_tests_armt:
     s = s[12:]
     b = h2i((l))
@@ -751,7 +754,7 @@ while off < bs.getlen():
     mn = mn_armt.dis(bs, 'l', off)
     instr_num += 1
     off += mn.l
-print 'instr per sec:', instr_num / (time.time() - ts)
+print('instr per sec:', instr_num // (time.time() - ts))
 
 import cProfile
 cProfile.run(r'mn_arm.dis("\xe1\xa0\xa0\x06", "l")')

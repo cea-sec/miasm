@@ -6,7 +6,7 @@ from ut_helpers_ir import exec_instruction
 from miasm2.expression.expression import ExprId, ExprInt
 
 
-class TestBranchJump:
+class TestBranchJump(object):
 
     def test_bra(self):
         """Test BRA execution"""

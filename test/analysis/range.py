@@ -1,3 +1,4 @@
+from __future__ import print_function
 from miasm2.expression.expression import *
 from miasm2.analysis.expression_range import expr_range
 from miasm2.ir.translators import Translator
@@ -81,7 +82,7 @@ for expr in [
 
 ]:
     computed_range = expr_range(expr)
-    print expr, computed_range
+    print(expr, computed_range)
 
     # Trivia checks
     assert all(x[1] < (1 << expr.size) for x in computed_range)

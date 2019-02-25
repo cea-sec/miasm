@@ -1,6 +1,7 @@
 #! /usr/bin/env python2
 #-*- coding:utf-8 -*-
 
+from builtins import range
 import unittest
 
 
@@ -69,7 +70,7 @@ class TestParseAsm(unittest.TestCase):
                                     asmcfg,
                                     loc_db)
         lbls = []
-        for i in xrange(6):
+        for i in range(6):
             lbls.append(loc_db.get_name_location('lbl%d' % i))
         # align test
         offset = loc_db.get_location_offset(lbls[5])
@@ -97,7 +98,7 @@ class TestParseAsm(unittest.TestCase):
 
         asmcfg, loc_db = parse_txt(mn_x86, 32, ASM0)
         lbls = []
-        for i in xrange(2):
+        for i in range(2):
             lbls.append(loc_db.get_name_location('lbl%d' % i))
         lbl2block = {}
         for block in asmcfg.blocks:

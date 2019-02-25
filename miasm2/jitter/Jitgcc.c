@@ -1,6 +1,7 @@
 #include <Python.h>
 #include <inttypes.h>
 #include <stdint.h>
+#include "compat_py23.h"
 
 typedef struct {
 	uint8_t is_local;
@@ -90,17 +91,16 @@ static PyMethodDef GccMethods[] = {
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
-PyMODINIT_FUNC
-initJitgcc(void)
+
+
+MOD_INIT(Jitgcc)
 {
-    PyObject *m;
+	PyObject *module;
 
-    m = Py_InitModule("Jitgcc", GccMethods);
-    if (m == NULL)
-	    return;
+	MOD_DEF(module, "Jitgcc", "gcc module", GccMethods);
 
-    GccError = PyErr_NewException("gcc.error", NULL, NULL);
-    Py_INCREF(GccError);
-    PyModule_AddObject(m, "error", GccError);
+	if (module == NULL)
+		return NULL;
+
+	return module;
 }
-

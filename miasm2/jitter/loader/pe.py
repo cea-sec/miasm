@@ -1,7 +1,10 @@
+from builtins import map
 import os
 import struct
 import logging
 from collections import defaultdict
+
+from future.utils import viewitems, viewvalues
 
 from elfesteem import pe
 from elfesteem import cstruct
@@ -45,7 +48,8 @@ def get_import_address_pe(e):
                 funcname = imp
             # l = "    %2d %-16s" % (ii, repr(funcname))
             import2addr[(libname, funcname)].add(
-                e.rva2virt(s.firstthunk + e._wsize * ii / 8))
+                e.rva2virt(s.firstthunk + (e._wsize * ii) // 8)
+            )
     return import2addr
 
 
@@ -53,7 +57,7 @@ def preload_pe(vm, e, runtime_lib, patch_vm_imp=True):
     fa = get_import_address_pe(e)
     dyn_funcs = {}
     # log.debug('imported funcs: %s' % fa)
-    for (libname, libfunc), ads in fa.items():
+    for (libname, libfunc), ads in viewitems(fa):
         for ad in ads:
             ad_base_lib = runtime_lib.lib_get_add_base(libname)
             ad_libfunc = runtime_lib.lib_get_add_func(ad_base_lib, libfunc, ad)
@@ -81,7 +85,7 @@ def is_redirected_export(pe_obj, addr):
     addr_rva = pe_obj.virt2rva(addr)
     if not (export_dir.rva <= addr_rva < export_dir.rva + export_dir.size):
         return False
-    addr_end = pe_obj.virt.find('\x00', addr)
+    addr_end = pe_obj.virt.find(b'\x00', addr)
     data = pe_obj.virt.get(addr, addr_end)
 
     dllname, func_info = data.split('.', 1)
@@ -150,10 +154,16 @@ def vm_load_pe(vm, fdata, align_s=True, load_hdr=True, name="", **kargs):
             min_len = min(pe.SHList[0].addr, 0x1000)
 
             # Get and pad the pe_hdr
-            pe_hdr = pe.content[:hdr_len] + max(
-                0, (min_len - hdr_len)) * "\x00"
-            vm.add_memory_page(pe.NThdr.ImageBase, PAGE_READ | PAGE_WRITE,
-                               pe_hdr, "%r: PE Header" % name)
+            pe_hdr = (
+                pe.content[:hdr_len] +
+                max(0, (min_len - hdr_len)) * b"\x00"
+            )
+            vm.add_memory_page(
+                pe.NThdr.ImageBase,
+                PAGE_READ | PAGE_WRITE,
+                pe_hdr,
+                "%r: PE Header" % name
+            )
 
         # Align sections size
         if align_s:
@@ -173,13 +183,17 @@ def vm_load_pe(vm, fdata, align_s=True, load_hdr=True, name="", **kargs):
 
         # Pad sections with null bytes and map them
         for section in pe.SHList:
-            data = str(section.data)
-            data += "\x00" * (section.size - len(data))
+            data = bytes(section.data)
+            data += b"\x00" * (section.size - len(data))
             attrib = PAGE_READ
             if section.flags & 0x80000000:
                 attrib |= PAGE_WRITE
-            vm.add_memory_page(pe.rva2virt(section.addr), attrib, data,
-                               "%r: %r" % (name, section.name))
+            vm.add_memory_page(
+                pe.rva2virt(section.addr),
+                attrib,
+                data,
+                "%r: %r" % (name, section.name)
+            )
 
         return pe
 
@@ -209,15 +223,17 @@ def vm_load_pe(vm, fdata, align_s=True, load_hdr=True, name="", **kargs):
               (max_addr - min_addr))
 
     # Create only one big section containing the whole PE
-    vm.add_memory_page(min_addr,
-                       PAGE_READ | PAGE_WRITE,
-                       (max_addr - min_addr) * "\x00")
+    vm.add_memory_page(
+        min_addr,
+        PAGE_READ | PAGE_WRITE,
+        (max_addr - min_addr) * b"\x00"
+    )
 
     # Copy each sections content in memory
     for section in pe.SHList:
         log.debug('Map 0x%x bytes to 0x%x', len(section.data),
                   pe.rva2virt(section.addr))
-        vm.set_mem(pe.rva2virt(section.addr), str(section.data))
+        vm.set_mem(pe.rva2virt(section.addr), bytes(section.data))
 
     return pe
 
@@ -256,7 +272,7 @@ def vm_load_pe_libs(vm, libs_name, libs, lib_path_base, **kargs):
 
 def vm_fix_imports_pe_libs(lib_imgs, libs, lib_path_base,
                            patch_vm_imp=True, **kargs):
-    for e in lib_imgs.values():
+    for e in viewvalues(lib_imgs):
         preload_pe(e, libs, patch_vm_imp)
 
 
@@ -281,7 +297,7 @@ def vm2pe(myjit, fname, libs=None, e_orig=None,
 
     mye.NThdr.ImageBase = img_base
     all_mem = myjit.vm.get_all_memory()
-    addrs = all_mem.keys()
+    addrs = list(all_mem)
     addrs.sort()
     mye.Opthdr.AddressOfEntryPoint = mye.virt2rva(myjit.pc)
     first = True
@@ -303,8 +319,6 @@ def vm2pe(myjit, fname, libs=None, e_orig=None,
         first = False
     if libs:
         if added_funcs is not None:
-            # name_inv = dict([(x[1], x[0]) for x in libs.name2off.items()])
-
             for addr, funcaddr in added_funcs:
                 libbase, dllname = libs.fad2info[funcaddr]
                 libs.lib_get_add_func(libbase, dllname, addr)
@@ -323,7 +337,7 @@ def vm2pe(myjit, fname, libs=None, e_orig=None,
     log.debug('%r', mye.SHList)
     if e_orig:
         # resource
-        xx = str(mye)
+        xx = bytes(mye)
         mye.content = xx
         ad = e_orig.NThdr.optentries[pe.DIRECTORY_ENTRY_RESOURCE].rva
         size = e_orig.NThdr.optentries[pe.DIRECTORY_ENTRY_RESOURCE].size
@@ -333,10 +347,13 @@ def vm2pe(myjit, fname, libs=None, e_orig=None,
             mye.NThdr.optentries[pe.DIRECTORY_ENTRY_RESOURCE].size = size
             mye.DirRes = pe.DirRes.unpack(mye.img_rva, ad, mye)
             log.debug('%r', mye.DirRes)
-            s_res = mye.SHList.add_section(name="myres", rawsize=len(mye.DirRes))
+            s_res = mye.SHList.add_section(
+                name="myres",
+                rawsize=len(mye.DirRes)
+            )
             mye.DirRes.set_rva(s_res.addr)
     # generation
-    open(fname, 'wb').write(str(mye))
+    open(fname, 'wb').write(bytes(mye))
     return mye
 
 
@@ -408,7 +425,9 @@ class libimp_pe(libimp):
                     ad = self.lib_imp2ad[libad_tmp][exp_fname]
 
                 self.lib_imp2ad[libad][imp_ord_or_name] = ad
-                name_inv = dict([(x[1], x[0]) for x in self.name2off.items()])
+                name_inv = dict(
+                    (value, key) for key, value in viewitems(self.name2off)
+                )
                 c_name = canon_libname_libfunc(
                     name_inv[libad], imp_ord_or_name)
                 self.fad2cname[ad] = c_name
@@ -423,34 +442,36 @@ class libimp_pe(libimp):
         """
 
         new_lib = []
-        for lib_name, ad in self.name2off.items():
+        for lib_name, ad in viewitems(self.name2off):
             # Build an IMAGE_IMPORT_DESCRIPTOR
 
             # Get fixed addresses
             out_ads = dict()  # addr -> func_name
-            for func_name, dst_addresses in self.lib_imp2dstad[ad].items():
+            for func_name, dst_addresses in viewitems(self.lib_imp2dstad[ad]):
                 out_ads.update({addr: func_name for addr in dst_addresses})
 
             # Filter available addresses according to @filter_import
             all_ads = [
-                addr for addr in out_ads.keys() if filter_import(target_pe, addr)]
+                addr for addr in list(out_ads) if filter_import(target_pe, addr)
+            ]
+
             if not all_ads:
                 continue
 
             # Keep non-NULL elements
-            all_ads.sort()
+            all_ads.sort(key=str)
             for i, x in enumerate(all_ads):
                 if x not in [0,  None]:
                     break
             all_ads = all_ads[i:]
-            log.debug('ads: %s', map(hex, all_ads))
+            log.debug('ads: %s', list(map(hex, all_ads)))
 
             while all_ads:
                 # Find libname's Import Address Table
                 othunk = all_ads[0]
                 i = 0
                 while (i + 1 < len(all_ads) and
-                       all_ads[i] + target_pe._wsize / 8 == all_ads[i + 1]):
+                       all_ads[i] + target_pe._wsize // 8 == all_ads[i + 1]):
                     i += 1
                 # 'i + 1' is IAT's length
 
@@ -515,7 +536,7 @@ def vm_load_pe_and_dependencies(vm, fname, name2module, runtime_lib,
         todo += [(name, os.path.join(lib_path_base, name), weight - 1)
                  for name in new_dependencies]
 
-    ordered_modules = sorted(weight2name.items())
+    ordered_modules = sorted(viewitems(weight2name))
     for _, modules in ordered_modules:
         for name in modules:
             pe_obj = name2module[name]
@@ -525,7 +546,7 @@ def vm_load_pe_and_dependencies(vm, fname, name2module, runtime_lib,
             if pe_obj.DirExport:
                 runtime_lib.add_export_lib(pe_obj, name)
 
-    for pe_obj in name2module.itervalues():
+    for pe_obj in viewvalues(name2module):
         if pe_obj is None:
             continue
         preload_pe(vm, pe_obj, runtime_lib, patch_vm_imp=True)

@@ -1,12 +1,17 @@
 #-*- coding:utf-8 -*-
 
+from builtins import range
 import re
 import struct
 import logging
 from collections import defaultdict
 
+
+from future.utils import viewitems, viewvalues
+
 import pyparsing
 
+from miasm2.core.utils import decode_hex
 import miasm2.expression.expression as m2_expr
 from miasm2.core.bin_stream import bin_stream, bin_stream_str
 from miasm2.core.utils import Disasm_Exception
@@ -15,6 +20,7 @@ from miasm2.core.locationdb import LocationDB
 
 
 from miasm2.core.asm_ast import AstNode, AstInt, AstId, AstOp
+from future.utils import with_metaclass
 
 log = logging.getLogger("cpuhelper")
 console_handler = logging.StreamHandler()
@@ -23,17 +29,15 @@ log.addHandler(console_handler)
 log.setLevel(logging.WARN)
 
 
-class bitobj:
+class bitobj(object):
 
-    def __init__(self, s=""):
+    def __init__(self, s=b""):
         if not s:
             bits = []
         else:
-            bits = list(bin(int(str(s).encode('hex'), 16))[2:])
-            bits = [int(x) for x in bits]
+            bits = [int(x) for x in bin(int(encode_hex(s), 16))[2:]]
             if len(bits) % 8:
-                bits = [0 for x in xrange(8 - (len(bits) % 8))] + bits
-            bits = ['0' for x in xrange(len(s) * 8 - len(bits))] + bits
+                bits = [0 for x in range(8 - (len(bits) % 8))] + bits
         self.bits = bits
         self.offset = 0
 
@@ -46,7 +50,7 @@ class bitobj:
         if n > len(self.bits) - self.offset:
             raise ValueError('not enough bits %r %r' % (n, len(self.bits)))
         b = self.bits[self.offset:self.offset + n]
-        b = int("".join([str(x) for x in b]), 2)
+        b = int("".join(str(x) for x in b), 2)
         self.offset += n
         return b
 
@@ -55,17 +59,18 @@ class bitobj:
             return
         bits = list(bin(b)[2:])
         bits = [int(x) for x in bits]
-        bits = [0 for x in xrange(n - len(bits))] + bits
+        bits = [0 for x in range(n - len(bits))] + bits
         self.bits += bits
 
     def tostring(self):
         if len(self.bits) % 8:
             raise ValueError(
-                'num bits must be 8 bit aligned: %d' % len(self.bits))
-        b = int("".join([str(x) for x in self.bits]), 2)
+                'num bits must be 8 bit aligned: %d' % len(self.bits)
+            )
+        b = int("".join(str(x) for x in self.bits), 2)
         b = "%X" % b
-        b = '0' * (len(self.bits) / 4 - len(b)) + b
-        b = b.decode('hex')
+        b = '0' * (len(self.bits) // 4 - len(b)) + b
+        b = decode_hex(b.encode())
         return b
 
     def reset(self):
@@ -113,10 +118,10 @@ class reg_info(object):
 class reg_info_dct(object):
 
     def __init__(self, reg_expr):
-        self.dct_str_inv = dict((v.name, k) for k, v in reg_expr.iteritems())
+        self.dct_str_inv = dict((v.name, k) for k, v in viewitems(reg_expr))
         self.dct_expr = reg_expr
-        self.dct_expr_inv = dict((v, k) for k, v in reg_expr.iteritems())
-        reg_str = [v.name for v in reg_expr.itervalues()]
+        self.dct_expr_inv = dict((v, k) for k, v in viewitems(reg_expr))
+        reg_str = [v.name for v in viewvalues(reg_expr)]
         self.parser = literal_list(reg_str).setParseAction(self.cb_parse)
 
     def cb_parse(self, tokens):
@@ -412,11 +417,11 @@ def int2bin(i, l):
 
 
 def myror32(v, r):
-    return ((v & 0xFFFFFFFFL) >> r) | ((v << (32 - r)) & 0xFFFFFFFFL)
+    return ((v & 0xFFFFFFFF) >> r) | ((v << (32 - r)) & 0xFFFFFFFF)
 
 
 def myrol32(v, r):
-    return ((v & 0xFFFFFFFFL) >> (32 - r)) | ((v << r) & 0xFFFFFFFFL)
+    return ((v & 0xFFFFFFFF) >> (32 - r)) | ((v << r) & 0xFFFFFFFF)
 
 
 class bs(object):
@@ -563,7 +568,7 @@ class bsi(object):
 
     def __hash__(self):
         kargs = []
-        for k, v in self.kargs.items():
+        for k, v in list(viewitems(self.kargs)):
             if isinstance(v, list):
                 v = tuple(v)
             kargs.append((k, v))
@@ -595,7 +600,7 @@ class bs_name(bs_divert):
     def divert(self, i, candidates):
         out = []
         for cls, _, bases, dct, fields in candidates:
-            for new_name, value in self.args['name'].iteritems():
+            for new_name, value in viewitems(self.args['name']):
                 nfields = fields[:]
                 s = int2bin(value, self.args['l'])
                 args = dict(self.args)
@@ -620,7 +625,7 @@ class bs_mod_name(bs_divert):
                 for j, v in enumerate(tab):
                     tmp[j] = v
                 tab = tmp
-            for value, new_name in tab.iteritems():
+            for value, new_name in viewitems(tab):
                 nfields = fields[:]
                 s = int2bin(value, self.args['l'])
                 args = dict(self.args)
@@ -676,7 +681,7 @@ class m_arg(object):
             self.expr = e
             return start, stop
         try:
-            v, start, stop = self.parser.scanString(text).next()
+            v, start, stop = next(self.parser.scanString(text))
         except StopIteration:
             return None, None
         arg = v[0]
@@ -713,7 +718,7 @@ class reg_noarg(object):
             self.expr = e
             return start, stop
         try:
-            v, start, stop = self.parser.scanString(text).next()
+            v, start, stop = next(self.parser.scanString(text))
         except StopIteration:
             return None, None
         arg = v[0]
@@ -743,7 +748,7 @@ class reg_noarg(object):
         return v & self.fmask == self.fbits
 
 
-class mn_prefix:
+class mn_prefix(object):
     pass
 
 
@@ -756,7 +761,7 @@ def swap32(v):
 
 
 def perm_inv(p):
-    o = [None for x in xrange(len(p))]
+    o = [None for x in range(len(p))]
     for i, x in enumerate(p):
         o[x] = i
     return o
@@ -775,10 +780,10 @@ total_scans = 0
 def branch2nodes(branch, nodes=None):
     if nodes is None:
         nodes = []
-    for k, v in branch.items():
+    for k, v in viewitems(branch):
         if not isinstance(v, dict):
             continue
-        for k2 in v.keys():
+        for k2 in v:
             nodes.append((k, k2))
         branch2nodes(v, nodes)
 
@@ -789,7 +794,7 @@ def factor_one_bit(tree):
     new_keys = defaultdict(lambda: defaultdict(dict))
     if len(tree) == 1:
         return tree
-    for k, v in tree.items():
+    for k, v in viewitems(tree):
         if k == "mn":
             new_keys[k] = v
             continue
@@ -806,15 +811,15 @@ def factor_one_bit(tree):
         if nk in new_keys[ck]:
             raise NotImplementedError('not fully functional')
         new_keys[ck][nk] = v
-    for k, v in new_keys.items():
+    for k, v in list(viewitems(new_keys)):
         new_keys[k] = factor_one_bit(v)
     # try factor sons
     if len(new_keys) != 1:
         return new_keys
-    subtree = new_keys.values()[0]
+    subtree = next(iter(viewvalues(new_keys)))
     if len(subtree) != 1:
         return new_keys
-    if subtree.keys()[0] == 'mn':
+    if next(iter(subtree)) == 'mn':
         return new_keys
 
     return new_keys
@@ -826,7 +831,7 @@ def factor_fields(tree):
     if len(tree) != 1:
         return tree
     # merge
-    k1, v1 = tree.items()[0]
+    k1, v1 = next(iter(viewitems(tree)))
     if k1 == "mn":
         return tree
     l1, fmask1, fbits1, fname1, flen1 = k1
@@ -839,7 +844,7 @@ def factor_fields(tree):
         return tree
     if len(v1) != 1:
         return tree
-    k2, v2 = v1.items()[0]
+    k2, v2 = next(iter(viewitems(v1)))
     if k2 == "mn":
         return tree
     l2, fmask2, fbits2, fname2, flen2 = k2
@@ -861,7 +866,7 @@ def factor_fields_all(tree):
     if not isinstance(tree, dict):
         return tree
     new_keys = {}
-    for k, v in tree.items():
+    for k, v in viewitems(tree):
         v = factor_fields(v)
         new_keys[k] = factor_fields_all(v)
     return new_keys
@@ -902,7 +907,7 @@ def add_candidate(bases, c):
 
 
 def getfieldby_name(fields, fname):
-    f = filter(lambda x: hasattr(x, 'fname') and x.fname == fname, fields)
+    f = [x for x in fields if hasattr(x, 'fname') and x.fname == fname]
     if len(f) != 1:
         raise ValueError('more than one field with name: %s' % fname)
     return f[0]
@@ -1023,10 +1028,10 @@ class instruction(object):
                 loc_key = exprloc.loc_key
                 names = symbols.get_location_names(loc_key)
                 # special symbols
-                if '$' in names:
+                if b'$' in names:
                     fixed_expr[exprloc] = self.get_asm_offset(exprloc)
                     continue
-                if '_' in names:
+                if b'_' in names:
                     fixed_expr[exprloc] = self.get_asm_next_offset(exprloc)
                     continue
                 arg_int = symbols.get_location_offset(loc_key)
@@ -1059,8 +1064,7 @@ class instruction(object):
         return
 
 
-class cls_mn(object):
-    __metaclass__ = metamn
+class cls_mn(with_metaclass(metamn, object)):
     args_symb = []
     instruction = instruction
     # Block's offset alignment
@@ -1073,8 +1077,10 @@ class cls_mn(object):
         candidates = set()
 
         fname_values = pre_dis_info
-        todo = [(dict(fname_values), branch, offset * 8)
-                for branch in cls.bintree.items()]
+        todo = [
+            (dict(fname_values), branch, offset * 8)
+            for branch in list(viewitems(cls.bintree))
+        ]
         for fname_values, branch, offset_b in todo:
             (l, fmask, fbits, fname, flen), vals = branch
 
@@ -1091,7 +1097,7 @@ class cls_mn(object):
                     continue
                 if fname is not None and not fname in fname_values:
                     fname_values[fname] = v
-            for nb, v in vals.items():
+            for nb, v in viewitems(vals):
                 if 'mn' in nb:
                     candidates.update(v)
                 else:
@@ -1128,7 +1134,7 @@ class cls_mn(object):
                 setattr(self, f.fname, f)
         if hasattr(self, 'args_permut'):
             args = [args[self.args_permut[i]]
-                    for i in xrange(len(self.args_permut))]
+                    for i in range(len(self.args_permut))]
         to_decode.sort(key=lambda x: (x[1].order, x[0]))
         to_decode = [fields_order.index(f[1]) for f in to_decode]
         self.args = args
@@ -1236,7 +1242,7 @@ class cls_mn(object):
             if not getok:
                 continue
 
-            c.l = prefix_len + total_l / 8
+            c.l = prefix_len + total_l // 8
             for i in c.to_decode:
                 f = c.fields_order[i]
                 if f.is_present:
@@ -1258,7 +1264,7 @@ class cls_mn(object):
             c_args = [a.expr for a in c.args]
             instr = cls.instruction(c.name, mode, c_args,
                                     additional_info=c.additional_info())
-            instr.l = prefix_len + total_l / 8
+            instr.l = prefix_len + total_l // 8
             instr.b = cls.getbytes(bs, offset_o, instr.l)
             instr.offset = offset_o
             instr.get_info(c)
@@ -1278,8 +1284,10 @@ class cls_mn(object):
             for i, o in enumerate(out_c):
                 if o.alias:
                     return out[i]
-            raise NotImplementedError('Multiple disas: \n' +
-                                      "\n".join([str(x) for x in out]))
+            raise NotImplementedError(
+                'Multiple disas: \n' +
+                "\n".join(str(x) for x in out)
+            )
         return out[0]
 
     @classmethod
@@ -1317,7 +1325,7 @@ class cls_mn(object):
                             continue
                         try:
                             total_scans += 1
-                            v, start, stop = p.scanString(args_str).next()
+                            v, start, stop = next(p.scanString(args_str))
                         except StopIteration:
                             v, start, stop = [None], None, None
                         if start != 0:
@@ -1396,7 +1404,7 @@ class cls_mn(object):
                     continue
 
                 # only fix args expr
-                for i in xrange(len(c.args)):
+                for i in range(len(c.args)):
                     c.args[i].expr = args[i]
 
                 v = c.value(instr.mode)
@@ -1408,8 +1416,10 @@ class cls_mn(object):
                 vals += v
                 candidates.append((c, v))
         if len(vals) == 0:
-            raise ValueError('cannot asm %r %r' %
-                             (instr.name, [str(x) for x in instr.args]))
+            raise ValueError(
+                'cannot asm %r %r' %
+                (instr.name, [str(x) for x in instr.args])
+            )
         if len(vals) != 1:
             log.debug('asm multiple args ret default')
 
@@ -1571,7 +1581,7 @@ class imm_noarg(object):
             e, start, stop = parser_result[self.parser]
         else:
             try:
-                e, start, stop = self.parser.scanString(text).next()
+                e, start, stop = next(self.parser.scanString(text))
             except StopIteration:
                 return None, None
         if e == [None]:

@@ -39,9 +39,11 @@ Then, in the C generator:
 ExprCompose(var1, 0) => var1
 
 """
-
+from __future__ import print_function
 
 import sys
+
+from future.utils import viewitems, viewvalues
 
 from miasm2.analysis.machine import Machine
 from miasm2.analysis.binary import Container
@@ -57,21 +59,21 @@ from miasm2.core.ctypesmngr import CAstTypes, CTypePtr, CTypeStruct
 def find_call(ircfg):
     """Returns (irb, index) which call"""
 
-    for irb in ircfg.blocks.values():
+    for irb in viewvalues(ircfg.blocks):
         out = set()
         if len(irb) < 2:
             continue
         assignblk = irb[-2]
-        for src in assignblk.itervalues():
+        for src in viewvalues(assignblk):
             if not isinstance(src, ExprOp):
                 continue
             if not src.op.startswith('call_func'):
                 continue
-            out.add((irb, len(irb) - 2))
+            out.add((irb.loc_key, len(irb) - 2))
         if len(out) != 1:
             continue
-        irb, index = out.pop()
-        yield irb, index
+        loc_key, index = out.pop()
+        yield loc_key, index
 
 
 class MyExprToAccessC(ExprToAccessC):
@@ -96,9 +98,10 @@ def get_funcs_arg0(ctx, ira, ircfg, lbl_head):
     g_dep = DependencyGraph(ircfg, follow_call=False)
     element = ira.arch.regs.RSI
 
-    for irb, index in find_call(ircfg):
+    for loc_key, index in find_call(ircfg):
+        irb = ircfg.get_block(loc_key)
         instr = irb[index].instr
-        print 'Analysing references from:', hex(instr.offset), instr
+        print('Analysing references from:', hex(instr.offset), instr)
         g_list = g_dep.get(irb.loc_key, set([element]), index, set([lbl_head]))
         for dep in g_list:
             emul_result = dep.emul(ira, ctx)
@@ -113,7 +116,7 @@ class MyCHandler(CHandler):
 
 
 
-data = open(sys.argv[1]).read()
+data = open(sys.argv[1], 'rb').read()
 # Digest C information
 text = """
 struct human {
@@ -160,7 +163,7 @@ expr_types = {arg0: (ptr_llhuman,),
 mychandler = MyCHandler(types_mngr, expr_types)
 
 for expr in get_funcs_arg0(ctx, ir_arch_a, ircfg, lbl_head):
-    print "Access:", expr
+    print("Access:", expr)
     for c_str, ctype in mychandler.expr_to_c_and_types(expr):
-        print '\taccess:', c_str
-        print '\tc type:', ctype
+        print('\taccess:', c_str)
+        print('\tc type:', ctype)

@@ -1,3 +1,5 @@
+from builtins import map
+from builtins import range
 import logging
 
 from miasm2.ir.translators.translator import Translator
@@ -76,14 +78,14 @@ class SMT2Mem(object):
         original_size = size
         if original_size % 8 != 0:
             # Size not aligned on 8bits -> read more than size and extract after
-            size = ((original_size / 8) + 1) * 8
+            size = ((original_size // 8) + 1) * 8
         res = self[addr]
         if self.is_little_endian():
-            for i in xrange(1, size/8):
+            for i in range(1, size // 8):
                 index = bvadd(addr, bit_vec_val(i, addr_size))
                 res = bv_concat(self[index], res)
         else:
-            for i in xrange(1, size/8):
+            for i in range(1, size // 8):
                 res = bv_concat(res, self[index])
         if size == original_size:
             return res
@@ -185,7 +187,7 @@ class TranslatorSMT2(Translator):
         return smt2_ite(distinct_and, src1, src2)
 
     def from_ExprOp(self, expr):
-        args = map(self.from_expr, expr.args)
+        args = list(map(self.from_expr, expr.args))
         res = args[0]
 
         if len(args) > 1:
@@ -229,7 +231,7 @@ class TranslatorSMT2(Translator):
         elif expr.op == 'parity':
             arg = bv_extract(7, 0, res)
             res = bit_vec_val(1, 1)
-            for i in xrange(8):
+            for i in range(8):
                 res = bvxor(res, bv_extract(i, i, arg))
         elif expr.op == '-':
             res = bvneg(res)
@@ -245,7 +247,7 @@ class TranslatorSMT2(Translator):
             cond = smt2_distinct(op, zero_smt2)
             # ite(cond, size - 1, src)
             res = smt2_ite(cond, bvsub(size_smt2, one_smt2), src)
-            for i in xrange(size - 2, -1, -1):
+            for i in range(size - 2, -1, -1):
                 # smt2 expression of i
                 i_smt2 = bit_vec_val(i, size)
                 # src & (1 << i)
@@ -263,7 +265,7 @@ class TranslatorSMT2(Translator):
             cond = smt2_distinct(bvand(src, one_smt2), zero_smt2)
             # ite(cond, 0, src)
             res= smt2_ite(cond, zero_smt2, src)
-            for i in xrange(size - 1, 0, -1):
+            for i in range(size - 1, 0, -1):
                 index = - i % size
                 index_smt2 = bit_vec_val(index, size)
                 # src & (1 << index)

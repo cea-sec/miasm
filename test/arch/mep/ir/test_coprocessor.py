@@ -6,7 +6,7 @@ from ut_helpers_ir import exec_instruction
 from miasm2.expression.expression import ExprId, ExprMem, ExprInt
 
 
-class TestCoprocessor:
+class TestCoprocessor(object):
 
     def test_swcp(self):
         """Test SWCP execution"""

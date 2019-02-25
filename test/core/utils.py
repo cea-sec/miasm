@@ -2,6 +2,8 @@
 
 #-*- coding:utf-8 -*-
 
+from __future__ import print_function
+from builtins import range
 import unittest
 
 
@@ -12,7 +14,7 @@ class TestUtils(unittest.TestCase):
 
         # Use a callback
         def logger(key):
-            print "DELETE", key
+            print("DELETE", key)
 
         # Create a 5/2 dictionary
         bd = BoundedDict(5, 2, initialdata={"element": "value"},
@@ -26,9 +28,9 @@ class TestUtils(unittest.TestCase):
         # Increase 'element2' use
         _ = bd["element2"]
 
-        for i in xrange(6):
+        for i in range(6):
             bd[i] = i
-            print "Insert %d -> %s" % (i, bd)
+            print("Insert %d -> %s" % (i, bd))
 
         assert(len(bd) == 2)
 

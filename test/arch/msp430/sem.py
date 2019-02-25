@@ -1,8 +1,11 @@
 #! /usr/bin/env python2
 #-*- coding:utf-8 -*-
 
+from __future__ import print_function
 import unittest
 import logging
+
+from future.utils import viewitems
 
 from miasm2.ir.symbexec import SymbolicExecutionEngine
 from miasm2.arch.msp430.arch import mn_msp430 as mn, mode_msp430 as mode
@@ -22,7 +25,7 @@ def M(addr):
 def compute(asm, inputstate={}, debug=False):
     loc_db = LocationDB()
     sympool = dict(regs_init)
-    sympool.update({k: ExprInt(v, k.size) for k, v in inputstate.iteritems()})
+    sympool.update({k: ExprInt(v, k.size) for k, v in viewitems(inputstate)})
     ir_tmp = ir_arch(loc_db)
     ircfg = ir_tmp.new_ircfg()
     symexec = SymbolicExecutionEngine(ir_tmp, sympool)
@@ -33,11 +36,13 @@ def compute(asm, inputstate={}, debug=False):
     loc_key = ir_tmp.add_instr_to_ircfg(instr, ircfg)
     symexec.run_at(ircfg, loc_key)
     if debug:
-        for k, v in symexec.symbols.items():
+        for k, v in viewitems(symexec.symbols):
             if regs_init.get(k, None) != v:
-                print k, v
-    return {k: v.arg.arg for k, v in symexec.symbols.items()
-            if k not in EXCLUDE_REGS and regs_init.get(k, None) != v}
+                print(k, v)
+    return {
+        k: v.arg.arg for k, v in viewitems(symexec.symbols)
+        if k not in EXCLUDE_REGS and regs_init.get(k, None) != v
+    }
 
 
 class TestMSP430Semantic(unittest.TestCase):

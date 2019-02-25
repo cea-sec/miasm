@@ -1,5 +1,9 @@
+from __future__ import print_function
+from builtins import range
 import logging
 from collections import MutableMapping
+
+from future.utils import viewitems
 
 from miasm2.expression.expression import ExprOp, ExprId, ExprLoc, ExprInt, \
     ExprMem, ExprCompose, ExprSlice, ExprCond
@@ -40,7 +44,7 @@ class SymbolicState(StateEngine):
     """Stores a SymbolicExecutionEngine state"""
 
     def __init__(self, dct):
-        self._symbols = frozenset(dct.items())
+        self._symbols = frozenset(viewitems(dct))
 
     def __hash__(self):
         return hash((self.__class__, self._symbols))
@@ -53,7 +57,7 @@ class SymbolicState(StateEngine):
         return self.symbols == other.symbols
 
     def __ne__(self, other):
-        return not self.__eq__(other)
+        return not self == other
 
     def __iter__(self):
         for dst, src in self._symbols:
@@ -71,7 +75,7 @@ class SymbolicState(StateEngine):
 
         symb_a = self.symbols
         symb_b = other.symbols
-        intersection = set(symb_a.keys()).intersection(symb_b.keys())
+        intersection = set(symb_a).intersection(set(symb_b))
         out = {}
         for dst in intersection:
             if symb_a[dst] == symb_b[dst]:
@@ -168,7 +172,7 @@ class MemArray(MutableMapping):
         return self._offset_to_expr.__delitem__(offset)
 
     def __iter__(self):
-        for offset, _ in self._offset_to_expr.iteritems():
+        for offset, _ in viewitems(self._offset_to_expr):
             yield offset
 
     def __len__(self):
@@ -177,7 +181,7 @@ class MemArray(MutableMapping):
     def __repr__(self):
         out = []
         out.append("Base: %s" % self.base)
-        for offset, (index, value) in sorted(self._offset_to_expr.iteritems()):
+        for offset, (index, value) in sorted(viewitems(self._offset_to_expr)):
             out.append("%16X %d %s" % (offset, index, value))
         return '\n'.join(out)
 
@@ -220,7 +224,7 @@ class MemArray(MutableMapping):
         assert size % 8 == 0
         # Parts is (Expr's offset, size, Expr)
         parts = []
-        for index in xrange(size / 8):
+        for index in range(size // 8):
             # Wrap read:
             # @32[EAX+0xFFFFFFFF] is ok and will read at 0xFFFFFFFF, 0, 1, 2
             request_offset = (offset + index) & self._mask
@@ -264,8 +268,8 @@ class MemArray(MutableMapping):
                     index += 1
                     continue
                 if (ptr_offset_a + off_a + size_a) & self._mask == (ptr_offset_b + off_b) & self._mask:
-                    assert size_a <= data_a.size / 8 - off_a
-                    assert size_b <= data_b.size / 8 - off_b
+                    assert size_a <= data_a.size // 8 - off_a
+                    assert size_b <= data_b.size // 8 - off_b
                     # Successive comparable symbolic pointers
                     # [(0, 8, @8[ptr]), (0, 8, @8[ptr+1])] => (0, 16, @16[ptr])
                     ptr = self.offset_to_ptr(ptr_base_a, (ptr_offset_a + off_a) & self._mask)
@@ -280,7 +284,7 @@ class MemArray(MutableMapping):
         # Slice datas
         read_mem = []
         for off, bytesize, data in parts:
-            if data.size / 8 != bytesize:
+            if data.size // 8 != bytesize:
                 data = data[off * 8: (off + bytesize) * 8]
             read_mem.append(data)
 
@@ -294,7 +298,7 @@ class MemArray(MutableMapping):
         """
         assert expr.size % 8 == 0
         assert offset <= self._mask
-        for index in xrange(expr.size / 8):
+        for index in range(expr.size // 8):
             # Wrap write:
             # @32[EAX+0xFFFFFFFF] is ok and will write at 0xFFFFFFFF, 0, 1, 2
             request_offset = (offset + index) & self._mask
@@ -305,7 +309,9 @@ class MemArray(MutableMapping):
             # Special case: Simplify slice of pointer (simplification is ok
             # here, as we won't store the simplified expression)
             if tmp.is_slice() and tmp.arg.is_mem() and tmp.start % 8 == 0:
-                new_ptr = self.expr_simp(tmp.arg.ptr + ExprInt(tmp.start / 8, tmp.arg.ptr.size))
+                new_ptr = self.expr_simp(
+                    tmp.arg.ptr + ExprInt(tmp.start // 8, tmp.arg.ptr.size)
+                )
                 tmp = ExprMem(new_ptr, tmp.stop - tmp.start)
             # Test if write to original value
             if tmp.is_mem():
@@ -332,12 +338,12 @@ class MemArray(MutableMapping):
         assert value.size % 8 == 0
 
         if forward:
-            start, end, step = value_byte_index + 1, value.size / 8, 1
+            start, end, step = value_byte_index + 1, value.size // 8, 1
         else:
             start, end, step = value_byte_index - 1, -1, -1
 
         partnum = 1
-        for value_offset in xrange(start, end, step):
+        for value_offset in range(start, end, step):
             offset += step
             # Check if next part is in known_offsets
             next_index = index + step * partnum
@@ -398,9 +404,8 @@ class MemArray(MutableMapping):
         """
 
         if not self._offset_to_expr:
-            raise StopIteration
-        known_offsets = self._offset_to_expr.keys()
-        known_offsets.sort()
+            return
+        known_offsets = sorted(self._offset_to_expr)
         index = 0
         # Test if the first element is the continuation of the last byte. If
         # yes, merge and output it first.
@@ -444,7 +449,7 @@ class MemArray(MutableMapping):
     def dump(self):
         """Display MemArray content"""
         for mem, value in self.memory():
-            print "%s = %s" % (mem, value)
+            print("%s = %s" % (mem, value))
 
 
 class MemSparse(object):
@@ -484,7 +489,7 @@ class MemSparse(object):
         memarray = self.base_to_memarray.get(base, None)
         if memarray is None:
             return False
-        for i in xrange(expr.size / 8):
+        for i in range(expr.size // 8):
             if offset + i not in memarray:
                 return False
         return True
@@ -500,7 +505,7 @@ class MemSparse(object):
         memarray = self.base_to_memarray.get(base, None)
         if memarray is None:
             return False
-        for i in xrange(expr.size / 8):
+        for i in range(expr.size // 8):
             if offset + i in memarray:
                 return True
         return False
@@ -512,7 +517,7 @@ class MemSparse(object):
     def copy(self):
         """Copy the current object instance"""
         base_to_memarray = {}
-        for base, memarray in self.base_to_memarray.iteritems():
+        for base, memarray in viewitems(self.base_to_memarray):
             base_to_memarray[base] = memarray.copy()
         obj = MemSparse(self.addrsize, self.expr_simp)
         obj.base_to_memarray = base_to_memarray
@@ -529,10 +534,10 @@ class MemSparse(object):
         if memarray is None:
             raise KeyError
         # Check if whole entity is in the MemArray before deleting it
-        for i in xrange(expr.size / 8):
+        for i in range(expr.size // 8):
             if (offset + i) & memarray.mask not in memarray:
                 raise KeyError
-        for i in xrange(expr.size / 8):
+        for i in range(expr.size // 8):
             del memarray[(offset + i) & memarray.mask]
 
     def delete_partial(self, expr):
@@ -546,7 +551,7 @@ class MemSparse(object):
         if memarray is None:
             raise KeyError
         # Check if whole entity is in the MemArray before deleting it
-        for i in xrange(expr.size / 8):
+        for i in range(expr.size // 8):
             real_offset = (offset + i) & memarray.mask
             if real_offset in memarray:
                 del memarray[real_offset]
@@ -583,7 +588,7 @@ class MemSparse(object):
 
     def iteritems(self):
         """Iterate on stored memory variables and their values."""
-        for _, memarray in sorted(self.base_to_memarray.iteritems()):
+        for _, memarray in viewitems(self.base_to_memarray):
             for mem, value in memarray.memory():
                 yield mem, value
 
@@ -593,12 +598,12 @@ class MemSparse(object):
 
     def dump(self):
         """Display MemSparse content"""
-        for mem, value in self.iteritems():
-            print "%s = %s" % (mem, value)
+        for mem, value in viewitems(self):
+            print("%s = %s" % (mem, value))
 
     def __repr__(self):
         out = []
-        for _, memarray in sorted(self.base_to_memarray.iteritems()):
+        for _, memarray in sorted(viewitems(self.base_to_memarray)):
             out.append(repr(memarray))
         return '\n'.join(out)
 
@@ -615,7 +620,7 @@ class SymbolMngr(object):
         self.symbols_id = {}
         self.symbols_mem = MemSparse(addrsize, expr_simp)
         self.mask = (1 << addrsize) - 1
-        for expr, value in init.iteritems():
+        for expr, value in viewitems(init):
             self.write(expr, value)
 
     def __contains__(self, expr):
@@ -687,14 +692,14 @@ class SymbolMngr(object):
         """Display memory content"""
         if ids:
             for variable, value in self.ids():
-                print '%s = %s' % (variable, value)
+                print('%s = %s' % (variable, value))
         if mems:
             for mem, value in self.memory():
-                print '%s = %s' % (mem, value)
+                print('%s = %s' % (mem, value))
 
     def __repr__(self):
         out = []
-        for variable, value in self.iteritems():
+        for variable, value in viewitems(self):
             out.append('%s = %s' % (variable, value))
         return "\n".join(out)
 
@@ -715,12 +720,12 @@ class SymbolMngr(object):
 
     def ids(self):
         """Iterate on variables and their values."""
-        for expr, value in self.symbols_id.iteritems():
+        for expr, value in viewitems(self.symbols_id):
             yield expr, value
 
     def memory(self):
         """Iterate on memory variables and their values."""
-        for mem, value in self.symbols_mem.iteritems():
+        for mem, value in viewitems(self.symbols_mem):
             yield mem, value
 
     def keys(self):
@@ -817,7 +822,7 @@ class SymbolicExecutionEngine(object):
 
         self.symbols = SymbolMngr(addrsize=ir_arch.addrsize, expr_simp=sb_expr_simp)
 
-        for dst, src in state.iteritems():
+        for dst, src in viewitems(state):
             self.symbols.write(dst, src)
 
         self.ir_arch = ir_arch
@@ -833,7 +838,7 @@ class SymbolicExecutionEngine(object):
         @state: StateEngine instance
         """
         self.symbols = SymbolMngr(addrsize=self.ir_arch.addrsize, expr_simp=self.expr_simp)
-        for dst, src in dict(state).iteritems():
+        for dst, src in viewitems(dict(state)):
             self.symbols[dst] = src
 
     state = property(get_state, set_state)
@@ -950,7 +955,7 @@ class SymbolicExecutionEngine(object):
         if init_state is None:
             init_state = {}
         if ids:
-            for variable, value in self.symbols.symbols_id.iteritems():
+            for variable, value in viewitems(self.symbols.symbols_id):
                 if variable in init_state and init_state[variable] == value:
                     continue
                 yield variable, value
@@ -968,7 +973,7 @@ class SymbolicExecutionEngine(object):
         """
 
         for variable, value in self.modified(None, ids, mems):
-            print "%-18s" % variable, "=", "%s" % value
+            print("%-18s" % variable, "=", "%s" % value)
 
     def eval_assignblk(self, assignblk):
         """
@@ -980,7 +985,7 @@ class SymbolicExecutionEngine(object):
         """
         pool_out = {}
         eval_cache = {}
-        for dst, src in assignblk.iteritems():
+        for dst, src in viewitems(assignblk):
             src = self.eval_expr(src, eval_cache)
             if dst.is_mem():
                 ptr = self.eval_expr(dst.ptr, eval_cache)
@@ -1012,7 +1017,7 @@ class SymbolicExecutionEngine(object):
         """
         mem_dst = []
         dst_src = self.eval_assignblk(assignblk)
-        for dst, src in dst_src.iteritems():
+        for dst, src in viewitems(dst_src):
             self.apply_change(dst, src)
             if dst.is_mem():
                 mem_dst.append(dst)
@@ -1026,15 +1031,15 @@ class SymbolicExecutionEngine(object):
         """
         for assignblk in irb:
             if step:
-                print 'Instr', assignblk.instr
-                print 'Assignblk:'
-                print assignblk
-                print '_' * 80
+                print('Instr', assignblk.instr)
+                print('Assignblk:')
+                print(assignblk)
+                print('_' * 80)
             self.eval_updt_assignblk(assignblk)
             if step:
                 self.dump(mems=False)
                 self.dump(ids=False)
-                print '_' * 80
+                print('_' * 80)
         dst = self.eval_expr(self.ir_arch.IRDst)
 
         return dst

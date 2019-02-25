@@ -1,13 +1,14 @@
+from __future__ import print_function
 import miasm2.expression.expression as m2_expr
 from miasm2.expression.simplifications import expr_simp
 from pdb import pm
 
-print """
+print("""
 Expression simplification demo: Adding a simplification:
 a + a + a == a * 3
 
 More detailed examples can be found in miasm2/expression/simplification*.
-"""
+""")
 
 # Define the simplification method
 ## @expr_simp is the current expression simplifier instance
@@ -32,14 +33,14 @@ def simp_add_mul(expr_simp, expr):
 
 a = m2_expr.ExprId('a', 32)
 base_expr = a + a + a
-print "Without adding the simplification:"
-print "\t%s = %s" % (base_expr, expr_simp(base_expr))
+print("Without adding the simplification:")
+print("\t%s = %s" % (base_expr, expr_simp(base_expr)))
 
 # Enable pass
 expr_simp.enable_passes({m2_expr.ExprOp: [simp_add_mul]})
 
-print "After adding the simplification:"
-print "\t%s = %s" % (base_expr, expr_simp(base_expr))
+print("After adding the simplification:")
+print("\t%s = %s" % (base_expr, expr_simp(base_expr)))
 
 # Automatic fail
 assert(expr_simp(base_expr) == m2_expr.ExprOp("*", a,

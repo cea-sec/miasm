@@ -1,8 +1,9 @@
-
 import logging
 import warnings
 from functools import wraps
 from collections import Sequence, namedtuple
+
+from future.utils import viewitems
 
 from miasm2.jitter.csts import *
 from miasm2.core.utils import *
@@ -42,12 +43,15 @@ def named_arguments(func):
             ret_ad, arg_vals = func(self, len(args))
             arg_vals = namedtuple("args", args)(*arg_vals)
             # func_name(arguments) return address
-            log_func.info('%s(%s) ret addr: %s',
-                          get_caller_name(1),
-                          ', '.join("%s=0x%x" % (field, value)
-                                    for field, value in arg_vals._asdict(
-                                    ).iteritems()),
-                         hex(ret_ad))
+            log_func.info(
+                '%s(%s) ret addr: %s',
+                get_caller_name(1),
+                ', '.join(
+                    "%s=0x%x" % (field, value)
+                    for field, value in viewitems(arg_vals._asdict())
+                ),
+                hex(ret_ad)
+            )
             return ret_ad, namedtuple("args", args)(*arg_vals)
         else:
             ret_ad, arg_vals = func(self, args)
@@ -86,7 +90,7 @@ class CallbackHandler(object):
         Return the list of empty keys (removed)"""
 
         to_check = set()
-        for key, cb_list in self.callbacks.items():
+        for key, cb_list in viewitems(self.callbacks):
             try:
                 cb_list.remove(callback)
                 to_check.add(key)
@@ -145,7 +149,7 @@ class CallbackHandlerBitflag(CallbackHandler):
                         yield res
 
 
-class ExceptionHandle():
+class ExceptionHandle(object):
 
     "Return type for exception handler"
 
@@ -326,7 +330,7 @@ class Jitter(object):
 
         return self.jit.run_at(
             self.cpu, pc,
-            set(self.breakpoints_handler.callbacks.keys())
+            set(self.breakpoints_handler.callbacks)
         )
 
     def runiter_once(self, pc):
@@ -398,7 +402,7 @@ class Jitter(object):
 
         while self.run:
             try:
-                return self.run_iterator.next()
+                return next(self.run_iterator)
             except StopIteration:
                 pass
 
@@ -411,7 +415,9 @@ class Jitter(object):
 
     def init_stack(self):
         self.vm.add_memory_page(
-            self.stack_base, PAGE_READ | PAGE_WRITE, "\x00" * self.stack_size,
+            self.stack_base,
+            PAGE_READ | PAGE_WRITE,
+            b"\x00" * self.stack_size,
             "Stack")
         sp = self.arch.getsp(self.attrib)
         setattr(self.cpu, sp.name, self.stack_base + self.stack_size)
@@ -430,7 +436,7 @@ class Jitter(object):
         l = 0
         tmp = addr
         while ((max_char is None or l < max_char) and
-               self.vm.get_mem(tmp, 1) != "\x00"):
+               self.vm.get_mem(tmp, 1) != b"\x00"):
             tmp += 1
             l += 1
         return self.vm.get_mem(addr, l)
@@ -442,21 +448,21 @@ class Jitter(object):
         l = 0
         tmp = addr
         while ((max_char is None or l < max_char) and
-               self.vm.get_mem(tmp, 2) != "\x00\x00"):
+               self.vm.get_mem(tmp, 2) != b"\x00\x00"):
             tmp += 2
             l += 2
         s = self.vm.get_mem(addr, l)
-        s = s[::2]  # TODO: real unicode decoding
+        s = s.decode("utf-16le")
         return s
 
     def set_str_ansi(self, addr, s):
         """Set an ansi string in memory"""
-        s = s + "\x00"
+        s = s + b"\x00"
         self.vm.set_mem(addr, s)
 
     def set_str_unic(self, addr, s):
         """Set an unicode string in memory"""
-        s = "\x00".join(list(s)) + '\x00' * 3
+        s = b"\x00".join(list(s)) + b'\x00' * 3
         self.vm.set_mem(addr, s)
 
     @staticmethod
@@ -492,7 +498,11 @@ class Jitter(object):
             user_globals = {}
 
         self.libs = libs
-        self.user_globals = user_globals
+        out = {}
+        for name, func in viewitems(user_globals):
+            name = force_bytes(name)
+            out[name] = func
+        self.user_globals = out
 
         for f_addr in libs.fad2cname:
             self.handle_function(f_addr)

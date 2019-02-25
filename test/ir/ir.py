@@ -1,3 +1,5 @@
+from future.utils import viewitems
+
 from miasm2.expression.expression import *
 from miasm2.ir.ir import AssignBlock
 from miasm2.expression.simplifications import expr_simp
@@ -34,10 +36,11 @@ else:
 assert assignblk1.get_r() == set([id_b])
 assert assignblk1.get_w() == set([id_a])
 assert assignblk1.get_rw() == {id_a: set([id_b])}
-assert assignblk1.keys() == [id_a]
+assert list(assignblk1) == [id_a]
 assert dict(assignblk1) == {id_a: id_b}
 assert assignblk1[id_a] == id_b
-assert list(assignblk1.iteritems()) == assignblk1.items()
+assert list(viewitems(assignblk1)) == list(viewitems(assignblk1))
+assert set(assignblk1.iteritems()) == set(assignblk1.items())
 
 ## Simplify
 assignblk3 = AssignBlock({id_a: id_b - id_b})

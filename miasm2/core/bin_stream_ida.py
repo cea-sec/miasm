@@ -1,7 +1,9 @@
+from builtins import range
 from idc import Byte, SegEnd
 from idautils import Segments
 from idaapi import is_mapped
 
+from miasm2.core.utils import int_to_byte
 from miasm2.core.bin_stream import bin_stream_str
 
 
@@ -13,13 +15,13 @@ class bin_stream_ida(bin_stream_str):
     It can raise error on overflow 7FFFFFFF with 32 bit python
     """
     def _getbytes(self, start, l=1):
-        o = ""
-        for ad in xrange(l):
+        out = []
+        for ad in range(l):
             offset = ad + start + self.base_address
             if not is_mapped(offset):
                 raise IOError("not enough bytes")
-            o += chr(Byte(offset))
-        return o
+            out.append(int_to_byte(Byte(offset)))
+        return b''.join(out)
 
     def readbs(self, l=1):
         if self.offset + l > self.l:

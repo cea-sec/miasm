@@ -2,6 +2,7 @@
 # Common simplifications passes #
 # ----------------------------- #
 
+from future.utils import viewitems
 
 from miasm2.expression.modint import mod_size2int, mod_size2uint
 from miasm2.expression.expression import ExprInt, ExprSlice, ExprMem, \
@@ -70,14 +71,14 @@ def simp_cst_propagation(e_s, expr):
                 shifter = int2.arg % int2.size
                 out = (int1.arg << shifter) | (int1.arg >> (int2.size - shifter))
             elif op_name == '/':
-                out = int1.arg / int2.arg
+                out = int1.arg // int2.arg
             elif op_name == '%':
                 out = int1.arg % int2.arg
             elif op_name == 'sdiv':
                 assert int2.arg.arg
                 tmp1 = mod_size2int[int1.arg.size](int1.arg)
                 tmp2 = mod_size2int[int2.arg.size](int2.arg)
-                out = mod_size2uint[int1.arg.size](tmp1 / tmp2)
+                out = mod_size2uint[int1.arg.size](tmp1 // tmp2)
             elif op_name == 'smod':
                 assert int2.arg.arg
                 tmp1 = mod_size2int[int1.arg.size](int1.arg)
@@ -92,7 +93,7 @@ def simp_cst_propagation(e_s, expr):
                 assert int2.arg.arg
                 tmp1 = mod_size2uint[int1.arg.size](int1.arg)
                 tmp2 = mod_size2uint[int2.arg.size](int2.arg)
-                out = mod_size2uint[int1.arg.size](tmp1 / tmp2)
+                out = mod_size2uint[int1.arg.size](tmp1 // tmp2)
 
 
 
@@ -151,7 +152,8 @@ def simp_cst_propagation(e_s, expr):
         if len(args) > 2:
             raise ValueError(
                 'sanity check fail on expr -: should have one or 2 args ' +
-                '%r %s' % (expr, expr))
+                '%r %s' % (expr, expr)
+            )
         return ExprOp('+', args[0], -args[1])
 
     # A op 0 => 0
@@ -445,7 +447,7 @@ def simp_cond_factor(e_s, expr):
 
     # Rebuild the new expression
     c_out = not_conds
-    for cond, vals in conds.items():
+    for cond, vals in viewitems(conds):
         new_src1 = [x.src1 for x in vals]
         new_src2 = [x.src2 for x in vals]
         src1 = e_s.expr_simp_wrapper(ExprOp(expr.op, *new_src1))
@@ -583,7 +585,7 @@ def simp_compose(e_s, expr):
         nxt = args[i + 1]
         if arg.is_mem() and nxt.is_mem():
             gap = e_s(nxt.ptr - arg.ptr)
-            if gap.is_int() and arg.size % 8 == 0 and int(gap) == arg.size / 8:
+            if gap.is_int() and arg.size % 8 == 0 and int(gap) == arg.size // 8:
                 args = args[:i] + [ExprMem(arg.ptr,
                                           arg.size + nxt.size)] + args[i + 2:]
                 return ExprCompose(*args)
@@ -1520,7 +1522,7 @@ def simp_add_multiple(_, expr):
     modified = True
     while modified:
         modified = False
-        for arg, count in operands.iteritems():
+        for arg, count in list(viewitems(operands)):
             if not arg.is_op('+'):
                 continue
             components = arg.args
@@ -1536,7 +1538,7 @@ def simp_add_multiple(_, expr):
             modified = True
             break
 
-    for arg, count in operands.iteritems():
+    for arg, count in viewitems(operands):
         if count == 0:
             continue
         if count == 1:

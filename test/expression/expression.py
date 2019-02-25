@@ -1,3 +1,4 @@
+from __future__ import print_function
 #
 # Expression regression tests  #
 #
@@ -42,15 +43,15 @@ for expr in [
                     ExprCond(cond2, cst3, cst4)),
         ExprCond(ExprCond(cond1, cst1, cst2), cst3, cst4),
 ]:
-    print "*" * 80
-    print expr
+    print("*" * 80)
+    print(expr)
     sol = possible_values(expr)
-    print sol
-    print "Resulting constraints:"
+    print(sol)
+    print("Resulting constraints:")
     for consval in sol:
-        print "For value %s" % consval.value
+        print("For value %s" % consval.value)
         for constraint in consval.constraints:
-            print "\t%s" % constraint.to_constraint()
+            print("\t%s" % constraint.to_constraint())
 
 # Repr
 for expr in [
@@ -63,7 +64,7 @@ for expr in [
         A.msb(),
         ExprAssign(A, cst1),
 ]:
-    print repr(expr)
+    print(repr(expr))
     assert expr == eval(repr(expr))
 
 

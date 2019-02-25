@@ -1,6 +1,8 @@
+from __future__ import print_function
 import time
 from pdb import pm
 
+from miasm2.core.utils import decode_hex, encode_hex
 from miasm2.core.locationdb import LocationDB
 from miasm2.arch.mips32.arch import *
 
@@ -217,20 +219,20 @@ reg_tests_mips32 = [
 
 ts = time.time()
 def h2i(s):
-    return s.replace(' ', '').decode('hex')
+    return decode_hex(s.replace(' ', ''))
 
 for s, l in reg_tests_mips32:
-    print "-" * 80
+    print("-" * 80)
     s = s[12:]
     b = h2i((l))
     mn = mn_mips32.dis(b, 'b')
-    print [str(x) for x in mn.args]
-    print s
-    print mn
+    print([str(x) for x in mn.args])
+    print(s)
+    print(mn)
     assert(str(mn) == s)
     l = mn_mips32.fromstring(s, loc_db, 'b')
     assert(str(l) == s)
     a = mn_mips32.asm(l, 'b')
-    print [x for x in a]
-    print repr(b)
+    print([x for x in a])
+    print(repr(b))
     assert(b in a)

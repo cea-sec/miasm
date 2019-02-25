@@ -1,9 +1,13 @@
 #-*- coding:utf-8 -*-
 
+from builtins import range
+from functools import total_ordering
+
+@total_ordering
 class moduint(object):
 
     def __init__(self, arg):
-        self.arg = long(arg) % self.__class__.limit
+        self.arg = int(arg) % self.__class__.limit
         assert(self.arg >= 0 and self.arg < self.__class__.limit)
 
     def __repr__(self):
@@ -20,11 +24,19 @@ class moduint(object):
         else:
             return c2
 
-    def __cmp__(self, y):
+    def __eq__(self, y):
         if isinstance(y, moduint):
-            return cmp(self.arg, y.arg)
-        else:
-            return cmp(self.arg, y)
+            return self.arg == y.arg
+        return self.arg == y
+
+    def __ne__(self, y):
+        # required Python 2.7.14
+        return not self == y
+
+    def __lt__(self, y):
+        if isinstance(y, moduint):
+            return self.arg < y.arg
+        return self.arg < y
 
     def __add__(self, y):
         if isinstance(y, moduint):
@@ -49,13 +61,19 @@ class moduint(object):
         cls = self.__class__
         if isinstance(y, moduint):
             cls = self.maxcast(y)
-        return ((abs(num) / abs(den)) * result_sign)
+        return (abs(num) // abs(den)) * result_sign
+
+    def __floordiv__(self, y):
+        return self.__div__(y)
 
     def __int__(self):
         return int(self.arg)
 
     def __long__(self):
-        return long(self.arg)
+        return int(self.arg)
+
+    def __index__(self):
+        return int(self.arg)
 
     def __invert__(self):
         return self.__class__(~self.arg)
@@ -72,7 +90,7 @@ class moduint(object):
         cls = self.__class__
         if isinstance(y, moduint):
             cls = self.maxcast(y)
-        return cls(self.arg - (y * (self / y)))
+        return cls(self.arg - y * (self // y))
 
     def __mul__(self, y):
         if isinstance(y, moduint):
@@ -100,9 +118,12 @@ class moduint(object):
     def __rdiv__(self, y):
         if isinstance(y, moduint):
             cls = self.maxcast(y)
-            return cls(y.arg / self.arg)
+            return cls(y.arg // self.arg)
         else:
-            return self.__class__(y / self.arg)
+            return self.__class__(y // self.arg)
+
+    def __rfloordiv__(self, y):
+        return self.__rdiv__(y)
 
     def __rlshift__(self, y):
         if isinstance(y, moduint):
@@ -181,11 +202,13 @@ class modint(moduint):
         if isinstance(arg, moduint):
             arg = arg.arg
         a = arg % self.__class__.limit
-        if a >= self.__class__.limit / 2:
+        if a >= self.__class__.limit // 2:
             a -= self.__class__.limit
         self.arg = a
-        assert(self.arg >= -self.__class__.limit /
-               2 and self.arg < self.__class__.limit)
+        assert(
+            self.arg >= -self.__class__.limit // 2 and
+            self.arg < self.__class__.limit
+        )
 
 
 def is_modint(a):
@@ -225,7 +248,7 @@ def define_uint(size):
 
 def define_common_int():
     "Define common int"
-    common_int = xrange(1, 257)
+    common_int = range(1, 257)
 
     for i in common_int:
         define_int(i)

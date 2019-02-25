@@ -1,5 +1,7 @@
 import logging
 
+from future.utils import viewitems
+
 from miasm2.ir.symbexec import SymbolicExecutionEngine
 from miasm2.expression.expression import ExprMem
 from miasm2.expression.expression_helper import possible_values
@@ -95,7 +97,7 @@ class SymbExecStateFix(SymbolicExecutionEngine):
         for index, assignblk in enumerate(irb):
             new_assignblk = {}
             links = {}
-            for dst, src in assignblk.iteritems():
+            for dst, src in viewitems(assignblk):
                 src = self.propag_expr_cst(src)
                 if dst.is_mem():
                     ptr = dst.ptr
@@ -175,7 +177,7 @@ def propagate_cst_expr(ir_arch, ircfg, addr, init_infos):
     """
     states = compute_cst_propagation_states(ir_arch, ircfg, addr, init_infos)
     cst_propag_link = {}
-    for lbl, state in states.iteritems():
+    for lbl, state in viewitems(states):
         if lbl not in ircfg.blocks:
             continue
         symbexec = SymbExecStateFix(ir_arch, ircfg, state, cst_propag_link)

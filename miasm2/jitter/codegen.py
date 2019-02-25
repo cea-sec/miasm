@@ -2,6 +2,10 @@
 Module to generate C code for a given native @block
 """
 
+from builtins import zip
+
+from future.utils import viewitems, viewvalues
+
 from miasm2.expression.expression import Expr, ExprId, ExprLoc, ExprInt, \
     ExprMem, ExprCond, LocKey
 from miasm2.ir.ir import IRBlock, AssignBlock
@@ -238,18 +242,18 @@ class CGen(object):
 
         prefetchers = self.get_mem_prefetch(assignblk)
 
-        for expr, prefetcher in sorted(prefetchers.iteritems()):
+        for expr, prefetcher in viewitems(prefetchers):
             str_src = self.id_to_c(expr)
             str_dst = self.id_to_c(prefetcher)
             c_prefetch.append('%s = %s;' % (str_dst, str_src))
 
-        for var in prefetchers.itervalues():
+        for var in viewvalues(prefetchers):
             if var.size <= self.translator.NATIVE_INT_MAX_SIZE:
                 c_var.append("uint%d_t %s;" % (var.size, var))
             else:
                 c_var.append("bn_t %s; // %d" % (var, var.size))
 
-        for dst, src in sorted(assignblk.iteritems()):
+        for dst, src in viewitems(assignblk):
             src = src.replace_expr(prefetchers)
             if dst == self.ir_arch.IRDst:
                 pass
@@ -294,7 +298,7 @@ class CGen(object):
             else:
                 raise ValueError("Unknown dst")
 
-        for dst, new_dst in dst_var.iteritems():
+        for dst, new_dst in viewitems(dst_var):
             if dst == self.ir_arch.IRDst:
                 continue
 
@@ -450,7 +454,7 @@ class CGen(object):
         out.append('switch(DST_case) {')
 
         stopcase = False
-        for dst, index in sorted(dst2index.iteritems(), key=lambda lblindex: lblindex[1]):
+        for dst, index in sorted(viewitems(dst2index), key=lambda lblindex: lblindex[1]):
             if index == -1:
                 # Handle '-1' case only once
                 if not stopcase:

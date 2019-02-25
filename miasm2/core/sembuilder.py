@@ -4,6 +4,8 @@ import inspect
 import ast
 import re
 
+from future.utils import PY3
+
 import miasm2.expression.expression as m2_expr
 from miasm2.ir.ir import IRBlock, AssignBlock
 
@@ -30,7 +32,6 @@ class MiasmTransformer(ast.NodeTransformer):
 
         # Recursive visit
         node = self.generic_visit(node)
-
         if isinstance(node.func, ast.Name):
             # iX(Y) -> ExprInt(Y, X)
             fc_name = node.func.id
@@ -109,6 +110,17 @@ class MiasmTransformer(ast.NodeTransformer):
                                keywords=[],
                                starargs=None,
                                kwargs=None)
+
+if PY3:
+    def get_arg_name(name):
+        return name.arg
+    def gen_arg(name, ctx):
+        return ast.arg(arg=name, ctx=ctx)
+else:
+    def get_arg_name(name):
+        return name.id
+    def gen_arg(name, ctx):
+        return ast.Name(id=name, ctx=ctx)
 
 
 class SemBuilder(object):
@@ -300,7 +312,7 @@ class SemBuilder(object):
         # Get the function AST
         parsed = ast.parse(inspect.getsource(func))
         fc_ast = parsed.body[0]
-        argument_names = [name.id for name in fc_ast.args.args]
+        argument_names = [get_arg_name(name) for name in fc_ast.args.args]
 
         # Init local cache
         self._local_ctx = {}
@@ -309,8 +321,10 @@ class SemBuilder(object):
         blocks, body = self._parse_body(fc_ast.body, argument_names)
 
         # Build the new function
-        fc_ast.args.args[0:0] = [ast.Name(id='ir', ctx=ast.Param()),
-                                 ast.Name(id='instr', ctx=ast.Param())]
+        fc_ast.args.args[0:0] = [
+            gen_arg('ir', ast.Param()),
+            gen_arg('instr', ast.Param())
+        ]
         cur_instr = blocks[0][0]
         if len(blocks[-1][0]) == 0:
             ## Last block can be empty

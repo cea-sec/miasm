@@ -1,10 +1,12 @@
+from __future__ import print_function
+from builtins import range
 import os
 import subprocess
 import sys
 import time
 from multiprocessing import cpu_count, Queue, Process
 
-from test import Test
+from .test import Test
 
 
 class Message(object):
@@ -136,7 +138,7 @@ class TestSet(object):
 
         if len(self.tests) == 0:
             # Poison pills
-            for _ in xrange(self.cpu_c):
+            for _ in range(self.cpu_c):
                 self.todo_queue.put(None)
 
         # All tasks done
@@ -201,7 +203,7 @@ class TestSet(object):
             try:
                 os.remove(product)
             except OSError:
-                print "Cleanning error: Unable to remove %s" % product
+                print("Cleanning error: Unable to remove %s" % product)
 
     def add_additional_args(self, args):
         """Add arguments to used on the test command line
@@ -218,7 +220,7 @@ class TestSet(object):
 
         # Launch workers
         processes = []
-        for _ in xrange(self.cpu_c):
+        for _ in range(self.cpu_c):
             p = Process(target=TestSet.worker, args=(self.todo_queue,
                                                      self.message_queue,
                                                      self.additional_args))

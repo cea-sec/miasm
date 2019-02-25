@@ -6,7 +6,7 @@ from ut_helpers_ir import exec_instruction
 from miasm2.expression.expression import ExprId, ExprInt, ExprCond, ExprOp
 
 
-class TestArithmetic:
+class TestArithmetic(object):
 
     def test_add3(self):
         """Test ADD3 execution"""

@@ -17,17 +17,20 @@
 #
 
 # Expressions manipulation functions
+from builtins import range
 import itertools
 import collections
 import random
 import string
 import warnings
 
+from future.utils import viewitems, viewvalues
+
 import miasm2.expression.expression as m2_expr
 
 
 def parity(a):
-    tmp = (a) & 0xFFL
+    tmp = (a) & 0xFF
     cpt = 1
     while tmp != 0:
         cpt ^= tmp & 1
@@ -174,13 +177,15 @@ class Variables_Identifier(object):
         has_change = True
         while has_change:
             has_change = False
-            for var_id, var_value in self._vars.iteritems():
+            for var_id, var_value in list(viewitems(self._vars)):
                 cur = var_value
 
                 # Do not replace with itself
-                to_replace = {v_val:v_id
-                              for v_id, v_val in self._vars.iteritems()
-                              if v_id != var_id}
+                to_replace = {
+                    v_val:v_id
+                    for v_id, v_val in viewitems(self._vars)
+                    if v_id != var_id
+                }
                 var_value = var_value.replace_expr(to_replace)
 
                 if cur != var_value:
@@ -190,23 +195,29 @@ class Variables_Identifier(object):
                     break
 
         # Replace in the original equation
-        self._equation = expr.replace_expr({v_val: v_id for v_id, v_val
-                                            in self._vars.iteritems()})
+        self._equation = expr.replace_expr(
+            {
+                v_val: v_id for v_id, v_val
+                in viewitems(self._vars)
+            }
+        )
 
         # Compute variables dependencies
         self._vars_ordered = collections.OrderedDict()
-        todo = set(self._vars.iterkeys())
+        todo = set(self._vars)
         needs = {}
 
         ## Build initial needs
-        for var_id, var_expr in self._vars.iteritems():
+        for var_id, var_expr in viewitems(self._vars):
             ### Handle corner cases while using Variable Identifier on an
             ### already computed equation
-            needs[var_id] = [var_name
-                             for var_name in var_expr.get_r(mem_read=True)
-                             if self.is_var_identifier(var_name) and \
-                                 var_name in todo and \
-                                 var_name != var_id]
+            needs[var_id] = [
+                var_name
+                for var_name in var_expr.get_r(mem_read=True)
+                if self.is_var_identifier(var_name) and \
+                var_name in todo and \
+                var_name != var_id
+            ]
 
         ## Build order list
         while todo:
@@ -244,12 +255,15 @@ class Variables_Identifier(object):
 
         if (expr in self.var_asked):
             # Expr has already been asked
-
-            if (expr not in self._vars.values()):
+            if expr not in viewvalues(self._vars):
                 # Create var
-                identifier = m2_expr.ExprId("%s%s" % (self.var_prefix,
-                                                      self.var_indice.next()),
-                                            size = expr.size)
+                identifier = m2_expr.ExprId(
+                    "%s%s" % (
+                        self.var_prefix,
+                        next(self.var_indice)
+                    ),
+                    size = expr.size
+                )
                 self._vars[identifier] = expr
 
             # Recursion stop case
@@ -300,7 +314,7 @@ class Variables_Identifier(object):
     def __str__(self):
         "Display variables and final equation"
         out = ""
-        for var_id, var_expr in self.vars.iteritems():
+        for var_id, var_expr in viewitems(self.vars):
             out += "%s = %s\n" % (var_id, var_expr)
         out += "Final: %s" % self.equation
         return out
@@ -312,7 +326,7 @@ class ExprRandom(object):
     # Identifiers length
     identifier_len = 5
     # Identifiers' name charset
-    identifier_charset = string.letters
+    identifier_charset = string.ascii_letters
     # Number max value
     number_max = 0xFFFFFFFF
     # Available operations
@@ -340,7 +354,7 @@ class ExprRandom(object):
         @size: (optional) identifier size
         """
         return m2_expr.ExprId("".join([random.choice(cls.identifier_charset)
-                                       for _ in xrange(cls.identifier_len)]),
+                                       for _ in range(cls.identifier_len)]),
                               size=size)
 
     @classmethod
@@ -365,15 +379,17 @@ class ExprRandom(object):
         @size: (optional) Operation size
         @depth: (optional) Expression depth
         """
-        operand_type = random.choice(cls.operations_by_args_number.keys())
+        operand_type = random.choice(list(cls.operations_by_args_number))
         if isinstance(operand_type, str) and "+" in operand_type:
-            number_args = random.randint(int(operand_type[:-1]),
-                                         cls.operations_max_args_number)
+            number_args = random.randint(
+                int(operand_type[:-1]),
+                cls.operations_max_args_number
+            )
         else:
             number_args = operand_type
 
         args = [cls._gen(size=size, depth=depth - 1)
-                for _ in xrange(number_args)]
+                for _ in range(number_args)]
         operand = random.choice(cls.operations_by_args_number[operand_type])
         return m2_expr.ExprOp(operand,
                               *args)
@@ -593,8 +609,10 @@ def possible_values(expr):
     elif isinstance(expr, m2_expr.ExprCompose):
         # Generate each possibility for sub-argument, associated with the start
         # and stop bit
-        consvals_args = [map(lambda x: x, possible_values(arg))
-                         for arg in expr.args]
+        consvals_args = [
+            list(possible_values(arg))
+            for arg in expr.args
+        ]
         for consvals_possibility in itertools.product(*consvals_args):
             # Merge constraint of each sub-element
             args_constraint = itertools.chain(*[consval.constraints

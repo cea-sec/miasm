@@ -1,3 +1,4 @@
+from __future__ import print_function
 from miasm2.analysis.binary import Container
 from miasm2.analysis.machine import Machine
 from miasm2.core.asmblock import AsmConstraint
@@ -41,27 +42,28 @@ def cb_x86_callpop(cur_bloc, loc_db, *args, **kwargs):
 
 
 # Prepare a tiny shellcode
-shellcode = ''.join(["\xe8\x00\x00\x00\x00", # CALL $
-                     "X",                    # POP EAX
-                     "\xc3",                 # RET
-                     ])
+shellcode = (
+    b"\xe8\x00\x00\x00\x00" # CALL $
+    b"X"                    # POP EAX
+    b"\xc3"                 # RET
+)
 
 # Instantiate a x86 32 bit architecture
 machine = Machine("x86_32")
 cont = Container.from_string(shellcode)
 mdis = machine.dis_engine(cont.bin_stream, loc_db=cont.loc_db)
 
-print "Without callback:\n"
+print("Without callback:\n")
 asmcfg = mdis.dis_multiblock(0)
-print "\n".join(str(block) for block in asmcfg.blocks)
+print("\n".join(str(block) for block in asmcfg.blocks))
 
 # Enable callback
 mdis.dis_block_callback = cb_x86_callpop
 
-print "=" * 40
-print "With callback:\n"
+print("=" * 40)
+print("With callback:\n")
 asmcfg_after = mdis.dis_multiblock(0)
-print "\n".join(str(block) for block in asmcfg_after.blocks)
+print("\n".join(str(block) for block in asmcfg_after.blocks))
 
 # Ensure the callback has been called
 assert asmcfg.loc_key_to_block(asmcfg.heads()[0]).lines[0].name == "CALL"

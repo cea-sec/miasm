@@ -1,6 +1,7 @@
 #! /usr/bin/env python2
 #-*- coding:utf-8 -*-
 
+from builtins import range
 import unittest
 import logging
 from miasm2.analysis.machine import Machine
@@ -27,12 +28,12 @@ class TestWinAPI(unittest.TestCase):
 
     def test_msvcrt_sprintf(self):
         def alloc_str(s):
-            s += "\x00"
+            s += b"\x00"
             ptr = heap.alloc(jit, len(s))
             jit.vm.set_mem(ptr, s)
             return ptr
-        fmt  = alloc_str("'%s' %d")
-        str_ = alloc_str("coucou")
+        fmt  = alloc_str(b"'%s' %d")
+        str_ = alloc_str(b"coucou")
         buf = heap.alloc(jit,1024)
 
         jit.push_uint32_t(1111)
@@ -42,13 +43,13 @@ class TestWinAPI(unittest.TestCase):
         jit.push_uint32_t(0) # ret_ad
         winapi.msvcrt_sprintf(jit)
         ret = jit.get_str_ansi(buf)
-        self.assertEqual(ret, "'coucou' 1111")
+        self.assertEqual(ret, b"'coucou' 1111")
 
 
     def test_msvcrt_swprintf(self):
         def alloc_str(s):
             s = s.encode("utf-16le")
-            s += "\x00\x00"
+            s += b"\x00\x00"
             ptr = heap.alloc(jit, len(s))
             jit.vm.set_mem(ptr, s)
             return ptr
@@ -63,7 +64,7 @@ class TestWinAPI(unittest.TestCase):
         jit.push_uint32_t(0) # ret_ad
         winapi.msvcrt_swprintf(jit)
         ret = jit.get_str_unic(buf)
-        self.assertEqual(ret, "'coucou' 1111")
+        self.assertEqual(ret, u"'coucou' 1111")
 
 
     def test_msvcrt_realloc(self):
@@ -88,7 +89,7 @@ class TestWinAPI(unittest.TestCase):
         # Test with a buffer long enough
         addr = 0x80000
         size = len(winapi.winobjs.cur_dir)+1
-        jit.vm.add_memory_page(addr, PAGE_READ | PAGE_WRITE, "\x00" * (size), "")
+        jit.vm.add_memory_page(addr, PAGE_READ | PAGE_WRITE, b"\x00" * (size), "")
         jit.push_uint32_t(addr)   # buf
         jit.push_uint32_t(size)   # size
         jit.push_uint32_t(0)      # @return
@@ -98,7 +99,7 @@ class TestWinAPI(unittest.TestCase):
         self.assertEqual(len(dir_), size_ret)
 
         # Test with a buffer too small
-        jit.vm.set_mem(addr, "\xFF"*size)
+        jit.vm.set_mem(addr, b"\xFF"*size)
         jit.push_uint32_t(addr)   # buf
         jit.push_uint32_t(5)      # size
         jit.push_uint32_t(0)      # @return
@@ -215,7 +216,7 @@ class TestWinAPI(unittest.TestCase):
         self.assertTrue(vBool)
 
         # BOOL WINAPI Process32Next(_In_ HANDLE hSnapshot, _Out_ LPPROCESSENTRY32 lppe);
-        for i in xrange(3, -1, -1):
+        for i in range(3, -1, -1):
             jit.push_uint32_t(jit.stack_base)      # lppe
             jit.push_uint32_t(hSnap)               # hSnapshot
             jit.push_uint32_t(0)                   # @return

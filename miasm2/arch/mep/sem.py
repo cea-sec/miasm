@@ -929,15 +929,15 @@ def div(rn, rm):
     tmp_rm_inv = rm_inv if rm_inv else i32(1)
 
     # Results if only rn, or rm is negative
-    LO_rn_neg = (~(rn_inv / tmp_rm) + i32(1)) if sign_rn else (~(rn / tmp_rm_inv) + i32(1))
+    LO_rn_neg = (~(rn_inv // tmp_rm) + i32(1)) if sign_rn else (~(rn // tmp_rm_inv) + i32(1))
     HI_rn_neg = (~(rn_inv % tmp_rm) + i32(1)) if sign_rn else (~(rn % tmp_rm_inv) + i32(1))
 
     # Results if both numbers are positive
-    LO_pos = rn / tmp_rm if are_both_pos else LO_rn_neg
+    LO_pos = rn // tmp_rm if are_both_pos else LO_rn_neg
     HI_pos = rn % tmp_rm if are_both_pos else HI_rn_neg
 
     # Results if both numbers are negative
-    LO_neg = rn_inv / tmp_rm_inv if are_both_neg else LO_pos
+    LO_neg = rn_inv // tmp_rm_inv if are_both_neg else LO_pos
     HI_neg = rn_inv % tmp_rm_inv if are_both_neg else HI_pos
 
     # Results if rm is equal to zero
@@ -954,7 +954,7 @@ def divu(rn, rm):
     # LO <- Rn / Rm, HI <- Rn % Rm (Unsigned)
 
     tmp_rm = rm if rm else i32(1)  # used to delay the arithmetic computations
-    LO = rn / tmp_rm if rm else LO
+    LO = rn // tmp_rm if rm else LO
     HI = rn % tmp_rm if rm else HI
 
     exception_flags = i32(0) if rm else i32(EXCEPT_DIV_BY_ZERO)

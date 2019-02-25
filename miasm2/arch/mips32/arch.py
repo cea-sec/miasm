@@ -42,7 +42,7 @@ deref_nooff = (LPARENTHESIS + gpregs.parser + RPARENTHESIS).setParseAction(cb_de
 deref = deref_off | deref_nooff
 
 
-class additional_info:
+class additional_info(object):
     def __init__(self):
         self.except_on_instr = False
 
@@ -200,7 +200,7 @@ class mn_mips32(cpu.cls_mn):
             return 0
         o = 0
         while n:
-            offset = start / 8
+            offset = start // 8
             n_offset = cls.endian_offset(attrib, offset)
             c = cls.getbytes(bitstream, n_offset, 1)
             if not c:
@@ -265,7 +265,7 @@ class mips32_arg(cpu.m_arg):
                 return arg.name
             if arg.name in gpregs.str:
                 return None
-            loc_key = loc_db.get_or_create_name_location(arg.name)
+            loc_key = loc_db.get_or_create_name_location(arg.name.encode())
             return ExprLoc(loc_key, 32)
         if isinstance(arg, AstOp):
             args = [self.asm_ast_to_expr(tmp, loc_db) for tmp in arg.args]

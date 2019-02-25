@@ -1,6 +1,8 @@
 # Toshiba MeP-c4 - unit tests helpers
 # Guillaume Valadon <guillaume@valadon.net>
 
+from __future__ import print_function
+
 from miasm2.arch.mep.arch import mn_mep
 from miasm2.arch.mep.sem import ir_mepb
 from miasm2.arch.mep.regs import regs_init
@@ -10,7 +12,8 @@ from miasm2.core.locationdb import LocationDB
 from miasm2.core.utils import Disasm_Exception
 from miasm2.ir.ir import AssignBlock
 from miasm2.arch.mep.ira import ir_a_mepb
-from miasm2.expression.expression import ExprId, ExprInt, ExprOp, ExprMem, ExprAssign, ExprLoc
+from miasm2.expression.expression import ExprId, ExprInt, ExprOp, ExprMem, \
+    ExprAssign, ExprLoc
 
 
 def exec_instruction(mn_str, init_values, results, index=0, offset=0):
@@ -67,8 +70,8 @@ def exec_instruction(mn_str, init_values, results, index=0, offset=0):
 
     # Ensure that all expected results were verified
     if len(results) is not matched_results:
-        print "Expected:", results
-        print "Modified:", [r for r in sb.modified(mems=False)]
+        print("Expected:", results)
+        print("Modified:", [r for r in sb.modified(mems=False)])
         assert(False)
 
 
@@ -78,10 +81,10 @@ def launch_tests(obj):
     test_methods = [name for name in dir(obj) if name.startswith("test")]
 
     for method in test_methods:
-        print method
+        print(method)
         try:
             getattr(obj, method)()
         except AttributeError as e:
-            print "Method not found: %s" % method
+            print("Method not found: %s" % method)
             assert(False)
-        print '-' * 42
+        print('-' * 42)

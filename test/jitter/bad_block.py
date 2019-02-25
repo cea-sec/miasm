@@ -1,4 +1,5 @@
 import sys
+from miasm2.core.utils import decode_hex
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE, EXCEPT_UNK_MNEMO
 from miasm2.analysis.machine import Machine
 
@@ -15,7 +16,7 @@ jitter.init_stack()
 # nop
 # mov eax, 0x42
 # XX
-data = "90b842000000ffff90909090".decode('hex')
+data = decode_hex("90b842000000ffff90909090")
 
 # Will raise memory error at 0x40000006
 

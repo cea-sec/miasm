@@ -25,7 +25,7 @@ class Test_PUSHAD_32(Asm_Test_32):
 
     def test_init(self):
         init_regs(self)
-        self.buf = ""
+        self.buf = b""
         for reg_name in reversed(["EAX", "ECX",
                                   "EDX", "EBX",
                                   "ESP", "EBP",
@@ -52,7 +52,7 @@ class Test_PUSHA_32(Asm_Test_32):
 
     def test_init(self):
         init_regs(self)
-        self.buf = ""
+        self.buf = b""
         for reg_name in reversed(["AX", "CX",
                                   "DX", "BX",
                                   "SP", "BP",
@@ -79,7 +79,7 @@ class Test_PUSHA_16(Asm_Test_16):
 
     def test_init(self):
         init_regs(self)
-        self.buf = ""
+        self.buf = b""
         for reg_name in reversed(["AX", "CX",
                                   "DX", "BX",
                                   "SP", "BP",
@@ -106,7 +106,7 @@ class Test_PUSHAD_16(Asm_Test_16):
 
     def test_init(self):
         init_regs(self)
-        self.buf = ""
+        self.buf = b""
         for reg_name in reversed(["EAX", "ECX",
                                   "EDX", "EBX",
                                   "ESP", "EBP",
@@ -133,7 +133,7 @@ class Test_PUSH_mode32_32(Asm_Test_32):
 
     def test_init(self):
         init_regs(self)
-        self.buf = ""
+        self.buf = b""
         self.buf += pck32(0x11223344)
 
     TXT = '''
@@ -156,7 +156,7 @@ class Test_PUSH_mode32_16(Asm_Test_32):
 
     def test_init(self):
         init_regs(self)
-        self.buf = ""
+        self.buf = b""
         self.buf += pck16(0x1122)
 
     TXT = '''
@@ -179,7 +179,7 @@ class Test_PUSH_mode16_16(Asm_Test_16):
 
     def test_init(self):
         init_regs(self)
-        self.buf = ""
+        self.buf = b""
         self.buf += pck16(0x1122)
 
     TXT = '''
@@ -202,7 +202,7 @@ class Test_PUSH_mode16_32(Asm_Test_16):
 
     def test_init(self):
         init_regs(self)
-        self.buf = ""
+        self.buf = b""
         self.buf += pck32(0x11223344)
 
     TXT = '''

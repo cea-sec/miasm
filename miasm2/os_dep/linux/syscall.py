@@ -1,3 +1,4 @@
+from builtins import range
 import fcntl
 import functools
 import logging
@@ -74,7 +75,7 @@ def sys_x86_64_rt_sigaction(jitter, linux_env):
     # Stub
     if oact != 0:
         # Return an empty old action
-        jitter.vm.set_mem(oact, "\x00" * sigsetsize)
+        jitter.vm.set_mem(oact, b"\x00" * sigsetsize)
     jitter.syscall_ret_systemv(0)
 
 
@@ -110,10 +111,10 @@ def sys_x86_64_newuname(jitter, linux_env):
         linux_env.sys_machine
     ]
     # TODO: Elements start at 0x41 multiples on my tests...
-    output = ""
+    output = b""
     for elem in info:
         output += elem
-        output += "\x00" * (0x41 - len(elem))
+        output += b"\x00" * (0x41 - len(elem))
     jitter.vm.set_mem(nameptr, output)
     jitter.syscall_ret_systemv(0)
 
@@ -141,10 +142,10 @@ def sys_arml_newuname(jitter, linux_env):
         linux_env.sys_machine
     ]
     # TODO: Elements start at 0x41 multiples on my tests...
-    output = ""
+    output = b""
     for elem in info:
         output += elem
-        output += "\x00" * (0x41 - len(elem))
+        output += b"\x00" * (0x41 - len(elem))
     jitter.vm.set_mem(nameptr, output)
     jitter.syscall_ret_systemv(0)
 
@@ -220,7 +221,7 @@ def sys_x86_64_writev(jitter, linux_env):
 
     # Stub
     fdesc = linux_env.file_descriptors[fd]
-    for iovec_num in xrange(vlen):
+    for iovec_num in range(vlen):
         # struct iovec {
         #    void  *iov_base;    /* Starting address */
         #    size_t iov_len;     /* Number of bytes to transfer */
@@ -239,7 +240,7 @@ def sys_arml_writev(jitter, linux_env):
 
     # Stub
     fdesc = linux_env.file_descriptors[fd]
-    for iovec_num in xrange(vlen):
+    for iovec_num in range(vlen):
         # struct iovec {
         #    void  *iov_base;    /* Starting address */
         #    size_t iov_len;     /* Number of bytes to transfer */
@@ -511,7 +512,7 @@ def sys_x86_64_getdents(jitter, linux_env):
         d_reclen = 8 * 2 + 2 + 1 + len(name) + 1
         d_off = cur_len + d_reclen
         entry = struct.pack("QqH", d_ino, d_off, d_reclen) + \
-                name + "\x00" + struct.pack("B", d_type)
+                name + b"\x00" + struct.pack("B", d_type)
         assert len(entry) == d_reclen
         return entry
 
@@ -539,7 +540,7 @@ def sys_arml_getdents64(jitter, linux_env):
         d_reclen = 8 * 2 + 2 + 1 + len(name) + 1
         d_off = cur_len + d_reclen
         entry = struct.pack("QqHB", d_ino, d_off, d_reclen, d_type) + \
-                name + "\x00"
+                name + b"\x00"
         assert len(entry) == d_reclen
         return entry
 
@@ -595,7 +596,7 @@ def sys_x86_64_lgetxattr(jitter, linux_env):
     log.debug("sys_lgetxattr(%r, %r, %x, %x)", rpathname, rname, value, size)
 
     # Stub
-    jitter.vm.set_mem(value, "\x00" * size)
+    jitter.vm.set_mem(value, b"\x00" * size)
     jitter.cpu.RAX = 0
 
 
@@ -610,7 +611,7 @@ def sys_x86_64_getxattr(jitter, linux_env):
     log.debug("sys_getxattr(%r, %r, %x, %x)", rpathname, rname, value, size)
 
     # Stub
-    jitter.vm.set_mem(value, "\x00" * size)
+    jitter.vm.set_mem(value, b"\x00" * size)
     jitter.cpu.RAX = 0
 
 
@@ -690,7 +691,7 @@ def sys_x86_64_readlink(jitter, linux_env):
         # Not a link
         jitter.cpu.RAX = -1
     else:
-        data = link[:bufsize - 1] + "\x00"
+        data = link[:bufsize - 1] + b"\x00"
         jitter.vm.set_mem(buf, data)
         jitter.cpu.RAX = len(data) - 1
 

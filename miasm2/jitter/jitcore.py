@@ -1,3 +1,4 @@
+from __future__ import print_function
 #
 # Copyright (C) 2011 EADS France, Fabrice Desclaux <fabrice.desclaux@eads.net>
 #
@@ -17,6 +18,8 @@
 #
 from hashlib import md5
 import warnings
+
+from future.utils import viewvalues
 
 from miasm2.core.asmblock import disasmEngine, AsmBlockBad
 from miasm2.core.interval import interval
@@ -141,7 +144,7 @@ class JitCore(object):
             return cur_block
         # Logging
         if self.log_newbloc:
-            print cur_block.to_string(self.mdis.loc_db)
+            print(cur_block.to_string(self.mdis.loc_db))
 
         # Update label -> block
         self.loc_key_to_block[cur_block.loc_key] = cur_block
@@ -222,7 +225,7 @@ class JitCore(object):
 
         # Find concerned blocks
         modified_blocks = set()
-        for block in self.loc_key_to_block.values():
+        for block in viewvalues(self.loc_key_to_block):
             if not block.lines:
                 continue
             if block.ad_max <= ad1 or block.ad_min >= ad2:
@@ -282,13 +285,17 @@ class JitCore(object):
         Build a hash of the block @block
         @block: asmblock
         """
-        block_raw = "".join(line.b for line in block.lines)
+        block_raw = b"".join(line.b for line in block.lines)
         offset = self.ir_arch.loc_db.get_location_offset(block.loc_key)
-        block_hash = md5("%X_%s_%s_%s_%s" % (offset,
-                                             self.arch_name,
-                                             self.log_mn,
-                                             self.log_regs,
-                                             block_raw)).hexdigest()
+        block_hash = md5(
+            b"%X_%s_%s_%s_%s" % (
+                offset,
+                self.arch_name.encode(),
+                b'\x01' if self.log_mn else b'\x00',
+                b'\x01' if self.log_regs else b'\x00',
+                block_raw
+            )
+        ).hexdigest()
         return block_hash
 
     @property

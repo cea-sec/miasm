@@ -4,7 +4,7 @@
 from ut_helpers_asm import check_instruction
 
 
-class TestMajor15:
+class TestMajor15(object):
 
     def test_DSP(self):
         """Test the DSP instruction"""

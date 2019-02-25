@@ -1,3 +1,6 @@
+from builtins import range
+from future.utils import viewitems, viewvalues
+
 from miasm2.expression.expression import *
 from miasm2.ir.ir import IntermediateRepresentation, IRBlock, AssignBlock
 from miasm2.arch.arm.arch import mn_arm, mn_armt
@@ -1053,7 +1056,7 @@ def rors(ir, instr, a, b):
 def push(ir, instr, a):
     e = []
     regs = list(a.args)
-    for i in xrange(len(regs)):
+    for i in range(len(regs)):
         r = SP + ExprInt(-4 * len(regs) + 4 * i, 32)
         e.append(ExprAssign(ExprMem(r, 32), regs[i]))
     r = SP + ExprInt(-4 * len(regs), 32)
@@ -1065,7 +1068,7 @@ def pop(ir, instr, a):
     e = []
     regs = list(a.args)
     dst = None
-    for i in xrange(len(regs)):
+    for i in range(len(regs)):
         r = SP + ExprInt(4 * i, 32)
         e.append(ExprAssign(regs[i], ExprMem(r, 32)))
         if regs[i] == ir.pc:
@@ -1271,7 +1274,7 @@ def uadd8(ir, instr, a, b, c):
     e = []
     sums = []
     ges = []
-    for i in xrange(0, 32, 8):
+    for i in range(0, 32, 8):
         sums.append(b[i:i+8] + c[i:i+8])
         ges.append((b[i:i+8].zeroExtend(9) + c[i:i+8].zeroExtend(9))[8:9])
 
@@ -1286,7 +1289,7 @@ def sel(ir, instr, a, b, c):
     e = []
     cond = nf ^ of ^ ExprInt(1, 1)
     parts = []
-    for i in xrange(4):
+    for i in range(4):
         parts.append(ExprCond(ge_regs[i], b[i*8:(i+1)*8], c[i*8:(i+1)*8]))
     result = ExprCompose(*parts)
     e.append(ExprAssign(a, result))
@@ -1382,7 +1385,7 @@ cond_dct = {
     # COND_NV: "NV",
 }
 
-cond_dct_inv = dict((name, num) for num, name in cond_dct.iteritems())
+cond_dct_inv = dict((name, num) for num, name in viewitems(cond_dct))
 
 
 """
@@ -1425,7 +1428,7 @@ tab_cond = {COND_EQ: ExprOp("CC_EQ", zf),
 
 
 def is_pc_written(ir, instr_ir):
-    all_pc = ir.mn.pc.values()
+    all_pc = viewvalues(ir.mn.pc)
     for ir in instr_ir:
         if ir.dst in all_pc:
             return True, ir.dst
@@ -1613,8 +1616,8 @@ mn_cond_x = [mnemo_condm0,
              mnemo_condm2]
 
 for index, mn_base in enumerate(mn_cond_x):
-    for mn, mf in mn_base.items():
-        for cond, cn in cond_dct.items():
+    for mn, mf in viewitems(mn_base):
+        for cond, cn in viewitems(cond_dct):
             if cond == COND_AL:
                 cn = ""
             cn = cn.lower()
@@ -1625,7 +1628,7 @@ for index, mn_base in enumerate(mn_cond_x):
             # print mn_mod
             mnemo_func_cond[mn_mod] = cond, mf
 
-for name, mf in mnemo_nocond.items():
+for name, mf in viewitems(mnemo_nocond):
     mnemo_func_cond[name] = COND_AL, mf
 
 
@@ -1652,7 +1655,7 @@ def get_mnemo_expr(ir, instr, *args):
 get_arm_instr_expr = get_mnemo_expr
 
 
-class arminfo:
+class arminfo(object):
     mode = "arm"
     # offset
 
@@ -1775,7 +1778,7 @@ class ir_arml(IntermediateRepresentation):
                 for assignment in assignments:
                     assignment = AssignBlock(
                         {
-                            dst:src for (dst, src) in assignment.iteritems()
+                            dst: src for (dst, src) in viewitems(assignment)
                             if dst not in [zf, nf, of, cf]
                         },
                         assignment.instr
@@ -1789,7 +1792,7 @@ class ir_arml(IntermediateRepresentation):
                     for tmp_assignment in irblock:
                         assignment = AssignBlock(
                             {
-                                dst:src for (dst, src) in assignment.iteritems()
+                                dst: src for (dst, src) in viewitems(assignment)
                                 if dst not in [zf, nf, of, cf]
                             },
                             assignment.instr

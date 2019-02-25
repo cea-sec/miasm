@@ -1,5 +1,8 @@
 #-*- coding:utf-8 -*-
 
+from __future__ import print_function
+from builtins import range
+
 from pyparsing import *
 from miasm2.core.cpu import *
 from miasm2.expression.expression import *
@@ -102,7 +105,7 @@ class sh4_arg(m_arg):
                 return arg.name
             if arg.name in gpregs.str:
                 return None
-            loc_key = loc_db.get_or_create_name_location(arg.name)
+            loc_key = loc_db.get_or_create_name_location(arg.name.encode())
             return ExprLoc(loc_key, 32)
         if isinstance(arg, AstOp):
             args = [self.asm_ast_to_expr(tmp, loc_db) for tmp in arg.args]
@@ -235,7 +238,7 @@ class sh4_dgpreg_imm(sh4_dgpreg):
         p = self.parent
         r = gpregs.expr[v]
         s = self.sz
-        d = ExprInt(p.disp.value * s / 8, 32)
+        d = ExprInt((p.disp.value * s) // 8, 32)
         e = ExprMem(r + d, s)
         self.expr = e
         return True
@@ -258,7 +261,7 @@ class sh4_dgpreg_imm(sh4_dgpreg):
             if not isinstance(res[jrb], ExprInt):
                 return False
             d = int(res[jrb])
-            p.disp.value = d / (s / 8)
+            p.disp.value = d // (s // 8)
             if not res[jra] in gpregs.expr:
                 return False
             v = gpregs.expr.index(res[jra])
@@ -301,7 +304,7 @@ class sh4_dpc16imm(sh4_dgpreg):
         return True
 
     def calcdisp(self, v):
-        v = (int(v) - 4) / 2
+        v = (int(v) - 4) // 2
         if not 0 < v <= 0xff:
             return None
         return v
@@ -324,7 +327,7 @@ class sh4_dgbrimm8(sh4_dgpreg):
 
     def decode(self, v):
         s = self.sz
-        self.expr = ExprMem(GBR + ExprInt(v * s / 8, 32), s)
+        self.expr = ExprMem(GBR + ExprInt((v * s) // 8, 32), s)
         return True
 
     def encode(self):
@@ -338,7 +341,7 @@ class sh4_dgbrimm8(sh4_dgpreg):
             return False
         if not isinstance(res[jra], ExprInt):
             return False
-        self.value = int(res[jra]) / (s / 8)
+        self.value = int(res[jra]) // (s // 8)
         return True
 
 
@@ -351,7 +354,7 @@ class sh4_dpc32imm(sh4_dpc16imm):
         return True
 
     def calcdisp(self, v):
-        v = (int(v) - 4) / 4
+        v = (int(v) - 4) // 4
         if not 0 < v <= 0xff:
             return None
         return v
@@ -383,13 +386,13 @@ class sh4_pc32imm(sh4_arg):
             return False
         if not isinstance(res[jra], ExprInt):
             return False
-        v = (int(res[jra]) - 4) / 4
+        v = (int(res[jra]) - 4) // 4
         if v is None:
             return False
         self.value = v
         return True
 
-class additional_info:
+class additional_info(object):
 
     def __init__(self):
         self.except_on_instr = False
@@ -423,8 +426,10 @@ class instruction_sh4(instruction):
             elif ptr.op == "postinc":
                 s = '%s+' % ptr.args[0]
             else:
-                s = ','.join([str(x).replace('(', '').replace(')', '')
-                              for x in ptr.args])
+                s = ','.join(
+                    str(x).replace('(', '').replace(')', '')
+                    for x in ptr.args
+                )
                 s = "(%s)"%s
             s = "@%s" % s
         elif isinstance(ptr, ExprId):
@@ -473,11 +478,11 @@ class instruction_sh4(instruction):
             log.debug('dyn dst %r', e)
             return
         off = e.arg - (self.offset + 4 + self.l)
-        print hex(off)
+        print(hex(off))
         if int(off % 4):
             raise ValueError('strange offset! %r' % off)
         self.args[0] = ExprInt(off, 32)
-        print 'final', self.args[0]
+        print('final', self.args[0])
 
     def get_args_expr(self):
         args = [a for a in self.args]
@@ -510,7 +515,7 @@ class mn_sh4(cls_mn):
         if n > bs.getlen() * 8:
             raise ValueError('not enough bits %r %r' % (n, len(bs.bin) * 8))
         while n:
-            i = start / 8
+            i = start // 8
             c = cls.getbytes(bs, i)
             if not c:
                 raise IOError
@@ -527,8 +532,8 @@ class mn_sh4(cls_mn):
 
     @classmethod
     def getbytes(cls, bs, offset, l=1):
-        out = ""
-        for _ in xrange(l):
+        out = b""
+        for _ in range(l):
             n_offset = (offset & ~1) + 1 - offset % 2
             out += bs.getbytes(n_offset, 1)
             offset += 1

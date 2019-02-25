@@ -6,7 +6,7 @@ from ut_helpers_ir import exec_instruction
 from miasm2.expression.expression import ExprId, ExprMem, ExprInt
 
 
-class TestExtension:
+class TestExtension(object):
 
     def test_extb(self):
         """Test EXTB execution"""

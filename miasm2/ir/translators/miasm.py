@@ -1,3 +1,4 @@
+from builtins import map
 from miasm2.ir.translators.translator import Translator
 
 
@@ -23,8 +24,10 @@ class TranslatorMiasm(Translator):
                                           expr.stop)
 
     def from_ExprOp(self, expr):
-        return "ExprOp(%s, %s)" % (repr(expr.op),
-                                   ", ".join(map(self.from_expr, expr.args)))
+        return "ExprOp(%s, %s)" % (
+            repr(expr.op),
+            ", ".join(map(self.from_expr, expr.args))
+        )
 
     def from_ExprCompose(self, expr):
         args = ["%s" % self.from_expr(arg) for arg in expr.args]

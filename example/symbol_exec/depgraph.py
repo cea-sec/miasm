@@ -1,6 +1,10 @@
+from __future__ import print_function
+from builtins import range
 from argparse import ArgumentParser
 from pdb import pm
 import json
+
+from future.utils import viewitems
 
 from miasm2.analysis.machine import Machine
 from miasm2.analysis.binary import Container
@@ -54,7 +58,7 @@ init_ctx = {}
 if args.rename_args:
     if arch == "x86_32":
         # StdCall example
-        for i in xrange(4):
+        for i in range(4):
             e_mem = ExprMem(ExprId("ESP_init", 32) + ExprInt(4 * (i + 1), 32), 32)
             init_ctx[e_mem] = ExprId("arg%d" % i, 32)
 
@@ -74,8 +78,9 @@ dg = DependencyGraph(
 
 # Build information
 target_addr = int(args.target_addr, 0)
-current_block = list(ircfg.getby_offset(target_addr))[0]
+current_loc_key = next(iter(ircfg.getby_offset(target_addr)))
 assignblk_index = 0
+current_block = ircfg.get_block(current_loc_key)
 for assignblk_index, assignblk in enumerate(current_block):
     if assignblk.instr.offset == target_addr:
         break
@@ -88,14 +93,14 @@ for sol_nb, sol in enumerate(dg.get(current_block.loc_key, elements, assignblk_i
             fdesc.write(sol.graph.dot())
 
     results = sol.emul(ir_arch, ctx=init_ctx)
-    tokens = {str(k): str(v) for k, v in results.iteritems()}
+    tokens = {str(k): str(v) for k, v in viewitems(results)}
     if not args.json:
-        result = ", ".join("=".join(x) for x in tokens.iteritems())
-        print "Solution %d: %s -> %s" % (sol_nb,
+        result = ", ".join("=".join(x) for x in viewitems(tokens))
+        print("Solution %d: %s -> %s" % (sol_nb,
                                          result,
-                                         fname)
+                                         fname))
         if sol.has_loop:
-            print '\tLoop involved'
+            print('\tLoop involved')
 
     if args.implicit:
         sat = sol.is_satisfiable
@@ -109,10 +114,12 @@ for sol_nb, sol in enumerate(dg.get(current_block.loc_key, elements, assignblk_i
                 constraints[element] = result
         if args.json:
             tokens["satisfiability"] = sat
-            tokens["constraints"] = {str(k): str(v)
-                                     for k, v in constraints.iteritems()}
+            tokens["constraints"] = {
+                str(k): str(v)
+                for k, v in viewitems(constraints)
+            }
         else:
-            print "\tSatisfiability: %s %s" % (sat, constraints)
+            print("\tSatisfiability: %s %s" % (sat, constraints))
 
     if args.json:
         tokens["has_loop"] = sol.has_loop
@@ -120,4 +127,4 @@ for sol_nb, sol in enumerate(dg.get(current_block.loc_key, elements, assignblk_i
 
 
 if args.json:
-    print json.dumps(json_solutions)
+    print(json.dumps(json_solutions))

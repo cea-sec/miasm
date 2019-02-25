@@ -1,6 +1,10 @@
 """Regression test module for DependencyGraph"""
-from miasm2.expression.expression import ExprId, ExprInt, ExprAssign, ExprCond, \
-    ExprLoc, LocKey
+from __future__ import print_function
+
+from future.utils import viewitems
+
+from miasm2.expression.expression import ExprId, ExprInt, ExprAssign, \
+    ExprCond, ExprLoc, LocKey
 from miasm2.core.locationdb import LocationDB
 from miasm2.ir.analysis import ira
 from miasm2.ir.ir import IRBlock, AssignBlock
@@ -136,7 +140,7 @@ def bloc2graph(irgraph, label=False, lines=True):
         block_html_lines = []
         if lines and irblock is not None:
             for assignblk in irblock:
-                for dst, src in assignblk.iteritems():
+                for dst, src in viewitems(assignblk):
                     if False:
                         out_render = "%.8X</td><td %s> " % (0, td_attr)
                     else:
@@ -220,7 +224,7 @@ def dg2graph(graph, label=False, lines=True):
     return '\n'.join(out)
 
 
-print "   [+] Test dictionary equality"
+print("   [+] Test dictionary equality")
 DNA = DependencyNode(LBL2, A, 0)
 DNB = DependencyNode(LBL1, B, 1)
 DNC = DependencyNode(LBL1, C, 0)
@@ -747,10 +751,14 @@ def flatNode(node):
             element = int(node.element.arg)
         else:
             RuntimeError("Unsupported type '%s'" % type(enode.element))
-        name = loc_db.pretty_str(node.loc_key)
-        return (name,
-                element,
-                node.line_nb)
+        names = loc_db.get_location_names(node.loc_key)
+        assert len(names) == 1
+        name = next(iter(names))
+        return (
+            name,
+            element,
+            node.line_nb
+        )
     else:
         return str(node)
 
@@ -761,8 +769,10 @@ def flatGraph(graph):
         out_nodes.add(flatNode(node))
     for nodeA, nodeB in graph.edges():
         out_edges.add((flatNode(nodeA), flatNode(nodeB)))
-    out = (tuple(sorted(list(out_nodes))),
-           tuple(sorted(list(out_edges))))
+    out = (
+        tuple(sorted(list(out_nodes), key=str)),
+        tuple(sorted(list(out_edges), key=str))
+    )
     return out
 
 
@@ -819,7 +829,7 @@ def test_result(graphA, graphB, leaves):
         if set(parentsA_noidx.keys()) != set(parentsB_noidx.keys()):
             return False
 
-        for node_noidx, nodeA in parentsA_noidx.iteritems():
+        for node_noidx, nodeA in viewitems(parentsA_noidx):
             nodeB = parentsB_noidx[node_noidx]
             todo.add((nodeA, nodeB))
 
@@ -835,7 +845,8 @@ def match_results(resultsA, resultsB, nodes):
     if len(resultsA) != len(resultsB):
         return False
 
-    for resultA in resultsA:
+    for flatA in resultsA:
+        resultA = unflatGraph(flatA)
         nodes = resultA.leaves()
         for resultB in resultsB:
             if test_result(resultA, resultB, nodes):
@@ -854,253 +865,253 @@ def get_flat_init_depnodes(depnodes):
     return out
 
 # TESTS
-flat_test_results = [[((('lbl0', 1, 0), ('lbl0', 'c', 0), ('lbl1', 'b', 0), ('lbl2', 'a', 0)),
-                       ((('lbl0', 1, 0), ('lbl0', 'c', 0)),
-                        (('lbl0', 'c', 0), ('lbl1', 'b', 0)),
-                        (('lbl1', 'b', 0), ('lbl2', 'a', 0))))],
-                     [((('lbl0', 1, 0),
-                        ('lbl0', 'c', 0),
-                        ('lbl1', 2, 0),
-                        ('lbl1', 'b', 0),
-                        ('lbl2', 'a', 0)),
-                       ((('lbl0', 1, 0), ('lbl0', 'c', 0)),
-                        (('lbl0', 'c', 0), ('lbl2', 'a', 0)),
-                        (('lbl1', 2, 0), ('lbl1', 'b', 0)),
-                        (('lbl1', 'b', 0), ('lbl2', 'a', 0))))],
-                     [((('lbl0', 1, 0),
-                        ('lbl0', 'c', 0),
-                        ('lbl1', 2, 0),
-                        ('lbl1', 'b', 0),
-                        ('lbl3', 'a', 0)),
-                       ((('lbl0', 1, 0), ('lbl0', 'c', 0)),
-                        (('lbl0', 'c', 0), ('lbl3', 'a', 0)),
-                        (('lbl1', 2, 0), ('lbl1', 'b', 0)),
-                        (('lbl1', 'b', 0), ('lbl3', 'a', 0)))),
-                      ((('lbl0', 1, 0),
-                        ('lbl0', 'c', 0),
-                        ('lbl2', 3, 0),
-                        ('lbl2', 'b', 0),
-                        ('lbl3', 'a', 0)),
-                       ((('lbl0', 1, 0), ('lbl0', 'c', 0)),
-                        (('lbl0', 'c', 0), ('lbl3', 'a', 0)),
-                        (('lbl2', 3, 0), ('lbl2', 'b', 0)),
-                        (('lbl2', 'b', 0), ('lbl3', 'a', 0))))],
-                     [(('b', ('lbl2', 'a', 0)), (('b', ('lbl2', 'a', 0)),))],
-                     [((('lbl0', 1, 0),
-                        ('lbl0', 'b', 0),
-                        ('lbl1', 2, 0),
-                        ('lbl1', 'b', 0),
-                        ('lbl2', 'a', 0)),
-                       ((('lbl0', 1, 0), ('lbl0', 'b', 0)),
-                        (('lbl0', 'b', 0), ('lbl1', 'b', 0)),
-                        (('lbl1', 2, 0), ('lbl1', 'b', 0)),
-                        (('lbl1', 'b', 0), ('lbl1', 'b', 0)),
-                        (('lbl1', 'b', 0), ('lbl2', 'a', 0)))),
-                      ((('lbl0', 1, 0),
-                        ('lbl0', 'b', 0),
-                        ('lbl1', 2, 0),
-                        ('lbl1', 'b', 0),
-                        ('lbl2', 'a', 0)),
-                       ((('lbl0', 1, 0), ('lbl0', 'b', 0)),
-                        (('lbl0', 'b', 0), ('lbl1', 'b', 0)),
-                        (('lbl1', 2, 0), ('lbl1', 'b', 0)),
-                        (('lbl1', 'b', 0), ('lbl2', 'a', 0))))],
-                     [((('lbl0', 1, 0), ('lbl0', 'b', 0), ('lbl1', 'a', 0)),
-                       ((('lbl0', 1, 0), ('lbl0', 'b', 0)),
-                        (('lbl0', 'b', 0), ('lbl1', 'a', 0))))],
-                     [((('lbl0', 1, 0),
-                        ('lbl0', 'c', 0),
-                        ('lbl1', 'a', 1),
-                        ('lbl1', 'b', 0),
-                        ('lbl2', 'd', 0)),
-                       ((('lbl0', 1, 0), ('lbl0', 'c', 0)),
-                        (('lbl0', 'c', 0), ('lbl1', 'b', 0)),
-                        (('lbl1', 'a', 1), ('lbl2', 'd', 0)),
-                        (('lbl1', 'b', 0), ('lbl1', 'a', 1))))],
-                     [(('d', ('lbl1', 'b', 0), ('lbl1', 'c', 1), ('lbl2', 'a', 0)),
-                       (('d', ('lbl1', 'c', 1)),
-                        (('lbl1', 'b', 0), ('lbl2', 'a', 0)),
-                        (('lbl1', 'c', 1), ('lbl1', 'b', 0)))),
-                      ((('lbl0', 1, 0), ('lbl0', 'c', 0), ('lbl1', 'b', 0), ('lbl2', 'a', 0)),
-                       ((('lbl0', 1, 0), ('lbl0', 'c', 0)),
-                        (('lbl0', 'c', 0), ('lbl1', 'b', 0)),
-                        (('lbl1', 'b', 0), ('lbl2', 'a', 0))))],
+flat_test_results = [[(((b'lbl0', 1, 0), (b'lbl0', 'c', 0), (b'lbl1', 'b', 0), (b'lbl2', 'a', 0)),
+                       (((b'lbl0', 1, 0), (b'lbl0', 'c', 0)),
+                        ((b'lbl0', 'c', 0), (b'lbl1', 'b', 0)),
+                        ((b'lbl1', 'b', 0), (b'lbl2', 'a', 0))))],
+                     [(((b'lbl0', 1, 0),
+                        (b'lbl0', 'c', 0),
+                        (b'lbl1', 2, 0),
+                        (b'lbl1', 'b', 0),
+                        (b'lbl2', 'a', 0)),
+                       (((b'lbl0', 1, 0), (b'lbl0', 'c', 0)),
+                        ((b'lbl0', 'c', 0), (b'lbl2', 'a', 0)),
+                        ((b'lbl1', 2, 0), (b'lbl1', 'b', 0)),
+                        ((b'lbl1', 'b', 0), (b'lbl2', 'a', 0))))],
+                     [(((b'lbl0', 1, 0),
+                        (b'lbl0', 'c', 0),
+                        (b'lbl1', 2, 0),
+                        (b'lbl1', 'b', 0),
+                        (b'lbl3', 'a', 0)),
+                       (((b'lbl0', 1, 0), (b'lbl0', 'c', 0)),
+                        ((b'lbl0', 'c', 0), (b'lbl3', 'a', 0)),
+                        ((b'lbl1', 2, 0), (b'lbl1', 'b', 0)),
+                        ((b'lbl1', 'b', 0), (b'lbl3', 'a', 0)))),
+                      (((b'lbl0', 1, 0),
+                        (b'lbl0', 'c', 0),
+                        (b'lbl2', 3, 0),
+                        (b'lbl2', 'b', 0),
+                        (b'lbl3', 'a', 0)),
+                       (((b'lbl0', 1, 0), (b'lbl0', 'c', 0)),
+                        ((b'lbl0', 'c', 0), (b'lbl3', 'a', 0)),
+                        ((b'lbl2', 3, 0), (b'lbl2', 'b', 0)),
+                        ((b'lbl2', 'b', 0), (b'lbl3', 'a', 0))))],
+                     [(('b', (b'lbl2', 'a', 0)), (('b', (b'lbl2', 'a', 0)),))],
+                     [(((b'lbl0', 1, 0),
+                        (b'lbl0', 'b', 0),
+                        (b'lbl1', 2, 0),
+                        (b'lbl1', 'b', 0),
+                        (b'lbl2', 'a', 0)),
+                       (((b'lbl0', 1, 0), (b'lbl0', 'b', 0)),
+                        ((b'lbl0', 'b', 0), (b'lbl1', 'b', 0)),
+                        ((b'lbl1', 2, 0), (b'lbl1', 'b', 0)),
+                        ((b'lbl1', 'b', 0), (b'lbl1', 'b', 0)),
+                        ((b'lbl1', 'b', 0), (b'lbl2', 'a', 0)))),
+                      (((b'lbl0', 1, 0),
+                        (b'lbl0', 'b', 0),
+                        (b'lbl1', 2, 0),
+                        (b'lbl1', 'b', 0),
+                        (b'lbl2', 'a', 0)),
+                       (((b'lbl0', 1, 0), (b'lbl0', 'b', 0)),
+                        ((b'lbl0', 'b', 0), (b'lbl1', 'b', 0)),
+                        ((b'lbl1', 2, 0), (b'lbl1', 'b', 0)),
+                        ((b'lbl1', 'b', 0), (b'lbl2', 'a', 0))))],
+                     [(((b'lbl0', 1, 0), (b'lbl0', 'b', 0), (b'lbl1', 'a', 0)),
+                       (((b'lbl0', 1, 0), (b'lbl0', 'b', 0)),
+                        ((b'lbl0', 'b', 0), (b'lbl1', 'a', 0))))],
+                     [(((b'lbl0', 1, 0),
+                        (b'lbl0', 'c', 0),
+                        (b'lbl1', 'a', 1),
+                        (b'lbl1', 'b', 0),
+                        (b'lbl2', 'd', 0)),
+                       (((b'lbl0', 1, 0), (b'lbl0', 'c', 0)),
+                        ((b'lbl0', 'c', 0), (b'lbl1', 'b', 0)),
+                        ((b'lbl1', 'a', 1), (b'lbl2', 'd', 0)),
+                        ((b'lbl1', 'b', 0), (b'lbl1', 'a', 1))))],
+                     [(('d', (b'lbl1', 'b', 0), (b'lbl1', 'c', 1), (b'lbl2', 'a', 0)),
+                       (('d', (b'lbl1', 'c', 1)),
+                        ((b'lbl1', 'b', 0), (b'lbl2', 'a', 0)),
+                        ((b'lbl1', 'c', 1), (b'lbl1', 'b', 0)))),
+                      (((b'lbl0', 1, 0), (b'lbl0', 'c', 0), (b'lbl1', 'b', 0), (b'lbl2', 'a', 0)),
+                       (((b'lbl0', 1, 0), (b'lbl0', 'c', 0)),
+                        ((b'lbl0', 'c', 0), (b'lbl1', 'b', 0)),
+                        ((b'lbl1', 'b', 0), (b'lbl2', 'a', 0))))],
                      [(('d',
-                        ('lbl0', 1, 0),
-                        ('lbl0', 'c', 0),
-                        ('lbl1', 'b', 0),
-                        ('lbl1', 'c', 1),
-                        ('lbl2', 'a', 0)),
-                       (('d', ('lbl1', 'c', 1)),
-                        (('lbl0', 1, 0), ('lbl0', 'c', 0)),
-                        (('lbl0', 'c', 0), ('lbl1', 'b', 0)),
-                        (('lbl1', 'b', 0), ('lbl2', 'a', 0)))),
-                      (('d', ('lbl1', 'b', 0), ('lbl1', 'c', 1), ('lbl2', 'a', 0)),
-                       (('d', ('lbl1', 'c', 1)),
-                        (('lbl1', 'b', 0), ('lbl2', 'a', 0)),
-                        (('lbl1', 'c', 1), ('lbl1', 'b', 0))))],
-                     [(('b', ('lbl1', 2, 0), ('lbl1', 'b', 0), ('lbl2', 'a', 0)),
-                       (('b', ('lbl1', 'b', 0)),
-                        (('lbl1', 2, 0), ('lbl1', 'b', 0)),
-                        (('lbl1', 'b', 0), ('lbl1', 'b', 0)),
-                        (('lbl1', 'b', 0), ('lbl2', 'a', 0)))),
-                      (('b', ('lbl1', 2, 0), ('lbl1', 'b', 0), ('lbl2', 'a', 0)),
-                       (('b', ('lbl1', 'b', 0)),
-                        (('lbl1', 2, 0), ('lbl1', 'b', 0)),
-                        (('lbl1', 'b', 0), ('lbl2', 'a', 0))))],
-                     [((('lbl0', 1, 0),
-                        ('lbl0', 2, 0),
-                        ('lbl0', 'a', 0),
-                        ('lbl0', 'b', 0),
-                        ('lbl1', 'a', 0),
-                        ('lbl1', 'b', 0),
-                        ('lbl2', 'a', 0)),
-                       ((('lbl0', 1, 0), ('lbl0', 'a', 0)),
-                        (('lbl0', 2, 0), ('lbl0', 'b', 0)),
-                        (('lbl0', 'a', 0), ('lbl1', 'b', 0)),
-                        (('lbl0', 'b', 0), ('lbl1', 'a', 0)),
-                        (('lbl1', 'a', 0), ('lbl2', 'a', 0)),
-                        (('lbl1', 'b', 0), ('lbl2', 'a', 0))))],
-                     [((('lbl0', 1, 0),
-                        ('lbl0', 'b', 0),
-                        ('lbl1', 2, 1),
-                        ('lbl1', 'a', 0),
-                        ('lbl1', 'b', 1),
-                        ('lbl2', 'b', 0)),
-                       ((('lbl0', 1, 0), ('lbl0', 'b', 0)),
-                        (('lbl0', 'b', 0), ('lbl1', 'b', 1)),
-                        (('lbl1', 2, 1), ('lbl1', 'b', 1)),
-                        (('lbl1', 'a', 0), ('lbl2', 'b', 0)),
-                        (('lbl1', 'b', 1), ('lbl1', 'a', 0)))),
-                      ((('lbl0', 1, 0),
-                        ('lbl0', 'b', 0),
-                        ('lbl1', 2, 1),
-                        ('lbl1', 'a', 0),
-                        ('lbl1', 'b', 1),
-                        ('lbl2', 'b', 0)),
-                       ((('lbl0', 1, 0), ('lbl0', 'b', 0)),
-                        (('lbl0', 'b', 0), ('lbl1', 'b', 1)),
-                        (('lbl1', 2, 1), ('lbl1', 'b', 1)),
-                        (('lbl1', 'a', 0), ('lbl2', 'b', 0)),
-                        (('lbl1', 'b', 1), ('lbl1', 'a', 0)),
-                        (('lbl1', 'b', 1), ('lbl1', 'b', 1)))),
-                      ((('lbl0', 1, 0), ('lbl0', 'b', 0), ('lbl1', 'a', 0), ('lbl2', 'b', 0)),
-                       ((('lbl0', 1, 0), ('lbl0', 'b', 0)),
-                        (('lbl0', 'b', 0), ('lbl1', 'a', 0)),
-                        (('lbl1', 'a', 0), ('lbl2', 'b', 0))))],
-                     [((('lbl0', 1, 0),
-                        ('lbl0', 'a', 0),
-                        ('lbl1', 'c', 0),
-                        ('lbl2', 3, 0),
-                        ('lbl2', 3, 1),
-                        ('lbl2', 'a', 1),
-                        ('lbl2', 'b', 0),
-                        ('lbl3', 'r', 0)),
-                       ((('lbl0', 1, 0), ('lbl0', 'a', 0)),
-                        (('lbl0', 'a', 0), ('lbl2', 'b', 0)),
-                        (('lbl1', 'c', 0), ('lbl3', 'r', 0)),
-                        (('lbl2', 3, 0), ('lbl2', 'b', 0)),
-                        (('lbl2', 3, 1), ('lbl2', 'a', 1)),
-                        (('lbl2', 'a', 1), ('lbl1', 'c', 0)),
-                        (('lbl2', 'a', 1), ('lbl2', 'b', 0)),
-                        (('lbl2', 'b', 0), ('lbl2', 'a', 1)))),
-                      ((('lbl0', 1, 0),
-                        ('lbl0', 'a', 0),
-                        ('lbl1', 'c', 0),
-                        ('lbl2', 3, 0),
-                        ('lbl2', 3, 1),
-                        ('lbl2', 'a', 1),
-                        ('lbl2', 'b', 0),
-                        ('lbl3', 'r', 0)),
-                       ((('lbl0', 1, 0), ('lbl0', 'a', 0)),
-                        (('lbl0', 'a', 0), ('lbl2', 'b', 0)),
-                        (('lbl1', 'c', 0), ('lbl3', 'r', 0)),
-                        (('lbl2', 3, 0), ('lbl2', 'b', 0)),
-                        (('lbl2', 3, 1), ('lbl2', 'a', 1)),
-                        (('lbl2', 'a', 1), ('lbl1', 'c', 0)),
-                        (('lbl2', 'b', 0), ('lbl2', 'a', 1)))),
-                      ((('lbl0', 1, 0), ('lbl0', 'a', 0), ('lbl1', 'c', 0), ('lbl3', 'r', 0)),
-                       ((('lbl0', 1, 0), ('lbl0', 'a', 0)),
-                        (('lbl0', 'a', 0), ('lbl1', 'c', 0)),
-                        (('lbl1', 'c', 0), ('lbl3', 'r', 0))))],
+                        (b'lbl0', 1, 0),
+                        (b'lbl0', 'c', 0),
+                        (b'lbl1', 'b', 0),
+                        (b'lbl1', 'c', 1),
+                        (b'lbl2', 'a', 0)),
+                       (('d', (b'lbl1', 'c', 1)),
+                        ((b'lbl0', 1, 0), (b'lbl0', 'c', 0)),
+                        ((b'lbl0', 'c', 0), (b'lbl1', 'b', 0)),
+                        ((b'lbl1', 'b', 0), (b'lbl2', 'a', 0)))),
+                      (('d', (b'lbl1', 'b', 0), (b'lbl1', 'c', 1), (b'lbl2', 'a', 0)),
+                       (('d', (b'lbl1', 'c', 1)),
+                        ((b'lbl1', 'b', 0), (b'lbl2', 'a', 0)),
+                        ((b'lbl1', 'c', 1), (b'lbl1', 'b', 0))))],
+                     [(('b', (b'lbl1', 2, 0), (b'lbl1', 'b', 0), (b'lbl2', 'a', 0)),
+                       (('b', (b'lbl1', 'b', 0)),
+                        ((b'lbl1', 2, 0), (b'lbl1', 'b', 0)),
+                        ((b'lbl1', 'b', 0), (b'lbl1', 'b', 0)),
+                        ((b'lbl1', 'b', 0), (b'lbl2', 'a', 0)))),
+                      (('b', (b'lbl1', 2, 0), (b'lbl1', 'b', 0), (b'lbl2', 'a', 0)),
+                       (('b', (b'lbl1', 'b', 0)),
+                        ((b'lbl1', 2, 0), (b'lbl1', 'b', 0)),
+                        ((b'lbl1', 'b', 0), (b'lbl2', 'a', 0))))],
+                     [(((b'lbl0', 1, 0),
+                        (b'lbl0', 2, 0),
+                        (b'lbl0', 'a', 0),
+                        (b'lbl0', 'b', 0),
+                        (b'lbl1', 'a', 0),
+                        (b'lbl1', 'b', 0),
+                        (b'lbl2', 'a', 0)),
+                       (((b'lbl0', 1, 0), (b'lbl0', 'a', 0)),
+                        ((b'lbl0', 2, 0), (b'lbl0', 'b', 0)),
+                        ((b'lbl0', 'a', 0), (b'lbl1', 'b', 0)),
+                        ((b'lbl0', 'b', 0), (b'lbl1', 'a', 0)),
+                        ((b'lbl1', 'a', 0), (b'lbl2', 'a', 0)),
+                        ((b'lbl1', 'b', 0), (b'lbl2', 'a', 0))))],
+                     [(((b'lbl0', 1, 0),
+                        (b'lbl0', 'b', 0),
+                        (b'lbl1', 2, 1),
+                        (b'lbl1', 'a', 0),
+                        (b'lbl1', 'b', 1),
+                        (b'lbl2', 'b', 0)),
+                       (((b'lbl0', 1, 0), (b'lbl0', 'b', 0)),
+                        ((b'lbl0', 'b', 0), (b'lbl1', 'b', 1)),
+                        ((b'lbl1', 2, 1), (b'lbl1', 'b', 1)),
+                        ((b'lbl1', 'a', 0), (b'lbl2', 'b', 0)),
+                        ((b'lbl1', 'b', 1), (b'lbl1', 'a', 0)))),
+                      (((b'lbl0', 1, 0),
+                        (b'lbl0', 'b', 0),
+                        (b'lbl1', 2, 1),
+                        (b'lbl1', 'a', 0),
+                        (b'lbl1', 'b', 1),
+                        (b'lbl2', 'b', 0)),
+                       (((b'lbl0', 1, 0), (b'lbl0', 'b', 0)),
+                        ((b'lbl0', 'b', 0), (b'lbl1', 'b', 1)),
+                        ((b'lbl1', 2, 1), (b'lbl1', 'b', 1)),
+                        ((b'lbl1', 'a', 0), (b'lbl2', 'b', 0)),
+                        ((b'lbl1', 'b', 1), (b'lbl1', 'a', 0)),
+                        ((b'lbl1', 'b', 1), (b'lbl1', 'b', 1)))),
+                      (((b'lbl0', 1, 0), (b'lbl0', 'b', 0), (b'lbl1', 'a', 0), (b'lbl2', 'b', 0)),
+                       (((b'lbl0', 1, 0), (b'lbl0', 'b', 0)),
+                        ((b'lbl0', 'b', 0), (b'lbl1', 'a', 0)),
+                        ((b'lbl1', 'a', 0), (b'lbl2', 'b', 0))))],
+                     [(((b'lbl0', 1, 0),
+                        (b'lbl0', 'a', 0),
+                        (b'lbl1', 'c', 0),
+                        (b'lbl2', 3, 0),
+                        (b'lbl2', 3, 1),
+                        (b'lbl2', 'a', 1),
+                        (b'lbl2', 'b', 0),
+                        (b'lbl3', 'r', 0)),
+                       (((b'lbl0', 1, 0), (b'lbl0', 'a', 0)),
+                        ((b'lbl0', 'a', 0), (b'lbl2', 'b', 0)),
+                        ((b'lbl1', 'c', 0), (b'lbl3', 'r', 0)),
+                        ((b'lbl2', 3, 0), (b'lbl2', 'b', 0)),
+                        ((b'lbl2', 3, 1), (b'lbl2', 'a', 1)),
+                        ((b'lbl2', 'a', 1), (b'lbl1', 'c', 0)),
+                        ((b'lbl2', 'a', 1), (b'lbl2', 'b', 0)),
+                        ((b'lbl2', 'b', 0), (b'lbl2', 'a', 1)))),
+                      (((b'lbl0', 1, 0),
+                        (b'lbl0', 'a', 0),
+                        (b'lbl1', 'c', 0),
+                        (b'lbl2', 3, 0),
+                        (b'lbl2', 3, 1),
+                        (b'lbl2', 'a', 1),
+                        (b'lbl2', 'b', 0),
+                        (b'lbl3', 'r', 0)),
+                       (((b'lbl0', 1, 0), (b'lbl0', 'a', 0)),
+                        ((b'lbl0', 'a', 0), (b'lbl2', 'b', 0)),
+                        ((b'lbl1', 'c', 0), (b'lbl3', 'r', 0)),
+                        ((b'lbl2', 3, 0), (b'lbl2', 'b', 0)),
+                        ((b'lbl2', 3, 1), (b'lbl2', 'a', 1)),
+                        ((b'lbl2', 'a', 1), (b'lbl1', 'c', 0)),
+                        ((b'lbl2', 'b', 0), (b'lbl2', 'a', 1)))),
+                      (((b'lbl0', 1, 0), (b'lbl0', 'a', 0), (b'lbl1', 'c', 0), (b'lbl3', 'r', 0)),
+                       (((b'lbl0', 1, 0), (b'lbl0', 'a', 0)),
+                        ((b'lbl0', 'a', 0), (b'lbl1', 'c', 0)),
+                        ((b'lbl1', 'c', 0), (b'lbl3', 'r', 0))))],
                      [(('d',
-                        ('lbl0', 1, 0),
-                        ('lbl0', 'a', 0),
-                        ('lbl1', 'b', 0),
-                        ('lbl3', 'r', 0)),
-                       (('d', ('lbl3', 'r', 0)),
-                        (('lbl0', 1, 0), ('lbl0', 'a', 0)),
-                        (('lbl0', 'a', 0), ('lbl1', 'b', 0)),
-                        (('lbl1', 'b', 0), ('lbl3', 'r', 0)))),
-                      ((('lbl0', 1, 0),
-                        ('lbl0', 'a', 0),
-                        ('lbl1', 'b', 0),
-                        ('lbl2', 1, 1),
-                        ('lbl2', 'a', 1),
-                        ('lbl2', 'd', 0),
-                        ('lbl3', 'r', 0)),
-                       ((('lbl0', 1, 0), ('lbl0', 'a', 0)),
-                        (('lbl0', 'a', 0), ('lbl2', 'd', 0)),
-                        (('lbl1', 'b', 0), ('lbl3', 'r', 0)),
-                        (('lbl2', 1, 1), ('lbl2', 'a', 1)),
-                        (('lbl2', 'a', 1), ('lbl1', 'b', 0)),
-                        (('lbl2', 'a', 1), ('lbl2', 'd', 0)),
-                        (('lbl2', 'd', 0), ('lbl2', 'a', 1)),
-                        (('lbl2', 'd', 0), ('lbl3', 'r', 0)))),
-                      ((('lbl0', 1, 0),
-                        ('lbl0', 'a', 0),
-                        ('lbl1', 'b', 0),
-                        ('lbl2', 1, 1),
-                        ('lbl2', 'a', 1),
-                        ('lbl2', 'd', 0),
-                        ('lbl3', 'r', 0)),
-                       ((('lbl0', 1, 0), ('lbl0', 'a', 0)),
-                        (('lbl0', 'a', 0), ('lbl2', 'd', 0)),
-                        (('lbl1', 'b', 0), ('lbl3', 'r', 0)),
-                        (('lbl2', 1, 1), ('lbl2', 'a', 1)),
-                        (('lbl2', 'a', 1), ('lbl1', 'b', 0)),
-                        (('lbl2', 'd', 0), ('lbl2', 'a', 1)),
-                        (('lbl2', 'd', 0), ('lbl3', 'r', 0))))],
+                        (b'lbl0', 1, 0),
+                        (b'lbl0', 'a', 0),
+                        (b'lbl1', 'b', 0),
+                        (b'lbl3', 'r', 0)),
+                       (('d', (b'lbl3', 'r', 0)),
+                        ((b'lbl0', 1, 0), (b'lbl0', 'a', 0)),
+                        ((b'lbl0', 'a', 0), (b'lbl1', 'b', 0)),
+                        ((b'lbl1', 'b', 0), (b'lbl3', 'r', 0)))),
+                      (((b'lbl0', 1, 0),
+                        (b'lbl0', 'a', 0),
+                        (b'lbl1', 'b', 0),
+                        (b'lbl2', 1, 1),
+                        (b'lbl2', 'a', 1),
+                        (b'lbl2', 'd', 0),
+                        (b'lbl3', 'r', 0)),
+                       (((b'lbl0', 1, 0), (b'lbl0', 'a', 0)),
+                        ((b'lbl0', 'a', 0), (b'lbl2', 'd', 0)),
+                        ((b'lbl1', 'b', 0), (b'lbl3', 'r', 0)),
+                        ((b'lbl2', 1, 1), (b'lbl2', 'a', 1)),
+                        ((b'lbl2', 'a', 1), (b'lbl1', 'b', 0)),
+                        ((b'lbl2', 'a', 1), (b'lbl2', 'd', 0)),
+                        ((b'lbl2', 'd', 0), (b'lbl2', 'a', 1)),
+                        ((b'lbl2', 'd', 0), (b'lbl3', 'r', 0)))),
+                      (((b'lbl0', 1, 0),
+                        (b'lbl0', 'a', 0),
+                        (b'lbl1', 'b', 0),
+                        (b'lbl2', 1, 1),
+                        (b'lbl2', 'a', 1),
+                        (b'lbl2', 'd', 0),
+                        (b'lbl3', 'r', 0)),
+                       (((b'lbl0', 1, 0), (b'lbl0', 'a', 0)),
+                        ((b'lbl0', 'a', 0), (b'lbl2', 'd', 0)),
+                        ((b'lbl1', 'b', 0), (b'lbl3', 'r', 0)),
+                        ((b'lbl2', 1, 1), (b'lbl2', 'a', 1)),
+                        ((b'lbl2', 'a', 1), (b'lbl1', 'b', 0)),
+                        ((b'lbl2', 'd', 0), (b'lbl2', 'a', 1)),
+                        ((b'lbl2', 'd', 0), (b'lbl3', 'r', 0))))],
                      [(('b',
-                        ('lbl0', 1, 0),
-                        ('lbl0', 'a', 0),
-                        ('lbl1', 'b', 2),
-                        ('lbl1', 'c', 1),
-                        ('lbl1', 'd', 0),
-                        ('lbl2', 'r', 0)),
-                       (('b', ('lbl1', 'd', 0)),
-                        (('lbl0', 1, 0), ('lbl0', 'a', 0)),
-                        (('lbl0', 'a', 0), ('lbl1', 'd', 0)),
-                        (('lbl1', 'b', 2), ('lbl1', 'd', 0)),
-                        (('lbl1', 'b', 2), ('lbl2', 'r', 0)),
-                        (('lbl1', 'c', 1), ('lbl1', 'b', 2)),
-                        (('lbl1', 'd', 0), ('lbl1', 'c', 1)))),
+                        (b'lbl0', 1, 0),
+                        (b'lbl0', 'a', 0),
+                        (b'lbl1', 'b', 2),
+                        (b'lbl1', 'c', 1),
+                        (b'lbl1', 'd', 0),
+                        (b'lbl2', 'r', 0)),
+                       (('b', (b'lbl1', 'd', 0)),
+                        ((b'lbl0', 1, 0), (b'lbl0', 'a', 0)),
+                        ((b'lbl0', 'a', 0), (b'lbl1', 'd', 0)),
+                        ((b'lbl1', 'b', 2), (b'lbl1', 'd', 0)),
+                        ((b'lbl1', 'b', 2), (b'lbl2', 'r', 0)),
+                        ((b'lbl1', 'c', 1), (b'lbl1', 'b', 2)),
+                        ((b'lbl1', 'd', 0), (b'lbl1', 'c', 1)))),
                       (('b',
-                        ('lbl0', 1, 0),
-                        ('lbl0', 'a', 0),
-                        ('lbl1', 'b', 2),
-                        ('lbl1', 'c', 1),
-                        ('lbl1', 'd', 0),
-                        ('lbl2', 'r', 0)),
-                       (('b', ('lbl1', 'd', 0)),
-                        (('lbl0', 1, 0), ('lbl0', 'a', 0)),
-                        (('lbl0', 'a', 0), ('lbl1', 'd', 0)),
-                        (('lbl1', 'b', 2), ('lbl2', 'r', 0)),
-                        (('lbl1', 'c', 1), ('lbl1', 'b', 2)),
-                        (('lbl1', 'd', 0), ('lbl1', 'c', 1))))],
-                     [((('lbl0', 1, 0), ('lbl0', 'a', 0), ('lbl5', 'r', 0)),
-                       ((('lbl0', 1, 0), ('lbl0', 'a', 0)),
-                        (('lbl0', 'a', 0), ('lbl5', 'r', 0))))],
-                     [((('lbl0', 2, 0),
-                        ('lbl0', 'd', 0),
-                        ('lbl1', 'a', 0),
-                        ('lbl1', 'b', 0),
-                        ('lbl2', 'a', 0)),
-                       ((('lbl0', 2, 0), ('lbl0', 'd', 0)),
-                        (('lbl0', 'd', 0), ('lbl1', 'a', 0)),
-                        (('lbl0', 'd', 0), ('lbl1', 'b', 0)),
-                        (('lbl1', 'a', 0), ('lbl2', 'a', 0)),
-                        (('lbl1', 'b', 0), ('lbl2', 'a', 0))))]]
+                        (b'lbl0', 1, 0),
+                        (b'lbl0', 'a', 0),
+                        (b'lbl1', 'b', 2),
+                        (b'lbl1', 'c', 1),
+                        (b'lbl1', 'd', 0),
+                        (b'lbl2', 'r', 0)),
+                       (('b', (b'lbl1', 'd', 0)),
+                        ((b'lbl0', 1, 0), (b'lbl0', 'a', 0)),
+                        ((b'lbl0', 'a', 0), (b'lbl1', 'd', 0)),
+                        ((b'lbl1', 'b', 2), (b'lbl2', 'r', 0)),
+                        ((b'lbl1', 'c', 1), (b'lbl1', 'b', 2)),
+                        ((b'lbl1', 'd', 0), (b'lbl1', 'c', 1))))],
+                     [(((b'lbl0', 1, 0), (b'lbl0', 'a', 0), (b'lbl5', 'r', 0)),
+                       (((b'lbl0', 1, 0), (b'lbl0', 'a', 0)),
+                        ((b'lbl0', 'a', 0), (b'lbl5', 'r', 0))))],
+                     [(((b'lbl0', 2, 0),
+                        (b'lbl0', 'd', 0),
+                        (b'lbl1', 'a', 0),
+                        (b'lbl1', 'b', 0),
+                        (b'lbl2', 'a', 0)),
+                       (((b'lbl0', 2, 0), (b'lbl0', 'd', 0)),
+                        ((b'lbl0', 'd', 0), (b'lbl1', 'a', 0)),
+                        ((b'lbl0', 'd', 0), (b'lbl1', 'b', 0)),
+                        ((b'lbl1', 'a', 0), (b'lbl2', 'a', 0)),
+                        ((b'lbl1', 'b', 0), (b'lbl2', 'a', 0))))]]
 
 test_results = [[unflatGraph(flat_result) for flat_result in flat_results]
                 for flat_results in flat_test_results]
@@ -1127,7 +1138,7 @@ for test_nb, test in enumerate([(G1_IRA, G1_INPUT),
                                 ]):
 
     # Extract test elements
-    print "[+] Test", test_nb + 1
+    print("[+] Test", test_nb + 1)
     ircfg, (depnodes, heads) = test
 
     open("graph_%02d.dot" % (test_nb + 1), "w").write(ircfg.dot())
@@ -1149,25 +1160,25 @@ for test_nb, test in enumerate([(G1_IRA, G1_INPUT),
         # if g_ind == 4:
         # TODO: Implicit specifications
         #    continue
-        print " - Class %s - %s" % (g_dep.__class__.__name__,
-                                    suffix_key_list[g_ind])
+        print(" - Class %s - %s" % (g_dep.__class__.__name__,
+                                    suffix_key_list[g_ind]))
         # Select the correct result key
         mode_suffix = suffix_key_list[g_ind]
         graph_test_key = "graph" + mode_suffix
 
         # Test public APIs
         results = g_dep.get_from_depnodes(depnodes, heads)
-        print "RESULTS"
+        print("RESULTS")
         all_results = set()
         all_flat = set()
         for i, result in enumerate(results):
             all_flat.add(flatGraph(result.graph))
-            all_results.add(unflatGraph(flatGraph(result.graph)))
+            all_results.add(flatGraph(result.graph))
             open("graph_test_%02d_%02d.dot" % (test_nb + 1, i),
                  "w").write(dg2graph(result.graph))
 
         if g_ind == 0:
-            all_flat = sorted(all_flat)
+            all_flat = sorted(all_flat, key=str)
             all_flats.append(all_flat)
         flat_depnodes = get_flat_init_depnodes(depnodes)
         if not match_results(all_results, test_results[test_nb], flat_depnodes):
@@ -1175,11 +1186,11 @@ for test_nb, test in enumerate([(G1_IRA, G1_INPUT),
         continue
 
 if FAILED:
-    print "FAILED :", len(FAILED)
+    print("FAILED :", len(FAILED))
     for test_num in sorted(FAILED):
-        print test_num,
+        print(test_num, end=' ')
 else:
-    print "SUCCESS"
+    print("SUCCESS")
 
 # Return an error status on error
 assert not FAILED

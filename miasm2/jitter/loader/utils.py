@@ -1,4 +1,9 @@
+from builtins import int as int_types
 import logging
+
+from future.utils import viewitems, viewvalues
+
+from miasm2.core.utils import force_bytes
 
 log = logging.getLogger('loader_common')
 hnd = logging.StreamHandler()
@@ -8,11 +13,13 @@ log.setLevel(logging.INFO)
 
 
 def canon_libname_libfunc(libname, libfunc):
-    dn = libname.split('.')[0]
-    if type(libfunc) == str:
-        return "%s_%s" % (dn, libfunc)
-    else:
+    libname = force_bytes(libname)
+    dn = libname.split(b'.')[0]
+    if isinstance(libfunc, int_types):
         return str(dn), libfunc
+    else:
+        libfunc = force_bytes(libfunc)
+        return b"%s_%s" % (dn, libfunc)
 
 
 class libimp(object):
@@ -30,10 +37,11 @@ class libimp(object):
         self.fake_libs = set()
 
     def lib_get_add_base(self, name):
-        name = name.lower().strip(' ')
-        if not "." in name:
+        name = force_bytes(name)
+        name = name.lower().strip(b' ')
+        if not b"." in name:
             log.debug('warning adding .dll to modulename')
-            name += '.dll'
+            name += b'.dll'
             log.debug(name)
 
         if name in self.name2off:
@@ -50,7 +58,7 @@ class libimp(object):
         return ad
 
     def lib_get_add_func(self, libad, imp_ord_or_name, dst_ad=None):
-        if not libad in self.name2off.values():
+        if not libad in viewvalues(self.name2off):
             raise ValueError('unknown lib base!', hex(libad))
 
         # test if not ordinatl
@@ -70,7 +78,9 @@ class libimp(object):
         self.libbase2lastad[libad] += 0x10  # arbitrary
         self.lib_imp2ad[libad][imp_ord_or_name] = ad
 
-        name_inv = dict([(x[1], x[0]) for x in self.name2off.items()])
+        name_inv = dict(
+            (value, key) for key, value in viewitems(self.name2off)
+        )
         c_name = canon_libname_libfunc(name_inv[libad], imp_ord_or_name)
         self.fad2cname[ad] = c_name
         self.cname2addr[c_name] = ad
@@ -79,8 +89,7 @@ class libimp(object):
 
     def check_dst_ad(self):
         for ad in self.lib_imp2dstad:
-            all_ads = self.lib_imp2dstad[ad].values()
-            all_ads.sort()
+            all_ads = sorted(viewvalues(self.lib_imp2dstad[ad]))
             for i, x in enumerate(all_ads[:-1]):
                 if x is None or all_ads[i + 1] is None:
                     return False

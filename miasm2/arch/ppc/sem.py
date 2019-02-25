@@ -1,3 +1,6 @@
+from __future__ import print_function
+from builtins import range
+
 import miasm2.expression.expression as expr
 from miasm2.ir.ir import AssignBlock, IntermediateRepresentation, IRBlock
 from miasm2.arch.ppc.arch import mn_ppc
@@ -15,7 +18,7 @@ spr_dict = {
 crf_dict = dict((ExprId("CR%d" % i, 4),
                  dict( (bit, ExprId("CR%d_%s" % (i, bit), 1))
                        for bit in ['LT', 'GT', 'EQ', 'SO' ] ))
-                for i in xrange(8) )
+                for i in range(8) )
 
 ctx = {
     'crf_dict': crf_dict,
@@ -112,7 +115,7 @@ def mn_do_cntlzw(ir, instr, ra, rs):
 
 def crbit_to_reg(bit):
     bit = bit.arg.arg
-    crid = bit / 4
+    crid = bit // 4
     bitname = [ 'LT', 'GT', 'EQ', 'SO' ][bit % 4]
     return all_regs_ids_byname["CR%d_%s" % (crid, bitname)]
 
@@ -217,8 +220,8 @@ def mn_do_exts(ir, instr, ra, rs):
     return ret, []
 
 def byte_swap(expr):
-    nbytes = expr.size / 8
-    bytes = [ expr[i*8:i*8+8] for i in xrange(nbytes - 1, -1, -1) ]
+    nbytes = expr.size // 8
+    bytes = [ expr[i*8:i*8+8] for i in range(nbytes - 1, -1, -1) ]
     return ExprCompose(bytes)
 
 def mn_do_load(ir, instr, arg1, arg2, arg3=None):
@@ -325,7 +328,7 @@ def mn_do_mcrxr(ir, instr, crfd):
 
 def mn_do_mfcr(ir, instr, rd):
     return ([ ExprAssign(rd, ExprCompose(*[ all_regs_ids_byname["CR%d_%s" % (i, b)]
-                                        for i in xrange(7, -1, -1)
+                                        for i in range(7, -1, -1)
                                         for b in ['SO', 'EQ', 'GT', 'LT']]))],
             [])
 
@@ -350,7 +353,7 @@ def mn_mfspr(ir, instr, arg1, arg2):
 def mn_mtcrf(ir, instr, crm, rs):
     ret = []
 
-    for i in xrange(8):
+    for i in range(8):
         if crm.arg.arg & (1 << (7 - i)):
             j = (28 - 4 * i) + 3
             for b in ['LT', 'GT', 'EQ', 'SO']:
@@ -361,7 +364,7 @@ def mn_mtcrf(ir, instr, crm, rs):
     return ret, []
 
 def mn_mtmsr(ir, instr, rs):
-    print "%08x: MSR assigned" % instr.offset
+    print("%08x: MSR assigned" % instr.offset)
     return [ ExprAssign(MSR, rs) ], []
 
 def mn_mtspr(ir, instr, arg1, arg2):
@@ -746,7 +749,7 @@ def mn_do_cond_branch(ir, instr, dest):
     return ret, []
 
 def mn_do_nop_warn(ir, instr, *args):
-    print "Warning, instruction %s implemented as NOP" % instr
+    print("Warning, instruction %s implemented as NOP" % instr)
     return [], []
 
 @sbuild.parse

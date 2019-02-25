@@ -1,11 +1,18 @@
+from __future__ import print_function
+from builtins import range
+
 import os
 import logging
 from argparse import ArgumentParser
 
+from future.utils import viewitems, viewvalues
+
+from miasm2.core.utils import force_bytes
 from miasm2.analysis.machine import Machine
 from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm2.analysis import debugging
 from miasm2.jitter.jitload import log_func
+
 
 
 class Sandbox(object):
@@ -112,7 +119,7 @@ class Sandbox(object):
 
             if self.options.gdbserver:
                 port = self.options.gdbserver
-                print "Listen on port %d" % port
+                print("Listen on port %d" % port)
                 gdb = self.machine.gdbserver(dbg, port)
                 self.gdb = gdb
                 gdb.run()
@@ -184,7 +191,7 @@ class OS_Win(OS):
         from miasm2.jitter.loader.pe import vm_load_pe, vm_load_pe_libs,\
             preload_pe, libimp_pe, vm_load_pe_and_dependencies
         from miasm2.os_dep import win_api_x86_32, win_api_x86_32_seh
-        methods = win_api_x86_32.__dict__
+        methods = dict((name.encode(),func) for name, func in viewitems(win_api_x86_32.__dict__))
         methods.update(custom_methods)
 
         super(OS_Win, self).__init__(methods, *args, **kwargs)
@@ -199,33 +206,42 @@ class OS_Win(OS):
 
         # Load main pe
         with open(self.fname, "rb") as fstream:
-            self.pe = vm_load_pe(self.jitter.vm, fstream.read(),
-                                 load_hdr=self.options.load_hdr,
-                                 name=self.fname,
-                                 **kwargs)
+            self.pe = vm_load_pe(
+                self.jitter.vm,
+                fstream.read(),
+                load_hdr=self.options.load_hdr,
+                name=self.fname,
+                **kwargs
+            )
             self.name2module[fname_basename] = self.pe
 
         # Load library
         if self.options.loadbasedll:
 
             # Load libs in memory
-            self.name2module.update(vm_load_pe_libs(self.jitter.vm,
-                                                    self.ALL_IMP_DLL,
-                                                    libs,
-                                                    self.modules_path,
-                                                    **kwargs))
+            self.name2module.update(
+                vm_load_pe_libs(
+                    self.jitter.vm,
+                    self.ALL_IMP_DLL,
+                    libs,
+                    self.modules_path,
+                    **kwargs
+                )
+            )
 
             # Patch libs imports
-            for pe in self.name2module.itervalues():
+            for pe in viewvalues(self.name2module):
                 preload_pe(self.jitter.vm, pe, libs)
 
         if self.options.dependencies:
-            vm_load_pe_and_dependencies(self.jitter.vm,
-                                        fname_basename,
-                                        self.name2module,
-                                        libs,
-                                        self.modules_path,
-                                        **kwargs)
+            vm_load_pe_and_dependencies(
+                self.jitter.vm,
+                fname_basename,
+                self.name2module,
+                libs,
+                self.modules_path,
+                **kwargs
+            )
 
         win_api_x86_32.winobjs.current_pe = self.pe
 
@@ -275,8 +291,12 @@ class OS_Linux(OS):
         self.libs = libimp_elf()
 
         with open(self.fname, "rb") as fstream:
-            self.elf = vm_load_elf(self.jitter.vm, fstream.read(),
-                                   name=self.fname, **kwargs)
+            self.elf = vm_load_elf(
+                self.jitter.vm,
+                fstream.read(),
+                name=self.fname,
+                **kwargs
+            )
         preload_elf(self.jitter.vm, self.elf, self.libs)
 
         self.entry_point = self.elf.Ehdr.entry
@@ -325,7 +345,8 @@ class OS_Linux_str(OS):
         self.options.load_base_addr = int(self.options.load_base_addr, 0)
         self.jitter.vm.add_memory_page(
             self.options.load_base_addr, PAGE_READ | PAGE_WRITE, data,
-            "Initial Str")
+            "Initial Str"
+        )
 
         # Library calls handler
         self.jitter.add_lib_handler(libs, methods)
@@ -516,14 +537,17 @@ class Sandbox_Win_x86_64(Sandbox, Arch_x86_64, OS_Win):
         Sandbox.__init__(self, *args, **kwargs)
 
         # reserve stack for local reg
-        for _ in xrange(0x4):
+        for _ in range(0x4):
             self.jitter.push_uint64_t(0)
 
         # Pre-stack return address
         self.jitter.push_uint64_t(self.CALL_FINISH_ADDR)
 
         # Set the runtime guard
-        self.jitter.add_breakpoint(self.CALL_FINISH_ADDR, self.__class__.code_sentinelle)
+        self.jitter.add_breakpoint(
+            self.CALL_FINISH_ADDR,
+            self.__class__.code_sentinelle
+        )
 
     def run(self, addr=None):
         """
@@ -552,14 +576,16 @@ class Sandbox_Linux_x86_32(Sandbox, Arch_x86_32, OS_Linux):
         if self.options.mimic_env:
             env_ptrs = []
             for env in self.envp:
-                env += "\x00"
+                env = force_bytes(env)
+                env += b"\x00"
                 self.jitter.cpu.ESP -= len(env)
                 ptr = self.jitter.cpu.ESP
                 self.jitter.vm.set_mem(ptr, env)
                 env_ptrs.append(ptr)
             argv_ptrs = []
             for arg in self.argv:
-                arg += "\x00"
+                arg = force_bytes(arg)
+                arg += b"\x00"
                 self.jitter.cpu.ESP -= len(arg)
                 ptr = self.jitter.cpu.ESP
                 self.jitter.vm.set_mem(ptr, arg)
@@ -577,7 +603,10 @@ class Sandbox_Linux_x86_32(Sandbox, Arch_x86_32, OS_Linux):
             self.jitter.push_uint32_t(self.CALL_FINISH_ADDR)
 
         # Set the runtime guard
-        self.jitter.add_breakpoint(self.CALL_FINISH_ADDR, self.__class__.code_sentinelle)
+        self.jitter.add_breakpoint(
+            self.CALL_FINISH_ADDR,
+            self.__class__.code_sentinelle
+        )
 
     def run(self, addr=None):
         """
@@ -607,14 +636,16 @@ class Sandbox_Linux_x86_64(Sandbox, Arch_x86_64, OS_Linux):
         if self.options.mimic_env:
             env_ptrs = []
             for env in self.envp:
-                env += "\x00"
+                env = force_bytes(env)
+                env += b"\x00"
                 self.jitter.cpu.RSP -= len(env)
                 ptr = self.jitter.cpu.RSP
                 self.jitter.vm.set_mem(ptr, env)
                 env_ptrs.append(ptr)
             argv_ptrs = []
             for arg in self.argv:
-                arg += "\x00"
+                arg = force_bytes(arg)
+                arg += b"\x00"
                 self.jitter.cpu.RSP -= len(arg)
                 ptr = self.jitter.cpu.RSP
                 self.jitter.vm.set_mem(ptr, arg)
@@ -632,7 +663,10 @@ class Sandbox_Linux_x86_64(Sandbox, Arch_x86_64, OS_Linux):
             self.jitter.push_uint64_t(self.CALL_FINISH_ADDR)
 
         # Set the runtime guard
-        self.jitter.add_breakpoint(self.CALL_FINISH_ADDR, self.__class__.code_sentinelle)
+        self.jitter.add_breakpoint(
+            self.CALL_FINISH_ADDR,
+            self.__class__.code_sentinelle
+        )
 
     def run(self, addr=None):
         """
@@ -661,14 +695,16 @@ class Sandbox_Linux_arml(Sandbox, Arch_arml, OS_Linux):
         if self.options.mimic_env:
             env_ptrs = []
             for env in self.envp:
-                env += "\x00"
+                env = force_bytes(env)
+                env += b"\x00"
                 self.jitter.cpu.SP -= len(env)
                 ptr = self.jitter.cpu.SP
                 self.jitter.vm.set_mem(ptr, env)
                 env_ptrs.append(ptr)
             argv_ptrs = []
             for arg in self.argv:
-                arg += "\x00"
+                arg = force_bytes(arg)
+                arg += b"\x00"
                 self.jitter.cpu.SP -= len(arg)
                 ptr = self.jitter.cpu.SP
                 self.jitter.vm.set_mem(ptr, arg)
@@ -688,7 +724,10 @@ class Sandbox_Linux_arml(Sandbox, Arch_arml, OS_Linux):
         self.jitter.cpu.LR = self.CALL_FINISH_ADDR
 
         # Set the runtime guard
-        self.jitter.add_breakpoint(self.CALL_FINISH_ADDR, self.__class__.code_sentinelle)
+        self.jitter.add_breakpoint(
+            self.CALL_FINISH_ADDR,
+            self.__class__.code_sentinelle
+        )
 
     def run(self, addr=None):
         if addr is None and self.options.address is None:
@@ -714,14 +753,16 @@ class Sandbox_Linux_armtl(Sandbox, Arch_armtl, OS_Linux):
         if self.options.mimic_env:
             env_ptrs = []
             for env in self.envp:
-                env += "\x00"
+                env = force_bytes(env)
+                env += b"\x00"
                 self.jitter.cpu.SP -= len(env)
                 ptr = self.jitter.cpu.SP
                 self.jitter.vm.set_mem(ptr, env)
                 env_ptrs.append(ptr)
             argv_ptrs = []
             for arg in self.argv:
-                arg += "\x00"
+                arg = force_bytes(arg)
+                arg += b"\x00"
                 self.jitter.cpu.SP -= len(arg)
                 ptr = self.jitter.cpu.SP
                 self.jitter.vm.set_mem(ptr, arg)
@@ -741,7 +782,10 @@ class Sandbox_Linux_armtl(Sandbox, Arch_armtl, OS_Linux):
         self.jitter.cpu.LR = self.CALL_FINISH_ADDR
 
         # Set the runtime guard
-        self.jitter.add_breakpoint(self.CALL_FINISH_ADDR, self.__class__.code_sentinelle)
+        self.jitter.add_breakpoint(
+            self.CALL_FINISH_ADDR,
+            self.__class__.code_sentinelle
+        )
 
     def run(self, addr=None):
         if addr is None and self.options.address is None:
@@ -768,14 +812,16 @@ class Sandbox_Linux_mips32b(Sandbox, Arch_mips32b, OS_Linux):
         if self.options.mimic_env:
             env_ptrs = []
             for env in self.envp:
-                env += "\x00"
+                env = force_bytes(env)
+                env += b"\x00"
                 self.jitter.cpu.SP -= len(env)
                 ptr = self.jitter.cpu.SP
                 self.jitter.vm.set_mem(ptr, env)
                 env_ptrs.append(ptr)
             argv_ptrs = []
             for arg in self.argv:
-                arg += "\x00"
+                arg = force_bytes(arg)
+                arg += b"\x00"
                 self.jitter.cpu.SP -= len(arg)
                 ptr = self.jitter.cpu.SP
                 self.jitter.vm.set_mem(ptr, arg)
@@ -792,7 +838,10 @@ class Sandbox_Linux_mips32b(Sandbox, Arch_mips32b, OS_Linux):
         self.jitter.cpu.RA = 0x1337beef
 
         # Set the runtime guard
-        self.jitter.add_breakpoint(0x1337beef, self.__class__.code_sentinelle)
+        self.jitter.add_breakpoint(
+            0x1337beef,
+            self.__class__.code_sentinelle
+        )
 
     def run(self, addr=None):
         if addr is None and self.options.address is None:
@@ -850,14 +899,16 @@ class Sandbox_Linux_aarch64l(Sandbox, Arch_aarch64l, OS_Linux):
         if self.options.mimic_env:
             env_ptrs = []
             for env in self.envp:
-                env += "\x00"
+                env = force_bytes(env)
+                env += b"\x00"
                 self.jitter.cpu.SP -= len(env)
                 ptr = self.jitter.cpu.SP
                 self.jitter.vm.set_mem(ptr, env)
                 env_ptrs.append(ptr)
             argv_ptrs = []
             for arg in self.argv:
-                arg += "\x00"
+                arg = force_bytes(arg)
+                arg += b"\x00"
                 self.jitter.cpu.SP -= len(arg)
                 ptr = self.jitter.cpu.SP
                 self.jitter.vm.set_mem(ptr, arg)
@@ -874,7 +925,10 @@ class Sandbox_Linux_aarch64l(Sandbox, Arch_aarch64l, OS_Linux):
         self.jitter.cpu.LR = self.CALL_FINISH_ADDR
 
         # Set the runtime guard
-        self.jitter.add_breakpoint(self.CALL_FINISH_ADDR, self.__class__.code_sentinelle)
+        self.jitter.add_breakpoint(
+            self.CALL_FINISH_ADDR,
+            self.__class__.code_sentinelle
+        )
 
     def run(self, addr=None):
         if addr is None and self.options.address is None:
@@ -911,14 +965,16 @@ class Sandbox_Linux_ppc32b(Sandbox, Arch_ppc32b, OS_Linux):
         if self.options.mimic_env:
             env_ptrs = []
             for env in self.envp:
-                env += "\x00"
+                env = force_bytes(env)
+                env += b"\x00"
                 self.jitter.cpu.R1 -= len(env)
                 ptr = self.jitter.cpu.R1
                 self.jitter.vm.set_mem(ptr, env)
                 env_ptrs.append(ptr)
             argv_ptrs = []
             for arg in self.argv:
-                arg += "\x00"
+                arg = force_bytes(arg)
+                arg += b"\x00"
                 self.jitter.cpu.R1 -= len(arg)
                 ptr = self.jitter.cpu.R1
                 self.jitter.vm.set_mem(ptr, arg)
@@ -947,8 +1003,10 @@ class Sandbox_Linux_ppc32b(Sandbox, Arch_ppc32b, OS_Linux):
         self.jitter.cpu.LR = self.CALL_FINISH_ADDR
 
         # Set the runtime guard
-        self.jitter.add_breakpoint(self.CALL_FINISH_ADDR,
-                                   self.__class__.code_sentinelle)
+        self.jitter.add_breakpoint(
+            self.CALL_FINISH_ADDR,
+            self.__class__.code_sentinelle
+        )
 
     def run(self, addr=None):
         """

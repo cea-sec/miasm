@@ -4,7 +4,7 @@
 from ut_helpers_jit import jit_instructions
 
 
-class TestBranchJump:
+class TestBranchJump(object):
 
     def test_blti(self):
         """Test BLTI jit"""

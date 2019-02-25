@@ -1,3 +1,4 @@
+from __future__ import print_function
 import z3
 
 from miasm2.core.locationdb import LocationDB
@@ -174,5 +175,5 @@ cnttrailzeros3 = translator1.from_expr(ExprOp("cnttrailzeros", ExprInt(0x8000, 3
 cntleadzeros3 = translator1.from_expr(ExprOp("cntleadzeros", ExprInt(0x8000, 32)))
 assert(equiv(cnttrailzeros3, cntleadzeros3))
 
-print "TranslatorZ3 tests are OK."
+print("TranslatorZ3 tests are OK.")
 

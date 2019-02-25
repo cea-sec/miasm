@@ -1,3 +1,4 @@
+from __future__ import print_function
 from miasm2.core.graph import *
 
 g = DiGraph()
@@ -9,13 +10,13 @@ g.add_edge('a', 'c')
 g.add_edge('a', 'c')
 g.add_edge('c', 'c')
 
-print g
+print(g)
 
-print [x for x in g.successors('a')]
-print [x for x in g.predecessors('a')]
-print [x for x in g.predecessors('b')]
-print [x for x in g.predecessors('c')]
-print [x for x in g.successors('c')]
+print([x for x in g.successors('a')])
+print([x for x in g.predecessors('a')])
+print([x for x in g.predecessors('b')])
+print([x for x in g.predecessors('c')])
+print([x for x in g.successors('c')])
 
 
 """
@@ -226,7 +227,7 @@ j2 = MatchGraphJoker(name="son")
 ### Check '>>' helper
 matcher = j1 >> j2 >> j1
 ### Check __str__
-print matcher
+print(matcher)
 ### Ensure form
 assert isinstance(matcher, MatchGraph)
 assert len(matcher.nodes()) == 2

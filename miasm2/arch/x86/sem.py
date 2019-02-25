@@ -16,6 +16,10 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
+from builtins import range
+
+from future.utils import viewitems
+
 import logging
 import miasm2.expression.expression as m2_expr
 from miasm2.expression.simplifications import expr_simp
@@ -882,7 +886,7 @@ def push_gen(ir, instr, src, size):
     off_size = src.size
 
     sp = mRSP[instr.mode]
-    new_sp = sp - m2_expr.ExprInt(off_size / 8, sp.size)
+    new_sp = sp - m2_expr.ExprInt(off_size // 8, sp.size)
     e.append(m2_expr.ExprAssign(sp, new_sp))
     if ir.do_stk_segm:
         new_sp = ir.gen_segm_expr(SS, new_sp)
@@ -905,7 +909,7 @@ def pop_gen(ir, instr, src, size):
         raise ValueError('bad size stacker!')
 
     sp = mRSP[instr.mode]
-    new_sp = sp + m2_expr.ExprInt(src.size / 8, sp.size)
+    new_sp = sp + m2_expr.ExprInt(src.size // 8, sp.size)
     # don't generate ESP incrementation on POP ESP
     if src != ir.sp:
         e.append(m2_expr.ExprAssign(sp, new_sp))
@@ -1187,7 +1191,7 @@ def cmps(ir, instr, size):
         src1_sgm = src1
         src2_sgm = src2
 
-    offset = m2_expr.ExprInt(size / 8, src1.size)
+    offset = m2_expr.ExprInt(size // 8, src1.size)
 
     e, _ = l_cmp(ir, instr,
                  ir.ExprMem(src1_sgm, size),
@@ -1226,7 +1230,7 @@ def scas(ir, instr, size):
     else:
         src_sgm = src
 
-    offset = m2_expr.ExprInt(size / 8, src.size)
+    offset = m2_expr.ExprInt(size // 8, src.size)
     e, extra = l_cmp(ir, instr,
                      mRAX[instr.mode][:size],
                      ir.ExprMem(src_sgm, size))
@@ -1298,7 +1302,7 @@ def popfd(ir, instr):
     e.append(m2_expr.ExprAssign(vip, m2_expr.ExprSlice(tmp, 20, 21)))
     e.append(m2_expr.ExprAssign(i_d, m2_expr.ExprSlice(tmp, 21, 22)))
     e.append(m2_expr.ExprAssign(mRSP[instr.mode],
-                             mRSP[instr.mode] + m2_expr.ExprInt(instr.mode / 8, mRSP[instr.mode].size)))
+                             mRSP[instr.mode] + m2_expr.ExprInt(instr.mode // 8, mRSP[instr.mode].size)))
     e.append(m2_expr.ExprAssign(exception_flags,
                              m2_expr.ExprCond(m2_expr.ExprSlice(tmp, 8, 9),
                                               m2_expr.ExprInt(
@@ -1339,7 +1343,7 @@ def pusha_gen(ir, instr, size):
     e = []
     cur_sp = mRSP[instr.mode]
     for i, reg in enumerate(pa_regs):
-        stk_ptr = cur_sp + m2_expr.ExprInt(-(size / 8) * (i + 1), instr.mode)
+        stk_ptr = cur_sp + m2_expr.ExprInt(-(size // 8) * (i + 1), instr.mode)
         e.append(m2_expr.ExprAssign(ir.ExprMem(stk_ptr, size), reg[size]))
     e.append(m2_expr.ExprAssign(cur_sp, stk_ptr))
     return e, []
@@ -1359,10 +1363,10 @@ def popa_gen(ir, instr, size):
     for i, reg in enumerate(reversed(pa_regs)):
         if reg == mRSP:
             continue
-        stk_ptr = cur_sp + m2_expr.ExprInt((size / 8) * i, instr.mode)
+        stk_ptr = cur_sp + m2_expr.ExprInt((size // 8) * i, instr.mode)
         e.append(m2_expr.ExprAssign(reg[size], ir.ExprMem(stk_ptr, size)))
 
-    stk_ptr = cur_sp + m2_expr.ExprInt((size / 8) * (i + 1), instr.mode)
+    stk_ptr = cur_sp + m2_expr.ExprInt((size // 8) * (i + 1), instr.mode)
     e.append(m2_expr.ExprAssign(cur_sp, stk_ptr))
 
     return e, []
@@ -1407,19 +1411,19 @@ def call(ir, instr, dst):
 
         e.append(m2_expr.ExprAssign(ir.IRDst, m2))
 
-        c = myesp + m2_expr.ExprInt(-s / 8, s)
+        c = myesp + m2_expr.ExprInt(-s // 8, s)
         e.append(m2_expr.ExprAssign(ir.ExprMem(c, size=s).zeroExtend(s),
                                  CS.zeroExtend(s)))
 
-        c = myesp + m2_expr.ExprInt(-2 * s / 8, s)
+        c = myesp + m2_expr.ExprInt((-2 * s) // 8, s)
         e.append(m2_expr.ExprAssign(ir.ExprMem(c, size=s).zeroExtend(s),
                                  meip.zeroExtend(s)))
 
-        c = myesp + m2_expr.ExprInt((-2 * s) / 8, s)
+        c = myesp + m2_expr.ExprInt((-2 * s) // 8, s)
         e.append(m2_expr.ExprAssign(myesp, c))
         return e, []
 
-    c = myesp + m2_expr.ExprInt((-s / 8), s)
+    c = myesp + m2_expr.ExprInt(-s // 8, s)
     e.append(m2_expr.ExprAssign(myesp, c))
     if ir.do_stk_segm:
         c = ir.gen_segm_expr(SS, c)
@@ -1437,10 +1441,10 @@ def ret(ir, instr, src=None):
     myesp = mRSP[instr.mode][:size]
 
     if src is None:
-        value = (myesp + (m2_expr.ExprInt((size / 8), size)))
+        value = (myesp + (m2_expr.ExprInt(size // 8, size)))
     else:
         src = m2_expr.ExprInt(int(src), size)
-        value = (myesp + (m2_expr.ExprInt((size / 8), size) + src))
+        value = (myesp + (m2_expr.ExprInt(size // 8, size) + src))
 
     e.append(m2_expr.ExprAssign(myesp, value))
     result = myesp
@@ -1473,13 +1477,13 @@ def retf(ir, instr, src=None):
     e.append(m2_expr.ExprAssign(ir.IRDst,
                              ir.ExprMem(result, size=size).zeroExtend(size)))
     # e.append(m2_expr.ExprAssign(meip, ir.ExprMem(c, size = s)))
-    result = myesp + m2_expr.ExprInt(size / 8, size)
+    result = myesp + m2_expr.ExprInt(size // 8, size)
     if ir.do_stk_segm:
         result = ir.gen_segm_expr(SS, result)
 
     e.append(m2_expr.ExprAssign(CS, ir.ExprMem(result, size=16)))
 
-    value = myesp + (m2_expr.ExprInt((2 * size) / 8, size) + src)
+    value = myesp + (m2_expr.ExprInt((2 * size) // 8, size) + src)
     e.append(m2_expr.ExprAssign(myesp, value))
     return e, []
 
@@ -1490,7 +1494,7 @@ def leave(ir, instr):
     e = []
     e.append(m2_expr.ExprAssign(mRBP[size], ir.ExprMem(mRBP[size], size=size)))
     e.append(m2_expr.ExprAssign(myesp,
-                             m2_expr.ExprInt(size / 8, size) + mRBP[size]))
+                             m2_expr.ExprInt(size // 8, size) + mRBP[size]))
     return e, []
 
 
@@ -1502,12 +1506,12 @@ def enter(ir, instr, src1, src2):
     src1 = src1.zeroExtend(size)
 
     e = []
-    esp_tmp = myesp - m2_expr.ExprInt(size / 8, size)
+    esp_tmp = myesp - m2_expr.ExprInt(size // 8, size)
     e.append(m2_expr.ExprAssign(ir.ExprMem(esp_tmp, size=size),
                              myebp))
     e.append(m2_expr.ExprAssign(myebp, esp_tmp))
     e.append(m2_expr.ExprAssign(myesp,
-                             myesp - (src1 + m2_expr.ExprInt(size / 8, size))))
+                             myesp - (src1 + m2_expr.ExprInt(size // 8, size))))
     return e, []
 
 
@@ -1930,8 +1934,8 @@ def stos(ir, instr, size):
 
     addr_o = mRDI[instr.mode][:instr.v_admode()]
     addr = addr_o
-    addr_p = addr + m2_expr.ExprInt(size / 8, addr.size)
-    addr_m = addr - m2_expr.ExprInt(size / 8, addr.size)
+    addr_p = addr + m2_expr.ExprInt(size // 8, addr.size)
+    addr_m = addr - m2_expr.ExprInt(size // 8, addr.size)
     if ir.do_str_segm:
         mss = ES
         if instr.additional_info.g2.value:
@@ -1966,8 +1970,8 @@ def lods(ir, instr, size):
 
     addr_o = mRSI[instr.mode][:instr.v_admode()]
     addr = addr_o
-    addr_p = addr + m2_expr.ExprInt(size / 8, addr.size)
-    addr_m = addr - m2_expr.ExprInt(size / 8, addr.size)
+    addr_p = addr + m2_expr.ExprInt(size // 8, addr.size)
+    addr_m = addr - m2_expr.ExprInt(size // 8, addr.size)
     if ir.do_str_segm:
         mss = DS
         if instr.additional_info.g2.value:
@@ -2018,7 +2022,7 @@ def movs(ir, instr, size):
         src_sgm = src
         dst_sgm = dst
 
-    offset = m2_expr.ExprInt(size / 8, src.size)
+    offset = m2_expr.ExprInt(size // 8, src.size)
 
     e.append(m2_expr.ExprAssign(ir.ExprMem(dst_sgm, size),
                              ir.ExprMem(src_sgm, size)))
@@ -2081,12 +2085,12 @@ def float_pop(avoid_flt=None, popcount=1):
     """
     avoid_flt = float_prev(avoid_flt, popcount)
     e = []
-    for i in xrange(8 - popcount):
+    for i in range(8 - popcount):
         if avoid_flt != float_list[i]:
             e.append(m2_expr.ExprAssign(float_list[i],
                                      float_list[i + popcount]))
     fill_value = m2_expr.ExprOp("sint_to_fp", m2_expr.ExprInt(0, 64))
-    for i in xrange(8 - popcount, 8):
+    for i in range(8 - popcount, 8):
         e.append(m2_expr.ExprAssign(float_list[i],
                                  fill_value))
     e.append(
@@ -2619,20 +2623,45 @@ def fnstenv(ir, instr, dst):
     size = min(32, s)
     ad = ir.ExprMem(dst.ptr, size=16)
     e.append(m2_expr.ExprAssign(ad, float_control))
-    ad = ir.ExprMem(dst.ptr + m2_expr.ExprInt(size /
-                                              8 * 1, dst.ptr.size), size=16)
+    ad = ir.ExprMem(
+        dst.ptr + m2_expr.ExprInt(
+            size // (8 * 1),
+            dst.ptr.size
+        ),
+        size=16
+    )
     e.append(m2_expr.ExprAssign(ad, status_word))
-    ad = ir.ExprMem(dst.ptr + m2_expr.ExprInt(size /
-                                              8 * 3, dst.ptr.size), size=size)
+    ad = ir.ExprMem(
+        dst.ptr + m2_expr.ExprInt(
+            size // (8 * 3),
+            dst.ptr.size
+        ),
+        size=size
+    )
     e.append(m2_expr.ExprAssign(ad, float_eip[:size]))
-    ad = ir.ExprMem(dst.ptr + m2_expr.ExprInt(size /
-                                              8 * 4, dst.ptr.size), size=16)
+    ad = ir.ExprMem(
+        dst.ptr + m2_expr.ExprInt(
+            size // (8 * 4),
+            dst.ptr.size
+        ),
+        size=16
+    )
     e.append(m2_expr.ExprAssign(ad, float_cs))
-    ad = ir.ExprMem(dst.ptr + m2_expr.ExprInt(size /
-                                              8 * 5, dst.ptr.size), size=size)
+    ad = ir.ExprMem(
+        dst.ptr + m2_expr.ExprInt(
+            size // (8 * 5),
+            dst.ptr.size
+        ),
+        size=size
+    )
     e.append(m2_expr.ExprAssign(ad, float_address[:size]))
-    ad = ir.ExprMem(dst.ptr + m2_expr.ExprInt(size /
-                                              8 * 6, dst.ptr.size), size=16)
+    ad = ir.ExprMem(
+        dst.ptr + m2_expr.ExprInt(
+            size // (8 * 6),
+            dst.ptr.size
+        ),
+        size=16
+    )
     e.append(m2_expr.ExprAssign(ad, float_ds))
     return e, []
 
@@ -2651,23 +2680,35 @@ def fldenv(ir, instr, src):
     e.append(m2_expr.ExprAssign(float_control, ad))
 
     # Status word
-    ad = ir.ExprMem(src.ptr + m2_expr.ExprInt(size / 8 * 1, size=src.ptr.size),
-                    size=16)
-    e += [m2_expr.ExprAssign(x, y) for x, y in ((float_c0, ad[8:9]),
-                                             (float_c1, ad[9:10]),
-                                             (float_c2, ad[10:11]),
-                                             (float_stack_ptr, ad[11:14]),
-                                             (float_c3, ad[14:15]))
-          ]
+    ad = ir.ExprMem(
+        src.ptr + m2_expr.ExprInt(
+            size // (8 * 1),
+            size=src.ptr.size
+        ),
+        size=16
+    )
+    e += [
+        m2_expr.ExprAssign(x, y) for x, y in ((float_c0, ad[8:9]),
+                                              (float_c1, ad[9:10]),
+                                              (float_c2, ad[10:11]),
+                                              (float_stack_ptr, ad[11:14]),
+                                              (float_c3, ad[14:15]))
+    ]
 
     # EIP, CS, Address, DS
-    for offset, target in ((3, float_eip[:size]),
-                           (4, float_cs),
-                           (5, float_address[:size]),
-                           (6, float_ds)):
-        ad = ir.ExprMem(src.ptr + m2_expr.ExprInt(size / 8 * offset,
-                                                  size=src.ptr.size),
-                        size=target.size)
+    for offset, target in (
+            (3, float_eip[:size]),
+            (4, float_cs),
+            (5, float_address[:size]),
+            (6, float_ds)
+    ):
+        ad = ir.ExprMem(
+            src.ptr + m2_expr.ExprInt(
+                size // ( 8 * offset),
+                size=src.ptr.size
+            ),
+            size=target.size
+        )
         e.append(m2_expr.ExprAssign(target, ad))
 
     return e, []
@@ -3243,7 +3284,7 @@ def sidt(ir, instr, dst):
     if not isinstance(dst, m2_expr.ExprMem) or dst.size != 32:
         raise ValueError('not exprmem 32bit instance!!')
     ptr = dst.ptr
-    LOG_X86_SEM.warning("DEFAULT SIDT ADDRESS %s!!", str(dst))
+    LOG_X86_SEM.warning("DEFAULT SIDT ADDRESS %s!!", dst)
     e.append(m2_expr.ExprAssign(ir.ExprMem(ptr, 32),
                              m2_expr.ExprInt(0xe40007ff, 32)))
     e.append(
@@ -3253,7 +3294,7 @@ def sidt(ir, instr, dst):
 
 
 def sldt(_, instr, dst):
-    LOG_X86_SEM.warning("DEFAULT SLDT ADDRESS %s!!", str(dst))
+    LOG_X86_SEM.warning("DEFAULT SLDT ADDRESS %s!!", dst)
     e = [m2_expr.ExprAssign(dst, m2_expr.ExprInt(0, dst.size))]
     return e, []
 
@@ -3531,7 +3572,7 @@ def cmpxchg16b(arg1):
 def lds(ir, instr, dst, src):
     e = []
     e.append(m2_expr.ExprAssign(dst, ir.ExprMem(src.ptr, size=dst.size)))
-    DS_value = ir.ExprMem(src.ptr + m2_expr.ExprInt(dst.size / 8, src.ptr.size),
+    DS_value = ir.ExprMem(src.ptr + m2_expr.ExprInt(dst.size // 8, src.ptr.size),
                           size=16)
     e.append(m2_expr.ExprAssign(DS, DS_value))
     return e, []
@@ -3540,7 +3581,7 @@ def lds(ir, instr, dst, src):
 def les(ir, instr, dst, src):
     e = []
     e.append(m2_expr.ExprAssign(dst, ir.ExprMem(src.ptr, size=dst.size)))
-    ES_value = ir.ExprMem(src.ptr + m2_expr.ExprInt(dst.size / 8, src.ptr.size),
+    ES_value = ir.ExprMem(src.ptr + m2_expr.ExprInt(dst.size // 8, src.ptr.size),
                           size=16)
     e.append(m2_expr.ExprAssign(ES, ES_value))
     return e, []
@@ -3549,7 +3590,7 @@ def les(ir, instr, dst, src):
 def lss(ir, instr, dst, src):
     e = []
     e.append(m2_expr.ExprAssign(dst, ir.ExprMem(src.ptr, size=dst.size)))
-    SS_value = ir.ExprMem(src.ptr + m2_expr.ExprInt(dst.size / 8, src.ptr.size),
+    SS_value = ir.ExprMem(src.ptr + m2_expr.ExprInt(dst.size // 8, src.ptr.size),
                           size=16)
     e.append(m2_expr.ExprAssign(SS, SS_value))
     return e, []
@@ -3558,7 +3599,7 @@ def lss(ir, instr, dst, src):
 def lfs(ir, instr, dst, src):
     e = []
     e.append(m2_expr.ExprAssign(dst, ir.ExprMem(src.ptr, size=dst.size)))
-    FS_value = ir.ExprMem(src.ptr + m2_expr.ExprInt(dst.size / 8, src.ptr.size),
+    FS_value = ir.ExprMem(src.ptr + m2_expr.ExprInt(dst.size // 8, src.ptr.size),
                           size=16)
     e.append(m2_expr.ExprAssign(FS, FS_value))
     return e, []
@@ -3567,7 +3608,7 @@ def lfs(ir, instr, dst, src):
 def lgs(ir, instr, dst, src):
     e = []
     e.append(m2_expr.ExprAssign(dst, ir.ExprMem(src.ptr, size=dst.size)))
-    GS_value = ir.ExprMem(src.ptr + m2_expr.ExprInt(dst.size / 8, src.ptr.size),
+    GS_value = ir.ExprMem(src.ptr + m2_expr.ExprInt(dst.size // 8, src.ptr.size),
                           size=16)
     e.append(m2_expr.ExprAssign(GS, GS_value))
     return e, []
@@ -3704,18 +3745,18 @@ def vec_op_clip(op, size, callback=None):
 
 def vec_vertical_sem(op, elt_size, reg_size, dst, src, apply_on_output):
     assert reg_size % elt_size == 0
-    n = reg_size / elt_size
+    n = reg_size // elt_size
     if op == '-':
         ops = [
             apply_on_output((dst[i * elt_size:(i + 1) * elt_size]
                              - src[i * elt_size:(i + 1) * elt_size]))
-            for i in xrange(0, n)
+            for i in range(0, n)
         ]
     else:
         ops = [
             apply_on_output(m2_expr.ExprOp(op, dst[i * elt_size:(i + 1) * elt_size],
                                            src[i * elt_size:(i + 1) * elt_size]))
-            for i in xrange(0, n)
+            for i in range(0, n)
         ]
 
     return m2_expr.ExprCompose(*ops)
@@ -3857,7 +3898,7 @@ def pmaddwd(ir, instr, dst, src):
     sizedst = 32
     sizesrc = 16
     out = []
-    for start in xrange(0, dst.size, sizedst):
+    for start in range(0, dst.size, sizedst):
         base = start
         mul1 = src[base: base + sizesrc].signExtend(sizedst) * dst[base: base + sizesrc].signExtend(sizedst)
         base += sizesrc
@@ -3877,9 +3918,9 @@ def psadbw(ir, instr, dst, src):
     sizedst = 16
     sizesrc = 8
     out_dst = []
-    for start in xrange(0, dst.size, 64):
+    for start in range(0, dst.size, 64):
         out = []
-        for src_start in xrange(0, 64, sizesrc):
+        for src_start in range(0, 64, sizesrc):
             beg = start + src_start
             end = beg + sizesrc
             # Not clear in the doc equations, but in the text, src and dst are:
@@ -4311,7 +4352,7 @@ def pshufb(_, instr, dst, src):
         bit_l = 4
     else:
         raise NotImplementedError("bad size")
-    for i in xrange(0, src.size, 8):
+    for i in range(0, src.size, 8):
         index = src[
             i:i + bit_l].zeroExtend(dst.size) << m2_expr.ExprInt(3, dst.size)
         value = (dst >> index)[:8]
@@ -4325,7 +4366,7 @@ def pshufb(_, instr, dst, src):
 def pshufd(_, instr, dst, src, imm):
     control = int(imm)
     out = []
-    for i in xrange(4):
+    for i in range(4):
         shift = ((control >> (i * 2)) & 3) * 32
         # shift is 2 bits long, expr.size is 128
         # => shift + 32 <= src.size
@@ -4336,7 +4377,7 @@ def pshufd(_, instr, dst, src, imm):
 def pshuflw(_, instr, dst, src, imm):
     control = int(imm)
     out = []
-    for i in xrange(4):
+    for i in range(4):
         shift = ((control >> (i * 2)) & 3) * 16
         out.append(src[shift: shift + 16])
     out.append(src[64:])
@@ -4346,7 +4387,7 @@ def pshuflw(_, instr, dst, src, imm):
 def pshufhw(_, instr, dst, src, imm):
     control = int(imm)
     out = [src[:64]]
-    for i in xrange(4):
+    for i in range(4):
         shift = ((control >> (i * 2)) & 3) * 16
         out.append(src[shift + 64: shift + 16 + 64])
     return [m2_expr.ExprAssign(dst, m2_expr.ExprCompose(*out))], []
@@ -4369,7 +4410,7 @@ def ps_rl_ll(ir, instr, dst, src, op, size):
         count = expr_simp(count)
 
     out = []
-    for i in xrange(0, dst.size, size):
+    for i in range(0, dst.size, size):
         out.append(m2_expr.ExprOp(op, dst[i:i + size], count))
     return [m2_expr.ExprAssign(dst, m2_expr.ExprCompose(*out))], []
 
@@ -4430,15 +4471,15 @@ def iret(ir, instr):
     XXX: only support "no-privilege change"
     """
     size = instr.v_opmode()
-    exprs, _ = retf(ir, instr, m2_expr.ExprInt(size / 8, size=size))
-    tmp = mRSP[instr.mode][:size] + m2_expr.ExprInt((2 * size) / 8, size=size)
+    exprs, _ = retf(ir, instr, m2_expr.ExprInt(size // 8, size=size))
+    tmp = mRSP[instr.mode][:size] + m2_expr.ExprInt((2 * size) // 8, size=size)
     exprs += _tpl_eflags(tmp)
     return exprs, []
 
 
 def pcmpeq(_, instr, dst, src, size):
     e = []
-    for i in xrange(0, dst.size, size):
+    for i in range(0, dst.size, size):
         test = m2_expr.expr_is_equal(dst[i:i + size], src[i:i + size])
         e.append(m2_expr.ExprAssign(dst[i:i + size],
                                  m2_expr.ExprCond(test,
@@ -4449,7 +4490,7 @@ def pcmpeq(_, instr, dst, src, size):
 
 def pcmpgt(_, instr, dst, src, size):
     e = []
-    for i in xrange(0, dst.size, size):
+    for i in range(0, dst.size, size):
         test = m2_expr.expr_is_signed_greater(dst[i:i + size], src[i:i + size])
         e.append(m2_expr.ExprAssign(dst[i:i + size],
                                  m2_expr.ExprCond(test,
@@ -4490,7 +4531,7 @@ def pcmpgtq(ir, instr, dst, src):
 def punpck(_, instr, dst, src, size, off):
     e = []
     slices = []
-    for i in xrange(dst.size / (2 * size)):
+    for i in range(dst.size // (2 * size)):
         slices.append(dst[size * i + off: size * i + off + size])
         slices.append(src[size * i + off: size * i + off + size])
     e.append(m2_expr.ExprAssign(dst, m2_expr.ExprCompose(*slices)))
@@ -4498,19 +4539,19 @@ def punpck(_, instr, dst, src, size, off):
 
 
 def punpckhbw(ir, instr, dst, src):
-    return punpck(ir, instr, dst, src, 8, dst.size / 2)
+    return punpck(ir, instr, dst, src, 8, dst.size // 2)
 
 
 def punpckhwd(ir, instr, dst, src):
-    return punpck(ir, instr, dst, src, 16, dst.size / 2)
+    return punpck(ir, instr, dst, src, 16, dst.size // 2)
 
 
 def punpckhdq(ir, instr, dst, src):
-    return punpck(ir, instr, dst, src, 32, dst.size / 2)
+    return punpck(ir, instr, dst, src, 32, dst.size // 2)
 
 
 def punpckhqdq(ir, instr, dst, src):
-    return punpck(ir, instr, dst, src, 64, dst.size / 2)
+    return punpck(ir, instr, dst, src, 64, dst.size // 2)
 
 
 def punpcklbw(ir, instr, dst, src):
@@ -4667,7 +4708,7 @@ def movq2dq(_, instr, dst, src):
 def sqrt_gen(_, instr, dst, src, size):
     e = []
     out = []
-    for i in xrange(src.size / size):
+    for i in range(src.size // size):
         out.append(m2_expr.ExprOp('fsqrt',
                                   src[i * size: (i + 1) * size]))
     src = m2_expr.ExprCompose(*out)
@@ -4702,7 +4743,7 @@ def sqrtss(_, instr, dst, src):
 def pmovmskb(_, instr, dst, src):
     e = []
     out = []
-    for i in xrange(src.size / 8):
+    for i in range(src.size // 8):
         out.append(src[8 * i + 7:8 * (i + 1)])
     src = m2_expr.ExprCompose(*out)
     e.append(m2_expr.ExprAssign(dst, src.zeroExtend(dst.size)))
@@ -4807,7 +4848,7 @@ def _unsigned_saturation(expr, dst_size):
 def packsswb(ir, instr, dst, src):
     out = []
     for source in [dst, src]:
-        for start in xrange(0, dst.size, 16):
+        for start in range(0, dst.size, 16):
             out.append(_signed_saturation(source[start:start + 16], 8))
     return [m2_expr.ExprAssign(dst, m2_expr.ExprCompose(*out))], []
 
@@ -4815,7 +4856,7 @@ def packsswb(ir, instr, dst, src):
 def packssdw(ir, instr, dst, src):
     out = []
     for source in [dst, src]:
-        for start in xrange(0, dst.size, 32):
+        for start in range(0, dst.size, 32):
             out.append(_signed_saturation(source[start:start + 32], 16))
     return [m2_expr.ExprAssign(dst, m2_expr.ExprCompose(*out))], []
 
@@ -4823,7 +4864,7 @@ def packssdw(ir, instr, dst, src):
 def packuswb(ir, instr, dst, src):
     out = []
     for source in [dst, src]:
-        for start in xrange(0, dst.size, 16):
+        for start in range(0, dst.size, 16):
             out.append(_unsigned_saturation(source[start:start + 16], 8))
     return [m2_expr.ExprAssign(dst, m2_expr.ExprCompose(*out))], []
 
@@ -4894,13 +4935,13 @@ def maskmovq(ir, instr, src, mask):
 
     # For each possibility, check if a write is necessary
     check_labels = [m2_expr.ExprLoc(ir.loc_db.add_location(), ir.IRDst.size)
-                    for _ in xrange(0, mask.size, 8)]
+                    for _ in range(0, mask.size, 8)]
     # If the write has to be done, do it (otherwise, nothing happen)
     write_labels = [m2_expr.ExprLoc(ir.loc_db.add_location(), ir.IRDst.size)
-                    for _ in xrange(0, mask.size, 8)]
+                    for _ in range(0, mask.size, 8)]
 
     # Build check blocks
-    for i, start in enumerate(xrange(0, mask.size, 8)):
+    for i, start in enumerate(range(0, mask.size, 8)):
         bit = mask[start + 7: start + 8]
         cur_label = check_labels[i]
         next_check_label = check_labels[i + 1] if (i + 1) < len(check_labels) else loc_next_expr
@@ -4913,7 +4954,7 @@ def maskmovq(ir, instr, src, mask):
 
     # Build write blocks
     dst_addr = mRDI[instr.mode]
-    for i, start in enumerate(xrange(0, mask.size, 8)):
+    for i, start in enumerate(range(0, mask.size, 8)):
         cur_label = write_labels[i]
         next_check_label = check_labels[i + 1] if (i + 1) < len(check_labels) else loc_next_expr
         write_addr = dst_addr + m2_expr.ExprInt(i, dst_addr.size)
@@ -4972,7 +5013,7 @@ def _select4(src, control):
 def shufps(ir, instr, dst, src, imm8):
     out = []
     control = int(imm8)
-    for i in xrange(4):
+    for i in range(4):
         if i < 2:
             source = dst
         else:
@@ -4990,13 +5031,13 @@ def shufpd(ir, instr, dst, src, imm8):
 
 def movmskps(ir, instr, dst, src):
     out = []
-    for i in xrange(4):
+    for i in range(4):
         out.append(src[(32 * i) + 31:(32 * i) + 32])
     return [m2_expr.ExprAssign(dst, m2_expr.ExprCompose(*out).zeroExtend(dst.size))], []
 
 def movmskpd(ir, instr, dst, src):
     out = []
-    for i in xrange(2):
+    for i in range(2):
         out.append(src[(64 * i) + 63:(64 * i) + 64])
     return [m2_expr.ExprAssign(dst, m2_expr.ExprCompose(*out).zeroExtend(dst.size))], []
 
@@ -5720,7 +5761,7 @@ class ir_x86_16(IntermediateRepresentation):
         irs = []
         for assignblk in irblock:
             new_assignblk = dict(assignblk)
-            for dst, src in assignblk.iteritems():
+            for dst, src in viewitems(assignblk):
                 del new_assignblk[dst]
                 # Special case for 64 bits:
                 # If destination is a 32 bit reg, zero extend the 64 bit reg

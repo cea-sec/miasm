@@ -1,5 +1,6 @@
 #! /usr/bin/env python2
 #-*- coding:utf-8 -*-
+from miasm2.core.utils import int_to_byte
 from miasm2.analysis.sandbox import Sandbox_Linux_armb_str
 from miasm2.analysis.sandbox import Sandbox_Linux_arml_str
 from elfesteem.strpatchwork import StrPatchwork
@@ -35,8 +36,8 @@ stop = sb.jitter.cpu.R1
 s = sb.jitter.vm.get_mem(start, stop-start)
 s = StrPatchwork(s)
 for i, c in enumerate(s):
-    s[i] = chr(ord(c)^0x11)
-s = str(s)
-assert(s == "test string\x00")
+    s[i] = int_to_byte(ord(c)^0x11)
+s = bytes(s)
+assert(s == b"test string\x00")
 
 

@@ -1,6 +1,7 @@
 #! /usr/bin/env python2
 #-*- coding:utf-8 -*-
 
+from builtins import range
 import unittest
 from miasm2.expression.expression import TOK_EQUAL
 
@@ -16,7 +17,7 @@ class TestIrIr2C(unittest.TestCase):
         from miasm2.expression.expression import ExprInt, ExprOp
         from miasm2.ir.translators.C import Translator
 
-        args = [ExprInt(i, 32) for i in xrange(9)]
+        args = [ExprInt(i, 32) for i in range(9)]
         translator = Translator.to_language("C")
 
         # Unary operators

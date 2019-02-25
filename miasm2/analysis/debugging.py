@@ -1,11 +1,16 @@
+from __future__ import print_function
+from builtins import map
+from builtins import range
 import cmd
+from future.utils import viewitems
+
 from miasm2.core.utils import hexdump
 from miasm2.core.interval import interval
 import miasm2.jitter.csts as csts
 from miasm2.jitter.jitload import ExceptionHandle
 
 
-class DebugBreakpoint:
+class DebugBreakpoint(object):
 
     "Debug Breakpoint parent class"
     pass
@@ -46,17 +51,19 @@ class DebugBreakpointMemory(DebugBreakpoint):
 
     def __str__(self):
         bp_type = ""
-        for k, v in self.type2str.items():
+        for k, v in viewitems(self.type2str):
             if k & self.access_type != 0:
                 bp_type += v
-        return "Memory BP @0x%08x, Size 0x%08x, Type %s" % (self.addr,
-                                                            self.size,
-                                                            bp_type)
+        return "Memory BP @0x%08x, Size 0x%08x, Type %s" % (
+            self.addr,
+            self.size,
+            bp_type
+        )
 
     @classmethod
     def get_access_type(cls, read=False, write=False):
         value = 0
-        for k, v in cls.type2str.items():
+        for k, v in viewitems(cls.type2str):
             if v == "R" and read is True:
                 value += k
             if v == "W" and write is True:
@@ -146,10 +153,10 @@ class Debugguer(object):
             return DebugBreakpointTerminate(res)
 
         if isinstance(res, DebugBreakpointSoft):
-            print "Breakpoint reached @0x%08x" % res.addr
+            print("Breakpoint reached @0x%08x" % res.addr)
         elif isinstance(res, ExceptionHandle):
             if res == ExceptionHandle.memoryBreakpoint():
-                print "Memory breakpoint reached!"
+                print("Memory breakpoint reached!")
 
                 # Remove flag
                 except_flag = self.myjit.vm.get_exception()
@@ -196,7 +203,7 @@ class Debugguer(object):
 
     def on_step(self):
         for addr, size in self.mem_watched:
-            print "@0x%08x:" % addr
+            print("@0x%08x:" % addr)
             self.get_mem(addr, size)
 
     def get_reg_value(self, reg_name):
@@ -238,20 +245,20 @@ class DebugCmd(cmd.Cmd, object):
     def print_breakpoints(self):
         bp_list = self.dbg.bp_list
         if len(bp_list) == 0:
-            print "No breakpoints."
+            print("No breakpoints.")
         else:
             for i, b in enumerate(bp_list):
-                print "%d\t0x%08x" % (i, b.addr)
+                print("%d\t0x%08x" % (i, b.addr))
 
     def print_watchmems(self):
         watch_list = self.dbg.mem_watched
         if len(watch_list) == 0:
-            print "No memory watchpoints."
+            print("No memory watchpoints.")
         else:
-            print "Num\tAddress  \tSize"
+            print("Num\tAddress  \tSize")
             for i, w in enumerate(watch_list):
                 addr, size = w
-                print "%d\t0x%08x\t0x%08x" % (i, addr, size)
+                print("%d\t0x%08x\t0x%08x" % (i, addr, size))
 
     def print_registers(self):
         regs = self.dbg.get_gpreg_all()
@@ -259,17 +266,21 @@ class DebugCmd(cmd.Cmd, object):
         # Display settings
         title1 = "Registers"
         title2 = "Values"
-        max_name_len = max(map(len, regs.keys() + [title1]))
+        max_name_len = max(map(len, list(regs) + [title1]))
 
         # Print value table
         s = "%s%s    |    %s" % (
             title1, " " * (max_name_len - len(title1)), title2)
-        print s
-        print "-" * len(s)
-        for name, value in sorted(regs.items(), key=lambda x: x[0]):
-            print "%s%s    |    %s" % (name,
-                                       " " * (max_name_len - len(name)),
-                                       hex(value).replace("L", ""))
+        print(s)
+        print("-" * len(s))
+        for name, value in sorted(viewitems(regs), key=lambda x: x[0]):
+            print(
+                "%s%s    |    %s" % (
+                    name,
+                    " " * (max_name_len - len(name)),
+                    hex(value).replace("L", "")
+                )
+            )
 
     def add_breakpoints(self, bp_addr):
         for addr in bp_addr:
@@ -281,35 +292,41 @@ class DebugCmd(cmd.Cmd, object):
                     good = False
                     break
             if good is False:
-                print "Breakpoint 0x%08x already set (%d)" % (addr, i)
+                print("Breakpoint 0x%08x already set (%d)" % (addr, i))
             else:
                 l = len(self.dbg.bp_list)
                 self.dbg.add_breakpoint(addr)
-                print "Breakpoint 0x%08x successfully added ! (%d)" % (addr, l)
+                print("Breakpoint 0x%08x successfully added ! (%d)" % (addr, l))
 
-    display_mode = {"mn": None,
-                    "regs": None,
-                    "newbloc": None}
+    display_mode = {
+        "mn": None,
+        "regs": None,
+        "newbloc": None
+    }
 
     def update_display_mode(self):
-        self.display_mode = {"mn": self.dbg.myjit.jit.log_mn,
-                             "regs": self.dbg.myjit.jit.log_regs,
-                             "newbloc": self.dbg.myjit.jit.log_newbloc}
+        self.display_mode = {
+            "mn": self.dbg.myjit.jit.log_mn,
+            "regs": self.dbg.myjit.jit.log_regs,
+            "newbloc": self.dbg.myjit.jit.log_newbloc
+        }
 
     # Command line methods
     def print_warning(self, s):
-        print self.color_r + s + self.color_e
+        print(self.color_r + s + self.color_e)
 
     def onecmd(self, line):
-        cmd_translate = {"h": "help",
-                         "q": "exit",
-                         "e": "exit",
-                         "!": "exec",
-                         "r": "run",
-                         "i": "info",
-                         "b": "breakpoint",
-                         "s": "step",
-                         "d": "dump"}
+        cmd_translate = {
+            "h": "help",
+            "q": "exit",
+            "e": "exit",
+            "!": "exec",
+            "r": "run",
+            "i": "info",
+            "b": "breakpoint",
+            "s": "step",
+            "d": "dump"
+        }
 
         if len(line) >= 2 and \
            line[1] == " " and \
@@ -342,12 +359,12 @@ class DebugCmd(cmd.Cmd, object):
         self.update_display_mode()
 
     def help_display(self):
-        print "Enable/Disable tracing."
-        print "Usage: display <mode1> <mode2> ... on|off"
-        print "Available modes are:"
+        print("Enable/Disable tracing.")
+        print("Usage: display <mode1> <mode2> ... on|off")
+        print("Available modes are:")
         for k in self.display_mode:
-            print "\t%s" % k
-        print "Use 'info display' to get current values"
+            print("\t%s" % k)
+        print("Use 'info display' to get current values")
 
     def do_watchmem(self, arg):
         if arg == "":
@@ -365,21 +382,23 @@ class DebugCmd(cmd.Cmd, object):
         self.dbg.watch_mem(addr, size)
 
     def help_watchmem(self):
-        print "Add a memory watcher."
-        print "Usage: watchmem <addr> [size]"
-        print "Use 'info watchmem' to get current memory watchers"
+        print("Add a memory watcher.")
+        print("Usage: watchmem <addr> [size]")
+        print("Use 'info watchmem' to get current memory watchers")
 
     def do_info(self, arg):
-        av_info = ["registers",
-                   "display",
-                   "breakpoints",
-                   "watchmem"]
+        av_info = [
+            "registers",
+            "display",
+            "breakpoints",
+            "watchmem"
+        ]
 
         if arg == "":
-            print "'info' must be followed by the name of an info command."
-            print "List of info subcommands:"
+            print("'info' must be followed by the name of an info command.")
+            print("List of info subcommands:")
             for k in av_info:
-                print "\t%s" % k
+                print("\t%s" % k)
 
         if arg.startswith("b"):
             # Breakpoint
@@ -388,8 +407,8 @@ class DebugCmd(cmd.Cmd, object):
         if arg.startswith("d"):
             # Display
             self.update_display_mode()
-            for k, v in self.display_mode.items():
-                print "%s\t\t%s" % (k, v)
+            for k, v in viewitems(self.display_mode):
+                print("%s\t\t%s" % (k, v))
 
         if arg.startswith("w"):
             # Watchmem
@@ -400,9 +419,9 @@ class DebugCmd(cmd.Cmd, object):
             self.print_registers()
 
     def help_info(self):
-        print "Generic command for showing things about the program being"
-        print "debugged. Use 'info' without arguments to get the list of"
-        print "available subcommands."
+        print("Generic command for showing things about the program being")
+        print("debugged. Use 'info' without arguments to get the list of")
+        print("available subcommands.")
 
     def do_breakpoint(self, arg):
         if arg == "":
@@ -412,23 +431,23 @@ class DebugCmd(cmd.Cmd, object):
             self.add_breakpoints(addrs)
 
     def help_breakpoint(self):
-        print "Add breakpoints to argument addresses."
-        print "Example:"
-        print "\tbreakpoint 0x11223344"
-        print "\tbreakpoint 1122 0xabcd"
+        print("Add breakpoints to argument addresses.")
+        print("Example:")
+        print("\tbreakpoint 0x11223344")
+        print("\tbreakpoint 1122 0xabcd")
 
     def do_step(self, arg):
         if arg == "":
             nb = 1
         else:
             nb = int(arg)
-        for _ in xrange(nb):
+        for _ in range(nb):
             self.dbg.step()
 
     def help_step(self):
-        print "Step program until it reaches a different source line."
-        print "Argument N means do this N times (or till program stops"
-        print "for another reason)."
+        print("Step program until it reaches a different source line.")
+        print("Argument N means do this N times (or till program stops")
+        print("for another reason).")
 
     def do_dump(self, arg):
         if arg == "":
@@ -444,36 +463,36 @@ class DebugCmd(cmd.Cmd, object):
             self.dbg.get_mem(addr, size)
 
     def help_dump(self):
-        print "Dump <addr> [size]. Dump size bytes at addr."
+        print("Dump <addr> [size]. Dump size bytes at addr.")
 
     def do_run(self, _):
         self.dbg.run()
 
     def help_run(self):
-        print "Launch or continue the current program"
+        print("Launch or continue the current program")
 
     def do_exit(self, _):
         return True
 
     def do_exec(self, line):
         try:
-            print eval(line)
-        except Exception, error:
-            print "*** Error: %s" % error
+            print(eval(line))
+        except Exception as error:
+            print("*** Error: %s" % error)
 
     def help_exec(self):
-        print "Exec a python command."
-        print "You can also use '!' shortcut."
+        print("Exec a python command.")
+        print("You can also use '!' shortcut.")
 
     def help_exit(self):
-        print "Exit the interpreter."
-        print "You can also use the Ctrl-D shortcut."
+        print("Exit the interpreter.")
+        print("You can also use the Ctrl-D shortcut.")
 
     def help_help(self):
-        print "Print help"
+        print("Print help")
 
     def postloop(self):
-        print '\nGoodbye !'
+        print('\nGoodbye !')
         super(DebugCmd, self).postloop()
 
     do_EOF = do_exit

@@ -1,5 +1,9 @@
+from builtins import str
+from builtins import object
 import sys
 import os
+
+from future.utils import viewitems
 
 from miasm2.arch.x86.arch import mn_x86, base_expr, variable
 from miasm2.core import parse_asm
@@ -46,10 +50,10 @@ class Asm_Test(object):
         loc_db.set_location_offset(loc_db.get_name_location("main"), 0x0)
         s = StrPatchwork()
         patches = asmblock.asm_resolve_final(mn_x86, blocks, loc_db)
-        for offset, raw in patches.items():
+        for offset, raw in viewitems(patches):
             s[offset] = raw
 
-        s = str(s)
+        s = bytes(s)
         self.assembly = s
 
     def check(self):

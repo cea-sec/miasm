@@ -1,4 +1,7 @@
 """Intervals with a maximum size, supporting modular arithmetic"""
+
+from future.builtins import range
+from builtins import int as int_types
 from itertools import product
 
 from miasm2.core.interval import interval
@@ -59,7 +62,7 @@ class ModularIntervals(object):
         """Check and promote the second argument from integer to
         ModularIntervals with one value"""
         def ret_func(self, target):
-            if isinstance(target, (int, long)):
+            if isinstance(target, int_types):
                 target = ModularIntervals(self.size, interval([(target, target)]))
             if not isinstance(target, ModularIntervals):
                 raise TypeError("Unsupported operation with %s" % target.__class__)
@@ -336,7 +339,7 @@ class ModularIntervals(object):
         shifter &= interval([(0, self.size)])
         ret = interval()
         for shift_range in shifter:
-            for shift in xrange(shift_range[0], shift_range[1] + 1):
+            for shift in range(shift_range[0], shift_range[1] + 1):
                 for x_min, x_max in self.intervals:
                     ret += self._range_shift_uniq(x_min, x_max, shift, operation)
         return self.__class__(self.size, ret)
@@ -372,7 +375,7 @@ class ModularIntervals(object):
         shifter %= self.size
         ret = interval()
         for shift_range in shifter:
-            for shift in xrange(shift_range[0], shift_range[1] + 1):
+            for shift in range(shift_range[0], shift_range[1] + 1):
                 for x_min, x_max in self.intervals:
                     ret += self._range_rotate_uniq(x_min, x_max, shift,
                                                    operation)
@@ -446,7 +449,7 @@ class ModularIntervals(object):
         @modulo: integer
         """
 
-        if not isinstance(modulo, (int, long)):
+        if not isinstance(modulo, int_types):
             raise TypeError("Modulo with %s is not supported" % modulo.__class__)
         return self._integer_modulo(modulo)
 

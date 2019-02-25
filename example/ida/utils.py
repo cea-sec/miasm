@@ -1,3 +1,5 @@
+from __future__ import print_function
+from builtins import map
 import idaapi
 from idc import *
 
@@ -67,7 +69,7 @@ def guess_machine(addr=None):
     elif processor_name == "PPC":
         machine = Machine("ppc32b")
     else:
-        print repr(processor_name)
+        print(repr(processor_name))
         raise NotImplementedError('not fully functional')
 
     return machine
@@ -204,7 +206,7 @@ Python Expression
             dest_lang = self.languages[self.GetControlValue(self.cbLanguage)]
             try:
                 text = Translator.to_language(dest_lang).from_expr(self.expr)
-            except Exception, error:
+            except Exception as error:
                 self.ShowField(self.result, False)
                 return -1
 

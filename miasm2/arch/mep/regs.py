@@ -1,6 +1,7 @@
 # Toshiba MeP-c4 - miasm registers definition
 # Guillaume Valadon <guillaume@valadon.net>
 
+from builtins import range
 from miasm2.expression.expression import ExprId
 from miasm2.core.cpu import reg_info, gen_reg, gen_regs
 
@@ -19,7 +20,7 @@ in_erepeat_init = ExprId("take_jmp_init", 32)
 
 
 # General-purpose registers (R0 to R15) names
-gpr_names = ["R%d" % r for r in xrange(13)]  # register names
+gpr_names = ["R%d" % r for r in range(13)]  # register names
 gpr_names += ["TP", "GP", "SP"]  # according to the manual GP does not exist
 gpr_exprs, gpr_inits, gpr_infos = gen_regs(gpr_names, globals())  # sz=32 bits (default)
 
@@ -53,7 +54,7 @@ RPC = csr_exprs[6]  # Repeat Counter. On MeP, it is the special register R6
 
 # Coprocesssor general-purpose registers (C0 to C15) names
 # Note: a processor extension allows up to 32 coprocessor general-purpose registers
-copro_gpr_names = ["C%d" % r for r in xrange(32)]  # register names
+copro_gpr_names = ["C%d" % r for r in range(32)]  # register names
 copro_gpr_exprs, copro_gpr_inits, copro_gpr_infos = gen_regs(copro_gpr_names, globals())
 
 

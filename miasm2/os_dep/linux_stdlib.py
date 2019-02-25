@@ -1,9 +1,16 @@
 #-*- coding:utf-8 -*-
 
+from __future__ import print_function
 import struct
 from sys import stdout
-from string import printable
 
+try:
+    # Python3 binary stdout
+    stdout = stdout.buffer
+except AttributeError:
+    pass
+
+from miasm2.core.utils import int_to_byte, cmp_elts
 from miasm2.os_dep.common import heap
 from miasm2.os_dep.common import get_fmt_args as _get_fmt_args
 
@@ -67,7 +74,7 @@ def xxx___libc_start_main(jitter):
 
         main = args.main
         # done by __libc_init_first
-        size = jitter.ir_arch.pc.size / 8
+        size = jitter.ir_arch.pc.size // 8
         argc = args.argc
         argv = args.ubp_av
         envp = argv + (args.argc + 1) * size
@@ -88,7 +95,7 @@ def xxx_isprint(jitter):
     checks for any printable character including space.
     '''
     ret_addr, args = jitter.func_args_systemv(['c'])
-    ret = 1 if chr(args.c & 0xFF) in printable else 0
+    ret = 1 if 0x20 <= args.c & 0xFF < 0x7f else 0
     return jitter.func_ret_systemv(ret_addr, ret)
 
 
@@ -113,7 +120,7 @@ def xxx_memset(jitter):
     byte c.'''
 
     ret_addr, args = jitter.func_args_systemv(['dest', 'c', 'n'])
-    jitter.vm.set_mem(args.dest, chr(args.c & 0xFF) * args.n)
+    jitter.vm.set_mem(args.dest, int_to_byte(args.c & 0xFF) * args.n)
     return jitter.func_ret_systemv(ret_addr, args.dest)
 
 
@@ -127,11 +134,11 @@ def xxx_puts(jitter):
     ret_addr, args = jitter.func_args_systemv(['s'])
     index = args.s
     char = jitter.vm.get_mem(index, 1)
-    while char != '\x00':
+    while char != b'\x00':
         stdout.write(char)
         index += 1
         char = jitter.vm.get_mem(index, 1)
-    stdout.write('\n')
+    stdout.write(b'\n')
     return jitter.func_ret_systemv(ret_addr, 1)
 
 
@@ -146,7 +153,7 @@ def xxx_snprintf(jitter):
     output = get_fmt_args(jitter, fmt, cur_arg)
     output = output[:size - 1]
     ret = len(output)
-    jitter.vm.set_mem(args.string, output + '\x00')
+    jitter.vm.set_mem(args.string, output + b'\x00')
     return jitter.func_ret_systemv(ret_addr, ret)
 
 
@@ -155,7 +162,7 @@ def xxx_sprintf(jitter):
     cur_arg, fmt = 2, args.fmt
     output = get_fmt_args(jitter, fmt, cur_arg)
     ret = len(output)
-    jitter.vm.set_mem(args.string, output + '\x00')
+    jitter.vm.set_mem(args.string, output + b'\x00')
     return jitter.func_ret_systemv(ret_addr, ret)
 
 
@@ -164,13 +171,13 @@ def xxx_printf(jitter):
     cur_arg, fmt = 1, args.fmt
     output = get_fmt_args(jitter, fmt, cur_arg)
     ret = len(output)
-    print output,
+    stdout.write(output)
     return jitter.func_ret_systemv(ret_addr, ret)
 
 
 def xxx_strcpy(jitter):
     ret_ad, args = jitter.func_args_systemv(["dst", "src"])
-    str_src = jitter.get_str_ansi(args.src) + '\x00'
+    str_src = jitter.get_str_ansi(args.src) + b'\x00'
     jitter.vm.set_mem(args.dst, str_src)
     jitter.func_ret_systemv(ret_ad, args.dst)
 
@@ -196,11 +203,11 @@ def xxx_strcmp(jitter):
     ret_ad, args = jitter.func_args_systemv(["ptr_str1", "ptr_str2"])
     s1 = jitter.get_str_ansi(args.ptr_str1)
     s2 = jitter.get_str_ansi(args.ptr_str2)
-    jitter.func_ret_systemv(ret_ad, cmp(s1, s2))
+    jitter.func_ret_systemv(ret_ad, cmp_elts(s1, s2))
 
 
 def xxx_strncmp(jitter):
     ret_ad, args = jitter.func_args_systemv(["ptr_str1", "ptr_str2", "size"])
     s1 = jitter.get_str_ansi(args.ptr_str1, args.size)
     s2 = jitter.get_str_ansi(args.ptr_str2, args.size)
-    jitter.func_ret_systemv(ret_ad, cmp(s1, s2))
+    jitter.func_ret_systemv(ret_ad, cmp_elts(s1, s2))

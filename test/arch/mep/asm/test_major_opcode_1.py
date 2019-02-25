@@ -4,7 +4,7 @@
 from ut_helpers_asm import check_instruction
 
 
-class TestMajor1:
+class TestMajor1(object):
 
     def test_OR(self):
         """Test the OR instruction"""

@@ -4,7 +4,7 @@
 from ut_helpers_ir import exec_instruction
 
 
-class TestDataCache:
+class TestDataCache(object):
 
     def test_cache(self):
         """Test CACHE execution"""

@@ -1,10 +1,15 @@
 #-*- coding:utf-8 -*-
 
+from __future__ import print_function
+from future.builtins import map, range
+
+from miasm2.core.utils import decode_hex, encode_hex, int_to_byte
+
 import socket
 import struct
 import time
 import logging
-from StringIO import StringIO
+from io import BytesIO
 import miasm2.analysis.debugging as debugging
 from miasm2.jitter.jitload import ExceptionHandle
 
@@ -15,7 +20,7 @@ class GdbServer(object):
 
     general_registers_order = []
     general_registers_size = {}  # RegName : Size in octet
-    status = "S05"
+    status = b"S05"
 
     def __init__(self, dbg, port=4455):
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -28,242 +33,243 @@ class GdbServer(object):
     # Communication methods
 
     def compute_checksum(self, data):
-        return chr(sum(map(ord, data)) % 256).encode("hex")
+        return encode_hex(int_to_byte(sum(map(ord, data)) % 256))
 
     def get_messages(self):
-        all_data = ""
-        data = self.sock.recv(4096)
-        all_data += data
-        while (len(data) == 4096 or data == ""):
-            if data == "":
-                # Avoid consuming CPU
-                time.sleep(0.001)
-                continue
+        all_data = b""
+        while True:
             data = self.sock.recv(4096)
+            if not data:
+                break
             all_data += data
 
         logging.debug("<- %r", all_data)
         self.recv_queue += self.parse_messages(all_data)
 
     def parse_messages(self, data):
-        buf = StringIO(data)
-
+        buf = BytesIO(data)
         msgs = []
 
         while (buf.tell() < buf.len):
             token = buf.read(1)
-            if token == "+":
+            if token == b"+":
                 continue
-            if token == "-":
+            if token == b"-":
                 raise NotImplementedError("Resend packet")
-            if token == "$":
-                packet_data = ""
+            if token == b"$":
+                packet_data = b""
                 c = buf.read(1)
-                while c != "#":
+                while c != b"#":
                     packet_data += c
                     c = buf.read(1)
                 checksum = buf.read(2)
                 if checksum != self.compute_checksum(packet_data):
                     raise ValueError("Incorrect checksum")
-
                 msgs.append(packet_data)
 
         return msgs
 
     def send_string(self, s):
-        self.send_queue.append("O" + s.encode("hex"))
+        self.send_queue.append(b"O" + encode_hex(s))
 
     def process_messages(self):
 
         while self.recv_queue:
             msg = self.recv_queue.pop(0)
-            buf = StringIO(msg)
+            buf = BytesIO(msg)
             msg_type = buf.read(1)
 
-            self.send_queue.append("+")
+            self.send_queue.append(b"+")
 
-            if msg_type == "q":
-                if msg.startswith("qSupported"):
-                    self.send_queue.append("PacketSize=3fff")
-                elif msg.startswith("qC"):
+            if msg_type == b"q":
+                if msg.startswith(b"qSupported"):
+                    self.send_queue.append(b"PacketSize=3fff")
+                elif msg.startswith(b"qC"):
                     # Current thread
-                    self.send_queue.append("")
-                elif msg.startswith("qAttached"):
+                    self.send_queue.append(b"")
+                elif msg.startswith(b"qAttached"):
                     # Not supported
-                    self.send_queue.append("")
-                elif msg.startswith("qTStatus"):
+                    self.send_queue.append(b"")
+                elif msg.startswith(b"qTStatus"):
                     # Not supported
-                    self.send_queue.append("")
-                elif msg.startswith("qfThreadInfo"):
+                    self.send_queue.append(b"")
+                elif msg.startswith(b"qfThreadInfo"):
                     # Not supported
-                    self.send_queue.append("")
+                    self.send_queue.append(b"")
                 else:
                     raise NotImplementedError()
 
-            elif msg_type == "H":
+            elif msg_type == b"H":
                 # Set current thread
-                self.send_queue.append("OK")
+                self.send_queue.append(b"OK")
 
-            elif msg_type == "?":
+            elif msg_type == b"?":
                 # Report why the target halted
                 self.send_queue.append(self.status)  # TRAP signal
 
-            elif msg_type == "g":
+            elif msg_type == b"g":
                 # Report all general register values
                 self.send_queue.append(self.report_general_register_values())
 
-            elif msg_type == "p":
+            elif msg_type == b"p":
                 # Read a specific register
                 reg_num = int(buf.read(), 16)
                 self.send_queue.append(self.read_register(reg_num))
 
-            elif msg_type == "P":
+            elif msg_type == b"P":
                 # Set a specific register
-                reg_num, value = buf.read().split("=")
+                reg_num, value = buf.read().split(b"=")
                 reg_num = int(reg_num, 16)
-                value = int(value.decode("hex")[::-1].encode("hex"), 16)
+                value = int(encode_hex(decode_hex(value)[::-1]), 16)
                 self.set_register(reg_num, value)
-                self.send_queue.append("OK")
+                self.send_queue.append(b"OK")
 
-            elif msg_type == "m":
+            elif msg_type == b"m":
                 # Read memory
-                addr, size = map(lambda x: int(x, 16), buf.read().split(","))
+                addr, size = (int(x, 16) for x in buf.read().split(b",", 1))
                 self.send_queue.append(self.read_memory(addr, size))
 
-            elif msg_type == "k":
+            elif msg_type == b"k":
                 # Kill
                 self.sock.close()
                 self.send_queue = []
                 self.sock = None
 
-            elif msg_type == "!":
+            elif msg_type == b"!":
                 # Extending debugging will be used
-                self.send_queue.append("OK")
+                self.send_queue.append(b"OK")
 
-            elif msg_type == "v":
-                if msg == "vCont?":
+            elif msg_type == b"v":
+                if msg == b"vCont?":
                     # Is vCont supported ?
-                    self.send_queue.append("")
+                    self.send_queue.append(b"")
 
-            elif msg_type == "s":
+            elif msg_type == b"s":
                 # Step
                 self.dbg.step()
-                self.send_queue.append("S05")  # TRAP signal
+                self.send_queue.append(b"S05")  # TRAP signal
 
-            elif msg_type == "Z":
+            elif msg_type == b"Z":
                 # Add breakpoint or watchpoint
                 bp_type = buf.read(1)
-                if bp_type == "0":
+                if bp_type == b"0":
                     # Exec breakpoint
-                    assert(buf.read(1) == ",")
-                    addr, size = map(
-                        lambda x: int(x, 16), buf.read().split(","))
+                    assert(buf.read(1) == b",")
+                    addr, size = (int(x, 16) for x in buf.read().split(b",", 1))
 
                     if size != 1:
                         raise NotImplementedError("Bigger size")
                     self.dbg.add_breakpoint(addr)
-                    self.send_queue.append("OK")
+                    self.send_queue.append(b"OK")
 
-                elif bp_type == "1":
+                elif bp_type == b"1":
                     # Hardware BP
-                    assert(buf.read(1) == ",")
-                    addr, size = map(
-                        lambda x: int(x, 16), buf.read().split(","))
+                    assert(buf.read(1) == b",")
+                    addr, size = (int(x, 16) for x in buf.read().split(b",", 1))
 
-                    self.dbg.add_memory_breakpoint(addr, size,
-                                                   read=True,
-                                                   write=True)
-                    self.send_queue.append("OK")
+                    self.dbg.add_memory_breakpoint(
+                        addr,
+                        size,
+                        read=True,
+                        write=True
+                    )
+                    self.send_queue.append(b"OK")
 
-                elif bp_type in ["2", "3", "4"]:
+                elif bp_type in [b"2", b"3", b"4"]:
                     # Memory breakpoint
-                    assert(buf.read(1) == ",")
-                    read = bp_type in ["3", "4"]
-                    write = bp_type in ["2", "4"]
-                    addr, size = map(
-                        lambda x: int(x, 16), buf.read().split(","))
+                    assert(buf.read(1) == b",")
+                    read = bp_type in [b"3", b"4"]
+                    write = bp_type in [b"2", b"4"]
+                    addr, size = (int(x, 16) for x in buf.read().split(b",", 1))
 
-                    self.dbg.add_memory_breakpoint(addr, size,
-                                                   read=read,
-                                                   write=write)
-                    self.send_queue.append("OK")
+                    self.dbg.add_memory_breakpoint(
+                        addr,
+                        size,
+                        read=read,
+                        write=write
+                    )
+                    self.send_queue.append(b"OK")
 
                 else:
                     raise ValueError("Impossible value")
 
-            elif msg_type == "z":
+            elif msg_type == b"z":
                 # Remove breakpoint or watchpoint
                 bp_type = buf.read(1)
-                if bp_type == "0":
+                if bp_type == b"0":
                     # Exec breakpoint
-                    assert(buf.read(1) == ",")
-                    addr, size = map(
-                        lambda x: int(x, 16), buf.read().split(","))
+                    assert(buf.read(1) == b",")
+                    addr, size = (int(x, 16) for x in buf.read().split(b",", 1))
 
                     if size != 1:
                         raise NotImplementedError("Bigger size")
                     dbgsoft = self.dbg.get_breakpoint_by_addr(addr)
                     assert(len(dbgsoft) == 1)
                     self.dbg.remove_breakpoint(dbgsoft[0])
-                    self.send_queue.append("OK")
+                    self.send_queue.append(b"OK")
 
-                elif bp_type == "1":
+                elif bp_type == b"1":
                     # Hardware BP
-                    assert(buf.read(1) == ",")
-                    addr, size = map(
-                        lambda x: int(x, 16), buf.read().split(","))
+                    assert(buf.read(1) == b",")
+                    addr, size = (int(x, 16) for x in buf.read().split(b",", 1))
                     self.dbg.remove_memory_breakpoint_by_addr_access(
-                        addr, read=True, write=True)
-                    self.send_queue.append("OK")
+                        addr,
+                        read=True,
+                        write=True
+                    )
+                    self.send_queue.append(b"OK")
 
-                elif bp_type in ["2", "3", "4"]:
+                elif bp_type in [b"2", b"3", b"4"]:
                     # Memory breakpoint
-                    assert(buf.read(1) == ",")
-                    read = bp_type in ["3", "4"]
-                    write = bp_type in ["2", "4"]
-                    addr, size = map(
-                        lambda x: int(x, 16), buf.read().split(","))
+                    assert(buf.read(1) == b",")
+                    read = bp_type in [b"3", b"4"]
+                    write = bp_type in [b"2", b"4"]
+                    addr, size = (int(x, 16) for x in buf.read().split(b",", 1))
 
                     self.dbg.remove_memory_breakpoint_by_addr_access(
-                        addr, read=read, write=write)
-                    self.send_queue.append("OK")
+                        addr,
+                        read=read,
+                        write=write
+                    )
+                    self.send_queue.append(b"OK")
 
                 else:
                     raise ValueError("Impossible value")
 
-            elif msg_type == "c":
+            elif msg_type == b"c":
                 # Continue
-                self.status = ""
+                self.status = b""
                 self.send_messages()
                 ret = self.dbg.run()
                 if isinstance(ret, debugging.DebugBreakpointSoft):
-                    self.status = "S05"
-                    self.send_queue.append("S05")  # TRAP signal
+                    self.status = b"S05"
+                    self.send_queue.append(b"S05")  # TRAP signal
                 elif isinstance(ret, ExceptionHandle):
                     if ret == ExceptionHandle.memoryBreakpoint():
-                        self.status = "S05"
-                        self.send_queue.append("S05")
+                        self.status = b"S05"
+                        self.send_queue.append(b"S05")
                     else:
                         raise NotImplementedError("Unknown Except")
                 elif isinstance(ret, debugging.DebugBreakpointTerminate):
                     # Connexion should close, but keep it running as a TRAP
                     # The connexion will be close on instance destruction
-                    print ret
-                    self.status = "S05"
-                    self.send_queue.append("S05")
+                    print(ret)
+                    self.status = b"S05"
+                    self.send_queue.append(b"S05")
                 else:
                     raise NotImplementedError()
 
             else:
                 raise NotImplementedError(
-                    "Not implemented: message type '%s'" % msg_type)
+                    "Not implemented: message type %r" % msg_type
+                )
 
     def send_messages(self):
         for msg in self.send_queue:
-            if msg == "+":
-                data = "+"
+            if msg == b"+":
+                data = b"+"
             else:
-                data = "$%s#%s" % (msg, self.compute_checksum(msg))
+                data = b"$%s#%s" % (msg, self.compute_checksum(msg))
             logging.debug("-> %r", data)
             self.sock.send(data)
         self.send_queue = []
@@ -272,7 +278,7 @@ class GdbServer(object):
         self.recv_queue = []
         self.send_queue = []
 
-        self.send_string("Test\n")
+        self.send_string(b"Test\n")
 
         while (self.sock):
             self.get_messages()
@@ -285,8 +291,8 @@ class GdbServer(object):
 
     # Debugguer processing methods
     def report_general_register_values(self):
-        s = ""
-        for i in xrange(len(self.general_registers_order)):
+        s = b""
+        for i in range(len(self.general_registers_order)):
             s += self.read_register(i)
         return s
 
@@ -307,7 +313,7 @@ class GdbServer(object):
         else:
             raise NotImplementedError("Unknown size")
 
-        return struct.pack(pack_token, reg_value).encode("hex")
+        return encode_hex(struct.pack(pack_token, reg_value))
 
     def set_register(self, reg_num, value):
         reg_name = self.general_registers_order[reg_num]
@@ -319,39 +325,44 @@ class GdbServer(object):
     def read_memory(self, addr, size):
         except_flag_vm = self.dbg.myjit.vm.get_exception()
         try:
-            return self.dbg.get_mem_raw(addr, size).encode("hex")
+            return encode_hex(self.dbg.get_mem_raw(addr, size))
         except RuntimeError:
             self.dbg.myjit.vm.set_exception(except_flag_vm)
-            return "00" * size
+            return b"00" * size
 
 
 class GdbServer_x86_32(GdbServer):
 
     "Extend GdbServer for x86 32bits purposes"
 
-    general_registers_order = ["EAX", "ECX", "EDX", "EBX", "ESP", "EBP", "ESI",
-                               "EDI", "EIP", "EFLAGS", "CS", "SS", "DS", "ES",
-                               "FS", "GS"]
+    general_registers_order = [
+        "EAX", "ECX", "EDX", "EBX", "ESP", "EBP", "ESI",
+        "EDI", "EIP", "EFLAGS", "CS", "SS", "DS", "ES",
+        "FS", "GS"
+    ]
 
-    general_registers_size = {"EAX": 4,
-                              "ECX": 4,
-                              "EDX": 4,
-                              "EBX": 4,
-                              "ESP": 4,
-                              "EBP": 4,
-                              "ESI": 4,
-                              "EDI": 4,
-                              "EIP": 4,
-                              "EFLAGS": 2,
-                              "CS": 2,
-                              "SS": 2,
-                              "DS": 2,
-                              "ES": 2,
-                              "FS": 2,
-                              "GS": 2}
+    general_registers_size = {
+        "EAX": 4,
+        "ECX": 4,
+        "EDX": 4,
+        "EBX": 4,
+        "ESP": 4,
+        "EBP": 4,
+        "ESI": 4,
+        "EDI": 4,
+        "EIP": 4,
+        "EFLAGS": 2,
+        "CS": 2,
+        "SS": 2,
+        "DS": 2,
+        "ES": 2,
+        "FS": 2,
+        "GS": 2
+    }
 
     register_ignore = [
-        "tf", "i_f", "nt", "rf", "vm", "ac", "vif", "vip", "i_d"]
+        "tf", "i_f", "nt", "rf", "vm", "ac", "vif", "vip", "i_d"
+    ]
 
     def read_register_by_name(self, reg_name):
         sup_func = super(GdbServer_x86_32, self).read_register_by_name
@@ -364,7 +375,8 @@ class GdbServer_x86_32(GdbServer):
         if reg_name == "EFLAGS":
             val = 0
             eflags_args = [
-                "cf", 1, "pf", 0, "af", 0, "zf", "nf", "tf", "i_f", "df", "of"]
+                "cf", 1, "pf", 0, "af", 0, "zf", "nf", "tf", "i_f", "df", "of"
+            ]
             eflags_args += ["nt", 0, "rf", "vm", "ac", "vif", "vip", "i_d"]
             eflags_args += [0] * 10
 
@@ -387,26 +399,30 @@ class GdbServer_msp430(GdbServer):
 
     "Extend GdbServer for msp430 purposes"
 
-    general_registers_order = ["PC", "SP", "SR", "R3", "R4", "R5", "R6", "R7",
-                               "R8", "R9", "R10", "R11", "R12", "R13", "R14",
-                               "R15"]
+    general_registers_order = [
+        "PC", "SP", "SR", "R3", "R4", "R5", "R6", "R7",
+        "R8", "R9", "R10", "R11", "R12", "R13", "R14",
+        "R15"
+    ]
 
-    general_registers_size = {"PC": 2,
-                              "SP": 2,
-                              "SR": 2,
-                              "R3": 2,
-                              "R4": 2,
-                              "R5": 2,
-                              "R6": 2,
-                              "R7": 2,
-                              "R8": 2,
-                              "R9": 2,
-                              "R10": 2,
-                              "R11": 2,
-                              "R12": 2,
-                              "R13": 2,
-                              "R14": 2,
-                              "R15": 2}
+    general_registers_size = {
+        "PC": 2,
+        "SP": 2,
+        "SR": 2,
+        "R3": 2,
+        "R4": 2,
+        "R5": 2,
+        "R6": 2,
+        "R7": 2,
+        "R8": 2,
+        "R9": 2,
+        "R10": 2,
+        "R11": 2,
+        "R12": 2,
+        "R13": 2,
+        "R14": 2,
+        "R15": 2
+    }
 
     def read_register_by_name(self, reg_name):
         sup_func = super(GdbServer_msp430, self).read_register_by_name

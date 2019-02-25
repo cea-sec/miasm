@@ -1,5 +1,7 @@
 #-*- coding:utf-8 -*-
 
+from builtins import range
+
 import logging
 from pyparsing import *
 from miasm2.expression.expression import *
@@ -69,7 +71,7 @@ class msp430_arg(m_arg):
                 index = gpregs.str.index(name)
                 reg = gpregs.expr[index]
                 return reg
-            loc_key = loc_db.get_or_create_name_location(value.name)
+            loc_key = loc_db.get_or_create_name_location(value.name.encode())
             return ExprLoc(loc_key, 16)
         if isinstance(value, AstOp):
             args = [self.asm_ast_to_expr(tmp, loc_db) for tmp in value.args]
@@ -86,7 +88,7 @@ class msp430_arg(m_arg):
         return None
 
 
-class additional_info:
+class additional_info(object):
 
     def __init__(self):
         self.except_on_instr = False
@@ -238,7 +240,7 @@ class mn_msp430(cls_mn):
         if n > bs.getlen() * 8:
             raise ValueError('not enough bits %r %r' % (n, len(bs.bin) * 8))
         while n:
-            i = start / 8
+            i = start // 8
             c = cls.getbytes(bs, i)
             if not c:
                 raise IOError
@@ -255,8 +257,8 @@ class mn_msp430(cls_mn):
 
     @classmethod
     def getbytes(cls, bs, offset, l=1):
-        out = ""
-        for _ in xrange(l):
+        out = b""
+        for _ in range(l):
             n_offset = (offset & ~1) + 1 - offset % 2
             out += bs.getbytes(n_offset, 1)
             offset += 1
@@ -266,7 +268,7 @@ class mn_msp430(cls_mn):
         tmp = super(mn_msp430, self).decoded2bytes(result)
         out = []
         for x in tmp:
-            o = ""
+            o = b""
             while x:
                 o += x[:2][::-1]
                 x = x[2:]
@@ -524,7 +526,7 @@ class msp430_offs(imm_noarg, msp430_arg):
     def encodeval(self, v):
         plen = self.parent.l + self.l
         assert(plen % 8 == 0)
-        v -= plen / 8
+        v -= plen // 8
         if v % 2 != 0:
             return False
         return v >> 1

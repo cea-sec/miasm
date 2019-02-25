@@ -29,11 +29,19 @@
 #
 
 
+from builtins import zip
+from builtins import range
 import warnings
 import itertools
+from builtins import int as int_types
+from functools import cmp_to_key, total_ordering
+from future.utils import viewitems
+
+from miasm2.core.utils import force_bytes, cmp_elts
 from miasm2.expression.modint import mod_size2uint, is_modint, size2mask, \
     define_uint
 from miasm2.core.graph import DiGraph
+from functools import reduce
 
 # Define tokens
 TOK_INF = "<"
@@ -145,7 +153,7 @@ class DiGraphExpr(DiGraph):
         return ""
 
 
-
+@total_ordering
 class LocKey(object):
     def __init__(self, key):
         self._key = key
@@ -163,7 +171,11 @@ class LocKey(object):
         return self.key == other.key
 
     def __ne__(self, other):
-        return not self.__eq__(other)
+        # required Python 2.7.14
+        return not self == other
+
+    def __lt__(self, other):
+        return self.key < other.key
 
     def __repr__(self):
         return "<%s %d>" % (self.__class__.__name__, self._key)
@@ -202,11 +214,11 @@ class Expr(object):
     @staticmethod
     def get_object(expr_cls, args):
         if not expr_cls.use_singleton:
-            return object.__new__(expr_cls, args)
+            return object.__new__(expr_cls)
 
         expr = Expr.args2expr.get((expr_cls, args))
         if expr is None:
-            expr = object.__new__(expr_cls, args)
+            expr = object.__new__(expr_cls)
             Expr.args2expr[(expr_cls, args)] = expr
         return expr
 
@@ -275,6 +287,9 @@ class Expr(object):
 
     def __div__(self, other):
         return ExprOp('/', self, other)
+
+    def __floordiv__(self, other):
+        return self.__div__(other)
 
     def __mod__(self, other):
         return ExprOp('%', self, other)
@@ -524,7 +539,7 @@ class ExprInt(Expr):
         return int(self.arg)
 
     def __long__(self):
-        return long(self.arg)
+        return int(self.arg)
 
     def is_int(self, value=None):
         if value is not None and self._arg != value:
@@ -552,7 +567,7 @@ class ExprId(Expr):
         if size is None:
             warnings.warn('DEPRECATION WARNING: size is a mandatory argument: use ExprId(name, SIZE)')
             size = 32
-        assert isinstance(name, str)
+        assert isinstance(name, (str, bytes))
         super(ExprId, self).__init__(size)
         self._name = name
 
@@ -896,7 +911,7 @@ class ExprMem(Expr):
 
         # ptr must be Expr
         assert isinstance(ptr, Expr)
-        assert isinstance(size, (int, long))
+        assert isinstance(size, int_types)
 
         if not isinstance(ptr, Expr):
             raise ValueError(
@@ -1169,8 +1184,8 @@ class ExprSlice(Expr):
 
         # arg must be Expr
         assert isinstance(arg, Expr)
-        assert isinstance(start, (int, long))
-        assert isinstance(stop, (int, long))
+        assert isinstance(start, int_types)
+        assert isinstance(stop, int_types)
         assert start < stop
 
         self._arg, self._start, self._stop = arg, start, stop
@@ -1344,45 +1359,46 @@ class ExprCompose(Expr):
         return True
 
 # Expression order for comparison
-EXPR_ORDER_DICT = {ExprId: 1,
-                   ExprLoc: 2,
-                   ExprCond: 3,
-                   ExprMem: 4,
-                   ExprOp: 5,
-                   ExprSlice: 6,
-                   ExprCompose: 7,
-                   ExprInt: 8,
-                  }
+EXPR_ORDER_DICT = {
+    ExprId: 1,
+    ExprLoc: 2,
+    ExprCond: 3,
+    ExprMem: 4,
+    ExprOp: 5,
+    ExprSlice: 6,
+    ExprCompose: 7,
+    ExprInt: 8,
+}
 
 
 def compare_exprs_compose(expr1, expr2):
-    # Sort by start bit address, then expr, then stop but address
-    ret = cmp(expr1[1], expr2[1])
+    # Sort by start bit address, then expr, then stop bit address
+    ret = cmp_elts(expr1[1], expr2[1])
     if ret:
         return ret
     ret = compare_exprs(expr1[0], expr2[0])
     if ret:
         return ret
-    ret = cmp(expr1[2], expr2[2])
+    ret = cmp_elts(expr1[2], expr2[2])
     return ret
 
 
 def compare_expr_list_compose(l1_e, l2_e):
     # Sort by list elements in incremental order, then by list size
-    for i in xrange(min(len(l1_e), len(l2_e))):
+    for i in range(min(len(l1_e), len(l2_e))):
         ret = compare_exprs(l1_e[i], l2_e[i])
         if ret:
             return ret
-    return cmp(len(l1_e), len(l2_e))
+    return cmp_elts(len(l1_e), len(l2_e))
 
 
 def compare_expr_list(l1_e, l2_e):
     # Sort by list elements in incremental order, then by list size
-    for i in xrange(min(len(l1_e), len(l2_e))):
+    for i in range(min(len(l1_e), len(l2_e))):
         ret = compare_exprs(l1_e[i], l2_e[i])
         if ret:
             return ret
-    return cmp(len(l1_e), len(l2_e))
+    return cmp_elts(len(l1_e), len(l2_e))
 
 
 def compare_exprs(expr1, expr2):
@@ -1396,27 +1412,30 @@ def compare_exprs(expr1, expr2):
     cls1 = expr1.__class__
     cls2 = expr2.__class__
     if cls1 != cls2:
-        return cmp(EXPR_ORDER_DICT[cls1], EXPR_ORDER_DICT[cls2])
+        return cmp_elts(EXPR_ORDER_DICT[cls1], EXPR_ORDER_DICT[cls2])
     if expr1 == expr2:
         return 0
     if cls1 == ExprInt:
-        ret = cmp(expr1.size, expr2.size)
+        ret = cmp_elts(expr1.size, expr2.size)
         if ret != 0:
             return ret
-        return cmp(expr1.arg, expr2.arg)
+        return cmp_elts(expr1.arg, expr2.arg)
     elif cls1 == ExprId:
-        ret = cmp(expr1.name, expr2.name)
+        name1 = force_bytes(expr1.name)
+        name2 = force_bytes(expr2.name)
+        ret = cmp_elts(name1, name2)
         if ret:
             return ret
-        return cmp(expr1.size, expr2.size)
+        return cmp_elts(expr1.size, expr2.size)
     elif cls1 == ExprLoc:
-        ret = cmp(expr1.loc_key, expr2.loc_key)
+        ret = cmp_elts(expr1.loc_key, expr2.loc_key)
         if ret:
             return ret
-        return cmp(expr1.size, expr2.size)
+        return cmp_elts(expr1.size, expr2.size)
     elif cls1 == ExprAssign:
         raise NotImplementedError(
-            "Comparison from an ExprAssign not yet implemented")
+            "Comparison from an ExprAssign not yet implemented"
+        )
     elif cls2 == ExprCond:
         ret = compare_exprs(expr1.cond, expr2.cond)
         if ret:
@@ -1430,36 +1449,33 @@ def compare_exprs(expr1, expr2):
         ret = compare_exprs(expr1.ptr, expr2.ptr)
         if ret:
             return ret
-        return cmp(expr1.size, expr2.size)
+        return cmp_elts(expr1.size, expr2.size)
     elif cls1 == ExprOp:
         if expr1.op != expr2.op:
-            return cmp(expr1.op, expr2.op)
+            return cmp_elts(expr1.op, expr2.op)
         return compare_expr_list(expr1.args, expr2.args)
     elif cls1 == ExprSlice:
         ret = compare_exprs(expr1.arg, expr2.arg)
         if ret:
             return ret
-        ret = cmp(expr1.start, expr2.start)
+        ret = cmp_elts(expr1.start, expr2.start)
         if ret:
             return ret
-        ret = cmp(expr1.stop, expr2.stop)
+        ret = cmp_elts(expr1.stop, expr2.stop)
         return ret
     elif cls1 == ExprCompose:
         return compare_expr_list_compose(expr1.args, expr2.args)
     raise NotImplementedError(
-        "Comparison between %r %r not implemented" % (expr1, expr2))
+        "Comparison between %r %r not implemented" % (expr1, expr2)
+    )
 
 
 def canonize_expr_list(expr_list):
-    expr_list = list(expr_list)
-    expr_list.sort(cmp=compare_exprs)
-    return expr_list
+    return sorted(expr_list, key=cmp_to_key(compare_exprs))
 
 
 def canonize_expr_list_compose(expr_list):
-    expr_list = list(expr_list)
-    expr_list.sort(cmp=compare_exprs_compose)
-    return expr_list
+    return sorted(expr_list, key=cmp_to_key(compare_exprs_compose))
 
 # Generate ExprInt with common size
 
@@ -1604,7 +1620,7 @@ def match_expr(expr, pattern, tks, result=None):
                     break
             if good is True:
                 # We found a possibility
-                for joker, value in myresult.items():
+                for joker, value in viewitems(myresult):
                     # Updating result in place (to keep pointer in recursion)
                     result[joker] = value
                 return result

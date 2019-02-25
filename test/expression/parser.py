@@ -1,3 +1,4 @@
+from __future__ import print_function
 from miasm2.expression.parser import str_to_expr
 from miasm2.expression.expression import ExprInt, ExprId, ExprSlice, ExprMem, \
     ExprCond, ExprCompose, ExprOp, ExprAssign, ExprLoc, LocKey
@@ -13,5 +14,5 @@ for expr_test in [ExprInt(0x12, 32),
                   ExprAssign(ExprId('EAX', 32),  ExprInt(0x12, 32)),
                   ]:
 
-    print 'Test: %s' % expr_test
+    print('Test: %s' % expr_test)
     assert str_to_expr(repr(expr_test)) == expr_test

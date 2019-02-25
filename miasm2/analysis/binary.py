@@ -46,7 +46,7 @@ class Container(object):
                 return container_type(data, *args, **kwargs)
             except ContainerSignatureException:
                 continue
-            except ContainerParsingException, error:
+            except ContainerParsingException as error:
                 log.error(error)
 
         # Fallback mode
@@ -134,7 +134,7 @@ class ContainerPE(Container):
         from elfesteem import pe_init
 
         # Parse signature
-        if not data.startswith('MZ'):
+        if not data.startswith(b'MZ'):
             raise ContainerSignatureException()
 
         # Build executable instance
@@ -143,7 +143,7 @@ class ContainerPE(Container):
                 self._executable = vm_load_pe(vm, data)
             else:
                 self._executable = pe_init.PE(data)
-        except Exception, error:
+        except Exception as error:
             raise ContainerParsingException('Cannot read PE: %s' % error)
 
         # Check instance validity
@@ -159,7 +159,7 @@ class ContainerPE(Container):
             self._bin_stream = bin_stream_pe(self._executable)
             ep_detected = self._executable.Opthdr.AddressOfEntryPoint
             self._entry_point = self._executable.rva2virt(ep_detected)
-        except Exception, error:
+        except Exception as error:
             raise ContainerParsingException('Cannot read PE: %s' % error)
 
 
@@ -168,7 +168,7 @@ class ContainerELF(Container):
 
     def parse(self, data, vm=None, addr=0, apply_reloc=False, **kwargs):
         """Load an ELF from @data
-        @data: str containing the ELF bytes
+        @data: bytes containing the ELF bytes
         @vm (optional): VmMngr instance. If set, load the ELF in virtual memory
         @addr (optional): base address the ELF in virtual memory
         @apply_reloc (optional): if set, apply relocation during ELF loading
@@ -181,18 +181,22 @@ class ContainerELF(Container):
         from elfesteem import elf_init
 
         # Parse signature
-        if not data.startswith('\x7fELF'):
+        if not data.startswith(b'\x7fELF'):
             raise ContainerSignatureException()
 
         # Build executable instance
         try:
             if vm is not None:
-                self._executable = vm_load_elf(vm, data, loc_db=self.loc_db,
-                                               base_addr=addr,
-                                               apply_reloc=apply_reloc)
+                self._executable = vm_load_elf(
+                    vm,
+                    data,
+                    loc_db=self.loc_db,
+                    base_addr=addr,
+                    apply_reloc=apply_reloc
+                )
             else:
                 self._executable = elf_init.ELF(data)
-        except Exception, error:
+        except Exception as error:
             raise ContainerParsingException('Cannot read ELF: %s' % error)
 
         # Guess the architecture
@@ -202,7 +206,7 @@ class ContainerELF(Container):
         try:
             self._bin_stream = bin_stream_elf(self._executable)
             self._entry_point = self._executable.Ehdr.entry + addr
-        except Exception, error:
+        except Exception as error:
             raise ContainerParsingException('Cannot read ELF: %s' % error)
 
         if vm is None:
@@ -217,9 +221,11 @@ class ContainerUnknown(Container):
     def parse(self, data, vm=None, addr=0, **kwargs):
         self._bin_stream = bin_stream_str(data, base_address=addr)
         if vm is not None:
-            vm.add_memory_page(addr,
-                               PAGE_READ,
-                               data)
+            vm.add_memory_page(
+                addr,
+                PAGE_READ,
+                data
+            )
         self._executable = None
         self._entry_point = 0
 

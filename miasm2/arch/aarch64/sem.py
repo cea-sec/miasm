@@ -1,3 +1,6 @@
+from builtins import range
+from future.utils import viewitems
+
 from miasm2.expression.expression import ExprId, ExprInt, ExprLoc, ExprMem, \
     ExprCond, ExprCompose, ExprOp, ExprAssign
 from miasm2.ir.ir import IntermediateRepresentation, IRBlock, AssignBlock
@@ -675,7 +678,7 @@ def stp(ir, instr, arg1, arg2, arg3):
     addr, updt = get_mem_access(arg3)
     e.append(ExprAssign(ExprMem(addr, arg1.size), arg1))
     e.append(
-        ExprAssign(ExprMem(addr + ExprInt(arg1.size / 8, addr.size), arg2.size), arg2))
+        ExprAssign(ExprMem(addr + ExprInt(arg1.size // 8, addr.size), arg2.size), arg2))
     if updt:
         e.append(updt)
     return e, []
@@ -686,7 +689,7 @@ def ldp(ir, instr, arg1, arg2, arg3):
     addr, updt = get_mem_access(arg3)
     e.append(ExprAssign(arg1, ExprMem(addr, arg1.size)))
     e.append(
-        ExprAssign(arg2, ExprMem(addr + ExprInt(arg1.size / 8, addr.size), arg2.size)))
+        ExprAssign(arg2, ExprMem(addr + ExprInt(arg1.size // 8, addr.size), arg2.size)))
     if updt:
         e.append(updt)
     return e, []
@@ -1012,7 +1015,7 @@ def nop():
 
 def rev(ir, instr, arg1, arg2):
     out = []
-    for i in xrange(0, arg2.size, 8):
+    for i in range(0, arg2.size, 8):
         out.append(arg2[i:i+8])
     out.reverse()
     e = []
@@ -1023,7 +1026,7 @@ def rev(ir, instr, arg1, arg2):
 
 def rev16(ir, instr, arg1, arg2):
     out = []
-    for i in xrange(0, arg2.size / 8):
+    for i in range(0, arg2.size // 8):
         index = (i & ~1) + (1 - (i & 1))
         out.append(arg2[index * 8:(index + 1) * 8])
     e = []
@@ -1248,8 +1251,8 @@ def casp(ir, instr, arg1, arg2, arg3):
     blk_store = IRBlock(loc_store.loc_key, [AssignBlock(e_store, instr)])
 
     e_do = []
-    e_do.append(ExprAssign(regs[index1], data[:data.size / 2]))
-    e_do.append(ExprAssign(regs[index1 + 1], data[data.size / 2:]))
+    e_do.append(ExprAssign(regs[index1], data[:data.size // 2]))
+    e_do.append(ExprAssign(regs[index1 + 1], data[data.size // 2:]))
     e_do.append(ExprAssign(ir.IRDst, loc_next))
     blk_do = IRBlock(loc_do.loc_key, [AssignBlock(e_do, instr)])
 
@@ -1399,7 +1402,7 @@ def get_mnemo_expr(ir, instr, *args):
     return instr, extra_ir
 
 
-class aarch64info:
+class aarch64info(object):
     mode = "aarch64"
     # offset
 
@@ -1438,7 +1441,7 @@ class ir_aarch64l(IntermediateRepresentation):
         irs = []
         for assignblk in irblock:
             new_assignblk = dict(assignblk)
-            for dst, src in assignblk.iteritems():
+            for dst, src in viewitems(assignblk):
                 del(new_assignblk[dst])
                 # Special case for 64 bits:
                 # If destination is a 32 bit reg, zero extend the 64 bit reg
@@ -1480,8 +1483,10 @@ class ir_aarch64l(IntermediateRepresentation):
         for irblock in extra_ir:
             irs = []
             for assignblk in irblock:
-                new_dsts = {dst:src for dst, src in assignblk.iteritems()
-                                if dst not in regs_to_fix}
+                new_dsts = {
+                    dst:src for dst, src in viewitems(assignblk)
+                    if dst not in regs_to_fix
+                }
                 irs.append(AssignBlock(new_dsts, assignblk.instr))
             new_irblocks.append(IRBlock(irblock.loc_key, irs))
 
