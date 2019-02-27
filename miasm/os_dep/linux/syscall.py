@@ -6,6 +6,7 @@ import struct
 import termios
 
 from miasm.jitter.csts import EXCEPT_PRIV_INSN, EXCEPT_INT_XX
+from miasm.core.utils import pck64
 
 log = logging.getLogger('syscalls')
 hnd = logging.StreamHandler()
@@ -347,6 +348,18 @@ def sys_x86_64_arch_prctl(jitter, linux_env):
         0x1002: "ARCH_SET_FS",
         0x1003: "ARCH_GET_FS",
         0x1004: "ARCH_GET_GS",
+        0x1011: "ARCH_GET_CPUID",
+        0x1012: "ARCH_SET_CPUID",
+        0x2001: "ARCH_MAP_VDSO_X32",
+        0x2002: "ARCH_MAP_VDSO_32",
+        0x2003: "ARCH_MAP_VDSO_64",
+        0x3001: "ARCH_CET_STATUS",
+        0x3002: "ARCH_CET_DISABLE",
+        0x3003: "ARCH_CET_LOCK",
+        0x3004: "ARCH_CET_EXEC",
+        0x3005: "ARCH_CET_ALLOC_SHSTK",
+        0x3006: "ARCH_CET_PUSH_SHSTK",
+        0x3007: "ARCH_CET_LEGACY_BITMAP",
     }
     code = jitter.cpu.RDI
     rcode = code_name[code]
@@ -355,6 +368,9 @@ def sys_x86_64_arch_prctl(jitter, linux_env):
 
     if code == 0x1002:
         jitter.cpu.set_segm_base(jitter.cpu.FS, addr)
+    elif code == 0x3001:
+        # CET status (disabled)
+        jitter.cpu.set_mem(addr, pck64(0))
     else:
         raise RuntimeError("Not implemented")
     jitter.cpu.RAX = 0
