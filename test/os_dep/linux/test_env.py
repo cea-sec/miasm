@@ -2,8 +2,8 @@ from __future__ import print_function
 import os
 import sys
 from pdb import pm
-from miasm2.analysis.binary import Container
-from miasm2.analysis.sandbox import Sandbox_Linux_x86_32, Sandbox_Linux_x86_64,\
+from miasm.analysis.binary import Container
+from miasm.analysis.sandbox import Sandbox_Linux_x86_32, Sandbox_Linux_x86_64,\
     Sandbox_Linux_arml, Sandbox_Linux_aarch64l
 
 if len(sys.argv) < 2:

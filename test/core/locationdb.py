@@ -1,5 +1,5 @@
 from builtins import str
-from miasm2.core.locationdb import LocationDB
+from miasm.core.locationdb import LocationDB
 
 
 # Basic tests (LocationDB description)

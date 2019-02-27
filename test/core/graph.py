@@ -1,5 +1,5 @@
 from __future__ import print_function
-from miasm2.core.graph import *
+from miasm.core.graph import *
 
 g = DiGraph()
 g.add_node('a')

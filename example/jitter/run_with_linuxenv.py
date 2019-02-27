@@ -4,9 +4,9 @@ import re
 
 from elfesteem import elf as elf_csts
 
-from miasm2.os_dep.linux import environment, syscall
-from miasm2.analysis.machine import Machine
-from miasm2.analysis.binary import Container
+from miasm.os_dep.linux import environment, syscall
+from miasm.analysis.machine import Machine
+from miasm.analysis.binary import Container
 
 parser = ArgumentParser("Run an ELF in a Linux-like environment")
 parser.add_argument("target", help="Target ELF")

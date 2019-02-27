@@ -2,7 +2,7 @@
 #-*- coding:utf-8 -*-
 
 from builtins import range
-from miasm2.core.interval import *
+from miasm.core.interval import *
 from random import randint
 from pdb import pm
 

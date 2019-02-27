@@ -2,8 +2,8 @@ from __future__ import print_function
 from pdb import pm
 from pprint import pprint
 
-from miasm2.arch.x86.arch import mn_x86
-from miasm2.core import parse_asm, asmblock
+from miasm.arch.x86.arch import mn_x86
+from miasm.core import parse_asm, asmblock
 
 
 # Assemble code

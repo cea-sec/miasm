@@ -2,9 +2,9 @@ from __future__ import print_function
 import inspect
 from pdb import pm
 
-from miasm2.core.sembuilder import SemBuilder
-from miasm2.core.locationdb import LocationDB
-import miasm2.expression.expression as m2_expr
+from miasm.core.sembuilder import SemBuilder
+from miasm.core.locationdb import LocationDB
+import miasm.expression.expression as m2_expr
 
 
 

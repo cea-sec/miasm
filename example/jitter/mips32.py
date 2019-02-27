@@ -2,9 +2,9 @@
 #-*- coding:utf-8 -*-
 from __future__ import print_function
 from argparse import ArgumentParser
-from miasm2.analysis import debugging
-from miasm2.jitter.csts import *
-from miasm2.analysis.machine import Machine
+from miasm.analysis import debugging
+from miasm.jitter.csts import *
+from miasm.analysis.machine import Machine
 
 parser = ArgumentParser(
     description="""Sandbox raw binary with mips32 engine

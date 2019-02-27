@@ -8,8 +8,8 @@ import unittest
 class TestParseAsm(unittest.TestCase):
 
     def test_ParseTxt(self):
-        from miasm2.arch.x86.arch import mn_x86
-        from miasm2.core.parse_asm import parse_txt
+        from miasm.arch.x86.arch import mn_x86
+        from miasm.core.parse_asm import parse_txt
 
         ASM0 = '''
         ;
@@ -37,9 +37,9 @@ class TestParseAsm(unittest.TestCase):
         self.assertRaises(ValueError, parse_txt, mn_x86, 32, ASM1)
 
     def test_DirectiveDontSplit(self):
-        from miasm2.arch.x86.arch import mn_x86
-        from miasm2.core.parse_asm import parse_txt
-        from miasm2.core.asmblock import asm_resolve_final
+        from miasm.arch.x86.arch import mn_x86
+        from miasm.core.parse_asm import parse_txt
+        from miasm.core.asmblock import asm_resolve_final
 
         ASM0 = '''
         lbl0:
@@ -85,8 +85,8 @@ class TestParseAsm(unittest.TestCase):
         assert(lbls[5] == lbl2block[lbls[4]].get_next())
 
     def test_DirectiveSplit(self):
-        from miasm2.arch.x86.arch import mn_x86
-        from miasm2.core.parse_asm import parse_txt
+        from miasm.arch.x86.arch import mn_x86
+        from miasm.core.parse_asm import parse_txt
 
         ASM0 = '''
         lbl0:

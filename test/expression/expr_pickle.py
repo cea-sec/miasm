@@ -1,6 +1,6 @@
 from __future__ import print_function
 import pickle
-from miasm2.expression.expression import ExprInt, ExprAssign, ExprId, \
+from miasm.expression.expression import ExprInt, ExprAssign, ExprId, \
     Expr, ExprCompose, ExprMem
 
 

@@ -7,11 +7,11 @@ from future.utils import viewitems
 from elfesteem import pe_init
 from elfesteem.strpatchwork import StrPatchwork
 
-from miasm2.core import parse_asm, asmblock
-from miasm2.analysis.machine import Machine
-from miasm2.core.interval import interval
-from miasm2.core.locationdb import LocationDB
-from miasm2.core.utils import iterbytes, int_to_byte
+from miasm.core import parse_asm, asmblock
+from miasm.analysis.machine import Machine
+from miasm.core.interval import interval
+from miasm.core.locationdb import LocationDB
+from miasm.core.utils import iterbytes, int_to_byte
 
 parser = ArgumentParser("Multi-arch (32 bits) assembler")
 parser.add_argument('architecture', help="architecture: " +

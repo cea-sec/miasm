@@ -3,7 +3,7 @@
 
 from ut_helpers_ir import exec_instruction
 
-from miasm2.expression.expression import ExprId, ExprInt
+from miasm.expression.expression import ExprId, ExprInt
 
 
 class TestBranchJump(object):

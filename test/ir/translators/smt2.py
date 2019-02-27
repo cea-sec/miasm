@@ -1,7 +1,7 @@
 from z3 import Solver, unsat, parse_smt2_string
-from miasm2.expression.expression import *
-from miasm2.ir.translators.smt2 import TranslatorSMT2
-from miasm2.ir.translators.z3_ir import TranslatorZ3
+from miasm.expression.expression import *
+from miasm.ir.translators.smt2 import TranslatorSMT2
+from miasm.ir.translators.z3_ir import TranslatorZ3
 
 # create nested expression
 a = ExprId("a", 64)

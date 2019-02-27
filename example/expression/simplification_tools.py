@@ -1,5 +1,5 @@
 from __future__ import print_function
-from miasm2.expression.expression import *
+from miasm.expression.expression import *
 from pdb import pm
 
 print("""

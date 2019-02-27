@@ -5,17 +5,17 @@ from pdb import pm
 
 from future.utils import viewitems, viewvalues
 
-from miasm2.analysis.binary import Container
-from miasm2.core.asmblock import log_asmblock, AsmCFG
-from miasm2.core.interval import interval
-from miasm2.analysis.machine import Machine
-from miasm2.analysis.data_flow import dead_simp, \
+from miasm.analysis.binary import Container
+from miasm.core.asmblock import log_asmblock, AsmCFG
+from miasm.core.interval import interval
+from miasm.analysis.machine import Machine
+from miasm.analysis.data_flow import dead_simp, \
     DiGraphDefUse, ReachingDefinitions, \
     replace_stack_vars, load_from_int, del_unused_edges
-from miasm2.expression.simplifications import expr_simp
-from miasm2.analysis.ssa import SSADiGraph
-from miasm2.ir.ir import AssignBlock, IRBlock
-from miasm2.analysis.simplifier import IRCFGSimplifierCommon, IRCFGSimplifierSSA
+from miasm.expression.simplifications import expr_simp
+from miasm.analysis.ssa import SSADiGraph
+from miasm.ir.ir import AssignBlock, IRBlock
+from miasm.analysis.simplifier import IRCFGSimplifierCommon, IRCFGSimplifierSSA
 
 log = logging.getLogger("dis")
 console_handler = logging.StreamHandler()

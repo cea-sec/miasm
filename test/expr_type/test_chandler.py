@@ -9,18 +9,18 @@ from __future__ import print_function
 from future.utils import viewitems
 from past.builtins import cmp
 from builtins import str
-from miasm2.expression.expression import ExprInt, ExprId, ExprMem
-from miasm2.expression.simplifications import expr_simp
+from miasm.expression.expression import ExprInt, ExprId, ExprMem
+from miasm.expression.simplifications import expr_simp
 
-from miasm2.core.objc import parse_access
-from miasm2.core.objc import ast_get_c_access_expr
-from miasm2.core.objc import ExprCToExpr, ExprToAccessC, CHandler
+from miasm.core.objc import parse_access
+from miasm.core.objc import ast_get_c_access_expr
+from miasm.core.objc import ExprCToExpr, ExprToAccessC, CHandler
 
 
-from miasm2.core.ctypesmngr import CTypeStruct, CTypeUnion, CAstTypes, CTypePtr, CTypeId
-from miasm2.core.objc import CTypesManagerNotPacked
+from miasm.core.ctypesmngr import CTypeStruct, CTypeUnion, CAstTypes, CTypePtr, CTypeId
+from miasm.core.objc import CTypesManagerNotPacked
 
-from miasm2.arch.x86.ctype import CTypeAMD64_unk
+from miasm.arch.x86.ctype import CTypeAMD64_unk
 
 
 text_1 = """

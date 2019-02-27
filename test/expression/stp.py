@@ -8,8 +8,8 @@ import unittest
 class TestIrIr2STP(unittest.TestCase):
 
     def test_ExprOp_strcst(self):
-        from miasm2.expression.expression import ExprInt, ExprOp
-        from miasm2.ir.translators.translator  import Translator
+        from miasm.expression.expression import ExprInt, ExprOp
+        from miasm.ir.translators.translator  import Translator
         translator_smt2 = Translator.to_language("smt2")
 
         args = [ExprInt(i, 32) for i in range(9)]
@@ -23,8 +23,8 @@ class TestIrIr2STP(unittest.TestCase):
         self.assertRaises(NotImplementedError, translator_smt2.from_expr, ExprOp('X', *args[:1]))
 
     def test_ExprSlice_strcst(self):
-        from miasm2.expression.expression import ExprInt, ExprOp
-        from miasm2.ir.translators.translator  import Translator
+        from miasm.expression.expression import ExprInt, ExprOp
+        from miasm.ir.translators.translator  import Translator
         translator_smt2 = Translator.to_language("smt2")
 
         args = [ExprInt(i, 32) for i in range(9)]

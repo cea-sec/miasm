@@ -3,12 +3,12 @@ from pdb import pm
 
 from future.utils import viewitems
 
-from miasm2.arch.x86.arch import mn_x86
-from miasm2.core import parse_asm
-from miasm2.expression.expression import *
-from miasm2.core import asmblock
-from miasm2.arch.x86.ira import ir_a_x86_32
-from miasm2.analysis.data_flow import dead_simp
+from miasm.arch.x86.arch import mn_x86
+from miasm.core import parse_asm
+from miasm.expression.expression import *
+from miasm.core import asmblock
+from miasm.arch.x86.ira import ir_a_x86_32
+from miasm.analysis.data_flow import dead_simp
 
 
 # First, asm code

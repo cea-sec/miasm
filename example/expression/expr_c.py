@@ -5,10 +5,10 @@ Parse C expression to access variables and retrieve information:
 """
 from __future__ import print_function
 
-from miasm2.core.ctypesmngr import CTypeStruct, CAstTypes, CTypePtr
-from miasm2.arch.x86.ctype import CTypeAMD64_unk
-from miasm2.core.objc import CTypesManagerNotPacked, CHandler
-from miasm2.expression.expression import ExprId
+from miasm.core.ctypesmngr import CTypeStruct, CAstTypes, CTypePtr
+from miasm.arch.x86.ctype import CTypeAMD64_unk
+from miasm.core.objc import CTypesManagerNotPacked, CHandler
+from miasm.expression.expression import ExprId
 
 
 """

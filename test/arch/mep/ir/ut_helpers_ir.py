@@ -3,16 +3,16 @@
 
 from __future__ import print_function
 
-from miasm2.arch.mep.arch import mn_mep
-from miasm2.arch.mep.sem import ir_mepb
-from miasm2.arch.mep.regs import regs_init
+from miasm.arch.mep.arch import mn_mep
+from miasm.arch.mep.sem import ir_mepb
+from miasm.arch.mep.regs import regs_init
 
-from miasm2.ir.symbexec import SymbolicExecutionEngine
-from miasm2.core.locationdb import LocationDB
-from miasm2.core.utils import Disasm_Exception
-from miasm2.ir.ir import AssignBlock
-from miasm2.arch.mep.ira import ir_a_mepb
-from miasm2.expression.expression import ExprId, ExprInt, ExprOp, ExprMem, \
+from miasm.ir.symbexec import SymbolicExecutionEngine
+from miasm.core.locationdb import LocationDB
+from miasm.core.utils import Disasm_Exception
+from miasm.ir.ir import AssignBlock
+from miasm.arch.mep.ira import ir_a_mepb
+from miasm.expression.expression import ExprId, ExprInt, ExprOp, ExprMem, \
     ExprAssign, ExprLoc
 
 

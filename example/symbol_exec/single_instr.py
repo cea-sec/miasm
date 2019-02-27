@@ -1,9 +1,9 @@
 from __future__ import print_function
 # Minimalist Symbol Exec example
-from miasm2.analysis.binary import Container
-from miasm2.analysis.machine import Machine
-from miasm2.ir.symbexec import SymbolicExecutionEngine
-from miasm2.core.locationdb import LocationDB
+from miasm.analysis.binary import Container
+from miasm.analysis.machine import Machine
+from miasm.ir.symbexec import SymbolicExecutionEngine
+from miasm.core.locationdb import LocationDB
 
 START_ADDR = 0
 machine = Machine("x86_32")

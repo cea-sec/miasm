@@ -3,7 +3,7 @@
 import sys
 
 from asm_test import Asm_Test_16, Asm_Test_32, Asm_Test_64
-from miasm2.core.utils import pck16, pck32
+from miasm.core.utils import pck16, pck32
 
 
 class Test_CBW_16(Asm_Test_16):

@@ -3,13 +3,13 @@ import os
 
 from future.utils import viewitems
 
-from miasm2.arch.aarch64.arch import mn_aarch64, base_expr, variable
-from miasm2.core import parse_asm
-from miasm2.expression.expression import *
-from miasm2.core import asmblock
+from miasm.arch.aarch64.arch import mn_aarch64, base_expr, variable
+from miasm.core import parse_asm
+from miasm.expression.expression import *
+from miasm.core import asmblock
 from elfesteem.strpatchwork import StrPatchwork
-from miasm2.analysis.machine import Machine
-from miasm2.jitter.csts import *
+from miasm.analysis.machine import Machine
+from miasm.jitter.csts import *
 
 reg_and_id = dict(mn_aarch64.regs.all_regs_ids_byname)
 

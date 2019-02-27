@@ -1,8 +1,8 @@
 from future.utils import viewitems
 
-from miasm2.expression.expression import *
-from miasm2.ir.ir import AssignBlock
-from miasm2.expression.simplifications import expr_simp
+from miasm.expression.expression import *
+from miasm.ir.ir import AssignBlock
+from miasm.expression.simplifications import expr_simp
 
 id_a = ExprId("a", 32)
 id_b = ExprId("b", 32)

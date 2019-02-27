@@ -3,13 +3,13 @@ from argparse import ArgumentParser
 
 from future.utils import viewitems, viewvalues
 
-from miasm2.analysis.binary import Container
-from miasm2.analysis.machine import Machine
-from miasm2.expression.expression import get_expr_mem
-from miasm2.analysis.data_analysis import intra_block_flow_raw, inter_block_flow
-from miasm2.core.graph import DiGraph
-from miasm2.ir.symbexec import SymbolicExecutionEngine
-from miasm2.analysis.data_flow import dead_simp
+from miasm.analysis.binary import Container
+from miasm.analysis.machine import Machine
+from miasm.expression.expression import get_expr_mem
+from miasm.analysis.data_analysis import intra_block_flow_raw, inter_block_flow
+from miasm.core.graph import DiGraph
+from miasm.ir.symbexec import SymbolicExecutionEngine
+from miasm.analysis.data_flow import dead_simp
 
 
 parser = ArgumentParser("Simple expression use for generating dataflow graph")

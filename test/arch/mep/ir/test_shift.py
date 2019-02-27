@@ -3,8 +3,8 @@
 
 from ut_helpers_ir import exec_instruction
 
-from miasm2.expression.expression import ExprId, ExprInt, ExprCond, ExprOp
-from miasm2.core.cpu import sign_ext
+from miasm.expression.expression import ExprId, ExprInt, ExprCond, ExprOp
+from miasm.core.cpu import sign_ext
 
 
 class TestShift(object):

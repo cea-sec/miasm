@@ -45,16 +45,16 @@ import sys
 
 from future.utils import viewitems, viewvalues
 
-from miasm2.analysis.machine import Machine
-from miasm2.analysis.binary import Container
-from miasm2.expression.expression import ExprOp, ExprCompose, ExprId, ExprInt
-from miasm2.analysis.depgraph import DependencyGraph
+from miasm.analysis.machine import Machine
+from miasm.analysis.binary import Container
+from miasm.expression.expression import ExprOp, ExprCompose, ExprId, ExprInt
+from miasm.analysis.depgraph import DependencyGraph
 
-from miasm2.arch.x86.ctype import CTypeAMD64_unk
+from miasm.arch.x86.ctype import CTypeAMD64_unk
 
-from miasm2.core.objc import ExprToAccessC, CHandler
-from miasm2.core.objc import CTypesManagerNotPacked
-from miasm2.core.ctypesmngr import CAstTypes, CTypePtr, CTypeStruct
+from miasm.core.objc import ExprToAccessC, CHandler
+from miasm.core.objc import CTypesManagerNotPacked
+from miasm.core.ctypesmngr import CAstTypes, CTypePtr, CTypeStruct
 
 def find_call(ircfg):
     """Returns (irb, index) which call"""

@@ -5,11 +5,11 @@ from __future__ import print_function
 
 from builtins import range
 
-from miasm2.core.utils import decode_hex, encode_hex
-from miasm2.arch.mep.arch import mn_mep
-from miasm2.core.cpu import Disasm_Exception
-from miasm2.core.locationdb import LocationDB
-from miasm2.expression.expression import ExprId, ExprInt, ExprLoc
+from miasm.core.utils import decode_hex, encode_hex
+from miasm.arch.mep.arch import mn_mep
+from miasm.core.cpu import Disasm_Exception
+from miasm.core.locationdb import LocationDB
+from miasm.expression.expression import ExprId, ExprInt, ExprLoc
 
 import re
 

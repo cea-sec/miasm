@@ -3,7 +3,7 @@ import os
 import logging
 from pdb import pm
 from elfesteem import pe
-from miasm2.analysis.sandbox import Sandbox_Win_x86_32
+from miasm.analysis.sandbox import Sandbox_Win_x86_32
 
 # User defined methods
 
@@ -93,7 +93,7 @@ sb.jitter.add_breakpoint(end_offset, update_binary)
 sb.run()
 
 # Rebuild PE
-# Alternative solution: miasm2.jitter.loader.pe.vm2pe(sb.jitter, out_fname,
+# Alternative solution: miasm.jitter.loader.pe.vm2pe(sb.jitter, out_fname,
 # libs=sb.libs, e_orig=sb.pe)
 new_dll = []
 

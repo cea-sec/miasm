@@ -3,8 +3,8 @@ from __future__ import print_function
 # Expression regression tests  #
 #
 from pdb import pm
-from miasm2.expression.expression import *
-from miasm2.expression.expression_helper import *
+from miasm.expression.expression import *
+from miasm.expression.expression_helper import *
 
 # Expression comparison
 assert(ExprInt(-1, 64) != ExprInt(-2, 64))

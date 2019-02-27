@@ -6,11 +6,11 @@ from pdb import pm
 from argparse import ArgumentParser
 import logging
 
-from miasm2.expression.expression import *
-from miasm2.expression.simplifications import expr_simp, expr_simp_explicit, \
+from miasm.expression.expression import *
+from miasm.expression.simplifications import expr_simp, expr_simp_explicit, \
     ExpressionSimplifier, log_exprsimp
 
-from miasm2.expression.simplifications_cond import ExprOp_inf_signed, ExprOp_inf_unsigned, ExprOp_equal
+from miasm.expression.simplifications_cond import ExprOp_inf_signed, ExprOp_inf_unsigned, ExprOp_equal
 
 parser = ArgumentParser("Expression simplification regression tests")
 parser.add_argument("--z3", action="store_true", help="Enable check against z3")
@@ -24,7 +24,7 @@ if args.verbose:
 # Additional imports and definitions
 if args.z3:
     import z3
-    from miasm2.ir.translators import Translator
+    from miasm.ir.translators import Translator
     trans = Translator.to_language("z3")
 
     def check(expr_in, expr_out):

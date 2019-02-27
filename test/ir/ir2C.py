@@ -3,19 +3,19 @@
 
 from builtins import range
 import unittest
-from miasm2.expression.expression import TOK_EQUAL
+from miasm.expression.expression import TOK_EQUAL
 
 class TestIrIr2C(unittest.TestCase):
 
     def translationTest(self, expr, expected):
-        from miasm2.ir.translators import Translator
+        from miasm.ir.translators import Translator
 
         translator = Translator.to_language("C")
         self.assertEqual(translator.from_expr(expr), expected)
 
     def test_ExprOp_toC(self):
-        from miasm2.expression.expression import ExprInt, ExprOp
-        from miasm2.ir.translators.C import Translator
+        from miasm.expression.expression import ExprInt, ExprOp
+        from miasm.ir.translators.C import Translator
 
         args = [ExprInt(i, 32) for i in range(9)]
         translator = Translator.to_language("C")

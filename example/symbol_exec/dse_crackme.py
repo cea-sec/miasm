@@ -16,10 +16,10 @@ from pdb import pm
 from tempfile import NamedTemporaryFile
 from future.utils import viewitems
 
-from miasm2.core.utils import int_to_byte
-from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
-from miasm2.analysis.sandbox import Sandbox_Linux_x86_64
-from miasm2.expression.expression import *
+from miasm.core.utils import int_to_byte
+from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
+from miasm.analysis.sandbox import Sandbox_Linux_x86_64
+from miasm.expression.expression import *
 
 is_win = platform.system() == "Windows"
 
@@ -96,8 +96,8 @@ sb.jitter.init_run(sb.entry_point)
 
 
 #### This part handle the DSE ####
-from miasm2.analysis.dse import DSEPathConstraint
-from miasm2.analysis.machine import Machine
+from miasm.analysis.dse import DSEPathConstraint
+from miasm.analysis.machine import Machine
 
 
 # File "management"

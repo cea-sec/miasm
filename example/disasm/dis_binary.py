@@ -1,7 +1,7 @@
 from __future__ import print_function
 import sys
-from miasm2.analysis.binary import Container
-from miasm2.analysis.machine import Machine
+from miasm.analysis.binary import Container
+from miasm.analysis.machine import Machine
 
 fdesc = open(sys.argv[1], 'rb')
 

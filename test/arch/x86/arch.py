@@ -2,13 +2,13 @@ from __future__ import print_function
 import time
 from pdb import pm
 
-from miasm2.core.utils import decode_hex, encode_hex
-import miasm2.expression.expression as m2_expr
-from miasm2.arch.x86.arch import mn_x86, deref_mem_ad, \
+from miasm.core.utils import decode_hex, encode_hex
+import miasm.expression.expression as m2_expr
+from miasm.arch.x86.arch import mn_x86, deref_mem_ad, \
     base_expr, rmarg, print_size
-from miasm2.arch.x86.sem import ir_x86_16, ir_x86_32, ir_x86_64
-from miasm2.core.bin_stream import bin_stream_str
-from miasm2.core.locationdb import LocationDB
+from miasm.arch.x86.sem import ir_x86_16, ir_x86_32, ir_x86_64
+from miasm.core.bin_stream import bin_stream_str
+from miasm.core.locationdb import LocationDB
 
 loc_db = LocationDB()
 

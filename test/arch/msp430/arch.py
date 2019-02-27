@@ -2,9 +2,9 @@ from __future__ import print_function
 
 import time
 from pdb import pm
-from miasm2.core.utils import decode_hex, encode_hex
-from miasm2.arch.msp430.arch import *
-from miasm2.core.locationdb import LocationDB
+from miasm.core.utils import decode_hex, encode_hex
+from miasm.arch.msp430.arch import *
+from miasm.core.locationdb import LocationDB
 
 loc_db = LocationDB()
 

@@ -3,9 +3,9 @@ import random
 
 from future.utils import viewitems
 
-from miasm2.expression.expression import *
-from miasm2.expression.expression_helper import ExprRandom
-from miasm2.ir.translators import Translator
+from miasm.expression.expression import *
+from miasm.expression.expression_helper import ExprRandom
+from miasm.ir.translators import Translator
 
 random.seed(0)
 

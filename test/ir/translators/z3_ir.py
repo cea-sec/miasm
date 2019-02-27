@@ -1,9 +1,9 @@
 from __future__ import print_function
 import z3
 
-from miasm2.core.locationdb import LocationDB
-from miasm2.expression.expression import *
-from miasm2.ir.translators.z3_ir import Z3Mem, TranslatorZ3
+from miasm.core.locationdb import LocationDB
+from miasm.expression.expression import *
+from miasm.ir.translators.z3_ir import Z3Mem, TranslatorZ3
 
 # Some examples of use/unit tests.
 

@@ -12,14 +12,14 @@ import unittest
 import logging
 import copy
 
-from miasm2.ir.symbexec import SymbolicExecutionEngine
-from miasm2.arch.x86.arch import mn_x86 as mn
-from miasm2.arch.x86.sem import ir_x86_32 as ir_32, ir_x86_64 as ir_64
-from miasm2.arch.x86.regs import *
-from miasm2.expression.expression import *
-from miasm2.expression.simplifications import expr_simp
-from miasm2.core import parse_asm, asmblock
-from miasm2.core.locationdb import LocationDB
+from miasm.ir.symbexec import SymbolicExecutionEngine
+from miasm.arch.x86.arch import mn_x86 as mn
+from miasm.arch.x86.sem import ir_x86_32 as ir_32, ir_x86_64 as ir_64
+from miasm.arch.x86.regs import *
+from miasm.expression.expression import *
+from miasm.expression.simplifications import expr_simp
+from miasm.core import parse_asm, asmblock
+from miasm.core.locationdb import LocationDB
 
 
 logging.getLogger('cpuhelper').setLevel(logging.ERROR)

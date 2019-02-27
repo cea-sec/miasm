@@ -6,15 +6,15 @@ from pdb import pm
 
 from future.utils import viewitems
 
-from miasm2.analysis.machine import Machine
-from miasm2.analysis.binary import Container
-from miasm2.expression.expression import ExprInt, ExprCond, ExprId, \
+from miasm.analysis.machine import Machine
+from miasm.analysis.binary import Container
+from miasm.expression.expression import ExprInt, ExprCond, ExprId, \
     get_expr_ids, ExprAssign, ExprLoc
-from miasm2.core.bin_stream import bin_stream_str
-from miasm2.ir.symbexec import SymbolicExecutionEngine, get_block
-from miasm2.expression.simplifications import expr_simp
-from miasm2.core import parse_asm
-from miasm2.ir.translators.translator  import Translator
+from miasm.core.bin_stream import bin_stream_str
+from miasm.ir.symbexec import SymbolicExecutionEngine, get_block
+from miasm.expression.simplifications import expr_simp
+from miasm.core import parse_asm
+from miasm.ir.translators.translator  import Translator
 
 machine = Machine("x86_32")
 

@@ -1,6 +1,6 @@
 from argparse import ArgumentParser
-from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
-from miasm2.analysis.machine import Machine
+from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
+from miasm.analysis.machine import Machine
 
 from pdb import pm
 

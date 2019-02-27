@@ -1,7 +1,7 @@
 from __future__ import print_function
-from miasm2.expression.expression import *
-from miasm2.analysis.expression_range import expr_range
-from miasm2.ir.translators import Translator
+from miasm.expression.expression import *
+from miasm.analysis.expression_range import expr_range
+from miasm.ir.translators import Translator
 import z3
 
 trans = Translator.to_language("z3")

@@ -2,10 +2,10 @@ from __future__ import print_function
 
 from future.utils import viewitems
 
-from miasm2.arch.x86.arch import mn_x86
-from miasm2.expression.expression import get_rw
-from miasm2.arch.x86.ira import ir_a_x86_32
-from miasm2.core.locationdb import LocationDB
+from miasm.arch.x86.arch import mn_x86
+from miasm.expression.expression import get_rw
+from miasm.arch.x86.ira import ir_a_x86_32
+from miasm.core.locationdb import LocationDB
 
 loc_db = LocationDB()
 

@@ -3,14 +3,14 @@
 
 from __future__ import print_function
 
-from miasm2.analysis.machine import Machine
-from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
+from miasm.analysis.machine import Machine
+from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
 
 
 def jit_instructions(mn_str):
     """JIT instructions and return the jitter object."""
 
-    # Get the miasm2 Machine
+    # Get the miasm Machine
     machine = Machine("mepb")
     mn_mep = machine.mn()
 

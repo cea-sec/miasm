@@ -4,14 +4,14 @@ from pdb import pm
 
 from future.utils import viewitems
 
-from miasm2.core.utils import decode_hex
-from miasm2.analysis.machine import Machine
-from miasm2.analysis.binary import Container
-from miasm2.core.asmblock import AsmCFG, AsmConstraint, AsmBlock, \
+from miasm.core.utils import decode_hex
+from miasm.analysis.machine import Machine
+from miasm.analysis.binary import Container
+from miasm.core.asmblock import AsmCFG, AsmConstraint, AsmBlock, \
     AsmBlockBad, AsmConstraintTo, AsmConstraintNext, \
     bbl_simplifier
-from miasm2.core.graph import DiGraphSimplifier, MatchGraphJoker
-from miasm2.expression.expression import ExprId
+from miasm.core.graph import DiGraphSimplifier, MatchGraphJoker
+from miasm.expression.expression import ExprId
 
 # Initial data: from 'samples/simple_test.bin'
 data = decode_hex("5589e583ec10837d08007509c745fc01100000eb73837d08017709c745fc02100000eb64837d08057709c745fc03100000eb55837d080774138b450801c083f80e7509c745fc04100000eb3c8b450801c083f80e7509c745fc05100000eb298b450883e03085c07409c745fc06100000eb16837d08427509c745fc07100000eb07c745fc081000008b45fcc9c3")

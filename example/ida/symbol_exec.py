@@ -7,8 +7,8 @@ import idaapi
 import idc
 
 
-from miasm2.expression.expression_helper import Variables_Identifier
-from miasm2.expression.expression import ExprAssign
+from miasm.expression.expression_helper import Variables_Identifier
+from miasm.expression.expression import ExprAssign
 
 from utils import expr2colorstr, translatorForm
 
@@ -130,8 +130,8 @@ class Hooks(idaapi.UI_Hooks):
 
 
 def symbolic_exec():
-    from miasm2.ir.symbexec import SymbolicExecutionEngine
-    from miasm2.core.bin_stream_ida import bin_stream_ida
+    from miasm.ir.symbexec import SymbolicExecutionEngine
+    from miasm.core.bin_stream_ida import bin_stream_ida
 
     from utils import guess_machine
 

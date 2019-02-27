@@ -1,7 +1,7 @@
-from miasm2.core import asmblock
-from miasm2.arch.x86  import arch
-from miasm2.core import parse_asm
-from miasm2.core.interval import interval
+from miasm.core import asmblock
+from miasm.arch.x86  import arch
+from miasm.core import parse_asm
+from miasm.core.interval import interval
 
 my_mn = arch.mn_x86
 

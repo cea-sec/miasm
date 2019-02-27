@@ -6,12 +6,12 @@ A "constant expression" is an expression based on constants or init regs.
 
 from argparse import ArgumentParser
 
-from miasm2.analysis.machine import Machine
-from miasm2.analysis.binary import Container
-from miasm2.analysis.cst_propag import propagate_cst_expr
-from miasm2.analysis.data_flow import dead_simp, \
+from miasm.analysis.machine import Machine
+from miasm.analysis.binary import Container
+from miasm.analysis.cst_propag import propagate_cst_expr
+from miasm.analysis.data_flow import dead_simp, \
     merge_blocks, remove_empty_assignblks
-from miasm2.expression.simplifications import expr_simp
+from miasm.expression.simplifications import expr_simp
 
 
 parser = ArgumentParser("Constant expression propagation")

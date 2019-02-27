@@ -4,12 +4,12 @@ from pdb import pm
 from future.utils import viewitems
 
 from elfesteem.strpatchwork import StrPatchwork
-from miasm2.core import parse_asm
-from miasm2.expression.expression import ExprCompose, ExprOp, ExprInt, ExprId
-from miasm2.core.asmblock import asm_resolve_final
-from miasm2.analysis.machine import Machine
-from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
-from miasm2.analysis.dse import DSEEngine
+from miasm.core import parse_asm
+from miasm.expression.expression import ExprCompose, ExprOp, ExprInt, ExprId
+from miasm.core.asmblock import asm_resolve_final
+from miasm.analysis.machine import Machine
+from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
+from miasm.analysis.dse import DSEEngine
 
 
 class DSETest(object):

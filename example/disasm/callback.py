@@ -1,7 +1,7 @@
 from __future__ import print_function
-from miasm2.analysis.binary import Container
-from miasm2.analysis.machine import Machine
-from miasm2.core.asmblock import AsmConstraint
+from miasm.analysis.binary import Container
+from miasm.analysis.machine import Machine
+from miasm.core.asmblock import AsmConstraint
 
 
 def cb_x86_callpop(cur_bloc, loc_db, *args, **kwargs):

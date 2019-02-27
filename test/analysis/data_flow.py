@@ -3,11 +3,11 @@ from __future__ import print_function
 
 from future.utils import viewitems
 
-from miasm2.expression.expression import ExprId, ExprInt, ExprAssign, ExprMem
-from miasm2.core.locationdb import LocationDB
-from miasm2.analysis.data_flow import *
-from miasm2.ir.analysis import ira
-from miasm2.ir.ir import IRBlock, AssignBlock
+from miasm.expression.expression import ExprId, ExprInt, ExprAssign, ExprMem
+from miasm.core.locationdb import LocationDB
+from miasm.analysis.data_flow import *
+from miasm.ir.analysis import ira
+from miasm.ir.ir import IRBlock, AssignBlock
 
 loc_db = LocationDB()
 

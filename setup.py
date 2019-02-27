@@ -13,117 +13,117 @@ is_win = platform.system() == "Windows"
 
 def buil_all():
     packages=[
-        "miasm2",
-        "miasm2/arch",
-        "miasm2/arch/x86",
-        "miasm2/arch/arm",
-        "miasm2/arch/aarch64",
-        "miasm2/arch/msp430",
-        "miasm2/arch/mep",
-        "miasm2/arch/sh4",
-        "miasm2/arch/mips32",
-        "miasm2/arch/ppc",
-        "miasm2/core",
-        "miasm2/expression",
-        "miasm2/ir",
-        "miasm2/ir/translators",
-        "miasm2/analysis",
-        "miasm2/os_dep",
-        "miasm2/os_dep/linux",
-        "miasm2/jitter",
-        "miasm2/jitter/arch",
-        "miasm2/jitter/loader",
+        "miasm",
+        "miasm/arch",
+        "miasm/arch/x86",
+        "miasm/arch/arm",
+        "miasm/arch/aarch64",
+        "miasm/arch/msp430",
+        "miasm/arch/mep",
+        "miasm/arch/sh4",
+        "miasm/arch/mips32",
+        "miasm/arch/ppc",
+        "miasm/core",
+        "miasm/expression",
+        "miasm/ir",
+        "miasm/ir/translators",
+        "miasm/analysis",
+        "miasm/os_dep",
+        "miasm/os_dep/linux",
+        "miasm/jitter",
+        "miasm/jitter/arch",
+        "miasm/jitter/loader",
     ]
     ext_modules_all = [
         Extension(
-            "miasm2.jitter.VmMngr",
+            "miasm.jitter.VmMngr",
             [
-                "miasm2/jitter/vm_mngr.c",
-                "miasm2/jitter/vm_mngr_py.c",
-                "miasm2/jitter/bn.c",
+                "miasm/jitter/vm_mngr.c",
+                "miasm/jitter/vm_mngr_py.c",
+                "miasm/jitter/bn.c",
             ]
         ),
         Extension(
-            "miasm2.jitter.arch.JitCore_x86",
+            "miasm.jitter.arch.JitCore_x86",
             [
-                "miasm2/jitter/JitCore.c",
-                "miasm2/jitter/vm_mngr.c",
-                "miasm2/jitter/op_semantics.c",
-                "miasm2/jitter/bn.c",
-                "miasm2/jitter/arch/JitCore_x86.c"
+                "miasm/jitter/JitCore.c",
+                "miasm/jitter/vm_mngr.c",
+                "miasm/jitter/op_semantics.c",
+                "miasm/jitter/bn.c",
+                "miasm/jitter/arch/JitCore_x86.c"
             ]
         ),
         Extension(
-            "miasm2.jitter.arch.JitCore_arm",
+            "miasm.jitter.arch.JitCore_arm",
             [
-                "miasm2/jitter/JitCore.c",
-                "miasm2/jitter/vm_mngr.c",
-                "miasm2/jitter/op_semantics.c",
-                "miasm2/jitter/bn.c",
-                "miasm2/jitter/arch/JitCore_arm.c"
+                "miasm/jitter/JitCore.c",
+                "miasm/jitter/vm_mngr.c",
+                "miasm/jitter/op_semantics.c",
+                "miasm/jitter/bn.c",
+                "miasm/jitter/arch/JitCore_arm.c"
             ]
         ),
         Extension(
-            "miasm2.jitter.arch.JitCore_aarch64",
+            "miasm.jitter.arch.JitCore_aarch64",
             [
-                "miasm2/jitter/JitCore.c",
-                "miasm2/jitter/vm_mngr.c",
-                "miasm2/jitter/op_semantics.c",
-                "miasm2/jitter/bn.c",
-                "miasm2/jitter/arch/JitCore_aarch64.c"
+                "miasm/jitter/JitCore.c",
+                "miasm/jitter/vm_mngr.c",
+                "miasm/jitter/op_semantics.c",
+                "miasm/jitter/bn.c",
+                "miasm/jitter/arch/JitCore_aarch64.c"
             ]
         ),
         Extension(
-            "miasm2.jitter.arch.JitCore_msp430",
+            "miasm.jitter.arch.JitCore_msp430",
             [
-                "miasm2/jitter/JitCore.c",
-                "miasm2/jitter/vm_mngr.c",
-                "miasm2/jitter/op_semantics.c",
-                "miasm2/jitter/bn.c",
-                "miasm2/jitter/arch/JitCore_msp430.c"
+                "miasm/jitter/JitCore.c",
+                "miasm/jitter/vm_mngr.c",
+                "miasm/jitter/op_semantics.c",
+                "miasm/jitter/bn.c",
+                "miasm/jitter/arch/JitCore_msp430.c"
             ]
         ),
         Extension(
-            "miasm2.jitter.arch.JitCore_mep",
+            "miasm.jitter.arch.JitCore_mep",
             [
-                "miasm2/jitter/JitCore.c",
-                "miasm2/jitter/vm_mngr.c",
-                "miasm2/jitter/bn.c",
-                "miasm2/jitter/arch/JitCore_mep.c"
+                "miasm/jitter/JitCore.c",
+                "miasm/jitter/vm_mngr.c",
+                "miasm/jitter/bn.c",
+                "miasm/jitter/arch/JitCore_mep.c"
             ]
         ),
         Extension(
-            "miasm2.jitter.arch.JitCore_mips32",
+            "miasm.jitter.arch.JitCore_mips32",
             [
-                "miasm2/jitter/JitCore.c",
-                "miasm2/jitter/vm_mngr.c",
-                "miasm2/jitter/op_semantics.c",
-                "miasm2/jitter/bn.c",
-                "miasm2/jitter/arch/JitCore_mips32.c"
+                "miasm/jitter/JitCore.c",
+                "miasm/jitter/vm_mngr.c",
+                "miasm/jitter/op_semantics.c",
+                "miasm/jitter/bn.c",
+                "miasm/jitter/arch/JitCore_mips32.c"
             ]
         ),
         Extension(
-            "miasm2.jitter.arch.JitCore_ppc32",
+            "miasm.jitter.arch.JitCore_ppc32",
             [
-                "miasm2/jitter/JitCore.c",
-                "miasm2/jitter/vm_mngr.c",
-                "miasm2/jitter/op_semantics.c",
-                "miasm2/jitter/bn.c",
-                "miasm2/jitter/arch/JitCore_ppc32.c"
+                "miasm/jitter/JitCore.c",
+                "miasm/jitter/vm_mngr.c",
+                "miasm/jitter/op_semantics.c",
+                "miasm/jitter/bn.c",
+                "miasm/jitter/arch/JitCore_ppc32.c"
             ],
             depends=[
-                "miasm2/jitter/arch/JitCore_ppc32.h",
-                "miasm2/jitter/arch/JitCore_ppc32_regs.h",
-                "miasm2/jitter/bn.h",
+                "miasm/jitter/arch/JitCore_ppc32.h",
+                "miasm/jitter/arch/JitCore_ppc32_regs.h",
+                "miasm/jitter/bn.h",
             ]
         ),
-        Extension("miasm2.jitter.Jitllvm",
-                  ["miasm2/jitter/Jitllvm.c",
-                   "miasm2/jitter/bn.c",
+        Extension("miasm.jitter.Jitllvm",
+                  ["miasm/jitter/Jitllvm.c",
+                   "miasm/jitter/bn.c",
                   ]),
-        Extension("miasm2.jitter.Jitgcc",
-                  ["miasm2/jitter/Jitgcc.c",
-                   "miasm2/jitter/bn.c",
+        Extension("miasm.jitter.Jitgcc",
+                  ["miasm/jitter/Jitgcc.c",
+                   "miasm/jitter/bn.c",
                   ]),
         ]
 
@@ -143,7 +143,7 @@ def buil_all():
                 version = "2.0",
                 packages = packages,
                 package_data = {
-                    "miasm2":[
+                    "miasm":[
                         "jitter/*.h",
                         "jitter/arch/*.h",
                     ]
@@ -199,7 +199,7 @@ def buil_all():
         jitters = []
         for lib in libs:
             filename = os.path.basename(lib)
-            dst = os.path.join(build_base, lib_dirname, "miasm2", "jitter")
+            dst = os.path.join(build_base, lib_dirname, "miasm", "jitter")
             if filename not in ["VmMngr.lib", "Jitgcc.lib", "Jitllvm.lib"]:
                 dst = os.path.join(dst, "arch")
             dst = os.path.join(dst, filename)

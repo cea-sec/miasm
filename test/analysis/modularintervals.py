@@ -1,10 +1,10 @@
 from builtins import range
 from random import shuffle, seed
 
-from miasm2.core.interval import interval
-from miasm2.analysis.modularintervals import ModularIntervals
-from miasm2.expression.expression import *
-from miasm2.expression.simplifications import expr_simp
+from miasm.core.interval import interval
+from miasm.analysis.modularintervals import ModularIntervals
+from miasm.expression.expression import *
+from miasm.expression.simplifications import expr_simp
 
 
 def gen_all_intervals(size):

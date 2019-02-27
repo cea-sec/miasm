@@ -22,10 +22,10 @@ from argparse import ArgumentParser
 
 from future.utils import viewitems
 
-from miasm2.analysis.machine import Machine
-from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
-from miasm2.analysis.dse import DSEPathConstraint
-from miasm2.expression.expression import ExprMem, ExprId, ExprInt, ExprAssign
+from miasm.analysis.machine import Machine
+from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
+from miasm.analysis.dse import DSEPathConstraint
+from miasm.expression.expression import ExprMem, ExprId, ExprInt, ExprAssign
 
 # Argument handling
 parser = ArgumentParser("DSE Example")

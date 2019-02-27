@@ -1,16 +1,16 @@
 #! /usr/bin/env python2
-"""This script is just a short example of common usages for miasm2.core.types.
+"""This script is just a short example of common usages for miasm.core.types.
 For a more complete view of what is possible, tests/core/types.py covers
 most of the module possibilities, and the module doc gives useful information
 as well.
 """
 from __future__ import print_function
 
-from miasm2.core.utils import iterbytes
-from miasm2.analysis.machine import Machine
-from miasm2.core.types import MemStruct, Self, Void, Str, Array, Ptr, \
+from miasm.core.utils import iterbytes
+from miasm.analysis.machine import Machine
+from miasm.core.types import MemStruct, Self, Void, Str, Array, Ptr, \
                               Num, Array, set_allocator
-from miasm2.os_dep.common import heap
+from miasm.os_dep.common import heap
 
 # Instantiate a heap
 my_heap = heap()
@@ -152,7 +152,7 @@ print("module in the first part, and how to play with some casts in the second."
 print()
 
 # A random jitter
-# You can also use miasm2.jitter.VmMngr.Vm(), but it does not happen in real
+# You can also use miasm.jitter.VmMngr.Vm(), but it does not happen in real
 # life scripts, so here is the usual way:
 jitter = Machine("x86_32").jitter("python")
 vm = jitter.vm
@@ -255,6 +255,6 @@ print("An argv instance:", repr(argv))
 print("argv values:", repr([val.deref.val for val in argv[:-1]]))
 print()
 
-print("See test/core/types.py and the miasm2.core.types module doc for ")
+print("See test/core/types.py and the miasm.core.types module doc for ")
 print("more information.")
 

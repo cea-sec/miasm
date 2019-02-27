@@ -1,7 +1,7 @@
 #! /usr/bin/env python2
 """Test getter and setter for XMM registers (128 bits)"""
 
-from miasm2.analysis.machine import Machine
+from miasm.analysis.machine import Machine
 
 # Jitter engine doesn't matter, use the always available 'python' one
 myjit = Machine("x86_32").jitter("python")

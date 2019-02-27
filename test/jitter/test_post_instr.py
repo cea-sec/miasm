@@ -1,9 +1,9 @@
 from __future__ import print_function
 import sys
 
-from miasm2.core.utils import decode_hex
-from miasm2.analysis.machine import Machine
-from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE, \
+from miasm.core.utils import decode_hex
+from miasm.analysis.machine import Machine
+from miasm.jitter.csts import PAGE_READ, PAGE_WRITE, \
     EXCEPT_BREAKPOINT_MEMORY, EXCEPT_ACCESS_VIOL
 
 machine = Machine("x86_32")

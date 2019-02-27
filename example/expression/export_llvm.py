@@ -1,11 +1,11 @@
 from future.utils import viewitems, viewvalues
 
 from argparse import ArgumentParser
-from miasm2.analysis.binary import Container
-from miasm2.analysis.machine import Machine
-from miasm2.jitter.llvmconvert import LLVMType, LLVMContext_IRCompilation, LLVMFunction_IRCompilation
+from miasm.analysis.binary import Container
+from miasm.analysis.machine import Machine
+from miasm.jitter.llvmconvert import LLVMType, LLVMContext_IRCompilation, LLVMFunction_IRCompilation
 from llvmlite import ir as llvm_ir
-from miasm2.expression.simplifications import expr_simp_high_to_explicit
+from miasm.expression.simplifications import expr_simp_high_to_explicit
 
 parser = ArgumentParser("LLVM export example")
 parser.add_argument("target", help="Target binary")

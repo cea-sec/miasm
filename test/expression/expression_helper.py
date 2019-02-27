@@ -10,8 +10,8 @@ import unittest
 class TestExpressionExpressionHelper(unittest.TestCase):
 
     def test_Variables_Identifier(self):
-        import miasm2.expression.expression as m2_expr
-        from miasm2.expression.expression_helper import Variables_Identifier
+        import miasm.expression.expression as m2_expr
+        from miasm.expression.expression_helper import Variables_Identifier
 
         # Build a complex expression
         cst = m2_expr.ExprInt(0x100, 16)

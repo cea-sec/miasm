@@ -3,7 +3,7 @@
 
 from ut_helpers_ir import exec_instruction
 
-from miasm2.expression.expression import ExprId, ExprInt, ExprMem
+from miasm.expression.expression import ExprId, ExprInt, ExprMem
 
 
 class TestBitManipulation(object):

@@ -11,9 +11,9 @@ from __future__ import print_function
 import os
 import time
 from pdb import pm
-from miasm2.analysis.sandbox import Sandbox_Linux_arml
-from miasm2.jitter.emulatedsymbexec import EmulatedSymbExec
-from miasm2.jitter.jitcore_python import JitCore_Python
+from miasm.analysis.sandbox import Sandbox_Linux_arml
+from miasm.jitter.emulatedsymbexec import EmulatedSymbExec
+from miasm.jitter.jitcore_python import JitCore_Python
 
 # Function called at each instruction
 instr_count = 0

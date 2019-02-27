@@ -10,7 +10,7 @@ import unittest
 class TestUtils(unittest.TestCase):
 
     def test_boundedDict(self):
-        from miasm2.core.utils import BoundedDict
+        from miasm.core.utils import BoundedDict
 
         # Use a callback
         def logger(key):

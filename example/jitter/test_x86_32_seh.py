@@ -1,8 +1,8 @@
 import os
 from pdb import pm
-from miasm2.analysis.sandbox import Sandbox_Win_x86_32
-from miasm2.os_dep import win_api_x86_32_seh
-from miasm2.jitter.csts import *
+from miasm.analysis.sandbox import Sandbox_Win_x86_32
+from miasm.os_dep import win_api_x86_32_seh
+from miasm.jitter.csts import *
 
 def deal_exception_access_violation(jitter):
     jitter.pc = win_api_x86_32_seh.fake_seh_handler(jitter, win_api_x86_32_seh.EXCEPTION_ACCESS_VIOLATION)

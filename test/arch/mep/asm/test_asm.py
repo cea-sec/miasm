@@ -2,8 +2,8 @@
 # Guillaume Valadon <guillaume@valadon.net>
 
 from __future__ import print_function
-from miasm2.core.utils import decode_hex, encode_hex
-from miasm2.arch.mep.arch import mn_mep
+from miasm.core.utils import decode_hex, encode_hex
+from miasm.arch.mep.arch import mn_mep
 
 class TestMisc(object):
 

@@ -1,6 +1,6 @@
 from __future__ import print_function
-from miasm2.expression.parser import str_to_expr
-from miasm2.expression.expression import ExprInt, ExprId, ExprSlice, ExprMem, \
+from miasm.expression.parser import str_to_expr
+from miasm.expression.expression import ExprInt, ExprId, ExprSlice, ExprMem, \
     ExprCond, ExprCompose, ExprOp, ExprAssign, ExprLoc, LocKey
 
 for expr_test in [ExprInt(0x12, 32),

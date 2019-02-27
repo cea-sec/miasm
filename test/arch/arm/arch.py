@@ -1,9 +1,9 @@
 from __future__ import print_function
 import time
 
-from miasm2.core.utils import decode_hex, encode_hex
-from miasm2.arch.arm.arch import *
-from miasm2.core.locationdb import LocationDB
+from miasm.core.utils import decode_hex, encode_hex
+from miasm.arch.arm.arch import *
+from miasm.core.locationdb import LocationDB
 from pdb import pm
 
 

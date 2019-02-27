@@ -1,13 +1,13 @@
 from __future__ import print_function
-import miasm2.expression.expression as m2_expr
-from miasm2.expression.simplifications import expr_simp
+import miasm.expression.expression as m2_expr
+from miasm.expression.simplifications import expr_simp
 from pdb import pm
 
 print("""
 Expression simplification demo: Adding a simplification:
 a + a + a == a * 3
 
-More detailed examples can be found in miasm2/expression/simplification*.
+More detailed examples can be found in miasm/expression/simplification*.
 """)
 
 # Define the simplification method

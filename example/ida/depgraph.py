@@ -12,13 +12,13 @@ import ida_funcs
 import ida_kernwin
 
 
-from miasm2.core.bin_stream_ida import bin_stream_ida
-from miasm2.core.asmblock import *
-from miasm2.expression import expression as m2_expr
+from miasm.core.bin_stream_ida import bin_stream_ida
+from miasm.core.asmblock import *
+from miasm.expression import expression as m2_expr
 
-from miasm2.expression.simplifications import expr_simp
-from miasm2.analysis.depgraph import DependencyGraph
-from miasm2.ir.ir import AssignBlock, IRBlock
+from miasm.expression.simplifications import expr_simp
+from miasm.analysis.depgraph import DependencyGraph
+from miasm.ir.ir import AssignBlock, IRBlock
 
 from utils import guess_machine
 

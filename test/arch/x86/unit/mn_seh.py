@@ -2,10 +2,10 @@
 from __future__ import print_function
 import sys
 
-from miasm2.os_dep.win_api_x86_32_seh import fake_seh_handler, build_teb, \
+from miasm.os_dep.win_api_x86_32_seh import fake_seh_handler, build_teb, \
     set_win_fs_0, return_from_exception, EXCEPTION_PRIV_INSTRUCTION, \
     return_from_seh, DEFAULT_SEH
-from miasm2.os_dep.win_32_structs import ContextException
+from miasm.os_dep.win_32_structs import ContextException
 
 from asm_test import Asm_Test_32
 

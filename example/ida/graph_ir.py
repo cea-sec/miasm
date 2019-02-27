@@ -11,13 +11,13 @@ import idc
 import ida_funcs
 import idautils
 
-from miasm2.core.asmblock import is_int
-from miasm2.core.bin_stream_ida import bin_stream_ida
-from miasm2.expression.simplifications import expr_simp
-from miasm2.ir.ir import IRBlock, AssignBlock
-from miasm2.analysis.data_flow import load_from_int
+from miasm.core.asmblock import is_int
+from miasm.core.bin_stream_ida import bin_stream_ida
+from miasm.expression.simplifications import expr_simp
+from miasm.ir.ir import IRBlock, AssignBlock
+from miasm.analysis.data_flow import load_from_int
 from utils import guess_machine, expr2colorstr
-from miasm2.analysis.simplifier import IRCFGSimplifierCommon, IRCFGSimplifierSSA
+from miasm.analysis.simplifier import IRCFGSimplifierCommon, IRCFGSimplifierSSA
 
 
 

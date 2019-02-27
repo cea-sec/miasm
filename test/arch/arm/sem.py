@@ -7,12 +7,12 @@ import logging
 
 from future.utils import viewitems
 
-from miasm2.ir.symbexec import SymbolicExecutionEngine
-from miasm2.arch.arm.arch import mn_arm as mn
-from miasm2.arch.arm.sem import ir_arml as ir_arch
-from miasm2.arch.arm.regs import *
-from miasm2.expression.expression import *
-from miasm2.core.locationdb import LocationDB
+from miasm.ir.symbexec import SymbolicExecutionEngine
+from miasm.arch.arm.arch import mn_arm as mn
+from miasm.arch.arm.sem import ir_arml as ir_arch
+from miasm.arch.arm.regs import *
+from miasm.expression.expression import *
+from miasm.core.locationdb import LocationDB
 from pdb import pm
 
 logging.getLogger('cpuhelper').setLevel(logging.ERROR)

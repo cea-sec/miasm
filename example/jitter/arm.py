@@ -4,7 +4,7 @@ from __future__ import print_function
 import logging
 from pdb import pm
 
-from miasm2.analysis.sandbox import Sandbox_Linux_arml
+from miasm.analysis.sandbox import Sandbox_Linux_arml
 
 # Get arguments
 parser = Sandbox_Linux_arml.parser(description="""Sandbox an elf binary with arm

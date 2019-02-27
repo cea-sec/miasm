@@ -1,19 +1,19 @@
 #! /usr/bin/env python2
 
-# miasm2.core.types tests
+# miasm.core.types tests
 
 from __future__ import print_function
 from builtins import range
 import struct
 
-from miasm2.core.utils import int_to_byte
-from miasm2.analysis.machine import Machine
-from miasm2.core.types import MemStruct, Num, Ptr, Str, \
+from miasm.core.utils import int_to_byte
+from miasm.analysis.machine import Machine
+from miasm.core.types import MemStruct, Num, Ptr, Str, \
                               Array, RawStruct, Union, \
                               BitField, Self, Void, Bits, \
                               set_allocator, MemUnion, Struct
-from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
-from miasm2.os_dep.common import heap
+from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
+from miasm.os_dep.common import heap
 
 # Two structures with some fields
 class OtherStruct(MemStruct):

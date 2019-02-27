@@ -1,7 +1,7 @@
 from __future__ import print_function
-from miasm2.arch.x86.arch import mn_x86
-from miasm2.arch.x86.regs import EDX
-from miasm2.core.locationdb import LocationDB
+from miasm.arch.x86.arch import mn_x86
+from miasm.arch.x86.regs import EDX
+from miasm.core.locationdb import LocationDB
 
 loc_db = LocationDB()
 l = mn_x86.fromstring('MOV EAX, EBX', loc_db, 32)

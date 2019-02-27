@@ -10,9 +10,9 @@ try:
 except AttributeError:
     pass
 
-from miasm2.analysis.sandbox import Sandbox_Linux_x86_32
-from miasm2.jitter.jitload import log_func
-from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
+from miasm.analysis.sandbox import Sandbox_Linux_x86_32
+from miasm.jitter.jitload import log_func
+from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
 
 # Utils
 def parse_fmt(s):

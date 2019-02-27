@@ -6,10 +6,10 @@ import json
 
 from future.utils import viewitems
 
-from miasm2.analysis.machine import Machine
-from miasm2.analysis.binary import Container
-from miasm2.analysis.depgraph import DependencyGraph
-from miasm2.expression.expression import ExprMem, ExprId, ExprInt
+from miasm.analysis.machine import Machine
+from miasm.analysis.binary import Container
+from miasm.analysis.depgraph import DependencyGraph
+from miasm.expression.expression import ExprMem, ExprId, ExprInt
 
 parser = ArgumentParser("Dependency grapher")
 parser.add_argument("filename", help="Binary to analyse")

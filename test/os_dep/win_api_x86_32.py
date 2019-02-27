@@ -4,10 +4,10 @@
 from builtins import range
 import unittest
 import logging
-from miasm2.analysis.machine import Machine
-import miasm2.os_dep.win_api_x86_32 as winapi
-from miasm2.core.utils import pck32
-from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
+from miasm.analysis.machine import Machine
+import miasm.os_dep.win_api_x86_32 as winapi
+from miasm.core.utils import pck32
+from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
 
 machine = Machine("x86_32")
 

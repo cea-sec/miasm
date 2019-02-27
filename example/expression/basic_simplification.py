@@ -1,6 +1,6 @@
 from __future__ import print_function
-from miasm2.expression.expression import *
-from miasm2.expression.simplifications import expr_simp
+from miasm.expression.expression import *
+from miasm.expression.simplifications import expr_simp
 
 print("""
 Simple expression simplification demo

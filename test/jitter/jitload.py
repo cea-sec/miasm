@@ -1,10 +1,10 @@
 import sys
 from pdb import pm
 
-from miasm2.core.utils import decode_hex, encode_hex
-from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
-from miasm2.analysis.machine import Machine
-from miasm2.expression.expression import ExprId, ExprAssign, ExprInt, ExprMem
+from miasm.core.utils import decode_hex, encode_hex
+from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
+from miasm.analysis.machine import Machine
+from miasm.expression.expression import ExprId, ExprAssign, ExprInt, ExprMem
 
 # Initial data: from 'example/samples/x86_32_sc.bin'
 data = decode_hex("8d49048d5b0180f90174058d5bffeb038d5b0189d8c3")

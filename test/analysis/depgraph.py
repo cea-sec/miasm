@@ -3,13 +3,13 @@ from __future__ import print_function
 
 from future.utils import viewitems
 
-from miasm2.expression.expression import ExprId, ExprInt, ExprAssign, \
+from miasm.expression.expression import ExprId, ExprInt, ExprAssign, \
     ExprCond, ExprLoc, LocKey
-from miasm2.core.locationdb import LocationDB
-from miasm2.ir.analysis import ira
-from miasm2.ir.ir import IRBlock, AssignBlock
-from miasm2.core.graph import DiGraph
-from miasm2.analysis.depgraph import DependencyNode, DependencyGraph
+from miasm.core.locationdb import LocationDB
+from miasm.ir.analysis import ira
+from miasm.ir.ir import IRBlock, AssignBlock
+from miasm.core.graph import DiGraph
+from miasm.analysis.depgraph import DependencyNode, DependencyGraph
 from itertools import count
 from pdb import pm
 import re

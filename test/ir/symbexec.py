@@ -11,12 +11,12 @@ import unittest
 class TestSymbExec(unittest.TestCase):
 
     def test_ClassDef(self):
-        from miasm2.expression.expression import ExprInt, ExprId, ExprMem, \
+        from miasm.expression.expression import ExprInt, ExprId, ExprMem, \
             ExprCompose, ExprAssign
-        from miasm2.arch.x86.sem import ir_x86_32
-        from miasm2.core.locationdb import LocationDB
-        from miasm2.ir.symbexec import SymbolicExecutionEngine
-        from miasm2.ir.ir import AssignBlock
+        from miasm.arch.x86.sem import ir_x86_32
+        from miasm.core.locationdb import LocationDB
+        from miasm.ir.symbexec import SymbolicExecutionEngine
+        from miasm.ir.ir import AssignBlock
 
 
         loc_db = LocationDB()

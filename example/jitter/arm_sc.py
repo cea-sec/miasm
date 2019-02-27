@@ -1,8 +1,8 @@
 #! /usr/bin/env python2
 #-*- coding:utf-8 -*-
-from miasm2.core.utils import int_to_byte
-from miasm2.analysis.sandbox import Sandbox_Linux_armb_str
-from miasm2.analysis.sandbox import Sandbox_Linux_arml_str
+from miasm.core.utils import int_to_byte
+from miasm.analysis.sandbox import Sandbox_Linux_armb_str
+from miasm.analysis.sandbox import Sandbox_Linux_arml_str
 from elfesteem.strpatchwork import StrPatchwork
 
 from pdb import pm

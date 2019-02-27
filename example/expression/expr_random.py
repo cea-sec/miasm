@@ -3,7 +3,7 @@ from builtins import range
 import string
 import random
 
-from miasm2.expression.expression_helper import ExprRandom
+from miasm.expression.expression_helper import ExprRandom
 
 print("Simple expression generator\n")
 

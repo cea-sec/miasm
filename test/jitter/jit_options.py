@@ -2,9 +2,9 @@ from __future__ import print_function
 import os
 import sys
 
-from miasm2.core.utils import decode_hex
-from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
-from miasm2.analysis.machine import Machine
+from miasm.core.utils import decode_hex
+from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
+from miasm.analysis.machine import Machine
 from pdb import pm
 
 # Shellcode
