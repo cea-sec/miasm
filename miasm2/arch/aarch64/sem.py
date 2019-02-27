@@ -339,6 +339,16 @@ def cmp(ir, instr, arg1, arg2):
     return e, []
 
 
+def negs(ir, instr, arg1, arg2):
+    e = []
+    arg2 = extend_arg(arg1, arg2)
+
+    e += update_flag_arith_sub_zn(arg1, arg2)
+    e += update_flag_arith_sub_co(arg1, arg2)
+
+    return e, []
+
+
 def cmn(ir, instr, arg1, arg2):
     e = []
     arg2 = extend_arg(arg1, arg2)
@@ -1295,6 +1305,7 @@ mnemo_func.update({
     'tst': tst,
     'subs': subs,
     'cmp': cmp,
+    'negs': negs,
     'cmn': cmn,
     'movk': movk,
     'ccmp': ccmp,
