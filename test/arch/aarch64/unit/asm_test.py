@@ -7,7 +7,7 @@ from miasm.arch.aarch64.arch import mn_aarch64, base_expr, variable
 from miasm.core import parse_asm
 from miasm.expression.expression import *
 from miasm.core import asmblock
-from elfesteem.strpatchwork import StrPatchwork
+from miasm.elfesteem.strpatchwork import StrPatchwork
 from miasm.analysis.machine import Machine
 from miasm.jitter.csts import *
 

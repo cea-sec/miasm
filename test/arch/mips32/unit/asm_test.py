@@ -7,7 +7,7 @@ from miasm.arch.mips32.arch import mn_mips32
 from miasm.core import parse_asm
 from miasm.expression.expression import *
 from miasm.core import asmblock
-from elfesteem.strpatchwork import StrPatchwork
+from miasm.elfesteem.strpatchwork import StrPatchwork
 from miasm.analysis.machine import Machine
 from miasm.jitter.csts import *
 

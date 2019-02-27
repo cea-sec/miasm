@@ -2,7 +2,7 @@ from __future__ import print_function
 import os
 import logging
 from pdb import pm
-from elfesteem import pe
+from miasm.elfesteem import pe
 from miasm.analysis.sandbox import Sandbox_Win_x86_32
 
 # User defined methods

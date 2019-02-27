@@ -3,7 +3,7 @@ from pdb import pm
 
 from future.utils import viewitems
 
-from elfesteem.strpatchwork import StrPatchwork
+from miasm.elfesteem.strpatchwork import StrPatchwork
 from miasm.core import parse_asm
 from miasm.expression.expression import ExprCompose, ExprOp, ExprInt, ExprId
 from miasm.core.asmblock import asm_resolve_final

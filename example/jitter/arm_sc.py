@@ -3,7 +3,7 @@
 from miasm.core.utils import int_to_byte
 from miasm.analysis.sandbox import Sandbox_Linux_armb_str
 from miasm.analysis.sandbox import Sandbox_Linux_arml_str
-from elfesteem.strpatchwork import StrPatchwork
+from miasm.elfesteem.strpatchwork import StrPatchwork
 
 from pdb import pm
 

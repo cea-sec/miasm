@@ -30,7 +30,7 @@ Miasm is a free and open source (GPLv2) reverse engineering framework.
 Miasm aims to analyze / modify / generate binary programs. Here is
 a non exhaustive list of features:
 
-* Opening / modifying / generating PE / ELF 32 / 64 LE / BE using Elfesteem
+* Opening / modifying / generating PE / ELF 32 / 64 LE / BE
 * Assembling / Disassembling X86 / ARM / MIPS / SH4 / MSP430
 * Representing assembly semantic using intermediate language
 * Emulating using JIT (dynamic code analysis, unpacking, ...)
@@ -525,7 +525,6 @@ Miasm uses:
 
 * python-pyparsing
 * python-dev
-* elfesteem from [Elfesteem](https://github.com/serpilliere/elfesteem.git)
 * optionally python-pycparser (version >= 2.17)
 
 To enable code JIT, one of the following module is mandatory:
@@ -538,14 +537,6 @@ To enable code JIT, one of the following module is mandatory:
 
 Configuration
 -------------
-
-* Install elfesteem
-```pycon
-git clone https://github.com/serpilliere/elfesteem.git elfesteem
-cd elfesteem
-python setup.py build
-sudo python setup.py install
-```
 
 To use the jitter, GCC or LLVM is recommended
 * GCC (any version)
@@ -570,7 +561,7 @@ Windows & IDA
 
 Most of Miasm's IDA plugins use a subset of Miasm functionality.
 A quick way to have them working is to add:
-* `elfesteem` directory and `pyparsing.py` to `C:\...\IDA\python\` or `pip install pyparsing elfesteem`
+* `pyparsing.py` to `C:\...\IDA\python\` or `pip install pyparsing`
 * `miasm/miasm` directory to `C:\...\IDA\python\`
 
 All features excepting JITter related ones will be available. For a more complete installation, please refer to above paragraphs.

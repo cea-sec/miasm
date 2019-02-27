@@ -131,7 +131,7 @@ class ContainerPE(Container):
 
     def parse(self, data, vm=None, **kwargs):
         from miasm.jitter.loader.pe import vm_load_pe, guess_arch
-        from elfesteem import pe_init
+        from miasm.elfesteem import pe_init
 
         # Parse signature
         if not data.startswith(b'MZ'):
@@ -178,7 +178,7 @@ class ContainerELF(Container):
         """
         from miasm.jitter.loader.elf import vm_load_elf, guess_arch, \
             fill_loc_db_with_symbols
-        from elfesteem import elf_init
+        from miasm.elfesteem import elf_init
 
         # Parse signature
         if not data.startswith(b'\x7fELF'):

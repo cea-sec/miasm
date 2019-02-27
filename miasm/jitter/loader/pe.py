@@ -6,9 +6,9 @@ from collections import defaultdict
 
 from future.utils import viewitems, viewvalues
 
-from elfesteem import pe
-from elfesteem import cstruct
-from elfesteem import *
+from miasm.elfesteem import pe
+from miasm.elfesteem import cstruct
+from miasm.elfesteem import *
 
 from miasm.jitter.csts import *
 from miasm.jitter.loader.utils import canon_libname_libfunc, libimp

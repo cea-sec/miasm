@@ -30,6 +30,7 @@ def buil_all():
         "miasm/analysis",
         "miasm/os_dep",
         "miasm/os_dep/linux",
+        "miasm/elfesteem",
         "miasm/jitter",
         "miasm/jitter/arch",
         "miasm/jitter/loader",

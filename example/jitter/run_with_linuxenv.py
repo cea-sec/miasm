@@ -2,7 +2,7 @@ from argparse import ArgumentParser
 import logging
 import re
 
-from elfesteem import elf as elf_csts
+from miasm.elfesteem import elf as elf_csts
 
 from miasm.os_dep.linux import environment, syscall
 from miasm.analysis.machine import Machine

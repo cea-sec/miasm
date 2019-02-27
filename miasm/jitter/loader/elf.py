@@ -3,9 +3,9 @@ from collections import defaultdict
 
 from future.utils import viewitems
 
-from elfesteem import cstruct
-from elfesteem import *
-import elfesteem.elf as elf_csts
+from miasm.elfesteem import cstruct
+from miasm.elfesteem import *
+import miasm.elfesteem.elf as elf_csts
 
 from miasm.jitter.csts import *
 from miasm.jitter.loader.utils import canon_libname_libfunc, libimp
@@ -56,11 +56,11 @@ def preload_elf(vm, e, runtime_lib, patch_vm_imp=True, loc_db=None):
     return runtime_lib, dyn_funcs
 
 def fill_loc_db_with_symbols(elf, loc_db, base_addr=0):
-    """Parse the elfesteem's ELF @elf to extract symbols, and fill the LocationDB
+    """Parse the miasm.elfesteem's ELF @elf to extract symbols, and fill the LocationDB
     instance @loc_db with parsed symbols.
 
     The ELF is considered mapped at @base_addr
-    @elf: elfesteem's ELF instance
+    @elf: miasm.elfesteem's ELF instance
     @loc_db: LocationDB used to retrieve symbols'offset
     @base_addr: addr to reloc to (if any)
     """
@@ -163,7 +163,7 @@ def fill_loc_db_with_symbols(elf, loc_db, base_addr=0):
 
 def apply_reloc_x86(elf, vm, section, base_addr, loc_db):
     """Apply relocation for x86 ELF contained in the section @section
-    @elf: elfesteem's ELF instance
+    @elf: miasm.elfesteem's ELF instance
     @vm: VmMngr instance
     @section: elf's section containing relocation to perform
     @base_addr: addr to reloc to
