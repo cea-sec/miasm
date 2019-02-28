@@ -3721,7 +3721,7 @@ addop("lgs", [bs8(0x0f), bs8(0xb5)] + rmmod(rmreg, rm_arg_x=rm_mem, modrm=mod_me
 addop("lgdt", [bs8(0x0f), bs8(0x01)] + rmmod(d2, modrm=mod_mem))
 addop("lidt", [bs8(0x0f), bs8(0x01)] + rmmod(d3, modrm=mod_mem))
 
-addop("lfence", [bs8(0x0f), bs8(0xae), bs8(0xe8)])
+addop("lfence", [bs8(0x0f), bs8(0xae), bs8(0xe8), no_xmm_pref])
 addop("mfence", [bs8(0x0f), bs8(0xae), bs8(0xf0)])
 addop("sfence", [bs8(0x0f), bs8(0xae), bs8(0xf8)])
 
@@ -4620,6 +4620,14 @@ addop("maskmovdqu", [bs8(0x0f), bs8(0xf7), pref_66] +
 
 addop("emms", [bs8(0x0f), bs8(0x77)])
 
+addop("incssp", [pref_f3, bs8(0x0f), bs8(0xae)] + rmmod(d5))
+addop("rdssp", [pref_f3, bs8(0x0f), bs8(0x1e)] + rmmod(d1))
+addop("saveprevssp", [pref_f3, bs8(0x0f), bs8(0x01), bs8(0xea)])
+addop("rstorssp", [pref_f3, bs8(0x0f), bs8(0x01)] + rmmod(d5, rm_arg_xmm, modrm=mod_mem))
+addop("wrss", [bs8(0x0f), bs8(0x38), bs8(0xf6)] + rmmod(rmreg, rm_arg), [rm_arg, rmreg])
+addop("wruss", [pref_66, bs8(0x0f), bs8(0x38), bs8(0xf5)] + rmmod(rmreg, rm_arg), [rm_arg, rmreg])
+addop("setssbsy", [pref_f3, bs8(0x0f), bs8(0x01), bs8(0xe8)])
+addop("clrssbsy", [pref_f3, bs8(0x0f), bs8(0xae)] + rmmod(d6, rm_arg_xmm))
 addop("endbr64", [pref_f3, bs8(0x0f), bs8(0x1e), bs8(0xfa)])
 addop("endbr32", [pref_f3, bs8(0x0f), bs8(0x1e), bs8(0xfb)])
 
