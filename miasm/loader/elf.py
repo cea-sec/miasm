@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-from miasm.elfesteem.cstruct import CStruct
+from miasm.loader.cstruct import CStruct
 
 class Ehdr(CStruct):
     _fields = [ ("ident","16s"),

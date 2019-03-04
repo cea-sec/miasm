@@ -11,8 +11,8 @@ import struct
 from future.builtins import int as int_types
 from future.utils import PY3
 
-from miasm.elfesteem import pe
-from miasm.elfesteem.strpatchwork import StrPatchwork
+from miasm.loader import pe
+from miasm.loader.strpatchwork import StrPatchwork
 
 log = logging.getLogger("peparse")
 console_handler = logging.StreamHandler()

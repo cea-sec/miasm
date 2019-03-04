@@ -23,7 +23,7 @@ import struct
 
 from future.utils import viewitems
 
-from miasm.elfesteem import pe_init
+from miasm.loader import pe_init
 
 from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
 from miasm.core.utils import pck32

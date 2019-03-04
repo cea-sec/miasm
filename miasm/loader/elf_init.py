@@ -8,9 +8,9 @@ import struct
 from future.utils import PY3, with_metaclass
 
 from miasm.core.utils import force_bytes
-from miasm.elfesteem import cstruct
-from miasm.elfesteem import elf
-from miasm.elfesteem.strpatchwork import StrPatchwork
+from miasm.loader import cstruct
+from miasm.loader import elf
+from miasm.loader.strpatchwork import StrPatchwork
 
 log = logging.getLogger("elfparse")
 console_handler = logging.StreamHandler()

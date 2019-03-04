@@ -5,8 +5,8 @@ import sys
 
 from future.utils import viewvalues
 
-from miasm.elfesteem.minidump_init import Minidump
-from miasm.elfesteem.pe_init import PE
+from miasm.loader.minidump_init import Minidump
+from miasm.loader.pe_init import PE
 
 minidump = Minidump(open(sys.argv[1], 'rb').read())
 

@@ -4,7 +4,7 @@ Based on: http://amnesia.gtisc.gatech.edu/~moyix/minidump.py
 from future.utils import viewitems
 
 from future.builtins import int as int_types
-from miasm.elfesteem.new_cstruct import CStruct
+from miasm.loader.new_cstruct import CStruct
 
 class Enumeration(object):
     """Stand for an enumeration type"""

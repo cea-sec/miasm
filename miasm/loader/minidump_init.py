@@ -4,8 +4,8 @@ High-level abstraction of Minidump file
 from builtins import range
 import struct
 
-from miasm.elfesteem.strpatchwork import StrPatchwork
-from miasm.elfesteem import minidump as mp
+from miasm.loader.strpatchwork import StrPatchwork
+from miasm.loader import minidump as mp
 
 
 class MemorySegment(object):

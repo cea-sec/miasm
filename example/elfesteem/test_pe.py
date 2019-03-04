@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
-import miasm.elfesteem.pe as pe
-from miasm.elfesteem.pe_init import PE
+import miasm.loader.pe as pe
+from miasm.loader.pe_init import PE
 import rlcompleter
 import readline
 import pdb

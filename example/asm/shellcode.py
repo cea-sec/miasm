@@ -4,8 +4,8 @@ from argparse import ArgumentParser
 from pdb import pm
 
 from future.utils import viewitems
-from miasm.elfesteem import pe_init
-from miasm.elfesteem.strpatchwork import StrPatchwork
+from miasm.loader import pe_init
+from miasm.loader.strpatchwork import StrPatchwork
 
 from miasm.core import parse_asm, asmblock
 from miasm.analysis.machine import Machine

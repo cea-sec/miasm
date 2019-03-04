@@ -10,8 +10,8 @@ from future.builtins import int as int_types
 from future.utils import PY3
 
 from miasm.core.utils import force_bytes
-from miasm.elfesteem.new_cstruct import CStruct
-from miasm.elfesteem.strpatchwork import StrPatchwork
+from miasm.loader.new_cstruct import CStruct
+from miasm.loader.strpatchwork import StrPatchwork
 
 log = logging.getLogger("pepy")
 console_handler = logging.StreamHandler()
