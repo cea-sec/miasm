@@ -3,10 +3,10 @@
 
 from ut_helpers_ir import exec_instruction
 
-from miasm2.expression.expression import ExprId, ExprMem, ExprInt
+from miasm.expression.expression import ExprId, ExprMem, ExprInt
 
 
-class TestMove:
+class TestMove(object):
 
     def test_mov(self):
         """Test MOV execution"""

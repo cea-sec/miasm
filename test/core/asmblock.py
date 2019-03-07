@@ -1,15 +1,20 @@
+from __future__ import print_function
+from builtins import map
 from pdb import pm
 
-from miasm2.analysis.machine import Machine
-from miasm2.analysis.binary import Container
-from miasm2.core.asmblock import AsmCFG, AsmConstraint, AsmBlock, \
+from future.utils import viewitems
+
+from miasm.core.utils import decode_hex
+from miasm.analysis.machine import Machine
+from miasm.analysis.binary import Container
+from miasm.core.asmblock import AsmCFG, AsmConstraint, AsmBlock, \
     AsmBlockBad, AsmConstraintTo, AsmConstraintNext, \
     bbl_simplifier
-from miasm2.core.graph import DiGraphSimplifier, MatchGraphJoker
-from miasm2.expression.expression import ExprId
+from miasm.core.graph import DiGraphSimplifier, MatchGraphJoker
+from miasm.expression.expression import ExprId
 
 # Initial data: from 'samples/simple_test.bin'
-data = "5589e583ec10837d08007509c745fc01100000eb73837d08017709c745fc02100000eb64837d08057709c745fc03100000eb55837d080774138b450801c083f80e7509c745fc04100000eb3c8b450801c083f80e7509c745fc05100000eb298b450883e03085c07409c745fc06100000eb16837d08427509c745fc07100000eb07c745fc081000008b45fcc9c3".decode("hex")
+data = decode_hex("5589e583ec10837d08007509c745fc01100000eb73837d08017709c745fc02100000eb64837d08057709c745fc03100000eb55837d080774138b450801c083f80e7509c745fc04100000eb3c8b450801c083f80e7509c745fc05100000eb298b450883e03085c07409c745fc06100000eb16837d08427509c745fc07100000eb07c745fc081000008b45fcc9c3")
 cont = Container.from_string(data)
 
 # Test Disasm engine
@@ -18,12 +23,12 @@ mdis = machine.dis_engine(cont.bin_stream, loc_db=cont.loc_db)
 ## Disassembly of one block
 first_block = mdis.dis_block(0)
 assert len(first_block.lines) == 5
-print first_block
+print(first_block)
 
 ## Test redisassemble asmcfg
 first_block_bis = mdis.dis_block(0)
 assert len(first_block.lines) == len(first_block_bis.lines)
-print first_block_bis
+print(first_block_bis)
 
 ## Disassembly of several block, with cache
 asmcfg = mdis.dis_multiblock(0)
@@ -214,7 +219,7 @@ assert len(asmcfg.pendings) == 0
 asmcfg.sanity_check()
 
 # Test block_merge
-data2 = "31c0eb0c31c9750c31d2eb0c31ffebf831dbebf031edebfc31f6ebf031e4c3".decode("hex")
+data2 = decode_hex("31c0eb0c31c9750c31d2eb0c31ffebf831dbebf031edebfc31f6ebf031e4c3")
 cont2 = Container.from_string(data2)
 mdis = machine.dis_engine(cont2.bin_stream, loc_db=cont2.loc_db)
 ## Elements to merge
@@ -234,35 +239,35 @@ assert len(asmcfg) == 5
 assert len(list(asmcfg.get_bad_blocks())) == 1
 ### Check "special" asmcfg
 entry_asmcfg = asmcfg.heads()
-bad_block_lbl = (lbl for lbl in entry_asmcfg
-                 if isinstance(asmcfg.loc_key_to_block(lbl), AsmBlockBad)).next()
+bad_block_lbl = next((lbl for lbl in entry_asmcfg
+                 if isinstance(asmcfg.loc_key_to_block(lbl), AsmBlockBad)))
 entry_asmcfg.remove(bad_block_lbl)
-alone_block = (asmcfg.loc_key_to_block(lbl) for lbl in entry_asmcfg
-               if len(asmcfg.successors(lbl)) == 0).next()
+alone_block = next((asmcfg.loc_key_to_block(lbl) for lbl in entry_asmcfg
+               if len(asmcfg.successors(lbl)) == 0))
 entry_asmcfg.remove(alone_block.loc_key)
 assert alone_block.lines[-1].name == "RET"
 assert len(alone_block.lines) == 2
 ### Check resulting function
 entry_block = asmcfg.loc_key_to_block(entry_asmcfg.pop())
 assert len(entry_block.lines) == 4
-assert map(str, entry_block.lines) == ['XOR        EAX, EAX',
+assert list(map(str, entry_block.lines)) == ['XOR        EAX, EAX',
                                        'XOR        EBX, EBX',
                                        'XOR        ECX, ECX',
                                        'JNZ        loc_key_3']
 assert len(asmcfg.successors(entry_block.loc_key)) == 2
 assert len(entry_block.bto) == 2
-nextb = asmcfg.loc_key_to_block((cons.loc_key for cons in entry_block.bto
-                              if cons.c_t == AsmConstraint.c_next).next())
-tob = asmcfg.loc_key_to_block((cons.loc_key for cons in entry_block.bto
-                            if cons.c_t == AsmConstraint.c_to).next())
+nextb = asmcfg.loc_key_to_block(next((cons.loc_key for cons in entry_block.bto
+                              if cons.c_t == AsmConstraint.c_next)))
+tob = asmcfg.loc_key_to_block(next((cons.loc_key for cons in entry_block.bto
+                            if cons.c_t == AsmConstraint.c_to)))
 assert len(nextb.lines) == 4
-assert map(str, nextb.lines) == ['XOR        EDX, EDX',
+assert list(map(str, nextb.lines)) == ['XOR        EDX, EDX',
                                  'XOR        ESI, ESI',
                                  'XOR        EDI, EDI',
                                  'JMP        loc_key_4']
 assert asmcfg.successors(nextb.loc_key) == [nextb.loc_key]
 assert len(tob.lines) == 2
-assert map(str, tob.lines) == ['XOR        EBP, EBP',
+assert list(map(str, tob.lines)) == ['XOR        EBP, EBP',
                                'JMP        loc_key_3']
 assert asmcfg.successors(tob.loc_key) == [tob.loc_key]
 
@@ -283,13 +288,13 @@ asmcfg.apply_splitting(mdis.loc_db)
 assert len(asmcfg) == 6
 assert len(asmcfg.pendings) == 0
 assert len(entry_block.lines) == 2
-assert map(str, entry_block.lines) == ['XOR        EAX, EAX',
+assert list(map(str, entry_block.lines)) == ['XOR        EAX, EAX',
                                        'XOR        EBX, EBX']
 assert len(asmcfg.successors(entry_block.loc_key)) == 1
 lbl_newb = asmcfg.successors(entry_block.loc_key)[0]
 newb = asmcfg.loc_key_to_block(lbl_newb)
 assert len(newb.lines) == 2
-assert map(str, newb.lines) == ['XOR        ECX, ECX',
+assert list(map(str, newb.lines)) == ['XOR        ECX, ECX',
                                 'JNZ        loc_key_3']
 preds = asmcfg.predecessors(lbl_newb)
 assert len(preds) == 2
@@ -300,7 +305,7 @@ assert asmcfg.edges2constraint[(tob.loc_key, lbl_newb)] == AsmConstraint.c_to
 
 
 # Check double block split
-data = "74097405b8020000007405b803000000b804000000c3".decode('hex')
+data = decode_hex("74097405b8020000007405b803000000b804000000c3")
 cont = Container.from_string(data)
 mdis = machine.dis_engine(cont.bin_stream, loc_db=cont.loc_db)
 asmcfg = mdis.dis_multiblock(0)
@@ -322,7 +327,7 @@ matcher += bbl0 >> bblB
 solutions = list(matcher.match(asmcfg))
 assert len(solutions) == 1
 solution = solutions.pop()
-for jbbl, label in solution.iteritems():
+for jbbl, label in viewitems(solution):
     offset = mdis.loc_db.get_location_offset(label)
     assert offset == int(jbbl._name, 16)
 

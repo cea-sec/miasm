@@ -1,3 +1,3 @@
 pyparsing
-git+https://github.com/serpilliere/elfesteem@master#egg=elfesteem-0.1
+future
 llvmlite==0.26.0

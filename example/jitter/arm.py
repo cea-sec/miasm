@@ -1,9 +1,10 @@
 #! /usr/bin/env python2
 #-*- coding:utf-8 -*-
+from __future__ import print_function
 import logging
 from pdb import pm
 
-from miasm2.analysis.sandbox import Sandbox_Linux_arml
+from miasm.analysis.sandbox import Sandbox_Linux_arml
 
 # Get arguments
 parser = Sandbox_Linux_arml.parser(description="""Sandbox an elf binary with arm
@@ -22,7 +23,7 @@ else:
     logging.basicConfig(level=logging.WARNING)
 
 if options.verbose is True:
-    print sb.jitter.vm
+    print(sb.jitter.vm)
 
 # Run the code
 sb.run()

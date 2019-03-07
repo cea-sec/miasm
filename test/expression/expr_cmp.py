@@ -2,12 +2,12 @@
 # Expression comparison regression tests  #
 #
 from pdb import pm
-from miasm2.expression.expression import ExprInt, expr_is_unsigned_greater,\
+from miasm.expression.expression import ExprInt, expr_is_unsigned_greater,\
     expr_is_unsigned_greater_or_equal, expr_is_unsigned_lower,\
     expr_is_unsigned_lower_or_equal, expr_is_signed_greater,\
     expr_is_signed_greater_or_equal, expr_is_signed_lower, \
     expr_is_signed_lower_or_equal, expr_is_equal, expr_is_not_equal
-from miasm2.expression.simplifications import expr_simp
+from miasm.expression.simplifications import expr_simp
 
 int_0 = ExprInt(0, 32)
 int_1 = ExprInt(1, 32)

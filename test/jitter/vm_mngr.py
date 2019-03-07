@@ -1,12 +1,12 @@
 import sys
-from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
-from miasm2.analysis.machine import Machine
+from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
+from miasm.analysis.machine import Machine
 
 myjit = Machine("x86_32").jitter(sys.argv[1])
 
 base_addr = 0x13371337
 page_size = 0x1000
-data = "\x00" * page_size
+data = b"\x00" * page_size
 rights = [0, PAGE_READ, PAGE_WRITE, PAGE_READ|PAGE_WRITE]
 shuffled_rights = [PAGE_READ, 0, PAGE_READ|PAGE_WRITE, PAGE_WRITE]
 

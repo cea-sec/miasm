@@ -4,18 +4,22 @@ This example should run on the compiled ELF x86 64bits version of
 "dse_crackme.c"
 
 """
+from __future__ import print_function
 
 #### This part is only related to the run of the sample, without DSE ####
+from builtins import range
 import os
 import subprocess
 import platform
 from collections import namedtuple
 from pdb import pm
 from tempfile import NamedTemporaryFile
+from future.utils import viewitems
 
-from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
-from miasm2.analysis.sandbox import Sandbox_Linux_x86_64
-from miasm2.expression.expression import *
+from miasm.core.utils import int_to_byte
+from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
+from miasm.analysis.sandbox import Sandbox_Linux_x86_64
+from miasm.expression.expression import *
 
 is_win = platform.system() == "Windows"
 
@@ -81,16 +85,19 @@ FS_0_ADDR = 0x7ff70000
 sb.jitter.cpu.FS = 0x4
 sb.jitter.cpu.set_segm_base(sb.jitter.cpu.FS, FS_0_ADDR)
 sb.jitter.vm.add_memory_page(
-    FS_0_ADDR + 0x28, PAGE_READ, "\x42\x42\x42\x42\x42\x42\x42\x42",
-    "Stack canary FS[0x28]")
+    FS_0_ADDR + 0x28,
+    PAGE_READ,
+    b"\x42\x42\x42\x42\x42\x42\x42\x42",
+    "Stack canary FS[0x28]"
+)
 
 # Prepare the execution
 sb.jitter.init_run(sb.entry_point)
 
 
 #### This part handle the DSE ####
-from miasm2.analysis.dse import DSEPathConstraint
-from miasm2.analysis.machine import Machine
+from miasm.analysis.dse import DSEPathConstraint
+from miasm.analysis.machine import Machine
 
 
 # File "management"
@@ -108,7 +115,7 @@ class SymbolicFile(object):
     def read(self, length):
         assert self.state == "OPEN"
         out = []
-        for i in xrange(self.position, min(self.position + length,
+        for i in range(self.position, min(self.position + length,
                                            self.max_size)):
             if i not in self.gen_bytes:
                 ret = ExprId("SF_%08x_%d" % (id(self), i), 8)
@@ -220,7 +227,7 @@ def xxx_puts_symb(dse):
     raise FinishOn(string)
 
 
-todo = set([""]) # Set of file content to test
+todo = set([b""]) # Set of file content to test
 
 # Instantiate the DSE engine
 machine = Machine("x86_64")
@@ -262,7 +269,7 @@ found = False
 while todo:
     # Prepare a solution to try, based on the clean state
     file_content = todo.pop()
-    print "CUR: %r" % file_content
+    print("CUR: %r" % file_content)
     open(TEMP_FILE.name, "wb").write(file_content)
     dse.restore_snapshot(snapshot, keep_known_solutions=True)
     FILE_to_info.clear()
@@ -272,38 +279,38 @@ while todo:
     try:
         sb.run()
     except FinishOn as finish_info:
-        print finish_info.string
-        if finish_info.string == "OK":
+        print(finish_info.string)
+        if finish_info.string == b"OK":
             # Stop if the expected result is found
             found = True
             break
 
     finfo = FILE_to_info_symb[FILE_stream]
-    for sol_ident, model in dse.new_solutions.iteritems():
+    for sol_ident, model in viewitems(dse.new_solutions):
         # Build the file corresponding to solution in 'model'
 
-        out = ""
+        out = []
         fsize = max(model.eval(dse.z3_trans.from_expr(FILE_size)).as_long(),
                     len(finfo.gen_bytes))
-        for index in xrange(fsize):
+        for index in range(fsize):
             try:
                 byteid = finfo.gen_bytes[index]
-                out += chr(model.eval(dse.z3_trans.from_expr(byteid)).as_long())
+                out.append(int_to_byte(model.eval(dse.z3_trans.from_expr(byteid)).as_long()))
             except (KeyError, AttributeError) as _:
                 # Default value if there is no constraint on current byte
-                out += "\x00"
+                out.append(b"\x00")
 
-        todo.add(out)
+        todo.add(b"".join(out))
 
 # Assert that the result has been found
 assert found == True
-print "FOUND !"
+print("FOUND !")
 
 TEMP_FILE.close()
 
 # Replay for real
 if not is_win:
-    print "Trying to launch the binary without Miasm"
+    print("Trying to launch the binary without Miasm")
     crackme = subprocess.Popen([options.filename, TEMP_FILE.name],
                                stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE)
@@ -311,8 +318,8 @@ if not is_win:
     assert not stderr
     os.unlink(TEMP_FILE.name)
     stdout = stdout.strip()
-    print stdout
-    assert stdout == "OK"
+    print(stdout)
+    assert stdout == b"OK"
 else:
     os.unlink(TEMP_FILE.name)
 

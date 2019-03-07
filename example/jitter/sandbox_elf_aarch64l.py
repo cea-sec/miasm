@@ -1,7 +1,7 @@
 import logging
 from pdb import pm
-from miasm2.analysis.sandbox import Sandbox_Linux_aarch64l
-from miasm2.jitter.jitload import log_func
+from miasm.analysis.sandbox import Sandbox_Linux_aarch64l
+from miasm.jitter.jitload import log_func
 
 # Insert here user defined methods
 

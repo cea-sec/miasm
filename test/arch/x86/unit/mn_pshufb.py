@@ -18,8 +18,8 @@ class Test_PSHUFB(Asm_Test_32):
     '''
 
     def check(self):
-        assert self.myjit.cpu.MM0 == 0x1122334455667788L
-        assert self.myjit.cpu.MM1 == 0x8877665544332211L
+        assert self.myjit.cpu.MM0 == 0x1122334455667788
+        assert self.myjit.cpu.MM1 == 0x8877665544332211
 
 
 if __name__ == "__main__":

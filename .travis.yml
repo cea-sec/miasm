@@ -1,6 +1,8 @@
 sudo: false
 language: python
-python: 2.7
+python:
+  - 2.7
+  - 3.6
 addons:
   apt:
     sources: ['llvm-toolchain-trusty-6.0', 'ubuntu-toolchain-r-test']
@@ -29,4 +31,4 @@ before_script:
 # install
 - python setup.py build build_ext
 - python setup.py install
-script: cd test && python -W error test_all.py $MIASM_TEST_EXTRA_ARG && git ls-files -o --exclude-standard
+script: cd test && flags=""; python --version |& grep -q "Python 3" || flags="-W error"; python $flags test_all.py $MIASM_TEST_EXTRA_ARG && git ls-files -o --exclude-standard

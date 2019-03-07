@@ -1,18 +1,23 @@
+from __future__ import print_function
 import os
 import tempfile
+from builtins import int as int_types
+
+from future.utils import viewitems, viewvalues
 
 import idaapi
 import ida_kernwin
 import idc
 import ida_funcs
 import idautils
-from miasm2.core.asmblock import is_int
-from miasm2.core.bin_stream_ida import bin_stream_ida
-from miasm2.expression.simplifications import expr_simp
-from miasm2.ir.ir import IRBlock, AssignBlock
-from miasm2.analysis.data_flow import load_from_int
+
+from miasm.core.asmblock import is_int
+from miasm.core.bin_stream_ida import bin_stream_ida
+from miasm.expression.simplifications import expr_simp
+from miasm.ir.ir import IRBlock, AssignBlock
+from miasm.analysis.data_flow import load_from_int
 from utils import guess_machine, expr2colorstr
-from miasm2.analysis.simplifier import IRCFGSimplifierCommon, IRCFGSimplifierSSA
+from miasm.analysis.simplifier import IRCFGSimplifierCommon, IRCFGSimplifierSSA
 
 
 
@@ -89,9 +94,9 @@ def label_init(self, name="", offset=None):
 
 
 def label_str(self):
-    if isinstance(self.offset, (int, long)):
+    if isinstance(self.offset, int_types):
         return "%s:0x%x" % (self.name, self.offset)
-    return "%s:%s" % (self.name, str(self.offset))
+    return "%s:%s" % (self.name, self.offset)
 
 
 def color_irblock(irblock, ir_arch):
@@ -99,7 +104,7 @@ def color_irblock(irblock, ir_arch):
     lbl = idaapi.COLSTR("%s:" % ir_arch.loc_db.pretty_str(irblock.loc_key), idaapi.SCOLOR_INSN)
     out.append(lbl)
     for assignblk in irblock:
-        for dst, src in sorted(assignblk.iteritems()):
+        for dst, src in sorted(viewitems(assignblk)):
             dst_f = expr2colorstr(dst, loc_db=ir_arch.loc_db)
             src_f = expr2colorstr(src, loc_db=ir_arch.loc_db)
             line = idaapi.COLSTR("%s = %s" % (dst_f, src_f), idaapi.SCOLOR_INSN)
@@ -120,11 +125,11 @@ class GraphMiasmIR(idaapi.GraphViewer):
     def OnRefresh(self):
         self.Clear()
         addr_id = {}
-        for irblock in self.ircfg.blocks.values():
+        for irblock in viewvalues(self.ircfg.blocks):
             id_irblock = self.AddNode(color_irblock(irblock, self.ircfg))
             addr_id[irblock] = id_irblock
 
-        for irblock in self.ircfg.blocks.values():
+        for irblock in viewvalues(self.ircfg.blocks):
             if not irblock:
                 continue
             all_dst = self.ircfg.dst_trackback(irblock)
@@ -164,7 +169,7 @@ def is_addr_ro_variable(bs, addr, size):
 
     """
     try:
-        _ = bs.getbytes(addr, size/8)
+        _ = bs.getbytes(addr, size // 8)
     except IOError:
         return False
     return True
@@ -183,18 +188,18 @@ def build_graph(start_addr, type_graph, simplify=False, dontmodstack=True, loadi
             for assignblk in assignblks:
                 dct = dict(assignblk)
                 dct = {
-                    dst:src for (dst, src) in dct.iteritems() if dst != self.sp
+                    dst:src for (dst, src) in viewitems(dct) if dst != self.sp
                 }
                 out.append(AssignBlock(dct, assignblk.instr))
             return out, extra
 
 
     if verbose:
-        print "Arch", dis_engine
+        print("Arch", dis_engine)
 
     fname = idc.GetInputFile()
     if verbose:
-        print fname
+        print(fname)
 
     bs = bin_stream_ida()
     mdis = dis_engine(bs)
@@ -212,28 +217,28 @@ def build_graph(start_addr, type_graph, simplify=False, dontmodstack=True, loadi
         mdis.loc_db.add_location(name, addr)
 
     if verbose:
-        print "start disasm"
+        print("start disasm")
     if verbose:
-        print hex(start_addr)
+        print(hex(start_addr))
 
     asmcfg = mdis.dis_multiblock(start_addr)
     entry_points = set([mdis.loc_db.get_offset_location(start_addr)])
     if verbose:
-        print "generating graph"
+        print("generating graph")
         open('asm_flow.dot', 'w').write(asmcfg.dot())
-        print "generating IR... %x" % start_addr
+        print("generating IR... %x" % start_addr)
 
     ircfg = ir_arch.new_ircfg_from_asmcfg(asmcfg)
 
     if verbose:
-        print "IR ok... %x" % start_addr
+        print("IR ok... %x" % start_addr)
 
-    for irb in ircfg.blocks.itervalues():
+    for irb in list(viewvalues(ircfg.blocks)):
         irs = []
         for assignblk in irb:
             new_assignblk = {
                 expr_simp(dst): expr_simp(src)
-                for dst, src in assignblk.iteritems()
+                for dst, src in viewitems(assignblk)
             }
             irs.append(AssignBlock(new_assignblk, instr=assignblk.instr))
         ircfg.blocks[irb.loc_key] = IRBlock(irb.loc_key, irs)
@@ -268,7 +273,7 @@ def build_graph(start_addr, type_graph, simplify=False, dontmodstack=True, loadi
                         continue
                     if reg in regs_todo:
                         out[reg] = dst
-            return set(out.values())
+            return set(viewvalues(out))
 
 
 

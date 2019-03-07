@@ -1,10 +1,10 @@
 """This example illustrate the Sandbox.call API, for direct call of a given
 function"""
 
-from miasm2.analysis.sandbox import Sandbox_Linux_arml
-from miasm2.analysis.binary import Container
-from miasm2.os_dep.linux_stdlib import linobjs
-from miasm2.core.utils import hexdump
+from miasm.analysis.sandbox import Sandbox_Linux_arml
+from miasm.analysis.binary import Container
+from miasm.os_dep.linux_stdlib import linobjs
+from miasm.core.utils import hexdump
 
 # Parse arguments
 parser = Sandbox_Linux_arml.parser(description="ELF sandboxer")

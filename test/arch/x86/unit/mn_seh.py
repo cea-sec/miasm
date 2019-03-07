@@ -1,10 +1,11 @@
 #! /usr/bin/env python2
+from __future__ import print_function
 import sys
 
-from miasm2.os_dep.win_api_x86_32_seh import fake_seh_handler, build_teb, \
+from miasm.os_dep.win_api_x86_32_seh import fake_seh_handler, build_teb, \
     set_win_fs_0, return_from_exception, EXCEPTION_PRIV_INSTRUCTION, \
     return_from_seh, DEFAULT_SEH
-from miasm2.os_dep.win_32_structs import ContextException
+from miasm.os_dep.win_32_structs import ContextException
 
 from asm_test import Asm_Test_32
 
@@ -15,7 +16,7 @@ class Test_SEH(Asm_Test_32):
 
     @staticmethod
     def deal_exception_priv(jitter):
-        print 'Exception Priv', hex(jitter.cpu.ESP)
+        print('Exception Priv', hex(jitter.cpu.ESP))
         pc = fake_seh_handler(jitter, EXCEPTION_PRIV_INSTRUCTION)
         jitter.pc = pc
         jitter.cpu.EIP = pc

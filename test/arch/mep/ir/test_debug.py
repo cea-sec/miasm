@@ -3,10 +3,10 @@
 
 from ut_helpers_ir import exec_instruction
 
-from miasm2.expression.expression import ExprId, ExprInt, ExprCond, ExprOp
+from miasm.expression.expression import ExprId, ExprInt, ExprCond, ExprOp
 
 
-class TestDebug:
+class TestDebug(object):
 
     def test_dret(self):
         """Test DRET execution"""

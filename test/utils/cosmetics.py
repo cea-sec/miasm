@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 import platform
 
@@ -33,23 +34,27 @@ def getTerminalSize():
 
 
 WIDTH = getTerminalSize()[0]
-colors = {"red": "\033[91;1m",
-          "end": "\033[0m",
-          "green": "\033[92;1m",
-          "lightcyan": "\033[96m",
-          "blue": "\033[94;1m"}
+colors = {
+    "red": "\033[91;1m",
+    "end": "\033[0m",
+    "green": "\033[92;1m",
+    "lightcyan": "\033[96m",
+    "blue": "\033[94;1m"
+}
 
 if is_win:
-    colors = {"red": "",
-              "end": "",
-              "green": "",
-              "lightcyan": "",
-              "blue": ""}
+    colors = {
+        "red": "",
+        "end": "",
+        "green": "",
+        "lightcyan": "",
+        "blue": ""
+    }
 
 def write_colored(text, color, already_printed=0):
     text_colored = colors[color] + text + colors["end"]
-    print " " * (WIDTH - already_printed - len(text)) + text_colored
+    print(" " * (WIDTH - already_printed - len(text)) + text_colored)
 
 
 def write_underline(text):
-    print "\033[4m" + text + colors["end"]
+    print("\033[4m" + text + colors["end"])

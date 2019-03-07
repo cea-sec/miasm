@@ -4,7 +4,7 @@
 from ut_helpers_asm import check_instruction
 
 
-class TestMajor3:
+class TestMajor3(object):
 
     def test_SWCPI(self):
         """Test the SWCPI instruction"""

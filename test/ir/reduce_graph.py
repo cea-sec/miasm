@@ -1,13 +1,17 @@
 """Regression test module for DependencyGraph"""
+from __future__ import print_function
+from builtins import object
 from pdb import pm
 
-from miasm2.expression.expression import ExprId, ExprInt, ExprAssign, ExprCond, \
+from future.utils import viewitems
+
+from miasm.expression.expression import ExprId, ExprInt, ExprAssign, ExprCond, \
     ExprLoc, LocKey
 
-from miasm2.core.locationdb import LocationDB
-from miasm2.ir.analysis import ira
-from miasm2.ir.ir import IRBlock, AssignBlock, IRCFG
-from miasm2.analysis.data_flow import merge_blocks
+from miasm.core.locationdb import LocationDB
+from miasm.ir.analysis import ira
+from miasm.ir.ir import IRBlock, AssignBlock, IRCFG
+from miasm.analysis.data_flow import merge_blocks
 
 loc_db = LocationDB()
 
@@ -162,7 +166,7 @@ for irb in [G1_RES_IRB0]:
 
 
 def cmp_ir_graph(g1, g2):
-    assert g1.blocks.items() == g2.blocks.items()
+    assert list(viewitems(g1.blocks)) == list(viewitems(g2.blocks))
     assert set(g1.edges()) == set(g2.edges())
 
 
@@ -664,11 +668,11 @@ for i, (g_test, g_ref) in enumerate(
         ], 1):
 
     heads = g_test.heads()
-    print '*'*10, 'Test', i, "*"*10
+    print('*'*10, 'Test', i, "*"*10)
     open('test_in_%d.dot' % i, 'w').write(g_test.dot())
     open('test_ref_%d.dot' % i, 'w').write(g_ref.dot())
     merge_blocks(g_test, heads)
     open('test_out_%d.dot' % i, 'w').write(g_test.dot())
 
     cmp_ir_graph(g_test, g_ref)
-    print '\t', 'OK'
+    print('\t', 'OK')

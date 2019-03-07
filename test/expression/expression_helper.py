@@ -1,14 +1,17 @@
 #! /usr/bin/env python2
 #-*- coding:utf-8 -*-
 
+from __future__ import print_function
+
+from future.utils import viewitems
 import unittest
 
 
 class TestExpressionExpressionHelper(unittest.TestCase):
 
     def test_Variables_Identifier(self):
-        import miasm2.expression.expression as m2_expr
-        from miasm2.expression.expression_helper import Variables_Identifier
+        import miasm.expression.expression as m2_expr
+        from miasm.expression.expression_helper import Variables_Identifier
 
         # Build a complex expression
         cst = m2_expr.ExprInt(0x100, 16)
@@ -25,13 +28,13 @@ class TestExpressionExpressionHelper(unittest.TestCase):
         vi = Variables_Identifier(exprf)
 
         # Use __str__
-        print vi
+        print(vi)
 
         # Test the result
         new_expr = vi.equation
 
         ## Force replace in the variable dependency order
-        for var_id, var_value in reversed(vi.vars.items()):
+        for var_id, var_value in reversed(list(viewitems(vi.vars))):
             new_expr = new_expr.replace_expr({var_id: var_value})
         self.assertEqual(exprf, new_expr)
 
@@ -39,12 +42,12 @@ class TestExpressionExpressionHelper(unittest.TestCase):
         vi = Variables_Identifier(exprf, var_prefix="prefix_v")
 
         ## Use __str__
-        print vi
+        print(vi)
 
         ## Test the result
         new_expr = vi.equation
         ### Force replace in the variable dependency order
-        for var_id, var_value in reversed(vi.vars.items()):
+        for var_id, var_value in reversed(list(viewitems(vi.vars))):
             new_expr = new_expr.replace_expr({var_id: var_value})
         self.assertEqual(exprf, new_expr)
 
@@ -55,7 +58,7 @@ class TestExpressionExpressionHelper(unittest.TestCase):
         ## Test the result
         new_expr = vi2.equation
         ### Force replace in the variable dependency order
-        for var_id, var_value in reversed(vi2.vars.items()):
+        for var_id, var_value in reversed(list(viewitems(vi2.vars))):
             new_expr = new_expr.replace_expr({var_id: var_value})
         self.assertEqual(vi.equation, new_expr)
 
@@ -72,7 +75,7 @@ class TestExpressionExpressionHelper(unittest.TestCase):
         ## Test the result
         new_expr = vi2.equation
         ### Force replace in the variable dependency order
-        for var_id, var_value in reversed(vi2.vars.items()):
+        for var_id, var_value in reversed(list(viewitems(vi2.vars))):
             new_expr = new_expr.replace_expr({var_id: var_value})
         self.assertEqual(vi.equation, new_expr)
 

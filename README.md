@@ -30,7 +30,7 @@ Miasm is a free and open source (GPLv2) reverse engineering framework.
 Miasm aims to analyze / modify / generate binary programs. Here is
 a non exhaustive list of features:
 
-* Opening / modifying / generating PE / ELF 32 / 64 LE / BE using Elfesteem
+* Opening / modifying / generating PE / ELF 32 / 64 LE / BE
 * Assembling / Disassembling X86 / ARM / MIPS / SH4 / MSP430
 * Representing assembly semantic using intermediate language
 * Emulating using JIT (dynamic code analysis, unpacking, ...)
@@ -47,8 +47,8 @@ Assembling / Disassembling
 
 Import Miasm x86 architecture:
 ```pycon
->>> from miasm2.arch.x86.arch import mn_x86
->>> from miasm2.core.locationdb import LocationDB
+>>> from miasm.arch.x86.arch import mn_x86
+>>> from miasm.core.locationdb import LocationDB
 ```
 Get a location db:
 
@@ -58,7 +58,7 @@ Get a location db:
 Assemble a line:
 ```pycon
 >>> l = mn_x86.fromstring('XOR ECX, ECX', loc_db, 32)
->>> print l
+>>> print(l)
 XOR        ECX, ECX
 >>> mn_x86.asm(l)
 ['1\xc9', '3\xc9', 'g1\xc9', 'g3\xc9']
@@ -66,30 +66,30 @@ XOR        ECX, ECX
 Modify an operand:
 ```pycon
 >>> l.args[0] = mn_x86.regs.EAX
->>> print l
+>>> print(l)
 XOR        EAX, ECX
 >>> a = mn_x86.asm(l)
->>> print a
+>>> print(a)
 ['1\xc8', '3\xc1', 'g1\xc8', 'g3\xc1']
 ```
 Disassemble the result:
 ```pycon
->>> print mn_x86.dis(a[0], 32)
+>>> print(mn_x86.dis(a[0], 32))
 XOR        EAX, ECX
 ```
 Using `Machine` abstraction:
 
 ```pycon
->>> from miasm2.analysis.machine import Machine
+>>> from miasm.analysis.machine import Machine
 >>> mn = Machine('x86_32').mn
->>> print mn.dis('\x33\x30', 32)
+>>> print(mn.dis('\x33\x30', 32))
 XOR        ESI, DWORD PTR [EAX]
 ```
 
 For Mips:
 ```pycon
 >>> mn = Machine('mips32b').mn
->>> print  mn.dis('97A30020'.decode('hex'), "b")
+>>> print(mn.dis(b'\x97\xa3\x00 ', "b"))
 LHU        V1, 0x20(SP)
 ```
 Intermediate representation
@@ -99,8 +99,8 @@ Create an instruction:
 
 ```pycon
 >>> machine = Machine('arml')
->>> instr = machine.mn.dis('002088e0'.decode('hex'), 'l')
->>> print instr
+>>> instr = machine.mn.dis('\x00 \x88\xe0', 'l')
+>>> print(instr)
 ADD        R2, R8, R0
 ```
 
@@ -120,7 +120,7 @@ Add instruction to the pool:
 Print current pool:
 ```pycon
 >>> for lbl, irblock in ircfg.blocks.items():
-...     print irblock.to_string(loc_db)
+...     print(irblock.to_string(loc_db))
 loc_0:
 R2 = R8 + R0
 
@@ -133,9 +133,9 @@ Working with IR, for instance by getting side effects:
 ...     for assignblk in irblock:
 ...         rw = assignblk.get_rw()
 ...         for dst, reads in rw.iteritems():
-...             print 'read:   ', [str(x) for x in reads]
-...             print 'written:', dst
-...             print
+...             print('read:   ', [str(x) for x in reads])
+...             print('written:', dst)
+...             print()
 ...
 read:    ['R8', 'R0']
 written: R2
@@ -164,21 +164,21 @@ Giving a shellcode:
 Import the shellcode thanks to the `Container` abstraction:
 
 ```pycon
->>> from miasm2.analysis.binary import Container
+>>> from miasm.analysis.binary import Container
 >>> c = Container.from_string(s)
 >>> c
-<miasm2.analysis.binary.ContainerUnknown object at 0x7f34cefe6090>
+<miasm.analysis.binary.ContainerUnknown object at 0x7f34cefe6090>
 ```
 
 Disassembling the shellcode at address `0`:
 
 ```pycon
->>> from miasm2.analysis.machine import Machine
+>>> from miasm.analysis.machine import Machine
 >>> machine = Machine('x86_32')
 >>> mdis = machine.dis_engine(c.bin_stream)
 >>> asmcfg = mdis.dis_multiblock(0)
 >>> for block in asmcfg.blocks:
-...  print block.to_string(asmcfg.loc_db)
+...  print(block.to_string(asmcfg.loc_db))
 ...
 loc_0
 LEA        ECX, DWORD PTR [ECX + 0x4]
@@ -208,7 +208,7 @@ Initializing the Jit engine with a stack:
 Add the shellcode in an arbitrary memory location:
 ```pycon
 >>> run_addr = 0x40000000
->>> from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
+>>> from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
 >>> jitter.vm.add_memory_page(run_addr, PAGE_READ | PAGE_WRITE, s)
 ```
 
@@ -284,7 +284,7 @@ Initializing the IR pool:
 Initializing the engine with default symbolic values:
 
 ```pycon
->>> from miasm2.ir.symbexec import SymbolicExecutionEngine
+>>> from miasm.ir.symbexec import SymbolicExecutionEngine
 >>> sb = SymbolicExecutionEngine(ira)
 ```
 
@@ -292,7 +292,7 @@ Launching the execution:
 
 ```pycon
 >>> symbolic_pc = sb.run_at(ircfg, 0)
->>> print symbolic_pc
+>>> print(symbolic_pc)
 ((ECX + 0x4)[0:8] + 0xFF)?(0xB,0x10)
 ```
 
@@ -355,7 +355,7 @@ ________________________________________________________________________________
 Retry execution with a concrete ECX. Here, the symbolic / concolic execution reach the shellcode's end:
 
 ```pycon
->>> from miasm2.expression.expression import ExprInt
+>>> from miasm.expression.expression import ExprInt
 >>> sb.symbols[machine.mn.regs.ECX] = ExprInt(-3, 32)
 >>> symbolic_pc = sb.run_at(ircfg, 0, step=True)
 Instr LEA        ECX, DWORD PTR [ECX + 0x4]
@@ -525,7 +525,6 @@ Miasm uses:
 
 * python-pyparsing
 * python-dev
-* elfesteem from [Elfesteem](https://github.com/serpilliere/elfesteem.git)
 * optionally python-pycparser (version >= 2.17)
 
 To enable code JIT, one of the following module is mandatory:
@@ -538,14 +537,6 @@ To enable code JIT, one of the following module is mandatory:
 
 Configuration
 -------------
-
-* Install elfesteem
-```pycon
-git clone https://github.com/serpilliere/elfesteem.git elfesteem
-cd elfesteem
-python setup.py build
-sudo python setup.py install
-```
 
 To use the jitter, GCC or LLVM is recommended
 * GCC (any version)
@@ -570,8 +561,8 @@ Windows & IDA
 
 Most of Miasm's IDA plugins use a subset of Miasm functionality.
 A quick way to have them working is to add:
-* `elfesteem` directory and `pyparsing.py` to `C:\...\IDA\python\` or `pip install pyparsing elfesteem`
-* `miasm2/miasm2` directory to `C:\...\IDA\python\`
+* `pyparsing.py` to `C:\...\IDA\python\` or `pip install pyparsing`
+* `miasm/miasm` directory to `C:\...\IDA\python\`
 
 All features excepting JITter related ones will be available. For a more complete installation, please refer to above paragraphs.
 
@@ -598,7 +589,7 @@ Tools
 -----
 
 * [Sibyl](https://github.com/cea-sec/Sibyl): A function divination too
-* [R2M2](https://github.com/guedou/r2m2): Use miasm2 as a radare2 plugin
+* [R2M2](https://github.com/guedou/r2m2): Use miasm as a radare2 plugin
 * [CGrex](https://github.com/mechaphish/cgrex) : Targeted patcher for CGC binaries
 * [ethRE](https://github.com/jbcayrou/ethRE) Reversing tool for Ethereum EVM (with corresponding Miasm2 architecture)
 

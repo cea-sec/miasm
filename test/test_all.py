@@ -1,5 +1,8 @@
 #! /usr/bin/env python2
 
+from __future__ import print_function
+from builtins import map
+from builtins import range
 import argparse
 from distutils.spawn import find_executable
 import os
@@ -52,6 +55,12 @@ testset += RegressionTest(["x86/arch.py"], base_dir="arch",
                                     "regression_test32_ia32.bin",
                                     "regression_test64_ia32.bin"])
 
+testset += RegressionTest(["arm/arch.py"], base_dir="arch")
+testset += RegressionTest(["aarch64/arch.py"], base_dir="arch")
+testset += RegressionTest(["sh4/arch.py"], base_dir="arch")
+testset += RegressionTest(["msp430/arch.py"], base_dir="arch")
+testset += RegressionTest(["mips32/arch.py"], base_dir="arch")
+
 
 
 ### ArchUnit regression tests
@@ -92,14 +101,9 @@ for script in ["x86/sem.py",
                "x86/unit/mn_getset128.py",
                "x86/unit/mn_cmov.py",
                "x86/unit/mn_rotsh.py",
-               "arm/arch.py",
                "arm/sem.py",
                "aarch64/unit/mn_ubfm.py",
-               "aarch64/arch.py",
-               "msp430/arch.py",
                "msp430/sem.py",
-               "sh4/arch.py",
-               "mips32/arch.py",
                "mips32/unit/mn_bcc.py",
                ]:
     for jitter in ArchUnitTest.jitter_engines:
@@ -359,7 +363,7 @@ testset += RegressionTest(["depgraph.py"], base_dir="analysis",
                           products=[fname for fnames in (
                               ["graph_test_%02d_00.dot" % test_nb,
                                "graph_%02d.dot" % test_nb]
-                              for test_nb in xrange(1, 18))
+                              for test_nb in range(1, 18))
                                     for fname in fnames] +
                           ["graph_test_%02d_%02d.dot" % (test_nb, res_nb)
                            for (test_nb, res_nb) in ((3, 1), (5, 1), (8, 1),
@@ -382,11 +386,11 @@ testset += RegressionTest(["range.py"], base_dir="analysis",
 testset += RegressionTest(["data_flow.py"], base_dir="analysis",
                           products=[fname for fnames in (
             ["simp_graph_%02d.dot" % test_nb, "graph_%02d.dot" % test_nb]
-            for test_nb in xrange(1, 18))
+            for test_nb in range(1, 18))
                                     for fname in fnames])
 testset += RegressionTest(["unssa.py"], base_dir="analysis")
 
-for i in xrange(1, 21):
+for i in range(1, 21):
     input_name = "cst_propag/x86_32_sc_%d" % i
     bin_name = "samples/x86_32/%s.bin" % input_name
     test_x86_32_cst = SemanticTestAsm("x86_32", None, [input_name])
@@ -410,7 +414,7 @@ class TestDepgraph(RegressionTest):
         super(TestDepgraph, self).__init__([self.launcher],
                                            *args, **kwargs)
         self.base_dir = os.path.join(self.base_dir, "analysis")
-        self.products = ["sol_%d.dot" % i for i in xrange(nb_sol)]
+        self.products = ["sol_%d.dot" % i for i in range(nb_sol)]
         if implicit:
             expected_fname = "dg_test_%.2d_implicit_expected.json"
             self.tags.append(TAGS["z3"])
@@ -507,7 +511,7 @@ class ExampleShellcode(ExampleAssembler):
         super(ExampleShellcode, self).__init__(*args, **kwargs)
         self.command_line = ["shellcode.py",
                              self.command_line[0]] + \
-                             map(Example.get_sample, self.command_line[1:3]) + \
+                             list(map(Example.get_sample, self.command_line[1:3])) + \
                              self.command_line[3:]
         self.products = [self.command_line[3], "graph.dot"]
 
@@ -709,7 +713,7 @@ for options, nb_sol, tag in [([], 8, []),
                                   "-m", "x86_32", "0x0", "0x8b",
                                   "EAX"] + options,
                                  products=["sol_%d.dot" % nb
-                                           for nb in xrange(nb_sol)],
+                                           for nb in range(nb_sol)],
                                  tags=tag)
 
 for options, nb_sol, tag in [([], 4, []),
@@ -719,7 +723,7 @@ for options, nb_sol, tag in [([], 4, []),
                                   "-m", "x86_32", "0x0", "0x19",
                                   "EAX"] + options,
                                  products=["sol_%d.dot" % nb
-                                           for nb in xrange(nb_sol)],
+                                           for nb in range(nb_sol)],
                                  depends=[test_x86_32_if_reg],
                                  tags=tag)
 
@@ -761,17 +765,6 @@ for jitter in ExampleJitter.jitter_engines:
                              ["--jitter", jitter],
                              products=[Example.get_sample("box_upx_exe_unupx.bin")],
                              tags=tags.get(jitter, []))
-    if jitter != "python":
-        tags = tags.get(jitter, []) + [TAGS["long"], TAGS["linux"]]
-        ls_path = find_executable("ls")
-        file_path = find_executable("file")
-        # Launch simulation of "file /bin/ls", with access to libs and ld info
-        testset += ExampleJitter(["run_with_linuxenv.py", "-v", "-p",
-                                  '/(.*lib.*\.so(\.\d+)?)|(/etc/ld.so.*)|(.*magic.*)|(%s)' % ls_path,
-                                  ] + ["--jitter", jitter] + [
-                                      file_path, ls_path,
-                                  ],
-                                 tags=tags)
 
 
 for script, dep in [(["x86_32.py", Example.get_sample("x86_32_sc.bin")], []),
@@ -826,10 +819,10 @@ if __name__ == "__main__":
                         action="store_true")
     parser.add_argument("-t", "--omit-tags", help="Omit tests based on tags \
 (tag1,tag2). Available tags are %s. \
-By default, no tag is omitted." % ", ".join(TAGS.keys()), default="")
+By default, no tag is omitted." % ", ".join(list(TAGS)), default="")
     parser.add_argument("-o", "--only-tags", help="Restrict to tests based on tags \
 (tag1,tag2). Available tags are %s. \
-By default, all tag are considered." % ", ".join(TAGS.keys()), default="")
+By default, all tag are considered." % ", ".join(list(TAGS)), default="")
     parser.add_argument("-n", "--do-not-clean",
                         help="Do not clean tests products", action="store_true")
     args = parser.parse_args()
@@ -848,14 +841,14 @@ By default, all tag are considered." % ", ".join(TAGS.keys()), default="")
             if not tag:
                 continue
             if tag not in TAGS:
-                print "%(red)s[TAG]%(end)s" % cosmetics.colors, \
-                    "Unknown tag '%s'" % tag
+                print("%(red)s[TAG]%(end)s" % cosmetics.colors, \
+                    "Unknown tag '%s'" % tag)
                 exit(-1)
             dest.append(TAGS[tag])
 
     if exclude_tags and include_tags:
-        print "%(red)s[TAG]%(end)s" % cosmetics.colors, \
-                "Omit and Only used together: whitelist mode"
+        print("%(red)s[TAG]%(end)s" % cosmetics.colors, \
+                "Omit and Only used together: whitelist mode")
 
     # Handle coverage
     coveragerc = None
@@ -863,8 +856,8 @@ By default, all tag are considered." % ", ".join(TAGS.keys()), default="")
         try:
             import coverage
         except ImportError:
-            print "%(red)s[Coverage]%(end)s " % cosmetics.colors + \
-                "Python 'coverage' module is required"
+            print("%(red)s[Coverage]%(end)s " % cosmetics.colors + \
+                "Python 'coverage' module is required")
             exit(-1)
 
         # Create directory
@@ -875,7 +868,7 @@ By default, all tag are considered." % ", ".join(TAGS.keys()), default="")
         coveragerc = os.path.join(cov_dir, ".coveragerc")
         coverage = os.path.join(cov_dir, ".coverage")
 
-        from ConfigParser import ConfigParser
+        from configparser import ConfigParser
         from os.path import expanduser
 
         config = ConfigParser()
@@ -894,7 +887,7 @@ By default, all tag are considered." % ", ".join(TAGS.keys()), default="")
         d = {"blue": cosmetics.colors['blue'],
              "end": cosmetics.colors['end'],
              "cov_dir": cov_dir}
-        print "[%(blue)sCoverage%(end)s] Report will be written in %(cov_dir)s" % d
+        print("[%(blue)sCoverage%(end)s] Report will be written in %(cov_dir)s" % d)
 
     # Handle llvm modularity
     llvm = True
@@ -904,8 +897,8 @@ By default, all tag are considered." % ", ".join(TAGS.keys()), default="")
         llvm = False
 
     if llvm is False:
-        print "%(red)s[LLVM]%(end)s Python" % cosmetics.colors + \
-            "'llvmlite' module is required for llvm tests"
+        print("%(red)s[LLVM]%(end)s Python" % cosmetics.colors + \
+            "'llvmlite' module is required for llvm tests")
 
         # Remove llvm tests
         if TAGS["llvm"] not in exclude_tags:
@@ -915,8 +908,8 @@ By default, all tag are considered." % ", ".join(TAGS.keys()), default="")
     try:
         import z3
     except ImportError:
-        print "%(red)s[Z3]%(end)s " % cosmetics.colors + \
-            "Z3 and its python binding are necessary for TranslatorZ3."
+        print("%(red)s[Z3]%(end)s " % cosmetics.colors + \
+            "Z3 and its python binding are necessary for TranslatorZ3.")
         if TAGS["z3"] not in exclude_tags:
             exclude_tags.append(TAGS["z3"])
 
@@ -924,8 +917,8 @@ By default, all tag are considered." % ", ".join(TAGS.keys()), default="")
     try:
         import pycparser
     except ImportError:
-        print "%(red)s[PYCPARSER]%(end)s " % cosmetics.colors + \
-            "pycparser are necessary for Objc."
+        print("%(red)s[PYCPARSER]%(end)s " % cosmetics.colors + \
+            "pycparser are necessary for Objc.")
         if TAGS["cparser"] not in exclude_tags:
             exclude_tags.append(TAGS["cparser"])
 
@@ -952,13 +945,13 @@ By default, all tag are considered." % ", ".join(TAGS.keys()), default="")
 
     # Finalize
     testset.end(clean=not args.do_not_clean)
-    print
+    print()
     print (cosmetics.colors["green"] +
            "Result: %d/%d pass" % (len(test_ok), len(test_ok) + len(test_ko)) +
            cosmetics.colors["end"])
     for test, error in test_ko:
         command_line = " ".join(test.command_line)
-        print cosmetics.colors["red"] + 'ERROR', cosmetics.colors["lightcyan"] + command_line + cosmetics.colors["end"]
-        print error
+        print(cosmetics.colors["red"] + 'ERROR', cosmetics.colors["lightcyan"] + command_line + cosmetics.colors["end"])
+        print(error)
     # Exit with an error if at least a test failed
     exit(testset.tests_passed())

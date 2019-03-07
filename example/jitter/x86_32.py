@@ -1,6 +1,6 @@
 from argparse import ArgumentParser
-from miasm2.jitter.csts import PAGE_READ, PAGE_WRITE
-from miasm2.analysis.machine import Machine
+from miasm.jitter.csts import PAGE_READ, PAGE_WRITE
+from miasm.analysis.machine import Machine
 
 from pdb import pm
 
@@ -20,7 +20,7 @@ def code_sentinelle(jitter):
 myjit = Machine("x86_32").jitter(args.jitter)
 myjit.init_stack()
 
-data = open(args.filename).read()
+data = open(args.filename, 'rb').read()
 run_addr = 0x40000000
 myjit.vm.add_memory_page(run_addr, PAGE_READ | PAGE_WRITE, data)
 
