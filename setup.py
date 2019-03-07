@@ -140,13 +140,14 @@ def buil_all():
         print("build with", repr(name))
         try:
             s = setup(
-                name = "Miasm",
-                version = "2.0",
+                name = "miasm",
+                version = __import__("miasm").VERSION,
                 packages = packages,
                 package_data = {
-                    "miasm":[
+                    "miasm": [
                         "jitter/*.h",
                         "jitter/arch/*.h",
+                        "VERSION"
                     ]
                 },
                 ext_modules = ext_modules,
