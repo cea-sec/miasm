@@ -10,7 +10,7 @@ dg = subprocess.Popen([sys.executable] + sys.argv[2:], stdout=subprocess.PIPE)
 
 stdout, _ = dg.communicate()
 expected = json.load(open(expected_file))
-result = json.loads(stdout)
+result = json.loads(stdout.decode())
 
 
 assert len(expected) == len(result)
