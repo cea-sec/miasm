@@ -1349,6 +1349,35 @@ def adr(ir, instr, arg1, arg2):
     e.append(ExprAssign(arg1, (PC & ExprInt(0xfffffffc, 32)) + arg2))
     return e, []
 
+
+def pkhbt(ir, instr, arg1, arg2, arg3):
+    e = []
+    e.append(
+        ExprAssign(
+            arg1,
+            ExprCompose(
+                arg2[:16],
+                arg3[16:]
+            )
+        )
+    )
+    return e, []
+
+
+def pkhtb(ir, instr, arg1, arg2, arg3):
+    e = []
+    e.append(
+        ExprAssign(
+            arg1,
+            ExprCompose(
+                arg3[:16],
+                arg2[16:]
+            )
+        )
+    )
+    return e, []
+
+
 COND_EQ = 0
 COND_NE = 1
 COND_CS = 2
@@ -1526,6 +1555,10 @@ mnemo_condm0 = {'add': add,
                 'smultt': smul,
                 'smulwt': smulw,
                 'smulwb': smulw,
+
+                'pkhtb': pkhtb,
+                'pkhbt': pkhbt,
+
                 }
 
 mnemo_condm1 = {'adds': add,

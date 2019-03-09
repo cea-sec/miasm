@@ -181,6 +181,7 @@ all_binaryop_1_32_shifts_t = literal_list(
 all_unaryop_shifts_t = literal_list(['RRX']).setParseAction(op_shift2expr)
 
 ror_shifts_t = literal_list(['ROR']).setParseAction(op_shift2expr)
+shl_shifts_t = literal_list(['SHL']).setParseAction(op_shift2expr)
 
 
 allshifts_t_armt = literal_list(
@@ -214,6 +215,8 @@ rot2_expr = (gpregs.parser + Optional(
     (ror_shifts_t + (int_8_16_24))
 )).setParseAction(cb_shift)
 
+
+rot5_expr = shift_off
 
 OP_LSL = Suppress("LSL")
 
@@ -1748,6 +1751,68 @@ class arm_rm_rot2(arm_arg):
             self.parent.rot2.value = value // 8
         return True
 
+
+
+class arm_rm_rot5_lsl(arm_arg):
+    parser = rot5_expr
+    index_op = 0
+    def decode(self, v):
+        expr = gpregs.expr[v]
+        shift_value = self.parent.rot5.value
+        if shift_value:
+            expr = ExprOp(allshifts[self.index_op], expr, ExprInt(shift_value, 32))
+        self.expr = expr
+        return True
+    def encode(self):
+        if self.expr in gpregs.expr:
+            self.value = gpregs.expr.index(self.expr)
+            self.parent.rot5.value = 0
+        elif (isinstance(self.expr, ExprOp) and
+              self.expr.op == allshifts[self.index_op]):
+            reg, value = self.expr.args
+            if reg not in gpregs.expr:
+                return False
+            self.value = gpregs.expr.index(reg)
+            if not isinstance(value, ExprInt):
+                return False
+            value = int(value)
+            if not 0 <= value < 32:
+                return False
+            self.parent.rot5.value = value
+        return True
+
+class arm_rm_rot5_asr(arm_rm_rot5_lsl):
+    parser = rot5_expr
+    index_op = 2
+    def decode(self, v):
+        expr = gpregs.expr[v]
+        shift_value = self.parent.rot5.value
+        if shift_value == 0:
+            expr = ExprOp(allshifts[self.index_op], expr, ExprInt(32, 32))
+        else:
+            expr = ExprOp(allshifts[self.index_op], expr, ExprInt(shift_value, 32))
+        self.expr = expr
+        return True
+    def encode(self):
+        if (isinstance(self.expr, ExprOp) and
+              self.expr.op == allshifts[self.index_op]):
+            reg, value = self.expr.args
+            if reg not in gpregs.expr:
+                return False
+            self.value = gpregs.expr.index(reg)
+            if not isinstance(value, ExprInt):
+                return False
+            value = int(value)
+            if not 0 < value <= 32:
+                return False
+            if value == 32:
+                value = 0
+            self.parent.rot5.value = value
+        else:
+            return False
+        return True
+
+
 class arm_gpreg_nopc(reg_noarg):
     reg_info = gpregs_nopc
     parser = reg_info.parser
@@ -1778,6 +1843,10 @@ class arm_gpreg_nosp(reg_noarg):
 rm_rot2 = bs(l=4, cls=(arm_rm_rot2,), fname="rm")
 rot2 = bs(l=2, fname="rot2")
 
+rm_rot5_lsl = bs(l=4, cls=(arm_rm_rot5_lsl,), fname="rm")
+rm_rot5_asr = bs(l=4, cls=(arm_rm_rot5_asr,), fname="rm")
+rot5 = bs(l=5, fname="rot5")
+
 widthm1 = bs(l=5, cls=(arm_widthm1, m_arg))
 lsb = bs(l=5, cls=(arm_imm, m_arg))
 
@@ -1795,6 +1864,9 @@ armop("ubfx", [bs('0111111'), widthm1, rd, lsb, bs('101'), rn], [rd, rn, lsb, wi
 armop("bfc", [bs('0111110'), widthm1, rd, lsb, bs('001'), bs('1111')], [rd, lsb, widthm1])
 
 armop("uxtab", [bs('01101110'), rn_nopc, rd, rot2, bs('000111'), rm_rot2], [rd, rn_nopc, rm_rot2])
+
+armop("pkhbt", [bs('01101000'), rn, rd, rot5, bs('001'), rm_rot5_lsl], [rd, rn, rm_rot5_lsl])
+armop("pkhtb", [bs('01101000'), rn, rd, rot5, bs('101'), rm_rot5_asr], [rd, rn, rm_rot5_asr])
 
 
 

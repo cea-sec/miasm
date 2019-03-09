@@ -224,6 +224,16 @@ reg_tests_arm = [
      '7854e2e6'),
 
 
+    ('XXXXXXXX    PKHBT      R1, R2, R3 LSL 0x8',
+     '131482e6'),
+    ('XXXXXXXX    PKHBT      R1, R2, R3',
+     '131082e6'),
+    ('XXXXXXXX    PKHTB      R1, R2, R3 ASR 0x8',
+     '531482e6'),
+    ('XXXXXXXX    PKHTB      R1, R2, R3 ASR 0x20',
+     '531082e6'),
+
+
 ]
 ts = time.time()
 
