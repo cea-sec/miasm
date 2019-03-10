@@ -5078,6 +5078,14 @@ def movmskpd(ir, instr, dst, src):
         out.append(src[(64 * i) + 63:(64 * i) + 64])
     return [m2_expr.ExprAssign(dst, m2_expr.ExprCompose(*out).zeroExtend(dst.size))], []
 
+def fxsave(_ir, _instr, _src):
+    # Implemented as a NOP for now
+    return [], []
+
+def fxrstor(_ir, _instr, _dst):
+    # Implemented as a NOP for now
+    return [], []
+
 
 mnemo_func = {'mov': mov,
               'xchg': xchg,
@@ -5679,6 +5687,8 @@ mnemo_func = {'mov': mov,
               "clrssbsy": clrssbsy,
               "endbr64": endbr64,
               "endbr32": endbr32,
+              "fxsave": fxsave,
+              "fxrstor": fxrstor,
               }
 
 
