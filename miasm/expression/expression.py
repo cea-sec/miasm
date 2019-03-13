@@ -1270,7 +1270,7 @@ class ExprSlice(Expr):
 class ExprCompose(Expr):
 
     """
-    Compose is like a hambuger. It concatenate Expressions
+    Compose is like a hamburger. It concatenate Expressions
     """
 
     __slots__ = Expr.__slots__ + ["_args"]
