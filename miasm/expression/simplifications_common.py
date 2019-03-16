@@ -949,7 +949,7 @@ def simp_cmp_int(expr_simp, expr):
     if len(left) == 1:
         left = left[0]
     else:
-        left = ExprOp(left.op, *left)
+        left = ExprOp(left_orig.op, *left)
 
     if left_orig.op == "+":
         new_int = expr_simp(right - last_int)
