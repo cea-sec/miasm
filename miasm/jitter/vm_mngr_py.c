@@ -79,6 +79,7 @@ PyObject* vm_add_memory_page(VmMngr* self, PyObject* args)
 	PyObject *item_str;
 	PyObject *name=NULL;
 	uint64_t buf_size;
+	size_t buf_size_st;
 	char* buf_data;
 	Py_ssize_t length;
 	uint64_t page_addr;
@@ -113,7 +114,13 @@ PyObject* vm_add_memory_page(VmMngr* self, PyObject* args)
 		RAISE(PyExc_TypeError,"known page in memory");
 	}
 
-	memcpy(mpn->ad_hp, buf_data, buf_size);
+	if (buf_size > SIZE_MAX) {
+		      fprintf(stderr, "Size too big\n");
+		      exit(EXIT_FAILURE);
+	}
+	buf_size_st = (size_t) buf_size;
+
+	memcpy(mpn->ad_hp, buf_data, buf_size_st);
 	add_memory_page(&self->vm_mngr, mpn);
 
 	Py_INCREF(Py_None);
@@ -210,6 +217,7 @@ PyObject* vm_get_mem(VmMngr* self, PyObject* args)
 
        uint64_t addr;
        uint64_t size;
+       size_t size_st;
        PyObject *obj_out;
        char * buf_out;
        int ret;
@@ -220,12 +228,18 @@ PyObject* vm_get_mem(VmMngr* self, PyObject* args)
        PyGetInt(py_addr, addr);
        PyGetInt(py_len, size);
 
-       ret = vm_read_mem(&self->vm_mngr, addr, &buf_out, size);
+       if (size > SIZE_MAX) {
+	       fprintf(stderr, "Size too big\n");
+	       exit(EXIT_FAILURE);
+       }
+       size_st = (size_t) size;
+
+       ret = vm_read_mem(&self->vm_mngr, addr, &buf_out, size_st);
        if (ret < 0) {
 	       RAISE(PyExc_RuntimeError,"Cannot find address");
        }
 
-       obj_out = PyBytes_FromStringAndSize(buf_out, size);
+       obj_out = PyBytes_FromStringAndSize(buf_out, size_st);
        free(buf_out);
        return obj_out;
 }
@@ -359,7 +373,7 @@ PyObject* vm_set_u8(VmMngr* self, PyObject* args)
 		fprintf(stderr, "Warning: int to big\n");
        }
 
-       final_value = value;
+       final_value = (uint8_t)value;
 
        ret = vm_write_mem(&self->vm_mngr, addr, (char*)&final_value, 1);
        if (ret < 0)
@@ -377,6 +391,8 @@ PyObject* vm_set_u16(VmMngr* self, PyObject* args)
        PyObject *py_addr;
        PyObject *py_val;
        uint64_t value;
+       uint16_t value_u16;
+
        uint64_t addr;
        uint16_t final_value;
        int ret;
@@ -391,8 +407,9 @@ PyObject* vm_set_u16(VmMngr* self, PyObject* args)
 		fprintf(stderr, "Warning: int to big\n");
        }
 
-       final_value = set_endian16(&self->vm_mngr, value);
+       value_u16 = (uint16_t) value;
 
+       final_value = set_endian16(&self->vm_mngr, value_u16);
        ret = vm_write_mem(&self->vm_mngr, addr, (char*)&final_value, 2);
        if (ret < 0)
 	      RAISE(PyExc_TypeError, "Error in set_mem");
@@ -409,6 +426,7 @@ PyObject* vm_set_u32(VmMngr* self, PyObject* args)
        PyObject *py_addr;
        PyObject *py_val;
        uint64_t value;
+       uint32_t value_u32;
        uint64_t addr;
        uint32_t final_value;
        int ret;
@@ -423,7 +441,8 @@ PyObject* vm_set_u32(VmMngr* self, PyObject* args)
 		fprintf(stderr, "Warning: int to big\n");
        }
 
-       final_value = set_endian32(&self->vm_mngr, value);
+       value_u32 = (uint32_t) value;
+       final_value = set_endian32(&self->vm_mngr, value_u32);
 
        ret = vm_write_mem(&self->vm_mngr, addr, (char*)&final_value, 4);
        if (ret < 0)

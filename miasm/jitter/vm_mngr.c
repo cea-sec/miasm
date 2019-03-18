@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 #include "queue.h"
 
@@ -58,8 +59,13 @@ void memory_access_list_add(struct memory_access_list * access, uint64_t start, 
 	if (access->num >= access->allocated) {
 		if (access->allocated == 0)
 			access->allocated = 1;
-		else
+		else {
+			if (access->allocated >= SIZE_MAX / 2) {
+				fprintf(stderr, "Cannot alloc more pages\n");
+				exit(EXIT_FAILURE);
+			}
 			access->allocated *= 2;
+		}
 		access->array = realloc(access->array, access->allocated * sizeof(struct memory_access));
 		if (access->array == NULL) {
 			fprintf(stderr, "cannot realloc struct memory_access access->array\n");
@@ -370,7 +376,7 @@ void add_mem_write(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t size)
 
 void check_invalid_code_blocs(vm_mngr_t* vm_mngr)
 {
-	int i;
+	size_t i;
 	struct code_bloc_node * cbp;
 	for (i=0;i<vm_mngr->memory_w.num; i++) {
 		if (vm_mngr->exception_flags & EXCEPT_CODE_AUTOMOD)
@@ -399,7 +405,7 @@ void check_invalid_code_blocs(vm_mngr_t* vm_mngr)
 
 void check_memory_breakpoint(vm_mngr_t* vm_mngr)
 {
-	int i;
+	size_t i;
 	struct memory_breakpoint_info * memory_bp;
 
 	/* Check memory breakpoints */
@@ -430,9 +436,10 @@ void check_memory_breakpoint(vm_mngr_t* vm_mngr)
 
 PyObject* get_memory_pylist(vm_mngr_t* vm_mngr, struct memory_access_list* memory_list)
 {
-	int i;
+	size_t i;
 	PyObject *pylist;
 	PyObject *range;
+
 	pylist = PyList_New(memory_list->num);
 	for (i=0;i<memory_list->num;i++) {
 		range = PyTuple_New(2);
@@ -509,18 +516,27 @@ uint64_t vm_MEM_LOOKUP_64(vm_mngr_t* vm_mngr, uint64_t addr)
 int vm_read_mem(vm_mngr_t* vm_mngr, uint64_t addr, char** buffer_ptr, uint64_t size)
 {
        char* buffer;
-       uint64_t len;
+       size_t len;
+       size_t size_st;
+       uint64_t addr_diff;
+       size_t addr_diff_st;
        struct memory_page_node * mpn;
 
-       buffer = malloc(size);
+       if (size > SIZE_MAX) {
+	       fprintf(stderr, "Size too big\n");
+	       exit(EXIT_FAILURE);
+       }
+
+       buffer = malloc((size_t)size);
        *buffer_ptr = buffer;
        if (!buffer){
 	      fprintf(stderr, "Error: cannot alloc read\n");
 	      exit(EXIT_FAILURE);
        }
+       size_st = (size_t)size;
 
        /* read is multiple page wide */
-       while (size){
+       while (size_st){
 	      mpn = get_memory_page_from_address(vm_mngr, addr, 1);
 	      if (!mpn){
 		      free(*buffer_ptr);
@@ -528,11 +544,17 @@ int vm_read_mem(vm_mngr_t* vm_mngr, uint64_t addr, char** buffer_ptr, uint64_t s
 		      return -1;
 	      }
 
-	      len = MIN(size, mpn->size - (addr - mpn->ad));
-	      memcpy(buffer, (char*)mpn->ad_hp + (addr - mpn->ad), len);
+	      addr_diff = addr - mpn->ad;
+	      if (addr_diff > SIZE_MAX) {
+		      fprintf(stderr, "Size too big\n");
+		      exit(EXIT_FAILURE);
+	      }
+	      addr_diff_st = (size_t) addr_diff;
+	      len = MIN(size_st, mpn->size - addr_diff_st);
+	      memcpy(buffer, (char*)mpn->ad_hp + (addr_diff_st), len);
 	      buffer += len;
 	      addr += len;
-	      size -= len;
+	      size_st -= len;
        }
 
        return 0;
@@ -540,22 +562,37 @@ int vm_read_mem(vm_mngr_t* vm_mngr, uint64_t addr, char** buffer_ptr, uint64_t s
 
 int vm_write_mem(vm_mngr_t* vm_mngr, uint64_t addr, char *buffer, uint64_t size)
 {
-       uint64_t len;
+       size_t len;
+       size_t size_st;
+       uint64_t addr_diff;
+       size_t addr_diff_st;
        struct memory_page_node * mpn;
 
+       if (size > SIZE_MAX) {
+	       fprintf(stderr, "Write size wider than supported system\n");
+	       exit(EXIT_FAILURE);
+       }
+       size_st = (size_t)size;
+
        /* write is multiple page wide */
-       while (size){
+       while (size_st){
 	      mpn = get_memory_page_from_address(vm_mngr, addr, 1);
 	      if (!mpn){
 		      PyErr_SetString(PyExc_RuntimeError, "Error: cannot find address");
 		      return -1;
 	      }
 
-	      len = MIN(size, mpn->size - (addr - mpn->ad));
-	      memcpy((char*)mpn->ad_hp + (addr-mpn->ad), buffer, len);
+	      addr_diff = addr - mpn->ad;
+	      if (addr_diff > SIZE_MAX) {
+		      fprintf(stderr, "Size too big\n");
+		      exit(EXIT_FAILURE);
+	      }
+	      addr_diff_st = (size_t) addr_diff;
+	      len = MIN(size_st, mpn->size - addr_diff_st);
+	      memcpy((char*)mpn->ad_hp + addr_diff_st, buffer, len);
 	      buffer += len;
 	      addr += len;
-	      size -= len;
+	      size_st -= len;
        }
 
        return 0;
@@ -565,18 +602,33 @@ int vm_write_mem(vm_mngr_t* vm_mngr, uint64_t addr, char *buffer, uint64_t size)
 
 int is_mapped(vm_mngr_t* vm_mngr, uint64_t addr, uint64_t size)
 {
-       uint64_t len;
+       size_t len;
+       size_t size_st;
+       uint64_t addr_diff;
+       size_t addr_diff_st;
        struct memory_page_node * mpn;
 
+       if (size > SIZE_MAX) {
+	       fprintf(stderr, "Test size wider than supported system\n");
+	       exit(EXIT_FAILURE);
+       }
+       size_st = (size_t)size;
+
        /* test multiple page wide */
-       while (size){
+       while (size_st){
 	      mpn = get_memory_page_from_address(vm_mngr, addr, 0);
 	      if (!mpn)
 		      return 0;
 
-	      len = MIN(size, mpn->size - (addr - mpn->ad));
+	      addr_diff = addr - mpn->ad;
+	      if (addr_diff > SIZE_MAX) {
+		      fprintf(stderr, "Size too big\n");
+		      exit(EXIT_FAILURE);
+	      }
+	      addr_diff_st = (size_t) addr_diff;
+	      len = MIN(size_st, mpn->size - addr_diff_st);
 	      addr += len;
-	      size -= len;
+	      size_st -= len;
        }
 
        return 1;

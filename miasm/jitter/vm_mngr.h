@@ -85,7 +85,7 @@ LIST_HEAD(memory_breakpoint_info_head, memory_breakpoint_info);
 
 struct memory_page_node {
 	uint64_t ad;
-	uint64_t size;
+	size_t size;
 	uint64_t access;
 	void* ad_hp;
 	char* name;
@@ -98,8 +98,8 @@ struct memory_access {
 
 struct memory_access_list {
 	struct memory_access *array;
-	uint64_t allocated;
-	uint64_t num;
+	size_t allocated;
+	size_t num;
 };
 
 typedef struct {

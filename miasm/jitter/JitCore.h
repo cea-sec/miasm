@@ -3,6 +3,15 @@
 
 #if _WIN32
 #define _MIASM_EXPORT __declspec(dllexport)
+
+#ifndef SSIZE_MAX
+#ifdef _WIN64
+#define SSIZE_MAX _I64_MAX
+#else
+#define SSIZE_MAX INT_MAX
+#endif
+#endif
+
 #else
 #define _MIASM_EXPORT
 #endif
@@ -28,7 +37,7 @@
 		bn = bignum_mask(bn, (size));				\
 		for (j = BN_BYTE_SIZE - 4; j >= 0 ; j -= 4) {		\
 			tmp = bignum_to_uint64(bignum_mask(bignum_rshift(bn, 8 * j), 32)); \
-			py_tmp = PyLong_FromUnsignedLong(tmp);		\
+			py_tmp = PyLong_FromUnsignedLong((unsigned long)tmp);		\
 			py_long_new = PyObject_CallMethod(py_long, "__lshift__", "O", cst_32); \
 			Py_DECREF(py_long);				\
 			py_long = PyObject_CallMethod(py_long_new, "__add__", "O", py_tmp); \
@@ -39,7 +48,7 @@
 		return py_long;						\
 	}								\
 									\
-	static int JitCpu_set_ ## regname  (JitCpu *self, PyObject *value, void *closure) \
+	static PyObject *JitCpu_set_ ## regname  (JitCpu *self, PyObject *value, void *closure) \
 	{								\
 		bn_t bn;						\
 		int j;							\
@@ -94,7 +103,7 @@
 		bn = bignum_mask(bn, (size));				\
 		for (j = BN_BYTE_SIZE - 4; j >= 0 ; j -= 4) {		\
 			tmp = bignum_to_uint64(bignum_mask(bignum_rshift(bn, 8 * j), 32)); \
-			py_tmp = PyLong_FromUnsignedLong(tmp);		\
+			py_tmp = PyLong_FromUnsignedLong((unsigned long)tmp);		\
 			py_long_new = PyObject_CallMethod(py_long, "__lshift__", "O", cst_32); \
 			Py_DECREF(py_long);				\
 			py_long = PyObject_CallMethod(py_long_new, "__add__", "O", py_tmp); \
@@ -105,7 +114,7 @@
 		return py_long;						\
 	}								\
 									\
-	static int JitCpu_set_ ## regname  (JitCpu *self, PyObject *value, void *closure) \
+	static PyObject *JitCpu_set_ ## regname  (JitCpu *self, PyObject *value, void *closure) \
 	{								\
 		bn_t bn;						\
 		int j;							\
@@ -178,9 +187,9 @@
 	}								\
 	static int JitCpu_set_ ## regname  (JitCpu *self, PyObject *value, void *closure) \
 	{								\
-		uint32_t val;						\
+		uint64_t val;						\
 		PyGetInt_retneg(value, val);				\
-		((vm_cpu_t*)(self->cpu))->  regname   = val;		\
+		((vm_cpu_t*)(self->cpu))->  regname = (uint32_t)val;	\
 		return 0;						\
 	}
 
@@ -192,9 +201,23 @@
 	}								\
 	static int JitCpu_set_ ## regname  (JitCpu *self, PyObject *value, void *closure) \
 	{								\
-		uint16_t val;						\
+		uint64_t val;						\
 		PyGetInt_retneg(value, val);				\
-		((vm_cpu_t*)(self->cpu))->  regname   = val;		\
+		((vm_cpu_t*)(self->cpu))->  regname   = (uint16_t)val;	\
+		return 0;						\
+	}
+
+
+#define getset_reg_u8(regname)						\
+	static PyObject *JitCpu_get_ ## regname  (JitCpu *self, void *closure) \
+	{								\
+		return PyLong_FromUnsignedLongLong((uint8_t)(((vm_cpu_t*)(self->cpu))-> regname  )); \
+	}								\
+	static int JitCpu_set_ ## regname  (JitCpu *self, PyObject *value, void *closure) \
+	{								\
+		uint64_t val;						\
+		PyGetInt_retneg(value, val);				\
+		((vm_cpu_t*)(self->cpu))->  regname   = (uint8_t)val;	\
 		return 0;						\
 	}
 
@@ -220,7 +243,7 @@
 		bn = bignum_mask(bn, size);				\
 		for (j = BN_BYTE_SIZE - 4; j >= 0 ; j -= 4) {		\
 			tmp = bignum_to_uint64(bignum_mask(bignum_rshift(bn, 8 * j), 32)); \
-			py_tmp = PyLong_FromUnsignedLong(tmp);		\
+			py_tmp = PyLong_FromUnsignedLong((unsigned long)tmp);		\
 			py_long_new = PyObject_CallMethod(py_long, "__lshift__", "O", cst_32); \
 			Py_DECREF(py_long);				\
 			py_long = PyObject_CallMethod(py_long_new, "__add__", "O", py_tmp); \
