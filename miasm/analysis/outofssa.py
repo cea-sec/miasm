@@ -149,7 +149,9 @@ class UnSSADiGraph(object):
 
         # walk in DFS over the dominator tree
         for loc_key in dominator_tree.walk_depth_first_forward(self.head):
-            irblock = ircfg.blocks[loc_key]
+            irblock = ircfg.blocks.get(loc_key, None)
+            if irblock is None:
+                continue
 
             # Create live index for phi new vars
             # They do not exist in the graph yet, so index is set to None

@@ -835,7 +835,10 @@ class PropagateThroughExprId(object):
         ircfg = ssa.graph
         def_dct = {}
         for node in ircfg.nodes():
-            for index, assignblk in enumerate(ircfg.blocks[node]):
+            block = ircfg.blocks.get(node, None)
+            if block is None:
+                continue
+            for index, assignblk in enumerate(block):
                 for dst, src in viewitems(assignblk):
                     if not dst.is_id():
                         continue
@@ -1001,7 +1004,9 @@ class PropagateThroughExprMem(object):
 
         while todo:
             loc_key, index, mem_dst, mem_src = todo.pop()
-            block = ircfg.blocks[loc_key]
+            block = ircfg.blocks.get(loc_key, None)
+            if block is None:
+                continue
             assignblks = list(block)
             block_modified = False
             for i in range(index, len(block)):
@@ -1364,7 +1369,9 @@ class DiGraphLiveness(DiGraph):
         self._blocks = {}
         # Add irblocks gen/kill
         for node in ircfg.nodes():
-            irblock = ircfg.blocks[node]
+            irblock = ircfg.blocks.get(node, None)
+            if irblock is None:
+                continue
             irblockinfos = IRBlockLivenessInfos(irblock)
             self.add_node(irblockinfos.loc_key)
             self.blocks[irblockinfos.loc_key] = irblockinfos
@@ -1467,7 +1474,9 @@ class DiGraphLiveness(DiGraph):
         todo = set(self.leaves())
         while todo:
             node = todo.pop()
-            cur_block = self.blocks[node]
+            cur_block = self.blocks.get(node, None)
+            if cur_block is None:
+                continue
             modified = self.back_propagate_compute(cur_block)
             if not modified:
                 continue
@@ -1486,7 +1495,9 @@ class DiGraphLivenessIRA(DiGraphLiveness):
         """Add ircfg out regs"""
 
         for node in self.leaves():
-            irblock = self.ircfg.blocks[node]
+            irblock = self.ircfg.blocks.get(node, None)
+            if irblock is None:
+                continue
             var_out = ir_arch_a.get_out_regs(irblock)
             irblock_liveness = self.blocks[node]
             irblock_liveness.infos[-1].var_out = var_out
@@ -1614,7 +1625,9 @@ def del_unused_edges(ircfg, heads):
     edges_to_del_1 = set()
     for node in ircfg.nodes():
         successors = set(ircfg.successors(node))
-        block = ircfg.blocks[node]
+        block = ircfg.blocks.get(node, None)
+        if block is None:
+            continue
         dst = block.dst
         possible_dsts = set(solution.value for solution in possible_values(dst))
         if not all(dst.is_loc() for dst in possible_dsts):
