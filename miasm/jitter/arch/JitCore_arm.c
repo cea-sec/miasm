@@ -488,20 +488,20 @@ static PyMethodDef JitCore_arm_Methods[] = {
 
 MOD_INIT(JitCore_arm)
 {
-	PyObject *module;
+	PyObject *module = NULL;
 
 	MOD_DEF(module, "JitCore_arm", "JitCore_arm module", JitCore_arm_Methods);
 
 	if (module == NULL)
-		return NULL;
+		RET_MODULE;
 
 	if (PyType_Ready(&JitCpuType) < 0)
-		return NULL;
+		RET_MODULE;
 
 	Py_INCREF(&JitCpuType);
 	if (PyModule_AddObject(module, "JitCpu", (PyObject *)&JitCpuType) < 0)
-		return NULL;
+		RET_MODULE;
 
-	return module;
+	RET_MODULE;
 }
 

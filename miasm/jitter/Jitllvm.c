@@ -88,12 +88,9 @@ static PyMethodDef LLVMMethods[] = {
 
 MOD_INIT(Jitllvm)
 {
-	PyObject *module;
+	PyObject *module = NULL;
 
 	MOD_DEF(module, "Jitllvm", "llvm module", LLVMMethods);
 
-	if (module == NULL)
-		return NULL;
-
-	return module;
+	RET_MODULE;
 }

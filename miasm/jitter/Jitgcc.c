@@ -82,9 +82,6 @@ PyObject* gcc_exec_block(PyObject* self, PyObject* args)
 
 
 
-static PyObject *GccError;
-
-
 static PyMethodDef GccMethods[] = {
     {"gcc_exec_block",  gcc_exec_block, METH_VARARGS,
      "gcc exec block"},
@@ -95,12 +92,9 @@ static PyMethodDef GccMethods[] = {
 
 MOD_INIT(Jitgcc)
 {
-	PyObject *module;
+	PyObject *module = NULL;
 
 	MOD_DEF(module, "Jitgcc", "gcc module", GccMethods);
 
-	if (module == NULL)
-		return NULL;
-
-	return module;
+	RET_MODULE;
 }

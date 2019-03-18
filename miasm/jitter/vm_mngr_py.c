@@ -995,19 +995,19 @@ char vm_mngr_mod_name[] = "VmMngr";
 
 MOD_INIT(VmMngr)
 {
-	PyObject *module;
+	PyObject *module = NULL;
 
 	MOD_DEF(module, "VmMngr", "vm_mngr module", VmMngr_Methods);
 
 	if (module == NULL)
-		return NULL;
+		RET_MODULE;
 
 	if (PyType_Ready(&VmMngrType) < 0)
-		return NULL;
+		RET_MODULE;
 
 	Py_INCREF(&VmMngrType);
 	if (PyModule_AddObject(module, "Vm", (PyObject *)&VmMngrType) < 0)
-		return NULL;
+		RET_MODULE;
 
-	return module;
+	RET_MODULE;
 }

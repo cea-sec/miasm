@@ -459,19 +459,19 @@ static PyMethodDef JitCore_msp430_Methods[] = {
 
 MOD_INIT(JitCore_msp430)
 {
-	PyObject *module;
+	PyObject *module = NULL;
 
 	MOD_DEF(module, "JitCore_msp430", "JitCore_msp430 module", JitCore_msp430_Methods);
 
 	if (module == NULL)
-		return NULL;
+		RET_MODULE;
 
 	if (PyType_Ready(&JitCpuType) < 0)
-		return NULL;
+		RET_MODULE;
 
 	Py_INCREF(&JitCpuType);
 	if (PyModule_AddObject(module, "JitCpu", (PyObject *)&JitCpuType) < 0)
-		return NULL;
+		RET_MODULE;
 
-	return module;
+	RET_MODULE;
 }
