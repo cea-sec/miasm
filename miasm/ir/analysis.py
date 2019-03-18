@@ -5,7 +5,6 @@ import logging
 
 from miasm.ir.ir import IntermediateRepresentation, AssignBlock
 from miasm.expression.expression import ExprOp, ExprAssign
-from miasm.analysis.data_flow import dead_simp as new_dead_simp_imp
 
 
 log = logging.getLogger("analysis")
@@ -106,8 +105,3 @@ class ira(IntermediateRepresentation):
     def sizeof_pointer(self):
         "Return the size of a void* in bits"
         raise NotImplementedError("Abstract method")
-
-    def dead_simp(self, ircfg):
-        """Deprecated: See miasm.analysis.data_flow.dead_simp()"""
-        warnings.warn('DEPRECATION WARNING: Please use miasm.analysis.data_flow.dead_simp(ira) instead of ira.dead_simp()')
-        new_dead_simp_imp(self, ircfg)
