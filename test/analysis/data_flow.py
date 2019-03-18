@@ -5,7 +5,7 @@ from future.utils import viewitems
 
 from miasm.expression.expression import ExprId, ExprInt, ExprAssign, ExprMem
 from miasm.core.locationdb import LocationDB
-from miasm.analysis.data_flow import *
+from miasm.analysis.data_flow import DeadRemoval, ReachingDefinitions, DiGraphDefUse
 from miasm.ir.analysis import ira
 from miasm.ir.ir import IRBlock, AssignBlock
 
@@ -82,6 +82,7 @@ class IRATest(ira):
         return set([self.ret_reg, self.sp])
 
 IRA = IRATest(loc_db)
+deadrm = DeadRemoval(IRA)
 
 # graph 1 : Simple graph with dead and alive variables
 
@@ -696,7 +697,7 @@ for test_nb, test in enumerate([(G1_IRA, G1_EXP_IRA),
     defuse = DiGraphDefUse(reaching_defs, deref_mem=True)
 
     # # Simplify graph
-    dead_simp(IRA, g_ira)
+    deadrm(g_ira)
 
     # # Print simplified graph, for debug
     open("simp_graph_%02d.dot" % (test_nb+1), "w").write(g_ira.dot())

@@ -8,7 +8,7 @@ from miasm.core import parse_asm
 from miasm.expression.expression import *
 from miasm.core import asmblock
 from miasm.arch.x86.ira import ir_a_x86_32
-from miasm.analysis.data_flow import dead_simp
+from miasm.analysis.data_flow import DeadRemoval
 
 
 # First, asm code
@@ -40,6 +40,8 @@ patches = asmblock.asm_resolve_final(mn_x86, asmcfg, loc_db)
 # Translate to IR
 ir_arch = ir_a_x86_32(loc_db)
 ircfg = ir_arch.new_ircfg_from_asmcfg(asmcfg)
+deadrm = DeadRemoval(ir_arch)
+
 
 # Display IR
 for lbl, irblock in viewitems(ircfg.blocks):
@@ -48,7 +50,7 @@ for lbl, irblock in viewitems(ircfg.blocks):
 # Dead propagation
 open('graph.dot', 'w').write(ircfg.dot())
 print('*' * 80)
-dead_simp(ir_arch, ircfg)
+deadrm(ircfg)
 open('graph2.dot', 'w').write(ircfg.dot())
 
 # Display new IR

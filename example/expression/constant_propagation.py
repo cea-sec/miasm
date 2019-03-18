@@ -9,7 +9,7 @@ from argparse import ArgumentParser
 from miasm.analysis.machine import Machine
 from miasm.analysis.binary import Container
 from miasm.analysis.cst_propag import propagate_cst_expr
-from miasm.analysis.data_flow import dead_simp, \
+from miasm.analysis.data_flow import DeadRemoval, \
     merge_blocks, remove_empty_assignblks
 from miasm.expression.simplifications import expr_simp
 
@@ -29,6 +29,7 @@ cont = Container.from_stream(open(args.filename, 'rb'))
 mdis = machine.dis_engine(cont.bin_stream, loc_db=cont.loc_db)
 ir_arch = machine.ira(mdis.loc_db)
 addr = int(args.address, 0)
+deadrm = DeadRemoval(ir_arch)
 
 asmcfg = mdis.dis_multiblock(addr)
 ircfg = ir_arch.new_ircfg_from_asmcfg(asmcfg)
@@ -42,7 +43,7 @@ if args.simplify:
     modified = True
     while modified:
         modified = False
-        modified |= dead_simp(ir_arch, ircfg)
+        modified |= deadrm(ircfg)
         modified |= remove_empty_assignblks(ircfg)
         modified |= merge_blocks(ircfg, entry_points)
 
