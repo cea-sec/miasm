@@ -120,7 +120,7 @@ typedef struct {
 	bn_t XMM14;
 	bn_t XMM15;
 
-	uint32_t segm_base[0x10000];
+	uint64_t segm_base[0x10000];
 
 }vm_cpu_t;
 

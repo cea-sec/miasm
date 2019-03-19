@@ -165,7 +165,7 @@ PyObject* cpu_set_gpreg(JitCpu* self, PyObject *args)
 	for (i=0; i < sizeof(gpreg_dict)/sizeof(reg_dict); i++){
 	    if (strcmp(d_key_name, gpreg_dict[i].name))
 		continue;
-	    *((uint32_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset)) = val;
+	    *((uint32_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset)) = (uint32_t)val;
 	    found = 1;
 	    break;
 	}
@@ -238,7 +238,7 @@ PyObject* cpu_set_exception(JitCpu* self, PyObject* args)
 
     PyGetInt(item1, i);
 
-    ((vm_cpu_t*)self->cpu)->exception_flags = i;
+    ((vm_cpu_t*)self->cpu)->exception_flags = (uint32_t)i;
     Py_INCREF(Py_None);
     return Py_None;
 }

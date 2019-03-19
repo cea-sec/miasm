@@ -186,15 +186,15 @@ PyObject* cpu_set_gpreg(JitCpu* self, PyObject *args)
 		    switch (gpreg_dict[i].size) {
 			    case 8:
 				    PyGetInt(d_value, val);
-				    *((uint8_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset)) = val;
+				    *((uint8_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset)) = (uint8_t)val;
 				    break;
 			    case 16:
 				    PyGetInt(d_value, val);
-				    *((uint16_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset)) = val;
+				    *((uint16_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset)) = (uint16_t)val;
 				    break;
 			    case 32:
 				    PyGetInt(d_value, val);
-				    *((uint32_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset)) = val;
+				    *((uint32_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset)) = (uint32_t)val;
 				    break;
 			    case 64:
 				    PyGetInt(d_value, val);
@@ -390,7 +390,7 @@ PyObject* cpu_set_exception(JitCpu* self, PyObject* args)
 
 	PyGetInt(item1, i);
 
-	((vm_cpu_t*)self->cpu)->exception_flags = i;
+	((vm_cpu_t*)self->cpu)->exception_flags = (uint32_t)i;
 	Py_INCREF(Py_None);
 	return Py_None;
 }
@@ -410,7 +410,7 @@ PyObject* cpu_set_interrupt_num(JitCpu* self, PyObject* args)
 
 	PyGetInt(item1, i);
 
-	((vm_cpu_t*)self->cpu)->interrupt_num = i;
+	((vm_cpu_t*)self->cpu)->interrupt_num = (uint32_t)i;
 	Py_INCREF(Py_None);
 	return Py_None;
 }
@@ -604,13 +604,13 @@ getset_reg_u64(R15);
 
 getset_reg_u64(RIP);
 
-getset_reg_u64(zf);
-getset_reg_u64(nf);
-getset_reg_u64(pf);
-getset_reg_u64(of);
-getset_reg_u64(cf);
-getset_reg_u64(af);
-getset_reg_u64(df);
+getset_reg_u8(zf);
+getset_reg_u8(nf);
+getset_reg_u8(pf);
+getset_reg_u8(of);
+getset_reg_u8(cf);
+getset_reg_u8(af);
+getset_reg_u8(df);
 
 
 getset_reg_u16(ES);
