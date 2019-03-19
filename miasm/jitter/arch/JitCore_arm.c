@@ -115,7 +115,7 @@ PyObject* cpu_set_gpreg(JitCpu* self, PyObject *args)
 
 	    if (found)
 		    continue;
-	    fprintf(stderr, "unknown key: %s\n", d_key);
+	    fprintf(stderr, "unknown key: %s\n", d_key_name);
 	    RAISE(PyExc_ValueError, "unknown reg");
     }
     Py_INCREF(Py_None);
