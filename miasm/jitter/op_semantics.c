@@ -634,7 +634,7 @@ uint64_t fpu_fabs64(uint64_t a)
 	double_uint64_t a_cast;
 
 	a_cast.u64 = a;
-	a_cast.dbl = abs(a_cast.dbl);
+	a_cast.dbl = fabs(a_cast.dbl);
 #ifdef DEBUG_MIASM_DOUBLE
 	dump_float();
 	printf("%e abs %e\n", a, a_cast.dbl);
