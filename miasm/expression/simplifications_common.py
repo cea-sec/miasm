@@ -1570,8 +1570,8 @@ def simp_compose_and_mask(_, expr):
         return expr
     if not arg2.is_int():
         return expr
-    int2 = arg2.arg.arg
+    int2 = arg2.arg
     if (int2 + 1) & int2 != 0:
         return expr
-    mask_size = int2.bit_length() + 7 // 8
+    mask_size = int2.arg.bit_length() + 7 // 8
     return ExprSlice(arg1, 0, mask_size).zeroExtend(expr.size)

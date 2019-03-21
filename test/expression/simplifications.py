@@ -194,7 +194,7 @@ to_test = [(ExprInt(1, 32) - ExprInt(1, 32), ExprInt(0, 32)),
             ExprOp('&', a, ExprInt(0xFFFFFFF0, 32))),
 
            (ExprCompose(ExprInt(0x1234, 16), ExprId("a", 16)) & ExprInt(0xFF, 32), ExprInt(0x34, 32)),
-           (ExprCompose(ExprInt(0x12, 8), ExprInt(0x34, 8)) & ExprInt(0xFFFF, 16), ExprInt(0x3412, 32)),
+           (ExprCompose(ExprInt(0x12, 8), ExprInt(0x34, 8)) & ExprInt(0xFFFF, 16), ExprInt(0x3412, 16)),
            (ExprCompose(ExprInt(0x12, 8), ExprInt(0x3456, 16), ExprInt(0x78, 8)) & ExprInt(0xFFFFFF, 32), ExprInt(0x345612, 32)),
            (ExprCompose(ExprInt(0x1234, 16), ExprId("a", 8), ExprInt(0x67, 8)) & ExprInt(0xFFFFFFFF, 32), ExprCompose(ExprInt(0x1234, 16), ExprId("a", 8), ExprInt(0x67, 8))),
 
