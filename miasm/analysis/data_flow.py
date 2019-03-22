@@ -1401,7 +1401,7 @@ def discard_phi_sources(ircfg, deleted_vars):
             srcs = set(expr for expr in src.args if expr not in deleted_vars)
             assert(srcs)
             if len(srcs) > 1:
-                todo[dst] = srcs
+                todo[dst] = ExprOp('Phi', *srcs)
                 continue
             todo[dst] = srcs.pop()
             modified = True
