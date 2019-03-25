@@ -1575,18 +1575,24 @@ def update_phi_with_deleted_edges(ircfg, edges_to_del):
     @edges_to_del: edges to delete
     """
 
+
+    phi_locs_to_srcs = {}
+    for loc_src, loc_dst in edges_to_del:
+        phi_locs_to_srcs.setdefault(loc_dst, set()).add(loc_src)
+
     modified = False
     blocks = dict(ircfg.blocks)
-    for loc_src, loc_dst in edges_to_del:
+    for loc_dst, loc_srcs in viewitems(phi_locs_to_srcs):
         block = ircfg.blocks[loc_dst]
-        assert block.assignblks
+        if not irblock_has_phi(block):
+            continue
         assignblks = list(block)
         assignblk = assignblks[0]
         out = {}
         for dst, phi_sources in viewitems(assignblk):
             if not phi_sources.is_op('Phi'):
-                out = assignblk
-                break
+                out[dst] = phi_sources
+                continue
             var_to_parents = get_phi_sources_parent_block(
                 ircfg,
                 loc_dst,
@@ -1595,7 +1601,8 @@ def update_phi_with_deleted_edges(ircfg, edges_to_del):
             to_keep = set(phi_sources.args)
             for src in phi_sources.args:
                 parents = var_to_parents[src]
-                if loc_src in parents:
+                remaining = parents.difference(loc_srcs)
+                if not remaining:
                     to_keep.discard(src)
                     modified = True
             assert to_keep
