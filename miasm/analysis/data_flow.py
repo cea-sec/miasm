@@ -69,6 +69,8 @@ class ReachingDefinitions(dict):
         """
         predecessor_state = {}
         for pred_lbl in self.ircfg.predecessors(block.loc_key):
+            if pred_lbl not in self.ircfg.blocks:
+                continue
             pred = self.ircfg.blocks[pred_lbl]
             for lval, definitions in viewitems(self.get_definitions(pred_lbl, len(pred))):
                 predecessor_state.setdefault(lval, set()).update(definitions)
@@ -790,6 +792,8 @@ class PropagateThroughExprId(object):
         else:
             # Check everyone but node_a.label and node_b.label
             for loc in nodes_to_do - set([node_a.label, node_b.label]):
+                if loc not in ssa.graph.blocks:
+                    continue
                 block = ssa.graph.blocks[loc]
                 if self.has_propagation_barrier(block.assignblks):
                     return True
@@ -1693,6 +1697,8 @@ class DiGraphLivenessSSA(DiGraphLivenessIRA):
             self.loc_key_to_phi_parents[irblock.loc_key] = out
 
     def back_propagate_to_parent(self, todo, node, parent):
+        if parent not in self.blocks:
+            return
         parent_block = self.blocks[parent]
         cur_block = self.blocks[node]
         irblock = self.ircfg.blocks[node]
