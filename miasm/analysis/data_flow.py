@@ -1676,6 +1676,10 @@ class DiGraphLivenessSSA(DiGraphLivenessIRA):
                 continue
             out = {}
             for sources in viewvalues(irblock[0]):
+                if not sources.is_op('Phi'):
+                    # Some phi sources may have already been resolved to an
+                    # expression
+                    continue
                 var_to_parents = get_phi_sources_parent_block(self, irblock.loc_key, sources.args)
                 for var, var_parents in viewitems(var_to_parents):
                     out.setdefault(var, set()).update(var_parents)
