@@ -608,9 +608,18 @@ class SSADiGraph(SSA):
             if irblock is None:
                 continue
             assignblk = AssignBlock(self._phinodes[loc_key])
-            # insert at the beginning
-            new_irs = IRBlock(loc_key, [assignblk] + list(irblock.assignblks))
-            self.ircfg.blocks[loc_key] = new_irs
+            if irblock_has_phi(irblock):
+                # If first block contains phi, we are updating an existing ssa form
+                # so update phi
+                assignblks = list(irblock.assignblks)
+                out = dict(assignblks[0])
+                out.update(dict(assignblk))
+                assignblks[0] = AssignBlock(out, assignblk.instr)
+                new_irblock = IRBlock(loc_key, assignblks)
+            else:
+                # insert at the beginning
+                new_irblock = IRBlock(loc_key, [assignblk] + list(irblock.assignblks))
+            self.ircfg.blocks[loc_key] = new_irblock
 
     def _fix_no_def_var(self, head):
         """
