@@ -31,7 +31,6 @@ machine = Machine("msp430")
 def jit_msp430_binary(args):
     filepath, entryp = args.binary, int(args.addr, 0)
     myjit = machine.jitter(jit_type = args.jitter)
-    myjit.init_stack()
 
     # Log level (if available with jitter engine)
     myjit.set_trace_log(
