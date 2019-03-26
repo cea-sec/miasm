@@ -119,7 +119,8 @@ PyObject* cpu_set_gpreg(JitCpu* self, PyObject *args)
     PyObject *d_key, *d_value = NULL;
     Py_ssize_t pos = 0;
     char* d_key_name;
-    uint64_t val;
+    uint32_t val32;
+    uint64_t val64;
     unsigned int i, found;
 
     if (!PyArg_ParseTuple(args, "O", &dict))
@@ -128,15 +129,24 @@ PyObject* cpu_set_gpreg(JitCpu* self, PyObject *args)
 	    RAISE(PyExc_TypeError, "arg must be dict");
     while(PyDict_Next(dict, &pos, &d_key, &d_value)){
 	    PyGetStr(d_key_name, d_key);
-	    PyGetInt(d_value, val);
-
 	    found = 0;
 	    for (i=0; i < sizeof(gpreg_dict)/sizeof(reg_dict); i++){
 		    if (strcmp(d_key_name, gpreg_dict[i].name))
 			    continue;
-		    *((uint32_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset)) = (uint32_t)val;
 		    found = 1;
-		    break;
+		    switch (gpreg_dict[i].size) {
+			    default:
+				    RAISE(PyExc_TypeError, "Unsupported size");
+				    break;
+			    case 32:
+				    PyGetInt_uint32_t(d_value, val32);
+				    *((uint32_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset)) = val32;
+				    break;
+			    case 64:
+				    PyGetInt_uint64_t(d_value, val64);
+				    *((uint64_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset)) = val64;
+				    break;
+		    }
 	    }
 
 	    if (found)
@@ -203,14 +213,14 @@ PyObject * cpu_dump_gpregs_with_attrib(JitCpu* self, PyObject* args)
 PyObject* cpu_set_exception(JitCpu* self, PyObject* args)
 {
 	PyObject *item1;
-	uint64_t i;
+	uint32_t exception_flags;
 
 	if (!PyArg_ParseTuple(args, "O", &item1))
 		RAISE(PyExc_TypeError,"Cannot parse arguments");
 
-	PyGetInt(item1, i);
+	PyGetInt_uint32_t(item1, exception_flags);
 
-	((vm_cpu_t*)self->cpu)->exception_flags = (uint32_t)i;
+	((vm_cpu_t*)self->cpu)->exception_flags = exception_flags;
 	Py_INCREF(Py_None);
 	return Py_None;
 }
@@ -274,7 +284,7 @@ PyObject* vm_set_mem(JitCpu *self, PyObject* args)
        if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_buffer))
 	       RAISE(PyExc_TypeError,"Cannot parse arguments");
 
-       PyGetInt(py_addr, addr);
+       PyGetInt_uint64_t(py_addr, addr);
 
        if(!PyBytes_Check(py_buffer))
 	       RAISE(PyExc_TypeError,"arg must be bytes");

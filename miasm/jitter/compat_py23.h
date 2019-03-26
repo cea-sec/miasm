@@ -4,18 +4,18 @@
 
 
 #if PY_MAJOR_VERSION >= 3
-#define PyGetInt(item, value)						\
+#define PyGetInt_uint_t(size, item, value)				\
 	if (PyLong_Check(item)){					\
-		value = (uint64_t)PyLong_AsUnsignedLongLong(item);	\
+		value = (uint ## size ## _t)PyLong_AsUnsignedLongLong(item); \
 	}								\
 	else{								\
 		RAISE(PyExc_TypeError,"arg must be int");		\
 	}
 
 
-#define PyGetInt_retneg(item, value)					\
+#define PyGetInt_uint_t_retneg(size, item, value)			\
 	if (PyLong_Check(item)){					\
-		value = (uint64_t)PyLong_AsUnsignedLongLong(item);	\
+		value = (uint ## size ##_t)PyLong_AsUnsignedLongLong(item); \
 	}								\
 	else{								\
 		PyErr_SetString(PyExc_TypeError, "Arg must be int");	\
@@ -30,24 +30,24 @@
 
 
 #else
-#define PyGetInt(item, value)						\
+#define PyGetInt_uint_t(size, item, value)				\
 	if (PyInt_Check(item)){						\
-		value = (uint64_t)PyInt_AsLong(item);			\
+		value = (uint ## size ##_t)PyInt_AsLong(item);		\
 	}								\
 	else if (PyLong_Check(item)){					\
-		value = (uint64_t)PyLong_AsUnsignedLongLong(item);	\
+		value = (uint ## size ##_t)PyLong_AsUnsignedLongLong(item); \
 	}								\
 	else{								\
 		RAISE(PyExc_TypeError,"arg must be int");		\
 	}
 
 
-#define PyGetInt_retneg(item, value)					\
+#define PyGetInt_uint_t_retneg(size, item, value)			\
 	if (PyInt_Check(item)){						\
-		value = (uint64_t)PyLong_AsLong(item);			\
+		value = (uint ## size ##_t)PyLong_AsLong(item);		\
 	}								\
 	else if (PyLong_Check(item)){					\
-		value = (uint64_t)PyLong_AsUnsignedLongLong(item);	\
+		value = (uint ## size ##_t)PyLong_AsUnsignedLongLong(item); \
 	}								\
 	else{								\
 		PyErr_SetString(PyExc_TypeError, "Arg must be int");	\
@@ -61,6 +61,17 @@
 	(dest) = (char*)PyString_AsString((name))
 
 #endif
+
+
+#define PyGetInt_uint8_t(item, value) PyGetInt_uint_t(8, item, value)
+#define PyGetInt_uint16_t(item, value) PyGetInt_uint_t(16, item, value)
+#define PyGetInt_uint32_t(item, value) PyGetInt_uint_t(32, item, value)
+#define PyGetInt_uint64_t(item, value) PyGetInt_uint_t(64, item, value)
+
+#define PyGetInt_uint8_t_retneg(item, value) PyGetInt_uint_t_retneg(8, item, value)
+#define PyGetInt_uint16_t_retneg(item, value) PyGetInt_uint_t_retneg(16, item, value)
+#define PyGetInt_uint32_t_retneg(item, value) PyGetInt_uint_t_retneg(32, item, value)
+#define PyGetInt_uint64_t_retneg(item, value) PyGetInt_uint_t_retneg(64, item, value)
 
 
 

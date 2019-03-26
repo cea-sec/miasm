@@ -38,7 +38,7 @@ cpu_set_gpreg(JitCpu *self, PyObject *args) {
     PyObject *d_key, *d_value = NULL;
     Py_ssize_t pos = 0;
     char* d_key_name;
-    uint64_t val;
+    uint32_t val;
     unsigned int i;
 
     if (!PyArg_ParseTuple(args, "O", &dict))
@@ -49,12 +49,12 @@ cpu_set_gpreg(JitCpu *self, PyObject *args) {
     while(PyDict_Next(dict, &pos, &d_key, &d_value)) {
 	int found = 0;
 	PyGetStr(d_key_name, d_key);
-	PyGetInt(d_value, val);
+	PyGetInt_uint32_t(d_value, val);
 
 	for (i=0; i < sizeof(gpreg_dict)/sizeof(reg_dict); i++){
 	    if (strcmp(d_key_name, gpreg_dict[i].name))
 		continue;
-	    *((uint32_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset)) = (uint32_t)val;
+	    *((uint32_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset)) = val;
 	    found = 1;
 	    break;
 	}
@@ -116,14 +116,14 @@ cpu_dump_gpregs_with_attrib(JitCpu* self, PyObject* args)
 PyObject *
 cpu_set_exception(JitCpu *self, PyObject *args) {
     PyObject *item1;
-    uint64_t i;
+    uint64_t exception_flags;
 
     if (!PyArg_ParseTuple(args, "O", &item1))
 	return NULL;
 
-    PyGetInt(item1, i);
+    PyGetInt_uint64_t(item1, exception_flags);
 
-    ((struct vm_cpu *)self->cpu)->exception_flags = i;
+    ((struct vm_cpu *)self->cpu)->exception_flags = exception_flags;
 
     Py_INCREF(Py_None);
     return Py_None;
@@ -189,7 +189,7 @@ vm_set_mem(JitCpu *self, PyObject *args) {
    if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_buffer))
        return NULL;
 
-   PyGetInt(py_addr, addr);
+   PyGetInt_uint64_t(py_addr, addr);
 
    if(!PyBytes_Check(py_buffer))
        RAISE(PyExc_TypeError,"arg must be bytes");

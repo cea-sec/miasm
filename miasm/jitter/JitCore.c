@@ -244,8 +244,8 @@ PyObject* vm_get_mem(JitCpu *self, PyObject* args)
        if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_len))
 	       return NULL;
 
-       PyGetInt(py_addr, addr);
-       PyGetInt(py_len, size);
+       PyGetInt_uint64_t(py_addr, addr);
+       PyGetInt_uint64_t(py_len, size);
 
 
        if (size > SSIZE_MAX) {

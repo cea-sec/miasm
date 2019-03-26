@@ -170,26 +170,26 @@
 #define getset_reg_u64(regname)						\
 	static PyObject *JitCpu_get_ ## regname  (JitCpu *self, void *closure) \
 	{								\
-		return PyLong_FromUnsignedLongLong((uint64_t)(((vm_cpu_t*)(self->cpu))->  regname  )); \
+		return PyLong_FromUnsignedLongLong((((vm_cpu_t*)(self->cpu))->  regname  )); \
 	}								\
 	static int JitCpu_set_ ## regname  (JitCpu *self, PyObject *value, void *closure) \
 	{								\
 		uint64_t val;						\
-		PyGetInt_retneg(value, val);				\
-		((vm_cpu_t*)(self->cpu))->  regname   = val;		\
+		PyGetInt_uint64_t_retneg(value, val);			\
+		((vm_cpu_t*)(self->cpu))->  regname = val;		\
 		return 0;						\
 	}
 
 #define getset_reg_u32(regname)						\
 	static PyObject *JitCpu_get_ ## regname  (JitCpu *self, void *closure) \
 	{								\
-		return PyLong_FromUnsignedLongLong((uint32_t)(((vm_cpu_t*)(self->cpu))->  regname  )); \
+		return PyLong_FromUnsignedLongLong((((vm_cpu_t*)(self->cpu))->  regname  )); \
 	}								\
 	static int JitCpu_set_ ## regname  (JitCpu *self, PyObject *value, void *closure) \
 	{								\
-		uint64_t val;						\
-		PyGetInt_retneg(value, val);				\
-		((vm_cpu_t*)(self->cpu))->  regname = (uint32_t)val;	\
+		uint32_t val;						\
+		PyGetInt_uint32_t_retneg(value, val);			\
+		((vm_cpu_t*)(self->cpu))->  regname = val;		\
 		return 0;						\
 	}
 
@@ -197,13 +197,13 @@
 #define getset_reg_u16(regname)						\
 	static PyObject *JitCpu_get_ ## regname  (JitCpu *self, void *closure) \
 	{								\
-		return PyLong_FromUnsignedLongLong((uint16_t)(((vm_cpu_t*)(self->cpu))-> regname  )); \
+		return PyLong_FromUnsignedLongLong((((vm_cpu_t*)(self->cpu))-> regname  )); \
 	}								\
 	static int JitCpu_set_ ## regname  (JitCpu *self, PyObject *value, void *closure) \
 	{								\
-		uint64_t val;						\
-		PyGetInt_retneg(value, val);				\
-		((vm_cpu_t*)(self->cpu))->  regname   = (uint16_t)val;	\
+		uint16_t val;						\
+		PyGetInt_uint16_t_retneg(value, val);			\
+		((vm_cpu_t*)(self->cpu))->  regname = val;		\
 		return 0;						\
 	}
 
@@ -211,13 +211,13 @@
 #define getset_reg_u8(regname)						\
 	static PyObject *JitCpu_get_ ## regname  (JitCpu *self, void *closure) \
 	{								\
-		return PyLong_FromUnsignedLongLong((uint8_t)(((vm_cpu_t*)(self->cpu))-> regname  )); \
+		return PyLong_FromUnsignedLongLong((((vm_cpu_t*)(self->cpu))-> regname  )); \
 	}								\
 	static int JitCpu_set_ ## regname  (JitCpu *self, PyObject *value, void *closure) \
 	{								\
-		uint64_t val;						\
-		PyGetInt_retneg(value, val);				\
-		((vm_cpu_t*)(self->cpu))->  regname   = (uint8_t)val;	\
+		uint8_t val;						\
+		PyGetInt_uint8_t_retneg(value, val);			\
+		((vm_cpu_t*)(self->cpu))->  regname = val;		\
 		return 0;						\
 	}
 

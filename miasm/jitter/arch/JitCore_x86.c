@@ -169,7 +169,10 @@ PyObject* cpu_set_gpreg(JitCpu* self, PyObject *args)
     PyObject *d_key, *d_value = NULL;
     char* d_key_name;
     Py_ssize_t pos = 0;
-    uint64_t val;
+    uint8_t val08;
+    uint16_t val16;
+    uint32_t val32;
+    uint64_t val64;
     unsigned int i, found;
 
     if (!PyArg_ParseTuple(args, "O", &dict))
@@ -184,21 +187,24 @@ PyObject* cpu_set_gpreg(JitCpu* self, PyObject *args)
 			    continue;
 		    found = 1;
 		    switch (gpreg_dict[i].size) {
+			    default:
+				    RAISE(PyExc_TypeError, "Unsupported size");
+				    break;
 			    case 8:
-				    PyGetInt(d_value, val);
-				    *((uint8_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset)) = (uint8_t)val;
+				    PyGetInt_uint8_t(d_value, val08);
+				    *((uint8_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset)) = val08;
 				    break;
 			    case 16:
-				    PyGetInt(d_value, val);
-				    *((uint16_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset)) = (uint16_t)val;
+				    PyGetInt_uint16_t(d_value, val16);
+				    *((uint16_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset)) = val16;
 				    break;
 			    case 32:
-				    PyGetInt(d_value, val);
-				    *((uint32_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset)) = (uint32_t)val;
+				    PyGetInt_uint32_t(d_value, val32);
+				    *((uint32_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset)) = val32;
 				    break;
 			    case 64:
-				    PyGetInt(d_value, val);
-				    *((uint64_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset)) = val;
+				    PyGetInt_uint64_t(d_value, val64);
+				    *((uint64_t*)(((char*)(self->cpu)) + gpreg_dict[i].offset)) = val64;
 				    break;
 			    case 128:
 				    {
@@ -363,7 +369,7 @@ PyObject * cpu_dump_gpregs_with_attrib(JitCpu* self, PyObject* args)
 	if (!PyArg_ParseTuple(args, "O", &item1))
 		RAISE(PyExc_TypeError,"Cannot parse arguments");
 
-	PyGetInt(item1, attrib);
+	PyGetInt_uint64_t(item1, attrib);
 
 	vmcpu = self->cpu;
 	if (attrib == 16 || attrib == 32)
@@ -383,14 +389,14 @@ PyObject * cpu_dump_gpregs_with_attrib(JitCpu* self, PyObject* args)
 PyObject* cpu_set_exception(JitCpu* self, PyObject* args)
 {
 	PyObject *item1;
-	uint64_t i;
+	uint32_t exception_flags;
 
 	if (!PyArg_ParseTuple(args, "O", &item1))
 		RAISE(PyExc_TypeError,"Cannot parse arguments");
 
-	PyGetInt(item1, i);
+	PyGetInt_uint32_t(item1, exception_flags);
 
-	((vm_cpu_t*)self->cpu)->exception_flags = (uint32_t)i;
+	((vm_cpu_t*)self->cpu)->exception_flags = exception_flags;
 	Py_INCREF(Py_None);
 	return Py_None;
 }
@@ -403,14 +409,14 @@ PyObject* cpu_get_exception(JitCpu* self, PyObject* args)
 PyObject* cpu_set_interrupt_num(JitCpu* self, PyObject* args)
 {
 	PyObject *item1;
-	uint64_t i;
+	uint32_t exception_flags;
 
 	if (!PyArg_ParseTuple(args, "O", &item1))
 		RAISE(PyExc_TypeError,"Cannot parse arguments");
 
-	PyGetInt(item1, i);
+	PyGetInt_uint32_t(item1, exception_flags);
 
-	((vm_cpu_t*)self->cpu)->interrupt_num = (uint32_t)i;
+	((vm_cpu_t*)self->cpu)->interrupt_num = exception_flags;
 	Py_INCREF(Py_None);
 	return Py_None;
 }
@@ -428,8 +434,8 @@ PyObject* cpu_set_segm_base(JitCpu* self, PyObject* args)
 	if (!PyArg_ParseTuple(args, "OO", &item1, &item2))
 		RAISE(PyExc_TypeError,"Cannot parse arguments");
 
-	PyGetInt(item1, segm_num);
-	PyGetInt(item2, segm_base);
+	PyGetInt_uint64_t(item1, segm_num);
+	PyGetInt_uint64_t(item2, segm_base);
 	((vm_cpu_t*)self->cpu)->segm_base[segm_num] = segm_base;
 
 	Py_INCREF(Py_None);
@@ -444,7 +450,7 @@ PyObject* cpu_get_segm_base(JitCpu* self, PyObject* args)
 
 	if (!PyArg_ParseTuple(args, "O", &item1))
 		RAISE(PyExc_TypeError,"Cannot parse arguments");
-	PyGetInt(item1, segm_num);
+	PyGetInt_uint64_t(item1, segm_num);
 	v = PyLong_FromLong((long)(((vm_cpu_t*)self->cpu)->segm_base[segm_num]));
 	return v;
 }
@@ -490,7 +496,7 @@ PyObject* vm_set_mem(JitCpu *self, PyObject* args)
        if (!PyArg_ParseTuple(args, "OO", &py_addr, &py_buffer))
 	       RAISE(PyExc_TypeError,"Cannot parse arguments");
 
-       PyGetInt(py_addr, addr);
+       PyGetInt_uint64_t(py_addr, addr);
 
        if(!PyBytes_Check(py_buffer))
 	       RAISE(PyExc_TypeError,"arg must be bytes");
@@ -559,10 +565,10 @@ JitCpu_init(JitCpu *self, PyObject *args, PyObject *kwds)
 	static int JitCpu_set_E ## regname  (JitCpu *self, PyObject *value, void *closure) \
 	{								\
 		uint64_t val;						\
-		PyGetInt_retneg(value, val);				\
+		PyGetInt_uint64_t_retneg(value, val);			\
 		val &= 0xFFFFFFFF;					\
 		val |= ((vm_cpu_t*)(self->cpu))->R ##regname & 0xFFFFFFFF00000000ULL; \
-		((vm_cpu_t*)(self->cpu))->R ## regname   = val;			\
+		((vm_cpu_t*)(self->cpu))->R ## regname   = val;		\
 		return 0;						\
 	}
 
@@ -576,10 +582,10 @@ JitCpu_init(JitCpu *self, PyObject *args, PyObject *kwds)
 	static int JitCpu_set_ ## regname  (JitCpu *self, PyObject *value, void *closure) \
 	{								\
 		uint64_t val;						\
-		PyGetInt_retneg(value, val);				\
+		PyGetInt_uint64_t_retneg(value, val);			\
 		val &= 0xFFFF;						\
 		val |= ((vm_cpu_t*)(self->cpu))->R ##regname & 0xFFFFFFFFFFFF0000ULL; \
-		((vm_cpu_t*)(self->cpu))->R ## regname   = val;			\
+		((vm_cpu_t*)(self->cpu))->R ## regname   = val;		\
 		return 0;						\
 	}
 
